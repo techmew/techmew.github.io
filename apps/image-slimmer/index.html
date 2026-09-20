@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>画像スリム | 画像をかんたん縮小・軽量化</title>
+<meta name="description" content="PNG・JPG・WebP画像をブラウザだけで縮小・軽量化できる無料の画像ツール。複数枚一括、目標容量、サイズ指定、形式変換、透過PNGに対応。">
+<style>
+:root{
+  --bg:#fff8fc;--paper:#fff;--text:#3d3850;--muted:#777086;--line:#eadff1;
+  --pink:#ff7fbe;--pink2:#ffe4f2;--purple:#9b7bea;--purple2:#efe9ff;
+  --blue:#62bfe9;--blue2:#e8f8ff;--mint:#64cdb5;--mint2:#e9fff9;
+  --yellow:#f5c95f;--red:#ef6d7a;--shadow:0 14px 32px rgba(115,83,151,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Noto Sans JP","Yu Gothic",sans-serif;background:
+ radial-gradient(circle at 5% 0,#ffe5f3 0,transparent 22%),
+ radial-gradient(circle at 95% 0,#e7f8ff 0,transparent 24%),
+ linear-gradient(180deg,#fffdfd,#fff8fc 55%,#f6fbff);color:var(--text)}
+header{padding:26px 20px 10px;text-align:center}
+.logo{display:inline-flex;align-items:center;gap:10px;font-size:clamp(26px,5vw,42px);font-weight:950;letter-spacing:-.04em}
+.logo span{background:linear-gradient(135deg,var(--pink),var(--purple),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{color:var(--muted);margin:8px auto 0;max-width:760px;line-height:1.7}
+.pill{display:inline-block;margin-top:12px;padding:6px 12px;border-radius:999px;background:var(--mint2);color:#3e806e;font-weight:800;font-size:12px;border:1px solid #c9efe3}
+main{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-columns:390px 1fr;gap:18px}
+.card{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
+h2{font-size:18px;margin:0 0 14px}
+h3{font-size:14px;margin:16px 0 8px}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px;color:#5f5870}
+input,select,button{font:inherit}
+input[type="number"],input[type="text"],select{width:100%;padding:11px 12px;border:1px solid #dcd1e7;border-radius:12px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:#aa8af0;box-shadow:0 0 0 3px #b89dff22}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.drop{border:2px dashed #cdb9de;border-radius:18px;padding:22px;text-align:center;background:linear-gradient(135deg,#fff8fc,#f6fbff);color:var(--muted);cursor:pointer;transition:.16s}
+.drop:hover,.drop.drag{border-color:var(--purple);background:#f8f2ff;transform:translateY(-1px)}
+.drop strong{display:block;color:#5e4d77;font-size:16px;margin-bottom:3px}
+.drop small{display:block;margin-top:6px}
+.drop input{display:none}
+.counter{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)}
+.modeTabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.modeTabs button{border:1px solid #e3d8ec;background:#fff;border-radius:11px;padding:9px 5px;color:#625a70;cursor:pointer;font-weight:800;font-size:12px}
+.modeTabs button.active{background:linear-gradient(135deg,var(--purple),#b28ff1);color:white;border-color:transparent}
+.options{display:none}
+.options.active{display:block}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:11px;color:#665e70}
+.check input{width:auto}
+.btn{width:100%;border:0;border-radius:14px;padding:12px 14px;cursor:pointer;font-weight:900}
+.btn.primary{background:linear-gradient(135deg,var(--pink),var(--purple));color:white;box-shadow:0 8px 20px #b07ad533}
+.btn.good{background:linear-gradient(135deg,#57caae,#7addc7);color:#14382f}
+.btn.secondary{background:#f6f0fa;color:#655873;border:1px solid #e2d7eb}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:grid;gap:8px;margin-top:14px}
+.note{font-size:12px;color:var(--muted);line-height:1.65;margin-top:12px;background:#faf8fc;border-radius:12px;padding:10px}
+.progress{height:10px;background:#efe7f3;border-radius:99px;overflow:hidden;margin-top:12px;display:none}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--purple),var(--blue))}
+.viewer{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.panel{border:1px solid var(--line);border-radius:18px;padding:12px;background:#fff}
+.panelHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.badge{font-size:11px;padding:4px 8px;border-radius:999px;background:#f4eef8;color:#6c5e7a}
+.badge.ok{background:var(--mint2);color:#347461}
+.badge.warn{background:#fff4d9;color:#89671e}
+.preview{min-height:340px;display:grid;place-items:center;border-radius:14px;overflow:hidden;background:
+linear-gradient(45deg,#f0edf2 25%,transparent 25%),
+linear-gradient(-45deg,#f0edf2 25%,transparent 25%),
+linear-gradient(45deg,transparent 75%,#f0edf2 75%),
+linear-gradient(-45deg,transparent 75%,#f0edf2 75%),#fff;
+background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+.preview img{max-width:100%;max-height:440px;object-fit:contain}
+.stats{margin-top:9px;color:var(--muted);font-size:13px;line-height:1.6}
+.saving{font-weight:900;color:#6d5a8b}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;max-height:270px;overflow:auto;margin-top:10px}
+.thumb{border:1px solid var(--line);border-radius:12px;padding:6px;background:#fff;cursor:pointer;position:relative}
+.thumb.active{outline:3px solid #c5a7ee}
+.thumb img{width:100%;aspect-ratio:1/1;object-fit:contain;border-radius:8px;background:#faf8fb}
+.thumb .name{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+.thumb .size{font-size:10px;color:var(--muted)}
+.thumb .done{position:absolute;right:5px;top:5px;background:#5fc8ac;color:#fff;border-radius:999px;font-size:9px;padding:2px 5px}
+.tableWrap{overflow:auto;max-height:300px;margin-top:16px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border-bottom:1px solid #eee7f2;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#fff}
+.smallBtn{border:1px solid #ded2e7;background:#fff;border-radius:8px;padding:5px 8px;cursor:pointer}
+.goodTxt{color:#3c9d84;font-weight:800}.warnTxt{color:#c18a24;font-weight:800}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.quick button{border:1px solid #e0d4ea;background:#fff;border-radius:999px;padding:6px 10px;cursor:pointer;font-size:11px;color:#665b73}
+.quick button:hover{background:#f7f0fc}
+footer{text-align:center;color:#8a8291;font-size:12px;padding:22px}
+@media(max-width:900px){main{grid-template-columns:1fr}.viewer{grid-template-columns:1fr}}
+@media(max-width:520px){main{padding:10px}.card{border-radius:17px;padding:13px}.three{grid-template-columns:1fr}.modeTabs{grid-template-columns:1fr 1fr}.preview{min-height:250px}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🖼️ <span>画像スリム</span></div>
+  <p>画像を小さくしたい、容量を軽くしたい、形式を変えたい。そんな作業をブラウザだけでまとめてできます。</p>
+  <div class="pill">画像は外部へ送信せず、このブラウザ内で処理します</div>
+</header>
+
+<main>
+<section class="card">
+  <h2>1. 画像を選ぶ</h2>
+  <div id="drop" class="drop">
+    <strong>画像をまとめてドロップ</strong>
+    またはクリックして選択
+    <small>PNG / JPG / WebP ・ 最大100枚</small>
+    <input id="file" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+  </div>
+  <div class="counter"><span id="counter">0 / 100枚</span><button id="clear" class="smallBtn">すべて消す</button></div>
+
+  <h3>2. どう縮小する？</h3>
+  <div class="modeTabs">
+    <button data-mode="percent" class="active">％で縮小</button>
+    <button data-mode="max">最大サイズ</button>
+    <button data-mode="exact">指定サイズ</button>
+    <button data-mode="kb">目標KB</button>
+  </div>
+
+  <div id="mode-percent" class="options active">
+    <label>縮小率</label>
+    <input id="percent" type="number" min="1" max="100" value="50">
+    <div class="quick">
+      <button data-percent="75">75%</button><button data-percent="50">50%</button>
+      <button data-percent="25">25%</button><button data-percent="10">10%</button>
+    </div>
+  </div>
+
+  <div id="mode-max" class="options">
+    <div class="row">
+      <div><label>最大幅</label><input id="maxW" type="number" min="1" max="12000" value="1920"></div>
+      <div><label>最大高さ</label><input id="maxH" type="number" min="1" max="12000" value="1080"></div>
+    </div>
+    <div class="quick">
+      <button data-preset="1920,1080">1920×1080</button>
+      <button data-preset="1280,720">1280×720</button>
+      <button data-preset="1024,1024">1024以内</button>
+      <button data-preset="800,800">800以内</button>
+      <button data-preset="512,512">512以内</button>
+      <button data-preset="466,466">Watch 466</button>
+      <button data-preset="200,200">Watch 200</button>
+    </div>
+  </div>
+
+  <div id="mode-exact" class="options">
+    <div class="row">
+      <div><label>幅</label><input id="exactW" type="number" min="1" max="12000" value="1000"></div>
+      <div><label>高さ</label><input id="exactH" type="number" min="1" max="12000" value="1000"></div>
+    </div>
+    <label class="check"><input id="keepRatio" type="checkbox" checked> 縦横比を保つ</label>
+    <label>合わせ方</label>
+    <select id="fitMode">
+      <option value="contain">全体を収める</option>
+      <option value="cover">指定サイズいっぱいにして中央を切り抜く</option>
+      <option value="stretch">縦横をそのまま指定サイズにする</option>
+    </select>
+  </div>
+
+  <div id="mode-kb" class="options">
+    <label>目標容量</label>
+    <div class="row">
+      <input id="targetKB" type="number" min="5" max="10000" value="200">
+      <select id="targetUnit"><option value="KB">KB</option><option value="MB">MB</option></select>
+    </div>
+    <label class="check"><input id="allowDimensionShrink" type="checkbox" checked> 品質調整だけで入らない場合は寸法も少しずつ縮小</label>
+    <div class="quick">
+      <button data-kb="20">20KB</button><button data-kb="50">50KB</button>
+      <button data-kb="100">100KB</button><button data-kb="200">200KB</button>
+      <button data-kb="500">500KB</button><button data-kb="1000">1MB</button>
+    </div>
+  </div>
+
+  <h3>3. 保存形式</h3>
+  <div class="row">
+    <div>
+      <label>形式</label>
+      <select id="format">
+        <option value="auto">元の形式をできるだけ維持</option>
+        <option value="image/png">PNG</option>
+        <option value="image/jpeg">JPG</option>
+        <option value="image/webp">WebP</option>
+      </select>
+    </div>
+    <div>
+      <label>画質</label>
+      <select id="qualityPreset">
+        <option value="0.92">高画質</option>
+        <option value="0.82" selected>標準</option>
+        <option value="0.70">軽量</option>
+        <option value="0.55">かなり軽量</option>
+      </select>
+    </div>
+  </div>
+
+  <label>JPGで透過がある場合の背景色</label>
+  <input id="bgColor" type="text" value="#ffffff">
+
+  <label class="check"><input id="neverUpscale" type="checkbox" checked> 元画像より大きくしない</label>
+  <label class="check"><input id="cleanTransparent" type="checkbox" checked> 完全透明な画素の余分な色を消す</label>
+
+  <div class="actions">
+    <button id="run" class="btn primary">画像をまとめてスリムにする</button>
+    <button id="downloadAll" class="btn good" disabled>処理済み画像を全部保存</button>
+  </div>
+
+  <div class="progress" id="prog"><div id="bar"></div></div>
+  <div class="note">
+    元画像はアップロードされません。処理はこのページを開いている端末内で行います。<br>
+    PNGは写真だと大きくなりやすいため、写真を軽くしたい場合はJPGまたはWebPがおすすめです。
+  </div>
+</section>
+
+<section class="card">
+  <div class="viewer">
+    <div class="panel">
+      <div class="panelHead"><b>元画像</b><span class="badge" id="srcBadge">未選択</span></div>
+      <div class="preview"><img id="srcImg" alt=""></div>
+      <div class="stats" id="srcStats">画像を選ぶと、ここに元画像を表示します。</div>
+    </div>
+    <div class="panel">
+      <div class="panelHead"><b>スリム後</b><span class="badge" id="outBadge">未処理</span></div>
+      <div class="preview"><img id="outImg" alt=""></div>
+      <div class="stats" id="outStats">処理後の画像をここで比較できます。</div>
+    </div>
+  </div>
+
+  <h3>選んだ画像</h3>
+  <div id="thumbs" class="thumbs"></div>
+
+  <div class="tableWrap">
+    <table>
+      <thead><tr><th>#</th><th>ファイル</th><th>元サイズ</th><th>結果</th><th>寸法</th><th>削減</th><th></th></tr></thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
+</section>
+</main>
+
+<canvas id="work" hidden></canvas>
+<footer>himaneko / 画像スリム</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const MAX_FILES=100;
+let items=[],currentIndex=-1,currentMode="percent";
+
+const fmtBytes=n=>{
+  if(n>=1024*1024)return (n/1024/1024).toFixed(2)+" MB";
+  return (n/1024).toFixed(1)+" KB";
+};
+const extFor=t=>t==="image/jpeg"?"jpg":t==="image/webp"?"webp":"png";
+const escapeHtml=s=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+document.querySelectorAll(".modeTabs button").forEach(b=>b.onclick=()=>{
+  currentMode=b.dataset.mode;
+  document.querySelectorAll(".modeTabs button").forEach(x=>x.classList.toggle("active",x===b));
+  document.querySelectorAll(".options").forEach(x=>x.classList.remove("active"));
+  $("mode-"+currentMode).classList.add("active");
+});
+document.querySelectorAll("[data-percent]").forEach(b=>b.onclick=()=>$("percent").value=b.dataset.percent);
+document.querySelectorAll("[data-kb]").forEach(b=>b.onclick=()=>{$("targetKB").value=b.dataset.kb;$("targetUnit").value="KB"});
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{const [w,h]=b.dataset.preset.split(",");$("maxW").value=w;$("maxH").value=h});
+
+$("drop").onclick=()=>$("file").click();
+$("file").onchange=e=>addFiles([...e.target.files]);
+["dragenter","dragover"].forEach(t=>$("drop").addEventListener(t,e=>{e.preventDefault();$("drop").classList.add("drag")}));
+["dragleave","drop"].forEach(t=>$("drop").addEventListener(t,e=>{e.preventDefault();$("drop").classList.remove("drag")}));
+$("drop").addEventListener("drop",e=>addFiles([...e.dataTransfer.files]));
+$("clear").onclick=clearAll;
+
+function clearAll(){
+  items.forEach(it=>{URL.revokeObjectURL(it.srcURL);if(it.outURL)URL.revokeObjectURL(it.outURL)});
+  items=[];currentIndex=-1;renderThumbs();renderResults();updateCounter();
+  $("srcImg").removeAttribute("src");$("outImg").removeAttribute("src");
+  $("srcStats").textContent="画像を選ぶと、ここに元画像を表示します。";
+  $("outStats").textContent="処理後の画像をここで比較できます。";
+  $("srcBadge").textContent="未選択";$("outBadge").textContent="未処理";
+  $("downloadAll").disabled=true;
+}
+function addFiles(files){
+  const valid=files.filter(f=>/^image\/(png|jpeg|webp)$/.test(f.type));
+  const remain=MAX_FILES-items.length;
+  valid.slice(0,Math.max(0,remain)).forEach(file=>items.push({file,srcURL:URL.createObjectURL(file),outBlob:null,outURL:null,outW:0,outH:0,outType:null}));
+  updateCounter();renderThumbs();if(currentIndex<0&&items.length)selectItem(0);
+}
+function updateCounter(){$("counter").textContent=items.length+" / "+MAX_FILES+"枚"}
+function renderThumbs(){
+  const box=$("thumbs");box.innerHTML="";
+  items.forEach((it,i)=>{
+    const d=document.createElement("div");d.className="thumb"+(i===currentIndex?" active":"");
+    d.innerHTML='<img src="'+it.srcURL+'"><div class="name">'+escapeHtml(it.file.name)+'</div><div class="size">'+fmtBytes(it.file.size)+'</div>'+(it.outBlob?'<span class="done">完了</span>':'');
+    d.onclick=()=>selectItem(i);box.appendChild(d);
+  });
+}
+function selectItem(i){
+  currentIndex=i;const it=items[i];if(!it)return;
+  $("srcImg").src=it.srcURL;$("srcBadge").textContent=(i+1)+"/"+items.length;
+  const im=new Image();im.onload=()=>{$("srcStats").innerHTML="<b>"+im.naturalWidth+"×"+im.naturalHeight+"</b> / <b>"+fmtBytes(it.file.size)+"</b><br>"+escapeHtml(it.file.name)};im.src=it.srcURL;
+  if(it.outURL){
+    $("outImg").src=it.outURL;
+    const saved=Math.max(0,100-it.outBlob.size/it.file.size*100);
+    $("outBadge").textContent=saved.toFixed(0)+"% 軽量";
+    $("outBadge").className="badge "+(it.outBlob.size<it.file.size?"ok":"warn");
+    $("outStats").innerHTML="<b>"+it.outW+"×"+it.outH+"</b> / <b>"+fmtBytes(it.outBlob.size)+"</b><br>"+it.outType.replace("image/","").toUpperCase();
+  }else{
+    $("outImg").removeAttribute("src");$("outBadge").textContent="未処理";$("outBadge").className="badge";$("outStats").textContent="まだ処理していません。";
+  }
+  renderThumbs();
+}
+
+function calcTarget(bitmap){
+  const noUp=$("neverUpscale").checked;
+  if(currentMode==="percent"){
+    let s=Math.max(.01,Math.min(1,+$("percent").value/100));
+    return {w:Math.max(1,Math.round(bitmap.width*s)),h:Math.max(1,Math.round(bitmap.height*s)),crop:false};
+  }
+  if(currentMode==="max"||currentMode==="kb"){
+    const mw=currentMode==="max"?Math.max(1,+$("maxW").value||bitmap.width):bitmap.width;
+    const mh=currentMode==="max"?Math.max(1,+$("maxH").value||bitmap.height):bitmap.height;
+    let s=Math.min(mw/bitmap.width,mh/bitmap.height);
+    if(noUp)s=Math.min(1,s);
+    return {w:Math.max(1,Math.round(bitmap.width*s)),h:Math.max(1,Math.round(bitmap.height*s)),crop:false};
+  }
+  const tw=Math.max(1,+$("exactW").value||bitmap.width),th=Math.max(1,+$("exactH").value||bitmap.height);
+  if($("fitMode").value==="stretch"||!$("keepRatio").checked){
+    return {w:noUp?Math.min(tw,bitmap.width):tw,h:noUp?Math.min(th,bitmap.height):th,crop:false,stretch:true};
+  }
+  if($("fitMode").value==="cover"){
+    let s=Math.max(tw/bitmap.width,th/bitmap.height);if(noUp)s=Math.min(1,s);
+    const rw=Math.round(bitmap.width*s),rh=Math.round(bitmap.height*s);
+    return {w:Math.min(tw,rw),h:Math.min(th,rh),crop:true,renderW:rw,renderH:rh};
+  }
+  let s=Math.min(tw/bitmap.width,th/bitmap.height);if(noUp)s=Math.min(1,s);
+  return {w:Math.round(bitmap.width*s),h:Math.round(bitmap.height*s),crop:false};
+}
+
+function outputType(file){
+  const f=$("format").value;
+  if(f!=="auto")return f;
+  if(file.type==="image/jpeg")return "image/jpeg";
+  if(file.type==="image/webp")return "image/webp";
+  return "image/png";
+}
+
+async function draw(bitmap,t,scale=1){
+  const c=$("work");
+  let w=Math.max(1,Math.round(t.w*scale)),h=Math.max(1,Math.round(t.h*scale));
+  c.width=w;c.height=h;
+  const ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.clearRect(0,0,w,h);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  const outType=outputType(currentItemFile);
+  if(outType==="image/jpeg"){ctx.fillStyle=$("bgColor").value||"#ffffff";ctx.fillRect(0,0,w,h)}
+  if(t.crop){
+    const rw=Math.max(w,Math.round((t.renderW||t.w)*scale)),rh=Math.max(h,Math.round((t.renderH||t.h)*scale));
+    const dx=(w-rw)/2,dy=(h-rh)/2;ctx.drawImage(bitmap,dx,dy,rw,rh);
+  }else ctx.drawImage(bitmap,0,0,w,h);
+
+  if($("cleanTransparent").checked && outType==="image/png"){
+    try{
+      const data=ctx.getImageData(0,0,w,h),d=data.data;
+      for(let i=0;i<d.length;i+=4)if(d[i+3]===0){d[i]=0;d[i+1]=0;d[i+2]=0}
+      ctx.putImageData(data,0,0);
+    }catch(_){}
+  }
+  return {canvas:c,w,h};
+}
+
+let currentItemFile=null;
+function blobFromCanvas(canvas,type,quality){return new Promise(resolve=>canvas.toBlob(resolve,type,quality))}
+async function encode(bitmap,file){
+  currentItemFile=file;
+  const t=calcTarget(bitmap),type=outputType(file);
+  let q=+$("qualityPreset").value||.82;
+
+  if(currentMode!=="kb"){
+    const d=await draw(bitmap,t,1);
+    const blob=await blobFromCanvas(d.canvas,type,type==="image/png"?undefined:q);
+    return {blob,w:d.w,h:d.h,type};
+  }
+
+  let target=+$("targetKB").value||200;
+  target*=($("targetUnit").value==="MB"?1024*1024:1024);
+  let best=null,scale=1;
+  for(let round=0;round<14;round++){
+    if(type==="image/png"){
+      const d=await draw(bitmap,t,scale);
+      const blob=await blobFromCanvas(d.canvas,type);
+      if(!best||blob.size<best.blob.size)best={blob,w:d.w,h:d.h,type};
+      if(blob.size<=target)return best;
+    }else{
+      let lo=.18,hi=.96,local=null;
+      for(let k=0;k<8;k++){
+        const qq=(lo+hi)/2,d=await draw(bitmap,t,scale),blob=await blobFromCanvas(d.canvas,type,qq);
+        if(!local||Math.abs(blob.size-target)<Math.abs(local.blob.size-target))local={blob,w:d.w,h:d.h,type};
+        if(blob.size>target)hi=qq;else lo=qq;
+      }
+      if(!best||local.blob.size<best.blob.size)best=local;
+      if(local.blob.size<=target)return local;
+    }
+    if(!$("allowDimensionShrink").checked)break;
+    scale*=.90;if(t.w*scale<32||t.h*scale<32)break;
+  }
+  return best;
+}
+
+$("run").onclick=async()=>{
+  if(!items.length)return alert("先に画像を選んでください。");
+  $("run").disabled=true;$("prog").style.display="block";$("bar").style.width="0%";
+  for(let i=0;i<items.length;i++){
+    try{
+      const bitmap=await createImageBitmap(items[i].file);
+      const res=await encode(bitmap,items[i].file);bitmap.close?.();
+      if(items[i].outURL)URL.revokeObjectURL(items[i].outURL);
+      items[i].outBlob=res.blob;items[i].outURL=URL.createObjectURL(res.blob);items[i].outW=res.w;items[i].outH=res.h;items[i].outType=res.type;
+    }catch(err){console.error(err)}
+    $("bar").style.width=((i+1)/items.length*100)+"%";
+    if(i===currentIndex)selectItem(i);
+  }
+  renderThumbs();renderResults();$("downloadAll").disabled=!items.some(x=>x.outBlob);$("run").disabled=false;
+  setTimeout(()=>$("prog").style.display="none",500);
+};
+
+function renderResults(){
+  const tb=$("resultBody");tb.innerHTML="";
+  items.forEach((it,i)=>{
+    const tr=document.createElement("tr"),saved=it.outBlob?(100-it.outBlob.size/it.file.size*100):0;
+    tr.innerHTML="<td>"+(i+1)+"</td><td>"+escapeHtml(it.file.name)+"</td><td>"+fmtBytes(it.file.size)+"</td><td>"+(it.outBlob?fmtBytes(it.outBlob.size):"-")+"</td><td>"+(it.outBlob?it.outW+"×"+it.outH:"-")+"</td><td class='"+(saved>=0?"goodTxt":"warnTxt")+"'>"+(it.outBlob?saved.toFixed(0)+"%":"-")+"</td><td>"+(it.outBlob?'<button class="smallBtn" data-i="'+i+'">保存</button>':"")+"</td>";
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>downloadItem(+b.dataset.i));
+}
+function downloadItem(i){
+  const it=items[i];if(!it.outBlob)return;
+  const stem=it.file.name.replace(/\.[^.]+$/,"");
+  const a=document.createElement("a");a.href=it.outURL;a.download=stem+"_slim."+extFor(it.outType);document.body.appendChild(a);a.click();a.remove();
+}
+$("downloadAll").onclick=async()=>{
+  for(const it of items.filter(x=>x.outBlob)){
+    const stem=it.file.name.replace(/\.[^.]+$/,""),a=document.createElement("a");
+    a.href=it.outURL;a.download=stem+"_slim."+extFor(it.outType);document.body.appendChild(a);a.click();a.remove();
+    await new Promise(r=>setTimeout(r,130));
+  }
+};
+</script>
+</body>
+</html>
