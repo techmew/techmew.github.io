@@ -1,0 +1,29 @@
+name: Build himaneko hero image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-hero.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild hero image
+        run: |
+          mkdir -p assets/images
+          cat .hero_parts/part_*.b64 | tr -d '\n' | base64 -d > assets/images/himaneko-hero.webp
+          rm -rf .hero_parts
+          rm -f .github/workflows/build-hero.yml
+      - name: Commit hero image
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add himaneko top hero image"
+          git push
