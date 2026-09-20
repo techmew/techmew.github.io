@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://techmew.github.io/sitemap.xml
