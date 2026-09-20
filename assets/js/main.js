@@ -1,0 +1,1 @@
+document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',()=>{const n=b.nextElementSibling,o=n.classList.toggle('open');b.setAttribute('aria-expanded',String(o))}));
