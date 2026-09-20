@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ひまねこの制作物置き場</title>
-<meta name="description" content="ひまねこが作ったゲーム、HTMLツール、制作途中のものを置いているサイトです。">
-<meta name="theme-color" content="#0b0e13">
+<meta name="description" content="ひまねこが作ったゲーム、HTMLツール、制作途中のものをわかりやすくまとめています。">
+<meta name="theme-color" content="#fffdf8">
 <link rel="canonical" href="https://techmew.github.io/">
 <link rel="stylesheet" href="/assets/css/style.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -16,7 +16,7 @@
     <a class="brand" href="/"><span>himaneko</span></a>
     <button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button>
     <nav class="nav">
-      <a href="/works.html">制作物</a>
+      <a href="/works.html">制作物一覧</a>
       <a href="/timeline.html">更新履歴</a>
       <a href="/prompts/">制作プロンプト</a>
       <a href="/about.html">このサイトについて</a>
@@ -27,22 +27,36 @@
 <main>
 <section class="hero">
   <div class="wrap">
-    <h1 style="font-size:clamp(2.4rem,7vw,5rem)">ひまねこの<br>制作物置き場</h1>
-    <p class="hero-copy">自分で作ったゲームやHTMLツールを置いています。完成したものだけでなく、制作途中のものもそのまま公開して更新していきます。</p>
+    <div class="hero-box">
+      <span class="kicker">ゲーム・HTMLツールを公開しています</span>
+      <h1>ひまねこの<br>制作物置き場</h1>
+      <p class="hero-copy">ここでは、個人で作っているゲームや便利なHTMLツールを公開しています。完成したものだけでなく、まだ制作途中のものも少しずつ更新しながら残しています。</p>
+      <p class="hero-note">気になるものがあれば、各ページから内容を見たり、公開中のHTMLツールをそのまま使ったりできます。</p>
+    </div>
   </div>
 </section>
 
 <section class="section">
   <div class="wrap">
     <div class="section-head">
-      <div><h2>HTMLツール</h2></div>
+      <div>
+        <h2>すぐ使えるHTMLツール</h2>
+        <p>ブラウザだけで使える、自作のHTMLツールです。</p>
+      </div>
     </div>
     <div class="grid">
-      <a class="card large" href="/tools/watch-motion-studio.html">
-        <span class="status live">HTML</span>
-        <h3>Watch Motion Studio PRO</h3>
-        <p>スマートウォッチ用の動画分割、連番画像、文字盤プレビュー、容量確認などをまとめたツール。</p>
-      </a>
+      <article class="card large">
+        <div class="card-image"><img src="/assets/images/watch-motion.svg" alt="Watch Motion Studioのイメージ"></div>
+        <div class="card-body">
+          <span class="status live">公開中</span>
+          <h3>Watch Motion Studio PRO</h3>
+          <p>スマートウォッチ用の素材づくりを手伝うツールです。動画の分割、連番画像の作成、文字盤の見え方確認、容量チェックなどをひとつの画面で行えます。</p>
+          <div class="card-actions">
+            <a class="btn" href="/tools/watch-motion-studio.html">ツールを見る</a>
+            <a class="btn secondary" href="/timeline.html">更新履歴</a>
+          </div>
+        </div>
+      </article>
     </div>
   </div>
 </section>
@@ -50,35 +64,52 @@
 <section class="section">
   <div class="wrap">
     <div class="section-head">
-      <div><h2>ゲーム</h2></div>
+      <div>
+        <h2>制作中のゲーム</h2>
+        <p>まだ完成していないゲームも、今どこまでできているか分かるように公開しています。</p>
+      </div>
     </div>
     <div class="grid">
-      <a class="card" href="/projects/neko-gotoku.html">
-        <span class="status dev">制作中</span>
-        <h3>猫が如く（仮）</h3>
-        <p>黒猫を操作する3Dアクション。制作途中の状態も公開。</p>
-      </a>
-      <a class="card" href="/projects/device.html">
-        <span class="status dev">制作中</span>
-        <h3>DEVICE</h3>
-        <p>スマホの傾き、向き、音、振動などを使う3Dパズル。</p>
-      </a>
-      <a class="card" href="/projects/afterwild.html">
-        <span class="status dev">制作中</span>
-        <h3>AFTERWILD（仮）</h3>
-        <p>荒廃した日本を猫として生きる3Dサバイバル。</p>
-      </a>
+      <article class="card">
+        <div class="card-image"><img src="/assets/images/neko-gotoku.svg" alt="猫が如く（仮）のイメージ"></div>
+        <div class="card-body">
+          <span class="status dev">制作中</span>
+          <h3>猫が如く（仮）</h3>
+          <p>黒猫のクロを操作して、日本の商店街や路地裏を走り回る3Dアクションゲームです。猫らしい移動や喧嘩の動きを中心に調整しています。</p>
+          <div class="card-actions"><a class="btn blue" href="/projects/neko-gotoku.html">制作状況を見る</a></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-image"><img src="/assets/images/device.svg" alt="DEVICEのイメージ"></div>
+        <div class="card-body">
+          <span class="status dev">制作中</span>
+          <h3>DEVICE</h3>
+          <p>スマホを傾ける、伏せる、音や振動を使うなど、スマートフォンそのものを使って解く3Dパズルゲームです。</p>
+          <div class="card-actions"><a class="btn blue" href="/projects/device.html">制作状況を見る</a></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-image"><img src="/assets/images/afterwild.svg" alt="AFTERWILD（仮）のイメージ"></div>
+        <div class="card-body">
+          <span class="status dev">企画・制作中</span>
+          <h3>AFTERWILD（仮）</h3>
+          <p>荒廃した日本を、黒猫のみーとして生き抜く3Dサバイバルゲームです。ステルス、探索、食料探しなどを中心に考えています。</p>
+          <div class="card-actions"><a class="btn blue" href="/projects/afterwild.html">制作状況を見る</a></div>
+        </div>
+      </article>
     </div>
   </div>
 </section>
 
 <section class="section">
   <div class="wrap">
-    <div class="section-head">
-      <div><h2>制作途中・過去版</h2></div>
+    <div class="soft-box">
+      <h2 style="font-size:1.35rem;margin:0 0 8px">制作途中のものも残しています</h2>
+      <p style="margin:0;color:#687078">古いバージョンや途中経過も、あとから見返せるように残していく予定です。新しい更新は上に追加し、過去の記録は消さずに残します。</p>
+      <div class="card-actions"><a class="btn secondary" href="/timeline.html">これまでの更新を見る</a></div>
     </div>
-    <p class="lead">途中版や古いバージョンも消さずに残します。新しいものを上に追加していきます。</p>
-    <p><a class="btn secondary" href="/timeline.html">更新履歴を見る</a></p>
   </div>
 </section>
 </main>
@@ -87,7 +118,7 @@
   <div class="wrap footer-grid">
     <div>
       <strong>himaneko</strong>
-      <p>個人で作ったゲーム・HTMLツール・制作途中の記録を公開しています。</p>
+      <p>個人で作ったゲームやHTMLツールを公開しています。</p>
     </div>
     <div class="footer-links">
       <a href="/privacy.html">プライバシーポリシー</a>
