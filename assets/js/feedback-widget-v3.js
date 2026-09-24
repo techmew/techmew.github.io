@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const URL="https://ehmmpzukulixwtvvwruq.supabase.co",KEY="sb_publishable_woaWa1rGRcnCdClhURO6vQ_2F-_PVF0",REST=URL+"/rest/v1";
-const map={4:"image-slimmer",5:"watch-motion",6:"heic-lab",7:"gif-apng"};
+const map={4:"image-slimmer",5:"watch-motion",6:"heic-lab",7:"gif-apng",8:"line-sticker"};
 const headers={apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"};
 function voter(){const k="himaneko_feedback_voter";let v=localStorage.getItem(k);if(!v){v=crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0,n=c==="x"?r:r&3|8;return n.toString(16)});localStorage.setItem(k,v)}return v}
 function date(s){try{return new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"numeric",day:"numeric"}).format(new Date(s))}catch(_){return""}}
