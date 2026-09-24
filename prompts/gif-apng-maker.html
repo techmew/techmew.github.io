@@ -1,0 +1,74 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GIF / APNG Maker 制作プロンプト完全版 | himaneko</title><meta name="description" content="GIF/APNG Makerを再制作する完全プロンプト。連番画像、速度、個別delay、ループ、逆再生、往復、透明、リサイズ、GIF色数、APNGまで。"><meta property="og:image" content="https://techmew.github.io/assets/images/hq/gif-apng-maker-hero.jpg"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/assets/css/style.css"></head><body><header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><nav class="nav"><a href="/works.html">制作物</a><a href="/prompts/">プロンプト</a></nav></div></header><main><article class="article"><span class="kicker">ANIMATION TOOL・完全仕様</span><h1>GIF / APNG Maker 制作プロンプト</h1><p class="lede">連番画像をブラウザだけでGIF・APNGへ変換するツールを再制作するための完全仕様です。</p><div class="article-visual"><img src="/assets/images/hq/gif-apng-maker-hero.jpg" alt="GIF APNG Maker" width="1600" height="900"></div><button class="btn pop-purple" onclick="navigator.clipboard.writeText(document.getElementById('p').innerText).then(()=>this.textContent='コピーしました')">全文をコピー</button><pre id="p">あなたはフロントエンドエンジニア、画像・アニメーション処理担当、UI/UX、パフォーマンス、QAを兼任してください。
+
+ブラウザだけで連番PNG/JPG/WebPからGIFまたはAPNGを作れる「GIF / APNG Maker」を完成させてください。
+
+必須仕様：
+・PNG / JPG / WebP入力
+・最大100フレーム
+・複数選択、ドラッグ＆ドロップ
+・自然順ソート（frame_2をframe_10より前にする）
+・フレーム一覧
+・上へ / 下へ移動
+・複製
+・削除
+・全削除
+・順番反転
+・各フレーム個別delay
+・全フレームへdelay一括適用
+・50 / 80 / 100 / 180 / 250msクイック設定
+・通常再生
+・逆再生
+・往復（ピンポン）再生
+・無限ループ
+・1回
+・指定回数
+・出力サイズ指定
+・200 / 320 / 466 / 512 / 1024プリセット
+・1枚目サイズを採用
+・Contain
+・Cover
+・Stretch
+・透明背景
+・背景色指定
+・Canvasプレビュー
+・再生 / 一時停止
+・スクラブ
+・現在フレーム表示
+・総時間
+・目安FPS
+
+GIF：
+・16 / 32 / 64 / 128 / 256色
+・1bit透明を正しく扱う
+・フレームdelay
+・loop回数
+・GIF完成Blobを保存
+・利用ライブラリのライセンスを表示
+
+APNG：
+・RGBAフレームを利用
+・各フレームdelay
+・半透明を保持可能
+・PNG Blobで保存
+・利用ライブラリのライセンスを表示
+
+UI：
+・PCは設定＋作業画面
+・スマホは1カラム
+・出力前にリアルタイムプレビュー
+・処理進捗
+・書き出し完了後プレビュー
+・容量表示
+・保存ボタン
+・エラーを他フレームと分離
+・画像は外部サーバーへアップロードしない
+
+安全性：
+・ファイル名表示時はXSS対策
+・Blob URLを不要時にrevoke
+・ImageBitmap等は不要時に解放
+・外部ライブラリのバージョン固定
+・秘密鍵をフロントエンドへ置かない
+
+完成条件：
+GIF出力、APNG出力、速度、個別delay、往復、逆再生、透明、サイズ調整、Contain/Cover/Stretch、プレビュー、保存、スマホ表示がすべて実際に動くこと。</pre></article></main><footer class="site-footer"><div class="wrap"><strong>himaneko</strong></div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>
