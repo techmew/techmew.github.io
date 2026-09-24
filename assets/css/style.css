@@ -462,3 +462,15 @@ body{
   .nav{background:#17191f;border-color:#30333c}
   .hero-welcome{margin:-26px auto 0}
 }
+
+.feedback-form{display:grid;gap:12px;margin:18px 0}
+.feedback-label{display:grid;gap:6px;font-size:.9rem;font-weight:800;color:#3f4550}
+.feedback-label span{font-weight:600;color:#8a9099;font-size:.78rem}
+.feedback-name,.feedback-body{width:100%;border:1px solid var(--line-strong);border-radius:10px;background:#fff;padding:11px 12px;color:var(--text);outline:none;transition:.15s border-color,.15s box-shadow}
+.feedback-body{min-height:116px;resize:vertical;line-height:1.65}
+.feedback-name:focus,.feedback-body:focus{border-color:#8e80f6;box-shadow:0 0 0 3px rgba(107,87,245,.10)}
+.feedback-form-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.feedback-form-status{font-size:.84rem;color:#68707b}
+.feedback-submit:disabled,.feedback-send:disabled{opacity:.55;cursor:wait}
+.feedback-vote.is-liked,.feedback-mini a.is-liked,.hfb-actions a.is-liked{background:#ffeef4!important;border-color:#efb9cd!important;color:#7b3f56!important}
+.feedback-vote.is-busy{opacity:.65}
