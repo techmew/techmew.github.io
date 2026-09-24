@@ -10,7 +10,8 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
     2:{id:"device",url:"/projects/device.html#himaneko-feedback"},
     3:{id:"afterwild",url:"/projects/afterwild.html#himaneko-feedback"},
     4:{id:"image-slimmer",url:"/tools/image-slimmer.html#himaneko-feedback"},
-    5:{id:"watch-motion",url:"/tools/watch-motion-studio.html#himaneko-feedback"}
+    5:{id:"watch-motion",url:"/tools/watch-motion-studio.html#himaneko-feedback"},
+    6:{id:"heic-lab",url:"/tools/heic-lab.html#himaneko-feedback"}
   };
 
   const headers = {
