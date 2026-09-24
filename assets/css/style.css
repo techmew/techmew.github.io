@@ -185,3 +185,24 @@ body{
 .sprite-neko{background-position:50% 100%}
 .sprite-device{background-position:75% 100%}
 .sprite-afterwild{background-position:100% 100%}
+
+.feedback-panel{margin:38px 0 0;padding:24px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,#fff,#fffafc);box-shadow:0 10px 28px rgba(75,60,40,.06)}
+.feedback-panel h2{margin-top:0}
+.feedback-intro{color:#656c73;margin:.3rem 0 18px}
+.feedback-actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.feedback-vote,.feedback-comment-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:999px;padding:10px 14px;font-weight:850;border:1px solid #e6dbe8;background:#fff;color:#514b58;transition:.18s transform,.18s box-shadow,.18s border-color}
+.feedback-vote:hover,.feedback-comment-link:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(110,80,130,.10);border-color:#d7b7dc}
+.feedback-vote{background:#fff5f8;border-color:#f1c9d7;color:#86485f}
+.feedback-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.8);font-size:.86rem}
+.feedback-comments{display:grid;gap:10px}
+.feedback-comment{border:1px solid #e7e7e9;border-radius:14px;padding:13px 14px;background:#fff}
+.feedback-comment-head{display:flex;align-items:center;gap:8px;color:#777;font-size:.82rem;margin-bottom:7px}
+.feedback-comment-head img{width:26px;height:26px;border-radius:50%}
+.feedback-comment-body{margin:0;white-space:pre-wrap;word-break:break-word;line-height:1.65}
+.feedback-empty{margin:0;padding:14px;border-radius:12px;background:#f7f8f9;color:#737b82}
+.feedback-note{font-size:.82rem;color:#777;margin:14px 0 0}
+.feedback-mini{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.feedback-mini a{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-size:.82rem;font-weight:800;padding:6px 10px;border-radius:999px;border:1px solid #e4e4e7;background:#fff;color:#646b72}
+.feedback-mini a:first-child{background:#fff6f8;border-color:#f0d0da;color:#854c60}
+.feedback-mini a:hover{border-color:#cfcfd4}
+@media(max-width:640px){.feedback-panel{padding:18px 15px}.feedback-actions>a{width:100%;justify-content:center}}
