@@ -165,3 +165,8 @@ body{
   .hero-welcome{border-radius:18px;padding:20px 16px}
   .hero-actions .btn{width:100%;text-align:center}
 }
+
+.article-visual{margin:24px 0 30px;border-radius:22px;overflow:hidden;border:1px solid var(--line);background:#fff;box-shadow:0 10px 28px rgba(75,60,40,.07)}
+.article-visual img{display:block;width:100%;height:auto}
+.article-visual.compact{max-width:780px;margin-left:auto;margin-right:auto}
+.card-image img{width:100%;height:100%;object-fit:cover}
