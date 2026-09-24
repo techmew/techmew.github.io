@@ -1,0 +1,43 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Exif Cleaner 制作プロンプト完全版 | himaneko</title><meta name="description" content="Exif Cleanerを再制作・改良するための要件、UI、メタデータ検出、再検査、HEIC対応、ZIP、セキュリティ方針をまとめた制作プロンプト。"><link rel="canonical" href="https://techmew.github.io/prompts/exif-cleaner.html"><link rel="stylesheet" href="/assets/css/style.css"></head><body>
+<header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button><nav class="nav"><a href="/works.html">制作物</a><a href="/prompts/">プロンプト</a><a href="/tools/exif-cleaner.html">Exif Cleaner</a></nav></div></header>
+<main><article class="article"><div class="eyebrow">production prompt</div><h1>Exif Cleaner 制作プロンプト</h1><p class="lede">同じ思想から作り直せるように、機能だけでなく「何を削除したかを見せる」「削除後に再検査する」まで含めた要件を残します。</p>
+<div class="article-visual"><img src="/assets/images/hq/exif-cleaner-hero.jpg" alt="Exif Cleanerの制作イメージ" width="1600" height="900" loading="lazy" decoding="async"></div>
+<h2>完全版プロンプト</h2><pre>無料・登録不要のブラウザ画像プライバシーツール「Exif Cleaner」を作成する。
+
+【目的】
+写真に含まれるGPS位置情報、撮影日時、メーカー・機種名、レンズ、シリアル系タグ、編集ソフト、作者、Copyright、UserComment、ImageDescription等を読み取り、利用者が確認してから削除できるようにする。
+
+【必須条件】
+・処理はブラウザ内で完結
+・画像を自前サーバーへアップロードしない
+・JPG / PNG / WebP / HEIC / HEIF
+・最大100枚
+・GPSがあれば最優先で警告
+・各画像の検出カテゴリと具体的なタグを表示
+・出力はJPG / PNG / WebP
+・品質調整
+・元サイズ / 最大幅高さ
+・Canvasへ再描画し、元Exifを出力へコピーしない
+・処理後の出力画像をExif解析して再検査
+・注意対象が0件なら「確認済み」と表示
+・失敗した画像は成功扱いしない
+・個別保存
+・ZIP一括保存
+・HEICをブラウザでデコード
+・設定と処理履歴をlocalStorageへ保存
+・スマホ対応
+・ダークUI、情報の危険度が直感的に分かるデザイン
+
+【メタデータ検出】
+GPS緯度経度、GPS高度、日時、Make、Model、LensModel、BodySerialNumber、CameraSerialNumber、LensSerialNumber、Software、HostComputer、Artist、Copyright、UserComment、ImageDescription等を確認する。
+
+【安全設計】
+service_role等の秘密鍵をブラウザへ置かない。
+地図サービスへGPS座標を自動送信しない。
+元画像は変更せず、必ず新しいファイルとして保存する。
+「完全に匿名になる」と断定しない。対象は画像ファイル内のメタデータ削除であることを明示する。
+
+【ライブラリ】
+exifr、heic-to、JSZip等は現行安定版を確認して利用し、ライセンスを画面内へ記載する。</pre>
+<p><a class="btn pop-purple" href="/apps/exif-cleaner/">完成したExif Cleanerを開く</a></p>
+</article></main><footer class="site-footer"><div class="wrap copyright">© 2026 himaneko</div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>
