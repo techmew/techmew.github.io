@@ -1,0 +1,63 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LINEスタンプメーカー 制作プロンプト完全版 | himaneko</title><meta name="description" content="静止LINEスタンプ制作を支援するブラウザツールの完全仕様。8〜40枚、370×320、メイン240×240、タブ96×74、透過トリム、文字、容量、ZIP。"><meta property="og:image" content="https://techmew.github.io/assets/images/hq/line-sticker-maker-hero.jpg"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/assets/css/style.css"></head><body><header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><nav class="nav"><a href="/works.html">制作物</a><a href="/prompts/">プロンプト</a></nav></div></header><main><article class="article"><span class="kicker">STICKER TOOL・完全仕様</span><h1>LINEスタンプメーカー 制作プロンプト</h1><p class="lede">LINE Creators Marketの静止スタンプ制作で発生するサイズ・余白・文字・メイン・タブ・容量確認をまとめて処理するツールの再制作仕様です。</p><div class="article-visual"><img src="/assets/images/hq/line-sticker-maker-hero.jpg" alt="LINEスタンプメーカー" width="1600" height="900"></div><button class="btn pop-purple" onclick="navigator.clipboard.writeText(document.getElementById('p').innerText).then(()=>this.textContent='コピーしました')">全文をコピー</button><pre id="p">あなたはフロントエンドエンジニア、Canvas画像処理担当、UI/UX、LINEスタンプ仕様確認、QAを兼任してください。
+
+LINE Creators Market向け「静止スタンプ」の制作作業を軽くするブラウザツールを完成させてください。
+
+最重要：
+LINEの仕様は変更される可能性があるため、実装前に必ず公式LINE Creators Market制作ガイドラインを確認し、ツール内に確認日と公式リンクを表示してください。
+
+最低限の現行仕様：
+・スタンプ数：8 / 16 / 24 / 32 / 40
+・スタンプ画像：最大370×320px
+・PNG
+・1画像1MB以下
+・メイン画像：240×240px
+・トークルームタブ：96×74px
+・背景透過
+・偶数サイズ
+・RGB
+・通常スタンプは画像外枠と内容の間に約10px余白
+・ZIP一括アップロード時は60MB以下
+
+機能：
+・PNG/JPG/WebP複数読み込み
+・自然順ソート
+・選択数を超えた画像は追加しない
+・空き枠を明示
+・各枠の削除
+・透過ピクセルを調べて自動トリム
+・安全余白指定
+・370×320 Canvasへ縦横比を保ってContain
+・元画像は変更しない
+・各スタンプへ任意テキスト
+・文字サイズ
+・文字色
+・フチ色
+・上 / 下配置
+・長文は自動でフォントサイズを下げる
+・定番文の一括入力候補
+・メイン画像の元スタンプを選択
+・タブ画像の元スタンプを選択
+・240×240生成
+・96×74生成
+・各PNG容量をチェック
+・1MB超過を赤表示
+・不足枚数を表示
+・ZIP生成
+・ZIP 60MB超過を警告
+・01.png等の整理された名前
+・main.png / tab.png
+・ブラウザ内処理
+・外部へ元画像をアップロードしない
+・PC / スマホ対応
+・設定をlocalStorageへ保存
+・公式サービスではない旨を表示
+
+注意：
+・審査通過を保証しない
+・権利侵害画像の利用を推奨しない
+・ガイドライン変更時は仕様を更新する
+・静止スタンプとアニメーションスタンプの仕様を混同しない
+・背景削除は透明PNGを前提とし、単純な色除去を万能AI背景削除として見せない
+
+完成条件：
+画像数、サイズ、透過余白、文字入れ、メイン、タブ、容量、ZIP、スマホUI、公式仕様表示がすべて実際に動作すること。</pre></article></main><footer class="site-footer"><div class="wrap"><strong>himaneko</strong></div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>
