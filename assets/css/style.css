@@ -304,3 +304,21 @@ th{font-size:.83rem;color:#5f4fd0;background:#faf9ff}
   .feedback-panel{padding:18px 15px}
   .feedback-actions>a{width:100%;justify-content:center}
 }
+
+/* Final layout polish */
+.brand::before{
+  content:"h";
+  width:29px;height:29px;border-radius:9px;
+  display:inline-grid;place-items:center;
+  color:#fff;font-size:.82rem;font-weight:950;
+  background:linear-gradient(135deg,var(--accent),#9569ef 58%,#4dbbe9);
+  box-shadow:0 6px 16px rgba(103,87,232,.22);
+}
+.brand .brand-mark{display:none}
+.article:has(> .grid){width:min(1120px,calc(100% - 36px))}
+.article:has(> .grid) > .article-visual{max-width:920px}
+.article:has(> .grid) > .lede{max-width:860px}
+.card-image img{image-rendering:auto}
+@media(max-width:640px){
+  .article:has(> .grid){width:min(100% - 24px,1120px)}
+}
