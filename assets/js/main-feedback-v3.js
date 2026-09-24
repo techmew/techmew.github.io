@@ -13,7 +13,8 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
     5:{id:"watch-motion",url:"/tools/watch-motion-studio.html#himaneko-feedback"},
     6:{id:"heic-lab",url:"/tools/heic-lab.html#himaneko-feedback"},
     7:{id:"gif-apng",url:"/tools/gif-apng-maker.html#himaneko-feedback"},
-    8:{id:"line-sticker",url:"/tools/line-sticker-maker.html#himaneko-feedback"}
+    8:{id:"line-sticker",url:"/tools/line-sticker-maker.html#himaneko-feedback"},
+    9:{id:"exif-cleaner",url:"/tools/exif-cleaner.html#himaneko-feedback"}
   };
 
   const headers = {
