@@ -170,3 +170,18 @@ body{
 .article-visual img{display:block;width:100%;height:auto}
 .article-visual.compact{max-width:780px;margin-left:auto;margin-right:auto}
 .card-image img{width:100%;height:100%;object-fit:cover}
+
+/* Generated raster eyecatches */
+.eyecatch-sprite{background-image:url('/assets/images/eyecatch/all-pages.jpg');background-size:500% 200%;background-repeat:no-repeat;background-color:#f6f3ed}
+.article-visual.eyecatch-sprite{aspect-ratio:360/203;width:100%}
+.card-image.eyecatch-sprite{aspect-ratio:16/9}
+.sprite-privacy{background-position:0% 0%}
+.sprite-contact{background-position:25% 0%}
+.sprite-about{background-position:50% 0%}
+.sprite-timeline{background-position:75% 0%}
+.sprite-prompts{background-position:100% 0%}
+.sprite-dev{background-position:0% 100%}
+.sprite-terms{background-position:25% 100%}
+.sprite-neko{background-position:50% 100%}
+.sprite-device{background-position:75% 100%}
+.sprite-afterwild{background-position:100% 100%}
