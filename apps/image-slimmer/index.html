@@ -89,7 +89,7 @@ footer{text-align:center;color:#8a8291;font-size:12px;padding:22px}
 @media(max-width:900px){main{grid-template-columns:1fr}.viewer{grid-template-columns:1fr}}
 @media(max-width:520px){main{padding:10px}.card{border-radius:17px;padding:13px}.three{grid-template-columns:1fr}.modeTabs{grid-template-columns:1fr 1fr}.preview{min-height:250px}.row{grid-template-columns:1fr}}
 </style>
-</head>
+<link rel="stylesheet" href="/assets/css/feedback-widget.css"></head>
 <body>
 <header>
   <div class="logo">🖼️ <span>画像スリム</span></div>
@@ -441,5 +441,18 @@ $("downloadAll").onclick=async()=>{
   }
 };
 </script>
-</body>
+<a class="hfb-jump" href="#himaneko-feedback">💬 感想・要望</a>
+<section class="hfb-wrap" id="himaneko-feedback">
+  <div class="hfb-panel" data-feedback-issue="4">
+    <h2>画像スリムへの感想・要望</h2>
+    <p class="hfb-intro">「もっとこうしてほしい」をそのまま書けます。例：一括保存を分かりやすく、HEICも読みたい、容量指定をもっと速く、など。</p>
+    <div class="hfb-actions">
+      <a data-feedback-link href="#"><span>❤️</span><span>便利・今後も更新してほしい</span><span class="hfb-count" data-feedback-hearts>…</span></a>
+      <a data-feedback-link href="#"><span>💬</span><span>もっとこうしてほしい</span><span class="hfb-count" data-feedback-comments>…</span></a>
+    </div>
+    <div class="feedback-comments"><p class="feedback-empty">コメントを読み込んでいます…</p></div>
+    <p class="hfb-note">ハートとコメントの投稿にはGitHubアカウントが必要です。ここには全員共通の反応を表示します。</p>
+  </div>
+</section>
+<script src="/assets/js/feedback-widget.js"></script></body>
 </html>
