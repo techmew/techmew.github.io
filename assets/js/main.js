@@ -2,9 +2,22 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
 
 (() => {
   "use strict";
-  const REPO = "techmew/techmew.github.io";
-  const apiBase = "https://api.github.com/repos/" + REPO + "/issues/";
-  const webBase = "https://github.com/" + REPO + "/issues/";
+  const SUPABASE_URL = "https://ehmmpzukulixwtvvwruq.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_woaWa1rGRcnCdClhURO6vQ_2F-_PVF0";
+  const REST = SUPABASE_URL + "/rest/v1";
+  const workMap = {
+    1:{id:"neko",url:"/projects/neko-gotoku.html#himaneko-feedback"},
+    2:{id:"device",url:"/projects/device.html#himaneko-feedback"},
+    3:{id:"afterwild",url:"/projects/afterwild.html#himaneko-feedback"},
+    4:{id:"image-slimmer",url:"/tools/image-slimmer.html#himaneko-feedback"},
+    5:{id:"watch-motion",url:"/tools/watch-motion-studio.html#himaneko-feedback"}
+  };
+
+  const headers = {
+    apikey: SUPABASE_KEY,
+    Authorization: "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json"
+  };
 
   function fmtDate(iso){
     try{
@@ -12,113 +25,173 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
     }catch(_){ return ""; }
   }
 
-  async function getIssue(issueNo){
-    const res = await fetch(apiBase + issueNo, {
-      headers: {"Accept":"application/vnd.github+json"}
+  function voterKey(){
+    const key="himaneko_feedback_voter";
+    let value=localStorage.getItem(key);
+    if(!value){
+      value=(crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==="x"?r:(r&3|8);return v.toString(16)}));
+      localStorage.setItem(key,value);
+    }
+    return value;
+  }
+
+  async function countRows(table, workId){
+    const res=await fetch(REST+"/"+table+"?select=id&work_id=eq."+encodeURIComponent(workId)+"&limit=1",{
+      headers:{...headers,Prefer:"count=exact"}
     });
-    if(!res.ok) throw new Error("issue " + res.status);
+    if(!res.ok) throw new Error(table+" count "+res.status);
+    const range=res.headers.get("content-range")||"";
+    const total=range.split("/")[1];
+    return total && total!=="*" ? Number(total) : (await res.json()).length;
+  }
+
+  async function getComments(workId){
+    const res=await fetch(REST+"/feedback_comments?select=id,display_name,body,created_at&work_id=eq."+encodeURIComponent(workId)+"&order=created_at.desc&limit=5",{headers});
+    if(!res.ok) throw new Error("comments "+res.status);
     return res.json();
   }
 
-  async function getLatestComments(issueNo, count){
-    if(!count) return [];
-    const per = 5;
-    const page = Math.max(1, Math.ceil(count / per));
-    const res = await fetch(apiBase + issueNo + "/comments?per_page=" + per + "&page=" + page, {
-      headers: {"Accept":"application/vnd.github+json"}
+  async function addHeart(workId){
+    const res=await fetch(REST+"/feedback_hearts",{
+      method:"POST",
+      headers:{...headers,Prefer:"return=minimal"},
+      body:JSON.stringify({work_id:workId,voter_key:voterKey()})
     });
-    if(!res.ok) throw new Error("comments " + res.status);
-    const rows = await res.json();
-    return rows.slice(-5).reverse();
+    if(res.ok) return {added:true};
+    const data=await res.json().catch(()=>({}));
+    if(data.code==="23505") return {added:false,duplicate:true};
+    throw new Error(data.message||("heart "+res.status));
   }
 
-  function issueUrl(no){ return webBase + no; }
-
-  function setText(root, selector, value){
-    root.querySelectorAll(selector).forEach(el => el.textContent = String(value));
-  }
-
-  function wireLinks(root, no){
-    root.querySelectorAll("[data-feedback-link]").forEach(a=>{
-      a.href = issueUrl(no);
-      a.target = "_blank";
-      a.rel = "noopener";
+  async function addComment(workId,name,body){
+    const res=await fetch(REST+"/feedback_comments",{
+      method:"POST",
+      headers:{...headers,Prefer:"return=minimal"},
+      body:JSON.stringify({work_id:workId,display_name:name||"匿名",body})
     });
+    if(!res.ok){
+      const data=await res.json().catch(()=>({}));
+      throw new Error(data.message||("comment "+res.status));
+    }
   }
 
-  function renderComments(root, comments){
-    const box = root.querySelector(".feedback-comments");
+  function setText(root,selector,value){
+    root.querySelectorAll(selector).forEach(el=>el.textContent=String(value));
+  }
+
+  function renderComments(root,rows){
+    const box=root.querySelector(".feedback-comments");
     if(!box) return;
-    box.innerHTML = "";
-    if(!comments.length){
-      const p=document.createElement("p");
-      p.className="feedback-empty";
-      p.textContent="まだコメントはありません。最初の「もっとこうしてほしい」を書けます。";
-      box.appendChild(p);
+    box.innerHTML="";
+    if(!rows.length){
+      box.innerHTML='<p class="feedback-empty">まだコメントはありません。最初の「もっとこうしてほしい」を書けます。</p>';
       return;
     }
-    comments.forEach(row=>{
+    rows.forEach(row=>{
       const item=document.createElement("article");
       item.className="feedback-comment";
-
       const head=document.createElement("div");
       head.className="feedback-comment-head";
-
-      if(row.user && row.user.avatar_url){
-        const img=document.createElement("img");
-        img.src=row.user.avatar_url;
-        img.alt="";
-        img.loading="lazy";
-        head.appendChild(img);
-      }
-
       const meta=document.createElement("span");
-      const name=row.user && row.user.login ? row.user.login : "GitHub user";
-      meta.textContent=name + " ・ " + fmtDate(row.created_at);
-      head.appendChild(meta);
-
+      meta.textContent=(row.display_name||"匿名")+" ・ "+fmtDate(row.created_at);
       const body=document.createElement("p");
       body.className="feedback-comment-body";
-      const raw=(row.body || "").trim();
-      body.textContent = raw.length > 500 ? raw.slice(0,500) + "…" : raw;
-
+      body.textContent=(row.body||"").trim();
+      head.appendChild(meta);
       item.append(head,body);
       box.appendChild(item);
     });
   }
 
-  async function hydrate(root){
-    const no = Number(root.dataset.feedbackIssue);
-    if(!no) return;
-    wireLinks(root,no);
-    try{
-      const issue=await getIssue(no);
-      const hearts=issue.reactions && typeof issue.reactions.heart==="number" ? issue.reactions.heart : 0;
-      const comments=Number(issue.comments || 0);
-      setText(root,"[data-feedback-hearts]",hearts);
-      setText(root,"[data-feedback-comments]",comments);
+  function ensureForm(root,workId){
+    if(!root.classList.contains("feedback-panel") || root.querySelector(".feedback-form")) return;
+    root.id="himaneko-feedback";
+    const form=document.createElement("form");
+    form.className="feedback-form";
+    form.innerHTML=`
+      <label class="feedback-label">名前 <span>任意</span>
+        <input class="feedback-name" maxlength="30" placeholder="匿名でもOK">
+      </label>
+      <label class="feedback-label">もっとこうしてほしい
+        <textarea class="feedback-body" maxlength="500" required placeholder="例：スマホ操作をもっと軽くしてほしい"></textarea>
+      </label>
+      <div class="feedback-form-foot">
+        <span class="feedback-form-status" aria-live="polite"></span>
+        <button class="btn pop-purple feedback-submit" type="submit">コメントを送る</button>
+      </div>`;
+    const comments=root.querySelector(".feedback-comments");
+    comments?.before(form);
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const name=form.querySelector(".feedback-name").value.trim()||"匿名";
+      const body=form.querySelector(".feedback-body").value.trim();
+      const status=form.querySelector(".feedback-form-status");
+      const btn=form.querySelector(".feedback-submit");
+      if(!body) return;
+      btn.disabled=true; status.textContent="送信中…";
+      try{
+        await addComment(workId,name,body);
+        form.querySelector(".feedback-body").value="";
+        status.textContent="送信しました";
+        await refresh(root,workId);
+      }catch(err){
+        console.warn(err); status.textContent="送信できませんでした";
+      }finally{btn.disabled=false}
+    });
+  }
 
-      if(root.classList.contains("feedback-panel")){
-        const latest=await getLatestComments(no,comments);
-        renderComments(root,latest);
-      }
+  function wireActions(root,work){
+    const links=[...root.querySelectorAll("[data-feedback-link]")];
+    const heart=links.find(a=>a.querySelector("[data-feedback-hearts]")) || links[0];
+    const comment=links.find(a=>a.querySelector("[data-feedback-comments]")) || links[1];
+
+    if(heart && !heart.dataset.bound){
+      heart.dataset.bound="1";
+      heart.removeAttribute("target"); heart.removeAttribute("rel"); heart.href="#";
+      heart.addEventListener("click",async e=>{
+        e.preventDefault();
+        heart.classList.add("is-busy");
+        try{
+          const result=await addHeart(work.id);
+          heart.classList.toggle("is-liked",true);
+          heart.title=result.duplicate?"この端末では追加済みです":"ありがとう";
+          await refresh(root,work.id);
+        }catch(err){console.warn(err)}
+        finally{heart.classList.remove("is-busy")}
+      });
+    }
+    if(comment){
+      comment.removeAttribute("target"); comment.removeAttribute("rel");
+      comment.href=root.classList.contains("feedback-panel")?"#himaneko-feedback":work.url;
+    }
+  }
+
+  async function refresh(root,workId){
+    try{
+      const [hearts,commentsCount,comments]=await Promise.all([
+        countRows("feedback_hearts",workId),
+        countRows("feedback_comments",workId),
+        root.classList.contains("feedback-panel") ? getComments(workId) : Promise.resolve([])
+      ]);
+      setText(root,"[data-feedback-hearts]",hearts);
+      setText(root,"[data-feedback-comments]",commentsCount);
+      if(root.classList.contains("feedback-panel")) renderComments(root,comments);
     }catch(err){
       console.warn("feedback load failed",err);
       setText(root,"[data-feedback-hearts]","–");
       setText(root,"[data-feedback-comments]","–");
-      const box=root.querySelector(".feedback-comments");
-      if(box){
-        box.innerHTML='<p class="feedback-empty">反応を読み込めませんでした。GitHub側では確認できます。</p>';
-      }
     }
   }
 
-  window.initHimanekoFeedback = function(){
-    document.querySelectorAll("[data-feedback-issue]").forEach(hydrate);
-  };
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded", window.initHimanekoFeedback);
-  }else{
-    window.initHimanekoFeedback();
+  async function hydrate(root){
+    const work=workMap[Number(root.dataset.feedbackIssue)];
+    if(!work) return;
+    ensureForm(root,work.id);
+    wireActions(root,work);
+    await refresh(root,work.id);
   }
+
+  window.initHimanekoFeedback=()=>document.querySelectorAll("[data-feedback-issue]").forEach(hydrate);
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",window.initHimanekoFeedback);
+  else window.initHimanekoFeedback();
 })();
