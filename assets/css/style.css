@@ -272,8 +272,8 @@ th{font-size:.83rem;color:#5f4fd0;background:#faf9ff}
 .feedback-empty{margin:0;padding:14px;border-radius:12px;background:#f5f6f8;color:#727a85}
 .feedback-note{margin:14px 0 0;color:#7a808a;font-size:.8rem}
 .feedback-mini{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
-.feedback-mini a{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;text-decoration:none;color:#626a75;font-size:.8rem;font-weight:800}
-.feedback-mini a:first-child{background:#fff5f8;border-color:#eed1db;color:#844b60}
+.feedback-mini a,.feedback-mini button{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;text-decoration:none;color:#626a75;font-size:.8rem;font-weight:800}
+.feedback-mini a:first-child,.feedback-mini button:first-child{background:#fff5f8;border-color:#eed1db;color:#844b60}
 
 /* Old low-resolution sprites are no longer used. */
 .eyecatch-sprite{background:none!important}
@@ -302,7 +302,7 @@ th{font-size:.83rem;color:#5f4fd0;background:#faf9ff}
   .article{width:min(100% - 24px,920px);padding:36px 0}
   .article-visual{border-radius:18px}
   .feedback-panel{padding:18px 15px}
-  .feedback-actions>a{width:100%;justify-content:center}
+  .feedback-actions>a,.feedback-actions>button{width:100%;justify-content:center}
 }
 
 /* Final layout polish */
@@ -447,8 +447,8 @@ body{
   border-radius:16px;
   border-color:#dfe2e8;
 }
-.feedback-actions a{border-radius:9px}
-.feedback-mini a{border-radius:8px}
+.feedback-actions a,.feedback-actions button{border-radius:9px}
+.feedback-mini a,.feedback-mini button{border-radius:8px}
 
 .site-footer{
   background:#111216;
@@ -474,3 +474,5 @@ body{
 .feedback-submit:disabled,.feedback-send:disabled{opacity:.55;cursor:wait}
 .feedback-vote.is-liked,.feedback-mini a.is-liked,.hfb-actions a.is-liked{background:#ffeef4!important;border-color:#efb9cd!important;color:#7b3f56!important}
 .feedback-vote.is-busy{opacity:.65}
+
+button[data-feedback-link]{font:inherit;cursor:pointer}
