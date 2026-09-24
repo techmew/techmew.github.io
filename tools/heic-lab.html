@@ -1,13 +1,50 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HEIC Lab｜HEIC/HEIFをJPG・PNG・WebPへ一括変換 | himaneko</title><meta name="description" content="iPhoneのHEIC/HEIF写真をブラウザだけでJPG・PNG・WebPへ一括変換。画質、サイズ、目標容量、Exif/GPS削除、撮影日リネーム、ZIP保存に対応。"><link rel="canonical" href="https://techmew.github.io/tools/heic-lab.html"><meta property="og:type" content="website"><meta property="og:site_name" content="himaneko"><meta property="og:title" content="HEIC Lab｜HEIC/HEIF完全変換ツール"><meta property="og:description" content="100枚一括、JPG/PNG/WebP、目標容量、Exif/GPS削除、ZIP保存。画像はブラウザ内で処理。"><meta property="og:url" content="https://techmew.github.io/tools/heic-lab.html"><meta property="og:image" content="https://techmew.github.io/assets/images/hq/heic-lab-hero.png"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/assets/css/style.css"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"HEIC Lab","url":"https://techmew.github.io/apps/heic-lab/","applicationCategory":"MultimediaApplication","operatingSystem":"Web browser","description":"HEIC/HEIFをブラウザ内でJPG・PNG・WebPへ一括変換・軽量化する無料ツール。"}</script></head><body>
-<header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><button class="nav-toggle" aria-label="メニュー">☰</button><nav class="nav"><a href="/works.html">制作物一覧</a><a href="/blog/">ブログ</a><a href="/tools/image-slimmer.html">画像スリム</a><a href="/about.html">このサイトについて</a></nav></div></header>
-<main><article class="article"><div class="eyebrow">free browser tool</div><h1>HEIC Lab</h1><p class="lede">iPhoneで撮ったHEIC / HEIFを、JPG・PNG・WebPへまとめて変換する無料ツールです。単なる形式変換だけでなく、軽量化、リサイズ、目標容量、ファイル名整理、Exif/GPS削除、ZIP保存まで一つにまとめました。</p>
-<div class="article-visual"><img src="/assets/images/hq/heic-lab-hero.png" alt="HEIC LabのHEIC変換・軽量化機能" width="1792" height="1024" fetchpriority="high"></div>
-<div class="card-actions"><a class="btn pop-purple" href="/apps/heic-lab/">HEIC Labを開く</a><a class="btn secondary" href="/blog/heic-to-jpg.html">使い方を見る</a></div>
-<h2>できること</h2><div class="grid"><div class="card large"><div class="card-body"><h3>変換と軽量化</h3><p>HEIC / HEIF / JPG / PNG / WebPを読み込み、JPG・PNG・WebPへ出力。画質や最大サイズ、縮小率、目標KB/MBを指定できます。</p></div></div><div class="card large"><div class="card-body"><h3>100枚一括＋ZIP</h3><p>複数画像をまとめて処理し、個別保存もZIP一括保存も可能。大量のiPhone写真をPCへ持っていくときにも使えます。</p></div></div><div class="card large"><div class="card-body"><h3>プライバシー整理</h3><p>出力画像はCanvasで再生成し、ExifやGPSなどのメタデータを付けずに保存します。元画像は変換のためにhimanekoのサーバーへアップロードしません。</p></div></div><div class="card large"><div class="card-body"><h3>撮影日とファイル名</h3><p>HEIC内の撮影日時を読み取り、必要ならファイル名へ反映。元名維持、撮影日＋連番、指定名＋連番を選べます。</p></div></div></div>
-<h2>目標容量も指定できる</h2><p>「200KB以下」「1MB以下」のような条件がある場合、JPG・WebPは画質を自動調整し、必要なら画像サイズも段階的に縮小します。PNGは品質値で削れないため、寸法を調整して近づけます。</p>
-<div class="callout"><strong>画像は外部へ送信しません</strong><p>HEICのデコードと画像変換はブラウザ内で行います。選択した写真そのものをhimanekoのサーバーへアップロードする仕組みではありません。</p></div>
-<h2>利用しているライブラリ</h2><p>HEICデコードにheic-to 1.5.2（LGPL-3.0、libheif 1.22.2）、ZIP作成にJSZip 3.10.2を利用しています。ライセンス表記はツール本体にも掲載しています。</p>
-<h2>関連ツール</h2><div class="grid"><a class="card large" href="/tools/image-slimmer.html"><div class="card-image"><img src="/assets/images/hq/image-slimmer-hero.jpg" alt="画像スリム"></div><div class="card-body"><h3>画像スリム</h3><p>JPG・PNG・WebPをさらに細かく縮小・軽量化したい場合はこちら。</p></div></a><a class="card large" href="/tools/watch-motion-studio.html"><div class="card-image"><img src="/assets/images/hq/watch-motion-studio-hero.jpg" alt="Watch Motion Studio PRO"></div><div class="card-body"><h3>Watch Motion Studio PRO</h3><p>スマートウォッチ用の連番画像・動画素材を作るツール。</p></div></a></div>
-<section class="feedback-panel" data-feedback-issue="6"><h2>みんなの声</h2><p class="feedback-intro">使えなかったHEICや、追加してほしい機能を書けます。</p><p class="feedback-examples">例：Live Photoも扱いたい / もっと速くしてほしい / PDFにもまとめたい</p><div class="feedback-actions"><button type="button" class="feedback-vote" data-feedback-link><span>❤️</span><span>役に立った</span><span class="feedback-count" data-feedback-hearts>…</span></button><button type="button" class="feedback-comment-link" data-feedback-link><span>💬</span><span>もっとこうしてほしい</span><span class="feedback-count" data-feedback-comments>…</span></button></div><div class="feedback-comments"><p class="feedback-empty">コメントを読み込んでいます…</p></div><p class="feedback-note">ハートとコメントはこのページ内で送信できます。</p></section>
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HEIC Lab｜HEIC・HEIFをJPG/PNG/WebPへ一括変換 | himaneko</title>
+<meta name="description" content="iPhoneのHEIC・HEIF写真をブラウザ内だけでJPG、PNG、WebPへ一括変換。リサイズ、目標容量、Exif/GPS削除、ファイル名整理、ZIP保存までまとめて使える無料ツール。">
+<link rel="canonical" href="https://techmew.github.io/tools/heic-lab.html">
+<meta property="og:type" content="website"><meta property="og:site_name" content="himaneko"><meta property="og:title" content="HEIC Lab｜HEIC・HEIF完全変換ツール"><meta property="og:description" content="HEIC/HEIFをJPG・PNG・WebPへ一括変換。画像は外部へ送らずブラウザ内で処理。"><meta property="og:image" content="https://techmew.github.io/assets/images/hq/heic-lab-hero.png"><meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/style.css"><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"HEIC Lab","url":"https://techmew.github.io/apps/heic-lab/","applicationCategory":"MultimediaApplication","operatingSystem":"Web browser","isAccessibleForFree":true,"description":"HEIC・HEIFをJPG・PNG・WebPへ一括変換し、リサイズ、軽量化、メタデータ削除、ZIP保存まで行える無料ブラウザツール。"}</script>
+</head><body>
+<header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button><nav class="nav"><a href="/works.html">制作物</a><a href="/blog/">ブログ</a><a href="/timeline.html">更新履歴</a><a href="/about.html">このサイト</a></nav></div></header>
+<main><article class="article">
+<div class="eyebrow">free browser tool</div><h1>HEIC Lab</h1>
+<p class="lede">iPhoneで撮ったHEIC / HEIF写真を、JPG・PNG・WebPへまとめて変換する無料ブラウザツールです。形式変換だけで終わらず、画像サイズ、容量、ファイル名、Exif・GPSまで一度に整理できます。</p>
+<div class="article-visual"><img src="/assets/images/hq/heic-lab-hero.png" alt="HEIC LabのHEIC変換機能を紹介する高解像度アイキャッチ" width="1792" height="1024" fetchpriority="high"></div>
+<div class="card-actions"><a class="btn pop-purple" href="/apps/heic-lab/">HEIC Labを開く</a><a class="btn secondary" href="/blog/heic-to-jpg-browser.html">使い方を見る</a></div>
+
+<h2>HEIC Labでできること</h2>
+<div class="grid">
+<div class="card large"><div class="card-body"><span class="tag">変換</span><h3>HEIC / HEIF → JPG・PNG・WebP</h3><p>最大100枚までまとめて読み込み。HEIC以外のJPG・PNG・WebPも同じ設定で再変換できます。</p></div></div>
+<div class="card large"><div class="card-body"><span class="tag">軽量化</span><h3>サイズと目標容量を同時に調整</h3><p>元サイズ維持、最大幅・高さ、割合縮小に対応。JPG / WebPは目標KBへ近づけるため品質も自動調整します。</p></div></div>
+<div class="card large"><div class="card-body"><span class="tag">プライバシー</span><h3>Exif・GPSを出力画像へ持ち込まない</h3><p>変換後はCanvasから新しい画像を生成するため、撮影場所などのExif/GPS情報を出力画像へ付けません。撮影日時は必要に応じファイル名へだけ利用できます。</p></div></div>
+<div class="card large"><div class="card-body"><span class="tag">一括処理</span><h3>ファイル名整理＋ZIP保存</h3><p>元ファイル名、撮影日、指定名＋連番を選択。変換後は1枚ずつ保存するほか、まとめてZIPでも保存できます。</p></div></div>
+</div>
+
+<h2>画像はhimanekoへアップロードしません</h2>
+<div class="callout"><strong>変換処理はブラウザ内</strong><p>選んだ写真は、変換のためにhimanekoのサーバーへアップロードする方式ではありません。HEICの読み込み、リサイズ、再圧縮、ZIP作成は開いているブラウザ内で行います。</p></div>
+
+<h2>HEICはなぜ使われている？</h2>
+<p>AppleはHEIFを写真向けの高効率フォーマットとして採用しており、JPEGより高い圧縮効率でストレージ容量を抑えやすいと案内しています。一方で、受け渡す相手や使うソフトによってはJPEGやPNGの方が扱いやすい場面があります。</p>
+<p><a href="https://support.apple.com/ja-jp/116944" target="_blank" rel="noopener">Apple公式：HEIF／HEVCメディアを扱う</a></p>
+
+<h2>こんなときに使う</h2>
+<ul><li>iPhone写真をWindowsやWebサービスで使いたい</li><li>HEICをJPGへまとめて変換したい</li><li>ブログ用にWebPへ変換しつつ軽くしたい</li><li>提出前に画像を指定KB以下へ近づけたい</li><li>写真を公開する前にGPSなどのメタデータを外したい</li><li>大量の写真を連番ファイル名で整理したい</li></ul>
+
+<h2>対応と注意点</h2>
+<p>HEICには撮影方法や内部構造によって複数のパターンがあります。読み込めないファイルがあれば、下のコメント欄から端末・撮影方法などを書いてください。失敗画像だけが分かるよう、ツール側でも個別にエラーを表示します。</p>
+<p class="mini-note">HEIC読み込みにはheic-to 1.5.2（libheif 1.22.2）、ZIP生成にはJSZip 3.10.2を利用しています。ライセンス表記はアプリ本体にも掲載しています。</p>
+
+<section class="feedback-panel" data-feedback-issue="6">
+<h2>HEIC Labへの感想・要望</h2>
+<p class="feedback-intro">「このHEICが開かなかった」「こういう保存方法がほしい」など、そのまま書けます。</p>
+<p class="feedback-examples">例：iPhoneから100枚まとめて変換したい / もっと軽くしてほしい / PNGの透過も扱いたい</p>
+<div class="feedback-actions"><button type="button" class="feedback-vote" data-feedback-link><span>❤️</span><span>役に立った</span><span class="feedback-count" data-feedback-hearts>…</span></button><button type="button" class="feedback-comment-link" data-feedback-link><span>💬</span><span>もっとこうしてほしい</span><span class="feedback-count" data-feedback-comments>…</span></button></div>
+<div class="feedback-comments"><p class="feedback-empty">コメントを読み込んでいます…</p></div>
+<p class="feedback-note">ハートとコメントはこのページ内で送信できます。</p>
+</section>
 </article></main>
-<footer class="site-footer"><div class="wrap footer-grid"><div><strong>himaneko</strong><p>役立つ情報、無料HTMLツール、ゲーム制作物を公開しています。</p></div><div class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/contact.html">お問い合わせ</a><a href="/terms.html">利用について</a></div></div><div class="wrap copyright">© 2026 himaneko</div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>
+<footer class="site-footer"><div class="wrap footer-grid"><div><strong>himaneko</strong><p>無料HTMLツール、ゲーム、制作記録を公開しています。</p></div><div class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/contact.html">お問い合わせ</a><a href="/terms.html">利用について</a></div></div><div class="wrap copyright">© 2026 himaneko</div></footer>
+<script src="/assets/js/main-feedback-v3.js"></script>
+</body></html>
