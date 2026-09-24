@@ -141,13 +141,12 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
   }
 
   function wireActions(root,work){
-    const links=[...root.querySelectorAll("[data-feedback-link]")];
-    const heart=links.find(a=>a.querySelector("[data-feedback-hearts]")) || links[0];
-    const comment=links.find(a=>a.querySelector("[data-feedback-comments]")) || links[1];
+    const controls=[...root.querySelectorAll("[data-feedback-link]")];
+    const heart=controls.find(a=>a.querySelector("[data-feedback-hearts]")) || controls[0];
+    const comment=controls.find(a=>a.querySelector("[data-feedback-comments]")) || controls[1];
 
     if(heart && !heart.dataset.bound){
       heart.dataset.bound="1";
-      heart.removeAttribute("target"); heart.removeAttribute("rel"); heart.href="#";
       heart.addEventListener("click",async e=>{
         e.preventDefault();
         heart.classList.add("is-busy");
@@ -160,9 +159,17 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
         finally{heart.classList.remove("is-busy")}
       });
     }
-    if(comment){
-      comment.removeAttribute("target"); comment.removeAttribute("rel");
-      comment.href=root.classList.contains("feedback-panel")?"#himaneko-feedback":work.url;
+    if(comment && !comment.dataset.bound){
+      comment.dataset.bound="1";
+      comment.addEventListener("click",e=>{
+        e.preventDefault();
+        if(root.classList.contains("feedback-panel")){
+          document.getElementById("himaneko-feedback")?.scrollIntoView({behavior:"smooth",block:"start"});
+          root.querySelector(".feedback-body")?.focus({preventScroll:true});
+        }else{
+          location.href=work.url;
+        }
+      });
     }
   }
 
