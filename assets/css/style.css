@@ -206,3 +206,5 @@ body{
 .feedback-mini a:first-child{background:#fff6f8;border-color:#f0d0da;color:#854c60}
 .feedback-mini a:hover{border-color:#cfcfd4}
 @media(max-width:640px){.feedback-panel{padding:18px 15px}.feedback-actions>a{width:100%;justify-content:center}}
+
+.feedback-examples{margin:10px 0 18px;padding:11px 13px;border-radius:12px;background:#f8f5fa;color:#6c6372;font-size:.9rem;line-height:1.65}
