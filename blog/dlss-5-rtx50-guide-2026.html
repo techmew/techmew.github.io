@@ -24,6 +24,8 @@
 .keybox{margin:22px 0;padding:18px;border:1px solid #cfe4df;border-radius:16px;background:#f6fffc}
 .source-note{font-size:.92rem;color:#687078}
 .article-visual img{width:100%;height:auto;border-radius:16px}
+
+.video-section{margin:28px 0}.video-embed{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:16px;background:#111}.video-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.video-note{margin:.65rem 0 0;font-size:.92rem;color:#687078}
 </style>
 <script type="application/ld+json">
 {
@@ -59,6 +61,14 @@
   <figure class="article-visual">
     <img src="/assets/images/hq/dlss-5-rtx50-2026.png" alt="DLSS 5とGeForce RTX 50シリーズの対応条件を整理したアイキャッチ" width="1672" height="941" fetchpriority="high" decoding="async">
   </figure>
+<section class="video-section" aria-label="公式動画でDLSS 5の見た目と仕組みを確認">
+  <h2>公式動画でDLSS 5の見た目と仕組みを確認</h2>
+  <div class="video-embed">
+    <iframe src="https://www.youtube-nocookie.com/embed/58FagrSqC4M" title="NVIDIA GeForce公式：DLSS 5 | Introducing 3D-Guided Neural Rendering" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+  </div>
+  <p class="video-note">NVIDIA GeForce公式動画。3D-Guided Neural Renderingの見た目と、開発者向けの制御イメージを確認できる。</p>
+</section>
+
 
   <p class="lede">DLSS 5は、これまでの超解像やフレーム生成を単純に強化しただけの更新ではない。NVIDIAは新たに<strong>3D-Guided Neural Rendering</strong>を追加し、ゲームエンジンが出したフレームを土台に、AIでライティングやマテリアル表現を補強する仕組みを導入した。</p>
   <p>一方で、ローカル実行の対応GPUは<strong>GeForce RTX 50シリーズ</strong>。RTX 40シリーズやRTX 30シリーズを使っている場合、少なくとも現時点のNVIDIA公式案内ではDLSS 5の3D-Guided Neural Rendering対象には入っていない。</p>
