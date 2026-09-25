@@ -1,3 +1,18 @@
+(()=>{
+  const id="G-0M6MZ2C7D1";
+  if(document.querySelector('script[src*="googletagmanager.com/gtag/js?id='+id+'"]')) return;
+  if(window.__himanekoGa4Loaded) return;
+  window.__himanekoGa4Loaded=true;
+  const s=document.createElement("script");
+  s.async=true;
+  s.src="https://www.googletagmanager.com/gtag/js?id="+encodeURIComponent(id);
+  document.head.appendChild(s);
+  window.dataLayer=window.dataLayer||[];
+  window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};
+  window.gtag("js",new Date());
+  window.gtag("config",id);
+})();
+
 document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',()=>{const n=b.nextElementSibling,o=n.classList.toggle('open');b.setAttribute('aria-expanded',String(o))}));
 
 (() => {

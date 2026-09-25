@@ -1,3 +1,18 @@
+(()=>{
+  const id="G-0M6MZ2C7D1";
+  if(document.querySelector('script[src*="googletagmanager.com/gtag/js?id='+id+'"]')) return;
+  if(window.__himanekoGa4Loaded) return;
+  window.__himanekoGa4Loaded=true;
+  const s=document.createElement("script");
+  s.async=true;
+  s.src="https://www.googletagmanager.com/gtag/js?id="+encodeURIComponent(id);
+  document.head.appendChild(s);
+  window.dataLayer=window.dataLayer||[];
+  window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};
+  window.gtag("js",new Date());
+  window.gtag("config",id);
+})();
+
 (()=>{"use strict";
 const URL="https://ehmmpzukulixwtvvwruq.supabase.co",KEY="sb_publishable_woaWa1rGRcnCdClhURO6vQ_2F-_PVF0",REST=URL+"/rest/v1";
 const map={4:"image-slimmer",5:"watch-motion",6:"heic-lab",7:"gif-apng",8:"line-sticker",9:"exif-cleaner"};
