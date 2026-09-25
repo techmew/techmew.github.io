@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'assets/images/hq/sns-image-studio-hero.svg'
+      - 'assets/js/sns-image-studio.js'
       - '.github/workflows/build-sns-image-studio-hero.yml'
 
 permissions:
