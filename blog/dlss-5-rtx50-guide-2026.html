@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DLSS 5はRTX 40/30で使える？RTX 50限定の3D-Guided Neural Renderingを整理 | himaneko</title>
+<meta name="description" content="2026年9月25日更新。NVIDIA DLSS 5はGeForce RTX 50シリーズ向けの3D-Guided Neural Renderingを追加。RTX 40/30で使えるのか、DLSS 4.5との違い、対応ゲーム、買い替え判断を公式情報ベースで整理。">
+<link rel="canonical" href="https://techmew.github.io/blog/dlss-5-rtx50-guide-2026.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="himaneko">
+<meta property="og:title" content="DLSS 5はRTX 40/30で使える？RTX 50限定の新レンダリングを整理">
+<meta property="og:description" content="DLSS 5は何が変わったのか。RTX 50限定の3D-Guided Neural Rendering、対応条件、DLSS 4.5との違いを整理。">
+<meta property="og:url" content="https://techmew.github.io/blog/dlss-5-rtx50-guide-2026.html">
+<meta property="og:image" content="https://techmew.github.io/assets/images/hq/dlss-5-rtx50-2026.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DLSS 5はRTX 40/30で使える？">
+<meta name="twitter:image" content="https://techmew.github.io/assets/images/hq/dlss-5-rtx50-2026.jpg">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+.compare{overflow-x:auto;margin:22px 0}.compare table{min-width:760px}
+.factbox{margin:22px 0;padding:18px;border:1px solid #d9dde4;border-radius:16px;background:#f8f9fb}
+.warnbox{margin:22px 0;padding:18px;border-left:5px solid #6f63d8;background:#f7f5ff;border-radius:0 14px 14px 0}
+.keybox{margin:22px 0;padding:18px;border:1px solid #cfe4df;border-radius:16px;background:#f6fffc}
+.source-note{font-size:.92rem;color:#687078}
+.article-visual img{width:100%;height:auto;border-radius:16px}
+</style>
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"BlogPosting",
+  "headline":"DLSS 5はRTX 40/30で使える？RTX 50限定の3D-Guided Neural Renderingを整理",
+  "description":"NVIDIA DLSS 5の対応GPU、3D-Guided Neural Rendering、DLSS 4.5との違い、対応ゲームを整理。",
+  "datePublished":"2026-09-25",
+  "dateModified":"2026-09-25",
+  "inLanguage":"ja",
+  "author":{"@type":"Person","name":"himaneko"},
+  "publisher":{"@type":"Person","name":"himaneko"},
+  "image":"https://techmew.github.io/assets/images/hq/dlss-5-rtx50-2026.jpg",
+  "mainEntityOfPage":{"@type":"WebPage","@id":"https://techmew.github.io/blog/dlss-5-rtx50-guide-2026.html"}
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap nav-wrap">
+    <a class="brand" href="/">himaneko</a>
+    <button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button>
+    <nav class="nav"><a href="/blog/">ブログ</a><a href="/works.html">制作物一覧</a><a href="/tools/">無料ツール</a><a href="/about.html">このサイトについて</a></nav>
+  </div>
+</header>
+
+<main>
+<article class="article">
+  <span class="kicker">PCゲーム・GeForce RTX</span>
+  <h1>DLSS 5はRTX 40/30で使える？<br>RTX 50限定の3D-Guided Neural Renderingを整理</h1>
+  <div class="meta"><time datetime="2026-09-25">2026年9月25日更新</time><span class="tag">RTX 50 Series</span><span class="tag">DLSS 5</span></div>
+
+  <figure class="article-visual">
+    <img src="/assets/images/hq/dlss-5-rtx50-2026.jpg" alt="DLSS 5とGeForce RTX 50シリーズの対応条件を整理したアイキャッチ" width="1600" height="900" fetchpriority="high" decoding="async">
+  </figure>
+
+  <p class="lede">DLSS 5は、これまでの超解像やフレーム生成を単純に強化しただけの更新ではない。NVIDIAは新たに<strong>3D-Guided Neural Rendering</strong>を追加し、ゲームエンジンが出したフレームを土台に、AIでライティングやマテリアル表現を補強する仕組みを導入した。</p>
+  <p>一方で、ローカル実行の対応GPUは<strong>GeForce RTX 50シリーズ</strong>。RTX 40シリーズやRTX 30シリーズを使っている場合、少なくとも現時点のNVIDIA公式案内ではDLSS 5の3D-Guided Neural Rendering対象には入っていない。</p>
+
+  <div class="keybox">
+    <strong>先に結論</strong>
+    <ul>
+      <li>DLSS 5の3D-Guided Neural RenderingはGeForce RTX 50シリーズ向け</li>
+      <li>RTX 40 / RTX 30シリーズは、現時点の公式案内では対象外</li>
+      <li>DLSS 5は「フレーム生成の次世代版」だけではなく、照明・材質表現そのものへAIを使う</li>
+      <li>2026年9月時点では『NBA 2K27』が実対応タイトル</li>
+      <li>DLSS 5だけを理由にGPUを買い替えるなら、対応ゲームの広がりを見てからでも遅くない</li>
+    </ul>
+  </div>
+
+  <h2>RTX 40・RTX 30でDLSS 5は使える？</h2>
+  <p>NVIDIAの公式説明では、DLSS 5の3D-Guided Neural Renderingは<strong>GeForce RTX 50 Series GPU上でローカル実行</strong>される技術として案内されている。DLSS 5の機能ページでも、対応対象はRTX 50シリーズと明記されている。</p>
+  <p>そのため、RTX 4090やRTX 4080、RTX 3090などを使っていても、DLSS 5の新しい3D-Guided Neural Renderingがそのまま利用できる、とは言えない。</p>
+
+  <div class="warnbox">
+    <strong>DLSSという名前だけで互換性を判断しない</strong>
+    <p>DLSSは世代ごとに機能が追加されており、すべての機能がすべてのRTX世代で動くわけではない。DLSS 5という名称と、超解像・Ray Reconstruction・Frame Generationなどの各機能は分けて確認した方が分かりやすい。</p>
+  </div>
+
+  <h2>DLSS 5で変わったのは「フレーム数」より画の作り方</h2>
+  <p>DLSS 5の中心は、<strong>3D-Guided Neural Rendering</strong>だ。NVIDIAの開発者向け説明では、ゲームエンジンが生成したフレームを土台にし、その構造を維持しながら、AIモデルがライティングや材質表現を追加・補強する。</p>
+  <p>処理は「1フレーム入力、1フレーム出力」で、ゲーム側のモーションベクトルも利用する。完全に別の画像を作るというより、ゲームエンジン側の3D情報を基準にAIを使う設計になっている。</p>
+
+  <h2>DLSS 4.5との違い</h2>
+  <div class="compare">
+    <table>
+      <thead>
+        <tr><th>項目</th><th>DLSS 4.5</th><th>DLSS 5</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>主な追加点</td><td>Dynamic Multi Frame Generation、2世代目TransformerによるSuper Resolution / Ray Reconstruction強化</td><td>3D-Guided Neural Rendering</td></tr>
+        <tr><td>狙い</td><td>フレームレートや画質の改善</td><td>照明・材質など画面そのものの表現強化</td></tr>
+        <tr><td>AIの使い方</td><td>超解像、再構成、フレーム生成</td><td>ゲームエンジンの3D情報を基準に最終画を補強</td></tr>
+        <tr><td>DLSS 5新機能のGPU条件</td><td>機能ごとに異なる</td><td>3D-Guided Neural RenderingはRTX 50シリーズ</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>つまりDLSS 5は、DLSS 4.5までの機能を全部捨てて置き換えるものではない。既存のDLSS機能群に、新しいニューラルレンダリング層が加わったと考えた方が近い。</p>
+
+  <h2>なぜゲーム開発者側の調整が必要なのか</h2>
+  <p>DLSS 5は、ユーザーがドライバーを入れるだけで全ゲームへ一律に有効化できる機能ではない。NVIDIAは開発者向けに、モデル選択、Structure Intensity、Tone Intensity、AIマスク、エンジン側マスクなどの調整項目を用意している。</p>
+  <p>つまり、ゲームごとに「どこへ、どの程度AIの効果をかけるか」を開発側が決める。DLSS 5対応の有無だけでなく、実装品質もタイトルごとの差になりやすい。</p>
+
+  <h2>現時点の対応ゲームは『NBA 2K27』</h2>
+  <p>DLSS 5は2026年9月3日に『NBA 2K27』で実提供が始まった。NVIDIAは同作で、髪、肌、照明、材質表現などの見た目を3D-Guided Neural Renderingで強化している。</p>
+  <p>対応にはGame Ready Driver 616.64以降の案内があり、RTX 50シリーズ環境ではゲーム側の対応設定とあわせて確認する必要がある。</p>
+
+  <h2>RTX 40ユーザーは今すぐ買い替えるべきか</h2>
+  <p>DLSS 5だけを理由にすると、現時点では判断材料がまだ少ない。理由は単純で、実対応タイトルがまだ限られているからだ。</p>
+  <p>RTX 50シリーズへ買い替える予定がもともとあり、そのうえでDLSS 5対応ゲームも遊ぶなら追加メリットになる。一方、RTX 40シリーズで現在のゲーム性能に不満がないなら、DLSS 5対応タイトルが増えてから実際の差を確認しても遅くない。</p>
+  <p>特にGPUは価格差が大きい。DLSS 5対応の有無だけでなく、遊ぶゲーム、解像度、VRAM、消費電力、CPUとのバランスまで含めて比較した方が失敗しにくい。</p>
+
+  <div class="factbox">
+    <strong>確認時点で分かっていること</strong>
+    <ul>
+      <li>DLSS 5は2026年9月3日に提供開始</li>
+      <li>3D-Guided Neural RenderingはRTX 50シリーズ向け</li>
+      <li>『NBA 2K27』が最初の実対応タイトル</li>
+      <li>NVIDIAは9月22日に開発者向け制御項目を詳しく公開</li>
+      <li>対応ゲームの増加ペースは今後確認が必要</li>
+    </ul>
+  </div>
+
+  <h2>まとめ</h2>
+  <p><strong>DLSS 5の新機能である3D-Guided Neural Renderingは、現時点ではGeForce RTX 50シリーズ向け。</strong> RTX 40 / 30シリーズで同機能が使えるという公式案内は出ていない。</p>
+  <p>大きな違いは、単にFPSを増やすことではなく、ゲームエンジンのフレームを基準にAIでライティングや材質表現を強化する点にある。技術としては大きな更新だが、買い替え判断では対応ゲーム数と実際の画質差を見てから判断した方がいい。</p>
+
+  <h2>確認した情報源</h2>
+  <ul>
+    <li><a href="https://developer.nvidia.com/blog/whats-new-for-game-developers-dlss-5-with-3d-guided-neural-rendering-nvidia-ace-updates-and-new-rtx-kit-capabilities" target="_blank" rel="noopener">NVIDIA Technical Blog：DLSS 5 with 3D-Guided Neural Rendering（2026年9月22日）</a></li>
+    <li><a href="https://www.nvidia.com/ja-jp/geforce/news/dlss-5-3d-guided-neural-rendering/" target="_blank" rel="noopener">NVIDIA GeForce：DLSS 5がRTX 50シリーズ向けに提供開始</a></li>
+    <li><a href="https://www.nvidia.com/ja-jp/geforce/news/nba-2k27-dlss-5-3d-guided-neural-rendering-geforce-game-ready-driver/" target="_blank" rel="noopener">NVIDIA：Game Ready Driver 616.64 / NBA 2K27 DLSS 5対応</a></li>
+    <li><a href="https://www.nvidia.com/en-us/geforce/technologies/dlss/" target="_blank" rel="noopener">NVIDIA DLSS Technology</a></li>
+  </ul>
+  <p class="source-note">対応GPU・ゲーム・ドライバー情報は2026年9月25日時点。今後の対応追加はNVIDIA公式情報を優先してください。</p>
+</article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div><strong>himaneko</strong><p>役立つ情報、無料HTMLツール、ゲーム制作物を公開しています。</p></div>
+    <div class="footer-links"><a href="/blog/">ブログ</a><a href="/privacy.html">プライバシーポリシー</a><a href="/about.html">このサイトについて</a></div>
+  </div>
+  <div class="wrap copyright">© 2026 himaneko</div>
+</footer>
+<script src="/assets/js/main.js"></script>
+</body>
+</html>
