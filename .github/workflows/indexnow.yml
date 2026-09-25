@@ -48,17 +48,19 @@ jobs:
               else:
                   urls.add(base + "/" + p)
 
-          # On the first setup run, also submit pages marked as modified today.
+          # If this workflow itself changes, do a one-time full sitemap submission.
+          # Normal future pushes continue to submit only changed/today-updated URLs.
           sm = Path("sitemap.xml")
           if sm.exists():
               try:
                   root = ET.parse(sm).getroot()
                   ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+                  full_submit = ".github/workflows/indexnow.yml" in changed
                   today = subprocess.check_output(["date", "-u", "+%Y-%m-%d"], text=True).strip()
                   for node in root.findall("sm:url", ns):
                       loc = node.findtext("sm:loc", default="", namespaces=ns).strip()
                       lastmod = node.findtext("sm:lastmod", default="", namespaces=ns).strip()
-                      if loc and lastmod.startswith(today):
+                      if loc and (full_submit or lastmod.startswith(today)):
                           urls.add(loc)
               except Exception as e:
                   print(f"sitemap parse warning: {e}")
