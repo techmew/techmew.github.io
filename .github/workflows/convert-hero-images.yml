@@ -6,6 +6,7 @@ on:
     paths:
       - 'assets/images/source/line-sticker-maker-hero-source.png'
       - 'assets/images/source/gif-apng-maker-hero-source.png'
+      - '.github/workflows/convert-hero-images.yml'
 
 permissions:
   contents: write
@@ -19,8 +20,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y imagemagick
       - name: Convert source PNGs to real JPEGs
         run: |
-          magick assets/images/source/line-sticker-maker-hero-source.png -strip -sampling-factor 4:2:0 -quality 90 assets/images/hq/line-sticker-maker-hero.jpg
-          magick assets/images/source/gif-apng-maker-hero-source.png -strip -sampling-factor 4:2:0 -quality 90 assets/images/hq/gif-apng-maker-hero.jpg
+          convert assets/images/source/line-sticker-maker-hero-source.png -strip -sampling-factor 4:2:0 -quality 90 assets/images/hq/line-sticker-maker-hero.jpg
+          convert assets/images/source/gif-apng-maker-hero-source.png -strip -sampling-factor 4:2:0 -quality 90 assets/images/hq/gif-apng-maker-hero.jpg
           file assets/images/hq/line-sticker-maker-hero.jpg
           file assets/images/hq/gif-apng-maker-hero.jpg
       - name: Commit converted images
