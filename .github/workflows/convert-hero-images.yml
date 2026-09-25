@@ -1,0 +1,32 @@
+name: Convert hero images to JPEG
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/images/source/line-sticker-maker-hero-source.png'
+      - 'assets/images/source/gif-apng-maker-hero-source.png'
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - name: Convert source PNGs to real JPEGs
+        run: |
+          magick assets/images/source/line-sticker-maker-hero-source.png -strip -sampling-factor 4:2:0 -quality 90 assets/images/hq/line-sticker-maker-hero.jpg
+          magick assets/images/source/gif-apng-maker-hero-source.png -strip -sampling-factor 4:2:0 -quality 90 assets/images/hq/gif-apng-maker-hero.jpg
+          file assets/images/hq/line-sticker-maker-hero.jpg
+          file assets/images/hq/gif-apng-maker-hero.jpg
+      - name: Commit converted images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/images/hq/line-sticker-maker-hero.jpg assets/images/hq/gif-apng-maker-hero.jpg
+          git diff --cached --quiet || git commit -m "Replace LINE and GIF/APNG hero images"
+          git push
