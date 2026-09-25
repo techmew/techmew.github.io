@@ -29,7 +29,8 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
     6:{id:"heic-lab",url:"/tools/heic-lab.html#himaneko-feedback"},
     7:{id:"gif-apng",url:"/tools/gif-apng-maker.html#himaneko-feedback"},
     8:{id:"line-sticker",url:"/tools/line-sticker-maker.html#himaneko-feedback"},
-    9:{id:"exif-cleaner",url:"/tools/exif-cleaner.html#himaneko-feedback"}
+    9:{id:"exif-cleaner",url:"/tools/exif-cleaner.html#himaneko-feedback"},
+    10:{id:"sns-image-studio",url:"/tools/sns-image-studio.html#himaneko-feedback"}
   };
 
   const headers = {
