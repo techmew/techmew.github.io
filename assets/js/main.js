@@ -222,3 +222,28 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",window.initHimanekoFeedback);
   else window.initHimanekoFeedback();
 })();
+
+(() => {
+  "use strict";
+  function networkFor(host){
+    if(/(^|\.)amazon\.co\.jp$/i.test(host)) return "amazon";
+    if(/(^|\.)rakuten\.co\.jp$/i.test(host)) return "rakuten";
+    return host || "unknown";
+  }
+  document.addEventListener("click", e => {
+    const a=e.target.closest('a[rel~="sponsored"]');
+    if(!a) return;
+    let u;
+    try{ u=new URL(a.href,location.href); }catch(_){ return; }
+    if(typeof window.gtag!=="function") return;
+    window.gtag("event","affiliate_click",{
+      page_url:location.pathname,
+      affiliate_network:networkFor(u.hostname),
+      tracking_id:u.searchParams.get("tag")||u.searchParams.get("id")||"",
+      product_id:u.searchParams.get("asin")||"",
+      placement:(a.dataset.affiliatePlacement||a.closest(".callout")?.querySelector("strong")?.textContent||"body").trim().slice(0,80),
+      link_style:(a.classList.contains("btn")?"button":"text"),
+      link_text:(a.textContent||"").trim().slice(0,100)
+    });
+  },{capture:true});
+})();
