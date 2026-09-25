@@ -1,0 +1,64 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SNS Image Studio 制作プロンプト完全版 | himaneko</title><meta name="description" content="複数画像×複数SNSサイズ、焦点、セーフエリア、Canvas、ZIP、出力検証まで含むSNS Image Studioの再制作・改良用完全プロンプト。"><link rel="canonical" href="https://techmew.github.io/prompts/sns-image-studio.html"><link rel="stylesheet" href="/assets/css/style.css"></head><body>
+<header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><button class="nav-toggle" aria-label="メニュー">☰</button><nav class="nav"><a href="/works.html">制作物</a><a href="/prompts/">プロンプト</a><a href="/tools/sns-image-studio.html">SNS Image Studio</a></nav></div></header>
+<main><article class="article"><div class="eyebrow">production prompt</div><h1>SNS Image Studio 制作プロンプト</h1><p class="lede">単なる「1080×1080にするボタン」ではなく、同じ素材を複数媒体へ展開するときの面倒をまとめて消すための仕様です。</p>
+<div class="article-visual"><img src="/assets/images/hq/sns-image-studio-hero.svg" alt="SNS Image Studio制作イメージ" width="1600" height="900"></div>
+<h2>完全版プロンプト</h2><pre>無料・登録不要のブラウザ画像ツール「SNS Image Studio」を作成する。
+
+【目的】
+同じ画像をX、Instagram、YouTube、LinkedIn、ブログOGPなどへ掲載するために、媒体ごとに画像編集ソフトを開き直す作業を減らす。複数の入力画像と複数の出力サイズを組み合わせ、一括生成できるようにする。
+
+【必須】
+・JPG / PNG / WebP入力
+・複数画像、最大50枚
+・ドラッグ＆ドロップ
+・SNS別プリセット
+・複数プリセット同時選択
+・カスタム幅・高さ追加
+・画像ごとの焦点位置
+・プレビューをタップ／ドラッグして焦点変更
+・Cover / Fit
+・Fit時は単色 / ぼかし / 透明背景
+・JPG / PNG / WebP出力
+・画質調整
+・画像ごとのズーム
+・セーフエリア表示
+・公式セーフエリアと作業用目安を区別
+・生成予定枚数を表示
+・過負荷防止の上限
+・進捗表示
+・失敗を個別表示
+・生成後にピクセル寸法を再検証
+・個別保存
+・ZIP一括保存
+・設定保存
+・処理履歴
+・スマホ対応
+・横スクロールを出さない
+
+【プリセット設計】
+公式に確認できる値は「公式推奨」と明記する。
+一般的な制作値は公式固定仕様のように断定しない。
+SNS仕様は変更されるため、更新日を管理しやすい構造にする。
+YouTubeバナーは安全領域を視覚表示する。
+
+【プライバシー】
+画像加工はブラウザCanvas内で実行する。
+自前サーバーへ画像を送信しない。
+service_roleや秘密鍵をクライアントへ置かない。
+
+【品質】
+変換が終わっただけで成功にしない。
+書き出したBlobを再読込し、幅・高さが指定値と一致するか検証する。
+大量画像で端末が固まらないよう、出力数へ現実的な上限を置く。
+エラー画像をZIPへ混ぜず、画面で原因を示す。
+
+【UI】
+himanekoの白・黒・グレー＋紫〜青アクセントを踏襲しつつ、アプリ本体は作業に集中できるダークUI。
+スマホではプレビューを上へ寄せる。
+ボタンを小さくしすぎない。
+
+【ライブラリ】
+ZIP生成は現行安定版のJSZipをバージョン固定で利用し、ライセンスを明記する。
+画像の切り抜き・変換は可能なら標準Canvas APIで完結する。</pre>
+<p><a class="btn pop-purple" href="/apps/sns-image-studio/">完成したSNS Image Studioを開く</a></p>
+</article></main><footer class="site-footer"><div class="wrap copyright">© 2026 himaneko</div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>

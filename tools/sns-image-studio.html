@@ -1,0 +1,26 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SNS Image Studio｜X・Instagram・YouTube画像を一括リサイズ | himaneko</title><meta name="description" content="複数画像をX、Instagram、YouTube、LinkedIn、OGP向けの複数サイズへ一括生成。焦点位置、セーフエリア、Cover/Fit、JPG/PNG/WebP、ZIP保存に対応。"><link rel="canonical" href="https://techmew.github.io/tools/sns-image-studio.html"><meta property="og:type" content="website"><meta property="og:site_name" content="himaneko"><meta property="og:title" content="SNS Image Studio｜SNS画像一括リサイズ"><meta property="og:description" content="複数画像×複数SNSサイズを一度に。焦点、セーフエリア、ZIPまで。"><meta property="og:image" content="https://techmew.github.io/assets/images/hq/sns-image-studio-hero.svg"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/assets/css/style.css"></head><body>
+<header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button><nav class="nav"><a href="/works.html">制作物</a><a href="/blog/">ブログ</a><a href="/prompts/">プロンプト</a><a href="/about.html">このサイト</a></nav></div></header>
+<main><article class="article"><div class="eyebrow">free browser tool</div><h1>SNS Image Studio</h1><p class="lede">X、Instagram、YouTube、LinkedIn、ブログOGP向けに、同じ素材を何度も開いてリサイズする作業をまとめる無料ブラウザツールです。複数画像と複数サイズを選び、一括で書き出せます。</p>
+<div class="article-visual"><img src="/assets/images/hq/sns-image-studio-hero.svg" alt="SNS Image Studioの複数SNS画像一括変換イメージ" width="1600" height="900" fetchpriority="high"></div>
+<p><a class="btn pop-purple" href="/apps/sns-image-studio/">SNS Image Studioを開く</a></p>
+<h2>できること</h2><div class="soft-box"><p>最大50枚のJPG・PNG・WebPを読み込み、X、Instagram、YouTube、LinkedIn、OGPなどの複数プリセットへ一括変換します。画像ごとに「残したい位置」を指定でき、Cover / Fit、背景色・ぼかし・透明、画質、JPG / PNG / WebPを選べます。</p><p>生成後は出力画像を再読込してピクセル寸法を検証します。個別保存とZIP一括保存に対応し、失敗したファイルは成功扱いしません。</p></div>
+<h2>主なプリセット</h2>
+<table><thead><tr><th>用途</th><th>サイズ</th><th>扱い</th></tr></thead><tbody>
+<tr><td>X プロフィール</td><td>400×400</td><td>X公式推奨</td></tr>
+<tr><td>X ヘッダー</td><td>1500×500</td><td>X公式推奨</td></tr>
+<tr><td>Instagram 正方形</td><td>1080×1080</td><td>一般的な制作プリセット</td></tr>
+<tr><td>Instagram 縦長</td><td>1080×1350</td><td>一般的な制作プリセット</td></tr>
+<tr><td>Story / Reels</td><td>1080×1920</td><td>9:16制作プリセット</td></tr>
+<tr><td>YouTube サムネイル</td><td>1280×720</td><td>16:9</td></tr>
+<tr><td>YouTube バナー</td><td>2560×1440</td><td>公式推奨・安全領域1235×338</td></tr>
+<tr><td>LinkedIn リンク画像</td><td>1200×627</td><td>LinkedIn公式 1.91:1</td></tr>
+<tr><td>OGP</td><td>1200×630</td><td>Web向け汎用</td></tr>
+</tbody></table>
+<p class="mini-note">SNS側の表示仕様は変更されることがあります。Xは公式ヘルプでプロフィール400×400、ヘッダー1500×500を確認。YouTubeは公式ヘルプでバナー2560×1440、安全領域1235×338を確認。LinkedInは公式ヘルプでリンク画像1.91:1（1200×627）を確認しています。Instagramの投稿プリセットは制作上よく使われる比率で、Metaがすべての投稿に固定サイズを要求しているという意味ではありません。</p>
+<p><a href="https://help.x.com/en/managing-your-account/how-to-customize-your-profile" target="_blank" rel="noopener">X公式ヘルプ</a> / <a href="https://support.google.com/youtube/answer/10456525?hl=ja" target="_blank" rel="noopener">YouTube公式ヘルプ</a> / <a href="https://www.linkedin.com/help/linkedin/answer/a563309?lang=ja" target="_blank" rel="noopener">LinkedIn公式ヘルプ</a></p>
+<h2>焦点位置とセーフエリア</h2><p>Coverでは縦横比の違いによって画像の一部が切れます。プレビューをタップまたはドラッグし、顔・商品・文字など「絶対に残したい位置」を画像ごとに設定できます。YouTubeバナーは公式のテキスト・ロゴ安全領域を重ねて確認できます。Story / ReelsのガイドはアプリUIを避ける作業上の目安として表示し、公式固定値とは区別しています。</p>
+<h2>画像はアップロードする？</h2><p>画像の読み込み、切り抜き、リサイズ、形式変換はブラウザのCanvasで行います。himanekoの自前サーバーへ画像をアップロードする処理はありません。ZIP生成にJSZip 3.10.2を使用します。</p>
+<h2>画像スリムとの違い</h2><p><a href="/tools/image-slimmer.html">画像スリム</a>は容量や任意サイズへの軽量化が中心です。SNS Image Studioは「ひとつの素材から複数媒体サイズを一度に作る」こと、焦点とセーフエリアを確認することに特化しています。写真のGPSやExifを消したい場合は<a href="/tools/exif-cleaner.html">Exif Cleaner</a>を使えます。</p>
+<h2>利用ライブラリ</h2><p class="mini-note">ZIP生成：JSZip 3.10.2。画像処理はブラウザ標準のCanvas APIを使用します。JSZipはMITまたはGPL-3.0-or-laterのデュアルライセンスです。</p>
+<section class="feedback-panel" data-feedback-issue="10"><h2>SNS Image Studioへの感想・要望</h2><p class="feedback-intro">追加してほしいSNSサイズ、切り抜き方、書き出し形式などを書けます。</p><div class="feedback-actions"><button type="button" class="feedback-vote" data-feedback-link><span>❤️</span><span>役に立った</span><span class="feedback-count" data-feedback-hearts>…</span></button><button type="button" class="feedback-comment-link" data-feedback-link><span>💬</span><span>もっとこうしてほしい</span><span class="feedback-count" data-feedback-comments>…</span></button></div><div class="feedback-comments"><p class="feedback-empty">コメントを読み込んでいます…</p></div><p class="feedback-note">ハートとコメントはこのページ内で送信できます。</p></section>
+</article></main><footer class="site-footer"><div class="wrap footer-grid"><div><strong>himaneko</strong><p>無料HTMLツール、ゲーム、制作記録を公開しています。</p></div><div class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/contact.html">お問い合わせ</a><a href="/terms.html">利用について</a></div></div><div class="wrap copyright">© 2026 himaneko</div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>

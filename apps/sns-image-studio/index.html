@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SNS Image Studio｜SNS画像を複数サイズへ一括変換 | himaneko</title>
+<meta name="description" content="X、Instagram、YouTube、LinkedIn、ブログOGP向け画像を複数サイズへ一括変換。焦点位置、セーフエリア、Cover/Fit、JPG/PNG/WebP、ZIP保存に対応。画像はブラウザ内で処理します。">
+<link rel="canonical" href="https://techmew.github.io/apps/sns-image-studio/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="himaneko">
+<meta property="og:title" content="SNS Image Studio｜SNS画像をまとめて最適サイズへ">
+<meta property="og:description" content="1枚ずつ何度も切り抜く作業を減らす。複数画像×複数SNSサイズをブラウザで一括生成。">
+<meta property="og:image" content="https://techmew.github.io/assets/images/hq/sns-image-studio-hero.svg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#111216">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+:root{--si-bg:#0f1116;--si-card:#171a22;--si-card2:#1d2029;--si-line:#303541;--si-text:#f6f7fb;--si-muted:#a2a9b7;--si-purple:#7867ff;--si-blue:#3bb6ee;--si-good:#43c58a;--si-bad:#ff778a}
+*{box-sizing:border-box}
+body{margin:0}
+.studio{min-height:100vh;background:radial-gradient(circle at 8% 0%,rgba(120,103,255,.15),transparent 32rem),radial-gradient(circle at 96% 8%,rgba(59,182,238,.1),transparent 28rem),var(--si-bg);color:var(--si-text)}
+.studio-top{position:sticky;top:0;z-index:30;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(15,17,22,.86);backdrop-filter:blur(18px)}
+.studio-top .bar{width:min(1240px,calc(100% - 28px));margin:auto;min-height:62px;display:flex;align-items:center;gap:14px}
+.studio-brand{font-weight:950;letter-spacing:-.03em;color:#fff;text-decoration:none}.studio-brand span{color:#9d8fff}
+.studio-links{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}.studio-links a{color:#c7ccd5;text-decoration:none;font-size:.85rem;padding:8px 10px;border-radius:8px}.studio-links a:hover{background:#232731;color:#fff}
+.studio-main{width:min(1240px,calc(100% - 28px));margin:auto;padding:30px 0 64px}
+.studio-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;margin-bottom:24px}
+.studio-intro h1{font-size:clamp(2rem,6vw,4rem);line-height:.98;letter-spacing:-.055em;margin:0 0 12px}.studio-intro p{color:var(--si-muted);max-width:780px;line-height:1.8;margin:0}
+.local-badge{border:1px solid #34394a;background:#171a22;border-radius:10px;padding:10px 13px;font-size:.82rem;color:#cdd3de}
+.layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(340px,.88fr);gap:18px;align-items:start}
+.panel{background:linear-gradient(180deg,#181b23,#15181f);border:1px solid var(--si-line);border-radius:14px;padding:18px;box-shadow:0 18px 52px rgba(0,0,0,.17)}
+.panel+.panel{margin-top:18px}.panel h2{font-size:1rem;margin:0 0 14px;letter-spacing:.01em}.panel h3{font-size:.9rem;margin:18px 0 10px;color:#dfe3eb}
+.drop{border:1px dashed #4a5060;border-radius:12px;padding:28px 18px;text-align:center;background:#12151b;transition:.15s}.drop.is-over{border-color:var(--si-purple);background:#19172b}.drop strong{display:block;font-size:1.03rem}.drop p{margin:7px 0 14px;color:var(--si-muted);font-size:.84rem}.drop input{display:none}
+.studio button,.studio select,.studio input{font:inherit}
+.sbtn{appearance:none;border:1px solid #3a4050;background:#232731;color:#fff;border-radius:9px;min-height:40px;padding:0 13px;font-weight:850;cursor:pointer}.sbtn:hover{border-color:#656e84}.sbtn.primary{border:0;background:linear-gradient(135deg,var(--si-purple),#946bf2 58%,var(--si-blue));box-shadow:0 8px 24px rgba(120,103,255,.2)}.sbtn.ghost{background:transparent}.sbtn.danger{color:#ffbdc6}.sbtn:disabled{opacity:.45;cursor:not-allowed}
+.file-list{display:grid;gap:8px;margin-top:12px;max-height:270px;overflow:auto}.file-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #292e39;background:#13161c;border-radius:10px;padding:8px;cursor:pointer}.file-row.active{border-color:#7867ff;background:#1b1930}.thumb{width:48px;height:48px;object-fit:cover;border-radius:7px;background:#0c0e12}.file-name{font-size:.84rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.file-meta{font-size:.72rem;color:var(--si-muted);margin-top:3px}.remove{border:0;background:transparent;color:#8f96a5;font-size:1.1rem;cursor:pointer;padding:7px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.toolbar .spacer{flex:1}
+.preset-groups{display:grid;gap:12px}.preset-group{border-top:1px solid #282d37;padding-top:12px}.preset-group:first-child{border-top:0;padding-top:0}.preset-title{font-size:.77rem;text-transform:uppercase;letter-spacing:.09em;color:#9da5b4;margin-bottom:7px}.preset-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.preset-item{position:relative;display:flex;align-items:flex-start;gap:8px;border:1px solid #303541;border-radius:9px;padding:9px;background:#15181f;cursor:pointer}.preset-item:has(input:checked){border-color:#7867ff;background:#1b1930}.preset-item input{accent-color:#7867ff;margin-top:2px}.preset-item b{display:block;font-size:.78rem}.preset-item small{display:block;color:#8f97a6;font-size:.68rem;margin-top:2px;line-height:1.35}.preset-delete{position:absolute;right:5px;top:4px;background:transparent;border:0;color:#9299a7;cursor:pointer}
+.custom-row{display:grid;grid-template-columns:1.2fr .7fr .7fr auto;gap:7px}.field{display:grid;gap:6px}.field label{font-size:.72rem;color:#aeb5c1;font-weight:800}.field input,.field select{width:100%;border:1px solid #383e4c;background:#11141a;color:#f4f6fa;border-radius:8px;min-height:40px;padding:0 10px;outline:none}.field input:focus,.field select:focus{border-color:#7867ff;box-shadow:0 0 0 3px rgba(120,103,255,.1)}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.range-line{display:flex;align-items:center;gap:10px}.range-line input{width:100%}.range-val{min-width:44px;text-align:right;color:#dfe3eb;font-size:.8rem}
+.preview-head{display:flex;gap:8px;align-items:end;margin-bottom:10px}.preview-head .field{flex:1}.canvas-wrap{position:relative;background:#0a0c10;border:1px solid #303541;border-radius:12px;overflow:hidden;min-height:220px;display:grid;place-items:center}.canvas-wrap canvas{display:block;width:100%;height:auto;max-height:520px;touch-action:none}.preview-tip{font-size:.72rem;color:#929aa8;line-height:1.55;margin:9px 1px 0}
+.batch-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.metric{border:1px solid #303541;background:#12151b;border-radius:9px;padding:10px}.metric b{font-size:1.15rem;display:block}.metric span{font-size:.68rem;color:#969eac}
+.progress{height:8px;background:#282d38;border-radius:99px;overflow:hidden}.progress>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--si-purple),var(--si-blue));transition:width .2s}.progress-text{font-size:.75rem;color:#aab1bf;margin-top:7px;min-height:1.2em}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions .primary{flex:1;min-width:190px}
+.result-list{display:grid;gap:7px;margin-top:12px;max-height:370px;overflow:auto}.result-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #2d323d;background:#12151b;border-radius:9px;padding:9px 10px}.result-row b{display:block;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.result-row small{color:#8f97a6;font-size:.66rem}.result-row a{color:#cfc9ff;text-decoration:none;font-size:.74rem;font-weight:850}
+.error-list{margin-top:10px;color:#ffc2ca;font-size:.74rem;line-height:1.6}.history{display:grid;gap:7px}.history-item{border-left:2px solid #3d4351;padding:4px 0 4px 10px;font-size:.76rem;color:#aeb5c1}.notice{border:1px solid #313745;border-radius:10px;background:#12151b;padding:12px;font-size:.76rem;color:#aeb5c1;line-height:1.65}.notice strong{color:#fff}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.studio-intro{grid-template-columns:1fr}.local-badge{justify-self:start}.right-col{display:flex;flex-direction:column}.preview-panel{order:-1}}
+@media(max-width:620px){.studio-main,.studio-top .bar{width:min(100% - 20px,1240px)}.studio-links a:not(:first-child){display:none}.panel{padding:14px}.preset-list{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}.custom-row{grid-template-columns:1fr 1fr}.custom-row .field:first-child{grid-column:1/-1}.batch-summary{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="studio">
+<header class="studio-top"><div class="bar"><a class="studio-brand" href="/">himaneko <span>/ LAB</span></a><div class="studio-links"><a href="/tools/sns-image-studio.html">使い方・仕様</a><a href="/blog/sns-image-size-guide.html">サイズ一覧</a><a href="/works.html">制作物</a></div></div></header>
+<main class="studio-main">
+<section class="studio-intro">
+<div><h1>SNS Image Studio</h1><p>同じ画像をX用、Instagram用、YouTube用、OGP用に何度も切り抜く作業をまとめます。複数画像と複数プリセットを選び、重要な位置を合わせて一括生成できます。</p></div>
+<div class="local-badge">画像処理はブラウザ内。自前サーバーへ画像を送信しません。</div>
+</section>
+<div class="layout">
+<div class="left-col">
+<section class="panel">
+<h2>1. 画像を追加</h2>
+<div id="dropZone" class="drop"><strong>画像をここへドロップ</strong><p>JPG / PNG / WebP・最大50枚。タップ選択もできます。</p><button class="sbtn primary" id="pickBtn" type="button">画像を選ぶ</button><input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple></div>
+<div class="toolbar"><button class="sbtn ghost" id="clearFiles" type="button">すべて削除</button><span class="spacer"></span><span id="fileCount" class="file-meta">0枚</span></div>
+<div id="fileList" class="file-list"></div>
+</section>
+
+<section class="panel">
+<h2>2. 出力サイズを選ぶ</h2>
+<div class="toolbar"><button class="sbtn ghost" id="selectPopular" type="button">定番を選択</button><button class="sbtn ghost" id="selectAll" type="button">すべて</button><button class="sbtn ghost" id="selectNone" type="button">解除</button></div>
+<div id="presetGroups" class="preset-groups"></div>
+<h3>カスタムサイズ</h3>
+<div class="custom-row">
+<div class="field"><label for="customName">名前</label><input id="customName" maxlength="28" placeholder="例：ブログ見出し"></div>
+<div class="field"><label for="customW">幅 px</label><input id="customW" type="number" min="16" max="10000" value="1200"></div>
+<div class="field"><label for="customH">高さ px</label><input id="customH" type="number" min="16" max="10000" value="630"></div>
+<button class="sbtn" id="addCustom" type="button">追加</button>
+</div>
+</section>
+
+<section class="panel">
+<h2>3. 書き出し設定</h2>
+<div class="settings-grid">
+<div class="field"><label for="fitMode">配置方法</label><select id="fitMode"><option value="cover">Cover：画面いっぱい</option><option value="contain">Fit：画像全体を入れる</option></select></div>
+<div class="field"><label for="format">形式</label><select id="format"><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></div>
+<div class="field"><label for="backgroundMode">Fit時の背景</label><select id="backgroundMode"><option value="solid">単色</option><option value="blur">ぼかし</option><option value="transparent">透明</option></select></div>
+<div class="field"><label for="bgColor">背景色</label><input id="bgColor" type="color" value="#111216"></div>
+</div>
+<h3>画質</h3>
+<div class="range-line"><input id="quality" type="range" min="50" max="100" value="90"><span id="qualityVal" class="range-val">90%</span></div>
+<h3>選択画像のズーム</h3>
+<div class="range-line"><input id="zoom" type="range" min="100" max="250" value="100"><span id="zoomVal" class="range-val">100%</span></div>
+<div class="notice" style="margin-top:12px"><strong>セーフエリア</strong><br>YouTubeバナーは公式の安全領域を表示します。Instagram Story/ReelsのガイドはUIを避けるための作業用目安で、公式の固定値ではありません。</div>
+</section>
+
+<section class="panel">
+<h2>4. 一括生成</h2>
+<div class="batch-summary"><div class="metric"><b id="metricImages">0</b><span>入力画像</span></div><div class="metric"><b id="metricPresets">0</b><span>選択サイズ</span></div><div class="metric"><b id="metricOutputs">0</b><span>生成予定</span></div></div>
+<div class="progress"><span id="progressBar"></span></div><div id="progressText" class="progress-text"></div>
+<div class="actions"><button class="sbtn primary" id="generateBtn" type="button">選択サイズを一括生成</button><button class="sbtn" id="downloadZip" type="button" disabled>ZIP保存</button></div>
+<div id="errorList" class="error-list"></div>
+<div id="resultList" class="result-list"></div>
+</section>
+</div>
+
+<div class="right-col">
+<section class="panel preview-panel">
+<h2>プレビュー</h2>
+<div class="preview-head"><div class="field"><label for="previewPreset">確認するサイズ</label><select id="previewPreset"></select></div></div>
+<div id="canvasWrap" class="canvas-wrap"><canvas id="previewCanvas" width="800" height="450"></canvas></div>
+<p class="preview-tip">画像上をタップ／ドラッグすると「残したい位置」を移動できます。重要な顔や文字を焦点に合わせてください。</p>
+</section>
+<section class="panel">
+<h2>処理履歴</h2><div id="history" class="history"><div class="history-item">まだ処理履歴はありません。</div></div>
+</section>
+<section class="panel">
+<h2>プライバシーと制限</h2>
+<div class="notice">読み込んだ画像はこのページのCanvasで処理します。画像そのものをhimanekoのサーバーへ送信する処理はありません。ブラウザや端末のメモリ上限により、大量・超高解像度画像では処理に失敗することがあります。生成予定が300枚を超える場合は分けて処理してください。</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js" integrity="sha256-RXCGnS2fMo8AYm8VdG5QJwY0Yg0Fz6WzXx3uJqvFf1A=" crossorigin="anonymous"></script>
+<script src="/assets/js/sns-image-studio.js"></script>
+</body>
+</html>
