@@ -241,8 +241,11 @@ function clearResults(){
 }
 function resultRow(r){
   const row=document.createElement("div");row.className="result-row";
-  row.innerHTML='<div><b>'+escapeHtml(r.name)+'</b><small>'+r.w+"×"+r.h+" ・ "+bytes(r.blob.size)+" ・ 検証OK</small></div><a href="'+r.url+'" download="'+escapeHtml(r.name)+'">保存</a>';
-  els.resultList.appendChild(row);
+  const info=document.createElement("div");
+  const title=document.createElement("b");title.textContent=r.name;
+  const meta=document.createElement("small");meta.textContent=r.w+"×"+r.h+" ・ "+bytes(r.blob.size)+" ・ 検証OK";
+  const link=document.createElement("a");link.href=r.url;link.download=r.name;link.textContent="保存";
+  info.append(title,meta);row.append(info,link);els.resultList.appendChild(row);
 }
 async function generate(){
   if(busy)return;
