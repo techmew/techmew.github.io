@@ -30,7 +30,8 @@ document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',(
     7:{id:"gif-apng",url:"/tools/gif-apng-maker.html#himaneko-feedback"},
     8:{id:"line-sticker",url:"/tools/line-sticker-maker.html#himaneko-feedback"},
     9:{id:"exif-cleaner",url:"/tools/exif-cleaner.html#himaneko-feedback"},
-    10:{id:"sns-image-studio",url:"/tools/sns-image-studio.html#himaneko-feedback"}
+    10:{id:"sns-image-studio",url:"/tools/sns-image-studio.html#himaneko-feedback"},
+    11:{id:"pdf-meta-desk",url:"/tools/pdf-desk.html#himaneko-feedback"}
   };
 
   const headers = {
