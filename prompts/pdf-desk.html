@@ -1,0 +1,111 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF Desk 制作プロンプト完全版 | himaneko</title><meta name="description" content="PDF結合、抽出、削除、回転、分割、メタデータ検査・削除、出力再検証まで含むPDF Deskの再制作・改良用プロンプト。"><link rel="canonical" href="https://techmew.github.io/prompts/pdf-desk.html"><link rel="stylesheet" href="/assets/css/style.css"></head><body>
+<header class="site-header"><div class="wrap nav-wrap"><a class="brand" href="/">himaneko</a><button class="nav-toggle" aria-label="メニュー">☰</button><nav class="nav"><a href="/tools/">無料ツール</a><a href="/prompts/">制作プロンプト</a><a href="/tools/pdf-desk.html">PDF Desk</a></nav></div></header>
+<main><article class="article"><span class="kicker">PRODUCTION PROMPT</span><h1>PDF Desk 制作プロンプト</h1><p class="lede">単なるPDF結合ボタンではなく、ページ整理と「出す前の情報確認」を1画面で完結させるための実装仕様です。</p><div class="article-visual"><img src="/assets/images/hq/pdf-desk-hero.svg" alt="PDF Desk制作プロンプトのイメージ" width="1600" height="900"></div>
+<h2>完全版プロンプト</h2><pre>無料・登録不要のブラウザPDFツール「PDF Desk」を作成する。
+
+【目的】
+PDFの結合、ページ抽出、削除、回転、分割、メタデータ確認を別々のサイトで行う手間を減らす。
+PDF本体は自前サーバーへ送信せず、可能な処理はブラウザ内で完結させる。
+
+【既存制作物との差】
+画像スリム、HEIC Lab、Exif Cleaner等は画像ファイルが入力。
+PDF DeskはPDFのページ構造とDocument Info / XMPを扱う文書ツールで、入力・出力・中心処理・利用フローが異なるため別アプリとする。
+
+【必須入力】
+・PDFのみ
+・複数ファイル
+・ドラッグ＆ドロップとファイル選択
+・最大20ファイル
+・合計200MBを上限目安とし、超過時は処理前に止める
+・暗号化、破損、未対応PDFはファイル単位でエラー表示
+
+【ファイル一覧】
+・ファイル名
+・容量
+・ページ数
+・検出したメタデータ項目数
+・上へ / 下へで結合順を変更
+・個別削除
+・選択中PDFを明確に表示
+
+【PDF操作】
+1. 複数PDF結合
+2. 指定ページ抽出
+3. 指定ページ削除
+4. 指定ページを左90度 / 右90度回転
+5. ページ範囲を複数グループへ分割しZIP保存
+6. メタデータ削除版を書き出し
+
+【ページ範囲】
+・1,3,5-8 形式
+・重複ページは重複させない
+・0、負数、ページ数超過、逆転範囲はエラー
+・削除後に0ページになる操作は禁止
+・回転は範囲空欄なら全ページ
+・分割は 1-3;4-6;7-10 のように ; でグループ化
+
+【メタデータ検査】
+最低限表示する。
+・Title
+・Author
+・Subject
+・Keywords
+・Creator
+・Producer
+・CreationDate
+・ModificationDate
+・XMP Metadata stream の有無
+
+【メタデータ削除】
+・Document Info dictionaryを出力PDFから除去
+・Catalogに紐づくXMP Metadata streamも除去
+・削除後のPDFを再読込して、同じ検査ロジックで残存項目を再確認
+・本文の個人情報削除やRedactionとは別機能であることを明記
+
+【プライバシー】
+・PDF本体の読込、編集、書き出しはブラウザ内
+・himanekoの自前サーバーへPDFを送信するコードを入れない
+・ファイル内容やファイル名をlocalStorageへ保存しない
+・履歴を保存する場合は「何を実行したか」だけにする
+
+【品質】
+・出力したBlobをPDFとして再読込する
+・結合、抽出、削除、回転は期待ページ数と一致するか検証
+・分割ZIPは各PDFを個別検証してから格納
+・成功しただけでなく失敗理由も画面に出す
+・処理中は二重実行を防ぐ
+・処理進捗を表示
+・出力URLは不要になったらrevokeObjectURLする
+
+【重要な注意】
+・パスワード保護PDFは読み込めない場合がある
+・巨大PDFは端末メモリ上限で失敗する場合がある
+・電子署名済みPDFを編集・再保存すると署名検証が無効になる場合がある
+・「メタデータ削除」は本文の黒塗り、OCR文字、埋め込み画像内文字を消す機能ではない
+・見た目だけの黒塗りをRedactionとして案内しない
+
+【UI】
+・PCでは2カラム、スマホでは1カラム
+・左側に入力と操作、右側にメタデータ検査と結果
+・選択中PDFが分かる
+・危険度の高い操作（ページ削除）は他操作と視覚的に区別
+・横スクロールを発生させない
+・himanekoの既存サイトから分離しすぎない
+
+【ライブラリ】
+・pdf-lib 1.17.1をバージョン固定
+・JSZip 3.10.1をバージョン固定
+・ライセンスを説明ページに明記
+
+【公開セット】
+・apps/pdf-desk/ 本体
+・tools/pdf-desk.html 使い方、制限、プライバシー、FAQ
+・prompts/pdf-desk.html この制作プロンプト
+・dev/pdf-desk-build.html 調査、採用理由、テスト内容、今後の課題
+・トップ、無料ツール一覧、プロンプト一覧、開発ノート、更新履歴、sitemapから導線を張る
+
+【完成判定】
+UIがあるだけでは完成扱いにしない。
+最低限、複数PDF結合、抽出、削除、回転、分割ZIP、メタデータ表示、メタデータ削除、出力再検証が実際に動くことを確認してから公開する。</pre>
+<p><a class="btn pop-purple" href="/apps/pdf-desk/">完成したPDF Deskを開く</a> <a class="btn secondary" href="/dev/pdf-desk-build.html">制作記録を見る</a></p>
+</article></main><footer class="site-footer"><div class="wrap copyright">© 2026 himaneko</div></footer><script src="/assets/js/main-feedback-v3.js"></script></body></html>
