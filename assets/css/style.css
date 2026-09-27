@@ -645,3 +645,32 @@ button[data-feedback-link]{font:inherit;cursor:pointer}
   .home-v2 .studio-hero-visual{border-radius:20px}
   .home-v2 .studio-card{border-radius:16px}
 }
+
+/* 2026-09-27 himaneko lab top hero */
+.home-v2 .studio-hero--banner{padding:28px 0 24px}
+.home-v2 .studio-hero--banner>.wrap{display:block}
+.home-v2 .studio-hero--banner .studio-hero-visual{margin:0}
+.home-v2 .studio-hero--banner .studio-hero-visual img{
+  width:100%;
+  height:auto;
+  aspect-ratio:auto;
+  object-fit:contain;
+}
+.home-v2 .studio-hero-banner-foot{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:18px 4px 0;
+}
+.home-v2 .studio-hero-banner-foot p{
+  margin:0;
+  font-size:clamp(1.05rem,2.2vw,1.4rem);
+  letter-spacing:-.02em;
+}
+.home-v2 .studio-hero-banner-foot .studio-actions{margin-top:0}
+@media(max-width:700px){
+  .home-v2 .studio-hero--banner{padding-top:16px}
+  .home-v2 .studio-hero-banner-foot{display:block;padding-top:14px}
+  .home-v2 .studio-hero-banner-foot .studio-actions{margin-top:12px}
+}
