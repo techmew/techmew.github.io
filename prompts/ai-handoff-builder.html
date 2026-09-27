@@ -1,0 +1,15 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Handoff Builder 制作プロンプト完全版 | himaneko</title><link rel="stylesheet" href="/assets/css/style.css"></head><body><main><article class="article"><span class="kicker">PRODUCTION PROMPT</span><h1>AI Handoff Builder 制作プロンプト</h1><div class="article-visual"><img src="/assets/images/hq/ai-handoff-builder-hero.svg" alt="AI Handoff Builder制作プロンプト" width="1600" height="900"></div><pre>無料・登録不要のAI Handoff Builderを作成する。
+
+目的：長いAI作業を別チャット・別モデルへ移す時、現在状態・判断理由・失敗・次工程・制約を構造化したMarkdownへ整形する。
+
+入力：用途、プロジェクト名、元の依頼、ゴール、進捗、関連ファイル/URL、判断理由、失敗、ブロッカー、次工程、環境、制約、完了条件。
+
+出力：Markdown。完了済み、失敗、次工程、制約を別見出しにする。未入力内容を推測で補わない。
+
+操作：生成、コピー、.md保存、記入例、手動下書き保存、入力クリア、充足度表示。
+
+プライバシー：入力本文を外部APIへ送らない。下書きは自動保存せず、保存ボタンを押した場合だけlocalStorageへ保存する。機密情報を入力しない注意を表示。
+
+品質：入力値をinnerHTMLへ入れない。空の任意項目は省略。Clipboard API失敗時のフォールバック。スマホ1カラム。
+
+完成判定：入力→生成→コピー→保存、localStorage保存・読込・削除が動く。説明、実用記事、トップ、一覧、sitemapから導線を張る。</pre><p><a class="btn pop-purple" href="/apps/ai-handoff-builder/">完成ツール</a> <a class="btn secondary" href="/dev/ai-handoff.html">設計判断</a></p></article></main></body></html>
