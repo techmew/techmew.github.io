@@ -19,12 +19,13 @@
     ["/tools/","無料ツール"],
     ["/prompts/","制作プロンプト"],
     ["/dev/","開発ノート"],
+    ["/timeline.html","更新履歴"],
     ["/about.html","このサイト"]
   ];
   const path=location.pathname;
   document.querySelectorAll(".nav").forEach(nav=>{
     nav.innerHTML=links.map(([href,label])=>{
-      const current=(href==="/blog/"&&path.startsWith("/blog/"))||(href==="/tools/"&&(path.startsWith("/tools/")||path.startsWith("/apps/")))||(href==="/prompts/"&&path.startsWith("/prompts/"))||(href==="/dev/"&&path.startsWith("/dev/"))||(href==="/about.html"&&path==="/about.html");
+      const current=(href==="/blog/"&&path.startsWith("/blog/"))||(href==="/tools/"&&(path.startsWith("/tools/")||path.startsWith("/apps/")))||(href==="/prompts/"&&path.startsWith("/prompts/"))||(href==="/dev/"&&path.startsWith("/dev/"))||(href==="/timeline.html"&&path==="/timeline.html")||(href==="/about.html"&&path==="/about.html");
       return '<a href="'+href+'"'+(current?' aria-current="page"':'')+'>'+label+'</a>';
     }).join("");
   });
