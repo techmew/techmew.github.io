@@ -476,3 +476,67 @@ body{
 .feedback-vote.is-busy{opacity:.65}
 
 button[data-feedback-link]{font:inherit;cursor:pointer}
+
+
+/* 2026-09-27 IA rebuild: latest articles first, clearer dates/new states */
+.nav a[aria-current="page"]{background:#fff;color:#17181c;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.home-hero{padding:30px 0 18px}
+.home-hero-grid{display:grid;grid-template-columns:minmax(0,.88fr) minmax(380px,1.12fr);gap:30px;align-items:center}
+.home-hero-copy{padding:20px 0}
+.home-hero-copy h1{font-size:clamp(2.35rem,6vw,4.6rem);line-height:1.03;letter-spacing:-.055em;margin:.3em 0 .28em}
+.home-hero-copy p{font-size:1.05rem;color:var(--muted);max-width:650px;margin:0}
+.home-hero-media{border:1px solid var(--line);border-radius:28px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+.home-hero-media img{width:100%;aspect-ratio:16/9;object-fit:cover}
+.home-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.home-section{padding:34px 0}
+.home-section + .home-section{border-top:1px solid var(--line)}
+.latest-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+.article-card{grid-column:span 4;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#fff;text-decoration:none;box-shadow:var(--shadow-sm);transition:.18s transform,.18s box-shadow}
+.article-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.article-card--lead{grid-column:span 8}
+.article-card-media{aspect-ratio:16/9;overflow:hidden;background:#eceef3;border-bottom:1px solid var(--line)}
+.article-card-media img{width:100%;height:100%;object-fit:cover}
+.article-card-body{padding:18px 19px 20px}
+.article-card h2,.article-card h3{margin:.45rem 0 .45rem;line-height:1.28;letter-spacing:-.025em}
+.article-card h2{font-size:clamp(1.35rem,3vw,2rem)}
+.article-card h3{font-size:1.14rem}
+.article-card p{margin:.35rem 0;color:var(--muted);line-height:1.65}
+.article-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:#777f8d;font-size:.78rem;font-weight:750}
+.badge-new,.badge-topic,.badge-archive{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:.7rem;font-weight:900;letter-spacing:.04em}
+.badge-new{background:#17181c;color:#fff}
+.badge-topic{background:var(--accent-soft);color:#5b4bd2;border:1px solid #ddd8ff}
+.badge-archive{background:#f0f2f5;color:#68707c;border:1px solid var(--line)}
+.tool-feature{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.82fr);gap:24px;align-items:center;border:1px solid var(--line);border-radius:24px;background:#fff;padding:22px;box-shadow:var(--shadow-sm)}
+.tool-feature img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:16px;border:1px solid var(--line)}
+.tool-feature h3{font-size:clamp(1.5rem,3vw,2.35rem);line-height:1.18;margin:.35em 0}
+.quick-links{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.quick-link{padding:18px;border:1px solid var(--line);border-radius:17px;background:#fff;text-decoration:none}
+.quick-link strong{display:block;margin-bottom:4px}
+.quick-link span{font-size:.86rem;color:var(--muted)}
+.blog-hero{padding:34px 0 20px}
+.blog-hero h1{font-size:clamp(2.2rem,5vw,4rem);line-height:1.05;letter-spacing:-.045em;margin:.3em 0}
+.blog-archive{display:grid;gap:10px}
+.archive-row{display:grid;grid-template-columns:118px 1fr auto;gap:16px;align-items:center;padding:15px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;text-decoration:none}
+.archive-row time{font-size:.8rem;color:#747b87;font-weight:800}
+.archive-row strong{line-height:1.4}
+.article .article-meta{margin:12px 0 18px}
+.article-visual{margin:24px 0 30px}
+.article-visual img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+.article-caption{font-size:.78rem;color:var(--muted);margin-top:7px}
+.related-box{margin-top:34px;padding:18px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.footer-nav{display:flex;gap:14px;flex-wrap:wrap}
+@media(max-width:900px){
+  .home-hero-grid,.tool-feature{grid-template-columns:1fr}
+  .article-card,.article-card--lead{grid-column:span 6}
+  .quick-links{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  .home-hero{padding-top:18px}
+  .home-hero-grid{gap:16px}
+  .home-hero-copy{padding:0}
+  .home-hero-copy h1{font-size:2.45rem}
+  .latest-grid{gap:14px}
+  .article-card,.article-card--lead{grid-column:1/-1}
+  .quick-links{grid-template-columns:1fr}
+  .archive-row{grid-template-columns:1fr;gap:5px}
+}

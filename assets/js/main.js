@@ -13,6 +13,23 @@
   window.gtag("config",id);
 })();
 
+(()=>{
+  const links=[
+    ["/blog/","AI記事"],
+    ["/tools/","無料ツール"],
+    ["/prompts/","制作プロンプト"],
+    ["/dev/","開発ノート"],
+    ["/about.html","このサイト"]
+  ];
+  const path=location.pathname;
+  document.querySelectorAll(".nav").forEach(nav=>{
+    nav.innerHTML=links.map(([href,label])=>{
+      const current=(href==="/blog/"&&path.startsWith("/blog/"))||(href==="/tools/"&&(path.startsWith("/tools/")||path.startsWith("/apps/")))||(href==="/prompts/"&&path.startsWith("/prompts/"))||(href==="/dev/"&&path.startsWith("/dev/"))||(href==="/about.html"&&path==="/about.html");
+      return '<a href="'+href+'"'+(current?' aria-current="page"':'')+'>'+label+'</a>';
+    }).join("");
+  });
+})();
+
 document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',()=>{const n=b.nextElementSibling,o=n.classList.toggle('open');b.setAttribute('aria-expanded',String(o))}));
 
 (() => {
