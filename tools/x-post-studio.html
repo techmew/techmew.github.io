@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>X Post Studio｜無料セットアップと使い方 | himaneko</title>
+<meta name="description" content="X Post Studioの使い方と、各利用者が自分のGitHub・Cloudflare Workers AI無料枠で使うためのセットアップ手順。">
+<link rel="canonical" href="https://techmew.github.io/tools/x-post-studio.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="himaneko">
+<meta property="og:title" content="X Post Studio｜無料セットアップと使い方">
+<meta property="og:description" content="自分のCloudflare Workers AIを接続して使う、スマホ向けX投稿サポートツール。">
+<meta property="og:image" content="https://techmew.github.io/assets/images/hq/x-post-studio-hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap nav-wrap">
+    <a class="brand" href="/">himaneko</a>
+    <button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button>
+    <nav class="nav">
+      <a href="/blog/">AI情報</a>
+      <a href="/tools/" aria-current="page">無料ツール</a>
+      <a href="/timeline.html">更新履歴</a>
+      <a href="/prompts/">制作プロンプト</a>
+      <a href="/about.html">このサイトについて</a>
+    </nav>
+  </div>
+</header>
+<main>
+<article class="article">
+  <div class="eyebrow">FREE / OWN AI WORKER</div>
+  <h1>X Post Studio</h1>
+  <p class="lede">スマホで文章を入力し、元の口調を残したまま、誤字脱字・構成3案・コンプラ・絵文字・関連ハッシュタグをAIでまとめて処理するX投稿サポートツールです。</p>
+
+  <div class="article-visual">
+    <img src="/assets/images/hq/x-post-studio-hero.jpg" alt="X Post Studioのスマホ向けX投稿サポート画面" width="640" height="360" fetchpriority="high">
+  </div>
+  <p><a class="btn pop-purple" href="/apps/x-post-studio/">X Post Studioを開く</a></p>
+
+  <h2>できること</h2>
+  <div class="soft-box">
+    <p>元文章の口調をAIが読み取り、別人格に変えずに校正します。誤字脱字・明らかな誤変換の修正、自然 / 反応重視 / 短く強めの3案、絵文字「多い / 中 / なし」、通常投稿 / 長文、関連ハッシュタグ、コンプラ注意をまとめて処理します。</p>
+    <p>長文は勝手に分割しません。複数のXアカウント名と、各アカウントで使うブラウザ名をスマホ内に保存できます。</p>
+  </div>
+
+  <h2>利用者ごとにAIを分ける</h2>
+  <p>共通のAIキーを全員で使う仕組みにはしていません。各利用者が自分のCloudflareアカウントでWorkerを作成し、そのWorker URLを自分のX Post Studioへ登録します。AIの無料枠も利用者ごとに分かれます。</p>
+
+  <h2 id="setup">Cloudflare Workers AIの無料セットアップ</h2>
+  <ol>
+    <li>Cloudflareの無料アカウントを作成します。</li>
+    <li>Cloudflare Dashboardで新しいWorkerを作成します。</li>
+    <li>WorkerのBindingsにWorkers AIを追加し、Binding名を <code>AI</code> にします。</li>
+    <li><a href="/apps/x-post-studio/worker-template.js">Workerテンプレート</a>を開き、コードをWorkerへ貼り付けます。</li>
+    <li>Workerをデプロイし、発行された <code>https://xxxxx.workers.dev</code> をコピーします。</li>
+    <li>X Post Studioの「AI接続」にURLを保存し、「接続テスト」を押します。</li>
+  </ol>
+
+  <div class="soft-box">
+    <strong>無料枠について</strong>
+    <p>Cloudflare Workers AIのFreeプランには1日10,000 Neuronsの無料割当があります。無料枠を使い切った場合は、その日の追加AI処理が失敗する設計で、無料プランのまま勝手に従量課金へ移行する前提にはしていません。Cloudflare側の料金・対象モデルは将来変更される可能性があります。</p>
+  </div>
+  <p><a href="https://developers.cloudflare.com/workers-ai/platform/pricing/" target="_blank" rel="noopener">Cloudflare Workers AI料金</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI binding公式手順</a></p>
+
+  <h2>自分のGitHubで使いたい場合</h2>
+  <p>この公開ページを共用する必要はありません。自分のGitHub PagesへHTMLをコピーし、自分のCloudflare Worker URLを登録して使う構成にできます。Worker URLはブラウザのlocalStorageへ保存するため、GitHubのソースへAIキーを書き込む必要はありません。</p>
+
+  <h2>アカウント切替の扱い</h2>
+  <p>Xのパスワードや認証トークンは保存しません。アカウントボタンは「どのアカウントで投稿するか」と「どのブラウザを使うか」の目印です。投稿時は本文をコピーしてXの投稿画面を開きます。</p>
+  <div class="soft-box">
+    <strong>ここは実機確認が必要</strong>
+    <p>スマホからChrome / Edge / Firefoxなど特定のブラウザを強制して開く方法は、Android・iPhoneと各ブラウザの仕様で挙動が異なります。X APIの有料利用には切り替えず、無料の範囲で実機テストしながら詰めます。</p>
+  </div>
+
+  <h2>「バズる」について</h2>
+  <p>AIがバズを保証することはできません。X Post Studioでは、冒頭の伝わりやすさ、情報密度、読みやすい改行、余計な前置きの削減、内容に関連するハッシュタグの提案を行います。リアルタイムのXトレンドを取得しているふりはしません。</p>
+
+  <h2>コンプラチェック</h2>
+  <p>誹謗中傷、差別、個人情報、違法・危険行為、医療や金融に関する強い断定、著作権侵害を助長する表現、根拠のない断定などを注意候補として表示します。AI判定なので、法的判断を保証するものではありません。</p>
+
+  <p><a class="btn pop-purple" href="/apps/x-post-studio/">X Post Studioを使う</a></p>
+</article>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div><strong>himaneko</strong><p>無料Webツールと制作記録。</p></div>
+    <div class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/about.html">このサイトについて</a></div>
+  </div>
+  <div class="wrap copyright">© 2026 himaneko</div>
+</footer>
+<script src="/assets/js/main-feedback-v3.js"></script>
+</body>
+</html>
