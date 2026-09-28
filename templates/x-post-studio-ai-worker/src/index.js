@@ -114,8 +114,7 @@ export default {
       const correctedKnownTerms = applyKnownTermCorrections(originalText);
       const localSafety = localSafetyCheck(correctedKnownTerms.text);
 
-      let preprocess = await runPreprocess(env, localSafety.text);
-      if (!preprocess) preprocess = await runPreprocess(env, localSafety.text);
+      const preprocess = await runPreprocess(env, localSafety.text);
 
       const correctedText = preprocess && preprocess.corrected_text
         ? String(preprocess.corrected_text).trim()
