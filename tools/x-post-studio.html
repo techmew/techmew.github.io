@@ -247,7 +247,7 @@
   <p>何も表示されない、404になる、Cloudflareのエラー画面が出る場合は、まだ公開URLかデプロイ設定に問題があります。X Post Studioへ登録する前にここを直します。</p>
 
   <h3>13. X Post StudioへURLを登録する</h3>
-  <p><a href="/apps/x-post-studio/"><strong>X Post Studio</strong></a>を開き、<strong>「AI接続」→「設定」</strong>へ進みます。Cloudflareで発行されたWorker URLを貼り付けて保存します。</p>
+  <p><a href="/apps/x-post-studio/"><strong>X Post Studio</strong></a>を開き、<strong>「AI接続」→「設定」</strong>へ進みます。Cloudflareで発行されたWorker URLを、<code>https://</code> から始まる完全なURLで貼り付けて保存します。例：<code>https://x-post-studio-ai.example.workers.dev</code>。</p>
 
   <h3>14. 「接続テスト」を実行する</h3>
   <p><strong>「接続テスト」</strong>を押し、接続成功と表示されれば初期設定は完了です。以後は文章を入力して「AIで3案つくる」を押せば、自分のWorkers AIで文章処理できます。</p>
