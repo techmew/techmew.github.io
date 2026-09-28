@@ -50,45 +50,57 @@
   <p>共通のAIキーを全員で使う仕組みにはしていません。各利用者が自分のCloudflareアカウントでWorkerを作成し、そのWorker URLを自分のX Post Studioへ登録します。AIの無料枠も利用者ごとに分かれます。</p>
 
   <h2 id="setup">Cloudflare Workers AIの無料セットアップ</h2>
-  <p><a class="btn pop-purple" href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener">Cloudflare無料アカウントを作る</a> <a class="btn secondary" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Dashboardを開く</a></p>
+  <p>X Post StudioのAI機能は、利用者それぞれが<strong>自分のGitHub</strong>と<strong>自分のCloudflare</strong>を接続して使う設計です。ここではCloudflareの現在の画面に沿って、GitHub接続からWorkerを公開するまでを順番に説明します。</p>
 
-  <h3>手順1：Cloudflare DashboardからWorkersを開く</h3>
-  <p><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener"><strong>Cloudflare Dashboard</strong></a>を開きます。現在の画面では、中央にある<strong>「Workers」</strong>を押すのが最短です。左メニューの<strong>「コンピュート」→「Workers &amp; Pages」</strong>から進んでも同じ場所へ行けます。</p>
-  <figure class="article-visual">
-    <img src="/assets/images/guides/x-post-studio/cloudflare-dashboard-home.webp" alt="Cloudflare Dashboardのホーム画面。中央にWorkersが表示されている" width="900" height="406" loading="lazy" decoding="async">
-    <figcaption>Cloudflare Dashboard。中央の「Workers」を押す。</figcaption>
-  </figure>
+  <h3>1. Cloudflare Dashboardを開く</h3>
+  <p><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener"><strong>Cloudflare Dashboard</strong></a>へログインします。Cloudflareアカウントを持っていない場合は、先に<a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener"><strong>無料アカウントを作成</strong></a>します。</p>
 
-  <h3>手順2：アプリケーションを作成する</h3>
-  <p><strong>Workers &amp; Pages →「アプリケーションを作成する」</strong>まで進むと、下の<strong>「Make something new」</strong>画面が表示されます。</p>
-  <p>ここでは<strong>「Hello World を開始する」</strong>を押します。今回はチャット画面付きテンプレートではなく、X Post StudioからPOSTを受けてAI処理結果をJSONで返すシンプルなWorkerを作るため、Hello Worldを土台にしてコードを差し替えます。</p>
-  <figure class="article-visual">
-    <img src="/assets/images/guides/x-post-studio/cloudflare-create-application.webp" alt="CloudflareのMake something new画面。Hello Worldを開始する、Connect GitHub、テンプレートを選択などが表示されている" width="677" height="451" loading="lazy" decoding="async">
-    <figcaption>この画面では「Hello World を開始する」を選ぶ。</figcaption>
-  </figure>
+  <h3>2. Workersを開く</h3>
+  <p>Cloudflare Dashboardのホーム画面から<strong>「Workers」</strong>を開きます。見つからない場合は、左メニューの<strong>「コンピュート」→「Workers &amp; Pages」</strong>と進みます。</p>
 
-  <h3>この先の流れ</h3>
-  <ol>
-    <li><strong>「Hello World を開始する」</strong>を押す。</li>
-    <li>Worker名を <code>x-post-studio-ai</code> など分かりやすい名前にする。</li>
-    <li>Workerを作成・デプロイする。</li>
-    <li>作成したWorkerで<strong>「Edit code」</strong>を開き、初期コードを削除する。</li>
-    <li><a href="/apps/x-post-studio/worker-template.js">X Post Studio用Workerテンプレート</a>を丸ごと貼り付けて保存・デプロイする。</li>
-    <li>Workerの<strong>Settings → Bindings</strong>で<strong>Workers AI</strong>を追加し、Binding名を <code>AI</code> にする。</li>
-    <li>発行された <code>https://xxxxx.workers.dev</code> をX Post Studioの「AI接続」に貼り付ける。</li>
-    <li>「接続テスト」を押して成功すれば完了。</li>
-  </ol>
+  <h3>3. Workers &amp; Pagesで「アプリケーションを作成する」を押す</h3>
+  <p><strong>Workers &amp; Pages</strong>画面を開いたら、<strong>「アプリケーションを作成する」</strong>を押します。Cloudflareの新規作成画面が開きます。</p>
 
-  <div class="soft-box">
-    <strong>重要：AI Binding名は AI</strong>
-    <p>Workerテンプレートは <code>env.AI</code> を使うため、Workers AI Bindingの名前は必ず <code>AI</code> にします。Cloudflare公式でも、Workers AIをWorkerから使うにはWorkers AI Bindingが必要です。</p>
-  </div>
+  <h3>4. 「Connect GitHub」を選ぶ</h3>
+  <p>新規作成画面に<strong>「Connect GitHub」</strong>、GitLab、Hello World、テンプレートなどの選択肢が表示されます。X Post Studioでは<strong>「Connect GitHub」</strong>を選びます。</p>
+  <p>これは、利用者ごとに自分のGitHubリポジトリをCloudflareへ接続し、そのリポジトリからWorkerを自動ビルド・デプロイするためです。Cloudflare公式でも、新しいWorkerをGitHubへ接続する場合は、Workers &amp; Pagesからアプリケーション作成へ進み、Gitアカウントとリポジトリを選択する流れになっています。</p>
+
+  <h3>5. 初回だけGitHub連携を許可する</h3>
+  <p>CloudflareとGitHubを初めて接続する場合は、GitHub側の認証画面が開きます。表示された<strong>Cloudflare Workers and Pages</strong>のGitHub Appを許可します。</p>
+  <p>GitHub側で「すべてのリポジトリ」または「選択したリポジトリのみ」を選べる場合は、X Post Studio用に使うリポジトリだけを許可しても構いません。</p>
+
+  <h3>6. 自分のGitHubアカウントを選ぶ</h3>
+  <p>Cloudflareへ戻ると、接続したGitHubアカウントまたはOrganizationが表示されます。自分がX Post Studio用に使うGitHubアカウントを選びます。</p>
+
+  <h3>7. X Post Studio用のリポジトリを選ぶ</h3>
+  <p>GitHubのリポジトリ一覧から、X Post StudioのWorkerコードを置いたリポジトリを選びます。今後は、利用者が自分のGitHubへコピーして使えるWorker用テンプレートリポジトリを用意する想定です。</p>
+  <p>まだ自分のリポジトリを作っていない場合は、この時点で先にGitHub側にWorker用リポジトリを用意する必要があります。X Post Studio本体とAI Workerは分けておく方が管理しやすいです。</p>
+
+  <h3>8. Cloudflare側でプロジェクト設定を確認する</h3>
+  <p>リポジトリを選択すると、Cloudflareのプロジェクト設定画面へ進みます。ここではプロジェクト名、Production branch、ビルド設定などを確認します。</p>
+  <p>Worker用リポジトリを専用テンプレートとして用意した場合は、基本設定をそのまま使える形にします。設定内容は実際のテンプレートリポジトリ完成後、この手順に固定値を追記します。</p>
+
+  <h3>9. 「Save and Deploy」または「Deploy」を押す</h3>
+  <p>設定を確認したら<strong>「Save and Deploy」</strong>または<strong>「Deploy」</strong>を押します。CloudflareがGitHubリポジトリを読み込み、Workerのビルドとデプロイを開始します。</p>
+
+  <h3>10. Workers AI Bindingを追加する</h3>
+  <p>Workerが作成されたら、そのWorkerを開き、<strong>Settings → Bindings</strong>へ進みます。<strong>Workers AI</strong>のBindingを追加し、Binding名を必ず <code>AI</code> にします。</p>
+  <p>X Post Studio用Workerは <code>env.AI</code> を使ってAIを呼び出すため、Binding名が別の名前だと動きません。Cloudflare公式でもWorkers AIをWorkerから利用するにはWorkers AI Bindingが必要です。</p>
+
+  <h3>11. workers.devのURLを確認する</h3>
+  <p>デプロイが成功すると、Workerには <code>https://xxxxx.workers.dev</code> のようなURLが発行されます。このURLをコピーします。</p>
+
+  <h3>12. X Post StudioへWorker URLを登録する</h3>
+  <p><a href="/apps/x-post-studio/"><strong>X Post Studio</strong></a>を開き、<strong>「AI接続」→「設定」</strong>を開きます。先ほどコピーした <code>workers.dev</code> のURLを貼り付けて保存します。</p>
+
+  <h3>13. 「接続テスト」を押す</h3>
+  <p>最後に<strong>「接続テスト」</strong>を押します。接続成功と表示されれば、誤字脱字チェック、文章構成3案、絵文字調整、関連ハッシュタグ、コンプラチェックをAIで処理できる状態です。</p>
 
   <div class="soft-box">
     <strong>無料枠について</strong>
-    <p>Cloudflare Workers AIのFreeプランには1日10,000 Neuronsの無料割当があります。無料枠を使い切った場合は、その日の追加AI処理が失敗する設計で、無料プランのまま勝手に従量課金へ移行する前提にはしていません。Cloudflare側の料金・対象モデルは将来変更される可能性があります。</p>
+    <p>Cloudflare Workers AIのFreeプランには1日10,000 Neuronsの無料割当があります。利用者ごとに自分のCloudflareアカウントを使うため、あなたのCloudflare無料枠を他の利用者と共有する設計ではありません。</p>
   </div>
-  <p><a href="https://developers.cloudflare.com/workers-ai/get-started/dashboard/" target="_blank" rel="noopener">Cloudflare公式：DashboardでWorkers AIを始める</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI Binding公式手順</a> / <a href="https://developers.cloudflare.com/workers-ai/platform/pricing/" target="_blank" rel="noopener">Workers AI料金・無料枠</a></p>
+  <p><a href="https://developers.cloudflare.com/workers/ci-cd/builds/" target="_blank" rel="noopener">Cloudflare公式：Git連携でWorkerを作成</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI Binding公式手順</a> / <a href="https://developers.cloudflare.com/workers-ai/platform/pricing/" target="_blank" rel="noopener">Workers AI料金・無料枠</a></p>
 
   <h2>自分のGitHubで使いたい場合</h2>
   <p>この公開ページを共用する必要はありません。自分のGitHub PagesへHTMLをコピーし、自分のCloudflare Worker URLを登録して使う構成にできます。Worker URLはブラウザのlocalStorageへ保存するため、GitHubのソースへAIキーを書き込む必要はありません。</p>
