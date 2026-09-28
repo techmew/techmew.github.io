@@ -1,4 +1,5 @@
-const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const PROOFREAD_MODEL = "@cf/zai-org/glm-4.7-flash";
+const COMPOSE_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 const OUTPUT_SCHEMA = {
   type: "object",
@@ -66,8 +67,9 @@ export default {
       return json({
         ok: true,
         service: "X Post Studio AI Worker",
-        model: MODEL,
-        pipeline: "single_json_mode_v5"
+        proofread_model: PROOFREAD_MODEL,
+        compose_model: COMPOSE_MODEL,
+        pipeline: "proofread_default_v6"
       }, 200, cors);
     }
 
@@ -86,8 +88,9 @@ export default {
       return json({
         ok: true,
         service: "X Post Studio AI Worker",
-        model: MODEL,
-        pipeline: "single_json_mode_v5"
+        proofread_model: PROOFREAD_MODEL,
+        compose_model: COMPOSE_MODEL,
+        pipeline: "proofread_default_v6"
       }, 200, cors);
     }
 
@@ -112,6 +115,11 @@ export default {
     const known = applyKnownTermCorrections(originalText);
     const localSafety = localSafetyCheck(known.text);
     const safeSource = localSafety.text;
+    const mode = body.mode === "compose" ? "compose" : "proofread";
+
+    if (mode === "proofread") {
+      return handleProofread(env, safeSource, originalText, known.corrections, localSafety, cors);
+    }
 
     const lengthRule = plan === "free"
       ? "通常投稿として280文字以内を意識する。ただし短くするために情報を勝手に削らない。収まらない場合は原文維持を優先する。"
@@ -150,7 +158,7 @@ export default {
     ].join("\n");
 
     try {
-      const result = await env.AI.run(MODEL, {
+      const result = await env.AI.run(COMPOSE_MODEL, {
         messages: [
           { role: "system", content: system },
           { role: "user", content: safeSource }
@@ -197,6 +205,155 @@ export default {
     }
   }
 };
+
+async function handleProofread(env, safeSource, originalText, knownCorrections, localSafety, cors) {
+  const system = [
+    "あなたは日本語の誤字脱字・IME誤変換だけを直す校正者です。",
+    "文章を上手く書き直す仕事ではありません。原文の内容・順番・口調・語尾・情報量・改行を変えないでください。",
+    "出力は修正後の本文だけ。説明、見出し、引用符、JSON、箇条書きは禁止です。",
+    "誤字、脱字、助詞の誤り、かな/カナ/漢字の明らかな誤変換だけを直してください。",
+    "音声入力・スマホ変換の誤りを文脈から厳しく確認してください。",
+    "例: 『誤字だつじ』→『誤字脱字』。",
+    "例: 『めんどいてきに』が文脈上『めんどい時に』の誤変換なら直す。",
+    "例: Webサイトの意味で使われた『さいと』は文脈上自然なら『サイト』へ直す。",
+    "例: 助詞の『の』が『ノ』、助詞の『で』が『出』になっていれば直す。",
+    "固有名詞は確信がある場合だけ直し、推測で新しい名称を作らないでください。",
+    "原文にない情報・評価・絵文字・ハッシュタグ・年・日付を追加しないでください。",
+    "句読点は誤読を防ぐために必要な場合だけ最小限追加してください。",
+    "原文を要約、再構成、丁寧化、言い換えしないでください。"
+  ].join("\n");
+
+  try {
+    const result = await env.AI.run(PROOFREAD_MODEL, {
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: safeSource }
+      ],
+      max_completion_tokens: Math.min(3000, Math.max(300, safeSource.length * 3)),
+      temperature: 0
+    });
+
+    let corrected = extractPlainText(result);
+    corrected = normalizeOutputText(corrected);
+
+    if (!isAcceptableProofread(safeSource, corrected, originalText)) {
+      return json(
+        makeProofreadResult(
+          safeSource,
+          knownCorrections,
+          localSafety,
+          "AIの変更量が大きすぎたため、原文を優先しました。"
+        ),
+        200,
+        cors
+      );
+    }
+
+    return json(
+      makeProofreadResult(
+        corrected,
+        knownCorrections,
+        localSafety,
+        corrected === safeSource ? "修正候補は見つかりませんでした。" : "誤字・変換を最小限修正しました。"
+      ),
+      200,
+      cors
+    );
+  } catch (_) {
+    return json(
+      makeProofreadResult(
+        safeSource,
+        knownCorrections,
+        localSafety,
+        "AIが一時的に応答できなかったため、原文を返しました。"
+      ),
+      200,
+      cors
+    );
+  }
+}
+
+function extractPlainText(result) {
+  if (typeof result === "string") return result;
+  if (!result || typeof result !== "object") return "";
+  if (typeof result.response === "string") return result.response;
+  if (typeof result.result === "string") return result.result;
+  const choice = Array.isArray(result.choices) ? result.choices[0] : null;
+  if (choice) {
+    if (choice.message && typeof choice.message.content === "string") return choice.message.content;
+    if (typeof choice.text === "string") return choice.text;
+  }
+  return "";
+}
+
+function makeProofreadResult(text, knownCorrections, localSafety, reason) {
+  return {
+    corrected_text: text,
+    corrections: knownCorrections,
+    safety: {
+      level: localSafety.level,
+      warnings: localSafety.warnings
+    },
+    compliance: [],
+    variants: [
+      {
+        title: "校正結果",
+        text,
+        hashtags: [],
+        reason
+      }
+    ]
+  };
+}
+
+function isAcceptableProofread(source, output, originalText) {
+  if (!output) return false;
+  if (layoutBroken(source, output)) return false;
+  if (hasUnsupportedTemporalFact(originalText, output)) return false;
+
+  const s = String(source || "");
+  const o = String(output || "");
+
+  if (s.length >= 20) {
+    if (o.length < s.length * 0.72 || o.length > s.length * 1.28) return false;
+  }
+
+  const ratio = editChangeRatio(s, o);
+  const limit = s.length < 20 ? 0.42 : 0.28;
+  return ratio <= limit;
+}
+
+function editChangeRatio(a, b) {
+  a = Array.from(String(a || ""));
+  b = Array.from(String(b || ""));
+  const maxLen = Math.max(a.length, b.length, 1);
+
+  if (maxLen > 1200) {
+    return Math.abs(a.length - b.length) / maxLen;
+  }
+
+  if (a.length > b.length) {
+    const tmp = a; a = b; b = tmp;
+  }
+
+  let prev = Array.from({ length: a.length + 1 }, (_, i) => i);
+  let cur = new Array(a.length + 1);
+
+  for (let j = 1; j <= b.length; j++) {
+    cur[0] = j;
+    for (let i = 1; i <= a.length; i++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[i] = Math.min(
+        prev[i] + 1,
+        cur[i - 1] + 1,
+        prev[i - 1] + cost
+      );
+    }
+    const tmp = prev; prev = cur; cur = tmp;
+  }
+
+  return prev[a.length] / maxLen;
+}
 
 function extractStructured(result) {
   if (!result) return null;
