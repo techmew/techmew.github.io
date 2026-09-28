@@ -192,7 +192,9 @@ export default {
         "必ず submit_x_post_result ツールを1回呼び出して結果を返してください。",
         "通常の文章回答は禁止です。",
         "元文章の口調・語尾・温度感を維持し、別人格へ変えない。",
-        "元文にない事実、体験、数字、人気、評判、トレンドを捏造しない。",
+        "元文にない事実、体験、数字、年、日付、時代背景、人気、評判、トレンドを絶対に捏造しない。",
+        "入力文に年が書かれていない場合、2024年・2025年・2026年など現在年や過去年を推測して追加してはいけない。",
+        "『今は○○年なのに』『○○年だし』のような時代背景を勝手に補足しない。",
         "投稿案は必ず3件。",
         "案1は自然で伝わりやすくする。",
         "案2は冒頭を強め、反応を得やすくする。ただし釣り・過剰煽りは禁止。",
@@ -206,22 +208,42 @@ export default {
         emojiRule
       ].join("\n");
 
-      let structured = await runCompose(env, system, correctedText, plan, 0.2);
+      let structured = null;
+      let lastUnsupported = [];
 
-      if (!isValidResult(structured)) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const retryNote = lastUnsupported.length
+          ? "\n前回の出力には入力文に存在しない数字・年・日付が含まれていました: " +
+            lastUnsupported.join(", ") +
+            "。これらを絶対に追加せず、元文にある情報だけで作り直してください。"
+          : attempt > 0
+            ? "\n前回は構造化出力が不完全でした。必須項目をすべて埋めてください。"
+            : "";
+
         structured = await runCompose(
           env,
-          system + "\n前回は構造化出力が不完全でした。必須項目をすべて埋め、submit_x_post_result を1回だけ呼び出してください。",
+          system + retryNote,
           correctedText,
           plan,
-          0.1
+          attempt === 0 ? 0.2 : 0.05
         );
+
+        if (!isValidResult(structured)) continue;
+
+        lastUnsupported = findUnsupportedNumericFacts(correctedText, structured);
+        if (!lastUnsupported.length) break;
+
+        structured = null;
       }
 
       if (!isValidResult(structured)) {
         return json({
-          error: "AIの構造化出力に失敗しました。自動再試行でも復旧できませんでした。",
-          error_code: "STRUCTURED_OUTPUT_FAILED"
+          error: lastUnsupported.length
+            ? "AIが入力文にない数字・年・日付を追加したため、出力を破棄しました。もう一度実行してください。"
+            : "AIの構造化出力に失敗しました。自動再試行でも復旧できませんでした。",
+          error_code: lastUnsupported.length
+            ? "UNSUPPORTED_NUMERIC_FACT"
+            : "STRUCTURED_OUTPUT_FAILED"
         }, 502, cors);
       }
 
@@ -474,6 +496,36 @@ function isValidResult(data) {
     Array.isArray(data.variants) &&
     data.variants.length >= 3
   );
+}
+
+function findUnsupportedNumericFacts(sourceText, data) {
+  const source = String(sourceText || "");
+  const sourceTokens = new Set(extractNumericTokens(source));
+  const found = new Set();
+
+  const texts = [];
+  if (data && Array.isArray(data.variants)) {
+    for (const item of data.variants) {
+      texts.push(String(item && item.text ? item.text : ""));
+      if (Array.isArray(item && item.hashtags)) {
+        texts.push(item.hashtags.map(String).join(" "));
+      }
+    }
+  }
+
+  for (const output of texts) {
+    for (const token of extractNumericTokens(output)) {
+      if (!sourceTokens.has(token)) found.add(token);
+    }
+  }
+
+  return Array.from(found);
+}
+
+function extractNumericTokens(value) {
+  const text = String(value || "").normalize("NFKC");
+  const matches = text.match(/(?:19|20)\d{2}(?:年)?|\d+(?:[.,]\d+)?(?:%|％|年|月|日|歳|才|人|件|回|位|円|万|億|時間|分|秒)?/g);
+  return matches ? matches.map((x) => x.replace(/,/g, "")) : [];
 }
 
 function normalizeCorrections(items) {
