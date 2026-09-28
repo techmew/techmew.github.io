@@ -226,13 +226,30 @@
 }</code></pre>
   <p>この設定により、Workerコードから <code>env.AI</code> を使ってWorkers AIを呼び出せます。</p>
 
-  <h3>11. workers.devのURLをコピーする</h3>
-  <p>デプロイに成功すると、<code>https://xxxxx.workers.dev</code> のようなWorker URLが発行されます。このURLをコピーします。</p>
+  <h3>11. workers.devのURLを有効化する</h3>
+  <p>デプロイが成功しても、<code>workers.dev</code> の公開URLが無効のままだとX Post Studioから接続できません。Worker画面の上部にある<strong>「ドメイン」</strong>タブを開きます。</p>
+  <p>「Worker URL」欄に、次のような2つの行が表示されます。</p>
+  <ul>
+    <li><strong>プロダクション</strong>：<code>worker-name.account-subdomain.workers.dev</code></li>
+    <li><strong>プレビュー</strong>：<code>*-worker-name.account-subdomain.workers.dev</code></li>
+  </ul>
+  <p>通常利用で必要なのは<strong>プロダクション</strong>だけです。プロダクション行の<strong>一番右にあるトグルスイッチをON</strong>にします。</p>
+  <div class="soft-box">
+    <p><strong>ONにする：</strong>プロダクション</p>
+    <p><strong>OFFのままでよい：</strong>プレビュー</p>
+    <p><strong>触らなくてよい：</strong>「ドメインを追加」「ルートを追加」</p>
+  </div>
+  <p>トグルをONにすると、<code>https://worker-name.account-subdomain.workers.dev</code> のような公開URLが使えるようになります。</p>
 
-  <h3>12. X Post StudioへURLを登録する</h3>
+  <h3>12. Worker URLをブラウザで直接確認する</h3>
+  <p>有効化したプロダクションURLをコピーして、まずブラウザで直接開きます。</p>
+  <p>Workerが正常に動いていれば、JSON形式で <code>"ok": true</code> や <code>"service": "X Post Studio AI Worker"</code> といった内容が表示されます。</p>
+  <p>何も表示されない、404になる、Cloudflareのエラー画面が出る場合は、まだ公開URLかデプロイ設定に問題があります。X Post Studioへ登録する前にここを直します。</p>
+
+  <h3>13. X Post StudioへURLを登録する</h3>
   <p><a href="/apps/x-post-studio/"><strong>X Post Studio</strong></a>を開き、<strong>「AI接続」→「設定」</strong>へ進みます。Cloudflareで発行されたWorker URLを貼り付けて保存します。</p>
 
-  <h3>13. 「接続テスト」を実行する</h3>
+  <h3>14. 「接続テスト」を実行する</h3>
   <p><strong>「接続テスト」</strong>を押し、接続成功と表示されれば初期設定は完了です。以後は文章を入力して「AIで3案つくる」を押せば、自分のWorkers AIで文章処理できます。</p>
 
   <h2>既存サイトと同じGitHubリポジトリへWorkerを置く場合</h2>
