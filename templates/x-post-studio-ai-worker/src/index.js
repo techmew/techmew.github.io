@@ -1,33 +1,10 @@
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
-
-const SAFETY_TOOL = {
+const PREPROCESS_TOOL = {
   type: "function",
   function: {
-    name: "submit_safety_result",
-    description: "入力文の危険・攻撃表現を検出し、安全な言い換え方針を返す。",
-    parameters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        risk_level: { type: "string", enum: ["none", "low", "medium", "high"] },
-        warnings: {
-          type: "array",
-          items: { type: "string" }
-        },
-        softened_text: { type: "string" }
-      },
-      required: ["risk_level", "warnings", "softened_text"]
-    },
-    strict: true
-  }
-};
-
-const CORRECTION_TOOL = {
-  type: "function",
-  function: {
-    name: "submit_proofreading_result",
-    description: "日本語の誤字脱字・IME誤変換・助詞誤りだけを修正した校正文を返す。",
+    name: "submit_preprocess_result",
+    description: "日本語校正と安全チェックを一度に返す。",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -45,9 +22,11 @@ const CORRECTION_TOOL = {
             },
             required: ["before", "after", "reason"]
           }
-        }
+        },
+        risk_level: { type: "string", enum: ["none", "low", "medium", "high"] },
+        warnings: { type: "array", items: { type: "string" } }
       },
-      required: ["corrected_text", "corrections"]
+      required: ["corrected_text", "corrections", "risk_level", "warnings"]
     },
     strict: true
   }
@@ -57,7 +36,7 @@ const RESULT_TOOL = {
   type: "function",
   function: {
     name: "submit_x_post_result",
-    description: "校正済み文章を元に、コンプラ確認と3つのX投稿案を返す。",
+    description: "校正済み文章を元にコンプラ確認と3つのX投稿案を返す。",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -84,11 +63,7 @@ const RESULT_TOOL = {
             properties: {
               title: { type: "string" },
               text: { type: "string" },
-              hashtags: {
-                type: "array",
-                maxItems: 3,
-                items: { type: "string" }
-              },
+              hashtags: { type: "array", maxItems: 3, items: { type: "string" } },
               reason: { type: "string" }
             },
             required: ["title", "text", "hashtags", "reason"]
@@ -105,76 +80,55 @@ export default {
   async fetch(request, env) {
     const cors = corsHeaders(request);
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: cors });
-    }
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
     if (request.method === "GET") {
       return json({
         ok: true,
         service: "X Post Studio AI Worker",
         model: MODEL,
-        pipeline: "proofread_then_compose_v3"
+        pipeline: "stable_two_call_v4"
       }, 200, cors);
     }
 
-    if (request.method !== "POST") {
-      return json({ error: "POST only" }, 405, cors);
-    }
+    if (request.method !== "POST") return json({ error: "POST only" }, 405, cors);
 
     try {
       const body = await request.json();
 
       if (body.action === "ping") {
-        return json({
-          ok: true,
-          service: "X Post Studio AI Worker",
-          pipeline: "proofread_then_compose_v3"
-        }, 200, cors);
+        return json({ ok: true, service: "X Post Studio AI Worker", pipeline: "stable_two_call_v4" }, 200, cors);
       }
 
-      if (body.action !== "compose") {
-        return json({ error: "Unknown action" }, 400, cors);
-      }
+      if (body.action !== "compose") return json({ error: "Unknown action" }, 400, cors);
 
-      const text = String(body.text || "").trim();
-      const emojiLevel = ["high", "medium", "none"].includes(body.emojiLevel)
-        ? body.emojiLevel
-        : "medium";
+      const originalText = String(body.text || "").trim();
+      const emojiLevel = ["high", "medium", "none"].includes(body.emojiLevel) ? body.emojiLevel : "medium";
       const plan = body.plan === "long" ? "long" : "free";
 
-      if (!text) {
-        return json({ error: "本文が空です" }, 400, cors);
-      }
+      if (!originalText) return json({ error: "本文が空です" }, 400, cors);
+      if (originalText.length > 25000) return json({ error: "本文が長すぎます" }, 400, cors);
 
-      if (text.length > 25000) {
-        return json({ error: "本文が長すぎます" }, 400, cors);
-      }
+      // 明示的な危害・死亡願望だけはAIへ渡す前に最低限緩和する。
+      // 「馬鹿」「老害」等の侮辱は警告のみで、勝手に無難化しない。
+      const localSafety = localSafetyCheck(originalText);
 
-      const safety = await runSafetyCheck(env, text);
+      let preprocess = await runPreprocess(env, localSafety.text);
+      if (!preprocess) preprocess = await runPreprocess(env, localSafety.text);
 
-      const textForProofreading =
-        safety && safety.risk_level !== "none" && safety.softened_text
-          ? String(safety.softened_text).trim()
-          : text;
+      const correctedText = preprocess && preprocess.corrected_text
+        ? String(preprocess.corrected_text).trim()
+        : localSafety.text;
 
-      const proofread = await runProofreading(env, textForProofreading);
-
-      if (!proofread || !proofread.corrected_text) {
-        return json({
-          error: "日本語校正に失敗しました。もう一度実行してください。",
-          error_code: "PROOFREAD_FAILED"
-        }, 502, cors);
-      }
-
-      const correctedText = String(proofread.corrected_text).trim() || textForProofreading;
-      const corrections = normalizeCorrections(proofread.corrections);
-      const safetyWarnings =
-        safety && Array.isArray(safety.warnings) ? safety.warnings.slice(0, 20).map(String) : [];
-      const safetyLevel =
-        safety && ["none", "low", "medium", "high"].includes(safety.risk_level)
-          ? safety.risk_level
-          : "none";
+      const corrections = normalizeCorrections(preprocess && preprocess.corrections);
+      const aiRisk = preprocess && ["none", "low", "medium", "high"].includes(preprocess.risk_level)
+        ? preprocess.risk_level
+        : "none";
+      const riskLevel = higherRisk(localSafety.level, aiRisk);
+      const warnings = uniqueStrings([
+        ...localSafety.warnings,
+        ...(preprocess && Array.isArray(preprocess.warnings) ? preprocess.warnings : [])
+      ]);
 
       const lengthRule = plan === "free"
         ? "3案ともX通常投稿の280文字以内を強く意識する。URL等の文字数計算差を考え、可能なら本文とハッシュタグ合計を260文字程度までに収める。"
@@ -188,9 +142,8 @@ export default {
 
       const system = [
         "あなたは日本語のX投稿専門編集者です。",
-        "入力はすでに安全表現への調整と専用の校正工程を通った文章です。校正済みの表記や安全化された表現を勝手に元へ戻さないでください。",
-        "必ず submit_x_post_result ツールを1回呼び出して結果を返してください。",
-        "通常の文章回答は禁止です。",
+        "入力は安全確認と日本語校正を終えた文章です。校正済み表記や安全化された表現を元へ戻さないでください。",
+        "必ず submit_x_post_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
         "元文章の口調・語尾・温度感を維持し、別人格へ変えない。",
         "元文の改行位置と空行の有無を原則そのまま維持する。",
         "読みやすさ目的だけで勝手に改行・空行を追加、削除、移動しない。",
@@ -213,28 +166,20 @@ export default {
       let structured = null;
       let lastUnsupported = [];
 
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < 2; attempt++) {
         const retryNote = lastUnsupported.length
           ? "\n前回の出力には入力文に存在しない年・日付が含まれていました: " +
             lastUnsupported.join(", ") +
-            "。これらを絶対に追加せず、元文にある情報だけで作り直してください。"
+            "。これらを追加せず、元文にある情報だけで作り直してください。"
           : attempt > 0
-            ? "\n前回は構造化出力が不完全でした。必須項目をすべて埋めてください。"
+            ? "\n前回の構造化出力が不完全でした。必須項目をすべて埋めてください。"
             : "";
 
-        structured = await runCompose(
-          env,
-          system + retryNote,
-          correctedText,
-          plan,
-          attempt === 0 ? 0.2 : 0.05
-        );
-
+        structured = await runCompose(env, system + retryNote, correctedText, plan, attempt === 0 ? 0.15 : 0.05);
         if (!isValidResult(structured)) continue;
 
         lastUnsupported = findUnsupportedTemporalFacts(correctedText, structured);
         if (!lastUnsupported.length) break;
-
         structured = null;
       }
 
@@ -242,160 +187,104 @@ export default {
         return json({
           error: lastUnsupported.length
             ? "AIが入力文にない年・日付を追加したため、出力を破棄しました。もう一度実行してください。"
-            : "AIの構造化出力に失敗しました。自動再試行でも復旧できませんでした。",
-          error_code: lastUnsupported.length
-            ? "UNSUPPORTED_TEMPORAL_FACT"
-            : "STRUCTURED_OUTPUT_FAILED"
+            : "AI出力が安定しませんでした。もう一度実行してください。",
+          error_code: lastUnsupported.length ? "UNSUPPORTED_TEMPORAL_FACT" : "STRUCTURED_OUTPUT_FAILED"
         }, 502, cors);
       }
 
-      return json(
-        normalizeResult(structured, correctedText, corrections, safetyLevel, safetyWarnings),
-        200,
-        cors
-      );
+      return json(normalizeResult(structured, correctedText, corrections, riskLevel, warnings), 200, cors);
     } catch (error) {
       const message = error && error.message ? error.message : "Worker error";
-      return json({ error: message }, 500, cors);
+      return json({ error: "AI処理で一時的なエラーが発生しました。もう一度実行してください。", detail: message }, 500, cors);
     }
   }
 };
 
-async function runSafetyCheck(env, text) {
+async function runPreprocess(env, text) {
   const system = [
-    "あなたはX投稿の事前安全チェック担当です。",
-    "必ず submit_safety_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
-    "入力に脅迫、殺害・暴行の示唆、他者への死亡願望、強い差別・侮辱が含まれるかを判定してください。",
-    "単なる不満、批判、皮肉、悪態は必要以上に危険扱いしません。",
-    "危険表現がある場合は warnings に具体的な理由を短く入れてください。",
-    "softened_text は元の怒り・不満・批判の趣旨は残しつつ、脅迫・殺害・暴行・死亡願望を外した投稿可能な表現にしてください。",
-    "危険表現がない場合は risk_level を none、warnings を空配列、softened_text は元文をそのまま返してください。",
-    "人物や集団への批判そのものは消さず、危害予告だけを除去してください。"
-  ].join("\n");
-
-  let result = await env.AI.run(MODEL, {
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: text }
-    ],
-    tools: [SAFETY_TOOL],
-    tool_choice: "required",
-    parallel_tool_calls: false,
-    max_completion_tokens: 900,
-    temperature: 0.05
-  });
-
-  let structured = extractToolArguments(result, "submit_safety_result");
-  if (!structured) structured = parseJson(extractText(result));
-
-  if (!structured || typeof structured !== "object") {
-    const fallback = softenDangerousText(text);
-    return {
-      risk_level: fallback.changed ? "high" : "medium",
-      warnings: fallback.changed
-        ? ["危険表現の判定に失敗したため、明示的な危害・死亡願望表現を安全側で緩和しました。"]
-        : ["危険表現の判定に失敗したため、安全側で処理しました。"],
-      softened_text: fallback.text
-    };
-  }
-
-  return {
-    risk_level: ["none", "low", "medium", "high"].includes(structured.risk_level)
-      ? structured.risk_level
-      : "medium",
-    warnings: Array.isArray(structured.warnings) ? structured.warnings : [],
-    softened_text:
-      typeof structured.softened_text === "string" && structured.softened_text.trim()
-        ? structured.softened_text
-        : text
-  };
-}
-
-async function runProofreading(env, text) {
-  const system = [
-    "あなたは日本語校正だけを担当します。文章の主張・感情・口調・語尾は変えません。",
-    "必ず submit_proofreading_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
-    "最優先は誤字脱字、IME誤変換、助詞の誤り、かな・カナ・漢字の誤入力を見つけて直すことです。",
-    "特に音声入力やスマホ変換で起きる、助詞が別表記へ化けた誤りを厳しく確認してください。",
-    "例: 文法上の助詞『の』がカタカナの『ノ』になっている場合は『の』へ直す。",
-    "例: 文法上の助詞『で』が漢字の『出』になっている場合は『で』へ直す。",
-    "同様に、文脈上明らかな『は/わ』『に/二』『へ/え』『を/お』等のIME・音声入力由来の誤変換も確認する。",
-    "ただし固有名詞・番組名・商品名の正式表記だと明確に判断できる場合は勝手に変えない。",
-    "固有名詞か単なる誤変換か迷う場合は、前後の日本語文法を優先して判断する。",
-    "表現の言い換えや丁寧化、炎上回避、読みやすい再構成はこの工程ではしない。",
-    "句読点は明らかに不自然な場合だけ最小限直す。",
+    "あなたはX投稿の日本語校正と安全チェック担当です。",
+    "必ず submit_preprocess_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
+    "主張・感情・口調・語尾は変えず、誤字脱字、IME誤変換、助詞誤りだけを厳密に修正してください。",
+    "文法上の助詞『の』がカタカナの『ノ』なら『の』へ直す。",
+    "文法上の助詞『で』が漢字の『出』なら『で』へ直す。",
+    "同様に『は/わ』『に/二』『へ/え』『を/お』等のIME・音声入力由来の明らかな誤変換も確認する。",
+    "固有名詞・番組名・商品名の正式表記だと明確な場合は勝手に変えない。",
+    "表現の言い換え、丁寧化、読みやすい再構成はしない。",
     "改行位置と空行の有無は原文を原則そのまま維持する。",
     "読みやすさ目的で勝手に改行・空行を追加、削除、移動しない。",
-    "correctionsには変更した箇所を before / after / reason で必ず記録する。変更がなければ空配列にする。"
+    "脅迫、殺害・暴行の示唆、他者への死亡願望はhighとして警告する。",
+    "『馬鹿』『カス』『老害』『頭おかしい』等の強い侮辱はlowまたはmediumで警告してよいが、それだけを理由に文章を無難化しない。",
+    "correctionsには実際に変更した箇所だけをbefore/after/reasonで記録する。"
   ].join("\n");
 
-  let result = await env.AI.run(MODEL, {
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: text }
-    ],
-    tools: [CORRECTION_TOOL],
-    tool_choice: "required",
-    parallel_tool_calls: false,
-    max_completion_tokens: 1000,
-    temperature: 0.05
-  });
-
-  let structured = extractToolArguments(result, "submit_proofreading_result");
-  if (!structured) structured = parseJson(extractText(result));
-
-  if (!isValidProofreading(structured)) {
-    result = await env.AI.run(MODEL, {
-      messages: [
-        {
-          role: "system",
-          content: system + "\n前回は校正結果が不完全でした。誤字・IME誤変換・助詞をもう一度厳密に確認し、必須項目をすべて返してください。"
-        },
-        { role: "user", content: text }
-      ],
-      tools: [CORRECTION_TOOL],
+  try {
+    const result = await env.AI.run(MODEL, {
+      messages: [{ role: "system", content: system }, { role: "user", content: text }],
+      tools: [PREPROCESS_TOOL],
       tool_choice: "required",
       parallel_tool_calls: false,
-      max_completion_tokens: 1000,
-      temperature: 0
+      max_completion_tokens: 1200,
+      temperature: 0.02
     });
-    structured = extractToolArguments(result, "submit_proofreading_result");
-    if (!structured) structured = parseJson(extractText(result));
-  }
 
-  return isValidProofreading(structured) ? structured : null;
+    let structured = extractToolArguments(result, "submit_preprocess_result");
+    if (!structured) structured = parseJson(extractText(result));
+    return isValidPreprocess(structured) ? structured : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 async function runCompose(env, system, correctedText, plan, temperature) {
-  const result = await env.AI.run(MODEL, {
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: correctedText }
-    ],
-    tools: [RESULT_TOOL],
-    tool_choice: "required",
-    parallel_tool_calls: false,
-    max_completion_tokens: plan === "free" ? 1500 : 4500,
-    temperature
-  });
+  try {
+    const result = await env.AI.run(MODEL, {
+      messages: [{ role: "system", content: system }, { role: "user", content: correctedText }],
+      tools: [RESULT_TOOL],
+      tool_choice: "required",
+      parallel_tool_calls: false,
+      max_completion_tokens: plan === "free" ? 1500 : 4500,
+      temperature
+    });
 
-  let structured = extractToolArguments(result, "submit_x_post_result");
-  if (!structured) structured = parseJson(extractText(result));
-  return structured;
+    let structured = extractToolArguments(result, "submit_x_post_result");
+    if (!structured) structured = parseJson(extractText(result));
+    return structured;
+  } catch (_) {
+    return null;
+  }
 }
 
-function softenDangerousText(input) {
-  let value = String(input || "");
-  const original = value;
+function localSafetyCheck(input) {
+  let text = String(input || "");
+  const warnings = [];
+  let level = "none";
 
-  value = value
-    .replace(/ぶっ?殺(?:す|して|してやる|してやろうか|したい|せ)/g, "本当に腹が立つ")
-    .replace(/殺してやろうか/g, "本当に腹が立つ")
-    .replace(/死ねばいい/g, "本当に勘弁してほしい")
-    .replace(/死んでほしい/g, "本当に勘弁してほしい")
-    .replace(/死ね(?![ば])/g, "もう勘弁してほしい");
+  const replace = (pattern, replacement, warning) => {
+    if (!pattern.test(text)) return;
+    pattern.lastIndex = 0;
+    text = text.replace(pattern, replacement);
+    warnings.push(warning);
+    level = "high";
+  };
 
-  return { text: value, changed: value !== original };
+  replace(/ぶっ?殺してやろうか|殺してやろうか|ぶっ?殺したい|殺したい/g, "本当に腹が立つ", "直接的な殺害・危害表現をマイルドな表現へ変更しました。");
+  replace(/死ねばいい|死んでほしい|死ね(?!ば)/g, "もう勘弁してほしい", "他者への死亡願望表現をマイルドな表現へ変更しました。");
+
+  if (/(?:馬鹿|バカ|アホ|カス|老害|頭おかし)/.test(text) && level !== "high") {
+    level = "medium";
+    warnings.push("強い侮辱表現が含まれています。投稿は継続できます。");
+  }
+
+  return { text, level, warnings };
+}
+
+function higherRisk(a, b) {
+  const rank = { none: 0, low: 1, medium: 2, high: 3 };
+  return (rank[b] || 0) > (rank[a] || 0) ? b : a;
+}
+
+function uniqueStrings(items) {
+  return Array.from(new Set((items || []).map((x) => String(x || "").trim()).filter(Boolean)));
 }
 
 function corsHeaders(request) {
@@ -412,35 +301,25 @@ function corsHeaders(request) {
 
 function extractToolArguments(result, targetName) {
   if (!result || typeof result !== "object") return null;
-
   const candidates = [];
   if (Array.isArray(result.tool_calls)) candidates.push(...result.tool_calls);
-
   const choice = Array.isArray(result.choices) ? result.choices[0] : null;
   const message = choice && choice.message ? choice.message : null;
-  if (message && Array.isArray(message.tool_calls)) {
-    candidates.push(...message.tool_calls);
-  }
+  if (message && Array.isArray(message.tool_calls)) candidates.push(...message.tool_calls);
 
   for (const call of candidates) {
     const name = call && (call.name || (call.function && call.function.name));
     if (name !== targetName) continue;
-
     let args = call.arguments;
     if (args == null && call.function) args = call.function.arguments;
-
     if (args && typeof args === "object") return args;
-
     if (typeof args === "string") {
-      try {
-        return JSON.parse(args);
-      } catch (_) {
+      try { return JSON.parse(args); } catch (_) {
         const parsed = parseJson(args);
         if (parsed) return parsed;
       }
     }
   }
-
   return null;
 }
 
@@ -449,12 +328,9 @@ function extractText(result) {
   if (!result || typeof result !== "object") return "";
   if (typeof result.response === "string") return result.response;
   if (typeof result.result === "string") return result.result;
-
   const choice = Array.isArray(result.choices) ? result.choices[0] : null;
   if (choice) {
-    if (choice.message && typeof choice.message.content === "string") {
-      return choice.message.content;
-    }
+    if (choice.message && typeof choice.message.content === "string") return choice.message.content;
     if (typeof choice.text === "string") return choice.text;
   }
   return "";
@@ -462,58 +338,38 @@ function extractText(result) {
 
 function parseJson(raw) {
   if (raw && typeof raw === "object") return raw;
-  let value = String(raw || "").trim();
-  value = value
+  let value = String(raw || "").trim()
     .replace(/^\`\`\`json\s*/i, "")
     .replace(/^\`\`\`\s*/i, "")
     .replace(/\`\`\`\s*$/i, "")
     .trim();
 
-  try {
-    return JSON.parse(value);
-  } catch (_) {}
-
+  try { return JSON.parse(value); } catch (_) {}
   const start = value.indexOf("{");
   const end = value.lastIndexOf("}");
   if (start >= 0 && end > start) {
-    try {
-      return JSON.parse(value.slice(start, end + 1));
-    } catch (_) {}
+    try { return JSON.parse(value.slice(start, end + 1)); } catch (_) {}
   }
   return null;
 }
 
-function isValidProofreading(data) {
-  return !!(
-    data &&
-    typeof data === "object" &&
-    typeof data.corrected_text === "string" &&
-    Array.isArray(data.corrections)
-  );
+function isValidPreprocess(data) {
+  return !!(data && typeof data === "object" && typeof data.corrected_text === "string" && Array.isArray(data.corrections) && Array.isArray(data.warnings));
 }
 
 function isValidResult(data) {
-  return !!(
-    data &&
-    typeof data === "object" &&
-    Array.isArray(data.compliance) &&
-    Array.isArray(data.variants) &&
-    data.variants.length >= 3
-  );
+  return !!(data && typeof data === "object" && Array.isArray(data.compliance) && Array.isArray(data.variants) && data.variants.length >= 3);
 }
 
 function findUnsupportedTemporalFacts(sourceText, data) {
-  const source = String(sourceText || "").normalize("NFKC");
-  const sourceTokens = new Set(extractTemporalTokens(source));
+  const sourceTokens = new Set(extractTemporalTokens(String(sourceText || "").normalize("NFKC")));
   const found = new Set();
-
   const texts = [];
+
   if (data && Array.isArray(data.variants)) {
     for (const item of data.variants) {
       texts.push(String(item && item.text ? item.text : ""));
-      if (Array.isArray(item && item.hashtags)) {
-        texts.push(item.hashtags.map(String).join(" "));
-      }
+      if (Array.isArray(item && item.hashtags)) texts.push(item.hashtags.map(String).join(" "));
     }
   }
 
@@ -522,15 +378,12 @@ function findUnsupportedTemporalFacts(sourceText, data) {
       if (!sourceTokens.has(token)) found.add(token);
     }
   }
-
   return Array.from(found);
 }
 
 function extractTemporalTokens(value) {
   const text = String(value || "").normalize("NFKC");
-  const matches = text.match(
-    /(?:19|20)\d{2}年|(?:19|20)\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])|(?:0?[1-9]|1[0-2])月(?:0?[1-9]|[12]\d|3[01])日/g
-  );
+  const matches = text.match(/(?:19|20)\d{2}年|(?:19|20)\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])|(?:0?[1-9]|1[0-2])月(?:0?[1-9]|[12]\d|3[01])日/g);
   return matches ? matches : [];
 }
 
@@ -540,9 +393,7 @@ function normalizeCorrections(items) {
     const before = String(item && item.before ? item.before : "");
     const after = String(item && item.after ? item.after : "");
     const reason = String(item && item.reason ? item.reason : "");
-    return before && after
-      ? before + " → " + after + (reason ? "（" + reason + "）" : "")
-      : reason;
+    return before && after ? before + " → " + after + (reason ? "（" + reason + "）" : "") : reason;
   }).filter(Boolean);
 }
 
@@ -550,29 +401,18 @@ function normalizeResult(data, correctedText, corrections, safetyLevel, safetyWa
   return {
     corrected_text: correctedText,
     corrections,
-    safety: {
-      level: safetyLevel || "none",
-      warnings: Array.isArray(safetyWarnings) ? safetyWarnings : []
-    },
+    safety: { level: safetyLevel || "none", warnings: Array.isArray(safetyWarnings) ? safetyWarnings : [] },
     compliance: Array.isArray(data.compliance)
       ? data.compliance.slice(0, 20).map((item) => ({
-          level: ["low", "medium", "high"].includes(item && item.level)
-            ? item.level
-            : "medium",
+          level: ["low", "medium", "high"].includes(item && item.level) ? item.level : "medium",
           message: String(item && item.message ? item.message : "")
         }))
       : [],
     variants: Array.isArray(data.variants)
       ? data.variants.slice(0, 3).map((item, index) => ({
-          title: String(
-            item && item.title
-              ? item.title
-              : ["自然", "反応重視", "短く強め"][index] || ("案" + (index + 1))
-          ),
+          title: String(item && item.title ? item.title : ["自然", "反応重視", "短く強め"][index] || ("案" + (index + 1))),
           text: String(item && item.text ? item.text : ""),
-          hashtags: Array.isArray(item && item.hashtags)
-            ? item.hashtags.slice(0, 3).map(String)
-            : [],
+          hashtags: Array.isArray(item && item.hashtags) ? item.hashtags.slice(0, 3).map(String) : [],
           reason: String(item && item.reason ? item.reason : "")
         }))
       : []
