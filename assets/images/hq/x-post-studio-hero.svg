@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">X Post Studio</title>
+<desc id="desc">誤字チェック、構成改善、コンプラ確認を支援するスマホ向けX投稿サポートツール</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbfdff"/><stop offset=".55" stop-color="#e8f5ff"/><stop offset="1" stop-color="#77bfff"/></linearGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0d4fa8"/><stop offset=".55" stop-color="#1675f3"/><stop offset="1" stop-color="#24a2ff"/></linearGradient>
+  <linearGradient id="phone" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1e2634"/><stop offset=".5" stop-color="#05080d"/><stop offset="1" stop-color="#4b5360"/></linearGradient>
+  <linearGradient id="city" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1675f3"/><stop offset="1" stop-color="#053478"/></linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#164a8a" flood-opacity=".18"/></filter>
+  <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#164a8a" flood-opacity=".14"/></filter>
+  <style>
+    .jp{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Yu Gothic",Meiryo,sans-serif}
+    .title{font-weight:900;letter-spacing:-3px}
+    .card{fill:#fff;stroke:#d8e7fa;stroke-width:2}
+    .muted{fill:#667085}
+    .dark{fill:#101828}
+    .blue{fill:#126ef5}
+    .small{font-size:20px}
+  </style>
+</defs>
+<rect width="1600" height="900" rx="0" fill="url(#bg)"/>
+<path d="M0 0H820L530 310H0Z" fill="#fff" opacity=".78"/>
+<path d="M0 720C220 620 410 630 640 720S1050 840 1600 610V900H0Z" fill="#f7fbff" opacity=".72"/>
+<path d="M0 760C250 660 500 680 730 770S1140 840 1600 690V900H0Z" fill="#1a77f0" opacity=".12"/>
+
+<!-- app icon -->
+<g filter="url(#soft)">
+  <rect x="72" y="76" width="150" height="150" rx="35" fill="#05080d" stroke="#4fb2ff" stroke-width="8"/>
+  <path d="M111 111L183 190M181 111L110 191" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+</g>
+
+<!-- headline -->
+<text class="jp title" x="55" y="330" font-size="98" fill="#0a1d43">X Post <tspan fill="url(#blue)">Studio</tspan></text>
+<text class="jp title dark" x="57" y="410" font-size="47">誤字チェック・構成改善・コンプラ確認</text>
+<text class="jp" x="57" y="467" font-size="31" font-weight="800" fill="#126ef5">スマホで投稿前の文章をまとめてサポート</text>
+
+<!-- feature chips -->
+<g class="jp" filter="url(#soft)">
+  <g transform="translate(55 505)"><rect class="card" width="160" height="82" rx="18"/><circle cx="32" cy="31" r="17" fill="#126ef5"/><path d="M32 18v26M19 31h26" stroke="#fff" stroke-width="4"/><text x="57" y="33" font-size="23" font-weight="900" class="dark">3案生成</text><text x="57" y="59" font-size="15" class="muted">複数の投稿案</text></g>
+  <g transform="translate(228 505)"><rect class="card" width="160" height="82" rx="18"/><circle cx="32" cy="31" r="17" fill="#126ef5"/><circle cx="26" cy="27" r="2.5" fill="#fff"/><circle cx="38" cy="27" r="2.5" fill="#fff"/><path d="M24 35Q32 42 40 35" fill="none" stroke="#fff" stroke-width="3"/><text x="57" y="33" font-size="23" font-weight="900" class="dark">絵文字量</text><text x="57" y="59" font-size="15" class="muted">最適なバランス</text></g>
+  <g transform="translate(401 505)"><rect class="card" width="175" height="82" rx="18"/><rect x="18" y="34" width="7" height="17" rx="2" fill="#126ef5"/><rect x="29" y="27" width="7" height="24" rx="2" fill="#126ef5"/><rect x="40" y="19" width="7" height="32" rx="2" fill="#126ef5"/><text x="62" y="33" font-size="22" font-weight="900" class="dark">ハッシュタグ</text><text x="62" y="59" font-size="15" class="muted">内容に合わせ提案</text></g>
+  <g transform="translate(589 505)"><rect class="card" width="153" height="82" rx="18"/><path d="M32 14l17 7v13c0 12-8 20-17 24-9-4-17-12-17-24V21z" fill="#126ef5"/><path d="M24 34l6 6 11-13" fill="none" stroke="#fff" stroke-width="4"/><text x="57" y="33" font-size="23" font-weight="900" class="dark">コンプラ</text><text x="57" y="59" font-size="15" class="muted">リスクを確認</text></g>
+</g>
+
+<!-- city -->
+<g opacity=".96">
+  <path d="M0 760H75V694H105V760H140V672H180V760H210V706H244V760H286V650H324V760H356V690H388V760H430V626H475V760H510V678H543V760H590V711H626V760H672V640H718V760H770V701H808V760H850V670H900V760H940V712H978V760H1025V650H1066V760H1115V692H1158V760H1200V634H1242V760H1290V685H1326V760H1380V716H1425V760H1478V672H1520V760H1600V900H0Z" fill="url(#city)"/>
+  <g fill="#8ed5ff" opacity=".85">
+    <rect x="296" y="675" width="6" height="6"/><rect x="310" y="675" width="6" height="6"/><rect x="442" y="646" width="7" height="7"/><rect x="456" y="646" width="7" height="7"/><rect x="685" y="662" width="7" height="7"/><rect x="703" y="662" width="7" height="7"/><rect x="1038" y="674" width="7" height="7"/><rect x="1052" y="674" width="7" height="7"/>
+  </g>
+</g>
+<path d="M420 835C670 790 760 775 915 705" stroke="#80d8ff" stroke-width="6" fill="none" opacity=".85"/>
+<path d="M876 694l72-34-38 71-10-26z" fill="#fff" opacity=".96"/>
+
+<!-- proofing floating card -->
+<g transform="translate(668 78)" filter="url(#shadow)" class="jp">
+  <rect class="card" width="280" height="226" rx="22"/>
+  <rect x="23" y="25" width="37" height="43" rx="8" fill="#126ef5"/><path d="M33 37h17M33 47h17M33 57h13" stroke="#fff" stroke-width="3"/>
+  <text x="75" y="52" font-size="27" font-weight="900" class="dark">文章チェック</text>
+  <g font-size="18" class="dark">
+    <circle cx="36" cy="95" r="12" fill="#126ef5"/><path d="M30 95l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="58" y="101">誤字脱字を検出</text>
+    <circle cx="36" cy="130" r="12" fill="#126ef5"/><path d="M30 130l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="58" y="136">表現を改善</text>
+    <circle cx="36" cy="165" r="12" fill="#126ef5"/><path d="M30 165l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="58" y="171">読みやすさを分析</text>
+    <circle cx="36" cy="200" r="12" fill="#13ad69"/><path d="M30 200l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="58" y="206">より自然な文章に</text>
+  </g>
+</g>
+
+<!-- phone -->
+<g transform="translate(902 52) rotate(2 220 395)" filter="url(#shadow)" class="jp">
+  <rect x="0" y="0" width="390" height="790" rx="58" fill="url(#phone)"/>
+  <rect x="15" y="15" width="360" height="760" rx="47" fill="#fff"/>
+  <rect x="136" y="27" width="116" height="30" rx="15" fill="#05080d"/>
+  <text x="52" y="52" font-size="17" font-weight="800" class="dark">9:41</text>
+  <g transform="translate(39 86)"><rect width="49" height="49" rx="12" fill="#080b10"/><path d="M12 12l26 27M38 12L12 39" stroke="#fff" stroke-width="6"/></g>
+  <text x="104" y="119" font-size="30" font-weight="900" class="dark">X Post Studio</text>
+  <circle cx="337" cy="104" r="16" fill="#eff4fb"/><path d="M337 95v18M328 104h18" stroke="#667085" stroke-width="3"/>
+  <text x="39" y="171" font-size="24" font-weight="900" class="dark">投稿を作成</text><text x="285" y="173" font-size="17" class="muted">72 / 280</text>
+  <rect x="37" y="192" width="316" height="150" rx="18" fill="#fbfdff" stroke="#d9e6f7" stroke-width="2"/>
+  <text x="57" y="231" font-size="19" class="dark">AIで、毎日の発信をもっとシンプルに。</text>
+  <text x="57" y="263" font-size="19" class="dark">X Post Studioで、伝わる投稿を</text>
+  <text x="57" y="295" font-size="19" class="dark">一緒につくりましょう。</text>
+  <g transform="translate(38 371)"><rect class="card" width="315" height="87" rx="18"/><circle cx="43" cy="43" r="27" fill="#18b872"/><text x="43" y="51" text-anchor="middle" font-size="21" font-weight="900" fill="#fff">AI</text><text x="84" y="34" font-size="22" font-weight="900" class="dark">投稿案を生成</text><text x="84" y="61" font-size="15" class="muted">目的に合わせた3つの案を提案</text><text x="286" y="52" font-size="26" class="muted">›</text></g>
+  <g transform="translate(38 472)"><rect class="card" width="315" height="87" rx="18"/><circle cx="43" cy="43" r="27" fill="#ef5672"/><path d="M32 52l6-18 14 14-18 6z" fill="#fff"/><text x="84" y="34" font-size="22" font-weight="900" class="dark">文章をチェック</text><text x="84" y="61" font-size="15" class="muted">誤字・表現・読みやすさを改善</text><text x="286" y="52" font-size="26" class="muted">›</text></g>
+  <g transform="translate(38 573)"><rect class="card" width="315" height="87" rx="18"/><circle cx="43" cy="43" r="27" fill="#126ef5"/><path d="M43 25l14 6v11c0 10-6 17-14 21-8-4-14-11-14-21V31z" fill="#fff"/><text x="84" y="34" font-size="22" font-weight="900" class="dark">コンプラを確認</text><text x="84" y="61" font-size="15" class="muted">不適切表現・炎上リスクを確認</text><text x="286" y="52" font-size="26" class="muted">›</text></g>
+  <rect x="38" y="684" width="315" height="65" rx="16" fill="url(#blue)"/><path d="M85 705l30-13-13 30-5-12z" fill="#fff"/><text x="133" y="725" font-size="23" font-weight="900" fill="#fff">投稿案を生成する</text>
+</g>
+
+<!-- right floating cards -->
+<g class="jp" filter="url(#shadow)">
+  <g transform="translate(1304 94)"><rect class="card" width="262" height="250" rx="22"/><text x="24" y="48" font-size="29" font-weight="900" fill="#126ef5">#</text><text x="62" y="48" font-size="24" font-weight="900" class="dark">ハッシュタグ提案</text><rect x="22" y="77" width="218" height="46" rx="13" fill="#f5f9ff"/><text x="35" y="106" font-size="18" font-weight="900" class="blue">#AI</text><text x="93" y="106" font-size="14" class="muted">関連性の高いタグ</text><rect x="22" y="133" width="218" height="46" rx="13" fill="#f5f9ff"/><text x="35" y="162" font-size="18" font-weight="900" class="blue">#X運用</text><text x="108" y="162" font-size="14" class="muted">内容から提案</text><rect x="22" y="189" width="218" height="46" rx="13" fill="#f8f5ff"/><text x="35" y="218" font-size="18" font-weight="900" fill="#7b48df">#生産性</text></g>
+  <g transform="translate(1320 370)"><rect class="card" width="244" height="188" rx="22"/><path d="M34 30l17 7v13c0 12-8 20-17 24-9-4-17-12-17-24V37z" fill="#15ad69"/><text x="67" y="57" font-size="25" font-weight="900" class="dark">コンプラ確認</text><g font-size="17" class="dark"><circle cx="35" cy="95" r="11" fill="#15ad69"/><path d="M29 95l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="56" y="101">不適切表現なし</text><circle cx="35" cy="130" r="11" fill="#15ad69"/><path d="M29 130l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="56" y="136">リスクを確認</text><circle cx="35" cy="165" r="11" fill="#15ad69"/><path d="M29 165l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="56" y="171">表現を再確認</text></g></g>
+  <g transform="translate(1284 585)"><rect class="card" width="286" height="254" rx="22"/><circle cx="34" cy="39" r="18" fill="#126ef5"/><circle cx="34" cy="34" r="6" fill="#fff"/><path d="M22 50q12-13 24 0" fill="#fff"/><text x="64" y="48" font-size="24" font-weight="900" class="dark">アカウント切り替え</text><line x1="22" y1="70" x2="264" y2="70" stroke="#e3e8ef" stroke-width="2"/><text x="28" y="104" font-size="18" font-weight="900" class="dark">メインアカウント</text><text x="28" y="129" font-size="15" class="muted">@himaneko</text><circle cx="247" cy="111" r="13" fill="#126ef5"/><path d="M241 111l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/><text x="28" y="163" font-size="18" font-weight="900" class="dark">仕事用</text><text x="28" y="187" font-size="15" class="muted">@himaneko_sub</text><circle cx="247" cy="171" r="13" fill="#fff" stroke="#9cb9e5" stroke-width="3"/><text x="28" y="220" font-size="18" font-weight="900" class="dark">趣味のアカウント</text><text x="28" y="244" font-size="15" class="muted">@himaneko_note</text><circle cx="247" cy="228" r="13" fill="#fff" stroke="#9cb9e5" stroke-width="3"/></g>
+</g>
+</svg>
