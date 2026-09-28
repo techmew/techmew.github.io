@@ -68,13 +68,35 @@
   <p>今回は <code>techmew/techmew.github.io</code> を選択します。X Post Studio用Workerはサイト本体と同じリポジトリの <code>/workers/x-post-studio-ai/</code> に独立して配置してあるため、リポジトリを分けなくてもCloudflareのRoot directoryでWorker部分だけを指定できます。</p>
 
   <h3>6. Cloudflareのプロジェクト設定を次の値にする</h3>
+  <p>GitHubリポジトリを選択したあと、CloudflareのBuild設定を確認します。今回のX Post Studio用Workerでは、次の値にしてください。</p>
+
   <div class="soft-box">
     <p><strong>Production branch：</strong><code>main</code></p>
     <p><strong>Build command：</strong>空欄</p>
     <p><strong>Deploy command：</strong><code>npx wrangler deploy</code></p>
     <p><strong>Root directory：</strong><code>/workers/x-post-studio-ai/</code></p>
   </div>
-  <p>Root directoryが <code>/</code> のままだとサイト本体をWorkerとしてデプロイしようとして失敗します。必ず <code>/workers/x-post-studio-ai/</code> に変更します。Cloudflare公式でも、1つのリポジトリに複数のプロジェクトを置く場合はRoot directoryでWrangler設定のあるフォルダを指定する方式が案内されています。</p>
+
+  <p><strong>一番重要なのはRoot directoryです。</strong> <code>/</code> のままだと、CloudflareはGitHub Pages用のサイト本体をWorkerとしてデプロイしようとします。X Post StudioのWorkerは <code>/workers/x-post-studio-ai/</code> に分離してあるため、このフォルダをRoot directoryとして指定します。</p>
+
+  <h4>各項目の意味</h4>
+  <p><strong>Production branch：main</strong><br>GitHubのmainブランチを本番用として使います。mainへ更新が入ると、Cloudflare側の自動ビルド対象になります。</p>
+
+  <p><strong>Build command：空欄</strong><br>今回のWorkerは事前ビルドを必要としないため、Build commandは入力しません。</p>
+
+  <p><strong>Deploy command：npx wrangler deploy</strong><br>Cloudflare公式CLIのWranglerを使ってWorkerをデプロイします。<code>package.json</code>にはWranglerを開発依存として追加済みです。</p>
+
+  <p><strong>Root directory：/workers/x-post-studio-ai/</strong><br>CloudflareがWorker用の <code>package.json</code> と <code>wrangler.jsonc</code> を探す基準フォルダです。この指定が間違っていると、今回のように「クローン・インストールまでは成功するがデプロイで失敗」という状態になります。</p>
+
+  <h4>すでにビルドに失敗している場合</h4>
+  <p>既存のCloudflareプロジェクトでも作り直す必要はありません。<strong>設定 → Build / Builds configuration</strong> から上記の値へ変更して保存し、デプロイ画面へ戻って<strong>「ビルドを再試行」</strong>します。</p>
+
+  <div class="soft-box">
+    <strong>GitHub作業はChatGPTに任せるとかなり早い</strong>
+    <p>GitHubをChatGPTと連携している場合、Worker用の <code>package.json</code>、<code>wrangler.jsonc</code>、<code>src/index.js</code>、READMEの作成や修正、既存リポジトリへの追加までChatGPTに任せられます。</p>
+    <p>今回のように「Cloudflareでビルド失敗 → 原因を確認 → GitHub側のWorker構成を追加 → 設定値を修正」という作業は、GitHub連携済みならChatGPTに任せた方が早いです。</p>
+    <p>ただし、Cloudflareへのログイン、GitHub連携の許可、Connect GitHubでのリポジトリ選択、Cloudflare側のBuild設定変更など、外部サービス側の認証操作は自分で行う必要があります。</p>
+  </div>
 
   <h3>7. Worker名について</h3>
   <p>今回Cloudflare側ですでに作成されたWorker名は <code>techmew-github-io</code> です。そのためGitHub内の <code>wrangler.jsonc</code> も同じ <code>techmew-github-io</code> に設定済みです。Cloudflare側のWorker名とWranglerの <code>name</code> が一致しない場合、Workers Buildsは失敗します。</p>
