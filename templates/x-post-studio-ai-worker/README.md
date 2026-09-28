@@ -30,3 +30,13 @@ X Post StudioのAI処理を自分のCloudflare Workers AIで動かすための�
 ```
 
 Worker内では `env.AI` として利用します。
+
+
+## 校正v7
+
+- 校正モデル: `@cf/zai-org/glm-4.7-flash`
+- 3案生成モデル: `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
+- 高確度のIME・音声入力誤変換をAI前に補正
+- 補正済み語句がAIで壊れた場合は不採用
+- 差分率、文字量、改行・段落、追加日付の品質ゲートを併用
+- X Post Studio側の「フィードバック用にコピー」で再現条件をまとめて共有可能
