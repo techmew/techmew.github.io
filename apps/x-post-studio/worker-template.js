@@ -111,7 +111,8 @@ export default {
 
       // 明示的な危害・死亡願望だけはAIへ渡す前に最低限緩和する。
       // 「馬鹿」「老害」等の侮辱は警告のみで、勝手に無難化しない。
-      const localSafety = localSafetyCheck(originalText);
+      const correctedKnownTerms = applyKnownTermCorrections(originalText);
+      const localSafety = localSafetyCheck(correctedKnownTerms.text);
 
       let preprocess = await runPreprocess(env, localSafety.text);
       if (!preprocess) preprocess = await runPreprocess(env, localSafety.text);
@@ -120,7 +121,10 @@ export default {
         ? String(preprocess.corrected_text).trim()
         : localSafety.text;
 
-      const corrections = normalizeCorrections(preprocess && preprocess.corrections);
+      const corrections = uniqueStrings([
+        ...correctedKnownTerms.corrections,
+        ...normalizeCorrections(preprocess && preprocess.corrections)
+      ]);
       const aiRisk = preprocess && ["none", "low", "medium", "high"].includes(preprocess.risk_level)
         ? preprocess.risk_level
         : "none";
@@ -145,8 +149,11 @@ export default {
         "入力は安全確認と日本語校正を終えた文章です。校正済み表記や安全化された表現を元へ戻さないでください。",
         "必ず submit_x_post_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
         "元文章の口調・語尾・温度感を維持し、別人格へ変えない。",
-        "元文の改行位置と空行の有無を原則そのまま維持する。",
+        "元文の改行位置と段落構造を原則そのまま維持する。",
+        "原文に改行がある場合、全文を1段落へ結合してはいけない。",
+        "原文に空行が1つある箇所は、その段落区切りを維持する。",
         "読みやすさ目的だけで勝手に改行・空行を追加、削除、移動しない。",
+        "原文に『↓』『続く』『→』『※』などの継続・注記記号がある場合、意味上不要と判断して勝手に削除しない。",
         "元文にない事実、体験、数字、年、日付、時代背景、人気、評判、トレンドを絶対に捏造しない。",
         "入力文に年が書かれていない場合、2024年・2025年・2026年など現在年や過去年を推測して追加してはいけない。",
         "『今は○○年なのに』『○○年だし』のような時代背景を勝手に補足しない。",
@@ -179,7 +186,12 @@ export default {
         if (!isValidResult(structured)) continue;
 
         lastUnsupported = findUnsupportedTemporalFacts(correctedText, structured);
-        if (!lastUnsupported.length) break;
+        const layoutProblems = findLayoutProblems(correctedText, structured);
+        if (!lastUnsupported.length && !layoutProblems.length) break;
+
+        if (layoutProblems.length) {
+          lastUnsupported.push(...layoutProblems.map((x) => "LAYOUT:" + x));
+        }
         structured = null;
       }
 
@@ -214,8 +226,11 @@ async function runPreprocess(env, text) {
     "例: 『トライアル可能店』は、文脈上の店舗名として不自然なら『トライアル加納店』のような支店名誤変換を疑う。",
     "ただし確信できない固有名詞を新しく捏造してはいけない。候補が曖昧なら原文を維持する。",
     "表現の言い換え、丁寧化、読みやすい再構成はしない。",
-    "改行位置と空行の有無は原文を原則そのまま維持する。",
+    "改行位置と段落構造は原文を原則そのまま維持する。",
+    "原文に改行がある場合、全文を1段落へ結合しない。",
+    "原文に空行が1つある箇所は、その段落区切りを維持する。",
     "読みやすさ目的で勝手に改行・空行を追加、削除、移動しない。",
+    "原文の『↓』『続く』『→』『※』などの継続・注記記号を勝手に削除しない。",
     "脅迫、殺害・暴行の示唆、他者への死亡願望はhighとして警告する。",
     "『馬鹿』『カス』『老害』『頭おかしい』等の強い侮辱はlowまたはmediumで警告してよいが、それだけを理由に文章を無難化しない。",
     "correctionsには実際に変更した箇所だけをbefore/after/reasonで記録する。"
@@ -256,6 +271,29 @@ async function runCompose(env, system, correctedText, plan, temperature) {
   } catch (_) {
     return null;
   }
+}
+
+function applyKnownTermCorrections(input) {
+  let text = String(input || "");
+  const corrections = [];
+
+  const rules = [
+    {
+      pattern: /トライアル可能店/g,
+      replacement: "トライアル加納店",
+      note: "トライアル可能店 → トライアル加納店（支店名の誤変換）"
+    }
+  ];
+
+  for (const rule of rules) {
+    if (rule.pattern.test(text)) {
+      rule.pattern.lastIndex = 0;
+      text = text.replace(rule.pattern, rule.replacement);
+      corrections.push(rule.note);
+    }
+  }
+
+  return { text, corrections };
 }
 
 function localSafetyCheck(input) {
@@ -365,6 +403,31 @@ function isValidResult(data) {
   return !!(data && typeof data === "object" && Array.isArray(data.compliance) && Array.isArray(data.variants) && data.variants.length >= 3);
 }
 
+function findLayoutProblems(sourceText, data) {
+  const source = String(sourceText || "").replace(/\r\n/g, "\n");
+  const needsLineBreak = source.includes("\n");
+  const needsParagraphBreak = source.includes("\n\n");
+  const requiredMarkers = ["↓", "続く", "→", "※"].filter((m) => source.includes(m));
+  const problems = [];
+
+  if (!data || !Array.isArray(data.variants)) return ["出力案がありません"];
+
+  data.variants.forEach((item, index) => {
+    const text = String(item && item.text ? item.text : "").replace(/\r\n/g, "\n");
+    if (needsLineBreak && !text.includes("\n")) {
+      problems.push("案" + (index + 1) + "で原文の改行が消えています");
+    }
+    if (needsParagraphBreak && !text.includes("\n\n")) {
+      problems.push("案" + (index + 1) + "で原文の段落区切りが消えています");
+    }
+    for (const marker of requiredMarkers) {
+      if (!text.includes(marker)) problems.push("案" + (index + 1) + "で「" + marker + "」が消えています");
+    }
+  });
+
+  return problems;
+}
+
 function findUnsupportedTemporalFacts(sourceText, data) {
   const sourceTokens = new Set(extractTemporalTokens(String(sourceText || "").normalize("NFKC")));
   const found = new Set();
@@ -394,8 +457,8 @@ function extractTemporalTokens(value) {
 function normalizeOutputText(value) {
   return String(value || "")
     .replace(/\r\n/g, "\n")
-    .replace(/\n[ \t]*\n+/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
