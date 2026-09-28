@@ -33,122 +33,143 @@
 <article class="article">
   <div class="eyebrow">FREE / OWN AI WORKER</div>
   <h1>X Post Studio</h1>
-  <p class="lede">スマホで文章を入力し、元の口調を残したまま、誤字脱字・構成3案・コンプラ・絵文字・関連ハッシュタグをAIでまとめて処理するX投稿サポートツールです。</p>
+  <p class="lede">Xへ投稿する前の文章を、誤字脱字・読みやすさ・構成・絵文字・ハッシュタグ・コンプラまでまとめてAIで整えるスマホ向けツールです。</p>
 
   <div class="article-visual">
     <img src="/assets/images/hq/x-post-studio-hero.svg" alt="X Post Studioのスマホ向けX投稿サポート画面" width="640" height="360" fetchpriority="high">
   </div>
   <p><a class="btn pop-purple" href="/apps/x-post-studio/">X Post Studioを開く</a></p>
 
-  <h2>できること</h2>
+  <h2>このツールで何ができる？</h2>
+  <p>テキストボックスへ普段どおりに文章を書き、絵文字量と「通常投稿 / 長文」を選んでAI処理を実行します。元文章の口調はできるだけ残したまま、次の処理をまとめて行います。</p>
+  <ul>
+    <li>誤字脱字・明らかな誤変換の修正</li>
+    <li>読みやすい文章への整理</li>
+    <li>「自然」「反応重視」「短く強め」の3パターン生成</li>
+    <li>絵文字を「多い / 中 / なし」で調整</li>
+    <li>内容に関連するハッシュタグを0〜3個提案</li>
+    <li>誹謗中傷、個人情報、危険な断定などのコンプラ注意</li>
+    <li>X通常投稿向けの文字数調整、または長文のまま整形</li>
+  </ul>
+  <p>AIが「バズ」を保証するものではありません。リアルタイムのXトレンドを取得しているふりもせず、文章の冒頭、情報量、読みやすさ、関連タグなどを改善するための補助ツールとして動きます。</p>
+
+  <h2>なぜ最初にCloudflareの設定が必要？</h2>
+  <p>X Post Studioの画面自体はGitHub Pagesで動きますが、文章の校正や3案生成にはAIが必要です。そこで、各利用者が<strong>自分のCloudflare Workers AI</strong>を用意し、そのWorkerへ文章を送って処理します。</p>
   <div class="soft-box">
-    <p>元文章の口調をAIが読み取り、別人格に変えずに校正します。誤字脱字・明らかな誤変換の修正、自然 / 反応重視 / 短く強めの3案、絵文字「多い / 中 / なし」、通常投稿 / 長文、関連ハッシュタグ、コンプラ注意をまとめて処理します。</p>
-    <p>長文は勝手に分割しません。複数のXアカウント名と、各アカウントで使うブラウザ名をスマホ内に保存できます。</p>
+    <p><strong>処理の流れ</strong></p>
+    <p>X Post Studio → 自分のCloudflare Worker → Workers AI → 校正結果をX Post Studioへ返す</p>
   </div>
+  <p>サイト運営者のAIキーを全員で共有する方式ではありません。自分のCloudflareアカウントを使うので、無料枠も利用者ごとに分かれます。</p>
 
-  <h2>利用者ごとにAIを分ける</h2>
-  <p>共通のAIキーを全員で使う仕組みにはしていません。各利用者が自分のCloudflareアカウントでWorkerを作成し、そのWorker URLを自分のX Post Studioへ登録します。AIの無料枠も利用者ごとに分かれます。</p>
+  <h2>用意するもの</h2>
+  <ul>
+    <li>GitHubアカウント</li>
+    <li>Cloudflareアカウント（無料プランで可）</li>
+    <li>X Post Studio用のWorkerコードを置くGitHubリポジトリ</li>
+  </ul>
 
-  <h2 id="setup">Cloudflare Workers AIの無料セットアップ</h2>
-  <p>X Post Studio用のWorkerコードは、すでにこのGitHubリポジトリ内の <code>/workers/x-post-studio-ai/</code> に用意してあります。Cloudflare側では、このフォルダだけをWorkerとしてデプロイします。</p>
+  <h2>一番簡単：GitHub作業をChatGPTに任せる</h2>
+  <p>GitHubをChatGPTと連携している場合は、Worker用ファイルの作成や修正をChatGPTへ任せるとかなり楽です。</p>
+  <p>まずGitHubで空のリポジトリを1つ作ります。名前は <code>x-post-studio-ai</code> などで構いません。そのあとChatGPTでそのリポジトリを指定し、X Post Studio用Workerを作るよう依頼します。</p>
+  <div class="soft-box">
+    <p><strong>作成するファイル</strong></p>
+    <p><code>package.json</code><br><code>wrangler.jsonc</code><br><code>src/index.js</code><br><code>.gitignore</code><br><code>README.md</code></p>
+  </div>
+  <p>GitHub連携済みのChatGPTなら、既存リポジトリへのファイル追加、コード修正、設定変更、エラー原因の確認などをそのまま依頼できます。Cloudflareでビルドエラーが出た場合も、ビルドログや画面内容を見せてGitHub側の修正を任せる方が早いです。</p>
+  <p>ただし、GitHubやCloudflareへのログイン、外部サービスの認証許可、Cloudflare画面上でのリポジトリ選択などは利用者自身で行います。</p>
 
-  <h3>1. Cloudflare Dashboardを開く</h3>
-  <p><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener"><strong>Cloudflare Dashboard</strong></a>へログインします。</p>
+  <h2>ChatGPTを使わず手動で用意する場合</h2>
+  <p>手動で作る場合は、公開しているWorkerテンプレートを自分のGitHubリポジトリへコピーします。</p>
+  <p><a href="https://github.com/techmew/techmew.github.io/tree/main/templates/x-post-studio-ai-worker" target="_blank" rel="noopener"><strong>X Post Studio AI WorkerテンプレートをGitHubで見る</strong></a></p>
+  <p>テンプレートには <code>package.json</code>、<code>wrangler.jsonc</code>、<code>src/index.js</code>、<code>.gitignore</code> が入っています。専用リポジトリのルートへそのまま配置してください。</p>
 
-  <h3>2. Workers → Workers &amp; Pagesを開く</h3>
-  <p>Dashboardのホーム画面から<strong>「Workers」</strong>を押します。見つからない場合は左メニューの<strong>「コンピュート」→「Workers &amp; Pages」</strong>と進みます。</p>
+  <h2 id="setup">CloudflareへGitHubリポジトリを接続する</h2>
+
+  <h3>1. Cloudflare Dashboardへログイン</h3>
+  <p><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener"><strong>Cloudflare Dashboard</strong></a>を開きます。アカウントを持っていない場合は<a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener">無料アカウントを作成</a>します。</p>
+
+  <h3>2. Workers &amp; Pagesを開く</h3>
+  <p>Dashboardで<strong>「Workers」</strong>を開きます。画面によっては左メニューの<strong>「コンピュート」→「Workers &amp; Pages」</strong>から入ります。</p>
 
   <h3>3. 「アプリケーションを作成する」を押す</h3>
-  <p><strong>Workers &amp; Pages</strong>画面で<strong>「アプリケーションを作成する」</strong>を押します。</p>
+  <p>Workers &amp; Pages画面にある<strong>「アプリケーションを作成する」</strong>を押します。</p>
 
   <h3>4. 「Connect GitHub」を選ぶ</h3>
-  <p>「Make something new」が表示されたら<strong>「Connect GitHub」</strong>を選び、GitHubとの接続を許可します。</p>
+  <p>新規作成画面にGitHub、GitLab、Hello World、テンプレートなどが表示されたら、<strong>「Connect GitHub」</strong>を選びます。</p>
 
-  <h3>5. GitHubで自分のサイトのリポジトリを選ぶ</h3>
-  <p>今回は <code>techmew/techmew.github.io</code> を選択します。X Post Studio用Workerはサイト本体と同じリポジトリの <code>/workers/x-post-studio-ai/</code> に独立して配置してあるため、リポジトリを分けなくてもCloudflareのRoot directoryでWorker部分だけを指定できます。</p>
+  <h3>5. CloudflareからGitHubへのアクセスを許可する</h3>
+  <p>初回だけGitHub側の認証画面が開きます。CloudflareからGitHubリポジトリへアクセスするための許可を行います。すべてのリポジトリを許可する必要はなく、X Post Studio用に作ったリポジトリだけを許可しても構いません。</p>
 
-  <h3>6. Cloudflareのプロジェクト設定を次の値にする</h3>
-  <p>GitHubリポジトリを選択したあと、CloudflareのBuild設定を確認します。今回のX Post Studio用Workerでは、次の値にしてください。</p>
+  <h3>6. X Post Studio用のリポジトリを選ぶ</h3>
+  <p>Cloudflareへ戻ったら、先ほど用意した <code>x-post-studio-ai</code> などのWorker専用リポジトリを選択します。</p>
 
+  <h3>7. Worker名を確認する</h3>
+  <p>テンプレートの <code>wrangler.jsonc</code> ではWorker名を <code>x-post-studio-ai</code> にしています。Cloudflare側のWorker名も同じ <code>x-post-studio-ai</code> にすると設定が分かりやすくなります。</p>
+  <p>Cloudflare Workers Buildsでは、Dashboard上のWorker名と、指定したRoot directory内にあるWrangler設定の <code>name</code> が一致している必要があります。一致しない場合はビルドエラーになります。</p>
+
+  <h3>8. Build設定を入力する</h3>
+  <p>専用リポジトリのルートへテンプレートを配置した場合は、次の設定にします。</p>
   <div class="soft-box">
     <p><strong>Production branch：</strong><code>main</code></p>
     <p><strong>Build command：</strong>空欄</p>
     <p><strong>Deploy command：</strong><code>npx wrangler deploy</code></p>
-    <p><strong>Root directory：</strong><code>/workers/x-post-studio-ai/</code></p>
+    <p><strong>Root directory：</strong><code>/</code></p>
   </div>
+  <p><strong>Build command</strong>は事前コンパイルが不要なので空欄です。<strong>Deploy command</strong>はWranglerでWorkerをCloudflareへデプロイするためのコマンドです。</p>
 
-  <p><strong>一番重要なのはRoot directoryです。</strong> <code>/</code> のままだと、CloudflareはGitHub Pages用のサイト本体をWorkerとしてデプロイしようとします。X Post StudioのWorkerは <code>/workers/x-post-studio-ai/</code> に分離してあるため、このフォルダをRoot directoryとして指定します。</p>
+  <h3>9. 「Save and Deploy」を押す</h3>
+  <p>設定を確認したら<strong>「Save and Deploy」</strong>を押します。CloudflareがGitHubからコードを取得し、Workerをビルドしてデプロイします。</p>
 
-  <h4>各項目の意味</h4>
-  <p><strong>Production branch：main</strong><br>GitHubのmainブランチを本番用として使います。mainへ更新が入ると、Cloudflare側の自動ビルド対象になります。</p>
-
-  <p><strong>Build command：空欄</strong><br>今回のWorkerは事前ビルドを必要としないため、Build commandは入力しません。</p>
-
-  <p><strong>Deploy command：npx wrangler deploy</strong><br>Cloudflare公式CLIのWranglerを使ってWorkerをデプロイします。<code>package.json</code>にはWranglerを開発依存として追加済みです。</p>
-
-  <p><strong>Root directory：/workers/x-post-studio-ai/</strong><br>CloudflareがWorker用の <code>package.json</code> と <code>wrangler.jsonc</code> を探す基準フォルダです。この指定が間違っていると、今回のように「クローン・インストールまでは成功するがデプロイで失敗」という状態になります。</p>
-
-  <h4>すでにビルドに失敗している場合</h4>
-  <p>既存のCloudflareプロジェクトでも作り直す必要はありません。<strong>設定 → Build / Builds configuration</strong> から上記の値へ変更して保存し、デプロイ画面へ戻って<strong>「ビルドを再試行」</strong>します。</p>
-
-  <div class="soft-box">
-    <strong>GitHub作業はChatGPTに任せるとかなり早い</strong>
-    <p>GitHubをChatGPTと連携している場合、Worker用の <code>package.json</code>、<code>wrangler.jsonc</code>、<code>src/index.js</code>、READMEの作成や修正、既存リポジトリへの追加までChatGPTに任せられます。</p>
-    <p>今回のように「Cloudflareでビルド失敗 → 原因を確認 → GitHub側のWorker構成を追加 → 設定値を修正」という作業は、GitHub連携済みならChatGPTに任せた方が早いです。</p>
-    <p>ただし、Cloudflareへのログイン、GitHub連携の許可、Connect GitHubでのリポジトリ選択、Cloudflare側のBuild設定変更など、外部サービス側の認証操作は自分で行う必要があります。</p>
-  </div>
-
-  <h3>7. Worker名について</h3>
-  <p>今回Cloudflare側ですでに作成されたWorker名は <code>techmew-github-io</code> です。そのためGitHub内の <code>wrangler.jsonc</code> も同じ <code>techmew-github-io</code> に設定済みです。Cloudflare側のWorker名とWranglerの <code>name</code> が一致しない場合、Workers Buildsは失敗します。</p>
-
-  <h3>8. 「Save and Deploy」またはビルド再実行</h3>
-  <p>設定を保存してデプロイします。すでに失敗したプロジェクトを使う場合は、設定を直したあと<strong>「ビルドを再試行」</strong>します。</p>
-
-  <h3>9. Workers AI BindingはGitHub側で設定済み</h3>
-  <p>Worker用の <code>wrangler.jsonc</code> には、次のWorkers AI Bindingをすでに入れてあります。</p>
+  <h3>10. Workers AI Bindingを確認する</h3>
+  <p>配布テンプレートの <code>wrangler.jsonc</code> には、Workers AI Bindingを最初から設定しています。</p>
   <pre><code>"ai": {
   "binding": "AI"
 }</code></pre>
-  <p>そのため、今回の構成ではCloudflare DashboardからBindingを手動追加する必要はありません。Workerコードでは <code>env.AI</code> として利用します。</p>
+  <p>この設定により、Workerコードから <code>env.AI</code> を使ってWorkers AIを呼び出せます。</p>
 
-  <h3>10. デプロイ成功後にworkers.dev URLをコピーする</h3>
-  <p>デプロイが成功したら、CloudflareのWorker画面に表示される <code>https://xxxxx.workers.dev</code> をコピーします。</p>
+  <h3>11. workers.devのURLをコピーする</h3>
+  <p>デプロイに成功すると、<code>https://xxxxx.workers.dev</code> のようなWorker URLが発行されます。このURLをコピーします。</p>
 
-  <h3>11. X Post Studioへ登録する</h3>
-  <p><a href="/apps/x-post-studio/"><strong>X Post Studio</strong></a>を開き、<strong>「AI接続」→「設定」</strong>へ進みます。Worker URLを貼り付けて保存し、<strong>「接続テスト」</strong>を押します。</p>
+  <h3>12. X Post StudioへURLを登録する</h3>
+  <p><a href="/apps/x-post-studio/"><strong>X Post Studio</strong></a>を開き、<strong>「AI接続」→「設定」</strong>へ進みます。Cloudflareで発行されたWorker URLを貼り付けて保存します。</p>
 
-  <h3>12. 接続成功で完了</h3>
-  <p>接続テストが成功すれば、誤字脱字修正、元の口調を維持した構成3案、絵文字調整、関連ハッシュタグ提案、コンプラチェックをAIで処理できます。</p>
+  <h3>13. 「接続テスト」を実行する</h3>
+  <p><strong>「接続テスト」</strong>を押し、接続成功と表示されれば初期設定は完了です。以後は文章を入力して「AIで3案つくる」を押せば、自分のWorkers AIで文章処理できます。</p>
 
+  <h2>既存サイトと同じGitHubリポジトリへWorkerを置く場合</h2>
+  <p>専用リポジトリを増やしたくない場合は、既存のGitHubリポジトリ内へ <code>/workers/x-post-studio-ai/</code> のような専用フォルダを作る方法もあります。</p>
+  <p>この場合だけCloudflareの<strong>Root directory</strong>を、Wrangler設定があるフォルダへ変更します。</p>
   <div class="soft-box">
-    <strong>GitHub側はすでに用意済み</strong>
-    <p><code>/workers/x-post-studio-ai/</code> には <code>package.json</code>、<code>wrangler.jsonc</code>、<code>src/index.js</code>、READMEを配置済みです。Cloudflare側でコードを手入力する必要はありません。</p>
+    <p><strong>例：</strong><code>/workers/x-post-studio-ai/</code></p>
   </div>
+  <p>Root directoryを <code>/</code> のままにすると、サイト本体など別のプロジェクトをWorkerとしてデプロイしようとして失敗する場合があります。Cloudflareはモノレポ構成で、各WorkerのWrangler設定があるフォルダをRoot directoryとして指定する方式に対応しています。</p>
 
-  <div class="soft-box">
-    <strong>無料枠について</strong>
-    <p>Cloudflare Workers AIのFreeプランには1日10,000 Neuronsの無料割当があります。利用者ごとに自分のCloudflareアカウントを使うため、AI無料枠も利用者ごとに分離できます。</p>
-  </div>
-  <p><a href="https://developers.cloudflare.com/workers/ci-cd/builds/configuration/" target="_blank" rel="noopener">Cloudflare公式：Workers Builds設定</a> / <a href="https://developers.cloudflare.com/workers/ci-cd/builds/advanced-setups/" target="_blank" rel="noopener">Cloudflare公式：Root directory / モノレポ</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI Binding</a></p>
+  <h2>ビルドに失敗したとき</h2>
+  <p>CloudflareのWorker画面から<strong>「デプロイ」→ビルド履歴</strong>を開くと、どの工程で失敗したか確認できます。</p>
+  <ul>
+    <li><strong>Missing entry-point</strong>：Root directoryまたはWrangler設定を確認</li>
+    <li><strong>Worker nameが一致しない</strong>：Cloudflare側のWorker名と <code>wrangler.jsonc</code> の <code>name</code> を合わせる</li>
+    <li><strong>GitHubを取得できない</strong>：CloudflareのGitHub連携権限を確認</li>
+  </ul>
+  <p>設定を変更した後は、Build設定を保存して<strong>「ビルドを再試行」</strong>します。再試行時には保存済みの最新Build設定が使われます。</p>
 
-  <h2>自分のGitHubで使いたい場合</h2>
-  <p>この公開ページを共用する必要はありません。自分のGitHub PagesへHTMLをコピーし、自分のCloudflare Worker URLを登録して使う構成にできます。Worker URLはブラウザのlocalStorageへ保存するため、GitHubのソースへAIキーを書き込む必要はありません。</p>
+  <h2>無料枠について</h2>
+  <p>Cloudflare Workers AIのFreeプランには、1日10,000 Neuronsの無料割当があります。上限はCloudflareアカウント単位なので、この方式では利用者それぞれが自分の無料枠を使います。</p>
+  <p><a href="https://developers.cloudflare.com/workers-ai/platform/pricing/" target="_blank" rel="noopener">Workers AIの料金・無料枠を公式サイトで確認</a></p>
 
-  <h2>アカウント切替の扱い</h2>
-  <p>Xのパスワードや認証トークンは保存しません。アカウントボタンは「どのアカウントで投稿するか」と「どのブラウザを使うか」の目印です。投稿時は本文をコピーしてXの投稿画面を開きます。</p>
-  <div class="soft-box">
-    <strong>ここは実機確認が必要</strong>
-    <p>スマホからChrome / Edge / Firefoxなど特定のブラウザを強制して開く方法は、Android・iPhoneと各ブラウザの仕様で挙動が異なります。X APIの有料利用には切り替えず、無料の範囲で実機テストしながら詰めます。</p>
-  </div>
+  <h2>Xへの投稿とアカウント切替</h2>
+  <p>X Post StudioはXのパスワードや投稿用APIトークンを保存しません。X APIの有料投稿機能も使いません。</p>
+  <p>生成した文章をコピーし、Xの投稿画面を開く方式です。複数アカウントを使う場合は、アカウントごとにブラウザやブラウザプロファイルを分けてログインしておく運用を想定しています。スマホで特定ブラウザへ完全自動で振り分ける部分は、OSやブラウザによって制限があります。</p>
 
-  <h2>「バズる」について</h2>
-  <p>AIがバズを保証することはできません。X Post Studioでは、冒頭の伝わりやすさ、情報密度、読みやすい改行、余計な前置きの削減、内容に関連するハッシュタグの提案を行います。リアルタイムのXトレンドを取得しているふりはしません。</p>
-
-  <h2>コンプラチェック</h2>
-  <p>誹謗中傷、差別、個人情報、違法・危険行為、医療や金融に関する強い断定、著作権侵害を助長する表現、根拠のない断定などを注意候補として表示します。AI判定なので、法的判断を保証するものではありません。</p>
+  <h2>プライバシーと注意点</h2>
+  <p>入力した文章は、設定した自分のCloudflare Workerへ送信され、Workers AIで処理されます。X Post Studio側にはCloudflareのAPIキーを直接保存しません。</p>
+  <p>AIによる誤字修正・コンプラ判定・ハッシュタグ提案は補助機能です。法的判断や事実確認を保証するものではないため、投稿前に最終確認してください。</p>
 
   <p><a class="btn pop-purple" href="/apps/x-post-studio/">X Post Studioを使う</a></p>
-</article>
+
+  <h2>公式資料</h2>
+  <p><a href="https://developers.cloudflare.com/workers/ci-cd/builds/" target="_blank" rel="noopener">Workers Builds</a> / <a href="https://developers.cloudflare.com/workers/ci-cd/builds/configuration/" target="_blank" rel="noopener">Build設定</a> / <a href="https://developers.cloudflare.com/workers/ci-cd/builds/advanced-setups/" target="_blank" rel="noopener">モノレポとRoot directory</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI Binding</a></p>
+
 </main>
 <footer class="site-footer">
   <div class="wrap footer-grid">
