@@ -1,18 +1,44 @@
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
-const RESULT_TOOL = {
+const CORRECTION_TOOL = {
   type: "function",
   function: {
-    name: "submit_x_post_result",
-    description: "X投稿の校正結果、コンプラ確認、3つの投稿案を返す。",
+    name: "submit_proofreading_result",
+    description: "日本語の誤字脱字・IME誤変換・助詞誤りだけを修正した校正文を返す。",
     parameters: {
       type: "object",
       additionalProperties: false,
       properties: {
+        corrected_text: { type: "string" },
         corrections: {
           type: "array",
-          items: { type: "string" }
-        },
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              before: { type: "string" },
+              after: { type: "string" },
+              reason: { type: "string" }
+            },
+            required: ["before", "after", "reason"]
+          }
+        }
+      },
+      required: ["corrected_text", "corrections"]
+    },
+    strict: true
+  }
+};
+
+const RESULT_TOOL = {
+  type: "function",
+  function: {
+    name: "submit_x_post_result",
+    description: "校正済み文章を元に、コンプラ確認と3つのX投稿案を返す。",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
         compliance: {
           type: "array",
           items: {
@@ -46,7 +72,7 @@ const RESULT_TOOL = {
           }
         }
       },
-      required: ["corrections", "compliance", "variants"]
+      required: ["compliance", "variants"]
     },
     strict: true
   }
@@ -65,7 +91,7 @@ export default {
         ok: true,
         service: "X Post Studio AI Worker",
         model: MODEL,
-        structured_output: "function_calling_v2"
+        pipeline: "proofread_then_compose_v3"
       }, 200, cors);
     }
 
@@ -80,7 +106,7 @@ export default {
         return json({
           ok: true,
           service: "X Post Studio AI Worker",
-          structured_output: "function_calling_v2"
+          pipeline: "proofread_then_compose_v3"
         }, 200, cors);
       }
 
@@ -102,6 +128,18 @@ export default {
         return json({ error: "本文が長すぎます" }, 400, cors);
       }
 
+      const proofread = await runProofreading(env, text);
+
+      if (!proofread || !proofread.corrected_text) {
+        return json({
+          error: "日本語校正に失敗しました。もう一度実行してください。",
+          error_code: "PROOFREAD_FAILED"
+        }, 502, cors);
+      }
+
+      const correctedText = String(proofread.corrected_text).trim() || text;
+      const corrections = normalizeCorrections(proofread.corrections);
+
       const lengthRule = plan === "free"
         ? "3案ともX通常投稿の280文字以内を強く意識する。URL等の文字数計算差を考え、可能なら本文とハッシュタグ合計を260文字程度までに収める。"
         : "長文投稿として内容を削りすぎず整理する。スレッド分割はしない。";
@@ -114,62 +152,34 @@ export default {
 
       const system = [
         "あなたは日本語のX投稿専門編集者です。",
+        "入力はすでに専用の校正工程を通った文章です。校正済みの表記を勝手に元へ戻さないでください。",
         "必ず submit_x_post_result ツールを1回呼び出して結果を返してください。",
         "通常の文章回答は禁止です。",
         "元文章の口調・語尾・温度感を維持し、別人格へ変えない。",
         "元文にない事実、体験、数字、人気、評判、トレンドを捏造しない。",
-        "誤字脱字、不自然な助詞、明らかな誤変換を修正する。",
         "投稿案は必ず3件。",
         "案1は自然で伝わりやすくする。",
         "案2は冒頭を強め、反応を得やすくする。ただし釣り・過剰煽りは禁止。",
         "案3は要点を短く強くまとめる。",
-        "ハッシュタグは内容に本当に関連するものを0〜3個。リアルタイムトレンドを取得したふりは禁止。",
+        "ハッシュタグは付けない方が自然なら0個でよい。",
+        "ハッシュタグは内容を具体的に表すものだけ0〜3個にする。",
+        "『#嫌い』『#最悪』『#時代錯誤』のような感情・評価だけの雑な汎用タグは、検索上の明確な意味がない限り付けない。",
+        "リアルタイムトレンドを取得したふりは禁止。",
         "コンプラでは誹謗中傷、差別、個人情報、違法・危険行為、医療・金融の強い断定、著作権侵害を助長する表現、根拠のない断定を注意候補にする。問題がなければ空配列。",
-        "correctionsには実際に直した箇所だけを短く入れる。",
         lengthRule,
         emojiRule
       ].join("\n");
 
-      const result = await env.AI.run(MODEL, {
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: text }
-        ],
-        tools: [RESULT_TOOL],
-        tool_choice: "required",
-        parallel_tool_calls: false,
-        max_completion_tokens: plan === "free" ? 1500 : 4500,
-        temperature: 0.2
-      });
+      let structured = await runCompose(env, system, correctedText, plan, 0.2);
 
-      let structured = extractToolArguments(result);
-
-      // 一部のバックエンドがtool callを返さなかった場合のみ、従来形式を救済する。
-      if (!structured) {
-        structured = parseJson(extractText(result));
-      }
-
-      // 構造化出力が欠けた場合だけ1回自動再試行する。
       if (!isValidResult(structured)) {
-        const retry = await env.AI.run(MODEL, {
-          messages: [
-            {
-              role: "system",
-              content: system + "\n前回は構造化出力が不完全でした。必ず submit_x_post_result を1回だけ呼び、必須項目をすべて埋めてください。"
-            },
-            { role: "user", content: text }
-          ],
-          tools: [RESULT_TOOL],
-          tool_choice: "required",
-          parallel_tool_calls: false,
-          max_completion_tokens: plan === "free" ? 1500 : 4500,
-          temperature: 0.1
-        });
-
-        structured = extractToolArguments(retry);
-        if (!structured) {
-          structured = parseJson(extractText(retry));
-        }
+        structured = await runCompose(
+          env,
+          system + "\n前回は構造化出力が不完全でした。必須項目をすべて埋め、submit_x_post_result を1回だけ呼び出してください。",
+          correctedText,
+          plan,
+          0.1
+        );
       }
 
       if (!isValidResult(structured)) {
@@ -179,17 +189,84 @@ export default {
         }, 502, cors);
       }
 
-      return json(normalizeResult(structured), 200, cors);
+      return json(normalizeResult(structured, correctedText, corrections), 200, cors);
     } catch (error) {
       const message = error && error.message ? error.message : "Worker error";
-      return json({
-        error: message.includes("JSON Mode couldn't be met")
-          ? "AIの構造化出力に失敗しました。もう一度実行してください。"
-          : message
-      }, 500, cors);
+      return json({ error: message }, 500, cors);
     }
   }
 };
+
+async function runProofreading(env, text) {
+  const system = [
+    "あなたは日本語校正だけを担当します。文章の主張・感情・口調・語尾は変えません。",
+    "必ず submit_proofreading_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
+    "最優先は誤字脱字、IME誤変換、助詞の誤り、かな・カナ・漢字の誤入力を見つけて直すことです。",
+    "特に音声入力やスマホ変換で起きる、助詞が別表記へ化けた誤りを厳しく確認してください。",
+    "例: 文法上の助詞『の』がカタカナの『ノ』になっている場合は『の』へ直す。",
+    "例: 文法上の助詞『で』が漢字の『出』になっている場合は『で』へ直す。",
+    "同様に、文脈上明らかな『は/わ』『に/二』『へ/え』『を/お』等のIME・音声入力由来の誤変換も確認する。",
+    "ただし固有名詞・番組名・商品名の正式表記だと明確に判断できる場合は勝手に変えない。",
+    "固有名詞か単なる誤変換か迷う場合は、前後の日本語文法を優先して判断する。",
+    "表現の言い換えや丁寧化、炎上回避、読みやすい再構成はこの工程ではしない。",
+    "句読点や改行は明らかに不自然な場合だけ最小限直す。",
+    "correctionsには変更した箇所を before / after / reason で必ず記録する。変更がなければ空配列にする。"
+  ].join("\n");
+
+  let result = await env.AI.run(MODEL, {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: text }
+    ],
+    tools: [CORRECTION_TOOL],
+    tool_choice: "required",
+    parallel_tool_calls: false,
+    max_completion_tokens: 1000,
+    temperature: 0.05
+  });
+
+  let structured = extractToolArguments(result, "submit_proofreading_result");
+  if (!structured) structured = parseJson(extractText(result));
+
+  if (!isValidProofreading(structured)) {
+    result = await env.AI.run(MODEL, {
+      messages: [
+        {
+          role: "system",
+          content: system + "\n前回は校正結果が不完全でした。誤字・IME誤変換・助詞をもう一度厳密に確認し、必須項目をすべて返してください。"
+        },
+        { role: "user", content: text }
+      ],
+      tools: [CORRECTION_TOOL],
+      tool_choice: "required",
+      parallel_tool_calls: false,
+      max_completion_tokens: 1000,
+      temperature: 0
+    });
+    structured = extractToolArguments(result, "submit_proofreading_result");
+    if (!structured) structured = parseJson(extractText(result));
+  }
+
+  return isValidProofreading(structured) ? structured : null;
+}
+
+async function runCompose(env, system, correctedText, plan, temperature) {
+  const result = await env.AI.run(MODEL, {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: correctedText }
+    ],
+    tools: [RESULT_TOOL],
+    tool_choice: "required",
+    parallel_tool_calls: false,
+    max_completion_tokens: plan === "free" ? 1500 : 4500,
+    temperature
+  });
+
+  let structured = extractToolArguments(result, "submit_x_post_result");
+  if (!structured) structured = parseJson(extractText(result));
+  return structured;
+}
 
 function corsHeaders(request) {
   const origin = request.headers.get("Origin") || "*";
@@ -203,25 +280,21 @@ function corsHeaders(request) {
   };
 }
 
-function extractToolArguments(result) {
+function extractToolArguments(result, targetName) {
   if (!result || typeof result !== "object") return null;
 
   const candidates = [];
-
-  if (Array.isArray(result.tool_calls)) {
-    candidates.push(...result.tool_calls);
-  }
+  if (Array.isArray(result.tool_calls)) candidates.push(...result.tool_calls);
 
   const choice = Array.isArray(result.choices) ? result.choices[0] : null;
   const message = choice && choice.message ? choice.message : null;
-
   if (message && Array.isArray(message.tool_calls)) {
     candidates.push(...message.tool_calls);
   }
 
   for (const call of candidates) {
     const name = call && (call.name || (call.function && call.function.name));
-    if (name !== "submit_x_post_result") continue;
+    if (name !== targetName) continue;
 
     let args = call.arguments;
     if (args == null && call.function) args = call.function.arguments;
@@ -254,7 +327,6 @@ function extractText(result) {
     }
     if (typeof choice.text === "string") return choice.text;
   }
-
   return "";
 }
 
@@ -281,22 +353,41 @@ function parseJson(raw) {
   return null;
 }
 
+function isValidProofreading(data) {
+  return !!(
+    data &&
+    typeof data === "object" &&
+    typeof data.corrected_text === "string" &&
+    Array.isArray(data.corrections)
+  );
+}
+
 function isValidResult(data) {
   return !!(
     data &&
     typeof data === "object" &&
-    Array.isArray(data.corrections) &&
     Array.isArray(data.compliance) &&
     Array.isArray(data.variants) &&
     data.variants.length >= 3
   );
 }
 
-function normalizeResult(data) {
+function normalizeCorrections(items) {
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, 30).map((item) => {
+    const before = String(item && item.before ? item.before : "");
+    const after = String(item && item.after ? item.after : "");
+    const reason = String(item && item.reason ? item.reason : "");
+    return before && after
+      ? before + " → " + after + (reason ? "（" + reason + "）" : "")
+      : reason;
+  }).filter(Boolean);
+}
+
+function normalizeResult(data, correctedText, corrections) {
   return {
-    corrections: Array.isArray(data.corrections)
-      ? data.corrections.slice(0, 20).map(String)
-      : [],
+    corrected_text: correctedText,
+    corrections,
     compliance: Array.isArray(data.compliance)
       ? data.compliance.slice(0, 20).map((item) => ({
           level: ["low", "medium", "high"].includes(item && item.level)
