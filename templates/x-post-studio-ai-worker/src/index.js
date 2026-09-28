@@ -213,7 +213,7 @@ export default {
 
       for (let attempt = 0; attempt < 3; attempt++) {
         const retryNote = lastUnsupported.length
-          ? "\n前回の出力には入力文に存在しない数字・年・日付が含まれていました: " +
+          ? "\n前回の出力には入力文に存在しない年・日付が含まれていました: " +
             lastUnsupported.join(", ") +
             "。これらを絶対に追加せず、元文にある情報だけで作り直してください。"
           : attempt > 0
@@ -230,7 +230,7 @@ export default {
 
         if (!isValidResult(structured)) continue;
 
-        lastUnsupported = findUnsupportedNumericFacts(correctedText, structured);
+        lastUnsupported = findUnsupportedTemporalFacts(correctedText, structured);
         if (!lastUnsupported.length) break;
 
         structured = null;
@@ -239,10 +239,10 @@ export default {
       if (!isValidResult(structured)) {
         return json({
           error: lastUnsupported.length
-            ? "AIが入力文にない数字・年・日付を追加したため、出力を破棄しました。もう一度実行してください。"
+            ? "AIが入力文にない年・日付を追加したため、出力を破棄しました。もう一度実行してください。"
             : "AIの構造化出力に失敗しました。自動再試行でも復旧できませんでした。",
           error_code: lastUnsupported.length
-            ? "UNSUPPORTED_NUMERIC_FACT"
+            ? "UNSUPPORTED_TEMPORAL_FACT"
             : "STRUCTURED_OUTPUT_FAILED"
         }, 502, cors);
       }
@@ -498,9 +498,9 @@ function isValidResult(data) {
   );
 }
 
-function findUnsupportedNumericFacts(sourceText, data) {
-  const source = String(sourceText || "");
-  const sourceTokens = new Set(extractNumericTokens(source));
+function findUnsupportedTemporalFacts(sourceText, data) {
+  const source = String(sourceText || "").normalize("NFKC");
+  const sourceTokens = new Set(extractTemporalTokens(source));
   const found = new Set();
 
   const texts = [];
@@ -514,7 +514,7 @@ function findUnsupportedNumericFacts(sourceText, data) {
   }
 
   for (const output of texts) {
-    for (const token of extractNumericTokens(output)) {
+    for (const token of extractTemporalTokens(output)) {
       if (!sourceTokens.has(token)) found.add(token);
     }
   }
@@ -522,10 +522,12 @@ function findUnsupportedNumericFacts(sourceText, data) {
   return Array.from(found);
 }
 
-function extractNumericTokens(value) {
+function extractTemporalTokens(value) {
   const text = String(value || "").normalize("NFKC");
-  const matches = text.match(/(?:19|20)\d{2}(?:年)?|\d+(?:[.,]\d+)?(?:%|％|年|月|日|歳|才|人|件|回|位|円|万|億|時間|分|秒)?/g);
-  return matches ? matches.map((x) => x.replace(/,/g, "")) : [];
+  const matches = text.match(
+    /(?:19|20)\d{2}年|(?:19|20)\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])|(?:0?[1-9]|1[0-2])月(?:0?[1-9]|[12]\d|3[01])日/g
+  );
+  return matches ? matches : [];
 }
 
 function normalizeCorrections(items) {
