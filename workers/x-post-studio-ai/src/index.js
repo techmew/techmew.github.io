@@ -1,5 +1,28 @@
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
+
+const SAFETY_TOOL = {
+  type: "function",
+  function: {
+    name: "submit_safety_result",
+    description: "入力文の危険・攻撃表現を検出し、安全な言い換え方針を返す。",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        risk_level: { type: "string", enum: ["none", "low", "medium", "high"] },
+        warnings: {
+          type: "array",
+          items: { type: "string" }
+        },
+        softened_text: { type: "string" }
+      },
+      required: ["risk_level", "warnings", "softened_text"]
+    },
+    strict: true
+  }
+};
+
 const CORRECTION_TOOL = {
   type: "function",
   function: {
@@ -128,7 +151,14 @@ export default {
         return json({ error: "本文が長すぎます" }, 400, cors);
       }
 
-      const proofread = await runProofreading(env, text);
+      const safety = await runSafetyCheck(env, text);
+
+      const textForProofreading =
+        safety && safety.risk_level !== "none" && safety.softened_text
+          ? String(safety.softened_text).trim()
+          : text;
+
+      const proofread = await runProofreading(env, textForProofreading);
 
       if (!proofread || !proofread.corrected_text) {
         return json({
@@ -137,8 +167,14 @@ export default {
         }, 502, cors);
       }
 
-      const correctedText = String(proofread.corrected_text).trim() || text;
+      const correctedText = String(proofread.corrected_text).trim() || textForProofreading;
       const corrections = normalizeCorrections(proofread.corrections);
+      const safetyWarnings =
+        safety && Array.isArray(safety.warnings) ? safety.warnings.slice(0, 20).map(String) : [];
+      const safetyLevel =
+        safety && ["none", "low", "medium", "high"].includes(safety.risk_level)
+          ? safety.risk_level
+          : "none";
 
       const lengthRule = plan === "free"
         ? "3案ともX通常投稿の280文字以内を強く意識する。URL等の文字数計算差を考え、可能なら本文とハッシュタグ合計を260文字程度までに収める。"
@@ -152,7 +188,7 @@ export default {
 
       const system = [
         "あなたは日本語のX投稿専門編集者です。",
-        "入力はすでに専用の校正工程を通った文章です。校正済みの表記を勝手に元へ戻さないでください。",
+        "入力はすでに安全表現への調整と専用の校正工程を通った文章です。校正済みの表記や安全化された表現を勝手に元へ戻さないでください。",
         "必ず submit_x_post_result ツールを1回呼び出して結果を返してください。",
         "通常の文章回答は禁止です。",
         "元文章の口調・語尾・温度感を維持し、別人格へ変えない。",
@@ -189,13 +225,64 @@ export default {
         }, 502, cors);
       }
 
-      return json(normalizeResult(structured, correctedText, corrections), 200, cors);
+      return json(
+        normalizeResult(structured, correctedText, corrections, safetyLevel, safetyWarnings),
+        200,
+        cors
+      );
     } catch (error) {
       const message = error && error.message ? error.message : "Worker error";
       return json({ error: message }, 500, cors);
     }
   }
 };
+
+async function runSafetyCheck(env, text) {
+  const system = [
+    "あなたはX投稿の事前安全チェック担当です。",
+    "必ず submit_safety_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
+    "入力に脅迫、殺害・暴行の示唆、他者への死亡願望、強い差別・侮辱が含まれるかを判定してください。",
+    "単なる不満、批判、皮肉、悪態は必要以上に危険扱いしません。",
+    "危険表現がある場合は warnings に具体的な理由を短く入れてください。",
+    "softened_text は元の怒り・不満・批判の趣旨は残しつつ、脅迫・殺害・暴行・死亡願望を外した投稿可能な表現にしてください。",
+    "危険表現がない場合は risk_level を none、warnings を空配列、softened_text は元文をそのまま返してください。",
+    "人物や集団への批判そのものは消さず、危害予告だけを除去してください。"
+  ].join("\n");
+
+  let result = await env.AI.run(MODEL, {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: text }
+    ],
+    tools: [SAFETY_TOOL],
+    tool_choice: "required",
+    parallel_tool_calls: false,
+    max_completion_tokens: 900,
+    temperature: 0.05
+  });
+
+  let structured = extractToolArguments(result, "submit_safety_result");
+  if (!structured) structured = parseJson(extractText(result));
+
+  if (!structured || typeof structured !== "object") {
+    return {
+      risk_level: "medium",
+      warnings: ["危険表現の判定に失敗したため、安全側で処理しました。"],
+      softened_text: text
+    };
+  }
+
+  return {
+    risk_level: ["none", "low", "medium", "high"].includes(structured.risk_level)
+      ? structured.risk_level
+      : "medium",
+    warnings: Array.isArray(structured.warnings) ? structured.warnings : [],
+    softened_text:
+      typeof structured.softened_text === "string" && structured.softened_text.trim()
+        ? structured.softened_text
+        : text
+  };
+}
 
 async function runProofreading(env, text) {
   const system = [
@@ -384,10 +471,14 @@ function normalizeCorrections(items) {
   }).filter(Boolean);
 }
 
-function normalizeResult(data, correctedText, corrections) {
+function normalizeResult(data, correctedText, corrections, safetyLevel, safetyWarnings) {
   return {
     corrected_text: correctedText,
     corrections,
+    safety: {
+      level: safetyLevel || "none",
+      warnings: Array.isArray(safetyWarnings) ? safetyWarnings : []
+    },
     compliance: Array.isArray(data.compliance)
       ? data.compliance.slice(0, 20).map((item) => ({
           level: ["low", "medium", "high"].includes(item && item.level)
