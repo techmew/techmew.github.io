@@ -1,296 +1,352 @@
-const MODEL = "@cf/qwen/qwen3.8-27b";
+const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-const PREPROCESS_TOOL = {
-  type: "function",
-  function: {
-    name: "submit_preprocess_result",
-    description: "日本語校正と安全チェックを一度に返す。",
-    parameters: {
+const OUTPUT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    corrected_text: { type: "string" },
+    corrections: {
+      type: "array",
+      items: { type: "string" }
+    },
+    safety: {
       type: "object",
       additionalProperties: false,
       properties: {
-        corrected_text: { type: "string" },
-        corrections: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              before: { type: "string" },
-              after: { type: "string" },
-              reason: { type: "string" }
-            },
-            required: ["before", "after", "reason"]
-          }
-        },
-        risk_level: { type: "string", enum: ["none", "low", "medium", "high"] },
+        level: { type: "string", enum: ["none", "low", "medium", "high"] },
         warnings: { type: "array", items: { type: "string" } }
       },
-      required: ["corrected_text", "corrections", "risk_level", "warnings"]
-    }
-  }
-};
-
-const RESULT_TOOL = {
-  type: "function",
-  function: {
-    name: "submit_x_post_result",
-    description: "校正済み文章を元にコンプラ確認と3つのX投稿案を返す。",
-    parameters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        compliance: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              level: { type: "string", enum: ["low", "medium", "high"] },
-              message: { type: "string" }
-            },
-            required: ["level", "message"]
-          }
+      required: ["level", "warnings"]
+    },
+    compliance: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          level: { type: "string", enum: ["low", "medium", "high"] },
+          message: { type: "string" }
         },
-        variants: {
-          type: "array",
-          minItems: 3,
-          maxItems: 3,
-          items: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              title: { type: "string" },
-              text: { type: "string" },
-              hashtags: { type: "array", maxItems: 3, items: { type: "string" } },
-              reason: { type: "string" }
-            },
-            required: ["title", "text", "hashtags", "reason"]
-          }
-        }
-      },
-      required: ["compliance", "variants"]
+        required: ["level", "message"]
+      }
+    },
+    variants: {
+      type: "array",
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          text: { type: "string" },
+          hashtags: {
+            type: "array",
+            maxItems: 3,
+            items: { type: "string" }
+          },
+          reason: { type: "string" }
+        },
+        required: ["title", "text", "hashtags", "reason"]
+      }
     }
-  }
+  },
+  required: ["corrected_text", "corrections", "safety", "compliance", "variants"]
 };
 
 export default {
   async fetch(request, env) {
     const cors = corsHeaders(request);
 
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: cors });
+    }
 
     if (request.method === "GET") {
       return json({
         ok: true,
         service: "X Post Studio AI Worker",
         model: MODEL,
-        pipeline: "stable_two_call_v4"
+        pipeline: "single_json_mode_v5"
       }, 200, cors);
     }
 
-    if (request.method !== "POST") return json({ error: "POST only" }, 405, cors);
+    if (request.method !== "POST") {
+      return json({ error: "POST only" }, 405, cors);
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (_) {
+      return json({ error: "JSON request required" }, 400, cors);
+    }
+
+    if (body.action === "ping") {
+      return json({
+        ok: true,
+        service: "X Post Studio AI Worker",
+        model: MODEL,
+        pipeline: "single_json_mode_v5"
+      }, 200, cors);
+    }
+
+    if (body.action !== "compose") {
+      return json({ error: "Unknown action" }, 400, cors);
+    }
+
+    const originalText = String(body.text || "").trim();
+    const emojiLevel = ["high", "medium", "none"].includes(body.emojiLevel)
+      ? body.emojiLevel
+      : "medium";
+    const plan = body.plan === "long" ? "long" : "free";
+
+    if (!originalText) {
+      return json({ error: "本文が空です" }, 400, cors);
+    }
+
+    if (originalText.length > 25000) {
+      return json({ error: "本文が長すぎます" }, 400, cors);
+    }
+
+    const known = applyKnownTermCorrections(originalText);
+    const localSafety = localSafetyCheck(known.text);
+    const safeSource = localSafety.text;
+
+    const lengthRule = plan === "free"
+      ? "通常投稿として280文字以内を意識する。ただし短くするために情報を勝手に削らない。収まらない場合は原文維持を優先する。"
+      : "長文投稿として扱い、スレッド分割はしない。";
+
+    const emojiRule = emojiLevel === "none"
+      ? "絵文字は追加しない。"
+      : emojiLevel === "high"
+        ? "絵文字は内容に合うものをやや多めに使ってよいが、原文を壊さない。"
+        : "絵文字は必要な場合だけ少量使う。無理に追加しない。";
+
+    const system = [
+      "あなたは日本語のX投稿校正アシスタントです。",
+      "目的は文章を書き直すことではなく、原文をほぼそのまま残して誤字・誤変換・助詞・明らかな不自然さだけを直すことです。",
+      "原文の95%以上を残す意識で処理してください。",
+      "文の順番、情報量、主張、口調、語尾、温度感を変えないでください。",
+      "要約、再構成、丁寧化、別表現への置換、不要と判断した情報の削除をしないでください。",
+      "原文の改行位置・空行・段落順を維持してください。",
+      "原文に『↓』『続く』『→』『※』などがあれば削除しないでください。",
+      "IMEや音声入力の誤変換は厳しく確認してください。",
+      "助詞の『の』が不自然に『ノ』、助詞の『で』が不自然に『出』になっている場合など、文法上明らかな誤変換は直してください。",
+      "地名・店名・支店名・施設名は固有名詞候補として注意深く確認してください。ただし確信できない名称を捏造しないでください。",
+      "元文にない年、日付、数字、体験、事実、時代背景、評判、トレンドを追加しないでください。",
+      "安全上問題のある直接的な危害表現は警告し、怒りや批判の意味を残しながら危害表現だけを弱めてください。",
+      "単なる悪態や強い批判は、それだけで文章全体を無難化しないでください。",
+      "correctionsには実際に直した箇所だけを短く入れてください。",
+      "投稿案は必ず3件返してください。",
+      "案1は『原文重視』。corrected_textをほぼそのまま使ってください。",
+      "案2は『自然』。語順と情報量を変えず、読みにくい箇所だけ最小限整えてください。",
+      "案3は『少し引き締め』。原文を要約せず、表現を少しだけ締める程度にしてください。",
+      "3案とも原文の改行構造を維持してください。",
+      "ハッシュタグは0〜3個。付けない方が自然なら0個で構いません。",
+      "『嫌い』『最悪』『時代錯誤』のような感情だけの雑なタグは避けてください。",
+      lengthRule,
+      emojiRule
+    ].join("\n");
 
     try {
-      const body = await request.json();
+      const result = await env.AI.run(MODEL, {
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: safeSource }
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: OUTPUT_SCHEMA
+        },
+        max_completion_tokens: plan === "free" ? 1600 : 4200,
+        temperature: 0.05
+      });
 
-      if (body.action === "ping") {
-        return json({ ok: true, service: "X Post Studio AI Worker", pipeline: "stable_two_call_v4" }, 200, cors);
-      }
+      const parsed = extractStructured(result);
 
-      if (body.action !== "compose") return json({ error: "Unknown action" }, 400, cors);
-
-      const originalText = String(body.text || "").trim();
-      const emojiLevel = ["high", "medium", "none"].includes(body.emojiLevel) ? body.emojiLevel : "medium";
-      const plan = body.plan === "long" ? "long" : "free";
-
-      if (!originalText) return json({ error: "本文が空です" }, 400, cors);
-      if (originalText.length > 25000) return json({ error: "本文が長すぎます" }, 400, cors);
-
-      // 明示的な危害・死亡願望だけはAIへ渡す前に最低限緩和する。
-      // 「馬鹿」「老害」等の侮辱は警告のみで、勝手に無難化しない。
-      const correctedKnownTerms = applyKnownTermCorrections(originalText);
-      const localSafety = localSafetyCheck(correctedKnownTerms.text);
-
-      const preprocess = await runPreprocess(env, localSafety.text);
-
-      const correctedText = preprocess && preprocess.corrected_text
-        ? String(preprocess.corrected_text).trim()
-        : localSafety.text;
-
-      const corrections = uniqueStrings([
-        ...correctedKnownTerms.corrections,
-        ...normalizeCorrections(preprocess && preprocess.corrections)
-      ]);
-      const aiRisk = preprocess && ["none", "low", "medium", "high"].includes(preprocess.risk_level)
-        ? preprocess.risk_level
-        : "none";
-      const riskLevel = higherRisk(localSafety.level, aiRisk);
-      const warnings = uniqueStrings([
-        ...localSafety.warnings,
-        ...(preprocess && Array.isArray(preprocess.warnings) ? preprocess.warnings : [])
-      ]);
-
-      const lengthRule = plan === "free"
-        ? "3案ともX通常投稿の280文字以内を強く意識する。URL等の文字数計算差を考え、可能なら本文とハッシュタグ合計を260文字程度までに収める。"
-        : "長文投稿として内容を削りすぎず整理する。スレッド分割はしない。";
-
-      const emojiRule = emojiLevel === "none"
-        ? "絵文字は追加しない。"
-        : emojiLevel === "high"
-          ? "内容に合う絵文字を多めに使う。ただし連打して読みにくくしない。"
-          : "絵文字は自然な範囲で少量から中程度使う。";
-
-      const system = [
-        "あなたは日本語のX投稿専門編集者です。",
-        "入力は安全確認と日本語校正を終えた文章です。校正済み表記や安全化された表現を元へ戻さないでください。",
-        "必ず submit_x_post_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
-        "原文維持を最優先にする。元文章の口調・語尾・温度感・文の順番・情報量をできるだけそのまま残し、別人格へ変えない。",
-        "原文の90%以上を残す意識で編集し、必要のない言い換え・要約・並べ替え・情報削除をしない。",
-        "誤字脱字・助詞・明らかな不自然さ以外は、元の言い回しをそのまま使う。",
-        "元文の改行位置と段落構造を原則そのまま維持する。",
-        "原文に改行がある場合、全文を1段落へ結合してはいけない。",
-        "原文に空行が1つある箇所は、その段落区切りを維持する。",
-        "読みやすさ目的だけで勝手に改行・空行を追加、削除、移動しない。",
-        "原文に『↓』『続く』『→』『※』などの継続・注記記号がある場合、意味上不要と判断して勝手に削除しない。",
-        "元文にない事実、体験、数字、年、日付、時代背景、人気、評判、トレンドを絶対に捏造しない。",
-        "入力文に具体的な暦年が書かれていない場合、現在年・過去年・未来年を推測して追加してはいけない。",
-        "『今はある年なのに』のような、入力にない時代背景を勝手に補足しない。",
-        "投稿案は必ず3件。",
-        "案1は原文重視。誤字脱字・助詞・最低限の句読点だけ直す。",
-        "案2も原文重視。意味・順番・情報量は変えず、読みづらい箇所だけ最小限整える。",
-        "案3も原文重視。勝手な要約はせず、表現を少しだけ引き締める程度にする。",
-        "ハッシュタグは付けない方が自然なら0個でよい。",
-        "ハッシュタグは内容を具体的に表すものだけ0〜3個にする。",
-        "『#嫌い』『#最悪』『#時代錯誤』のような感情・評価だけの雑な汎用タグは、検索上の明確な意味がない限り付けない。",
-        "リアルタイムトレンドを取得したふりは禁止。",
-        "コンプラでは誹謗中傷、差別、個人情報、違法・危険行為、医療・金融の強い断定、著作権侵害を助長する表現、根拠のない断定を注意候補にする。問題がなければ空配列。",
-        lengthRule,
-        emojiRule
-      ].join("\n");
-
-      let structured = null;
-      let lastTemporalFacts = [];
-      let lastLayoutProblems = [];
-
-      for (let attempt = 0; attempt < 2; attempt++) {
-        let retryNote = "";
-
-        if (lastTemporalFacts.length) {
-          retryNote += "\n前回の出力には入力文に存在しない年・日付が含まれていました: " +
-            lastTemporalFacts.join(", ") +
-            "。これらを追加せず、元文にある情報だけで作り直してください。";
-        }
-
-        if (lastLayoutProblems.length) {
-          retryNote += "\n前回の出力では原文の改行・段落・継続記号が崩れました: " +
-            lastLayoutProblems.join(" / ") +
-            "。内容を1段落へまとめず、原文の構造を維持してください。";
-        }
-
-        if (!retryNote && attempt > 0) {
-          retryNote = "\n前回の構造化出力が不完全でした。必須項目をすべて埋めてください。";
-        }
-
-        structured = await runCompose(
-          env,
-          system + retryNote,
-          correctedText,
-          plan,
-          attempt === 0 ? 0.15 : 0.05
+      if (!isValidResult(parsed)) {
+        return json(
+          makeFallbackResult(
+            safeSource,
+            known.corrections,
+            localSafety,
+            "AIの構造化出力が不完全だったため、原文ベースで返しました。"
+          ),
+          200,
+          cors
         );
-
-        if (!isValidResult(structured)) continue;
-
-        lastTemporalFacts = findUnsupportedTemporalFacts(correctedText, structured);
-        lastLayoutProblems = findLayoutProblems(correctedText, structured);
-
-        if (!lastTemporalFacts.length && !lastLayoutProblems.length) break;
-        structured = null;
       }
 
-      if (!isValidResult(structured)) {
-        if (lastTemporalFacts.length || lastLayoutProblems.length) {
-          structured = makeSafeFallbackResult(correctedText, lastTemporalFacts, lastLayoutProblems);
-        } else {
-          return json({
-            error: "AI出力が安定しませんでした。もう一度実行してください。",
-            error_code: "STRUCTURED_OUTPUT_FAILED"
-          }, 502, cors);
-        }
-      }
-
-      return json(normalizeResult(structured, correctedText, corrections, riskLevel, warnings), 200, cors);
+      return json(
+        finalizeResult(parsed, safeSource, originalText, known.corrections, localSafety),
+        200,
+        cors
+      );
     } catch (error) {
-      const message = error && error.message ? error.message : "Worker error";
-      return json({ error: "AI処理で一時的なエラーが発生しました。もう一度実行してください。", detail: message }, 500, cors);
+      return json(
+        makeFallbackResult(
+          safeSource,
+          known.corrections,
+          localSafety,
+          "AIが一時的に応答できなかったため、原文ベースで返しました。"
+        ),
+        200,
+        cors
+      );
     }
   }
 };
 
-async function runPreprocess(env, text) {
-  const system = [
-    "あなたはX投稿の日本語校正と安全チェック担当です。",
-    "必ず submit_preprocess_result ツールを1回呼び出してください。通常の文章回答は禁止です。",
-    "主張・感情・口調・語尾は変えず、誤字脱字、IME誤変換、助詞誤りだけを厳密に修正してください。",
-    "文法上の助詞『の』がカタカナの『ノ』なら『の』へ直す。",
-    "文法上の助詞『で』が漢字の『出』なら『で』へ直す。",
-    "同様に『は/わ』『に/二』『へ/え』『を/お』等のIME・音声入力由来の明らかな誤変換も確認する。",
-    "固有名詞・番組名・商品名の正式表記だと明確な場合は勝手に変えない。",
-    "一方で、地名・店名・支店名・施設名の一部がIMEや音声入力で一般語へ誤変換されている可能性は厳しく確認する。",
-    "特に『○○店』『○○駅』『○○市』『○○町』『○○病院』『○○学校』の直前語は固有名詞候補として扱い、文脈上不自然な一般語なら同音・近音の地名や名称への誤変換を疑う。",
-    "例: 『トライアル可能店』は、文脈上の店舗名として不自然なら『トライアル加納店』のような支店名誤変換を疑う。",
-    "ただし確信できない固有名詞を新しく捏造してはいけない。候補が曖昧なら原文を維持する。",
-    "表現の言い換え、丁寧化、要約、文順変更、読みやすい再構成は原則しない。",
-    "原文を完全に別の文章へ作り直してはいけない。",
-    "不要な単語削除や情報の省略をしない。",
-    "改行位置と段落構造は原文を原則そのまま維持する。",
-    "原文に改行がある場合、全文を1段落へ結合しない。",
-    "原文に空行が1つある箇所は、その段落区切りを維持する。",
-    "読みやすさ目的で勝手に改行・空行を追加、削除、移動しない。",
-    "原文の『↓』『続く』『→』『※』などの継続・注記記号を勝手に削除しない。",
-    "脅迫、殺害・暴行の示唆、他者への死亡願望はhighとして警告する。",
-    "『馬鹿』『カス』『老害』『頭おかしい』等の強い侮辱はlowまたはmediumで警告してよいが、それだけを理由に文章を無難化しない。",
-    "correctionsには実際に変更した箇所だけをbefore/after/reasonで記録する。"
-  ].join("\n");
+function extractStructured(result) {
+  if (!result) return null;
 
+  if (result.response && typeof result.response === "object") {
+    return result.response;
+  }
+
+  if (typeof result.response === "string") {
+    return parseJson(result.response);
+  }
+
+  const choice = Array.isArray(result.choices) ? result.choices[0] : null;
+  const message = choice && choice.message ? choice.message : null;
+
+  if (message && message.parsed && typeof message.parsed === "object") {
+    return message.parsed;
+  }
+
+  if (message && typeof message.content === "string") {
+    return parseJson(message.content);
+  }
+
+  if (typeof result === "string") {
+    return parseJson(result);
+  }
+
+  return null;
+}
+
+function parseJson(value) {
   try {
-    const result = await env.AI.run(MODEL, {
-      messages: [{ role: "system", content: system }, { role: "user", content: text }],
-      tools: [PREPROCESS_TOOL],
-      tool_choice: "required",
-      parallel_tool_calls: false,
-      max_completion_tokens: 1200,
-      temperature: 0.02,
-      reasoning_effort: "low"
-    });
-
-    let structured = extractToolArguments(result, "submit_preprocess_result");
-    if (!structured) structured = parseJson(extractText(result));
-    return isValidPreprocess(structured) ? structured : null;
+    return JSON.parse(String(value || "").trim());
   } catch (_) {
     return null;
   }
 }
 
-async function runCompose(env, system, correctedText, plan, temperature) {
-  try {
-    const result = await env.AI.run(MODEL, {
-      messages: [{ role: "system", content: system }, { role: "user", content: correctedText }],
-      tools: [RESULT_TOOL],
-      tool_choice: "required",
-      parallel_tool_calls: false,
-      max_completion_tokens: plan === "free" ? 1500 : 4500,
-      temperature,
-      reasoning_effort: "low"
-    });
+function isValidResult(data) {
+  return !!(
+    data &&
+    typeof data === "object" &&
+    typeof data.corrected_text === "string" &&
+    Array.isArray(data.corrections) &&
+    data.safety &&
+    Array.isArray(data.safety.warnings) &&
+    Array.isArray(data.compliance) &&
+    Array.isArray(data.variants) &&
+    data.variants.length >= 3
+  );
+}
 
-    let structured = extractToolArguments(result, "submit_x_post_result");
-    if (!structured) structured = parseJson(extractText(result));
-    return structured;
-  } catch (_) {
-    return null;
+function finalizeResult(data, safeSource, originalText, knownCorrections, localSafety) {
+  let correctedText = normalizeOutputText(String(data.corrected_text || ""));
+
+  if (
+    !correctedText ||
+    hasUnsupportedTemporalFact(originalText, correctedText) ||
+    layoutBroken(safeSource, correctedText)
+  ) {
+    correctedText = safeSource;
   }
+
+  const corrections = uniqueStrings([
+    ...knownCorrections,
+    ...(Array.isArray(data.corrections) ? data.corrections.map(String) : [])
+  ]);
+
+  const safetyWarnings = uniqueStrings([
+    ...localSafety.warnings,
+    ...(data.safety && Array.isArray(data.safety.warnings)
+      ? data.safety.warnings.map(String)
+      : [])
+  ]);
+
+  const safetyLevel = higherRisk(
+    localSafety.level,
+    data.safety && ["none", "low", "medium", "high"].includes(data.safety.level)
+      ? data.safety.level
+      : "none"
+  );
+
+  const variants = data.variants.slice(0, 3).map((item, index) => {
+    let text = normalizeOutputText(String(item && item.text ? item.text : ""));
+
+    if (
+      !text ||
+      hasUnsupportedTemporalFact(originalText, text) ||
+      layoutBroken(safeSource, text)
+    ) {
+      text = correctedText;
+    }
+
+    return {
+      title: String(
+        item && item.title
+          ? item.title
+          : ["原文重視", "自然", "少し引き締め"][index] || ("案" + (index + 1))
+      ),
+      text,
+      hashtags: Array.isArray(item && item.hashtags)
+        ? item.hashtags.slice(0, 3).map(String)
+        : [],
+      reason: String(item && item.reason ? item.reason : "")
+    };
+  });
+
+  while (variants.length < 3) {
+    variants.push({
+      title: "原文重視",
+      text: correctedText,
+      hashtags: [],
+      reason: "原文を優先しました。"
+    });
+  }
+
+  return {
+    corrected_text: correctedText,
+    corrections,
+    safety: {
+      level: safetyLevel,
+      warnings: safetyWarnings
+    },
+    compliance: Array.isArray(data.compliance)
+      ? data.compliance.slice(0, 20).map((item) => ({
+          level: ["low", "medium", "high"].includes(item && item.level)
+            ? item.level
+            : "medium",
+          message: String(item && item.message ? item.message : "")
+        }))
+      : [],
+    variants
+  };
+}
+
+function makeFallbackResult(source, knownCorrections, localSafety, reason) {
+  return {
+    corrected_text: source,
+    corrections: knownCorrections,
+    safety: {
+      level: localSafety.level,
+      warnings: uniqueStrings([...localSafety.warnings, reason])
+    },
+    compliance: [],
+    variants: [
+      { title: "原文重視", text: source, hashtags: [], reason },
+      { title: "原文重視", text: source, hashtags: [], reason },
+      { title: "原文重視", text: source, hashtags: [], reason }
+    ]
+  };
 }
 
 function applyKnownTermCorrections(input) {
@@ -329,7 +385,7 @@ function localSafetyCheck(input) {
     level = "high";
   };
 
-  replace(/ぶっ?殺してやろうか|殺してやろうか|ぶっ?殺したい|殺したい/g, "本当に腹が立つ", "直接的な殺害・危害表現をマイルドな表現へ変更しました。");
+  replace(/ぶっ?殺してやろうか|殺してやろうか|ぶっ?殺したい|殺したい/g, "本当に腹が立つ", "直接的な危害表現をマイルドな表現へ変更しました。");
   replace(/死ねばいい|死んでほしい|死ね(?!ば)/g, "もう勘弁してほしい", "他者への死亡願望表現をマイルドな表現へ変更しました。");
 
   if (/(?:馬鹿|バカ|アホ|カス|老害|頭おかし)/.test(text) && level !== "high") {
@@ -340,13 +396,53 @@ function localSafetyCheck(input) {
   return { text, level, warnings };
 }
 
+function layoutBroken(source, output) {
+  const s = String(source || "").replace(/\r\n/g, "\n");
+  const o = String(output || "").replace(/\r\n/g, "\n");
+
+  if (s.includes("\n") && !o.includes("\n")) return true;
+  if (s.includes("\n\n") && !o.includes("\n\n")) return true;
+
+  for (const marker of ["↓", "続く", "→", "※"]) {
+    if (s.includes(marker) && !o.includes(marker)) return true;
+  }
+
+  return false;
+}
+
+function hasUnsupportedTemporalFact(source, output) {
+  const sourceTokens = new Set(extractTemporalTokens(source));
+  for (const token of extractTemporalTokens(output)) {
+    if (!sourceTokens.has(token)) return true;
+  }
+  return false;
+}
+
+function extractTemporalTokens(value) {
+  const text = String(value || "").normalize("NFKC");
+  const matches = text.match(
+    /(?:19|20)\d{2}年|(?:19|20)\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])|(?:0?[1-9]|1[0-2])月(?:0?[1-9]|[12]\d|3[01])日/g
+  );
+  return matches || [];
+}
+
+function normalizeOutputText(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function higherRisk(a, b) {
   const rank = { none: 0, low: 1, medium: 2, high: 3 };
   return (rank[b] || 0) > (rank[a] || 0) ? b : a;
 }
 
 function uniqueStrings(items) {
-  return Array.from(new Set((items || []).map((x) => String(x || "").trim()).filter(Boolean)));
+  return Array.from(
+    new Set((items || []).map((x) => String(x || "").trim()).filter(Boolean))
+  );
 }
 
 function corsHeaders(request) {
@@ -358,179 +454,6 @@ function corsHeaders(request) {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store"
-  };
-}
-
-function extractToolArguments(result, targetName) {
-  if (!result || typeof result !== "object") return null;
-  const candidates = [];
-  if (Array.isArray(result.tool_calls)) candidates.push(...result.tool_calls);
-  const choice = Array.isArray(result.choices) ? result.choices[0] : null;
-  const message = choice && choice.message ? choice.message : null;
-  if (message && Array.isArray(message.tool_calls)) candidates.push(...message.tool_calls);
-
-  for (const call of candidates) {
-    const name = call && (call.name || (call.function && call.function.name));
-    if (name !== targetName) continue;
-    let args = call.arguments;
-    if (args == null && call.function) args = call.function.arguments;
-    if (args && typeof args === "object") return args;
-    if (typeof args === "string") {
-      try { return JSON.parse(args); } catch (_) {
-        const parsed = parseJson(args);
-        if (parsed) return parsed;
-      }
-    }
-  }
-  return null;
-}
-
-function extractText(result) {
-  if (typeof result === "string") return result;
-  if (!result || typeof result !== "object") return "";
-  if (typeof result.response === "string") return result.response;
-  if (typeof result.result === "string") return result.result;
-  const choice = Array.isArray(result.choices) ? result.choices[0] : null;
-  if (choice) {
-    if (choice.message && typeof choice.message.content === "string") return choice.message.content;
-    if (typeof choice.text === "string") return choice.text;
-  }
-  return "";
-}
-
-function parseJson(raw) {
-  if (raw && typeof raw === "object") return raw;
-  let value = String(raw || "").trim()
-    .replace(/^\`\`\`json\s*/i, "")
-    .replace(/^\`\`\`\s*/i, "")
-    .replace(/\`\`\`\s*$/i, "")
-    .trim();
-
-  try { return JSON.parse(value); } catch (_) {}
-  const start = value.indexOf("{");
-  const end = value.lastIndexOf("}");
-  if (start >= 0 && end > start) {
-    try { return JSON.parse(value.slice(start, end + 1)); } catch (_) {}
-  }
-  return null;
-}
-
-function isValidPreprocess(data) {
-  return !!(data && typeof data === "object" && typeof data.corrected_text === "string" && Array.isArray(data.corrections) && Array.isArray(data.warnings));
-}
-
-function isValidResult(data) {
-  return !!(data && typeof data === "object" && Array.isArray(data.compliance) && Array.isArray(data.variants) && data.variants.length >= 3);
-}
-
-function findLayoutProblems(sourceText, data) {
-  const source = String(sourceText || "").replace(/\r\n/g, "\n");
-  const needsLineBreak = source.includes("\n");
-  const needsParagraphBreak = source.includes("\n\n");
-  const requiredMarkers = ["↓", "続く", "→", "※"].filter((m) => source.includes(m));
-  const problems = [];
-
-  if (!data || !Array.isArray(data.variants)) return ["出力案がありません"];
-
-  data.variants.forEach((item, index) => {
-    const text = String(item && item.text ? item.text : "").replace(/\r\n/g, "\n");
-    if (needsLineBreak && !text.includes("\n")) {
-      problems.push("案" + (index + 1) + "で原文の改行が消えています");
-    }
-    if (needsParagraphBreak && !text.includes("\n\n")) {
-      problems.push("案" + (index + 1) + "で原文の段落区切りが消えています");
-    }
-    for (const marker of requiredMarkers) {
-      if (!text.includes(marker)) problems.push("案" + (index + 1) + "で「" + marker + "」が消えています");
-    }
-  });
-
-  return problems;
-}
-
-function findUnsupportedTemporalFacts(sourceText, data) {
-  const sourceTokens = new Set(extractTemporalTokens(String(sourceText || "").normalize("NFKC")));
-  const found = new Set();
-  const texts = [];
-
-  if (data && Array.isArray(data.variants)) {
-    for (const item of data.variants) {
-      texts.push(String(item && item.text ? item.text : ""));
-      if (Array.isArray(item && item.hashtags)) texts.push(item.hashtags.map(String).join(" "));
-    }
-  }
-
-  for (const output of texts) {
-    for (const token of extractTemporalTokens(output)) {
-      if (!sourceTokens.has(token)) found.add(token);
-    }
-  }
-  return Array.from(found);
-}
-
-function extractTemporalTokens(value) {
-  const text = String(value || "").normalize("NFKC");
-  const matches = text.match(/(?:19|20)\d{2}年|(?:19|20)\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])|(?:0?[1-9]|1[0-2])月(?:0?[1-9]|[12]\d|3[01])日/g);
-  return matches ? matches : [];
-}
-
-function normalizeOutputText(value) {
-  return String(value || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function normalizeCorrections(items) {
-  if (!Array.isArray(items)) return [];
-  return items.slice(0, 30).map((item) => {
-    const before = String(item && item.before ? item.before : "");
-    const after = String(item && item.after ? item.after : "");
-    const reason = String(item && item.reason ? item.reason : "");
-    return before && after ? before + " → " + after + (reason ? "（" + reason + "）" : "") : reason;
-  }).filter(Boolean);
-}
-
-function makeSafeFallbackResult(correctedText, temporalFacts, layoutProblems) {
-  const reasons = [];
-  if (temporalFacts && temporalFacts.length) {
-    reasons.push("入力にない年・日付が追加されたため、元文ベースへ戻しました");
-  }
-  if (layoutProblems && layoutProblems.length) {
-    reasons.push("改行・段落構造が崩れたため、元文ベースへ戻しました");
-  }
-  const reason = reasons.join(" / ") || "元文を優先しました";
-
-  return {
-    compliance: [],
-    variants: [
-      { title: "原文重視", text: correctedText, hashtags: [], reason },
-      { title: "原文重視", text: correctedText, hashtags: [], reason },
-      { title: "原文重視", text: correctedText, hashtags: [], reason }
-    ]
-  };
-}
-
-function normalizeResult(data, correctedText, corrections, safetyLevel, safetyWarnings) {
-  return {
-    corrected_text: correctedText,
-    corrections,
-    safety: { level: safetyLevel || "none", warnings: Array.isArray(safetyWarnings) ? safetyWarnings : [] },
-    compliance: Array.isArray(data.compliance)
-      ? data.compliance.slice(0, 20).map((item) => ({
-          level: ["low", "medium", "high"].includes(item && item.level) ? item.level : "medium",
-          message: String(item && item.message ? item.message : "")
-        }))
-      : [],
-    variants: Array.isArray(data.variants)
-      ? data.variants.slice(0, 3).map((item, index) => ({
-          title: String(item && item.title ? item.title : ["自然", "反応重視", "短く強め"][index] || ("案" + (index + 1))),
-          text: normalizeOutputText(String(item && item.text ? item.text : "")),
-          hashtags: Array.isArray(item && item.hashtags) ? item.hashtags.slice(0, 3).map(String) : [],
-          reason: String(item && item.reason ? item.reason : "")
-        }))
-      : []
   };
 }
 
