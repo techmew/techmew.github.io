@@ -1,4 +1,4 @@
-const MODEL = "@cf/google/gemma-4-26b-a4b-it";
+const MODEL = "@cf/qwen/qwen3.8-27b";
 
 const PREPROCESS_TOOL = {
   type: "function",
@@ -27,8 +27,7 @@ const PREPROCESS_TOOL = {
         warnings: { type: "array", items: { type: "string" } }
       },
       required: ["corrected_text", "corrections", "risk_level", "warnings"]
-    },
-    strict: true
+    }
   }
 };
 
@@ -71,8 +70,7 @@ const RESULT_TOOL = {
         }
       },
       required: ["compliance", "variants"]
-    },
-    strict: true
+    }
   }
 };
 
@@ -263,7 +261,8 @@ async function runPreprocess(env, text) {
       tool_choice: "required",
       parallel_tool_calls: false,
       max_completion_tokens: 1200,
-      temperature: 0.02
+      temperature: 0.02,
+      reasoning_effort: "low"
     });
 
     let structured = extractToolArguments(result, "submit_preprocess_result");
@@ -282,7 +281,8 @@ async function runCompose(env, system, correctedText, plan, temperature) {
       tool_choice: "required",
       parallel_tool_calls: false,
       max_completion_tokens: plan === "free" ? 1500 : 4500,
-      temperature
+      temperature,
+      reasoning_effort: "low"
     });
 
     let structured = extractToolArguments(result, "submit_x_post_result");
