@@ -69,7 +69,7 @@ export default {
         service: "X Post Studio AI Worker",
         proofread_model: PROOFREAD_MODEL,
         compose_model: COMPOSE_MODEL,
-        pipeline: "proofread_default_v6"
+        pipeline: "proofread_default_v7"
       }, 200, cors);
     }
 
@@ -90,7 +90,7 @@ export default {
         service: "X Post Studio AI Worker",
         proofread_model: PROOFREAD_MODEL,
         compose_model: COMPOSE_MODEL,
-        pipeline: "proofread_default_v6"
+        pipeline: "proofread_default_v7"
       }, 200, cors);
     }
 
@@ -310,6 +310,7 @@ function isAcceptableProofread(source, output, originalText) {
   if (!output) return false;
   if (layoutBroken(source, output)) return false;
   if (hasUnsupportedTemporalFact(originalText, output)) return false;
+  if (protectedCorrectionMissing(source, output)) return false;
 
   const s = String(source || "");
   const o = String(output || "");
@@ -515,6 +516,26 @@ function applyKnownTermCorrections(input) {
       pattern: /トライアル可能店/g,
       replacement: "トライアル加納店",
       note: "トライアル可能店 → トライアル加納店（支店名の誤変換）"
+    },
+    {
+      pattern: /誤字[だダ]つじ/g,
+      replacement: "誤字脱字",
+      note: "誤字だつじ → 誤字脱字"
+    },
+    {
+      pattern: /めんどい(?:てき|とき)に/g,
+      replacement: "めんどい時に",
+      note: "めんどいてきに → めんどい時に"
+    },
+    {
+      pattern: /さいと(?=(?:の|を|で|に|へ|が|は))/g,
+      replacement: "サイト",
+      note: "さいと → サイト（Webサイトの文脈）"
+    },
+    {
+      pattern: /漢字変換(?=めんど)/g,
+      replacement: "漢字変換が",
+      note: "漢字変換めんどい → 漢字変換がめんどい"
     }
   ];
 
@@ -551,6 +572,13 @@ function localSafetyCheck(input) {
   }
 
   return { text, level, warnings };
+}
+
+function protectedCorrectionMissing(source, output) {
+  const s = String(source || "");
+  const o = String(output || "");
+  const phrases = ["誤字脱字", "めんどい時に", "サイト"];
+  return phrases.some((phrase) => s.includes(phrase) && !o.includes(phrase));
 }
 
 function layoutBroken(source, output) {
