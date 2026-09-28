@@ -170,37 +170,58 @@ export default {
       ].join("\n");
 
       let structured = null;
-      let lastUnsupported = [];
+      let lastTemporalFacts = [];
+      let lastLayoutProblems = [];
 
       for (let attempt = 0; attempt < 2; attempt++) {
-        const retryNote = lastUnsupported.length
-          ? "\n前回の出力には入力文に存在しない年・日付が含まれていました: " +
-            lastUnsupported.join(", ") +
-            "。これらを追加せず、元文にある情報だけで作り直してください。"
-          : attempt > 0
-            ? "\n前回の構造化出力が不完全でした。必須項目をすべて埋めてください。"
-            : "";
+        let retryNote = "";
 
-        structured = await runCompose(env, system + retryNote, correctedText, plan, attempt === 0 ? 0.15 : 0.05);
+        if (lastTemporalFacts.length) {
+          retryNote += "\n前回の出力には入力文に存在しない年・日付が含まれていました: " +
+            lastTemporalFacts.join(", ") +
+            "。これらを追加せず、元文にある情報だけで作り直してください。";
+        }
+
+        if (lastLayoutProblems.length) {
+          retryNote += "\n前回の出力では原文の改行・段落・継続記号が崩れました: " +
+            lastLayoutProblems.join(" / ") +
+            "。内容を1段落へまとめず、原文の構造を維持してください。";
+        }
+
+        if (!retryNote && attempt > 0) {
+          retryNote = "\n前回の構造化出力が不完全でした。必須項目をすべて埋めてください。";
+        }
+
+        structured = await runCompose(
+          env,
+          system + retryNote,
+          correctedText,
+          plan,
+          attempt === 0 ? 0.15 : 0.05
+        );
+
         if (!isValidResult(structured)) continue;
 
-        lastUnsupported = findUnsupportedTemporalFacts(correctedText, structured);
-        const layoutProblems = findLayoutProblems(correctedText, structured);
-        if (!lastUnsupported.length && !layoutProblems.length) break;
+        lastTemporalFacts = findUnsupportedTemporalFacts(correctedText, structured);
+        lastLayoutProblems = findLayoutProblems(correctedText, structured);
 
-        if (layoutProblems.length) {
-          lastUnsupported.push(...layoutProblems.map((x) => "LAYOUT:" + x));
-        }
+        if (!lastTemporalFacts.length && !lastLayoutProblems.length) break;
         structured = null;
       }
 
       if (!isValidResult(structured)) {
-        return json({
-          error: lastUnsupported.length
-            ? "AIが入力文にない年・日付を追加したため、出力を破棄しました。もう一度実行してください。"
-            : "AI出力が安定しませんでした。もう一度実行してください。",
-          error_code: lastUnsupported.length ? "UNSUPPORTED_TEMPORAL_FACT" : "STRUCTURED_OUTPUT_FAILED"
-        }, 502, cors);
+        let error = "AI出力が安定しませんでした。もう一度実行してください。";
+        let errorCode = "STRUCTURED_OUTPUT_FAILED";
+
+        if (lastTemporalFacts.length) {
+          error = "AIが入力文にない年・日付を追加したため、出力を破棄しました。もう一度実行してください。";
+          errorCode = "UNSUPPORTED_TEMPORAL_FACT";
+        } else if (lastLayoutProblems.length) {
+          error = "AIが原文の改行・段落構造を崩したため、出力を破棄しました。もう一度実行してください。";
+          errorCode = "LAYOUT_MISMATCH";
+        }
+
+        return json({ error, error_code: errorCode }, 502, cors);
       }
 
       return json(normalizeResult(structured, correctedText, corrections, riskLevel, warnings), 200, cors);
