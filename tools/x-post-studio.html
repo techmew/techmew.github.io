@@ -50,9 +50,10 @@
   <p>共通のAIキーを全員で使う仕組みにはしていません。各利用者が自分のCloudflareアカウントでWorkerを作成し、そのWorker URLを自分のX Post Studioへ登録します。AIの無料枠も利用者ごとに分かれます。</p>
 
   <h2 id="setup">Cloudflare Workers AIの無料セットアップ</h2>
+  <p><a class="btn pop-purple" href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener">Cloudflare無料アカウントを作る</a> <a class="btn secondary" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Dashboardを開く</a></p>
   <ol>
-    <li>Cloudflareの無料アカウントを作成します。</li>
-    <li>Cloudflare Dashboardで新しいWorkerを作成します。</li>
+    <li><a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener"><strong>Cloudflareの無料アカウントを作成</strong></a>します。</li>
+    <li><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener"><strong>Cloudflare Dashboard</strong></a>を開き、Workers &amp; Pages から新しいWorkerを作成します。</li>
     <li>WorkerのBindingsにWorkers AIを追加し、Binding名を <code>AI</code> にします。</li>
     <li><a href="/apps/x-post-studio/worker-template.js">Workerテンプレート</a>を開き、コードをWorkerへ貼り付けます。</li>
     <li>Workerをデプロイし、発行された <code>https://xxxxx.workers.dev</code> をコピーします。</li>
@@ -63,7 +64,7 @@
     <strong>無料枠について</strong>
     <p>Cloudflare Workers AIのFreeプランには1日10,000 Neuronsの無料割当があります。無料枠を使い切った場合は、その日の追加AI処理が失敗する設計で、無料プランのまま勝手に従量課金へ移行する前提にはしていません。Cloudflare側の料金・対象モデルは将来変更される可能性があります。</p>
   </div>
-  <p><a href="https://developers.cloudflare.com/workers-ai/platform/pricing/" target="_blank" rel="noopener">Cloudflare Workers AI料金</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI binding公式手順</a></p>
+  <p><a href="https://developers.cloudflare.com/workers-ai/get-started/dashboard/" target="_blank" rel="noopener">Cloudflare公式：DashboardでWorkers AIを始める</a> / <a href="https://developers.cloudflare.com/workers-ai/configuration/bindings/" target="_blank" rel="noopener">Workers AI binding公式手順</a> / <a href="https://developers.cloudflare.com/workers-ai/platform/pricing/" target="_blank" rel="noopener">Workers AI料金・無料枠</a></p>
 
   <h2>自分のGitHubで使いたい場合</h2>
   <p>この公開ページを共用する必要はありません。自分のGitHub PagesへHTMLをコピーし、自分のCloudflare Worker URLを登録して使う構成にできます。Worker URLはブラウザのlocalStorageへ保存するため、GitHubのソースへAIキーを書き込む必要はありません。</p>
