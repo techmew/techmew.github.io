@@ -265,10 +265,13 @@ async function runSafetyCheck(env, text) {
   if (!structured) structured = parseJson(extractText(result));
 
   if (!structured || typeof structured !== "object") {
+    const fallback = softenDangerousText(text);
     return {
-      risk_level: "medium",
-      warnings: ["危険表現の判定に失敗したため、安全側で処理しました。"],
-      softened_text: text
+      risk_level: fallback.changed ? "high" : "medium",
+      warnings: fallback.changed
+        ? ["危険表現の判定に失敗したため、明示的な危害・死亡願望表現を安全側で緩和しました。"]
+        : ["危険表現の判定に失敗したため、安全側で処理しました。"],
+      softened_text: fallback.text
     };
   }
 
@@ -353,6 +356,20 @@ async function runCompose(env, system, correctedText, plan, temperature) {
   let structured = extractToolArguments(result, "submit_x_post_result");
   if (!structured) structured = parseJson(extractText(result));
   return structured;
+}
+
+function softenDangerousText(input) {
+  let value = String(input || "");
+  const original = value;
+
+  value = value
+    .replace(/ぶっ?殺(?:す|して|してやる|してやろうか|したい|せ)/g, "本当に腹が立つ")
+    .replace(/殺してやろうか/g, "本当に腹が立つ")
+    .replace(/死ねばいい/g, "本当に勘弁してほしい")
+    .replace(/死んでほしい/g, "本当に勘弁してほしい")
+    .replace(/死ね(?![ば])/g, "もう勘弁してほしい");
+
+  return { text: value, changed: value !== original };
 }
 
 function corsHeaders(request) {
