@@ -132,7 +132,7 @@
     <li><strong>出力の正規化</strong>：修正点、コンプラ警告、3つの投稿案、ハッシュタグ、各案の特徴という固定形式へ揃える。</li>
   </ol>
 
-  <p>使用しているAIモデルは <code>@cf/zai-org/glm-4.7-flash</code> です。X Post Studio側は直接AIを呼ばず、このWorker APIだけを呼びます。</p>
+  <p>使用しているAIモデルは <code>@cf/zai-org/glm-4.7-flash</code> です。現在は自由文でJSONを書かせる方式ではなく、Cloudflare Workers AIの<strong>Function Calling</strong>を使い、修正点・コンプラ・3つの投稿案を型付きの引数として返させています。これにより、前置きやコードフェンスが混ざってJSON解析に失敗する問題を大幅に減らしています。</p>
 
   <h3>.gitignore：不要なファイルをGitHubへ上げない</h3>
   <p><code>node_modules/</code>、Wranglerのローカル作業ファイル、開発用変数ファイルなどをGitHubへコミットしないよう設定します。</p>
