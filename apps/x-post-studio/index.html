@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>X Post Studio｜誤字脱字チェック・投稿文整形 | himaneko</title>
+<meta name="description" content="X投稿前の誤字脱字、重複、文字数、NGワード、個人情報をブラウザ内で確認し、無料枠・Premium、絵文字量、アカウント別ルールに合わせて投稿文を整える無料ツール。">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://techmew.github.io/apps/x-post-studio/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="himaneko">
+<meta property="og:title" content="X Post Studio｜誤字脱字チェック・投稿文整形">
+<meta property="og:description" content="誤字脱字チェック、投稿文の整理、無料/Premium切替、絵文字3段階、アカウント別設定をブラウザだけで。">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--xp-bg:#f6f7fb;--xp-card:#fff;--xp-line:#dfe3eb;--xp-text:#16181c;--xp-muted:#68707d;--xp-accent:#6b4eff;--xp-accent2:#111827;--xp-good:#137a43;--xp-warn:#a15c00;--xp-bad:#b42318}
+*{box-sizing:border-box}
+body{background:var(--xp-bg);color:var(--xp-text)}
+.xp-wrap{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+.xp-hero{margin:8px 0 20px}
+.xp-hero h1{margin:.2rem 0 .5rem;font-size:clamp(2rem,6vw,3.4rem);letter-spacing:-.04em}
+.xp-hero p{max-width:820px;color:var(--xp-muted);line-height:1.8}
+.xp-badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:#ebe7ff;color:#4d32d8;font-size:.82rem;font-weight:800}
+.xp-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(320px,.88fr);gap:18px;align-items:start}
+.xp-card{background:var(--xp-card);border:1px solid var(--xp-line);border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(25,32,56,.05)}
+.xp-card h2,.xp-card h3{margin-top:0}
+.xp-label{display:block;font-size:.86rem;font-weight:800;margin:0 0 7px}
+.xp-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.xp-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.xp-field{margin-bottom:14px}
+textarea,input,select{width:100%;border:1px solid var(--xp-line);border-radius:12px;background:#fff;color:var(--xp-text);font:inherit;padding:11px 12px}
+textarea{min-height:210px;resize:vertical;line-height:1.7}
+input:focus,textarea:focus,select:focus{outline:2px solid rgba(107,78,255,.2);border-color:var(--xp-accent)}
+.xp-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.xp-btn{appearance:none;border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:var(--xp-accent);color:white;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.xp-btn.secondary{background:#eef0f5;color:#20242d}
+.xp-btn.dark{background:var(--xp-accent2)}
+.xp-btn.danger{background:#fff0ee;color:var(--xp-bad);border:1px solid #ffd2cc}
+.xp-btn:disabled{opacity:.45;cursor:not-allowed}
+.xp-meta{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:8px;color:var(--xp-muted);font-size:.84rem}
+.xp-counter.over{color:var(--xp-bad);font-weight:900}
+.xp-note{font-size:.82rem;color:var(--xp-muted);line-height:1.65}
+.xp-checks{display:grid;gap:8px;margin-top:12px}
+.xp-check{padding:10px 12px;border-radius:11px;background:#f4f6fa;font-size:.9rem;line-height:1.5}
+.xp-check.good{background:#edf9f1;color:#0e6737}
+.xp-check.warn{background:#fff6e8;color:#875000}
+.xp-check.bad{background:#fff0ee;color:#922218}
+.xp-result{border:1px solid var(--xp-line);border-radius:15px;padding:14px;margin-top:12px;background:#fff}
+.xp-result-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.xp-result h3{font-size:1rem;margin:0}
+.xp-output{white-space:pre-wrap;line-height:1.75;margin:12px 0;padding:13px;border-radius:12px;background:#f7f8fb;min-height:90px;overflow-wrap:anywhere}
+.xp-pill{font-size:.75rem;background:#efedff;color:#563bc6;border-radius:999px;padding:5px 8px;font-weight:800}
+.xp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+.xp-tab{border:1px solid var(--xp-line);background:white;color:#313640;border-radius:999px;padding:8px 11px;font-weight:800;cursor:pointer}
+.xp-tab.active{background:#17191e;color:#fff;border-color:#17191e}
+.xp-hidden{display:none!important}
+.xp-history-item{padding:10px 0;border-bottom:1px solid var(--xp-line)}
+.xp-history-item:last-child{border-bottom:0}
+.xp-history-text{white-space:pre-wrap;font-size:.9rem;max-height:96px;overflow:hidden}
+.xp-history-meta{font-size:.75rem;color:var(--xp-muted);margin-top:4px}
+.xp-switch{display:flex;gap:7px;flex-wrap:wrap}
+.xp-radio{position:absolute;opacity:0;pointer-events:none}
+.xp-chip{border:1px solid var(--xp-line);border-radius:999px;padding:8px 11px;cursor:pointer;font-size:.84rem;font-weight:800;background:#fff}
+.xp-radio:checked + .xp-chip{background:#17191e;color:#fff;border-color:#17191e}
+.xp-status{display:inline-flex;gap:6px;align-items:center;font-weight:800;font-size:.84rem}
+.xp-dot{width:8px;height:8px;border-radius:50%;background:var(--xp-good)}
+.xp-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:8px 0 14px}
+.xp-small{font-size:.78rem}
+.xp-divider{height:1px;background:var(--xp-line);margin:16px 0}
+.xp-profile-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.xp-footer-note{margin-top:22px;border-top:1px solid var(--xp-line);padding-top:16px}
+@media(max-width:860px){.xp-grid{grid-template-columns:1fr}.xp-row,.xp-row-3{grid-template-columns:1fr}.xp-profile-actions{grid-template-columns:1fr}.xp-result-head{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap nav-wrap">
+    <a class="brand" href="/">himaneko</a>
+    <button class="nav-toggle" aria-label="メニュー" aria-expanded="false">☰</button>
+    <nav class="nav"><a href="/blog/">AI情報</a><a href="/tools/" aria-current="page">無料ツール</a><a href="/timeline.html">更新履歴</a><a href="/prompts/">制作プロンプト</a><a href="/about.html">このサイトについて</a></nav>
+  </div>
+</header>
+
+<main class="xp-wrap">
+<section class="xp-hero">
+  <span class="xp-badge">FREE / BROWSER ONLY</span>
+  <h1>X Post Studio</h1>
+  <p>Xへ出す前に、誤字脱字候補・重複・長さ・NGワード・個人情報を確認し、無料枠 / Premium、絵文字量、アカウントごとの文体に合わせて投稿文を整えます。文章はこのページ内で処理し、外部AI APIへ送信しません。</p>
+</section>
+
+<div class="xp-grid">
+<section class="xp-card">
+  <div class="xp-toolbar">
+    <h2 style="margin:0">1. 投稿文を入力</h2>
+    <span class="xp-status"><span class="xp-dot"></span>端末内処理</span>
+  </div>
+
+  <div class="xp-field">
+    <label class="xp-label" for="sourceText">原文</label>
+    <textarea id="sourceText" placeholder="誤字があっても、改行が雑でも、そのまま貼り付けてください。"></textarea>
+    <div class="xp-meta">
+      <span id="sourceCount">0文字</span>
+      <button class="xp-btn secondary xp-small" id="pasteBtn" type="button">貼り付け</button>
+    </div>
+  </div>
+
+  <div class="xp-row">
+    <div class="xp-field">
+      <label class="xp-label" for="category">投稿タイプ</label>
+      <select id="category">
+        <option value="auto">自動</option>
+        <option value="news">ニュース・話題</option>
+        <option value="product">商品・サービス紹介</option>
+        <option value="affiliate">アフィリエイト</option>
+        <option value="work">制作物・成果公開</option>
+        <option value="opinion">感想・意見</option>
+        <option value="question">質問・募集</option>
+        <option value="announcement">告知</option>
+        <option value="daily">日常</option>
+      </select>
+    </div>
+    <div class="xp-field">
+      <label class="xp-label" for="rewriteMode">整え方</label>
+      <select id="rewriteMode">
+        <option value="natural">自然・読みやすく</option>
+        <option value="strong">冒頭を強く</option>
+        <option value="concise">短く圧縮</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="xp-field">
+    <span class="xp-label">絵文字</span>
+    <div class="xp-switch">
+      <input class="xp-radio" type="radio" name="emojiMode" id="emojiHeavy" value="heavy"><label class="xp-chip" for="emojiHeavy">ガッツリ</label>
+      <input class="xp-radio" type="radio" name="emojiMode" id="emojiNormal" value="normal" checked><label class="xp-chip" for="emojiNormal">普通</label>
+      <input class="xp-radio" type="radio" name="emojiMode" id="emojiNone" value="none"><label class="xp-chip" for="emojiNone">なし</label>
+    </div>
+  </div>
+
+  <div class="xp-actions">
+    <button class="xp-btn" id="generateBtn" type="button">チェックして3案生成</button>
+    <button class="xp-btn secondary" id="threadBtn" type="button">スレッド分割</button>
+    <button class="xp-btn secondary" id="clearBtn" type="button">クリア</button>
+  </div>
+
+  <div id="checks" class="xp-checks" aria-live="polite"></div>
+
+  <div id="results" class="xp-hidden">
+    <div class="xp-divider"></div>
+    <h2>2. 投稿案</h2>
+    <div id="resultList"></div>
+  </div>
+
+  <div id="threadArea" class="xp-hidden">
+    <div class="xp-divider"></div>
+    <h2>スレッド分割</h2>
+    <div id="threadList"></div>
+  </div>
+</section>
+
+<aside>
+<section class="xp-card">
+  <h2>アカウント設定</h2>
+  <div class="xp-field">
+    <label class="xp-label" for="profileSelect">保存済みプロファイル</label>
+    <select id="profileSelect"></select>
+  </div>
+  <div class="xp-field">
+    <label class="xp-label" for="profileName">表示名 / @IDメモ</label>
+    <input id="profileName" maxlength="60" placeholder="@main / メイン">
+  </div>
+  <div class="xp-row">
+    <div class="xp-field">
+      <label class="xp-label" for="xPlan">X枠</label>
+      <select id="xPlan">
+        <option value="free">無料枠 280</option>
+        <option value="premium">Premium 25,000</option>
+      </select>
+    </div>
+    <div class="xp-field">
+      <label class="xp-label" for="tone">文体</label>
+      <select id="tone">
+        <option value="casual">自然・砕けめ</option>
+        <option value="neutral">標準</option>
+        <option value="formal">落ち着いた説明</option>
+        <option value="sharp">短く強め</option>
+      </select>
+    </div>
+  </div>
+  <div class="xp-row">
+    <div class="xp-field">
+      <label class="xp-label" for="hashtagMode">ハッシュタグ</label>
+      <select id="hashtagMode">
+        <option value="none">追加しない</option>
+        <option value="light">必要なら1個</option>
+        <option value="normal">最大2個</option>
+      </select>
+    </div>
+    <div class="xp-field">
+      <label class="xp-label" for="ctaMode">CTA</label>
+      <select id="ctaMode">
+        <option value="off">なし</option>
+        <option value="soft">弱め</option>
+        <option value="strong">強め</option>
+      </select>
+    </div>
+  </div>
+  <div class="xp-field">
+    <label class="xp-label" for="ngWords">NGワード（カンマ区切り）</label>
+    <input id="ngWords" placeholder="例：絶対,100%,炎上狙い">
+  </div>
+  <div class="xp-field">
+    <label class="xp-label" for="defaultTags">固定タグ（必要な場合のみ）</label>
+    <input id="defaultTags" placeholder="例：#AI #無料ツール">
+  </div>
+  <div class="xp-profile-actions">
+    <button class="xp-btn secondary" id="saveProfileBtn" type="button">保存</button>
+    <button class="xp-btn secondary" id="newProfileBtn" type="button">新規</button>
+    <button class="xp-btn danger" id="deleteProfileBtn" type="button">削除</button>
+  </div>
+  <p class="xp-note">アカウントのログイン情報やパスワードは保存しません。ここで保存するのは文体設定だけです。</p>
+</section>
+
+<section class="xp-card" style="margin-top:18px">
+  <h2>投稿前ルール</h2>
+  <div class="xp-check good">誤字候補・重複・連続記号を検査</div>
+  <div class="xp-check good">無料枠 / Premiumの文字数を確認</div>
+  <div class="xp-check good">電話番号・メールらしき文字列を警告</div>
+  <div class="xp-check good">アカウント別NGワードを警告</div>
+  <div class="xp-check warn">「バズる」は保証しません。冒頭、情報密度、改行、CTAを読みやすく調整する機能です。</div>
+</section>
+
+<section class="xp-card" style="margin-top:18px">
+  <h2>履歴</h2>
+  <div id="historyList"><p class="xp-note">まだ履歴はありません。</p></div>
+  <div class="xp-actions"><button class="xp-btn secondary" id="clearHistoryBtn" type="button">履歴を消す</button></div>
+</section>
+</aside>
+</div>
+
+<section class="xp-card xp-footer-note">
+  <h2>このツールの範囲</h2>
+  <p class="xp-note">外部AIを使わず完全無料で動かすため、文脈を理解する生成AI型の校正ではなく、辞書・文章ルール・投稿テンプレートによるローカル処理です。固有名詞や専門用語まで完全に判定するものではないため、公開前の最終確認は必要です。X投稿ボタンは本文をXの投稿画面へ渡すだけで、投稿先アカウントを強制切替しません。</p>
+</section>
+</main>
+
+<footer class="site-footer"><div class="wrap footer-grid"><div><strong>himaneko</strong><p>無料Webツールと制作プロンプトを公開しています。</p></div><div class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/about.html">このサイトについて</a></div></div><div class="wrap copyright">© 2026 himaneko</div></footer>
+
+<script src="/assets/js/main-feedback-v3.js"></script>
+<script>
+(function(){
+"use strict";
+var STORAGE_PROFILES="xps_profiles_v1";
+var STORAGE_CURRENT="xps_current_profile_v1";
+var STORAGE_HISTORY="xps_history_v1";
+var els={};
+var currentProfileId="";
+var defaultProfile={
+  id:"default",
+  name:"メイン",
+  plan:"free",
+  tone:"casual",
+  hashtags:"light",
+  cta:"off",
+  ng:"",
+  tags:"",
+  emoji:"normal"
+};
+
+var obviousRules=[
+  [/こんにちわ/g,"こんにちは","「こんにちわ」→「こんにちは」"],
+  [/こんばんわ/g,"こんばんは","「こんばんわ」→「こんばんは」"],
+  [/すいません/g,"すみません","「すいません」→「すみません」"],
+  [/とゆう/g,"という","「とゆう」→「という」"],
+  [/ゆうても/g,"言うても","「ゆうても」→「言うても」"],
+  [/出来る/g,"できる","表記を「できる」に統一"],
+  [/下さい/g,"ください","補助動詞の「下さい」→「ください」"],
+  [/致します/g,"いたします","補助動詞の「致します」→「いたします」"]
+];
+
+function $(id){return document.getElementById(id);}
+function countChars(s){return Array.from(s||"").length;}
+function limit(){return $("xPlan").value==="premium"?25000:280;}
+function escapeHtml(s){return (s||"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function normalizeNewlines(s){return (s||"").replace(/\r\n?/g,"\n");}
+function removeEmoji(s){
+  try{return s.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,"").replace(/[ \t]+\n/g,"\n").replace(/ {2,}/g," ").trim();}
+  catch(e){return s;}
+}
+function cleanBasic(s){
+  s=normalizeNewlines(s).replace(/[\u3000\t]+/g," ").replace(/ +/g," ");
+  s=s.replace(/！{3,}/g,"！！").replace(/？{3,}/g,"？？").replace(/!{4,}/g,"!!!").replace(/\?{4,}/g,"???");
+  s=s.replace(/。{2,}/g,"。").replace(/、{2,}/g,"、");
+  s=s.replace(/\n{4,}/g,"\n\n");
+  return s.trim();
+}
+function applyObviousCorrections(s,notes){
+  obviousRules.forEach(function(r){
+    if(r[0].test(s)){s=s.replace(r[0],r[1]);notes.push(r[2]);}
+    r[0].lastIndex=0;
+  });
+  return s;
+}
+function detectCategory(s){
+  if(/[？?]|教えて|募集|おすすめ.*あります|どう思う/.test(s))return "question";
+  if(/発売|発表|更新|アップデート|ニュース|話題|判明|公開された/.test(s))return "news";
+  if(/買った|購入|商品|価格|セール|クーポン|Amazon|楽天|おすすめ/.test(s))return "product";
+  if(/作った|公開|リリース|制作|完成|実装|アップしました/.test(s))return "work";
+  if(/告知|開催|募集|開始|受付/.test(s))return "announcement";
+  return "opinion";
+}
+function sentenceParts(s){
+  return s.split(/(?<=[。！？!?])\s*|\n+/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function firstMeaningful(s){
+  var p=sentenceParts(s);
+  return p[0]||s.trim();
+}
+function stripWeakOpeners(s){
+  return s.replace(/^(ちなみに|個人的には|正直|一応|なんとなく|とりあえず)[、,\s]*/,"").trim();
+}
+function shorten(s){
+  s=s.replace(/ということ/g,"こと").replace(/することができる/g,"できる").replace(/だと思います/g,"と思う").replace(/かなと思います/g,"かも");
+  s=s.replace(/個人的には/g,"").replace(/という感じです/g,"").replace(/な感じです/g,"");
+  s=s.replace(/([。！？!?])\s+/g,"$1\n");
+  return cleanBasic(s);
+}
+function formatReadability(s){
+  var parts=sentenceParts(s);
+  if(parts.length<=1)return s;
+  var out=[];
+  var block=[];
+  parts.forEach(function(p,i){
+    block.push(p);
+    if(block.join("").length>=70||i===parts.length-1){out.push(block.join(""));block=[];}
+  });
+  return out.join("\n\n");
+}
+function hookFor(cat,body,level){
+  var first=firstMeaningful(body).replace(/[。！!？?]+$/,"");
+  var shortFirst=Array.from(first).slice(0,52).join("");
+  if(level==="natural")return "";
+  var maps={
+    news:["これ、かなり気になる。","これは押さえておきたい。"],
+    product:["これ、かなり使いやすい。","買う前にここだけ見てほしい。"],
+    affiliate:["買うなら、まずここを見てほしい。","価格だけで決めると見落としやすい。"],
+    work:["作りました。","公開しました。"],
+    opinion:["これ、思ったより大事。","ここはかなり気になった。"],
+    question:["これ、みんなどうしてる？","知ってる人いたら教えてほしい。"],
+    announcement:["お知らせです。","今日から公開します。"],
+    daily:["今日これ。","ちょっと聞いてほしい。"]
+  };
+  if(level==="strong"){
+    var arr=maps[cat]||maps.opinion;
+    return arr[1]||arr[0];
+  }
+  return shortFirst;
+}
+function emojiPack(cat,mode){
+  if(mode==="none")return {lead:"",mid:"",end:""};
+  var map={news:["📢","👀",""],product:["✨","✅",""],affiliate:["🛒","✅",""],work:["🛠️","✨",""],opinion:["👀","💭",""],question:["🤔","👇",""],announcement:["📢","✨",""],daily:["🐈","💬",""]};
+  var p=map[cat]||map.opinion;
+  if(mode==="normal")return {lead:p[0]+" ",mid:"",end:p[2]};
+  return {lead:p[0]+" ",mid:"\n"+p[1]+" ",end:" "+(p[2]||"✨")};
+}
+function addTags(s){
+  var mode=$("hashtagMode").value;
+  var raw=$("defaultTags").value.trim();
+  if(mode==="none"||!raw)return s;
+  var tags=raw.split(/[\s,、]+/).filter(function(x){return /^#/.test(x);});
+  var max=mode==="light"?1:2;
+  tags=tags.slice(0,max);
+  if(!tags.length)return s;
+  var add=tags.filter(function(t){return !s.includes(t);}).join(" ");
+  return add?s.replace(/\s+$/,"")+"\n\n"+add:s;
+}
+function addCTA(s,cat){
+  var mode=$("ctaMode").value;
+  if(mode==="off")return s;
+  var soft={question:"みんなはどう？",product:"使ったことある人の感想も知りたい。",affiliate:"気になる人は詳細を確認してみてください。",work:"感想や改善点があれば助かります。",news:"どう見る？",opinion:"みんなはどう思う？",announcement:"必要な人に届けば。",daily:"同じ人いる？"};
+  var strong={question:"知ってる人、ぜひ教えてください。",product:"気になる人はチェックしてみてください。",affiliate:"条件が合う人は今のうちに確認を。",work:"使ってみた感想をもらえると助かります。",news:"あなたはどう思いますか？",opinion:"意見を聞きたい。",announcement:"必要な人は確認してください。",daily:"同じ人いたら教えて。"};
+  var c=(mode==="soft"?soft:strong)[cat]||"";
+  return c?s.replace(/\s+$/,"")+"\n\n"+c:s;
+}
+function applyTone(s){
+  var tone=$("tone").value;
+  if(tone==="formal"){
+    s=s.replace(/めっちゃ/g,"かなり").replace(/すごい/g,"大きい").replace(/やばい/g,"かなり大きい");
+  }else if(tone==="sharp"){
+    s=shorten(s).replace(/です。/g,"。").replace(/ます。/g,"。");
+  }
+  return s;
+}
+function buildVariant(base,cat,kind,emojiMode){
+  var s=stripWeakOpeners(base);
+  if(kind==="concise")s=shorten(s);
+  s=applyTone(s);
+  s=formatReadability(s);
+  var hook=hookFor(cat,s,kind);
+  if(hook && !s.startsWith(hook))s=hook+"\n\n"+s;
+  var em=emojiPack(cat,emojiMode);
+  if(emojiMode==="none")s=removeEmoji(s);
+  else if(emojiMode==="heavy"){s=em.lead+s; if(s.length>70)s=s.replace(/\n\n/,em.mid+"\n\n"); s+=em.end;}
+  else if(emojiMode==="normal"&&kind==="strong"){s=em.lead+s;}
+  s=addCTA(s,cat);
+  s=addTags(s);
+  return cleanBasic(s);
+}
+function scan(text){
+  var notes=[],warnings=[],fixed=cleanBasic(text);
+  fixed=applyObviousCorrections(fixed,notes);
+  if(/([ぁ-んァ-ヶ一-龠々]{1,12})\1{2,}/.test(fixed))warnings.push("同じ語が連続している可能性があります。");
+  if(/[!！?？]{4,}/.test(text))warnings.push("記号が多すぎる箇所があります。");
+  if(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/.test(text))warnings.push("メールアドレスらしき文字列があります。");
+  if(/(?:0\d{1,4}[-ー−]?\d{1,4}[-ー−]?\d{3,4})/.test(text))warnings.push("電話番号らしき数字があります。");
+  var ng=$("ngWords").value.split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  var foundNg=ng.filter(function(x){return fixed.includes(x);});
+  if(foundNg.length)warnings.push("NGワード: "+foundNg.join(" / "));
+  if(countChars(fixed)>limit())warnings.push("現在のX枠を超えています。");
+  if(!/[。！？!?\n]/.test(fixed)&&countChars(fixed)>90)warnings.push("長い1文です。途中で区切ると読みやすくなります。");
+  return {fixed:fixed,notes:notes,warnings:warnings};
+}
+function renderChecks(scanResult){
+  var box=$("checks");box.innerHTML="";
+  var total=countChars(scanResult.fixed);
+  var lim=limit();
+  var items=[];
+  if(scanResult.notes.length)items.push({type:"good",text:"自動修正: "+scanResult.notes.join(" / ")});
+  else items.push({type:"good",text:"明らかな表記ミスの自動修正はありません。"});
+  if(scanResult.warnings.length)scanResult.warnings.forEach(function(w){items.push({type:"warn",text:w});});
+  else items.push({type:"good",text:"NGワード・個人情報・長さの大きな警告はありません。"});
+  items.push({type:total>lim?"bad":"good",text:"文字数: "+total+" / "+lim+"（簡易カウント）"});
+  items.forEach(function(i){
+    var d=document.createElement("div");d.className="xp-check "+i.type;d.textContent=i.text;box.appendChild(d);
+  });
+}
+function getEmojiMode(){
+  var e=document.querySelector('input[name="emojiMode"]:checked');return e?e.value:"normal";
+}
+function renderResults(base,cat){
+  var modes=[
+    {key:"natural",title:"A 自然",desc:"元の意味を残して読みやすく"},
+    {key:"strong",title:"B 強め",desc:"冒頭フックを追加"},
+    {key:"concise",title:"C 短文",desc:"余分な言い回しを圧縮"}
+  ];
+  var chosen=$("rewriteMode").value;
+  modes.sort(function(a,b){return a.key===chosen?-1:b.key===chosen?1:0;});
+  var list=$("resultList");list.innerHTML="";
+  modes.forEach(function(m,index){
+    var text=buildVariant(base,cat,m.key,getEmojiMode());
+    var lim=limit();
+    var card=document.createElement("div");card.className="xp-result";
+    card.innerHTML='<div class="xp-result-head"><div><h3>'+escapeHtml(m.title)+'</h3><div class="xp-note">'+escapeHtml(m.desc)+'</div></div><span class="xp-pill '+(countChars(text)>lim?'over':'')+'">'+countChars(text)+' / '+lim+'</span></div><div class="xp-output"></div><div class="xp-actions"><button type="button" class="xp-btn copy-result">コピー</button><button type="button" class="xp-btn dark post-result">Xで投稿</button><button type="button" class="xp-btn secondary edit-result">原文欄へ戻す</button></div>';
+    card.querySelector(".xp-output").textContent=text;
+    card.querySelector(".copy-result").addEventListener("click",function(){copyText(text,this);saveHistory(text);});
+    card.querySelector(".post-result").addEventListener("click",function(){openX(text);saveHistory(text);});
+    card.querySelector(".edit-result").addEventListener("click",function(){$("sourceText").value=text;updateSourceCount();window.scrollTo({top:0,behavior:"smooth"});});
+    list.appendChild(card);
+  });
+  $("results").classList.remove("xp-hidden");
+}
+function generate(){
+  var src=$("sourceText").value.trim();
+  if(!src){$("checks").innerHTML='<div class="xp-check warn">原文を入力してください。</div>';return;}
+  saveCurrentInputs();
+  var res=scan(src);renderChecks(res);
+  var cat=$("category").value==="auto"?detectCategory(res.fixed):$("category").value;
+  renderResults(res.fixed,cat);
+}
+function splitThread(){
+  var src=$("sourceText").value.trim();if(!src)return;
+  var res=scan(src);var text=res.fixed;
+  var target=$("xPlan").value==="premium"?1000:260;
+  var parts=[];var remain=text;
+  while(countChars(remain)>target){
+    var chars=Array.from(remain);var cut=target;
+    var candidate=chars.slice(0,target).join("");
+    var marks=["\n\n","\n","。","！","？"," "];
+    marks.forEach(function(mark){var pos=candidate.lastIndexOf(mark);if(pos>Math.floor(target*.55)&&pos<cut)cut=pos+mark.length;});
+    var part=chars.slice(0,cut).join("").trim();if(!part)part=chars.slice(0,target).join("");
+    parts.push(part);remain=chars.slice(cut).join("").trim();
+  }
+  if(remain)parts.push(remain);
+  var list=$("threadList");list.innerHTML="";
+  parts.forEach(function(p,i){
+    var numbered=(i+1)+"/"+parts.length+"\n"+p;
+    var d=document.createElement("div");d.className="xp-result";
+    d.innerHTML='<div class="xp-result-head"><h3>投稿 '+(i+1)+'</h3><span class="xp-pill">'+countChars(numbered)+'文字</span></div><div class="xp-output"></div><div class="xp-actions"><button class="xp-btn copy-thread" type="button">コピー</button><button class="xp-btn dark post-thread" type="button">Xで投稿</button></div>';
+    d.querySelector(".xp-output").textContent=numbered;
+    d.querySelector(".copy-thread").addEventListener("click",function(){copyText(numbered,this);});
+    d.querySelector(".post-thread").addEventListener("click",function(){openX(numbered);});
+    list.appendChild(d);
+  });
+  $("threadArea").classList.remove("xp-hidden");
+}
+function copyText(text,btn){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){var old=btn.textContent;btn.textContent="コピー済み";setTimeout(function(){btn.textContent=old;},1100);});
+  }else{
+    var t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();document.execCommand("copy");t.remove();
+  }
+}
+function openX(text){
+  var url="https://twitter.com/intent/tweet?text="+encodeURIComponent(text);
+  window.open(url,"_blank","noopener");
+}
+function profiles(){
+  try{var p=JSON.parse(localStorage.getItem(STORAGE_PROFILES)||"[]");return Array.isArray(p)&&p.length?p:[defaultProfile];}catch(e){return [defaultProfile];}
+}
+function saveProfiles(arr){localStorage.setItem(STORAGE_PROFILES,JSON.stringify(arr));}
+function currentFormProfile(id){
+  return {id:id||("p_"+Date.now()),name:$("profileName").value.trim()||"アカウント",plan:$("xPlan").value,tone:$("tone").value,hashtags:$("hashtagMode").value,cta:$("ctaMode").value,ng:$("ngWords").value.trim(),tags:$("defaultTags").value.trim(),emoji:getEmojiMode()};
+}
+function renderProfileSelect(){
+  var arr=profiles();var select=$("profileSelect");select.innerHTML="";
+  arr.forEach(function(p){var o=document.createElement("option");o.value=p.id;o.textContent=p.name;select.appendChild(o);});
+  var wanted=localStorage.getItem(STORAGE_CURRENT)||arr[0].id;
+  if(!arr.some(function(p){return p.id===wanted;}))wanted=arr[0].id;
+  select.value=wanted;loadProfile(wanted);
+}
+function loadProfile(id){
+  var p=profiles().find(function(x){return x.id===id;})||profiles()[0];
+  currentProfileId=p.id;localStorage.setItem(STORAGE_CURRENT,p.id);
+  $("profileName").value=p.name||"";
+  $("xPlan").value=p.plan||"free";
+  $("tone").value=p.tone||"casual";
+  $("hashtagMode").value=p.hashtags||"none";
+  $("ctaMode").value=p.cta||"off";
+  $("ngWords").value=p.ng||"";
+  $("defaultTags").value=p.tags||"";
+  var radio=document.querySelector('input[name="emojiMode"][value="'+(p.emoji||"normal")+'"]');if(radio)radio.checked=true;
+  updateSourceCount();
+}
+function saveProfile(){
+  var arr=profiles();var p=currentFormProfile(currentProfileId||null);
+  var idx=arr.findIndex(function(x){return x.id===p.id;});
+  if(idx>=0)arr[idx]=p;else arr.push(p);
+  saveProfiles(arr);localStorage.setItem(STORAGE_CURRENT,p.id);renderProfileSelect();
+}
+function newProfile(){
+  currentProfileId="p_"+Date.now();
+  $("profileName").value="新しいアカウント";$("xPlan").value="free";$("tone").value="casual";$("hashtagMode").value="none";$("ctaMode").value="off";$("ngWords").value="";$("defaultTags").value="";
+  $("emojiNormal").checked=true;
+}
+function deleteProfile(){
+  var arr=profiles();if(arr.length<=1){alert("プロファイルは最低1つ残します。");return;}
+  arr=arr.filter(function(x){return x.id!==currentProfileId;});saveProfiles(arr);localStorage.removeItem(STORAGE_CURRENT);renderProfileSelect();
+}
+function saveHistory(text){
+  var arr=[];try{arr=JSON.parse(localStorage.getItem(STORAGE_HISTORY)||"[]");}catch(e){}
+  arr.unshift({text:text,time:new Date().toISOString(),profile:$("profileName").value||""});
+  arr=arr.slice(0,20);localStorage.setItem(STORAGE_HISTORY,JSON.stringify(arr));renderHistory();
+}
+function renderHistory(){
+  var arr=[];try{arr=JSON.parse(localStorage.getItem(STORAGE_HISTORY)||"[]");}catch(e){}
+  var box=$("historyList");box.innerHTML="";
+  if(!arr.length){box.innerHTML='<p class="xp-note">まだ履歴はありません。</p>';return;}
+  arr.slice(0,8).forEach(function(h){
+    var d=document.createElement("div");d.className="xp-history-item";
+    var date=new Date(h.time);
+    d.innerHTML='<div class="xp-history-text"></div><div class="xp-history-meta"></div><div class="xp-actions"><button type="button" class="xp-btn secondary xp-small">原文欄へ</button></div>';
+    d.querySelector(".xp-history-text").textContent=h.text;
+    d.querySelector(".xp-history-meta").textContent=(h.profile? h.profile+" / ":"")+date.toLocaleString("ja-JP");
+    d.querySelector("button").addEventListener("click",function(){$("sourceText").value=h.text;updateSourceCount();window.scrollTo({top:0,behavior:"smooth"});});
+    box.appendChild(d);
+  });
+}
+function saveCurrentInputs(){localStorage.setItem("xps_draft_v1",$("sourceText").value);}
+function updateSourceCount(){
+  var n=countChars($("sourceText").value),lim=limit();$("sourceCount").textContent=n+"文字 / "+lim;$("sourceCount").className=n>lim?"xp-counter over":"xp-counter";
+}
+function bind(){
+  ["sourceText","xPlan"].forEach(function(id){$(id).addEventListener("input",updateSourceCount);});
+  $("generateBtn").addEventListener("click",generate);
+  $("threadBtn").addEventListener("click",splitThread);
+  $("clearBtn").addEventListener("click",function(){$("sourceText").value="";$("checks").innerHTML="";$("results").classList.add("xp-hidden");$("threadArea").classList.add("xp-hidden");updateSourceCount();saveCurrentInputs();});
+  $("pasteBtn").addEventListener("click",function(){if(navigator.clipboard&&navigator.clipboard.readText)navigator.clipboard.readText().then(function(t){$("sourceText").value=t;updateSourceCount();});});
+  $("profileSelect").addEventListener("change",function(){loadProfile(this.value);});
+  $("saveProfileBtn").addEventListener("click",saveProfile);
+  $("newProfileBtn").addEventListener("click",newProfile);
+  $("deleteProfileBtn").addEventListener("click",deleteProfile);
+  $("clearHistoryBtn").addEventListener("click",function(){localStorage.removeItem(STORAGE_HISTORY);renderHistory();});
+  document.querySelectorAll('input[name="emojiMode"]').forEach(function(r){r.addEventListener("change",function(){var arr=profiles();var p=arr.find(function(x){return x.id===currentProfileId;});if(p){p.emoji=getEmojiMode();saveProfiles(arr);}});});
+  window.addEventListener("beforeunload",saveCurrentInputs);
+}
+function init(){
+  ["sourceText","sourceCount","category","rewriteMode","checks","results","resultList","threadArea","threadList","profileSelect","profileName","xPlan","tone","hashtagMode","ctaMode","ngWords","defaultTags"].forEach(function(id){els[id]=$(id);});
+  if(!localStorage.getItem(STORAGE_PROFILES))saveProfiles([defaultProfile]);
+  renderProfileSelect();renderHistory();bind();
+  var draft=localStorage.getItem("xps_draft_v1");if(draft)$("sourceText").value=draft;
+  updateSourceCount();
+}
+init();
+})();
+</script>
+</body>
+</html>
