@@ -27,11 +27,12 @@ Cloudflare Dashboard上のWorker名は現在 `techmew-github-io` なので、`wr
 
 Dashboardで手動追加する必要はありません。Cloudflareがこの設定を読み取り、Worker内では `env.AI` として使用します。
 
-## モデル
+## モデルと処理モード
 
-`@cf/zai-org/glm-4.7-flash`
+- 校正: `@cf/zai-org/glm-4.7-flash`
+- 3案生成: `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
 
-日本語を含む多言語の文章処理向けに利用しています。
+通常は校正モードを使い、誤字・脱字・IME誤変換だけを最小修正します。3案生成は別モードです。校正v7では、高確度の誤変換をAI前に補正し、補正済み語句がAI出力で再び壊れた場合は不採用にします。
 
 ## API
 
@@ -52,12 +53,14 @@ Workerの稼働確認。
   "action": "compose",
   "text": "投稿したい元文章",
   "emojiLevel": "medium",
-  "plan": "free"
+  "plan": "free",
+  "mode": "proofread"
 }
 ```
 
 - `emojiLevel`: `high` / `medium` / `none`
 - `plan`: `free` / `long`
+- `mode`: `proofread` / `compose`
 
 ## X Post Studio側
 
