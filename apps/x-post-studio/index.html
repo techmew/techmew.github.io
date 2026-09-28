@@ -549,7 +549,31 @@ function deleteProfile(){
   var arr=profiles();if(arr.length<=1){alert("プロファイルは最低1つ残します。");return;}
   arr=arr.filter(function(x){return x.id!==currentProfileId;});saveProfiles(arr);localStorage.removeItem(STORAGE_CURRENT);renderProfileSelect();
 }
-function saveHistory(text){
+
+function exportSettings(){
+  var payload={version:1,exportedAt:new Date().toISOString(),profiles:profiles(),current:currentProfileId};
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="x-post-studio-settings.json";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+}
+function importSettings(file){
+  if(!file)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var data=JSON.parse(String(r.result||""));
+      if(!data||!Array.isArray(data.profiles)||!data.profiles.length)throw new Error("invalid");
+      var cleaned=data.profiles.filter(function(p){return p&&p.id&&p.name;}).slice(0,50);
+      if(!cleaned.length)throw new Error("invalid");
+      saveProfiles(cleaned);
+      if(data.current)localStorage.setItem(STORAGE_CURRENT,data.current);
+      renderProfileSelect();
+      alert("設定を読み込みました。");
+    }catch(e){alert("X Post Studioの設定JSONとして読み込めませんでした。");}
+    $("importFile").value="";
+  };
+  r.readAsText(file);
+}
+\nfunction saveHistory(text){
   var arr=[];try{arr=JSON.parse(localStorage.getItem(STORAGE_HISTORY)||"[]");}catch(e){}
   arr.unshift({text:text,time:new Date().toISOString(),profile:$("profileName").value||""});
   arr=arr.slice(0,20);localStorage.setItem(STORAGE_HISTORY,JSON.stringify(arr));renderHistory();
@@ -581,7 +605,7 @@ function bind(){
   $("profileSelect").addEventListener("change",function(){loadProfile(this.value);});
   $("saveProfileBtn").addEventListener("click",saveProfile);
   $("newProfileBtn").addEventListener("click",newProfile);
-  $("deleteProfileBtn").addEventListener("click",deleteProfile);
+  $("deleteProfileBtn").addEventListener("click",deleteProfile);\n  $("exportBtn").addEventListener("click",exportSettings);\n  $("importBtn").addEventListener("click",function(){$("importFile").click();});\n  $("importFile").addEventListener("change",function(){importSettings(this.files&&this.files[0]);});
   $("clearHistoryBtn").addEventListener("click",function(){localStorage.removeItem(STORAGE_HISTORY);renderHistory();});
   document.querySelectorAll('input[name="emojiMode"]').forEach(function(r){r.addEventListener("change",function(){var arr=profiles();var p=arr.find(function(x){return x.id===currentProfileId;});if(p){p.emoji=getEmojiMode();saveProfiles(arr);}});});
   window.addEventListener("beforeunload",saveCurrentInputs);
