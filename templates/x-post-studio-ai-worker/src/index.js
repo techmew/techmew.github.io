@@ -149,9 +149,32 @@ export default {
         structured = parseJson(extractText(result));
       }
 
+      // 構造化出力が欠けた場合だけ1回自動再試行する。
+      if (!isValidResult(structured)) {
+        const retry = await env.AI.run(MODEL, {
+          messages: [
+            {
+              role: "system",
+              content: system + "\n前回は構造化出力が不完全でした。必ず submit_x_post_result を1回だけ呼び、必須項目をすべて埋めてください。"
+            },
+            { role: "user", content: text }
+          ],
+          tools: [RESULT_TOOL],
+          tool_choice: "required",
+          parallel_tool_calls: false,
+          max_completion_tokens: plan === "free" ? 1500 : 4500,
+          temperature: 0.1
+        });
+
+        structured = extractToolArguments(retry);
+        if (!structured) {
+          structured = parseJson(extractText(retry));
+        }
+      }
+
       if (!isValidResult(structured)) {
         return json({
-          error: "AIの構造化出力に失敗しました。もう一度実行してください。",
+          error: "AIの構造化出力に失敗しました。自動再試行でも復旧できませんでした。",
           error_code: "STRUCTURED_OUTPUT_FAILED"
         }, 502, cors);
       }
