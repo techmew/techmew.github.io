@@ -154,8 +154,8 @@ export default {
         "読みやすさ目的だけで勝手に改行・空行を追加、削除、移動しない。",
         "原文に『↓』『続く』『→』『※』などの継続・注記記号がある場合、意味上不要と判断して勝手に削除しない。",
         "元文にない事実、体験、数字、年、日付、時代背景、人気、評判、トレンドを絶対に捏造しない。",
-        "入力文に年が書かれていない場合、2024年・2025年・2026年など現在年や過去年を推測して追加してはいけない。",
-        "『今は○○年なのに』『○○年だし』のような時代背景を勝手に補足しない。",
+        "入力文に具体的な暦年が書かれていない場合、現在年・過去年・未来年を推測して追加してはいけない。",
+        "『今はある年なのに』のような、入力にない時代背景を勝手に補足しない。",
         "投稿案は必ず3件。",
         "案1は自然で伝わりやすくする。",
         "案2は冒頭を強め、反応を得やすくする。ただし釣り・過剰煽りは禁止。",
@@ -210,18 +210,14 @@ export default {
       }
 
       if (!isValidResult(structured)) {
-        let error = "AI出力が安定しませんでした。もう一度実行してください。";
-        let errorCode = "STRUCTURED_OUTPUT_FAILED";
-
-        if (lastTemporalFacts.length) {
-          error = "AIが入力文にない年・日付を追加したため、出力を破棄しました。もう一度実行してください。";
-          errorCode = "UNSUPPORTED_TEMPORAL_FACT";
-        } else if (lastLayoutProblems.length) {
-          error = "AIが原文の改行・段落構造を崩したため、出力を破棄しました。もう一度実行してください。";
-          errorCode = "LAYOUT_MISMATCH";
+        if (lastTemporalFacts.length || lastLayoutProblems.length) {
+          structured = makeSafeFallbackResult(correctedText, lastTemporalFacts, lastLayoutProblems);
+        } else {
+          return json({
+            error: "AI出力が安定しませんでした。もう一度実行してください。",
+            error_code: "STRUCTURED_OUTPUT_FAILED"
+          }, 502, cors);
         }
-
-        return json({ error, error_code: errorCode }, 502, cors);
       }
 
       return json(normalizeResult(structured, correctedText, corrections, riskLevel, warnings), 200, cors);
@@ -490,6 +486,26 @@ function normalizeCorrections(items) {
     const reason = String(item && item.reason ? item.reason : "");
     return before && after ? before + " → " + after + (reason ? "（" + reason + "）" : "") : reason;
   }).filter(Boolean);
+}
+
+function makeSafeFallbackResult(correctedText, temporalFacts, layoutProblems) {
+  const reasons = [];
+  if (temporalFacts && temporalFacts.length) {
+    reasons.push("入力にない年・日付が追加されたため、元文ベースへ戻しました");
+  }
+  if (layoutProblems && layoutProblems.length) {
+    reasons.push("改行・段落構造が崩れたため、元文ベースへ戻しました");
+  }
+  const reason = reasons.join(" / ") || "元文を優先しました";
+
+  return {
+    compliance: [],
+    variants: [
+      { title: "原文重視", text: correctedText, hashtags: [], reason },
+      { title: "原文重視", text: correctedText, hashtags: [], reason },
+      { title: "原文重視", text: correctedText, hashtags: [], reason }
+    ]
+  };
 }
 
 function normalizeResult(data, correctedText, corrections, safetyLevel, safetyWarnings) {
