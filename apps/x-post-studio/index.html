@@ -221,6 +221,11 @@ input:focus,textarea:focus,select:focus{outline:2px solid rgba(107,78,255,.2);bo
     <button class="xp-btn secondary" id="newProfileBtn" type="button">新規</button>
     <button class="xp-btn danger" id="deleteProfileBtn" type="button">削除</button>
   </div>
+  <div class="xp-actions">
+    <button class="xp-btn secondary xp-small" id="exportBtn" type="button">設定を書き出す</button>
+    <button class="xp-btn secondary xp-small" id="importBtn" type="button">設定を読み込む</button>
+    <input id="importFile" type="file" accept="application/json,.json" class="xp-hidden">
+  </div>
   <p class="xp-note">アカウントのログイン情報やパスワードは保存しません。ここで保存するのは文体設定だけです。</p>
 </section>
 
@@ -504,6 +509,9 @@ function copyText(text,btn){
   }
 }
 function openX(text){
+  var profile=($("profileName").value||"現在のプロファイル").trim();
+  var ok=window.confirm("投稿先設定: "+profile+"\n\nX側で現在ログインしているアカウントが一致しているか確認してください。\n投稿画面を開きますか？");
+  if(!ok)return;
   var url="https://twitter.com/intent/tweet?text="+encodeURIComponent(text);
   window.open(url,"_blank","noopener");
 }
@@ -573,7 +581,8 @@ function importSettings(file){
   };
   r.readAsText(file);
 }
-\nfunction saveHistory(text){
+
+function saveHistory(text){
   var arr=[];try{arr=JSON.parse(localStorage.getItem(STORAGE_HISTORY)||"[]");}catch(e){}
   arr.unshift({text:text,time:new Date().toISOString(),profile:$("profileName").value||""});
   arr=arr.slice(0,20);localStorage.setItem(STORAGE_HISTORY,JSON.stringify(arr));renderHistory();
@@ -605,7 +614,10 @@ function bind(){
   $("profileSelect").addEventListener("change",function(){loadProfile(this.value);});
   $("saveProfileBtn").addEventListener("click",saveProfile);
   $("newProfileBtn").addEventListener("click",newProfile);
-  $("deleteProfileBtn").addEventListener("click",deleteProfile);\n  $("exportBtn").addEventListener("click",exportSettings);\n  $("importBtn").addEventListener("click",function(){$("importFile").click();});\n  $("importFile").addEventListener("change",function(){importSettings(this.files&&this.files[0]);});
+  $("deleteProfileBtn").addEventListener("click",deleteProfile);
+  $("exportBtn").addEventListener("click",exportSettings);
+  $("importBtn").addEventListener("click",function(){$("importFile").click();});
+  $("importFile").addEventListener("change",function(){importSettings(this.files&&this.files[0]);});
   $("clearHistoryBtn").addEventListener("click",function(){localStorage.removeItem(STORAGE_HISTORY);renderHistory();});
   document.querySelectorAll('input[name="emojiMode"]').forEach(function(r){r.addEventListener("change",function(){var arr=profiles();var p=arr.find(function(x){return x.id===currentProfileId;});if(p){p.emoji=getEmojiMode();saveProfiles(arr);}});});
   window.addEventListener("beforeunload",saveCurrentInputs);
