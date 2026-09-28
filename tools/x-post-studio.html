@@ -68,15 +68,114 @@
     <li>X Post Studio用のWorkerコードを置くGitHubリポジトリ</li>
   </ul>
 
-  <h2>一番簡単：GitHub作業をChatGPTに任せる</h2>
-  <p>GitHubをChatGPTと連携している場合は、Worker用ファイルの作成や修正をChatGPTへ任せるとかなり楽です。</p>
-  <p>まずGitHubで空のリポジトリを1つ作ります。名前は <code>x-post-studio-ai</code> などで構いません。そのあとChatGPTでそのリポジトリを指定し、X Post Studio用Workerを作るよう依頼します。</p>
+  <h2>GitHub側では何を用意するのか</h2>
+  <p>CloudflareへGitHubを接続するだけではAIは動きません。GitHub側に、Cloudflare Workerとして実行できる構成を用意する必要があります。X Post Studioでは、実際に次のファイルを作成して動かしています。</p>
+
+  <pre><code>x-post-studio-ai/
+├─ package.json
+├─ wrangler.jsonc
+├─ .gitignore
+├─ README.md
+└─ src/
+   └─ index.js</code></pre>
+
+  <h3>package.json：Wranglerを使えるようにする</h3>
+  <p><code>package.json</code>では、このプロジェクトがCloudflare Worker用であることと、Cloudflare公式CLIのWranglerを使うことを設定します。</p>
+  <pre><code>{
+  "name": "x-post-studio-ai-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4.102.0"
+  }
+}</code></pre>
+  <p><code>npx wrangler deploy</code>をCloudflareのDeploy commandに指定すると、このWranglerがWorkerをデプロイします。</p>
+
+  <h3>wrangler.jsonc：Cloudflare Workerの設定本体</h3>
+  <p><code>wrangler.jsonc</code>では、Worker名、実行するJavaScript、互換日、workers.devの利用、Workers AI Bindingを設定します。</p>
+  <pre><code>{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "x-post-studio-ai",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-28",
+  "workers_dev": true,
+  "ai": {
+    "binding": "AI"
+  }
+}</code></pre>
+  <p><strong>name</strong>はCloudflare側で作るWorker名と合わせます。<strong>main</strong>は実際に実行する <code>src/index.js</code> を指定します。<strong>workers_dev</strong>を有効にすると <code>workers.dev</code> URLで公開できます。</p>
+  <p><strong>ai.binding = AI</strong>がWorkers AIとの接続設定です。Workerコードでは <code>env.AI</code> としてAIを呼び出します。この設定がないと、X Post Studioから文章を送ってもAI処理できません。</p>
+
+  <h3>src/index.js：文章を受け取ってAI処理するAPI</h3>
+  <p>実際のAI処理は <code>src/index.js</code> に入っています。単にAIへ文章を投げているだけではなく、X Post Studioから安全に利用できるよう次の処理をまとめています。</p>
+  <ol>
+    <li><strong>CORS処理</strong>：GitHub Pages上のX Post StudioからWorkerへPOSTできるようにする。</li>
+    <li><strong>GETによる稼働確認</strong>：Worker URLをブラウザで開いたときにサービスが生きているか確認できるようにする。</li>
+    <li><strong>ping処理</strong>：X Post Studioの「接続テスト」用。AI生成を実行せず接続だけ確認する。</li>
+    <li><strong>compose処理</strong>：元文章、絵文字設定、通常投稿 / 長文設定を受け取る。</li>
+    <li><strong>入力チェック</strong>：空文字や25,000文字を超える入力を弾く。</li>
+    <li><strong>通常投稿の文字数制御</strong>：通常投稿では280文字以内を意識し、余裕を持って短くするようAIへ指示する。</li>
+    <li><strong>長文モード</strong>：長文は勝手にスレッド分割せず、そのまま読みやすく整える。</li>
+    <li><strong>絵文字量の制御</strong>：「多い / 中 / なし」をAIプロンプトへ反映する。</li>
+    <li><strong>元の口調を維持</strong>：元文の語尾や温度感を拾い、勝手に別人格の文章へ変えないよう指示する。</li>
+    <li><strong>誤字脱字修正</strong>：明らかな誤変換、不自然な助詞、誤字を修正する。</li>
+    <li><strong>3パターン生成</strong>：「自然」「反応重視」「短く強め」の3種類をJSONで返す。</li>
+    <li><strong>ハッシュタグ提案</strong>：文章内容に関連するタグだけを0〜3個提案する。リアルタイムトレンドを取得したふりはしない。</li>
+    <li><strong>コンプラチェック</strong>：誹謗中傷、差別、個人情報、違法・危険行為、医療・金融の強い断定、著作権侵害を助長する表現などを注意候補として返す。</li>
+    <li><strong>JSON解析</strong>：AIの返答をX Post Studioが扱えるJSONへ変換する。</li>
+    <li><strong>出力の正規化</strong>：修正点、コンプラ警告、3つの投稿案、ハッシュタグ、各案の特徴という固定形式へ揃える。</li>
+  </ol>
+
+  <p>使用しているAIモデルは <code>@cf/zai-org/glm-4.7-flash</code> です。X Post Studio側は直接AIを呼ばず、このWorker APIだけを呼びます。</p>
+
+  <h3>.gitignore：不要なファイルをGitHubへ上げない</h3>
+  <p><code>node_modules/</code>、Wranglerのローカル作業ファイル、開発用変数ファイルなどをGitHubへコミットしないよう設定します。</p>
+
+  <h3>README.md：Cloudflare側の設定値を記録する</h3>
+  <p>READMEには、Cloudflareで指定するProduction branch、Build command、Deploy command、Root directory、Workers AI Binding、Worker URLをX Post Studioへ登録する流れを残しておきます。後から設定を忘れてもGitHubを見るだけで復元できます。</p>
+
+  <h2>このGitHub作業はChatGPTに任せると早い</h2>
+  <p>GitHubをChatGPTと連携している場合、上記のファイル作成・コード実装・設定修正はChatGPTへまとめて任せられます。</p>
+  <p>たとえば「X Post Studio用のCloudflare WorkerをこのGitHubリポジトリに作って。package.json、wrangler.jsonc、src/index.js、README、.gitignoreまで全部用意して」と依頼すれば、GitHubへ直接ファイルを追加できます。</p>
+
   <div class="soft-box">
-    <p><strong>作成するファイル</strong></p>
-    <p><code>package.json</code><br><code>wrangler.jsonc</code><br><code>src/index.js</code><br><code>.gitignore</code><br><code>README.md</code></p>
+    <p><strong>ChatGPTに任せられる作業</strong></p>
+    <ul>
+      <li>GitHubリポジトリ内の現在の構成確認</li>
+      <li>Worker用フォルダまたは専用リポジトリ向けファイルの作成</li>
+      <li><code>package.json</code>の作成</li>
+      <li><code>wrangler.jsonc</code>の作成・修正</li>
+      <li>Workers AI Bindingの設定</li>
+      <li><code>src/index.js</code>のAI API実装</li>
+      <li>CORS、接続テスト、入力チェック、JSON整形の実装</li>
+      <li>READMEとセットアップ手順の作成</li>
+      <li>Cloudflareのビルドエラーを見てGitHub側の原因を修正</li>
+      <li>Worker名、Root directory、デプロイ構成の整合確認</li>
+      <li>既存サイトへ組み込む場合のフォルダ分離</li>
+    </ul>
   </div>
-  <p>GitHub連携済みのChatGPTなら、既存リポジトリへのファイル追加、コード修正、設定変更、エラー原因の確認などをそのまま依頼できます。Cloudflareでビルドエラーが出た場合も、ビルドログや画面内容を見せてGitHub側の修正を任せる方が早いです。</p>
-  <p>ただし、GitHubやCloudflareへのログイン、外部サービスの認証許可、Cloudflare画面上でのリポジトリ選択などは利用者自身で行います。</p>
+
+  <p>実際にこのサイトでも、最初はGitHub Pagesのサイト本体をそのままCloudflareへ接続したため、リポジトリの取得と依存関係インストールまでは成功したものの、Worker用の <code>package.json</code> と <code>wrangler.jsonc</code> がルートに存在せず、<code>npx wrangler deploy</code> の段階で失敗しました。</p>
+  <p>そこでGitHub側に <code>/workers/x-post-studio-ai/</code> を追加し、その中へWorker用ファイル一式を作成。Cloudflare側ではRoot directoryをそのフォルダへ変更する構成に修正しました。</p>
+  <p>このような「Cloudflareのビルドログを見る → GitHub構成の不足を特定する → 必要なファイルを作る → Wrangler設定を合わせる」という作業は、GitHub連携済みのChatGPTへ任せるとかなり省力化できます。</p>
+
+  <h3>ただしCloudflare側で本人が行う操作もある</h3>
+  <p>GitHubのコード作成はChatGPTへ任せられますが、外部サービスの認証や権限許可は利用者自身で行います。</p>
+  <ul>
+    <li>Cloudflareへのログイン</li>
+    <li>Connect GitHubを押す</li>
+    <li>GitHub Appのアクセス許可</li>
+    <li>Cloudflareへ接続するリポジトリの選択</li>
+    <li>Build設定の保存</li>
+    <li>必要に応じた「ビルドを再試行」</li>
+    <li>発行されたworkers.dev URLの確認</li>
+  </ul>
 
   <h2>ChatGPTを使わず手動で用意する場合</h2>
   <p>手動で作る場合は、公開しているWorkerテンプレートを自分のGitHubリポジトリへコピーします。</p>
