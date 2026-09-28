@@ -209,6 +209,10 @@ async function runPreprocess(env, text) {
     "文法上の助詞『で』が漢字の『出』なら『で』へ直す。",
     "同様に『は/わ』『に/二』『へ/え』『を/お』等のIME・音声入力由来の明らかな誤変換も確認する。",
     "固有名詞・番組名・商品名の正式表記だと明確な場合は勝手に変えない。",
+    "一方で、地名・店名・支店名・施設名の一部がIMEや音声入力で一般語へ誤変換されている可能性は厳しく確認する。",
+    "特に『○○店』『○○駅』『○○市』『○○町』『○○病院』『○○学校』の直前語は固有名詞候補として扱い、文脈上不自然な一般語なら同音・近音の地名や名称への誤変換を疑う。",
+    "例: 『トライアル可能店』は、文脈上の店舗名として不自然なら『トライアル加納店』のような支店名誤変換を疑う。",
+    "ただし確信できない固有名詞を新しく捏造してはいけない。候補が曖昧なら原文を維持する。",
     "表現の言い換え、丁寧化、読みやすい再構成はしない。",
     "改行位置と空行の有無は原文を原則そのまま維持する。",
     "読みやすさ目的で勝手に改行・空行を追加、削除、移動しない。",
@@ -387,6 +391,14 @@ function extractTemporalTokens(value) {
   return matches ? matches : [];
 }
 
+function normalizeOutputText(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n[ \t]*\n+/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+}
+
 function normalizeCorrections(items) {
   if (!Array.isArray(items)) return [];
   return items.slice(0, 30).map((item) => {
@@ -411,7 +423,7 @@ function normalizeResult(data, correctedText, corrections, safetyLevel, safetyWa
     variants: Array.isArray(data.variants)
       ? data.variants.slice(0, 3).map((item, index) => ({
           title: String(item && item.title ? item.title : ["自然", "反応重視", "短く強め"][index] || ("案" + (index + 1))),
-          text: String(item && item.text ? item.text : ""),
+          text: normalizeOutputText(String(item && item.text ? item.text : "")),
           hashtags: Array.isArray(item && item.hashtags) ? item.hashtags.slice(0, 3).map(String) : [],
           reason: String(item && item.reason ? item.reason : "")
         }))
