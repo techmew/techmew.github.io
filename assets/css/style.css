@@ -891,24 +891,28 @@ h1,h2,h3{text-wrap:pretty}
 .home-v2 .studio-path-card b{color:#c7bcff}
 
 
-/* 2026-09-29 hero artwork framing: keep the corrected message in live HTML */
+/* 2026-09-29 hero artwork framing: crop to the useful right-hand scene */
 .home-v2 .studio-hero--banner .studio-hero-visual{
+  position:relative;
   height:clamp(340px,42vw,540px);
   background:#e9e7df;
 }
 .home-v2 .studio-hero--banner .studio-hero-visual img{
-  width:178%;
+  position:absolute;
+  top:50%;
+  left:0;
+  width:200%;
   max-width:none;
   height:auto;
   max-height:none;
   aspect-ratio:auto;
   object-fit:cover;
-  transform:translateX(-57%);
+  transform:translate(-50%,-50%);
 }
 @media(max-width:700px){
   .home-v2 .studio-hero--banner .studio-hero-visual{height:clamp(220px,61vw,340px)}
   .home-v2 .studio-hero--banner .studio-hero-visual img{
-    width:200%;
-    transform:translateX(-59%);
+    width:220%;
+    transform:translate(-54.5%,-50%);
   }
 }
