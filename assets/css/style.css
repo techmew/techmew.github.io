@@ -798,7 +798,7 @@ body{background:var(--bg);color:var(--text)}
 .site-header .nav{gap:4px}
 .site-header .nav a{font-size:.84rem;font-weight:700;padding:9px 11px;border-radius:9px}
 .site-header .nav a:hover,.site-header .nav a:focus-visible{background:#ece9fa;color:#3d2db0}
-h1,h2,h3{color:#191a1c;text-wrap:pretty}
+h1,h2,h3{text-wrap:pretty}
 .blog-hero{padding:clamp(46px,7vw,88px) 0 32px;background:linear-gradient(180deg,#eeede8 0%,rgba(245,244,241,0) 100%)}
 .blog-hero .wrap{max-width:var(--max)}
 .blog-hero .kicker,.article .kicker{display:inline-flex;align-items:center;gap:9px;color:#5143be;font-size:.72rem;font-weight:850;letter-spacing:.14em}
@@ -882,3 +882,10 @@ h1,h2,h3{color:#191a1c;text-wrap:pretty}
 @media(prefers-reduced-motion:reduce){
  .article-card,.quick-link,.archive-row,.card,.studio-path-card{transition:none}
 }
+
+/* Contrast and hierarchy for the dark Explore panel */
+.home-v2 .studio-paths h2{color:#fff}
+.home-v2 .studio-paths-head p{color:#c2c2d0}
+.home-v2 .studio-path-card strong{color:#fff}
+.home-v2 .studio-path-card>span:not(.studio-path-index){color:#dcdae8}
+.home-v2 .studio-path-card b{color:#c7bcff}
