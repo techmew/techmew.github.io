@@ -14,21 +14,29 @@
 })();
 
 (()=>{
-  const links=[
-    ["/blog/","記事"],
-    ["/tools/","無料ツール"],
-    ["/prompts/","制作プロンプト"],
-    ["/dev/","開発ノート"],
-    ["/timeline.html","更新履歴"],
-    ["/about.html","このサイト"]
-  ];
   const path=location.pathname;
+  const comparisonArticles=new Set([
+    "/blog/thinkpad-x9-ai-pc-guide-2026.html",
+    "/blog/creator-monitor-4k-5k-2026.html",
+    "/blog/samsung-p9-p7-usb4-ssd-ai-guide-2026.html",
+    "/blog/portable-ssd-creator-guide-2026.html",
+    "/blog/usb-c-hub-creator-guide-2026.html"
+  ]);
+  const sidejobArticle="/blog/gpt-6-astra-ai-side-hustle-2026.html";
+  const links=[
+    {href:"/blog/",label:"記事",active:()=>path.startsWith("/blog/")&&!path.startsWith("/blog/ai-sidejob/")&&!path.startsWith("/blog/comparison/")&&path!==sidejobArticle&&!comparisonArticles.has(path)},
+    {href:"/blog/ai-sidejob/",label:"AI副業",active:()=>path.startsWith("/blog/ai-sidejob/")||path===sidejobArticle},
+    {href:"/blog/comparison/",label:"比較ガイド",active:()=>path.startsWith("/blog/comparison/")||comparisonArticles.has(path)},
+    {href:"/tools/",label:"無料ツール",active:()=>path.startsWith("/tools/")||path.startsWith("/apps/")},
+    {href:"/prompts/",label:"制作プロンプト",active:()=>path.startsWith("/prompts/")},
+    {href:"/dev/",label:"開発ノート",active:()=>path.startsWith("/dev/")},
+    {href:"/timeline.html",label:"更新履歴",active:()=>path==="/timeline.html"},
+    {href:"/about.html",label:"このサイト",active:()=>path==="/about.html"}
+  ];
   document.querySelectorAll(".nav").forEach(nav=>{
-    nav.innerHTML=links.map(([href,label])=>{
-      const current=(href==="/blog/"&&path.startsWith("/blog/"))||(href==="/tools/"&&(path.startsWith("/tools/")||path.startsWith("/apps/")))||(href==="/prompts/"&&path.startsWith("/prompts/"))||(href==="/dev/"&&path.startsWith("/dev/"))||(href==="/timeline.html"&&path==="/timeline.html")||(href==="/about.html"&&path==="/about.html");
-      return '<a href="'+href+'"'+(current?' aria-current="page"':'')+'>'+label+'</a>';
-    }).join("");
+    nav.innerHTML=links.map(item=>'<a href="'+item.href+'"'+(item.active()?' aria-current="page"':'')+'>'+item.label+'</a>').join("");
   });
+
 })();
 
 document.querySelectorAll('.nav-toggle').forEach(b=>b.addEventListener('click',()=>{const n=b.nextElementSibling,o=n.classList.toggle('open');b.setAttribute('aria-expanded',String(o))}));
