@@ -889,3 +889,26 @@ h1,h2,h3{text-wrap:pretty}
 .home-v2 .studio-path-card strong{color:#fff}
 .home-v2 .studio-path-card>span:not(.studio-path-index){color:#dcdae8}
 .home-v2 .studio-path-card b{color:#c7bcff}
+
+
+/* 2026-09-29 hero artwork framing: keep the corrected message in live HTML */
+.home-v2 .studio-hero--banner .studio-hero-visual{
+  height:clamp(340px,42vw,540px);
+  background:#e9e7df;
+}
+.home-v2 .studio-hero--banner .studio-hero-visual img{
+  width:178%;
+  max-width:none;
+  height:auto;
+  max-height:none;
+  aspect-ratio:auto;
+  object-fit:cover;
+  transform:translateX(-43.8%);
+}
+@media(max-width:700px){
+  .home-v2 .studio-hero--banner .studio-hero-visual{height:clamp(220px,61vw,340px)}
+  .home-v2 .studio-hero--banner .studio-hero-visual img{
+    width:200%;
+    transform:translateX(-48%);
+  }
+}
