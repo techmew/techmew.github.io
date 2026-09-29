@@ -775,3 +775,9 @@ button[data-feedback-link]{font:inherit;cursor:pointer}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important}
 }
+
+/* Contrast correction for the light glass header */
+.site-header .brand{color:#191a20}
+.site-header .nav a{color:#454954}
+.site-header .nav a:hover,.site-header .nav a:focus-visible{color:#4431b2;background:#f0edff}
+.site-header .nav-toggle{background:#fff;border-color:#d9dbe3;color:#292b33}
