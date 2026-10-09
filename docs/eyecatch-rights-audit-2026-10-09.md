@@ -19,3 +19,24 @@ GitHub main のツリーを取得。画像ファイルの所在を確認した�
 - assets/images/eyecatch/prime-sale-2026.jpg
 
 これらは違反認定ではなく調査対象。
+
+## 2026-10-10 継続調査
+GitHub main の再帰ツリーを取得し、全242エントリ中、画像拡張子（PNG/JPG/JPEG/WebP/SVG）97ファイル、blog/ 配下のHTML 23ファイルを確認。これはファイル棚卸しであり、画像内容や出所の法的監査を完了した件数ではない。
+
+### 優先確認画像
+ゲーム・商品・著名サービスを主題とする以下の画像は、権利者提供素材、生成素材、独自作図のどれに該当するか確認する。該当ファイルが存在するだけで違反とは判断しない。
+
+- assets/images/hq/assassins-creed-shadows-sale-2026-hero.jpg
+- assets/images/hq/minecraft-dungeons-ii-2026-hero.jpg
+- assets/images/hq/minecraft-dungeons-ii-2026-hero.png
+- assets/images/hq/switch2-microsd-express-2026-hero.jpg
+- assets/images/hq/iphone-18-latest-2026.jpg
+- assets/images/hq/meta-adventurer-2026-hero.jpg
+- assets/images/hq/prime-sale-2026.jpg
+- assets/images/eyecatch/prime-sale-2026.jpg
+
+### 判定上の注意
+著作権、商標、肖像権、商品写真の利用条件、広告プログラム固有の画像利用規定は別々に確認する。公式スクリーンショットでも引用等の法的例外が成立する場合はあり、一律違法とは限らない。画像の生成履歴やライセンス記録がない場合は「権利不明」として扱い、違反確定とは区別する。
+
+### 進捗
+画像97件のパス棚卸し完了。原画像の目視・出所照合は未完了。画像差し替え0件。公開済み画像が全て安全であるとの保証はしない。
