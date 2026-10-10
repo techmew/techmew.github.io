@@ -84,3 +84,17 @@ GitHub main の再帰ツリーを取得し、全242エントリ中、画像拡�
 - 今回の公開HTMLには、もしもの「かんたんリンク」は存在しない。現在はAmazonアソシエイトの文字リンクを使用している。
 - 今後もしもの「かんたんリンク」を利用する場合、管理画面のHTMLを改変しない。商品画像・価格・ボタンだけの抜き出しや、価格・在庫を固定値で添える運用は避ける。
 - 広告リンクを記事の冒頭で明示し、公式仕様と実機検証を区別する。
+
+
+## 2026-10-11 追加確認
+
+ブランド名・製品名・事件名を含む未使用ラスター画像を追加確認した。次の素材には、公式ロゴや製品外観に似せた描写、未確認の価格・性能・発売情報、または公式障害画面に見えるUIが含まれる可能性がある。法的侵害とは断定せず、公式出典・許諾・事実確認ができるまで公開ツリーから除外する。HTML/CSS/JS/XMLの現行参照は見つからなかった。
+
+- 削除: `assets/images/hq/dlss-5-rtx50-2026.png`
+- 削除: `assets/images/hq/m6-mac-mini-2026-hero.jpg`
+- 削除: `assets/images/hq/m6-mac-mini-2026-hero.png`
+- 削除: `assets/images/hq/nichicon-tribrid-battery-2026-hero.jpg`
+- 削除: `assets/images/hq/nichicon-tribrid-battery-2026-hero.png`
+- 削除: `assets/images/hq/googlebook-vs-macbook-neo-2026.jpg`
+- 削除: `assets/images/hq/codex-outage-2026-09-26-hero.jpg`
+- 削除: `assets/images/hq/codex-outage-2026-09-26-hero.png`
