@@ -1,0 +1,2 @@
+product_id,product_name,category,target_customer,use_scene,confirmed_features,materials_or_size,contents,care_or_setup,cautions,price_source_url,spec_source_url,image_rights_confirmed,unknown_items,desired_cta
+sample-001,（商品名）,（カテゴリ）,（誰のどんな困りごとか）,（いつどこで使うか）,（公式に確認した特徴だけ）,（公式仕様）,（同梱物）,（手入れ・設定）,（使用上の注意）,（公式販売URL）,（公式仕様URL）,yes/no,（未確認は空想せず記載）,（次の行動）
