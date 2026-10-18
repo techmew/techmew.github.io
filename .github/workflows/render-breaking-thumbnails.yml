@@ -1,0 +1,52 @@
+name: Render HimaNeko breaking-news thumbnails
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/breaking-thumbnails/*.json'
+      - 'scripts/render_news_thumbnail.py'
+      - '.github/workflows/render-breaking-thumbnails.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: himaneko-breaking-thumbnails
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install raster tools and Japanese font
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          python -m pip install --disable-pip-version-check 'Pillow>=10,<13'
+      - name: Render all missing thumbnails, no AI involved
+        run: |
+          mkdir -p assets/breaking-thumbnails
+          find data/breaking-thumbnails -maxdepth 1 -name '*.json' -type f -print0 | \
+            while IFS= read -r -d '' manifest; do
+              python scripts/render_news_thumbnail.py "$manifest"
+            done
+      - name: Commit generated PNGs, avoiding recursive triggers
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/breaking-thumbnails/
+          if git diff --cached --quiet; then
+            echo "No new thumbnail"
+          else
+            git commit -m "Render article-specific news thumbnails"
+            git push
+          fi
