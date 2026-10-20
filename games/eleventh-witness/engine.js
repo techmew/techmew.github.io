@@ -40,7 +40,7 @@ function show(){
  let row;
  try{row=digest()}catch(err){console.error(err);row={k:"n",s:"物語の読み込みで問題が起きました。メニューからセーブを読み込み直してください。"};}
  if(row.b)place(row.b);else if(!state.bg)place("stop");
- ui.counter.textContent="第一夜："+({opening:"到着",scarf:"到着",purpose:"到着",drive:"山道",talk_photo:"山道",talk_silence:"山道",talk_alibi:"山道",gate:"山荘",photowall:"山荘",ayanote:"山荘",room:"客室",dinner:"晩餐",askBowl:"晩餐",askTakumi:"晩餐",quietBowl:"晩餐",afterDinner:"夜",withRiko:"夜",corridor:"夜",withKohei:"夜",storm:"事件",questionAya:"事件",questionDoctor:"事件",retreat:"事件",lockdown:"深夜",callOutside:"深夜",holdRiko:"深夜",openDoor:"結末",survive:"結末"}[state.scene]||"続き");
+ ui.counter.textContent="第一夜："+({opening:"到着",scarf:"到着",purpose:"到着",drive:"山道",talk_photo:"山道",talk_silence:"山道",talk_alibi:"山道",gate:"山荘",photowall:"山荘",ayanote:"山荘",room:"客室",dinner:"晩餐",askBowl:"晩餐",askTakumi:"晩餐",quietBowl:"晩餐",afterDinner:"夜",firstHour:"事件",firstHourAya:"事件",firstHourChihiro:"事件",firstHourMari:"事件",withRiko:"夜",corridor:"夜",withKohei:"夜",storm:"事件",questionAya:"事件",questionDoctor:"事件",retreat:"事件",lockdown:"深夜",callOutside:"深夜",holdRiko:"深夜",openDoor:"結末",survive:"結末"}[state.scene]||"続き");
  if(row.k==="n"||row.k==="d"){
   ui.name.textContent=row.k==="n"?"":(BOOK.speakers[row.who]||row.who);
   ui.name.hidden=row.k!=="d";ui.dialog.classList.toggle("speech",row.k==="d");
@@ -152,6 +152,7 @@ function bindCamera(){
 }
 function initial(){
  ui.cover.querySelector("#beginBtn").addEventListener("click",()=>{fresh()});
+ ui.cover.addEventListener("click",ev=>{if(!ev.target.closest("button"))fresh();});
  const cont=$("continueBtn");cont.hidden=!read(SAVE);cont.addEventListener("click",()=>{const saved=read(SAVE);if(saved)restore(saved);});
  $("menuBtn").addEventListener("click",()=>openModal("settings"));
  $("logBtn").addEventListener("click",()=>openModal("log"));

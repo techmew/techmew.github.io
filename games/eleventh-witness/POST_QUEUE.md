@@ -23,3 +23,12 @@ https://techmew.github.io/games/eleventh-witness/
 - 最新の実装 commit: 9a9d9cba075c0ba7c7db422d68ba7e64fb5d53a5
 - 追加更新点: 舞台と物語の全面リメイク、7分岐、独自の電話・ノック効果音等。
 - 配送状態は HOLD_NOT_SUBMITTED 継続。実Buffer ID・実X URLは未取得。公開HTTP/連携の正規経路確認前には投稿済みと報告しない。
+
+## 2026-10-21 00:58 JST
+- status: HOLD_PAGES_UNVERIFIED
+- post_key: NOVEL_c14620f7fb83c189e19497e08fdc7c4a1b2c20b1
+- code_commit: c14620f7fb83c189e19497e08fdc7c4a1b2c20b1
+- buffer_id: 未取得
+- x_post_url: 未取得
+- 投稿文：【存在しない11人目】事件後の絢・千尋・真理との分岐を追加。改行表示も修正。無料プレイ https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。
+- 理由: Pages配信とゲーム専用Buffer経路を確認できず保留。
