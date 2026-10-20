@@ -9,19 +9,9 @@ let state={scene:BOOK.start,index:0,flags:{},clues:{},history:[],seen:{},bg:"sto
 let waiting=false,playing=false,typing=false,fullText="",typeTimer=0,autoTimer=0,autoplayToken=0,audio=null,windNode=null;
 let touch={id:null,sx:0,sy:0,ox:0,oy:0,x:0,y:0,moved:false,ignore:false}, dragging=false;
 const imgs={stop:"assets/reboot-snow.svg",road:"assets/reboot-road.svg",lodge:"assets/reboot-snow.svg",lobby:"assets/reboot-parlor.svg",room:"assets/reboot-room.svg",hall:"assets/reboot-hall.svg",dining:"assets/reboot-parlor.svg",dryroom:"assets/reboot-hall.svg"};
-const PORTRAITS={
-  "紗江":{src:"assets/portraits/sae-yami.svg",alt:"三枝紗江・2Dアニメ立ち絵"},
-  "莉子":{src:"assets/portraits/riko-yami.svg",alt:"片桐莉子・八重歯とリボンの2Dアニメ立ち絵"},
-  "絢":{src:"assets/portraits/aya-yami.svg",alt:"水原絢・2Dアニメ立ち絵"},
-  "匠":{src:"assets/portraits/takumi-yami.svg",alt:"高瀬匠・2Dアニメ立ち絵"}
-};
-function showPortrait(who){
- const profile=PORTRAITS[who];
- if(!profile){ui.portrait.hidden=true;return;}
- if(ui.portrait.getAttribute("src")!==profile.src)ui.portrait.src=profile.src;
- ui.portrait.alt=profile.alt+"の立ち絵";
- ui.portrait.hidden=false;
-}
+// Portrait art is temporarily withdrawn: vector caricatures did not meet the brief.
+// Keep node and save contracts intact; add approved raster character art only.
+function showPortrait(_who){ ui.portrait.hidden=true; ui.portrait.removeAttribute("src"); }
 ui.portrait.addEventListener("error",()=>{ui.portrait.hidden=true;});
 function storageGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
 function storageSet(k,v){try{localStorage.setItem(k,v);return true}catch(_){return false}}
@@ -56,7 +46,7 @@ function show(){
  if(row.b)place(row.b);else if(!state.bg)place("stop");
  showPortrait(row.k==="d"?row.who:null);
  ui.counter.textContent="第一夜："+({opening:"到着",scarf:"到着",purpose:"到着",drive:"山道",talk_photo:"山道",talk_silence:"山道",talk_alibi:"山道",gate:"山荘",photowall:"山荘",ayanote:"山荘",room:"客室",dinner:"晩餐",askBowl:"晩餐",askTakumi:"晩餐",quietBowl:"晩餐",afterDinner:"夜",firstHour:"事件",firstHourAya:"事件",firstHourChihiro:"事件",firstHourMari:"事件",withRiko:"夜",corridor:"夜",withKohei:"夜",storm:"事件",questionAya:"事件",questionDoctor:"事件",retreat:"事件",lockdown:"深夜",callOutside:"深夜",holdRiko:"深夜",openDoor:"結末",survive:"結末"}[state.scene]||"続き");
- if(state.scene.startsWith("y0_"))ui.counter.textContent="第一夜：笑顔の死亡予告";
+ if(state.scene.startsWith("y0_"))ui.counter.textContent="第一夜：黒い招待状";
  if(row.k==="n"||row.k==="d"){
   ui.name.textContent=row.k==="n"?"":(BOOK.speakers[row.who]||row.who);
   ui.name.hidden=row.k!=="d";ui.dialog.classList.toggle("speech",row.k==="d");
