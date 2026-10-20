@@ -49,7 +49,7 @@ function show(){
   if(!prev||prev.key!==key){state.history.push({key,who:row.k==="d"?(BOOK.speakers[row.who]||row.who):"",s:row.s});if(state.history.length>150)state.history.shift();}
   state.seen[key]=true;
   ui.hint.textContent="タップで読み進める　／　画面をドラッグして見回す";
-  writeText(row.s);save();return;
+  sceneCue(row.s);writeText(row.s);save();return;
  }
  if(row.k==="c"){
   waiting=true;ui.dialog.hidden=true;ui.prompt.hidden=false;
@@ -88,6 +88,29 @@ function updateButtons(){ui.auto.classList.toggle("active",!!state.auto);ui.auto
 function soundCtx(){if(!audio){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;audio=new AC()}if(audio.state==="suspended")audio.resume();return audio;}
 function tone(freq,duration,vol){if(!state.sound)return;try{const a=soundCtx(),o=a.createOscillator(),g=a.createGain();o.type="triangle";o.frequency.setValueAtTime(freq,a.currentTime);g.gain.setValueAtTime(.0001,a.currentTime);g.gain.exponentialRampToValueAtTime(vol,a.currentTime+.03);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+duration);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+duration+.05);}catch(_){ }}
 function playPageSound(){tone(278,.10,.004);}
+/* Discrete, generated acoustic details: no external audio assets or copyrighted samples. */
+function oscillatorAt(f,kind,len,vol,delay){
+ if(!state.sound)return;try{
+  const a=soundCtx(),t=a.currentTime+(delay||0),o=a.createOscillator(),g=a.createGain();
+  o.type=kind;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);
+  g.gain.linearRampToValueAtTime(vol,t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,t+len);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.04);
+ }catch(_){}
+}
+function sceneCue(s){
+ if(!state.sound)return;
+ if(s.indexOf("帳場の古い電話が鳴った")>=0){
+  for(let i=0;i<3;i++){oscillatorAt(430,"sine",.32,.013,i*.78);oscillatorAt(485,"sine",.32,.01,i*.78);}
+ }else if(s.indexOf("こん、こん")>=0){
+  oscillatorAt(83,"triangle",.07,.035,0);oscillatorAt(81,"triangle",.07,.03,.21);
+  if(s.indexOf("三回")>=0||s.indexOf("……こん")>=0)oscillatorAt(89,"triangle",.08,.037,.75);
+ }else if(s.indexOf("高瀬匠は、棚と棚の間に倒れていた")>=0){
+  [174.61,155.56,130.81].forEach((v,i)=>oscillatorAt(v,"sine",1.7,.022,i*.14));
+ }else if(s.indexOf("照明が一瞬だけ暗くなる")>=0){
+  oscillatorAt(53,"sawtooth",.68,.014,0);
+ }
+}
 function playWind(){
  if(!state.sound||windNode)return;
  try{const a=soundCtx(),buf=a.createBuffer(1,a.sampleRate*2,a.sampleRate),c=buf.getChannelData(0);let prev=0;for(let i=0;i<c.length;i++){let v=Math.random()*2-1;prev=(prev*.992)+(v*.008);c[i]=prev*.7;}const src=a.createBufferSource(),gain=a.createGain();src.buffer=buf;src.loop=true;gain.gain.value=.09;src.connect(gain);gain.connect(a.destination);src.start();windNode={src,gain};}catch(_){}
