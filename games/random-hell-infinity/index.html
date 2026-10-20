@@ -246,7 +246,7 @@ function survivorDraft(){
 function survivorGainXP(amount){
  survivorXP+=amount;
  while(survivorXP>=survivorLevel*5+5){survivorXP-=survivorLevel*5+5;survivorLevel++;survivorPending++}
- if(survivorPending&&mode==='playing')survivorDraft();
+ // Defer the level-up overlay until the current physics/enemy iteration finishes.
 }
 function enemyDeath(e){e.alive=false;kills++;survivorGainXP(2);runStats.kills++;combo++;maxCombo=Math.max(combo,maxCombo);comboTimer=3.3;score+=(100+e.kind*20)*(1+Math.floor(combo/5))*(hasRelic('crown')?1.5:1);part(e.x+e.w/2,e.y+e.h/2,ENEMY_TYPES[e.kind]?.color||'#ffe19b',18+e.kind,1);sound(350+e.kind*28,.09,'triangle');if(e.kind===8&&!e.small&&level.enemies.length<110){for(let d of [-1,1])level.enemies.push({...e,alive:true,small:true,hp:1,maxhp:1,w:15,h:18,x:e.x+d*18,y:e.y+9,baseY:e.y+9,kind:0,dir:d,hit:-1})}}
 function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||e.hit===id||e.hitGrace>0)return false;
@@ -676,7 +676,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);background();
  if(mode==='dying'){ctx.fillStyle=`rgba(241,35,88,${Math.min(.25,deathTimer*.38)})`;ctx.fillRect(0,0,W,H)}
  ctx.restore();}
 function frame(time){if(!frame.prev)frame.prev=time;let dt=Math.min(.04,(time-frame.prev)/1000);frame.prev=time;
- if(mode==='playing'||mode==='dying'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++)update(s)}else if(level){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
+ if(mode==='playing'||mode==='dying'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing'&&mode!=='dying')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
  if(mode==='playing')scheduleMusic();draw();requestAnimationFrame(frame)}
 
 // Version 3.2: one pointer per stick, multiple pointers per action; tilt controls run speed.
