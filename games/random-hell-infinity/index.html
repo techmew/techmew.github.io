@@ -66,6 +66,13 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
 <script src="./sprites-v35.js"></script>
+<script src="./sprites-v35-hero.js"></script>
+<script src="./sprites-v35-slime.js"></script>
+<script src="./sprites-v35-rabbit.js"></script>
+<script src="./sprites-v35-beetle.js"></script>
+<script src="./sprites-v35-turret.js"></script>
+<script src="./sprites-v35-sniper.js"></script>
+<script src="./sprites-v35-boss.js"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -222,7 +229,7 @@ document.body.appendChild(survivorPanel);
 function survivorOffer(){
  const options=survivorWeapons.map(id=>({id,entry:loadout.find(w=>w.id===id)})).filter(o=>!o.entry||o.entry.tier<8);
  for(let i=options.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[options[i],options[j]]=[options[j],options[i]]}
- return options.slice(0,3);
+ return options.filter(o=>o.entry||loadout.length<6).slice(0,3);
 }
 function survivorDraft(){
  if(mode!=='playing'||survivorPending<=0)return;
@@ -340,7 +347,7 @@ function makeEnemy(r,p,x,difficulty){const kind=randomInt(r,0,Math.min(11,3+Math
 function resetPlayer(){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
  player={x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-W*.30,0,Math.max(0,level.totalX-W*.77));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
 function saveState(){try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
-function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'},{id:'homing',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic()}
+function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'},{id:'homing',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
 function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ 14武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。装備切替で武器を変更。最初から誘導砲を2枠目に装備！<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、Q=武器変更、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>{const raw=$('seedInput').value.trim();begin(raw!==''?clamp(Number(raw),0,999999999):randSeed())};
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
@@ -519,7 +526,12 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
 // V3.5: animated cutout pixel-art sprites; asset failure falls back to the original geometric characters.
 const RH_PACK=window.RH_SPRITES||null;
 const RH_ATLAS=new Image();
-if(RH_PACK) RH_ATLAS.src=RH_PACK.url;
+if(RH_PACK?.url) RH_ATLAS.src=RH_PACK.url;
+const RH_SPRITE_IMAGES={};
+for(const name of ['hero','slime','rabbit','beetle','turret','sniper','boss']){
+ const pack=RH_PACK?.[name];
+ if(pack?.url){const img=new Image();img.decoding='async';img.src=pack.url;RH_SPRITE_IMAGES[name]=img}
+}
 const RH_SAFE={
  hero:{idle:[0,1,2],run:[0,1,3],jump:[0,3],attack:[0,1,2],shoot:[0,1,2],hurt:[0],star:[0,2]},
  slime:{idle:[0,1,2],move:[0,1,3],attack:[0,1,2],hurt:[0,1]},
@@ -533,15 +545,18 @@ const RH_SAFE={
 const RH_ENEMY_SPRITES=['slime','rabbit','turret','ghost','beetle','beetle','sniper','rabbit','slime','ghost','ghost','turret'];
 // All frames use one source-pixel scale per character, so poses never stretch or jump in size.
 const RH_FRAME_BASE={};
-for(const [name,states] of Object.entries(RH_PACK?.frames||{})){
+for(const name of Object.keys(RH_PACK?.frames||{})){
+ const states=RH_PACK?.[name]?.frames||RH_PACK.frames[name];
  let width=1,height=1;
  for(const frames of Object.values(states))for(const f of frames){width=Math.max(width,f[2]);height=Math.max(height,f[3])}
  RH_FRAME_BASE[name]=[width,height];
 }
 let heroSpriteState='idle',heroSpriteStart=0;
 function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
- if(!RH_PACK||!RH_ATLAS.complete||!RH_ATLAS.naturalWidth)return false;
- const set=RH_PACK.frames[name];if(!set)return false;
+ const specific=RH_SPRITE_IMAGES[name],useSpecific=!!(specific?.complete&&specific.naturalWidth);
+ const img=useSpecific?specific:RH_ATLAS;
+ if(!RH_PACK||!img.complete||!img.naturalWidth)return false;
+ const set=useSpecific?RH_PACK[name]?.frames:RH_PACK.frames?.[name];if(!set)return false;
  const frames=set[state]||set.idle;if(!frames?.length)return false;
  const safe=(RH_SAFE[name]?.[state]||frames.map((_,i)=>i)).filter(i=>Number.isInteger(i)&&i>=0&&i<frames.length);
  const seq=safe.length?safe:frames.map((_,i)=>i);
@@ -551,8 +566,8 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  const base=RH_FRAME_BASE[name]||[f[2],f[3]],scale=Math.min(w/base[0],h/base[1]);const dw=f[2]*scale,dh=f[3]*scale;x+=(w-dw)/2;y+=h-dh;w=dw;h=dh;
  if(flash)ctx.filter='brightness(1.75) saturate(.65)';
  if(hue)ctx.filter=(flash?'brightness(1.75) ':'')+'hue-rotate('+hue+'deg)';
- if(face<0){ctx.translate(x+w/2,0);ctx.scale(-1,1);ctx.drawImage(RH_ATLAS,f[0],f[1],f[2],f[3],-w/2,y,w,h)}
- else ctx.drawImage(RH_ATLAS,f[0],f[1],f[2],f[3],x,y,w,h);
+ if(face<0){ctx.translate(x+w/2,0);ctx.scale(-1,1);ctx.drawImage(img,f[0],f[1],f[2],f[3],-w/2,y,w,h)}
+ else ctx.drawImage(img,f[0],f[1],f[2],f[3],x,y,w,h);
  ctx.restore();return true;
 }
 
