@@ -221,6 +221,7 @@ function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
 
 // Survivor-style upgrade draft. Kept separate from stage and checkpoint progression.
 let survivorXP=0,survivorLevel=1,survivorPending=0;
+let autoWeaponCooldowns=[];
 const survivorWeapons=['sword','dagger','spear','hammer','bow','blaster','boomerang','homing'];
 const survivorPanel=document.createElement('div');
 survivorPanel.id='survivorDraft';
@@ -347,7 +348,7 @@ function makeEnemy(r,p,x,difficulty){const kind=randomInt(r,0,Math.min(11,3+Math
 function resetPlayer(){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
  player={x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-W*.30,0,Math.max(0,level.totalX-W*.77));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
 function saveState(){try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
-function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'},{id:'homing',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
+function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'},{id:'homing',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
 function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ 14武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。装備切替で武器を変更。最初から誘導砲を2枠目に装備！<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、Q=武器変更、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>{const raw=$('seedInput').value.trim();begin(raw!==''?clamp(Number(raw),0,999999999):randSeed())};
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
@@ -359,7 +360,7 @@ function showClear(){mode='clear';best=Math.max(best,levelIndex+1);saveState();o
 }
 function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hudTick=.085;
  $('stage').textContent=`WORLD ${level.world+1}-${level.stage+1}　${level.title}`;
- $('substats').textContent=`💀${deaths} ｜ ⏱${stageTime.toFixed(1)}s ｜ SEED ${String(seed).padStart(9,'0')} ｜ ✦${Math.floor(score)}`;
+ $('substats').textContent=`💀${deaths} ｜ ⏱${stageTime.toFixed(1)}s ｜ SEED ${String(seed).padStart(9,'0')} ｜ ✦${Math.floor(score)} ｜ 武器LV ${survivorLevel} (${survivorXP}/${survivorLevel*5+5}XP)`;
  $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 重力 ${level.gravity>2000?'強':'弱'} ｜ 🏁${checkpointIndex}/2`;
  $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${punchCooldown<=0?'◉':'○'}`;
  $('weaponStrip').innerHTML=`${itemName(loadout[activeSlot])} <small>[${activeSlot+1}/${loadout.length}]</small>`;
@@ -405,6 +406,23 @@ function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
+function autoWeaponFire(dt){
+ const p=player;if(!p||!level||mode!=='playing')return;
+ const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing']);
+ let target=null,nearest=520*520;
+ const candidates=level.boss?.alive?[...level.enemies,level.boss]:level.enemies;
+ for(const e of candidates){if(!e.alive)continue;const dx=e.x+e.w/2-(p.x+p.w/2),dy=e.y+e.h/2-(p.y+p.h/2),d=dx*dx+dy*dy;
+   if(d<nearest){nearest=d;target=e}}
+ for(let i=0;i<loadout.length;i++){
+   autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
+   const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
+   if(!w||!rangedTypes.has(w.type)||autoWeaponCooldowns[i]>0||!target)continue;
+   autoWeaponCooldowns[i]=Math.max(.65,w.cd*3.2)/(1+Math.min(7,Math.max(0,(it.tier||1)-1))*.06);
+   const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime;
+   try{activeSlot=i;p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack()}
+   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=oldPunchTime}
+ }
+}
 function update(dt){
  if(!level)return;clock+=dt;stageTime+=mode==='playing'?dt:0;hudTick-=dt;shake=Math.max(0,shake-dt*39);slowMotion=Math.max(0,slowMotion-dt);toastTimer-=dt;if(toastTimer<=0)$('toast').style.opacity='0';
  for(const q of particles){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=650*dt;q.l-=dt}particles=particles.filter(q=>q.l>0);
@@ -422,6 +440,7 @@ function update(dt){
  }
  if(dashQueue){if(dashCooldown<=0 && (p.grounded||airDash>0)){dashDir=p.face;dashTime=.17;dashCooldown=hasRelic('battery')?.53:.91;if(!p.grounded)airDash--;p.vy=Math.min(p.vy,20);p.vx=dashDir*785;part(p.x+12,p.y+18,'#94fff8',14,.8);sound(210,.19,'triangle')}dashQueue=false}
  if((punchQueue||attackHeld)&&punchCooldown<=0){useAttack()}punchQueue=false;
+ autoWeaponFire(dt);
  if(dashTime>0){p.vx=dashDir*785;p.vy+=level.gravity*.12*dt;if(Math.random()<.4)part(p.x+p.w/2,p.y+p.h/2,'#77edff',2,.22)}
  else{const speed=level.speed*(hasRelic('boots')?1.15:1);
    // Analog acceleration: gentle tilts walk precisely; full tilt enables fast sprint without a third touch button.
@@ -558,9 +577,10 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  if(!RH_PACK||!img.complete||!img.naturalWidth)return false;
  const set=useSpecific?RH_PACK[name]?.frames:RH_PACK.frames?.[name];if(!set)return false;
  const frames=set[state]||set.idle;if(!frames?.length)return false;
- const safe=(RH_SAFE[name]?.[state]||frames.map((_,i)=>i)).filter(i=>Number.isInteger(i)&&i>=0&&i<frames.length);
+ const preferred=useSpecific&&name==='hero'&&state==='jump'?[0,1]:RH_SAFE[name]?.[state];
+ const safe=(preferred||frames.map((_,i)=>i)).filter(i=>Number.isInteger(i)&&i>=0&&i<frames.length);
  const seq=safe.length?safe:frames.map((_,i)=>i);
- const f=frames[seq[Math.floor(Math.max(0,time))%seq.length]];if(!f||f.length<4||f[2]<=0||f[3]<=0)return false;
+ const f=frames[seq[Math.floor(Math.max(0,time))%seq.length]];if(!f||f.length<4||f[2]<=0||f[3]<=0||f[0]<0||f[1]<0||f[0]+f[2]>img.naturalWidth||f[1]+f[3]>img.naturalHeight)return false;
  ctx.save();ctx.imageSmoothingEnabled=false;
  // Consistent feet anchor across frames; preserve source aspect ratio to prevent stretching.
  const base=RH_FRAME_BASE[name]||[f[2],f[3]],scale=Math.min(w/base[0],h/base[1]);const dw=f[2]*scale,dh=f[3]*scale;x+=(w-dw)/2;y+=h-dh;w=dw;h=dh;
@@ -603,7 +623,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);background();
  const gx=level.goalX,gy=level.platforms.at(-1).y-75,bossLocked=!!level.boss?.alive;ctx.strokeStyle=bossLocked?'#ff688a':t.accent;ctx.lineWidth=7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=19;ctx.beginPath();ctx.ellipse(gx,gy+36,17,35,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=bossLocked?'#ff688a36':'#a5ffe744';ctx.beginPath();ctx.ellipse(gx,gy+36,13,31,0,0,TAU);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(bossLocked?'LOCK':'GOAL',gx,gy-13);
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
- const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const pstate=p.grace>0?'hurt':punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>28?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);if(!drawRHSprite('hero',pstate,pframe,-14,-13,55,51,p.face,p.grace>0)){ctx.fillStyle=p.grace>0?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
+ const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const pstate=p.grace>0?'hurt':punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);if(!drawRHSprite('hero',pstate,pframe,-14,-13,55,51,p.face,p.grace>0)){ctx.fillStyle=p.grace>0?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
  if(punchTime>0){const px=p.face===1?36:-23;ctx.fillStyle=weapon().color;ctx.beginPath();ctx.arc(px,15,12,0,TAU);ctx.fill();ctx.strokeStyle='#fff9d1';ctx.lineWidth=4;ctx.beginPath();ctx.arc(px,15,18,-1.15,1.7);ctx.stroke()}
  ctx.restore()}
  for(const sl of slashes){const alpha=Math.max(0,sl.life/sl.max);ctx.fillStyle=sl.color;ctx.globalAlpha=alpha*.20;ctx.fillRect(sl.x,sl.y,sl.w,sl.h);ctx.globalAlpha=alpha;ctx.lineWidth=5;ctx.strokeStyle=sl.color;ctx.beginPath();ctx.moveTo(sl.dir>0?sl.x:sl.x+sl.w,sl.y+sl.h*.1);ctx.quadraticCurveTo(sl.x+sl.w*.5,sl.y-sl.h*.25,sl.dir>0?sl.x+sl.w:sl.x,sl.y+sl.h*.85);ctx.stroke();ctx.globalAlpha=1}
@@ -700,8 +720,8 @@ window.addEventListener('pageshow',()=>{resetInputs();frame.prev=0});
 window.addEventListener('focus',()=>{resetInputs();frame.prev=0});
 window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0});
 $('swapTiny').addEventListener('click',swapWeapon);$('soundTiny').addEventListener('click',toggleSound);
-$('menuTiny').addEventListener('click',()=>{saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex};showMenu()});
-document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex};showMenu()}});
+$('menuTiny').addEventListener('click',()=>{saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()});
+document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()}});
 resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();$('soundTiny').textContent=muted?'♫ OFF':'♫ ON';requestAnimationFrame(frame);
 })();
 </script>
