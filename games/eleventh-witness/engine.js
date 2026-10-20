@@ -28,7 +28,7 @@ function storageSet(k,v){try{localStorage.setItem(k,v);return true}catch(_){retu
 function copy(o){return JSON.parse(JSON.stringify(o))}
 function save(){if(!playing)return;storageSet(SAVE,JSON.stringify(state));ui.saveBadge.textContent="自動保存";}
 function read(k){try{let x=JSON.parse(storageGet(k));if(x && BOOK.scenes[x.scene] && Number.isInteger(x.index) && x.index>=0 && x.index<=BOOK.scenes[x.scene].length)return x}catch(_){ }return null}
-function fresh(){const old=read(SAVE);state={scene:BOOK.start,index:0,flags:{},clues:{},history:[],seen:{},bg:"stop",sound:state.sound,auto:false,speed:state.speed,font:state.font,finished:false,ending:null,visits:(old?old.visits+1:1)};playing=true;waiting=false;ui.cover.hidden=true;show();}
+function fresh(){const old=read(SAVE);state={scene:BOOK.start,index:0,flags:{loopMemory:!!(old&&old.finished)},clues:{},history:[],seen:{},bg:"stop",sound:state.sound,auto:false,speed:state.speed,font:state.font,finished:false,ending:null,visits:(old?old.visits+1:1)};playing=true;waiting=false;ui.cover.hidden=true;show();}
 function restore(obj){cancelType();cancelAuto();state=Object.assign({},state,obj);state.flags=state.flags||{};state.clues=state.clues||{};state.history=state.history||[];state.seen=state.seen||{};playing=true;waiting=false;ui.cover.hidden=true;setFont(state.font);updateButtons();show();}
 function cancelType(){if(typeTimer)clearInterval(typeTimer);typeTimer=0;typing=false;}
 function cancelAuto(){autoplayToken++;if(autoTimer)clearTimeout(autoTimer);autoTimer=0;}
