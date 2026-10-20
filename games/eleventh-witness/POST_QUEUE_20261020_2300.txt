@@ -1,0 +1,3 @@
+NOVEL_4453bda8169dfad56fce33b1cadd4559c8d4d7a2
+STATUS: UNSENT
+Reason: Existing Buffer route accepts only blog posts. Retry with dedicated route after checking duplicate IDs.
