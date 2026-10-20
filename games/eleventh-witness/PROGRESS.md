@@ -37,3 +37,10 @@
 
 ## URL
 https://techmew.github.io/games/eleventh-witness/
+
+## 同日・最終確認追記
+- 食堂に10人目の宿側担当・森下宗太の短い人物描写を追加。第一夜内の人数認識の唐突さを緩和（commit d9277dc）。
+- タイトル内で過去を『冬』と呼んだ箇所を『夜』へ修正し、11年前の夏との季節整合性を確保（commit 8b9a21a）。
+- WebAudioによる独自の電話呼出音・ノック音・死体発見時の不協和音・照明の瞬間的な変動音を追加（commit 9a9d9cb）。音は既定OFF、利用者操作でONにできる。
+- 最新のGitHub API再取得で新index/engine/storyとオリジナル背景5点すべて存在 PASS、JavaScript構文 PASS、全分岐先存在 PASS。28シーン群、415ノード、8,809文字、7選択地点。
+- 公開配信の実HTTP到達・スマホ実機検証は未確認（DNSが利用できない経路）。
