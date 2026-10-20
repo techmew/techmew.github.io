@@ -564,8 +564,9 @@ const RH_SAFE={
 const RH_ENEMY_SPRITES=['slime','rabbit','turret','ghost','beetle','beetle','sniper','rabbit','slime','ghost','ghost','turret'];
 // All frames use one source-pixel scale per character, so poses never stretch or jump in size.
 const RH_FRAME_BASE={};
-for(const name of Object.keys(RH_PACK?.frames||{})){
- const states=RH_PACK?.[name]?.frames||RH_PACK.frames[name];
+for(const name of new Set([...Object.keys(RH_PACK?.frames||{}),...Object.keys(RH_SPRITE_IMAGES)])){
+ const states=RH_PACK?.[name]?.frames||RH_PACK?.frames?.[name];
+ if(!states)continue;
  let width=1,height=1;
  for(const frames of Object.values(states))for(const f of frames){width=Math.max(width,f[2]);height=Math.max(height,f[3])}
  RH_FRAME_BASE[name]=[width,height];
