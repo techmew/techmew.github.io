@@ -1,5 +1,5 @@
 # NEKO SIGNAL — 制作正本 / PROGRESS
-最終更新: 2026-10-20 20:57 JST
+最終更新: 2026-10-20 21:00 JST
 保存先: `world-game-lab/`（このディレクトリ以外の既存サイトは変更しない）
 公開予定URL: https://techmew.github.io/world-game-lab/
 ソース: https://github.com/techmew/techmew.github.io/blob/main/world-game-lab/index.html
@@ -23,6 +23,7 @@ PC/スマホのブラウザ対応・完全自作の描画/音・操作性・ラ�
 ## 検証済み
 - 2026-10-20: GitHub保存済。JavaScript構文チェック OK。
 - 2026-10-20: DOM/Canvas模擬環境で初期描画・ゲーム開始・1800フレーム連続更新・キー入力イベント動作 OK。
+- 2026-10-20: DOM模擬環境からボス撃破→アップグレード選択→全3ステージ突破→モード win までの状態遷移テスト OK（実機プレイではない）。
 - 未実施: 実機ブラウザでの目視、タッチ端末、ボス3体すべての通しプレイ、GitHub Pages配信確認、音声聴感テスト。これらを未検証のまま『完璧』とは呼ばない。
 
 ## 次回の優先順
