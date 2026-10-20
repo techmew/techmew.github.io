@@ -20,7 +20,7 @@ button:focus-visible{outline:2px solid #fff1b5;outline-offset:4px}
 button:disabled{cursor:default;opacity:.5}
 [hidden]{display:none!important}
 #app{width:100%;height:100dvh;min-height:420px;position:relative;display:flex;flex-direction:column;overflow:hidden}
-#scene{flex:1;min-height:0;position:relative;overflow:hidden;background:#19212b;isolation:isolate;touch-action:pan-y}
+#scene{flex:1;min-height:0;position:relative;overflow:hidden;background:#19212b;isolation:isolate;touch-action:none}
 #world{position:absolute;inset:-16%;background:#1d2a35 url("assets/reboot-snow.svg") center/cover no-repeat;transform:translate3d(var(--pan-x,0px),var(--pan-y,0px),0) scale(1.03);will-change:transform;transition:background-image .25s ease,transform .15s ease;z-index:-3}
 #scene::before{content:"";position:absolute;inset:0;z-index:-2;pointer-events:none;background:linear-gradient(180deg,#01060a85 0%,transparent 30%,#01050c11 49%,#03060bb3 88%,#020407e0 100%)}
 #scene::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.23;background-image:radial-gradient(#e2e9e6 0.8px,transparent 1px),radial-gradient(#b8d1e1 0.7px,transparent 1px);background-size:130px 135px,186px 184px;background-position:13px 10px,94px 55px;animation:snowfall 19s linear infinite}
@@ -43,7 +43,7 @@ button:disabled{cursor:default;opacity:.5}
 #fullText{position:absolute;clip-path:inset(50%);height:1px;width:1px;overflow:hidden}
 #dialog:after{content:"◆";position:absolute;right:32px;bottom:12px;color:#cfaf78;opacity:.9;animation:pulse 1.3s ease infinite}
 @keyframes pulse{50%{opacity:.2;transform:translateY(2px)}}
-#prompt{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);width:min(840px,calc(100% - 32px));max-height:78%;overflow:auto;background:linear-gradient(#0b111ded,#0c121ced);border:1px solid #e0caa27f;box-shadow:0 20px 60px #000e;padding:clamp(19px,3.2vw,35px);backdrop-filter:blur(10px)}
+#prompt{touch-action:pan-y;position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);width:min(840px,calc(100% - 32px));max-height:78%;overflow:auto;background:linear-gradient(#0b111ded,#0c121ced);border:1px solid #e0caa27f;box-shadow:0 20px 60px #000e;padding:clamp(19px,3.2vw,35px);backdrop-filter:blur(10px)}
 #prompt h2{font-size:clamp(17px,2.6vw,24px);font-weight:500;line-height:1.7;color:#f0e3c7;letter-spacing:.08em;margin:0 0 20px}
 #prompt:before{content:"その夜、あなたは";display:block;font-size:12px;letter-spacing:.3em;color:#b6a488;margin-bottom:9px}
 #choices{display:flex;flex-direction:column;gap:11px}
@@ -72,7 +72,7 @@ button:disabled{cursor:default;opacity:.5}
 .coverBtn{background:#a58c64ec;color:#101318;border:1px solid #f4dfbb;border-radius:2px;font-weight:bold;padding:14px 25px;width:min(275px,100%);font-size:15px;letter-spacing:.14em}
 .coverBtn.alt{background:#182333db;color:#e7dac3;border-color:#c5b08e}
 .coverInfo{color:#b5b1a7;font-size:11px;margin:26px 0 0}
-#modal{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:14px;background:#080b11dd;backdrop-filter:blur(7px)}
+#modal{touch-action:pan-y;position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:14px;background:#080b11dd;backdrop-filter:blur(7px)}
 .modalShell{width:min(730px,100%);max-height:90%;padding:26px;background:#101721;border:1px solid #b6a27c99;box-shadow:0 20px 65px #000d;overflow:hidden;display:flex;flex-direction:column}
 .modalHead{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #cfb68555;padding-bottom:14px}
 #modalTitle{font-size:21px;margin:0;color:#f4e3c1;font-weight:400}
