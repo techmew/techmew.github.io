@@ -129,12 +129,19 @@ button:disabled{cursor:default;opacity:.5}
  .barbtn{padding:4px 8px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* Existing artwork: optimized WebP portraits, gently faded into the lodge scenery. */
+#portrait{position:absolute;right:clamp(-18px,3vw,46px);bottom:0;z-index:1;pointer-events:none;user-select:none;-webkit-user-drag:none;width:auto;max-width:54vw;height:min(80%,710px);object-fit:contain;object-position:right bottom;filter:drop-shadow(-10px 8px 26px #01030899);-webkit-mask-image:radial-gradient(ellipse 70% 71% at 50% 47%,#000 62%,transparent 100%);mask-image:radial-gradient(ellipse 70% 71% at 50% 47%,#000 62%,transparent 100%);transition:opacity .2s ease}
+#portrait[hidden]{display:none!important}
+@media(max-width:700px){#portrait{right:-12%;height:72%;max-width:93vw;opacity:.8;object-position:right bottom}}
+@media(max-height:550px) and (orientation:landscape){#portrait{right:7%;height:90%;max-width:35vw}}
+@media(prefers-reduced-motion:reduce){#portrait{transition:none}}
 </style>
 </head>
 <body>
 <div id="app">
 <main id="scene" role="main" aria-label="物語の画面">
 <div id="world" aria-hidden="true"></div>
+<img id="portrait" alt="" width="320" height="480" decoding="async" hidden aria-hidden="true">
 <header id="top">
 <div id="location">山麓のバス停</div>
 <div id="topActions">

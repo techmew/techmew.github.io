@@ -4,11 +4,23 @@
 const BOOK=window.NOVEL_DATA;
 if(!BOOK){document.body.textContent="物語データの読み込みに失敗しました。ページを再読み込みしてください。";return;}
 const $=id=>document.getElementById(id), SAVE="eleventh_novel_reboot_2026_v1", SLOT=SAVE+"_slot_", SLOTS=3;
-const ui={stage:$("scene"),world:$("world"),cover:$("cover"),name:$("who"),story:$("prose"),full:$("fullText"),dialog:$("dialog"),prompt:$("prompt"),choices:$("choices"),hint:$("hint"),location:$("location"),counter:$("counter"),modal:$("modal"),modalTitle:$("modalTitle"),modalBody:$("modalBody"),saveBadge:$("saveBadge"),auto:$("autoBtn"),sound:$("soundBtn"),skip:$("skipBtn")};
+const ui={stage:$("scene"),world:$("world"),cover:$("cover"),name:$("who"),story:$("prose"),full:$("fullText"),dialog:$("dialog"),prompt:$("prompt"),choices:$("choices"),hint:$("hint"),location:$("location"),counter:$("counter"),modal:$("modal"),modalTitle:$("modalTitle"),modalBody:$("modalBody"),saveBadge:$("saveBadge"),portrait:$("portrait"),auto:$("autoBtn"),sound:$("soundBtn"),skip:$("skipBtn")};
 let state={scene:BOOK.start,index:0,flags:{},clues:{},history:[],seen:{},bg:"stop",sound:false,auto:false,speed:30,font:1,finished:false,ending:null,visits:1};
 let waiting=false,playing=false,typing=false,fullText="",typeTimer=0,autoTimer=0,autoplayToken=0,audio=null,windNode=null;
 let touch={id:null,sx:0,sy:0,ox:0,oy:0,x:0,y:0,moved:false,ignore:false}, dragging=false;
 const imgs={stop:"assets/reboot-snow.svg",road:"assets/reboot-road.svg",lodge:"assets/reboot-snow.svg",lobby:"assets/reboot-parlor.svg",room:"assets/reboot-room.svg",hall:"assets/reboot-hall.svg",dining:"assets/reboot-parlor.svg",dryroom:"assets/reboot-hall.svg"};
+const PORTRAITS={
+  "紗江":{src:"assets/portraits/sae.webp",alt:"三枝紗江"},
+  "匠":{src:"assets/portraits/takumi.webp",alt:"高瀬匠"}
+};
+function showPortrait(who){
+ const profile=PORTRAITS[who];
+ if(!profile){ui.portrait.hidden=true;return;}
+ if(ui.portrait.getAttribute("src")!==profile.src)ui.portrait.src=profile.src;
+ ui.portrait.alt=profile.alt+"の立ち絵";
+ ui.portrait.hidden=false;
+}
+ui.portrait.addEventListener("error",()=>{ui.portrait.hidden=true;});
 function storageGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
 function storageSet(k,v){try{localStorage.setItem(k,v);return true}catch(_){return false}}
 function copy(o){return JSON.parse(JSON.stringify(o))}
@@ -40,6 +52,7 @@ function show(){
  let row;
  try{row=digest()}catch(err){console.error(err);row={k:"n",s:"物語の読み込みで問題が起きました。メニューからセーブを読み込み直してください。"};}
  if(row.b)place(row.b);else if(!state.bg)place("stop");
+ showPortrait(row.k==="d"?row.who:null);
  ui.counter.textContent="第一夜："+({opening:"到着",scarf:"到着",purpose:"到着",drive:"山道",talk_photo:"山道",talk_silence:"山道",talk_alibi:"山道",gate:"山荘",photowall:"山荘",ayanote:"山荘",room:"客室",dinner:"晩餐",askBowl:"晩餐",askTakumi:"晩餐",quietBowl:"晩餐",afterDinner:"夜",firstHour:"事件",firstHourAya:"事件",firstHourChihiro:"事件",firstHourMari:"事件",withRiko:"夜",corridor:"夜",withKohei:"夜",storm:"事件",questionAya:"事件",questionDoctor:"事件",retreat:"事件",lockdown:"深夜",callOutside:"深夜",holdRiko:"深夜",openDoor:"結末",survive:"結末"}[state.scene]||"続き");
  if(row.k==="n"||row.k==="d"){
   ui.name.textContent=row.k==="n"?"":(BOOK.speakers[row.who]||row.who);

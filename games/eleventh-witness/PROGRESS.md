@@ -52,3 +52,11 @@ https://techmew.github.io/games/eleventh-witness/
 - GitHubのmainから更新済みstory.jsを再取得して確認。GitHub Pages配信・実機検証は未確認。
 - X返信：取得不能・未確認。Buffer正規GASはブログURL専用。ゲーム投稿は未送信。
 - 次回：実機UI・章ラベル、人物画像のゲーム組込み、第二夜の時系列とアリバイ確定。
+
+## 2026-10-21 01:18 JST 既存生成キャラクター画像の再利用
+- ユーザー指示：以前生成した立ち絵を照合してGitHubへアップロード・本編に実装。**新規生成なし**。
+- 原画3点から320×480 WebPを制作。正史照合結果：女性→紗江、カメラの男性→匠、写真の男性→現時点で未採用の参考画像。仮名は正史に取り込まない。
+- index.htmlに立ち絵コンテナと、PC/スマホ/横画面向け視覚調整を追加。engine.jsに正史話者名での立ち絵自動表示・ナレーションで非表示・ロード失敗時非表示を追加。
+- story.jsは一文字も変更せず、chapter/scene/index/flags/clues/history/seen/bg/visits、SAVEキーeleventh_novel_reboot_2026_v1およびしおり3枠を維持。
+- JavaScript構文（story.js,engine.js）PASS、セーブキー/スロット数/画面要素/画像マッピング静的検査PASS。既存章と文書の書換なし。
+- GitHubへの画像コミットの結果は実commit URLと照合する。GitHub Pages配信・実機描画確認は別途記録する。
