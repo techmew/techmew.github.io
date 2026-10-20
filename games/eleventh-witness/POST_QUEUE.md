@@ -32,3 +32,12 @@ https://techmew.github.io/games/eleventh-witness/
 - x_post_url: 未取得
 - 投稿文：【存在しない11人目】事件後の絢・千尋・真理との分岐を追加。改行表示も修正。無料プレイ https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。
 - 理由: Pages配信とゲーム専用Buffer経路を確認できず保留。
+
+## 2026-10-21 キャラ立ち絵公開告知（保留）
+- status: HOLD_PAGES_UNVERIFIED
+- post_key: NOVEL_88266bd2c687c3ae7b80875a2b4cb859919f6fa5
+- code_commit: 88266bd2c687c3ae7b80875a2b4cb859919f6fa5
+- target_url: https://techmew.github.io/games/eleventh-witness/
+- buffer_id: 未取得 / x_post_url: 未取得
+- 投稿文：【存在しない11人目】以前描いた立ち絵をゲームに実装。紗江と匠の会話で人物が登場します。https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。 #ブラウザゲーム
+- 理由: Pages実配信とゲーム専用のBuffer経路が未確認。既存ブログ用GASと予約キューは変更しない。
