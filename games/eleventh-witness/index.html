@@ -110,6 +110,27 @@ code{font-size:12px;color:#92e7d3}
  .option{padding:7px 10px;font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* 2.5D interactive camera: background overscans so no black edges show. */
+#storyStage{background:#0a1625;touch-action:none;cursor:grab}
+#storyStage.look-grabbing{cursor:grabbing;user-select:none;-webkit-user-select:none}
+#sceneWorld{position:absolute;inset:-12%;z-index:0;pointer-events:none;background: url("assets/atrium.svg") center/cover no-repeat;transform:translate3d(var(--look-x,0px),var(--look-y,0px),0) scale(1.04);transition:transform .08s linear;will-change:transform}
+#person:not(.hidden){transform:translate3d(calc(var(--look-x,0px) * -.36),calc(var(--look-y,0px) * -.24),0)}
+#resetView{position:absolute;z-index:2;right:12px;top:12px;border:1px solid #79dfd880;background:#091c2bdc;border-radius:9px;color:#b9f8ed;padding:9px 13px;font-size:12px;touch-action:manipulation}
+#lookTip{position:absolute;top:58px;right:13px;z-index:2;pointer-events:none;color:#c1e5e3;font-size:11px;background:#051426aa;padding:5px 9px;border-radius:7px;max-width:180px;text-align:right}
+#cover{cursor:pointer;touch-action:manipulation}
+#textBox{touch-action:none;user-select:none;-webkit-user-select:none}
+#interaction{touch-action:pan-y}
+.panel{touch-action:pan-y}
+#modal{touch-action:pan-y}
+#location{pointer-events:none}
+#person{pointer-events:none}
+@media(max-width:690px){
+ #lookTip{top:53px;right:8px;font-size:10px;max-width:145px}
+ #resetView{top:10px;right:8px;padding:7px 9px;font-size:11px}
+ #hintLine{max-width:60%}
+}
+@media(prefers-reduced-motion:reduce){#sceneWorld{transition:none}}
 </style>
 </head>
 <body>
@@ -123,13 +144,16 @@ code{font-size:12px;color:#92e7d3}
 <button class="small-btn" id="menuBtn">設定</button>
 </div>
 </header>
-<main id="storyStage" aria-label="ゲーム画面">
+<main id="storyStage" aria-label="ゲーム画面：上下左右にドラッグして視点移動、会話中はタップで次へ">
+<div id="sceneWorld" aria-hidden="true"></div>
+<button id="resetView" type="button" aria-label="カメラを中央に戻す">◎ 視点を戻す</button>
+<div id="lookTip" role="status">背景をドラッグして視点移動できます</div>
 <div id="location">零階・中央廊下<span>DAY 01 · 23:58</span></div>
 <img id="person" class="hidden" src="" alt="">
 <div id="textBox" tabindex="0" role="button" aria-label="次の文章へ進む">
 <div id="speaker">記録</div>
 <div id="text" aria-live="polite"></div>
-<div id="hintLine">画面タップ・Enterで進む / 自動保存</div>
+<div id="hintLine">どこでもタップで進む / ドラッグで視点移動</div>
 <button id="next">次へ →</button>
 </div>
 <section id="interaction" hidden aria-label="推理操作"><div class="panel" id="taskPanel"></div></section>
@@ -152,6 +176,7 @@ code{font-size:12px;color:#92e7d3}
 var KEY='eleventh_witness_save_v1';
 var STAGE=document.getElementById('storyStage'),PERSON=document.getElementById('person');
 var BOX=document.getElementById('textBox'),INTER=document.getElementById('interaction'),PANEL=document.getElementById('taskPanel');
+var WORLD=document.getElementById('sceneWorld'), RESET_VIEW=document.getElementById('resetView'), LOOK_TIP=document.getElementById('lookTip');
 var MODAL=document.getElementById('modal'),COVER=document.getElementById('cover');
 var images={mio:'assets/mio.svg',rei:'assets/rei.svg',saki:'assets/saki.svg'};
 var names={mio:'葛城 澪',rei:'八雲 レイ',saki:'榊 サキ',nagi:'天瀬 ナギ',sys:'施設放送',eleven:'不明な声',narr:'記録'};
@@ -216,7 +241,68 @@ function chime(second){if(!state.sound)return;[440,554.37,392].forEach(function(
 function tick(){if(!state.sound||!gameStarted)return;var f=[174.61,220,261.63,196,146.83,174.61,130.81,196][musicIndex%8];playTone(f,2.0,.009,'sine',0);playTone(f/2,2.2,.008,'triangle',.03);musicIndex++;}
 function setSound(v){state.sound=!!v;text('soundToggle',state.sound?'♪ ON':'♪ OFF');if(state.sound){try{getAudio();playTone(660,.13,.04,'sine',0);}catch(e){state.sound=false;text('soundToggle','♪ OFF');}}persist();}
 function speaker(w){text('speaker',names[w]||w);PERSON.classList.toggle('hidden',!images[w]);if(images[w]){PERSON.src=images[w];PERSON.alt=(names[w]||'')+'の立ち絵';}else PERSON.removeAttribute('src');}
-function background(bg,time){STAGE.style.backgroundImage='url("assets/'+(bg==='archive'?'archive':'atrium')+'.svg")';text('location',(bg==='archive'?'資料室09・調査中':'零階・中央廊下'));document.querySelector('#location span').textContent=time||'DAY 02 · 00:18';}
+function background(bg,time){WORLD.style.backgroundImage='url("assets/'+(bg==='archive'?'archive':'atrium')+'.svg")';text('location',(bg==='archive'?'資料室09・調査中':'零階・中央廊下'));document.querySelector('#location span').textContent=time||'DAY 02 · 00:18';}
+/* Mobile-first exploratory panorama: dragging moves background and character at
+   different depths. A movement gesture never advances the dialogue. */
+var camera={x:0,y:0,startX:0,startY:0,originX:0,originY:0,id:null,active:false,moved:false};
+var suppressTap=false;
+function clamp(n,a,b){return Math.min(b,Math.max(a,n));}
+function renderCamera(){
+ STAGE.style.setProperty('--look-x',camera.x+'px');
+ STAGE.style.setProperty('--look-y',camera.y+'px');
+}
+function resetCamera(){
+ camera.x=0;camera.y=0;renderCamera();
+}
+function setupCamera(){
+ renderCamera();
+ RESET_VIEW.addEventListener('click',function(e){e.stopPropagation();resetCamera();LOOK_TIP.textContent='視点を中央に戻しました';});
+ STAGE.addEventListener('pointerdown',function(e){
+  if(!gameStarted||!COVER.hidden||!MODAL.hidden||e.isPrimary===false||e.button>0)return;
+  if(e.target.closest('button, .panel, #modal, #cover'))return;
+  camera.id=e.pointerId;camera.active=true;camera.moved=false;
+  camera.startX=e.clientX;camera.startY=e.clientY;
+  camera.originX=camera.x;camera.originY=camera.y;
+ });
+ STAGE.addEventListener('pointermove',function(e){
+  if(!camera.active||camera.id!==e.pointerId)return;
+  var dx=e.clientX-camera.startX,dy=e.clientY-camera.startY;
+  if(!camera.moved && Math.hypot(dx,dy)<9)return;
+  if(!camera.moved){
+   camera.moved=true;STAGE.classList.add('look-grabbing');
+   try{STAGE.setPointerCapture(e.pointerId);}catch(_){}
+  }
+  camera.x=clamp(camera.originX+dx*.65,-95,95);
+  camera.y=clamp(camera.originY+dy*.5,-60,60);
+  renderCamera();
+  LOOK_TIP.textContent='視点移動中 ─ 指を離すと固定します';
+ });
+ function stopCamera(e){
+  if(!camera.active||camera.id!==e.pointerId)return;
+  camera.active=false;camera.id=null;STAGE.classList.remove('look-grabbing');
+  if(camera.moved){
+   suppressTap=true;LOOK_TIP.textContent='視点を動かせます・中央へ戻すには ◎';
+   setTimeout(function(){suppressTap=false;},120);
+  }
+ }
+ STAGE.addEventListener('pointerup',stopCamera);
+ STAGE.addEventListener('pointercancel',stopCamera);
+ STAGE.addEventListener('lostpointercapture',function(e){if(camera.active&&camera.id===e.pointerId)stopCamera(e);});
+ /* Capture after a drag must never accidentally trigger a story click. */
+ STAGE.addEventListener('click',function(e){
+  if(suppressTap){e.stopImmediatePropagation();e.preventDefault();return;}
+  if(!gameStarted||!COVER.hidden||!MODAL.hidden)return;
+  if(!INTER.hidden){
+   if(e.target===STAGE||e.target===WORLD){LOOK_TIP.textContent='調査中：表示された選択肢をタップしてください';}
+   return;
+  }
+  if(e.target.closest('button'))return;
+  /* The text box already has its own click handler: no double advance. */
+  if(e.target.closest('#textBox'))return;
+  advance();
+ },true);
+}
+
 function lastContext(){var bg='atrium',time='DAY 01 · 23:58';for(var i=0;i<=state.pos;i++){if(scenes[i].bg)bg=scenes[i].bg;if(scenes[i].time)time=scenes[i].time;}return {bg:bg,time:time};}
 function advance(){if(!gameStarted||!MODAL.hidden||!INTER.hidden)return;if(scenes[state.pos]&&scenes[state.pos].t==='d'){state.pos=Math.min(scenes.length-1,state.pos+1);persist();render();}}
 function nextScene(){state.pos=Math.min(scenes.length-1,state.pos+1);persist();render();}
@@ -285,6 +371,7 @@ function init(){var old=stored();hasSave=!!old;document.getElementById('continue
  document.getElementById('startBtn').onclick=function(){if(old){if(!window.confirm('記録を最初から始めますか？ 調査進行は初期化されます。'))return;state.run=Math.max(1,old.run||1);start(true);}else start(false);};
  document.getElementById('continueBtn').onclick=resume;
  document.getElementById('next').onclick=function(e){e.stopPropagation();advance();};
+ COVER.addEventListener('click',function(e){if(e.target.closest('button'))return;if(!gameStarted)document.getElementById('startBtn').click();});
  BOX.onclick=advance;
  document.getElementById('notesBtn').onclick=function(){openPanel('notes');};
  document.getElementById('logBtn').onclick=function(){openPanel('log');};
@@ -294,6 +381,7 @@ function init(){var old=stored();hasSave=!!old;document.getElementById('continue
  MODAL.onclick=function(e){if(e.target===MODAL)closePanel();};
  document.addEventListener('keydown',function(e){if(!MODAL.hidden){if(e.key==='Escape')closePanel();return;}if(e.key==='Enter'||e.key===' '){if(e.target&&e.target.tagName==='BUTTON')return;if(!COVER.hidden)return;if(!INTER.hidden)return;e.preventDefault();advance();}});
  window.addEventListener('pagehide',persist);
+ setupCamera();
  if(musicTimer)clearInterval(musicTimer);musicTimer=setInterval(tick,2400);
 }
 init();
