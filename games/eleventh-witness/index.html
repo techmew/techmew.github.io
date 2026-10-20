@@ -114,8 +114,8 @@ code{font-size:12px;color:#92e7d3}
 /* 2.5D interactive camera: background overscans so no black edges show. */
 #storyStage{background:#0a1625;touch-action:none;cursor:grab}
 #storyStage.look-grabbing{cursor:grabbing;user-select:none;-webkit-user-select:none}
-#sceneWorld{position:absolute;inset:-12%;z-index:0;pointer-events:none;background: url("assets/atrium.svg") center/cover no-repeat;transform:translate3d(var(--look-x,0px),var(--look-y,0px),0) scale(1.04);transition:transform .08s linear;will-change:transform}
-#person:not(.hidden){transform:translate3d(calc(var(--look-x,0px) * -.36),calc(var(--look-y,0px) * -.24),0)}
+#sceneWorld{position:absolute;inset:-20%;z-index:0;pointer-events:none;background: url("assets/atrium.svg") center/cover no-repeat;transform:translate3d(var(--look-x,0px),var(--look-y,0px),0) scale(1.1);transition:transform .08s linear;will-change:transform}
+#person:not(.hidden){transform:translate3d(var(--person-x,0px),var(--person-y,0px),0)}
 #resetView{position:absolute;z-index:2;right:12px;top:12px;border:1px solid #79dfd880;background:#091c2bdc;border-radius:9px;color:#b9f8ed;padding:9px 13px;font-size:12px;touch-action:manipulation}
 #lookTip{position:absolute;top:58px;right:13px;z-index:2;pointer-events:none;color:#c1e5e3;font-size:11px;background:#051426aa;padding:5px 9px;border-radius:7px;max-width:180px;text-align:right}
 #cover{cursor:pointer;touch-action:manipulation}
@@ -250,6 +250,8 @@ function clamp(n,a,b){return Math.min(b,Math.max(a,n));}
 function renderCamera(){
  STAGE.style.setProperty('--look-x',camera.x+'px');
  STAGE.style.setProperty('--look-y',camera.y+'px');
+ STAGE.style.setProperty('--person-x',(-camera.x*.36)+'px');
+ STAGE.style.setProperty('--person-y',(-camera.y*.24)+'px');
 }
 function resetCamera(){
  camera.x=0;camera.y=0;renderCamera();
@@ -272,8 +274,10 @@ function setupCamera(){
    camera.moved=true;STAGE.classList.add('look-grabbing');
    try{STAGE.setPointerCapture(e.pointerId);}catch(_){}
   }
-  camera.x=clamp(camera.originX+dx*.65,-95,95);
-  camera.y=clamp(camera.originY+dy*.5,-60,60);
+  var mx=Math.min(95,Math.max(38,STAGE.clientWidth*.23));
+  var my=Math.min(60,Math.max(30,STAGE.clientHeight*.17));
+  camera.x=clamp(camera.originX+dx*.65,-mx,mx);
+  camera.y=clamp(camera.originY+dy*.5,-my,my);
   renderCamera();
   LOOK_TIP.textContent='視点移動中 ─ 指を離すと固定します';
  });
