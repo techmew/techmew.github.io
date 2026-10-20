@@ -60,3 +60,12 @@ https://techmew.github.io/games/eleventh-witness/
 - story.jsは一文字も変更せず、chapter/scene/index/flags/clues/history/seen/bg/visits、SAVEキーeleventh_novel_reboot_2026_v1およびしおり3枠を維持。
 - JavaScript構文（story.js,engine.js）PASS、セーブキー/スロット数/画面要素/画像マッピング静的検査PASS。既存章と文書の書換なし。
 - GitHubへの画像コミットの結果は実commit URLと照合する。GitHub Pages配信・実機描画確認は別途記録する。
+
+### 2026-10-21 既存生成画像の実装結果・検証
+- 画像＋本体 GitHub commit: 88266bd2c687c3ae7b80875a2b4cb859919f6fa5 (main更新成功)
+- GitHub API readback: assets/portraits/sae.webp=3680 bytes (81f3e3dc), takumi.webp=4356 bytes (5a317bc9), unassigned-photo-man.webp=3378 bytes (c57af9ab)。WebP署名・サイズ・blob SHAいずれも一致。
+- 既存 story.js blob SHA 2210a96faa0582ea0111ab0226dce2d0738fdf69 を維持。シナリオ38場面群と分岐も不変更。
+- 疑似DOM操作検査PASS：開始→既存自動セーブキー、紗江・匠の立ち絵表示、非対象話者で非表示、画像読込エラーで非表示、既存しおり3枠コード保持。
+- story.js, engine.js JavaScript構文検査PASS。
+- GitHub Pages https://techmew.github.io/games/eleventh-witness/ は Web直接アクセス不可。公開URLへの反映・実機表示は未確認。GitHubコミット成功との区別を維持。
+- 次回：Pages配信とAndroid実機表示の確認、立ち絵の解像度・合成改善、残りの正史人物の立ち絵制作方針。
