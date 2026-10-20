@@ -52,3 +52,14 @@ https://techmew.github.io/games/eleventh-witness/
 - x_post_url: 未取得
 - 本文：【存在しない11人目】第一夜をまるごと大胆リメイク！十人全員が犯人指名、11個目のカップ、八重歯の莉子と病みかわ2Dキャラ4人。分岐3ENDの推理ノベル。https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。 #ブラウザゲーム
 - reason: GitHub APIでmainへの反映済みだがGitHub Pages実配信確認は不可。ゲーム専用のBuffer認証済み書き込み経路を確認できず。既存ブログ用GASのREADYキューへは誤登録しない。旧版の未投稿草案も重複・誤送信しない。
+
+
+## 2026-10-21 硬派路線への更新
+- status: HOLD_PAGES_UNVERIFIED_AND_BUFFER_UNVERIFIED
+- post_key: NOVEL_868a4d0c669f0420afc5bdde422cb3fe34279730
+- source_code_commit: 868a4d0c669f0420afc5bdde422cb3fe34279730
+- target_url: https://techmew.github.io/games/eleventh-witness/
+- buffer_id: 未取得
+- x_post_url: 未取得
+- message: 【存在しない11人目】第一夜『黒い招待状』を改稿。人物の証言と宿帳・写真・時計の手掛かりを中心とした本格ミステリーに調整し、画面の過剰な装飾を除きました。 https://techmew.github.io/games/eleventh-witness/ 遊んだ感想や改善点を返信で教えてください。次回の開発で確認します。
+- reason: GitHubコミット成功、ただしPages最新公開とゲーム専用のBuffer認証済み送信手段を未確認。送信成功を示す実IDなし。旧病みかわ/画像実装済みをうたった未送信文案は失効とし、勝手に送らない。
