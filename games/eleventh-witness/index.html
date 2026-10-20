@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#210d2b">
-<meta name="description" content="存在しない11人目 ― ヤミかわいい殺人サウンドノベル。十人全員に届いた犯人指名の招待状。誰が最初に笑わなくなる？">
+<meta name="theme-color" content="#101820">
+<meta name="description" content="存在しない11人目 ― 吹雪の山荘に集まった十人全員に届いた犯人指名の招待状。物証と証言で解き明かす本格ミステリー。">
 <meta property="og:title" content="存在しない11人目｜第一夜・席を空けておいて">
 <meta property="og:description" content="十一年ぶりに集められた十人。山荘に残った写真と、誰のものでもない席。吹雪の夜、最初の事件が起こる。">
 <meta property="og:url" content="https://techmew.github.io/games/eleventh-witness/">
 <meta property="og:type" content="website">
-<title>存在しない11人目｜第一夜 笑顔の死亡予告</title>
+<title>存在しない11人目｜第一夜 黒い招待状</title>
 <style>
 :root{color-scheme:dark;--ink:#eae7df;--muted:#bbb9b3;--paper:#f6e7c9;--line:#d9c59f55;--type-scale:1}
 *{box-sizing:border-box}
@@ -136,60 +136,63 @@ button:disabled{cursor:default;opacity:.5}
 @media(max-height:550px) and (orientation:landscape){#portrait{right:7%;height:90%;max-width:35vw}}
 @media(prefers-reduced-motion:reduce){#portrait{transition:none}}
 
-/* YAMI-KAWA REBOOT: deliberately graphic 2D cel look, not glossy realism */
-:root{--ink:#fff0fc;--muted:#b9a5cf;--paper:#ffbbef;--line:#fc76cda8}
-body,button{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,system-ui,sans-serif}
-#scene{background:#151029}
-#scene::before{background:linear-gradient(180deg,#15092372 0%,transparent 40%,#1309221c 65%,#0c0615b8 100%)}
-#scene::after{opacity:.15}
-#top{background:linear-gradient(#1d0d2be5,#1d0d2b10)}
-#location{color:#ffc0e9;font-weight:800;font-size:12px;text-shadow:0 2px 5px #110614}
-#location::before{height:5px;width:16px;border-radius:9px;background:#ff58ae}
-.iconbtn{background:#251432dd;border:2px solid #f871c688;border-radius:12px;color:#ffe8f9;font-family:inherit;font-weight:800;font-size:11px}
-.iconbtn:hover,.iconbtn.active{background:#9e255f;border-color:#ffb0e1}
-#centerView{background:#ff69ac;border:2px solid #ffe4ff;color:#240c2d;font-weight:900;box-shadow:0 4px 0 #421531;border-radius:15px}
-#dialog{background:linear-gradient(117deg,rgba(21,9,31,.96),rgba(44,16,58,.92));border:3px solid #ff7dcc;border-radius:21px 21px 14px 14px;box-shadow:0 13px 0 #1006199c,0 0 42px #f351aa26;padding:25px 34px 42px}
-#who{color:#ffe8fb;background:#e63d8c;border:2px solid #ffb8dd;border-radius:12px;display:inline-block;padding:4px 17px;margin-bottom:10px;font-size:15px;text-shadow:2px 2px #73204c;font-weight:900}
-#who[hidden]{display:none}
-#prose{color:#fff5fc;font-family:inherit;font-weight:600;font-size:calc(18px * var(--type-scale));line-height:1.85;letter-spacing:.015em;text-shadow:0 2px 2px #0c0717}
-#dialog:after{content:"♥";right:26px;bottom:11px;color:#ff9de6;font-size:21px}
-#prompt{background:#190e2cf2;border:4px solid #ff7dcc;border-radius:21px;box-shadow:12px 12px 0 #18091fe8;z-index:6}
-#prompt h2{color:#fff0fb;font-family:inherit;font-weight:900}
-#prompt::before{content:"CHOICE / あなたが決めて ♡";color:#ff8bcc;font-size:12px;font-weight:900;letter-spacing:.11em}
-.option{background:#322047;border:2px solid #ffa2e78f;border-radius:14px;color:#fff1fd;font-weight:750;font-family:inherit}
-.option:hover,.option:focus-visible{background:#63254f;border-color:#ffc2ea}
-.option .num{color:#ffaddd}
-.option small{color:#f1cbeb}
-#bottom{background:#170c28;border-top:3px solid #f16ab5}
-#counter{color:#ff9ed8;font-family:inherit;font-weight:900;font-size:11px}
-#hint{color:#cbb9d8}
-.barbtn{border:2px solid #ed7dc480;border-radius:10px;color:#ffe0f7;font-family:inherit;font-weight:800}
-.barbtn.active{background:#ad3076;color:#fff;border-color:#ffc5ed}
-#cover{background:linear-gradient(135deg,#211029df 0%,#4e16468a 46%,#0c0821e8 100%)}
-.coverContent{max-width:660px;padding:43px 27px;background:#170d28df;border:3px solid #f276c4;border-radius:22px;box-shadow:13px 13px 0 #0c0717,0 0 90px #fc5caa25}
-.eyebrow{color:#ff96cf;font-family:inherit;font-size:12px;font-weight:900}
-#cover h1{font-family:inherit;font-weight:950;color:#fff1fb;font-size:clamp(32px,5.6vw,65px);letter-spacing:.01em;text-shadow:4px 5px 0 #e94798}
-.cover-subl{color:#ffaae2;font-family:inherit;font-weight:950;letter-spacing:.02em}
-.cover-desc{color:#f8e6f7;font-size:14px;line-height:1.95;font-family:inherit}
-.coverBtn{background:#fa69b1;border:2px solid #ffebf9;border-radius:14px;color:#2d0e2a;font-family:inherit;font-weight:950;box-shadow:0 6px 0 #80345e}
-.coverBtn.alt{background:#40254f;border-color:#eea1d1}
-.coverInfo{color:#d8a8cd}
-#portrait{filter:drop-shadow(-6px 10px 0 #160e20a0);mask-image:none;-webkit-mask-image:none;right:5%;height:min(86%,790px);max-width:50vw;image-rendering:auto;transition:opacity .15s}
-#modal{background:#140a27e6}
-.modalShell{background:#211530;border:3px solid #ed82c5;border-radius:20px}
-#modalTitle,.logRow b{color:#ff98d4}
-.modal-btn{background:#4b2853;border:2px solid #d77aab;border-radius:9px}
-#closeModal{background:#d75194;color:#fff;border-radius:9px;font-weight:900}
-#saveBadge{display:none}
+
+/* SECOND ART DIRECTION — HARD-BOILED JAPANESE MYSTERY.
+   No kawaii motifs, hearts, neons or rasterized vector portraits. */
+:root{--type-scale:1;--ink:#e9e6df;--muted:#b1b5b8}
+body,button{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",YuMincho,serif}
+#app{background:#080c10;color:#ece8de}
+#scene{background:#101820}
+#top{background:linear-gradient(180deg,#071016e8,#07101610);padding-inline:clamp(12px,2vw,28px)}
+#location{color:#e2ddd1;font-size:12px;letter-spacing:.12em;font-weight:500;text-shadow:0 2px 5px #050a0d}
+#location::before{width:20px;height:1px;background:#999083}
+#topActions{gap:7px}
+.iconbtn{background:#131c23e6;border:1px solid #646f73a8;color:#e4e2de;border-radius:2px;font-family:"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;font-weight:500;min-height:42px;padding:9px 13px}
+.iconbtn:hover,.iconbtn.active{background:#34414a;border-color:#b6afa2}
+#centerView{background:#18232ad9;border:1px solid #aaa69b;color:#e2dac9;border-radius:50%;box-shadow:0 4px 10px #0008}
+#dialog{background:linear-gradient(103deg,rgba(7,12,17,.96),rgba(15,23,29,.92));border:1px solid #9c9c9066;border-top:1px solid #c1bcae99;border-radius:2px;box-shadow:0 12px 35px #000a;padding:27px 36px 36px;backdrop-filter:blur(6px)}
+#who{background:transparent;border:none;border-radius:0;display:block;margin:0 0 13px;padding:0;color:#d7c7a5;letter-spacing:.15em;font-size:15px;font-weight:600;text-shadow:0 1px 4px #000}
+#prose{color:#efeee9;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",YuMincho,serif;font-size:calc(19px * var(--type-scale));line-height:1.95;letter-spacing:.035em;font-weight:400;max-width:850px;text-shadow:0 1px 3px #000}
+#dialog:after{content:"▾";color:#b4af9e;animation:pulse 1.8s ease infinite}
+#prompt{background:linear-gradient(140deg,#0c151ef2,#141d24f6);border:1px solid #9f9d8caa;box-shadow:0 20px 45px #000c;border-radius:2px}
+#prompt:before{content:"選択";color:#b8ad94;letter-spacing:.2em;font-weight:500}
+#prompt h2{font-family:inherit;font-size:clamp(18px,3vw,23px);color:#eee9df;font-weight:500}
+.option{background:#1b272ecf;color:#f1eee7;border:1px solid #767d7f80;border-radius:2px;min-height:62px;font-family:inherit;font-weight:400;transition:background .15s,border-color .15s}
+.option:hover,.option:focus-visible{background:#314049;border-color:#d1c5ac}
+.option .num{color:#bbaf99;font-family:Georgia,serif}
+.option small{color:#adb6b8}
+.option.major{background:#343833;border-color:#b3a98c}
+#bottom{background:#10171c;border-top:1px solid #5d6567a0}
+#counter{font-family:"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#c9beac;font-size:11px;font-weight:400}
+#hint{color:#a7abad;font-size:11px}
+.barbtn{font-family:"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;border:1px solid #6f777455;border-radius:2px;color:#c4c6c5;font-weight:400}
+.barbtn.active{background:#424d4d;color:#fff;border-color:#a5a89c}
+#cover{background:linear-gradient(125deg,#07121ee5,#0b1720aa 48%,#050c14ec)}
+.coverContent{max-width:700px;background:#08121bc7;padding:52px 36px;border:1px solid #a8a18f88;border-radius:0;box-shadow:0 22px 65px #000b}
+.eyebrow{font-family:Georgia,serif;color:#c2b59c;letter-spacing:.22em;font-size:11px;font-weight:400}
+#cover h1{font-weight:500;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:#f2eee5;font-size:clamp(33px,5.6vw,58px);letter-spacing:.11em;line-height:1.45;text-shadow:0 4px 9px #000}
+.cover-subl{color:#c5bbac;font-family:inherit;letter-spacing:.12em;font-weight:400;font-size:17px}
+.cover-desc{font-size:16px;line-height:2.2;color:#ddd8ce;letter-spacing:.03em;font-family:inherit}
+.coverBtn{background:#b8b2a2;border:1px solid #ded6c4;color:#172025;box-shadow:none;border-radius:2px;font-family:"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;letter-spacing:.12em;font-weight:600}
+.coverBtn.alt{background:#15242e;color:#e6dfd2;border-color:#a6a39b}
+.coverInfo{color:#a6aba8}
+#portrait,#portrait[hidden]{display:none!important}
+.modalShell{background:#101b23;border:1px solid #a5a398;border-radius:2px}
+#modal{background:#071017dd}
+#modalTitle{color:#d7c7ac}
+.logRow b{color:#d6c6ab}
+.modal-btn,#closeModal{background:#26333a;border:1px solid #979587;color:#eee8de;border-radius:2px}
 @media(max-width:700px){
-#portrait{height:74%;max-width:88vw;right:-14%;opacity:.8}
-#dialog{bottom:7px;left:5px;right:5px;min-height:190px;padding:17px 15px 36px;border-width:2px;border-radius:15px}
-#who{font-size:12px;padding:3px 11px;border-width:1px}
-#prose{font-size:calc(15px * var(--type-scale));line-height:1.78}
-#prompt{border-width:2px;box-shadow:4px 4px 0 #170b1d}
-#cover h1{text-shadow:3px 3px 0 #b72e79}
-.coverContent{padding:26px 16px}
+#dialog{bottom:9px;left:8px;right:8px;padding:21px 18px 32px;min-height:188px;border-radius:2px}
+#prose{font-size:calc(16px * var(--type-scale));line-height:1.9}
+#who{font-size:13px}
+#topActions{gap:4px}
+.iconbtn{min-height:34px;font-size:11px;padding:6px 8px}
+.coverContent{padding:32px 20px}
+.cover-desc{font-size:14px}
 }
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
 </style>
 </head>
 <body>
@@ -218,15 +221,15 @@ body,button{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,system
 </div>
 <section id="cover" aria-label="タイトル画面">
 <div class="coverContent">
-<p class="eyebrow">YAMI × KAWAII × MURDER MYSTERY</p>
+<p class="eyebrow">SNOWBOUND MYSTERY / FIRST NIGHT</p>
 <h1>存在しない11人目</h1>
-<p class="cover-subl">第一夜 ♥ 笑顔の死亡予告</p>
-<p class="cover-desc">十人全員に届いた、犯人指名の招待状。<br>十一個のカップと、笑う少女。<br>今夜、誰かが死ぬ。――笑っているのは誰？</p>
+<p class="cover-subl">第一夜　黒い招待状</p>
+<p class="cover-desc">十一年ぶりの招待状。<br>十人全員が、犯人だと名指しされていた。<br>吹雪の山荘で失われるのは、命だけではない。</p>
 <div class="coverButtons">
 <button id="beginBtn" class="coverBtn">最初から読む</button>
 <button id="continueBtn" class="coverBtn alt" hidden>続きから読む</button>
 </div>
-<p class="coverInfo">完全オリジナル・連載型サウンドノベル／第一夜 試作公開版</p>
+<p class="coverInfo">オリジナル長編サウンドノベル　第一夜・開発版</p>
 </div>
 </section>
 <div id="modal" role="dialog" aria-modal="true" aria-label="ゲームの記録" hidden>
