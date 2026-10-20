@@ -44,3 +44,11 @@ https://techmew.github.io/games/eleventh-witness/
 - WebAudioによる独自の電話呼出音・ノック音・死体発見時の不協和音・照明の瞬間的な変動音を追加（commit 9a9d9cb）。音は既定OFF、利用者操作でONにできる。
 - 最新のGitHub API再取得で新index/engine/storyとオリジナル背景5点すべて存在 PASS、JavaScript構文 PASS、全分岐先存在 PASS。28シーン群、415ノード、8,809文字、7選択地点。
 - 公開配信の実HTTP到達・スマホ実機検証は未確認（DNSが利用できない経路）。
+
+## 2026-10-21 00:58 JST
+- 第一夜の32か所の改行表示不具合を修正。commit c840fe8283389628df1b6615d18bb545ef9b8ef7。
+- 遺体発見後の15分に絢／千尋／真理の3分岐と固有手掛かりを追加。commit c14620f7fb83c189e19497e08fdc7c4a1b2c20b1。
+- JS構文・38場面群・10選択地点・26,244経路を静的検証。分岐先欠落、循環、二重エスケープ改行なし。
+- GitHubのmainから更新済みstory.jsを再取得して確認。GitHub Pages配信・実機検証は未確認。
+- X返信：取得不能・未確認。Buffer正規GASはブログURL専用。ゲーム投稿は未送信。
+- 次回：実機UI・章ラベル、人物画像のゲーム組込み、第二夜の時系列とアリバイ確定。
