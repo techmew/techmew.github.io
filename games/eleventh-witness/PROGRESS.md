@@ -76,7 +76,7 @@ https://techmew.github.io/games/eleventh-witness/
 - 新しい第一夜をS.y0_open以下に24場面群、247進行ノード、6選択地点、3ENDとして実装。10人全員に『あなたが犯人』の招待状、11個のカップ、悪趣味な晩餐、匠の死亡、停止時計・複数スピーカー音響、莉子の後悔、告発のバッドエンドを導入。旧38場面は旧セーブ互換として保全、主ルートからは隔離。
 - HTML/CSSを黒紫×キャンディーピンクの新UIへ全面変更。フォト風立ち絵の読み込みを廃し、完全オリジナルの平面的2Dセル描画SVG立ち絵4点（riko,sae,aya,takumi）を新制作しGitHubのassets/portraits/へ保存、engine.jsから話者連動で表示。
 - 既存セーブキーeleventh_novel_reboot_2026_v1としおり3枠を維持。クリア後の新規開始でloopMemoryがオンになり、記憶の追加ナレーションを表示。
-- 主シナリオコミット eb11aa1160bd82942eaa312294194ef78038e77a / 改行修正 18d5651ed80bba0d8271f7fc2a0e1104ed267b62 / 最終脚本214? -> 実コミット 213fb57ede006d436ec95ed0f666d176fad4c6e2。
+- 主シナリオコミット eb11aa1160bd82942eaa312294194ef78038e77a / 改行修正 18d5651ed80bba0d8271f7fc2a0e1104ed267b62 / 周回記憶用シナリオ最終コミット 213fb57ede006d436ec95ed0f666d176fad4c6e2。
 - 画像4点の作成コミット 203c4ee / ff2b755 / 7ed4f1c / f11cae7。エンジンとUI 8cb6ed4 / 0cbd8ac、周回記憶 cb9919d / 213fb57。
 - 静的テスト：JavaScript構文PASS、メイン24場面の参照・終端PASS、立ち絵4ファイルのGitHub API再読込PASS、旧38場面維持、旧セーブキーと3しおり維持。
 - 疑似DOM通しテスト：3種のENDすべて到達。各経路約134〜135会話送り、6選択、終端と自動セーブPASS。
