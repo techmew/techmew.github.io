@@ -41,3 +41,14 @@ https://techmew.github.io/games/eleventh-witness/
 - buffer_id: 未取得 / x_post_url: 未取得
 - 投稿文：【存在しない11人目】以前描いた立ち絵をゲームに実装。紗江と匠の会話で人物が登場します。https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。 #ブラウザゲーム
 - 理由: Pages実配信とゲーム専用のBuffer経路が未確認。既存ブログ用GASと予約キューは変更しない。
+
+
+## 2026-10-21 病みかわ版・X投稿保留
+- status: HOLD_PAGES_UNVERIFIED
+- post_key: NOVEL_213fb57ede006d436ec95ed0f666d176fad4c6e2
+- code_commit: 213fb57ede006d436ec95ed0f666d176fad4c6e2（その後CSS・素材・文書コミットあり。送信直前に最終shaを照合）
+- target_url: https://techmew.github.io/games/eleventh-witness/
+- buffer_id: 未取得
+- x_post_url: 未取得
+- 本文：【存在しない11人目】第一夜をまるごと大胆リメイク！十人全員が犯人指名、11個目のカップ、八重歯の莉子と病みかわ2Dキャラ4人。分岐3ENDの推理ノベル。https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。 #ブラウザゲーム
+- reason: GitHub APIでmainへの反映済みだがGitHub Pages実配信確認は不可。ゲーム専用のBuffer認証済み書き込み経路を確認できず。既存ブログ用GASのREADYキューへは誤登録しない。旧版の未投稿草案も重複・誤送信しない。
