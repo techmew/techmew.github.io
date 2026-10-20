@@ -20,3 +20,5 @@ https://techmew.github.io/games/eleventh-witness/
 既存ブログ・炎上用Buffer予約を削除・上書きしない。無料プランの同時予約10件制限を厳守。
 同一コミットを重複送信しない。Buffer IDは予約完了、実X投稿URLは公開完了として区別。未送信を次回RUNで安全に照合・再試行。
 毎回の更新でゲームURL・具体的変更・コメント募集を含む独立投稿を作成する。ただしXに更新差分のない同文投稿はしない。
+## 送信経路の検査（2026-10-20）
+Driveの現行Buffer_GAS.txt（V10）では、READY行の判定時にPOST_TYPE=BLOG_POST・SOURCE_URLが `https://himanekoblog.hatenablog.com/entry/` で始まること・TEXTに記事URLが含まれることを必須にしている。ゲームリンクを既存キューへそのまま投入するとHOLD_INVALID_BLOG_POSTとなる。現時点ではBuffer IDは未取得。既存GASの送信処理とブログ用キューを破壊せず、ゲーム専用の正規送信分岐を検証するまでREADYにはしない。
