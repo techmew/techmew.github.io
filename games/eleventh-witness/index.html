@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07101b">
+<meta name="description" content="存在しない11人目 — 証言と記憶を調べる無料ブラウザ推理サウンドノベル。第0章をプレイ。">
+<meta property="og:title" content="存在しない11人目｜推理サウンドノベル">
+<meta property="og:description" content="10人しかいない施設で聞こえた、11人目の声。証拠と音を照合し、証言の矛盾を暴け。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://techmew.github.io/games/eleventh-witness/">
+<title>存在しない11人目｜THE ELEVENTH WITNESS</title>
+<style>
+:root{--base:#07101b;--panel:rgba(8,17,32,.93);--white:#e7f5f4;--muted:#a5bec8;--aqua:#86e9df;--rose:#ff8aab;--border:rgba(145,222,230,.24);--fontscale:1}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#050911;color:var(--white);font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,system-ui,sans-serif}
+button{font:inherit;cursor:pointer;color:inherit;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:3px solid #ffe49a;outline-offset:3px}
+button:disabled{opacity:.45;cursor:default}
+#app{height:100dvh;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#060d1b}
+header{height:57px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(12px,2vw,28px);gap:8px;border-bottom:1px solid var(--border);background:#080e1c;z-index:4;flex:none}
+.brand{display:flex;gap:10px;align-items:center;min-width:0}
+.sigil{width:32px;height:32px;border:1px solid var(--aqua);border-radius:9px;display:grid;place-items:center;color:var(--aqua);font:700 17px ui-monospace,monospace;box-shadow:inset 0 0 16px #74e6d522}
+.brand-text{line-height:1.2;min-width:0}
+.brand-text strong{font-size:14px;letter-spacing:.04em;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-text small{color:var(--muted);font-size:10px;letter-spacing:.13em}
+#topActions{display:flex;gap:5px;align-items:center}
+.small-btn{border:1px solid var(--border);background:#18263a;color:var(--white);border-radius:9px;padding:8px 10px;font-size:12px;min-height:35px}
+.small-btn:hover,.chip:hover{border-color:var(--aqua);background:#203648}
+#storyStage{position:relative;flex:1;min-height:0;overflow:hidden;background:#0c1726 url("assets/atrium.svg") center/cover no-repeat;isolation:isolate}
+#storyStage::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,7,16,.55),transparent 60%),linear-gradient(0deg,rgba(4,8,17,.94) 0%,transparent 55%);z-index:0;pointer-events:none}
+#storyStage::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 5px,#92f0db04 6px 7px);pointer-events:none;z-index:0}
+#location{position:absolute;top:15px;left:18px;z-index:2;border-left:3px solid var(--rose);background:rgba(2,10,21,.74);padding:8px 13px;line-height:1.4;font:12px ui-monospace,monospace;letter-spacing:.08em}
+#location span{display:block;color:var(--aqua);font-size:10px;margin-top:3px}
+#person{position:absolute;bottom:0;right:6%;height:min(81%,750px);max-width:62%;z-index:1;object-fit:contain;object-position:bottom;filter:drop-shadow(0 9px 22px #0009);transition:opacity .23s,transform .3s;pointer-events:none}
+#person.hidden{opacity:0;transform:translateX(25px)}
+#textBox{position:absolute;bottom:clamp(12px,3vh,32px);left:clamp(12px,5vw,80px);right:clamp(12px,5vw,80px);min-height:171px;background:linear-gradient(120deg,rgba(8,18,36,.96),rgba(9,22,33,.93));border:1px solid #83c9d266;border-left:4px solid var(--aqua);border-radius:12px;z-index:3;box-shadow:0 20px 45px #0008;backdrop-filter:blur(10px);padding:21px 23px 55px;cursor:pointer}
+#textBox:focus-visible{outline:3px solid #ffe49a}
+#speaker{position:absolute;top:-18px;left:22px;padding:7px 18px;background:#143448;border:1px solid #7ecfc9;border-radius:7px;color:#b8fff3;letter-spacing:.1em;font-size:13px;font-weight:700}
+#text{font-size:calc(17px * var(--fontscale));line-height:1.95;white-space:pre-line;max-width:76%;text-shadow:0 1px 2px #000}
+#text strong{color:var(--rose)}
+#next{position:absolute;bottom:12px;right:16px;border:1px solid #89ddda66;background:#1b3c4b;color:#c9fff5;border-radius:30px;font-weight:700;font-size:13px;padding:9px 17px;animation:subtle 2s ease-in-out infinite}
+@keyframes subtle{50%{box-shadow:0 0 17px #5ceadb55}}
+#hintLine{position:absolute;bottom:18px;left:22px;color:#9eb7c3;font-size:11px;letter-spacing:.03em}
+#interaction{position:absolute;inset:0;z-index:3;display:flex;justify-content:center;align-items:center;padding:52px 18px 18px;background:linear-gradient(90deg,#03101bad,transparent)}
+.panel{width:min(640px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;border:1px solid #7bdee65e;background:rgba(6,15,29,.95);border-radius:15px;padding:clamp(18px,3vw,28px);box-shadow:0 16px 60px #000c;backdrop-filter:blur(15px)}
+.kicker{color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.17em;margin:0 0 8px}
+.panel h2{font-size:clamp(19px,2.6vw,27px);font-weight:800;line-height:1.4;margin:0 0 14px}
+.panel p{line-height:1.85;margin:9px 0 15px;font-size:14px;color:#d6e8eb}
+.note{color:#98b3c0!important;font-size:12px!important}
+.options{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.option{display:block;text-align:left;width:100%;border:1px solid #617f9566;padding:13px 15px;background:#142439;border-radius:9px;line-height:1.6;font-size:14px;transition:.15s}
+.option:hover{background:#203951;border-color:#76d9d5}
+.option:disabled{border-color:#234251}
+.option.selected{border-color:#a7e9d9;background:#224453}
+.option.done{border-color:#5dafa5;background:#163831}
+.option span{display:block;font-size:11px;color:#93aeb7;margin-top:4px}
+.option.action{background:linear-gradient(110deg,#176c72,#164e69);border:1px solid #96fae8;font-weight:800;text-align:center;color:#f6fffc}
+#feedback{margin-top:13px;min-height:18px;color:#ffd1d7;font-size:13px;line-height:1.6}
+.evidence-icon{display:inline-flex;width:24px;height:24px;border:1px solid var(--aqua);border-radius:50%;align-items:center;justify-content:center;color:var(--aqua);font-size:13px;margin-right:6px}
+.chip{display:inline-block;background:#13283b;border:1px solid #679ab052;border-radius:40px;padding:7px 12px;margin:3px;font-size:12px}
+.pills{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.dot{height:8px;width:8px;border-radius:50%;display:inline-block;background:#54717c;margin-left:6px}
+.dot.on{background:#85f5de;box-shadow:0 0 9px #88e9d9}
+#footer{flex:none;height:41px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;background:#070d18;border-top:1px solid #20334c;color:#91a9b8;font-size:11px;gap:8px}
+#footer strong{color:var(--aqua)}
+#cover{position:absolute;z-index:10;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:26px;background:linear-gradient(#06101a66,#05101bee),url("assets/atrium.svg") center/cover no-repeat}
+.cover-inner{width:min(750px,100%);padding:45px 22px;background:#07101dbd;border:1px solid #7aead54c;box-shadow:0 25px 80px #000b;backdrop-filter:blur(5px);border-radius:14px}
+.title-sigil{font:700 clamp(90px,14vw,160px)/1 ui-monospace,monospace;color:transparent;-webkit-text-stroke:2px #a0f7ed;filter:drop-shadow(0 0 14px #39cabf66);letter-spacing:-.09em;padding-right:.12em}
+.cover-kicker{color:#ff96af;font:700 11px ui-monospace,monospace;letter-spacing:.45em;margin:11px 0 18px}
+.cover-inner h1{margin:0;font-size:clamp(27px,4.4vw,49px);font-weight:900;letter-spacing:.09em}
+.cover-inner .tagline{color:#d6e6ee;line-height:2;font-size:clamp(12px,2vw,15px);margin:17px auto 24px}
+.cover-inner .edition{color:#83e4d9;font-size:12px;margin-top:21px}
+.cover-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.big-btn{background:#176b71;border:1px solid #8ffff1;border-radius:8px;padding:14px 27px;font-size:14px;font-weight:800;min-width:145px}
+.big-btn.secondary{background:#19263b;border-color:#567b8e}
+.big-btn:hover{filter:brightness(1.18)}
+#modal{position:absolute;inset:0;z-index:20;background:#030814db;display:flex;align-items:center;justify-content:center;padding:15px}
+#modalBox{width:min(620px,100%);max-height:88vh;overflow:auto;border:1px solid #9ce9dc80;border-radius:13px;padding:24px;background:#0a1828;box-shadow:0 0 80px #000}
+#modalBox h2{font-size:20px;margin:0 0 18px}
+#modalContent{max-height:56vh;overflow:auto}
+.modal-row{border-bottom:1px solid #264052;padding:12px 2px;line-height:1.6;font-size:14px}
+.modal-row b{display:block;color:#8de9db;margin-bottom:3px}
+.close{float:right;background:#22354b;border:1px solid #648fa3;border-radius:7px;padding:6px 12px}
+code{font-size:12px;color:#92e7d3}
+[hidden]{display:none!important}
+@media(max-width:690px){
+ header{height:52px;padding:0 8px}.brand-text strong{font-size:12px}.brand-text small{font-size:8px}.sigil{width:26px;height:26px;font-size:13px}.small-btn{padding:7px 8px;font-size:11px;min-height:33px}
+ #topActions{gap:3px}#location{font-size:10px;top:11px;left:9px}
+ #person{height:min(77%,610px);max-width:86%;right:-9%;opacity:.78}
+ #textBox{bottom:8px;left:7px;right:7px;padding:20px 13px 49px;min-height:184px}
+ #speaker{left:12px;font-size:12px;padding:6px 13px}
+ #text{max-width:100%;font-size:calc(15px * var(--fontscale));line-height:1.85}
+ #hintLine{left:12px;bottom:14px;font-size:10px;max-width:55%}
+ #next{right:8px;bottom:9px}
+ #interaction{padding:48px 8px 8px;align-items:flex-end}
+ .panel{padding:15px 14px;max-height:95%;border-radius:12px}
+ .panel p{font-size:13px}.option{padding:11px 12px;font-size:13px}
+ #footer{font-size:9px;height:35px;padding:0 7px}
+ .cover-inner{padding:30px 15px}.cover-inner h1{letter-spacing:0}
+}
+@media(max-height:560px) and (orientation:landscape){
+ #textBox{min-height:125px;padding:16px 17px 40px;bottom:4px}
+ #text{font-size:calc(13px * var(--fontscale));line-height:1.6}
+ #person{height:88%;right:11%}
+ .panel{max-height:95%;padding:14px 20px}
+ #interaction{padding:10px}
+ .panel h2{font-size:19px}
+ .panel p{margin:5px 0;font-size:12px}
+ .option{padding:7px 10px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+<div class="brand"><div class="sigil">11</div><div class="brand-text"><strong>存在しない11人目</strong><small>THE ELEVENTH WITNESS</small></div></div>
+<div id="topActions">
+<button class="small-btn" id="soundToggle" aria-label="音楽と効果音の切替">♪ OFF</button>
+<button class="small-btn" id="notesBtn">証拠</button>
+<button class="small-btn" id="logBtn">履歴</button>
+<button class="small-btn" id="menuBtn">設定</button>
+</div>
+</header>
+<main id="storyStage" aria-label="ゲーム画面">
+<div id="location">零階・中央廊下<span>DAY 01 · 23:58</span></div>
+<img id="person" class="hidden" src="" alt="">
+<div id="textBox" tabindex="0" role="button" aria-label="次の文章へ進む">
+<div id="speaker">記録</div>
+<div id="text" aria-live="polite"></div>
+<div id="hintLine">画面タップ・Enterで進む / 自動保存</div>
+<button id="next">次へ →</button>
+</div>
+<section id="interaction" hidden aria-label="推理操作"><div class="panel" id="taskPanel"></div></section>
+<div id="cover">
+<div class="cover-inner">
+<div class="title-sigil" aria-hidden="true">11</div>
+<div class="cover-kicker">A MEMORY MYSTERY</div>
+<h1>存在しない11人目</h1>
+<p class="tagline">10人しかいない建物で、11人目の声が聞こえた。<br>その声は、あなたの「前の記憶」を知っている。</p>
+<div class="cover-actions"><button class="big-btn" id="startBtn">最初から始める</button><button class="big-btn secondary" id="continueBtn" hidden>続きから</button></div>
+<div class="edition">第0章「録音された最期」— PLAYABLE PROTOTYPE v0.1</div>
+</div></div>
+<div id="modal" hidden role="dialog" aria-modal="true" aria-label="ゲーム情報"><div id="modalBox"><button class="close" id="closeModal">閉じる ×</button><h2 id="modalTitle"></h2><div id="modalContent"></div></div></div>
+</main>
+<footer id="footer"><span><strong>FILE 00</strong> / 事件の起点</span><span id="chapterProgress">記憶同期前</span><span>保存：この端末</span></footer>
+</div>
+<script>
+(function(){
+'use strict';
+var KEY='eleventh_witness_save_v1';
+var STAGE=document.getElementById('storyStage'),PERSON=document.getElementById('person');
+var BOX=document.getElementById('textBox'),INTER=document.getElementById('interaction'),PANEL=document.getElementById('taskPanel');
+var MODAL=document.getElementById('modal'),COVER=document.getElementById('cover');
+var images={mio:'assets/mio.svg',rei:'assets/rei.svg',saki:'assets/saki.svg'};
+var names={mio:'葛城 澪',rei:'八雲 レイ',saki:'榊 サキ',nagi:'天瀬 ナギ',sys:'施設放送',eleven:'不明な声',narr:'記録'};
+var EVIDENCE={
+ door:{name:'入退室ログ',desc:'資料室09は00:12に自動封鎖。00:18まで扉の開閉履歴はない。'},
+ memo:{name:'カナデの音声メモ',desc:'23:49に保存された短い声と、特徴的な三音のチャイム。録音原本は資料室09の端末に残っていた。'},
+ med:{name:'検視の速報',desc:'死因は現時点で断定不能。死亡時刻も00:13と確定していない。'},
+ audio:{name:'音響指紋の一致',desc:'23:49の録音と00:13に廊下で聞こえた音は、三音の間隔と末尾の微小なノイズまで一致する。生声と断言できない。'}
+};
+var scenes=[];
+function d(w,text,bg,time){scenes.push({t:'d',w:w,text:text,bg:bg||'',time:time||''});}
+d('narr','「殺される前に、私の声を消して」\nそれが、彼女から届いた最後のメッセージだった。','atrium','DAY 01 · 23:58');
+d('sys','居住区の人数認証を開始します。\n認証結果――10名。異常ありません。');
+d('mio','10人。いつもと同じ数字。\n……なのに、誰かが足りない気がする。');
+d('rei','葛城。こんな時間に何をしている。','atrium','DAY 01 · 23:59');
+d('mio','レイ。資料室から連絡が来たの。\nカナデが、急いで来てほしいって。');
+d('rei','資料室09か。あそこは0時12分に自動封鎖される。今ならまだ入れる。');
+d('sys','00:00。日付が更新されました。','atrium','DAY 02 · 00:00');
+d('narr','照明が一度だけ消えた。\nその暗闇で、知らない声が耳元をかすめる。');
+d('eleven','……記録係。まだ、私を数えないで。');
+d('mio','いま、誰か喋った？');
+d('rei','いや。お前と俺しかいない。');
+d('sys','00:13。資料室09から音声が検出されました。','atrium','DAY 02 · 00:13');
+d('narr','廊下の向こうから、カナデの声がした。\n続いて、三つの短い音。そして沈黙。');
+d('saki','聞こえたよね？　カナデの声！\nあたし、廊下のスピーカーを調整してたんだ。');
+d('rei','扉の封鎖解除は00:18だ。中には入れない。');
+d('narr','五分後。\n資料室09の扉は開き、カナデが床に倒れているのが見つかった。','archive','DAY 02 · 00:18');
+d('mio','……呼吸が、ない。');
+d('nagi','手を触れないで。検視が終わるまで、何も動かさないで。');
+d('rei','これは事故か、事件か。まず資料室を調べよう。');
+d('mio','声が聞こえた00:13に生きていたとは限らない。\n証拠を見つけよう。');
+scenes.push({t:'inspect'});
+d('mio','封鎖は00:12から00:18まで。扉は開いていない。','archive','DAY 02 · 00:22');
+d('saki','でもあたし、00:13に声を聞いたんだよ。\nカナデはその時まで生きていたはず。');
+d('rei','ひとつの証言を事実と決めつけるな。\n記録と照らし合わせろ。');
+d('mio','23:49の音声メモと、00:13に聞こえた音。\n記録の違いを確かめる。');
+scenes.push({t:'sound'});
+d('mio','……一致してる。音の高さだけじゃない。\n最後に入った小さな雑音まで同じだ。','archive','DAY 02 · 00:25');
+d('rei','ならば、この証言の中に矛盾がある。\n何が間違っているのか、証拠で示せ。');
+scenes.push({t:'debate'});
+d('saki','……そっか。あの声、録音だったかもしれないのね。','archive','DAY 02 · 00:27');
+d('mio','その録音が再生された理由は、まだわからない。\nでも、はっきりしたことが一つある。');
+scenes.push({t:'deduce'});
+d('rei','つまり犯行時刻は00:13とは限らない。\n施錠前に、誰かがこの部屋にいた可能性もある。','archive','DAY 02 · 00:29');
+d('saki','ちょっと待って。再生装置は、誰でも触れるような場所にない……。');
+d('mio','それなら、誰が再生を設定したの？');
+d('sys','未登録の音声ファイルが見つかりました。\n作成時刻――明日、00:13。');
+d('mio','……明日？　まだ来ていない時刻なのに？');
+d('eleven','澪。これは、一度目の事件じゃない。');
+d('eleven','あなたは前にも、同じ質問をした。\n次は……私を忘れないで。');
+scenes.push({t:'end'});
+var state={pos:0,found:[],listened:[],errors:0,log:[],run:1,completed:false,sound:false,font:1};
+var hasSave=false,gameStarted=false,audio=null,musicTimer=null,musicIndex=0;
+function text(id,t){document.getElementById(id).textContent=t;}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function stored(){try{var raw=localStorage.getItem(KEY);if(!raw)return null;var obj=JSON.parse(raw);if(typeof obj.pos!=='number'||obj.pos<0||obj.pos>=scenes.length)return null;return obj;}catch(e){return null;}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function progress(){text('chapterProgress','記録 '+Math.min(100,Math.floor((state.pos+1)/scenes.length*100))+'%');}
+function playTone(freq,dur,vol,type,delay){if(!state.sound)return;try{var a=getAudio(),o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(.001,a.currentTime+(delay||0));g.gain.exponentialRampToValueAtTime(vol||.025,a.currentTime+(delay||0)+.025);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+(delay||0)+dur);o.connect(g);g.connect(a.destination);o.start(a.currentTime+(delay||0));o.stop(a.currentTime+(delay||0)+dur+.03);}catch(e){}}
+function getAudio(){if(!audio){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('audio unavailable');audio=new AC();}if(audio.state==='suspended')audio.resume();return audio;}
+function chime(second){if(!state.sound)return;[440,554.37,392].forEach(function(f,i){playTone(f,.30,.045,'sine',i*.39);playTone(f/2,.33,.008,'triangle',i*.39);});playTone(119,.09,.005,'triangle',1.26);if(second)playTone(119,.09,.005,'triangle',1.26);}
+function tick(){if(!state.sound||!gameStarted)return;var f=[174.61,220,261.63,196,146.83,174.61,130.81,196][musicIndex%8];playTone(f,2.0,.009,'sine',0);playTone(f/2,2.2,.008,'triangle',.03);musicIndex++;}
+function setSound(v){state.sound=!!v;text('soundToggle',state.sound?'♪ ON':'♪ OFF');if(state.sound){try{getAudio();playTone(660,.13,.04,'sine',0);}catch(e){state.sound=false;text('soundToggle','♪ OFF');}}persist();}
+function speaker(w){text('speaker',names[w]||w);PERSON.classList.toggle('hidden',!images[w]);if(images[w]){PERSON.src=images[w];PERSON.alt=(names[w]||'')+'の立ち絵';}else PERSON.removeAttribute('src');}
+function background(bg,time){STAGE.style.backgroundImage='url("assets/'+(bg==='archive'?'archive':'atrium')+'.svg")';text('location',(bg==='archive'?'資料室09・調査中':'零階・中央廊下'));document.querySelector('#location span').textContent=time||'DAY 02 · 00:18';}
+function lastContext(){var bg='atrium',time='DAY 01 · 23:58';for(var i=0;i<=state.pos;i++){if(scenes[i].bg)bg=scenes[i].bg;if(scenes[i].time)time=scenes[i].time;}return {bg:bg,time:time};}
+function advance(){if(!gameStarted||!MODAL.hidden||!INTER.hidden)return;if(scenes[state.pos]&&scenes[state.pos].t==='d'){state.pos=Math.min(scenes.length-1,state.pos+1);persist();render();}}
+function nextScene(){state.pos=Math.min(scenes.length-1,state.pos+1);persist();render();}
+function showToast(m){var f=document.getElementById('feedback');if(f)f.textContent=m;}
+function renderInspect(){
+ var html='<div class="kicker">INVESTIGATION / 証拠収集</div><h2>資料室09を調べる</h2><p>3つの手掛かりを集めよう。選んだ資料は「証拠」からいつでも確認できる。</p><div class="options">';
+ [['door','扉の電子ロックを調べる'],['memo','記録端末を調べる'],['med','検視担当の速報を読む']].forEach(function(x){
+ var found=state.found.indexOf(x[0])!==-1;html+='<button class="option '+(found?'done':'')+'" data-evidence="'+x[0]+'"><span class="evidence-icon">'+(found?'✓':'?')+'</span>'+x[1]+(found?'<span>調査済み</span>':'')+'</button>';
+ });html+='</div><p class="note">発見 '+state.found.filter(function(x){return x!=='audio';}).length+' / 3</p>';
+ if(['door','memo','med'].every(function(x){return state.found.indexOf(x)!==-1;}))html+='<button class="option action" id="finishInspect">調査結果を整理する →</button>';
+ html+='<div id="feedback" role="status"></div>';
+ PANEL.innerHTML=html;
+ PANEL.querySelectorAll('[data-evidence]').forEach(function(b){b.onclick=function(){
+ var id=b.getAttribute('data-evidence');if(state.found.indexOf(id)<0){state.found.push(id);persist();}renderInspect();showToast('【'+EVIDENCE[id].name+'】'+EVIDENCE[id].desc);playTone(640,.12,.03,'sine',0);
+ };});
+ var n=document.getElementById('finishInspect');if(n)n.onclick=nextScene;
+}
+function renderSound(){
+ PANEL.innerHTML='<div class="kicker">ACOUSTIC LAB / 音の照合</div><h2>ふたつの音声記録</h2><p>23:49の録音と、00:13に聞こえた音。それぞれの末尾に混じる三音のチャイムを聴き比べよう。</p><div class="options"><button class="option" id="listenA">▶ 記録 A：23:49 の音を再生</button><button class="option" id="listenB">▶ 記録 B：00:13 の音を再生</button></div><p class="note" id="listenInfo">音声の再生には、画面上部の ♪ を ON にしてください。聴けない場合も推理は進行できます。</p><div class="options" id="soundChoices" hidden><button class="option" data-match="yes">二つの音には、同じ細かな特徴がある</button><button class="option" data-match="no">二つは、完全に異なる音である</button></div><div id="feedback" role="status"></div>';
+ document.getElementById('listenA').onclick=function(){state.listened[0]=true;chime(false);showSoundChoices();};
+ document.getElementById('listenB').onclick=function(){state.listened[1]=true;chime(true);showSoundChoices();};
+ PANEL.querySelectorAll('[data-match]').forEach(function(b){b.onclick=function(){if(b.getAttribute('data-match')==='yes'){if(state.found.indexOf('audio')<0)state.found.push('audio');persist();playTone(840,.4,.03,'sine');nextScene();}else{wrong('末尾の三音と、小さな雑音に注目して。両方の記録に共通する特徴がある。');}};});
+ showSoundChoices();
+}
+function showSoundChoices(){document.getElementById('soundChoices').hidden=state.listened.length<2||!state.listened[0]||!state.listened[1];text('listenInfo','再生済み：'+(state.listened[0]?'A ✓':'A —')+' / '+(state.listened[1]?'B ✓':'B —')+'　※音声OFF時も記録の特徴から答えられます。');persist();}
+function wrong(msg){state.errors++;persist();showToast('再検証：'+msg);playTone(220,.25,.024,'sawtooth');}
+function renderDebate(){
+ PANEL.innerHTML='<div class="kicker">CROSS-EXAMINATION / 証言対決</div><h2>「00:13の声」は何を証明する？</h2><p>矛盾がある証言を選び、その後で突きつける証拠を選ぼう。</p><div class="options" id="claims"><button class="option" data-claim="rei">八雲レイ「00:12から00:18まで、扉は開かなかった」</button><button class="option" data-claim="saki">榊サキ「00:13に声を聞いた。だからその時まで生きていた」</button><button class="option" data-claim="nagi">天瀬ナギ「死亡時刻は、まだ特定できていない」</button></div><div id="debateEvidence" hidden><p class="note">選んだ証言に突きつける証拠は？</p><div class="options" id="cards"></div></div><div id="feedback" role="status"></div>';
+ PANEL.querySelectorAll('[data-claim]').forEach(function(b){b.onclick=function(){
+ PANEL.querySelectorAll('[data-claim]').forEach(function(e){e.classList.remove('selected');});b.classList.add('selected');var claim=b.getAttribute('data-claim');var cards=document.getElementById('cards');cards.innerHTML='';
+ state.found.forEach(function(id){var btn=document.createElement('button');btn.className='option';btn.textContent=EVIDENCE[id].name;btn.onclick=function(){if(claim==='saki'&&id==='audio'){playTone(880,.5,.045,'sine');nextScene();}else wrong('記録に反するのは、声を聞いた事実ではなく「だから生きていた」という断定。');};cards.appendChild(btn);});document.getElementById('debateEvidence').hidden=false;
+ };});
+}
+function renderDeduce(){
+ PANEL.innerHTML='<div class="kicker">RECONSTRUCTION / 推理確定</div><h2>事件の時刻を再構成せよ</h2><p>00:13の声と、カナデがその時点で生きていたかどうか。証拠から最も妥当な結論を選ぼう。</p><div class="options"><button class="option" data-answer="no">声が聞こえた以上、00:13に確実に生きていた</button><button class="option" data-answer="yes">録音再生の可能性があるため、生存時刻は証明できない</button><button class="option" data-answer="no">扉が閉まっていたため、事件は起きていない</button></div><div id="feedback" role="status"></div>';
+ PANEL.querySelectorAll('[data-answer]').forEach(function(b){b.onclick=function(){if(b.getAttribute('data-answer')==='yes'){playTone(720,.4,.05,'triangle');nextScene();}else wrong('音響指紋と、まだ特定されていない死亡時刻を併せて考えよう。');};});
+}
+function renderEnding(){
+ if(!state.completed){state.completed=true;persist();}
+ var additional=state.run>1?'<p style="color:#ffc6d5">【再読記録】その声を、あなたは前にも聞いた。保存されているのは、物語の進行だけではない。</p>':'';
+ PANEL.innerHTML='<div class="kicker">FILE 00 / COMPLETE</div><h2>第0章「録音された最期」終</h2><p>証明されたのは「00:13に声が聞こえた」という事実だけ。犯人も、死の瞬間も、まだ確定していない。</p><p>そして、存在しない11人目は<strong style="color:#91ede2">明日の音声ファイル</strong>からあなたに話しかけた。</p>'+additional+'<p class="note">この章は遊べる試作版です。事件の続き、証言、議論、画像・演出を今後の更新で追加します。</p><div class="options"><button class="option action" id="restart">もう一度、最初から調べる ↻</button><button class="option" id="reviewEvidence">事件の証拠を見直す</button></div>';
+ document.getElementById('restart').onclick=function(){start(true);};
+ document.getElementById('reviewEvidence').onclick=function(){openPanel('notes');};
+}
+function render(){
+ var s=scenes[state.pos];if(!s)return;COVER.hidden=true;gameStarted=true;
+ var ctx=lastContext();background(ctx.bg,ctx.time);progress();
+ var isDialog=s.t==='d';BOX.hidden=!isDialog;INTER.hidden=isDialog;
+ if(isDialog){speaker(s.w);text('text',s.text);if(s.w==='eleven'&&state.run>1&&s.text.indexOf('記録係')>=0)text('text','……また会えたね、澪。\nまだ、私を数えないで。');
+ var prev=state.log[state.log.length-1];if(!prev||prev.pos!==state.pos){state.log.push({pos:state.pos,who:s.w,text:s.text});state.log=state.log.slice(-80);persist();}
+ }else{PERSON.classList.add('hidden');if(s.t==='inspect')renderInspect();else if(s.t==='sound')renderSound();else if(s.t==='debate')renderDebate();else if(s.t==='deduce')renderDeduce();else if(s.t==='end')renderEnding();}
+}
+function start(restart){var old=stored();state={pos:0,found:[],listened:[],errors:0,log:[],run:restart&&old?Math.min((old.run||1)+1,999):old?(old.run||1):1,completed:false,sound:state.sound,font:state.font};persist();render();}
+function resume(){var obj=stored();if(obj){state=Object.assign(state,obj);render();setSound(state.sound);}else start(false);}
+function openPanel(mode){
+ var title='',body='';MODAL.hidden=false;
+ if(mode==='notes'){title='証拠ファイル';var found=state.found||[];body=found.length?found.map(function(id){return '<div class="modal-row"><b>'+escapeHtml(EVIDENCE[id].name)+'</b>'+escapeHtml(EVIDENCE[id].desc)+'</div>';}).join(''):'<p>まだ証拠はありません。資料室09に着いたら調査できます。</p>';}
+ if(mode==='log'){title='会話履歴';body=(state.log||[]).length?state.log.slice(-35).reverse().map(function(item){return '<div class="modal-row"><b>'+escapeHtml(names[item.who]||item.who)+'</b>'+escapeHtml(item.text).replace(/\n/g,'<br>')+'</div>';}).join(''):'<p>まだ会話履歴はありません。</p>';}
+ if(mode==='menu'){title='遊び方・設定';body='<div class="modal-row"><b>操作</b>会話中は画面タップ、Enterキー、スペースで進みます。証拠調査・音の照合・証言対決では、表示された選択肢を選びます。</div><div class="modal-row"><b>セーブ</b>自動保存（このブラウザの端末内）。「続きから」で再開できます。ブラウザデータを消すと失われます。</div><div class="modal-row"><b>音声</b>画面上部の ♪ で切り替え。オリジナルWebAudioによる簡易BGM・効果音です。音を出せない環境でもゲームは進行できます。</div><div class="modal-row"><b>文字サイズ</b><button class="chip" id="fontSm">小</button><button class="chip" id="fontMd">標準</button><button class="chip" id="fontLg">大</button></div><div class="modal-row"><b>制作について</b>完全オリジナルの推理サウンドノベル。現在は第0章の公開試作版です。更新ごとに物語、事件、演出を追加していきます。</div>';}
+ text('modalTitle',title);document.getElementById('modalContent').innerHTML=body;
+ if(mode==='menu'){[['fontSm',.88],['fontMd',1],['fontLg',1.2]].forEach(function(it){document.getElementById(it[0]).onclick=function(){state.font=it[1];document.documentElement.style.setProperty('--fontscale',String(it[1]));persist();};});}
+}
+function closePanel(){MODAL.hidden=true;}
+function init(){var old=stored();hasSave=!!old;document.getElementById('continueBtn').hidden=!hasSave;
+ if(old&&old.completed)text('continueBtn','結末を見直す');
+ document.getElementById('startBtn').onclick=function(){if(old){if(!window.confirm('記録を最初から始めますか？ 調査進行は初期化されます。'))return;state.run=Math.max(1,old.run||1);start(true);}else start(false);};
+ document.getElementById('continueBtn').onclick=resume;
+ document.getElementById('next').onclick=function(e){e.stopPropagation();advance();};
+ BOX.onclick=advance;
+ document.getElementById('notesBtn').onclick=function(){openPanel('notes');};
+ document.getElementById('logBtn').onclick=function(){openPanel('log');};
+ document.getElementById('menuBtn').onclick=function(){openPanel('menu');};
+ document.getElementById('soundToggle').onclick=function(){setSound(!state.sound);};
+ document.getElementById('closeModal').onclick=closePanel;
+ MODAL.onclick=function(e){if(e.target===MODAL)closePanel();};
+ document.addEventListener('keydown',function(e){if(!MODAL.hidden){if(e.key==='Escape')closePanel();return;}if(e.key==='Enter'||e.key===' '){if(e.target&&e.target.tagName==='BUTTON')return;if(!COVER.hidden)return;if(!INTER.hidden)return;e.preventDefault();advance();}});
+ window.addEventListener('pagehide',persist);
+ if(musicTimer)clearInterval(musicTimer);musicTimer=setInterval(tick,2400);
+}
+init();
+})();
+</script>
+</body>
+</html>
