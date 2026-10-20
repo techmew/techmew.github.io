@@ -18,3 +18,8 @@ https://techmew.github.io/games/eleventh-witness/
 
 ## 旧稿は失効
 過去のSF施設版・短い推理クイズ版・ドラッグのみ改修した旧X草案は全面リメイクにより投稿対象外。古い保留稿を後から誤送信しない。Bufferのブログ／炎上向け予約を削除したり変更しない。POST_KEY重複防止、実Buffer IDと実X URLの区別を維持する。
+
+## 同日・最新コード差分追記（未送信）
+- 最新の実装 commit: 9a9d9cba075c0ba7c7db422d68ba7e64fb5d53a5
+- 追加更新点: 舞台と物語の全面リメイク、7分岐、独自の電話・ノック効果音等。
+- 配送状態は HOLD_NOT_SUBMITTED 継続。実Buffer ID・実X URLは未取得。公開HTTP/連携の正規経路確認前には投稿済みと報告しない。
