@@ -147,7 +147,7 @@ function initial(){
   if(ev.key.toLowerCase()==="a")toggleAuto();
  });
  window.addEventListener("pagehide",save);
- camera();place("stop");updateButtons();
+ bindCamera();camera();place("stop");updateButtons();
 }
 initial();
 })();
