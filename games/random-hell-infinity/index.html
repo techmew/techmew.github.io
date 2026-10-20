@@ -430,7 +430,7 @@ function update(dt){
    if(pad&&springCooldown<=0){bounced=true;p.vy=-level.jump*1.28;p.grounded=false;p.coyote=0;p.jumps=1;springCooldown=.34;part(p.x+13,landing.y,'#ffe787',24,.8);sound(910,.17,'triangle');toast('ぴょーん！',.45)}if(!p.grounded){part(p.x+12,p.y+p.h,'#dffbff',3,.27)}p.coyote=.115;p.jumps=hasRelic('wing')?3:2;airDash=1;if(landing.kind==='crumble'&&landing.collapse===0)landing.collapse=.66}
  else{p.coyote=p.grounded?.115:Math.max(0,p.coyote-dt)}p.grounded=!!landing&&!bounced;
  for(const s of level.platforms)if(s.collapse>0){s.collapse-=dt;if(s.collapse<=0){s.active=false;part(s.x+s.w/2,s.y,'#fcb38e',22)}}
- for(const c of level.pickups)if(!c.taken){const reach=hasRelic('magnet')?85:28;if(dist(p.x+13,p.y+15,c.x,c.y)<reach)absorbPickup(c)}
+ for(const c of level.pickups)if(!c.taken){const reach=hasRelic('magnet')?92:12;const nearestX=clamp(c.x,p.x-8,p.x+p.w+8),nearestY=clamp(c.y,p.y-12,p.y+p.h+12);if(dist(nearestX,nearestY,c.x,c.y)<reach)absorbPickup(c)}
  for(const e of level.enemies){if(!e.alive)continue;
    e.burn=Math.max(0,(e.burn||0)-dt);e.frost=Math.max(0,(e.frost||0)-dt);
    if(e.burn>0){e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.42;applyHit(e,1,++attackId,e.x,'none');if(!e.alive)continue}}
@@ -530,10 +530,12 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  if(!RH_PACK||!RH_ATLAS.complete||!RH_ATLAS.naturalWidth)return false;
  const set=RH_PACK.frames[name];if(!set)return false;
  const frames=set[state]||set.idle;if(!frames?.length)return false;
- const safe=(RH_SAFE[name]?.[state]||frames.map((_,i)=>i)).filter(i=>i<frames.length);
+ const safe=(RH_SAFE[name]?.[state]||frames.map((_,i)=>i)).filter(i=>Number.isInteger(i)&&i>=0&&i<frames.length);
  const seq=safe.length?safe:frames.map((_,i)=>i);
- const f=frames[seq[Math.floor(Math.max(0,time))%seq.length]];if(!f)return false;
+ const f=frames[seq[Math.floor(Math.max(0,time))%seq.length]];if(!f||f.length<4||f[2]<=0||f[3]<=0)return false;
  ctx.save();ctx.imageSmoothingEnabled=false;
+ // Consistent feet anchor across frames; preserve source aspect ratio to prevent stretching.
+ const aspect=f[2]/f[3],dw=Math.min(w,h*aspect),dh=Math.min(h,w/aspect);x+=(w-dw)/2;y+=h-dh;w=dw;h=dh;
  if(flash)ctx.filter='brightness(1.75) saturate(.65)';
  if(hue)ctx.filter=(flash?'brightness(1.75) ':'')+'hue-rotate('+hue+'deg)';
  if(face<0){ctx.translate(x+w/2,0);ctx.scale(-1,1);ctx.drawImage(RH_ATLAS,f[0],f[1],f[2],f[3],-w/2,y,w,h)}
