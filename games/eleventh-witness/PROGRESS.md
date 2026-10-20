@@ -69,3 +69,16 @@ https://techmew.github.io/games/eleventh-witness/
 - story.js, engine.js JavaScript構文検査PASS。
 - GitHub Pages https://techmew.github.io/games/eleventh-witness/ は Web直接アクセス不可。公開URLへの反映・実機表示は未確認。GitHubコミット成功との区別を維持。
 - 次回：Pages配信とAndroid実機表示の確認、立ち絵の解像度・合成改善、残りの正史人物の立ち絵制作方針。
+
+
+## 2026-10-21 JST 病みかわ×狂騒ミステリー実装
+- ユーザーから『八重歯・誇張・やみやみ』『写実的かつ韓国/AIふうの人物は不可』『物語全体をぶっ飛ばして再構成』の直接指示。
+- 新しい第一夜をS.y0_open以下に24場面群、247進行ノード、6選択地点、3ENDとして実装。10人全員に『あなたが犯人』の招待状、11個のカップ、悪趣味な晩餐、匠の死亡、停止時計・複数スピーカー音響、莉子の後悔、告発のバッドエンドを導入。旧38場面は旧セーブ互換として保全、主ルートからは隔離。
+- HTML/CSSを黒紫×キャンディーピンクの新UIへ全面変更。フォト風立ち絵の読み込みを廃し、完全オリジナルの平面的2Dセル描画SVG立ち絵4点（riko,sae,aya,takumi）を新制作しGitHubのassets/portraits/へ保存、engine.jsから話者連動で表示。
+- 既存セーブキーeleventh_novel_reboot_2026_v1としおり3枠を維持。クリア後の新規開始でloopMemoryがオンになり、記憶の追加ナレーションを表示。
+- 主シナリオコミット eb11aa1160bd82942eaa312294194ef78038e77a / 改行修正 18d5651ed80bba0d8271f7fc2a0e1104ed267b62 / 最終脚本214? -> 実コミット 213fb57ede006d436ec95ed0f666d176fad4c6e2。
+- 画像4点の作成コミット 203c4ee / ff2b755 / 7ed4f1c / f11cae7。エンジンとUI 8cb6ed4 / 0cbd8ac、周回記憶 cb9919d / 213fb57。
+- 静的テスト：JavaScript構文PASS、メイン24場面の参照・終端PASS、立ち絵4ファイルのGitHub API再読込PASS、旧38場面維持、旧セーブキーと3しおり維持。
+- 疑似DOM通しテスト：3種のENDすべて到達。各経路約134〜135会話送り、6選択、終端と自動セーブPASS。
+- GitHub Pagesの実HTTPアクセスはウェブツールでアクセス不能のため公開URLへの最新反映は未確認。GitHubの保存とPages配信は区別する。Android実機描画も未確認。
+- 次RUN：第二夜の犯行時系列（23:11の実証不可・乾燥室・館内音声）とアリバイを固定、独自立ち絵表情差分、実機で読みやすいテキストUIと人物重なりの調整。未実装長編を完成扱いしない。
