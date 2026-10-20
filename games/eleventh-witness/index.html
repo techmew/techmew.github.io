@@ -3,394 +3,186 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#07101b">
-<meta name="description" content="存在しない11人目 — 証言と記憶を調べる無料ブラウザ推理サウンドノベル。第0章をプレイ。">
-<meta property="og:title" content="存在しない11人目｜推理サウンドノベル">
-<meta property="og:description" content="10人しかいない施設で聞こえた、11人目の声。証拠と音を照合し、証言の矛盾を暴け。">
-<meta property="og:type" content="website">
+<meta name="theme-color" content="#171b22">
+<meta name="description" content="存在しない11人目 ― 吹雪の山荘を舞台にした本格サウンドノベル。誰を信じるかで夜の結末が変わる。第一夜を無料公開。">
+<meta property="og:title" content="存在しない11人目｜第一夜・席を空けておいて">
+<meta property="og:description" content="十一年ぶりに集められた十人。山荘に残った写真と、誰のものでもない席。吹雪の夜、最初の事件が起こる。">
 <meta property="og:url" content="https://techmew.github.io/games/eleventh-witness/">
-<title>存在しない11人目｜THE ELEVENTH WITNESS</title>
+<meta property="og:type" content="website">
+<title>存在しない11人目｜第一夜 席を空けておいて</title>
 <style>
-:root{--base:#07101b;--panel:rgba(8,17,32,.93);--white:#e7f5f4;--muted:#a5bec8;--aqua:#86e9df;--rose:#ff8aab;--border:rgba(145,222,230,.24);--fontscale:1}
+:root{color-scheme:dark;--ink:#eae7df;--muted:#bbb9b3;--paper:#f6e7c9;--line:#d9c59f55;--type-scale:1}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#050911;color:var(--white);font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,system-ui,sans-serif}
-button{font:inherit;cursor:pointer;color:inherit;-webkit-tap-highlight-color:transparent}
-button:focus-visible{outline:3px solid #ffe49a;outline-offset:3px}
-button:disabled{opacity:.45;cursor:default}
-#app{height:100dvh;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#060d1b}
-header{height:57px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(12px,2vw,28px);gap:8px;border-bottom:1px solid var(--border);background:#080e1c;z-index:4;flex:none}
-.brand{display:flex;gap:10px;align-items:center;min-width:0}
-.sigil{width:32px;height:32px;border:1px solid var(--aqua);border-radius:9px;display:grid;place-items:center;color:var(--aqua);font:700 17px ui-monospace,monospace;box-shadow:inset 0 0 16px #74e6d522}
-.brand-text{line-height:1.2;min-width:0}
-.brand-text strong{font-size:14px;letter-spacing:.04em;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand-text small{color:var(--muted);font-size:10px;letter-spacing:.13em}
-#topActions{display:flex;gap:5px;align-items:center}
-.small-btn{border:1px solid var(--border);background:#18263a;color:var(--white);border-radius:9px;padding:8px 10px;font-size:12px;min-height:35px}
-.small-btn:hover,.chip:hover{border-color:var(--aqua);background:#203648}
-#storyStage{position:relative;flex:1;min-height:0;overflow:hidden;background:#0c1726 url("assets/atrium.svg") center/cover no-repeat;isolation:isolate}
-#storyStage::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,7,16,.55),transparent 60%),linear-gradient(0deg,rgba(4,8,17,.94) 0%,transparent 55%);z-index:0;pointer-events:none}
-#storyStage::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 5px,#92f0db04 6px 7px);pointer-events:none;z-index:0}
-#location{position:absolute;top:15px;left:18px;z-index:2;border-left:3px solid var(--rose);background:rgba(2,10,21,.74);padding:8px 13px;line-height:1.4;font:12px ui-monospace,monospace;letter-spacing:.08em}
-#location span{display:block;color:var(--aqua);font-size:10px;margin-top:3px}
-#person{position:absolute;bottom:0;right:6%;height:min(81%,750px);max-width:62%;z-index:1;object-fit:contain;object-position:bottom;filter:drop-shadow(0 9px 22px #0009);transition:opacity .23s,transform .3s;pointer-events:none}
-#person.hidden{opacity:0;transform:translateX(25px)}
-#textBox{position:absolute;bottom:clamp(12px,3vh,32px);left:clamp(12px,5vw,80px);right:clamp(12px,5vw,80px);min-height:171px;background:linear-gradient(120deg,rgba(8,18,36,.96),rgba(9,22,33,.93));border:1px solid #83c9d266;border-left:4px solid var(--aqua);border-radius:12px;z-index:3;box-shadow:0 20px 45px #0008;backdrop-filter:blur(10px);padding:21px 23px 55px;cursor:pointer}
-#textBox:focus-visible{outline:3px solid #ffe49a}
-#speaker{position:absolute;top:-18px;left:22px;padding:7px 18px;background:#143448;border:1px solid #7ecfc9;border-radius:7px;color:#b8fff3;letter-spacing:.1em;font-size:13px;font-weight:700}
-#text{font-size:calc(17px * var(--fontscale));line-height:1.95;white-space:pre-line;max-width:76%;text-shadow:0 1px 2px #000}
-#text strong{color:var(--rose)}
-#next{position:absolute;bottom:12px;right:16px;border:1px solid #89ddda66;background:#1b3c4b;color:#c9fff5;border-radius:30px;font-weight:700;font-size:13px;padding:9px 17px;animation:subtle 2s ease-in-out infinite}
-@keyframes subtle{50%{box-shadow:0 0 17px #5ceadb55}}
-#hintLine{position:absolute;bottom:18px;left:22px;color:#9eb7c3;font-size:11px;letter-spacing:.03em}
-#interaction{position:absolute;inset:0;z-index:3;display:flex;justify-content:center;align-items:center;padding:52px 18px 18px;background:linear-gradient(90deg,#03101bad,transparent)}
-.panel{width:min(640px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;border:1px solid #7bdee65e;background:rgba(6,15,29,.95);border-radius:15px;padding:clamp(18px,3vw,28px);box-shadow:0 16px 60px #000c;backdrop-filter:blur(15px)}
-.kicker{color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.17em;margin:0 0 8px}
-.panel h2{font-size:clamp(19px,2.6vw,27px);font-weight:800;line-height:1.4;margin:0 0 14px}
-.panel p{line-height:1.85;margin:9px 0 15px;font-size:14px;color:#d6e8eb}
-.note{color:#98b3c0!important;font-size:12px!important}
-.options{display:flex;flex-direction:column;gap:9px;margin-top:14px}
-.option{display:block;text-align:left;width:100%;border:1px solid #617f9566;padding:13px 15px;background:#142439;border-radius:9px;line-height:1.6;font-size:14px;transition:.15s}
-.option:hover{background:#203951;border-color:#76d9d5}
-.option:disabled{border-color:#234251}
-.option.selected{border-color:#a7e9d9;background:#224453}
-.option.done{border-color:#5dafa5;background:#163831}
-.option span{display:block;font-size:11px;color:#93aeb7;margin-top:4px}
-.option.action{background:linear-gradient(110deg,#176c72,#164e69);border:1px solid #96fae8;font-weight:800;text-align:center;color:#f6fffc}
-#feedback{margin-top:13px;min-height:18px;color:#ffd1d7;font-size:13px;line-height:1.6}
-.evidence-icon{display:inline-flex;width:24px;height:24px;border:1px solid var(--aqua);border-radius:50%;align-items:center;justify-content:center;color:var(--aqua);font-size:13px;margin-right:6px}
-.chip{display:inline-block;background:#13283b;border:1px solid #679ab052;border-radius:40px;padding:7px 12px;margin:3px;font-size:12px}
-.pills{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.dot{height:8px;width:8px;border-radius:50%;display:inline-block;background:#54717c;margin-left:6px}
-.dot.on{background:#85f5de;box-shadow:0 0 9px #88e9d9}
-#footer{flex:none;height:41px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;background:#070d18;border-top:1px solid #20334c;color:#91a9b8;font-size:11px;gap:8px}
-#footer strong{color:var(--aqua)}
-#cover{position:absolute;z-index:10;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:26px;background:linear-gradient(#06101a66,#05101bee),url("assets/atrium.svg") center/cover no-repeat}
-.cover-inner{width:min(750px,100%);padding:45px 22px;background:#07101dbd;border:1px solid #7aead54c;box-shadow:0 25px 80px #000b;backdrop-filter:blur(5px);border-radius:14px}
-.title-sigil{font:700 clamp(90px,14vw,160px)/1 ui-monospace,monospace;color:transparent;-webkit-text-stroke:2px #a0f7ed;filter:drop-shadow(0 0 14px #39cabf66);letter-spacing:-.09em;padding-right:.12em}
-.cover-kicker{color:#ff96af;font:700 11px ui-monospace,monospace;letter-spacing:.45em;margin:11px 0 18px}
-.cover-inner h1{margin:0;font-size:clamp(27px,4.4vw,49px);font-weight:900;letter-spacing:.09em}
-.cover-inner .tagline{color:#d6e6ee;line-height:2;font-size:clamp(12px,2vw,15px);margin:17px auto 24px}
-.cover-inner .edition{color:#83e4d9;font-size:12px;margin-top:21px}
-.cover-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
-.big-btn{background:#176b71;border:1px solid #8ffff1;border-radius:8px;padding:14px 27px;font-size:14px;font-weight:800;min-width:145px}
-.big-btn.secondary{background:#19263b;border-color:#567b8e}
-.big-btn:hover{filter:brightness(1.18)}
-#modal{position:absolute;inset:0;z-index:20;background:#030814db;display:flex;align-items:center;justify-content:center;padding:15px}
-#modalBox{width:min(620px,100%);max-height:88vh;overflow:auto;border:1px solid #9ce9dc80;border-radius:13px;padding:24px;background:#0a1828;box-shadow:0 0 80px #000}
-#modalBox h2{font-size:20px;margin:0 0 18px}
-#modalContent{max-height:56vh;overflow:auto}
-.modal-row{border-bottom:1px solid #264052;padding:12px 2px;line-height:1.6;font-size:14px}
-.modal-row b{display:block;color:#8de9db;margin-bottom:3px}
-.close{float:right;background:#22354b;border:1px solid #648fa3;border-radius:7px;padding:6px 12px}
-code{font-size:12px;color:#92e7d3}
+html,body{margin:0;width:100%;min-height:100%;overflow:hidden;background:#090d13;color:var(--ink)}
+body,button{font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP","Hiragino Kaku Gothic ProN",Georgia,serif}
+button{cursor:pointer;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus-visible{outline:2px solid #fff1b5;outline-offset:4px}
+button:disabled{cursor:default;opacity:.5}
 [hidden]{display:none!important}
-@media(max-width:690px){
- header{height:52px;padding:0 8px}.brand-text strong{font-size:12px}.brand-text small{font-size:8px}.sigil{width:26px;height:26px;font-size:13px}.small-btn{padding:7px 8px;font-size:11px;min-height:33px}
- #topActions{gap:3px}#location{font-size:10px;top:11px;left:9px}
- #person{height:min(77%,610px);max-width:86%;right:-9%;opacity:.78}
- #textBox{bottom:8px;left:7px;right:7px;padding:20px 13px 49px;min-height:184px}
- #speaker{left:12px;font-size:12px;padding:6px 13px}
- #text{max-width:100%;font-size:calc(15px * var(--fontscale));line-height:1.85}
- #hintLine{left:12px;bottom:14px;font-size:10px;max-width:55%}
- #next{right:8px;bottom:9px}
- #interaction{padding:48px 8px 8px;align-items:flex-end}
- .panel{padding:15px 14px;max-height:95%;border-radius:12px}
- .panel p{font-size:13px}.option{padding:11px 12px;font-size:13px}
- #footer{font-size:9px;height:35px;padding:0 7px}
- .cover-inner{padding:30px 15px}.cover-inner h1{letter-spacing:0}
+#app{width:100%;height:100dvh;min-height:420px;position:relative;display:flex;flex-direction:column;overflow:hidden}
+#scene{flex:1;min-height:0;position:relative;overflow:hidden;background:#19212b;isolation:isolate;touch-action:pan-y}
+#world{position:absolute;inset:-16%;background:#1d2a35 url("assets/reboot-snow.svg") center/cover no-repeat;transform:translate3d(var(--pan-x,0px),var(--pan-y,0px),0) scale(1.03);will-change:transform;transition:background-image .25s ease,transform .15s ease;z-index:-3}
+#scene::before{content:"";position:absolute;inset:0;z-index:-2;pointer-events:none;background:linear-gradient(180deg,#01060a85 0%,transparent 30%,#01050c11 49%,#03060bb3 88%,#020407e0 100%)}
+#scene::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.23;background-image:radial-gradient(#e2e9e6 0.8px,transparent 1px),radial-gradient(#b8d1e1 0.7px,transparent 1px);background-size:130px 135px,186px 184px;background-position:13px 10px,94px 55px;animation:snowfall 19s linear infinite}
+@keyframes snowfall{to{background-position:103px 260px,130px 265px}}
+#scene[data-place="lobby"]::after,#scene[data-place="room"]::after,#scene[data-place="dining"]::after,#scene[data-place="hall"]::after,#scene[data-place="dryroom"]::after{opacity:.05}
+#scene.fadeScene #world{animation:fadeWorld .42s ease}
+@keyframes fadeWorld{0%{filter:brightness(.54)}100%{filter:brightness(1)}}
+#top{position:absolute;z-index:8;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(13px + env(safe-area-inset-top,0px)) 19px 13px;background:linear-gradient(#050913cc,#05091311);pointer-events:none}
+#top>*{pointer-events:auto}
+#location{color:#f4e9d4;font-size:12px;letter-spacing:.14em;text-shadow:0 1px 7px #000;display:flex;align-items:center;gap:9px}
+#location::before{content:"";width:18px;height:1px;background:#d9c7a2}
+#topActions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.iconbtn{background:#101821a8;border:1px solid #b3b3ac55;color:#ece8dd;border-radius:4px;font-family:"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;font-size:12px;padding:9px 11px;min-height:39px}
+.iconbtn:hover,.iconbtn.active{background:#69583bce;border-color:#dac49a}
+#centerView{position:absolute;top:calc(67px + env(safe-area-inset-top,0px));right:20px;z-index:2;background:#0c1016aa;border:1px solid #ffffff30;border-radius:50%;width:37px;height:37px;color:#f7e6c8}
+#dialog{position:absolute;z-index:5;bottom:24px;left:max(22px,calc((100vw - 1180px)/2));right:max(22px,calc((100vw - 1180px)/2));min-height:190px;background:linear-gradient(95deg,rgba(8,10,16,.92),rgba(15,19,25,.87));box-shadow:0 19px 50px #0009,0 0 0 1px #eee5c125;backdrop-filter:blur(7px);padding:25px 36px 35px;border-top:1px solid #debe8255;border-bottom:1px solid #d9c4a233;pointer-events:none}
+#who{font-size:15px;font-weight:700;color:#ecd4a3;letter-spacing:.13em;margin-bottom:13px}
+#prose{color:#f5f0e6;font-size:calc(20px * var(--type-scale));line-height:1.95;letter-spacing:.032em;white-space:pre-line;overflow-wrap:anywhere;max-height:calc(49vh - 36px);overflow:auto;text-shadow:0 1px 5px #000;min-height:1.7em}
+#dialog:not(.speech) #prose{font-weight:500}
+#fullText{position:absolute;clip-path:inset(50%);height:1px;width:1px;overflow:hidden}
+#dialog:after{content:"◆";position:absolute;right:32px;bottom:12px;color:#cfaf78;opacity:.9;animation:pulse 1.3s ease infinite}
+@keyframes pulse{50%{opacity:.2;transform:translateY(2px)}}
+#prompt{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);width:min(840px,calc(100% - 32px));max-height:78%;overflow:auto;background:linear-gradient(#0b111ded,#0c121ced);border:1px solid #e0caa27f;box-shadow:0 20px 60px #000e;padding:clamp(19px,3.2vw,35px);backdrop-filter:blur(10px)}
+#prompt h2{font-size:clamp(17px,2.6vw,24px);font-weight:500;line-height:1.7;color:#f0e3c7;letter-spacing:.08em;margin:0 0 20px}
+#prompt:before{content:"その夜、あなたは";display:block;font-size:12px;letter-spacing:.3em;color:#b6a488;margin-bottom:9px}
+#choices{display:flex;flex-direction:column;gap:11px}
+.option{width:100%;min-height:64px;display:flex;align-items:center;gap:18px;justify-content:space-between;text-align:left;padding:14px 19px;border:1px solid #aaa79855;background:#28323ec2;color:#f4ecdf;transition:background .16s ease,border-color .16s ease;font-size:16px}
+.option:hover,.option:focus-visible{border-color:#eacda1;background:#443c38}
+.option .num{font:12px "Hiragino Kaku Gothic ProN",sans-serif;color:#cfb991}
+.option .optionbody{flex:1;line-height:1.6}
+.option strong{font-weight:500}
+.option small{display:block;color:#b5b7bb;font-size:12px;margin-top:4px}
+.option.major{justify-content:center;background:#50432e;border-color:#c9b087}
+.endingNote{line-height:1.9;font-size:18px;text-align:center;margin:5px 0 22px}
+#bottom{height:auto;flex:none;min-height:53px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px max(14px,env(safe-area-inset-right,0px)) calc(7px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));background:#101317;border-top:1px solid #5b5b5b44;z-index:9}
+#bottom .controls{display:flex;gap:5px;align-items:center}
+.barbtn{background:none;border:1px solid #aa9e8d33;padding:9px 11px;color:#cbc1ad;font:12px "Hiragino Kaku Gothic ProN",Meiryo,sans-serif;white-space:nowrap}
+.barbtn.active{color:#f4dda6;border-color:#d5b56f}
+#hint{color:#adafae;font:11px "Hiragino Kaku Gothic ProN",Meiryo,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;flex:1}
+#counter{font-size:11px;letter-spacing:.13em;color:#d8c29e}
+#saveBadge{display:none}
+#cover{position:absolute;inset:0;z-index:10;display:flex;justify-content:center;align-items:center;text-align:center;background:linear-gradient(90deg,#06101aca,#07101a24 42%,#08101ae3);padding:40px 20px}
+.coverContent{padding:50px 30px;max-width:680px;width:100%;background:linear-gradient(#0d1017b5,#090d14b8);border-top:1px solid #ead4ac5e;border-bottom:1px solid #ead4ac5e;box-shadow:0 20px 70px #0008}
+.eyebrow{letter-spacing:.35em;color:#e1bc88;font-size:12px;margin:0 0 21px}
+#cover h1{font-weight:500;letter-spacing:.13em;line-height:1.4;font-size:clamp(31px,5.2vw,59px);margin:0 0 10px;text-shadow:0 4px 25px #000}
+.cover-subl{font-size:clamp(15px,2vw,20px);font-weight:400;letter-spacing:.16em;color:#f3dec0;margin:0 0 30px}
+.cover-desc{font-size:15px;line-height:2.2;color:#e9e8e6;margin:0 auto 31px}
+.coverButtons{display:flex;flex-direction:column;align-items:center;gap:10px}
+.coverBtn{background:#a58c64ec;color:#101318;border:1px solid #f4dfbb;border-radius:2px;font-weight:bold;padding:14px 25px;width:min(275px,100%);font-size:15px;letter-spacing:.14em}
+.coverBtn.alt{background:#182333db;color:#e7dac3;border-color:#c5b08e}
+.coverInfo{color:#b5b1a7;font-size:11px;margin:26px 0 0}
+#modal{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:14px;background:#080b11dd;backdrop-filter:blur(7px)}
+.modalShell{width:min(730px,100%);max-height:90%;padding:26px;background:#101721;border:1px solid #b6a27c99;box-shadow:0 20px 65px #000d;overflow:hidden;display:flex;flex-direction:column}
+.modalHead{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #cfb68555;padding-bottom:14px}
+#modalTitle{font-size:21px;margin:0;color:#f4e3c1;font-weight:400}
+#modalBody{margin-top:14px;overflow:auto;overscroll-behavior:contain;padding:0 3px;line-height:1.8}
+.logRow{margin:0 0 14px;padding:11px 0;border-bottom:1px solid #e7e0d327;white-space:pre-wrap;line-height:1.8}
+.logRow b{font-size:13px;color:#e0c18e}
+.logRow p{margin:3px 0;font-size:15px}
+.modal-btn{padding:9px 13px;margin:4px;border:1px solid #bca98080;background:#293442;color:#f0e7d6;font-size:13px}
+.muted{font-size:13px;color:#aaaeb5}
+.slotRow{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid #aaa4a43b;padding:12px 0;flex-wrap:wrap}
+.slotRow div{flex:1;min-width:140px}
+#closeModal{border:1px solid #bca98077;background:#293442;color:#f5e8d1;padding:8px 14px}
+#scene[data-place="dryroom"] #world{filter:brightness(.54) saturate(.7)}
+#scene[data-place="road"] #world{filter:brightness(.68)}
+#scene[data-place="room"] #world{filter:brightness(.78)}
+#scene[data-place="hall"] #world{filter:brightness(.63)}
+@media(max-width:700px){
+ #top{padding:calc(8px + env(safe-area-inset-top,0px)) 8px 8px}
+ #location{font-size:10px;letter-spacing:0;max-width:120px;line-height:1.3}
+ #location:before{width:8px}
+ #topActions{gap:4px}
+ .iconbtn{font-size:11px;padding:6px 7px;min-height:33px}
+ #centerView{top:calc(57px + env(safe-area-inset-top,0px));right:7px;width:32px;height:32px;font-size:11px}
+ #dialog{bottom:10px;left:7px;right:7px;min-height:190px;padding:18px 17px 35px}
+ #who{font-size:13px;margin-bottom:6px}
+ #prose{font-size:calc(16px * var(--type-scale));line-height:1.85;max-height:42vh}
+ #dialog:after{right:16px;bottom:10px}
+ #prompt{max-height:82%;width:calc(100% - 14px);padding:17px 14px}
+ #prompt h2{margin:0 0 13px}
+ .option{font-size:14px;padding:11px 11px;gap:9px;min-height:58px}
+ .option small{font-size:11px}
+ #bottom{min-height:49px;padding:5px max(7px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(7px,env(safe-area-inset-left,0px))}
+ .barbtn{font-size:10px;padding:8px 7px}
+ #hint{font-size:9px;flex:1}
+ #counter{font-size:9px}
+ .coverContent{padding:35px 14px}
+ .cover-desc{font-size:12px;line-height:2}
 }
-@media(max-height:560px) and (orientation:landscape){
- #textBox{min-height:125px;padding:16px 17px 40px;bottom:4px}
- #text{font-size:calc(13px * var(--fontscale));line-height:1.6}
- #person{height:88%;right:11%}
- .panel{max-height:95%;padding:14px 20px}
- #interaction{padding:10px}
- .panel h2{font-size:19px}
- .panel p{margin:5px 0;font-size:12px}
- .option{padding:7px 10px;font-size:12px}
+@media(max-width:390px){
+ #hint{display:none}
+ #bottom{justify-content:space-between}
+ .iconbtn{font-size:10px;padding:6px 5px}
+ #prose{font-size:calc(15px * var(--type-scale))}
 }
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
-/* 2.5D interactive camera: background overscans so no black edges show. */
-#storyStage{background:#0a1625;touch-action:none;cursor:grab}
-#storyStage.look-grabbing{cursor:grabbing;user-select:none;-webkit-user-select:none}
-#sceneWorld{position:absolute;inset:-20%;z-index:0;pointer-events:none;background: url("assets/atrium.svg") center/cover no-repeat;transform:translate3d(var(--look-x,0px),var(--look-y,0px),0) scale(1.1);transition:transform .08s linear;will-change:transform}
-#person:not(.hidden){transform:translate3d(var(--person-x,0px),var(--person-y,0px),0)}
-#resetView{position:absolute;z-index:2;right:12px;top:12px;border:1px solid #79dfd880;background:#091c2bdc;border-radius:9px;color:#b9f8ed;padding:9px 13px;font-size:12px;touch-action:manipulation}
-#lookTip{position:absolute;top:58px;right:13px;z-index:2;pointer-events:none;color:#c1e5e3;font-size:11px;background:#051426aa;padding:5px 9px;border-radius:7px;max-width:180px;text-align:right}
-#cover{cursor:pointer;touch-action:manipulation}
-#textBox{touch-action:none;user-select:none;-webkit-user-select:none}
-#interaction{touch-action:pan-y}
-.panel{touch-action:pan-y}
-#modal{touch-action:pan-y}
-#location{pointer-events:none}
-#person{pointer-events:none}
-@media(max-width:690px){
- #lookTip{top:53px;right:8px;font-size:10px;max-width:145px}
- #resetView{top:10px;right:8px;padding:7px 9px;font-size:11px}
- #hintLine{max-width:60%}
+@media(max-height:550px) and (orientation:landscape){
+ #top{padding:4px 13px}
+ #centerView{top:45px}
+ #dialog{bottom:4px;min-height:115px;padding:12px 18px 22px}
+ #prose{font-size:calc(14px * var(--type-scale));max-height:29vh;line-height:1.5}
+ #who{margin-bottom:3px}
+ #prompt{top:51%;max-height:80%;padding:13px}
+ .option{min-height:44px;padding:7px 13px}
+ #bottom{min-height:38px}
+ .barbtn{padding:4px 8px}
 }
-@media(prefers-reduced-motion:reduce){#sceneWorld{transition:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div id="app">
-<header>
-<div class="brand"><div class="sigil">11</div><div class="brand-text"><strong>存在しない11人目</strong><small>THE ELEVENTH WITNESS</small></div></div>
+<main id="scene" role="main" aria-label="物語の画面">
+<div id="world" aria-hidden="true"></div>
+<header id="top">
+<div id="location">山麓のバス停</div>
 <div id="topActions">
-<button class="small-btn" id="soundToggle" aria-label="音楽と効果音の切替">♪ OFF</button>
-<button class="small-btn" id="notesBtn">証拠</button>
-<button class="small-btn" id="logBtn">履歴</button>
-<button class="small-btn" id="menuBtn">設定</button>
+<button id="evidenceBtn" class="iconbtn" type="button">手がかり</button>
+<button id="logBtn" class="iconbtn" type="button">履歴</button>
+<button id="saveBtn" class="iconbtn" type="button">しおり</button>
+<button id="menuBtn" class="iconbtn" type="button">設定</button>
 </div>
 </header>
-<main id="storyStage" aria-label="ゲーム画面：上下左右にドラッグして視点移動、会話中はタップで次へ">
-<div id="sceneWorld" aria-hidden="true"></div>
-<button id="resetView" type="button" aria-label="カメラを中央に戻す">◎ 視点を戻す</button>
-<div id="lookTip" role="status">背景をドラッグして視点移動できます</div>
-<div id="location">零階・中央廊下<span>DAY 01 · 23:58</span></div>
-<img id="person" class="hidden" src="" alt="">
-<div id="textBox" tabindex="0" role="button" aria-label="次の文章へ進む">
-<div id="speaker">記録</div>
-<div id="text" aria-live="polite"></div>
-<div id="hintLine">どこでもタップで進む / ドラッグで視点移動</div>
-<button id="next">次へ →</button>
+<button id="centerView" aria-label="背景の視点を正面に戻す" title="正面へ戻す">◎</button>
+<div id="dialog" hidden>
+<div id="who"></div>
+<div id="prose"></div>
+<div id="fullText" aria-live="polite"></div>
 </div>
-<section id="interaction" hidden aria-label="推理操作"><div class="panel" id="taskPanel"></div></section>
-<div id="cover">
-<div class="cover-inner">
-<div class="title-sigil" aria-hidden="true">11</div>
-<div class="cover-kicker">A MEMORY MYSTERY</div>
+<div id="prompt" hidden>
+<h2>誰を信じる？</h2>
+<div id="choices"></div>
+</div>
+<section id="cover" aria-label="タイトル画面">
+<div class="coverContent">
+<p class="eyebrow">SNOWBOUND MYSTERY</p>
 <h1>存在しない11人目</h1>
-<p class="tagline">10人しかいない建物で、11人目の声が聞こえた。<br>その声は、あなたの「前の記憶」を知っている。</p>
-<div class="cover-actions"><button class="big-btn" id="startBtn">最初から始める</button><button class="big-btn secondary" id="continueBtn" hidden>続きから</button></div>
-<div class="edition">第0章「録音された最期」— PLAYABLE PROTOTYPE v0.1</div>
-</div></div>
-<div id="modal" hidden role="dialog" aria-modal="true" aria-label="ゲーム情報"><div id="modalBox"><button class="close" id="closeModal">閉じる ×</button><h2 id="modalTitle"></h2><div id="modalContent"></div></div></div>
-</main>
-<footer id="footer"><span><strong>FILE 00</strong> / 事件の起点</span><span id="chapterProgress">記憶同期前</span><span>保存：この端末</span></footer>
+<p class="cover-subl">第一夜　席を空けておいて</p>
+<p class="cover-desc">十一年ぶりの招待状。<br>雪に閉ざされた宿と、帰ってこなかった一人。<br>あの冬、私たちは何を見なかったことにしたのか。</p>
+<div class="coverButtons">
+<button id="beginBtn" class="coverBtn">最初から読む</button>
+<button id="continueBtn" class="coverBtn alt" hidden>続きから読む</button>
 </div>
-<script>
-(function(){
-'use strict';
-var KEY='eleventh_witness_save_v1';
-var STAGE=document.getElementById('storyStage'),PERSON=document.getElementById('person');
-var BOX=document.getElementById('textBox'),INTER=document.getElementById('interaction'),PANEL=document.getElementById('taskPanel');
-var WORLD=document.getElementById('sceneWorld'), RESET_VIEW=document.getElementById('resetView'), LOOK_TIP=document.getElementById('lookTip');
-var MODAL=document.getElementById('modal'),COVER=document.getElementById('cover');
-var images={mio:'assets/mio.svg',rei:'assets/rei.svg',saki:'assets/saki.svg'};
-var names={mio:'葛城 澪',rei:'八雲 レイ',saki:'榊 サキ',nagi:'天瀬 ナギ',sys:'施設放送',eleven:'不明な声',narr:'記録'};
-var EVIDENCE={
- door:{name:'入退室ログ',desc:'資料室09は00:12に自動封鎖。00:18まで扉の開閉履歴はない。'},
- memo:{name:'カナデの音声メモ',desc:'23:49に保存された短い声と、特徴的な三音のチャイム。録音原本は資料室09の端末に残っていた。'},
- med:{name:'検視の速報',desc:'死因は現時点で断定不能。死亡時刻も00:13と確定していない。'},
- audio:{name:'音響指紋の一致',desc:'23:49の録音と00:13に廊下で聞こえた音は、三音の間隔と末尾の微小なノイズまで一致する。生声と断言できない。'}
-};
-var scenes=[];
-function d(w,text,bg,time){scenes.push({t:'d',w:w,text:text,bg:bg||'',time:time||''});}
-d('narr','「殺される前に、私の声を消して」\nそれが、彼女から届いた最後のメッセージだった。','atrium','DAY 01 · 23:58');
-d('sys','居住区の人数認証を開始します。\n認証結果――10名。異常ありません。');
-d('mio','10人。いつもと同じ数字。\n……なのに、誰かが足りない気がする。');
-d('rei','葛城。こんな時間に何をしている。','atrium','DAY 01 · 23:59');
-d('mio','レイ。資料室から連絡が来たの。\nカナデが、急いで来てほしいって。');
-d('rei','資料室09か。あそこは0時12分に自動封鎖される。今ならまだ入れる。');
-d('sys','00:00。日付が更新されました。','atrium','DAY 02 · 00:00');
-d('narr','照明が一度だけ消えた。\nその暗闇で、知らない声が耳元をかすめる。');
-d('eleven','……記録係。まだ、私を数えないで。');
-d('mio','いま、誰か喋った？');
-d('rei','いや。お前と俺しかいない。');
-d('sys','00:13。資料室09から音声が検出されました。','atrium','DAY 02 · 00:13');
-d('narr','廊下の向こうから、カナデの声がした。\n続いて、三つの短い音。そして沈黙。');
-d('saki','聞こえたよね？　カナデの声！\nあたし、廊下のスピーカーを調整してたんだ。');
-d('rei','扉の封鎖解除は00:18だ。中には入れない。');
-d('narr','五分後。\n資料室09の扉は開き、カナデが床に倒れているのが見つかった。','archive','DAY 02 · 00:18');
-d('mio','……呼吸が、ない。');
-d('nagi','手を触れないで。検視が終わるまで、何も動かさないで。');
-d('rei','これは事故か、事件か。まず資料室を調べよう。');
-d('mio','声が聞こえた00:13に生きていたとは限らない。\n証拠を見つけよう。');
-scenes.push({t:'inspect'});
-d('mio','封鎖は00:12から00:18まで。扉は開いていない。','archive','DAY 02 · 00:22');
-d('saki','でもあたし、00:13に声を聞いたんだよ。\nカナデはその時まで生きていたはず。');
-d('rei','ひとつの証言を事実と決めつけるな。\n記録と照らし合わせろ。');
-d('mio','23:49の音声メモと、00:13に聞こえた音。\n記録の違いを確かめる。');
-scenes.push({t:'sound'});
-d('mio','……一致してる。音の高さだけじゃない。\n最後に入った小さな雑音まで同じだ。','archive','DAY 02 · 00:25');
-d('rei','ならば、この証言の中に矛盾がある。\n何が間違っているのか、証拠で示せ。');
-scenes.push({t:'debate'});
-d('saki','……そっか。あの声、録音だったかもしれないのね。','archive','DAY 02 · 00:27');
-d('mio','その録音が再生された理由は、まだわからない。\nでも、はっきりしたことが一つある。');
-scenes.push({t:'deduce'});
-d('rei','つまり犯行時刻は00:13とは限らない。\n施錠前に、誰かがこの部屋にいた可能性もある。','archive','DAY 02 · 00:29');
-d('saki','ちょっと待って。再生装置は、誰でも触れるような場所にない……。');
-d('mio','それなら、誰が再生を設定したの？');
-d('sys','未登録の音声ファイルが見つかりました。\n作成時刻――明日、00:13。');
-d('mio','……明日？　まだ来ていない時刻なのに？');
-d('eleven','澪。これは、一度目の事件じゃない。');
-d('eleven','あなたは前にも、同じ質問をした。\n次は……私を忘れないで。');
-scenes.push({t:'end'});
-var state={pos:0,found:[],listened:[],errors:0,log:[],run:1,completed:false,sound:false,font:1};
-var hasSave=false,gameStarted=false,audio=null,musicTimer=null,musicIndex=0;
-function text(id,t){document.getElementById(id).textContent=t;}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function stored(){try{var raw=localStorage.getItem(KEY);if(!raw)return null;var obj=JSON.parse(raw);if(typeof obj.pos!=='number'||obj.pos<0||obj.pos>=scenes.length)return null;return obj;}catch(e){return null;}}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
-function progress(){text('chapterProgress','記録 '+Math.min(100,Math.floor((state.pos+1)/scenes.length*100))+'%');}
-function playTone(freq,dur,vol,type,delay){if(!state.sound)return;try{var a=getAudio(),o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(.001,a.currentTime+(delay||0));g.gain.exponentialRampToValueAtTime(vol||.025,a.currentTime+(delay||0)+.025);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+(delay||0)+dur);o.connect(g);g.connect(a.destination);o.start(a.currentTime+(delay||0));o.stop(a.currentTime+(delay||0)+dur+.03);}catch(e){}}
-function getAudio(){if(!audio){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('audio unavailable');audio=new AC();}if(audio.state==='suspended')audio.resume();return audio;}
-function chime(second){if(!state.sound)return;[440,554.37,392].forEach(function(f,i){playTone(f,.30,.045,'sine',i*.39);playTone(f/2,.33,.008,'triangle',i*.39);});playTone(119,.09,.005,'triangle',1.26);if(second)playTone(119,.09,.005,'triangle',1.26);}
-function tick(){if(!state.sound||!gameStarted)return;var f=[174.61,220,261.63,196,146.83,174.61,130.81,196][musicIndex%8];playTone(f,2.0,.009,'sine',0);playTone(f/2,2.2,.008,'triangle',.03);musicIndex++;}
-function setSound(v){state.sound=!!v;text('soundToggle',state.sound?'♪ ON':'♪ OFF');if(state.sound){try{getAudio();playTone(660,.13,.04,'sine',0);}catch(e){state.sound=false;text('soundToggle','♪ OFF');}}persist();}
-function speaker(w){text('speaker',names[w]||w);PERSON.classList.toggle('hidden',!images[w]);if(images[w]){PERSON.src=images[w];PERSON.alt=(names[w]||'')+'の立ち絵';}else PERSON.removeAttribute('src');}
-function background(bg,time){WORLD.style.backgroundImage='url("assets/'+(bg==='archive'?'archive':'atrium')+'.svg")';text('location',(bg==='archive'?'資料室09・調査中':'零階・中央廊下'));document.querySelector('#location span').textContent=time||'DAY 02 · 00:18';}
-/* Mobile-first exploratory panorama: dragging moves background and character at
-   different depths. A movement gesture never advances the dialogue. */
-var camera={x:0,y:0,startX:0,startY:0,originX:0,originY:0,id:null,active:false,moved:false};
-var suppressTap=false;
-function clamp(n,a,b){return Math.min(b,Math.max(a,n));}
-function renderCamera(){
- STAGE.style.setProperty('--look-x',camera.x+'px');
- STAGE.style.setProperty('--look-y',camera.y+'px');
- STAGE.style.setProperty('--person-x',(-camera.x*.36)+'px');
- STAGE.style.setProperty('--person-y',(-camera.y*.24)+'px');
-}
-function resetCamera(){
- camera.x=0;camera.y=0;renderCamera();
-}
-function setupCamera(){
- renderCamera();
- RESET_VIEW.addEventListener('click',function(e){e.stopPropagation();resetCamera();LOOK_TIP.textContent='視点を中央に戻しました';});
- STAGE.addEventListener('pointerdown',function(e){
-  if(!gameStarted||!COVER.hidden||!MODAL.hidden||e.isPrimary===false||e.button>0)return;
-  if(e.target.closest('button, .panel, #modal, #cover'))return;
-  camera.id=e.pointerId;camera.active=true;camera.moved=false;
-  camera.startX=e.clientX;camera.startY=e.clientY;
-  camera.originX=camera.x;camera.originY=camera.y;
- });
- STAGE.addEventListener('pointermove',function(e){
-  if(!camera.active||camera.id!==e.pointerId)return;
-  var dx=e.clientX-camera.startX,dy=e.clientY-camera.startY;
-  if(!camera.moved && Math.hypot(dx,dy)<9)return;
-  if(!camera.moved){
-   camera.moved=true;STAGE.classList.add('look-grabbing');
-   try{STAGE.setPointerCapture(e.pointerId);}catch(_){}
-  }
-  var mx=Math.min(95,Math.max(38,STAGE.clientWidth*.23));
-  var my=Math.min(60,Math.max(30,STAGE.clientHeight*.17));
-  camera.x=clamp(camera.originX+dx*.65,-mx,mx);
-  camera.y=clamp(camera.originY+dy*.5,-my,my);
-  renderCamera();
-  LOOK_TIP.textContent='視点移動中 ─ 指を離すと固定します';
- });
- function stopCamera(e){
-  if(!camera.active||camera.id!==e.pointerId)return;
-  camera.active=false;camera.id=null;STAGE.classList.remove('look-grabbing');
-  if(camera.moved){
-   suppressTap=true;LOOK_TIP.textContent='視点を動かせます・中央へ戻すには ◎';
-   setTimeout(function(){suppressTap=false;},120);
-  }
- }
- STAGE.addEventListener('pointerup',stopCamera);
- STAGE.addEventListener('pointercancel',stopCamera);
- STAGE.addEventListener('lostpointercapture',function(e){if(camera.active&&camera.id===e.pointerId)stopCamera(e);});
- /* Capture after a drag must never accidentally trigger a story click. */
- STAGE.addEventListener('click',function(e){
-  if(suppressTap){e.stopImmediatePropagation();e.preventDefault();return;}
-  if(!gameStarted||!COVER.hidden||!MODAL.hidden)return;
-  if(!INTER.hidden){
-   if(e.target===STAGE||e.target===WORLD){LOOK_TIP.textContent='調査中：表示された選択肢をタップしてください';}
-   return;
-  }
-  if(e.target.closest('button'))return;
-  /* The text box already has its own click handler: no double advance. */
-  if(e.target.closest('#textBox'))return;
-  advance();
- },true);
-}
-
-function lastContext(){var bg='atrium',time='DAY 01 · 23:58';for(var i=0;i<=state.pos;i++){if(scenes[i].bg)bg=scenes[i].bg;if(scenes[i].time)time=scenes[i].time;}return {bg:bg,time:time};}
-function advance(){if(!gameStarted||!MODAL.hidden||!INTER.hidden)return;if(scenes[state.pos]&&scenes[state.pos].t==='d'){state.pos=Math.min(scenes.length-1,state.pos+1);persist();render();}}
-function nextScene(){state.pos=Math.min(scenes.length-1,state.pos+1);persist();render();}
-function showToast(m){var f=document.getElementById('feedback');if(f)f.textContent=m;}
-function renderInspect(){
- var html='<div class="kicker">INVESTIGATION / 証拠収集</div><h2>資料室09を調べる</h2><p>3つの手掛かりを集めよう。選んだ資料は「証拠」からいつでも確認できる。</p><div class="options">';
- [['door','扉の電子ロックを調べる'],['memo','記録端末を調べる'],['med','検視担当の速報を読む']].forEach(function(x){
- var found=state.found.indexOf(x[0])!==-1;html+='<button class="option '+(found?'done':'')+'" data-evidence="'+x[0]+'"><span class="evidence-icon">'+(found?'✓':'?')+'</span>'+x[1]+(found?'<span>調査済み</span>':'')+'</button>';
- });html+='</div><p class="note">発見 '+state.found.filter(function(x){return x!=='audio';}).length+' / 3</p>';
- if(['door','memo','med'].every(function(x){return state.found.indexOf(x)!==-1;}))html+='<button class="option action" id="finishInspect">調査結果を整理する →</button>';
- html+='<div id="feedback" role="status"></div>';
- PANEL.innerHTML=html;
- PANEL.querySelectorAll('[data-evidence]').forEach(function(b){b.onclick=function(){
- var id=b.getAttribute('data-evidence');if(state.found.indexOf(id)<0){state.found.push(id);persist();}renderInspect();showToast('【'+EVIDENCE[id].name+'】'+EVIDENCE[id].desc);playTone(640,.12,.03,'sine',0);
- };});
- var n=document.getElementById('finishInspect');if(n)n.onclick=nextScene;
-}
-function renderSound(){
- PANEL.innerHTML='<div class="kicker">ACOUSTIC LAB / 音の照合</div><h2>ふたつの音声記録</h2><p>23:49の録音と、00:13に聞こえた音。それぞれの末尾に混じる三音のチャイムを聴き比べよう。</p><div class="options"><button class="option" id="listenA">▶ 記録 A：23:49 の音を再生</button><button class="option" id="listenB">▶ 記録 B：00:13 の音を再生</button></div><p class="note" id="listenInfo">音声の再生には、画面上部の ♪ を ON にしてください。聴けない場合も推理は進行できます。</p><div class="options" id="soundChoices" hidden><button class="option" data-match="yes">二つの音には、同じ細かな特徴がある</button><button class="option" data-match="no">二つは、完全に異なる音である</button></div><div id="feedback" role="status"></div>';
- document.getElementById('listenA').onclick=function(){state.listened[0]=true;chime(false);showSoundChoices();};
- document.getElementById('listenB').onclick=function(){state.listened[1]=true;chime(true);showSoundChoices();};
- PANEL.querySelectorAll('[data-match]').forEach(function(b){b.onclick=function(){if(b.getAttribute('data-match')==='yes'){if(state.found.indexOf('audio')<0)state.found.push('audio');persist();playTone(840,.4,.03,'sine');nextScene();}else{wrong('末尾の三音と、小さな雑音に注目して。両方の記録に共通する特徴がある。');}};});
- showSoundChoices();
-}
-function showSoundChoices(){document.getElementById('soundChoices').hidden=state.listened.length<2||!state.listened[0]||!state.listened[1];text('listenInfo','再生済み：'+(state.listened[0]?'A ✓':'A —')+' / '+(state.listened[1]?'B ✓':'B —')+'　※音声OFF時も記録の特徴から答えられます。');persist();}
-function wrong(msg){state.errors++;persist();showToast('再検証：'+msg);playTone(220,.25,.024,'sawtooth');}
-function renderDebate(){
- PANEL.innerHTML='<div class="kicker">CROSS-EXAMINATION / 証言対決</div><h2>「00:13の声」は何を証明する？</h2><p>矛盾がある証言を選び、その後で突きつける証拠を選ぼう。</p><div class="options" id="claims"><button class="option" data-claim="rei">八雲レイ「00:12から00:18まで、扉は開かなかった」</button><button class="option" data-claim="saki">榊サキ「00:13に声を聞いた。だからその時まで生きていた」</button><button class="option" data-claim="nagi">天瀬ナギ「死亡時刻は、まだ特定できていない」</button></div><div id="debateEvidence" hidden><p class="note">選んだ証言に突きつける証拠は？</p><div class="options" id="cards"></div></div><div id="feedback" role="status"></div>';
- PANEL.querySelectorAll('[data-claim]').forEach(function(b){b.onclick=function(){
- PANEL.querySelectorAll('[data-claim]').forEach(function(e){e.classList.remove('selected');});b.classList.add('selected');var claim=b.getAttribute('data-claim');var cards=document.getElementById('cards');cards.innerHTML='';
- state.found.forEach(function(id){var btn=document.createElement('button');btn.className='option';btn.textContent=EVIDENCE[id].name;btn.onclick=function(){if(claim==='saki'&&id==='audio'){playTone(880,.5,.045,'sine');nextScene();}else wrong('記録に反するのは、声を聞いた事実ではなく「だから生きていた」という断定。');};cards.appendChild(btn);});document.getElementById('debateEvidence').hidden=false;
- };});
-}
-function renderDeduce(){
- PANEL.innerHTML='<div class="kicker">RECONSTRUCTION / 推理確定</div><h2>事件の時刻を再構成せよ</h2><p>00:13の声と、カナデがその時点で生きていたかどうか。証拠から最も妥当な結論を選ぼう。</p><div class="options"><button class="option" data-answer="no">声が聞こえた以上、00:13に確実に生きていた</button><button class="option" data-answer="yes">録音再生の可能性があるため、生存時刻は証明できない</button><button class="option" data-answer="no">扉が閉まっていたため、事件は起きていない</button></div><div id="feedback" role="status"></div>';
- PANEL.querySelectorAll('[data-answer]').forEach(function(b){b.onclick=function(){if(b.getAttribute('data-answer')==='yes'){playTone(720,.4,.05,'triangle');nextScene();}else wrong('音響指紋と、まだ特定されていない死亡時刻を併せて考えよう。');};});
-}
-function renderEnding(){
- if(!state.completed){state.completed=true;persist();}
- var additional=state.run>1?'<p style="color:#ffc6d5">【再読記録】その声を、あなたは前にも聞いた。保存されているのは、物語の進行だけではない。</p>':'';
- PANEL.innerHTML='<div class="kicker">FILE 00 / COMPLETE</div><h2>第0章「録音された最期」終</h2><p>証明されたのは「00:13に声が聞こえた」という事実だけ。犯人も、死の瞬間も、まだ確定していない。</p><p>そして、存在しない11人目は<strong style="color:#91ede2">明日の音声ファイル</strong>からあなたに話しかけた。</p>'+additional+'<p class="note">この章は遊べる試作版です。事件の続き、証言、議論、画像・演出を今後の更新で追加します。</p><div class="options"><button class="option action" id="restart">もう一度、最初から調べる ↻</button><button class="option" id="reviewEvidence">事件の証拠を見直す</button></div>';
- document.getElementById('restart').onclick=function(){start(true);};
- document.getElementById('reviewEvidence').onclick=function(){openPanel('notes');};
-}
-function render(){
- var s=scenes[state.pos];if(!s)return;COVER.hidden=true;gameStarted=true;
- var ctx=lastContext();background(ctx.bg,ctx.time);progress();
- var isDialog=s.t==='d';BOX.hidden=!isDialog;INTER.hidden=isDialog;
- if(isDialog){speaker(s.w);text('text',s.text);if(s.w==='eleven'&&state.run>1&&s.text.indexOf('記録係')>=0)text('text','……また会えたね、澪。\nまだ、私を数えないで。');
- var prev=state.log[state.log.length-1];if(!prev||prev.pos!==state.pos){state.log.push({pos:state.pos,who:s.w,text:s.text});state.log=state.log.slice(-80);persist();}
- }else{PERSON.classList.add('hidden');if(s.t==='inspect')renderInspect();else if(s.t==='sound')renderSound();else if(s.t==='debate')renderDebate();else if(s.t==='deduce')renderDeduce();else if(s.t==='end')renderEnding();}
-}
-function start(restart){var old=stored();state={pos:0,found:[],listened:[],errors:0,log:[],run:restart&&old?Math.min((old.run||1)+1,999):old?(old.run||1):1,completed:false,sound:state.sound,font:state.font};persist();render();}
-function resume(){var obj=stored();if(obj){state=Object.assign(state,obj);render();setSound(state.sound);}else start(false);}
-function openPanel(mode){
- var title='',body='';MODAL.hidden=false;
- if(mode==='notes'){title='証拠ファイル';var found=state.found||[];body=found.length?found.map(function(id){return '<div class="modal-row"><b>'+escapeHtml(EVIDENCE[id].name)+'</b>'+escapeHtml(EVIDENCE[id].desc)+'</div>';}).join(''):'<p>まだ証拠はありません。資料室09に着いたら調査できます。</p>';}
- if(mode==='log'){title='会話履歴';body=(state.log||[]).length?state.log.slice(-35).reverse().map(function(item){return '<div class="modal-row"><b>'+escapeHtml(names[item.who]||item.who)+'</b>'+escapeHtml(item.text).replace(/\n/g,'<br>')+'</div>';}).join(''):'<p>まだ会話履歴はありません。</p>';}
- if(mode==='menu'){title='遊び方・設定';body='<div class="modal-row"><b>操作</b>会話中は画面タップ、Enterキー、スペースで進みます。証拠調査・音の照合・証言対決では、表示された選択肢を選びます。</div><div class="modal-row"><b>セーブ</b>自動保存（このブラウザの端末内）。「続きから」で再開できます。ブラウザデータを消すと失われます。</div><div class="modal-row"><b>音声</b>画面上部の ♪ で切り替え。オリジナルWebAudioによる簡易BGM・効果音です。音を出せない環境でもゲームは進行できます。</div><div class="modal-row"><b>文字サイズ</b><button class="chip" id="fontSm">小</button><button class="chip" id="fontMd">標準</button><button class="chip" id="fontLg">大</button></div><div class="modal-row"><b>制作について</b>完全オリジナルの推理サウンドノベル。現在は第0章の公開試作版です。更新ごとに物語、事件、演出を追加していきます。</div>';}
- text('modalTitle',title);document.getElementById('modalContent').innerHTML=body;
- if(mode==='menu'){[['fontSm',.88],['fontMd',1],['fontLg',1.2]].forEach(function(it){document.getElementById(it[0]).onclick=function(){state.font=it[1];document.documentElement.style.setProperty('--fontscale',String(it[1]));persist();};});}
-}
-function closePanel(){MODAL.hidden=true;}
-function init(){var old=stored();hasSave=!!old;document.getElementById('continueBtn').hidden=!hasSave;
- if(old&&old.completed)text('continueBtn','結末を見直す');
- document.getElementById('startBtn').onclick=function(){if(old){if(!window.confirm('記録を最初から始めますか？ 調査進行は初期化されます。'))return;state.run=Math.max(1,old.run||1);start(true);}else start(false);};
- document.getElementById('continueBtn').onclick=resume;
- document.getElementById('next').onclick=function(e){e.stopPropagation();advance();};
- COVER.addEventListener('click',function(e){if(e.target.closest('button'))return;if(!gameStarted)document.getElementById('startBtn').click();});
- BOX.onclick=advance;
- document.getElementById('notesBtn').onclick=function(){openPanel('notes');};
- document.getElementById('logBtn').onclick=function(){openPanel('log');};
- document.getElementById('menuBtn').onclick=function(){openPanel('menu');};
- document.getElementById('soundToggle').onclick=function(){setSound(!state.sound);};
- document.getElementById('closeModal').onclick=closePanel;
- MODAL.onclick=function(e){if(e.target===MODAL)closePanel();};
- document.addEventListener('keydown',function(e){if(!MODAL.hidden){if(e.key==='Escape')closePanel();return;}if(e.key==='Enter'||e.key===' '){if(e.target&&e.target.tagName==='BUTTON')return;if(!COVER.hidden)return;if(!INTER.hidden)return;e.preventDefault();advance();}});
- window.addEventListener('pagehide',persist);
- setupCamera();
- if(musicTimer)clearInterval(musicTimer);musicTimer=setInterval(tick,2400);
-}
-init();
-})();
-</script>
-<script src="enhancements.js" defer></script>
+<p class="coverInfo">オリジナル長編サウンドノベル / 第一夜 公開版</p>
+</div>
+</section>
+<div id="modal" role="dialog" aria-modal="true" aria-label="ゲームの記録" hidden>
+<div class="modalShell"><div class="modalHead"><h2 id="modalTitle">記録</h2><button id="closeModal">閉じる ×</button></div><div id="modalBody"></div></div>
+</div>
+</main>
+<footer id="bottom">
+<div id="counter">第一夜：到着</div>
+<div id="hint">タップで進む　／　ドラッグで見回す</div>
+<div class="controls">
+<button class="barbtn" id="autoBtn">自動</button>
+<button class="barbtn" id="skipBtn">既読</button>
+<button class="barbtn" id="soundBtn">音 OFF</button>
+</div>
+<div id="saveBadge" aria-live="polite"></div>
+</footer>
+</div>
+<script src="story.js"></script>
+<script src="engine.js"></script>
 </body>
 </html>
