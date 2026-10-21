@@ -56,12 +56,17 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
   #swapTiny{top:52px;right:110px}
   #soundTiny{top:52px;right:10px}
 }
+/* Larger, readable portrait HUD and controls; landscape controls remain compact. */
+@media(orientation:portrait){#hud{left:14px;right:14px;gap:6px}#stage{font-size:21px}#substats,#hudRight{font-size:13px;line-height:1.45}#weaponStrip{font-size:16px}#weaponStrip small,#relicState,#comboState{font-size:12px}#progressTrack{height:9px;width:min(52vw,290px)}#joystick{width:170px;height:170px;bottom:max(16px,env(safe-area-inset-bottom))}#joyBase{width:150px;height:150px}#joyKnob{width:65px;height:65px}#actions{right:max(12px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));gap:12px}#punch{width:94px;height:94px}#jump{width:100px;height:100px;margin-bottom:42px}.action{font-size:15px}#menuTiny{top:148px;font-size:14px;padding:10px 14px}#swapTiny,#soundTiny{top:108px;font-size:13px;padding:9px 12px}#swapTiny{right:116px}#bossBar{top:205px;width:65vw;height:14px}#portraitTip{top:204px;font-size:12px}}
+#fullscreenTiny{position:fixed;top:102px;right:12px;z-index:4;background:#173456e8;color:white;border:1px solid #b8edff8a;border-radius:16px;padding:9px 12px;font-size:13px;font-weight:850;touch-action:manipulation;cursor:pointer}
+@media(orientation:portrait){#fullscreenTiny{top:148px;right:130px}}
+@media(orientation:landscape) and (max-height:430px){#fullscreenTiny{top:92px;right:124px}}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="ランダム生成アクションゲーム"></canvas><div id="shade"></div>
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
-<button id="menuTiny" type="button">☰ メニュー</button><button id="swapTiny" type="button" aria-label="武器を切り替え">⚔ 装備切替</button><button id="soundTiny" type="button" aria-label="音のオンオフ">♫ ON</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
+<button id="fullscreenTiny" type="button" aria-label="全画面表示">⛶ 全画面</button><button id="menuTiny" type="button">☰ メニュー</button><button id="swapTiny" type="button" aria-label="武器を切り替え">⚔ 装備切替</button><button id="soundTiny" type="button" aria-label="音のオンオフ">♫ ON</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
 <div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
@@ -773,6 +778,10 @@ window.addEventListener('pagehide',()=>{resetInputs();if(mode==='playing')saveSt
 window.addEventListener('pageshow',()=>{resetInputs();frame.prev=0});
 window.addEventListener('focus',()=>{resetInputs();frame.prev=0});
 window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0});
+// Browser chrome can only be hidden through Fullscreen API after a real user gesture.
+$('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});if(screen.orientation?.lock&&innerWidth>innerHeight){try{await screen.orientation.lock('landscape')}catch(_){}}}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
+document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent=document.fullscreenElement?'⛶ 解除':'⛶ 全画面';resize()});
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs(window.innerHeight-H)>1)resize()});
 $('swapTiny').addEventListener('click',swapWeapon);$('soundTiny').addEventListener('click',toggleSound);
 $('menuTiny').addEventListener('click',()=>{saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()});
 document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()}});
