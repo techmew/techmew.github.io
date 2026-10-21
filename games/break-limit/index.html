@@ -14,7 +14,7 @@ body{display:flex;justify-content:center;align-items:center;background:radial-gr
 canvas{display:block;width:100%;height:100%;touch-action:none}
 #topactions{position:absolute;top:14%;right:2%;display:flex;gap:8px;z-index:4}
 .utility{border:1px solid #7385a8a0;background:#0a1328d9;color:#e5faff;border-radius:8px;padding:7px 10px;font:700 clamp(9px,1.12vw,12px) Meiryo,sans-serif;cursor:pointer;min-width:36px}
-.utility:active,.ctrl:active,.ctrl.pressed{background:#36748bdb;transform:scale(.94)}
+.utility:active{background:#36748bdb;transform:scale(.94)}
 #overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(160deg,#050913e9,#0b102edc);text-align:center;padding:16px}
 #overlay.hidden{display:none}
 .panel{width:min(94%,700px);max-height:96%;overflow:auto;padding:clamp(12px,3vw,32px);border:1px solid #67eaf699;box-shadow:0 0 60px #1dbbca25,inset 0 0 55px #14344755;background:linear-gradient(130deg,#10172cf5,#080d1bf2);border-radius:16px}
@@ -27,13 +27,6 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
 #start{margin-top:10px;border:0;border-radius:8px;background:linear-gradient(90deg,#56f8f4,#b8fff9);box-shadow:0 6px 30px #29e4ff54;color:#052334;font-size:clamp(14px,1.6vw,19px);font-weight:900;cursor:pointer;padding:13px 40px}
 #start:active{transform:scale(.97)}
 .record{font-size:clamp(10px,1.2vw,13px);color:#fbc881!important}
-#joystick{position:fixed;left:0;top:0;width:112px;height:112px;pointer-events:none;display:none;z-index:9;transform:translate(-50%,-50%);touch-action:none}
-#joystick.visible{display:block}
-#stickBase{position:absolute;inset:0;border-radius:50%;background:#142e4f88;border:2px solid #85faff99;box-shadow:0 0 35px #2defff44,inset 0 0 35px #35f1ff1a}
-#stickBase:before,#stickBase:after{content:"";position:absolute;background:#9befff70}
-#stickBase:before{left:50%;top:12%;width:1px;height:76%}
-#stickBase:after{top:50%;left:12%;width:76%;height:1px}
-#stickKnob{position:absolute;left:50%;top:50%;width:49px;height:49px;border-radius:50%;transform:translate(-50%,-50%);background:#83eeff95;border:2px solid #dbffff;box-shadow:0 0 25px #77eeff91}
 #rotateHint{display:none}#footer{position:fixed;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#7683a8;pointer-events:none}
 @media(pointer:coarse){.utility{padding:5px 7px}#footer{display:none}}
 @media(orientation:portrait) and (pointer:coarse){
@@ -55,19 +48,18 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
 <div id="app">
 <canvas id="scene" width="1280" height="720" aria-label="ボスコンボアクションゲーム"></canvas>
 <div id="topactions"><button class="utility" id="sound" aria-label="サウンド切り替え">♪ ON</button><button class="utility" id="pause" aria-label="一時停止">Ⅱ</button><button class="utility" id="restart" aria-label="最初から">↻</button></div>
-<div id="joystick" aria-hidden="true"><div id="stickBase"></div><div id="stickKnob"></div></div>
 <div id="overlay"><div class="panel">
  <div class="kicker">HIGH-SPEED BOSS COMBO ACTION</div>
  <h1>BREAK<span>//</span>LIMIT</h1>
  <h2 id="overlayTitle">壊せ。つなげ。限界を超えろ。</h2>
- <p id="overlayDesc">たった1体の超高耐久ボス。連続ヒットでダメージ倍率が最大8倍に。地上・空中コンボと無敵ダッシュを駆使して最速撃破を狙え。左側を触って移動。右側をタップすると斬撃、フリックで方向攻撃。横フリックで壁に糸を撃ち、ジグザグ操作で連撃を叩き込め。</p>
- <div class="pills" id="keyhints"><span>左側：触れた位置から移動</span><span>左上：ジャンプ</span><span>右タップ：斬撃</span><span>右ダブルタップ：強攻撃</span><span>横フリック：壁へ糸</span><span>ジグザグ：軌道連撃</span></div>
+ <p id="overlayDesc">たった1体の超高耐久ボス。連続ヒットでダメージ倍率が最大8倍に。地上・空中コンボと無敵ダッシュを駆使して最速撃破を狙え。画面全体が操作エリア。タップで斬撃、ダブルタップや長押しで強攻撃。フリックで跳躍・突進・壁へのワイヤー移動、ジグザグの指の軌跡で連続斬撃。指を離してから短い間の後にアクションを繰り出せ。</p>
+ <div class="pills" id="keyhints"><span>全画面：ジェスチャー操作</span><span>タップ：斬撃</span><span>長押し：溜め斬り</span><span>ダブルタップ：強攻撃</span><span>横フリック：壁へワイヤー</span><span>上下フリック：跳躍・急襲</span><span>ジグザグ：軌道連撃</span></div>
  <p class="record" id="best">BEST TIME —　BEST COMBO —</p>
  <button id="start">戦闘開始 ▶</button>
  </div></div>
 </div>
-<div id="rotateHint">左側を触れて移動 / 右側をなぞって攻撃（横画面推奨）</div>
-<div id="footer">BREAK//LIMIT ・ 左：フリースティック / 右：タップ・フリック・ジグザグ</div>
+<div id="rotateHint">画面のどこでもタップ・長押し・フリック（横画面推奨）</div>
+<div id="footer">BREAK//LIMIT ・ 画面全体：タップ / 長押し / フリック / ジグザグ</div>
 <script>
 'use strict';
 (()=>{
@@ -75,8 +67,9 @@ const W=1280,H=720,FLOOR=594,PI=Math.PI,canvas=document.getElementById('scene'),
 const $=id=>document.getElementById(id),overlay=$('overlay'),start=$('start'),soundBtn=$('sound');
 const KEY={left:false,right:false,jump:false,attack:false,heavy:false,dash:false};
 const old={...KEY};
-const joystick=$('joystick'),stickKnob=$('stickKnob');
-const touch={stick:null,stroke:null,lastTap:0,paint:[],queue:[],nextStroke:0};
+const INPUT_DELAY=.14; // delay from gesture release until character action (seconds)
+const HOLD_MS=420;
+const touch={stroke:null,lastTap:0,paint:[],queue:[],nextStroke:0,actions:[]};
 let mode='menu',paused=false,elapsed=0,screenShake=0,flash=0,freeze=0,bossDefeated=false,levelClock=0,projectiles=[],sparks=[],texts=[],rings=[],ghosts=[],strikes=[],dust=[],bgStars=[],metronome=0,trackTick=0,quiet=false,ctxAudio=null,camX=0;
 let p,b,combo=0,maxCombo=0,comboTime=0,damageTotal=0,score=0,lastMove='',floatingText='',floatingLife=0,bestTime=null,bestCombo=0;
 try{const data=JSON.parse(localStorage.getItem('break_limit_best_v2')||'{}');bestTime=data.time??null;bestCombo=data.combo??0;}catch(e){}
@@ -87,7 +80,7 @@ function tone(freq=300,dur=.08,vol=.035,type='triangle',endFreq=freq){if(!ctxAud
 function sfx(k){switch(k){case 'light':tone(430+combo*3,.06,.023,'sawtooth',130);break;case 'heavy':tone(140,.15,.07,'sawtooth',50);break;case 'impact':tone(240+Math.min(combo*8,500),.09,.048,'square',70);break;case 'jump':tone(290,.13,.025,'sine',490);break;case 'dash':tone(530,.12,.035,'triangle',150);break;case 'hurt':tone(180,.23,.075,'sawtooth',40);break;case 'boss':tone(100,.45,.065,'sawtooth',37);break;case 'win':for(let i=0;i<3;i++)setTimeout(()=>tone(440*(i+1),.34,.045,'sine',650*(i+1)),i*120);}}
 function music(dt){if(!ctxAudio||quiet||mode!=='play'||paused)return;metronome-=dt;if(metronome>0)return;metronome=.255;const bass=[55,55,65.41,82.41,55,65.41,49,73.42],notes=[220,261.6,329.6,261.6,196,246.9,329.6,392];tone(bass[trackTick%8],.20,.014,'sawtooth',bass[trackTick%8]*.8);if(trackTick%2===0)tone(notes[(trackTick>>1)%8],.16,.010,'triangle',notes[(trackTick>>1)%8]*.65);trackTick++;}
 function reset(){
- p={x:215,y:FLOOR,w:44,h:76,vx:0,vy:0,face:1,grounded:true,jumps:2,dashCd:0,dashTime:0,inv:0,hp:8,hpMax:8,attack:null,attackT:0,attackHit:false,attackN:0,chainT:0,attackBuffer:0,heavyBuffer:0,heavyCd:0,stun:0,glow:0,land:0,web:null,stroke:null};
+ p={x:215,y:FLOOR,w:44,h:76,vx:0,vy:0,face:1,grounded:true,jumps:2,dashCd:0,dashTime:0,inv:0,hp:8,hpMax:8,attack:null,attackT:0,attackHit:false,attackN:0,chainT:0,attackBuffer:0,heavyBuffer:0,heavyCd:0,stun:0,glow:0,land:0,web:null,stroke:null,charge:0};
  b={x:955,y:FLOOR,w:112,h:188,vx:0,hp:22000,max:22000,face:-1,state:'idle',phaseT:1.8,attackKind:'',attackHit:false,pattern:0,stun:0,rage:false,blink:0};
  mode='play';paused=false;elapsed=0;levelClock=0;combo=0;maxCombo=0;comboTime=0;damageTotal=0;score=0;lastMove='';floatingLife=0;freeze=0;flash=0;screenShake=0;bossDefeated=false;metronome=0;trackTick=0;projectiles=[];sparks=[];texts=[];rings=[];ghosts=[];strikes=[];dust=[];camX=0;
  overlay.classList.add('hidden');$('pause').textContent='Ⅱ';clearGesture();for(let k in KEY){KEY[k]=false;old[k]=false;}
@@ -142,7 +135,7 @@ function endWeb(){
  if(!p.web)return;const dir=p.web.dir;p.web=null;p.vx=-dir*400;p.vy=Math.min(p.vy,-350);
  emit(p.x,p.y-45,'#a6ffff',17,260);addRing(p.x,p.y-46,'#bbffff',100);
 }
-function playerHit(dmg=1){if(p.inv>0||mode!=='play')return;p.hp=Math.max(0,p.hp-dmg);p.inv=1.20;p.stun=.32;p.vy=-310;p.vx=sgn(p.x-b.x)*470;p.attack=null;p.web=null;p.stroke=null;touch.queue=[];p.attackBuffer=0;p.heavyBuffer=0;combo=0;comboTime=0;flash=.18;screenShake=23;emit(p.x,p.y-45,'#ff5c8c',28,410);addRing(p.x,p.y-42,'#ff557d',145);popup(p.x,p.y-122,'COMBO LOST','#ff759c',22);sfx('hurt');if(p.hp<=0)showEnd(false);}
+function playerHit(dmg=1){if(p.inv>0||mode!=='play')return;p.hp=Math.max(0,p.hp-dmg);p.inv=1.20;p.stun=.32;p.vy=-310;p.vx=sgn(p.x-b.x)*470;p.attack=null;p.web=null;p.stroke=null;touch.queue=[];touch.actions=[];p.attackBuffer=0;p.heavyBuffer=0;combo=0;comboTime=0;flash=.18;screenShake=23;emit(p.x,p.y-45,'#ff5c8c',28,410);addRing(p.x,p.y-42,'#ff557d',145);popup(p.x,p.y-122,'COMBO LOST','#ff759c',22);sfx('hurt');if(p.hp<=0)showEnd(false);}
 function successHit(m){let bCx=b.x,bCy=b.y-b.h*.52,pCy=p.y-p.h*.49;const d=Math.abs(bCx-(p.x+p.face*30));if(d>m.range+40||Math.abs(bCy-pCy)>175)return false;
  if((b.x-p.x)*p.face < -48)return false;
  p.attackHit=true;combo++;maxCombo=Math.max(maxCombo,combo);comboTime=2.7;
@@ -179,6 +172,26 @@ function ai(dt){if(b.hp<=0)return;b.blink=Math.max(0,b.blink-dt);if(b.stun>0){b.
 }
 function update(dt){if(mode!=='play'||paused)return;
  elapsed+=dt;levelClock+=dt;
+ // Gesture actions begin a short time AFTER the finger has lifted.
+ for(let i=0;i<touch.actions.length;){
+   const a=touch.actions[i];
+   if(a.at>levelClock){i++;continue;}
+   touch.actions.splice(i,1);
+   if(p.stun>0||mode!=='play')continue;
+   if(a.kind==='light'||a.kind==='heavy'){
+     // Attack gestures automatically face the boss; no walking controls required.
+     p.face=b.x>=p.x?1:-1;
+     p.web=null;
+     if(Math.abs(b.x-p.x)>145){p.vx=p.face*650;p.dashTime=.21;p.inv=Math.max(p.inv,.15);}
+     if(a.kind==='heavy'){p.heavyBuffer=Math.max(p.heavyBuffer,.38);p.charge=0;}
+     else p.attackBuffer=Math.max(p.attackBuffer,.30);
+   }else if(a.kind==='web'){fireWeb(a.dir);}
+   else if(a.kind==='up'){jump();p.heavyBuffer=Math.max(p.heavyBuffer,.27);}
+   else if(a.kind==='down'){
+     if(!p.grounded)p.heavyBuffer=Math.max(p.heavyBuffer,.28);
+     else{p.attackBuffer=Math.max(p.attackBuffer,.29);dash();}
+   }else if(a.kind==='trace'){doStroke(a.part);}
+ }
  if(touch.queue.length&&levelClock>=touch.nextStroke&&p.stun<=0){
    doStroke(touch.queue.shift());touch.nextStroke=levelClock+.115;
  }
@@ -194,7 +207,7 @@ function update(dt){if(mode!=='play'||paused)return;
  p.attackBuffer=Math.max(0,p.attackBuffer-dt);p.heavyBuffer=Math.max(0,p.heavyBuffer-dt);
  if(p.stun<=0&&p.attack===null){if(p.heavyBuffer>0&&p.heavyCd<=0){p.heavyBuffer=0;doAttack('heavy');}else if(p.attackBuffer>0){p.attackBuffer=0;doAttack('light');}}
  if(p.stun<=0){
- let ax=(KEY.right?1:0)-(KEY.left?1:0);if(ax!==0){p.face=ax;}
+ let ax=0; // no continuous movement: direction comes exclusively from gestures
  if(p.web){
    p.web.t+=dt;p.web.hitCd-=dt;
    const dx=p.web.x-p.x;
@@ -311,6 +324,10 @@ function drawSwipePaint(){
    if(q.pts.length<2)continue;c.globalAlpha=clamp(q.t/.42,0,.94);c.strokeStyle='#8bfaff';c.shadowColor='#8affff';c.shadowBlur=17;c.lineWidth=7;
    c.beginPath();c.moveTo(q.pts[0].x,q.pts[0].y);for(let i=1;i<q.pts.length;i++)c.lineTo(q.pts[i].x,q.pts[i].y);c.stroke();
  }c.restore();}
+ if(touch.stroke&&touch.stroke.pts.length===1){
+   const held=performance.now()-touch.stroke.started;
+   if(held>140){const q=touch.stroke.pts[0],progress=clamp(held/HOLD_MS,0,1);c.save();c.strokeStyle=progress>=1?'#ffd17a':'#8afaff';c.shadowColor=c.strokeStyle;c.shadowBlur=22;c.lineWidth=5;c.globalAlpha=.95;c.beginPath();c.arc(q.wx,q.wy,20+13*progress,-PI/2,-PI/2+PI*2*progress);c.stroke();c.restore();}
+ }
  if(touch.stroke&&touch.stroke.pts.length>1){c.save();c.strokeStyle='#ddffff';c.shadowColor='#72eeff';c.shadowBlur=22;c.globalAlpha=.78;c.lineWidth=6;c.lineCap='round';c.lineJoin='round';let pts=touch.stroke.pts;c.beginPath();c.moveTo(pts[0].wx,pts[0].wy);for(let i=1;i<pts.length;i++)c.lineTo(pts[i].wx,pts[i].wy);c.stroke();c.restore();}
 }
 function drawEffects(){
@@ -338,7 +355,7 @@ function hud(){
  if(combo>0){let mult=Math.min(8,1+(combo-1)*.055);c.textAlign='left';rounded(26,143,253,156,13,'#071329d9');c.fillStyle=combo>=30?'#ffe690':'#8cf8ff';c.font='900 60px Meiryo, sans-serif';c.fillText(String(combo),41,196);c.font='900 19px Meiryo, sans-serif';c.fillText('HIT COMBO',43,230);c.font='900 18px Meiryo, sans-serif';c.fillStyle='#ffe18e';c.fillText(`DAMAGE × ${mult.toFixed(2)}`,43,263);rounded(43,277,216,5,2,'#33405a');rounded(43,277,216*(comboTime/2.7),5,2,'#96faff');
  let lab=combo<10?'GOOD!':combo<25?'BRUTAL!':combo<50?'RAMPAGE!':combo<100?'OVERDRIVE!':'LIMIT BREAK!';c.font='900 18px Meiryo';c.fillStyle='#ffd993';c.fillText(lab,43,324);}
  // bottom micro hints and status
- c.font='800 12px Meiryo, sans-serif';c.textAlign='left';c.fillStyle='#a1acc3';c.fillText((window.matchMedia&&matchMedia('(pointer:coarse)').matches)?'LEFT : FREE STICK / UP : JUMP      RIGHT : TAP / FLICK / ZIGZAG':'A D : MOVE  SPACE : JUMP  J : SLASH  K : BREAK  L : DASH   /   MOUSE : GESTURE',27,685);
+ c.font='800 12px Meiryo, sans-serif';c.textAlign='left';c.fillStyle='#a1acc3';c.fillText('ANYWHERE : TAP=SLASH  HOLD=HEAVY  FLICK=ACTION  ZIGZAG=TRACE COMBO',27,685);
  c.textAlign='right';c.fillStyle='#90dcfc';c.fillText(`MAX COMBO  ${maxCombo}     BOSS ${Math.ceil(hpRatio*100)}%`,1254,685);
  if(floatingLife>0&&p.attack){c.save();c.globalAlpha=clamp(floatingLife*3,0,1);c.font='900 18px Meiryo,sans-serif';c.textAlign='center';c.fillStyle='#f8ecff';c.fillText(floatingText,p.x,clamp(p.y-135,165,495));c.restore();}
  c.restore();}
@@ -350,15 +367,14 @@ function draw(){c.clearRect(0,0,W,H);c.save();const shake=screenShake>0?screenSh
  if(flash>0)fill(0,0,W,H,`rgba(214,243,255,${flash*.3})`);c.restore();hud();drawPause();
 }
 reset();mode='menu';overlay.classList.remove('hidden');let last=performance.now(),acc=0;function frame(now){let dt=Math.min((now-last)/1000,.045);last=now;if(mode==='play'&&!paused){acc+=dt;let steps=0;while(acc>=1/120&&steps++<8){update(1/120);acc-=1/120;}if(steps>=8)acc=0;}draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
-function inputName(key){key=key.toLowerCase();if(key==='a'||key==='arrowleft')return'left';if(key==='d'||key==='arrowright')return'right';if(key===' '||key==='w'||key==='arrowup')return'jump';if(key==='j'||key==='z')return'attack';if(key==='k'||key==='x')return'heavy';if(key==='l'||key==='shift'||key==='c')return'dash';return null;}
-document.addEventListener('keydown',e=>{let n=inputName(e.key);if(n){e.preventDefault();if(mode==='menu'||mode==='dead'||mode==='won'){if(e.key===' '||e.key==='Enter'){reset();return;}}KEY[n]=true;audio();}if(e.key.toLowerCase()==='p'||e.key==='Escape'){e.preventDefault();togglePause();}if(e.key==='Enter'&&(mode==='menu'||mode==='won'||mode==='dead'))reset();});
-document.addEventListener('keyup',e=>{const n=inputName(e.key);if(n){KEY[n]=false;e.preventDefault();}});
-window.addEventListener('blur',()=>{clearGesture();for(let k in KEY)KEY[k]=false;if(mode==='play'){paused=true;$('pause').textContent='▶';}});
-// Left-hand floating d-pad + right-hand gesture input (multi-touch pointers work independently).
+// Unified gesture-only controls. Touch or mouse works from ANY point on the arena.
+document.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&(mode==='menu'||mode==='won'||mode==='dead')){e.preventDefault();reset();}
+ if(e.key.toLowerCase()==='p'||e.key==='Escape'){e.preventDefault();togglePause();}
+});
+window.addEventListener('blur',()=>{clearGesture();if(mode==='play'){paused=true;$('pause').textContent='▶';}});
 function clearGesture(){
- touch.stick=null;touch.stroke=null;touch.queue=[];touch.paint=[];touch.nextStroke=0;touch.lastTap=0;
- joystick.classList.remove('visible');stickKnob.style.transform='translate(-50%,-50%)';
- KEY.left=KEY.right=KEY.jump=KEY.dash=false;
+ touch.stroke=null;touch.queue=[];touch.paint=[];touch.actions=[];touch.nextStroke=0;touch.lastTap=0;
 }
 function worldPoint(x,y){
  const r=canvas.getBoundingClientRect();return {wx:clamp((x-r.left)/r.width*W,0,W),wy:clamp((y-r.top)/r.height*H,0,H)};
@@ -368,16 +384,12 @@ function addStrokePoint(o,e){
  o.pts.push({x:e.clientX,y:e.clientY,...worldPoint(e.clientX,e.clientY)});
  if(o.pts.length>160)o.pts.shift();
 }
-function joystickMove(e){
- let s=touch.stick;if(!s||s.id!==e.pointerId)return;
- const dx=e.clientX-s.x,dy=e.clientY-s.y,rad=48,k=Math.min(1,rad/(Math.hypot(dx,dy)||1));
- stickKnob.style.transform=`translate(calc(-50% + ${dx*k}px),calc(-50% + ${dy*k}px))`;
- KEY.left=dx<-13;KEY.right=dx>13;
- if(dy<-41){if(!s.jumped){jump();s.jumped=true;}}else if(dy>-14)s.jumped=false;
- if(dy>49&&Math.abs(dx)>24){if(!s.dashed){if(dx<0)p.face=-1;else p.face=1;dash();s.dashed=true;}}
- else if(dy<20)s.dashed=false;
+function scheduleGesture(kind,details={}){
+ // Gestures don't activate until shortly AFTER the user releases the finger.
+ touch.actions.push({kind,at:levelClock+INPUT_DELAY,...details});
+ if(touch.actions.length>24)touch.actions.shift();
 }
-// Ramer-Douglas-Peucker: keep real bends so zigzag strokes follow the drawn path.
+// Ramer-Douglas-Peucker: keep actual direction changes for zigzag trace attacks.
 function simplify(points,eps=13){
  if(points.length<3)return points;
  const a=points[0],b=points[points.length-1],abx=b.x-a.x,aby=b.y-a.y,den=abx*abx+aby*aby;
@@ -396,53 +408,52 @@ function releaseStroke(){
  let total=0;for(let i=1;i<pts.length;i++)total+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
  const first=pts[0],last=pts[pts.length-1],dx=last.x-first.x,dy=last.y-first.y;
  touch.paint.push({pts:pts.map(q=>({x:q.wx,y:q.wy})),t:.42});
- if(total<20){
-   let now=performance.now();if(now-touch.lastTap<310){p.heavyBuffer=.29;touch.lastTap=0;}
-   else{p.attackBuffer=.27;touch.lastTap=now;}return;
+ const held=performance.now()-gesture.started;
+ if(total<23){
+   if(held>=HOLD_MS){touch.lastTap=0;scheduleGesture('heavy');popup(p.x,p.y-125,'CHARGED BREAK','#ffe0a0',19);return;}
+   const now=performance.now();if(now-touch.lastTap<310){scheduleGesture('heavy');touch.lastTap=0;}
+   else{scheduleGesture('light');touch.lastTap=now;}
+   return;
  }
+ touch.lastTap=0;
  const reduced=simplify(pts,14),segments=[];
  for(let i=1;i<reduced.length;i++){
    const a=reduced[i-1],b=reduced[i],vx=b.x-a.x,vy=b.y-a.y;
    if(Math.hypot(vx,vy)>26)segments.push({dx:vx,dy:vy});
  }
- // Reversals or >= 2 pronounced bends count as a drawn combo, not a wall hook.
  let turns=0;for(let i=1;i<segments.length;i++){
    const a=segments[i-1],b=segments[i],dot=(a.dx*b.dx+a.dy*b.dy)/(Math.hypot(a.dx,a.dy)*Math.hypot(b.dx,b.dy));
    if(dot<.76)turns++;
  }
  if(turns>=2&&segments.length>=3&&total>115){
-   touch.queue=segments.slice(0,12);touch.nextStroke=levelClock;
+   touch.queue=segments.slice(0,12);touch.nextStroke=levelClock+INPUT_DELAY;
    popup(p.x,p.y-125,`${touch.queue.length} TRACE COMBO`,'#adfdff',21);
    return;
  }
- // Horizontal wall flick: shoot a rope to that wall, then launch into aerial slashes.
- if(Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.08){fireWeb(dx>0?1:-1);return;}
+ if(Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.08){scheduleGesture('web',{dir:dx>0?1:-1});return;}
  if(Math.abs(dy)>35&&Math.abs(dy)>=Math.abs(dx)*.70){
-   if(dy<0){jump();p.heavyBuffer=.23;}
-   else{if(!p.grounded)p.heavyBuffer=.23;else{p.attackBuffer=.25;dash();}}
-   return;
+   scheduleGesture(dy<0?'up':'down');return;
  }
- doStroke({dx,dy});
+ scheduleGesture('trace',{part:{dx,dy}});
 }
 window.addEventListener('pointerdown',e=>{
  if(mode!=='play'||paused||e.target.closest('button')||e.target.closest('#overlay'))return;
  if(e.pointerType==='mouse'&&e.button!==0)return;
+ if(touch.stroke!==null)return;
  e.preventDefault();audio();
- if(e.clientX<window.innerWidth*.48&&touch.stick===null){
-   touch.stick={id:e.pointerId,x:e.clientX,y:e.clientY,jumped:false,dashed:false};
-   joystick.style.left=e.clientX+'px';joystick.style.top=e.clientY+'px';joystick.classList.add('visible');
-   joystickMove(e);
- }else if(touch.stroke===null){touch.stroke={id:e.pointerId,pts:[]};addStrokePoint(touch.stroke,e);}
+ touch.stroke={id:e.pointerId,pts:[],started:performance.now()};addStrokePoint(touch.stroke,e);
+ if(e.target.setPointerCapture)try{e.target.setPointerCapture(e.pointerId);}catch(err){}
 },{passive:false});
 window.addEventListener('pointermove',e=>{
- if(touch.stick?.id===e.pointerId){e.preventDefault();joystickMove(e);}
- else if(touch.stroke?.id===e.pointerId){e.preventDefault();addStrokePoint(touch.stroke,e);}
+ if(touch.stroke?.id!==e.pointerId)return;
+ e.preventDefault();addStrokePoint(touch.stroke,e);
 },{passive:false});
 function finishPointer(e,cancel){
- if(touch.stick?.id===e.pointerId){touch.stick=null;KEY.left=KEY.right=false;joystick.classList.remove('visible');}
- else if(touch.stroke?.id===e.pointerId){if(!cancel)addStrokePoint(touch.stroke,e);if(cancel)touch.stroke=null;else releaseStroke();}
+ if(touch.stroke?.id!==e.pointerId)return;
+ if(cancel){touch.stroke=null;return;}
+ e.preventDefault();addStrokePoint(touch.stroke,e);releaseStroke();
 }
-window.addEventListener('pointerup',e=>finishPointer(e,false));
+window.addEventListener('pointerup',e=>finishPointer(e,false),{passive:false});
 window.addEventListener('pointercancel',e=>finishPointer(e,true));
 start.addEventListener('click',reset);
 function togglePause(){if(mode!=='play')return;paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';for(let k in KEY)KEY[k]=false;clearGesture();}
