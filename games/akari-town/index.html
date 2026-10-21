@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b2b">
+<meta name="description" content="灯ノ町は、現実のニュースに影響を受けながら1時間ごとに成長・衰退する架空の町。10人から始まる住民の物語を年表に記録します。">
+<title>灯ノ町 | 生きている町の年表</title>
+<style>
+:root{--bg:#091321;--bg2:#111e2f;--pane:#16253a;--edge:#30465d;--txt:#f5f6ec;--muted:#a5b5c7;--aqua:#94ecdb;--gold:#ffda8a;--rose:#f7a6a1;--shadow:0 17px 48px #02091266}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--txt);background:radial-gradient(ellipse at 50% -15%,#284e63 0,transparent 58%),var(--bg);font-family:Meiryo,"Hiragino Kaku Gothic ProN",sans-serif;font-size:14px}button,a{touch-action:manipulation}button{font:inherit}a{color:var(--aqua)}.layout{max-width:1510px;margin:auto;padding:24px 28px 80px}
+header{display:flex;align-items:center;gap:16px;justify-content:space-between;margin-bottom:19px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:13px}.mark{height:51px;width:51px;border-radius:16px;background:#2e515e;display:grid;place-items:center;font-size:26px;box-shadow:inset 0 0 0 1px #a9f0dc55}.eyebrow{font-weight:bold;color:var(--aqua);font-size:10px;letter-spacing:.22em}.brand h1{font-size:28px;letter-spacing:.1em;margin:2px 0 0}.header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.pill{padding:10px 14px;border:1px solid var(--edge);border-radius:999px;background:#101e30d9;color:#d9e7ee;font-size:12px}.live{display:inline-block;width:7px;height:7px;background:#96eac9;border-radius:50%;margin-right:7px;box-shadow:0 0 0 4px #96eac922}.sunline{height:1px;background:linear-gradient(90deg,transparent,#75b3bc55,transparent);margin:0 0 21px}
+.top-intro{display:flex;gap:15px;align-items:baseline;flex-wrap:wrap;margin-bottom:21px}.top-intro strong{font-family:Georgia,serif;font-weight:normal;font-size:19px;color:#e6ebce}.top-intro span{color:var(--muted);font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;margin-bottom:17px}.stat{background:#17273a;border:1px solid var(--edge);padding:14px 13px;border-radius:15px;min-width:0}.stat-head{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;white-space:nowrap}.stat-head i{font-style:normal;font-size:15px}.stat-val{font-size:24px;font-weight:700;margin:6px 0 5px;letter-spacing:-.04em}.bar{height:4px;background:#283d4d;border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;border-radius:99px;background:var(--aqua);transition:width .5s}.stat:nth-child(3) .bar span{background:var(--gold)}.stat:nth-child(4) .bar span{background:#a8da9c}.stat:nth-child(5) .bar span{background:#f8aeb1}.stat:nth-child(6) .bar span{background:#b8abff}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(310px,.88fr);gap:16px;align-items:start}.map-wrap{background:#132236;border:1px solid #3a5466;border-radius:21px;overflow:hidden;box-shadow:var(--shadow);position:relative}.map-meta{position:absolute;z-index:2;top:15px;left:16px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;pointer-events:none}.map-chip{background:#0b1829d9;border:1px solid #9dbaa449;color:#e9f5de;border-radius:22px;font-size:11px;padding:7px 12px;backdrop-filter:blur(8px)}canvas{display:block;width:100%;height:auto;cursor:pointer;outline:0}.map-footer{display:flex;justify-content:space-between;padding:12px 16px;color:var(--muted);background:#101f30;font-size:11px;border-top:1px solid #2d445c;gap:12px;flex-wrap:wrap}.map-footer b{color:#bde8d9}.column{min-width:0}.panel{background:#15253a;border:1px solid var(--edge);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}.panel-head{padding:19px 20px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px}.panel-head h2{font-size:18px;margin:0;letter-spacing:.06em}.sub{font-size:11px;color:var(--muted)}.tabs{display:flex;gap:7px;padding:0 16px 13px}.tab{cursor:pointer;border:1px solid #3d5269;border-radius:11px;background:#23364b;color:#c5d4e2;padding:9px 14px;flex:1}.tab.active{background:#c7e9d5;color:#102a34;border-color:#c7e9d5;font-weight:700}.scroll{overflow-y:auto;max-height:530px;padding:0 12px 13px;scrollbar-color:#416078 transparent;scrollbar-width:thin}.entry{width:100%;display:flex;gap:11px;align-items:flex-start;text-align:left;color:var(--txt);background:transparent;border:1px solid transparent;border-radius:12px;cursor:pointer;padding:12px 9px;margin-bottom:3px;transition:background .14s,border .14s}.entry:hover,.entry.selected{background:#253d50;border-color:#446278}.avatar{height:43px;width:43px;border-radius:13px;background:#3b5961;display:grid;place-items:center;font-size:23px;flex:0 0 auto}.entry-body{flex:1;min-width:0}.entry-title{font-size:13px;font-weight:700;margin-bottom:4px}.entry-note{font-size:11px;color:#a7bbcc;line-height:1.7}.entry-kicker{color:var(--aqua);font-size:10px;font-weight:bold;margin-bottom:4px}.detail{margin-top:16px}.detail-content{padding:0 20px 23px}.detail-hero{display:flex;gap:13px;align-items:center;margin:5px 0 16px}.detail-hero .avatar{height:65px;width:65px;font-size:34px;border-radius:18px}.detail-hero h3{margin:0 0 4px;font-size:20px}.detail-hero .sub{line-height:1.8}.detail-desc{color:#cddbe3;font-size:13px;line-height:1.9;margin:0 0 14px}.info-line{font-size:12px;color:var(--muted);border-top:1px solid #2e4558;padding-top:11px;margin-top:12px;line-height:1.7}.info-line strong{color:#eaf6ea}.fact-link{display:block;overflow-wrap:anywhere;font-size:12px;margin:13px 0 0}.tag{font-size:10px;padding:4px 8px;border-radius:7px;background:#31495b;color:#cfeddc;display:inline-block;margin-right:5px}.section-title{margin:23px 0 10px;display:flex;justify-content:space-between;align-items:center;gap:10px}.section-title h2{margin:0;font-size:18px}.chronicle{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.episode{border:1px solid var(--edge);background:#182a3b;border-radius:15px;text-align:left;color:inherit;padding:15px;cursor:pointer;min-height:135px}.episode:hover{border-color:#83aeaa;background:#263f50}.episode .number{font-size:10px;color:var(--aqua);letter-spacing:.08em}.episode h3{font-size:14px;margin:10px 0 7px}.episode p{color:var(--muted);margin:0;font-size:12px;line-height:1.7}.footer{margin-top:27px;border-top:1px solid var(--edge);padding-top:17px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:11px;line-height:1.75}.footer strong{color:var(--aqua)}.empty{color:var(--muted);padding:20px 14px;font-size:12px;line-height:1.8}.legend{color:#a9c9cc;font-size:11px}
+@media(max-width:1060px){.main-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.scroll{max-height:340px}.column-side{display:grid;grid-template-columns:1fr 1fr;gap:13px}.detail{margin:0}.chronicle{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.layout{padding:14px 12px 40px}.brand h1{font-size:23px}.mark{width:45px;height:45px}.header-right{gap:7px}.pill{font-size:10px;padding:7px 10px}.stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.stat{padding:10px 8px;border-radius:12px}.stat-head{font-size:10px}.stat-val{font-size:19px}.main-grid{gap:11px}.column-side{display:block}.detail{margin-top:11px}.map-meta{left:9px;top:8px}.map-chip{font-size:9px;padding:5px 7px}.chronicle{grid-template-columns:1fr}.scroll{max-height:360px}.top-intro strong{font-size:16px}canvas{min-height:260px;object-fit:fill}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<header><div class="brand"><div class="mark" aria-hidden="true">🏮</div><div><div class="eyebrow">THE LIVING CHRONICLE</div><h1>灯ノ町 <span style="font-size:13px;font-weight:400;color:#8fc8c3">AKARI TOWN</span></h1></div></div><div class="header-right"><div class="pill"><span class="live"></span><span id="updated">記録を読み込み中</span></div><div class="pill" id="clock">日本時間 --:--</div></div></header>
+<div class="sunline"></div>
+<div class="top-intro"><strong>「この町の明日は、まだ誰も知らない。」</strong><span>現実の話題に着想を得た、架空世界の連続物語。各時点の出来事を年表に残します。</span></div>
+<div class="stats" id="stats" aria-label="町の指標"></div>
+<div class="main-grid">
+<div class="column">
+<div class="map-wrap">
+<div class="map-meta"><span class="map-chip" id="phase">DAY 01 • 創設期</span><span class="map-chip" id="weather">☁ 海風</span></div>
+<canvas id="map" width="1000" height="620" aria-label="灯ノ町の地図。住民と施設を選択できます" tabindex="0"></canvas>
+<div class="map-footer"><span><b>●</b> 住民か建物をタップして記録を見る</span><span>東：海と灯台 ／ 西：鉄道</span></div>
+</div>
+<div class="section-title"><h2>町の年表</h2><span class="legend" id="history-count">全1件</span></div>
+<div id="episode-list" class="chronicle"></div>
+</div>
+<div class="column column-side">
+<section class="panel" aria-label="住民と年表の選択">
+<div class="panel-head"><h2>町の記録簿</h2><span class="sub" id="resident-count">住民10人</span></div>
+<div class="tabs"><button type="button" class="tab active" id="tab-residents">住民一覧</button><button type="button" class="tab" id="tab-events">出来事</button></div>
+<div class="scroll" id="list"></div>
+</section>
+<section class="panel detail" aria-live="polite"><div class="panel-head"><h2>詳しい記録</h2><span class="sub">ARCHIVE</span></div><div id="detail" class="detail-content"><p class="empty">住民や出来事を選択してください。</p></div></section>
+</div>
+</div>
+<footer class="footer"><div><strong>これは架空の町です。</strong> 現実の出来事・報道と町の物語は別です。<br>ニュース出典は各章に記載します。年表を過去に遡って書き換えない運用です。</div><div>保存元：<a href="https://github.com/techmew/techmew.github.io/tree/main/games/akari-town" target="_blank" rel="noopener noreferrer">GitHub</a> ／ データ：<a href="./world.json">world.json</a><br><span id="sync-status">データ同期中</span></div></footer>
+</div>
+<script>
+"use strict";
+const CAN=document.getElementById("map"),CTX=CAN.getContext("2d"),W=1000,H=620;
+let world=null,tab="residents",selected=null,mouse=null;
+const $=s=>document.querySelector(s);
+const safe=s=>String(s===undefined||s===null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const isUrl=s=>/^https?:\/\//i.test(s||"");
+const when=s=>{try{return new Date(s).toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});}catch(e){return s||"";}};
+const place=id=>world.locations.find(x=>x.id===id);
+const resident=id=>world.residents.find(x=>x.id===id);
+const fmt=n=>Number(n||0).toLocaleString("ja-JP");
+function stats(){
+ const t=world.town;
+ const arr=[["👥","人口",t.population,"人",Math.min(100,t.population*3)],["🪙","町の資金",t.treasury,"G",Math.min(100,t.treasury/10)],["🏘","繁栄",t.prosperity,"/100",t.prosperity],["🛟","安全",t.safety,"/100",t.safety],["🌱","自然",t.nature,"/100",t.nature],["🤝","信頼",t.trust,"/100",t.trust]];
+ $("#stats").innerHTML=arr.map(a=>'<div class="stat"><div class="stat-head"><i>'+a[0]+'</i>'+a[1]+'</div><div class="stat-val">'+fmt(a[2])+'<span style="font-size:11px;color:#9fb1be;margin-left:3px">'+a[3]+'</span></div><div class="bar"><span style="width:'+Math.max(0,Math.min(100,a[4]))+'%"></span></div></div>').join("");
+ $("#resident-count").textContent="住民"+world.residents.length+"人";
+ $("#history-count").textContent="全"+world.chronicle.length+"件";
+ $("#phase").textContent="DAY "+String(t.day).padStart(2,"0")+" • "+t.phase;
+ $("#weather").textContent="☁ "+t.weather;
+ $("#updated").textContent="最終更新 "+when(t.updatedAt)+" JST";
+ $("#sync-status").textContent="更新回数 "+t.tickCount+" / 最終記録 "+when(t.lastTick)+" JST";
+}
+function setTab(t){
+ tab=t;$("#tab-residents").classList.toggle("active",t==="residents");$("#tab-events").classList.toggle("active",t==="events");renderList();
+}
+function renderList(){
+ if(!world)return;const el=$("#list");
+ if(tab==="residents"){
+  el.innerHTML=world.residents.map(r=>'<button class="entry '+(selected&&selected.type==="r"&&selected.id===r.id?"selected":"")+'" data-r="'+safe(r.id)+'"><span class="avatar">'+safe(r.emoji||"🙂")+'</span><span class="entry-body"><div class="entry-title">'+safe(r.name)+'</div><div class="entry-note">'+safe(r.species)+" / "+safe(r.job)+"<br>"+safe(r.mood||"")+"</div></span></button>").join("");
+ }else{
+  el.innerHTML=world.chronicle.slice().reverse().map(e=>'<button class="entry '+(selected&&selected.type==="e"&&selected.id===e.id?"selected":"")+'" data-e="'+safe(e.id)+'"><span class="avatar">📜</span><span class="entry-body"><div class="entry-kicker">'+safe(when(e.at))+' JST</div><div class="entry-title">'+safe(e.title)+'</div><div class="entry-note">'+safe(e.summary)+'</div></span></button>').join("");
+ }
+}
+function detail(type,id){
+ if(!world)return;selected={type,id};let html="";
+ if(type==="r"){
+  const r=resident(id);if(!r)return;
+  let l=place(r.location);
+  html='<div class="detail-hero"><span class="avatar">'+safe(r.emoji||"🙂")+'</span><div><h3>'+safe(r.name)+'</h3><div class="sub">'+safe(r.reading||"")+'<br>'+safe(r.species)+' ・ '+safe(r.job)+'</div></div></div><p class="detail-desc">'+safe(r.bio)+'</p><div class="info-line"><strong>現在の気分：</strong>'+safe(r.mood||"不明")+'<br><strong>いまいる場所：</strong>'+safe(l?l.name:"町のどこか")+'<br><strong>目標：</strong>'+safe(r.goal||"未定")+'</div>';
+ }else if(type==="e"){
+  const e=world.chronicle.find(x=>x.id===id);if(!e)return;
+  const ppl=(e.people||[]).map(pid=>resident(pid)).filter(Boolean).map(r=>r.name).join("、");
+  const eff=(e.effects||[]).map(x=>'<span class="tag">'+safe(x)+'</span>').join("");
+  const s=e.source||{};
+  html='<div class="entry-kicker">'+safe(when(e.at))+' JST ・ 第'+safe(e.chapter||1)+'章</div><h3 style="font-size:20px;margin:7px 0 13px">'+safe(e.title)+'</h3><p class="detail-desc">'+safe(e.story||e.summary)+'</p>'+eff+'<div class="info-line"><strong>関係した住民：</strong>'+safe(ppl||"町全体")+'</div>';
+  if(s.title){html+='<div class="info-line"><strong>現実側の参考情報：</strong><br>'+safe(s.title)+(isUrl(s.url)?'<a class="fact-link" href="'+safe(s.url)+'" target="_blank" rel="noopener noreferrer">出典を確認 ↗</a>':"")+(s.note?'<div class="sub">'+safe(s.note)+'</div>':"")+'</div>';}
+ }else if(type==="l"){
+  const l=place(id);if(!l)return;
+  let people=world.residents.filter(r=>r.location===id).map(x=>x.name).join("、");
+  html='<div class="detail-hero"><span class="avatar">🏠</span><div><h3>'+safe(l.name)+'</h3><div class="sub">施設レベル '+safe(l.level)+'</div></div></div><p class="detail-desc">'+safe(l.description)+'</p><div class="info-line"><strong>主な住民：</strong>'+safe(people||"なし")+'</div>';
+ }
+ $("#detail").innerHTML=html;renderList();
+ if(window.matchMedia("(max-width:650px)").matches&&type!=="e"){$(".detail").scrollIntoView({behavior:"smooth",block:"nearest"});}
+}
+function renderEpisodes(){
+ $("#episode-list").innerHTML=world.chronicle.slice().reverse().slice(0,12).map(e=>'<button type="button" class="episode" data-e="'+safe(e.id)+'"><div class="number">'+safe(when(e.at))+' JST ・ EVENT '+safe(e.id)+'</div><h3>'+safe(e.title)+'</h3><p>'+safe(e.summary)+'</p></button>').join("");
+}
+function tickClock(){const t=new Date().toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});$("#clock").textContent="JST "+t;}
+const rand=(n)=>{const v=Math.sin(n*127.1+78.233)*43758.5453;return v-Math.floor(v);};
+function round(x,y,w,h,r,fill){CTX.fillStyle=fill;CTX.beginPath();CTX.roundRect(x,y,w,h,r);CTX.fill();}
+function path(points,w,c){CTX.strokeStyle=c;CTX.lineWidth=w;CTX.lineCap="round";CTX.lineJoin="round";CTX.beginPath();CTX.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)CTX.lineTo(points[i][0],points[i][1]);CTX.stroke();}
+function tree(x,y,r){
+ CTX.fillStyle="#37543b";CTX.fillRect(x-3,y+5,6,13);
+ CTX.fillStyle="#254c41";CTX.beginPath();CTX.arc(x,y,r+2,0,Math.PI*2);CTX.fill();
+ CTX.fillStyle="#51806a";CTX.beginPath();CTX.arc(x-4,y-5,r*.7,0,Math.PI*2);CTX.fill();
+}
+function roof(x,y,w,h,color,night){
+ round(x-w/2+3,y-h/2+8,w,h,7,"#142c30aa");round(x-w/2,y-h/2,w,h,6,"#e4d5ac");round(x-w/2+4,y-h/2-8,w-8,h*.46,4,color); 
+ const glow=night?"#ffe8a3":"#6999a0";round(x-w*.23,y+h*.05,12,14,2,glow);round(x+w*.10,y+h*.05,12,14,2,glow);
+ CTX.fillStyle="#8e7a5b";CTX.fillRect(x-9,y+h*.21,18,11);
+}
+function label(x,y,t){CTX.font="bold 14px Meiryo,sans-serif";let w=CTX.measureText(t).width;round(x-w/2-8,y-19,w+16,22,8,"#122634dd");CTX.fillStyle="#f8f4d9";CTX.textAlign="center";CTX.fillText(t,x,y-3);}
+function drawing(time){
+ if(!world){CTX.fillStyle="#183b42";CTX.fillRect(0,0,W,H);return;}
+ const hr=Number(new Date().toLocaleString("en-GB",{timeZone:"Asia/Tokyo",hour:"2-digit",hour12:false}));
+ const night=hr>=18||hr<6;
+ const t=time/1000;
+ CTX.clearRect(0,0,W,H);
+ let bg=CTX.createLinearGradient(0,0,W,H);bg.addColorStop(0,night?"#315963":"#77a882");bg.addColorStop(1,night?"#274d58":"#a4b882");CTX.fillStyle=bg;CTX.fillRect(0,0,W,H);
+ for(let i=0;i<210;i++){let x=rand(i*2)*775,y=rand(i*2+1)*620;CTX.fillStyle=(i%3===0?"#6eaa86":"#b4ca8d");CTX.fillRect(x,y,2,4);}
+ CTX.fillStyle=night?"#1b6571":"#409eaf";CTX.fillRect(822,0,178,620);
+ CTX.fillStyle=night?"#c3b78e":"#e8d6a1";CTX.beginPath();CTX.moveTo(807,0);CTX.bezierCurveTo(781,140,831,290,797,435);CTX.bezierCurveTo(787,522,812,585,804,620);CTX.lineTo(835,620);CTX.lineTo(838,0);CTX.fill();
+ for(let i=0;i<22;i++){const y=i*31+9;let x=863+Math.sin(t*.3+i)*11+(i%4)*24;CTX.strokeStyle=night?"#92c7c366":"#c7f3e8aa";CTX.lineWidth=2;CTX.beginPath();CTX.moveTo(x,y);CTX.quadraticCurveTo(x+12,y-5,x+27,y);CTX.stroke();}
+ path([[125,0],[126,405],[125,615]],32,night?"#4b524b":"#6a7968");
+ path([[125,0],[126,405],[125,615]],16,"#4a514d");path([[119,0],[119,615]],2,"#d3c5a3");path([[132,0],[132,615]],2,"#d3c5a3");
+ for(let y=7;y<625;y+=26){CTX.fillStyle="#aa9980";CTX.fillRect(110,y,32,5);}
+ path([[132,401],[260,401],[350,348],[505,343],[660,353],[747,447]],49,night?"#60706b":"#b0a88b");
+ path([[350,345],[375,260],[508,158]],34,night?"#60706b":"#b0a88b");
+ path([[505,343],[627,265],[741,230],[850,176]],31,night?"#60706b":"#b0a88b");
+ path([[350,345],[384,426]],29,night?"#60706b":"#b0a88b");
+ path([[230,243],[260,400]],25,night?"#60706b":"#b0a88b");
+ CTX.fillStyle=night?"#8c9284":"#d6c8a1";CTX.beginPath();CTX.arc(506,344,77,0,7);CTX.fill();CTX.fillStyle=night?"#5e7270":"#92b5ae";CTX.beginPath();CTX.arc(506,344,27,0,7);CTX.fill();CTX.fillStyle="#d6d5a4";CTX.beginPath();CTX.arc(506,344,15,0,7);CTX.fill();
+ for(let i=0;i<46;i++){let x=165+rand(i+391)*625,y=40+rand(i+1191)*545;if(Math.hypot(x-506,y-344)>110){if(i%4===0)tree(x,y,7+rand(i)*8);else{CTX.fillStyle=i%3===0?"#f7c0ad":"#e8e1a2";CTX.beginPath();CTX.arc(x,y,2.4,0,Math.PI*2);CTX.fill();}}}
+ for(let i=0;i<9;i++)tree(38+(i%4)*58,27+Math.floor(i/4)*57,16+(i%3)*3);
+ for(let i=0;i<10;i++)tree(275+i*51,25+(i%3)*12,13);
+ // buildings appear or disappear according to future location updates
+ world.locations.forEach(l=>{
+  let x=l.x,y=l.y;
+  if(l.type==="hall")roof(x,y,89,65,"#b46864",night);
+  else if(l.type==="workshop")roof(x,y,83,60,"#708c97",night);
+  else if(l.type==="clinic")roof(x,y,83,60,"#bb847c",night);
+  else if(l.type==="library")roof(x,y,91,64,"#796d90",night);
+  else if(l.type==="market"){roof(x-15,y,65,51,"#d5a95f",night);roof(x+45,y+5,51,42,"#a97260",night);}
+  else if(l.type==="station"){roof(x,y,85,60,"#6c7774",night);round(x-26,y-18,52,10,3,"#d1cc9d");}
+  else if(l.type==="lighthouse"){round(x-22,y-43,44,91,7,"#efebe0");round(x-28,y-54,56,22,4,"#bb6b56");round(x-19,y-40,38,9,2,"#c7b5a2");round(x-9,y-73,18,19,4,night?"#ffe898":"#aedfe0");round(x-14,y+17,28,25,2,"#7b8c97");if(night&&l.level>0){let a= Math.sin(t*1.3)*.7;CTX.fillStyle="#ffe89b18";CTX.beginPath();CTX.moveTo(x,y-64);CTX.lineTo(x+330*Math.cos(a-.2),y-64+200*Math.sin(a-.2));CTX.lineTo(x+330*Math.cos(a+.2),y-64+200*Math.sin(a+.2));CTX.fill();}}
+  else if(l.type==="pier"){round(802,440,171,34,5,"#6b5541");for(let j=0;j<6;j++)round(818+j*24,438,10,40,0,"#ae8964");round(747,455,53,23,6,"#f5e3ba");round(749,449,37,14,3,"#92605a");}
+  else if(l.type==="forest"){for(let k=0;k<12;k++)tree(x-57+rand(k*3)*118,y-40+rand(k*8)*92,11+rand(k)*11);}
+  else if(l.type==="square"){round(488,317,36,11,3,"#827766");round(502,294,7,34,2,"#e0deb5");}
+  else roof(x,y,69,49,"#a28377",night);
+  if(!["square","pier","forest"].includes(l.type))label(x,y-45,l.name);
+ });
+ for(let i=0;i<world.residents.length;i++){
+  let r=world.residents[i],dx=Math.sin(t*.73+i*2)*3,dy=Math.cos(t*.92+i*3)*3,x=r.x+dx,y=r.y+dy;
+  const active=selected&&selected.type==="r"&&selected.id===r.id;
+  if(active){CTX.fillStyle="#fff5b555";CTX.beginPath();CTX.arc(x,y-22,33,0,Math.PI*2);CTX.fill();}
+  CTX.fillStyle="#112f3c99";CTX.beginPath();CTX.ellipse(x,y+2,20,7,0,0,Math.PI*2);CTX.fill();
+  round(x-21,y-49,42,43,15,active?"#fff0cc":"#dbe7d4");
+  CTX.strokeStyle=active?"#ffc86b":"#547079";CTX.lineWidth=active?4:2;CTX.beginPath();CTX.roundRect(x-21,y-49,42,43,15);CTX.stroke();
+  CTX.font='26px "Apple Color Emoji","Segoe UI Emoji",sans-serif';CTX.textAlign="center";CTX.fillStyle="#18212e";CTX.fillText(r.emoji||"🙂",x,y-18);
+  CTX.font="bold 12px Meiryo,sans-serif";let tw=CTX.measureText(r.name).width;
+  round(x-tw/2-7,y+8,tw+14,22,8,active?"#fff1c9":"#152a3ae6");CTX.fillStyle=active?"#26383b":"#f2f5e7";CTX.fillText(r.name,x,y+23);
+ }
+ if(night){CTX.fillStyle="#07162536";CTX.fillRect(0,0,W,H);}
+ // overlays are re-drawn brightly at night only for passive background; labels are kept visible
+}
+function animate(t){drawing(t);requestAnimationFrame(animate);}
+function canvasPoint(ev){const b=CAN.getBoundingClientRect();return{x:(ev.clientX-b.left)/b.width*W,y:(ev.clientY-b.top)/b.height*H};}
+CAN.addEventListener("click",ev=>{
+ if(!world)return;const p=canvasPoint(ev);
+ let rr=world.residents.map(r=>({r,d:Math.hypot(p.x-r.x,p.y-(r.y-24))})).sort((a,b)=>a.d-b.d)[0];
+ if(rr&&rr.d<34){detail("r",rr.r.id);return;}
+ let ll=world.locations.map(l=>({l,d:Math.hypot(p.x-l.x,p.y-l.y)})).sort((a,b)=>a.d-b.d)[0];
+ if(ll&&ll.d<72)detail("l",ll.l.id);
+});
+CAN.addEventListener("keydown",e=>{if(e.key==="Enter"&&world){detail("r",world.residents[0].id);}});
+document.addEventListener("click",e=>{
+ let r=e.target.closest("[data-r]"),v=e.target.closest("[data-e]");
+ if(r)detail("r",r.dataset.r);
+ if(v)detail("e",v.dataset.e);
+});
+$("#tab-residents").addEventListener("click",()=>setTab("residents"));
+$("#tab-events").addEventListener("click",()=>setTab("events"));
+async function load(){
+ try{
+  let response=await fetch("./world.json?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);
+  const value=await response.json();if(!value.town||!Array.isArray(value.residents)||!Array.isArray(value.chronicle)||!Array.isArray(value.locations))throw Error("データ形式が無効");
+  world=value;stats();renderEpisodes();renderList();
+  const e=world.chronicle[world.chronicle.length-1];detail("e",e.id);
+ }catch(e){$("#list").innerHTML='<div class="empty">町のデータを読み込めませんでした。<br>再読込してください。<br>'+safe(e.message)+'</div>';$("#sync-status").textContent="データ取得失敗";console.error(e);}
+}
+tickClock();setInterval(tickClock,1000);requestAnimationFrame(animate);load();
+</script>
+</body>
+</html>
