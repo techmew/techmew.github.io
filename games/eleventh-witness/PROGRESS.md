@@ -138,3 +138,12 @@ https://techmew.github.io/games/eleventh-witness/
 - 静的検証：CSS括弧バランス、Meiryo、幅390px以下の30px本文、スマホ2列ヘッダー、横画面27px本文、touch-action指定、背景scale削除、しおり3件と自動保存キー保持、脚本・エンジン読み込みタグ保持はすべてPASS。
 - Pages Actions pages build and deployment：9b49beedee4b2584518587ed6680d6120816769c 成功、run 39575745585。公開HTMLへの外部アクセスおよび実Androidのズーム挙動はこのセッションからは直接検証できず、未確認。
 - 次回：実機画面幅320/390px、横持ち画面、端末の文字拡大設定でもボタンと本文が重ならないことを優先検証。
+
+## 2026-10-21｜立ち絵が出ない原因修正・話者視認性を強化
+- ユーザーから「画像が入っていない。誰が何を話しているか不明」と報告。原因は旧CSSの `#portrait,#portrait[hidden]{display:none!important}` により、会話エンジンが画像を表示しようとしても常にCSSで隠されていた点。
+- `index.html` の強制非表示ルールを撤去し、人物の会話中だけ `#scene #portrait:not([hidden])` を表示。無画像時は `[hidden]` を尊重。スマホ縦横で立ち絵の位置を調整し、ダイアログ内の話者フルネームを高コントラストの大きな枠で表示。
+- 実変更コミット：283db47bdeea162a24b4bb92eef33e0fa880451b （`index.html`）。変更後blob：5e98e6c2b9bc1e3ee86125579e07509c8e66848f。
+- GitHub最新ファイルでCSS置換と表示設定を再確認。アトラス `assets/cast-preview-20261021.webp` は GitHub上に存在し、WebPファイルヘッダ正常・576×196px・4人（莉子／紗江／絢／匠）の列割り当て一致。story.jsの12種の話者識別とエンジンのフルネーム表示処理を静的確認。
+- ローカルChromium簡易HTMLで同じ肖像CSS/画像を使用し 390×844、844×390、1280×720 で表示を確認。画像はdisplay:block／naturalWidth=576、話者名も描画。これはCSSの縮小再現による疑似検証であり**公開ページ実機試験ではない**。
+- `story.js`／`engine.js`、SAVEキー `eleventh_novel_reboot_2026_v1`、しおり3枠は変更なし。残りの話者には個別画像未実装、GitHub Pagesの最新HTTP表示はアクセス手段がなく未確認。
+- 次回：現行4人の低解像度暫定切り出し素材を高品質な個別ラスタ素材へ置換、その他6人も独立した立ち絵を製作・登録、実機で全会話の出現/切替を確かめる。
