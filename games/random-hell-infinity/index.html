@@ -87,6 +87,10 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 #portraitTip{font-size:clamp(14px,3.7vw,18px)}
 }
 
+/* Fit controls to actual phone viewport without browser zoom or clipping */
+html,body{width:100%;height:100%;overflow:hidden}#game{width:100%;height:100%}
+@media(orientation:portrait){#joystick{width:clamp(100px,30vw,145px);height:clamp(100px,30vw,145px);bottom:max(10px,env(safe-area-inset-bottom))}#joyBase{width:85%;height:85%}#joyKnob{width:clamp(40px,12vw,56px);height:clamp(40px,12vw,56px)}#actions{gap:6px;bottom:max(10px,env(safe-area-inset-bottom))}#punch,#jump{width:clamp(58px,19vw,78px);height:clamp(58px,19vw,78px)}#jump{margin-bottom:18px}#hud{left:8px;right:8px}#stage{font-size:clamp(14px,4vw,19px)}#substats,#hudRight{font-size:clamp(10px,2.6vw,12px)}#weaponStrip{font-size:13px}#menuTiny{top:110px}#swapTiny,#soundTiny{top:77px}#bossBar{top:155px}#portraitTip{top:160px}}
+@media(orientation:portrait) and (max-width:360px){#joystick{width:100px;height:100px}#actions{gap:4px}#punch,#jump{width:58px;height:58px}#jump{margin-bottom:12px}#hudRight{max-width:35vw}}
 </style>
 </head>
 <body>
@@ -375,7 +379,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
 }
 function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c+'66');g.addColorStop(1,c+'00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
 
-function resize(){const oldW=W,oldH=H;W=Math.max(310,window.innerWidth);H=Math.max(260,window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel()}if(level&&mode==='survivorDraft')draw()}
+function resize(){const oldW=W,oldH=H;W=Math.max(1,document.documentElement.clientWidth||window.innerWidth);H=Math.max(1,document.documentElement.clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel()}if(level&&mode==='survivorDraft')draw()}
 window.addEventListener('resize',resize);
 function createLevel(respawn=false){
  if(!respawn){checkpointIndex=0;checkpointX=0;checkpointStage=levelIndex;vampCharge=0}
