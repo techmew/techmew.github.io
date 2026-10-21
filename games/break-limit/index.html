@@ -42,18 +42,13 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
 #bpmInput{width:72px}#offsetInput{width:80px}
 #musicStatus{font-size:12px;color:#bed8e7;min-height:26px;margin-top:9px;line-height:1.4}
 #durationText{font-size:12px;color:#ffe1ac;font-weight:700}
-#rhythmGuide{display:flex;gap:7px;align-items:center;margin-top:8px;min-height:44px;overflow:hidden}
-.rhythmCue{border:1px solid #44718a;color:#90a8b7;background:#0d2137;border-radius:8px;min-width:67px;text-align:center;padding:7px 5px;font-size:12px;font-weight:900;flex:1 1 0}
-.rhythmCue.on{border-color:#fff0a8;background:#455439;color:#fff8d2;box-shadow:0 0 14px #eaff7470}
-.rhythmCue.next{border-color:#6aebf6;color:#e2feff}
-#rhythmGrade{font-size:14px;font-weight:1000;color:#fff0a5;text-align:right;min-width:96px}
 .videoFrame{min-width:0;min-height:210px;width:100%;background:#000;border:1px solid #477394;overflow:hidden;border-radius:9px;display:flex;align-items:stretch}
 #ytPlayer{width:100%;min-height:210px;aspect-ratio:16 / 9}
 #ytPlayer iframe{display:block;width:100%;height:100%;min-height:210px;border:0;touch-action:auto}
 #videoPlaceholder{height:210px;display:flex;align-items:center;justify-content:center;width:100%;text-align:center;color:#8fb2cb;font-size:13px;padding:14px}
 #footer{display:none}
 @media (min-height:780px) and (min-width:1020px){#app{width:min(100vw,calc((100dvh - 265px) * 16 / 9),1280px)}}
-@media(max-width:760px){#musicDock{display:flex;flex-direction:column;gap:10px;padding:10px}#ytPlayer,.videoFrame{min-height:204px}#ytPlayer iframe{min-height:204px}.rhythmCue{min-width:48px;font-size:10px}#rhythmGrade{min-width:55px;font-size:11px}}
+@media(max-width:760px){#musicDock{display:flex;flex-direction:column;gap:10px;padding:10px}#ytPlayer,.videoFrame{min-height:204px}#ytPlayer iframe{min-height:204px}}
 @media(pointer:coarse){.utility{padding:5px 7px}#footer{display:none}}
 @media(orientation:portrait) and (pointer:coarse){
  body{align-items:center;padding-top:0}
@@ -78,8 +73,8 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
  <div class="kicker">HIGH-SPEED BOSS COMBO ACTION</div>
  <h1>BREAK<span>//</span>LIMIT</h1>
  <h2 id="overlayTitle">壊せ。つなげ。限界を超えろ。</h2>
- <p id="overlayDesc">下のYouTube URL欄から動画を読み込み、動画を再生するとボス戦開始。曲の長さでボスHPが変化。テンポガイドどおりに攻撃すると追加エフェクトとダメージボーナス。たった1体の超高耐久ボス。連続ヒットでダメージ倍率が最大8倍に。地上・空中コンボと無敵ダッシュを駆使して最速撃破を狙え。画面全体が操作エリア。タップで斬撃、ダブルタップや長押しで強攻撃。フリックで跳躍・突進・壁へのワイヤー移動、ジグザグの指の軌跡で連続斬撃。指を離してから短い間の後にアクションを繰り出せ。</p>
- <div class="pills" id="keyhints"><span>全画面：ジェスチャー操作</span><span>タップ：斬撃</span><span>長押し：溜め斬り</span><span>ダブルタップ：強攻撃</span><span>横フリック：壁へワイヤー</span><span>上下フリック：跳躍・急襲</span><span>ジグザグ：軌道連撃</span></div>
+ <p id="overlayDesc">YouTubeを再生するとボス戦開始。動画の長さでボスHPが変化。画面のどこでもボスを狙ってタップすると自動で飛び込み斬り。長押しは強攻撃、長いフリックは壁から壁へ高速飛行しボスに急襲。ジグザグは描いた軌跡で縦横無尽に飛び回る連撃。指を離した約0.14秒後にアクション開始。曲の拍と合えば追加ダメージ。</p>
+ <div class="pills" id="keyhints"><span>全画面でボスを狙う</span><span>タップ：自動急襲</span><span>長押し：強攻撃</span><span>大フリック：全画面高速飛行</span><span>ジグザグ：軌道連撃</span></div>
  <p class="record" id="best">BEST TIME —　BEST COMBO —</p>
  <button id="start">動画なしで練習 ▶</button>
  </div></div>
@@ -90,7 +85,6 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
   <div class="musicRow"><input id="ytUrl" type="url" aria-label="YouTube動画URL" placeholder="YouTube動画のURLを貼り付け" inputmode="url"><button id="loadTrack" type="button">動画をセット</button><button id="playTrack" type="button" disabled>▶ 再生して開始</button></div>
   <div class="musicOpts"><label>BPM <input id="bpmInput" type="number" min="55" max="240" step="1" value="120"></label><button id="tapBpm" type="button">TAP BPM</button><label>拍ずれ補正(ms) <input id="offsetInput" type="number" min="-500" max="500" step="25" value="0"></label><span id="durationText">曲長 — / ボスHP —</span></div>
   <div id="musicStatus" role="status" aria-live="polite">YouTube URLをセットして動画を再生すると戦闘開始（埋め込み不可の動画は使用できません）。BPMは手動指定かTAP BPMで合わせてください。</div>
-  <div id="rhythmGuide"><div class="rhythmCue next">♪ TAP</div><div class="rhythmCue">↗ FLICK</div><div class="rhythmCue">● HOLD</div><div class="rhythmCue">≋ TRACE</div><span id="rhythmGrade">READY</span></div>
  </div>
  <div class="videoFrame"><div id="ytPlayer"><div id="videoPlaceholder">ここにYouTube動画が表示されます。<br>動画の▶でもボス戦が始まります。</div></div></div>
 </section>
@@ -111,9 +105,7 @@ let p,b,combo=0,maxCombo=0,comboTime=0,damageTotal=0,score=0,lastMove='',floatin
 // The IFrame API exposes duration/playback time, but never the soundtrack's audio samples.
 let videoPlayer=null,videoReady=false,videoMode=false,videoId='',videoDuration=0,videoEnded=false,videoChanging=false;
 const rhythm={bpm:120,offsetMs:0,buff:0,grade:'',gradeT:0,lastBeat:-999,rapidBeat:-999,rapidCount:0,tapTimes:[],beatPulse:0,bonus:1};
-const cueKinds=['tap','tap','flick','tap','hold','tap','rapid','trace','tap','flick','tap','rapid','hold','tap','flick','trace'];
-const cueLabel={tap:'● TAP',flick:'↗ FLICK',hold:'◉ HOLD',rapid:'●×3 TAP',trace:'〰 TRACE'};
-const musicStatus=$('musicStatus'),durationText=$('durationText'),rhythmGuide=$('rhythmGuide');
+const musicStatus=$('musicStatus'),durationText=$('durationText');
 try{const data=JSON.parse(localStorage.getItem('break_limit_best_v2')||'{}');bestTime=data.time??null;bestCombo=data.combo??0;}catch(e){}
 for(let i=0;i<90;i++)bgStars.push({x:Math.random()*W,y:30+Math.random()*440,s:Math.random()*2+0.5,a:Math.random()*0.65+0.2});
 const clamp=(v,a,z)=>Math.max(a,Math.min(z,v)),rand=(a,z)=>a+Math.random()*(z-a),sgn=v=>v<0?-1:1;
@@ -123,7 +115,7 @@ function sfx(k){switch(k){case 'light':tone(430+combo*3,.06,.023,'sawtooth',130)
 function music(dt){if(videoMode||!ctxAudio||quiet||mode!=='play'||paused)return;metronome-=dt;if(metronome>0)return;metronome=.255;const bass=[55,55,65.41,82.41,55,65.41,49,73.42],notes=[220,261.6,329.6,261.6,196,246.9,329.6,392];tone(bass[trackTick%8],.20,.014,'sawtooth',bass[trackTick%8]*.8);if(trackTick%2===0)tone(notes[(trackTick>>1)%8],.16,.010,'triangle',notes[(trackTick>>1)%8]*.65);trackTick++;}
 function reset(){
  rhythm.buff=0;rhythm.grade='';rhythm.gradeT=0;rhythm.lastBeat=-999;rhythm.rapidBeat=-999;rhythm.rapidCount=0;rhythm.beatPulse=0;
- p={x:215,y:FLOOR,w:44,h:76,vx:0,vy:0,face:1,grounded:true,jumps:2,dashCd:0,dashTime:0,inv:0,hp:8,hpMax:8,attack:null,attackT:0,attackHit:false,attackN:0,chainT:0,attackBuffer:0,heavyBuffer:0,heavyCd:0,stun:0,glow:0,land:0,web:null,stroke:null,charge:0};
+ p={x:215,y:FLOOR,w:44,h:76,vx:0,vy:0,face:1,grounded:true,jumps:2,dashCd:0,dashTime:0,inv:0,hp:8,hpMax:8,attack:null,attackT:0,attackHit:false,attackN:0,chainT:0,attackBuffer:0,heavyBuffer:0,heavyCd:0,stun:0,glow:0,land:0,web:null,stroke:null,flight:null,charge:0};
  b={x:955,y:FLOOR,w:112,h:188,vx:0,hp:videoMode&&videoDuration>0?hpByDuration(videoDuration):22000,max:videoMode&&videoDuration>0?hpByDuration(videoDuration):22000,face:-1,state:'idle',phaseT:1.8,attackKind:'',attackHit:false,pattern:0,stun:0,rage:false,blink:0};
  mode='play';paused=false;elapsed=0;levelClock=0;combo=0;maxCombo=0;comboTime=0;damageTotal=0;score=0;lastMove='';floatingLife=0;freeze=0;flash=0;screenShake=0;bossDefeated=false;metronome=0;trackTick=0;projectiles=[];sparks=[];texts=[];rings=[];ghosts=[];strikes=[];dust=[];camX=0;
  overlay.classList.add('hidden');$('pause').textContent='Ⅱ';clearGesture();for(let k in KEY){KEY[k]=false;old[k]=false;}
@@ -179,7 +171,95 @@ function endWeb(){
  if(!p.web)return;const dir=p.web.dir;p.web=null;p.vx=-dir*400;p.vy=Math.min(p.vy,-350);
  emit(p.x,p.y-45,'#a6ffff',17,260);addRing(p.x,p.y-46,'#bbffff',100);
 }
-function playerHit(dmg=1){if(p.inv>0||mode!=='play')return;p.hp=Math.max(0,p.hp-dmg);p.inv=1.20;p.stun=.32;p.vy=-310;p.vx=sgn(p.x-b.x)*470;p.attack=null;p.web=null;p.stroke=null;touch.queue=[];touch.actions=[];p.attackBuffer=0;p.heavyBuffer=0;combo=0;comboTime=0;flash=.18;screenShake=23;emit(p.x,p.y-45,'#ff5c8c',28,410);addRing(p.x,p.y-42,'#ff557d',145);popup(p.x,p.y-122,'COMBO LOST','#ff759c',22);sfx('hurt');if(p.hp<=0)showEnd(false);}
+// Every gesture is interpreted relative to the moving boss. The character traverses
+// the whole stage, then converges on the boss so gestures cannot whiff at long range.
+function bossLanding(side){
+ const s=side|| (p.x<=b.x?-1:1);
+ return {x:clamp(b.x+s*100,55,1225),y:clamp(b.y-54,165,FLOOR),boss:true};
+}
+function startFlight(waypoints,finish='light',webEnd=null,speed=2750){
+ if(!p||mode!=='play'||paused||p.stun>0||!waypoints.length)return;
+ p.web=null;p.stroke=null;p.dashTime=0;p.attack=null;p.attackHit=false;
+ p.attackBuffer=0;p.heavyBuffer=0;p.grounded=false;p.vy=0;p.vx=0;
+ p.flight={points:waypoints,index:0,finish,webEnd,speed,fxTimer:0};
+ p.inv=Math.max(p.inv,.23);p.glow=.24;
+ emit(p.x,p.y-48,webEnd?'#b9faff':'#86e4ff',19,290);
+ addRing(p.x,p.y-48,'#9efaff',80);sfx('dash');
+}
+function bossDive(kind){
+ const side=p.x<b.x?-1:1;
+ const goal=bossLanding(side);
+ // One tap/hold from any distance always reaches the boss before attacking.
+ startFlight([goal],kind,null,Math.max(1950,Math.abs(b.x-p.x)*4.0));
+}
+function swipeFlight(part,web=false){
+ const dx=clamp(Number(part.dx)||0,-W*1.9,W*1.9);
+ const dy=clamp(Number(part.dy)||0,-H*2,H*2);
+ const len=Math.hypot(dx,dy);
+ const ux=dx/(len||1),uy=dy/(len||1);
+ // Large swipes reach the arena boundaries; short ones still have momentum.
+ const reach=clamp(len*1.22,230,1550);
+ let tx=clamp(b.x+ux*reach,54,1226),ty=clamp(b.y-85+uy*reach*.85,160,FLOOR-12);
+ if(Math.abs(ux)<.22)tx=clamp(b.x+(p.x<b.x?-180:180),54,1226);
+ if(Math.abs(uy)<.18)ty=clamp(b.y-95-(len>650?145:50),165,FLOOR-8);
+ const side=tx<b.x?-1:1;
+ const pts=[{x:tx,y:ty},bossLanding(side)];
+ // Wall tether effect on the long horizontal dash, while all directions can fly.
+ const tether=web?{x:dx>0?1230:50,y:clamp(ty-65,190,395)}:null;
+ startFlight(pts,'light',tether,clamp(1950+len*.9,2100,3700));
+ floatingText=web?'WEB SWING / TARGET LOCK':'SKY SWEEP / TARGET LOCK';floatingLife=.6;
+}
+function zigzagFlight(parts){
+ if(!parts.length)return;
+ const points=[];
+ let x=clamp(b.x-120,65,1215),y=clamp(b.y-75,170,FLOOR-15);
+ const sliced=parts.slice(0,18);
+ for(let i=0;i<sliced.length;i++){
+   // Preserve changes of direction and large distances from the entire swipe.
+   const seg=sliced[i],m=Math.hypot(seg.dx,seg.dy)||1;
+   const reach=clamp(m*1.2,160,1100);
+   x=clamp(x+seg.dx/m*reach,54,1226);
+   y=clamp(y+seg.dy/m*reach*.82,157,FLOOR-8);
+   points.push({x,y});
+   // Pass through boss between direction changes for a genuine multi-hit combo.
+   points.push({...bossLanding(x<b.x?-1:1),hit:true});
+ }
+ startFlight(points,'light',null,4600);
+ floatingText=`${sliced.length} PATH COMBO`;floatingLife=.65;
+}
+function advanceFlight(dt){
+ const flight=p.flight;if(!flight)return;
+ let remain=flight.speed*dt;
+ const prevX=p.x,prevY=p.y;
+ let guard=0;
+ while(remain>0&&flight.index<flight.points.length&&guard++<20){
+   const dest=flight.points[flight.index];
+   const gx=dest.boss?bossLanding(dest.x<b.x?-1:1).x:dest.x;
+   const gy=dest.boss?bossLanding(dest.x<b.x?-1:1).y:dest.y;
+   const dx=gx-p.x,dy=gy-p.y,dist=Math.hypot(dx,dy);
+   if(dist<=remain){p.x=gx;p.y=gy;remain-=dist;flight.index++;
+     if(dest.hit){p.face=b.x>=p.x?1:-1;successHit({type:'trace',range:235,dmg:125,color:'#b6fbff',impact:false});emit(b.x,b.y-97,'#a5fcff',14,310);}
+   }else if(dist>0){p.x+=dx/dist*remain;p.y+=dy/dist*remain;remain=0;}
+ }
+ p.x=clamp(p.x,45,1235);p.y=clamp(p.y,147,FLOOR);
+ p.vx=clamp((p.x-prevX)/Math.max(dt,.001),-3300,3300);
+ p.vy=clamp((p.y-prevY)/Math.max(dt,.001),-2600,2600);
+ p.face=b.x>=p.x?1:-1;p.grounded=false;p.inv=Math.max(p.inv,.08);
+ flight.fxTimer-=dt;
+ if(flight.fxTimer<=0&&Math.hypot(p.x-prevX,p.y-prevY)>2){
+   trail();flight.fxTimer=.026;
+   const ang=Math.atan2(p.y-prevY,p.x-prevX);
+   strikes.push({x:(prevX+p.x)/2,y:(prevY+p.y)/2-50,a:ang,t:.17,max:.17,color:'#b1faff'});
+   emit(p.x,p.y-50,'#a4ffff',3,150);
+ }
+ if(flight.index>=flight.points.length){
+   p.flight=null;p.face=b.x>=p.x?1:-1;p.vx=0;p.vy=0;
+   addRing(b.x,b.y-105,'#a7faff',105);
+   // Face/position are locked to the moving boss before the finishing blow.
+   doAttack(flight.finish);
+ }
+}
+function playerHit(dmg=1){if(p.inv>0||mode!=='play')return;p.hp=Math.max(0,p.hp-dmg);p.inv=1.20;p.stun=.32;p.vy=-310;p.vx=sgn(p.x-b.x)*470;p.attack=null;p.web=null;p.stroke=null;p.flight=null;touch.queue=[];touch.actions=[];p.attackBuffer=0;p.heavyBuffer=0;combo=0;comboTime=0;flash=.18;screenShake=23;emit(p.x,p.y-45,'#ff5c8c',28,410);addRing(p.x,p.y-42,'#ff557d',145);popup(p.x,p.y-122,'COMBO LOST','#ff759c',22);sfx('hurt');if(p.hp<=0)showEnd(false);}
 function successHit(m){let bCx=b.x,bCy=b.y-b.h*.52,pCy=p.y-p.h*.49;const d=Math.abs(bCx-(p.x+p.face*30));if(d>m.range+40||Math.abs(bCy-pCy)>175)return false;
  if((b.x-p.x)*p.face < -48)return false;
  p.attackHit=true;combo++;maxCombo=Math.max(maxCombo,combo);comboTime=2.7;
@@ -224,23 +304,11 @@ function update(dt){if(mode!=='play'||paused)return;
    touch.actions.splice(i,1);
    if(p.stun>0||mode!=='play')continue;
    if(a.grade==='PERFECT'||a.grade==='GOOD'){rhythm.buff=Math.max(rhythm.buff,.53);rhythm.bonus=a.grade==='PERFECT'?1.55:1.25;}
-   if(a.kind==='light'||a.kind==='heavy'){
-     // Attack gestures automatically face the boss; no walking controls required.
-     p.face=b.x>=p.x?1:-1;
-     p.web=null;
-     if(Math.abs(b.x-p.x)>145){p.vx=p.face*650;p.dashTime=.21;p.inv=Math.max(p.inv,.15);}
-     if(a.kind==='heavy'){p.heavyBuffer=Math.max(p.heavyBuffer,.38);p.charge=0;}
-     else p.attackBuffer=Math.max(p.attackBuffer,.30);
-   }else if(a.kind==='web'){fireWeb(a.dir);}
-   else if(a.kind==='up'){jump();p.heavyBuffer=Math.max(p.heavyBuffer,.27);}
-   else if(a.kind==='down'){
-     if(!p.grounded)p.heavyBuffer=Math.max(p.heavyBuffer,.28);
-     else{p.attackBuffer=Math.max(p.attackBuffer,.29);dash();}
-   }else if(a.kind==='trace'){doStroke(a.part);}
-   else if(a.kind==='traceCombo'){touch.queue=a.parts;touch.nextStroke=levelClock;}
- }
- if(touch.queue.length&&levelClock>=touch.nextStroke&&p.stun<=0){
-   doStroke(touch.queue.shift());touch.nextStroke=levelClock+.115;
+   if(a.kind==='light'||a.kind==='heavy')bossDive(a.kind);
+   else if(a.kind==='web')swipeFlight(a.part,true);
+   else if(a.kind==='up'||a.kind==='down'||a.kind==='trace')swipeFlight(a.part,false);
+   else if(a.kind==='traceCombo')zigzagFlight(a.parts);
+
  }
  for(let i=touch.paint.length-1;i>=0;i--){touch.paint[i].t-=dt;if(touch.paint[i].t<=0)touch.paint.splice(i,1);}
  if(freeze>0){freeze-=dt;return;}
@@ -253,9 +321,11 @@ function update(dt){if(mode!=='play'||paused)return;
  if(heavyPressed)p.heavyBuffer=.16;if(KEY.attack)p.attackBuffer=.15;
  p.attackBuffer=Math.max(0,p.attackBuffer-dt);p.heavyBuffer=Math.max(0,p.heavyBuffer-dt);
  if(p.stun<=0&&p.attack===null){if(p.heavyBuffer>0&&p.heavyCd<=0){p.heavyBuffer=0;doAttack('heavy');}else if(p.attackBuffer>0){p.attackBuffer=0;doAttack('light');}}
+ const scriptedFlight=p.stun<=0&&!!p.flight;
  if(p.stun<=0){
  let ax=0; // no continuous movement: direction comes exclusively from gestures
- if(p.web){
+ if(p.flight){advanceFlight(dt);}
+ else if(p.web){
    p.web.t+=dt;p.web.hitCd-=dt;
    const dx=p.web.x-p.x;
    p.vx=clamp(p.vx+sgn(dx)*1650*dt,-1280,1280);
@@ -275,14 +345,16 @@ function update(dt){if(mode!=='play'||paused)return;
  if(p.attackT>=m.dur){p.attack=null;p.attackT=0;}
  }
  }else p.vx*=.94;
- const prevY=p.y;p.vy+=(p.web?350:1850)*dt;p.vy=Math.min(p.vy,950);
- p.x+=p.vx*dt;p.y+=p.vy*dt;
- if(p.x<45){p.x=45;p.vx=0;if(p.web)endWeb();}if(p.x>1235){p.x=1235;p.vx=0;if(p.web)endWeb();}
- if(p.y<147){p.y=147;if(p.vy<0)p.vy=0;}
- if(p.stroke&&!p.stroke.hit){
-   if(successHit({type:'trace',range:230,dmg:115,color:'#a5fcff',impact:false}))p.stroke.hit=true;
+ if(!scriptedFlight){
+   const prevY=p.y;p.vy+=(p.web?350:1850)*dt;p.vy=Math.min(p.vy,950);
+   p.x+=p.vx*dt;p.y+=p.vy*dt;
+   if(p.x<45){p.x=45;p.vx=0;if(p.web)endWeb();}if(p.x>1235){p.x=1235;p.vx=0;if(p.web)endWeb();}
+   if(p.y<147){p.y=147;if(p.vy<0)p.vy=0;}
+   if(p.stroke&&!p.stroke.hit){
+     if(successHit({type:'trace',range:230,dmg:115,color:'#a5fcff',impact:false}))p.stroke.hit=true;
+   }
+   if(p.y>=FLOOR){if(prevY<FLOOR-10&&p.vy>280){p.land=.16;emit(p.x,FLOOR,'#7ffaff',13,180);}p.y=FLOOR;p.vy=0;p.grounded=true;p.jumps=2;}else p.grounded=false;
  }
- if(p.y>=FLOOR){if(prevY<FLOOR-10&&p.vy>280){p.land=.16;emit(p.x,FLOOR,'#7ffaff',13,180);}p.y=FLOOR;p.vy=0;p.grounded=true;p.jumps=2;}else p.grounded=false;
  if(Math.abs(p.vx)>160&&p.grounded&&Math.random()<dt*13){dust.push({x:p.x-p.face*17,y:FLOOR-4,vx:-p.face*rand(25,90),vy:-rand(10,65),t:.28});}
  if(p.dashTime>0||Math.abs(p.vx)>650)if(Math.random()<.8)trail();
  ai(dt);
@@ -353,12 +425,13 @@ function bossDraw(){if(b.hp<=0)return;const x=b.x,y=b.y;c.save();c.translate(x,y
  c.restore();
  // enrage aura
  if(rage){c.save();c.globalAlpha=.18+.08*Math.sin(levelClock*11);c.strokeStyle=red;c.lineWidth=3;for(let i=0;i<3;i++){c.beginPath();c.ellipse(x,y-98,80+i*13,120+i*18,0,0,PI*2);c.stroke();}c.restore();}
+ if(mode==='play'){const beat=Math.abs(beatPosition()-Math.round(beatPosition()));if(beat<.2){c.save();c.globalAlpha=(.2-beat)*2.2;c.strokeStyle='#a6faff';c.lineWidth=4;c.shadowColor='#a4faff';c.shadowBlur=24;c.beginPath();c.ellipse(x,y-101,74+beat*95,116+beat*95,0,0,PI*2);c.stroke();c.restore();}}
 }
 function drawEnemyWarnings(){if(b.hp<=0||b.state!=='wind')return;const percent=b.phaseT/(b.rage?.47:.70);const alpha=.16+.20*(1+Math.sin(levelClock*27))/2;c.save();c.globalAlpha=alpha;c.fillStyle='#ff3b71';if(b.attackKind==='slash'){let x=b.face===1?b.x:b.x-235;c.fillRect(x,FLOOR-204,235,210);}else if(b.attackKind==='slam'){c.fillRect(b.x-285,FLOOR-17,570,20);}else if(b.attackKind==='rush'){let x=b.face===1?b.x:b.x-640;c.fillRect(x,FLOOR-145,640,145);}else {c.beginPath();c.arc(b.x+b.face*72,FLOOR-115,45,0,PI*2);c.fill();}
  c.globalAlpha=.9;c.strokeStyle='#ff5b80';c.setLineDash([12,7]);c.lineWidth=3;if(b.attackKind==='slash')c.strokeRect(b.face===1?b.x:b.x-235,FLOOR-204,235,210);else if(b.attackKind==='slam')c.strokeRect(b.x-285,FLOOR-19,570,19);else if(b.attackKind==='rush')c.strokeRect(b.face===1?b.x:b.x-640,FLOOR-145,640,145);c.setLineDash([]);c.restore();}
 function drawWeb(){
- if(!p.web)return;
- const w=p.web,ex=p.x,ey=p.y-57;
+ const w=p.flight?.webEnd||p.web;if(!w)return;
+ const ex=p.x,ey=p.y-57;
  c.save();c.strokeStyle='#8efbff';c.lineWidth=3.4;c.shadowColor='#8effff';c.shadowBlur=22;
  c.beginPath();c.moveTo(ex,ey);c.quadraticCurveTo((ex+w.x)/2,(ey+w.y)/2-38,w.x,w.y);c.stroke();
  c.strokeStyle='#eaffff';c.lineWidth=1.4;c.shadowBlur=6;c.stroke();
@@ -401,11 +474,8 @@ function hud(){
  // combo hud
  if(combo>0){let mult=Math.min(8,1+(combo-1)*.055);c.textAlign='left';rounded(26,143,253,156,13,'#071329d9');c.fillStyle=combo>=30?'#ffe690':'#8cf8ff';c.font='900 60px Meiryo, sans-serif';c.fillText(String(combo),41,196);c.font='900 19px Meiryo, sans-serif';c.fillText('HIT COMBO',43,230);c.font='900 18px Meiryo, sans-serif';c.fillStyle='#ffe18e';c.fillText(`DAMAGE × ${mult.toFixed(2)}`,43,263);rounded(43,277,216,5,2,'#33405a');rounded(43,277,216*(comboTime/2.7),5,2,'#96faff');
  let lab=combo<10?'GOOD!':combo<25?'BRUTAL!':combo<50?'RAMPAGE!':combo<100?'OVERDRIVE!':'LIMIT BREAK!';c.font='900 18px Meiryo';c.fillStyle='#ffd993';c.fillText(lab,43,324);}
- // Four upcoming visual rhythm prompts. They are guidance, NOT physical attack buttons.
- if(mode==='play')drawBeatHud();
- // bottom micro hints and status
- c.font='800 12px Meiryo, sans-serif';c.textAlign='left';c.fillStyle='#a1acc3';c.fillText('ANYWHERE : TAP=SLASH  HOLD=HEAVY  FLICK=ACTION  ZIGZAG=TRACE COMBO',27,685);
- c.textAlign='right';c.fillStyle='#90dcfc';c.fillText(`MAX COMBO  ${maxCombo}     BOSS ${Math.ceil(hpRatio*100)}%`,1254,685);
+ // Keep the music/video section and playfield clear of TAP/FLICK prompt strips.
+ c.font='800 12px Meiryo, sans-serif';c.textAlign='right';c.fillStyle='#90dcfc';c.fillText(`MAX COMBO  ${maxCombo}     BOSS ${Math.ceil(hpRatio*100)}%`,1254,685);
  if(floatingLife>0&&p.attack){c.save();c.globalAlpha=clamp(floatingLife*3,0,1);c.font='900 18px Meiryo,sans-serif';c.textAlign='center';c.fillStyle='#f8ecff';c.fillText(floatingText,p.x,clamp(p.y-135,165,495));c.restore();}
  c.restore();}
 function drawPause(){if(!paused)return;fill(0,0,W,H,'#050918aa');c.textAlign='center';c.font='900 56px Meiryo,sans-serif';c.fillStyle='#eaffff';c.fillText('PAUSED',640,330);c.font='700 19px Meiryo,sans-serif';c.fillText('P または Ⅱ で再開',640,375);}
@@ -433,45 +503,17 @@ function beatTime(){
  return elapsed;
 }
 function beatPosition(){return (beatTime()-rhythm.offsetMs/1000)*rhythm.bpm/60;}
-function cueFor(index){return cueKinds[((index%cueKinds.length)+cueKinds.length)%cueKinds.length];}
-function kindMatches(kind,cue){
- if(cue==='tap'||cue==='rapid')return kind==='light';
- if(cue==='hold')return kind==='heavy';
- if(cue==='flick')return ['web','up','down','trace'].includes(kind);
- return kind==='traceCombo';
-}
 function rhythmJudge(kind){
  if(mode!=='play'||paused)return '';
  const pos=beatPosition(),beat=Math.round(pos),off=Math.abs(pos-beat)*60/rhythm.bpm;
- const cue=cueFor(beat);
- if(!kindMatches(kind,cue)||off>.23)return '';
- if(cue==='rapid'){
-  if(rhythm.rapidBeat!==beat){rhythm.rapidBeat=beat;rhythm.rapidCount=0;}
-  rhythm.rapidCount++;
-  if(rhythm.rapidCount<3){rhythm.grade=`RAPID ${rhythm.rapidCount}/3`;rhythm.gradeT=.5;return '';}
- }
- if(beat===rhythm.lastBeat)return '';
+ if(off>.23||beat===rhythm.lastBeat)return '';
  const grade=off<=.095?'PERFECT':'GOOD';rhythm.lastBeat=beat;rhythm.grade=grade;rhythm.gradeT=.65;
- if(p&&mode==='play'){emit(p.x,p.y-108,grade==='PERFECT'?'#fff1a6':'#6beaff',26,370);addRing(p.x,p.y-57,grade==='PERFECT'?'#ffe08c':'#90f7ff',124);popup(p.x,p.y-144,grade==='PERFECT'?'PERFECT +55%':'GOOD +25%',grade==='PERFECT'?'#ffe89d':'#bffaff',22);}
- return grade;
-}
-function drawBeatHud(){
- const bp=beatPosition(),i=Math.ceil(bp-.24),phase=bp-Math.floor(bp),pulse=Math.max(0,1-Math.abs(bp-Math.round(bp))/.28);
- c.save();rounded(352,611,570,51,10,'#07182ce8');
- for(let j=0;j<4;j++){
-  const idx=i+j,kind=cueFor(idx),x=365+j*139;
-  rounded(x,621,127,31,6,j===0?(pulse>.1?'#697046':'#204452'):'#142b40');
-  c.strokeStyle=j===0?'#bafaff':'#345d77';c.lineWidth=j===0?2:1;c.strokeRect(x,621,127,31);
-  c.font=`900 ${kind==='rapid'?15:16}px Meiryo,sans-serif`;c.fillStyle=j===0?'#fffbd4':'#a9c8dd';c.textAlign='center';c.fillText(cueLabel[kind],x+63,638);
+ if(p&&mode==='play'){
+   emit(b.x,b.y-110,grade==='PERFECT'?'#fff1a6':'#6beaff',26,370);
+   addRing(b.x,b.y-110,grade==='PERFECT'?'#ffe08c':'#90f7ff',124);
+   popup(b.x,b.y-235,grade==='PERFECT'?'PERFECT +55%':'GOOD +25%',grade==='PERFECT'?'#ffe89d':'#bffaff',22);
  }
- if(rhythm.gradeT>0){c.textAlign='center';c.font='900 25px Meiryo,sans-serif';c.fillStyle=rhythm.grade==='PERFECT'?'#ffe590':'#9df4ff';c.fillText(rhythm.grade,640,586);}
- c.restore();
-}
-function updateBeatGuide(){
- const bp=beatPosition(),i=Math.ceil(bp-.24),phase=Math.abs(bp-Math.round(bp));
- const slots=rhythmGuide.querySelectorAll('.rhythmCue');
- slots.forEach((slot,j)=>{slot.textContent=cueLabel[cueFor(i+j)];slot.className='rhythmCue'+(j===0?(phase<.16?' on':' next'):'');});
- $('rhythmGrade').textContent=rhythm.gradeT>0?rhythm.grade:(videoMode?'SYNC':'READY');
+ return grade;
 }
 function extractYouTubeId(raw){
  raw=String(raw||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(raw))return raw;
@@ -512,7 +554,7 @@ function createYouTubePlayer(){
        videoEnded=false;
        if(!videoMode||mode!=='play'){videoMode=true;reset();}
        else if(paused){paused=false;$('pause').textContent='Ⅱ';}
-       syncDuration();setMusicStatus('動画再生中：ボス戦進行中。次の拍のガイドに合わせてジェスチャー入力！');
+       syncDuration();setMusicStatus('動画再生中：ボス戦進行中。タップ・スワイプでボスへ自動急襲。拍が合うと攻撃ボーナス。');
      }else if(data===YT.PlayerState.PAUSED||data===YT.PlayerState.BUFFERING){
        if(videoMode&&mode==='play'){paused=true;$('pause').textContent='▶';}
      }else if(data===YT.PlayerState.ENDED){
@@ -552,7 +594,6 @@ $('tapBpm').addEventListener('click',()=>{
  setMusicStatus(`推定 ${rhythm.bpm} BPM（タップ間隔から計測）。音楽の拍に合うよう補正してください。`);
 });
 const iframeApi=document.createElement('script');iframeApi.src='https://www.youtube.com/iframe_api';iframeApi.async=true;document.head.appendChild(iframeApi);
-setInterval(updateBeatGuide,110);
 // Unified gesture-only controls. Touch or mouse works from ANY point on the arena.
 document.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&(mode==='menu'||mode==='won'||mode==='dead')){e.preventDefault();reset();}
@@ -563,12 +604,16 @@ function clearGesture(){
  touch.stroke=null;touch.queue=[];touch.paint=[];touch.actions=[];touch.nextStroke=0;touch.lastTap=0;
 }
 function worldPoint(x,y){
- const r=canvas.getBoundingClientRect();return {wx:clamp((x-r.left)/r.width*W,0,W),wy:clamp((y-r.top)/r.height*H,0,H)};
+ const r=canvas.getBoundingClientRect();return {wx:clamp((x-r.left)/r.width*W,-W*.5,W*1.5),wy:clamp((y-r.top)/r.height*H,-H*.5,H*1.5)};
 }
 function addStrokePoint(o,e){
- const last=o.pts[o.pts.length-1];if(last&&Math.hypot(e.clientX-last.x,e.clientY-last.y)<5)return;
- o.pts.push({x:e.clientX,y:e.clientY,...worldPoint(e.clientX,e.clientY)});
- if(o.pts.length>160)o.pts.shift();
+ const last=o.pts[o.pts.length-1];if(last&&Math.hypot(e.clientX-last.x,e.clientY-last.y)<3)return;
+ const next={x:e.clientX,y:e.clientY,...worldPoint(e.clientX,e.clientY)};
+ if(last)o.total+=Math.hypot(next.x-last.x,next.y-last.y);
+ o.pts.push(next);
+ // Retain first/last and every major turn when even a very long swipe overflows.
+ if(o.pts.length>700){o.pts=o.pts.filter((_,i)=>i===0||i===o.pts.length-1||i%2===0);}
+
 }
 function scheduleGesture(kind,details={}){
  // Gestures don't activate until shortly AFTER the user releases the finger.
@@ -591,7 +636,7 @@ function simplify(points,eps=13){
 function releaseStroke(){
  const gesture=touch.stroke;if(!gesture)return;touch.stroke=null;
  const pts=gesture.pts;if(!pts.length||mode!=='play'||paused)return;
- let total=0;for(let i=1;i<pts.length;i++)total+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+ const total=gesture.total;
  const first=pts[0],last=pts[pts.length-1],dx=last.x-first.x,dy=last.y-first.y;
  touch.paint.push({pts:pts.map(q=>({x:q.wx,y:q.wy})),t:.42});
  const held=performance.now()-gesture.started;
@@ -604,30 +649,31 @@ function releaseStroke(){
  touch.lastTap=0;
  const reduced=simplify(pts,14),segments=[];
  for(let i=1;i<reduced.length;i++){
-   const a=reduced[i-1],b=reduced[i],vx=b.x-a.x,vy=b.y-a.y;
-   if(Math.hypot(vx,vy)>26)segments.push({dx:vx,dy:vy});
+   const a=reduced[i-1],b=reduced[i],vx=b.wx-a.wx,vy=b.wy-a.wy;
+   if(Math.hypot(b.x-a.x,b.y-a.y)>26)segments.push({dx:vx,dy:vy});
  }
  let turns=0;for(let i=1;i<segments.length;i++){
    const a=segments[i-1],b=segments[i],dot=(a.dx*b.dx+a.dy*b.dy)/(Math.hypot(a.dx,a.dy)*Math.hypot(b.dx,b.dy));
    if(dot<.76)turns++;
  }
  if(turns>=2&&segments.length>=3&&total>115){
-   scheduleGesture('traceCombo',{parts:segments.slice(0,12)});
-   popup(p.x,p.y-125,`${Math.min(12,segments.length)} TRACE COMBO`,'#adfdff',21);
+   scheduleGesture('traceCombo',{parts:segments.slice(0,18)});
+   popup(b.x,b.y-230,`${Math.min(18,segments.length)} TRACE COMBO`,'#adfdff',21);
    return;
  }
- if(Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.08){scheduleGesture('web',{dir:dx>0?1:-1});return;}
+ const part={dx:last.wx-first.wx,dy:last.wy-first.wy};
+ if(Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.08){scheduleGesture('web',{part});return;}
  if(Math.abs(dy)>35&&Math.abs(dy)>=Math.abs(dx)*.70){
-   scheduleGesture(dy<0?'up':'down');return;
+   scheduleGesture(dy<0?'up':'down',{part});return;
  }
- scheduleGesture('trace',{part:{dx,dy}});
+ scheduleGesture('trace',{part});
 }
 window.addEventListener('pointerdown',e=>{
  if(mode!=='play'||paused||e.target!==canvas)return;
  if(e.pointerType==='mouse'&&e.button!==0)return;
  if(touch.stroke!==null)return;
  e.preventDefault();audio();
- touch.stroke={id:e.pointerId,pts:[],started:performance.now()};addStrokePoint(touch.stroke,e);
+ touch.stroke={id:e.pointerId,pts:[],total:0,started:performance.now()};addStrokePoint(touch.stroke,e);
  if(e.target.setPointerCapture)try{e.target.setPointerCapture(e.pointerId);}catch(err){}
 },{passive:false});
 window.addEventListener('pointermove',e=>{
