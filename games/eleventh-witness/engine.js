@@ -11,8 +11,21 @@ let touch={id:null,sx:0,sy:0,ox:0,oy:0,x:0,y:0,moved:false,ignore:false}, draggi
 const imgs={stop:"assets/reboot-snow.svg",road:"assets/reboot-road.svg",lodge:"assets/reboot-snow.svg",lobby:"assets/reboot-parlor.svg",room:"assets/reboot-room.svg",hall:"assets/reboot-hall.svg",dining:"assets/reboot-parlor.svg",dryroom:"assets/reboot-hall.svg"};
 // Portrait art is temporarily withdrawn: vector caricatures did not meet the brief.
 // Keep node and save contracts intact; add approved raster character art only.
-function showPortrait(_who){ ui.portrait.hidden=true; ui.portrait.removeAttribute("src"); }
-ui.portrait.addEventListener("error",()=>{ui.portrait.hidden=true;});
+// Provisional raster character busts from approved direction; no SVG portrait fallback.
+// One 4-column WebP atlas keeps mobile downloads small. Each role owns its column.
+const CAST_ATLAS="assets/cast-preview-20261021.webp";
+const CAST_COLUMNS=Object.freeze({"莉子":0,"紗江":1,"絢":2,"匠":3});
+function showPortrait(who){
+  const column=CAST_COLUMNS[who];
+  if(column===undefined || ui.portrait.dataset.failed==="1"){
+    ui.portrait.hidden=true;
+    return;
+  }
+  ui.portrait.style.objectPosition=(column*100/3).toFixed(3)+"% center";
+  if(ui.portrait.getAttribute("src")!==CAST_ATLAS) ui.portrait.setAttribute("src",CAST_ATLAS);
+  ui.portrait.hidden=false;
+}
+ui.portrait.addEventListener("error",()=>{ui.portrait.dataset.failed="1";ui.portrait.hidden=true;});
 function storageGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
 function storageSet(k,v){try{localStorage.setItem(k,v);return true}catch(_){return false}}
 function copy(o){return JSON.parse(JSON.stringify(o))}

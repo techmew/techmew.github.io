@@ -434,6 +434,24 @@ button,a{touch-action:manipulation}
  .barbtn{min-height:58px}
 }
 
+
+/* Provisional 4-character raster bust atlas; UI palette and save structures untouched. */
+#scene #portrait{
+  position:absolute;right:clamp(10px,6vw,84px);bottom:8%;
+  width:clamp(154px,25vw,280px);height:auto;aspect-ratio:144 / 196;
+  max-width:45vw;max-height:76%;object-fit:cover;
+  opacity:.91;z-index:1;pointer-events:none;
+  filter:drop-shadow(-8px 5px 16px #0009);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 74%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 74%,transparent 100%);
+}
+@media(max-width:700px){
+  #scene #portrait{right:2%;bottom:14%;width:clamp(150px,45vw,230px);max-width:52vw;max-height:63%;opacity:.88}
+}
+@media(max-height:550px) and (orientation:landscape){
+  #scene #portrait{right:4%;bottom:6%;width:clamp(118px,18vw,200px);max-height:75%}
+}
+
 </style>
 </head>
 <body>
