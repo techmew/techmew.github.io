@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V4.4｜弾幕と地形の当たり判定</title>
-<meta name="game-build" content="RHINF_SWEPT_SHOTS_V44_20261022" />
+<title>RANDOM HELL ∞ V4.5｜弾幕とジャスト回避</title>
+<meta name="game-build" content="RHINF_GRAZE_V45_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -769,6 +769,13 @@ function findHomingTarget(q){
   const wallT=enemyShotTerrainHitT(x0,y0,x1,y1,q.r);
   const heroT=segmentBoxHitT(x0,y0,x1,y1,p.x+2-q.r,p.y+2-q.r,p.x+p.w-2+q.r,p.y+p.h-2+q.r);
   const hitT=Math.min(1,wallT,heroT);q.x=x0+(x1-x0)*hitT;q.y=y0+(y1-y0)*hitT;
+  // Reward only a near miss after the projectile passes Lulu; one bonus per shot.
+  const grazeT=segmentBoxHitT(x0,y0,x1,y1,p.x-16-q.r,p.y-16-q.r,p.x+p.w+16+q.r,p.y+p.h+16+q.r);
+  const passed=(q.x-(p.x+p.w/2))*q.vx+(q.y-(p.y+p.h/2))*q.vy>=0;
+  if(!q.grazed&&p.grace<=0&&heroT>1&&grazeT<=1&&grazeT<wallT&&passed){
+   q.grazed=true;score+=8;xpFloats.push({x:q.x,y:q.y-12,text:'JUST DODGE +8',life:.85,max:.85});
+   if(xpFloats.length>32)xpFloats.shift();part(q.x,q.y,'#92eaff',5,.35);
+  }
   if(heroT<wallT&&heroT<=1){q.t=0;if(lethal('敵の弾幕に接触'))return}
   else if(wallT<=1){q.t=0;part(q.x,q.y,'#ffd37e',2,.22)}
  }
