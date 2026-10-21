@@ -61,6 +61,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 #fullscreenTiny{position:fixed;top:102px;right:12px;z-index:4;background:#173456e8;color:white;border:1px solid #b8edff8a;border-radius:16px;padding:9px 12px;font-size:13px;font-weight:850;touch-action:manipulation;cursor:pointer}
 @media(orientation:portrait){#fullscreenTiny{top:148px;right:130px}}
 @media(orientation:landscape) and (max-height:430px){#fullscreenTiny{top:92px;right:124px}}
+@media(orientation:portrait){#moveZone{width:max(42%,min(53vw,340px))}}
 /* Portrait: double HUD typography and touch targets; constrain width to prevent control overlap. */
 @media(orientation:portrait){
 #stage{font-size:42px}#substats,#hudRight{font-size:26px}#weaponStrip{font-size:32px}
@@ -728,9 +729,11 @@ let joyPointer=null,joyStartX=0,joyStartY=0,attackHeld=false;
 const actionPointers=new Map();
 function joyMove(e){
   if(e.pointerId!==joyPointer)return;
-  const distance=clamp((e.clientX-joyStartX)/55,-1,1);
+  const base=$('joyBase'),radius=Math.max(45,Math.min(100,base.clientWidth*.45));
+  const travel=Math.max(20,(base.clientWidth-knob.clientWidth)/2);
+  const distance=clamp((e.clientX-joyStartX)/radius,-1,1);
   joyX=Math.abs(distance)<.06?0:Math.sign(distance)*Math.pow(Math.abs(distance),1.12);
-  knob.style.transform=`translate(calc(-50% + ${Math.round(distance*39)}px),-50%)`;
+  knob.style.transform=`translate(calc(-50% + ${Math.round(distance*travel)}px),-50%)`;
   joy.style.opacity=(Math.abs(distance)>.7?1:.83).toString();
 }
 function joyDown(e){
