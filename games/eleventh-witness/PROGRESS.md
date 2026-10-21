@@ -98,3 +98,13 @@ https://techmew.github.io/games/eleventh-witness/
 - `story.js` と `engine.js` を組み合わせ、実際の開始ボタン、全6回の選択、画面タップ送り、`localStorage`相当の自動保存を模擬したランタイム検証を実施。
 - 通常END：141ステップで `第一夜・記録END` に到達。誤告発BAD END：142ステップで `BAD END 01`。11個目のカップ招待END：142ステップで `第一夜・招待END`。各6選択地点で正常終了。
 - 各ルートでキャラ画像は非表示、saveキーと3スロット定義は維持。画像アップロードやGitHub Pagesの実描画、実機タッチ挙動まではこの検証で保証しない。
+
+## 2026-10-21 17:32 JST以降・継続開発と毎時タスク復旧
+- 既存の「存在しない11人目｜硬派ミステリー毎時開発」（タスクID 6ad75e87cb8881918ffa9157e192cd9a）を is_enabled=true に再設定。JST毎時スケジュールを保持、新規タスクを追加せず、他タスク変更なし。
+- 第二夜「証言の隙間」の12場面群、108進行ノード、4選択地点、2エンディングを story.js に追加。第一夜の通常ENDから第二夜へ進む専用ボタンを engine.js に実装し、既存の第一夜・旧セーブの場面IDを変更しない。
+- 第二夜では23:06の乾燥室への内線記録、23:08の匠の離席、23:11の落下音と音響再生、三階の物置とカメラの痕跡を取り上げ、犯行時刻と音が一致するとは限らないことを推理する。矛盾がある箇所（腕時計の時刻、撮影位置の断定）を訂正。
+- 実変更commit：story.js a9e9619094361b06c40957aac84b591c05ec2ea0、engine.js 07987f42b3a7a3045b342bfadcd5bb9d15daf2f8、シナリオ修正 c969f707f17e6b72662deb973ac8c9e9f7e16d72。
+- テスト：新規第二夜の静的シーングラフ12場面群・二結末へ正常到達、未定義参照/巡回なし。GitHub実ファイルのstory.js＋engine.jsを用いた疑似DOMで、第一夜通常END→第二夜、電話/医療/莉子の異なる初期調査、第二夜二結末に通し到達（188〜191クリック、選択9〜10箇所）。セーブ eleventh_novel_reboot_2026_v1 と3しおりの定義を維持、構文検査PASS。
+- GitHub Pages Actions：commit 07987f42... の pages build and deployment は成功（https://github.com/techmew/techmew.github.io/actions/runs/39571492905）。commit c969f707... の Pages Actions は初回確認時 in_progress（https://github.com/techmew/techmew.github.io/actions/runs/39571623168）。公開URLのHTTP本文取得/実機描画は別途未確認。
+- 直近生成4人の透過PNGを正史に照合：紗江／莉子／絢／匠。透明WebPアトラスを会話セッション内で準備済み。しかしGitHub connectorのcreate_blobはbase64文字列のみ受付、現時点でコンテナ内生成ファイルからGitHub toolへの直接バイナリ受け渡し経路未確立。**GitHubアップロード・ゲーム組込みはまだしていない**。旧不採用のSVG人物の表示は復活させない。
+- 次回優先：ラスタ人物画像のGitHubへの正規転送方法を確立、肖像表示の復活と実ブラウザ4画面QA、第二夜の証拠タイムラインを強化、全体の犯行時刻/行動表と長編構成の整合性を高める。
