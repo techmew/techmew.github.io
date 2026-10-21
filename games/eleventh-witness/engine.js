@@ -111,6 +111,9 @@ function show(){
  ui.counter.textContent="第一夜："+({opening:"到着",scarf:"到着",purpose:"到着",drive:"山道",talk_photo:"山道",talk_silence:"山道",talk_alibi:"山道",gate:"山荘",photowall:"山荘",ayanote:"山荘",room:"客室",dinner:"晩餐",askBowl:"晩餐",askTakumi:"晩餐",quietBowl:"晩餐",afterDinner:"夜",firstHour:"事件",firstHourAya:"事件",firstHourChihiro:"事件",firstHourMari:"事件",withRiko:"夜",corridor:"夜",withKohei:"夜",storm:"事件",questionAya:"事件",questionDoctor:"事件",retreat:"事件",lockdown:"深夜",callOutside:"深夜",holdRiko:"深夜",openDoor:"結末",survive:"結末"}[state.scene]||"続き");
  if(state.scene.startsWith("y0_"))ui.counter.textContent="第一夜：黒い招待状";
  if(state.scene.startsWith("y1_"))ui.counter.textContent="第二夜：証言の隙間";
+ if(state.scene.startsWith("y2_"))ui.counter.textContent="第三夜：八重歯のうそつき";
+ if(state.scene.startsWith("y3_"))ui.counter.textContent="第四夜：昨日から来た手紙";
+ if(state.scene.startsWith("y4_"))ui.counter.textContent="終夜：十一個目のカップ";
  if(row.k==="n"||row.k==="d"){
   const isSpeech=row.k==="d";
   ui.dialog.style.setProperty("--speaker-color",isSpeech?(SPEAKER_COLORS[row.who]||"#e0e4e8"):"#ffffff");
@@ -139,17 +142,25 @@ function show(){
   waiting=true;state.finished=true;state.ending=row.name;ui.dialog.hidden=true;ui.prompt.hidden=false;ui.prompt.querySelector("h2").textContent=row.name;
   ui.choices.innerHTML="";
   let p=document.createElement("p");p.className="endingNote";p.textContent=row.subtitle;ui.choices.appendChild(p);
-  if(row.name==="第一夜・記録END" && BOOK.scenes.y1_intro){
-   let next=document.createElement("button");next.className="option major";next.textContent="第二夜「証言の隙間」へ進む";
+  const nextChapter=({
+   "第一夜・記録END":{scene:"y1_intro",label:"第二夜「証言の隙間」へ進む"},
+   "第二夜・記録END":{scene:"y2_intro",label:"第三夜「八重歯のうそつき」へ進む"},
+   "第二夜・疑惑END":{scene:"y2_intro",label:"第三夜「八重歯のうそつき」へ進む"},
+   "第三夜・証言END":{scene:"y3_intro",label:"第四夜「昨日から来た手紙」へ進む"},
+   "第四夜・記録END":{scene:"y4_intro",label:"終夜「十一個目のカップ」へ進む"}
+  })[row.name];
+  if(nextChapter&&BOOK.scenes[nextChapter.scene]){
+   let next=document.createElement("button");next.className="option major";next.textContent=nextChapter.label;
    next.addEventListener("click",()=>{
-    state.finished=false;state.ending=null;state.flags=state.flags||{};state.flags.secondNight=true;
-    go("y1_intro");show();
+    state.finished=false;state.ending=null;state.flags=state.flags||{};
+    state.flags["completed_"+state.scene]=true;
+    go(nextChapter.scene);show();
    });
    ui.choices.appendChild(next);
   }
   let retry=document.createElement("button");retry.className="option major";retry.textContent="最初から、もう一度読む";retry.addEventListener("click",fresh);ui.choices.appendChild(retry);
   let clue=document.createElement("button");clue.className="option";clue.textContent="この夜に得た記録を読み返す";clue.addEventListener("click",()=>openModal("evidence"));ui.choices.appendChild(clue);
-  ui.hint.textContent=state.scene.startsWith("y1_")?"第二夜を読了。記録は自動保存されました。":"第一夜を読了。真相は、まだ確定していません。";
+  ui.hint.textContent=state.scene.startsWith("y4_")?"終夜を読了。記録は自動保存されました。":state.scene.startsWith("y3_")?"第四夜を読了。":state.scene.startsWith("y2_")?"第三夜を読了。":state.scene.startsWith("y1_")?"第二夜を読了。":"第一夜を読了。";
   save();return;
  }
 }
