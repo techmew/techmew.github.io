@@ -91,6 +91,23 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 html,body{width:100%;height:100%;overflow:hidden}#game{width:100%;height:100%}
 @media(orientation:portrait){#joystick{width:clamp(100px,30vw,145px);height:clamp(100px,30vw,145px);bottom:max(10px,env(safe-area-inset-bottom))}#joyBase{width:85%;height:85%}#joyKnob{width:clamp(40px,12vw,56px);height:clamp(40px,12vw,56px)}#actions{gap:6px;bottom:max(10px,env(safe-area-inset-bottom))}#punch,#jump{width:clamp(58px,19vw,78px);height:clamp(58px,19vw,78px)}#jump{margin-bottom:18px}#hud{left:8px;right:8px}#stage{font-size:clamp(14px,4vw,19px)}#substats,#hudRight{font-size:clamp(10px,2.6vw,12px)}#weaponStrip{font-size:13px}#menuTiny{top:110px}#swapTiny,#soundTiny{top:77px}#bossBar{top:155px}#portraitTip{top:160px}}
 @media(orientation:portrait) and (max-width:360px){#joystick{width:100px;height:100px}#actions{gap:4px}#punch,#jump{width:58px;height:58px}#jump{margin-bottom:12px}#hudRight{max-width:35vw}}
+/* Phone UI: compact, non-overlapping HUD and two touch actions */
+@media (orientation:portrait){
+#hud{top:max(7px,env(safe-area-inset-top));left:8px;right:8px;display:block;max-height:110px;overflow:hidden}
+#hudLeft{width:100%;padding-right:0}#stage{font-size:clamp(14px,4vw,19px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#substats{font-size:11px;line-height:1.3;max-height:30px;overflow:hidden}#weaponStrip{font-size:11px;margin-top:2px}#weaponStrip small{font-size:10px}
+#hudRight{display:none}#relicState,#comboState{display:none}#progressTrack{margin-top:5px;width:100%;height:5px}
+#swapTiny{display:none!important}#soundTiny{top:115px!important;right:8px!important;font-size:12px!important;padding:7px 9px!important}
+#menuTiny{top:115px!important;right:83px!important;font-size:12px!important;padding:7px 9px!important}
+#fullscreenTiny{top:115px!important;right:auto!important;left:8px!important;font-size:12px!important;padding:7px 9px!important}
+#portraitTip{display:none!important}#bossBar{top:158px!important;width:70vw!important}
+#controls{pointer-events:none}#joystick,#actions,#actions button{pointer-events:auto}
+#actions{display:flex!important;flex-direction:row!important;align-items:flex-end!important;gap:10px!important;right:12px!important;bottom:max(15px,env(safe-area-inset-bottom))!important}
+#punch,#jump{position:relative!important;display:grid!important;place-items:center!important;white-space:nowrap!important;overflow:hidden!important;word-break:keep-all!important;font-size:clamp(13px,3.8vw,17px)!important;line-height:1!important;width:clamp(62px,19vw,80px)!important;height:clamp(62px,19vw,80px)!important;margin:0!important;padding:0!important}
+#joystick{width:clamp(108px,30vw,140px)!important;height:clamp(108px,30vw,140px)!important}
+}
+#levelNotice{position:fixed;z-index:30;top:36%;left:50%;transform:translate(-50%,-50%) scale(.75);width:min(92vw,520px);text-align:center;padding:18px 12px;border:2px solid #ffe889;border-radius:18px;background:#111a39ee;color:#fff3a8;font-weight:1000;font-size:clamp(19px,5vw,30px);text-shadow:0 2px 7px #000;box-shadow:0 0 35px #ffdc6b88;pointer-events:none;opacity:0;transition:opacity .18s,transform .18s}
+#levelNotice.visible{opacity:1;transform:translate(-50%,-50%) scale(1)}
 </style>
 </head>
 <body>
@@ -297,8 +314,11 @@ function survivorDraft(){
  }
  survivorPanel.style.display='none';
  part(player.x+player.w/2,player.y+player.h/2,'#a5f8ff',25,1.2);
- toast('LEVEL '+survivorLevel+'！ HP・武器が自動強化',1.8);sound(880,.2,'triangle');saveState();updateHud(true);
+ showLevelUpNotice(gained);toast('LEVEL '+survivorLevel+'！ HP・武器が自動強化',2.2);sound(880,.2,'triangle');saveState();updateHud(true);
 }
+const levelNotice=document.createElement('div');levelNotice.id='levelNotice';levelNotice.setAttribute('aria-live','polite');document.body.appendChild(levelNotice);
+let levelNoticeTimer=0;
+function showLevelUpNotice(gained){levelNotice.textContent='LEVEL UP!  Lv.'+survivorLevel+' ✦ HP +'+gained+' ✦ 武器強化';levelNotice.classList.add('visible');clearTimeout(levelNoticeTimer);levelNoticeTimer=setTimeout(()=>levelNotice.classList.remove('visible'),2300)}
 function survivorGainXP(amount){
  survivorXP+=amount;
  while(survivorXP>=survivorLevel*5+5){survivorXP-=survivorLevel*5+5;survivorLevel++;survivorPending++}
