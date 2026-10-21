@@ -225,7 +225,7 @@ let autoWeaponCooldowns=[];
 const survivorWeapons=['sword','dagger','spear','hammer','bow','blaster','boomerang'];
 const survivorPanel=document.createElement('div');
 survivorPanel.id='survivorDraft';
-survivorPanel.style.cssText='position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:transparent;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overflow:auto;color:white;font-family:system-ui,sans-serif';
+survivorPanel.style.cssText='position:fixed;inset:0;z-index:1000;display:none;align-items:flex-end;justify-content:center;background:transparent;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overflow:auto;color:white;font-family:system-ui,sans-serif';
 document.body.appendChild(survivorPanel);
 function survivorOffer(){
  const options=survivorWeapons.map(id=>({id,entry:loadout.find(w=>w.id===id)})).filter(o=>!o.entry||o.entry.tier<8);
@@ -238,7 +238,7 @@ function survivorDraft(){
  const offers=survivorOffer();
  if(!offers.length){survivorPending=0;mode='playing';return}
  survivorPanel.replaceChildren();
- const body=document.createElement('div');body.style.cssText='width:min(520px,100%);background:#1c2544;border:2px solid #7de8e1;border-radius:20px;padding:18px;box-shadow:0 12px 40px #000b';
+ const body=document.createElement('div');body.style.cssText='width:min(520px,100%);max-height:56vh;overflow:auto;overscroll-behavior:contain;background:rgba(28,37,68,.96);border:2px solid #7de8e1;border-radius:20px;padding:18px;box-shadow:0 12px 40px #000b';
  const heading=document.createElement('h2');heading.textContent='LEVEL '+survivorLevel+' — 武器を1つ選ぶ';heading.style.cssText='margin:0 0 12px;text-align:center;font-size:clamp(18px,5vw,26px)';body.appendChild(heading);
  for(const offer of offers){const def=WEAPONS.find(w=>w.id===offer.id);if(!def)continue;const btn=document.createElement('button');btn.type='button';btn.style.cssText='display:block;width:100%;margin:9px 0;padding:14px;text-align:left;color:white;background:#33466b;border:1px solid #7d9fd0;border-radius:12px;font-size:16px;touch-action:manipulation';btn.textContent=def.icon+' '+def.name+'　'+(offer.entry?'Lv.'+offer.entry.tier+' → Lv.'+(offer.entry.tier+1):'NEW!')+' ／ '+def.desc;btn.addEventListener('click',()=>{const existing=loadout.find(w=>w.id===offer.id);if(existing)existing.tier=Math.min(8,existing.tier+1);else loadout.push({id:offer.id,tier:1,affix:'none'});survivorPending--;survivorPanel.style.display='none';mode='playing';saveState();updateHud(true);if(survivorPending)survivorDraft()});body.appendChild(btn)}
  survivorPanel.appendChild(body);survivorPanel.style.display='flex';
