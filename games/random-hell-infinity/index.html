@@ -102,7 +102,7 @@ const namesB=['空中回廊','針の迷宮','断崖地帯','殺意の塔','崩�
 const WORLD_COUNT=8,STAGES=3,PW=26,PH=35,TAU=Math.PI*2;
 let W=960,H=540,dpr=1,baseY=370;
 // Portrait camera zooms into gameplay without altering physics, stage geometry or touch UI.
-function gameZoom(){return H>W?1.62:W<900?1.24:1.12}
+function gameZoom(){return H>W?2.35:W<900?1.32:1.12}
 function visibleWorldWidth(){return W/gameZoom()}
 let seed=0,levelIndex=0,deaths=0,mode='menu',level=null,player=null,camera=0,clock=0,score=0;
 let particles=[],projectiles=[],shake=0,deathTimer=0,toastTimer=0,toastText='',winDelay=0;
@@ -646,7 +646,7 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
 }
 
 function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);background();if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
- ctx.save();const zoom=gameZoom();ctx.translate(0,baseY*(1-zoom));ctx.scale(zoom,zoom);ctx.translate(-camera,0);
+ ctx.save();const zoom=gameZoom();const focusY=player?player.y+player.h*.5:baseY;const targetY=H>W?H*.49:baseY;ctx.translate(0,targetY-focusY*zoom);ctx.scale(zoom,zoom);ctx.translate(-camera,0);
  const t=level.theme;
  for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>camera+W+40)continue;if(!s.active)continue;ctx.fillStyle=t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){ctx.fillStyle='#ffe3b6';for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);if(s.collapse>0){ctx.fillStyle='#ffb975';ctx.fillRect(s.x,s.y-4,s.w*(s.collapse/.55),3)}}}
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>camera+W+30)continue;
