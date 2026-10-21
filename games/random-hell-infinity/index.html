@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V4.8｜到達可能な地形・8世界ボス演出</title>
-<meta name="game-build" content="RHINF_ROUTE_BOSS_V48_20261022" />
+<title>RANDOM HELL ∞ V4.9｜高速弾命中補正</title>
+<meta name="game-build" content="RHINF_FRIENDLY_SWEEP_V49_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -762,11 +762,12 @@ function findHomingTarget(q){
      }
    }
    if(q.boomer&&q.age>.52){q.vx=-Math.sign(q.vx)*Math.abs(q.vx);q.boomer=false}
+   const shotStartX=q.x,shotStartY=q.y;
    q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=(q.gravity||0)*dt;
    if(q.t<=0){if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);continue}
    let landed=false;
-   for(const e of level.enemies){if(!e.alive||q.hits.has(e))continue;if(circleBox(q.x,q.y,q.r,e.x,e.y,e.w,e.h)){q.hits.add(e);applyHit(e,q.damage,q.id+q.hits.size,q.x,q.affix);landed=true;if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);if((q.pierce||0)>0)q.pierce--;else{q.t=0;break}}}
-   if(b?.alive&&circleBox(q.x,q.y,q.r,b.x,b.y,b.w,b.h)){applyHit(b,q.damage,q.id,q.x,q.affix);if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);q.t=0}
+   for(const e of level.enemies){if(!e.alive||q.hits.has(e))continue;if(segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,e.x-q.r,e.y-q.r,e.x+e.w+q.r,e.y+e.h+q.r)<=1){q.hits.add(e);applyHit(e,q.damage,q.id+q.hits.size,q.x,q.affix);landed=true;if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);if((q.pierce||0)>0)q.pierce--;else{q.t=0;break}}}
+   if(b?.alive&&segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,b.x-q.r,b.y-q.r,b.x+b.w+q.r,b.y+b.h+q.r)<=1){applyHit(b,q.damage,q.id,q.x,q.affix);if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);q.t=0}
    if(!landed&&q.x>level.totalX+100)q.t=0;
  }
  bulletsFriendly=bulletsFriendly.filter(q=>q.t>0);
