@@ -4,7 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V3.5｜ドット絵アニメーション</title>
+<title>RANDOM HELL ∞ V4｜スマホUI改修</title>
+<meta name="game-build" content="RHINF_MOBILE_V4_20261021" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -56,76 +57,58 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
   #swapTiny{top:52px;right:110px}
   #soundTiny{top:52px;right:10px}
 }
-/* Larger, readable portrait HUD and controls; landscape controls remain compact. */
-@media(orientation:portrait){#hud{left:14px;right:14px;gap:6px}#stage{font-size:21px}#substats,#hudRight{font-size:13px;line-height:1.45}#weaponStrip{font-size:16px}#weaponStrip small,#relicState,#comboState{font-size:12px}#progressTrack{height:9px;width:min(52vw,290px)}#joystick{width:170px;height:170px;bottom:max(16px,env(safe-area-inset-bottom))}#joyBase{width:150px;height:150px}#joyKnob{width:65px;height:65px}#actions{right:max(12px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));gap:12px}#punch{width:94px;height:94px}#jump{width:100px;height:100px;margin-bottom:42px}.action{font-size:15px}#menuTiny{top:148px;font-size:14px;padding:10px 14px}#swapTiny,#soundTiny{top:108px;font-size:13px;padding:9px 12px}#swapTiny{right:116px}#bossBar{top:205px;width:65vw;height:14px}#portraitTip{top:204px;font-size:12px}}
 #fullscreenTiny{position:fixed;top:102px;right:12px;z-index:4;background:#173456e8;color:white;border:1px solid #b8edff8a;border-radius:16px;padding:9px 12px;font-size:13px;font-weight:850;touch-action:manipulation;cursor:pointer}
 @media(orientation:portrait){#fullscreenTiny{top:148px;right:130px}}
 @media(orientation:landscape) and (max-height:430px){#fullscreenTiny{top:92px;right:124px}}
-/* Portrait: double HUD typography and touch targets; constrain width to prevent control overlap. */
-@media(orientation:portrait){
-#stage{font-size:42px}#substats,#hudRight{font-size:26px}#weaponStrip{font-size:32px}
-#weaponStrip small,#relicState,#comboState{font-size:24px}
-#progressTrack{height:18px}
-#joystick{width:min(340px,53vw);height:min(340px,53vw)}
-#joyBase{width:88%;height:88%}#joyKnob{width:38%;height:38%}
-#actions{gap:16px;right:max(8px,env(safe-area-inset-right))}
-#punch{width:min(188px,39vw);height:min(188px,39vw)}
-#jump{width:min(200px,41vw);height:min(200px,41vw);margin-bottom:84px}
-.action{font-size:30px}
-#menuTiny{font-size:28px;padding:16px 18px}
-#swapTiny,#soundTiny{font-size:26px;padding:14px 16px}
-#bossBar{height:28px}#portraitTip{font-size:24px}
-#fullscreenTiny{font-size:24px;padding:14px 18px}
-}
-@media(orientation:portrait) and (max-width:430px){
-#stage{font-size:clamp(24px,7.2vw,32px)}
-#substats,#hudRight{font-size:clamp(15px,4vw,19px)}
-#weaponStrip{font-size:clamp(18px,5vw,23px)}
-#weaponStrip small,#relicState,#comboState{font-size:clamp(14px,3.7vw,18px)}
-#menuTiny,#fullscreenTiny{font-size:clamp(15px,4vw,19px)}
-#swapTiny,#soundTiny{font-size:clamp(14px,3.7vw,17px)}
-#portraitTip{font-size:clamp(14px,3.7vw,18px)}
-}
 
-/* Fit controls to actual phone viewport without browser zoom or clipping */
-html,body{width:100%;height:100%;overflow:hidden}#game{width:100%;height:100%}
-@media(orientation:portrait){#joystick{width:clamp(100px,30vw,145px);height:clamp(100px,30vw,145px);bottom:max(10px,env(safe-area-inset-bottom))}#joyBase{width:85%;height:85%}#joyKnob{width:clamp(40px,12vw,56px);height:clamp(40px,12vw,56px)}#actions{gap:6px;bottom:max(10px,env(safe-area-inset-bottom))}#punch,#jump{width:clamp(58px,19vw,78px);height:clamp(58px,19vw,78px)}#jump{margin-bottom:18px}#hud{left:8px;right:8px}#stage{font-size:clamp(14px,4vw,19px)}#substats,#hudRight{font-size:clamp(10px,2.6vw,12px)}#weaponStrip{font-size:13px}#menuTiny{top:110px}#swapTiny,#soundTiny{top:77px}#bossBar{top:155px}#portraitTip{top:160px}}
-@media(orientation:portrait) and (max-width:360px){#joystick{width:100px;height:100px}#actions{gap:4px}#punch,#jump{width:58px;height:58px}#jump{margin-bottom:12px}#hudRight{max-width:35vw}}
-/* Phone UI: compact, non-overlapping HUD and two touch actions */
-@media (orientation:portrait){
-#hud{top:max(7px,env(safe-area-inset-top));left:8px;right:8px;display:block;max-height:110px;overflow:hidden}
-#hudLeft{width:100%;padding-right:0}#stage{font-size:clamp(14px,4vw,19px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#substats{font-size:11px;line-height:1.3;max-height:30px;overflow:hidden}#weaponStrip{font-size:11px;margin-top:2px}#weaponStrip small{font-size:10px}
-#hudRight{display:none}#relicState,#comboState{display:none}#progressTrack{margin-top:5px;width:100%;height:5px}
-#swapTiny{display:none!important}#soundTiny{top:115px!important;right:8px!important;font-size:12px!important;padding:7px 9px!important}
-#menuTiny{top:115px!important;right:83px!important;font-size:12px!important;padding:7px 9px!important}
-#fullscreenTiny{top:115px!important;right:auto!important;left:8px!important;font-size:12px!important;padding:7px 9px!important}
-#portraitTip{display:none!important}#bossBar{top:158px!important;width:70vw!important}
-#controls{pointer-events:none}#joystick,#actions,#actions button{pointer-events:auto}
-#actions{display:flex!important;flex-direction:row!important;align-items:flex-end!important;gap:10px!important;right:12px!important;bottom:max(15px,env(safe-area-inset-bottom))!important}
-#punch,#jump{position:relative!important;display:grid!important;place-items:center!important;white-space:nowrap!important;overflow:hidden!important;word-break:keep-all!important;font-size:clamp(13px,3.8vw,17px)!important;line-height:1!important;width:clamp(62px,19vw,80px)!important;height:clamp(62px,19vw,80px)!important;margin:0!important;padding:0!important}
-#joystick{width:clamp(108px,30vw,140px)!important;height:clamp(108px,30vw,140px)!important}
-}
+/* RHINF MOBILE HUD V4 - canonical compact smartphone layout */
+#playerHealth{width:min(250px,70vw);margin:4px 0 2px;font-size:13px;font-weight:900;color:#fff;text-shadow:0 1px 3px #000}
+#playerHealthTrack{height:11px;background:#391b2c;border:1px solid #ffe2e2a8;border-radius:10px;overflow:hidden}
+#playerHealthFill{height:100%;width:100%;background:linear-gradient(90deg,#f33d60,#ff91a5);transition:width .15s}
+#playerXp{width:min(250px,70vw);color:#e7f3ff;font-size:12px;font-weight:800;margin:3px 0}
+#xpTrack{height:7px;background:#1a254a;border:1px solid #9ed5ff88;border-radius:8px;overflow:hidden}
+#xpFill{height:100%;width:0;background:linear-gradient(90deg,#62d5ff,#bcb0ff);transition:width .15s}
 #levelNotice{position:fixed;z-index:30;top:36%;left:50%;transform:translate(-50%,-50%) scale(.75);width:min(92vw,520px);text-align:center;padding:18px 12px;border:2px solid #ffe889;border-radius:18px;background:#111a39ee;color:#fff3a8;font-weight:1000;font-size:clamp(19px,5vw,30px);text-shadow:0 2px 7px #000;box-shadow:0 0 35px #ffdc6b88;pointer-events:none;opacity:0;transition:opacity .18s,transform .18s}
 #levelNotice.visible{opacity:1;transform:translate(-50%,-50%) scale(1)}
-/* Mobile compact controls: keep game unobstructed */
-#swapTiny{display:none!important}
-@media(orientation:portrait){
-#punch,#jump{width:clamp(48px,14vw,58px)!important;height:clamp(48px,14vw,58px)!important;font-size:clamp(11px,3vw,13px)!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important}
-#actions{gap:8px!important;right:9px!important;bottom:max(10px,env(safe-area-inset-bottom))!important}
-#fullscreenTiny,#soundTiny,#menuTiny{font-size:10px!important;padding:5px 7px!important;border-radius:9px!important;line-height:1.3!important}
-#fullscreenTiny{top:108px!important;left:8px!important;right:auto!important}
-#soundTiny{top:108px!important;right:8px!important}
-#menuTiny{top:108px!important;right:73px!important}
+@media(orientation:portrait) and (max-width:600px){
+ #hud{display:block;top:max(6px,env(safe-area-inset-top));left:9px;right:9px;max-height:125px;overflow:hidden;z-index:3;gap:0}
+ #hudLeft{width:100%;min-width:0}
+ #stage{font-size:clamp(14px,4vw,18px);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #substats{font-size:10px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:15px;margin-top:2px}
+ #playerHealth{width:min(240px,69vw);font-size:12px;margin:3px 0 2px}
+ #playerHealthTrack{height:10px}
+ #playerXp{width:min(240px,69vw);font-size:11px;margin:2px 0}
+ #xpTrack{height:6px}
+ #weaponStrip{font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 18px)}
+ #weaponStrip small{font-size:10px}
+ #hudRight,#relicState,#comboState{display:none}
+ #progressTrack{height:4px;width:min(240px,69vw);margin-top:4px}
+ #portraitTip{display:none}
+ #menuTiny,#soundTiny,#fullscreenTiny{position:fixed;top:126px!important;left:auto!important;display:grid!important;place-items:center!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;padding:0!important;margin:0!important;border-radius:10px!important;font-size:17px!important;line-height:1!important;z-index:4!important}
+ #menuTiny{right:84px!important}
+ #soundTiny{right:47px!important}
+ #fullscreenTiny{right:10px!important}
+ #bossBar{top:166px;width:70vw;height:10px}
+ #joystick{width:116px;height:116px;bottom:max(10px,env(safe-area-inset-bottom));left:max(4px,env(safe-area-inset-left))}
+ #joyBase{width:94px;height:94px}
+ #joyKnob{width:44px;height:44px}
+ #actions{position:absolute;display:flex;flex-direction:row;align-items:center;gap:9px;right:max(10px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom))}
+ #punch,#jump{position:relative;display:grid;place-items:center;width:62px;height:62px;margin:0;padding:0 2px;border-radius:50%;font-size:12px;line-height:1.1;white-space:nowrap;word-break:keep-all;overflow:hidden;text-align:center}
 }
-#playerHealth{width:min(270px,68vw);margin:5px 0 4px;font-weight:900;font-size:14px;color:#fff;text-shadow:0 1px 3px #000}#playerHealthTrack{height:13px;background:#3b1725;border:1px solid #ffe2e2a8;border-radius:12px;overflow:hidden}#playerHealthFill{height:100%;width:100%;background:linear-gradient(90deg,#ff405c,#ff8c9e);transition:width .2s}
-@media(orientation:portrait){#playerHealth{width:min(230px,62vw);font-size:12px;margin:3px 0}#playerHealthTrack{height:10px}#hud{max-height:130px!important}#weaponStrip{font-size:10px!important}}
+@media(orientation:portrait) and (max-width:360px){
+ #joystick{width:104px;height:104px}
+ #joyBase{width:86px;height:86px}
+ #actions{gap:6px;right:7px}
+ #punch,#jump{width:57px;height:57px;font-size:11px}
+ #menuTiny,#soundTiny,#fullscreenTiny{top:120px!important}
+}
+
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="ランダム生成アクションゲーム"></canvas><div id="shade"></div>
-<div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
-<button id="fullscreenTiny" type="button" aria-label="全画面表示">⛶ 全画面</button><button id="menuTiny" type="button">☰ メニュー</button><button id="swapTiny" type="button" aria-label="武器を切り替え">⚔ 装備切替</button><button id="soundTiny" type="button" aria-label="音のオンオフ">♫ ON</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
+<div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
+<button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="音のオンオフ" title="音声切替">♫</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
 <div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
@@ -268,7 +251,7 @@ function weapon(){return WEAPONS.find(w=>w.id===loadout[activeSlot]?.id)||WEAPON
 function item(r,diff=0){const pool=WEAPONS.slice(1);return {id:pool[randomInt(r,0,pool.length-1)].id,tier:randomInt(r,0,99)<9+diff*18?3:randomInt(r,0,99)<29+diff*18?2:1,affix:['none','fire','frost','shock','vamp','echo'][randomInt(r,0,5)]}}
 function rarity(tier){return ['','#dce8ff','#68f2fa','#ffc466'][tier]||'#fff'}
 function itemName(it){const w=WEAPONS.find(w=>w.id===it.id)||WEAPONS[0];return `${w.icon}${w.name}${it.tier>=3?' ★★★':it.tier===2?' ★★':''}${it.affix==='fire'?' [炎]':it.affix==='frost'?' [氷]':it.affix==='shock'?' [雷]':it.affix==='echo'?' [残響]':it.affix==='vamp'?' [吸魂]':''}`}
-function swapWeapon(){if(mode!=='playing'||loadout.length<2)return;activeSlot=(activeSlot+1)%loadout.length;toast('装備変更：'+itemName(loadout[activeSlot]),.7);sound(650,.08,'sine');updateHud(true)}
+
 function pickupVisualY(c){return c.y+Math.sin(clock*4+c.x)*7}
 // Swept pickup detection also catches items crossed between physics frames.
 function pickupInReach(c,p,oldX,oldY){
@@ -499,8 +482,10 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('stage').textContent=`WORLD ${level.world+1}-${level.stage+1}　${level.title}`;
  $('substats').textContent=`💀${deaths} ｜ ⏱${stageTime.toFixed(1)}s ｜ SEED ${String(seed).padStart(9,'0')} ｜ ✦${Math.floor(score)} ｜ LV ${survivorLevel} (${survivorXP}/${survivorLevel*5+5}XP)`;
  $('substats').textContent+=` ｜ ❤${player?.hp??'-'}/${player?.maxhp??'-'}`;
- $('playerHealthText').textContent='❤ HP '+(player?.hp??5)+' / '+(player?.maxhp??5)+'   ·   LV '+survivorLevel;
+ $('playerHealthText').textContent='❤ HP '+(player?.hp??5)+' / '+(player?.maxhp??5);
  $('playerHealthFill').style.width=(player?Math.max(0,player.hp/player.maxhp*100):100)+'%';
+ $('xpText').textContent='LV '+survivorLevel+'　EXP '+survivorXP+' / '+(survivorLevel*5+5);
+ $('xpFill').style.width=Math.max(0,Math.min(100,survivorXP/(survivorLevel*5+5)*100))+'%';
  $('playerHealth').setAttribute('aria-valuenow',String(player?.hp??5));
  $('playerHealth').setAttribute('aria-valuemax',String(player?.maxhp??5));
  $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 重力 ${level.gravity>2000?'強':'弱'} ｜ 🏁${checkpointIndex}/2`;
@@ -539,7 +524,7 @@ function scheduleMusic(){if(muted||mode!=='playing'||!audioCtx||audioCtx.state!=
  }
  if(count>=16)musicNext=audioCtx.currentTime+.04;
 }
-function toggleSound(){muted=!muted;if(!muted)startMusic();$('soundTiny').textContent=muted?'♫ OFF':'♫ ON';saveState()}
+function toggleSound(){muted=!muted;if(!muted)startMusic();$('soundTiny').textContent=muted?'🔇':'♫';saveState()}
 
 function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
 function die(cause='DEAD'){if(mode!=='playing'||player.dead)return;player.dead=true;mode='dying';deaths++;
@@ -938,12 +923,12 @@ window.addEventListener('focus',()=>{resetInputs();frame.prev=0});
 window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0});
 // Browser chrome can only be hidden through Fullscreen API after a real user gesture.
 $('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});if(screen.orientation?.lock&&innerWidth>innerHeight){try{await screen.orientation.lock('landscape')}catch(_){}}}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
-document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent=document.fullscreenElement?'⛶ 解除':'⛶ 全画面';resize()});
+document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent='⛶';resize()});
 if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs(window.innerHeight-H)>1)resize()});
-$('swapTiny').addEventListener('click',swapWeapon);$('soundTiny').addEventListener('click',toggleSound);
+$('soundTiny').addEventListener('click',toggleSound);
 $('menuTiny').addEventListener('click',()=>{saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()});
 document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()}});
-resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();$('soundTiny').textContent=muted?'♫ OFF':'♫ ON';requestAnimationFrame(frame);
+resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();$('soundTiny').textContent=muted?'🔇':'♫';requestAnimationFrame(frame);
 })();
 </script>
 </body>
