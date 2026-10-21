@@ -61,6 +61,32 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 #fullscreenTiny{position:fixed;top:102px;right:12px;z-index:4;background:#173456e8;color:white;border:1px solid #b8edff8a;border-radius:16px;padding:9px 12px;font-size:13px;font-weight:850;touch-action:manipulation;cursor:pointer}
 @media(orientation:portrait){#fullscreenTiny{top:148px;right:130px}}
 @media(orientation:landscape) and (max-height:430px){#fullscreenTiny{top:92px;right:124px}}
+/* Portrait: double HUD typography and touch targets; constrain width to prevent control overlap. */
+@media(orientation:portrait){
+#stage{font-size:42px}#substats,#hudRight{font-size:26px}#weaponStrip{font-size:32px}
+#weaponStrip small,#relicState,#comboState{font-size:24px}
+#progressTrack{height:18px}
+#joystick{width:min(340px,53vw);height:min(340px,53vw)}
+#joyBase{width:88%;height:88%}#joyKnob{width:38%;height:38%}
+#actions{gap:16px;right:max(8px,env(safe-area-inset-right))}
+#punch{width:min(188px,39vw);height:min(188px,39vw)}
+#jump{width:min(200px,41vw);height:min(200px,41vw);margin-bottom:84px}
+.action{font-size:30px}
+#menuTiny{font-size:28px;padding:16px 18px}
+#swapTiny,#soundTiny{font-size:26px;padding:14px 16px}
+#bossBar{height:28px}#portraitTip{font-size:24px}
+#fullscreenTiny{font-size:24px;padding:14px 18px}
+}
+@media(orientation:portrait) and (max-width:430px){
+#stage{font-size:clamp(24px,7.2vw,32px)}
+#substats,#hudRight{font-size:clamp(15px,4vw,19px)}
+#weaponStrip{font-size:clamp(18px,5vw,23px)}
+#weaponStrip small,#relicState,#comboState{font-size:clamp(14px,3.7vw,18px)}
+#menuTiny,#fullscreenTiny{font-size:clamp(15px,4vw,19px)}
+#swapTiny,#soundTiny{font-size:clamp(14px,3.7vw,17px)}
+#portraitTip{font-size:clamp(14px,3.7vw,18px)}
+}
+
 </style>
 </head>
 <body>
