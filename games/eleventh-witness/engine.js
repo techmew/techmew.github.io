@@ -24,14 +24,32 @@ const SPEAKER_FULL_COLORS=Object.freeze(Object.fromEntries(
 ));
 // Reserve space above the actual dialogue box; no portrait is allowed over text.
 function layoutPortrait(){
- if(!ui.portrait.dataset.actor || ui.dialog.hidden){ui.portrait.hidden=true;return;}
+ if(!ui.portrait.dataset.actor || ui.dialog.hidden){
+  ui.portrait.hidden=true;
+  ui.portrait.classList.remove("compact-portrait");
+  ui.dialog.classList.remove("has-compact-portrait");
+  return;
+ }
  const scene=ui.stage.getBoundingClientRect();
  const panel=ui.dialog.getBoundingClientRect();
  const header=$("top").getBoundingClientRect();
  if(!scene.height || !panel.height)return;
  const upper=Math.max(10,Math.ceil(header.bottom-scene.top+12));
  const gap=Math.floor(panel.top-scene.top-upper-14);
- if(gap<76){ui.portrait.hidden=true;return;}
+ if(gap<76){
+  // Short portrait screens: a small avatar sits beside the name, never behind prose.
+  ui.portrait.classList.add("compact-portrait");
+  ui.dialog.classList.add("has-compact-portrait");
+  ui.portrait.style.top=Math.round(panel.top-scene.top+14)+"px";
+  ui.portrait.style.left=Math.round(panel.left-scene.left+16)+"px";
+  ui.portrait.style.width="42px";
+  ui.portrait.style.height="57px";
+  ui.portrait.hidden=false;
+  return;
+ }
+ ui.portrait.classList.remove("compact-portrait");
+ ui.dialog.classList.remove("has-compact-portrait");
+ ui.portrait.style.left="";
  const height=Math.min(gap,Math.max(76,Math.floor(scene.height*.39)),304);
  const width=Math.round(height*144/196);
  ui.portrait.style.top=(upper+Math.max(0,Math.floor((gap-height)/2)))+"px";
@@ -42,7 +60,12 @@ function layoutPortrait(){
 function showPortrait(who){
  const column=CAST_COLUMNS[who];
  ui.portrait.dataset.actor=column===undefined?"":who;
- if(column===undefined){ui.portrait.hidden=true;return;}
+ if(column===undefined){
+  ui.portrait.hidden=true;
+  ui.portrait.classList.remove("compact-portrait");
+  ui.dialog.classList.remove("has-compact-portrait");
+  return;
+ }
  // background-size: 400% 100% crops precisely one atlas column.
  ui.portrait.style.backgroundPosition=(column*100/3).toFixed(3)+"% 50%";
  ui.portrait.hidden=false;
