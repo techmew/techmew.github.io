@@ -108,3 +108,13 @@ https://techmew.github.io/games/eleventh-witness/
 - GitHub Pages Actions：commit 07987f42... の pages build and deployment は成功（https://github.com/techmew/techmew.github.io/actions/runs/39571492905）。commit c969f707... の Pages Actions は初回確認時 in_progress（https://github.com/techmew/techmew.github.io/actions/runs/39571623168）。公開URLのHTTP本文取得/実機描画は別途未確認。
 - 直近生成4人の透過PNGを正史に照合：紗江／莉子／絢／匠。透明WebPアトラスを会話セッション内で準備済み。しかしGitHub connectorのcreate_blobはbase64文字列のみ受付、現時点でコンテナ内生成ファイルからGitHub toolへの直接バイナリ受け渡し経路未確立。**GitHubアップロード・ゲーム組込みはまだしていない**。旧不採用のSVG人物の表示は復活させない。
 - 次回優先：ラスタ人物画像のGitHubへの正規転送方法を確立、肖像表示の復活と実ブラウザ4画面QA、第二夜の証拠タイムラインを強化、全体の犯行時刻/行動表と長編構成の整合性を高める。
+
+
+## 2026-10-21｜スマートフォンUI拡大とMeiryo統一
+- 実装：index.htmlの最終CSSに「Readability overhaul」を追加。Meiryo／メイリオ優先、日本語ゴシック系フォールバック。PC本文19→24px、スマホ15～16→20～21px、横画面14→18px（すべて文字倍率1.0時）。話者名・選択肢・選択肢の説明・タイトル・モーダル・ログを合わせて拡大。
+- スマホ上部メニュー4個を全幅グリッドに整理。最小タップ領域46px、下部自動／既読／音ボタンを45px以上へ拡大。下部UIは縦2段にし、小画面でのボタン重なりを防ぐ。ダイアログの高さと可読性を調整、文章スクロールと横向き画面の個別設定を追加。
+- 本体ゲームロジックのstory.js／engine.js、SAVEキー(eleventh_novel_reboot_2026_v1)、しおり3個は一切変更せず互換性を保護。
+- GitHub commit: 76d91511335058de4faf6e376b037ad381a2b9e4。GitHub APIのindex.html blob readback 0387834021a4f053468af594312c872c587e6611 一致。
+- 静的検査：CSS波括弧バランスPASS、Meiryo優先・縦スマホ／320px・横スマホのCSS指定PASS、主要13個UI IDと脚本/エンジン読み込みタグPASS、セーブキー／しおり定義PASS。
+- GitHub Actions pages build and deployment: 39573995986 **success**、head_sha 76d91511335058de4faf6e376b037ad381a2b9e4。実デプロイ成功と端末上の表示目視は区別：Android/iOS/PC実機の見た目・タップ領域実測は未確認。
+- 次回：320×568、390×844、844×390、1280×720で目視・操作QA。必要に応じダイアログ高さ、上部ボタンのタップ範囲と会話文のスクロールを調整。
