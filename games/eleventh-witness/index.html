@@ -499,6 +499,18 @@ button,a{touch-action:manipulation}
  #scene #portrait{right:4%;bottom:auto!important;max-width:none;max-height:none;}
 }
 
+/* Compact-avatar fallback for very short screens: sit beside the speaker's name,
+   not under the higher-z-index dialogue panel or over the prose. */
+#scene #portrait.compact-portrait:not([hidden]){
+ z-index:7!important;right:auto!important;max-height:none!important;max-width:none!important;
+ width:42px!important;height:57px!important;aspect-ratio:144 / 196;
+ background-size:400% 100%;box-shadow:0 2px 8px #000b;
+}
+#dialog.has-compact-portrait #who{margin-left:52px;min-height:56px;display:inline-flex;align-items:center;max-width:calc(100% - 52px)}
+@media(max-width:700px){
+ #dialog.has-compact-portrait #who{font-size:clamp(17px,4.5vw,24px);padding:3px 7px;}
+}
+
 </style>
 </head>
 <body>
