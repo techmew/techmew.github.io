@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#080d1c">
-<title>BREAK//LIMIT — ONE BOSS</title>
+<title>BREAK//LIMIT — BEAT HUNTER</title>
 <style>
 :root {color-scheme:dark;--cyan:#72faff;--pink:#ff477d;--ink:#080d1c}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -70,21 +70,21 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
 <canvas id="scene" width="1280" height="720" aria-label="ボスコンボアクションゲーム"></canvas>
 <div id="topactions"><button class="utility" id="sound" aria-label="サウンド切り替え">♪ ON</button><button class="utility" id="pause" aria-label="一時停止">Ⅱ</button><button class="utility" id="restart" aria-label="最初から">↻</button></div>
 <div id="overlay"><div class="panel">
- <div class="kicker">HIGH-SPEED BOSS COMBO ACTION</div>
+ <div class="kicker">BOSS HUNT × RHYTHM ACTION</div>
  <h1>BREAK<span>//</span>LIMIT</h1>
- <h2 id="overlayTitle">壊せ。つなげ。限界を超えろ。</h2>
- <p id="overlayDesc">YouTubeを再生するとボス戦開始。動画の長さでボスHPが変化。画面のどこでもボスを狙ってタップすると自動で飛び込み斬り。長押しは強攻撃、長いフリックは壁から壁へ高速飛行しボスに急襲。ジグザグは描いた軌跡で縦横無尽に飛び回る連撃。指を離した約0.14秒後にアクション開始。曲の拍と合えば追加ダメージ。</p>
- <div class="pills" id="keyhints"><span>全画面でボスを狙う</span><span>タップ：自動急襲</span><span>長押し：強攻撃</span><span>大フリック：全画面高速飛行</span><span>ジグザグ：軌道連撃</span></div>
+ <h2 id="overlayTitle">音を斬れ。拍でボスを追い詰めろ。</h2>
+ <p id="overlayDesc">YouTubeの曲で始まる新感覚ボス音ゲー。ボスを囲む４つのビート紋章が収束したタイミングで、タップ・フリック・長押し・ジグザグを決めろ。拍に合えば大ダメージ、連続成功でフィーバー突入。ジェスチャーでステージを自在に飛び回り、曲が終わるまでにボスを倒せ！ ※BPMは手動設定かTAP BPMで調整。</p>
+ <div class="pills" id="keyhints"><span>● タップ</span><span>↗ フリック</span><span>◆ 長押し→離す</span><span>⌁ ジグザグ</span><span>拍の輪が紋章に重なったら入力！</span></div>
  <p class="record" id="best">BEST TIME —　BEST COMBO —</p>
  <button id="start">動画なしで練習 ▶</button>
  </div></div>
 </div>
 <section id="musicDock" aria-label="YouTubeとリズム戦闘設定">
  <div class="musicSettings">
-  <div class="musicHeader">♪ MUSIC SYNC / VIDEO BOSS BATTLE</div>
+  <div class="musicHeader">♪ BEAT HUNTER / YOUR MUSIC, YOUR BOSS</div>
   <div class="musicRow"><input id="ytUrl" type="url" aria-label="YouTube動画URL" placeholder="YouTube動画のURLを貼り付け" inputmode="url"><button id="loadTrack" type="button">動画をセット</button><button id="playTrack" type="button" disabled>▶ 再生して開始</button></div>
   <div class="musicOpts"><label>BPM <input id="bpmInput" type="number" min="55" max="240" step="1" value="120"></label><button id="tapBpm" type="button">TAP BPM</button><label>拍ずれ補正(ms) <input id="offsetInput" type="number" min="-500" max="500" step="25" value="0"></label><span id="durationText">曲長 — / ボスHP —</span></div>
-  <div id="musicStatus" role="status" aria-live="polite">YouTube URLをセットして動画を再生すると戦闘開始（埋め込み不可の動画は使用できません）。BPMは手動指定かTAP BPMで合わせてください。</div>
+  <div id="musicStatus" role="status" aria-live="polite">好きな曲のURLを設定して再生。ボスの周囲に出る紋章を曲の拍で撃破。BPMは手動またはTAP BPMで合わせる方式です。</div>
  </div>
  <div class="videoFrame"><div id="ytPlayer"><div id="videoPlaceholder">ここにYouTube動画が表示されます。<br>動画の▶でもボス戦が始まります。</div></div></div>
 </section>
@@ -106,18 +106,86 @@ let p,b,combo=0,maxCombo=0,comboTime=0,damageTotal=0,score=0,lastMove='',floatin
 let videoPlayer=null,videoReady=false,videoMode=false,videoId='',videoDuration=0,videoEnded=false,videoChanging=false;
 const rhythm={bpm:120,offsetMs:0,buff:0,grade:'',gradeT:0,lastBeat:-999,rapidBeat:-999,rapidCount:0,tapTimes:[],beatPulse:0,bonus:1};
 const musicStatus=$('musicStatus'),durationText=$('durationText');
+// A reproducible beat chart is generated from BPM and the YouTube playback clock.
+// No audio samples, waveform or beat metadata are available from YouTube IFrame API.
+const beatGame={notes:[],nextBeat:4,perfect:0,good:0,miss:0,streak:0,best:0,
+  fever:0,energy:0,pulse:0,lastWhole:-999,lastPos:-999,bonusFlash:0,rank:'—',total:0};
+const beatPatterns=[
+ ['tap','tap','flick','tap'],
+ ['tap','hold','tap','flick'],
+ ['flick','tap','zigzag','tap'],
+ ['tap','tap','tap','hold'],
+ ['flick','tap','flick','zigzag'],
+ ['tap','hold','tap','tap'],
+ ['zigzag','tap','flick','tap'],
+ ['tap','flick','hold','tap']
+];
+const beatColors={tap:'#7df9ff',flick:'#b5b2ff',hold:'#ffd37b',zigzag:'#fb91da'};
+const beatGlyphs={tap:'●',flick:'➜',hold:'◆',zigzag:'⌁'};
+function resetBeatChart(){
+ beatGame.notes=[];beatGame.nextBeat=Math.max(4,Math.ceil(beatPosition()+2));
+ beatGame.lastPos=beatPosition();beatGame.lastWhole=-999;
+}
+function beatTypeFor(n){const bar=Math.floor((n-4)/4),i=(n-4)%4;return beatPatterns[((bar%beatPatterns.length)+beatPatterns.length)%beatPatterns.length][i];}
+function beatTimeOf(n){return n*60/rhythm.bpm+rhythm.offsetMs/1000;}
+function updateBeatChart(dt){
+ const pos=beatPosition(),now=beatTime(),beatLength=60/rhythm.bpm;
+ if(pos<beatGame.lastPos-1.3){resetBeatChart();}
+ beatGame.lastPos=pos;
+ beatGame.fever=Math.max(0,beatGame.fever-dt);
+ beatGame.pulse=Math.max(0,beatGame.pulse-dt*2.9);
+ beatGame.bonusFlash=Math.max(0,beatGame.bonusFlash-dt*3.8);
+ const whole=Math.floor(pos);
+ if(whole!==beatGame.lastWhole&&whole>=0){
+   beatGame.lastWhole=whole;beatGame.pulse=1;
+   if(whole%4===0&&p){addRing(b.x,b.y-113,beatGame.fever>0?'#ffeb89':'#5af4ff',190);}
+ }
+ while(beatGame.nextBeat<=pos+9){
+   const n=beatGame.nextBeat++;
+   beatGame.notes.push({beat:n,time:beatTimeOf(n),kind:beatTypeFor(n),slot:n%4,state:'coming'});
+ }
+ for(const note of beatGame.notes){
+   if(note.state==='coming'&&now>note.time+.27){
+     note.state='miss';beatGame.miss++;beatGame.total++;beatGame.streak=0;
+   }
+ }
+ beatGame.notes=beatGame.notes.filter(n=>n.state==='coming'||now-n.time<.7);
+}
+function rhythmRank(){
+ const total=beatGame.perfect+beatGame.good+beatGame.miss;
+ if(!total)return '—';
+ const acc=(beatGame.perfect+beatGame.good*.60)/total;
+ return acc>=.93?'S':acc>=.78?'A':acc>=.60?'B':acc>=.40?'C':'D';
+}
+function gestureNoteKind(kind,inputType){
+ if(kind==='heavy')return inputType==='tap'?'tap':'hold';
+ if(kind==='light')return 'tap';
+ if(kind==='traceCombo')return 'zigzag';
+ return 'flick';
+}
+
 try{const data=JSON.parse(localStorage.getItem('break_limit_best_v2')||'{}');bestTime=data.time??null;bestCombo=data.combo??0;}catch(e){}
 for(let i=0;i<90;i++)bgStars.push({x:Math.random()*W,y:30+Math.random()*440,s:Math.random()*2+0.5,a:Math.random()*0.65+0.2});
 const clamp=(v,a,z)=>Math.max(a,Math.min(z,v)),rand=(a,z)=>a+Math.random()*(z-a),sgn=v=>v<0?-1:1;
 function audio(){if(quiet)return;try{ctxAudio??=new(window.AudioContext||window.webkitAudioContext)();if(ctxAudio.state==='suspended')ctxAudio.resume();}catch(e){quiet=true;}}
 function tone(freq=300,dur=.08,vol=.035,type='triangle',endFreq=freq){if(!ctxAudio||quiet)return;try{let o=ctxAudio.createOscillator(),g=ctxAudio.createGain(),t=ctxAudio.currentTime;o.type=type;o.frequency.setValueAtTime(Math.max(20,freq),t);o.frequency.exponentialRampToValueAtTime(Math.max(20,endFreq),t+dur);g.gain.setValueAtTime(Math.max(.0001,vol),t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(ctxAudio.destination);o.start(t);o.stop(t+dur+.01);}catch(e){}}
 function sfx(k){switch(k){case 'light':tone(430+combo*3,.06,.023,'sawtooth',130);break;case 'heavy':tone(140,.15,.07,'sawtooth',50);break;case 'impact':tone(240+Math.min(combo*8,500),.09,.048,'square',70);break;case 'jump':tone(290,.13,.025,'sine',490);break;case 'dash':tone(530,.12,.035,'triangle',150);break;case 'hurt':tone(180,.23,.075,'sawtooth',40);break;case 'boss':tone(100,.45,.065,'sawtooth',37);break;case 'win':for(let i=0;i<3;i++)setTimeout(()=>tone(440*(i+1),.34,.045,'sine',650*(i+1)),i*120);}}
-function music(dt){if(videoMode||!ctxAudio||quiet||mode!=='play'||paused)return;metronome-=dt;if(metronome>0)return;metronome=.255;const bass=[55,55,65.41,82.41,55,65.41,49,73.42],notes=[220,261.6,329.6,261.6,196,246.9,329.6,392];tone(bass[trackTick%8],.20,.014,'sawtooth',bass[trackTick%8]*.8);if(trackTick%2===0)tone(notes[(trackTick>>1)%8],.16,.010,'triangle',notes[(trackTick>>1)%8]*.65);trackTick++;}
+function music(dt){
+ if(videoMode||!ctxAudio||quiet||mode!=='play'||paused)return;
+ const pos=beatPosition(),n=Math.floor(pos);
+ if(n===trackTick||n<0)return;
+ trackTick=n;
+ const bass=[65.41,65.41,73.42,87.31,65.41,73.42,55,82.41];
+ tone(n%4===0?110:78,.12,n%4===0?.028:.012,'sawtooth',42);
+ tone(bass[((n%8)+8)%8]*3,.12,.009,'triangle',bass[((n%8)+8)%8]*2);
+}
 function reset(){
  rhythm.buff=0;rhythm.grade='';rhythm.gradeT=0;rhythm.lastBeat=-999;rhythm.rapidBeat=-999;rhythm.rapidCount=0;rhythm.beatPulse=0;
+ 
  p={x:215,y:FLOOR,w:44,h:76,vx:0,vy:0,face:1,grounded:true,jumps:2,dashCd:0,dashTime:0,inv:0,hp:8,hpMax:8,attack:null,attackT:0,attackHit:false,attackN:0,chainT:0,attackBuffer:0,heavyBuffer:0,heavyCd:0,stun:0,glow:0,land:0,web:null,stroke:null,flight:null,charge:0};
  b={x:955,y:FLOOR,w:112,h:188,vx:0,hp:videoMode&&videoDuration>0?hpByDuration(videoDuration):22000,max:videoMode&&videoDuration>0?hpByDuration(videoDuration):22000,face:-1,state:'idle',phaseT:1.8,attackKind:'',attackHit:false,pattern:0,stun:0,rage:false,blink:0};
- mode='play';paused=false;elapsed=0;levelClock=0;combo=0;maxCombo=0;comboTime=0;damageTotal=0;score=0;lastMove='';floatingLife=0;freeze=0;flash=0;screenShake=0;bossDefeated=false;metronome=0;trackTick=0;projectiles=[];sparks=[];texts=[];rings=[];ghosts=[];strikes=[];dust=[];camX=0;
+ mode='play';paused=false;elapsed=0;levelClock=0;
+ resetBeatChart();beatGame.perfect=0;beatGame.good=0;beatGame.miss=0;beatGame.streak=0;beatGame.best=0;beatGame.fever=0;beatGame.energy=0;beatGame.pulse=0;beatGame.bonusFlash=0;beatGame.total=0;combo=0;maxCombo=0;comboTime=0;damageTotal=0;score=0;lastMove='';floatingLife=0;freeze=0;flash=0;screenShake=0;bossDefeated=false;metronome=0;trackTick=0;projectiles=[];sparks=[];texts=[];rings=[];ghosts=[];strikes=[];dust=[];camX=0;
  overlay.classList.add('hidden');$('pause').textContent='Ⅱ';clearGesture();for(let k in KEY){KEY[k]=false;old[k]=false;}
  audio();
 }
@@ -125,7 +193,7 @@ function fmtTime(t){return Math.floor(t/60).toString().padStart(2,'0')+':'+Math.
 function records(){ $('best').textContent=`BEST TIME ${bestTime===null?'—':fmtTime(bestTime)}   |   BEST COMBO ${bestCombo||'—'}`;}
 records();
 function showEnd(won){mode=won?'won':'dead';overlay.classList.remove('hidden');$('overlayTitle').textContent=won?'BOSS BREAK — 撃破！':'YOU BROKE — 再挑戦';
- $('overlayDesc').textContent=won?`撃破時間 ${fmtTime(elapsed)}　｜　最大コンボ ${maxCombo} HIT　｜　与ダメージ ${Math.round(damageTotal).toLocaleString()}　より短いタイムを狙え。`:`最大コンボ ${maxCombo} HIT　｜　ボス残りHP ${Math.ceil(b.hp/b.max*100)}%　攻撃を回避してコンボをつなげ。`;
+ $('overlayDesc').textContent=(won?`撃破 ${fmtTime(elapsed)}`:`ボス残りHP ${Math.ceil(b.hp/b.max*100)}%`)+` ｜ 最大コンボ ${maxCombo} HIT ｜ BEAT RANK ${rhythmRank()} ｜ PERFECT ${beatGame.perfect} / GOOD ${beatGame.good} / MISS ${beatGame.miss} ｜ 最長BEAT連鎖 ${beatGame.best}`;
  $('start').textContent=videoMode?'動画を再生して再挑戦 ▶':(won?'練習をもう一度 ▶':'練習リトライ ▶');
  if(videoMode&&videoPlayer&&videoReady&&!videoEnded){try{videoPlayer.pauseVideo();}catch(e){}}
  if(won){if(bestTime===null||elapsed<bestTime)bestTime=elapsed;if(maxCombo>bestCombo)bestCombo=maxCombo;try{localStorage.setItem('break_limit_best_v2',JSON.stringify({time:bestTime,combo:bestCombo}));}catch(e){}sfx('win');}else sfx('hurt');records();}
@@ -263,7 +331,7 @@ function playerHit(dmg=1){if(p.inv>0||mode!=='play')return;p.hp=Math.max(0,p.hp-
 function successHit(m){let bCx=b.x,bCy=b.y-b.h*.52,pCy=p.y-p.h*.49;const d=Math.abs(bCx-(p.x+p.face*30));if(d>m.range+40||Math.abs(bCy-pCy)>175)return false;
  if((b.x-p.x)*p.face < -48)return false;
  p.attackHit=true;combo++;maxCombo=Math.max(maxCombo,combo);comboTime=2.7;
- let multiplier=Math.min(8,1+(combo-1)*.055),critical=combo%10===0,damage=Math.round(m.dmg*multiplier*(critical?1.35:1)*(rhythm.buff>0?rhythm.bonus:1));b.hp=Math.max(0,b.hp-damage);damageTotal+=damage;score+=damage;b.blink=.11;
+ let multiplier=Math.min(8,1+(combo-1)*.055),critical=combo%10===0,damage=Math.round(m.dmg*multiplier*(critical?1.35:1)*(rhythm.buff>0?rhythm.bonus:1)*(beatGame.fever>0?1.45:1));b.hp=Math.max(0,b.hp-damage);damageTotal+=damage;score+=damage;b.blink=.11;
  let hitX=b.x-b.face*35,hitY=clamp(pCy+(bCy-pCy)*.40,290,560);burst(hitX,hitY,m.impact||critical);
  popup(hitX+rand(-25,25),hitY-58,(critical?'★ ':'')+damage,critical?'#ffef8e':'#e5ffff',critical?34:25);
  if(combo===10||combo===25||combo===50||combo===100)popup(W/2,280,`${combo} HIT!!`,'#fff69e',40);
@@ -296,14 +364,14 @@ function ai(dt){if(b.hp<=0)return;b.blink=Math.max(0,b.blink-dt);if(b.stun>0){b.
  b.x=clamp(b.x,90,1190);
 }
 function update(dt){if(mode!=='play'||paused)return;
- elapsed+=dt;levelClock+=dt;rhythm.buff=Math.max(0,rhythm.buff-dt);rhythm.gradeT=Math.max(0,rhythm.gradeT-dt);syncDuration();
+ elapsed+=dt;levelClock+=dt;rhythm.buff=Math.max(0,rhythm.buff-dt);rhythm.gradeT=Math.max(0,rhythm.gradeT-dt);syncDuration();updateBeatChart(dt);
  // Gesture actions begin a short time AFTER the finger has lifted.
  for(let i=0;i<touch.actions.length;){
    const a=touch.actions[i];
    if(a.at>levelClock){i++;continue;}
    touch.actions.splice(i,1);
    if(p.stun>0||mode!=='play')continue;
-   if(a.grade==='PERFECT'||a.grade==='GOOD'){rhythm.buff=Math.max(rhythm.buff,.53);rhythm.bonus=a.grade==='PERFECT'?1.55:1.25;}
+   if(a.grade==='PERFECT'||a.grade==='GOOD'){rhythm.buff=Math.max(rhythm.buff,1.45);rhythm.bonus=a.grade==='PERFECT'?1.70:1.3;}
    if(a.kind==='light'||a.kind==='heavy')bossDive(a.kind);
    else if(a.kind==='web')swipeFlight(a.part,true);
    else if(a.kind==='up'||a.kind==='down'||a.kind==='trace')swipeFlight(a.part,false);
@@ -474,15 +542,57 @@ function hud(){
  // combo hud
  if(combo>0){let mult=Math.min(8,1+(combo-1)*.055);c.textAlign='left';rounded(26,143,253,156,13,'#071329d9');c.fillStyle=combo>=30?'#ffe690':'#8cf8ff';c.font='900 60px Meiryo, sans-serif';c.fillText(String(combo),41,196);c.font='900 19px Meiryo, sans-serif';c.fillText('HIT COMBO',43,230);c.font='900 18px Meiryo, sans-serif';c.fillStyle='#ffe18e';c.fillText(`DAMAGE × ${mult.toFixed(2)}`,43,263);rounded(43,277,216,5,2,'#33405a');rounded(43,277,216*(comboTime/2.7),5,2,'#96faff');
  let lab=combo<10?'GOOD!':combo<25?'BRUTAL!':combo<50?'RAMPAGE!':combo<100?'OVERDRIVE!':'LIMIT BREAK!';c.font='900 18px Meiryo';c.fillStyle='#ffd993';c.fillText(lab,43,324);}
- // Keep the music/video section and playfield clear of TAP/FLICK prompt strips.
- c.font='800 12px Meiryo, sans-serif';c.textAlign='right';c.fillStyle='#90dcfc';c.fillText(`MAX COMBO  ${maxCombo}     BOSS ${Math.ceil(hpRatio*100)}%`,1254,685);
+ // Rhythm target guidance is inside the boss arena only, never over the YouTube player.
+ c.font='800 12px Meiryo, sans-serif';c.textAlign='right';c.fillStyle='#90dcfc';c.fillText(`MAX COMBO ${maxCombo}   BOSS ${Math.ceil(hpRatio*100)}%`,1254,697);
+ rounded(994,562,263,104,12,'#071326dc');
+ c.textAlign='left';c.font='900 14px Meiryo,sans-serif';c.fillStyle=beatGame.fever>0?'#ffea9a':'#7efaff';
+ c.fillText(beatGame.fever>0?'★ BEAT FEVER':'BEAT HUNTER',1010,584);
+ c.font='900 26px Meiryo,sans-serif';c.fillText(beatGame.streak+' CHAIN',1008,616);
+ c.textAlign='right';c.font='900 22px Meiryo,sans-serif';c.fillStyle='#fff2a4';c.fillText(rhythmRank(),1240,613);
+ c.font='700 11px Meiryo,sans-serif';c.fillStyle='#cedfe9';c.fillText(`P ${beatGame.perfect}  G ${beatGame.good}  M ${beatGame.miss}`,1240,631);
+ rounded(1009,643,231,9,4,'#23334d');rounded(1009,643,231*(beatGame.fever>0?beatGame.fever/6:beatGame.energy/100),9,4,beatGame.fever>0?'#ffe77d':'#74f6ff');
  if(floatingLife>0&&p.attack){c.save();c.globalAlpha=clamp(floatingLife*3,0,1);c.font='900 18px Meiryo,sans-serif';c.textAlign='center';c.fillStyle='#f8ecff';c.fillText(floatingText,p.x,clamp(p.y-135,165,495));c.restore();}
  c.restore();}
+// The chart floats around the boss, not over the YouTube music video.
+function drawBeatArena(){
+ if(mode!=='play'||paused||!b||b.hp<=0)return;
+ const cx=b.x,cy=b.y-107,now=beatTime(),beatSec=60/rhythm.bpm;
+ c.save();
+ const pulse=.5+.5*Math.cos((beatPosition()%1)*PI*2);
+ c.strokeStyle=beatGame.fever>0?'#ffe89a':'#70b5e5';
+ c.globalAlpha=.13+.17*pulse;c.lineWidth=5;
+ c.beginPath();c.arc(cx,cy,155+11*pulse,0,2*PI);c.stroke();
+ if(beatGame.fever>0){
+   c.strokeStyle='#ffdb6c';c.lineWidth=4;c.globalAlpha=.25+.12*pulse;
+   c.beginPath();c.arc(cx,cy,196+15*pulse,0,2*PI);c.stroke();
+ }
+ for(let i=0;i<4;i++){
+   const a=-PI/2+i*PI/2,x=clamp(cx+Math.cos(a)*167,72,1207),y=clamp(cy+Math.sin(a)*158,185,FLOOR-18);
+   c.globalAlpha=.16;c.strokeStyle='#7899b5';c.lineWidth=2;c.beginPath();c.arc(x,y,22,0,2*PI);c.stroke();
+ }
+ for(const n of beatGame.notes){
+   if(n.state!=='coming')continue;
+   const until=n.time-now;if(until>beatSec*3.6||until<-.28)continue;
+   const a=-PI/2+n.slot*PI/2;
+   const x=clamp(cx+Math.cos(a)*167,72,1207),y=clamp(cy+Math.sin(a)*158,185,FLOOR-18);
+   const col=beatColors[n.kind];
+   const approach=clamp(until/(beatSec*2.8),0,1),alpha=clamp(1-approach*.55,.3,1);
+   const r=25+approach*92;
+   c.globalAlpha=alpha;c.shadowColor=col;c.shadowBlur=18;c.strokeStyle=col;c.lineWidth=until<.12?7:4;
+   c.beginPath();c.arc(x,y,r,0,2*PI);c.stroke();
+   c.globalAlpha=alpha*.85;c.fillStyle='#091529e8';c.beginPath();c.arc(x,y,23,0,2*PI);c.fill();
+   c.strokeStyle=col;c.lineWidth=3;c.beginPath();c.arc(x,y,23,0,2*PI);c.stroke();
+   c.font='900 22px Meiryo,sans-serif';c.textBaseline='middle';c.textAlign='center';c.fillStyle=col;
+   c.save();c.translate(x,y);if(n.kind==='flick')c.rotate((n.beat%4)*PI/2);c.fillText(beatGlyphs[n.kind],0,1);c.restore();
+   if(until<=.14&&until>=-.14){c.globalAlpha=.35;c.fillStyle=col;c.beginPath();c.arc(x,y,37,0,2*PI);c.fill();}
+ }
+ c.restore();
+}
 function drawPause(){if(!paused)return;fill(0,0,W,H,'#050918aa');c.textAlign='center';c.font='900 56px Meiryo,sans-serif';c.fillStyle='#eaffff';c.fillText('PAUSED',640,330);c.font='700 19px Meiryo,sans-serif';c.fillText('P または Ⅱ で再開',640,375);}
 function draw(){c.clearRect(0,0,W,H);c.save();const shake=screenShake>0?screenShake:0;c.translate(rand(-shake,shake)*.45,rand(-shake,shake)*.32);back();drawEnemyWarnings();shadow(b.x,b.y,85,.36);shadow(p.x,p.y,46,.39);
  if(b.state==='strike'&&b.attackKind==='slash'){c.save();c.globalAlpha=.6;c.strokeStyle='#ff5687';c.shadowColor='#ff427b';c.shadowBlur=28;c.lineWidth=35;c.beginPath();c.ellipse(b.x+b.face*85,b.y-120,155,92,b.face*.3,-2.4,.9);c.stroke();c.restore();}
  if(b.state==='strike'&&b.attackKind==='slam'){c.save();c.globalAlpha=.65;c.strokeStyle='#f63e70';c.shadowColor='#fa4371';c.shadowBlur=29;c.lineWidth=21;c.beginPath();c.ellipse(b.x,FLOOR,260,33,0,0,PI*2);c.stroke();c.restore();}
- drawProjectiles();bossDraw();drawWeb();drawEffects();playerDraw();drawSwipePaint();if(p.attack)swordArcs(p.x+p.face*10,p.y-62,p.face,p.attack,p.attackT);
+ drawProjectiles();bossDraw();drawBeatArena();drawWeb();drawEffects();playerDraw();drawSwipePaint();if(p.attack)swordArcs(p.x+p.face*10,p.y-62,p.face,p.attack,p.attackT);
  if(flash>0)fill(0,0,W,H,`rgba(214,243,255,${flash*.3})`);c.restore();hud();drawPause();
 }
 reset();mode='menu';overlay.classList.remove('hidden');let last=performance.now(),acc=0;function frame(now){let dt=Math.min((now-last)/1000,.045);last=now;if(mode==='play'&&!paused){acc+=dt;let steps=0;while(acc>=1/120&&steps++<8){update(1/120);acc-=1/120;}if(steps>=8)acc=0;}draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
@@ -503,18 +613,47 @@ function beatTime(){
  return elapsed;
 }
 function beatPosition(){return (beatTime()-rhythm.offsetMs/1000)*rhythm.bpm/60;}
-function rhythmJudge(kind){
+function rhythmJudge(kind,inputType){
  if(mode!=='play'||paused)return '';
- const pos=beatPosition(),beat=Math.round(pos),off=Math.abs(pos-beat)*60/rhythm.bpm;
- if(off>.23||beat===rhythm.lastBeat)return '';
- const grade=off<=.095?'PERFECT':'GOOD';rhythm.lastBeat=beat;rhythm.grade=grade;rhythm.gradeT=.65;
- if(p&&mode==='play'){
-   emit(b.x,b.y-110,grade==='PERFECT'?'#fff1a6':'#6beaff',26,370);
-   addRing(b.x,b.y-110,grade==='PERFECT'?'#ffe08c':'#90f7ff',124);
-   popup(b.x,b.y-235,grade==='PERFECT'?'PERFECT +55%':'GOOD +25%',grade==='PERFECT'?'#ffe89d':'#bffaff',22);
+ // Player gesture ends at the exact input moment. The character moves 0.14s later.
+ const now=beatTime(),type=gestureNoteKind(kind,inputType);
+ let candidate=null,gap=Infinity;
+ for(const n of beatGame.notes){
+   if(n.state!=='coming')continue;
+   const distance=Math.abs(n.time-now);
+   if(distance<gap){gap=distance;candidate=n;}
  }
+ if(!candidate||gap>.26){
+   beatGame.streak=0;rhythm.grade='OFFBEAT';rhythm.gradeT=.4;
+   return '';
+ }
+ if(candidate.kind!==type){
+   candidate.state='wrong';beatGame.miss++;beatGame.total++;beatGame.streak=0;
+   rhythm.grade='WRONG';rhythm.gradeT=.55;
+   popup(b.x,b.y-250,'WRONG GESTURE','#fc87ad',20);
+   return '';
+ }
+ const grade=gap<=.105?'PERFECT':'GOOD';
+ candidate.state='hit';beatGame.total++;
+ if(grade==='PERFECT')beatGame.perfect++;else beatGame.good++;
+ beatGame.streak++;beatGame.best=Math.max(beatGame.best,beatGame.streak);
+ beatGame.energy=Math.min(100,beatGame.energy+(grade==='PERFECT'?18:10));
+ if(beatGame.energy>=100&&beatGame.fever<=0){
+   beatGame.fever=6;beatGame.energy=0;flash=.3;
+   emit(b.x,b.y-100,'#fff3aa',68,500);addRing(b.x,b.y-112,'#ffe49a',320);
+   popup(b.x,b.y-255,'★ BEAT FEVER ★','#fff1a2',34);
+   tone(880,.2,.055,'triangle',1600);
+ }
+ rhythm.grade=grade;rhythm.gradeT=.70;beatGame.bonusFlash=1;
+ const col=beatColors[candidate.kind],a=-PI/2+candidate.slot*PI/2;
+ const x=clamp(b.x+Math.cos(a)*167,72,1207),y=clamp(b.y-107+Math.sin(a)*158,185,FLOOR-18);
+ emit(x,y,col,grade==='PERFECT'?33:17,grade==='PERFECT'?490:300);
+ addRing(x,y,col,grade==='PERFECT'?155:106);
+ popup(x,y-62,grade==='PERFECT'?'PERFECT!':'GOOD!',grade==='PERFECT'?'#ffed9a':'#a4faff',24);
+ screenShake=Math.max(screenShake,grade==='PERFECT'?8:4);
  return grade;
 }
+
 function extractYouTubeId(raw){
  raw=String(raw||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(raw))return raw;
  try{
@@ -547,21 +686,21 @@ function createYouTubePlayer(){
    events:{onReady:()=>{
     videoReady=true;$('playTrack').disabled=false;
     videoChanging=true;try{videoPlayer.cueVideoById(videoId);}catch(e){}videoChanging=false;
-    setMusicStatus('動画の再生ボタンで戦闘開始。テンポはBPMまたはTAP BPMで設定してください。');
+    setMusicStatus('▶で音楽ボス戦開始。拍が紋章に重なる瞬間に入力。BPMは手動かTAP BPMで合わせてください。');
    },onStateChange:({data})=>{
      if(!window.YT||!YT.PlayerState||videoChanging)return;
      if(data===YT.PlayerState.PLAYING){
        videoEnded=false;
        if(!videoMode||mode!=='play'){videoMode=true;reset();}
        else if(paused){paused=false;$('pause').textContent='Ⅱ';}
-       syncDuration();setMusicStatus('動画再生中：ボス戦進行中。タップ・スワイプでボスへ自動急襲。拍が合うと攻撃ボーナス。');
+       syncDuration();setMusicStatus('BEAT HUNTER：ボスの紋章と曲の拍に合わせて入力。連続成功でFEVER！');
      }else if(data===YT.PlayerState.PAUSED||data===YT.PlayerState.BUFFERING){
        if(videoMode&&mode==='play'){paused=true;$('pause').textContent='▶';}
      }else if(data===YT.PlayerState.ENDED){
        videoEnded=true;
        if(videoMode&&mode==='play'){
         showEnd(false);$('overlayTitle').textContent='TIME UP — 曲が終了';
-        $('overlayDesc').textContent=`曲長 ${fmtTime(videoDuration)}　｜　最大コンボ ${maxCombo} HIT　｜　ボス残りHP ${Math.ceil(b.hp/b.max*100)}%`;
+        $('overlayDesc').textContent=`曲長 ${fmtTime(videoDuration)} ｜ BOSS残り ${Math.ceil(b.hp/b.max*100)}% ｜ BEAT RANK ${rhythmRank()} ｜ P ${beatGame.perfect} / G ${beatGame.good} / M ${beatGame.miss}`;
        }
        setMusicStatus('動画が終了しました。リプレイすると再挑戦できます。');
      }
@@ -583,15 +722,19 @@ $('playTrack').addEventListener('click',()=>{
   setMusicStatus('再生待ち：始まらない場合はYouTubeプレーヤー内の▶を押してください。');
  }catch(e){setMusicStatus('動画内の▶から再生してください。');}
 });
-$('bpmInput').addEventListener('input',()=>{rhythm.bpm=clamp(Number($('bpmInput').value)||120,55,240);});
-$('offsetInput').addEventListener('input',()=>{rhythm.offsetMs=clamp(Number($('offsetInput').value)||0,-500,500);});
+$('bpmInput').addEventListener('input',()=>{rhythm.bpm=clamp(Number($('bpmInput').value)||120,55,240);resetBeatChart();});
+$('offsetInput').addEventListener('input',()=>{rhythm.offsetMs=clamp(Number($('offsetInput').value)||0,-500,500);resetBeatChart();});
 $('tapBpm').addEventListener('click',()=>{
  const now=performance.now();rhythm.tapTimes=rhythm.tapTimes.filter(x=>now-x<2600);rhythm.tapTimes.push(now);
  if(rhythm.tapTimes.length<3){setMusicStatus(`TAP BPM：あと${3-rhythm.tapTimes.length}回以上、曲の拍に合わせて押してください。`);return;}
  const arr=rhythm.tapTimes,intervals=[];for(let i=1;i<arr.length;i++)intervals.push(arr[i]-arr[i-1]);
  const ms=intervals.reduce((x,y)=>x+y,0)/intervals.length;
  rhythm.bpm=clamp(Math.round(60000/ms),55,240);$('bpmInput').value=rhythm.bpm;
- setMusicStatus(`推定 ${rhythm.bpm} BPM（タップ間隔から計測）。音楽の拍に合うよう補正してください。`);
+ // Align the phase to the most recent beat the player tapped, not just the speed.
+ const sec=60/rhythm.bpm,phase=((beatTime()%sec)+sec)%sec;
+ rhythm.offsetMs=Math.round(clamp(phase>sec/2?phase-sec:phase,-.5,.5)*1000);
+ $('offsetInput').value=rhythm.offsetMs;resetBeatChart();
+ setMusicStatus(`推定 ${rhythm.bpm} BPM ／ 拍位置 ${rhythm.offsetMs}ms に補正。曲に合わせて３〜６回タップ。`);
 });
 const iframeApi=document.createElement('script');iframeApi.src='https://www.youtube.com/iframe_api';iframeApi.async=true;document.head.appendChild(iframeApi);
 // Unified gesture-only controls. Touch or mouse works from ANY point on the arena.
@@ -617,7 +760,7 @@ function addStrokePoint(o,e){
 }
 function scheduleGesture(kind,details={}){
  // Gestures don't activate until shortly AFTER the user releases the finger.
- const grade=rhythmJudge(kind);touch.actions.push({kind,grade,at:levelClock+INPUT_DELAY,...details});
+ const grade=rhythmJudge(kind,details.inputType);touch.actions.push({kind,grade,at:levelClock+INPUT_DELAY,...details});
  if(touch.actions.length>24)touch.actions.shift();
 }
 // Ramer-Douglas-Peucker: keep actual direction changes for zigzag trace attacks.
@@ -641,8 +784,8 @@ function releaseStroke(){
  touch.paint.push({pts:pts.map(q=>({x:q.wx,y:q.wy})),t:.42});
  const held=performance.now()-gesture.started;
  if(total<23){
-   if(held>=HOLD_MS){touch.lastTap=0;scheduleGesture('heavy');popup(p.x,p.y-125,'CHARGED BREAK','#ffe0a0',19);return;}
-   const now=performance.now();if(now-touch.lastTap<310){scheduleGesture('heavy');touch.lastTap=0;}
+   if(held>=HOLD_MS){touch.lastTap=0;scheduleGesture('heavy',{inputType:'hold'});popup(p.x,p.y-125,'CHARGED BREAK','#ffe0a0',19);return;}
+   const now=performance.now();if(now-touch.lastTap<310){scheduleGesture('heavy',{inputType:'tap'});touch.lastTap=0;}
    else{scheduleGesture('light');touch.lastTap=now;}
    return;
  }
