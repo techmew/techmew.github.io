@@ -409,5 +409,14 @@
       ]
     }
   ],
-  "socialReports": []
+  "socialReports": [
+    {
+      "eventId": "e0002",
+      "status": "unavailable",
+      "channel": "Buffer/X",
+      "at": "2026-10-22T07:19:00+09:00",
+      "reason": "Buffer plugin not connected; GitHub Pages public delivery could not be verified (tool inaccessible/DNS resolution failed). Post not submitted.",
+      "text": "【灯ノ町・第2章】衰退：防潮堤の亀裂を受け、港の夜間荷役を一時停止。安全を優先する朝。人口10・繁栄40・安全61。https://techmew.github.io/games/akari-town/ #灯ノ町"
+    }
+  ]
 }
