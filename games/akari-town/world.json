@@ -415,8 +415,16 @@
       "status": "unavailable",
       "channel": "Buffer/X",
       "at": "2026-10-22T07:19:00+09:00",
-      "reason": "Buffer plugin not connected; GitHub Pages public delivery could not be verified (tool inaccessible/DNS resolution failed). Post not submitted.",
-      "text": "【灯ノ町・第2章】衰退：防潮堤の亀裂を受け、港の夜間荷役を一時停止。安全を優先する朝。人口10・繁栄40・安全61。https://techmew.github.io/games/akari-town/ #灯ノ町"
+      "reason": "GitHub main updated. GitHub Pages external HTTP could not be verified due DNS failure. Connected Drive Buffer_GAS V10 accepts only Hatena blog URLs and rejects GAME_UPDATE URLs. Pending row 536 is HOLD; neither Buffer nor X sent.",
+      "text": "【灯ノ町・第2章】衰退：防潮堤の亀裂を受け、港の夜間荷役を一時停止。安全を優先する朝。人口10・繁栄40・安全61。https://techmew.github.io/games/akari-town/ #灯ノ町",
+      "queue": {
+        "provider": "Google Drive / Buffer投稿キュー",
+        "sheet": "キュー",
+        "row": 536,
+        "postKey": "AKARI_TOWN_E0002_X1",
+        "status": "HOLD",
+        "url": "https://docs.google.com/spreadsheets/d/1tqL4GJXNk1tm3U8ugYAiGp-KfHajmsd6K3sfnJHA4tU/edit"
+      }
     }
   ]
 }
