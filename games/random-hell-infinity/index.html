@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V4.2｜ドット絵修正・HP表示</title>
-<meta name="game-build" content="RHINF_SPRITE_FIX_V42_20261021" />
+<title>RANDOM HELL ∞ V4.3｜射撃予告と回避</title>
+<meta name="game-build" content="RHINF_WINDUP_V43_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -520,7 +520,7 @@ function resetPlayer(){const cp=checkpointIndex>0?level.platforms.find(p=>p.chec
  player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
 function saveState(){try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
-function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ 14武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。拾った武器は全種類が自動同時攻撃！重複入手でランダム強化。死亡すると全武器をロスト。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。拾った武器は全種類が自動同時攻撃！重複入手でランダム強化。死亡すると全武器をロスト。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>{const raw=$('seedInput').value.trim();begin(raw!==''?clamp(Number(raw),0,999999999):randSeed())};
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
@@ -586,6 +586,23 @@ function die(cause='DEAD'){if(mode!=='playing'||player.dead)return;player.dead=t
 function hitRect(ax,ay,aw,ah,bx,by,bw,bh){return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by}
 function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);return (cx-nx)**2+(cy-ny)**2<r*r}
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
+// Telegraph a fixed aim before ranged attacks; player can dodge the warning.
+function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
+ if(e.windup>0){
+  e.windup=Math.max(0,e.windup-dt);
+  if(e.windup===0){
+   if(near&&e.alive){
+    const speed=kind===6?440:kind===11?375:kind===9?310:270+diff*110,count=kind===11?3:1;
+    for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,e.aimX,e.aimY+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
+    e._spriteAttackUntil=clock+.25;part(e.x+12,e.y+12,'#ffcf76',6,.35);
+   }
+   e.shoot=(kind===6?2.5:kind===11?1.4:kind===9?2.1:1.7)+Math.random()*.4;
+  }
+  return;
+ }
+ e.shoot-=dt;
+ if(e.shoot<=0&&near){e.windup=kind===11?.56:kind===6?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
+}
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
 function autoWeaponFire(dt){
@@ -680,9 +697,7 @@ function update(dt){
      e.x=clamp(e.x,e.min,e.max);
      e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
    if(kind===9){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){e.x=clamp(p.x+(p.face>0?130:-130),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=2.8}}
-   if(kind===2||kind===6||kind===7||kind===9||kind===11){e.shoot-=dt;if(e.shoot<=0&&near){const speed=kind===6?440:kind===11?375:kind===9?310:270+diff*110;
-      const count=kind===11?3:1;for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,p.x+13,p.y+16+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
-      e.shoot=(kind===6?2.5:kind===11?1.4:kind===9?2.1:1.7)+Math.random()*.4;}}
+   if(kind===2||kind===6||kind===7||kind===9||kind===11)updateRangedEnemyAttack(e,p,kind,dt,diff,near);
    if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
  }
  const b=level.boss;
@@ -883,9 +898,9 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const e of level.enemies){if(!e.alive||e.x<camera-70||e.x>camera+W+70)continue;const ename=RH_ENEMY_SPRITES[e.kind]||'slime';
  const moving=Math.abs(e.x-(e._spriteLastX??e.x))>.12||Math.abs(e.y-(e._spriteLastY??e.y))>.12;
  e._spriteLastX=e.x;e._spriteLastY=e.y;
- const estate=e.flash>0?'hurt':e.charge>0?'attack':moving?'move':'idle';
+ const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+e.w/2,e.y+e.h/2);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
  if(level.boss?.alive){const b=level.boss;const bstate=b.hitGrace>0?'hurt':b.chargeWindup>0?'attack':'idle';const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45);if(!drawRHSprite('boss',bstate,clock*(bstate==='attack'?9:3),b.x+b.w/2-bw/2,b.y+b.h-bh+6,bw,bh,b.dir||1,b.hitGrace>0,(b.kind%4)*12)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);if(b.chargeWindup>0){ctx.save();ctx.globalAlpha=.5+.35*Math.sin(clock*26);ctx.fillStyle='#ffdf7b';const from=b.chargeDir>0?b.x+b.w:b.from,to=b.chargeDir>0?b.to:b.x;ctx.fillRect(from,b.platform.y-6,Math.max(8,to-from),5);ctx.fillStyle='#fff4b8';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);ctx.restore()}}
  for(const bullet of projectiles){ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
  // Goal portal: locked while the final-stage boss survives.
