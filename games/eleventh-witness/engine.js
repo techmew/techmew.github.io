@@ -11,14 +11,12 @@ let touch={id:null,sx:0,sy:0,ox:0,oy:0,x:0,y:0,moved:false,ignore:false}, draggi
 const imgs={stop:"assets/reboot-snow.svg",road:"assets/reboot-road.svg",lodge:"assets/reboot-snow.svg",lobby:"assets/reboot-parlor.svg",room:"assets/reboot-room.svg",hall:"assets/reboot-hall.svg",dining:"assets/reboot-parlor.svg",dryroom:"assets/reboot-hall.svg"};
 // Keep speaker identity, palette and art layout separate from save data.
 // The 576x196 WebP atlas holds four 144x196 busts, left to right.
-const CAST_COLUMNS=Object.freeze({"莉子":0,"紗江":1,"絢":2,"匠":3});
-// Bright enough for legibility on the charcoal dialogue panel; muted rather than neon.
-const SPEAKER_COLORS=Object.freeze({
- "紗江":"#8fdceb","莉子":"#f1b0c1","絢":"#f4ca91","匠":"#c6bafa",
- "航平":"#a6e2b9","真理":"#eec5d8","圭介":"#bad2ef",
- "源蔵":"#e2c395","千尋":"#cce6aa","森下":"#91d5c9",
- "売店の人":"#d2d5d6","不明":"#d8d0ea"
-});
+const CAST=window.NOVEL_CAST;
+if(!CAST || !Array.isArray(CAST.people) || CAST.people.length!==11){
+ throw Error("11-person character registry is missing or invalid");
+}
+const CAST_COLUMNS=Object.freeze(Object.fromEntries(CAST.people.filter(p=>Number.isInteger(p.previewColumn)).map(p=>[p.speaker,p.previewColumn])));
+const SPEAKER_COLORS=CAST.colors;
 const SPEAKER_FULL_COLORS=Object.freeze(Object.fromEntries(
  Object.entries(BOOK.speakers).map(([short,full])=>[full,SPEAKER_COLORS[short]||"#ffffff"])
 ));
