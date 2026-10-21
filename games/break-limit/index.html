@@ -8,9 +8,9 @@
 <style>
 :root {color-scheme:dark;--cyan:#72faff;--pink:#ff477d;--ink:#080d1c}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html,body{margin:0;height:100%;overflow:hidden;touch-action:none;background:var(--ink);font-family:Meiryo,"Hiragino Kaku Gothic ProN",sans-serif;color:#f7fcff}
-body{display:flex;justify-content:center;align-items:center;background:radial-gradient(circle at 50% 36%,#182142 0%,#080d1c 62%)}
-#app{position:relative;width:min(100vw,calc(100dvh * 16 / 9));aspect-ratio:16 / 9;max-height:100dvh;overflow:hidden;box-shadow:0 0 70px #050713}
+html,body{margin:0;min-height:100%;overflow-x:hidden;touch-action:pan-y;background:var(--ink);font-family:Meiryo,"Hiragino Kaku Gothic ProN",sans-serif;color:#f7fcff}
+body{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;overflow-y:auto;overscroll-behavior-y:contain;background:radial-gradient(circle at 50% 36%,#182142 0%,#080d1c 62%)}
+#app{flex-shrink:0;position:relative;width:min(100vw,1280px);aspect-ratio:16 / 9;overflow:hidden;box-shadow:0 0 70px #050713}
 canvas{display:block;width:100%;height:100%;touch-action:none}
 #topactions{position:absolute;top:14%;right:2%;display:flex;gap:8px;z-index:4}
 .utility{border:1px solid #7385a8a0;background:#0a1328d9;color:#e5faff;border-radius:8px;padding:7px 10px;font:700 clamp(9px,1.12vw,12px) Meiryo,sans-serif;cursor:pointer;min-width:36px}
@@ -28,18 +28,44 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
 #start:active{transform:scale(.97)}
 .record{font-size:clamp(10px,1.2vw,13px);color:#fbc881!important}
 #rotateHint{display:none}#footer{position:fixed;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#7683a8;pointer-events:none}
+#musicDock{width:min(100%,1280px);display:grid;grid-template-columns:minmax(0,1fr) 365px;gap:14px;padding:12px 16px 14px;border-top:2px solid #61f6fe74;background:linear-gradient(120deg,#0a1730,#101528);box-shadow:0 0 38px #020817;z-index:2}
+#musicDock label{font-size:12px;color:#bce2ed;display:inline-flex;align-items:center;gap:6px}
+#musicDock button,#musicDock input{font:700 13px Meiryo,sans-serif;min-height:37px;border-radius:7px}
+#musicDock input{min-width:0;color:#effbff;background:#071020;border:1px solid #4b7185;padding:8px 10px;outline-offset:2px;touch-action:manipulation}
+#musicDock button{background:#123954;color:#caffff;border:1px solid #50bacc;cursor:pointer;padding:7px 12px;touch-action:manipulation}
+#musicDock button:active{background:#16677b}
+.musicHeader{font-size:12px;letter-spacing:.18em;color:#77f9ff;font-weight:900;margin-bottom:8px}
+.musicRow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#ytUrl{flex:1 1 240px;width:100%}
+#playTrack{background:#236969!important;color:#fff!important}
+.musicOpts{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:9px}
+#bpmInput{width:72px}#offsetInput{width:80px}
+#musicStatus{font-size:12px;color:#bed8e7;min-height:26px;margin-top:9px;line-height:1.4}
+#durationText{font-size:12px;color:#ffe1ac;font-weight:700}
+#rhythmGuide{display:flex;gap:7px;align-items:center;margin-top:8px;min-height:44px;overflow:hidden}
+.rhythmCue{border:1px solid #44718a;color:#90a8b7;background:#0d2137;border-radius:8px;min-width:67px;text-align:center;padding:7px 5px;font-size:12px;font-weight:900;flex:1 1 0}
+.rhythmCue.on{border-color:#fff0a8;background:#455439;color:#fff8d2;box-shadow:0 0 14px #eaff7470}
+.rhythmCue.next{border-color:#6aebf6;color:#e2feff}
+#rhythmGrade{font-size:14px;font-weight:1000;color:#fff0a5;text-align:right;min-width:96px}
+.videoFrame{min-width:0;min-height:210px;width:100%;background:#000;border:1px solid #477394;overflow:hidden;border-radius:9px;display:flex;align-items:stretch}
+#ytPlayer{width:100%;min-height:210px;aspect-ratio:16 / 9}
+#ytPlayer iframe{display:block;width:100%;height:100%;min-height:210px;border:0;touch-action:auto}
+#videoPlaceholder{height:210px;display:flex;align-items:center;justify-content:center;width:100%;text-align:center;color:#8fb2cb;font-size:13px;padding:14px}
+#footer{display:none}
+@media (min-height:780px) and (min-width:1020px){#app{width:min(100vw,calc((100dvh - 265px) * 16 / 9),1280px)}}
+@media(max-width:760px){#musicDock{display:flex;flex-direction:column;gap:10px;padding:10px}#ytPlayer,.videoFrame{min-height:204px}#ytPlayer iframe{min-height:204px}.rhythmCue{min-width:48px;font-size:10px}#rhythmGrade{min-width:55px;font-size:11px}}
 @media(pointer:coarse){.utility{padding:5px 7px}#footer{display:none}}
 @media(orientation:portrait) and (pointer:coarse){
- body{align-items:flex-start;padding-top:5dvh}
- #app{width:100vw;max-height:unset;touch-action:none}
+ body{align-items:center;padding-top:0}
+ #app{width:100vw;touch-action:none}
  #topactions{top:17%;right:1%}
- #overlay{position:fixed;inset:0;padding:12px;z-index:10}
- .panel{max-height:90dvh;padding:19px}
+ #overlay{position:absolute;inset:0;padding:6px;z-index:10}
+ .panel{max-height:99%;padding:8px 12px}
  .panel p{font-size:12px}
- .pills{margin:9px 0;gap:5px}
+ .pills{display:none}
  .pills span{font-size:10px;padding:5px 7px}
- #start{padding:12px 24px;margin-top:7px}
- #rotateHint{display:block;position:fixed;left:0;right:0;top:calc(5dvh + 56vw + 15px);font-size:12px;text-align:center;letter-spacing:.04em;color:#a1bce6;pointer-events:none}
+ #start{padding:6px 14px;margin-top:2px}
+ #rotateHint{display:none}
 }
 
 </style>
@@ -52,12 +78,22 @@ h1 span{color:#ff557d}h2{font-size:clamp(14px,2vw,24px);margin:.5em 0}
  <div class="kicker">HIGH-SPEED BOSS COMBO ACTION</div>
  <h1>BREAK<span>//</span>LIMIT</h1>
  <h2 id="overlayTitle">壊せ。つなげ。限界を超えろ。</h2>
- <p id="overlayDesc">たった1体の超高耐久ボス。連続ヒットでダメージ倍率が最大8倍に。地上・空中コンボと無敵ダッシュを駆使して最速撃破を狙え。画面全体が操作エリア。タップで斬撃、ダブルタップや長押しで強攻撃。フリックで跳躍・突進・壁へのワイヤー移動、ジグザグの指の軌跡で連続斬撃。指を離してから短い間の後にアクションを繰り出せ。</p>
+ <p id="overlayDesc">下のYouTube URL欄から動画を読み込み、動画を再生するとボス戦開始。曲の長さでボスHPが変化。テンポガイドどおりに攻撃すると追加エフェクトとダメージボーナス。たった1体の超高耐久ボス。連続ヒットでダメージ倍率が最大8倍に。地上・空中コンボと無敵ダッシュを駆使して最速撃破を狙え。画面全体が操作エリア。タップで斬撃、ダブルタップや長押しで強攻撃。フリックで跳躍・突進・壁へのワイヤー移動、ジグザグの指の軌跡で連続斬撃。指を離してから短い間の後にアクションを繰り出せ。</p>
  <div class="pills" id="keyhints"><span>全画面：ジェスチャー操作</span><span>タップ：斬撃</span><span>長押し：溜め斬り</span><span>ダブルタップ：強攻撃</span><span>横フリック：壁へワイヤー</span><span>上下フリック：跳躍・急襲</span><span>ジグザグ：軌道連撃</span></div>
  <p class="record" id="best">BEST TIME —　BEST COMBO —</p>
- <button id="start">戦闘開始 ▶</button>
+ <button id="start">動画なしで練習 ▶</button>
  </div></div>
 </div>
+<section id="musicDock" aria-label="YouTubeとリズム戦闘設定">
+ <div class="musicSettings">
+  <div class="musicHeader">♪ MUSIC SYNC / VIDEO BOSS BATTLE</div>
+  <div class="musicRow"><input id="ytUrl" type="url" aria-label="YouTube動画URL" placeholder="YouTube動画のURLを貼り付け" inputmode="url"><button id="loadTrack" type="button">動画をセット</button><button id="playTrack" type="button" disabled>▶ 再生して開始</button></div>
+  <div class="musicOpts"><label>BPM <input id="bpmInput" type="number" min="55" max="240" step="1" value="120"></label><button id="tapBpm" type="button">TAP BPM</button><label>拍ずれ補正(ms) <input id="offsetInput" type="number" min="-500" max="500" step="25" value="0"></label><span id="durationText">曲長 — / ボスHP —</span></div>
+  <div id="musicStatus" role="status" aria-live="polite">YouTube URLをセットして動画を再生すると戦闘開始（埋め込み不可の動画は使用できません）。BPMは手動指定かTAP BPMで合わせてください。</div>
+  <div id="rhythmGuide"><div class="rhythmCue next">♪ TAP</div><div class="rhythmCue">↗ FLICK</div><div class="rhythmCue">● HOLD</div><div class="rhythmCue">≋ TRACE</div><span id="rhythmGrade">READY</span></div>
+ </div>
+ <div class="videoFrame"><div id="ytPlayer"><div id="videoPlaceholder">ここにYouTube動画が表示されます。<br>動画の▶でもボス戦が始まります。</div></div></div>
+</section>
 <div id="rotateHint">画面のどこでもタップ・長押し・フリック（横画面推奨）</div>
 <div id="footer">BREAK//LIMIT ・ 画面全体：タップ / 長押し / フリック / ジグザグ</div>
 <script>
@@ -72,16 +108,23 @@ const HOLD_MS=420;
 const touch={stroke:null,lastTap:0,paint:[],queue:[],nextStroke:0,actions:[]};
 let mode='menu',paused=false,elapsed=0,screenShake=0,flash=0,freeze=0,bossDefeated=false,levelClock=0,projectiles=[],sparks=[],texts=[],rings=[],ghosts=[],strikes=[],dust=[],bgStars=[],metronome=0,trackTick=0,quiet=false,ctxAudio=null,camX=0;
 let p,b,combo=0,maxCombo=0,comboTime=0,damageTotal=0,score=0,lastMove='',floatingText='',floatingLife=0,bestTime=null,bestCombo=0;
+// The IFrame API exposes duration/playback time, but never the soundtrack's audio samples.
+let videoPlayer=null,videoReady=false,videoMode=false,videoId='',videoDuration=0,videoEnded=false,videoChanging=false;
+const rhythm={bpm:120,offsetMs:0,buff:0,grade:'',gradeT:0,lastBeat:-999,rapidBeat:-999,rapidCount:0,tapTimes:[],beatPulse:0,bonus:1};
+const cueKinds=['tap','tap','flick','tap','hold','tap','rapid','trace','tap','flick','tap','rapid','hold','tap','flick','trace'];
+const cueLabel={tap:'● TAP',flick:'↗ FLICK',hold:'◉ HOLD',rapid:'●×3 TAP',trace:'〰 TRACE'};
+const musicStatus=$('musicStatus'),durationText=$('durationText'),rhythmGuide=$('rhythmGuide');
 try{const data=JSON.parse(localStorage.getItem('break_limit_best_v2')||'{}');bestTime=data.time??null;bestCombo=data.combo??0;}catch(e){}
 for(let i=0;i<90;i++)bgStars.push({x:Math.random()*W,y:30+Math.random()*440,s:Math.random()*2+0.5,a:Math.random()*0.65+0.2});
 const clamp=(v,a,z)=>Math.max(a,Math.min(z,v)),rand=(a,z)=>a+Math.random()*(z-a),sgn=v=>v<0?-1:1;
 function audio(){if(quiet)return;try{ctxAudio??=new(window.AudioContext||window.webkitAudioContext)();if(ctxAudio.state==='suspended')ctxAudio.resume();}catch(e){quiet=true;}}
 function tone(freq=300,dur=.08,vol=.035,type='triangle',endFreq=freq){if(!ctxAudio||quiet)return;try{let o=ctxAudio.createOscillator(),g=ctxAudio.createGain(),t=ctxAudio.currentTime;o.type=type;o.frequency.setValueAtTime(Math.max(20,freq),t);o.frequency.exponentialRampToValueAtTime(Math.max(20,endFreq),t+dur);g.gain.setValueAtTime(Math.max(.0001,vol),t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(ctxAudio.destination);o.start(t);o.stop(t+dur+.01);}catch(e){}}
 function sfx(k){switch(k){case 'light':tone(430+combo*3,.06,.023,'sawtooth',130);break;case 'heavy':tone(140,.15,.07,'sawtooth',50);break;case 'impact':tone(240+Math.min(combo*8,500),.09,.048,'square',70);break;case 'jump':tone(290,.13,.025,'sine',490);break;case 'dash':tone(530,.12,.035,'triangle',150);break;case 'hurt':tone(180,.23,.075,'sawtooth',40);break;case 'boss':tone(100,.45,.065,'sawtooth',37);break;case 'win':for(let i=0;i<3;i++)setTimeout(()=>tone(440*(i+1),.34,.045,'sine',650*(i+1)),i*120);}}
-function music(dt){if(!ctxAudio||quiet||mode!=='play'||paused)return;metronome-=dt;if(metronome>0)return;metronome=.255;const bass=[55,55,65.41,82.41,55,65.41,49,73.42],notes=[220,261.6,329.6,261.6,196,246.9,329.6,392];tone(bass[trackTick%8],.20,.014,'sawtooth',bass[trackTick%8]*.8);if(trackTick%2===0)tone(notes[(trackTick>>1)%8],.16,.010,'triangle',notes[(trackTick>>1)%8]*.65);trackTick++;}
+function music(dt){if(videoMode||!ctxAudio||quiet||mode!=='play'||paused)return;metronome-=dt;if(metronome>0)return;metronome=.255;const bass=[55,55,65.41,82.41,55,65.41,49,73.42],notes=[220,261.6,329.6,261.6,196,246.9,329.6,392];tone(bass[trackTick%8],.20,.014,'sawtooth',bass[trackTick%8]*.8);if(trackTick%2===0)tone(notes[(trackTick>>1)%8],.16,.010,'triangle',notes[(trackTick>>1)%8]*.65);trackTick++;}
 function reset(){
+ rhythm.buff=0;rhythm.grade='';rhythm.gradeT=0;rhythm.lastBeat=-999;rhythm.rapidBeat=-999;rhythm.rapidCount=0;rhythm.beatPulse=0;
  p={x:215,y:FLOOR,w:44,h:76,vx:0,vy:0,face:1,grounded:true,jumps:2,dashCd:0,dashTime:0,inv:0,hp:8,hpMax:8,attack:null,attackT:0,attackHit:false,attackN:0,chainT:0,attackBuffer:0,heavyBuffer:0,heavyCd:0,stun:0,glow:0,land:0,web:null,stroke:null,charge:0};
- b={x:955,y:FLOOR,w:112,h:188,vx:0,hp:22000,max:22000,face:-1,state:'idle',phaseT:1.8,attackKind:'',attackHit:false,pattern:0,stun:0,rage:false,blink:0};
+ b={x:955,y:FLOOR,w:112,h:188,vx:0,hp:videoMode&&videoDuration>0?hpByDuration(videoDuration):22000,max:videoMode&&videoDuration>0?hpByDuration(videoDuration):22000,face:-1,state:'idle',phaseT:1.8,attackKind:'',attackHit:false,pattern:0,stun:0,rage:false,blink:0};
  mode='play';paused=false;elapsed=0;levelClock=0;combo=0;maxCombo=0;comboTime=0;damageTotal=0;score=0;lastMove='';floatingLife=0;freeze=0;flash=0;screenShake=0;bossDefeated=false;metronome=0;trackTick=0;projectiles=[];sparks=[];texts=[];rings=[];ghosts=[];strikes=[];dust=[];camX=0;
  overlay.classList.add('hidden');$('pause').textContent='Ⅱ';clearGesture();for(let k in KEY){KEY[k]=false;old[k]=false;}
  audio();
@@ -91,7 +134,8 @@ function records(){ $('best').textContent=`BEST TIME ${bestTime===null?'—':fmt
 records();
 function showEnd(won){mode=won?'won':'dead';overlay.classList.remove('hidden');$('overlayTitle').textContent=won?'BOSS BREAK — 撃破！':'YOU BROKE — 再挑戦';
  $('overlayDesc').textContent=won?`撃破時間 ${fmtTime(elapsed)}　｜　最大コンボ ${maxCombo} HIT　｜　与ダメージ ${Math.round(damageTotal).toLocaleString()}　より短いタイムを狙え。`:`最大コンボ ${maxCombo} HIT　｜　ボス残りHP ${Math.ceil(b.hp/b.max*100)}%　攻撃を回避してコンボをつなげ。`;
- $('start').textContent=won?'もう一度挑戦 ▶':'リトライ ▶';
+ $('start').textContent=videoMode?'動画を再生して再挑戦 ▶':(won?'練習をもう一度 ▶':'練習リトライ ▶');
+ if(videoMode&&videoPlayer&&videoReady&&!videoEnded){try{videoPlayer.pauseVideo();}catch(e){}}
  if(won){if(bestTime===null||elapsed<bestTime)bestTime=elapsed;if(maxCombo>bestCombo)bestCombo=maxCombo;try{localStorage.setItem('break_limit_best_v2',JSON.stringify({time:bestTime,combo:bestCombo}));}catch(e){}sfx('win');}else sfx('hurt');records();}
 function emit(x,y,color,n=8,pow=270){for(let i=0;i<n;i++){const a=rand(0,2*PI),r=rand(.2,1);sparks.push({x,y,vx:Math.cos(a)*pow*r,vy:Math.sin(a)*pow*r,size:rand(2,6),t:rand(.19,.58),max:.58,color,grav:rand(20,440)});}if(sparks.length>360)sparks.splice(0,sparks.length-360);}
 function addRing(x,y,color,size=45){rings.push({x,y,r:5,goal:size,t:.3,max:.3,color});}
@@ -139,10 +183,11 @@ function playerHit(dmg=1){if(p.inv>0||mode!=='play')return;p.hp=Math.max(0,p.hp-
 function successHit(m){let bCx=b.x,bCy=b.y-b.h*.52,pCy=p.y-p.h*.49;const d=Math.abs(bCx-(p.x+p.face*30));if(d>m.range+40||Math.abs(bCy-pCy)>175)return false;
  if((b.x-p.x)*p.face < -48)return false;
  p.attackHit=true;combo++;maxCombo=Math.max(maxCombo,combo);comboTime=2.7;
- let multiplier=Math.min(8,1+(combo-1)*.055),critical=combo%10===0,damage=Math.round(m.dmg*multiplier*(critical?1.35:1));b.hp=Math.max(0,b.hp-damage);damageTotal+=damage;score+=damage;b.blink=.11;
+ let multiplier=Math.min(8,1+(combo-1)*.055),critical=combo%10===0,damage=Math.round(m.dmg*multiplier*(critical?1.35:1)*(rhythm.buff>0?rhythm.bonus:1));b.hp=Math.max(0,b.hp-damage);damageTotal+=damage;score+=damage;b.blink=.11;
  let hitX=b.x-b.face*35,hitY=clamp(pCy+(bCy-pCy)*.40,290,560);burst(hitX,hitY,m.impact||critical);
  popup(hitX+rand(-25,25),hitY-58,(critical?'★ ':'')+damage,critical?'#ffef8e':'#e5ffff',critical?34:25);
  if(combo===10||combo===25||combo===50||combo===100)popup(W/2,280,`${combo} HIT!!`,'#fff69e',40);
+ if(rhythm.buff>0){emit(hitX,hitY,'#fff0a1',23,410);addRing(hitX,hitY,'#fff5a9',145);}
  if(m.type==='air'||m.type==='plunge'){p.vy=m.type==='plunge'?-475:-270;p.grounded=false;}
  if(m.type==='launcher'){p.vy=-450;p.grounded=false;}
  b.vx=p.face*(m.impact?210:75);b.stun=Math.max(b.stun,m.impact?.24:.075);
@@ -171,13 +216,14 @@ function ai(dt){if(b.hp<=0)return;b.blink=Math.max(0,b.blink-dt);if(b.stun>0){b.
  b.x=clamp(b.x,90,1190);
 }
 function update(dt){if(mode!=='play'||paused)return;
- elapsed+=dt;levelClock+=dt;
+ elapsed+=dt;levelClock+=dt;rhythm.buff=Math.max(0,rhythm.buff-dt);rhythm.gradeT=Math.max(0,rhythm.gradeT-dt);syncDuration();
  // Gesture actions begin a short time AFTER the finger has lifted.
  for(let i=0;i<touch.actions.length;){
    const a=touch.actions[i];
    if(a.at>levelClock){i++;continue;}
    touch.actions.splice(i,1);
    if(p.stun>0||mode!=='play')continue;
+   if(a.grade==='PERFECT'||a.grade==='GOOD'){rhythm.buff=Math.max(rhythm.buff,.53);rhythm.bonus=a.grade==='PERFECT'?1.55:1.25;}
    if(a.kind==='light'||a.kind==='heavy'){
      // Attack gestures automatically face the boss; no walking controls required.
      p.face=b.x>=p.x?1:-1;
@@ -191,6 +237,7 @@ function update(dt){if(mode!=='play'||paused)return;
      if(!p.grounded)p.heavyBuffer=Math.max(p.heavyBuffer,.28);
      else{p.attackBuffer=Math.max(p.attackBuffer,.29);dash();}
    }else if(a.kind==='trace'){doStroke(a.part);}
+   else if(a.kind==='traceCombo'){touch.queue=a.parts;touch.nextStroke=levelClock;}
  }
  if(touch.queue.length&&levelClock>=touch.nextStroke&&p.stun<=0){
    doStroke(touch.queue.shift());touch.nextStroke=levelClock+.115;
@@ -354,6 +401,8 @@ function hud(){
  // combo hud
  if(combo>0){let mult=Math.min(8,1+(combo-1)*.055);c.textAlign='left';rounded(26,143,253,156,13,'#071329d9');c.fillStyle=combo>=30?'#ffe690':'#8cf8ff';c.font='900 60px Meiryo, sans-serif';c.fillText(String(combo),41,196);c.font='900 19px Meiryo, sans-serif';c.fillText('HIT COMBO',43,230);c.font='900 18px Meiryo, sans-serif';c.fillStyle='#ffe18e';c.fillText(`DAMAGE × ${mult.toFixed(2)}`,43,263);rounded(43,277,216,5,2,'#33405a');rounded(43,277,216*(comboTime/2.7),5,2,'#96faff');
  let lab=combo<10?'GOOD!':combo<25?'BRUTAL!':combo<50?'RAMPAGE!':combo<100?'OVERDRIVE!':'LIMIT BREAK!';c.font='900 18px Meiryo';c.fillStyle='#ffd993';c.fillText(lab,43,324);}
+ // Four upcoming visual rhythm prompts. They are guidance, NOT physical attack buttons.
+ if(mode==='play')drawBeatHud();
  // bottom micro hints and status
  c.font='800 12px Meiryo, sans-serif';c.textAlign='left';c.fillStyle='#a1acc3';c.fillText('ANYWHERE : TAP=SLASH  HOLD=HEAVY  FLICK=ACTION  ZIGZAG=TRACE COMBO',27,685);
  c.textAlign='right';c.fillStyle='#90dcfc';c.fillText(`MAX COMBO  ${maxCombo}     BOSS ${Math.ceil(hpRatio*100)}%`,1254,685);
@@ -367,12 +416,149 @@ function draw(){c.clearRect(0,0,W,H);c.save();const shake=screenShake>0?screenSh
  if(flash>0)fill(0,0,W,H,`rgba(214,243,255,${flash*.3})`);c.restore();hud();drawPause();
 }
 reset();mode='menu';overlay.classList.remove('hidden');let last=performance.now(),acc=0;function frame(now){let dt=Math.min((now-last)/1000,.045);last=now;if(mode==='play'&&!paused){acc+=dt;let steps=0;while(acc>=1/120&&steps++<8){update(1/120);acc-=1/120;}if(steps>=8)acc=0;}draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
+// Rhythm timing is driven by YouTube's playback clock (or elapsed time in practice).
+function hpByDuration(seconds){return clamp(Math.round((4000+clamp(seconds,30,1800)*100)/100)*100,7000,185000);}
+function syncDuration(){
+ if(!videoMode||!videoPlayer||!videoReady)return;
+ let d=0;try{d=Number(videoPlayer.getDuration())||0;}catch(e){}
+ if(!isFinite(d)||d<=0||Math.abs(d-videoDuration)<.3)return;
+ // Live videos have a growing duration: don't continually inflate HP.
+ if(videoDuration>0)return;
+ videoDuration=d;const next=hpByDuration(d);
+ if(b&&mode==='play'){const ratio=b.max?b.hp/b.max:1;b.max=next;b.hp=Math.max(0,Math.ceil(next*ratio));}
+ durationText.textContent=`曲長 ${fmtTime(d)} / ボスHP ${next.toLocaleString()}`;
+}
+function beatTime(){
+ if(videoMode&&videoPlayer&&videoReady){try{const t=videoPlayer.getCurrentTime();if(isFinite(t)&&t>=0)return t;}catch(e){}}
+ return elapsed;
+}
+function beatPosition(){return (beatTime()-rhythm.offsetMs/1000)*rhythm.bpm/60;}
+function cueFor(index){return cueKinds[((index%cueKinds.length)+cueKinds.length)%cueKinds.length];}
+function kindMatches(kind,cue){
+ if(cue==='tap'||cue==='rapid')return kind==='light';
+ if(cue==='hold')return kind==='heavy';
+ if(cue==='flick')return ['web','up','down','trace'].includes(kind);
+ return kind==='traceCombo';
+}
+function rhythmJudge(kind){
+ if(mode!=='play'||paused)return '';
+ const pos=beatPosition(),beat=Math.round(pos),off=Math.abs(pos-beat)*60/rhythm.bpm;
+ const cue=cueFor(beat);
+ if(!kindMatches(kind,cue)||off>.23)return '';
+ if(cue==='rapid'){
+  if(rhythm.rapidBeat!==beat){rhythm.rapidBeat=beat;rhythm.rapidCount=0;}
+  rhythm.rapidCount++;
+  if(rhythm.rapidCount<3){rhythm.grade=`RAPID ${rhythm.rapidCount}/3`;rhythm.gradeT=.5;return '';}
+ }
+ if(beat===rhythm.lastBeat)return '';
+ const grade=off<=.095?'PERFECT':'GOOD';rhythm.lastBeat=beat;rhythm.grade=grade;rhythm.gradeT=.65;
+ if(p&&mode==='play'){emit(p.x,p.y-108,grade==='PERFECT'?'#fff1a6':'#6beaff',26,370);addRing(p.x,p.y-57,grade==='PERFECT'?'#ffe08c':'#90f7ff',124);popup(p.x,p.y-144,grade==='PERFECT'?'PERFECT +55%':'GOOD +25%',grade==='PERFECT'?'#ffe89d':'#bffaff',22);}
+ return grade;
+}
+function drawBeatHud(){
+ const bp=beatPosition(),i=Math.ceil(bp-.24),phase=bp-Math.floor(bp),pulse=Math.max(0,1-Math.abs(bp-Math.round(bp))/.28);
+ c.save();rounded(352,611,570,51,10,'#07182ce8');
+ for(let j=0;j<4;j++){
+  const idx=i+j,kind=cueFor(idx),x=365+j*139;
+  rounded(x,621,127,31,6,j===0?(pulse>.1?'#697046':'#204452'):'#142b40');
+  c.strokeStyle=j===0?'#bafaff':'#345d77';c.lineWidth=j===0?2:1;c.strokeRect(x,621,127,31);
+  c.font=`900 ${kind==='rapid'?15:16}px Meiryo,sans-serif`;c.fillStyle=j===0?'#fffbd4':'#a9c8dd';c.textAlign='center';c.fillText(cueLabel[kind],x+63,638);
+ }
+ if(rhythm.gradeT>0){c.textAlign='center';c.font='900 25px Meiryo,sans-serif';c.fillStyle=rhythm.grade==='PERFECT'?'#ffe590':'#9df4ff';c.fillText(rhythm.grade,640,586);}
+ c.restore();
+}
+function updateBeatGuide(){
+ const bp=beatPosition(),i=Math.ceil(bp-.24),phase=Math.abs(bp-Math.round(bp));
+ const slots=rhythmGuide.querySelectorAll('.rhythmCue');
+ slots.forEach((slot,j)=>{slot.textContent=cueLabel[cueFor(i+j)];slot.className='rhythmCue'+(j===0?(phase<.16?' on':' next'):'');});
+ $('rhythmGrade').textContent=rhythm.gradeT>0?rhythm.grade:(videoMode?'SYNC':'READY');
+}
+function extractYouTubeId(raw){
+ raw=String(raw||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(raw))return raw;
+ try{
+  const u=new URL(raw),host=u.hostname.toLowerCase().replace(/^www\./,'').replace(/^m\./,'');
+  if(!['youtube.com','youtube-nocookie.com','youtu.be','music.youtube.com'].includes(host)||!['http:','https:'].includes(u.protocol))return null;
+  let id=host==='youtu.be'?u.pathname.slice(1).split('/')[0]:u.searchParams.get('v');
+  if(!id){const a=u.pathname.split('/').filter(Boolean);if(['shorts','live','embed','v'].includes(a[0]))id=a[1];}
+  return /^[A-Za-z0-9_-]{11}$/.test(id||'')?id:null;
+ }catch(e){return null;}
+}
+function setMusicStatus(s){musicStatus.textContent=s;}
+function setTrack(){
+ const id=extractYouTubeId($('ytUrl').value);
+ if(!id){setMusicStatus('YouTubeの動画URLを入力してください（通常動画・短縮URL・Shortsに対応）。');return;}
+ if(mode==='play'){videoChanging=true;paused=true;mode='menu';overlay.classList.remove('hidden');}
+ videoId=id;videoDuration=0;videoEnded=false;videoMode=true;
+ durationText.textContent='曲長 取得待ち / ボスHP 取得待ち';
+ $('playTrack').disabled=!videoReady;
+ $('start').textContent='動画なしで練習 ▶';
+ setMusicStatus('動画を読み込み中。▶ 再生して開始、または動画内の▶でボス戦開始。');
+ if(videoReady&&videoPlayer){try{videoChanging=true;videoPlayer.cueVideoById(id);videoChanging=false;}catch(e){setMusicStatus('動画の読み込みに失敗しました。');}}
+ else if(window.YT&&YT.Player){createYouTubePlayer();}
+}
+function createYouTubePlayer(){
+ if(videoPlayer||!window.YT||!YT.Player||!videoId)return;
+ const vars={playsinline:1,controls:1,rel:0};
+ if(location.origin.startsWith('http'))vars.origin=location.origin;
+ const placeholder=$('videoPlaceholder');if(placeholder)placeholder.remove();
+ videoPlayer=new YT.Player('ytPlayer',{width:'100%',height:'210',videoId,playerVars:vars,
+   events:{onReady:()=>{
+    videoReady=true;$('playTrack').disabled=false;
+    videoChanging=true;try{videoPlayer.cueVideoById(videoId);}catch(e){}videoChanging=false;
+    setMusicStatus('動画の再生ボタンで戦闘開始。テンポはBPMまたはTAP BPMで設定してください。');
+   },onStateChange:({data})=>{
+     if(!window.YT||!YT.PlayerState||videoChanging)return;
+     if(data===YT.PlayerState.PLAYING){
+       videoEnded=false;
+       if(!videoMode||mode!=='play'){videoMode=true;reset();}
+       else if(paused){paused=false;$('pause').textContent='Ⅱ';}
+       syncDuration();setMusicStatus('動画再生中：ボス戦進行中。次の拍のガイドに合わせてジェスチャー入力！');
+     }else if(data===YT.PlayerState.PAUSED||data===YT.PlayerState.BUFFERING){
+       if(videoMode&&mode==='play'){paused=true;$('pause').textContent='▶';}
+     }else if(data===YT.PlayerState.ENDED){
+       videoEnded=true;
+       if(videoMode&&mode==='play'){
+        showEnd(false);$('overlayTitle').textContent='TIME UP — 曲が終了';
+        $('overlayDesc').textContent=`曲長 ${fmtTime(videoDuration)}　｜　最大コンボ ${maxCombo} HIT　｜　ボス残りHP ${Math.ceil(b.hp/b.max*100)}%`;
+       }
+       setMusicStatus('動画が終了しました。リプレイすると再挑戦できます。');
+     }
+   },onError:({data})=>{
+     setMusicStatus(`再生できません（YouTubeエラー ${data}）。埋め込み禁止・非公開などの動画は別のURLを使用してください。`);
+     if(mode==='play'&&videoMode){paused=true;$('pause').textContent='▶';}
+   },onAutoplayBlocked:()=>setMusicStatus('ブラウザが自動再生を制限しました。動画プレーヤーの▶を直接押してください。')}
+ });
+}
+window.onYouTubeIframeAPIReady=()=>{if(videoId)createYouTubePlayer();};
+$('loadTrack').addEventListener('click',setTrack);
+$('ytUrl').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();setTrack();}});
+$('playTrack').addEventListener('click',()=>{
+ if(!videoReady||!videoId||!videoPlayer)return;
+ videoMode=true;
+ try{
+  if(videoEnded||mode==='dead'||mode==='won')videoPlayer.seekTo(0,true);
+  videoPlayer.playVideo();
+  setMusicStatus('再生待ち：始まらない場合はYouTubeプレーヤー内の▶を押してください。');
+ }catch(e){setMusicStatus('動画内の▶から再生してください。');}
+});
+$('bpmInput').addEventListener('input',()=>{rhythm.bpm=clamp(Number($('bpmInput').value)||120,55,240);});
+$('offsetInput').addEventListener('input',()=>{rhythm.offsetMs=clamp(Number($('offsetInput').value)||0,-500,500);});
+$('tapBpm').addEventListener('click',()=>{
+ const now=performance.now();rhythm.tapTimes=rhythm.tapTimes.filter(x=>now-x<2600);rhythm.tapTimes.push(now);
+ if(rhythm.tapTimes.length<3){setMusicStatus(`TAP BPM：あと${3-rhythm.tapTimes.length}回以上、曲の拍に合わせて押してください。`);return;}
+ const arr=rhythm.tapTimes,intervals=[];for(let i=1;i<arr.length;i++)intervals.push(arr[i]-arr[i-1]);
+ const ms=intervals.reduce((x,y)=>x+y,0)/intervals.length;
+ rhythm.bpm=clamp(Math.round(60000/ms),55,240);$('bpmInput').value=rhythm.bpm;
+ setMusicStatus(`推定 ${rhythm.bpm} BPM（タップ間隔から計測）。音楽の拍に合うよう補正してください。`);
+});
+const iframeApi=document.createElement('script');iframeApi.src='https://www.youtube.com/iframe_api';iframeApi.async=true;document.head.appendChild(iframeApi);
+setInterval(updateBeatGuide,110);
 // Unified gesture-only controls. Touch or mouse works from ANY point on the arena.
 document.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&(mode==='menu'||mode==='won'||mode==='dead')){e.preventDefault();reset();}
  if(e.key.toLowerCase()==='p'||e.key==='Escape'){e.preventDefault();togglePause();}
 });
-window.addEventListener('blur',()=>{clearGesture();if(mode==='play'){paused=true;$('pause').textContent='▶';}});
+window.addEventListener('blur',()=>{clearGesture();if(mode==='play'){paused=true;$('pause').textContent='▶';if(videoMode&&videoReady&&videoPlayer){try{videoPlayer.pauseVideo();}catch(e){}}}});
 function clearGesture(){
  touch.stroke=null;touch.queue=[];touch.paint=[];touch.actions=[];touch.nextStroke=0;touch.lastTap=0;
 }
@@ -386,7 +572,7 @@ function addStrokePoint(o,e){
 }
 function scheduleGesture(kind,details={}){
  // Gestures don't activate until shortly AFTER the user releases the finger.
- touch.actions.push({kind,at:levelClock+INPUT_DELAY,...details});
+ const grade=rhythmJudge(kind);touch.actions.push({kind,grade,at:levelClock+INPUT_DELAY,...details});
  if(touch.actions.length>24)touch.actions.shift();
 }
 // Ramer-Douglas-Peucker: keep actual direction changes for zigzag trace attacks.
@@ -426,8 +612,8 @@ function releaseStroke(){
    if(dot<.76)turns++;
  }
  if(turns>=2&&segments.length>=3&&total>115){
-   touch.queue=segments.slice(0,12);touch.nextStroke=levelClock+INPUT_DELAY;
-   popup(p.x,p.y-125,`${touch.queue.length} TRACE COMBO`,'#adfdff',21);
+   scheduleGesture('traceCombo',{parts:segments.slice(0,12)});
+   popup(p.x,p.y-125,`${Math.min(12,segments.length)} TRACE COMBO`,'#adfdff',21);
    return;
  }
  if(Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.08){scheduleGesture('web',{dir:dx>0?1:-1});return;}
@@ -437,7 +623,7 @@ function releaseStroke(){
  scheduleGesture('trace',{part:{dx,dy}});
 }
 window.addEventListener('pointerdown',e=>{
- if(mode!=='play'||paused||e.target.closest('button')||e.target.closest('#overlay'))return;
+ if(mode!=='play'||paused||e.target!==canvas)return;
  if(e.pointerType==='mouse'&&e.button!==0)return;
  if(touch.stroke!==null)return;
  e.preventDefault();audio();
@@ -455,10 +641,21 @@ function finishPointer(e,cancel){
 }
 window.addEventListener('pointerup',e=>finishPointer(e,false),{passive:false});
 window.addEventListener('pointercancel',e=>finishPointer(e,true));
-start.addEventListener('click',reset);
-function togglePause(){if(mode!=='play')return;paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';for(let k in KEY)KEY[k]=false;clearGesture();}
+start.addEventListener('click',()=>{
+ if(videoMode&&videoId&&videoReady&&videoPlayer&&(mode==='won'||mode==='dead')){try{videoPlayer.seekTo(0,true);videoPlayer.playVideo();}catch(e){}return;}
+ if(videoReady&&videoPlayer){try{videoPlayer.pauseVideo();}catch(e){}}
+ videoMode=false;videoDuration=0;reset();
+});
+function togglePause(){
+ if(mode!=='play')return;
+ if(videoMode&&videoPlayer&&videoReady){try{if(paused)videoPlayer.playVideo();else videoPlayer.pauseVideo();}catch(e){};return;}
+ paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';for(let k in KEY)KEY[k]=false;clearGesture();
+}
 $('pause').addEventListener('click',togglePause);
-$('restart').addEventListener('click',()=>{reset();});
+$('restart').addEventListener('click',()=>{
+ if(videoMode&&videoPlayer&&videoReady){try{videoEnded=false;videoChanging=true;videoPlayer.pauseVideo();videoPlayer.seekTo(0,true);videoChanging=false;videoPlayer.playVideo();}catch(e){}return;}
+ reset();
+});
 soundBtn.addEventListener('click',()=>{quiet=!quiet;soundBtn.textContent=quiet?'♪ OFF':'♪ ON';if(!quiet)audio();});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 })();
