@@ -118,3 +118,14 @@ https://techmew.github.io/games/eleventh-witness/
 - 静的検査：CSS波括弧バランスPASS、Meiryo優先・縦スマホ／320px・横スマホのCSS指定PASS、主要13個UI IDと脚本/エンジン読み込みタグPASS、セーブキー／しおり定義PASS。
 - GitHub Actions pages build and deployment: 39573995986 **success**、head_sha 76d91511335058de4faf6e376b037ad381a2b9e4。実デプロイ成功と端末上の表示目視は区別：Android/iOS/PC実機の見た目・タップ領域実測は未確認。
 - 次回：320×568、390×844、844×390、1280×720で目視・操作QA。必要に応じダイアログ高さ、上部ボタンのタップ範囲と会話文のスクロールを調整。
+
+
+## 2026-10-21｜UI全体1.5倍・意図しない画面ズーム防止
+- ユーザーの直接指示「UIが小さすぎるからいまの1.5倍にして／かってにがめんが拡大されるからされないようにして」を実装。
+- Meiryo優先のまま、縦スマホ本文21→31.5px（幅390px以下は20→30px）、メニュー文字14→21px、下部操作文字15→22.5px、選択肢文字18→27px。PC版本文24→36px、主要操作部品も同等比率で拡大。
+- 画面が狭い縦スマホで上部4操作ボタンを2列×2行へ再配置、下部3操作ボタンも大きなまま維持。600px以下の低い縦画面と550px以下の横画面に専用高さ調整を入れ、本文は内部スクロールで読む方式にした。
+- 意図しない拡大：背景worldの transform scale(1.03) を削除。パン時の露出を避けるため余白90pxを確保し、位置移動だけにした。touch-actionをmanipulation／pan-y pinch-zoomにしてダブルタップ拡大を抑え、明示的なピンチズームまで禁止しない。viewportのuser-scalable設定は維持。
+- GitHub index.html commits f36e4d2fbbab0f34f995166d6d44e64cfb37055e／9b49beedee4b2584518587ed6680d6120816769c。最新index.html blob 59300d9282b350a4a133938f428d36c8a276aeea。
+- 静的検証：CSS括弧バランス、Meiryo、幅390px以下の30px本文、スマホ2列ヘッダー、横画面27px本文、touch-action指定、背景scale削除、しおり3件と自動保存キー保持、脚本・エンジン読み込みタグ保持はすべてPASS。
+- Pages Actions pages build and deployment：9b49beedee4b2584518587ed6680d6120816769c 成功、run 39575745585。公開HTMLへの外部アクセスおよび実Androidのズーム挙動はこのセッションからは直接検証できず、未確認。
+- 次回：実機画面幅320/390px、横持ち画面、端末の文字拡大設定でもボタンと本文が重ならないことを優先検証。
