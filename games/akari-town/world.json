@@ -1,0 +1,327 @@
+{
+  "schemaVersion": 1,
+  "town": {
+    "id": "akari",
+    "name": "灯ノ町",
+    "reading": "あかりのまち",
+    "tagline": "海辺の小さな町は、世界のニュースを受けて変わっていく。",
+    "day": 1,
+    "phase": "創設期",
+    "updatedAt": "2026-10-22T01:47:00+09:00",
+    "lastTick": "2026-10-22T01:47:00+09:00",
+    "tickCount": 0,
+    "weather": "薄曇り・海風",
+    "treasury": 450,
+    "population": 10,
+    "prosperity": 42,
+    "safety": 58,
+    "nature": 72,
+    "trust": 65,
+    "transport": 24
+  },
+  "lore": {
+    "premise": "現実のニュースに影響を受ける架空の海辺の町。住民の人生と年表は継続し、過去をなかったことにしない。",
+    "fixedFacts": [
+      "灯ノ町は東側が海に面した架空の自治体で、2026年10月22日に観測記録が始まった。",
+      "町の中央には広場、東には灯台、西には休止中の鉄道駅、北には小さな森がある。",
+      "灯台の主灯は開始時点では故障中。古い防潮堤は点検が必要。",
+      "初期住民は10人。住民の死亡・転職・移住は年表に明記された場合だけ成立する。",
+      "現実の報道は架空の事件の着想元であり、ニュースが灯ノ町で起きたという意味ではない。"
+    ],
+    "openThreads": [
+      {
+        "id": "beacon",
+        "title": "消えた灯台の光",
+        "status": "open",
+        "since": "e0001"
+      },
+      {
+        "id": "seawall",
+        "title": "老朽化した防潮堤",
+        "status": "open",
+        "since": "e0001"
+      },
+      {
+        "id": "rail",
+        "title": "眠った鉄道駅",
+        "status": "open",
+        "since": "e0001"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "id": "hall",
+      "name": "町役場",
+      "type": "hall",
+      "x": 374,
+      "y": 260,
+      "level": 1,
+      "description": "十人だけの町政を支える木造の役場。"
+    },
+    {
+      "id": "square",
+      "name": "潮風広場",
+      "type": "square",
+      "x": 506,
+      "y": 342,
+      "level": 1,
+      "description": "住民が出会い、決断を共有する広場。"
+    },
+    {
+      "id": "workshop",
+      "name": "からくり工房",
+      "type": "workshop",
+      "x": 230,
+      "y": 244,
+      "level": 1,
+      "description": "道具や機械を修理する小さな工房。"
+    },
+    {
+      "id": "clinic",
+      "name": "診療所",
+      "type": "clinic",
+      "x": 383,
+      "y": 425,
+      "level": 1,
+      "description": "種族を問わず誰でも診る診療所。"
+    },
+    {
+      "id": "market",
+      "name": "朝市",
+      "type": "market",
+      "x": 622,
+      "y": 264,
+      "level": 1,
+      "description": "魚と花と焼き菓子の小さな市場。"
+    },
+    {
+      "id": "library",
+      "name": "記録館",
+      "type": "library",
+      "x": 513,
+      "y": 157,
+      "level": 1,
+      "description": "事件や伝承を保存する町の記録館。"
+    },
+    {
+      "id": "station",
+      "name": "旧灯ノ駅",
+      "type": "station",
+      "x": 125,
+      "y": 404,
+      "level": 0,
+      "description": "線路は残るが列車は止まっている。"
+    },
+    {
+      "id": "lighthouse",
+      "name": "岬の灯台",
+      "type": "lighthouse",
+      "x": 855,
+      "y": 173,
+      "level": 0,
+      "description": "主灯が消えたままの灯台。"
+    },
+    {
+      "id": "forest",
+      "name": "青鈴の森",
+      "type": "forest",
+      "x": 185,
+      "y": 102,
+      "level": 1,
+      "description": "町の北に広がる海風に強い森。"
+    },
+    {
+      "id": "pier",
+      "name": "漁港",
+      "type": "pier",
+      "x": 746,
+      "y": 451,
+      "level": 1,
+      "description": "漁船と小さな交易船が寄る港。"
+    }
+  ],
+  "residents": [
+    {
+      "id": "r01",
+      "name": "紺野 真白",
+      "reading": "こんの ましろ",
+      "species": "人間",
+      "job": "町長",
+      "emoji": "👩🏻‍💼",
+      "location": "hall",
+      "x": 350,
+      "y": 325,
+      "mood": "決意",
+      "bio": "28歳。十人の町に、持続できるルールを作ろうとしている。",
+      "goal": "町の安全と財政を両立する。"
+    },
+    {
+      "id": "r02",
+      "name": "凪",
+      "reading": "なぎ",
+      "species": "海人",
+      "job": "漁師",
+      "emoji": "🧜",
+      "location": "pier",
+      "x": 746,
+      "y": 506,
+      "mood": "警戒",
+      "bio": "潮の変化を読む寡黙な漁師。岸壁の亀裂に最初に気づいた。",
+      "goal": "海と港を守る。"
+    },
+    {
+      "id": "r03",
+      "name": "モグタ",
+      "reading": "もぐた",
+      "species": "モグラ族",
+      "job": "建築士",
+      "emoji": "🐹",
+      "location": "workshop",
+      "x": 238,
+      "y": 319,
+      "mood": "腕が鳴る",
+      "bio": "地下構造に強い職人。修理に熱中すると昼夜を忘れる。",
+      "goal": "防潮堤と新しい家を造る。"
+    },
+    {
+      "id": "r04",
+      "name": "立花 透",
+      "reading": "たちばな とおる",
+      "species": "人間",
+      "job": "医師",
+      "emoji": "👨🏻‍⚕️",
+      "location": "clinic",
+      "x": 384,
+      "y": 494,
+      "mood": "平静",
+      "bio": "元・都市部の救急医。静かな町に予防医療を根付かせたい。",
+      "goal": "診療所を避難拠点にする。"
+    },
+    {
+      "id": "r05",
+      "name": "キリ",
+      "reading": "きり",
+      "species": "狐の精",
+      "job": "司書",
+      "emoji": "🦊",
+      "location": "library",
+      "x": 522,
+      "y": 228,
+      "mood": "好奇心",
+      "bio": "町の古文書に詳しい。記録の改ざんを何より嫌う。",
+      "goal": "町の歴史を一冊にまとめる。"
+    },
+    {
+      "id": "r06",
+      "name": "ピコ",
+      "reading": "ぴこ",
+      "species": "小型ロボット",
+      "job": "放送局員",
+      "emoji": "🤖",
+      "location": "square",
+      "x": 556,
+      "y": 416,
+      "mood": "活発",
+      "bio": "短いニュースを届ける移動式の報道ロボット。",
+      "goal": "住民全員に正確な情報を届ける。"
+    },
+    {
+      "id": "r07",
+      "name": "ミモザ",
+      "reading": "みもざ",
+      "species": "人間",
+      "job": "花屋",
+      "emoji": "👩🏼‍🌾",
+      "location": "market",
+      "x": 638,
+      "y": 336,
+      "mood": "希望",
+      "bio": "広場で種を分ける花屋。森と町の間に花の道を作りたい。",
+      "goal": "自然を損なわず客を迎える。"
+    },
+    {
+      "id": "r08",
+      "name": "ルル",
+      "reading": "るる",
+      "species": "黒猫の精",
+      "job": "パン職人",
+      "emoji": "🐈‍⬛",
+      "location": "market",
+      "x": 693,
+      "y": 312,
+      "mood": "のんびり",
+      "bio": "焼きたてのパンを配る黒猫。異変の日も店を開く。",
+      "goal": "朝市を人の集まる場所にする。"
+    },
+    {
+      "id": "r09",
+      "name": "倉橋 海",
+      "reading": "くらはし かい",
+      "species": "人間",
+      "job": "鉄道技師",
+      "emoji": "👨🏻‍🔧",
+      "location": "station",
+      "x": 144,
+      "y": 468,
+      "mood": "未練",
+      "bio": "廃線を諦めない元運転士。車庫で一両を整備している。",
+      "goal": "鉄道を再び走らせる。"
+    },
+    {
+      "id": "r10",
+      "name": "ソラ",
+      "reading": "そら",
+      "species": "風の精",
+      "job": "灯台守",
+      "emoji": "🧚",
+      "location": "lighthouse",
+      "x": 850,
+      "y": 247,
+      "mood": "不安",
+      "bio": "光の消えた灯台をひとりで守り続ける。",
+      "goal": "灯台の光を取り戻す。"
+    }
+  ],
+  "chronicle": [
+    {
+      "id": "e0001",
+      "at": "2026-10-22T01:47:00+09:00",
+      "chapter": 1,
+      "kind": "origin",
+      "title": "第一章｜十人と消えた灯",
+      "summary": "東の海を見渡す小さな灯ノ町で、十人が初めて町の記録を開いた。",
+      "story": "町長・真白は役場に住民を集めた。港の凪が防潮堤の亀裂を報告し、灯台守ソラは主灯が依然として点かないと告げる。倉橋海は動かない列車を見つめた。キリは『起きたことだけを年表に書く』と宣言する。町は発展も衰退もあり得る、ここから始まる。",
+      "people": [
+        "r01",
+        "r02",
+        "r05",
+        "r09",
+        "r10"
+      ],
+      "location": "square",
+      "statsBefore": null,
+      "statsAfter": {
+        "treasury": 450,
+        "population": 10,
+        "prosperity": 42,
+        "safety": 58,
+        "nature": 72,
+        "trust": 65,
+        "transport": 24
+      },
+      "effects": [],
+      "source": {
+        "title": "創設時の架空設定",
+        "url": "",
+        "publishedAt": "",
+        "note": "現実のニュースを参照しない初期章"
+      },
+      "canonAdd": [
+        "灯ノ町の記録が始まった。",
+        "防潮堤に亀裂があり、灯台の主灯は故障、鉄道は休止中。"
+      ],
+      "threadUpdates": []
+    }
+  ]
+}
