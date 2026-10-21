@@ -677,7 +677,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);background();
  if(mode==='dying'){ctx.fillStyle=`rgba(241,35,88,${Math.min(.25,deathTimer*.38)})`;ctx.fillRect(0,0,W,H)}
  ctx.restore();}
 function frame(time){if(!frame.prev)frame.prev=time;let dt=Math.min(.04,(time-frame.prev)/1000);frame.prev=time;
- if(mode==='playing'||mode==='dying'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing'&&mode!=='dying')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
+ if(mode==='playing'||mode==='dying'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing'&&mode!=='dying')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level&&mode!=='survivorDraft'){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
  if(mode==='playing')scheduleMusic();draw();requestAnimationFrame(frame)}
 
 // Version 3.2: one pointer per stick, multiple pointers per action; tilt controls run speed.
