@@ -420,6 +420,20 @@ button,a{touch-action:manipulation}
  .coverBtn{min-height:57px;padding:7px 13px;font-size:21px}
 }
 
+
+/* Very short phones: the 1.5x controls stay large; preserve a nonoverlapping reading pane. */
+@media(max-width:700px) and (max-height:600px) and (orientation:portrait){
+ #location{font-size:19px}
+ #top{gap:5px;padding-top:calc(5px + env(safe-area-inset-top,0px));padding-bottom:4px}
+ #topActions{gap:5px}
+ .iconbtn{min-height:62px}
+ #centerView{top:calc(175px + env(safe-area-inset-top,0px));width:50px;height:50px}
+ #dialog{min-height:clamp(154px,36dvh,220px);max-height:calc(100% - 185px)}
+ #prose{max-height:min(26dvh,170px)}
+ #bottom{gap:4px;padding-top:4px;padding-bottom:calc(4px + env(safe-area-inset-bottom,0px))}
+ .barbtn{min-height:58px}
+}
+
 </style>
 </head>
 <body>
