@@ -247,9 +247,16 @@ function pickupInReach(c,p,oldX,oldY){
 }
 function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
  const it=c.item,existing=loadout.find(w=>w.id===it.id);
- if(existing){existing.tier=Math.min(8,Math.max(existing.tier,it.tier||1)+1);toast('WEAPON LEVEL UP '+itemName(existing),1.5)}
- else if(loadout.length<6){loadout.push(it);activeSlot=loadout.length-1;toast('NEW WEAPON '+itemName(it),1.5)}
- else{score+=300;toast('武器枠満杯：スコア +300',1.5)}
+ if(existing){
+   existing.tier=Math.min(99,Math.max(existing.tier,it.tier||1)+randomInt(Math.random,1,3));
+   if(Math.random()<.32)existing.affix=['fire','frost','shock','vamp','echo'][randomInt(Math.random,0,4)];
+   toast('ランダム強化！ '+itemName(existing)+' Lv.'+existing.tier,1.5);
+ }else if(loadout.length<WEAPONS.length){
+   const gained={...it,tier:Math.min(99,(it.tier||1)+randomInt(Math.random,0,2))};
+   loadout.push(gained);activeSlot=loadout.length-1;
+   toast('NEW 自動武器 '+itemName(gained)+' Lv.'+gained.tier,1.5);
+ }else{const lucky=loadout[randomInt(Math.random,0,loadout.length-1)];
+   lucky.tier=Math.min(99,lucky.tier+randomInt(Math.random,1,3));toast('全装備コンプリート！ '+itemName(lucky)+' 強化',1.5)}
  part(c.x,pickupVisualY(c),rarity(it.tier),30);sound(750,.22,'triangle')
  }else if(c.type==='relic'){
  if(!hasRelic(c.relic)){if(relics.length>=3)relics.shift();relics.push(c.relic);toast('レリック '+(RELICS.find(t=>t.id===c.relic)?.name||''),1.5)}else{score+=250;toast('重複レリック +250')}
@@ -264,15 +271,15 @@ function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
 // Survivor-style upgrade draft. Kept separate from stage and checkpoint progression.
 let survivorXP=0,survivorLevel=1,survivorPending=0;
 let autoWeaponCooldowns=[];
-const survivorWeapons=['sword','dagger','spear','hammer','bow','blaster','boomerang'];
+const survivorWeapons=WEAPONS.filter(w=>w.id!=='fist').map(w=>w.id);
 const survivorPanel=document.createElement('div');
 survivorPanel.id='survivorDraft';
 survivorPanel.style.cssText='position:fixed;inset:0;z-index:1000;display:none;align-items:flex-end;justify-content:center;background:transparent;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overflow:auto;color:white;font-family:system-ui,sans-serif';
 document.body.appendChild(survivorPanel);
 function survivorOffer(){
- const options=survivorWeapons.map(id=>({id,entry:loadout.find(w=>w.id===id)})).filter(o=>!o.entry||o.entry.tier<8);
+ const options=survivorWeapons.map(id=>({id,entry:loadout.find(w=>w.id===id)})).filter(o=>!o.entry||o.entry.tier<99);
  for(let i=options.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[options[i],options[j]]=[options[j],options[i]]}
- return options.filter(o=>o.entry||loadout.length<6).slice(0,3);
+ return options.filter(o=>o.entry||loadout.length<WEAPONS.length).slice(0,3);
 }
 function survivorDraft(){
  if(mode!=='playing'||survivorPending<=0)return;
@@ -282,7 +289,7 @@ function survivorDraft(){
  survivorPanel.replaceChildren();
  const body=document.createElement('div');body.style.cssText='width:min(520px,100%);max-height:56vh;overflow:auto;overscroll-behavior:contain;background:rgba(28,37,68,.96);border:2px solid #7de8e1;border-radius:20px;padding:18px;box-shadow:0 12px 40px #000b';
  const heading=document.createElement('h2');heading.textContent='LEVEL '+survivorLevel+' — 武器を1つ選ぶ';heading.style.cssText='margin:0 0 12px;text-align:center;font-size:clamp(18px,5vw,26px)';body.appendChild(heading);
- for(const offer of offers){const def=WEAPONS.find(w=>w.id===offer.id);if(!def)continue;const btn=document.createElement('button');btn.type='button';btn.style.cssText='display:block;width:100%;margin:9px 0;padding:14px;text-align:left;color:white;background:#33466b;border:1px solid #7d9fd0;border-radius:12px;font-size:16px;touch-action:manipulation';btn.textContent=def.icon+' '+def.name+'　'+(offer.entry?'Lv.'+offer.entry.tier+' → Lv.'+(offer.entry.tier+1):'NEW!')+' ／ '+def.desc;btn.addEventListener('click',()=>{const existing=loadout.find(w=>w.id===offer.id);if(existing)existing.tier=Math.min(8,existing.tier+1);else loadout.push({id:offer.id,tier:1,affix:'none'});survivorPending--;survivorPanel.style.display='none';mode='playing';saveState();updateHud(true);if(survivorPending)survivorDraft()});body.appendChild(btn)}
+ for(const offer of offers){const def=WEAPONS.find(w=>w.id===offer.id);if(!def)continue;const btn=document.createElement('button');btn.type='button';btn.style.cssText='display:block;width:100%;margin:9px 0;padding:14px;text-align:left;color:white;background:#33466b;border:1px solid #7d9fd0;border-radius:12px;font-size:16px;touch-action:manipulation';btn.textContent=def.icon+' '+def.name+'　'+(offer.entry?'Lv.'+offer.entry.tier+' → Lv.'+(offer.entry.tier+1):'NEW!')+' ／ '+def.desc;btn.addEventListener('click',()=>{const existing=loadout.find(w=>w.id===offer.id);if(existing){existing.tier=Math.min(99,existing.tier+randomInt(Math.random,1,3));if(Math.random()<.25)existing.affix=['fire','frost','shock','vamp','echo'][randomInt(Math.random,0,4)]}else loadout.push({id:offer.id,tier:randomInt(Math.random,1,3),affix:['none','fire','frost','shock','vamp','echo'][randomInt(Math.random,0,5)]});survivorPending--;survivorPanel.style.display='none';mode='playing';saveState();updateHud(true);if(survivorPending)survivorDraft()});body.appendChild(btn)}
  survivorPanel.appendChild(body);survivorPanel.style.display='flex';
 }
 function survivorGainXP(amount){
@@ -290,7 +297,12 @@ function survivorGainXP(amount){
  while(survivorXP>=survivorLevel*5+5){survivorXP-=survivorLevel*5+5;survivorLevel++;survivorPending++}
  // Defer the level-up overlay until the current physics/enemy iteration finishes.
 }
-function enemyDeath(e){e.alive=false;kills++;survivorGainXP(2);runStats.kills++;combo++;maxCombo=Math.max(combo,maxCombo);comboTimer=3.3;score+=(100+e.kind*20)*(1+Math.floor(combo/5))*(hasRelic('crown')?1.5:1);part(e.x+e.w/2,e.y+e.h/2,ENEMY_TYPES[e.kind]?.color||'#ffe19b',18+e.kind,1);sound(350+e.kind*28,.09,'triangle');if(e.kind===8&&!e.small&&level.enemies.length<110){for(let d of [-1,1])level.enemies.push({...e,alive:true,small:true,hp:1,maxhp:1,w:15,h:18,x:e.x+d*18,y:e.y+9,baseY:e.y+9,kind:0,dir:d,hit:-1})}}
+function enemyDeath(e){e.alive=false;kills++;survivorGainXP(2);runStats.kills++;combo++;maxCombo=Math.max(combo,maxCombo);comboTimer=3.3;score+=(100+e.kind*20)*(1+Math.floor(combo/5))*(hasRelic('crown')?1.5:1);part(e.x+e.w/2,e.y+e.h/2,ENEMY_TYPES[e.kind]?.color||'#ffe19b',18+e.kind,1);sound(350+e.kind*28,.09,'triangle');
+ // Enemies sometimes drop a weapon crate. Elites have a higher drop chance.
+ if(level.pickups.length<260&&Math.random()<(e.elite?.62:.13)+level.difficulty*.05){
+   level.pickups.push({x:e.x+e.w/2,y:e.y+e.h*.45,taken:false,type:'weapon',item:item(Math.random,level.difficulty)});
+ }
+ if(e.kind===8&&!e.small&&level.enemies.length<110){for(let d of [-1,1])level.enemies.push({...e,alive:true,small:true,hp:1,maxhp:1,w:15,h:18,x:e.x+d*18,y:e.y+9,baseY:e.y+9,kind:0,dir:d,hit:-1})}}
 function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||e.hit===id||e.hitGrace>0)return false;
  if(e.kind===5&&!e.boss && e.dir*(sourceX-(e.x+e.w/2))>0){damage=Math.max(1,Math.ceil(damage*.5));}
  e.hit=id;e.hp-=damage;e.flash=.10;
@@ -305,7 +317,7 @@ function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||e.hit===id||e.
  if(e.boss){e.hitGrace=.16;shake=Math.max(shake,4);part(e.x+e.w/2,e.y+e.h/2,'#ffe2a5',10,1);sound(155,.1,'sawtooth');if(e.hp<=0){e.alive=false;runStats.bosses++;slowMotion=.35;shake=15;part(e.x+e.w/2,e.y+e.h/2,BOSSES[e.kind].color,75,1.8);toast('BOSS BREAK！ '+BOSSES[e.kind].name,2);sound(680,.4,'triangle')}}
  else{part(e.x+e.w/2,e.y+e.h/2,'#fffac2',5,.6);if(e.hp<=0)enemyDeath(e)}return true}
 function useAttack(){const p=player,w=weapon(),it=loadout[activeSlot]||{tier:1,affix:'none'};punchCooldown=w.cd*(hasRelic('core')?.80:1)*(it.affix==='echo'?.89:1);punchTime=Math.max(.13,Math.min(.28,w.cd*.56));attackId++;runStats.attacks++;
- const power=w.dmg+(it.tier>=3?1:0)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
+ const power=w.dmg+Math.floor((Math.max(1,it.tier||1)-1)/3)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
  function addShot(vx,vy,damage=power,r=6,t=1.6,more={}){bulletsFriendly.push({x:x+dir*18,y,vx,vy,damage,r,t,color:col,id:++attackId,hits:new Set(),affix:it.affix,...more});runStats.shots++}
  function slash(range,top,height,damage=power,kind='arc'){const sx=dir===1?p.x+p.w-4:p.x-range+4;const y0=p.y+top;slashes.push({x:sx,y:y0,w:range,h:height,d:damage,id:attackId,life:.16,max:.16,color:col,kind,dir,affix:it.affix});for(const e of level.enemies)if(e.alive&&hitRect(sx,y0,range,height,e.x,e.y,e.w,e.h))applyHit(e,damage,attackId,x,it.affix);if(level.boss?.alive&&hitRect(sx,y0,range,height,level.boss.x,level.boss.y,level.boss.w,level.boss.h))applyHit(level.boss,damage,attackId,x,it.affix);
  for(const b of projectiles){if(hitRect(sx,y0,range,height,b.x-b.r,b.y-b.r,b.r*2,b.r*2)){b.t=0;part(b.x,b.y,'#c5fffe',4,.5)}}}
@@ -355,23 +367,40 @@ function createLevel(respawn=false){
  let prev=platforms[0],x=460,amount=16+world*2+(stage===2?3:0),prefix=0;
  for(let i=1;i<=amount;i++){
   const final=i===amount,cpId=i===Math.floor(amount/3)?1:i===Math.floor(amount*2/3)?2:0;
-  let gap=randomInt(r,92+Math.floor(difficulty*10),151+Math.floor(difficulty*33));
+  let gap=randomInt(r,92+Math.floor(difficulty*10),168+Math.floor(difficulty*33));
   if(cpId)gap=Math.min(gap,118);
-  let step=cpId?randomInt(r,-22,24):randomInt(r,-70,67),y=clamp(prev.y+step,baseY-104,baseY+54);
-  if(y<prev.y-44)gap=Math.min(gap,155);if(final){y=clamp(prev.y+randomInt(r,-15,18),baseY-65,baseY+35);gap=Math.min(gap,120)}
-  const width=final?(stage===2?650:345):cpId?365:randomInt(r,205,335-Math.floor(difficulty*23));
+  let step=cpId?randomInt(r,-32,35):randomInt(r,-98,90),y=clamp(prev.y+step,baseY-155,baseY+82);
+  if(y<prev.y-65)gap=Math.min(gap,112);else if(y<prev.y-38)gap=Math.min(gap,142);if(final){y=clamp(prev.y+randomInt(r,-15,18),baseY-65,baseY+35);gap=Math.min(gap,120)}
+  const width=final?(stage===2?650:345):cpId?365:randomInt(r,195,340-Math.floor(difficulty*20));
   x=prev.x+prev.w+gap;
-  const p={x,y,w:width,kind:!final&&!cpId&&i>2&&chance(r,.12+difficulty*.16)?'crumble':'solid',active:true,collapse:0,checkpointId:cpId};platforms.push(p);
-  if(i>1&&!cpId&&chance(r,.13+difficulty*.20))saws.push({x:prev.x+prev.w+gap*.5,y:Math.min(prev.y,p.y)-55,amp:randomInt(r,13,38),phase:r()*TAU,rate:randomInt(r,2,5)*.72,size:randomInt(r,12,19)});
+  const p={x,y,w:width,kind:!final&&!cpId&&i>2&&chance(r,.23+difficulty*.19)?'crumble':'solid',active:true,collapse:0,checkpointId:cpId};
+  if(i>2&&!cpId&&!final&&chance(r,.46)){
+    const bridgeX=prev.x+prev.w+gap*.32,bridgeY=Math.min(prev.y,p.y)-randomInt(r,16,36);
+    platforms.push({x:bridgeX,y:bridgeY,w:randomInt(r,72,92),kind:'moving',active:true,collapse:0,
+      anchorX:bridgeX,anchorY:bridgeY,phase:r()*TAU,rate:.7+r()*.8,ampX:8+r()*17,ampY:9+r()*20});
+  }
+  platforms.push(p);
+  if(i>1&&!cpId&&chance(r,.29+difficulty*.24))saws.push({x:prev.x+prev.w+gap*.5,y:Math.min(prev.y,p.y)-55,amp:randomInt(r,13,38),phase:r()*TAU,rate:randomInt(r,2,5)*.72,size:randomInt(r,12,19)});
   if(!final){
    const h=cpId?3:randomInt(r,0,5);
-   if(!cpId&&i>2&&i%4===0&&chance(r,.77))springPads.push({x:p.x+p.w*.28,y:p.y,w:40,phase:r()*TAU});
+   if(!cpId&&i>2&&i%3===0&&chance(r,.82))springPads.push({x:p.x+p.w*.28,y:p.y,w:40,phase:r()*TAU});
    if(h===0){spikes.push({x:p.x+p.w*(.41+r()*.18),y:p.y,w:randomInt(r,28,51)})}
    if(h===1||h===4||h===5){enemies.push(makeEnemy(r,p,p.x+p.w*(.45+r()*.22),difficulty));if(i>4&&chance(r,.26+difficulty*.24)){enemies.push(makeEnemy(r,p,p.x+p.w*.73,difficulty))}}
+   // Increasing swarms: flyers available from world 1, high-HP elites mixed into each stage.
+   if(i>1){
+     const count=Math.min(5,1+Math.floor(world/3)+randomInt(r,0,2));
+     for(let j=0;j<count;j++){
+       const position=p.x+30+(p.w-60)*(j+1)/(count+1);
+       const kind=(j===count-1&&(i%3===0||chance(r,.28)))?(world>=4&&chance(r,.4)?10:3):null;
+       enemies.push(makeEnemy(r,p,position,difficulty,kind));
+     }
+   }
    if(h===2&&i>=3)lasers.push({x:p.x+p.w*(.42+r()*.15),y:p.y,offset:r()*3.3,period:1.8+r()*1.7});
+   if(i>3&&!cpId&&chance(r,.20+difficulty*.15))lasers.push({x:p.x+p.w*(.43+r()*.17),y:p.y,offset:r()*4,period:2.1+r()*1.8});
+   if(i>4&&!cpId&&chance(r,.19+difficulty*.1))spikes.push({x:p.x+p.w*(.57+r()*.10),y:p.y,w:randomInt(r,18,36)});
    if(h===3&&chance(r,.35))pickups.push({x:p.x+p.w*.53,y:p.y-78,taken:false,type:'shield'});
    if(!cpId&&chance(r,.34))pickups.push({x:p.x+p.w*(.29+r()*.43),y:p.y-63,taken:false,type:'score'});
-   if(i===2||i===Math.floor(amount*.48)||i===amount-2){pickups.push({x:p.x+p.w*.24,y:p.y-90,taken:false,type:'weapon',item:item(r,difficulty)})}
+   if(i===2||i===Math.floor(amount*.48)||i===amount-2||i%4===0){pickups.push({x:p.x+p.w*.24,y:p.y-90,taken:false,type:'weapon',item:item(r,difficulty)})}
    if((i===5&&stage===0)||(i===8&&stage===2)){pickups.push({x:p.x+p.w*.68,y:p.y-102,taken:false,type:'relic',relic:RELICS[randomInt(r,0,RELICS.length-1)].id})}
   }
   prev=p;
@@ -386,12 +415,23 @@ function createLevel(respawn=false){
  checkpointX=cp?cp.x+44:0;
  camera=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer();updateHud(true);musicBeat=-1;
 }
-function makeEnemy(r,p,x,difficulty){const kind=randomInt(r,0,Math.min(11,3+Math.floor(difficulty*10))),info=ENEMY_TYPES[kind],hp=info.hp+((difficulty>.72&&chance(r,.25))?1:0);return {x,y:p.y-30,w:kind===4?31:kind===5?29:kind===11?28:25,h:kind===4?31:30,alive:true,kind,hp,maxhp:hp,vx:randomInt(r,72,135)+difficulty*48,dir:chance(r,.5)?1:-1,min:p.x+18,max:p.x+p.w-41,baseY:p.y-30,phase:r()*TAU,shoot:.7+r()*1.4,platform:p,hit:-1,flash:0,alert:0,charge:0,blink:0,small:false}}
+function makeEnemy(r,p,x,difficulty,forcedKind=null){
+ const kind=forcedKind??randomInt(r,0,Math.min(11,3+Math.floor(difficulty*10)));
+ const info=ENEMY_TYPES[kind],elite=chance(r,.11+difficulty*.20);
+ const hp=elite?Math.ceil((info.hp+1)*(2.7+difficulty*1.5)):info.hp+((difficulty>.72&&chance(r,.25))?1:0);
+ const flying=kind===3||kind===10;
+ return {x,y:p.y-(flying?80:30),w:kind===4?31:kind===5?29:kind===11?28:25,h:kind===4?31:30,
+   alive:true,kind,elite,hp,maxhp:hp,vx:(randomInt(r,72,135)+difficulty*48)*(elite?.82:1),
+   dir:chance(r,.5)?1:-1,min:p.x+18,max:p.x+p.w-41,
+   baseY:p.y-(flying?35:30),phase:r()*TAU,shoot:.7+r()*1.4,platform:p,hit:-1,
+   flash:0,alert:0,charge:0,blink:0,small:false};
+}
+
 function resetPlayer(){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
  player={x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
 function saveState(){try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
-function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ 14武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。装備切替で武器を変更。誘導砲は武器アイテムを拾って入手できます。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、Q=武器変更、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ 14武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。拾った武器は全種類が自動同時攻撃！重複入手でランダム強化。死亡すると全武器をロスト。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、Q=武器変更、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>{const raw=$('seedInput').value.trim();begin(raw!==''?clamp(Number(raw),0,999999999):randSeed())};
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
@@ -405,7 +445,7 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('substats').textContent=`💀${deaths} ｜ ⏱${stageTime.toFixed(1)}s ｜ SEED ${String(seed).padStart(9,'0')} ｜ ✦${Math.floor(score)} ｜ 武器LV ${survivorLevel} (${survivorXP}/${survivorLevel*5+5}XP)`;
  $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 重力 ${level.gravity>2000?'強':'弱'} ｜ 🏁${checkpointIndex}/2`;
  $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${punchCooldown<=0?'◉':'○'}`;
- $('weaponStrip').innerHTML=`${itemName(loadout[activeSlot])} <small>[${activeSlot+1}/${loadout.length}]</small>`;
+ $('weaponStrip').innerHTML=`⚔ 自動${loadout.length}種 <small>手動：${itemName(loadout[activeSlot])} [${activeSlot+1}/${loadout.length}]</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
  $('comboState').textContent=combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'';
  $('bossState').textContent=level.boss&&level.boss.alive?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===2?'覚醒':'通常'}】`:'';
@@ -442,35 +482,58 @@ function scheduleMusic(){if(muted||mode!=='playing'||!audioCtx||audioCtx.state!=
 function toggleSound(){muted=!muted;if(!muted)startMusic();$('soundTiny').textContent=muted?'♫ OFF':'♫ ON';saveState()}
 
 function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
-function die(cause='DEAD'){if(mode!=='playing'||player.dead)return;player.dead=true;mode='dying';deaths++;deathTimer=.75;slowMotion=.23;shake=17;part(player.x+13,player.y+15,'#ff5486',36,1.35);toast(cause,.68);sound(125,.26,'sawtooth',.12);saveState()}
+function die(cause='DEAD'){if(mode!=='playing'||player.dead)return;player.dead=true;mode='dying';deaths++;
+ // A death ends the build: no weapon, upgrade or XP survives the next respawn.
+ loadout=[{id:'fist',tier:1,affix:'none'}];activeSlot=0;autoWeaponCooldowns=[];
+ survivorXP=0;survivorLevel=1;survivorPending=0;
+ deathTimer=.75;slowMotion=.23;shake=17;part(player.x+13,player.y+15,'#ff5486',36,1.35);
+ toast('武器全ロスト！ '+cause,.95);sound(125,.26,'sawtooth',.12);saveState()}
 function hitRect(ax,ay,aw,ah,bx,by,bw,bh){return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by}
 function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);return (cx-nx)**2+(cy-ny)**2<r*r}
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
 function autoWeaponFire(dt){
+ // Every owned weapon attacks independently, including melee and fists.
  const p=player;if(!p||!level||mode!=='playing')return;
  const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing']);
- let target=null,nearest=520*520;
  const candidates=level.boss?.alive?[...level.enemies,level.boss]:level.enemies;
- for(const e of candidates){if(!e.alive)continue;const dx=e.x+e.w/2-(p.x+p.w/2),dy=e.y+e.h/2-(p.y+p.h/2),d=dx*dx+dy*dy;
-   if(d<nearest){nearest=d;target=e}}
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
-   if(!w||!rangedTypes.has(w.type)||autoWeaponCooldowns[i]>0||!target)continue;
-   autoWeaponCooldowns[i]=Math.max(.65,w.cd*3.2)/(1+Math.min(7,Math.max(0,(it.tier||1)-1))*.06);
-   const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime;
+   if(!w||autoWeaponCooldowns[i]>0)continue;
+   const reach=rangedTypes.has(w.type)?660:Math.max(80,w.range+48);
+   let target=null,nearest=reach*reach;
+   for(const e of candidates){if(!e.alive)continue;
+     const dx=e.x+e.w/2-(p.x+p.w/2),dy=e.y+e.h/2-(p.y+p.h/2);
+     const d=dx*dx+dy*dy;if(d<nearest){nearest=d;target=e}
+   }
+   if(!target)continue;
+   const levelBoost=Math.min(18,Math.max(0,(it.tier||1)-1));
+   autoWeaponCooldowns[i]=Math.max(.19,Math.max(.28,w.cd*2.8)/(1+levelBoost*.075));
+   const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime,oldVx=p.vx;
    try{activeSlot=i;p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack()}
-   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=oldPunchTime}
+   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=oldPunchTime;p.vx=oldVx}
  }
+ // Bound on-screen projectile work in extreme multi-weapon builds.
+ if(bulletsFriendly.length>320)bulletsFriendly.splice(0,bulletsFriendly.length-320);
 }
+
 function update(dt){
  if(!level)return;clock+=dt;stageTime+=mode==='playing'?dt:0;hudTick-=dt;shake=Math.max(0,shake-dt*39);slowMotion=Math.max(0,slowMotion-dt);toastTimer-=dt;if(toastTimer<=0)$('toast').style.opacity='0';
  for(const q of particles){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=650*dt;q.l-=dt}particles=particles.filter(q=>q.l>0);
  if(mode==='dying'){deathTimer-=dt;if(deathTimer<=0){createLevel(true);mode='playing';toast(checkpointIndex?'中間地点から再挑戦！':'RETRY もう一度！',.85)}return}
  if(mode!=='playing')return;
- const p=player,oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
+ const p=player;
+ // Move lift platforms before collision. Carry the character when standing on a lift.
+ for(const s of level.platforms)if(s.kind==='moving'){
+   const previousX=s.x,previousY=s.y;
+   const riding=p.grounded&&Math.abs(p.y+p.h-s.y)<5&&p.x+p.w>s.x+2&&p.x<s.x+s.w-2;
+   s.x=s.anchorX+Math.sin(clock*s.rate+s.phase)*s.ampX;
+   s.y=s.anchorY+Math.sin(clock*s.rate*1.2+s.phase)*s.ampY;
+   if(riding){p.x+=s.x-previousX;p.y+=s.y-previousY}
+ }
+ const oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
  p.grace=Math.max(0,p.grace-dt);punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
  const keyDir=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),raw=Math.abs(joyX)>.035?joyX:keyDir;
@@ -513,7 +576,11 @@ function update(dt){
      e.x+=e.vx*e.dir*dt*(e.charge>0?3.6:1)*(e.frost>0?.42:1);e.charge=Math.max(0,e.charge-dt);
      if(e.x<e.min){e.x=e.min;e.dir=1}if(e.x>e.max){e.x=e.max;e.dir=-1}}
    if(kind===1){e.phase+=dt*5;e.y=e.baseY-Math.max(0,Math.sin(e.phase))*61}
-   if(kind===3||kind===10){e.phase+=dt*(kind===10?4.2:2.5);e.x+=Math.sin(e.phase)*43*dt;e.x=clamp(e.x,e.min,e.max);e.y=e.baseY-58+Math.sin(e.phase*1.6)*40}
+   if(kind===3||kind===10){e.phase+=dt*(kind===10?4.2:2.5);
+     const pursuit=near?Math.sign(p.x-e.x)*Math.min(55,Math.abs(p.x-e.x)*.5):0;
+     e.x+=((Math.sin(e.phase)*43)+pursuit)*dt*(e.frost>0?.5:1);
+     e.x=clamp(e.x,e.min,e.max);
+     e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
    if(kind===9){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){e.x=clamp(p.x+(p.face>0?130:-130),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=2.8}}
    if(kind===2||kind===6||kind===7||kind===9||kind===11){e.shoot-=dt;if(e.shoot<=0&&near){const speed=kind===6?440:kind===11?375:kind===9?310:270+diff*110;
       const count=kind===11?3:1;for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,p.x+13,p.y+16+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
@@ -684,7 +751,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  // Keep the ground at its existing screen height, so mobile controls do not conceal Lulu.
  ctx.save();ctx.translate(0,baseY*(1-zoom));ctx.scale(zoom,zoom);ctx.translate(-camera,0);
  const t=level.theme;
- for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>camera+W+40)continue;if(!s.active)continue;ctx.fillStyle=t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){ctx.fillStyle='#ffe3b6';for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);if(s.collapse>0){ctx.fillStyle='#ffb975';ctx.fillRect(s.x,s.y-4,s.w*(s.collapse/.55),3)}}}
+ for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>camera+W+40)continue;if(!s.active)continue;ctx.fillStyle=s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,s.kind==='moving'?18:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){ctx.fillStyle='#ffe3b6';for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);if(s.collapse>0){ctx.fillStyle='#ffb975';ctx.fillRect(s.x,s.y-4,s.w*(s.collapse/.55),3)}}}
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>camera+W+30)continue;
    const active=checkpointIndex>=s.checkpointId;
    ctx.fillStyle=active?'#83ffe0':'#ffde89';ctx.fillRect(s.x+39,s.y-82,4,82);
@@ -706,7 +773,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
  if(level.boss?.alive){const b=level.boss;const bstate=b.hitGrace>0?'hurt':b.chargeWindup>0?'attack':'idle';const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45);if(!drawRHSprite('boss',bstate,clock*(bstate==='attack'?9:3),b.x+b.w/2-bw/2,b.y+b.h-bh+6,bw,bh,b.dir||1,b.hitGrace>0,(b.kind%4)*12)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);if(b.chargeWindup>0){ctx.save();ctx.globalAlpha=.5+.35*Math.sin(clock*26);ctx.fillStyle='#ffdf7b';const from=b.chargeDir>0?b.x+b.w:b.from,to=b.chargeDir>0?b.to:b.x;ctx.fillRect(from,b.platform.y-6,Math.max(8,to-from),5);ctx.fillStyle='#fff4b8';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);ctx.restore()}}
  for(const bullet of projectiles){ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
  // Goal portal: locked while the final-stage boss survives.
