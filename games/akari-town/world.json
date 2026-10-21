@@ -516,6 +516,22 @@
         "status": "HOLD",
         "url": "https://docs.google.com/spreadsheets/d/1tqL4GJXNk1tm3U8ugYAiGp-KfHajmsd6K3sfnJHA4tU/edit"
       }
+    },
+    {
+      "eventId": "e0003",
+      "status": "unavailable",
+      "channel": "Buffer/X",
+      "at": "2026-10-22T08:27:00+09:00",
+      "reason": "GitHub main confirmed, but Pages cannot be verified: techmew.github.io DNS lookup failed in available external tools. Current Buffer_GAS V10 only accepts Hatena BLOG_POST, so GAME_UPDATE row 537 remains HOLD. X not submitted.",
+      "text": "【灯ノ町・第3章】発展：旧駅の台車を修理し、危険な防潮堤を避けた朝市への輸送路を確保。人口10・繁栄41・安全62。https://techmew.github.io/games/akari-town/ #灯ノ町",
+      "queue": {
+        "provider": "Google Drive / Buffer投稿キュー",
+        "sheet": "キュー",
+        "row": 537,
+        "postKey": "AKARI_TOWN_E0003_X1",
+        "status": "HOLD",
+        "url": "https://docs.google.com/spreadsheets/d/1tqL4GJXNk1tm3U8ugYAiGp-KfHajmsd6K3sfnJHA4tU/edit"
+      }
     }
   ]
 }
