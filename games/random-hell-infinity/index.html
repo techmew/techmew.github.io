@@ -203,6 +203,14 @@ function rarity(tier){return ['','#dce8ff','#68f2fa','#ffc466'][tier]||'#fff'}
 function itemName(it){const w=WEAPONS.find(w=>w.id===it.id)||WEAPONS[0];return `${w.icon}${w.name}${it.tier>=3?' ★★★':it.tier===2?' ★★':''}${it.affix==='fire'?' [炎]':it.affix==='frost'?' [氷]':it.affix==='shock'?' [雷]':it.affix==='echo'?' [残響]':it.affix==='vamp'?' [吸魂]':''}`}
 function swapWeapon(){if(mode!=='playing'||loadout.length<2)return;activeSlot=(activeSlot+1)%loadout.length;toast('装備変更：'+itemName(loadout[activeSlot]),.7);sound(650,.08,'sine');updateHud(true)}
 function pickupVisualY(c){return c.y+Math.sin(clock*4+c.x)*7}
+// Swept pickup detection also catches items crossed between physics frames.
+function pickupInReach(c,p,oldX,oldY){
+ const cy=pickupVisualY(c),radius=c.type==='weapon'?14:11,reach=radius+(hasRelic('magnet')?80:7);
+ const left=Math.min(oldX,p.x),right=Math.max(oldX+p.w,p.x+p.w);
+ const top=Math.min(oldY,p.y),bottom=Math.max(oldY+p.h,p.y+p.h);
+ const dx=c.x-clamp(c.x,left,right),dy=cy-clamp(cy,top,bottom);
+ return dx*dx+dy*dy<=reach*reach;
+}
 function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
  const it=c.item,existing=loadout.find(w=>w.id===it.id);
  if(existing){existing.tier=Math.min(8,Math.max(existing.tier,it.tier||1)+1);toast('WEAPON LEVEL UP '+itemName(existing),1.5)}
@@ -428,7 +436,7 @@ function update(dt){
  for(const q of particles){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=650*dt;q.l-=dt}particles=particles.filter(q=>q.l>0);
  if(mode==='dying'){deathTimer-=dt;if(deathTimer<=0){createLevel(true);mode='playing';toast(checkpointIndex?'中間地点から再挑戦！':'RETRY もう一度！',.85)}return}
  if(mode!=='playing')return;
- const p=player,oldBottom=p.y+p.h;
+ const p=player,oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
  p.grace=Math.max(0,p.grace-dt);punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
  const keyDir=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),raw=Math.abs(joyX)>.035?joyX:keyDir;
@@ -461,7 +469,7 @@ function update(dt){
    if(pad&&springCooldown<=0){bounced=true;p.vy=-level.jump*1.28;p.grounded=false;p.coyote=0;p.jumps=1;springCooldown=.34;part(p.x+13,landing.y,'#ffe787',24,.8);sound(910,.17,'triangle');toast('ぴょーん！',.45)}if(!p.grounded){part(p.x+12,p.y+p.h,'#dffbff',3,.27)}p.coyote=.115;p.jumps=hasRelic('wing')?3:2;airDash=1;if(landing.kind==='crumble'&&landing.collapse===0)landing.collapse=.66}
  else{p.coyote=p.grounded?.115:Math.max(0,p.coyote-dt)}p.grounded=!!landing&&!bounced;
  for(const s of level.platforms)if(s.collapse>0){s.collapse-=dt;if(s.collapse<=0){s.active=false;part(s.x+s.w/2,s.y,'#fcb38e',22)}}
- for(const c of level.pickups)if(!c.taken){const cy=pickupVisualY(c),radius=c.type==='weapon'?14:11;const nearestX=clamp(c.x,p.x,p.x+p.w),nearestY=clamp(cy,p.y,p.y+p.h);const reach=radius+(hasRelic('magnet')?80:7);if(dist(nearestX,nearestY,c.x,cy)<=reach)absorbPickup(c)}
+ for(const c of level.pickups)if(!c.taken&&pickupInReach(c,p,oldX,oldY))absorbPickup(c)
  for(const e of level.enemies){if(!e.alive)continue;
    e.burn=Math.max(0,(e.burn||0)-dt);e.frost=Math.max(0,(e.frost||0)-dt);
    if(e.burn>0){e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.42;applyHit(e,1,++attackId,e.x,'none');if(!e.alive)continue}}
