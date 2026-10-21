@@ -63,3 +63,12 @@ https://techmew.github.io/games/eleventh-witness/
 - x_post_url: 未取得
 - message: 【存在しない11人目】第一夜『黒い招待状』を改稿。人物の証言と宿帳・写真・時計の手掛かりを中心とした本格ミステリーに調整し、画面の過剰な装飾を除きました。 https://techmew.github.io/games/eleventh-witness/ 遊んだ感想や改善点を返信で教えてください。次回の開発で確認します。
 - reason: GitHubコミット成功、ただしPages最新公開とゲーム専用のBuffer認証済み送信手段を未確認。送信成功を示す実IDなし。旧病みかわ/画像実装済みをうたった未送信文案は失効とし、勝手に送らない。
+
+## 第二夜「証言の隙間」更新告知候補・2026-10-21
+- status: HOLD_BUFFER_ROUTE_AND_LIVE_PAGE_UNVERIFIED
+- post_key: NOVEL_c969f707f17e6b72662deb973ac8c9e9f7e16d72
+- code_commit: c969f707f17e6b72662deb973ac8c9e9f7e16d72
+- target_url: https://techmew.github.io/games/eleventh-witness/
+- buffer_id: 未取得 / x_post_url: 未取得
+- message: 【存在しない11人目】第二夜「証言の隙間」を実装しました。乾燥室への内線記録と落下音の時刻を検証し、疑惑か記録かで結末が分かれます。https://techmew.github.io/games/eleventh-witness/ 遊んだ感想・気になった点・追加してほしい要素をこの投稿の返信で教えてください。次回の開発で確認します。
+- reason: GitHub main更新・一つ前のPages Actions成功を確認、最新commitのPages実反映およびゲーム専用Buffer送信経路は未確認。予約・実投稿成功を偽らず保持。旧版のポスト草稿を誤送信しない。
