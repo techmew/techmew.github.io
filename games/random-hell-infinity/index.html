@@ -509,18 +509,32 @@ function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
+// Automatic melee weapons acquire only enemies within their actual slash hitboxes.
+const AUTO_RANGED_TYPES=new Set(['arrow','laser','boomer','spread','cannon','homing']);
+const AUTO_MELEE_AREAS={
+ melee:[56,-8,50],arc:[94,-27,83],dagger:[60,-6,47],thrust:[155,5,21],
+ smash:[102,-5,64],whip:[177,-38,96],katana:[123,-29,89],axe:[115,-30,95]
+};
+function autoMeleeCanHit(w,p,e){
+ const area=AUTO_MELEE_AREAS[w.type];if(!area)return false;
+ const [range,top,height]=area;
+ const dir=e.x+e.w/2>=p.x+p.w/2?1:-1;
+ const sx=dir===1?p.x+p.w-4:p.x-range+4;
+ if(hitRect(sx,p.y+top,range,height,e.x,e.y,e.w,e.h))return true;
+ return w.type==='smash'&&dist(p.x+p.w/2,p.y+16,e.x+e.w/2,e.y+e.h/2)<100;
+}
 function autoWeaponFire(dt){
  // Every owned weapon attacks independently, including melee and fists.
  const p=player;if(!p||!level||mode!=='playing')return;
- const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing']);
  const candidates=level.boss?.alive?[...level.enemies,level.boss]:level.enemies;
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
    if(!w||autoWeaponCooldowns[i]>0)continue;
-   const reach=rangedTypes.has(w.type)?660:Math.max(80,w.range+48);
+   const reach=AUTO_RANGED_TYPES.has(w.type)?660:Math.max(80,w.range+48);
    let target=null,nearest=reach*reach;
    for(const e of candidates){if(!e.alive)continue;
+     if(!AUTO_RANGED_TYPES.has(w.type)&&!autoMeleeCanHit(w,p,e))continue;
      const dx=e.x+e.w/2-(p.x+p.w/2),dy=e.y+e.h/2-(p.y+p.h/2);
      const d=dx*dx+dy*dy;if(d<nearest){nearest=d;target=e}
    }
