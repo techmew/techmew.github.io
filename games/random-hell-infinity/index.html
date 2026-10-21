@@ -447,6 +447,13 @@ function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,
 
 function resize(){const oldW=W,oldH=H;W=Math.max(1,document.documentElement.clientWidth||window.innerWidth);H=Math.max(1,document.documentElement.clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel()}if(level&&mode==='survivorDraft')draw()}
 window.addEventListener('resize',resize);
+// Conservative, single-jump procedural route, independent of relics and dash.
+function rhSafeJumpGap(fromY,toY,gravity,speed,jump,wind){
+ const dy=toY-fromY,discriminant=Math.max(0,jump*jump+2*gravity*dy);
+ const landingTime=(jump+Math.sqrt(discriminant))/gravity;
+ const reliableSpeed=Math.max(0,speed*.76+Math.min(0,wind)*.08);
+ return Math.max(64,Math.floor(reliableSpeed*landingTime+PW*.55-12));
+}
 function createLevel(respawn=false){
  if(!respawn){checkpointIndex=0;checkpointX=0;checkpointStage=levelIndex;vampCharge=0}
  const world=Math.floor(levelIndex/3),stage=levelIndex%3,levSeed=hash(seed^Math.imul(levelIndex+1,0x9e3779b9)),r=rngGen(levSeed),difficulty=levelIndex/23;
@@ -460,6 +467,7 @@ function createLevel(respawn=false){
   if(cpId)gap=Math.min(gap,118);
   let step=cpId?randomInt(r,-32,35):randomInt(r,-98,90),y=clamp(prev.y+step,baseY-155,baseY+82);
   if(y<prev.y-65)gap=Math.min(gap,112);else if(y<prev.y-38)gap=Math.min(gap,142);if(final){y=clamp(prev.y+randomInt(r,-15,18),baseY-65,baseY+35);gap=Math.min(gap,120)}
+  gap=Math.min(gap,rhSafeJumpGap(prev.y,y,gravity,speed,jump,wind));
   const width=final?(stage===2?650:345):cpId?365:randomInt(r,195,340-Math.floor(difficulty*20));
   x=prev.x+prev.w+gap;
   const p={x,y,w:width,kind:!final&&!cpId&&i>2&&chance(r,.23+difficulty*.19)?'crumble':'solid',active:true,collapse:0,checkpointId:cpId};
