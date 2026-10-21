@@ -9,23 +9,52 @@ let state={scene:BOOK.start,index:0,flags:{},clues:{},history:[],seen:{},bg:"sto
 let waiting=false,playing=false,typing=false,fullText="",typeTimer=0,autoTimer=0,autoplayToken=0,audio=null,windNode=null;
 let touch={id:null,sx:0,sy:0,ox:0,oy:0,x:0,y:0,moved:false,ignore:false}, dragging=false;
 const imgs={stop:"assets/reboot-snow.svg",road:"assets/reboot-road.svg",lodge:"assets/reboot-snow.svg",lobby:"assets/reboot-parlor.svg",room:"assets/reboot-room.svg",hall:"assets/reboot-hall.svg",dining:"assets/reboot-parlor.svg",dryroom:"assets/reboot-hall.svg"};
-// Portrait art is temporarily withdrawn: vector caricatures did not meet the brief.
-// Keep node and save contracts intact; add approved raster character art only.
-// Provisional raster character busts from approved direction; no SVG portrait fallback.
-// One 4-column WebP atlas keeps mobile downloads small. Each role owns its column.
-const CAST_ATLAS="assets/cast-preview-20261021.webp";
+// Keep speaker identity, palette and art layout separate from save data.
+// The 576x196 WebP atlas holds four 144x196 busts, left to right.
 const CAST_COLUMNS=Object.freeze({"莉子":0,"紗江":1,"絢":2,"匠":3});
-function showPortrait(who){
-  const column=CAST_COLUMNS[who];
-  if(column===undefined || ui.portrait.dataset.failed==="1"){
-    ui.portrait.hidden=true;
-    return;
-  }
-  ui.portrait.style.objectPosition=(column*100/3).toFixed(3)+"% center";
-  if(ui.portrait.getAttribute("src")!==CAST_ATLAS) ui.portrait.setAttribute("src",CAST_ATLAS);
-  ui.portrait.hidden=false;
+// Bright enough for legibility on the charcoal dialogue panel; muted rather than neon.
+const SPEAKER_COLORS=Object.freeze({
+ "紗江":"#8fdceb","莉子":"#f1b0c1","絢":"#f4ca91","匠":"#c6bafa",
+ "航平":"#a6e2b9","真理":"#eec5d8","圭介":"#bad2ef",
+ "源蔵":"#e2c395","千尋":"#cce6aa","森下":"#91d5c9",
+ "売店の人":"#d2d5d6","不明":"#d8d0ea"
+});
+const SPEAKER_FULL_COLORS=Object.freeze(Object.fromEntries(
+ Object.entries(BOOK.speakers).map(([short,full])=>[full,SPEAKER_COLORS[short]||"#ffffff"])
+));
+// Reserve space above the actual dialogue box; no portrait is allowed over text.
+function layoutPortrait(){
+ if(!ui.portrait.dataset.actor || ui.dialog.hidden){ui.portrait.hidden=true;return;}
+ const scene=ui.stage.getBoundingClientRect();
+ const panel=ui.dialog.getBoundingClientRect();
+ const header=$("top").getBoundingClientRect();
+ if(!scene.height || !panel.height)return;
+ const upper=Math.max(10,Math.ceil(header.bottom-scene.top+12));
+ const gap=Math.floor(panel.top-scene.top-upper-14);
+ if(gap<76){ui.portrait.hidden=true;return;}
+ const height=Math.min(gap,Math.max(76,Math.floor(scene.height*.39)),304);
+ const width=Math.round(height*144/196);
+ ui.portrait.style.top=(upper+Math.max(0,Math.floor((gap-height)/2)))+"px";
+ ui.portrait.style.width=width+"px";
+ ui.portrait.style.height=height+"px";
+ ui.portrait.hidden=false;
 }
-ui.portrait.addEventListener("error",()=>{ui.portrait.dataset.failed="1";ui.portrait.hidden=true;});
+function showPortrait(who){
+ const column=CAST_COLUMNS[who];
+ ui.portrait.dataset.actor=column===undefined?"":who;
+ if(column===undefined){ui.portrait.hidden=true;return;}
+ // background-size: 400% 100% crops precisely one atlas column.
+ ui.portrait.style.backgroundPosition=(column*100/3).toFixed(3)+"% 50%";
+ ui.portrait.hidden=false;
+ requestAnimationFrame(layoutPortrait);
+}
+// Resizing a phone or its text box must never make a portrait overlap the dialogue.
+window.addEventListener("resize",()=>requestAnimationFrame(layoutPortrait));
+if(typeof ResizeObserver!=="undefined"){
+ const portraitObserver=new ResizeObserver(()=>requestAnimationFrame(layoutPortrait));
+ portraitObserver.observe(ui.dialog);
+ portraitObserver.observe(ui.stage);
+}
 function storageGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
 function storageSet(k,v){try{localStorage.setItem(k,v);return true}catch(_){return false}}
 function copy(o){return JSON.parse(JSON.stringify(o))}
@@ -62,8 +91,10 @@ function show(){
  if(state.scene.startsWith("y0_"))ui.counter.textContent="第一夜：黒い招待状";
  if(state.scene.startsWith("y1_"))ui.counter.textContent="第二夜：証言の隙間";
  if(row.k==="n"||row.k==="d"){
-  ui.name.textContent=row.k==="n"?"":(BOOK.speakers[row.who]||row.who);
-  ui.name.hidden=row.k!=="d";ui.dialog.classList.toggle("speech",row.k==="d");
+  const isSpeech=row.k==="d";
+  ui.dialog.style.setProperty("--speaker-color",isSpeech?(SPEAKER_COLORS[row.who]||"#e0e4e8"):"#ffffff");
+  ui.name.textContent=isSpeech?(BOOK.speakers[row.who]||row.who):"";
+  ui.name.hidden=!isSpeech;ui.dialog.classList.toggle("speech",isSpeech);
   const key=state.scene+"/"+state.index;
   const prev=state.history[state.history.length-1];
   if(!prev||prev.key!==key){state.history.push({key,who:row.k==="d"?(BOOK.speakers[row.who]||row.who):"",s:row.s});if(state.history.length>150)state.history.shift();}
@@ -151,7 +182,7 @@ function openModal(mode){
  cancelAuto();ui.modal.hidden=false;ui.modalBody.innerHTML="";
  const make=(tag,cl,txt)=>{let x=document.createElement(tag);if(cl)x.className=cl;if(txt!==undefined)x.textContent=txt;return x;};
  const btn=(label,fn)=>{let b=make("button","modal-btn",label);b.addEventListener("click",fn);ui.modalBody.appendChild(b);return b;};
- if(mode==="log"){ui.modalTitle.textContent="ここまでの会話";for(const x of [...state.history].reverse()){let r=make("div","logRow");if(x.who)r.appendChild(make("b",null,x.who));r.appendChild(make("p",null,x.s));ui.modalBody.appendChild(r);}}
+ if(mode==="log"){ui.modalTitle.textContent="ここまでの会話";for(const x of [...state.history].reverse()){let r=make("div","logRow");if(x.who){r.classList.add("speech-log");r.style.setProperty("--speaker-color",SPEAKER_FULL_COLORS[x.who]||"#e0e4e8");r.appendChild(make("b",null,x.who));}r.appendChild(make("p",null,x.s));ui.modalBody.appendChild(r);}}
  else if(mode==="evidence"){ui.modalTitle.textContent="気になったことのメモ";const es=Object.values(state.clues||{});if(!es.length)ui.modalBody.appendChild(make("p","muted","まだ記録はありません。"));es.forEach((v,i)=>ui.modalBody.appendChild(make("div","logRow",(i+1)+"．"+v)));}
  else if(mode==="save"){
   ui.modalTitle.textContent="記録を残す・呼び出す";
