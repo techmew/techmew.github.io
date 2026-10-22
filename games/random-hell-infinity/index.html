@@ -402,7 +402,15 @@ function enemyDeath(e){e.alive=false;kills++;survivorGainXP(e.elite?5:e.small?1:
    level.pickups.push({x:e.x+e.w/2,y:e.y+e.h*.45,taken:false,type:'weapon',item:item(Math.random,level.difficulty)});
  }
  if(e.kind===8&&!e.small&&level.enemies.length<110){for(let d of [-1,1])level.enemies.push({...e,alive:true,small:true,hp:1,maxhp:1,w:15,h:18,x:e.x+d*18,y:e.y+9,baseY:e.y+9,kind:0,dir:d,hit:-1})}}
-function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||(e.boss&&e.active===false)||e.hit===id||e.hitGrace>0)return false;
+function applyHit(e,damage,id,sourceX,affix='none'){
+ if(e?.airTrap){
+  if(!e.alive||e.hit===id||e.hitGrace>0)return false;
+  e.hit=id;e.hp-=Math.max(1,Math.ceil(damage));e.hitGrace=.11;
+  part(e.x,e.y,'#a4edff',7,.35);
+  if(e.hp<=0){e.alive=false;score+=50;part(e.x,e.y,'#aafaff',18,.85);sound(510,.1,'triangle')}
+  return true;
+ }
+ if(!e?.alive||(e.boss&&e.active===false)||e.hit===id||e.hitGrace>0)return false;
  if(e.kind===5&&!e.boss && e.dir*(sourceX-(e.x+e.w/2))>0){damage=Math.max(1,Math.ceil(damage*.5));}
  e.hit=id;e.hp-=damage;e.flash=.10;
  if(affix==='fire'){e.burn=Math.max(e.burn||0,e.boss?1.2:1.8);e.burnTick=.42;part(e.x+e.w/2,e.y+e.h/2,'#ff944b',4,.35)}
@@ -434,7 +442,8 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
   }
   bulletsFriendly.push({x:x+dir*18,y,vx,vy,damage,r,t,color:col,id:++attackId,hits:new Set(),affix:it.affix,...more});runStats.shots++;
 }
- function slash(range,top,height,damage=power,kind='arc'){combatFX.push({type:'ring',x:x+dir*range*.56,y:y,color:col,r:Math.max(22,range*.27),life:.19,max:.19});const sx=dir===1?p.x+p.w-4:p.x-range+4;const y0=p.y+top;slashes.push({x:sx,y:y0,w:range,h:height,d:damage,id:attackId,life:.16,max:.16,color:col,kind,dir,affix:it.affix});for(const e of level.enemies)if(e.alive&&hitRect(sx,y0,range,height,e.x,e.y,e.w,e.h))applyHit(e,damage,attackId,x,it.affix);if(level.boss?.alive&&hitRect(sx,y0,range,height,level.boss.x,level.boss.y,level.boss.w,level.boss.h))applyHit(level.boss,damage,attackId,x,it.affix);
+ function slash(range,top,height,damage=power,kind='arc'){combatFX.push({type:'ring',x:x+dir*range*.56,y:y,color:col,r:Math.max(22,range*.27),life:.19,max:.19});const sx=dir===1?p.x+p.w-4:p.x-range+4;const y0=p.y+top;slashes.push({x:sx,y:y0,w:range,h:height,d:damage,id:attackId,life:.16,max:.16,color:col,kind,dir,affix:it.affix});for(const e of level.enemies)if(e.alive&&hitRect(sx,y0,range,height,e.x,e.y,e.w,e.h))applyHit(e,damage,attackId,x,it.affix);
+ for(const h of level.skyTraps)if(h.alive&&circleBox(h.x,h.y,h.r+4,sx,y0,range,height))applyHit(h,damage,attackId,x,it.affix);if(level.boss?.alive&&hitRect(sx,y0,range,height,level.boss.x,level.boss.y,level.boss.w,level.boss.h))applyHit(level.boss,damage,attackId,x,it.affix);
  for(const b of projectiles){if(hitRect(sx,y0,range,height,b.x-b.r,b.y-b.r,b.r*2,b.r*2)){b.t=0;part(b.x,b.y,'#c5fffe',4,.5)}}}
  switch(w.type){
  case 'melee':slash(56,-8,50);break;
@@ -455,7 +464,7 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
    const used=new Set();let startX=x,startY=y;
    for(let n=0;n<4;n++){
      let best=null,bestD=(n===0?250:185)**2;
-     const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,level.boss]:level.enemies;
+     const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,...level.skyTraps,level.boss]:[...level.enemies,...level.skyTraps];
      for(const e of candidates){if(!e.alive||used.has(e))continue;
        const dx=e.x+e.w/2-startX,dy=e.y+e.h/2-startY,d=dx*dx+dy*dy;
        if(d<bestD){bestD=d;best=e}
@@ -514,7 +523,12 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
  if(w.type!=='arrow'&&w.type!=='laser'&&w.type!=='spread'&&w.type!=='boomer'&&w.type!=='cannon')part(x+dir*35,y,col,5,.3);
  if(!autoSilent)sound(w.type==='cannon'?100:w.type==='dagger'?590:240+w.dmg*55,.085,w.type==='staff'?'sine':'sawtooth',.052)
 }
-function doSplash(x,y,r,dmg,id,affix='none'){for(const e of level.enemies){if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<r)applyHit(e,dmg,id,x,affix)}if(level.boss?.alive&&dist(x,y,level.boss.x+26,level.boss.y+30)<r)applyHit(level.boss,dmg,id,x,affix);part(x,y,'#ffbd8c',20,1.1);shake=5}
+function doSplash(x,y,r,dmg,id,affix='none'){
+ for(const e of level.enemies)if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<r)applyHit(e,dmg,id,x,affix);
+ for(const h of level.skyTraps)if(h.alive&&dist(x,y,h.x,h.y)<r+h.r)applyHit(h,dmg,id,x,affix);
+ if(level.boss?.alive&&dist(x,y,level.boss.x+26,level.boss.y+30)<r)applyHit(level.boss,dmg,id,x,affix);
+ part(x,y,'#ffbd8c',20,1.1);shake=5;
+}
 function lethal(cause){if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);sound(780,.2,'sine');toast('シールド破損',.7);return false}if(player.grace>0||dashTime>.025)return false;player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);sound(170,.13,'sawtooth');updateHud(true);if(player.hp<=0){die(cause);return true}toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1;b.phase=phase;b.attackNo++;
  const attackCombos=[
@@ -787,7 +801,7 @@ function autoWeaponFire(dt,fireRequested=false){
  // Per-weapon cooldowns recover even while the attack button is released.
  const p=player;if(!p||!level||mode!=='playing')return;
  const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism','orbitdisks','cometpair','stormring','sunlance','hailstorm']);
- const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,level.boss]:level.enemies;
+ const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,...level.skyTraps,level.boss]:[...level.enemies,...level.skyTraps];
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
@@ -902,13 +916,14 @@ function update(dt){
 // Seek the nearest living enemy or boss. A missile keeps its current target while alive,
 // then reacquires only when that target dies / goes out of range, avoiding jitter.
 function findHomingTarget(q){
- const available=t=>t?.alive && dist(q.x,q.y,t.x+t.w/2,t.y+t.h/2)<850;
+ const available=t=>t?.alive&&(!t.boss||t.active!==false)&&dist(q.x,q.y,t.x+t.w/2,t.y+t.h/2)<850;
  if(available(q.target))return q.target;
  let best=null,bestScore=Infinity;
  const consider=t=>{if(!available(t))return;const dx=t.x+t.w/2-q.x,dy=t.y+t.h/2-q.y;
    const d=Math.hypot(dx,dy);const score=d+(dx*q.vx+dy*q.vy<0?130:0);
    if(score<bestScore){best=t;bestScore=score}};
  for(const e of level.enemies)consider(e);
+ for(const h of level.skyTraps)consider(h);
  consider(level.boss);
  q.target=best;
  return best;
@@ -929,7 +944,15 @@ function findHomingTarget(q){
    if(q.t<=0){if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);continue}
    let landed=false;
    for(const e of level.enemies){if(!e.alive||q.hits.has(e))continue;if(segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,e.x-q.r,e.y-q.r,e.x+e.w+q.r,e.y+e.h+q.r)<=1){q.hits.add(e);applyHit(e,q.damage,q.id+q.hits.size,q.x,q.affix);landed=true;if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);if((q.pierce||0)>0)q.pierce--;else{q.t=0;break}}}
-   if(b?.alive&&segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,b.x-q.r,b.y-q.r,b.x+b.w+q.r,b.y+b.h+q.r)<=1){applyHit(b,q.damage,q.id,q.x,q.affix);if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);q.t=0}
+   if(q.t>0)for(const h of level.skyTraps){
+    if(!h.alive||q.hits.has(h))continue;
+    if(segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,h.x-h.r-q.r,h.y-h.r-q.r,h.x+h.r+q.r,h.y+h.r+q.r)<=1){
+     q.hits.add(h);applyHit(h,q.damage,q.id+q.hits.size,q.x,q.affix);landed=true;
+     if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);
+     if((q.pierce||0)>0)q.pierce--;else{q.t=0;break}
+    }
+   }
+   if(q.t>0&&b?.alive&&segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,b.x-q.r,b.y-q.r,b.x+b.w+q.r,b.y+b.h+q.r)<=1){applyHit(b,q.damage,q.id,q.x,q.affix);if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);q.t=0}
    if(!landed&&q.x>level.totalX+100)q.t=0;
  }
  bulletsFriendly=bulletsFriendly.filter(q=>q.t>0);
