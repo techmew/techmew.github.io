@@ -564,7 +564,7 @@ function createLevel(respawn=false){
  const world=Math.floor(levelIndex/3),stage=levelIndex%3,levSeed=hash(seed^Math.imul(levelIndex+1,0x9e3779b9)),r=rngGen(levSeed),difficulty=levelIndex/23;
  const theme=themes[(world+randomInt(r,0,7))%8],gravity=randomInt(r,1750,2200),speed=randomInt(r,285,338),jump=randomInt(r,700,800),wind=randomInt(r,-115,115),ice=chance(r,.22+difficulty*.19);
  const platforms=[{x:0,y:baseY,w:460,kind:'solid',active:true,collapse:0}];
- const spikes=[],enemies=[],saws=[],lasers=[],pickups=[],springPads=[];
+ const spikes=[],enemies=[],saws=[],lasers=[],pickups=[],springPads=[],skyTraps=[];
  let prev=platforms[0],x=460,amount=16+world*2+(stage===2?3:0),prefix=0;
  for(let i=1;i<=amount;i++){
   const final=i===amount,cpId=i===Math.floor(amount/3)?1:i===Math.floor(amount*2/3)?2:0;
@@ -583,6 +583,14 @@ function createLevel(respawn=false){
   }
   platforms.push(p);
   if(i>1&&!cpId&&chance(r,.29+difficulty*.24))saws.push({x:prev.x+prev.w+gap*.5,y:Math.min(prev.y,p.y)-55,amp:randomInt(r,13,38),phase:r()*TAU,rate:randomInt(r,2,5)*.72,size:randomInt(r,12,19)});
+  // Moveable rotor and timed lightning mine in the air over gaps, avoid safe checkpoints.
+  if(i>=2&&!cpId&&!final&&(i%2===0||chance(r,.43+difficulty*.25))){
+   const rotor=i%3===0,homeY=Math.min(prev.y,p.y)-randomInt(r,82,128);
+   skyTraps.push({x:prev.x+prev.w+gap*.5,y:homeY,homeY,w:0,h:0,
+    r:rotor?15:18,type:rotor?'rotor':'pulse',phase:r()*TAU,
+    speed:1+r()*1.5,amp:rotor?22:12,period:2+r()*.9,duty:rotor?1:.92,
+    alive:true,airTrap:true,hp:2+Math.floor(world/3),maxhp:2+Math.floor(world/3),hit:-1,hitGrace:0});
+  }
   if(!final){
    const h=cpId?3:randomInt(r,0,5);
    if(!cpId&&i>2&&i%3===0&&chance(r,.82))springPads.push({x:p.x+p.w*.28,y:p.y,w:40,phase:r()*TAU});
@@ -626,10 +634,20 @@ function createLevel(respawn=false){
    to:prev.x+prev.w-108,dir:-1,platform:prev,kind:world,boss:true,hit:-1,
    flash:0,charge:0,chargeWindup:0,chargePending:0,chargeDir:-1,phase:1,attackNo:0};
  }
+ if(stage===2){
+  // Boss chambers require aerial movement and awareness too.
+  for(let n=0;n<2;n++){
+   const homeY=prev.y-115-n*46;
+   skyTraps.push({x:prev.x+210+n*230,y:homeY,homeY,w:0,h:0,
+    r:17,type:n?'rotor':'pulse',phase:r()*TAU,speed:1.1+n*.6,amp:14,
+    period:2.2+n*.25,duty:n?1:.95,alive:true,airTrap:true,hp:3+world,
+    maxhp:3+world,hit:-1,hitGrace:0});
+  }
+ }
  const title=namesA[randomInt(r,0,namesA.length-1)]+namesB[randomInt(r,0,namesB.length-1)];
  const decor=[];for(let j=0;j<135;j++)decor.push({x:j*randomInt(r,75,155)+randomInt(r,-50,50),h:randomInt(r,52,270),w:randomInt(r,16,80),layer:randomInt(r,0,1),glow:r()});
  const goalX=prev.x+prev.w-39;
- level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,boss,title,decor,goalX,totalX:prev.x+prev.w,difficulty};
+ level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,goalX,totalX:prev.x+prev.w,difficulty};
  const cp=checkpointIndex>0?platforms.find(p=>p.checkpointId===checkpointIndex):null;
  checkpointX=cp?cp.x+44:0;
  camera=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn);updateHud(true);musicBeat=-1;
@@ -668,7 +686,7 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('xpFill').style.width=Math.max(0,Math.min(100,survivorXP/survivorXPGoal(survivorLevel)*100))+'%';
  $('playerHealth').setAttribute('aria-valuenow',String(player?.hp??5));
  $('playerHealth').setAttribute('aria-valuemax',String(player?.maxhp??5));
- $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 重力 ${level.gravity>2000?'強':'弱'} ｜ 🏁${checkpointIndex}/2`;
+ $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 空中罠${level.skyTraps.filter(h=>h.alive).length} ｜ 🏁${checkpointIndex}/2`;
  $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${attackHeld?'連射中':'押して発射'}`;
  $('weaponStrip').innerHTML=`⚔ 装備${loadout.length}種 <small>最高Lv.${Math.max(1,...loadout.map(it=>masteryLevel(it.tier)))}/${WEAPON_MASTERY_MAX}　攻撃長押しで一斉発射</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
@@ -801,6 +819,11 @@ function update(dt){
  if(mode==='gameover')return;
  if(mode!=='playing')return;
  const p=player;
+ for(const h of level.skyTraps){
+  if(!h.alive)continue;
+  h.y=h.homeY+Math.sin(clock*h.speed+h.phase)*h.amp;
+  h.hitGrace=Math.max(0,h.hitGrace-dt);
+ }
  // Move lift platforms before collision. Carry the character when standing on a lift.
  for(const s of level.platforms)if(s.kind==='moving'){
    const previousX=s.x,previousY=s.y;
@@ -930,6 +953,11 @@ function findHomingTarget(q){
  projectiles=projectiles.filter(q=>q.t>0);
  for(const h of hazardTelegraphs){h.delay-=dt;if(h.delay<=0){h.duration-=dt;if(h.duration>0&&h.type!=='tell'&&hitRect(p.x+4,p.y+3,p.w-8,p.h-6,h.x-h.w/2,h.top,h.w,h.bottom-h.top)&&lethal('予告レーザーに接触'))return}}
  hazardTelegraphs=hazardTelegraphs.filter(h=>h.duration>0);
+ for(const h of level.skyTraps){
+  if(!h.alive)continue;
+  const active=h.type==='rotor'||(clock+h.phase)%h.period<h.duty;
+  if(active&&circleBox(h.x,h.y,h.r-2,p.x+4,p.y+4,p.w-8,p.h-8)&&lethal('空中の電磁トラップに接触'))return;
+ }
  for(const sp of level.spikes)if(hitRect(p.x+4,p.y+4,p.w-8,p.h-5,sp.x,sp.y-20,sp.w,20)&&lethal('トゲに接触'))return;
  for(const sw of level.saws){const sy=sw.y+Math.sin(clock*sw.rate+sw.phase)*sw.amp;if(circleBox(sw.x,sy,sw.size-2,p.x+3,p.y+3,p.w-6,p.h-5)&&lethal('ノコギリに接触'))return}
  for(const l of level.lasers)if((clock+l.offset)%l.period<.88&&hitRect(p.x+4,p.y+3,p.w-8,p.h-4,l.x-5,l.y-168,10,168)&&lethal('レーザーに接触'))return;
@@ -1091,6 +1119,25 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
    ctx.fillStyle='#5a4e7d';ctx.beginPath();ctx.roundRect(pad.x,pad.y-9+bounce,pad.w,10,4);ctx.fill();
    ctx.fillStyle='#ffdc72';ctx.beginPath();ctx.roundRect(pad.x+3,pad.y-13+bounce,pad.w-6,6,4);ctx.fill();
    ctx.fillStyle='#fff8ce';ctx.fillRect(pad.x+10,pad.y-15+bounce,5,3);ctx.fillRect(pad.x+25,pad.y-15+bounce,5,3);
+ }
+ // Floating saw rotors and intermittently charged lightning mines.
+ for(const h of level.skyTraps){
+  if(!h.alive||h.x<camera-60||h.x>viewRight+60)continue;
+  const phase=(clock+h.phase)%h.period,active=h.type==='rotor'||phase<h.duty;
+  const warning=h.type==='pulse'&&!active&&phase>h.period-.34;
+  ctx.save();ctx.translate(h.x,h.y);
+  ctx.globalAlpha=active?1:warning?.83:.35;
+  ctx.strokeStyle=h.type==='rotor'?'#ffaf80':warning?'#ffe188':'#85dfff';
+  ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=active?13:4;
+  ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,h.r+3,0,TAU);ctx.stroke();
+  ctx.rotate(clock*(h.type==='rotor'?4.8:2.7));
+  for(let k=0;k<4;k++){
+   const a=k*TAU/4;
+   polygon([[Math.cos(a-.26)*7,Math.sin(a-.26)*7],[Math.cos(a)*h.r,Math.sin(a)*h.r],
+    [Math.cos(a+.26)*7,Math.sin(a+.26)*7]],h.type==='rotor'?'#ffa379':'#a8f2ff');
+  }
+  ctx.fillStyle=active?'#fff0ad':'#8898ad';ctx.beginPath();ctx.arc(0,0,5,0,TAU);ctx.fill();
+  ctx.restore();
  }
  for(const s of level.spikes){if(s.x+s.w<camera-20||s.x>viewRight+20)continue;let count=Math.max(2,Math.ceil(s.w/12)),wid=s.w/count;for(let j=0;j<count;j++)polygon([[s.x+j*wid,s.y],[s.x+(j+.5)*wid,s.y-20],[s.x+(j+1)*wid,s.y]],'#ff6385')}
  for(const laser of level.lasers){if(laser.x<camera-30||laser.x>viewRight+30)continue;const phase=(clock+laser.offset)%laser.period,active=phase<.88,warning=phase>laser.period-.26;ctx.fillStyle=active?'#ff4c73':warning?'#ffe8a0':'#7c6677';ctx.globalAlpha=active?1:.5;ctx.fillRect(laser.x-7,laser.y-170,14,12);ctx.fillRect(laser.x-7,laser.y-8,14,8);if(active){ctx.fillStyle='#ff6f8d55';ctx.fillRect(laser.x-14,laser.y-158,28,152);ctx.fillStyle='#fff6c3';ctx.fillRect(laser.x-3,laser.y-159,6,155)}ctx.globalAlpha=1;}
