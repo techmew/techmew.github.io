@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f2eb">
+<meta name="description" content="一画だけ。お先にどうぞ。ちょっと持ってて。傘、入れて。4つの小さなブラウザゲーム。">
+<title>ちいさな4つのこと｜4in1</title>
+<style>
+:root{--ink:#30342e;--muted:#737970;--paper:#f5f2eb;--line:#dcdacf;--card:#fffcf6;--accent:#46745f;--shadow:0 5px 0 #d6d2c8}
+*{box-sizing:border-box}
+html{background:var(--paper);font-family:Meiryo,"Hiragino Kaku Gothic ProN",system-ui,sans-serif;color:var(--ink)}
+body{margin:0;min-height:100dvh}
+button{font:inherit;cursor:pointer}
+.wrap{width:min(900px,calc(100% - 32px));margin:auto;padding:22px 0 46px}
+.mast{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:25px}
+.brand{font-size:12px;letter-spacing:.14em;font-weight:800;color:var(--muted)}
+.mast h1{font-size:clamp(26px,5vw,39px);margin:5px 0 0;letter-spacing:-.07em;font-weight:900}
+.mast h1 span{font-size:.44em;font-weight:700;letter-spacing:.06em;vertical-align:middle;margin-left:8px;color:var(--muted)}
+.sound{border:1px solid var(--line);color:var(--muted);background:var(--card);border-radius:999px;padding:9px 14px;white-space:nowrap;font-size:12px;font-weight:700}
+.kicker{font-size:13px;color:var(--muted);margin:0 0 16px}
+.games{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.game-card{width:100%;text-align:left;border:2px solid var(--line);background:var(--card);padding:0;display:block;overflow:hidden;border-radius:20px;box-shadow:var(--shadow);color:var(--ink);transition:transform .12s,box-shadow .12s}
+.game-card:active{transform:translateY(4px);box-shadow:none}
+.game-card:focus-visible,.btn:focus-visible{outline:3px solid #54866b;outline-offset:3px}
+.art{height:150px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.art .big{font-size:100px;font-weight:900;line-height:1;position:relative;transform:rotate(-5deg);text-shadow:3px 4px 0 #fff7}
+.art .tiny{position:absolute;right:18%;bottom:18%;font-size:37px}
+.art.a{background:#f4e8d2;color:#bc7846}
+.art.b{background:#dbece3;color:#46806b}
+.art.c{background:#f6dfd9;color:#b56865}
+.art.d{background:#dbe8f5;color:#47749a}
+.game-card .meta{padding:16px 17px 18px}
+.game-card .number{font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.game-card h2{font-size:clamp(19px,3vw,25px);letter-spacing:-.06em;margin:5px 0 7px;font-weight:900}
+.game-card p{font-size:13px;line-height:1.6;margin:0;color:#61675f}
+.game-card .record{font-size:12px;margin-top:11px;font-weight:800;color:#45755c}
+.home-bottom{color:var(--muted);text-align:center;font-size:12px;padding-top:26px}
+#play{display:none}
+.topline{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:13px}
+.back{border:0;background:transparent;color:var(--ink);font-size:14px;font-weight:800;padding:10px 3px}
+.marks{font-size:13px;color:var(--muted);font-weight:700;text-align:right}
+.playhead{display:flex;align-items:end;justify-content:space-between;gap:14px;margin:6px 0 12px}
+.playhead h2{font-size:clamp(23px,4.5vw,34px);margin:0;font-weight:900;letter-spacing:-.07em}
+.playhead p{font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.45}
+.scoreboard{background:#fff8e7;border:1px solid #e8daba;border-radius:12px;text-align:center;padding:9px 12px;min-width:106px;white-space:nowrap}
+.scoreboard .name{font-size:11px;color:#8d7852}
+.scoreboard .value{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums}
+.stage{position:relative;border:2px solid #dfddcf;background:#fcfaf5;border-radius:21px;overflow:hidden;box-shadow:0 6px 0 #e1dcd0}
+canvas{display:block;width:100%;height:auto;aspect-ratio:500/470;touch-action:none;user-select:none}
+#veil{display:none;position:absolute;inset:0;background:rgba(250,248,241,.9);align-items:center;justify-content:center;padding:25px;text-align:center}
+#veil.open{display:flex}
+.veilbox{max-width:355px;width:100%}
+.veilbox .spark{font-size:38px;margin:0 0 8px}
+.veilbox h3{font-size:clamp(27px,6vw,35px);letter-spacing:-.08em;margin:0 0 12px}
+.veilbox p{font-size:14px;line-height:1.7;white-space:pre-line;color:#666d63}
+.veilactions{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+#controls{display:flex;gap:10px;margin-top:17px;justify-content:center;flex-wrap:wrap}
+.btn{border:2px solid var(--ink);border-radius:999px;padding:13px 25px;background:#fffdf8;font-weight:900;color:var(--ink);min-height:49px;box-shadow:0 3px 0 #cfc9b9}
+.btn.main{background:#3e6b57;border-color:#3e6b57;color:#fff}
+.btn.soft{border:1px solid #d7d3c5;box-shadow:none;background:#fffdf8}
+.btn:active{transform:translateY(2px);box-shadow:none}
+.btn.wide{min-width:155px}
+#caption{min-height:40px;text-align:center;margin:13px 0 0;font-size:14px;font-weight:700;color:#656e62;line-height:1.5}
+.foot{font-size:11px;color:#91938e;text-align:center;margin-top:30px;letter-spacing:.07em}
+@media(max-width:580px){
+.wrap{width:min(100% - 24px,540px);padding-top:15px}
+.mast{margin-bottom:17px}
+.games{gap:10px}
+.art{height:118px}
+.art .big{font-size:79px}
+.art .tiny{font-size:27px}
+.game-card{border-radius:16px}
+.game-card .meta{padding:11px 11px 14px}
+.game-card p{font-size:12px}
+.game-card h2{font-size:17px}
+.game-card .record{font-size:11px}
+.playhead h2{font-size:23px}
+.playhead p{font-size:12px}
+.stage{border-radius:15px}
+#controls{margin-top:12px}
+.btn{padding:12px 18px}
+}
+@media(max-width:360px){.game-card h2{font-size:16px}.scoreboard{min-width:87px;padding:7px}.btn{padding:11px 13px}.art{height:103px}}
+@media(prefers-reduced-motion:reduce){.game-card,.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="mast"><div><div class="brand">HIMANEKO / MINI GAMES</div><h1>ちいさな4つのこと<span>4 IN 1</span></h1></div><button id="sound" class="sound" aria-label="効果音のオンオフ">♪ OFF</button></header>
+<main>
+<section id="home"><p class="kicker">どれから遊ぶ？　説明より、まず一回。</p>
+<div class="games">
+<button class="game-card" data-game="0"><div class="art a"><span class="big">一</span><span class="tiny">・</span></div><div class="meta"><div class="number">01 / DRAW</div><h2>一画だけ。</h2><p>線を一本。あとは、あの子が歩く。</p><div class="record" id="record0">最高 ―</div></div></button>
+<button class="game-card" data-game="1"><div class="art b"><span class="big">↔</span><span class="tiny">☺</span></div><div class="meta"><div class="number">02 / PASS</div><h2>お先にどうぞ。</h2><p>右か左か。急ぐ人も、いる。</p><div class="record" id="record1">最高 ―</div></div></button>
+<button class="game-card" data-game="2"><div class="art c"><span class="big">積</span><span class="tiny">﹏</span></div><div class="meta"><div class="number">03 / STACK</div><h2>ちょっと持ってて。</h2><p>もう一個だけ。たぶん大丈夫。</p><div class="record" id="record2">最高 ―</div></div></button>
+<button class="game-card" data-game="3"><div class="art d"><span class="big">☂</span><span class="tiny">⋰</span></div><div class="meta"><div class="number">04 / RAIN</div><h2>傘、入れて。</h2><p>みんなを守るには、ちょっと狭い。</p><div class="record" id="record3">最高 ―</div></div></button>
+</div><div class="home-bottom">1人でこつこつ。結果は友達にも。</div></section>
+<section id="play">
+<div class="topline"><button id="back" class="back">← 4つにもどる</button><div class="marks" id="mini-best">BEST ―</div></div>
+<div class="playhead"><div><h2 id="game-title"></h2><p id="game-tip"></p></div><div class="scoreboard"><div class="name" id="score-name">スコア</div><div class="value" id="score">0</div></div></div>
+<div class="stage"><canvas id="scene" width="1000" height="940" aria-label="ゲーム画面。指またはマウスで操作できます。"></canvas><div id="veil" role="dialog" aria-modal="true" aria-labelledby="end-title"><div class="veilbox"><div class="spark" id="end-icon">✦</div><h3 id="end-title"></h3><p id="end-desc"></p><div class="veilactions"><button id="again" class="btn main">もう一回</button><button id="share" class="btn soft">結果をシェア</button><button id="go-home" class="btn soft">4つにもどる</button></div></div></div></div>
+<div id="controls"></div><p id="caption" aria-live="polite"></p>
+</section>
+</main><footer class="foot">© HIMANEKO LAB · 4 TINY GAMES</footer>
+</div>
+<script>
+(function(){
+"use strict";
+const W=500,H=470,TAU=Math.PI*2;
+const canvas=document.getElementById("scene"),c=canvas.getContext("2d");
+const home=document.getElementById("home"),play=document.getElementById("play"),veil=document.getElementById("veil");
+const caption=document.getElementById("caption"),controls=document.getElementById("controls");
+const titles=["一画だけ。","お先にどうぞ。","ちょっと持ってて。","傘、入れて。"];
+const tips=["画面に一本、道を描こう","通すほうをタップ","真ん中をねらって、タップ","傘を指で左右に動かそう"];
+const units=["面","人","個","人"];
+const colors=["#d78f5b","#579a7b","#c77872","#5e8cbb"];
+const skins=["#cb8065","#739fb0","#9d91b7","#91b17d","#d8ad64","#c17f9a"];
+let active=-1,state=null,raf=0,last=0,frame=0,soundOn=false,audio=null,lastScore=-1;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const key=i=>"hima4in1_best_"+i;
+const getBest=i=>{try{return Number(localStorage.getItem(key(i)))||0}catch(e){return 0}};
+const saveBest=(i,n)=>{if(n>getBest(i)){try{localStorage.setItem(key(i),String(n))}catch(e){};refreshBest()}};
+function refreshBest(){for(let i=0;i<4;i++){document.getElementById("record"+i).textContent=getBest(i)?"最高 "+getBest(i)+" "+units[i]:"最高 ―"}if(active>=0)document.getElementById("mini-best").textContent="BEST "+(getBest(active)||"―")+" "+units[active]}
+function score(n){document.getElementById("score").textContent=n;lastScore=n}
+function say(s){caption.textContent=s}
+function beep(hz){if(!soundOn)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.type="sine";o.frequency.setValueAtTime(hz,audio.currentTime);g.gain.setValueAtTime(.025,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.11);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.12)}catch(e){}}
+function button(text,fn,klass){let b=document.createElement("button");b.type="button";b.className="btn "+(klass||"");b.textContent=text;b.addEventListener("click",fn);controls.appendChild(b);return b}
+function setControls(){controls.replaceChildren();if(active===0){button("この面をやりなおす",()=>resetStroke(), "wide soft")}else if(active===1){button("← 左から通す",()=>dispatch(0),"main");button("右から通す →",()=>dispatch(1),"main")}else if(active===2){button("ここで置く",drop,"main wide")}else if(active===3){button("傘を中央へ",()=>{if(state)state.umbrella=250},"soft")}}
+function start(i){cancelAnimationFrame(raf);active=i;veil.classList.remove("open");home.style.display="none";play.style.display="block";document.getElementById("game-title").textContent=titles[i];document.getElementById("game-tip").textContent=tips[i];document.getElementById("score-name").textContent=["クリア","通せた人数","積んだ数","守れた人数"][i];refreshBest();setControls();init();resize();last=0;raf=requestAnimationFrame(loop)}
+function back(){cancelAnimationFrame(raf);active=-1;state=null;home.style.display="block";play.style.display="none";veil.classList.remove("open");refreshBest()}
+function init(){if(active===0){state={level:0};resetStroke()}if(active===1)initPass();if(active===2)initStack();if(active===3)initRain()}
+function finish(icon,heading,desc,n){if(!state||state.ended)return;state.ended=true;saveBest(active,n);document.getElementById("end-icon").textContent=icon;document.getElementById("end-title").textContent=heading;document.getElementById("end-desc").textContent=desc;veil.classList.add("open");beep(670)}
+function resize(){let dpr=clamp(window.devicePixelRatio||1,1,2),px=Math.round(W*dpr),py=Math.round(H*dpr);if(canvas.width!==px||canvas.height!==py){canvas.width=px;canvas.height=py}}
+function loop(now){if(active<0)return;if(!last)last=now;let dt=Math.min(.034,(now-last)/1000);last=now;frame+=dt;if(state&&!state.ended){if(active===0)updateStroke(dt);if(active===1)updatePass(dt);if(active===2)updateStack(dt);if(active===3)updateRain(dt)}if(state)draw();raf=requestAnimationFrame(loop)}
+function draw(){c.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);c.clearRect(0,0,W,H);c.fillStyle="#fbfaf5";c.fillRect(0,0,W,H);if(active===0)drawStroke();if(active===1)drawPass();if(active===2)drawStack();if(active===3)drawRain()}
+function text(t,x,y,size,color,align,weight){c.fillStyle=color||"#30342e";c.textAlign=align||"left";c.textBaseline="alphabetic";c.font=(weight||"700")+" "+size+"px Meiryo,sans-serif";c.fillText(t,x,y)}
+function line(x1,y1,x2,y2,color,w){c.strokeStyle=color;c.lineWidth=w;c.lineCap="round";c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke()}
+function rounded(x,y,w,h,r,color){c.fillStyle=color;c.beginPath();c.roundRect(x,y,w,h,r);c.fill()}
+function human(x,feet,s,col,expression,motion){c.save();c.translate(x,feet);c.scale(s,s);let step=Math.sin(frame*10+x)*5*(motion?1:.16);
+c.strokeStyle="#39443e";c.lineWidth=3.8;c.lineCap="round";
+c.beginPath();c.moveTo(0,-20);c.lineTo(-7+step,0);c.moveTo(0,-20);c.lineTo(7-step,0);c.stroke();
+line(-10,-35,0,-28,"#39443e",3.4);line(0,-28,10,-35,"#39443e",3.4);
+rounded(-10,-37,20,22,7,col);
+c.fillStyle="#f2c6a3";c.beginPath();c.arc(0,-49,13,0,TAU);c.fill();
+c.fillStyle="#393833";c.beginPath();c.arc(-4,-51,1.6,0,TAU);c.arc(4,-51,1.6,0,TAU);c.fill();
+c.strokeStyle="#684b42";c.lineWidth=1.3;c.beginPath();
+if(expression==="sad"){c.arc(0,-43,3,Math.PI+.3,TAU-.3)}
+else if(expression==="o"){c.arc(0,-44,2.4,0,TAU)}
+else{c.arc(0,-46,3,.15,Math.PI-.15)}
+c.stroke();c.restore()}
+function confetti(x,y){for(let i=0;i<6;i++){c.fillStyle=i%2?"#efb86c":"#87bba3";c.fillRect(x+Math.sin(frame*3+i*1.8)*(12+i*3),y+Math.cos(frame*4+i)*16,4,4)}}
+function noteBadge(s,x,y){rounded(x-50,y-14,100,26,12,"#fffcf6");text(s,x,y+3,11,"#6f746b","center")}
+// 01 一画だけ。 ten hand-built paths, with the faded kanji as the scene's character.
+const levels=[
+["人",165,300,350,350],["山",174,305,350,339],["木",160,315,352,340],
+["川",170,318,342,355],["月",164,306,350,328],["火",163,320,335,352],
+["雨",164,327,355,344],["心",174,316,350,332],["森",152,322,351,346],["歩",160,324,345,325]
+];
+function resetStroke(){if(!state)return;const lv=levels[state.level];state.phase="ready";state.path=[];state.drawLen=0;state.drawing=false;state.runner={x:45,y:lv[3],vy:0};state.wait=0;score(state.level);say("指で一本だけ線を描いて、道をつなごう。")}
+function strokePoint(x,y){x=clamp(x,5,495);y=clamp(y,125,415);let a=state.path,lastP=a[a.length-1];if(!lastP){a.push({x,y});return}let d=Math.hypot(x-lastP.x,y-lastP.y);if(d<3)return;let rem=290-state.drawLen;if(rem<=0)return;let frac=Math.min(1,rem/d);let p={x:lastP.x+(x-lastP.x)*frac,y:lastP.y+(y-lastP.y)*frac};state.drawLen+=Math.hypot(p.x-lastP.x,p.y-lastP.y);a.push(p)}
+function strokeSegments(){let lv=levels[state.level],a=[{x:0,y:lv[3],x2:lv[1],y2:lv[3]},{x:lv[2],y:lv[4],x2:500,y2:lv[4]}];for(let i=1;i<state.path.length;i++)a.push({x:state.path[i-1].x,y:state.path[i-1].y,x2:state.path[i].x,y2:state.path[i].y});return a}
+function floorAt(x,foot){let best=null;for(let a of strokeSegments()){let dx=a.x2-a.x;if(Math.abs(dx)<.01)continue;let k=(x-a.x)/dx;if(k<0||k>1)continue;let yy=a.y+(a.y2-a.y)*k;if(yy>foot+15||yy<foot-17)continue;if(best===null||Math.abs(yy-foot)<Math.abs(best-foot))best=yy}return best}
+function updateStroke(dt){if(state.phase==="run"){let r=state.runner,prev=r.y;r.x+=77*dt;r.vy+=940*dt;r.y+=r.vy*dt;let f=floorAt(r.x,r.y);if(f!==null&&r.vy>=0){r.y=f;r.vy=0}else if(f===null&&Math.abs(r.y-prev)<1&&r.vy===0){r.vy=10}
+if(r.x>464&&r.y<380){state.phase="clear";state.wait=0;saveBest(0,state.level+1);say(state.level===9?"ぜんぶ渡れた！":"渡れた！");beep(580)}
+if(r.y>447){state.phase="failed";say("あっ。画面をタップでもう一度。");beep(190)}}
+if(state.phase==="clear"){state.wait+=dt;if(state.wait>1.2){if(state.level===9)finish("✦","ぜんぶ渡れた。","10の道、10の一画。\nちょっと誇らしい。",10);else{state.level++;resetStroke()}}}}
+function drawStroke(){let lv=levels[state.level];
+text("STAGE "+String(state.level+1).padStart(2,"0")+" / 10",26,35,13,"#98978b");text(lv[0],250,243,180,"#ebe4d6","center","900");
+line(0,lv[3],lv[1],lv[3],"#617666",9);line(lv[2],lv[4],500,lv[4],"#617666",9);
+for(let x=7;x<lv[1];x+=24)line(x,lv[3]+9,x+7,lv[3]+15,"#c1bba9",2);
+for(let x=lv[2];x<497;x+=24)line(x,lv[4]+9,x+7,lv[4]+15,"#c1bba9",2);
+for(let i=1;i<state.path.length;i++){let a=state.path[i-1],b=state.path[i];line(a.x,a.y,b.x,b.y,"#cb895b",8);line(a.x,a.y,b.x,b.y,"#f7d5a9",2)}
+c.fillStyle="#879b72";c.beginPath();c.arc(466,lv[4]-44,10,0,TAU);c.fill();line(466,lv[4]-36,466,lv[4],"#5b675a",3);
+line(466,lv[4]-44,481,lv[4]-36,"#fff6e7",2);
+human(state.runner.x,state.runner.y,0.86,"#df9c75",state.phase==="failed"?"o":"smile",state.phase==="run");
+if(state.phase==="ready"){text("ひと筆だけ。",250,89,19,"#726c5f","center");text("のこり "+Math.max(0,Math.round(290-state.drawLen))+" px",250,113,12,"#9e9a90","center")}
+if(state.phase==="failed"){noteBadge("あっ、落ちた。",250,70)}
+if(state.phase==="clear"){noteBadge("いけた！",250,70);confetti(460,lv[4]-80)}
+}
+function initPass(){state={time:65,queue:[],walk:[],spawn:1.2,passed:0,misses:0,fx:"",fxTime:0,combo:0};for(let i=0;i<4;i++)spawnPerson(i%2);score(0);say("左と右、通すほうを選ぼう。")}
+function spawnPerson(side){if(state.queue.filter(p=>p.side===side).length>=5)return;state.queue.push({side,patience:rnd(9,16),max:16,speed:rnd(72,105),color:skins[Math.floor(rnd(0,skins.length))],seed:rnd(0,10)})}
+function dispatch(side){if(active!==1||!state||state.ended)return;let idx=state.queue.findIndex(p=>p.side===side);if(idx<0){say("そっちには誰もいない。");return}let p=state.queue.splice(idx,1)[0];let opponent=state.walk.find(w=>w.side!==side&&w.x>130&&w.x<370);if(opponent){state.walk=state.walk.filter(w=>w!==opponent);state.misses++;state.combo=0;state.fx="ごつん！";state.fxTime=1;say("あ、ぶつかった。　"+state.misses+" / 5");beep(185);if(state.misses>=5)finish("↔","今日はここまで。",state.passed+"人が通れた。\n少しだけ、気まずい。",state.passed);return}
+p.x=side===0?100:400;p.dir=side===0?1:-1;state.walk.push(p);beep(310)}
+function updatePass(dt){state.time-=dt;state.spawn-=dt;state.fxTime-=dt;if(state.spawn<=0){state.spawn=rnd(1,1.75);spawnPerson(Math.random()<.5?0:1)}
+for(let i=state.queue.length-1;i>=0;i--){let p=state.queue[i];p.patience-=dt;if(p.patience<=0){state.queue.splice(i,1);state.misses++;state.combo=0;state.fx="もう行く！";state.fxTime=.9}}
+for(let i=state.walk.length-1;i>=0;i--){let w=state.walk[i];w.x+=w.dir*w.speed*dt;if(w.x>444||w.x<56){state.walk.splice(i,1);state.passed++;state.combo++;score(state.passed);saveBest(1,state.passed);if(state.combo%5===0){say("いい感じ！ "+state.combo+"人つづけて通れた");beep(640)}}}
+if(state.misses>=5){finish("↔","ちょっと大混雑。",state.passed+"人が無事に通れた。\nまた、ゆっくりね。",state.passed)}
+else if(state.time<=0){finish("☺","おつかれさま。",state.passed+"人が無事に通れた。\nみんな、どこへ行くんだろう。",state.passed)}}
+function drawPass(){text("のこり "+Math.ceil(Math.max(0,state.time))+" 秒",25,32,15,"#6a7b6f");text("困った "+state.misses+" / 5",475,32,14,"#a57b65","right");
+rounded(30,230,440,111,25,"#e8e7d9");rounded(150,244,200,82,16,"#d0d5c8");line(150,230,150,340,"#96a291",4);line(350,230,350,340,"#96a291",4);
+for(let x=173;x<335;x+=43)line(x,287,x+17,287,"#f6f7ea",3);
+text("左",93,210,21,"#477866","center");text("右",408,210,21,"#477866","center");
+for(let side=0;side<2;side++){let people=state.queue.filter(p=>p.side===side);for(let i=0;i<people.length;i++){let p=people[i],x=side?414:86,y=305-i*57;human(x,y,.8,p.color,p.patience<3?"sad":"smile",false);let bx=x-15;rounded(bx,y+5,30,5,3,"#e0d9ca");rounded(bx,y+5,30*clamp(p.patience/p.max,0,1),5,3,p.patience<4?"#d16b67":"#76a98a");if(p.patience<3)text("!",x+20,y-42,15,"#c86d54")}}
+state.walk.forEach(p=>human(p.x,309,.84,p.color,"smile",true));
+if(state.fxTime>0)noteBadge(state.fx,250,102);
+text("左から",86,400,13,"#788578","center");text("右から",413,400,13,"#788578","center");text("← ボタンでも通せます →",250,446,11,"#9d9e94","center")}
+const kinds=[
+{label:"本",w:95,h:25,m:1,color:"#8bacc8"},{label:"箱",w:91,h:49,m:1.5,color:"#dcb482"},
+{label:"すいか",w:82,h:57,m:2.2,color:"#8bb28a"},{label:"植木",w:72,h:54,m:1.4,color:"#cb9384"},
+{label:"お弁当",w:105,h:34,m:1.4,color:"#e1ad80"},{label:"クッション",w:104,h:31,m:.7,color:"#d7aec7"},
+{label:"やかん",w:79,h:47,m:1.8,color:"#acb9bd"},{label:"辞書",w:104,h:29,m:1.9,color:"#a4a6bd"}
+];
+function newItem(){let index=state.items.length;let type=kinds[index%kinds.length];return Object.assign({},type,{x:250,y:190,v:0,phase:rnd(0,TAU)})}
+function initStack(){state={items:[],obj:null,phase:"aim",t:0,total:0,shiver:0,wait:0,losing:0};state.obj=newItem();score(0);say("行けると思ったところで置こう。")}
+function drop(){if(active!==2||!state||state.ended||state.phase!=="aim")return;state.phase="falling";state.obj.v=40;beep(295)}
+function updateStack(dt){let s=state;s.t+=dt;if(s.phase==="aim"){s.obj.x=250+135*Math.sin(s.t*(1.52+s.items.length*.09)+s.obj.phase)}else if(s.phase==="falling"){s.obj.v+=950*dt;s.obj.y+=s.obj.v*dt;let target=340-s.total-s.obj.h/2;if(s.obj.y>=target){s.obj.y=target;let below=s.items[s.items.length-1],sx=below?below.x:250,sw=below?below.w:120;let dx=Math.abs(s.obj.x-sx);let merged=s.items.concat([s.obj]);let mass=0,weighted=0;for(let b of merged){mass+=b.m;weighted+=b.x*b.m}let com=weighted/mass;let limit=Math.min(sw,s.obj.w)*(.58-Math.min(.22,s.items.length*.013))+6;let good=dx<limit&&Math.abs(com-250)<66; if(!good){s.phase="topple";s.losing=0;s.shiver=s.obj.x>sx?1:-1;s.fx="あっ";beep(160)}else{s.items.push(s.obj);s.total+=s.obj.h;s.shiver=(s.obj.x-sx)/35;s.phase="settle";s.wait=0;score(s.items.length);saveBest(2,s.items.length);beep(510);say(s.items.length<4?"まだ持てるよ。":s.items.length<10?"え、まだ？":"腕が、ぷるぷる。");if(s.items.length>=25)finish("✦","持てた……！","25個も載った。\n今日はもう、勘弁して。",25)}}}
+else if(s.phase==="settle"){s.wait+=dt;s.shiver*=Math.exp(-dt*5);if(s.wait>.48){s.obj=newItem();s.phase="aim"}}
+else if(s.phase==="topple"){s.losing+=dt;if(s.losing>1.25)finish("！","あっ、落ちた。",s.items.length+"個まで持てた。\nさっきまで、いい感じだったのに。",s.items.length)}}
+function itemDraw(it,y,tilt){c.save();c.translate(it.x,y);c.rotate(tilt||0);let w=it.w,h=it.h;rounded(-w/2,-h/2,w,h,Math.min(10,h/3),it.color);
+c.strokeStyle="#50564e";c.lineWidth=2;c.strokeRect(-w/2+3,-h/2+3,w-6,h-6);
+if(it.label==="すいか"){c.fillStyle="#b7d2a7";c.beginPath();c.ellipse(0,0,w*.37,h*.41,0,0,TAU);c.fill();for(let x=-24;x<=24;x+=14)line(x,-16,x+4,18,"#5c9869",3)}
+else if(it.label==="植木"){rounded(-24,-4,48,h/2+3,3,"#bc775a");c.fillStyle="#659a6a";for(let i=-2;i<=2;i++){c.beginPath();c.ellipse(i*9,-18,10,17,i*.35,0,TAU);c.fill()}}
+else{ text(it.label,0,6,Math.min(20,h*.48),"#43504a","center","900");line(-w/2+10,h/2-7,w/2-10,h/2-7,"#ffffff88",2)}
+c.restore()}
+function drawStack(){let s=state,cam=Math.max(0,s.total-185)*.78;
+text("STACK "+String(s.items.length).padStart(2,"0"),27,32,15,"#9b8a80");text("25個積めたら大成功",472,32,12,"#9b8a80","right");
+line(0,342+cam,500,342+cam,"#c0c5b6",4);
+let lean=clamp(s.shiver*4,-12,12),ff=s.phase==="topple"?Math.min(s.losing*70,80)*(s.shiver||1):0;
+c.save();c.translate(lean+ff,0);
+human(250,402+cam,1.26,"#b97870",s.items.length>6?"o":"smile",false);
+for(let i=0,y=340;i<s.items.length;i++){let it=s.items[i];itemDraw(it,y-it.h/2+cam,s.phase==="topple"?.02*s.losing*(i+1)*(s.shiver||1):0);y-=it.h}
+if(s.phase!=="topple"){itemDraw(s.obj,s.obj.y+cam,0);if(s.phase==="aim"){let target=340-s.total-s.obj.h/2;line(s.obj.x-15,target+cam,s.obj.x+15,target+cam,"#bc7c65",2);line(s.obj.x,target+cam-8,s.obj.x,target+cam+8,"#bc7c65",2)}}
+c.restore();
+if(s.phase==="topple")text("あっ！",250,112,31,"#c46a61","center","900");
+if(s.phase==="aim"&&s.items.length===0)text("頭の上に、そっと。",250,123,15,"#a58f82","center");
+}
+// 04 傘、入れて。
+function newRainGroup(){state.guests=[];for(let i=0;i<3;i++)state.guests.push({x:95+i*154+rnd(-18,18),origin:95+i*154,seed:rnd(0,TAU),wet:rnd(0,5),age:0,life:7.2,col:skins[Math.floor(rnd(0,skins.length))]})}
+function initRain(){state={time:63,umbrella:250,wind:.7,windTimer:4.5,guests:[],saved:0,soaked:0,rain:0,feedback:"",ft:0};newRainGroup();score(0);say("濡れてる人のところへ、傘を寄せよう。")}
+function updateRain(dt){let s=state;s.time-=dt;s.rain+=dt;s.windTimer-=dt;s.ft-=dt;if(s.windTimer<0){s.windTimer=rnd(4,6.5);s.wind=rnd(-1.25,1.25)}let center=s.umbrella+s.wind*38;for(let p of s.guests){p.age+=dt;p.life-=dt;p.x=clamp(p.origin+Math.sin(s.rain*1.1+p.seed)*21,35,465);let safe=Math.abs(p.x-center)<89;let delta=safe?-22:14;p.wet=clamp(p.wet+delta*dt,0,100)}
+if(s.guests.every(p=>p.life<=0)){for(let p of s.guests){if(p.wet<57){s.saved++;score(s.saved);saveBest(3,s.saved);s.feedback="ありがとう！";beep(495)}else{s.soaked++;s.feedback="びしょびしょ…"}}s.ft=1.1;newRainGroup()}
+if(s.time<=0)finish("☂","雨、やんだ。",s.saved+"人が濡れずに帰れた。\n"+s.soaked+"人は、ちょっとびしょびしょ。",s.saved)}
+function drawRain(){let s=state;
+c.fillStyle="#e2eaf0";c.fillRect(0,0,W,342);
+for(let i=0;i<75;i++){let x=(i*71+s.rain*(90+s.wind*90)+1000)%560-30,y=(i*59+s.rain*225)%380-30;line(x,y,x+s.wind*14,y+17,"#a5bacb",1.6)}
+rounded(0,375,500,95,0,"#e5e3d7");line(0,374,500,374,"#b8c5b9",4);for(let i=0;i<9;i++)line(i*61,402,i*61+34,402,"#d2d0c4",3);
+text("のこり "+Math.ceil(Math.max(0,s.time))+" 秒",25,32,14,"#557491");text("風 "+(s.wind>0?"→":s.wind<0?"←":"・")+" "+Math.abs(s.wind).toFixed(1),473,32,13,"#557491","right");
+for(let p of s.guests){let sad=p.wet>=57;human(p.x,370,1.06,p.col,sad?"sad":"smile",false);rounded(p.x-25,383,50,5,2,"#cdd2cf");rounded(p.x-25,383,50*(1-p.wet/100),5,2,p.wet>56?"#d98f86":"#74ac91")}
+let bx=s.umbrella,by=208;let lean=s.wind*.08;
+c.save();c.translate(bx,by);c.rotate(lean);
+line(0,0,0,143,"#516070",5);
+c.beginPath();c.moveTo(-94,0);c.quadraticCurveTo(-60,-82,0,-86);c.quadraticCurveTo(60,-82,94,0);c.quadraticCurveTo(70,-16,46,0);c.quadraticCurveTo(23,-16,0,0);c.quadraticCurveTo(-23,-16,-46,0);c.quadraticCurveTo(-70,-16,-94,0);c.closePath();c.fillStyle="#e7b979";c.fill();c.strokeStyle="#946e52";c.lineWidth=3;c.stroke();
+line(0,143,8,148,"#516070",4);c.restore();
+let shadow=s.umbrella+s.wind*38;c.fillStyle="rgba(104,151,180,.13)";c.beginPath();c.ellipse(shadow,375,90,12,0,0,TAU);c.fill();
+human(bx,373,.85,"#d5a66f","smile",false);
+if(s.ft>0)noteBadge(s.feedback,250,91);text("指で傘を動かす",250,448,13,"#7892a2","center")}
+function pos(e){let r=canvas.getBoundingClientRect();return{x:clamp((e.clientX-r.left)/r.width*W,0,W),y:clamp((e.clientY-r.top)/r.height*H,0,H)}}
+canvas.addEventListener("pointerdown",e=>{if(active<0||!state||state.ended)return;e.preventDefault();try{canvas.setPointerCapture(e.pointerId)}catch(_){}let p=pos(e);if(active===0){if(state.phase==="failed"){resetStroke()}if(state.phase==="ready"){state.drawing=true;state.path=[];state.drawLen=0;strokePoint(p.x,p.y)}}if(active===1)dispatch(p.x<250?0:1);if(active===2)drop();if(active===3)state.umbrella=clamp(p.x,75,425)});
+canvas.addEventListener("pointermove",e=>{if(!state||!e.buttons)return;let p=pos(e);if(active===0&&state.phase==="ready"&&state.drawing)strokePoint(p.x,p.y);if(active===3)state.umbrella=clamp(p.x,75,425)});
+function release(){if(active===0&&state&&state.phase==="ready"&&state.drawing){state.drawing=false;if(state.drawLen>28){state.phase="run";beep(360)}else{state.path=[];state.drawLen=0}}}
+canvas.addEventListener("pointerup",release);canvas.addEventListener("pointercancel",release);
+window.addEventListener("keydown",e=>{if(active<0||!state||state.ended||e.repeat||e.target.tagName==="BUTTON")return; if(active===1&&(e.key==="ArrowLeft"||e.key==="a")){e.preventDefault();dispatch(0)}if(active===1&&(e.key==="ArrowRight"||e.key==="d")){e.preventDefault();dispatch(1)}if(active===2&&e.code==="Space"){e.preventDefault();drop()}if(active===3&&(e.key==="ArrowLeft"||e.key==="ArrowRight")){e.preventDefault();state.umbrella=clamp(state.umbrella+(e.key==="ArrowLeft"?-45:45),75,425)}if(active===0&&e.key==="r")resetStroke()});
+window.addEventListener("resize",resize);
+document.querySelectorAll("[data-game]").forEach(b=>b.addEventListener("click",()=>start(Number(b.dataset.game))));
+document.getElementById("back").addEventListener("click",back);
+document.getElementById("go-home").addEventListener("click",back);
+document.getElementById("again").addEventListener("click",()=>start(active));
+document.getElementById("sound").addEventListener("click",()=>{soundOn=!soundOn;document.getElementById("sound").textContent=soundOn?"♪ ON":"♪ OFF";beep(440)});
+document.getElementById("share").addEventListener("click",async()=>{let msg=titles[active]+" "+lastScore+units[active]+"！\nちいさな4つのこと｜4in1\nhttps://techmew.github.io/games/4in1/";try{if(navigator.share){await navigator.share({title:"ちいさな4つのこと",text:msg});return}if(navigator.clipboard){await navigator.clipboard.writeText(msg);say("結果をコピーしました");return}}catch(e){if(e.name==="AbortError")return}window.prompt("結果をコピー",msg)});
+refreshBest();
+})();
+</script>
+</body>
+</html>
