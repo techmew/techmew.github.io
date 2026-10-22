@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10151b">
+<meta name="description" content="正体を隠して都市の記録を書き換える。一手ごとに学習する捜査官と戦う、1人用心理戦ゲーム。">
+<title>BLIND SPOT｜偽名の街</title>
+<style>
+:root{--bg:#0d1319;--ink:#e8e9e8;--muted:#9aa8b0;--card:#18212a;--card2:#1b2730;--line:#32414b;--accent:#ffca78;--red:#f27d78;--teal:#7ad3c0;--blue:#91b6df;--soft:#c3ccd0;--radius:13px}
+*{box-sizing:border-box}html{font-family:Meiryo,"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%;scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 78% -8%,#22313b 0%,transparent 50%),linear-gradient(155deg,#101821,#0e1319 65%);font-size:15px;line-height:1.65}
+button{font:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.35;cursor:not-allowed}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}a{color:inherit}.wrap{max-width:1220px;padding:24px 22px 76px;margin:auto}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:23px}.brand{font-size:17px;letter-spacing:.22em;font-weight:900}.brand span{color:var(--accent)}.tiny{font-size:11px;color:var(--muted);letter-spacing:.13em}.muted{color:var(--muted)}.toplinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ghost{background:transparent;border:1px solid var(--line);color:var(--soft);border-radius:9px;padding:9px 13px;font-weight:700}.ghost:hover{border-color:var(--accent);color:var(--accent)}.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid #40515c;border-radius:5px;color:#d6e0e3;font-size:12px}.accent{color:var(--accent)}.danger{color:var(--red)}.good{color:var(--teal)}
+.hero{position:relative;overflow:hidden;border:1px solid #44535a;border-radius:var(--radius);padding:30px 32px;min-height:240px;background:linear-gradient(103deg,#202d35,#17212a 77%)}.hero:before{content:"";position:absolute;width:260px;height:260px;border:1px solid #d5a76c2e;border-radius:50%;right:-72px;top:-70px;box-shadow:0 0 0 47px #d5a76c0c,0 0 0 93px #d5a76c09;pointer-events:none}.eyebrow{font-size:11px;letter-spacing:.25em;color:var(--accent);font-weight:800}.hero h1,.landing h1{font-size:clamp(28px,5vw,48px);font-weight:900;line-height:1.25;letter-spacing:.04em;margin:17px 0 15px}.hero p{color:#c4d0d7;max-width:640px;margin:0;font-size:15px;line-height:1.95}.hero .smallnote{margin-top:17px;font-size:12px;color:#9daeb8}.grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(355px,.88fr);gap:20px;margin-top:20px}.stack{display:grid;align-content:start;gap:20px}.panel{border:1px solid var(--line);border-radius:var(--radius);padding:19px 21px;background:#151e26}.paneltitle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px}.paneltitle h2{font-size:15px;letter-spacing:.08em;margin:0;font-weight:850}.tag{border:1px solid #405360;font-size:11px;color:var(--muted);padding:3px 7px;border-radius:4px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:20px}.stat{background:#101a21;border:1px solid #394a53;border-radius:10px;padding:10px 12px}.stat strong{display:block;font-size:27px;line-height:1.35;letter-spacing:-.02em}.stat small{font-size:11px;color:var(--muted)}.meter{height:7px;background:#0c1217;border-radius:50px;overflow:hidden;margin-top:8px}.meter>span{display:block;height:100%;background:linear-gradient(90deg,#ebb16b,#ea7779);border-radius:50px;transition:width .3s ease}.case{position:relative;border-left:2px solid #455660;padding:10px 8px 10px 15px;margin-left:7px}.case.done{border-color:var(--teal)}.case.current{border-color:var(--accent);background:#f1c77b0b}.case .number{font-size:10px;letter-spacing:.16em;color:var(--muted)}.case strong{display:block;font-size:15px;margin:3px 0}.case p{font-size:12px;color:var(--muted);margin:0}.case .status{font-size:11px;color:var(--teal);float:right}.case.current .status{color:var(--accent)}
+.investigator{border:1px solid #445a60;background:linear-gradient(135deg,#1b2b33,#141f28);border-radius:12px;padding:18px;position:relative}.investigator:before{content:"“";position:absolute;right:15px;top:-18px;font-family:serif;font-size:70px;color:#56707852}.investigator .person{font-weight:900;font-size:16px;letter-spacing:.07em}.investigator p{font-size:15px;margin:12px 0 10px;color:#e4ebed;line-height:1.85}.investigator .memo{font-size:12px;color:#aabdc6}.suspect{display:grid;grid-template-columns:1fr 66px;gap:10px;align-items:center;margin-bottom:16px}.suspect:last-child{margin-bottom:0}.suspectheader{display:flex;justify-content:space-between;gap:8px;font-size:13px}.suspect strong{font-size:14px}.suspect small{font-size:11px;color:var(--muted)}.suspect .meter{height:6px;margin-top:7px}.suspect .meter>span{background:var(--blue)}.suspect.me .meter>span{background:var(--red)}.prob{font-size:20px;font-weight:850;text-align:right;font-variant-numeric:tabular-nums}.prob span{font-size:11px;color:var(--muted);margin-left:2px}.frame-panel{background:#111a21;border:1px solid #43515a;padding:11px 13px;border-radius:10px;margin-top:14px}.frame-panel p{margin:0;color:#a9bdc8;font-size:12px}.alertline{display:flex;justify-content:space-between;align-items:center;gap:8px}.tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.track{border:1px solid #45535b;background:#111a22;border-radius:9px;padding:10px 7px;min-width:0;text-align:center;color:#d9e3e6}.track b{display:block;font-size:13px}.track small{display:block;color:var(--muted);font-size:10px}.track.selected{background:#3c332b;border-color:var(--accent);color:var(--accent)}.track.guarded{box-shadow:inset 0 0 0 1px var(--red)}.actionRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.choice{min-width:0;border-radius:9px;border:1px solid #455560;background:#121c24;padding:10px 7px;color:#dce5e7;text-align:left}.choice strong{display:block;font-size:13px;line-height:1.3}.choice small{display:block;font-size:11px;line-height:1.45;color:#9db0ba;margin-top:5px}.choice.selected{border-color:var(--accent);background:#3a312a}.choice.selected strong{color:var(--accent)}.prepgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.divider{height:1px;background:#33434c;margin:18px 0}.subhead{font-weight:800;color:#d5e2e7;font-size:12px;letter-spacing:.05em;margin:0 0 10px}.routehead{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-bottom:8px}.routehead p{margin:0}.cost{color:var(--accent);font-size:12px}.hint{font-size:12px;color:#9db0ba;margin:9px 0 0}.framelist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}.framechoice{border:1px solid #43525d;border-radius:7px;color:#c5d3d9;background:#101920;padding:8px 5px;font-size:12px}.framechoice.selected{border-color:var(--red);color:#f9a6a1;background:#3b282b}.submit{border:0;border-radius:10px;background:var(--accent);color:#202027;display:block;width:100%;padding:15px;font-weight:900;font-size:16px;letter-spacing:.1em;margin-top:16px}.submit:hover:not(:disabled){background:#ffe1a9}.submit:disabled{background:#7b7168;color:#222;opacity:1}.validation{font-size:12px;min-height:19px;color:var(--muted);margin:9px 0 0}.logentry{border-left:1px solid #53646a;margin:0 0 16px 5px;padding:1px 0 3px 14px}.logentry:last-child{margin-bottom:0}.logentry .day{font-size:10px;color:var(--accent);letter-spacing:.08em}.logentry strong{display:block;font-size:13px;margin:4px 0}.logentry p{margin:0;color:#aebdc6;font-size:12px;line-height:1.7}.bottom{display:flex;justify-content:space-between;gap:12px;color:#71848f;font-size:11px;letter-spacing:.09em;margin-top:25px}.landing{max-width:1000px;margin:34px auto 0}.landing .intro{background:linear-gradient(130deg,#202c34,#131a23);border:1px solid #485761;border-radius:16px;padding:34px 38px 30px}.landing h1{margin:14px 0}.landing .lead{color:#c1cdd2;line-height:2;font-size:16px;max-width:680px}.landing .ruleline{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}.landing .ruleline b{padding:6px 10px;background:#101a21;border-radius:5px;font-size:12px;font-weight:700}.sectionlabel{font-size:12px;letter-spacing:.16em;color:var(--accent);margin:28px 0 12px;font-weight:800}.identity-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.identity{background:#17222b;border:1px solid #43515c;color:#dce5e8;padding:15px 12px;border-radius:10px;text-align:left;min-height:164px}.identity.active{border-color:var(--accent);background:#332d29}.identity .no{font-size:11px;color:#9db4c0}.identity .name{display:block;font-size:18px;font-weight:900;margin:8px 0 4px}.identity .job{display:block;color:#b6c7cf;font-size:12px}.identity .special{display:block;color:var(--accent);font-size:12px;margin-top:12px;line-height:1.5}.diffrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.diff{border:1px solid #48555c;color:#dce4e7;background:#1a242c;text-align:center;padding:12px 7px;border-radius:8px;font-weight:800}.diff small{font-weight:400;color:var(--muted);display:block;font-size:11px}.diff.active{border-color:var(--accent);background:#393127;color:#ffda9d}.landing .submit{max-width:380px;margin:24px auto 0}.landingnote{text-align:center;color:var(--muted);font-size:12px;margin:10px 0}.rules{max-width:750px;margin:0 auto}.rules h2{font-size:19px;color:var(--accent)}.rules h3{font-size:15px;margin:20px 0 5px}.rules p,.rules li{color:#c3d0d5;font-size:14px;line-height:1.9}.rules ul{padding-left:22px}.back{margin-top:20px}.overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:#060b10df;padding:18px;overflow:auto}.modal{background:#1a242c;width:min(560px,100%);border:1px solid #65717a;border-radius:15px;padding:27px;box-shadow:0 20px 65px #0009;max-height:90vh;overflow:auto}.modal .eyebrow{margin:0}.modal h2{font-size:clamp(23px,5vw,32px);line-height:1.4;margin:10px 0 18px}.modal p{font-size:14px;color:#c5d1d7;line-height:2;white-space:pre-line}.modal .reporttag{padding:12px 14px;border-left:2px solid var(--accent);background:#101920;color:#d5e3e6;font-size:13px;line-height:1.8;margin-top:16px;white-space:pre-line}.modal .submit{margin-top:23px}.modal .mini{font-size:12px;color:#9fb0ba}.hidden{display:none!important}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.wrap{padding:16px 13px 62px}.hero{padding:25px 20px;min-height:auto}.stats{gap:7px}.stat{padding:10px 8px}.stat strong{font-size:24px}.stat small{font-size:10px}.identity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.landing .intro{padding:26px 20px}.bottom{flex-direction:column}.brand{font-size:15px}}
+@media(max-width:440px){body{font-size:14px}.topbar{margin-bottom:14px}.toplinks .ghost{padding:7px 8px;font-size:12px}.hero h1,.landing h1{font-size:29px}.hero p{font-size:13px}.panel{padding:17px 14px}.stat strong{font-size:22px}.stat small{font-size:10px}.track b{font-size:12px}.track small{font-size:9px}.choice strong{font-size:12px}.choice small{font-size:10px}.identity .name{font-size:17px}.investigator p{font-size:14px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(()=>{'use strict';
+const KEY='blind-spot-save-v3';
+const ROUTES=[{name:'文書',desc:'公文書・署名',char:'文'},{name:'放送',desc:'映像・音声',char:'声'},{name:'通信',desc:'端末・送信記録',char:'網'},{name:'人脈',desc:'噂・証言',char:'人'}];
+const PEOPLE=[
+ {name:'椎名 透',job:'市役所の記録官',routes:[0,2],line:'真実は、記録された瞬間に変わる。'},
+ {name:'真壁 遥',job:'報道局の編集者',routes:[1,3],line:'みんな、聞きたい嘘しか聞かない。'},
+ {name:'雨宮 澪',job:'情報解析技師',routes:[2,3],line:'見られているなら、見返せばいい。'},
+ {name:'天城 蓮',job:'元・調査記者',routes:[0,1],line:'一つの事実にも、二つの顔がある。'}
+];
+const CASES=[
+ {title:'消えた終電',routes:[0,2],brief:'終電の乗客が一人、時刻表ごと消された。',reveal:'「降りたのは私よ」と少女は言った。だが彼女の名前は乗客名簿にない。'},
+ {title:'午後四時の容疑者',routes:[1,3],brief:'同じ男が同時刻に二カ所で目撃された。',reveal:'片方の証言者は失踪している。録音だけが、まだ喋り続けていた。'},
+ {title:'病室の窓',routes:[0,3],brief:'入院記録には、退院できない人物の署名がある。',reveal:'窓の向こうには、建てられたことのない病棟が映っていた。'},
+ {title:'白紙の投票日',routes:[1,2],brief:'まだ起きていない選挙の結果が公表された。',reveal:'名簿を閉じた瞬間、街のスピーカーが同じ一つの名前を呼んだ。'}
+];
+const DIFF={easy:{label:'初級',days:11,watchBias:1.5,failPressure:3,winPressure:13},normal:{label:'標準',days:9,watchBias:2.5,failPressure:4,winPressure:11},hard:{label:'上級',days:8,watchBias:3.7,failPressure:5,winPressure:10}};
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const routeName=i=>ROUTES[i]?.name??'不明';
+let setup={role:2,diff:'normal'},state=null,showRules=false;
+function probs(){const values=state?.evidence||[2,2,2,2];const max=Math.max(...values);let exp=values.map(x=>Math.exp((x-max)*0.72));let sum=exp.reduce((a,b)=>a+b,0);return exp.map(x=>100*x/sum)}
+function save(){try{if(state)localStorage.setItem(KEY,JSON.stringify(state));else localStorage.removeItem(KEY)}catch(e){}}
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&v.version===3&&Array.isArray(v.evidence)&&v.evidence.length===4&&v.plan&&v.role>=0&&v.role<4&&DIFF[v.diff]){state=v;return true}}catch(e){}return false}
+function chooseGuard(s){
+ const allowed=CASES[Math.min(s.edits,3)].routes;
+ const weights=ROUTES.map((r,i)=>allowed.includes(i)?1+Math.random()*.95:-9);
+ const records=s.history.filter(h=>typeof h.route==='number');
+ const prev=records[records.length-1],prev2=records[records.length-2];
+ if(prev)weights[prev.route]+=DIFF[s.diff].watchBias;
+ if(prev2)weights[prev2.route]+=.8;
+ for(const h of records.slice(-4)){if(h.type==='edit')weights[h.route]+=.35}
+ if(typeof s.baitRoute==='number')weights[s.baitRoute]+=12.5;
+ // 捜査官は連続改稿と交互の使用パターンを学習する。
+ const editRecords=records.filter(x=>x.type==='edit');
+ if(editRecords.length>=2){const last=editRecords[editRecords.length-1];const older=editRecords[editRecords.length-2];
+  if(last.route!==older.route && allowed.includes(older.route))weights[older.route]+=DIFF[s.diff].watchBias*.85;
+ }
+ const predicted=probsFromEvidence(s.evidence).indexOf(Math.max(...probsFromEvidence(s.evidence)));
+ if(s.day>=4)PEOPLE[predicted].routes.forEach(r=>weights[r]+=.35);
+ return weights.indexOf(Math.max(...weights));
+}
+function probsFromEvidence(values){const max=Math.max(...values);const e=values.map(v=>Math.exp((v-max)*.72));const sum=e.reduce((a,b)=>a+b,0);return e.map(x=>100*x/sum)}
+function planGuard(s){
+ s.guard=chooseGuard(s);
+ const bluff=(s.day%3===0)? Math.random()<.70 : Math.random()<.22;
+ s.claim=bluff?pick([0,1,2,3].filter(i=>i!==s.guard)):s.guard;
+ s.tone=s.day%3===0?'挑発':'声明';
+ const leaders=['「失敗した証拠は残らない」って？ 私はそう思わない。','記録が改変された時、誰が一番得をする？','焦るほど、同じ癖が出るものだ。','犯人がこちらを読んでいるなら、こちらも読んでいる。'];
+ s.inspectorLine=`${pick(leaders)} 今夜は「${routeName(s.claim)}」が怪しい。`;
+ s.inspectorMemo=s.tone==='挑発'?'挑発的な口調。3日ごとの声明はブラフが多い。':'通常の声明。おおむね本気だが、ブラフも混じる。';
+ s.baitRoute=null;
+}
+function start(){
+ state={version:3,role:setup.role,diff:setup.diff,day:1,edits:0,pressure:0,intel:4,evidence:[2,2,2,2],history:[],logs:[{day:0,title:'捜査開始',text:'監察官・黒瀬 葵が、改稿者の存在を公表した。'}],baitRoute:null,guard:null,claim:0,tone:'声明',inspectorLine:'',inspectorMemo:'',peekLocked:false,peekSeen:false,plan:{action:'edit',route:CASES[0].routes.find(i=>PEOPLE[setup.role].routes.includes(i))??CASES[0].routes[0],prep:'none',frame:(setup.role+1)%4,decoy:1},status:'playing',report:null};
+ planGuard(state);save();render();window.scrollTo({top:0,behavior:'instant'});
+}
+function validate(){if(!state||state.status!=='playing')return '';
+ const p=state.plan;const prepCost={none:0,peek:0,frame:2,clean:2,bait:1}[p.prep]||0;
+ const extra=p.action==='edit'&&!PEOPLE[state.role].routes.includes(p.route)?1:0;
+ const needed=prepCost+extra;
+ if(p.action==='edit'&&!CASES[Math.min(state.edits,3)].routes.includes(p.route))return 'この事件ではその経路から改稿できません。';
+ if(p.prep==='frame'&&p.action!=='edit')return '偽証は改稿の際にだけ使用できます。';
+ if(p.prep==='frame'&&p.frame===state.role)return '自分自身を偽証の対象にはできません。';
+ if(state.intel<needed)return `情報点が${needed-state.intel}不足しています。別の経路か準備を選んでください。`;
+ return '';
+}
+function addLog(day,title,txt){state.logs.unshift({day,title,text:txt});state.logs=state.logs.slice(0,18)}
+function signal(route,value){PEOPLE.forEach((p,i)=>{state.evidence[i]+=p.routes.includes(route)?value:.10})}
+function verdict(){
+ if(validate()||state.status!=='playing')return;
+ const s=state,p=s.plan,d=s.day;
+ const caseNow=CASES[Math.min(s.edits,3)];
+ const originalPressure=s.pressure;const before=probs()[s.role];
+ let head='',description='',after='',success=false;
+ const route=p.route;
+ const off=p.action==='edit'&&!PEOPLE[s.role].routes.includes(route);
+ if(off)s.intel-=1;
+ if(p.prep==='frame')s.intel-=2;
+ if(p.prep==='clean')s.intel-=2;
+ if(p.prep==='bait')s.intel-=1;
+ // 傍受は選択した瞬間に支払い済み。
+ if(p.action==='edit'){
+  if(s.guard===route){
+   s.pressure+=DIFF[s.diff].failPressure;
+   s.evidence[s.role]+=4.5;
+   signal(route,.4);
+   head='待ち伏せ';
+   description=`${routeName(route)}経路は監視されていた。改稿は失敗。監察官が端末の残留指紋を採取した。`;
+   after='黒瀬「これで一人、候補を減らせる。」';
+   addLog(d,'監視網に接触',`${routeName(route)}で失敗。捜査側が身元に近い情報を確保。`);
+  }else{
+   success=true;s.edits++;s.pressure+=off?2:1;
+   if(p.prep==='frame'){
+    s.evidence[p.frame]+=4.6;
+    PEOPLE.forEach((person,i)=>{if(i!==p.frame)s.evidence[i]+=.07});
+   }else signal(route,1.15);
+   head='記録改稿 成功';
+   description=`「${caseNow.title}」の記録が書き換わった。${caseNow.reveal}`;
+   after=p.prep==='frame'?`偽の足跡は${PEOPLE[p.frame].name}に向いた。`:'記録の持ち主たちは、何かを忘れたことさえ忘れている。';
+   addLog(d,`CASE ${s.edits} 改稿成功`,`${caseNow.title}／${routeName(route)}経路。${p.prep==='frame'?'偽証あり。':'痕跡が残った。'}`);
+  }
+  s.history.push({type:'edit',route,success,day:d});
+ }else if(p.action==='rumor'){
+  s.intel=clamp(s.intel+2,0,6);s.pressure+=1;
+  signal(route,.8);
+  s.baitRoute=route;
+  head='偽情報を放流';
+  description=`「次は${routeName(route)}から改稿される」という噂が広がった。捜査の注意を誘導できるかもしれない。情報点を2回復。`;
+  after='黒瀬「手掛かりが増えるのは妙ね。増えすぎるのも。」';
+  addLog(d,'偽情報を放流',`${routeName(route)}への疑いを工作。情報点を補充。`);
+  s.history.push({type:'rumor',route,success:false,day:d});
+ }else{
+  s.intel=clamp(s.intel+2,0,6);s.pressure=clamp(s.pressure-3,0,99);
+  s.evidence=s.evidence.map(x=>2+(x-2)*.88);
+  head='潜伏';
+  description='手を止めた。監視の密度が下がり、使える情報点を2回復した。だが期限だけは近づいてくる。';
+  after='黒瀬「止まった。……怖がっているのか、誘っているのか。」';
+  addLog(d,'潜伏',`警戒度を下げ、情報点を補充。`);
+  s.history.push({type:'hide',route:null,success:false,day:d});
+ }
+ if(p.prep==='clean'){
+  s.pressure=clamp(s.pressure-3,0,99);
+  after+='\n痕跡消去により警戒度が3低下。';
+ }else if(p.prep==='bait'){
+  s.baitRoute=p.decoy;
+  after+=`\n${routeName(p.decoy)}経路に囮の信号を流した。次の日の監視を誘導する。`;
+ }else if(p.prep==='peek'){
+  after+='\n事前傍受で監視経路を特定していた。';
+ }
+ // 同一経路の連続使用は行動パターンから捜査可能。
+ const edits=s.history.filter(x=>x.type==='edit'&&x.success);
+ if(edits.length>=2 && edits[edits.length-1].route===edits[edits.length-2].route && p.action==='edit'&&success){
+  s.pressure+=1;
+  signal(route,.50);
+  after+='\n同じ経路の連続使用が発覚。警戒度+1。';
+ }
+ s.pressure=clamp(s.pressure,0,99);
+ const sorted=probs().map((x,i)=>({value:x,i})).sort((a,b)=>b.value-a.value);
+ const first=sorted[0];let outcome=null;
+ if(s.edits>=4){outcome='win';head='四つの改稿、完了';description+='\n街はもう、元の街ではない。追いかけていた黒瀬の机に、一枚の白紙が届く。差出人の名は書かれていない。';after+='\nあなたの正体は、最後まで確定されなかった。'}
+ else if(s.pressure>=DIFF[s.diff].winPressure){outcome='lose';head='監視網、包囲完了';description+='\n些細な経路の痕跡が一本の線になった。黒瀬があなたの扉の前に立っている。';after+='\n警戒度が限界に達した。'}
+ else if(d>=3 && s.edits>=2 && first.value>=76){
+  if(first.i===s.role){outcome='lose';head='名前を言い当てられた';description+=`\n黒瀬「改稿者の正体は、${PEOPLE[s.role].name}。それが今ある証拠の結論よ。」`;after+='\n捜査官は証拠の重みから真犯人を特定した。'}
+  else{outcome='win';head='誤認逮捕';description+=`\n黒瀬は${PEOPLE[first.i].name}の逮捕を決断した。あなたの置いた偽の証拠が、正しい答えを覆った。`;after+='\n別の人間が犯人として扱われ、あなたの正体は守られた。'}
+ }
+ else if(d>=DIFF[s.diff].days){outcome='lose';head='記録、封鎖';description+='\n黒瀬は最後の原本を封鎖した。期限切れ。残りの改稿は永遠にできない。';after+='\n改稿期限を迎えた。'}
+ if(outcome){s.status=outcome;addLog(d,outcome==='win'?'決着：勝利':'決着：敗北',head);}
+ const shift=probs()[s.role]-before;
+ s.report={title:head,description,after,day:d,outcome,pressureDelta:s.pressure-originalPressure,shift:Math.round(shift),edits:s.edits};
+ s.intel=clamp(s.intel+1,0,6); // 次のターン分を付与。
+ if(!outcome){s.day+=1;s.peekLocked=false;s.peekSeen=false;s.plan={action:'edit',route:CASES[Math.min(s.edits,3)].routes.find(i=>PEOPLE[s.role].routes.includes(i))??CASES[Math.min(s.edits,3)].routes[0],prep:'none',frame:(s.role+1)%4,decoy:(s.guard+1)%4};planGuard(s)}
+ save();render();
+}
+function selectPrep(next){
+ if(state.peekLocked)return;
+ if(next==='peek'){
+  if(state.intel<2){state.report={title:'情報点が不足',description:'傍受には情報点が2必要。別の準備を選ぶか、偽情報や潜伏で回復して。',after:'',day:state.day,notice:true};save();render();return}
+  state.intel-=2;state.plan.prep='peek';state.peekLocked=true;state.peekSeen=true;
+ }else state.plan.prep=next;
+ save();render();
+}
+function render(){const app=$('app'); if(!app)return;
+ if(showRules){app.innerHTML=renderHeader(false)+rulesHTML();return}
+ if(!state){app.innerHTML=renderHeader(false)+introHTML();return}
+ app.innerHTML=renderHeader(true)+gameHTML();
+}
+function renderHeader(playing){return `<div class="wrap"><div class="topbar"><div><div class="brand">BLIND<span>／</span>SPOT</div><div class="tiny">偽名の街 — THE FALSE ARCHIVE</div></div><div class="toplinks">${playing?'<span class="chip">AUTO SAVE</span>':''}<button class="ghost" data-do="rules">遊び方</button>${playing?'<button class="ghost" data-do="restart">最初から</button>':''}</div></div>`}
+function introHTML(){return `<div class="landing"><section class="intro"><div class="eyebrow">A GAME OF INFORMATION AND MISDIRECTION</div><h1>嘘をつくのは簡単だ。<br><span class="accent">信じさせるのが難しい。</span></h1><p class="lead">この街では、記録を書き換えると人々の「事実」まで変わる。あなたは正体不明の改稿者。四つの事件を書き換える前に、監察官に名前を突き止められたら終わり。</p><div class="ruleline"><b>1人用 対AI心理戦</b><b>四つの事件</b><b>監視の読み合い</b><b>偽証・ブラフ</b><b>1ゲーム約5〜10分</b></div></section><p class="sectionlabel">01 ／ あなたの表向きの身分を選ぶ</p><div class="identity-grid">${PEOPLE.map((p,i)=>`<button class="identity ${setup.role===i?'active':''}" data-role="${i}"><span class="no">IDENTITY 0${i+1}</span><span class="name">${p.name}</span><span class="job">${p.job}</span><span class="special">得意な経路：${p.routes.map(routeName).join(' ／ ')}</span></button>`).join('')}</div><p class="hint">得意でない経路の改稿には、情報点を追加で1消費する。</p><p class="sectionlabel">02 ／ 捜査官の手強さ</p><div class="diffrow">${Object.entries(DIFF).map(([id,d])=>`<button class="diff ${setup.diff===id?'active':''}" data-diff="${id}">${d.label}<small>期限 ${d.days}日</small></button>`).join('')}</div><button class="submit" data-do="start">この身分でゲームを始める →</button><p class="landingnote">端末内に自動保存。通信・ログイン不要。</p></div>${footer()}</div>`}
+function gameHTML(){const s=state,p=s.plan,percent=probs(),cfg=DIFF[s.diff],valid=validate(),finished=s.status!=='playing';const caseNumber=Math.min(s.edits,3);
+ return `<section class="hero"><div class="eyebrow">DAY ${String(s.day).padStart(2,'0')} ／ ${cfg.days}　 •　${cfg.label} MODE</div><h1>${finished?(s.status==='win'?'あなたの勝ち。':'名前は、割れた。'):'監視されているのは、\nあなたの「癖」だ。'.replace('\n','<br>')}</h1><p>${finished?'決着の記録は下に残った。新しい身分で、もう一度挑むこともできる。':`今日の事件は「${CASES[caseNumber].title}」。${CASES[caseNumber].brief}<br>監視を外して改稿を通すか、偽情報で捜査官の推理を崩せ。`}</p><div class="stats"><div class="stat"><strong class="accent">${s.edits}<small> / 4</small></strong><small>改稿完了</small></div><div class="stat"><strong>${s.day}<small> / ${cfg.days}</small></strong><small>経過日数</small></div><div class="stat"><strong class="${s.pressure>=7?'danger':''}">${s.pressure}<small> / ${cfg.winPressure}</small></strong><small>警戒度</small><div class="meter"><span style="width:${clamp(s.pressure/cfg.winPressure*100,0,100)}%"></span></div></div><div class="stat"><strong class="good">${s.intel}<small> / 6</small></strong><small>情報点</small></div></div></section><div class="grid"><div class="stack"><section class="panel"><div class="paneltitle"><h2>改稿待ちの事件</h2><span class="tag">CASE FILES</span></div>${CASES.map((c,i)=>`<div class="case ${i<s.edits?'done':i===s.edits?'current':''}"><div class="number">CASE 0${i+1}<span class="status">${i<s.edits?'改稿済':i===s.edits?'進行中':'未着手'}</span></div><strong>${c.title}</strong><p>${c.brief}</p><p class="hint">侵入口：${c.routes.map(routeName).join(' ／ ')}</p></div>`).join('')}</section><section class="panel"><div class="paneltitle"><h2>捜査官の推理</h2><span class="tag">LIVE ESTIMATE</span></div><div class="investigator"><div class="tiny">特別監察官 ／ KUROSE AOI</div><div class="person">黒瀬 葵</div><p>${esc(s.inspectorLine)}</p><div class="memo">${esc(s.inspectorMemo)}</div></div><p class="subhead" style="margin-top:18px">容疑の比率 <span class="muted">／ 公開捜査資料から推定</span></p>${PEOPLE.map((person,i)=>`<div class="suspect ${i===s.role?'me':''}"><div><div class="suspectheader"><div><strong>${person.name}</strong> ${i===s.role?'<span class="accent">〔あなた〕</span>':''}</div><small>${person.job}</small></div><div class="meter"><span style="width:${percent[i].toFixed(1)}%"></span></div></div><div class="prob">${Math.round(percent[i])}<span>%</span></div></div>`).join('')}<div class="frame-panel"><p>容疑がひとりに<strong>76%以上</strong>集中すると、捜査官は逮捕に踏み切る。無実の人物が逮捕されれば、あなたの勝利。</p></div></section></div><div class="stack">${finished?endPanel():planningPanel(valid)}<section class="panel"><div class="paneltitle"><h2>直近の記録</h2><span class="tag">ACTIVITY</span></div>${s.logs.slice(0,5).map(l=>`<div class="logentry"><div class="day">${l.day?'DAY '+String(l.day).padStart(2,'0'):'PROLOGUE'}</div><strong>${esc(l.title)}</strong><p>${esc(l.text)}</p></div>`).join('')}</section></div></div>${footer()}</div>${s.report?reportHTML():''}`;
+}
+function planningPanel(valid){const s=state,p=s.plan;
+ const prepOpts=[{id:'none',title:'準備しない',sub:'情報点の消費なし'},{id:'peek',title:'傍受',sub:'情報点2｜監視先を確定'},{id:'frame',title:'偽証',sub:'情報点2｜別人に痕跡を残す'},{id:'clean',title:'痕跡消去',sub:'情報点2｜警戒度−3'},{id:'bait',title:'囮の信号',sub:'情報点1｜翌日の監視を誘導'}];
+ return `<section class="panel"><div class="paneltitle"><h2>今夜の一手</h2><span class="tag">ONE MOVE / DAY</span></div><div class="subhead">① 行動を決める</div><div class="actionRow"><button class="choice ${p.action==='edit'?'selected':''}" data-action="edit"><strong>改稿</strong><small>事件を一つ進める。監視中なら失敗。</small></button><button class="choice ${p.action==='rumor'?'selected':''}" data-action="rumor"><strong>偽情報</strong><small>情報点+2。次の捜査先を誘導。</small></button><button class="choice ${p.action==='hide'?'selected':''}" data-action="hide"><strong>潜伏</strong><small>情報点+2、警戒度−3。進展なし。</small></button></div>${p.action!=='hide'?`<div class="divider"></div><div class="routehead"><p class="subhead">② ${p.action==='edit'?'改稿':'偽情報'}の経路を選ぶ</p><span class="cost">${p.action==='edit'&&!PEOPLE[s.role].routes.includes(p.route)?'不得意：情報点−1':'得意経路は追加消費なし'}</span></div><div class="tracks">${ROUTES.map((r,i)=>`<button class="track ${p.route===i?'selected':''} ${s.peekSeen&&s.guard===i?'guarded':''}" data-route="${i}" ${p.action==='edit'&&!CASES[Math.min(s.edits,3)].routes.includes(i)?'disabled':''}><b>${r.name}</b><small>${p.action==='edit'&&!CASES[Math.min(s.edits,3)].routes.includes(i)?'使用不可':i===s.guard&&s.peekSeen?'● 監視中':PEOPLE[s.role].routes.includes(i)?'得意':'不得意'}</small></button>`).join('')}</div>${s.peekSeen?`<p class="hint danger">傍受結果：今夜は「${routeName(s.guard)}」に監視が張られている。</p>`:'<p class="hint">監察官の発言がヒント。ただし意図的なブラフもある。</p>'}`:''}<div class="divider"></div><div class="subhead">③ 準備を一つ選ぶ <span class="muted">（任意）</span></div><div class="prepgrid">${prepOpts.map(o=>`<button class="choice ${p.prep===o.id?'selected':''}" data-prep="${o.id}" ${s.peekLocked&&p.prep!==o.id?'disabled':''}><strong>${o.title}</strong><small>${o.sub}</small></button>`).join('')}</div>${p.prep==='frame'?`<div class="frame-panel"><p>誰のせいにする？ 改稿が成功した時だけ偽の痕跡が残る。</p><div class="framelist">${PEOPLE.map((person,i)=>i===s.role?'':`<button class="framechoice ${p.frame===i?'selected':''}" data-frame="${i}">${person.name}</button>`).join('')}</div></div>`:''}${p.prep==='bait'?`<div class="frame-panel"><p>捜査官をどの経路に引き寄せる？（効果は翌日）</p><div class="tracks" style="margin-top:9px">${ROUTES.map((r,i)=>`<button class="track ${p.decoy===i?'selected':''}" data-decoy="${i}"><b>${r.name}</b></button>`).join('')}</div></div>`:''}${s.peekLocked?'<p class="hint">傍受は支払い済み。この日の準備は変更できない。</p>':''}<button class="submit" data-do="execute" ${valid?'disabled':''}>この一手を実行 →</button><div class="validation ${valid?'danger':''}">${valid||'日を進めると捜査官の監視経路が更新される。実行後の手は戻せない。'}</div></section>`}
+function endPanel(){return `<section class="panel"><div class="paneltitle"><h2>事件の結末</h2><span class="tag">GAME OVER</span></div><p class="muted">${state.status==='win'?'記録の真偽を決めたのは、あなたの一手だった。':'敗北。捜査官はあなたの行動から答えにたどり着いた。'}</p><button class="submit" data-do="restart">別の身分で再挑戦</button><button class="ghost back" data-do="rules">ルールを確認する</button></section>`}
+function reportHTML(){const r=state.report;return `<div class="overlay" role="dialog" aria-modal="true" aria-label="事件の結果"><div class="modal"><div class="eyebrow">${r.outcome?r.outcome==='win'?'CASE CLOSED — YOU WIN':'CASE CLOSED — YOU LOSE':r.notice?'NOTICE':`DAY ${String(r.day).padStart(2,'0')} — RESULT`}</div><h2>${esc(r.title)}</h2><p>${esc(r.description)}</p>${r.after?`<div class="reporttag">${esc(r.after)}</div>`:''}${!r.outcome&&!r.notice?`<p class="mini">現在の改稿：${r.edits}/4 ｜ 警戒度 ${r.pressureDelta>=0?'+':''}${r.pressureDelta} ｜ あなたへの容疑 ${r.shift>=0?'+':''}${r.shift}%pt</p>`:''}<button class="submit" data-do="close-report">${r.outcome?'盤面を確認する':r.notice?'戻る':'翌日の駆け引きへ →'}</button></div></div>`}
+function rulesHTML(){return `<main class="panel rules"><div class="eyebrow">FIELD GUIDE</div><h2>勝利条件</h2><p>あなたは四人の容疑者のうち一人として潜み、監察官・黒瀬 葵に追われる。期限までに<strong>4件の改稿を成功</strong>させれば勝ち。別の容疑者への<strong>誤認逮捕</strong>でも勝ち。</p><h3>1日の流れ</h3><p>「改稿／偽情報／潜伏」から行動を決め、必要なら準備を1つ選ぶ。各事件には2つの侵入口があり、改稿ではそのいずれかを選択。捜査官は毎日どれか1経路を監視している。監視と一致すると改稿失敗・警戒度と身元証拠が増える。</p><h3>捜査官はどう動く？</h3><p>過去の使用経路、連続使用、偽情報、容疑比率に応じて監視先を決定する。発言は多くの場合本気だが、3日ごとの<strong>挑発はブラフが多い</strong>。傍受するとその日の監視先が確定する。</p><h3>疑いを別人に向ける</h3><p>通常の改稿や偽情報は経路に詳しい人への容疑が増える。偽証を使い、改稿に成功すると選んだ別人へ強い偽証拠を残せる。容疑率が76%以上に集中すると、3日目以降かつ改稿2件以上の場合に逮捕が起きる。</p><h3>準備と情報点</h3><ul><li><strong>傍受（2）</strong>：今夜の監視先を確定。選択時に即支払い・変更不可。</li><li><strong>偽証（2）</strong>：改稿成功時に別人の証拠を残す。</li><li><strong>痕跡消去（2）</strong>：警戒度を3下げる。</li><li><strong>囮の信号（1）</strong>：翌日の監視先を指定経路へ誘導。</li><li><strong>潜伏</strong>：警戒度を3下げ、情報点を2回復。</li><li><strong>偽情報</strong>：情報点を2回復、指定経路への疑いを増やす。</li></ul><p>情報点は各日の終了時に1回復（最大6）。得意でない経路での改稿は追加1点が必要。警戒度が難易度別の限界に達するか、期限を迎えると敗北。</p><button class="submit" data-do="back-rules">${state?'ゲームに戻る':'身分を選ぶ'} →</button></main>${footer()}</div>`}
+function footer(){return `<div class="bottom"><span>BLIND / SPOT © ORIGINAL FICTIONAL GAME</span><span>4 CASES　／　4 IDENTITIES　／　NO ACCOUNT REQUIRED</span></div>`}
+document.addEventListener('click',e=>{
+ const btn=e.target.closest('button');if(!btn||btn.disabled)return;
+ const data=btn.dataset;
+ if(data.do==='rules'){showRules=true;render();window.scrollTo({top:0,behavior:'instant'});return}
+ if(data.do==='back-rules'){showRules=false;render();window.scrollTo({top:0,behavior:'instant'});return}
+ if(data.role!==undefined&&!state){setup.role=Number(data.role);render();return}
+ if(data.diff!==undefined&&!state){setup.diff=data.diff;render();return}
+ if(data.do==='start'){start();return}
+ if(data.do==='restart'){state=null;save();showRules=false;render();window.scrollTo({top:0,behavior:'instant'});return}
+ if(!state)return;
+ if(data.do==='close-report'){state.report=null;save();render();window.scrollTo({top:0,behavior:'smooth'});return}
+ if(state.status!=='playing'||state.report)return;
+ if(data.action!==undefined){state.plan.action=data.action;if(data.action!=='edit'&&state.plan.prep==='frame')state.plan.prep='none';if(data.action==='edit'&&!CASES[Math.min(state.edits,3)].routes.includes(state.plan.route)){state.plan.route=CASES[Math.min(state.edits,3)].routes[0]}save();render();return}
+ if(data.route!==undefined){state.plan.route=Number(data.route);save();render();return}
+ if(data.prep!==undefined){selectPrep(data.prep);return}
+ if(data.frame!==undefined){state.plan.frame=Number(data.frame);save();render();return}
+ if(data.decoy!==undefined){state.plan.decoy=Number(data.decoy);save();render();return}
+ if(data.do==='execute'){verdict();return}
+});
+load();render();
+})();
+</script>
+</body>
+</html>
