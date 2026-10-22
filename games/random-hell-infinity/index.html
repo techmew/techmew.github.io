@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V4.9｜高速弾命中補正</title>
-<meta name="game-build" content="RHINF_PHONE_CULLING_V410_20261022" />
+<title>RANDOM HELL ∞ V4.11｜星影ランサー専用ドット絵</title>
+<meta name="game-build" content="RHINF_GHOST_SPRITE_V411_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -139,6 +139,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-rabbit.js"></script>
 <script src="./sprites-v35-beetle.js"></script>
 <script src="./sprites-v35-turret.js"></script>
+<script src="./sprites-v35-ghost.js"></script>
 <script src="./sprites-v35-sniper.js"></script>
 <script src="./sprites-v35-boss.js"></script>
 <script>
@@ -829,7 +830,7 @@ const RH_PACK=window.RH_SPRITES||null;
 const RH_ATLAS=new Image();
 if(RH_PACK?.url) RH_ATLAS.src=RH_PACK.url;
 const RH_SPRITE_IMAGES={};
-for(const name of ['hero','slime','rabbit','beetle','turret','sniper','boss']){
+for(const name of ['hero','slime','rabbit','beetle','turret','ghost','sniper','boss']){
  const pack=RH_PACK?.[name];
  if(pack?.url){const img=new Image();img.decoding='async';img.src=pack.url;RH_SPRITE_IMAGES[name]=img}
 }
