@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V5.4｜ボス攻撃アニメ・3段階覚醒・シールド保護</title>
-<meta name="game-build" content="RHINF_BOSS_SPRITE_PHASE_SHIELD_V54_20261022" />
+<title>RANDOM HELL ∞ V5.5｜8世界ボス固有ドット紋章</title>
+<meta name="game-build" content="RHINF_BOSS_WORLD_SIGILS_V55_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1119,6 +1119,26 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  ctx.restore();return true;
 }
 
+// V5.5: Eight original pixel seals give each Star-Eater world boss its own silhouette.
+const RH_BOSS_SIGILS=[[24,153,126,60,255,60,102,129],[16,56,124,126,254,124,56,24],[24,60,126,255,255,126,60,24],[6,12,56,252,62,28,48,96],[129,195,102,60,60,102,195,129],[60,102,195,192,192,195,102,60],[60,102,219,189,189,219,102,60],[60,126,195,189,165,195,126,60]];
+function drawBossWorldSigils(b,phase){
+ if(b.x+b.w<camera-175||b.x>camera+visibleWorldWidth()+175)return;
+ const glyph=RH_BOSS_SIGILS[b.kind%8],count=phase===3?4:phase===2?3:2;
+ const warning=b.chargeWindup>0||(b._spriteAttackUntil||0)>clock;
+ const speed=warning?1.6:phase===3?.94:phase===2?.7:.48;
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle=BOSSES[b.kind].color;
+ ctx.shadowColor=BOSSES[b.kind].color;ctx.shadowBlur=warning?10:phase>1?6:3;
+ for(let i=0;i<count;i++){
+  const a=clock*speed+i*TAU/count+b.kind*.39;
+  const x=Math.round(b.x+b.w*.5+Math.cos(a)*b.w*(phase===3?1.52:1.27)-8);
+  const y=Math.round(b.y+b.h*.43+Math.sin(a)*b.h*(phase===3?.87:.76)-8);
+  ctx.globalAlpha=Math.min(.94,(warning?.74:.46)+.13*Math.sin(clock*5+i*2)+.09*(phase-1));
+  for(let row=0;row<8;row++)for(let col=0;col<8;col++)
+   if(glyph[row]&(128>>col))ctx.fillRect(x+col*2,y+row*2,2,2);
+ }
+ ctx.restore();
+}
+
 function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const zoom=gameZoom();
  // Keep the backdrop covering the complete screen when phone world zoom is below 1.
@@ -1191,7 +1211,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  ctx.restore();
  const bstate=b.chargeWindup>0||(b._spriteAttackUntil||0)>clock?'attack':b.hitGrace>0?'hurt':Math.abs(b.x-(b._spriteLastX??b.x))>.35?'move':'idle';if(b._spriteState!==bstate){b._spriteState=bstate;b._spriteStart=clock}b._spriteLastX=b.x;
  const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45),bframe=(clock-(b._spriteStart??clock))*(bstate==='attack'?11:bstate==='move'?6:3),bossBob=Math.sin(clock*3.6+b.kind)*2;
- if(!drawRHSprite('boss',bstate,bframe,b.x+b.w/2-bw/2,b.y+b.h-bh+6+bossBob,bw,bh,b.dir||1,b.hitGrace>0,(b.kind*47)%360)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);if(b.chargeWindup>0){ctx.save();ctx.globalAlpha=.5+.35*Math.sin(clock*26);ctx.fillStyle='#ffdf7b';const from=b.chargeDir>0?b.x+b.w:b.from,to=b.chargeDir>0?b.to:b.x;ctx.fillRect(from,b.platform.y-6,Math.max(8,to-from),5);ctx.fillStyle='#fff4b8';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);ctx.restore()}}
+ if(!drawRHSprite('boss',bstate,bframe,b.x+b.w/2-bw/2,b.y+b.h-bh+6+bossBob,bw,bh,b.dir||1,b.hitGrace>0,(b.kind*47)%360)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}drawBossWorldSigils(b,bossPhase);ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);if(b.chargeWindup>0){ctx.save();ctx.globalAlpha=.5+.35*Math.sin(clock*26);ctx.fillStyle='#ffdf7b';const from=b.chargeDir>0?b.x+b.w:b.from,to=b.chargeDir>0?b.to:b.x;ctx.fillRect(from,b.platform.y-6,Math.max(8,to-from),5);ctx.fillStyle='#fff4b8';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);ctx.restore()}}
  for(const bullet of projectiles){ctx.save();ctx.strokeStyle='#ffb06e';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(2,bullet.r*.75);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(bullet.prevX??bullet.x,bullet.prevY??bullet.y);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();ctx.restore();ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
  // Goal portal: locked while the final-stage boss survives.
  const gx=level.goalX,gy=level.platforms.at(-1).y-75,bossLocked=!!level.boss?.alive||level.enemies.some(e=>e.guardian&&e.alive);ctx.strokeStyle=bossLocked?'#ff688a':t.accent;ctx.lineWidth=7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=19;ctx.beginPath();ctx.ellipse(gx,gy+36,17,35,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=bossLocked?'#ff688a36':'#a5ffe744';ctx.beginPath();ctx.ellipse(gx,gy+36,13,31,0,0,TAU);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(bossLocked?'LOCK':'GOAL',gx,gy-13);
