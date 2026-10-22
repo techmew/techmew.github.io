@@ -371,7 +371,7 @@ function enemyDeath(e){e.alive=false;kills++;survivorGainXP(e.elite?5:e.small?1:
    level.pickups.push({x:e.x+e.w/2,y:e.y+e.h*.45,taken:false,type:'weapon',item:item(Math.random,level.difficulty)});
  }
  if(e.kind===8&&!e.small&&level.enemies.length<110){for(let d of [-1,1])level.enemies.push({...e,alive:true,small:true,hp:1,maxhp:1,w:15,h:18,x:e.x+d*18,y:e.y+9,baseY:e.y+9,kind:0,dir:d,hit:-1})}}
-function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||e.hit===id||e.hitGrace>0)return false;
+function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||(e.boss&&e.active===false)||e.hit===id||e.hitGrace>0)return false;
  if(e.kind===5&&!e.boss && e.dir*(sourceX-(e.x+e.w/2))>0){damage=Math.max(1,Math.ceil(damage*.5));}
  e.hit=id;e.hp-=damage;e.flash=.10;
  if(affix==='fire'){e.burn=Math.max(e.burn||0,e.boss?1.2:1.8);e.burnTick=.42;part(e.x+e.w/2,e.y+e.h/2,'#ff944b',4,.35)}
@@ -424,7 +424,7 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
    const used=new Set();let startX=x,startY=y;
    for(let n=0;n<4;n++){
      let best=null,bestD=(n===0?250:185)**2;
-     const candidates=level.boss?.alive?[...level.enemies,level.boss]:level.enemies;
+     const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,level.boss]:level.enemies;
      for(const e of candidates){if(!e.alive||used.has(e))continue;
        const dx=e.x+e.w/2-startX,dy=e.y+e.h/2-startY,d=dx*dx+dy*dy;
        if(d<bestD){bestD=d;best=e}
@@ -549,7 +549,14 @@ function createLevel(respawn=false){
   prev=p;
  }
  let boss=null;
- if(stage===2){boss={x:prev.x+prev.w-235,y:prev.y-76,w:62,h:76,hp:13+world*4,maxhp:13+world*4,alive:true,shoot:1,hitGrace:0,from:prev.x+80,to:prev.x+prev.w-95,dir:-1,platform:prev,kind:world,boss:true,hit:-1,flash:0,charge:0,chargeWindup:0,chargePending:0,chargeDir:-1,phase:1,attackNo:0};}
+ if(stage===2){
+  // 1-3, 2-3 ... 8-3: guaranteed boss, standing inside the last platform arena.
+  const bossX=prev.x+Math.max(240,prev.w*.55);
+  boss={x:bossX,y:prev.y-76,w:62,h:76,hp:19+world*6,maxhp:19+world*6,
+   alive:true,active:false,arenaX:prev.x+20,shoot:1,hitGrace:0,from:prev.x+145,
+   to:prev.x+prev.w-108,dir:-1,platform:prev,kind:world,boss:true,hit:-1,
+   flash:0,charge:0,chargeWindup:0,chargePending:0,chargeDir:-1,phase:1,attackNo:0};
+ }
  const title=namesA[randomInt(r,0,namesA.length-1)]+namesB[randomInt(r,0,namesB.length-1)];
  const decor=[];for(let j=0;j<135;j++)decor.push({x:j*randomInt(r,75,155)+randomInt(r,-50,50),h:randomInt(r,52,270),w:randomInt(r,16,80),layer:randomInt(r,0,1),glow:r()});
  const goalX=prev.x+prev.w-39;
@@ -597,8 +604,8 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('weaponStrip').innerHTML=`⚔ 自動${loadout.length}種 <small>全武器同時攻撃</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
  $('comboState').textContent=combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'';
- $('bossState').textContent=level.boss&&level.boss.alive?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===2?'覚醒':'通常'}】`:'';
- $('bossBar').style.display=level.boss?.alive?'block':'none';if(level.boss)$('bossFill').style.width=Math.max(0,level.boss.hp/level.boss.maxhp*100)+'%';
+ $('bossState').textContent=level.boss&&level.boss.alive?(level.boss.active?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===2?'覚醒':'戦闘中'}】`:`⚠ ${level.world+1}-3 ボス戦が待っている`):'';
+ $('bossBar').style.display=level.boss?.alive&&level.boss.active?'block':'none';if(level.boss)$('bossFill').style.width=Math.max(0,level.boss.hp/level.boss.maxhp*100)+'%';
  $('progressFill').style.width=clamp((player?.x||0)/level.goalX*100,0,100)+'%';
 }
 function toast(t,time=1.1){toastText=t;toastTimer=time;$('toast').textContent=t;$('toast').style.opacity='1'}
@@ -692,7 +699,7 @@ function autoWeaponFire(dt){
  // Every owned weapon attacks independently, including melee and fists.
  const p=player;if(!p||!level||mode!=='playing')return;
  const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism']);
- const candidates=level.boss?.alive?[...level.enemies,level.boss]:level.enemies;
+ const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,level.boss]:level.enemies;
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
@@ -784,7 +791,13 @@ function update(dt){
    if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
  }
  const b=level.boss;
- if(b?.alive){b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
+ if(b?.alive&&!b.active&&p.x+p.w>=b.arenaX){
+  b.active=true;b.shoot=.72;b.dir=p.x<b.x?-1:1;
+  toast('⚠ BOSS！ '+BOSSES[b.kind].name,2.6);
+  part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,28,.9);
+  sound(145,.4,'sawtooth',.09);updateHud(true);
+ }
+ if(b?.alive&&b.active){b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
    else{b.x+=b.dir*(77+level.world*8)*(b.hp/b.maxhp<.48?1.6:1.18)*dt*(b.frost>0?.65:1);if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
    b.shoot-=dt*(b.frost>0?.75:1);if(b.shoot<=0&&b.alive)attackBoss(b);
@@ -1013,6 +1026,11 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
  const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
  if(level.boss?.alive){const b=level.boss;
+ if(b.x+b.w>=camera-70&&b.x<=viewRight+70){
+  ctx.save();ctx.font='900 15px system-ui';ctx.textAlign='center';
+  ctx.fillStyle='#fff5da';ctx.shadowColor=BOSSES[b.kind].color;ctx.shadowBlur=14;
+  ctx.fillText(b.active?'⚔ BOSS ⚔':'⚠ BOSS',b.x+b.w/2,b.y-66);ctx.restore();
+ }
  // Keep the V3.5 Star-Eater sprite, but give each of the eight worlds a distinct aura.
  const bossColor=BOSSES[b.kind].color,enraged=b.hp/b.maxhp<.48;
  ctx.save();ctx.strokeStyle=bossColor;ctx.globalAlpha=(enraged?.46:.26)+.08*Math.sin(clock*3+b.kind);
@@ -1075,20 +1093,22 @@ function joyDown(e){
   if(joyPointer!==null||mode!=='playing')return;
   e.preventDefault();e.stopPropagation();
   joyPointer=e.pointerId;
-  const box=joy.getBoundingClientRect();
-  const centerX=box.left+box.width/2,centerY=box.top+box.height/2;
-  // Touching the visible stick moves immediately; swipes elsewhere in the left zone are relative.
-  const onStick=Math.hypot(e.clientX-centerX,e.clientY-centerY)<=box.width*.48;
-  joyStartX=onStick?centerX:e.clientX;joyStartY=e.clientY;
+  // Use the actual finger-down point as the neutral origin, no matter where pressed.
+  joyStartX=e.clientX;joyStartY=e.clientY;
+  joy.style.left=e.clientX+'px';joy.style.top=e.clientY+'px';
+  joy.style.bottom='auto';joy.style.transform='translate(-50%,-50%)';
   try{moveZone.setPointerCapture(e.pointerId)}catch(err){}
   joyMove(e);
 }
 moveZone.addEventListener('pointerdown',joyDown);
 moveZone.addEventListener('pointermove',joyMove);
+function resetJoyAnchor(){
+  for(const property of ['left','top','bottom','transform'])joy.style.removeProperty(property);
+}
 function joyStop(e){
   if(e.pointerId!==joyPointer)return;
   joyPointer=null;joyX=0;
-  knob.style.transform='translate(-50%,-50%)';joy.style.opacity='.82';
+  resetJoyAnchor();knob.style.transform='translate(-50%,-50%)';joy.style.opacity='.82';
   try{if(moveZone.hasPointerCapture(e.pointerId))moveZone.releasePointerCapture(e.pointerId)}catch(err){}
 }
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])moveZone.addEventListener(ev,joyStop);
@@ -1131,7 +1151,7 @@ function resetInputs(){
   keys.clear();joyX=0;jumpHeld=false;attackHeld=false;dashQueue=false;punchQueue=false;jumpBuffer=0;
   const oldPointer=joyPointer;joyPointer=null;
   if(oldPointer!==null){try{if(moveZone.hasPointerCapture(oldPointer))moveZone.releasePointerCapture(oldPointer)}catch(err){}}
-  knob.style.transform='translate(-50%,-50%)';joy.style.opacity='.82';
+  resetJoyAnchor();knob.style.transform='translate(-50%,-50%)';joy.style.opacity='.82';
   for(const [id,active] of actionPointers){
     const b=$(id),ids=[...active];active.clear();b.classList.remove('pressed');
     for(const pid of ids){try{if(b.hasPointerCapture(pid))b.releasePointerCapture(pid)}catch(err){}}
