@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V5.6｜ボス予測射撃と突進予告</title>
-<meta name="game-build" content="RHINF_BOSS_LEAD_AIM_V56_20261022" />
+<title>RANDOM HELL ∞ V5.7｜キーボード・タッチ複合入力改善</title>
+<meta name="game-build" content="RHINF_MULTITOUCH_KEYBOARD_HOLDS_V57_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1263,6 +1263,11 @@ function frame(time){if(!frame.prev)frame.prev=time;let dt=Math.min(.04,(time-fr
 const joy=$('joystick'),knob=$('joyKnob'),moveZone=$('moveZone');
 let joyPointer=null,joyStartX=0,joyStartY=0,attackHeld=false;
 const actionPointers=new Map();
+// Keep action state true while ANY touch or keyboard binding is still held.
+function rhSyncActionHolds(){
+ jumpHeld=(actionPointers.get('jump')?.size||0)>0||['Space','ArrowUp','KeyW'].some(code=>keys.has(code));
+ attackHeld=(actionPointers.get('punch')?.size||0)>0||['KeyJ','KeyZ'].some(code=>keys.has(code));
+}
 function joyMove(e){
   if(e.pointerId!==joyPointer)return;
   const distance=clamp((e.clientX-joyStartX)/55,-1,1);
@@ -1305,6 +1310,7 @@ function setupAction(id,press,release){
     if(!active.has(e.pointerId))return;
     active.delete(e.pointerId);
     if(active.size===0){b.classList.remove('pressed');release?.()}
+    rhSyncActionHolds();
     try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(err){}
   };
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,stop);
@@ -1325,8 +1331,7 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>{
   keys.delete(e.code);
-  if(['Space','ArrowUp','KeyW'].includes(e.code)&&!actionPointers.get('jump').size)jumpHeld=false;
-  if(['KeyJ','KeyZ'].includes(e.code)&&!actionPointers.get('punch').size)attackHeld=false;
+  rhSyncActionHolds();
 });
 function resetInputs(){
   keys.clear();joyX=0;jumpHeld=false;attackHeld=false;dashQueue=false;punchQueue=false;jumpBuffer=0;
