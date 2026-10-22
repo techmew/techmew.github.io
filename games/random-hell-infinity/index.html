@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V5.2｜武器熟練度の長期成長・Lv.99</title>
-<meta name="game-build" content="RHINF_LONG_MASTERY_V52_20261022" />
+<title>RANDOM HELL ∞ V5.3｜手動武器連射・空中戦・強襲ボス</title>
+<meta name="game-build" content="RHINF_COMBAT_MANUAL_SKY_BOSS_V53_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -516,8 +516,14 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
 }
 function doSplash(x,y,r,dmg,id,affix='none'){for(const e of level.enemies){if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<r)applyHit(e,dmg,id,x,affix)}if(level.boss?.alive&&dist(x,y,level.boss.x+26,level.boss.y+30)<r)applyHit(level.boss,dmg,id,x,affix);part(x,y,'#ffbd8c',20,1.1);shake=5}
 function lethal(cause){if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);sound(780,.2,'sine');toast('シールド破損',.7);return false}if(player.grace>0||dashTime>.025)return false;player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);sound(170,.13,'sawtooth');updateHud(true);if(player.hp<=0){die(cause);return true}toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
-function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind;const phase=b.hp/b.maxhp<.48?2:1;b.phase=phase;b.attackNo++;
- const type=(stage===7?['fan','teleport','summon','laser','rain','charge','orb'][b.attackNo%7]:phase===2&&b.attackNo%3===0?['fan','charge','rain','orb'][stage%4]:BOSSES[stage].attack);
+function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1;b.phase=phase;b.attackNo++;
+ const attackCombos=[
+  ['fan','charge','orb'],['teleport','fan','laser'],['summon','fan','charge'],
+  ['laser','teleport','fan'],['rain','orb','charge'],['charge','fan','laser'],
+  ['orb','rain','charge'],['fan','teleport','summon','laser','rain','charge','orb']
+ ];
+ const sequence=attackCombos[stage];
+ const type=sequence[(b.attackNo-1)%sequence.length];
  if(type==='fan'){const a=Math.atan2(p.y-b.y,p.x-b.x);for(let k=-2-phase;k<=2+phase;k++){const aa=a+k*.17;shoot(b.x+b.w/2,b.y+28,b.x+Math.cos(aa)*400,b.y+28+Math.sin(aa)*400,255+stage*20+phase*24,7)}}
  if(type==='teleport'){b.x=clamp(p.x+(p.face===1?-125:110),b.from,b.to);part(b.x+25,b.y,'#d5a4ff',22);for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,270+stage*10,8)}
  if(type==='summon'){for(let k=0;k<phase+1;k++){const plat=b.platform;if(level.enemies.filter(e=>e.alive&&e.summoned).length>9)break;const er=rngGen(hash((clock*1000|0)+k+seed)),summonKind=stage>=4?20+(k%8):(k+3)%8;const e=makeEnemy(er,plat,clamp(b.x+(k?110:-100),plat.x+30,plat.x+plat.w-50),level.difficulty,summonKind);e.summoned=true;e.hp=Math.max(2,e.hp);level.enemies.push(e)}for(let k=-1;k<=1;k++)shoot(b.x+20,b.y+25,p.x+13,p.y+16+k*70,270,7)}
@@ -526,12 +532,21 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=.48;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
  if(type==='orb'){for(let k=0;k<3+phase*2;k++){const a=k*TAU/(3+phase*2);shoot(b.x+25,b.y+25,b.x+25+Math.cos(a)*300,b.y+25+Math.sin(a)*300,200+phase*30,8)}}
  // Second phase chains an extra spread between the named boss patterns.
- if(phase===2&&b.attackNo%2===0){
+ if(phase>=2&&b.attackNo%2===0){
    const ax=b.x+b.w/2,ay=b.y+25,tx=p.x+p.w/2,ty=p.y+p.h/2;
    for(const offset of [-58,0,58])shoot(ax,ay,tx,ty+offset,265+stage*14,5);
    part(ax,ay,'#ffe99a',8,.45);
  }
- b.shoot=Math.max(.34,1.33-stage*.05-(phase===2?.39:.08));
+ // Airspace suppression makes standing on the ground or endlessly double-jumping unsafe.
+ if(b.attackNo%3===0){
+   hazardTelegraphs.push({x:clamp(p.x+p.w/2+30,b.platform.x+30,b.platform.x+b.platform.w-30),
+     delay:.55,duration:.46,type:'airstrike',color:'#8ceaff',w:32,
+     top:b.platform.y-230,bottom:b.platform.y-58,life:1.15});
+ }
+ if(phase===3&&b.attackNo%2===1){
+   for(const offset of [-85,85])shoot(b.x+b.w/2,b.y+22,p.x+p.w/2,p.y+p.h/2+offset,375+stage*20,6);
+ }
+ b.shoot=Math.max(.40,1.26-stage*.055-(phase-1)*.23);
 }
 function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c+'66');g.addColorStop(1,c+'00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
 
@@ -592,11 +607,21 @@ function createLevel(respawn=false){
   }
   prev=p;
  }
+ // Mandatory exit guardian on the first two stages of each world.
+ // The goal is locked until this enemy is defeated; boss stages retain their own lock.
+ if(stage!==2){
+   const guardKind=world<3?25:world<6?27:23;
+   const guard=makeEnemy(r,prev,prev.x+prev.w*.59,Math.min(1,difficulty+.24),guardKind);
+   guard.guardian=true;guard.elite=true;guard.hp=guard.maxhp=7+world*4+stage*2;
+   guard.min=prev.x+prev.w*.42;guard.max=prev.x+prev.w*.76;
+   guard.vx=Math.max(55,guard.vx*.55);
+   enemies.push(guard);
+ }
  let boss=null;
  if(stage===2){
   // 1-3, 2-3 ... 8-3: guaranteed boss, standing inside the last platform arena.
   const bossX=prev.x+Math.max(240,prev.w*.55);
-  boss={x:bossX,y:prev.y-76,w:62,h:76,hp:19+world*6,maxhp:19+world*6,
+  boss={x:bossX,y:prev.y-76,w:62,h:76,hp:48+world*16,maxhp:48+world*16,
    alive:true,active:false,arenaX:prev.x+20,shoot:1,hitGrace:0,from:prev.x+145,
    to:prev.x+prev.w-108,dir:-1,platform:prev,kind:world,boss:true,hit:-1,
    flash:0,charge:0,chargeWindup:0,chargePending:0,chargeDir:-1,phase:1,attackNo:0};
@@ -625,7 +650,7 @@ function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.f
  player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
-function showMenu(){mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。拾った武器は全種類が自動同時攻撃！重複入手でランダム強化。死亡すると全武器をロスト。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
@@ -644,11 +669,11 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('playerHealth').setAttribute('aria-valuenow',String(player?.hp??5));
  $('playerHealth').setAttribute('aria-valuemax',String(player?.maxhp??5));
  $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 重力 ${level.gravity>2000?'強':'弱'} ｜ 🏁${checkpointIndex}/2`;
- $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${punchCooldown<=0?'◉':'○'}`;
- $('weaponStrip').innerHTML=`⚔ 自動${loadout.length}種 <small>最高Lv.${Math.max(1,...loadout.map(it=>masteryLevel(it.tier)))}/${WEAPON_MASTERY_MAX}　全武器同時攻撃</small>`;
+ $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${attackHeld?'連射中':'押して発射'}`;
+ $('weaponStrip').innerHTML=`⚔ 装備${loadout.length}種 <small>最高Lv.${Math.max(1,...loadout.map(it=>masteryLevel(it.tier)))}/${WEAPON_MASTERY_MAX}　攻撃長押しで一斉発射</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
  $('comboState').textContent=combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'';
- $('bossState').textContent=level.boss&&level.boss.alive?(level.boss.active?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===2?'覚醒':'戦闘中'}】`:`⚠ ${level.world+1}-3 ボス戦が待っている`):'';
+ $('bossState').textContent=level.boss&&level.boss.alive?(level.boss.active?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===3?'狂暴':level.boss.phase===2?'覚醒':'戦闘中'}】`:`⚠ ${level.world+1}-3 ボス戦が待っている`):level.enemies.some(e=>e.guardian&&e.alive)?'🔒 番人を倒して出口を開け！':'';
  $('bossBar').style.display=level.boss?.alive&&level.boss.active?'block':'none';if(level.boss)$('bossFill').style.width=Math.max(0,level.boss.hp/level.boss.maxhp*100)+'%';
  $('progressFill').style.width=clamp((player?.x||0)/level.goalX*100,0,100)+'%';
 }
@@ -739,26 +764,28 @@ function enemyShotTerrainHitT(x0,y0,x1,y1,r){
 }
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
-function autoWeaponFire(dt){
- // Every owned weapon attacks independently, including melee and fists.
+function autoWeaponFire(dt,fireRequested=false){
+ // No passive damage. Attack input is required; holding it fires all equipped weapons.
+ // Per-weapon cooldowns recover even while the attack button is released.
  const p=player;if(!p||!level||mode!=='playing')return;
  const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism','orbitdisks','cometpair','stormring','sunlance','hailstorm']);
  const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,level.boss]:level.enemies;
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
-   if(!w||autoWeaponCooldowns[i]>0)continue;
+   if(!fireRequested||!w||autoWeaponCooldowns[i]>0)continue;
    const reach=w.type==='chain'||w.type==='pulse'?Math.max(120,w.range+25):rangedTypes.has(w.type)?660:Math.max(80,w.range+48);
    let target=null,nearest=reach*reach;
    for(const e of candidates){if(!e.alive)continue;
      const dx=e.x+e.w/2-(p.x+p.w/2),dy=e.y+e.h/2-(p.y+p.h/2);
      const d=dx*dx+dy*dy;if(d<nearest){nearest=d;target=e}
    }
-   if(!target)continue;
+   // When there is no target, launch attacks in the facing direction instead of firing invisibly.
+   // Only a real attack press may enter this firing branch.
    // No Lv.19 plateau: cooldown improves smoothly until weapon Lv.99.
    autoWeaponCooldowns[i]=Math.max(.15,Math.max(.28,w.cd*2.8)/weaponCadenceMultiplier(it.tier));
    const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime,oldVx=p.vx;
-   try{activeSlot=i;p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack(target,true)}
+   try{activeSlot=i;if(target)p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack(target,true)}
    finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=oldPunchTime;p.vx=oldVx}
  }
  // Bound on-screen projectile work in extreme multi-weapon builds.
@@ -793,8 +820,8 @@ function update(dt){
    p.vy=-level.jump*(hasRelic('spring')?1.12:1)*(p.jumps===0?.89:1);p.grounded=false;p.coyote=0;jumpBuffer=0;part(p.x+12,p.y+35,p.jumps===0?'#ffe3a2':'#ccffff',13,.6);sound(p.jumps===0?720:510,.12,'triangle');
  }
  if(dashQueue){if(dashCooldown<=0 && (p.grounded||airDash>0)){dashDir=p.face;dashTime=.17;dashCooldown=hasRelic('battery')?.53:.91;if(!p.grounded)airDash--;p.vy=Math.min(p.vy,20);p.vx=dashDir*785;part(p.x+12,p.y+18,'#94fff8',14,.8);sound(210,.19,'triangle')}dashQueue=false}
- if((punchQueue||attackHeld)&&punchCooldown<=0){useAttack()}punchQueue=false;
- autoWeaponFire(dt);
+ const fireRequested=punchQueue||attackHeld;
+ autoWeaponFire(dt,fireRequested);punchQueue=false;
  if(dashTime>0){p.vx=dashDir*785;p.vy+=level.gravity*.12*dt;if(Math.random()<.4)part(p.x+p.w/2,p.y+p.h/2,'#77edff',2,.22)}
  else{const speed=level.speed*(hasRelic('boots')?1.15:1);
    // Analog acceleration: gentle tilts walk precisely; full tilt enables fast sprint without a third touch button.
@@ -843,7 +870,9 @@ function update(dt){
  }
  if(b?.alive&&b.active){b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
-   else{b.x+=b.dir*(77+level.world*8)*(b.hp/b.maxhp<.48?1.6:1.18)*dt*(b.frost>0?.65:1);if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
+   else{if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
+   b.x+=b.dir*(88+level.world*10)*(b.hp/b.maxhp<.33?1.8:b.hp/b.maxhp<.70?1.44:1.15)*dt*(b.frost>0?.65:1);
+   if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
    b.shoot-=dt*(b.frost>0?.75:1);if(b.shoot<=0&&b.alive)attackBoss(b);
    if(hitRect(p.x+4,p.y+3,p.w-8,p.h-5,b.x+3,b.y+3,b.w-6,b.h-6)&&lethal('魔王に接触'))return;
  }
@@ -915,7 +944,11 @@ function findHomingTarget(q){
    }
    return;
  }
- if(p.x+p.w>=level.goalX-13&&p.grounded){if(b?.alive){if(toastTimer<=0)toast('ボスを倒せ！',.7)}else{best=Math.max(best,levelIndex+1);saveState();sound(930,.3,'triangle');part(p.x,p.y,'#aaffd0',36,1.2);showClear();return}}
+ if(p.x+p.w>=level.goalX-13&&p.grounded){
+   if(b?.alive||level.enemies.some(e=>e.guardian&&e.alive)){
+     if(toastTimer<=0)toast(b?.alive?'ボスを倒せ！':'出口の番人を倒せ！',.9);
+   }else{best=Math.max(best,levelIndex+1);saveState();sound(930,.3,'triangle');part(p.x,p.y,'#aaffd0',36,1.2);showClear();return}
+ }
  camera+=(clamp(p.x-visibleWorldWidth()*.32,0,Math.max(0,level.totalX-visibleWorldWidth()))-camera)*Math.min(1,dt*10);
  if(Math.random()<.12&&Math.abs(p.vx)>115&&p.grounded)part(p.x,p.y+p.h,'#d3f1ff',1,.12);
  scheduleMusic();updateHud();
@@ -1068,7 +1101,9 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
+  ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
+ if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
  if(level.boss?.alive){const b=level.boss;
  if(b.x+b.w>=camera-70&&b.x<=viewRight+70){
   ctx.save();ctx.font='900 15px system-ui';ctx.textAlign='center';
@@ -1085,7 +1120,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const bstate=b.hitGrace>0?'hurt':b.chargeWindup>0?'attack':'idle';const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45);if(!drawRHSprite('boss',bstate,clock*(bstate==='attack'?9:3),b.x+b.w/2-bw/2,b.y+b.h-bh+6,bw,bh,b.dir||1,b.hitGrace>0,(b.kind*47)%360)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);if(b.chargeWindup>0){ctx.save();ctx.globalAlpha=.5+.35*Math.sin(clock*26);ctx.fillStyle='#ffdf7b';const from=b.chargeDir>0?b.x+b.w:b.from,to=b.chargeDir>0?b.to:b.x;ctx.fillRect(from,b.platform.y-6,Math.max(8,to-from),5);ctx.fillStyle='#fff4b8';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);ctx.restore()}}
  for(const bullet of projectiles){ctx.save();ctx.strokeStyle='#ffb06e';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(2,bullet.r*.75);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(bullet.prevX??bullet.x,bullet.prevY??bullet.y);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();ctx.restore();ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
  // Goal portal: locked while the final-stage boss survives.
- const gx=level.goalX,gy=level.platforms.at(-1).y-75,bossLocked=!!level.boss?.alive;ctx.strokeStyle=bossLocked?'#ff688a':t.accent;ctx.lineWidth=7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=19;ctx.beginPath();ctx.ellipse(gx,gy+36,17,35,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=bossLocked?'#ff688a36':'#a5ffe744';ctx.beginPath();ctx.ellipse(gx,gy+36,13,31,0,0,TAU);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(bossLocked?'LOCK':'GOAL',gx,gy-13);
+ const gx=level.goalX,gy=level.platforms.at(-1).y-75,bossLocked=!!level.boss?.alive||level.enemies.some(e=>e.guardian&&e.alive);ctx.strokeStyle=bossLocked?'#ff688a':t.accent;ctx.lineWidth=7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=19;ctx.beginPath();ctx.ellipse(gx,gy+36,17,35,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=bossLocked?'#ff688a36':'#a5ffe744';ctx.beginPath();ctx.ellipse(gx,gy+36,13,31,0,0,TAU);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(bossLocked?'LOCK':'GOAL',gx,gy-13);
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.respawnGlow>0){ctx.save();ctx.globalAlpha=Math.min(1,p.respawnGlow/.35)*(.55+.23*Math.sin(clock*12));ctx.strokeStyle='#84e7ff';ctx.shadowColor='#5bd7ff';ctx.shadowBlur=15;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,23+Math.sin(clock*8)*2,30+Math.sin(clock*8)*2,0,0,TAU);ctx.stroke();ctx.restore()}
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
