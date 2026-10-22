@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V5.1｜8世界のボス・武器32種・敵28系統</title>
-<meta name="game-build" content="RHINF_BOSS_TOUCH_WEAPONS_V51_20261022" />
+<title>RANDOM HELL ∞ V5.2｜武器熟練度の長期成長・Lv.99</title>
+<meta name="game-build" content="RHINF_LONG_MASTERY_V52_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -306,11 +306,26 @@ const BOSSES=[
  {name:'第七魔王・重力の王',color:'#d2e1ff',attack:'orb',desc:'追尾弾と無数の衛星'},
  {name:'最終魔王・混沌の核',color:'#ff73ae',attack:'chaos',desc:'これまでの全攻撃を混合'}
 ];
+// Long-run mastery: consistent upgrades across the full 24-stage adventure.
+// Keep the existing 1..99 save format, while removing the early Lv.19 fire-rate ceiling.
+const WEAPON_MASTERY_MAX=99;
+function masteryLevel(tier){return clamp(Math.floor(Number(tier)||1),1,WEAPON_MASTERY_MAX)}
+function weaponDamageBonus(tier){return Math.floor((masteryLevel(tier)-1)/8)}
+function weaponCadenceMultiplier(tier){return 1+(masteryLevel(tier)-1)*.01}
+function survivorXPGoal(lvl){return 12+6*lvl+Math.floor(lvl*lvl*.35)}
+function upgradeWeaponMastery(entry,amount=1){
+ entry.tier=Math.min(WEAPON_MASTERY_MAX,masteryLevel(entry.tier)+amount);
+ return entry.tier;
+}
 function hasRelic(id){return relics.includes(id)}
 function weapon(){return WEAPONS.find(w=>w.id===loadout[activeSlot]?.id)||WEAPONS[0]}
 function item(r,diff=0){const pool=WEAPONS.slice(1);return {id:pool[randomInt(r,0,pool.length-1)].id,tier:randomInt(r,0,99)<9+diff*18?3:randomInt(r,0,99)<29+diff*18?2:1,affix:['none','fire','frost','shock','vamp','echo'][randomInt(r,0,5)]}}
 function rarity(tier){return ['','#dce8ff','#68f2fa','#ffc466'][tier]||'#fff'}
-function itemName(it){const w=WEAPONS.find(w=>w.id===it.id)||WEAPONS[0];return `${w.icon}${w.name}${it.tier>=3?' ★★★':it.tier===2?' ★★':''}${it.affix==='fire'?' [炎]':it.affix==='frost'?' [氷]':it.affix==='shock'?' [雷]':it.affix==='echo'?' [残響]':it.affix==='vamp'?' [吸魂]':''}`}
+function itemName(it){
+ const w=WEAPONS.find(w=>w.id===it.id)||WEAPONS[0],lv=masteryLevel(it.tier);
+ const stars='★'.repeat(Math.floor(lv/25));
+ return `${w.icon}${w.name} Lv.${lv}/${WEAPON_MASTERY_MAX}${stars?' '+stars:''}${it.affix==='fire'?' [炎]':it.affix==='frost'?' [氷]':it.affix==='shock'?' [雷]':it.affix==='echo'?' [残響]':it.affix==='vamp'?' [吸魂]':''}`;
+}
 
 function pickupVisualY(c){return c.y+Math.sin(clock*4+c.x)*7}
 // Swept pickup detection also catches items crossed between physics frames.
@@ -324,15 +339,15 @@ function pickupInReach(c,p,oldX,oldY){
 function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
  const it=c.item,existing=loadout.find(w=>w.id===it.id);
  if(existing){
-   existing.tier=Math.min(99,Math.max(existing.tier,it.tier||1)+randomInt(Math.random,1,3));
+   upgradeWeaponMastery(existing,1);
    if(Math.random()<.32)existing.affix=['fire','frost','shock','vamp','echo'][randomInt(Math.random,0,4)];
-   toast('ランダム強化！ '+itemName(existing)+' Lv.'+existing.tier,1.5);
+   toast('武器熟練度UP！ '+itemName(existing),1.5);
  }else if(loadout.length<WEAPONS.length){
-   const gained={...it,tier:Math.min(99,(it.tier||1)+randomInt(Math.random,0,2))};
+   const gained={...it,tier:masteryLevel(it.tier)};
    loadout.push(gained);activeSlot=loadout.length-1;
-   toast('NEW 自動武器 '+itemName(gained)+' Lv.'+gained.tier,1.5);
+   toast('NEW 自動武器 '+itemName(gained),1.5);
  }else{const lucky=loadout[randomInt(Math.random,0,loadout.length-1)];
-   lucky.tier=Math.min(99,lucky.tier+randomInt(Math.random,1,3));toast('全装備コンプリート！ '+itemName(lucky)+' 強化',1.5)}
+   upgradeWeaponMastery(lucky,1);toast('全武器獲得！ '+itemName(lucky)+' 強化',1.5)}
  part(c.x,pickupVisualY(c),rarity(it.tier),30);sound(750,.22,'triangle')
  }else if(c.type==='relic'){
  if(!hasRelic(c.relic)){if(relics.length>=3)relics.shift();relics.push(c.relic);toast('レリック '+(RELICS.find(t=>t.id===c.relic)?.name||''),1.5)}else{score+=250;toast('重複レリック +250')}
@@ -353,7 +368,7 @@ survivorPanel.id='survivorDraft';
 survivorPanel.style.cssText='position:fixed;inset:0;z-index:1000;display:none;align-items:flex-end;justify-content:center;background:transparent;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overflow:auto;color:white;font-family:system-ui,sans-serif';
 document.body.appendChild(survivorPanel);
 function survivorOffer(){
- const options=survivorWeapons.map(id=>({id,entry:loadout.find(w=>w.id===id)})).filter(o=>!o.entry||o.entry.tier<99);
+ const options=survivorWeapons.map(id=>({id,entry:loadout.find(w=>w.id===id)})).filter(o=>!o.entry||masteryLevel(o.entry.tier)<WEAPON_MASTERY_MAX);
  for(let i=options.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[options[i],options[j]]=[options[j],options[i]]}
  return options.filter(o=>o.entry||loadout.length<WEAPONS.length).slice(0,3);
 }
@@ -363,7 +378,7 @@ function survivorDraft(){
  for(let n=0;n<gained;n++){
   const options=survivorOffer();
   if(options.length){const offer=options[Math.floor(Math.random()*options.length)];const existing=loadout.find(w=>w.id===offer.id);
-   if(existing)existing.tier=Math.min(99,existing.tier+1);else loadout.push({id:offer.id,tier:1,affix:['fire','frost','shock','none'][randomInt(Math.random,0,3)]});
+   if(existing)upgradeWeaponMastery(existing,1);else loadout.push({id:offer.id,tier:1,affix:['fire','frost','shock','none'][randomInt(Math.random,0,3)]});
   }
   if(player){player.maxhp=(player.maxhp||7)+1;player.hp=Math.min(player.maxhp,(player.hp||1)+2)}
  }
@@ -378,7 +393,7 @@ function survivorGainXP(amount,x=null,y=null){
  amount=Math.max(0,Math.floor(amount));
  if(x!==null&&y!==null){xpFloats.push({x,y,text:'+'+amount+' EXP',life:1.05,max:1.05});if(xpFloats.length>32)xpFloats.shift()}
  survivorXP+=amount;
- while(survivorXP>=survivorLevel*5+5){survivorXP-=survivorLevel*5+5;survivorLevel++;survivorPending++}
+ while(survivorXP>=survivorXPGoal(survivorLevel)){survivorXP-=survivorXPGoal(survivorLevel);survivorLevel++;survivorPending++}
  // Defer the level-up overlay until the current physics/enemy iteration finishes.
 }
 function enemyDeath(e){e.alive=false;kills++;survivorGainXP(e.elite?5:e.small?1:2,e.x+e.w/2,e.y-10);runStats.kills++;combo++;maxCombo=Math.max(combo,maxCombo);comboTimer=3.3;score+=(100+e.kind*20)*(1+Math.floor(combo/5))*(hasRelic('crown')?1.5:1);part(e.x+e.w/2,e.y+e.h/2,ENEMY_TYPES[e.kind]?.color||'#ffe19b',18+e.kind,1);sound(350+e.kind*28,.09,'triangle');
@@ -401,7 +416,7 @@ function applyHit(e,damage,id,sourceX,affix='none'){if(!e?.alive||(e.boss&&e.act
  if(e.boss){e.hitGrace=.16;shake=Math.max(shake,4);part(e.x+e.w/2,e.y+e.h/2,'#ffe2a5',10,1);sound(155,.1,'sawtooth');if(e.hp<=0){e.alive=false;runStats.bosses++;survivorGainXP(15+level.world*4,e.x+e.w/2,e.y);slowMotion=.35;shake=15;part(e.x+e.w/2,e.y+e.h/2,BOSSES[e.kind].color,75,1.8);toast('BOSS BREAK！ '+BOSSES[e.kind].name,2);sound(680,.4,'triangle')}}
  else{part(e.x+e.w/2,e.y+e.h/2,'#fffac2',5,.6);if(e.hp<=0)enemyDeath(e)}return true}
 function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it=loadout[activeSlot]||{tier:1,affix:'none'};punchCooldown=w.cd*(hasRelic('core')?.80:1)*(it.affix==='echo'?.89:1);punchTime=Math.max(.13,Math.min(.28,w.cd*.56));attackId++;runStats.attacks++;
- const power=w.dmg+Math.floor((Math.max(1,it.tier||1)-1)/3)+Math.floor((survivorLevel-1)/4)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
+ const power=w.dmg+weaponDamageBonus(it.tier)+Math.floor((survivorLevel-1)/10)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
  function addShot(vx,vy,damage=power,r=6,t=1.6,more={}){
   // Aim automatic projectiles at airborne enemies. Compensate vertical velocity for gravity.
   // Manual attacks use the original velocity and directional pattern.
@@ -624,13 +639,13 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('substats').textContent=`💀${deaths} ｜ ⏱${stageTime.toFixed(1)}s ｜ SEED ${String(seed).padStart(9,'0')}`;
  $('playerHealthText').textContent='❤ ルル HP '+(player?.hp??7)+' / '+(player?.maxhp??7);$('playerHealth').classList.toggle('danger',!!player&&player.hp<=Math.max(2,player.maxhp*.25));
  $('playerHealthFill').style.width=(player?Math.max(0,player.hp/player.maxhp*100):100)+'%';
- $('xpText').textContent='LV '+survivorLevel+'　EXP '+survivorXP+' / '+(survivorLevel*5+5)+'　次のレベルまで '+((survivorLevel*5+5)-survivorXP);
- $('xpFill').style.width=Math.max(0,Math.min(100,survivorXP/(survivorLevel*5+5)*100))+'%';
+ $('xpText').textContent='LV '+survivorLevel+'　EXP '+survivorXP+' / '+survivorXPGoal(survivorLevel)+'　次のレベルまで '+Math.max(0,survivorXPGoal(survivorLevel)-survivorXP);
+ $('xpFill').style.width=Math.max(0,Math.min(100,survivorXP/survivorXPGoal(survivorLevel)*100))+'%';
  $('playerHealth').setAttribute('aria-valuenow',String(player?.hp??5));
  $('playerHealth').setAttribute('aria-valuemax',String(player?.maxhp??5));
  $('env').textContent=`${level.wind>25?'風 →':level.wind< -25?'風 ←':'微風'} ｜ ${level.ice?'氷床':'通常'} ｜ 重力 ${level.gravity>2000?'強':'弱'} ｜ 🏁${checkpointIndex}/2`;
  $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${punchCooldown<=0?'◉':'○'}`;
- $('weaponStrip').innerHTML=`⚔ 自動${loadout.length}種 <small>全武器同時攻撃</small>`;
+ $('weaponStrip').innerHTML=`⚔ 自動${loadout.length}種 <small>最高Lv.${Math.max(1,...loadout.map(it=>masteryLevel(it.tier)))}/${WEAPON_MASTERY_MAX}　全武器同時攻撃</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
  $('comboState').textContent=combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'';
  $('bossState').textContent=level.boss&&level.boss.alive?(level.boss.active?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===2?'覚醒':'戦闘中'}】`:`⚠ ${level.world+1}-3 ボス戦が待っている`):'';
@@ -740,8 +755,8 @@ function autoWeaponFire(dt){
      const d=dx*dx+dy*dy;if(d<nearest){nearest=d;target=e}
    }
    if(!target)continue;
-   const levelBoost=Math.min(18,Math.max(0,(it.tier||1)-1));
-   autoWeaponCooldowns[i]=Math.max(.19,Math.max(.28,w.cd*2.8)/(1+levelBoost*.075));
+   // No Lv.19 plateau: cooldown improves smoothly until weapon Lv.99.
+   autoWeaponCooldowns[i]=Math.max(.15,Math.max(.28,w.cd*2.8)/weaponCadenceMultiplier(it.tier));
    const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime,oldVx=p.vx;
    try{activeSlot=i;p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack(target,true)}
    finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=oldPunchTime;p.vx=oldVx}
