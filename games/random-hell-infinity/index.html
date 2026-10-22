@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V4.9｜高速弾命中補正</title>
-<meta name="game-build" content="RHINF_PHONE_CULLING_V410_20261022" />
+<title>RANDOM HELL ∞ V5.0｜武器24種・敵20系統・ボス強化</title>
+<meta name="game-build" content="RHINF_EXPANSION_GAMEOVER_V50_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -236,7 +236,15 @@ const WEAPONS=[
  {id:'cannon',name:'破滅の大砲',icon:'💥',color:'#ff829e',type:'cannon',range:0,cd:.85,dmg:3,desc:'遅い爆裂弾・範囲ダメージ'},
  {id:'homing',name:'星追いの誘導砲',icon:'🚀',color:'#6cf8e7',type:'homing',range:0,cd:.52,dmg:1,desc:'近くの敵・魔王を追尾する誘導弾'},
  {id:'thunder',name:'雷鎖の魔導書',icon:'⚡',color:'#fff09b',type:'chain',range:210,cd:1.05,dmg:2,desc:'最大4体へ連鎖する雷撃'},
- {id:'nova',name:'星環のオーブ',icon:'🌟',color:'#ffa9ff',type:'pulse',range:145,cd:1.18,dmg:2,desc:'主人公の周囲に星の衝撃波'}
+ {id:'nova',name:'星環のオーブ',icon:'🌟',color:'#ffa9ff',type:'pulse',range:145,cd:1.18,dmg:2,desc:'主人公の周囲に星の衝撃波'},
+ {id:'frostbow',name:'氷晶連弩',icon:'❄',color:'#89edff',type:'frostburst',range:0,cd:.75,dmg:1,desc:'凍結する5連弾'},
+ {id:'ember',name:'紅蓮花',icon:'🔥',color:'#ff8755',type:'flamefan',range:0,cd:.72,dmg:1,desc:'炎の7連扇状射撃'},
+ {id:'needler',name:'千本針',icon:'✦',color:'#baffae',type:'needles',range:0,cd:.14,dmg:1,desc:'高速貫通連射'},
+ {id:'meteor',name:'隕石砲',icon:'☄',color:'#ffb06b',type:'meteor',range:0,cd:1.25,dmg:4,desc:'放物線爆裂弾'},
+ {id:'cyclone',name:'風神輪',icon:'🌀',color:'#9dfbe7',type:'cyclone',range:126,cd:1.05,dmg:2,desc:'広範囲回転斬撃'},
+ {id:'prism',name:'虹色プリズム',icon:'💎',color:'#bda8ff',type:'prism',range:0,cd:.9,dmg:2,desc:'3本の貫通光線'},
+ {id:'scarlet',name:'紅月双鎌',icon:'🌙',color:'#ff82bd',type:'twinslash',range:135,cd:.58,dmg:2,desc:'前後同時の斬撃'},
+ {id:'voidbell',name:'虚空の鈴',icon:'🔔',color:'#e5acff',type:'voidpulse',range:215,cd:1.6,dmg:3,desc:'広範囲に減速衝撃波'}
 ];
 const RELICS=[
  {id:'boots',name:'疾風の靴',icon:'👟',desc:'移動速度+15%'},
@@ -262,7 +270,15 @@ const ENEMY_TYPES=[
  {name:'分裂体',color:'#a9ff86',shape:'splitter',hp:2},
  {name:'瞬間移動魔',color:'#ec85f4',shape:'blink',hp:2},
  {name:'雷霊',color:'#7be2fa',shape:'orbit',hp:1},
- {name:'監視砲台',color:'#c7c5ff',shape:'turret2',hp:3}
+ {name:'監視砲台',color:'#c7c5ff',shape:'turret2',hp:3},
+ {name:'三連ルーン砲',color:'#afb5ff',shape:'runeturret',hp:3},
+ {name:'疾風うさぎ',color:'#ffe287',shape:'swiftrabbit',hp:2},
+ {name:'晶石ハンター',color:'#78f1ff',shape:'crystalhunter',hp:5},
+ {name:'星霧の追手',color:'#dabaff',shape:'starchaser',hp:2},
+ {name:'蒼雷の狙撃手',color:'#80c5ff',shape:'boltsniper',hp:3},
+ {name:'影幻ランサー',color:'#f9a2f3',shape:'shadowlancer',hp:4},
+ {name:'分裂の芽',color:'#9fff91',shape:'splitseed',hp:3},
+ {name:'魔王の近衛',color:'#ffc48b',shape:'royalguard',hp:6}
 ];
 const BOSSES=[
  {name:'第一魔王・弾幕の王',color:'#fa726d',attack:'fan',desc:'扇形の弾幕と突進'},
@@ -422,6 +438,26 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
    }
    break;
  }
+ case 'frostburst':for(const a of [-.42,-.2,0,.2,.42])addShot(dir*530*Math.cos(a),530*Math.sin(a),power,6,1.5,{affix:'frost'});break;
+ case 'flamefan':for(const a of [-.54,-.36,-.18,0,.18,.36,.54])addShot(dir*440*Math.cos(a),440*Math.sin(a),power,7,.8,{affix:'fire'});break;
+ case 'needles':addShot(dir*1060,-16,power,3,1.1,{pierce:2});break;
+ case 'meteor':addShot(dir*435,-340,power,16,2.3,{gravity:550,splash:118});shake=2;break;
+ case 'cyclone':combatFX.push({type:'ring',x,y,color:col,r:126,life:.35,max:.35});doSplash(x,y,126,power,++attackId,it.affix);break;
+ case 'prism':for(const a of [-.13,0,.13])addShot(dir*940*Math.cos(a),940*Math.sin(a),power,4,1.25,{pierce:2});break;
+ case 'twinslash':{
+   slash(135,-33,102,power,'arc');
+   const sx=p.x-135,sy=p.y-33,reverseId=++attackId;
+   slashes.push({x:sx,y:sy,w:135,h:102,d:power,id:reverseId,life:.16,max:.16,color:col,kind:'arc',dir:-dir,affix:it.affix});
+   for(const e of level.enemies)if(e.alive&&hitRect(sx,sy,135,102,e.x,e.y,e.w,e.h))applyHit(e,power,reverseId,x,it.affix);
+   if(level.boss?.alive&&hitRect(sx,sy,135,102,level.boss.x,level.boss.y,level.boss.w,level.boss.h))applyHit(level.boss,power,reverseId,x,it.affix);
+   break;
+ }
+ case 'voidpulse':{
+   const radius=215;combatFX.push({type:'ring',x,y,color:col,r:radius,life:.55,max:.55});
+   for(const e of level.enemies)if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<radius){applyHit(e,power,++attackId,x,'frost');e.frost=Math.max(e.frost||0,1.5)}
+   if(level.boss?.alive&&dist(x,y,level.boss.x+level.boss.w/2,level.boss.y+level.boss.h/2)<radius)applyHit(level.boss,power,++attackId,x,'frost');
+   break;
+ }
  case 'pulse':{
    const radius=145+Math.min(25,(it.tier||1)*2);
    combatFX.push({type:'ring',x,y,color:col,r:radius,life:.42,max:.42});
@@ -437,7 +473,7 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
 function doSplash(x,y,r,dmg,id,affix='none'){for(const e of level.enemies){if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<r)applyHit(e,dmg,id,x,affix)}if(level.boss?.alive&&dist(x,y,level.boss.x+26,level.boss.y+30)<r)applyHit(level.boss,dmg,id,x,affix);part(x,y,'#ffbd8c',20,1.1);shake=5}
 function lethal(cause){if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);sound(780,.2,'sine');toast('シールド破損',.7);return false}if(player.grace>0||dashTime>.025)return false;player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);sound(170,.13,'sawtooth');updateHud(true);if(player.hp<=0){die(cause);return true}toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind;const phase=b.hp/b.maxhp<.48?2:1;b.phase=phase;b.attackNo++;
- const type=(stage===7?['fan','teleport','summon','laser','rain','charge','orb'][b.attackNo%7]:BOSSES[stage].attack);
+ const type=(stage===7?['fan','teleport','summon','laser','rain','charge','orb'][b.attackNo%7]:phase===2&&b.attackNo%3===0?['fan','charge','rain','orb'][stage%4]:BOSSES[stage].attack);
  if(type==='fan'){const a=Math.atan2(p.y-b.y,p.x-b.x);for(let k=-2-phase;k<=2+phase;k++){const aa=a+k*.17;shoot(b.x+b.w/2,b.y+28,b.x+Math.cos(aa)*400,b.y+28+Math.sin(aa)*400,255+stage*20+phase*24,7)}}
  if(type==='teleport'){b.x=clamp(p.x+(p.face===1?-125:110),b.from,b.to);part(b.x+25,b.y,'#d5a4ff',22);for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,270+stage*10,8)}
  if(type==='summon'){for(let k=0;k<phase+1;k++){const plat=b.platform;if(level.enemies.filter(e=>e.alive&&e.summoned).length>9)break;const er=rngGen(hash((clock*1000|0)+k+seed));const e=makeEnemy(er,plat,clamp(b.x+(k?110:-100),plat.x+30,plat.x+plat.w-50),level.difficulty);e.summoned=true;e.kind=(k+3)%8;e.hp=2;level.enemies.push(e)}for(let k=-1;k<=1;k++)shoot(b.x+20,b.y+25,p.x+13,p.y+16+k*70,270,7)}
@@ -445,7 +481,13 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  if(type==='rain'){for(let k=0;k<3+phase;k++)hazardTelegraphs.push({x:clamp(p.x+(k-(1+phase/2))*90,b.platform.x+25,b.platform.x+b.platform.w-25),delay:.58+k*.06,duration:.5,type:'rain',color:'#89eaff',w:26,top:-30,bottom:b.platform.y,life:1.5})}
  if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=.48;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
  if(type==='orb'){for(let k=0;k<3+phase*2;k++){const a=k*TAU/(3+phase*2);shoot(b.x+25,b.y+25,b.x+25+Math.cos(a)*300,b.y+25+Math.sin(a)*300,200+phase*30,8)}}
- b.shoot=Math.max(.57,1.65-stage*.06-phase*.24);
+ // Second phase chains an extra spread between the named boss patterns.
+ if(phase===2&&b.attackNo%2===0){
+   const ax=b.x+b.w/2,ay=b.y+25,tx=p.x+p.w/2,ty=p.y+p.h/2;
+   for(const offset of [-58,0,58])shoot(ax,ay,tx,ty+offset,265+stage*14,5);
+   part(ax,ay,'#ffe99a',8,.45);
+ }
+ b.shoot=Math.max(.34,1.33-stage*.05-(phase===2?.39:.08));
 }
 function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c+'66');g.addColorStop(1,c+'00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
 
@@ -517,11 +559,11 @@ function createLevel(respawn=false){
  camera=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn);updateHud(true);musicBeat=-1;
 }
 function makeEnemy(r,p,x,difficulty,forcedKind=null){
- const kind=forcedKind??randomInt(r,0,Math.min(11,3+Math.floor(difficulty*10)));
+ const kind=forcedKind??randomInt(r,0,Math.min(19,6+Math.floor(difficulty*14)));
  const info=ENEMY_TYPES[kind],elite=chance(r,.11+difficulty*.20);
  const hp=elite?Math.ceil((info.hp+1)*(2.7+difficulty*1.5)):info.hp+((difficulty>.72&&chance(r,.25))?1:0);
- const flying=kind===3||kind===10;
- return {x,y:p.y-(flying?80:30),w:kind===4?31:kind===5?29:kind===11?28:25,h:kind===4?31:30,
+ const flying=kind===3||kind===10||kind===15;
+ return {x,y:p.y-(flying?80:30),w:kind===14?35:kind===19?34:kind===4?31:kind===5?29:kind===11?28:25,h:kind===14?34:kind===19?34:kind===4?31:30,
    alive:true,kind,elite,hp,maxhp:hp,vx:(randomInt(r,72,135)+difficulty*48)*(elite?.82:1),
    dir:chance(r,.5)?1:-1,min:p.x+18,max:p.x+p.w-41,
    baseY:p.y-(flying?35:30),phase:r()*TAU,shoot:.7+r()*1.4,platform:p,hit:-1,
@@ -532,8 +574,8 @@ function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.f
  player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
 function saveState(){try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
-function showMenu(){mode='menu';overlay.classList.remove('hidden');const seedString=String(seed||'').padStart(9,'0');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵12系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="seedrow"><label for="seedInput">シード番号</label><input id="seedInput" inputmode="numeric" type="number" min="0" max="999999999" placeholder="空欄でランダム" /></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。拾った武器は全種類が自動同時攻撃！重複入手でランダム強化。死亡すると全武器をロスト。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
- $('newGame').onclick=()=>{const raw=$('seedInput').value.trim();begin(raw!==''?clamp(Number(raw),0,999999999):randSeed())};
+function showMenu(){mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。拾った武器は全種類が自動同時攻撃！重複入手でランダム強化。死亡すると全武器をロスト。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+ $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
 function showClear(){mode='clear';best=Math.max(best,levelIndex+1);saveState();overlay.classList.remove('hidden');const finished=levelIndex===23;const w=level.world+1,st=level.stage+1,medal=stageTime<28?'S':stageTime<50?'A':stageTime<85?'B':'C';
@@ -589,12 +631,19 @@ function scheduleMusic(){if(muted||mode!=='playing'||!audioCtx||audioCtx.state!=
 function toggleSound(){muted=!muted;if(!muted)startMusic();$('soundTiny').textContent=muted?'🔇':'♫';saveState()}
 
 function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
-function die(cause='DEAD'){if(mode!=='playing'||player.dead)return;player.dead=true;mode='dying';deaths++;
- // Death removes weapons but permanently preserves earned XP and level.
- loadout=[{id:'fist',tier:1,affix:'none'}];activeSlot=0;autoWeaponCooldowns=[];
- // Keep XP, level and any pending automatic level-ups across respawn.
- deathTimer=.75;slowMotion=.23;shake=17;part(player.x+13,player.y+15,'#ff5486',36,1.35);
- toast('武器全ロスト！ '+cause,.95);sound(125,.26,'sawtooth',.12);saveState()}
+function die(cause='DEAD'){
+ if(mode!=='playing'||player.dead)return;
+ player.dead=true;player.hp=0;mode='gameover';deaths++;
+ shake=17;part(player.x+13,player.y+15,'#ff5486',36,1.35);
+ sound(125,.26,'sawtooth',.12);
+ // A run is over at 0 HP. Do not allow a checkpoint or XP to resume.
+ try{localStorage.removeItem('randomHellSave')}catch(_){}
+ save=null;updateHud(true);resetInputs();
+ overlay.classList.remove('hidden');
+ panel.innerHTML=`<div class="eyebrow">RUN ENDED</div><div class="messageTitle">GAME OVER</div><p>ルルのHPが0になった。<br><strong>${cause}</strong><br><br>今回の冒険は終了。武器・経験値・中間地点は失われ、次は第1世界の最初から。<br>到達：${level.world+1}-${level.stage+1}　撃破：${kills}　死亡：${deaths}</p><div class="panelBtns"><button id="restartGame" class="primary">↻ 最初から新しい冒険</button><button id="restartSeed" class="secondary">同じ世界を最初から</button></div>`;
+ $('restartGame').onclick=()=>begin(randSeed(),0,0);
+ $('restartSeed').onclick=()=>begin(seed,0,0);
+}
 function hitRect(ax,ay,aw,ah,bx,by,bw,bh){return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by}
 function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);return (cx-nx)**2+(cy-ny)**2<r*r}
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
@@ -604,16 +653,16 @@ function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
   e.windup=Math.max(0,e.windup-dt);
   if(e.windup===0){
    if(near&&e.alive){
-    const speed=kind===6?440:kind===11?375:kind===9?310:270+diff*110,count=kind===11?3:1;
+    const speed=[6,16].includes(kind)?440:[11,12].includes(kind)?375:[9,17].includes(kind)?310:270+diff*110,count=[11,12,16].includes(kind)?3:[15,19].includes(kind)?2:1;
     for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,e.aimX,e.aimY+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
     e._spriteAttackUntil=clock+.25;part(e.x+12,e.y+12,'#ffcf76',6,.35);
    }
-   e.shoot=(kind===6?2.5:kind===11?1.4:kind===9?2.1:1.7)+Math.random()*.4;
+   e.shoot=(kind===6?2.5:[11,12].includes(kind)?1.35:kind===16?1.85:kind===15?1.55:kind===17?1.8:kind===9?2.1:1.7)+Math.random()*.4;
   }
   return;
  }
  e.shoot-=dt;
- if(e.shoot<=0&&near){e.windup=kind===11?.56:kind===6?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
+ if(e.shoot<=0&&near){e.windup=[11,12].includes(kind)?.56:[6,16].includes(kind)?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
 }
 // Swept bullet collision prevents fast enemy shots crossing Lulu or solid ground.
 function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
@@ -642,7 +691,7 @@ function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4
 function autoWeaponFire(dt){
  // Every owned weapon attacks independently, including melee and fists.
  const p=player;if(!p||!level||mode!=='playing')return;
- const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse']);
+ const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism']);
  const candidates=level.boss?.alive?[...level.enemies,level.boss]:level.enemies;
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
@@ -671,7 +720,7 @@ function update(dt){
  for(const fx of combatFX)fx.life-=dt;combatFX=combatFX.filter(fx=>fx.life>0).slice(-80);
  for(const xp of xpFloats){xp.y-=36*dt;xp.life-=dt}xpFloats=xpFloats.filter(xp=>xp.life>0);
  if(damageFlashTimer>0){damageFlashTimer=Math.max(0,damageFlashTimer-dt);$('damageFlash').style.opacity=String(damageFlashTimer*.28)}
- if(mode==='dying'){deathTimer-=dt;if(deathTimer<=0){createLevel(true);mode='playing';toast(checkpointIndex?'中間地点から再挑戦！':'RETRY もう一度！',.85)}return}
+ if(mode==='gameover')return;
  if(mode!=='playing')return;
  const p=player;
  // Move lift platforms before collision. Carry the character when standing on a lift.
@@ -721,23 +770,23 @@ function update(dt){
    if(e.burn>0){e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.42;applyHit(e,1,++attackId,e.x,'none');if(!e.alive)continue}}
    e.flash=Math.max(0,(e.flash||0)-dt);e.hitGrace=Math.max(0,(e.hitGrace||0)-dt);
    const diff=level.difficulty,near=Math.abs(e.x-p.x)<640,kind=e.kind;
-   if(kind===0||kind===1||kind===4||kind===5||kind===7||kind===8){if(kind===4){if(near&&Math.abs(e.x-p.x)<220){e.alert=(e.alert||0)+dt;if(e.alert>.44){e.charge=.27;e.dir=p.x>e.x?1:-1;e.alert=-.8}}else e.alert=0}
+   if([0,1,4,5,7,8,13,14,18,19].includes(kind)){if(kind===4||kind===14){if(near&&Math.abs(e.x-p.x)<220){e.alert=(e.alert||0)+dt;if(e.alert>.44){e.charge=.27;e.dir=p.x>e.x?1:-1;e.alert=-.8}}else e.alert=0}
      e.x+=e.vx*e.dir*dt*(e.charge>0?3.6:1)*(e.frost>0?.42:1);e.charge=Math.max(0,e.charge-dt);
      if(e.x<e.min){e.x=e.min;e.dir=1}if(e.x>e.max){e.x=e.max;e.dir=-1}}
-   if(kind===1){e.phase+=dt*5;e.y=e.baseY-Math.max(0,Math.sin(e.phase))*61}
-   if(kind===3||kind===10){e.phase+=dt*(kind===10?4.2:2.5);
+   if(kind===1||kind===13){e.phase+=dt*(kind===13?8:5);e.y=e.baseY-Math.max(0,Math.sin(e.phase))*(kind===13?91:61)}
+   if(kind===3||kind===10||kind===15){e.phase+=dt*(kind===10?4.2:kind===15?5.3:2.5);
      const pursuit=near?Math.sign(p.x-e.x)*Math.min(55,Math.abs(p.x-e.x)*.5):0;
      e.x+=((Math.sin(e.phase)*43)+pursuit)*dt*(e.frost>0?.5:1);
      e.x=clamp(e.x,e.min,e.max);
      e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
-   if(kind===9){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){e.x=clamp(p.x+(p.face>0?130:-130),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=2.8}}
-   if(kind===2||kind===6||kind===7||kind===9||kind===11)updateRangedEnemyAttack(e,p,kind,dt,diff,near);
+   if(kind===9||kind===17){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){e.x=clamp(p.x+(p.face>0?(kind===17?80:130):(kind===17?-80:-130)),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=kind===17?1.8:2.8}}
+   if([2,6,7,9,11,12,15,16,17,19].includes(kind))updateRangedEnemyAttack(e,p,kind,dt,diff,near);
    if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
  }
  const b=level.boss;
  if(b?.alive){b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
-   else{b.x+=b.dir*(77+level.world*8)*dt*(b.frost>0?.65:1);if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
+   else{b.x+=b.dir*(77+level.world*8)*(b.hp/b.maxhp<.48?1.6:1.18)*dt*(b.frost>0?.65:1);if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
    b.shoot-=dt*(b.frost>0?.75:1);if(b.shoot<=0&&b.alive)attackBoss(b);
    if(hitRect(p.x+4,p.y+3,p.w-8,p.h-5,b.x+3,b.y+3,b.w-6,b.h-6)&&lethal('魔王に接触'))return;
  }
@@ -843,7 +892,7 @@ const RH_SAFE={
  sniper:{idle:[0,1],move:[0,1],attack:[0],hurt:[0,1]},
  boss:{idle:[0,1,2],move:[0],attack:[0,1],hurt:[0]}
 };
-const RH_ENEMY_SPRITES=['slime','rabbit','turret','ghost','beetle','beetle','sniper','rabbit','slime','ghost','ghost','turret'];
+const RH_ENEMY_SPRITES=['slime','rabbit','turret','ghost','beetle','beetle','sniper','rabbit','slime','ghost','ghost','turret','turret','rabbit','beetle','slime','sniper','beetle','slime','beetle'];
 // All frames use one source-pixel scale per character, so poses never stretch or jump in size.
 const RH_FRAME_BASE={};
 for(const name of new Set([...Object.keys(RH_PACK?.frames||{}),...Object.keys(RH_SPRITE_IMAGES)])){
@@ -888,12 +937,20 @@ function rhCleanSpriteFrame(img,f){
     // Preserve detached hairpins, scarf tips and interior sparkles.
     const edge=Math.max(2,Math.min(5,Math.floor(Math.min(w,h)*.06)));
     const touchesEdge=g.minX<=edge||g.minY<=edge||g.maxX>=w-1-edge||g.maxY>=h-1-edge;
-    const tiny=g.pixels.length<Math.max(6,Math.floor(main.pixels.length*.12));
-    if(!touchesEdge||!tiny||Math.hypot(dx,dy)<=8)continue;
+    const tiny=g.pixels.length<Math.max(7,Math.floor(main.pixels.length*.22));
+    if(!touchesEdge||!tiny||Math.hypot(dx,dy)<=Math.max(7,Math.min(w,h)*.085))continue;
     for(const k of g.pixels){d[k*4+3]=0;removed++}
    }
-   if(removed){cx.putImageData(image,0,0);result=canvas}
+   if(removed)cx.putImageData(image,0,0);
   }
+  // Align opaque subject around a consistent center and foot anchor across animation frames.
+  const d2=cx.getImageData(0,0,w,h).data;let left=w,right=-1,bottom=-1;
+  for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++)if(d2[(yy*w+xx)*4+3]>=24){left=Math.min(left,xx);right=Math.max(right,xx);bottom=Math.max(bottom,yy)}
+  if(right>=left){
+   const dx=Math.round((w-(right-left+1))/2-left),dy=h-1-bottom;
+   if(dx||dy){const aligned=document.createElement('canvas');aligned.width=w;aligned.height=h;aligned.getContext('2d').drawImage(canvas,dx,dy);result=aligned}
+   else result=canvas;
+  }else result=canvas;
  }catch(_){result=null}
  map.set(key,result);return result;
 }
@@ -909,7 +966,7 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  const seq=safe.length?safe:frames.map((_,i)=>i);
  const f=frames[seq[Math.floor(Math.max(0,time))%seq.length]];if(!f||f.length<4||f[2]<=0||f[3]<=0||f[0]<0||f[1]<0||f[0]+f[2]>img.naturalWidth||f[1]+f[3]>img.naturalHeight)return false;
  // Enemy/boss artwork may contain intentionally detached limbs, eyes or effects. Never strip their pixels.
- const cleaned=useSpecific&&name==='hero'?rhCleanSpriteFrame(img,f):null,source=cleaned||img,sx=cleaned?0:f[0],sy=cleaned?0:f[1];
+ const cleaned=useSpecific?rhCleanSpriteFrame(img,f):null,source=cleaned||img,sx=cleaned?0:f[0],sy=cleaned?0:f[1];
  ctx.save();ctx.imageSmoothingEnabled=false;
  // Consistent feet anchor across frames; preserve source aspect ratio to prevent stretching.
  const base=RH_FRAME_BASE[name]||[f[2],f[3]],scale=Math.min(w/base[0],h/base[1]);const dw=f[2]*scale,dh=f[3]*scale;x+=(w-dw)/2;y+=h-dh;w=dw;h=dh;
@@ -954,7 +1011,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.elite){ctx.save();ctx.strokeStyle='#ffd571';ctx.lineWidth=2.5;ctx.shadowColor='#ffb44f';ctx.shadowBlur=12;ctx.strokeRect(e.x-4,e.y-4,e.w+8,e.h+8);ctx.restore()}if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
  if(level.boss?.alive){const b=level.boss;
  // Keep the V3.5 Star-Eater sprite, but give each of the eight worlds a distinct aura.
  const bossColor=BOSSES[b.kind].color,enraged=b.hp/b.maxhp<.48;
@@ -1000,7 +1057,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(mode==='dying'){ctx.fillStyle=`rgba(241,35,88,${Math.min(.25,deathTimer*.38)})`;ctx.fillRect(0,0,W,H)}
  ctx.restore();}
 function frame(time){if(!frame.prev)frame.prev=time;let dt=Math.min(.04,(time-frame.prev)/1000);frame.prev=time;
- if(mode==='playing'||mode==='dying'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing'&&mode!=='dying')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level&&mode!=='survivorDraft'){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
+ if(mode==='playing'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level&&mode!=='survivorDraft'){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
  if(mode==='playing')scheduleMusic();if(mode!=='survivorDraft')draw();requestAnimationFrame(frame)}
 
 // Version 3.2: one pointer per stick, multiple pointers per action; tilt controls run speed.
