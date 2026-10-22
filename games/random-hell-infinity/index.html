@@ -323,8 +323,8 @@ function item(r,diff=0){const pool=WEAPONS.slice(1);return {id:pool[randomInt(r,
 function rarity(tier){return ['','#dce8ff','#68f2fa','#ffc466'][tier]||'#fff'}
 function itemName(it){
  const w=WEAPONS.find(w=>w.id===it.id)||WEAPONS[0],lv=masteryLevel(it.tier);
- const stars='★'.repeat(Math.floor(lv/25));
- return `${w.icon}${w.name} Lv.${lv}/${WEAPON_MASTERY_MAX}${stars?' '+stars:''}${it.affix==='fire'?' [炎]':it.affix==='frost'?' [氷]':it.affix==='shock'?' [雷]':it.affix==='echo'?' [残響]':it.affix==='vamp'?' [吸魂]':''}`;
+ const stars='★'.repeat(Math.floor(lv/33));
+ return `${w.icon}${w.name} Lv.${lv}/${WEAPON_MASTERY_MAX}${lv===WEAPON_MASTERY_MAX?' MAX':stars?' '+stars:''}${it.affix==='fire'?' [炎]':it.affix==='frost'?' [氷]':it.affix==='shock'?' [雷]':it.affix==='echo'?' [残響]':it.affix==='vamp'?' [吸魂]':''}`;
 }
 
 function pickupVisualY(c){return c.y+Math.sin(clock*4+c.x)*7}
