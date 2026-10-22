@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>RANDOM HELL ∞ V4.9｜高速弾命中補正</title>
-<meta name="game-build" content="RHINF_PHONE_ZOOMOUT_30_20261022" />
+<meta name="game-build" content="RHINF_PHONE_CULLING_V410_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -929,25 +929,27 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
  // Keep the ground at its existing screen height, so mobile controls do not conceal Lulu.
  ctx.save();ctx.translate(0,baseY*(1-zoom));ctx.scale(zoom,zoom);ctx.translate(-camera,0);
+ // Cull against the full world width visible at mobile zoom, not the CSS viewport width.
+ const viewRight=camera+visibleWorldWidth();
  const t=level.theme;
- for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>camera+W+40)continue;if(!s.active)continue;ctx.fillStyle=s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,s.kind==='moving'?18:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){ctx.fillStyle='#ffe3b6';for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);if(s.collapse>0){ctx.fillStyle='#ffb975';ctx.fillRect(s.x,s.y-4,s.w*(s.collapse/.55),3)}}}
- for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>camera+W+30)continue;
+ for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>viewRight+40)continue;if(!s.active)continue;ctx.fillStyle=s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,s.kind==='moving'?18:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){ctx.fillStyle='#ffe3b6';for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);if(s.collapse>0){ctx.fillStyle='#ffb975';ctx.fillRect(s.x,s.y-4,s.w*(s.collapse/.55),3)}}}
+ for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
    ctx.fillStyle=active?'#83ffe0':'#ffde89';ctx.fillRect(s.x+39,s.y-82,4,82);
    polygon([[s.x+43,s.y-79],[s.x+90,s.y-66],[s.x+43,s.y-51]],active?'#83ffe0':'#ffde89');
    ctx.fillStyle='#132941';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText('CHECK '+s.checkpointId,s.x+69,s.y-90);
  }
- for(const pad of level.springPads){if(pad.x+pad.w<camera-30||pad.x>camera+W+30)continue;
+ for(const pad of level.springPads){if(pad.x+pad.w<camera-30||pad.x>viewRight+30)continue;
    const bounce=Math.sin(clock*5+pad.phase)*2;
    ctx.fillStyle='#5a4e7d';ctx.beginPath();ctx.roundRect(pad.x,pad.y-9+bounce,pad.w,10,4);ctx.fill();
    ctx.fillStyle='#ffdc72';ctx.beginPath();ctx.roundRect(pad.x+3,pad.y-13+bounce,pad.w-6,6,4);ctx.fill();
    ctx.fillStyle='#fff8ce';ctx.fillRect(pad.x+10,pad.y-15+bounce,5,3);ctx.fillRect(pad.x+25,pad.y-15+bounce,5,3);
  }
- for(const s of level.spikes){if(s.x+s.w<camera-20||s.x>camera+W+20)continue;let count=Math.max(2,Math.ceil(s.w/12)),wid=s.w/count;for(let j=0;j<count;j++)polygon([[s.x+j*wid,s.y],[s.x+(j+.5)*wid,s.y-20],[s.x+(j+1)*wid,s.y]],'#ff6385')}
- for(const laser of level.lasers){if(laser.x<camera-30||laser.x>camera+W+30)continue;const phase=(clock+laser.offset)%laser.period,active=phase<.88,warning=phase>laser.period-.26;ctx.fillStyle=active?'#ff4c73':warning?'#ffe8a0':'#7c6677';ctx.globalAlpha=active?1:.5;ctx.fillRect(laser.x-7,laser.y-170,14,12);ctx.fillRect(laser.x-7,laser.y-8,14,8);if(active){ctx.fillStyle='#ff6f8d55';ctx.fillRect(laser.x-14,laser.y-158,28,152);ctx.fillStyle='#fff6c3';ctx.fillRect(laser.x-3,laser.y-159,6,155)}ctx.globalAlpha=1;}
- for(const s of level.saws){if(s.x<camera-40||s.x>camera+W+40)continue;const y=s.y+Math.sin(clock*s.rate+s.phase)*s.amp,r=s.size;ctx.save();ctx.translate(s.x,y);ctx.rotate(clock*4);for(let k=0;k<12;k++){const a=k*TAU/12;polygon([[Math.cos(a-.15)*r*.75,Math.sin(a-.15)*r*.75],[Math.cos(a)*r*1.28,Math.sin(a)*r*1.28],[Math.cos(a+.15)*r*.75,Math.sin(a+.15)*r*.75]],'#ff9c74')}ctx.beginPath();ctx.arc(0,0,r*.85,0,TAU);ctx.fillStyle='#dbe6f2';ctx.fill();ctx.beginPath();ctx.arc(0,0,r*.32,0,TAU);ctx.fillStyle='#35446a';ctx.fill();ctx.restore();}
- for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>camera+W+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':'★',0,0)}ctx.restore()}
- for(const e of level.enemies){if(!e.alive||e.x<camera-70||e.x>camera+W+70)continue;const ename=RH_ENEMY_SPRITES[e.kind]||'slime';
+ for(const s of level.spikes){if(s.x+s.w<camera-20||s.x>viewRight+20)continue;let count=Math.max(2,Math.ceil(s.w/12)),wid=s.w/count;for(let j=0;j<count;j++)polygon([[s.x+j*wid,s.y],[s.x+(j+.5)*wid,s.y-20],[s.x+(j+1)*wid,s.y]],'#ff6385')}
+ for(const laser of level.lasers){if(laser.x<camera-30||laser.x>viewRight+30)continue;const phase=(clock+laser.offset)%laser.period,active=phase<.88,warning=phase>laser.period-.26;ctx.fillStyle=active?'#ff4c73':warning?'#ffe8a0':'#7c6677';ctx.globalAlpha=active?1:.5;ctx.fillRect(laser.x-7,laser.y-170,14,12);ctx.fillRect(laser.x-7,laser.y-8,14,8);if(active){ctx.fillStyle='#ff6f8d55';ctx.fillRect(laser.x-14,laser.y-158,28,152);ctx.fillStyle='#fff6c3';ctx.fillRect(laser.x-3,laser.y-159,6,155)}ctx.globalAlpha=1;}
+ for(const s of level.saws){if(s.x<camera-40||s.x>viewRight+40)continue;const y=s.y+Math.sin(clock*s.rate+s.phase)*s.amp,r=s.size;ctx.save();ctx.translate(s.x,y);ctx.rotate(clock*4);for(let k=0;k<12;k++){const a=k*TAU/12;polygon([[Math.cos(a-.15)*r*.75,Math.sin(a-.15)*r*.75],[Math.cos(a)*r*1.28,Math.sin(a)*r*1.28],[Math.cos(a+.15)*r*.75,Math.sin(a+.15)*r*.75]],'#ff9c74')}ctx.beginPath();ctx.arc(0,0,r*.85,0,TAU);ctx.fillStyle='#dbe6f2';ctx.fill();ctx.beginPath();ctx.arc(0,0,r*.32,0,TAU);ctx.fillStyle='#35446a';ctx.fill();ctx.restore();}
+ for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>viewRight+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':'★',0,0)}ctx.restore()}
+ for(const e of level.enemies){if(!e.alive||e.x<camera-70||e.x>viewRight+70)continue;const ename=RH_ENEMY_SPRITES[e.kind]||'slime';
  const moving=Math.abs(e.x-(e._spriteLastX??e.x))>.12||Math.abs(e.y-(e._spriteLastY??e.y))>.12;
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
