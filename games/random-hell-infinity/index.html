@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V5.0｜武器24種・敵20系統・ボス強化</title>
-<meta name="game-build" content="RHINF_EXPANSION_GAMEOVER_V50_20261022" />
+<title>RANDOM HELL ∞ V5.1｜8世界のボス・武器32種・敵28系統</title>
+<meta name="game-build" content="RHINF_BOSS_TOUCH_WEAPONS_V51_20261022" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -244,7 +244,15 @@ const WEAPONS=[
  {id:'cyclone',name:'風神輪',icon:'🌀',color:'#9dfbe7',type:'cyclone',range:126,cd:1.05,dmg:2,desc:'広範囲回転斬撃'},
  {id:'prism',name:'虹色プリズム',icon:'💎',color:'#bda8ff',type:'prism',range:0,cd:.9,dmg:2,desc:'3本の貫通光線'},
  {id:'scarlet',name:'紅月双鎌',icon:'🌙',color:'#ff82bd',type:'twinslash',range:135,cd:.58,dmg:2,desc:'前後同時の斬撃'},
- {id:'voidbell',name:'虚空の鈴',icon:'🔔',color:'#e5acff',type:'voidpulse',range:215,cd:1.6,dmg:3,desc:'広範囲に減速衝撃波'}
+ {id:'voidbell',name:'虚空の鈴',icon:'🔔',color:'#e5acff',type:'voidpulse',range:215,cd:1.6,dmg:3,desc:'広範囲に減速衝撃波'},
+ {id:'orbitdisks',name:'三日月チャクラム',icon:'✴',color:'#b0edff',type:'orbitdisks',range:0,cd:.9,dmg:2,desc:'三枚の回転刃が敵を切り裂く'},
+ {id:'cometpair',name:'双星追跡砲',icon:'🚀',color:'#a0ffdd',type:'cometpair',range:0,cd:1.15,dmg:2,desc:'二発の追尾彗星を同時射出'},
+ {id:'lancesweep',name:'蒼天の長槍',icon:'🔱',color:'#a5d5ff',type:'lancesweep',range:235,cd:.65,dmg:3,desc:'遠くまで貫く超長距離槍'},
+ {id:'stormring',name:'雷鳴の星輪',icon:'⚡',color:'#fff38c',type:'stormring',range:0,cd:1.28,dmg:2,desc:'全方向へ雷弾を拡散'},
+ {id:'earthquake',name:'地脈の鉄槌',icon:'🔨',color:'#edbe89',type:'earthquake',range:185,cd:1.17,dmg:4,desc:'前方地面へ衝撃波'},
+ {id:'sunlance',name:'光芒ライフル',icon:'🔆',color:'#ffeb9b',type:'sunlance',range:0,cd:.52,dmg:2,desc:'多重貫通する高速レーザー'},
+ {id:'hailstorm',name:'霜天の散弾',icon:'❄',color:'#8fe7ff',type:'hailstorm',range:0,cd:1.03,dmg:2,desc:'上空へ氷晶散弾を撃ち上げる'},
+ {id:'nightbell',name:'夜明けの鐘',icon:'🔔',color:'#fcadff',type:'nightbell',range:176,cd:1.4,dmg:3,desc:'近くの敵に広域共鳴ダメージ'}
 ];
 const RELICS=[
  {id:'boots',name:'疾風の靴',icon:'👟',desc:'移動速度+15%'},
@@ -278,7 +286,15 @@ const ENEMY_TYPES=[
  {name:'蒼雷の狙撃手',color:'#80c5ff',shape:'boltsniper',hp:3},
  {name:'影幻ランサー',color:'#f9a2f3',shape:'shadowlancer',hp:4},
  {name:'分裂の芽',color:'#9fff91',shape:'splitseed',hp:3},
- {name:'魔王の近衛',color:'#ffc48b',shape:'royalguard',hp:6}
+ {name:'魔王の近衛',color:'#ffc48b',shape:'royalguard',hp:6},
+ {name:'鋼羽ドローン',color:'#9cc8ff',shape:'flydrone',hp:3},
+ {name:'地割れイノシシ',color:'#ffa079',shape:'charger2',hp:5},
+ {name:'跳躍甲虫',color:'#8cfad4',shape:'jumper2',hp:4},
+ {name:'深淵狙撃鬼',color:'#d5a0ff',shape:'sniper2',hp:3},
+ {name:'幻影影兵',color:'#ff9cdd',shape:'teleport2',hp:4},
+ {name:'双砲タレット',color:'#b0c1ff',shape:'turret3',hp:5},
+ {name:'稲妻カラス',color:'#f4ec84',shape:'thunderbird',hp:2},
+ {name:'王宮執行官',color:'#ffd6a6',shape:'executioner',hp:8}
 ];
 const BOSSES=[
  {name:'第一魔王・弾幕の王',color:'#fa726d',attack:'fan',desc:'扇形の弾幕と突進'},
@@ -389,7 +405,7 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
  function addShot(vx,vy,damage=power,r=6,t=1.6,more={}){
   // Aim automatic projectiles at airborne enemies. Compensate vertical velocity for gravity.
   // Manual attacks use the original velocity and directional pattern.
-  if(aimTarget&&aimTarget.alive){
+  if(aimTarget&&aimTarget.alive&&!more.fixedArc){
     const dx=aimTarget.x+aimTarget.w*.5-(x+dir*18),dy=aimTarget.y+aimTarget.h*.5-y;
     const speed=Math.max(200,Math.hypot(vx,vy));
     const flight=Math.max(.07,Math.hypot(dx,dy)/speed);
@@ -458,6 +474,19 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
    if(level.boss?.alive&&dist(x,y,level.boss.x+level.boss.w/2,level.boss.y+level.boss.h/2)<radius)applyHit(level.boss,power,++attackId,x,'frost');
    break;
  }
+ case 'orbitdisks':for(const vy of [-115,0,115])addShot(dir*610,vy,power,11,1.55,{boomer:true,returnX:x,age:0,pierce:5,fixedArc:true});break;
+ case 'cometpair':for(const off of [-90,90])addShot(dir*375,off,power,9,3,{homing:true,homingSpeed:420,homingTurn:7.2});break;
+ case 'lancesweep':slash(235,-19,64,power,'thrust');part(x+dir*170,y,col,11,.45);break;
+ case 'stormring':for(let k=0;k<8;k++){const a=TAU*k/8;addShot(Math.cos(a)*490,Math.sin(a)*490,power,7,1.25,{affix:'shock',fixedArc:true})}break;
+ case 'earthquake':slash(185,-6,90,power,'smash');combatFX.push({type:'ring',x:x+dir*92,y:y+16,color:col,r:85,life:.28,max:.28});shake=4;break;
+ case 'sunlance':addShot(dir*1120,-9,power,6,1.3,{pierce:6});break;
+ case 'hailstorm':for(const vy of [-270,-195,-120])addShot(dir*445,vy,power,9,2.1,{gravity:420,affix:'frost',fixedArc:true});break;
+ case 'nightbell':{
+  const rad=176;combatFX.push({type:'ring',x,y,color:col,r:rad,life:.44,max:.44});
+  for(const e of level.enemies)if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<rad)applyHit(e,power,++attackId,x,it.affix);
+  if(level.boss?.alive&&dist(x,y,level.boss.x+level.boss.w/2,level.boss.y+level.boss.h/2)<rad)applyHit(level.boss,power,++attackId,x,it.affix);
+  part(x,y,'#efd8ff',12,.55);break;
+ }
  case 'pulse':{
    const radius=145+Math.min(25,(it.tier||1)*2);
    combatFX.push({type:'ring',x,y,color:col,r:radius,life:.42,max:.42});
@@ -476,7 +505,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  const type=(stage===7?['fan','teleport','summon','laser','rain','charge','orb'][b.attackNo%7]:phase===2&&b.attackNo%3===0?['fan','charge','rain','orb'][stage%4]:BOSSES[stage].attack);
  if(type==='fan'){const a=Math.atan2(p.y-b.y,p.x-b.x);for(let k=-2-phase;k<=2+phase;k++){const aa=a+k*.17;shoot(b.x+b.w/2,b.y+28,b.x+Math.cos(aa)*400,b.y+28+Math.sin(aa)*400,255+stage*20+phase*24,7)}}
  if(type==='teleport'){b.x=clamp(p.x+(p.face===1?-125:110),b.from,b.to);part(b.x+25,b.y,'#d5a4ff',22);for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,270+stage*10,8)}
- if(type==='summon'){for(let k=0;k<phase+1;k++){const plat=b.platform;if(level.enemies.filter(e=>e.alive&&e.summoned).length>9)break;const er=rngGen(hash((clock*1000|0)+k+seed));const e=makeEnemy(er,plat,clamp(b.x+(k?110:-100),plat.x+30,plat.x+plat.w-50),level.difficulty);e.summoned=true;e.kind=(k+3)%8;e.hp=2;level.enemies.push(e)}for(let k=-1;k<=1;k++)shoot(b.x+20,b.y+25,p.x+13,p.y+16+k*70,270,7)}
+ if(type==='summon'){for(let k=0;k<phase+1;k++){const plat=b.platform;if(level.enemies.filter(e=>e.alive&&e.summoned).length>9)break;const er=rngGen(hash((clock*1000|0)+k+seed)),summonKind=stage>=4?20+(k%8):(k+3)%8;const e=makeEnemy(er,plat,clamp(b.x+(k?110:-100),plat.x+30,plat.x+plat.w-50),level.difficulty,summonKind);e.summoned=true;e.hp=Math.max(2,e.hp);level.enemies.push(e)}for(let k=-1;k<=1;k++)shoot(b.x+20,b.y+25,p.x+13,p.y+16+k*70,270,7)}
  if(type==='laser'){for(let k=0;k<phase+1;k++)hazardTelegraphs.push({x:clamp(p.x+80*(k-1),b.platform.x+18,b.platform.x+b.platform.w-22),delay:.66+k*.13,duration:.42,type:'laser',color:'#ff77bf',w:23,top:-40,bottom:b.platform.y,life:1.3})}
  if(type==='rain'){for(let k=0;k<3+phase;k++)hazardTelegraphs.push({x:clamp(p.x+(k-(1+phase/2))*90,b.platform.x+25,b.platform.x+b.platform.w-25),delay:.58+k*.06,duration:.5,type:'rain',color:'#89eaff',w:26,top:-30,bottom:b.platform.y,life:1.5})}
  if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=.48;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
@@ -531,7 +560,7 @@ function createLevel(respawn=false){
    if(h===1||h===4||h===5){enemies.push(makeEnemy(r,p,p.x+p.w*(.45+r()*.22),difficulty));if(i>4&&chance(r,.26+difficulty*.24)){enemies.push(makeEnemy(r,p,p.x+p.w*.73,difficulty))}}
    // Increasing swarms: flyers available from world 1, high-HP elites mixed into each stage.
    if(i>1){
-     const count=Math.min(5,1+Math.floor(world/3)+randomInt(r,0,2));
+     const count=Math.min(5,2+Math.floor(world/4)+randomInt(r,0,2));
      for(let j=0;j<count;j++){
        const position=p.x+30+(p.w-60)*(j+1)/(count+1);
        const kind=(j===count-1&&(i%3===0||chance(r,.28)))?(world>=4&&chance(r,.4)?10:3):null;
@@ -566,10 +595,10 @@ function createLevel(respawn=false){
  camera=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn);updateHud(true);musicBeat=-1;
 }
 function makeEnemy(r,p,x,difficulty,forcedKind=null){
- const kind=forcedKind??randomInt(r,0,Math.min(19,6+Math.floor(difficulty*14)));
+ const kind=forcedKind??randomInt(r,0,Math.min(27,13+Math.floor(difficulty*14)));
  const info=ENEMY_TYPES[kind],elite=chance(r,.11+difficulty*.20);
  const hp=elite?Math.ceil((info.hp+1)*(2.7+difficulty*1.5)):info.hp+((difficulty>.72&&chance(r,.25))?1:0);
- const flying=kind===3||kind===10||kind===15;
+ const flying=[3,10,15,20,26].includes(kind);
  return {x,y:p.y-(flying?80:30),w:kind===14?35:kind===19?34:kind===4?31:kind===5?29:kind===11?28:25,h:kind===14?34:kind===19?34:kind===4?31:30,
    alive:true,kind,elite,hp,maxhp:hp,vx:(randomInt(r,72,135)+difficulty*48)*(elite?.82:1),
    dir:chance(r,.5)?1:-1,min:p.x+18,max:p.x+p.w-41,
@@ -660,16 +689,16 @@ function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
   e.windup=Math.max(0,e.windup-dt);
   if(e.windup===0){
    if(near&&e.alive){
-    const speed=[6,16].includes(kind)?440:[11,12].includes(kind)?375:[9,17].includes(kind)?310:270+diff*110,count=[11,12,16].includes(kind)?3:[15,19].includes(kind)?2:1;
+    const speed=[6,16,23,26].includes(kind)?440:[11,12,25].includes(kind)?375:[9,17,24].includes(kind)?310:270+diff*110,count=[11,12,16,25].includes(kind)?3:[15,19,20,26,27].includes(kind)?2:1;
     for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,e.aimX,e.aimY+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
     e._spriteAttackUntil=clock+.25;part(e.x+12,e.y+12,'#ffcf76',6,.35);
    }
-   e.shoot=(kind===6?2.5:[11,12].includes(kind)?1.35:kind===16?1.85:kind===15?1.55:kind===17?1.8:kind===9?2.1:1.7)+Math.random()*.4;
+   e.shoot=(kind===6?2.5:[11,12,25].includes(kind)?1.35:[16,23].includes(kind)?1.85:[15,20,26].includes(kind)?1.55:[17,24,27].includes(kind)?1.8:kind===9?2.1:1.7)+Math.random()*.4;
   }
   return;
  }
  e.shoot-=dt;
- if(e.shoot<=0&&near){e.windup=[11,12].includes(kind)?.56:[6,16].includes(kind)?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
+ if(e.shoot<=0&&near){e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
 }
 // Swept bullet collision prevents fast enemy shots crossing Lulu or solid ground.
 function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
@@ -698,7 +727,7 @@ function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4
 function autoWeaponFire(dt){
  // Every owned weapon attacks independently, including melee and fists.
  const p=player;if(!p||!level||mode!=='playing')return;
- const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism']);
+ const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism','orbitdisks','cometpair','stormring','sunlance','hailstorm']);
  const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,level.boss]:level.enemies;
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
@@ -777,17 +806,17 @@ function update(dt){
    if(e.burn>0){e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.42;applyHit(e,1,++attackId,e.x,'none');if(!e.alive)continue}}
    e.flash=Math.max(0,(e.flash||0)-dt);e.hitGrace=Math.max(0,(e.hitGrace||0)-dt);
    const diff=level.difficulty,near=Math.abs(e.x-p.x)<640,kind=e.kind;
-   if([0,1,4,5,7,8,13,14,18,19].includes(kind)){if(kind===4||kind===14){if(near&&Math.abs(e.x-p.x)<220){e.alert=(e.alert||0)+dt;if(e.alert>.44){e.charge=.27;e.dir=p.x>e.x?1:-1;e.alert=-.8}}else e.alert=0}
+   if([0,1,4,5,7,8,13,14,18,19,21,22,27].includes(kind)){if([4,14,21,27].includes(kind)){if(near&&Math.abs(e.x-p.x)<220){e.alert=(e.alert||0)+dt;if(e.alert>.44){e.charge=.27;e.dir=p.x>e.x?1:-1;e.alert=-.8}}else e.alert=0}
      e.x+=e.vx*e.dir*dt*(e.charge>0?3.6:1)*(e.frost>0?.42:1);e.charge=Math.max(0,e.charge-dt);
      if(e.x<e.min){e.x=e.min;e.dir=1}if(e.x>e.max){e.x=e.max;e.dir=-1}}
-   if(kind===1||kind===13){e.phase+=dt*(kind===13?8:5);e.y=e.baseY-Math.max(0,Math.sin(e.phase))*(kind===13?91:61)}
-   if(kind===3||kind===10||kind===15){e.phase+=dt*(kind===10?4.2:kind===15?5.3:2.5);
+   if([1,13,22].includes(kind)){e.phase+=dt*(kind===13?8:kind===22?6.5:5);e.y=e.baseY-Math.max(0,Math.sin(e.phase))*(kind===13?91:kind===22?85:61)}
+   if([3,10,15,20,26].includes(kind)){e.phase+=dt*(kind===10?4.2:kind===15?5.3:kind===26?6.5:kind===20?4.7:2.5);
      const pursuit=near?Math.sign(p.x-e.x)*Math.min(55,Math.abs(p.x-e.x)*.5):0;
      e.x+=((Math.sin(e.phase)*43)+pursuit)*dt*(e.frost>0?.5:1);
      e.x=clamp(e.x,e.min,e.max);
      e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
-   if(kind===9||kind===17){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){e.x=clamp(p.x+(p.face>0?(kind===17?80:130):(kind===17?-80:-130)),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=kind===17?1.8:2.8}}
-   if([2,6,7,9,11,12,15,16,17,19].includes(kind))updateRangedEnemyAttack(e,p,kind,dt,diff,near);
+   if([9,17,24].includes(kind)){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){const d=kind===17?80:kind===24?100:130;e.x=clamp(p.x+(p.face>0?d:-d),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=kind===24?1.55:kind===17?1.8:2.8}}
+   if([2,6,7,9,11,12,15,16,17,19,20,23,24,25,26,27].includes(kind))updateRangedEnemyAttack(e,p,kind,dt,diff,near);
    if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
  }
  const b=level.boss;
@@ -905,7 +934,7 @@ const RH_SAFE={
  sniper:{idle:[0,1],move:[0,1],attack:[0],hurt:[0,1]},
  boss:{idle:[0,1,2],move:[0],attack:[0,1],hurt:[0]}
 };
-const RH_ENEMY_SPRITES=['slime','rabbit','turret','ghost','beetle','beetle','sniper','rabbit','slime','ghost','ghost','turret','turret','rabbit','beetle','slime','sniper','beetle','slime','beetle'];
+const RH_ENEMY_SPRITES=['slime','rabbit','turret','ghost','beetle','beetle','sniper','rabbit','slime','ghost','ghost','turret','turret','rabbit','beetle','slime','sniper','beetle','slime','beetle','turret','beetle','beetle','sniper','slime','turret','sniper','beetle'];
 // All frames use one source-pixel scale per character, so poses never stretch or jump in size.
 const RH_FRAME_BASE={};
 for(const name of new Set([...Object.keys(RH_PACK?.frames||{}),...Object.keys(RH_SPRITE_IMAGES)])){
