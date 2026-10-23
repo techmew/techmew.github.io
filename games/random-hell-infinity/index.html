@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.11｜メニュー復帰時の入力固着を修正</title>
-<meta name="game-build" content="RHINF_MENU_STALE_INPUT_RESET_V611_20261023" />
+<title>RANDOM HELL ∞ V6.12｜移動中の弾すり抜けと回避判定を修正</title>
+<meta name="game-build" content="RHINF_MOVING_PLAYER_BULLET_SWEEP_V612_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -845,6 +845,10 @@ function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
  }
  return enter;
 }
+// V6.12: Relative swept hit test against a moving player (pad=-16 for grazing).
+function rhMovingPlayerHitT(x0,y0,x1,y1,fromX,fromY,toX,toY,w,h,r,pad=2){
+ return segmentBoxHitT(x0-fromX,y0-fromY,x1-toX,y1-toY,pad-r,pad-r,w-pad+r,h-pad+r);
+}
 function enemyShotTerrainHitT(x0,y0,x1,y1,r){
  let first=Infinity;
  for(const s of level.platforms){
@@ -1050,11 +1054,15 @@ function findHomingTarget(q){
   const x0=q.x,y0=q.y,x1=x0+q.vx*dt,y1=y0+q.vy*dt;
   q.prevX=x0;q.prevY=y0;q.t-=dt;if(q.t<=0)continue;
   const wallT=enemyShotTerrainHitT(x0,y0,x1,y1,q.r);
-  const heroT=segmentBoxHitT(x0,y0,x1,y1,p.x+2-q.r,p.y+2-q.r,p.x+p.w-2+q.r,p.y+p.h-2+q.r);
+  // V6.12: Sweep in Lulu's moving reference frame. This catches bullets she crosses
+  // between frames (and keeps grazing consistent with the same movement).
+  const heroT=rhMovingPlayerHitT(x0,y0,x1,y1,oldX,oldY,p.x,p.y,p.w,p.h,q.r);
   const hitT=Math.min(1,wallT,heroT);q.x=x0+(x1-x0)*hitT;q.y=y0+(y1-y0)*hitT;
-  // Reward only a near miss after the projectile passes Lulu; one bonus per shot.
-  const grazeT=segmentBoxHitT(x0,y0,x1,y1,p.x-16-q.r,p.y-16-q.r,p.x+p.w+16+q.r,p.y+p.h+16+q.r);
-  const passed=(q.x-(p.x+p.w/2))*q.vx+(q.y-(p.y+p.h/2))*q.vy>=0;
+  // Reward only a near miss after the relative projectile path passes Lulu.
+  const grazeT=rhMovingPlayerHitT(x0,y0,x1,y1,oldX,oldY,p.x,p.y,p.w,p.h,q.r,-16);
+  const heroAtX=oldX+(p.x-oldX)*hitT,heroAtY=oldY+(p.y-oldY)*hitT;
+  const relDx=(x1-x0)-(p.x-oldX),relDy=(y1-y0)-(p.y-oldY);
+  const passed=(q.x-(heroAtX+p.w/2))*relDx+(q.y-(heroAtY+p.h/2))*relDy>=0;
   if(!q.grazed&&p.grace<=0&&heroT>1&&grazeT<=1&&grazeT<wallT&&passed){
    q.grazed=true;score+=8;xpFloats.push({x:q.x,y:q.y-12,text:'JUST DODGE +8',life:.85,max:.85});
    if(xpFloats.length>32)xpFloats.shift();part(q.x,q.y,'#92eaff',5,.35);
