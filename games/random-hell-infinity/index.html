@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.22｜空中トラップ・ノコギリのすり抜け防止</title>
-<meta name="game-build" content="RHINF_SWEPT_AIR_HAZARDS_V622_20261024" />
+<title>RANDOM HELL ∞ V6.23｜敵を踏みつけて反撃・ジャンプ連携</title>
+<meta name="game-build" content="RHINF_PRECISION_ENEMY_STOMP_V623_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -917,6 +917,17 @@ function enemyShotTerrainHitT(x0,y0,x1,y1,r){
 function rhRangedHasLineOfSight(x0,y0,x1,y1){
  return enemyShotTerrainHitT(x0,y0,x1,y1,3)>=1;
 }
+// V6.23: a deliberate downward stomp rewards precision; side contact stays dangerous.
+function rhCanStompEnemy(p,e,oldBottom){
+ return e.alive&&p.vy>120&&oldBottom<=e.y+6&&p.y+p.h>=e.y+3&&p.x+p.w>e.x+5&&p.x<e.x+e.w-5;
+}
+function rhStompEnemy(p,e,oldBottom){
+ if(!rhCanStompEnemy(p,e,oldBottom))return false;
+ if(!applyHit(e,1,++attackId,p.x,'none'))return false;
+ p.y=Math.min(p.y,e.y-p.h+1);p.vy=-level.jump*.67;p.grounded=false;p.coyote=0;
+ part(e.x+e.w/2,e.y,'#a9edff',13,.36);sound(620,.11,'triangle');
+ return true;
+}
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
 function autoWeaponFire(dt,fireRequested=false){
@@ -1038,7 +1049,7 @@ function update(dt){
      e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
    if([9,17,24].includes(kind)){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){const d=kind===17?80:kind===24?100:130;e.x=clamp(p.x+(p.face>0?d:-d),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=kind===24?1.55:kind===17?1.8:2.8}}
    if([2,6,7,9,11,12,15,16,17,19,20,23,24,25,26,27].includes(kind))updateRangedEnemyAttack(e,p,kind,dt,diff,near);
-   if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
+   if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(rhStompEnemy(p,e,oldBottom)){}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
  }
  const b=level.boss;
  if(b?.alive&&!b.active&&p.x+p.w>=b.arenaX){
