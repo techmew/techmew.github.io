@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.9｜誘導砲の近距離旋回</title>
-<meta name="game-build" content="RHINF_HOMING_TERMINAL_TURN_V69_20261023" />
+<title>RANDOM HELL ∞ V6.10｜弾の命中順と爆風位置を修正</title>
+<meta name="game-build" content="RHINF_PROJECTILE_ORDERED_HITS_V610_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -885,6 +885,20 @@ function autoWeaponFire(dt,fireRequested=false){
  if(bulletsFriendly.length>320)bulletsFriendly.splice(0,bulletsFriendly.length-320);
 }
 
+// V6.10: Resolve friendly projectile hits in actual travel order, not enemy array order.
+function rhFriendlyHitCandidates(q,x0,y0,x1,y1,boss){
+ const impacts=[];
+ const add=(target,left,top,right,bottom,isBoss=false)=>{
+   if(!target?.alive||q.hits.has(target)||(isBoss&&target.active===false))return;
+   const t=segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom);
+   if(Number.isFinite(t)&&t>=0&&t<=1)impacts.push({target,t,isBoss});
+ };
+ for(const e of level.enemies)add(e,e.x-q.r,e.y-q.r,e.x+e.w+q.r,e.y+e.h+q.r);
+ for(const h of level.skyTraps)add(h,h.x-h.r-q.r,h.y-h.r-q.r,h.x+h.r+q.r,h.y+h.r+q.r);
+ if(boss)add(boss,boss.x-q.r,boss.y-q.r,boss.x+boss.w+q.r,boss.y+boss.h+q.r,true);
+ return impacts.sort((a,b)=>a.t-b.t);
+}
+
 function update(dt){
  if(!level)return;clock+=dt;stageTime+=mode==='playing'?dt:0;hudTick-=dt;shake=Math.max(0,shake-dt*39);slowMotion=Math.max(0,slowMotion-dt);toastTimer-=dt;if(toastTimer<=0)$('toast').style.opacity='0';
  for(const q of particles){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=650*dt;q.l-=dt}particles=particles.filter(q=>q.l>0);
@@ -1012,16 +1026,21 @@ function findHomingTarget(q){
    q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=(q.gravity||0)*dt;
    if(q.t<=0){if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);continue}
    let landed=false;
-   for(const e of level.enemies){if(!e.alive||q.hits.has(e))continue;if(segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,e.x-q.r,e.y-q.r,e.x+e.w+q.r,e.y+e.h+q.r)<=1){q.hits.add(e);applyHit(e,q.damage,q.id+q.hits.size,q.x,q.affix);landed=true;if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);if((q.pierce||0)>0)q.pierce--;else{q.t=0;break}}}
-   if(q.t>0)for(const h of level.skyTraps){
-    if(!h.alive||q.hits.has(h))continue;
-    if(segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,h.x-h.r-q.r,h.y-h.r-q.r,h.x+h.r+q.r,h.y+h.r+q.r)<=1){
-     q.hits.add(h);applyHit(h,q.damage,q.id+q.hits.size,q.x,q.affix);landed=true;
-     if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);
-     if((q.pierce||0)>0)q.pierce--;else{q.t=0;break}
-    }
+   // Sweep across every target; nearest impact wins even when enemy array order differs.
+   for(const impact of rhFriendlyHitCandidates(q,shotStartX,shotStartY,q.x,q.y,b)){
+     const target=impact.target;
+     if(!target.alive||q.hits.has(target))continue;
+     const hitX=shotStartX+(q.x-shotStartX)*impact.t;
+     const hitY=shotStartY+(q.y-shotStartY)*impact.t;
+     q.hits.add(target);
+     applyHit(target,q.damage,impact.isBoss?q.id:q.id+q.hits.size,hitX,q.affix);
+     landed=true;
+     if(q.splash)doSplash(hitX,hitY,q.splash,q.damage,q.id,q.affix);
+     if(impact.isBoss||!(q.pierce>0)){
+       q.x=hitX;q.y=hitY;q.t=0;break;
+     }
+     q.pierce--;
    }
-   if(q.t>0&&b?.alive&&segmentBoxHitT(shotStartX,shotStartY,q.x,q.y,b.x-q.r,b.y-q.r,b.x+b.w+q.r,b.y+b.h+q.r)<=1){applyHit(b,q.damage,q.id,q.x,q.affix);if(q.splash)doSplash(q.x,q.y,q.splash,q.damage,q.id,q.affix);q.t=0}
    if(!landed&&q.x>level.totalX+100)q.t=0;
  }
  bulletsFriendly=bulletsFriendly.filter(q=>q.t>0);
