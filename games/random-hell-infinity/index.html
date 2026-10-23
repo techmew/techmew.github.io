@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.23｜敵を踏みつけて反撃・ジャンプ連携</title>
-<meta name="game-build" content="RHINF_PRECISION_ENEMY_STOMP_V623_20261024" />
+<title>RANDOM HELL ∞ V6.24｜踏みつけで空中ジャンプ回復</title>
+<meta name="game-build" content="RHINF_STOMP_AIR_JUMP_RECOVERY_V624_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -921,11 +921,19 @@ function rhRangedHasLineOfSight(x0,y0,x1,y1){
 function rhCanStompEnemy(p,e,oldBottom){
  return e.alive&&p.vy>120&&oldBottom<=e.y+6&&p.y+p.h>=e.y+3&&p.x+p.w>e.x+5&&p.x<e.x+e.w-5;
 }
+// V6.24: a clean stomp restores one midair jump, never beyond the wing-dependent cap.
+// A briefly damage-immune enemy still acts as a bounce surface instead of killing Lulu.
+function rhStompJumpStock(current,wing,damaged){
+ const cap=wing?3:2;
+ return Math.min(cap,Math.max(0,current)+(damaged?1:0));
+}
 function rhStompEnemy(p,e,oldBottom){
  if(!rhCanStompEnemy(p,e,oldBottom))return false;
- if(!applyHit(e,1,++attackId,p.x,'none'))return false;
+ const damaged=applyHit(e,1,++attackId,p.x,'none');
  p.y=Math.min(p.y,e.y-p.h+1);p.vy=-level.jump*.67;p.grounded=false;p.coyote=0;
- part(e.x+e.w/2,e.y,'#a9edff',13,.36);sound(620,.11,'triangle');
+ p.jumps=rhStompJumpStock(p.jumps,!!hasRelic('wing'),damaged);
+ part(e.x+e.w/2,e.y,damaged?'#a9edff':'#c9d5e8',damaged?13:7,.36);
+ sound(damaged?620:470,.11,'triangle');
  return true;
 }
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
