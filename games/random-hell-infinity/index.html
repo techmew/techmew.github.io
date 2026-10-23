@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.24｜踏みつけで空中ジャンプ回復</title>
-<meta name="game-build" content="RHINF_STOMP_AIR_JUMP_RECOVERY_V624_20261024" />
+<title>RANDOM HELL ∞ V6.25｜上級射撃AIが移動先を予測</title>
+<meta name="game-build" content="RHINF_RANGED_LEAD_TELEGRAPH_V625_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -834,6 +834,16 @@ function hitRect(ax,ay,aw,ah,bx,by,bw,bh){return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&a
 function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);return (cx-nx)**2+(cy-ny)**2<r*r}
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
 // Telegraph a fixed aim before ranged attacks; player can dodge the warning.
+// V6.25: Elite ranged enemies predict a small part of Lulu's momentum before
+// locking their visible windup. The locked shot remains dodgeable and obeys LOS.
+function rhRangedLeadAim(e,p,kind,diff){
+ const x=p.x+p.w/2,y=p.y+p.h/2;
+ if(![6,11,12,16,23,25,26].includes(kind)||diff<.24)return {x,y};
+ const lead=Math.min(.31,.10+diff*.21);
+ const dx=clamp((p.vx||0)*lead,-96,96);
+ const dy=clamp((p.vy||0)*lead*.52,-62,62);
+ return {x:x+dx,y:y+dy};
+}
 function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
  if(e.windup>0){
   e.windup=Math.max(0,e.windup-dt);
@@ -850,7 +860,7 @@ function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
  e.shoot-=dt;
  if(e.shoot<=0&&near){
   if(!rhRangedHasLineOfSight(e.x+12,e.y+12,p.x+p.w/2,p.y+p.h/2)){e.shoot=.18;return}
-  e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
+  e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;const aim=rhRangedLeadAim(e,p,kind,diff);e.aimX=aim.x;e.aimY=aim.y;e.dir=e.aimX>=e.x?1:-1}
 }
 // Swept bullet collision prevents fast enemy shots crossing Lulu or solid ground.
 function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
