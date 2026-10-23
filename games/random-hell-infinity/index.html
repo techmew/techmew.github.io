@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.7｜空中敵・電磁トラップの予測照準</title>
-<meta name="game-build" content="RHINF_AERIAL_MOTION_LEAD_V67_20261023" />
+<title>RANDOM HELL ∞ V6.8｜誘導砲の先読み追尾</title>
+<meta name="game-build" content="RHINF_HOMING_INTERCEPT_V68_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -426,7 +426,7 @@ function applyHit(e,damage,id,sourceX,affix='none'){
 // V6.7: Lead aerial enemies and oscillating traps; preserve homing missile steering.
 function rhAutoLeadPoint(e,flight,shot={}){
  const x=e.x+(e.w||0)*.5,y=e.y+(e.h||0)*.5;
- if(shot.homing)return {x,y};
+ // Homing rounds steer every frame; their target lead is calculated separately.
  const t=clamp(flight,0,.45);
  if(e.airTrap)return {x,y:e.homeY+Math.sin((clock+t)*e.speed+e.phase)*e.amp};
  if([3,10,15,20,26].includes(e.kind)){
@@ -446,6 +446,14 @@ function rhAutoLeadPoint(e,flight,shot={}){
  const advance=clamp(velocity*t*.85,-95,95);
  const lo=Number.isFinite(e.min)?e.min+e.w*.5:x,hi=Number.isFinite(e.max)?e.max+e.w*.5:x;
  return {x:clamp(x+advance,Math.min(lo,hi),Math.max(lo,hi)),y:targetY};
+}
+// V6.8: Brief predictive homing guidance for moving enemies and airborne traps.
+function rhHomingLeadPoint(q,target){
+ const x=target.x+(target.w||0)*.5,y=target.y+(target.h||0)*.5;
+ if(target.boss)return {x,y};
+ const travel=Math.hypot(x-q.x,y-q.y)/Math.max(100,q.homingSpeed||385);
+ const lead=rhAutoLeadPoint(target,Math.min(.28,travel*.5),{});
+ return Number.isFinite(lead.x)&&Number.isFinite(lead.y)?lead:{x,y};
 }
 function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it=loadout[activeSlot]||{tier:1,affix:'none'};punchCooldown=w.cd*(hasRelic('core')?.80:1)*(it.affix==='echo'?.89:1);punchTime=Math.max(.13,Math.min(.28,w.cd*.56));attackId++;runStats.attacks++;
  const power=w.dmg+weaponDamageBonus(it.tier)+Math.floor((survivorLevel-1)/10)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
@@ -988,7 +996,7 @@ function findHomingTarget(q){
  for(const q of bulletsFriendly){q.t-=dt;q.age=(q.age||0)+dt;
    if(q.homing){
      const target=findHomingTarget(q);
-     if(target){const theta=Math.atan2(target.y+target.h/2-q.y,target.x+target.w/2-q.x);
+     if(target){const lead=rhHomingLeadPoint(q,target);const theta=Math.atan2(lead.y-q.y,lead.x-q.x);
        const current=Math.atan2(q.vy,q.vx);
        const turn=Math.atan2(Math.sin(theta-current),Math.cos(theta-current));
        const next=current+clamp(turn,-q.homingTurn*dt,q.homingTurn*dt);
