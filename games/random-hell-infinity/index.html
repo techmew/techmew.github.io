@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.14｜ボス突進の軌跡判定と予告範囲を改善</title>
-<meta name="game-build" content="RHINF_SPRITE_DETAIL_V615_20261023" />
+<title>RANDOM HELL ∞ V6.16｜キャラのドット輪郭を精細化</title>
+<meta name="game-build" content="RHINF_PIXEL_INK_OUTLINES_V616_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1162,6 +1162,7 @@ for(const name of new Set([...Object.keys(RH_PACK?.frames||{}),...Object.keys(RH
 }
 // Cache one cleaned canvas per sprite frame; ignore tiny disconnected sheet fragments.
 const RH_FRAME_CACHE=new WeakMap();
+const RH_DETAIL_CACHE=new WeakMap();
 function rhCleanSpriteFrame(img,f){
  let map=RH_FRAME_CACHE.get(img);if(!map){map=new Map();RH_FRAME_CACHE.set(img,map)}
  const key=f.join(',');if(map.has(key))return map.get(key);
@@ -1212,6 +1213,34 @@ function rhCleanSpriteFrame(img,f){
  }catch(_){result=null}
  map.set(key,result);return result;
 }
+// V6.16: Cache a one-pixel, four-neighbor ink outline for each original sprite frame.
+// Keep the original palette, scarf, hairpin and detached character details intact.
+function rhDetailSpriteFrame(img,source,sx,sy,f,name){
+ let frames=RH_DETAIL_CACHE.get(img);
+ if(!frames){frames=new Map();RH_DETAIL_CACHE.set(img,frames)}
+ const key=name+':'+f.join(',');
+ if(frames.has(key))return frames.get(key);
+ let ink=null;
+ try{
+  const w=f[2],h=f[3],cw=w+2,ch=h+2;
+  const canvas=document.createElement('canvas');canvas.width=cw;canvas.height=ch;
+  const c=canvas.getContext('2d',{willReadFrequently:true});
+  c.drawImage(source,sx,sy,w,h,1,1,w,h);
+  const image=c.getImageData(0,0,cw,ch),data=image.data;
+  const alpha=new Uint8Array(cw*ch);
+  for(let i=0;i<alpha.length;i++)alpha[i]=data[i*4+3];
+  const color=name==='hero'?[16,36,72]:name==='boss'?[36,19,65]:[22,24,45];
+  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
+   const i=y*cw+x;
+   if(alpha[i]>=32)continue;
+   const near=(x>0&&alpha[i-1]>=64)||(x<cw-1&&alpha[i+1]>=64)||(y>0&&alpha[i-cw]>=64)||(y<ch-1&&alpha[i+cw]>=64);
+   if(!near)continue;
+   const k=i*4;data[k]=color[0];data[k+1]=color[1];data[k+2]=color[2];data[k+3]=225;
+  }
+  c.putImageData(image,0,0);ink=canvas;
+ }catch(_){ink=null}
+ frames.set(key,ink);return ink;
+}
 let heroSpriteState='idle',heroSpriteStart=0;
 function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  const specific=RH_SPRITE_IMAGES[name],useSpecific=!!(specific?.complete&&specific.naturalWidth);
@@ -1230,11 +1259,15 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  const base=RH_FRAME_BASE[name]||[f[2],f[3]],scale=Math.min(w/base[0],h/base[1]);const dw=f[2]*scale,dh=f[3]*scale;x+=(w-dw)/2;y+=h-dh;w=dw;h=dh;
  if(flash)ctx.filter='brightness(1.75) saturate(.65)';
  if(hue)ctx.filter=(flash?'brightness(1.75) ':'')+'hue-rotate('+hue+'deg)';
- // V6.15: crisp pixel silhouette and subtle contact shadow; original artwork is unchanged.
+ // V6.16: A single cached, crisp pixel-ink pass replaces per-frame blurred copies.
  const dx=face<0?-w/2:x;
  if(face<0){ctx.translate(x+w/2,0);ctx.scale(-1,1)}
- ctx.save();ctx.globalAlpha=.34;ctx.filter='brightness(0)';ctx.drawImage(source,sx,sy,f[2],f[3],dx,y+Math.max(1,Math.round(scale*1.3)),w,h);ctx.restore();
- ctx.save();ctx.shadowColor=name==='hero'?'#75cfff':name==='boss'?'#b783ff':'#26344d';ctx.shadowBlur=Math.min(7,Math.max(2,scale*2));ctx.drawImage(source,sx,sy,f[2],f[3],dx,y,w,h);ctx.restore();
+ const ink=rhDetailSpriteFrame(img,source,sx,sy,f,name);
+ if(ink){
+  ctx.drawImage(ink,0,0,f[2]+2,f[3]+2,dx-scale,y-scale,w+scale*2,h+scale*2);
+ }else{
+  ctx.drawImage(source,sx,sy,f[2],f[3],dx,y,w,h);
+ }
  ctx.restore();return true;
 }
 
