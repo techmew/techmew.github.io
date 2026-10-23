@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.26｜連続踏みで跳躍強化</title>
-<meta name="game-build" content="RHINF_STOMP_CHAIN_BOUNCE_V626_20261024" />
+<title>RANDOM HELL ∞ V6.27｜高速落下の踏み抜け防止</title>
+<meta name="game-build" content="RHINF_SWEPT_DIAGONAL_STOMP_V627_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -930,8 +930,14 @@ function rhRangedHasLineOfSight(x0,y0,x1,y1){
  return enemyShotTerrainHitT(x0,y0,x1,y1,3)>=1;
 }
 // V6.23: a deliberate downward stomp rewards precision; side contact stays dangerous.
-function rhCanStompEnemy(p,e,oldBottom){
- return e.alive&&p.vy>120&&oldBottom<=e.y+6&&p.y+p.h>=e.y+3&&p.x+p.w>e.x+5&&p.x<e.x+e.w-5;
+// V6.27: evaluate horizontal overlap at the instant Lulu crosses an enemy's
+// head, so a fast diagonal descent cannot tunnel through a valid stomp.
+function rhCanStompEnemy(p,e,oldBottom,oldX=p.x){
+ const newBottom=p.y+p.h,fall=newBottom-oldBottom;
+ if(!e.alive||p.vy<=120||fall<=0||oldBottom>e.y+6||newBottom<e.y+3)return false;
+ const t=Math.max(0,Math.min(1,(e.y+3-oldBottom)/fall));
+ const crossingX=oldX+(p.x-oldX)*t;
+ return crossingX+p.w>e.x+5&&crossingX<e.x+e.w-5;
 }
 // V6.24: a clean stomp restores one midair jump, never beyond the wing-dependent cap.
 // A briefly damage-immune enemy still acts as a bounce surface instead of killing Lulu.
@@ -942,8 +948,8 @@ function rhStompJumpStock(current,wing,damaged){
 // V6.26: chaining precise stomps within 2.2 seconds rewards skilled aerial play.
 // The bonus caps at five hits and never grants extra jump stock beyond the existing relic cap.
 function rhStompBounceFactor(chain){return .67+Math.min(4,Math.max(0,chain-1))*.055}
-function rhStompEnemy(p,e,oldBottom){
- if(!rhCanStompEnemy(p,e,oldBottom))return false;
+function rhStompEnemy(p,e,oldBottom,oldX){
+ if(!rhCanStompEnemy(p,e,oldBottom,oldX))return false;
  const damaged=applyHit(e,1,++attackId,p.x,'none');
  if(damaged){
    stompChain=stompChainTimer>0?Math.min(5,stompChain+1):1;
@@ -1080,7 +1086,7 @@ function update(dt){
      e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
    if([9,17,24].includes(kind)){e.blink=(e.blink||0)-dt;if(e.blink<=0&&near){const d=kind===17?80:kind===24?100:130;e.x=clamp(p.x+(p.face>0?d:-d),e.min,e.max);part(e.x,e.y,'#daacff',14);e.blink=kind===24?1.55:kind===17?1.8:2.8}}
    if([2,6,7,9,11,12,15,16,17,19,20,23,24,25,26,27].includes(kind))updateRangedEnemyAttack(e,p,kind,dt,diff,near);
-   if(enemyCollision(e)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(rhStompEnemy(p,e,oldBottom)){}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
+   if(enemyCollision(e)||rhCanStompEnemy(p,e,oldBottom,oldX)){if(dashTime>.025&&kind!==5){enemyDeath(e)}else if(rhStompEnemy(p,e,oldBottom,oldX)){}else if(lethal('敵「'+ENEMY_TYPES[kind].name+'」に接触'))return}
  }
  const b=level.boss;
  if(b?.alive&&!b.active&&p.x+p.w>=b.arenaX){
