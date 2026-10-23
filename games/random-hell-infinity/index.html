@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.1｜安全な転移先と予告中の静止</title>
-<meta name="game-build" content="RHINF_SAFE_TELEPORT_STILL_WINDUP_V61_20261023" />
+<title>RANDOM HELL ∞ V6.2｜ボス攻撃予告の公平性改善</title>
+<meta name="game-build" content="RHINF_BOSS_ATTACK_OVERLAP_GUARD_V62_20261023_09" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -556,13 +556,13 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=phase===3?.42:phase===2?.50:.60;b.chargeWindupMax=b.chargeWindup;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
  if(type==='orb'){for(let k=0;k<3+phase*2;k++){const a=k*TAU/(3+phase*2);shoot(b.x+25,b.y+25,b.x+25+Math.cos(a)*300,b.y+25+Math.sin(a)*300,200+phase*30,8)}}
  // Second phase chains an extra spread between the named boss patterns.
- if(phase>=2&&b.attackNo%2===0){
+ if(phase>=2&&b.attackNo%2===0&&type!=='teleport'&&type!=='charge'){
    const ax=b.x+b.w/2,ay=b.y+25,aim=rhBossLeadTarget(b,p,265+stage*14,phase),tx=aim.x,ty=aim.y;
    for(const offset of [-58,0,58])shoot(ax,ay,tx,ty+offset,265+stage*14,5);
    part(ax,ay,'#ffe99a',8,.45);
  }
  // Airspace suppression makes standing on the ground or endlessly double-jumping unsafe.
- if(b.attackNo%3===0){
+ if(b.attackNo%3===0&&type!=='teleport'&&type!=='charge'){
    hazardTelegraphs.push({x:clamp(p.x+p.w/2+30,b.platform.x+30,b.platform.x+b.platform.w-30),
      delay:.55,duration:.46,type:'airstrike',color:'#8ceaff',w:32,
      top:b.platform.y-230,bottom:b.platform.y-58,life:1.15});
