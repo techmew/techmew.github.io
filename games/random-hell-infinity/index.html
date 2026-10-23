@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.2｜転移先の端点探索と着地安定化</title>
-<meta name="game-build" content="RHINF_TELEPORT_SAFE_EDGE_AND_SETTLE_V62_20261023" />
+<title>RANDOM HELL ∞ V6.3｜転移先の端点探索と着地安定化</title>
+<meta name="game-build" content="RHINF_BOSS_POST_TELEPORT_ATTACK_GRACE_V63_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -548,7 +548,7 @@ function rhBossSafeTeleportX(b,p){
  for(let i=1;i<candidates.length;i++){const x=clamp(candidates[i],lo,hi),gap=clearance(x);if(gap>bestGap+1e-6){best=x;bestGap=gap}}
  return best;
 }
-function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.chargeWindup>0||b.charge>0)}
+function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.chargeWindup>0||b.charge>0)}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);sound(phase===3?155:230,.24,'sawtooth',.07)}
  const attackCombos=[
   ['fan','charge','orb'],['teleport','fan','laser'],['summon','fan','charge'],
