@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.8｜誘導砲の先読み追尾</title>
-<meta name="game-build" content="RHINF_HOMING_INTERCEPT_V68_20261023" />
+<title>RANDOM HELL ∞ V6.9｜誘導砲の近距離旋回</title>
+<meta name="game-build" content="RHINF_HOMING_TERMINAL_TURN_V69_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -999,8 +999,12 @@ function findHomingTarget(q){
      if(target){const lead=rhHomingLeadPoint(q,target);const theta=Math.atan2(lead.y-q.y,lead.x-q.x);
        const current=Math.atan2(q.vy,q.vx);
        const turn=Math.atan2(Math.sin(theta-current),Math.cos(theta-current));
-       const next=current+clamp(turn,-q.homingTurn*dt,q.homingTurn*dt);
-       q.vx=Math.cos(next)*q.homingSpeed;q.vy=Math.sin(next)*q.homingSpeed;
+       // V6.9: tighten terminal homing turns to avoid orbiting a nearby target.
+       const distanceToAim=Math.hypot(lead.x-q.x,lead.y-q.y);
+       const terminalScale=clamp(distanceToAim/140,.36,1);
+       const terminalTurn=q.homingTurn*(terminalScale<1?1.55:1);
+       const next=current+clamp(turn,-terminalTurn*dt,terminalTurn*dt);
+       q.vx=Math.cos(next)*q.homingSpeed*terminalScale;q.vy=Math.sin(next)*q.homingSpeed*terminalScale;
      }
    }
    if(q.boomer&&q.age>.52){q.vx=-Math.sign(q.vx)*Math.abs(q.vx);q.boomer=false}
