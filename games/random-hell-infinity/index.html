@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.21｜誘導弾の命中後ターゲット再捕捉</title>
-<meta name="game-build" content="RHINF_HOMING_RETARGET_PIERCE_V621_20261024" />
+<title>RANDOM HELL ∞ V6.22｜空中トラップ・ノコギリのすり抜け防止</title>
+<meta name="game-build" content="RHINF_SWEPT_AIR_HAZARDS_V622_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -887,6 +887,20 @@ function rhBossChargeSweptContact(fromBossX,fromBossY,b,fromPlayerX,fromPlayerY,
 function rhMovingPlayerHitT(x0,y0,x1,y1,fromX,fromY,toX,toY,w,h,r,pad=2){
  return segmentBoxHitT(x0-fromX,y0-fromY,x1-toX,y1-toY,pad-r,pad-r,w-pad+r,h-pad+r);
 }
+// V6.22: exact swept circle versus Lulu's moving inset AABB (rounded corners).
+// Includes hazard and player movement during the same physics step.
+function rhSweptCirclePlayerHit(x0,y0,x1,y1,r,fromX,fromY,p){
+ const ax=x0-fromX,ay=y0-fromY,bx=x1-p.x,by=y1-p.y;
+ const left=3,top=3,right=p.w-3,bottom=p.h-2;
+ if(segmentBoxHitT(ax,ay,bx,by,left-r,top,right+r,bottom)<=1||
+    segmentBoxHitT(ax,ay,bx,by,left,top-r,right,bottom+r)<=1)return true;
+ const vx=bx-ax,vy=by-ay,len2=vx*vx+vy*vy;
+ for(const [cx,cy] of [[left,top],[right,top],[left,bottom],[right,bottom]]){
+  const t=len2>1e-9?clamp(((cx-ax)*vx+(cy-ay)*vy)/len2,0,1):0;
+  if((ax+vx*t-cx)**2+(ay+vy*t-cy)**2<=r*r)return true;
+ }
+ return false;
+}
 function enemyShotTerrainHitT(x0,y0,x1,y1,r){
  let first=Infinity;
  for(const s of level.platforms){
@@ -961,6 +975,7 @@ function update(dt){
  const p=player;
  for(const h of level.skyTraps){
   if(!h.alive)continue;
+  h.prevY=h.y;
   h.y=h.homeY+Math.sin(clock*h.speed+h.phase)*h.amp;
   h.hitGrace=Math.max(0,h.hitGrace-dt);
  }
@@ -1122,10 +1137,10 @@ function findHomingTarget(q){
  for(const h of level.skyTraps){
   if(!h.alive)continue;
   const active=h.type==='rotor'||(clock+h.phase)%h.period<h.duty;
-  if(active&&circleBox(h.x,h.y,h.r-2,p.x+4,p.y+4,p.w-8,p.h-8)&&lethal('空中の電磁トラップに接触'))return;
+  if(active&&rhSweptCirclePlayerHit(h.x,h.prevY??h.y,h.x,h.y,h.r-2,oldX,oldY,p)&&lethal('空中の電磁トラップに接触'))return;
  }
  for(const sp of level.spikes)if(rhPlayerSweptHazardHit(oldX,oldY,p,sp.x,sp.y-20,sp.w,20)&&lethal('トゲに接触'))return;
- for(const sw of level.saws){const sy=sw.y+Math.sin(clock*sw.rate+sw.phase)*sw.amp;if(circleBox(sw.x,sy,sw.size-2,p.x+3,p.y+3,p.w-6,p.h-5)&&lethal('ノコギリに接触'))return}
+ for(const sw of level.saws){const sy=sw.y+Math.sin(clock*sw.rate+sw.phase)*sw.amp;const prevSy=sw.y+Math.sin((clock-dt)*sw.rate+sw.phase)*sw.amp;if(rhSweptCirclePlayerHit(sw.x,prevSy,sw.x,sy,sw.size-2,oldX,oldY,p)&&lethal('ノコギリに接触'))return}
  for(const l of level.lasers)if((clock+l.offset)%l.period<.88&&rhPlayerSweptHazardHit(oldX,oldY,p,l.x-5,l.y-168,10,168,4,3,8,4)&&lethal('レーザーに接触'))return;
  if(p.y>H+190||p.y>baseY+360){
    const tookDamage=lethal('奈落へ落下');
