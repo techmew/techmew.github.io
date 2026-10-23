@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.3｜転移先の端点探索と着地安定化</title>
-<meta name="game-build" content="RHINF_BOSS_POST_TELEPORT_ATTACK_GRACE_V63_20261023" />
+<title>RANDOM HELL ∞ V6.4｜転移着地の予告弾幕</title>
+<meta name="game-build" content="RHINF_TELEPORT_DELAYED_VOLLEY_V64_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -548,6 +548,12 @@ function rhBossSafeTeleportX(b,p){
  for(let i=1;i<candidates.length;i++){const x=clamp(candidates[i],lo,hi),gap=clearance(x);if(gap>bestGap+1e-6){best=x;bestGap=gap}}
  return best;
 }
+// V6.4: Delay the teleport volley so the landing cue is readable.
+function rhBossBurstReady(b,dt){
+ if(!(b.teleportBurstDelay>0)||!b.alive)return false;
+ b.teleportBurstDelay=Math.max(0,b.teleportBurstDelay-dt);
+ return b.teleportBurstDelay===0;
+}
 function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.chargeWindup>0||b.charge>0)}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);sound(phase===3?155:230,.24,'sawtooth',.07)}
  const attackCombos=[
@@ -927,7 +933,8 @@ function update(dt){
  }
  if(b?.alive&&b.active){b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
    b.teleportContactGrace=Math.max(0,(b.teleportContactGrace||0)-dt);
-   if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;part(b.x+25,b.y,'#d5a4ff',22);for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}}
+   if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;b.teleportBurstDelay=.22;part(b.x+25,b.y,'#d5a4ff',22)}}
+   if(rhBossBurstReady(b,dt)){for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
    else if(!(b.teleportWindup>0||b.teleportContactGrace>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
    b.x+=b.dir*(88+level.world*10)*(b.hp/b.maxhp<.33?1.8:b.hp/b.maxhp<.70?1.44:1.15)*dt*(b.frost>0?.65:1);
