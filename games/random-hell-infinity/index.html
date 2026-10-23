@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.1｜安全な転移先と予告中の静止</title>
-<meta name="game-build" content="RHINF_SAFE_TELEPORT_STILL_WINDUP_V61_20261023" />
+<title>RANDOM HELL ∞ V6.2｜転移先の端点探索と着地安定化</title>
+<meta name="game-build" content="RHINF_TELEPORT_SAFE_EDGE_AND_SETTLE_V62_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -538,7 +538,16 @@ function rhBossLeadTarget(b,p,speed,phase){
  return {x:clamp(px+clamp(p.vx||0,-260,260)*lead,b.platform.x+18,b.platform.x+b.platform.w-18),
          y:clamp(py+clamp(p.vy||0,-380,380)*lead,Math.max(15,b.platform.y-250),b.platform.y-12)};
 }
-function rhBossSafeTeleportX(b,p){const preferred=clamp(p.x+(p.face===1?-145:145),b.from,b.to),opposite=clamp(p.x+(p.face===1?145:-145),b.from,b.to),center=p.x+p.w/2;const clearance=x=>Math.abs(x+b.w/2-center);return clearance(preferred)>=110||clearance(preferred)>=clearance(opposite)?preferred:opposite;}
+// V6.2: Preserve safe preferred flank; otherwise search both flanks and arena edges.
+function rhBossSafeTeleportX(b,p){
+ const lo=Math.min(b.from,b.to),hi=Math.max(b.from,b.to),center=p.x+p.w/2;
+ const candidates=[p.x+(p.face===1?-145:145),p.x+(p.face===1?145:-145),lo,hi];
+ const preferred=clamp(candidates[0],lo,hi),clearance=x=>Math.abs(x+b.w/2-center);
+ if(clearance(preferred)>=110)return preferred;
+ let best=preferred,bestGap=clearance(best);
+ for(let i=1;i<candidates.length;i++){const x=clamp(candidates[i],lo,hi),gap=clearance(x);if(gap>bestGap+1e-6){best=x;bestGap=gap}}
+ return best;
+}
 function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.chargeWindup>0||b.charge>0)}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);sound(phase===3?155:230,.24,'sawtooth',.07)}
  const attackCombos=[
@@ -920,7 +929,7 @@ function update(dt){
    b.teleportContactGrace=Math.max(0,(b.teleportContactGrace||0)-dt);
    if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;part(b.x+25,b.y,'#d5a4ff',22);for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}}
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
-   else if(!(b.teleportWindup>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
+   else if(!(b.teleportWindup>0||b.teleportContactGrace>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
    b.x+=b.dir*(88+level.world*10)*(b.hp/b.maxhp<.33?1.8:b.hp/b.maxhp<.70?1.44:1.15)*dt*(b.frost>0?.65:1);
    if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
    if(rhBossCanBeginAttack(b)){b.shoot-=dt*(b.frost>0?.75:1);if(b.shoot<=0&&b.alive)attackBoss(b);}
