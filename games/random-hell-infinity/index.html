@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.4｜転移着地の予告弾幕</title>
-<meta name="game-build" content="RHINF_TELEPORT_DELAYED_VOLLEY_V64_20261023" />
+<title>RANDOM HELL ∞ V6.5｜転移後の固定照準と予告射線</title>
+<meta name="game-build" content="RHINF_LOCKED_TELEPORT_VOLLEY_V65_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -554,7 +554,8 @@ function rhBossBurstReady(b,dt){
  b.teleportBurstDelay=Math.max(0,b.teleportBurstDelay-dt);
  return b.teleportBurstDelay===0;
 }
-function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.chargeWindup>0||b.charge>0)}
+// V6.5: Prevent overlapping boss patterns while landing volley charges.
+function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0||b.chargeWindup>0||b.charge>0)}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);sound(phase===3?155:230,.24,'sawtooth',.07)}
  const attackCombos=[
   ['fan','charge','orb'],['teleport','fan','laser'],['summon','fan','charge'],
@@ -933,10 +934,10 @@ function update(dt){
  }
  if(b?.alive&&b.active){b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
    b.teleportContactGrace=Math.max(0,(b.teleportContactGrace||0)-dt);
-   if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;b.teleportBurstDelay=.22;part(b.x+25,b.y,'#d5a4ff',22)}}
-   if(rhBossBurstReady(b,dt)){for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,p.x+13,p.y+18+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}
+   if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;b.teleportBurstDelay=.36;b.teleportBurstAimX=p.x+p.w/2;b.teleportBurstAimY=p.y+p.h/2;part(b.x+25,b.y,'#d5a4ff',22)}}
+   if(rhBossBurstReady(b,dt)){for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,b.teleportBurstAimX,b.teleportBurstAimY+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
-   else if(!(b.teleportWindup>0||b.teleportContactGrace>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
+   else if(!(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
    b.x+=b.dir*(88+level.world*10)*(b.hp/b.maxhp<.33?1.8:b.hp/b.maxhp<.70?1.44:1.15)*dt*(b.frost>0?.65:1);
    if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
    if(rhBossCanBeginAttack(b)){b.shoot-=dt*(b.frost>0?.75:1);if(b.shoot<=0&&b.alive)attackBoss(b);}
@@ -1238,6 +1239,19 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(bossPhase===3){ctx.globalAlpha=.17+.08*Math.sin(clock*8);ctx.beginPath();ctx.ellipse(b.x+b.w/2,b.y+b.h*.55,b.w*1.18,b.h*1.01,0,0,TAU);ctx.stroke()}
  ctx.restore();
  if(b.teleportWindup>0&&Number.isFinite(b.teleportTargetX)){ctx.save();const progress=1-b.teleportWindup/Math.max(.01,b.teleportWindupMax||.52),tx=b.teleportTargetX+b.w/2;ctx.globalAlpha=.38+.42*progress;ctx.strokeStyle='#d9a9ff';ctx.shadowColor='#d9a9ff';ctx.shadowBlur=16;ctx.lineWidth=3+2*progress;ctx.setLineDash([8,6]);ctx.beginPath();ctx.ellipse(tx,b.y+b.h*.55,b.w*.62,b.h*.85,0,0,TAU);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff0ff';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 転移',tx,b.y-44);ctx.restore()}
+ // V6.5: Locked, dodgeable three-lane volley; the warning lines match the final shot angles.
+ if(b.teleportBurstDelay>0&&Number.isFinite(b.teleportBurstAimX)&&Number.isFinite(b.teleportBurstAimY)){
+  ctx.save();ctx.strokeStyle='#ffe6a0';ctx.lineWidth=2.5;ctx.setLineDash([9,7]);
+  ctx.globalAlpha=.45+.30*Math.pow(Math.sin(clock*23),2);
+  const ox=b.x+23,oy=b.y+28;
+  for(const offset of [-80,0,80]){
+   const dx=b.teleportBurstAimX-ox,dy=b.teleportBurstAimY+offset-oy;
+   const scale=Math.min(1,340/Math.max(1,Math.hypot(dx,dy)));
+   ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+dx*scale,oy+dy*scale);ctx.stroke();
+  }
+  ctx.setLineDash([]);ctx.fillStyle='#fff1b4';ctx.font='bold 13px system-ui';
+  ctx.textAlign='center';ctx.fillText('⚠ 予告射線',b.x+b.w/2,b.y-46);ctx.restore();
+ }
  if(b.teleportContactGrace>0){ctx.save();ctx.globalAlpha=.28+.42*b.teleportContactGrace/.26;ctx.strokeStyle='#e4b5ff';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(b.x+b.w/2,b.y+b.h/2,b.w*.72,b.h*.82,0,0,TAU);ctx.stroke();ctx.restore()}
  const bstate=b.chargeWindup>0||b.teleportWindup>0||(b._spriteAttackUntil||0)>clock?'attack':b.hitGrace>0?'hurt':Math.abs(b.x-(b._spriteLastX??b.x))>.35?'move':'idle';if(b._spriteState!==bstate){b._spriteState=bstate;b._spriteStart=clock}b._spriteLastX=b.x;
  const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45),bframe=(clock-(b._spriteStart??clock))*(bstate==='attack'?11:bstate==='move'?6:3),bossBob=Math.sin(clock*3.6+b.kind)*2;
