@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.17｜画面外エフェクト描画を最適化</title>
-<meta name="game-build" content="RHINF_FX_VIEWPORT_CULL_V617_20261023" />
+<title>RANDOM HELL ∞ V6.18｜ボス第3形態に回避可能な交差砲撃</title>
+<meta name="game-build" content="RHINF_BOSS_PHASE3_CROSSFIRE_V618_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -591,6 +591,13 @@ function rhBossBurstReady(b,dt){
 }
 // V6.5: Prevent overlapping boss patterns while landing volley charges.
 function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0||b.chargeWindup>0||b.charge>0)}
+// V6.18: Phase-three crossfire leaves a deliberate escape lane around Lulu.
+function rhBossPhase3CrossfireLanes(b,p){
+ const lo=b.platform.x+42,hi=b.platform.x+b.platform.w-42;
+ const center=clamp(p.x+p.w/2,lo,hi),step=clamp((hi-lo)*.16,90,132);
+ const candidates=center-step<lo?[center+step,center+step*2]:center+step>hi?[center-step*2,center-step]:[center-step,center+step];
+ return candidates.filter((x,i)=>x>=lo&&x<=hi&&Math.abs(x-center)>=64&&(i===0||Math.abs(x-candidates[0])>=56));
+}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);sound(phase===3?155:230,.24,'sawtooth',.07)}
  const attackCombos=[
   ['fan','charge','orb'],['teleport','fan','laser'],['summon','fan','charge'],
@@ -620,6 +627,15 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  }
  if(phase===3&&b.attackNo%2===1){
    for(const offset of [-85,85])shoot(b.x+b.w/2,b.y+22,p.x+p.w/2,p.y+p.h/2+offset,375+stage*20,6);
+ }
+ // V6.18: Third-phase staggered twin beams; always keep Lulu's current lane open.
+ if(phase===3&&b.attackNo%4===0){
+   const lanes=rhBossPhase3CrossfireLanes(b,p);
+   for(let i=0;i<lanes.length;i++)hazardTelegraphs.push({
+     x:lanes[i],delay:.78+i*.24,duration:.34,type:'crossfire',
+     color:'#e5a2ff',w:28,top:b.platform.y-245,bottom:b.platform.y,life:1.4
+   });
+   if(lanes.length)part(b.x+b.w/2,b.y+12,'#e5a2ff',8,.4);
  }
  b.shoot=Math.max(.40,1.26-stage*.055-(phase-1)*.23);
 }
@@ -1413,7 +1429,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  }
  for(const xp of xpFloats){if(xp.x<camera-100||xp.x>viewRight+100)continue;ctx.save();ctx.globalAlpha=xp.life/xp.max;ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#16213d';ctx.strokeText(xp.text,xp.x,xp.y);ctx.fillStyle='#b9f7ff';ctx.fillText(xp.text,xp.x,xp.y);ctx.restore()}
  for(const q of bulletsFriendly){if(q.x+Math.max(70,q.r*3)<camera||q.x-Math.max(70,q.r*3)>viewRight)continue;if(q.homing&&drawRHSprite('hero','star',clock*11,q.x-15,q.y-15,30,30,q.vx<0?-1:1))continue;ctx.save();ctx.fillStyle=q.color;ctx.shadowColor=q.color;ctx.shadowBlur=15;if(q.homing){const a=Math.atan2(q.vy,q.vx);ctx.translate(q.x,q.y);ctx.rotate(a);ctx.fillStyle='#ffb17f';ctx.beginPath();ctx.moveTo(-q.r*.8,0);ctx.lineTo(-q.r*2.4,-q.r*.5);ctx.lineTo(-q.r*2.4,q.r*.5);ctx.fill();ctx.fillStyle=q.color;ctx.beginPath();ctx.moveTo(q.r*1.4,0);ctx.lineTo(-q.r,-q.r*.7);ctx.lineTo(-q.r,q.r*.7);ctx.closePath();ctx.fill()}else{ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,TAU);ctx.fill()}ctx.restore()}
- for(const h of hazardTelegraphs){if(h.type==='tell')continue;ctx.globalAlpha=h.delay>0?.26:.9;ctx.fillStyle=h.delay>0?'#ffdf7c':h.color;ctx.fillRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);ctx.globalAlpha=1}
+ for(const h of hazardTelegraphs){if(h.type==='tell')continue;ctx.globalAlpha=h.delay>0?.26:.9;ctx.fillStyle=h.delay>0?'#ffdf7c':h.color;ctx.fillRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);if(h.type==='crossfire'&&h.delay>0){ctx.save();ctx.globalAlpha=.75;ctx.strokeStyle='#fff2d0';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.strokeRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);ctx.restore()}ctx.globalAlpha=1}
  for(const q of particles){if(q.x+q.size<camera-20||q.x>viewRight+20)continue;ctx.globalAlpha=clamp(q.l/q.max,0,1);ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,q.size,q.size)}ctx.globalAlpha=1;
  ctx.restore();
  if(mode==='dying'){ctx.fillStyle=`rgba(241,35,88,${Math.min(.25,deathTimer*.38)})`;ctx.fillRect(0,0,W,H)}
