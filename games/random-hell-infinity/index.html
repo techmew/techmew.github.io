@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.20｜遮蔽物を認識する敵の射撃AI</title>
-<meta name="game-build" content="RHINF_RANGED_COVER_LOS_V620_20261024" />
+<title>RANDOM HELL ∞ V6.21｜誘導弾の命中後ターゲット再捕捉</title>
+<meta name="game-build" content="RHINF_HOMING_RETARGET_PIERCE_V621_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1046,7 +1046,7 @@ function update(dt){
 // Seek the nearest living enemy or boss. A missile keeps its current target while alive,
 // then reacquires only when that target dies / goes out of range, avoiding jitter.
 function findHomingTarget(q){
- const available=t=>t?.alive&&(!t.boss||t.active!==false)&&dist(q.x,q.y,t.x+t.w/2,t.y+t.h/2)<850;
+ const available=t=>t?.alive&&(!t.boss||t.active!==false)&&!q.hits?.has(t)&&dist(q.x,q.y,t.x+t.w/2,t.y+t.h/2)<850;
  if(available(q.target))return q.target;
  let best=null,bestScore=Infinity;
  const consider=t=>{if(!available(t))return;const dx=t.x+t.w/2-q.x,dy=t.y+t.h/2-q.y;
