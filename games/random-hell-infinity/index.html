@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.19｜ジャンプパッドの空中ジャンプ残数を修正</title>
-<meta name="game-build" content="RHINF_SPRING_AIR_JUMP_STOCK_V619_20261024" />
+<title>RANDOM HELL ∞ V6.20｜遮蔽物を認識する敵の射撃AI</title>
+<meta name="game-build" content="RHINF_RANGED_COVER_LOS_V620_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -838,7 +838,7 @@ function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
  if(e.windup>0){
   e.windup=Math.max(0,e.windup-dt);
   if(e.windup===0){
-   if(near&&e.alive){
+   if(near&&e.alive&&rhRangedHasLineOfSight(e.x+12,e.y+12,e.aimX,e.aimY)){
     const speed=[6,16,23,26].includes(kind)?440:[11,12,25].includes(kind)?375:[9,17,24].includes(kind)?310:270+diff*110,count=[11,12,16,25].includes(kind)?3:[15,19,20,26,27].includes(kind)?2:1;
     for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,e.aimX,e.aimY+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
     e._spriteAttackUntil=clock+.25;part(e.x+12,e.y+12,'#ffcf76',6,.35);
@@ -848,7 +848,9 @@ function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
   return;
  }
  e.shoot-=dt;
- if(e.shoot<=0&&near){e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
+ if(e.shoot<=0&&near){
+  if(!rhRangedHasLineOfSight(e.x+12,e.y+12,p.x+p.w/2,p.y+p.h/2)){e.shoot=.18;return}
+  e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;e.aimX=p.x+p.w/2;e.aimY=p.y+p.h/2;e.dir=e.aimX>=e.x?1:-1}
 }
 // Swept bullet collision prevents fast enemy shots crossing Lulu or solid ground.
 function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
@@ -895,6 +897,11 @@ function enemyShotTerrainHitT(x0,y0,x1,y1,r){
   if(t<first)first=t;
  }
  return first;
+}
+// V6.20: Ranged enemies respect platform cover before winding up or firing.
+// Use the same swept terrain collision as live projectiles.
+function rhRangedHasLineOfSight(x0,y0,x1,y1){
+ return enemyShotTerrainHitT(x0,y0,x1,y1,3)>=1;
 }
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
