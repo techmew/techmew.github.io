@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.16｜キャラのドット輪郭を精細化</title>
-<meta name="game-build" content="RHINF_PIXEL_INK_OUTLINES_V616_20261023" />
+<title>RANDOM HELL ∞ V6.17｜画面外エフェクト描画を最適化</title>
+<meta name="game-build" content="RHINF_FX_VIEWPORT_CULL_V617_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1396,6 +1396,10 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  ctx.restore()}
  for(const sl of slashes){const alpha=Math.max(0,sl.life/sl.max);ctx.fillStyle=sl.color;ctx.globalAlpha=alpha*.20;ctx.fillRect(sl.x,sl.y,sl.w,sl.h);ctx.globalAlpha=alpha;ctx.lineWidth=5;ctx.strokeStyle=sl.color;ctx.beginPath();ctx.moveTo(sl.dir>0?sl.x:sl.x+sl.w,sl.y+sl.h*.1);ctx.quadraticCurveTo(sl.x+sl.w*.5,sl.y-sl.h*.25,sl.dir>0?sl.x+sl.w:sl.x,sl.y+sl.h*.85);ctx.stroke();ctx.globalAlpha=1}
  for(const fx of combatFX){
+   // V6.17: skip only off-screen rendering, never combat simulation.
+   const fxLeft=fx.type==='bolt'?Math.min(fx.x,fx.x2):fx.x-(fx.r||0);
+   const fxRight=fx.type==='bolt'?Math.max(fx.x,fx.x2):fx.x+(fx.r||0);
+   if(fxRight<camera-80||fxLeft>viewRight+80)continue;
    const alpha=Math.max(0,fx.life/fx.max);ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=fx.color;ctx.lineCap='round';ctx.shadowColor=fx.color;ctx.shadowBlur=16;
    if(fx.type==='bolt'){
      ctx.lineWidth=3+alpha*4;ctx.beginPath();ctx.moveTo(fx.x,fx.y);
@@ -1407,10 +1411,10 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
    }
    ctx.restore();
  }
- for(const xp of xpFloats){ctx.save();ctx.globalAlpha=xp.life/xp.max;ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#16213d';ctx.strokeText(xp.text,xp.x,xp.y);ctx.fillStyle='#b9f7ff';ctx.fillText(xp.text,xp.x,xp.y);ctx.restore()}
- for(const q of bulletsFriendly){if(q.homing&&drawRHSprite('hero','star',clock*11,q.x-15,q.y-15,30,30,q.vx<0?-1:1))continue;ctx.save();ctx.fillStyle=q.color;ctx.shadowColor=q.color;ctx.shadowBlur=15;if(q.homing){const a=Math.atan2(q.vy,q.vx);ctx.translate(q.x,q.y);ctx.rotate(a);ctx.fillStyle='#ffb17f';ctx.beginPath();ctx.moveTo(-q.r*.8,0);ctx.lineTo(-q.r*2.4,-q.r*.5);ctx.lineTo(-q.r*2.4,q.r*.5);ctx.fill();ctx.fillStyle=q.color;ctx.beginPath();ctx.moveTo(q.r*1.4,0);ctx.lineTo(-q.r,-q.r*.7);ctx.lineTo(-q.r,q.r*.7);ctx.closePath();ctx.fill()}else{ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,TAU);ctx.fill()}ctx.restore()}
+ for(const xp of xpFloats){if(xp.x<camera-100||xp.x>viewRight+100)continue;ctx.save();ctx.globalAlpha=xp.life/xp.max;ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#16213d';ctx.strokeText(xp.text,xp.x,xp.y);ctx.fillStyle='#b9f7ff';ctx.fillText(xp.text,xp.x,xp.y);ctx.restore()}
+ for(const q of bulletsFriendly){if(q.x+Math.max(70,q.r*3)<camera||q.x-Math.max(70,q.r*3)>viewRight)continue;if(q.homing&&drawRHSprite('hero','star',clock*11,q.x-15,q.y-15,30,30,q.vx<0?-1:1))continue;ctx.save();ctx.fillStyle=q.color;ctx.shadowColor=q.color;ctx.shadowBlur=15;if(q.homing){const a=Math.atan2(q.vy,q.vx);ctx.translate(q.x,q.y);ctx.rotate(a);ctx.fillStyle='#ffb17f';ctx.beginPath();ctx.moveTo(-q.r*.8,0);ctx.lineTo(-q.r*2.4,-q.r*.5);ctx.lineTo(-q.r*2.4,q.r*.5);ctx.fill();ctx.fillStyle=q.color;ctx.beginPath();ctx.moveTo(q.r*1.4,0);ctx.lineTo(-q.r,-q.r*.7);ctx.lineTo(-q.r,q.r*.7);ctx.closePath();ctx.fill()}else{ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,TAU);ctx.fill()}ctx.restore()}
  for(const h of hazardTelegraphs){if(h.type==='tell')continue;ctx.globalAlpha=h.delay>0?.26:.9;ctx.fillStyle=h.delay>0?'#ffdf7c':h.color;ctx.fillRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);ctx.globalAlpha=1}
- for(const q of particles){ctx.globalAlpha=clamp(q.l/q.max,0,1);ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,q.size,q.size)}ctx.globalAlpha=1;
+ for(const q of particles){if(q.x+q.size<camera-20||q.x>viewRight+20)continue;ctx.globalAlpha=clamp(q.l/q.max,0,1);ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,q.size,q.size)}ctx.globalAlpha=1;
  ctx.restore();
  if(mode==='dying'){ctx.fillStyle=`rgba(241,35,88,${Math.min(.25,deathTimer*.38)})`;ctx.fillRect(0,0,W,H)}
  ctx.restore();}
