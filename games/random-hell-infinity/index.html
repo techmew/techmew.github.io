@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.12｜移動中の弾すり抜けと回避判定を修正</title>
-<meta name="game-build" content="RHINF_MOVING_PLAYER_BULLET_SWEEP_V612_20261023" />
+<title>RANDOM HELL ∞ V6.13｜移動中の弾すり抜けと回避判定を修正</title>
+<meta name="game-build" content="RHINF_SWEPT_SPIKE_LASER_HAZARDS_V613_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -846,6 +846,14 @@ function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
  return enter;
 }
 // V6.12: Relative swept hit test against a moving player (pad=-16 for grazing).
+// V6.13: Sweep Lulu's hitbox across the entire physics step to prevent
+// fast movement from skipping narrow spikes and active laser beams.
+function rhPlayerSweptHazardHit(fromX,fromY,p,left,top,width,height,insetX=4,insetY=4,rightTrim=8,bottomTrim=5){
+ const hitW=p.w-rightTrim,hitH=p.h-bottomTrim;
+ if(hitRect(p.x+insetX,p.y+insetY,hitW,hitH,left,top,width,height))return true;
+ return segmentBoxHitT(fromX+insetX,fromY+insetY,p.x+insetX,p.y+insetY,
+   left-hitW,top-hitH,left+width,top+height)<=1;
+}
 function rhMovingPlayerHitT(x0,y0,x1,y1,fromX,fromY,toX,toY,w,h,r,pad=2){
  return segmentBoxHitT(x0-fromX,y0-fromY,x1-toX,y1-toY,pad-r,pad-r,w-pad+r,h-pad+r);
 }
@@ -1071,16 +1079,16 @@ function findHomingTarget(q){
   else if(wallT<=1){q.t=0;part(q.x,q.y,'#ffd37e',2,.22)}
  }
  projectiles=projectiles.filter(q=>q.t>0);
- for(const h of hazardTelegraphs){h.delay-=dt;if(h.delay<=0){h.duration-=dt;if(h.duration>0&&h.type!=='tell'&&hitRect(p.x+4,p.y+3,p.w-8,p.h-6,h.x-h.w/2,h.top,h.w,h.bottom-h.top)&&lethal('予告レーザーに接触'))return}}
+ for(const h of hazardTelegraphs){h.delay-=dt;if(h.delay<=0){h.duration-=dt;if(h.duration>0&&h.type!=='tell'&&rhPlayerSweptHazardHit(oldX,oldY,p,h.x-h.w/2,h.top,h.w,h.bottom-h.top,4,3,8,6)&&lethal('予告レーザーに接触'))return}}
  hazardTelegraphs=hazardTelegraphs.filter(h=>h.duration>0);
  for(const h of level.skyTraps){
   if(!h.alive)continue;
   const active=h.type==='rotor'||(clock+h.phase)%h.period<h.duty;
   if(active&&circleBox(h.x,h.y,h.r-2,p.x+4,p.y+4,p.w-8,p.h-8)&&lethal('空中の電磁トラップに接触'))return;
  }
- for(const sp of level.spikes)if(hitRect(p.x+4,p.y+4,p.w-8,p.h-5,sp.x,sp.y-20,sp.w,20)&&lethal('トゲに接触'))return;
+ for(const sp of level.spikes)if(rhPlayerSweptHazardHit(oldX,oldY,p,sp.x,sp.y-20,sp.w,20)&&lethal('トゲに接触'))return;
  for(const sw of level.saws){const sy=sw.y+Math.sin(clock*sw.rate+sw.phase)*sw.amp;if(circleBox(sw.x,sy,sw.size-2,p.x+3,p.y+3,p.w-6,p.h-5)&&lethal('ノコギリに接触'))return}
- for(const l of level.lasers)if((clock+l.offset)%l.period<.88&&hitRect(p.x+4,p.y+3,p.w-8,p.h-4,l.x-5,l.y-168,10,168)&&lethal('レーザーに接触'))return;
+ for(const l of level.lasers)if((clock+l.offset)%l.period<.88&&rhPlayerSweptHazardHit(oldX,oldY,p,l.x-5,l.y-168,10,168,4,3,8,4)&&lethal('レーザーに接触'))return;
  if(p.y>H+190||p.y>baseY+360){
    const tookDamage=lethal('奈落へ落下');
    if(mode==='playing'){
