@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.25｜上級射撃AIが移動先を予測</title>
-<meta name="game-build" content="RHINF_RANGED_LEAD_TELEGRAPH_V625_20261024" />
+<title>RANDOM HELL ∞ V6.26｜連続踏みで跳躍強化</title>
+<meta name="game-build" content="RHINF_STOMP_CHAIN_BOUNCE_V626_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -184,6 +184,8 @@ let best=0,save=null;
 let muted=false,activeSlot=0,loadout=[],relics=[],kills=0,combo=0,comboTimer=0,maxCombo=0,stageTime=0,runScore=0,stamina=1,airDash=1,bulletsFriendly=[],slashes=[],hazardTelegraphs=[],pendingDamage=0,hudTick=0,slowMotion=0;
 let runStats={kills:0,shots:0,attacks:0,airJumps:0,bosses:0};
 let checkpointIndex=0,checkpointX=0,checkpointStage=-1,springCooldown=0,vampCharge=0;
+// V6.26: timed stomp chain is transient gameplay state; save format is unchanged.
+let stompChain=0,stompChainTimer=0;
 const LORE=[
  'ルルは壊れた時計を拾った。針は、友達が消えた日のまま止まっている。',
  '道ばたの小さな手紙には「怖くなったら、空を見て」と書かれていた。',
@@ -756,7 +758,7 @@ function makeEnemy(r,p,x,difficulty,forcedKind=null){
 }
 
 function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
- player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0}
+ player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
@@ -937,13 +939,23 @@ function rhStompJumpStock(current,wing,damaged){
  const cap=wing?3:2;
  return Math.min(cap,Math.max(0,current)+(damaged?1:0));
 }
+// V6.26: chaining precise stomps within 2.2 seconds rewards skilled aerial play.
+// The bonus caps at five hits and never grants extra jump stock beyond the existing relic cap.
+function rhStompBounceFactor(chain){return .67+Math.min(4,Math.max(0,chain-1))*.055}
 function rhStompEnemy(p,e,oldBottom){
  if(!rhCanStompEnemy(p,e,oldBottom))return false;
  const damaged=applyHit(e,1,++attackId,p.x,'none');
- p.y=Math.min(p.y,e.y-p.h+1);p.vy=-level.jump*.67;p.grounded=false;p.coyote=0;
+ if(damaged){
+   stompChain=stompChainTimer>0?Math.min(5,stompChain+1):1;
+   stompChainTimer=2.2;
+   if(stompChain>1){score+=25*(stompChain-1);toast('連続踏み ×'+stompChain,.55)}
+ }
+ p.y=Math.min(p.y,e.y-p.h+1);
+ p.vy=-level.jump*rhStompBounceFactor(damaged?stompChain:1);
+ p.grounded=false;p.coyote=0;
  p.jumps=rhStompJumpStock(p.jumps,!!hasRelic('wing'),damaged);
- part(e.x+e.w/2,e.y,damaged?'#a9edff':'#c9d5e8',damaged?13:7,.36);
- sound(damaged?620:470,.11,'triangle');
+ part(e.x+e.w/2,e.y,damaged?'#a9edff':'#c9d5e8',damaged?13+stompChain*2:7,.36);
+ sound(damaged?620+Math.min(4,stompChain-1)*45:470,.11,'triangle');
  return true;
 }
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
@@ -1019,6 +1031,7 @@ function update(dt){
  const oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
  p.grace=Math.max(0,p.grace-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
+ if(stompChainTimer>0){stompChainTimer=Math.max(0,stompChainTimer-dt);if(stompChainTimer===0)stompChain=0}
  const keyDir=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),raw=Math.abs(joyX)>.035?joyX:keyDir;
  const control=Math.abs(raw)<.06?0:Math.sign(raw)*Math.min(1,Math.abs(raw));
  if(Math.abs(control)>.09)p.face=control>0?1:-1;
