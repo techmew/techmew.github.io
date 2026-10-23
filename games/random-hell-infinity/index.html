@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.5｜転移後の固定照準と予告射線</title>
-<meta name="game-build" content="RHINF_LOCKED_TELEPORT_VOLLEY_V65_20261023" />
+<title>RANDOM HELL ∞ V6.6｜移動敵への予測照準</title>
+<meta name="game-build" content="RHINF_PREDICTIVE_GROUND_AIM_V66_20261023" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -423,13 +423,26 @@ function applyHit(e,damage,id,sourceX,affix='none'){
 
  if(e.boss){e.hitGrace=.16;shake=Math.max(shake,4);part(e.x+e.w/2,e.y+e.h/2,'#ffe2a5',10,1);sound(155,.1,'sawtooth');if(e.hp<=0){e.alive=false;runStats.bosses++;survivorGainXP(15+level.world*4,e.x+e.w/2,e.y);slowMotion=.35;shake=15;part(e.x+e.w/2,e.y+e.h/2,BOSSES[e.kind].color,75,1.8);toast('BOSS BREAK！ '+BOSSES[e.kind].name,2);sound(680,.4,'triangle')}}
  else{part(e.x+e.w/2,e.y+e.h/2,'#fffac2',5,.6);if(e.hp<=0)enemyDeath(e)}return true}
+// V6.6: Lead moving ground enemies during button-held ranged attacks.
+function rhAutoLeadPoint(e,flight,shot={}){
+ const x=e.x+e.w*.5,y=e.y+e.h*.5;
+ if(shot.homing||![0,1,4,5,7,8,13,14,18,19,21,22,27].includes(e.kind)||!Number.isFinite(e.vx))return {x,y};
+ const velocity=clamp(e.vx*(e.dir||1)*(e.charge>0?3.6:1)*(e.frost>0?.42:1),-330,330);
+ const advance=clamp(velocity*clamp(flight,0,.45)*.85,-95,95);
+ const lo=Number.isFinite(e.min)?e.min+e.w*.5:x;
+ const hi=Number.isFinite(e.max)?e.max+e.w*.5:x;
+ return {x:clamp(x+advance,Math.min(lo,hi),Math.max(lo,hi)),y};
+}
 function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it=loadout[activeSlot]||{tier:1,affix:'none'};punchCooldown=w.cd*(hasRelic('core')?.80:1)*(it.affix==='echo'?.89:1);punchTime=Math.max(.13,Math.min(.28,w.cd*.56));attackId++;runStats.attacks++;
  const power=w.dmg+weaponDamageBonus(it.tier)+Math.floor((survivorLevel-1)/10)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
  function addShot(vx,vy,damage=power,r=6,t=1.6,more={}){
   // Aim automatic projectiles at airborne enemies. Compensate vertical velocity for gravity.
   // Manual attacks use the original velocity and directional pattern.
   if(aimTarget&&aimTarget.alive&&!more.fixedArc){
-    const dx=aimTarget.x+aimTarget.w*.5-(x+dir*18),dy=aimTarget.y+aimTarget.h*.5-y;
+    const baseX=aimTarget.x+aimTarget.w*.5,baseY=aimTarget.y+aimTarget.h*.5;
+    const flightHint=Math.min(.45,Math.hypot(baseX-(x+dir*18),baseY-y)/Math.max(200,Math.hypot(vx,vy)));
+    const predicted=rhAutoLeadPoint(aimTarget,flightHint,more);
+    const dx=predicted.x-(x+dir*18),dy=predicted.y-y;
     const speed=Math.max(200,Math.hypot(vx,vy));
     const flight=Math.max(.07,Math.hypot(dx,dy)/speed);
     const gravity=more.gravity||0;
