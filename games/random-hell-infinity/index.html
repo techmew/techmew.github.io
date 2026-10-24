@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.60｜予告レーザーの視認性・回避猶予を改善</title>
-<meta name="game-build" content="ASTRAL_BREAK_V660_LASER_WARNING_FAIRNESS_20261025" />
+<title>ASTRAL BREAK ∞ V6.61｜敵の散弾予兆と実弾道を完全同期</title>
+<meta name="game-build" content="ASTRAL_BREAK_V661_RANGED_VOLLEY_TELEGRAPH_SYNC_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -993,13 +993,23 @@ function rhRangedLeadAim(e,p,kind,diff){
  const dy=clamp((p.vy||0)*lead*.52,-62,62);
  return {x:x+dx,y:y+dy};
 }
+// V6.61: Every warned lane is exactly the lane fired after the locked windup.
+// Two-shot volleys are symmetric; the original center line was misleading.
+function rhRangedVolleyCount(kind){
+ return [11,12,16,25].includes(kind)?3:[15,19,20,26,27].includes(kind)?2:1;
+}
+function rhRangedVolleyTargets(e,kind){
+ const count=rhRangedVolleyCount(kind),targets=[];
+ for(let i=0;i<count;i++)targets.push({x:e.aimX,y:e.aimY+(i-(count-1)/2)*48});
+ return targets;
+}
 function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
  if(e.windup>0){
   e.windup=Math.max(0,e.windup-dt);
   if(e.windup===0){
    if(near&&e.alive&&rhRangedHasLineOfSight(e.x+12,e.y+12,e.aimX,e.aimY)){
-    const speed=[6,16,23,26].includes(kind)?440:[11,12,25].includes(kind)?375:[9,17,24].includes(kind)?310:270+diff*110,count=[11,12,16,25].includes(kind)?3:[15,19,20,26,27].includes(kind)?2:1;
-    for(let i=0;i<count;i++)shoot(e.x+12,e.y+12,e.aimX,e.aimY+(i-Math.floor(count/2))*48,speed,kind===11?5:7);
+    const speed=[6,16,23,26].includes(kind)?440:[11,12,25].includes(kind)?375:[9,17,24].includes(kind)?310:270+diff*110;
+    for(const lane of rhRangedVolleyTargets(e,kind))shoot(e.x+12,e.y+12,lane.x,lane.y,speed,kind===11?5:7);
     e._spriteAttackUntil=clock+.25;part(e.x+12,e.y+12,'#ffcf76',6,.35);
    }
    e.shoot=(kind===6?2.5:[11,12,25].includes(kind)?1.35:[16,23].includes(kind)?1.85:[15,20,26].includes(kind)?1.55:[17,24,27].includes(kind)?1.8:kind===9?2.1:1.7)+Math.random()*.4;
@@ -1009,7 +1019,7 @@ function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
  e.shoot-=dt;
  if(e.shoot<=0&&near){
   if(!rhRangedHasLineOfSight(e.x+12,e.y+12,p.x+p.w/2,p.y+p.h/2)){e.shoot=.18;return}
-  e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;const aim=rhRangedLeadAim(e,p,kind,diff);e.aimX=aim.x;e.aimY=aim.y;e.dir=e.aimX>=e.x?1:-1}
+  e.windup=[11,12,25].includes(kind)?.56:[6,16,23,26].includes(kind)?.47:.42;e.windupMax=e.windup;const aim=rhRangedLeadAim(e,p,kind,diff);e.aimX=aim.x;e.aimY=aim.y;e.dir=e.aimX>=e.x?1:-1}
 }
 // Swept bullet collision prevents fast enemy shots crossing Lulu or solid ground.
 function segmentBoxHitT(x0,y0,x1,y1,left,top,right,bottom){
@@ -1774,7 +1784,19 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  // Core enemy families retain animated V3.5 sprites; missing images use fallback.
  const useUniqueArt=[3,5,10,12,15,19,20,22,26].includes(e.kind);
  const userFrame=useUniqueArt?rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart,e):null;
- const drawn=!!(userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,1));if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ const drawn=!!(userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,1));if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){
+  // Warn for every projectile, including the outer lanes of three-way bursts.
+  ctx.save();const lanes=rhRangedVolleyTargets(e,e.kind),progress=clamp(1-e.windup/Math.max(.01,e.windupMax||.5),0,1);
+  ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.3;ctx.setLineDash([7,5]);
+  for(let i=0;i<lanes.length;i++){
+   const lane=lanes[i];ctx.globalAlpha=(lanes.length===1||i===(lanes.length-1)/2?.68:.40)+.18*progress;
+   ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(lane.x,lane.y);ctx.stroke();
+   ctx.beginPath();ctx.arc(lane.x,lane.y,5+2*progress,0,TAU);ctx.stroke();
+  }
+  ctx.setLineDash([]);ctx.globalAlpha=1;ctx.strokeStyle='#fff2b0';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(e.x+e.w/2,e.y-16,10,-Math.PI/2,-Math.PI/2+TAU*progress);ctx.stroke();
+  ctx.fillStyle='#fff2b0';ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-11);ctx.restore()
+ }if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
   ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
  // RHINF_GUARD_INPUT_FX_V634_20261024: directional shield in front of the guard, not a box over the sprite.
  if(rhGuardIsUp(e)){ctx.save();
