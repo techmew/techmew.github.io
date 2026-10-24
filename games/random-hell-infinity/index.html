@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.43｜4シート統合・37フレームアニメ</title>
-<meta name="game-build" content="RHINF_USER_SPRITE_ATLAS_V643_20261024" />
+<title>RANDOM HELL ∞ V6.44｜37フレーム再切出し・演出強化</title>
+<meta name="game-build" content="RHINF_USER_SPRITE_REFINED_V644_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -143,7 +143,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-sniper.js"></script>
 <script src="./sprites-v35-boss.js"></script>
 <script src="./concept-mini-v634.js"></script>
-<script src="./rhinf-user-art-v643.js"></script>
+<script src="./rhinf-user-art-v644.js"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -1354,7 +1354,7 @@ function drawRHUserArt(name,x,y,w,h,face=1,alpha=1){
  ctx.restore();return true;
 }
 function rhUserEnemyFrame(kind,state,t){
- if(kind===5)return state==='attack'?'knight_thrust':state==='hurt'?'knight_impact':state==='move'?'knight_run':'knight_idle';
+ if(kind===5)return state==='attack'?'knight_thrust':state==='hurt'?'knight_impact':state==='move'?'knight_run':Math.floor(t*3)%3===0?'knight_guard':'knight_idle';
  const names={0:'enemy_slime',1:'enemy_rabbit',2:'enemy_turret',3:'enemy_eye',4:'enemy_beetle',6:'enemy_sniper',10:'enemy_eye',11:'enemy_turret',12:'enemy_lancer',13:'enemy_rabbit',14:'enemy_beetle',15:'enemy_eye',16:'enemy_sniper',18:'enemy_beetle',19:'enemy_bat',20:'enemy_eye',21:'enemy_beetle',22:'enemy_spider',23:'enemy_turret',25:'enemy_turret',26:'enemy_eye',27:'enemy_beetle'};
  return names[kind]||null;
 }
@@ -1711,6 +1711,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
      drawRHConceptSprite(weaponArt,originX-14,sl.y+sl.h*.32,30,38,sl.dir,alpha);
      const elemental=sl.affix==='fire'?'fx_fire':sl.affix==='frost'?'fx_ice':sl.affix==='shock'?'fx_lightning':null;
      const visual=sl.affix==='fire'?'fx_firearc':sl.affix==='frost'?'fx_icearc':sl.affix==='shock'?'fx_lightningarc':sl.affix==='poison'?'fx_naturearc':sl.affix==='void'?'fx_darkarc':'fx_icearc';if(!drawRHUserArt(visual,tipX-31,sl.y+sl.h*.08,64,52,sl.dir,alpha*.85)&&elemental)drawRHConceptSprite(elemental,tipX-25,sl.y+sl.h*.15,50,50,sl.dir,alpha*.83);
+     const burst=sl.affix==='fire'?'fx_firehit':sl.affix==='frost'?'fx_iceburst':sl.affix==='shock'?'fx_bluehit':sl.affix==='void'?'fx_darkburst':sl.affix==='holy'?'fx_holyburst':null;if(burst)drawRHUserArt(burst,tipX-27,sl.y+sl.h*.08,54,50,sl.dir,alpha*.38);
    }
    ctx.restore();
  }
