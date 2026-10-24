@@ -1,4 +1,4 @@
-/* RANDOM HELL ∞ V6.49 / Audio direction: industrial synth, dark rock, weighty impacts.
+/* RANDOM HELL ∞ V6.50 / Audio direction: balanced, quiet samples without rapid swishing.
    All upstream assets CC0; sources and licenses recorded in AUDIO_LICENSES.md.
    BGM is streamed (no user music player); internal transitions are seamless crossfades. */
 (()=>{
@@ -57,8 +57,10 @@ const cooldown={menu:120,confirm:130,footstep:280,jump:150,doublejump:180,
  sword:60,dagger:55,laser:85,projectile:100,hit:50,heavyhit:70,
  bosshit:90,cannon:120,combo:260,impactbass:130,bladeedge:120,
  land:130,bossenter:800,bossphase:700,death:500,levelup:400};
-const duckEvents=new Set(['heavyhit','bosshit','bossenter','bossphase','bossdefeat','cannon','hurt','death','clear','levelup']);
+const duckEvents=new Set(['bossenter','bossphase','bossdefeat','death','clear']);
 const voices=new Map(),lastAt=new Map(),failed=new Set(),musicFallbacks=new Set();
+const SFX_MASTER=.25,ATTACK_SOUNDS=new Set(['sword','dagger','heavy','magic','laser','cannon','projectile']),HIT_SOUNDS=new Set(['hit','heavyhit','bosshit','enemydeath']);
+let lastAttackSample=-Infinity,lastHitSample=-Infinity;
 let unlocked=false,muted=false,hidden=document.hidden,kind='',active=null,outgoing=[];
 let duckUntil=0,duckStrength=1,activeTick=0;
 const now=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now();
@@ -164,13 +166,15 @@ function warm(name){
 function playSample(name,intensity){
  if(!bank[name]||failed.has(name))return false;
  const t=now();
+ if(ATTACK_SOUNDS.has(name)){if(t-lastAttackSample<170)return true;lastAttackSample=t}
+ if(HIT_SOUNDS.has(name)){if(t-lastHitSample<130)return true;lastHitSample=t}
  if(t-(lastAt.get(name)??-Infinity)<(cooldown[name]??65))return true;
  lastAt.set(name,t);warm(name);
  const pool=voices.get(name);
  let n=pool.items.find(item=>item.paused||item.ended);
  if(!n){n=pool.items[pool.index];pool.index=(pool.index+1)%pool.items.length;n.pause()}
  try{
-  n.currentTime=0;n.volume=Math.max(0,Math.min(1,(volumes[name]??.26)*intensity));
+  n.currentTime=0;n.volume=Math.max(0,Math.min(1,(volumes[name]??.26)*intensity*SFX_MASTER));
   const r=n.play();
   r?.catch?.(e=>{if(e?.name==='NotSupportedError'||e?.name==='NotFoundError')failed.add(name)});
   return true;
@@ -180,11 +184,7 @@ function cue(name,intensity=1){
  if(!unlocked||muted||hidden||!bank[name])return false;
  const ok=playSample(name,intensity);
  if(duckEvents.has(name)){duckUntil=now()+(name==='bossenter'?750:360);duckStrength=name==='bossenter'?.40:.67}
- // A short metallic transient and a quiet low-frequency impact make hits tactile,
- // without raising the average mix into clipping or adding arcade jingles.
- if(name==='sword'&&ok&&Math.random()<.30)playSample('bladeedge',.38);
- if(name==='heavyhit'||name==='bosshit'||name==='cannon'){if(ok)playSample('impactbass',name==='cannon'?.72:.42)}
- if(name==='shieldbreak'||name==='bossphase'){if(ok)playSample('metalimpact',.5)}
+ // No layered swooshes or sub-bass transients on ordinary hits.
  tick();return ok;
 }
 document.addEventListener('pointerdown',unlock,{capture:true,passive:true});

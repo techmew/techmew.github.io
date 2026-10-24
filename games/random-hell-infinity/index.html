@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.49｜ダークシンセ・重量感ある戦闘音</title>
-<meta name="game-build" content="RHINF_DARK_SYNTH_HEAVY_COMBAT_AUDIO_V649_20261024" />
+<title>RANDOM HELL ∞ V6.50｜視認性・キャラ復旧・SE音圧修正</title>
+<meta name="game-build" content="RHINF_SPRITE_READABILITY_SE_MIX_V650_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -144,7 +144,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-boss.js"></script>
 <script src="./concept-mini-v634.js"></script>
 <script src="./rhinf-user-art-v644.js"></script>
-<script src="./audio-v647.js?v=649"></script>
+<script src="./audio-v647.js?v=650"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -178,7 +178,7 @@ function isPhoneGameplayViewport(){
  return Math.min(W,H)<=600 && Math.max(W,H)<=1000 &&
    (window.matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints>0);
 }
-function gameZoom(){return isPhoneGameplayViewport()?0.91:1.3}
+function gameZoom(){return isPhoneGameplayViewport()?1.08:1.3}
 function visibleWorldWidth(){return W/gameZoom()}
 let seed=0,levelIndex=0,deaths=0,mode='menu',level=null,player=null,camera=0,clock=0,score=0;
 let particles=[],projectiles=[],shake=0,deathTimer=0,toastTimer=0,toastText='',winDelay=0;
@@ -837,11 +837,11 @@ let audioCtx=null;
 try{localStorage.removeItem('randomHellYouTubeBGM');localStorage.removeItem('randomHellMusicVolume')}catch(_){}
 function toggleSound(){muted=!muted;window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';saveState()}
 
-function soundCue(name){if(window.RH_AUDIO?.cue(name))return;const freq=name==='hit'?250:name==='jump'?520:name==='clear'?920:380;sound(freq,.09,'triangle',.035)}
+function soundCue(name){window.RH_AUDIO?.cue(name)}
 function rhWeaponSound(type){if(['melee','arc','katana','twinslash','lancesweep','axe','whip','thrust'].includes(type))return 'sword';if(type==='dagger')return 'dagger';if(['smash','earthquake'].includes(type))return 'heavy';if(['cannon','meteor'].includes(type))return 'cannon';if(['laser','needles','sunlance','prism','homing','cometpair'].includes(type))return 'laser';if(['frostburst','flamefan','pulse','chain','voidpulse','nightbell','cyclone','orbitdisks','stormring','hailstorm'].includes(type))return 'magic';return 'projectile'}
 function sound(freq=400,d=.08,type='square',vol=.075){if(muted)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(freq*.52,55),t+d);g.gain.setValueAtTime(Math.max(.0001,vol),t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 
-function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
+function part(x,y,color,count=12,power=1){count=Math.min(12,count);for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>90)particles.splice(0,particles.length-90)}
 function die(cause='DEAD'){
  if(mode!=='playing'||player.dead)return;
  player.dead=true;player.hp=0;mode='gameover';deaths++;
@@ -1506,7 +1506,8 @@ function drawRHSprite(name,state,time,x,y,w,h,face=1,flash=false,hue=0){
  const seq=safe.length?safe:frames.map((_,i)=>i);
  const f=frames[seq[Math.floor(Math.max(0,time))%seq.length]];if(!f||f.length<4||f[2]<=0||f[3]<=0||f[0]<0||f[1]<0||f[0]+f[2]>img.naturalWidth||f[1]+f[3]>img.naturalHeight)return false;
  // Enemy/boss artwork may contain intentionally detached limbs, eyes or effects. Never strip their pixels.
- const cleaned=useSpecific?rhCleanSpriteFrame(img,f):null,source=cleaned||img,sx=cleaned?0:f[0],sy=cleaned?0:f[1];
+ // Do not prune, shift or distort the heroine's original hand-authored pixels.
+ const cleaned=useSpecific&&name!=='hero'?rhCleanSpriteFrame(img,f):null,source=cleaned||img,sx=cleaned?0:f[0],sy=cleaned?0:f[1];
  ctx.save();ctx.imageSmoothingEnabled=false;
  // Consistent feet anchor across frames; preserve source aspect ratio to prevent stretching.
  const base=RH_FRAME_BASE[name]||[f[2],f[3]],scale=Math.min(w/base[0],h/base[1]);const dw=f[2]*scale,dh=f[3]*scale;x+=(w-dw)/2;y+=h-dh;w=dw;h=dh;
@@ -1687,6 +1688,47 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const bullet of projectiles){ctx.save();ctx.strokeStyle='#ffb06e';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(2,bullet.r*.75);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(bullet.prevX??bullet.x,bullet.prevY??bullet.y);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();ctx.restore();ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
  // Goal portal: locked while the final-stage boss survives.
  const gx=level.goalX,gy=level.platforms.at(-1).y-75,bossLocked=!!level.boss?.alive||level.enemies.some(e=>e.guardian&&e.alive);ctx.strokeStyle=bossLocked?'#ff688a':t.accent;ctx.lineWidth=7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=19;ctx.beginPath();ctx.ellipse(gx,gy+36,17,35,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=bossLocked?'#ff688a36':'#a5ffe744';ctx.beginPath();ctx.ellipse(gx,gy+36,13,31,0,0,TAU);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(bossLocked?'LOCK':'GOAL',gx,gy-13);
+ // Player remains topmost: combat and projectile visuals never paint over the heroine.
+ // V6.50: Small, sparse and translucent weapon trails. Hitboxes are unchanged.
+ const visualSlashes=slashes.filter(q=>q.life>0&&q.x+q.w>=camera-40&&q.x<=viewRight+40).slice(-3);
+ for(const sl of visualSlashes){
+   const alpha=Math.min(.36,Math.max(0,sl.life/sl.max)*.36);
+   const origin=sl.dir>0?sl.x:sl.x+sl.w,tip=sl.dir>0?sl.x+Math.min(sl.w,86):sl.x+sl.w-Math.min(sl.w,86);
+   const cy=sl.y+sl.h*.5;
+   ctx.save();ctx.lineCap='round';ctx.shadowBlur=0;
+   ctx.strokeStyle=sl.color;ctx.globalAlpha=alpha;ctx.lineWidth=3;
+   ctx.beginPath();ctx.moveTo(origin+sl.dir*13,cy-3);
+   ctx.quadraticCurveTo((origin+tip)*.5,cy-19,tip,cy+4);ctx.stroke();
+   ctx.strokeStyle='#e9f6ff';ctx.globalAlpha=alpha*.75;ctx.lineWidth=1.1;
+   ctx.beginPath();ctx.moveTo(origin+sl.dir*18,cy-3);
+   ctx.quadraticCurveTo((origin+tip)*.5,cy-15,tip,cy+4);ctx.stroke();
+   ctx.restore();
+ }
+ // V6.50: Cap cosmetic rings and bolts; wide area attacks still deal full damage.
+ for(const fx of combatFX.slice(-9)){
+   const l=fx.type==='bolt'?Math.min(fx.x,fx.x2):fx.x-(fx.r||0),r=fx.type==='bolt'?Math.max(fx.x,fx.x2):fx.x+(fx.r||0);
+   if(r<camera-65||l>viewRight+65)continue;
+   const opacity=Math.min(.23,Math.max(0,fx.life/fx.max)*.23);
+   ctx.save();ctx.globalAlpha=opacity;ctx.strokeStyle=fx.color;ctx.shadowBlur=0;ctx.lineCap='round';ctx.lineWidth=fx.type==='bolt'?2:1.5;
+   ctx.beginPath();
+   if(fx.type==='bolt'){ctx.moveTo(fx.x,fx.y);ctx.lineTo((fx.x+fx.x2)*.5,(fx.y+fx.y2)*.5-5);ctx.lineTo(fx.x2,fx.y2)}
+   else ctx.arc(fx.x,fx.y,Math.min(57,fx.r)*(1.12-Math.max(0,fx.life/fx.max)*.12),0,TAU);
+   ctx.stroke();ctx.restore();
+ }
+ for(const xp of xpFloats){if(xp.x<camera-100||xp.x>viewRight+100)continue;ctx.save();ctx.globalAlpha=xp.life/xp.max;ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#16213d';ctx.strokeText(xp.text,xp.x,xp.y);ctx.fillStyle='#b9f7ff';ctx.fillText(xp.text,xp.x,xp.y);ctx.restore()}
+ // Even with 31 weapons equipped, render only the most recent projectiles.
+ // Every projectile still exists in physics and remains capable of hitting enemies.
+ for(const q of bulletsFriendly.slice(-55)){
+   const r=Math.min(5.3,q.r||4);
+   if(q.x+r<camera-20||q.x-r>viewRight+20)continue;
+   ctx.save();ctx.globalAlpha=q.homing?.69:.60;ctx.fillStyle=q.color;ctx.shadowBlur=0;
+   ctx.beginPath();ctx.arc(q.x,q.y,r,0,TAU);ctx.fill();
+   if(q.homing){ctx.strokeStyle='#f3faff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(q.x,q.y,Math.min(7,r+2),0,TAU);ctx.stroke()}
+   ctx.restore();
+ }
+ for(const h of hazardTelegraphs){if(h.type==='tell')continue;ctx.globalAlpha=h.delay>0?.26:.9;ctx.fillStyle=h.delay>0?'#ffdf7c':h.color;ctx.fillRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);if(h.type==='crossfire'&&h.delay>0){ctx.save();ctx.globalAlpha=.75;ctx.strokeStyle='#fff2d0';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.strokeRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);ctx.restore()}ctx.globalAlpha=1}
+ for(const q of particles.slice(-65)){if(q.x+q.size<camera-20||q.x>viewRight+20)continue;ctx.globalAlpha=clamp(q.l/q.max,0,1)*.42;ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,Math.min(2.5,q.size),Math.min(2.5,q.size))}ctx.globalAlpha=1;
+ // Final world-space pass: preserve readable Lulu silhouette and HUD health bar.
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.respawnGlow>0){ctx.save();ctx.globalAlpha=Math.min(1,p.respawnGlow/.35)*(.55+.23*Math.sin(clock*12));ctx.strokeStyle='#84e7ff';ctx.shadowColor='#5bd7ff';ctx.shadowBlur=15;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,23+Math.sin(clock*8)*2,30+Math.sin(clock*8)*2,0,0,TAU);ctx.stroke();ctx.restore()}
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
@@ -1698,64 +1740,9 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
    ctx.fillStyle=ratio<=.25?'#ff405c':'#ff79a2';ctx.fillRect(-7,-24,40*ratio,6);
    ctx.strokeStyle='#fff';ctx.lineWidth=.9;ctx.strokeRect(-8,-25,42,8);
  }
- if(punchTime>0){const px=p.face===1?36:-23;ctx.fillStyle=weapon().color;ctx.beginPath();ctx.arc(px,15,12,0,TAU);ctx.fill();ctx.strokeStyle='#fff9d1';ctx.lineWidth=4;ctx.beginPath();ctx.arc(px,15,18,-1.15,1.7);ctx.stroke()}
+ // No opaque weapon blob over Lulu; forward strike strokes render behind her.
  ctx.restore()}
- // RHINF_BLADE_COMBO_FX_20261024: layered weapon art and directional combo trails.
- for(const sl of slashes){
-   const alpha=Math.max(0,sl.life/sl.max),blade=sl.kind==='arc'||sl.kind==='dagger'||sl.kind==='thrust';
-   const originX=sl.dir>0?sl.x:sl.x+sl.w,tipX=sl.dir>0?sl.x+sl.w:sl.x;
-   ctx.save();ctx.globalAlpha=alpha;ctx.lineCap='round';ctx.lineJoin='round';
-   if(blade){
-     const progress=1-alpha;
-     const cx=originX+sl.dir*Math.min(sl.w*.26,22),cy=sl.y+sl.h*.54;
-     const angle=(sl.dir>0?0:Math.PI)+(-.85+progress*1.65);
-     const length=Math.min(sl.w*.83,sl.kind==='thrust'?105:76);
-     const tipBX=cx+Math.cos(angle)*length,tipBY=cy+Math.sin(angle)*length;
-     ctx.strokeStyle='#20365e';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(tipBX,tipBY);ctx.stroke();
-     ctx.strokeStyle=sl.color;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(tipBX,tipBY);ctx.stroke();
-     ctx.strokeStyle='#ffffff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(tipBX,tipBY);ctx.stroke();
-     ctx.strokeStyle='#ffe3a0';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(cx-Math.sin(angle)*9,cy+Math.cos(angle)*9);ctx.lineTo(cx+Math.sin(angle)*9,cy-Math.cos(angle)*9);ctx.stroke();
-     ctx.strokeStyle=sl.color;ctx.shadowColor=sl.color;ctx.shadowBlur=14;ctx.lineWidth=6;
-     for(let n=0;n<(sl.kind==='dagger'?2:3);n++){
-       const offset=n*8;ctx.globalAlpha=alpha*(.9-n*.2);ctx.beginPath();
-       ctx.moveTo(originX,sl.y+sl.h*(.13+n*.08));
-       ctx.quadraticCurveTo((originX+tipX)/2,sl.y-sl.h*.25-offset,tipX,sl.y+sl.h*(.83-n*.08));ctx.stroke();
-     }
-   }else{
-     ctx.fillStyle=sl.color;ctx.globalAlpha=alpha*.18;ctx.fillRect(sl.x,sl.y,sl.w,sl.h);
-     ctx.globalAlpha=alpha;ctx.strokeStyle=sl.color;ctx.lineWidth=5;ctx.beginPath();
-     ctx.moveTo(originX,sl.y+sl.h*.1);ctx.quadraticCurveTo((originX+tipX)/2,sl.y-sl.h*.25,tipX,sl.y+sl.h*.85);ctx.stroke();
-   }
-   // Show the approved concept-sheet weapon sprite and elemental hit art over the slash.
-   if(blade||sl.kind==='smash'){
-     const weaponArt=sl.kind==='dagger'?'weapon_dualblade':sl.kind==='smash'?'weapon_greatsword':'weapon_sword';
-     drawRHConceptSprite(weaponArt,originX-14,sl.y+sl.h*.32,30,38,sl.dir,alpha);
-     const elemental=sl.affix==='fire'?'fx_fire':sl.affix==='frost'?'fx_ice':sl.affix==='shock'?'fx_lightning':null;
-     const visual=sl.affix==='fire'?'fx_firearc':sl.affix==='frost'?'fx_icearc':sl.affix==='shock'?'fx_lightningarc':sl.affix==='poison'?'fx_naturearc':sl.affix==='void'?'fx_darkarc':'fx_icearc';if(!drawRHUserArt(visual,tipX-31,sl.y+sl.h*.08,64,52,sl.dir,alpha*.85)&&elemental)drawRHConceptSprite(elemental,tipX-25,sl.y+sl.h*.15,50,50,sl.dir,alpha*.83);
-     const burst=sl.affix==='fire'?'fx_firehit':sl.affix==='frost'?'fx_iceburst':sl.affix==='shock'?'fx_bluehit':sl.affix==='void'?'fx_darkburst':sl.affix==='holy'?'fx_holyburst':null;if(burst)drawRHUserArt(burst,tipX-27,sl.y+sl.h*.08,54,50,sl.dir,alpha*.38);
-   }
-   ctx.restore();
- }
- for(const fx of combatFX){
-   // V6.17: skip only off-screen rendering, never combat simulation.
-   const fxLeft=fx.type==='bolt'?Math.min(fx.x,fx.x2):fx.x-(fx.r||0);
-   const fxRight=fx.type==='bolt'?Math.max(fx.x,fx.x2):fx.x+(fx.r||0);
-   if(fxRight<camera-80||fxLeft>viewRight+80)continue;
-   const alpha=Math.max(0,fx.life/fx.max);ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=fx.color;ctx.lineCap='round';ctx.shadowColor=fx.color;ctx.shadowBlur=16;
-   if(fx.type==='bolt'){
-     ctx.lineWidth=3+alpha*4;ctx.beginPath();ctx.moveTo(fx.x,fx.y);
-     const mx=(fx.x+fx.x2)/2,my=(fx.y+fx.y2)/2;
-     ctx.lineTo(mx-8,my+7);ctx.lineTo(mx+7,my-8);ctx.lineTo(fx.x2,fx.y2);ctx.stroke();
-     ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.stroke();
-   }else{
-     ctx.lineWidth=3+alpha*7;ctx.beginPath();ctx.arc(fx.x,fx.y,fx.r*(1.23-alpha*.23),0,TAU);ctx.stroke();
-   }
-   ctx.restore();
- }
- for(const xp of xpFloats){if(xp.x<camera-100||xp.x>viewRight+100)continue;ctx.save();ctx.globalAlpha=xp.life/xp.max;ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#16213d';ctx.strokeText(xp.text,xp.x,xp.y);ctx.fillStyle='#b9f7ff';ctx.fillText(xp.text,xp.x,xp.y);ctx.restore()}
- for(const q of bulletsFriendly){if(q.x+Math.max(70,q.r*3)<camera||q.x-Math.max(70,q.r*3)>viewRight)continue;if(q.homing&&(drawRHUserArt('fx_icearc',q.x-18,q.y-15,36,30,q.vx<0?-1:1)||drawRHSprite('hero','star',clock*11,q.x-15,q.y-15,30,30,q.vx<0?-1:1)))continue;ctx.save();ctx.fillStyle=q.color;ctx.shadowColor=q.color;ctx.shadowBlur=15;if(q.homing){const a=Math.atan2(q.vy,q.vx);ctx.translate(q.x,q.y);ctx.rotate(a);ctx.fillStyle='#ffb17f';ctx.beginPath();ctx.moveTo(-q.r*.8,0);ctx.lineTo(-q.r*2.4,-q.r*.5);ctx.lineTo(-q.r*2.4,q.r*.5);ctx.fill();ctx.fillStyle=q.color;ctx.beginPath();ctx.moveTo(q.r*1.4,0);ctx.lineTo(-q.r,-q.r*.7);ctx.lineTo(-q.r,q.r*.7);ctx.closePath();ctx.fill()}else{ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,TAU);ctx.fill()}ctx.restore()}
- for(const h of hazardTelegraphs){if(h.type==='tell')continue;ctx.globalAlpha=h.delay>0?.26:.9;ctx.fillStyle=h.delay>0?'#ffdf7c':h.color;ctx.fillRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);if(h.type==='crossfire'&&h.delay>0){ctx.save();ctx.globalAlpha=.75;ctx.strokeStyle='#fff2d0';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.strokeRect(h.x-h.w/2,h.top,h.w,h.bottom-h.top);ctx.restore()}ctx.globalAlpha=1}
- for(const q of particles){if(q.x+q.size<camera-20||q.x>viewRight+20)continue;ctx.globalAlpha=clamp(q.l/q.max,0,1);ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,q.size,q.size)}ctx.globalAlpha=1;
+
  ctx.restore();
  if(mode==='dying'){ctx.fillStyle=`rgba(241,35,88,${Math.min(.25,deathTimer*.38)})`;ctx.fillRect(0,0,W,H)}
  ctx.restore();}
