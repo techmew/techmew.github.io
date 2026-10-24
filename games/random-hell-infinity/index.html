@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>RANDOM HELL ∞ V6.39｜右上プレーヤー・Spotify・Amazon Music</title>
-<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639B_20261024" />
+<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639C_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -954,6 +954,61 @@ function rhYtShow(){
  dock.style.left='';dock.style.right='';dock.style.top='';
  document.body.classList.add('rhVideoActive');
 }
+
+/* Spotify official Embed iFrame API: requires service login/eligibility for full tracks. */
+let rhSpotifyApi=null,rhSpotifyController=null,rhSpotifyScriptLoading=false,rhSpotifyCreating=false;
+function rhSpotifyPauseHide(){
+ try{rhSpotifyController?.pause()}catch(_){}
+ $('rhSpotifyDock').classList.add('rhServiceHidden');
+}
+function rhSpotifyLoad(item){
+ if(item?.type!=='spotify')return;
+ try{rhYtPlayer?.stopVideo()}catch(_){}
+ $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
+ $('rhSpotifyDock').classList.remove('rhServiceHidden');
+ rhYtWanted=true;
+ rhYtSetStatus('♫ Spotify · 公式プレーヤーを読み込み中');
+ if(rhSpotifyController){
+  try{rhSpotifyController.loadEntity(item.url);rhSpotifyController.play()}catch(_){rhYtSetStatus('Spotify上で▶を押してください')}
+  return;
+ }
+ if(!rhSpotifyApi){
+  if(!rhSpotifyScriptLoading){
+   rhSpotifyScriptLoading=true;
+   const before=window.onSpotifyIframeApiReady;
+   window.onSpotifyIframeApiReady=api=>{
+    try{before?.(api)}catch(_){}
+    rhSpotifyApi=api;rhSpotifyScriptLoading=false;
+    if(rhYtSelected()?.type==='spotify')rhSpotifyLoad(rhYtSelected());
+   };
+   const sc=document.createElement('script');sc.async=true;sc.src='https://open.spotify.com/embed/iframe-api/v1';
+   sc.onerror=()=>{rhSpotifyScriptLoading=false;rhYtWanted=false;rhYtSetStatus('Spotifyへの接続に失敗。Spotifyで開くを押してください')};
+   document.head.appendChild(sc);
+  }
+  return;
+ }
+ if(rhSpotifyCreating)return;
+ rhSpotifyCreating=true;
+ try{
+  rhSpotifyApi.createController($('rhSpotifyEmbed'),{width:206,height:152,url:item.url},controller=>{
+   rhSpotifyController=controller;
+   controller.addListener('ready',()=>{
+    if(rhYtSelected()?.type==='spotify'&&!rhMusicPaused&&!rhMusicStopped){
+     try{controller.play()}catch(_){}
+     rhYtSetStatus('♫ Spotify · 再生できない場合は公式プレーヤーで▶');
+    }
+   });
+   controller.addListener('playback_update',ev=>{
+    if(rhYtSelected()?.type!=='spotify'||rhMusicStopped)return;
+    if(ev.data?.isPaused===false){rhYtWanted=true;rhMusicPaused=false;rhYtSetStatus('♫ Spotify 再生中')}
+   });
+   if(rhYtSelected()?.type==='spotify'&&!rhMusicStopped&&!rhMusicPaused){
+    try{controller.play()}catch(_){}
+   }
+  });
+ }catch(_){rhSpotifyCreating=false;rhYtWanted=false;rhYtSetStatus('Spotify埋め込み失敗。Spotifyで開くを押してください')}
+}
+
 function rhEnsureAudio(){
  if(rhAudioEl)return rhAudioEl;
  rhAudioEl=new Audio();rhAudioEl.preload='auto';rhAudioEl.volume=muted?0:rhAudioVolume/100;
@@ -964,8 +1019,9 @@ function rhEnsureAudio(){
 function rhStopAudio(){if(!rhAudioEl)return;rhAudioEl.pause();rhAudioEl.removeAttribute('src');rhAudioEl.load()}
 function rhYtLoadCurrent(){
  const item=rhYtSelected();if(!item)return;
- rhStopAudio();rhMusicPaused=false;rhMusicStopped=false;
+ rhStopAudio();rhSpotifyPauseHide();rhMusicPaused=false;rhMusicStopped=false;
  rhSetProviderLink(item);
+ if(item.type==='spotify'){rhSpotifyLoad(item);return}
  if(item.type==='amazon'){
   rhYtWanted=true;try{rhYtPlayer?.stopVideo()}catch(_){}
   $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
@@ -997,6 +1053,7 @@ function rhYtLoadCurrent(){
 function rhYtNextTrack(fromEnd=false){
  if(!rhYtQueue.length){rhYtSetStatus('曲を登録してください');return}
  const item=rhYtSelected();
+ if(rhYtQueue.length===1&&item.type==='spotify'&&item.id.startsWith('playlist/')){rhYtSetStatus('Spotifyプレイリスト内の曲送りは埋め込み側で操作してください');return}
  if(rhYtQueue.length===1&&item.type!=='playlist'){
   if(fromEnd){rhMusicStop();rhYtSetStatus('♫ 再生終了 · ▶で最初から再生')}
   else rhYtSetStatus('YouTubeのおすすめ曲は取得できません。複数URLや再生リストを登録してください');
@@ -1026,6 +1083,17 @@ function rhMusicPlay(){
  rhMusicPaused=false;rhMusicStopped=false;
  if(!rhYtQueue.length){rhYtWanted=false;rhYtSetStatus('♫ ゲーム内BGM 再生');startMusic();return}
  const item=rhYtSelected();if(!item)return;
+ if(item.type==='amazon'){
+  rhYtWanted=true;rhYtSetStatus('Amazon Music公式アプリで再生してください');
+  window.open(item.id,'_blank','noopener,noreferrer');return;
+ }
+ if(item.type==='spotify'){
+  rhYtWanted=true;
+  $('rhSpotifyDock').classList.remove('rhServiceHidden');
+  if(!rhSpotifyController)rhSpotifyLoad(item);
+  else try{rhSpotifyController.play()}catch(_){rhYtSetStatus('Spotify公式プレーヤーで▶を押してください')}
+  return;
+ }
  if(item.type==='audio'){
   if(!rhAudioEl?.src)rhYtLoadCurrent();
   else{rhYtWanted=true;rhAudioEl.play().catch(()=>rhYtSetStatus('音声を再生できません'))}
@@ -1040,19 +1108,20 @@ function rhMusicPause(){
  rhMusicPaused=true;rhYtWanted=false;
  try{rhAudioEl?.pause()}catch(_){}
  try{rhYtPlayer?.pauseVideo()}catch(_){}
- rhYtSetStatus('⏸ 一時停止中');
+ try{rhSpotifyController?.pause()}catch(_){}
+ rhYtSetStatus(rhYtSelected()?.type==='amazon'?'外部音楽の一時停止はAmazon Musicで操作':'⏸ 一時停止中');
 }
 function rhMusicStop(){
  rhMusicStopped=true;rhMusicPaused=false;rhYtWanted=false;
- rhStopAudio();
+ rhStopAudio();rhSpotifyPauseHide();
  try{rhYtPlayer?.stopVideo()}catch(_){}
- $('ytDock').classList.add('ytHidden');
- rhYtSetStatus('⏹ 停止中 · ▶ で再生');
+ $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
+ rhYtSetStatus(rhYtSelected()?.type==='amazon'?'Amazon Musicの停止は外部アプリで操作':'⏹ 停止中 · ▶ で再生');
 }
 function rhYtPauseOrPlay(){if(rhMusicPaused||rhMusicStopped||!rhYtWanted)rhMusicPlay();else rhMusicPause()}
 function rhYtStop(){rhMusicStop()}
 function rhYtOnState(ev){
- if(!window.YT?.PlayerState||rhMusicStopped||rhYtSelected()?.type==='audio')return;
+ if(!window.YT?.PlayerState||rhMusicStopped||!['video','playlist'].includes(rhYtSelected()?.type))return;
  const st=ev.data;
  if(rhMusicPaused&&(st===YT.PlayerState.PLAYING||st===YT.PlayerState.BUFFERING)){
   try{rhYtPlayer?.pauseVideo()}catch(_){}return;
@@ -1064,7 +1133,7 @@ function rhYtOnState(ev){
 }
 function rhYtInitPlayer(){
  if(rhYtPlayer||!rhYtQueue.length||!window.YT?.Player)return;
- const item=rhYtSelected();if(item?.type==='audio')return;
+ const item=rhYtSelected();if(!['video','playlist'].includes(item?.type))return;
  try{
   rhYtPlayer=new YT.Player('ytPlayer',{
    width:200,height:200,
@@ -1097,7 +1166,7 @@ function rhStartYtWithGame(){
  rhYtIndex=0;rhMusicPaused=false;rhMusicStopped=false;
  $('musicBar').classList.add('musicActive');
  $('musicVolume').value=String(rhAudioVolume);rhUpdateMuteUI();
- if(!rhYtQueue.length){rhYtWanted=false;rhSetProviderLink(null);$('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');rhYtSetStatus('♫ ゲーム内BGM · URL未登録');return false}
+ if(!rhYtQueue.length){rhYtWanted=false;rhSetProviderLink(null);$('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');rhSpotifyPauseHide();rhYtSetStatus('♫ ゲーム内BGM · URL未登録');return false}
  rhYtLoadCurrent();return true;
 }
 function rhMusicSetVolume(v){
