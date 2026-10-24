@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.38｜敵シールド破壊・再展開</title>
-<meta name="game-build" content="RHINF_SHIELD_BREAK_RECOVER_V638_20261024" />
+<title>RANDOM HELL ∞ V6.39｜右上プレーヤー・Spotify・Amazon Music</title>
+<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -167,6 +167,23 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 }
 @media(max-width:355px){#musicButtons{gap:3px}#musicButtons button{min-width:32px}#musicVolume{width:43px;min-width:36px}}
 
+
+/* V6.39: legal minimum 200x200 YouTube viewport; default top-right. */
+#ytDock{right:4px;top:max(5px,env(safe-area-inset-top,0px));width:206px;padding:2px;border-radius:8px}
+#ytHeader{height:18px;min-height:18px}
+#ytHeader strong{font-size:9px}
+#ytPlayer{width:200px;min-width:200px;height:200px;min-height:200px}
+#ytPlayer iframe{width:200px!important;height:200px!important;min-width:200px;min-height:200px}
+#rhSpotifyDock{position:fixed;z-index:3;top:max(5px,env(safe-area-inset-top,0px));right:4px;width:214px;padding:3px;background:#091b20f5;border:1px solid #55cfaf77;border-radius:9px;box-shadow:0 6px 22px #0009;touch-action:auto}
+#rhSpotifyDock.rhServiceHidden{display:none}
+#rhSpotifyEmbed{width:206px;min-height:152px}
+#rhSpotifyDock small{display:block;text-align:center;font-size:10px;color:#a7f9cc}
+#musicStatusLine{display:flex;align-items:center;justify-content:center;gap:8px;min-height:16px}
+#musicStatusLine #musicStatus{min-width:0;flex:0 1 auto}
+#musicServiceLink{flex:none;color:#9be8ff;text-decoration:underline;font-size:10px;white-space:nowrap}
+#musicServiceLink[hidden]{display:none!important}
+body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:238px!important}
+@media(orientation:landscape) and (max-height:480px){#ytDock,#rhSpotifyDock{top:3px;right:3px}body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:225px!important}}
 </style>
 </head>
 <body>
@@ -178,7 +195,8 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
  <div id="ytHeader"><strong>♫ YouTube公式プレーヤー · つかんで移動</strong><button id="ytPlayPause" type="button">▶</button><button id="ytNext" type="button">⏭</button><button id="ytStop" type="button">✕</button></div>
  <div id="ytPlayer" aria-label="YouTube動画プレーヤー"></div><div id="ytStatus" role="status">準備中…</div>
 </div>
-<div id="musicBar" aria-label="BGM再生コントロール"><div id="musicStatus" role="status">♫ ゲームBGM</div><div id="musicButtons">
+<div id="rhSpotifyDock" class="rhServiceHidden" aria-label="Spotify公式埋め込みプレーヤー"><div id="rhSpotifyEmbed"></div><small>Spotify公式プレーヤー</small></div>
+<div id="musicBar" aria-label="BGM再生コントロール"><div id="musicStatusLine"><div id="musicStatus" role="status">♫ ゲームBGM</div><a id="musicServiceLink" hidden target="_blank" rel="noopener noreferrer">音楽アプリで開く</a></div><div id="musicButtons">
  <button id="musicPrev" type="button" aria-label="前の曲" title="前の曲">⏮</button>
  <button id="musicPlay" type="button" aria-label="再生" title="再生">▶</button>
  <button id="musicPause" type="button" aria-label="一時停止" title="一時停止">⏸</button>
@@ -853,7 +871,7 @@ function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.f
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){rhRememberYtInput();rhMusicPaused=false;rhMusicStopped=false;$('musicBar').classList.add('musicActive');resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');rhStartYtWithGame();startMusic();if(survivorPending)survivorDraft()}
-const RH_YT_MENU_HTML="<div class=\"ytMenu\"><label for=\"ytUrls\">♫ BGM（YouTube・音声ファイル）</label><textarea id=\"ytUrls\" maxlength=\"3200\" rows=\"2\" placeholder=\"YouTube動画・再生リストURL、MP3/OGG/M4Aなどの直接URL&#10;複数曲は改行で追加\"></textarea><input id=\"localMusicFiles\" type=\"file\" accept=\"audio/*\" multiple aria-label=\"端末の音声ファイルを選択\"><small>URLの曲と選んだ音声を下のバーで再生・前後移動。端末の音声ファイル・直接音声URLは映像なし。YouTube公式埋め込みは映像表示が必要で、広告やおすすめ曲の取得は操作できません。曲順の移動には登録曲または再生リストを使用。端末ファイルはページ更新後に再選択が必要です。</small></div>";
+const RH_YT_MENU_HTML="<div class=\"ytMenu\"><label for=\"ytUrls\">♫ BGM（YouTube・Spotify・Amazon Music・音声）</label><textarea id=\"ytUrls\" maxlength=\"3200\" rows=\"2\" placeholder=\"YouTube・Spotify・Amazon MusicのURL / MP3等のURL&#10;複数曲は改行で追加\"></textarea><input id=\"localMusicFiles\" type=\"file\" accept=\"audio/*\" multiple aria-label=\"端末の音声ファイルを選択\"><small>YouTubeは右上に公式動画を表示（最小200×200・広告削除不可）。Spotifyは公式埋め込み、Amazon Musicは公式アプリ・サイトで再生。端末音声やMP3 URLは映像なし。Amazon Musicの操作は公式アプリで行ってください。</small></div>";
 function showMenu(){$('musicBar').classList.remove('musicActive');resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div>${RH_YT_MENU_HTML}<div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('ytUrls').value=rhYtRaw;
  $('ytUrls').addEventListener('input',rhRememberYtInput);
@@ -923,6 +941,7 @@ function rhUpdateMuteUI(){$('musicMute').textContent=muted?'🔇':'♫';$('sound
 function rhYtShow(){
  const dock=$('ytDock');dock.classList.remove('ytHidden');
  dock.style.left='';dock.style.right='';dock.style.top='';
+ document.body.classList.add('rhVideoActive');
 }
 function rhEnsureAudio(){
  if(rhAudioEl)return rhAudioEl;
@@ -1031,7 +1050,7 @@ function rhYtInitPlayer(){
  const item=rhYtSelected();if(item?.type==='audio')return;
  try{
   rhYtPlayer=new YT.Player('ytPlayer',{
-   width:206,height:200,
+   width:200,height:200,
    playerVars:{playsinline:1,controls:1,autoplay:0,origin:location.origin},
    events:{
     onReady:ev=>{
