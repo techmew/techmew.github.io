@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.59｜8星界の固有色と進行演出</title>
-<meta name="game-build" content="ASTRAL_BREAK_V659_EIGHT_WORLD_BIOME_IDENTITY_20261025" />
+<title>ASTRAL BREAK ∞ V6.60｜予告レーザーの視認性・回避猶予を改善</title>
+<meta name="game-build" content="ASTRAL_BREAK_V660_LASER_WARNING_FAIRNESS_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -971,6 +971,16 @@ function die(cause='DEAD'){
 }
 function hitRect(ax,ay,aw,ah,bx,by,bw,bh){return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by}
 function circleBox(cx,cy,r,x,y,w,h){const nx=clamp(cx,x,x+w),ny=clamp(cy,y,y+h);return (cx-nx)**2+(cy-ny)**2<r*r}
+// V6.60: Shared deterministic laser phase for both damage and rendering.
+function rhLaserCycle(laser,time,world=0){
+ const period=Math.max(1.2,Number(laser.period)||2);
+ const phase=((time+(Number(laser.offset)||0))%period+period)%period;
+ const warningDuration=Math.min(period-.9,Math.max(.48,.68-Math.max(0,world)*.025));
+ const active=phase<.88;
+ const warning=!active&&phase>=period-warningDuration;
+ const warningProgress=warning?clamp((phase-(period-warningDuration))/warningDuration,0,1):0;
+ return {phase,active,warning,warningProgress,warningDuration};
+}
 function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
 // Telegraph a fixed aim before ranged attacks; player can dodge the warning.
 // V6.25: Elite ranged enemies predict a small part of Lulu's momentum before
@@ -1417,7 +1427,7 @@ function findHomingTarget(q){
  }
  for(const sp of level.spikes)if(rhPlayerSweptHazardHit(oldX,oldY,p,sp.x,sp.y-20,sp.w,20)&&lethal('トゲに接触'))return;
  for(const sw of level.saws){const sy=sw.y+Math.sin(clock*sw.rate+sw.phase)*sw.amp;const prevSy=sw.y+Math.sin((clock-dt)*sw.rate+sw.phase)*sw.amp;if(rhSweptCirclePlayerHit(sw.x,prevSy,sw.x,sy,sw.size-2,oldX,oldY,p)&&lethal('ノコギリに接触'))return}
- for(const l of level.lasers)if((clock+l.offset)%l.period<.88&&rhPlayerSweptHazardHit(oldX,oldY,p,l.x-5,l.y-168,10,168,4,3,8,4)&&lethal('レーザーに接触'))return;
+ for(const l of level.lasers)if(rhLaserCycle(l,clock,level.world).active&&rhPlayerSweptHazardHit(oldX,oldY,p,l.x-5,l.y-168,10,168,4,3,8,4)&&lethal('レーザーに接触'))return;
  if(p.y>H+190||p.y>baseY+360){
    // Falling always discards every collected/upgraded weapon; relics and survivor XP remain.
    const lostWeapons=rhResetWeaponsOnFall();
@@ -1715,7 +1725,30 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.restore();
  }
  for(const s of level.spikes){if(s.x+s.w<camera-20||s.x>viewRight+20)continue;let count=Math.max(2,Math.ceil(s.w/12)),wid=s.w/count;for(let j=0;j<count;j++)polygon([[s.x+j*wid,s.y],[s.x+(j+.5)*wid,s.y-20],[s.x+(j+1)*wid,s.y]],'#ff6385')}
- for(const laser of level.lasers){if(laser.x<camera-30||laser.x>viewRight+30)continue;const phase=(clock+laser.offset)%laser.period,active=phase<.88,warning=phase>laser.period-.26;ctx.fillStyle=active?'#ff4c73':warning?'#ffe8a0':'#7c6677';ctx.globalAlpha=active?1:.5;ctx.fillRect(laser.x-7,laser.y-170,14,12);ctx.fillRect(laser.x-7,laser.y-8,14,8);if(active){ctx.fillStyle='#ff6f8d55';ctx.fillRect(laser.x-14,laser.y-158,28,152);ctx.fillStyle='#fff6c3';ctx.fillRect(laser.x-3,laser.y-159,6,155)}ctx.globalAlpha=1;}
+ for(const laser of level.lasers){
+  if(laser.x<camera-30||laser.x>viewRight+30)continue;
+  const state=rhLaserCycle(laser,clock,level.world);
+  const pulse=.60+.4*Math.sin(clock*20)**2;
+  ctx.save();
+  ctx.fillStyle=state.active?'#ff4c73':state.warning?'#ffe8a0':'#7c6677';
+  ctx.globalAlpha=state.active?1:state.warning?.65+.30*pulse:.45;
+  ctx.fillRect(laser.x-7,laser.y-170,14,12);
+  ctx.fillRect(laser.x-7,laser.y-8,14,8);
+  if(state.active){
+   ctx.fillStyle='#ff6f8d55';ctx.fillRect(laser.x-14,laser.y-158,28,152);
+   ctx.fillStyle='#fff6c3';ctx.fillRect(laser.x-3,laser.y-159,6,155);
+  }else if(state.warning){
+   // Show the entire impending hit lane and its countdown, not just the emitters.
+   ctx.globalAlpha=(.35+.42*state.warningProgress)*pulse;
+   ctx.strokeStyle='#ffe8a0';ctx.lineWidth=1.7+state.warningProgress*1.5;
+   ctx.setLineDash([6,5]);ctx.beginPath();
+   ctx.moveTo(laser.x,laser.y-158);ctx.lineTo(laser.x,laser.y-8);ctx.stroke();
+   ctx.setLineDash([]);
+   ctx.globalAlpha=.8;ctx.fillStyle='#fff0b3';
+   ctx.fillRect(laser.x-7,laser.y-175,14*state.warningProgress,3);
+  }
+  ctx.restore();
+ }
  for(const s of level.saws){if(s.x<camera-40||s.x>viewRight+40)continue;const y=s.y+Math.sin(clock*s.rate+s.phase)*s.amp,r=s.size;ctx.save();ctx.translate(s.x,y);ctx.rotate(clock*4);for(let k=0;k<12;k++){const a=k*TAU/12;polygon([[Math.cos(a-.15)*r*.75,Math.sin(a-.15)*r*.75],[Math.cos(a)*r*1.28,Math.sin(a)*r*1.28],[Math.cos(a+.15)*r*.75,Math.sin(a+.15)*r*.75]],'#ff9c74')}ctx.beginPath();ctx.arc(0,0,r*.85,0,TAU);ctx.fillStyle='#dbe6f2';ctx.fill();ctx.beginPath();ctx.arc(0,0,r*.32,0,TAU);ctx.fillStyle='#35446a';ctx.fill();ctx.restore();}
  for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>viewRight+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':'★',0,0)}ctx.restore()}
  // Teleport destination is visible before arrival, including when the source is off-screen.
