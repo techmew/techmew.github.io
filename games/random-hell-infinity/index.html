@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.29｜敵の踏みつけと足場着地の競合を修正</title>
-<meta name="game-build" content="RHINF_STOMP_BEFORE_PLATFORM_LANDING_V629_20261024" />
+<title>RANDOM HELL ∞ V6.30｜武器の自動照準を安定化</title>
+<meta name="game-build" content="RHINF_AUTO_AIM_TARGET_LOCK_V630_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -364,6 +364,8 @@ function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
 // Survivor-style upgrade draft. Kept separate from stage and checkpoint progression.
 let survivorXP=0,survivorLevel=1,survivorPending=0;
 let autoWeaponCooldowns=[];
+// V6.30: transient per-weapon aim lock prevents target flicker between nearby enemies.
+let autoAimTargets=[];
 const survivorWeapons=WEAPONS.filter(w=>w.id!=='fist').map(w=>w.id);
 const survivorPanel=document.createElement('div');
 survivorPanel.id='survivorDraft';
@@ -758,7 +760,7 @@ function makeEnemy(r,p,x,difficulty,forcedKind=null){
 }
 
 function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
- player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
+ player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;autoAimTargets=[];dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');startMusic();if(survivorPending)survivorDraft()}
@@ -990,6 +992,20 @@ function rhStompEnemy(p,e,oldBottom,oldX){
 }
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
+// V6.30: prefer a still-valid target unless another enemy is substantially closer.
+// This keeps successive shots on one enemy without extending weapon range or auto-firing.
+function rhChooseAutoTarget(candidates,p,reach,locked=null){
+ let nearest=null,nearestDist=reach*reach,lockedDist=Infinity;
+ const cx=p.x+p.w*.5,cy=p.y+p.h*.5;
+ for(const e of candidates){
+   if(!e?.alive||e.active===false)continue;
+   const dx=e.x+(e.w||0)*.5-cx,dy=e.y+(e.h||0)*.5-cy;
+   const d=dx*dx+dy*dy;
+   if(d<nearestDist){nearest=e;nearestDist=d}
+   if(e===locked)lockedDist=d;
+ }
+ return lockedDist<reach*reach&&lockedDist<=nearestDist*1.44?locked:nearest;
+}
 function autoWeaponFire(dt,fireRequested=false){
  // No passive damage. Attack input is required; holding it fires all equipped weapons.
  // Per-weapon cooldowns recover even while the attack button is released.
@@ -1001,11 +1017,8 @@ function autoWeaponFire(dt,fireRequested=false){
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
    if(!fireRequested||!w||autoWeaponCooldowns[i]>0)continue;
    const reach=w.type==='chain'||w.type==='pulse'?Math.max(120,w.range+25):rangedTypes.has(w.type)?660:Math.max(80,w.range+48);
-   let target=null,nearest=reach*reach;
-   for(const e of candidates){if(!e.alive)continue;
-     const dx=e.x+e.w/2-(p.x+p.w/2),dy=e.y+e.h/2-(p.y+p.h/2);
-     const d=dx*dx+dy*dy;if(d<nearest){nearest=d;target=e}
-   }
+   const target=rhChooseAutoTarget(candidates,p,reach,autoAimTargets[i]);
+   autoAimTargets[i]=target;
    // When there is no target, launch attacks in the facing direction instead of firing invisibly.
    // Only a real attack press may enter this firing branch.
    // No Lv.19 plateau: cooldown improves smoothly until weapon Lv.99.
