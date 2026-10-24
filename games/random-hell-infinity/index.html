@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.32｜足場端の落下判定・被弾アニメ改善</title>
-<meta name="game-build" content="RHINF_EDGE_CONTACT_HIT_MOTION_V632_20261024" />
+<title>RANDOM HELL ∞ V6.33｜短押しジャンプの操作改善</title>
+<meta name="game-build" content="RHINF_MINIMUM_JUMP_RISE_V633_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -648,6 +648,9 @@ function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,
 function resize(){const oldW=W,oldH=H;W=Math.max(1,document.documentElement.clientWidth||window.innerWidth);H=Math.max(1,document.documentElement.clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel()}if(level&&mode==='survivorDraft')draw()}
 window.addEventListener('resize',resize);
 // Conservative, single-jump procedural route, independent of relics and dash.
+// V6.33: Minimum jump rise makes quick touch taps useful at platform gaps.
+// A held jump still retains the original full-height trajectory.
+function rhJumpReleaseVelocity(vy,held,remaining){return !held&&remaining<=0&&vy < -235?-235:vy}
 function rhSafeJumpGap(fromY,toY,gravity,speed,jump,wind){
  const dy=toY-fromY,discriminant=Math.max(0,jump*jump+2*gravity*dy);
  const landingTime=(jump+Math.sqrt(discriminant))/gravity;
@@ -1080,7 +1083,7 @@ function update(dt){
    if(riding){p.x+=s.x-previousX;p.y+=s.y-previousY}
  }
  const oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
- p.grace=Math.max(0,p.grace-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
+ p.grace=Math.max(0,p.grace-dt);p.jumpMinHold=Math.max(0,(p.jumpMinHold||0)-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
  if(stompChainTimer>0){stompChainTimer=Math.max(0,stompChainTimer-dt);if(stompChainTimer===0)stompChain=0}
  const keyDir=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),raw=Math.abs(joyX)>.035?joyX:keyDir;
@@ -1088,7 +1091,7 @@ function update(dt){
  if(Math.abs(control)>.09)p.face=control>0?1:-1;
  if(jumpBuffer>0 && (p.grounded||p.coyote>0||p.jumps>0)){
    if(p.grounded||p.coyote>0){p.jumps=Math.max(0,p.jumps-1)}else{p.jumps--;runStats.airJumps++}
-   p.vy=-level.jump*(hasRelic('spring')?1.12:1)*(p.jumps===0?.89:1);p.grounded=false;p.coyote=0;jumpBuffer=0;part(p.x+12,p.y+35,p.jumps===0?'#ffe3a2':'#ccffff',13,.6);sound(p.jumps===0?720:510,.12,'triangle');
+   p.vy=-level.jump*(hasRelic('spring')?1.12:1)*(p.jumps===0?.89:1);p.jumpMinHold=.12;p.grounded=false;p.coyote=0;jumpBuffer=0;part(p.x+12,p.y+35,p.jumps===0?'#ffe3a2':'#ccffff',13,.6);sound(p.jumps===0?720:510,.12,'triangle');
  }
  if(dashQueue){if(dashCooldown<=0 && (p.grounded||airDash>0)){dashDir=p.face;dashTime=.17;dashCooldown=hasRelic('battery')?.53:.91;if(!p.grounded)airDash--;p.vy=Math.min(p.vy,20);p.vx=dashDir*785;part(p.x+12,p.y+18,'#94fff8',14,.8);sound(210,.19,'triangle')}dashQueue=false}
  const fireRequested=punchQueue||attackHeld;
@@ -1101,7 +1104,7 @@ function update(dt){
    const accel=p.grounded?(level.ice?1400:7800):5400,delta=target-p.vx;p.vx+=clamp(delta,-accel*dt,accel*dt);
    if(sprint>.9&&p.grounded&&Math.random()<dt*19)part(p.x+13,p.y+p.h-2,'#a0fff1',1,.22);
    p.vx+=level.wind*dt*(hasRelic('feather')?.20:1);p.vy+=level.gravity*dt;
-   if(!jumpHeld&&p.vy < -235)p.vy=Math.max(p.vy,-235);
+   p.vy=rhJumpReleaseVelocity(p.vy,jumpHeld,p.jumpMinHold);
  }
  p.vx=clamp(p.vx,-845,845);p.x=Math.max(0,p.x+p.vx*dt);p.y+=p.vy*dt;
  let landing=null,landingContact=null;
