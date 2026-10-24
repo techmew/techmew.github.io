@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.40｜YouTube右上コンパクト化・曲送り修正</title>
-<meta name="game-build" content="RHINF_YT_DOCK_SKIP_FIX_V640_20261024" />
+<title>RANDOM HELL ∞ V6.41｜音楽再生機能削除・ゲーム本編専用</title>
+<meta name="game-build" content="RHINF_REMOVE_ALL_MUSIC_PLAYBACK_V641_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -125,122 +125,14 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
  #menuTiny,#soundTiny,#fullscreenTiny{top:146px!important}
 }
 
-/* V6.36: YouTube's official player remains visible at >=200px, with its native controls unobstructed. */
-.ytMenu{margin:12px 0 15px;padding:12px;background:#071329a8;border:1px solid #83c6fd5a;border-radius:13px;text-align:left}
-.ytMenu label{display:block;color:#a9efff;font-size:13px;font-weight:800;margin-bottom:7px}
-.ytMenu textarea{display:block;width:100%;min-height:62px;max-height:140px;resize:vertical;background:#080e22;color:#fff;border:1px solid #789cd266;border-radius:9px;padding:9px;font:13px/1.5 system-ui;user-select:text;-webkit-user-select:text;touch-action:pan-y;outline-offset:2px}
-.ytMenu small{display:block;color:#b7cde6;font-size:11px;line-height:1.6;margin-top:7px}
-#ytDock{position:fixed;z-index:4;right:9px;top:max(166px,env(safe-area-inset-top));width:218px;padding:5px;background:#0c1731f3;border:1px solid #77d9ff9c;border-radius:11px;box-shadow:0 9px 30px #000b;color:#f3f9ff;touch-action:auto}
-#ytDock.ytHidden{display:none}
-#ytHeader{height:34px;display:flex;align-items:center;gap:5px;touch-action:none;cursor:move}
-#ytHeader strong{flex:1;min-width:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-#ytHeader button{flex:none;border:1px solid #9bd6ff67;background:#203e67;color:#fff;min-width:31px;height:29px;border-radius:7px;font-weight:800;cursor:pointer;touch-action:manipulation}
-#ytPlayer{width:206px;height:200px;background:#080b1c;border-radius:5px;overflow:hidden}
-#ytPlayer iframe{width:206px!important;height:200px!important;display:block;border:0}
-#ytStatus{font:11px/1.4 system-ui;color:#c5eaff;padding:5px 1px 1px;min-height:20px}
-@media(orientation:landscape) and (max-height:480px){#ytDock{top:7px;right:7px}}
-
-/* V6.37 RHINF_BOTTOM_AUDIO_BAR: never cover jump/attack controls with the music bar. */
-#soundTiny{display:none!important}
-#musicBar{position:fixed;left:0;right:0;bottom:0;z-index:4;display:none;box-sizing:border-box;min-height:60px;padding:5px 7px calc(5px + env(safe-area-inset-bottom,0px));border-top:1px solid #8fd3ff70;background:linear-gradient(90deg,#091527f5,#142947f7);box-shadow:0 -6px 24px #060c22b7;pointer-events:auto;touch-action:pan-x}
-#musicBar.musicActive{display:block}
-#musicStatus{display:block;height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;color:#a5dff9;font:11px/16px system-ui,sans-serif}
-#musicButtons{display:flex;gap:6px;justify-content:space-evenly;align-items:center}
-#musicButtons button{height:36px;min-width:37px;max-width:65px;flex:1 1 0;padding:0 3px;border-radius:9px;border:1px solid #739abe80;background:#224366;color:#fff;font-size:17px;font-weight:750;cursor:pointer;touch-action:manipulation}
-#musicButtons button:active{background:#376ba0}
-#musicButtons button:focus-visible{outline:2px solid #e0fbff}
-#musicVolume{width:64px;min-width:40px;max-width:85px;accent-color:#77e5ff;touch-action:pan-x}
-#joystick{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}
-#actions{bottom:calc(88px + env(safe-area-inset-bottom,0px))!important}
-#ytDock{width:216px;right:7px;top:calc(168px + env(safe-area-inset-top,0px));padding:4px 4px 5px;z-index:3;box-shadow:0 5px 14px #0009}
-#ytHeader{height:23px;display:flex;cursor:move}
-#ytHeader strong{font-size:10px}
-#ytHeader button{display:none}
-#ytPlayer{width:206px;height:200px;min-width:200px;min-height:200px}
-#ytPlayer iframe{width:206px!important;height:200px!important}
-#ytStatus{display:none}
-.ytMenu input[type=file]{box-sizing:border-box;display:block;width:100%;margin-top:9px;padding:7px;border:1px solid #789cd266;border-radius:8px;color:#d9edff;font-size:12px;touch-action:manipulation}
-@media(orientation:landscape) and (max-height:480px){
- #ytDock{top:5px;right:5px}
- #joystick{bottom:calc(68px + env(safe-area-inset-bottom,0px))!important}
- #actions{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
-}
-@media(max-width:355px){#musicButtons{gap:3px}#musicButtons button{min-width:32px}#musicVolume{width:43px;min-width:36px}}
-
-
-/* V6.39: legal minimum 200x200 YouTube viewport; default top-right. */
-#ytDock{right:4px;top:max(5px,env(safe-area-inset-top,0px));width:206px;padding:2px;border-radius:8px}
-#ytHeader{height:18px;min-height:18px}
-#ytHeader strong{font-size:9px}
-#ytPlayer{width:200px;min-width:200px;height:200px;min-height:200px}
-#ytPlayer iframe{width:200px!important;height:200px!important;min-width:200px;min-height:200px}
-#rhSpotifyDock{position:fixed;z-index:3;top:max(5px,env(safe-area-inset-top,0px));right:4px;width:214px;padding:3px;background:#091b20f5;border:1px solid #55cfaf77;border-radius:9px;box-shadow:0 6px 22px #0009;touch-action:auto}
-#rhSpotifyDock.rhServiceHidden{display:none}
-#rhSpotifyEmbed{width:206px;min-height:152px}
-#rhSpotifyDock small{display:block;text-align:center;font-size:10px;color:#a7f9cc}
-#musicStatusLine{display:flex;align-items:center;justify-content:center;gap:8px;min-height:16px}
-#musicStatusLine #musicStatus{min-width:0;flex:0 1 auto}
-#musicServiceLink{flex:none;color:#9be8ff;text-decoration:underline;font-size:10px;white-space:nowrap}
-#musicServiceLink[hidden]{display:none!important}
-body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:238px!important}
-@media(orientation:landscape) and (max-height:480px){#ytDock,#rhSpotifyDock{top:3px;right:3px}body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:225px!important}}
-
-/* Keep HP, world and experience readable left of the mandatory YouTube viewport. */
-@media(max-width:700px){
- body.rhVideoActive #hud{right:212px;gap:0}
- body.rhVideoActive #hudLeft{width:100%;min-width:0}
- body.rhVideoActive #hudRight{display:none}
- body.rhVideoActive #stage{font-size:12px;line-height:1.15;overflow-wrap:anywhere}
- body.rhVideoActive #playerHealth,body.rhVideoActive #playerXp{width:100%;max-width:100%;font-size:11px}
- body.rhVideoActive #xpText,body.rhVideoActive #weaponStrip{white-space:normal;font-size:10px}
- body.rhVideoActive #progressTrack{width:100%}
-}
-
-/* V6.40 - YouTube's mandatory player stays fully visible at 200×200;
-   remove only the redundant outer chrome, NEVER crop / scale / obscure the YouTube iframe. */
-#ytDock{
- top:2px!important;right:2px!important;left:auto!important;bottom:auto!important;
- width:200px!important;height:200px!important;min-width:200px;min-height:200px;
- padding:0!important;margin:0!important;border:0!important;border-radius:5px!important;
- overflow:visible;box-shadow:0 3px 14px rgba(0,0,0,.42);
-}
-#ytDock #ytHeader,#ytDock #ytStatus{display:none!important}
-#ytDock #ytPlayer,#ytDock iframe#ytPlayer,#ytDock #ytPlayer iframe{
- width:200px!important;height:200px!important;
- min-width:200px!important;min-height:200px!important;
- max-width:200px!important;max-height:200px!important;
- display:block!important;margin:0!important;padding:0!important;
- border:0!important;box-sizing:border-box!important;
-}
-@media(max-width:700px){
- body.rhVideoActive #hud{right:212px}
- body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:210px!important}
-}
-@media (orientation:landscape) and (max-height:480px){
- body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:210px!important}
-}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="ランダム生成アクションゲーム"></canvas><div id="shade"></div>
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
-<button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="音のオンオフ" title="音声切替">♫</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
+<button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="効果音のオンオフ" title="効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
-<div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="ytDock" class="ytHidden" aria-label="YouTube公式プレーヤー（YouTube再生中は表示が必要です）">
- <div id="ytHeader"><strong>♫ YouTube公式プレーヤー · つかんで移動</strong><button id="ytPlayPause" type="button">▶</button><button id="ytNext" type="button">⏭</button><button id="ytStop" type="button">✕</button></div>
- <div id="ytPlayer" aria-label="YouTube動画プレーヤー"></div><div id="ytStatus" role="status">準備中…</div>
-</div>
-<div id="rhSpotifyDock" class="rhServiceHidden" aria-label="Spotify公式埋め込みプレーヤー"><div id="rhSpotifyEmbed"></div><small>Spotify公式プレーヤー</small></div>
-<div id="musicBar" aria-label="BGM再生コントロール"><div id="musicStatusLine"><div id="musicStatus" role="status">♫ ゲームBGM</div><a id="musicServiceLink" hidden target="_blank" rel="noopener noreferrer">音楽アプリで開く</a></div><div id="musicButtons">
- <button id="musicPrev" type="button" aria-label="前の曲" title="前の曲">⏮</button>
- <button id="musicPlay" type="button" aria-label="再生" title="再生">▶</button>
- <button id="musicPause" type="button" aria-label="一時停止" title="一時停止">⏸</button>
- <button id="musicStop" type="button" aria-label="停止" title="停止">⏹</button>
- <button id="musicNext" type="button" aria-label="次の曲" title="次の曲">⏭</button>
- <button id="musicMute" type="button" aria-label="音のオンオフ" title="音のオンオフ">♫</button>
- <input id="musicVolume" type="range" min="0" max="100" value="75" aria-label="BGM・効果音の音量" title="音量" />
-</div></div>
-<div id="toast"></div>
+<div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
 <script src="./sprites-v35.js"></script>
 <script src="./sprites-v35-hero.js"></script>
@@ -887,7 +779,7 @@ function createLevel(respawn=false){
  level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,goalX,totalX:prev.x+prev.w,difficulty};
  const cp=checkpointIndex>0?platforms.find(p=>p.checkpointId===checkpointIndex):null;
  checkpointX=cp?cp.x+44:0;
- camera=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn);updateHud(true);musicBeat=-1;
+ camera=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn);updateHud(true);
 }
 function makeEnemy(r,p,x,difficulty,forcedKind=null){
  const kind=forcedKind??randomInt(r,0,Math.min(27,13+Math.floor(difficulty*14)));
@@ -905,18 +797,14 @@ function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.f
  player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;autoAimTargets=[];dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
-function begin(newSeed=randSeed(),idx=0,d=0,restore=null){rhRememberYtInput();rhMusicPaused=false;rhMusicStopped=false;$('musicBar').classList.add('musicActive');resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');rhStartYtWithGame();startMusic();if(survivorPending)survivorDraft()}
-const RH_YT_MENU_HTML="<div class=\"ytMenu\"><label for=\"ytUrls\">♫ BGM（YouTube・Spotify・Amazon Music・音声）</label><textarea id=\"ytUrls\" maxlength=\"3200\" rows=\"2\" placeholder=\"YouTube・Spotify・Amazon MusicのURL / MP3等のURL&#10;複数曲は改行で追加\"></textarea><input id=\"localMusicFiles\" type=\"file\" accept=\"audio/*\" multiple aria-label=\"端末の音声ファイルを選択\"><small>YouTubeは右上に公式動画を表示（最小200×200・広告削除不可）。Spotifyは公式埋め込み、Amazon Musicは公式アプリ・サイトで再生。端末音声やMP3 URLは映像なし。Amazon Musicの操作は公式アプリで行ってください。</small></div>";
-function showMenu(){$('musicBar').classList.remove('musicActive');resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">♫ 自動生成BGM</span><span class="pill">💠 レリック10種</span></div>${RH_YT_MENU_HTML}<div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
- $('ytUrls').value=rhYtRaw;
- $('ytUrls').addEventListener('input',rhRememberYtInput);
- $('localMusicFiles').addEventListener('change',rhSelectLocalMusic);
+function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');if(survivorPending)survivorDraft()}
+function showMenu(){resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
 function showClear(){mode='clear';best=Math.max(best,levelIndex+1);saveState();overlay.classList.remove('hidden');const finished=levelIndex===23;const w=level.world+1,st=level.stage+1,medal=stageTime<28?'S':stageTime<50?'A':stageTime<85?'B':'C';
  panel.innerHTML=`<div class="eyebrow">${finished?'ALL WORLDS CONQUERED':'STAGE CLEARED'}</div><div class="messageTitle blue">${finished?'HELL CONQUERED':`WORLD ${w}-${st}　${medal} RANK`}</div><p>${finished?'ルルは世界から消えた友達の名を呼んだ。「忘れてしまうことは、なくなることじゃない。もう一度、出会えばいい」。友達は振り返り、二人は新しい朝へ歩きだした。<br>終わらない地獄の向こうに、初めての明日が生まれた。<br><br>':(level.stage===2?STORY[level.world].end+'<br><br>':'')}<strong>物語：</strong>${LORE[levelIndex]}<br><br>「${level.title}」を突破<br>タイム：${stageTime.toFixed(1)}秒　｜　総死亡：${deaths}回<br>スコア：${Math.floor(score)}　｜　連続撃破：${maxCombo}<br>装備：${itemName(loadout[activeSlot])}<br>SEED：${String(seed).padStart(9,'0')}</p><div class="panelBtns"><button id="continueNext" class="primary">${finished?'新しい地獄を生成':'次のステージ →'}</button><button id="retrySeed" class="secondary">同じシードを最初から</button></div>`;
- $('continueNext').onclick=()=>{if(finished)begin(randSeed());else{$('musicBar').classList.add('musicActive');const changeWorld=level.stage===2;levelIndex++;mode='playing';createLevel();overlay.classList.add('hidden');saveState();sound(500,.14,'sine');startMusic();if(changeWorld)toast('第'+(level.world+1)+'世界：'+STORY[level.world].start,5)}};
+ $('continueNext').onclick=()=>{if(finished)begin(randSeed());else{const changeWorld=level.stage===2;levelIndex++;mode='playing';createLevel();overlay.classList.add('hidden');saveState();sound(500,.14,'sine');if(changeWorld)toast('第'+(level.world+1)+'世界：'+STORY[level.world].start,5)}};
  $('retrySeed').onclick=()=>begin(seed,0,0);
 }
 function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hudTick=.085;
@@ -938,364 +826,12 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('progressFill').style.width=clamp((player?.x||0)/level.goalX*100,0,100)+'%';
 }
 function toast(t,time=1.1){toastText=t;toastTimer=time;$('toast').textContent=t;$('toast').style.opacity='1'}
-// V6.37 RHINF_BOTTOM_AUDIO_BAR: central music controls; YouTube uses visible official iframe.
-// YouTube API cannot provide recommendations, hide its player during playback, or suppress advertisements.
-let rhYtRaw='',rhYtQueue=[],rhYtIndex=0,rhYtPlayer=null,rhYtReady=false,rhYtWanted=false,rhYtLoading=false;
-let rhMusicPaused=false,rhMusicStopped=false,rhLocalTracks=[],rhAudioEl=null,rhAudioVolume=75;
-try{rhYtRaw=localStorage.getItem('randomHellYouTubeBGM')||'';rhAudioVolume=Math.max(0,Math.min(100,+(localStorage.getItem('randomHellMusicVolume')||'75')))}catch(_){}
-function rhRememberYtInput(){
- const el=$('ytUrls');if(!el)return;rhYtRaw=el.value.slice(0,3200);
- try{localStorage.setItem('randomHellYouTubeBGM',rhYtRaw)}catch(_){}
-}
-function rhSelectLocalMusic(ev){
- for(const track of rhLocalTracks){try{URL.revokeObjectURL(track.id)}catch(_){}}
- rhLocalTracks=[...ev.target.files].filter(f=>f.type.startsWith('audio/')).slice(0,16).map(f=>({type:'audio',id:URL.createObjectURL(f),title:f.name}));
- const notice=ev.target.closest('.ytMenu')?.querySelector('small');
- if(notice)notice.textContent=(rhLocalTracks.length+'曲選択済み。開始時に読み込みます。映像なしで再生します。ブラウザ更新後は再選択が必要です。');
-}
-function rhReadYtItem(raw){
- const s=String(raw||'').trim();if(/^[a-zA-Z0-9_-]{11}$/.test(s))return {type:'video',id:s};
- try{
-  const u=new URL(s),host=u.hostname.toLowerCase().replace(/^(www\.|m\.)/,'');
-  if(host==='youtu.be'){const id=u.pathname.split('/')[1];return /^[a-zA-Z0-9_-]{11}$/.test(id)?{type:'video',id}:null}
-  if(['youtube.com','music.youtube.com','youtube-nocookie.com'].includes(host)){
-   const parts=u.pathname.split('/').filter(Boolean);
-   const list=u.searchParams.get('list');
-   if(list&&/^[a-zA-Z0-9_-]{10,80}$/.test(list))return {type:'playlist',id:list};
-   const id=parts[0]==='watch'?u.searchParams.get('v'):['embed','shorts','live','v'].includes(parts[0])?parts[1]:null;
-   if(id&&/^[a-zA-Z0-9_-]{11}$/.test(id))return {type:'video',id};
-   return null;
-  }
-  if(host==='open.spotify.com'&&u.protocol==='https:'){
-   const parts=u.pathname.split('/').filter(Boolean),ix=parts[0]?.startsWith('intl-')?1:0;
-   const type=parts[ix],id=parts[ix+1];
-   if(['track','playlist','album','artist','episode','show'].includes(type)&&/^[A-Za-z0-9]{22}$/.test(id))return {type:'spotify',id:type+'/'+id,url:'https://open.spotify.com/'+type+'/'+id,title:'Spotify '+type};
-  }
-  if(u.protocol==='https:'&&/^music\.amazon\.(?:co\.jp|com|co\.uk|de|fr|it|es|ca|com\.au|in)$/.test(host))return {type:'amazon',id:u.href,title:'Amazon Music'};
-  if(u.protocol==='https:'&&/\.(?:mp3|ogg|m4a|aac|wav|opus)(?:$|[?#])/i.test(s))return {type:'audio',id:s,title:u.pathname.split('/').pop()};
- }catch(_){}
- return null;
-}
-function rhYtSelected(){return rhYtQueue.length?rhYtQueue[rhYtIndex%rhYtQueue.length]:null}
-function rhYtSetStatus(msg){$('ytStatus').textContent=msg;$('musicStatus').textContent=msg}
-function rhSetProviderLink(item){
- const a=$('musicServiceLink'),url=item?.type==='amazon'?item.id:item?.type==='spotify'?item.url:null;
- if(!url){a.hidden=true;a.removeAttribute('href');return}
- a.href=url;a.textContent=item.type==='amazon'?'Amazon Musicで再生':'Spotifyで開く';a.hidden=false;
-}
-function rhUpdateMuteUI(){$('musicMute').textContent=muted?'🔇':'♫';$('soundTiny').textContent=muted?'🔇':'♫'}
-function rhYtShow(){
- const dock=$('ytDock');dock.classList.remove('ytHidden');
- dock.style.left='';dock.style.right='';dock.style.top='';dock.style.bottom='';
- document.body.classList.add('rhVideoActive');
-}
-
-/* Spotify official Embed iFrame API: requires service login/eligibility for full tracks. */
-let rhSpotifyApi=null,rhSpotifyController=null,rhSpotifyScriptLoading=false,rhSpotifyCreating=false;
-function rhSpotifyPauseHide(){
- try{rhSpotifyController?.pause()}catch(_){}
- $('rhSpotifyDock').classList.add('rhServiceHidden');
-}
-function rhSpotifyLoad(item){
- if(item?.type!=='spotify')return;
- try{rhYtPlayer?.stopVideo()}catch(_){}
- $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
- $('rhSpotifyDock').classList.remove('rhServiceHidden');
- rhYtWanted=true;
- rhYtSetStatus('♫ Spotify · 公式プレーヤーを読み込み中');
- if(rhSpotifyController){
-  try{rhSpotifyController.loadEntity(item.url);rhSpotifyController.play()}catch(_){rhYtSetStatus('Spotify上で▶を押してください')}
-  return;
- }
- if(!rhSpotifyApi){
-  if(!rhSpotifyScriptLoading){
-   rhSpotifyScriptLoading=true;
-   const before=window.onSpotifyIframeApiReady;
-   window.onSpotifyIframeApiReady=api=>{
-    try{before?.(api)}catch(_){}
-    rhSpotifyApi=api;rhSpotifyScriptLoading=false;
-    if(rhYtSelected()?.type==='spotify')rhSpotifyLoad(rhYtSelected());
-   };
-   const sc=document.createElement('script');sc.async=true;sc.src='https://open.spotify.com/embed/iframe-api/v1';
-   sc.onerror=()=>{rhSpotifyScriptLoading=false;rhYtWanted=false;rhYtSetStatus('Spotifyへの接続に失敗。Spotifyで開くを押してください')};
-   document.head.appendChild(sc);
-  }
-  return;
- }
- if(rhSpotifyCreating)return;
- rhSpotifyCreating=true;
- try{
-  rhSpotifyApi.createController($('rhSpotifyEmbed'),{width:206,height:152,url:item.url},controller=>{
-   rhSpotifyController=controller;
-   controller.addListener('ready',()=>{
-    if(rhYtSelected()?.type==='spotify'&&!rhMusicPaused&&!rhMusicStopped){
-     try{controller.play()}catch(_){}
-     rhYtSetStatus('♫ Spotify · 再生できない場合は公式プレーヤーで▶');
-    }
-   });
-   controller.addListener('playback_update',ev=>{
-    if(rhYtSelected()?.type!=='spotify'||rhMusicStopped)return;
-    if(ev.data?.isPaused===false){rhYtWanted=true;rhMusicPaused=false;rhYtSetStatus('♫ Spotify 再生中')}
-   });
-   if(rhYtSelected()?.type==='spotify'&&!rhMusicStopped&&!rhMusicPaused){
-    try{controller.play()}catch(_){}
-   }
-  });
- }catch(_){rhSpotifyCreating=false;rhYtWanted=false;rhYtSetStatus('Spotify埋め込み失敗。Spotifyで開くを押してください')}
-}
-
-function rhEnsureAudio(){
- if(rhAudioEl)return rhAudioEl;
- rhAudioEl=new Audio();rhAudioEl.preload='auto';rhAudioEl.volume=muted?0:rhAudioVolume/100;
- rhAudioEl.addEventListener('ended',()=>{if(!rhMusicStopped&&!rhMusicPaused&&rhYtSelected()?.type==='audio')rhYtNextTrack(true)});
- rhAudioEl.addEventListener('error',()=>{if(rhYtSelected()?.type==='audio')rhYtSetStatus('音声ファイルの再生失敗。⏭ で次へ')});
- return rhAudioEl;
-}
-function rhStopAudio(){if(!rhAudioEl)return;rhAudioEl.pause();rhAudioEl.removeAttribute('src');rhAudioEl.load()}
-function rhYtLoadCurrent(){
- const item=rhYtSelected();if(!item)return;
- rhStopAudio();rhSpotifyPauseHide();rhMusicPaused=false;rhMusicStopped=false;
- rhSetProviderLink(item);
- if(item.type==='spotify'){rhSpotifyLoad(item);return}
- if(item.type==='amazon'){
-  rhYtWanted=true;try{rhYtPlayer?.stopVideo()}catch(_){}
-  $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
-  rhYtSetStatus('♫ Amazon Music · 公式アプリで再生（リンクを押してください）');return;
- }
- if(item.type==='audio'){
-  rhYtWanted=true;
-  try{rhYtPlayer?.stopVideo()}catch(_){}
-  $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
-  const a=rhEnsureAudio();a.src=item.id;a.volume=muted?0:rhAudioVolume/100;
-  rhYtSetStatus('♫ '+(item.title||'音声ファイル')+' · '+(rhYtIndex+1)+'/'+rhYtQueue.length);
-  a.play().catch(()=>{rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('再生できません。▶ を押して再試行してください')});
-  return;
- }
- rhYtWanted=true;rhYtShow();
- if(!rhYtReady||!rhYtPlayer){
-  rhYtSetStatus('YouTube接続中 · '+(rhYtIndex+1)+'/'+rhYtQueue.length);
-  if(window.YT?.Player)rhYtInitPlayer();
-  else rhYtRequestAPI();
-  return;
- }
- try{
-  if(item.type==='playlist')rhYtPlayer.loadPlaylist({listType:'playlist',list:item.id,index:0,startSeconds:0});
-  else rhYtPlayer.loadVideoById(item.id);
-  rhYtPlayer.playVideo();
-  rhYtSetStatus('YouTube '+(rhYtIndex+1)+'/'+rhYtQueue.length+' · 再生準備中');
- }catch(_){rhYtWanted=false;rhYtSetStatus('再生に失敗しました。⏭ で次へ')}
-}
-// A single YouTube video has no supported "recommended next" API; never hide its iframe.
-function rhYtNextTrack(fromEnd=false){
- if(!rhYtQueue.length){rhYtSetStatus('曲を登録してください');return}
- const item=rhYtSelected();
- if(!item)return;
- if(item.type==='playlist'&&rhYtReady&&rhYtPlayer){
-  try{
-   const list=rhYtPlayer.getPlaylist()||[],ix=rhYtPlayer.getPlaylistIndex();
-   if(list.length&&ix>=0&&ix<list.length-1){
-    rhYtWanted=true;rhMusicStopped=false;rhMusicPaused=false;
-    rhYtShow();rhYtPlayer.nextVideo();rhYtSetStatus('YouTube再生リスト · 次の曲');return;
-   }
-   if(list.length&&ix===list.length-1&&rhYtQueue.length===1){
-    rhYtShow();
-    if(fromEnd){
-     rhYtWanted=false;rhMusicPaused=true;rhMusicStopped=false;
-     rhYtSetStatus('♫ 再生リスト終了 · ▶で再生し直せます');
-    }else{
-     rhMusicPaused=false;rhMusicStopped=false;rhYtWanted=true;
-     rhYtPlayer.playVideoAt(0);
-     rhYtSetStatus('YouTube再生リスト · 先頭の曲');
-    }
-    return;
-   }
-   if(!list.length&&rhYtQueue.length===1){
-    rhYtShow();rhYtSetStatus('再生リストの読込中です。少し後に⏭を押してください');return;
-   }
-  }catch(_){}
- }
- if(rhYtQueue.length===1){
-  if(item.type==='video'||item.type==='playlist'){
-   rhYtShow();rhMusicStopped=false;
-   if(fromEnd){rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('♫ 曲が終了 · ▶で同じ曲を再生できます')}
-   else rhYtSetStatus('次の曲は未登録です。YouTubeおすすめ曲は取得できないため、複数URLや再生リストを登録してください');
-  }else if(item.type==='spotify'){
-   rhYtSetStatus('Spotifyの曲送りは公式プレーヤーで操作してください');
-  }else if(fromEnd){
-   rhMusicStop();rhYtSetStatus('♫ 再生終了 · ▶で最初から再生');
-  }else rhYtSetStatus('次の曲は未登録です。複数URLか再生リストを登録してください');
-  return;
- }
- rhYtIndex=(rhYtIndex+1)%rhYtQueue.length;
- rhYtLoadCurrent();
-}
-function rhYtPreviousTrack(){
- if(!rhYtQueue.length){rhYtSetStatus('曲を登録してください');return}
- const item=rhYtSelected();
- if(item?.type==='playlist'&&rhYtReady&&rhYtPlayer){
-  try{
-   const ix=rhYtPlayer.getPlaylistIndex();
-   if(ix>0){rhMusicStopped=false;rhMusicPaused=false;rhYtWanted=true;rhYtPlayer.previousVideo();rhYtSetStatus('YouTube再生リスト · 前の曲');return}
-  }catch(_){}
- }
- rhYtIndex=(rhYtIndex+rhYtQueue.length-1)%rhYtQueue.length;rhYtLoadCurrent();
-}
-function rhMusicPlay(){
- const stoppedBefore=rhMusicStopped;
- rhMusicPaused=false;rhMusicStopped=false;
- if(!rhYtQueue.length){rhYtWanted=false;rhYtSetStatus('♫ ゲーム内BGM 再生');startMusic();return}
- const item=rhYtSelected();if(!item)return;
- if(item.type==='amazon'){
-  rhYtWanted=true;rhYtSetStatus('Amazon Music公式アプリで再生してください');
-  window.open(item.id,'_blank','noopener,noreferrer');return;
- }
- if(item.type==='spotify'){
-  rhYtWanted=true;
-  $('rhSpotifyDock').classList.remove('rhServiceHidden');
-  if(!rhSpotifyController)rhSpotifyLoad(item);
-  else try{rhSpotifyController.play()}catch(_){rhYtSetStatus('Spotify公式プレーヤーで▶を押してください')}
-  return;
- }
- if(item.type==='audio'){
-  if(!rhAudioEl?.src)rhYtLoadCurrent();
-  else{rhYtWanted=true;rhAudioEl.play().catch(()=>rhYtSetStatus('音声を再生できません'))}
-  return;
- }
- rhYtWanted=true;rhYtShow();
- if(stoppedBefore)rhYtLoadCurrent();
- else if(rhYtReady){try{rhYtPlayer.playVideo()}catch(_){rhYtLoadCurrent()}}
- else rhYtLoadCurrent();
-}
-function rhMusicPause(){
- rhMusicPaused=true;rhYtWanted=false;
- try{rhAudioEl?.pause()}catch(_){}
- try{rhYtPlayer?.pauseVideo()}catch(_){}
- try{rhSpotifyController?.pause()}catch(_){}
- rhYtSetStatus(rhYtSelected()?.type==='amazon'?'外部音楽の一時停止はAmazon Musicで操作':'⏸ 一時停止中');
-}
-function rhMusicStop(){
- rhMusicStopped=true;rhMusicPaused=false;rhYtWanted=false;
- rhStopAudio();rhSpotifyPauseHide();
- try{rhYtPlayer?.stopVideo()}catch(_){}
- $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
- rhYtSetStatus(rhYtSelected()?.type==='amazon'?'Amazon Musicの停止は外部アプリで操作':'⏹ 停止中 · ▶ で再生');
-}
-function rhYtPauseOrPlay(){if(rhMusicPaused||rhMusicStopped||!rhYtWanted)rhMusicPlay();else rhMusicPause()}
-function rhYtStop(){rhMusicStop()}
-function rhYtOnState(ev){
- if(!window.YT?.PlayerState||rhMusicStopped||!['video','playlist'].includes(rhYtSelected()?.type))return;
- const st=ev.data;
- if(rhMusicPaused&&(st===YT.PlayerState.PLAYING||st===YT.PlayerState.BUFFERING)){
-  try{rhYtPlayer?.pauseVideo()}catch(_){}return;
- }
- if(st===YT.PlayerState.PLAYING){rhYtWanted=true;rhMusicPaused=false;rhYtSetStatus('♫ YouTube '+(rhYtIndex+1)+'/'+rhYtQueue.length+' · 再生中')}
- else if(st===YT.PlayerState.BUFFERING){rhYtWanted=true;rhYtSetStatus('♫ YouTube 読み込み中…')}
- else if(st===YT.PlayerState.PAUSED){rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('⏸ YouTube 一時停止中')}
- else if(st===YT.PlayerState.ENDED&&rhYtWanted){rhYtNextTrack(true)}
-}
-function rhYtInitPlayer(){
- if(rhYtPlayer||!rhYtQueue.length||!window.YT?.Player)return;
- const item=rhYtSelected();if(!['video','playlist'].includes(item?.type))return;
- try{
-  rhYtPlayer=new YT.Player('ytPlayer',{
-   width:200,height:200,
-   playerVars:{playsinline:1,controls:1,autoplay:0,origin:location.origin},
-   events:{
-    onReady:ev=>{
-     rhYtReady=true;
-     try{ev.target.getIframe()?.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture')}catch(_){}
-     try{rhYtPlayer.setVolume(rhAudioVolume);if(muted)rhYtPlayer.mute()}catch(_){}
-     if(rhYtWanted&&rhYtSelected()?.type!=='audio')rhYtLoadCurrent();
-    },
-    onStateChange:rhYtOnState,
-    onAutoplayBlocked:()=>{rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('自動再生が制限されました。動画内か▶を押してください')},
-    onError:()=>{rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('埋め込み再生できません。⏭ で次の曲へ')}
-   }
-  });
- }catch(_){rhYtPlayer=null;rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('YouTubeを起動できません')}
-}
-function rhYtRequestAPI(){
- if(window.YT?.Player){rhYtInitPlayer();return}
- if(rhYtLoading)return;
- rhYtLoading=true;const oldReady=window.onYouTubeIframeAPIReady;
- window.onYouTubeIframeAPIReady=()=>{try{oldReady?.()}catch(_){}rhYtInitPlayer()};
- const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';sc.async=true;
- sc.onerror=()=>{rhYtLoading=false;rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('YouTube APIに接続できません')};
- document.head.appendChild(sc);
-}
-function rhStartYtWithGame(){
- rhYtQueue=rhYtRaw.split(/[\r\n,;]+/).map(rhReadYtItem).filter(Boolean).slice(0,16).concat(rhLocalTracks).slice(0,24);
- rhYtIndex=0;rhMusicPaused=false;rhMusicStopped=false;
- $('musicBar').classList.add('musicActive');
- $('musicVolume').value=String(rhAudioVolume);rhUpdateMuteUI();
- if(!rhYtQueue.length){rhYtWanted=false;rhSetProviderLink(null);$('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');rhSpotifyPauseHide();rhYtSetStatus('♫ ゲーム内BGM · URL未登録');return false}
- rhYtLoadCurrent();return true;
-}
-function rhMusicSetVolume(v){
- rhAudioVolume=Math.max(0,Math.min(100,Number(v)||0));
- try{localStorage.setItem('randomHellMusicVolume',String(rhAudioVolume))}catch(_){}
- if(rhAudioEl)rhAudioEl.volume=muted?0:rhAudioVolume/100;
- try{rhYtPlayer?.setVolume(rhAudioVolume)}catch(_){}
-}
-function rhMusicSyncMute(){
- rhUpdateMuteUI();
- if(rhAudioEl)rhAudioEl.volume=muted?0:rhAudioVolume/100;
- try{if(muted)rhYtPlayer?.mute();else{rhYtPlayer?.unMute();rhYtPlayer?.setVolume(rhAudioVolume)}}catch(_){}
-}
-(function(){
- const handle=$('ytHeader'),dock=$('ytDock');let pointer=null,ox=0,oy=0;
- handle.addEventListener('pointerdown',e=>{
-  if(e.target.closest('button'))return;
-  pointer=e.pointerId;const rect=dock.getBoundingClientRect();ox=e.clientX-rect.left;oy=e.clientY-rect.top;
-  try{handle.setPointerCapture(pointer)}catch(_){}e.preventDefault();
- });
- handle.addEventListener('pointermove',e=>{
-  if(pointer!==e.pointerId)return;
-  const x=Math.max(0,Math.min(window.innerWidth-dock.offsetWidth,e.clientX-ox));
-  const y=Math.max(0,Math.min(window.innerHeight-dock.offsetHeight,e.clientY-oy));
-  dock.style.left=x+'px';dock.style.top=y+'px';dock.style.right='auto';
- });
- for(const name of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(name,e=>{if(pointer===e.pointerId)pointer=null});
- $('ytPlayPause').addEventListener('click',rhYtPauseOrPlay);
- $('ytNext').addEventListener('click',rhYtNextTrack);
- $('ytStop').addEventListener('click',rhMusicStop);
- $('musicPrev').addEventListener('click',rhYtPreviousTrack);
- $('musicPlay').addEventListener('click',rhMusicPlay);
- $('musicPause').addEventListener('click',rhMusicPause);
- $('musicStop').addEventListener('click',rhMusicStop);
- $('musicNext').addEventListener('click',rhYtNextTrack);
- $('musicMute').addEventListener('click',toggleSound);
- $('musicVolume').addEventListener('input',e=>rhMusicSetVolume(e.target.value));
- $('musicVolume').value=String(rhAudioVolume);rhUpdateMuteUI();
-})();
-
 let audioCtx=null;
-function sound(freq=400,d=.08,type='square',vol=.075){if(muted)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(freq*.52,55),t+d);g.gain.setValueAtTime(Math.max(.0001,vol*rhAudioVolume/100),t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+// Only gameplay sound effects remain. Discard obsolete user music preferences.
+try{localStorage.removeItem('randomHellYouTubeBGM');localStorage.removeItem('randomHellMusicVolume')}catch(_){}
+function toggleSound(){muted=!muted;$('soundTiny').textContent=muted?'🔇':'🔊';saveState()}
 
-let musicBeat=-1,musicNext=0,musicStep=0,musicMaster=null,musicVolume=.12;
-const SCALE=[[0,2,3,7,10],[0,2,5,7,9],[0,3,5,7,10],[0,2,6,7,11],[0,2,4,7,9],[0,1,5,7,8],[0,2,5,8,10],[0,1,4,6,9]];
-function noteFreq(n){return 440*Math.pow(2,(n-69)/12)}
-function tone(freq,time,duration,type='triangle',vol=.07,drift=1){if(!audioCtx||muted)return;
- const o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(Math.max(40,freq),time);o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*drift),time+duration);
- f.type='lowpass';f.frequency.value=type==='sawtooth'?1050:3000;
- g.gain.setValueAtTime(.0001,time);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol*rhAudioVolume/100),time+.013);g.gain.exponentialRampToValueAtTime(.0001,time+duration);
- o.connect(f).connect(g).connect(audioCtx.destination);o.start(time);o.stop(time+duration+.025);
-}
-function noiseHit(t,strong=false){if(!audioCtx||muted)return;const dur=.09;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.setValueAtTime(strong?100:320,t);o.frequency.exponentialRampToValueAtTime(strong?44:90,t+dur);g.gain.setValueAtTime((strong?.07:.022)*rhAudioVolume/100,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+dur+.01)}
-function startMusic(){if(muted||rhYtWanted||rhMusicPaused||rhMusicStopped)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();if(musicBeat!==level?.world||musicNext<audioCtx.currentTime-.18){musicBeat=level?.world??0;musicStep=0;musicNext=audioCtx.currentTime+.06}}catch(e){}}
-function scheduleMusic(){if(rhYtWanted||rhMusicPaused||rhMusicStopped||muted||mode!=='playing'||!audioCtx||audioCtx.state!=='running'||!level)return;
- const world=level.world;if(musicBeat!==world){musicBeat=world;musicStep=0;musicNext=audioCtx.currentTime+.03}
- const bpm=115+world*5+(level.boss?.alive?10:0),stepTime=60/bpm/4;let count=0;
- while(musicNext<audioCtx.currentTime+.14&&count++<16){
-  const step=musicStep++,t=musicNext,scale=SCALE[world],bar=(step>>4),root=world%2?38:40;
-  if(step%4===0)tone(noteFreq(root+[0,0,5,3][Math.floor(step/4)%4]),t,stepTime*3.5,'sawtooth',.018,1);
-  if(step%2===0){const pick=hash(seed^Math.imul(bar+2,0x99aabb31)^step)%scale.length;const n=60+scale[pick]+(step%8===0?0:12);tone(noteFreq(n),t,stepTime*1.5,'triangle',.014+.003*world,1.004)}
-  if(step%4===0)noiseHit(t,step%16===0);else if(step%4===2)noiseHit(t,false);
-  musicNext+=stepTime;
- }
- if(count>=16)musicNext=audioCtx.currentTime+.04;
-}
-function toggleSound(){muted=!muted;rhMusicSyncMute();if(!muted)startMusic();saveState()}
+function sound(freq=400,d=.08,type='square',vol=.075){if(muted)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(freq*.52,55),t+d);g.gain.setValueAtTime(Math.max(.0001,vol),t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 
 function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
 function die(cause='DEAD'){
@@ -1744,7 +1280,7 @@ function findHomingTarget(q){
  }
  camera+=(clamp(p.x-visibleWorldWidth()*.32,0,Math.max(0,level.totalX-visibleWorldWidth()))-camera)*Math.min(1,dt*10);
  if(Math.random()<.12&&Math.abs(p.vx)>115&&p.grounded)part(p.x,p.y+p.h,'#d3f1ff',1,.12);
- scheduleMusic();updateHud();
+ updateHud();
 }
 function polygon(points,fill){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
 function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.sky[0]);g.addColorStop(1,t.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -2130,7 +1666,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  ctx.restore();}
 function frame(time){if(!frame.prev)frame.prev=time;let dt=Math.min(.04,(time-frame.prev)/1000);frame.prev=time;
  if(mode==='playing'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level&&mode!=='survivorDraft'){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
- if(mode==='playing')scheduleMusic();if(mode!=='survivorDraft')draw();requestAnimationFrame(frame)}
+ if(mode!=='survivorDraft')draw();requestAnimationFrame(frame)}
 
 // Version 3.2: one pointer per stick, multiple pointers per action; tilt controls run speed.
 const joy=$('joystick'),knob=$('joyKnob'),moveZone=$('moveZone');
@@ -2230,7 +1766,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.a
 $('soundTiny').addEventListener('click',toggleSound);
 $('menuTiny').addEventListener('click',()=>{if(mode==='gameover'){save=null;showMenu();return}saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()});
 document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()}});
-resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();$('soundTiny').textContent=muted?'🔇':'♫';requestAnimationFrame(frame);
+resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();$('soundTiny').textContent=muted?'🔇':'🔊';requestAnimationFrame(frame);
 })();
 </script>
 </body>
