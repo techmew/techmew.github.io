@@ -1543,7 +1543,34 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  }
  if(punchTime>0){const px=p.face===1?36:-23;ctx.fillStyle=weapon().color;ctx.beginPath();ctx.arc(px,15,12,0,TAU);ctx.fill();ctx.strokeStyle='#fff9d1';ctx.lineWidth=4;ctx.beginPath();ctx.arc(px,15,18,-1.15,1.7);ctx.stroke()}
  ctx.restore()}
- for(const sl of slashes){const alpha=Math.max(0,sl.life/sl.max);ctx.fillStyle=sl.color;ctx.globalAlpha=alpha*.20;ctx.fillRect(sl.x,sl.y,sl.w,sl.h);ctx.globalAlpha=alpha;ctx.lineWidth=5;ctx.strokeStyle=sl.color;ctx.beginPath();ctx.moveTo(sl.dir>0?sl.x:sl.x+sl.w,sl.y+sl.h*.1);ctx.quadraticCurveTo(sl.x+sl.w*.5,sl.y-sl.h*.25,sl.dir>0?sl.x+sl.w:sl.x,sl.y+sl.h*.85);ctx.stroke();ctx.globalAlpha=1}
+ // RHINF_BLADE_COMBO_FX_20261024: layered weapon art and directional combo trails.
+ for(const sl of slashes){
+   const alpha=Math.max(0,sl.life/sl.max),blade=sl.kind==='arc'||sl.kind==='dagger'||sl.kind==='thrust';
+   const originX=sl.dir>0?sl.x:sl.x+sl.w,tipX=sl.dir>0?sl.x+sl.w:sl.x;
+   ctx.save();ctx.globalAlpha=alpha;ctx.lineCap='round';ctx.lineJoin='round';
+   if(blade){
+     const progress=1-alpha;
+     const cx=originX+sl.dir*Math.min(sl.w*.26,22),cy=sl.y+sl.h*.54;
+     const angle=(sl.dir>0?0:Math.PI)+(-.85+progress*1.65);
+     const length=Math.min(sl.w*.83,sl.kind==='thrust'?105:76);
+     const tipBX=cx+Math.cos(angle)*length,tipBY=cy+Math.sin(angle)*length;
+     ctx.strokeStyle='#20365e';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(tipBX,tipBY);ctx.stroke();
+     ctx.strokeStyle=sl.color;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(tipBX,tipBY);ctx.stroke();
+     ctx.strokeStyle='#ffffff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(tipBX,tipBY);ctx.stroke();
+     ctx.strokeStyle='#ffe3a0';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(cx-Math.sin(angle)*9,cy+Math.cos(angle)*9);ctx.lineTo(cx+Math.sin(angle)*9,cy-Math.cos(angle)*9);ctx.stroke();
+     ctx.strokeStyle=sl.color;ctx.shadowColor=sl.color;ctx.shadowBlur=14;ctx.lineWidth=6;
+     for(let n=0;n<(sl.kind==='dagger'?2:3);n++){
+       const offset=n*8;ctx.globalAlpha=alpha*(.9-n*.2);ctx.beginPath();
+       ctx.moveTo(originX,sl.y+sl.h*(.13+n*.08));
+       ctx.quadraticCurveTo((originX+tipX)/2,sl.y-sl.h*.25-offset,tipX,sl.y+sl.h*(.83-n*.08));ctx.stroke();
+     }
+   }else{
+     ctx.fillStyle=sl.color;ctx.globalAlpha=alpha*.18;ctx.fillRect(sl.x,sl.y,sl.w,sl.h);
+     ctx.globalAlpha=alpha;ctx.strokeStyle=sl.color;ctx.lineWidth=5;ctx.beginPath();
+     ctx.moveTo(originX,sl.y+sl.h*.1);ctx.quadraticCurveTo((originX+tipX)/2,sl.y-sl.h*.25,tipX,sl.y+sl.h*.85);ctx.stroke();
+   }
+   ctx.restore();
+ }
  for(const fx of combatFX){
    // V6.17: skip only off-screen rendering, never combat simulation.
    const fxLeft=fx.type==='bolt'?Math.min(fx.x,fx.x2):fx.x-(fx.r||0);
