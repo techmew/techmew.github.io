@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.31｜遮蔽物対応の自動照準と連続踏み表示</title>
-<meta name="game-build" content="RHINF_COVER_AWARE_AIM_V631_20261024" />
+<title>RANDOM HELL ∞ V6.32｜足場端の落下判定・被弾アニメ改善</title>
+<meta name="game-build" content="RHINF_EDGE_CONTACT_HIT_MOTION_V632_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -936,6 +936,9 @@ function rhRangedHasLineOfSight(x0,y0,x1,y1){
 // head, so a fast diagonal descent cannot tunnel through a valid stomp.
 // V6.28: swept landing detection uses the position at platform-height crossing,
 // preserving narrow moving-platform landings during high-speed diagonal descent.
+// V6.32: A swept top crossing is not a landing if Lulu has already left the ledge.
+// Keep grounded, jump stock and coyote time consistent with the final collision.
+function rhLandingContactValid(s,p){return !!s&&s.active&&p.x+p.w>s.x+2&&p.x<s.x+s.w-2}
 function rhPlatformCrossing(p,oldX,oldBottom,s){
  if(!s.active||p.vy<0||oldBottom>s.y+8||p.y+p.h<s.y)return null;
  const travelY=p.y+p.h-oldBottom;
@@ -1112,10 +1115,10 @@ function update(dt){
  // This preserves the midair jump stock and avoids losing a valid stomp to landing snap.
  const stompTarget=rhFirstStompContact(p,level.enemies,oldBottom,oldX,landingContact?.t??Infinity);
  if(stompTarget&&rhStompEnemy(p,stompTarget,oldBottom,oldX)){landing=null;landingContact=null}
+ if(landing&&!rhLandingContactValid(landing,p)){landing=null;landingContact=null}
  let bounced=false;
- if(landing && p.x+p.w>landing.x+2 && p.x<landing.x+landing.w-2){
-   // RHINF_EDGE_HURT_FIX_20261024: crossing the edge must not snap Lulu backwards.
-   // Preserve horizontal momentum and let her fall when already past the ledge.
+ if(landing){
+   // V6.32: No edge snap and no false grounded state when crossing beyond a ledge.
    p.y=landing.y-p.h;p.vy=0;
    if(landing.checkpointId>checkpointIndex){checkpointIndex=landing.checkpointId;checkpointX=landing.x+44;saveState();toast('🏁 中間地点 '+checkpointIndex+'/2 を記録',1.6);sound(890,.22,'sine');part(checkpointX,landing.y-45,'#a7ffcf',26,.7)}
    const pad=level.springPads.find(s=>s.x<p.x+p.w&&s.x+s.w>p.x&&Math.abs(s.y-landing.y)<3);
@@ -1528,7 +1531,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.respawnGlow>0){ctx.save();ctx.globalAlpha=Math.min(1,p.respawnGlow/.35)*(.55+.23*Math.sin(clock*12));ctx.strokeStyle='#84e7ff';ctx.shadowColor='#5bd7ff';ctx.shadowBlur=15;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,23+Math.sin(clock*8)*2,30+Math.sin(clock*8)*2,0,0,TAU);ctx.stroke();ctx.restore()}
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
- const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const pstate=p.grace>0&&!p.respawnGlow?'idle':punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);if(!drawRHSprite('hero',pstate,pframe,-14,-13,55,51,p.face,p.grace>0&&!p.respawnGlow)){ctx.fillStyle=p.grace>0&&!p.respawnGlow?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
+ const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;const pstate=punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);if(!drawRHSprite('hero',pstate,pframe,-14,-13,55,51,p.face,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
  // Character-following health bar, drawn above the existing V3.5 sprite.
  if(p.maxhp>0){const ratio=Math.max(0,Math.min(1,p.hp/p.maxhp));
    ctx.fillStyle='#121a30e8';ctx.fillRect(-9,-26,44,10);
