@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>RANDOM HELL ∞ V6.39｜右上プレーヤー・Spotify・Amazon Music</title>
-<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639C_20261024" />
+<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639D_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -184,6 +184,17 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 #musicServiceLink[hidden]{display:none!important}
 body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:238px!important}
 @media(orientation:landscape) and (max-height:480px){#ytDock,#rhSpotifyDock{top:3px;right:3px}body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:225px!important}}
+
+/* Keep HP, world and experience readable left of the mandatory YouTube viewport. */
+@media(max-width:700px){
+ body.rhVideoActive #hud{right:212px;gap:0}
+ body.rhVideoActive #hudLeft{width:100%;min-width:0}
+ body.rhVideoActive #hudRight{display:none}
+ body.rhVideoActive #stage{font-size:12px;line-height:1.15;overflow-wrap:anywhere}
+ body.rhVideoActive #playerHealth,body.rhVideoActive #playerXp{width:100%;max-width:100%;font-size:11px}
+ body.rhVideoActive #xpText,body.rhVideoActive #weaponStrip{white-space:normal;font-size:10px}
+ body.rhVideoActive #progressTrack{width:100%}
+}
 </style>
 </head>
 <body>
@@ -1056,7 +1067,7 @@ function rhYtNextTrack(fromEnd=false){
  if(rhYtQueue.length===1&&item.type==='spotify'&&item.id.startsWith('playlist/')){rhYtSetStatus('Spotifyプレイリスト内の曲送りは埋め込み側で操作してください');return}
  if(rhYtQueue.length===1&&item.type!=='playlist'){
   if(fromEnd){rhMusicStop();rhYtSetStatus('♫ 再生終了 · ▶で最初から再生')}
-  else rhYtSetStatus('YouTubeのおすすめ曲は取得できません。複数URLや再生リストを登録してください');
+  else rhYtSetStatus('おすすめ曲は各サービスの公式プレーヤーで選択。曲送りには複数URLを登録してください');
   return;
  }
  if(item?.type==='playlist'&&rhYtReady&&rhYtPlayer){
