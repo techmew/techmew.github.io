@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.37｜下部音楽バー・前後再生・音声BGM</title>
-<meta name="game-build" content="RHINF_BOTTOM_AUDIO_BAR_V637B_20261024" />
+<title>RANDOM HELL ∞ V6.38｜敵シールド破壊・再展開</title>
+<meta name="game-build" content="RHINF_SHIELD_BREAK_RECOVER_V638_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -463,6 +463,35 @@ function enemyDeath(e){e.alive=false;kills++;survivorGainXP(e.elite?5:e.small?1:
    level.pickups.push({x:e.x+e.w/2,y:e.y+e.h*.45,taken:false,type:'weapon',item:item(Math.random,level.difficulty)});
  }
  if(e.kind===8&&!e.small&&level.enemies.length<110){for(let d of [-1,1])level.enemies.push({...e,alive:true,small:true,hp:1,maxhp:1,w:15,h:18,x:e.x+d*18,y:e.y+9,baseY:e.y+9,kind:0,dir:d,hit:-1})}}
+// V6.38: shield durability and break window for guards and elites.
+// Stored on the enemy instance; never changes the save format or sprite assets.
+function rhGuardState(e){
+ if(!e||e.boss||!(e.kind===5||e.elite))return null;
+ if(!Number.isFinite(e.shieldMaxDurability)||e.shieldMaxDurability<=0){
+  e.shieldMaxDurability=e.elite?5:3;
+  e.shieldDurability=e.shieldMaxDurability;
+  e.shieldBreakTimer=0;
+ }
+ return e;
+}
+function rhGuardIsUp(e){
+ return !!rhGuardState(e)&&e.shieldBreakTimer<=0&&e.shieldDurability>0;
+}
+function rhGuardImpact(e,damage,sourceX){
+ if(!rhGuardIsUp(e)||!Number.isFinite(sourceX)||e.dir*(sourceX-(e.x+e.w/2))<=0)return damage;
+ const original=damage;
+ e.shieldDurability=Math.max(0,e.shieldDurability-Math.max(1,Math.ceil(original/2)));
+ e.shieldFlash=.25;
+ const sx=e.x+e.w*.5+(e.dir||1)*(e.w*.48+4),sy=e.y+e.h*.5;
+ part(sx,sy,'#c7f7ff',7,.35);
+ if(e.shieldDurability<=0){
+  e.shieldBreakTimer=e.elite?3.3:2.6;
+  e.shieldFlash=.55;
+  part(sx,sy,'#ffe5b0',22,.6);
+  sound(460,.13,'triangle');
+ }
+ return Math.max(1,Math.ceil(original*.5));
+}
 function applyHit(e,damage,id,sourceX,affix='none'){
  if(e?.airTrap){
   if(!e.alive||e.hit===id||e.hitGrace>0)return false;
@@ -472,7 +501,7 @@ function applyHit(e,damage,id,sourceX,affix='none'){
   return true;
  }
  if(!e?.alive||(e.boss&&e.active===false)||e.hit===id||e.hitGrace>0)return false;
- if(e.kind===5&&!e.boss && e.dir*(sourceX-(e.x+e.w/2))>0){damage=Math.max(1,Math.ceil(damage*.5));e.shieldFlash=.24;part(e.x+e.w*.5+e.dir*17,e.y+e.h*.5,'#c7f7ff',5,.32);}
+ damage=rhGuardImpact(e,damage,sourceX);
  e.hit=id;e.hp-=damage;e.flash=.10;
  if(affix==='fire'){e.burn=Math.max(e.burn||0,e.boss?1.2:1.8);e.burnTick=.42;part(e.x+e.w/2,e.y+e.h/2,'#ff944b',4,.35)}
  if(affix==='frost'){e.frost=Math.max(e.frost||0,e.boss?.7:1.7);part(e.x+e.w/2,e.y+e.h/2,'#98eaff',5,.32)}
@@ -1412,6 +1441,7 @@ function update(dt){
    e.burn=Math.max(0,(e.burn||0)-dt);e.frost=Math.max(0,(e.frost||0)-dt);
    if(e.burn>0){e.burnTick=(e.burnTick||0)-dt;if(e.burnTick<=0){e.burnTick=.42;applyHit(e,1,++attackId,e.x,'none');if(!e.alive)continue}}
    e.flash=Math.max(0,(e.flash||0)-dt);e.hitGrace=Math.max(0,(e.hitGrace||0)-dt);e.shieldFlash=Math.max(0,(e.shieldFlash||0)-dt);
+   if(rhGuardState(e)&&e.shieldBreakTimer>0){const was=e.shieldBreakTimer;e.shieldBreakTimer=Math.max(0,was-dt);if(was>0&&e.shieldBreakTimer===0){e.shieldDurability=e.shieldMaxDurability;e.shieldFlash=.32;part(e.x+e.w*.5+(e.dir||1)*e.w*.5,e.y+e.h*.5,'#93f3ff',12,.5)}}
    const diff=level.difficulty,near=Math.abs(e.x-p.x)<640,kind=e.kind;
    if([0,1,4,5,7,8,13,14,18,19,21,22,27].includes(kind)){if([4,14,21,27].includes(kind)){if(near&&Math.abs(e.x-p.x)<220){e.alert=(e.alert||0)+dt;if(e.alert>.44){e.charge=.27;e.dir=p.x>e.x?1:-1;e.alert=-.8}}else e.alert=0}
      e.x+=e.vx*e.dir*dt*(e.charge>0?3.6:1)*(e.frost>0?.42:1);e.charge=Math.max(0,e.charge-dt);
@@ -1788,11 +1818,12 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];const drawn=conceptName&&drawRHConceptSprite(conceptName,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1);if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
   ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
  // RHINF_GUARD_INPUT_FX_V634_20261024: directional shield in front of the guard, not a box over the sprite.
- if(e.kind===5||e.elite){ctx.save();
+ if(rhGuardIsUp(e)){ctx.save();
   const dir=e.dir||1,front=e.x+e.w*.5+dir*(e.w*.48+4),cy=e.y+e.h*.5;
   const shieldW=Math.max(9,e.w*.37),shieldH=Math.max(19,e.h*.67);
-  const flash=(e.shieldFlash||0)>0,cracked=e.hp<e.maxhp*.48;
-  ctx.globalAlpha=flash?1:.75;ctx.lineJoin='round';
+  const flash=(e.shieldFlash||0)>0,cracked=e.shieldDurability<=Math.ceil(e.shieldMaxDurability*.5);
+  const strength=e.shieldDurability/e.shieldMaxDurability;
+  ctx.globalAlpha=flash?1:(.55+.25*strength);ctx.lineJoin='round';
   ctx.beginPath();ctx.moveTo(front,cy-shieldH);
   ctx.quadraticCurveTo(front+dir*shieldW,cy-shieldH*.92,front+dir*shieldW,cy-shieldH*.35);
   ctx.lineTo(front+dir*shieldW*.86,cy+shieldH*.32);
@@ -1812,6 +1843,17 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   if(cracked){ctx.strokeStyle='#ffe4cf';ctx.lineWidth=1.5;ctx.beginPath();
    ctx.moveTo(front,cy-shieldH*.3);ctx.lineTo(front+dir*shieldW*.25,cy);
    ctx.lineTo(front-dir*shieldW*.13,cy+shieldH*.25);ctx.lineTo(front+dir*shieldW*.2,cy+shieldH*.48);ctx.stroke()}
+  // Durability pips stay attached to the shield and follow its facing direction.
+  const dots=e.shieldMaxDurability,step=Math.min(6,shieldH*.65/dots);
+  for(let i=0;i<dots;i++){ctx.fillStyle=i<e.shieldDurability?'#d4ffff':'#293953';ctx.fillRect(front+dir*shieldW*.28-2,cy+shieldH*.4-i*step,4,3)}
+  ctx.restore()}
+ else if(rhGuardState(e)&&e.shieldBreakTimer>0){
+  // Broken guard is visibly absent: faint fragments and a countdown ring instead.
+  ctx.save();const x=e.x+e.w*.5+(e.dir||1)*(e.w*.48+4),y=e.y+e.h*.5;
+  const phase=e.shieldBreakTimer/(e.elite?3.3:2.6);
+  ctx.globalAlpha=.35+.3*Math.sin(clock*12)**2;ctx.strokeStyle='#ffa6a3';ctx.lineWidth=2.3;
+  ctx.beginPath();ctx.arc(x,y,Math.max(10,e.w*.36),-Math.PI/2,-Math.PI/2+Math.PI*2*(1-phase));ctx.stroke();
+  for(let i=0;i<4;i++){const a=i*Math.PI/2+clock*1.4;ctx.fillStyle=i%2?'#d6efff':'#ffd6ad';ctx.fillRect(x+Math.cos(a)*13-2,y+Math.sin(a)*13-2,4,4)}
   ctx.restore()}
  if(e.frost>0){ctx.strokeStyle='#a9f8ff';ctx.lineWidth=2;ctx.strokeRect(e.x-2,e.y-2,e.w+4,e.h+4)}if(e.burn>0){ctx.fillStyle='#ffb15a';ctx.fillRect(e.x+e.w*.4,e.y-7,5,7)}if(e.hp>1){ctx.fillStyle='#e9fbff';ctx.fillRect(e.x,e.y-8,(e.w*e.hp/e.maxhp),3)}}
  if(level.boss?.alive){const b=level.boss;
