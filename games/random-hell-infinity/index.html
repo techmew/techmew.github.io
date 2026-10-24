@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.51｜ルルの安定描画・静かなSE</title>
-<meta name="game-build" content="RHINF_HERO_INTACT_FRAMES_SOFT_SFX_V651_20261024" />
+<title>RANDOM HELL ∞ V6.52｜進行方向カメラ・弾表示最適化</title>
+<meta name="game-build" content="RHINF_DIRECTIONAL_CAMERA_SHOT_PRIORITY_V652_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -178,8 +178,33 @@ function isPhoneGameplayViewport(){
  return Math.min(W,H)<=600 && Math.max(W,H)<=1000 &&
    (window.matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints>0);
 }
-function gameZoom(){return isPhoneGameplayViewport()?1.08:1.3}
+function gameZoom(){return isPhoneGameplayViewport()?.94:1.3}
 function visibleWorldWidth(){return W/gameZoom()}
+
+ // V6.52: Keep 24 stages and all projectiles intact; only improve camera framing and render budget.
+ function rhCameraTarget(p,worldWidth,totalX){
+   const speed=Number.isFinite(p?.vx)?p.vx:0;
+   const lead=clamp(speed*.14,-Math.min(88,worldWidth*.12),Math.min(88,worldWidth*.12));
+   return clamp(p.x-worldWidth*.32+lead,0,Math.max(0,totalX-worldWidth));
+ }
+ // Pick nearby visible projectiles rather than blindly drawing the newest 40.
+ // Physical projectiles remain unchanged, including hits, homing and lifetime.
+ function rhPriorityFriendlyShots(shots,left,right,p,maxCount=40){
+   const selected=[];
+   const px=p?.x??(left+right)*.5,py=p?.y??0;
+   for(const q of shots){
+     const r=Math.min(5.3,q.r||4);
+     if(q.x+r<left-20||q.x-r>right+20)continue;
+     const dx=q.x-px,dy=q.y-py;
+     const score=dx*dx+dy*dy;
+     if(selected.length<maxCount){selected.push({q,score});continue}
+     let worst=0;
+     for(let i=1;i<selected.length;i++)if(selected[i].score>selected[worst].score)worst=i;
+     if(score<selected[worst].score)selected[worst]={q,score};
+   }
+   return selected.map(entry=>entry.q);
+ }
+
 let seed=0,levelIndex=0,deaths=0,mode='menu',level=null,player=null,camera=0,clock=0,score=0;
 let particles=[],projectiles=[],shake=0,deathTimer=0,toastTimer=0,toastText='',winDelay=0;
 let combatFX=[],xpFloats=[],damageFlashTimer=0;
@@ -1320,7 +1345,9 @@ function findHomingTarget(q){
      if(toastTimer<=0)toast(b?.alive?'ボスを倒せ！':'出口の番人を倒せ！',.9);
    }else{best=Math.max(best,levelIndex+1);saveState();soundCue('clear');part(p.x,p.y,'#aaffd0',36,1.2);showClear();return}
  }
- camera+=(clamp(p.x-visibleWorldWidth()*.32,0,Math.max(0,level.totalX-visibleWorldWidth()))-camera)*Math.min(1,dt*10);
+ // V6.52: directional camera anticipation exposes hazards ahead of a moving Lulu.
+ // Do not change player velocity, collisions, jump physics or saved camera state.
+ camera+=(rhCameraTarget(p,visibleWorldWidth(),level.totalX)-camera)*Math.min(1,dt*8);
  if(Math.random()<.12&&Math.abs(p.vx)>115&&p.grounded){part(p.x,p.y+p.h,'#d3f1ff',1,.12);soundCue('footstep')}
  updateHud();
 }
@@ -1718,7 +1745,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const xp of xpFloats){if(xp.x<camera-100||xp.x>viewRight+100)continue;ctx.save();ctx.globalAlpha=xp.life/xp.max;ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#16213d';ctx.strokeText(xp.text,xp.x,xp.y);ctx.fillStyle='#b9f7ff';ctx.fillText(xp.text,xp.x,xp.y);ctx.restore()}
  // Even with 31 weapons equipped, render only the most recent projectiles.
  // Every projectile still exists in physics and remains capable of hitting enemies.
- for(const q of bulletsFriendly.slice(-40)){
+ for(const q of rhPriorityFriendlyShots(bulletsFriendly,camera,viewRight,player,40)){
    const r=Math.min(5.3,q.r||4);
    if(q.x+r<camera-20||q.x-r>viewRight+20)continue;
    ctx.save();ctx.globalAlpha=q.homing?.59:.47;ctx.fillStyle=q.color;ctx.shadowBlur=0;
