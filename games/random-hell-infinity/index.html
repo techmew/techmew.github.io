@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>RANDOM HELL ∞ V6.39｜右上プレーヤー・Spotify・Amazon Music</title>
-<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639_20261024" />
+<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639B_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -931,12 +931,23 @@ function rhReadYtItem(raw){
    if(id&&/^[a-zA-Z0-9_-]{11}$/.test(id))return {type:'video',id};
    return null;
   }
+  if(host==='open.spotify.com'&&u.protocol==='https:'){
+   const parts=u.pathname.split('/').filter(Boolean),ix=parts[0]?.startsWith('intl-')?1:0;
+   const type=parts[ix],id=parts[ix+1];
+   if(['track','playlist','album','artist','episode','show'].includes(type)&&/^[A-Za-z0-9]{22}$/.test(id))return {type:'spotify',id:type+'/'+id,url:'https://open.spotify.com/'+type+'/'+id,title:'Spotify '+type};
+  }
+  if(u.protocol==='https:'&&/^music\.amazon\.(?:co\.jp|com|co\.uk|de|fr|it|es|ca|com\.au|in)$/.test(host))return {type:'amazon',id:u.href,title:'Amazon Music'};
   if(u.protocol==='https:'&&/\.(?:mp3|ogg|m4a|aac|wav|opus)(?:$|[?#])/i.test(s))return {type:'audio',id:s,title:u.pathname.split('/').pop()};
  }catch(_){}
  return null;
 }
 function rhYtSelected(){return rhYtQueue.length?rhYtQueue[rhYtIndex%rhYtQueue.length]:null}
 function rhYtSetStatus(msg){$('ytStatus').textContent=msg;$('musicStatus').textContent=msg}
+function rhSetProviderLink(item){
+ const a=$('musicServiceLink'),url=item?.type==='amazon'?item.id:item?.type==='spotify'?item.url:null;
+ if(!url){a.hidden=true;a.removeAttribute('href');return}
+ a.href=url;a.textContent=item.type==='amazon'?'Amazon Musicで再生':'Spotifyで開く';a.hidden=false;
+}
 function rhUpdateMuteUI(){$('musicMute').textContent=muted?'🔇':'♫';$('soundTiny').textContent=muted?'🔇':'♫'}
 function rhYtShow(){
  const dock=$('ytDock');dock.classList.remove('ytHidden');
@@ -954,10 +965,16 @@ function rhStopAudio(){if(!rhAudioEl)return;rhAudioEl.pause();rhAudioEl.removeAt
 function rhYtLoadCurrent(){
  const item=rhYtSelected();if(!item)return;
  rhStopAudio();rhMusicPaused=false;rhMusicStopped=false;
+ rhSetProviderLink(item);
+ if(item.type==='amazon'){
+  rhYtWanted=true;try{rhYtPlayer?.stopVideo()}catch(_){}
+  $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
+  rhYtSetStatus('♫ Amazon Music · 公式アプリで再生（リンクを押してください）');return;
+ }
  if(item.type==='audio'){
   rhYtWanted=true;
   try{rhYtPlayer?.stopVideo()}catch(_){}
-  $('ytDock').classList.add('ytHidden');
+  $('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');
   const a=rhEnsureAudio();a.src=item.id;a.volume=muted?0:rhAudioVolume/100;
   rhYtSetStatus('♫ '+(item.title||'音声ファイル')+' · '+(rhYtIndex+1)+'/'+rhYtQueue.length);
   a.play().catch(()=>{rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('再生できません。▶ を押して再試行してください')});
@@ -1080,7 +1097,7 @@ function rhStartYtWithGame(){
  rhYtIndex=0;rhMusicPaused=false;rhMusicStopped=false;
  $('musicBar').classList.add('musicActive');
  $('musicVolume').value=String(rhAudioVolume);rhUpdateMuteUI();
- if(!rhYtQueue.length){rhYtWanted=false;$('ytDock').classList.add('ytHidden');rhYtSetStatus('♫ ゲーム内BGM · URL未登録');return false}
+ if(!rhYtQueue.length){rhYtWanted=false;rhSetProviderLink(null);$('ytDock').classList.add('ytHidden');document.body.classList.remove('rhVideoActive');rhYtSetStatus('♫ ゲーム内BGM · URL未登録');return false}
  rhYtLoadCurrent();return true;
 }
 function rhMusicSetVolume(v){
