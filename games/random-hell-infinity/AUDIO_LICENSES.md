@@ -1,22 +1,23 @@
-# RANDOM HELL ∞ — Licensed sound sources
+# RANDOM HELL ∞ — Audio licenses (V6.49)
+All selections are CC0 1.0; attribution is voluntarily retained here. Audio-only improvements; no asset is bundled from streaming services. Direct audio is streamed from the original public file servers, with fallbacks where defined.
 
-All selected assets are CC0 1.0 (public domain), independently verified from the authors/packs.
-Audio files are streamed as direct raw.githubusercontent.com URLs; this is not a YouTube/Spotify music player.
-Web browsers will start BGM on the first user gesture. Existing sound switch mutes BGM and SFX together.
-Remote file availability is an external dependency; playback failure never blocks game logic.
+## Music (CC0)
+- iamoneabe — Dark Things Loop: https://opengameart.org/content/dark-things-loop
+- vitalezzz — Virtual Rush (loop): https://opengameart.org/content/virtual-rush
+- glitchart — Claimed by the Void, New Factory, AI Fight and Simulation Unknown (mix): https://opengameart.org/content/claimed-by-the-void-new-factory-ai-fight-and-simulation-unknown-vitalezzz-vs-tricksntraps
+- tricksntraps / Alexander Ehlers — T & T Free Cyberpunk Pack 2 (Electric Stream, New Factory, System Overload, AI Fight): https://opengameart.org/content/t-t-free-cyberpunk-pack-2
+- tricksntraps / Alexander Ehlers — T & T Free Cyberpunk Pack (Experiment G): https://opengameart.org/content/t-t-free-cyberpunk-pack
+- vitalezzz — Silver Bullet: https://opengameart.org/content/silver-bullet
+- HydroGene — JRPG Epic Rock Battle Theme #1 (loop): https://opengameart.org/content/jrpg-epic-rock-battle-theme-1
+- Legacy fallback: source repositories already used in V6.48: https://github.com/tegnike/aozora-islands and https://github.com/blancmathis/Super_Bash_Folds (CC0 assets).
 
-## BGM
-* qubodup — Two Simple Game Music Loops, CC0. Menu and battle. https://opengameart.org/ ; verified at https://github.com/blancmathis/Super_Bash_Folds/blob/main/public/assets/audio/LICENSES.md
-* Memoraphile — Spooky Dungeon (8-bit), CC0. https://opengameart.org/content/spooky-dungeon
-* Juhani Junkala — Epic Boss Battle, CC0. https://opengameart.org/content/boss-battle-music
-* pmiller — Chiptune Battle Music, CC0. https://opengameart.org/content/chiptune-battle-music
-* HydroGene — JRPG Epic Rock Battle Theme #1, CC0. https://opengameart.org/content/jrpg-epic-rock-battle-theme-1
-* wipics — Menu Music, CC0. https://opengameart.org/content/menu-music-1
-  Verifications: https://github.com/jarlah/dungeon-haskell/blob/master/assets/CREDITS.md and https://github.com/tegnike/aozora-islands/blob/main/src/assets/audio/README.md
+## Sound effects (CC0)
+- Kenney — RPG Audio, Sci-Fi Sounds, Impact Sounds, Interface Sounds, and samples.
+- Public file mirrors: https://github.com/Mcamento8/open-game-sfx-index and https://github.com/blancmathis/Super_Bash_Folds
+- Kenney original: https://kenney.nl/assets
+- Exact per-event source URLs appear in audio-v647.js, key `bank`; variants used for combat layering and low-frequency impacts.
+- No external user music player or video embed.
 
-## SFX
-* Kenney — Impact Sounds, Interface Sounds, RPG Audio, Sci-Fi Sounds and Music Jingles. CC0 1.0. https://kenney.nl/assets/category:Audio
-* Verified CC0 mirror/catalogue: https://github.com/Mcamento8/open-game-sfx-index/blob/main/ATTRIBUTION.md
-* Selected game-ready names are defined in audio-v647.js under the bank object; source filenames are preserved in URLs.
-
-No assets from the user's former music-player feature, nor any copyrighted commercial game soundtrack, are used.
+## Operational
+Music begins after user interaction (browser autoplay rules). Four-voice pool for frequent hit/attack sounds; 2 for others, per-event cooldowns, music side-chain ducking, 950–1150ms crossfades, autoplay/visibility control, and URL fallback.
+Pages may cache audio. Playback verification requires a browser with audio decoding and access to the external audio hosts.

@@ -1,138 +1,204 @@
-/* RANDOM HELL infinity V6.48 - licensed real BGM and SFX (CC0), no user music player. */
+/* RANDOM HELL ∞ V6.49 / Audio direction: industrial synth, dark rock, weighty impacts.
+   All upstream assets CC0; sources and licenses recorded in AUDIO_LICENSES.md.
+   BGM is streamed (no user music player); internal transitions are seamless crossfades. */
 (()=>{
 'use strict';
+const O='https://opengameart.org/sites/default/files/';
 const K='https://raw.githubusercontent.com/blancmathis/Super_Bash_Folds/main/public/assets/audio/open/';
 const C='https://raw.githubusercontent.com/Mcamento8/open-game-sfx-index/main/audio/';
-const D='https://raw.githubusercontent.com/jarlah/dungeon-haskell/master/assets/';
 const A='https://raw.githubusercontent.com/tegnike/aozora-islands/main/src/assets/audio/';
+const legacy=A+'battle_music_final_loop.mp3';
 const tracks={
- menu:[K+'music/menu-loop.ogg',A+'menu_music_loop.ogg'],
- gameover:[D+'music/theme.ogg',K+'music/menu-loop.ogg'],
- world0:[K+'music/battle-loop.ogg',D+'music/theme.ogg'],
- world1:[D+'music/theme.ogg',K+'music/battle-loop.ogg'],
- world2:[A+'battle_music_01-loop.ogg',K+'music/battle-loop.ogg'],
- world3:[K+'music/battle-loop.ogg',A+'battle_music_01-loop.ogg'],
- world4:[A+'battle_music_01-loop.ogg',D+'music/theme.ogg'],
- world5:[D+'music/theme.ogg',A+'battle_music_01-loop.ogg'],
- world6:[K+'music/battle-loop.ogg',D+'music/theme.ogg'],
- world7:[A+'battle_music_final_loop.mp3',A+'battle_music_01-loop.ogg'],
- boss:[D+'music/boss.ogg',A+'battle_music_final_loop.mp3'],
- finalboss:[A+'battle_music_final_loop.mp3',D+'music/boss.ogg']
+ menu:[O+'dark_things_loop_0.mp3',O+'claimed_by_the_void_mix_0.ogg',K+'music/menu-loop.ogg',legacy],
+ gameover:[O+'dark_things_loop_0.mp3',K+'music/menu-loop.ogg',legacy],
+ world0:[O+'virtual_rush_loop_0.mp3',A+'battle_music_01-loop.ogg',legacy],
+ world1:[O+'claimed_by_the_void_mix_0.ogg',O+'virtual_rush_loop_0.mp3',legacy],
+ world2:[O+'electric_stream_180bpm.ogg',O+'virtual_rush_loop_0.mp3',legacy],
+ world3:[O+'new_factory_129bpm_0.ogg',O+'claimed_by_the_void_mix_0.ogg',legacy],
+ world4:[O+'Experiment%20G.ogg',O+'virtual_rush_loop_0.mp3',legacy],
+ world5:[O+'system_overload_154bpm.ogg',O+'electric_stream_180bpm.ogg',legacy],
+ world6:[O+'ai_fight_120bpm.ogg',O+'virtual_rush_loop_0.mp3',legacy],
+ world7:[O+'virtual_rush_loop_0.mp3',A+'battle_music_final_loop.mp3'],
+ boss:[O+'silver_bullet.ogg',O+'jrpg_battle_loop.mp3',legacy],
+ finalboss:[O+'jrpg_battle_loop.mp3',O+'silver_bullet.ogg',legacy]
 };
 const bank={
  menu:K+'sfx/menu-move.ogg',confirm:K+'sfx/menu-confirm.ogg',back:K+'sfx/menu-back.ogg',
  stage:K+'sfx/ready.ogg',clear:K+'sfx/game-set.ogg',gameover:K+'sfx/ko.ogg',
- jump:K+'sfx/ledge.ogg',doublejump:K+'sfx/dodge.ogg',land:K+'sfx/land.ogg',
+ jump:K+'sfx/dodge.ogg',doublejump:K+'sfx/respawn.ogg',land:K+'sfx/land.ogg',
  dash:K+'sfx/dodge.ogg',footstep:C+'rpg-audio/footstep00.ogg',
  sword:C+'rpg-audio/knifeSlice.ogg',dagger:C+'rpg-audio/knifeSlice2.ogg',
- heavy:C+'rpg-audio/chop.ogg',magic:C+'sci-fi-sounds/forceField_000.ogg',
- laser:C+'sci-fi-sounds/laserSmall_000.ogg',
- cannon:C+'sci-fi-sounds/explosionCrunch_000.ogg',projectile:K+'sfx/projectile.ogg',
+ heavy:C+'sci-fi-sounds/impactMetal_002.ogg',magic:C+'sci-fi-sounds/forceField_000.ogg',
+ laser:C+'sci-fi-sounds/laserRetro_002.ogg',
+ cannon:C+'sci-fi-sounds/explosionCrunch_002.ogg',projectile:K+'sfx/projectile.ogg',
  hit:K+'sfx/hit-light.ogg',heavyhit:K+'sfx/hit-heavy.ogg',enemydeath:K+'sfx/hit-medium.ogg',
- bosshit:C+'sci-fi-sounds/impactMetal_000.ogg',bossphase:C+'sci-fi-sounds/forceField_001.ogg',
+ bosshit:C+'sci-fi-sounds/impactMetal_001.ogg',bossphase:C+'sci-fi-sounds/forceField_002.ogg',
  bossenter:C+'sci-fi-sounds/lowFrequency_explosion_000.ogg',
  bossswing:C+'sci-fi-sounds/laserLarge_000.ogg',
  bossdefeat:K+'sfx/game-set.ogg',hurt:K+'sfx/hit-heavy.ogg',
- death:C+'music-jingles/jingles_HIT15.ogg',shield:K+'sfx/shield.ogg',
+ death:K+'sfx/ko.ogg',shield:K+'sfx/shield.ogg',
  shieldbreak:K+'sfx/shield-break.ogg',stomp:K+'sfx/hit-medium.ogg',
  spring:K+'sfx/dodge.ogg',coin:K+'sfx/item-pickup.ogg',
  weaponpickup:K+'sfx/item-spawn.ogg',relic:K+'sfx/item-pickup.ogg',
- heal:K+'sfx/shield.ogg',levelup:C+'music-jingles/jingles_NES09.ogg',
- checkpoint:K+'sfx/ready.ogg',combo:C+'music-jingles/jingles_HIT08.ogg'
+ heal:K+'sfx/shield.ogg',levelup:K+'sfx/ready.ogg',
+ checkpoint:K+'sfx/ready.ogg',combo:K+'sfx/hit-heavy.ogg',
+ impactbass:C+'sci-fi-sounds/lowFrequency_explosion_001.ogg',
+ bladeedge:C+'rpg-audio/knifeSlice2.ogg',
+ metalimpact:C+'sci-fi-sounds/impactMetal_003.ogg'
 };
-const gains={footstep:.12,hit:.27,sword:.38,dagger:.30,laser:.24,projectile:.20,
- cannon:.38,heavyhit:.31,enemydeath:.26,land:.21,menu:.24,confirm:.42,
- jump:.26,doublejump:.30,bosshit:.28,gameover:.55,levelup:.46};
-const intervals={hit:50,heavyhit:85,footstep:260,sword:85,dagger:65,laser:90,
- projectile:100,bosshit:100,enemydeath:100,menu:110,combo:240,
- cannon:150,land:120,shield:170,coin:75,bossswing:220};
-const voices=new Map(),lastAt=new Map(),failed=new Set();
-let duckTimer=null;function duckMusic(){if(!bgm||muted)return;const node=bgm;node.volume=.105;if(duckTimer)clearTimeout(duckTimer);duckTimer=setTimeout(()=>{if(bgm===node)node.volume=.23;duckTimer=null},650)}
-let unlocked=false,muted=false,kind='',bgm=null,bgmSources=[],bgmAttempt=0,hidden=document.hidden;
-const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
-function startMusic(){
- if(!unlocked||muted||hidden||!bgm)return;
- const play=bgm.play();
- if(play&&typeof play.catch==='function')play.catch(()=>{});
+const volumes={menu:.16,confirm:.28,back:.20,stage:.29,clear:.45,gameover:.40,
+ jump:.19,doublejump:.27,land:.13,dash:.22,footstep:.065,
+ sword:.34,dagger:.30,heavy:.41,magic:.22,laser:.25,cannon:.50,projectile:.19,
+ hit:.24,heavyhit:.38,enemydeath:.25,bosshit:.42,bossphase:.42,bossenter:.47,
+ bossswing:.29,bossdefeat:.53,hurt:.48,death:.54,shield:.30,shieldbreak:.41,
+ stomp:.32,spring:.25,coin:.19,weaponpickup:.29,relic:.27,heal:.29,
+ levelup:.36,checkpoint:.28,combo:.32,impactbass:.23,bladeedge:.13,metalimpact:.24};
+const cooldown={menu:120,confirm:130,footstep:280,jump:150,doublejump:180,
+ sword:60,dagger:55,laser:85,projectile:100,hit:50,heavyhit:70,
+ bosshit:90,cannon:120,combo:260,impactbass:130,bladeedge:120,
+ land:130,bossenter:800,bossphase:700,death:500,levelup:400};
+const duckEvents=new Set(['heavyhit','bosshit','bossenter','bossphase','bossdefeat','cannon','hurt','death','clear','levelup']);
+const voices=new Map(),lastAt=new Map(),failed=new Set(),musicFallbacks=new Set();
+let unlocked=false,muted=false,hidden=document.hidden,kind='',active=null,outgoing=[];
+let duckUntil=0,duckStrength=1,activeTick=0;
+const now=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now();
+function volumeFor(name){return name==='menu'?.15:name==='gameover'?.115:name==='boss'||name==='finalboss'?.195:.175}
+function stop(node){if(!node)return;try{node.pause();node.removeAttribute('src');node.load()}catch(_){}}
+function play(record){
+ if(!record||record!==active||!unlocked||muted||hidden||record.pending||!record.node)return;
+ const n=record.node;record.pending=true;
+ try{
+  const result=n.play();
+  if(result&&result.then)result.then(()=>{record.pending=false}).catch(err=>{
+   record.pending=false;
+   if(err?.name==='NotSupportedError'||err?.name==='NotFoundError')fallback(record);
+  });
+  else record.pending=false;
+ }catch(err){
+  record.pending=false;
+  if(err?.name==='NotSupportedError')fallback(record);
+ }
+}
+function fallback(record){
+ if(record!==active)return;
+ musicFallbacks.add(record.name+':'+record.index);
+ stop(record.node);record.node=null;record.pending=false;
+ selectMusicSource(record,record.index+1);
+}
+function selectMusicSource(record,index){
+ if(record!==active)return;
+ if(index>=record.sources.length){record.node=null;return}
+ record.index=index;record.startedAt=now();record.pending=false;
+ const src=record.sources[index];
+ const n=new Audio();record.node=n;n.loop=true;n.preload='auto';n.volume=0;
+ n.addEventListener('error',()=>{if(active===record&&record.node===n)fallback(record)},{once:true});
+ n.addEventListener('canplay',()=>{if(active===record&&record.node===n)play(record)},{once:true});
+ n.src=src;
+ play(record);
+ // A slow/unreachable CDN must not leave a silent stage indefinitely.
+ setTimeout(()=>{if(active===record&&record.node===n&&n.readyState<2)fallback(record)},8000);
 }
 function loadMusic(name){
  if(name===kind)return;
- if(bgm){bgm.pause();bgm.removeAttribute('src');bgm.load();bgm=null}
- kind=name;bgmSources=[...(tracks[name]||tracks.menu)];if(!bgmSources.some(url=>url.endsWith('.mp3')))bgmSources.push(A+'battle_music_final_loop.mp3');bgmAttempt=0;
- function next(){
-  if(bgmAttempt>=bgmSources.length){bgm=null;return}
-  const index=bgmAttempt++;
-  const node=new Audio();
-  bgm=node;node.loop=true;node.preload='auto';node.volume=.23;
-  node.addEventListener('error',()=>{
-   if(node!==bgm)return;
-   node.pause();node.removeAttribute('src');node.load();next();
-  },{once:true});
-  node.src=bgmSources[index];
-  startMusic();
+ const stamp=now();
+ kind=name;
+ if(active?.node){
+  outgoing.push({node:active.node,from:active.node.volume,start:stamp});
+  if(outgoing.length>2){stop(outgoing.shift().node)}
  }
- next();
+ const sources=tracks[name]||tracks.menu;
+ active={name,sources,index:-1,startedAt:stamp,pending:false,node:null};
+ selectMusicSource(active,0);
+}
+function tick(){
+ const t=now(),factor=t<duckUntil?duckStrength:1;
+ if(active?.node){
+  if(unlocked&&!muted&&!hidden&&active.node.paused&&!active.pending&&active.node.readyState>=2)play(active);
+  const rise=Math.max(0,Math.min(1,(t-active.startedAt)/1150));
+  const vol=muted||hidden?0:volumeFor(kind)*rise*factor;
+  active.node.volume=Math.max(0,Math.min(1,vol));
+ }
+ const keep=[];
+ for(const item of outgoing){
+  const fade=Math.max(0,1-(t-item.start)/950);
+  if(fade<=0){stop(item.node);continue}
+  item.node.volume=muted||hidden?0:Math.max(0,Math.min(1,item.from*fade*factor));
+  keep.push(item);
+ }
+ outgoing=keep;
 }
 function sync(mode,world,boss){
  let next='menu';
- if(mode==='survivorDraft')return;
+ if(mode==='survivorDraft'){tick();return}
  if(mode==='gameover')next='gameover';
- else if(mode==='playing'||mode==='dying'){
-  next=boss?(world===7?'finalboss':'boss'):'world'+Math.min(7,Math.max(0,Number(world)||0));
- }
- else if(mode==='clear')next='menu';
- loadMusic(next);
+ else if(mode==='playing'||mode==='dying')next=boss?(world===7?'finalboss':'boss'):'world'+Math.min(7,Math.max(0,Number(world)||0));
+ loadMusic(next);tick();
+}
+function resume(){
+ if(muted||hidden)return;
+ if(active)play(active);
+ for(const v of outgoing)if(v.node?.paused){try{const r=v.node.play();r?.catch?.(()=>{})}catch(_){}}
+ tick();
 }
 function unlock(){
- if(unlocked){startMusic();return}
- unlocked=true;
- for(const key of ['sword','hit','jump','coin','laser','confirm'])warm(key);
- startMusic();
+ if(!unlocked){unlocked=true;for(const key of ['sword','hit','jump','laser','heavyhit','confirm','cannon','bladeedge'])warm(key)}
+ resume();
 }
-function setMuted(value){
- muted=!!value;
- if(muted){if(bgm)bgm.pause();for(const pool of voices.values())for(const node of pool)node.pause()}
- else startMusic();
+function setMuted(v){
+ muted=!!v;
+ if(muted){active?.node?.pause();for(const item of outgoing)item.node.pause();for(const pool of voices.values())for(const node of pool.items)node.pause()}
+ else resume();
+ tick();
 }
 function warm(name){
  if(voices.has(name)||!bank[name])return;
- const arr=[];
- for(let i=0;i<3;i++){
-  const node=new Audio();
-  node.preload=i===0?'auto':'none';
-  node.src=bank[name];node.volume=0;
-  node.addEventListener('error',()=>failed.add(name),{once:true});
-  arr.push(node);
+ const items=[];
+ const count=['hit','sword','dagger','laser','heavyhit','bosshit'].includes(name)?4:2;
+ for(let i=0;i<count;i++){
+  const n=new Audio();n.src=bank[name];n.preload=i===0?'auto':'none';
+  n.addEventListener('error',()=>failed.add(name),{once:true});
+  items.push(n);
  }
- arr.index=0;voices.set(name,arr);
+ voices.set(name,{items,index:0});
 }
-function cue(name,gain=1){
- if(!unlocked||muted||hidden||!bank[name]||failed.has(name))return false;
- const tick=now();
- if(tick-(lastAt.get(name)||-Infinity)<(intervals[name]||55))return true;
- lastAt.set(name,tick);warm(name);if(['bossenter','bossphase','bossdefeat','death','clear','levelup'].includes(name))duckMusic();
+function playSample(name,intensity){
+ if(!bank[name]||failed.has(name))return false;
+ const t=now();
+ if(t-(lastAt.get(name)??-Infinity)<(cooldown[name]??65))return true;
+ lastAt.set(name,t);warm(name);
  const pool=voices.get(name);
- let clip=pool.find(a=>a.paused||a.ended);
- if(!clip){clip=pool[pool.index];pool.index=(pool.index+1)%pool.length;clip.pause()}
+ let n=pool.items.find(item=>item.paused||item.ended);
+ if(!n){n=pool.items[pool.index];pool.index=(pool.index+1)%pool.items.length;n.pause()}
  try{
-  clip.currentTime=0;clip.volume=Math.max(0,Math.min(1,(gains[name]||.35)*gain));
-  const playing=clip.play();
-  if(playing&&typeof playing.catch==='function')playing.catch(e=>{if(e?.name==='NotSupportedError'||e?.name==='NotFoundError')failed.add(name)});
+  n.currentTime=0;n.volume=Math.max(0,Math.min(1,(volumes[name]??.26)*intensity));
+  const r=n.play();
+  r?.catch?.(e=>{if(e?.name==='NotSupportedError'||e?.name==='NotFoundError')failed.add(name)});
   return true;
- }catch(_){failed.add(name);return false}
+ }catch(e){if(e?.name==='NotSupportedError')failed.add(name);return false}
+}
+function cue(name,intensity=1){
+ if(!unlocked||muted||hidden||!bank[name])return false;
+ const ok=playSample(name,intensity);
+ if(duckEvents.has(name)){duckUntil=now()+(name==='bossenter'?750:360);duckStrength=name==='bossenter'?.40:.67}
+ // A short metallic transient and a quiet low-frequency impact make hits tactile,
+ // without raising the average mix into clipping or adding arcade jingles.
+ if(name==='sword'&&ok&&Math.random()<.30)playSample('bladeedge',.38);
+ if(name==='heavyhit'||name==='bosshit'||name==='cannon'){if(ok)playSample('impactbass',name==='cannon'?.72:.42)}
+ if(name==='shieldbreak'||name==='bossphase'){if(ok)playSample('metalimpact',.5)}
+ tick();return ok;
 }
 document.addEventListener('pointerdown',unlock,{capture:true,passive:true});
 document.addEventListener('keydown',unlock,{capture:true});
-document.addEventListener('click',e=>{
- if(e.target?.closest?.('button:not(#punch):not(#jump):not(#soundTiny)'))cue('confirm');
-},{capture:true});
+document.addEventListener('click',e=>{if(e.target?.closest?.('button:not(#punch):not(#jump):not(#soundTiny)'))cue('confirm')},{capture:true});
 document.addEventListener('visibilitychange',()=>{
  hidden=document.hidden;
- if(hidden){if(bgm)bgm.pause()}
- else startMusic();
+ if(hidden){active?.node?.pause();for(const item of outgoing)item.node.pause()}
+ else resume();
 });
-window.addEventListener('pagehide',()=>{if(bgm)bgm.pause()});
-window.addEventListener('pageshow',()=>startMusic());
-window.RH_AUDIO={sync,unlock,setMuted,cue,
- sources:{tracks,bank},getState:()=>({unlocked,muted,kind,track:bgm?.src||'',failed:[...failed]})};
+window.addEventListener('pagehide',()=>{active?.node?.pause();for(const item of outgoing)item.node.pause()});
+window.addEventListener('pageshow',()=>resume());
+window.RH_AUDIO={sync,unlock,setMuted,cue,sources:{tracks,bank},getState:()=>({
+ unlocked,muted,kind,track:active?.node?.src||'',sourceIndex:active?.index??-1,failed:[...failed],
+ fallbacks:[...musicFallbacks],fadeCount:outgoing.length,ducking:now()<duckUntil
+})};
 })();
