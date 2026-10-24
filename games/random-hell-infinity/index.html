@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.45｜ドット絵比率・盾騎士と連撃演出</title>
-<meta name="game-build" content="RHINF_USER_ART_ASPECT_GUARD_V645_20261024" />
+<title>RANDOM HELL ∞ V6.46｜旧ルル復帰・敵比率補正・連続攻撃修正</title>
+<meta name="game-build" content="RHINF_PREVIOUS_HERO_ENEMY_ASPECT_COMBO_V646_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -367,6 +367,10 @@ function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
 // Survivor-style upgrade draft. Kept separate from stage and checkpoint progression.
 let survivorXP=0,survivorLevel=1,survivorPending=0;
 let autoWeaponCooldowns=[];
+// V6.46: Non-persistent chain counter, independent of kill combo and save schema.
+let rhAttackChain=0,rhAttackChainTimer=0;
+const rhMeleeKinds=new Set(['melee','arc','dagger','thrust','smash','whip','katana','axe','cyclone','twinslash','lancesweep','earthquake']);
+function rhAttackCadence(w,it){const ranged=!rhMeleeKinds.has(w.type);return Math.max(.10,Math.min(1.25,w.cd*(ranged?1.55:.64))/(weaponCadenceMultiplier(it.tier)*(hasRelic('core')?1.2:1)*(it.affix==='echo'?1.12:1)))}
 // V6.30: transient per-weapon aim lock prevents target flicker between nearby enemies.
 let autoAimTargets=[];
 const survivorWeapons=WEAPONS.filter(w=>w.id!=='fist').map(w=>w.id);
@@ -821,7 +825,7 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${attackHeld?'連射中':'押して発射'}`;
  $('weaponStrip').innerHTML=`⚔ 装備${loadout.length}種 <small>最高Lv.${Math.max(1,...loadout.map(it=>masteryLevel(it.tier)))}/${WEAPON_MASTERY_MAX}　攻撃長押しで一斉発射</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
- $('comboState').textContent=[combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'',stompChain>1&&stompChainTimer>0?`STOMP ×${stompChain} · ${stompChainTimer.toFixed(1)}s`:''].filter(Boolean).join('  ｜  ');
+ $('comboState').textContent=[rhAttackChain>1?`連撃 ×${rhAttackChain}`:'',combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'',stompChain>1&&stompChainTimer>0?`STOMP ×${stompChain} · ${stompChainTimer.toFixed(1)}s`:''].filter(Boolean).join('  ｜  ');
  $('bossState').textContent=level.boss&&level.boss.alive?(level.boss.active?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===3?'狂暴':level.boss.phase===2?'覚醒':'戦闘中'}】`:`⚠ ${level.world+1}-3 ボス戦が待っている`):level.enemies.some(e=>e.guardian&&e.alive)?'🔒 番人を倒して出口を開け！':'';
  $('bossBar').style.display=level.boss?.alive&&level.boss.active?'block':'none';if(level.boss)$('bossFill').style.width=Math.max(0,level.boss.hp/level.boss.maxhp*100)+'%';
  $('progressFill').style.width=clamp((player?.x||0)/level.goalX*100,0,100)+'%';
@@ -1044,10 +1048,10 @@ function autoWeaponFire(dt,fireRequested=false){
    // When there is no target, launch attacks in the facing direction instead of firing invisibly.
    // Only a real attack press may enter this firing branch.
    // No Lv.19 plateau: cooldown improves smoothly until weapon Lv.99.
-   autoWeaponCooldowns[i]=Math.max(.15,Math.max(.28,w.cd*2.8)/weaponCadenceMultiplier(it.tier));
+   autoWeaponCooldowns[i]=rhAttackCadence(w,it);
    const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime,oldVx=p.vx;
    try{activeSlot=i;if(target)p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack(target,true)}
-   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=oldPunchTime;p.vx=oldVx}
+   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=Math.max(oldPunchTime,i===0?Math.min(.18,autoWeaponCooldowns[i]*.92):0);p.vx=oldVx;if(i===0){rhAttackChain=rhAttackChainTimer>0?Math.min(99,rhAttackChain+1):1;rhAttackChainTimer=.85}}
  }
  // Bound on-screen projectile work in extreme multi-weapon builds.
  if(bulletsFriendly.length>320)bulletsFriendly.splice(0,bulletsFriendly.length-320);
@@ -1127,7 +1131,8 @@ function update(dt){
    if(riding){p.x+=s.x-previousX;p.y+=s.y-previousY}
  }
  const oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
- p.grace=Math.max(0,p.grace-dt);p.jumpMinHold=Math.max(0,(p.jumpMinHold||0)-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
+ p.grace=Math.max(0,p.grace-dt);p.jumpMinHold=Math.max(0,(p.jumpMinHold||0)-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);rhAttackChainTimer=Math.max(0,rhAttackChainTimer-dt);if(rhAttackChainTimer===0)rhAttackChain=0;
+ punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
  if(stompChainTimer>0){stompChainTimer=Math.max(0,stompChainTimer-dt);if(stompChainTimer===0)stompChain=0}
  const keyDir=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),raw=Math.abs(joyX)>.035?joyX:keyDir;
@@ -1602,7 +1607,8 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];const userFrame=rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart,e);const drawn=(userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1))||(conceptName&&drawRHConceptSprite(conceptName,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1));if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];// Keep shield-knight artwork; other enemies use their original, aspect-safe pixel animations.
+ const userFrame=e.kind===5?rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart,e):null;const drawn=userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1);if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
   ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
  // RHINF_GUARD_INPUT_FX_V634_20261024: directional shield in front of the guard, not a box over the sprite.
  if(rhGuardIsUp(e)){ctx.save();
@@ -1681,7 +1687,8 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.respawnGlow>0){ctx.save();ctx.globalAlpha=Math.min(1,p.respawnGlow/.35)*(.55+.23*Math.sin(clock*12));ctx.strokeStyle='#84e7ff';ctx.shadowColor='#5bd7ff';ctx.shadowBlur=15;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,23+Math.sin(clock*8)*2,30+Math.sin(clock*8)*2,0,0,TAU);ctx.stroke();ctx.restore()}
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
- const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;const pstate=punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);const rhHeroKey=rhUserHeroFrame(pstate,pframe,p.vy);const rhHeroBig=pstate==='attack'||pstate==='shoot';const rhHeroDrawn=drawRHUserArt(rhHeroKey,rhHeroBig?-29:-14,rhHeroBig?-17:-13,rhHeroBig?86:55,rhHeroBig?55:51,p.face,hurtFlash?.68:1);if(!rhHeroDrawn&&!drawRHSprite('hero',pstate,pframe,-14,-13,55,51,p.face,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
+ const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;const pstate=punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);// Restore the pre-import Lulu sprite with silver hair, star pin and blue scarf.
+ if(!drawRHSprite('hero',pstate,pframe,-14,-13,55,51,p.face,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
  // Character-following health bar, drawn above the existing V3.5 sprite.
  if(p.maxhp>0){const ratio=Math.max(0,Math.min(1,p.hp/p.maxhp));
    ctx.fillStyle='#121a30e8';ctx.fillRect(-9,-26,44,10);
