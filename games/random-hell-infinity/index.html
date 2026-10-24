@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.47｜CC0 BGM・本格効果音</title>
-<meta name="game-build" content="RHINF_AUDIO_CC0_WORLD_BOSS_SFX_V647_20261024" />
+<title>RANDOM HELL ∞ V6.48｜音声互換・連撃SE・ボス演出</title>
+<meta name="game-build" content="RHINF_AUDIO_MP3_FALLBACK_DUCKING_COMBO_V648_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -144,7 +144,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-boss.js"></script>
 <script src="./concept-mini-v634.js"></script>
 <script src="./rhinf-user-art-v644.js"></script>
-<script src="./audio-v647.js"></script>
+<script src="./audio-v647.js?v=648"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -838,7 +838,7 @@ try{localStorage.removeItem('randomHellYouTubeBGM');localStorage.removeItem('ran
 function toggleSound(){muted=!muted;window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';saveState()}
 
 function soundCue(name){if(window.RH_AUDIO?.cue(name))return;const freq=name==='hit'?250:name==='jump'?520:name==='clear'?920:380;sound(freq,.09,'triangle',.035)}
-function rhWeaponSound(type){if(['melee','arc','katana','twinslash','lancesweep','axe','whip'].includes(type))return 'sword';if(type==='dagger')return 'dagger';if(['smash','earthquake'].includes(type))return 'heavy';if(['cannon','meteor'].includes(type))return 'cannon';if(['laser','needles','sunlance','prism','homing','cometpair'].includes(type))return 'laser';if(['frostburst','flamefan','pulse','chain','voidpulse','nightbell','cyclone'].includes(type))return 'magic';return 'projectile'}
+function rhWeaponSound(type){if(['melee','arc','katana','twinslash','lancesweep','axe','whip','thrust'].includes(type))return 'sword';if(type==='dagger')return 'dagger';if(['smash','earthquake'].includes(type))return 'heavy';if(['cannon','meteor'].includes(type))return 'cannon';if(['laser','needles','sunlance','prism','homing','cometpair'].includes(type))return 'laser';if(['frostburst','flamefan','pulse','chain','voidpulse','nightbell','cyclone','orbitdisks','stormring','hailstorm'].includes(type))return 'magic';return 'projectile'}
 function sound(freq=400,d=.08,type='square',vol=.075){if(muted)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(freq*.52,55),t+d);g.gain.setValueAtTime(Math.max(.0001,vol),t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 
 function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
@@ -1054,7 +1054,7 @@ function autoWeaponFire(dt,fireRequested=false){
    autoWeaponCooldowns[i]=rhAttackCadence(w,it);
    const oldSlot=activeSlot,oldFace=p.face,oldCooldown=punchCooldown,oldPunchTime=punchTime,oldVx=p.vx;
    try{activeSlot=i;if(target)p.face=target.x+target.w/2>=p.x+p.w/2?1:-1;useAttack(target,true)}
-   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=Math.max(oldPunchTime,i===0?Math.min(.18,autoWeaponCooldowns[i]*.92):0);p.vx=oldVx;if(i===0){rhAttackChain=rhAttackChainTimer>0?Math.min(99,rhAttackChain+1):1;rhAttackChainTimer=.85}}
+   finally{activeSlot=oldSlot;p.face=oldFace;punchCooldown=oldCooldown;punchTime=Math.max(oldPunchTime,i===0?Math.min(.18,autoWeaponCooldowns[i]*.92):0);p.vx=oldVx;if(i===0){rhAttackChain=rhAttackChainTimer>0?Math.min(99,rhAttackChain+1):1;rhAttackChainTimer=.85;if(rhAttackChain>0&&rhAttackChain%4===0)soundCue('combo')}}
  }
  // Bound on-screen projectile work in extreme multi-weapon builds.
  if(bulletsFriendly.length>320)bulletsFriendly.splice(0,bulletsFriendly.length-320);

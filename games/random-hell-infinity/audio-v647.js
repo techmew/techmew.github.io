@@ -1,4 +1,4 @@
-/* RANDOM HELL infinity V6.47 - licensed real BGM and SFX (CC0), no user music player. */
+/* RANDOM HELL infinity V6.48 - licensed real BGM and SFX (CC0), no user music player. */
 (()=>{
 'use strict';
 const K='https://raw.githubusercontent.com/blancmathis/Super_Bash_Folds/main/public/assets/audio/open/';
@@ -47,6 +47,7 @@ const intervals={hit:50,heavyhit:85,footstep:260,sword:85,dagger:65,laser:90,
  projectile:100,bosshit:100,enemydeath:100,menu:110,combo:240,
  cannon:150,land:120,shield:170,coin:75,bossswing:220};
 const voices=new Map(),lastAt=new Map(),failed=new Set();
+let duckTimer=null;function duckMusic(){if(!bgm||muted)return;const node=bgm;node.volume=.105;if(duckTimer)clearTimeout(duckTimer);duckTimer=setTimeout(()=>{if(bgm===node)node.volume=.23;duckTimer=null},650)}
 let unlocked=false,muted=false,kind='',bgm=null,bgmSources=[],bgmAttempt=0,hidden=document.hidden;
 const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
 function startMusic(){
@@ -57,7 +58,7 @@ function startMusic(){
 function loadMusic(name){
  if(name===kind)return;
  if(bgm){bgm.pause();bgm.removeAttribute('src');bgm.load();bgm=null}
- kind=name;bgmSources=tracks[name]||tracks.menu;bgmAttempt=0;
+ kind=name;bgmSources=[...(tracks[name]||tracks.menu)];if(!bgmSources.some(url=>url.endsWith('.mp3')))bgmSources.push(A+'battle_music_final_loop.mp3');bgmAttempt=0;
  function next(){
   if(bgmAttempt>=bgmSources.length){bgm=null;return}
   const index=bgmAttempt++;
@@ -109,14 +110,14 @@ function cue(name,gain=1){
  if(!unlocked||muted||hidden||!bank[name]||failed.has(name))return false;
  const tick=now();
  if(tick-(lastAt.get(name)||-Infinity)<(intervals[name]||55))return true;
- lastAt.set(name,tick);warm(name);
+ lastAt.set(name,tick);warm(name);if(['bossenter','bossphase','bossdefeat','death','clear','levelup'].includes(name))duckMusic();
  const pool=voices.get(name);
  let clip=pool.find(a=>a.paused||a.ended);
  if(!clip){clip=pool[pool.index];pool.index=(pool.index+1)%pool.length;clip.pause()}
  try{
   clip.currentTime=0;clip.volume=Math.max(0,Math.min(1,(gains[name]||.35)*gain));
   const playing=clip.play();
-  if(playing&&typeof playing.catch==='function')playing.catch(()=>{});
+  if(playing&&typeof playing.catch==='function')playing.catch(e=>{if(e?.name==='NotSupportedError'||e?.name==='NotFoundError')failed.add(name)});
   return true;
  }catch(_){failed.add(name);return false}
 }
