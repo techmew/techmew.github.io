@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.28｜高速移動時の足場着地を安定化</title>
-<meta name="game-build" content="RHINF_SWEPT_PLATFORM_LANDING_V628_20261024" />
+<title>RANDOM HELL ∞ V6.29｜敵の踏みつけと足場着地の競合を修正</title>
+<meta name="game-build" content="RHINF_STOMP_BEFORE_PLATFORM_LANDING_V629_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -949,6 +949,20 @@ function rhCanStompEnemy(p,e,oldBottom,oldX=p.x){
  const crossingX=oldX+(p.x-oldX)*t;
  return crossingX+p.w>e.x+5&&crossingX<e.x+e.w-5;
 }
+// V6.29: resolve the first enemy head crossed before a platform is landed on.
+// A platform snap clears vertical velocity, so post-landing stomp tests alone miss
+// grounded enemies even when Lulu crossed their heads during this physics step.
+function rhFirstStompContact(p,enemies,oldBottom,oldX,platformT=Infinity){
+ const fall=p.y+p.h-oldBottom;
+ if(fall<=0)return null;
+ let first=null,firstT=platformT;
+ for(const e of enemies){
+   if(!rhCanStompEnemy(p,e,oldBottom,oldX))continue;
+   const t=clamp((e.y+3-oldBottom)/fall,0,1);
+   if(t<=firstT){first=e;firstT=t}
+ }
+ return first;
+}
 // V6.24: a clean stomp restores one midair jump, never beyond the wing-dependent cap.
 // A briefly damage-immune enemy still acts as a bounce surface instead of killing Lulu.
 function rhStompJumpStock(current,wing,damaged){
@@ -1076,6 +1090,10 @@ function update(dt){
    const contact=rhPlatformCrossing(p,oldX,oldBottom,s);
    if(contact&&(!landingContact||contact.t<landingContact.t)){landing=s;landingContact=contact}
  }
+ // Enemy head contact wins only when it occurs before the earliest platform top.
+ // This preserves the midair jump stock and avoids losing a valid stomp to landing snap.
+ const stompTarget=rhFirstStompContact(p,level.enemies,oldBottom,oldX,landingContact?.t??Infinity);
+ if(stompTarget&&rhStompEnemy(p,stompTarget,oldBottom,oldX)){landing=null;landingContact=null}
  let bounced=false;
  if(landing){
    if(p.x+p.w<=landing.x+2||p.x>=landing.x+landing.w-2)
