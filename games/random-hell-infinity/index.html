@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.55｜星界崩壊アクション</title>
-<meta name="game-build" content="ASTRAL_BREAK_V655_COMBAT_AUDIO_HUD_WORLD_20261024" />
+<title>ASTRAL BREAK ∞ V6.56｜ルル連撃モーション改修</title>
+<meta name="game-build" content="ASTRAL_BREAK_V656_ATTACK_PULSE_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -173,14 +173,14 @@ const themes=[
  {sky:['#300d1e','#850f33'],far:'#a72e53',near:'#6c153c',floor:'#bb285b',edge:'#ff779e',accent:'#fdff89'}
 ];
 const STORY=[
- {name:'星雨の序章',start:'空から「昨日」が降ってきた。町の人は、昨日のことを少しずつ忘れている。小さな旅人ルルは、失われた日々を取り戻すため、8つの世界の扉を探す。',end:'消えた一日を拾った。「大丈夫」と書かれた、だれかの手紙だった。'},
+ {name:'星雨の序章',start:'空から「昨日」が降ってきた。町の人は、昨日のことを少しずつ忘れている。小さな旅人ルルは、失われた日々を取り戻すため、8つの星界の門を探す。',end:'消えた一日を拾った。「大丈夫」と書かれた、だれかの手紙だった。'},
  {name:'鏡面星域',start:'鏡の中には、ルルより先に旅をした誰かがいた。その子も、同じ手紙を持っていた。',end:'鏡の向こうの子は言った。「先に行って。私はここで道を照らす」'},
  {name:'翠星の森',start:'森の動物たちは、誰かを待っていた。毎朝、空席のままの食卓に花を飾っていた。',end:'花を置いたのは、かつてルルが助けた子だった。記憶は消えても、優しさは残る。'},
  {name:'時の静止星',start:'時計は止まっていた。止まった時計の下で、人々は同じ一日を何度も過ごしている。',end:'時計が動きだす。「今日は、昨日の続きなんだね」と誰かが笑った。'},
  {name:'蒼海天球',start:'空に海が浮かんでいた。波間から、何年も前に消えた「ありがとう」が聞こえた。',end:'青い水の中に、懐かしい声が残っていた。その声は、ルルの名前を呼んでいた。'},
  {name:'灰銀星宮',start:'王国では、泣くことも笑うことも禁じられていた。王は、悲しみを消せば皆を守れると思っていた。',end:'人々は久しぶりに泣いた。悲しみを知ることは、誰かを大切に思うことだった。'},
  {name:'記憶の星図',start:'手紙の送り主が分かった。世界を救うため、ルルの記憶から消えた小さな友達だった。',end:'「思い出してくれなくてもいい。元気でいてくれたら」——手紙の最後には、そう書いてあった。'},
- {name:'暁の星界',start:'最後の魔王は、忘れられるのが怖くて時間を閉じ込めた。ルルは、倒すだけでは終わらないと気づく。',end:'夜明けが来た。魔王は名前を取り戻し、閉じ込めた日々を解き放った。'}
+ {name:'暁の星界',start:'最後の星喰いは、忘れられるのが怖くて時間を閉じ込めた。ルルは、倒すだけでは終わらないと気づく。',end:'夜明けが来た。星喰いは名前を取り戻し、閉じ込めた日々を解き放った。'}
 ];
 const namesA=['流星の','欠けた','星喰いの','薄明の','忘却の','蒼い','光を失った','反転した','暁の','境界の','崩壊する','最後の'];
 const namesB=['浮遊回廊','星屑迷宮','天球断崖','観測塔','崩れる星道','虚空の谷','流星軌道','沈黙の星都','月影都市','星界の門','記憶の惑星','終焉軌道'];
@@ -222,6 +222,17 @@ let seed=0,levelIndex=0,deaths=0,mode='menu',level=null,player=null,camera=0,clo
 let particles=[],projectiles=[],shake=0,deathTimer=0,toastTimer=0,toastText='',winDelay=0;
 let combatFX=[],xpFloats=[],damageFlashTimer=0;
 let keys=new Set(),joyX=0,jumpHeld=false,jumpBuffer=0,dashQueue=false,punchQueue=false,dashCooldown=0,punchCooldown=0,punchTime=0,dashTime=0,dashDir=1,attackId=0;
+// Independent, non-persistent attack pose clock. Unlike punchTime it survives the multi-weapon
+// auto-fire cooldown restoration, so every actual shot visibly animates Lulu.
+let rhPoseRemaining=0,rhPoseLength=.25,rhPoseFacing=1,rhPoseRanged=false,rhPoseSerial=0;
+function rhTriggerPose(type,face,slot){
+ if(slot!==0&&rhPoseRemaining>.075)return;
+ rhPoseRanged=!rhMeleeKinds.has(type);
+ rhPoseLength=rhPoseRanged?.24:.29;
+ rhPoseRemaining=rhPoseLength;
+ rhPoseFacing=face===-1?-1:1;
+ rhPoseSerial=(rhPoseSerial+1)%1000000;
+}
 let best=0,save=null;
 let muted=false,activeSlot=0,loadout=[],relics=[],kills=0,combo=0,comboTimer=0,maxCombo=0,stageTime=0,runScore=0,stamina=1,airDash=1,bulletsFriendly=[],slashes=[],hazardTelegraphs=[],pendingDamage=0,hudTick=0,slowMotion=0;
 let runStats={kills:0,shots:0,attacks:0,airJumps:0,bosses:0};
@@ -234,7 +245,7 @@ const LORE=[
  '門の向こうから声がした。「迎えに来てくれたんだね」。でも、姿は見えない。',
  '二つ目の世界では、昨日の思い出が雪のように降っていた。',
  'ルルは手紙の続きに気づく。「わたしのことを、忘れないで」。',
- '魔王は言った。「思い出を抱えたままでは、前に進めないぞ」。',
+ '星喰いは言った。「思い出を抱えたままでは、前に進めないぞ」。',
  '三つ目の世界には、友達が好きだった花が咲いていた。',
  '花の根元に、小さな靴跡が残っている。ルルはその先を追った。',
  '遠くで笑い声がした。思い出ではなく、確かに今の声だった。',
@@ -534,7 +545,7 @@ function rhHomingLeadPoint(q,target){
  const lead=rhAutoLeadPoint(target,Math.min(.28,travel*.5),{});
  return Number.isFinite(lead.x)&&Number.isFinite(lead.y)?lead:{x,y};
 }
-function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it=loadout[activeSlot]||{tier:1,affix:'none'};punchCooldown=w.cd*(hasRelic('core')?.80:1)*(it.affix==='echo'?.89:1);punchTime=Math.max(.13,Math.min(.28,w.cd*.56));attackId++;runStats.attacks++;
+function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it=loadout[activeSlot]||{tier:1,affix:'none'};punchCooldown=w.cd*(hasRelic('core')?.80:1)*(it.affix==='echo'?.89:1);punchTime=Math.max(.13,Math.min(.28,w.cd*.56));rhTriggerPose(w.type,p.face,activeSlot);attackId++;runStats.attacks++;
  const power=w.dmg+weaponDamageBonus(it.tier)+Math.floor((survivorLevel-1)/10)+(hasRelic('fang')?1:0),x=p.x+p.w/2,y=p.y+16,dir=p.face,col=w.color;
  function addShot(vx,vy,damage=power,r=6,t=1.6,more={}){
   // Aim automatic projectiles at airborne enemies. Compensate vertical velocity for gravity.
@@ -838,7 +849,7 @@ function makeEnemy(r,p,x,difficulty,forcedKind=null){
 }
 
 function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
- player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;autoAimTargets=[];dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
+ player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;rhPoseRemaining=0;jumpBuffer=0;autoAimTargets=[];dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();soundCue('stage');if(survivorPending)survivorDraft()}
@@ -1176,7 +1187,7 @@ function update(dt){
  }
  const oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
  p.grace=Math.max(0,p.grace-dt);p.jumpMinHold=Math.max(0,(p.jumpMinHold||0)-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);rhAttackChainTimer=Math.max(0,rhAttackChainTimer-dt);if(rhAttackChainTimer===0)rhAttackChain=0;
- punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
+ punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);rhPoseRemaining=Math.max(0,rhPoseRemaining-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
  if(stompChainTimer>0){stompChainTimer=Math.max(0,stompChainTimer-dt);if(stompChainTimer===0)stompChain=0}
  const keyDir=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),raw=Math.abs(joyX)>.035?joyX:keyDir;
@@ -1782,18 +1793,23 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.respawnGlow>0){ctx.save();ctx.globalAlpha=Math.min(1,p.respawnGlow/.35)*(.55+.23*Math.sin(clock*12));ctx.strokeStyle='#84e7ff';ctx.shadowColor='#5bd7ff';ctx.shadowBlur=15;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,23+Math.sin(clock*8)*2,30+Math.sin(clock*8)*2,0,0,TAU);ctx.stroke();ctx.restore()}
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
- const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;const pstate=punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);// Restore the pre-import Lulu sprite with silver hair, star pin and blue scarf.
+ const rtype=weapon().type;
+ const striking=rhPoseRemaining>0;
+ const ranged=striking?rhPoseRanged:['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);
+ const visualFace=striking?rhPoseFacing:p.face;
+ const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;
+ const pstate=striking?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);// Restore the pre-import Lulu sprite with silver hair, star pin and blue scarf.
  // Keep original V3.5 Lulu's complete face and body visible during 31-weapon chains.
  // The old attack/shoot cutouts contain large partial sword streaks that hide the torso.
  // Alternate whole-body motion using approved Lulu run frames (never cropped attack-sheet fragments).
- const striking=punchTime>0,phase=striking?clamp(1-punchTime/.25,0,1):0;
- const swing=Math.sin(phase*Math.PI),alternate=rhAttackChain%2===0?-1:1;
+ const phase=striking?clamp(1-rhPoseRemaining/rhPoseLength,0,1):0;
+ const swing=Math.sin(phase*Math.PI),alternate=rhPoseSerial%2===0?-1:1;
  const stableState=striking?'run':pstate;
- const stableFrame=striking?Math.floor(phase*3):pframe;
+ const stableFrame=striking?Math.floor(phase*4):pframe;
  ctx.save();
- if(striking){ctx.translate(p.face*(4+swing*9),-2-swing*5);ctx.rotate(p.face*alternate*(ranged?.13:.30)*swing);ctx.scale(1+swing*.09,1-swing*.10)}
- if(!drawRHSprite('hero',stableState,stableFrame,-19,-24,65,61,p.face,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
- if(striking){ctx.save();ctx.translate(p.face===1?32:-7,9);ctx.scale(p.face,1);ctx.globalAlpha=.35+swing*.55;ctx.strokeStyle=ranged?'#86eaff':'#ffe2a0';ctx.shadowColor=ranged?'#59cafa':'#fcd17a';ctx.shadowBlur=7;ctx.lineWidth=ranged?3:4;ctx.lineCap='round';ctx.beginPath();ctx.arc(0,8,25,-1.4+phase*1.5,.4+phase*1.5);ctx.stroke();ctx.restore();}
+ if(striking){ctx.translate(visualFace*(4+swing*11),-2-swing*6);ctx.rotate(visualFace*alternate*(ranged?.16:.33)*swing);ctx.scale(1+swing*.11,1-swing*.12)}
+ if(!drawRHSprite('hero',stableState,stableFrame,-19,-24,65,61,visualFace,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
+ if(striking){ctx.save();ctx.translate(visualFace===1?32:-7,9);ctx.scale(visualFace,1);ctx.globalAlpha=.35+swing*.55;ctx.strokeStyle=ranged?'#86eaff':'#ffe2a0';ctx.shadowColor=ranged?'#59cafa':'#fcd17a';ctx.shadowBlur=7;ctx.lineWidth=ranged?3:4;ctx.lineCap='round';ctx.beginPath();ctx.arc(0,8,25,-1.4+phase*1.5,.4+phase*1.5);ctx.stroke();ctx.restore();}
  ctx.restore(); // Keep HP bar stationary.
  // Character-following health bar, drawn above the existing V3.5 sprite.
  if(p.maxhp>0){const ratio=Math.max(0,Math.min(1,p.hp/p.maxhp));
