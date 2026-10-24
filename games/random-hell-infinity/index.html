@@ -141,6 +141,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-turret.js"></script>
 <script src="./sprites-v35-sniper.js"></script>
 <script src="./sprites-v35-boss.js"></script>
+<script src="./concept-mini-v634.js"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -1282,6 +1283,19 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
 }
 
 // V3.5: animated cutout pixel-art sprites; asset failure falls back to the original geometric characters.
+// RHINF_CONCEPT_ART_INTEGRATION_V635_20261024: actual cutouts from approved concept sheet.
+const RH_CONCEPT=window.RH_CONCEPT_ATLAS||null;
+const RH_CONCEPT_IMG=new Image();
+if(RH_CONCEPT?.url){RH_CONCEPT_IMG.decoding='async';RH_CONCEPT_IMG.src=RH_CONCEPT.url}
+const RH_CONCEPT_ENEMIES={0:'enemy_shadow_slime',1:'enemy_bomb_rabbit',4:'enemy_crystal_beetle',5:'enemy_shield_knight',10:'enemy_flyeye',19:'enemy_blaze_dragon'};
+function drawRHConceptSprite(name,x,y,w,h,face=1,alpha=1){
+ const f=RH_CONCEPT?.frames?.[name];
+ if(!f||!RH_CONCEPT_IMG.complete||!RH_CONCEPT_IMG.naturalWidth)return false;
+ ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,alpha));ctx.imageSmoothingEnabled=false;
+ if(face<0){ctx.translate(x+w,0);ctx.scale(-1,1);x=0}
+ ctx.drawImage(RH_CONCEPT_IMG,f[0],f[1],f[2],f[3],x,y,w,h);
+ ctx.restore();return true;
+}
 const RH_PACK=window.RH_SPRITES||null;
 const RH_ATLAS=new Image();
 if(RH_PACK?.url) RH_ATLAS.src=RH_PACK.url;
@@ -1494,7 +1508,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);if(!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];const drawn=conceptName&&drawRHConceptSprite(conceptName,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1);if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
   ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
  // RHINF_GUARD_INPUT_FX_V634_20261024: directional shield in front of the guard, not a box over the sprite.
  if(e.kind===5||e.elite){ctx.save();
@@ -1595,6 +1609,13 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
      ctx.fillStyle=sl.color;ctx.globalAlpha=alpha*.18;ctx.fillRect(sl.x,sl.y,sl.w,sl.h);
      ctx.globalAlpha=alpha;ctx.strokeStyle=sl.color;ctx.lineWidth=5;ctx.beginPath();
      ctx.moveTo(originX,sl.y+sl.h*.1);ctx.quadraticCurveTo((originX+tipX)/2,sl.y-sl.h*.25,tipX,sl.y+sl.h*.85);ctx.stroke();
+   }
+   // Show the approved concept-sheet weapon sprite and elemental hit art over the slash.
+   if(blade||sl.kind==='smash'){
+     const weaponArt=sl.kind==='dagger'?'weapon_dualblade':sl.kind==='smash'?'weapon_greatsword':'weapon_sword';
+     drawRHConceptSprite(weaponArt,originX-14,sl.y+sl.h*.32,30,38,sl.dir,alpha);
+     const elemental=sl.affix==='fire'?'fx_fire':sl.affix==='frost'?'fx_ice':sl.affix==='shock'?'fx_lightning':null;
+     if(elemental)drawRHConceptSprite(elemental,tipX-25,sl.y+sl.h*.15,50,50,sl.dir,alpha*.83);
    }
    ctx.restore();
  }
