@@ -1,4 +1,4 @@
-/* RANDOM HELL ∞ V6.50 / Audio direction: balanced, quiet samples without rapid swishing.
+/* RANDOM HELL ∞ V6.51 / Audio direction: subdued combat clicks and rare impact cues.
    All upstream assets CC0; sources and licenses recorded in AUDIO_LICENSES.md.
    BGM is streamed (no user music player); internal transitions are seamless crossfades. */
 (()=>{
@@ -27,7 +27,7 @@ const bank={
  stage:K+'sfx/ready.ogg',clear:K+'sfx/game-set.ogg',gameover:K+'sfx/ko.ogg',
  jump:K+'sfx/dodge.ogg',doublejump:K+'sfx/respawn.ogg',land:K+'sfx/land.ogg',
  dash:K+'sfx/dodge.ogg',footstep:C+'rpg-audio/footstep00.ogg',
- sword:C+'rpg-audio/knifeSlice.ogg',dagger:C+'rpg-audio/knifeSlice2.ogg',
+ sword:C+'sci-fi-sounds/impactMetal_002.ogg',dagger:K+'sfx/throw.ogg',
  heavy:C+'sci-fi-sounds/impactMetal_002.ogg',magic:C+'sci-fi-sounds/forceField_000.ogg',
  laser:C+'sci-fi-sounds/laserRetro_002.ogg',
  cannon:C+'sci-fi-sounds/explosionCrunch_002.ogg',projectile:K+'sfx/projectile.ogg',
@@ -59,7 +59,7 @@ const cooldown={menu:120,confirm:130,footstep:280,jump:150,doublejump:180,
  land:130,bossenter:800,bossphase:700,death:500,levelup:400};
 const duckEvents=new Set(['bossenter','bossphase','bossdefeat','death','clear']);
 const voices=new Map(),lastAt=new Map(),failed=new Set(),musicFallbacks=new Set();
-const SFX_MASTER=.25,ATTACK_SOUNDS=new Set(['sword','dagger','heavy','magic','laser','cannon','projectile']),HIT_SOUNDS=new Set(['hit','heavyhit','bosshit','enemydeath']);
+const SFX_MASTER=.17,ATTACK_SOUNDS=new Set(['sword','dagger','heavy','magic','laser','cannon','projectile']),HIT_SOUNDS=new Set(['hit','heavyhit','bosshit','enemydeath']);
 let lastAttackSample=-Infinity,lastHitSample=-Infinity;
 let unlocked=false,muted=false,hidden=document.hidden,kind='',active=null,outgoing=[];
 let duckUntil=0,duckStrength=1,activeTick=0;
@@ -166,8 +166,8 @@ function warm(name){
 function playSample(name,intensity){
  if(!bank[name]||failed.has(name))return false;
  const t=now();
- if(ATTACK_SOUNDS.has(name)){if(t-lastAttackSample<170)return true;lastAttackSample=t}
- if(HIT_SOUNDS.has(name)){if(t-lastHitSample<130)return true;lastHitSample=t}
+ if(ATTACK_SOUNDS.has(name)){if(t-lastAttackSample<245)return true;lastAttackSample=t}
+ if(HIT_SOUNDS.has(name)){if(t-lastHitSample<195)return true;lastHitSample=t}
  if(t-(lastAt.get(name)??-Infinity)<(cooldown[name]??65))return true;
  lastAt.set(name,t);warm(name);
  const pool=voices.get(name);
@@ -182,6 +182,7 @@ function playSample(name,intensity){
 }
 function cue(name,intensity=1){
  if(!unlocked||muted||hidden||!bank[name])return false;
+ if(name==='combo')return true;
  const ok=playSample(name,intensity);
  if(duckEvents.has(name)){duckUntil=now()+(name==='bossenter'?750:360);duckStrength=name==='bossenter'?.40:.67}
  // No layered swooshes or sub-bass transients on ordinary hits.
