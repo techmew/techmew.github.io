@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.65｜崩れる足場の警告と正確な残り時間表示</title>
-<meta name="game-build" content="ASTRAL_BREAK_V665_CRUMBLE_PLATFORM_WARNING_20261025" />
+<title>ASTRAL BREAK ∞ V6.66｜中断・再開のセーブ同期</title>
+<meta name="game-build" content="ASTRAL_BREAK_V666_RESUME_SAVE_SYNC_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -773,7 +773,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
 }
 function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c+'66');g.addColorStop(1,c+'00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
 
-function resize(){const oldW=W,oldH=H;W=Math.max(1,document.documentElement.clientWidth||window.innerWidth);H=Math.max(1,document.documentElement.clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel(false,save?.hp)}if(level&&mode==='survivorDraft')draw()}
+function resize(){const oldW=W,oldH=H;W=Math.max(1,document.documentElement.clientWidth||window.innerWidth);H=Math.max(1,document.documentElement.clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel(true,player?.hp)}if(level&&mode==='survivorDraft')draw()}
 window.addEventListener('resize',resize);
 // Conservative, single-jump procedural route, independent of relics and dash.
 // V6.33: Minimum jump rise makes quick touch taps useful at platform gaps.
@@ -914,13 +914,14 @@ function rhResetWeaponsOnFall(){
 // V6.64: Preserve the cleared-stage decision across tab closes and device reloads.
 // Legacy saves without clearPending continue at their original checkpoint.
 function rhSaveSnapshot(){
- return {seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending,hp:player?.hp??null,
+ return {seed,levelIndex,deaths,loadout:loadout.map(item=>({...item})),relics:[...relics],activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending,hp:player?.hp??null,
   clearPending:mode==='clear',clearTime:mode==='clear'?stageTime:null};
 }
 function rhShouldResumeClear(snapshot,runSeed,idx){
  return !!snapshot&&snapshot.clearPending===true&&Number(snapshot.seed)===runSeed&&Number(snapshot.levelIndex)===idx&&idx>=0&&idx<24;
 }
-function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify(rhSaveSnapshot()));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
+// V6.66: Menu preview must not overwrite a pending clear or checkpoint save.
+function saveState(){if(mode==='gameover'||mode==='menu'||player?.hp===0)return;save=rhSaveSnapshot();try{localStorage.setItem('randomHellSave',JSON.stringify(save));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore,restore?.hp);
  if(rhShouldResumeClear(restore,seed,levelIndex)){
@@ -928,7 +929,7 @@ function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=cla
   showClear();return;
  }
  overlay.classList.add('hidden');saveState();soundCue('stage');if(survivorPending)survivorDraft()}
-function showMenu(){resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){if(mode==='playing'||mode==='clear'||mode==='survivorDraft')saveState();resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
@@ -991,7 +992,7 @@ function toast(t,time=1.1){toastText=t;toastTimer=time;$('toast').textContent=t;
 let audioCtx=null;
 // Only gameplay sound effects remain. Discard obsolete user music preferences.
 try{localStorage.removeItem('randomHellYouTubeBGM');localStorage.removeItem('randomHellMusicVolume')}catch(_){}
-function toggleSound(){muted=!muted;window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';saveState()}
+function toggleSound(){muted=!muted;window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';try{localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 
 function soundCue(name){window.RH_AUDIO?.cue(name)}
 function rhWeaponSound(type){if(['melee','arc','katana','twinslash','lancesweep','axe','whip','thrust'].includes(type))return 'sword';if(type==='dagger')return 'dagger';if(['smash','earthquake'].includes(type))return 'heavy';if(['cannon','meteor'].includes(type))return 'cannon';if(['laser','needles','sunlance','prism','homing','cometpair'].includes(type))return 'laser';if(['frostburst','flamefan','pulse','chain','voidpulse','nightbell','cyclone','orbitdisks','stormring','hailstorm'].includes(type))return 'magic';return 'projectile'}
@@ -2133,7 +2134,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyK'||e.code==='KeyX')dashQueue=true;
   if(e.code==='KeyM')toggleSound();
   if(e.code==='KeyR'&&(mode==='playing'||mode==='dying')){createLevel(false,player?.hp);mode='playing';saveState();toast('リトライ（HP継続）')}
-  if(e.code==='Escape'){if(mode==='playing'||mode==='clear'){saveState();save=rhSaveSnapshot()}showMenu()}
+  if(e.code==='Escape')showMenu()
 });
 window.addEventListener('keyup',e=>{
   keys.delete(e.code);
@@ -2159,8 +2160,8 @@ $('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscre
 document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent='⛶';resize()});
 if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs(window.innerHeight-H)>1)resize()});
 $('soundTiny').addEventListener('click',toggleSound);
-$('menuTiny').addEventListener('click',()=>{if(mode==='gameover'){save=null;showMenu();return}saveState();save=rhSaveSnapshot();showMenu()});
-document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save=rhSaveSnapshot();showMenu()}});
+$('menuTiny').addEventListener('click',()=>{if(mode==='gameover'){save=null;showMenu();return}showMenu()});
+document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){showMenu()}});
 const bgmInput=$('bgmRange');if(bgmInput){bgmInput.value=String(Math.round((window.RH_AUDIO?.getMusicVolume?.()??.30)*100));bgmInput.addEventListener('input',()=>window.RH_AUDIO?.setMusicVolume?.(Number(bgmInput.value)/100));}
 resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel(false,save?.hp);showMenu();window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';requestAnimationFrame(frame);
 })();
