@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>RANDOM HELL ∞ V6.37｜下部音楽バー・前後再生・音声BGM</title>
-<meta name="game-build" content="RHINF_BOTTOM_AUDIO_BAR_V637_20261024" />
+<meta name="game-build" content="RHINF_BOTTOM_AUDIO_BAR_V637B_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -878,10 +878,10 @@ function rhReadYtItem(raw){
   if(host==='youtu.be'){const id=u.pathname.split('/')[1];return /^[a-zA-Z0-9_-]{11}$/.test(id)?{type:'video',id}:null}
   if(['youtube.com','music.youtube.com','youtube-nocookie.com'].includes(host)){
    const parts=u.pathname.split('/').filter(Boolean);
-   const id=parts[0]==='watch'?u.searchParams.get('v'):['embed','shorts','live','v'].includes(parts[0])?parts[1]:null;
-   if(id&&/^[a-zA-Z0-9_-]{11}$/.test(id))return {type:'video',id};
    const list=u.searchParams.get('list');
    if(list&&/^[a-zA-Z0-9_-]{10,80}$/.test(list))return {type:'playlist',id:list};
+   const id=parts[0]==='watch'?u.searchParams.get('v'):['embed','shorts','live','v'].includes(parts[0])?parts[1]:null;
+   if(id&&/^[a-zA-Z0-9_-]{11}$/.test(id))return {type:'video',id};
    return null;
   }
   if(u.protocol==='https:'&&/\.(?:mp3|ogg|m4a|aac|wav|opus)(?:$|[?#])/i.test(s))return {type:'audio',id:s,title:u.pathname.split('/').pop()};
@@ -929,9 +929,14 @@ function rhYtLoadCurrent(){
   rhYtSetStatus('YouTube '+(rhYtIndex+1)+'/'+rhYtQueue.length+' · 再生準備中');
  }catch(_){rhYtWanted=false;rhYtSetStatus('再生に失敗しました。⏭ で次へ')}
 }
-function rhYtNextTrack(){
+function rhYtNextTrack(fromEnd=false){
  if(!rhYtQueue.length){rhYtSetStatus('曲を登録してください');return}
  const item=rhYtSelected();
+ if(rhYtQueue.length===1&&item.type!=='playlist'){
+  if(fromEnd){rhMusicStop();rhYtSetStatus('♫ 再生終了 · ▶で最初から再生')}
+  else rhYtSetStatus('YouTubeのおすすめ曲は取得できません。複数URLや再生リストを登録してください');
+  return;
+ }
  if(item?.type==='playlist'&&rhYtReady&&rhYtPlayer){
   try{
    const list=rhYtPlayer.getPlaylist()||[],ix=rhYtPlayer.getPlaylistIndex();
@@ -952,6 +957,7 @@ function rhYtPreviousTrack(){
  rhYtIndex=(rhYtIndex+rhYtQueue.length-1)%rhYtQueue.length;rhYtLoadCurrent();
 }
 function rhMusicPlay(){
+ const stoppedBefore=rhMusicStopped;
  rhMusicPaused=false;rhMusicStopped=false;
  if(!rhYtQueue.length){rhYtWanted=false;rhYtSetStatus('♫ ゲーム内BGM 再生');startMusic();return}
  const item=rhYtSelected();if(!item)return;
@@ -961,7 +967,8 @@ function rhMusicPlay(){
   return;
  }
  rhYtWanted=true;rhYtShow();
- if(rhYtReady){try{rhYtPlayer.playVideo()}catch(_){rhYtLoadCurrent()}}
+ if(stoppedBefore)rhYtLoadCurrent();
+ else if(rhYtReady){try{rhYtPlayer.playVideo()}catch(_){rhYtLoadCurrent()}}
  else rhYtLoadCurrent();
 }
 function rhMusicPause(){
@@ -982,10 +989,13 @@ function rhYtStop(){rhMusicStop()}
 function rhYtOnState(ev){
  if(!window.YT?.PlayerState||rhMusicStopped||rhYtSelected()?.type==='audio')return;
  const st=ev.data;
+ if(rhMusicPaused&&(st===YT.PlayerState.PLAYING||st===YT.PlayerState.BUFFERING)){
+  try{rhYtPlayer?.pauseVideo()}catch(_){}return;
+ }
  if(st===YT.PlayerState.PLAYING){rhYtWanted=true;rhMusicPaused=false;rhYtSetStatus('♫ YouTube '+(rhYtIndex+1)+'/'+rhYtQueue.length+' · 再生中')}
  else if(st===YT.PlayerState.BUFFERING){rhYtWanted=true;rhYtSetStatus('♫ YouTube 読み込み中…')}
  else if(st===YT.PlayerState.PAUSED){rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('⏸ YouTube 一時停止中')}
- else if(st===YT.PlayerState.ENDED&&rhYtWanted){rhYtNextTrack()}
+ else if(st===YT.PlayerState.ENDED&&rhYtWanted){rhYtNextTrack(true)}
 }
 function rhYtInitPlayer(){
  if(rhYtPlayer||!rhYtQueue.length||!window.YT?.Player)return;
