@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.44｜37フレーム再切出し・演出強化</title>
-<meta name="game-build" content="RHINF_USER_SPRITE_REFINED_V644_20261024" />
+<title>RANDOM HELL ∞ V6.45｜ドット絵比率・盾騎士と連撃演出</title>
+<meta name="game-build" content="RHINF_USER_ART_ASPECT_GUARD_V645_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1345,21 +1345,32 @@ function drawRHConceptSprite(name,x,y,w,h,face=1,alpha=1){
 const RH_USER_PACK=window.RH_USER_ART||null;
 const RH_USER_IMG=new Image();
 if(RH_USER_PACK?.url){RH_USER_IMG.decoding='async';RH_USER_IMG.src=RH_USER_PACK.url}
+// V6.45: preserve proportions and feet alignment for the user's 37-frame art atlas.
 function drawRHUserArt(name,x,y,w,h,face=1,alpha=1){
  const f=RH_USER_PACK?.frames?.[name];
- if(!f||!RH_USER_IMG.complete||!RH_USER_IMG.naturalWidth||!f[2]||!f[3])return false;
+ if(!f||!RH_USER_IMG.complete||!RH_USER_IMG.naturalWidth||f.length!==4||
+    f.some(v=>!Number.isFinite(v))||f[0]<0||f[1]<0||f[2]<=0||f[3]<=0||
+    f[0]+f[2]>RH_USER_IMG.naturalWidth||f[1]+f[3]>RH_USER_IMG.naturalHeight||
+    !Number.isFinite(w)||!Number.isFinite(h)||w<=0||h<=0)return false;
+ const scale=Math.min(w/f[2],h/f[3]),dw=f[2]*scale,dh=f[3]*scale;
+ const insetX=(w-dw)*.5,drawY=y+h-dh;
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha*=Math.max(0,Math.min(1,alpha));
- if(face<0){ctx.translate(x+w,0);ctx.scale(-1,1);x=0}
- ctx.drawImage(RH_USER_IMG,f[0],f[1],f[2],f[3],x,y,w,h);
+ if(face<0){ctx.translate(x+w,0);ctx.scale(-1,1);ctx.drawImage(RH_USER_IMG,f[0],f[1],f[2],f[3],insetX,drawY,dw,dh)}
+ else ctx.drawImage(RH_USER_IMG,f[0],f[1],f[2],f[3],x+insetX,drawY,dw,dh);
  ctx.restore();return true;
 }
-function rhUserEnemyFrame(kind,state,t){
- if(kind===5)return state==='attack'?'knight_thrust':state==='hurt'?'knight_impact':state==='move'?'knight_run':Math.floor(t*3)%3===0?'knight_guard':'knight_idle';
+function rhUserEnemyFrame(kind,state,t,e=null){
+ if(kind===5){
+  if(state==='attack')return Math.floor(t*8)%2?'knight_thrust':'knight_sweep';
+  if(state==='hurt'||(e&&e.shieldBreakTimer>0))return 'knight_impact';
+  if(e&&rhGuardIsUp(e))return 'knight_guard';
+  return state==='move'?'knight_run':'knight_idle';
+ }
  const names={0:'enemy_slime',1:'enemy_rabbit',2:'enemy_turret',3:'enemy_eye',4:'enemy_beetle',6:'enemy_sniper',10:'enemy_eye',11:'enemy_turret',12:'enemy_lancer',13:'enemy_rabbit',14:'enemy_beetle',15:'enemy_eye',16:'enemy_sniper',18:'enemy_beetle',19:'enemy_bat',20:'enemy_eye',21:'enemy_beetle',22:'enemy_spider',23:'enemy_turret',25:'enemy_turret',26:'enemy_eye',27:'enemy_beetle'};
  return names[kind]||null;
 }
 function rhUserHeroFrame(state,t,vy){
- if(state==='attack')return ['hero_slash0','hero_slash1','hero_slash2'][Math.floor(t)%3];
+ if(state==='attack')return combo>=4&&Math.floor(t)%4===3?'hero_longslash':['hero_slash0','hero_slash1','hero_slash2'][Math.floor(t)%3];
  if(state==='shoot')return ['hero_attack0','hero_attack1'][Math.floor(t)%2];
  if(state==='run')return ['hero_run0','hero_idle1'][Math.floor(t)%2];
  if(state==='jump')return vy<0?'hero_slash0':'hero_dash';
@@ -1591,7 +1602,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  e._spriteLastX=e.x;e._spriteLastY=e.y;
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
- const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];const userFrame=rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart);const drawn=(userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1))||(conceptName&&drawRHConceptSprite(conceptName,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1));if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];const userFrame=rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart,e);const drawn=(userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1))||(conceptName&&drawRHConceptSprite(conceptName,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1));if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
   ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
  // RHINF_GUARD_INPUT_FX_V634_20261024: directional shield in front of the guard, not a box over the sprite.
  if(rhGuardIsUp(e)){ctx.save();
