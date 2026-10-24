@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.39｜右上プレーヤー・Spotify・Amazon Music</title>
-<meta name="game-build" content="RHINF_TOPRIGHT_MULTISOURCE_V639D_20261024" />
+<title>RANDOM HELL ∞ V6.40｜YouTube右上コンパクト化・曲送り修正</title>
+<meta name="game-build" content="RHINF_YT_DOCK_SKIP_FIX_V640_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -194,6 +194,30 @@ body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:238px!import
  body.rhVideoActive #playerHealth,body.rhVideoActive #playerXp{width:100%;max-width:100%;font-size:11px}
  body.rhVideoActive #xpText,body.rhVideoActive #weaponStrip{white-space:normal;font-size:10px}
  body.rhVideoActive #progressTrack{width:100%}
+}
+
+/* V6.40 - YouTube's mandatory player stays fully visible at 200×200;
+   remove only the redundant outer chrome, NEVER crop / scale / obscure the YouTube iframe. */
+#ytDock{
+ top:2px!important;right:2px!important;left:auto!important;bottom:auto!important;
+ width:200px!important;height:200px!important;min-width:200px;min-height:200px;
+ padding:0!important;margin:0!important;border:0!important;border-radius:5px!important;
+ overflow:visible;box-shadow:0 3px 14px rgba(0,0,0,.42);
+}
+#ytDock #ytHeader,#ytDock #ytStatus{display:none!important}
+#ytDock #ytPlayer,#ytDock iframe#ytPlayer,#ytDock #ytPlayer iframe{
+ width:200px!important;height:200px!important;
+ min-width:200px!important;min-height:200px!important;
+ max-width:200px!important;max-height:200px!important;
+ display:block!important;margin:0!important;padding:0!important;
+ border:0!important;box-sizing:border-box!important;
+}
+@media(max-width:700px){
+ body.rhVideoActive #hud{right:212px}
+ body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:210px!important}
+}
+@media (orientation:landscape) and (max-height:480px){
+ body.rhVideoActive #menuTiny,body.rhVideoActive #fullscreenTiny{top:210px!important}
 }
 </style>
 </head>
@@ -962,7 +986,7 @@ function rhSetProviderLink(item){
 function rhUpdateMuteUI(){$('musicMute').textContent=muted?'🔇':'♫';$('soundTiny').textContent=muted?'🔇':'♫'}
 function rhYtShow(){
  const dock=$('ytDock');dock.classList.remove('ytHidden');
- dock.style.left='';dock.style.right='';dock.style.top='';
+ dock.style.left='';dock.style.right='';dock.style.top='';dock.style.bottom='';
  document.body.classList.add('rhVideoActive');
 }
 
@@ -1061,22 +1085,49 @@ function rhYtLoadCurrent(){
   rhYtSetStatus('YouTube '+(rhYtIndex+1)+'/'+rhYtQueue.length+' · 再生準備中');
  }catch(_){rhYtWanted=false;rhYtSetStatus('再生に失敗しました。⏭ で次へ')}
 }
+// A single YouTube video has no supported "recommended next" API; never hide its iframe.
 function rhYtNextTrack(fromEnd=false){
  if(!rhYtQueue.length){rhYtSetStatus('曲を登録してください');return}
  const item=rhYtSelected();
- if(rhYtQueue.length===1&&item.type==='spotify'&&item.id.startsWith('playlist/')){rhYtSetStatus('Spotifyプレイリスト内の曲送りは埋め込み側で操作してください');return}
- if(rhYtQueue.length===1&&item.type!=='playlist'){
-  if(fromEnd){rhMusicStop();rhYtSetStatus('♫ 再生終了 · ▶で最初から再生')}
-  else rhYtSetStatus('おすすめ曲は各サービスの公式プレーヤーで選択。曲送りには複数URLを登録してください');
-  return;
- }
- if(item?.type==='playlist'&&rhYtReady&&rhYtPlayer){
+ if(!item)return;
+ if(item.type==='playlist'&&rhYtReady&&rhYtPlayer){
   try{
    const list=rhYtPlayer.getPlaylist()||[],ix=rhYtPlayer.getPlaylistIndex();
-   if(list.length&&ix>=0&&ix<list.length-1){rhMusicStopped=false;rhMusicPaused=false;rhYtWanted=true;rhYtPlayer.nextVideo();rhYtSetStatus('YouTube再生リスト · 次の曲');return}
+   if(list.length&&ix>=0&&ix<list.length-1){
+    rhYtWanted=true;rhMusicStopped=false;rhMusicPaused=false;
+    rhYtShow();rhYtPlayer.nextVideo();rhYtSetStatus('YouTube再生リスト · 次の曲');return;
+   }
+   if(list.length&&ix===list.length-1&&rhYtQueue.length===1){
+    rhYtShow();
+    if(fromEnd){
+     rhYtWanted=false;rhMusicPaused=true;rhMusicStopped=false;
+     rhYtSetStatus('♫ 再生リスト終了 · ▶で再生し直せます');
+    }else{
+     rhMusicPaused=false;rhMusicStopped=false;rhYtWanted=true;
+     rhYtPlayer.playVideoAt(0);
+     rhYtSetStatus('YouTube再生リスト · 先頭の曲');
+    }
+    return;
+   }
+   if(!list.length&&rhYtQueue.length===1){
+    rhYtShow();rhYtSetStatus('再生リストの読込中です。少し後に⏭を押してください');return;
+   }
   }catch(_){}
  }
- rhYtIndex=(rhYtIndex+1)%rhYtQueue.length;rhYtLoadCurrent();
+ if(rhYtQueue.length===1){
+  if(item.type==='video'||item.type==='playlist'){
+   rhYtShow();rhMusicStopped=false;
+   if(fromEnd){rhYtWanted=false;rhMusicPaused=true;rhYtSetStatus('♫ 曲が終了 · ▶で同じ曲を再生できます')}
+   else rhYtSetStatus('次の曲は未登録です。YouTubeおすすめ曲は取得できないため、複数URLや再生リストを登録してください');
+  }else if(item.type==='spotify'){
+   rhYtSetStatus('Spotifyの曲送りは公式プレーヤーで操作してください');
+  }else if(fromEnd){
+   rhMusicStop();rhYtSetStatus('♫ 再生終了 · ▶で最初から再生');
+  }else rhYtSetStatus('次の曲は未登録です。複数URLか再生リストを登録してください');
+  return;
+ }
+ rhYtIndex=(rhYtIndex+1)%rhYtQueue.length;
+ rhYtLoadCurrent();
 }
 function rhYtPreviousTrack(){
  if(!rhYtQueue.length){rhYtSetStatus('曲を登録してください');return}
