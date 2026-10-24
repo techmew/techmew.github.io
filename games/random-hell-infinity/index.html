@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.46｜旧ルル復帰・敵比率補正・連続攻撃修正</title>
-<meta name="game-build" content="RHINF_PREVIOUS_HERO_ENEMY_ASPECT_COMBO_V646_20261024" />
+<title>RANDOM HELL ∞ V6.47｜CC0 BGM・本格効果音</title>
+<meta name="game-build" content="RHINF_AUDIO_CC0_WORLD_BOSS_SFX_V647_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -130,7 +130,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <body>
 <canvas id="game" aria-label="ランダム生成アクションゲーム"></canvas><div id="shade"></div>
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
-<button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="効果音のオンオフ" title="効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
+<button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="BGMと効果音のオンオフ" title="BGM・効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
 <div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
@@ -144,6 +144,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-boss.js"></script>
 <script src="./concept-mini-v634.js"></script>
 <script src="./rhinf-user-art-v644.js"></script>
+<script src="./audio-v647.js"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -353,13 +354,13 @@ function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
    toast('NEW 自動武器 '+itemName(gained),1.5);
  }else{const lucky=loadout[randomInt(Math.random,0,loadout.length-1)];
    upgradeWeaponMastery(lucky,1);toast('全武器獲得！ '+itemName(lucky)+' 強化',1.5)}
- part(c.x,pickupVisualY(c),rarity(it.tier),30);sound(750,.22,'triangle')
+ part(c.x,pickupVisualY(c),rarity(it.tier),30);soundCue('weaponpickup')
  }else if(c.type==='relic'){
  if(!hasRelic(c.relic)){if(relics.length>=3)relics.shift();relics.push(c.relic);toast('レリック '+(RELICS.find(t=>t.id===c.relic)?.name||''),1.5)}else{score+=250;toast('重複レリック +250')}
  if(c.relic==='shield')p.shield=1;
- part(c.x,c.y,'#dac3ff',26);sound(700,.2,'sine')
- }else if(c.type==='shield'){p.shield=1;toast('シールド1枚');sound(680,.2,'sine')}
- else if(c.type==='score'){score+=50+combo*10;sound(990,.07,'sine')}
+ part(c.x,c.y,'#dac3ff',26);soundCue('relic')
+ }else if(c.type==='shield'){p.shield=1;toast('シールド1枚');soundCue('shield')}
+ else if(c.type==='score'){score+=50+combo*10;soundCue('coin')}
 
  saveState();updateHud(true);
 }
@@ -395,7 +396,7 @@ function survivorDraft(){
  }
  survivorPanel.style.display='none';
  part(player.x+player.w/2,player.y+player.h/2,'#a5f8ff',25,1.2);
- showLevelUpNotice(gained);toast('LEVEL '+survivorLevel+'！ HP回復・新武器自動強化',2.2);sound(880,.2,'triangle');saveState();updateHud(true);
+ showLevelUpNotice(gained);toast('LEVEL '+survivorLevel+'！ HP回復・新武器自動強化',2.2);soundCue('levelup');saveState();updateHud(true);
 }
 const levelNotice=document.createElement('div');levelNotice.id='levelNotice';levelNotice.setAttribute('aria-live','polite');document.body.appendChild(levelNotice);
 let levelNoticeTimer=0;
@@ -407,7 +408,7 @@ function survivorGainXP(amount,x=null,y=null){
  while(survivorXP>=survivorXPGoal(survivorLevel)){survivorXP-=survivorXPGoal(survivorLevel);survivorLevel++;survivorPending++}
  // Defer the level-up overlay until the current physics/enemy iteration finishes.
 }
-function enemyDeath(e){e.alive=false;kills++;survivorGainXP(e.elite?5:e.small?1:2,e.x+e.w/2,e.y-10);runStats.kills++;combo++;maxCombo=Math.max(combo,maxCombo);comboTimer=3.3;score+=(100+e.kind*20)*(1+Math.floor(combo/5))*(hasRelic('crown')?1.5:1);part(e.x+e.w/2,e.y+e.h/2,ENEMY_TYPES[e.kind]?.color||'#ffe19b',18+e.kind,1);sound(350+e.kind*28,.09,'triangle');
+function enemyDeath(e){e.alive=false;kills++;survivorGainXP(e.elite?5:e.small?1:2,e.x+e.w/2,e.y-10);runStats.kills++;combo++;maxCombo=Math.max(combo,maxCombo);comboTimer=3.3;score+=(100+e.kind*20)*(1+Math.floor(combo/5))*(hasRelic('crown')?1.5:1);part(e.x+e.w/2,e.y+e.h/2,ENEMY_TYPES[e.kind]?.color||'#ffe19b',18+e.kind,1);soundCue('enemydeath');
  // Enemies sometimes drop a weapon crate. Elites have a higher drop chance.
  if(level.pickups.length<260&&Math.random()<(e.elite?.62:.13)+level.difficulty*.05){
    level.pickups.push({x:e.x+e.w/2,y:e.y+e.h*.45,taken:false,type:'weapon',item:item(Math.random,level.difficulty)});
@@ -438,30 +439,30 @@ function rhGuardImpact(e,damage,sourceX){
   e.shieldBreakTimer=e.elite?3.3:2.6;
   e.shieldFlash=.55;
   part(sx,sy,'#ffe5b0',22,.6);
-  sound(460,.13,'triangle');
+  soundCue('shieldbreak');
  }
  return Math.max(1,Math.ceil(original*.5));
 }
 function applyHit(e,damage,id,sourceX,affix='none'){
  if(e?.airTrap){
   if(!e.alive||e.hit===id||e.hitGrace>0)return false;
-  e.hit=id;e.hp-=Math.max(1,Math.ceil(damage));e.hitGrace=.11;
+  e.hit=id;e.hp-=Math.max(1,Math.ceil(damage));e.hitGrace=.11;soundCue('hit');
   part(e.x,e.y,'#a4edff',7,.35);
-  if(e.hp<=0){e.alive=false;score+=50;part(e.x,e.y,'#aafaff',18,.85);sound(510,.1,'triangle')}
+  if(e.hp<=0){e.alive=false;score+=50;part(e.x,e.y,'#aafaff',18,.85);soundCue('enemydeath')}
   return true;
  }
  if(!e?.alive||(e.boss&&e.active===false)||e.hit===id||e.hitGrace>0)return false;
  damage=rhGuardImpact(e,damage,sourceX);
- e.hit=id;e.hp-=damage;e.flash=.10;
+ e.hit=id;e.hp-=damage;e.flash=.10;if(e.hp>0)soundCue(e.boss?'bosshit':damage>2?'heavyhit':'hit');
  if(affix==='fire'){e.burn=Math.max(e.burn||0,e.boss?1.2:1.8);e.burnTick=.42;part(e.x+e.w/2,e.y+e.h/2,'#ff944b',4,.35)}
  if(affix==='frost'){e.frost=Math.max(e.frost||0,e.boss?.7:1.7);part(e.x+e.w/2,e.y+e.h/2,'#98eaff',5,.32)}
  if(affix==='shock'){
    const target=level.enemies.find(o=>o.alive&&o!==e&&dist(o.x,o.y,e.x,e.y)<145);
    if(target){applyHit(target,1,++attackId,e.x,'none');part(target.x,target.y,'#fff67d',10,.38)}
  }
- if(affix==='vamp'&&e.hp<=0&&!e.boss){vampCharge++;if(vampCharge>=4){vampCharge=0;if(!player.shield){player.shield=1;toast('吸魂：シールド回復',.9);sound(830,.15,'sine')}else score+=150}}
+ if(affix==='vamp'&&e.hp<=0&&!e.boss){vampCharge++;if(vampCharge>=4){vampCharge=0;if(!player.shield){player.shield=1;toast('吸魂：シールド回復',.9);soundCue('heal')}else score+=150}}
 
- if(e.boss){e.hitGrace=.16;shake=Math.max(shake,4);part(e.x+e.w/2,e.y+e.h/2,'#ffe2a5',10,1);sound(155,.1,'sawtooth');if(e.hp<=0){e.alive=false;runStats.bosses++;survivorGainXP(15+level.world*4,e.x+e.w/2,e.y);slowMotion=.35;shake=15;part(e.x+e.w/2,e.y+e.h/2,BOSSES[e.kind].color,75,1.8);toast('BOSS BREAK！ '+BOSSES[e.kind].name,2);sound(680,.4,'triangle')}}
+ if(e.boss){e.hitGrace=.16;shake=Math.max(shake,4);part(e.x+e.w/2,e.y+e.h/2,'#ffe2a5',10,1);soundCue('bosshit');if(e.hp<=0){e.alive=false;runStats.bosses++;survivorGainXP(15+level.world*4,e.x+e.w/2,e.y);slowMotion=.35;shake=15;part(e.x+e.w/2,e.y+e.h/2,BOSSES[e.kind].color,75,1.8);toast('BOSS BREAK！ '+BOSSES[e.kind].name,2);soundCue('bossdefeat')}}
  else{part(e.x+e.w/2,e.y+e.h/2,'#fffac2',5,.6);if(e.hp<=0)enemyDeath(e)}return true}
 // V6.7: Lead aerial enemies and oscillating traps; preserve homing missile steering.
 function rhAutoLeadPoint(e,flight,shot={}){
@@ -596,7 +597,7 @@ function useAttack(aimTarget=null,autoSilent=false){const p=player,w=weapon(),it
  }
  if(it.affix==='echo'&&w.type!=='dagger'&&w.type!=='melee'){addShot(dir*700,0,1,4,.7,{pierce:0,color:'#d6bcff'})}
  if(w.type!=='arrow'&&w.type!=='laser'&&w.type!=='spread'&&w.type!=='boomer'&&w.type!=='cannon')part(x+dir*35,y,col,5,.3);
- if(!autoSilent)sound(w.type==='cannon'?100:w.type==='dagger'?590:240+w.dmg*55,.085,w.type==='staff'?'sine':'sawtooth',.052)
+ soundCue(rhWeaponSound(w.type))
 }
 function doSplash(x,y,r,dmg,id,affix='none'){
  for(const e of level.enemies)if(e.alive&&dist(x,y,e.x+e.w/2,e.y+e.h/2)<r)applyHit(e,dmg,id,x,affix);
@@ -604,7 +605,7 @@ function doSplash(x,y,r,dmg,id,affix='none'){
  if(level.boss?.alive&&dist(x,y,level.boss.x+26,level.boss.y+30)<r)applyHit(level.boss,dmg,id,x,affix);
  part(x,y,'#ffbd8c',20,1.1);shake=5;
 }
-function lethal(cause){if(player.grace>0||dashTime>.025)return false;if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);sound(780,.2,'sine');toast('シールド破損',.7);return false}player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);sound(170,.13,'sawtooth');updateHud(true);if(player.hp<=0){die(cause);return true}toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
+function lethal(cause){if(player.grace>0||dashTime>.025)return false;if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);soundCue('shieldbreak');toast('シールド破損',.7);return false}player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);soundCue('hurt');updateHud(true);if(player.hp<=0){die(cause);return true}toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
 // V5.6: Predict a moving target with phase-scaled, bounded lead. Keep all shots dodgeable.
 function rhBossLeadTarget(b,p,speed,phase){
  const ox=b.x+b.w/2,oy=b.y+28,px=p.x+p.w/2,py=p.y+p.h/2;
@@ -638,7 +639,7 @@ function rhBossPhase3CrossfireLanes(b,p){
  const candidates=center-step<lo?[center+step,center+step*2]:center+step>hi?[center-step*2,center-step]:[center-step,center+step];
  return candidates.filter((x,i)=>x>=lo&&x<=hi&&Math.abs(x-center)>=64&&(i===0||Math.abs(x-candidates[0])>=56));
 }
-function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);sound(phase===3?155:230,.24,'sawtooth',.07)}
+function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);soundCue('bossphase')}
  const attackCombos=[
   ['fan','charge','orb'],['teleport','fan','laser'],['summon','fan','charge'],
   ['laser','teleport','fan'],['rain','orb','charge'],['charge','fan','laser'],
@@ -802,14 +803,14 @@ function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.f
  player={hp:7+Math.max(0,survivorLevel-1),maxhp:7+Math.max(0,survivorLevel-1),x:spawn,y:(cp||level.platforms[0]).y-PH,w:PW,h:PH,vx:0,vy:0,grounded:false,coyote:0,face:1,shield:hasRelic('shield')?1:0,grace:respawn?2.4:.65,respawnGlow:respawn?2.4:0,jumps:hasRelic('wing')?3:2,dead:false};camera=clamp(spawn-visibleWorldWidth()*.30,0,Math.max(0,level.totalX-visibleWorldWidth()));springCooldown=0;dashCooldown=0;punchCooldown=0;dashTime=0;dashDir=1;punchTime=0;jumpBuffer=0;autoAimTargets=[];dashQueue=false;punchQueue=false;airDash=1;combo=0;comboTimer=0;stompChain=0;stompChainTimer=0}
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
-function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();sound(350,.1,'triangle');if(survivorPending)survivorDraft()}
+function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();soundCue('stage');if(survivorPending)survivorDraft()}
 function showMenu(){resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
 function showClear(){mode='clear';best=Math.max(best,levelIndex+1);saveState();overlay.classList.remove('hidden');const finished=levelIndex===23;const w=level.world+1,st=level.stage+1,medal=stageTime<28?'S':stageTime<50?'A':stageTime<85?'B':'C';
  panel.innerHTML=`<div class="eyebrow">${finished?'ALL WORLDS CONQUERED':'STAGE CLEARED'}</div><div class="messageTitle blue">${finished?'HELL CONQUERED':`WORLD ${w}-${st}　${medal} RANK`}</div><p>${finished?'ルルは世界から消えた友達の名を呼んだ。「忘れてしまうことは、なくなることじゃない。もう一度、出会えばいい」。友達は振り返り、二人は新しい朝へ歩きだした。<br>終わらない地獄の向こうに、初めての明日が生まれた。<br><br>':(level.stage===2?STORY[level.world].end+'<br><br>':'')}<strong>物語：</strong>${LORE[levelIndex]}<br><br>「${level.title}」を突破<br>タイム：${stageTime.toFixed(1)}秒　｜　総死亡：${deaths}回<br>スコア：${Math.floor(score)}　｜　連続撃破：${maxCombo}<br>装備：${itemName(loadout[activeSlot])}<br>SEED：${String(seed).padStart(9,'0')}</p><div class="panelBtns"><button id="continueNext" class="primary">${finished?'新しい地獄を生成':'次のステージ →'}</button><button id="retrySeed" class="secondary">同じシードを最初から</button></div>`;
- $('continueNext').onclick=()=>{if(finished)begin(randSeed());else{const changeWorld=level.stage===2;levelIndex++;mode='playing';createLevel();overlay.classList.add('hidden');saveState();sound(500,.14,'sine');if(changeWorld)toast('第'+(level.world+1)+'世界：'+STORY[level.world].start,5)}};
+ $('continueNext').onclick=()=>{if(finished)begin(randSeed());else{const changeWorld=level.stage===2;levelIndex++;mode='playing';createLevel();overlay.classList.add('hidden');saveState();soundCue('stage');if(changeWorld)toast('第'+(level.world+1)+'世界：'+STORY[level.world].start,5)}};
  $('retrySeed').onclick=()=>begin(seed,0,0);
 }
 function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hudTick=.085;
@@ -834,8 +835,10 @@ function toast(t,time=1.1){toastText=t;toastTimer=time;$('toast').textContent=t;
 let audioCtx=null;
 // Only gameplay sound effects remain. Discard obsolete user music preferences.
 try{localStorage.removeItem('randomHellYouTubeBGM');localStorage.removeItem('randomHellMusicVolume')}catch(_){}
-function toggleSound(){muted=!muted;$('soundTiny').textContent=muted?'🔇':'🔊';saveState()}
+function toggleSound(){muted=!muted;window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';saveState()}
 
+function soundCue(name){if(window.RH_AUDIO?.cue(name))return;const freq=name==='hit'?250:name==='jump'?520:name==='clear'?920:380;sound(freq,.09,'triangle',.035)}
+function rhWeaponSound(type){if(['melee','arc','katana','twinslash','lancesweep','axe','whip'].includes(type))return 'sword';if(type==='dagger')return 'dagger';if(['smash','earthquake'].includes(type))return 'heavy';if(['cannon','meteor'].includes(type))return 'cannon';if(['laser','needles','sunlance','prism','homing','cometpair'].includes(type))return 'laser';if(['frostburst','flamefan','pulse','chain','voidpulse','nightbell','cyclone'].includes(type))return 'magic';return 'projectile'}
 function sound(freq=400,d=.08,type='square',vol=.075){if(muted)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(freq*.52,55),t+d);g.gain.setValueAtTime(Math.max(.0001,vol),t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 
 function part(x,y,color,count=12,power=1){for(let i=0;i<count;i++){let a=Math.random()*TAU,v=(55+Math.random()*240)*power;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.35+Math.random()*.38,max:.73,size:1+Math.random()*5,color})}if(particles.length>250)particles.splice(0,particles.length-250)}
@@ -843,7 +846,7 @@ function die(cause='DEAD'){
  if(mode!=='playing'||player.dead)return;
  player.dead=true;player.hp=0;mode='gameover';deaths++;
  shake=17;part(player.x+13,player.y+15,'#ff5486',36,1.35);
- sound(125,.26,'sawtooth',.12);
+ soundCue('death');
  // A run is over at 0 HP. Do not allow a checkpoint or XP to resume.
  try{localStorage.removeItem('randomHellSave')}catch(_){}
  save=null;updateHud(true);resetInputs();
@@ -1008,7 +1011,7 @@ function rhStompEnemy(p,e,oldBottom,oldX){
  p.grounded=false;p.coyote=0;
  p.jumps=rhStompJumpStock(p.jumps,!!hasRelic('wing'),damaged);
  part(e.x+e.w/2,e.y,damaged?'#a9edff':'#c9d5e8',damaged?13+stompChain*2:7,.36);
- sound(damaged?620+Math.min(4,stompChain-1)*45:470,.11,'triangle');
+ soundCue('stomp');
  return true;
 }
 function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.w-6,player.h-5,e.x+2,e.y+2,e.w-4,e.h-3)}
@@ -1140,9 +1143,9 @@ function update(dt){
  if(Math.abs(control)>.09)p.face=control>0?1:-1;
  if(jumpBuffer>0 && (p.grounded||p.coyote>0||p.jumps>0)){
    if(p.grounded||p.coyote>0){p.jumps=Math.max(0,p.jumps-1)}else{p.jumps--;runStats.airJumps++}
-   p.vy=-level.jump*(hasRelic('spring')?1.12:1)*(p.jumps===0?.89:1);p.jumpMinHold=.12;p.grounded=false;p.coyote=0;jumpBuffer=0;part(p.x+12,p.y+35,p.jumps===0?'#ffe3a2':'#ccffff',13,.6);sound(p.jumps===0?720:510,.12,'triangle');
+   p.vy=-level.jump*(hasRelic('spring')?1.12:1)*(p.jumps===0?.89:1);p.jumpMinHold=.12;p.grounded=false;p.coyote=0;jumpBuffer=0;part(p.x+12,p.y+35,p.jumps===0?'#ffe3a2':'#ccffff',13,.6);soundCue(p.jumps===0?'doublejump':'jump');
  }
- if(dashQueue){if(dashCooldown<=0 && (p.grounded||airDash>0)){dashDir=p.face;dashTime=.17;dashCooldown=hasRelic('battery')?.53:.91;if(!p.grounded)airDash--;p.vy=Math.min(p.vy,20);p.vx=dashDir*785;part(p.x+12,p.y+18,'#94fff8',14,.8);sound(210,.19,'triangle')}dashQueue=false}
+ if(dashQueue){if(dashCooldown<=0 && (p.grounded||airDash>0)){dashDir=p.face;dashTime=.17;dashCooldown=hasRelic('battery')?.53:.91;if(!p.grounded)airDash--;p.vy=Math.min(p.vy,20);p.vx=dashDir*785;part(p.x+12,p.y+18,'#94fff8',14,.8);soundCue('dash')}dashQueue=false}
  const fireRequested=punchQueue||attackHeld||attackTapBuffer>0;
  autoWeaponFire(dt,fireRequested);punchQueue=false;
  attackTapBuffer=Math.max(0,attackTapBuffer-dt);
@@ -1173,9 +1176,9 @@ function update(dt){
  if(landing){
    // V6.32: No edge snap and no false grounded state when crossing beyond a ledge.
    p.y=landing.y-p.h;p.vy=0;
-   if(landing.checkpointId>checkpointIndex){checkpointIndex=landing.checkpointId;checkpointX=landing.x+44;saveState();toast('🏁 中間地点 '+checkpointIndex+'/2 を記録',1.6);sound(890,.22,'sine');part(checkpointX,landing.y-45,'#a7ffcf',26,.7)}
+   if(landing.checkpointId>checkpointIndex){checkpointIndex=landing.checkpointId;checkpointX=landing.x+44;saveState();toast('🏁 中間地点 '+checkpointIndex+'/2 を記録',1.6);soundCue('checkpoint');part(checkpointX,landing.y-45,'#a7ffcf',26,.7)}
    const pad=level.springPads.find(s=>s.x<p.x+p.w&&s.x+s.w>p.x&&Math.abs(s.y-landing.y)<3);
-   if(pad&&springCooldown<=0){bounced=true;p.vy=-level.jump*1.28;p.grounded=false;p.coyote=0;springCooldown=.34;part(p.x+13,landing.y,'#ffe787',24,.8);sound(910,.17,'triangle');toast('ぴょーん！',.45)}if(!p.grounded){part(p.x+12,p.y+p.h,'#dffbff',3,.27)}p.coyote=bounced?0:.115;p.jumps=rhLandingJumpStock(bounced,!!hasRelic('wing'));airDash=1;if(landing.kind==='crumble'&&landing.collapse===0)landing.collapse=.66}
+   if(pad&&springCooldown<=0){bounced=true;p.vy=-level.jump*1.28;p.grounded=false;p.coyote=0;springCooldown=.34;part(p.x+13,landing.y,'#ffe787',24,.8);soundCue('spring');toast('ぴょーん！',.45)}if(!p.grounded){part(p.x+12,p.y+p.h,'#dffbff',3,.27);if(!bounced)soundCue('land')}p.coyote=bounced?0:.115;p.jumps=rhLandingJumpStock(bounced,!!hasRelic('wing'));airDash=1;if(landing.kind==='crumble'&&landing.collapse===0)landing.collapse=.66}
  else{p.coyote=p.grounded?.115:Math.max(0,p.coyote-dt)}p.grounded=!!landing&&!bounced;
  for(const s of level.platforms)if(s.collapse>0){s.collapse-=dt;if(s.collapse<=0){s.active=false;part(s.x+s.w/2,s.y,'#fcb38e',22)}}
  for(const c of level.pickups)if(!c.taken&&pickupInReach(c,p,oldX,oldY))absorbPickup(c)
@@ -1204,13 +1207,13 @@ function update(dt){
   b.active=true;b.shoot=.72;b.dir=p.x<b.x?-1:1;
   toast('⚠ BOSS！ '+BOSSES[b.kind].name,2.6);
   part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,28,.9);
-  sound(145,.4,'sawtooth',.09);updateHud(true);
+  soundCue('bossenter');updateHud(true);
  }
  if(b?.alive&&b.active){const bossOldX=b.x,bossOldY=b.y,bossChargeWasMoving=b.charge>0;b.burn=Math.max(0,(b.burn||0)-dt);b.frost=Math.max(0,(b.frost||0)-dt);if(b.burn>0){b.burnTick=(b.burnTick||0)-dt;if(b.burnTick<=0){b.burnTick=.5;applyHit(b,1,++attackId,b.x,'none')}}b.hitGrace=Math.max(0,b.hitGrace-dt);b.flash=Math.max(0,(b.flash||0)-dt);
    b.teleportContactGrace=Math.max(0,(b.teleportContactGrace||0)-dt);
    if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;b.teleportBurstDelay=.36;b.teleportBurstAimX=p.x+p.w/2;b.teleportBurstAimY=p.y+p.h/2;part(b.x+25,b.y,'#d5a4ff',22)}}
    if(rhBossBurstReady(b,dt)){for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,b.teleportBurstAimX,b.teleportBurstAimY+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}
-   if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;sound(180,.16,'sawtooth',.06)}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
+   if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;soundCue('bossswing')}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
    else if(!(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
    b.x+=b.dir*(88+level.world*10)*(b.hp/b.maxhp<.33?1.8:b.hp/b.maxhp<.70?1.44:1.15)*dt*(b.frost>0?.65:1);
    if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
@@ -1315,10 +1318,10 @@ function findHomingTarget(q){
  if(p.x+p.w>=level.goalX-13&&p.grounded){
    if(b?.alive||level.enemies.some(e=>e.guardian&&e.alive)){
      if(toastTimer<=0)toast(b?.alive?'ボスを倒せ！':'出口の番人を倒せ！',.9);
-   }else{best=Math.max(best,levelIndex+1);saveState();sound(930,.3,'triangle');part(p.x,p.y,'#aaffd0',36,1.2);showClear();return}
+   }else{best=Math.max(best,levelIndex+1);saveState();soundCue('clear');part(p.x,p.y,'#aaffd0',36,1.2);showClear();return}
  }
  camera+=(clamp(p.x-visibleWorldWidth()*.32,0,Math.max(0,level.totalX-visibleWorldWidth()))-camera)*Math.min(1,dt*10);
- if(Math.random()<.12&&Math.abs(p.vx)>115&&p.grounded)part(p.x,p.y+p.h,'#d3f1ff',1,.12);
+ if(Math.random()<.12&&Math.abs(p.vx)>115&&p.grounded){part(p.x,p.y+p.h,'#d3f1ff',1,.12);soundCue('footstep')}
  updateHud();
 }
 function polygon(points,fill){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
@@ -1758,6 +1761,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  ctx.restore();}
 function frame(time){if(!frame.prev)frame.prev=time;let dt=Math.min(.04,(time-frame.prev)/1000);frame.prev=time;
  if(mode==='playing'){const count=Math.max(1,Math.ceil(dt/(1/120))),s=dt/count;for(let i=0;i<count;i++){update(s);if(mode!=='playing')break}if(mode==='playing'&&survivorPending>0)survivorDraft()}else if(level&&mode!=='survivorDraft'){clock+=dt;for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}particles=particles.filter(p=>p.l>0)}
+ window.RH_AUDIO?.sync(mode,level?.world||0,!!(level?.boss?.alive&&level.boss.active));
  if(mode!=='survivorDraft')draw();requestAnimationFrame(frame)}
 
 // Version 3.2: one pointer per stick, multiple pointers per action; tilt controls run speed.
@@ -1858,7 +1862,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.a
 $('soundTiny').addEventListener('click',toggleSound);
 $('menuTiny').addEventListener('click',()=>{if(mode==='gameover'){save=null;showMenu();return}saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()});
 document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()}});
-resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();$('soundTiny').textContent=muted?'🔇':'🔊';requestAnimationFrame(frame);
+resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';requestAnimationFrame(frame);
 })();
 </script>
 </body>
