@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.52｜進行方向カメラ・弾表示最適化</title>
-<meta name="game-build" content="RHINF_DIRECTIONAL_CAMERA_SHOT_PRIORITY_V652_20261024" />
+<title>RANDOM HELL ∞ V6.53｜固有敵スプライト・アニメ安定化</title>
+<meta name="game-build" content="RHINF_DISTINCT_ENEMIES_STABLE_ATLAS_V653_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1482,14 +1482,10 @@ function rhCleanSpriteFrame(img,f){
    }
    if(removed)cx.putImageData(image,0,0);
   }
-  // Align opaque subject around a consistent center and foot anchor across animation frames.
-  const d2=cx.getImageData(0,0,w,h).data;let left=w,right=-1,bottom=-1;
-  for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++)if(d2[(yy*w+xx)*4+3]>=24){left=Math.min(left,xx);right=Math.max(right,xx);bottom=Math.max(bottom,yy)}
-  if(right>=left){
-   const dx=Math.round((w-(right-left+1))/2-left),dy=h-1-bottom;
-   if(dx||dy){const aligned=document.createElement('canvas');aligned.width=w;aligned.height=h;aligned.getContext('2d').drawImage(canvas,dx,dy);result=aligned}
-   else result=canvas;
-  }else result=canvas;
+  // V6.53: retain the authored frame origin. Re-centering opaque bounds on
+  // every animation pose made enemy bodies, limbs and ears jump between frames.
+  // drawRHSprite already uses a consistent frame-size/feet anchor.
+  result=canvas;
  }catch(_){result=null}
  map.set(key,result);return result;
 }
@@ -1639,7 +1635,11 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const estate=e.flash>0?'hurt':e.charge>0||e.windup>0||(e._spriteAttackUntil||0)>clock?'attack':moving?'move':'idle';
  if(e._spriteState!==estate){e._spriteState=estate;e._spriteStart=clock}
  const ew=Math.max(43,e.w*1.7),eh=Math.max(40,e.h*1.5);const conceptName=RH_CONCEPT_ENEMIES[e.kind];// Keep shield-knight artwork; other enemies use their original, aspect-safe pixel animations.
- const userFrame=e.kind===5?rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart,e):null;const drawn=userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0?.65:1);if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ // V6.53: Render the original distinct eye, lancer, bat and spider art.
+ // Core enemy families retain animated V3.5 sprites; missing images use fallback.
+ const useUniqueArt=[3,5,10,12,15,19,20,22,26].includes(e.kind);
+ const userFrame=useUniqueArt?rhUserEnemyFrame(e.kind,estate,clock-e._spriteStart,e):null;
+ const drawn=!!(userFrame&&drawRHUserArt(userFrame,e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,1));if(!drawn&&!drawRHSprite(ename,estate,(clock-e._spriteStart)*(estate==='move'?7:estate==='attack'?10:3),e.x+e.w/2-ew/2,e.y+e.h-eh+3,ew,eh,e.dir||1,e.flash>0,e.kind>=12?((e.kind-11)*33)%360:0)){ctx.fillStyle=e.flash>0?'#fff':ENEMY_TYPES[e.kind].color;ctx.beginPath();ctx.roundRect(e.x,e.y,e.w,e.h,5);ctx.fill();ctx.fillStyle='#25314c';ctx.beginPath();ctx.arc(e.x+(e.dir>0?e.w*.7:e.w*.3),e.y+9,3.5,0,TAU);ctx.fill();ctx.fillStyle='#fffc';ctx.fillRect(e.x+2,e.y+2,e.w-5,3);}if(e.windup>0&&Number.isFinite(e.aimX)&&Number.isFinite(e.aimY)){ctx.save();ctx.globalAlpha=.48+.28*Math.sin(clock*24);ctx.strokeStyle='#ffd56e';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(e.x+12,e.y+12);ctx.lineTo(e.aimX,e.aimY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2b0';ctx.font='bold 18px system-ui';ctx.textAlign='center';ctx.fillText('!',e.x+e.w/2,e.y-16);ctx.beginPath();ctx.arc(e.aimX,e.aimY,7,0,TAU);ctx.stroke();ctx.restore()}if(e.guardian){ctx.save();ctx.fillStyle='#ffdb7f';ctx.font='bold 13px system-ui';ctx.textAlign='center';
   ctx.shadowColor='#ff8f62';ctx.shadowBlur=10;ctx.fillText('🔒 GATEKEEPER',e.x+e.w/2,e.y-24);ctx.restore()}
  // RHINF_GUARD_INPUT_FX_V634_20261024: directional shield in front of the guard, not a box over the sprite.
  if(rhGuardIsUp(e)){ctx.save();
