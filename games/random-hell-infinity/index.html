@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.62｜ボス突進の予告範囲と回避時間を改善</title>
-<meta name="game-build" content="ASTRAL_BREAK_V662_BOSS_CHARGE_EXACT_LANE_20261025" />
+<title>ASTRAL BREAK ∞ V6.63｜ボス星弾の予告・回避猶予</title>
+<meta name="game-build" content="ASTRAL_BREAK_V663_BOSS_VOLLEY_WINDUP_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -702,7 +702,17 @@ function rhBossBurstReady(b,dt){
  return b.teleportBurstDelay===0;
 }
 // V6.5: Prevent overlapping boss patterns while landing volley charges.
-function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0||b.chargeWindup>0||b.charge>0)}
+function rhBossCanBeginAttack(b){return !(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0||b.chargeWindup>0||b.charge>0||b.projectileWindup>0)}
+// V6.63: Telegraph boss fan/orb volleys before launching their locked trajectories.
+function rhBossVolleyWindup(phase){return phase>=3?.36:phase===2?.46:.58}
+function rhBossQueueVolley(b,shots,phase,type){
+ b.projectileQueue=shots;b.projectileWindup=rhBossVolleyWindup(phase);
+ b.projectileWindupMax=b.projectileWindup;b.projectilePattern=type;
+}
+function rhBossEmitOrQueue(b,shot){
+ if(b.projectileWindup>0&&b.projectileQueue){b.projectileQueue.push(shot);return}
+ shoot(...shot);
+}
 // V6.18: Phase-three crossfire leaves a deliberate escape lane around Lulu.
 function rhBossPhase3CrossfireLanes(b,p){
  const lo=b.platform.x+42,hi=b.platform.x+b.platform.w-42;
@@ -728,17 +738,17 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  ];
  const sequence=attackCombos[stage];
  const type=sequence[(b.attackNo-1)%sequence.length];
- if(type==='fan'){const speed=255+stage*20+phase*24,aim=rhBossLeadTarget(b,p,speed,phase);const a=Math.atan2(aim.y-(b.y+28),aim.x-(b.x+b.w/2));for(let k=-2-phase;k<=2+phase;k++){const aa=a+k*.17;shoot(b.x+b.w/2,b.y+28,b.x+b.w/2+Math.cos(aa)*400,b.y+28+Math.sin(aa)*400,speed,7)}}
+ if(type==='fan'){const speed=255+stage*20+phase*24,aim=rhBossLeadTarget(b,p,speed,phase);const a=Math.atan2(aim.y-(b.y+28),aim.x-(b.x+b.w/2)),shots=[];for(let k=-2-phase;k<=2+phase;k++){const aa=a+k*.17;shots.push([b.x+b.w/2,b.y+28,b.x+b.w/2+Math.cos(aa)*400,b.y+28+Math.sin(aa)*400,speed,7])}rhBossQueueVolley(b,shots,phase,'fan')}
  if(type==='teleport'){b.teleportWindup=.52;b.teleportWindupMax=.52;b.teleportTargetX=rhBossSafeTeleportX(b,p);b.teleportShotSpeed=270+stage*10;part(b.x+25,b.y,'#d5a4ff',12,.5)}
  if(type==='summon'){for(let k=0;k<phase+1;k++){const plat=b.platform;if(level.enemies.filter(e=>e.alive&&e.summoned).length>9)break;const er=rngGen(hash((clock*1000|0)+k+seed)),summonKind=stage>=4?20+(k%8):(k+3)%8;const e=makeEnemy(er,plat,clamp(b.x+(k?110:-100),plat.x+30,plat.x+plat.w-50),level.difficulty,summonKind);e.summoned=true;e.hp=Math.max(2,e.hp);level.enemies.push(e)}for(let k=-1;k<=1;k++)shoot(b.x+20,b.y+25,p.x+13,p.y+16+k*70,270,7)}
  if(type==='laser'){for(let k=0;k<phase+1;k++)hazardTelegraphs.push({x:clamp(p.x+80*(k-1),b.platform.x+18,b.platform.x+b.platform.w-22),delay:.66+k*.13,duration:.42,type:'laser',color:'#ff77bf',w:23,top:-40,bottom:b.platform.y,life:1.3})}
  if(type==='rain'){for(let k=0;k<3+phase;k++)hazardTelegraphs.push({x:clamp(p.x+(k-(1+phase/2))*90,b.platform.x+25,b.platform.x+b.platform.w-25),delay:.58+k*.06,duration:.5,type:'rain',color:'#89eaff',w:26,top:-30,bottom:b.platform.y,life:1.5})}
  if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=phase===3?.58:phase===2?.68:.78;b.chargeWindupMax=b.chargeWindup;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
- if(type==='orb'){for(let k=0;k<3+phase*2;k++){const a=k*TAU/(3+phase*2);shoot(b.x+25,b.y+25,b.x+25+Math.cos(a)*300,b.y+25+Math.sin(a)*300,200+phase*30,8)}}
+ if(type==='orb'){const shots=[];for(let k=0;k<3+phase*2;k++){const a=k*TAU/(3+phase*2);shots.push([b.x+25,b.y+25,b.x+25+Math.cos(a)*300,b.y+25+Math.sin(a)*300,200+phase*30,8])}rhBossQueueVolley(b,shots,phase,'orb')}
  // Second phase chains an extra spread between the named boss patterns.
  if(phase>=2&&b.attackNo%2===0){
    const ax=b.x+b.w/2,ay=b.y+25,aim=rhBossLeadTarget(b,p,265+stage*14,phase),tx=aim.x,ty=aim.y;
-   for(const offset of [-58,0,58])shoot(ax,ay,tx,ty+offset,265+stage*14,5);
+   for(const offset of [-58,0,58])rhBossEmitOrQueue(b,[ax,ay,tx,ty+offset,265+stage*14,5]);
    part(ax,ay,'#ffe99a',8,.45);
  }
  // Airspace suppression makes standing on the ground or endlessly double-jumping unsafe.
@@ -748,7 +758,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
      top:b.platform.y-230,bottom:b.platform.y-58,life:1.15});
  }
  if(phase===3&&b.attackNo%2===1){
-   for(const offset of [-85,85])shoot(b.x+b.w/2,b.y+22,p.x+p.w/2,p.y+p.h/2+offset,375+stage*20,6);
+   for(const offset of [-85,85])rhBossEmitOrQueue(b,[b.x+b.w/2,b.y+22,p.x+p.w/2,p.y+p.h/2+offset,375+stage*20,6]);
  }
  // V6.18: Third-phase staggered twin beams; always keep Lulu's current lane open.
  if(phase===3&&b.attackNo%4===0){
@@ -1357,8 +1367,15 @@ function update(dt){
    b.teleportContactGrace=Math.max(0,(b.teleportContactGrace||0)-dt);
    if(b.teleportWindup>0){b.teleportWindup=Math.max(0,b.teleportWindup-dt);if(b.teleportWindup===0&&b.alive){b.x=clamp(b.teleportTargetX,b.from,b.to);b.teleportContactGrace=.26;b.teleportBurstDelay=.36;b.teleportBurstAimX=p.x+p.w/2;b.teleportBurstAimY=p.y+p.h/2;part(b.x+25,b.y,'#d5a4ff',22)}}
    if(rhBossBurstReady(b,dt)){for(let k=-1;k<=1;k++)shoot(b.x+23,b.y+28,b.teleportBurstAimX,b.teleportBurstAimY+k*80,b.teleportShotSpeed||270,8);b._spriteAttackUntil=clock+.35}
+   if(b.projectileWindup>0){
+    b.projectileWindup=Math.max(0,b.projectileWindup-dt);
+    if(b.projectileWindup===0&&b.alive){
+     for(const shot of b.projectileQueue||[])shoot(...shot);
+     b.projectileQueue=null;b._spriteAttackUntil=clock+.42;soundCue('bossswing');
+    }
+   }
    if(b.chargeWindup>0){b.chargeWindup=Math.max(0,b.chargeWindup-dt);if(b.chargeWindup===0){b.charge=b.chargePending;b.chargePending=0;soundCue('bossswing')}}else if(b.charge>0){b.x=clamp(b.x+b.chargeDir*dt*630,b.from,b.to);b.charge-=dt}
-   else if(!(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
+   else if(!(b.teleportWindup>0||b.teleportContactGrace>0||b.teleportBurstDelay>0||b.projectileWindup>0)){if(Math.abs(p.x-b.x)>70&&p.x>b.from-55&&p.x<b.to+55)b.dir=p.x>b.x?1:-1;
    b.x+=b.dir*(88+level.world*10)*(b.hp/b.maxhp<.33?1.8:b.hp/b.maxhp<.70?1.44:1.15)*dt*(b.frost>0?.65:1);
    if(b.x<b.from){b.x=b.from;b.dir=1}if(b.x>b.to){b.x=b.to;b.dir=-1}}
    if(rhBossCanBeginAttack(b)){b.shoot-=dt*(b.frost>0?.75:1);if(b.shoot<=0&&b.alive)attackBoss(b);}
@@ -1876,6 +1893,21 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.textAlign='center';ctx.fillText('⚠ 予告射線',b.x+b.w/2,b.y-46);ctx.restore();
  }
  if(b.teleportContactGrace>0){ctx.save();ctx.globalAlpha=.28+.42*b.teleportContactGrace/.26;ctx.strokeStyle='#e4b5ff';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(b.x+b.w/2,b.y+b.h/2,b.w*.72,b.h*.82,0,0,TAU);ctx.stroke();ctx.restore()}
+ // V6.63: Preview actual locked shot directions before firing, behind the boss sprite.
+ if(b.projectileWindup>0&&b.projectileQueue?.length){
+  const progress=clamp(1-b.projectileWindup/Math.max(.01,b.projectileWindupMax||.58),0,1);
+  ctx.save();ctx.strokeStyle=b.projectilePattern==='orb'?'#a3eaff':'#ffe5a5';
+  ctx.lineWidth=1.7;ctx.globalAlpha=.19+.22*progress;ctx.setLineDash([7,6]);
+  for(const shot of b.projectileQueue){
+   const dx=shot[2]-shot[0],dy=shot[3]-shot[1],distance=Math.max(1,Math.hypot(dx,dy)),length=Math.min(245,distance);
+   ctx.beginPath();ctx.moveTo(shot[0],shot[1]);ctx.lineTo(shot[0]+dx/distance*length,shot[1]+dy/distance*length);ctx.stroke();
+  }
+  ctx.setLineDash([]);ctx.globalAlpha=.96;ctx.lineWidth=3;ctx.beginPath();
+  ctx.arc(b.x+b.w/2,b.y-25,11,-Math.PI/2,-Math.PI/2+TAU*progress);ctx.stroke();
+  ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff2c5';
+  ctx.fillText(b.projectilePattern==='orb'?'⚠ 星弾散開':'⚠ 星弾扇射',b.x+b.w/2,b.y-47);
+  ctx.restore();
+ }
  // Preview the complete hazard behind the sprite; do not obscure its animation.
  if(b.chargeWindup>0){
   const lane=rhBossChargeWarning(b);
@@ -1890,7 +1922,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);
   ctx.restore();
  }
- const bstate=b.chargeWindup>0||b.teleportWindup>0||(b._spriteAttackUntil||0)>clock?'attack':b.hitGrace>0?'hurt':Math.abs(b.x-(b._spriteLastX??b.x))>.35?'move':'idle';if(b._spriteState!==bstate){b._spriteState=bstate;b._spriteStart=clock}b._spriteLastX=b.x;
+ const bstate=b.chargeWindup>0||b.teleportWindup>0||b.projectileWindup>0||(b._spriteAttackUntil||0)>clock?'attack':b.hitGrace>0?'hurt':Math.abs(b.x-(b._spriteLastX??b.x))>.35?'move':'idle';if(b._spriteState!==bstate){b._spriteState=bstate;b._spriteStart=clock}b._spriteLastX=b.x;
  const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45),bframe=(clock-(b._spriteStart??clock))*(bstate==='attack'?11:bstate==='move'?6:3),bossBob=Math.sin(clock*3.6+b.kind)*2;
  if(!drawRHSprite('boss',bstate,bframe,b.x+b.w/2-bw/2,b.y+b.h-bh+6+bossBob,bw,bh,b.dir||1,b.hitGrace>0,(b.kind*47)%360)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}drawBossWorldSigils(b,bossPhase);ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);}
  for(const bullet of projectiles){ctx.save();ctx.strokeStyle='#ffb06e';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(2,bullet.r*.75);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(bullet.prevX??bullet.x,bullet.prevY??bullet.y);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();ctx.restore();ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
