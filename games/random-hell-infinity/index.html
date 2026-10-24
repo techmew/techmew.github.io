@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.54｜星界崩壊・戦闘演出刷新</title>
-<meta name="game-build" content="ASTRAL_BREAK_V654_20261024" />
+<title>ASTRAL BREAK ∞ V6.55｜星界崩壊アクション</title>
+<meta name="game-build" content="ASTRAL_BREAK_V655_COMBAT_AUDIO_HUD_WORLD_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -125,17 +125,26 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
  #menuTiny,#soundTiny,#fullscreenTiny{top:146px!important}
 }
 
-/* ASTRAL BREAK: right-side stage telemetry */
-#astralStatus{position:fixed;top:10px;right:12px;z-index:3;pointer-events:none;text-align:right;font-size:11px;letter-spacing:.06em;color:#c8f6ff;text-shadow:0 2px 5px #000;max-width:36vw}
-#astralStatus strong{display:block;font-size:13px;color:#fff}
-@media(orientation:portrait) and (max-width:600px){#astralStatus{top:38px;right:12px;max-width:30vw;font-size:10px}#astralStatus strong{font-size:11px}}
+/* AST V655: upper-right sector scanner with real progress and independent BGM level */
+#astralStatus{position:fixed;right:8px;top:34px;width:min(33vw,154px);z-index:4;
+background:linear-gradient(135deg,#102945ed,#261a42ec);color:#daefff;
+border:1px solid #92dbff99;border-radius:12px;padding:7px 8px 8px;
+box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
+#astralStatus strong{display:block;font-size:clamp(10px,2.5vw,13px);line-height:1.2;color:white}
+.astralMeta{font-size:10px;margin-top:4px;color:#c9ecff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#astralTrack{height:5px;margin-top:5px;background:#142038;border-radius:9px;overflow:hidden}
+#astralMeter{height:100%;width:0;background:linear-gradient(90deg,#5beaff,#fff2a3)}
+#astralVolume{display:flex;align-items:center;gap:4px;font-size:10px;margin-top:6px}
+#bgmRange{width:100%;min-width:0;accent-color:#79d7f9;touch-action:manipulation}
+@media(orientation:portrait) and (max-width:600px){#astralStatus{top:40px;right:8px;width:31vw;min-width:105px;padding:6px}.astralMeta{font-size:9px}#astralStatus strong{font-size:10px}}
+@media(orientation:landscape) and (max-height:430px){#astralStatus{top:8px;right:8px;width:145px}}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="ランダム生成アクションゲーム"></canvas><div id="shade"></div>
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
 <button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="BGMと効果音のオンオフ" title="BGM・効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
-<div id="astralStatus"><strong>✦ ASTRAL BREAK ∞</strong><span>星界の裂け目を突破せよ</span></div><div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
+<div id="astralStatus" aria-label="星界レーダー"><strong>✦ ASTRAL BREAK ∞</strong><div class="astralMeta" id="astralSector">星雨の序章</div><div class="astralMeta" id="astralEnemies">裂け目探索</div><div id="astralTrack"><div id="astralMeter"></div></div><label id="astralVolume">BGM <input type="range" id="bgmRange" min="0" max="100" value="30" aria-label="BGM音量"></label></div><div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
 <div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
 <script src="./sprites-v35.js"></script>
@@ -148,7 +157,7 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 <script src="./sprites-v35-boss.js"></script>
 <script src="./concept-mini-v634.js"></script>
 <script src="./rhinf-user-art-v644.js"></script>
-<script src="./audio-v647.js?v=654"></script>
+<script src="./audio-v647.js?v=655"></script>
 <script>
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -164,17 +173,17 @@ const themes=[
  {sky:['#300d1e','#850f33'],far:'#a72e53',near:'#6c153c',floor:'#bb285b',edge:'#ff779e',accent:'#fdff89'}
 ];
 const STORY=[
- {name:'雨のはじまり',start:'空から「昨日」が降ってきた。町の人は、昨日のことを少しずつ忘れている。小さな旅人ルルは、失われた日々を取り戻すため、8つの世界の扉を探す。',end:'消えた一日を拾った。「大丈夫」と書かれた、だれかの手紙だった。'},
- {name:'鏡の世界',start:'鏡の中には、ルルより先に旅をした誰かがいた。その子も、同じ手紙を持っていた。',end:'鏡の向こうの子は言った。「先に行って。私はここで道を照らす」'},
- {name:'森の約束',start:'森の動物たちは、誰かを待っていた。毎朝、空席のままの食卓に花を飾っていた。',end:'花を置いたのは、かつてルルが助けた子だった。記憶は消えても、優しさは残る。'},
- {name:'眠らない街',start:'時計は止まっていた。止まった時計の下で、人々は同じ一日を何度も過ごしている。',end:'時計が動きだす。「今日は、昨日の続きなんだね」と誰かが笑った。'},
- {name:'空の深海',start:'空に海が浮かんでいた。波間から、何年も前に消えた「ありがとう」が聞こえた。',end:'青い水の中に、懐かしい声が残っていた。その声は、ルルの名前を呼んでいた。'},
- {name:'灰色の王国',start:'王国では、泣くことも笑うことも禁じられていた。王は、悲しみを消せば皆を守れると思っていた。',end:'人々は久しぶりに泣いた。悲しみを知ることは、誰かを大切に思うことだった。'},
- {name:'最後の手紙',start:'手紙の送り主が分かった。世界を救うため、ルルの記憶から消えた小さな友達だった。',end:'「思い出してくれなくてもいい。元気でいてくれたら」——手紙の最後には、そう書いてあった。'},
- {name:'忘却の夜明け',start:'最後の魔王は、忘れられるのが怖くて時間を閉じ込めた。ルルは、倒すだけでは終わらないと気づく。',end:'夜明けが来た。魔王は名前を取り戻し、閉じ込めた日々を解き放った。'}
+ {name:'星雨の序章',start:'空から「昨日」が降ってきた。町の人は、昨日のことを少しずつ忘れている。小さな旅人ルルは、失われた日々を取り戻すため、8つの世界の扉を探す。',end:'消えた一日を拾った。「大丈夫」と書かれた、だれかの手紙だった。'},
+ {name:'鏡面星域',start:'鏡の中には、ルルより先に旅をした誰かがいた。その子も、同じ手紙を持っていた。',end:'鏡の向こうの子は言った。「先に行って。私はここで道を照らす」'},
+ {name:'翠星の森',start:'森の動物たちは、誰かを待っていた。毎朝、空席のままの食卓に花を飾っていた。',end:'花を置いたのは、かつてルルが助けた子だった。記憶は消えても、優しさは残る。'},
+ {name:'時の静止星',start:'時計は止まっていた。止まった時計の下で、人々は同じ一日を何度も過ごしている。',end:'時計が動きだす。「今日は、昨日の続きなんだね」と誰かが笑った。'},
+ {name:'蒼海天球',start:'空に海が浮かんでいた。波間から、何年も前に消えた「ありがとう」が聞こえた。',end:'青い水の中に、懐かしい声が残っていた。その声は、ルルの名前を呼んでいた。'},
+ {name:'灰銀星宮',start:'王国では、泣くことも笑うことも禁じられていた。王は、悲しみを消せば皆を守れると思っていた。',end:'人々は久しぶりに泣いた。悲しみを知ることは、誰かを大切に思うことだった。'},
+ {name:'記憶の星図',start:'手紙の送り主が分かった。世界を救うため、ルルの記憶から消えた小さな友達だった。',end:'「思い出してくれなくてもいい。元気でいてくれたら」——手紙の最後には、そう書いてあった。'},
+ {name:'暁の星界',start:'最後の魔王は、忘れられるのが怖くて時間を閉じ込めた。ルルは、倒すだけでは終わらないと気づく。',end:'夜明けが来た。魔王は名前を取り戻し、閉じ込めた日々を解き放った。'}
 ];
-const namesA=['狂気の','終わらない','崩壊した','悪夢の','無慈悲な','絶望の','ねじれた','呪われた','極限の','見えない','暴走する','最後の'];
-const namesB=['空中回廊','針の迷宮','断崖地帯','殺意の塔','崩れる道','虚無の谷','閃光地帯','沈黙の城','影の街','地獄の門','幻の大地','処刑場'];
+const namesA=['流星の','欠けた','星喰いの','薄明の','忘却の','蒼い','光を失った','反転した','暁の','境界の','崩壊する','最後の'];
+const namesB=['浮遊回廊','星屑迷宮','天球断崖','観測塔','崩れる星道','虚空の谷','流星軌道','沈黙の星都','月影都市','星界の門','記憶の惑星','終焉軌道'];
 const WORLD_COUNT=8,STAGES=3,PW=26,PH=35,TAU=Math.PI*2;
 let W=960,H=540,dpr=1,baseY=370;
 // Zoom gameplay objects only, not touch buttons / HUD. On phones, use 70% of the old 1.3x world zoom.
@@ -833,17 +842,20 @@ function resetPlayer(respawn=false){const cp=checkpointIndex>0?level.platforms.f
 function saveState(){if(mode==='gameover'||player?.hp===0)return;try{localStorage.setItem('randomHellSave',JSON.stringify({seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending}));localStorage.setItem('randomHellBest',String(best));localStorage.setItem('randomHellMuted',muted?'1':'0')}catch(e){}}
 // V6.11: Release stale control holds before a new or continued run.
 function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=clamp(Number(newSeed)||0,0,999999999);levelIndex=clamp(idx,0,23);deaths=d;loadout=restore?.loadout?.length?restore.loadout:[{id:'fist',tier:1,affix:'none'}];relics=restore?.relics||[];activeSlot=clamp(restore?.activeSlot||0,0,loadout.length-1);kills=restore?.kills||0;score=restore?.score||0;autoWeaponCooldowns=[];checkpointIndex=clamp(restore?.checkpointIndex||0,0,2);survivorXP=restore?.survivorXP||0;survivorLevel=restore?.survivorLevel||1;survivorPending=restore?.survivorPending||0;mode='playing';createLevel(!!restore);overlay.classList.add('hidden');saveState();soundCue('stage');if(survivorPending)survivorDraft()}
-function showMenu(){resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>RANDOM<br><span>HELL ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">⚡ 新しい地獄へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
 function showClear(){mode='clear';best=Math.max(best,levelIndex+1);saveState();overlay.classList.remove('hidden');const finished=levelIndex===23;const w=level.world+1,st=level.stage+1,medal=stageTime<28?'S':stageTime<50?'A':stageTime<85?'B':'C';
- panel.innerHTML=`<div class="eyebrow">${finished?'ALL WORLDS CONQUERED':'STAGE CLEARED'}</div><div class="messageTitle blue">${finished?'HELL CONQUERED':`WORLD ${w}-${st}　${medal} RANK`}</div><p>${finished?'ルルは世界から消えた友達の名を呼んだ。「忘れてしまうことは、なくなることじゃない。もう一度、出会えばいい」。友達は振り返り、二人は新しい朝へ歩きだした。<br>終わらない地獄の向こうに、初めての明日が生まれた。<br><br>':(level.stage===2?STORY[level.world].end+'<br><br>':'')}<strong>物語：</strong>${LORE[levelIndex]}<br><br>「${level.title}」を突破<br>タイム：${stageTime.toFixed(1)}秒　｜　総死亡：${deaths}回<br>スコア：${Math.floor(score)}　｜　連続撃破：${maxCombo}<br>装備：${itemName(loadout[activeSlot])}<br>SEED：${String(seed).padStart(9,'0')}</p><div class="panelBtns"><button id="continueNext" class="primary">${finished?'新しい地獄を生成':'次のステージ →'}</button><button id="retrySeed" class="secondary">同じシードを最初から</button></div>`;
- $('continueNext').onclick=()=>{if(finished)begin(randSeed());else{const changeWorld=level.stage===2;levelIndex++;mode='playing';createLevel();overlay.classList.add('hidden');saveState();soundCue('stage');if(changeWorld)toast('第'+(level.world+1)+'世界：'+STORY[level.world].start,5)}};
+ panel.innerHTML=`<div class="eyebrow">${finished?'ALL WORLDS CONQUERED':'STAGE CLEARED'}</div><div class="messageTitle blue">${finished?'ASTRAL RESTORED':`WORLD ${w}-${st}　${medal} RANK`}</div><p>${finished?'ルルは世界から消えた友達の名を呼んだ。「忘れてしまうことは、なくなることじゃない。もう一度、出会えばいい」。友達は振り返り、二人は新しい朝へ歩きだした。<br>崩れゆく星界の向こうに、初めての明日が生まれた。<br><br>':(level.stage===2?STORY[level.world].end+'<br><br>':'')}<strong>物語：</strong>${LORE[levelIndex]}<br><br>「${level.title}」を突破<br>タイム：${stageTime.toFixed(1)}秒　｜　総死亡：${deaths}回<br>スコア：${Math.floor(score)}　｜　連続撃破：${maxCombo}<br>装備：${itemName(loadout[activeSlot])}<br>SEED：${String(seed).padStart(9,'0')}</p><div class="panelBtns"><button id="continueNext" class="primary">${finished?'新しい星界を生成':'次のステージ →'}</button><button id="retrySeed" class="secondary">同じシードを最初から</button></div>`;
+ $('continueNext').onclick=()=>{if(finished)begin(randSeed());else{const changeWorld=level.stage===2;levelIndex++;mode='playing';createLevel();overlay.classList.add('hidden');saveState();soundCue('stage');if(changeWorld)toast('第'+(level.world+1)+'星界：'+STORY[level.world].start,5)}};
  $('retrySeed').onclick=()=>begin(seed,0,0);
 }
 function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hudTick=.085;
- $('stage').textContent=`WORLD ${level.world+1}-${level.stage+1}　${level.title}`;
+ $('stage').textContent=`星界 ${level.world+1}-${level.stage+1}　${level.title}`;
+ $('astralSector').textContent=STORY[level.world].name;
+ $('astralEnemies').textContent='敵 '+level.enemies.filter(e=>e.alive).length+'体 · '+(level.boss?.alive?'星喰い警戒':'裂け目探索');
+ $('astralMeter').style.width=clamp((player?.x||0)/level.goalX*100,0,100)+'%';
  $('substats').textContent=`💀${deaths} ｜ ⏱${stageTime.toFixed(1)}s ｜ SEED ${String(seed).padStart(9,'0')}`;
  $('playerHealthText').textContent='❤ ルル HP '+(player?.hp??7)+' / '+(player?.maxhp??7);$('playerHealth').classList.toggle('danger',!!player&&player.hp<=Math.max(2,player.maxhp*.25));
  $('playerHealthFill').style.width=(player?Math.max(0,player.hp/player.maxhp*100):100)+'%';
@@ -1359,7 +1371,14 @@ function polygon(points,fill){ctx.beginPath();ctx.moveTo(points[0][0],points[0][
 function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.sky[0]);g.addColorStop(1,t.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
  const moonX=W*.79-camera*.025,moonY=H*.25;
  const glow=ctx.createRadialGradient(moonX,moonY,5,moonX,moonY,180);glow.addColorStop(0,t.accent+'48');glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.fillRect(moonX-180,moonY-180,360,360);
- ctx.beginPath();ctx.arc(moonX,moonY,29,0,TAU);ctx.fillStyle=t.accent;ctx.globalAlpha=.72;ctx.fill();ctx.globalAlpha=1;
+ // Celestial rift with animated shattered orbit in every procedural biome.
+ ctx.save();ctx.translate(moonX,moonY);const core=Math.max(23,Math.min(43,W*.055));
+ ctx.strokeStyle=t.edge;ctx.lineWidth=2;ctx.globalAlpha=.48;
+ ctx.beginPath();ctx.ellipse(0,0,core*1.9,core*.65,-.43,0,TAU);ctx.stroke();
+ ctx.globalAlpha=.78;ctx.fillStyle=t.accent;ctx.beginPath();ctx.arc(0,0,core*.76,0,TAU);ctx.fill();
+ ctx.globalAlpha=.78;ctx.fillStyle=t.sky[0];ctx.beginPath();ctx.moveTo(-core*.13,-core*.78);ctx.lineTo(core*.20,-core*.1);ctx.lineTo(-core*.09,core*.15);ctx.lineTo(core*.16,core*.72);ctx.lineTo(-core*.27,core*.12);ctx.fill();
+ ctx.strokeStyle='#f0faff';ctx.globalAlpha=.68;for(let i=0;i<6;i++){const a=i*TAU/6+clock*.05;ctx.beginPath();ctx.moveTo(Math.cos(a)*core*1.13,Math.sin(a)*core*1.13);ctx.lineTo(Math.cos(a+.1)*core*1.45,Math.sin(a+.1)*core*1.45);ctx.stroke()}
+ ctx.restore();
  const r=rngGen(hash(seed^0x89ff0123^levelIndex));for(let j=0;j<60;j++){let xx=(r()*level.totalX*.35-camera*.12)% (W+70);if(xx<0)xx+=W+70;ctx.fillStyle='#ffffff';ctx.globalAlpha=.12+r()*.45;ctx.fillRect(xx,r()*H*.68,1.5,1.5)}ctx.globalAlpha=1;
  for(const deco of level.decor){let xx=deco.x-camera*(deco.layer?.21:.08);xx%=Math.max(W*2,1800);if(xx< -200)xx+=Math.max(W*2,1800);if(xx<-100||xx>W+100)continue;ctx.fillStyle=deco.layer?t.near:t.far;ctx.globalAlpha=deco.layer?.44:.3;ctx.fillRect(xx,baseY+70-deco.h,deco.w,deco.h+H);ctx.fillStyle=t.edge;ctx.globalAlpha=deco.glow*.14;ctx.fillRect(xx+5,baseY+75-deco.h,3,deco.h*.4)}ctx.globalAlpha=1;
  const fog=ctx.createLinearGradient(0,baseY-100,0,H);fog.addColorStop(0,'transparent');fog.addColorStop(1,'#00000055');ctx.fillStyle=fog;ctx.fillRect(0,baseY-100,W,H-baseY+100);
@@ -1766,13 +1785,16 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const rtype=weapon().type;const ranged=['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;const pstate=punchTime>0?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);// Restore the pre-import Lulu sprite with silver hair, star pin and blue scarf.
  // Keep original V3.5 Lulu's complete face and body visible during 31-weapon chains.
  // The old attack/shoot cutouts contain large partial sword streaks that hide the torso.
- const stableState=pstate==='attack'||pstate==='shoot'?'idle':pstate;
- const striking=punchTime>0;const strikePhase=striking?Math.min(1,(clock-heroSpriteStart)*11):0;
- if(striking){ctx.translate(p.face*(3+Math.sin(strikePhase*Math.PI)*5),-Math.sin(strikePhase*Math.PI)*3);ctx.rotate(p.face*(ranged?-.10:-.20)*Math.sin(strikePhase*Math.PI));}
-
- const stableFrame=stableState==='idle'&&pstate!=='idle'?Math.floor((clock-heroSpriteStart)*9):pframe;
+ // Alternate whole-body motion using approved Lulu run frames (never cropped attack-sheet fragments).
+ const striking=punchTime>0,phase=striking?clamp(1-punchTime/.25,0,1):0;
+ const swing=Math.sin(phase*Math.PI),alternate=rhAttackChain%2===0?-1:1;
+ const stableState=striking?'run':pstate;
+ const stableFrame=striking?Math.floor(phase*3):pframe;
+ ctx.save();
+ if(striking){ctx.translate(p.face*(4+swing*9),-2-swing*5);ctx.rotate(p.face*alternate*(ranged?.13:.30)*swing);ctx.scale(1+swing*.09,1-swing*.10)}
  if(!drawRHSprite('hero',stableState,stableFrame,-19,-24,65,61,p.face,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
- if(striking){ctx.save();ctx.translate(p.face===1?30:-4,10);ctx.scale(p.face,1);ctx.strokeStyle=ranged?'#85f6ff':'#ffe8b0';ctx.lineWidth=ranged?2.5:4;ctx.lineCap='round';ctx.globalAlpha=.85;ctx.beginPath();const swing=Math.sin(strikePhase*Math.PI);ctx.moveTo(-4,12);ctx.quadraticCurveTo(12+swing*7,-12,22+swing*9,-8+swing*12);ctx.stroke();ctx.restore();}
+ if(striking){ctx.save();ctx.translate(p.face===1?32:-7,9);ctx.scale(p.face,1);ctx.globalAlpha=.35+swing*.55;ctx.strokeStyle=ranged?'#86eaff':'#ffe2a0';ctx.shadowColor=ranged?'#59cafa':'#fcd17a';ctx.shadowBlur=7;ctx.lineWidth=ranged?3:4;ctx.lineCap='round';ctx.beginPath();ctx.arc(0,8,25,-1.4+phase*1.5,.4+phase*1.5);ctx.stroke();ctx.restore();}
+ ctx.restore(); // Keep HP bar stationary.
  // Character-following health bar, drawn above the existing V3.5 sprite.
  if(p.maxhp>0){const ratio=Math.max(0,Math.min(1,p.hp/p.maxhp));
    ctx.fillStyle='#121a30e8';ctx.fillRect(-9,-38,44,10);
@@ -1888,6 +1910,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.a
 $('soundTiny').addEventListener('click',toggleSound);
 $('menuTiny').addEventListener('click',()=>{if(mode==='gameover'){save=null;showMenu();return}saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()});
 document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){saveState();save={seed,levelIndex,deaths,loadout,relics,activeSlot,kills,score,checkpointIndex,survivorXP,survivorLevel,survivorPending};showMenu()}});
+const bgmInput=$('bgmRange');if(bgmInput){bgmInput.value=String(Math.round((window.RH_AUDIO?.getMusicVolume?.()??.30)*100));bgmInput.addEventListener('input',()=>window.RH_AUDIO?.setMusicVolume?.(Number(bgmInput.value)/100));}
 resize();seed=save?.seed??randSeed();levelIndex=save?.levelIndex??0;deaths=save?.deaths??0;loadout=save?.loadout?.length?save.loadout:[{id:'fist',tier:1,affix:'none'}];relics=save?.relics||[];activeSlot=save?.activeSlot||0;score=save?.score||0;kills=save?.kills||0;survivorXP=save?.survivorXP||0;survivorLevel=save?.survivorLevel||1;survivorPending=save?.survivorPending||0;createLevel();showMenu();window.RH_AUDIO?.setMuted(muted);$('soundTiny').textContent=muted?'🔇':'🔊';requestAnimationFrame(frame);
 })();
 </script>
