@@ -1,4 +1,4 @@
-/* RANDOM HELL ∞ V6.51 / Audio direction: subdued combat clicks and rare impact cues.
+/* ASTRAL BREAK ∞ V6.55 / Audio direction: subdued combat clicks and rare impact cues.
    All upstream assets CC0; sources and licenses recorded in AUDIO_LICENSES.md.
    BGM is streamed (no user music player); internal transitions are seamless crossfades. */
 (()=>{
@@ -59,12 +59,18 @@ const cooldown={menu:120,confirm:130,footstep:280,jump:150,doublejump:180,
  land:130,bossenter:800,bossphase:700,death:500,levelup:400};
 const duckEvents=new Set(['bossenter','bossphase','bossdefeat','death','clear']);
 const voices=new Map(),lastAt=new Map(),failed=new Set(),musicFallbacks=new Set();
-const SFX_MASTER=.17,ATTACK_SOUNDS=new Set(['sword','dagger','heavy','magic','laser','cannon','projectile']),HIT_SOUNDS=new Set(['hit','heavyhit','bosshit','enemydeath']);
+const SFX_MASTER=.14,ATTACK_SOUNDS=new Set(['sword','dagger','heavy','magic','laser','cannon','projectile']),HIT_SOUNDS=new Set(['hit','heavyhit','bosshit','enemydeath']);
 let lastAttackSample=-Infinity,lastHitSample=-Infinity;
 let unlocked=false,muted=false,hidden=document.hidden,kind='',active=null,outgoing=[];
 let duckUntil=0,duckStrength=1,activeTick=0;
+// Separate persisted BGM control; keep legacy mute and save keys unchanged.
+let musicLevel=.30;
+try{const saved=localStorage.getItem('astralBreakBgmLevel');if(saved!==null&&Number.isFinite(Number(saved)))musicLevel=Math.max(0,Math.min(1,Number(saved)))}catch(_){}
+function setMusicVolume(v){musicLevel=Math.max(0,Math.min(1,Number(v)||0));try{localStorage.setItem('astralBreakBgmLevel',String(musicLevel))}catch(_){}tick();return musicLevel}
+function getMusicVolume(){return musicLevel}
+
 const now=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now();
-function volumeFor(name){return name==='menu'?.15:name==='gameover'?.115:name==='boss'||name==='finalboss'?.195:.175}
+function volumeFor(name){return (name==='menu'?.15:name==='gameover'?.115:name==='boss'||name==='finalboss'?.195:.175)*musicLevel}
 function stop(node){if(!node)return;try{node.pause();node.removeAttribute('src');node.load()}catch(_){}}
 function play(record){
  if(!record||record!==active||!unlocked||muted||hidden||record.pending||!record.node)return;
@@ -198,8 +204,8 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('pagehide',()=>{active?.node?.pause();for(const item of outgoing)item.node.pause()});
 window.addEventListener('pageshow',()=>resume());
-window.RH_AUDIO={sync,unlock,setMuted,cue,sources:{tracks,bank},getState:()=>({
- unlocked,muted,kind,track:active?.node?.src||'',sourceIndex:active?.index??-1,failed:[...failed],
+window.RH_AUDIO={sync,unlock,setMuted,setMusicVolume,getMusicVolume,cue,sources:{tracks,bank},getState:()=>({
+ unlocked,muted,kind,musicLevel,track:active?.node?.src||'',sourceIndex:active?.index??-1,failed:[...failed],
  fallbacks:[...musicFallbacks],fadeCount:outgoing.length,ducking:now()<duckUntil
 })};
 })();
