@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.58｜落下武器リセット・HP持ち越し</title>
-<meta name="game-build" content="ASTRAL_BREAK_V658_FALL_WEAPON_RESET_HP_CARRY_20261024" />
+<title>ASTRAL BREAK ∞ V6.59｜8星界の固有色と進行演出</title>
+<meta name="game-build" content="ASTRAL_BREAK_V659_EIGHT_WORLD_BIOME_IDENTITY_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -200,6 +200,13 @@ const STORY=[
 const namesA=['流星の','欠けた','星喰いの','薄明の','忘却の','蒼い','光を失った','反転した','暁の','境界の','崩壊する','最後の'];
 const namesB=['浮遊回廊','星屑迷宮','天球断崖','観測塔','崩れる星道','虚空の谷','流星軌道','沈黙の星都','月影都市','星界の門','記憶の惑星','終焉軌道'];
 const WORLD_COUNT=8,STAGES=3,PW=26,PH=35,TAU=Math.PI*2;
+// V6.59: Stable, distinct story-world palettes; retain one legacy RNG draw
+// so existing seed-based terrain, enemy, trap and item generation never shifts.
+const RH_WORLD_PALETTES=Object.freeze([0,3,2,5,4,6,1,7]);
+function rhWorldPaletteIndex(world,rng){
+ rng(); // preserve the old palette random draw for seed compatibility
+ return RH_WORLD_PALETTES[clamp(Math.floor(world),0,WORLD_COUNT-1)];
+}
 let W=960,H=540,dpr=1,baseY=370;
 // Zoom gameplay objects only, not touch buttons / HUD. On phones, use 70% of the old 1.3x world zoom.
 function isPhoneGameplayViewport(){
@@ -761,7 +768,7 @@ function rhSafeJumpGap(fromY,toY,gravity,speed,jump,wind){
 function createLevel(respawn=false,carryHp=null){
  if(!respawn){checkpointIndex=0;checkpointX=0;checkpointStage=levelIndex;vampCharge=0}
  const world=Math.floor(levelIndex/3),stage=levelIndex%3,levSeed=hash(seed^Math.imul(levelIndex+1,0x9e3779b9)),r=rngGen(levSeed),difficulty=levelIndex/23;
- const theme=themes[(world+randomInt(r,0,7))%8],gravity=randomInt(r,1750,2200),speed=randomInt(r,285,338),jump=randomInt(r,700,800),wind=randomInt(r,-115,115),ice=chance(r,.22+difficulty*.19);
+ const theme=themes[rhWorldPaletteIndex(world,r)],gravity=randomInt(r,1750,2200),speed=randomInt(r,285,338),jump=randomInt(r,700,800),wind=randomInt(r,-115,115),ice=chance(r,.22+difficulty*.19);
  const platforms=[{x:0,y:baseY,w:460,kind:'solid',active:true,collapse:0}];
  const spikes=[],enemies=[],saws=[],lasers=[],pickups=[],springPads=[],skyTraps=[];
  let prev=platforms[0],x=460,amount=16+world*2+(stage===2?3:0),prefix=0;
@@ -1450,6 +1457,10 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
  const r=rngGen(hash(seed^0x89ff0123^levelIndex));for(let j=0;j<60;j++){let xx=(r()*level.totalX*.35-camera*.12)% (W+70);if(xx<0)xx+=W+70;ctx.fillStyle='#ffffff';ctx.globalAlpha=.12+r()*.45;ctx.fillRect(xx,r()*H*.68,1.5,1.5)}ctx.globalAlpha=1;
  for(const deco of level.decor){let xx=deco.x-camera*(deco.layer?.21:.08);xx%=Math.max(W*2,1800);if(xx< -200)xx+=Math.max(W*2,1800);if(xx<-100||xx>W+100)continue;ctx.fillStyle=deco.layer?t.near:t.far;ctx.globalAlpha=deco.layer?.44:.3;ctx.fillRect(xx,baseY+70-deco.h,deco.w,deco.h+H);ctx.fillStyle=t.edge;ctx.globalAlpha=deco.glow*.14;ctx.fillRect(xx+5,baseY+75-deco.h,3,deco.h*.4)}ctx.globalAlpha=1;
  const fog=ctx.createLinearGradient(0,baseY-100,0,H);fog.addColorStop(0,'transparent');fog.addColorStop(1,'#00000055');ctx.fillStyle=fog;ctx.fillRect(0,baseY-100,W,H-baseY+100);
+ // Three chapters progress from bright outskirts to a slightly darker boss approach.
+ const chapterDusk=level.stage===2?.12:level.stage===1?.055:0;
+ if(chapterDusk){ctx.fillStyle='rgba(8,9,29,'+chapterDusk+')';ctx.fillRect(0,0,W,H);}
+
 }
 
 // V3.5: animated cutout pixel-art sprites; asset failure falls back to the original geometric characters.
