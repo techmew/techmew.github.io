@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.61｜敵の散弾予兆と実弾道を完全同期</title>
-<meta name="game-build" content="ASTRAL_BREAK_V661_RANGED_VOLLEY_TELEGRAPH_SYNC_20261025" />
+<title>ASTRAL BREAK ∞ V6.62｜ボス突進の予告範囲と回避時間を改善</title>
+<meta name="game-build" content="ASTRAL_BREAK_V662_BOSS_CHARGE_EXACT_LANE_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -710,6 +710,16 @@ function rhBossPhase3CrossfireLanes(b,p){
  const candidates=center-step<lo?[center+step,center+step*2]:center+step>hi?[center-step*2,center-step]:[center-step,center+step];
  return candidates.filter((x,i)=>x>=lo&&x<=hi&&Math.abs(x-center)>=64&&(i===0||Math.abs(x-candidates[0])>=56));
 }
+// V6.62: The warning bounds match the boss's actual 630px/s charge sweep.
+function rhBossChargeWarning(b){
+ const start=b.x,dir=b.chargeDir===-1?-1:1;
+ const duration=Math.max(0,Number(b.chargePending)||0);
+ const targetX=clamp(start+dir*630*duration,Math.min(b.from,b.to),Math.max(b.from,b.to));
+ const x=Math.min(start,targetX),right=Math.max(start,targetX)+b.w;
+ const full=Math.max(.01,Number(b.chargeWindupMax)||.6);
+ return {x,y:b.y+3,w:Math.max(1,right-x),h:Math.max(1,b.h-6),
+         targetX,progress:clamp(1-b.chargeWindup/full,0,1)};
+}
 function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*31337^seed));const stage=b.kind,ratio=b.hp/b.maxhp;const phase=ratio<.33?3:ratio<.70?2:1,previousPhase=b.phase;b.phase=phase;b.attackNo++;b._spriteAttackUntil=clock+(phase===3?.62:.47);if(phase>previousPhase){toast(phase===3?'⚠ ボス狂暴化！':'⚠ ボス覚醒！',1.25);part(b.x+b.w/2,b.y+b.h/2,BOSSES[b.kind].color,30,1.2);soundCue('bossphase')}
  const attackCombos=[
   ['fan','charge','orb'],['teleport','fan','laser'],['summon','fan','charge'],
@@ -723,7 +733,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
  if(type==='summon'){for(let k=0;k<phase+1;k++){const plat=b.platform;if(level.enemies.filter(e=>e.alive&&e.summoned).length>9)break;const er=rngGen(hash((clock*1000|0)+k+seed)),summonKind=stage>=4?20+(k%8):(k+3)%8;const e=makeEnemy(er,plat,clamp(b.x+(k?110:-100),plat.x+30,plat.x+plat.w-50),level.difficulty,summonKind);e.summoned=true;e.hp=Math.max(2,e.hp);level.enemies.push(e)}for(let k=-1;k<=1;k++)shoot(b.x+20,b.y+25,p.x+13,p.y+16+k*70,270,7)}
  if(type==='laser'){for(let k=0;k<phase+1;k++)hazardTelegraphs.push({x:clamp(p.x+80*(k-1),b.platform.x+18,b.platform.x+b.platform.w-22),delay:.66+k*.13,duration:.42,type:'laser',color:'#ff77bf',w:23,top:-40,bottom:b.platform.y,life:1.3})}
  if(type==='rain'){for(let k=0;k<3+phase;k++)hazardTelegraphs.push({x:clamp(p.x+(k-(1+phase/2))*90,b.platform.x+25,b.platform.x+b.platform.w-25),delay:.58+k*.06,duration:.5,type:'rain',color:'#89eaff',w:26,top:-30,bottom:b.platform.y,life:1.5})}
- if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=phase===3?.42:phase===2?.50:.60;b.chargeWindupMax=b.chargeWindup;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
+ if(type==='charge'){b.chargePending=Math.min(1.1,.5+phase*.18);b.chargeWindup=phase===3?.58:phase===2?.68:.78;b.chargeWindupMax=b.chargeWindup;b.chargeDir=p.x>b.x?1:-1;for(let k=0;k<phase+1;k++)shoot(b.x+20,b.y+45,p.x+13,p.y+16+k*30,200,8)}
  if(type==='orb'){for(let k=0;k<3+phase*2;k++){const a=k*TAU/(3+phase*2);shoot(b.x+25,b.y+25,b.x+25+Math.cos(a)*300,b.y+25+Math.sin(a)*300,200+phase*30,8)}}
  // Second phase chains an extra spread between the named boss patterns.
  if(phase>=2&&b.attackNo%2===0){
@@ -1866,9 +1876,23 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.textAlign='center';ctx.fillText('⚠ 予告射線',b.x+b.w/2,b.y-46);ctx.restore();
  }
  if(b.teleportContactGrace>0){ctx.save();ctx.globalAlpha=.28+.42*b.teleportContactGrace/.26;ctx.strokeStyle='#e4b5ff';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(b.x+b.w/2,b.y+b.h/2,b.w*.72,b.h*.82,0,0,TAU);ctx.stroke();ctx.restore()}
+ // Preview the complete hazard behind the sprite; do not obscure its animation.
+ if(b.chargeWindup>0){
+  const lane=rhBossChargeWarning(b);
+  ctx.save();
+  ctx.fillStyle='#ff875a';ctx.globalAlpha=.09+.09*lane.progress;
+  ctx.fillRect(lane.x,lane.y,lane.w,lane.h);
+  ctx.strokeStyle='#ffdf7b';ctx.lineWidth=2.4;ctx.globalAlpha=.72+.20*Math.sin(clock*20)**2;
+  ctx.setLineDash([9,6]);ctx.strokeRect(lane.x,lane.y,lane.w,lane.h);ctx.setLineDash([]);
+  ctx.globalAlpha=.95;ctx.fillStyle='#fff4b8';
+  ctx.fillRect(lane.x,lane.y-9,lane.w*lane.progress,4);
+  ctx.font='bold 13px system-ui';ctx.textAlign='center';
+  ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);
+  ctx.restore();
+ }
  const bstate=b.chargeWindup>0||b.teleportWindup>0||(b._spriteAttackUntil||0)>clock?'attack':b.hitGrace>0?'hurt':Math.abs(b.x-(b._spriteLastX??b.x))>.35?'move':'idle';if(b._spriteState!==bstate){b._spriteState=bstate;b._spriteStart=clock}b._spriteLastX=b.x;
  const bw=Math.max(120,b.w*2.3),bh=Math.max(104,b.h*1.45),bframe=(clock-(b._spriteStart??clock))*(bstate==='attack'?11:bstate==='move'?6:3),bossBob=Math.sin(clock*3.6+b.kind)*2;
- if(!drawRHSprite('boss',bstate,bframe,b.x+b.w/2-bw/2,b.y+b.h-bh+6+bossBob,bw,bh,b.dir||1,b.hitGrace>0,(b.kind*47)%360)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}drawBossWorldSigils(b,bossPhase);ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);if(b.chargeWindup>0){ctx.save();ctx.globalAlpha=.5+.35*Math.sin(clock*26);ctx.fillStyle='#ffdf7b';const from=b.chargeDir>0?b.x+b.w:b.from,to=b.chargeDir>0?b.to:b.x;ctx.fillRect(from,b.platform.y-6,Math.max(8,to-from),5);ctx.globalAlpha=.12+.16*clamp(1-b.chargeWindup/Math.max(.01,b.chargeWindupMax||.6),0,1);ctx.fillStyle='#ff875a';ctx.fillRect(Math.min(b.x,b.chargeDir>0?b.to:b.from),b.y+4,Math.abs((b.chargeDir>0?b.to:b.from)-b.x)+b.w,b.h-8);ctx.globalAlpha=.9;ctx.fillStyle='#fff4b8';ctx.fillRect(from,b.platform.y-10,Math.max(8,to-from)*clamp(1-b.chargeWindup/Math.max(.01,b.chargeWindupMax||.6),0,1),3);ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚠ 突進',b.x+b.w/2,b.y-41);ctx.restore()}}
+ if(!drawRHSprite('boss',bstate,bframe,b.x+b.w/2-bw/2,b.y+b.h-bh+6+bossBob,bw,bh,b.dir||1,b.hitGrace>0,(b.kind*47)%360)){ctx.fillStyle=b.hitGrace>0?'#ffffff':BOSSES[b.kind].color;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,10);ctx.fill();ctx.fillStyle='#532249';ctx.fillRect(b.x+9,b.y+15,11,10);ctx.fillRect(b.x+30,b.y+15,11,10);polygon([[b.x+1,b.y],[b.x+5,b.y-18],[b.x+20,b.y]],'#e34a78');polygon([[b.x+30,b.y],[b.x+46,b.y-18],[b.x+49,b.y]],'#e34a78');ctx.fillStyle='#20213e';ctx.fillRect(b.x+8,b.y+40,35,6);}drawBossWorldSigils(b,bossPhase);ctx.fillStyle='#fc557f';ctx.fillRect(b.x,b.y-30,b.w*b.hp/b.maxhp,5);}
  for(const bullet of projectiles){ctx.save();ctx.strokeStyle='#ffb06e';ctx.globalAlpha=.55;ctx.lineWidth=Math.max(2,bullet.r*.75);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(bullet.prevX??bullet.x,bullet.prevY??bullet.y);ctx.lineTo(bullet.x,bullet.y);ctx.stroke();ctx.restore();ctx.beginPath();ctx.arc(bullet.x,bullet.y,bullet.r,0,TAU);ctx.fillStyle='#ffda66';ctx.shadowColor='#ff3f7d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}
  // Goal portal: locked while the final-stage boss survives.
  const gx=level.goalX,gy=level.platforms.at(-1).y-75,bossLocked=!!level.boss?.alive||level.enemies.some(e=>e.guardian&&e.alive);ctx.strokeStyle=bossLocked?'#ff688a':t.accent;ctx.lineWidth=7;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=19;ctx.beginPath();ctx.ellipse(gx,gy+36,17,35,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=bossLocked?'#ff688a36':'#a5ffe744';ctx.beginPath();ctx.ellipse(gx,gy+36,13,31,0,0,TAU);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(bossLocked?'LOCK':'GOAL',gx,gy-13);
