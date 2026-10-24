@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>RANDOM HELL ∞ V6.30｜武器の自動照準を安定化</title>
-<meta name="game-build" content="RHINF_AUTO_AIM_TARGET_LOCK_V630_20261024" />
+<title>RANDOM HELL ∞ V6.31｜遮蔽物対応の自動照準と連続踏み表示</title>
+<meta name="game-build" content="RHINF_COVER_AWARE_AIM_V631_20261024" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -786,7 +786,7 @@ function updateHud(force=false){if(!level)return;if(!force&&hudTick>0)return;hud
  $('skills').textContent=`移動 ${Math.round(Math.abs(joyX)*100)}% ｜ JUMP ${player?.jumps??2} ｜ 攻撃 ${attackHeld?'連射中':'押して発射'}`;
  $('weaponStrip').innerHTML=`⚔ 装備${loadout.length}種 <small>最高Lv.${Math.max(1,...loadout.map(it=>masteryLevel(it.tier)))}/${WEAPON_MASTERY_MAX}　攻撃長押しで一斉発射</small>`;
  $('relicState').textContent=relics.map(id=>RELICS.find(r=>r.id===id)?.icon||'✦').join(' ')+'  '+(player?.shield?'🛡':'');
- $('comboState').textContent=combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'';
+ $('comboState').textContent=[combo>1?`${combo} KILL COMBO ×${1+Math.floor(combo/5)}`:'',stompChain>1&&stompChainTimer>0?`STOMP ×${stompChain} · ${stompChainTimer.toFixed(1)}s`:''].filter(Boolean).join('  ｜  ');
  $('bossState').textContent=level.boss&&level.boss.alive?(level.boss.active?`${BOSSES[level.boss.kind].name} 【${level.boss.phase===3?'狂暴':level.boss.phase===2?'覚醒':'戦闘中'}】`:`⚠ ${level.world+1}-3 ボス戦が待っている`):level.enemies.some(e=>e.guardian&&e.alive)?'🔒 番人を倒して出口を開け！':'';
  $('bossBar').style.display=level.boss?.alive&&level.boss.active?'block':'none';if(level.boss)$('bossFill').style.width=Math.max(0,level.boss.hp/level.boss.maxhp*100)+'%';
  $('progressFill').style.width=clamp((player?.x||0)/level.goalX*100,0,100)+'%';
@@ -994,13 +994,16 @@ function enemyCollision(e){return e.alive&&hitRect(player.x+3,player.y+3,player.
 function attackEnemy(e,isBoss=false){const x=player.face===1?player.x+player.w-4:player.x-54;if(hitRect(x,player.y-7,60,player.h+16,e.x,e.y,e.w,e.h))applyHit(e,1,attackId,player.x)}
 // V6.30: prefer a still-valid target unless another enemy is substantially closer.
 // This keeps successive shots on one enemy without extending weapon range or auto-firing.
-function rhChooseAutoTarget(candidates,p,reach,locked=null){
+// V6.31: straight-firing weapons prefer targets with a clear projectile path.
+// Preserve V6.30 lock hysteresis, but release a lock immediately if cover blocks it.
+function rhChooseAutoTarget(candidates,p,reach,locked=null,isVisible=null){
  let nearest=null,nearestDist=reach*reach,lockedDist=Infinity;
  const cx=p.x+p.w*.5,cy=p.y+p.h*.5;
  for(const e of candidates){
    if(!e?.alive||e.active===false)continue;
-   const dx=e.x+(e.w||0)*.5-cx,dy=e.y+(e.h||0)*.5-cy;
-   const d=dx*dx+dy*dy;
+   const tx=e.x+(e.w||0)*.5,ty=e.y+(e.h||0)*.5;
+   const dx=tx-cx,dy=ty-cy,d=dx*dx+dy*dy;
+   if(d>=reach*reach||(isVisible&&!isVisible(cx,cy,tx,ty,e)))continue;
    if(d<nearestDist){nearest=e;nearestDist=d}
    if(e===locked)lockedDist=d;
  }
@@ -1011,13 +1014,15 @@ function autoWeaponFire(dt,fireRequested=false){
  // Per-weapon cooldowns recover even while the attack button is released.
  const p=player;if(!p||!level||mode!=='playing')return;
  const rangedTypes=new Set(['arrow','laser','boomer','spread','cannon','homing','chain','pulse','frostburst','flamefan','needles','meteor','prism','orbitdisks','cometpair','stormring','sunlance','hailstorm']);
+ const directFireTypes=new Set(['laser','spread','frostburst','flamefan','needles','prism','sunlance']);
  const candidates=level.boss?.alive&&level.boss.active!==false?[...level.enemies,...level.skyTraps,level.boss]:[...level.enemies,...level.skyTraps];
  for(let i=0;i<loadout.length;i++){
    autoWeaponCooldowns[i]=Math.max(0,(autoWeaponCooldowns[i]||0)-dt);
    const it=loadout[i],w=WEAPONS.find(o=>o.id===it?.id);
    if(!fireRequested||!w||autoWeaponCooldowns[i]>0)continue;
    const reach=w.type==='chain'||w.type==='pulse'?Math.max(120,w.range+25):rangedTypes.has(w.type)?660:Math.max(80,w.range+48);
-   const target=rhChooseAutoTarget(candidates,p,reach,autoAimTargets[i]);
+   const visible=directFireTypes.has(w.type)?(_x,_y,tx,ty)=>rhRangedHasLineOfSight(p.x+p.w*.5,p.y+16,tx,ty):null;
+   const target=rhChooseAutoTarget(candidates,p,reach,autoAimTargets[i],visible);
    autoAimTargets[i]=target;
    // When there is no target, launch attacks in the facing direction instead of firing invisibly.
    // Only a real attack press may enter this firing branch.
