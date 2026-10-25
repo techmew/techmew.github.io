@@ -15,7 +15,7 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.5',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.6',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -54,7 +54,11 @@ export class Room extends DurableObject {
           type:'live_resumed',creatures:seat===0?active.creatures:active.creatures.slice().reverse(),
           max:seat===0?active.max:active.max.slice().reverse(),
           hp:seat===0?active.hp:active.hp.slice().reverse(),
-          charge:seat===0?active.charge:active.charge.slice().reverse()
+          charge:seat===0?active.charge:active.charge.slice().reverse(),
+          dodgeCooldown:seat===0?active.dodgeCooldown:active.dodgeCooldown.slice().reverse(),
+          skillArmed:seat===0?active.skillArmed:active.skillArmed.slice().reverse(),
+          stance:seat===0?active.stance:active.stance.slice().reverse(),
+          turn:active.turn
         });
         await this.announceLiveTurn(active,peers);
       }else this.send(server,{type:'live_wait',seconds:15});
@@ -159,8 +163,8 @@ export class Room extends DurableObject {
   async finishLive(state,peers){
     state.active=false;state.phase='finished';
     const winner=state.hp[0]/state.max[0]>=state.hp[1]/state.max[1]?0:1;
-    await this.ctx.storage.put('live',state);
     this.liveSend(peers,state,{type:'live_end',winner,hp:state.hp,charge:state.charge});
+    await this.ctx.storage.delete('live');
   }
   async resolveLiveTurn(state,peers){
     const atk=state.atk,def=1-atk,guard=state.actions[def];
