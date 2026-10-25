@@ -1,18 +1,15 @@
-# OTODAMA∞：無料オンライン対戦サーバー公開
+# Cloudflare無料オンライン対戦の公開手順
 
-GitHub Pagesはフロントエンドのみ。サーバーはCloudflare Workers + SQLite-backed Durable Objectsを使用します。
+GitHub Pagesはフロントエンドの配信のみです。リアルタイム対戦には、Cloudflare Workers + SQLite-backed Durable Objectsを別途公開します。
 
-## 一度だけ行う認証設定
-1. Cloudflare無料アカウントを作成しWorkersを利用可能にする。
-2. CloudflareダッシュボードでAccount IDを確認し、Account API Tokenを「Edit Cloudflare Workers」かつ対象アカウント限定で発行。
-3. GitHubのtechmew/techmew.github.io → Settings → Secrets and variables → Actionsに以下の2つを登録する。
-  - CLOUDFLARE_ACCOUNT_ID
-  - CLOUDFLARE_API_TOKEN
-4. GitHub Actionsの「Deploy OTODAMA Worker」→ Run workflowを実行する。
-5. デプロイログに出た https://...workers.dev のURLで /health を開き、ok:trueかつrandomMatch:trueを確認する。
-6. ゲーム https://techmew.github.io/games/otodama/ の「対戦サーバーURL」にそのworkers.dev URLを設定する。双方が同じURLを用いればランダムマッチ/招待ルームが動作する。
-7. URLが確定したらindex.htmlのDEFAULT_SERVER_URLに設定してGitHubへ再公開すれば、プレイヤーの手入力は不要になる。
+- Workerのコード: `games/otodama/worker.js`
+- 設定: `games/otodama/wrangler.jsonc`
+- GitHub Actions: `.github/workflows/deploy-otodama-worker.yml`
 
-秘密のAPI Tokenをソースコード・Chat・READMEに貼らないこと。
+必要な作業はCloudflareの無料アカウントを作り、Account IDと編集権限に限定したAPI TokenをGitHubリポジトリのActionsシークレットへ設定することです。**API Tokenをチャットやソースファイルに貼らないこと。**
 
-オンラインの現仕様はサーバー裁定のバトル結果を双方で同期再生する方式。COM戦のジャストガード・必殺技は**対人戦に未対応**。Cloudflare上での実戦は、別の2端末でのテストが必要。無料枠を超えると処理が失敗する可能性あり。
+保存するシークレット名は `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` です。設定後 Actions → `Deploy OTODAMA Worker` → `Run workflow` でデプロイしてください。デプロイ完了ログに発行される `workers.dev` URLで `/health` を開き、`randomMatch:true` を確認します。
+
+公開WorkerのURLをゲームUIの対戦サーバーURL欄に設定すれば、ランダムマッチと招待ルームが利用可能です。URLをWebクライアントへ埋め込みたい場合は `index.html` の `DEFAULT_SERVER_URL` を設定してください。
+
+現状は戦闘結果のサーバー判定・同期再生です。ジャストガード・必殺技のリアルタイム対人同期は次期実装です。個人の録音音声は部屋メンバーに転送されるため、同意確認を入れてから公開運用することを推奨します。
