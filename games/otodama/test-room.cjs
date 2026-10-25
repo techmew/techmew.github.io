@@ -83,5 +83,18 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(a.data.ready,false);
  for(let i=0;i<35;i++)await room.webSocketMessage(a,JSON.stringify({type:'unknown'}));
  assert.equal(a.readyState,3,'rate limiter must close spam socket');
- console.log('ROOM TEST PASS | authoritative turns, guard/dodge, reconnect token, 15s grace, forfeit, rate limit');
+ // Seat ordering must remain stable after a pre-match disconnect and replacement.
+ const c=fake(),d=fake(),e=fake(),ps=[c,d],db=new Map();
+ const storage2={get:async k=>db.get(k),put:async(k,v)=>db.set(k,v),delete:async k=>db.delete(k),setAlarm:async()=>{}};
+ const secondRoom=new ctx.testing.Room({getWebSockets:()=>ps,storage:storage2});
+ await secondRoom.webSocketMessage(c,JSON.stringify({type:'join',creature:{...creature,seed:700}}));
+ await secondRoom.webSocketMessage(d,JSON.stringify({type:'join',creature:{...creature,seed:701}}));
+ c.close();await secondRoom.webSocketClose(c);ps.push(e);
+ await secondRoom.webSocketMessage(e,JSON.stringify({type:'join',creature:{...creature,seed:702}}));
+ assert.equal(e.data.seat,0);assert.equal(d.data.seat,1);
+ await secondRoom.webSocketMessage(d,JSON.stringify({type:'ready'}));
+ await secondRoom.webSocketMessage(e,JSON.stringify({type:'ready'}));
+ assert.equal(e.messages.find(m=>m.type==='live_start').creatures[0].seed,702,'seat0 orientation changed');
+ assert.equal(d.messages.find(m=>m.type==='live_start').creatures[0].seed,701,'seat1 orientation changed');
+ console.log('ROOM TEST PASS | authoritative turns, guard/dodge, reconnect token, 15s grace, stable seat ordering, forfeit, rate limit');
 })().catch(e=>{console.error(e);process.exit(1)});
