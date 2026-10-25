@@ -1,37 +1,43 @@
-# OTODAMA∞ 開発継続 / 2026-10-26 v0.9.2
+# OTODAMA∞ 開発継続 / 2026-10-26 02:00 JST / v0.9.3
 
 ## CURRENT_STATUS
-- GitHub main v0.8を確認後、v0.9.2をローカルで実装・テスト。GitHub反映状況は下記コミット欄を確認すること。
-- 連続ステージ進行：1戦後「次のバトルへ」で新しい敵。ステージ番号・勝利数をローカル保存、5戦・10戦のボス。負けても次の相手。
-- Web Audioによる自作BGM、戦闘音量・BGM個別スライダー、残HPによる緊張変化。モバイル実機音質未検証。
-- 240件の禁止表現、全角半角・カタカナ/ひらがな・記号分割・伏字正規化。英単語の部分一致誤判定（grape/therapist）を軽減。URL/連絡先検出。音声の発話内容検査は未実装。
-- ジャストガード成功連鎖、次の攻撃へのカウンターボーナス、早期回避（被ダメージ0・クールダウン3敵ターン）、キーボード操作、敵攻撃予告UI。
-- オンラインの録音共有は明示的なチェックを入れた場合のみ、相手の声ミュート可能。サーバーの公開名/属性/ランク検証、WebSocket連続送信制限。
-- v0.8の録音・試聴・攻撃音声・種族・図鑑・育成・日替わりボス・爆散/WIN演出を維持。
+- GitHub main v0.9.2 を実読し、Drive `RUN_REPORT_20261026_0100.md` を確認して継続。
+- ソロ戦は連続ステージ、日替わりボス、音声生成・再生、育成・図鑑、勝敗演出を維持。
+- v0.9.3: 6種の背景環境、ボス固有3連携と予兆、ボスBREAK、次戦3択強化、ボス追加XP、BGM変奏・命中音、低負荷描画・横画面2列レイアウト。
+- オンラインは従来のサーバー事前計算→同期再生。リアルタイム対人入力は未実装。
 
-## DESIGN_DIRECTION
-- 1戦を短くし、毎回違う敵と戦う。入力の正確さと技の使いどころが勝敗を左右する。
-- 音声とSEを邪魔しないオリジナルBGM、敵の行動予告と反撃、ステージごとの演出変化を重視。
-- オンラインではプライバシー初期保護、入力検証、無料枠内の運用を優先。
+## CHANGELOG
+1. ステージ環境6種類をCanvasで描画し、進行に応じて切り替え。
+2. 5ステージごとに3種のボス固有攻撃と予兆・HP45%以下の攻撃強化。
+3. ジャストガード・回避・必殺技でBREAKゲージを溜め、100%でボス攻撃を1回無効化。
+4. 次のCOM戦限定の攻撃/耐久/共鳴3択強化。勝敗後の連続進行を維持。
+5. ボス撃破XP追加。BGMのステージ・ボス別変奏と攻撃予兆・命中SEの分離。
+6. 省電力描画チェックと保存、横画面時のアリーナ/操作UI2列配置。
+7. WorkerとMatchmakerでJSON null/配列を拒否。単体テスト追加。
 
 ## TEST_RESULTS
-- Node: `node --check worker.js`, `node test-ui-source.cjs`, `node test-room.cjs`, `node test-matchmaker.cjs`, `node test-moderation.mjs` PASS。
-- Chromium mobile emulation: 初戦終了、STAGE 02、新敵、BGMスライダー、コンソールエラーなしを確認。別テストで回避タイミング成功、無傷回避メッセージ、3敵ターンのクールダウンを確認。
-- Android実機、実マイク、Cloudflare本番、2端末の実オンライン対戦は未検証。
+- `node --check worker.js`: PASS
+- `node test-ui-source.cjs`: PASS
+- `node test-matchmaker.cjs`: PASS
+- `node test-room.cjs`: PASS
+- `node test-moderation.mjs`: PASS
+- Chromium/Playwright: STAGE 01→02、次戦攻撃強化の適用、STAGE 05ボスUI、BREAK攻撃無効化、低負荷設定保存、915×430横画面、320px縦画面の横スクロールなし、JS例外なし: PASS
+- 実際のCloudflare Worker公開・独立2端末での通信・Android実機のマイクとBGM: 未確認
 
 ## BLOCKERS
-1. Cloudflare Workerは未公開。GitHub Actions Secretsの `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` を所有者が設定する必要あり。
-2. オンライン対戦はサーバー事前計算の同期再生。対人リアルタイム操作判定は未実装。
-3. 録音音声の自動禁止語検査は未実装。端末間で共有された録音は送信先が複製できる。
-4. Android実機のBGM音質・描画性能・タッチ操作を未検証。
+- Cloudflare認証・Workerデプロイが未完了。Actions secrets `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` が必要。
+- サーバー裁定のリアルタイム対人ガード/回避/必殺技は未実装。
+- 録音発話内容の自動検査は未実装（文字列のみ240件フィルタ）。
+- GitHub Pagesの本番配信伝播、Android実機、独立2端末テストは未確認。
 
 ## NEXT_ACTIONS
-1. Workerを公開して `/health` と独立2ブラウザのランダム対戦・ルームを実証。Worker URLをゲームに設定。
-2. サーバー裁定のリアルタイムガード/回避/必殺技と遅延補正を実装。オンラインで入力が勝敗に反映されるようにする。
-3. ステージ別の背景・障害物・敵AI/モーション・報酬の差別化、長期育成の選択肢。
-4. 誹謗中傷の報告/ブロック、音声送信を取り消せない旨の表示、文字列フィルタの精度改善。
-5. Android実機でBGM音量、連続戦、画面回転、低スペック描画を確認。
+1. オンライン戦のサーバー裁定アクション同期と遅延補正を実装し、2つのWebSocketクライアントでテスト。
+2. ボス固有AIの段階変化、環境ギミックの攻略・戦術選択、ステージ間のストーリーを追加。
+3. キャラの進化分岐と図鑑の成長、セーブ破損時の復元・バックアップ機能。
+4. Android縦横の実機確認、Web Audio遅延と録音再生の品質確認。
+5. Cloudflare Worker公開後、クライアントの既定URLを設定してランダム対戦を実証。
 
-## GITHUB_COMMIT
-- 本ファイルを含むコミットSHA: 更新時にGitHub履歴から確認すること。
-- GitHubコードが正本。Driveは進捗と引き継ぎ資料の正本。
+## GITHUB_COMMITS
+- v0.9.3 index: `4cf90b3af18702d4e7bedc3e9f59fc085777cbd7`
+- v0.9.3 worker: `c6de425920c7e283688eb66ae1c0b90806b16c05`
+- GitHubをコードの正本、Driveを進捗・引き継ぎの正本とする。
