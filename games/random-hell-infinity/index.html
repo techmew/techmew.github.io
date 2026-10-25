@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.75｜レーダー右上固定・HUD配置改善</title>
-<meta name="game-build" content="ASTRAL_BREAK_V675_TOP_RIGHT_RADAR_DOCK_20261025" />
+<title>ASTRAL BREAK ∞ V6.76｜星都多層背景・上空カメラ・ボスHUD</title>
+<meta name="game-build" content="ASTRAL_BREAK_V676_W1_DEPTH_UPPER_PEEK_BOSS_HUD_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -222,6 +222,8 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
 #hud #weaponStrip{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 #hud #progressTrack{width:100%;max-width:100%}
 @media(orientation:portrait) and (max-width:600px){#hud{max-height:185px;overflow:visible}}
+/* V6.76: Keep boss HP clear of the top-right scanner and its three controls. */
+#portraitViewport #bossBar{top:max(198px,calc(env(safe-area-inset-top) + 190px));left:9px;right:9px;width:calc(100% - 18px);transform:none;z-index:3}
 </style>
 </head>
 <body>
@@ -297,7 +299,9 @@ function visibleWorldWidth(){return W/gameZoom()}
  function rhCameraYTarget(p){
   const zoom=gameZoom(),feet=(p?.y??baseY-PH)+(p?.h??PH),focusY=H*(H<=500?.67:.60);
   const vy=Number.isFinite(p?.vy)?p.vy:0,verticalLead=clamp(vy*.115,-85,25);
-  return clamp(feet-(focusY-baseY*(1-zoom))/zoom+verticalLead,-Math.max(520,baseY+480),Math.max(210,H*.30));
+  const entry=(level?.upperRoutes||[]).find(r=>p?.grounded&&p.x>=r.fromX-185&&p.x<=r.fromX+65);
+   const skyPeek=entry?Math.max(0,1-Math.abs(p.x-(entry.fromX-20))/205)*Math.min(54,H*.07):0;
+   return clamp(feet-(focusY-baseY*(1-zoom))/zoom+verticalLead-skyPeek,-Math.max(520,baseY+480),Math.max(210,H*.30));
  }
  // Pick nearby visible projectiles rather than blindly drawing the newest 40.
  // Physical projectiles remain unchanged, including hits, homing and lifetime.
@@ -1696,6 +1700,32 @@ function rhDrawWorldParallax(){
  ctx.restore();
 }
 
+// V6.76: W1 art parallax; use upper image crops to avoid false painted ground.
+function rhDrawW1ParallaxBands(img){
+ if(!img||!img.complete||!img.naturalWidth||!img.naturalHeight)return;
+ const bands=[
+  {sy:.17,sh:.40,dy:.34,dh:.39,px:.16,py:.13,alpha:.15},
+  {sy:.38,sh:.27,dy:.56,dh:.40,px:.34,py:.27,alpha:.19}
+ ];
+ for(const b of bands){
+  const srcY=Math.floor(img.naturalHeight*b.sy),srcH=Math.max(1,Math.floor(img.naturalHeight*b.sh));
+  const destH=H*b.dh,destW=img.naturalWidth*destH/srcH;
+  if(!(destW>0&&destH>0))continue;
+  const scroll=camera*b.px,base=Math.floor(scroll/destW),offset=scroll-base*destW;
+  const destY=H*b.dy-clamp(cameraY*b.py,-H*.13,H*.13);
+  ctx.save();ctx.globalAlpha=b.alpha;ctx.imageSmoothingEnabled=false;
+  ctx.beginPath();ctx.rect(0,destY,W,destH);ctx.clip();
+  for(let k=-1;k<=Math.ceil(W/destW)+1;k++){
+   const x=k*destW-offset;
+   if((base+k)%2!==0){
+    ctx.save();ctx.translate(x+destW,0);ctx.scale(-1,1);
+    ctx.drawImage(img,0,srcY,img.naturalWidth,srcH,0,destY,destW,destH);ctx.restore();
+   }else ctx.drawImage(img,0,srcY,img.naturalWidth,srcH,x,destY,destW,destH);
+  }
+  ctx.restore();
+ }
+}
+
 function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.sky[0]);g.addColorStop(1,t.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
  if(level?.world===0&&RH_W1_ART.far.complete&&RH_W1_ART.far.naturalWidth){
   const img=RH_W1_ART.far,scale=Math.max((W+80)/img.naturalWidth,(H+120)/img.naturalHeight);
@@ -1712,6 +1742,7 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
   }
   ctx.restore();
  }
+ if(level?.world===0)rhDrawW1ParallaxBands(RH_W1_ART.far);
  rhDrawWorldParallax();
  const moonX=W*.79-camera*.025,moonY=H*.25-cameraY*.045;
  const glow=ctx.createRadialGradient(moonX,moonY,5,moonX,moonY,180);glow.addColorStop(0,t.accent+'48');glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.fillRect(moonX-180,moonY-180,360,360);
@@ -2010,7 +2041,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const t=level.theme;
  for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>viewRight+40)continue;if(!s.active)continue;ctx.fillStyle=s.upperRoute?'#344365':s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,(s.kind==='moving'||s.upperRoute)?20:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=s.upperRoute?'#ffe0a2':t.edge;ctx.fillRect(s.x,s.y,s.w,6);
  if(level.world===0&&RH_W1_ART.ground.complete&&RH_W1_ART.ground.naturalWidth){
-  ctx.save();ctx.beginPath();ctx.rect(s.x,s.y,s.w,s.upperRoute?20:83);ctx.clip();
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.beginPath();ctx.rect(s.x,s.y,s.w,s.upperRoute?20:83);ctx.clip();
   for(let tileX=s.x;tileX<s.x+s.w;tileX+=96)ctx.drawImage(RH_W1_ART.ground,tileX,s.y,96,76);
   ctx.restore();
  }
