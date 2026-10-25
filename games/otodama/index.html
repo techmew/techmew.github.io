@@ -21,13 +21,39 @@
 .arena-effect{background:#142044f0;color:#fff7c3;border-color:#ffe7817d;box-shadow:0 0 12px #ffcf9155}
 .arena-battle-tip{color:#d1f7ff;font-weight:750;letter-spacing:.2px}
 @media(max-width:560px){.recordactions button{flex:1 1 43%}.recordactions .stop-record{flex:1 1 100%}.arena-battle-tip{font-size:9px}}
+
+/* v0.8: discovery, daily challenger, elemental mindgames */
+.challenge-box,.collection-box{border:1px solid #385c84;background:linear-gradient(110deg,#182f4b,#12233c);border-radius:13px;padding:13px;margin-top:14px}
+.challenge-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#ecf7ff}.challenge-head b{color:#ffde86}.challenge-tag{border:1px solid #669c87;border-radius:50px;padding:3px 8px;white-space:nowrap;color:#a9f8dd;font-size:10px}.challenge-copy{font-size:11px;line-height:1.6;margin:9px 0;color:#bed4e5}.challenge-btn{background:linear-gradient(110deg,#ffdc80,#ff948f)!important;color:#39261a!important;width:100%;border-color:#ffe2ad!important}.collection-box{margin-top:10px}.collection-box>b{font-size:13px;color:#b2efff}.collection-box>span{float:right;font-size:11px;color:#b5cfdf}.codex-grid{clear:both;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:12px}.codex-grid span{display:grid;place-items:center;min-height:35px;border-radius:8px;border:1px solid #324c68;color:#7891a6;font-size:11px;background:#0e1b31}.codex-grid span.known{border-color:#72d6ab;color:#d5ffef;background:#1c4b4b}
+.battle-matchup{text-align:center;color:#ffdf96;font-size:12px;font-weight:800;min-height:20px;margin:5px 0 2px}
+/* v0.7 GAMEPLAY: direct decisions, progression and clearer mobile combat */
+#playGuide{margin-top:12px;padding:12px;border:1px solid #397ca0;border-radius:13px;background:linear-gradient(110deg,#19344b,#11283d)}
+#playGuide h3{margin:0 0 8px;font-size:13px;color:#aeedff}#playGuide .guideflow{font-size:11px;color:#d3e5fa;line-height:1.7}
+.voice-role{margin:13px 0 0;padding:12px 13px;background:#172d44;border:1px solid #4b7c91;border-radius:12px}
+.voice-role b{display:block;color:#a5f2e6;font-size:14px}.voice-role span{color:#b6ccdc;font-size:11px;line-height:1.6}
+.campaign{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:11px 0 0;background:#0d2237;border:1px solid #315c74;border-radius:12px;padding:11px 13px;font-size:12px}
+.campaign b{color:#fbd98f}.campaign small{color:#a9c5d9}
+#battlePanel{display:none;position:relative;margin:9px 0 0;padding:10px 9px;border-radius:13px;border:1px solid #43657b;background:linear-gradient(120deg,#142d45,#132239)}
+#battlePanel.playable{display:block}#battlePanel .battle-guide{font-size:11px;color:#b0e3f1;margin:0 0 7px;line-height:1.45}
+.battle-topline{display:flex;gap:8px;justify-content:space-between;align-items:center;font-size:12px;color:#dceeff;margin-bottom:8px}.battle-topline b{color:#ffe699}
+#guardMeter{height:6px;background:#263b53;border-radius:8px;overflow:hidden;margin-bottom:8px}#guardMeter i{height:100%;display:block;width:0%;background:linear-gradient(90deg,#54c8ee,#e4ff92);transition:none}
+#guardMeter.danger i{background:#ff9e72}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions button{min-height:50px;font-size:14px;border-radius:10px}.actions button.guard-ready{animation:glowaction .5s infinite alternate;border-color:#c7ffff;background:#21526a;color:#fff}
+@keyframes glowaction{from{box-shadow:0 0 4px #78f7ff44}to{box-shadow:0 0 20px #80f7ffb8}}
+#skillBtn{border-color:#ffa5cf;background:linear-gradient(125deg,#8d386e,#532d78);color:#fff}#skillBtn:disabled{opacity:.5}
+.stance{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:9px}.stance button{flex:1;min-width:0;font-size:11px;border-radius:8px;padding:7px 4px;border:1px solid #4b6e86;background:#1a2e46;color:#b8cde0}.stance button.active{color:#0b2534;background:#a3eaff;border-color:#e9ffff;font-weight:900}
+#battleMsg{font-size:12px;color:#ffe1a0;min-height:20px;margin-top:8px;text-align:center;font-weight:800}
+#battlePrize{min-height:20px;text-align:center;font-weight:800;color:#f3d68c;font-size:12px;margin:5px 0}
+#rewardToast{display:none;margin-top:10px;padding:10px;background:#112e30;border:1px solid #51af98;border-radius:9px;color:#d7ffed;text-align:center;font-size:12px}
+#rewardToast.show{display:block}
+@media(max-width:560px){#battlePanel{margin-top:3px;padding:8px}.actions button{min-height:45px;font-size:13px}.battle-topline{font-size:11px}.modalbox{max-height:96svh;overflow-y:auto}.arenaHud{gap:6px}#arenaCanvas{margin:6px 0}.modalfoot{flex-wrap:wrap;padding-top:5px}.modalhead{padding-bottom:4px}}
 </style></head><body><div class="wrap"><header class="top"><div class="brand"><div class="brandmark">〰</div><div><div class="brandname">OTODAMA<span> ∞</span></div><div class="micro">VOICE-BORN CREATURE ARENA</div></div></div><div class="status"><span class="dot" id="netDot"></span><span id="netLabel">SOLO DEMO</span></div></header>
 <section class="heading"><div><div class="eyebrow">MAKE A VOICE. CREATE A LIFE.</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>声で生まれ、空を駆けて戦う超高速バトル。</p></div><div class="count">基本外見<b>1,440億通り以上</b><span>名前 3,355万通り</span></div></section>
 <main class="layout"><section class="card stage"><div class="headrow"><div class="sectionname">CREATURE PREVIEW</div><div class="idpill" id="creatureId">#-------</div></div><canvas id="heroCanvas" width="700" height="520" aria-label="生成キャラのプレビュー"></canvas><div class="nametag"><div><div class="kind" id="kind">VOICE TYPE / ???</div><div class="creaturename" id="creatureName">---</div></div><span class="element" id="element">---</span></div></section>
 <section class="card controls" id="controlCard"><div class="paneltitle"><h2>声紋ジェネレーター</h2><span class="sub">VOICE TO CREATURE / 01</span></div><div class="listen"><div class="listentop"><span id="micHint">マイクで3秒間、好きな声を出す</span><strong id="countdown">03.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 声からキャラ生成</button><button class="btn stop-record" id="stopRecordBtn" style="display:none" disabled>■ 録音停止・生成</button><button class="btn ghost" id="randomBtn">✦ おためし生成</button><button class="btn ghost" id="voicePreviewBtn" disabled>声の試聴（録音後）</button></div><div class="switch"><input type="checkbox" id="mutedCheck"><label for="mutedCheck">戦闘音声・SEをミュート</label></div><div id="micNotice" class="tiny micnotice" aria-live="polite"></div></div>
-<div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">SAMPLE SIGNAL</span></div><div class="metrics" id="voiceMetrics"></div><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="battlebuttons"><button class="btn fight" id="fightBtn">⚔ COMとバトル</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div></section></main>
-<section class="bottom"><div class="card gallery"><div class="galleryhead"><h2>生まれたオトダマ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:13px 0 0">キャラをタップすると使用キャラを切り替えられます。保存データはこのブラウザ内に保持されます。</p></div><div class="card online"><div class="paneltitle"><h2>オンライン対戦</h2><span class="sub">RANDOM MATCH / ROOM</span></div><p>ランダム対戦は、無料枠のCloudflareサーバーを公開すると利用できます。サーバー未接続時はCOM戦が遊べます。</p><div class="field"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="field"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="roomline" id="roomLine">オンライン接続先は未設定です。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div></div></section><footer class="footer">OTODAMA ∞ PROTOTYPE v0.4 · オンライン戦では録音した短い声を対戦相手へ一時送信します（保存なし） · 非公式の独立オリジナル作品</footer></div>
-<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">⚡ OTODAMA SKY BRAWL v0.6 / COM MATCH</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="arena-effect" id="arenaEffect">READY TO FIGHT</div><div class="arena-battle-tip">HYPER FLIGHT · BREAK · COMBO · WARP</div></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div class="modalfoot"><label class="soundrow" for="battleVolume">戦闘音量 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><button class="btn primary" id="rematchBtn" disabled>もう一戦</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
+<div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">SAMPLE SIGNAL</span></div><div class="metrics" id="voiceMetrics"></div><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="voice-role"><b id="voiceRoleName">VOICE TYPE</b><span id="voiceRoleDesc">声の特徴から特殊能力が生まれます。</span></div><div class="campaign"><span><b id="campaignRank">Lv.1</b> <small id="campaignXp">XP 0/3</small></span><span id="campaignStreak">連勝 0 / 最高 0</span></div><div class="challenge-box" id="dailyBox"><div class="challenge-head"><span>本日の音ダマ試練 <b id="dailyName">---</b></span><span class="challenge-tag" id="dailyFlag">未達成</span></div><div class="challenge-copy" id="dailyDesc">日替わりのライバルを倒して報酬を獲得</div><button class="btn challenge-btn" id="dailyBtn" type="button">今日のボスに挑戦</button></div><div class="collection-box"><b>オトダマ図鑑</b><span id="codexCounter">発見した種族 0 / 12</span><div class="codex-grid" id="codexGrid" aria-label="発見した種族"></div></div><div id="playGuide"><h3>遊び方 / 3ステップ</h3><div class="guideflow">① 声でキャラを作る → ② 対戦中にガード・必殺技を操作 → ③ 勝ってレベルアップ。連勝記録を伸ばそう</div></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="battlebuttons"><button class="btn fight" id="fightBtn">⚔ COMとバトル</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div></section></main>
+<section class="bottom"><div class="card gallery"><div class="galleryhead"><h2>生まれたオトダマ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:13px 0 0">キャラをタップすると使用キャラを切り替えられます。保存データはこのブラウザ内に保持されます。</p></div><div class="card online"><div class="paneltitle"><h2>オンライン対戦</h2><span class="sub">RANDOM MATCH / ROOM</span></div><p>ランダム対戦は、無料枠のCloudflareサーバーを公開すると利用できます。サーバー未接続時はCOM戦が遊べます。</p><div class="field"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="field"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="roomline" id="roomLine">オンライン接続先は未設定です。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div></div></section><footer class="footer">OTODAMA ∞ PROTOTYPE v0.8 · オンライン戦では録音した短い声を対戦相手へ一時送信します（保存なし） · 非公式の独立オリジナル作品</footer></div>
+<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">⚡ OTODAMA SKY BRAWL v0.6 / COM MATCH</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="arena-effect" id="arenaEffect">READY TO FIGHT</div><div class="arena-battle-tip">HYPER FLIGHT · BREAK · COMBO · WARP</div></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="battlePanel"><div class="battle-guide" id="battleGuide">敵の攻撃直前にガード。ゲージをためて声の必殺技を撃て！</div><div class="battle-topline"><span id="skillName">声の必殺技</span><span>共鳴ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ジャストガード</button><button class="btn" id="skillBtn" type="button" disabled>✦ 必殺技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div></div><div id="battlePrize" aria-live="polite"></div><div class="modalfoot"><label class="soundrow" for="battleVolume">戦闘音量 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><button class="btn primary" id="rematchBtn" disabled>もう一戦</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), TAU=Math.PI*2;
@@ -47,6 +73,34 @@ function gen(seed,voice){let rng=getRand(seed),parts={body:Math.floor(rng()*5),e
  let v=voice||{vol:Math.round(between(rng,24,82)),pitch:Math.round(between(rng,24,90)),res:Math.round(between(rng,20,95)),rhythm:Math.round(between(rng,17,90)),stable:Math.round(between(rng,25,95)),breath:Math.round(between(rng,20,80))};
  let stats=[Math.round(clamp(25+v.vol*.14+v.res*.31+v.breath*.18+v.rhythm*.13,26,95)),Math.round(clamp(22+v.stable*.36+v.res*.23+v.breath*.12,27,95)),Math.round(clamp(19+v.pitch*.38+v.rhythm*.34,27,95)),Math.round(clamp(24+v.stable*.41+v.rhythm*.25,27,95)),Math.round(clamp(23+v.res*.34+v.pitch*.29+v.stable*.17,28,95))];
  return{seed,parts,voice:v,stats,name:generateName(seed),element:ELEMS[Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),type:SPECIES[parts.family]+'・'+['ささやき','高音','低音','轟音','うねり','透明','リズミカル','残響'][Math.floor(rng()*8)]}}
+
+const SOULS=[
+ {name:'超音速 / スカイダイバー',skill:'ソニック・ラッシュ',detail:'音程とリズムが鋭い高速型。必殺技で連撃。',bias:[1.65,1]},
+ {name:'低音 / グラビティ',skill:'重力クラッシュ',detail:'低い音と響きが重い打撃型。必殺技で相手を打ち上げる。',bias:[1.8,1]},
+ {name:'残響 / エコーファントム',skill:'残響ミラージュ',detail:'声の響きが強い幻影型。必殺技で防御を突破。',bias:[1.72,1]},
+ {name:'ささやき / ミスト',skill:'ミスト・カウンター',detail:'息成分の強い技巧型。ガード成功で共鳴ゲージ増加。',bias:[1.5,1]},
+ {name:'安定 / アイアンハート',skill:'アイアン・ノヴァ',detail:'安定感が高い耐久型。ジャストガードの猶予が少し長い。',bias:[1.55,1]},
+ {name:'変調 / グリッチ',skill:'カオス・スパーク',detail:'声の変化が激しいトリックスター。必殺技が不規則に強化。',bias:[1.42,2]}
+];
+function soulFor(c){const v=c.voice||{};const score=[(v.pitch||0)*.58+(v.rhythm||0)*.42,100-(v.pitch||50)*.7+(v.res||50)*.3,(v.res||0)*.8+(v.stable||0)*.2,(v.breath||0)*.92+(100-(v.vol||50))*.08,(v.stable||0)*.97+(v.res||0)*.03,(100-(v.stable||50))*.8+(v.rhythm||0)*.2];return SOULS[score.indexOf(Math.max(...score))]}
+function levelOf(c){return Math.max(1,Math.floor(Number(c.level)||1))}
+let streak=0,recordStreak=0,careerWins=0;
+const dailyKey=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('')};
+const discoveryKey='otodama.discovery.v08';
+let discovered=new Set(),dailyCleared='';
+try{const saved=JSON.parse(localStorage.getItem(discoveryKey)||'[]');discovered=new Set(Array.isArray(saved)?saved.filter(v=>Number.isInteger(v)&&v>=0&&v<12):[]);dailyCleared=localStorage.getItem('otodama.daily.clear')||''}catch(e){}
+function trackDiscovery(cr){const family=Number(cr?.parts?.family);if(!Number.isInteger(family)||family<0||family>=12||discovered.has(family))return;discovered.add(family);try{localStorage.setItem(discoveryKey,JSON.stringify([...discovered]))}catch(e){}renderCodex()}
+function renderCodex(){const holder=$('codexGrid');if(!holder)return;holder.textContent='';SPECIES.forEach((name,i)=>{const el=document.createElement('span');el.className=discovered.has(i)?'known':'';el.textContent=discovered.has(i)?name:'？';el.title=discovered.has(i)?name:'未発見の種族';holder.appendChild(el)});$('codexCounter').textContent='発見した種族 '+discovered.size+' / 12';}
+function elementalEdge(attacker,defender){const i=ELEMS.indexOf(attacker?.element),j=ELEMS.indexOf(defender?.element);if(i<0||j<0||i===j)return 1;const diff=(j-i+10)%10;return diff===1||diff===2?1.12:diff===8||diff===9?.9:1;}
+function dailyEnemy(){const key=Number(dailyKey()),seed=hash(key^0x9E3779B9),enemy=gen(seed);enemy.name='試練の'+enemy.name;enemy.level=Math.min(20,Math.max(2,Math.floor(levelOf(cur)*.8)+2));enemy.stats=enemy.stats.map((x,i)=>clamp(x+3+(key+i)%4,25,95));return enemy}
+function showDaily(){if(!$('dailyName'))return;const e=dailyEnemy();$('dailyName').textContent=e.name;$('dailyFlag').textContent=dailyCleared===dailyKey()?'本日クリア済':'未達成';$('dailyDesc').textContent=dailyCleared===dailyKey()?'クリア済み。再挑戦は可能（初回ボーナスなし）':'日替わりボスを撃破すると初回だけ追加XP +3。声のタイプや属性相性で攻略しよう。';}
+
+try{const pr=JSON.parse(localStorage.getItem('otodama.progress')||'{}');streak=Number(pr.streak)||0;recordStreak=Number(pr.best)||0;careerWins=Number(pr.wins)||0}catch(e){}
+function saveProgress(){try{localStorage.setItem('otodama.progress',JSON.stringify({streak,best:recordStreak,wins:careerWins}))}catch(e){}}
+function showCampaign(){if(!$('campaignRank'))return;$('campaignRank').textContent='Lv.'+levelOf(cur);$('campaignXp').textContent='XP '+(Number(cur.xp)||0)+'/3';$('campaignStreak').textContent=`連勝 ${streak} / 最高 ${recordStreak}`;const soul=soulFor(cur);$('voiceRoleName').textContent=soul.name+'  ·  '+soul.skill;$('voiceRoleDesc').textContent=soul.detail;}
+function updateCharacterProgress(m){const player=m.a;let bonus=0;if(m.mode==='DAILY CHALLENGE'&&m.outcome.winner===0&&dailyCleared!==dailyKey()){dailyCleared=dailyKey();try{localStorage.setItem('otodama.daily.clear',dailyCleared)}catch(e){}bonus=3;showDaily()}let gained=(m.outcome.winner===0?2:1)+bonus;player.xp=(Number(player.xp)||0)+gained;let lvled=false;while(player.xp>=3&&levelOf(player)<30){player.xp-=3;player.level=levelOf(player)+1;const idx=(hash(player.seed^player.level)%5);player.stats[idx]=clamp(player.stats[idx]+1,27,99);lvled=true;}if(m.outcome.winner===0){streak++;careerWins++;recordStreak=Math.max(recordStreak,streak)}else{streak=0}saveProgress();
+ const exists=roster.findIndex(c=>c.seed===player.seed);if(exists>=0)roster[exists]=player;else{roster.unshift(player);roster=roster.slice(0,30)}saveStore();if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign()}const msg=(m.outcome.winner===0?'勝利 +'+gained+'XP':'敗北 +1XP')+(lvled?' · LEVEL UP! Lv.'+levelOf(player):'')+' · 連勝 '+streak; if($('battlePrize'))$('battlePrize').textContent=msg;return msg;
+}
 function col(hex,alpha){let h=hex.replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${alpha})`}
 function pathRound(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
 function drawSpeciesBack(c,p,pal,t){
@@ -126,9 +180,9 @@ const DEFAULT_SERVER_URL=''; // Worker公開後にURLをここへ記入すれば
 try{$('serverUrl').value=localStorage.getItem('otodama.server')||DEFAULT_SERVER_URL}catch(e){$('serverUrl').value=DEFAULT_SERVER_URL}
 function saveStore(){try{localStorage.setItem('otodama.roster',JSON.stringify(roster.slice(0,30)))}catch(e){}}
 function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forEach((name,i)=>{let node=document.createElement('div');let v=clamp(vals[i],0,100);node.innerHTML=`<div class="metainfo"><span>${name}</span><b>${v}${suffix}</b></div><div class="bar"><i style="width:${v}%"></i></div>`;parent.appendChild(node)})}
-function setCurrent(cr){cur=cr;$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=cur.name;$('element').textContent=cur.element+' 属性';$('kind').textContent='TYPE / '+cur.type+' · '+cur.rank+' RANK';$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton()}
+function setCurrent(cr){cur=cr;trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=cur.name;$('element').textContent=cur.element+' 属性';$('kind').textContent='TYPE / '+cur.type+' · '+cur.rank+' RANK';$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();showCampaign()}
 function newOne(){let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
-function renderRoster(){let shown=[cur,...roster.filter(c=>c.seed!==cur.seed)].slice(0,5);while(shown.length<5)shown.push(gen(hash(352135+shown.length*234223)));$('rosterCount').textContent=`保存 ${roster.length} / 30`;let wrap=$('roster');wrap.innerHTML='';shown.forEach((cr,i)=>{let btn=document.createElement('button');btn.className='specimen'+(cr.seed===cur.seed?' active':'');btn.title=cr.name+'を選択';let cv=document.createElement('canvas');cv.width=125;cv.height=122;btn.append(cv);let txt=document.createElement('span');txt.textContent=(i===0?'● ':'')+cr.name;btn.append(txt);btn.onclick=()=>{setCurrent(cr)};wrap.append(btn);let c=cv.getContext('2d');drawCreature(c,cr,62,55,.42,0)})}
+function renderRoster(){let shown=[cur,...roster.filter(c=>c.seed!==cur.seed)].slice(0,5);while(shown.length<5)shown.push(gen(hash(352135+shown.length*234223)));$('rosterCount').textContent=`保存 ${roster.length} / 30`;let wrap=$('roster');wrap.innerHTML='';shown.forEach((cr,i)=>{let btn=document.createElement('button');btn.className='specimen'+(cr.seed===cur.seed?' active':'');btn.title=cr.name+'を選択';let cv=document.createElement('canvas');cv.width=125;cv.height=122;btn.append(cv);let txt=document.createElement('span');txt.textContent=(i===0?'● ':'')+cr.name+' Lv.'+levelOf(cr);btn.append(txt);btn.onclick=()=>{setCurrent(cr)};wrap.append(btn);let c=cv.getContext('2d');drawCreature(c,cr,62,55,.42,0)})}
 let hc=$('heroCanvas').getContext('2d'),wc=$('waveCanvas').getContext('2d');
 function heroLoop(ms){let t=ms/1000;const w=700,h=520;hc.clearRect(0,0,w,h);let halo=hc.createRadialGradient(350,260,15,350,260,240);halo.addColorStop(0,col(PALETTES[cur.parts.color][0],.25));halo.addColorStop(1,'#14243b00');hc.fillStyle=halo;hc.fillRect(0,0,w,h);hc.strokeStyle='#7199b214';hc.lineWidth=1;for(let i=0;i<11;i++){let yy=130+i*29;hc.beginPath();hc.moveTo(0,yy);hc.lineTo(w,yy);hc.stroke()}hc.save();hc.translate(350,300);hc.strokeStyle=col(PALETTES[cur.parts.color][0],.26);hc.lineWidth=2;for(let j=0;j<3;j++){hc.beginPath();hc.ellipse(0,130,(129+j*21)*(1+.01*Math.sin(t)),(22+j*7),0,0,TAU);hc.stroke()}hc.restore();drawCreature(hc,cur,350,265,1.46,t);hc.fillStyle='#94b6c8';hc.font='13px monospace';hc.fillText('CREATURE CLASS  /  '+cur.rank,25,478);hc.fillText('LIVE FORM  ·  '+ELEMS.indexOf(cur.element).toString().padStart(2,'0'),520,478);animFrame=requestAnimationFrame(heroLoop)}
 function wavePaint(values,active=false){wc.clearRect(0,0,600,80);wc.strokeStyle='#2e5064';wc.lineWidth=1;wc.beginPath();wc.moveTo(0,40);wc.lineTo(600,40);wc.stroke();wc.strokeStyle=active?'#ff9bac':'#7df0e6';wc.lineWidth=2.8;wc.beginPath();for(let i=0;i<120;i++){let v=values&&values.length?values[Math.floor(i*values.length/120)]:(Math.sin(i*.43)*.25+Math.cos(i*.18)*.12+Math.sin(i*.91)*.15)*(.6+.3*Math.sin(Date.now()/1000+i/18));let x=i/119*600,y=40-v*32;if(i===0)wc.moveTo(x,y);else wc.lineTo(x,y)}wc.stroke()}
@@ -146,7 +200,7 @@ function showMicNotice(){
  const note=$('micNotice');if(!window.isSecureContext){note.textContent='現在のページは安全な接続ではありません。マイクにはHTTPSまたはlocalhostが必要です。';}
  else if(location.protocol==='file:'){note.textContent='ローカルHTMLファイルで実行中。端末によってマイク権限が制限されます。HTTPSに公開して開く方法を推奨します。';}
  else if(!navigator.mediaDevices?.getUserMedia){note.textContent='この環境はマイク入力APIを使えません。ChromeでHTTPSページを直接開いてください。';}
- else note.textContent='マイク録音にはブラウザの許可が必要です。音声はサーバーへ送信しません。';
+ else note.textContent='マイク録音には許可が必要。オンライン対戦時のみ短い録音を相手へ中継します。';
 }
 // v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
 let stopCaptureNow=null, recordingFinishing=false;
@@ -227,7 +281,7 @@ function updateVoicePreviewButton(){
  const btn=$('voicePreviewBtn');btn.disabled=!(cur&&typeof cur.voiceClip==='string'&&cur.voiceClip.startsWith('data:audio/'));
  btn.textContent=btn.disabled?'声の試聴（録音後）':'▶ 録音した声を試聴';
 }
-function saveCurrent(){if(roster.some(c=>c.seed===cur.seed)){$('micHint').textContent='このキャラは保存済みです';return}roster.unshift(cur);roster=roster.slice(0,30);saveStore();renderRoster();$('micHint').textContent=cur.name+' を保存しました'}
+function saveCurrent(){trackDiscovery(cur);if(roster.some(c=>c.seed===cur.seed)){$('micHint').textContent='このキャラは保存済みです';return}roster.unshift(cur);roster=roster.slice(0,30);saveStore();renderRoster();$('micHint').textContent=cur.name+' を保存しました'}
 // v0.4: decoded WebAudio buffers, mobile-autoplay-safe, voice loudness limited.
 let battleSoundCtx=null,voiceCache=new Map(),playingSources=[],pendingVoice=new Map(),lastSoundStatus='';
 const VOLUME=()=>Math.min(.24,Math.max(0,Number($('battleVolume').value)/100));
@@ -405,6 +459,7 @@ function drawVictorySequence(c,m,ms,t){
 }
 function battleDraw(ms){
  if(!match)return;
+ if(match.interactive){resolveCombatImpact(ms);updateActionHud();}
  const t=ms/1000,event=match.current,idx=Math.max(0,match.turn),p=clamp((ms-match.pop)/EVENT_MS,0,1);
  const atk=event?.atk??idx%2,def=1-atk,impact=event?Math.pow(Math.max(0,1-Math.abs(p-.52)*8),1.1):0;
  const canvas=acv,w=720,h=450;canvas.clearRect(0,0,w,h);canvas.save();
@@ -479,6 +534,8 @@ function battleDraw(ms){
    drawBlast(canvas,x,y,impact,color,hash(idx*385+match.a.seed));
    canvas.save();canvas.globalCompositeOperation='screen';canvas.fillStyle='#ffffff';canvas.globalAlpha=impact*.28;canvas.fillRect(0,0,720,450);canvas.restore();
   }
+  if(event.parry&&p>.43&&p<.9){canvas.save();canvas.strokeStyle="#a9ffdf";canvas.shadowColor="#90ffff";canvas.shadowBlur=35;canvas.lineWidth=13*(1-p)+4;canvas.beginPath();canvas.arc(pos[0].x,pos[0].y,92+(p-.43)*110,0,TAU);canvas.stroke();canvas.restore();}
+  if(event.skill&&p>.42){drawBlast(canvas,pos[def].x,pos[def].y,Math.sin(Math.PI*clamp((p-.42)/.58,0,1)),"#fff5a3",hash(idx*991+match.a.seed));}
   if(event.hits>1&&!event.dodge){canvas.save();canvas.textAlign='center';canvas.font='900 36px system-ui';canvas.shadowColor='#fff1b3';canvas.shadowBlur=17;canvas.fillStyle='#fff2ae';canvas.fillText(`${event.hits} HIT!!`,360,66);canvas.restore()}
   if(event.dodge&&p>.2&&p<.72){canvas.save();canvas.font='900 26px system-ui';canvas.fillStyle='#a7ffe1';canvas.fillText('DODGE!',pos[def].x-47,pos[def].y-100);canvas.restore()}
   if(event.counter&&p>.42&&p<.82){canvas.save();canvas.font='900 28px system-ui';canvas.fillStyle='#ffe58d';canvas.fillText('COUNTER!',pos[def].x-67,pos[def].y-100);canvas.restore()}
@@ -487,27 +544,81 @@ function battleDraw(ms){
  canvas.save();canvas.fillStyle='#b1e9f6ba';canvas.font='900 14px monospace';canvas.fillText(`AERIAL COMBAT  /  ${(Math.sin(t*3.1)*.5+1.8).toFixed(1)}x SPEED`,18,425);canvas.restore();
  canvas.restore();match.prevPos=pos.map(v=>({x:v.x,y:v.y}));aframe=requestAnimationFrame(battleDraw)
 }
+
+// v0.7 interactive COM combat: HP is resolved at animation impact, NOT from a pre-decided winner.
+const RESONANCE_COST=60;
+const stanceIds={rush:'stanceRush',balance:'stanceBalance',guard:'stanceGuard'};
+function updateActionHud(){const m=match;if(!m||!m.interactive)return;const ev=m.current,p=(performance.now()-m.pop)/EVENT_MS;
+ const defend=!!ev&&ev.atk===1&&!ev.resolved&&!m.done;
+ const windowOpen=defend&&p>=.23&&p<=.57;
+ $('guardBtn').classList.toggle('guard-ready',windowOpen);$('guardBtn').disabled=!defend||!!m.guardUsed;
+ $('guardBtn').textContent=m.parried?'✓ ジャスト成功':m.guardUsed?'次の攻撃で挑戦':windowOpen?'◆ いまガード！':'◆ ジャストガード';
+ $('guardFill').style.width=defend?Math.round(clamp((p-.12)/.53,0,1)*100)+'%':'0%';$('guardMeter').classList.toggle('danger',windowOpen);
+ $('skillBtn').disabled=m.charge<RESONANCE_COST||m.done||m.skillArmed;
+ $('skillBtn').textContent=m.skillArmed?'✦ 発動準備完了':'✦ '+soulFor(m.a).skill;
+ $('resonanceLabel').textContent=Math.round(m.charge)+' / 60';
+ for(let k of Object.keys(stanceIds))$(stanceIds[k]).classList.toggle('active',m.stance===k);
+}
+function guardPress(){const m=match;if(!m||!m.interactive||m.done)return;
+ const ev=m.current,p=(performance.now()-m.pop)/EVENT_MS;
+ if(!ev||ev.atk!==1||ev.resolved||m.guardUsed){$('battleMsg').textContent='敵の攻撃中に押そう';return}
+ m.guardUsed=true;
+ const soul=soulFor(m.a),good=p>=(soul===SOULS[4]?.19:.23)&&p<=.57;
+ if(good){m.parried=true;m.charge=Math.min(100,m.charge+(soul===SOULS[3]?32:24));$('battleMsg').textContent='JUST GUARD!! ダメージ大幅カット +共鳴';$('arenaEffect').textContent='PERFECT GUARD!';tone(620,.13)}
+ else{$('battleMsg').textContent=p<.23?'早すぎた！ タイミングを合わせよう':'遅かった！ 次の攻撃で挑戦';}
+ updateActionHud();
+}
+function skillPress(){const m=match;if(!m||!m.interactive||m.done||m.skillArmed||m.charge<RESONANCE_COST)return;
+ m.charge-=RESONANCE_COST;m.skillArmed=true;
+ $('battleMsg').textContent=soulFor(m.a).skill+' 準備完了！ 次の攻撃で発動';$('arenaEffect').textContent='ULTIMATE READY!';tone(410,.12);updateActionHud();
+}
+function setStance(next){if(!match||!match.interactive||match.done)return;match.stance=next;$('battleMsg').textContent={rush:'攻め：攻撃上昇 / 被ダメージ増',balance:'バランス：安定した戦い',guard:'守り：受けるダメージ軽減'}[next];updateActionHud()}
+function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.done||!m.current||m.current.resolved)return;
+ const p=(ms-m.pop)/EVENT_MS;if(p<.54)return;
+ const ev=m.current,atk=ev.atk,def=1-atk,player=m.a,foe=m.b;
+ let damage=ev.damage,selfDamage=ev.selfDamage;
+ if(ev.arena){const arena=ev.arena;if(arena==='落雷の嵐')damage=Math.round(damage*1.17);if(arena==='残響増幅')m.charge=Math.min(100,m.charge+10);if(arena==='空間反転')damage=Math.round(damage*.87)}
+ if(atk===0){damage=Math.round(damage*elementalEdge(player,foe));damage=Math.round(damage*(m.stance==='rush'?1.22:m.stance==='guard'?.89:1));
+  if(m.skillArmed){const soul=soulFor(player);damage=Math.round(damage*(soul.bias[0]+(soul===SOULS[5]?Math.random()*.5:0)));m.skillArmed=false;m.ultimateAt=ms;ev.skill=true;ev.hits=Math.max(5,ev.hits);m.charge=Math.min(100,m.charge+4);$('battleMsg').textContent=soul.skill+'!!  '+damage+' DAMAGE';$('arenaEffect').textContent='✦ '+soul.skill+' ✦';tone(770,.15)}else{m.charge=Math.min(100,m.charge+12)}}
+ else{damage=Math.round(damage*elementalEdge(foe,player));damage=Math.round(damage*(m.stance==='rush'?1.12:m.stance==='guard'?.76:1));if(m.parried){damage=Math.min(2,Math.round(damage*.09));const reflected=Math.max(7,Math.round(foe.stats[0]*.13));m.hp[1]=Math.max(0,m.hp[1]-reflected);ev.parry=true;attackVoice(player,0)}else if(!m.guardUsed)m.charge=Math.min(100,m.charge+6)}
+ m.hp[def]=Math.max(0,m.hp[def]-damage);if(selfDamage>0)m.hp[atk]=Math.max(0,m.hp[atk]-selfDamage);
+ if(ev.recovery>0)m.hp[atk]=Math.min(m.max[atk],m.hp[atk]+ev.recovery);
+ ev.damage=damage;ev.hp=m.hp.slice();ev.resolved=true;ev.impactAt=ms;
+ $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(m.hp[1]/m.max[1]*100,0,100)+'%';
+ if(m.hp[0]<=0||m.hp[1]<=0)m.endAfterCurrent=true;
+ updateActionHud();
+}
+function finishCombat(){const m=match;if(!m||m.done)return;m.done=true;
+ if(m.interactive){m.outcome.winner=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1]?0:1;m.outcome.max=m.max.slice();updateCharacterProgress(m)}
+ m.victoryAt=performance.now();m.finalPositions=m.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='K.O.!!';$('fightLog').textContent=(m.outcome.winner===0?m.a.name:m.b.name)+'  WIN❗️';$('rematchBtn').disabled=!['COM MATCH','DAILY CHALLENGE'].includes(m.mode);clearInterval(battleInterval);if(m.interactive){$('battlePanel').classList.remove('playable');$('guardBtn').disabled=true;$('skillBtn').disabled=true;}
+}
 function showBattle(a,b,outcome,mode){
  clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();unlockBattleAudio();
- $('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('battleTitle').textContent='⚡ OTODAMA SKY BRAWL v0.6 / '+mode;
- $('nameA').textContent=a.name;$('nameB').textContent=b.name;$('rematchBtn').disabled=true;
- $('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='超高速空中戦スタート！';$('arenaEffect').textContent='SKY RUSH!!';
- match={a,b,outcome,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null};let ix=-1;
+ const interactive=mode==='COM MATCH'||mode==='DAILY CHALLENGE';
+ $('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('battleTitle').textContent='⚡ OTODAMA SKY BRAWL v0.8 / '+mode;
+ $('nameA').textContent=a.name+' / Lv.'+levelOf(a);$('nameB').textContent=b.name+' / Lv.'+levelOf(b);$('rematchBtn').disabled=true;
+ $('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent=interactive?'タップでガード！ 共鳴をためて必殺技を放て！':'オンライン対戦：サーバー判定を再生中';$('arenaEffect').textContent='SKY RUSH!!';$('battlePrize').textContent='';$('matchupBadge').textContent=elementalEdge(a,b)>1?'属性有利：与ダメージ +12%':elementalEdge(a,b)<1?'属性不利：与ダメージ -10%':'属性相性：互角';
+ $('battlePanel').classList.toggle('playable',interactive);$('battleGuide').textContent=interactive?'敵が攻撃してくる直前に「ガード」。60たまったら「必殺技」を押す！':'ONLINE MATCH';
+ const battleMax=outcome.max.slice();
+ match={a,b,outcome,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null,mode,interactive,max:battleMax,hp:battleMax.slice(),charge:18,stance:'balance',skillArmed:false,guardUsed:false,parried:false,ultimateAt:0,endAfterCurrent:false};
+ let ix=-1;const currentMatch=match;
  const act=()=>{
-  if(!match)return;ix++;
-  if(ix>=outcome.events.length){match.done=true;match.victoryAt=performance.now();match.finalPositions=match.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='K.O.!!';$('fightLog').textContent=(outcome.winner===0?a.name:b.name)+'  WIN❗️';$('rematchBtn').disabled=mode!=='COM MATCH';clearInterval(battleInterval);return}
-  const ev=outcome.events[ix];match.turn=ix;match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;
-  $('hpA').style.width=clamp(ev.hp[0]/outcome.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(ev.hp[1]/outcome.max[1]*100,0,100)+'%';
+  if(match!==currentMatch||match.done)return;
+  if(match.endAfterCurrent || ix+1>=outcome.events.length){finishCombat();return;}
+  ix++;const ev={...outcome.events[ix]};match.turn=ix;match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;
+  if(!interactive){$('hpA').style.width=clamp(ev.hp[0]/outcome.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(ev.hp[1]/outcome.max[1]*100,0,100)+'%';}
   const attacker=ev.atk===0?a:b,defender=ev.atk===0?b:a;
   $('arenaEffect').textContent=ev.crit?'CRITICAL!!':ev.counter?'COUNTER!!':ev.dodge?'DODGE!':ev.arena?'⚡ '+ev.arena:(ev.hits>1?ev.hits+' HIT SKY COMBO!!':BATTLE_LABEL[ev.kind]);
-  $('fightLog').textContent=attacker.name+' の '+(BATTLE_LABEL[ev.kind]||'空中乱舞')+'！ '+(ev.dodge?'回避成功！':ev.damage+'ダメージ')+(ev.counter?' / 反撃 '+ev.selfDamage+'ダメージ':'');
-  attackVoice(attacker,ev.atk);if(ev.counter)setTimeout(()=>{if(match?.turn===ix)attackVoice(defender,1-ev.atk)},180);
+  $('fightLog').textContent=attacker.name+' の '+(BATTLE_LABEL[ev.kind]||'空中乱舞')+'！ '+(interactive?(ev.atk===1?'ガードを狙え！':'必殺技を使えるか？'):(ev.dodge?'回避成功！':ev.damage+'ダメージ'));
+  attackVoice(attacker,ev.atk);if(ev.counter)setTimeout(()=>{if(match===currentMatch&&match.turn===ix&&!match.done)attackVoice(defender,1-ev.atk)},180);
   tone(160+(ev.damage||10)*6,.09);
+  if(interactive)updateActionHud();
  };
  act();battleInterval=setInterval(act,EVENT_MS);aframe=requestAnimationFrame(battleDraw);
 }
-function closeBattle(){clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopAttackVoices();$('battleModal').classList.remove('open','victory')}
+function closeBattle(){clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
 function doCom(){unlockBattleAudio();const enemy=gen(crypto.getRandomValues(new Uint32Array(1))[0]);showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH')}
+function doDaily(){unlockBattleAudio();const enemy=dailyEnemy();showBattle(cur,enemy,randCombat(cur,enemy),'DAILY CHALLENGE')}
 
 function serverBase(){let str=$('serverUrl').value.trim();if(!(/^https:\/\/[a-z0-9.-]+(?::\d+)?\/?$/i.test(str)||/^http:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\/?$/i.test(str)))return null;return str.replace(/\/$/,'')}
 function roomMessage(msg){$('roomLine').textContent=msg}
@@ -531,9 +642,10 @@ function joinRoom(code,auto=false){let base=serverBase();if(!base){roomMessage('
  else if(data.type==='battle'){autoReadyRoom=false;const [p1,p2]=data.creatures,aa=hydrate(p1),bb=hydrate(p2),out=data.outcome;aa.voiceClip=side===0?(cur.voiceClip||''):remoteVoiceClip;bb.voiceClip=side===1?(cur.voiceClip||''):remoteVoiceClip;showBattle(side===0?aa:bb,side===0?bb:aa,side===0?out:reverseOutcome(out),'ONLINE MATCH');roomMessage('対戦中 / 部屋 '+room)}else if(data.type==='error'){roomMessage(data.message)}else if(data.type==='left'){roomMessage('相手が退出しました');$('readyBtn').disabled=false;$('readyBtn').textContent='対戦準備OK'}};socket.onerror=()=>{roomMessage('接続に失敗しました。URLとWorker公開状態を確認してください')};socket.onclose=()=>{if(ws!==socket)return;ws=null;setConnectionUI(false);roomMessage('ルーム接続が切断されました')}}
 function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
-$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match){let a=match.a,b=match.b;showBattle(a,b,randCombat(a,b),'COM MATCH')}};
+$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode)){let a=cur,b=match.mode==='DAILY CHALLENGE'?dailyEnemy():gen(crypto.getRandomValues(new Uint32Array(1))[0]);showBattle(a,b,randCombat(a,b),match.mode)}};
+$('guardBtn').onclick=guardPress;$('skillBtn').onclick=skillPress;$('stanceRush').onclick=()=>setStance('rush');$('stanceBalance').onclick=()=>setStance('balance');$('stanceGuard').onclick=()=>setStance('guard');
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready'}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
-setCurrent(cur);showMicNotice();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
+setCurrent(cur);renderCodex();showMicNotice();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 window.addEventListener('pagehide',()=>{cancelAnimationFrame(animFrame);if(ws)ws.close();stopAttackVoices()});
 })();
 </script></body></html>
