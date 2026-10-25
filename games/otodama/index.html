@@ -12,13 +12,20 @@
 .arena-battle-tip{position:absolute;bottom:7px;left:9px;pointer-events:none;color:#a2def1;font:10px var(--mono);background:#061525a6;padding:4px 7px;border-radius:6px}
 .soundrow{display:flex;align-items:center;gap:9px;font-size:12px;flex-wrap:wrap;color:#d0e7f3}.soundrow input[type=range]{accent-color:#7de9ff;width:90px;vertical-align:middle}.soundrow b{color:#9af1da;min-width:33px;text-align:right}
 @media(max-width:560px){.arena-effect{font-size:10px;top:6px;padding:4px 9px}.soundrow{font-size:11px}.soundrow input[type=range]{width:67px}}
+
+/* v0.4: readable recording controls and visible sky battle */
+.recordactions{flex-wrap:wrap}.stop-record{background:#e05270!important;color:#fff!important;border-color:#ff879b!important;font-weight:850!important;box-shadow:0 0 16px #df4c6b55}
+#voicePreviewBtn:disabled{opacity:.52}.arena-wrap{border:2px solid #39aedb88;border-radius:12px;box-shadow:inset 0 0 45px #2e79b633}
+.arena-effect{background:#142044f0;color:#fff7c3;border-color:#ffe7817d;box-shadow:0 0 12px #ffcf9155}
+.arena-battle-tip{color:#d1f7ff;font-weight:750;letter-spacing:.2px}
+@media(max-width:560px){.recordactions button{flex:1 1 43%}.recordactions .stop-record{flex:1 1 100%}.arena-battle-tip{font-size:9px}}
 </style></head><body><div class="wrap"><header class="top"><div class="brand"><div class="brandmark">〰</div><div><div class="brandname">OTODAMA<span> ∞</span></div><div class="micro">VOICE-BORN CREATURE ARENA</div></div></div><div class="status"><span class="dot" id="netDot"></span><span id="netLabel">SOLO DEMO</span></div></header>
-<section class="heading"><div><div class="eyebrow">MAKE A VOICE. CREATE A LIFE.</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>声の波形から能力と姿が変わる、オリジナル育成バトル。</p></div><div class="count">基本外見<b>1,440億通り以上</b><span>名前 3,355万通り</span></div></section>
+<section class="heading"><div><div class="eyebrow">MAKE A VOICE. CREATE A LIFE.</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>声で生まれ、空を駆けて戦う超高速バトル。</p></div><div class="count">基本外見<b>1,440億通り以上</b><span>名前 3,355万通り</span></div></section>
 <main class="layout"><section class="card stage"><div class="headrow"><div class="sectionname">CREATURE PREVIEW</div><div class="idpill" id="creatureId">#-------</div></div><canvas id="heroCanvas" width="700" height="520" aria-label="生成キャラのプレビュー"></canvas><div class="nametag"><div><div class="kind" id="kind">VOICE TYPE / ???</div><div class="creaturename" id="creatureName">---</div></div><span class="element" id="element">---</span></div></section>
-<section class="card controls" id="controlCard"><div class="paneltitle"><h2>声紋ジェネレーター</h2><span class="sub">VOICE TO CREATURE / 01</span></div><div class="listen"><div class="listentop"><span id="micHint">マイクで3秒間、好きな声を出す</span><strong id="countdown">03.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 声からキャラ生成</button><button class="btn ghost" id="randomBtn">✦ おためし生成</button></div><div class="switch"><input type="checkbox" id="mutedCheck" checked><label for="mutedCheck">バトルSEをミュート</label></div><div id="micNotice" class="tiny micnotice" aria-live="polite"></div></div>
+<section class="card controls" id="controlCard"><div class="paneltitle"><h2>声紋ジェネレーター</h2><span class="sub">VOICE TO CREATURE / 01</span></div><div class="listen"><div class="listentop"><span id="micHint">マイクで3秒間、好きな声を出す</span><strong id="countdown">03.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 声からキャラ生成</button><button class="btn stop-record" id="stopRecordBtn" style="display:none" disabled>■ 録音停止・生成</button><button class="btn ghost" id="randomBtn">✦ おためし生成</button><button class="btn ghost" id="voicePreviewBtn" disabled>声の試聴（録音後）</button></div><div class="switch"><input type="checkbox" id="mutedCheck"><label for="mutedCheck">戦闘音声・SEをミュート</label></div><div id="micNotice" class="tiny micnotice" aria-live="polite"></div></div>
 <div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">SAMPLE SIGNAL</span></div><div class="metrics" id="voiceMetrics"></div><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="battlebuttons"><button class="btn fight" id="fightBtn">⚔ COMとバトル</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div></section></main>
-<section class="bottom"><div class="card gallery"><div class="galleryhead"><h2>生まれたオトダマ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:13px 0 0">キャラをタップすると使用キャラを切り替えられます。保存データはこのブラウザ内に保持されます。</p></div><div class="card online"><div class="paneltitle"><h2>オンライン対戦</h2><span class="sub">RANDOM MATCH / ROOM</span></div><p>ランダム対戦は、無料枠のCloudflareサーバーを公開すると利用できます。サーバー未接続時はCOM戦が遊べます。</p><div class="field"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="field"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="roomline" id="roomLine">オンライン接続先は未設定です。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div></div></section><footer class="footer">OTODAMA ∞ PROTOTYPE v0.3 · オンライン戦では録音した短い声を対戦相手へ一時送信します（保存なし） · 非公式の独立オリジナル作品</footer></div>
-<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">⚔ BATTLE ARENA / COM MATCH</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="arena-effect" id="arenaEffect">READY TO FIGHT</div><div class="arena-battle-tip">AIR COMBO · DASH · COUNTER · WARP</div></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div class="modalfoot"><label class="soundrow" for="battleVolume">戦闘音量 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><button class="btn primary" id="rematchBtn" disabled>もう一戦</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
+<section class="bottom"><div class="card gallery"><div class="galleryhead"><h2>生まれたオトダマ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:13px 0 0">キャラをタップすると使用キャラを切り替えられます。保存データはこのブラウザ内に保持されます。</p></div><div class="card online"><div class="paneltitle"><h2>オンライン対戦</h2><span class="sub">RANDOM MATCH / ROOM</span></div><p>ランダム対戦は、無料枠のCloudflareサーバーを公開すると利用できます。サーバー未接続時はCOM戦が遊べます。</p><div class="field"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="field"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="roomline" id="roomLine">オンライン接続先は未設定です。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div></div></section><footer class="footer">OTODAMA ∞ PROTOTYPE v0.4 · オンライン戦では録音した短い声を対戦相手へ一時送信します（保存なし） · 非公式の独立オリジナル作品</footer></div>
+<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">⚡ OTODAMA SKY BRAWL v0.4 / COM MATCH</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="arena-effect" id="arenaEffect">READY TO FIGHT</div><div class="arena-battle-tip">HYPER FLIGHT · BREAK · COMBO · WARP</div></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div class="modalfoot"><label class="soundrow" for="battleVolume">戦闘音量 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><button class="btn primary" id="rematchBtn" disabled>もう一戦</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), TAU=Math.PI*2;
@@ -117,7 +124,7 @@ const DEFAULT_SERVER_URL=''; // Worker公開後にURLをここへ記入すれば
 try{$('serverUrl').value=localStorage.getItem('otodama.server')||DEFAULT_SERVER_URL}catch(e){$('serverUrl').value=DEFAULT_SERVER_URL}
 function saveStore(){try{localStorage.setItem('otodama.roster',JSON.stringify(roster.slice(0,30)))}catch(e){}}
 function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forEach((name,i)=>{let node=document.createElement('div');let v=clamp(vals[i],0,100);node.innerHTML=`<div class="metainfo"><span>${name}</span><b>${v}${suffix}</b></div><div class="bar"><i style="width:${v}%"></i></div>`;parent.appendChild(node)})}
-function setCurrent(cr){cur=cr;$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=cur.name;$('element').textContent=cur.element+' 属性';$('kind').textContent='TYPE / '+cur.type+' · '+cur.rank+' RANK';$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster()}
+function setCurrent(cr){cur=cr;$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=cur.name;$('element').textContent=cur.element+' 属性';$('kind').textContent='TYPE / '+cur.type+' · '+cur.rank+' RANK';$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton()}
 function newOne(){let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
 function renderRoster(){let shown=[cur,...roster.filter(c=>c.seed!==cur.seed)].slice(0,5);while(shown.length<5)shown.push(gen(hash(352135+shown.length*234223)));$('rosterCount').textContent=`保存 ${roster.length} / 30`;let wrap=$('roster');wrap.innerHTML='';shown.forEach((cr,i)=>{let btn=document.createElement('button');btn.className='specimen'+(cr.seed===cur.seed?' active':'');btn.title=cr.name+'を選択';let cv=document.createElement('canvas');cv.width=125;cv.height=122;btn.append(cv);let txt=document.createElement('span');txt.textContent=(i===0?'● ':'')+cr.name;btn.append(txt);btn.onclick=()=>{setCurrent(cr)};wrap.append(btn);let c=cv.getContext('2d');drawCreature(c,cr,62,55,.42,0)})}
 let hc=$('heroCanvas').getContext('2d'),wc=$('waveCanvas').getContext('2d');
@@ -139,38 +146,155 @@ function showMicNotice(){
  else if(!navigator.mediaDevices?.getUserMedia){note.textContent='この環境はマイク入力APIを使えません。ChromeでHTTPSページを直接開いてください。';}
  else note.textContent='マイク録音にはブラウザの許可が必要です。音声はサーバーへ送信しません。';
 }
+// v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
+let stopCaptureNow=null, recordingFinishing=false;
+function changeCaptureButtons(active){
+  $('recordBtn').disabled=active;$('randomBtn').disabled=active;
+  $('recordBtn').textContent=active?'● 録音中…':'● 声からキャラ生成';
+  $('stopRecordBtn').style.display=active?'inline-flex':'none';
+  $('stopRecordBtn').disabled=!active;
+}
+function stopRecord(){if(recording&&stopCaptureNow)stopCaptureNow()}
 async function startRecord(){
  if(recording)return;
- if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません';$('countdown').textContent='MIC BLOCKED';showMicNotice();return}
- let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}})}catch(e){let msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';return}
- recording=true;$('controlCard').classList.add('recording');$('recordBtn').disabled=true;$('randomBtn').disabled=true;$('recordBtn').textContent='● 解析中...';$('micHint').textContent='録音中：好きな声を出してください';let Ac=window.AudioContext||window.webkitAudioContext,aud=new Ac();audioCtx=aud;let clipRecorder=null,clipChunks=[];
-  try{if(typeof MediaRecorder!=='undefined'){let mime=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));clipRecorder=new MediaRecorder(stream,{...(mime?{mimeType:mime}:{}),audioBitsPerSecond:16000});clipRecorder.ondataavailable=e=>{if(e.data?.size)clipChunks.push(e.data)};clipRecorder.start()}}catch(e){clipRecorder=null}
-  let src=aud.createMediaStreamSource(stream),an=aud.createAnalyser();an.fftSize=2048;src.connect(an);let samples=[],pitches=[],zcs=[],steps=[],sig=2166136261,begin=performance.now();let buf=new Float32Array(an.fftSize);
- await new Promise(resolve=>{function tick(){let elapsed=performance.now()-begin;if(elapsed>=3050){resolve();return}an.getFloatTimeDomainData(buf);let rms=0,zc=0,diff=0;for(let i=0;i<buf.length;i++){rms+=buf[i]*buf[i];if(i&&Math.sign(buf[i])!==Math.sign(buf[i-1]))zc++;if(i)diff+=Math.abs(buf[i]-buf[i-1])}rms=Math.sqrt(rms/buf.length);samples.push(rms);zcs.push(zc/buf.length);steps.push(diff/buf.length);let pitch=autocorr(buf,aud.sampleRate);if(pitch&&isFinite(pitch))pitches.push(pitch);for(let i=0;i<buf.length;i+=73){let q=(buf[i]*1024)|0;sig=Math.imul(sig^q,16777619)}liveWave=Array.from(buf).filter((_,i)=>i%8===0);wavePaint(liveWave,true);$('countdown').textContent=((3050-elapsed)/1000).toFixed(1)+' SEC';setTimeout(tick,60)}tick()});
-  let voiceClip='';if(clipRecorder&&clipRecorder.state!=='inactive'){
-    try{let finalBlob=await new Promise(resolve=>{clipRecorder.onstop=()=>resolve(new Blob(clipChunks,{type:clipRecorder.mimeType||'audio/webm'}));clipRecorder.stop()});
-      if(finalBlob.size>0&&finalBlob.size<75000)voiceClip=await new Promise(resolve=>{let reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>resolve('');reader.readAsDataURL(finalBlob)});
-    }catch(e){}
+ if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
+ let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null;
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
+  recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
+  $('micHint').textContent='録音中：好きな声を出し、停止ボタンで確定';$('countdown').textContent='03.0 SEC';
+  aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
+  if(aud.state==='suspended')await aud.resume();
+  try{
+   if(typeof MediaRecorder!=='undefined'){
+    const type=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
+    recorder=new MediaRecorder(stream,{...(type?{mimeType:type}:{}),audioBitsPerSecond:24000});
+    recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
+    recorder.start(100);
+   }
+  }catch(e){recorder=null}
+  src=aud.createMediaStreamSource(stream);const an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
+  const buf=new Float32Array(an.fftSize),samples=[],pitches=[],zcs=[],steps=[];
+  let sig=2166136261,begin=performance.now(),captureDone=false,resolveCapture;
+  const capturePromise=new Promise(resolve=>resolveCapture=resolve);
+  stopCaptureNow=()=>{if(!captureDone){captureDone=true;resolveCapture()}};
+  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),3400);
+  const tick=()=>{
+   if(captureDone)return;
+   const elapsed=performance.now()-begin;
+   if(elapsed>=3350){stopCaptureNow?.();return;}
+   an.getFloatTimeDomainData(buf);let rms=0,zc=0,diff=0;
+   for(let i=0;i<buf.length;i++){rms+=buf[i]*buf[i];if(i&&Math.sign(buf[i])!==Math.sign(buf[i-1]))zc++;if(i)diff+=Math.abs(buf[i]-buf[i-1])}
+   rms=Math.sqrt(rms/buf.length);samples.push(rms);zcs.push(zc/buf.length);steps.push(diff/buf.length);
+   const pitch=autocorr(buf,aud.sampleRate);if(pitch&&isFinite(pitch))pitches.push(pitch);
+   for(let i=0;i<buf.length;i+=73)sig=Math.imul(sig^((buf[i]*1024)|0),16777619);
+   liveWave=Array.from(buf).filter((_,i)=>i%8===0);wavePaint(liveWave,true);
+   $('countdown').textContent=(Math.max(0,3350-elapsed)/1000).toFixed(1)+' SEC';setTimeout(tick,55);
+  };tick();await capturePromise;
+  recordingFinishing=true;$('micHint').textContent='録音を保存しています…';$('stopRecordBtn').disabled=true;
+  let voiceClip='';
+  if(recorder&&recorder.state!=='inactive'){
+   try{
+    const blob=await Promise.race([
+     new Promise(resolve=>{recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||chunks[0]?.type||'audio/webm'}));recorder.stop()}),
+     new Promise(resolve=>setTimeout(()=>resolve(null),2500))
+    ]);
+    if(blob?.size>0&&blob.size<115000){voiceClip=await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(typeof r.result==='string'?r.result:'');r.onerror=()=>resolve('');r.readAsDataURL(blob)})}
+   }catch(e){}
   }
-  stream.getTracks().forEach(track=>track.stop());src.disconnect();await aud.close();audioCtx=null;
- const rms=median(samples),pitch=median(pitches)||230;let dev=0;if(pitches.length){dev=median(pitches.map(p=>Math.abs(p-pitch)))}let delta=0;for(let i=1;i<samples.length;i++)delta+=Math.abs(samples[i]-samples[i-1]);delta=delta/Math.max(1,samples.length-1);let z=median(zcs),rough=median(steps);let v={vol:Math.round(clamp(10+Math.sqrt(rms)*155,8,96)),pitch:Math.round(clamp(12+Math.log2(pitch/70)*21,9,98)),res:Math.round(clamp(28+rough*310+z*65,15,96)),rhythm:Math.round(clamp(26+delta*940,17,95)),stable:Math.round(clamp(95-dev*.32,20,96)),breath:Math.round(clamp(15+z*290+rough*95,14,95))};
- let seed=hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));setCurrent({...gen(seed,v),voiceClip});recording=false;$('controlCard').classList.remove('recording');$('recordBtn').disabled=false;$('randomBtn').disabled=false;$('recordBtn').textContent='● 声からキャラ生成';$('micHint').textContent=voiceClip?'声紋解析完了。攻撃時に録音した声が鳴ります':'声紋解析完了（この端末は声の保存に非対応：代替ボイスを使用）';$('countdown').textContent='DONE';}
+  const rms=median(samples)||0,pitch=median(pitches)||230,dev=median(pitches.map(p=>Math.abs(p-pitch)))||0;
+  let delta=0;for(let i=1;i<samples.length;i++)delta+=Math.abs(samples[i]-samples[i-1]);delta/=Math.max(1,samples.length-1);
+  const z=median(zcs)||0,rough=median(steps)||0;
+  const v={vol:Math.round(clamp(10+Math.sqrt(rms)*155,8,96)),pitch:Math.round(clamp(12+Math.log2(pitch/70)*21,9,98)),res:Math.round(clamp(28+rough*310+z*65,15,96)),rhythm:Math.round(clamp(26+delta*940,17,95)),stable:Math.round(clamp(95-dev*.32,20,96)),breath:Math.round(clamp(15+z*290+rough*95,14,95))};
+  const seed=hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
+  setCurrent({...gen(seed,v),voiceClip});
+  $('micHint').textContent=voiceClip?'音声保存完了：試聴・戦闘で自分の声を再生できます':'音声データの保存に失敗しました。マイク許可とブラウザを確認してください';
+  $('countdown').textContent=voiceClip?'VOICE OK':'NO CLIP';
+  $('micNotice').textContent=voiceClip?'録音音声をキャラに保存しました。バトルでは攻撃ごとに短く再生します。':'録音した声は保存されていません。COMの代替音が鳴ります。';
+ }catch(e){const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
+ finally{
+  if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;
+  try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
+  try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{await aud?.close()}catch(e){}audioCtx=null;
+  changeCaptureButtons(false);$('controlCard').classList.remove('recording');
+  updateVoicePreviewButton();
+ }
+}
+function updateVoicePreviewButton(){
+ const btn=$('voicePreviewBtn');btn.disabled=!(cur&&typeof cur.voiceClip==='string'&&cur.voiceClip.startsWith('data:audio/'));
+ btn.textContent=btn.disabled?'声の試聴（録音後）':'▶ 録音した声を試聴';
+}
 function saveCurrent(){if(roster.some(c=>c.seed===cur.seed)){$('micHint').textContent='このキャラは保存済みです';return}roster.unshift(cur);roster=roster.slice(0,30);saveStore();renderRoster();$('micHint').textContent=cur.name+' を保存しました'}
-// V0.3 BATTLE SOUND: original microphone voice replay, low volume, spatially alternating.
-let battleSoundCtx=null,battleSounds=[],battleSoundTimers=[],battleVoices=[null,null];
-const VOLUME=()=>Math.min(.3,Math.max(0,Number($('battleVolume').value)/100));
+// v0.4: decoded WebAudio buffers, mobile-autoplay-safe, voice loudness limited.
+let battleSoundCtx=null,voiceCache=new Map(),playingSources=[],pendingVoice=new Map(),lastSoundStatus='';
+const VOLUME=()=>Math.min(.24,Math.max(0,Number($('battleVolume').value)/100));
 $('battleVolume').oninput=()=>{$('battleVolumeLabel').textContent=$('battleVolume').value+'%';if(!VOLUME())stopAttackVoices()};
-function unlockBattleAudio(){if($('mutedCheck').checked)return;try{if(!battleSoundCtx)battleSoundCtx=new (window.AudioContext||window.webkitAudioContext)();if(battleSoundCtx.state==='suspended')battleSoundCtx.resume().catch(()=>{})}catch(e){}}
-function stopAttackVoices(){for(const snd of battleSounds){try{snd.pause();snd.removeAttribute('src');snd.load()}catch(e){}}battleSounds=[];for(const tm of battleSoundTimers)clearTimeout(tm);battleSoundTimers=[]}
-function tone(hz,duration=.14){if($('mutedCheck').checked||!VOLUME())return;unlockBattleAudio();const ac=battleSoundCtx;if(!ac)return;try{const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(hz,now);o.frequency.exponentialRampToValueAtTime(Math.max(70,hz*.43),now+duration);g.gain.setValueAtTime(VOLUME()*.12,now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration)}catch(e){}}
-function synthVoice(cr,side){if($('mutedCheck').checked||!VOLUME())return;unlockBattleAudio();const ac=battleSoundCtx;if(!ac)return;try{const now=ac.currentTime;const hz=75+Math.max(0,Math.min(100,cr.voice?.pitch||50))*5.2;const env=ac.createGain(),osc=ac.createOscillator(),form=ac.createBiquadFilter(),trem=ac.createOscillator(),tremGain=ac.createGain();osc.type=cr.voice?.breath>66?'sawtooth':'triangle';osc.frequency.setValueAtTime(hz,now);osc.frequency.exponentialRampToValueAtTime(hz*(1.06+(cr.voice?.rhythm||50)/450),now+.28);form.type='bandpass';form.frequency.value=350+(cr.voice?.res||40)*17;form.Q.value=.85;trem.type='sine';trem.frequency.value=8+(cr.voice?.rhythm||40)/12;tremGain.gain.value=.13;trem.connect(tremGain);tremGain.connect(env.gain);env.gain.setValueAtTime(.0001,now);env.gain.exponentialRampToValueAtTime(Math.max(.0002,VOLUME()*.16),now+.045);env.gain.exponentialRampToValueAtTime(.0001,now+.39);osc.connect(form);form.connect(env);env.connect(ac.destination);osc.start(now);trem.start(now);osc.stop(now+.40);trem.stop(now+.40)}catch(e){}}
-function attackVoice(cr,side){if($('mutedCheck').checked||!VOLUME())return;
- const data=cr?.voiceClip;
- if(typeof data!=='string'||!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]*;base64,/i.test(data)||data.length>110000){synthVoice(cr,side);return}
- try{if(battleVoices[side]){const prior=battleVoices[side];prior.pause();prior.currentTime=0;const j=battleSounds.indexOf(prior);if(j>=0)battleSounds.splice(j,1)}
-   const audio=new Audio();battleVoices[side]=audio;audio.preload='auto';audio.volume=VOLUME()*.9;audio.src=data;audio.playbackRate=.95+Math.min(.15,((cr.voice?.rhythm||50)/100)*.15);audio.play().catch(()=>synthVoice(cr,side));battleSounds.push(audio);
-   battleSoundTimers.push(setTimeout(()=>{if(battleVoices[side]===audio){audio.pause();audio.currentTime=0}const j=battleSounds.indexOf(audio);if(j>=0)battleSounds.splice(j,1)},560));
- }catch(e){synthVoice(cr,side)}
+function unlockBattleAudio(){
+ if($('mutedCheck').checked)return null;
+ try{if(!battleSoundCtx||battleSoundCtx.state==='closed')battleSoundCtx=new (window.AudioContext||window.webkitAudioContext)();
+ if(battleSoundCtx.state==='suspended')battleSoundCtx.resume().catch(()=>{});return battleSoundCtx}catch(e){lastSoundStatus=e.message||String(e);return null}
+}
+function stopAttackVoices(){for(const s of playingSources){try{s.stop(0)}catch(e){}}playingSources=[]}
+function tone(hz,duration=.09){
+ if($('mutedCheck').checked||!VOLUME())return;const ac=unlockBattleAudio();if(!ac)return;
+ try{let now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(hz,now);o.frequency.exponentialRampToValueAtTime(Math.max(80,hz*.5),now+duration);g.gain.setValueAtTime(VOLUME()*.11,now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration)}catch(e){}
+}
+function synthVoice(cr,side){
+ if($('mutedCheck').checked||!VOLUME())return;const ac=unlockBattleAudio();if(!ac)return;
+ try{const now=ac.currentTime,hz=85+(cr.voice?.pitch||50)*4.7,osc=ac.createOscillator(),gain=ac.createGain(),filter=ac.createBiquadFilter();osc.type=(cr.voice?.breath||0)>65?'sawtooth':'triangle';osc.frequency.setValueAtTime(hz,now);osc.frequency.exponentialRampToValueAtTime(hz*(side?.72:1.18),now+.22);filter.type='bandpass';filter.frequency.value=400+(cr.voice?.res||50)*14;filter.Q.value=.8;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.002,VOLUME()*.52),now+.035);gain.gain.exponentialRampToValueAtTime(.0001,now+.25);osc.connect(filter);filter.connect(gain);gain.connect(ac.destination);osc.start(now);osc.stop(now+.26)}catch(e){}
+}
+function clipData(cr){const s=cr?.voiceClip;return typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
+async function decodeVoice(cr){
+ const data=clipData(cr);if(!data)return null;const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
+ if(voiceCache.has(key))return voiceCache.get(key);
+ if(pendingVoice.has(key))return pendingVoice.get(key);
+ const task=(async()=>{
+  const ac=unlockBattleAudio();if(!ac)return null;
+  try{
+   const payload=data.slice(data.indexOf(',')+1),raw=atob(payload),arr=new Uint8Array(raw.length);
+   for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
+   const decoded=await ac.decodeAudioData(arr.buffer);
+   // Find the clearest 0.70-second passage, skipping leading microphone silence.
+   const channel=decoded.getChannelData(0),windowSize=Math.min(channel.length,Math.round(.7*decoded.sampleRate));
+   let best=0,bestRms=-1;const hop=Math.max(1,Math.floor(decoded.sampleRate*.13));
+   for(let start=0;start+windowSize<=channel.length;start+=hop){let en=0;for(let i=start;i<start+windowSize;i+=40)en+=channel[i]*channel[i];if(en>bestRms){bestRms=en;best=start}}
+   const clip={buffer:decoded,offset:best/decoded.sampleRate,duration:Math.min(.7,decoded.duration-best/decoded.sampleRate)};
+   voiceCache.set(key,clip);if(voiceCache.size>45)voiceCache.delete(voiceCache.keys().next().value);
+   return clip;
+  }catch(e){lastSoundStatus='録音音声のデコード失敗: '+(e.message||e.name);return null}
+ })();pendingVoice.set(key,task);try{return await task}finally{pendingVoice.delete(key)}
+}
+function playDecodedVoice(cr,side,force=false){
+ if($('mutedCheck').checked||!VOLUME())return;
+ const ac=unlockBattleAudio();if(!ac)return;
+ const doPlay=clip=>{
+  if(!clip){if(!force)synthVoice(cr,side);return false;}
+  if(!force&&(!match||match.done))return false;
+  try{
+   const s=ac.createBufferSource(),gain=ac.createGain(),now=ac.currentTime;
+   s.buffer=clip.buffer;s.playbackRate.value=.96+((cr.voice?.rhythm||50)/100)*.1;
+   gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(VOLUME()*.72,now+.018);
+   gain.gain.setValueAtTime(VOLUME()*.72,now+Math.max(.055,clip.duration-.13));
+   gain.gain.linearRampToValueAtTime(0,now+clip.duration);
+   s.connect(gain);gain.connect(ac.destination);s.start(now,clip.offset,clip.duration);
+   playingSources.push(s);s.onended=()=>{const i=playingSources.indexOf(s);if(i>=0)playingSources.splice(i,1)};
+   lastSoundStatus='録音した声を再生中';return true;
+  }catch(e){lastSoundStatus=e.message||String(e);if(!force)synthVoice(cr,side);return false}
+ };
+ const data=clipData(cr);
+ if(!data){if(!force)synthVoice(cr,side);return;}
+ const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
+ if(voiceCache.has(key)){doPlay(voiceCache.get(key));return}
+ decodeVoice(cr).then(clip=>doPlay(clip));
+}
+function attackVoice(cr,side){playDecodedVoice(cr,side,false)}
+function previewRecordedVoice(){
+ unlockBattleAudio();if(!clipData(cur)){$('micNotice').textContent='まず音声を録音してください';return}
+ decodeVoice(cur).then(clip=>{
+  if(!clip){$('micNotice').textContent='音声を読み込めませんでした: '+lastSoundStatus;return}
+  playDecodedVoice(cur,0,true);$('micNotice').textContent='録音した声を試聴しています（バトルと同じ小さめの音量）';
+ })
 }
 // V0.3 BATTLE LOGIC: chance-based airborne action, dodges, rebounds, counters, chain hits.
 const COMBAT_KINDS=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
@@ -190,59 +314,118 @@ function randCombat(a,b){const fighters=[a,b],max=fighters.map(c=>Math.round(140
  }
  const winner=hp[0]/max[0]>=hp[1]/max[1]?0:1;return{events,max,winner}
 }
+// v0.4 kinetic airborne battle. Both creatures travel hundreds of pixels every second.
 let acv=$('arenaCanvas').getContext('2d'),aframe=0,battleInterval=null;
+const EVENT_MS=820;
 const ease=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
-function drawBlast(c,x,y,power,color,seed){let rng=getRand(seed);c.save();c.translate(x,y);c.globalCompositeOperation='screen';for(let i=0;i<21;i++){let a=TAU*i/21+seed*.002,dist=power*(12+rng()*100);c.strokeStyle=i%3===0?'#fff2c7':color;c.globalAlpha=(.12+.65*rng())*power;c.lineWidth=1+rng()*6;c.beginPath();c.moveTo(Math.cos(a)*8,Math.sin(a)*8);c.lineTo(Math.cos(a)*dist,Math.sin(a)*dist);c.stroke()}c.globalAlpha=power*.7;c.strokeStyle=color;c.lineWidth=7;c.beginPath();c.arc(0,0,Math.max(1,(1-power)*120),0,TAU);c.stroke();c.restore()}
-function drawCombatant(c,cr,x,y,scale,t,mirror,rot,alpha=1){c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha=alpha;drawCreature(c,cr,0,0,scale,t,{mirror});c.restore()}
-function battleDraw(ms){if(!match)return;const w=720,h=450,elapsed=ms/1000;const event=match.current;const p=clamp((ms-(match.pop||ms))/650,0,1),pulse=Math.sin(p*Math.PI),dash=event?Math.sin(Math.PI*ease(clamp(p/.8,0,1))):0;const atk=event?.atk??0,def=1-atk;let idx=match.turn;
- acv.clearRect(0,0,w,h);acv.save();let shake=event&&p>.37&&p<.75&&!event.dodge?Math.sin(ms*.13)*9*pulse:0;acv.translate(shake,Math.cos(ms*.08)*shake*.45);
- const bg=acv.createLinearGradient(0,0,0,h);bg.addColorStop(0,match.arena==='空間反転'?'#431447':'#101f3c');bg.addColorStop(.55,match.arena==='無重力ゾーン'?'#243463':'#153251');bg.addColorStop(1,'#0a1323');acv.fillStyle=bg;acv.fillRect(-12,-12,744,476);
- // Fast-moving perspective grid and parallax light beams.
- const shift=(ms*.016)%52;acv.strokeStyle='#66d8ff1a';acv.lineWidth=1;for(let k=-2;k<20;k++){const y=260+k*20;acv.beginPath();acv.moveTo(0,y);acv.lineTo(720,y);acv.stroke()}for(let k=0;k<15;k++){const x=k*64-shift;acv.beginPath();acv.moveTo(x,450);acv.lineTo(360+(x-360)*.18,270);acv.stroke()}
- for(let k=0;k<24;k++){let x=(k*167+ms*.07*(k%3+1))%760-20,y=(k*59)%310;acv.fillStyle=k%4?'#59d8ff2f':'#fff3c54d';acv.fillRect(x,y,1.5+k%3,1.5+k%3)}
- for(let k=0;k<6;k++){const x=(k*137+ms*.11*(k%2?-1:1)+800)%850-65;acv.strokeStyle=k%2?'#72ffff12':'#faabff16';acv.lineWidth=3+k%3;acv.beginPath();acv.moveTo(x,20);acv.lineTo(x-95,450);acv.stroke()}
- acv.fillStyle='#9aceff13';acv.beginPath();acv.ellipse(360,380,320,36,0,0,TAU);acv.fill();
- if(match.arena==='落雷の嵐'&&event){acv.strokeStyle='#adfcff8b';acv.lineWidth=4;acv.beginPath();acv.moveTo(360+Math.sin(ms*.04)*90,0);acv.lineTo(330,70);acv.lineTo(370,120);acv.lineTo(345,190);acv.stroke()}
- // Individual independent free-flight movements, changing every clash.
- const pos=[{x:162,y:264,rot:0},{x:556,y:264,rot:0}];
- const hover=[Math.sin(elapsed*5)*20,Math.sin(elapsed*5+2)*23];pos[0].y+=hover[0];pos[1].y+=hover[1];
- if(event){const type=event.kind||'rush';const air=['aerial','spin','uppercut','warp','meteor'].includes(type),factor=type==='beam'||type==='shockwave'?.13:1;
-  pos[atk].x+=(atk===0?1:-1)*275*dash*factor;pos[def].x+=(def===0?-1:1)*38*pulse*(event.dodge?-1:1);
-  pos[atk].y-=(air?155:55)*Math.sin(Math.PI*p);pos[def].y-=((type==='uppercut'||type==='meteor')?135:38)*pulse;
-  if(type==='warp'&&p>.2&&p<.55){pos[atk].x+=(atk===0?1:-1)*60;pos[atk].y-=35}
-  if(type==='spin'){pos[atk].rot+=(atk===0?1:-1)*Math.PI*2*dash}
-  if(type==='aerial'){pos[atk].rot+=(atk===0?1:-1)*.6*Math.sin(Math.PI*p)}
-  if(type==='uppercut'){pos[def].rot+=(def===0?-1:1)*.62*pulse}
-  if(type==='meteor'){pos[atk].rot+=(atk===0?1:-1)*.8*Math.sin(p*TAU)}
-  if(event.dodge&&p>.25&&p<.8)pos[def].x+=(def===0?-1:1)*100*pulse;
-  if(event.counter){pos[atk].x+=(atk===0?-1:1)*80*pulse;pos[def].x+=(def===0?1:-1)*85*pulse;pos[atk].rot+=(atk===0?-1:1)*.45*pulse}
- }
- for(let i=0;i<2;i++){const cr=i?match.b:match.a,fx=pos[i],scale=.75+(event?.kind==='meteor'&&atk===i?.1*pulse:0);const colr=PALETTES[cr.parts.color]?.[1]||'#7ce3ff';
-  // Each creature leaves speed-line afterimages when dashing.
-  if(event&&pulse>.10&&i===atk){for(let j=4;j>=1;j--){let off=(i===0?-1:1)*j*22*dash;drawCombatant(acv,cr,fx.x+off,fx.y+j*3,scale,elapsed,i===1,fx.rot,.065+(4-j)*.025)}}
-  acv.save();acv.shadowColor=colr;acv.shadowBlur=event&&i===atk?26*pulse:8;drawCombatant(acv,cr,fx.x,fx.y,scale,elapsed,i===1,fx.rot);acv.restore();
- }
- if(event&&pulse>.04){const hit=pos[def],color=['#7ef9ff','#ffa4cc','#ffe496','#a7ffb6'][(idx+atk+4)%4];
-  if(event.kind==='beam'||event.kind==='shockwave'){acv.save();acv.globalCompositeOperation='screen';acv.strokeStyle=color;acv.lineWidth=(event.kind==='beam'?24:13)*pulse;acv.shadowBlur=25;acv.shadowColor=color;acv.beginPath();acv.moveTo(pos[atk].x,pos[atk].y-9);acv.lineTo(hit.x,hit.y);acv.stroke();acv.restore()}
-  if(p>.33&&p<.88)drawBlast(acv,(pos[atk].x+hit.x)/2+(atk===0?40:-40),hit.y-30,clamp(Math.sin((p-.33)/.55*Math.PI),0,1),color,hash(idx*73+(match.a.seed||3)));
-  if(event.dodge){acv.save();acv.font='900 25px system-ui';acv.textAlign='center';acv.fillStyle='#9effe3';acv.fillText('MISS!',hit.x,hit.y-115);acv.restore()}
-  if(event.counter){acv.save();acv.font='900 22px system-ui';acv.textAlign='center';acv.fillStyle='#ffd98c';acv.fillText('COUNTER!',pos[atk].x,pos[atk].y-120);acv.restore()}
-  if(event.hits>1&&!event.dodge){acv.save();acv.textAlign='center';acv.font='900 29px system-ui';acv.fillStyle='#fff0b1';acv.fillText(`${event.hits} HIT COMBO`,360,73);acv.restore()}
- }
- acv.restore();
- aframe=requestAnimationFrame(battleDraw)
+const mix=(a,b,p)=>a+(b-a)*p;
+function drawBlast(c,x,y,power,color,seed){
+ let rng=getRand(seed);c.save();c.translate(x,y);c.globalCompositeOperation='screen';
+ for(let i=0;i<24;i++){const a=TAU*i/24+seed*.002,rad=(16+rng()*125)*power;c.globalAlpha=.3+.6*power;c.strokeStyle=i%4===0?'#ffffff':color;c.lineWidth=1.5+rng()*5;c.beginPath();c.moveTo(Math.cos(a)*9,Math.sin(a)*9);c.lineTo(Math.cos(a)*rad,Math.sin(a)*rad);c.stroke()}
+ c.globalAlpha=power*.8;c.strokeStyle=color;c.lineWidth=8;c.beginPath();c.arc(0,0,(1-power)*135+4,0,TAU);c.stroke();c.restore()
 }
-function showBattle(a,b,outcome,mode){clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();battleVoices=[null,null];unlockBattleAudio();$('battleModal').classList.add('open');$('battleTitle').textContent='⚔ OTODAMA SKY ARENA / '+mode;$('nameA').textContent=a.name;$('nameB').textContent=b.name;$('rematchBtn').disabled=true;$('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='空中戦開始！ 衝突・反撃・乱舞がランダム発生';$('arenaEffect').textContent='VOICE FIGHT!';
- match={a,b,outcome,turn:-1,pop:performance.now(),current:null,arena:null,done:false};let ix=-1;
- const act=()=>{ix++;if(!match)return;if(ix>=outcome.events.length){match.done=true;$('arenaEffect').textContent='K.O. · BATTLE FINISHED';$('fightLog').textContent=(outcome.winner===0?a.name:b.name)+' の勝利！';$('rematchBtn').disabled=(mode!=='COM MATCH');clearInterval(battleInterval);return}
+function drawCombatant(c,cr,x,y,scale,t,mirror,rot,alpha=1){
+ c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha*=alpha;drawCreature(c,cr,0,0,scale,t,{mirror});c.restore()
+}
+function phaseTravel(p,points){const q=clamp(p,0,1)*(points.length-1),i=Math.min(points.length-2,Math.floor(q));return mix(points[i],points[i+1],ease(q-i))}
+function battleDraw(ms){
+ if(!match)return;
+ const t=ms/1000,event=match.current,idx=Math.max(0,match.turn),p=clamp((ms-match.pop)/EVENT_MS,0,1);
+ const atk=event?.atk??idx%2,def=1-atk,impact=event?Math.pow(Math.max(0,1-Math.abs(p-.52)*8),1.1):0;
+ const canvas=acv,w=720,h=450;canvas.clearRect(0,0,w,h);canvas.save();
+ const shake=impact&&(event?.damage||event?.counter)?11*impact:0;
+ canvas.translate(Math.sin(ms*.21)*shake,Math.cos(ms*.29)*shake*.65);
+ let bg=canvas.createLinearGradient(0,0,w,h);bg.addColorStop(0,match.arena==='空間反転'?'#391c54':'#092039');bg.addColorStop(.6,match.arena==='無重力ゾーン'?'#293a69':'#123c5b');bg.addColorStop(1,'#090f22');canvas.fillStyle=bg;canvas.fillRect(-25,-25,w+50,h+50);
+ // Camera-like speed streaks never stop, even between attacks.
+ for(let j=0;j<35;j++){
+  const xx=(j*121+ms*(.35+j%6*.052))%980-170,yy=(j*93+Math.sin(t+j)*85+450)%440;
+  canvas.strokeStyle=j%3===0?'#9bf6f854':'#dd8eff36';canvas.lineWidth=1.3+j%3;
+  canvas.beginPath();canvas.moveTo(xx,yy);canvas.lineTo(xx-80-j%6*16,yy+28);canvas.stroke();
+ }
+ const gy=(ms*.09)%44;canvas.strokeStyle='#84bfff1e';canvas.lineWidth=1;
+ for(let i=-2;i<14;i++){let y=255+i*30+gy;canvas.beginPath();canvas.moveTo(0,y);canvas.lineTo(w,y);canvas.stroke()}
+ for(let j=0;j<18;j++){const x=(j*60+ms*.08)%820-50;canvas.beginPath();canvas.moveTo(x,450);canvas.lineTo(360+(x-360)*.11,270);canvas.stroke()}
+ // Arena energy planets & moving lightning.
+ for(let i=0;i<5;i++){
+  const x=80+i*140+Math.sin(t*1.7+i)*24,y=75+Math.cos(t*1.4+i)*37;
+  canvas.save();canvas.globalAlpha=.12;canvas.fillStyle=i%2?'#63ddff':'#fc69d7';canvas.beginPath();canvas.arc(x,y,25+i*4,0,TAU);canvas.fill();canvas.restore()
+ }
+ const bases=[{x:205+145*Math.sin(t*3.75),y:185+102*Math.sin(t*4.8)},{x:515+145*Math.sin(t*3.35+2.2),y:185+100*Math.sin(t*4.6+1.8)}];
+ const pos=bases.map(v=>({x:v.x,y:v.y,rot:0,scale:.66}));
+ if(event){
+  const invert=atk===0?1:-1;
+  const rush=['rush','combo','aerial','spin','warp','uppercut','meteor','counter'].includes(event.kind);
+  const travel=rush?1:.55;
+  // Twelve dramatic vertical/horizontal trajectory landmarks per clash.
+  const pathX=[-155,-80,65,185,335,250,70,-90,-140];
+  const pathY=[72,-70,-135,-35,32,-115,-160,-30,35];
+  const q=phaseTravel(p,pathX),z=phaseTravel(p,pathY);
+  pos[atk].x=clamp((atk===0?150:570)+invert*q*travel,35,685);
+  pos[atk].y=clamp(235+z+(event.kind==='meteor'?-50*Math.sin(p*Math.PI):0),60,355);
+  pos[atk].rot=invert*(event.kind==='spin'?p*TAU*2.6:event.kind==='aerial'?Math.sin(p*TAU)*1.1:Math.sin(p*TAU)*.38);
+  pos[atk].scale=.69+.18*Math.sin(Math.PI*p);
+  const knock=Math.sin(Math.PI*clamp((p-.35)/.65,0,1));
+  pos[def].x=clamp((def===0?240:480)+Math.sin(t*8+def*2.1)*74+(def===0?-1:1)*115*knock,65,655);
+  pos[def].y=clamp(155+80*Math.sin(t*6+def*2.6)-120*knock+(event.dodge?-110*knock:0),55,355);
+  pos[def].rot=(def===0?-1:1)*(.22*Math.sin(t*7)+(event.dodge?1.2:.55)*knock);
+  pos[def].scale=.68;
+  if(event.kind==='warp'&&p>.42&&p<.55){pos[atk].x=(atk===0?560:160);pos[atk].y=98;pos[atk].rot+=1.6}
+  if(event.kind==='meteor'&&p>.48&&p<.7){pos[atk].y=85+210*ease((p-.48)/.22);pos[atk].scale=.95}
+  if(event.counter&&p>.55&&p<.84){pos[def].x=360-invert*50;pos[def].y=130;pos[atk].x=360+invert*190;}
+ }
+ // Exhaust trails, motion outlines and an afterimage trail for both fighters.
+ for(let i=0;i<2;i++){
+  const cr=i===0?match.a:match.b,pt=pos[i],palette=PALETTES[cr.parts.color]?.[0]||'#69e4ff';
+  const prev=match.prevPos?.[i];if(prev){const speed=Math.hypot(pt.x-prev.x,pt.y-prev.y);
+   canvas.save();canvas.globalCompositeOperation='screen';canvas.strokeStyle=palette;canvas.shadowColor=palette;canvas.shadowBlur=20;canvas.lineWidth=Math.min(20,6+speed*.8);canvas.globalAlpha=.4;
+   canvas.beginPath();canvas.moveTo(prev.x,prev.y);canvas.lineTo(pt.x,pt.y);canvas.stroke();canvas.restore();
+  }
+  canvas.save();canvas.globalCompositeOperation='screen';
+  for(let k=3;k>=1;k--){let dt=k*.055;
+   let trailX=pt.x-(prev?(pt.x-prev.x)*k*.36:Math.cos(t*10+i)*k*25);
+   let trailY=pt.y-(prev?(pt.y-prev.y)*k*.36:Math.sin(t*11+i)*k*16);
+   drawCombatant(canvas,cr,trailX,trailY,pt.scale,t,i===1,pt.rot,.065+(3-k)*.035);
+  }canvas.restore();
+  canvas.save();canvas.shadowColor=palette;canvas.shadowBlur=16+impact*28;
+  drawCombatant(canvas,cr,pt.x,pt.y,pt.scale,t*3.2,i===1,pt.rot);canvas.restore();
+  canvas.save();canvas.strokeStyle=palette;canvas.globalAlpha=.48;canvas.lineWidth=2;
+  for(let k=0;k<3;k++){const angle=t*6+k*TAU/3+i;canvas.beginPath();canvas.arc(pt.x,pt.y,78+k*8,angle,angle+.4);canvas.stroke()}
+  canvas.restore();
+ }
+ if(event){
+  const colors=['#79f6ff','#fa80d6','#ffe082','#9affc4'];const color=colors[(idx+atk)%colors.length];
+  if(event.kind==='beam'||event.kind==='shockwave'){canvas.save();canvas.globalCompositeOperation='screen';canvas.strokeStyle=color;canvas.shadowColor=color;canvas.shadowBlur=32;canvas.lineWidth=9+impact*32;canvas.beginPath();canvas.moveTo(pos[atk].x,pos[atk].y);canvas.lineTo(pos[def].x,pos[def].y);canvas.stroke();canvas.restore()}
+  if(impact>.02){
+   const x=(pos[atk].x+pos[def].x)/2,y=(pos[atk].y+pos[def].y)/2;
+   drawBlast(canvas,x,y,impact,color,hash(idx*385+match.a.seed));
+   canvas.save();canvas.globalCompositeOperation='screen';canvas.fillStyle='#ffffff';canvas.globalAlpha=impact*.28;canvas.fillRect(0,0,720,450);canvas.restore();
+  }
+  if(event.hits>1&&!event.dodge){canvas.save();canvas.textAlign='center';canvas.font='900 36px system-ui';canvas.shadowColor='#fff1b3';canvas.shadowBlur=17;canvas.fillStyle='#fff2ae';canvas.fillText(`${event.hits} HIT!!`,360,66);canvas.restore()}
+  if(event.dodge&&p>.2&&p<.72){canvas.save();canvas.font='900 26px system-ui';canvas.fillStyle='#a7ffe1';canvas.fillText('DODGE!',pos[def].x-47,pos[def].y-100);canvas.restore()}
+  if(event.counter&&p>.42&&p<.82){canvas.save();canvas.font='900 28px system-ui';canvas.fillStyle='#ffe58d';canvas.fillText('COUNTER!',pos[def].x-67,pos[def].y-100);canvas.restore()}
+ }
+ // Obvious readable progress ticker: the fighters never stand idle.
+ canvas.save();canvas.fillStyle='#b1e9f6ba';canvas.font='900 14px monospace';canvas.fillText(`AERIAL COMBAT  /  ${(Math.sin(t*3.1)*.5+1.8).toFixed(1)}x SPEED`,18,425);canvas.restore();
+ canvas.restore();match.prevPos=pos.map(v=>({x:v.x,y:v.y}));aframe=requestAnimationFrame(battleDraw)
+}
+function showBattle(a,b,outcome,mode){
+ clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();unlockBattleAudio();
+ $('battleModal').classList.add('open');$('battleTitle').textContent='⚡ OTODAMA SKY BRAWL v0.4 / '+mode;
+ $('nameA').textContent=a.name;$('nameB').textContent=b.name;$('rematchBtn').disabled=true;
+ $('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='超高速空中戦スタート！';$('arenaEffect').textContent='SKY RUSH!!';
+ match={a,b,outcome,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null};let ix=-1;
+ const act=()=>{
+  if(!match)return;ix++;
+  if(ix>=outcome.events.length){match.done=true;$('arenaEffect').textContent='K.O.!!';$('fightLog').textContent=(outcome.winner===0?a.name:b.name)+' の勝利！';$('rematchBtn').disabled=mode!=='COM MATCH';clearInterval(battleInterval);return}
   const ev=outcome.events[ix];match.turn=ix;match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;
-  $('hpA').style.width=(clamp(ev.hp[0]/outcome.max[0]*100,0,100))+'%';$('hpB').style.width=(clamp(ev.hp[1]/outcome.max[1]*100,0,100))+'%';
-  const attacker=ev.atk===0?a:b;const defender=ev.atk===0?b:a;const action=BATTLE_LABEL[ev.kind]||'高速突進';
-  $('arenaEffect').textContent=ev.arena?'⚡ '+ev.arena:ev.counter?'COUNTER!!':ev.dodge?'EVASION!':ev.crit?'CRITICAL!!':(ev.hits>1?ev.hits+' HIT COMBO!':action);
-  $('fightLog').textContent=attacker.name+' の '+action+'！ '+(ev.dodge?defender.name+'が回避！':ev.damage+'ダメージ')+(ev.counter?' / '+defender.name+'の反撃 '+ev.selfDamage+'ダメージ！':'')+(ev.recovery?' / 回復+'+ev.recovery:'');
-  attackVoice(attacker,ev.atk);if(ev.counter)setTimeout(()=>{if(match?.turn===ix)attackVoice(defender,1-ev.atk)},190);tone(170+(ev.damage||9)*8,.12);
+  $('hpA').style.width=clamp(ev.hp[0]/outcome.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(ev.hp[1]/outcome.max[1]*100,0,100)+'%';
+  const attacker=ev.atk===0?a:b,defender=ev.atk===0?b:a;
+  $('arenaEffect').textContent=ev.crit?'CRITICAL!!':ev.counter?'COUNTER!!':ev.dodge?'DODGE!':ev.arena?'⚡ '+ev.arena:(ev.hits>1?ev.hits+' HIT SKY COMBO!!':BATTLE_LABEL[ev.kind]);
+  $('fightLog').textContent=attacker.name+' の '+(BATTLE_LABEL[ev.kind]||'空中乱舞')+'！ '+(ev.dodge?'回避成功！':ev.damage+'ダメージ')+(ev.counter?' / 反撃 '+ev.selfDamage+'ダメージ':'');
+  attackVoice(attacker,ev.atk);if(ev.counter)setTimeout(()=>{if(match?.turn===ix)attackVoice(defender,1-ev.atk)},180);
+  tone(160+(ev.damage||10)*6,.09);
  };
- battleInterval=setInterval(act,750);act();aframe=requestAnimationFrame(battleDraw)
+ act();battleInterval=setInterval(act,EVENT_MS);aframe=requestAnimationFrame(battleDraw);
 }
 function closeBattle(){clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopAttackVoices();$('battleModal').classList.remove('open')}
 function doCom(){unlockBattleAudio();const enemy=gen(crypto.getRandomValues(new Uint32Array(1))[0]);showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH')}
@@ -269,7 +452,7 @@ function joinRoom(code,auto=false){let base=serverBase();if(!base){roomMessage('
  else if(data.type==='battle'){autoReadyRoom=false;const [p1,p2]=data.creatures,aa=hydrate(p1),bb=hydrate(p2),out=data.outcome;aa.voiceClip=side===0?(cur.voiceClip||''):remoteVoiceClip;bb.voiceClip=side===1?(cur.voiceClip||''):remoteVoiceClip;showBattle(side===0?aa:bb,side===0?bb:aa,side===0?out:reverseOutcome(out),'ONLINE MATCH');roomMessage('対戦中 / 部屋 '+room)}else if(data.type==='error'){roomMessage(data.message)}else if(data.type==='left'){roomMessage('相手が退出しました');$('readyBtn').disabled=false;$('readyBtn').textContent='対戦準備OK'}};socket.onerror=()=>{roomMessage('接続に失敗しました。URLとWorker公開状態を確認してください')};socket.onclose=()=>{if(ws!==socket)return;ws=null;setConnectionUI(false);roomMessage('ルーム接続が切断されました')}}
 function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
-$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match){let a=match.a,b=match.b;showBattle(a,b,randCombat(a,b),'COM MATCH')}};
+$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match){let a=match.a,b=match.b;showBattle(a,b,randCombat(a,b),'COM MATCH')}};
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready'}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
 setCurrent(cur);showMicNotice();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 window.addEventListener('pagehide',()=>{cancelAnimationFrame(animFrame);if(ws)ws.close();stopAttackVoices()});
