@@ -31,7 +31,10 @@
 
 ## GITHUB_COMMITS
 - v0.9.7 baseline: 70bf2be9b4ecc08a17d2cf22bf1b5666df811884
-- v0.9.8: GitHub公開後に追記。
+- v0.9.8 game/source commit: 46c46f84741d45886b166d8d48a204294b146c0b
+- 変更7ファイルのGit blobを再取得して一致確認。GitHub Pages workflow 40239063592 = completed/success。
+- Drive v0.9.8バックアップ: https://drive.google.com/drive/folders/1JxNLH4saci4LDi-l4MqpOAW1j5nE_QFJ
+- Cloudflare Worker本番公開、外部2端末、Android実機、公開サイト直接操作は未検証。
 
 GitHubはコード正本、Driveは引き継ぎ正本。ローカル検証と本番公開を混同しない。
 
