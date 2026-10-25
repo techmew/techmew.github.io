@@ -822,6 +822,35 @@ function rhCrumblePhase(remaining){
  const ratio=clamp(t/RH_CRUMBLE_DURATION,0,1);
  return {active:true,ratio,critical:ratio<=1/3};
 }
+// V6.68: optional high-skill route, deterministic and separate from the safe main route.
+function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,levSeed,world,stage,difficulty){
+ const rr=rngGen(hash(levSeed^0x5c91a47d));
+ const sections=stage===0?[[2,5]]:stage===1?[[2,5],[8,11]]:[[2,5],[7,10],[12,15]];
+ const routes=[];
+ for(const [start,end] of sections){
+  const from=main[start],to=main[end];
+  if(!from||!to)continue;
+  const begin=from.x+from.w*.53,finish=to.x-45,span=finish-begin;
+  if(span<280)continue;
+  const count=Math.max(6,Math.ceil(span/137)),pieces=[];
+  for(let j=1;j<=count;j++){
+   const t=j/(count+1),xx=begin+span*t;
+   const yy=from.y+(to.y-from.y)*t-(183+world*7+stage*9)*Math.sin(Math.PI*t);
+   const kind=j%6===0?'moving':j%4===0?'crumble':'solid';
+   const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(78+rr()*21),kind,active:true,collapse:0,upperRoute:true,routeId:routes.length+1};
+   if(kind==='moving')Object.assign(q,{anchorX:q.x,anchorY:q.y,phase:rr()*TAU,rate:.6+rr()*.35,ampX:7,ampY:7});
+   pieces.push(q);
+   if(j%3===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
+   if(j%5===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
+   if(j===Math.floor(count/2))pickups.push({x:q.x+q.w*.48,y:q.y-62,taken:false,type:'weapon',item:{...item(rr,Math.min(1,difficulty+.35)),tier:3}});
+   if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
+  }
+  // Insert before the exit platform so goal and boss coordinates stay stable.
+  platforms.splice(platforms.length-1,0,...pieces);
+  routes.push({fromX:from.x+from.w*.72,fromY:from.y,toX:to.x,toY:to.y,platformCount:pieces.length});
+ }
+ return routes;
+}
 function createLevel(respawn=false,carryHp=null){
  if(!respawn){checkpointIndex=0;checkpointX=0;checkpointStage=levelIndex;vampCharge=0}
  const world=Math.floor(levelIndex/3),stage=levelIndex%3,levSeed=hash(seed^Math.imul(levelIndex+1,0x9e3779b9)),r=rngGen(levSeed),difficulty=levelIndex/23;
@@ -909,8 +938,9 @@ function createLevel(respawn=false,carryHp=null){
  }
  const title=namesA[randomInt(r,0,namesA.length-1)]+namesB[randomInt(r,0,namesB.length-1)];
  const decor=[];for(let j=0;j<135;j++)decor.push({x:j*randomInt(r,75,155)+randomInt(r,-50,50),h:randomInt(r,52,270),w:randomInt(r,16,80),layer:randomInt(r,0,1),glow:r()});
+ const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,levSeed,world,stage,difficulty);
  const goalX=prev.x+prev.w-39;
- level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,goalX,totalX:prev.x+prev.w,difficulty};
+ level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,upperRoutes,goalX,totalX:prev.x+prev.w,difficulty};
  const cp=checkpointIndex>0?platforms.find(p=>p.checkpointId===checkpointIndex):null;
  checkpointX=cp?cp.x+44:0;
  camera=0;cameraY=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn,carryHp);updateHud(true);
