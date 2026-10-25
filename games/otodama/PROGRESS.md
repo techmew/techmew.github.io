@@ -31,7 +31,10 @@
 
 ## GITHUB_COMMITS
 - v0.9.5 GitHub main baseline: `45e2e6c0539e7d80abc0fa56c9e92b9f5f6bdfce`。
-- v0.9.6コミット: GitHub公開後に追記。
+- v0.9.6 UI: `dc37fbea850240f869a4d2fd5a5d5e7845c686d7`。
+- v0.9.6 Worker: `6bf03b1d819a9c904ece2df48df9be9eb5a99ef3`。
+- v0.9.6 テスト追加・改修後の最終コード: `3c8196e5f3f7c732364081fd30ec065f914cbb24`。
+- GitHub Pagesの実配信/Cloudflare本番は未確認。
 
 GitHubがコード正本、Driveが引き継ぎ正本。ローカル検証と本番検証を混同しない。
 
