@@ -13,6 +13,7 @@
 5. HP35%未満でジャストガード成功時、COM戦1回限りの逆転共鳴+25。
 6. 6ステージ別BGMモチーフとフレーズ変化、BGM音量の端末保存。
 7. サーバー/クライアントの再接続、敗北後新敵、保存、縦横画面の自動テストを拡張。
+8. 対戦前の入退室でWebSocket接続順とプレイヤー席順がずれる問題を修正。常にseat順でサーバー対戦開始し、入れ替え回帰テストを追加。
 
 ## TEST_RESULTS
 - node --check worker.js、node test-ui-source.cjs、node test-matchmaker.cjs、node test-room.cjs、node test-moderation.mjs：ローカル PASS。
@@ -37,6 +38,7 @@
 - v0.9.4既知主要コミット：21271daefcf4b438edc3d25b66d7dcf9ff87c2c0
 - v0.9.5 worker: 11560e90ff987cbd4ec827addcbce5e0877f2bef
 - v0.9.5 HTML: 10151f9d8101fcc95f53a782991521c29448ea69
-- v0.9.5 docs/test update before PROGRESS: a4ff1c39647bbee3b9bf8f73104adfa748a7ad19
+- v0.9.5 seat-order fix: a904f1b8c7f4b7556f3346f5a8dfb2065fe36f67
+- v0.9.5 seat-order regression test: 70b148f308e465d71eb71fd926bbd10b8d728160
 
 GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。ローカル検証と本番公開を混同しない。
