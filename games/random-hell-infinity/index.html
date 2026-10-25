@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.83｜上ルートの空中戦・画面外射撃対策</title>
-<meta name="game-build" content="ASTRAL_BREAK_V683_UPPER_AIR_COMBAT_VERTICAL_VISIBILITY_20261025" />
+<title>ASTRAL BREAK ∞ V6.84｜ルル靴底・上ルート視野・レリック報酬</title>
+<meta name="game-build" content="ASTRAL_BREAK_V684_LULU_FEET_UPPER_CAMERA_LANE_RELIC_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -297,12 +297,15 @@ function visibleWorldWidth(){return W/gameZoom()}
  }
  // Camera Y targets a readable portrait-screen feet position.
  function rhCameraYTarget(p){
-  const zoom=gameZoom(),feet=(p?.y??baseY-PH)+(p?.h??PH),focusY=H*(H<=500?.67:.60);
-  const vy=Number.isFinite(p?.vy)?p.vy:0,verticalLead=clamp(vy*.115,-85,25);
-  const entry=(level?.upperRoutes||[]).find(r=>p?.grounded&&p.x>=r.fromX-185&&p.x<=r.fromX+65);
-   const skyPeek=entry?Math.max(0,1-Math.abs(p.x-(entry.fromX-20))/205)*Math.min(54,H*.07):0;
-   return clamp(feet-(focusY-baseY*(1-zoom))/zoom+verticalLead-skyPeek,-Math.max(520,baseY+480),Math.max(210,H*.30));
- }
+ const zoom=gameZoom(),feet=(p?.y??baseY-PH)+(p?.h??PH),focusY=H*(H<=500?.67:.60);
+ const vy=Number.isFinite(p?.vy)?p.vy:0,verticalLead=clamp(vy*.115,-85,25);
+ // V6.84: keep high ledges visible during takeoff and while airborne.
+ const entry=(level?.upperRoutes||[]).find(r=>p&&p.x>=r.fromX-210&&p.x<=r.fromX+185&&feet>=r.fromY-140);
+ const skyPeek=entry?Math.max(0,1-Math.abs(p.x-(entry.fromX+5))/230)*Math.min(92,H*.15):0;
+ const boss=level?.boss,bossNear=boss?.alive&&boss.active&&p&&Math.abs(p.x+p.w*.5-boss.x-boss.w*.5)<visibleWorldWidth()*.76;
+ const bossPeek=bossNear?Math.min(42,H*.065):0;
+ return clamp(feet-(focusY-baseY*(1-zoom))/zoom+verticalLead-skyPeek-bossPeek,-Math.max(520,baseY+480),Math.max(210,H*.30));
+}
  // Pick nearby visible projectiles rather than blindly drawing the newest 40.
  // Physical projectiles remain unchanged, including hits, homing and lifetime.
  function rhPriorityFriendlyShots(shots,left,right,p,maxCount=40){
@@ -928,6 +931,11 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    if(treasureStep){
      pickups.push({x:q.x+q.w*.39,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
      pickups.push({x:q.x+q.w*.79,y:q.y-50,taken:false,type:'starxp',xp:10+world*3+stage*2,upperRouteBonus:true});
+      // V6.84: optional deterministic relic, first sky branch of later boss stages.
+      if(world>=2&&stage===2&&routes.length===0){
+       const relic=RELICS[Math.floor(rr()*RELICS.length)];
+       pickups.push({x:q.x+q.w*.60,y:q.y-104,taken:false,type:'relic',relic:relic.id,upperRouteBonus:true});
+      }
     }
    if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
   }
@@ -1455,9 +1463,13 @@ function rhEnemyRangedEngagementVisible(e,p){
 // cannot continue across the two route lanes. Boss and lower-route shots unchanged.
 function rhUpperLaneThreatAllowed(q,p){
  if(!q.sourceUpperRoute)return true;
- const feet=p.y+p.h;
- return level.platforms.some(s=>s.upperRoute&&s.active&&
-  p.x+p.w>=s.x-110&&p.x<=s.x+s.w+110&&Math.abs(feet-s.y)<=205);
+ const feet=p.y+p.h,midX=p.x+p.w*.5;
+ // V6.84: a low-altitude jump near the upper entrance remains on the safe lane.
+ const lower=level.platforms.filter(s=>!s.upperRoute&&s.active&&s.w>=180&&midX>=s.x-100&&midX<=s.x+s.w+100);
+ const nearest=lower.length?lower.reduce((a,b)=>Math.abs(midX-clamp(midX,a.x,a.x+a.w))<=Math.abs(midX-clamp(midX,b.x,b.x+b.w))?a:b):null;
+ const mainY=nearest?.y??level.groundBaseY;
+ if(feet>mainY-105)return false;
+ return level.platforms.some(s=>s.upperRoute&&s.active&&p.x+p.w>=s.x-120&&p.x<=s.x+s.w+120&&Math.abs(feet-s.y)<=230);
 }
 function update(dt){
  if(!level)return;clock+=dt;stageTime+=mode==='playing'?dt:0;hudTick-=dt;shake=Math.max(0,shake-dt*39);slowMotion=Math.max(0,slowMotion-dt);toastTimer-=dt;if(toastTimer<=0)$('toast').style.opacity='0';
@@ -1909,17 +1921,24 @@ const RH_LULU_SEQUENCE={idle:[0,1],run:[4,5,6,7],jump:[2,3],fall:[3,2],attack:[8
 let RH_LULU_FOOT_ROWS=null;
 function rhLuluFootRows(){
  if(RH_LULU_FOOT_ROWS)return RH_LULU_FOOT_ROWS;
- if(!RH_NEW_LULU.complete||RH_NEW_LULU.naturalWidth!==192)return null;
+ if(!RH_NEW_LULU.complete||RH_NEW_LULU.naturalWidth!==192||RH_NEW_LULU.naturalHeight!==192)return null;
  try{
   const scan=document.createElement('canvas');scan.width=192;scan.height=192;
   const cc=scan.getContext('2d',{willReadFrequently:true});cc.drawImage(RH_NEW_LULU,0,0);
   const rgba=cc.getImageData(0,0,192,192).data,rows=[];
   for(let frame=0;frame<16;frame++){
-   const col=(frame%4)*48,row=Math.floor(frame/4)*48;let foot=47;
-   scanFoot:for(let y=47;y>=0;y--)for(let x=12;x<36;x++){
-    if(rgba[((row+y)*192+col+x)*4+3]>32){foot=y;break scanFoot}
+   const col=(frame%4)*48,row=Math.floor(frame/4)*48;let foot=-1,backup=-1;
+   // Ignore isolated star particles; use contiguous opaque boot pixels.
+   for(let y=47;y>=0;y--){
+    let count=0,run=0,longest=0;
+    for(let x=10;x<38;x++){
+     const opaque=rgba[((row+y)*192+col+x)*4+3]>48;
+     if(opaque){count++;run++;longest=Math.max(longest,run)}else run=0;
+    }
+    if(count>0&&backup<0)backup=y;
+    if(count>=3&&longest>=2){foot=y;break}
    }
-   rows.push(foot);
+   rows.push(foot>=0?foot:backup>=0?backup:47);
   }
   RH_LULU_FOOT_ROWS=rows;return rows;
  }catch(_){return null}
