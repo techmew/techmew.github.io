@@ -1855,7 +1855,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  // Cull against the full world width visible at mobile zoom, not the CSS viewport width.
  const viewRight=camera+visibleWorldWidth();
  const t=level.theme;
- for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>viewRight+40)continue;if(!s.active)continue;ctx.fillStyle=s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,s.kind==='moving'?18:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
+ for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>viewRight+40)continue;if(!s.active)continue;ctx.fillStyle=s.upperRoute?'#344365':s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,(s.kind==='moving'||s.upperRoute)?20:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=s.upperRoute?'#ffe0a2':t.edge;ctx.fillRect(s.x,s.y,s.w,6);ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
   const warning=rhCrumblePhase(s.collapse);
   ctx.fillStyle=warning.critical?'#ff7897':warning.active?'#ffcc87':'#ffe3b6';
   for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);
