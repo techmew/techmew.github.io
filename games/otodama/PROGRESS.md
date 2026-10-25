@@ -1,43 +1,45 @@
-# OTODAMA∞ 開発継続 / 2026-10-26 02:00 JST / v0.9.3
+# OTODAMA∞ 開発継続 / 2026-10-26 03:00 JST / v0.9.4
 
 ## CURRENT_STATUS
-- GitHub main v0.9.2 を実読し、Drive `RUN_REPORT_20261026_0100.md` を確認して継続。
-- ソロ戦は連続ステージ、日替わりボス、音声生成・再生、育成・図鑑、勝敗演出を維持。
-- v0.9.3: 6種の背景環境、ボス固有3連携と予兆、ボスBREAK、次戦3択強化、ボス追加XP、BGM変奏・命中音、低負荷描画・横画面2列レイアウト。
-- オンラインは従来のサーバー事前計算→同期再生。リアルタイム対人入力は未実装。
+- GitHub main v0.9.3（コミット `88f3e5242bd9d7ec2a7645a92e90532acb7b43c4`）とDrive v0.9.3最終報告を読み、Git blob SHA一致のローカルv0.9.3から継続。
+- ソロ戦：連続ステージ・日替わりボス・音声生成/録音/再生・育成・図鑑・勝敗演出を維持。
+- オンライン：従来の事前計算再生から、Cloudflare Durable Objectのアラームとサーバー時刻によるガード/回避/必殺技/戦術/HP/勝敗裁定へ試作コードを更新。**本番未公開・外部二端末未確認。**
 
 ## CHANGELOG
-1. ステージ環境6種類をCanvasで描画し、進行に応じて切り替え。
-2. 5ステージごとに3種のボス固有攻撃と予兆・HP45%以下の攻撃強化。
-3. ジャストガード・回避・必殺技でBREAKゲージを溜め、100%でボス攻撃を1回無効化。
-4. 次のCOM戦限定の攻撃/耐久/共鳴3択強化。勝敗後の連続進行を維持。
-5. ボス撃破XP追加。BGMのステージ・ボス別変奏と攻撃予兆・命中SEの分離。
-6. 省電力描画チェックと保存、横画面時のアリーナ/操作UI2列配置。
-7. WorkerとMatchmakerでJSON null/配列を拒否。単体テスト追加。
+1. Roomにサーバー裁定リアルタイム戦（900ms予兆、HP/共鳴/戦術/必殺技、40ターン上限）とDurable Objectsアラームを実装。
+2. ブラウザでlive_start/live_turn/live_ack/live_impact/live_endを受信し、既存のバトルCanvas・音声・ガード/回避/必殺技UIを連携。
+3. サーバー発行nonceへのpongでRTTを計測、最大90msのサーバー側ガード/回避判定猶予を追加。クライアント申告時刻は不採用。
+4. 切断時の不戦勝、試合中のready連打による再起動防止、レート制限の同時刻バグ修正、オンライン終了から新しい対戦相手検索。
+5. 6環境の地形効果（雷撃/水圧/溶岩/上昇気流/星屑/氷結）と6章の冒険テキスト。
+6. ローカル進行JSONの書き出し/読み込みと数値/形式検証。録音音声はプライバシー保護のためバックアップ対象外。
+7. Node/Chromiumテスト拡充、READMEとデプロイ説明更新。
 
 ## TEST_RESULTS
 - `node --check worker.js`: PASS
 - `node test-ui-source.cjs`: PASS
 - `node test-matchmaker.cjs`: PASS
-- `node test-room.cjs`: PASS
-- `node test-moderation.mjs`: PASS
-- Chromium/Playwright: STAGE 01→02、次戦攻撃強化の適用、STAGE 05ボスUI、BREAK攻撃無効化、低負荷設定保存、915×430横画面、320px縦画面の横スクロールなし、JS例外なし: PASS
-- 実際のCloudflare Worker公開・独立2端末での通信・Android実機のマイクとBGM: 未確認
+- `node test-room.cjs`: PASS（仮想2ソケット、サーバー裁定、ガード/回避、RTT補正、再戦乱入防止、切断、レート制限）
+- `node test-moderation.mjs`: PASS（240件）
+- `python test-gameplay-browser.py`: PASS（連戦/次戦強化/ボス/縦横/省電力）
+- `python test-live-browser.py`: PASS（ローカルモックWebSocketで対人操作UI/HP/共鳴/結果）
+- `python test-save-browser.py`: PASS（バックアップ出力/復元/異常ファイル拒否/章進行）
+- Cloudflare本番、独立2端末WebSocket通信、Android実機、実録音・Web Audioの端末品質：未確認。
 
 ## BLOCKERS
-- Cloudflare認証・Workerデプロイが未完了。Actions secrets `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` が必要。
-- サーバー裁定のリアルタイム対人ガード/回避/必殺技は未実装。
-- 録音発話内容の自動検査は未実装（文字列のみ240件フィルタ）。
-- GitHub Pagesの本番配信伝播、Android実機、独立2端末テストは未確認。
+- Cloudflare Worker本番公開には所有者側のCloudflareアカウント認証とActions Secrets `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` が必要。トークンをコードやDriveに保存しない。
+- 独立2端末でのリアルタイム戦・高遅延回線・切断再接続の品質は未検証。現実の回線遅延は最大90ms補正でも完全には解消しない。
+- クライアント申告の声特徴量の真正性は証明できないためランク/賞金戦に利用不可。
+- 録音した発話内容の禁止語自動審査は未実装。テキスト名のみ240件フィルタ。
 
 ## NEXT_ACTIONS
-1. オンライン戦のサーバー裁定アクション同期と遅延補正を実装し、2つのWebSocketクライアントでテスト。
-2. ボス固有AIの段階変化、環境ギミックの攻略・戦術選択、ステージ間のストーリーを追加。
-3. キャラの進化分岐と図鑑の成長、セーブ破損時の復元・バックアップ機能。
-4. Android縦横の実機確認、Web Audio遅延と録音再生の品質確認。
-5. Cloudflare Worker公開後、クライアントの既定URLを設定してランダム対戦を実証。
+1. Cloudflare Workers/Durable Objects実公開、`/health`と2端末のルーム/ランダム対戦/切断テスト、公開URLをDEFAULT_SERVER_URLへ設定。
+2. WebSocket切断時の再接続・途中復帰、RTT/遅延補正の実測調整、マッチング待機キャンセルを検証。
+3. サーバー入力検証と観戦・招待・荒らし対策を強化。対戦リプレイや戦績保存はプライバシーを考慮して設計。
+4. ボス固有AI/ステージギミックの難易度・戦術バランスを実機で調整。
+5. Android実機マイク・録音音声・BGM/SE・縦横操作の確認、パフォーマンス改善。
 
 ## GITHUB_COMMITS
-- v0.9.3 index: `4cf90b3af18702d4e7bedc3e9f59fc085777cbd7`
-- v0.9.3 worker: `c6de425920c7e283688eb66ae1c0b90806b16c05`
-- GitHubをコードの正本、Driveを進捗・引き継ぎの正本とする。
+- v0.9.3最終既知head: `88f3e5242bd9d7ec2a7645a92e90532acb7b43c4`
+- v0.9.4公開コミット: コミット成功後に追記。
+
+GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。未公開/未検証を成功と呼ばない。

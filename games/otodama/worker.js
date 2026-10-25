@@ -15,7 +15,7 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.3',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.4',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -88,15 +88,125 @@ export class Room extends DurableObject {
     }
     return {events,max,winner:hp[0]/max[0]>=hp[1]/max[1]?0:1};
   }
+  // Hibernation-safe authoritative live battle. All HP, skill costs and action windows
+  // are decided by the Durable Object clock, never by a client's damage report.
+  livePeers(){return this.peers().filter(p=>p.deserializeAttachment()?.creature).slice(0,2)}
+  liveSend(peers, state, packet){
+    for(let seat=0;seat<peers.length;seat++)this.send(peers[seat],{
+      ...packet,
+      ...(packet.hp?{hp:seat===0?packet.hp:packet.hp.slice().reverse()}:{}),
+      ...(packet.charge?{charge:seat===0?packet.charge:packet.charge.slice().reverse()}:{}),
+      ...(packet.dodgeCooldown?{dodgeCooldown:seat===0?packet.dodgeCooldown:packet.dodgeCooldown.slice().reverse()}:{}),
+      ...(packet.atk!==undefined?{atk:packet.atk===seat?0:1}:{}),
+      ...(packet.winner!==undefined?{winner:packet.winner===seat?0:1}:{})
+    });
+  }
+  sendLatencyProbe(ws){
+    const a=ws.deserializeAttachment()||{};
+    const nonce=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('');
+    ws.serializeAttachment({...a,pingNonce:nonce,pingAt:Date.now()});
+    this.send(ws,{type:'live_ping',nonce});
+  }
+  async startLiveBattle(peers){
+    const creatures=peers.map(p=>p.deserializeAttachment().creature);
+    const max=creatures.map(c=>Math.round(140+c.stats[1]*.6));
+    const state={active:true,phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
+      stance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0};
+    await this.ctx.storage.put('live',state);
+    for(let i=0;i<2;i++){this.send(peers[i],{type:'live_start',creatures:i===0?creatures:creatures.slice().reverse(),max:i===0?max:max.slice().reverse(),duration:900});this.sendLatencyProbe(peers[i]);}
+    await this.announceLiveTurn(state,peers);
+  }
+  async announceLiveTurn(state,peers){
+    if(peers.length!==2){await this.ctx.storage.delete('live');return}
+    if(state.turn>=40){await this.finishLive(state,peers);return}
+    const atk=state.turn%2,def=1-atk;
+    const kinds=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
+    const kind=kinds[Math.floor(Math.random()*kinds.length)];
+    const A=state.creatures[atk],B=state.creatures[def];
+    const damage=Math.max(5,Math.round(12+A.stats[0]*.21+A.stats[4]*.12-B.stats[1]*.1+Math.random()*9));
+    state.phase='telegraph';state.startedAt=Date.now();state.atk=atk;state.kind=kind;state.damage=damage;state.actions=[null,null];
+    if(state.dodgeCooldown[def]>0)state.dodgeCooldown[def]--;
+    await this.ctx.storage.put('live',state);
+    if(state.turn>0&&state.turn%5===0)for(const peer of peers)this.sendLatencyProbe(peer);
+    this.liveSend(peers,state,{type:'live_turn',seq:state.turn,atk,kind,duration:900,
+      warning:atk===0?'攻撃チャンス':'敵の攻撃に備えろ',dodgeCooldown:state.dodgeCooldown});
+    await this.ctx.storage.setAlarm(state.startedAt+900);
+  }
+  async finishLive(state,peers){
+    state.active=false;state.phase='finished';
+    const winner=state.hp[0]/state.max[0]>=state.hp[1]/state.max[1]?0:1;
+    await this.ctx.storage.put('live',state);
+    this.liveSend(peers,state,{type:'live_end',winner,hp:state.hp,charge:state.charge});
+  }
+  async resolveLiveTurn(state,peers){
+    const atk=state.atk,def=1-atk,guard=state.actions[def];
+    const parry=guard?.action==='guard'&&guard.valid===true;
+    const dodge=guard?.action==='dodge'&&guard.valid===true;
+    let damage=state.damage;
+    if(state.stance[atk]==='rush')damage=Math.round(damage*1.22);
+    if(state.stance[atk]==='guard')damage=Math.round(damage*.9);
+    if(state.stance[def]==='rush')damage=Math.round(damage*1.12);
+    if(state.stance[def]==='guard')damage=Math.round(damage*.76);
+    let skill=false;
+    if(state.skillArmed[atk]){damage=Math.round(damage*1.85);state.skillArmed[atk]=false;skill=true}
+    if(parry){damage=Math.min(2,Math.round(damage*.09));state.charge[def]=Math.min(100,state.charge[def]+24);state.hp[atk]=Math.max(0,state.hp[atk]-8)}
+    else if(dodge){damage=0;state.charge[def]=Math.min(100,state.charge[def]+9)}
+    else if(!guard)state.charge[def]=Math.min(100,state.charge[def]+6);
+    state.charge[atk]=Math.min(100,state.charge[atk]+12);
+    state.hp[def]=Math.max(0,state.hp[def]-damage);
+    const finished=state.hp.some(h=>h<=0)||state.turn>=39;
+    this.liveSend(peers,state,{type:'live_impact',seq:state.turn,atk,kind:state.kind,damage,parry,dodge,skill,
+      hp:state.hp,charge:state.charge,finished});
+    if(finished){await this.finishLive(state,peers);return}
+    state.turn++;state.phase='pause';await this.ctx.storage.put('live',state);
+    await this.ctx.storage.setAlarm(Date.now()+280);
+  }
+  async alarm(){
+    const state=await this.ctx.storage.get('live');if(!state?.active)return;
+    const peers=this.livePeers();if(peers.length!==2){await this.ctx.storage.delete('live');return}
+    if(state.phase==='telegraph')await this.resolveLiveTurn(state,peers);
+    else if(state.phase==='pause')await this.announceLiveTurn(state,peers);
+  }
+  async liveAction(ws,data,attachment){
+    const state=await this.ctx.storage.get('live');if(!state?.active)return;
+    const peers=this.livePeers(),seat=peers.indexOf(ws);if(seat<0)return;
+    const action=data.action;
+    if(action==='stance'){
+      if(!['rush','balance','guard'].includes(data.value))return;
+      state.stance[seat]=data.value;await this.ctx.storage.put('live',state);
+      this.send(ws,{type:'live_ack',action,value:data.value,valid:true});return;
+    }
+    if(action==='skill'){
+      if(state.charge[seat]<60||state.skillArmed[seat])return;
+      state.charge[seat]-=60;state.skillArmed[seat]=true;
+      await this.ctx.storage.put('live',state);
+      this.send(ws,{type:'live_ack',action,valid:true,charge:state.charge[seat]});return;
+    }
+    if(!['guard','dodge'].includes(action)||state.phase!=='telegraph'||data.seq!==state.turn||seat===state.atk||state.actions[seat])return;
+    const elapsed=Date.now()-state.startedAt;
+    const grace=Math.min(90,Math.round((attachment.rtt||0)/2));
+    const valid=action==='guard'?elapsed>=180-grace&&elapsed<=650+grace:elapsed>=80-grace&&elapsed<=450+grace&&state.dodgeCooldown[seat]===0;
+    if(action==='dodge'&&state.dodgeCooldown[seat]===0)state.dodgeCooldown[seat]=3;
+    state.actions[seat]={action,valid};await this.ctx.storage.put('live',state);
+    this.send(ws,{type:'live_ack',action,seq:state.turn,valid});
+  }
   async webSocketMessage(ws,raw){
     if(typeof raw!=='string'||raw.length>120000){this.send(ws,{type:'error',message:'無効なメッセージ'});return}
     let data;try{data=JSON.parse(raw)}catch{return}
     if(!data||typeof data!=='object'||Array.isArray(data)){this.send(ws,{type:'error',message:'無効なメッセージ'});return;}
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
-    const now=Date.now(),windowStart=now-(attachment.rateAt||0)>10000?now:attachment.rateAt;
-    const burst=windowStart===now?1:(attachment.rateCount||0)+1;
+    const now=Date.now(),expired=now-(attachment.rateAt||0)>10000;
+    const windowStart=expired?now:attachment.rateAt;
+    const burst=expired?1:(attachment.rateCount||0)+1;
     if(burst>30){this.send(ws,{type:'error',message:'送信が多すぎます'});try{ws.close(1008,'rate limited')}catch{}return;}
     attachment.rateAt=windowStart;attachment.rateCount=burst;ws.serializeAttachment(attachment);
+    if(data.type==='pong'){
+      if(typeof data.nonce==='string'&&data.nonce===attachment.pingNonce&&Number.isFinite(attachment.pingAt)){
+        ws.serializeAttachment({...attachment,rtt:Math.min(220,Math.max(0,now-attachment.pingAt)),pingNonce:null,pingAt:null});
+      }
+      return;
+    }
+    if(data.type==='action'){await this.liveAction(ws,data,attachment);return;}
     if(data.type==='join'){
       if(attachment.creature)return;
       const creature=this.cleanCreature(data.creature);
@@ -112,19 +222,23 @@ export class Room extends DurableObject {
       return;
     }
     if(data.type==='ready'){
+      if((await this.ctx.storage.get('live'))?.active)return;
       if(!attachment.creature)return;
       ws.serializeAttachment({...attachment,ready:true});
       const peers=this.peers();if(peers.length!==2){this.state();return}
       const both=peers.map(s=>s.deserializeAttachment()||{});
       if(both.every(p=>p.creature&&p.ready)){
-        const creatures=both.map(p=>p.creature),outcome=this.simulate(...creatures);
-        for(const p of peers){const a=p.deserializeAttachment();p.serializeAttachment({...a,ready:false});this.send(p,{type:'battle',creatures,outcome})}
+        for(const p of peers){const a=p.deserializeAttachment();p.serializeAttachment({...a,ready:false})}
+        await this.startLiveBattle(peers);
       }
       this.state();
     }
   }
   async webSocketClose(ws){
+    const active=await this.ctx.storage.get('live');
+    await this.ctx.storage.delete('live');
     for(const peer of this.peers())if(peer!==ws){
+      if(active?.active)this.send(peer,{type:'live_forfeit',winner:0});
       let data=peer.deserializeAttachment();if(data)peer.serializeAttachment({...data,ready:false});
       this.send(peer,{type:'left'});
     }

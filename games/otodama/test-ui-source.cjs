@@ -14,5 +14,7 @@ assert.ok(match[1].includes("$('muteOpponentVoice').checked"),'opponent mute req
 assert.ok(match[1].includes("guardChain"),'guard counter chain required');
 assert.ok(match[1].includes("function dodgePress()"),'dodge action required');
 for(const id of ['nextBuffPanel','bossPanel','bossBreakFill','bossWarning','lowFx'])assert.ok(html.includes('id="'+id+'"'),'missing v0.9.3 UI: '+id);
+for(const id of ['exportSaveBtn','importSaveFile','saveNotice'])assert.ok(html.includes('id="'+id+'"'),'missing save UI '+id);
+for(const fn of ['beginLiveBattle','receiveLiveTurn','receiveLiveImpact','endLiveBattle','sendLiveAction','stageHazard','exportSave','importSave','CHAPTERS'])assert.ok(match[1].includes(fn),'missing v0.9.4 '+fn);
 for(const fn of ['stageBiome','drawBiome','chooseBuff','addBreak','bossStunned'])assert.ok(match[1].includes(fn),'missing v0.9.3 logic: '+fn);
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
