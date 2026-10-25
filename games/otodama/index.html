@@ -480,7 +480,7 @@ function battleDraw(ms){
 }
 function showBattle(a,b,outcome,mode){
  clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();unlockBattleAudio();
- $('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('battleTitle').textContent'⚡ OTODAMA SKY BRAWL v0.5 / '+mode;
+ $('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('battleTitle').textContent='⚡ OTODAMA SKY BRAWL v0.5 / '+mode;
  $('nameA').textContent=a.name;$('nameB').textContent=b.name;$('rematchBtn').disabled=true;
  $('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='超高速空中戦スタート！';$('arenaEffect').textContent='SKY RUSH!!';
  match={a,b,outcome,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null};let ix=-1;
