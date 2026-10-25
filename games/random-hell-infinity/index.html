@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.66｜中断・再開のセーブ同期</title>
-<meta name="game-build" content="ASTRAL_BREAK_V666_RESUME_SAVE_SYNC_20261025" />
+<title>ASTRAL BREAK ∞ V6.67｜新ルルとジャストガード</title>
+<meta name="game-build" content="ASTRAL_BREAK_V667_LULU_JUST_GUARD_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -163,7 +163,7 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
 <div id="portraitTip">横向きにすると広い視界で遊べます</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
 <script src="./sprites-v35.js"></script>
-<script src="./sprites-v35-hero.js"></script>
+<!-- Legacy hero rendering disabled. -->
 <script src="./sprites-v35-slime.js"></script>
 <script src="./sprites-v35-rabbit.js"></script>
 <script src="./sprites-v35-beetle.js"></script>
@@ -243,6 +243,7 @@ function visibleWorldWidth(){return W/gameZoom()}
 let seed=0,levelIndex=0,deaths=0,mode='menu',level=null,player=null,camera=0,clock=0,score=0;
 let particles=[],projectiles=[],shake=0,deathTimer=0,toastTimer=0,toastText='',winDelay=0;
 let combatFX=[],xpFloats=[],damageFlashTimer=0;
+let rhGuardActive=0,rhGuardPerfect=0,rhGuardCooldown=0,rhGuardFlash=0,rhGuardInputPrev=false,joyGuardHeld=false;
 let keys=new Set(),joyX=0,jumpHeld=false,jumpBuffer=0,dashQueue=false,punchQueue=false,dashCooldown=0,punchCooldown=0,punchTime=0,dashTime=0,dashDir=1,attackId=0;
 // Independent, non-persistent attack pose clock. Unlike punchTime it survives the multi-weapon
 // auto-fire cooldown restoration, so every actual shot visibly animates Lulu.
@@ -676,7 +677,11 @@ function doSplash(x,y,r,dmg,id,affix='none'){
  if(level.boss?.alive&&dist(x,y,level.boss.x+26,level.boss.y+30)<r)applyHit(level.boss,dmg,id,x,affix);
  part(x,y,'#ffbd8c',20,1.1);shake=5;
 }
-function lethal(cause){if(player.grace>0||dashTime>.025)return false;if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);soundCue('shieldbreak');toast('シールド破損',.7);return false}player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);soundCue('hurt');updateHud(true);if(player.hp<=0){die(cause);return true}saveState();toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
+function lethal(cause){if(player.grace>0||dashTime>.025)return false;
+ if(rhGuardActive>0&&(cause.startsWith('敵')||cause.startsWith('魔王'))){const perfect=rhGuardPerfect>0;rhGuardActive=0;rhGuardPerfect=0;rhGuardFlash=perfect?.4:.20;player.grace=perfect?.36:.19;
+  if(perfect){score+=75;shake=Math.max(shake,3);toast('✦ JUST GUARD! +75',.9)}else toast('ガード成功',.55);
+  part(player.x+player.w/2,player.y+player.h/2,perfect?'#bffaff':'#82a4ff',perfect?9:5,.3);soundCue('shieldbreak');return false;}
+if(player.shield){player.shield=0;player.vy=-280;player.vx=-player.face*180;player.grace=.9;part(player.x+12,player.y+14,'#9effff',22,1);soundCue('shieldbreak');toast('シールド破損',.7);return false}player.hp=Math.max(0,(player.hp??player.maxhp??5)-1);player.grace=1.55;damageFlashTimer=.42;player.vy=Math.min(player.vy,-210);player.vx=-player.face*145;part(player.x+player.w/2,player.y+player.h/2,'#ff7777',18,.8);soundCue('hurt');updateHud(true);if(player.hp<=0){die(cause);return true}saveState();toast('ダメージ！ HP '+player.hp+'/'+player.maxhp,.85);return true}
 // V5.6: Predict a moving target with phase-scaled, bounded lead. Keep all shots dodgeable.
 function rhBossLeadTarget(b,p,speed,phase){
  const ox=b.x+b.w/2,oy=b.y+28,px=p.x+p.w/2,py=p.y+p.h/2;
@@ -929,7 +934,7 @@ function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=cla
   showClear();return;
  }
  overlay.classList.add('hidden');saveState();soundCue('stage');if(survivorPending)survivorDraft()}
-function showMenu(){if(mode==='playing'||mode==='clear'||mode==='survivorDraft')saveState();resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。</strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){if(mode==='playing'||mode==='clear'||mode==='survivorDraft')saveState();resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。<strong>左ぷにコンを下に引きながら攻撃でガード。最初の0.16秒がジャストガード！</strong></strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、SHIFT=ガード、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
@@ -1311,7 +1316,13 @@ function update(dt){
    if(riding){p.x+=s.x-previousX;p.y+=s.y-previousY}
  }
  const oldX=p.x,oldY=p.y,oldBottom=p.y+p.h;
- p.grace=Math.max(0,p.grace-dt);p.jumpMinHold=Math.max(0,(p.jumpMinHold||0)-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);rhAttackChainTimer=Math.max(0,rhAttackChainTimer-dt);if(rhAttackChainTimer===0)rhAttackChain=0;
+ rhGuardCooldown=Math.max(0,rhGuardCooldown-dt);rhGuardFlash=Math.max(0,rhGuardFlash-dt);
+  const guardPressed=keys.has('ShiftLeft')||keys.has('ShiftRight')||(joyGuardHeld&&attackHeld);
+  if(guardPressed&&!rhGuardInputPrev&&rhGuardCooldown<=0){rhGuardActive=.48;rhGuardPerfect=.16;rhGuardCooldown=.90;attackTapBuffer=0;punchQueue=false}
+  rhGuardInputPrev=guardPressed;
+  if(!guardPressed)rhGuardActive=0;else rhGuardActive=Math.max(0,rhGuardActive-dt);
+  rhGuardPerfect=Math.max(0,rhGuardPerfect-dt);
+  p.grace=Math.max(0,p.grace-dt);p.jumpMinHold=Math.max(0,(p.jumpMinHold||0)-dt);p.respawnGlow=Math.max(0,(p.respawnGlow||0)-dt);rhAttackChainTimer=Math.max(0,rhAttackChainTimer-dt);if(rhAttackChainTimer===0)rhAttackChain=0;
  punchCooldown=Math.max(0,punchCooldown-dt);springCooldown=Math.max(0,springCooldown-dt);punchTime=Math.max(0,punchTime-dt);rhPoseRemaining=Math.max(0,rhPoseRemaining-dt);dashCooldown=Math.max(0,dashCooldown-dt);dashTime=Math.max(0,dashTime-dt);jumpBuffer=Math.max(0,jumpBuffer-dt);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0}
  if(stompChainTimer>0){stompChainTimer=Math.max(0,stompChainTimer-dt);if(stompChainTimer===0)stompChain=0}
@@ -1323,7 +1334,8 @@ function update(dt){
    p.vy=-level.jump*(hasRelic('spring')?1.12:1)*(p.jumps===0?.89:1);p.jumpMinHold=.12;p.grounded=false;p.coyote=0;jumpBuffer=0;part(p.x+12,p.y+35,p.jumps===0?'#ffe3a2':'#ccffff',13,.6);soundCue(p.jumps===0?'doublejump':'jump');
  }
  if(dashQueue){if(dashCooldown<=0 && (p.grounded||airDash>0)){dashDir=p.face;dashTime=.17;dashCooldown=hasRelic('battery')?.53:.91;if(!p.grounded)airDash--;p.vy=Math.min(p.vy,20);p.vx=dashDir*785;part(p.x+12,p.y+18,'#94fff8',14,.8);soundCue('dash')}dashQueue=false}
- const fireRequested=punchQueue||attackHeld||attackTapBuffer>0;
+ const fireRequested=rhGuardActive>0?false:(punchQueue||attackHeld||attackTapBuffer>0);
+  if(rhGuardActive>0){punchQueue=false;attackTapBuffer=0}
  autoWeaponFire(dt,fireRequested);punchQueue=false;
  attackTapBuffer=Math.max(0,attackTapBuffer-dt);
  if(dashTime>0){p.vx=dashDir*785;p.vy+=level.gravity*.12*dt;if(Math.random()<.4)part(p.x+p.w/2,p.y+p.h/2,'#77edff',2,.22)}
@@ -1558,6 +1570,17 @@ const RH_USER_PACK=window.RH_USER_ART||null;
 const RH_USER_IMG=new Image();
 if(RH_USER_PACK?.url){RH_USER_IMG.decoding='async';RH_USER_IMG.src=RH_USER_PACK.url}
 // V6.45: preserve proportions and feet alignment for the user's 37-frame art atlas.
+// V6.67: 16 original poses supplied by the user, isolated from legacy hero artwork.
+const RH_NEW_LULU=new Image();RH_NEW_LULU.decoding='async';RH_NEW_LULU.src='./hero-lulu-v667.png';
+const RH_LULU_SEQUENCE={idle:[0,1],run:[4,5,6,7],jump:[2,3],fall:[3,2],attack:[8,9,10,11],shoot:[12,13],guard:[11],hurt:[14],crouch:[15]};
+function drawNewLulu(state,time,x,y,w,h,face=1,flash=false){
+ if(!RH_NEW_LULU.complete||RH_NEW_LULU.naturalWidth!==192||RH_NEW_LULU.naturalHeight!==192)return false;
+ const frames=RH_LULU_SEQUENCE[state]||RH_LULU_SEQUENCE.idle,i=frames[Math.floor(Math.max(0,time))%frames.length];
+ ctx.save();ctx.imageSmoothingEnabled=false;if(flash)ctx.filter='brightness(1.7) saturate(.7)';
+ if(face<0){ctx.translate(x+w,0);ctx.scale(-1,1);ctx.drawImage(RH_NEW_LULU,(i%4)*48,Math.floor(i/4)*48,48,48,0,0,w,h)}
+ else ctx.drawImage(RH_NEW_LULU,(i%4)*48,Math.floor(i/4)*48,48,48,x,y,w,h);
+ ctx.restore();return true;
+}
 function drawRHUserArt(name,x,y,w,h,face=1,alpha=1){
  const f=RH_USER_PACK?.frames?.[name];
  if(!f||!RH_USER_IMG.complete||!RH_USER_IMG.naturalWidth||f.length!==4||
@@ -2029,24 +2052,25 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  if(player&&!player.dead){const p=player;ctx.save();ctx.translate(p.x,p.y);
  if(p.respawnGlow>0){ctx.save();ctx.globalAlpha=Math.min(1,p.respawnGlow/.35)*(.55+.23*Math.sin(clock*12));ctx.strokeStyle='#84e7ff';ctx.shadowColor='#5bd7ff';ctx.shadowBlur=15;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,23+Math.sin(clock*8)*2,30+Math.sin(clock*8)*2,0,0,TAU);ctx.stroke();ctx.restore()}
  if(p.shield){ctx.strokeStyle='#c0ffff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(13,17,22,29,0,0,TAU);ctx.stroke()}
- const rtype=weapon().type;
- const striking=rhPoseRemaining>0;
- const ranged=striking?rhPoseRanged:['arrow','laser','boomer','spread','cannon','homing'].includes(rtype);
- const visualFace=striking?rhPoseFacing:p.face;
- const hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;
- const pstate=striking?(ranged?'shoot':'attack'):!p.grounded?'jump':Math.abs(p.vx)>(heroSpriteState==='run'?18:42)?'run':'idle';if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}const pframe=pstate==='jump'?(p.vy>0?1:0):(clock-heroSpriteStart)*(pstate==='run'?8+Math.abs(p.vx)/90:pstate==='attack'||pstate==='shoot'?13:3);// Restore the pre-import Lulu sprite with silver hair, star pin and blue scarf.
- // Keep original V3.5 Lulu's complete face and body visible during 31-weapon chains.
- // The old attack/shoot cutouts contain large partial sword streaks that hide the torso.
- // Alternate whole-body motion using approved Lulu run frames (never cropped attack-sheet fragments).
- const phase=striking?clamp(1-rhPoseRemaining/rhPoseLength,0,1):0;
- const swing=Math.sin(phase*Math.PI),alternate=rhPoseSerial%2===0?-1:1;
- const stableState=striking?'run':pstate;
- const stableFrame=striking?Math.floor(phase*4):pframe;
- ctx.save();
- if(striking){ctx.translate(visualFace*(4+swing*11),-2-swing*6);ctx.rotate(visualFace*alternate*(ranged?.16:.33)*swing);ctx.scale(1+swing*.11,1-swing*.12)}
- if(!drawRHSprite('hero',stableState,stableFrame,-19,-24,65,61,visualFace,hurtFlash)){ctx.fillStyle=hurtFlash?'#fff1a9':dashTime>0?'#aefffb':'#f4f7ff';ctx.beginPath();ctx.roundRect(0,2,26,31,7);ctx.fill();ctx.fillStyle='#30456f';ctx.fillRect(p.face===1?15:5,11,6,7);ctx.fillStyle='#f7ca56';ctx.fillRect(p.face===1?24:-5,19,7,6);ctx.fillStyle='#4ce4cc';ctx.fillRect(p.face===1?-6:25,4,7,21);ctx.fillStyle='#fe91a8';ctx.beginPath();ctx.arc(p.face===1?8:18,22,3,0,TAU);ctx.fill();ctx.fillStyle='#556583';ctx.fillRect(2,31,8,4);ctx.fillRect(16,31,8,4);}
- if(striking){ctx.save();ctx.translate(visualFace===1?32:-7,9);ctx.scale(visualFace,1);ctx.globalAlpha=.35+swing*.55;ctx.strokeStyle=ranged?'#86eaff':'#ffe2a0';ctx.shadowColor=ranged?'#59cafa':'#fcd17a';ctx.shadowBlur=7;ctx.lineWidth=ranged?3:4;ctx.lineCap='round';ctx.beginPath();ctx.arc(0,8,25,-1.4+phase*1.5,.4+phase*1.5);ctx.stroke();ctx.restore();}
- ctx.restore(); // Keep HP bar stationary.
+ const striking=rhPoseRemaining>0,ranged=striking&&rhPoseRanged;
+  const visualFace=striking?rhPoseFacing:p.face,hurtFlash=p.grace>0&&!p.respawnGlow&&damageFlashTimer>0;
+  const pstate=rhGuardActive>0?'guard':hurtFlash?'hurt':striking?(ranged?'shoot':'attack'):!p.grounded?(p.vy<0?'jump':'fall'):Math.abs(p.vx)>42?'run':'idle';
+  if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}
+  const poseTime=striking?Math.max(0,1-rhPoseRemaining/Math.max(.01,rhPoseLength))*8:(clock-heroSpriteStart)*(pstate==='run'?11+Math.abs(p.vx)/120:3);
+  // Render the correct sword/magic/airborne pose. The old hero atlas is never consulted.
+  if(!drawNewLulu(pstate,poseTime,-27,-30,80,70,visualFace,hurtFlash)&&!RH_NEW_LULU.complete){
+    ctx.save();ctx.fillStyle='#dcf2ff';ctx.font='12px sans-serif';ctx.fillText('LOADING',-12,12);ctx.restore();
+  }
+  if(rhGuardActive>0||rhGuardFlash>0){
+    const perfect=rhGuardPerfect>0||rhGuardFlash>.22;
+    ctx.save();ctx.strokeStyle=perfect?'#ecffff':'#67b9ff';ctx.lineWidth=perfect?3:2;
+    ctx.globalAlpha=rhGuardActive>0?.78:.62*Math.min(1,rhGuardFlash/.3);
+    ctx.beginPath();ctx.ellipse(13,17,31,35,0,0,TAU);ctx.stroke();
+    ctx.fillStyle=perfect?'#fff4a3':'#8fe7ff';
+    for(let i=0;i<4;i++){const a=i*Math.PI/2+clock*1.8;ctx.fillRect(13+Math.cos(a)*30,17+Math.sin(a)*33,3,3)}
+    ctx.restore();
+  }
+  ctx.restore(); // Keep HP bar stationary.
  // Character-following health bar, drawn above the existing V3.5 sprite.
  if(p.maxhp>0){const ratio=Math.max(0,Math.min(1,p.hp/p.maxhp));
    ctx.fillStyle='#121a30e8';ctx.fillRect(-9,-38,44,10);
@@ -2077,6 +2101,7 @@ function rhSyncActionHolds(){
 }
 function joyMove(e){
   if(e.pointerId!==joyPointer)return;
+  joyGuardHeld=(e.clientY-joyStartY)>34;
   const distance=clamp((e.clientX-joyStartX)/55,-1,1);
   joyX=Math.abs(distance)<.06?0:Math.sign(distance)*Math.pow(Math.abs(distance),1.12);
   knob.style.transform=`translate(calc(-50% + ${Math.round(distance*39)}px),-50%)`;
@@ -2096,6 +2121,7 @@ function joyDown(e){
 moveZone.addEventListener('pointerdown',joyDown);
 moveZone.addEventListener('pointermove',joyMove);
 function resetJoyAnchor(){
+  joyGuardHeld=false;
   for(const property of ['left','top','bottom','transform'])joy.style.removeProperty(property);
 }
 function joyStop(e){
@@ -2142,6 +2168,7 @@ window.addEventListener('keyup',e=>{
 });
 function resetInputs(){
   keys.clear();joyX=0;jumpHeld=false;attackHeld=false;attackTapBuffer=0;dashQueue=false;punchQueue=false;jumpBuffer=0;
+  rhGuardActive=0;rhGuardPerfect=0;rhGuardFlash=0;rhGuardInputPrev=false;rhGuardCooldown=0;joyGuardHeld=false;
   const oldPointer=joyPointer;joyPointer=null;
   if(oldPointer!==null){try{if(moveZone.hasPointerCapture(oldPointer))moveZone.releasePointerCapture(oldPointer)}catch(err){}}
   resetJoyAnchor();knob.style.transform='translate(-50%,-50%)';joy.style.opacity='.82';
