@@ -2228,7 +2228,7 @@ window.addEventListener('pageshow',()=>{resetInputs();frame.prev=0});
 window.addEventListener('focus',()=>{resetInputs();frame.prev=0});
 window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0});
 // Browser chrome can only be hidden through Fullscreen API after a real user gesture.
-$('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});if(screen.orientation?.lock&&innerWidth>innerHeight){try{await screen.orientation.lock('landscape')}catch(_){}}}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
+$('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});if(screen.orientation?.lock&&innerWidth>innerHeight){try{await screen.orientation.lock('portrait')}catch(_){}}}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
 document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent='⛶';resize()});
 if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs(window.innerHeight-H)>1)resize()});
 $('soundTiny').addEventListener('click',toggleSound);
