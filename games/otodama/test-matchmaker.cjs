@@ -12,6 +12,8 @@ const FakeSocket=()=>({readyState:1,data:{status:'connected',time:0},messages:[]
 const a=FakeSocket(),b=FakeSocket(),w3=FakeSocket(),sockets=[a,b,w3];
 const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets});
 (async()=>{
+ await mm.webSocketMessage(a,'null');await mm.webSocketMessage(a,'[]');
+ assert.equal(a.data.status,'connected','malformed queue message changed status');
  await mm.webSocketMessage(a,JSON.stringify({type:'search'}));
  assert.equal(a.messages.length,0);
  await mm.webSocketMessage(b,JSON.stringify({type:'search'}));
