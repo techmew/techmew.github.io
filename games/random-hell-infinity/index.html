@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.72｜上空の秘宝・縦横カメラ・星界風景</title>
-<meta name="game-build" content="ASTRAL_BREAK_V672_CAMERA_TREASURE_WORLD_ART_20261025" />
+<title>ASTRAL BREAK ∞ V6.73｜縦画面・ルル追従HP・高所探索</title>
+<meta name="game-build" content="ASTRAL_BREAK_V673_PORTRAIT_LULU_HP_ANCHOR_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -52,14 +52,10 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden;touch-action:none;user
 @media(orientation:portrait){#menuTiny{top:118px}#swapTiny,#soundTiny{top:88px}#swapTiny{right:102px}#soundTiny{right:9px}#joystick{left:max(0px,calc(env(safe-area-inset-left) - 4px));bottom:8px}#bossBar{top:154px;width:54vw}#substats,#hudRight{font-size:10px}#stage{font-size:14px}}
 @media(max-height:430px){#menuTiny{top:56px;right:10px}#swapTiny,#soundTiny{top:53px}#swapTiny{right:100px}#soundTiny{right:10px}#bossBar{top:85px}#weaponStrip{font-size:10px}}
 
-@media (orientation:landscape) and (max-height:430px){
-  #menuTiny{top:92px;right:10px}
-  #swapTiny{top:52px;right:110px}
-  #soundTiny{top:52px;right:10px}
-}
+
 #fullscreenTiny{position:fixed;top:102px;right:12px;z-index:4;background:#173456e8;color:white;border:1px solid #b8edff8a;border-radius:16px;padding:9px 12px;font-size:13px;font-weight:850;touch-action:manipulation;cursor:pointer}
 @media(orientation:portrait){#fullscreenTiny{top:148px;right:130px}}
-@media(orientation:landscape) and (max-height:430px){#fullscreenTiny{top:92px;right:124px}}
+
 
 /* RHINF MOBILE HUD V4 - canonical compact smartphone layout */
 #playerHealth{width:min(250px,70vw);margin:4px 0 2px;font-size:13px;font-weight:900;color:#fff;text-shadow:0 1px 3px #000}
@@ -137,7 +133,7 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
 #astralVolume{display:flex;align-items:center;gap:4px;font-size:10px;margin-top:6px}
 #bgmRange{width:100%;min-width:0;accent-color:#79d7f9;touch-action:manipulation}
 @media(orientation:portrait) and (max-width:600px){#astralStatus{top:40px;right:8px;width:31vw;min-width:105px;padding:6px}.astralMeta{font-size:9px}#astralStatus strong{font-size:10px}}
-@media(orientation:landscape) and (max-height:430px){#astralStatus{top:8px;right:8px;width:145px}}
+
 /* V6.57: HUD owns upper-right on desktop; no overlapping duplicate old status.
    On narrow 320px screens the health panel and radar must not overlap. */
 #hudRight{display:none}
@@ -153,8 +149,8 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
  .astralMeta{font-size:9px;margin-top:3px}
  #astralVolume{margin-top:4px}
 }
-#turnDevice{display:none}
-/* Landscape is a supported play mode: never block touch controls. */
+
+
 /* V6.68 portrait HUD avoids covering the player health with the radar. */
 @media (orientation:portrait) and (max-width:600px){
  #hud{top:max(6px,env(safe-area-inset-top));max-height:139px;overflow:hidden}
@@ -188,34 +184,27 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
  #actions{bottom:max(16px,env(safe-area-inset-bottom));right:11px}
  #punch,#jump{width:72px;height:72px;margin:0}
 }
-@media(orientation:landscape){#portraitViewport{width:100vw;max-width:none;left:0;transform:none;box-shadow:none}#hud{top:max(5px,env(safe-area-inset-top));max-height:95px}#stage{font-size:clamp(12px,2.3vh,17px)}#astralStatus{top:8px;right:max(8px,env(safe-area-inset-right));width:140px}#joystick{left:max(6px,env(safe-area-inset-left));bottom:max(5px,env(safe-area-inset-bottom))}#actions{right:max(7px,env(safe-area-inset-right));bottom:max(5px,env(safe-area-inset-bottom))}#menuTiny,#soundTiny,#fullscreenTiny{top:62px!important}#bossBar{top:90px}}
+
 /* V6.71: compact landscape controls without covering the radar or HP. */
-@media(orientation:landscape) and (max-height:500px){
- #hud{top:max(5px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));max-height:106px}
- #hudLeft{max-width:min(44vw,250px)}
- #stage{max-width:100%;font-size:clamp(12px,2.7vh,16px)}
- #substats{font-size:10px}
- #playerHealth{width:min(220px,40vw);padding:3px 7px 4px;font-size:11px;margin:2px 0}
- #playerHealthTrack{height:8px}
- #playerXp{width:min(220px,40vw);font-size:10px;margin:1px 0}
- #xpTrack{height:5px}
- #weaponStrip{max-width:min(235px,40vw);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- #progressTrack{width:min(220px,40vw);margin-top:3px}
- #astralStatus{top:max(6px,env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));width:136px;padding:5px 6px}
- #astralStatus .astralMeta:nth-of-type(n+3){display:none}
- #astralStatus strong{font-size:10px}
- #astralStatus .astralMeta{margin-top:2px;font-size:9px}
- #astralVolume{margin-top:3px}
- #menuTiny,#soundTiny,#fullscreenTiny{top:max(12px,env(safe-area-inset-top))!important;width:32px;height:32px;padding:0;border-radius:10px;font-size:16px;display:grid;place-items:center}
- #menuTiny{right:max(152px,calc(env(safe-area-inset-right) + 146px))!important}
- #soundTiny{right:max(188px,calc(env(safe-area-inset-right) + 182px))!important}
- #fullscreenTiny{right:max(224px,calc(env(safe-area-inset-right) + 218px))!important}
- #bossBar{top:108px;left:50%;width:min(34vw,210px)}
- #joystick{width:112px;height:112px}
- #joyBase{width:90px;height:90px}
- #actions{gap:7px}
- #punch,#jump{width:64px;height:64px;margin:0;font-size:11px}
- #moveZone{top:31%;width:43%}
+
+
+/* V6.73: portrait-only game frame, mobile landscape prompt. */
+#portraitViewport{left:50%;transform:translateX(-50%);width:min(100vw,440px);max-width:440px}
+#turnDevice{display:none;position:absolute;inset:0;z-index:60;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:24px;background:#0b1330f5;color:#f4f9ff;font-size:clamp(16px,4vw,23px);font-weight:900;line-height:1.6}
+#turnDevice .rotateIcon{font-size:42px;line-height:1}
+@media(orientation:landscape) and (pointer:coarse){#turnDevice{display:flex}}
+@media(min-width:601px){
+ #portraitViewport{width:min(100vw,440px)}
+ #hud{top:10px;left:9px;right:9px;max-height:145px}
+ #hudLeft{width:100%}#stage{font-size:16px;max-width:400px}
+ #playerHealth,#playerXp{width:235px}
+ #astralStatus{top:177px;right:8px;width:137px}
+ #menuTiny,#soundTiny,#fullscreenTiny{top:139px!important}
+ #menuTiny{right:84px!important}#soundTiny{right:47px!important}#fullscreenTiny{right:10px!important}
+ #bossBar{top:165px;left:44%;width:180px}
+ #joystick{left:7px;bottom:max(12px,env(safe-area-inset-bottom))}
+ #actions{right:11px;bottom:max(16px,env(safe-area-inset-bottom))}
+ #punch,#jump{width:72px;height:72px;margin:0}
 }
 </style>
 </head>
@@ -225,7 +214,7 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
 <button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="BGMと効果音のオンオフ" title="BGM・効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="astralStatus" aria-label="星界レーダー"><strong>✦ ASTRAL BREAK ∞</strong><div class="astralMeta" id="astralSector">星雨の序章</div><div class="astralMeta" id="astralEnemies">裂け目探索</div><div class="astralMeta" id="astralWeather">微風 · 通常</div><div class="astralMeta" id="astralThreat">✧ 周辺弾幕：安全</div><div id="astralTrack"><div id="astralMeter"></div></div><label id="astralVolume">BGM <input type="range" id="bgmRange" min="0" max="100" value="30" aria-label="BGM音量"></label></div><div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
-<div id="portraitTip" aria-hidden="true"></div><div id="toast"></div>
+<div id="portraitTip" aria-hidden="true"></div><div id="turnDevice" role="status" aria-live="polite"><span class="rotateIcon" aria-hidden="true">↻</span>スマホを縦向きにしてください</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
 </main>
 <script src="./sprites-v35.js"></script>
@@ -2289,12 +2278,12 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
     for(let i=0;i<4;i++){const a=i*Math.PI/2+clock*1.8;ctx.fillRect(13+Math.cos(a)*30,17+Math.sin(a)*33,3,3)}
     ctx.restore();
   }
-  ctx.restore(); // Keep HP bar stationary.
+  // Keep player translation active until the health bar has been drawn.
  // Character-following health bar, drawn above the existing V3.5 sprite.
  if(p.maxhp>0){const ratio=Math.max(0,Math.min(1,p.hp/p.maxhp));
-   ctx.fillStyle='#121a30e8';ctx.fillRect(-9,-38,44,10);
-   ctx.fillStyle=ratio<=.25?'#ff405c':'#ff79a2';ctx.fillRect(-7,-36,40*ratio,6);
-   ctx.strokeStyle='#fff';ctx.lineWidth=.9;ctx.strokeRect(-8,-37,42,8);
+   ctx.fillStyle='#121a30e8';ctx.fillRect(-9,-53,44,10);
+   ctx.fillStyle=ratio<=.25?'#ff405c':'#ff79a2';ctx.fillRect(-7,-51,40*ratio,6);
+   ctx.strokeStyle='#fff';ctx.lineWidth=.9;ctx.strokeRect(-8,-52,42,8);
  }
  // No opaque weapon blob over Lulu; forward strike strokes render behind her.
  ctx.restore()}
