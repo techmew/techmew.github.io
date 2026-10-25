@@ -6,11 +6,13 @@ let source=fs.readFileSync(__dirname+'/worker.js','utf8')
  .replace('export class Room extends DurableObject','class Room extends DurableObject')
  .replace('export class Matchmaker extends DurableObject','class Matchmaker extends DurableObject');
 source+='\nglobalThis.testing={Room,Matchmaker,defaultExport};';
-const ctx={crypto:globalThis.crypto,Response:globalThis.Response,WebSocketPair:class {},console,Math,Number,Array,JSON,Date,Uint8Array,Set,RegExp,String};
+let fakeNow=Date.now();class TestDate extends Date{static now(){return fakeNow}}
+const ctx={crypto:globalThis.crypto,Response:globalThis.Response,WebSocketPair:class {},console,Math,Number,Array,JSON,Date:TestDate,Uint8Array,Set,RegExp,String};
 vm.runInNewContext(source,ctx);
 const FakeSocket=()=>({readyState:1,data:{status:'connected',time:0},messages:[],deserializeAttachment(){return this.data},serializeAttachment(obj){this.data=obj},send(message){this.messages.push(JSON.parse(message))},close(){this.readyState=3}});
 const a=FakeSocket(),b=FakeSocket(),w3=FakeSocket(),sockets=[a,b,w3];
-const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets});
+const mmStorage={alarmAt:0,setAlarm:async t=>{mmStorage.alarmAt=t}};
+const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets,storage:mmStorage});
 (async()=>{
  await mm.webSocketMessage(a,'null');await mm.webSocketMessage(a,'[]');
  assert.equal(a.data.status,'connected','malformed queue message changed status');
@@ -19,7 +21,10 @@ const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets});
  await mm.webSocketMessage(b,JSON.stringify({type:'search'}));
  assert.equal(a.messages[0].type,'matched');assert.equal(b.messages[0].code,a.messages[0].code);
  assert.equal(a.messages[0].code.length,6);assert.equal(a.readyState,3);assert.equal(b.readyState,3);
- await mm.webSocketMessage(w3,JSON.stringify({type:'search'}));assert.equal(w3.messages.length,0);
+ await mm.webSocketMessage(w3,JSON.stringify({type:'search'}));assert.equal(w3.messages.length,0);assert.ok(mmStorage.alarmAt>=fakeNow+120000,'queue expiry alarm not scheduled');
+ fakeNow+=120001;await mm.alarm();assert.equal(w3.readyState,3,'stale queue socket not expired');
+ const w4=FakeSocket(),w5=FakeSocket();sockets.push(w4,w5);await mm.webSocketMessage(w4,JSON.stringify({type:'search'}));await mm.webSocketMessage(w4,JSON.stringify({type:'cancel'}));assert.equal(w4.readyState,3,'cancel did not close queued socket');
+ await mm.webSocketMessage(w5,JSON.stringify({type:'search'}));assert.equal(w5.messages.length,0);fakeNow+=120001;await mm.alarm();assert.equal(w5.readyState,3,'unmatched queue not expired');
  const room=new ctx.testing.Room({getWebSockets:()=>[]});
  const c=room.cleanCreature({name:'test',parts:{family:11,crest:29,back:15,pattern:23,legs:15},voice:{vol:90},stats:[70,40,50,60,90]});
  assert.equal(c.parts.family,11);assert.equal(c.parts.crest,29);assert.notEqual(c.stats[0],70,'posted stats must be ignored');
