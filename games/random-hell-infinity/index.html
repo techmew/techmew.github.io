@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.76｜星都多層背景・上空カメラ・ボスHUD</title>
-<meta name="game-build" content="ASTRAL_BREAK_V676_W1_DEPTH_UPPER_PEEK_BOSS_HUD_20261025" />
+<title>ASTRAL BREAK ∞ V6.77｜星都多層背景・上空カメラ・ボスHUD</title>
+<meta name="game-build" content="ASTRAL_BREAK_V677_24_STAGE_PIXEL_ART_BACKGROUNDS_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1656,6 +1656,47 @@ for(const [key,file] of Object.entries({far:'w1-star-city-far.webp',ground:'w1-g
  const img=new Image();img.decoding='async';img.src='./'+file;RH_W1_ART[key]=img;
 }
 
+
+/* V6.77: 24 separate stage WebP files, lazy loaded, bounded decoded-image cache.
+   Visual backgrounds never affect platform collisions or saved data. */
+const RH_STAGE_BG_CACHE=new Map();
+function rhGetStageBackground(){
+ if(!level)return null;
+ const w=level.world+1,st=level.stage+1,key=w+'-'+st;
+ let img=RH_STAGE_BG_CACHE.get(key);
+ if(!img){
+  img=new Image();img.decoding='async';img.onerror=()=>{img.rhFailed=true};
+  img.src='./w'+w+'-stage-'+st+'-bg.webp';RH_STAGE_BG_CACHE.set(key,img);
+  while(RH_STAGE_BG_CACHE.size>4){const oldest=RH_STAGE_BG_CACHE.keys().next().value;if(oldest===key)break;RH_STAGE_BG_CACHE.delete(oldest)}
+ }
+ return img;
+}
+function rhDrawStageBackground(){
+ const img=rhGetStageBackground();
+ if(!img||img.rhFailed||!img.complete||!img.naturalWidth||!img.naturalHeight)return false;
+ const iw=img.naturalWidth,ih=img.naturalHeight;
+ const scale=Math.max((W+84)/iw,(H+84)/ih),tileH=ih*scale;
+ const yRoom=Math.max(0,(tileH-H)/2),baseY=(H-tileH)/2+clamp(-cameraY*.085,-yRoom,yRoom);
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.96;
+ function layer(sy,sh,dy,dh,px,alpha){
+  if(sh<=0||dh<=0)return;
+  const dw=iw*dh/sh;if(dw<=0)return;
+  const scroll=camera*px,origin=Math.floor(scroll/dw),offset=scroll-origin*dw;
+  ctx.save();ctx.globalAlpha*=alpha;
+  ctx.beginPath();ctx.rect(0,Math.max(0,dy),W,Math.min(H,dh+Math.min(0,dy)));ctx.clip();
+  for(let k=-1;k<=Math.ceil(W/dw)+1;k++){
+   const x=k*dw-offset;
+   if((origin+k)%2){ctx.save();ctx.translate(x+dw,0);ctx.scale(-1,1);ctx.drawImage(img,0,sy,iw,sh,0,dy,dw,dh);ctx.restore()}
+   else ctx.drawImage(img,0,sy,iw,sh,x,dy,dw,dh);
+  }
+  ctx.restore();
+ }
+ layer(0,ih,baseY,tileH,.055,1);
+ layer(Math.floor(ih*.12),Math.floor(ih*.38),H*.33-clamp(cameraY*.15,-H*.16,H*.16),H*.39,.17,.13);
+ layer(Math.floor(ih*.38),Math.floor(ih*.29),H*.56-clamp(cameraY*.29,-H*.19,H*.19),H*.36,.34,.17);
+ ctx.restore();return true;
+}
+
 // V6.72: World-specific two-axis parallax silhouettes; image assets remain a separate task.
 function rhDrawWorldParallax(){
  if(!level||level.world===0)return;
@@ -1727,7 +1768,8 @@ function rhDrawW1ParallaxBands(img){
 }
 
 function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.sky[0]);g.addColorStop(1,t.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
- if(level?.world===0&&RH_W1_ART.far.complete&&RH_W1_ART.far.naturalWidth){
+ const hasStageArt=rhDrawStageBackground();
+ if(!hasStageArt&&level?.world===0&&RH_W1_ART.far.complete&&RH_W1_ART.far.naturalWidth){
   const img=RH_W1_ART.far,scale=Math.max((W+80)/img.naturalWidth,(H+120)/img.naturalHeight);
   const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
   // Adjacent mirrored tiles share edge pixels, avoiding seams on long runs.
@@ -1742,9 +1784,9 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
   }
   ctx.restore();
  }
- if(level?.world===0)rhDrawW1ParallaxBands(RH_W1_ART.far);
- rhDrawWorldParallax();
- const moonX=W*.79-camera*.025,moonY=H*.25-cameraY*.045;
+ if(!hasStageArt&&level?.world===0)rhDrawW1ParallaxBands(RH_W1_ART.far);
+ if(!hasStageArt)rhDrawWorldParallax();
+ if(!hasStageArt){const moonX=W*.79-camera*.025,moonY=H*.25-cameraY*.045;
  const glow=ctx.createRadialGradient(moonX,moonY,5,moonX,moonY,180);glow.addColorStop(0,t.accent+'48');glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.fillRect(moonX-180,moonY-180,360,360);
  // Celestial rift with animated shattered orbit in every procedural biome.
  ctx.save();ctx.translate(moonX,moonY);const core=Math.max(23,Math.min(43,W*.055));
@@ -1753,9 +1795,9 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
  ctx.globalAlpha=.78;ctx.fillStyle=t.accent;ctx.beginPath();ctx.arc(0,0,core*.76,0,TAU);ctx.fill();
  ctx.globalAlpha=.78;ctx.fillStyle=t.sky[0];ctx.beginPath();ctx.moveTo(-core*.13,-core*.78);ctx.lineTo(core*.20,-core*.1);ctx.lineTo(-core*.09,core*.15);ctx.lineTo(core*.16,core*.72);ctx.lineTo(-core*.27,core*.12);ctx.fill();
  ctx.strokeStyle='#f0faff';ctx.globalAlpha=.68;for(let i=0;i<6;i++){const a=i*TAU/6+clock*.05;ctx.beginPath();ctx.moveTo(Math.cos(a)*core*1.13,Math.sin(a)*core*1.13);ctx.lineTo(Math.cos(a+.1)*core*1.45,Math.sin(a+.1)*core*1.45);ctx.stroke()}
- ctx.restore();
+ ctx.restore();}
  const r=rngGen(hash(seed^0x89ff0123^levelIndex));for(let j=0;j<60;j++){let xx=(r()*level.totalX*.35-camera*.12)% (W+70);if(xx<0)xx+=W+70;ctx.fillStyle='#ffffff';ctx.globalAlpha=.12+r()*.45;ctx.fillRect(xx,((r()*H*.68-cameraY*.08)%(H*.75)+H*.75)%(H*.75),1.5,1.5)}ctx.globalAlpha=1;
- for(const deco of level.decor){let xx=deco.x-camera*(deco.layer?.21:.08);xx%=Math.max(W*2,1800);if(xx< -200)xx+=Math.max(W*2,1800);if(xx<-100||xx>W+100)continue;ctx.fillStyle=deco.layer?t.near:t.far;ctx.globalAlpha=deco.layer?.44:.3;ctx.fillRect(xx,baseY+70-deco.h-cameraY*(deco.layer?.28:.12),deco.w,deco.h+H);ctx.fillStyle=t.edge;ctx.globalAlpha=deco.glow*.14;ctx.fillRect(xx+5,baseY+75-deco.h-cameraY*(deco.layer?.28:.12),3,deco.h*.4)}ctx.globalAlpha=1;
+ if(!hasStageArt)for(const deco of level.decor){let xx=deco.x-camera*(deco.layer?.21:.08);xx%=Math.max(W*2,1800);if(xx< -200)xx+=Math.max(W*2,1800);if(xx<-100||xx>W+100)continue;ctx.fillStyle=deco.layer?t.near:t.far;ctx.globalAlpha=deco.layer?.44:.3;ctx.fillRect(xx,baseY+70-deco.h-cameraY*(deco.layer?.28:.12),deco.w,deco.h+H);ctx.fillStyle=t.edge;ctx.globalAlpha=deco.glow*.14;ctx.fillRect(xx+5,baseY+75-deco.h-cameraY*(deco.layer?.28:.12),3,deco.h*.4)}ctx.globalAlpha=1;
  const fog=ctx.createLinearGradient(0,baseY-100,0,H);fog.addColorStop(0,'transparent');fog.addColorStop(1,'#00000055');ctx.fillStyle=fog;ctx.fillRect(0,baseY-100,W,H-baseY+100);
  // Three chapters progress from bright outskirts to a slightly darker boss approach.
  const chapterDusk=level.stage===2?.12:level.stage===1?.055:0;
