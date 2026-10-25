@@ -58,6 +58,7 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  }
  assert.ok(a.messages.some(m=>m.type==='live_end'),'authoritative battle did not finish');
  assert.equal(a.messages.at(-1).type,'live_end');
+ assert.equal(await storage.get('live'),undefined,'finished matches must release Durable Object storage');
  assert.equal(a.messages.at(-1).winner,1-b.messages.at(-1).winner,'winner orientation');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));await room.webSocketMessage(b,JSON.stringify({type:'ready'}));
  assert.equal(a.messages.filter(m=>m.type==='live_start').length,2,'second online match did not start');
@@ -72,6 +73,9 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(accepted.status,101,'valid resume token should reconnect');
  const resumed=sockets.find(p=>p!==a&&p!==b&&p.data?.seat===1);
  assert.ok(resumed?.messages.some(m=>m.type==='live_resumed'),'resume snapshot missing');
+ const snap=resumed.messages.find(m=>m.type==='live_resumed');
+ assert.equal(snap.max[0],x.max[1]);assert.ok(Array.isArray(snap.dodgeCooldown)&&snap.dodgeCooldown.length===2);
+ assert.ok(Array.isArray(snap.skillArmed)&&Array.isArray(snap.stance));assert.ok(Number.isInteger(snap.turn));
  assert.equal(resumed.data.creature.seed,b.data.creature.seed,'resume identity mismatch');
  assert.ok(a.messages.some(m=>m.type==='live_resumed'),'remaining player not resynchronized');
  await room.webSocketClose(b);
