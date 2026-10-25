@@ -35,3 +35,12 @@
 ## GITHUB_COMMIT
 - 本ファイルを含むコミットSHA: 更新時にGitHub履歴から確認すること。
 - GitHubコードが正本。Driveは進捗と引き継ぎ資料の正本。
+
+## 2026-10-26 v0.9.1 公開管理
+- GitHub main コミット: 5653cdbd0f4a2da383ebedd30539403fa8db4a3e (ゲーム本体・Worker・モデレーション・テスト・ワークフローの11ファイルを一括更新)。
+- 再取得確認: index.html に v0.9.1 / stageEnemy / musicTick / shareVoice、worker.js に sanitizePublicName、moderation.js、デプロイワークフローが存在。
+- ローカル実行: node --check worker.js, test-ui-source.cjs, test-matchmaker.cjs, test-room.cjs, test-moderation.mjs すべて PASS（禁止語240件）。
+- ブラウザシミュレーション: STAGE 01→02、別の敵、勝利表示、エラーなしを確認。Android実機音声・本番配信・外部二端末オンライン戦は未検証。
+- Driveの開発資料: /OTODAMA∞_WORK開発引き継ぎ/v09/OTODAMA_v091_complete.zip にスナップショット保存。
+- Cloudflare Worker: 設定とコードはGitHubにあるが、本番公開・無料枠サーバーへの実接続は未完了。Cloudflare API認証が必要。
+- NEXT_ACTIONS: (1) GitHub Pages配信内容とAndroidで録音/BGM/声の再生を確認 (2) Cloudflare認証してWorkerデプロイし2端末テスト (3) 敵AI/音楽/連続バトル/禁止ワード誤判定を継続改良。
