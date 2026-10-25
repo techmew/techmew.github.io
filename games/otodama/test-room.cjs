@@ -26,12 +26,20 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  const observer=fake();sockets.push(observer);
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:'data:audio/wav;base64,AAAA='}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'malformed base64 audio was forwarded');
- await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
+ const clip='data:audio/wav;base64,AAAA';
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'voice forwarded without consent');
+ await room.webSocketMessage(a,JSON.stringify({type:'voice_consent',send:true,receive:false}));
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'voice forwarded without receiver consent');
+ await room.webSocketMessage(b,JSON.stringify({type:'voice_consent',send:false,receive:true}));
+ assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).canSend,true);
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,1);
  assert.equal(a.data.sentVoice,true,'valid clip should count as the single allowed voice relay');
  assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'voice leaked to unjoined socket');
  observer.close();
- await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,1,'duplicate voice forwarded');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));
  assert.equal(a.messages.filter(x=>x.type==='battle').length,0);
@@ -47,7 +55,9 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  const ping=b.messages.find(m=>m.type==='live_ping');assert.ok(ping?.nonce);
  fakeNow+=180;await room.webSocketMessage(b,JSON.stringify({type:'pong',nonce:ping.nonce}));
  assert.equal(b.data.rtt,180);
- fakeNow+=520; // 700ms after telegraph; valid only with bounded latency compensation.
+ fakeNow+=220;await room.webSocketMessage(a,JSON.stringify({type:'action',action:'strike',seq:0}));
+ assert.equal(a.messages.find(m=>m.type==='live_ack'&&m.action==='strike').valid,true,'timed strike not accepted');
+ fakeNow+=300; // 700ms after telegraph; valid only with bounded latency compensation.
  await room.webSocketMessage(a,JSON.stringify({type:'action',action:'guard',seq:0}));
  await room.webSocketMessage(b,JSON.stringify({type:'action',action:'guard',seq:0}));
  assert.equal(b.messages.find(m=>m.type==='live_ack'&&m.action==='guard').valid,true);
@@ -55,7 +65,7 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal((await storage.get('live')).turnStance[0],'balance','stance must be locked for announced turn');
  assert.equal((await storage.get('live')).stance[0],'rush','stance choice must queue for next turn');
  fakeNow+=200;await room.alarm();
- const first=a.messages.find(m=>m.type==='live_impact');assert.ok(first.parry,'server parry not applied');assert.ok(first.damage<=2,'parry failed to mitigate');
+ const first=a.messages.find(m=>m.type==='live_impact');assert.ok(first.parry,'server parry not applied');assert.ok(first.strike,'server precision strike not applied');assert.ok(first.damage<=2,'parry failed to mitigate');
  assert.ok(first.hp[0]<x.max[0],'parry reflect missing');
  fakeNow+=280;await room.alarm();
  const next=a.messages.filter(m=>m.type==='live_turn').at(-1);assert.equal((await storage.get('live')).turnStance[0],'rush','queued stance must apply next turn');assert.equal(next.seq,1);assert.equal(next.atk,1);
@@ -115,5 +125,10 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  await secondRoom.webSocketMessage(e,JSON.stringify({type:'ready'}));
  assert.equal(e.messages.find(m=>m.type==='live_start').creatures[0].seed,702,'seat0 orientation changed');
  assert.equal(d.messages.find(m=>m.type==='live_start').creatures[0].seed,701,'seat1 orientation changed');
+ await secondRoom.webSocketMessage(d,JSON.stringify({type:'voice_consent',send:true,receive:true}));
+ await secondRoom.webSocketMessage(e,JSON.stringify({type:'voice_consent',send:false,receive:true}));
+ await secondRoom.webSocketMessage(e,JSON.stringify({type:'voice_consent',send:false,receive:false}));
+ await secondRoom.webSocketMessage(d,JSON.stringify({type:'voice',clip:'data:audio/wav;base64,AAAA'}));
+ assert.equal(e.messages.filter(m=>m.type==='voice').length,0,'revoked receiver consent still forwarded audio');
  console.log('ROOM TEST PASS | authoritative turns, guard/dodge, reconnect token, 15s grace, stable seat ordering, forfeit, rate limit');
 })().catch(e=>{console.error(e);process.exit(1)});
