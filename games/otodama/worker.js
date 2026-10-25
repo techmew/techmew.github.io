@@ -17,7 +17,7 @@ export default {
     const url = new URL(request.url);
     const origin=request.headers.get('Origin');
     if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.8',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.9',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -45,10 +45,11 @@ export class Room extends DurableObject {
       if(!/^[a-f0-9]{32}$/.test(resumeToken)||resumeSeat<0||joined.some(p=>p.deserializeAttachment()?.seat===resumeSeat))
         return safeJson({error:'Match active: valid resume token required'},409);
     }
+    if(resumeSeat<0&&connected.length>=4)return safeJson({error:'This room is full'},409);
     const [client,server]=Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     if(resumeSeat>=0){
-      server.serializeAttachment({creature:active.creatures[resumeSeat],ready:false,seat:resumeSeat,resumeToken});
+      server.serializeAttachment({creature:active.creatures[resumeSeat],ready:false,seat:resumeSeat,resumeToken,voiceConsent:{send:false,receive:false}});
       this.send(server,{type:'session',token:resumeToken,seat:resumeSeat});
       const peers=this.livePeers();
       if(peers.length===2){
@@ -67,14 +68,15 @@ export class Room extends DurableObject {
         });
         await this.announceLiveTurn(active,peers);
       }else this.send(server,{type:'live_wait',seconds:15});
+      this.voicePolicy();
     }else{
-      if(connected.length>=4)return safeJson({error:'This room is full'},409);
       server.serializeAttachment({creature:null,ready:false});
     }
     return new Response(null,{status:101,webSocket:client});
   }
   peers(){return this.ctx.getWebSockets().filter(ws=>ws.readyState===1)}
   send(ws,obj){try{if(ws.readyState===1)ws.send(JSON.stringify(obj))}catch{}}
+  voicePolicy(){const ps=this.livePeers();for(const peer of ps){const self=peer.deserializeAttachment()||{},other=ps.find(p=>p!==peer)?.deserializeAttachment()||{};this.send(peer,{type:'voice_policy',canSend:!!(self.voiceConsent?.send&&other.voiceConsent?.receive),canReceive:!!(self.voiceConsent?.receive&&other.voiceConsent?.send)});}}
   state(){const ps=this.livePeers();for(const peer of ps){
     const own=peer.deserializeAttachment()||{};
     this.send(peer,{type:'state',me:own.seat,youReady:!!own.ready,
@@ -178,7 +180,8 @@ export class Room extends DurableObject {
     const atk=state.atk,def=1-atk,guard=state.actions[def],lockedStance=state.turnStance||state.stance;
     const parry=guard?.action==='guard'&&guard.valid===true;
     const dodge=guard?.action==='dodge'&&guard.valid===true;
-    let damage=state.damage;
+    let damage=state.damage;const strike=state.actions[atk]?.action==='strike'&&state.actions[atk]?.valid===true;
+    if(strike){damage=Math.round(damage*1.22);state.charge[atk]=Math.min(100,state.charge[atk]+6);}
     if(lockedStance[atk]==='rush')damage=Math.round(damage*1.22);
     if(lockedStance[atk]==='guard')damage=Math.round(damage*.9);
     if(lockedStance[def]==='rush')damage=Math.round(damage*1.12);
@@ -191,7 +194,7 @@ export class Room extends DurableObject {
     state.charge[atk]=Math.min(100,state.charge[atk]+12);
     state.hp[def]=Math.max(0,state.hp[def]-damage);
     const finished=state.hp.some(h=>h<=0)||state.turn>=39;
-    this.liveSend(peers,state,{type:'live_impact',seq:state.turn,atk,kind:state.kind,damage,parry,dodge,skill,
+    this.liveSend(peers,state,{type:'live_impact',seq:state.turn,atk,kind:state.kind,damage,parry,dodge,skill,strike,
       hp:state.hp,charge:state.charge,finished});
     if(finished){await this.finishLive(state,peers);return}
     state.turn++;state.phase='pause';await this.ctx.storage.put('live',state);
@@ -225,10 +228,11 @@ export class Room extends DurableObject {
       await this.ctx.storage.put('live',state);
       this.send(ws,{type:'live_ack',action,valid:true,charge:state.charge[seat]});return;
     }
-    if(!['guard','dodge'].includes(action)||state.phase!=='telegraph'||data.seq!==state.turn||seat===state.atk||state.actions[seat])return;
+    if(!['guard','dodge','strike'].includes(action)||state.phase!=='telegraph'||data.seq!==state.turn||state.actions[seat])return;
+    if((action==='strike')!==(seat===state.atk))return;
     const elapsed=Date.now()-state.startedAt;
     const grace=Math.min(90,Math.round((attachment.rtt||0)/2));
-    const valid=action==='guard'?elapsed>=180-grace&&elapsed<=650+grace:elapsed>=80-grace&&elapsed<=450+grace&&state.dodgeCooldown[seat]===0;
+    const valid=action==='strike'?elapsed>=270-grace&&elapsed<=660+grace:action==='guard'?elapsed>=180-grace&&elapsed<=650+grace:elapsed>=80-grace&&elapsed<=450+grace&&state.dodgeCooldown[seat]===0;
     if(action==='dodge'&&state.dodgeCooldown[seat]===0)state.dodgeCooldown[seat]=3;
     state.actions[seat]={action,valid};await this.ctx.storage.put('live',state);
     this.send(ws,{type:'live_ack',action,seq:state.turn,valid});
@@ -258,13 +262,20 @@ export class Room extends DurableObject {
       const seat=occupied.has(0)?1:0;
       if(occupied.has(seat)){this.send(ws,{type:'error',message:'満室です'});return}
       const token=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
-      ws.serializeAttachment({...attachment,creature,ready:false,seat,resumeToken:token});
-      this.send(ws,{type:'session',token,seat});this.state();return;
+      ws.serializeAttachment({...attachment,creature,ready:false,seat,resumeToken:token,voiceConsent:{send:false,receive:false}});
+      this.send(ws,{type:'session',token,seat});this.state();this.voicePolicy();return;
+    }
+    if(data.type==='voice_consent'){
+      if(!attachment.creature||typeof data.send!=='boolean'||typeof data.receive!=='boolean')return;
+      ws.serializeAttachment({...attachment,voiceConsent:{send:data.send,receive:data.receive}});
+      this.voicePolicy();return;
     }
     if(data.type==='voice'){
       if(!attachment.creature||attachment.sentVoice||this.livePeers().length!==2)return;
+      const other=this.livePeers().find(p=>p!==ws)?.deserializeAttachment();
+      if(!attachment.voiceConsent?.send||!other?.voiceConsent?.receive)return;
       const clip=typeof data.clip==='string'?data.clip:'';
-      if(clip.length>100000||(clip&&!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip)))return;
+      if(!clip||clip.length>100000||!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip))return;
       // Do not forward malformed base64 or decoded audio over 72 KiB.
       const encoded=clip.split('base64,')[1]||'';
       if(encoded.length%4!==0||encoded.length-encoded.replace(/=+$/,'').length>2||Math.floor(encoded.length/4)*3-(encoded.match(/=+$/)?.[0].length||0)>73728)return;
@@ -302,7 +313,7 @@ export class Room extends DurableObject {
       let data=peer.deserializeAttachment();if(data)peer.serializeAttachment({...data,ready:false});
       this.send(peer,{type:'left'});
     }
-    this.state();
+    this.state();this.voicePolicy();
   }
   async webSocketError(ws){try{ws.close(1011,'Connection error')}catch{}}
 }
@@ -324,12 +335,13 @@ export class Matchmaker extends DurableObject {
     if(typeof raw!=='string'||raw.length>256)return;
     let msg;try{msg=JSON.parse(raw)}catch{return}
     if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
+    if(msg.type==='cancel'){ws.serializeAttachment({status:'cancelled',time:Date.now()});try{ws.close(1000,'cancelled')}catch{}return;}
     if(msg.type!=='search')return;
     if(ws.deserializeAttachment()?.status!=='connected')return;
     ws.serializeAttachment({status:'waiting',time:Date.now()});
-    this.pair();
+    await this.pair();
   }
-  pair(){
+  async pair(){
     let waiting=this.ctx.getWebSockets().filter(w=>w.readyState===1&&w.deserializeAttachment()?.status==='waiting')
       .sort((a,b)=>a.deserializeAttachment().time-b.deserializeAttachment().time);
     const cutoff=Date.now()-120000;for(const socket of waiting){if(socket.deserializeAttachment()?.time<cutoff){try{socket.send(JSON.stringify({type:'error',message:'待機時間が終了しました。再検索してください'}));socket.close(1000,'expired')}catch{}}}
@@ -345,7 +357,10 @@ export class Matchmaker extends DurableObject {
         try{socket.send(JSON.stringify({type:'matched',code}));socket.close(1000,'paired')}catch{}
       }
     }
+    const next=waiting.filter(w=>w.readyState===1&&w.deserializeAttachment()?.status==='waiting');
+    if(next.length)await this.ctx.storage.setAlarm(Math.min(...next.map(w=>w.deserializeAttachment().time+120000)));
   }
+  async alarm(){await this.pair()}
   async webSocketClose(ws,code,reason){try{ws.close(code||1000,reason||'closed')}catch{}}
   async webSocketError(ws){try{ws.close(1011,'Socket error')}catch{}}
 }
