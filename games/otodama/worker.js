@@ -15,7 +15,7 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.6',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.7',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -58,6 +58,7 @@ export class Room extends DurableObject {
           dodgeCooldown:seat===0?active.dodgeCooldown:active.dodgeCooldown.slice().reverse(),
           skillArmed:seat===0?active.skillArmed:active.skillArmed.slice().reverse(),
           stance:seat===0?active.stance:active.stance.slice().reverse(),
+          turnStance:seat===0?(active.turnStance||active.stance):(active.turnStance||active.stance).slice().reverse(),
           turn:active.turn
         });
         await this.announceLiveTurn(active,peers);
@@ -138,7 +139,7 @@ export class Room extends DurableObject {
     const creatures=peers.map(p=>p.deserializeAttachment().creature);
     const max=creatures.map(c=>Math.round(140+c.stats[1]*.6));
     const state={active:true,phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
-      stance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0,
+      stance:['balance','balance'],turnStance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0,
       tokens:peers.map(p=>p.deserializeAttachment().resumeToken),disconnectedAt:0};
     await this.ctx.storage.put('live',state);
     for(let i=0;i<2;i++){this.send(peers[i],{type:'live_start',creatures:i===0?creatures:creatures.slice().reverse(),max:i===0?max:max.slice().reverse(),duration:900});this.sendLatencyProbe(peers[i]);}
@@ -152,7 +153,7 @@ export class Room extends DurableObject {
     const kind=kinds[Math.floor(Math.random()*kinds.length)];
     const A=state.creatures[atk],B=state.creatures[def];
     const damage=Math.max(5,Math.round(12+A.stats[0]*.21+A.stats[4]*.12-B.stats[1]*.1+Math.random()*9));
-    state.phase='telegraph';state.startedAt=Date.now();state.atk=atk;state.kind=kind;state.damage=damage;state.actions=[null,null];
+    state.phase='telegraph';state.turnStance=state.stance.slice();state.startedAt=Date.now();state.atk=atk;state.kind=kind;state.damage=damage;state.actions=[null,null];
     if(state.dodgeCooldown[def]>0)state.dodgeCooldown[def]--;
     await this.ctx.storage.put('live',state);
     if(state.turn>0&&state.turn%5===0)for(const peer of peers)this.sendLatencyProbe(peer);
@@ -167,14 +168,14 @@ export class Room extends DurableObject {
     await this.ctx.storage.delete('live');
   }
   async resolveLiveTurn(state,peers){
-    const atk=state.atk,def=1-atk,guard=state.actions[def];
+    const atk=state.atk,def=1-atk,guard=state.actions[def],lockedStance=state.turnStance||state.stance;
     const parry=guard?.action==='guard'&&guard.valid===true;
     const dodge=guard?.action==='dodge'&&guard.valid===true;
     let damage=state.damage;
-    if(state.stance[atk]==='rush')damage=Math.round(damage*1.22);
-    if(state.stance[atk]==='guard')damage=Math.round(damage*.9);
-    if(state.stance[def]==='rush')damage=Math.round(damage*1.12);
-    if(state.stance[def]==='guard')damage=Math.round(damage*.76);
+    if(lockedStance[atk]==='rush')damage=Math.round(damage*1.22);
+    if(lockedStance[atk]==='guard')damage=Math.round(damage*.9);
+    if(lockedStance[def]==='rush')damage=Math.round(damage*1.12);
+    if(lockedStance[def]==='guard')damage=Math.round(damage*.76);
     let skill=false;
     if(state.skillArmed[atk]){damage=Math.round(damage*1.85);state.skillArmed[atk]=false;skill=true}
     if(parry){damage=Math.min(2,Math.round(damage*.09));state.charge[def]=Math.min(100,state.charge[def]+24);state.hp[atk]=Math.max(0,state.hp[atk]-8)}
@@ -205,10 +206,11 @@ export class Room extends DurableObject {
     const state=await this.ctx.storage.get('live');if(!state?.active)return;
     const peers=this.livePeers(),seat=peers.indexOf(ws);if(seat<0)return;
     const action=data.action;
+    if(peers.length!==2)return;
     if(action==='stance'){
       if(!['rush','balance','guard'].includes(data.value))return;
       state.stance[seat]=data.value;await this.ctx.storage.put('live',state);
-      this.send(ws,{type:'live_ack',action,value:data.value,valid:true});return;
+      this.send(ws,{type:'live_ack',action,value:data.value,valid:true,effective:'next_turn'});return;
     }
     if(action==='skill'){
       if(state.charge[seat]<60||state.skillArmed[seat])return;
@@ -253,11 +255,11 @@ export class Room extends DurableObject {
       this.send(ws,{type:'session',token,seat});this.state();return;
     }
     if(data.type==='voice'){
-      if(!attachment.creature||attachment.sentVoice)return;
+      if(!attachment.creature||attachment.sentVoice||this.livePeers().length!==2)return;
       const clip=typeof data.clip==='string'?data.clip:'';
       if(clip.length>100000||(clip&&!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip)))return;
       ws.serializeAttachment({...attachment,sentVoice:true});
-      for(const peer of this.peers())if(peer!==ws)this.send(peer,{type:'voice',clip});
+      for(const peer of this.livePeers())if(peer!==ws)this.send(peer,{type:'voice',clip});
       return;
     }
     if(data.type==='ready'){
