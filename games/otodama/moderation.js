@@ -22,11 +22,14 @@ const unicodeLoose=s=>String(s??'').normalize('NFKC').toLowerCase()
  .replace(/[@4]/g,'a').replace(/[0〇]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/5/g,'s')
  .replace(/[\s\-_.,:;~+*・\/\\\[\](){}<>"'’“”`^|]+/g,'');
 const termNormalized=[...new Set(TERMS.map(unicodeLoose).filter(s=>s.length>=2))];
-const LINKS=/(https?:\/\/|www\.|@[a-z\d_]{2,}|[\w.+-]+@[\w.-]+\.[a-z]{2,}|\b(?:discord|telegram|line)\b\s*[:=])/i;
+const latinTerms=termNormalized.filter(s=>/^[a-z]+$/.test(s));
+const otherTerms=termNormalized.filter(s=>!/^[a-z]+$/.test(s));
+const latinMatchers=latinTerms.map(term=>new RegExp('(?:^|[^a-z])'+term+'(?:$|[^a-z])')); // prevent grape→rape, therapist→rapist false positives
+const LINKS=/(https?:\/\/|www\.|(?:t\.me|telegram\.me|discord\.gg|bit\.ly|tinyurl\.com|line\.me)\/|@[a-z\d_]{2,}|[\w.+-]+@[\w.-]+\.[a-z]{2,}|\b(?:discord|telegram|line)\b\s*[:=])/i;
 const CONTACT=/(?:\d[\s\-]?){11,}/;
 export function isForbiddenName(value){
  const raw=String(value??'');if(raw.length>80||LINKS.test(raw)||CONTACT.test(raw))return true;
- const normalized=unicodeLoose(raw);return termNormalized.some(term=>normalized.includes(term));
+ const normalized=unicodeLoose(raw);return otherTerms.some(term=>normalized.includes(term))||latinMatchers.some(re=>re.test(normalized));
 }
 export function sanitizePublicName(value, seed=1){
  const raw=String(value??'').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,32);
