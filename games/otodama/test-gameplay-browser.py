@@ -20,29 +20,39 @@ def main():
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.evaluate(STORE)
         # Fast-forward battle progression by shortening only the test copy of the game.
-        page.set_content(HTML.replace("const EVENT_MS=820;", "const EVENT_MS=45;"))
+        page.set_content(HTML.replace("const EVENT_MS=820;", "const EVENT_MS=45;").replace("window.addEventListener('pagehide'", "window.__otodamaTest={get match(){return match},finishCombat,addBreak,resolveCombatImpact};window.addEventListener('pagehide'"))
         assert page.locator("#adventureStage").inner_text() == "STAGE 01"
         assert "蒼天回廊" in page.locator("#stageHint").inner_text()
         page.locator("#fightBtn").click()
+        page.evaluate("window.__otodamaTest.match.hp=[window.__otodamaTest.match.max[0],0];window.__otodamaTest.finishCombat()")
         page.locator("#lowFx").check()
+        page.locator("#musicVolume").fill("11")
+        assert page.evaluate("localStorage.getItem('otodama.music.volume')")=="11"
         assert page.evaluate("localStorage.getItem('otodama.lowfx')") == "1"
-        page.wait_for_timeout(4000)
+        page.wait_for_timeout(100)
         assert page.locator("#rematchBtn").is_enabled()
         assert "STAGE 2" in page.locator("#battlePrize").inner_text()
         page.locator('[data-buff="power"]').click()
         page.locator("#rematchBtn").click()
         assert "攻撃強化" in page.locator("#battleGuide").inner_text()
         assert "STAGE 02" in page.locator("#battleTitle").inner_text()
+        previous=page.evaluate("window.__otodamaTest.match.b.seed")
+        page.evaluate("window.__otodamaTest.match.hp=[0,window.__otodamaTest.match.max[1]];window.__otodamaTest.finishCombat()")
+        assert "STAGE 2" in page.locator("#battlePrize").inner_text()
+        page.locator("#rematchBtn").click()
+        assert page.evaluate("window.__otodamaTest.match.b.seed")!=previous
+        assert "STAGE 02" in page.locator("#battleTitle").inner_text()
         page.evaluate("document.getElementById(\'closeBattle\').click()")
         assert page.locator("#adventureStage").inner_text() == "STAGE 02"
         page.evaluate("""localStorage.setItem('otodama.progress',
           JSON.stringify({stage:5,stageWins:3,wins:3,streak:2,best:2}))""")
         # Test-only hook. Production HTML remains unchanged.
-        hook = "window.__otodamaTest={get match(){return match},addBreak,resolveCombatImpact};"
+        hook = "window.__otodamaTest={get match(){return match},finishCombat,addBreak,resolveCombatImpact};"
         page.set_content(HTML.replace("window.addEventListener('pagehide'", hook+"window.addEventListener('pagehide'"))
         assert "星屑庭園" in page.locator("#stageHint").inner_text()
         page.locator("#fightBtn").click()
         assert page.locator("#bossPanel").is_visible()
+        assert page.locator("#musicVolume").input_value()=="11"
         result = page.evaluate("""() => {
           const api=window.__otodamaTest,m=api.match;
           m.current={atk:1,kind:'meteor',damage:45,selfDamage:0,recovery:0,resolved:false};
