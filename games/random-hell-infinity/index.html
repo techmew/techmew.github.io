@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>ASTRAL BREAK ∞ V6.84｜ルル靴底・上ルート視野・レリック報酬</title>
-<meta name="game-build" content="ASTRAL_BREAK_V684_LULU_FEET_UPPER_CAMERA_LANE_RELIC_20261025" />
+<meta name="game-build" content="ASTRAL_BREAK_V685_CHECKPOINT_SWEEP_SKY_ROUTE_GUIDANCE_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -890,14 +890,23 @@ function rhCrumblePhase(remaining){
 /* V6.80: protect normal-route spawn and checkpoints before optional upper hazards. */
 function rhProtectNormalRoute(platforms,spikes,saws,lasers,enemies,skyTraps){
  const shelters=platforms.filter((p,i)=>i===0||p.checkpointId>0);
- const near=(x,y)=>shelters.some(p=>x>=p.x-45&&x<=p.x+p.w+55&&y>=p.y-170&&y<=p.y+52);
- for(const [arr,point] of [[spikes,q=>[q.x+q.w*.5,q.y-10]],[saws,q=>[q.x,q.y]],[lasers,q=>[q.x,q.y-70]],[enemies,q=>[q.x+q.w*.5,q.y+q.h*.5]],[skyTraps,q=>[q.x,q.y]]])
-  for(let i=arr.length-1;i>=0;i--){const [x,y]=point(arr[i]);if(near(x,y))arr.splice(i,1)}
+ // V6.85: protect the full collision footprint and the entire movement sweep.
+ const overlaps=(left,top,right,bottom)=>shelters.some(p=>left<=p.x+p.w+55&&right>=p.x-45&&top<=p.y+52&&bottom>=p.y-170);
+ const candidates=[
+  [spikes,q=>[q.x,q.y-22,q.x+q.w,q.y+6]],
+  [saws,q=>[q.x-(q.size||16)-2,q.y-(q.amp||0)-(q.size||16)-2,q.x+(q.size||16)+2,q.y+(q.amp||0)+(q.size||16)+2]],
+  [lasers,q=>[q.x-9,q.y-170,q.x+9,q.y+4]],
+  [enemies,q=>[q.x-5,q.y-12,q.x+q.w+5,q.y+q.h+12]],
+  [skyTraps,q=>[q.x-(q.r||18)-3,(q.homeY??q.y)-(q.amp||0)-(q.r||18)-3,q.x+(q.r||18)+3,(q.homeY??q.y)+(q.amp||0)+(q.r||18)+3]]
+ ];
+ for(const [arr,bounds] of candidates)
+  for(let i=arr.length-1;i>=0;i--)if(overlaps(...bounds(arr[i])))arr.splice(i,1);
 }
 /* V6.81: Upper-route traps may not intersect lower-route checkpoint
    approach/respawn safety envelopes, including moving saw sweep radii. */
-function rhUpperHazardClear(main,x,top,bottom){
- return !main.some(p=>p.checkpointId>0&&x>=p.x-45&&x<=p.x+p.w+55&&top<=p.y+52&&bottom>=p.y-195);
+function rhUpperHazardClear(main,x,top,bottom,halfWidth=18){
+ // V6.85: protect the whole upper hazard envelope near a lower checkpoint.
+ return !main.some(p=>p.checkpointId>0&&x+halfWidth>=p.x-45&&x-halfWidth<=p.x+p.w+55&&top<=p.y+52&&bottom>=p.y-195);
 }
 function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty){
  const rr=rngGen(hash(levSeed^0x5c91a47d));
@@ -920,13 +929,13 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(treasureStep?116+rr()*12:78+rr()*21),kind,active:true,collapse:0,upperRoute:true,treasurePlatform:treasureStep,routeId:routes.length+1};
    if(kind==='moving')Object.assign(q,{anchorX:q.x,anchorY:q.y,phase:rr()*TAU,rate:.6+rr()*.35,ampX:7,ampY:7});
    pieces.push(q);
-   if(!treasureApproach&&j%7===0&&rhUpperHazardClear(main,q.x+q.w*.48,q.y-90,q.y-15))
+   if(!treasureApproach&&j%7===0&&rhUpperHazardClear(main,q.x+q.w*.48,q.y-74,q.y-20,19))
      saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4),upperRoute:true});
-    if(!treasureApproach&&j>=4&&j%9===4&&rhUpperHazardClear(main,q.x+q.w*.5,q.y-115,q.y+8)){
+    if(!treasureApproach&&j>=4&&j%9===4&&rhUpperHazardClear(main,q.x+q.w*.5,q.y-148,q.y+12,38)){
      const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=4?26:world>=2?15:3);
      foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe);
     }
-   if(!treasureApproach&&j%11===0&&rhUpperHazardClear(main,q.x+q.w*.68,q.y-168,q.y))
+   if(!treasureApproach&&j%11===0&&rhUpperHazardClear(main,q.x+q.w*.68,q.y-170,q.y+4,10))
      lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8,upperRoute:true});
    if(treasureStep){
      pickups.push({x:q.x+q.w*.39,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
@@ -941,7 +950,7 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
   }
   // Insert before the exit platform so goal and boss coordinates stay stable.
   platforms.splice(platforms.length-1,0,...pieces);
-  routes.push({fromX:from.x+from.w*.72,fromY:from.y,toX:to.x,toY:to.y,platformCount:pieces.length});
+  routes.push({fromX:from.x+from.w*.72,fromY:from.y,entryX:pieces[0].x+pieces[0].w*.45,entryY:pieces[0].y,toX:to.x,toY:to.y,platformCount:pieces.length});
  }
  return routes;
 }
@@ -1466,7 +1475,8 @@ function rhUpperLaneThreatAllowed(q,p){
  const feet=p.y+p.h,midX=p.x+p.w*.5;
  // V6.84: a low-altitude jump near the upper entrance remains on the safe lane.
  const lower=level.platforms.filter(s=>!s.upperRoute&&s.active&&s.w>=180&&midX>=s.x-100&&midX<=s.x+s.w+100);
- const nearest=lower.length?lower.reduce((a,b)=>Math.abs(midX-clamp(midX,a.x,a.x+a.w))<=Math.abs(midX-clamp(midX,b.x,b.x+b.w))?a:b):null;
+ // V6.85: select the nearest lower floor by vertical distance, not array order.
+ const nearest=lower.length?lower.reduce((a,b)=>Math.abs(feet-a.y)<=Math.abs(feet-b.y)?a:b):null;
  const mainY=nearest?.y??level.groundBaseY;
  if(feet>mainY-105)return false;
  return level.platforms.some(s=>s.upperRoute&&s.active&&p.x+p.w>=s.x-120&&p.x<=s.x+s.w+120&&Math.abs(feet-s.y)<=230);
@@ -2253,7 +2263,17 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const route of level.upperRoutes||[]){
   if(route.fromX<camera-90||route.fromX>viewRight+90)continue;
   ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';ctx.shadowColor='#101529';ctx.shadowBlur=7;
-  ctx.fillStyle='#ffe1a2';ctx.shadowColor='#ffd978';ctx.shadowBlur=12;ctx.fillText('✦',route.fromX,route.fromY-107);ctx.restore();
+  ctx.fillStyle='#ffe1a2';ctx.shadowColor='#ffd978';ctx.shadowBlur=12;ctx.fillText('✦',route.fromX,route.fromY-107);
+   // V6.85: three subtle rising star pixels show the first sky landing.
+   if(Number.isFinite(route.entryX)&&Number.isFinite(route.entryY)){
+    ctx.shadowBlur=0;ctx.globalAlpha=.58;
+    for(let k=1;k<=3;k++){
+     const t=k/4,x=Math.round(route.fromX+(route.entryX-route.fromX)*t);
+     const y=Math.round(route.fromY-28+(route.entryY-route.fromY)*t-12*Math.sin(Math.PI*t));
+     const size=k===2?5:3;ctx.fillRect(x-size/2,y-1,size,2);ctx.fillRect(x-1,y-size/2,2,size);
+    }
+   }
+   ctx.restore();
  }
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
