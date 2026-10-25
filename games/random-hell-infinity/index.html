@@ -154,9 +154,7 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
  #astralVolume{margin-top:4px}
 }
 #turnDevice{display:none}
-@media (orientation:landscape) and (max-height:700px) and (pointer:coarse){
-#turnDevice{display:grid;place-items:center;position:fixed;inset:0;z-index:50;background:#0b1330;color:white;font-size:22px;font-weight:bold;text-align:center}
-}
+/* Landscape is a supported play mode: never block touch controls. */
 /* V6.68 portrait HUD avoids covering the player health with the radar. */
 @media (orientation:portrait) and (max-width:600px){
  #hud{top:max(6px,env(safe-area-inset-top));max-height:139px;overflow:hidden}
@@ -190,7 +188,7 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
  #actions{bottom:max(16px,env(safe-area-inset-bottom));right:11px}
  #punch,#jump{width:72px;height:72px;margin:0}
 }
-@media(orientation:landscape) and (pointer:coarse){#portraitViewport{width:100vw}}
+@media(orientation:landscape){#portraitViewport{width:100vw;max-width:none;left:0;transform:none;box-shadow:none}#hud{top:max(5px,env(safe-area-inset-top));max-height:95px}#stage{font-size:clamp(12px,2.3vh,17px)}#astralStatus{top:8px;right:max(8px,env(safe-area-inset-right));width:140px}#joystick{left:max(6px,env(safe-area-inset-left));bottom:max(5px,env(safe-area-inset-bottom))}#actions{right:max(7px,env(safe-area-inset-right));bottom:max(5px,env(safe-area-inset-bottom))}#menuTiny,#soundTiny,#fullscreenTiny{top:62px!important}#bossBar{top:90px}}
 </style>
 </head>
 <body>
@@ -2326,7 +2324,7 @@ window.addEventListener('pageshow',()=>{resetInputs();frame.prev=0});
 window.addEventListener('focus',()=>{resetInputs();frame.prev=0});
 window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0});
 // Browser chrome can only be hidden through Fullscreen API after a real user gesture.
-$('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});if(screen.orientation?.lock&&innerWidth>innerHeight){try{await screen.orientation.lock('portrait')}catch(_){}}}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
+$('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
 document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent='⛶';resize()});
 if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs(window.innerHeight-H)>1)resize()});
 $('soundTiny').addEventListener('click',toggleSound);
