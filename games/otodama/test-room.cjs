@@ -3,9 +3,11 @@ let source=fs.readFileSync(__dirname+'/worker.js','utf8').replace("import { Dura
  .replace("import { sanitizePublicName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,'')).replace('export default {','const defaultExport = {').replace('export class Room extends DurableObject','class Room extends DurableObject').replace('export class Matchmaker extends DurableObject','class Matchmaker extends DurableObject');
 source+='\nglobalThis.testing={Room,Matchmaker,defaultExport};';
 let fakeNow=Date.now();class TestDate extends Date{static now(){return fakeNow}}
-const ctx={crypto:globalThis.crypto,Response:globalThis.Response,console,Math,Number,Array,JSON,Date:TestDate,Uint8Array,Set,RegExp,String};vm.runInNewContext(source,ctx);
+class TestResponse{constructor(body,opts){this.status=opts.status;this.webSocket=opts.webSocket;this.body=body}}
+const ctx={crypto:globalThis.crypto,Response:TestResponse,URL:globalThis.URL,console,Math,Number,Array,JSON,Date:TestDate,Uint8Array,Set,RegExp,String};vm.runInNewContext(source,ctx);
 function fake(){return {readyState:1,data:{creature:null,ready:false},messages:[],deserializeAttachment(){return this.data},serializeAttachment(obj){this.data=obj},send(message){this.messages.push(JSON.parse(message))},close(){this.readyState=3}};}
-const a=fake(),b=fake(),memory=new Map();const storage={get:async key=>memory.get(key),put:async(key,value)=>memory.set(key,value),delete:async key=>memory.delete(key),setAlarm:async time=>{storage.alarmAt=time}};const room=new ctx.testing.Room({getWebSockets:()=>[a,b],storage});
+const a=fake(),b=fake(),sockets=[a,b],memory=new Map();
+ctx.WebSocketPair=class {constructor(){this[0]=fake();this[1]=fake()}};const storage={get:async key=>memory.get(key),put:async(key,value)=>memory.set(key,value),delete:async key=>memory.delete(key),setAlarm:async time=>{storage.alarmAt=time}};const room=new ctx.testing.Room({getWebSockets:()=>sockets,acceptWebSocket:ws=>sockets.push(ws),storage});
 const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',rank:'A',parts:{family:4},voice:{vol:40,pitch:60,res:58,rhythm:75,stable:55,breath:63},stats:[95,95,95,95,95]};
 (async()=>{
  assert.equal(room.cleanCreature([]),null,'array creature accepted');
@@ -59,11 +61,27 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(a.messages.at(-1).winner,1-b.messages.at(-1).winner,'winner orientation');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));await room.webSocketMessage(b,JSON.stringify({type:'ready'}));
  assert.equal(a.messages.filter(m=>m.type==='live_start').length,2,'second online match did not start');
+ // Disconnect must pause rather than immediately declare forfeit.
+ const token=b.data.resumeToken;
  b.close();await room.webSocketClose(b);
- assert.ok(a.messages.some(m=>m.type==='live_forfeit'),'disconnect must award remaining player');
- assert.equal(await storage.get('live'),undefined,'disconnect must clean active match');
- assert.equal(a.data.ready,false);assert.equal(b.data.ready,false);
+ assert.ok(a.messages.some(m=>m.type==='live_wait'),'disconnect must notify waiting player');
+ assert.ok((await storage.get('live')).active,'live match must survive short disconnect');
+ const denied=await room.fetch({url:'https://example.test/room/ABCDEF'});
+ assert.equal(denied.status,409,'untrusted reconnection must not join active match');
+ const accepted=await room.fetch({url:'https://example.test/room/ABCDEF?resume='+token});
+ assert.equal(accepted.status,101,'valid resume token should reconnect');
+ const resumed=sockets.find(p=>p!==a&&p!==b&&p.data?.seat===1);
+ assert.ok(resumed?.messages.some(m=>m.type==='live_resumed'),'resume snapshot missing');
+ assert.equal(resumed.data.creature.seed,b.data.creature.seed,'resume identity mismatch');
+ assert.ok(a.messages.some(m=>m.type==='live_resumed'),'remaining player not resynchronized');
+ await room.webSocketClose(b);
+ assert.ok((await storage.get('live')).active,'stale close must not interrupt resumed match');
+ resumed.close();await room.webSocketClose(resumed);
+ fakeNow+=15001;await room.alarm();
+ assert.ok(a.messages.some(m=>m.type==='live_forfeit'),'forfeit after grace period missing');
+ assert.equal(await storage.get('live'),undefined,'expired match must be cleaned');
+ assert.equal(a.data.ready,false);
  for(let i=0;i<35;i++)await room.webSocketMessage(a,JSON.stringify({type:'unknown'}));
  assert.equal(a.readyState,3,'rate limiter must close spam socket');
- console.log('ROOM TEST PASS | two players, anti-stat-injection, voice once, live telegraph, server guard/dodge, outcome, rate limit');
+ console.log('ROOM TEST PASS | authoritative turns, guard/dodge, reconnect token, 15s grace, forfeit, rate limit');
 })().catch(e=>{console.error(e);process.exit(1)});
