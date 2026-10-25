@@ -1,3 +1,42 @@
+# OTODAMA∞ 毎時開発 / 2026-10-26 06:00 JST / v0.9.7
+
+## CURRENT_STATUS
+- GitHub main v0.9.6 index.html / worker.js / wrangler.jsonc / README / PROGRESS / package / testsを実読。Drive v0.9.6最終報告を確認。ローカルv0.9.6 ZIPの主要コードblob SHAがGitHubと一致することを確認してから改修。
+- 連続COMバトル、声生成/録音/試聴、育成、図鑑、6ステージ/ボス/BGM、勝利爆発/WINは維持。Cloudflareオンライン本番は未公開。
+
+## CHANGELOG
+1. ステージミッション3種類（JUST×2、回避×1、必殺×1）を循環。HUD進捗と勝利時XP +1。
+2. PERFECT DODGEの次攻撃に+15%カウンターを付与。
+3. STAGE 5以降、COM敵が防御傾向を読んでフェイント/共鳴吸収を選ぶ。
+4. ガード成功可能時間の開始を小音量の短音で通知（ターンごと1回）。
+5. オンライン録音音声が未参加ソケットへ漏れる経路を遮断。
+6. オンライン戦術を攻撃ターン開始時に固定し、切り替えは次ターンから適用。再接続にも固定戦術を含める。
+7. サーバーの音声隔離・戦術固定、Chromiumのミッション/回避カウンター/敵学習テストを追加。
+
+## TEST_RESULTS
+- Node: worker構文、UI構文、Room、Matchmaker、Moderation=PASS（ローカル）。
+- Chromium: COM連戦・次戦強化・ボス・横画面/320px、戦術/ミッション/XP/回避カウンター、オンラインUI、復帰、保存/復元=5 suites PASS（ローカル）。
+- Chromium 390pxで新しいミッションHUDをスクリーンショット確認。Android実機ではない。
+- GitHubへの変更ファイルのコミットとblob再取得を検証すること。GitHub Pages実配信/Cloudflare本番/外部2端末は未検証。
+
+## BLOCKERS
+- Cloudflare Workers本番公開には所有者のCloudflare認証とActions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN が必要。秘密値はコード/Driveへ記録しない。
+- 録音した発話の禁止語自動審査は未実装。クライアント申告の声特徴量は改ざん可能でランク戦には利用しない。
+
+## NEXT_ACTIONS
+1. Cloudflare公開、/health、独立2端末のマッチング・復帰・不戦勝・実RTT測定。
+2. COMのミッション達成率/難易度を実プレイで測定し、報酬バランス・敵学習・ボス演出を調整。
+3. Android実機のマイク・音声・BGM・縦横UI・省電力検証。
+4. サーバーで音声転送のサイズ/頻度制限を再点検し、オンライン荒らし対策と公平性を強化。
+
+## GITHUB_COMMITS
+- v0.9.6 baseline: 27ba78923abb7aedcdee9013849bd629841e1718
+- v0.9.7 game/test source latest: 873a4ae12cf811567724fc6b015dc30245d6c141
+
+GitHubがコード正本、Driveが引き継ぎ正本。ローカル検証と本番検証を混同しない。
+
+---
+
 # OTODAMA∞ 毎時開発 / 2026-10-26 05:00 JST / v0.9.6
 
 ## CURRENT_STATUS
