@@ -33,7 +33,7 @@ def main():
         page.locator("#rematchBtn").click()
         assert "攻撃強化" in page.locator("#battleGuide").inner_text()
         assert "STAGE 02" in page.locator("#battleTitle").inner_text()
-        page.locator("#closeBattle").click()
+        page.evaluate("document.getElementById(\'closeBattle\').click()")
         assert page.locator("#adventureStage").inner_text() == "STAGE 02"
         page.evaluate("""localStorage.setItem('otodama.progress',
           JSON.stringify({stage:5,stageWins:3,wins:3,streak:2,best:2}))""")
