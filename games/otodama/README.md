@@ -1,8 +1,18 @@
-# OTODAMA∞ — v0.9.5 (2026-10-26)
+# OTODAMA∞ — v0.9.6 (2026-10-26)
 
 **Game:** https://techmew.github.io/games/otodama/
 
 声の特徴（音量・音程・響き・リズム・安定・息）からキャラクターを生成するブラウザゲーム。マイクがなくても試用キャラで遊べる。声の録音は本人が許可した場合のみ行う。
+
+## v0.9.6 新規改善（05:00 JST）
+
+- **戦闘の読み合いを3種類追加**：STAGE 3以降、敵が「重撃（威力+22%）」「共鳴吸収（被弾時-12）」「フェイント（ガード成功時間が後ろへ移動）」を使う。事前警告を明示し、対処方法を表示する。プレイヤーの操作によって被害が変わる。
+- **バトル結果を可視化**：JUST GUARD/回避/必殺技回数、与ダメージ/被ダメージを表示。S/A/B/C評価を導入し、COM勝利時はSで+2XP、Aで+1XP。敗北でも基本XPを維持。
+- **ダメージ演出**：命中地点に数値・JUST GUARD・DODGEを短時間表示。Web Audioの既存BGMと音声再生を維持。
+- **オンライン相手音声ミュート修正**：従来の再生モードに加え、リアルタイム対戦でも相手音声をミュート。デコード待機中に対戦が変わった場合は古い音声を再生しない。
+- **復帰状態を完全同期**：再接続時に最大HP、回避クールダウン、必殺技準備状態、戦術、ターン番号を送信してHUDへ復元。
+- **Durable Objectの後始末**：試合終了後に一時戦闘状態を削除し、次戦への切り替えとストレージ節約を両立。
+- **検証**：Nodeテスト4種類、Chromiumテスト5種類（新規戦術/評価/XPテストを含む）でローカルPASS。Cloudflare本番・独立2端末・Android実機は未確認。
 
 ## v0.9.5 新規改善（04:00 JST）
 
@@ -62,7 +72,7 @@ node test-moderation.mjs
 
 上記は構文・静的・模擬通信テスト。別途、Chromiumのモバイルエミュレーションで連続バトルとUIを確認。オンラインUI/進行バックアップは `python test-live-browser.py`、`python test-save-browser.py`、`python test-reconnect-browser.py` で確認可能。Android実機マイク/BGM、Cloudflare本番、2端末オンラインの動作は未確認。
 
-ブラウザの実動作テスト（Python Playwright と Chromium が別途必要）：`python test-gameplay-browser.py`。ローカルHTMLを `page.set_content` で読み込み、実ゲームの820msをテスト時のみ45msに短縮して連続戦を確認する。ブラウザ外部通信やCloudflare公開の成功を意味しない。
+ブラウザの実動作テスト（Python Playwright と Chromium が別途必要）：`python test-gameplay-browser.py`、`python test-tactics-browser.py`。ローカルHTMLを `page.set_content` で読み込み、実ゲームの820msをテスト時のみ45msに短縮して連続戦を確認する。ブラウザ外部通信やCloudflare公開の成功を意味しない。
 
 ## デプロイ
 
