@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
 <title>ASTRAL BREAK ∞ V6.84｜ルル靴底・上ルート視野・レリック報酬</title>
-<meta name="game-build" content="ASTRAL_BREAK_V685_CHECKPOINT_SWEEP_SKY_ROUTE_GUIDANCE_20261025" />
+<meta name="game-build" content="ASTRAL_BREAK_V686_BOOT_CORE_PATROL_SAFETY_CRYSTAL_FALLBACK_20261026" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -896,7 +896,7 @@ function rhProtectNormalRoute(platforms,spikes,saws,lasers,enemies,skyTraps){
   [spikes,q=>[q.x,q.y-22,q.x+q.w,q.y+6]],
   [saws,q=>[q.x-(q.size||16)-2,q.y-(q.amp||0)-(q.size||16)-2,q.x+(q.size||16)+2,q.y+(q.amp||0)+(q.size||16)+2]],
   [lasers,q=>[q.x-9,q.y-170,q.x+9,q.y+4]],
-  [enemies,q=>[q.x-5,q.y-12,q.x+q.w+5,q.y+q.h+12]],
+  [enemies,q=>[Math.min(q.x,q.min??q.x)-5,q.y-16,Math.max(q.x,q.max??q.x)+q.w+5,q.y+q.h+16]],
   [skyTraps,q=>[q.x-(q.r||18)-3,(q.homeY??q.y)-(q.amp||0)-(q.r||18)-3,q.x+(q.r||18)+3,(q.homeY??q.y)+(q.amp||0)+(q.r||18)+3]]
  ];
  for(const [arr,bounds] of candidates)
@@ -906,7 +906,7 @@ function rhProtectNormalRoute(platforms,spikes,saws,lasers,enemies,skyTraps){
    approach/respawn safety envelopes, including moving saw sweep radii. */
 function rhUpperHazardClear(main,x,top,bottom,halfWidth=18){
  // V6.85: protect the whole upper hazard envelope near a lower checkpoint.
- return !main.some(p=>p.checkpointId>0&&x+halfWidth>=p.x-45&&x-halfWidth<=p.x+p.w+55&&top<=p.y+52&&bottom>=p.y-195);
+ return !main.some((p,i)=>(i===0||p.checkpointId>0)&&x+halfWidth>=p.x-45&&x-halfWidth<=p.x+p.w+55&&top<=p.y+52&&bottom>=p.y-195);
 }
 function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty){
  const rr=rngGen(hash(levSeed^0x5c91a47d));
@@ -931,7 +931,7 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    pieces.push(q);
    if(!treasureApproach&&j%7===0&&rhUpperHazardClear(main,q.x+q.w*.48,q.y-74,q.y-20,19))
      saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4),upperRoute:true});
-    if(!treasureApproach&&j>=4&&j%9===4&&rhUpperHazardClear(main,q.x+q.w*.5,q.y-148,q.y+12,38)){
+    if(!treasureApproach&&j>=4&&j%9===4&&rhUpperHazardClear(main,q.x+q.w*.5,q.y-170,q.y+18,q.w*.5+22)){
      const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=4?26:world>=2?15:3);
      foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe);
     }
@@ -1938,10 +1938,10 @@ function rhLuluFootRows(){
   const rgba=cc.getImageData(0,0,192,192).data,rows=[];
   for(let frame=0;frame<16;frame++){
    const col=(frame%4)*48,row=Math.floor(frame/4)*48;let foot=-1,backup=-1;
-   // Ignore isolated star particles; use contiguous opaque boot pixels.
+   // V6.86: sample the actual central boot region of the user PNG, not cape tails or star particles.
    for(let y=47;y>=0;y--){
     let count=0,run=0,longest=0;
-    for(let x=10;x<38;x++){
+    for(let x=19;x<30;x++){
      const opaque=rgba[((row+y)*192+col+x)*4+3]>48;
      if(opaque){count++;run++;longest=Math.max(longest,run)}else run=0;
     }
@@ -2298,9 +2298,13 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
      if(active&&s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointResumeGlow/2.2);ctx.strokeStyle='#b9e7ff';ctx.shadowColor='#8be7ff';ctx.shadowBlur=16;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,32+Math.sin(clock*7)*4,41,0,0,TAU);ctx.stroke();ctx.restore()}
       ctx.fillText(active?(s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0?'✦ 再開地点':'✦ 起動済'):'✧ CHECK '+s.checkpointId,s.x+63,s.y-100);
    }else{
-   ctx.fillStyle=active?'#83ffe0':'#ffde89';ctx.fillRect(s.x+39,s.y-82,4,82);
-   polygon([[s.x+43,s.y-79],[s.x+90,s.y-66],[s.x+43,s.y-51]],active?'#83ffe0':'#ffde89');
-   ctx.fillStyle='#132941';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText('CHECK '+s.checkpointId,s.x+69,s.y-90);
+   // Keep a readable star crystal even if both image atlases fail to load.
+   ctx.save();const cx=s.x+63,cy=s.y-48;
+   ctx.globalAlpha=active?1:.72;ctx.shadowColor=active?'#8cffe9':'#ffdca4';ctx.shadowBlur=active?14:5;
+   polygon([[cx,cy-32],[cx+17,cy-9],[cx+11,cy+18],[cx,cy+29],[cx-11,cy+18],[cx-17,cy-9]],active?'#82ffe4':'#f2c38d');
+   ctx.shadowBlur=0;polygon([[cx,cy-22],[cx+7,cy-5],[cx,cy+15],[cx-7,cy-5]],active?'#e9fffc':'#ffe8b9');
+   ctx.fillStyle=active?'#83d6e7':'#8a739b';ctx.fillRect(cx-16,s.y-16,32,7);ctx.fillRect(cx-10,s.y-9,20,8);ctx.restore();
+   ctx.fillStyle=active?level.theme.edge:'#ffdfac';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(active?'✦ 起動済':'✧ CHECK '+s.checkpointId,s.x+63,s.y-96);
    }
  }
  for(const pad of level.springPads){if(pad.x+pad.w<camera-30||pad.x>viewRight+30)continue;
