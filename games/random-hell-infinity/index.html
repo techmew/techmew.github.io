@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.78｜世界別の床・星晶と背景先読み</title>
-<meta name="game-build" content="ASTRAL_BREAK_V678_WORLD_GROUND_CRYSTAL_BG_PRELOAD_20261025" />
+<title>ASTRAL BREAK ∞ V6.79｜世界別の床・星晶と背景先読み</title>
+<meta name="game-build" content="ASTRAL_BREAK_V679_WORLD_PIXEL_ATLASES_CRYSTAL_STATES_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1652,6 +1652,29 @@ function findHomingTarget(q){
  updateHud();
 }
 function polygon(points,fill){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+
+/* V6.79: world-specific pixel terrain and three-state crystal sprite atlases. */
+const RH_WORLD_PIXEL_ATLASES=new Map();
+function rhWorldPixelAtlas(world,type){
+ if(world<1||world>7)return null;
+ const key=world+'-'+type;let img=RH_WORLD_PIXEL_ATLASES.get(key);
+ if(img)return img;
+ img=new Image();img.decoding='async';img.rhFailed=false;img.onerror=()=>{img.rhFailed=true};
+ img.src='./w'+(world+1)+(type==='ground'?'-ground-atlas.svg':'-crystal-states.svg');
+ RH_WORLD_PIXEL_ATLASES.set(key,img);return img;
+}
+function rhPixelAtlasReady(img,type){
+ return !!img&&!img.rhFailed&&img.complete&&img.naturalWidth===(type==='ground'?384:288)&&img.naturalHeight===(type==='ground'?76:96);
+}
+function rhPaintWorldTileAtlas(s,img){
+ const thin=s.upperRoute||s.kind==='moving',height=thin?20:76,cap=Math.min(12,Math.max(5,s.w/4));
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.beginPath();ctx.rect(s.x,s.y,s.w,height);ctx.clip();
+ const frame=s.kind==='moving'?3:0;
+ for(let x=s.x;x<s.x+s.w;x+=96)ctx.drawImage(img,frame*96,0,96,76,x,s.y,96,76);
+ ctx.drawImage(img,96,0,12,76,s.x,s.y,cap,76);
+ ctx.drawImage(img,276,0,12,76,s.x+s.w-cap,s.y,cap,76);
+ ctx.restore();
+}
 const RH_W1_ART={};
 for(const [key,file] of Object.entries({far:'w1-star-city-far.webp',ground:'w1-ground-center.webp',checkpoint:'w1-checkpoint.webp'})){
  const img=new Image();img.decoding='async';img.src='./'+file;RH_W1_ART[key]=img;
@@ -2124,15 +2147,17 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  // Cull against the full world width visible at mobile zoom, not the CSS viewport width.
  const viewRight=camera+visibleWorldWidth();
  const t=level.theme;
+ const worldGround=rhWorldPixelAtlas(level.world,'ground'),worldCrystal=rhWorldPixelAtlas(level.world,'crystal');
  for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>viewRight+40)continue;if(!s.active)continue;ctx.fillStyle=s.upperRoute?'#344365':s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,(s.kind==='moving'||s.upperRoute)?20:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=s.upperRoute?'#ffe0a2':t.edge;ctx.fillRect(s.x,s.y,s.w,6);
- if(RH_W1_ART.ground.complete&&RH_W1_ART.ground.naturalWidth){
+ if(rhPixelAtlasReady(worldGround,'ground'))rhPaintWorldTileAtlas(s,worldGround);
+ else if(RH_W1_ART.ground.complete&&RH_W1_ART.ground.naturalWidth){
   ctx.save();ctx.imageSmoothingEnabled=false;ctx.filter=RH_WORLD_ART_FILTERS[level.world];ctx.beginPath();ctx.rect(s.x,s.y,s.w,(s.upperRoute||s.kind==='moving')?20:83);ctx.clip();
   for(let tileX=s.x;tileX<s.x+s.w;tileX+=96)ctx.drawImage(RH_W1_ART.ground,tileX,s.y,96,76);
   ctx.restore();
  }
   // Physical top remains visible after the ground texture is painted.
   ctx.fillStyle=s.upperRoute?'#ffe2a5':t.edge;ctx.globalAlpha=.92;ctx.fillRect(s.x,s.y,s.w,3);ctx.globalAlpha=1;
-  rhDrawPlatformTrim(s);rhDrawWorldGroundMotifs(s);
+  rhDrawPlatformTrim(s);if(!rhPixelAtlasReady(worldGround,'ground'))rhDrawWorldGroundMotifs(s);
   if(s.treasurePlatform){ctx.save();ctx.fillStyle='#ffe4a0';ctx.shadowColor='#ffcc70';ctx.shadowBlur=13;ctx.globalAlpha=.7+.2*Math.sin(clock*3);ctx.fillRect(s.x+4,s.y-3,s.w-8,4);ctx.fillRect(s.x+s.w*.5-4,s.y-13,8,5);ctx.restore()}
   ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
   const warning=rhCrumblePhase(s.collapse);
@@ -2164,10 +2189,17 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  }
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
-   if(RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth){
+   if(rhPixelAtlasReady(worldCrystal,'crystal')||(RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth)){
      if(active&&rhCheckpointFlash>0&&s.checkpointId===checkpointIndex){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointFlash/1.25*.85);ctx.strokeStyle='#b5fff3';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,26+(1-rhCheckpointFlash/1.25)*22,37+(1-rhCheckpointFlash/1.25)*15,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
-      ctx.save();ctx.globalAlpha=active?1:.65;ctx.filter=RH_WORLD_ART_FILTERS[level.world]+' '+(active?'brightness(1.06)':'grayscale(.65) brightness(.78)');ctx.shadowColor=active?level.theme.accent:'#ffd8a4';ctx.shadowBlur=active?14:3;
-     ctx.drawImage(RH_W1_ART.checkpoint,s.x+20,s.y-91+Math.sin(clock*2+s.checkpointId)*1.5,86,90);
+      ctx.save();ctx.globalAlpha=active?1:.75;ctx.shadowColor=active?level.theme.accent:'#ffd8a4';ctx.shadowBlur=active?14:3;
+     const crystalY=s.y-91+Math.sin(clock*2+s.checkpointId)*1.5;
+     if(rhPixelAtlasReady(worldCrystal,'crystal')){
+      const state=active?(s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0?2:1):0;
+      ctx.imageSmoothingEnabled=false;ctx.drawImage(worldCrystal,state*96,0,96,96,s.x+20,crystalY,86,90);
+     }else{
+      ctx.filter=RH_WORLD_ART_FILTERS[level.world]+' '+(active?'brightness(1.06)':'grayscale(.65) brightness(.78)');
+      ctx.drawImage(RH_W1_ART.checkpoint,s.x+20,crystalY,86,90);
+     }
      ctx.restore();ctx.save();ctx.fillStyle=active?level.theme.accent:'#f5cc9b';
       ctx.globalAlpha=active?.65+.25*Math.sin(clock*3+s.checkpointId):.38;
       for(let k=0;k<3;k++){const angle=clock*(active?.8:.25)+k*TAU/3+s.checkpointId;
