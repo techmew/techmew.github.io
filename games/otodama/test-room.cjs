@@ -10,7 +10,9 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  await room.webSocketMessage(a,JSON.stringify({type:'join',creature}));
  await room.webSocketMessage(b,JSON.stringify({type:'join',creature:{...creature,seed:556}}));
  assert.ok(a.messages.some(x=>x.type==='state'));
- const statsA=a.data.creature.stats;assert.notEqual(statsA[0],95,'raw cheating stats accepted');assert.ok(statsA.every(x=>x<95));
+ const statsA=a.data.creature.stats;assert.notEqual(statsA[0],95,'raw cheating stats accepted');
+ assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'オトダマ-FF');
+ assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).element,'音');assert.ok(statsA.every(x=>x<95));
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,1);
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
@@ -21,5 +23,7 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  const x=a.messages.find(m=>m.type==='battle'),y=b.messages.find(m=>m.type==='battle');
  assert.ok(x&&y,'missing battle');assert.equal(x.outcome.winner,y.outcome.winner);assert.equal(x.outcome.events.length,y.outcome.events.length);
  assert.equal(a.data.ready,false);assert.equal(b.data.ready,false);
+ for(let i=0;i<35;i++)await room.webSocketMessage(a,JSON.stringify({type:'unknown'}));
+ assert.equal(a.readyState,3,'rate limiter must close spam socket');
  console.log('ROOM TEST PASS | two players, no stat injection, voice once, shared outcome, ready reset');
 })().catch(e=>{console.error(e);process.exit(1)});
