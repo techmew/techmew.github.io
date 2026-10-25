@@ -1,11 +1,11 @@
-# OTODAMA∞ 開発継続 / 2026-10-26 v0.9.1
+# OTODAMA∞ 開発継続 / 2026-10-26 v0.9.2
 
 ## CURRENT_STATUS
-- GitHub main v0.8を確認後、v0.9.1をローカルで実装・テスト。GitHub反映状況は下記コミット欄を確認すること。
+- GitHub main v0.8を確認後、v0.9.2をローカルで実装・テスト。GitHub反映状況は下記コミット欄を確認すること。
 - 連続ステージ進行：1戦後「次のバトルへ」で新しい敵。ステージ番号・勝利数をローカル保存、5戦・10戦のボス。負けても次の相手。
 - Web Audioによる自作BGM、戦闘音量・BGM個別スライダー、残HPによる緊張変化。モバイル実機音質未検証。
 - 240件の禁止表現、全角半角・カタカナ/ひらがな・記号分割・伏字正規化。英単語の部分一致誤判定（grape/therapist）を軽減。URL/連絡先検出。音声の発話内容検査は未実装。
-- ジャストガード成功連鎖、次の攻撃へのカウンターボーナス、キーボード操作、敵攻撃予告UI。
+- ジャストガード成功連鎖、次の攻撃へのカウンターボーナス、早期回避（被ダメージ0・クールダウン3敵ターン）、キーボード操作、敵攻撃予告UI。
 - オンラインの録音共有は明示的なチェックを入れた場合のみ、相手の声ミュート可能。サーバーの公開名/属性/ランク検証、WebSocket連続送信制限。
 - v0.8の録音・試聴・攻撃音声・種族・図鑑・育成・日替わりボス・爆散/WIN演出を維持。
 
@@ -16,7 +16,7 @@
 
 ## TEST_RESULTS
 - Node: `node --check worker.js`, `node test-ui-source.cjs`, `node test-room.cjs`, `node test-matchmaker.cjs`, `node test-moderation.mjs` PASS。
-- Chromium mobile emulation: 初戦終了、STAGE 02、新敵、BGMスライダー、コンソールエラーなしを確認。
+- Chromium mobile emulation: 初戦終了、STAGE 02、新敵、BGMスライダー、コンソールエラーなしを確認。別テストで回避タイミング成功、無傷回避メッセージ、3敵ターンのクールダウンを確認。
 - Android実機、実マイク、Cloudflare本番、2端末の実オンライン対戦は未検証。
 
 ## BLOCKERS
@@ -35,12 +35,3 @@
 ## GITHUB_COMMIT
 - 本ファイルを含むコミットSHA: 更新時にGitHub履歴から確認すること。
 - GitHubコードが正本。Driveは進捗と引き継ぎ資料の正本。
-
-## 2026-10-26 v0.9.1 公開管理
-- GitHub main コミット: 5653cdbd0f4a2da383ebedd30539403fa8db4a3e (ゲーム本体・Worker・モデレーション・テスト・ワークフローの11ファイルを一括更新)。
-- 再取得確認: index.html に v0.9.1 / stageEnemy / musicTick / shareVoice、worker.js に sanitizePublicName、moderation.js、デプロイワークフローが存在。
-- ローカル実行: node --check worker.js, test-ui-source.cjs, test-matchmaker.cjs, test-room.cjs, test-moderation.mjs すべて PASS（禁止語240件）。
-- ブラウザシミュレーション: STAGE 01→02、別の敵、勝利表示、エラーなしを確認。Android実機音声・本番配信・外部二端末オンライン戦は未検証。
-- Driveの開発資料: /OTODAMA∞_WORK開発引き継ぎ/v09/OTODAMA_v091_complete.zip にスナップショット保存。
-- Cloudflare Worker: 設定とコードはGitHubにあるが、本番公開・無料枠サーバーへの実接続は未完了。Cloudflare API認証が必要。
-- NEXT_ACTIONS: (1) GitHub Pages配信内容とAndroidで録音/BGM/声の再生を確認 (2) Cloudflare認証してWorkerデプロイし2端末テスト (3) 敵AI/音楽/連続バトル/禁止ワード誤判定を継続改良。
