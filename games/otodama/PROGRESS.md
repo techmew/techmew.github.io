@@ -40,6 +40,7 @@
 
 ## GITHUB_COMMITS
 - v0.9.3最終既知head: `88f3e5242bd9d7ec2a7645a92e90532acb7b43c4`
-- v0.9.4公開コミット: コミット成功後に追記。
+- v0.9.4主要実装コミット: `21271daefcf4b438edc3d25b66d7dcf9ff87c2c0`（9ファイル）。
+- v0.9.4最終PROGRESSコミット: GitHub更新後にDriveのRUN_REPORTで記録。
 
 GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。未公開/未検証を成功と呼ばない。
