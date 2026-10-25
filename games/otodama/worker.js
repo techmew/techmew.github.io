@@ -1,7 +1,7 @@
 /** OTODAMA ∞ room + random matchmaking server — Cloudflare Workers + Durable Objects
  * Room-code matchmaking, two participants, authoritative (prototype) battle replay.
  * Short recorded attacks are relayed directly peer-to-peer via room DO; not persisted. No accounts or storage.
- * Not hardened for competitive ranked play: client-submitted stats need signing.
+ * Not ranked-safe: voice features remain client-submitted; posted stats are ignored.
  */
 import { DurableObject } from 'cloudflare:workers';
 
@@ -13,7 +13,7 @@ const clamp = (x,min,max) => Math.max(min,Math.min(max,Number(x)||0));
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.3',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.8',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -43,6 +43,17 @@ export class Room extends DurableObject {
     this.send(ps[i],{type:'state',me:i,youReady:!!own.ready,
       players:ps.map(p=>{let a=p.deserializeAttachment()||{};return{name:a.creature?.name||'接続中',ready:!!a.ready}})});
   }}
+  // Recalculate server-side battle stats from bounded voice metrics; ignore client stats.
+  baseStats(v){
+    const z=v||{},vol=z.vol||0,p=z.pitch||0,r=z.res||0,h=z.rhythm||0,st=z.stable||0,br=z.breath||0;
+    return [
+      Math.round(clamp(25+vol*.14+r*.31+br*.18+h*.13,26,95)),
+      Math.round(clamp(22+st*.36+r*.23+br*.12,27,95)),
+      Math.round(clamp(19+p*.38+h*.34,27,95)),
+      Math.round(clamp(24+st*.41+h*.25,27,95)),
+      Math.round(clamp(23+r*.34+p*.29+st*.17,28,95))
+    ];
+  }
   cleanCreature(v){
     if(!v||typeof v!=='object')return null;
     const parts=v.parts||{},voice=v.voice||{};
@@ -52,7 +63,7 @@ export class Room extends DurableObject {
     return{seed:(Number(v.seed)||1)>>>0,name:String(v.name||'オトダマ').slice(0,24),
       element:String(v.element||'音').slice(0,5),type:String(v.type||'不明').slice(0,12),
       rank:String(v.rank||'C').slice(0,2),parts:safeParts,voice:safeVoice,
-      stats:Array.from({length:5},(_,i)=>Math.floor(clamp(v.stats?.[i],25,95)))};
+      stats:this.baseStats(safeVoice)};
   }
   simulate(a,b){
     const fighters=[a,b],max=fighters.map(c=>Math.round(140+c.stats[1]*.6)),hp=max.slice(),events=[];
@@ -86,9 +97,10 @@ export class Room extends DurableObject {
       ws.serializeAttachment({creature,ready:false});this.state();return;
     }
     if(data.type==='voice'){
-      if(!attachment.creature)return;
+      if(!attachment.creature||attachment.sentVoice)return;
       const clip=typeof data.clip==='string'?data.clip:'';
       if(clip.length>100000||(clip&&!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip)))return;
+      ws.serializeAttachment({...attachment,sentVoice:true});
       for(const peer of this.peers())if(peer!==ws)this.send(peer,{type:'voice',clip});
       return;
     }
@@ -137,6 +149,9 @@ export class Matchmaker extends DurableObject {
   pair(){
     let waiting=this.ctx.getWebSockets().filter(w=>w.readyState===1&&w.deserializeAttachment()?.status==='waiting')
       .sort((a,b)=>a.deserializeAttachment().time-b.deserializeAttachment().time);
+    const cutoff=Date.now()-120000;
+    for(const socket of waiting)if(socket.deserializeAttachment()?.time<cutoff){try{socket.send(JSON.stringify({type:'error',message:'待機時間が終了しました。再検索してください'}));socket.close(1000,'expired')}catch{}}
+    waiting=waiting.filter(w=>w.readyState===1&&w.deserializeAttachment()?.time>=cutoff);
     const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     while(waiting.length>=2){
       const a=waiting.shift(),b=waiting.shift();
