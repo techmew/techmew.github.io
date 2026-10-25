@@ -1873,6 +1873,12 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
    ctx.strokeStyle='#2a2136';ctx.lineWidth=1;ctx.strokeRect(s.x,s.y-5,s.w,4);
   }
  }}
+ for(const route of level.upperRoutes||[]){
+  if(route.fromX<camera-90||route.fromX>viewRight+90)continue;
+  ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';ctx.shadowColor='#101529';ctx.shadowBlur=7;
+  ctx.fillStyle='#ffe1a2';ctx.fillText('↑ 激ムズ',route.fromX,route.fromY-107);
+  ctx.fillStyle='#b8f7ff';ctx.fillText('→ 通常',route.fromX+38,route.fromY-20);ctx.restore();
+ }
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
    ctx.fillStyle=active?'#83ffe0':'#ffde89';ctx.fillRect(s.x+39,s.y-82,4,82);
