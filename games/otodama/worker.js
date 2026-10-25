@@ -260,7 +260,7 @@ export class Room extends DurableObject {
       if((await this.ctx.storage.get('live'))?.active)return;
       if(!attachment.creature)return;
       ws.serializeAttachment({...attachment,ready:true});
-      const peers=this.peers();if(peers.length!==2){this.state();return}
+      const peers=this.livePeers();if(peers.length!==2){this.state();return}
       const both=peers.map(s=>s.deserializeAttachment()||{});
       if(both.every(p=>p.creature&&p.ready)){
         for(const p of peers){const a=p.deserializeAttachment();p.serializeAttachment({...a,ready:false})}
