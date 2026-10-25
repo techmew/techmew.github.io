@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.69｜縦画面PC枠・空中敵・星都パララックス</title>
-<meta name="game-build" content="ASTRAL_BREAK_V669_PORTRAIT_ROUTE_CAMERA_VISUALS_20261025" />
+<title>ASTRAL BREAK ∞ V6.70｜縦横対応・上空の強化武器・希少ドロップ</title>
+<meta name="game-build" content="ASTRAL_BREAK_V670_LANDSCAPE_SKY_TREASURE_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -197,7 +197,7 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
 <button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="BGMと効果音のオンオフ" title="BGM・効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="astralStatus" aria-label="星界レーダー"><strong>✦ ASTRAL BREAK ∞</strong><div class="astralMeta" id="astralSector">星雨の序章</div><div class="astralMeta" id="astralEnemies">裂け目探索</div><div class="astralMeta" id="astralWeather">微風 · 通常</div><div class="astralMeta" id="astralThreat">✧ 周辺弾幕：安全</div><div id="astralTrack"><div id="astralMeter"></div></div><label id="astralVolume">BGM <input type="range" id="bgmRange" min="0" max="100" value="30" aria-label="BGM音量"></label></div><div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
-<div id="portraitTip" aria-hidden="true"></div><div id="turnDevice" role="status">✦ ASTRAL BREAK ∞<br>スマホを縦向きにしてください</div><div id="toast"></div>
+<div id="portraitTip" aria-hidden="true"></div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
 </main>
 <script src="./sprites-v35.js"></script>
@@ -263,7 +263,7 @@ function visibleWorldWidth(){return W/gameZoom()}
  // Camera Y targets a readable portrait-screen feet position.
  function rhCameraYTarget(p){
   const zoom=gameZoom(),feet=(p?.y??baseY-PH)+(p?.h??PH),focusY=H*.60;
-  return clamp(feet-(focusY-baseY*(1-zoom))/zoom,-Math.max(260,H*.46),Math.max(210,H*.30));
+  return clamp(feet-(focusY-baseY*(1-zoom))/zoom,-Math.max(520,baseY+480),Math.max(210,H*.30));
  }
  // Pick nearby visible projectiles rather than blindly drawing the newest 40.
  // Physical projectiles remain unchanged, including hits, homing and lifetime.
@@ -441,7 +441,7 @@ function upgradeWeaponMastery(entry,amount=1){
 function hasRelic(id){return relics.includes(id)}
 function weapon(){return WEAPONS.find(w=>w.id===loadout[activeSlot]?.id)||WEAPONS[0]}
 function item(r,diff=0){const pool=WEAPONS.slice(1);return {id:pool[randomInt(r,0,pool.length-1)].id,tier:randomInt(r,0,99)<9+diff*18?3:randomInt(r,0,99)<29+diff*18?2:1,affix:['none','fire','frost','shock','vamp','echo'][randomInt(r,0,5)]}}
-function rarity(tier){return ['','#dce8ff','#68f2fa','#ffc466'][tier]||'#fff'}
+function rarity(tier){return tier>=3?'#ffc466':tier===2?'#68f2fa':'#dce8ff'}
 function itemName(it){
  const w=WEAPONS.find(w=>w.id===it.id)||WEAPONS[0],lv=masteryLevel(it.tier);
  const stars='★'.repeat(Math.floor(lv/33));
@@ -460,13 +460,13 @@ function pickupInReach(c,p,oldX,oldY){
 function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
  const it=c.item,existing=loadout.find(w=>w.id===it.id);
  if(existing){
-   upgradeWeaponMastery(existing,1);
-   if(Math.random()<.32)existing.affix=['fire','frost','shock','vamp','echo'][randomInt(Math.random,0,4)];
-   toast('武器熟練度UP！ '+itemName(existing),1.5);
+   if(c.upperTreasure){existing.tier=Math.max(masteryLevel(existing.tier),masteryLevel(it.tier));existing.affix=it.affix;}else upgradeWeaponMastery(existing,1);
+   if(!c.upperTreasure&&Math.random()<.32)existing.affix=['fire','frost','shock','vamp','echo'][randomInt(Math.random,0,4)];
+   toast((c.upperTreasure?'上空の秘宝！ ':'武器熟練度UP！ ')+itemName(existing),1.5);
  }else if(loadout.length<WEAPONS.length){
    const gained={...it,tier:masteryLevel(it.tier)};
    loadout.push(gained);activeSlot=loadout.length-1;
-   toast('NEW 自動武器 '+itemName(gained),1.5);
+   toast((c.upperTreasure?'上空の秘宝！ ':'NEW 自動武器 ')+itemName(gained),1.5);
  }else{const lucky=loadout[randomInt(Math.random,0,loadout.length-1)];
    upgradeWeaponMastery(lucky,1);toast('全武器獲得！ '+itemName(lucky)+' 強化',1.5)}
  part(c.x,pickupVisualY(c),rarity(it.tier),30);soundCue('weaponpickup')
@@ -866,7 +866,7 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    if(j%3===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
     if(j>=3&&j%4===3){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
    if(j%5===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
-   if(j===Math.floor(count/2))pickups.push({x:q.x+q.w*.48,y:q.y-62,taken:false,type:'weapon',item:{...item(rr,Math.min(1,difficulty+.35)),tier:3}});
+   if(j===Math.floor(count/2))pickups.push({x:q.x+q.w*.48,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
    if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
   }
   // Insert before the exit platform so goal and boss coordinates stay stable.
@@ -1928,8 +1928,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const route of level.upperRoutes||[]){
   if(route.fromX<camera-90||route.fromX>viewRight+90)continue;
   ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';ctx.shadowColor='#101529';ctx.shadowBlur=7;
-  ctx.fillStyle='#ffe1a2';ctx.fillText('↑ ✦',route.fromX,route.fromY-107);
-  ctx.fillStyle='#b8f7ff';ctx.fillText('→',route.fromX+38,route.fromY-20);ctx.restore();
+  ctx.fillStyle='#ffe1a2';ctx.shadowColor='#ffd978';ctx.shadowBlur=12;ctx.fillText('✦',route.fromX,route.fromY-107);ctx.restore();
  }
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
@@ -1996,7 +1995,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.restore();
  }
  for(const s of level.saws){if(s.x<camera-40||s.x>viewRight+40)continue;const y=s.y+Math.sin(clock*s.rate+s.phase)*s.amp,r=s.size;ctx.save();ctx.translate(s.x,y);ctx.rotate(clock*4);for(let k=0;k<12;k++){const a=k*TAU/12;polygon([[Math.cos(a-.15)*r*.75,Math.sin(a-.15)*r*.75],[Math.cos(a)*r*1.28,Math.sin(a)*r*1.28],[Math.cos(a+.15)*r*.75,Math.sin(a+.15)*r*.75]],'#ff9c74')}ctx.beginPath();ctx.arc(0,0,r*.85,0,TAU);ctx.fillStyle='#dbe6f2';ctx.fill();ctx.beginPath();ctx.arc(0,0,r*.32,0,TAU);ctx.fillStyle='#35446a';ctx.fill();ctx.restore();}
- for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>viewRight+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':'★',0,0)}ctx.restore()}
+ for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>viewRight+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);if(c.upperTreasure){ctx.save();ctx.shadowColor='#ffd46e';ctx.shadowBlur=22;ctx.strokeStyle='#ffe2a1';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,24+3*Math.sin(clock*3),0,TAU);ctx.stroke();ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffe4a4';ctx.fillText('★ Lv.'+masteryLevel(c.item.tier),0,-30);ctx.restore()}ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':'★',0,0)}ctx.restore()}
  // Teleport destination is visible before arrival, including when the source is off-screen.
  for(const e of level.enemies){
   if(!e.alive||!(e.blinkWindup>0)||!Number.isFinite(e.blinkDest))continue;
