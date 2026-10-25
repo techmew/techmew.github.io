@@ -1573,12 +1573,32 @@ if(RH_USER_PACK?.url){RH_USER_IMG.decoding='async';RH_USER_IMG.src=RH_USER_PACK.
 // V6.67: 16 original poses supplied by the user, isolated from legacy hero artwork.
 const RH_NEW_LULU=new Image();RH_NEW_LULU.decoding='async';RH_NEW_LULU.src='./hero-lulu-v667.png';
 const RH_LULU_SEQUENCE={idle:[0,1],run:[4,5,6,7],jump:[2,3],fall:[3,2],attack:[8,9,10,11],shoot:[12,13],guard:[11],hurt:[14],crouch:[15]};
-function drawNewLulu(state,time,x,y,w,h,face=1,flash=false){
+// V6.68: Align the boots of every Lulu pose with the physics feet.
+let RH_LULU_FOOT_ROWS=null;
+function rhLuluFootRows(){
+ if(RH_LULU_FOOT_ROWS)return RH_LULU_FOOT_ROWS;
+ if(!RH_NEW_LULU.complete||RH_NEW_LULU.naturalWidth!==192)return null;
+ try{
+  const scan=document.createElement('canvas');scan.width=192;scan.height=192;
+  const cc=scan.getContext('2d',{willReadFrequently:true});cc.drawImage(RH_NEW_LULU,0,0);
+  const rgba=cc.getImageData(0,0,192,192).data,rows=[];
+  for(let frame=0;frame<16;frame++){
+   const col=(frame%4)*48,row=Math.floor(frame/4)*48;let foot=47;
+   scanFoot:for(let y=47;y>=0;y--)for(let x=12;x<36;x++){
+    if(rgba[((row+y)*192+col+x)*4+3]>32){foot=y;break scanFoot}
+   }
+   rows.push(foot);
+  }
+  RH_LULU_FOOT_ROWS=rows;return rows;
+ }catch(_){return null}
+}
+function drawNewLulu(state,time,x,y,w,h,face=1,flash=false,feetY=null){
  if(!RH_NEW_LULU.complete||RH_NEW_LULU.naturalWidth!==192||RH_NEW_LULU.naturalHeight!==192)return false;
  const frames=RH_LULU_SEQUENCE[state]||RH_LULU_SEQUENCE.idle,i=frames[Math.floor(Math.max(0,time))%frames.length];
+ const footRow=rhLuluFootRows()?.[i]??47,drawY=feetY===null?y:feetY-(footRow+1)/48*h;
  ctx.save();ctx.imageSmoothingEnabled=false;if(flash)ctx.filter='brightness(1.7) saturate(.7)';
- if(face<0){ctx.translate(x+w,0);ctx.scale(-1,1);ctx.drawImage(RH_NEW_LULU,(i%4)*48,Math.floor(i/4)*48,48,48,0,0,w,h)}
- else ctx.drawImage(RH_NEW_LULU,(i%4)*48,Math.floor(i/4)*48,48,48,x,y,w,h);
+ if(face<0){ctx.translate(x+w,0);ctx.scale(-1,1);ctx.drawImage(RH_NEW_LULU,(i%4)*48,Math.floor(i/4)*48,48,48,0,drawY,w,h)}
+ else ctx.drawImage(RH_NEW_LULU,(i%4)*48,Math.floor(i/4)*48,48,48,x,drawY,w,h);
  ctx.restore();return true;
 }
 function drawRHUserArt(name,x,y,w,h,face=1,alpha=1){
@@ -2058,7 +2078,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   if(heroSpriteState!==pstate){heroSpriteState=pstate;heroSpriteStart=clock}
   const poseTime=striking?Math.max(0,1-rhPoseRemaining/Math.max(.01,rhPoseLength))*8:(clock-heroSpriteStart)*(pstate==='run'?11+Math.abs(p.vx)/120:3);
   // Render the correct sword/magic/airborne pose. The old hero atlas is never consulted.
-  if(!drawNewLulu(pstate,poseTime,-27,-30,80,70,visualFace,hurtFlash)&&!RH_NEW_LULU.complete){
+  if(!drawNewLulu(pstate,poseTime,-27,-30,80,70,visualFace,hurtFlash,p.h)&&!RH_NEW_LULU.complete){
     ctx.save();ctx.fillStyle='#dcf2ff';ctx.font='12px sans-serif';ctx.fillText('LOADING',-12,12);ctx.restore();
   }
   if(rhGuardActive>0||rhGuardFlash>0){
