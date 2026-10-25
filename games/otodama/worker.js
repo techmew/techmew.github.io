@@ -15,7 +15,7 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.4',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.5',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -30,19 +30,42 @@ export default {
 };
 
 export class Room extends DurableObject {
-  async fetch() {
-    if (this.ctx.getWebSockets().filter(ws=>ws.readyState===1).length>=2)
-      return safeJson({error:'This room is full'},409);
-    const [client,server] = Object.values(new WebSocketPair());
+  async fetch(request) {
+    const active=await this.ctx.storage.get('live');
+    const connected=this.peers();
+    if(connected.length>=2)return safeJson({error:'This room is full'},409);
+    let resumeSeat=-1,resumeToken='';
+    if(active?.active){
+      resumeToken=new URL(request.url).searchParams.get('resume')||'';
+      resumeSeat=active.tokens?.indexOf(resumeToken)??-1;
+      if(!/^[a-f0-9]{32}$/.test(resumeToken)||resumeSeat<0||connected.some(p=>p.deserializeAttachment()?.seat===resumeSeat))
+        return safeJson({error:'Match active: valid resume token required'},409);
+    }
+    const [client,server]=Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({creature:null,ready:false});
+    if(resumeSeat>=0){
+      server.serializeAttachment({creature:active.creatures[resumeSeat],ready:false,seat:resumeSeat,resumeToken});
+      this.send(server,{type:'session',token:resumeToken,seat:resumeSeat});
+      const peers=this.livePeers();
+      if(peers.length===2){
+        active.disconnectedAt=0;
+        await this.ctx.storage.put('live',active);
+        for(let seat=0;seat<2;seat++)this.send(peers[seat],{
+          type:'live_resumed',creatures:seat===0?active.creatures:active.creatures.slice().reverse(),
+          max:seat===0?active.max:active.max.slice().reverse(),
+          hp:seat===0?active.hp:active.hp.slice().reverse(),
+          charge:seat===0?active.charge:active.charge.slice().reverse()
+        });
+        await this.announceLiveTurn(active,peers);
+      }else this.send(server,{type:'live_wait',seconds:15});
+    }else server.serializeAttachment({creature:null,ready:false});
     return new Response(null,{status:101,webSocket:client});
   }
   peers(){return this.ctx.getWebSockets().filter(ws=>ws.readyState===1)}
   send(ws,obj){try{if(ws.readyState===1)ws.send(JSON.stringify(obj))}catch{}}
-  state(){const ps=this.peers();for(let i=0;i<ps.length;i++){
-    const own=ps[i].deserializeAttachment()||{};
-    this.send(ps[i],{type:'state',me:i,youReady:!!own.ready,
+  state(){const ps=this.livePeers();for(const peer of ps){
+    const own=peer.deserializeAttachment()||{};
+    this.send(peer,{type:'state',me:own.seat,youReady:!!own.ready,
       players:ps.map(p=>{let a=p.deserializeAttachment()||{};return{name:a.creature?.name||'接続中',ready:!!a.ready}})});
   }}
   // Browser-supplied battle stats are untrusted. Rebuild them from bounded voice metrics.
@@ -90,7 +113,7 @@ export class Room extends DurableObject {
   }
   // Hibernation-safe authoritative live battle. All HP, skill costs and action windows
   // are decided by the Durable Object clock, never by a client's damage report.
-  livePeers(){return this.peers().filter(p=>p.deserializeAttachment()?.creature).slice(0,2)}
+  livePeers(){return this.peers().filter(p=>p.deserializeAttachment()?.creature).sort((a,b)=>a.deserializeAttachment().seat-b.deserializeAttachment().seat).slice(0,2)}
   liveSend(peers, state, packet){
     for(let seat=0;seat<peers.length;seat++)this.send(peers[seat],{
       ...packet,
@@ -111,7 +134,8 @@ export class Room extends DurableObject {
     const creatures=peers.map(p=>p.deserializeAttachment().creature);
     const max=creatures.map(c=>Math.round(140+c.stats[1]*.6));
     const state={active:true,phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
-      stance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0};
+      stance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0,
+      tokens:peers.map(p=>p.deserializeAttachment().resumeToken),disconnectedAt:0};
     await this.ctx.storage.put('live',state);
     for(let i=0;i<2;i++){this.send(peers[i],{type:'live_start',creatures:i===0?creatures:creatures.slice().reverse(),max:i===0?max:max.slice().reverse(),duration:900});this.sendLatencyProbe(peers[i]);}
     await this.announceLiveTurn(state,peers);
@@ -163,7 +187,13 @@ export class Room extends DurableObject {
   }
   async alarm(){
     const state=await this.ctx.storage.get('live');if(!state?.active)return;
-    const peers=this.livePeers();if(peers.length!==2){await this.ctx.storage.delete('live');return}
+    const peers=this.livePeers();
+    if(peers.length!==2){
+      if(!state.disconnectedAt){state.disconnectedAt=Date.now();await this.ctx.storage.put('live',state)}
+      if(Date.now()<state.disconnectedAt+15000){await this.ctx.storage.setAlarm(state.disconnectedAt+15000);return}
+      for(const peer of peers){this.send(peer,{type:'live_forfeit',winner:0});const a=peer.deserializeAttachment();peer.serializeAttachment({...a,ready:false})}
+      await this.ctx.storage.delete('live');this.state();return;
+    }
     if(state.phase==='telegraph')await this.resolveLiveTurn(state,peers);
     else if(state.phase==='pause')await this.announceLiveTurn(state,peers);
   }
@@ -211,7 +241,12 @@ export class Room extends DurableObject {
       if(attachment.creature)return;
       const creature=this.cleanCreature(data.creature);
       if(!creature){this.send(ws,{type:'error',message:'キャラデータが不正です'});return}
-      ws.serializeAttachment({...attachment,creature,ready:false});this.state();return;
+      const occupied=new Set(this.livePeers().map(p=>p.deserializeAttachment().seat));
+      const seat=occupied.has(0)?1:0;
+      if(occupied.has(seat)){this.send(ws,{type:'error',message:'満室です'});return}
+      const token=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
+      ws.serializeAttachment({...attachment,creature,ready:false,seat,resumeToken:token});
+      this.send(ws,{type:'session',token,seat});this.state();return;
     }
     if(data.type==='voice'){
       if(!attachment.creature||attachment.sentVoice)return;
@@ -235,10 +270,19 @@ export class Room extends DurableObject {
     }
   }
   async webSocketClose(ws){
+    const attachment=ws.deserializeAttachment()||{};
     const active=await this.ctx.storage.get('live');
-    await this.ctx.storage.delete('live');
-    for(const peer of this.peers())if(peer!==ws){
-      if(active?.active)this.send(peer,{type:'live_forfeit',winner:0});
+    if(active?.active){
+      // Unknown sockets must never be able to forfeit a match.
+      if(!Number.isInteger(attachment.seat)||!attachment.resumeToken||active.tokens?.[attachment.seat]!==attachment.resumeToken)return;
+      if(this.livePeers().some(p=>p.deserializeAttachment().seat===attachment.seat))return;
+      if(!active.disconnectedAt)active.disconnectedAt=Date.now();
+      await this.ctx.storage.put('live',active);
+      await this.ctx.storage.setAlarm(active.disconnectedAt+15000);
+      for(const peer of this.livePeers())this.send(peer,{type:'live_wait',seconds:15});
+      return;
+    }
+    for(const peer of this.livePeers()){
       let data=peer.deserializeAttachment();if(data)peer.serializeAttachment({...data,ready:false});
       this.send(peer,{type:'left'});
     }
