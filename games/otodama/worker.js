@@ -1,6 +1,6 @@
 /** OTODAMA ∞ room + random matchmaking server — Cloudflare Workers + Durable Objects
  * Room-code matchmaking, two participants, authoritative (prototype) battle replay.
- * Audio never leaves client. No persistent accounts or cloud storage.
+ * Short recorded attacks are relayed directly peer-to-peer via room DO; not persisted. No accounts or storage.
  * Not hardened for competitive ranked play: client-submitted stats need signing.
  */
 import { DurableObject } from 'cloudflare:workers';
@@ -13,7 +13,7 @@ const clamp = (x,min,max) => Math.max(min,Math.min(max,Number(x)||0));
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.2',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.3',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -55,19 +55,28 @@ export class Room extends DurableObject {
       stats:Array.from({length:5},(_,i)=>Math.floor(clamp(v.stats?.[i],25,95)))};
   }
   simulate(a,b){
-    // Later: server must recompute stats from a validated voice-signature protocol.
-    const max=[Math.round(110+a.stats[1]*.7),Math.round(110+b.stats[1]*.7)];
-    const hp=max.slice(),events=[];
-    for(let turn=0;turn<42&&hp[0]>0&&hp[1]>0;turn++){
-      const atk=turn%2,def=1-atk,A=atk?a:b,B=atk?b:a;
-      const crit=Math.random()<(.08+A.stats[3]/750);
-      const damage=Math.max(3,Math.round(A.stats[0]*.25+A.stats[4]*.12+Math.random()*18-7-B.stats[1]*.10+(crit?13:0)));
-      hp[def]=Math.max(0,hp[def]-damage);events.push({atk,damage,crit,hp:hp.slice()});
+    const fighters=[a,b],max=fighters.map(c=>Math.round(140+c.stats[1]*.6)),hp=max.slice(),events=[];
+    const kinds=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
+    let streak=0,last=-1;
+    for(let turn=0;turn<35&&hp[0]>0&&hp[1]>0;turn++){
+      let atk=turn%2;if(Math.random()<.34)atk=Math.random()<.5?0:1;
+      if(atk===last)streak++;else streak=0;if(streak>=3){atk=1-atk;streak=0}last=atk;
+      const def=1-atk,A=fighters[atk],B=fighters[def];let kind=kinds[Math.floor(Math.random()*kinds.length)];
+      const crit=Math.random()<.08+A.stats[3]/950,hits=['combo','aerial','spin'].includes(kind)?2+Math.floor(Math.random()*4):1;
+      let dodge=Math.random()<.065+B.stats[2]/750,counter=!dodge&&Math.random()<.04+B.stats[3]/1080;
+      if(Math.random()<.065){kind='meteor';dodge=false}
+      let damage=Math.max(4,Math.round((12+A.stats[0]*.2+A.stats[4]*.13-B.stats[1]*.11+(Math.random()*16-6))*(hits>1?1+.15*(hits-1):1)*(crit?1.45:1)));
+      if(dodge)damage=0;else if(counter)damage=Math.max(2,Math.round(damage*.32));
+      const selfDamage=counter?Math.round(10+B.stats[0]*.19+Math.random()*8+2):0;
+      hp[def]=Math.max(0,hp[def]-damage);hp[atk]=Math.max(0,hp[atk]-selfDamage);
+      let recovery=0;if(hp[atk]>0&&hp[atk]<max[atk]*.5&&Math.random()<.11){recovery=Math.round(8+Math.random()*17);hp[atk]=Math.min(max[atk],hp[atk]+recovery)}
+      const arena=Math.random()<.115?['無重力ゾーン','落雷の嵐','残響増幅','空間反転','音速暴走'][Math.floor(Math.random()*5)]:null;
+      events.push({atk,kind,damage,crit,hits,dodge,counter,selfDamage,recovery,arena,hp:hp.slice()});
     }
-    return{events,max,winner:hp[0]>=hp[1]?0:1};
+    return {events,max,winner:hp[0]/max[0]>=hp[1]/max[1]?0:1};
   }
   async webSocketMessage(ws,raw){
-    if(typeof raw!=='string'||raw.length>4096){this.send(ws,{type:'error',message:'無効なメッセージ'});return}
+    if(typeof raw!=='string'||raw.length>120000){this.send(ws,{type:'error',message:'無効なメッセージ'});return}
     let data;try{data=JSON.parse(raw)}catch{return}
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
     if(data.type==='join'){
@@ -75,6 +84,13 @@ export class Room extends DurableObject {
       const creature=this.cleanCreature(data.creature);
       if(!creature){this.send(ws,{type:'error',message:'キャラデータが不正です'});return}
       ws.serializeAttachment({creature,ready:false});this.state();return;
+    }
+    if(data.type==='voice'){
+      if(!attachment.creature)return;
+      const clip=typeof data.clip==='string'?data.clip:'';
+      if(clip.length>100000||(clip&&!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip)))return;
+      for(const peer of this.peers())if(peer!==ws)this.send(peer,{type:'voice',clip});
+      return;
     }
     if(data.type==='ready'){
       if(!attachment.creature)return;
