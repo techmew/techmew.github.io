@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.70｜縦横対応・上空の強化武器・希少ドロップ</title>
-<meta name="game-build" content="ASTRAL_BREAK_V670_LANDSCAPE_SKY_TREASURE_20261025" />
+<title>ASTRAL BREAK ∞ V6.71｜回転復帰・空中探索・武器希少化</title>
+<meta name="game-build" content="ASTRAL_BREAK_V671_ROTATION_SAFE_SKY_EXPLORATION_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -189,6 +189,34 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
  #punch,#jump{width:72px;height:72px;margin:0}
 }
 @media(orientation:landscape){#portraitViewport{width:100vw;max-width:none;left:0;transform:none;box-shadow:none}#hud{top:max(5px,env(safe-area-inset-top));max-height:95px}#stage{font-size:clamp(12px,2.3vh,17px)}#astralStatus{top:8px;right:max(8px,env(safe-area-inset-right));width:140px}#joystick{left:max(6px,env(safe-area-inset-left));bottom:max(5px,env(safe-area-inset-bottom))}#actions{right:max(7px,env(safe-area-inset-right));bottom:max(5px,env(safe-area-inset-bottom))}#menuTiny,#soundTiny,#fullscreenTiny{top:62px!important}#bossBar{top:90px}}
+/* V6.71: compact landscape controls without covering the radar or HP. */
+@media(orientation:landscape) and (max-height:500px){
+ #hud{top:max(5px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));max-height:106px}
+ #hudLeft{max-width:min(44vw,250px)}
+ #stage{max-width:100%;font-size:clamp(12px,2.7vh,16px)}
+ #substats{font-size:10px}
+ #playerHealth{width:min(220px,40vw);padding:3px 7px 4px;font-size:11px;margin:2px 0}
+ #playerHealthTrack{height:8px}
+ #playerXp{width:min(220px,40vw);font-size:10px;margin:1px 0}
+ #xpTrack{height:5px}
+ #weaponStrip{max-width:min(235px,40vw);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #progressTrack{width:min(220px,40vw);margin-top:3px}
+ #astralStatus{top:max(6px,env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));width:136px;padding:5px 6px}
+ #astralStatus .astralMeta:nth-of-type(n+3){display:none}
+ #astralStatus strong{font-size:10px}
+ #astralStatus .astralMeta{margin-top:2px;font-size:9px}
+ #astralVolume{margin-top:3px}
+ #menuTiny,#soundTiny,#fullscreenTiny{top:max(12px,env(safe-area-inset-top))!important;width:32px;height:32px;padding:0;border-radius:10px;font-size:16px;display:grid;place-items:center}
+ #menuTiny{right:max(152px,calc(env(safe-area-inset-right) + 146px))!important}
+ #soundTiny{right:max(188px,calc(env(safe-area-inset-right) + 182px))!important}
+ #fullscreenTiny{right:max(224px,calc(env(safe-area-inset-right) + 218px))!important}
+ #bossBar{top:108px;left:50%;width:min(34vw,210px)}
+ #joystick{width:112px;height:112px}
+ #joyBase{width:90px;height:90px}
+ #actions{gap:7px}
+ #punch,#jump{width:64px;height:64px;margin:0;font-size:11px}
+ #moveZone{top:31%;width:43%}
+}
 </style>
 </head>
 <body>
@@ -505,13 +533,13 @@ function survivorDraft(){
  for(let n=0;n<gained;n++){
   const options=survivorOffer();
   if(options.length){const offer=options[Math.floor(Math.random()*options.length)];const existing=loadout.find(w=>w.id===offer.id);
-   if(existing)upgradeWeaponMastery(existing,1);else loadout.push({id:offer.id,tier:1,affix:['fire','frost','shock','none'][randomInt(Math.random,0,3)]});
+   if(existing)upgradeWeaponMastery(existing,1);else if(Math.random()<1/3)loadout.push({id:offer.id,tier:1,affix:['fire','frost','shock','none'][randomInt(Math.random,0,3)]});else if(loadout.length)upgradeWeaponMastery(loadout[randomInt(Math.random,0,loadout.length-1)],1);
   }
   if(player){player.maxhp=(player.maxhp||7)+1;player.hp=Math.min(player.maxhp,(player.hp||1)+2)}
  }
  survivorPanel.style.display='none';
  part(player.x+player.w/2,player.y+player.h/2,'#a5f8ff',25,1.2);
- showLevelUpNotice(gained);toast('LEVEL '+survivorLevel+'！ HP回復・新武器自動強化',2.2);soundCue('levelup');saveState();updateHud(true);
+ showLevelUpNotice(gained);toast('LEVEL '+survivorLevel+'！ HP回復・武器強化',2.2);soundCue('levelup');saveState();updateHud(true);
 }
 const levelNotice=document.createElement('div');levelNotice.id='levelNotice';levelNotice.setAttribute('aria-live','polite');document.body.appendChild(levelNotice);
 let levelNoticeTimer=0;
@@ -821,7 +849,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
 }
 function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c+'66');g.addColorStop(1,c+'00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
 
-function resize(){const oldW=W,oldH=H;W=Math.max(1,$('portraitViewport').clientWidth||window.innerWidth);H=Math.max(1,$('portraitViewport').clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel(true,player?.hp)}if(level&&player)cameraY=rhCameraYTarget(player);if(level&&mode==='survivorDraft')draw()}
+function resize(){const oldW=W,oldH=H;W=Math.max(1,$('portraitViewport').clientWidth||window.innerWidth);H=Math.max(1,$('portraitViewport').clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel(true,player?.hp)}if(level&&player){camera=clamp(rhCameraTarget(player,visibleWorldWidth(),level.totalX),0,Math.max(0,level.totalX-visibleWorldWidth()));cameraY=rhCameraYTarget(player)}if(level&&mode==='survivorDraft')draw()}
 window.addEventListener('resize',resize);
 // Conservative, single-jump procedural route, independent of relics and dash.
 // V6.33: Minimum jump rise makes quick touch taps useful at platform gaps.
@@ -863,9 +891,9 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(78+rr()*21),kind,active:true,collapse:0,upperRoute:true,routeId:routes.length+1};
    if(kind==='moving')Object.assign(q,{anchorX:q.x,anchorY:q.y,phase:rr()*TAU,rate:.6+rr()*.35,ampX:7,ampY:7});
    pieces.push(q);
-   if(j%3===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
-    if(j>=3&&j%4===3){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
-   if(j%5===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
+   if(j%7===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
+    if(j>=4&&j%9===4){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
+   if(j%11===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
    if(j===Math.floor(count/2))pickups.push({x:q.x+q.w*.48,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
    if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
   }
@@ -964,7 +992,7 @@ function createLevel(respawn=false,carryHp=null){
  const decor=[];for(let j=0;j<135;j++)decor.push({x:j*randomInt(r,75,155)+randomInt(r,-50,50),h:randomInt(r,52,270),w:randomInt(r,16,80),layer:randomInt(r,0,1),glow:r()});
  const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty);
  const goalX=prev.x+prev.w-39;
- level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,upperRoutes,goalX,totalX:prev.x+prev.w,difficulty};
+ level={seed:levSeed,groundBaseY:baseY,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,upperRoutes,goalX,totalX:prev.x+prev.w,difficulty};
  const cp=checkpointIndex>0?platforms.find(p=>p.checkpointId===checkpointIndex):null;
  checkpointX=cp?cp.x+44:0;
  camera=0;cameraY=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn,carryHp);updateHud(true);
@@ -1012,7 +1040,7 @@ function begin(newSeed=randSeed(),idx=0,d=0,restore=null){resetInputs();seed=cla
   showClear();return;
  }
  overlay.classList.add('hidden');saveState();soundCue('stage');if(survivorPending)survivorDraft()}
-function showMenu(){if(mode==='playing'||mode==='clear'||mode==='survivorDraft')saveState();resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる超高難度ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。<strong>左ぷにコンを下に引きながら攻撃でガード。最初の0.16秒がジャストガード！</strong></strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、SHIFT=ガード、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
+function showMenu(){if(mode==='playing'||mode==='clear'||mode==='survivorDraft')saveState();resetInputs();mode='menu';overlay.classList.remove('hidden');panel.innerHTML=`<div class="eyebrow">1,000,000,000 SEEDS · 8 WORLDS · 24 LEVELS</div><h1>ASTRAL<br><span>BREAK ∞</span></h1><p>${STORY[0].start}<br><br>毎回変わる星界探索ローグライト・アクション。<br>属性効果・広大な地形・中間地点・跳躍床・敵AI・罠・8体のボスが変化する。</p><div class="pillRow"><span class="pill">⚔ ${WEAPONS.length}武器種</span><span class="pill">👹 敵${ENEMY_TYPES.length}系統</span><span class="pill">💀 ボス8種類</span><span class="pill">🪽 二段ジャンプ</span><span class="pill">💠 レリック10種</span></div><div class="panelBtns"><button id="newGame" class="primary">✦ 新しい星界へ</button>${save?'<button id="continueGame" class="secondary">▶ 続きから</button>':''}</div><div class="help">スマホ：<strong>左端のスティックを大きく倒すほど高速移動</strong> ｜ 攻撃・ジャンプ<br>ジャンプをもう一度押すと<strong>二段ジャンプ</strong>。<strong>攻撃ボタン長押しで所持する全武器を一斉発射！放すと攻撃停止。<strong>左ぷにコンを下に引きながら攻撃でガード。最初の0.16秒がジャストガード！</strong></strong>出口の番人を倒して道を開く。死亡すると最初から。<br>PC：← → / A D =移動、SPACE=ジャンプ、J=攻撃、SHIFT=ガード、K=ダッシュ、M=効果音切替<br>攻撃方法と属性効果は武器によって変化。中間地点は各ステージ2か所。ボスはHP半分で第二段階に移行。<br>最高到達 ${best}/24　総死亡 ${deaths}　総撃破 ${kills}</div>`;
  $('newGame').onclick=()=>begin(randSeed());
  if(save)$('continueGame').onclick=()=>begin(save.seed,save.levelIndex,save.deaths,save);
 }
@@ -1584,7 +1612,7 @@ function findHomingTarget(q){
  for(const sp of level.spikes)if(rhPlayerSweptHazardHit(oldX,oldY,p,sp.x,sp.y-20,sp.w,20)&&lethal('トゲに接触'))return;
  for(const sw of level.saws){const sy=sw.y+Math.sin(clock*sw.rate+sw.phase)*sw.amp;const prevSy=sw.y+Math.sin((clock-dt)*sw.rate+sw.phase)*sw.amp;if(rhSweptCirclePlayerHit(sw.x,prevSy,sw.x,sy,sw.size-2,oldX,oldY,p)&&lethal('ノコギリに接触'))return}
  for(const l of level.lasers)if(rhLaserCycle(l,clock,level.world).active&&rhPlayerSweptHazardHit(oldX,oldY,p,l.x-5,l.y-168,10,168,4,3,8,4)&&lethal('レーザーに接触'))return;
- if(p.y>H+190||p.y>baseY+360){
+ if(p.y>(level.groundBaseY??level.platforms[0].y)+360){
    // Falling always discards every collected/upgraded weapon; relics and survivor XP remain.
    const lostWeapons=rhResetWeaponsOnFall();
    const tookDamage=lethal('奈落へ落下');
@@ -2321,11 +2349,11 @@ window.addEventListener('blur',resetInputs);
 window.addEventListener('pagehide',()=>{resetInputs();if(mode==='playing')saveState()});
 window.addEventListener('pageshow',()=>{resetInputs();frame.prev=0});
 window.addEventListener('focus',()=>{resetInputs();frame.prev=0});
-window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0});
+window.addEventListener('orientationchange',()=>{resetInputs();frame.prev=0;requestAnimationFrame(resize);setTimeout(resize,200)});
 // Browser chrome can only be hidden through Fullscreen API after a real user gesture.
 $('fullscreenTiny').addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(!document.documentElement.requestFullscreen)throw Error('unsupported');await document.documentElement.requestFullscreen({navigationUI:'hide'});}else{await document.exitFullscreen()}}catch(_){toast('ブラウザの全画面表示が使えません。ホーム画面に追加して起動してください',3)}resize()});
 document.addEventListener('fullscreenchange',()=>{$('fullscreenTiny').textContent='⛶';resize()});
-if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs(window.innerHeight-H)>1)resize()});
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(Math.abs($('portraitViewport').clientWidth-W)>1||Math.abs($('portraitViewport').clientHeight-H)>1)resize()});
 $('soundTiny').addEventListener('click',toggleSound);
 $('menuTiny').addEventListener('click',()=>{if(mode==='gameover'){save=null;showMenu();return}showMenu()});
 document.addEventListener('visibilitychange',()=>{resetInputs();frame.prev=0;if(document.hidden&&mode==='playing'){showMenu()}});
