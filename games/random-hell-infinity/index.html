@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.71｜回転復帰・空中探索・武器希少化</title>
-<meta name="game-build" content="ASTRAL_BREAK_V671_ROTATION_SAFE_SKY_EXPLORATION_20261025" />
+<title>ASTRAL BREAK ∞ V6.72｜上空の秘宝・縦横カメラ・星界風景</title>
+<meta name="game-build" content="ASTRAL_BREAK_V672_CAMERA_TREASURE_WORLD_ART_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -290,8 +290,9 @@ function visibleWorldWidth(){return W/gameZoom()}
  }
  // Camera Y targets a readable portrait-screen feet position.
  function rhCameraYTarget(p){
-  const zoom=gameZoom(),feet=(p?.y??baseY-PH)+(p?.h??PH),focusY=H*.60;
-  return clamp(feet-(focusY-baseY*(1-zoom))/zoom,-Math.max(520,baseY+480),Math.max(210,H*.30));
+  const zoom=gameZoom(),feet=(p?.y??baseY-PH)+(p?.h??PH),focusY=H*(H<=500?.67:.60);
+  const vy=Number.isFinite(p?.vy)?p.vy:0,verticalLead=clamp(vy*.115,-85,25);
+  return clamp(feet-(focusY-baseY*(1-zoom))/zoom+verticalLead,-Math.max(520,baseY+480),Math.max(210,H*.30));
  }
  // Pick nearby visible projectiles rather than blindly drawing the newest 40.
  // Physical projectiles remain unchanged, including hits, homing and lifetime.
@@ -330,7 +331,7 @@ function rhTriggerPose(type,face,slot){
 let best=0,save=null;
 let muted=false,activeSlot=0,loadout=[],relics=[],kills=0,combo=0,comboTimer=0,maxCombo=0,stageTime=0,runScore=0,stamina=1,airDash=1,bulletsFriendly=[],slashes=[],hazardTelegraphs=[],pendingDamage=0,hudTick=0,slowMotion=0;
 let runStats={kills:0,shots:0,attacks:0,airJumps:0,bosses:0};
-let checkpointIndex=0,checkpointX=0,checkpointStage=-1,springCooldown=0,vampCharge=0,rhCheckpointFlash=0;
+let checkpointIndex=0,checkpointX=0,checkpointStage=-1,springCooldown=0,vampCharge=0,rhCheckpointFlash=0,rhCheckpointResumeGlow=0;
 // V6.26: timed stomp chain is transient gameplay state; save format is unchanged.
 let stompChain=0,stompChainTimer=0;
 const LORE=[
@@ -887,14 +888,15 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    const desiredY=from.y+(to.y-from.y)*t-(310+world*9+stage*12)*Math.sin(Math.PI*t);
    const previousY=pieces.length?pieces[pieces.length-1].y:from.y;
    const yy=Math.max(desiredY,previousY-(70+Math.min(10,world))); // reliable ascent
-   const kind=j%6===0?'moving':j%4===0?'crumble':'solid';
-   const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(78+rr()*21),kind,active:true,collapse:0,upperRoute:true,routeId:routes.length+1};
+   const treasureStep=j===Math.floor(count/2);
+   const kind=treasureStep?'solid':j%6===0?'moving':j%4===0?'crumble':'solid';
+   const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(treasureStep?116+rr()*12:78+rr()*21),kind,active:true,collapse:0,upperRoute:true,treasurePlatform:treasureStep,routeId:routes.length+1};
    if(kind==='moving')Object.assign(q,{anchorX:q.x,anchorY:q.y,phase:rr()*TAU,rate:.6+rr()*.35,ampX:7,ampY:7});
    pieces.push(q);
-   if(j%7===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
-    if(j>=4&&j%9===4){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
-   if(j%11===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
-   if(j===Math.floor(count/2))pickups.push({x:q.x+q.w*.48,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
+   if(!treasureStep&&j%7===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
+    if(!treasureStep&&j>=4&&j%9===4){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
+   if(!treasureStep&&j%11===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
+   if(treasureStep)pickups.push({x:q.x+q.w*.48,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
    if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
   }
   // Insert before the exit platform so goal and boss coordinates stay stable.
@@ -1011,6 +1013,7 @@ function makeEnemy(r,p,x,difficulty,forcedKind=null){
 
 // V6.58: HP is a run-wide resource. A new run starts full; stage transitions and saves carry the actual remaining HP.
 function resetPlayer(respawn=false,carryHp=null){const cp=checkpointIndex>0?level.platforms.find(p=>p.checkpointId===checkpointIndex):null,spawn=cp?cp.x+44:93;
+ rhCheckpointResumeGlow=respawn&&cp?2.2:0;
  const maxhp=7+Math.max(0,survivorLevel-1);
  const validCarry=carryHp!==null&&carryHp!==undefined&&Number.isFinite(Number(carryHp));
  const hp=validCarry?clamp(Math.floor(Number(carryHp)),1,maxhp):maxhp;
@@ -1406,7 +1409,7 @@ function update(dt){
  if(damageFlashTimer>0){damageFlashTimer=Math.max(0,damageFlashTimer-dt);$('damageFlash').style.opacity=String(damageFlashTimer*.28)}
  if(mode==='gameover')return;
  if(mode!=='playing')return;
- rhCheckpointFlash=Math.max(0,rhCheckpointFlash-dt);
+ rhCheckpointFlash=Math.max(0,rhCheckpointFlash-dt);rhCheckpointResumeGlow=Math.max(0,rhCheckpointResumeGlow-dt);
  const p=player;
  for(const h of level.skyTraps){
   if(!h.alive)continue;
@@ -1633,7 +1636,7 @@ function findHomingTarget(q){
  // V6.52: directional camera anticipation exposes hazards ahead of a moving Lulu.
  // Do not change player velocity, collisions, jump physics or saved camera state.
  camera+=(rhCameraTarget(p,visibleWorldWidth(),level.totalX)-camera)*Math.min(1,dt*8);
-  cameraY+=(rhCameraYTarget(p)-cameraY)*Math.min(1,dt*6.5);
+  cameraY+=(rhCameraYTarget(p)-cameraY)*Math.min(1,dt*(p.vy<0?11.5:7.5));
  if(Math.random()<.12&&Math.abs(p.vx)>115&&p.grounded){part(p.x,p.y+p.h,'#d3f1ff',1,.12);soundCue('footstep')}
  updateHud();
 }
@@ -1642,6 +1645,51 @@ const RH_W1_ART={};
 for(const [key,file] of Object.entries({far:'w1-star-city-far.webp',ground:'w1-ground-center.webp',checkpoint:'w1-checkpoint.webp'})){
  const img=new Image();img.decoding='async';img.src='./'+file;RH_W1_ART[key]=img;
 }
+
+// V6.72: World-specific two-axis parallax silhouettes; image assets remain a separate task.
+function rhDrawWorldParallax(){
+ if(!level||level.world===0)return;
+ const world=level.world,t=level.theme;
+ ctx.save();
+ for(let layer=0;layer<2;layer++){
+  const stride=layer?148:228,scroll=camera*(layer?.21:.075),shift=((scroll%stride)+stride)%stride;
+  const y=Math.round(H*(layer?.66:.53)-cameraY*(layer?.23:.085));
+  ctx.globalAlpha=layer?.33:.19;ctx.fillStyle=layer?t.near:t.far;ctx.strokeStyle=t.edge;
+  for(let i=-2;i<Math.ceil(W/stride)+2;i++){
+   const x=Math.round(i*stride-shift),h=layer?112:78;
+   switch(world){
+    case 1: // Mirrored crystal city.
+     ctx.fillRect(x+34,y-h,28,h+37);ctx.fillRect(x+24,y-h+19,10,h-7);
+     ctx.fillRect(x+62,y-h+24,12,h-13);
+     for(let k=0;k<4;k++)ctx.fillRect(x+12+k*23,y+42+k*4,18,3);break;
+    case 2: // Emerald forest canopy.
+     ctx.fillRect(x+47,y-62,17,118);ctx.fillRect(x+11,y-99,90,25);
+     ctx.fillRect(x+21,y-124,69,25);ctx.fillRect(x+34,y-140,43,17);break;
+    case 3: // Frozen clock towers.
+     ctx.fillRect(x+29,y-h,59,h+55);ctx.fillRect(x+18,y-h+9,81,9);
+     ctx.fillStyle=t.edge;ctx.fillRect(x+57,y-h+24,4,19);ctx.fillRect(x+57,y-h+40,14,4);
+     ctx.fillStyle=layer?t.near:t.far;break;
+    case 4: // Celestial sea waves.
+     for(let k=0;k<4;k++){ctx.fillRect(x+10+(k%2)*17,y+k*17,90,5);ctx.fillRect(x+30+(k%3)*11,y+k*17-6,32,6)}
+     ctx.fillRect(x+65,y-77,9,9);ctx.fillRect(x+77,y-101,5,5);break;
+    case 5: // Silver palace and arched windows.
+     ctx.fillRect(x+16,y-h+24,96,h+55);ctx.fillRect(x+37,y-h-15,50,40);
+     ctx.fillRect(x+53,y-h-38,19,23);
+     for(let k=0;k<3;k++){ctx.fillStyle=t.sky[0];ctx.fillRect(x+28+k*26,y-35,10,25);ctx.fillStyle=layer?t.near:t.far}break;
+    case 6: // Memory constellations.
+     ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+12,y-70);ctx.lineTo(x+51,y-121);
+     ctx.lineTo(x+95,y-58);ctx.lineTo(x+123,y-104);ctx.stroke();
+     for(const [dx,dy] of [[12,-70],[51,-121],[95,-58],[123,-104]])ctx.fillRect(x+dx-4,y+dy-4,9,9);break;
+    case 7: // Dawn temples.
+     ctx.fillRect(x+23,y-h+28,92,h+57);ctx.fillRect(x+36,y-h+10,65,19);
+     ctx.fillRect(x+48,y-h-11,42,22);ctx.fillRect(x+63,y-h-31,12,20);
+     ctx.fillStyle=t.accent;ctx.fillRect(x+68,y-h-49,4,14);ctx.fillStyle=layer?t.near:t.far;break;
+   }
+  }
+ }
+ ctx.restore();
+}
+
 function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.sky[0]);g.addColorStop(1,t.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
  if(level?.world===0&&RH_W1_ART.far.complete&&RH_W1_ART.far.naturalWidth){
   const img=RH_W1_ART.far,scale=Math.max((W+80)/img.naturalWidth,(H+120)/img.naturalHeight);
@@ -1658,6 +1706,7 @@ function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient
   }
   ctx.restore();
  }
+ rhDrawWorldParallax();
  const moonX=W*.79-camera*.025,moonY=H*.25-cameraY*.045;
  const glow=ctx.createRadialGradient(moonX,moonY,5,moonX,moonY,180);glow.addColorStop(0,t.accent+'48');glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.fillRect(moonX-180,moonY-180,360,360);
  // Celestial rift with animated shattered orbit in every procedural biome.
@@ -1935,6 +1984,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  }
   // Physical top remains visible after the ground texture is painted.
   ctx.fillStyle=s.upperRoute?'#ffe2a5':t.edge;ctx.globalAlpha=.92;ctx.fillRect(s.x,s.y,s.w,3);ctx.globalAlpha=1;
+  if(s.treasurePlatform){ctx.save();ctx.fillStyle='#ffe4a0';ctx.shadowColor='#ffcc70';ctx.shadowBlur=13;ctx.globalAlpha=.7+.2*Math.sin(clock*3);ctx.fillRect(s.x+4,s.y-3,s.w-8,4);ctx.fillRect(s.x+s.w*.5-4,s.y-13,8,5);ctx.restore()}
   ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
   const warning=rhCrumblePhase(s.collapse);
   ctx.fillStyle=warning.critical?'#ff7897':warning.active?'#ffcc87':'#ffe3b6';
@@ -1961,11 +2011,12 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
    if(level.world===0&&RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth){
-     if(active&&rhCheckpointFlash>0){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointFlash/1.25*.85);ctx.strokeStyle='#b5fff3';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,26+(1-rhCheckpointFlash/1.25)*22,37+(1-rhCheckpointFlash/1.25)*15,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
+     if(active&&rhCheckpointFlash>0&&s.checkpointId===checkpointIndex){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointFlash/1.25*.85);ctx.strokeStyle='#b5fff3';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,26+(1-rhCheckpointFlash/1.25)*22,37+(1-rhCheckpointFlash/1.25)*15,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
       ctx.save();ctx.globalAlpha=active?1:.73;ctx.shadowColor=active?'#a4fff3':'#ffd8a4';ctx.shadowBlur=active?12:5;
      ctx.drawImage(RH_W1_ART.checkpoint,s.x+20,s.y-91+Math.sin(clock*2+s.checkpointId)*1.5,86,90);
      ctx.restore();ctx.fillStyle=active?'#b7ffe7':'#ffdfac';ctx.font='bold 11px system-ui';ctx.textAlign='center';
-     ctx.fillText(active?'✦ 起動済':'✧ CHECK '+s.checkpointId,s.x+63,s.y-100);
+     if(active&&s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointResumeGlow/2.2);ctx.strokeStyle='#b9e7ff';ctx.shadowColor='#8be7ff';ctx.shadowBlur=16;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,32+Math.sin(clock*7)*4,41,0,0,TAU);ctx.stroke();ctx.restore()}
+      ctx.fillText(active?(s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0?'✦ 再開地点':'✦ 起動済'):'✧ CHECK '+s.checkpointId,s.x+63,s.y-100);
    }else{
    ctx.fillStyle=active?'#83ffe0':'#ffde89';ctx.fillRect(s.x+39,s.y-82,4,82);
    polygon([[s.x+43,s.y-79],[s.x+90,s.y-66],[s.x+43,s.y-51]],active?'#83ffe0':'#ffde89');
