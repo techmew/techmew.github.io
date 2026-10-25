@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.79｜世界別の床・星晶と背景先読み</title>
-<meta name="game-build" content="ASTRAL_BREAK_V679_WORLD_PIXEL_ATLASES_CRYSTAL_STATES_20261025" />
+<title>ASTRAL BREAK ∞ V6.80｜世界別の床・星晶と背景先読み</title>
+<meta name="game-build" content="ASTRAL_BREAK_V680_SAFE_ROUTE_SKY_XP_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -513,7 +513,9 @@ function absorbPickup(c){c.taken=true;const p=player;if(c.type==='weapon'){
  if(c.relic==='shield')p.shield=1;
  part(c.x,c.y,'#dac3ff',26);soundCue('relic')
  }else if(c.type==='shield'){p.shield=1;toast('シールド1枚');soundCue('shield')}
- else if(c.type==='score'){score+=50+combo*10;soundCue('coin')}
+ else if(c.type==='starxp'){
+  survivorGainXP(c.xp||10,c.x,c.y);score+=100;toast('上空の星光 '+(c.xp||10)+' EXP +100 SCORE',1.5);soundCue('coin');
+ }else if(c.type==='score'){score+=50+combo*10;soundCue('coin')}
 
  saveState();updateHud(true);
 }
@@ -882,6 +884,13 @@ function rhCrumblePhase(remaining){
  return {active:true,ratio,critical:ratio<=1/3};
 }
 // V6.68: optional high-skill route, deterministic and separate from the safe main route.
+/* V6.80: protect normal-route spawn and checkpoints before optional upper hazards. */
+function rhProtectNormalRoute(platforms,spikes,saws,lasers,enemies,skyTraps){
+ const shelters=platforms.filter((p,i)=>i===0||p.checkpointId>0);
+ const near=(x,y)=>shelters.some(p=>x>=p.x-45&&x<=p.x+p.w+55&&y>=p.y-170&&y<=p.y+52);
+ for(const [arr,point] of [[spikes,q=>[q.x+q.w*.5,q.y-10]],[saws,q=>[q.x,q.y]],[lasers,q=>[q.x,q.y-70]],[enemies,q=>[q.x+q.w*.5,q.y+q.h*.5]],[skyTraps,q=>[q.x,q.y]]])
+  for(let i=arr.length-1;i>=0;i--){const [x,y]=point(arr[i]);if(near(x,y))arr.splice(i,1)}
+}
 function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty){
  const rr=rngGen(hash(levSeed^0x5c91a47d));
  const sections=stage===0?[[2,5]]:stage===1?[[2,5],[8,11]]:[[2,5],[7,10],[12,15]];
@@ -906,7 +915,10 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    if(!treasureApproach&&j%7===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
     if(!treasureApproach&&j>=4&&j%9===4){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
    if(!treasureApproach&&j%11===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
-   if(treasureStep)pickups.push({x:q.x+q.w*.48,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
+   if(treasureStep){
+     pickups.push({x:q.x+q.w*.39,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
+     pickups.push({x:q.x+q.w*.79,y:q.y-50,taken:false,type:'starxp',xp:10+world*3+stage*2,upperRouteBonus:true});
+    }
    if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
   }
   // Insert before the exit platform so goal and boss coordinates stay stable.
@@ -938,9 +950,9 @@ function createLevel(respawn=false,carryHp=null){
       anchorX:bridgeX,anchorY:bridgeY,phase:r()*TAU,rate:.7+r()*.8,ampX:8+r()*17,ampY:9+r()*20});
   }
   platforms.push(p);
-  if(i>1&&!cpId&&chance(r,.29+difficulty*.24))saws.push({x:prev.x+prev.w+gap*.5,y:Math.min(prev.y,p.y)-55,amp:randomInt(r,13,38),phase:r()*TAU,rate:randomInt(r,2,5)*.72,size:randomInt(r,12,19)});
+  if(i>1&&!cpId&&chance(r,.14+difficulty*.08))saws.push({x:prev.x+prev.w+gap*.5,y:Math.min(prev.y,p.y)-55,amp:randomInt(r,13,38),phase:r()*TAU,rate:randomInt(r,2,5)*.72,size:randomInt(r,12,19)});
   // Moveable rotor and timed lightning mine in the air over gaps, avoid safe checkpoints.
-  if(i>=2&&!cpId&&!final&&(i%2===0||chance(r,.43+difficulty*.25))){
+  if(i>=2&&!cpId&&!final&&(i%4===0||chance(r,.14+difficulty*.10))){
    const rotor=i%3===0,homeY=Math.min(prev.y,p.y)-randomInt(r,82,128);
    skyTraps.push({x:prev.x+prev.w+gap*.5,y:homeY,homeY,w:0,h:0,
     r:rotor?15:18,type:rotor?'rotor':'pulse',phase:r()*TAU,
@@ -953,8 +965,8 @@ function createLevel(respawn=false,carryHp=null){
    if(h===0){spikes.push({x:p.x+p.w*(.41+r()*.18),y:p.y,w:randomInt(r,28,51)})}
    if(h===1||h===4||h===5){enemies.push(makeEnemy(r,p,p.x+p.w*(.45+r()*.22),difficulty));if(i>4&&chance(r,.26+difficulty*.24)){enemies.push(makeEnemy(r,p,p.x+p.w*.73,difficulty))}}
    // Increasing swarms: flyers available from world 1, high-HP elites mixed into each stage.
-   if(i>1){
-     const count=Math.min(5,2+Math.floor(world/4)+randomInt(r,0,2));
+   if(i>2&&!cpId&&(h===1||h===4||h===5)){
+      const count=1+(world>=4&&chance(r,.28)?1:0);
      for(let j=0;j<count;j++){
        const position=p.x+30+(p.w-60)*(j+1)/(count+1);
        const kind=(j===count-1&&(i%3===0||chance(r,.28)))?(world>=4&&chance(r,.4)?10:3):null;
@@ -962,8 +974,11 @@ function createLevel(respawn=false,carryHp=null){
      }
    }
    if(h===2&&i>=3)lasers.push({x:p.x+p.w*(.42+r()*.15),y:p.y,offset:r()*3.3,period:1.8+r()*1.7});
-   if(i>3&&!cpId&&chance(r,.20+difficulty*.15))lasers.push({x:p.x+p.w*(.43+r()*.17),y:p.y,offset:r()*4,period:2.1+r()*1.8});
-   if(i>4&&!cpId&&chance(r,.19+difficulty*.1))spikes.push({x:p.x+p.w*(.57+r()*.10),y:p.y,w:randomInt(r,18,36)});
+   // At most one secondary trap on an otherwise empty landing.
+   if(i>3&&!cpId&&h===3&&chance(r,.09+difficulty*.08))
+    lasers.push({x:p.x+p.w*(.43+r()*.17),y:p.y,offset:r()*4,period:2.1+r()*1.8});
+   else if(i>4&&!cpId&&h===3&&chance(r,.07+difficulty*.05))
+    spikes.push({x:p.x+p.w*(.57+r()*.10),y:p.y,w:randomInt(r,18,36)});
    if(h===3&&chance(r,.35))pickups.push({x:p.x+p.w*.53,y:p.y-78,taken:false,type:'shield'});
    if(!cpId&&chance(r,.34))pickups.push({x:p.x+p.w*(.29+r()*.43),y:p.y-63,taken:false,type:'score'});
    if((i===2||i===Math.floor(amount*.48)||i===amount-2||i%4===0)&&chance(r,1/3)){pickups.push({x:p.x+p.w*.24,y:p.y-90,taken:false,type:'weapon',item:item(r,difficulty)})}
@@ -1002,7 +1017,8 @@ function createLevel(respawn=false,carryHp=null){
  }
  const title=namesA[randomInt(r,0,namesA.length-1)]+namesB[randomInt(r,0,namesB.length-1)];
  const decor=[];for(let j=0;j<135;j++)decor.push({x:j*randomInt(r,75,155)+randomInt(r,-50,50),h:randomInt(r,52,270),w:randomInt(r,16,80),layer:randomInt(r,0,1),glow:r()});
- const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty);
+ rhProtectNormalRoute(platforms,spikes,saws,lasers,enemies,skyTraps);
+  const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty);
  const goalX=prev.x+prev.w-39;
  level={seed:levSeed,groundBaseY:baseY,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,upperRoutes,goalX,totalX:prev.x+prev.w,difficulty};
  rhGetStageBackground(); // preload this and the next stage without touching RNG
@@ -2266,7 +2282,7 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.restore();
  }
  for(const s of level.saws){if(s.x<camera-40||s.x>viewRight+40)continue;const y=s.y+Math.sin(clock*s.rate+s.phase)*s.amp,r=s.size;ctx.save();ctx.translate(s.x,y);ctx.rotate(clock*4);for(let k=0;k<12;k++){const a=k*TAU/12;polygon([[Math.cos(a-.15)*r*.75,Math.sin(a-.15)*r*.75],[Math.cos(a)*r*1.28,Math.sin(a)*r*1.28],[Math.cos(a+.15)*r*.75,Math.sin(a+.15)*r*.75]],'#ff9c74')}ctx.beginPath();ctx.arc(0,0,r*.85,0,TAU);ctx.fillStyle='#dbe6f2';ctx.fill();ctx.beginPath();ctx.arc(0,0,r*.32,0,TAU);ctx.fillStyle='#35446a';ctx.fill();ctx.restore();}
- for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>viewRight+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);if(c.upperTreasure){ctx.save();ctx.globalAlpha=.12+.08*Math.sin(clock*2);ctx.fillStyle='#ffe5a1';ctx.fillRect(-7,-82,14,70);ctx.fillStyle='#fff6c7';ctx.fillRect(-2,-78,4,64);ctx.restore();ctx.save();ctx.shadowColor='#ffd46e';ctx.shadowBlur=22;ctx.strokeStyle='#ffe2a1';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,24+3*Math.sin(clock*3),0,TAU);ctx.stroke();ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffe4a4';ctx.fillText('★ Lv.'+masteryLevel(c.item.tier),0,-30);ctx.restore()}ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':'★',0,0)}ctx.restore()}
+ for(const c of level.pickups){if(c.taken||c.x<camera-40||c.x>viewRight+40)continue;const y=pickupVisualY(c);ctx.save();ctx.translate(c.x,y);if(c.upperTreasure&&c.type==='weapon'){ctx.save();ctx.globalAlpha=.12+.08*Math.sin(clock*2);ctx.fillStyle='#ffe5a1';ctx.fillRect(-7,-82,14,70);ctx.fillStyle='#fff6c7';ctx.fillRect(-2,-78,4,64);ctx.restore();ctx.save();ctx.shadowColor='#ffd46e';ctx.shadowBlur=22;ctx.strokeStyle='#ffe2a1';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,24+3*Math.sin(clock*3),0,TAU);ctx.stroke();ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffe4a4';ctx.fillText('★ Lv.'+masteryLevel(c.item.tier),0,-30);ctx.restore()}ctx.shadowColor='#ffffff';ctx.shadowBlur=15;ctx.rotate(clock*1.3);if(c.type==='shield'){polygon([[0,-12],[10,-6],[8,8],[0,13],[-8,8],[-10,-6]],'#81fff5')}else{ctx.beginPath();ctx.arc(0,0,c.type==='weapon'?14:10,0,TAU);ctx.fillStyle=c.type==='weapon'?rarity(c.item.tier):c.type==='relic'?'#c8b3ff':c.type==='starxp'?'#9defff':'#fff88c';ctx.fill();ctx.fillStyle='#202741';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='15px system-ui';ctx.fillText(c.type==='weapon'?'⚔':c.type==='relic'?'✦':c.type==='starxp'?'✧':'★',0,0)}ctx.restore()}
  // Teleport destination is visible before arrival, including when the source is off-screen.
  for(const e of level.enemies){
   if(!e.alive||!(e.blinkWindup>0)||!Number.isFinite(e.blinkDest))continue;
