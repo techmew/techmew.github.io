@@ -15,7 +15,7 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.1',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.3',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -57,7 +57,7 @@ export class Room extends DurableObject {
     ];
   }
   cleanCreature(v){
-    if(!v||typeof v!=='object')return null;
+    if(!v||typeof v!=='object'||Array.isArray(v))return null;
     const parts=v.parts||{},voice=v.voice||{};
     const nums={body:5,eyes:20,brows:20,nose:20,mouth:20,ears:20,left:30,right:30,color:10,family:12,crest:30,back:16,pattern:24,legs:16};
     let safeParts={};for(const [key,max] of Object.entries(nums))safeParts[key]=Math.floor(clamp(parts[key],0,max-1));
@@ -91,6 +91,7 @@ export class Room extends DurableObject {
   async webSocketMessage(ws,raw){
     if(typeof raw!=='string'||raw.length>120000){this.send(ws,{type:'error',message:'無効なメッセージ'});return}
     let data;try{data=JSON.parse(raw)}catch{return}
+    if(!data||typeof data!=='object'||Array.isArray(data)){this.send(ws,{type:'error',message:'無効なメッセージ'});return;}
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
     const now=Date.now(),windowStart=now-(attachment.rateAt||0)>10000?now:attachment.rateAt;
     const burst=windowStart===now?1:(attachment.rateCount||0)+1;
@@ -148,6 +149,7 @@ export class Matchmaker extends DurableObject {
   async webSocketMessage(ws,raw){
     if(typeof raw!=='string'||raw.length>256)return;
     let msg;try{msg=JSON.parse(raw)}catch{return}
+    if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
     if(msg.type!=='search')return;
     if(ws.deserializeAttachment()?.status!=='connected')return;
     ws.serializeAttachment({status:'waiting',time:Date.now()});
