@@ -27,7 +27,7 @@
 <section class="card controls" id="controlCard"><div class="paneltitle"><h2>声紋ジェネレーター</h2><span class="sub">VOICE TO CREATURE / 01</span></div><div class="listen"><div class="listentop"><span id="micHint">マイクで3秒間、好きな声を出す</span><strong id="countdown">03.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 声からキャラ生成</button><button class="btn stop-record" id="stopRecordBtn" style="display:none" disabled>■ 録音停止・生成</button><button class="btn ghost" id="randomBtn">✦ おためし生成</button><button class="btn ghost" id="voicePreviewBtn" disabled>声の試聴（録音後）</button></div><div class="switch"><input type="checkbox" id="mutedCheck"><label for="mutedCheck">戦闘音声・SEをミュート</label></div><div id="micNotice" class="tiny micnotice" aria-live="polite"></div></div>
 <div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">SAMPLE SIGNAL</span></div><div class="metrics" id="voiceMetrics"></div><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="battlebuttons"><button class="btn fight" id="fightBtn">⚔ COMとバトル</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div></section></main>
 <section class="bottom"><div class="card gallery"><div class="galleryhead"><h2>生まれたオトダマ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:13px 0 0">キャラをタップすると使用キャラを切り替えられます。保存データはこのブラウザ内に保持されます。</p></div><div class="card online"><div class="paneltitle"><h2>オンライン対戦</h2><span class="sub">RANDOM MATCH / ROOM</span></div><p>ランダム対戦は、無料枠のCloudflareサーバーを公開すると利用できます。サーバー未接続時はCOM戦が遊べます。</p><div class="field"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="field"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="roomline" id="roomLine">オンライン接続先は未設定です。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div></div></section><footer class="footer">OTODAMA ∞ PROTOTYPE v0.4 · オンライン戦では録音した短い声を対戦相手へ一時送信します（保存なし） · 非公式の独立オリジナル作品</footer></div>
-<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">⚡ OTODAMA SKY BRAWL v0.5 / COM MATCH</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="arena-effect" id="arenaEffect">READY TO FIGHT</div><div class="arena-battle-tip">HYPER FLIGHT · BREAK · COMBO · WARP</div></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div class="modalfoot"><label class="soundrow" for="battleVolume">戦闘音量 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><button class="btn primary" id="rematchBtn" disabled>もう一戦</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
+<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">⚡ OTODAMA SKY BRAWL v0.6 / COM MATCH</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="arena-effect" id="arenaEffect">READY TO FIGHT</div><div class="arena-battle-tip">HYPER FLIGHT · BREAK · COMBO · WARP</div></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div class="modalfoot"><label class="soundrow" for="battleVolume">戦闘音量 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><button class="btn primary" id="rematchBtn" disabled>もう一戦</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), TAU=Math.PI*2;
@@ -331,67 +331,76 @@ function drawCombatant(c,cr,x,y,scale,t,mirror,rot,alpha=1){
 }
 function phaseTravel(p,points){const q=clamp(p,0,1)*(points.length-1),i=Math.min(points.length-2,Math.floor(q));return mix(points[i],points[i+1],ease(q-i))}
 // V0.5: a unique cinematic finish once the final blow has landed.
+// v0.6: large, reliably visible loser detonation before winner close-up.
 function drawVictorySequence(c,m,ms,t){
  const seconds=Math.max(0,(ms-m.victoryAt)/1000),win=m.outcome.winner===1?1:0,lose=1-win;
- const source=m.finalPositions||[{x:170,y:190},{x:550,y:190}],ws=source[win],ls=source[lose];
+ const source=m.finalPositions||[{x:170,y:190},{x:550,y:190}];
  const victor=win===0?m.a:m.b,defeated=lose===0?m.a:m.b;
+ const pal=PALETTES[defeated.parts.color]||['#fe82d3','#ffe3f4','#8a2c87'];
  const winColor=PALETTES[victor.parts.color]?.[0]||'#7bffda';
- const loseColor=PALETTES[defeated.parts.color]?.[0]||'#ff8cdc';
- const burst=ease(seconds/.7),departure=ease(clamp((seconds-.07)/.66,0,1)),fade=1-ease(clamp((seconds-.12)/.52,0,1));
- // Defeated fighter tumbles off screen in the impact direction.
- if(fade>.002){
-  drawCombatant(c,defeated,ls.x+(lose===0?-780:780)*departure,ls.y-155*departure+90*departure*departure,
-   .68*(1-.55*departure),t*3,lose===1,(lose===0?-1:1)*departure*TAU*2,fade);
+ // Combatants can exit frame on their last dash. Stage the fatal burst inside the camera view.
+ const ls={x:clamp(source[lose]?.x??(lose===0?200:520),210,510),y:clamp(source[lose]?.y??210,155,270)};
+ const ws={x:win===0?145:575,y:200};
+ const blow=ease(clamp((seconds-.02)/.32,0,1));
+ if(seconds<.19){
+  const fall=seconds/.19;
+  drawCombatant(c,defeated,ls.x+(lose===0?-35:35)*fall,ls.y-20*fall,.76*(1-.55*fall),t*3,lose===1,(lose===0?-1:1)*fall*1.4,1-fall);
  }
- // Body-like shards, sparks, shock rings and a large burst of fragments.
- if(seconds<2){
-  const rng=getRand(hash(defeated.seed^0xA15BEEF));
-  c.save();c.globalCompositeOperation='screen';
-  for(let k=0;k<100;k++){
-   const angle=(k/100)*TAU+(rng()-.5)*.22,reach=38+rng()*420,speed=.65+rng()*.6;
-   const fly=ease(clamp(seconds*speed/1.1,0,1));
-   const px=ls.x+Math.cos(angle)*reach*fly,py=ls.y+Math.sin(angle)*reach*fly+95*seconds*seconds*(k%3===0?.4:.12);
-   const sz=(2+rng()*12)*(1-.55*fly),a=clamp(1-(seconds-.25)/1.65,0,1);
-   c.globalAlpha=a*(k%5===0?.93:.7);c.fillStyle=k%6===0?'#ffffff':k%3===0?'#ffe5a1':loseColor;
-   c.save();c.translate(px,py);c.rotate(angle+seconds*(k%2?9:-7));
-   if(k%4===0){c.beginPath();c.moveTo(-sz,-sz);c.lineTo(sz*1.5,-sz*.45);c.lineTo(sz*.3,sz*1.4);c.closePath();c.fill()}
-   else c.fillRect(-sz/2,-sz/2,sz,sz*.35);
+ if(seconds<1.75){
+  const rng=getRand(hash(defeated.seed^0x5A7710ED));
+  const fly=Math.max(0,seconds-.025),alpha=clamp((1.7-seconds)/.9,0,1);
+  c.save();
+  // 48 sizeable colored body chunks, not just tiny stars.
+  for(let i=0;i<48;i++){
+   const angle=TAU*i/48+(rng()-.5)*.46,velocity=240+rng()*650;
+   const radius=fly*velocity;
+   const x=ls.x+Math.cos(angle)*radius;
+   const y=ls.y+Math.sin(angle)*radius+fly*fly*(45+rng()*85);
+   const size=(13+rng()*18)*(1-.25*ease(seconds/1.5));
+   c.save();c.translate(x,y);c.rotate(angle+seconds*(i%2?7:-9));c.globalAlpha=alpha;
+   c.fillStyle=i%8===0?'#fffbd7':i%3===0?pal[1]:i%3===1?pal[0]:pal[2];
+   c.strokeStyle='#081528';c.lineWidth=2.8;
+   c.beginPath();c.moveTo(-size*.8,-size*.7);c.lineTo(size*.85,-size*.42);
+   c.lineTo(size*(.5+.2*rng()),size*.8);c.lineTo(-size*.6,size*.35);c.closePath();c.fill();c.stroke();
    c.restore();
   }
-  if(seconds<.9){
-   const ring=ease(seconds/.8),radius=25+400*ring;
-   c.globalAlpha=.88*(1-ring);c.strokeStyle='#fff8d9';c.lineWidth=22*(1-ring)+2;
-   c.beginPath();c.arc(ls.x,ls.y,radius,0,TAU);c.stroke();
-   c.globalAlpha=.45*(1-ring);c.strokeStyle=loseColor;c.lineWidth=36*(1-ring)+3;
-   c.beginPath();c.arc(ls.x,ls.y,radius*.74,0,TAU);c.stroke();
+  c.globalCompositeOperation='screen';
+  for(let i=0;i<58;i++){
+   const angle=TAU*i/58+(rng()-.5)*.2,rad=fly*(340+rng()*630);
+   c.globalAlpha=alpha*(i%5===0?.95:.65);
+   c.strokeStyle=i%3===0?'#fffce8':pal[0];c.lineWidth=3+rng()*6;
+   c.beginPath();c.moveTo(ls.x+Math.cos(angle)*Math.max(0,rad-60),ls.y+Math.sin(angle)*Math.max(0,rad-60));
+   c.lineTo(ls.x+Math.cos(angle)*rad,ls.y+Math.sin(angle)*rad);c.stroke();
   }
+  const ring=ease(clamp(seconds/.78,0,1));
+  c.globalAlpha=(1-ring)*.92;c.strokeStyle='#fff4ae';c.lineWidth=34*(1-ring)+3;
+  c.beginPath();c.arc(ls.x,ls.y,22+460*ring,0,TAU);c.stroke();
+  c.globalAlpha=(1-ring)*.76;c.strokeStyle=pal[0];c.lineWidth=50*(1-ring)+4;
+  c.beginPath();c.arc(ls.x,ls.y,17+350*ring,0,TAU);c.stroke();
   c.restore();
  }
- if(seconds<.22){c.save();c.globalCompositeOperation='screen';c.globalAlpha=(1-seconds/.22)*.52;c.fillStyle='#ffffff';c.fillRect(0,0,720,450);c.restore()}
- // Winner charges forward into a portrait-size close-up.
- const arrival=ease(clamp((seconds-.2)/.72,0,1)),centerX=mix(ws.x,360,arrival),centerY=mix(ws.y,200,arrival);
- const zoom=mix(.69,1.42,arrival),spin=(1-arrival)*Math.sin(arrival*Math.PI)*.32*(win===0?1:-1);
- c.save();c.globalCompositeOperation='screen';c.strokeStyle=winColor;
- for(let i=0;i<14;i++){
-  const a=i*TAU/14+t*.5,len=100+arrival*210;
-  c.globalAlpha=.06+.1*arrival;c.lineWidth=3+i%3;
-  c.beginPath();c.moveTo(360+Math.cos(a)*95,213+Math.sin(a)*80);
-  c.lineTo(360+Math.cos(a)*len,213+Math.sin(a)*len);c.stroke();
- }c.restore();
- c.save();c.shadowColor=winColor;c.shadowBlur=25+arrival*48;
- drawCombatant(c,victor,centerX,centerY+Math.sin(t*4)*4*arrival,zoom,t*2.1,win===1,spin,1);c.restore();
- // Victory banner stays legible even for long procedurally generated names.
- const label=ease(clamp((seconds-.86)/.4,0,1));
- if(label>.001){
-  c.save();c.globalAlpha=label;
-  const dark=c.createLinearGradient(0,304,0,450);dark.addColorStop(0,'#06101b00');dark.addColorStop(.6,'#071221e8');dark.addColorStop(1,'#06101bf7');c.fillStyle=dark;c.fillRect(0,298,720,152);
+ if(seconds<.24){c.save();c.globalCompositeOperation='screen';c.globalAlpha=(1-seconds/.24)*.82;c.fillStyle='#fff9df';c.fillRect(0,0,720,450);c.restore()}
+ if(seconds>.08&&seconds<.88){
+  c.save();c.textAlign='center';c.textBaseline='middle';c.font='1000 72px system-ui,sans-serif';
+  c.globalAlpha=clamp((seconds-.08)*7,0,1)*clamp((.88-seconds)*5,0,1);
+  c.shadowColor='#ff7790';c.shadowBlur=34;c.strokeStyle='#171529';c.lineWidth=12;
+  c.strokeText('K.O.!!',360,97);c.fillStyle='#fff4b5';c.fillText('K.O.!!',360,97);c.restore();
+ }
+ // Delay the portrait so the loser shattering is actually visible first.
+ const arrival=ease(clamp((seconds-.78)/.78,0,1));
+ const centerX=mix(ws.x,360,arrival),centerY=mix(ws.y,190,arrival);
+ const zoom=mix(.59,1.49,arrival);
+ c.save();c.shadowColor=winColor;c.shadowBlur=18+arrival*55;
+ drawCombatant(c,victor,centerX,centerY+Math.sin(t*4)*5,zoom,t*2.1,win===1,Math.sin(arrival*Math.PI)*.18*(win===0?1:-1));c.restore();
+ if(seconds>1.3){
+  c.save();c.globalAlpha=ease(clamp((seconds-1.3)/.4,0,1));
+  const dark=c.createLinearGradient(0,300,0,450);dark.addColorStop(0,'#06101b00');dark.addColorStop(.6,'#071221e8');dark.addColorStop(1,'#06101bf7');c.fillStyle=dark;c.fillRect(0,298,720,152);
   c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
-  let size=34;c.font=`900 ${size}px system-ui, sans-serif`;
-  while(c.measureText(victor.name).width>630&&size>18){size-=2;c.font=`900 ${size}px system-ui, sans-serif`}
+  let size=34;c.font=`900 ${size}px system-ui,sans-serif`;
+  while(c.measureText(victor.name).width>630&&size>18){size-=2;c.font=`900 ${size}px system-ui,sans-serif`}
   c.strokeStyle='#06101b';c.lineWidth=7;c.strokeText(victor.name,360,349);c.fillStyle='#ffffff';c.fillText(victor.name,360,349);
-  c.font='1000 63px system-ui, sans-serif';c.shadowBlur=17;c.shadowColor='#ffbf4b';c.lineWidth=11;c.strokeText('WIN❗️',360,412);
-  c.fillStyle='#ffe489';c.fillText('WIN❗️',360,412);
-  c.restore();
+  c.font='1000 63px system-ui,sans-serif';c.shadowBlur=17;c.shadowColor='#ffbf4b';c.lineWidth=11;c.strokeText('WIN❗️',360,412);
+  c.fillStyle='#ffe489';c.fillText('WIN❗️',360,412);c.restore();
  }
 }
 function battleDraw(ms){
@@ -480,7 +489,7 @@ function battleDraw(ms){
 }
 function showBattle(a,b,outcome,mode){
  clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();unlockBattleAudio();
- $('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('battleTitle').textContent='⚡ OTODAMA SKY BRAWL v0.5 / '+mode;
+ $('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('battleTitle').textContent='⚡ OTODAMA SKY BRAWL v0.6 / '+mode;
  $('nameA').textContent=a.name;$('nameB').textContent=b.name;$('rematchBtn').disabled=true;
  $('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='超高速空中戦スタート！';$('arenaEffect').textContent='SKY RUSH!!';
  match={a,b,outcome,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null};let ix=-1;
