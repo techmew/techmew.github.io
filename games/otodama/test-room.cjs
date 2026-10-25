@@ -7,6 +7,9 @@ function fake(){return {readyState:1,data:{creature:null,ready:false},messages:[
 const a=fake(),b=fake();const room=new ctx.testing.Room({getWebSockets:()=>[a,b]});
 const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',rank:'A',parts:{family:4},voice:{vol:40,pitch:60,res:58,rhythm:75,stable:55,breath:63},stats:[95,95,95,95,95]};
 (async()=>{
+ assert.equal(room.cleanCreature([]),null,'array creature accepted');
+ await room.webSocketMessage(a,'null');await room.webSocketMessage(a,'[]');
+ assert.equal(a.messages.filter(x=>x.type==='error').length,2,'invalid JSON primitives should be rejected');
  await room.webSocketMessage(a,JSON.stringify({type:'join',creature}));
  await room.webSocketMessage(b,JSON.stringify({type:'join',creature:{...creature,seed:556}}));
  assert.ok(a.messages.some(x=>x.type==='state'));
