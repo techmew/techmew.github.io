@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.80｜世界別の床・星晶と背景先読み</title>
-<meta name="game-build" content="ASTRAL_BREAK_V680_SAFE_ROUTE_SKY_XP_20261025" />
+<title>ASTRAL BREAK ∞ V6.81｜世界別の床・星晶と背景先読み</title>
+<meta name="game-build" content="ASTRAL_BREAK_V681_UPPER_HAZARD_CHECKPOINT_ISOLATION_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -891,6 +891,11 @@ function rhProtectNormalRoute(platforms,spikes,saws,lasers,enemies,skyTraps){
  for(const [arr,point] of [[spikes,q=>[q.x+q.w*.5,q.y-10]],[saws,q=>[q.x,q.y]],[lasers,q=>[q.x,q.y-70]],[enemies,q=>[q.x+q.w*.5,q.y+q.h*.5]],[skyTraps,q=>[q.x,q.y]]])
   for(let i=arr.length-1;i>=0;i--){const [x,y]=point(arr[i]);if(near(x,y))arr.splice(i,1)}
 }
+/* V6.81: Upper-route traps may not intersect lower-route checkpoint
+   approach/respawn safety envelopes, including moving saw sweep radii. */
+function rhUpperHazardClear(main,x,top,bottom){
+ return !main.some(p=>p.checkpointId>0&&x>=p.x-45&&x<=p.x+p.w+55&&top<=p.y+52&&bottom>=p.y-195);
+}
 function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty){
  const rr=rngGen(hash(levSeed^0x5c91a47d));
  const sections=stage===0?[[2,5]]:stage===1?[[2,5],[8,11]]:[[2,5],[7,10],[12,15]];
@@ -912,9 +917,14 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(treasureStep?116+rr()*12:78+rr()*21),kind,active:true,collapse:0,upperRoute:true,treasurePlatform:treasureStep,routeId:routes.length+1};
    if(kind==='moving')Object.assign(q,{anchorX:q.x,anchorY:q.y,phase:rr()*TAU,rate:.6+rr()*.35,ampX:7,ampY:7});
    pieces.push(q);
-   if(!treasureApproach&&j%7===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
-    if(!treasureApproach&&j>=4&&j%9===4){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
-   if(!treasureApproach&&j%11===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
+   if(!treasureApproach&&j%7===0&&rhUpperHazardClear(main,q.x+q.w*.48,q.y-90,q.y-15))
+     saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4),upperRoute:true});
+    if(!treasureApproach&&j>=4&&j%9===4&&rhUpperHazardClear(main,q.x+q.w*.5,q.y-115,q.y+8)){
+     const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);
+     foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe);
+    }
+   if(!treasureApproach&&j%11===0&&rhUpperHazardClear(main,q.x+q.w*.68,q.y-168,q.y))
+     lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8,upperRoute:true});
    if(treasureStep){
      pickups.push({x:q.x+q.w*.39,y:q.y-45,taken:false,type:'weapon',upperTreasure:true,item:{...item(rr,Math.min(1,difficulty+.35)),tier:Math.min(99,15+world*5+stage*2)}});
      pickups.push({x:q.x+q.w*.79,y:q.y-50,taken:false,type:'starxp',xp:10+world*3+stage*2,upperRouteBonus:true});
