@@ -10,6 +10,10 @@ const a=fake(),b=fake(),sockets=[a,b],memory=new Map();
 ctx.WebSocketPair=class {constructor(){this[0]=fake();this[1]=fake()}};const storage={get:async key=>memory.get(key),put:async(key,value)=>memory.set(key,value),delete:async key=>memory.delete(key),setAlarm:async time=>{storage.alarmAt=time}};const room=new ctx.testing.Room({getWebSockets:()=>sockets,acceptWebSocket:ws=>sockets.push(ws),storage});
 const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',rank:'A',parts:{family:4},voice:{vol:40,pitch:60,res:58,rhythm:75,stable:55,breath:63},stats:[95,95,95,95,95]};
 (async()=>{
+ // Cross-site WebSocket origins are rejected before room allocation.
+ const headers=origin=>({get:k=>k==='Origin'?origin:null});
+ assert.equal((await ctx.testing.defaultExport.fetch({url:'https://worker.example/health',headers:headers('https://attacker.example')},{})).status,403);
+ assert.equal((await ctx.testing.defaultExport.fetch({url:'https://worker.example/health',headers:headers('https://techmew.github.io')},{})).status,200);
  assert.equal(room.cleanCreature([]),null,'array creature accepted');
  await room.webSocketMessage(a,'null');await room.webSocketMessage(a,'[]');
  assert.equal(a.messages.filter(x=>x.type==='error').length,2,'invalid JSON primitives should be rejected');
@@ -20,8 +24,11 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'オトダマ-FF');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).element,'音');assert.ok(statsA.every(x=>x<95));
  const observer=fake();sockets.push(observer);
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:'data:audio/wav;base64,AAAA='}));
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'malformed base64 audio was forwarded');
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,1);
+ assert.equal(a.data.sentVoice,true,'valid clip should count as the single allowed voice relay');
  assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'voice leaked to unjoined socket');
  observer.close();
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
@@ -74,8 +81,10 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.ok((await storage.get('live')).active,'live match must survive short disconnect');
  const denied=await room.fetch({url:'https://example.test/room/ABCDEF'});
  assert.equal(denied.status,409,'untrusted reconnection must not join active match');
+ const unjoined=fake();sockets.push(unjoined); // An unjoined socket must not squat on a reserved seat.
  const accepted=await room.fetch({url:'https://example.test/room/ABCDEF?resume='+token});
- assert.equal(accepted.status,101,'valid resume token should reconnect');
+ assert.equal(accepted.status,101,'valid resume token should reconnect despite unjoined observer');
+ unjoined.close();
  const resumed=sockets.find(p=>p!==a&&p!==b&&p.data?.seat===1);
  assert.ok(resumed?.messages.some(m=>m.type==='live_resumed'),'resume snapshot missing');
  const snap=resumed.messages.find(m=>m.type==='live_resumed');

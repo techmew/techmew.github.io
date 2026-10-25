@@ -1,3 +1,42 @@
+# OTODAMA∞ 毎時開発 / 2026-10-26 07:00 JST / v0.9.8
+
+## CURRENT_STATUS
+- GitHub main v0.9.7 index.html/worker.js/wrangler.jsonc/README/PROGRESS/test-room/test-tacticsを実読。Drive v0.9.7 RUN_REPORT_20261026_0600.mdを実読。index.html と worker.js のローカルZIP blob SHAがGitHub mainと一致してから改修。
+- COM連続ステージ/声生成・録音・試聴/図鑑/育成/6環境/ボス/自作BGM/敗者爆発/WIN維持。Cloudflareオンライン本番は未公開。
+
+## CHANGELOG
+1. STAGE 7,14,21…（5の倍数を除く）に宿命のライバルを追加。敵レベル/能力上昇、専用名、勝利時+2XP。
+2. ステージミッションを3→5種に増やし、2連続JUST・累積100ダメージを追加。
+3. 録音音声を聞きやすくするため攻撃音声再生中にBGMを約480msダッキング。
+4. 非表示タブではBGM/再生音声を停止し、復帰時にBGM再開。
+5. Cloudflare WorkerにOrigin allowlist（techmew.github.io + localhost）を追加。Originはブラウザ由来のアクセス制御であり、非ブラウザ攻撃を完全には防がない。
+6. 未参加WebSocketが残っていても正しい復帰トークンを持つ対戦者が再接続できるようRoomを修正。
+7. 音声データのbase64整合性と復号後72KiB上限を検証し、サイズ偽装を拒否。
+8. Room回帰テスト、宿敵・ミッション・BGMダッキングのChromiumテストを追加。
+
+## TEST_RESULTS
+- node --check worker.js / node test-ui-source.cjs / node test-room.cjs / node test-matchmaker.cjs / node test-moderation.mjs：ローカルPASS。
+- Chromium: test-gameplay-browser.py / test-tactics-browser.py / test-live-browser.py / test-reconnect-browser.py / test-save-browser.py / test-v098-browser.py：ローカルPASS。
+- GitHubコミット/変更ファイル再取得は別途結果を追記。公開サイトの直接実操作、Android実機、Cloudflare本番、外部2端末は未検証。
+
+## BLOCKERS
+- Cloudflare Worker本番公開は所有者のCloudflare認証とActions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKENが必要。Worker URLは未設定。
+- クライアント申告の声特徴量は検証できずランク戦には利用しない。録音発話の自動禁止語検査は未実装。
+
+## NEXT_ACTIONS
+1. Cloudflare認証とWorkerデプロイ。/health、実ランダムマッチ、招待、2端末ガード・回避・必殺技・再接続・不戦勝の確認。
+2. モバイル実機の録音/音声/BGM/縦横・低性能端末での音切れ検証。
+3. 宿敵・5ミッションの達成率、難易度とXPバランスを実プレイで計測。
+4. 音声共有の受信側設定、接続荒らし対策、同意UIを再点検。
+
+## GITHUB_COMMITS
+- v0.9.7 baseline: 70bf2be9b4ecc08a17d2cf22bf1b5666df811884
+- v0.9.8: GitHub公開後に追記。
+
+GitHubはコード正本、Driveは引き継ぎ正本。ローカル検証と本番公開を混同しない。
+
+---
+
 # OTODAMA∞ 毎時開発 / 2026-10-26 06:00 JST / v0.9.7
 
 ## CURRENT_STATUS

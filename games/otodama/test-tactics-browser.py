@@ -17,7 +17,7 @@ async def main():
    const t=window.__otodamaTest,m=t.match;
    if(t.enemyTactic(2,1)!==null||t.enemyTactic(3,1)!=='drain'||t.enemyTactic(6,1)!=='feint'||t.enemyTactic(9,1)!=='heavy')return {error:'tactic mapping'};
    if(t.enemyTactic(5,1,{parries:3,dodges:0})!=='feint'||t.enemyTactic(5,1,{parries:0,dodges:3})!=='drain')return {error:'adaptive tactic'};
-   if(t.stageMission(1).kind!=='parries'||t.stageMission(2).kind!=='dodges'||t.stageMission(3).kind!=='skillsUsed')return {error:'mission rotation'};
+   if(t.stageMission(1).kind!=='parries'||t.stageMission(2).kind!=='dodges'||t.stageMission(3).kind!=='skillsUsed'||t.stageMission(4).kind!=='guardBest'||t.stageMission(5).kind!=='damageDealt')return {error:'mission rotation'};
    m.current={atk:1,kind:'rush',damage:20,selfDamage:0,recovery:0,tactic:'feint',resolved:false};
    m.pop=performance.now()-8000*.26;t.guardPress();const tooEarly=!m.parried;
    m.guardUsed=false;m.current.resolved=false;m.pop=performance.now()-8000*.49;t.guardPress();const feintSuccess=m.parried;

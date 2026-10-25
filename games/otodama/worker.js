@@ -15,7 +15,9 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.7',randomMatch:true});
+    const origin=request.headers.get('Origin');
+    if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.8',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -33,12 +35,14 @@ export class Room extends DurableObject {
   async fetch(request) {
     const active=await this.ctx.storage.get('live');
     const connected=this.peers();
-    if(connected.length>=2)return safeJson({error:'This room is full'},409);
+    const joined=this.livePeers();
+    // Unjoined WebSockets cannot occupy an active player's seat or block a valid resume.
+    if(joined.length>=2)return safeJson({error:'This room is full'},409);
     let resumeSeat=-1,resumeToken='';
     if(active?.active){
       resumeToken=new URL(request.url).searchParams.get('resume')||'';
       resumeSeat=active.tokens?.indexOf(resumeToken)??-1;
-      if(!/^[a-f0-9]{32}$/.test(resumeToken)||resumeSeat<0||connected.some(p=>p.deserializeAttachment()?.seat===resumeSeat))
+      if(!/^[a-f0-9]{32}$/.test(resumeToken)||resumeSeat<0||joined.some(p=>p.deserializeAttachment()?.seat===resumeSeat))
         return safeJson({error:'Match active: valid resume token required'},409);
     }
     const [client,server]=Object.values(new WebSocketPair());
@@ -63,7 +67,10 @@ export class Room extends DurableObject {
         });
         await this.announceLiveTurn(active,peers);
       }else this.send(server,{type:'live_wait',seconds:15});
-    }else server.serializeAttachment({creature:null,ready:false});
+    }else{
+      if(connected.length>=4)return safeJson({error:'This room is full'},409);
+      server.serializeAttachment({creature:null,ready:false});
+    }
     return new Response(null,{status:101,webSocket:client});
   }
   peers(){return this.ctx.getWebSockets().filter(ws=>ws.readyState===1)}
@@ -258,6 +265,9 @@ export class Room extends DurableObject {
       if(!attachment.creature||attachment.sentVoice||this.livePeers().length!==2)return;
       const clip=typeof data.clip==='string'?data.clip:'';
       if(clip.length>100000||(clip&&!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip)))return;
+      // Do not forward malformed base64 or decoded audio over 72 KiB.
+      const encoded=clip.split('base64,')[1]||'';
+      if(encoded.length%4!==0||encoded.length-encoded.replace(/=+$/,'').length>2||Math.floor(encoded.length/4)*3-(encoded.match(/=+$/)?.[0].length||0)>73728)return;
       ws.serializeAttachment({...attachment,sentVoice:true});
       for(const peer of this.livePeers())if(peer!==ws)this.send(peer,{type:'voice',clip});
       return;
