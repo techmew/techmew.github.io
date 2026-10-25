@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.68｜縦画面・上下分岐・星都アート</title>
-<meta name="game-build" content="ASTRAL_BREAK_V668_PORTRAIT_UPPER_ROUTE_ART_20261025" />
+<title>ASTRAL BREAK ∞ V6.69｜縦画面PC枠・空中敵・星都パララックス</title>
+<meta name="game-build" content="ASTRAL_BREAK_V669_PORTRAIT_ROUTE_CAMERA_VISUALS_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -172,15 +172,36 @@ box-shadow:0 3px 18px #0009,inset 0 0 14px #8ccaff22;text-shadow:0 1px 3px #000}
  #weaponStrip{max-width:calc(100vw - 18px)}
  #astralStatus{width:105px}
 }
+/* V6.69: unified centered portrait game shell, including all fixed-position UI. */
+#portraitViewport{position:fixed;top:0;left:50%;transform:translateX(-50%);width:min(100vw,440px);height:100dvh;overflow:hidden;isolation:isolate;background:#10172b;box-shadow:0 0 0 1px #a7e9ff38,0 0 75px #000b}
+@media(max-width:600px){#portraitViewport{width:100vw;box-shadow:none}}
+@media(min-width:601px){
+ #hud{left:9px;right:9px;top:10px;max-height:145px;overflow:hidden}
+ #hudLeft{width:100%;min-width:0}
+ #stage{font-size:16px;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #playerHealth,#playerXp{width:235px}
+ #astralStatus{top:177px;right:8px;width:137px}
+ #menuTiny,#soundTiny,#fullscreenTiny{top:139px!important}
+ #menuTiny{right:84px!important}
+ #soundTiny{right:47px!important}
+ #fullscreenTiny{right:10px!important}
+ #bossBar{top:165px;left:44%;width:180px}
+ #joystick{bottom:max(12px,env(safe-area-inset-bottom));left:7px}
+ #actions{bottom:max(16px,env(safe-area-inset-bottom));right:11px}
+ #punch,#jump{width:72px;height:72px;margin:0}
+}
+@media(orientation:landscape) and (pointer:coarse){#portraitViewport{width:100vw}}
 </style>
 </head>
 <body>
+<main id="portraitViewport">
 <canvas id="game" aria-label="ランダム生成アクションゲーム"></canvas><div id="shade"></div>
 <div id="hud"><div id="hudLeft"><div id="stage">WORLD 1-1</div><div id="substats">死亡 0｜SEED 000000000</div><div id="playerHealth" role="progressbar" aria-label="主人公HP"><div id="playerHealthText">❤ HP 5 / 5</div><div id="playerHealthTrack"><div id="playerHealthFill"></div></div></div><div id="playerXp"><div id="xpText">LV 1 · XP 0/10</div><div id="xpTrack"><div id="xpFill"></div></div></div><div id="weaponStrip">👊 はだかの拳 <small>装備1</small></div><div id="relicState"></div><div id="comboState"></div><div id="progressTrack"><div id="progressFill"></div></div></div><div id="hudRight"><div id="env">横風：なし</div><div id="skills">移動：倒すほど速い ｜ 攻撃 ◉</div><div id="bossState"></div></div></div>
 <button id="fullscreenTiny" type="button" aria-label="全画面表示" title="全画面">⛶</button><button id="menuTiny" type="button" aria-label="メニュー" title="メニュー">☰</button><button id="soundTiny" type="button" aria-label="BGMと効果音のオンオフ" title="BGM・効果音切替">🔊</button><div id="bossBar"><div id="bossFill"></div></div><div id="damageFlash"></div>
 <div id="astralStatus" aria-label="星界レーダー"><strong>✦ ASTRAL BREAK ∞</strong><div class="astralMeta" id="astralSector">星雨の序章</div><div class="astralMeta" id="astralEnemies">裂け目探索</div><div class="astralMeta" id="astralWeather">微風 · 通常</div><div class="astralMeta" id="astralThreat">✧ 周辺弾幕：安全</div><div id="astralTrack"><div id="astralMeter"></div></div><label id="astralVolume">BGM <input type="range" id="bgmRange" min="0" max="100" value="30" aria-label="BGM音量"></label></div><div id="controls"><div id="moveZone"></div><div id="joystick"><div id="joyBase"><div id="joyLabel">◀　▶</div><div id="joyKnob"></div></div></div><div id="actions"><button class="action" id="punch" type="button">攻撃</button><button class="action" id="jump" type="button">ジャンプ</button></div></div>
 <div id="portraitTip" aria-hidden="true"></div><div id="turnDevice" role="status">✦ ASTRAL BREAK ∞<br>スマホを縦向きにしてください</div><div id="toast"></div>
 <div id="overlay"><div class="panel" id="panelBody"></div></div>
+</main>
 <script src="./sprites-v35.js"></script>
 <!-- Legacy hero rendering disabled. -->
 <script src="./sprites-v35-slime.js"></script>
@@ -283,7 +304,7 @@ function rhTriggerPose(type,face,slot){
 let best=0,save=null;
 let muted=false,activeSlot=0,loadout=[],relics=[],kills=0,combo=0,comboTimer=0,maxCombo=0,stageTime=0,runScore=0,stamina=1,airDash=1,bulletsFriendly=[],slashes=[],hazardTelegraphs=[],pendingDamage=0,hudTick=0,slowMotion=0;
 let runStats={kills:0,shots:0,attacks:0,airJumps:0,bosses:0};
-let checkpointIndex=0,checkpointX=0,checkpointStage=-1,springCooldown=0,vampCharge=0;
+let checkpointIndex=0,checkpointX=0,checkpointStage=-1,springCooldown=0,vampCharge=0,rhCheckpointFlash=0;
 // V6.26: timed stomp chain is transient gameplay state; save format is unchanged.
 let stompChain=0,stompChainTimer=0;
 const LORE=[
@@ -802,7 +823,7 @@ function attackBoss(b){const p=player;const r=rngGen(hash((clock*317|0)^b.kind*3
 }
 function paintGlow(x,y,r,c){ctx.save();const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,c+'66');g.addColorStop(1,c+'00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore()}
 
-function resize(){const oldW=W,oldH=H;W=Math.max(1,document.documentElement.clientWidth||window.innerWidth);H=Math.max(1,document.documentElement.clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel(true,player?.hp)}if(level&&player)cameraY=rhCameraYTarget(player);if(level&&mode==='survivorDraft')draw()}
+function resize(){const oldW=W,oldH=H;W=Math.max(1,$('portraitViewport').clientWidth||window.innerWidth);H=Math.max(1,$('portraitViewport').clientHeight||window.innerHeight);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);baseY=clamp(H*.69,205,H-113);if(level&&Math.abs(oldH-H)>100&&mode==='menu'){createLevel(true,player?.hp)}if(level&&player)cameraY=rhCameraYTarget(player);if(level&&mode==='survivorDraft')draw()}
 window.addEventListener('resize',resize);
 // Conservative, single-jump procedural route, independent of relics and dash.
 // V6.33: Minimum jump rise makes quick touch taps useful at platform gaps.
@@ -816,6 +837,8 @@ function rhSafeJumpGap(fromY,toY,gravity,speed,jump,wind){
 }
 // V6.65: Keep the crumble timer and its visual countdown on the same scale.
 const RH_CRUMBLE_DURATION=.66;
+// Upper ledges must not create invisible full-height projectile walls.
+function rhTerrainProjectileBottom(s,screenH){return s.upperRoute||s.kind==='moving'?s.y+20:Math.max(s.y+22,screenH+180)}
 function rhCrumblePhase(remaining){
  const t=Number(remaining);
  if(!Number.isFinite(t)||t<=0)return {active:false,ratio:0,critical:false};
@@ -823,7 +846,7 @@ function rhCrumblePhase(remaining){
  return {active:true,ratio,critical:ratio<=1/3};
 }
 // V6.68: optional high-skill route, deterministic and separate from the safe main route.
-function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,levSeed,world,stage,difficulty){
+function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty){
  const rr=rngGen(hash(levSeed^0x5c91a47d));
  const sections=stage===0?[[2,5]]:stage===1?[[2,5],[8,11]]:[[2,5],[7,10],[12,15]];
  const routes=[];
@@ -835,12 +858,15 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,levSeed,world,st
   const count=Math.max(6,Math.ceil(span/137)),pieces=[];
   for(let j=1;j<=count;j++){
    const t=j/(count+1),xx=begin+span*t;
-   const yy=from.y+(to.y-from.y)*t-(183+world*7+stage*9)*Math.sin(Math.PI*t);
+   const desiredY=from.y+(to.y-from.y)*t-(183+world*7+stage*9)*Math.sin(Math.PI*t);
+   const previousY=pieces.length?pieces[pieces.length-1].y:from.y;
+   const yy=Math.max(desiredY,previousY-(70+Math.min(10,world))); // reliable ascent
    const kind=j%6===0?'moving':j%4===0?'crumble':'solid';
    const q={x:Math.round(xx),y:Math.round(yy),w:Math.round(78+rr()*21),kind,active:true,collapse:0,upperRoute:true,routeId:routes.length+1};
    if(kind==='moving')Object.assign(q,{anchorX:q.x,anchorY:q.y,phase:rr()*TAU,rate:.6+rr()*.35,ampX:7,ampY:7});
    pieces.push(q);
    if(j%3===0)saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4)});
+    if(j>=3&&j%4===3){const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe)}
    if(j%5===0)lasers.push({x:q.x+q.w*.68,y:q.y,offset:rr()*2.2,period:2.2+rr()*.8});
    if(j===Math.floor(count/2))pickups.push({x:q.x+q.w*.48,y:q.y-62,taken:false,type:'weapon',item:{...item(rr,Math.min(1,difficulty+.35)),tier:3}});
    if(j===count-1)pickups.push({x:q.x+q.w*.5,y:q.y-53,taken:false,type:'score'});
@@ -938,7 +964,7 @@ function createLevel(respawn=false,carryHp=null){
  }
  const title=namesA[randomInt(r,0,namesA.length-1)]+namesB[randomInt(r,0,namesB.length-1)];
  const decor=[];for(let j=0;j<135;j++)decor.push({x:j*randomInt(r,75,155)+randomInt(r,-50,50),h:randomInt(r,52,270),w:randomInt(r,16,80),layer:randomInt(r,0,1),glow:r()});
- const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,levSeed,world,stage,difficulty);
+ const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty);
  const goalX=prev.x+prev.w-39;
  level={seed:levSeed,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,upperRoutes,goalX,totalX:prev.x+prev.w,difficulty};
  const cp=checkpointIndex>0?platforms.find(p=>p.checkpointId===checkpointIndex):null;
@@ -1176,7 +1202,7 @@ function enemyShotTerrainHitT(x0,y0,x1,y1,r){
  let first=Infinity;
  for(const s of level.platforms){
   if(!s.active)continue;
-  const bottom=s.kind==='moving'?s.y+18:Math.max(s.y+22,H+180);
+  const bottom=rhTerrainProjectileBottom(s,H);
   if(Math.max(x0,x1)+r<s.x||Math.min(x0,x1)-r>s.x+s.w||Math.max(y0,y1)+r<s.y||Math.min(y0,y1)-r>bottom)continue;
   const t=segmentBoxHitT(x0,y0,x1,y1,s.x-r,s.y-r,s.x+s.w+r,bottom+r);
   if(t<first)first=t;
@@ -1354,6 +1380,7 @@ function update(dt){
  if(damageFlashTimer>0){damageFlashTimer=Math.max(0,damageFlashTimer-dt);$('damageFlash').style.opacity=String(damageFlashTimer*.28)}
  if(mode==='gameover')return;
  if(mode!=='playing')return;
+ rhCheckpointFlash=Math.max(0,rhCheckpointFlash-dt);
  const p=player;
  for(const h of level.skyTraps){
   if(!h.alive)continue;
@@ -1419,7 +1446,7 @@ function update(dt){
  if(landing){
    // V6.32: No edge snap and no false grounded state when crossing beyond a ledge.
    p.y=landing.y-p.h;p.vy=0;
-   if(landing.checkpointId>checkpointIndex){checkpointIndex=landing.checkpointId;checkpointX=landing.x+44;saveState();toast('🏁 中間地点 '+checkpointIndex+'/2 を記録',1.6);soundCue('checkpoint');part(checkpointX,landing.y-45,'#a7ffcf',26,.7)}
+   if(landing.checkpointId>checkpointIndex){checkpointIndex=landing.checkpointId;checkpointX=landing.x+44;rhCheckpointFlash=1.25;saveState();toast('🏁 中間地点 '+checkpointIndex+'/2 を記録',1.6);soundCue('checkpoint');part(checkpointX,landing.y-45,'#a7ffcf',26,.7)}
    const pad=level.springPads.find(s=>s.x<p.x+p.w&&s.x+s.w>p.x&&Math.abs(s.y-landing.y)<3);
    if(pad&&springCooldown<=0){bounced=true;p.vy=-level.jump*1.28;p.grounded=false;p.coyote=0;springCooldown=.34;part(p.x+13,landing.y,'#ffe787',24,.8);soundCue('spring');toast('ぴょーん！',.45)}if(!p.grounded){part(p.x+12,p.y+p.h,'#dffbff',3,.27);if(!bounced)soundCue('land')}p.coyote=bounced?0:.115;p.jumps=rhLandingJumpStock(bounced,!!hasRelic('wing'));airDash=1;if(landing.kind==='crumble'&&landing.collapse===0){
      landing.collapse=RH_CRUMBLE_DURATION;
@@ -1591,10 +1618,18 @@ for(const [key,file] of Object.entries({far:'w1-star-city-far.webp',ground:'w1-g
 }
 function background(){const t=level?.theme||themes[0],g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.sky[0]);g.addColorStop(1,t.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
  if(level?.world===0&&RH_W1_ART.far.complete&&RH_W1_ART.far.naturalWidth){
-  const img=RH_W1_ART.far,scale=Math.max((W+80)/img.naturalWidth,(H+90)/img.naturalHeight);
+  const img=RH_W1_ART.far,scale=Math.max((W+80)/img.naturalWidth,(H+120)/img.naturalHeight);
   const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
-  ctx.save();ctx.globalAlpha=.88;
-  ctx.drawImage(img,(W-iw)/2+Math.sin(camera*.0006)*14,(H-ih)/2+Math.sin(cameraY*.003)*11,iw,ih);
+  // Adjacent mirrored tiles share edge pixels, avoiding seams on long runs.
+  const scroll=camera*.055,origin=Math.floor(scroll/iw),offset=scroll-origin*iw;
+  const verticalRoom=Math.max(0,(ih-H)/2),verticalDrift=clamp(-cameraY*.09,-verticalRoom,verticalRoom);
+  const y=(H-ih)/2+verticalDrift;
+  ctx.save();ctx.globalAlpha=.82;
+  for(let k=-1;k<=Math.ceil(W/iw)+1;k++){
+   const x=k*iw-offset;
+   if((origin+k)%2){ctx.save();ctx.translate(x+iw,0);ctx.scale(-1,1);ctx.drawImage(img,0,y,iw,ih);ctx.restore()}
+   else ctx.drawImage(img,x,y,iw,ih);
+  }
   ctx.restore();
  }
  const moonX=W*.79-camera*.025,moonY=H*.25-cameraY*.045;
@@ -1871,7 +1906,10 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
   ctx.save();ctx.beginPath();ctx.rect(s.x,s.y,s.w,s.upperRoute?20:83);ctx.clip();
   for(let tileX=s.x;tileX<s.x+s.w;tileX+=96)ctx.drawImage(RH_W1_ART.ground,tileX,s.y,96,76);
   ctx.restore();
- }ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
+ }
+  // Physical top remains visible after the ground texture is painted.
+  ctx.fillStyle=s.upperRoute?'#ffe2a5':t.edge;ctx.globalAlpha=.92;ctx.fillRect(s.x,s.y,s.w,3);ctx.globalAlpha=1;
+  ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
   const warning=rhCrumblePhase(s.collapse);
   ctx.fillStyle=warning.critical?'#ff7897':warning.active?'#ffcc87':'#ffe3b6';
   for(let k=0;k<Math.ceil(s.w/47);k++)ctx.fillRect(s.x+k*47+6,s.y+9,35,3);
@@ -1898,7 +1936,8 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
    if(level.world===0&&RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth){
-     ctx.save();ctx.globalAlpha=active?1:.73;ctx.shadowColor=active?'#a4fff3':'#ffd8a4';ctx.shadowBlur=active?12:5;
+     if(active&&rhCheckpointFlash>0){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointFlash/1.25*.85);ctx.strokeStyle='#b5fff3';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,26+(1-rhCheckpointFlash/1.25)*22,37+(1-rhCheckpointFlash/1.25)*15,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
+      ctx.save();ctx.globalAlpha=active?1:.73;ctx.shadowColor=active?'#a4fff3':'#ffd8a4';ctx.shadowBlur=active?12:5;
      ctx.drawImage(RH_W1_ART.checkpoint,s.x+20,s.y-91+Math.sin(clock*2+s.checkpointId)*1.5,86,90);
      ctx.restore();ctx.fillStyle=active?'#b7ffe7':'#ffdfac';ctx.font='bold 11px system-ui';ctx.textAlign='center';
      ctx.fillText(active?'✦ 起動済':'✧ CHECK '+s.checkpointId,s.x+63,s.y-100);
@@ -2217,7 +2256,7 @@ function joyDown(e){
   joyPointer=e.pointerId;
   // Use the actual finger-down point as the neutral origin, no matter where pressed.
   joyStartX=e.clientX;joyStartY=e.clientY;
-  joy.style.left=e.clientX+'px';joy.style.top=e.clientY+'px';
+  const rect=$('portraitViewport').getBoundingClientRect();joy.style.left=(e.clientX-rect.left)+'px';joy.style.top=(e.clientY-rect.top)+'px';
   joy.style.bottom='auto';joy.style.transform='translate(-50%,-50%)';
   try{moveZone.setPointerCapture(e.pointerId)}catch(err){}
   joyMove(e);
