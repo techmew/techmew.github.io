@@ -1897,9 +1897,16 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  }
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
+   if(level.world===0&&RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth){
+     ctx.save();ctx.globalAlpha=active?1:.73;ctx.shadowColor=active?'#a4fff3':'#ffd8a4';ctx.shadowBlur=active?12:5;
+     ctx.drawImage(RH_W1_ART.checkpoint,s.x+20,s.y-91+Math.sin(clock*2+s.checkpointId)*1.5,86,90);
+     ctx.restore();ctx.fillStyle=active?'#b7ffe7':'#ffdfac';ctx.font='bold 11px system-ui';ctx.textAlign='center';
+     ctx.fillText(active?'✦ 起動済':'✧ CHECK '+s.checkpointId,s.x+63,s.y-100);
+   }else{
    ctx.fillStyle=active?'#83ffe0':'#ffde89';ctx.fillRect(s.x+39,s.y-82,4,82);
    polygon([[s.x+43,s.y-79],[s.x+90,s.y-66],[s.x+43,s.y-51]],active?'#83ffe0':'#ffde89');
    ctx.fillStyle='#132941';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText('CHECK '+s.checkpointId,s.x+69,s.y-90);
+   }
  }
  for(const pad of level.springPads){if(pad.x+pad.w<camera-30||pad.x>viewRight+30)continue;
    const bounce=Math.sin(clock*5+pad.phase)*2;
