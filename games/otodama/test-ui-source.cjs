@@ -6,7 +6,10 @@ assert.ok(match,'embedded game script missing');
 assert.ok(html.includes('次のバトルへ →'),'continue button missing');
 assert.ok(!html.includes('>もう一戦</button>'),'obsolete rematch button');
 new vm.Script(match[1],{filename:'otodama-client.js'});
-for(const id of ['recordBtn','stopRecordBtn','voicePreviewBtn','fightBtn','dailyBtn','codexGrid','battlePanel','guardBtn','skillBtn','battleVolume','searchBtn','serverUrl','arenaCanvas','musicVolume','adventureStage','rematchBtn'])
+for(const id of ['recordBtn','stopRecordBtn','voicePreviewBtn','fightBtn','dailyBtn','codexGrid','battlePanel','guardBtn','skillBtn','battleVolume','searchBtn','serverUrl','arenaCanvas','musicVolume','adventureStage','rematchBtn','shareVoice','muteOpponentVoice','comboBadge','incomingBadge'])
  assert.ok(html.includes('id="'+id+'"'),'required UI control missing: '+id);
 for(const fn of ['drawVictorySequence','drawCreature','resolveCombatImpact','startRandomMatch','showDaily','elementalEdge','stageEnemy','startBgm','musicTick'])assert.ok(match[1].includes(fn),'missing '+fn);
+assert.ok(match[1].includes("if($('shareVoice').checked)"),'online voice must be opt-in');
+assert.ok(match[1].includes("$('muteOpponentVoice').checked"),'opponent mute required');
+assert.ok(match[1].includes("guardChain"),'guard counter chain required');
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
