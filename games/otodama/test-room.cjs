@@ -19,8 +19,11 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  const statsA=a.data.creature.stats;assert.notEqual(statsA[0],95,'raw cheating stats accepted');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'オトダマ-FF');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).element,'音');assert.ok(statsA.every(x=>x<95));
+ const observer=fake();sockets.push(observer);
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,1);
+ assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'voice leaked to unjoined socket');
+ observer.close();
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:''}));
  assert.equal(b.messages.filter(x=>x.type==='voice').length,1,'duplicate voice forwarded');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));
@@ -42,11 +45,13 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  await room.webSocketMessage(b,JSON.stringify({type:'action',action:'guard',seq:0}));
  assert.equal(b.messages.find(m=>m.type==='live_ack'&&m.action==='guard').valid,true);
  await room.webSocketMessage(a,JSON.stringify({type:'action',action:'stance',value:'rush'}));
+ assert.equal((await storage.get('live')).turnStance[0],'balance','stance must be locked for announced turn');
+ assert.equal((await storage.get('live')).stance[0],'rush','stance choice must queue for next turn');
  fakeNow+=200;await room.alarm();
  const first=a.messages.find(m=>m.type==='live_impact');assert.ok(first.parry,'server parry not applied');assert.ok(first.damage<=2,'parry failed to mitigate');
  assert.ok(first.hp[0]<x.max[0],'parry reflect missing');
  fakeNow+=280;await room.alarm();
- const next=a.messages.filter(m=>m.type==='live_turn').at(-1);assert.equal(next.seq,1);assert.equal(next.atk,1);
+ const next=a.messages.filter(m=>m.type==='live_turn').at(-1);assert.equal((await storage.get('live')).turnStance[0],'rush','queued stance must apply next turn');assert.equal(next.seq,1);assert.equal(next.atk,1);
  fakeNow+=170;await room.webSocketMessage(a,JSON.stringify({type:'action',action:'dodge',seq:1}));
  assert.equal(a.messages.filter(m=>m.type==='live_ack'&&m.action==='dodge').at(-1).valid,true);
  fakeNow+=730;await room.alarm();
@@ -77,6 +82,7 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(snap.max[0],x.max[1]);assert.ok(Array.isArray(snap.dodgeCooldown)&&snap.dodgeCooldown.length===2);
  assert.ok(Array.isArray(snap.skillArmed)&&Array.isArray(snap.stance));assert.ok(Number.isInteger(snap.turn));
  assert.equal(resumed.data.creature.seed,b.data.creature.seed,'resume identity mismatch');
+ assert.ok(Array.isArray(snap.turnStance)&&snap.turnStance.length===2,'turn lock missing from reconnect');
  assert.ok(a.messages.some(m=>m.type==='live_resumed'),'remaining player not resynchronized');
  await room.webSocketClose(b);
  assert.ok((await storage.get('live')).active,'stale close must not interrupt resumed match');
