@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.77｜星都多層背景・上空カメラ・ボスHUD</title>
-<meta name="game-build" content="ASTRAL_BREAK_V677_24_STAGE_PIXEL_ART_BACKGROUNDS_20261025" />
+<title>ASTRAL BREAK ∞ V6.78｜世界別の床・星晶と背景先読み</title>
+<meta name="game-build" content="ASTRAL_BREAK_V678_WORLD_GROUND_CRYSTAL_BG_PRELOAD_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -252,13 +252,13 @@ const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:f
 const $=id=>document.getElementById(id),overlay=$('overlay'),panel=$('panelBody');
 const themes=[
  {sky:['#151b44','#244d86'],far:'#35588a',near:'#273b67',floor:'#4f9cc5',edge:'#92eaff',accent:'#7bfff0'},
- {sky:['#38162e','#753d65'],far:'#a35572',near:'#733957',floor:'#db7992',edge:'#ffc3cf',accent:'#ffe090'},
+ {sky:['#191d45','#55538c'],far:'#4e6a9f',near:'#333d78',floor:'#6178b5',edge:'#c2e6ff',accent:'#f9db8d'},
  {sky:['#142f31','#38745c'],far:'#448d80',near:'#236658',floor:'#78b76d',edge:'#c7ff8b',accent:'#e6ff92'},
  {sky:['#190f32','#373071'],far:'#5a449f',near:'#322468',floor:'#8b69d2',edge:'#d3b5ff',accent:'#f8baff'},
  {sky:['#132d4c','#3f94a4'],far:'#4ab0ba',near:'#227b96',floor:'#6ab8c3',edge:'#b2ffff',accent:'#f9ffa0'},
  {sky:['#3a2319','#a55b32'],far:'#b16e4c',near:'#6f382b',floor:'#bd6550',edge:'#ffae6c',accent:'#fff17c'},
  {sky:['#171e31','#404b67'],far:'#586883',near:'#293f56',floor:'#8396a6',edge:'#e8fdff',accent:'#fef4b5'},
- {sky:['#300d1e','#850f33'],far:'#a72e53',near:'#6c153c',floor:'#bb285b',edge:'#ff779e',accent:'#fdff89'}
+ {sky:['#4b284b','#e58c9a'],far:'#b66b91',near:'#7b4c83',floor:'#d18aa0',edge:'#ffe5bb',accent:'#fff1a1'}
 ];
 const STORY=[
  {name:'星雨の序章',start:'空から「昨日」が降ってきた。町の人は、昨日のことを少しずつ忘れている。小さな旅人ルルは、失われた日々を取り戻すため、8つの星界の門を探す。',end:'消えた一日を拾った。「大丈夫」と書かれた、だれかの手紙だった。'},
@@ -1005,6 +1005,7 @@ function createLevel(respawn=false,carryHp=null){
  const upperRoutes=rhCreateUpperRoutes(platforms.filter(p=>p.w>=180),platforms,pickups,saws,lasers,enemies,levSeed,world,stage,difficulty);
  const goalX=prev.x+prev.w-39;
  level={seed:levSeed,groundBaseY:baseY,theme,gravity,speed,jump,wind,ice,world,stage,platforms,spikes,enemies,saws,lasers,pickups,springPads,skyTraps,boss,title,decor,upperRoutes,goalX,totalX:prev.x+prev.w,difficulty};
+ rhGetStageBackground(); // preload this and the next stage without touching RNG
  const cp=checkpointIndex>0?platforms.find(p=>p.checkpointId===checkpointIndex):null;
  checkpointX=cp?cp.x+44:0;
  camera=0;cameraY=0;particles=[];projectiles=[];bulletsFriendly=[];slashes=[];hazardTelegraphs=[];clock=0;stageTime=0;resetPlayer(respawn,carryHp);updateHud(true);
@@ -1657,18 +1658,22 @@ for(const [key,file] of Object.entries({far:'w1-star-city-far.webp',ground:'w1-g
 }
 
 
-/* V6.77: 24 separate stage WebP files, lazy loaded, bounded decoded-image cache.
-   Visual backgrounds never affect platform collisions or saved data. */
+/* V6.78: LRU stage cache with one-chapter lookahead; max four images. */
 const RH_STAGE_BG_CACHE=new Map();
+function rhStageBgImage(w,st){
+ if(w<1||w>8||st<1||st>3)return null;
+ const key=w+'-'+st;let img=RH_STAGE_BG_CACHE.get(key);
+ if(img){RH_STAGE_BG_CACHE.delete(key);RH_STAGE_BG_CACHE.set(key,img);return img}
+ img=new Image();img.decoding='async';img.rhFailed=false;
+ img.onerror=()=>{img.rhFailed=true};
+ RH_STAGE_BG_CACHE.set(key,img);
+ while(RH_STAGE_BG_CACHE.size>4)RH_STAGE_BG_CACHE.delete(RH_STAGE_BG_CACHE.keys().next().value);
+ img.src='./w'+w+'-stage-'+st+'-bg.webp';return img;
+}
 function rhGetStageBackground(){
  if(!level)return null;
- const w=level.world+1,st=level.stage+1,key=w+'-'+st;
- let img=RH_STAGE_BG_CACHE.get(key);
- if(!img){
-  img=new Image();img.decoding='async';img.onerror=()=>{img.rhFailed=true};
-  img.src='./w'+w+'-stage-'+st+'-bg.webp';RH_STAGE_BG_CACHE.set(key,img);
-  while(RH_STAGE_BG_CACHE.size>4){const oldest=RH_STAGE_BG_CACHE.keys().next().value;if(oldest===key)break;RH_STAGE_BG_CACHE.delete(oldest)}
- }
+ const w=level.world+1,st=level.stage+1,img=rhStageBgImage(w,st);
+ if(w<8||st<3)rhStageBgImage(st===3?w+1:w,st===3?1:st+1);
  return img;
 }
 function rhDrawStageBackground(){
@@ -2043,20 +2048,58 @@ function drawBossWorldSigils(b,phase){
  ctx.restore();
 }
 
+
+/* V6.78: Existing illustrated W1 tiles are tinted to match the other seven
+   worlds; small themed pixel ornaments are clipped to real platform geometry. */
+const RH_WORLD_ART_FILTERS=[
+ 'none','hue-rotate(61deg) saturate(.94)','hue-rotate(-67deg) saturate(.95)',
+ 'hue-rotate(-142deg) saturate(.82)','hue-rotate(-11deg) saturate(1.1)',
+ 'grayscale(.72) brightness(1.03)','hue-rotate(47deg) saturate(.75)',
+ 'hue-rotate(139deg) saturate(.78) brightness(1.18)'
+];
+function rhDrawWorldGroundMotifs(s){
+ if(!level||level.world===0)return;
+ const world=level.world,t=level.theme,thin=s.upperRoute||s.kind==='moving';
+ const depth=thin?20:Math.min(55,Math.max(24,H-s.y+180));
+ ctx.save();ctx.beginPath();ctx.rect(s.x,s.y+5,s.w,depth-5);ctx.clip();
+ ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.7;
+ for(let x=s.x+17;x<s.x+s.w-7;x+=64){
+  const y=s.y+(thin?9:21);
+  ctx.fillStyle=t.edge;ctx.strokeStyle=t.edge;ctx.lineWidth=1.5;
+  switch(world){
+   case 1: // W2: mirror facets
+    ctx.beginPath();ctx.moveTo(x,y-6);ctx.lineTo(x+7,y);ctx.lineTo(x,y+7);ctx.lineTo(x-7,y);ctx.closePath();ctx.stroke();ctx.fillRect(x+12,y+3,14,2);break;
+   case 2: // W3: forest leaves
+    ctx.fillRect(x,y-3,2,13);ctx.fillRect(x-5,y-6,6,3);ctx.fillRect(x+3,y-2,7,3);ctx.fillStyle=t.accent;ctx.fillRect(x+20,y-4,3,3);break;
+   case 3: // W4: clockwork
+    ctx.strokeRect(x-6,y-6,13,13);ctx.fillRect(x-2,y-10,5,4);ctx.fillRect(x-2,y+7,5,4);ctx.fillRect(x-10,y-2,4,5);ctx.fillRect(x+7,y-2,4,5);break;
+   case 4: // W5: ocean ripples
+    ctx.fillRect(x-9,y-4,17,2);ctx.fillRect(x-4,y,19,2);ctx.fillStyle=t.accent;ctx.fillRect(x+3,y+5,8,2);break;
+   case 5: // W6: palace windows
+    ctx.strokeRect(x-8,y-7,17,15);ctx.fillRect(x-4,y-9,9,2);ctx.fillStyle=t.accent;ctx.fillRect(x,y-2,2,7);break;
+   case 6: // W7: memory stars
+    ctx.fillRect(x-2,y-6,3,13);ctx.fillRect(x-7,y-1,13,3);ctx.fillStyle=t.accent;ctx.fillRect(x+15,y+2,3,3);break;
+   case 7: // W8: dawn rays
+    ctx.fillRect(x-2,y-7,4,8);ctx.fillRect(x-10,y-2,5,2);ctx.fillRect(x+5,y-2,5,2);ctx.fillStyle=t.accent;ctx.fillRect(x-5,y+5,11,2);break;
+  }
+ }
+ ctx.restore();
+}
+
 // V6.74: pixel-style end caps, movement markers and fracture seams, anchored to collision tops.
 function rhDrawPlatformTrim(s){
  const thin=s.upperRoute||s.kind==='moving',depth=thin?20:Math.min(62,H-s.y+180);
  const cap=Math.min(10,Math.max(5,Math.floor(s.w*.075)));
  ctx.save();ctx.imageSmoothingEnabled=false;
- ctx.fillStyle=s.upperRoute?'#8fa8d7':'#a5e6f4';ctx.globalAlpha=.72;
+ ctx.fillStyle=s.upperRoute?'#8fa8d7':level.world===0?'#a5e6f4':level.theme.edge;ctx.globalAlpha=.72;
  ctx.fillRect(s.x,s.y+4,cap,Math.max(0,depth-4));
  ctx.fillRect(s.x+s.w-cap,s.y+4,cap,Math.max(0,depth-4));
- ctx.fillStyle='#24345a';ctx.globalAlpha=.86;
+ ctx.fillStyle=level.world===0?'#24345a':level.theme.near;ctx.globalAlpha=.86;
  ctx.fillRect(s.x+2,s.y+9,Math.max(1,cap-4),Math.min(15,depth-9));
  ctx.fillRect(s.x+s.w-cap+2,s.y+9,Math.max(1,cap-4),Math.min(15,depth-9));
  ctx.globalAlpha=1;
  if(s.kind==='moving'){
-  const travel=Math.sin(clock*3+s.phase);ctx.fillStyle='#88f4ff';ctx.globalAlpha=.62+.24*travel;
+  const travel=Math.sin(clock*3+s.phase);ctx.fillStyle=level.theme.accent;ctx.globalAlpha=.62+.24*travel;
   for(let i=0;i<3;i++)ctx.fillRect(s.x+s.w*.5-17+i*13,s.y+10,7,3);
   ctx.fillRect(s.x+s.w*.5-9,s.y-7,18,3);
  }else if(s.kind==='crumble'){
@@ -2082,14 +2125,14 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  const viewRight=camera+visibleWorldWidth();
  const t=level.theme;
  for(const s of level.platforms){if(s.x+s.w<camera-40||s.x>viewRight+40)continue;if(!s.active)continue;ctx.fillStyle=s.upperRoute?'#344365':s.kind==='moving'?t.accent:t.floor;ctx.globalAlpha=s.kind==='crumble'?.80:1;ctx.fillRect(s.x,s.y,s.w,(s.kind==='moving'||s.upperRoute)?20:Math.max(22,H-s.y+180));ctx.globalAlpha=1;ctx.fillStyle=s.upperRoute?'#ffe0a2':t.edge;ctx.fillRect(s.x,s.y,s.w,6);
- if(level.world===0&&RH_W1_ART.ground.complete&&RH_W1_ART.ground.naturalWidth){
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.beginPath();ctx.rect(s.x,s.y,s.w,s.upperRoute?20:83);ctx.clip();
+ if(RH_W1_ART.ground.complete&&RH_W1_ART.ground.naturalWidth){
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.filter=RH_WORLD_ART_FILTERS[level.world];ctx.beginPath();ctx.rect(s.x,s.y,s.w,(s.upperRoute||s.kind==='moving')?20:83);ctx.clip();
   for(let tileX=s.x;tileX<s.x+s.w;tileX+=96)ctx.drawImage(RH_W1_ART.ground,tileX,s.y,96,76);
   ctx.restore();
  }
   // Physical top remains visible after the ground texture is painted.
   ctx.fillStyle=s.upperRoute?'#ffe2a5':t.edge;ctx.globalAlpha=.92;ctx.fillRect(s.x,s.y,s.w,3);ctx.globalAlpha=1;
-  if(level.world===0)rhDrawPlatformTrim(s);
+  rhDrawPlatformTrim(s);rhDrawWorldGroundMotifs(s);
   if(s.treasurePlatform){ctx.save();ctx.fillStyle='#ffe4a0';ctx.shadowColor='#ffcc70';ctx.shadowBlur=13;ctx.globalAlpha=.7+.2*Math.sin(clock*3);ctx.fillRect(s.x+4,s.y-3,s.w-8,4);ctx.fillRect(s.x+s.w*.5-4,s.y-13,8,5);ctx.restore()}
   ctx.fillStyle='#00000020';for(let a=s.x+15;a<s.x+s.w;a+=33)ctx.fillRect(a,s.y+17,2,24);if(s.kind==='crumble'){
   const warning=rhCrumblePhase(s.collapse);
@@ -2121,17 +2164,17 @@ function draw(){if(!level)return;ctx.save();ctx.clearRect(0,0,W,H);
  }
  for(const s of level.platforms){if(!s.checkpointId||s.x+s.w<camera-30||s.x>viewRight+30)continue;
    const active=checkpointIndex>=s.checkpointId;
-   if(level.world===0&&RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth){
+   if(RH_W1_ART.checkpoint.complete&&RH_W1_ART.checkpoint.naturalWidth){
      if(active&&rhCheckpointFlash>0&&s.checkpointId===checkpointIndex){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointFlash/1.25*.85);ctx.strokeStyle='#b5fff3';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,26+(1-rhCheckpointFlash/1.25)*22,37+(1-rhCheckpointFlash/1.25)*15,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
-      ctx.save();ctx.globalAlpha=active?1:.65;ctx.filter=active?'none':'grayscale(.65) brightness(.78)';ctx.shadowColor=active?'#a4fff3':'#ffd8a4';ctx.shadowBlur=active?14:3;
+      ctx.save();ctx.globalAlpha=active?1:.65;ctx.filter=RH_WORLD_ART_FILTERS[level.world]+' '+(active?'brightness(1.06)':'grayscale(.65) brightness(.78)');ctx.shadowColor=active?level.theme.accent:'#ffd8a4';ctx.shadowBlur=active?14:3;
      ctx.drawImage(RH_W1_ART.checkpoint,s.x+20,s.y-91+Math.sin(clock*2+s.checkpointId)*1.5,86,90);
-     ctx.restore();ctx.save();ctx.fillStyle=active?'#baffed':'#f5cc9b';
+     ctx.restore();ctx.save();ctx.fillStyle=active?level.theme.accent:'#f5cc9b';
       ctx.globalAlpha=active?.65+.25*Math.sin(clock*3+s.checkpointId):.38;
       for(let k=0;k<3;k++){const angle=clock*(active?.8:.25)+k*TAU/3+s.checkpointId;
        const xx=s.x+63+Math.cos(angle)*34,yy=s.y-48+Math.sin(angle)*30;
        ctx.fillRect(Math.round(xx)-1,Math.round(yy)-4,2,8);
        ctx.fillRect(Math.round(xx)-4,Math.round(yy)-1,8,2)}
-      ctx.restore();ctx.fillStyle=active?'#b7ffe7':'#ffdfac';ctx.font='bold 11px system-ui';ctx.textAlign='center';
+      ctx.restore();ctx.fillStyle=active?level.theme.edge:'#ffdfac';ctx.font='bold 11px system-ui';ctx.textAlign='center';
      if(active&&s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0){ctx.save();ctx.globalAlpha=Math.min(.85,rhCheckpointResumeGlow/2.2);ctx.strokeStyle='#b9e7ff';ctx.shadowColor='#8be7ff';ctx.shadowBlur=16;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(s.x+63,s.y-43,32+Math.sin(clock*7)*4,41,0,0,TAU);ctx.stroke();ctx.restore()}
       ctx.fillText(active?(s.checkpointId===checkpointIndex&&rhCheckpointResumeGlow>0?'✦ 再開地点':'✦ 起動済'):'✧ CHECK '+s.checkpointId,s.x+63,s.y-100);
    }else{
