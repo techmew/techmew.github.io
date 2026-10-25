@@ -17,4 +17,5 @@ for(const id of ['nextBuffPanel','bossPanel','bossBreakFill','bossWarning','lowF
 for(const id of ['exportSaveBtn','importSaveFile','saveNotice'])assert.ok(html.includes('id="'+id+'"'),'missing save UI '+id);
 for(const fn of ['beginLiveBattle','receiveLiveTurn','receiveLiveImpact','endLiveBattle','sendLiveAction','stageHazard','exportSave','importSave','CHAPTERS'])assert.ok(match[1].includes(fn),'missing v0.9.4 '+fn);
 for(const fn of ['stageBiome','drawBiome','chooseBuff','addBreak','bossStunned'])assert.ok(match[1].includes(fn),'missing v0.9.3 logic: '+fn);
+for(const fn of ['resumeToken','live_resumed','stageAttempts','MUSIC_MOTIFS','clutchUsed'])assert.ok(match[1].includes(fn),'missing v0.9.5 '+fn);
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
