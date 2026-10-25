@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#101125" />
-<title>ASTRAL BREAK ∞ V6.82｜世界別の床・星晶と背景先読み</title>
-<meta name="game-build" content="ASTRAL_BREAK_V682_VISIBLE_RANGED_ENEMY_FAIRNESS_20261025" />
+<title>ASTRAL BREAK ∞ V6.83｜上ルートの空中戦・画面外射撃対策</title>
+<meta name="game-build" content="ASTRAL_BREAK_V683_UPPER_AIR_COMBAT_VERTICAL_VISIBILITY_20261025" />
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#fff;background:#090c1b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -920,7 +920,7 @@ function rhCreateUpperRoutes(main,platforms,pickups,saws,lasers,enemies,levSeed,
    if(!treasureApproach&&j%7===0&&rhUpperHazardClear(main,q.x+q.w*.48,q.y-90,q.y-15))
      saws.push({x:q.x+q.w*.48,y:q.y-46,amp:11,phase:rr()*TAU,rate:2.3+rr(),size:12+Math.floor(rr()*4),upperRoute:true});
     if(!treasureApproach&&j>=4&&j%9===4&&rhUpperHazardClear(main,q.x+q.w*.5,q.y-115,q.y+8)){
-     const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=5?10:3);
+     const foe=makeEnemy(rr,q,q.x+q.w*.5,Math.min(1,difficulty+.20),world>=4?26:world>=2?15:3);
      foe.upperRoute=true;foe.hp=foe.maxhp=Math.max(foe.hp,2+world);enemies.push(foe);
     }
    if(!treasureApproach&&j%11===0&&rhUpperHazardClear(main,q.x+q.w*.68,q.y-168,q.y))
@@ -1175,7 +1175,7 @@ function rhLaserCycle(laser,time,world=0){
  const warningProgress=warning?clamp((phase-(period-warningDuration))/warningDuration,0,1):0;
  return {phase,active,warning,warningProgress,warningDuration};
 }
-function shoot(x,y,atX,atY,speed=275,size=7){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size})}
+function shoot(x,y,atX,atY,speed=275,size=7,source=null){const a=Math.atan2(atY-y,atX-x);projectiles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,t:3.3,r:size,sourceUpperRoute:!!source?.upperRoute})}
 // Telegraph a fixed aim before ranged attacks; player can dodge the warning.
 // V6.25: Elite ranged enemies predict a small part of Lulu's momentum before
 // locking their visible windup. The locked shot remains dodgeable and obeys LOS.
@@ -1198,12 +1198,15 @@ function rhRangedVolleyTargets(e,kind){
  return targets;
 }
 function updateRangedEnemyAttack(e,p,kind,dt,diff,near){
+ // Cancel a warned shot if Lulu exits the visible engagement lane.
+ // Returning requires a fresh windup instead of a hidden delayed volley.
+ if(e.windup>0&&!near){e.windup=0;e.shoot=.28;return}
  if(e.windup>0){
   e.windup=Math.max(0,e.windup-dt);
   if(e.windup===0){
    if(near&&e.alive&&rhRangedHasLineOfSight(e.x+12,e.y+12,e.aimX,e.aimY)){
     const speed=[6,16,23,26].includes(kind)?440:[11,12,25].includes(kind)?375:[9,17,24].includes(kind)?310:270+diff*110;
-    for(const lane of rhRangedVolleyTargets(e,kind))shoot(e.x+12,e.y+12,lane.x,lane.y,speed,kind===11?5:7);
+    for(const lane of rhRangedVolleyTargets(e,kind))shoot(e.x+12,e.y+12,lane.x,lane.y,speed,kind===11?5:7,e);
     e._spriteAttackUntil=clock+.25;part(e.x+12,e.y+12,'#ffcf76',6,.35);
    }
    e.shoot=(kind===6?2.5:[11,12,25].includes(kind)?1.35:[16,23].includes(kind)?1.85:[15,20,26].includes(kind)?1.55:[17,24,27].includes(kind)?1.8:kind===9?2.1:1.7)+Math.random()*.4;
@@ -1438,13 +1441,23 @@ function rhUpdateBlink(e,p,kind,dt,near){
   part(e.x+e.w*.5,e.y+e.h*.5,'#d2a0ff',4,.22);
  }
 }
-/* V6.82: Off-screen enemies cannot start untelegraphed ranged attacks.
+/* V6.83: Ranged enemies must be visible on BOTH camera axes.
    Upper-route enemies only engage Lulu when she is at their altitude. */
 function rhEnemyRangedEngagementVisible(e,p){
  const left=camera-32,right=camera+visibleWorldWidth()+48;
  const vertical=Math.abs((e.y+e.h*.5)-(p.y+p.h*.5));
  const limit=e.upperRoute?Math.min(190,Math.max(135,H*.26)):Math.min(270,Math.max(180,H*.38));
- return e.x+e.w>=left&&e.x<=right&&vertical<=limit;
+ const zoom=gameZoom(),screenY=baseY*(1-zoom)+(e.y-cameraY)*zoom;
+ return e.x+e.w>=left&&e.x<=right&&vertical<=limit&&
+  screenY+e.h*zoom>=-28&&screenY<=H+28;
+}
+// Once Lulu drops to the ordinary route, shots from upper-route enemies
+// cannot continue across the two route lanes. Boss and lower-route shots unchanged.
+function rhUpperLaneThreatAllowed(q,p){
+ if(!q.sourceUpperRoute)return true;
+ const feet=p.y+p.h;
+ return level.platforms.some(s=>s.upperRoute&&s.active&&
+  p.x+p.w>=s.x-110&&p.x<=s.x+s.w+110&&Math.abs(feet-s.y)<=205);
 }
 function update(dt){
  if(!level)return;clock+=dt;stageTime+=mode==='playing'?dt:0;hudTick-=dt;shake=Math.max(0,shake-dt*39);slowMotion=Math.max(0,slowMotion-dt);toastTimer-=dt;if(toastTimer<=0)$('toast').style.opacity='0';
@@ -1542,8 +1555,9 @@ function update(dt){
      if(e.x<e.min){e.x=e.min;e.dir=1}if(e.x>e.max){e.x=e.max;e.dir=-1}}
    if([1,13,22].includes(kind)){e.phase+=dt*(kind===13?8:kind===22?6.5:5);e.y=e.baseY-Math.max(0,Math.sin(e.phase))*(kind===13?91:kind===22?85:61)}
    if([3,10,15,20,26].includes(kind)){e.phase+=dt*(kind===10?4.2:kind===15?5.3:kind===26?6.5:kind===20?4.7:2.5);
-     const pursuit=near?Math.sign(p.x-e.x)*Math.min(55,Math.abs(p.x-e.x)*.5):0;
-     if(near&&Math.abs(p.x-e.x)>28)e.dir=p.x>e.x?1:-1;
+     const pursue=near&&(!e.upperRoute||Math.abs((e.y+e.h*.5)-(p.y+p.h*.5))<=180);
+     const pursuit=pursue?Math.sign(p.x-e.x)*Math.min(55,Math.abs(p.x-e.x)*.5):0;
+     if(pursue&&Math.abs(p.x-e.x)>28)e.dir=p.x>e.x?1:-1;
      e.x+=((Math.sin(e.phase)*43)+pursuit)*dt*(e.frost>0?.5:1);
      e.x=clamp(e.x,e.min,e.max);
      e.y=e.baseY-58+Math.sin(e.phase*1.6)*34}
@@ -1635,10 +1649,11 @@ function findHomingTarget(q){
   const wallT=enemyShotTerrainHitT(x0,y0,x1,y1,q.r);
   // V6.12: Sweep in Lulu's moving reference frame. This catches bullets she crosses
   // between frames (and keeps grazing consistent with the same movement).
-  const heroT=rhMovingPlayerHitT(x0,y0,x1,y1,oldX,oldY,p.x,p.y,p.w,p.h,q.r);
+  const laneSafe=rhUpperLaneThreatAllowed(q,p);
+  const heroT=laneSafe?rhMovingPlayerHitT(x0,y0,x1,y1,oldX,oldY,p.x,p.y,p.w,p.h,q.r):Infinity;
   const hitT=Math.min(1,wallT,heroT);q.x=x0+(x1-x0)*hitT;q.y=y0+(y1-y0)*hitT;
   // Reward only a near miss after the relative projectile path passes Lulu.
-  const grazeT=rhMovingPlayerHitT(x0,y0,x1,y1,oldX,oldY,p.x,p.y,p.w,p.h,q.r,-16);
+  const grazeT=laneSafe?rhMovingPlayerHitT(x0,y0,x1,y1,oldX,oldY,p.x,p.y,p.w,p.h,q.r,-16):Infinity;
   const heroAtX=oldX+(p.x-oldX)*hitT,heroAtY=oldY+(p.y-oldY)*hitT;
   const relDx=(x1-x0)-(p.x-oldX),relDy=(y1-y0)-(p.y-oldY);
   const passed=(q.x-(heroAtX+p.w/2))*relDx+(q.y-(heroAtY+p.h/2))*relDy>=0;
