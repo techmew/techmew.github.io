@@ -66,7 +66,7 @@ const liveCtx={
  match,$:id=>nodes[id]||(nodes[id]={textContent:'',style:{}}),
  hideMatchIntro:()=>{},clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
  performance:{now:()=>100},attackVoice:(...args)=>attackCalls.push(args),
- updateActionHud:()=>{},impactSfx:()=>{liveCtx.impactCount++},impactCount:0,
+ updateActionHud:()=>{},impactSfx:()=>{liveCtx.impactCount++},reactionVoice:()=>{liveCtx.reactionCount++},impactCount:0,reactionCount:0,
  BATTLE_LABEL:{rush:'突進'},displayName:c=>c.name
 };
 const turn=vm.runInNewContext(slice('function receiveLiveTurn(data){','function receiveLiveAck(data){')+';receiveLiveTurn',liveCtx);
