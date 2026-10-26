@@ -43,4 +43,14 @@ assert.equal(timing.strikeTiming({nextBuff:'focus'})[1],.74,'focus buff should w
 assert.equal(timing.strikeTiming({nextBuff:null})[0],.30,'normal strike timing preserved');
 assert.ok(html.includes('data-buff="focus"'),'focus reward button missing');
 assert.ok(html.includes('lastBattleFrame'),'low FX frame limiter missing');
+// v0.10.4: additional tactical choices, one-use shield, piercing AI and live strike timing.
+for(const buff of ['lifeline','rhythm'])assert.ok(html.includes('data-buff="'+buff+'"'),'missing tactical buff '+buff);
+assert.ok(html.includes('破甲の一撃'),'armor-piercing telegraph missing');
+const newTiming=vm.runInNewContext('const SOULS=[0,1,2,3,4,5];const soulFor=()=>SOULS[0];'+timingSource+';({strikeTiming,lifelineMitigation})');
+assert.equal(newTiming.strikeTiming({live:true,nextBuff:null})[1],.73,'live strike HUD must match 660ms server window');
+const lastStand={nextBuff:'lifeline',lifelineUsed:false,hp:[30],max:[100]};
+assert.equal(newTiming.lifelineMitigation(lastStand,29),9,'lifeline should absorb 20 damage');
+assert.equal(newTiming.lifelineMitigation(lastStand,29),29,'lifeline should activate only once');
+assert.equal(enemyTactic(9,5,{b:{archetype:'粉砕'},parries:2}),'pierce','powder AI should punish repeated parries');
+assert.ok(html.includes('if(!m.parried&&!m.dodgeSuccess)damage=lifelineMitigation'),'successful parry must preserve lifeline');
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
