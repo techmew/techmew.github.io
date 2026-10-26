@@ -1,6 +1,6 @@
 /** OTODAMA ∞ room + random matchmaking server — Cloudflare Workers + Durable Objects
  * Room-code matchmaking, two participants, authoritative (prototype) battle replay.
- * Short recorded attacks are relayed directly peer-to-peer via room DO; not persisted. No accounts or storage.
+ * User-recorded attacks are NOT relayed until trusted server-side moderation exists. No audio is persisted.
  * Not ranked-safe: client-origin voice data is still unverified; server ignores posted stats.
  */
 import { DurableObject } from 'cloudflare:workers';
@@ -48,7 +48,7 @@ export default {
       if(request.method==='POST'&&textBody===null)return safeJson({error:'Registration payload too large or invalid'},413);
       return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
     }
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.12',randomMatch:true,seasonalRanking:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.14',randomMatch:true,seasonalRanking:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -121,7 +121,7 @@ export class Room extends DurableObject {
   }
   peers(){return this.ctx.getWebSockets().filter(ws=>ws.readyState===1)}
   send(ws,obj){try{if(ws.readyState===1)ws.send(JSON.stringify(obj))}catch{}}
-  voicePolicy(){const ps=this.livePeers();for(const peer of ps){const self=peer.deserializeAttachment()||{},other=ps.find(p=>p!==peer)?.deserializeAttachment()||{};this.send(peer,{type:'voice_policy',canSend:!!(self.voiceConsent?.send&&other.voiceConsent?.receive),canReceive:!!(self.voiceConsent?.receive&&other.voiceConsent?.send)});}}
+  voicePolicy(){const ps=this.livePeers();for(const peer of ps)this.send(peer,{type:'voice_policy',canSend:false,canReceive:false,reason:'サーバー側の音声内容審査が未実装のため、対戦相手への録音声送信を停止中'});}
   state(){const ps=this.livePeers();for(const peer of ps){
     const own=peer.deserializeAttachment()||{};
     this.send(peer,{type:'state',me:own.seat,youReady:!!own.ready,
@@ -376,16 +376,10 @@ export class Room extends DurableObject {
       this.voicePolicy();return;
     }
     if(data.type==='voice'){
-      if(!attachment.creature||attachment.sentVoice||this.livePeers().length!==2)return;
-      const other=this.livePeers().find(p=>p!==ws)?.deserializeAttachment();
-      if(!attachment.voiceConsent?.send||!other?.voiceConsent?.receive)return;
-      const clip=typeof data.clip==='string'?data.clip:'';
-      if(!clip||clip.length>100000||!/^data:audio\/(?:webm|mp4|ogg|mpeg|wav|x-wav)[^,]{0,90};base64,[A-Za-z0-9+/=]+$/i.test(clip))return;
-      // Do not forward malformed base64 or decoded audio over 72 KiB.
-      const encoded=clip.split('base64,')[1]||'';
-      if(encoded.length%4!==0||encoded.length-encoded.replace(/=+$/,'').length>2||Math.floor(encoded.length/4)*3-(encoded.match(/=+$/)?.[0].length||0)>73728)return;
-      ws.serializeAttachment({...attachment,sentVoice:true});
-      for(const peer of this.livePeers())if(peer!==ws)this.send(peer,{type:'voice',clip});
+      // A client-side "passed" flag is forgeable. Do not relay user audio
+      // until independently verifiable server-side speech moderation exists.
+      // Local/offline reviewed playback is unaffected.
+      this.send(ws,{type:'voice_rejected',reason:'オンライン音声送信は審査導入まで停止中'});
       return;
     }
     if(data.type==='ready'){
