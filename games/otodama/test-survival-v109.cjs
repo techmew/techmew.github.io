@@ -33,8 +33,8 @@ assert.equal(t.data.autoBattleEnabled,true);assert.equal(t.data.match.mode,'SURV
 const first=t.data.match;first.done=true;first.hp=[170,0];first.max=[170,170];first.outcome={winner:0};
 t.finishSurvivalRound(first);assert.equal(t.data.survivalRound,2);
 assert.equal(t.data.survivalPoints,220);assert.equal(t.saved['otodama.survival.best'],'220');
-const next=t.timers.find(q=>!q.cancelled&&q.delay===2900);assert.ok(next,'next battle timer');
-next.fn();assert.equal(t.data.match.b.seed,626);
+assert.equal(t.timers.some(q=>!q.cancelled&&q.delay===2900),false,'survival scoring must not skip spoken victory line');
+t.nextSurvivalBattle();assert.equal(t.data.match.b.seed,626);
 const second=t.data.match;second.done=true;second.hp=[0,120];second.max=[170,170];second.outcome={winner:1};
 t.finishSurvivalRound(second);assert.equal(t.data.survivalActive,false,'loss ends run');
 assert.equal(t.data.autoBattleEnabled,false,'auto pilot turns off after game over');
@@ -57,8 +57,7 @@ assert.ok(t.dom.get('battlePrize').textContent.includes('5連勝ボーナス +30
 t.nextSurvivalBattle();
 const paused=t.data.match;paused.done=true;paused.hp=[170,0];paused.max=[170,170];paused.outcome={winner:0};
 t.hidden=true;t.finishSurvivalRound(paused);
-const deferred=t.timers.filter(q=>!q.cancelled&&q.delay===2900).at(-1);assert.ok(deferred);
-deferred.fn();assert.equal(t.data.survivalAwaitingVisibility,true,'background round does not advance');
-assert.equal(t.data.match,paused);
+assert.equal(t.timers.some(q=>!q.cancelled&&q.delay===2900),false,'no legacy three-second auto-advance');
+assert.equal(t.data.match,paused,'background result holds until dialogue controller advances');
 t.hidden=false;t.nextSurvivalBattle();assert.equal(t.data.survivalAwaitingVisibility,false);
-console.log('SURVIVAL PASS: auto/manual, milestone, background deferral, points/best/history, game-over cleanup');
+console.log('SURVIVAL PASS: scoring, milestone, victory-dialogue ownership, loss stopping, points/best/history');
