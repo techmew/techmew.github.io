@@ -22,7 +22,8 @@ export default {
     if(request.method==='OPTIONS'&&['/identity','/leaderboard'].includes(url.pathname))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin||'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type','cache-control':'no-store'}});
     if(url.pathname==='/identity'&&request.method==='POST'||url.pathname==='/leaderboard'&&request.method==='GET'){
       const obj=env.RANKINGS.get(env.RANKINGS.idFromName('seasonal-v1'));
-      return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(request.method==='POST'?{body:request.body}: {})}));
+      const textBody=request.method==='POST'?await request.text():null;
+      return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
     }
     if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.8',randomMatch:true});
     if(url.pathname==='/random'){
@@ -246,8 +247,8 @@ export class Room extends DurableObject {
     if(peers.length!==2){
       if(!state.disconnectedAt){state.disconnectedAt=Date.now();await this.ctx.storage.put('live',state)}
       if(Date.now()<state.disconnectedAt+15000){await this.ctx.storage.setAlarm(state.disconnectedAt+15000);return}
-      if(peers.length===1)await this.reportRankedResult(state,peers[0].deserializeAttachment().seat);
-      for(const peer of peers){this.send(peer,{type:'live_forfeit',winner:0});const a=peer.deserializeAttachment();peer.serializeAttachment({...a,ready:false})}
+      const ranked=peers.length===1?await this.reportRankedResult(state,peers[0].deserializeAttachment().seat):false;
+      for(const peer of peers){this.send(peer,{type:'live_forfeit',winner:0,ranked});const a=peer.deserializeAttachment();peer.serializeAttachment({...a,ready:false})}
       await this.ctx.storage.delete('live');this.state();return;
     }
     if(state.phase==='telegraph')await this.resolveLiveTurn(state,peers);
