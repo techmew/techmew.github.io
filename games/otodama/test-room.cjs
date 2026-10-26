@@ -20,6 +20,13 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(room.cleanCreature({...creature,parts:[]}),null,'array parts accepted');
  assert.equal(room.cleanCreature({...creature,voice:null}),null,'null voice accepted');
  assert.equal(room.cleanCreature({...creature,seed:'NaN'}),null,'invalid seed accepted');
+ assert.equal(room.cleanCreature({...creature,seed:'555'}),null,'numeric string seed accepted');
+ assert.equal(room.cleanCreature({...creature,seed:-1}),null,'negative seed accepted');
+ assert.equal(room.cleanCreature({...creature,seed:4294967296}),null,'oversized seed accepted');
+ assert.equal(room.cleanCreature({...creature,parts:{family:12}}),null,'out of range part accepted');
+ assert.equal(room.cleanCreature({...creature,parts:{family:'4'}}),null,'string part accepted');
+ assert.equal(room.cleanCreature({...creature,voice:{...creature.voice,pitch:'60'}}),null,'string voice metric accepted');
+ assert.equal(room.cleanCreature({...creature,voice:{...creature.voice,vol:-1}}),null,'negative voice metric accepted');
  assert.equal(room.cleanCreature({...creature,name:'A'.repeat(81)}),null,'oversized name accepted');
  await room.webSocketMessage(a,'null');await room.webSocketMessage(a,'[]');
  assert.equal(a.messages.filter(x=>x.type==='error').length,2,'invalid JSON primitives should be rejected');
@@ -27,7 +34,7 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  await room.webSocketMessage(b,JSON.stringify({type:'join',creature:{...creature,seed:556}}));
  assert.ok(a.messages.some(x=>x.type==='state'));
  const statsA=a.data.creature.stats;assert.notEqual(statsA[0],95,'raw cheating stats accepted');
- assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'オトダマ-FF');
+ assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'声魂-FF');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).element,'音');assert.ok(statsA.every(x=>x<95));
  const observer=fake();sockets.push(observer);
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:'data:audio/wav;base64,AAAA='}));
