@@ -34,7 +34,7 @@ def main():
         assert "STAGE 2" in page.locator("#battlePrize").inner_text()
         page.locator('[data-buff="power"]').click()
         page.locator("#rematchBtn").click()
-        assert "攻撃強化" in page.locator("#battleGuide").inner_text()
+        assert "攻撃アップ" in page.locator("#battleGuide").inner_text()
         assert "STAGE 02" in page.locator("#battleTitle").inner_text()
         previous=page.evaluate("window.__otodamaTest.match.b.seed")
         page.evaluate("window.__otodamaTest.match.hp=[0,window.__otodamaTest.match.max[1]];window.__otodamaTest.finishCombat()")
