@@ -86,6 +86,7 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(a.messages.filter(m=>m.type==='live_start').length,2,'second online match did not start');
  // Disconnect must pause rather than immediately declare forfeit.
  const token=b.data.resumeToken;
+ const beforeResume=JSON.parse(JSON.stringify(await storage.get('live')));
  b.close();await room.webSocketClose(b);
  assert.ok(a.messages.some(m=>m.type==='live_wait'),'disconnect must notify waiting player');
  assert.ok((await storage.get('live')).active,'live match must survive short disconnect');
@@ -97,6 +98,14 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  unjoined.close();
  const resumed=sockets.find(p=>p!==a&&p!==b&&p.data?.seat===1);
  assert.ok(resumed?.messages.some(m=>m.type==='live_resumed'),'resume snapshot missing');
+ const afterResume=await storage.get('live');
+ for(const key of ['turn','kind','damage','startedAt','phase'])assert.equal(afterResume[key],beforeResume[key],'reconnect rerolled '+key);
+ assert.deepEqual(afterResume.actions,beforeResume.actions,'reconnect discarded player inputs');
+ const resumedTurn=resumed.messages.find(m=>m.type==='live_turn');
+ assert.equal(resumedTurn?.resumed,true,'resumed turn marker missing');
+ assert.equal(resumedTurn.kind,beforeResume.kind,'resumed attack kind changed');
+ assert.equal(resumedTurn.seq,beforeResume.turn,'resumed turn sequence changed');
+ assert.equal(resumedTurn.actionStatus?.length,2,'resumed input status missing');
  const snap=resumed.messages.find(m=>m.type==='live_resumed');
  assert.equal(snap.max[0],x.max[1]);assert.ok(Array.isArray(snap.dodgeCooldown)&&snap.dodgeCooldown.length===2);
  assert.ok(Array.isArray(snap.skillArmed)&&Array.isArray(snap.stance));assert.ok(Number.isInteger(snap.turn));
