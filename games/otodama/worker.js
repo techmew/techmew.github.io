@@ -17,7 +17,7 @@ export default {
     const url = new URL(request.url);
     const origin=request.headers.get('Origin');
     if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.9.9',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.0',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -40,6 +40,8 @@ export class Room extends DurableObject {
     if(joined.length>=2)return safeJson({error:'This room is full'},409);
     let resumeSeat=-1,resumeToken='';
     if(active?.active){
+      // A stale resume token cannot revive an expired match before the alarm runs.
+      if(active.disconnectedAt&&Date.now()-active.disconnectedAt>15000)return safeJson({error:'Reconnection window expired'},410);
       resumeToken=new URL(request.url).searchParams.get('resume')||'';
       resumeSeat=active.tokens?.indexOf(resumeToken)??-1;
       if(!/^[a-f0-9]{32}$/.test(resumeToken)||resumeSeat<0||joined.some(p=>p.deserializeAttachment()?.seat===resumeSeat))
@@ -326,6 +328,8 @@ export class Room extends DurableObject {
  */
 export class Matchmaker extends DurableObject {
   async fetch() {
+    // Keep the free global queue bounded against abandoned/open socket floods.
+    if(this.ctx.getWebSockets().filter(ws=>ws.readyState===1).length>=64)return safeJson({error:'Queue busy; retry shortly'},503);
     const [client,server]=Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({status:'connected',time:Date.now()});
