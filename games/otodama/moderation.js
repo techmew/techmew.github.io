@@ -41,8 +41,10 @@ export function isForbiddenName(value){
  const normalized=unicodeLoose(raw);return exactSingle.has(normalized)||otherTerms.some(term=>normalized.includes(term))||latinMatchers.some(re=>re.test(normalized));
 }
 export function sanitizePublicName(value, seed=1){
- const raw=String(value??'').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,32);
- if(!raw||isForbiddenName(raw)||/[<>\\]/.test(raw))return `声魂-${(Number(seed)>>>0).toString(36).toUpperCase().slice(0,7)}`;
- return raw.slice(0,24);
+ const raw=String(value??'').normalize('NFKC')
+  .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufe0e\ufe0f\ufeff]/g,'')
+  .replace(/\s+/gu,' ').trim();
+ if(!raw||Array.from(raw).length>80||isForbiddenName(raw)||/[<>\\]/.test(raw))return `声魂-${(Number(seed)>>>0).toString(36).toUpperCase().slice(0,7)}`;
+ return Array.from(raw).slice(0,24).join('');
 }
 export const moderationTermCount=TERMS.length+EXTRA_TERMS.length;
