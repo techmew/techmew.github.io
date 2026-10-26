@@ -1,3 +1,47 @@
+# 声魂（こえだま） / v0.10.8 / 2026-10-26　連戦・戦術報酬・音楽・接続保護
+
+## CURRENT_STATUS
+- GitHub main の games/otodama/ のみ更新。旧OTODAMA_SAVE、声生成/録音停止・試聴/攻撃時再生、33,554,432種の内部名・外見組合せ、COM連戦、敗者爆発/破片/WIN、育成、オンライン試作を維持。
+- Cloudflare Workerはソースのみで本番未公開。GitHub Pages公開URLの実動作、Android実機、外部二端末も未検証。
+
+## CHANGELOG
+1. ステージミッション16→20種類。STAGE17〜20にガード3連続/回避3回/必殺3回/反撃3回を追加。勝利時は次ステージ・次の相手へ進む。
+2. COM勝利時、ガード/回避合計2回以上・被ダメージ4以下の「完璧防御」+1XP。報酬欄と戦績に表示。
+3. 自作Web Audio BGMの4小節フレーズを8段階で変化。32小節の展開を追加。ミュートON時に既存再生を停止/AudioContextを一時停止、OFFで再開を試行。
+4. 部屋未参加WebSocket・検索未開始WebSocketの30秒期限。次の接続時に古い接続を回収し、期限後のjoin/searchを拒否。対戦中/検索待機中のソケットは対象外。
+5. /healthとエラーJSONにCache-Control: no-store。次ステージ予告・報酬欄にaria-liveを追加。
+6. test-quality-v108.cjs追加。test-ui-source.cjsのtrainingWindow依存漏れ、test-matchmaker.cjsの古い時刻fixture、test-quality-v106.cjsのバージョン期待値を修正。package/Worker/フッターをv0.10.8へ更新。
+
+## TEST_RESULTS
+- GitHub mainの更新index.html埋込JS・worker.jsをV8 new Functionで構文評価PASS。
+- V8の模擬Node環境で test-ui-source / test-quality-v106 / test-naming-v107 / test-quality-v108 / test-room / test-matchmaker / test-moderation の7スイートPASS。Room 98 assertions、Matchmaker 18 assertions、UI 115 assertions、Moderation 46 assertions。名前の大量assertionは実操作件数ではない。
+- 新しい20ミッション循環、完璧防御の成立/不成立4条件、32小節BGM変化、WebSocket期限切れで未参加/検索前のみ切断する動作をV8で確認。
+- 変更した各GitHubファイルはコミット後に再取得し、書き込み結果との内容一致を確認。これはNode/Chromium本実行の代替ではない。
+- 正式Node全スイート、Chromium操作、公開URLのHTML直接取得・画面操作、Android実機、Cloudflare本番、外部二端末は今回未実施。公開反映も未確認。
+
+## BLOCKERS
+- Cloudflare公開には所有者認証とGitHub Actions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN、Worker URL設定が必要。
+- 録音発話の文字起こし・禁止語検査は未実装。ユーザー入力文字列の禁止語検査と混同しない。
+- Android/外部二端末と本番ブラウザ実操作の検証環境がない。
+
+## NEXT_ACTIONS
+1. Node/Chromium正式全スイートとAndroid縦横/マイク録音/停止・試聴/保存/次戦/BGM・ミュートを実操作検証。
+2. Cloudflare認証後Worker公開、/health・ランダム/招待/再接続/音声二重同意・2端末同期を確認。
+3. STAGE17〜20ミッションと完璧防御報酬の難度/達成率、32小節BGMの長時間体感、端末FPSを実測。
+4. 30秒未参加ソケット期限の本番Durable Objects hibernation挙動と通信混雑・切断競合を検証。
+
+## GITHUB_COMMITS
+- index.html: 90b21893256639adb39d5286b39c6747106f59c7
+- worker.js: 0174ec7a70fd10f9c45a3a3d520c2a60c553bf99
+- test-quality-v108.cjs: 2a668977222cf95eb75872bb8be24b679098d114
+- test-quality-v106.cjs: 096802ea7c9ae0dd368c0ec53845a35925706887
+- test-ui-source.cjs: b9704d800429f77f57555159e78346de8b3e2c72
+- test-matchmaker.cjs: e5d6327438a2764d4392613114b4f640bf7522f1
+- package.json: ff686701bcc1cdf521793ee0b555bfaf0031ee09
+- README.md: c80eb82ef31211a0c1c224e12a607cf83a4a515a
+
+---
+
 # 声魂（こえだま） / v0.10.7 / 2026-10-26　自然な名前・表示への全面改訂
 
 ## CURRENT_STATUS
