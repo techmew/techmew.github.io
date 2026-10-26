@@ -630,7 +630,15 @@ async function decodeVoice(cr){
    const channel=decoded.getChannelData(0),windowSize=Math.min(channel.length,Math.round(.7*decoded.sampleRate));
    let best=0,bestRms=-1;const hop=Math.max(1,Math.floor(decoded.sampleRate*.13));
    for(let start=0;start+windowSize<=channel.length;start+=hop){let en=0;for(let i=start;i<start+windowSize;i+=40)en+=channel[i]*channel[i];if(en>bestRms){bestRms=en;best=start}}
-   const clip={buffer:decoded,offset:best/decoded.sampleRate,duration:Math.min(.7,decoded.duration-best/decoded.sampleRate)};
+   // Quiet phone recordings need gain compensation, but peak limiting prevents clipping.
+   let power=0,peak=0,count=0;
+   for(let i=best;i<Math.min(channel.length,best+windowSize);i+=16){
+    const sample=channel[i];power+=sample*sample;peak=Math.max(peak,Math.abs(sample));count++;
+   }
+   const rms=Math.sqrt(power/Math.max(1,count));
+   if(rms<.0005){lastSoundStatus='録音音声が小さすぎます。録音し直してください';return null;}
+   const voiceGain=Math.min(8,Math.max(.85,.14/rms),.95/Math.max(.08,peak));
+   const clip={buffer:decoded,offset:best/decoded.sampleRate,duration:Math.min(.7,decoded.duration-best/decoded.sampleRate),gain:voiceGain};
    voiceCache.set(key,clip);if(voiceCache.size>45)voiceCache.delete(voiceCache.keys().next().value);
    return clip;
   }catch(e){lastSoundStatus='録音音声のデコード失敗: '+(e.message||e.name);return null}
@@ -652,7 +660,7 @@ function playDecodedVoice(cr,side,force=false,options={}){
     const start=begin+(rush?i*.108:0);
     const duration=Math.min(clip.duration,rush?(i===hits-1?.38:.235):clip.duration);
     const rate=(.96+((cr.voice?.rhythm||50)/100)*.1)*(rush?(.92+(i%3)*.065):1);
-    const peak=VOLUME()*(rush?.56:.98);
+    const peak=VOLUME()*(rush?.56:.98)*(clip.gain||1);
     source.buffer=clip.buffer;source.playbackRate.value=rate;
     gain.gain.setValueAtTime(0,start);
     gain.gain.linearRampToValueAtTime(peak,start+.013);
@@ -670,7 +678,10 @@ function playDecodedVoice(cr,side,force=false,options={}){
  if(!data){fallback();return}
  const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
  if(voiceCache.has(key)){doPlay(voiceCache.get(key));return}
- decodeVoice(cr).then(doPlay).catch(e=>{lastSoundStatus=e.message||String(e);if(force)return;fallback()});
+ decodeVoice(cr).then(doPlay).catch(e=>{
+  lastSoundStatus=e.message||String(e);
+  if(!force&&match===session&&!match.done&&!(side===1&&match.mode?.startsWith('ONLINE')&&$('muteOpponentVoice').checked))fallback();
+ });
 }
 function attackVoice(cr,side,ev=null){
  if(match?.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
