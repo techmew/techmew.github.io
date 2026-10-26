@@ -119,6 +119,7 @@
 <section class="heading"><div><div class="eyebrow">声魂（こえだま） — MAKE A VOICE. CREATE A LIFE.</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>声でキャラを作って、気軽に対戦できるゲーム。</p></div><div class="count">見た目<b>1,440億通り以上</b><span>名前 3,355万通り</span></div></section>
 <main class="layout"><section class="card stage"><div class="headrow"><div class="sectionname">キャラのプレビュー</div><div class="idpill" id="creatureId">#-------</div></div><canvas id="heroCanvas" width="700" height="520" aria-label="生成キャラのプレビュー"></canvas><div class="nametag"><div><div class="kind" id="kind">声のタイプ</div><div class="creaturename" id="creatureName">---</div></div><span class="element" id="element">---</span></div></section>
 <section class="card controls" id="controlCard"><div class="paneltitle"><h2>声からキャラを作る</h2><span class="sub">マイクで声を録音</span></div><div class="listen"><div class="listentop"><span id="micHint">マイクで3秒間、好きな声を出す</span><strong id="countdown">03.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 声からキャラ生成</button><button class="btn stop-record" id="stopRecordBtn" style="display:none" disabled>■ 録音停止・生成</button><button class="btn ghost" id="randomBtn">✦ おためし生成</button><button class="btn ghost" id="voicePreviewBtn" disabled>声の試聴（録音後）</button></div><div class="switch"><input type="checkbox" id="mutedCheck"><label for="mutedCheck">全サウンドをミュート</label></div>
+<label class="switch"><input type="checkbox" id="allowCloudSpeech"> 端末内認識が使えない場合、外部音声認識サービスを許可する（初期OFF）</label>
 <div class="recording-caution" id="recordingCaution" role="note"><strong>録音時の注意：</strong>卑猥な言葉、差別的な発言、暴言は使用しないでください。<small>録音音声の発言内容は自動審査していません。声はソロバトルや試聴で再生されます。オンラインでの音声共有は停止中です。</small></div><div id="micNotice" class="tiny micnotice" aria-live="polite"></div></div>
 <div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">サンプル</span></div><div class="metrics" id="voiceMetrics"></div><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="voice-role"><b id="voiceRoleName">声のタイプ</b><span id="voiceRoleDesc">声の特徴から特殊能力が生まれます。</span></div><div class="questline" id="questLine"><div>冒険 <b id="adventureStage">STAGE 01</b><div class="next-stage-note" id="stageHint">声の冒険を始めよう</div></div><small id="stageWins">突破 0戦</small></div><div class="stage-mission" id="stageMissionHint" aria-live="polite">ステージミッションを準備中</div><div class="campaign"><span><b id="campaignRank">Lv.1</b> <small id="campaignXp">XP 0/3</small></span><span id="campaignStreak">連勝 0 / 最高 0</span></div><div class="save-tools"><button class="btn small ghost" type="button" id="exportSaveBtn">進行データを書き出す</button><label class="btn small ghost" for="importSaveFile">進行データを読み込む<input id="importSaveFile" type="file" accept=".json,application/json" hidden></label></div><div class="tiny" id="saveNotice" role="status">音声録音そのものはバックアップに含まれません。</div><div class="challenge-box" id="dailyBox"><div class="challenge-head"><span>今日の対戦 <b id="dailyName">---</b></span><span class="challenge-tag" id="dailyFlag">未達成</span></div><div class="challenge-copy" id="dailyDesc">日替わりのライバルを倒して報酬を獲得</div><button class="btn challenge-btn" id="dailyBtn" type="button">今日の相手と対戦</button></div><div class="collection-box"><b>声魂図鑑</b><span id="codexCounter">発見した種族 0 / 12</span><div class="codex-grid" id="codexGrid" aria-label="発見した種族"></div></div><div id="playGuide"><h3>遊び方 / 3ステップ</h3><div class="guideflow">① 声でキャラを作る → ② 対戦中にガード・特別な技を操作 → ③ 勝って育成しながら次のステージへ進む</div></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="survival-home"><strong>サバイバル｜負けたら終了</strong><span id="survivalHomeStatus" aria-live="polite">最高記録：0 ポイント</span><div class="survival-history"><b>この端末の記録 TOP 5</b><ol id="survivalLocalTop5"><li>まだ記録がありません</li></ol></div><button class="btn primary" id="survivalBtn" type="button">▶ おまかせでスタート</button><small>自動で連戦。途中で手動操作に切り替えられます。ポイントはこの端末の記録で、オンラインランキングには反映されません。</small></div>
 <div class="battlebuttons"><button class="btn fight" id="fightBtn">⚔ 次のバトルへ</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div></section></main>
@@ -411,10 +412,53 @@ function showMicNotice(){
  const note=$('micNotice');if(!window.isSecureContext){note.textContent='現在のページは安全な接続ではありません。マイクにはHTTPSまたはlocalhostが必要です。';}
  else if(location.protocol==='file:'){note.textContent='ローカルHTMLファイルで実行中。端末によってマイク権限が制限されます。HTTPSに公開して開く方法を推奨します。';}
  else if(!navigator.mediaDevices?.getUserMedia){note.textContent='この環境はマイク入力APIを使えません。ChromeでHTTPSページを直接開いてください。';}
- else note.textContent='マイクの使用を許可すると、声の特徴から素体を作れます。録音した言葉は自動判定されないため、不適切な発言は控えてください。';
+ else note.textContent='録音した発言を音声認識と禁止語辞書で確認します。確認できない端末では素体のみ生成し、録音音声は保存しません。誤認識・見逃しはゼロではありません。';
 }
 
-// Recording uses microphone audio directly; inappropriate-language prevention is described in the visible recording notice.
+// Speech review never approves unrecognized or unsupported recordings.
+async function beginSpokenWordReview(){
+ const consent=$('allowCloudSpeech');
+ if(consent&&!consent.onchange)consent.onchange=()=>{
+  try{localStorage.setItem('otodama.voice.cloud.consent',consent.checked?'1':'0')}catch(e){}
+ };
+ const R=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!R)return {state:'unsupported'};
+ let local=false;
+ if(typeof R.available==='function'){
+  try{local=(await R.available({langs:['ja-JP'],processLocally:true}))==='available'}catch(e){}
+ }
+ if(!local&&!consent?.checked)return {state:'consent'};
+ let recognizer;
+ try{recognizer=new R()}catch(e){return {state:'error'}}
+ recognizer.lang='ja-JP';recognizer.continuous=true;recognizer.interimResults=false;recognizer.maxAlternatives=1;
+ if(local)recognizer.processLocally=true;
+ const review={state:'listening',recognizer,transcripts:[],error:false,ended:false};
+ review.finished=new Promise(resolve=>review.resolveEnd=resolve);
+ recognizer.onresult=event=>{
+  const results=event?.results||[];
+  for(let i=event?.resultIndex||0;i<results.length;i++){
+   const item=results[i];
+   if(item?.isFinal&&typeof item[0]?.transcript==='string')review.transcripts.push(item[0].transcript.slice(0,160));
+  }
+ };
+ recognizer.onerror=()=>{review.error=true;review.resolveEnd()};
+ recognizer.onend=()=>{review.ended=true;review.resolveEnd()};
+ try{recognizer.start()}catch(e){review.error=true;review.state='error'}
+ return review;
+}
+async function evaluateSpokenWordReview(review){
+ if(!review?.recognizer||review.error)return {allowed:false,banned:false,state:review?.state||'unsupported'};
+ if(!review.ended){
+  try{review.recognizer.stop()}catch(e){review.error=true}
+  await Promise.race([review.finished,new Promise(resolve=>setTimeout(resolve,1200))]);
+ }
+ const transcript=review.transcripts.join(' ').trim();
+ if(!transcript)return {allowed:false,banned:false,state:review.error?'error':'unrecognized'};
+ let forbidden;
+ try{const moderation=await import('./moderation.js');forbidden=moderation.isForbiddenSpeech(transcript)}
+ catch(e){return {allowed:false,banned:false,state:'dictionary-error'}}
+ return {allowed:!forbidden&&!review.error,banned:!!forbidden,state:forbidden?'blocked':review.error?'error':'passed'};
+}
 // v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
 let stopCaptureNow=null, recordingFinishing=false, recordingRequestPending=false;
 function pcmWavDataUrl(samples,rate){
@@ -442,11 +486,12 @@ function stopRecord(){if(recording&&stopCaptureNow)stopCaptureNow()}
 async function startRecord(){
  if(recording||recordingRequestPending)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
- let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null;
+ let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null, speechReview=null;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
  recordingRequestPending=true;
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
+  speechReview=await beginSpokenWordReview();
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
   stopBattleSpeech(); // Prevent any result TTS from contaminating a new recording.
   $('micHint').textContent='録音中：好きな声を出し、停止ボタンで確定';$('countdown').textContent='03.0 SEC';
@@ -522,10 +567,19 @@ async function startRecord(){
   const z=median(zcs)||0,rough=median(steps)||0;
   const v={vol:Math.round(clamp(10+Math.sqrt(rms)*155,8,96)),pitch:Math.round(clamp(12+Math.log2(pitch/70)*21,9,98)),res:Math.round(clamp(28+rough*310+z*65,15,96)),rhythm:Math.round(clamp(26+delta*940,17,95)),stable:Math.round(clamp(95-dev*.32,20,96)),breath:Math.round(clamp(15+z*290+rough*95,14,95))};
   const seed=hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
-  setCurrent({...gen(seed,v),voiceClip});
-  $('micHint').textContent=voiceClip?'録音した声を保存しました。試聴・戦闘で使えます':'素体を生成しましたが録音データを保存できませんでした';
+  const review=await evaluateSpokenWordReview(speechReview);
+  if(review.banned){
+   voiceClip='';
+   $('micHint').textContent='禁止語を検出したため、録音とキャラ生成を中止しました。別の言葉で録音してください。';
+   $('micNotice').textContent='不適切な発言が検出されました。録音データは保存しません。';
+   $('countdown').textContent='BLOCKED';
+   return;
+  }
+  if(!review.allowed)voiceClip='';
+  setCurrent({...gen(seed,v),voiceClip,voiceReview:voiceClip?'passed':'unverified'});
+  $('micHint').textContent=voiceClip?'録音した声を保存しました。試聴・戦闘で使えます':review.allowed?'素体を生成しましたが録音データを保存できませんでした':'発言を確認できなかったため素体のみ生成しました（録音声は保存しません）';
   $('countdown').textContent=voiceClip?'VOICE OK':'NO CLIP';
-  $('micNotice').textContent=voiceClip?'録音した声はソロ戦で再生できます。録音には適切な言葉を使ってください。':'録音データを保存できませんでした。代替音でソロ戦は続行できます。';
+  $('micNotice').textContent=voiceClip?'録音した声は端末内のソロ戦で再生できます。':'発言を確認できないため録音声は再生せず、代替音で戦います。端末内認識が非対応なら外部認識を明示許可できます。';
  }catch(e){const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
  finally{
   if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
@@ -685,7 +739,7 @@ function synthVoice(cr,side,options={}){
   lastSoundStatus=rush?'連打攻撃の代替音を再生中':'代替音を再生中';
  }catch(e){lastSoundStatus=e.message||String(e)}
 }
-function clipData(cr){const s=cr?.voiceClip;return typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
+function clipData(cr){const s=cr?.voiceClip;return cr?.voiceReview==='passed'&&typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
 async function decodeVoice(cr){
  const data=clipData(cr);if(!data)return null;const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
  if(voiceCache.has(key))return voiceCache.get(key);
