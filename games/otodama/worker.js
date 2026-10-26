@@ -300,10 +300,6 @@ export class Room extends DurableObject {
       if(attachment.creature)return;
       const creature=this.cleanCreature(data.creature);
       if(!creature){this.send(ws,{type:'error',message:'キャラデータが不正です'});return}
-      const occupied=new Set(this.livePeers().map(p=>p.deserializeAttachment().seat));
-      const seat=occupied.has(0)?1:0;
-      if(occupied.has(seat)){this.send(ws,{type:'error',message:'満室です'});return}
-      const token=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
       let rankId=null;
       if(this.env?.RANKINGS&&typeof data.playerToken==='string'&&/^[a-f0-9]{48}$/.test(data.playerToken)){
         try{const board=this.env.RANKINGS.get(this.env.RANKINGS.idFromName('seasonal-v1'));
@@ -311,6 +307,13 @@ export class Room extends DurableObject {
           if(response.ok){const player=await response.json();if(player.valid&&/^[a-f0-9]{32}$/.test(player.id))rankId=player.id;}
         }catch{}
       }
+      // Validate the optional ranking token before claiming a seat. Recheck capacity
+      // afterwards to avoid concurrent awaiting joins assigning the same seat.
+      if((await this.ctx.storage.get('live'))?.active){this.send(ws,{type:'error',message:'対戦開始済みです'});return}
+      const occupied=new Set(this.livePeers().map(p=>p.deserializeAttachment().seat));
+      const seat=occupied.has(0)?1:0;
+      if(occupied.has(seat)){this.send(ws,{type:'error',message:'満室です'});return}
+      const token=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
       ws.serializeAttachment({...attachment,creature,ready:false,seat,resumeToken:token,rankId,voiceConsent:{send:false,receive:false}});
       this.send(ws,{type:'session',token,seat});this.state();this.voicePolicy();return;
     }
