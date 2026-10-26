@@ -146,10 +146,179 @@ const ELEMS=['雷','炎','水','風','光','影','鋼','音','樹','霧'];
 const statNames=['攻撃','防御','速度','集中','必殺'];const voiceNames=['音量','音程','響き','リズム','安定度','息成分'];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));const between=(rng,a,b)=>a+rng()*(b-a);const getRand=(seed)=>{let s=seed>>>0;return()=>{s+=0x6D2B79F5;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296}};
 function hash(n){n=Math.imul(n^n>>>16,0x45d9f3b);n=Math.imul(n^n>>>16,0x45d9f3b);return (n^n>>>16)>>>0}
-function gen(seed,voice){let rng=getRand(seed),parts={body:Math.floor(rng()*5),eyes:Math.floor(rng()*20),brows:Math.floor(rng()*20),nose:Math.floor(rng()*20),mouth:Math.floor(rng()*20),ears:Math.floor(rng()*20),left:Math.floor(rng()*30),right:Math.floor(rng()*30),color:Math.floor(rng()*10),family:Math.floor(rng()*12),crest:Math.floor(rng()*30),back:Math.floor(rng()*16),pattern:Math.floor(rng()*24),legs:Math.floor(rng()*16)};
+
+/* AUDIO DNA v1: microphone waveform+FFT -> deterministic, layered combat traits.
+   No transcript, external model, recognition permission, or cloud voice upload. */
+const DNA_FEATURE_NAMES=[
+ '音程の中心','音程の幅','音程の上昇','音程の揺れ','有声音の割合','発声の強さ',
+ '強弱の幅','立ち上がり','余韻の速さ','発声パルス','拍の規則性','音の持続',
+ '休止の回数','休止の長さ','高域のざらつき','ざらつきの変化','波形の粗さ','粗さの変化',
+ '音色の明るさ','明るさの変化','明るさの推移','低域の比率','中域の比率','高域の比率',
+ '音色の滑らかさ','音色の変動','周波数変化','周波数変化の揺れ','高域への広がり',
+ '低高域のコントラスト','発声序盤の勢い','発声終盤の勢い','終盤の持続','倍音の明瞭さ',
+ '音色変化','全体のリズム'
+];
+const DNA_TRAITS=[
+ {id:0,name:'低音の重み',minLevel:1,bonus:'強い攻撃'},
+ {id:1,name:'連続する声',minLevel:1,bonus:'連続攻撃'},
+ {id:2,name:'伸びる声',minLevel:5,bonus:'ガード'},
+ {id:3,name:'鋭い立ち上がり',minLevel:5,bonus:'会心'},
+ {id:4,name:'静と動',minLevel:10,bonus:'反撃'},
+ {id:5,name:'重なる響き',minLevel:10,bonus:'必殺技'},
+ {id:6,name:'変わる音色',minLevel:15,bonus:'回避'},
+ {id:7,name:'潜在の追撃',minLevel:20,bonus:'追撃'}
+];
+function dnaScore(value,low,high){return clamp(Math.round((value-low)*100/(high-low)),0,100)}
+function dnaMean(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0}
+function dnaSpread(a){const m=dnaMean(a);return Math.sqrt(dnaMean(a.map(x=>(x-m)*(x-m))))}
+function dnaQuantile(a,q){if(!a.length)return 0;const b=a.slice().sort((x,y)=>x-y);return b[Math.floor((b.length-1)*q)]}
+function dnaFrame(an,buf,spectrum,sampleRate,t,pitch,rms,zc,rough,previous){
+ let centroid=950,low=.34,mid=.45,high=.21,flat=.27,roll=1900,flux=.12;
+ if(spectrum&&typeof an.getFloatFrequencyData==='function'){
+  try{
+   an.getFloatFrequencyData(spectrum);
+   let sum=0,sumHz=0,lo=0,mi=0,hi=0,log=0,n=0,bright=0,delta=0;
+   const values=[],step=3;
+   for(let i=3;i<spectrum.length;i+=step){
+    const hz=i*sampleRate/an.fftSize;if(hz<75||hz>6500)continue;
+    const db=Number(spectrum[i]);
+    const amp=Number.isFinite(db)?Math.pow(10,clamp(db,-100,0)/20):0;
+    if(amp<.00001)continue;
+    values.push([hz,amp]);sum+=amp;sumHz+=hz*amp;
+    if(hz<450)lo+=amp;else if(hz<2000)mi+=amp;else hi+=amp;
+    log+=Math.log(amp);n++;
+    if(previous){const prev=previous.get(i)||0;delta+=Math.abs(amp-prev);}
+    bright=Math.max(bright,amp);
+   }
+   if(sum>0&&n){
+    centroid=sumHz/sum;low=lo/sum;mid=mi/sum;high=hi/sum;
+    flat=Math.exp(log/n)/(sum/n);
+    const target=sum*.85;let acc=0;
+    for(const entry of values){acc+=entry[1];if(acc>=target){roll=entry[0];break;}}
+    flux=previous?delta/(sum+1e-8):.12;
+    if(previous){previous.clear();for(let i=3;i<spectrum.length;i+=step){
+     const hz=i*sampleRate/an.fftSize;if(hz<75||hz>6500)continue;
+     const db=Number(spectrum[i]);previous.set(i,Number.isFinite(db)?Math.pow(10,clamp(db,-100,0)/20):0);
+    }}
+   }
+  }catch(e){/* Some browsers have time-domain analysis but no usable FFT. */}
+ }
+ return {t,pitch:pitch||0,rms,zc,rough,centroid,low,mid,high,flat,roll,flux};
+}
+function analyseVoiceDNA(frames){
+ if(!Array.isArray(frames)||frames.length<7)return null;
+ const clean=frames.filter(x=>Number.isFinite(x.rms)&&Number.isFinite(x.t));
+ if(clean.length<7)return null;
+ const maxR=Math.max(...clean.map(x=>x.rms));
+ const active=clean.filter(x=>x.rms>=Math.max(.008,maxR*.17));
+ if(active.length<6)return null; // Too little audible content for a reliable DNA profile.
+ const av=(key)=>active.map(x=>Number(x[key])||0);
+ const q=(key,p=.5)=>dnaQuantile(av(key),p);
+ const pitch=av('pitch').filter(v=>v>=65&&v<=900);
+ const rms=av('rms'),zcs=av('zc'),rough=av('rough');
+ const ampStart=dnaMean(rms.slice(0,Math.max(1,Math.ceil(rms.length/3))));
+ const ampEnd=dnaMean(rms.slice(-Math.max(1,Math.ceil(rms.length/3))));
+ const pitchStart=dnaMean(pitch.slice(0,Math.max(1,Math.ceil(pitch.length/3))));
+ const pitchEnd=dnaMean(pitch.slice(-Math.max(1,Math.ceil(pitch.length/3))));
+ const transitions=rms.slice(1).map((x,i)=>x-rms[i]);
+ const rises=transitions.filter(v=>v>0),falls=transitions.filter(v=>v<0).map(Math.abs);
+ const peaks=[];for(let i=1;i<clean.length-1;i++){
+  if(clean[i].rms>clean[i-1].rms*1.18&&clean[i].rms>=clean[i+1].rms&&clean[i].rms>maxR*.27)peaks.push(clean[i].t);
+ }
+ const periods=peaks.slice(1).map((t,i)=>t-peaks[i]);
+ const gaps=clean.filter(x=>x.rms<maxR*.17);
+ let maxRun=0,run=0;for(const v of clean){if(v.rms>=maxR*.17)run++;else{maxRun=Math.max(maxRun,run);run=0}}maxRun=Math.max(maxRun,run);
+ const centered=av('centroid'),spectFlux=av('flux');
+ const raw=[
+ dnaScore(q('pitch'),80,640),
+ dnaScore(pitch.length?dnaQuantile(pitch,.88)-dnaQuantile(pitch,.12):0,0,280),
+ dnaScore(pitchEnd-pitchStart,-170,170),
+ dnaScore(dnaSpread(pitch),0,155),
+ Math.round(100*pitch.length/Math.max(1,active.length)),
+ dnaScore(q('rms'),0,.23),
+ dnaScore(dnaQuantile(rms,.9)/Math.max(.008,dnaQuantile(rms,.15)),1,7),
+ dnaScore(dnaMean(rises)/Math.max(.008,q('rms')),0,.40),
+ dnaScore(dnaMean(falls)/Math.max(.008,q('rms')),0,.40),
+ dnaScore(peaks.length,0,12),
+ periods.length>1?dnaScore(1/(1+dnaSpread(periods)/Math.max(1,dnaMean(periods))),.3,1):28,
+ dnaScore(maxRun/clean.length,0,1),
+ dnaScore(gaps.length/clean.length,0,.55),
+ dnaScore(gaps.length?dnaMean(gaps.map(x=>x.rms))/.025:0,0,1),
+ dnaScore(q('zc'),.02,.30),
+ dnaScore(dnaSpread(zcs),0,.12),
+ dnaScore(q('rough'),.004,.17),
+ dnaScore(dnaSpread(rough),0,.06),
+ dnaScore(q('centroid'),450,3600),
+ dnaScore(dnaSpread(centered),0,1300),
+ dnaScore(dnaMean(centered.slice(-Math.ceil(centered.length/3)))-dnaMean(centered.slice(0,Math.ceil(centered.length/3))),-1300,1300),
+ dnaScore(q('low'),.08,.83),
+ dnaScore(q('mid'),.08,.8),
+ dnaScore(q('high'),.03,.65),
+ dnaScore(q('flat'),.08,.9),
+ dnaScore(dnaSpread(av('flat')),0,.30),
+ dnaScore(q('flux'),0,1.8),
+ dnaScore(dnaSpread(spectFlux),0,.9),
+ dnaScore(q('roll'),850,5300),
+ dnaScore(Math.abs(q('low')-q('high')),0,.75),
+ dnaScore(ampStart/Math.max(.008,q('rms')),0,2.5),
+ dnaScore(ampEnd/Math.max(.008,q('rms')),0,2.5),
+ dnaScore(dnaMean(rms.slice(-Math.ceil(rms.length/3)))/Math.max(.008,dnaMean(rms)),0,2),
+ dnaScore(1-q('flat'),.05,.95),
+ dnaScore(dnaSpread(av('centroid'))/Math.max(250,q('centroid')),0,.8),
+ dnaScore(peaks.length/Math.max(1,(clean.at(-1).t-clean[0].t)/1000),0,4)
+ ];
+ const f=raw.map(x=>Math.round(clamp(x,0,100)/5)*5); // Stable quantization to reduce mic noise.
+ const selected=[0,1,2,3,4,7,9,10,11,14,17,18,21,22,23,24,26,28,30,31,33,34,35];
+ let signature=2166136261;
+ for(const i of selected)signature=Math.imul(signature^((f[i]/5+1)* (i+1)),16777619)>>>0;
+ signature=hash(signature);
+ const traits=[];
+ if(f[0]<=55&&f[21]>=35&&f[33]>=45)traits.push(0);
+ if(f[9]>=25&&f[10]>=25&&f[7]>=10)traits.push(1);
+ if(f[11]>=40&&f[4]>=30&&f[33]>=45)traits.push(2);
+ if(f[2]>=45&&f[7]>=20&&f[26]>=15)traits.push(3);
+ if(f[6]>=35&&f[10]>=25&&f[4]>=25)traits.push(4);
+ if(f[22]>=20&&f[23]>=10&&f[29]>=15)traits.push(5);
+ if(f[19]>=15&&f[17]>=10&&f[34]>=15)traits.push(6);
+ if(traits.length>=3&&f[33]>=45&&f[9]>=20)traits.push(7);
+ const t=code=>traits.includes(code)?1:0;
+ const stats=[
+ clamp(Math.round(31+f[21]*.17+f[16]*.12+f[7]*.18+f[29]*.08+f[33]*.10+7*t(0)+4*t(3)),27,94),
+ clamp(Math.round(31+f[11]*.23+f[4]*.16+f[33]*.15+f[22]*.10+f[10]*.10+7*t(2)+3*t(4)),27,94),
+ clamp(Math.round(31+f[9]*.19+f[10]*.12+f[2]*.11+f[26]*.09+f[35]*.20+7*t(1)),27,94),
+ clamp(Math.round(30+f[4]*.19+f[33]*.19+(100-f[3])*.12+f[24]*.10+f[30]*.06+7*t(4)),27,94),
+ clamp(Math.round(30+f[23]*.17+f[26]*.18+f[19]*.13+f[1]*.09+f[33]*.09+7*t(5)+5*t(6)),27,94)
+ ];
+ const growth=stats.map((v,i)=>1+Math.round(clamp((f[(i*7+11)%36]+f[(i*7+17)%36])/90,0,2)));
+ const potential=clamp(Math.round(dnaMean([f[4],f[33],f[26],f[34]])*.6+traits.length*8),0,100);
+ const energy=[f[0],f[18],f[23],f[29],f[22],f[14],f[21],f[33],f[10],f[19]];
+ const elementIndex=energy.indexOf(Math.max(...energy));
+ const voice={
+  vol:Math.round(clamp(28+f[5]*.40,20,90)),pitch:Math.round(clamp(14+f[0]*.81,10,95)),
+  res:Math.round(clamp(20+f[33]*.55+f[22]*.15,12,95)),
+  rhythm:Math.round(clamp(20+f[35]*.50+f[9]*.19,15,95)),
+  stable:Math.round(clamp(100-f[3]*.55-f[17]*.12,15,96)),
+  breath:Math.round(clamp(14+f[24]*.45+f[14]*.25,12,95))
+ };
+ return {version:1,features:f,signature,traits,potential,growth,stats,voice,elementIndex,
+  quality:Math.round(100*active.length/clean.length),frames:clean.length};
+}
+function dnaUnlocked(c){return c?.audioDNA?.version===1?c.audioDNA.traits.filter(id=>DNA_TRAITS[id]&&levelOf(c)>=DNA_TRAITS[id].minLevel):[]}
+function dnaGrowthIndex(c,level){
+ const d=c.audioDNA;
+ if(!d||d.version!==1||!Array.isArray(d.growth)||d.growth.length!==5)return hash(c.seed^level)%5;
+ const weights=d.growth.map((x,i)=>Math.max(1,Number(x)||1)+((level+i)%4===0?1:0));
+ const total=weights.reduce((a,b)=>a+b,0);
+ let target=hash(d.signature^Math.imul(level,7919))%total;
+ for(let i=0;i<weights.length;i++){target-=weights[i];if(target<0)return i}
+ return 0;
+}
+
+function gen(seed,voice,audioDNA=null){let rng=getRand(seed),parts={body:Math.floor(rng()*5),eyes:Math.floor(rng()*20),brows:Math.floor(rng()*20),nose:Math.floor(rng()*20),mouth:Math.floor(rng()*20),ears:Math.floor(rng()*20),left:Math.floor(rng()*30),right:Math.floor(rng()*30),color:Math.floor(rng()*10),family:Math.floor(rng()*12),crest:Math.floor(rng()*30),back:Math.floor(rng()*16),pattern:Math.floor(rng()*24),legs:Math.floor(rng()*16)};
  let v=voice||{vol:Math.round(between(rng,24,82)),pitch:Math.round(between(rng,24,90)),res:Math.round(between(rng,20,95)),rhythm:Math.round(between(rng,17,90)),stable:Math.round(between(rng,25,95)),breath:Math.round(between(rng,20,80))};
  let stats=[Math.round(clamp(25+v.vol*.14+v.res*.31+v.breath*.18+v.rhythm*.13,26,95)),Math.round(clamp(22+v.stable*.36+v.res*.23+v.breath*.12,27,95)),Math.round(clamp(19+v.pitch*.38+v.rhythm*.34,27,95)),Math.round(clamp(24+v.stable*.41+v.rhythm*.25,27,95)),Math.round(clamp(23+v.res*.34+v.pitch*.29+v.stable*.17,28,95))];
- return{seed,parts,voice:v,stats,name:generateName(seed),element:ELEMS[Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),type:SPECIES[parts.family]+'・'+['小さな声','高い声','低い声','大きな声','抑揚のある声','澄んだ声','リズムのよい声','響く声'][Math.floor(rng()*8)]}}
+ if(audioDNA?.version===1&&Array.isArray(audioDNA.stats))stats=audioDNA.stats.slice();
+ return{seed,parts,voice:v,stats,audioDNA:audioDNA?.version===1?audioDNA:undefined,name:generateName(seed),element:ELEMS[audioDNA?.version===1?audioDNA.elementIndex:Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),type:SPECIES[parts.family]+'・'+['小さな声','高い声','低い声','大きな声','抑揚のある声','澄んだ声','リズムのよい声','響く声'][Math.floor(rng()*8)]}}
 
 const SOULS=[
  {name:'スピード型',skill:'連続攻撃',detail:'高い声や速いリズムが特徴。連続して攻撃するのが得意。',bias:[1.65,1]},
