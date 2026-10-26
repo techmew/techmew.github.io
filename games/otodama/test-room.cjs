@@ -114,7 +114,19 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.ok(a.messages.some(m=>m.type==='live_resumed'),'remaining player not resynchronized');
  await room.webSocketClose(b);
  assert.ok((await storage.get('live')).active,'stale close must not interrupt resumed match');
+ // Reconnecting during the between-turn pause must preserve the remaining delay.
+ const pauseState=await storage.get('live');pauseState.phase='pause';pauseState.pauseUntil=fakeNow+220;
+ await storage.put('live',pauseState);
  resumed.close();await room.webSocketClose(resumed);
+ const pauseAccepted=await room.fetch({url:'https://example.test/room/ABCDEF?resume='+token});
+ assert.equal(pauseAccepted.status,101,'pause-phase reconnect rejected');
+ const pausePeer=sockets.find(p=>p!==a&&p!==b&&p!==resumed&&p.data?.seat===1);
+ assert.ok(pausePeer,'pause-phase peer missing');
+ assert.ok(!pausePeer.messages.some(m=>m.type==='live_turn'),'pause reconnect started attack too early');
+ assert.equal(storage.alarmAt,pauseState.pauseUntil,'pause deadline was reset');
+ fakeNow+=220;await room.alarm();
+ assert.ok(pausePeer.messages.some(m=>m.type==='live_turn'),'pause did not resume on original deadline');
+ pausePeer.close();await room.webSocketClose(pausePeer);
  fakeNow+=15001;
  assert.equal((await room.fetch({url:'https://example.test/room/ABCDEF?resume='+token})).status,410,'expired reconnect token revived match');
  await room.alarm();
