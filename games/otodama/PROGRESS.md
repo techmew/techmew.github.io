@@ -16,7 +16,7 @@
 8. 新規ChromiumテストとRoom/Moderation/UIの回帰テストを追加。表示バージョン・Worker health・packageを0.10.1に更新。
 
 ## TEST_RESULTS
-- ローカルNode: worker構文、UIソース、Room、Matchmaker = PASS。moderation.jsはGitHub取得ソースをJavaScriptとして構文検証し、禁止9件/安全10件の判定をPASS。
+- ローカルNode: worker構文、UIソース、Room、Matchmaker = PASS。再接続の予兆中・休止中の時刻維持もテストPASS。moderation.jsはGitHub取得ソースをJavaScriptとして構文検証し、禁止9件/安全10件の判定をPASS。
 - ローカルChromium: gameplay/live/reconnect/save/tactics/v098/v099/v100/v101 の9スイートPASS。縦390px・横画面・320pxの既存回帰もPASS。
 - GitHub main: index / worker / package / test-room / test-ui / test-v101 の取得blob SHAとローカルファイルSHAが一致。moderationもGitHub再取得で一致。
 - GitHub Pagesの配信反映・公開URLでの直接操作、Cloudflare本番、外部二端末、Android実機は未検証。
@@ -38,6 +38,7 @@
 - tests: ced68a2c3cce9c877232f654c571170ad6e9f301 / dd519deafbff18b88e404727717115648023be66 / a684badce5cd184c465f3777da9306152ca1f92f / 0cd0f5133b0cbf252243e0a09d7620767118bdda
 - version: 23458aac94ecd7cd1e3d72c3cc8702385e23ee0e / 293e4db229be14ef1855158320409fd6d363ca48 / 77f4b8874e425e5411d085dab607f17a1e64385f
 - README: 9843743ef2c47b7b5a8660dc173ff682256f37c1
+- pause-phase reconnect regression: ca35f38db154c0ea4f953b6eec64d92d0b8da294
 
 GitHubがコード正本、Driveが引き継ぎ正本。ローカル成功は本番確認を意味しない。
 
