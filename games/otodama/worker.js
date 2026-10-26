@@ -68,7 +68,16 @@ export class Room extends DurableObject {
           turnStance:seat===0?(active.turnStance||active.stance):(active.turnStance||active.stance).slice().reverse(),
           turn:active.turn
         });
-        await this.announceLiveTurn(active,peers);
+        // Reconnection must not reroll the attack, damage, stance or accepted inputs.
+        // Resume the existing server-owned deadline rather than restarting the turn.
+        if(active.phase==='telegraph'){
+          this.liveSend(peers,active,{type:'live_turn',seq:active.turn,atk:active.atk,
+            kind:active.kind,duration:900,elapsed:Math.max(0,Date.now()-active.startedAt),
+            resumed:true,dodgeCooldown:active.dodgeCooldown,actionStatus:active.actions.map(a=>a?.action||null)});
+          await this.ctx.storage.setAlarm(Math.max(Date.now()+1,active.startedAt+900));
+        }else if(active.phase==='pause'){
+          await this.ctx.storage.setAlarm(Math.max(Date.now()+1,active.pauseUntil||Date.now()+1));
+        }
       }else this.send(server,{type:'live_wait',seconds:15});
       this.voicePolicy();
     }else{
@@ -136,6 +145,7 @@ export class Room extends DurableObject {
       ...(packet.hp?{hp:seat===0?packet.hp:packet.hp.slice().reverse()}:{}),
       ...(packet.charge?{charge:seat===0?packet.charge:packet.charge.slice().reverse()}:{}),
       ...(packet.dodgeCooldown?{dodgeCooldown:seat===0?packet.dodgeCooldown:packet.dodgeCooldown.slice().reverse()}:{}),
+      ...(packet.actionStatus?{actionStatus:seat===0?packet.actionStatus:packet.actionStatus.slice().reverse()}:{}),
       ...(packet.atk!==undefined?{atk:packet.atk===seat?0:1}:{}),
       ...(packet.winner!==undefined?{winner:packet.winner===seat?0:1}:{})
     });
@@ -199,8 +209,8 @@ export class Room extends DurableObject {
     this.liveSend(peers,state,{type:'live_impact',seq:state.turn,atk,kind:state.kind,damage,parry,dodge,skill,strike,
       hp:state.hp,charge:state.charge,finished});
     if(finished){await this.finishLive(state,peers);return}
-    state.turn++;state.phase='pause';await this.ctx.storage.put('live',state);
-    await this.ctx.storage.setAlarm(Date.now()+280);
+    state.turn++;state.phase='pause';state.pauseUntil=Date.now()+280;await this.ctx.storage.put('live',state);
+    await this.ctx.storage.setAlarm(state.pauseUntil);
   }
   async alarm(){
     const state=await this.ctx.storage.get('live');if(!state?.active)return;
