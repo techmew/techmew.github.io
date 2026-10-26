@@ -17,9 +17,9 @@ async def main():
           const t=window.__v098;
           if(!t.isRivalStage(7)||t.isRivalStage(5)||t.isRivalStage(10)||t.stageTitle(7)!=='ライバル戦')return {error:'rival rotation'};
           if(t.stageMission(4).kind!=='guardBest'||t.stageMission(5).kind!=='damageDealt')return {error:'mission expansion'};
-          const foe=t.stageEnemy(7,t.cur);if(!foe.name.startsWith('宿敵・'))return {error:'rival appearance'};
+          const foe=t.stageEnemy(7,t.cur);if(!foe.name.startsWith('ライバル・'))return {error:'rival appearance'};
           t.stage=7;t.doCom();const m=t.match;
-          if(!m.rival||m.boss||!document.getElementById('battleGuide').textContent.includes('宿敵戦'))return {error:'rival setup'};
+          if(!m.rival||m.boss||!document.getElementById('battleGuide').textContent.includes('ライバル戦'))return {error:'rival setup'};
           const old=performance.now();t.attackVoice(m.a,0);
           const duck=t.duck>old+350;
           m.hp=[m.max[0],0];m.parries=2;m.guardBest=2;m.damageDealt=140;m.damageTaken=5;m.skillsUsed=1;
@@ -28,7 +28,7 @@ async def main():
         }''')
         assert result.get('duck'),result
         assert result['stage']==8 and result['rival'],result
-        assert 'RIVAL BONUS +2XP' in result['prize'] and '次のバトル' in result['next'],result
+        assert 'ライバル報酬 +2XP' in result['prize'] and '次のバトル' in result['next'],result
         assert not errors,errors
         print(json.dumps({'result':'PASS','rival':result,'errors':errors},ensure_ascii=False))
         await browser.close()
