@@ -1951,7 +1951,7 @@ function announceChallenger(){
  challengerBannerTimer=setTimeout(()=>{banner.hidden=true;challengerBannerTimer=null},2400);
 }
 
-function finishCombat(){const m=match;if(!m||m.done)return;hideMatchIntro();hideRushBanner();m.done=true;stopBgm();stopAttackVoices();
+function finishCombat(){const m=match;if(!m||m.done)return;hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;m.done=true;stopBgm();stopAttackVoices();
  if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong>　自動防御 '+m.parries+' / 回避 '+m.dodges+' / 必殺 '+m.skillsUsed+' / 会心 '+m.strikes+' / 反撃 '+m.counterHits+'<br>与ダメージ '+m.damageDealt+' / 被ダメージ '+m.damageTaken+(win&&['S','A'].includes(m.grade)?'　・　ランク報酬XP +'+(m.grade==='S'?2:1):'');}
  else $('battleReport').classList.remove('visible');
  if(m.interactive&&!m.live){m.outcome.winner=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1]?0:1;m.outcome.max=m.max.slice();updateCharacterProgress(m);if(m.cleanDefenseAwarded)$('battleReport').textContent+=' ／ 完璧防御 +1XP'}
@@ -1977,7 +1977,7 @@ function updateCampaignTrack(mode){
 function showBattle(a,b,outcome,mode,buff=null,live=false){
  // Human victory commentary is audio-only; no TTS preparation.
  // Offline battles exclusively replay the creature-generated fight.
- clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();stopBattleSpeech();$('battleSpeech').hidden=true;$('repeatSpeechBtn').hidden=true;
+ clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();stopBattleSpeech();$('voiceFxLabel').hidden=true;$('battleSpeech').hidden=true;$('repeatSpeechBtn').hidden=true;
  autoBattleEnabled=true;if(!live)buff=null;
 
  clearAutoAction();clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();stopBgm();unlockBattleAudio();primeBattleVoices(a,b);
@@ -2015,7 +2015,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  },MATCH_INTRO_MS);
  aframe=requestAnimationFrame(battleDraw);startBgm();
 }
-function closeBattle(){clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();stopBattleSpeech();$('repeatSpeechBtn').hidden=true;$('battleSpeech').hidden=true;clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
+function closeBattle(){clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;stopBattleSpeech();$('repeatSpeechBtn').hidden=true;$('battleSpeech').hidden=true;clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
 function doCom(){unlockBattleAudio();const enemy=stageEnemy(adventureStage,cur,stageAttempts);pendingBuff=null;showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH')}
 function doDaily(){unlockBattleAudio();const enemy=dailyEnemy();showBattle(cur,enemy,randCombat(cur,enemy),'DAILY CHALLENGE')}
 
