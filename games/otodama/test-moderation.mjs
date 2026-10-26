@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {isForbiddenName,sanitizePublicName,moderationTermCount} from './moderation.js';
+import {isForbiddenName,isForbiddenSpeech,sanitizePublicName,moderationTermCount} from './moderation.js';
 assert.ok(moderationTermCount>=200,`only ${moderationTermCount} banned strings`);
 for (const phrase of ['死ね','し・ね','ＳＥＸＣＡＭ','f.u.c.k y.o.u','ころす','kill yourself','www.spam.com','a@example.com','t.me/bad','ガイジ','児童ポルノ','白人至上主義','確実に儲かる','b1t.ly','く た ば れ']) {
  if(!isForbiddenName(phrase))throw new Error('not rejected: '+phrase);
@@ -16,5 +16,13 @@ assert.equal(sanitizePublicName('😀'.repeat(25),123),'😀'.repeat(24));
 for(const phrase of ['死\\u200bね'.replace('\\u200b','\u200b'),'p\\u200benis'.replace('\\u200b','\u200b')]){
  assert.equal(isForbiddenName(phrase),true);
  assert.ok(sanitizePublicName(phrase,123).startsWith('声魂-'));
+}
+// Speech-recognition output must use the same policy as names, including
+// common phonetic variants, spacing and fullwidth/katakana substitutions.
+for(const phrase of ['ちんこ','チンコ','ち ん こ','ち・ん・こ','ちんこー','てぃんこ','おちんぽ','まんこ','まんこー','陰茎','性器','セックス','せっくす','し ね','ＳＥＸ','p.e.n.i.s','rape you']){
+ assert.equal(isForbiddenSpeech(phrase),true,'speech bypass: '+phrase);
+}
+for(const phrase of ['たまたま会った','かわいい猫','おはよう','勝った','まけた','クリスタルの剣士','グレープジュース','音の旅人']){
+ assert.equal(isForbiddenSpeech(phrase),false,'false positive speech: '+phrase);
 }
 console.log('MODERATION TEST PASS | terms',moderationTermCount);
