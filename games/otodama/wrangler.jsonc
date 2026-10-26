@@ -12,6 +12,10 @@
       {
         "name": "MATCHMAKER",
         "class_name": "Matchmaker"
+      },
+      {
+        "name": "RANKINGS",
+        "class_name": "Rankings"
       }
     ]
   },
@@ -26,6 +30,12 @@
       "tag": "v2",
       "new_sqlite_classes": [
         "Matchmaker"
+      ]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": [
+        "Rankings"
       ]
     }
   ]
