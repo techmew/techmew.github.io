@@ -18,7 +18,7 @@ for(const k of ['win','lose']){
  assert.equal(TAUNT_PARTS[k].ending.length,5);
  for(let i=0;i<500;i++){
   const sentence=tauntLine(k,i);
-  assert.ok(sentence.length>=24&&sentence.length<=110,'natural-length Japanese dialogue');
+  assert.ok(sentence.length>=17&&sentence.length<=36,'natural-length Japanese dialogue');
   all.push(sentence);
  }
 }
@@ -61,7 +61,7 @@ assert.ok(!/^</.test($('battleSpeechText').textContent),'plain dialogue text');
 api.speakBattleQuote(m);assert.equal(speech.length,2,'replay triggers a new TTS utterance');
 api.scheduleNextAfterQuote(m);
 let next=timers.filter(t=>!t.cancelled).at(-1);
-assert.ok(next&&next.delay===5100,'wait before auto-advance');
+assert.ok(next&&next.delay===3350,'wait before auto-advance');
 now=7000;synth.speaking=true;next.fn();
 assert.equal(actions.length,0,'do not interrupt a spoken line');
 now=9200;synth.speaking=false;next=timers.filter(t=>!t.cancelled).at(-1);next.fn();
@@ -80,8 +80,8 @@ const visited=new Set();
 for(let i=0;i<500;i++)visited.add(api.nextTaunt('win'));
 assert.equal(visited.size,500,'no duplicate spoken win line for 500 uses');
 for(const id of ['battleSpeech','battleSpeechWho','battleSpeechText','repeatSpeechBtn','battleSpeechState',
- 'bowBanner','talkEnabled','rematchBtn'])assert.ok(html.includes('id="'+id+'"'),'missing UI '+id);
-assert.ok(script.includes('bowStartTimer=setTimeout'),'intro bow timer');
+ 'talkEnabled','rematchBtn'])assert.ok(html.includes('id="'+id+'"'),'missing UI '+id);
+assert.ok(!script.includes('bowStartTimer')&&!html.includes('id="bowBanner"'),'pre-fight bow removed');
 assert.ok(script.includes('if(!won)scheduleNextAfterQuote(m)')===false,'no defeat auto-next');
 assert.ok(script.includes('if(won)scheduleNextAfterQuote(m)'),'win auto-next');
-console.log('PASS: 1000 unique Japanese dialogue lines, TTS + replay, win auto-next, loss stop, mute and bow (mocked browser APIs)');
+console.log('PASS: 1000 unique Japanese dialogue lines, TTS + replay, short lines, win auto-next, loss stop, no bow (mocked browser APIs)');
