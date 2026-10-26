@@ -1,3 +1,48 @@
+# 声魂（こえだま） 毎時開発 / v0.10.4 / 2026-10-26
+
+## CURRENT_STATUS
+- 対象 games/otodama/ のみ更新。ゲーム名「声魂（こえだま）」、声生成・録音停止/試聴・外見組合せ・次戦進行・爆発/WIN・育成・既存セーブ形式を維持。
+- Cloudflare Worker/Durable Objects はコードのみ更新。本番デプロイと外部2端末の確認は未実施。
+
+## CHANGELOG
+1. 次戦用の新規強化「逆転障壁」：HP40%以下で被弾時、一戦に一度だけ20軽減。ガード・回避成功では消費しない。
+2. 次戦用の新規強化「連鎖共鳴」：精密打撃で共鳴+8、2連鎖以降の与ダメージを最大20%増加。既存4種を含め6種類。
+3. 敵AIに「破甲の一撃」を追加。ステージ9以降の粉砕型とステージ12以降の防御偏重に反応。ガード貫通・回避有効の予兆を表示。
+4. オンライン精密打撃HUDの時間窓をサーバーの270〜660msに整合。
+5. オンライン必殺技の共鳴不足をサーバーが明示的に拒否し、UIが理由を表示。
+6. 自作BGMの16小節フレーズ変化を追加。狭い画面の次戦強化選択を2列に変更。
+7. 画面初期タイトル・フッターの旧バージョン表記を0.10.4に統一。Matchmakerテストの旧fixtureを厳密なキャラ検証仕様に修正。
+
+## TEST_RESULTS
+- 最新GitHub mainのソースを読み込み、V8でクライアント/WorkerのJavaScript構文検証PASS。
+- V8互換実行：test-ui-source 115 assertions PASS、test-room 98 assertions PASS、test-matchmaker 18 assertions PASS、test-moderation 38 assertions PASS、合計269 assertions PASS。
+- ライフライン一度限り/敵AI貫通/ライブ精密打撃の純関数チェックPASS。
+- 各GitHub変更ファイルはコミット後に再取得しGit blob SHA一致を確認。
+- 正式なNodeスイート、Chromium実操作、Android実機、GitHub Pagesの公開URLでの直接操作、Cloudflare本番WebSocket/外部2端末は未実施。V8互換テストはこれらの代替ではない。
+
+## BLOCKERS
+- Cloudflareアカウント認証、Actions Secrets CLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKEN、Worker URL設定が必要。
+- 録音音声そのものの自動文字起こし・禁止語判定は未実装。名前などの文字列検査とは別。
+- Android実機と外部二端末が使えず本番実プレイ確認未実施。
+
+## NEXT_ACTIONS
+1. 正式Node + Chromium全回帰、スマホ縦横/音声録音/保存/勝敗/連戦のブラウザ操作確認。
+2. 逆転障壁/連鎖共鳴/破甲の一撃の勝率・難易度・タイミングを実戦で計測して調整。
+3. Cloudflare Worker公開後、/health、ランダム/招待、再接続、音声同意、外部2端末の通信品質を検証。
+4. BGM長時間再生と音量、Android実機のマイク・録音・音声・省電力を確認。
+
+## GITHUB_COMMITS
+- UI/戦闘/BGM: 48631ac08692d7a1fc21118e3e8b705232c6c1fe
+- Worker拒否応答: c56287b9329cf293ba1c7ec3c35207534d2277c6
+- 障壁消費条件修正: 0ae5dfc948eb9691fc616d6b76b5260f7a5a14d1
+- Room/UIテスト: 404ae5f2dc0f054ccaae7c3f5521300b427394de / c4a04c500fadd242616ad50823cc1fb44a51d9d7
+- Matchmaker fixture: 5fad3eba659748f7bb01edb716f1fa080e047ba7
+- UI版表示/モバイル: 11fb548c888a4cdd3005fc7c0e8bd33dec1d287e
+- Worker/Package版: edd490cb874b3e06e63dfc945489a3ff697243bd / 611700e54607e1f8af30443bcd8accf527bf1f05
+- README: 8c11961020c83adc797b1b19aca6c740334d41ea
+
+---
+
 # 声魂（こえだま） 毎時開発 / 2026-10-26 / v0.10.3
 
 ## CURRENT_STATUS
