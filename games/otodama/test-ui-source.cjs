@@ -53,4 +53,6 @@ assert.equal(newTiming.lifelineMitigation(lastStand,29),9,'lifeline should absor
 assert.equal(newTiming.lifelineMitigation(lastStand,29),29,'lifeline should activate only once');
 assert.equal(enemyTactic(9,5,{b:{archetype:'パワー型'},parries:2}),'pierce','powder AI should punish repeated parries');
 assert.ok(html.includes('if(!m.parried&&!m.dodgeSuccess)damage=lifelineMitigation'),'successful parry must preserve lifeline');
+for(const id of ['matchIntro','rushBanner','audioResumeBtn'])assert.ok(html.includes('id="'+id+'"'),'missing voice/intro UI '+id);
+for(const fragment of ['function playDecodedVoice(cr,side,force=false,options={})','function maybeSpecialRush(m,ev)','function voiceOutput(ac)','primeBattleVoices(a,b)','matchIntroTimer=setTimeout'])assert.ok(html.includes(fragment),'missing battle sound or sequence '+fragment);
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
