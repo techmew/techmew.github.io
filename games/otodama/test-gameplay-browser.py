@@ -22,7 +22,7 @@ def main():
         # Fast-forward battle progression by shortening only the test copy of the game.
         page.set_content(HTML.replace("const EVENT_MS=820;", "const EVENT_MS=45;").replace("window.addEventListener('pagehide'", "window.__otodamaTest={get match(){return match},finishCombat,addBreak,resolveCombatImpact};window.addEventListener('pagehide'"))
         assert page.locator("#adventureStage").inner_text() == "STAGE 01"
-        assert "蒼天回廊" in page.locator("#stageHint").inner_text()
+        assert "空の広場" in page.locator("#stageHint").inner_text()
         page.locator("#fightBtn").click()
         page.evaluate("window.__otodamaTest.match.hp=[window.__otodamaTest.match.max[0],0];window.__otodamaTest.finishCombat()")
         page.locator("#lowFx").check()
@@ -49,7 +49,7 @@ def main():
         # Test-only hook. Production HTML remains unchanged.
         hook = "window.__otodamaTest={get match(){return match},finishCombat,addBreak,resolveCombatImpact};"
         page.set_content(HTML.replace("window.addEventListener('pagehide'", hook+"window.addEventListener('pagehide'"))
-        assert "星屑庭園" in page.locator("#stageHint").inner_text()
+        assert "夜の公園" in page.locator("#stageHint").inner_text()
         page.locator("#fightBtn").click()
         assert page.locator("#bossPanel").is_visible()
         assert page.locator("#musicVolume").input_value()=="11"
