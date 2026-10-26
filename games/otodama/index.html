@@ -701,6 +701,7 @@ function showBattleQuote(m){
  $('battleSpeechText').textContent=m.tauntText;
  $('battleSpeech').hidden=false;
  $('battleSpeech').classList.toggle('enemy-speaks',kind==='lose');
+ if(document.hidden){speechStatus('画面に戻ってから読み上げます。');m.resultWasHidden=true;return}
  speakBattleQuote(m);
 }
 function advanceAfterWin(m){
@@ -1508,7 +1509,9 @@ function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
 document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live){closeBattle();startRandomMatch();}};
 // No keyboard combat or stance intervention.
-$('repeatSpeechBtn').onclick=()=>{if(match?.done){$('talkEnabled').checked=true;speakBattleQuote(match)}};
+$('repeatSpeechBtn').onclick=()=>{if(match?.done){$('talkEnabled').checked=true;
+ if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.();}
+ speakBattleQuote(match)}};
 try{const saved=localStorage.getItem('otodama.talk.enabled');if(saved!==null)$('talkEnabled').checked=saved!=='0'}catch(e){}
 $('talkEnabled').onchange=()=>{try{localStorage.setItem('otodama.talk.enabled',$('talkEnabled').checked?'1':'0')}catch(e){}
  if(!$('talkEnabled').checked)stopBattleSpeech();else if(match?.done)speakBattleQuote(match)};
@@ -1517,8 +1520,17 @@ $('shareVoice').onchange=()=>sendVoiceConsent();$('receiveVoice').onchange=()=>{
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready',autoOnly:true}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
 setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden&&survivalAwaitingVisibility){survivalAwaitingVisibility=false;if(match?.done&&match.outcome.winner===0&&$('battleModal').classList.contains('open'))advanceAfterWin(match);}
- if(document.hidden){clearAutoAction();stopBattleSpeech();if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
+ if(!document.hidden&&(survivalAwaitingVisibility||match?.resultWasHidden)){
+  survivalAwaitingVisibility=false;
+  if(match?.done&&$('battleModal').classList.contains('open')){
+   match.resultWasHidden=false;
+   if(match.tauntText)speakBattleQuote(match);
+   if(match.outcome.winner===0){
+    clearTimeout(resultNextTimer);resultNextTimer=null;scheduleNextAfterQuote(match);
+   }
+  }
+ }
+ if(document.hidden){clearAutoAction();stopBattleSpeech();if(match?.done){match.resultWasHidden=true;clearTimeout(resultNextTimer);resultNextTimer=null;}if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
  if(match&&!match.done&&$('battleModal').classList.contains('open')){
   if(match.pausedAt){const gap=performance.now()-match.pausedAt;if(match.turn<0)match.introAt+=gap;match.pop+=gap;if(match.current?.impactAt)match.current.impactAt+=gap;match.pausedAt=0;$('battleMsg').textContent='バトル再開。攻撃の予兆を確認！';}
   startBgm();if(autoBattleEnabled)scheduleAutoAction(match);
