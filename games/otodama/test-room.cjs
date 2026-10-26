@@ -15,6 +15,12 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal((await ctx.testing.defaultExport.fetch({url:'https://worker.example/health',headers:headers('https://attacker.example')},{})).status,403);
  assert.equal((await ctx.testing.defaultExport.fetch({url:'https://worker.example/health',headers:headers('https://techmew.github.io')},{})).status,200);
  assert.equal(room.cleanCreature([]),null,'array creature accepted');
+ assert.equal(room.cleanCreature({...creature,name:{bad:'object'}}),null,'object name accepted');
+ assert.equal(room.cleanCreature({...creature,type:['invalid']}),null,'array type accepted');
+ assert.equal(room.cleanCreature({...creature,parts:[]}),null,'array parts accepted');
+ assert.equal(room.cleanCreature({...creature,voice:null}),null,'null voice accepted');
+ assert.equal(room.cleanCreature({...creature,seed:'NaN'}),null,'invalid seed accepted');
+ assert.equal(room.cleanCreature({...creature,name:'A'.repeat(81)}),null,'oversized name accepted');
  await room.webSocketMessage(a,'null');await room.webSocketMessage(a,'[]');
  assert.equal(a.messages.filter(x=>x.type==='error').length,2,'invalid JSON primitives should be rejected');
  await room.webSocketMessage(a,JSON.stringify({type:'join',creature}));
