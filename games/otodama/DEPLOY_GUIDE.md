@@ -1,3 +1,50 @@
+# 声魂（こえだま） v0.10.9：無料オンライン対戦・月間ランキングの公開手順
+
+**現状：ゲーム側とCloudflare Worker/Durable Objects側の実装ソースはGitHubへ保存済みですが、本番Workerは未公開です。** 本番公開・独立2端末・Android実機の動作確認はまだできていません。
+
+## 料金
+Cloudflare Workers Free と SQLite-backed Durable Objects で少人数の試作を無料公開できます。無料枠を超えると利用が制限され、無制限・無停止を保証するものではありません。継続監視して無料枠内に収めてください。
+
+## 初回に所有者が行うこと
+1. Cloudflare Dashboardで無料アカウントを作成し、Workers & Pages から **otodama-room** というWorkerを作成するか、Wrangler初回デプロイで作成します。既存WorkerへのデプロイならWorker単位のEditor権限、新規Worker作成ならWorkers製品全体のAdmin権限が必要です。広い権限を使って初期作成した場合、完了後は権限を縮小・トークンを交換してください。
+2. CloudflareのAccount IDとWorkers公開に必要なAPI Tokenを取得。API Tokenはチャット・ソースコード・READMEに絶対に貼らない。
+3. GitHub `techmew/techmew.github.io` → Settings → Secrets and variables → Actions に `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` をRepository secretsとして設定。
+4. GitHub Actions → **Deploy OTODAMA Worker** → Run workflow。コードは `games/otodama/worker.js`、設定は同フォルダの `wrangler.jsonc`。新規SQLite Durable ObjectsとしてRoom/Matchmaker/Rankingsを登録します。
+5. デプロイされた `https://<your-worker>.<your-account>.workers.dev/health` にアクセスし、`ok:true`、`version:0.10.9`、`randomMatch:true`、`seasonalRanking:true` を確認。
+6. ゲーム `https://techmew.github.io/games/otodama/` のオンライン対戦欄にWorkerのHTTPS URLを設定・保存。ユーザーはランキング表示名を入力して匿名登録すると、そのブラウザのオンライン戦でランキングポイントを得られます。登録せずにゲストとして対戦することも可能ですが、ランキング対象外です。
+7. サバイバル欄の「おまかせでスタート」で自動戦闘。オンライン挑戦者を受けたい時だけチェックをONにすると、対戦相手を検索し、マッチング後に **NEW CHALLENGER** を表示して実プレイヤーとのオンライン戦に移ります。手動操作へ切替可能。
+
+## ランキングの仕様と制限
+- 「この端末の記録TOP 5」＝CPUサバイバルを含む**ローカル記録**。ブラウザから編集可能なので公的な順位に送らない。
+- 「オンライン月間ランキング」＝**2人とも匿名登録済み**で、Roomのサーバーが最終HP・勝敗を確定した結果のみ。勝利は100pt＋連勝補正（最大100pt）、敗北は0ptで連勝リセット。同一2名の組合せは直近24時間で3戦まで加点。同じ試合IDを二重計上しない。
+- 匿名IDはサーバー発行、ブラウザには秘密トークンを保存。アカウント連携・端末移行はまだ実装していない。ブラウザデータを消すと匿名IDに復帰できなくなる場合がある。トークンを他人に教えない。
+- 別アカウントを大量に作る談合・虚偽の音声特徴量は完全に防止できない。これは賞金・競技大会レベルの本人確認／不正対策を備えたランキングではない。
+- スマホのバックグラウンド再生を保証できない。端末のブラウザが停止・通信断になるとオンライン対戦は切断扱いになり得る。自動戦闘は画面を開いているときの機能。
+- 録音音声の相手送信は従来どおり双方の明示同意が必要、デフォルトOFF。ランキングには録音データを保存しない。
+
+## 公開前の確認コマンド（Node.js 22以上）
+```sh
+cd games/otodama
+node --check worker.js
+node test-room.cjs
+node test-matchmaker.cjs
+node test-moderation.mjs
+node test-ui-source.cjs
+node test-survival-v109.cjs
+node test-rankings-v109.cjs
+```
+
+`test-rankings-v109.cjs` はNode 22の実験的内蔵SQLiteを使う**ローカル統合テスト**です。GitHubへの追加時点ではNodeでの本実行はまだ未検証。GitHub Actionsの既存自動テストは、このランキングの新規テストをまだ含みません。手動確認した上でWorkerを公開してください。
+
+## 二端末テスト
+- 異なるブラウザまたは別端末2台でランキング匿名登録（異なるID）、ランダムマッチでNEW CHALLENGERの表示、1分程度のサーバー判定対戦ができるか
+- ガード／回避／特別な技／手動から自動への復帰、HP・残りゲージの両端一致
+- 勝敗確定後に月間ランキングに勝者のみポイント反映、同じ試合が二重加算されないこと
+- 15秒以内の切断復帰と15秒超過時の不戦勝、対戦相手が退出した際のスコア加算
+- Androidの縦横表示・連戦・次の対戦・ミュート・録音送受信の同意を確認すること
+
+---
+
 # Cloudflare無料オンライン対戦の公開手順
 
 GitHub Pagesはフロントエンドの配信のみです。リアルタイム対戦には、Cloudflare Workers + SQLite-backed Durable Objectsを別途公開します。
