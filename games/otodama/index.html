@@ -79,12 +79,17 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), TAU=Math.PI*2;
 const PALETTES=[['#58d7ef','#c0f8fb','#2b6585'],['#fb8a90','#ffd0b4','#974c7d'],['#ffd27a','#fff2ae','#b56e52'],['#b59cff','#dfdcff','#6556ad'],['#8eedba','#dcffcb','#338b82'],['#ff92df','#ffd7f9','#984c9f'],['#e6ecf4','#ffffff','#647d9f'],['#7eb9ff','#d7eaff','#436ac0'],['#eead7e','#ffe2a5','#986545'],['#b9ef75','#edffc0','#658d41']];
-const NAME_TITLES=`星屑 月影 蒼炎 虹色 深海 天空 雷鳴 夢幻 砂漠 雪原 極夜 黄昏 朝焼 紫電 白銀 黄金 紅蓮 翠緑 漆黒 真珠 霧中 未来 太古 野生 宇宙 天地 万象 混沌 虚空 海底 地底 樹海 泡沫 旋風 熱風 静寂 煌星 古代 魔境 瞬光 暗黒 猛毒 神秘 電脳 水晶 流星 常闇 獣王 鋼鉄 妖精 夜空 風来 太陽 月光 銀河 満月 幻想 影法師 火山 氷結 雷神 夢見 異界 光速`.split(' ');
-const NAME_SYLLABLES=`ア イ ウ エ オ カ キ ク ケ コ サ シ ス セ ソ タ チ ツ テ ト ナ ニ ヌ ネ ノ ハ ヒ フ ヘ ホ マ ミ ム メ モ ヤ ユ ヨ ラ リ ル レ ロ ワ ガ ギ グ ゲ ゴ ザ ジ ズ ゼ ゾ ダ デ ド バ ビ ブ ベ ボ パ ピ プ ペ`.split(' ');
-const NAME_TAILS=`モ ギ ラ コ ナ ミ フ ド ロ カ メ パ ソ ト ガ ゼ ポ ヴァ ル ザ リ テ シ ヤ ネ ゴ ク チ ベ ヌ サ ジ`.split(' ').flatMap(x=>[x+'ン',x+'ル',x+'ス',x+'ア']);
+const LEGACY_NAME_TITLES=`星屑 月影 蒼炎 虹色 深海 天空 雷鳴 夢幻 砂漠 雪原 極夜 黄昏 朝焼 紫電 白銀 黄金 紅蓮 翠緑 漆黒 真珠 霧中 未来 太古 野生 宇宙 天地 万象 混沌 虚空 海底 地底 樹海 泡沫 旋風 熱風 静寂 煌星 古代 魔境 瞬光 暗黒 猛毒 神秘 電脳 水晶 流星 常闇 獣王 鋼鉄 妖精 夜空 風来 太陽 月光 銀河 満月 幻想 影法師 火山 氷結 雷神 夢見 異界 光速`.split(' ');
+const LEGACY_NAME_SYLLABLES=`ア イ ウ エ オ カ キ ク ケ コ サ シ ス セ ソ タ チ ツ テ ト ナ ニ ヌ ネ ノ ハ ヒ フ ヘ ホ マ ミ ム メ モ ヤ ユ ヨ ラ リ ル レ ロ ワ ガ ギ グ ゲ ゴ ザ ジ ズ ゼ ゾ ダ デ ド バ ビ ブ ベ ボ パ ピ プ ペ`.split(' ');
+const LEGACY_NAME_TAILS=`モ ギ ラ コ ナ ミ フ ド ロ カ メ パ ソ ト ガ ゼ ポ ヴァ ル ザ リ テ シ ヤ ネ ゴ ク チ ベ ヌ サ ジ`.split(' ').flatMap(x=>[x+'ン',x+'ル',x+'ス',x+'ア']);
 const NAME_VARIATIONS=64*64*64*128;
 const SPECIES=['スピリット','ビートル','ゴーレム','メカノイド','ドラゴン','アビス','キノコ','スライム','フローラ','ボルト','クリスタル','シャドウ'];
-function generateName(seed){let i=hash((seed>>>0)^0xA58D30F1)%NAME_VARIATIONS;const title=NAME_TITLES[i%64];i=Math.floor(i/64);const a=NAME_SYLLABLES[i%64];i=Math.floor(i/64);const b=NAME_SYLLABLES[i%64];i=Math.floor(i/64);const tail=NAME_TAILS[i%128];return title+'の'+a+b+tail;}
+// Ordinary names and a small individual number. 128 x 262144 = 33,554,432 unique labels.
+const COMMON_NAMES=`もも こむぎ きなこ まめ こはく しろ くろ ちゃちゃ みけ みるく ここ まる ぽん ふく ひなた そら なぎ しずく はる あき ゆき なつ みなと うみ さくら すみれ あお ゆず りん れん すず ちよ うた おと ふわ もなか だいふく あんず みかん いちご くるみ こはる まろん むぎ ごま もち ちょこ はく しお こめ もぐ たま しず くぅ らむ るる ねね にこ ひな みお まい えま なお つき あおい かな まな さな れい けい たい たく そう りく りお ゆう とも かい あきら ひろ じゅん りょう しゅん けん きょう はるか さき えり なな のん のあ かえで つむぎ いと あさ ほの てん とら しん はち くう こてつ こた たろ じろ さん じん ぎん さと きい かの しの みず かぜ ほし つくし よる あめ くも ゆめ めい める らら りり るな ぴの ぽこ ぴこ`.split(' ');
+function nameIndex(seed){return Math.imul((seed>>>0)^0xA58D30F1,0x9e3779b9)&(NAME_VARIATIONS-1)}
+function legacyGeneratedName(seed){let i=hash((seed>>>0)^0xA58D30F1)%NAME_VARIATIONS;const title=LEGACY_NAME_TITLES[i%64];i=Math.floor(i/64);const a=LEGACY_NAME_SYLLABLES[i%64];i=Math.floor(i/64);const b=LEGACY_NAME_SYLLABLES[i%64];i=Math.floor(i/64);const tail=LEGACY_NAME_TAILS[i%128];return title+'の'+a+b+tail;}
+function generateName(seed){const i=nameIndex(seed);return COMMON_NAMES[i%128]+' '+String(Math.floor(i/128)+1).padStart(6,'0')}
+function migrateLegacyName(c){if(!c||!Number.isInteger(c.seed)||typeof c.name!=='string')return c;return c.name===legacyGeneratedName(c.seed)?{...c,name:generateName(c.seed)}:c;}
 
 const ELEMS=['雷','炎','水','風','光','影','鋼','音','樹','霧'];
 const statNames=['攻撃','防御','速度','集中','必殺'];const voiceNames=['音量','音程','響き','リズム','安定度','息成分'];
@@ -310,7 +315,7 @@ function arm(side,index){c.save();c.translate(side*73,-12);c.rotate(side*(.18+Ma
  c.restore();}
 // main state
 let cur=gen(1678719),roster=[],liveWave=[],audioCtx=null,recording=false,animFrame=0,match=null,ws=null,queueWs=null,room=null,side=-1,onlineReady=false,autoReadyRoom=false,remoteVoiceClip='',sentVoice=false,voiceConsentSent=false,resumeToken='',reconnectCount=0,reconnectTimer=null;
-try{roster=JSON.parse(localStorage.getItem('otodama.roster')||'[]');if(!Array.isArray(roster))roster=[]}catch(e){roster=[]}
+try{roster=JSON.parse(localStorage.getItem('otodama.roster')||'[]');if(!Array.isArray(roster))roster=[];let renamed=false;roster=roster.map(c=>{const fresh=migrateLegacyName(c);if(fresh!==c)renamed=true;return fresh});if(renamed)localStorage.setItem('otodama.roster',JSON.stringify(roster.slice(0,30)))}catch(e){roster=[]}
 const DEFAULT_SERVER_URL=''; // Worker公開後にURLをここへ記入すれば毎回の手入力不要
 try{$('serverUrl').value=localStorage.getItem('otodama.server')||DEFAULT_SERVER_URL}catch(e){$('serverUrl').value=DEFAULT_SERVER_URL}
 function saveStore(){try{localStorage.setItem('otodama.roster',JSON.stringify(roster.slice(0,30)))}catch(e){}}
