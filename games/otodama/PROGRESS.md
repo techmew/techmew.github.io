@@ -923,3 +923,44 @@ GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。ローカ
 
 ### GITHUB_COMMITS
 - index.html: `d01bf85341f41655d0c6f8ba74653fdb37a76862`
+
+---
+
+# 声魂（こえだま）/ 2026-10-26 夜 / 戦闘音声復旧・連打ラッシュ
+
+## CURRENT_STATUS
+- GitHub main games/otodama/ に録音声音量補正・連続攻撃の多重声再生・時折発動する「必殺技 連打ラッシュ！」を追加。
+- 声生成、録音・手動停止・試聴、既存の通常攻撃、勝利後次戦、敗北画面停止、巨大外見、育成、爆発・破片・WINは置き換えず維持。
+- 前回実装の中央「第〇試合目！」オーバーレイと1.5秒後のCOM戦開始を維持。
+- 既存Cloudflareオンライン音声共有停止/相手ミュート/サーバー裁定は維持。本番Worker未公開。
+
+## CHANGELOG
+1. 録音波形の明瞭な0.7秒区間から実効RMSとピークを測定し、弱いマイク入力に最大8倍の音量補正。無音素材は明示的な代替音へ。
+2. Web AudioのGainNode/BufferSourceを攻撃ごと独立し、通常攻撃は1声、連続攻撃では最大5声を108msずらして重ねて再生。
+3. 必殺技発動時の確率1/3の「連打ラッシュ」は7回の短い録音声を重ね、中央に短時間専用演出。既存の実ダメージ/オンラインサーバー計算は変更しない。
+4. Dynam​​icsCompressorの音圧制限、同時音源最大14個、対戦終了/次戦の停止、録音声デコードの前読み・別試合移行時の遅延再生抑制を追加。
+5. 生音声がないキャラには発声合成による複数ヒット音で代替。録音声がある場合は同じ録音データを連続再生。
+6. 戦闘UIに「🔊 声を再開」ボタン。端末の自動再生制限やミュート/音量ゼロ状態から明示操作で回復可能。
+7. Nodeの音声回帰テスト test-voice-rush.cjs、UI静的チェック追加。package.jsonの test:node / test:voice に登録。
+
+## TEST_RESULTS
+- GitHub main index.html取得→V8のJavaScript構文パース PASS。
+- WebAudioモックで静かな録音の正規化(8倍)、通常1回・コンボ5回・必殺ラッシュ7回の独立した音源起動、発声代替、オンライン相手ミュート、終了後再生拒否、二重必殺阻止を検証 PASS。
+- test-voice-rush.cjs/test-ui-source.cjs の構文パース PASS。全更新ファイルをGitHub mainから再取得しblob SHAの存在を確認 PASS。
+- Node正式test:nodeの実行、Chromium実プレイ/音声出力、Android実機での録音・スピーカー・音量、実公開URLの音声検証は今回未実施。音が実機で回復したかはまだ未確認。
+
+## BLOCKERS
+- Android等実スピーカーの音声はこの環境から再生して確認できない。
+- Cloudflareの実公開にはアカウント認証とActions Secretsの設定が必要。外部二端末対戦未検証。
+
+## NEXT_ACTIONS
+1. Androidで録音 → 試聴 → 戦闘第1〜3試合の発声量、連打/必殺、勝利時セリフ、ミュート/再開を耳で確認。
+2. ブラウザChromiumで音声許可/禁止、タブ復帰、試合切替、録音/録音なし、ソロ/オンライン音声隔離を検証。
+3. Node正式 test:node/test:voice とCloudflare本番公開・独立二端末対戦を実施（Cloudflare認証が必要）。
+
+## GITHUB_COMMITS
+- UI声・ラッシュ: bd0436a9840b72b892596c15c5f99a9273fdab0c
+- 録音声正規化: d6550d48b3753851c43370ac8a9d842c74aa09a6
+- 新回帰テスト: f44ce42f9057a1d56a36cdc01c26d3dd74f36080
+- package: 550911d5e5c5aa010be394905b91a33057c674a4
+- UI静的チェック: a8c920c2bcda4a80b7a77d7bbc6fb4f8bef5b581
