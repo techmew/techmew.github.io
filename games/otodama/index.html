@@ -1357,6 +1357,8 @@ function finishCombat(){const m=match;if(!m||m.done)return;m.done=true;stopBgm()
  if(won)scheduleNextAfterQuote(m);
 }
 function showBattle(a,b,outcome,mode,buff=null,live=false){
+ // Prepare Japanese TTS while this invocation may still be associated with a user gesture.
+ try{window.speechSynthesis?.getVoices();if(window.speechSynthesis?.paused)window.speechSynthesis.resume()}catch(e){}
  // Offline battles exclusively replay the creature-generated fight.
  clearResultTimers();stopBattleSpeech();$('battleSpeech').hidden=true;$('bowBanner').hidden=false;
  autoBattleEnabled=true;if(!live)buff=null;
@@ -1373,6 +1375,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  let ix=-1;const currentMatch=match;
  const act=()=>{
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
+  if(!live&&match.turn<0&&performance.now()-match.introAt<match.introDuration)return;
   if(match.current&&!match.current.resolved&&match.interactive&&!match.live)return;
   if(match.endAfterCurrent || ix+1>=outcome.events.length){finishCombat();return;}
   ix++;const ev={...outcome.events[ix]};if(match.boss&&ev.atk===1&&!match.spectator){const bossKinds=['meteor','beam','shockwave','warp','spin'];const bossNames=['急降下攻撃','遠距離攻撃','広い範囲への攻撃','回り込み攻撃','連続攻撃'];const bossPower=[1.22,1.12,1.08,1.16,1.11];const bossArenas=['落雷の嵐','残響増幅','空間反転','無重力ゾーン','音速暴走'];const move=match.bossAttacks++%bossKinds.length;ev.bossMove=bossNames[move];ev.kind=bossKinds[move];ev.damage=Math.round(ev.damage*bossPower[move]);ev.arena=bossArenas[move];}match.turn=ix;if(interactive&&['COM MATCH','SURVIVAL'].includes(mode)){ev.hazard=stageHazard(match.stageNo,ix);if(ev.atk===1&&!match.spectator)ev.tactic=enemyTactic(match.stageNo,ix,match);}match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;match.dodgeUsed=false;match.dodgeSuccess=false;match.strikeUsed=false;match.strikeSuccess=false;if(ev.atk===1&&match.dodgeCooldown>0)match.dodgeCooldown--;
@@ -1515,7 +1518,7 @@ $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURL
 setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
  if(!document.hidden&&survivalAwaitingVisibility){survivalAwaitingVisibility=false;if(match?.done&&match.outcome.winner===0&&$('battleModal').classList.contains('open'))advanceAfterWin(match);}
- if(document.hidden){clearAutoAction();if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
+ if(document.hidden){clearAutoAction();stopBattleSpeech();if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
  if(match&&!match.done&&$('battleModal').classList.contains('open')){
   if(match.pausedAt){const gap=performance.now()-match.pausedAt;if(match.turn<0)match.introAt+=gap;match.pop+=gap;if(match.current?.impactAt)match.current.impactAt+=gap;match.pausedAt=0;$('battleMsg').textContent='バトル再開。攻撃の予兆を確認！';}
   startBgm();if(autoBattleEnabled)scheduleAutoAction(match);
