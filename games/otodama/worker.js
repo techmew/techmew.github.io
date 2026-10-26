@@ -11,6 +11,12 @@ const safeJson = (obj, code=200) => new Response(JSON.stringify(obj), {
 });
 const clamp = (x,min,max) => Math.max(min,Math.min(max,Number(x)||0));
 const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','霧']);
+function autoRoll(state,seat,salt){
+ const id=typeof state.matchId==='string'?state.matchId.slice(0,8):'0';
+ let n=((parseInt(id,16)||0)^Math.imul(state.turn+1,0x9e3779b9)^Math.imul(seat+1,0x85ebca6b)^Math.imul(salt+1,0xc2b2ae35))>>>0;
+ n=Math.imul(n^n>>>16,0x7feb352d);n=Math.imul(n^n>>>15,0x846ca68b);
+ return ((n^n>>>16)>>>0)/4294967296;
+}
 // Unjoined room sockets and unsearched matchmaking sockets must not occupy free capacity forever.
 function pruneIdleSockets(sockets,now){let closed=0;for(const ws of sockets){const a=ws.deserializeAttachment?.()||{};const opened=!a.creature&&Number.isFinite(a.openedAt)?a.openedAt:a.status==='connected'&&Number.isFinite(a.time)?a.time:0;if(ws.readyState===1&&opened>0&&now-opened>30000){try{ws.close(1008,'Join/search timeout');closed++}catch{}}}return closed;}
 
@@ -92,7 +98,7 @@ export class Room extends DurableObject {
           skillArmed:seat===0?active.skillArmed:active.skillArmed.slice().reverse(),
           stance:seat===0?active.stance:active.stance.slice().reverse(),
           turnStance:seat===0?(active.turnStance||active.stance):(active.turnStance||active.stance).slice().reverse(),
-          turn:active.turn
+          turn:active.turn,autoOnly:!!active.autoOnly,awakened:seat===0?(active.awakened||[false,false]):(active.awakened||[false,false]).slice().reverse()
         });
         // Reconnection must not reroll the attack, damage, stance or accepted inputs.
         // Resume the existing server-owned deadline rather than restarting the turn.
@@ -186,7 +192,8 @@ export class Room extends DurableObject {
       ...(packet.dodgeCooldown?{dodgeCooldown:seat===0?packet.dodgeCooldown:packet.dodgeCooldown.slice().reverse()}:{}),
       ...(packet.actionStatus?{actionStatus:seat===0?packet.actionStatus:packet.actionStatus.slice().reverse()}:{}),
       ...(packet.atk!==undefined?{atk:packet.atk===seat?0:1}:{}),
-      ...(packet.winner!==undefined?{winner:packet.winner===seat?0:1}:{})
+      ...(packet.winner!==undefined?{winner:packet.winner===seat?0:1}:{}),
+      ...(packet.awakenSide!==undefined?{awakenSide:packet.awakenSide<0?-1:packet.awakenSide===seat?0:1}:{})
     });
   }
   sendLatencyProbe(ws){
@@ -197,8 +204,10 @@ export class Room extends DurableObject {
   }
   async startLiveBattle(peers){
     const creatures=peers.map(p=>p.deserializeAttachment().creature);
+    const autoOnly=peers.every(p=>p.deserializeAttachment().autoOnly===true)||
+      peers.every(p=>!!p.deserializeAttachment().rankId);
     const max=creatures.map(c=>Math.round(140+c.stats[1]*.6));
-    const state={active:true,phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
+    const state={active:true,autoOnly,awakened:[false,false],phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
       stance:['balance','balance'],turnStance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0,
       tokens:peers.map(p=>p.deserializeAttachment().resumeToken),rankIds:peers.map(p=>p.deserializeAttachment().rankId||null),matchId:Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''),disconnectedAt:0};
     await this.ctx.storage.put('live',state);
@@ -210,8 +219,10 @@ export class Room extends DurableObject {
     if(state.turn>=40){await this.finishLive(state,peers);return}
     const atk=state.turn%2,def=1-atk;
     const kinds=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
-    const kind=kinds[Math.floor(Math.random()*kinds.length)];
     const A=state.creatures[atk],B=state.creatures[def];
+    const moves=state.autoOnly?(A.stats[0]>A.stats[2]*1.08?['meteor','uppercut','shockwave']:
+      A.stats[2]>A.stats[1]*1.07?['combo','aerial','warp']:['rush','beam','spin']):kinds;
+    const kind=moves[Math.floor((state.autoOnly?autoRoll(state,atk,3):Math.random())*moves.length)];
     const damage=Math.max(5,Math.round(12+A.stats[0]*.21+A.stats[4]*.12-B.stats[1]*.1+Math.random()*9));
     state.phase='telegraph';state.turnStance=state.stance.slice();state.startedAt=Date.now();state.atk=atk;state.kind=kind;state.damage=damage;state.actions=[null,null];
     if(state.dodgeCooldown[def]>0)state.dodgeCooldown[def]--;
@@ -238,9 +249,29 @@ export class Room extends DurableObject {
   }
   async resolveLiveTurn(state,peers){
     const atk=state.atk,def=1-atk,guard=state.actions[def],lockedStance=state.turnStance||state.stance;
-    const parry=guard?.action==='guard'&&guard.valid===true;
-    const dodge=guard?.action==='dodge'&&guard.valid===true;
-    let damage=state.damage;const strike=state.actions[atk]?.action==='strike'&&state.actions[atk]?.valid===true;
+    const auto=!!state.autoOnly,A=state.creatures[atk],B=state.creatures[def];
+    const parry=auto?autoRoll(state,def,5)<Math.min(.29,.045+B.stats[1]/670):
+      guard?.action==='guard'&&guard.valid===true;
+    const dodge=auto?!parry&&state.dodgeCooldown[def]===0&&
+      autoRoll(state,def,6)<Math.min(.22,.025+B.stats[2]/780):
+      guard?.action==='dodge'&&guard.valid===true;
+    if(auto&&dodge)state.dodgeCooldown[def]=3;
+    let damage=state.damage;
+    const strike=auto?autoRoll(state,atk,7)<Math.min(.42,.12+A.stats[2]/400):
+      state.actions[atk]?.action==='strike'&&state.actions[atk]?.valid===true;
+    let awakenSide=-1;
+    if(auto){
+      state.awakened=state.awakened||[false,false];
+      for(const side of [atk,def])if(!state.awakened[side]&&state.hp[side]/state.max[side]<.38&&
+        autoRoll(state,side,8)<.76){
+        state.awakened[side]=true;awakenSide=side;
+        state.charge[side]=Math.min(100,state.charge[side]+24);
+      }
+      if(state.charge[atk]>=60&&(autoRoll(state,atk,9)<.72||state.hp[atk]<state.max[atk]*.4)){
+        state.charge[atk]-=60;state.skillArmed[atk]=true;
+      }
+      if(state.awakened[atk])damage=Math.round(damage*1.17);
+    }
     if(strike){damage=Math.round(damage*1.22);state.charge[atk]=Math.min(100,state.charge[atk]+6);}
     if(lockedStance[atk]==='rush')damage=Math.round(damage*1.22);
     if(lockedStance[atk]==='guard')damage=Math.round(damage*.9);
@@ -250,12 +281,12 @@ export class Room extends DurableObject {
     if(state.skillArmed[atk]){damage=Math.round(damage*1.85);state.skillArmed[atk]=false;skill=true}
     if(parry){damage=Math.min(2,Math.round(damage*.09));state.charge[def]=Math.min(100,state.charge[def]+24);state.hp[atk]=Math.max(0,state.hp[atk]-8)}
     else if(dodge){damage=0;state.charge[def]=Math.min(100,state.charge[def]+9)}
-    else if(!guard)state.charge[def]=Math.min(100,state.charge[def]+6);
+    else if(auto||!guard)state.charge[def]=Math.min(100,state.charge[def]+6);
     state.charge[atk]=Math.min(100,state.charge[atk]+12);
     state.hp[def]=Math.max(0,state.hp[def]-damage);
     const finished=state.hp.some(h=>h<=0)||state.turn>=39;
     this.liveSend(peers,state,{type:'live_impact',seq:state.turn,atk,kind:state.kind,damage,parry,dodge,skill,strike,
-      hp:state.hp,charge:state.charge,finished});
+      hp:state.hp,charge:state.charge,finished,autoOnly:auto,awakenSide});
     if(finished){await this.finishLive(state,peers);return}
     state.turn++;state.phase='pause';state.pauseUntil=Date.now()+280;await this.ctx.storage.put('live',state);
     await this.ctx.storage.setAlarm(state.pauseUntil);
@@ -279,6 +310,7 @@ export class Room extends DurableObject {
     const peers=this.livePeers(),seat=peers.indexOf(ws);if(seat<0)return;
     const action=data.action;
     if(peers.length!==2)return;
+    if(state.autoOnly){this.send(ws,{type:'live_ack',action,valid:false,reason:'creature_auto_only'});return;}
     if(action==='stance'){
       if(!['rush','balance','guard'].includes(data.value))return;
       state.stance[seat]=data.value;await this.ctx.storage.put('live',state);
@@ -359,7 +391,7 @@ export class Room extends DurableObject {
     if(data.type==='ready'){
       if((await this.ctx.storage.get('live'))?.active||this.startingBattle)return;
       if(!attachment.creature)return;
-      ws.serializeAttachment({...attachment,ready:true});
+      ws.serializeAttachment({...attachment,ready:true,autoOnly:data.autoOnly===true});
       const peers=this.livePeers();if(peers.length!==2){this.state();return}
       const both=peers.map(s=>s.deserializeAttachment()||{});
       if(both.every(p=>p.creature&&p.ready)){
