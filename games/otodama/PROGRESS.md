@@ -1203,3 +1203,52 @@ GitHubがソース正本、Driveが引き継ぎ正本。V8モック、Node実行
 - package: bdfea883922ac597ec466e03efc6e46bc993485a
 
 GitHubがソースの正本。録音音声の自動認識審査を勝手に戻さない。実機未検証を検証済みと呼ばない。
+
+---
+
+# 声魂 v0.10.21 / 2026-10-26 23時台 / 36特徴量音声DNAと戦闘連動
+
+## CURRENT_STATUS
+- GitHub main の games/otodama/index.html に録音約4.8秒、時間波形・FFT・周波数帯・音程変化等36特徴量から決定論的な音声DNAを作る処理を配線。音声の特徴から初期5能力、属性、種、成長傾向、潜在特性8種を生成。旧キャラは旧仕様のまま動作。
+- 8種の音声特性をレベル1/5/10/15/20で段階解放し、COMオート戦・ローカル操作戦の攻撃、会心、連撃、防御、回避、反撃、必殺に反映。声由来の成長傾向・希少変異・潜在力も反映。
+- セーブJSONに検証済みaudioDNAを含め、旧セーブは引き続き復元。録音声ファイルそのものはJSONバックアップに含めない。録音試聴/PCM WAVフォールバック/勝利爆発・WIN/連戦/既存BGM/オンライン入力制限は維持。
+- UIは主要8音響特徴と全36特徴の展開、特性の解放条件、成長適性、有効音声率を表示。未録音/旧キャラは旧式表示。
+- Worker・wrangler・他ゲーム・ブログは変更なし。オンライン生音声転送は停止。Cloudflare本番未公開。
+
+## CHANGELOG
+1. 36項目音響DNAを録音フローに接続し、4.8秒の解析フレームから能力を生成。
+2. 解析署名を量子化し、同一解析フレームで同一結果を生成。微小録音差による完全一致は保証しない。
+3. 8複合能力の段階解放をローカルオート/手動戦闘に適用。
+4. 成長先の決定・高成長適性・潜在値・希少変異を声由来へ変更。
+5. audioDNAの厳格な入力検証とバックアップ/復元、旧セーブ互換を実装。
+6. 36項目全表示を折りたたみUIに追加し、録音有効率の表記を改善。
+7. test-audio-dna.cjs追加、test-voice-review-v114.cjsの録音モック調整、package.jsonにtest:dna/test:node/test:voiceを追加、README更新。
+
+## TEST_RESULTS
+- GitHub main index.html埋込JavaScriptのV8構文検査 PASS。
+- V8合成音響フレームの36特徴量、同一入力の同一DNA、異なる音程/音色の異なるDNA、無音拒否、無効データ拒否、5能力生成、レベル解放、セーブ復元/旧セーブ、COMオート戦闘終端・有限ダメージ：PASS（関数実行）。
+- GitHubソースに回帰テストファイルをコミット。正式Node CLI npm run test:node / test:voice、GitHub Actionsの実行結果は今回未確認。Web Audio実マイク・実ブラウザ・Android・GitHub Pages公開配信・Cloudflare本番・外部二端末も未検証。
+
+## BLOCKERS
+- Android実機のマイク/音量/音声再生・低性能端末でのFFT負荷は外部実機検証が必要。
+- Pages配信URLはWeb取得ツールからアクセス不能で反映確認不可。
+- Cloudflare Workers/Durable Objectsの本番公開には所有者のCloudflare認証・設定が必要。現時点では未公開。
+
+## NEXT_ACTIONS
+1. GitHub Actions/Node22で npm run test:node、npm run test:voice を正式実行し失敗箇所を修正。
+2. Android Chromeで4.8秒録音、手動停止、36項目、旧キャラ保存、WAV代替、試聴、攻撃声/雄叫び、オート戦/手動戦、BGM、縦横レイアウトを実確認。
+3. 低音/高音/息声/連続発声の実測で音声DNA分布・潜在特性の出現率を検証し、強さの偏りを調整。
+4. Worker公開後、/health・ランダムマッチ・切断復旧・2端末リアルタイム対戦を検証。録音声送信停止は維持。
+
+## GITHUB_COMMITS
+- 音響DNA基礎・録音UI（先行更新）: index v0.10.21
+- 保存/成長/変異: 4695e39549cd7302536ec0123bc6b74fb7cc0bfe
+- ローカル戦闘パッシブ: ca00337e3c5a504adca250de44379b6588d0cae2
+- マイク回帰モック: 576f42433be33f8dca646ffa15f57757c6907c13
+- DNA回帰テスト: b2e121638ef37a62ed75fcdcf42f18ad486b4fba / ccabe156e7ed80c12088119dc425fceb2984e1f8
+- package: fd0339a5f1383752715fbb93ce52a76a2eec89a9
+- 36項目UI: 93be756d4b7985c122dcaaeb8166f5c1e707c8ef
+- README: 08363b1679d7b787a4b05ee95ea5e1f74a3f0b1d
+- 最新index blob SHA: 94b4aceda13acdd46ace2c6c6071ebdb73194598
+
+GitHubコード正本・Drive引き継ぎ正本。実機/配信/本番を検証済みと記載しない。
