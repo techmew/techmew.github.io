@@ -61,7 +61,7 @@ function fakeRuntime(mediaRecorderEnabled){
   stopBattleSpeech(){},wavePaint(){},micErrorMessage:e=>String(e?.name||e),
   autocorr:()=>230,median:a=>a[0]||0,hash:n=>n>>>0,
   clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
-  gen:(seed,voice)=>({seed,voice}),cur:{},clipData
+  gen:(seed,voice)=>({seed,voice}),dnaFrame:()=>({t:0,rms:.1}),analyseVoiceDNA:()=>null,cur:{},clipData
  };
  context.setCurrent=c=>{context.cur=c;notes.push(c)};
  const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl})',context);
