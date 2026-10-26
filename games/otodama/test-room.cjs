@@ -106,7 +106,9 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  await room.webSocketClose(b);
  assert.ok((await storage.get('live')).active,'stale close must not interrupt resumed match');
  resumed.close();await room.webSocketClose(resumed);
- fakeNow+=15001;await room.alarm();
+ fakeNow+=15001;
+ assert.equal((await room.fetch({url:'https://example.test/room/ABCDEF?resume='+token})).status,410,'expired reconnect token revived match');
+ await room.alarm();
  assert.ok(a.messages.some(m=>m.type==='live_forfeit'),'forfeit after grace period missing');
  assert.equal(await storage.get('live'),undefined,'expired match must be cleaned');
  assert.equal(a.data.ready,false);
