@@ -1,3 +1,48 @@
+# 声魂（こえだま） 毎時開発 / 2026-10-26 / v0.10.3
+
+## CURRENT_STATUS
+- GitHub mainのindex.html、worker.js、wrangler.jsonc、README、moderation.js、テスト群、PROGRESSと指定Driveのv0.10.2ログを実読。
+- 既存の声生成、録音停止/試聴、外見・名前生成、COM連戦、WIN/爆発、育成、オンライン試作を維持。
+- Worker本番は未公開。Android・外部二端末・公開ページ実操作は未検証。
+
+## CHANGELOG
+1. 敵の戦型を5→7種（幻惑/追撃）に追加。既存の予兆付き攻撃を敵の戦型・プレイヤーの戦術・共鳴/ガード傾向に応じて選ぶAIに変更。
+2. 次戦用の「集中強化」を追加。精密打撃の入力猶予を拡張し、成功時の共鳴+2。
+3. ガード・回避・精密打撃の受付範囲をHUDと実判定で共通化。アイアンハート型のガード判定表示ズレを修正。
+4. 自作BGMの旋律とリズムを敵戦型に応じて変化。省電力モードを約30fpsに抑え背景線・残像を削減。
+5. Workerのseed/部位/声特徴量に厳密な数値型・範囲検査を追加。禁止名の代替表示を「声魂」に変更。
+6. UI/Room/Moderationの回帰テストを拡張。バージョンを0.10.3に更新。
+
+## TEST_RESULTS
+- V8クライアント埋込JS構文: PASS。
+- V8 UIソーステストと禁止語・許可語、Worker検証: 計167アサーション PASS。
+- V8敵AI/入力猶予の純関数: 12ケース PASS。
+- V8 20ステージの敵戦型変化・敗北後の新しい敵seed: PASS。
+- V8自作BGM発音イベント・ミュート時の発音抑制: PASS。
+- WorkerのCloudflare importをスタブ化したV8構文とcleanCreature入力検証: PASS。
+- GitHub main各更新ファイルの再取得blob SHA一致: PASS。
+- Node正式スイート/Chromium/Android実機/Cloudflare実配信/独立二端末: 今回未実施。V8スタブ検証を本番検証と混同しない。
+
+## BLOCKERS
+- Cloudflare Workers本番公開には所有者の認証、Actions Secrets CLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKEN、Worker URL設定が必要。
+- 録音音声の文字起こし/禁止語判定は未実装。オンライン声特徴量の真正性は保証できない。
+- Android端末と独立二端末での操作・接続確認は未実施。
+
+## NEXT_ACTIONS
+1. Node全スイート・Chromiumの縦横/録音/保存/COM連戦/オンライン再接続回帰を実行。
+2. Android実機でタップ猶予・30fps省電力・自作BGM・録音を評価。
+3. Cloudflare認証後にWorkerをデプロイし、/health/ランダム/招待/復帰/二端末同期/音声同意を検証。
+4. 7戦型の対戦バランスと集中強化の勝率・ミッション達成率を長時間プレイで測定。
+
+## GITHUB_COMMITS
+- client: 2fc507af84c0de3d539a723e78bef40a6dd2dc6e
+- worker: 46ed2fb1b4128ece2b35a2d7697bf57915b04a76
+- moderation fallback: 3586598580bb5862cf8abbee0bb013139e076e94
+- tests: 15df3fecea568a6dbc16a2876046c865910c2372 / 29e8b6a46a81b267b120790c4a3e57d5f9bb85a9 / 870fca13fb46b7c878c15e997fad7cb68ec13c59
+- README: aadf45aed5d5fcaad2e55ecf2f305bb5c18b7dbd
+
+---
+
 # OTODAMA∞ 毎時開発 / 2026-10-26 / v0.10.2
 
 ## CURRENT_STATUS
