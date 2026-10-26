@@ -1159,3 +1159,47 @@ GitHubはソース正本。Driveに同内容を保存する。ブラウザ/本�
 - Room test: 7eff88890dc7bb252ab9436459b2cb955c02f93e
 
 GitHubがソース正本、Driveが引き継ぎ正本。V8モック、Node実行、Pages配信、実機、本番Workerを混同しない。
+
+---
+
+# 声魂 v0.10.20 / 2026-10-26 / 録音不能の緊急修正（音声認識依存を完全撤去）
+
+## CURRENT_STATUS
+- GitHub main games/otodama/ のみ修正。v0.10.19で再導入された音声認識の許可失敗/無認識/辞書失敗で録音声を破棄する条件を撤去。
+- マイク取得→3秒収録/手動停止→MediaRecorder音声またはPCM WAV代替→キャラ生成・音声保存・試聴が認識APIなしで進む。
+- 旧保存ボイスの voiceReview='passed' チェックも撤去し、有効な保存データを再生可能に戻す。音声そのものを以前破棄された場合は復元不可。
+- 攻撃ボイスの1/2/5/7連打、CPU文字セリフ、勝者雄叫び、キャンペーン、保存、WIN/爆発、BGMを変更せず維持。
+- 音声の文字起こし・録音発話の禁止語自動判定は実施しない。「禁止ワードは発しないでください」という注意を表示。公開名・オンライン文字列の既存検査は保持。オンライン生音声転送は停止。
+
+## CHANGELOG
+1. beginSpokenWordReview/evaluateSpokenWordReviewの呼び出し・処理と外部認識同意UIを削除。録音開始時の不要な待機・マイク競合を解消。
+2. 録音後のreview.allowed/review.bannedによる音声保存破棄、キャラ生成中止を撤去。PCM/MediaRecorderの音声保存はそのまま。
+3. clipDataのvoiceReviewゲートを撤去し、古い有効な録音データが試聴・攻撃・雄叫びで再使用できるように変更。
+4. 端末内録音の成功/失敗と注意文を現在の仕様へ修正。ユーザーの「禁止ワードは発するなとの注意のみ」の要望を明記。
+5. test-voice-review-v114.cjsを実際の録音経路の回帰テストに再構成。MediaRecorderとPCM WAV代替、手動停止、ダブルタップ抑止、試聴ボタン、トラック停止、旧録音再生を検証。
+6. README、UIバージョンとpackageをv0.10.20へ更新。Worker/moderation.jsは変更なし。
+
+## TEST_RESULTS
+- GitHub main更新後、index.html埋込JavaScriptのV8構文確認PASS。
+- WebAudio・MediaRecorder・ScriptProcessor/PCMを模擬した実際のstartRecord/stopRecord関数のV8実行PASS：両方式でvoiceClip保存、VOICE OK、試聴ボタン有効、マイク停止、二重録音抑止。
+- 改修した test-voice-review-v114.cjs をV8でNode APIモック化して実行PASS。旧声データの審査メタデータなし/未審査でもclipDataで再生可能。オンライン転送拒否のコード存在チェックPASS。
+- 公開URLのHTMLはWeb取得失敗。GitHub Pagesの配信/画面操作・Androidマイク/スピーカーの実動作は未確認。正式Node CLI npm run test:node、GitHub Actions、Cloudflare外部二端末は今回未検証。
+
+## BLOCKERS
+- 本番Android端末ではマイクの権限、MediaRecorderコーデック、AudioContext、OSの音声設定など依存環境があるため、録音が実際に直ったことは未確認。
+- 旧版がvoiceClipを破棄して保存した音声は復元できない。ローカルに音声データが残る保存済みキャラのみ再利用可能。
+- Cloudflare実オンラインサーバー未公開。アカウントSecretsが必要。
+
+## NEXT_ACTIONS
+1. 配信反映後、Android Chromeでマイク許可→録音開始→手動停止→VOICE OK→試聴→攻撃声→勝者雄叫びを確認。
+2. 本番Pagesの最新ソース反映、Node CLI test:node/test:voice、GitHub Actions自動テストを検証しエラーがあれば修正。
+3. 無音・マイク拒否・WAV代替・ブラウザ再開・ローカル保存領域の残量・古い声の再生を実ブラウザで確認。
+4. Cloudflare公開は所有者認証後に行い、録音生声の転送停止を維持。
+
+## GITHUB_COMMITS
+- index recovery: 0ec5d650ee69869e7e88a5c27e72cfe612aab5f4
+- microphone regression test: 8559ca5ae4b40c59a81284f2ffaf2a13b8b779a7
+- README: 2ae9d1b59ee8fb5c1fa5aff48cffefeadaaebda8
+- package: bdfea883922ac597ec466e03efc6e46bc993485a
+
+GitHubがソースの正本。録音音声の自動認識審査を勝手に戻さない。実機未検証を検証済みと呼ばない。
