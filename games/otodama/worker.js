@@ -14,6 +14,21 @@ const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','�
 // Unjoined room sockets and unsearched matchmaking sockets must not occupy free capacity forever.
 function pruneIdleSockets(sockets,now){let closed=0;for(const ws of sockets){const a=ws.deserializeAttachment?.()||{};const opened=!a.creature&&Number.isFinite(a.openedAt)?a.openedAt:a.status==='connected'&&Number.isFinite(a.time)?a.time:0;if(ws.readyState===1&&opened>0&&now-opened>30000){try{ws.close(1008,'Join/search timeout');closed++}catch{}}}return closed;}
 
+// Cap untrusted registration payloads even for chunked transfers without Content-Length.
+async function readLimitedText(request,limit=512){
+ const header=request.headers.get('content-length');
+ if(header!==null&&(!/^[0-9]+$/.test(header)||Number(header)>limit))return null;
+ if(!request.body){const value=await request.text();return new TextEncoder().encode(value).length<=limit?value:null;}
+ const reader=request.body.getReader(),parts=[];let total=0;
+ try{
+  for(;;){const {done,value}=await reader.read();if(done)break;
+   total+=value.byteLength;if(total>limit){await reader.cancel();return null}parts.push(value);
+  }
+  const bytes=new Uint8Array(total);let offset=0;
+  for(const part of parts){bytes.set(part,offset);offset+=part.byteLength}
+  return new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+ }catch{try{await reader.cancel()}catch{}return null}finally{reader.releaseLock()}
+}
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
@@ -22,7 +37,9 @@ export default {
     if(request.method==='OPTIONS'&&['/identity','/leaderboard'].includes(url.pathname))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin||'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type','cache-control':'no-store'}});
     if(url.pathname==='/identity'&&request.method==='POST'||url.pathname==='/leaderboard'&&request.method==='GET'){
       const obj=env.RANKINGS.get(env.RANKINGS.idFromName('seasonal-v1'));
-      const textBody=request.method==='POST'?await request.text():null;
+      if(request.method==='POST'&&!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))return safeJson({error:'JSON required'},415);
+      const textBody=request.method==='POST'?await readLimitedText(request):null;
+      if(request.method==='POST'&&textBody===null)return safeJson({error:'Registration payload too large or invalid'},413);
       return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
     }
     if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.9',randomMatch:true,seasonalRanking:true});
@@ -337,14 +354,15 @@ export class Room extends DurableObject {
       return;
     }
     if(data.type==='ready'){
-      if((await this.ctx.storage.get('live'))?.active)return;
+      if((await this.ctx.storage.get('live'))?.active||this.startingBattle)return;
       if(!attachment.creature)return;
       ws.serializeAttachment({...attachment,ready:true});
       const peers=this.livePeers();if(peers.length!==2){this.state();return}
       const both=peers.map(s=>s.deserializeAttachment()||{});
       if(both.every(p=>p.creature&&p.ready)){
         for(const p of peers){const a=p.deserializeAttachment();p.serializeAttachment({...a,ready:false})}
-        await this.startLiveBattle(peers);
+        this.startingBattle=true;
+        try{await this.startLiveBattle(peers)}finally{this.startingBattle=false}
       }
       this.state();
     }
@@ -406,6 +424,7 @@ export class Rankings extends DurableObject {
    if(typeof data.name!=='string'||!data.name.trim()||data.name.length>28)return safeJson({error:'Name must be 1-28 characters'},400);
    const name=sanitizePublicName(data.name,0).slice(0,18);
    const bucket=Math.floor(Date.now()/3600000);
+   this.sql.exec('DELETE FROM issue_limits WHERE bucket<?',bucket-48);
    const count=[...this.sql.exec('SELECT amount FROM issue_limits WHERE bucket=?',bucket)][0]?.amount||0;
    if(count>=300)return safeJson({error:'Registration is temporarily limited'},429);
    const random=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('');
