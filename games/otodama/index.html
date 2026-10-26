@@ -1803,7 +1803,7 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
    $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
    $('hpB').style.width=clamp(m.hp[1]/m.max[1]*100,0,100)+'%';
    if(!m.hp[0]||!m.hp[1])m.endAfterCurrent=true;
-   impactSfx(ev.damage,ev);if(ev.skill)maybeSpecialRush(m,ev);updateActionHud();return;
+   reactionVoice(def===0?m.a:m.b,def,ev);impactSfx(ev.damage,ev);if(ev.skill)maybeSpecialRush(m,ev);updateActionHud();return;
  }
 
  if(ev.tactic==='heavy'&&atk===1)damage=Math.round(damage*1.22);
@@ -1834,7 +1834,7 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
  m.hp[def]=Math.max(0,m.hp[def]-damage);if(selfDamage>0)m.hp[atk]=Math.max(0,m.hp[atk]-selfDamage);
  if(ev.recovery>0)m.hp[atk]=Math.min(m.max[atk],m.hp[atk]+ev.recovery);
  if(atk===0){m.damageDealt+=damage;if(ev.skill)m.skillsUsed++;if(ev.counterBurst||ev.evadeCounter)m.counterHits++;}else{m.damageTaken+=damage;if(ev.parry)m.parries++;if(ev.dodge)m.dodges++;}
- ev.damage=damage;ev.hp=m.hp.slice();ev.resolved=true;ev.impactAt=ms;ev.impactPoint=m.prevPos?.[def]?{...m.prevPos[def]}:null;impactSfx(damage,ev);if(ev.skill)maybeSpecialRush(m,ev);
+ ev.damage=damage;ev.hp=m.hp.slice();ev.resolved=true;ev.impactAt=ms;ev.impactPoint=m.prevPos?.[def]?{...m.prevPos[def]}:null;reactionVoice(def===0?player:foe,def,ev);impactSfx(damage,ev);if(ev.skill)maybeSpecialRush(m,ev);
  $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(m.hp[1]/m.max[1]*100,0,100)+'%';
  if(m.hp[0]<=0||m.hp[1]<=0)m.endAfterCurrent=true;
  updateActionHud();
@@ -2059,7 +2059,7 @@ function receiveLiveImpact(data){
  $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
  $('hpB').style.width=clamp(m.hp[1]/m.max[1]*100,0,100)+'%';
  $('fightLog').textContent=displayName(data.atk===0?m.a:m.b)+'：'+data.damage+' ダメージ'+(data.parry?' / ガード成功':data.dodge?' / 回避':data.skill?' / 特別な技':data.strike?' / 自動会心':'');
- impactSfx(Number(data.damage)||0,m.current);updateActionHud();
+ reactionVoice(data.atk===0?m.b:m.a,1-data.atk,{...m.current,damage:data.damage});impactSfx(Number(data.damage)||0,m.current);updateActionHud();
 }
 function endLiveBattle(data){
  const m=match;if(!m?.live||m.done||![0,1].includes(data.winner))return;
