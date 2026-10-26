@@ -260,7 +260,7 @@ async function importSave(file){
  }catch(e){$('saveNotice').textContent='読み込み失敗：'+(e.message||'保存ファイルを確認してください');}
  finally{$('importSaveFile').value='';}
 }
-function showCampaign(){showStage();if(!$('campaignRank'))return;$('campaignRank').textContent='Lv.'+levelOf(cur);$('campaignXp').textContent='XP '+(Number(cur.xp)||0)+'/3';$('campaignStreak').textContent=`連勝 ${streak} / 最高 ${recordStreak}`;const soul=soulFor(cur);$('voiceRoleName').textContent=soul.name+'  ·  '+soul.skill;$('voiceRoleDesc').textContent=soul.detail;}
+function showCampaign(){showStage();if(!$('campaignRank'))return;$('campaignRank').textContent='Lv.'+levelOf(cur);$('campaignXp').textContent='XP '+(Number(cur.xp)||0)+'/3';$('campaignStreak').textContent=`連勝 ${streak} / 最高 ${recordStreak}`;const soul=soulFor(cur),profile=specimenProfile(cur);$('voiceRoleName').textContent='戦型：'+profile.name+' · '+profile.temperament+' · '+specimenMutation(cur).label;$('voiceRoleDesc').textContent='全自動戦闘。'+soul.detail+' 覚醒と必殺技は素体自身が判断します。';}
 function updateCharacterProgress(m){const player=m.a;let bonus=0;if(m.mode==='COM MATCH'&&m.outcome.winner===0)bonus+=m.grade==='S'?2:m.grade==='A'?1:0;if(m.mode==='DAILY CHALLENGE'&&m.outcome.winner===0&&dailyCleared!==dailyKey()){dailyCleared=dailyKey();try{localStorage.setItem('otodama.daily.clear',dailyCleared)}catch(e){}bonus=3;showDaily()}if(m.mode==='COM MATCH'&&m.boss&&m.outcome.winner===0)bonus+=m.bossReward;if(m.mode==='COM MATCH'&&m.rival&&m.outcome.winner===0)bonus+=2;m.missionAwarded=m.outcome.winner===0&&missionCompleted(m);if(m.missionAwarded)bonus++;m.cleanDefenseAwarded=m.mode==='COM MATCH'&&m.outcome.winner===0&&m.damageTaken<=4&&(m.parries+m.dodges)>=2;if(m.cleanDefenseAwarded)bonus++;const mutationBefore=specimenMutation(player).tier;let gained=(m.outcome.winner===0?2:1)+bonus;player.xp=(Number(player.xp)||0)+gained;let lvled=false;while(player.xp>=3&&levelOf(player)<30){player.xp-=3;player.level=levelOf(player)+1;const idx=(hash(player.seed^player.level)%5);player.stats[idx]=clamp(player.stats[idx]+1,27,99);lvled=true;}if(m.outcome.winner===0){streak++;careerWins++;recordStreak=Math.max(recordStreak,streak)}else{streak=0}if(m.mode==='COM MATCH'){if(m.outcome.winner===0){stageWins++;adventureStage=Math.min(99999,adventureStage+1);stageAttempts=0}else stageAttempts=Math.min(99999,stageAttempts+1);m.stageCompleted=adventureStage-(m.outcome.winner===0?1:0)}saveProgress();
  const exists=roster.findIndex(c=>c.seed===player.seed);if(exists>=0)roster[exists]=player;else{roster.unshift(player);roster=roster.slice(0,30)}saveStore();if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign()}const mutated=specimenMutation(player).tier>mutationBefore;const msg=(m.outcome.winner===0?'勝利 +'+gained+'XP':'敗北 +1XP')+(lvled?' · LEVEL UP! Lv.'+levelOf(player):'')+(mutated?' · 進化：'+specimenMutation(player).label:'')+' · 連勝 '+streak; if($('battlePrize'))$('battlePrize').textContent=msg+(m.guardBest?' ／ ガード連続最高 '+m.guardBest:'')+(m.missionAwarded?' ／ ミッション達成 +1XP':'')+(m.cleanDefenseAwarded?' ／ 完璧防御 +1XP':'')+(m.rival&&m.outcome.winner===0?' ／ ライバル報酬 +2XP':'')+(m.mode==='COM MATCH'?' ／ 次：STAGE '+adventureStage:' ／ 次は冒険ステージ');showStage();return msg;
 }
@@ -303,7 +303,7 @@ c.save();c.translate(x,y);c.scale(s*mirror,s);c.translate(0,breathe-bonk*6);
 c.fillStyle='#030e1966';c.beginPath();c.ellipse(0,133,94,19,0,0,TAU);c.fill();
 for(let i=0;i<7;i++){let ang=i*TAU/7+t*.18;let rr=112+Math.sin(t*2+i*1.7)*8;c.fillStyle=col(pal[0],.12+i*.013);c.beginPath();c.arc(Math.cos(ang)*rr,Math.sin(ang)*rr*.88-13,2.4+i%3,0,TAU);c.fill()}
 drawSpeciesBack(c,p,pal,t);
-const mutation=specimenMutation(cr).tier;if(mutation){c.save();c.strokeStyle=col(pal[1],.26+.08*mutation);c.lineWidth=2+mutation;c.beginPath();c.ellipse(0,-5,116+mutation*7,118+mutation*8,0,0,TAU);c.stroke();c.restore();}
+const mutation=specimenMutation(cr);if(mutation.tier){c.save();c.strokeStyle=mutation.rare?'#ffdb82':col(pal[1],.26+.08*mutation.tier);c.lineWidth=2+mutation.tier;c.beginPath();c.ellipse(0,-5,116+mutation.tier*7,118+mutation.tier*8,0,0,TAU);c.stroke();c.restore();}
 // independent leg details: 16 shapes, including fins, spikes, wheels and little paws
 for(const side of [-1,1]){let drift=Math.sin(t*2+side)*3,feet=p.legs??0; c.save();c.translate(side*42,80+drift);c.fillStyle=pal[2];c.strokeStyle='#071425';c.lineWidth=5;
  if(p.family===0||p.family===7||p.family===11){c.fillStyle=col(pal[1],.6);c.beginPath();c.ellipse(0,33,18+feet%5,9+feet%6,0,0,TAU);c.fill()}
@@ -582,7 +582,7 @@ const ARENA_LABELS={'無重力ゾーン':'ふわっとする','落雷の嵐':'�
 const BATTLE_LABEL={rush:'突進',aerial:'ジャンプ攻撃',warp:'回り込み',beam:'遠距離攻撃',combo:'連続攻撃',spin:'回転攻撃',uppercut:'打ち上げ',shockwave:'範囲攻撃',meteor:'急降下',counter:'反撃'};
 
 const AUTO_STYLES=['パワー型','スピード型','守備型','カウンター型','バランス型','変化型'];
-function specimenMutation(c){const tier=Math.min(4,Math.floor((levelOf(c)-1)/6));return {tier,label:tier?['','光る紋様','新しい角','発光する体','特異な姿'][tier]:'未進化'};}
+function specimenMutation(c){const tier=Math.min(4,Math.floor((levelOf(c)-1)/6));const rare=!!tier&&hash((c.seed>>>0)^0x17b4a2)%24===0;return {tier,rare,label:tier?(rare?'希少変異・':'進化・')+['','光る紋様','新しい角','発光する体','特異な姿'][tier]:'未進化'};}
 function specimenAppearance(c){
  const p=c.parts,m=specimenMutation(c).tier;
  return m?{...p,crest:(p.crest+m*3)%30,pattern:(p.pattern+m*5)%24,
@@ -673,7 +673,26 @@ function drawBlast(c,x,y,power,color,seed){
  c.globalAlpha=power*.8;c.strokeStyle=color;c.lineWidth=8;c.beginPath();c.arc(0,0,(1-power)*135+4,0,TAU);c.stroke();c.restore()
 }
 function drawCombatant(c,cr,x,y,scale,t,mirror,rot,alpha=1){
- c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha*=alpha;drawCreature(c,cr,0,0,scale,t,{mirror});c.restore()
+ c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha*=alpha;drawCreature(c,cr,0,0,scale,t,{mirror});
+ if(match?.spectator&&!match.done){
+  const side=cr===match.a?0:cr===match.b?1:-1;
+  if(side>=0){
+   const ratio=clamp(match.hp[side]/match.max[side],0,1);
+   c.save();c.scale(scale,scale);
+   if(match.awakened[side]){
+    c.strokeStyle='#fff1aa';c.lineWidth=3;c.globalAlpha=.5+.3*Math.sin(t*11);c.beginPath();
+    c.ellipse(0,-6,134+7*Math.sin(t*4),150,0,0,TAU);c.stroke();c.globalAlpha=1;
+   }
+   if(ratio<.68){
+    c.strokeStyle='rgba(16,32,53,.82)';c.lineWidth=3.5;c.beginPath();
+    c.moveTo(-23,-90);c.lineTo(-7,-50);c.lineTo(-28,-18);c.lineTo(-8,21);
+    if(ratio<.36){c.moveTo(36,-67);c.lineTo(15,-20);c.lineTo(31,19);c.lineTo(7,51);}
+    c.stroke();
+   }
+   c.restore();
+  }
+ }
+ c.restore()
 }
 function phaseTravel(p,points){const q=clamp(p,0,1)*(points.length-1),i=Math.min(points.length-2,Math.floor(q));return mix(points[i],points[i+1],ease(q-i))}
 // V0.5: a unique cinematic finish once the final blow has landed.
@@ -1029,7 +1048,7 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
      if(ev.guard){m.parries++;m.guardChain++;m.guardBest=Math.max(m.guardBest,m.guardChain);}else m.guardChain=0;
      if(ev.counter)m.counterHits++;}
    if(ev.awakenSide>=0){m.awakened[ev.awakenSide]=true;$('arenaEffect').textContent=ev.awakenSide===0?'覚醒！ 逆転の可能性！':'相手が覚醒！';}
-   if(ev.counter&&atk===0)m.counterHits++;if(ev.skill)m.ultimateAt=ms;
+   if(ev.skill)m.ultimateAt=ms;
    $('fightLog').textContent=ev.commentary+'　'+displayName(atk===0?m.a:m.b)+' → '+(ev.dodge?'回避':ev.damage+'ダメージ');
    $('battleMsg').textContent=ev.commentary;
    $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
