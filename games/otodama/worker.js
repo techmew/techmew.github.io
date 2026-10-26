@@ -332,7 +332,9 @@ export class Room extends DurableObject {
     this.send(ws,{type:'live_ack',action,seq:state.turn,valid});
   }
   async webSocketMessage(ws,raw){
-    if(typeof raw!=='string'||raw.length>120000){this.send(ws,{type:'error',message:'無効なメッセージ'});return}
+    // Online audio transfer is disabled; gameplay packets should never be megabyte-sized.
+    if(typeof raw!=='string'){try{ws.close(1003,'Text packets only')}catch{}return}
+    if(raw.length>8192){try{ws.close(1009,'Message too large')}catch{}return}
     let data;try{data=JSON.parse(raw)}catch{return}
     if(!data||typeof data!=='object'||Array.isArray(data)){this.send(ws,{type:'error',message:'無効なメッセージ'});return;}
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
