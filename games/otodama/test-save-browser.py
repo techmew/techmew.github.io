@@ -12,7 +12,7 @@ with sync_playwright() as p:
  page.evaluate("localStorage.setItem('otodama.progress',JSON.stringify({streak:2,best:4,wins:12,stage:6,stageWins:5,attempts:2}))")
  page.set_content(html,wait_until='domcontentloaded')
  assert 'STAGE 06' in page.locator('#adventureStage').inner_text()
- assert '第二章' in page.locator('#stageHint').inner_text()
+ assert '街の屋上' in page.locator('#stageHint').inner_text()
  with page.expect_download() as info:page.locator('#exportSaveBtn').click()
  d=info.value;payload=json.loads(Path(d.path()).read_text())
  assert payload['progress']['adventureStage']==6 and payload['progress']['stageAttempts']==2
@@ -30,4 +30,4 @@ with sync_playwright() as p:
  assert 'STAGE 06' in page.locator('#adventureStage').inner_text()
  assert not errors,errors
  browser.close()
- print(json.dumps({'result':'PASS','save_export':True,'save_import':True,'invalid_file_rejected':True,'chapter_6':'第二章','errors':errors},ensure_ascii=False))
+ print(json.dumps({'result':'PASS','save_export':True,'save_import':True,'invalid_file_rejected':True,'chapter_6':'街の屋上','errors':errors},ensure_ascii=False))
