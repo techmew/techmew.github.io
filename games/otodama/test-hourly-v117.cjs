@@ -24,7 +24,7 @@ const ac={currentTime:2,createBufferSource(){return{playbackRate:{value:1},conne
 const battle={done:false,mode:'COM MATCH',turn:2,live:false,a:creature,b:creature};
 const ui={mutedCheck:{checked:false},muteOpponentVoice:{checked:false},arenaEffect:{textContent:''}};
 const soundCtx={
- match:battle,$:id=>ui[id]||{},VOLUME:()=>.18,unlockBattleAudio:()=>ac,
+ match:battle,$:id=>ui[id]||{},clamp:(v,a,b)=>Math.min(b,Math.max(a,v)),VOLUME:()=>.18,unlockBattleAudio:()=>ac,
  voiceOutput:()=>({}),trackAttackSource:()=>{},synthVoice:()=>{},
  voiceCache:new Map([[key,{buffer:{duration:1},offset:.1,duration:.65,gain:1.8}]]),
  pendingVoice:new Map(),performance:{now:()=>1000},hash:()=>0,
