@@ -602,24 +602,27 @@ function randCombat(a,b){
  const fighters=[a,b],profile=fighters.map(specimenProfile);
  const max=fighters.map((c,i)=>Math.round(132+c.stats[1]*.92+profile[i].mutation.tier*7));
  const hp=max.slice(),events=[],rng=getRand(hash(a.seed^Math.imul(b.seed,97)^Date.now()));
- const energy=[0,0],awaken=[false,false],momentum=[0,0];let prev=-1,chain=0;
+ const energy=[0,0],awaken=[false,false],momentum=[0,0];let prev=-1,chain=0,currentArena=null;
  for(let turn=0;turn<52&&hp[0]>0&&hp[1]>0;turn++){
   const odds=clamp(.5+(profile[0].speed-profile[1].speed)/370+(momentum[0]-momentum[1])*.023,.28,.72);
   let atk=rng()<odds?0:1;
   if(atk===prev)chain++;else chain=0;
   if(chain>=3){atk=1-atk;chain=0}prev=atk;
   const def=1-atk,P=profile[atk],D=profile[def],A=fighters[atk],B=fighters[def];
+  if(turn%5===4)currentArena=['無重力ゾーン','落雷の嵐','残響増幅','空間反転','音速暴走'][Math.floor(rng()*5)];
+  const arena=currentArena;
   const categories=[['meteor','uppercut','shockwave'],['combo','aerial','warp'],
   ['counter','spin','shockwave'],['counter','uppercut','warp'],['rush','aerial','uppercut'],
   ['beam','warp','spin']];
   let kind=categories[P.style][Math.floor(rng()*3)];
   let hits=['combo','spin','aerial'].includes(kind)?2+Math.floor(rng()*3):1;
   const crit=rng()<clamp(.035+P.intuition/1150+(awaken[atk]?.045:0),.03,.21);
-  const dodge=rng()<clamp(.012+D.speed/1000+(D.style===1?.065:0),.025,.19);
+  const dodge=rng()<clamp(.012+D.speed/1000+(D.style===1?.065:0)+(arena==='無重力ゾーン'?.06:0),.025,.25);
   const guard=!dodge&&rng()<clamp(.035+D.defense/760+(D.style===2?.12:0),.04,.3);
   const counter=!dodge&&rng()<clamp(.02+D.intuition/1650+(D.style===3?.1:0),.02,.18);
   const skill=energy[atk]>=75&&(rng()<.62||hp[atk]/max[atk]<.38);
   if(skill){energy[atk]=0;kind=P.style===1?'combo':P.style===0?'meteor':'beam';hits=Math.max(3,hits)}
+  if(arena==='音速暴走')hits=Math.max(2,hits);
   let awakenSide=-1;
   for(const side of [atk,def])if(!awaken[side]&&hp[side]>0&&hp[side]/max[side]<.37&&
    rng()<.59+profile[side].potential/600){
@@ -627,7 +630,8 @@ function randCombat(a,b){
   }
   let damage=Math.max(3,Math.round((10+P.power*.225+P.voice*.105-D.defense*.118+(rng()-.5)*11)*
    (hits>1?1+.13*(hits-1):1)*(crit?1.38:1)*(skill?1.53:1)*
-   (awaken[atk]?1.17:1)*elementalEdge(A,B)*(1+P.mutation.tier*.025)));
+   (awaken[atk]?1.17:1)*elementalEdge(A,B)*(1+P.mutation.tier*.025)*
+   (arena==='落雷の嵐'?1.15:arena==='空間反転'?.82:arena==='音速暴走'?1.08:1)));
   let selfDamage=0;
   if(dodge)damage=0;
   else{
@@ -636,15 +640,14 @@ function randCombat(a,b){
      damage=Math.max(1,Math.round(damage*.65))}
   }
   hp[def]=Math.max(0,hp[def]-damage);hp[atk]=Math.max(0,hp[atk]-selfDamage);
-  energy[atk]=Math.min(100,energy[atk]+(skill?0:19));
+  energy[atk]=Math.min(100,energy[atk]+(skill?0:19)+(arena==='残響増幅'?10:0));
   energy[def]=Math.min(100,energy[def]+(guard?18:counter?16:8));
   momentum[atk]=damage?Math.min(5,momentum[atk]+1):Math.max(0,momentum[atk]-1);
   momentum[def]=counter?Math.min(5,momentum[def]+2):Math.max(0,momentum[def]-1);
-  const arena=turn%5===4?['無重力ゾーン','落雷の嵐','残響増幅','空間反転','音速暴走'][Math.floor(rng()*5)]:null;
   const commentary=awakenSide>=0?(awakenSide===0?'こちらの素体が覚醒！':'相手の素体が覚醒！'):
    skill?'蓄積した力を解放！':dodge?'素早い回避！':guard?'防御力で受け止めた！':
    counter?'反撃が決まった！':crit?'強烈な一撃！':
-   hp[def]/max[def]<.25?'決着が近い！':hits>=3?'連続攻撃が命中！':P.temperament+'な攻め！';
+   hp[def]/max[def]<.25?'決着が近い！':turn%5===4&&arena?'地形変化：'+arena+'！':hits>=3?'連続攻撃が命中！':P.temperament+'な攻め！';
   events.push({atk,kind,damage,crit,hits,dodge,guard,counter,skill,selfDamage,
    recovery:0,arena,hp:hp.slice(),awakenSide,commentary});
  }
