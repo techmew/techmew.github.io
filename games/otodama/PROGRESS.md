@@ -1,3 +1,50 @@
+# 声魂（こえだま） 毎時開発 / v0.10.6 / 2026-10-26
+
+## CURRENT_STATUS
+- GitHub main の games/otodama/ のみ変更。既存の声生成・録音停止/試聴・外見組合せ・名前生成・連続COM戦・育成・敗者爆発/破片/WIN・セーブ互換を維持。
+- 前回の未完了：Node/Chromium正式回帰、Android実機、オンライン本番/二端末、連戦難易度とFPS実測。今回も実機/本番公開は未実施。オンラインサーバーはデプロイ可能なコードのみ。
+
+## CHANGELOG
+1. STAGE 1〜2のガード・回避・精密打撃の成功窓を広げ、STAGE 3〜5で段階的に狭め、6以降は従来通り。DAILY/オンラインの成功窓は変更なし。
+2. 同一ステージで2敗以上した場合、次の敵を別キャラに変更する既存仕様を維持しながら、敵能力を最大8だけ緩和。ボスは最大4。勝利でリセット。補正をキャンペーン表示/対戦画面/次戦プレビューへ反映。
+3. 7敵戦型/ボス別の短い攻略ヒントを対戦画面と次戦プレビューに表示。次戦の敵・ステージ・ミッション・戦型は従来通り変更。
+4. 高解像度画面のバトルCanvasを最大2xの内部解像度に変更。論理座標720x450は不変。低メモリ/省電力時は1x、設定切替時に再初期化。
+5. 自作Web Audioの16小節構成に4小節のハーフタイム・ブリッジを追加。緊迫時とボス戦は通常の密度を維持。録音声の再生・BGMダッキング/音量/ミュートは維持。
+6. スマホボタンのタップ操作を明示し、キーボードのフォーカス可視化を追加。
+7. moderation.jsの公開名/タイプ名からUnicode不可視文字・双方向制御文字を除去し、空白を整理。絵文字を途中で切断しない。既存410語の禁止語辞書とサーバー検証を維持。
+8. test-quality-v106.cjs と test-moderation.mjs に回帰を追加。README/Worker health/packageをv0.10.6へ更新。
+
+## TEST_RESULTS
+- GitHub mainの現行ファイルを取得してクライアントJS/Worker/ModerationのV8構文検査PASS。
+- 新規 test-quality-v106.cjs をV8で模擬ファイル読込により実行：39アサーションPASS。敵補正/異なる敵/ボス上限、序盤判定とオンライン不変、Canvas DPRと省電力切替、音楽構成、録音・連戦・WIN・セーブのコード保持を確認。
+- test-moderation.mjs をV8で現行moderation.jsと連結して実行：46アサーションPASS（禁止語・誤検知・不可視文字・絵文字）。
+- Worker Durable ObjectsをV8でスタブ化し21項目PASS：不正キャラ拒否、禁止名のサーバー変換、精密打撃・ガード・回避のサーバー裁定、同一ターン重複入力拒否、HP/共鳴/クールダウン、必殺技消費、次ターン戦術。
+- Web AudioをV8でスタブ化し8項目PASS：ブリッジ/通常/緊迫/ボス/ミュート/AudioContext停止/終了/録音声ダッキング。低メモリ時のCanvas1xを別途検証。
+- GitHub更新ファイルのコミット後再取得blob SHA照合PASS。正式Nodeのテスト実行、Chromiumブラウザ操作、Android実機、Cloudflare Workers本番、外部二端末、公開URL直接操作は未実施。模擬V8検証と区別。
+
+## BLOCKERS
+- Cloudflare本番には所有者側のActions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN、公開Worker URL設定が必要。秘密情報はコード/ログに保存しない。
+- Android実機と外部二端末を操作できないため、実機マイク・縦横UI・音声再生・ネットワーク復帰の実測は未完了。
+- 録音音声の自動文字起こし・発話内容審査は未実装。名前の文字列フィルタリングとは別問題。
+- 実FPS/メモリ/長時間バランスデータなし。正式Node/Chromium回帰は次回以降。
+
+## NEXT_ACTIONS
+1. 正式Nodeで全 .cjs/.mjs テストを実行し、ChromiumでCOM連戦・録音・保存・音量/ミュート・モバイル縦横/高DPIを検証。
+2. 10〜20戦の難易度曲線/敗北補正の発動率・実FPS・BGM疲労を測定し、演出と数値を再調整。
+3. Cloudflare認証後にWorker本番公開、/health、ランダム対戦、再接続、同意音声、独立2端末の同期を検証。
+4. 公開名の多言語誤判定と録音発話審査の現実的な選択肢を検討。
+
+## GITHUB_COMMITS
+- Game/UI: 58c13d70bc506296607ac1a88ab5536dc2bf55d7
+- New V8/Node regression source: c5257d3fe3a5f987ef9e6523b58b6c52578fb5db
+- Moderation Unicode sanitizer: 92aa8841177216fb4b19155d66958b8a1c305147
+- Moderation regression: dedebd3b797cfeb652e64f639db9c59bde81f1a4
+- Worker health version: 63e5b31334bfe3d125ab83614336e778d917aae2
+- package version: 9c1e9d71bb47e0c5e06c0eca8d06f314a7ac3be7
+- README: b68845f2d5a8858b75bd4a1862fe782af770d896
+
+---
+
 # 声魂（こえだま） 毎時開発 / v0.10.5 / 2026-10-26
 
 ## CURRENT_STATUS
