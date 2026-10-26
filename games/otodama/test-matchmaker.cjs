@@ -9,7 +9,7 @@ source+='\nglobalThis.testing={Room,Matchmaker,defaultExport};';
 let fakeNow=Date.now();class TestDate extends Date{static now(){return fakeNow}}
 const ctx={crypto:globalThis.crypto,Response:globalThis.Response,WebSocketPair:class {},console,Math,Number,Array,JSON,Date:TestDate,Uint8Array,Set,RegExp,String};
 vm.runInNewContext(source,ctx);
-const FakeSocket=()=>({readyState:1,data:{status:'connected',time:0},messages:[],deserializeAttachment(){return this.data},serializeAttachment(obj){this.data=obj},send(message){this.messages.push(JSON.parse(message))},close(){this.readyState=3}});
+const FakeSocket=()=>({readyState:1,data:{status:'connected',time:fakeNow},messages:[],deserializeAttachment(){return this.data},serializeAttachment(obj){this.data=obj},send(message){this.messages.push(JSON.parse(message))},close(){this.readyState=3}});
 const a=FakeSocket(),b=FakeSocket(),w3=FakeSocket(),sockets=[a,b,w3];
 const mmStorage={alarmAt:0,setAlarm:async t=>{mmStorage.alarmAt=t}};
 const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets,storage:mmStorage});
