@@ -42,10 +42,11 @@ assert.equal(banners.length,1,'special banner');
 assert.equal(sound.maybeSpecialRush(battle,ev),false,'special once per attack');
 sound.attackVoice(creature,0);assert.equal(starts.length,15,'normal single voice');
 const button={textContent:''};
-const audioCtx={battleSoundCtx:{state:'running'},$:id=>id==='audioResumeBtn'?button:{checked:false},VOLUME:()=>0};
+let testVolume=0;
+const audioCtx={battleSoundCtx:{state:'running'},$:id=>id==='audioResumeBtn'?button:{checked:false},VOLUME:()=>testVolume};
 const sync=vm.runInNewContext(slice('function syncAudioResumeButton(){','function unlockBattleAudio(){')+';syncAudioResumeButton',audioCtx);
 sync();assert.ok(button.textContent.includes('0%'),'zero volume status');
-audioCtx.VOLUME=()=>.18;sync();assert.ok(button.textContent.includes('音声ON'),'running audio status');
+testVolume=.18;sync();assert.ok(button.textContent.includes('音声ON'),'running audio status');
 audioCtx.battleSoundCtx.state='suspended';sync();assert.ok(button.textContent.includes('声を再開'),'suspended status');
 
 const live={live:true,done:false,turn:3,current:{seq:3,atk:0,resolved:true}};
