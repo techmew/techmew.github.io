@@ -13,7 +13,7 @@ new vm.Script(source,{filename:'worker.js#test'});
 const context={crypto:webcrypto,TextEncoder,Response,Request,URL,console,Date,Uint8Array,Set,Array,Math,JSON};
 vm.runInNewContext(source+'\nglobalThis.rankTest={Rankings,Room,workerDefault};',context);
 const db=new DatabaseSync(':memory:');
-const sql={exec(query,...args){const statement=db.prepare(query);return statement.reader?statement.all(...args):(statement.run(...args),[])}};
+const sql={exec(query,...args){const statement=db.prepare(query);return /^\s*(?:SELECT|WITH|PRAGMA)\b/i.test(query)?statement.all(...args):(statement.run(...args),[])}};
 const rank=new context.rankTest.Rankings({storage:{sql}},{});
 const binding={get:()=>({fetch:request=>rank.fetch(request)}),idFromName:()=>1};
 const submit=async(path,body)=>rank.fetch(new Request('https://internal.example'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
