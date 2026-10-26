@@ -25,4 +25,14 @@ for(const phrase of ['ちんこ','チンコ','ち ん こ','ち・ん・こ','�
 for(const phrase of ['たまたま会った','かわいい猫','おはよう','勝った','まけた','クリスタルの剣士','グレープジュース','音の旅人']){
  assert.equal(isForbiddenSpeech(phrase),false,'false positive speech: '+phrase);
 }
+// Newly reported genital expressions, romaji, prolonged sounds and mixed scripts.
+for(const phrase of ['人間の局部','局部','人の局部','局部の画像','陰部の写真','性器を見せて','お・ち・ん・ち・ん','ちーーんこ','まーんこ','まんぐり','ちんちん丸出し','きんたま','玉袋','胸を揉む','下ネタ','chinko','c.h.i.n.k.o','CHINPO','manko','o-manko','oppai','kintama','sekkusu','f.u.c.k o.f.f','s3x','ѕех','рenis','ｈｔｔｐｓ：／／example.com','ｗｗｗ．spam.com','t . me / spam','a＠example．com']){
+ assert.equal(isForbiddenName(phrase),true,'new bypass: '+phrase);
+}
+for(const safe of ['局部的な雨','たまたま出会った','こんにちは','おはよう','あそこにいる','音楽が好き','小さな猫','セクションA','grape','therapist','sexagenarian']){
+ assert.equal(isForbiddenName(safe),false,'new false positive: '+safe);
+}
+for(const phrase of ['ちーーんこ','まーーんこ','人間の局部','c h i n k o','o p p a i','f u c k o f f']){
+ assert.equal(isForbiddenSpeech(phrase),true,'new speech bypass: '+phrase);
+}
 console.log('MODERATION TEST PASS | terms',moderationTermCount);
