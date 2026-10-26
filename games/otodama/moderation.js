@@ -22,23 +22,41 @@ const EXTRA_TERMS = [
 'sex','penis','vagina','vulva','clitoris','testicle','testicles','testes','scrotum','genitals','genitalia','boobs','tits','nipples','areola','breasts','butthole','anus','anal sex','pussy','cock','dick','boner','erection','masturbation','jerk off','orgasm','ejaculation','semen','sperm','cum','cumming','blow job','hand job','rimjob','deepthroat','naked','nude','horny','fetish','sexual intercourse','sexual content','sex toy','sex worker','hooker','prostitute','gangbang','creampie','bukkake','fingering','penetration','pornography','erotic','erotica','nsfw','milf','dildo','vibrator',
 '陰部露出','性器露出','局部露出','股間露出','性器画像','局部画像','性的な画像','下半身裸','性交渉','性犯罪','強制わいせつ','わいせつ','猥褻','痴漢行為','盗撮動画','性的暴行','性的虐待','性暴力','児童性的虐待'
 ];
+// Short game names are not a venue for explicit anatomy or harassment. Avoid
+// single vague words such as 「あそこ」 or 「乳」 that reject harmless names.
+const MORE_TERMS=[
+'人間の局部','人の局部','局部の写真','局部の画像','局部を見せろ','局部を見せて','陰部の写真','性器の写真','性器の画像','性器を見せろ','性器を見せて',
+'ちんちん丸出し','おちんちん','おちんぽ','ちんぽこ','ちんぼ','ちんこ','ちんぽ','まんこ','まんぐり返し','まんぐり','まんすじ','まん毛','陰毛','恥毛','玉袋','きんたま','睾丸','精巣','陰茎','勃起','精液','精子','射精','膣内射精','生挿入','中出し','顔射','口内射精','乳頭','乳首','乳輪','おっぱい','胸を揉む','胸をもむ','お尻の穴','尻穴','ケツの穴','アナル','肛門','下ネタ','性的部位','性的器官','性器名称','わいせつ物','わいせつ画像','性器を露出','局部を露出',
+'性行為しよう','セックスしよう','ヤリマン','ヤリチン','パコる','パコパコ','ズッコンバッコン','えっちなこと','裸の写真','裸の動画','ヌード写真','オナニー','しこしこ','シコシコ','しこる','シコる','抜いて','抜ける動画','勃起した','性的に興奮','痴漢する','性的暴力','児童性的搾取','未成年の裸','子供の裸',
+'fuckyou','fuck off','fckyou','fukyou','fucking','motherfucker','bastard','shithead','asshole','bitch','slut','whore','nudephoto','nakedpics','nakedpicture','genitalphoto','genitalpics','sendnudes','send nude','show your dick','show your tits','show your pussy','sexual organ','private parts','human genitals','human private parts','intimate parts','sex organs',
+'killurself','kill urself','kill yourself','killyourself','go kys','go die','die now','suicide now','rape threat','death threat','bomb threat','school shooting',
+'chinko','chinpoko','chinpo','chinchin','ochinchin','omanko','manko','oppai','ochinpo','kintama','ketsuana','onanii','onani','sekkusu','hame dori','hamedori','nakadashi','paizuri','fera','kunni','shasei','seieki','seiki','inbou','inmou','koumon'
+];
 const unicodeLoose=s=>String(s??'').normalize('NFKC').toLowerCase()
  .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufe0e\ufe0f\ufeff]/g,'')
  .replace(/[аɑα]/g,'a').replace(/[еε]/g,'e').replace(/[οоօ]/g,'o').replace(/[ѕ]/g,'s').replace(/[хχ]/g,'x').replace(/[іı]/g,'i')
+ .replace(/[рρ]/g,'p').replace(/[сϲ]/g,'c').replace(/[кκ]/g,'k').replace(/[тτ]/g,'t').replace(/[уυ]/g,'y').replace(/[нη]/g,'h').replace(/[мμ]/g,'m').replace(/[вβ]/g,'b').replace(/[ԁ]/g,'d').replace(/[ӏⅼ]/g,'l')
  .replace(/[ァ-ヶ]/g,x=>String.fromCharCode(x.charCodeAt(0)-0x60))
  .replace(/[①②③④⑤⑥⑦⑧⑨]/g,ch=>String('①②③④⑤⑥⑦⑧⑨'.indexOf(ch)+1))
  .replace(/[@4]/g,'a').replace(/[0〇]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/5/g,'s')
  .replace(/[\p{P}\p{Z}\p{S}\p{Cf}\p{M}]+/gu,'');
-const exactSingle=new Set(['膣'].map(unicodeLoose));
-const termNormalized=[...new Set([...TERMS,...EXTRA_TERMS].map(unicodeLoose).filter(s=>s.length>=2))];
+const exactSingle=new Set(['膣','局部'].map(unicodeLoose));
+const termNormalized=[...new Set([...TERMS,...EXTRA_TERMS,...MORE_TERMS].map(unicodeLoose).filter(s=>s.length>=2))];
 const latinTerms=termNormalized.filter(s=>/^[a-z]+$/.test(s));
 const otherTerms=termNormalized.filter(s=>!/^[a-z]+$/.test(s));
 const latinMatchers=latinTerms.map(term=>new RegExp('(?:^|[^a-z])'+term+'(?:$|[^a-z])')); // prevent grape→rape, therapist→rapist false positives
 const LINKS=/(https?:\/\/|www\.|(?:t\.me|telegram\.me|discord\.gg|bit\.ly|tinyurl\.com|line\.me)\/|@[a-z\d_]{2,}|[\w.+-]+@[\w.-]+\.[a-z]{2,}|\b(?:discord|telegram|line)\b\s*[:=])/i;
 const CONTACT=/(?:\d[\s\-]?){11,}/;
+const compactForContact=s=>String(s).normalize('NFKC').replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g,'').replace(/\s+/gu,'');
 export function isForbiddenName(value){
- const raw=String(value??'');if(raw.length>80||LINKS.test(raw)||CONTACT.test(raw))return true;
- const normalized=unicodeLoose(raw);return exactSingle.has(normalized)||otherTerms.some(term=>normalized.includes(term))||latinMatchers.some(re=>re.test(normalized));
+ const raw=String(value??'');if(raw.length>80)return true;
+ const contact=compactForContact(raw);
+ if(LINKS.test(raw)||LINKS.test(contact)||CONTACT.test(raw)||CONTACT.test(contact))return true;
+ const normalized=unicodeLoose(raw);
+ // Long vowel marks and decorative separators cannot hide an explicit word.
+ const variants=normalized.includes('ー')||normalized.includes('〜')?[normalized,normalized.replace(/[ー〜]+/g,'')]:[normalized];
+ return variants.some(s=>exactSingle.has(s)||otherTerms.some(term=>s.includes(term))||latinMatchers.some(re=>re.test(s)));
+
 }
 // Voice transcription uses the same dictionary as public names, plus common phonetic spellings.
 // Only recognised TEXT is checked. This does not analyze waveforms, and ASR can mishear.
@@ -60,4 +78,4 @@ export function sanitizePublicName(value, seed=1){
  if(!raw||Array.from(raw).length>80||isForbiddenName(raw)||/[<>\\]/.test(raw))return `声魂-${(Number(seed)>>>0).toString(36).toUpperCase().slice(0,7)}`;
  return Array.from(raw).slice(0,24).join('');
 }
-export const moderationTermCount=TERMS.length+EXTRA_TERMS.length;
+export const moderationTermCount=TERMS.length+EXTRA_TERMS.length+MORE_TERMS.length;
