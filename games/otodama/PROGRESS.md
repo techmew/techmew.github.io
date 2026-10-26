@@ -1252,3 +1252,8 @@ GitHubがソースの正本。録音音声の自動認識審査を勝手に戻�
 - 最新index blob SHA: 94b4aceda13acdd46ace2c6c6071ebdb73194598
 
 GitHubコード正本・Drive引き継ぎ正本。実機/配信/本番を検証済みと記載しない。
+
+## v0.10.21 追加バランス検証（同日）
+- 合成音声120パターンで基礎5能力の分布をV8実測し、旧式DNA案で防御94が55/120・速度41前後へ集中する偏りを検出。重みと複合条件を調整し、防御上限張り付き0/120、平均能力 [60,70,53,68,49]、各能力の分布幅を拡大。8特性の出現が合成条件で全種確認できる構成に修正（実音声の分布は未検証）。
+- 最上位『潜在の追撃』は4つ以上の複合条件と倍音条件を必要とする希少解放に変更。GitHub commits ee7de831ab5706538a7f9e9edba64f8859812d09 / b305fc8c6c57a4a7bb49fa522b65d01f01b61a51。
+- 最終 index.html V8構文 PASS、test-audio-dna.cjs相当をV8内でNode fs/vm/assertエミュレーション実行PASS。正式Node CLI・GitHub Actions・実ブラウザ・Android・Pages配信は未検証。最新index blob ad8f6819acfc3bf89099fc49f97eafd1d7884d15。
