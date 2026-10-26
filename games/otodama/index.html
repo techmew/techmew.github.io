@@ -122,43 +122,43 @@ const BIOMES=[
 ];
 function stageBiome(n){return BIOMES[(Math.max(1,Math.floor(n))-1)%BIOMES.length]}
 const COM_TACTICS={
- heavy:{label:'重撃予告',hint:'威力上昇。ジャストガードか回避でしのげ！'},
- drain:{label:'共鳴吸収',hint:'被弾すると共鳴 -12。ガード・回避で防ごう！'},
- feint:{label:'フェイント',hint:'攻撃が少し遅れる。ガードを急がないで！'},
- flash:{label:'閃光突進',hint:'通常より早い攻撃。ガード・回避を早めに入力！'},
- pierce:{label:'破甲の一撃',hint:'ジャストガードでも一部貫通！ 回避なら完全に防げる'}
+ heavy:{label:'強い攻撃',hint:'ダメージが大きい。ガードか回避で防ごう。'},
+ drain:{label:'ゲージ減少',hint:'当たると技ゲージが減る。ガードか回避で防ごう。'},
+ feint:{label:'遅い攻撃',hint:'攻撃が少し遅れてくる。早押ししないように。'},
+ flash:{label:'速い攻撃',hint:'いつもより早めにガード・回避しよう。'},
+ pierce:{label:'ガードが効きにくい攻撃',hint:'ガードでは少しダメージを受ける。回避が有効。'}
 };
 function enemyTactic(stage,turn,m){
  if(stage<3||turn%4!==1)return null;
  const role=m?.b?.archetype,late=turn%8===5;
- if(stage>=8&&['疾風','追撃'].includes(role)&&late)return 'flash';
- if(stage>=6&&role==='幻惑'&&late)return 'feint';
- if(stage>=9&&role==='粉砕'&&m?.parries>=2&&late)return 'pierce';
- if(stage>=6&&role==='粉砕'&&late)return 'heavy';
+ if(stage>=8&&['スピード型','連続型'].includes(role)&&late)return 'flash';
+ if(stage>=6&&role==='フェイント型'&&late)return 'feint';
+ if(stage>=9&&role==='パワー型'&&m?.parries>=2&&late)return 'pierce';
+ if(stage>=6&&role==='パワー型'&&late)return 'heavy';
  if(stage>=12&&m?.parries>=4&&late)return 'pierce';
- if(stage>=6&&role==='吸音'&&m?.charge>=45)return 'drain';
- if(stage>=6&&role==='堅守'&&m?.parries>=1)return 'feint';
+ if(stage>=6&&role==='ゲージ型'&&m?.charge>=45)return 'drain';
+ if(stage>=6&&role==='守備型'&&m?.parries>=1)return 'feint';
  if(stage>=7&&m?.stance==='rush'&&late)return 'heavy';
  if(stage>=12&&late)return 'flash';
  if(stage>=5&&m?.parries>=2&&m.parries>m.dodges)return 'feint';
  if(stage>=5&&m?.dodges>=2&&m.dodges>m.parries)return 'drain';
  return ['heavy','drain','feint'][(Math.floor(stage/3)+Math.floor(turn/4))%3];
 }
-const MISSIONS=[{kind:'parries',target:2,label:'ジャストガードを2回成功'},{kind:'dodges',target:1,label:'回避を1回成功'},{kind:'skillsUsed',target:1,label:'必殺技を1回命中'},{kind:'guardBest',target:2,label:'ジャストガードを2連鎖'},{kind:'damageDealt',target:100,label:'合計100ダメージを与える'},{kind:'strikes',target:2,label:'精密打撃を2回成功'},
+const MISSIONS=[{kind:'parries',target:2,label:'ガードを2回成功'},{kind:'dodges',target:1,label:'回避を1回成功'},{kind:'skillsUsed',target:1,label:'必殺技を1回命中'},{kind:'guardBest',target:2,label:'ガードを2回連続で成功'},{kind:'damageDealt',target:100,label:'合計100ダメージを与える'},{kind:'strikes',target:2,label:'タイミング攻撃を2回成功'},
  {kind:'counterHits',target:1,label:'カウンター攻撃を1回命中'},
- {kind:'strikeBest',target:2,label:'精密打撃を2連鎖'},
- {kind:'parries',target:3,label:'ジャストガードを3回成功'},
+ {kind:'strikeBest',target:2,label:'タイミング攻撃を2回連続で成功'},
+ {kind:'parries',target:3,label:'ガードを3回成功'},
  {kind:'damageDealt',target:180,label:'合計180ダメージを与える'},
  {kind:'dodges',target:2,label:'回避を2回成功'},
  {kind:'skillsUsed',target:2,label:'必殺技を2回命中'},
- {kind:'strikes',target:3,label:'精密打撃を3回成功'},
+ {kind:'strikes',target:3,label:'タイミング攻撃を3回成功'},
  {kind:'counterHits',target:2,label:'カウンター攻撃を2回命中'},
- {kind:'strikeBest',target:3,label:'精密打撃を3連鎖'},
+ {kind:'strikeBest',target:3,label:'タイミング攻撃を3回連続で成功'},
  {kind:'damageDealt',target:240,label:'合計240ダメージを与える'}];
 function stageMission(stage){return MISSIONS[(Math.max(1,stage)-1)%MISSIONS.length]}
 function missionProgress(m){const goal=stageMission(m.stageNo);return Math.min(goal.target,Math.max(0,Number(m[goal.kind])||0))}
 function missionCompleted(m){return m.mode==='COM MATCH'&&missionProgress(m)>=stageMission(m.stageNo).target}
-const BUFFS={power:{label:'攻撃強化',desc:'次戦の与ダメージ +15%'},shield:{label:'耐久強化',desc:'次戦の最大HP +30'},resonance:{label:'共鳴強化',desc:'次戦の初期ゲージ +34'},focus:{label:'集中強化',desc:'次戦の精密打撃の受付幅を拡大'},lifeline:{label:'逆転障壁',desc:'HP40%以下の被弾を一度だけ20軽減'},rhythm:{label:'連鎖共鳴',desc:'精密打撃で共鳴+8、2連鎖以降の威力増加'}};
+const BUFFS={power:{label:'攻撃アップ',desc:'次戦の与ダメージ +15%'},shield:{label:'体力アップ',desc:'次戦の最大HP +30'},resonance:{label:'ゲージ増加',desc:'次戦の初期ゲージ +34'},focus:{label:'タイミング補助',desc:'次戦の精密打撃の受付幅を拡大'},lifeline:{label:'ダメージ軽減',desc:'HP40%以下の被弾を一度だけ20軽減'},rhythm:{label:'連続攻撃アップ',desc:'精密打撃で共鳴+8、2連鎖以降の威力増加'}};
 function chooseBuff(id){if(!BUFFS[id])return;pendingBuff=id;document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===id);b.setAttribute('aria-pressed',String(b.dataset.buff===id))});$('nextBuffHint').textContent=BUFFS[id].label+'を選択。次のCOM戦だけ有効。';}
 
 const CHAPTERS=[
@@ -176,18 +176,18 @@ const HAZARDS=[
 ];
 function stageHazard(stage,turn){return turn%3===2?HAZARDS[(stage-1)%6]:null}
 function learningRelief(stage,attempt){return Math.min(stage%5===0?4:8,Math.max(0,Math.floor(attempt)-1)*2)}
-function enemyAdvice(enemy){if(enemy.stage%5===0)return 'ボスのBREAKを狙い、必殺技を温存';return ({'猛攻':'ジャストガードから反撃','堅守':'精密打撃で防御を突破','疾風':'早い攻撃は回避で対処','吸音':'被弾を減らして共鳴を守る','粉砕':'貫通予兆はガードより回避','幻惑':'フェイントの遅い予兆を見極める','追撃':'素早い突進を先読み'})[enemy.archetype]||'予兆を見て攻防を切り替える'}
+function enemyAdvice(enemy){if(enemy.stage%5===0)return 'ボスの攻撃を防いで、大技のタイミングを狙おう';return ({'攻撃型':'ガードで受けてから反撃','守備型':'攻撃のタイミングを合わせよう','スピード型':'早い攻撃には回避が有効','ゲージ型':'相手のゲージ攻撃に注意','パワー型':'ガードしにくい攻撃は回避','フェイント型':'攻撃が遅れてくることがある','連続型':'連続攻撃に備えておこう'})[enemy.archetype]||'予兆を見て攻防を切り替える'}
 function isRivalStage(n){return n%7===0&&n%5!==0}
-function stageTitle(n){return n%10===0?'伝説の音主':n%5===0?'覚醒ボス':isRivalStage(n)?'宿命のライバル':n%3===0?'変異する追跡者':'新たなライバル'}
-function stageEnemy(n,player,attempt=0){const seed=hash(((n*2654435761)>>>0)^(player.seed>>>0)^0x6F6D6574^Math.imul(attempt,0x9e3779b9));const enemy=gen(seed);enemy.level=Math.max(1,Math.min(30,levelOf(player)+Math.floor(n/6)+(n%5===0?2:0)+(isRivalStage(n)?1:0)));const delta=Math.min(14,Math.floor(n/5)*1.1)+(n%10===0?5:n%5===0?3:isRivalStage(n)?2:0);enemy.stats=enemy.stats.map((x,i)=>clamp(x+delta+((n+i)%3)-1,25,95));if(n%5===0)enemy.name=(n%10===0?'伝説・':'強敵・')+enemy.name;else if(isRivalStage(n))enemy.name='宿敵・'+enemy.name;
+function stageTitle(n){return n%10===0?'節目のボス':n%5===0?'ボス戦':isRivalStage(n)?'ライバル戦':n%3===0?'すばやい相手':'新しい相手'}
+function stageEnemy(n,player,attempt=0){const seed=hash(((n*2654435761)>>>0)^(player.seed>>>0)^0x6F6D6574^Math.imul(attempt,0x9e3779b9));const enemy=gen(seed);enemy.level=Math.max(1,Math.min(30,levelOf(player)+Math.floor(n/6)+(n%5===0?2:0)+(isRivalStage(n)?1:0)));const delta=Math.min(14,Math.floor(n/5)*1.1)+(n%10===0?5:n%5===0?3:isRivalStage(n)?2:0);enemy.stats=enemy.stats.map((x,i)=>clamp(x+delta+((n+i)%3)-1,25,95));if(n%5===0)enemy.name=(n%10===0?'ボス・':'ボス・')+enemy.name;else if(isRivalStage(n))enemy.name='ライバル・'+enemy.name;
  // Three opponent archetypes create different combat profiles without altering the generated creature.
- if(n>=2&&n%5!==0){const roles=[{name:'猛攻',hint:'高火力・低耐久',mods:[10,-7,0,0,0]},
- {name:'堅守',hint:'高耐久・低火力',mods:[-6,10,0,2,0]},
- {name:'疾風',hint:'素早い連撃・軽装',mods:[0,-5,10,0,2]},
- {name:'吸音',hint:'共鳴重視・守備寄り',mods:[-2,3,-2,4,10]},
- {name:'粉砕',hint:'重い一撃・防御は脆い',mods:[12,-9,2,-2,0]},
- {name:'幻惑',hint:'フェイントを多用する技巧型',mods:[-2,0,5,7,3]},
- {name:'追撃',hint:'素早い突進で圧力をかける',mods:[5,-5,9,0,1]}],role=roles[(n+attempt)%roles.length];
+ if(n>=2&&n%5!==0){const roles=[{name:'攻撃型',hint:'攻撃が強い・体力は低め',mods:[10,-7,0,0,0]},
+ {name:'守備型',hint:'体力が多い・攻撃は弱め',mods:[-6,10,0,2,0]},
+ {name:'スピード型',hint:'すばやく連続攻撃する',mods:[0,-5,10,0,2]},
+ {name:'ゲージ型',hint:'技ゲージをためやすい',mods:[-2,3,-2,4,10]},
+ {name:'パワー型',hint:'一撃が強い・防御は低め',mods:[12,-9,2,-2,0]},
+ {name:'フェイント型',hint:'攻撃タイミングをずらしてくる',mods:[-2,0,5,7,3]},
+ {name:'連続型',hint:'速い攻撃を続けてくる',mods:[5,-5,9,0,1]}],role=roles[(n+attempt)%roles.length];
  enemy.archetype=role.name;enemy.archetypeHint=role.hint;enemy.stats=enemy.stats.map((v,i)=>clamp(v+role.mods[i],25,95));}
  const relief=learningRelief(n,attempt);if(relief)enemy.stats=enemy.stats.map(v=>clamp(v-relief,25,95));enemy.learningRelief=relief;
  enemy.stage=n;return enemy}
@@ -199,7 +199,7 @@ try{const saved=JSON.parse(localStorage.getItem(discoveryKey)||'[]');discovered=
 function trackDiscovery(cr){const family=Number(cr?.parts?.family);if(!Number.isInteger(family)||family<0||family>=12||discovered.has(family))return;discovered.add(family);try{localStorage.setItem(discoveryKey,JSON.stringify([...discovered]))}catch(e){}renderCodex()}
 function renderCodex(){const holder=$('codexGrid');if(!holder)return;holder.textContent='';SPECIES.forEach((name,i)=>{const el=document.createElement('span');el.className=discovered.has(i)?'known':'';el.textContent=discovered.has(i)?name:'？';el.title=discovered.has(i)?name:'未発見の種族';holder.appendChild(el)});$('codexCounter').textContent='発見した種族 '+discovered.size+' / 12';}
 function elementalEdge(attacker,defender){const i=ELEMS.indexOf(attacker?.element),j=ELEMS.indexOf(defender?.element);if(i<0||j<0||i===j)return 1;const diff=(j-i+10)%10;return diff===1||diff===2?1.12:diff===8||diff===9?.9:1;}
-function dailyEnemy(){const key=Number(dailyKey()),seed=hash(key^0x9E3779B9),enemy=gen(seed);enemy.name='試練の'+enemy.name;enemy.level=Math.min(20,Math.max(2,Math.floor(levelOf(cur)*.8)+2));enemy.stats=enemy.stats.map((x,i)=>clamp(x+3+(key+i)%4,25,95));return enemy}
+function dailyEnemy(){const key=Number(dailyKey()),seed=hash(key^0x9E3779B9),enemy=gen(seed);enemy.name='今日の相手・'+enemy.name;enemy.level=Math.min(20,Math.max(2,Math.floor(levelOf(cur)*.8)+2));enemy.stats=enemy.stats.map((x,i)=>clamp(x+3+(key+i)%4,25,95));return enemy}
 function showDaily(){if(!$('dailyName'))return;const e=dailyEnemy();$('dailyName').textContent=e.name;$('dailyFlag').textContent=dailyCleared===dailyKey()?'本日クリア済':'未達成';$('dailyDesc').textContent=dailyCleared===dailyKey()?'クリア済み。再挑戦は可能（初回ボーナスなし）':'日替わりボスを撃破すると初回だけ追加XP +3。声のタイプや属性相性で攻略しよう。';}
 
 try{const pr=JSON.parse(localStorage.getItem('otodama.progress')||'{}');streak=Number(pr.streak)||0;recordStreak=Number(pr.best)||0;careerWins=Number(pr.wins)||0;adventureStage=clamp(Math.floor(Number(pr.stage)||1),1,99999);stageWins=Math.max(0,Math.floor(Number(pr.stageWins)||0));stageAttempts=clamp(Math.floor(Number(pr.attempts)||0),0,99999)}catch(e){}
@@ -465,7 +465,7 @@ function musicTick(id){const m=match;if(id!==bgmSession||!m||m.done||!$('battleM
  if(bgmNext<ac.currentTime-.5)bgmNext=ac.currentTime+.055;
  let count=0;while(bgmNext<ac.currentTime+.24&&count++<8){
    const k=bgmStep++,bar=Math.floor(k/8),slot=k%8,progression=SCALES[(Math.floor(bar/(m.boss?1:2))+(m.stageNo%4))%4];
-   const root=110*Math.pow(2,progression/12),vol=MUSIC_VOLUME()*(performance.now()<bgmDuckUntil?.22:1),restBar=bar%8===7&&!urgent&&!m.boss,bridge=musicBridge(bar,urgent,m.boss),roleShift=['猛攻','堅守','疾風','吸音','粉砕','幻惑','追撃'].indexOf(m.b?.archetype);
+   const root=110*Math.pow(2,progression/12),vol=MUSIC_VOLUME()*(performance.now()<bgmDuckUntil?.22:1),restBar=bar%8===7&&!urgent&&!m.boss,bridge=musicBridge(bar,urgent,m.boss),roleShift=['攻撃型','守備型','スピード型','ゲージ型','パワー型','フェイント型','連続型'].indexOf(m.b?.archetype);
    if(slot%2===0){if(!bridge||slot===0)musicNote(ac,bgmNext,root,stepSec*1.65,'bass',vol*(bridge?.05:.075));if(!bridge||slot===0||slot===4)percussion(ac,bgmNext,'kick',vol*(bridge?.04:.07))}
    if((slot===2||slot===6)&&(!bridge||slot===6))percussion(ac,bgmNext,'snare',vol*(bridge?.014:.031));
    // Alternating stage grooves and a quieter pre-climax pickup reduce loop fatigue.
@@ -552,7 +552,7 @@ function previewRecordedVoice(){
 }
 // V0.3 BATTLE LOGIC: chance-based airborne action, dodges, rebounds, counters, chain hits.
 const COMBAT_KINDS=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
-const BATTLE_LABEL={rush:'超高速突進',aerial:'空中乱舞',warp:'瞬間移動斬り',beam:'音波レーザー',combo:'連続コンボ',spin:'旋回ラッシュ',uppercut:'打ち上げ攻撃',shockwave:'衝撃波',meteor:'隕石アタック',counter:'迎撃カウンター'};
+const BATTLE_LABEL={rush:'突進',aerial:'ジャンプ攻撃',warp:'回り込み',beam:'遠距離攻撃',combo:'連続攻撃',spin:'回転攻撃',uppercut:'打ち上げ',shockwave:'範囲攻撃',meteor:'急降下',counter:'反撃'};
 function randCombat(a,b){const fighters=[a,b],max=fighters.map(c=>Math.round(140+c.stats[1]*.6)),hp=max.slice(),events=[],rng=getRand(hash(a.seed^b.seed^Date.now()));let streak=0,last=-1;
  for(let turn=0;turn<35&&hp[0]>0&&hp[1]>0;turn++){
   let atk=turn%2;if(rng()<.34){atk=rng()<.5?0:1}if(atk===last)streak++;else streak=0;if(streak>=3){atk=1-atk;streak=0}last=atk;
@@ -977,7 +977,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
   if(match.current&&!match.current.resolved&&match.interactive&&!match.live)return;
   if(match.endAfterCurrent || ix+1>=outcome.events.length){finishCombat();return;}
-  ix++;const ev={...outcome.events[ix]};if(match.boss&&ev.atk===1){const bossKinds=['meteor','beam','shockwave','warp','spin'];const bossNames=['メテオ・ブレイク','共鳴レーザー','衝撃障壁','虚空転移','螺旋連撃'];const bossPower=[1.22,1.12,1.08,1.16,1.11];const bossArenas=['落雷の嵐','残響増幅','空間反転','無重力ゾーン','音速暴走'];const move=match.bossAttacks++%bossKinds.length;ev.bossMove=bossNames[move];ev.kind=bossKinds[move];ev.damage=Math.round(ev.damage*bossPower[move]);ev.arena=bossArenas[move];}match.turn=ix;if(interactive&&mode==='COM MATCH'){ev.hazard=stageHazard(match.stageNo,ix);if(ev.atk===1)ev.tactic=enemyTactic(match.stageNo,ix,match);}match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;match.dodgeUsed=false;match.dodgeSuccess=false;match.strikeUsed=false;match.strikeSuccess=false;if(ev.atk===1&&match.dodgeCooldown>0)match.dodgeCooldown--;
+  ix++;const ev={...outcome.events[ix]};if(match.boss&&ev.atk===1){const bossKinds=['meteor','beam','shockwave','warp','spin'];const bossNames=['急降下攻撃','遠距離攻撃','広い範囲への攻撃','回り込み攻撃','連続攻撃'];const bossPower=[1.22,1.12,1.08,1.16,1.11];const bossArenas=['落雷の嵐','残響増幅','空間反転','無重力ゾーン','音速暴走'];const move=match.bossAttacks++%bossKinds.length;ev.bossMove=bossNames[move];ev.kind=bossKinds[move];ev.damage=Math.round(ev.damage*bossPower[move]);ev.arena=bossArenas[move];}match.turn=ix;if(interactive&&mode==='COM MATCH'){ev.hazard=stageHazard(match.stageNo,ix);if(ev.atk===1)ev.tactic=enemyTactic(match.stageNo,ix,match);}match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;match.dodgeUsed=false;match.dodgeSuccess=false;match.strikeUsed=false;match.strikeSuccess=false;if(ev.atk===1&&match.dodgeCooldown>0)match.dodgeCooldown--;
   if(!interactive){$('hpA').style.width=clamp(ev.hp[0]/outcome.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(ev.hp[1]/outcome.max[1]*100,0,100)+'%';}
   const attacker=ev.atk===0?a:b,defender=ev.atk===0?b:a;
   $('arenaEffect').textContent=ev.crit?'CRITICAL!!':ev.counter?'COUNTER!!':ev.dodge?'DODGE!':ev.arena?'⚡ '+ev.arena:(ev.hits>1?ev.hits+' HIT SKY COMBO!!':BATTLE_LABEL[ev.kind]);
