@@ -106,7 +106,11 @@ export class Room extends DurableObject {
   }
   cleanCreature(v){
     if(!v||typeof v!=='object'||Array.isArray(v))return null;
-    const parts=v.parts||{},voice=v.voice||{};
+    // Reject malformed nested values instead of silently stringifying attacker-controlled objects.
+    if(typeof v.name!=='string'||typeof v.type!=='string'||v.name.length>80||v.type.length>80||!Number.isFinite(Number(v.seed)))return null;
+    if(v.parts===null||v.voice===null||typeof v.parts!=='object'||typeof v.voice!=='object'||Array.isArray(v.parts)||Array.isArray(v.voice))return null;
+    if(Object.keys(v.parts).length>40||Object.keys(v.voice).length>20)return null;
+    const parts=v.parts,voice=v.voice;
     const nums={body:5,eyes:20,brows:20,nose:20,mouth:20,ears:20,left:30,right:30,color:10,family:12,crest:30,back:16,pattern:24,legs:16};
     let safeParts={};for(const [key,max] of Object.entries(nums))safeParts[key]=Math.floor(clamp(parts[key],0,max-1));
     let safeVoice={};for(const key of ['vol','pitch','res','rhythm','stable','breath'])safeVoice[key]=Math.floor(clamp(voice[key],0,100));
