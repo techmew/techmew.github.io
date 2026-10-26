@@ -894,3 +894,32 @@ GitHubがコード正本、Driveが引き継ぎ正本。ローカル検証と本
 - v0.9.5 seat-order regression test: 70b148f308e465d71eb71fd926bbd10b8d728160
 
 GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。ローカル検証と本番公開を混同しない。
+
+---
+
+## 2026-10-26 / Match introduction display fix
+
+### CURRENT_STATUS
+- GitHub main games/otodama/index.html に試合開始前の中央オーバーレイ「第〇試合目！」を追加。
+- COMは現行ステージ番号、SURVIVALはラウンド番号、その他は1を表示。
+- 前回のテキストだけの変更は即座に初回攻撃に上書きされる問題があったため、開始処理を1500ms遅延させて修正。
+- オンラインLIVEはサーバーの最初のターン受信時に表示を解除し、対戦同期を遅延しない。
+
+### CHANGELOG
+- 試合開始前に画面中央へ大きく表示する matchIntro オーバーレイを追加（スマホ幅・アニメーション軽減設定に対応）。
+- 新規対戦・画面クローズ・バトル終了・オンライン初ターンで表示とタイマーをクリアし、前の試合からの残留を防止。
+
+### TEST_RESULTS
+- GitHub main 保存後の index.html 再取得と JavaScript 構文パース: PASS。
+- オーバーレイ要素、1500ms導入処理、オンライン初ターン解除、終了・クローズ解除のソース検査: PASS。
+- GitHub Pages実配信は外部取得制限により未確認。Android実機画面・実プレイの挙動は未検証。
+
+### BLOCKERS
+- 本番サイトの実際の表示・Androidブラウザでの動作を本ツール環境から直接確認できていない。
+
+### NEXT_ACTIONS
+- Pages最新配信反映後にCOM第1〜3試合と敗北後をブラウザ実機で確認。
+- オンライン公開後にLIVE開始時の導入表示が通信を阻害しないことを二端末で確認。
+
+### GITHUB_COMMITS
+- index.html: `d01bf85341f41655d0c6f8ba74653fdb37a76862`
