@@ -1,4 +1,4 @@
-# 声魂（こえだま） v0.10.9：無料オンライン対戦・月間ランキングの公開手順
+# 声魂（こえだま） v0.10.10：無料オンライン対戦・月間ランキングの公開手順
 
 **現状：ゲーム側とCloudflare Worker/Durable Objects側の実装ソースはGitHubへ保存済みですが、本番Workerは未公開です。** 本番公開・独立2端末・Android実機の動作確認はまだできていません。
 
@@ -10,7 +10,7 @@ Cloudflare Workers Free と SQLite-backed Durable Objects で少人数の試作�
 2. CloudflareのAccount IDとWorkers公開に必要なAPI Tokenを取得。API Tokenはチャット・ソースコード・READMEに絶対に貼らない。
 3. GitHub `techmew/techmew.github.io` → Settings → Secrets and variables → Actions に `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` をRepository secretsとして設定。
 4. GitHub Actions → **Deploy OTODAMA Worker** → Run workflow。コードは `games/otodama/worker.js`、設定は同フォルダの `wrangler.jsonc`。新規SQLite Durable ObjectsとしてRoom/Matchmaker/Rankingsを登録します。
-5. デプロイされた `https://<your-worker>.<your-account>.workers.dev/health` にアクセスし、`ok:true`、`version:0.10.9`、`randomMatch:true`、`seasonalRanking:true` を確認。
+5. デプロイされた `https://<your-worker>.<your-account>.workers.dev/health` にアクセスし、`ok:true`、`version:0.10.10`、`randomMatch:true`、`seasonalRanking:true` を確認。
 6. ゲーム `https://techmew.github.io/games/otodama/` のオンライン対戦欄にWorkerのHTTPS URLを設定・保存。ユーザーはランキング表示名を入力して匿名登録すると、そのブラウザのオンライン戦でランキングポイントを得られます。登録せずにゲストとして対戦することも可能ですが、ランキング対象外です。
 7. サバイバル欄の「おまかせでスタート」で自動戦闘。オンライン挑戦者を受けたい時だけチェックをONにすると、対戦相手を検索し、マッチング後に **NEW CHALLENGER** を表示して実プレイヤーとのオンライン戦に移ります。手動操作へ切替可能。
 
