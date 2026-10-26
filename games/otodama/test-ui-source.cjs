@@ -24,7 +24,7 @@ for(const fn of ['stageMission','missionCompleted','evadeCounterReady','COM_TACT
 assert.ok(match[1].includes("match?.mode?.startsWith('ONLINE')"),'live opponent voice mute missing');
 assert.ok(html.includes('id="nextStagePreview"'),'next-stage preview missing');
 for(const marker of ['restBar','回り込み攻撃','連続攻撃','actionStatus','data.elapsed'])assert.ok(html.includes(marker),'new gameplay or resume feature missing '+marker);
-for(const feature of ['自動必殺技が発動','自動反撃が発動','連続防御2回以上','250ダメージ以上','技ゲージをためやすい','一撃が強い・防御は低め','pre-climax pickup'])assert.ok(html.includes(feature),'v0.10.2 content missing: '+feature);
+for(const feature of ['自動必殺技が発動','自動反撃が発動','連続防御2回以上','220ダメージ以上','技ゲージをためやすい','一撃が強い・防御は低め','pre-climax pickup'])assert.ok(html.includes(feature),'v0.10.2 content missing: '+feature);
 // v0.10.3: actual pure-function checks for tactical AI and shared timing windows.
 const tacticSource=match[1].slice(match[1].indexOf('function enemyTactic('),match[1].indexOf('const MISSIONS='));
 const enemyTactic=vm.runInNewContext(tacticSource+';enemyTactic');
