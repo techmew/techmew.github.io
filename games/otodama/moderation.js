@@ -42,7 +42,7 @@ export function isForbiddenName(value){
 }
 export function sanitizePublicName(value, seed=1){
  const raw=String(value??'').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,32);
- if(!raw||isForbiddenName(raw)||/[<>\\]/.test(raw))return `オトダマ-${(Number(seed)>>>0).toString(36).toUpperCase().slice(0,7)}`;
+ if(!raw||isForbiddenName(raw)||/[<>\\]/.test(raw))return `声魂-${(Number(seed)>>>0).toString(36).toUpperCase().slice(0,7)}`;
  return raw.slice(0,24);
 }
 export const moderationTermCount=TERMS.length+EXTRA_TERMS.length;
