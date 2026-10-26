@@ -83,7 +83,7 @@ const LEGACY_NAME_TITLES=`星屑 月影 蒼炎 虹色 深海 天空 雷鳴 夢�
 const LEGACY_NAME_SYLLABLES=`ア イ ウ エ オ カ キ ク ケ コ サ シ ス セ ソ タ チ ツ テ ト ナ ニ ヌ ネ ノ ハ ヒ フ ヘ ホ マ ミ ム メ モ ヤ ユ ヨ ラ リ ル レ ロ ワ ガ ギ グ ゲ ゴ ザ ジ ズ ゼ ゾ ダ デ ド バ ビ ブ ベ ボ パ ピ プ ペ`.split(' ');
 const LEGACY_NAME_TAILS=`モ ギ ラ コ ナ ミ フ ド ロ カ メ パ ソ ト ガ ゼ ポ ヴァ ル ザ リ テ シ ヤ ネ ゴ ク チ ベ ヌ サ ジ`.split(' ').flatMap(x=>[x+'ン',x+'ル',x+'ス',x+'ア']);
 const NAME_VARIATIONS=64*64*64*128;
-const SPECIES=['スピリット','ビートル','ゴーレム','メカノイド','ドラゴン','アビス','キノコ','スライム','フローラ','ボルト','クリスタル','シャドウ'];
+const SPECIES=['小動物','昆虫','石のからだ','ロボット','トカゲ','ふしぎな生き物','きのこ','ゼリー','植物','電気','結晶','影の生き物'];
 // Ordinary names and a small individual number. 128 x 262144 = 33,554,432 unique labels.
 const COMMON_NAMES=`もも こむぎ きなこ まめ こはく しろ くろ ちゃちゃ みけ みるく ここ まる ぽん ふく ひなた そら なぎ しずく はる あき ゆき なつ みなと うみ さくら すみれ あお ゆず りん れん すず ちよ うた おと ふわ もなか だいふく あんず みかん いちご くるみ こはる まろん むぎ ごま もち ちょこ はく しお こめ もぐ たま しず くぅ らむ るる ねね にこ ひな みお まい えま なお つき あおい かな まな さな れい けい たい たく そう りく りお ゆう とも かい あきら ひろ じゅん りょう しゅん けん きょう はるか さき えり なな のん のあ かえで つむぎ いと あさ ほの てん とら しん はち くう こてつ こた たろ じろ さん じん ぎん さと きい かの しの みず かぜ ほし つくし よる あめ くも ゆめ めい める らら りり るな ぴの ぽこ ぴこ`.split(' ');
 function nameIndex(seed){return Math.imul((seed>>>0)^0xA58D30F1,0x9e3779b9)&(NAME_VARIATIONS-1)}
@@ -98,27 +98,27 @@ function hash(n){n=Math.imul(n^n>>>16,0x45d9f3b);n=Math.imul(n^n>>>16,0x45d9f3b)
 function gen(seed,voice){let rng=getRand(seed),parts={body:Math.floor(rng()*5),eyes:Math.floor(rng()*20),brows:Math.floor(rng()*20),nose:Math.floor(rng()*20),mouth:Math.floor(rng()*20),ears:Math.floor(rng()*20),left:Math.floor(rng()*30),right:Math.floor(rng()*30),color:Math.floor(rng()*10),family:Math.floor(rng()*12),crest:Math.floor(rng()*30),back:Math.floor(rng()*16),pattern:Math.floor(rng()*24),legs:Math.floor(rng()*16)};
  let v=voice||{vol:Math.round(between(rng,24,82)),pitch:Math.round(between(rng,24,90)),res:Math.round(between(rng,20,95)),rhythm:Math.round(between(rng,17,90)),stable:Math.round(between(rng,25,95)),breath:Math.round(between(rng,20,80))};
  let stats=[Math.round(clamp(25+v.vol*.14+v.res*.31+v.breath*.18+v.rhythm*.13,26,95)),Math.round(clamp(22+v.stable*.36+v.res*.23+v.breath*.12,27,95)),Math.round(clamp(19+v.pitch*.38+v.rhythm*.34,27,95)),Math.round(clamp(24+v.stable*.41+v.rhythm*.25,27,95)),Math.round(clamp(23+v.res*.34+v.pitch*.29+v.stable*.17,28,95))];
- return{seed,parts,voice:v,stats,name:generateName(seed),element:ELEMS[Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),type:SPECIES[parts.family]+'・'+['ささやき','高音','低音','轟音','うねり','透明','リズミカル','残響'][Math.floor(rng()*8)]}}
+ return{seed,parts,voice:v,stats,name:generateName(seed),element:ELEMS[Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),type:SPECIES[parts.family]+'・'+['小さな声','高い声','低い声','大きな声','抑揚のある声','澄んだ声','リズムのよい声','響く声'][Math.floor(rng()*8)]}}
 
 const SOULS=[
- {name:'超音速 / スカイダイバー',skill:'ソニック・ラッシュ',detail:'音程とリズムが鋭い高速型。必殺技で連撃。',bias:[1.65,1]},
- {name:'低音 / グラビティ',skill:'重力クラッシュ',detail:'低い音と響きが重い打撃型。必殺技で相手を打ち上げる。',bias:[1.8,1]},
- {name:'残響 / エコーファントム',skill:'残響ミラージュ',detail:'声の響きが強い幻影型。必殺技で防御を突破。',bias:[1.72,1]},
- {name:'ささやき / ミスト',skill:'ミスト・カウンター',detail:'息成分の強い技巧型。ガード成功で共鳴ゲージ増加。',bias:[1.5,1]},
- {name:'安定 / アイアンハート',skill:'アイアン・ノヴァ',detail:'安定感が高い耐久型。ジャストガードの猶予が少し長い。',bias:[1.55,1]},
- {name:'変調 / グリッチ',skill:'カオス・スパーク',detail:'声の変化が激しいトリックスター。必殺技が不規則に強化。',bias:[1.42,2]}
+ {name:'スピード型',skill:'連続攻撃',detail:'高い声や速いリズムが特徴。連続して攻撃するのが得意。',bias:[1.65,1]},
+ {name:'パワー型',skill:'強い一撃',detail:'低めの声が特徴。一度の攻撃で大きなダメージを狙う。',bias:[1.8,1]},
+ {name:'ひびき型',skill:'ひびく攻撃',detail:'声の響きが特徴。相手の防御を崩す技が得意。',bias:[1.72,1]},
+ {name:'カウンター型',skill:'反撃',detail:'小さな声や息づかいが特徴。ガードからの反撃が得意。',bias:[1.5,1]},
+ {name:'守備型',skill:'守りの一撃',detail:'安定した声が特徴。ガードしやすく、守りが得意。',bias:[1.55,1]},
+ {name:'変化型',skill:'変化する攻撃',detail:'声の変化が大きいタイプ。技の威力が少し変わる。',bias:[1.42,2]}
 ];
 function soulFor(c){const v=c.voice||{};const score=[(v.pitch||0)*.58+(v.rhythm||0)*.42,100-(v.pitch||50)*.7+(v.res||50)*.3,(v.res||0)*.8+(v.stable||0)*.2,(v.breath||0)*.92+(100-(v.vol||50))*.08,(v.stable||0)*.97+(v.res||0)*.03,(100-(v.stable||50))*.8+(v.rhythm||0)*.2];return SOULS[score.indexOf(Math.max(...score))]}
 function levelOf(c){return Math.max(1,Math.floor(Number(c.level)||1))}
 let streak=0,recordStreak=0,careerWins=0,adventureStage=1,stageWins=0,stageAttempts=0,pendingBuff=null;
 // Six distinct visual biomes cycle through the adventure; no external art or licensing dependency.
 const BIOMES=[
- {name:'蒼天回廊',sky:'#092039',mid:'#123c5b',floor:'#090f22',glow:'#79e9ff',shape:'rings'},
- {name:'雷霆都市',sky:'#151a39',mid:'#2a3160',floor:'#0b1025',glow:'#ffd17a',shape:'towers'},
- {name:'深海遺跡',sky:'#071f2b',mid:'#155063',floor:'#06121f',glow:'#8bffe3',shape:'columns'},
- {name:'紅蓮火口',sky:'#351624',mid:'#713341',floor:'#190c1c',glow:'#ffb36d',shape:'crystals'},
- {name:'星屑庭園',sky:'#19163d',mid:'#403567',floor:'#0c102b',glow:'#f1a8ff',shape:'rings'},
- {name:'氷晶要塞',sky:'#102c42',mid:'#326b8b',floor:'#081a2c',glow:'#b2f8ff',shape:'crystals'}
+ {name:'空の広場',sky:'#092039',mid:'#123c5b',floor:'#090f22',glow:'#79e9ff',shape:'rings'},
+ {name:'街の屋上',sky:'#151a39',mid:'#2a3160',floor:'#0b1025',glow:'#ffd17a',shape:'towers'},
+ {name:'海の底',sky:'#071f2b',mid:'#155063',floor:'#06121f',glow:'#8bffe3',shape:'columns'},
+ {name:'火山の道',sky:'#351624',mid:'#713341',floor:'#190c1c',glow:'#ffb36d',shape:'crystals'},
+ {name:'夜の公園',sky:'#19163d',mid:'#403567',floor:'#0c102b',glow:'#f1a8ff',shape:'rings'},
+ {name:'雪の山道',sky:'#102c42',mid:'#326b8b',floor:'#081a2c',glow:'#b2f8ff',shape:'crystals'}
 ];
 function stageBiome(n){return BIOMES[(Math.max(1,Math.floor(n))-1)%BIOMES.length]}
 const COM_TACTICS={
@@ -162,17 +162,17 @@ const BUFFS={power:{label:'攻撃強化',desc:'次戦の与ダメージ +15%'},s
 function chooseBuff(id){if(!BUFFS[id])return;pendingBuff=id;document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===id);b.setAttribute('aria-pressed',String(b.dataset.buff===id))});$('nextBuffHint').textContent=BUFFS[id].label+'を選択。次のCOM戦だけ有効。';}
 
 const CHAPTERS=[
- '第一章：声の目覚め。浮遊する回廊を抜け、未知の音を追う。',
- '第二章：雷鳴の都市。暴走した音響装置を止めろ。',
- '第三章：深海の残響。沈んだ声の記憶を解き明かせ。',
- '第四章：紅蓮の鼓動。灼熱の律動を越えて進め。',
- '第五章：星屑の約束。散った音の欠片を集めよう。',
- '第六章：氷晶の封印。最深部に眠る音主へ挑め。'
+ '空の広場。まずは基本操作に慣れよう。',
+ '街の屋上。相手の動きを見ながら戦おう。',
+ '海の底。ガードと回避を使い分けよう。',
+ '火山の道。相手の強い攻撃に注意しよう。',
+ '夜の公園。焦らずタイミングを合わせよう。',
+ '雪の山道。次の相手に挑戦しよう。'
 ];
 const HAZARDS=[
- {label:'上昇気流',effect:'charge'}, {label:'雷撃',effect:'shock'},
- {label:'深海の水圧',effect:'pressure'}, {label:'溶岩の火花',effect:'lava'},
- {label:'星屑の祝福',effect:'heal'}, {label:'氷結の結界',effect:'ice'}
+ {label:'風',effect:'charge'}, {label:'落雷',effect:'shock'},
+ {label:'水圧',effect:'pressure'}, {label:'火の粉',effect:'lava'},
+ {label:'回復エリア',effect:'heal'}, {label:'冷たい風',effect:'ice'}
 ];
 function stageHazard(stage,turn){return turn%3===2?HAZARDS[(stage-1)%6]:null}
 function learningRelief(stage,attempt){return Math.min(stage%5===0?4:8,Math.max(0,Math.floor(attempt)-1)*2)}
@@ -686,24 +686,24 @@ function drawStageAtmosphere(c,biome,t,lowFx){
  c.save();c.globalCompositeOperation='screen';
  for(let k=0;k<n;k++){
   const u=(k*137.5+31)%720,v=(k*93+41)%350;
-  if(scene==='蒼天回廊'){
+  if(scene==='空の広場'){
    const x=(u+t*(8+k%3*4))%800-40,y=48+(v%175);
    c.fillStyle=biome.glow;c.globalAlpha=.035+(k%3)*.016;
    c.beginPath();c.ellipse(x,y,44+k%4*17,8+k%3*4,-.11,0,TAU);c.fill();
-  }else if(scene==='雷霆都市'){
+  }else if(scene==='街の屋上'){
    const x=u,y=135+(v%230),twinkle=.1+.12*(.5+.5*Math.sin(t*3+k*1.3));
    c.fillStyle=k%4===0?'#fff6bf':biome.glow;c.globalAlpha=twinkle;
    c.fillRect(x,y,3,8+k%3*6);
    if(k%8===0&&!lowFx){c.strokeStyle='#c4caff';c.globalAlpha=.08+.1*(.5+.5*Math.sin(t*7+k));c.lineWidth=2;c.beginPath();c.moveTo(x,0);c.lineTo(x-15,75);c.lineTo(x+7,110);c.stroke();}
-  }else if(scene==='深海遺跡'){
+  }else if(scene==='海の底'){
    const y=400-(v+t*(12+k%4*5))%470,x=u+Math.sin(t+k)*8;
    c.globalAlpha=.09+(k%3)*.05;c.strokeStyle='#b1ffef';c.lineWidth=1+k%3;
    c.beginPath();c.arc(x,y,3+k%4*3,0,TAU);c.stroke();
-  }else if(scene==='紅蓮火口'){
+  }else if(scene==='火山の道'){
    const x=(u+Math.sin(t*.6+k)*13)%720,y=420-(v+t*(24+k%5*7))%505;
    c.globalAlpha=.12+(k%4)*.055;c.fillStyle=k%4===0?'#fff0b0':biome.glow;
    c.beginPath();c.arc(x,y,1.2+k%3*1.3,0,TAU);c.fill();
-  }else if(scene==='星屑庭園'){
+  }else if(scene==='夜の公園'){
    const x=u,y=v+15,r=.6+k%4*.5;
    c.globalAlpha=.12+.26*(.5+.5*Math.sin(t*1.1+k*2.5));c.fillStyle=k%5===0?'#f9fff4':biome.glow;
    c.beginPath();c.arc(x,y,r,0,TAU);c.fill();
