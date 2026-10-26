@@ -106,6 +106,25 @@ const api=new Function('d',env+src+
  assert.equal(voices.at(-1),'recorded','roar can be replayed after tab resumes');
  assert.ok(html.includes('id="roarEnabled"')&&html.includes('id="repeatSpeechBtn"'));
  assert.ok(!html.includes('id="talkEnabled"')&&!script.includes('speakBattleQuote('));
+ // A microphone recording may decode after the next match starts: never play the old victory.
+ let completeDecode;
+ const pending={...first,resultPresented:false,roarEndsAt:0};
+ const delayedCtx={...ctx,first:pending,decodeVoice:()=>new Promise(resolve=>completeDecode=resolve)};
+ const delayedApi=new Function('d',env+src+'return {showBattleQuote,set match(v){match=v}}')(delayedCtx);
+ const priorStale=voices.length;
+ delayedApi.showBattleQuote(pending);
+ delayedApi.match={...pending,done:false};
+ completeDecode({buffer:{},offset:.2,duration:.7,gain:1});
+ await Promise.resolve();await Promise.resolve();
+ assert.equal(voices.length,priorStale,'delayed previous match audio must never play');
+ // Explicit user audio interaction should recover a suspended mobile AudioContext.
+ audio.state='suspended';
+ audio.resume=async()=>{audio.state='running'};
+ api.match=first;
+ const beforeResume=voices.length;
+ await api.playVictoryRoar(first);
+ assert.equal(audio.state,'running','suspended context must resume');
+ assert.equal(voices.length,beforeResume+2,'recovered AudioContext replays recorded victory roar');
  assert.ok(script.includes("if(won)scheduleNextAfterQuote(m)"),'auto win continues');
  assert.ok(!html.includes('id="bowBanner"'),'no pre-fight bow');
  console.log('RESULT ROAR PASS | 1000 CPU-only text lines, local recorded victory roar, fallback enemy roar, online no dialogue, mute, autoplay, replay and background');
