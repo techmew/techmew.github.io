@@ -32,7 +32,7 @@ function canvas(){
 }
 let checks=0;
 function verify(predicate,label){assert.ok(predicate,label);checks++}
-for(const name of ['蒼天回廊','雷霆都市','深海遺跡','紅蓮火口','星屑庭園','氷晶要塞']){
+for(const name of ['空の広場','街の屋上','海の底','火山の道','夜の公園','雪の山道']){
  const normal=canvas(),low=canvas(),b={name,glow:'#9ddfff'};
  q.drawStageAtmosphere(normal.c,b,2.5,false);
  q.drawStageAtmosphere(low.c,b,2.5,true);
