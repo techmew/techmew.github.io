@@ -1013,3 +1013,54 @@ GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。ローカ
 - GitHub Actions: 1eda0a7e515cb8a304652aee50ed798138ee6843
 
 GitHubがゲームソースの正本、Driveが引き継ぎの正本。GitHubコミット・模擬テスト・Actions実行・Pages配信・Android/外部二端末実機検証を混同しない。
+
+---
+
+# 声魂（こえだま）v0.10.17 / 2026-10-26 21時台 JST / 毎時品質改善
+
+## CURRENT_STATUS
+- GitHub mainの games/otodama/index.html、worker.js、wrangler.jsonc、README、DEPLOY_GUIDE、package、関連テスト群、Drive最新「OTODAMA_v101_RUN_REPORT_20261026」の末尾v0.10.16ログを先に実読。
+- 声生成、巨大外見・数千万の名前、録音/停止/試聴、1〜7連打、勝敗セリフ、COM/サバイバル勝利自動次戦・敗北停止、BGM、育成、セーブ、爆発/破片/WINを維持。
+- Worker/Matchmaker/RankingsのコードはGitHubに保存済み。Cloudflare本番Workerは未公開。
+
+## CHANGELOG
+1. 録音音声・合成声とも、2 HIT攻撃で2音源を時間差再生。従来の通常1声/5連打/必殺7連打も維持。
+2. 戦闘音量0%時に「声の音量 0%」と表示し、AudioContext稼働中でも無音であることを明示。音量スライダー操作と状態表示を同期。
+3. オンライン再接続で解決済みターンの予兆を受信しても、ダメージ確定状態を巻き戻さない。
+4. オンライン命中通知の攻撃者が現在の予兆と異なる場合は破棄。異常なゲージ値は反映せず、命中処理と重複防止は維持。
+5. Room WebSocketは文字数だけでなくUTF-8バイト数で8192Bを制限。JSON解析前に送信回数を計上し、壊れたJSON連投でレート制限を回避できる問題を修正。
+6. MatchmakerはUTF-8 256B超を1009で切断、バイナリパケットを1003で切断。既存の20回/10秒制限を維持。
+7. 新回帰テスト test-hourly-v117.cjs を追加し、packageの test:node/test:voice に登録。既存 test-room.cjs / test-matchmaker.cjs のVM環境へTextEncoderを注入して新しいWorker検証に対応。
+8. index/Worker health/package/README/DEPLOY_GUIDEをv0.10.17に整合。
+
+## TEST_RESULTS
+- GitHub main再取得した埋込JavaScript/Worker（Cloudflare importをテスト用に置換）/更新CJSのV8構文検証 PASS。
+- 実際の新test-hourly-v117.cjsソースをV8のNode API互換モックで実行 PASS。録音声1/2/5/7回、音量0%/稼働/停止、解決済み再接続、攻撃側不一致、異常ゲージ、二重命中、Room 31件/10秒制限、UTF-8サイズ、バイナリ拒否、Matchmaker 21件/10秒制限を検証。
+- GitHub mainの変更ファイル再取得とblob確認を実施。
+- **正式なNode CLI npm run test:node/test:voice、GitHub Actions成功、Chromium実ブラウザ、GitHub Pages実配信、Android実機、Cloudflare本番、独立二端末は未確認**。V8モック成功はこれらを代替しない。
+- ライブURLとGitHub Actionsページはこの実行環境から直接取得できず、配信結果は未確認。
+
+## BLOCKERS
+- Cloudflare公開には所有者のCLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKENをGitHub Actions Secretsに設定する必要あり。Worker URL未設定、本番オンライン未公開。
+- 録音発話の文字起こし・禁止語自動審査は現行未実装。オンライン録音声の転送は引き続き停止。
+- Androidの実マイク/スピーカー、日本語TTS、外部二端末の通信を本実行環境から確認できない。
+
+## NEXT_ACTIONS
+1. GitHub Actionsの「Deploy OTODAMA Worker」pushテストと Node22 test:node/test:voice の実結果を確認し、失敗があれば修正。
+2. Android/Chromiumで録音/停止/試聴、1/2/5/7音声、ミュート/0%/復帰、縦横画面、旧セーブを実操作。
+3. COM第1〜5戦のボス進捗、勝利自動次戦、敗北停止、BGM、勝利演出を実ブラウザ検証。
+4. Cloudflare認証後にWorkerを手動公開し、/health v0.10.17、二端末ランダム/招待/15秒復帰/ランキング/不正パケット拒否/録音音声非転送を確認。
+
+## GITHUB_COMMITS
+- index音声/オンライン防御: f84c57b15c5da07891bf5b45074d31147632506b
+- worker UTF-8/レート: 3669c563f3fb16ed6c70793b5e06da212020ab06
+- v117テスト: 1980cd1dfbad2ef28d34903ded279444ec1c6903 / f5377867e87da77f146050529c5bdcadb8f6be4a
+- package: eb7901f12b92b759a3d0d5721f021c7b62ba3a19
+- index version: a0e3dd1eca23aa459d0a297ced299179f1ae9a4d
+- worker version: 78bf427028515f5be7c77a434f8e84dac1cb154b
+- README: 3209d0c9c5ae37b205b14c414ce94b86be4d0d38
+- DEPLOY_GUIDE: 2ef2751ea5ce57fca77e47b025dd7de1bed6ce53
+- test-room VM: 28a0b4bb3c445bc77758e4ce6195a756ae45931d
+- test-matchmaker VM: d2b3b86e4acc102fbd2d50f4579f2d90bf7b6b12
+
+GitHubがコード正本、Driveが引き継ぎ正本。コミット/模擬テスト/正式Node/Actions/Pages/Android/本番Workerを区別する。
