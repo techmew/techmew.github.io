@@ -57,7 +57,7 @@ function fakeRuntime(mediaRecorderEnabled){
   window:{AudioContext},MediaRecorder:mediaRecorderEnabled?FakeRecorder:undefined,
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
-  setTimeout,clearTimeout,performance,recording:false,audioCtx:null,
+  setTimeout:(fn,ms)=>{if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};return 1},clearTimeout(){},performance,recording:false,audioCtx:null,
   stopBattleSpeech(){},wavePaint(){},micErrorMessage:e=>String(e?.name||e),
   autocorr:()=>230,median:a=>a[0]||0,hash:n=>n>>>0,
   clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
@@ -79,7 +79,10 @@ async function attempt(mediaRecorderEnabled){
    env.ctxRef.processor.onaudioprocess({inputBuffer:{getChannelData:()=>input}});
   }
  }
- env.api.stopRecord();
+ env.api.stopRecord(); // Early tap must not shorten a fixed-duration recording.
+ assert.equal(env.ctxRef.autoStop?.ms,2070,'recording ends automatically at two seconds');
+ assert.equal(env.nodes.get('stopRecordBtn').disabled,true,'manual early stop disabled');
+ env.ctxRef.autoStop.fn();
  await running;
  assert.equal(env.media.grants,1,'one permission request even with double tap');
  assert.equal(env.media.stops,1,'all microphone tracks closed');
@@ -96,5 +99,5 @@ async function attempt(mediaRecorderEnabled){
  assert.ok(html.includes('id="shareVoice" disabled')&&html.includes('id="receiveVoice" disabled'),'online live audio disabled');
  const worker=fs.readFileSync(__dirname+'/worker.js','utf8');
  assert.ok(worker.includes("type:'voice_rejected'"),'online voice uploads still rejected');
- console.log('MIC CAPTURE PASS | MediaRecorder + PCM WAV fallback, manual stop, double-tap guard, preview, legacy replay, no ASR gate');
+ console.log('MIC CAPTURE PASS | fixed 2-second recording, MediaRecorder/WAV, double-tap guard, preview, no ASR gate');
 })().catch(e=>{console.error(e);process.exitCode=1});
