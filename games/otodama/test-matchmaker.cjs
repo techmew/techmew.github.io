@@ -25,6 +25,8 @@ const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets,storage:mmStorage
  fakeNow+=120001;await mm.alarm();assert.equal(w3.readyState,3,'stale queue socket not expired');
  const w4=FakeSocket(),w5=FakeSocket();sockets.push(w4,w5);await mm.webSocketMessage(w4,JSON.stringify({type:'search'}));await mm.webSocketMessage(w4,JSON.stringify({type:'cancel'}));assert.equal(w4.readyState,3,'cancel did not close queued socket');
  await mm.webSocketMessage(w5,JSON.stringify({type:'search'}));assert.equal(w5.messages.length,0);fakeNow+=120001;await mm.alarm();assert.equal(w5.readyState,3,'unmatched queue not expired');
+ const saturated=new ctx.testing.Matchmaker({getWebSockets:()=>Array.from({length:64},FakeSocket),storage:mmStorage});
+ assert.equal((await saturated.fetch()).status,503,'saturated matchmaking queue must reject new sockets');
  const room=new ctx.testing.Room({getWebSockets:()=>[]});
  const c=room.cleanCreature({name:'test',parts:{family:11,crest:29,back:15,pattern:23,legs:15},voice:{vol:90},stats:[70,40,50,60,90]});
  assert.equal(c.parts.family,11);assert.equal(c.parts.crest,29);assert.notEqual(c.stats[0],70,'posted stats must be ignored');
