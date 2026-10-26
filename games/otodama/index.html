@@ -1040,7 +1040,7 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
  const ev=m.current,atk=ev.atk,def=1-atk,player=m.a,foe=m.b;
  let damage=ev.damage,selfDamage=ev.selfDamage;
  if(m.spectator){
-   const before=m.hp.slice();m.hp=ev.hp.slice();ev.resolved=true;ev.impactAt=ms;
+   const before=m.hp.slice();m.hp=ev.hp.slice();ev.parry=!!ev.guard;ev.resolved=true;ev.impactAt=ms;
    ev.impactPoint=m.prevPos?.[def]?{...m.prevPos[def]}:null;
    m.damageDealt+=Math.max(0,before[1]-m.hp[1]);m.damageTaken+=Math.max(0,before[0]-m.hp[0]);
    if(atk===0){if(ev.skill)m.skillsUsed++;if(ev.crit)m.strikes++;}
@@ -1051,6 +1051,7 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
    if(ev.skill)m.ultimateAt=ms;
    $('fightLog').textContent=ev.commentary+'　'+displayName(atk===0?m.a:m.b)+' → '+(ev.dodge?'回避':ev.damage+'ダメージ');
    $('battleMsg').textContent=ev.commentary;
+   if(ev.skill)$('arenaEffect').textContent='必殺技が発動！';else if(ev.guard)$('arenaEffect').textContent='防御成功！';else if(ev.dodge)$('arenaEffect').textContent='回避成功！';
    $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
    $('hpB').style.width=clamp(m.hp[1]/m.max[1]*100,0,100)+'%';
    if(!m.hp[0]||!m.hp[1])m.endAfterCurrent=true;
@@ -1268,7 +1269,7 @@ function receiveLiveImpact(data){
  if(data.atk===1){if(data.parry)m.parries++;if(data.dodge)m.dodges++;}else{if(data.skill)m.skillsUsed++;if(data.strike)m.strikes++;}
  $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
  $('hpB').style.width=clamp(m.hp[1]/m.max[1]*100,0,100)+'%';
- $('fightLog').textContent=displayName(data.atk===0?m.a:m.b)+'：'+data.damage+' ダメージ'+(data.parry?' / ガード成功':data.dodge?' / 回避':data.skill?' / 特別な技':data.strike?' / タイミング成功':'');
+ $('fightLog').textContent=displayName(data.atk===0?m.a:m.b)+'：'+data.damage+' ダメージ'+(data.parry?' / ガード成功':data.dodge?' / 回避':data.skill?' / 特別な技':data.strike?' / 自動会心':'');
  impactSfx(Number(data.damage)||0,m.current);updateActionHud();
 }
 function endLiveBattle(data){
