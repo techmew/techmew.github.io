@@ -970,9 +970,9 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
 
 // Survival is a *local* score mode. Never submit localStorage points to a public leaderboard.
 let survivalActive=false,survivalRound=1,survivalPoints=0,survivalWins=0,survivalBest=0;
-let survivalNextTimer=null,autoInputTimer=null,autoBattleEnabled=false,challengerBannerTimer=null;
+let survivalNextTimer=null,autoInputTimer=null,autoBattleEnabled=false,challengerBannerTimer=null,survivalAwaitingVisibility=false;
 let survivalHistory=[];
-try{const records=JSON.parse(localStorage.getItem('otodama.survival.history')||'[]');if(Array.isArray(records))survivalHistory=records.filter(x=>x&&Number.isSafeInteger(x.points)&&x.points>=0&&x.points<=999999999&&Number.isSafeInteger(x.wins)&&x.wins>=0&&x.wins<=99999).slice(0,30)}catch{}
+try{const records=JSON.parse(localStorage.getItem('otodama.survival.history')||'[]');if(Array.isArray(records))survivalHistory=records.filter(x=>x&&Number.isSafeInteger(x.points)&&x.points>=0&&x.points<=999999999&&Number.isSafeInteger(x.wins)&&x.wins>=0&&x.wins<=99999).sort((a,b)=>b.points-a.points||b.wins-a.wins).slice(0,30)}catch{}
 function saveSurvivalResult(){
  if(!survivalWins)return;
  survivalHistory.push({points:survivalPoints,wins:survivalWins,date:new Date().toISOString().slice(0,10)});
@@ -983,7 +983,7 @@ function saveSurvivalResult(){
 
 try{survivalBest=clamp(Math.floor(Number(localStorage.getItem('otodama.survival.best'))||0),0,999999999)}catch{}
 function showSurvivalStatus(){
- const current=survivalActive?'第'+survivalRound+'戦 · '+survivalPoints+'ポイント · '+survivalWins+'勝':'最高記録：'+survivalBest+'ポイント';
+ const current=survivalActive?'第'+survivalRound+'戦 · '+survivalPoints+'ポイント · '+survivalWins+'勝 · あと'+(5-((survivalRound-1)%5))+'勝で連勝ボーナス':'最高記録：'+survivalBest+'ポイント';
  const ranking=$('survivalLocalTop5');ranking.textContent='';
  if(!survivalHistory.length){const li=document.createElement('li');li.textContent='まだ記録がありません';ranking.append(li)}
  else survivalHistory.slice(0,5).forEach((run,index)=>{const li=document.createElement('li');li.textContent=(index+1)+'位 '+run.points+'ポイント / '+run.wins+'勝';ranking.append(li)});
@@ -1022,13 +1022,13 @@ function scheduleAutoAction(m){
 }
 function startSurvival(){
  clearTimeout(survivalNextTimer);survivalNextTimer=null;
- if(survivalActive){if(match?.mode==='SURVIVAL'&&match.done)nextSurvivalBattle();return;}
+ if(survivalActive){if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge))nextSurvivalBattle();return;}
  if(match?.live&&!match.done)return; // Never discard a live server-authoritative fight.
  survivalActive=true;survivalRound=1;survivalPoints=0;survivalWins=0;
  setAutoBattle(true);nextSurvivalBattle();
 }
 function nextSurvivalBattle(){
- clearTimeout(survivalNextTimer);survivalNextTimer=null;
+ clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;
  if(!survivalActive||match?.live&&!match.done)return;
  if(match?.live&&match.done)leaveRoom();
  const enemy=stageEnemy(survivalRound,cur,0);
@@ -1040,19 +1040,20 @@ function finishSurvivalRound(m){
  if(!survivalActive||!(m.mode==='SURVIVAL'||m.survivalChallenge))return;
  const win=m.outcome.winner===0;
  if(win){
-  const points=100+Math.min(900,survivalRound*20)+Math.round(100*clamp(m.hp[0]/Math.max(1,m.max[0]),0,1))+(m.survivalChallenge?150:0);
+  const milestone=survivalRound%5===0?250+Math.floor(survivalRound/5)*50:0;
+  const points=100+Math.min(900,survivalRound*20)+Math.round(100*clamp(m.hp[0]/Math.max(1,m.max[0]),0,1))+(m.survivalChallenge?150:0)+milestone;
   survivalPoints=Math.min(999999999,survivalPoints+points);
   survivalWins++;survivalRound++;
-  $('battlePrize').textContent+=' ／ +'+points+'ポイント（今回計'+survivalPoints+'）';
+  $('battlePrize').textContent+=' ／ +'+points+'ポイント（今回計'+survivalPoints+'）'+(milestone?' · 5連勝ボーナス +'+milestone:'');
  }else{
-  survivalActive=false;saveSurvivalResult();
+  survivalActive=false;saveSurvivalResult();setAutoBattle(false);
   $('battlePrize').textContent+=' ／ ゲームオーバー · '+survivalPoints+'ポイント / '+survivalWins+'勝';
   if($('survivalChallengerOptIn').checked)cancelRandomSearch(true);
  }
  if(survivalPoints>survivalBest){survivalBest=survivalPoints;try{localStorage.setItem('otodama.survival.best',String(survivalBest))}catch{}}
  showSurvivalStatus();
  if(win){
-  survivalNextTimer=setTimeout(()=>{survivalNextTimer=null;if(survivalActive&&match===m&&m.done&&$('battleModal').classList.contains('open'))nextSurvivalBattle()},2900);
+  survivalNextTimer=setTimeout(()=>{survivalNextTimer=null;if(survivalActive&&match===m&&m.done&&$('battleModal').classList.contains('open')){if(document.hidden)survivalAwaitingVisibility=true;else nextSurvivalBattle()}},2900);
  }
 }
 function announceChallenger(){
@@ -1097,7 +1098,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  if(!live){act();battleInterval=setInterval(act,EVENT_MS);}else{$('fightLog').textContent='サーバーと同期中。敵の予兆を見て操作しよう';}
  aframe=requestAnimationFrame(battleDraw);startBgm();
 }
-function closeBattle(){clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;if(survivalActive){saveSurvivalResult();survivalActive=false;showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
+function closeBattle(){clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
 function doCom(){unlockBattleAudio();const enemy=stageEnemy(adventureStage,cur,stageAttempts),buff=pendingBuff;pendingBuff=null;showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH',buff)}
 function doDaily(){unlockBattleAudio();const enemy=dailyEnemy();showBattle(cur,enemy,randCombat(cur,enemy),'DAILY CHALLENGE')}
 
@@ -1155,6 +1156,7 @@ function endLiveBattle(data){
 let rankingToken='';
 try{const t=localStorage.getItem('otodama.ranking.token')||'';if(/^[a-f0-9]{48}$/.test(t))rankingToken=t}catch{}
 async function registerRanking(){
+ if(rankingToken&&!window.confirm('既存のランキング登録を新しいIDで置き換えますか？ 前の記録は引き継がれません。'))return;
  const base=serverBase();if(!base){$('rankingStatus').textContent='対戦サーバーのURLを先に設定してください';return}
  const name=$('rankingAlias').value.trim();if(!name||name.length>18){$('rankingStatus').textContent='表示名を1～18文字で入力してください';return}
  $('rankingStatus').textContent='登録しています…';
@@ -1213,6 +1215,7 @@ $('shareVoice').onchange=()=>sendVoiceConsent();$('receiveVoice').onchange=()=>{
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready'}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
 setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&survivalAwaitingVisibility){survivalAwaitingVisibility=false;if(survivalActive&&match?.done&&$('battleModal').classList.contains('open'))nextSurvivalBattle();}
  if(document.hidden){clearAutoAction();if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
  if(match&&!match.done&&$('battleModal').classList.contains('open')){
   if(match.pausedAt){const gap=performance.now()-match.pausedAt;match.pop+=gap;if(match.current?.impactAt)match.current.impactAt+=gap;match.pausedAt=0;$('battleMsg').textContent='バトル再開。攻撃の予兆を確認！';}
