@@ -246,7 +246,7 @@ export class Room extends DurableObject {
       this.send(ws,{type:'live_ack',action,value:data.value,valid:true,effective:'next_turn'});return;
     }
     if(action==='skill'){
-      if(state.charge[seat]<60||state.skillArmed[seat])return;
+      if(state.charge[seat]<60||state.skillArmed[seat]){this.send(ws,{type:'live_ack',action:'skill',valid:false,charge:state.charge[seat]});return;}
       state.charge[seat]-=60;state.skillArmed[seat]=true;
       await this.ctx.storage.put('live',state);
       this.send(ws,{type:'live_ack',action,valid:true,charge:state.charge[seat]});return;
