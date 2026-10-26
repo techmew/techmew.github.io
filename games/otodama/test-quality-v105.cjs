@@ -42,10 +42,10 @@ for(const name of ['空の広場','街の屋上','海の底','火山の道','夜
 }
 const m={interactive:true,live:false,done:false,pop:1000,guardUsed:false,dodgeUsed:false,dodgeCooldown:0,strikeUsed:false,turn:1,a:{seed:42},prevPos:[{x:150,y:200},{x:530,y:200}]};
 const pos=[{x:150,y:200},{x:530,y:200}],attack={atk:1,resolved:false,damage:30};
-let t=canvas();q.drawTimingArc(t.c,m,attack,1320,pos,false);verify(t.output.labels.includes('GUARD!'),'guard prompt window');
-t=canvas();q.drawTimingArc(t.c,m,attack,1090,pos,false);verify(t.output.labels.includes('GUARD')&&!t.output.labels.includes('GUARD!'),'guard too early');
-m.guardUsed=true;t=canvas();q.drawTimingArc(t.c,m,attack,1320,pos,false);verify(t.output.labels.includes('INPUT'),'guard one input');m.guardUsed=false;
-attack.atk=0;t=canvas();q.drawTimingArc(t.c,m,attack,1450,pos,false);verify(t.output.labels.includes('STRIKE!'),'strike prompt');
+let t=canvas();q.drawTimingArc(t.c,m,attack,1320,pos,false);verify(t.output.labels.includes('いまガード！'),'guard prompt window');
+t=canvas();q.drawTimingArc(t.c,m,attack,1090,pos,false);verify(t.output.labels.includes('ガード')&&!t.output.labels.includes('いまガード！'),'guard too early');
+m.guardUsed=true;t=canvas();q.drawTimingArc(t.c,m,attack,1320,pos,false);verify(t.output.labels.includes('入力済み'),'guard one input');m.guardUsed=false;
+attack.atk=0;t=canvas();q.drawTimingArc(t.c,m,attack,1450,pos,false);verify(t.output.labels.includes('いま攻撃！'),'strike prompt');
 attack.resolved=true;t=canvas();q.drawTimingArc(t.c,m,attack,1450,pos,false);verify(t.output.arcs===0,'resolved no prompts');
 attack.resolved=false;m.interactive=false;t=canvas();q.drawTimingArc(t.c,m,attack,1450,pos,false);verify(t.output.arcs===0,'noninteractive no prompts');
 m.interactive=true;m.current={atk:0,damage:60,impactAt:2000,impactPoint:{x:410,y:200}};
@@ -55,7 +55,7 @@ t=canvas();q.drawImpactBurst(t.c,m,2670,false);verify(t.output.fills===0,'expire
 for(const [effect,count] of [[{dodge:true},1],[{parry:true},2],[{skill:true},2],[{strike:true},2],[{},1]]){
  const before=tones.length;q.impactSfx(33,effect);verify(tones.length-before===count,'impact SFX branch');
 }
-for(const feature of ['drawStageAtmosphere(canvas,biome,t,lowFx)','drawTimingArc(canvas,match,event,ms,pos,lowFx)','drawImpactBurst(canvas,match,ms,lowFx)','voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','v0.10.5']){
+for(const feature of ['drawStageAtmosphere(canvas,biome,t,lowFx)','drawTimingArc(canvas,match,event,ms,pos,lowFx)','drawImpactBurst(canvas,match,ms,lowFx)','voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','v0.10.7']){
  verify(html.includes(feature),'preserved/integrated '+feature);
 }
 console.log('PASS: '+checks+' quality assertions; Canvas mocks only; Node syntax checked.');
