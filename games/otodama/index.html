@@ -477,7 +477,7 @@ async function startRecord(){
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
-  spokenReview=await beginSpokenWordReview();
+  // Record the sound directly without waiting on optional speech recognition.
   $('micHint').textContent='録音中：好きな声を出し、停止ボタンで確定';$('countdown').textContent='03.0 SEC';
   aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
   if(aud.state==='suspended')await aud.resume();
@@ -507,7 +507,7 @@ async function startRecord(){
    liveWave=Array.from(buf).filter((_,i)=>i%8===0);wavePaint(liveWave,true);
    $('countdown').textContent=(Math.max(0,3350-elapsed)/1000).toFixed(1)+' SEC';setTimeout(tick,55);
   };tick();await capturePromise;
-  recordingFinishing=true;$('micHint').textContent='録音の発言内容を確認しています…';$('stopRecordBtn').disabled=true;
+  recordingFinishing=true;$('micHint').textContent='録音を保存しています…';$('stopRecordBtn').disabled=true;
   let voiceClip='';
   if(recorder&&recorder.state!=='inactive'){
    try{
@@ -518,24 +518,15 @@ async function startRecord(){
     if(blob?.size>0&&blob.size<115000){voiceClip=await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(typeof r.result==='string'?r.result:'');r.onerror=()=>resolve('');r.readAsDataURL(blob)})}
    }catch(e){}
   }
-  const review=await evaluateSpokenWordReview(spokenReview||{finish:async()=>({state:'unverified',phrases:[]})});
-  if(review.banned){
-   voiceClip='';$('micHint').textContent='禁止された発言を検出しました。生成と録音を破棄しました。';
-   $('countdown').textContent='BLOCKED';
-   $('micNotice').textContent='卑猥な言葉などは禁止です。別の言葉で録音し直してください。';
-   return;
-  }
-  // If recognition failed, use only acoustic features; never retain unreviewed audio.
-  if(!review.allowed)voiceClip='';
   const rms=median(samples)||0,pitch=median(pitches)||230,dev=median(pitches.map(p=>Math.abs(p-pitch)))||0;
   let delta=0;for(let i=1;i<samples.length;i++)delta+=Math.abs(samples[i]-samples[i-1]);delta/=Math.max(1,samples.length-1);
   const z=median(zcs)||0,rough=median(steps)||0;
   const v={vol:Math.round(clamp(10+Math.sqrt(rms)*155,8,96)),pitch:Math.round(clamp(12+Math.log2(pitch/70)*21,9,98)),res:Math.round(clamp(28+rough*310+z*65,15,96)),rhythm:Math.round(clamp(26+delta*940,17,95)),stable:Math.round(clamp(95-dev*.32,20,96)),breath:Math.round(clamp(15+z*290+rough*95,14,95))};
   const seed=hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
-  setCurrent({...gen(seed,v),voiceClip,voiceReview:voiceClip&&review.allowed?'passed':'unverified'});
-  $('micHint').textContent=voiceClip?'発言チェック通過：録音声を保存しました':'素体を生成しました。発言を確認できないため音声は保存していません。';
+  setCurrent({...gen(seed,v),voiceClip});
+  $('micHint').textContent=voiceClip?'録音した声を保存しました。試聴・戦闘で使えます':'素体を生成しましたが録音データを保存できませんでした';
   $('countdown').textContent=voiceClip?'VOICE OK':'NO CLIP';
-  $('micNotice').textContent=voiceClip?'発言チェック済みの声だけを試聴・戦闘で再生します。':review.state==='consent'?'端末内の音声認識を使えません。外部音声認識を許可するか、声の再生なしで遊べます。':'認識失敗・非対応のため声は保存せず、戦闘では合成音のみ鳴ります。';
+  $('micNotice').textContent=voiceClip?'録音した声はソロ戦で再生できます。録音には適切な言葉を使ってください。':'録音データを保存できませんでした。代替音でソロ戦は続行できます。';
  }catch(e){const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
  finally{
   if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;
@@ -629,7 +620,7 @@ function synthVoice(cr,side){
  if($('mutedCheck').checked||!VOLUME())return;const ac=unlockBattleAudio();if(!ac)return;
  try{const now=ac.currentTime,hz=85+(cr.voice?.pitch||50)*4.7,osc=ac.createOscillator(),gain=ac.createGain(),filter=ac.createBiquadFilter();osc.type=(cr.voice?.breath||0)>65?'sawtooth':'triangle';osc.frequency.setValueAtTime(hz,now);osc.frequency.exponentialRampToValueAtTime(hz*(side?.72:1.18),now+.22);filter.type='bandpass';filter.frequency.value=400+(cr.voice?.res||50)*14;filter.Q.value=.8;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.002,VOLUME()*.52),now+.035);gain.gain.exponentialRampToValueAtTime(.0001,now+.25);osc.connect(filter);filter.connect(gain);gain.connect(ac.destination);osc.start(now);osc.stop(now+.26)}catch(e){}
 }
-function clipData(cr){const s=cr?.voiceClip;return cr?.voiceReview==='passed'&&typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
+function clipData(cr){const s=cr?.voiceClip;return typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
 async function decodeVoice(cr){
  const data=clipData(cr);if(!data)return null;const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
  if(voiceCache.has(key))return voiceCache.get(key);
