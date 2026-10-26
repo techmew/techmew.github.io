@@ -65,5 +65,5 @@ assert.ok(js.includes('dnaFrames.push(dnaFrame('),'recording feeds analyser');
 assert.ok(js.includes('setCurrent({...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip})'),'DNA drives character creation');
 assert.ok(js.includes('音声特性：'),'local combat uses voice abilities');
 assert.ok(js.includes('const traits=fighters.map('),'auto combat uses voice abilities');
-assert.ok(js.includes('const CAPTURE_MS=4800'),'extended recording');
+assert.ok(js.includes('const CAPTURE_MS=2000'),'extended recording');
 console.log('AUDIO DNA PASS | 36 features, deterministic generation, growth, abilities, backups, local combat, recording wiring');
