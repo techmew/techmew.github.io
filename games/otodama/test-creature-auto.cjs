@@ -60,6 +60,19 @@ const {Room,autoRoll}=new Function(source+'return {Room,autoRoll};')();
   await room.liveAction(peers[0],{action:'strike'},peers[0].deserializeAttachment());
   assert.equal(logs[0].filter(m=>m.type==='live_ack').at(-1).reason,'creature_auto_only','client input rejected');
  }
+ // The current client requests server-owned auto combat during ready.
+ const logs=[[],[]],joined=logs.map((log,seat)=>({readyState:1,
+  data:{creature:make(seat+10,[60,60,60,60,60]),autoOnly:true,rankId:null,resumeToken:'a'.repeat(32)},
+  deserializeAttachment(){return this.data;},serializeAttachment(value){this.data=value;},
+  send(value){log.push(JSON.parse(value));}}));
+ let stored=null;
+ const storage={put:async(key,value)=>{stored=value},get:async()=>stored,
+  setAlarm:async()=>{},delete:async()=>{}};
+ const room=new Room({storage,getWebSockets:()=>joined},{});
+ await room.startLiveBattle(joined);
+ assert.equal(stored.autoOnly,true,'new client must select server auto mode');
+ assert.ok(logs.every(log=>log.some(x=>x.type==='live_start')&&log.some(x=>x.type==='live_turn')),
+  'server auto mode starts and broadcasts');
  assert.ok(parries>0&&dodges>0&&skills>5&&awakenings>5,'auto decisions active');
  console.log('PASS: 400 COM bouts + 100 online auto turns, 2-seat packets, input rejection; Node/V8 only');
 })().catch(e=>{console.error(e);process.exitCode=1});
