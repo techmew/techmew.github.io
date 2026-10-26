@@ -17,7 +17,7 @@ assert.ok(client.includes('function pcmWavDataUrl(')&&client.includes('function 
 assert.ok(client.includes('function exportSave(')&&client.includes('function importSave('),'save import/export retained');
 
 const starts=[],banners=[],data='data:audio/wav;base64,ZGVtbw==';
-const creature={seed:42,voiceClip:data,voice:{rhythm:40}};
+const creature={seed:42,voiceClip:data,voiceReview:'passed',voice:{rhythm:40}};
 const key=creature.seed+'_'+data.length+'_'+data.slice(-32);
 const gainParam={setValueAtTime(){},linearRampToValueAtTime(){}};
 const ac={currentTime:2,createBufferSource(){return{playbackRate:{value:1},connect(){},start(...args){starts.push(args)},stop(){}}},createGain(){return{gain:gainParam,connect(){}}}};
