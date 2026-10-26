@@ -1,3 +1,38 @@
+# 声魂（こえだま） v0.10.12 / 2026-10-26 18時台 JST
+
+## CURRENT_STATUS
+- games/otodama/のみ更新。COM・日替わり・サバイバルは素体能力によるオート戦闘。オンラインは新クライアントからautoOnly要求が届くとWorkerが手動入力を拒否し、能力ベースの自動攻防をサーバー裁定する構成。Cloudflare Worker本番未公開。
+- 声生成/録音停止・試聴・攻撃音声/外見組合せ/育成/連戦/敗者爆発・破片/WIN/セーブ互換は維持。
+
+## CHANGELOG
+1. COMの入力タイミング円、操作説明、次戦バフを非表示・無効化。防御・反撃・反射ダメージ集計とミッション17～20の整合性を修正。
+2. 6戦型・性格、能力/属性に基づく自動攻防、必殺技、瀕死覚醒、レベル進化、希少変異、負傷ひび、覚醒オーラ、戦況実況を実装。
+3. Worker側autoOnly：片方が要求すれば両者をサーバー自動戦闘に統一。登録済み双方のランキング戦も自動判定。防御/回避/必殺/覚醒をサーバーで決定し、手動アクションを拒否。旧クライアント同士の非ランキング戦は従来互換。
+4. オンラインの相手攻撃音声再生、覚醒通知・再接続時の覚醒状態復元、2席向きの通知変換。
+5. test-creature-auto.cjs新設、旧テスト修正、npm run test:auto / npm run test:node追加、README・バージョン更新。
+
+## TEST_RESULTS
+- GitHub connector内のV8: index埋込JS・Worker構文PASS。COM 1000戦、オンライン自動120ターンPASS。新回帰テスト400戦＋100ターンをNode APIモックでPASS。旧UI/品質4件、サバイバル1件のV8模擬PASS。
+- GitHub Pagesビルド: commit 5ce5224f62ab44eb9d97cfed1e0385131054b499 でsuccess。ライブURLのブラウザ操作確認とは異なる。
+- Node CLI全テスト/Chromium/Android実機/Cloudflare本番/外部2端末は未実施。
+
+## BLOCKERS
+- Cloudflare所有者認証とActions Secrets（CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN）未確認。Worker本番未公開。
+- 声特徴量の真正性と録音発話の禁止語自動文字起こしは未保証。オンラインランキングは競技用途の公正性を保証しない。
+
+## NEXT_ACTIONS
+1. npm run test:node全実行、Chromium縦横・録音/音量・保存/次戦・観戦UI確認、Android実機検証。
+2. WorkerをCloudflare Freeへ公開後、/health・ランダム/招待・2端末・切断復帰・ランキングの実回線検証。
+3. 旧UIの文言整理、長時間バランス、BGM・SEの変化と負荷を調整。
+
+## GITHUB_COMMITS
+- index: 345e8919874cfd919a4cd0c00c8914f69ef59517
+- worker: 4e69642bfed27feb77adc8b1d30b286d8c810a40
+- tests: 8e5e291c56c0ccc05830da76935f419c99876234
+- README: 5ce5224f62ab44eb9d97cfed1e0385131054b499
+
+---
+
 # 声魂（こえだま） v0.10.11 / 2026-10-26 17時台 JST
 
 ## CURRENT_STATUS
