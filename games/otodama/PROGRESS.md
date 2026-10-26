@@ -1,3 +1,49 @@
+# 声魂（こえだま） / v0.10.10 / 2026-10-26 16時台 JST — サバイバル連戦・BGM・ランキング入力保護
+
+## CURRENT_STATUS
+- GitHub main の games/otodama/ のみ変更。声生成、録音停止/試聴/攻撃時再生、外見・名前生成、COMキャンペーン、サバイバル、WIN/敗者爆発、育成、旧セーブ形式は維持。
+- Cloudflare Worker/Durable Objectsはソースのみで本番未公開。ランキングの全ユーザー共有と外部2端末対戦は利用確認できない。
+- GitHub Pages Actionsは head da707611fa88d7e403fe8aa2b049beee391dc5c5 で成功。ただしライブページ直接操作・Android実機は未検証。
+
+## CHANGELOG
+1. サバイバルに5勝ごとの節目報酬（5勝目+300pt、10勝目+350pt、以後+50pt）と次のボーナスまでの勝数表示。
+2. 勝利後、非表示タブで次の戦闘を自動開始しないよう保留し、表示復帰時に次戦へ進む。従来の手動次戦ボタンも維持。
+3. サバイバル敗北・退出で自動操作を停止し、他モードへの誤った自動操作継続を防止。
+4. サバイバル中のオンライン挑戦者勝利後にもスタートボタンで次戦に進める。端末内TOP5履歴を読み込み時に得点順へ整列。
+5. 自作Web Audio BGMの開始フレーズをステージに応じ8段階で切替え、毎戦同じイントロになる単調さを軽減。音量・ミュート・録音音声は変更なし。
+6. 匿名ランキング再登録時に既存ID・記録が引き継がれないことを確認するダイアログを追加。
+7. Worker /identityをJSON Content-Type必須、512バイト上限（chunkedでもストリームで制限）とし、不正/巨大入力を早期拒否。
+8. Roomの同時ready処理に対戦開始ロックを追加し、二重開始競合を抑止。登録レート制限の48時間超過bucketを掃除。
+9. Node回帰テストに登録入力の容量・MIME拒否、サバイバル5勝報酬・敗北自動停止・非表示タブ延期を追加。ゲーム/Worker/package/README/DEPLOY_GUIDEをv0.10.10に更新。
+
+## TEST_RESULTS
+- GitHub main更新後のHTML埋込JavaScript/WorkerのV8構文チェック PASS。対象変更ファイルをGitHubから再取得し、返却blob SHAと一致。
+- V8の模擬DOM/タイマーでサバイバル5連勝1600pt（節目+300）、非表示タブ次戦延期、表示後の次戦呼出、敗北で自動OFF、端末内履歴保存を確認 PASS。
+- V8の模擬HTTP/ストリームでWorker /identityの通常登録、512バイト超拒否、MIME拒否、Origin拒否、/healthを確認 PASS。
+- V8の模擬Room同時readyで開始1回のみを確認 PASS。
+- test-survival-v109.cjs / test-rankings-v109.cjsを拡張したが**正式Nodeでの実行は未実施**。Chromium/Android/外部2端末/Cloudflare本番Worker/WebSocket/SQLite本番実行は未実施。V8模擬テストは実機確認ではない。
+- GitHub Pages Actions成功： https://github.com/techmew/techmew.github.io/actions/runs/40284130397 （対象head da707611fa88d7e403fe8aa2b049beee391dc5c5）。公開ページへの直接アクセス・実操作は未検証。
+
+## BLOCKERS
+- Cloudflare認証とActions Secrets CLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKEN、公開Worker URLが未設定。秘密はGitHubソースやログに記載しない。
+- Android実機・独立二端末と本番Cloudflareの接続・録音・同期テストは実施不可。
+- 録音発話そのものの自動文字起こし・禁止語検知は未実装。匿名多重登録や談合を完全には防げない。
+
+## NEXT_ACTIONS
+1. 正式Node22の全ゲーム/Room/Matchmaker/Rankings/Moderation回帰を実行し、失敗があれば修正。Chromiumの縦横・録音停止/試聴・攻撃音声・ミュート・次戦・サバイバル長時間動作を確認。
+2. Cloudflare Freeへデプロイ後、/health・/identity・/leaderboard・ランダム/招待・切断復帰・外部2端末の同期/音声同意/ランキング加点を実測。
+3. 5連勝報酬とBGM開始フレーズ、AUTO戦闘の勝率・端末負荷・音量を長時間実測して調整。
+4. 登録スパム、同一端末/ネットワークの連続登録、Room ready競合の本番負荷を検証。
+
+## GITHUB_COMMITS
+- Survival fixes: b967b3832ff9d3bd48ff0cdadb0b200931dcd18d
+- BGM variation: 30e465a9b833d3f44d8be940cfcd603444648d30
+- Worker hardening: b4de9b10a2c23ed68e48f9e796be1f29270a8c80
+- Regression tests: e2a480816a622f75749ecd27ccd63244f053ab7b / 71730d8cf798ee5a769a37d7f173afc00a678a0e
+- Versions/docs: 2c72a57b005554d19fb6c521f8ec98489c76c0be / 19dc0af659c525b431ec332bc8c2c2f3d39bfe60 / 04c79a9686c219886d93502b3618380d93aa524a / e3a9dd77b2ec47ef1730cc29f484e6cb3b2c9b7b / c47842b65c5dc3e565dbd377d6db510c1f11e9bc / da707611fa88d7e403fe8aa2b049beee391dc5c5
+
+---
+
 # 声魂（こえだま） / v0.10.9 / 2026-10-26　放置サバイバル・アーケード乱入・オンラインランキング準備
 
 ## CURRENT_STATUS
