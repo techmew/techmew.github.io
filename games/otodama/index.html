@@ -966,29 +966,111 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
  if(m.hp[0]<=0||m.hp[1]<=0)m.endAfterCurrent=true;
  updateActionHud();
 }
+
+// Survival is a *local* score mode. Never submit localStorage points to a public leaderboard.
+let survivalActive=false,survivalRound=1,survivalPoints=0,survivalWins=0,survivalBest=0;
+let survivalNextTimer=null,autoInputTimer=null,autoBattleEnabled=false,challengerBannerTimer=null;
+try{survivalBest=clamp(Math.floor(Number(localStorage.getItem('otodama.survival.best'))||0),0,999999999)}catch{}
+function showSurvivalStatus(){
+ const current=survivalActive?'第'+survivalRound+'戦 · '+survivalPoints+'ポイント · '+survivalWins+'勝':'最高記録：'+survivalBest+'ポイント';
+ $('survivalHomeStatus').textContent=current+' ／ 最高：'+survivalBest+'ポイント';
+ const out=$('survivalBattleStatus');out.hidden=!survivalActive&&match?.mode!=='SURVIVAL'&&!match?.survivalChallenge;
+ if(!out.hidden)out.textContent=current;
+ $('autoBattleBtn').textContent='自動操作：'+(autoBattleEnabled?'ON':'OFF');
+ $('autoBattleBtn').setAttribute('aria-pressed',String(autoBattleEnabled));
+ $('survivalBtn').textContent=survivalActive?'▶ サバイバルに戻る':'▶ おまかせでスタート';
+}
+function clearAutoAction(){if(autoInputTimer!==null){clearTimeout(autoInputTimer);autoInputTimer=null;}}
+function setAutoBattle(on){
+ autoBattleEnabled=!!on;clearAutoAction();showSurvivalStatus();
+ if(autoBattleEnabled&&match?.interactive&&!match.done)scheduleAutoAction(match);
+}
+// The auto pilot uses the same action functions and server-authoritative online windows as a human.
+// A deterministic missed-input chance keeps manual skill relevant. It only runs with a visible tab.
+function scheduleAutoAction(m){
+ clearAutoAction();if(!autoBattleEnabled||!m||!m.interactive||m.done||!m.current||m.current.resolved||document.hidden)return;
+ const ev=m.current,defend=ev.atk===1;
+ if(defend&&(m.guardUsed||m.dodgeUsed))return;
+ if(!defend&&m.strikeUsed)return;
+ const roll=hash(((m.a.seed>>>0)^Math.imul(m.turn+1,0x9e3779b9))>>>0);
+ if(roll%8===0)return; // Not every automatic move succeeds.
+ const action=defend&&m.dodgeCooldown===0&&roll%4===0?'dodge':defend?'guard':'strike';
+ const window=action==='dodge'?dodgeTiming(m,ev):action==='guard'?guardTiming(m,ev):strikeTiming(m);
+ const duration=m.live?(m.telegraphMs||900):EVENT_MS;
+ const target=Math.min(window[1]-.055,window[0]+(window[1]-window[0])*.40);
+ const ms=Math.max(0,target*duration-(performance.now()-m.pop)-(m.live?36:0));
+ autoInputTimer=setTimeout(()=>{
+  autoInputTimer=null;
+  if(!autoBattleEnabled||match!==m||m.done||m.current!==ev||ev.resolved||document.hidden)return;
+  if(!defend&&m.charge>=RESONANCE_COST&&!m.skillArmed)skillPress();
+  if(action==='dodge')dodgePress();else if(action==='guard')guardPress();else strikePress();
+ },ms);
+}
+function startSurvival(){
+ clearTimeout(survivalNextTimer);survivalNextTimer=null;
+ if(survivalActive){if(match?.mode==='SURVIVAL'&&match.done)nextSurvivalBattle();return;}
+ if(match?.live&&!match.done)return; // Never discard a live server-authoritative fight.
+ survivalActive=true;survivalRound=1;survivalPoints=0;survivalWins=0;
+ setAutoBattle(true);nextSurvivalBattle();
+ if($('survivalChallengerOptIn').checked&&serverBase()&&!queueWs&&!ws)startRandomMatch();
+}
+function nextSurvivalBattle(){
+ clearTimeout(survivalNextTimer);survivalNextTimer=null;
+ if(!survivalActive||match?.live&&!match.done)return;
+ if(match?.live&&match.done)leaveRoom();
+ const enemy=stageEnemy(survivalRound,cur,0);
+ showBattle(cur,enemy,randCombat(cur,enemy),'SURVIVAL');
+ showSurvivalStatus();
+}
+function finishSurvivalRound(m){
+ if(!survivalActive||!(m.mode==='SURVIVAL'||m.survivalChallenge))return;
+ const win=m.outcome.winner===0;
+ if(win){
+  const points=100+Math.min(900,survivalRound*20)+Math.round(100*clamp(m.hp[0]/Math.max(1,m.max[0]),0,1))+(m.survivalChallenge?150:0);
+  survivalPoints=Math.min(999999999,survivalPoints+points);
+  survivalWins++;survivalRound++;
+  $('battlePrize').textContent+=' ／ +'+points+'ポイント（今回計'+survivalPoints+'）';
+ }else{
+  survivalActive=false;
+  $('battlePrize').textContent+=' ／ ゲームオーバー · '+survivalPoints+'ポイント / '+survivalWins+'勝';
+  if($('survivalChallengerOptIn').checked)cancelRandomSearch(true);
+ }
+ if(survivalPoints>survivalBest){survivalBest=survivalPoints;try{localStorage.setItem('otodama.survival.best',String(survivalBest))}catch{}}
+ showSurvivalStatus();
+ if(win){
+  survivalNextTimer=setTimeout(()=>{survivalNextTimer=null;if(survivalActive&&match===m&&m.done&&$('battleModal').classList.contains('open'))nextSurvivalBattle()},2900);
+ }
+}
+function announceChallenger(){
+ const banner=$('challengerBanner');banner.hidden=false;
+ if(challengerBannerTimer!==null)clearTimeout(challengerBannerTimer);
+ challengerBannerTimer=setTimeout(()=>{banner.hidden=true;challengerBannerTimer=null},2400);
+}
+
 function finishCombat(){const m=match;if(!m||m.done)return;m.done=true;stopBgm();
  if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong>　ジャスト '+m.parries+' / 回避 '+m.dodges+' / 必殺 '+m.skillsUsed+' / 精密 '+m.strikes+' / 反撃 '+m.counterHits+'<br>与ダメージ '+m.damageDealt+' / 被ダメージ '+m.damageTaken+(win&&['S','A'].includes(m.grade)?'　・　ランク報酬XP +'+(m.grade==='S'?2:1):'');}
  else $('battleReport').classList.remove('visible');
  if(m.interactive&&!m.live){m.outcome.winner=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1]?0:1;m.outcome.max=m.max.slice();updateCharacterProgress(m);if(m.cleanDefenseAwarded)$('battleReport').textContent+=' ／ 完璧防御 +1XP'}
+ clearAutoAction();
  $('timingCallout').textContent='';if(m.mode==='COM MATCH'){const next=stageEnemy(adventureStage,cur,stageAttempts),hint=$('nextStagePreview');hint.hidden=false;hint.textContent='NEXT STAGE '+adventureStage+' · '+stageBiome(adventureStage).name+' / '+stageTitle(adventureStage)+' ｜ 次の相手：'+displayName(next)+(next.archetype?'（'+next.archetype+'）':'')+' ｜ 目標：'+stageMission(adventureStage).label+' ｜ 攻略：'+enemyAdvice(next)+(next.learningRelief?' ｜ 再挑戦補正：敵能力 -'+next.learningRelief:'');}else $('nextStagePreview').hidden=true;
- finishJingle(m.outcome.winner===0);m.victoryAt=performance.now();m.finalPositions=m.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='決着！';$('fightLog').textContent=displayName(m.outcome.winner===0?m.a:m.b)+'  WIN❗️';$('rematchBtn').disabled=!['COM MATCH','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode);$('rematchBtn').textContent=m.live?'次の対戦相手を探す →':'次のバトルへ →';$('nextBuffPanel').hidden=m.mode!=='COM MATCH';document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===pendingBuff);b.setAttribute('aria-pressed',String(b.dataset.buff===pendingBuff))});clearInterval(battleInterval);if(m.interactive){$('battlePanel').classList.remove('playable');$('guardBtn').disabled=true;$('dodgeBtn').disabled=true;$('strikeBtn').disabled=true;$('skillBtn').disabled=true;}
+ finishSurvivalRound(m);finishJingle(m.outcome.winner===0);m.victoryAt=performance.now();m.finalPositions=m.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='決着！';$('fightLog').textContent=displayName(m.outcome.winner===0?m.a:m.b)+'  WIN❗️';$('rematchBtn').disabled=!['COM MATCH','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode);$('rematchBtn').textContent=m.live?'次の対戦相手を探す →':'次のバトルへ →';$('nextBuffPanel').hidden=m.mode!=='COM MATCH';if(m.mode==='SURVIVAL'||m.survivalChallenge){$('rematchBtn').textContent=survivalActive?'次の対戦へ →':'もう一度挑戦';$('rematchBtn').disabled=false;}document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===pendingBuff);b.setAttribute('aria-pressed',String(b.dataset.buff===pendingBuff))});clearInterval(battleInterval);if(m.interactive){$('battlePanel').classList.remove('playable');$('guardBtn').disabled=true;$('dodgeBtn').disabled=true;$('strikeBtn').disabled=true;$('skillBtn').disabled=true;}
 }
 function showBattle(a,b,outcome,mode,buff=null,live=false){
  clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();stopBgm();unlockBattleAudio();
  lastBattleFrame=0;configureBattleCanvas();
- const interactive=mode==='COM MATCH'||mode==='DAILY CHALLENGE'||mode==='ONLINE LIVE';
- $('nextBuffPanel').hidden=true;$('bossPanel').hidden=true;$('missionBadge').hidden=mode!=='COM MATCH';$('battleReport').classList.remove('visible');$('enemyTactic').classList.remove('visible');$('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('comboBadge').textContent='ガード連続 0';$('incomingBadge').textContent='敵の攻撃を見切れ！';$('battleTitle').textContent='声魂（こえだま） 対戦 / '+(mode==='COM MATCH'?'STAGE '+String(adventureStage).padStart(2,'0')+' · '+stageBiome(adventureStage).name+' · '+stageTitle(adventureStage):({'DAILY CHALLENGE':'日替わり対戦','ONLINE LIVE':'オンライン対戦','ONLINE MATCH':'オンライン対戦'}[mode]||mode));
+ const interactive=['COM MATCH','DAILY CHALLENGE','ONLINE LIVE','SURVIVAL'].includes(mode);
+ $('nextBuffPanel').hidden=true;$('bossPanel').hidden=true;$('missionBadge').hidden=mode!=='COM MATCH';$('battleReport').classList.remove('visible');$('enemyTactic').classList.remove('visible');$('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('comboBadge').textContent='ガード連続 0';$('incomingBadge').textContent='敵の攻撃を見切れ！';$('battleTitle').textContent='声魂（こえだま） 対戦 / '+(mode==='COM MATCH'?'STAGE '+String(adventureStage).padStart(2,'0')+' · '+stageBiome(adventureStage).name+' · '+stageTitle(adventureStage):mode==='SURVIVAL'?'サバイバル 第'+survivalRound+'戦':({'DAILY CHALLENGE':'日替わり対戦','ONLINE LIVE':'オンライン対戦','ONLINE MATCH':'オンライン対戦'}[mode]||mode));
  $('nameA').textContent=displayName(a)+' / Lv.'+levelOf(a);$('nameB').textContent=displayName(b)+' / Lv.'+levelOf(b);$('rematchBtn').disabled=true;
  $('nextStagePreview').hidden=true;$('timingCallout').textContent='';$('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent=interactive?'タップでガード！ エネルギーをためて特別な技を放て！':'オンライン対戦：サーバー判定を再生中';$('arenaEffect').textContent='対戦開始';$('battlePrize').textContent='';$('matchupBadge').textContent=(elementalEdge(a,b)>1?'属性有利：与ダメージ +12%':elementalEdge(a,b)<1?'属性不利：与ダメージ -10%':'属性相性：互角')+(b.archetype?' · 敵の戦型：'+b.archetype+'（'+b.archetypeHint+'）':'')+(mode==='COM MATCH'?' · 攻略：'+enemyAdvice(b):'')+(b.learningRelief?' · 再挑戦補正：敵能力 -'+b.learningRelief:'');
  $('battlePanel').classList.toggle('playable',interactive);$('battleGuide').textContent=interactive?'敵の予兆を見てガード・回避。60たまったら特別な技！'+(mode==='COM MATCH'&&isRivalStage(adventureStage)?' 【ライバル戦：撃破で+2XP】':'')+(buff?' 【'+BUFFS[buff].label+'】':'')+(mode==='COM MATCH'&&trainingWindow({mode,stageNo:adventureStage,live:false})?' 【序盤の判定猶予あり】':''):'ONLINE MATCH';
  const battleMax=outcome.max.slice();if(interactive&&buff==='shield')battleMax[0]+=30;
- match={a,b,outcome,live,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null,mode,interactive,max:battleMax,hp:battleMax.slice(),charge:buff==='resonance'?52:18,stance:'balance',skillArmed:false,guardUsed:false,parried:false,guardChain:0,guardBest:0,counterReady:false,evadeCounterReady:false,cueTurn:-1,strikeCueTurn:-1,clutchUsed:false,dodgeUsed:false,dodgeSuccess:false,dodgeCooldown:0,ultimateAt:0,endAfterCurrent:false,nextBuff:buff,lifelineUsed:false,stageNo:mode==='COM MATCH'?adventureStage:mode==='DAILY CHALLENGE'?Number(dailyKey())%100+1:1,rival:mode==='COM MATCH'&&isRivalStage(adventureStage),boss:mode==='COM MATCH'&&adventureStage%5===0,bossReward:adventureStage%10===0?4:2,breakMeter:0,bossStunned:false,bossAttacks:0,parries:0,dodges:0,skillsUsed:0,damageDealt:0,damageTaken:0,strikeUsed:false,strikeSuccess:false,strikeChain:0,strikeBest:0,strikes:0,counterHits:0,grade:'C',pausedAt:0};
+ match={a,b,outcome,live,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null,mode,interactive,max:battleMax,hp:battleMax.slice(),charge:buff==='resonance'?52:18,stance:'balance',skillArmed:false,guardUsed:false,parried:false,guardChain:0,guardBest:0,counterReady:false,evadeCounterReady:false,cueTurn:-1,strikeCueTurn:-1,clutchUsed:false,dodgeUsed:false,dodgeSuccess:false,dodgeCooldown:0,ultimateAt:0,endAfterCurrent:false,nextBuff:buff,lifelineUsed:false,stageNo:mode==='SURVIVAL'?survivalRound:mode==='COM MATCH'?adventureStage:mode==='DAILY CHALLENGE'?Number(dailyKey())%100+1:1,rival:['COM MATCH','SURVIVAL'].includes(mode)&&isRivalStage(mode==='SURVIVAL'?survivalRound:adventureStage),boss:['COM MATCH','SURVIVAL'].includes(mode)&&(mode==='SURVIVAL'?survivalRound:adventureStage)%5===0,bossReward:adventureStage%10===0?4:2,breakMeter:0,bossStunned:false,bossAttacks:0,parries:0,dodges:0,skillsUsed:0,damageDealt:0,damageTaken:0,strikeUsed:false,strikeSuccess:false,strikeChain:0,strikeBest:0,strikes:0,counterHits:0,grade:'C',pausedAt:0};
  let ix=-1;const currentMatch=match;
  const act=()=>{
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
   if(match.current&&!match.current.resolved&&match.interactive&&!match.live)return;
   if(match.endAfterCurrent || ix+1>=outcome.events.length){finishCombat();return;}
-  ix++;const ev={...outcome.events[ix]};if(match.boss&&ev.atk===1){const bossKinds=['meteor','beam','shockwave','warp','spin'];const bossNames=['急降下攻撃','遠距離攻撃','広い範囲への攻撃','回り込み攻撃','連続攻撃'];const bossPower=[1.22,1.12,1.08,1.16,1.11];const bossArenas=['落雷の嵐','残響増幅','空間反転','無重力ゾーン','音速暴走'];const move=match.bossAttacks++%bossKinds.length;ev.bossMove=bossNames[move];ev.kind=bossKinds[move];ev.damage=Math.round(ev.damage*bossPower[move]);ev.arena=bossArenas[move];}match.turn=ix;if(interactive&&mode==='COM MATCH'){ev.hazard=stageHazard(match.stageNo,ix);if(ev.atk===1)ev.tactic=enemyTactic(match.stageNo,ix,match);}match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;match.dodgeUsed=false;match.dodgeSuccess=false;match.strikeUsed=false;match.strikeSuccess=false;if(ev.atk===1&&match.dodgeCooldown>0)match.dodgeCooldown--;
+  ix++;const ev={...outcome.events[ix]};if(match.boss&&ev.atk===1){const bossKinds=['meteor','beam','shockwave','warp','spin'];const bossNames=['急降下攻撃','遠距離攻撃','広い範囲への攻撃','回り込み攻撃','連続攻撃'];const bossPower=[1.22,1.12,1.08,1.16,1.11];const bossArenas=['落雷の嵐','残響増幅','空間反転','無重力ゾーン','音速暴走'];const move=match.bossAttacks++%bossKinds.length;ev.bossMove=bossNames[move];ev.kind=bossKinds[move];ev.damage=Math.round(ev.damage*bossPower[move]);ev.arena=bossArenas[move];}match.turn=ix;if(interactive&&['COM MATCH','SURVIVAL'].includes(mode)){ev.hazard=stageHazard(match.stageNo,ix);if(ev.atk===1)ev.tactic=enemyTactic(match.stageNo,ix,match);}match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;match.dodgeUsed=false;match.dodgeSuccess=false;match.strikeUsed=false;match.strikeSuccess=false;if(ev.atk===1&&match.dodgeCooldown>0)match.dodgeCooldown--;
   if(!interactive){$('hpA').style.width=clamp(ev.hp[0]/outcome.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(ev.hp[1]/outcome.max[1]*100,0,100)+'%';}
   const attacker=ev.atk===0?a:b,defender=ev.atk===0?b:a;
   $('arenaEffect').textContent=ev.crit?'大ダメージ！':ev.counter?'反撃成功!':ev.dodge?'回避成功':ev.arena?'地形：'+(ARENA_LABELS[ev.arena]||ev.arena):(ev.hits>1?ev.hits+' HIT 連続ヒット！':BATTLE_LABEL[ev.kind]);
@@ -996,12 +1078,12 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   $('fightLog').textContent=displayName(attacker)+' の '+(BATTLE_LABEL[ev.kind]||'ジャンプ攻撃')+'！ '+(ev.hazard?'【地形：'+ev.hazard.label+'】':'')+(interactive?(ev.atk===1?'ガードを狙え！':'特別な技を使えるか？'):(ev.dodge?'回避成功！':ev.damage+'ダメージ'));
   attackVoice(attacker,ev.atk);if(ev.counter)setTimeout(()=>{if(match===currentMatch&&match.turn===ix&&!match.done)attackVoice(defender,1-ev.atk)},180);
   if(!interactive)tone(160+(ev.damage||10)*6,.09);else if(ev.atk===1)tone(ev.bossMove?250:340,.07);
-  if(interactive)updateActionHud();
+  if(interactive){updateActionHud();scheduleAutoAction(match)}
  };
  if(!live){act();battleInterval=setInterval(act,EVENT_MS);}else{$('fightLog').textContent='サーバーと同期中。敵の予兆を見て操作しよう';}
  aframe=requestAnimationFrame(battleDraw);startBgm();
 }
-function closeBattle(){$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
+function closeBattle(){clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;if(survivalActive){survivalActive=false;showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
 function doCom(){unlockBattleAudio();const enemy=stageEnemy(adventureStage,cur,stageAttempts),buff=pendingBuff;pendingBuff=null;showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH',buff)}
 function doDaily(){unlockBattleAudio();const enemy=dailyEnemy();showBattle(cur,enemy,randCombat(cur,enemy),'DAILY CHALLENGE')}
 
@@ -1013,9 +1095,9 @@ function sendLiveAction(action,seq,value){
 }
 function beginLiveBattle(data){
  if(!Array.isArray(data.creatures)||data.creatures.length!==2||!Array.isArray(data.max))return;
- const a=hydrate(data.creatures[0]),b=hydrate(data.creatures[1]);
+ const interruptedSurvival=survivalActive&&match?.mode==='SURVIVAL';clearTimeout(survivalNextTimer);survivalNextTimer=null;const a=hydrate(data.creatures[0]),b=hydrate(data.creatures[1]);
  a.voiceClip=cur.voiceClip||'';b.voiceClip=remoteVoiceClip;
- showBattle(a,b,{events:[],max:data.max,winner:0},'ONLINE LIVE',null,true);
+ showBattle(a,b,{events:[],max:data.max,winner:0},'ONLINE LIVE',null,true);if(interruptedSurvival){match.survivalChallenge=true;showSurvivalStatus()}
  roomMessage('リアルタイム対戦開始 · HP/ダメージはサーバー判定');
 }
 function receiveLiveTurn(data){
@@ -1026,7 +1108,7 @@ function receiveLiveTurn(data){
  $('fightLog').textContent=data.atk===1?'⚠ 敵の '+(BATTLE_LABEL[data.kind]||'攻撃')+'！ タイミングを見切れ':'攻撃！ 技ゲージをためて特別な技を放とう';
  $('arenaEffect').textContent=data.atk===1?'INCOMING!':'ATTACK!';
  if(data.atk===1){if(!data.resumed)tone(310,.07)}else if(!data.resumed)attackVoice(m.a,0);
- updateActionHud();
+ updateActionHud();scheduleAutoAction(m);
 }
 function receiveLiveAck(data){
  const m=match;if(!m?.live||m.done||(Number.isInteger(data.seq)&&data.seq!==m.current?.seq))return;
@@ -1051,7 +1133,7 @@ function endLiveBattle(data){
  const m=match;if(!m?.live||m.done||![0,1].includes(data.winner))return;
  m.outcome.winner=data.winner;
  if(Array.isArray(data.hp))m.hp=data.hp.slice();
- finishCombat();$('battlePrize').textContent=data.winner===0?'ONLINE WIN · 次の相手を探そう':'ONLINE LOSE · 次の相手に挑戦しよう';
+ finishCombat();if(!m.survivalChallenge)$('battlePrize').textContent=data.winner===0?'ONLINE WIN · 次の相手を探そう':'ONLINE LOSE · 次の相手に挑戦しよう';
 }
 function serverBase(){let str=$('serverUrl').value.trim();if(!(/^https:\/\/[a-z0-9.-]+(?::\d+)?\/?$/i.test(str)||/^http:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\/?$/i.test(str)))return null;return str.replace(/\/$/,'')}
 function roomMessage(msg){$('roomLine').textContent=msg}
@@ -1065,7 +1147,7 @@ function startRandomMatch(){
  $('searchBtn').disabled=true;$('searchBtn').textContent='検索中…';$('cancelSearchBtn').style.display='';$('netLabel').textContent='SEARCHING';roomMessage('オンラインの対戦相手を検索中…');
  sock.onopen=()=>{if(queueWs===sock)sock.send(JSON.stringify({type:'search'}))};
  sock.onmessage=ev=>{if(queueWs!==sock)return;let data;try{data=JSON.parse(ev.data)}catch{return}
-  if(data.type==='matched'&&/^[A-HJ-NP-Z2-9]{6}$/.test(data.code)){cancelRandomSearch(true);roomMessage('対戦相手が見つかりました！');joinRoom(data.code,true)}
+  if(data.type==='matched'&&/^[A-HJ-NP-Z2-9]{6}$/.test(data.code)){cancelRandomSearch(true);announceChallenger();roomMessage('NEW CHALLENGER！ 対戦相手が見つかりました');joinRoom(data.code,true)}
   else if(data.type==='error'){queueError=data.message||'マッチングサーバーエラー';roomMessage(queueError);}
  };
  sock.onerror=()=>{if(queueWs===sock)roomMessage('マッチングサーバーに接続できません。URL・公開状態を確認してください')};
@@ -1077,17 +1159,17 @@ function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base
  else if(data.type==='live_ping'){if(typeof data.nonce==='string'&&data.nonce.length<=32)socket.send(JSON.stringify({type:'pong',nonce:data.nonce}))}else if(data.type==='live_start'){autoReadyRoom=false;beginLiveBattle(data)}else if(data.type==='live_turn')receiveLiveTurn(data);else if(data.type==='live_ack')receiveLiveAck(data);else if(data.type==='live_impact')receiveLiveImpact(data);else if(data.type==='live_end')endLiveBattle(data);else if(data.type==='live_forfeit'){endLiveBattle({winner:0});$('battlePrize').textContent='相手が退出しました · 勝利'}else if(data.type==='battle'){autoReadyRoom=false;const [p1,p2]=data.creatures,aa=hydrate(p1),bb=hydrate(p2),out=data.outcome;aa.voiceClip=side===0?(cur.voiceClip||''):remoteVoiceClip;bb.voiceClip=side===1?(cur.voiceClip||''):remoteVoiceClip;showBattle(side===0?aa:bb,side===0?bb:aa,side===0?out:reverseOutcome(out),'ONLINE MATCH');roomMessage('対戦中 / 部屋 '+room)}else if(data.type==='error'){roomMessage(data.message)}else if(data.type==='left'){roomMessage('相手が退出しました');$('readyBtn').disabled=false;$('readyBtn').textContent='対戦準備OK'}};socket.onerror=()=>{roomMessage('接続に失敗しました。URLとWorker公開状態を確認してください')};socket.onclose=()=>{if(ws!==socket)return;ws=null;setConnectionUI(false);if(match?.live&&!match.done&&resumeToken&&room&&reconnectCount<4){const target=room;reconnectCount++;roomMessage('接続が切断されました。再接続 '+reconnectCount+'/4');reconnectTimer=setTimeout(()=>{reconnectTimer=null;if(room===target)joinRoom(target,false,true)},Math.min(3200,800*reconnectCount));}else{roomMessage('ルーム接続が切断されました');if(match?.live&&!match.done){$('battleMsg').textContent='接続復旧に失敗しました。戻って再検索してください';}}}}
 function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
-document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live){closeBattle();startRandomMatch();}};
+document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live){closeBattle();startRandomMatch();}};
 window.addEventListener('keydown',ev=>{if(!match?.interactive||match.done||!$('battleModal').classList.contains('open')||ev.repeat||ev.ctrlKey||ev.altKey||ev.metaKey||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))return;const key=ev.key.toLowerCase();if(key===' '){ev.preventDefault();guardPress()}else if(key==='j'){ev.preventDefault();dodgePress()}else if(key==='k'){ev.preventDefault();skillPress()}else if(key==='l'){ev.preventDefault();strikePress()}else if(key==='1')setStance('rush');else if(key==='2')setStance('balance');else if(key==='3')setStance('guard')});
-$('exportSaveBtn').onclick=exportSave;$('importSaveFile').onchange=ev=>importSave(ev.target.files?.[0]);$('guardBtn').onclick=guardPress;$('dodgeBtn').onclick=dodgePress;$('strikeBtn').onclick=strikePress;$('skillBtn').onclick=skillPress;$('stanceRush').onclick=()=>setStance('rush');$('stanceBalance').onclick=()=>setStance('balance');$('stanceGuard').onclick=()=>setStance('guard');
+$('exportSaveBtn').onclick=exportSave;$('importSaveFile').onchange=ev=>importSave(ev.target.files?.[0]);$('guardBtn').onclick=()=>{setAutoBattle(false);guardPress()};$('dodgeBtn').onclick=()=>{setAutoBattle(false);dodgePress()};$('strikeBtn').onclick=()=>{setAutoBattle(false);strikePress()};$('skillBtn').onclick=()=>{setAutoBattle(false);skillPress()};$('autoBattleBtn').onclick=()=>setAutoBattle(!autoBattleEnabled);$('survivalBtn').onclick=startSurvival;$('stanceRush').onclick=()=>setStance('rush');$('stanceBalance').onclick=()=>setStance('balance');$('stanceGuard').onclick=()=>setStance('guard');
 $('shareVoice').onchange=()=>sendVoiceConsent();$('receiveVoice').onchange=()=>{if(!$('receiveVoice').checked){remoteVoiceClip='';if(match?.live)match.b.voiceClip='';stopAttackVoices();}sendVoiceConsent();};
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready'}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
-setCurrent(cur);renderCodex();showMicNotice();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
+setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
+ if(document.hidden){clearAutoAction();if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
  if(match&&!match.done&&$('battleModal').classList.contains('open')){
   if(match.pausedAt){const gap=performance.now()-match.pausedAt;match.pop+=gap;if(match.current?.impactAt)match.current.impactAt+=gap;match.pausedAt=0;$('battleMsg').textContent='バトル再開。攻撃の予兆を確認！';}
-  startBgm();
+  startBgm();if(autoBattleEnabled)scheduleAutoAction(match);
  }
 });
 window.addEventListener('pagehide',()=>{cancelAnimationFrame(animFrame);if(ws)ws.close();stopBgm();stopAttackVoices()});
