@@ -55,7 +55,7 @@ t=canvas();q.drawImpactBurst(t.c,m,2670,false);verify(t.output.fills===0,'expire
 for(const [effect,count] of [[{dodge:true},1],[{parry:true},2],[{skill:true},2],[{strike:true},2],[{},1]]){
  const before=tones.length;q.impactSfx(33,effect);verify(tones.length-before===count,'impact SFX branch');
 }
-for(const feature of ['drawStageAtmosphere(canvas,biome,t,lowFx)','drawTimingArc(canvas,match,event,ms,pos,lowFx)','drawImpactBurst(canvas,match,ms,lowFx)','voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','v0.10.10']){
+for(const feature of ['drawStageAtmosphere(canvas,biome,t,lowFx)','drawTimingArc(canvas,match,event,ms,pos,lowFx)','drawImpactBurst(canvas,match,ms,lowFx)','voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','v0.10.12']){
  verify(html.includes(feature),'preserved/integrated '+feature);
 }
 console.log('PASS: '+checks+' quality assertions; Canvas mocks only; Node syntax checked.');
