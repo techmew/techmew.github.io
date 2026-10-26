@@ -7,17 +7,19 @@ import { DurableObject } from 'cloudflare:workers';
 import { sanitizePublicName } from './moderation.js';
 
 const safeJson = (obj, code=200) => new Response(JSON.stringify(obj), {
-  status:code, headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*'}
+  status:code, headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','cache-control':'no-store'}
 });
 const clamp = (x,min,max) => Math.max(min,Math.min(max,Number(x)||0));
 const ELEMENTS=new Set(['雷','炎','水','風','光','影','鋼','音','樹','霧']);
+// Unjoined room sockets and unsearched matchmaking sockets must not occupy free capacity forever.
+function pruneIdleSockets(sockets,now){let closed=0;for(const ws of sockets){const a=ws.deserializeAttachment?.()||{};const opened=!a.creature&&Number.isFinite(a.openedAt)?a.openedAt:a.status==='connected'&&Number.isFinite(a.time)?a.time:0;if(ws.readyState===1&&opened>0&&now-opened>30000){try{ws.close(1008,'Join/search timeout');closed++}catch{}}}return closed;}
 
 export default {
   async fetch(request,env) {
     const url = new URL(request.url);
     const origin=request.headers.get('Origin');
     if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.7',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.8',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -34,6 +36,7 @@ export default {
 export class Room extends DurableObject {
   async fetch(request) {
     const active=await this.ctx.storage.get('live');
+    pruneIdleSockets(this.ctx.getWebSockets(),Date.now());
     const connected=this.peers();
     const joined=this.livePeers();
     // Unjoined WebSockets cannot occupy an active player's seat or block a valid resume.
@@ -81,7 +84,7 @@ export class Room extends DurableObject {
       }else this.send(server,{type:'live_wait',seconds:15});
       this.voicePolicy();
     }else{
-      server.serializeAttachment({creature:null,ready:false});
+      server.serializeAttachment({creature:null,ready:false,openedAt:Date.now()});
     }
     return new Response(null,{status:101,webSocket:client});
   }
@@ -265,6 +268,7 @@ export class Room extends DurableObject {
     let data;try{data=JSON.parse(raw)}catch{return}
     if(!data||typeof data!=='object'||Array.isArray(data)){this.send(ws,{type:'error',message:'無効なメッセージ'});return;}
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
+    if(!attachment.creature&&attachment.openedAt&&Date.now()-attachment.openedAt>30000){try{ws.close(1008,'Join timeout')}catch{}return;}
     const now=Date.now(),expired=now-(attachment.rateAt||0)>10000;
     const windowStart=expired?now:attachment.rateAt;
     const burst=expired?1:(attachment.rateCount||0)+1;
@@ -349,6 +353,7 @@ export class Room extends DurableObject {
  */
 export class Matchmaker extends DurableObject {
   async fetch() {
+    pruneIdleSockets(this.ctx.getWebSockets(),Date.now());
     // Keep the free global queue bounded against abandoned/open socket floods.
     if(this.ctx.getWebSockets().filter(ws=>ws.readyState===1).length>=64)return safeJson({error:'Queue busy; retry shortly'},503);
     const [client,server]=Object.values(new WebSocketPair());
@@ -362,7 +367,9 @@ export class Matchmaker extends DurableObject {
     if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
     if(msg.type==='cancel'){ws.serializeAttachment({status:'cancelled',time:Date.now()});try{ws.close(1000,'cancelled')}catch{}return;}
     if(msg.type!=='search')return;
-    if(ws.deserializeAttachment()?.status!=='connected')return;
+    const state=ws.deserializeAttachment()||{};
+    if(state.status==='connected'&&Date.now()-(state.time||0)>30000){try{ws.close(1008,'Search timeout')}catch{}return;}
+    if(state.status!=='connected')return;
     ws.serializeAttachment({status:'waiting',time:Date.now()});
     await this.pair();
   }
