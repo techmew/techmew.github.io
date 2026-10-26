@@ -1,4 +1,4 @@
-# 声魂（こえだま） v0.10.16：無料オンライン対戦・月間ランキングの公開手順
+# 声魂（こえだま） v0.10.17：無料オンライン対戦・月間ランキングの公開手順
 
 **現状：ゲーム側とCloudflare Worker/Durable Objects側の実装ソースはGitHubへ保存済みですが、本番Workerは未公開です。** 本番公開・独立2端末・Android実機の動作確認はまだできていません。
 
@@ -10,7 +10,7 @@ Cloudflare Workers Free と SQLite-backed Durable Objects で少人数の試作�
 2. CloudflareのAccount IDとWorkers公開に必要なAPI Tokenを取得。API Tokenはチャット・ソースコード・READMEに絶対に貼らない。
 3. GitHub `techmew/techmew.github.io` → Settings → Secrets and variables → Actions に `CLOUDFLARE_ACCOUNT_ID` と `CLOUDFLARE_API_TOKEN` をRepository secretsとして設定。
 4. GitHub Actions → **Deploy OTODAMA Worker** → Run workflow。コードは `games/otodama/worker.js`、設定は同フォルダの `wrangler.jsonc`。新規SQLite Durable ObjectsとしてRoom/Matchmaker/Rankingsを登録します。
-5. デプロイされた `https://<your-worker>.<your-account>.workers.dev/health` にアクセスし、`ok:true`、`version:0.10.16`、`randomMatch:true`、`seasonalRanking:true` を確認。
+5. デプロイされた `https://<your-worker>.<your-account>.workers.dev/health` にアクセスし、`ok:true`、`version:0.10.17`、`randomMatch:true`、`seasonalRanking:true` を確認。
 6. ゲーム `https://techmew.github.io/games/otodama/` のオンライン対戦欄にWorkerのHTTPS URLを設定・保存。ユーザーはランキング表示名を入力して匿名登録すると、そのブラウザのオンライン戦でランキングポイントを得られます。登録せずにゲストとして対戦することも可能ですが、ランキング対象外です。
 7. サバイバル欄の「おまかせでスタート」で自動戦闘。オンライン挑戦者を受けたい時だけチェックをONにすると、対戦相手を検索し、マッチング後に **NEW CHALLENGER** を表示して実プレイヤーとのオンライン戦に移ります。現行は素体能力だけの自動戦闘で、手動操作は利用しません。
 
@@ -34,9 +34,16 @@ node test-survival-v109.cjs
 node test-rankings-v109.cjs
 node test-voice-rush.cjs
 node test-hourly-v116.cjs
+node test-hourly-v117.cjs
 ```
 
 `test-rankings-v109.cjs` はNode 22の実験的内蔵SQLiteを使う**ローカル統合テスト**です。GitHubへの追加時点ではNodeでの本実行はまだ未検証。GitHub Actionsの既存自動テストは、このランキングの新規テストをまだ含みません。手動確認した上でWorkerを公開してください。
+
+## v0.10.17 追加検証
+- Roomに壊れたJSONを31回/10秒送信した場合の1008切断、8KB超UTF-8の1009切断、バイナリの1003切断を確認。
+- Matchmakerに壊れたJSONを21回/10秒送信した場合の1008切断、256B超UTF-8の1009切断を確認。
+- 再接続で解決済みターンが巻き戻らないこと、異なる攻撃側の命中通知を受け入れないことを確認。
+- 実際のAndroid音声・Cloudflare接続は未確認。デプロイ後に別途確認が必要。
 
 ## 二端末テスト
 - 異なるブラウザまたは別端末2台でランキング匿名登録（異なるID）、ランダムマッチでNEW CHALLENGERの表示、1分程度のサーバー判定対戦ができるか
@@ -61,7 +68,7 @@ GitHub Pagesはフロントエンドの配信のみです。リアルタイム�
 
 公開WorkerのURLをゲームUIの対戦サーバーURL欄に設定すれば、ランダムマッチと招待ルームが利用可能です。URLをWebクライアントへ埋め込みたい場合は `index.html` の `DEFAULT_SERVER_URL` を設定してください。
 
-v0.9.4から、ガード・回避・必殺技・戦術をサーバー裁定するリアルタイム試作コードを用意しました。ローカル模擬2ソケットテストは成功しましたが、Cloudflare実機接続と独立2端末での対戦は未確認です。遅延補正はサーバー測定RTTを最大90msだけ考慮します。v0.9.9当時は双方の許可を前提に音声転送を試作しましたが、**現行v0.10.16ではオンライン録音音声を一切転送しません**。録音音声の文字起こし・禁止語自動審査も現行クライアントでは行っていません。
+v0.9.4から、ガード・回避・必殺技・戦術をサーバー裁定するリアルタイム試作コードを用意しました。ローカル模擬2ソケットテストは成功しましたが、Cloudflare実機接続と独立2端末での対戦は未確認です。遅延補正はサーバー測定RTTを最大90msだけ考慮します。v0.9.9当時は双方の許可を前提に音声転送を試作しましたが、**現行v0.10.17ではオンライン録音音声を一切転送しません**。録音音声の文字起こし・禁止語自動審査も現行クライアントでは行っていません。
 
 ## v0.9.5 再接続と公開時の確認
 
