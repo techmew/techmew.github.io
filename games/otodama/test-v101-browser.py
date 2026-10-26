@@ -19,7 +19,7 @@ async def main():
           const preview=document.getElementById('nextStagePreview').textContent;
           if(!preview.includes('STAGE 10')||!preview.includes('節目のボス')||!preview.includes('MISSION'))return {error:'preview',preview};
           t.doCom();const next=t.match.b.name;
-          if(!preview.includes(next)||next===defeated||!document.getElementById('nextStagePreview').hidden)return {error:'next opponent mismatch',preview,next,defeated};
+          if(!preview.includes(next.replace(/ [0-9]{6}$/,''))||next===defeated||!document.getElementById('nextStagePreview').hidden)return {error:'next opponent mismatch',preview,next,defeated};
           const cr={seed:42,name:'Test',element:'音',type:'T',parts:{body:1,color:1},voice:{vol:40},stats:[50,50,50,50,50]};
           t.beginLiveBattle({creatures:[cr,{...cr,seed:43}],max:[180,180]});
           t.receiveLiveTurn({seq:3,atk:1,kind:'beam',duration:900,elapsed:430,resumed:true,actionStatus:['guard',null],dodgeCooldown:[1,0]});
