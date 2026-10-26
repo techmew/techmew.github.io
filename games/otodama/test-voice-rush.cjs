@@ -20,7 +20,7 @@ const ac={currentTime:10,decodeAudioData:async()=>buffer,
 const cr={seed:8,voiceClip:'data:audio/webm;base64,dGVzdA==',voiceReview:'passed',voice:{rhythm:30}};
 const match={done:false,mode:'COM MATCH',turn:3,live:false,a:cr,b:{seed:9}};
 const context={
- Uint8Array,Map,Math,Float32Array,
+ Uint8Array,Map,Math,Float32Array,clamp:(n,a,b)=>Math.min(b,Math.max(a,n)),
  atob:()=> 'test',
  $:id=>ui[id]||{checked:false},
  VOLUME:()=>.12,voiceOutput:()=>({}),unlockBattleAudio:()=>ac,trackAttackSource:()=>{},
