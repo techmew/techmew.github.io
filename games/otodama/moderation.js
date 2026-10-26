@@ -19,15 +19,17 @@ const TERMS = [
 // Expanded anatomy/sexual slang coverage (JP, EN, common euphemisms).
 const EXTRA_TERMS = [
 'ちんちん','ちんぼ','ちんぽこ','おちんちん','おちんぽ','ちん毛','陰茎','陰嚢','睾丸','金玉','きんたま','ペニス','ちんこ','ぽこちん','肉棒','亀頭','包茎','勃起','ぼっき','陰部','性器','男性器','女性器','生殖器','外陰部','陰核','クリトリス','陰唇','大陰唇','小陰唇','膣','ちつ','ヴァギナ','バギナ','まんすじ','まん毛','おっぱい','乳首','乳輪','乳房','ちくび','ぱいぱい','おしりの穴','肛門','アナル','ケツ穴','尻穴','お尻の穴','性欲','性癖','発情','欲情','絶頂','潮吹き','精子','精巣','前立腺','オーガズム','エッチ','えっち','エロい','えろい','すけべ','スケベ','淫語','淫乱','痴女','痴男','全裸','ヌード','自慰行為','手淫','手コキ','手こき','口淫','口内射精','顔射','ぶっかけ','本番行為','挿れる','ハメ撮り','はめどり','乱交','輪姦','緊縛','SMプレイ','性奴隷','セフレ','セックスフレンド','パパ活','ママ活','未成年淫行','児童買春',
-'penis','vagina','vulva','clitoris','testicle','testicles','testes','scrotum','genitals','genitalia','boobs','tits','nipples','areola','breasts','butthole','anus','anal sex','pussy','cock','dick','boner','erection','masturbation','jerk off','orgasm','ejaculation','semen','sperm','cum','cumming','blow job','hand job','rimjob','deepthroat','naked','nude','horny','fetish','sexual intercourse','sexual content','sex toy','sex worker','hooker','prostitute','gangbang','creampie','bukkake','fingering','penetration','pornography','erotic','erotica','nsfw','milf','dildo','vibrator',
-'性交渉','性犯罪','強制わいせつ','わいせつ','猥褻','痴漢行為','盗撮動画','性的暴行','性的虐待','性暴力','児童性的虐待'
+'sex','penis','vagina','vulva','clitoris','testicle','testicles','testes','scrotum','genitals','genitalia','boobs','tits','nipples','areola','breasts','butthole','anus','anal sex','pussy','cock','dick','boner','erection','masturbation','jerk off','orgasm','ejaculation','semen','sperm','cum','cumming','blow job','hand job','rimjob','deepthroat','naked','nude','horny','fetish','sexual intercourse','sexual content','sex toy','sex worker','hooker','prostitute','gangbang','creampie','bukkake','fingering','penetration','pornography','erotic','erotica','nsfw','milf','dildo','vibrator',
+'陰部露出','性器露出','局部露出','股間露出','性器画像','局部画像','性的な画像','下半身裸','性交渉','性犯罪','強制わいせつ','わいせつ','猥褻','痴漢行為','盗撮動画','性的暴行','性的虐待','性暴力','児童性的虐待'
 ];
 const unicodeLoose=s=>String(s??'').normalize('NFKC').toLowerCase()
  .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufe0e\ufe0f\ufeff]/g,'')
+ .replace(/[аɑα]/g,'a').replace(/[еε]/g,'e').replace(/[οоօ]/g,'o').replace(/[ѕ]/g,'s').replace(/[хχ]/g,'x').replace(/[іı]/g,'i')
  .replace(/[ァ-ヶ]/g,x=>String.fromCharCode(x.charCodeAt(0)-0x60))
  .replace(/[①②③④⑤⑥⑦⑧⑨]/g,ch=>String('①②③④⑤⑥⑦⑧⑨'.indexOf(ch)+1))
  .replace(/[@4]/g,'a').replace(/[0〇]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/5/g,'s')
- .replace(/[\s\-_.,:;~+*・\/\\\[\](){}<>"'’“”`^|]+/g,'');
+ .replace(/[\p{P}\p{Z}\p{S}\p{Cf}\p{M}]+/gu,'');
+const exactSingle=new Set(['膣'].map(unicodeLoose));
 const termNormalized=[...new Set([...TERMS,...EXTRA_TERMS].map(unicodeLoose).filter(s=>s.length>=2))];
 const latinTerms=termNormalized.filter(s=>/^[a-z]+$/.test(s));
 const otherTerms=termNormalized.filter(s=>!/^[a-z]+$/.test(s));
@@ -36,7 +38,7 @@ const LINKS=/(https?:\/\/|www\.|(?:t\.me|telegram\.me|discord\.gg|bit\.ly|tinyur
 const CONTACT=/(?:\d[\s\-]?){11,}/;
 export function isForbiddenName(value){
  const raw=String(value??'');if(raw.length>80||LINKS.test(raw)||CONTACT.test(raw))return true;
- const normalized=unicodeLoose(raw);return otherTerms.some(term=>normalized.includes(term))||latinMatchers.some(re=>re.test(normalized));
+ const normalized=unicodeLoose(raw);return exactSingle.has(normalized)||otherTerms.some(term=>normalized.includes(term))||latinMatchers.some(re=>re.test(normalized));
 }
 export function sanitizePublicName(value, seed=1){
  const raw=String(value??'').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,32);
