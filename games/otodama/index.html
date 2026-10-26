@@ -1216,7 +1216,7 @@ function randCombat(a,b){
  const fighters=[a,b],profile=fighters.map(specimenProfile);
  const max=fighters.map((c,i)=>Math.round(132+c.stats[1]*.92+profile[i].mutation.tier*7));
  const hp=max.slice(),events=[],rng=getRand(hash(a.seed^Math.imul(b.seed,97)^Date.now()));
- const traits=fighters.map(dnaUnlocked);
+ const traits=fighters.map(c=>c.audioDNA?.version===1?dnaUnlocked(c):[]);
  const energy=[0,0],awaken=[false,false],momentum=[0,0];let prev=-1,chain=0,currentArena=null;
  for(let turn=0;turn<52&&hp[0]>0&&hp[1]>0;turn++){
   const odds=clamp(.5+(profile[0].speed-profile[1].speed)/370+(momentum[0]-momentum[1])*.023,.28,.72);
