@@ -28,7 +28,7 @@ async def main():
             if(m.strikes!==2||!t.missionCompleted(m))return {error:'strike mission failed'};
             m.hp=[m.max[0],0];t.finishCombat();
             const prize=document.getElementById('battlePrize').textContent;
-            if(t.stage!==7||!prize.includes('MISSION CLEAR'))return {error:'campaign precision reward missing',prize};
+            if(t.stage!==7||!prize.includes('ミッション達成'))return {error:'campaign precision reward missing',prize};
             const packets=[];const sock={readyState:1,send:s=>packets.push(JSON.parse(s))};
             t.ws=sock;t.side=0;
             document.getElementById('shareVoice').checked=true;
@@ -43,7 +43,7 @@ async def main():
             t.receiveLiveAck({action:'strike',seq:0,valid:true});
             t.receiveLiveImpact({seq:0,atk:0,damage:31,hp:[190,159],charge:[30,18],strike:true});
             if(online.strikes!==1||!online.current.strike||online.hp[1]!==159)return {error:'online precision impact'};
-            return {result:'PASS',stage:t.stage,precision:m.strikes,mission:prize.includes('MISSION CLEAR'),voiceConsent:packets[0],onlineStrike:packets.at(-1)};
+            return {result:'PASS',stage:t.stage,precision:m.strikes,mission:prize.includes('ミッション達成'),voiceConsent:packets[0],onlineStrike:packets.at(-1)};
         }''')
         assert result.get('result')=='PASS',result
         assert not errors,errors
