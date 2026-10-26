@@ -410,7 +410,22 @@ function showMicNotice(){
 
 // Recording uses microphone audio directly; inappropriate-language prevention is described in the visible recording notice.
 // v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
-let stopCaptureNow=null, recordingFinishing=false;
+let stopCaptureNow=null, recordingFinishing=false, recordingRequestPending=false;
+function pcmWavDataUrl(samples,rate){
+ if(!Array.isArray(samples)||!Number.isFinite(rate)||rate<8000||samples.length<Math.round(rate*.25))return '';
+ const count=Math.min(samples.length,Math.round(rate*4)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
+ const ascii=(at,str)=>{for(let i=0;i<str.length;i++)view.setUint8(at+i,str.charCodeAt(i))};
+ ascii(0,'RIFF');view.setUint32(4,36+count*2,true);ascii(8,'WAVE');ascii(12,'fmt ');
+ view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
+ view.setUint32(24,rate,true);view.setUint32(28,rate*2,true);
+ view.setUint16(32,2,true);view.setUint16(34,16,true);ascii(36,'data');view.setUint32(40,count*2,true);
+ let energy=0;
+ for(let i=0;i<count;i++){const v=clamp(Number(samples[i])||0,-1,1);energy+=v*v;view.setInt16(44+i*2,Math.round(v<0?v*32768:v*32767),true)}
+ if(Math.sqrt(energy/count)<.0005)return '';
+ const bytes8=new Uint8Array(bytes);let binary='';
+ for(let i=0;i<bytes8.length;i+=8192)binary+=String.fromCharCode(...bytes8.subarray(i,i+8192));
+ return 'data:audio/wav;base64,'+btoa(binary);
+}
 function changeCaptureButtons(active){
   $('recordBtn').disabled=active;$('randomBtn').disabled=active;
   $('recordBtn').textContent=active?'● 録音中…':'● 声からキャラ生成';
@@ -419,9 +434,11 @@ function changeCaptureButtons(active){
 }
 function stopRecord(){if(recording&&stopCaptureNow)stopCaptureNow()}
 async function startRecord(){
- if(recording)return;
+ if(recording||recordingRequestPending)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
- let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null;
+ let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null;
+ const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
+ recordingRequestPending=true;
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
@@ -438,6 +455,27 @@ async function startRecord(){
    }
   }catch(e){recorder=null}
   src=aud.createMediaStreamSource(stream);const an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
+  // PCM backup for browsers without MediaRecorder or with an undecodable recorder codec.
+  // A zero-gain output keeps ScriptProcessor callbacks active without feeding mic audio to speakers.
+  try{
+   if(typeof aud.createScriptProcessor==='function'){
+    pcmRate=Math.min(11025,Math.round(aud.sampleRate));
+    pcmNode=aud.createScriptProcessor(4096,1,1);
+    pcmSilence=aud.createGain();pcmSilence.gain.value=0;
+    pcmNode.onaudioprocess=ev=>{
+     if(!recording||recordingFinishing||pcmSamples.length>=pcmRate*4)return;
+     const input=ev.inputBuffer.getChannelData(0);
+     for(let i=0;i<input.length;i++){
+      pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
+      if(pcmCarry>=aud.sampleRate){
+       pcmSamples.push(pcmSum/Math.max(1,pcmCount));
+       pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
+      }
+     }
+    };
+    src.connect(pcmNode);pcmNode.connect(pcmSilence);pcmSilence.connect(aud.destination);
+   }
+  }catch(e){try{pcmNode?.disconnect()}catch{}try{pcmSilence?.disconnect()}catch{}pcmNode=null;}
   const buf=new Float32Array(an.fftSize),samples=[],pitches=[],zcs=[],steps=[];
   let sig=2166136261,begin=performance.now(),captureDone=false,resolveCapture;
   const capturePromise=new Promise(resolve=>resolveCapture=resolve);
@@ -463,9 +501,16 @@ async function startRecord(){
      new Promise(resolve=>{recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||chunks[0]?.type||'audio/webm'}));recorder.stop()}),
      new Promise(resolve=>setTimeout(()=>resolve(null),2500))
     ]);
-    if(blob?.size>0&&blob.size<115000){voiceClip=await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(typeof r.result==='string'?r.result:'');r.onerror=()=>resolve('');r.readAsDataURL(blob)})}
+    if(blob?.size>0&&blob.size<115000){
+     try{
+      // Confirm this device can decode its own recording before storing the clip.
+      await aud.decodeAudioData(await blob.arrayBuffer());
+      voiceClip=await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(typeof r.result==='string'?r.result:'');r.onerror=()=>resolve('');r.readAsDataURL(blob)});
+     }catch(e){lastSoundStatus='録音形式を再生できないためWAVに切り替えます';}
+    }
    }catch(e){}
   }
+  if(!voiceClip)voiceClip=pcmWavDataUrl(pcmSamples,pcmRate);
   const rms=median(samples)||0,pitch=median(pitches)||230,dev=median(pitches.map(p=>Math.abs(p-pitch)))||0;
   let delta=0;for(let i=1;i<samples.length;i++)delta+=Math.abs(samples[i]-samples[i-1]);delta/=Math.max(1,samples.length-1);
   const z=median(zcs)||0,rough=median(steps)||0;
@@ -477,9 +522,9 @@ async function startRecord(){
   $('micNotice').textContent=voiceClip?'録音した声はソロ戦で再生できます。録音には適切な言葉を使ってください。':'録音データを保存できませんでした。代替音でソロ戦は続行できます。';
  }catch(e){const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
  finally{
-  if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;
+  if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
-  try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{pcmNode?.disconnect()}catch(e){}try{pcmSilence?.disconnect()}catch(e){}try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
   try{await aud?.close()}catch(e){}audioCtx=null;
   changeCaptureButtons(false);$('controlCard').classList.remove('recording');
   updateVoicePreviewButton();
