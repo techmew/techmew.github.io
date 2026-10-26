@@ -17,7 +17,7 @@ const gainParam={setValueAtTime(){},linearRampToValueAtTime(){}};
 const ac={currentTime:10,decodeAudioData:async()=>buffer,
  createGain:()=>({gain:gainParam,connect(){}}),
  createBufferSource:()=>({playbackRate:{value:1},connect(){},start(...args){calls.push(args)},stop(){}})};
-const cr={seed:8,voiceClip:'data:audio/webm;base64,dGVzdA==',voice:{rhythm:30}};
+const cr={seed:8,voiceClip:'data:audio/webm;base64,dGVzdA==',voiceReview:'passed',voice:{rhythm:30}};
 const match={done:false,mode:'COM MATCH',turn:3,live:false,a:cr,b:{seed:9}};
 const context={
  Uint8Array,Map,Math,Float32Array,
