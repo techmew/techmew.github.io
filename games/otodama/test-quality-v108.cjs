@@ -24,7 +24,7 @@ const setup=[
 "const saveProgress=()=>{},saveStore=()=>{},setCurrent=()=>{},renderRoster=()=>{},showCampaign=()=>{},showStage=()=>{},showDaily=()=>{};",
 "const dailyKey=()=>'',missionCompleted=()=>false;"
 ].join('\n');
-const harness=()=>new Function(setup+'\n'+rewardCode+'return {run:updateCharacterProgress,notice};')();
+const harness=()=>new Function(setup+'\n'+rewardCode+'return {run:updateCharacterProgress,notice,setStreak(v){streak=v}};')();
 const player=()=>({seed:42,level:1,xp:0,stats:[50,50,50,50,50]});
 const fight=(p,damageTaken,parries,dodges,winner=0)=>({a:p,mode:'COM MATCH',outcome:{winner},grade:'C',damageTaken,parries,dodges,boss:false,rival:false});
 let t=harness(),p=player(),m=fight(p,4,2,0);t.run(m);
@@ -32,6 +32,20 @@ assert.equal(m.cleanDefenseAwarded,true);assert.equal(p.level,2);assert.ok(t.not
 t=harness();p=player();m=fight(p,5,2,0);t.run(m);assert.equal(m.cleanDefenseAwarded,false);assert.equal(p.level,1);assert.equal(p.xp,2);
 t=harness();p=player();m=fight(p,0,0,2);t.run(m);assert.equal(m.cleanDefenseAwarded,true);
 t=harness();p=player();m=fight(p,0,2,0,1);t.run(m);assert.equal(m.cleanDefenseAwarded,false);
+// v0.10.14: three campaign bonuses are earned from actual battle outcomes.
+t=harness();t.setStreak(4);p=player();
+m={...fight(p,80,0,0),b:{stats:[65,65,65,65,65]},hp:[25,0],max:[200,200]};
+t.run(m);
+assert.equal(m.streakAwarded,true,'fifth consecutive victory');
+assert.equal(m.comebackAwarded,true,'low HP comeback');
+assert.equal(m.underdogAwarded,true,'defeating stronger opponent');
+for(const label of ['5連勝報酬 +2XP','逆転勝利 +1XP','格上撃破 +1XP'])assert.ok(t.notice.textContent.includes(label),'missing '+label);
+t=harness();t.setStreak(0);p=player();
+m={...fight(p,30,0,0),b:{stats:[45,45,45,45,45]},hp:[140,0],max:[200,200]};
+t.run(m);
+assert.equal(m.streakAwarded,false);
+assert.equal(m.comebackAwarded,false);
+assert.equal(m.underdogAwarded,false);
 const source=worker.slice(worker.indexOf('function pruneIdleSockets('),worker.indexOf('export default'));
 const prune=new Function(source+'return pruneIdleSockets;')();
 const socket=a=>({readyState:1,closed:false,deserializeAttachment(){return a},close(){this.closed=true;this.readyState=3}});
