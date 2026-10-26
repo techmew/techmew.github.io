@@ -1,3 +1,45 @@
+# 声魂（こえだま） v0.10.14 / 2026-10-26 — 一礼なし・短いセリフ・発言内容の禁止語チェック
+
+## CURRENT_STATUS
+- GitHub main の games/otodama/のみ改修。勝敗後の日本語TTS吹き出し、500勝利+500敗北=1,000セリフ、勝利自動次戦・敗北結果停止、声生成/育成/音量/BGM/爆発/WIN/保存を維持。Cloudflare Worker本番未公開。
+- 対戦前のお辞儀UI/アニメーション/待機タイマーを削除。COM・日替わり・サバイバルは対戦開始後すぐに自動戦闘へ。
+- 録音した言葉を音声認識可能なら文字列化して禁止語チェック。録音声の再生・保存には認識済み判定を必須とする。端末内音声認識を優先し、ブラウザ外部認識サービスは明示的チェックボックス同意時のみ利用。音声認識非対応/失敗/未判定では音響特徴に基づき素体を生成し、未判定の生録音音声を保存・再生しない。
+- 外部の録音声は現在サーバー側の真正な音声内容確認ができないため、オンライン生音声の送受信を一時無効化（Worker側でも拒否）。認識による誤判定・聞き逃しを完全には防げない。
+
+## CHANGELOG
+1. 一礼用 bowBanner、bowStartTimer、introDuration、描画前のbow分岐、CSSを撤去。
+2. 勝利/敗北各500セリフを平均24.5文字（18～32文字）の短い自然な日本語へ再構成。1,000パターンの一意性を検査。勝利後は最低約3.35秒表示、読み上げが続く場合は最大約9.5秒まで待って自動次戦。敗北は結果画面で待機。
+3. moderation.jsへisForbiddenSpeechを追加。辞書を名前と音声認識結果で共有し、カタカナ/全角半角/記号/空白/伸ばし音/主要な言い換えを判定。
+4. 録音時にSpeechRecognitionを利用可能なら起動。処理が端末内にあると確認できる場合はローカル優先、そうでなければユーザー許諾がなければ認識せず、録音音声も保存・再生しない。
+5. 禁止語認識時は録音音声と生成を破棄。未判定は素体生成のみ。過去の未審査クリップもclipDataで再生拒否し、オンラインの未審査音声転送/再生も停止。
+6. UIに外部音声認識の利用許可（初期OFF）と非対応時の案内。test-dialogue-v113 / test-voice-review-v114 / test-moderationを改訂、READMEとバージョンを更新。
+
+## TEST_RESULTS
+- GitHub main埋込JS V8構文: PASS。短い1,000セリフの一意性・平均長: PASS。禁止語「ちんこ」「ち・ん・こ」「ちーんこ」「セックス」「sex」「p.e.n.i.s」の検出と通常語の過検知抑制をV8で確認。
+- V8模擬テスト: dialogue, survival, UI source, quality-v105, quality-v106, quality-v108 全件PASS。音声認識/許諾/未判定時fail-closed/旧クリップ拒否は模擬テストPASS。GitHub再取得で変更ソースを確認。
+- 正式Node CLI全テスト、実ブラウザマイク/SpeechRecognition、Android端末、録音音声の実際の検出精度、オンラインWorker本番配信、外部2端末は未検証。GitHub Pagesの成功は別途確認する。
+
+## BLOCKERS
+- Web Speech API 音声認識は端末依存、認識できた内容に漏れ・誤認識あり。ブラウザによっては外部音声認識に録音が転送されるため明示的許諾を要する。禁止語の音響的完全検知は保証不可。未判定の生録音は再生不可。
+- 以前の録音声は審査結果フラグがないため再録音が必要。
+- オンラインの音声共有はサーバー側音声検査の導入まで無効。Cloudflare Workerの認証/本番デプロイは未実施。
+
+## NEXT_ACTIONS
+1. Android Chromeで端末内認識/許諾後のブラウザ認識、禁止語録音の破棄、正常な声の再生、マイク権限・競合を実測する。
+2. Android/Chromiumで勝敗吹き出しの短さ・実音声TTS・勝利自動次戦・敗北停止・画面縦横を検証。
+3. Workerを本番公開後、オンラインで音声送信が拒否されることを二端末検証。真の音声モデレーション基盤ができるまでは共有を有効化しない。
+
+## GITHUB_COMMITS
+- Remove bow and shorten lines: f99b5bb1f8b5f12e85f3d0fd01be784dc3e5f7e8
+- Shared speech moderation: 0d66e708e6fc79b6c18e5b57787d291ea88de5a5
+- Speech recognition + consent UI: 25769ff95e12cbfa74e718f4254b74481efce6ec
+- Reject forbidden/unrecognized clips: 508d69ed98c951a614e3126bbf6572f67d4335ac
+- Guard legacy/peer clips: bc05d3c544fa5578c3ce9b95a7218269894ab791
+- New speech test: fac766ab8153c6cd6e8f7be5c85f03974337ad2b
+- Dialogue test revised: 2d709830c2e6156401407c84bd9c1511e29a8dc3
+- Online audio denied server-side: 042eab6dd0e9a943e786de0083be28733f6cf60c
+- README refresh: ce658d279c96c459138b276a60e1a115ad9a18f9
+
 # 声魂（こえだま） v0.10.13 / 2026-10-26 — 日本語セリフ1,000種類・音声読み上げ・自動次戦
 
 ## CURRENT_STATUS
