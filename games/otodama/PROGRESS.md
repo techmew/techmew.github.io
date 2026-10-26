@@ -1,3 +1,49 @@
+# OTODAMA∞ 毎時開発 / 2026-10-26 / v0.10.2
+
+## CURRENT_STATUS
+- GitHub main index.html, worker.js, wrangler.jsonc, moderation.js, README, package.json, tests, PROGRESSと、指定Driveのv0.10.1ログを実読してから改修。
+- 声生成・録音/停止/試聴・外見組合せ・名前生成・COM連戦・WIN/爆発・育成を維持。
+- Cloudflare Workerは未公開。Android実機・独立二端末・本番WebSocket対戦は未検証。
+
+## CHANGELOG
+1. 禁止語辞書を410語に拡張し、局部表現、Unicodeの記号分割、不可視文字、一部混同文字への耐性を追加。
+2. 禁止29例と許可21例を評価し、誤検出抑制（1文字の膣は完全一致）を維持。回帰テストを追加。
+3. キャンペーンのステージミッションを12→16種類に追加。
+4. 敵の戦型を3→5種類に増やし、吸音/粉砕を追加。
+5. 自作BGMのステージ別裏拍・ボス戦フィルを追加。
+6. オンラインキャラ入力の型/サイズ/数値検証を強化し、不正なネストを拒否。サーバーテストを拡張。
+7. UI回帰テストを拡張、ゲーム/Worker/packageをv0.10.2へ更新。
+
+## TEST_RESULTS
+- GitHub main再取得と変更後blob SHAの一致：確認済み。
+- V8 JavaScript構文評価：index埋込スクリプト / worker / moderation PASS。
+- 禁止29件/許可21件の文字列判定：PASS。追加したUI要素・Worker検証条件の静的チェック：PASS。
+- Nodeの正式テストスイート、Chromiumの操作スイート、GitHub Pagesの公開反映、Android実機、外部2端末、Cloudflare本番：今回未検証。
+
+## BLOCKERS
+- Cloudflare公開には所有者の認証、Actions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN、Worker URL設定が必要。認証情報は保存しない。
+- 録音発話の文字起こし/禁止語検査は未実装。クライアント送信の声特徴量は真正性を証明できない。
+
+## NEXT_ACTIONS
+1. Node/Chromium全スイート実行とモバイルUI/録音/保存の回帰。
+2. Cloudflare認証後にWorkerデプロイ、/health・ランダム/招待・独立2端末の復帰・音声同意・同期テスト。
+3. ミッション16種類と敵戦型5種類のバランス・実プレイ長時間BGM評価。
+4. 録音音声のモデレーション方式（端末内処理/プライバシー/明示同意）を検討。
+
+## GITHUB_COMMITS
+- moderation: d15887965684a3fcbfc3f942d4bc2b13153795c0
+- moderation test: 5d8a534fc6153d7fc068a8ddc1507bd6461518b2
+- game: 2cc269fd69313057eba93c22a8b9423ca1648af1
+- worker validation: 8ac08da513d68ff1818421e9f6a1dcc7842b54f5
+- worker test: 3ee0d95ed2c7483a2f13977e5ecf30324a4bce7d
+- UI test: 2447b4ea472105e4f644b4f0618e2ac80a2a4f6d
+- version: 5758eac0518aa3a35993d54f3aa39b29aa422ccc / 6d718fe75da278b6eedb67fb5ce58aaa6f5ac6c6 / de27fb479734c4ae4b265ef7a991271f84cdde51
+- README: 257b669d5021d97dc0c0fd8c4680c12420ac8265
+
+GitHubがコード正本、Driveが引き継ぎ正本。未実施のテストを確認済みとしない。
+
+---
+
 # OTODAMA∞ 毎時開発 / 2026-10-26 / v0.10.1
 
 ## CURRENT_STATUS
