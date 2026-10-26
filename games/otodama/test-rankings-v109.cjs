@@ -6,7 +6,7 @@ const {DatabaseSync}=require('node:sqlite');
 const {webcrypto}=require('node:crypto');
 const source=fs.readFileSync(__dirname+'/worker.js','utf8')
  .replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(ctx,env){this.ctx=ctx;this.env=env}}')
- .replace("import { sanitizePublicName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,''))
+ .replace("import { sanitizePublicName, isForbiddenName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,''))
  .replace('export default {','const workerDefault = {')
  .replace(/export class /g,'class ');
 new vm.Script(source,{filename:'worker.js#test'});
@@ -20,6 +20,7 @@ const submit=async(path,body)=>rank.fetch(new Request('https://internal.example'
 (async()=>{
  const reg=async name=>{const r=await submit('/issue',{name});assert.equal(r.status,201);return r.json()};
  const a=await reg('こむぎ'),b=await reg('もも');
+ const forbidden=await submit('/issue',{name:'ちんこ'});assert.equal(forbidden.status,422,'forbidden alias rejected');
  assert.match(a.id,/^[a-f0-9]{32}$/);assert.match(a.token,/^[a-f0-9]{48}$/);
  assert.notEqual(a.token,b.token);
  let r=await submit('/validate',{token:a.token});

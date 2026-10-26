@@ -1,3 +1,26 @@
+# 声魂（こえだま） v0.10.11 / 2026-10-26 17時台 JST
+
+## CURRENT_STATUS
+- games/otodama/のみ変更。声生成・録音/試聴/攻撃声・外見/名前・育成・COM連戦/サバイバル・爆発/WIN・旧セーブ互換を保持。Cloudflare Workerは未公開。
+
+## CHANGELOG
+1. サバイバル操作報酬：無被弾80、ガード2回50、回避2回50、必殺1回40ポイント。複数達成可能、結果に内訳表示。オンラインはローカル統計加点なし。
+2. 次戦約3秒表示と画面復帰待ち案内。
+3. Room未参加WebSocketの30秒alarm自動清掃。
+4. Matchmaker未検索30秒/検索中120秒のalarm自動清掃と既存期限保護。
+5. Matchmaker10秒20件超の連投を切断。
+6. ランキング禁止語名をサーバー422拒否。テスト・README・バージョン更新。
+
+## TEST_RESULTS
+- V8構文検査：HTML埋込JS/Worker/Nodeテスト。V8模擬：操作報酬、キュー期限・連投拒否、禁止語422。
+- GitHubコミット・再取得結果とSHAはDrive最新ログを参照。正式Node全テスト、Chromium/Android/Cloudflare本番/外部2端末/ライブ実操作は未実施。
+
+## BLOCKERS
+- Cloudflare認証とSecrets CLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKEN、Worker URL未確認。音声文字起こし禁止語審査なし。
+
+## NEXT_ACTIONS
+- Node全回帰/Chromium・Androidで録音・攻撃声・BGM・保存・縦横・次戦・報酬、Worker公開後に2端末ランダム/招待/再接続/順位を確認。
+
 # 声魂（こえだま） / v0.10.10 / 2026-10-26 16時台 JST — サバイバル連戦・BGM・ランキング入力保護
 
 ## CURRENT_STATUS

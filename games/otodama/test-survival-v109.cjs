@@ -22,10 +22,12 @@ const harness=[
  "const showBattle=(p,e,o,mode)=>{match={a:p,b:e,mode,done:false,interactive:true,live:false,current:null}};",
  "const leaveRoom=()=>calls.push('leaveRoom'),serverBase=()=>null,startRandomMatch=()=>calls.push('queue'),cancelRandomSearch=()=>calls.push('cancel');",
  script.slice(begin,end),
- "globalThis.test={startSurvival,nextSurvivalBattle,finishSurvivalRound,setAutoBattle,scheduleAutoAction,get data(){return{survivalActive,survivalRound,survivalPoints,survivalWins,survivalBest,autoBattleEnabled,survivalAwaitingVisibility,match}},set hidden(v){document.hidden=v},get dom(){return dom},timers,calls,saved,set clock(v){clock=v}};"
+ "globalThis.test={startSurvival,nextSurvivalBattle,finishSurvivalRound,survivalStyleBonus,setAutoBattle,scheduleAutoAction,get data(){return{survivalActive,survivalRound,survivalPoints,survivalWins,survivalBest,autoBattleEnabled,survivalAwaitingVisibility,match}},set hidden(v){document.hidden=v},get dom(){return dom},timers,calls,saved,set clock(v){clock=v}};"
 ].join('\n');
 const ctx={Date,Math,Number,JSON,Map,String,Array,RegExp,Uint8Array,console};
 vm.runInNewContext(harness,ctx);const t=ctx.test;
+assert.equal(t.survivalStyleBonus({damageTaken:0,parries:2,dodges:2,skillsUsed:1}).points,220,'style rewards');
+assert.equal(t.survivalStyleBonus({live:true,damageTaken:0,parries:9}).points,0,'online no local bonus');
 t.startSurvival();assert.equal(t.data.survivalActive,true);
 assert.equal(t.data.autoBattleEnabled,true);assert.equal(t.data.match.mode,'SURVIVAL');assert.equal(t.data.match.b.seed,313);
 const first=t.data.match;first.done=true;first.hp=[170,0];first.max=[170,170];first.outcome={winner:0};

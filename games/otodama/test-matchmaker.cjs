@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 let source=fs.readFileSync(__dirname+'/worker.js','utf8')
  .replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(state){this.ctx=state}}')
- .replace("import { sanitizePublicName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,''))
+ .replace("import { sanitizePublicName, isForbiddenName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,''))
  .replace('export default {','const defaultExport = {')
  .replace('export class Room extends DurableObject','class Room extends DurableObject')
  .replace('export class Matchmaker extends DurableObject','class Matchmaker extends DurableObject').replace('export class Rankings extends DurableObject','class Rankings extends DurableObject');
@@ -25,6 +25,10 @@ const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets,storage:mmStorage
  fakeNow+=120001;await mm.alarm();assert.equal(w3.readyState,3,'stale queue socket not expired');
  const w4=FakeSocket(),w5=FakeSocket();sockets.push(w4,w5);await mm.webSocketMessage(w4,JSON.stringify({type:'search'}));await mm.webSocketMessage(w4,JSON.stringify({type:'cancel'}));assert.equal(w4.readyState,3,'cancel did not close queued socket');
  await mm.webSocketMessage(w5,JSON.stringify({type:'search'}));assert.equal(w5.messages.length,0);fakeNow+=120001;await mm.alarm();assert.equal(w5.readyState,3,'unmatched queue not expired');
+ const idle=FakeSocket();sockets.push(idle);await mm.pair();assert.equal(mmStorage.alarmAt,fakeNow+30000,'unsearched socket alarm');
+ fakeNow+=30001;await mm.alarm();assert.equal(idle.readyState,3,'unsearched socket expires');
+ const spam=FakeSocket();sockets.push(spam);for(let i=0;i<21;i++)await mm.webSocketMessage(spam,'{}');assert.equal(spam.readyState,3,'queue flood closes socket');
+ const lone=FakeSocket();lone.data={creature:null,openedAt:fakeNow};const idleRoom=new ctx.testing.Room({getWebSockets:()=>[lone],storage:{get:async()=>null}});fakeNow+=30001;await idleRoom.alarm();assert.equal(lone.readyState,3,'room idle alarm');
  const saturated=new ctx.testing.Matchmaker({getWebSockets:()=>Array.from({length:64},FakeSocket),storage:mmStorage});
  assert.equal((await saturated.fetch()).status,503,'saturated matchmaking queue must reject new sockets');
  const room=new ctx.testing.Room({getWebSockets:()=>[]});

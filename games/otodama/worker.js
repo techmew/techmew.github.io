@@ -4,7 +4,7 @@
  * Not ranked-safe: client-origin voice data is still unverified; server ignores posted stats.
  */
 import { DurableObject } from 'cloudflare:workers';
-import { sanitizePublicName } from './moderation.js';
+import { sanitizePublicName, isForbiddenName } from './moderation.js';
 
 const safeJson = (obj, code=200) => new Response(JSON.stringify(obj), {
   status:code, headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','cache-control':'no-store'}
@@ -42,7 +42,7 @@ export default {
       if(request.method==='POST'&&textBody===null)return safeJson({error:'Registration payload too large or invalid'},413);
       return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
     }
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.10',randomMatch:true,seasonalRanking:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.11',randomMatch:true,seasonalRanking:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -108,6 +108,8 @@ export class Room extends DurableObject {
       this.voicePolicy();
     }else{
       server.serializeAttachment({creature:null,ready:false,openedAt:Date.now()});
+      // Clean unjoined sockets even without another visitor.
+      await this.ctx.storage.setAlarm(Date.now()+30000);
     }
     return new Response(null,{status:101,webSocket:client});
   }
@@ -259,6 +261,7 @@ export class Room extends DurableObject {
     await this.ctx.storage.setAlarm(state.pauseUntil);
   }
   async alarm(){
+    pruneIdleSockets(this.ctx.getWebSockets(),Date.now());
     const state=await this.ctx.storage.get('live');if(!state?.active)return;
     const peers=this.livePeers();
     if(peers.length!==2){
@@ -422,6 +425,7 @@ export class Rankings extends DurableObject {
   if(!data||typeof data!=='object'||Array.isArray(data))return safeJson({error:'Invalid object'},400);
   if(path==='/issue'){
    if(typeof data.name!=='string'||!data.name.trim()||data.name.length>28)return safeJson({error:'Name must be 1-28 characters'},400);
+   if(isForbiddenName(data.name))return safeJson({error:'使用できない名前です。別の名前を入力してください'},422);
    const name=sanitizePublicName(data.name,0).slice(0,18);
    const bucket=Math.floor(Date.now()/3600000);
    this.sql.exec('DELETE FROM issue_limits WHERE bucket<?',bucket-48);
@@ -473,9 +477,17 @@ export class Matchmaker extends DurableObject {
     const [client,server]=Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({status:'connected',time:Date.now()});
+    const pending=await this.ctx.storage.getAlarm?.();
+    await this.ctx.storage.setAlarm(Math.min(pending??Infinity,Date.now()+30000));
     return new Response(null,{status:101,webSocket:client});
   }
   async webSocketMessage(ws,raw){
+    const previous=ws.deserializeAttachment()||{},now=Date.now();
+    const fresh=now-(previous.rateAt||0)>10000;
+    const rateAt=fresh?now:previous.rateAt;
+    const rateCount=fresh?1:(previous.rateCount||0)+1;
+    if(rateCount>20){try{ws.close(1008,'Search rate limit')}catch{}return;}
+    ws.serializeAttachment({...previous,rateAt,rateCount});
     if(typeof raw!=='string'||raw.length>256)return;
     let msg;try{msg=JSON.parse(raw)}catch{return}
     if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
@@ -503,10 +515,13 @@ export class Matchmaker extends DurableObject {
         try{socket.send(JSON.stringify({type:'matched',code}));socket.close(1000,'paired')}catch{}
       }
     }
-    const next=waiting.filter(w=>w.readyState===1&&w.deserializeAttachment()?.status==='waiting');
-    if(next.length)await this.ctx.storage.setAlarm(Math.min(...next.map(w=>w.deserializeAttachment().time+120000)));
+    const deadlines=this.ctx.getWebSockets().filter(w=>w.readyState===1).map(w=>{
+      const a=w.deserializeAttachment()||{};
+      return a.status==='waiting'?a.time+120000:a.status==='connected'?a.time+30000:Infinity;
+    }).filter(Number.isFinite);
+    if(deadlines.length)await this.ctx.storage.setAlarm(Math.min(...deadlines));
   }
-  async alarm(){await this.pair()}
+  async alarm(){pruneIdleSockets(this.ctx.getWebSockets(),Date.now());await this.pair()}
   async webSocketClose(ws,code,reason){try{ws.close(code||1000,reason||'closed')}catch{}}
   async webSocketError(ws){try{ws.close(1011,'Socket error')}catch{}}
 }
