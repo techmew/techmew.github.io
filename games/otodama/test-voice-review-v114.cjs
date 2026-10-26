@@ -3,7 +3,7 @@
 const fs=require('node:fs'),assert=require('node:assert/strict');
 (async()=>{
  const {isForbiddenSpeech}=await import('./moderation.js');
- for(const word of ['ちんこ','チ・ン・コ','ちんぽ','ちーんこ','ち ん ぽ','ま・ん・こ',
+ for(const word of ['人間の局部','局部','ちーーんこ','chinko','c.h.i.n.k.o','ちんこ','チ・ン・コ','ちんぽ','ちーんこ','ち ん ぽ','ま・ん・こ',
   '陰茎','金玉','ｓｅｘ','ｐｅｎｉｓ','s.e.x','f.u.c.k y.o.u']){
    assert.equal(isForbiddenSpeech(word),true,'unblocked transcription: '+word);
  }
