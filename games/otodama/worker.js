@@ -19,6 +19,11 @@ export default {
     const url = new URL(request.url);
     const origin=request.headers.get('Origin');
     if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
+    if(request.method==='OPTIONS'&&['/identity','/leaderboard'].includes(url.pathname))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin||'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type','cache-control':'no-store'}});
+    if(url.pathname==='/identity'&&request.method==='POST'||url.pathname==='/leaderboard'&&request.method==='GET'){
+      const obj=env.RANKINGS.get(env.RANKINGS.idFromName('seasonal-v1'));
+      return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(request.method==='POST'?{body:request.body}: {})}));
+    }
     if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.8',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
@@ -54,7 +59,7 @@ export class Room extends DurableObject {
     const [client,server]=Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     if(resumeSeat>=0){
-      server.serializeAttachment({creature:active.creatures[resumeSeat],ready:false,seat:resumeSeat,resumeToken,voiceConsent:{send:false,receive:false}});
+      server.serializeAttachment({creature:active.creatures[resumeSeat],ready:false,seat:resumeSeat,resumeToken,rankId:active.rankIds?.[resumeSeat]||null,voiceConsent:{send:false,receive:false}});
       this.send(server,{type:'session',token:resumeToken,seat:resumeSeat});
       const peers=this.livePeers();
       if(peers.length===2){
@@ -175,7 +180,7 @@ export class Room extends DurableObject {
     const max=creatures.map(c=>Math.round(140+c.stats[1]*.6));
     const state={active:true,phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
       stance:['balance','balance'],turnStance:['balance','balance'],skillArmed:[false,false],dodgeCooldown:[0,0],actions:[null,null],startedAt:0,
-      tokens:peers.map(p=>p.deserializeAttachment().resumeToken),disconnectedAt:0};
+      tokens:peers.map(p=>p.deserializeAttachment().resumeToken),rankIds:peers.map(p=>p.deserializeAttachment().rankId||null),matchId:Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''),disconnectedAt:0};
     await this.ctx.storage.put('live',state);
     for(let i=0;i<2;i++){this.send(peers[i],{type:'live_start',creatures:i===0?creatures:creatures.slice().reverse(),max:i===0?max:max.slice().reverse(),duration:900});this.sendLatencyProbe(peers[i]);}
     await this.announceLiveTurn(state,peers);
@@ -196,10 +201,19 @@ export class Room extends DurableObject {
       warning:atk===0?'攻撃チャンス':'敵の攻撃に備えろ',dodgeCooldown:state.dodgeCooldown});
     await this.ctx.storage.setAlarm(state.startedAt+900);
   }
+  async reportRankedResult(state,winner){
+    if(!this.env?.RANKINGS||!Array.isArray(state.rankIds)||state.rankIds.length!==2||!state.rankIds.every(Boolean))return false;
+    try{
+      const board=this.env.RANKINGS.get(this.env.RANKINGS.idFromName('seasonal-v1'));
+      const result=await board.fetch(new Request('https://internal.example/result',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({matchId:state.matchId,ids:state.rankIds,winner})}));
+      return result.ok&&!!(await result.json()).ranked;
+    }catch{return false}
+  }
   async finishLive(state,peers){
     state.active=false;state.phase='finished';
     const winner=state.hp[0]/state.max[0]>=state.hp[1]/state.max[1]?0:1;
-    this.liveSend(peers,state,{type:'live_end',winner,hp:state.hp,charge:state.charge});
+    const ranked=await this.reportRankedResult(state,winner);
+    this.liveSend(peers,state,{type:'live_end',winner,hp:state.hp,charge:state.charge,ranked});
     await this.ctx.storage.delete('live');
   }
   async resolveLiveTurn(state,peers){
@@ -232,6 +246,7 @@ export class Room extends DurableObject {
     if(peers.length!==2){
       if(!state.disconnectedAt){state.disconnectedAt=Date.now();await this.ctx.storage.put('live',state)}
       if(Date.now()<state.disconnectedAt+15000){await this.ctx.storage.setAlarm(state.disconnectedAt+15000);return}
+      if(peers.length===1)await this.reportRankedResult(state,peers[0].deserializeAttachment().seat);
       for(const peer of peers){this.send(peer,{type:'live_forfeit',winner:0});const a=peer.deserializeAttachment();peer.serializeAttachment({...a,ready:false})}
       await this.ctx.storage.delete('live');this.state();return;
     }
@@ -289,7 +304,14 @@ export class Room extends DurableObject {
       const seat=occupied.has(0)?1:0;
       if(occupied.has(seat)){this.send(ws,{type:'error',message:'満室です'});return}
       const token=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
-      ws.serializeAttachment({...attachment,creature,ready:false,seat,resumeToken:token,voiceConsent:{send:false,receive:false}});
+      let rankId=null;
+      if(this.env?.RANKINGS&&typeof data.playerToken==='string'&&/^[a-f0-9]{48}$/.test(data.playerToken)){
+        try{const board=this.env.RANKINGS.get(this.env.RANKINGS.idFromName('seasonal-v1'));
+          const response=await board.fetch(new Request('https://internal.example/validate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:data.playerToken})}));
+          if(response.ok){const player=await response.json();if(player.valid&&/^[a-f0-9]{32}$/.test(player.id))rankId=player.id;}
+        }catch{}
+      }
+      ws.serializeAttachment({...attachment,creature,ready:false,seat,resumeToken:token,rankId,voiceConsent:{send:false,receive:false}});
       this.send(ws,{type:'session',token,seat});this.state();this.voicePolicy();return;
     }
     if(data.type==='voice_consent'){
@@ -351,6 +373,75 @@ export class Room extends DurableObject {
  * random room code and reconnects to /room/CODE using the existing protocol.
  * Matchmaker uses hibernatable WebSockets; queued players have no active CPU.
  */
+
+// Server-owned online standings. Only Room can call /result through its DO binding;
+// the public Worker router deliberately never forwards those internal endpoints.
+export class Rankings extends DurableObject {
+ constructor(ctx,env){
+  super(ctx,env);this.sql=ctx.storage.sql;
+  this.sql.exec('CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, token_hash TEXT UNIQUE NOT NULL, name TEXT NOT NULL, created INTEGER NOT NULL)');
+  this.sql.exec('CREATE TABLE IF NOT EXISTS scores (season TEXT NOT NULL, id TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, losses INTEGER NOT NULL DEFAULT 0, streak INTEGER NOT NULL DEFAULT 0, best INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL, PRIMARY KEY(season,id))');
+  this.sql.exec('CREATE TABLE IF NOT EXISTS results (match_id TEXT PRIMARY KEY, pair TEXT NOT NULL, created INTEGER NOT NULL)');
+  this.sql.exec('CREATE TABLE IF NOT EXISTS issue_limits (bucket INTEGER PRIMARY KEY, amount INTEGER NOT NULL)');
+ }
+ async hashToken(token){
+  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+ }
+ async fetch(request){
+  const path=new URL(request.url).pathname,method=request.method;
+  const season=new Date().toISOString().slice(0,7);
+  if(path==='/leaderboard'&&method==='GET'){
+   const rows=[...this.sql.exec('SELECT p.id AS id,p.name AS name,s.points AS points,s.wins AS wins,s.losses AS losses,s.best AS best FROM scores s JOIN players p ON p.id=s.id WHERE s.season=? ORDER BY s.points DESC,s.wins DESC,s.updated ASC LIMIT 30',season)];
+   return safeJson({season,verifiedOnlineOnly:true,rows:rows.map((r,i)=>({...r,rank:i+1}))});
+  }
+  if(!['/issue','/validate','/result'].includes(path)||method!=='POST')return safeJson({error:'Not found'},404);
+  let data;try{data=await request.json()}catch{return safeJson({error:'Invalid JSON'},400)}
+  if(!data||typeof data!=='object'||Array.isArray(data))return safeJson({error:'Invalid object'},400);
+  if(path==='/issue'){
+   if(typeof data.name!=='string'||!data.name.trim()||data.name.length>28)return safeJson({error:'Name must be 1-28 characters'},400);
+   const name=sanitizePublicName(data.name,0).slice(0,18);
+   const bucket=Math.floor(Date.now()/3600000);
+   const count=[...this.sql.exec('SELECT amount FROM issue_limits WHERE bucket=?',bucket)][0]?.amount||0;
+   if(count>=300)return safeJson({error:'Registration is temporarily limited'},429);
+   const random=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('');
+   const id=random(16),token=random(24),hash=await this.hashToken(token);
+   this.sql.exec('INSERT INTO players(id,token_hash,name,created) VALUES(?,?,?,?)',id,hash,name,Date.now());
+   this.sql.exec('INSERT INTO issue_limits(bucket,amount) VALUES(?,1) ON CONFLICT(bucket) DO UPDATE SET amount=amount+1',bucket);
+   return safeJson({id,name,token,warning:'Keep this anonymous token private. Clearing browser storage loses this identity.'},201);
+  }
+  if(path==='/validate'){
+   const token=typeof data.token==='string'?data.token:'';
+   if(!/^[a-f0-9]{48}$/.test(token))return safeJson({valid:false},401);
+   const hash=await this.hashToken(token);
+   const player=[...this.sql.exec('SELECT id,name FROM players WHERE token_hash=?',hash)][0];
+   return player?safeJson({valid:true,id:player.id,name:player.name}):safeJson({valid:false},401);
+  }
+  // Internal, server-authored match results only. Reject guest/unverified match identities.
+  if(!/^[a-f0-9]{32}$/.test(data.matchId||'')||!Array.isArray(data.ids)||data.ids.length!==2||
+     !data.ids.every(id=>typeof id==='string'&&/^[a-f0-9]{32}$/.test(id))||
+     data.ids[0]===data.ids[1]||![0,1].includes(data.winner))return safeJson({ranked:false,reason:'Unverified players'},400);
+  const [p0,p1]=data.ids,now=Date.now(),pair=[p0,p1].sort().join(':');
+  const participants=[...this.sql.exec('SELECT id FROM players WHERE id IN (?,?)',p0,p1)];
+  if(participants.length!==2)return safeJson({ranked:false,reason:'Unregistered player'},400);
+  if([...this.sql.exec('SELECT match_id FROM results WHERE match_id=?',data.matchId)].length)return safeJson({ranked:false,reason:'Already recorded'});
+  const repeats=[...this.sql.exec('SELECT COUNT(*) AS n FROM results WHERE pair=? AND created>?',pair,now-86400000)][0]?.n||0;
+  if(repeats>=3)return safeJson({ranked:false,reason:'Same-opponent daily scoring cap'});
+  this.sql.exec('INSERT INTO results(match_id,pair,created) VALUES(?,?,?)',data.matchId,pair,now);
+  for(let seat=0;seat<2;seat++){
+   const id=data.ids[seat],won=seat===data.winner;
+   this.sql.exec('INSERT INTO scores(season,id,points,wins,losses,streak,best,updated) VALUES(?,?,0,0,0,0,0,?) ON CONFLICT(season,id) DO NOTHING',season,id,now);
+   if(won){
+    const prev=[...this.sql.exec('SELECT streak FROM scores WHERE season=? AND id=?',season,id)][0]?.streak||0;
+    const next=prev+1,points=100+Math.min(100,next*10);
+    this.sql.exec('UPDATE scores SET points=points+?,wins=wins+1,streak=?,best=MAX(best,?),updated=? WHERE season=? AND id=?',points,next,next,now,season,id);
+   }else this.sql.exec('UPDATE scores SET losses=losses+1,streak=0,updated=? WHERE season=? AND id=?',now,season,id);
+  }
+  this.sql.exec('DELETE FROM results WHERE created<?',now-2592000000);
+  return safeJson({ranked:true,season});
+ }
+}
+
 export class Matchmaker extends DurableObject {
   async fetch() {
     pruneIdleSockets(this.ctx.getWebSockets(),Date.now());
