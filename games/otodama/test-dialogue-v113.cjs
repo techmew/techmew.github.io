@@ -62,8 +62,8 @@ const api=new Function('d',env+src+
  await Promise.resolve();await Promise.resolve();
  assert.equal(voices.filter(v=>v==='recorded').length,2,'local winner roars using two recorded layers');
  assert.equal(spoken.length,0,'no Japanese speech synthesis of results');
- assert.ok(!$('battleSpeech').hidden,'CPU victory retains on-screen text');
- assert.ok($('battleSpeechText').textContent.includes('。'),'CPU displays a Japanese line');
+ assert.ok($('battleSpeech').hidden,'player win cannot show a dialogue bubble');
+ assert.equal($('battleSpeechText').textContent,'','player win is voice only');
  assert.ok(!$('repeatSpeechBtn').hidden,'replay button visible on result');
  const line=first.tauntText;
  await api.playVictoryRoar(first);
@@ -82,10 +82,10 @@ const api=new Function('d',env+src+
  const before=timers.length;api.scheduleNextAfterQuote(lost);
  assert.equal(timers.length,before,'defeat does not schedule another battle');
  const online={a:own,b:foe,outcome:{winner:1},mode:'ONLINE LIVE',live:true,done:true};
- api.match=online;api.showBattleQuote(online);
+ api.match=online;const beforeOnline=voices.length;api.showBattleQuote(online);
  assert.ok($('battleSpeech').hidden,'online opponent gets NO dialogue text');
  assert.equal(online.tauntText,'','online winner has no generated dialogue');
- assert.equal(voices.at(-1),'synth','online opponent without authorized recorded clip gets a synthetic roar');
+ assert.equal(voices.length,beforeOnline,'online human without a recording must not use a synthetic voice');
  assert.equal(spoken.length,0,'no spoken result dialogue anywhere');
  $('muteOpponentVoice').checked=true;
  const soundCount=voices.length;await api.playVictoryRoar(online);
@@ -127,5 +127,5 @@ const api=new Function('d',env+src+
  assert.equal(voices.length,beforeResume+2,'recovered AudioContext replays recorded victory roar');
  assert.ok(script.includes("if(won)scheduleNextAfterQuote(m)"),'auto win continues');
  assert.ok(!html.includes('id="bowBanner"'),'no pre-fight bow');
- console.log('RESULT ROAR PASS | 1000 CPU-only text lines, local recorded victory roar, fallback enemy roar, online no dialogue, mute, autoplay, replay and background');
+ console.log('RESULT ROAR PASS | player win audio-only, CPU loss text, online voice restriction, mute, autoplay, replay, background');
 })().catch(error=>{console.error(error);process.exitCode=1});
