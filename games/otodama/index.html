@@ -128,7 +128,11 @@ const MISSIONS=[{kind:'parries',target:2,label:'ジャストガードを2回成�
  {kind:'parries',target:3,label:'ジャストガードを3回成功'},
  {kind:'damageDealt',target:180,label:'合計180ダメージを与える'},
  {kind:'dodges',target:2,label:'回避を2回成功'},
- {kind:'skillsUsed',target:2,label:'必殺技を2回命中'}];
+ {kind:'skillsUsed',target:2,label:'必殺技を2回命中'},
+ {kind:'strikes',target:3,label:'精密打撃を3回成功'},
+ {kind:'counterHits',target:2,label:'カウンター攻撃を2回命中'},
+ {kind:'strikeBest',target:3,label:'精密打撃を3連鎖'},
+ {kind:'damageDealt',target:240,label:'合計240ダメージを与える'}];
 function stageMission(stage){return MISSIONS[(Math.max(1,stage)-1)%MISSIONS.length]}
 function missionProgress(m){const goal=stageMission(m.stageNo);return Math.min(goal.target,Math.max(0,Number(m[goal.kind])||0))}
 function missionCompleted(m){return m.mode==='COM MATCH'&&missionProgress(m)>=stageMission(m.stageNo).target}
@@ -155,7 +159,9 @@ function stageEnemy(n,player,attempt=0){const seed=hash(((n*2654435761)>>>0)^(pl
  // Three opponent archetypes create different combat profiles without altering the generated creature.
  if(n>=2&&n%5!==0){const roles=[{name:'猛攻',hint:'高火力・低耐久',mods:[10,-7,0,0,0]},
  {name:'堅守',hint:'高耐久・低火力',mods:[-6,10,0,2,0]},
- {name:'疾風',hint:'素早い連撃・軽装',mods:[0,-5,10,0,2]}],role=roles[(n+attempt)%roles.length];
+ {name:'疾風',hint:'素早い連撃・軽装',mods:[0,-5,10,0,2]},
+ {name:'吸音',hint:'共鳴重視・守備寄り',mods:[-2,3,-2,4,10]},
+ {name:'粉砕',hint:'重い一撃・防御は脆い',mods:[12,-9,2,-2,0]}],role=roles[(n+attempt)%roles.length];
  enemy.archetype=role.name;enemy.archetypeHint=role.hint;enemy.stats=enemy.stats.map((v,i)=>clamp(v+role.mods[i],25,95));}
  enemy.stage=n;return enemy}
 function showStage(){if(!$('adventureStage'))return;$('adventureStage').textContent='STAGE '+String(adventureStage).padStart(2,'0');$('stageHint').textContent=stageBiome(adventureStage).name+' · '+stageTitle(adventureStage)+' · '+CHAPTERS[Math.floor((adventureStage-1)/5)%CHAPTERS.length]+(adventureStage%5===0?' · ボス撃破で追加XP':isRivalStage(adventureStage)?' · 宿敵撃破で追加XP +2':' · 毎戦違う相手')+(stageAttempts?' · 新しい挑戦者 '+(stageAttempts+1)+'人目':'');$('stageWins').textContent='突破 '+stageWins+'戦';$('stageMissionHint').textContent='MISSION：'+stageMission(adventureStage).label+'（勝利で +1XP）'}
@@ -434,6 +440,9 @@ function musicTick(id){const m=match;if(id!==bgmSession||!m||m.done||!$('battleM
    const root=110*Math.pow(2,progression/12),vol=MUSIC_VOLUME()*(performance.now()<bgmDuckUntil?.22:1),restBar=bar%8===7&&!urgent&&!m.boss;
    if(slot%2===0){musicNote(ac,bgmNext,root,stepSec*1.65,'bass',vol*.075);percussion(ac,bgmNext,'kick',vol*.07)}
    if(slot===2||slot===6)percussion(ac,bgmNext,'snare',vol*.031);
+   // Alternating stage grooves and a quieter pre-climax pickup reduce loop fatigue.
+   if(m.stageNo%3===0&&slot===3&&!restBar)percussion(ac,bgmNext,'tick',vol*.009);
+   if(m.boss&&slot===7&&bar%4===2)percussion(ac,bgmNext,'snare',vol*.016);
    if(!restBar&&slot%2===1&&((k+adventureStage)%4!==0||urgent))percussion(ac,bgmNext,'tick',vol*.012);
    if(climax&&slot===7&&bar%2===1)percussion(ac,bgmNext,'snare',vol*.019);
    if(combo>=2&&slot===4)musicNote(ac,bgmNext,root*2,stepSec*.75,'melody',vol*.018);
