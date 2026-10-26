@@ -53,6 +53,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
  assert.equal(check.allowed,false,'off-device must not activate without opt-in');
  assert.equal(check.state,'consent');
  nodes.allowCloudSpeech.checked=true;
+ nodes.allowCloudSpeech.onchange();
  h=api({webkitSpeechRecognition:NoLocalRecognition});
  r=await h.beginSpokenWordReview();check=await h.evaluateSpokenWordReview(r);
  assert.equal(check.banned,true,'opt-in remote recognition still blocks explicit term');
