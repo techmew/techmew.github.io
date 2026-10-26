@@ -292,7 +292,7 @@ function analyseVoiceDNA(frames){
  if(f[6]>=20&&f[10]>=25&&f[4]>=25)traits.push(4);
  if(f[22]>=20&&f[23]>=10&&f[29]>=15)traits.push(5);
  if((f[19]>=10||f[34]>=15)&&f[1]>=25&&f[24]>=20)traits.push(6);
- if(traits.length>=3&&f[33]>=45&&(f[9]>=20||f[1]>=45))traits.push(7);
+ if(traits.length>=4&&f[33]>=65&&(f[9]>=20||f[1]>=50))traits.push(7);
  const t=code=>traits.includes(code)?1:0;
  const stats=[
  clamp(Math.round(31+f[21]*.17+f[16]*.12+f[7]*.18+f[29]*.08+f[33]*.10+7*t(0)+4*t(3)),27,94),
