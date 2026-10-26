@@ -25,4 +25,22 @@ assert.ok(match[1].includes("match?.mode?.startsWith('ONLINE')"),'live opponent 
 assert.ok(html.includes('id="nextStagePreview"'),'next-stage preview missing');
 for(const marker of ['restBar','虚空転移','螺旋連撃','actionStatus','data.elapsed'])assert.ok(html.includes(marker),'new gameplay or resume feature missing '+marker);
 for(const feature of ['精密打撃を3回成功','カウンター攻撃を2回命中','精密打撃を3連鎖','合計240ダメージを与える','共鳴重視・守備寄り','重い一撃・防御は脆い','pre-climax pickup'])assert.ok(html.includes(feature),'v0.10.2 content missing: '+feature);
+// v0.10.3: actual pure-function checks for tactical AI and shared timing windows.
+const tacticSource=match[1].slice(match[1].indexOf('function enemyTactic('),match[1].indexOf('const MISSIONS='));
+const enemyTactic=vm.runInNewContext(tacticSource+';enemyTactic');
+for(const [role,stage,turn,extra,expected] of [
+ ['疾風',8,5,{},'flash'],['追撃',8,5,{},'flash'],
+ ['幻惑',8,5,{},'feint'],['粉砕',8,5,{},'heavy'],
+ ['吸音',8,1,{charge:60},'drain'],['堅守',8,1,{parries:2},'feint']
+])assert.equal(enemyTactic(stage,turn,{b:{archetype:role},...extra}),expected,'archetype AI '+role);
+const timingSource=match[1].slice(match[1].indexOf('function guardTiming('),match[1].indexOf('function addBreak('));
+const timing=vm.runInNewContext('const SOULS=[0,1,2,3,4,5];const soulFor=c=>c.soul;'+timingSource+';({guardTiming,dodgeTiming,strikeTiming})');
+assert.equal(timing.guardTiming({live:false,a:{soul:4}},{} )[0],.19,'iron-heart guard HUD should match input');
+assert.equal(timing.guardTiming({live:false,a:{soul:0}},{tactic:'flash'})[0],.12,'flash guard');
+assert.equal(timing.dodgeTiming({live:false},{tactic:'flash'})[1],.26,'flash dodge');
+assert.equal(timing.strikeTiming({nextBuff:'focus'})[0],.22,'focus buff should widen strike start');
+assert.equal(timing.strikeTiming({nextBuff:'focus'})[1],.74,'focus buff should widen strike end');
+assert.equal(timing.strikeTiming({nextBuff:null})[0],.30,'normal strike timing preserved');
+assert.ok(html.includes('data-buff="focus"'),'focus reward button missing');
+assert.ok(html.includes('lastBattleFrame'),'low FX frame limiter missing');
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
