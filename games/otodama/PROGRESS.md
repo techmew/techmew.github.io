@@ -1266,3 +1266,61 @@ GitHubコード正本・Drive引き継ぎ正本。実機/配信/本番を検証�
 - 録音用SpeechRecognitionの再導入なし、録音内容の自動検査なし、注意書きのみ。新モジュールはブラウザ内実装で無料。GitHub/Node正式CLI/Android/Pages配信・外部2端末は未検証。
 - 追加commit: test-audio-dna-v121.cjs fcb863dc64fb8733cf9e34a965afce8409898cec、test修正 5cbd95c7853ebe4b126efe53e585f79a3230f2e3、package 447436aac47ab6103d7cd1039cd796de6d97169b、index互換 e900c542473998e4ec93f0fac87394e33e2766ae。
 - NEXT_ACTIONS: Android Chromeで低音/高音/リズム声を各3回録音→キャラの能力と隠し特性のばらつき・保存・戦闘声を検証し、レベル成長のバランス/オンラインの能力不正防止を追加確認。
+
+---
+
+# 声魂 v0.10.23 / 2026-10-27 JST / 実際の攻撃・被弾音声に28パターンを接続
+
+## CURRENT_STATUS
+- GitHub main「games/otodama/index.html」の実再生処理に28種類の音程・速度・音色・重ね声・反響を直接組み込み。単なるUIや未適用ZIPではなく、Web Audio のBufferSourceNode / GainNode / BiquadFilterNodeを使って声が変化する。
+- 技別の11カテゴリ（突進/空中/ワープ/ビーム/連撃/回転/打ち上げ/衝撃波/急降下/反撃/通常）および必殺技、被弾/大ダメージ/ガード/ジャストガード/回避/反撃/会心/ブロックの8カテゴリに分岐する。合計28種類は全て発現候補となる。
+- 音響DNA署名・技種別・ターン・キャラの音程/リズムに基づく決定論的なFX選択。同じ録音声でも高音/低音/早口/スロー/音程上昇・下降/反響/多重声等を使い分ける。
+- 録音声を加工せず保存。原音試聴では加工なし。通常1声・連撃2〜5声・必殺ラッシュ7声、CPU/ユーザーの被弾時の声、CPU録音声なしの代替音にも効果を適用。音量・ミュート・オンライン相手ミュート尊重、ソース数最大14の制限を維持。
+- バトル画面に声FXパターン名を表示し、ON/OFFをlocalStorageに保持。試合終了/次戦/戻るで表示解除。既存の2秒録音、36項目音響DNA、育成、保存、勝者雄叫び、爆発破片WIN、自作BGMは維持。
+- CloudflareサーバーWorker/他ゲーム/ブログは変更なし。オンライン対戦相手の録音声送信は以前から停止したまま。オンライン公開・独立2端末確認は未完了。
+
+## CHANGELOG
+1. 28種のVOICE_EFFECTS定義を追加し、技別VOICE_ATTACK_VARIANTS・被弾別VOICE_REACTION_VARIANTS・必殺VOICE_SKILL_VARIANTSに割当て。
+2. voiceEffectProfile: 音声DNA/声の高さ/戦闘ターンから決定論的に加工を選択。
+3. playDecodedVoice: Web Audioの再生速度を時間変化させ、必要に応じフィルタ・エコー・2〜7連打、音量包絡を合成。
+4. attackVoiceに戦闘イベント（kind/hits/skill/seq）を通し、必殺技の7連撃・反撃の声を技専用プロファイルへ接続。
+5. reactionVoiceをCPU自動戦闘・ローカル操作戦・オンライン受信impactの着弾時へ追加。被弾/防御/回避ごとに声を変える。
+6. synthVoice（録音のないCPU）も加工プロファイルで音程・フィルタ/速度を変更。
+7. 設定画面に声の変化ON/OFFと戦闘中の表示、設定保存、戦闘終了時の自動表示解除。
+8. tests: 新test-voice-effects-v123.cjs・録音2秒・DNA・勝利吹き出し・既存WebAudio/オンラインmockの回帰を修正。package scriptsのtest:node/test:voice/test:effectsを更新、v0.10.23に変更。
+
+## TEST_RESULTS
+- GitHub mainから実再生コードを再取得し、HTML埋込JavaScript V8構文検査 PASS。
+- test-voice-effects-v123.cjsをV8 Node API模擬環境で実行PASS：28種、技別変化の到達、決定性、通常1声/連撃5声/必殺7声、被弾/防御/回避、FX OFF、原音試聴、オンライン相手ミュート、戦闘終了時停止。
+- test-voice-rush.cjs、test-hourly-v116.cjs、test-hourly-v117.cjs、test-dialogue-v113.cjs、test-voice-review-v114.cjsもモック実行でPASS。録音2秒・WAVバックアップ・声試聴、オンライン通信の重複排除などを含む。
+- 28種全部が技/反応の割り当て候補であることをプログラム検査で確認。GitHubファイル再取得と SHA の照合を実施。
+- Node CLI（npm run test:node）の正式実行、実Chrome/Androidの録音・スピーカー再生、GitHub Pagesのライブ配信の最新版反映、Cloudflare公開・二端末は未検証。GitHubのコミットステータスとPRワークフロー照会は空、成功を保証するものではない。外部WebからPagesページ取得不可。
+
+## BLOCKERS
+- GitHub Pages公開配信の実HTML/音声を外部から確認できない。GitHubへのコード保存と実サイトの音声再生検証は区別する。
+- Android実機の音声品質、録音機能、端末負荷と自動再生制限は実機検証が必要。
+- オンライン相手の生録音声転送はWorkerで禁止されたまま。
+
+## NEXT_ACTIONS
+1. Android Chromeでゲームを完全に再読み込みし、バトル音量を確認、声の変化ONで通常/コンボ/必殺/被弾/ガード/回避の音色を実聴。
+2. 録音2秒→試聴（原音）→バトル（加工声）を確認。音割れがあればレート・Gain/コンプレッサを調整。
+3. Node22 npm run test:node・test:effectsとGitHub Actions・Pages配信を実行/確認し、失敗があれば修正。
+4. Cloudflare本番認証後、独立2端末でオンライン戦闘を確認。音声転送は追加審査/同意が整うまで停止。
+
+## VERIFIED COMMITS
+- FX UI 初回: d7c482592d9319228b48d5ddeebab95ef86c5fde
+- 速度変化: 501d03b97a50d2fef403c80130f20f60d8f673a6
+- 28効果定義 index blob: 2a8c103dd5aab3ce96ef11290ea3bdd0ee57d1a7
+- プロファイル選択: 4af39c64cb1488bef810c6e1e64728e9011a662e
+- パターン表示・保存: f21f30bd2994802851c5c517e73a2e6c7315c8bb
+- 実録音声FX: 94267ab6c37285152762fa4554a1a2137a32c740
+- 技種別・被弾routing: b2cd4e275d66252c0eb01f8f1573c1d988b3ce71 / 66d99dac65cda740f5463352243511898b63f693
+- CPU代替FX: e7d3e176f1b1925976dbd018d5fe456879afacc4
+- 終了表示解除: 6591258d7a8c117d9f934a0b8b06dc3762a4c2c7
+- 新test: fdd4538759597dd3dabb900f9c8d1b80d3245c18
+- package: ad03b1a8f51e777eab8170584f8d1c86c4d61a9e
+- index表示バージョン: b6b19023ae8de345a8c2cef1d9da78410b650c26
+- README: 1093ad1547e5049c51bf7e9a62c1df37010e478c
+- 最終index blob: e880fc2491f9fa158af49b3aa6aff0ba02386151
+
+変更はgames/otodama/のみ。録音・原音試聴・戦闘・勝者音声の既存動作を維持。未検証を確認済みと呼ばない。
