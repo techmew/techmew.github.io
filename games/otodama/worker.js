@@ -17,7 +17,7 @@ export default {
     const url = new URL(request.url);
     const origin=request.headers.get('Origin');
     if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.2',randomMatch:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.3',randomMatch:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -107,13 +107,20 @@ export class Room extends DurableObject {
   cleanCreature(v){
     if(!v||typeof v!=='object'||Array.isArray(v))return null;
     // Reject malformed nested values instead of silently stringifying attacker-controlled objects.
-    if(typeof v.name!=='string'||typeof v.type!=='string'||v.name.length>80||v.type.length>80||!Number.isFinite(Number(v.seed)))return null;
+    if(typeof v.name!=='string'||typeof v.type!=='string'||v.name.length>80||v.type.length>80||!Number.isSafeInteger(v.seed)||v.seed<0||v.seed>4294967295)return null;
     if(v.parts===null||v.voice===null||typeof v.parts!=='object'||typeof v.voice!=='object'||Array.isArray(v.parts)||Array.isArray(v.voice))return null;
     if(Object.keys(v.parts).length>40||Object.keys(v.voice).length>20)return null;
     const parts=v.parts,voice=v.voice;
     const nums={body:5,eyes:20,brows:20,nose:20,mouth:20,ears:20,left:30,right:30,color:10,family:12,crest:30,back:16,pattern:24,legs:16};
-    let safeParts={};for(const [key,max] of Object.entries(nums))safeParts[key]=Math.floor(clamp(parts[key],0,max-1));
-    let safeVoice={};for(const key of ['vol','pitch','res','rhythm','stable','breath'])safeVoice[key]=Math.floor(clamp(voice[key],0,100));
+    // Reject coercible strings, negative values and nested objects instead of hiding invalid input with clamp().
+    let safeParts={};for(const [key,max] of Object.entries(nums)){
+      if(parts[key]!==undefined&&(!Number.isInteger(parts[key])||parts[key]<0||parts[key]>=max))return null;
+      safeParts[key]=parts[key]??0;
+    }
+    let safeVoice={};for(const key of ['vol','pitch','res','rhythm','stable','breath']){
+      if(!Number.isFinite(voice[key])||voice[key]<0||voice[key]>100)return null;
+      safeVoice[key]=Math.floor(voice[key]);
+    }
     const stats=this.baseStats(safeVoice),power=stats.reduce((a,b)=>a+b,0);
     return{seed:(Number(v.seed)||1)>>>0,name:sanitizePublicName(v.name,v.seed),
       element:ELEMENTS.has(v.element)?v.element:'音',type:sanitizePublicName(v.type,v.seed).slice(0,18),
