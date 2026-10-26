@@ -964,3 +964,52 @@ GitHubがコードの正本。Driveが引き継ぎ・進捗の正本。ローカ
 - 新回帰テスト: f44ce42f9057a1d56a36cdc01c26d3dd74f36080
 - package: 550911d5e5c5aa010be394905b91a33057c674a4
 - UI静的チェック: a8c920c2bcda4a80b7a77d7bbc6fb4f8bef5b581
+
+---
+
+# 声魂（こえだま）/ v0.10.16 / 2026-10-26 20時台 JST / 毎時品質改善
+
+## CURRENT_STATUS
+- GitHub mainのgames/otodama/現行 index.html / worker.js / wrangler.jsonc / README / package / test群と、Driveの最新OTODAMA_v101_RUN_REPORT_20261026（末尾v0.10.14の引き継ぎ）を実読してから更新。
+- 声生成・外見の組合せ・多数の名前・録音停止/試聴・育成・COM/サバイバル連戦・敗者爆発/破片/WIN・自作Web Audio BGM・短い日本語勝敗セリフを保持。勝利後は次の相手へ自動進行、敗北時は結果画面で停止。
+- オンラインWorker/Durable Objectsソースとテストは維持。本番Cloudflare Workerは未公開、Android/外部二端末は未検証。
+
+## CHANGELOG
+1. 録音時MediaRecorder形式を同端末のAudioContextでデコード確認。保存不能/非対応時はScriptProcessorで集めたPCMを11,025Hz/16bit/モノラルWAVとして保存する代替経路。無音の録音は保存しない。マイク許可中の二重起動を防止。
+2. Web Audioが自動再生制限でsuspendedに戻った場合、画面タップ/キー入力でresume。音声再開ボタンの表示をAudioContextのrunning/停止/ミュートに連動。
+3. 連打ラッシュに1〜7 HITの進行表示と終了タイマーの確実な後始末を追加。録音声の通常1回/連打5回/必殺7回の音源多重再生は維持。
+4. COMに第〇試合目・章・ボスまでの残り試合数・5試合進捗を表示。勝利後の次戦/敗北停止・セリフを変更しない。
+5. オンライン同一live_turnの重複受信で録音声を再生し直さないよう修正。live_impactの二重反映・不正HP/ダメージを拒否。再接続resumedは再同期可能。
+6. Workerで8192文字超のWebSocketパケットをJSON解析前に1009で切断。録音音声のオンライン送受信は引き続き停止。
+7. test-hourly-v116.cjs追加（PCM WAV・章/ボス進捗・7 HIT・重複オンライン通知・Workerサイズ制限・勝利次戦）。package test:node/test:voiceに登録。旧品質テストのバージョン固定判定を将来互換に修正。
+8. 専用GitHub Actions .github/workflows/deploy-otodama-worker.yml にmainのgames/otodama変更時Node 22 test:node自動テストを追加。Cloudflare公開は手動workflow_dispatchかつテスト成功時のみ。Secretsがなければ公開しない。
+9. 表示/Worker health/packageをv0.10.16に整合。README/DEPLOY_GUIDEを現行の「録音音声自動審査なし・オンライン音声転送停止・オート対戦」へ訂正。旧節は履歴と明示。
+
+## TEST_RESULTS
+- GitHub mainから全更新ファイルを再取得。index.html埋込JavaScript/worker.js（import/exportを構文検証用に置換）/更新CJSのV8構文パースPASS。
+- V8上のNode API模擬で新test-hourly-v116.cjsを38アサーションPASS（WAV RIFFヘッダ/11025Hz/16bit/無音拒否/5戦ボス進捗/7 HIT/重複ターン・命中防止/自動次戦ソース）。
+- Web Audioモックで通常録音声1音源、連打5音源、必殺7音源＝計13音源PASS。勝利500＋敗北500の日本語セリフ一意性PASS。
+- GitHub Actions workflowは保存したが、Actions上での実行結果を取得できていない。正式Node CLI test:node/test:voice、Chromium実プレイ、GitHub Pages配信反映、Android実機音声、Cloudflare Worker本番、外部二端末は今回未確認。
+
+## BLOCKERS
+- 本番Cloudflare公開は所有者のCLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKENをGitHub Actions Secretsに設定する必要あり。値はソースやログへ書かない。
+- Android実機の録音・PCMフォールバック・スピーカー再生・日本語TTSと、独立二端末のWebSocket対戦は未検証。
+- 現行は録音発話の自動文字起こし・禁止語判定なし。録音注意文を表示。オンライン録音音声はWorkerが拒否。
+
+## NEXT_ACTIONS
+1. ActionsのTest and Deploy OTODAMA Worker（push実行）結果を確認し、失敗時はテスト/ゲームを修正。Node test:node/test:voiceを実CLIで検証。
+2. Android/Chromiumでマイク許可・録音/試聴・録音WAV代替・通常/5連打/7連打・音声ON/OFF・BGM/読み上げ競合・縦横表示を確認。
+3. COM第1〜5戦の進捗・ボス・勝利自動次戦/敗北停止・旧セーブを実ブラウザで確認。
+4. Cloudflare認証後にWorkerを手動公開、/health v0.10.16、ランダム/招待/15秒復帰/重複ターン/8192文字超拒否/ランキング/音声非転送を独立2端末で検証。
+
+## GITHUB_COMMITS
+- PCM WAV代替/録音二重起動防止: da25f582b4a49e5eae39a830127140d0d4e3bfb1
+- 章進捗/7 HIT/オンライン重複防止: 0a80b8a009c1f6e86cf2038f538358123c93a32b
+- 音声ジェスチャー再開: e4d9497cc4f625a124575952868b3e1a64486709
+- Workerサイズ制限: 8bd53a25facca1ea367c9d73b6bcb0d8fe4db6a7
+- 新回帰テスト: 9b1a66f12e201683de4453e59dd075c59582161c / 5351f11c2a07fd58c56f581f1cbd4e1a8fe9922d
+- バージョン/テスト更新: 69fe4eb1bdd297c5d010400f24473264752e4d40 / 2215b01058b9a5df4bb64de7f48491d98cef082e / b81430471d0e3bd45ec375d03ec44c9ea5af9590 / 396b1cf6356ea189ee282833b8d7eb489d7677bb / 8f1984e749db363ca1313cf50bb257fcf629235c / 45e56580eefa7d8118e0cf8e1b0cf3250bdebdd3
+- README/DEPLOY_GUIDE: a3cf7e6693e7d98134135a5b3af0feb0f1210dee / c52d43627f1020ba88037bae0274901775d9dc29
+- GitHub Actions: 1eda0a7e515cb8a304652aee50ed798138ee6843
+
+GitHubがゲームソースの正本、Driveが引き継ぎの正本。GitHubコミット・模擬テスト・Actions実行・Pages配信・Android/外部二端末実機検証を混同しない。
