@@ -33,13 +33,14 @@ assert.ok(script.includes('recording||recordingRequestPending'),'double tap micr
 
 const bar={hidden:true,textContent:'',style:{setProperty(k,v){this[k]=v}}};
 const campaignCtx={
- adventureStage:1,CHAPTERS:['空の広場。練習','街の屋上。対戦'],
+ CHAPTERS:['空の広場。練習','街の屋上。対戦'],
  stageBiome:()=>({name:'空の広場'}),$:()=>bar
 };
-const updateCampaignTrack=vm.runInNewContext(slice('function updateCampaignTrack(mode){','function showBattle(')+';updateCampaignTrack',campaignCtx);
+const campaign=vm.runInNewContext('let adventureStage=1;'+slice('function updateCampaignTrack(mode){','function showBattle(')+';({updateCampaignTrack,setStage:n=>adventureStage=n})',campaignCtx);
+const updateCampaignTrack=campaign.updateCampaignTrack;
 updateCampaignTrack('COM MATCH');
 assert.ok(bar.textContent.includes('第1試合目')&&bar.textContent.includes('ボスまであと4戦'));
-campaignCtx.adventureStage=5;updateCampaignTrack('COM MATCH');
+campaign.setStage(5);updateCampaignTrack('COM MATCH');
 assert.ok(bar.textContent.includes('ボス戦！'));
 assert.equal(bar.style['--chapter-progress'],'100%');
 updateCampaignTrack('SURVIVAL');assert.equal(bar.hidden,true);
