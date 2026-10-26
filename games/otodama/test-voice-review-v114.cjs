@@ -1,78 +1,100 @@
-// No hardware required. Test ASR transcript screening and fail-closed audio policy.
+// Microphone regression test: DO NOT reintroduce SpeechRecognition as a gate.
+// No microphone or browser required. This exercises the actual client recording functions.
 'use strict';
-const fs=require('node:fs'),assert=require('node:assert/strict');
-(async()=>{
- const {isForbiddenSpeech}=await import('./moderation.js');
- for(const word of ['人間の局部','局部','ちーーんこ','chinko','c.h.i.n.k.o','ちんこ','チ・ン・コ','ちんぽ','ちーんこ','ち ん ぽ','ま・ん・こ',
-  '陰茎','金玉','ｓｅｘ','ｐｅｎｉｓ','s.e.x','f.u.c.k y.o.u']){
-   assert.equal(isForbiddenSpeech(word),true,'unblocked transcription: '+word);
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
+const js=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
+assert.ok(js,'embedded client JavaScript is available');
+new vm.Script(js);
+assert.ok(!html.includes('id="allowCloudSpeech"'),'no speech recognition consent UI');
+assert.ok(!js.includes('beginSpokenWordReview('),'recording must not launch SpeechRecognition');
+assert.ok(!js.includes('evaluateSpokenWordReview('),'recording must not depend on ASR approval');
+assert.ok(!js.includes("voiceReview==='passed'"),'stored voice clips must not require review metadata');
+assert.ok(html.includes('禁止ワードは発しないでください'),'visible caution remains');
+const clipStart=js.indexOf('function clipData(cr){');
+const clipEnd=js.indexOf('async function decodeVoice(',clipStart);
+assert.ok(clipStart>=0&&clipEnd>clipStart,'clip availability');
+const clipData=vm.runInNewContext(js.slice(clipStart,clipEnd)+';clipData');
+const savedAudio='data:audio/webm;base64,QUJDRA==';
+assert.equal(clipData({seed:1,voiceClip:savedAudio}),savedAudio,'old clips without review metadata are playable');
+assert.equal(clipData({seed:1,voiceClip:savedAudio,voiceReview:'unverified'}),savedAudio,'review metadata never blocks voice');
+assert.equal(clipData({seed:1,voiceClip:'notaudio'}),null,'invalid data URL rejected');
+const start=js.indexOf('let stopCaptureNow=null'),end=js.indexOf('function saveCurrent()',start);
+assert.ok(start>=0&&end>start,'full capture/stop/preview source');
+const source=js.slice(start,end);
+const notes=[];
+function fakeRuntime(mediaRecorderEnabled){
+ const nodes=new Map(),media={grants:0,stops:0},ctxRef={};
+ const $=id=>{
+  if(!nodes.has(id))nodes.set(id,{disabled:false,style:{display:''},textContent:'',checked:false,
+   classList:{add(){},remove(){}}});
+  return nodes.get(id);
+ };
+ class AudioContext {
+  constructor(){this.state='running';this.sampleRate=11025;this.destination={}}
+  createMediaStreamSource(){return {connect(){},disconnect(){}}}
+  createAnalyser(){return {fftSize:2048,connect(){},getFloatTimeDomainData(buf){
+   for(let i=0;i<buf.length;i++)buf[i]=Math.sin(i*.17)*.15;
+  }}}
+  createGain(){return {gain:{value:1},connect(){},disconnect(){}}}
+  createScriptProcessor(){return ctxRef.processor={onaudioprocess:null,connect(){},disconnect(){}}}
+  async decodeAudioData(){return {duration:1}}
+  async close(){this.state='closed'}
  }
- for(const text of ['たまたま出会った','クリスタルの騎士','今日はよろしくお願いします',
-  'もっと強くなりたい','かわいいモンスター','音の旅人']){
-   assert.equal(isForbiddenSpeech(text),false,'false positive: '+text);
+ class FakeRecorder {
+  constructor(){this.state='inactive';this.mimeType='audio/webm'}
+  static isTypeSupported(){return true}
+  start(){this.state='recording'}
+  stop(){this.state='inactive';this.ondataavailable?.({data:new Blob([new Uint8Array(600)],{type:'audio/webm'})});this.onstop?.()}
  }
- const html=fs.readFileSync(__dirname+'/index.html','utf8');
- const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
- assert.ok(js);new Function(js);
- const from=js.indexOf('async function beginSpokenWordReview()');
- const to=js.indexOf('// v0.4 microphone capture:',from);
- assert.ok(from>=0&&to>from,'review functions');
- const source=js.slice(from,to).replace("await import('./moderation.js')","await Promise.resolve({isForbiddenSpeech})");
- const nodes={allowCloudSpeech:{checked:false}};
- const $=id=>nodes[id]||{checked:false};
- const storage=new Map();
- const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))};
- const api=(window)=>new Function('window','$','localStorage','setTimeout','isForbiddenSpeech',
-  source+'return {beginSpokenWordReview,evaluateSpokenWordReview};')(window,$,localStorage,setTimeout,isForbiddenSpeech);
- let phrase='チ ン コ';
- class LocalRecognition{
-  constructor(){this.processLocally=false;LocalRecognition.instance=this}
-  static async available(){return 'available'}
-  start(){this.started=true}
-  stop(){
-   const alternative=[{transcript:phrase}];alternative.isFinal=true;
-   this.onresult({results:[alternative]});this.onend();
+ class FileReader{
+  readAsDataURL(blob){
+   blob.arrayBuffer().then(b=>{this.result='data:'+blob.type+';base64,'+Buffer.from(b).toString('base64');this.onload?.()}).catch(()=>this.onerror?.());
   }
-  abort(){}
  }
- let h=api({SpeechRecognition:LocalRecognition}),r=await h.beginSpokenWordReview();
- assert.equal(LocalRecognition.instance.processLocally,true,'on-device recognition preferred');
- assert.equal((await h.evaluateSpokenWordReview(r)).banned,true,'explicit transcription rejected');
- phrase='こんにちは。';r=await h.beginSpokenWordReview();
- let check=await h.evaluateSpokenWordReview(r);
- assert.equal(check.allowed,true,'harmless recognized Japanese speech permitted');
- assert.equal(check.banned,false);
- class NoLocalRecognition{
-  start(){this.started=true;NoLocalRecognition.instance=this}
-  stop(){const result=[{transcript:'ちんこ'}];result.isFinal=true;this.onresult({results:[result]});this.onend()}
-  abort(){}
+ const context={
+  $,navigator:{mediaDevices:{async getUserMedia(){media.grants++;return{getTracks(){return[{stop(){media.stops++}}]}}}}},
+  window:{AudioContext},MediaRecorder:mediaRecorderEnabled?FakeRecorder:undefined,
+  Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
+  btoa:s=>Buffer.from(s,'binary').toString('base64'),
+  setTimeout,clearTimeout,performance,recording:false,audioCtx:null,
+  stopBattleSpeech(){},wavePaint(){},micErrorMessage:e=>String(e?.name||e),
+  autocorr:()=>230,median:a=>a[0]||0,hash:n=>n>>>0,
+  clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
+  gen:(seed,voice)=>({seed,voice}),cur:{},clipData
+ };
+ context.setCurrent=c=>{context.cur=c;notes.push(c)};
+ const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl})',context);
+ return{api,context,nodes,media,ctxRef};
+}
+async function attempt(mediaRecorderEnabled){
+ const env=fakeRuntime(mediaRecorderEnabled);
+ const running=env.api.startRecord();
+ await env.api.startRecord(); // A rapid second tap must not request the microphone again.
+ for(let i=0;i<12;i++)await Promise.resolve();
+ if(!mediaRecorderEnabled){
+  assert.ok(env.ctxRef.processor?.onaudioprocess,'WAV fallback processor installed');
+  for(let j=0;j<4;j++){
+   const input=Float32Array.from({length:4096},(_,i)=>Math.sin(i*.25)*.16);
+   env.ctxRef.processor.onaudioprocess({inputBuffer:{getChannelData:()=>input}});
+  }
  }
- h=api({webkitSpeechRecognition:NoLocalRecognition});
- r=await h.beginSpokenWordReview();
- check=await h.evaluateSpokenWordReview(r);
- assert.equal(check.allowed,false,'off-device must not activate without opt-in');
- assert.equal(check.state,'consent');
- nodes.allowCloudSpeech.checked=true;
- nodes.allowCloudSpeech.onchange();
- h=api({webkitSpeechRecognition:NoLocalRecognition});
- r=await h.beginSpokenWordReview();check=await h.evaluateSpokenWordReview(r);
- assert.equal(check.banned,true,'opt-in remote recognition still blocks explicit term');
- h=api({});
- r=await h.beginSpokenWordReview();check=await h.evaluateSpokenWordReview(r);
- assert.equal(check.allowed,false,'unsupported ASR must not approve audio');
- const clipStart=js.indexOf('function clipData(cr){');
- const clipEnd=js.indexOf('async function decodeVoice(',clipStart);
- assert.ok(clipEnd>clipStart);
- const clip=new Function(js.slice(clipStart,clipEnd)+'return clipData;')();
- const audio='data:audio/webm;base64,QUJDRA==';
- assert.equal(clip({seed:1,voiceClip:audio,voiceReview:'passed'}),audio);
- assert.equal(clip({seed:1,voiceClip:audio,voiceReview:'unverified'}),null);
- assert.equal(clip({seed:1,voiceClip:audio}),null,'legacy audio cannot bypass review');
- assert.ok(js.includes('if(review.banned)'),'microphone flow rejects harmful recognized audio');
- assert.ok(js.includes("send:false,receive:false"),'online audio consent disabled');
- assert.ok(html.includes('id="shareVoice" disabled'),'online audio UI disabled');
+ env.api.stopRecord();
+ await running;
+ assert.equal(env.media.grants,1,'one permission request even with double tap');
+ assert.equal(env.media.stops,1,'all microphone tracks closed');
+ assert.ok(env.context.cur.voiceClip?.startsWith(mediaRecorderEnabled?'data:audio/webm;base64,':'data:audio/wav;base64,'),'audio saved');
+ assert.equal(env.nodes.get('voicePreviewBtn').disabled,false,'preview enabled');
+ assert.equal(env.nodes.get('countdown').textContent,'VOICE OK','successful capture status');
+ assert.equal(env.nodes.get('stopRecordBtn').style.display,'none','capture buttons reset');
+ return env.context.cur.voiceClip.length;
+}
+(async()=>{
+ const mediaLength=await attempt(true);
+ const wavLength=await attempt(false);
+ assert.ok(mediaLength>100&&wavLength>100,'voice samples are not empty');
+ assert.ok(html.includes('id="shareVoice" disabled')&&html.includes('id="receiveVoice" disabled'),'online live audio disabled');
  const worker=fs.readFileSync(__dirname+'/worker.js','utf8');
- assert.ok(worker.includes("type:'voice_rejected'"),'server must reject unmoderated audio');
- assert.ok(!html.includes('id="bowBanner"'),'bow deleted');
- console.log('VOICE REVIEW PASS: forbidden Japanese phrases blocked; consent, ASR fail closed, local, cloud and legacy clip policy (mock only)');
+ assert.ok(worker.includes("type:'voice_rejected'"),'online voice uploads still rejected');
+ console.log('MIC CAPTURE PASS | MediaRecorder + PCM WAV fallback, manual stop, double-tap guard, preview, legacy replay, no ASR gate');
 })().catch(e=>{console.error(e);process.exitCode=1});
