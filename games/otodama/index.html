@@ -493,7 +493,7 @@ function musicTick(id){const m=match;if(id!==bgmSession||!m||m.done||!$('battleM
    bgmNext+=stepSec;
  }
 }
-function startBgm(){stopBgm();bgmStep=0;bgmSession++;const id=bgmSession;const ac=unlockBattleAudio();if(!ac)return;bgmNext=ac.currentTime+.09;musicTick(id);bgmTimer=setInterval(()=>musicTick(id),105)}
+function startBgm(){stopBgm();bgmStep=((Math.max(1,match?.stageNo||1)-1)%8)*32;bgmSession++;const id=bgmSession;const ac=unlockBattleAudio();if(!ac)return;bgmNext=ac.currentTime+.09;musicTick(id);bgmTimer=setInterval(()=>musicTick(id),105)}
 function stopBgm(){if(bgmTimer!==null){clearInterval(bgmTimer);bgmTimer=null}bgmSession++;}
 function finishJingle(won){if($('mutedCheck').checked||!MUSIC_VOLUME())return;
  const ac=unlockBattleAudio();if(!ac||ac.state!=='running')return;
