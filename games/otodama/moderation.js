@@ -1,5 +1,5 @@
 /** User-facing public text safety gate for OTODAMA. No raw text is logged or persisted.
- * Not speech recognition: recorded voice is not automatically transcribed.
+ * Text dictionary shared by public names and the optional browser speech-transcription gate.
  * Conservatively filter obvious insults, violent threats, explicit references,
  * hate/harassment terms, personal contact details, social promotion and spam.
  */
@@ -39,6 +39,19 @@ const CONTACT=/(?:\d[\s\-]?){11,}/;
 export function isForbiddenName(value){
  const raw=String(value??'');if(raw.length>80||LINKS.test(raw)||CONTACT.test(raw))return true;
  const normalized=unicodeLoose(raw);return exactSingle.has(normalized)||otherTerms.some(term=>normalized.includes(term))||latinMatchers.some(re=>re.test(normalized));
+}
+// Voice transcription uses the same dictionary as public names, plus common phonetic spellings.
+// Only recognised TEXT is checked. This does not analyze waveforms, and ASR can mishear.
+const VOICE_PHONETIC=['てぃんこ','てぃんぽ','ちんこー','ちーんこ','ちんぽー','まんこー','まーんこ','おちんこ','おちんぽ','おまんこ','えっちぃ','えろえろ'];
+const voiceTerms=VOICE_PHONETIC.map(unicodeLoose);
+export function isForbiddenSpeech(transcript){
+ const raw=String(transcript??'');
+ if(!raw.trim())return false;
+ if(raw.length>160)return true; // Fail closed on abnormal recognizer payloads.
+ const normal=unicodeLoose(raw);
+ const squeezed=normal.replace(/ー+/g,'');
+ return isForbiddenName(raw)||voiceTerms.some(t=>normal.includes(t))||
+   (squeezed!==normal&&(isForbiddenName(squeezed)||voiceTerms.some(t=>squeezed.includes(t))));
 }
 export function sanitizePublicName(value, seed=1){
  const raw=String(value??'').normalize('NFKC')
