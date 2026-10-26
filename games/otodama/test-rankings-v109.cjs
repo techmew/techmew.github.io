@@ -10,7 +10,7 @@ const source=fs.readFileSync(__dirname+'/worker.js','utf8')
  .replace('export default {','const workerDefault = {')
  .replace(/export class /g,'class ');
 new vm.Script(source,{filename:'worker.js#test'});
-const context={crypto:webcrypto,TextEncoder,Response,Request,URL,console,Date,Uint8Array,Set,Array,Math,JSON};
+const context={crypto:webcrypto,TextEncoder,TextDecoder,Response,Request,URL,console,Date,Uint8Array,Set,Array,Math,JSON};
 vm.runInNewContext(source+'\nglobalThis.rankTest={Rankings,Room,workerDefault};',context);
 const db=new DatabaseSync(':memory:');
 const sql={exec(query,...args){const statement=db.prepare(query);return /^\s*(?:SELECT|WITH|PRAGMA)\b/i.test(query)?statement.all(...args):(statement.run(...args),[])}};
@@ -56,6 +56,13 @@ const submit=async(path,body)=>rank.fetch(new Request('https://internal.example'
  assert.equal(options.status,204,'identity registration CORS preflight');
  const csrf=await context.rankTest.workerDefault.fetch(new Request('https://otodama.example/identity',{method:'OPTIONS',headers:{Origin:'https://evil.example'}}),{RANKINGS:binding});
  assert.equal(csrf.status,403,'cross-site origins rejected');
- console.log('RANKINGS PASS: identities, token proof, 3-result cap, replay guard, monthly score, internal-only result, CORS');
+ const identityUrl='https://otodama.example/identity',identityHeaders={Origin:'https://techmew.github.io','content-type':'application/json'};
+ const oversized=await context.rankTest.workerDefault.fetch(new Request(identityUrl,{method:'POST',headers:identityHeaders,body:JSON.stringify({name:'x'.repeat(600)})}),{RANKINGS:binding});
+ assert.equal(oversized.status,413,'oversized chunked-style registration is rejected before JSON parse');
+ const unsupported=await context.rankTest.workerDefault.fetch(new Request(identityUrl,{method:'POST',headers:{Origin:'https://techmew.github.io','content-type':'text/plain'},body:'{}'}),{RANKINGS:binding});
+ assert.equal(unsupported.status,415,'non-JSON registration is rejected');
+ const tooLongHeader=await context.rankTest.workerDefault.fetch(new Request(identityUrl,{method:'POST',headers:{...identityHeaders,'content-length':'1000'},body:'{}'}),{RANKINGS:binding});
+ assert.equal(tooLongHeader.status,413,'oversized Content-Length is rejected');
+ console.log('RANKINGS PASS: identities, token proof, score cap, replay guard, CORS, registration body limit/MIME');
  db.close();
 })().catch(e=>{console.error(e);process.exitCode=1;db.close()});
