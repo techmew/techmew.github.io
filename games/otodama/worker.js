@@ -48,7 +48,7 @@ export default {
       if(request.method==='POST'&&textBody===null)return safeJson({error:'Registration payload too large or invalid'},413);
       return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
     }
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.14',randomMatch:true,seasonalRanking:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.16',randomMatch:true,seasonalRanking:true});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
