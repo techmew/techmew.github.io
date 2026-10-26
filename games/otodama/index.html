@@ -557,10 +557,11 @@ function trackAttackSource(source){
  while(playingSources.length>14){const old=playingSources.shift();try{old.stop(0)}catch(e){}}
 }
 const VOLUME=()=>Math.min(.24,Math.max(0,Number($('battleVolume').value)/100));
-$('battleVolume').oninput=()=>{$('battleVolumeLabel').textContent=$('battleVolume').value+'%';if(!VOLUME())stopAttackVoices()};
+$('battleVolume').oninput=()=>{$('battleVolumeLabel').textContent=$('battleVolume').value+'%';if(!VOLUME())stopAttackVoices();syncAudioResumeButton()};
 function syncAudioResumeButton(){
  const btn=$('audioResumeBtn');if(!btn)return;
  if($('mutedCheck').checked){btn.textContent='🔇 ミュート中';return}
+ if(!VOLUME()){btn.textContent='🔈 声の音量 0%';return}
  btn.textContent=battleSoundCtx?.state==='running'?'🔊 音声ON':'🔊 声を再開';
 }
 function unlockBattleAudio(){
@@ -662,7 +663,7 @@ function tone(hz,duration=.09){
 }
 function synthVoice(cr,side,options={}){
  if($('mutedCheck').checked||!VOLUME())return;const ac=unlockBattleAudio();if(!ac)return;
- const rush=!!options.rush,hits=rush?Math.min(7,Math.max(3,Math.floor(options.hits||5))):1;
+ const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
  try{
   for(let i=0;i<hits;i++){
    const start=ac.currentTime+i*(rush?.105:0),dur=rush?(i===hits-1?.28:.18):.26;
@@ -713,7 +714,7 @@ async function decodeVoice(cr){
 function playDecodedVoice(cr,side,force=false,options={}){
  if($('mutedCheck').checked||!VOLUME())return;
  const session=match,ac=unlockBattleAudio();if(!ac)return;
- const rush=!!options.rush,hits=rush?Math.min(7,Math.max(3,Math.floor(options.hits||5))):1;
+ const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
  const fallback=()=>{if(!force)synthVoice(cr,side,{rush,hits})};
  const doPlay=clip=>{
   // The decoded clip may arrive after battle navigation or an online mute.
@@ -751,8 +752,8 @@ function playDecodedVoice(cr,side,force=false,options={}){
 }
 function attackVoice(cr,side,ev=null){
  if(match?.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
- const rush=!!ev?.rush||(!!ev&&ev.hits>=3);
- const hits=ev?.rush?7:rush?Math.min(5,Math.max(3,Math.floor(ev.hits||3))):1;
+ const rush=!!ev?.rush||(!!ev&&Number(ev.hits)>=2);
+ const hits=ev?.rush?7:rush?Math.min(5,Math.max(2,Math.floor(ev.hits||2))):1;
  bgmDuckUntil=performance.now()+(rush?850:480);
  playDecodedVoice(cr,side,false,{rush,hits});
 }
@@ -1596,7 +1597,7 @@ function beginLiveBattle(data){
 function receiveLiveTurn(data){
  const m=match;if(!m?.live||m.done||!Number.isInteger(data.seq)||![0,1].includes(data.atk)||data.seq<m.turn)return;
  // A retransmitted telegraph must not replay the same attack or reset the guard window.
- if(m.current&&data.seq===m.current.seq&&!data.resumed)return;
+ if(m.current&&data.seq===m.current.seq&&(m.current.resolved||!data.resumed))return;
  hideMatchIntro();
  m.turn=data.seq;m.telegraphMs=clamp(Number(data.duration)||900,600,1600);m.current={seq:data.seq,atk:data.atk,kind:data.kind||'rush',damage:0,hits:1,resolved:false};
  m.pop=performance.now()-clamp(Number(data.elapsed)||0,0,m.telegraphMs);m.guardUsed=data.resumed&&data.actionStatus?.[0]==='guard';m.dodgeUsed=data.resumed&&data.actionStatus?.[0]==='dodge';m.parried=false;m.dodgeSuccess=false;m.strikeUsed=data.resumed&&data.actionStatus?.[0]==='strike';m.strikeSuccess=false;
@@ -1617,12 +1618,12 @@ function receiveLiveAck(data){
 function receiveLiveImpact(data){
  const m=match;
  if(!m?.live||m.done||!m.current||m.current.resolved||m.current.seq!==data.seq)return;
- if(![0,1].includes(data.atk)||!Array.isArray(data.hp)||data.hp.length!==2||
+ if(![0,1].includes(data.atk)||data.atk!==m.current.atk||!Array.isArray(data.hp)||data.hp.length!==2||
     !data.hp.every(v=>Number.isFinite(v)&&v>=0&&v<=1000000)||
     !Number.isFinite(data.damage)||data.damage<0||data.damage>1000000)return;
  m.current.damage=data.damage;m.current.parry=!!data.parry;m.current.dodge=!!data.dodge;m.current.skill=!!data.skill;m.current.strike=!!data.strike;
  m.current.resolved=true;m.current.impactAt=performance.now();m.current.impactPoint=m.prevPos?.[1-m.current.atk]?{...m.prevPos[1-m.current.atk]}:null;m.hp=data.hp.slice();
- if(Array.isArray(data.charge))m.charge=data.charge[0];
+ if(Array.isArray(data.charge)&&data.charge.length===2&&data.charge.every(v=>Number.isFinite(v)&&v>=0&&v<=100))m.charge=data.charge[0];
  if(data.skill)m.skillArmed=false;if(Number.isInteger(data.awakenSide)&&data.awakenSide>=0&&data.awakenSide<2){m.awakened[data.awakenSide]=true;$('arenaEffect').textContent=data.awakenSide===0?'自分の素体が覚醒！':'相手の素体が覚醒！';}
  if(data.atk===1){if(data.parry)m.parries++;if(data.dodge)m.dodges++;}else{if(data.skill)m.skillsUsed++;if(data.strike)m.strikes++;}
  $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
