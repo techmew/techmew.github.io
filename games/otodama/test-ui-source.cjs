@@ -24,4 +24,5 @@ for(const fn of ['stageMission','missionCompleted','evadeCounterReady','COM_TACT
 assert.ok(match[1].includes("match?.mode?.startsWith('ONLINE')"),'live opponent voice mute missing');
 assert.ok(html.includes('id="nextStagePreview"'),'next-stage preview missing');
 for(const marker of ['restBar','虚空転移','螺旋連撃','actionStatus','data.elapsed'])assert.ok(html.includes(marker),'new gameplay or resume feature missing '+marker);
+for(const feature of ['精密打撃を3回成功','カウンター攻撃を2回命中','精密打撃を3連鎖','合計240ダメージを与える','共鳴重視・守備寄り','重い一撃・防御は脆い','pre-climax pickup'])assert.ok(html.includes(feature),'v0.10.2 content missing: '+feature);
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
