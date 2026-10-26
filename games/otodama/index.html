@@ -286,19 +286,19 @@ function analyseVoiceDNA(frames){
  signature=hash(signature);
  const traits=[];
  if(f[0]<=55&&f[21]>=35&&f[33]>=45)traits.push(0);
- if(f[9]>=25&&f[10]>=25&&f[7]>=10)traits.push(1);
- if(f[11]>=40&&f[4]>=30&&f[33]>=45)traits.push(2);
- if(f[2]>=45&&f[7]>=20&&f[26]>=15)traits.push(3);
- if(f[6]>=35&&f[10]>=25&&f[4]>=25)traits.push(4);
+ if((f[9]>=20&&f[10]>=25&&f[7]>=10)||(f[1]>=45&&f[0]>=55&&f[7]>=15))traits.push(1);
+ if(f[11]>=65&&f[4]>=65&&f[33]>=60)traits.push(2);
+ if(f[2]>=45&&f[7]>=20&&(f[26]>=10||f[1]>=40))traits.push(3);
+ if(f[6]>=20&&f[10]>=25&&f[4]>=25)traits.push(4);
  if(f[22]>=20&&f[23]>=10&&f[29]>=15)traits.push(5);
- if(f[19]>=15&&f[17]>=10&&f[34]>=15)traits.push(6);
- if(traits.length>=3&&f[33]>=45&&f[9]>=20)traits.push(7);
+ if((f[19]>=10||f[34]>=15)&&f[1]>=25&&f[24]>=20)traits.push(6);
+ if(traits.length>=3&&f[33]>=45&&(f[9]>=20||f[1]>=45))traits.push(7);
  const t=code=>traits.includes(code)?1:0;
  const stats=[
  clamp(Math.round(31+f[21]*.17+f[16]*.12+f[7]*.18+f[29]*.08+f[33]*.10+7*t(0)+4*t(3)),27,94),
- clamp(Math.round(31+f[11]*.23+f[4]*.16+f[33]*.15+f[22]*.10+f[10]*.10+7*t(2)+3*t(4)),27,94),
- clamp(Math.round(31+f[9]*.19+f[10]*.12+f[2]*.11+f[26]*.09+f[35]*.20+7*t(1)),27,94),
- clamp(Math.round(30+f[4]*.19+f[33]*.19+(100-f[3])*.12+f[24]*.10+f[30]*.06+7*t(4)),27,94),
+ clamp(Math.round(28+f[11]*.13+f[4]*.10+f[33]*.11+f[22]*.12+f[10]*.09+f[6]*.07+6*t(2)+3*t(4)),27,94),
+ clamp(Math.round(29+f[0]*.15+f[1]*.15+f[7]*.15+f[9]*.12+f[18]*.11+f[26]*.10+f[35]*.10+6*t(1)),27,94),
+ clamp(Math.round(28+f[4]*.11+f[33]*.14+(100-f[3])*.13+f[24]*.13+f[10]*.12+f[6]*.09+6*t(4)),27,94),
  clamp(Math.round(30+f[23]*.17+f[26]*.18+f[19]*.13+f[1]*.09+f[33]*.09+7*t(5)+5*t(6)),27,94)
  ];
  const growth=stats.map((v,i)=>1+Math.round(clamp((f[(i*7+11)%36]+f[(i*7+17)%36])/90,0,2)));
