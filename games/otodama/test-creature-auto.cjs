@@ -15,7 +15,7 @@ const sim=new Function('hash','levelOf','clamp','getRand','elementalEdge',
 const make=(seed,stats,level=7)=>({seed,stats,level,voice:{rhythm:60,res:60},parts:{crest:1,pattern:1,ears:1,back:1}});
 assert.equal(sim.specimenMutation(make(1,[60,60,60,60,60],1)).tier,0);
 assert.equal(sim.specimenMutation(make(1,[60,60,60,60,60],25)).tier,4);
-let awakens=0,specials=0,rare=0,wins=[0,0];
+let awakens=0,specials=0,rare=0,arenaTurns=0,wins=[0,0];
 for(let i=0;i<400;i++){
  const a=make(i+1,[60,58,56,60,57]),b=make(i+1000,[55,60,62,56,55]);
  const out=sim.randCombat(a,b);wins[out.winner]++;
@@ -24,8 +24,9 @@ for(let i=0;i<400;i++){
  awakens+=Number(out.events.some(e=>e.awakenSide>=0));
  specials+=Number(out.events.some(e=>e.skill));
  rare+=Number(sim.specimenMutation(a).rare);
+ arenaTurns+=out.events.filter(e=>e.arena).length;
 }
-assert.ok(awakens>100&&specials>100&&rare>2,'battle diversity');
+assert.ok(awakens>100&&specials>100&&rare>2&&arenaTurns>400,'battle diversity and arena effects');
 assert.ok(wins.every(n=>n>10),'both sides should sometimes win');
 assert.ok(script.includes('if(m.spectator||!m.interactive'),'spectator timing rings disabled');
 assert.ok(script.includes('autoOnly:true'),'client must opt in to creature-only online');
