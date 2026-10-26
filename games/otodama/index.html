@@ -75,7 +75,7 @@
 
 /* Creature-only spectator fights */
 #battlePanel .actions,#battlePanel .stance,#autoBattleBtn,#guardMeter,#nextBuffPanel,
-#battlePanel .battle-topline{display:none!important}
+#battlePanel .battle-topline,#battlePanel .battle-keyhint{display:none!important}
 #battleGuide{line-height:1.55;font-size:14px}
 </style></head><body><div class="wrap"><header class="top"><div class="brand"><div class="brandmark">〰</div><div><div class="brandname">声魂<span style="font-size:.6em;letter-spacing:0">（こえだま）</span></div><div class="micro">VOICE-BORN CREATURE ARENA</div></div></div><div class="status"><span class="dot" id="netDot"></span><span id="netLabel">SOLO DEMO</span></div></header>
 <section class="heading"><div><div class="eyebrow">声魂（こえだま） — MAKE A VOICE. CREATE A LIFE.</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>声でキャラを作って、気軽に対戦できるゲーム。</p></div><div class="count">見た目<b>1,440億通り以上</b><span>名前 3,355万通り</span></div></section>
@@ -173,10 +173,10 @@ const MISSIONS=[
 {kind:'strikes',target:2,label:'会心2回以上'},
 {kind:'parries',target:3,label:'防御3回以上'},
 {kind:'damageDealt',target:220,label:'220ダメージ以上'},
+{kind:'guardBest',target:2,label:'連続防御2回以上'},
 {kind:'dodges',target:3,label:'回避3回以上'},
 {kind:'skillsUsed',target:2,label:'自動必殺技2回以上'},
-{kind:'counterHits',target:3,label:'反撃3回以上'},
-{kind:'damageDealt',target:250,label:'250ダメージ以上'}
+{kind:'counterHits',target:3,label:'反撃3回以上'}
 ];
 function stageMission(stage){return MISSIONS[(Math.max(1,stage)-1)%MISSIONS.length]}
 function missionProgress(m){const goal=stageMission(m.stageNo);return Math.min(goal.target,Math.max(0,Number(m[goal.kind])||0))}
@@ -802,7 +802,7 @@ function drawStageAtmosphere(c,biome,t,lowFx){
 
 // Presentation only: identical guard/dodge/strike timing windows to the action buttons.
 function drawTimingArc(c,m,ev,ms,pos,lowFx){
- if(!m.interactive||!ev||ev.resolved||m.done)return;
+ if(m.spectator||!m.interactive||!ev||ev.resolved||m.done)return;
  const defending=ev.atk===1,elapsed=clamp((ms-m.pop)/(m.live?(m.telegraphMs||900):EVENT_MS),0,1);
  const [start,end]=defending?guardTiming(m,ev):strikeTiming(m);
  const [dStart,dEnd]=dodgeTiming(m,ev);
@@ -1023,12 +1023,13 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
  if(m.spectator){
    const before=m.hp.slice();m.hp=ev.hp.slice();ev.resolved=true;ev.impactAt=ms;
    ev.impactPoint=m.prevPos?.[def]?{...m.prevPos[def]}:null;
-   if(atk===0){m.damageDealt+=Math.max(0,before[1]-m.hp[1]);if(ev.skill)m.skillsUsed++;if(ev.crit)m.strikes++;}
-   else{m.damageTaken+=Math.max(0,before[0]-m.hp[0]);if(ev.dodge)m.dodges++;
+   m.damageDealt+=Math.max(0,before[1]-m.hp[1]);m.damageTaken+=Math.max(0,before[0]-m.hp[0]);
+   if(atk===0){if(ev.skill)m.skillsUsed++;if(ev.crit)m.strikes++;}
+   else{if(ev.dodge)m.dodges++;
      if(ev.guard){m.parries++;m.guardChain++;m.guardBest=Math.max(m.guardBest,m.guardChain);}else m.guardChain=0;
      if(ev.counter)m.counterHits++;}
    if(ev.awakenSide>=0){m.awakened[ev.awakenSide]=true;$('arenaEffect').textContent=ev.awakenSide===0?'覚醒！ 逆転の可能性！':'相手が覚醒！';}
-   if(ev.skill)m.ultimateAt=ms;
+   if(ev.counter&&atk===0)m.counterHits++;if(ev.skill)m.ultimateAt=ms;
    $('fightLog').textContent=ev.commentary+'　'+displayName(atk===0?m.a:m.b)+' → '+(ev.dodge?'回避':ev.damage+'ダメージ');
    $('battleMsg').textContent=ev.commentary;
    $('hpA').style.width=clamp(m.hp[0]/m.max[0]*100,0,100)+'%';
@@ -1166,12 +1167,12 @@ function announceChallenger(){
 }
 
 function finishCombat(){const m=match;if(!m||m.done)return;m.done=true;stopBgm();
- if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong>　ジャスト '+m.parries+' / 回避 '+m.dodges+' / 必殺 '+m.skillsUsed+' / 精密 '+m.strikes+' / 反撃 '+m.counterHits+'<br>与ダメージ '+m.damageDealt+' / 被ダメージ '+m.damageTaken+(win&&['S','A'].includes(m.grade)?'　・　ランク報酬XP +'+(m.grade==='S'?2:1):'');}
+ if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong>　自動防御 '+m.parries+' / 回避 '+m.dodges+' / 必殺 '+m.skillsUsed+' / 会心 '+m.strikes+' / 反撃 '+m.counterHits+'<br>与ダメージ '+m.damageDealt+' / 被ダメージ '+m.damageTaken+(win&&['S','A'].includes(m.grade)?'　・　ランク報酬XP +'+(m.grade==='S'?2:1):'');}
  else $('battleReport').classList.remove('visible');
  if(m.interactive&&!m.live){m.outcome.winner=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1]?0:1;m.outcome.max=m.max.slice();updateCharacterProgress(m);if(m.cleanDefenseAwarded)$('battleReport').textContent+=' ／ 完璧防御 +1XP'}
  clearAutoAction();
  $('timingCallout').textContent='';if(m.mode==='COM MATCH'){const next=stageEnemy(adventureStage,cur,stageAttempts),hint=$('nextStagePreview');hint.hidden=false;hint.textContent='NEXT STAGE '+adventureStage+' · '+stageBiome(adventureStage).name+' / '+stageTitle(adventureStage)+' ｜ 次の相手：'+displayName(next)+(next.archetype?'（'+next.archetype+'）':'')+' ｜ 目標：'+stageMission(adventureStage).label+' ｜ 攻略：'+enemyAdvice(next)+(next.learningRelief?' ｜ 再挑戦補正：敵能力 -'+next.learningRelief:'');}else $('nextStagePreview').hidden=true;
- finishSurvivalRound(m);finishJingle(m.outcome.winner===0);m.victoryAt=performance.now();m.finalPositions=m.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='決着！';$('fightLog').textContent=displayName(m.outcome.winner===0?m.a:m.b)+'  WIN❗️';$('rematchBtn').disabled=!['COM MATCH','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode);$('rematchBtn').textContent=m.live?'次の対戦相手を探す →':'次のバトルへ →';$('nextBuffPanel').hidden=m.mode!=='COM MATCH';if(m.mode==='SURVIVAL'||m.survivalChallenge){$('rematchBtn').textContent=survivalActive?'次の対戦へ →':'もう一度挑戦';$('rematchBtn').disabled=false;}document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===pendingBuff);b.setAttribute('aria-pressed',String(b.dataset.buff===pendingBuff))});clearInterval(battleInterval);if(m.interactive){$('battlePanel').classList.remove('playable');$('guardBtn').disabled=true;$('dodgeBtn').disabled=true;$('strikeBtn').disabled=true;$('skillBtn').disabled=true;}
+ finishSurvivalRound(m);finishJingle(m.outcome.winner===0);m.victoryAt=performance.now();m.finalPositions=m.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='決着！';$('fightLog').textContent=displayName(m.outcome.winner===0?m.a:m.b)+'  WIN❗️';$('rematchBtn').disabled=!['COM MATCH','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode);$('rematchBtn').textContent=m.live?'次の対戦相手を探す →':'次のバトルへ →';$('nextBuffPanel').hidden=true;if(m.mode==='SURVIVAL'||m.survivalChallenge){$('rematchBtn').textContent=survivalActive?'次の対戦へ →':'もう一度挑戦';$('rematchBtn').disabled=false;}document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===pendingBuff);b.setAttribute('aria-pressed',String(b.dataset.buff===pendingBuff))});clearInterval(battleInterval);if(m.interactive){$('battlePanel').classList.remove('playable');$('guardBtn').disabled=true;$('dodgeBtn').disabled=true;$('strikeBtn').disabled=true;$('skillBtn').disabled=true;}
 }
 function showBattle(a,b,outcome,mode,buff=null,live=false){
  // Offline battles exclusively replay the creature-generated fight.
