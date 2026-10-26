@@ -1,0 +1,11 @@
+const fs=require('node:fs'), assert=require('node:assert/strict');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
+const js=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
+assert.ok(js); new Function(js);
+assert.ok(js.includes('async function startRecord()'));
+assert.ok(js.includes('function stopRecord()'));
+assert.ok(js.includes('function clipData(cr)'));
+assert.ok(js.includes('function playDecodedVoice('));
+assert.ok(html.includes('禁止ワードは発しないでください。'));
+assert.ok(!js.includes('beginSpokenWordReview'));
+console.log('MIC SMOKE PASS');
