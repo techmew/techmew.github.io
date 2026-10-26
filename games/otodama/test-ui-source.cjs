@@ -33,7 +33,7 @@ for(const [role,stage,turn,extra,expected] of [
  ['フェイント型',8,5,{},'feint'],['パワー型',8,5,{},'heavy'],
  ['ゲージ型',8,1,{charge:60},'drain'],['守備型',8,1,{parries:2},'feint']
 ])assert.equal(enemyTactic(stage,turn,{b:{archetype:role},...extra}),expected,'archetype AI '+role);
-const timingSource=match[1].slice(match[1].indexOf('function guardTiming('),match[1].indexOf('function addBreak('));
+const timingSource=match[1].slice(match[1].indexOf('function trainingWindow('),match[1].indexOf('function addBreak('));
 const timing=vm.runInNewContext('const SOULS=[0,1,2,3,4,5];const soulFor=c=>c.soul;'+timingSource+';({guardTiming,dodgeTiming,strikeTiming})');
 assert.equal(timing.guardTiming({live:false,a:{soul:4}},{} )[0],.19,'iron-heart guard HUD should match input');
 assert.equal(timing.guardTiming({live:false,a:{soul:0}},{tactic:'flash'})[0],.12,'flash guard');
