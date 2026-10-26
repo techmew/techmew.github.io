@@ -1,3 +1,41 @@
+# 声魂（こえだま） v0.10.13 / 2026-10-26 — 日本語セリフ1,000種類・音声読み上げ・自動次戦
+
+## CURRENT_STATUS
+- 対象はGitHub main の games/otodama/のみ。COM/日替わり/サバイバルの既存オートバトル、音声生成/録音停止/試聴/攻撃音声、育成、勝利時爆発・破片・WIN、保存、オンラインWorker構成を維持。
+- 以前は勝敗セリフそのものが未実装だったため、セリフ表示と日本語ブラウザTTSを今回新規実装。勝利時はセリフ再生後にCOM次戦（サバイバルは次ラウンド）へ自動進行。敗北時は結果画面を保持。Worker本番は未公開。
+
+## CHANGELOG
+1. 自然な日本語3文構成のセリフを勝利500種類・敗北500種類、合計1,000種類へ。各陣営10×10×5の組み合わせが重複しないことを検査し、500回周期のシーケンスを端末内へ保存。
+2. 勝敗後に勝者名・吹き出し・セリフを表示。ブラウザSpeechSynthesisUtterance(lang=ja-JP)で日本語読み上げ。日本語音声優先、音量・ミュート・セリフON/OFF、明示的な再生ボタン、API非対応・自動再生制限時のガイドを追加。
+3. 試合開始時の双方お辞儀アニメーション約1.95秒と案内を追加。終了時の既存爆発・WINを表示後、約1.35秒から勝敗セリフを表示・読み上げ。
+4. 勝者はセリフを見せて最低約5.1秒後、再生中なら最大約12.5秒まで読み上げを待ち、次のCOM戦/サバイバル/日替わり後の冒険へ自動進行。敗北後は自動タイマーを作らず止め、再挑戦は任意のクリックのみ。
+5. バックグラウンド中は勝利による自動進行を止め、復帰後にセリフ再生と次戦待ち時間を再設定。開始前のお辞儀タイマーも非表示復帰でずれないよう調整。音声ボタン直接操作では既存ミュートを明示的に解除可能。
+6. 新test-dialogue-v113.cjsを追加、test-survival-v109.cjs旧3秒タイマー期待値を更新、npm test:dialogue / npm test:nodeへ組み込み、READMEとバージョンv0.10.13を更新。
+
+## TEST_RESULTS
+- GitHub mainの埋込JavaScriptとWorkerをV8構文検査PASS。新テストのV8モック検証で1,000種類一意性・TTS ja-JP・リプレイ・自動次戦・敗北停止・ミュート・お辞儀のソースをPASS。改訂サバイバルテストのV8モック検証PASS。
+- 更新後のGitHubソースとテストは再取得済み。正式Node CLI全テスト、Chromium実操作、Android実機のTTS/録音/縦横、外部2端末とCloudflare本番Workerは未実施。SpeechSynthesisの端末音声は利用環境に依存し、V8モックだけでは実機発声成功を保証できない。
+
+## BLOCKERS
+- Android端末での実際の日本語TTSの音声再生と読み上げ品質、ブラウザ自動再生制限の確認が未実施。日本語TTS音声がない端末では読み上げ不可だが吹き出しは表示する。
+- Cloudflare Worker本番公開には本人認証とGitHub Secretsが必要。オンライン外部2端末動作未確認。
+- 一部過去の任意ブラウザテストは手動操作・次戦バフが有効だった旧仕様を前提とするため、観戦型の新シナリオへの移行が必要。
+
+## NEXT_ACTIONS
+1. Android Chromeで日本語TTS設定・自動読み上げ/再生ボタン・勝利後次戦・敗北停止・縦横/320px・録音声競合を実確認。音声が出ない端末では日本語TTS音声の設定を案内。
+2. Chromiumで開始前のお辞儀、爆発/WIN、セリフ表示約1.35秒、音声終了後の自動次戦、連戦・画面非表示復帰を自動検証。旧任意ブラウザテストの手動操作前提を変更。
+3. Cloudflare公開後、オンライン勝利後の自動マッチングと二端末の読み上げ同意/音声を検証。
+
+## GITHUB_COMMITS
+- Dialogue implementation: 0ded33906d63de0fbe0531c421a3c413254a1ea2
+- Bow/visibility/TTS preparation: 2b02e7d34dbe9e603f024aa16b0f26e4dadcd6b0
+- Dialogue regression test: 42f7f5071b7c9ba36c87be255f3922adb34f0371
+- Updated survival regression: f52df04e714ceadd742b7310b26bc992a0a4a460
+- npm test scripts: 77093d4d9ef587e9354fc2f29b2c1a4c97aac882
+- v0.10.13 index/package/quality marker commits: 509e805984f9bc447a081d1440b6302a8d3d49d4 / bdd8e3d51e8e801f5ed3ec7f843729e073c6bd04 / afb33527430a19b60206dab8c77f90df6fd7ebc6 / c755545e73da7337dd374f22245fb328940770cc
+- Background dialogue resume/replay unmute fix: 3f51f7f6617b678bec09bd60c175529c628b0246
+- README: fca16e6b154fe63284c4216d0ae5643f29845ecb
+
 # 声魂（こえだま） v0.10.12 / 2026-10-26 18時台 JST
 
 ## CURRENT_STATUS
