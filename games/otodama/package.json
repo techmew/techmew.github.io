@@ -1,6 +1,6 @@
 {
   "name":"otodama-demo",
-  "version":"0.9.9",
+  "version":"0.10.0",
   "private":true,
   "type":"module",
   "scripts":{"deploy:server":"wrangler deploy","dev:server":"wrangler dev"},
