@@ -39,7 +39,7 @@ const sockets=[socket({openedAt:1000,creature:null}),socket({status:'connected',
 assert.equal(prune(sockets,32000),2);
 assert.deepEqual(sockets.map(s=>s.closed),[true,true,false,false,false]);
 assert.ok(worker.includes('pruneIdleSockets(this.ctx.getWebSockets(),Date.now())'));
-assert.ok(worker.includes("version:'0.10.12'"));
+assert.ok(worker.includes("version:'0.10.14'"));
 assert.ok(worker.includes("cache-control':'no-store'"));
 for(const token of ['OTODAMA_SAVE','drawVictorySequence','voicePreviewBtn','stopRecordBtn','nextStagePreview','WIN❗️','musicVolume','shareVoice','receiveVoice'])assert.ok(html.includes(token),'regression '+token);
 assert.ok(html.includes('id="nextStagePreview" aria-live="polite"'));
