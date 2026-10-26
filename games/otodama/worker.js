@@ -334,16 +334,18 @@ export class Room extends DurableObject {
   async webSocketMessage(ws,raw){
     // Online audio transfer is disabled; gameplay packets should never be megabyte-sized.
     if(typeof raw!=='string'){try{ws.close(1003,'Text packets only')}catch{}return}
-    if(raw.length>8192){try{ws.close(1009,'Message too large')}catch{}return}
-    let data;try{data=JSON.parse(raw)}catch{return}
-    if(!data||typeof data!=='object'||Array.isArray(data)){this.send(ws,{type:'error',message:'無効なメッセージ'});return;}
+    if(raw.length>8192||new TextEncoder().encode(raw).byteLength>8192){try{ws.close(1009,'Message too large')}catch{}return}
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
     if(!attachment.creature&&attachment.openedAt&&Date.now()-attachment.openedAt>30000){try{ws.close(1008,'Join timeout')}catch{}return;}
     const now=Date.now(),expired=now-(attachment.rateAt||0)>10000;
     const windowStart=expired?now:attachment.rateAt;
     const burst=expired?1:(attachment.rateCount||0)+1;
     if(burst>30){this.send(ws,{type:'error',message:'送信が多すぎます'});try{ws.close(1008,'rate limited')}catch{}return;}
+    // Malformed JSON must consume rate budget too; parsing first enabled unlimited junk floods.
     attachment.rateAt=windowStart;attachment.rateCount=burst;ws.serializeAttachment(attachment);
+    let data;try{data=JSON.parse(raw)}catch{return}
+    if(!data||typeof data!=='object'||Array.isArray(data)){this.send(ws,{type:'error',message:'無効なメッセージ'});return;}
+    if(typeof data.type!=='string'||data.type.length>32)return;
     if(data.type==='pong'){
       if(typeof data.nonce==='string'&&data.nonce===attachment.pingNonce&&Number.isFinite(attachment.pingAt)){
         ws.serializeAttachment({...attachment,rtt:Math.min(220,Math.max(0,now-attachment.pingAt)),pingNonce:null,pingAt:null});
@@ -516,9 +518,10 @@ export class Matchmaker extends DurableObject {
     const rateCount=fresh?1:(previous.rateCount||0)+1;
     if(rateCount>20){try{ws.close(1008,'Search rate limit')}catch{}return;}
     ws.serializeAttachment({...previous,rateAt,rateCount});
-    if(typeof raw!=='string'||raw.length>256)return;
+    if(typeof raw!=='string'){try{ws.close(1003,'Text packets only')}catch{}return}
+    if(raw.length>256||new TextEncoder().encode(raw).byteLength>256){try{ws.close(1009,'Message too large')}catch{}return}
     let msg;try{msg=JSON.parse(raw)}catch{return}
-    if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
+    if(!msg||typeof msg!=='object'||Array.isArray(msg)||typeof msg.type!=='string'||msg.type.length>32)return;
     if(msg.type==='cancel'){ws.serializeAttachment({status:'cancelled',time:Date.now()});try{ws.close(1000,'cancelled')}catch{}return;}
     if(msg.type!=='search')return;
     const state=ws.deserializeAttachment()||{};
