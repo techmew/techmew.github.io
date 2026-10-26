@@ -1,3 +1,45 @@
+# OTODAMA∞ 毎時開発 / 2026-10-26 09:00 JST / v0.10.0
+
+## CURRENT_STATUS
+- GitHub main v0.9.9 の index.html、worker.js、wrangler.jsonc、README、PROGRESS、テスト群を実読。Drive v0.9.9最新報告も確認。v0.9.9 ZIP内 index/worker のGit blob SHAはmainと一致した状態から改修。
+- 声生成・録音/試聴・連続COM戦・育成・図鑑・6背景・自作BGM・勝利爆発/破片/WINを維持。
+
+## CHANGELOG
+1. 非表示タブでCOM戦を一時停止し、復帰時に攻撃経過時間を補正。未解決の攻撃が次のターンに飛ぶ問題も防止。オンラインは停止しない。
+2. 敵の戦型3種類（猛攻/堅守/疾風）をステージと再挑戦回数で切替。ステータスを調整し、対戦画面に戦型と特徴を表示。
+3. STAGE12以降に速攻技「閃光突進」。通常より早いガード・回避窓を追加、HUD予兆も一致。
+4. ミッション6→8種類。カウンター命中・精密打撃2連鎖を追加し、戦績に反撃回数を表示。
+5. コンボ/ボス瀕死/HP危機でBGMの副旋律・フィルを追加。勝敗別の短いジングル。音量・ミュート・声ダッキング維持。
+6. Worker: 15秒超過の復帰トークンを拒否（alarm競合対策）。MatchmakerのWebSocket接続を64に制限。
+7. 新Chromium v0.10.0回帰テスト、Room/Matchmakerの期限切れ・飽和テストを追加。公開版のフッターとpackageをv0.10.0へ更新。
+
+## TEST_RESULTS
+- ローカルNode: worker/moderation構文、UI/Room/Matchmaker/Moderation = PASS。
+- ローカルChromium: gameplay/live/reconnect/save/tactics/v098/v099/v100 = 8 suites PASS。v100で閃光突進のガード/回避、3戦型、2ミッション、バックグラウンド復帰を確認。
+- GitHub main: index.html blob SHA 3db815ed5d0d36531660408845898338fd7cc59c、worker.js 27caf110a1d360d8e11ebb541e625ffeb1a90be0。更新時のGitHub返却SHAとローカル一致。
+- GitHub Pagesビルド結果は別途確認。Cloudflare本番、外部2端末、Android実機、公開サイト直接操作は未検証。
+
+## BLOCKERS
+- Cloudflare本番公開には所有者の認証、Actions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN とWorker URL設定が必要。秘密値をソース・Driveに記録しない。
+- 録音した発話内容の禁止語自動検査は未実装。クライアント申告の声特徴量の真正性は検証不可。ランク戦/賞金戦は未対応。
+
+## NEXT_ACTIONS
+1. Cloudflare認証後、/health・ランダム/招待・ガード/回避/精密打撃/必殺・二重同意・15秒再接続を外部2端末で検証。
+2. Android縦横・マイク録音・音声BGM・背景停止/復帰・ボタン反応を実機で検証。
+3. 3戦型と閃光突進の難易度、8ミッション達成率、XPとコンボバランスを長時間プレイで計測・調整。
+4. オンライン接続の悪用対策・マッチング待機/復帰競合・音声送信同意を継続検証。
+
+## GITHUB_COMMITS
+- v0.9.9 baseline c170e8e4a6c2db525af67f629fcd95e9235960ed
+- v0.10.0 index d3e9539f21aa9944ef939f4ced1371e1828d9461 / footer 720ef715f58b7741b6e491db9ddd08037fd619d9
+- v0.10.0 worker b2b584f2224837e2c0346c6961632d41e1e2aa88
+- v0.10.0 tests 95bd73c5e31eb329b2b7aebae608d62e6bc7f1ed / 450f1e06c9a0a6f671f31013469cbc4e2aa4ec73 / 1648ea77320441ad2b4149c36b2b876794f33e82
+- package 0d61c556e758cb788bac8c8e99e010bc170159c7
+
+GitHubがコード正本、Driveが引き継ぎ正本。ローカルテストと実配信・実機を区別する。
+
+---
+
 # OTODAMA∞ 毎時開発 / 2026-10-26 08:00 JST / v0.9.9
 
 ## CURRENT_STATUS
