@@ -36,6 +36,13 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  const statsA=a.data.creature.stats;assert.notEqual(statsA[0],95,'raw cheating stats accepted');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'声魂-FF');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).element,'音');assert.ok(statsA.every(x=>x<95));
+ // Online room sanitizes explicit anatomy and disguised names using the same server dictionary.
+ for(const badName of ['人間の局部','局部','ちーーんこ','c.h.i.n.k.o','ｓ３ｘ','chinpoko','https : // spam.example']){
+  const clean=room.cleanCreature({...creature,name:badName,type:badName});
+  assert.ok(clean?.name.startsWith('声魂-'),'unsafe room name not sanitized: '+badName);
+  assert.ok(clean?.type.startsWith('声魂-'),'unsafe creature type not sanitized: '+badName);
+ }
+ assert.equal(room.cleanCreature({...creature,name:'局部的な雨',type:'音の旅人'}).name,'局部的な雨','harmless phrase rejected');
  const observer=fake();sockets.push(observer);
  // Online audio cannot be moderated authoritatively from a forged client flag.
  // Both participants may opt in, but the server must still refuse all audio.
