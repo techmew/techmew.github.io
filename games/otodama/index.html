@@ -928,6 +928,36 @@ function synthVoice(cr,side,options={}){
   lastSoundStatus=rush?'連打攻撃の代替音を再生中':'代替音を再生中';
  }catch(e){lastSoundStatus=e.message||String(e)}
 }
+// 28 sound-shaping presets. No change to stored recording or microphone capture.
+const VOICE_EFFECTS=[
+ ['原音',1,1,'',0,0],['高音',1.43,1.5,'highpass',850,0],
+ ['超高音',1.85,1.7,'highpass',1450,0],['低音',.78,.78,'lowpass',1600,0],
+ ['重低音',.61,.65,'lowpass',800,0],['早口',1.55,1.55,'',0,0],
+ ['超早口',1.90,1.78,'highpass',1050,0],['ゆっくり',.73,.73,'lowpass',1800,0],
+ ['長い低音',.72,.54,'lowpass',950,0],['音程上昇',.88,1.48,'bandpass',1400,0],
+ ['音程下降',1.48,.76,'lowpass',1600,0],['音程の揺れ',.82,1.34,'bandpass',1280,0],
+ ['ささやき',1.17,1.12,'highpass',2200,0],['鋭い声',1.62,1.34,'highpass',1550,0],
+ ['こもった声',.92,.90,'lowpass',800,0],['反響',.94,1.02,'',0,100],
+ ['二重声',.84,1.12,'bandpass',1500,65],['三重反響',.77,1.26,'lowpass',1250,120],
+ ['細切れ',1.69,1.51,'bandpass',1800,0],['振動',1.22,.86,'bandpass',1000,70],
+ ['叫び',1.28,.75,'lowpass',2450,0],['急加速',.80,1.84,'highpass',1350,0],
+ ['急減速',1.82,.64,'lowpass',1120,0],['回転声',1.09,1.42,'bandpass',1680,80],
+ ['息混じり',1.35,1.18,'highpass',2650,0],['強打',.78,.61,'lowpass',760,55],
+ ['疾風',1.74,1.55,'highpass',1950,0],['共鳴',.68,.86,'bandpass',980,140]
+];
+const VOICE_ATTACK_VARIANTS={
+ rush:[5,6,21,1,18,26],aerial:[1,9,12,13,26,23],warp:[12,24,18,11,16,6],
+ beam:[8,9,20,15,27,11],combo:[5,6,18,16,21,19],spin:[23,11,19,16,10,9],
+ uppercut:[9,1,20,13,21,25],shockwave:[4,3,25,27,15,8],meteor:[4,25,8,27,20,3],
+ counter:[22,10,16,13,19,21],normal:[0,1,3,5,7,9,10,15,21,23]
+};
+const VOICE_REACTION_VARIANTS={
+ hurt:[10,3,7,8,22,24,4,14],heavy:[4,8,25,20,27,22],
+ guard:[3,14,10,15,7,19],parry:[9,13,16,5,24],dodge:[12,26,6,23,18],
+ counter:[21,9,13,25,16],critical:[2,20,13,8,22],blocked:[14,3,24,15,7]
+};
+const VOICE_SKILL_VARIANTS=[9,16,17,20,21,22,23,25,27,2];
+
 function clipData(cr){const s=cr?.voiceClip;return typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
 async function decodeVoice(cr){
  const data=clipData(cr);if(!data)return null;const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
