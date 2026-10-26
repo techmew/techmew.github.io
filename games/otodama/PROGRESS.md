@@ -1257,3 +1257,12 @@ GitHubコード正本・Drive引き継ぎ正本。実機/配信/本番を検証�
 - 合成音声120パターンで基礎5能力の分布をV8実測し、旧式DNA案で防御94が55/120・速度41前後へ集中する偏りを検出。重みと複合条件を調整し、防御上限張り付き0/120、平均能力 [60,70,53,68,49]、各能力の分布幅を拡大。8特性の出現が合成条件で全種確認できる構成に修正（実音声の分布は未検証）。
 - 最上位『潜在の追撃』は4つ以上の複合条件と倍音条件を必要とする希少解放に変更。GitHub commits ee7de831ab5706538a7f9e9edba64f8859812d09 / b305fc8c6c57a4a7bb49fa522b65d01f01b61a51。
 - 最終 index.html V8構文 PASS、test-audio-dna.cjs相当をV8内でNode fs/vm/assertエミュレーション実行PASS。正式Node CLI・GitHub Actions・実ブラウザ・Android・Pages配信は未検証。最新index blob ad8f6819acfc3bf89099fc49f97eafd1d7884d15。
+
+
+## v0.10.21 回帰テスト補強（2026-10-26）
+- test-audio-dna-v121.cjs を追加し、36波形・周波数特徴量の算出、FFT擬似スペクトル、同じ声なら同一能力・署名、異なる声の能力差、無音時は音響DNA未生成、壊れたDNAの拒否、レベル別潜在特性、成長先の再現性、録音と表示の接続を検査。
+- npm run test:dna / test:node / test:voice に追加テストを登録。GitHub mainから再取得した実際の test-audio-dna.cjs、test-audio-dna-v121.cjs、test-creature-auto.cjs の3本をV8のNode互換スタブで実行PASS。マイクのMediaRecorder/PCM WAVも同スタブ実行PASS。
+- 既存COM戦闘テストが旧キャラを使用するとき、音響DNA関数を呼び出さない互換処理を追加。音響DNA付きキャラのパッシブはCOM/ローカル戦で有効。サーバー側の音響DNA権威検証は未実装・オンラインは従来サーバー能力裁定。
+- 録音用SpeechRecognitionの再導入なし、録音内容の自動検査なし、注意書きのみ。新モジュールはブラウザ内実装で無料。GitHub/Node正式CLI/Android/Pages配信・外部2端末は未検証。
+- 追加commit: test-audio-dna-v121.cjs fcb863dc64fb8733cf9e34a965afce8409898cec、test修正 5cbd95c7853ebe4b126efe53e585f79a3230f2e3、package 447436aac47ab6103d7cd1039cd796de6d97169b、index互換 e900c542473998e4ec93f0fac87394e33e2766ae。
+- NEXT_ACTIONS: Android Chromeで低音/高音/リズム声を各3回録音→キャラの能力と隠し特性のばらつき・保存・戦闘声を検証し、レベル成長のバランス/オンラインの能力不正防止を追加確認。
