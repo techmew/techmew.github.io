@@ -1,3 +1,57 @@
+# 声魂（こえだま） / v0.10.9 / 2026-10-26　放置サバイバル・アーケード乱入・オンラインランキング準備
+
+## CURRENT_STATUS
+- GitHub main の `games/otodama/` のみ編集。声魂（こえだま）と従来のCOMキャンペーン・声生成/録音停止/試聴/攻撃時声再生・外見/名前・育成・セーブ互換・敗者爆発とWINは維持。
+- サバイバル（負けたら1回の挑戦終了）、AUTO/MANUAL切替、各戦の自動進行、端末内ポイント/自己ベスト/TOP5、任意ONのオンライン挑戦者受入とNEW CHALLENGER表示を実装。
+- Cloudflare Rankings Durable Object（SQLite）の匿名登録/トークン検証/サーバー確定オンライン勝敗だけの月間ランキング、二重計上・同一相手の24時間3戦上限、招待・ランダム・途中切断のRoom結果記録を追加。
+- **本番Workers未デプロイ。** Cloudflare認証情報未接続。従ってオンライン対戦/全ユーザー共通ランキングはまだ利用可能と確認できない。
+
+## CHANGELOG
+1. サバイバル開始時に自動操作ON、相手の予兆に合わせた自動ガード/回避/タイミング攻撃/特別な技を追加。人間がボタンやキーボード操作した時はAUTOをOFFへ切り替え、いつでもONに戻せる。無敵ではなく一部自動入力は失敗する。
+2. サバイバル1勝ごとに異なるCOM敵へ連続進行、勝利時ポイント加算・敗北でゲームオーバー。自己ベストと完了ランの端末内TOP5をローカル保存。COM冒険のstage進捗とは分離し、既存モードの機能を保持。
+3. 希望時のみマッチング検索（デフォルトOFF）。サバイバル中にマッチするとNEW CHALLENGERのアーケード風表示からオンラインのリアルタイム対戦へ。相手が見つからない場合は従来のCOM自動戦を継続。120秒待機切れ時は前面可視かつ許可中に再検索。
+4. GitHub Pages画面にランキング用匿名登録/上位順位表示UIを追加。オンライン登録を選んだブラウザだけ秘密トークンをローカル保存し、招待/ランダムRoomへ安全なWebSocketで渡す。
+5. WorkerにRankings Durable Object、wrangler.jsoncにSQLite class/bindingとv3 migration。勝敗/獲得ポイントはRoomだけが報告し、外部HTTPのスコア自己申告はルーティングしない。匿名IDはサーバー生成、秘密トークンはSHA-256で照合。別登録2名の試合のみ月間ポイント化。勝利100＋連勝10〜100、敗北0。同一試合のリプレイ拒否、同一対戦組合せ24時間3戦の加点上限。SQLite登録上限300件/時（全体）。
+6. Roomの順位トークン検証は非同期のため、seat占有を検証後に再確認して二重着席の競合を防止。切断不戦勝のスコア反映と結果フラグ、HTTP JSON中継も補強。
+7. test-survival-v109.cjs、test-rankings-v109.cjs(Node22 SQLite)、既存 test-room/test-matchmaker のexport互換修正、旧V8回帰テストのバージョン表記を更新。DEPLOY_GUIDE/READMEに公開手順と弱点を明記。UI/Worker/packageをv0.10.9に統一。
+
+## TEST_RESULTS
+- GitHub connectorで取得した現行mainのHTMLインラインJavaScriptおよびWorker JavaScriptをV8構文評価 PASS。各更新コミット後に再取得してcontent/blob SHA一致。
+- V8で偽DOM/タイマーを使ったサバイバル開始・AUTO初期ON・敵の入れ替わり・勝利220pt・最高記録保存・敗北でゲームオーバー・再挑戦で0ptに戻る・MANUAL切替でタイマーキャンセル等を模擬確認PASS。
+- RankingsクラスをSQLite API相当のメモリモック・偽HTTP/暗号APIで実行。匿名ID2名登録、トークン検証、勝者3戦で360pt、敗者3敗、同一試合IDを拒否、同一相手4戦目の加点拒否、順位出力PASS。
+- **正式Node test-survival-v109.cjs / test-rankings-v109.cjs、Node全スイート、Chromium実プレイ、Android実機、Cloudflare Workerと実SQLiteの挙動、外部2端末/本番ランキングは今回未検証。** V8のモック成功をこれらと混同しない。
+- GitHub Pages Actionsの実デプロイ成功は別途確認する。Cloudflareはまだ公開していない。
+
+## BLOCKERS
+- Cloudflare Worker作成・アカウント所有者認証とGitHub Actions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKENが必要。秘密をチャットやGitHubソースに貼らない。
+- ブラウザが停止した場合の完全放置/バックグラウンド対戦は保証できず、WebSocketの切断が発生する場合がある。
+- 複数匿名アカウントでの談合、録音声特徴量の不正、同じネットワークの繰り返し接続は完全には防止できない。賞金レベルの競技ランキングには適用しない。
+- 音声そのものの自動文字起こしや有害発話検知は未実装。プライバシー同意OFFがデフォルト。
+
+## NEXT_ACTIONS
+1. Node.js 22で test-survival-v109.cjs/test-rankings-v109.cjsを含め全ゲーム/サーバー回帰テスト実行。Chromiumでサバイバル10+戦、手動介入、敗北、スマホ縦横・録音停止・音量を検証。
+2. Cloudflare FreeのWorkerを所有者が作成し権限を絞ったAPI TokenとAccount IDをGitHub Actions Secretsへ登録。専用Deploy workflow実行、/healthとランキング匿名発行/読み取りを確認。
+3. 別端末2台でランダム/招待/NEW CHALLENGER/自動・手動操作/切断復帰/録音同意/勝敗のHP同期/ランク加点と重複拒否を検証。
+4. 放置中のゲーム速度・難度・ポイント増え方と、ランダム待機120秒切れ再検索のユーザー体験・無料枠消費を実測。セキュリティ対策（登録スパム、匿名多重ID）を段階的に強化。
+
+## REFERENCE_COMMITS
+- Survival UI: 8faa2ae7e0f89852daa86fe91d2d7322e0721587
+- Survival gameplay: 3795df8628bf7009a43e0734f6d9d2455ebd6274
+- TOP5 and manual override: 4bcafba717a9d9bdc4f3fedfffd49e38c63b73a1
+- Ranked Durable Object: 6e32b1b368edae10aefb349b31175774b8b24033
+- Wrangler binding: 076ea1e94314e196f8b345199d808658816e07a7
+- Ranking UI: 846c56820436aca47841fd2ea026d9deb92e7b1d
+- Seat capacity/race fix: dbe1596444ba2beda296f8bcb712f9d28a9b5d29
+- User opt-in queue retry: de81b3f5be8ea6c6de895709ab7348f1b8bc4aa6
+- Node SQLite regression source: 687a46a796cf18fdb4bdb96d735c38638f9a560b
+- Survival V8 regression source: 8f7079e74cf48521c3e56698ab7510d59b191f56
+- Worker HTTP/forfeit: ad8111c490624e74d1517bf097053da547cce246
+- Versions: index 8c7493a11ebd19f3645418c725f3355ed327ade7, Worker f3c83917ee13ee1439f58d347f7c73556e1c4926, package e92402c08f87d2e41591c2732de0b000ed5cf6fa
+- Deployment instructions: 21a2445a4b3c46058d2588e20dae89609e2022d3
+- README: 86995909c520daae6647cc1e05a1031904b84406
+
+---
+
 # 声魂（こえだま） / v0.10.8 / 2026-10-26　連戦・戦術報酬・音楽・接続保護
 
 ## CURRENT_STATUS
