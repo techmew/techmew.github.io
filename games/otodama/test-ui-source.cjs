@@ -22,4 +22,6 @@ for(const fn of ['resumeToken','live_resumed','stageAttempts','MUSIC_MOTIFS','cl
 for(const id of ['stageMissionHint','missionBadge','battleReport','enemyTactic'])assert.ok(html.includes('id="'+id+'"'),'v0.9.6 feedback missing: '+id);
 for(const fn of ['stageMission','missionCompleted','evadeCounterReady','COM_TACTICS','enemyTactic','damageDealt','parries','skillsUsed'])assert.ok(match[1].includes(fn),'v0.9.6 combat feature missing: '+fn);
 assert.ok(match[1].includes("match?.mode?.startsWith('ONLINE')"),'live opponent voice mute missing');
+assert.ok(html.includes('id="nextStagePreview"'),'next-stage preview missing');
+for(const marker of ['restBar','虚空転移','螺旋連撃','actionStatus','data.elapsed'])assert.ok(html.includes(marker),'new gameplay or resume feature missing '+marker);
 console.log('UI SOURCE TEST PASS | game syntax, mic, COM, daily, codex, online controls, victory sequence');
