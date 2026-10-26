@@ -18,13 +18,13 @@ const TERMS = [
 
 // Expanded anatomy/sexual slang coverage (JP, EN, common euphemisms).
 const EXTRA_TERMS = [
-'ちんちん','ちんぼ','ちんぽこ','おちんちん','おちんぽ','ちん毛','陰茎','陰嚢','睾丸','金玉','きんたま','たまたま','ペニス','ちんこ','ぽこちん','まら','肉棒','亀頭','包茎','勃起','ぼっき','陰部','性器','男性器','女性器','生殖器','外陰部','陰核','クリトリス','クリ','陰唇','大陰唇','小陰唇','膣','ちつ','ヴァギナ','バギナ','まんすじ','まん毛','あそこ','おっぱい','乳首','乳輪','乳房','ちくび','ぱいぱい','おしりの穴','肛門','アナル','ケツ穴','尻穴','お尻の穴','性欲','性癖','発情','欲情','絶頂','潮吹き','精子','精巣','前立腺','オーガズム','エッチ','えっち','エロい','えろい','すけべ','スケベ','淫語','淫乱','痴女','痴男','変態','裸','全裸','ヌード','自慰行為','手淫','手コキ','手こき','口淫','口内射精','顔射','ぶっかけ','本番行為','挿入','挿れる','ハメ撮り','はめどり','ハメる','乱交','輪姦','緊縛','SMプレイ','性奴隷','セフレ','セックスフレンド','パパ活','ママ活','未成年淫行','児童買春',
+'ちんちん','ちんぼ','ちんぽこ','おちんちん','おちんぽ','ちん毛','陰茎','陰嚢','睾丸','金玉','きんたま','ペニス','ちんこ','ぽこちん','肉棒','亀頭','包茎','勃起','ぼっき','陰部','性器','男性器','女性器','生殖器','外陰部','陰核','クリトリス','陰唇','大陰唇','小陰唇','膣','ちつ','ヴァギナ','バギナ','まんすじ','まん毛','おっぱい','乳首','乳輪','乳房','ちくび','ぱいぱい','おしりの穴','肛門','アナル','ケツ穴','尻穴','お尻の穴','性欲','性癖','発情','欲情','絶頂','潮吹き','精子','精巣','前立腺','オーガズム','エッチ','えっち','エロい','えろい','すけべ','スケベ','淫語','淫乱','痴女','痴男','全裸','ヌード','自慰行為','手淫','手コキ','手こき','口淫','口内射精','顔射','ぶっかけ','本番行為','挿れる','ハメ撮り','はめどり','乱交','輪姦','緊縛','SMプレイ','性奴隷','セフレ','セックスフレンド','パパ活','ママ活','未成年淫行','児童買春',
 'penis','vagina','vulva','clitoris','testicle','testicles','testes','scrotum','genitals','genitalia','boobs','tits','nipples','areola','breasts','butthole','anus','anal sex','pussy','cock','dick','boner','erection','masturbation','jerk off','orgasm','ejaculation','semen','sperm','cum','cumming','blow job','hand job','rimjob','deepthroat','naked','nude','horny','fetish','sexual intercourse','sexual content','sex toy','sex worker','hooker','prostitute','gangbang','creampie','bukkake','fingering','penetration','pornography','erotic','erotica','nsfw','milf','dildo','vibrator',
 '性交渉','性犯罪','強制わいせつ','わいせつ','猥褻','痴漢行為','盗撮動画','性的暴行','性的虐待','性暴力','児童性的虐待'
 ];
 const unicodeLoose=s=>String(s??'').normalize('NFKC').toLowerCase()
- .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g,'')
- .replace(/[ぁ-ゖ]/g,x=>x)\n .replace(/[ァ-ヶ]/g,x=>String.fromCharCode(x.charCodeAt(0)-0x60))
+ .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufe0e\ufe0f\ufeff]/g,'')
+ .replace(/[ァ-ヶ]/g,x=>String.fromCharCode(x.charCodeAt(0)-0x60))
  .replace(/[①②③④⑤⑥⑦⑧⑨]/g,ch=>String('①②③④⑤⑥⑦⑧⑨'.indexOf(ch)+1))
  .replace(/[@4]/g,'a').replace(/[0〇]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/5/g,'s')
  .replace(/[\s\-_.,:;~+*・\/\\\[\](){}<>"'’“”`^|]+/g,'');
