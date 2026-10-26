@@ -63,7 +63,7 @@ Object.assign(live,{hp:[100,100],max:[100,100],prevPos:[{x:1,y:2},{x:3,y:4}],cha
 let impacts=0;
 const impactCtx={match:live,performance:{now:()=>100},$:()=>({style:{},textContent:''}),
  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),displayName:c=>c?.name||'x',
- impactSfx(){impacts++},updateActionHud(){}};
+ impactSfx(){impacts++},reactionVoice(){},updateActionHud(){}};
 const impact=vm.runInNewContext(slice('function receiveLiveImpact(data){','function endLiveBattle(data){')+';receiveLiveImpact',impactCtx);
 const packet={seq:4,atk:0,damage:20,hp:[100,80],charge:[50,10]};
 impact({...packet,atk:1});assert.equal(impacts,0,'spoofed attack side rejected');
