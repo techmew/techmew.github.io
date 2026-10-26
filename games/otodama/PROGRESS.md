@@ -1109,3 +1109,53 @@ GitHubがコード正本、Driveが引き継ぎ正本。コミット/模擬テ�
 - README: d6d2b6e0fef73261709c31df67dc34a793c41ba9
 
 GitHubはソース正本。Driveに同内容を保存する。ブラウザ/本番未検証を確認済みと表記しない。
+
+
+---
+
+# 声魂 v0.10.19 / 2026-10-26 22時台 JST / 発話審査・禁止語・公開名対策
+
+## CURRENT_STATUS
+- GitHub main の games/otodama/ index.html, worker.js, moderation.js, wrangler.jsonc, README, package.json, test群, PROGRESS と Drive最新「OTODAMA_v101_RUN_REPORT_20261026」末尾v0.10.18を実読してから改修。
+- 既存の声による素体生成、巨大外見・名前、録音停止/試聴、1/2/5/7 HIT声、COM/サバイバル勝利後の次戦、敗北停止、育成、爆発/破片/WIN、自作BGM、保存を維持。
+- 録音発話の日本語音声認識と禁止語照合を復旧。端末内認識優先、外部認識は初期OFFの明示同意。審査失敗/非対応は素体生成のみ、録音声は保存/再生しない。オンライン生録音転送は引き続き禁止。Cloudflare本番未公開。
+
+## CHANGELOG
+1. 禁止語を辞書559エントリに拡充。局部/人間の局部/性器・陰部表現、性的・脅迫・侮辱表現、英語・ローマ字・表記揺れに対応。
+2. NFKC/全半角、キリル・ギリシャ系の類似文字、長音・記号・空白区切り、全角URL/メール等を正規化して判定。単独「局部」は拒否し「局部的な雨」など一般語の誤判定を抑制。
+3. ブラウザSpeechRecognitionの日本語確定結果を辞書と照合。端末内モデル利用可なら優先、外部認識はチェックボックスの明示許諾のみ。
+4. 禁止語検出時は録音と新キャラ生成を中止。未認識・認識API非対応・辞書取得失敗時は素体のみ生成し、録音データは保存しない。
+5. 録音声の試聴・攻撃・雄叫びは voiceReview='passed' の録音だけ許可。以前の審査情報がない録音は再生不可。オンライン生録音の転送停止を維持。
+6. 録音の注意文・外部音声認識同意・失敗時の案内を現行動作に更新。音声認識APIの事前確認を1.5秒でタイムアウトし、録音終了時の認識リソースを解放。
+7. moderation/Room/voice-review/voice-rush/hourlyの回帰テストを更新。README、Worker health、package/clientをv0.10.19に整合。
+
+## TEST_RESULTS
+- GitHub main再取得のmoderation.js全回帰テスト（559辞書エントリ、禁止語/正常語）PASS。
+- test-voice-review-v114.cjsの端末内認識/外部同意/非対応/未審査音声拒否をV8モックで実行PASS。HTML埋込JavaScriptとWorkerのV8構文PASS。
+- Worker Room.cleanCreatureの禁止語名/型を7種類でサニタイズし、正常語を保持するV8モックPASS。更新CJS構文PASS。GitHubコミット後の変更ソース再取得PASS。
+- 正式Node CLI npm run test:node / test:voice、GitHub Actions成功、Chromium実ブラウザ、GitHub Pages最新配信、Android実機、Cloudflare本番、外部二端末は未検証。GitHub Actionsのcommit連動検索はpush runを返さず、成功確認不可。
+
+## BLOCKERS
+- Cloudflare本番公開は所有者のCLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKENのGitHub Actions Secretsが必要。Worker URL未設定。
+- Web Speech APIは端末依存で誤認識・聞き逃しがあり、発話の完全審査を保証しない。端末内認識がない場合は明示同意による外部認識か録音声なし。
+- Android/Chromiumのマイク・認識・スピーカーの実聴、Cloudflare外部二端末対戦、Pages配信の反映は未検証。
+
+## NEXT_ACTIONS
+1. GitHub ActionsのNode22 test:node結果をWeb UIで確認し、失敗テストを修正。実ブラウザで録音開始/停止・禁止語/正常語・未認識・外部同意を検証。
+2. Android縦横画面、音量/ミュート、録音1/2/5/7声・勝者雄叫び・BGM、COM勝利自動次戦/敗北停止、セーブを実機確認。
+3. Cloudflare認証後Workerを手動公開し、/health v0.10.19、招待/ランダム/切断15秒復帰/不正名前拒否/音声非転送を独立二端末で検証。
+4. 認識APIが同時マイク利用時に失敗する端末を計測し、必要なら録音・認識フローを端末別に調整。
+
+## GITHUB_COMMITS
+- moderation: 5cfc59481639df03ff5880145d2faf6e9d8d6034
+- moderation tests: 8338b52315659f46d36dd20d5a810e63cbd22bf5
+- ASR/voice gate: 6566086a7153dc335fd7232db09181f81044d247
+- voice-rush/hourly fixtures: 24fcd869ebf92827dc6f1803c5f11af15d643168 / 80e31f20a40eded0d4280079d223f3e042d0d4c1
+- UI/cleanup/version: c5c04a507c27d6ae543008c7a8b4f247ecc541d1
+- Worker health: 6401f7bb06b38d10fef2fb4600c29d27d99816b7
+- package: 3d959423c79578016fe4982bf7721f0517045114
+- README: c1e34d19bdbf3b9fdf2fb26afec93f9b36c2d565
+- voice review tests: b61f0ba4070d080537e92e948e8552d6e6bcf048
+- Room test: 7eff88890dc7bb252ab9436459b2cb955c02f93e
+
+GitHubがソース正本、Driveが引き継ぎ正本。V8モック、Node実行、Pages配信、実機、本番Workerを混同しない。
