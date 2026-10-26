@@ -28,7 +28,7 @@ const mm=new ctx.testing.Matchmaker({getWebSockets:()=>sockets,storage:mmStorage
  const saturated=new ctx.testing.Matchmaker({getWebSockets:()=>Array.from({length:64},FakeSocket),storage:mmStorage});
  assert.equal((await saturated.fetch()).status,503,'saturated matchmaking queue must reject new sockets');
  const room=new ctx.testing.Room({getWebSockets:()=>[]});
- const c=room.cleanCreature({name:'test',parts:{family:11,crest:29,back:15,pattern:23,legs:15},voice:{vol:90},stats:[70,40,50,60,90]});
+ const c=room.cleanCreature({name:'test',type:'声魂',seed:777,parts:{family:11,crest:29,back:15,pattern:23,legs:15},voice:{vol:90,pitch:50,res:55,rhythm:65,stable:60,breath:48},stats:[70,40,50,60,90]});
  assert.equal(c.parts.family,11);assert.equal(c.parts.crest,29);assert.notEqual(c.stats[0],70,'posted stats must be ignored');
  const fight=room.simulate(c,c);assert.ok(fight.events.length>1);
  console.log('MATCHMAKER TEST PASS | same room code:',a.messages[0].code,'| creature:',c.parts.family,'| fight turns:',fight.events.length);
