@@ -40,6 +40,7 @@
 - moderation fallback: 3586598580bb5862cf8abbee0bb013139e076e94
 - tests: 15df3fecea568a6dbc16a2876046c865910c2372 / 29e8b6a46a81b267b120790c4a3e57d5f9bb85a9 / 870fca13fb46b7c878c15e997fad7cb68ec13c59
 - README: aadf45aed5d5fcaad2e55ecf2f305bb5c18b7dbd
+- package version: dc9f1aca8f321fe65932c36143666fd7dbc55063
 
 ---
 
