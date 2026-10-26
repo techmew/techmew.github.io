@@ -1064,3 +1064,48 @@ GitHubがゲームソースの正本、Driveが引き継ぎの正本。GitHubコ
 - test-matchmaker VM: d2b3b86e4acc102fbd2d50f4579f2d90bf7b6b12
 
 GitHubがコード正本、Driveが引き継ぎ正本。コミット/模擬テスト/正式Node/Actions/Pages/Android/本番Workerを区別する。
+
+---
+
+# 声魂 v0.10.18 / 2026-10-26 21時台 JST / 勝者の雄叫び・CPU戦だけ文字セリフ
+
+## CURRENT_STATUS
+- GitHub main games/otodama/ のみ改修。録音生成/停止/試聴、1/2/5/7連打、オート対戦・勝利自動次戦/敗北停止、育成、セーブ、爆発・破片・WIN、BGM、オンライン音声共有停止を維持。
+- 勝敗の勝者が雄叫びを上げる。自分の録音済み・利用可能な声は短い断片を音程を下げて2層再生し、録音がないCPU・オンライン対戦相手はWeb Audio合成雄叫びで代替。
+- COM/日替わり/ローカルサバイバルだけ文字セリフ（500勝・500敗の計1000種類）を表示し、セリフ音声読み上げ(TTS)は無効化。オンラインは文字セリフを生成・表示しない。生録音のオンライン共有は引き続き禁止。
+- Cloudflare Workers/Durable Objectsは本番未公開。Android実機/独立2端末は未検証。
+
+## CHANGELOG
+1. showBattleQuoteをCPU文字セリフと共通の勝者雄叫びに改修。結果再生開始は勝敗確定から520ms。
+2. 録音声の0.7秒区間をピッチ0.88/0.78倍、320ms差の2層で1秒超の雄叫びとして再生。録音なし・利用不可ならキャラ声特徴による1.04秒の合成雄叫び。
+3. 試合中の攻撃ボイス・試聴と勝利後の雄叫びを分離。再生結果は別試合移行・画面非表示・停止・相手ミュート・録音デコード遅延により不正に混ざらない。声の出力は既存リミッター使用。
+4. 結果画面の独立した「雄叫びをもう一度鳴らす」ボタンと雄叫びON/OFF設定を追加。再試聴はミュート/音量0%を補正し、AudioContext suspended復旧に対応。
+5. オンライン音声プライバシー文言を現行の転送禁止・端末内再生に修正。モバイル320pxでは結果ボタンを折り返して配置。
+6. 勝者の雄叫び終了を考慮した自動次戦タイマーに変更。敗北側は画面停止を維持。戻ってきた際の結果文字セリフの再抽選を防止。
+7. test-dialogue-v113.cjsを新仕様へ修正し、V8でCPU文字1000件一意性・自己勝利の録音2層・CPU敗北の合成雄叫び・オンライン文字無し・相手声ミュート・終了後の次戦/停止・音声再生・タブ復帰・デコード遅延・AudioContext復帰を検証。
+8. READMEとpackage/client表示バージョンをv0.10.18に更新（Workerコードは非変更、Worker healthはv0.10.17）。
+
+## TEST_RESULTS
+- GitHub mainから index.html / test-dialogue-v113.cjs / package.json 再取得、HTML埋込JavaScriptおよび改修テストのV8構文検証：PASS。
+- test-dialogue-v113.cjsのシナリオをFSとWeb Audioを模擬したV8上で実行：PASS。CPUだけ文字、オンライン文字なし、録音2層・録音なし合成音、読み上げなし、ミュート、再試聴、自動次戦、敗北停止、タブ復帰、デコード後の旧試合音声拒否、suspended復帰を検証。
+- npm run test:node / test:voiceをNode CLIで直接実行した結果、Chromiumでの実表示・音声、公開Pagesの最新配信、Android実機の音声、Cloudflare本番、外部二端末は今回未検証。V8モックを実機検証と混同しない。
+
+## BLOCKERS
+- 公開オンラインサーバーの音声転送は禁止されているため、対戦相手の実際の録音生声は受信できない。相手側の雄叫びは合成音で代替。
+- Androidで録音声が自然な雄叫びに聞こえるか/音量が適切かの実聴テストは未実施。
+- Cloudflare認証とActions SecretsがないとWorker本番公開はできない。
+
+## NEXT_ACTIONS
+1. AndroidとChromiumで勝利/敗北のWIN画面と録音声2層雄叫び、ミュート・リプレイ・画面復帰・連戦、スピーカー/イヤホンの音量を確認。
+2. GitHub Actionsで test:node / test:voice を正式実行し、必要なら既存テストを新仕様に合わせて更新。
+3. Cloudflare認証後Worker本番公開/health/ランダム・招待・15秒再接続/ランキングを独立2端末で確認。生録音共有は審査実装まで停止を維持。
+
+## GITHUB_COMMITS
+- game result logic: a3f130506b17f056f7ad7324fd6ba4f9f444032e
+- mobile/UI/privacy: 52f665ce110382592b8f971e8d27311ea49476ef
+- AudioContext recovery: 5fe9087d4794d77ae306093c70f7d570333d05c5
+- dialogue regression: 226355b43c66b997fbeea114b9152bccad8a0793 / 7dce80eff384d9ae1133ae70d60f29b02855dc9f
+- package: 22eaf050571c233441f2993cd76a7a084e8a2795
+- README: d6d2b6e0fef73261709c31df67dc34a793c41ba9
+
+GitHubはソース正本。Driveに同内容を保存する。ブラウザ/本番未検証を確認済みと表記しない。
