@@ -1216,13 +1216,14 @@ function randCombat(a,b){
  const fighters=[a,b],profile=fighters.map(specimenProfile);
  const max=fighters.map((c,i)=>Math.round(132+c.stats[1]*.92+profile[i].mutation.tier*7));
  const hp=max.slice(),events=[],rng=getRand(hash(a.seed^Math.imul(b.seed,97)^Date.now()));
+ const traits=fighters.map(dnaUnlocked);
  const energy=[0,0],awaken=[false,false],momentum=[0,0];let prev=-1,chain=0,currentArena=null;
  for(let turn=0;turn<52&&hp[0]>0&&hp[1]>0;turn++){
   const odds=clamp(.5+(profile[0].speed-profile[1].speed)/370+(momentum[0]-momentum[1])*.023,.28,.72);
   let atk=rng()<odds?0:1;
   if(atk===prev)chain++;else chain=0;
   if(chain>=3){atk=1-atk;chain=0}prev=atk;
-  const def=1-atk,P=profile[atk],D=profile[def],A=fighters[atk],B=fighters[def];
+  const def=1-atk,P=profile[atk],D=profile[def],A=fighters[atk],B=fighters[def],TA=traits[atk],TD=traits[def];
   if(turn%5===4)currentArena=['無重力ゾーン','落雷の嵐','残響増幅','空間反転','音速暴走'][Math.floor(rng()*5)];
   const arena=currentArena;
   const categories=[['meteor','uppercut','shockwave'],['combo','aerial','warp'],
@@ -1230,10 +1231,11 @@ function randCombat(a,b){
   ['beam','warp','spin']];
   let kind=categories[P.style][Math.floor(rng()*3)];
   let hits=['combo','spin','aerial'].includes(kind)?2+Math.floor(rng()*3):1;
-  const crit=rng()<clamp(.035+P.intuition/1150+(awaken[atk]?.045:0),.03,.21);
-  const dodge=rng()<clamp(.012+D.speed/1000+(D.style===1?.065:0)+(arena==='無重力ゾーン'?.06:0),.025,.25);
-  const guard=!dodge&&rng()<clamp(.035+D.defense/760+(D.style===2?.12:0),.04,.3);
-  const counter=!dodge&&rng()<clamp(.02+D.intuition/1650+(D.style===3?.1:0),.02,.18);
+  if(TA.includes(1)&&hits>1)hits=Math.min(5,hits+1);
+  const crit=rng()<clamp(.035+P.intuition/1150+(awaken[atk]?.045:0)+(TA.includes(3)?.045:0),.03,.25);
+  const dodge=rng()<clamp(.012+D.speed/1000+(D.style===1?.065:0)+(arena==='無重力ゾーン'?.06:0)+(TD.includes(6)?.045:0),.025,.28);
+  const guard=!dodge&&rng()<clamp(.035+D.defense/760+(D.style===2?.12:0)+(TD.includes(2)?.06:0),.04,.34);
+  const counter=!dodge&&rng()<clamp(.02+D.intuition/1650+(D.style===3?.1:0)+(TD.includes(4)?.055:0),.02,.22);
   const skill=energy[atk]>=75&&(rng()<.62||hp[atk]/max[atk]<.38);
   if(skill){energy[atk]=0;kind=P.style===1?'combo':P.style===0?'meteor':'beam';hits=Math.max(3,hits)}
   if(arena==='音速暴走')hits=Math.max(2,hits);
@@ -1245,12 +1247,13 @@ function randCombat(a,b){
   let damage=Math.max(3,Math.round((10+P.power*.225+P.voice*.105-D.defense*.118+(rng()-.5)*11)*
    (hits>1?1+.13*(hits-1):1)*(crit?1.38:1)*(skill?1.53:1)*
    (awaken[atk]?1.17:1)*elementalEdge(A,B)*(1+P.mutation.tier*.025)*
-   (arena==='落雷の嵐'?1.15:arena==='空間反転'?.82:arena==='音速暴走'?1.08:1)));
+   (arena==='落雷の嵐'?1.15:arena==='空間反転'?.82:arena==='音速暴走'?1.08:1)*
+   (TA.includes(0)?1.09:1)*(skill&&TA.includes(5)?1.11:1)*(skill&&TA.includes(7)?1.08:1)));
   let selfDamage=0;
   if(dodge)damage=0;
   else{
-   if(guard)damage=Math.max(1,Math.round(damage*.4));
-   if(counter){selfDamage=Math.max(3,Math.round((9+D.power*.19)*(awaken[def]?1.15:1)));
+   if(guard)damage=Math.max(1,Math.round(damage*(TD.includes(2)?.32:.4)));
+   if(counter){selfDamage=Math.max(3,Math.round((9+D.power*.19)*(awaken[def]?1.15:1)*(TD.includes(4)?1.24:1)));
      damage=Math.max(1,Math.round(damage*.65))}
   }
   hp[def]=Math.max(0,hp[def]-damage);hp[atk]=Math.max(0,hp[atk]-selfDamage);
@@ -1259,6 +1262,7 @@ function randCombat(a,b){
   momentum[atk]=damage?Math.min(5,momentum[atk]+1):Math.max(0,momentum[atk]-1);
   momentum[def]=counter?Math.min(5,momentum[def]+2):Math.max(0,momentum[def]-1);
   const commentary=awakenSide>=0?(awakenSide===0?'こちらの素体が覚醒！':'相手の素体が覚醒！'):
+   skill&&TA.includes(7)?'声の潜在能力で追撃！':skill&&TA.includes(5)?'響きが必殺技を強化！':
    skill?'蓄積した力を解放！':dodge?'素早い回避！':guard?'防御力で受け止めた！':
    counter?'反撃が決まった！':crit?'強烈な一撃！':
    hp[def]/max[def]<.25?'決着が近い！':turn%5===4&&arena?'地形変化：'+arena+'！':hits>=3?'連続攻撃が命中！':P.temperament+'な攻め！';
@@ -1706,7 +1710,19 @@ function resolveCombatImpact(ms){const m=match;if(!m||!m.interactive||m.live||m.
  if(ev.arena){const arena=ev.arena;if(arena==='落雷の嵐')damage=Math.round(damage*1.17);if(arena==='残響増幅')m.charge=Math.min(100,m.charge+10);if(arena==='空間反転')damage=Math.round(damage*.87)}
  if(atk===0){if(m.strikeSuccess){damage=Math.round(damage*(1+Math.min(.32,.18+(m.strikeChain-1)*.035)));m.charge=Math.min(100,m.charge+6);m.strikes++;ev.strike=true;}else m.strikeChain=0;if(m.evadeCounterReady){damage=Math.round(damage*1.15);m.evadeCounterReady=false;ev.evadeCounter=true;$('arenaEffect').textContent='回避から反撃 +15%';}if(m.counterReady){const bonus=Math.min(.65,.18+m.guardChain*.11);damage=Math.round(damage*(1+bonus));ev.counterBurst=true;m.counterReady=false;$('arenaEffect').textContent='ガードから反撃 '+m.guardChain+'回！';}damage=Math.round(damage*elementalEdge(player,foe));damage=Math.round(damage*(m.stance==='rush'?1.22:m.stance==='guard'?.89:1));if(m.nextBuff==='power')damage=Math.round(damage*1.15);if(m.nextBuff==='rhythm'&&m.strikeSuccess&&m.strikeChain>=2)damage=Math.round(damage*(1+Math.min(.2,.1*(m.strikeChain-1))));
   if(m.skillArmed){const soul=soulFor(player);damage=Math.round(damage*(soul.bias[0]+(soul===SOULS[5]?Math.random()*.5:0)));m.skillArmed=false;m.ultimateAt=ms;ev.skill=true;addBreak(m,30);ev.hits=Math.max(5,ev.hits);m.charge=Math.min(100,m.charge+4);$('battleMsg').textContent=soul.skill+'!!  '+damage+' DAMAGE';$('arenaEffect').textContent='✦ '+soul.skill+' ✦';tone(770,.15)}else{m.charge=Math.min(100,m.charge+12)}}
- else{if(m.boss&&m.hp[1]<m.max[1]*.45){damage=Math.round(damage*1.18);ev.bossEnraged=true;}damage=Math.round(damage*elementalEdge(foe,player));damage=Math.round(damage*(m.stance==='rush'?1.12:m.stance==='guard'?.76:1));if(m.dodgeSuccess){damage=0;ev.dodge=true;}else if(m.parried){damage=ev.tactic==='pierce'?Math.max(5,Math.round(damage*.36)):Math.min(2,Math.round(damage*.09));const reflected=Math.max(7,Math.round(foe.stats[0]*.13));m.hp[1]=Math.max(0,m.hp[1]-reflected);ev.parry=true;attackVoice(player,0)}else if(!m.guardUsed){m.charge=Math.min(100,m.charge+6);m.guardChain=0}if(m.bossStunned){damage=0;ev.dodge=true;ev.bossBreak=true;m.bossStunned=false;m.breakMeter=0;$('battleMsg').textContent='成功！ ボスの攻撃を完全に封じた';}if(ev.tactic==='drain'&&damage>0&&!m.parried&&!m.dodgeSuccess){m.charge=Math.max(0,m.charge-12);$('battleMsg').textContent='技ゲージが減った！ ゲージ -12';}const beforeLifeline=damage;if(!m.parried&&!m.dodgeSuccess)damage=lifelineMitigation(m,damage);if(damage<beforeLifeline){ev.lifeline=true;$('arenaEffect').textContent='逆転障壁！ -'+(beforeLifeline-damage)+' DAMAGE';}}
+ else{if(m.boss&&m.hp[1]<m.max[1]*.45){damage=Math.round(damage*1.18);ev.bossEnraged=true;}damage=Math.round(damage*elementalEdge(foe,player));damage=Math.round(damage*(m.stance==='rush'?1.12:m.stance==='guard'?.76:1));if(m.dodgeSuccess){damage=0;ev.dodge=true;}else if(m.parried){damage=ev.tactic==='pierce'?Math.max(5,Math.round(damage*.36)):Math.min(2,Math.round(damage*.09));const reflected=Math.max(7,Math.round(foe.stats[0]*.13*(dnaUnlocked(player).includes(4)?1.25:1)));m.hp[1]=Math.max(0,m.hp[1]-reflected);ev.parry=true;attackVoice(player,0)}else if(!m.guardUsed){m.charge=Math.min(100,m.charge+6);m.guardChain=0}if(m.bossStunned){damage=0;ev.dodge=true;ev.bossBreak=true;m.bossStunned=false;m.breakMeter=0;$('battleMsg').textContent='成功！ ボスの攻撃を完全に封じた';}if(ev.tactic==='drain'&&damage>0&&!m.parried&&!m.dodgeSuccess){m.charge=Math.max(0,m.charge-12);$('battleMsg').textContent='技ゲージが減った！ ゲージ -12';}const beforeLifeline=damage;if(!m.parried&&!m.dodgeSuccess)damage=lifelineMitigation(m,damage);if(damage<beforeLifeline){ev.lifeline=true;$('arenaEffect').textContent='逆転障壁！ -'+(beforeLifeline-damage)+' DAMAGE';}}
+ // Voice-derived passive strengths apply only to local fights; online HP remains server authoritative.
+ if(damage>0){
+  const active=dnaUnlocked(atk===0?player:foe),defensive=dnaUnlocked(def===0?player:foe);
+  if(active.includes(0)){damage=Math.round(damage*1.09);ev.dnaTrait='低音の重み';}
+  if(atk===0&&active.includes(1)&&m.strikeSuccess){damage=Math.round(damage*1.06);ev.dnaTrait='連続する声';}
+  if(atk===0&&active.includes(3)&&m.strikeSuccess&&m.strikeChain>=2){damage=Math.round(damage*1.10);ev.dnaTrait='鋭い立ち上がり';}
+  if(ev.skill&&active.includes(5)){damage=Math.round(damage*1.11);ev.dnaTrait='重なる響き';}
+  if(ev.skill&&active.includes(7)){damage=Math.round(damage*1.08);ev.dnaTrait='潜在の追撃';}
+  if(defensive.includes(2)&&ev.guard){damage=Math.max(1,Math.round(damage*.90));ev.dnaTrait='伸びる声';}
+  if(defensive.includes(6)&&atk===1&&!m.parried&&!m.dodgeSuccess){damage=Math.max(1,Math.round(damage*.91));ev.dnaTrait='変わる音色';}
+  if(ev.dnaTrait&&!ev.skill)$('arenaEffect').textContent='音声特性：'+ev.dnaTrait;
+ }
  m.hp[def]=Math.max(0,m.hp[def]-damage);if(selfDamage>0)m.hp[atk]=Math.max(0,m.hp[atk]-selfDamage);
  if(ev.recovery>0)m.hp[atk]=Math.min(m.max[atk],m.hp[atk]+ev.recovery);
  if(atk===0){m.damageDealt+=damage;if(ev.skill)m.skillsUsed++;if(ev.counterBurst||ev.evadeCounter)m.counterHits++;}else{m.damageTaken+=damage;if(ev.parry)m.parries++;if(ev.dodge)m.dodges++;}
