@@ -15,7 +15,7 @@ async def main():
         await page.set_content(html,wait_until='domcontentloaded')
         result=await page.evaluate('''() => {
           const t=window.__v098;
-          if(!t.isRivalStage(7)||t.isRivalStage(5)||t.isRivalStage(10)||t.stageTitle(7)!=='宿命のライバル')return {error:'rival rotation'};
+          if(!t.isRivalStage(7)||t.isRivalStage(5)||t.isRivalStage(10)||t.stageTitle(7)!=='ライバル戦')return {error:'rival rotation'};
           if(t.stageMission(4).kind!=='guardBest'||t.stageMission(5).kind!=='damageDealt')return {error:'mission expansion'};
           const foe=t.stageEnemy(7,t.cur);if(!foe.name.startsWith('宿敵・'))return {error:'rival appearance'};
           t.stage=7;t.doCom();const m=t.match;
