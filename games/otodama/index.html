@@ -77,6 +77,29 @@
 #battlePanel .actions,#battlePanel .stance,#autoBattleBtn,#guardMeter,#nextBuffPanel,
 #battlePanel .battle-topline,#battlePanel .battle-keyhint{display:none!important}
 #battleGuide{line-height:1.55;font-size:14px}
+
+/* Start-of-battle bow and audible victory/defeat dialogue, mobile safe. */
+.bow-banner{position:absolute;top:14%;left:50%;transform:translateX(-50%);z-index:5;
+ width:max-content;max-width:90%;padding:9px 20px;text-align:center;font-weight:850;
+ border:1px solid #c2e9ff;border-radius:999px;background:#071a31e9;color:#fff4d5;
+ box-shadow:0 7px 25px #0008;pointer-events:none}
+.battle-speech{position:absolute;z-index:7;top:10%;left:50%;transform:translateX(-50%);
+ width:min(90%,610px);padding:13px 17px 11px;background:#f6fafff2;color:#162238;
+ border:2px solid #65dbe7;border-radius:18px;box-shadow:0 14px 30px #000b;text-align:left}
+.battle-speech::after{content:"";position:absolute;left:23%;bottom:-13px;border-left:12px solid transparent;
+ border-right:12px solid transparent;border-top:13px solid #f6faff}
+.battle-speech.enemy-speaks{border-color:#ff9c91}
+.battle-speech.enemy-speaks::after{left:auto;right:23%}
+#battleSpeechWho{display:block;font-size:12px;color:#315577;margin-bottom:4px}
+#battleSpeechText{font-size:clamp(13px,2.55vw,19px);line-height:1.47;font-weight:780;overflow-wrap:anywhere}
+.battle-speech-foot{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-top:9px}
+#battleSpeechState{font-size:10px;color:#455c6e}
+#repeatSpeechBtn{border:1px solid #3d7e9b;background:#eefaff;color:#183954;border-radius:12px;
+ padding:5px 10px;font-weight:700;font-size:11px;white-space:nowrap;cursor:pointer}
+#repeatSpeechBtn:focus-visible{outline:3px solid #e48d38;outline-offset:3px}
+.battle-speech[hidden],.bow-banner[hidden]{display:none!important}
+@media(max-width:480px){.battle-speech{top:8%;width:94%;padding:10px 12px}
+ #battleSpeechText{font-size:13px}.battle-speech-foot{align-items:flex-start;flex-wrap:wrap}}
 </style></head><body><div class="wrap"><header class="top"><div class="brand"><div class="brandmark">〰</div><div><div class="brandname">声魂<span style="font-size:.6em;letter-spacing:0">（こえだま）</span></div><div class="micro">VOICE-BORN CREATURE ARENA</div></div></div><div class="status"><span class="dot" id="netDot"></span><span id="netLabel">SOLO DEMO</span></div></header>
 <section class="heading"><div><div class="eyebrow">声魂（こえだま） — MAKE A VOICE. CREATE A LIFE.</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>声でキャラを作って、気軽に対戦できるゲーム。</p></div><div class="count">見た目<b>1,440億通り以上</b><span>名前 3,355万通り</span></div></section>
 <main class="layout"><section class="card stage"><div class="headrow"><div class="sectionname">キャラのプレビュー</div><div class="idpill" id="creatureId">#-------</div></div><canvas id="heroCanvas" width="700" height="520" aria-label="生成キャラのプレビュー"></canvas><div class="nametag"><div><div class="kind" id="kind">声のタイプ</div><div class="creaturename" id="creatureName">---</div></div><span class="element" id="element">---</span></div></section>
@@ -84,7 +107,7 @@
 <div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">サンプル</span></div><div class="metrics" id="voiceMetrics"></div><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="voice-role"><b id="voiceRoleName">声のタイプ</b><span id="voiceRoleDesc">声の特徴から特殊能力が生まれます。</span></div><div class="questline" id="questLine"><div>冒険 <b id="adventureStage">STAGE 01</b><div class="next-stage-note" id="stageHint">声の冒険を始めよう</div></div><small id="stageWins">突破 0戦</small></div><div class="stage-mission" id="stageMissionHint" aria-live="polite">ステージミッションを準備中</div><div class="campaign"><span><b id="campaignRank">Lv.1</b> <small id="campaignXp">XP 0/3</small></span><span id="campaignStreak">連勝 0 / 最高 0</span></div><div class="save-tools"><button class="btn small ghost" type="button" id="exportSaveBtn">進行データを書き出す</button><label class="btn small ghost" for="importSaveFile">進行データを読み込む<input id="importSaveFile" type="file" accept=".json,application/json" hidden></label></div><div class="tiny" id="saveNotice" role="status">音声録音そのものはバックアップに含まれません。</div><div class="challenge-box" id="dailyBox"><div class="challenge-head"><span>今日の対戦 <b id="dailyName">---</b></span><span class="challenge-tag" id="dailyFlag">未達成</span></div><div class="challenge-copy" id="dailyDesc">日替わりのライバルを倒して報酬を獲得</div><button class="btn challenge-btn" id="dailyBtn" type="button">今日の相手と対戦</button></div><div class="collection-box"><b>声魂図鑑</b><span id="codexCounter">発見した種族 0 / 12</span><div class="codex-grid" id="codexGrid" aria-label="発見した種族"></div></div><div id="playGuide"><h3>遊び方 / 3ステップ</h3><div class="guideflow">① 声でキャラを作る → ② 対戦中にガード・特別な技を操作 → ③ 勝って育成しながら次のステージへ進む</div></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="survival-home"><strong>サバイバル｜負けたら終了</strong><span id="survivalHomeStatus" aria-live="polite">最高記録：0 ポイント</span><div class="survival-history"><b>この端末の記録 TOP 5</b><ol id="survivalLocalTop5"><li>まだ記録がありません</li></ol></div><button class="btn primary" id="survivalBtn" type="button">▶ おまかせでスタート</button><small>自動で連戦。途中で手動操作に切り替えられます。ポイントはこの端末の記録で、オンラインランキングには反映されません。</small></div>
 <div class="battlebuttons"><button class="btn fight" id="fightBtn">⚔ 次のバトルへ</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div></section></main>
 <section class="bottom"><div class="card gallery"><div class="galleryhead"><h2>作ったキャラ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:13px 0 0">キャラをタップすると使用キャラを切り替えられます。保存データはこのブラウザ内に保持されます。</p></div><div class="card online"><div class="paneltitle"><h2>オンライン対戦</h2><span class="sub">RANDOM MATCH / ROOM</span></div><p>ランダム対戦は、無料枠のCloudflareサーバーを公開すると利用できます。サーバー未接続時はCOM戦が遊べます。</p><label class="survival-online-setting"><input type="checkbox" id="survivalChallengerOptIn"> サバイバル中にオンライン挑戦者を受け付ける（サーバー設定時のみ）</label><div class="online-ranking"><strong>オンライン月間ランキング</strong><p>登録した2人の対戦でサーバーが勝敗を確定した場合のみ加点。登録しない場合も通常対戦できます。</p><div class="field"><input id="rankingAlias" maxlength="18" placeholder="ランキングに表示する名前" aria-label="ランキング表示名"><button id="rankingRegisterBtn" type="button" class="btn small outline">ランキング登録</button></div><div class="field"><button id="rankingRefreshBtn" type="button" class="btn small ghost">順位を見る</button></div><div id="rankingStatus" role="status">Cloudflareサーバー公開後に利用できます。</div><ol id="onlineLeaderboard"><li>まだオンラインの順位を取得していません</li></ol></div><div class="field"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="field"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="online-privacy"><label><input type="checkbox" id="shareVoice"> 自分の録音音声を対戦相手へ送る（任意）</label><label><input type="checkbox" id="receiveVoice"> 相手の録音音声の受信を許可（任意）</label><label><input type="checkbox" id="muteOpponentVoice"> 相手の録音音声をミュート</label><small>送信者と受信者の両方が許可した場合だけ転送します。送信後のコピーや録音を防ぐことはできません。</small></div><div class="roomline" id="roomLine">オンライン接続先は未設定です。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div></div></section><footer class="footer">声魂（こえだま） 試作版 v0.10.12 · オンライン録音共有は同意時のみ。相手端末での保存は制御できません · 非公式の独立オリジナル作品</footer></div>
-<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">声魂（こえだま） 対戦 / コンピューター戦</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="timing-callout" id="timingCallout" aria-live="off"></div><div class="arena-effect" id="arenaEffect">準備中</div><div id="challengerBanner" class="challenger-banner" hidden role="status" aria-live="polite"><b>NEW CHALLENGER</b><small>オンラインの挑戦者が現れた！</small></div><div class="arena-battle-tip">ガード・回避・攻撃を使い分けよう</div></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="enemyTactic" role="status" aria-live="polite"></div><div id="battleReport" role="status" aria-live="polite"></div><div id="battlePanel"><div class="boss-panel" id="bossPanel" hidden><b id="bossWarning">ボス</b><div class="boss-break"><i id="bossBreakFill"></i></div><small>素体が自動で戦います。ボスの行動を見極めよう。</small></div><div class="survival-battle-bar"><span id="survivalBattleStatus" aria-live="polite" hidden></span><button type="button" id="autoBattleBtn" aria-pressed="false">自動操作：OFF</button></div><div class="battle-guide" id="battleGuide">素体の能力と個性で自動対戦。戦いの行方を見守ろう！</div><div class="battle-topline"><span id="skillName">特別な技</span><span>技ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ガード</button><button class="btn outline" id="dodgeBtn" type="button">↗ 回避</button><button class="btn outline" id="strikeBtn" type="button">⚡ タイミング攻撃</button><button class="btn" id="skillBtn" type="button" disabled>✦ 特別な技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div><div class="battle-tactics"><span id="comboBadge">ガード連続 0</span><span id="incomingBadge">敵の攻撃を見切れ！</span></div><div class="stage-mission" id="missionBadge" aria-live="polite" hidden></div><div class="battle-keyhint">PC操作：Space＝ガード / J＝回避 / L＝タイミング攻撃 / K＝特別な技 / 1・2・3＝戦術</div></div><div id="battlePrize" aria-live="polite"></div><div id="nextStagePreview" aria-live="polite" aria-live="polite" hidden></div><div id="nextBuffPanel" class="next-buff-panel" hidden><b>次のバトルの作戦を選択</b><div class="next-buff-choices"><button type="button" data-buff="power" aria-pressed="false">⚔ 攻撃 +15%</button><button type="button" data-buff="shield" aria-pressed="false">◆ HP +30</button><button type="button" data-buff="resonance" aria-pressed="false">✦ 技ゲージ +34</button><button type="button" data-buff="focus" aria-pressed="false">◎ タイミングが合わせやすくなる</button><button type="button" data-buff="lifeline" aria-pressed="false">♡ ピンチ時に一度ダメージ -20</button><button type="button" data-buff="rhythm" aria-pressed="false">♫ タイミング攻撃が続くと強化</button></div><small id="nextBuffHint">選択した強化は次のCOM戦のみ有効。選ばなくても進めます。</small></div><div class="modalfoot"><div class="audio-rows"><label class="soundrow" for="battleVolume">声・効果音 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><label class="soundrow" for="musicVolume">BGM <input id="musicVolume" type="range" min="0" max="25" value="8"><b id="musicVolumeLabel">8%</b></label><label class="soundrow"><input type="checkbox" id="lowFx"> 省電力描画</label></div><button class="btn primary" id="rematchBtn" disabled>次のバトルへ →</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
+<div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">声魂（こえだま） 対戦 / コンピューター戦</b><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div id="bowBanner" class="bow-banner" aria-live="polite" hidden>対戦前に、お互いに一礼</div><div id="battleSpeech" class="battle-speech" role="status" aria-live="polite" hidden><b id="battleSpeechWho"></b><div id="battleSpeechText"></div><div class="battle-speech-foot"><small id="battleSpeechState"></small><button id="repeatSpeechBtn" type="button">セリフをもう一度聞く</button></div></div><div class="timing-callout" id="timingCallout" aria-live="off"></div><div class="arena-effect" id="arenaEffect">準備中</div><div id="challengerBanner" class="challenger-banner" hidden role="status" aria-live="polite"><b>NEW CHALLENGER</b><small>オンラインの挑戦者が現れた！</small></div><div class="arena-battle-tip">素体同士が自動で勝負</div></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="enemyTactic" role="status" aria-live="polite"></div><div id="battleReport" role="status" aria-live="polite"></div><div id="battlePanel"><div class="boss-panel" id="bossPanel" hidden><b id="bossWarning">ボス</b><div class="boss-break"><i id="bossBreakFill"></i></div><small>素体が自動で戦います。ボスの行動を見極めよう。</small></div><div class="survival-battle-bar"><span id="survivalBattleStatus" aria-live="polite" hidden></span><button type="button" id="autoBattleBtn" aria-pressed="false">自動操作：OFF</button></div><div class="battle-guide" id="battleGuide">素体の能力と個性で自動対戦。戦いの行方を見守ろう！</div><div class="battle-topline"><span id="skillName">特別な技</span><span>技ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ガード</button><button class="btn outline" id="dodgeBtn" type="button">↗ 回避</button><button class="btn outline" id="strikeBtn" type="button">⚡ タイミング攻撃</button><button class="btn" id="skillBtn" type="button" disabled>✦ 特別な技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div><div class="battle-tactics"><span id="comboBadge">ガード連続 0</span><span id="incomingBadge">敵の攻撃を見切れ！</span></div><div class="stage-mission" id="missionBadge" aria-live="polite" hidden></div><div class="battle-keyhint">PC操作：Space＝ガード / J＝回避 / L＝タイミング攻撃 / K＝特別な技 / 1・2・3＝戦術</div></div><div id="battlePrize" aria-live="polite"></div><div id="nextStagePreview" aria-live="polite" aria-live="polite" hidden></div><div id="nextBuffPanel" class="next-buff-panel" hidden><b>次のバトルの作戦を選択</b><div class="next-buff-choices"><button type="button" data-buff="power" aria-pressed="false">⚔ 攻撃 +15%</button><button type="button" data-buff="shield" aria-pressed="false">◆ HP +30</button><button type="button" data-buff="resonance" aria-pressed="false">✦ 技ゲージ +34</button><button type="button" data-buff="focus" aria-pressed="false">◎ タイミングが合わせやすくなる</button><button type="button" data-buff="lifeline" aria-pressed="false">♡ ピンチ時に一度ダメージ -20</button><button type="button" data-buff="rhythm" aria-pressed="false">♫ タイミング攻撃が続くと強化</button></div><small id="nextBuffHint">選択した強化は次のCOM戦のみ有効。選ばなくても進めます。</small></div><div class="modalfoot"><div class="audio-rows"><label class="soundrow" for="battleVolume">声・効果音 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><label class="soundrow" for="musicVolume">BGM <input id="musicVolume" type="range" min="0" max="25" value="8"><b id="musicVolumeLabel">8%</b></label><label class="soundrow"><input type="checkbox" id="lowFx"> 省電力描画</label><label class="soundrow"><input type="checkbox" id="talkEnabled" checked> 日本語セリフを読み上げる</label></div><button class="btn primary" id="rematchBtn" disabled>次のバトルへ →</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), TAU=Math.PI*2;
@@ -464,7 +487,7 @@ const MUSIC_VOLUME=()=>Math.max(0,Math.min(.18,(Number($('musicVolume')?.value)|
 try{const saved=localStorage.getItem('otodama.music.volume');if(saved!==null)$('musicVolume').value=String(clamp(Number(saved),0,25))}catch(e){}
 $('musicVolumeLabel').textContent=$('musicVolume').value+'%';
 $('musicVolume').oninput=()=>{$('musicVolumeLabel').textContent=$('musicVolume').value+'%';try{localStorage.setItem('otodama.music.volume',$('musicVolume').value)}catch(e){}};
-$('mutedCheck').onchange=()=>{if($('mutedCheck').checked){stopAttackVoices();if(battleSoundCtx?.state==='running')battleSoundCtx.suspend().catch(()=>{});}else if(match&&!match.done)unlockBattleAudio();};
+$('mutedCheck').onchange=()=>{if($('mutedCheck').checked){stopBattleSpeech();stopAttackVoices();if(battleSoundCtx?.state==='running')battleSoundCtx.suspend().catch(()=>{});}else if(match&&!match.done)unlockBattleAudio();};
 try{$('lowFx').checked=localStorage.getItem('otodama.lowfx')==='1'||(localStorage.getItem('otodama.lowfx')===null&&(window.matchMedia('(prefers-reduced-motion: reduce)').matches||(navigator.deviceMemory||8)<4))}catch(e){}
 $('lowFx').onchange=()=>{try{localStorage.setItem('otodama.lowfx',$('lowFx').checked?'1':'0')}catch(e){}configureBattleCanvas()};
 function musicNote(ac,when,hz,length,kind,amplitude){
@@ -580,6 +603,130 @@ function previewRecordedVoice(){
 const COMBAT_KINDS=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
 const ARENA_LABELS={'無重力ゾーン':'ふわっとする','落雷の嵐':'落雷','残響増幅':'音が響く','空間反転':'重力が変わる','音速暴走':'スピードアップ'};
 const BATTLE_LABEL={rush:'突進',aerial:'ジャンプ攻撃',warp:'回り込み',beam:'遠距離攻撃',combo:'連続攻撃',spin:'回転攻撃',uppercut:'打ち上げ',shockwave:'範囲攻撃',meteor:'急降下',counter:'反撃'};
+
+
+/* Taunt speech: 500 fluent winning lines + 500 fluent losing lines (10 x 10 x 5 per set).
+   Each situation is assembled from three complete sentences to avoid broken Japanese grammar. */
+const TAUNT_PARTS={
+ win:{
+  opening:[
+   'もう終わり？','その程度で勝てると思った？','さっきの勢いはどうしたの？','いいところまでは来たね。',
+   '思ったより粘ったじゃない。','あの一撃だけは認めてあげる。','少しは楽しませてもらったよ。',
+   '最後まで諦めなかったのは立派だね。','もう少し手こずると思っていたよ。','その気合いは嫌いじゃない。'
+  ],
+  middle:[
+   'でも、勝ったのはこっちだよ。','残念だけど、まだ力が足りないね。','結局、最後に立っているのはこちらだ。',
+   '勝負の決め手は見えていたよ。','本気を出す前に終わっちゃったね。','その隙、見逃すわけないでしょ。',
+   'やっぱり一枚上手だったみたいだね。','これが今の実力差ってことだよ。','もう少し工夫が必要だったね。',
+   '相手を甘く見すぎたんじゃない？'
+  ],
+  ending:[
+   '出直しておいで。','次はもっと楽しませてよ。','悔しかったら強くなって戻ってきて。',
+   'その時はまた相手になるよ。','さて、次の相手は誰かな？'
+  ]
+ },
+ lose:{
+  opening:[
+   'もう動けないの？','あれだけ張り切っていたのにね。','勝つつもりで来たんでしょ？',
+   'さっきまでの勢いはどうしたの？','もう終わりだなんて、拍子抜けだね。',
+   'いいところまでは来ていたよ。','まさか、これで全力だったの？',
+   'その顔を見ると、相当悔しそうだね。','もう少し粘ってくれると思ったよ。',
+   'ずいぶん自信がありそうだったね。'
+  ],
+  middle:[
+   'でも、結果は見てのとおりだよ。','今日はこっちの完勝だね。','最後の詰めが甘かったようだね。',
+   '勢いだけでは勝てないんだよ。','まだまだ力の差があるみたいだね。',
+   'この勝負は最初から譲る気がなかったよ。','こっちの強さを読み違えたね。',
+   'あの隙が勝敗を分けたんだよ。','本気で勝ちたいなら、準備が足りないね。',
+   'こっちはまだ余裕があるんだけどね。'
+  ],
+  ending:[
+   '出直しておいで。','また挑戦してきてもいいよ。','次はもっと頑張ってみて。',
+   'ここから立ち上がれるかな？','悔しいなら、強くなって帰ってきて。'
+  ]
+ }
+};
+const TAUNT_COUNT=1000;
+function tauntLine(kind,index){
+ const p=TAUNT_PARTS[kind];if(!p||!Number.isInteger(index)||index<0||index>=500)throw Error('invalid taunt index');
+ return p.opening[index%10]+' '+p.middle[Math.floor(index/10)%10]+' '+p.ending[Math.floor(index/100)%5];
+}
+function nextTaunt(kind){
+ const key='otodama.taunts.v1.'+kind;let counter=0;
+ try{counter=Number(localStorage.getItem(key))||0}catch(e){}
+ counter=Number.isSafeInteger(counter)&&counter>=0?counter:0;
+ const line=tauntLine(kind,(counter*173+(kind==='win'?117:389))%500);
+ try{localStorage.setItem(key,String((counter+1)%500))}catch(e){}
+ return line;
+}
+let battleSpeechGeneration=0,resultSpeechTimer=null,resultNextTimer=null,bowStartTimer=null;
+function stopBattleSpeech(){
+ battleSpeechGeneration++;
+ try{window.speechSynthesis?.cancel()}catch(e){}
+}
+function clearResultTimers(){
+ clearTimeout(resultSpeechTimer);resultSpeechTimer=null;
+ clearTimeout(resultNextTimer);resultNextTimer=null;
+ clearTimeout(bowStartTimer);bowStartTimer=null;
+}
+function speechStatus(value){const node=$('battleSpeechState');if(node)node.textContent=value;}
+function speakBattleQuote(m){
+ if(!m||match!==m||!m.done||!m.tauntText)return;
+ stopBattleSpeech();
+ if(!$('talkEnabled').checked){speechStatus('読み上げOFF。吹き出しは表示中。');return}
+ if($('mutedCheck').checked){speechStatus('ミュート中。解除してから「もう一度聞く」を押してください。');return}
+ const synth=window.speechSynthesis,U=window.SpeechSynthesisUtterance;
+ if(!synth||typeof U!=='function'){speechStatus('音声読み上げ非対応の端末です。セリフは画面に表示しています。');return}
+ const generation=battleSpeechGeneration;
+ try{
+  const sentence=new U(m.tauntText);
+  sentence.lang='ja-JP';sentence.rate=1.03;
+  sentence.pitch=clamp(.92+(Number((m.outcome.winner===0?m.a:m.b).voice?.pitch)||50)/600,.9,1.12);
+  sentence.volume=clamp((Number($('battleVolume').value)||12)/26,.22,.72);
+  const choices=synth.getVoices?.()||[];
+  const japanese=choices.filter(v=>/^ja([-_]|$)/i.test(v.lang||''));
+  if(japanese.length)sentence.voice=japanese.find(v=>v.localService)||japanese[0];
+  sentence.onstart=()=>{if(match===m&&generation===battleSpeechGeneration)speechStatus('日本語で読み上げ中…')};
+  sentence.onend=()=>{if(match===m&&generation===battleSpeechGeneration)speechStatus('読み上げ完了')};
+  sentence.onerror=e=>{if(match===m&&generation===battleSpeechGeneration)speechStatus('自動再生が制限された場合は「もう一度聞く」を押してください。')};
+  synth.speak(sentence);speechStatus('音声を再生しています…');
+ }catch(e){speechStatus('音声を再生できません。日本語音声の設定をご確認ください。')}
+}
+function showBattleQuote(m){
+ if(match!==m||!m.done)return;
+ const winner=m.outcome.winner===0?m.a:m.b;
+ const kind=m.outcome.winner===0?'win':'lose';
+ m.tauntText=nextTaunt(kind);
+ $('battleSpeechWho').textContent=displayName(winner)+'のセリフ';
+ $('battleSpeechText').textContent=m.tauntText;
+ $('battleSpeech').hidden=false;
+ $('battleSpeech').classList.toggle('enemy-speaks',kind==='lose');
+ speakBattleQuote(m);
+}
+function advanceAfterWin(m){
+ if(match!==m||!m.done||m.outcome.winner!==0||!$('battleModal').classList.contains('open'))return;
+ stopBattleSpeech();
+ if((m.mode==='SURVIVAL'||m.survivalChallenge)&&survivalActive)nextSurvivalBattle();
+ else if(m.mode==='COM MATCH'||m.mode==='DAILY CHALLENGE')doCom();
+ else if(m.live&&serverBase()){closeBattle();startRandomMatch();}
+}
+function scheduleNextAfterQuote(m){
+ if(m.outcome.winner!==0)return; // Defeat stays on the current result screen.
+ const start=performance.now();
+ function check(){
+  resultNextTimer=null;
+  if(match!==m||!m.done||m.outcome.winner!==0)return;
+  if(document.hidden){survivalAwaitingVisibility=true;return}
+  const elapsed=performance.now()-start;
+  const speaking=!!(window.speechSynthesis?.speaking&&$('talkEnabled').checked&&!$('mutedCheck').checked);
+  if(elapsed<5100||(speaking&&elapsed<12500)){
+   resultNextTimer=setTimeout(check,350);return;
+  }
+  if(m.live&&!serverBase()){speechStatus('オンライン対戦サーバー未設定のため、次戦は手動で開始してください。');return}
+  advanceAfterWin(m);
+ }
+ resultNextTimer=setTimeout(check,5100);
+}
 
 const AUTO_STYLES=['パワー型','スピード型','守備型','カウンター型','バランス型','変化型'];
 function specimenMutation(c){const tier=Math.min(4,Math.floor((levelOf(c)-1)/6));const rare=!!tier&&hash((c.seed>>>0)^0x17b4a2)%24===0;return {tier,rare,label:tier?(rare?'希少変異・':'進化・')+['','光る紋様','新しい角','発光する体','特異な姿'][tier]:'未進化'};}
@@ -906,6 +1053,14 @@ function battleDraw(ms){
     drawVictorySequence(canvas,match,ms,t);
     canvas.restore();aframe=requestAnimationFrame(battleDraw);return;
   }
+ if(match.turn<0&&!match.live){
+  const phase=clamp((ms-match.introAt)/match.introDuration,0,1),bow=Math.sin(Math.PI*clamp((phase-.15)/.7,0,1));
+  for(const i of [0,1]){const x=i===0?220:500,cr=i===0?match.a:match.b;
+   canvas.save();canvas.translate(x,235+bow*12);canvas.rotate((i===0?.09:-.09)*bow);canvas.scale(1,1-.26*bow);
+   drawCreature(canvas,cr,0,0,.78,t,{mirror:i===1});canvas.restore();
+  }
+  canvas.restore();aframe=requestAnimationFrame(battleDraw);return;
+ }
  const bases=[{x:205+145*Math.sin(t*3.75),y:185+102*Math.sin(t*4.8)},{x:515+145*Math.sin(t*3.35+2.2),y:185+100*Math.sin(t*4.6+1.8)}];
  const pos=bases.map(v=>({x:v.x,y:v.y,rot:0,scale:.66}));
  if(event){
@@ -1178,10 +1333,7 @@ function finishSurvivalRound(m){
  }
  if(survivalPoints>survivalBest){survivalBest=survivalPoints;try{localStorage.setItem('otodama.survival.best',String(survivalBest))}catch{}}
  showSurvivalStatus();
- if(win){
-  $('battlePrize').textContent+=' ／ 約3秒で次の相手へ';
-  survivalNextTimer=setTimeout(()=>{survivalNextTimer=null;if(survivalActive&&match===m&&m.done&&$('battleModal').classList.contains('open')){if(document.hidden){survivalAwaitingVisibility=true;$('battlePrize').textContent+=' ／ 画面に戻ると再開';}else nextSurvivalBattle()}},2900);
- }
+ // Automatic continuation is scheduled after the winner's spoken line in finishCombat.
 }
 function announceChallenger(){
  const banner=$('challengerBanner');banner.hidden=false;
@@ -1189,16 +1341,24 @@ function announceChallenger(){
  challengerBannerTimer=setTimeout(()=>{banner.hidden=true;challengerBannerTimer=null},2400);
 }
 
-function finishCombat(){const m=match;if(!m||m.done)return;m.done=true;stopBgm();
+function finishCombat(){const m=match;if(!m||m.done)return;m.done=true;stopBgm();stopAttackVoices();clearTimeout(bowStartTimer);bowStartTimer=null;$('bowBanner').hidden=true;
  if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong>　自動防御 '+m.parries+' / 回避 '+m.dodges+' / 必殺 '+m.skillsUsed+' / 会心 '+m.strikes+' / 反撃 '+m.counterHits+'<br>与ダメージ '+m.damageDealt+' / 被ダメージ '+m.damageTaken+(win&&['S','A'].includes(m.grade)?'　・　ランク報酬XP +'+(m.grade==='S'?2:1):'');}
  else $('battleReport').classList.remove('visible');
  if(m.interactive&&!m.live){m.outcome.winner=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1]?0:1;m.outcome.max=m.max.slice();updateCharacterProgress(m);if(m.cleanDefenseAwarded)$('battleReport').textContent+=' ／ 完璧防御 +1XP'}
  clearAutoAction();
  $('timingCallout').textContent='';if(m.mode==='COM MATCH'){const next=stageEnemy(adventureStage,cur,stageAttempts),hint=$('nextStagePreview');hint.hidden=false;hint.textContent='NEXT STAGE '+adventureStage+' · '+stageBiome(adventureStage).name+' / '+stageTitle(adventureStage)+' ｜ 次の相手：'+displayName(next)+(next.archetype?'（'+next.archetype+'）':'')+' ｜ 目標：'+stageMission(adventureStage).label+' ｜ 攻略：'+enemyAdvice(next)+(next.learningRelief?' ｜ 再挑戦補正：敵能力 -'+next.learningRelief:'');}else $('nextStagePreview').hidden=true;
  finishSurvivalRound(m);finishJingle(m.outcome.winner===0);m.victoryAt=performance.now();m.finalPositions=m.prevPos?.map(p=>({...p}))||[{x:170,y:190},{x:550,y:190}];$('battleModal').classList.add('victory');$('arenaEffect').textContent='決着！';$('fightLog').textContent=displayName(m.outcome.winner===0?m.a:m.b)+'  WIN❗️';$('rematchBtn').disabled=!['COM MATCH','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode);$('rematchBtn').textContent=m.live?'次の対戦相手を探す →':'次のバトルへ →';$('nextBuffPanel').hidden=true;if(m.mode==='SURVIVAL'||m.survivalChallenge){$('rematchBtn').textContent=survivalActive?'次の対戦へ →':'もう一度挑戦';$('rematchBtn').disabled=false;}document.querySelectorAll('[data-buff]').forEach(b=>{b.classList.toggle('selected',b.dataset.buff===pendingBuff);b.setAttribute('aria-pressed',String(b.dataset.buff===pendingBuff))});clearInterval(battleInterval);if(m.interactive){$('battlePanel').classList.remove('playable');$('guardBtn').disabled=true;$('dodgeBtn').disabled=true;$('strikeBtn').disabled=true;$('skillBtn').disabled=true;}
+ const won=m.outcome.winner===0;
+ if(!won){$('rematchBtn').textContent=m.mode==='SURVIVAL'?'もう一度挑戦':'もう一度挑戦する';}
+ if(won&&['COM MATCH','SURVIVAL','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode)){
+  $('battlePrize').textContent+=' ／ 勝利セリフのあと、自動で次のバトルへ';
+ }
+ resultSpeechTimer=setTimeout(()=>{resultSpeechTimer=null;showBattleQuote(m)},1350);
+ if(won)scheduleNextAfterQuote(m);
 }
 function showBattle(a,b,outcome,mode,buff=null,live=false){
  // Offline battles exclusively replay the creature-generated fight.
+ clearResultTimers();stopBattleSpeech();$('battleSpeech').hidden=true;$('bowBanner').hidden=false;
  autoBattleEnabled=true;if(!live)buff=null;
 
  clearAutoAction();clearInterval(battleInterval);cancelAnimationFrame(aframe);stopAttackVoices();stopBgm();unlockBattleAudio();
@@ -1209,7 +1369,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  $('nextStagePreview').hidden=true;$('timingCallout').textContent='';$('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='素体同士の自動対戦が始まる！';$('arenaEffect').textContent='対戦開始';$('battlePrize').textContent='';$('matchupBadge').textContent='自分：'+specimenProfile(a).name+' / '+specimenProfile(a).temperament+' / '+specimenMutation(a).label+'　相手：'+specimenProfile(b).name+' / '+specimenProfile(b).temperament+' / '+specimenMutation(b).label+'　'+(elementalEdge(a,b)>1?'属性有利：与ダメージ +12%':elementalEdge(a,b)<1?'属性不利：与ダメージ -10%':'属性相性：互角')+(b.archetype?' · 敵の戦型：'+b.archetype+'（'+b.archetypeHint+'）':'')+(mode==='COM MATCH'?' · 攻略：'+enemyAdvice(b):'')+(b.learningRelief?' · 再挑戦補正：敵能力 -'+b.learningRelief:'');
  $('battlePanel').classList.toggle('playable',interactive);$('battleGuide').textContent=!live?'素体の能力・性格・相性で自動決着。ピンチでは覚醒することも。':'オンライン自動対戦：サーバー判定を表示中';
  const battleMax=outcome.max.slice();if(interactive&&buff==='shield')battleMax[0]+=30;
- match={a,b,outcome,live,spectator:interactive,awakened:[false,false],turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null,mode,interactive,max:battleMax,hp:battleMax.slice(),charge:buff==='resonance'?52:18,stance:'balance',skillArmed:false,guardUsed:false,parried:false,guardChain:0,guardBest:0,counterReady:false,evadeCounterReady:false,cueTurn:-1,strikeCueTurn:-1,clutchUsed:false,dodgeUsed:false,dodgeSuccess:false,dodgeCooldown:0,ultimateAt:0,endAfterCurrent:false,nextBuff:buff,lifelineUsed:false,stageNo:mode==='SURVIVAL'?survivalRound:mode==='COM MATCH'?adventureStage:mode==='DAILY CHALLENGE'?Number(dailyKey())%100+1:1,rival:['COM MATCH','SURVIVAL'].includes(mode)&&isRivalStage(mode==='SURVIVAL'?survivalRound:adventureStage),boss:['COM MATCH','SURVIVAL'].includes(mode)&&(mode==='SURVIVAL'?survivalRound:adventureStage)%5===0,bossReward:adventureStage%10===0?4:2,breakMeter:0,bossStunned:false,bossAttacks:0,parries:0,dodges:0,skillsUsed:0,damageDealt:0,damageTaken:0,strikeUsed:false,strikeSuccess:false,strikeChain:0,strikeBest:0,strikes:0,counterHits:0,grade:'C',pausedAt:0};
+ match={a,b,outcome,live,spectator:interactive,awakened:[false,false],introAt:performance.now(),introDuration:live?800:1950,turn:-1,pop:performance.now(),current:null,arena:null,done:false,prevPos:null,mode,interactive,max:battleMax,hp:battleMax.slice(),charge:buff==='resonance'?52:18,stance:'balance',skillArmed:false,guardUsed:false,parried:false,guardChain:0,guardBest:0,counterReady:false,evadeCounterReady:false,cueTurn:-1,strikeCueTurn:-1,clutchUsed:false,dodgeUsed:false,dodgeSuccess:false,dodgeCooldown:0,ultimateAt:0,endAfterCurrent:false,nextBuff:buff,lifelineUsed:false,stageNo:mode==='SURVIVAL'?survivalRound:mode==='COM MATCH'?adventureStage:mode==='DAILY CHALLENGE'?Number(dailyKey())%100+1:1,rival:['COM MATCH','SURVIVAL'].includes(mode)&&isRivalStage(mode==='SURVIVAL'?survivalRound:adventureStage),boss:['COM MATCH','SURVIVAL'].includes(mode)&&(mode==='SURVIVAL'?survivalRound:adventureStage)%5===0,bossReward:adventureStage%10===0?4:2,breakMeter:0,bossStunned:false,bossAttacks:0,parries:0,dodges:0,skillsUsed:0,damageDealt:0,damageTaken:0,strikeUsed:false,strikeSuccess:false,strikeChain:0,strikeBest:0,strikes:0,counterHits:0,grade:'C',pausedAt:0};
  let ix=-1;const currentMatch=match;
  const act=()=>{
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
@@ -1225,10 +1385,14 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   if(!interactive)tone(160+(ev.damage||10)*6,.09);else if(ev.atk===1)tone(ev.bossMove?250:340,.07);
   if(interactive){updateActionHud();if(!match.spectator)scheduleAutoAction(match)}
  };
- if(!live){act();battleInterval=setInterval(act,EVENT_MS);}else{$('fightLog').textContent='サーバーと同期中。素体の能力で自動対戦します';}
+ if(!live){bowStartTimer=setTimeout(()=>{bowStartTimer=null;if(match!==currentMatch||currentMatch.done)return;
+  if(!document.hidden){$('bowBanner').hidden=true;act();}
+  battleInterval=setInterval(()=>{if(match===currentMatch&&!document.hidden){$('bowBanner').hidden=true;act()}},EVENT_MS);
+ },currentMatch.introDuration);}
+ else{$('fightLog').textContent='サーバーと同期中。素体の能力で自動対戦します';bowStartTimer=setTimeout(()=>{if(match===currentMatch)$('bowBanner').hidden=true},800);}
  aframe=requestAnimationFrame(battleDraw);startBgm();
 }
-function closeBattle(){clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
+function closeBattle(){clearResultTimers();stopBattleSpeech();$('battleSpeech').hidden=true;$('bowBanner').hidden=true;clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();if($('survivalChallengerOptIn').checked)cancelRandomSearch(true)}$('timingCallout').textContent='';if(match?.live&&!match.done)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
 function doCom(){unlockBattleAudio();const enemy=stageEnemy(adventureStage,cur,stageAttempts);pendingBuff=null;showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH')}
 function doDaily(){unlockBattleAudio();const enemy=dailyEnemy();showBattle(cur,enemy,randCombat(cur,enemy),'DAILY CHALLENGE')}
 
@@ -1341,18 +1505,22 @@ function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
 document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=startRandomMatch;$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live){closeBattle();startRandomMatch();}};
 // No keyboard combat or stance intervention.
+$('repeatSpeechBtn').onclick=()=>{if(match?.done){$('talkEnabled').checked=true;speakBattleQuote(match)}};
+try{const saved=localStorage.getItem('otodama.talk.enabled');if(saved!==null)$('talkEnabled').checked=saved!=='0'}catch(e){}
+$('talkEnabled').onchange=()=>{try{localStorage.setItem('otodama.talk.enabled',$('talkEnabled').checked?'1':'0')}catch(e){}
+ if(!$('talkEnabled').checked)stopBattleSpeech();else if(match?.done)speakBattleQuote(match)};
 $('exportSaveBtn').onclick=exportSave;$('importSaveFile').onchange=ev=>importSave(ev.target.files?.[0]);$('guardBtn').onclick=()=>{setAutoBattle(false);guardPress()};$('dodgeBtn').onclick=()=>{setAutoBattle(false);dodgePress()};$('strikeBtn').onclick=()=>{setAutoBattle(false);strikePress()};$('skillBtn').onclick=()=>{setAutoBattle(false);skillPress()};$('autoBattleBtn').onclick=()=>setAutoBattle(!autoBattleEnabled);$('survivalBtn').onclick=startSurvival;$('rankingRegisterBtn').onclick=registerRanking;$('rankingRefreshBtn').onclick=refreshRanking;$('stanceRush').onclick=()=>setStance('rush');$('stanceBalance').onclick=()=>setStance('balance');$('stanceGuard').onclick=()=>setStance('guard');
 $('shareVoice').onchange=()=>sendVoiceConsent();$('receiveVoice').onchange=()=>{if(!$('receiveVoice').checked){remoteVoiceClip='';if(match?.live)match.b.voiceClip='';stopAttackVoices();}sendVoiceConsent();};
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready',autoOnly:true}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
 setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden&&survivalAwaitingVisibility){survivalAwaitingVisibility=false;if(survivalActive&&match?.done&&$('battleModal').classList.contains('open'))nextSurvivalBattle();}
+ if(!document.hidden&&survivalAwaitingVisibility){survivalAwaitingVisibility=false;if(match?.done&&match.outcome.winner===0&&$('battleModal').classList.contains('open'))advanceAfterWin(match);}
  if(document.hidden){clearAutoAction();if(match&&!match.done&&!match.live)match.pausedAt=performance.now();stopBgm();stopAttackVoices();return;}
  if(match&&!match.done&&$('battleModal').classList.contains('open')){
-  if(match.pausedAt){const gap=performance.now()-match.pausedAt;match.pop+=gap;if(match.current?.impactAt)match.current.impactAt+=gap;match.pausedAt=0;$('battleMsg').textContent='バトル再開。攻撃の予兆を確認！';}
+  if(match.pausedAt){const gap=performance.now()-match.pausedAt;if(match.turn<0)match.introAt+=gap;match.pop+=gap;if(match.current?.impactAt)match.current.impactAt+=gap;match.pausedAt=0;$('battleMsg').textContent='バトル再開。攻撃の予兆を確認！';}
   startBgm();if(autoBattleEnabled)scheduleAutoAction(match);
  }
 });
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(animFrame);if(ws)ws.close();stopBgm();stopAttackVoices()});
+window.addEventListener('pagehide',()=>{clearResultTimers();stopBattleSpeech();cancelAnimationFrame(animFrame);if(ws)ws.close();stopBgm();stopAttackVoices()});
 })();
 </script></body></html>
