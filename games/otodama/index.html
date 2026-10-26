@@ -1096,8 +1096,16 @@ function attackVoice(cr,side,ev=null){
  const rush=!!ev?.rush||(!!ev&&Number(ev.hits)>=2);
  const hits=ev?.rush?7:rush?Math.min(5,Math.max(2,Math.floor(ev.hits||2))):1;
  bgmDuckUntil=performance.now()+(rush?850:480);
- playDecodedVoice(cr,side,false,{rush,hits});
+ playDecodedVoice(cr,side,false,{rush,hits,event:ev||{kind:'normal'},phase:'attack'});
 }
+function reactionVoice(cr,side,ev){
+ if(!match||match.done||$('mutedCheck').checked||!VOLUME())return;
+ if(match.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
+ if(!(ev?.dodge||ev?.guard||ev?.parry||ev?.counter||Number(ev?.damage)>0))return;
+ bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+320);
+ playDecodedVoice(cr,side,false,{phase:'reaction',event:ev||{}});
+}
+
 function maybeSpecialRush(m,ev){
  if(!ev?.skill||m.live||m.done||ev.rushSpecial)return false;
  const seed=(ev.atk===0?m.a:m.b)?.seed||0;
@@ -1105,7 +1113,7 @@ function maybeSpecialRush(m,ev){
  ev.rushSpecial=true;
  showRushBanner('必殺技　連打ラッシュ！');
  $('arenaEffect').textContent='必殺技　連打ラッシュ！';
- attackVoice(ev.atk===0?m.a:m.b,ev.atk,{rush:true,hits:7});
+ attackVoice(ev.atk===0?m.a:m.b,ev.atk,{...ev,rush:true,hits:7});
  return true;
 }
 function primeBattleVoices(a,b){
@@ -1986,7 +1994,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   $('arenaEffect').textContent=ev.crit?'大ダメージ！':ev.counter?'反撃成功!':ev.dodge?'回避成功':ev.arena?'地形：'+(ARENA_LABELS[ev.arena]||ev.arena):(ev.hits>1?ev.hits+' HIT 連続ヒット！':BATTLE_LABEL[ev.kind]);
   $('enemyTactic').classList.toggle('visible',!!ev.tactic);$('enemyTactic').textContent=ev.tactic?'⚠ '+COM_TACTICS[ev.tactic].label+'：'+COM_TACTICS[ev.tactic].hint:'';
   $('fightLog').textContent=displayName(attacker)+' の '+(BATTLE_LABEL[ev.kind]||'ジャンプ攻撃')+'！ '+(ev.hazard?'【地形：'+ev.hazard.label+'】':'')+(match.spectator?(ev.commentary||'自動戦闘中'):(interactive?'自動対戦中':(ev.dodge?'回避成功！':ev.damage+'ダメージ')));
-  attackVoice(attacker,ev.atk,ev);if(ev.counter)setTimeout(()=>{if(match===currentMatch&&match.turn===ix&&!match.done)attackVoice(defender,1-ev.atk)},180);
+  attackVoice(attacker,ev.atk,ev);if(ev.counter)setTimeout(()=>{if(match===currentMatch&&match.turn===ix&&!match.done)attackVoice(defender,1-ev.atk,{kind:'counter',counter:true,damage:ev.damage})},180);
   if(!interactive)tone(160+(ev.damage||10)*6,.09);else if(ev.atk===1)tone(ev.bossMove?250:340,.07);
   if(interactive){updateActionHud();if(!match.spectator)scheduleAutoAction(match)}
  };
@@ -2026,7 +2034,7 @@ function receiveLiveTurn(data){
  if(Array.isArray(data.dodgeCooldown))m.dodgeCooldown=data.dodgeCooldown[0]||0;
  $('fightLog').textContent=data.atk===1?'相手の素体が '+(BATTLE_LABEL[data.kind]||'攻撃')+' を開始':'自分の素体が '+(BATTLE_LABEL[data.kind]||'攻撃')+' を開始';
  $('arenaEffect').textContent=data.atk===1?'相手の攻撃':'自分の攻撃';
- if(data.atk===1){if(!data.resumed)attackVoice(m.b,1)}else if(!data.resumed)attackVoice(m.a,0);
+ if(data.atk===1){if(!data.resumed)attackVoice(m.b,1,{kind:data.kind,seq:data.seq})}else if(!data.resumed)attackVoice(m.a,0,{kind:data.kind,seq:data.seq});
  updateActionHud();
 }
 function receiveLiveAck(data){
