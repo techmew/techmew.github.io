@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 let source=fs.readFileSync(__dirname+'/worker.js','utf8').replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(state){this.ctx=state}}')
- .replace("import { sanitizePublicName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,'')).replace('export default {','const defaultExport = {').replace('export class Room extends DurableObject','class Room extends DurableObject').replace('export class Matchmaker extends DurableObject','class Matchmaker extends DurableObject');
+ .replace("import { sanitizePublicName } from './moderation.js';",fs.readFileSync(__dirname+'/moderation.js','utf8').replace(/export /g,'')).replace('export default {','const defaultExport = {').replace('export class Room extends DurableObject','class Room extends DurableObject').replace('export class Matchmaker extends DurableObject','class Matchmaker extends DurableObject').replace('export class Rankings extends DurableObject','class Rankings extends DurableObject');
 source+='\nglobalThis.testing={Room,Matchmaker,defaultExport};';
 let fakeNow=Date.now();class TestDate extends Date{static now(){return fakeNow}}
 class TestResponse{constructor(body,opts){this.status=opts.status;this.webSocket=opts.webSocket;this.body=body}}
