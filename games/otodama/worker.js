@@ -204,7 +204,7 @@ export class Room extends DurableObject {
   }
   async startLiveBattle(peers){
     const creatures=peers.map(p=>p.deserializeAttachment().creature);
-    const autoOnly=peers.every(p=>p.deserializeAttachment().autoOnly===true)||
+    const autoOnly=peers.some(p=>p.deserializeAttachment().autoOnly===true)||
       peers.every(p=>!!p.deserializeAttachment().rankId);
     const max=creatures.map(c=>Math.round(140+c.stats[1]*.6));
     const state={active:true,autoOnly,awakened:[false,false],phase:'telegraph',turn:0,creatures,max,hp:max.slice(),charge:[18,18],
