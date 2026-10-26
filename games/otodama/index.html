@@ -852,8 +852,8 @@ function synthVictoryRoar(cr,ac){
   osc.frequency.exponentialRampToValueAtTime(base*.78,now+.91);
   filter.type='lowpass';filter.frequency.value=950+(Number(cr?.voice?.res)||50)*9;filter.Q.value=.65;
   gain.gain.setValueAtTime(.0001,now);
-  gain.gain.linearRampToValueAtTime(Math.min(.30,Math.max(.04,VOLUME()*.88)),now+.17);
-  gain.gain.setValueAtTime(Math.min(.30,Math.max(.04,VOLUME()*.88)),now+.53);
+  gain.gain.linearRampToValueAtTime(Math.min(.30,VOLUME()*.88),now+.17);
+  gain.gain.setValueAtTime(Math.min(.30,VOLUME()*.88),now+.53);
   gain.gain.linearRampToValueAtTime(.0001,now+1.03);
   osc.connect(filter);filter.connect(gain);gain.connect(voiceOutput(ac));
   osc.start(now);osc.stop(now+1.04);trackAttackSource(osc);
@@ -872,7 +872,11 @@ async function playVictoryRoar(m){
   speechStatus('相手の声はミュート中');return;
  }
  const ac=unlockBattleAudio();
- if(!ac||ac.state!=='running'){speechStatus('音声を再開ボタンで有効にしてください');return}
+ if(!ac){speechStatus('音声を再開ボタンで有効にしてください');return}
+ // Mobile autoplay policies can keep the context suspended even after the result appears.
+ if(ac.state==='suspended'){try{await ac.resume()}catch(e){lastSoundStatus=String(e)}}
+ if(!resultRoarAllowed(m,generation,side))return;
+ if(ac.state!=='running'){speechStatus('音声を再開ボタンで有効にしてください');return}
  bgmDuckUntil=performance.now()+1450;
  let clip=null;
  if(clipData(winner)){
@@ -1763,7 +1767,10 @@ document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff
 // No keyboard combat or stance intervention.
 $('repeatSpeechBtn').onclick=()=>{
  if(match?.done){
-  if(!$('roarEnabled').checked){$('roarEnabled').checked=true;$('roarEnabled').onchange?.()}
+  if(!$('roarEnabled').checked){
+   $('roarEnabled').checked=true;
+   try{localStorage.setItem('otodama.victory.roar.enabled','1')}catch(e){}
+  }
   if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.()}
   if(Number($('battleVolume').value)<5){$('battleVolume').value='15';$('battleVolume').oninput?.()}
   playVictoryRoar(match);
