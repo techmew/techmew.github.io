@@ -9,7 +9,7 @@ const start=js.indexOf('const DNA_FEATURE_NAMES=['),end=js.indexOf('function gen
 assert.ok(start>=0&&end>start,'AudioDNA analysis functions');
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hash=n=>{n=Math.imul(n^n>>>16,0x45d9f3b);n=Math.imul(n^n>>>16,0x45d9f3b);return(n^n>>>16)>>>0};
 const api=vm.runInNewContext(js.slice(start,end)+';({analyseVoiceDNA,dnaFrame,dnaUnlocked,dnaGrowthIndex,validAudioDNA,DNA_FEATURE_NAMES,DNA_TRAITS})',
- {clamp,hash,Math,Map,Array,Number});
+ {clamp,hash,Math,Map,Array,Number,levelOf:c=>Math.max(1,Math.floor(Number(c.level)||1))});
 assert.equal(api.DNA_FEATURE_NAMES.length,36,'36 independently derived audio indicators');
 function voice(kind,volume=1){
  return Array.from({length:83},(_,i)=>{
