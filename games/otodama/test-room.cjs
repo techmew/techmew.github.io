@@ -37,23 +37,21 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).name,'声魂-FF');
  assert.equal(room.cleanCreature({...creature,name:'死ね',type:'死ね',element:'違法',rank:'S'}).element,'音');assert.ok(statsA.every(x=>x<95));
  const observer=fake();sockets.push(observer);
- await room.webSocketMessage(a,JSON.stringify({type:'voice',clip:'data:audio/wav;base64,AAAA='}));
- assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'malformed base64 audio was forwarded');
+ // Online audio cannot be moderated authoritatively from a forged client flag.
+ // Both participants may opt in, but the server must still refuse all audio.
  const clip='data:audio/wav;base64,AAAA';
- await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
- assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'voice forwarded without consent');
  await room.webSocketMessage(a,JSON.stringify({type:'voice_consent',send:true,receive:false}));
- await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
- assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'voice forwarded without receiver consent');
  await room.webSocketMessage(b,JSON.stringify({type:'voice_consent',send:false,receive:true}));
- assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).canSend,true);
+ assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).canSend,false,'unsafe voice policy enabled');
+ assert.equal(b.messages.filter(x=>x.type==='voice_policy').at(-1).canReceive,false,'unsafe voice reception enabled');
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
- assert.equal(b.messages.filter(x=>x.type==='voice').length,1);
- assert.equal(a.data.sentVoice,true,'valid clip should count as the single allowed voice relay');
- assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'voice leaked to unjoined socket');
+ assert.equal(a.messages.filter(x=>x.type==='voice_rejected').length,1,'unsafe audio not explicitly rejected');
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'unmoderated audio leaked to opponent');
+ assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'unmoderated audio leaked to observer');
+ assert.notEqual(a.data.sentVoice,true,'rejected voice must not be marked sent');
  observer.close();
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
- assert.equal(b.messages.filter(x=>x.type==='voice').length,1,'duplicate voice forwarded');
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'repeated audio forwarded');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));
  assert.equal(a.messages.filter(x=>x.type==='battle').length,0);
  await room.webSocketMessage(b,JSON.stringify({type:'ready'}));
