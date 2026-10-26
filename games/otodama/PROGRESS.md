@@ -1,3 +1,48 @@
+# 声魂（こえだま） v0.10.14 追加開発 / 2026-10-26 19:00 JST — 安全なオンライン音声・キャンペーン報酬・回帰修復
+
+## CURRENT_STATUS
+- GitHub mainの `games/otodama/` のみ改修。既存の声生成、巨大な見た目の組合せ、名前、育成、録音停止/試聴（認識チェック済みのみ）、COM自動戦闘、勝利爆発・破片・WIN、勝利→次戦、敗北停止、Web Audio BGMを維持。
+- 一礼なし・短い日本語セリフ1,000件を継続。COM/日替わり/サバイバルの勝利後は別の敵・ステージへ自動進行。
+- Worker側の信頼できる音声内容審査が未実装のため、**オンラインでの録音声送受信を強制停止**。クライアントの検査フラグは信用しない。ローカルCOMのチェック済み録音声再生は維持。
+- Cloudflare Workerは未公開。Android実機、外部二端末の動作確認は未実施。
+
+## CHANGELOG
+1. Worker `voice_policy` を `canSend:false,canReceive:false` に変更。送信された録音音声は内容にかかわらず `voice_rejected` を返し、他端末へ転送しない。
+2. クライアントのオンライン送受信チェックを無効化し、未審査の音声は共有できないことを明示。サーバー側へ音声許諾 `false` のみ送る。
+3. 日本語SpeechRecognitionの確定結果が重複通知されても一度だけカウントするよう修正。外部認識は明示的な許諾を要求し、未判定は録音音声を破棄。
+4. 5連勝 +2XP、HP20%以下で勝利 +1XP、総能力が30以上高い相手を撃破 +1XPのキャンペーン報酬を追加。結果画面に表示し、従来のボス・ミッション・評価報酬と併用。
+5. 旧セリフ・一礼・音声転送の期待値を持つテストを改修。test:nodeにtest-voice-review-v114.cjsを追加し、test:voiceも登録。
+6. README、Workerの/health版数、package.jsonのバージョンを0.10.14に更新。
+
+## TEST_RESULTS
+- GitHub現行index.html埋込JavaScript・worker.jsをV8構文検査：PASS。
+- V8モック実行：dialogue（1,000件の重複なし、TTS、勝利自動次戦、敗北停止）PASS、voice-review（認識、許諾、禁止語、旧クリップ拒否）PASS、moderation（410語、分割表記/通常語）PASS、UI source PASS、quality-v105/v106/v108 PASS、COM400戦+オンライン自動100ターン PASS、Room模擬（15秒復帰・席順・音声拒否）PASS、Matchmaker模擬 PASS、Survival模擬 PASS。キャンペーン3報酬の実行モックPASS。
+- この環境のV8モックはNode CLI/Chromium/Android/Cloudflare実環境とは異なる。正式Node CLI全テスト（特にnode:sqlite）、Chromium、Android録音/TTS、Cloudflare本番デプロイ、独立2端末は**未実施**。
+- GitHubコミットとソース再取得は実施。GitHub Pagesの最新ビルド/実ブラウザ配信は別途確認が必要。
+
+## BLOCKERS
+- Cloudflare公開にCLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_API_TOKENの正規認証が必要。公開URL未設定。
+- ブラウザSpeechRecognitionは認識漏れ・誤認識があり完全検出は保証不可。未審査の録音声は再生不可。オンライン録音声の安全な再開にはサーバー側の真正な音声審査が必要。
+- 端末内音声認識の対応状況、外部認識への許諾、Androidマイクと音声再生は実機未確認。
+
+## NEXT_ACTIONS
+1. `npm run test:node` をNode環境で全実行（node:sqlite含む）、Chromiumで320/390px・横向き/保存/勝利次戦/敗北停止/マイクを確認。
+2. Android Chromeで「ちんこ」等の禁止語を発音して拒否されるか、通常の発声が誤判定されないか、録音声が攻撃時に再生されるかを確認。
+3. Cloudflare認証後Workerを公開し、/health、招待/ランダム、15秒復帰、音声転送拒否、ランキングを独立2端末で検証。
+4. COM連戦の5連勝/逆転/格上報酬バランス、BGMと録音声のミックス、ステージ変化を実プレイで調整。
+
+## GITHUB_COMMITS
+- Workerオンライン音声拒否: 042eab6dd0e9a943e786de0083be28733f6cf60c
+- UI音声許諾・ASR重複・版数: 0fdd9173a0d4cdd805be8f65acc0a4da5fe48b39
+- キャンペーン報酬: 510703f743cd9ab6b7f2d6b210395bfbc8a00cdf
+- Room音声拒否テスト: 5f9b5e3514d9ea79e25f0db089564f11dae4ff6f
+- Voiceテスト改修: 8fd8e7d2866916f88ec48a6a5ee6ae5d3f35137d
+- 報酬テスト: 5f09151bf91958168d8023e8fe3bcc35a5302089
+- package/test:node: 4ab1d24f8427142f4964388066268763e2279bd2
+- README: 6d69d841b38114ae69d20aea55c4b369ee77d7ef
+
+---
+
 # 声魂（こえだま） v0.10.14 / 2026-10-26 — 一礼なし・短いセリフ・発言内容の禁止語チェック
 
 ## CURRENT_STATUS
