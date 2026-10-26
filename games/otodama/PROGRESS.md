@@ -1,3 +1,48 @@
+# OTODAMA∞ 毎時開発 / 2026-10-26 / v0.10.1
+
+## CURRENT_STATUS
+- GitHub mainのindex.html / worker.js / wrangler.jsonc / README / PROGRESS / moderation.js / package.json /テスト群と、指定Driveフォルダ内のv0.10.0最新実行ログを実読してから改修。
+- 対象はgames/otodama/のみ。既存の声生成・録音/試聴・外見生成・COM連戦・育成・WIN/爆発・6背景・自作BGMを維持。
+- Cloudflare Workerはデプロイ可能なソースのみ。実際のオンラインサーバー公開は未実施。
+
+## CHANGELOG
+1. moderation.jsの前回更新で混入した文字列「\\n」による構文エラーを修復。辞書は401語、全角/半角・記号分割等の正規化を維持。
+2. 「たまたま」「クリスタル」「裸足」「つまらない」など日常語の誤検知を減らすため、過剰な短い部分一致語8語を削除。
+3. オンライン再接続時に攻撃種別・ダメージ・経過時間・防御入力・戦術を再抽選せず、同一ターンのまま復旧。休止フェーズの残り時間も保持。
+4. 再接続クライアントの経過時間と入力済み操作を同期。復帰による録音音声/予兆音の重複再生を抑制。
+5. キャンペーンのミッションを8→12種類に拡張（高難度JUST/回避/必殺/与ダメージ）。勝利/敗北後に次の敵・ステージ・ミッションをプレビュー。
+6. ボス攻撃3→5種類。虚空転移・螺旋連撃を追加し、攻撃倍率・環境演出を個別化。
+7. 自作Web Audio BGMに8小節ごとの休符展開を追加。録音音声ダッキング・初期小音量・ミュート設定を維持。
+8. 新規ChromiumテストとRoom/Moderation/UIの回帰テストを追加。表示バージョン・Worker health・packageを0.10.1に更新。
+
+## TEST_RESULTS
+- ローカルNode: worker構文、UIソース、Room、Matchmaker = PASS。moderation.jsはGitHub取得ソースをJavaScriptとして構文検証し、禁止9件/安全10件の判定をPASS。
+- ローカルChromium: gameplay/live/reconnect/save/tactics/v098/v099/v100/v101 の9スイートPASS。縦390px・横画面・320pxの既存回帰もPASS。
+- GitHub main: index / worker / package / test-room / test-ui / test-v101 の取得blob SHAとローカルファイルSHAが一致。moderationもGitHub再取得で一致。
+- GitHub Pagesの配信反映・公開URLでの直接操作、Cloudflare本番、外部二端末、Android実機は未検証。
+
+## BLOCKERS
+- Cloudflare本番公開には所有者の認証とActions Secrets CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN、Worker URL設定が必要。秘密情報は記録しない。
+- 録音発話の自動文字起こし・禁止語検査は未実装。文字列の禁止語検査と録音内容の審査を混同しない。
+
+## NEXT_ACTIONS
+1. Cloudflare認証後、Worker /health・ランダム対戦・部屋・二端末同期・15秒再接続・音声同意を本番検証。
+2. Android実機で縦横・マイク・BGM・バックグラウンド復帰・操作遅延を確認。
+3. 12ミッションの達成率、ボス5技の難度、長時間BGM、敵AIを実測し調整。
+4. 再接続のpauseフェーズ、通信混雑・切断競合を追加テスト。
+
+## GITHUB_COMMITS
+- moderation fix: c9eddac990f92f30d0a8b25bc22f337583a28b00
+- worker reconnect: c9bda6840f5ac09dcf5ff4b36edd0e2b2b51f8c4
+- game improvements: 4fd265961f87e0a075ee8ef4a3fa78ca91311dd0
+- tests: ced68a2c3cce9c877232f654c571170ad6e9f301 / dd519deafbff18b88e404727717115648023be66 / a684badce5cd184c465f3777da9306152ca1f92f / 0cd0f5133b0cbf252243e0a09d7620767118bdda
+- version: 23458aac94ecd7cd1e3d72c3cc8702385e23ee0e / 293e4db229be14ef1855158320409fd6d363ca48 / 77f4b8874e425e5411d085dab607f17a1e64385f
+- README: 9843743ef2c47b7b5a8660dc173ff682256f37c1
+
+GitHubがコード正本、Driveが引き継ぎ正本。ローカル成功は本番確認を意味しない。
+
+---
+
 # OTODAMA∞ 毎時開発 / 2026-10-26 09:00 JST / v0.10.0
 
 ## CURRENT_STATUS
