@@ -911,25 +911,33 @@ function tone(hz,duration=.09){
  try{let now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(hz,now);o.frequency.exponentialRampToValueAtTime(Math.max(80,hz*.5),now+duration);g.gain.setValueAtTime(VOLUME()*.11,now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration)}catch(e){}
 }
 function synthVoice(cr,side,options={}){
- if($('mutedCheck').checked||!VOLUME())return;const ac=unlockBattleAudio();if(!ac)return;
+ if($('mutedCheck').checked||!VOLUME())return;
+ const ac=unlockBattleAudio();if(!ac)return;
  const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
+ const fx=options.fx||voiceEffectProfile(cr,side,options.event,options.phase||'attack');
  try{
+  const base=85+(Number(cr?.voice?.pitch)||50)*4.7;
   for(let i=0;i<hits;i++){
-   const start=ac.currentTime+i*(rush?.105:0),dur=rush?(i===hits-1?.28:.18):.26;
-   const hz=(85+(cr.voice?.pitch||50)*4.7)*(rush?(.88+(i%3)*.09):1);
+   const start=ac.currentTime+.016+i*(rush?.108:0);
+   const dur=rush?(i===hits-1?.28:.18):options.phase==='reaction'?.18:.27;
+   const from=fx.from*(rush?(1+(i%3-1)*.06):1),to=fx.to;
+   const hz=clamp(base*from,65,1700);
    const osc=ac.createOscillator(),gain=ac.createGain(),filter=ac.createBiquadFilter();
-   osc.type=(cr.voice?.breath||0)>65?'sawtooth':'triangle';
-   osc.frequency.setValueAtTime(hz,start);osc.frequency.exponentialRampToValueAtTime(hz*(side?.73:1.17),start+dur);
-   filter.type='bandpass';filter.frequency.value=400+(cr.voice?.res||50)*14;filter.Q.value=.8;
-   const peak=Math.max(.003,VOLUME()*(rush?.38:.70));
+   osc.type=options.phase==='reaction'?'sawtooth':(cr?.voice?.breath||0)>65?'sawtooth':'triangle';
+   osc.frequency.setValueAtTime(hz,start);
+   osc.frequency.exponentialRampToValueAtTime(clamp(base*to,55,2000),start+dur);
+   filter.type=fx.filter||'bandpass';
+   filter.frequency.value=fx.cutoff||400+(cr?.voice?.res||50)*14;filter.Q.value=.8;
+   const peak=Math.max(.002,VOLUME()*(rush?.31:options.phase==='reaction'?.22:.51)*fx.volume);
    gain.gain.setValueAtTime(.0001,start);
-   gain.gain.exponentialRampToValueAtTime(peak,start+.025);
+   gain.gain.exponentialRampToValueAtTime(peak,start+.018);
    gain.gain.exponentialRampToValueAtTime(.0001,start+dur);
    osc.connect(filter);filter.connect(gain);gain.connect(voiceOutput(ac));
    osc.start(start);osc.stop(start+dur+.005);trackAttackSource(osc);
   }
-  lastSoundStatus=rush?'連打攻撃の代替音を再生中':'代替音を再生中';
- }catch(e){lastSoundStatus=e.message||String(e)}
+  setVoiceEffectStatus(fx);
+  lastSoundStatus=(options.phase==='reaction'?'防御・被弾':rush?'連撃':'攻撃')+'の代替音：'+fx.label;
+ }catch(e){lastSoundStatus=String(e)}
 }
 // 28 sound-shaping presets. No change to stored recording or microphone capture.
 const VOICE_EFFECTS=[
