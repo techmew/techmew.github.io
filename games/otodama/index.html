@@ -959,6 +959,47 @@ const VOICE_REACTION_VARIANTS={
 const VOICE_SKILL_VARIANTS=[9,16,17,20,21,22,23,25,27,2];
 
 function clipData(cr){const s=cr?.voiceClip;return typeof s==='string'&&s.startsWith('data:audio/')&&s.includes('base64,')&&s.length<180000?s:null}
+function voiceEffectProfile(cr,side,ev=null,phase='attack'){
+ const enabled=$('voiceFxEnabled')?.checked===true;
+ const plain={enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,echo:0,
+  volume:1,segment:.7,phase,group:'normal'};
+ if(!enabled)return plain;
+ const e=ev&&typeof ev==='object'?ev:{},kind=String(e.kind||'normal').slice(0,24);
+ const wounded=Number(e.damage)>26;
+ const group=phase==='reaction'?(e.dodge?'dodge':e.parry?'parry':e.guard?'guard':
+  e.counter?'counter':e.crit?'critical':wounded?'heavy':'hurt'):
+  e.skill?'special':kind;
+ const choices=phase==='reaction'?(VOICE_REACTION_VARIANTS[group]||VOICE_REACTION_VARIANTS.hurt):
+  group==='special'?VOICE_SKILL_VARIANTS:(VOICE_ATTACK_VARIANTS[group]||VOICE_ATTACK_VARIANTS.normal);
+ const signature=Number(cr?.audioDNA?.signature)||Number(cr?.seed)||0;
+ const turn=Number.isInteger(e.seq)?e.seq:Number.isInteger(e.turn)?e.turn:Number(match?.turn)||0;
+ const rhythm=Number(cr?.voice?.rhythm)||50,pitch=Number(cr?.voice?.pitch)||50;
+ const noise=hash((signature>>>0)^Math.imul(turn+31,0x45d9f3b)^
+   Math.imul(kind.length+Math.floor(rhythm/10)+side*17,0x27d4eb2d)^
+   (phase==='reaction'?0x7f4a7c15:0));
+ const name=VOICE_EFFECTS[choices[noise%choices.length]];
+ const pitchShift=clamp(1+(pitch-50)*.0015,.92,1.08);
+ return {enabled:true,label:name[0],from:clamp(name[1]*pitchShift,.5,2.1),
+  to:clamp(name[2]*pitchShift,.5,2.1),filter:name[3],cutoff:name[4],echo:name[5],
+  volume:phase==='reaction'?.53:e.skill?.85:.92,
+  segment:phase==='reaction'?(wounded?.34:.22):e.skill?.43:
+   kind==='beam'?.42:kind==='meteor'?.44:.33,phase,group};
+}
+function setVoiceEffectStatus(fx){
+ const label=$('voiceFxLabel');
+ if(!label)return;
+ label.hidden=!fx?.enabled;
+ if(fx?.enabled)label.textContent=(fx.phase==='reaction'?'被弾・防御':'攻撃')+'：'+fx.label;
+}
+function voiceEffectRate(param,from,to,start,duration){
+ if(typeof param.setValueAtTime==='function'){
+  param.setValueAtTime(from,start);
+  if(typeof param.exponentialRampToValueAtTime==='function')
+   param.exponentialRampToValueAtTime(to,start+Math.max(.04,duration*.85));
+  else if(typeof param.linearRampToValueAtTime==='function')
+   param.linearRampToValueAtTime(to,start+Math.max(.04,duration*.85));
+ }else param.value=from;
+}
 async function decodeVoice(cr){
  const data=clipData(cr);if(!data)return null;const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
  if(voiceCache.has(key))return voiceCache.get(key);
