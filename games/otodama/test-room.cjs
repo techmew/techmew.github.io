@@ -60,6 +60,9 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  const x=a.messages.find(m=>m.type==='live_start'),y=b.messages.find(m=>m.type==='live_start');
  assert.ok(x&&y,'missing authoritative live start');assert.equal(x.max[0],y.max[1]);
  const t=a.messages.find(m=>m.type==='live_turn');assert.ok(t,'missing live telegraph');
+ await room.webSocketMessage(a,JSON.stringify({type:'action',action:'skill'}));
+ assert.equal(a.messages.filter(m=>m.type==='live_ack'&&m.action==='skill').at(-1).valid,false,'insufficient resonance must return an explicit rejection');
+ assert.equal((await storage.get('live')).charge[0],18,'rejected skill must not spend resonance');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));await room.webSocketMessage(b,JSON.stringify({type:'ready'}));
  assert.equal(a.messages.filter(m=>m.type==='live_start').length,1,'ready spam restarted live match');
  assert.equal(t.atk,0);assert.equal(b.messages.find(m=>m.type==='live_turn').atk,1,'turn orientation mismatch');
