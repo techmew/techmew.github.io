@@ -4,7 +4,7 @@ let source=fs.readFileSync(__dirname+'/worker.js','utf8').replace("import { Dura
 source+='\nglobalThis.testing={Room,Matchmaker,defaultExport};';
 let fakeNow=Date.now();class TestDate extends Date{static now(){return fakeNow}}
 class TestResponse{constructor(body,opts){this.status=opts.status;this.webSocket=opts.webSocket;this.body=body}}
-const ctx={crypto:globalThis.crypto,Response:TestResponse,URL:globalThis.URL,console,Math,Number,Array,JSON,Date:TestDate,Uint8Array,Set,RegExp,String};vm.runInNewContext(source,ctx);
+const ctx={TextEncoder:globalThis.TextEncoder,crypto:globalThis.crypto,Response:TestResponse,URL:globalThis.URL,console,Math,Number,Array,JSON,Date:TestDate,Uint8Array,Set,RegExp,String};vm.runInNewContext(source,ctx);
 function fake(){return {readyState:1,data:{creature:null,ready:false},messages:[],deserializeAttachment(){return this.data},serializeAttachment(obj){this.data=obj},send(message){this.messages.push(JSON.parse(message))},close(){this.readyState=3}};}
 const a=fake(),b=fake(),sockets=[a,b],memory=new Map();
 ctx.WebSocketPair=class {constructor(){this[0]=fake();this[1]=fake()}};const storage={get:async key=>memory.get(key),put:async(key,value)=>memory.set(key,value),delete:async key=>memory.delete(key),setAlarm:async time=>{storage.alarmAt=time}};const room=new ctx.testing.Room({getWebSockets:()=>sockets,acceptWebSocket:ws=>sockets.push(ws),storage});
