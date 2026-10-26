@@ -53,5 +53,5 @@ check(bridge(8,false,false)&&bridge(11,false,false),'bridge starts/ends');
 check(!bridge(12,false,false),'bridge stops');
 check(!bridge(8,true,false),'urgent battle bypasses bridge');
 check(!bridge(8,false,true),'boss bypasses bridge');
-for(const marker of ['voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','drawImpactBurst(canvas,match,ms,lowFx)','drawStageAtmosphere(canvas,biome,t,lowFx)','function receiveLiveImpact(data)','v0.10.9'])check(html.includes(marker),'preserve '+marker);
+for(const marker of ['voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','drawImpactBurst(canvas,match,ms,lowFx)','drawStageAtmosphere(canvas,biome,t,lowFx)','function receiveLiveImpact(data)','v0.10.10'])check(html.includes(marker),'preserve '+marker);
 console.log('PASS: '+checks+' v0.10.8 regression assertions (source/V8 only).');
