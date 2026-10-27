@@ -849,8 +849,8 @@ function moveRoster(fromSeed,toSeed){
  const from=roster.findIndex(c=>c.seed===fromSeed),to=roster.findIndex(c=>c.seed===toSeed);
  if(from<0||to<0||from===to)return false;
  const backup=roster.slice(),[creature]=roster.splice(from,1);roster.splice(to,0,creature);
- if(!saveStore()){roster=backup;renderRoster();return false}
- renderRoster();return true;
+ if(!saveStore()){roster=backup;renderRoster();$('rosterNotice').textContent='保存できず、並び順を元に戻しました';return false}
+ renderRoster();$('rosterNotice').textContent='キャラの並び順を保存しました';return true;
 }
 let rosterDragSeed=null,rosterPointerDrag=null;
 function attachRosterReorder(tile,handle,seed){
@@ -914,7 +914,7 @@ function renderRoster(){
    remove.setAttribute('aria-label',displayName(saved)+'を削除');
    remove.onclick=()=>deleteSavedCreature(saved.seed);
    tile.append(remove);
-   const handle=document.createElement('button');handle.type='button';handle.className='roster-move';handle.textContent='↕';handle.title='長押しして並べ替え';handle.setAttribute('aria-label',displayName(saved)+'を並べ替え');tile.append(handle);attachRosterReorder(tile,handle,saved.seed);
+   const handle=document.createElement('button');handle.type='button';handle.className='roster-move';handle.textContent='↕';handle.title='ドラッグして並べ替え（矢印キーでも移動）';handle.setAttribute('aria-label',displayName(saved)+'を並べ替え');tile.append(handle);attachRosterReorder(tile,handle,saved.seed);
   }
   wrap.append(tile);
   const ctx=cv.getContext('2d');if(ctx)drawCreature(ctx,cr,62,55,.42,0);
@@ -942,6 +942,16 @@ function showMicNotice(){
 
 // v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
 let stopCaptureNow=null, recordingFinishing=false, recordingRequestPending=false;
+let captureGeneration=0;
+function captureIsCurrent(generation){return generation===captureGeneration&&!document.hidden}
+function abortCaptureForBackground(){
+ captureGeneration++;
+ if(recording||recordingRequestPending){
+  stopCaptureNow?.();
+  $('micHint').textContent='録音を中断しました。画面に戻ってからもう一度録音してください';
+  $('countdown').textContent='中断';
+ }
+}
 function pcmWavDataUrl(samples,rate){
  if(!Array.isArray(samples)||!Number.isFinite(rate)||rate<8000||samples.length<Math.round(rate*.25))return '';
  const count=Math.min(samples.length,Math.round(rate*2)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
@@ -966,18 +976,21 @@ function changeCaptureButtons(active){
 }
 function stopRecord(){/* Fixed 2-second recording: no early manual finish. */}
 async function startRecord(){
- if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null)return;
+ if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null||document.hidden)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
+ const captureId=++captureGeneration;
  let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
  recordingRequestPending=true;
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
+   if(!captureIsCurrent(captureId))return;
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
   stopBattleSpeech(); // Prevent any result TTS from contaminating a new recording.
   $('micHint').textContent='録音中：2秒で自動終了します（禁止ワードは発しないでください）';$('countdown').textContent='02.0 SEC';
   aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
   if(aud.state==='suspended')await aud.resume();
+   if(!captureIsCurrent(captureId))return;
   try{
    if(typeof MediaRecorder!=='undefined'){
     const type=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
@@ -1029,6 +1042,7 @@ async function startRecord(){
    liveWave=Array.from(buf).filter((_,i)=>i%8===0);wavePaint(liveWave,true);
    $('countdown').textContent=(Math.max(0,CAPTURE_MS-elapsed)/1000).toFixed(1)+' SEC';setTimeout(tick,55);
   };tick();await capturePromise;
+   if(!captureIsCurrent(captureId))return;
   recordingFinishing=true;$('micHint').textContent='録音を保存しています…';$('stopRecordBtn').disabled=true;
   let voiceClip='';
   if(recorder&&recorder.state!=='inactive'){
@@ -1055,12 +1069,13 @@ async function startRecord(){
   let audioDNA=null;
   try{audioDNA=analyseVoiceDNA(dnaFrames)}catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
   const seed=audioDNA?audioDNA.signature:hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
-  const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip};
+  if(!captureIsCurrent(captureId))return;
+   const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip};
   startBirthReveal(newborn,()=>{setCurrent(newborn,true);return saveNewborn(newborn)});
   $('micHint').textContent=voiceClip?'録音成功。試聴・戦闘・勝利の雄叫びに使えます':'声の特徴からキャラを生成しましたが、録音音声を保存できませんでした';
   $('countdown').textContent=voiceClip?(audioDNA?'DNA OK':'VOICE OK'):'NO CLIP';
   $('micNotice').textContent=voiceClip?(audioDNA?'36項目の音響DNAを解析し、声由来の能力・成長適性を保存しました。録音した声も試聴できます。':'録音声を保存しました。音響DNAの分析に必要な音量や長さが足りないため、基本解析を使用しました。'):'音声ファイルの保存に失敗しました。マイクの許可とブラウザを確認してください。戦闘は代替音で続行できます。';
- }catch(e){const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
+ }catch(e){if(!captureIsCurrent(captureId))return;const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
  finally{
   if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
@@ -2648,6 +2663,7 @@ $('shareVoice').onchange=()=>sendVoiceConsent();$('receiveVoice').onchange=()=>{
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready',autoOnly:true}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
 setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();setConnectionUI(false);heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)abortCaptureForBackground();
  if(document.hidden&&birthStockCallback)cancelBirthReveal();
  if(!document.hidden&&(survivalAwaitingVisibility||match?.resultWasHidden)){
   survivalAwaitingVisibility=false;
@@ -2667,6 +2683,7 @@ document.addEventListener('visibilitychange',()=>{
  }
 });
 window.addEventListener('pagehide',()=>{
+  abortCaptureForBackground();
  if(birthStockCallback)cancelBirthReveal();
  pageSuspended=true;
  cancelRandomSearch(true);
