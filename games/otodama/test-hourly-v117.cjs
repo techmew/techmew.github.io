@@ -45,7 +45,7 @@ assert.equal(starts.length,9,'only explicit special rush plays seven voices');
 assert.ok(starts[8][0]>starts[2][0],'special voices must be staggered');
 assert.equal(banners.length,1,'special banner');
 assert.equal(sound.maybeSpecialRush(battle,ev),false,'special once per attack');
-soundClock+=1800;
+soundClock+=2300; // seven full recorded voices plus 200 ms spacing and guard window
 sound.attackVoice(creature,0);assert.equal(starts.length,10,'normal single voice');
 const button={textContent:''};
 let testVolume=0;
