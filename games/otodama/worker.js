@@ -1,6 +1,6 @@
 /** OTODAMA ∞ room + random matchmaking server — Cloudflare Workers + Durable Objects
  * Room-code matchmaking, two participants, authoritative (prototype) battle replay.
- * User-recorded attacks are NOT relayed until trusted server-side moderation exists. No audio is persisted.
+ * Optional opt-in voice clips are relayed ephemerally between two consenting players; never persisted. Audio content is not moderated.
  * Not ranked-safe: client-origin voice data is still unverified; server ignores posted stats.
  */
 import { DurableObject } from 'cloudflare:workers';
@@ -122,7 +122,17 @@ export class Room extends DurableObject {
   }
   peers(){return this.ctx.getWebSockets().filter(ws=>ws.readyState===1)}
   send(ws,obj){try{if(ws.readyState===1)ws.send(JSON.stringify(obj))}catch{}}
-  voicePolicy(){const ps=this.livePeers();for(const peer of ps)this.send(peer,{type:'voice_policy',canSend:false,canReceive:false,reason:'サーバー側の音声内容審査が未実装のため、対戦相手への録音声送信を停止中'});}
+  voicePolicy(){
+   const ps=this.livePeers();
+   for(const peer of ps){
+    const me=peer.deserializeAttachment()||{},other=ps.find(p=>p!==peer),
+      target=other?.deserializeAttachment()||{};
+    const canSend=!!me.voiceConsent?.send&&!!target.voiceConsent?.receive,
+          canReceive=!!me.voiceConsent?.receive&&!!target.voiceConsent?.send;
+    this.send(peer,{type:'voice_policy',canSend,canReceive,
+      reason:canSend||canReceive?'録音声を交換できます（録音内容は事前審査されません）':'録音声は送信・受信それぞれの同意があるときだけ共有されます'});
+   }
+  }
   state(){const ps=this.livePeers();for(const peer of ps){
     const own=peer.deserializeAttachment()||{};
     this.send(peer,{type:'state',me:own.seat,youReady:!!own.ready,
@@ -333,9 +343,13 @@ export class Room extends DurableObject {
     this.send(ws,{type:'live_ack',action,seq:state.turn,valid});
   }
   async webSocketMessage(ws,raw){
-    // Online audio transfer is disabled; gameplay packets should never be megabyte-sized.
+    // Voice payloads are a tightly bounded, single data URL, never streamed or persisted.
     if(typeof raw!=='string'){try{ws.close(1003,'Text packets only')}catch{}return}
-    if(raw.length>8192||new TextEncoder().encode(raw).byteLength>8192){try{ws.close(1009,'Message too large')}catch{}return}
+    const maybeVoice=raw.length<180500&&raw.slice(0,28).includes('"type":"voice"');
+    const maxSize=maybeVoice?180500:8192;
+    if(raw.length>maxSize||(!maybeVoice&&new TextEncoder().encode(raw).byteLength>8192)){
+      try{ws.close(1009,'Message too large')}catch{}return
+    }
     const attachment=ws.deserializeAttachment()||{creature:null,ready:false};
     if(!attachment.creature&&attachment.openedAt&&Date.now()-attachment.openedAt>30000){try{ws.close(1008,'Join timeout')}catch{}return;}
     const now=Date.now(),expired=now-(attachment.rateAt||0)>10000;
@@ -377,14 +391,32 @@ export class Room extends DurableObject {
     }
     if(data.type==='voice_consent'){
       if(!attachment.creature||typeof data.send!=='boolean'||typeof data.receive!=='boolean')return;
-      ws.serializeAttachment({...attachment,voiceConsent:{send:data.send,receive:data.receive}});
+      if(attachment.voiceConsent?.send&&!data.send){
+       // Explicit revocation: forget any previously relayed voice on every other client.
+       for(const peer of this.livePeers())if(peer!==ws)this.send(peer,{type:'voice_revoked'});
+      }
+      ws.serializeAttachment({...attachment,voiceConsent:{send:data.send,receive:data.receive},
+        sentVoice:attachment.sentVoice&&data.send});
       this.voicePolicy();return;
     }
     if(data.type==='voice'){
-      // A client-side "passed" flag is forgeable. Do not relay user audio
-      // until independently verifiable server-side speech moderation exists.
-      // Local/offline reviewed playback is unaffected.
-      this.send(ws,{type:'voice_rejected',reason:'オンライン音声送信は審査導入まで停止中'});
+      const peers=this.livePeers(),receiver=peers.find(p=>p!==ws);
+      const r=receiver?.deserializeAttachment()||{};
+      if(!attachment.creature||!Number.isInteger(attachment.seat)||!receiver||!r.creature||
+         !attachment.voiceConsent?.send||!r.voiceConsent?.receive){
+        this.send(ws,{type:'voice_rejected',reason:'双方の同意が必要です'});return;
+      }
+      if(attachment.sentVoice){this.send(ws,{type:'voice_rejected',reason:'この接続では録音声を送信済みです'});return}
+      // Strict mimetype, Base64 and byte caps. No arbitrary URL, HTML, external fetch or plaintext.
+      const clip=data.clip;
+      if(typeof clip!=='string'||clip.length>175000||clip.length<100||
+        !/^data:audio\/(?:webm|wav|ogg|mp4|mpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(clip)){
+        this.send(ws,{type:'voice_rejected',reason:'2秒の録音形式またはサイズが不正です'});return
+      }
+      // User can speak arbitrary content. Relay is explicitly consensual, temporary, and unmoderated.
+      ws.serializeAttachment({...attachment,sentVoice:true});
+      this.send(receiver,{type:'voice',clip,from:attachment.seat});
+      this.send(ws,{type:'voice_delivered'});
       return;
     }
     if(data.type==='ready'){
@@ -415,6 +447,7 @@ export class Room extends DurableObject {
       return;
     }
     for(const peer of this.livePeers()){
+      this.send(peer,{type:'voice_revoked'});
       let data=peer.deserializeAttachment();if(data)peer.serializeAttachment({...data,ready:false});
       this.send(peer,{type:'left'});
     }
