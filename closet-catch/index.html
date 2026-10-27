@@ -297,7 +297,7 @@ let rivalCache={round:0,items:null,score:null};
 function getRivalLook(){
  const round=Math.max(1,st.show.round);
  if(rivalCache.round===round&&rivalCache.items)return rivalCache;
- const goal=clamp(Math.round(171+Math.min(68,(round-1)*3.3)+(hash(round*337)%27-13)),140,252);
+ const goal=clamp(Math.round(205+Math.min(55,(round-1)*2.5)+Math.min(10,st.show.streak*2)+(hash(round*337)%17-8)),195,275);
  const natural=['hat','acc','top','bottom','shoes'];
  let best=null,bestGap=Infinity;
  for(let candidate=0;candidate<100;candidate++){
@@ -326,24 +326,28 @@ function showScore(items,skipRival=false){
  const rarity=items.reduce((a,o)=>a+o.rarity,0);
  const rules=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
  const fits=items.reduce((a,o,i)=>a+(rules[i].includes(o.cat)?1:0),0),odd=5-fits;
- const colors=items.map(o=>parseInt(colorOf(o).slice(1),16));let dist=0,num=0;
- for(let i=0;i<5;i++)for(let j=0;j<i;j++){const a=colors[i],b=colors[j];dist+=Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255));num++}
- const harmony=1-Math.min(1,dist/Math.max(1,num)/285),theme=showTheme()[1],novel=odd+Math.min(2,repeats)*.5;
- const targets={classic:2,street:3,avant:4,color:4,chaos:5,glam:2};
+ const colors=items.map(o=>parseInt(colorOf(o).slice(1),16));
+ const colorGap=(i,j)=>{const a=colors[i],b=colors[j];return Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255))};
+ let dist=0,num=0;for(let i=0;i<5;i++)for(let j=0;j<i;j++){dist+=colorGap(i,j);num++}
+ const harmony=1-Math.min(1,dist/Math.max(1,num)/285);
+ const adjacent=Array.from({length:4},(_,i)=>1-Math.min(1,colorGap(i,i+1)/285));
+ const flow=adjacent.reduce((a,b)=>a+b,0)/4;
+ const anchor=adjacent[3],contrast=1-adjacent[0];
+ const patternBeat=Array.from({length:4},(_,i)=>items[i].pattern!==items[i+1].pattern?1:0).reduce((a,b)=>a+b,0)/4;
+ const theme=showTheme()[1],targets={classic:2,street:3,avant:4,color:4,chaos:5,glam:2};
  const patternFit=clamp(1-Math.abs(patternVariety-targets[theme])/4,0,1);
- let a=24+fits*10+harmony*18+rarity*1.1-repeats*3+(5-patternVariety)*1.2-duplicates*2;
- let b=19+odd*8+Math.min(2,repeats)*4+unique*4+rarity*.7+styleVariety*1.8+patternVariety*2.3-duplicates*3;
- let c=22+fits*5+unique*3+rarity*1.4+patternFit*11+styleVariety*1.4;
- if(theme==='classic'){a+=9;c+=fits*6+harmony*16-odd*3+(5-patternVariety)*1.6}
- if(theme==='street')c+=novel*6+unique*3+styleVariety*1.5;
- if(theme==='avant'){b+=12;c+=odd*8+Math.min(3,repeats)*4+patternVariety*2.2}
- if(theme==='color')c+=harmony*23+unique*4+patternVariety*2;
- if(theme==='chaos'){b+=12;c+=odd*7+Math.min(3,repeats)*7+patternVariety*2}
- if(theme==='glam')c+=rarity*2+fits*6+harmony*8+(5-patternVariety)*1.2;
+ let a=20+fits*9+harmony*10+flow*17+rarity*.9-repeats*3-duplicates*2;
+ let b=19+odd*7+Math.min(3,repeats)*3+unique*3+styleVariety*1.4+patternVariety*1.5+contrast*13+patternBeat*8-duplicates*4+rarity*.6;
+ let c=19+fits*3+unique*2.5+patternFit*9+flow*11+anchor*5+rarity*.7;
+ if(theme==='classic'){a+=7;c+=fits*6+harmony*15+anchor*15-odd*3}
+ if(theme==='street')c+=odd*5+contrast*17+patternBeat*6;
+ if(theme==='avant'){b+=8;c+=odd*9+contrast*14+repeats*3}
+ if(theme==='color')c+=harmony*10+flow*17+patternVariety*3;
+ if(theme==='chaos'){b+=9;c+=odd*8+contrast*14+repeats*5+patternBeat*7}
+ if(theme==='glam')c+=rarity*2+fits*6+harmony*11+anchor*16;
  const judges=[a,b,c].map(v=>clamp(Math.round(v),10,100)),total=judges.reduce((x,y)=>x+y,0);
- const opponent=skipRival?null:getRivalLook();
- const rival=opponent?opponent.score.total:0;
- return {judges,total,rival,rivalJudges:opponent?opponent.score.judges:null,rivalIds:opponent?opponent.items.map(o=>o.id):null,win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit}
+ const opponent=skipRival?null:getRivalLook(),rival=opponent?opponent.score.total:0;
+ return {judges,total,rival,rivalJudges:opponent?opponent.score.judges:null,rivalIds:opponent?opponent.items.map(o=>o.id):null,win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit,flow,anchor,contrast}
 }
 function showPlacement(item,slot){
  const natural=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
@@ -358,7 +362,7 @@ function showStyleHint(){
  const estimate=showScore(items),t=showTheme()[1];
  const style=estimate.fits>=4?'正統派':estimate.odd>=4?'超前衛':estimate.odd>=2?'型破り':'ミックス';
  const themeHint=(t==='avant'||t==='chaos')?'変な位置への着用が高評価':t==='classic'||t==='glam'?'自然な位置と色の調和が重要':t==='color'?'色の調和と種類の豊富さが重要':'大胆さと種類の豊富さが重要';
- $('showHelp').textContent='現在：'+style+'（自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5）。'+themeHint+'。柄 '+estimate.patternVariety+'種・形 '+estimate.styleVariety+'種。CPU実力 '+estimate.rival+'点（同じ審査基準）。2着タップで交換。';
+ $('showHelp').textContent='衣装予想 YOU '+estimate.total+'点（'+estimate.judges.join(' / ')+'） vs CPU '+estimate.rival+'点。'+style+'：自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5。'+themeHint+'。2着タップで交換。ポーズ点は別途加算。';
 }
 function showSlots(){
  const root=$('showSlots');root.replaceChildren();
