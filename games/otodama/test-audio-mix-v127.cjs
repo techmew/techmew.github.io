@@ -64,7 +64,7 @@ assert.match(script,/const level=Math\.min\(\.16,VOLUME\(\)\*Math\.min\(3,clip\.
 assert.match(script,/phase==='reaction'\?\.42/,'reactions softer than attacks');
 assert.match(script,/const echoes=0/,'no recorded echo stacking');
 assert.match(script,/const rush=ev\?\.rush===true/,'only explicit rush repeats recording');
-assert.match(script,/const level=Math\.min\(\.28,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'victory roar capped');
+assert.match(script,/const level=Math\.min\(\.22,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'single recorded victory roar capped');
 assert.match(script,/updateBgmDucking\(ac\);/,'music tick applies smooth ducking');
 assert.match(script,/function attackVoice\(/,'recorded attack voice preserved');
 assert.match(script,/function previewRecordedVoice\(/,'recording preview preserved');
