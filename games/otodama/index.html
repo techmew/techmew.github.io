@@ -150,6 +150,7 @@
 <div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">声魂（こえだま） 対戦 / コンピューター戦</b><label class="pvp-accept"><input id="battleChallengerOptIn" type="checkbox" aria-label="対人挑戦者の受付"><span id="battleChallengerStatus">対人受付 OFF</span></label><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><div id="voiceFxLabel" class="voice-fx-label" hidden aria-live="off"></div><div id="rushBanner" class="rush-banner" role="status" aria-live="polite" hidden></div><div id="matchIntro" class="match-intro" role="status" aria-live="polite" hidden></div><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="timing-callout" id="timingCallout" aria-live="off"></div><div class="arena-effect" id="arenaEffect">準備中</div><div id="challengerBanner" class="challenger-banner" hidden role="status" aria-live="polite"><b>NEW CHALLENGER</b><small>オンラインの挑戦者が現れた！</small></div><div class="arena-battle-tip">素体同士が自動で勝負</div></div><div id="battleSpeech" class="battle-speech" role="status" aria-live="polite" hidden><b id="battleSpeechWho"></b><span id="battleSpeechText"></span><small id="battleSpeechState" hidden></small></div><div id="campaignTrack" class="campaign-track" aria-live="off" hidden></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="enemyTactic" role="status" aria-live="polite"></div><div id="battleReport" role="status" aria-live="polite"></div><div id="battlePanel"><div class="boss-panel" id="bossPanel" hidden><b id="bossWarning">ボス</b><div class="boss-break"><i id="bossBreakFill"></i></div><small>素体が自動で戦います。ボスの行動を見極めよう。</small></div><div class="survival-battle-bar"><span id="survivalBattleStatus" aria-live="polite" hidden></span><button type="button" id="autoBattleBtn" aria-pressed="false">自動操作：OFF</button></div><div class="battle-guide" id="battleGuide">素体の能力と個性で自動対戦。戦いの行方を見守ろう！</div><div class="battle-topline"><span id="skillName">特別な技</span><span>技ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ガード</button><button class="btn outline" id="dodgeBtn" type="button">↗ 回避</button><button class="btn outline" id="strikeBtn" type="button">⚡ タイミング攻撃</button><button class="btn" id="skillBtn" type="button" disabled>✦ 特別な技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div><div class="battle-tactics"><span id="comboBadge">ガード連続 0</span><span id="incomingBadge">敵の攻撃を見切れ！</span></div><div class="stage-mission" id="missionBadge" aria-live="polite" hidden></div><div class="battle-keyhint">PC操作：Space＝ガード / J＝回避 / L＝タイミング攻撃 / K＝特別な技 / 1・2・3＝戦術</div></div><div id="battlePrize" aria-live="polite"></div><div id="nextStagePreview" aria-live="polite" aria-live="polite" hidden></div><div id="nextBuffPanel" class="next-buff-panel" hidden><b>次のバトルの作戦を選択</b><div class="next-buff-choices"><button type="button" data-buff="power" aria-pressed="false">⚔ 攻撃 +15%</button><button type="button" data-buff="shield" aria-pressed="false">◆ HP +30</button><button type="button" data-buff="resonance" aria-pressed="false">✦ 技ゲージ +34</button><button type="button" data-buff="focus" aria-pressed="false">◎ タイミングが合わせやすくなる</button><button type="button" data-buff="lifeline" aria-pressed="false">♡ ピンチ時に一度ダメージ -20</button><button type="button" data-buff="rhythm" aria-pressed="false">♫ タイミング攻撃が続くと強化</button></div><small id="nextBuffHint">選択した強化は次のCOM戦のみ有効。選ばなくても進めます。</small></div><div class="modalfoot"><button type="button" id="audioResumeBtn" class="audio-recover">🔊 声を再開</button><details class="battle-settings" id="battleAudioSettings"><summary>音声設定</summary><div class="audio-rows"><label class="soundrow" for="battleVolume">声・効果音 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><label class="soundrow" for="musicVolume">BGM <input id="musicVolume" type="range" min="0" max="25" value="8"><b id="musicVolumeLabel">8%</b></label><label class="soundrow"><input type="checkbox" id="lowFx"> 省電力描画</label><label class="soundrow"><input type="checkbox" id="voiceFxEnabled" checked> 声の変化を使う（高低・速度・被弾）</label><label class="soundrow"><input type="checkbox" id="roarEnabled" checked> 勝者の雄叫びを鳴らす</label></div></details><button class="btn ghost" id="repeatSpeechBtn" type="button" hidden>▶ 雄叫びをもう一度鳴らす</button><button class="btn primary" id="rematchBtn" disabled>次のバトルへ →</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
 <script src="./progression-v134.js?v=134"></script>
 <script src="./combat-director-v135.js?v=138"></script>
+<script src="./pvp-pace-v139.js?v=139"></script>
 <script src="./combat-cinema-v138.js?v=138"></script>
 <script>
 (()=>{'use strict';
@@ -1802,6 +1803,7 @@ function advanceAfterWin(m){
  if(match!==m||!m.done||!$('battleModal').classList.contains('open'))return;
  if(m.outcome.winner!==0&&m.mode!=='COM MATCH'&&!m.live)return;
  stopBattleSpeech();
+ if(!m.live&&activatePendingChallenge(m))return;
  if(m.live){const wasSurvival=!!m.resumeSurvival&&survivalActive;leaveRoom();if(wasSurvival)nextSurvivalBattle();else doCom();}
  else if((m.mode==='SURVIVAL'||m.survivalChallenge)&&survivalActive)nextSurvivalBattle();
  else if(m.mode==='COM MATCH'||m.mode==='DAILY CHALLENGE')doCom();
@@ -2525,7 +2527,9 @@ function announceChallenger(){
  challengerBannerTimer=setTimeout(()=>{banner.hidden=true;challengerBannerTimer=null},2400);
 }
 
-function finishCombat(){const m=match;if(!m||m.done)return;hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;m.done=true;stopBgm();stopAttackVoices();
+function finishCombat(){const m=match;if(!m||m.done)return;
+ if(!m.live&&['COM MATCH','SURVIVAL','DAILY CHALLENGE'].includes(m.mode)){pvpPace.completedCpu(Date.now());storePvpPace();}
+ hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;m.done=true;stopBgm();stopAttackVoices();
  if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong> · ガード '+m.parries+' · 回避 '+m.dodges+' · 必殺 '+m.skillsUsed+(win&&['S','A'].includes(m.grade)?' · XP +'+(m.grade==='S'?2:1):'');}
  else $('battleReport').classList.remove('visible');
  if(m.interactive&&!m.live){m.outcome.winner=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1]?0:1;m.outcome.max=m.max.slice();updateCharacterProgress(m);if(m.cleanDefenseAwarded)$('battleReport').textContent+=' ／ 完璧防御 +1XP'}
@@ -2597,7 +2601,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  },MATCH_INTRO_MS);
  aframe=requestAnimationFrame(battleDraw);startBgm();
 }
-function closeBattle(){challengerHandoff=false;stopHandoffTimer();if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}cancelRandomSearch(true);clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;stopBattleSpeech();$('repeatSpeechBtn').hidden=true;$('battleSpeech').hidden=true;clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();cancelRandomSearch(true)}$('timingCallout').textContent='';if(ws)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
+function closeBattle(){pendingChallenge=null;challengerHandoff=false;stopHandoffTimer();if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}cancelRandomSearch(true);clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;stopBattleSpeech();$('repeatSpeechBtn').hidden=true;$('battleSpeech').hidden=true;clearAutoAction();clearTimeout(survivalNextTimer);survivalNextTimer=null;survivalAwaitingVisibility=false;if(survivalActive){saveSurvivalResult();survivalActive=false;setAutoBattle(false);showSurvivalStatus();cancelRandomSearch(true)}$('timingCallout').textContent='';if(ws)leaveRoom();$('enemyTactic').classList.remove('visible');$('battleReport').classList.remove('visible');clearInterval(battleInterval);cancelAnimationFrame(aframe);battleInterval=null;match=null;stopBgm();stopAttackVoices();$('battleModal').classList.remove('open','victory');$('battlePanel').classList.remove('playable')}
 function doCom(){unlockBattleAudio();const enemy=stageEnemy(adventureStage,cur,stageAttempts);pendingBuff=null;showBattle(cur,enemy,randCombat(cur,enemy),'COM MATCH');maybeQueuePvP()}
 function doDaily(){unlockBattleAudio();const enemy=dailyEnemy();showBattle(cur,enemy,randCombat(cur,enemy),'DAILY CHALLENGE');maybeQueuePvP()}
 
@@ -2610,6 +2614,7 @@ function sendLiveAction(action,seq,value){
 function beginLiveBattle(data){
  if(!Array.isArray(data.creatures)||data.creatures.length!==2||!Array.isArray(data.max)||data.max.length!==2){if(challengerHandoff)restoreCpuAfterHandoff();return}
  challengerHandoff=false;stopHandoffTimer();
+ pvpPace.started(Date.now());storePvpPace();pendingChallenge=null;
  const interruptedSurvival=survivalActive&&match?.mode==='SURVIVAL';clearTimeout(survivalNextTimer);survivalNextTimer=null;const a=hydrate(data.creatures[0]),b=hydrate(data.creatures[1]);
  a.voiceClip=clipData(cur)||'';b.voiceClip='';
  showBattle(a,b,{events:[],max:data.max,winner:0},'ONLINE LIVE',null,true);match.resumeSurvival=interruptedSurvival;announceChallenger();if(interruptedSurvival)showSurvivalStatus();
@@ -2696,6 +2701,38 @@ function serverBase(){let str=$('serverUrl').value.trim();if(!(/^https:\/\/[a-z0
 function roomMessage(msg){$('roomLine').textContent=msg;const view=$('launchNetStatus');if(view)view.textContent=msg}
 function sendVoiceConsent(){if(ws?.readyState===WebSocket.OPEN&&side>=0){ws.send(JSON.stringify({type:'voice_consent',send:false,receive:false}));voiceConsentSent=true;}}
 function setConnectionUI(connected){$('netDot').classList.toggle('ok',connected);$('netLabel').textContent=match?.live?'対人バトル':challengerHandoff?'NEW CHALLENGER':connected?'挑戦者接続中':queueWs?'挑戦者を検索中':$('survivalChallengerOptIn').checked?'CPU戦 / 受付ON':'CPU戦 / 受付OFF';$('readyBar').style.display='none';$('battleChallengerOptIn').checked=$('survivalChallengerOptIn').checked;$('battleChallengerStatus').textContent=$('survivalChallengerOptIn').checked?'対人受付 ON':'対人受付 OFF';const view=$('launchNetStatus');if(view&&(!match||match.live||!$('survivalChallengerOptIn').checked))view.textContent=match?.live?'対人バトル中':$('survivalChallengerOptIn').checked?'対人戦接続中':'CPUバトル / 対人受付OFF'}
+// v139 user-controlled matchmaking pace. Only a server live_start consumes a PvP slot.
+let pvpPaceState=null;
+try{pvpPaceState=JSON.parse(localStorage.getItem('otodama.pvp.pace.v139')||'null')}catch(e){}
+const pvpPace=window.OtodamaPvpPace.create(pvpPaceState,Date.now());
+function storePvpPace(){try{localStorage.setItem('otodama.pvp.pace.v139',JSON.stringify(pvpPace.snapshot()))}catch(e){}}
+let pendingChallenge=null;
+function dropPendingChallenge(){
+ const had=!!pendingChallenge;pendingChallenge=null;
+ if(had&&ws&&!match?.live&&!challengerHandoff)leaveRoom();
+}
+function pvpWaitMessage(){
+ const e=pvpPace.eligibility(Date.now());
+ if(!e.enabled)return 'CPU戦のみ';
+ if(e.hourlyMs>0)return '対人受付ON · 1時間あたり3回の上限（残り約'+Math.ceil(e.hourlyMs/60000)+'分）';
+ if(e.cpuRemaining>0)return '対人受付ON · 次の挑戦者までCPUあと'+e.cpuRemaining+'戦';
+ if(e.waitMs>0)return '対人受付ON · 次の挑戦者まで約'+Math.ceil(e.waitMs/60000)+'分';
+ return '対人受付ON · 挑戦者を探せます';
+}
+function readyForDeferredChallenger(){
+ if(!challengerHandoff||!pendingChallenge||pendingChallenge.players!==2||
+    !ws||ws.readyState!==WebSocket.OPEN||roomReadySent)return false;
+ roomReadySent=true;roomMessage('CPU戦終了。挑戦者と対戦準備中…');
+ try{ws.send(JSON.stringify({type:'ready',autoOnly:true}));return true}
+ catch(e){roomReadySent=false;restoreCpuAfterHandoff();return false}
+}
+function activatePendingChallenge(m){
+ if(!pendingChallenge||match!==m||!m.done||m.live)return false;
+ if((m.mode==='SURVIVAL'||m.survivalChallenge)&&!survivalActive){dropPendingChallenge();return false}
+ if(Date.now()-pendingChallenge.at>90000){dropPendingChallenge();return false}
+ if(!startChallengerHandoff())return false;
+ scheduleHandoffTimeout();readyForDeferredChallenger();return true;
+}
 let matchmakingRetryTimer=null,challengerHandoff=false,handoffTimer=null,lastHandoffFailure=0,roomReadySent=false;
 // A WebSocket can remain CONNECTING forever on a flaky mobile network. Bound both
 // connection setup and the server's 120-second waiting-room lifetime.
@@ -2706,8 +2743,10 @@ function clearQueueTimers(){
 }
 function stopHandoffTimer(){if(handoffTimer!==null){clearTimeout(handoffTimer);handoffTimer=null}}
 function startChallengerHandoff(){
- if(!match||match.done||match.live||challengerHandoff||pageSuspended||document.hidden||!$('battleModal').classList.contains('open'))return false;
- challengerHandoff=true;match.handoffPausedAt=performance.now();clearInterval(battleInterval);battleInterval=null;clearAutoAction();hideMatchIntro();stopBgm();stopAttackVoices();
+ // A challenger can appear only after the CPU match finishes; never pause a live CPU attack.
+ if(!match||!match.done||match.live||challengerHandoff||pageSuspended||document.hidden||!$('battleModal').classList.contains('open'))return false;
+ challengerHandoff=true;match.handoffPausedAt=performance.now();
+ clearResultTimers();clearInterval(battleInterval);battleInterval=null;clearAutoAction();hideMatchIntro();stopBattleSpeech();stopBgm();stopAttackVoices();
  $('fightLog').textContent='NEW CHALLENGER！ 対人戦へ切り替え中';announceChallenger();setConnectionUI(false);return true;
 }
 function resumeInterruptedCpu(m){
@@ -2717,6 +2756,7 @@ function resumeInterruptedCpu(m){
   m.pop+=gap;if(m.current?.impactAt)m.current.impactAt+=gap;
   m.handoffPausedAt=0;
  }
+ if(m.done){advanceAfterWin(m);return true}
  if(battleInterval===null&&typeof m.resumeCpuTick==='function'){
   if(m.turn<0)m.resumeCpuTick();
   battleInterval=setInterval(m.resumeCpuTick,EVENT_MS);
@@ -2725,21 +2765,23 @@ function resumeInterruptedCpu(m){
 }
 function restoreCpuAfterHandoff(){
  if(!challengerHandoff)return;
- challengerHandoff=false;lastHandoffFailure=Date.now();stopHandoffTimer();$('challengerBanner').hidden=true;
+ challengerHandoff=false;pendingChallenge=null;lastHandoffFailure=Date.now();stopHandoffTimer();$('challengerBanner').hidden=true;
  const old=match;leaveRoom();
  if(!old||old.live||!$('battleModal').classList.contains('open'))return;
  roomMessage('対人接続に失敗。中断したCPU戦をそのまま再開します');
  resumeInterruptedCpu(old);
 }
-function scheduleHandoffTimeout(){stopHandoffTimer();handoffTimer=setTimeout(()=>{handoffTimer=null;if(challengerHandoff&&!match?.live)restoreCpuAfterHandoff()},30000)}
-function canSearchPvP(){return $('survivalChallengerOptIn').checked&&!!serverBase()&&!!match&&!match.live&&!match.done&&!challengerHandoff&&$('battleModal').classList.contains('open')&&!document.hidden&&!pageSuspended&&!queueWs&&!ws}
+function scheduleHandoffTimeout(){stopHandoffTimer();handoffTimer=setTimeout(()=>{handoffTimer=null;if(challengerHandoff&&!match?.live)restoreCpuAfterHandoff()},60000)}
+function canSearchPvP(){return $('survivalChallengerOptIn').checked&&!!serverBase()&&!!match&&!match.live&&!match.done&&!challengerHandoff&&$('battleModal').classList.contains('open')&&!document.hidden&&!pageSuspended&&!queueWs&&!ws&&!pendingChallenge&&pvpPace.eligibility(Date.now()).ready}
 function maybeQueuePvP(){if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}if(!canSearchPvP())return;const delay=12000-(Date.now()-lastHandoffFailure);if(delay>0){matchmakingRetryTimer=setTimeout(()=>{matchmakingRetryTimer=null;maybeQueuePvP()},delay);return}startRandomMatch()}
 function setPvPAcceptance(on){
  $('survivalChallengerOptIn').checked=!!on;$('battleChallengerOptIn').checked=!!on;
+ if(on)pvpPace.enable(Date.now());else pvpPace.disable(Date.now());storePvpPace();
+ if(!on)dropPendingChallenge();
  try{localStorage.setItem('otodama.pvp.accept',on?'1':'0')}catch{}
  if(on)maybeQueuePvP();
  else{if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}cancelRandomSearch(true);if(challengerHandoff)restoreCpuAfterHandoff();else if(ws&&!match?.live)leaveRoom()}
- setConnectionUI(!!ws);roomMessage(on?'対人受付ON：CPU戦中に相手を探します':'対人受付OFF：CPUだけで戦います');
+ setConnectionUI(!!ws);roomMessage(pvpWaitMessage());
 }
 function cancelRandomSearch(silent=false){clearQueueTimers();if(queueWs){const old=queueWs;queueWs=null;try{if(old.readyState===WebSocket.OPEN)old.send(JSON.stringify({type:'cancel'}))}catch{}try{old.close()}catch{}}$('searchBtn').disabled=false;$('searchBtn').textContent='⚡ ランダムマッチ開始';$('cancelSearchBtn').style.display='none';if(!silent){roomMessage('ランダムマッチを中止しました');setConnectionUI(!!ws)}}
 function leaveRoom(){cancelRandomSearch(true);if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}resumeToken='';reconnectCount=0;if(ws){ws.close();ws=null}room=null;side=-1;autoReadyRoom=false;roomReadySent=false;remoteVoiceClip='';sentVoice=false;voiceConsentSent=false;setConnectionUI(false);roomMessage('ルームから退出しました')}
@@ -2761,23 +2803,29 @@ function startRandomMatch(){
   queueWaitTimer=setTimeout(()=>timeoutSearch('対戦相手の待機時間が終了。再検索します'),125000);
  };
  sock.onmessage=ev=>{if(queueWs!==sock)return;let data;try{data=JSON.parse(ev.data)}catch{return}
-  if(data.type==='matched'&&/^[A-HJ-NP-Z2-9]{6}$/.test(data.code)){cancelRandomSearch(true);if(!$('survivalChallengerOptIn').checked||match?.live||match?.done||!startChallengerHandoff())return;scheduleHandoffTimeout();roomMessage('NEW CHALLENGER！ 対戦相手が見つかりました');joinRoom(data.code,true)}
+  if(data.type==='matched'&&/^[A-HJ-NP-Z2-9]{6}$/.test(data.code)){
+   cancelRandomSearch(true);
+   if(!$('survivalChallengerOptIn').checked||match?.live||!match||!$('battleModal').classList.contains('open')||!pvpPace.eligibility(Date.now()).ready)return;
+   pendingChallenge={code:data.code,at:Date.now(),players:0};
+   roomMessage('対戦相手を確保。現在のCPU戦が終わったらNEW CHALLENGER！');
+   // Join the room without sending READY until the present CPU fight (and victory) ends.
+   joinRoom(data.code,true);
+ }
   else if(data.type==='error'){queueError=data.message||'マッチングサーバーエラー';roomMessage(queueError);try{sock.close(1008,'Search rejected')}catch{}}
  };
  sock.onerror=()=>{if(queueWs===sock){roomMessage('マッチングサーバーに接続できません。URL・公開状態を確認してください');try{sock.close()}catch{timeoutSearch('接続エラー。再試行します')}}};
  sock.onclose=()=>{if(queueWs===sock){cancelRandomSearch(true);lastHandoffFailure=Date.now();setConnectionUI(false);if(canSearchPvP()){roomMessage(queueError||'接続が切れました。間隔を空けて再検索します');maybeQueuePvP()}else roomMessage(queueError||'マッチング接続が終了しました')}};
 }
-function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base){roomMessage('先にCloudflare対戦サーバーURLを設定してください');return}if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){roomMessage('部屋コードは6文字です');return}if(!resuming)leaveRoom();else{sentVoice=false;voiceConsentSent=false;remoteVoiceClip='';if(match?.live)match.b.voiceClip='';}autoReadyRoom=auto;roomReadySent=false;room=code;$('roomCode').value=code;const wsurl=base.replace(/^https:/,'wss:').replace(/^http:/,'ws:')+'/room/'+code+(resuming?'?resume='+encodeURIComponent(resumeToken):'');try{ws=new WebSocket(wsurl)}catch(e){roomMessage('WebSocket接続を開始できません');if(challengerHandoff&&!match?.live)restoreCpuAfterHandoff();return}roomMessage(resuming?'対戦に再接続中…':'接続中…');let socket=ws;socket.onopen=()=>{if(ws!==socket||resuming)return;socket.send(JSON.stringify({type:'join',creature:{seed:cur.seed,parts:cur.parts,voice:cur.voice,stats:cur.stats,name:cur.name,element:cur.element,type:cur.type,rank:cur.rank},...(rankingToken?{playerToken:rankingToken}:{})}))};socket.onmessage=ev=>{if(ws!==socket)return;let data;try{data=JSON.parse(ev.data)}catch(e){return}if(data.type==='session'){if(/^[a-f0-9]{32}$/.test(data.token)){resumeToken=data.token;if(!resuming)reconnectCount=0;}sendVoiceConsent();return}if(data.type==='live_resumed'){reconnectCount=0;setConnectionUI(true);if(!match?.live)beginLiveBattle(data);if(match?.live){match.max=data.max.slice();match.hp=data.hp.slice();match.charge=data.charge[0];if(Array.isArray(data.dodgeCooldown))match.dodgeCooldown=data.dodgeCooldown[0]||0;if(Array.isArray(data.skillArmed))match.skillArmed=!!data.skillArmed[0];if(Array.isArray(data.awakened))match.awakened=data.awakened.map(Boolean).slice(0,2);if(Array.isArray(data.stance))match.stance=data.stance[0]||'balance';$('hpA').style.width=clamp(match.hp[0]/match.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(match.hp[1]/match.max[1]*100,0,100)+'%';$('battleMsg').textContent='対戦復帰！ 現在の攻撃状況を同期中';}return}if(data.type==='live_wait'){roomMessage('相手の再接続を待機中（最大15秒）');if(match?.live){match.current=null;$('battleMsg').textContent='相手の再接続待ち';}return}if(data.type==='state'){side=data.me;setConnectionUI(true);if(!voiceConsentSent)sendVoiceConsent()
+function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base){roomMessage('先にCloudflare対戦サーバーURLを設定してください');return}if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){roomMessage('部屋コードは6文字です');return}if(!resuming)leaveRoom();else{sentVoice=false;voiceConsentSent=false;remoteVoiceClip='';if(match?.live)match.b.voiceClip='';}autoReadyRoom=auto;roomReadySent=false;room=code;$('roomCode').value=code;const wsurl=base.replace(/^https:/,'wss:').replace(/^http:/,'ws:')+'/room/'+code+(resuming?'?resume='+encodeURIComponent(resumeToken):'');try{ws=new WebSocket(wsurl)}catch(e){roomMessage('WebSocket接続を開始できません');if(challengerHandoff&&!match?.live)restoreCpuAfterHandoff();return}roomMessage(resuming?'対戦に再接続中…':'接続中…');let socket=ws;socket.onopen=()=>{if(ws!==socket||resuming)return;socket.send(JSON.stringify({type:'join',creature:{seed:cur.seed,parts:cur.parts,voice:cur.voice,stats:cur.stats,name:cur.name,element:cur.element,type:cur.type,rank:cur.rank},...(rankingToken?{playerToken:rankingToken}:{})}))};socket.onmessage=ev=>{if(ws!==socket)return;let data;try{data=JSON.parse(ev.data)}catch(e){return}if(data.type==='session'){if(/^[a-f0-9]{32}$/.test(data.token)){resumeToken=data.token;if(!resuming)reconnectCount=0;}sendVoiceConsent();return}if(data.type==='live_resumed'){reconnectCount=0;setConnectionUI(true);if(!match?.live)beginLiveBattle(data);if(match?.live){match.max=data.max.slice();match.hp=data.hp.slice();match.charge=data.charge[0];if(Array.isArray(data.dodgeCooldown))match.dodgeCooldown=data.dodgeCooldown[0]||0;if(Array.isArray(data.skillArmed))match.skillArmed=!!data.skillArmed[0];if(Array.isArray(data.awakened))match.awakened=data.awakened.map(Boolean).slice(0,2);if(Array.isArray(data.stance))match.stance=data.stance[0]||'balance';$('hpA').style.width=clamp(match.hp[0]/match.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(match.hp[1]/match.max[1]*100,0,100)+'%';$('battleMsg').textContent='対戦復帰！ 現在の攻撃状況を同期中';}return}if(data.type==='live_wait'){roomMessage('相手の再接続を待機中（最大15秒）');if(match?.live){match.current=null;$('battleMsg').textContent='相手の再接続待ち';}return}if(data.type==='state'){side=data.me;if(pendingChallenge)pendingChallenge.players=data.players.length;setConnectionUI(true);if(!voiceConsentSent)sendVoiceConsent()
  roomMessage('部屋 '+room+' / '+data.players.length+'人参加中'+(data.players.length<2?' · 対戦相手を待機中':(autoReadyRoom?' · 自動でバトル準備中':' · 準備OKで開始')));$('readyBtn').disabled=!!data.youReady;$('readyBtn').textContent=data.youReady?'準備済み':'対戦準備OK';if(autoReadyRoom&&data.players.length===2&&!data.youReady&&socket.readyState===WebSocket.OPEN&&!roomReadySent){
-  roomReadySent=true;
-  roomMessage('挑戦者と接続しました。双方の準備完了を待っています…');
-  scheduleHandoffTimeout();
-  try{socket.send(JSON.stringify({type:'ready',autoOnly:true}))}catch(e){roomReadySent=false;roomMessage('対戦準備の送信に失敗しました');try{socket.close()}catch{}}
+   // No READY during the CPU battle. The second player may also finish their current round.
+   readyForDeferredChallenger();
  }}else if(data.type==='voice_policy'){if(data.reason)roomMessage(data.reason);}
  else if(data.type==='voice'){remoteVoiceClip='';if(match?.live)match.b.voiceClip='';roomMessage('オンライン録音声は安全審査が完了するまで再生しません。');}else if(data.type==='voice_rejected'){roomMessage(data.reason||'録音声のオンライン転送は停止中です。');}
  else if(data.type==='live_ping'){if(typeof data.nonce==='string'&&data.nonce.length<=32)socket.send(JSON.stringify({type:'pong',nonce:data.nonce}))}else if(data.type==='live_start'){autoReadyRoom=false;roomReadySent=false;beginLiveBattle(data)}else if(data.type==='live_turn')receiveLiveTurn(data);else if(data.type==='live_ack')receiveLiveAck(data);else if(data.type==='live_impact')receiveLiveImpact(data);else if(data.type==='live_end')endLiveBattle(data);else if(data.type==='live_forfeit'){endLiveBattle({winner:0,ranked:!!data.ranked});if(!match?.survivalChallenge)$('battlePrize').textContent='相手が退出しました · 勝利'}else if(data.type==='battle'){autoReadyRoom=false;const [p1,p2]=data.creatures,aa=hydrate(p1),bb=hydrate(p2),out=data.outcome;aa.voiceClip=side===0?(clipData(cur)||''):'';bb.voiceClip=side===1?(clipData(cur)||''):'';showBattle(side===0?aa:bb,side===0?bb:aa,side===0?out:reverseOutcome(out),'ONLINE MATCH');roomMessage('対戦中 / 部屋 '+room)}else if(data.type==='error'){roomMessage(data.message);if(challengerHandoff&&!match?.live){try{socket.close()}catch{}restoreCpuAfterHandoff()}}else if(data.type==='left'){roomMessage('相手が退出しました');$('readyBtn').disabled=false;$('readyBtn').textContent='対戦準備OK'}};socket.onerror=()=>{roomMessage('接続に失敗しました。URLとWorker公開状態を確認してください');if(challengerHandoff&&!match?.live){try{socket.close()}catch{}restoreCpuAfterHandoff()}};socket.onclose=()=>{if(ws!==socket)return;ws=null;setConnectionUI(false);if(match?.live&&!match.done&&resumeToken&&room&&reconnectCount<4){const target=room;reconnectCount++;roomMessage('接続が切断されました。再接続 '+reconnectCount+'/4');reconnectTimer=setTimeout(()=>{reconnectTimer=null;if(room===target)joinRoom(target,false,true)},Math.min(3200,800*reconnectCount));}else{
  roomMessage('ルーム接続が切断されました');
  if(challengerHandoff&&!match?.live){restoreCpuAfterHandoff()}
+ else if(pendingChallenge&&!match?.live){pendingChallenge=null;room=null;lastHandoffFailure=Date.now();if(match&&!match.done)maybeQueuePvP()}
  else if(match?.live&&!match.done){
   const failedMatch=match;
   $('battleMsg').textContent='通信が復旧できないためCPU戦に戻ります';
@@ -2796,7 +2844,9 @@ function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base
 }}}
 function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
-document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=()=>maybeQueuePvP();$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('survivalChallengerOptIn').onchange=()=>setPvPAcceptance($('survivalChallengerOptIn').checked);$('battleChallengerOptIn').onchange=()=>setPvPAcceptance($('battleChallengerOptIn').checked);try{$('survivalChallengerOptIn').checked=localStorage.getItem('otodama.pvp.accept')==='1';$('battleChallengerOptIn').checked=$('survivalChallengerOptIn').checked}catch{}setInterval(updateRarityClock,60000);$('recordBtn').onclick=()=>startRecord();$('evolveBtn').onclick=()=>startRecord('evolve');$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('resetAdventureBtn').onclick=resetAdventure;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live)advanceAfterWin(match);};
+document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=()=>maybeQueuePvP();$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('survivalChallengerOptIn').onchange=()=>setPvPAcceptance($('survivalChallengerOptIn').checked);$('battleChallengerOptIn').onchange=()=>setPvPAcceptance($('battleChallengerOptIn').checked);try{$('survivalChallengerOptIn').checked=localStorage.getItem('otodama.pvp.accept')==='1';$('battleChallengerOptIn').checked=$('survivalChallengerOptIn').checked}catch{}
+if($('survivalChallengerOptIn').checked)pvpPace.enable(Date.now());else pvpPace.disable(Date.now());storePvpPace();
+setInterval(updateRarityClock,60000);$('recordBtn').onclick=()=>startRecord();$('evolveBtn').onclick=()=>startRecord('evolve');$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('resetAdventureBtn').onclick=resetAdventure;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live)advanceAfterWin(match);};
 // No keyboard combat or stance intervention.
 $('repeatSpeechBtn').onclick=()=>{
  if(match?.done){
