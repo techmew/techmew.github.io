@@ -239,49 +239,49 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
  .stage>.preview-gallery .gallerygrid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 /* Microphone-birth ceremonies: four playful variants, character revealed underneath. */
-.stage .birth-reveal{
+#controlCard .listen .birth-reveal{
  position:absolute;z-index:4;inset:0;overflow:hidden;pointer-events:none;
  display:flex;flex-direction:column;justify-content:center;align-items:center;
- padding:48px 15px 15px;text-align:center;
+ padding:8px 9px;text-align:center;
  background:radial-gradient(circle at 50% 42%,#183e67f3,#101c34f7 80%);
  color:#fff;border-radius:14px
 }
-.stage .birth-reveal[hidden]{display:none!important}
-.stage .birth-orbit{
- position:relative;width:122px;height:122px;display:grid;place-items:center;
- border:3px dashed #b8f8e5;border-radius:50%;margin:0 0 15px;
+#controlCard .listen .birth-reveal[hidden]{display:none!important}
+#controlCard .listen .birth-orbit{
+ position:relative;width:95px;height:95px;display:grid;place-items:center;
+ border:3px dashed #b8f8e5;border-radius:50%;margin:0 0 7px;
  box-shadow:0 0 37px #7ae5da80,inset 0 0 30px #70b0ff55;
  animation:birth-orbit-spin 2.1s linear infinite
 }
-.stage .birth-core{
- width:76px;height:76px;border-radius:50%;display:grid;place-items:center;
- font-size:43px;background:linear-gradient(130deg,#f8ffed,#6be4f1);
+#controlCard .listen .birth-core{
+ width:62px;height:62px;border-radius:50%;display:grid;place-items:center;
+ font-size:35px;background:linear-gradient(130deg,#f8ffed,#6be4f1);
  box-shadow:0 3px 22px #efffffa3,0 0 0 6px #ffffff22;
  animation:birth-core-pulse .52s ease-in-out infinite alternate;
 }
-.stage .birth-spark{position:absolute;width:10px;height:10px;border-radius:50%;background:#ffee8b;box-shadow:0 0 14px #ffe366}
-.stage .birth-spark.s1{top:-2px;left:45%}
-.stage .birth-spark.s2{bottom:10px;right:-4px}
-.stage .birth-spark.s3{bottom:-5px;left:39%}
-.stage .birth-spark.s4{top:13px;left:-6px}
-.stage #birthHeadline{font-size:clamp(15px,3.5vw,21px);color:#fff9cc;line-height:1.4;text-shadow:0 2px 9px #0009}
-.stage #birthSubline{font-size:clamp(11px,2.5vw,14px);color:#d4f8ff;margin-top:8px;font-weight:700}
-.stage .birth-reveal[data-variant="capsule"] .birth-orbit{border-color:#f7b95e;box-shadow:0 0 42px #f7b95e66}
-.stage .birth-reveal[data-variant="lab"] .birth-orbit{border-color:#97ff8a;box-shadow:0 0 42px #97ff8a66}
-.stage .birth-reveal[data-variant="portal"] .birth-orbit{border-color:#d5a8ff;box-shadow:0 0 42px #d5a8ff66}
-.stage .birth-reveal[data-phase="hatch"] .birth-core{animation:birth-core-shake .16s ease-in-out infinite alternate}
-.stage .birth-reveal[data-phase="reveal"]{
+#controlCard .listen .birth-spark{position:absolute;width:10px;height:10px;border-radius:50%;background:#ffee8b;box-shadow:0 0 14px #ffe366}
+#controlCard .listen .birth-spark.s1{top:-2px;left:45%}
+#controlCard .listen .birth-spark.s2{bottom:10px;right:-4px}
+#controlCard .listen .birth-spark.s3{bottom:-5px;left:39%}
+#controlCard .listen .birth-spark.s4{top:13px;left:-6px}
+#controlCard #birthHeadline{font-size:clamp(15px,3.5vw,21px);color:#fff9cc;line-height:1.4;text-shadow:0 2px 9px #0009}
+#controlCard #birthSubline{font-size:clamp(11px,2.5vw,14px);color:#d4f8ff;margin-top:8px;font-weight:700}
+#controlCard .listen .birth-reveal[data-variant="capsule"] .birth-orbit{border-color:#f7b95e;box-shadow:0 0 42px #f7b95e66}
+#controlCard .listen .birth-reveal[data-variant="lab"] .birth-orbit{border-color:#97ff8a;box-shadow:0 0 42px #97ff8a66}
+#controlCard .listen .birth-reveal[data-variant="portal"] .birth-orbit{border-color:#d5a8ff;box-shadow:0 0 42px #d5a8ff66}
+#controlCard .listen .birth-reveal[data-phase="hatch"] .birth-core{animation:birth-core-shake .16s ease-in-out infinite alternate}
+#controlCard .listen .birth-reveal[data-phase="reveal"]{
  background:radial-gradient(circle at 50% 42%,#153b5888,#081728cc);
  animation:birth-vanish .9s ease-in-out both
 }
-.stage .birth-reveal[data-phase="reveal"] .birth-orbit{animation:birth-reveal-burst .66s ease-out both}
+#controlCard .listen .birth-reveal[data-phase="reveal"] .birth-orbit{animation:birth-reveal-burst .66s ease-out both}
 @keyframes birth-orbit-spin{to{transform:rotate(360deg)}}
 @keyframes birth-core-pulse{to{transform:scale(1.13);filter:brightness(1.15)}}
 @keyframes birth-core-shake{to{transform:translateX(8px) rotate(12deg)}}
 @keyframes birth-reveal-burst{to{opacity:0;transform:scale(2.1) rotate(100deg)}}
 @keyframes birth-vanish{to{background:#0d243a08}}
 @media(prefers-reduced-motion:reduce){
- .stage .birth-reveal,.stage .birth-orbit,.stage .birth-core{animation:none!important}
+ #controlCard .listen .birth-reveal,#controlCard .listen .birth-orbit,#controlCard .listen .birth-core{animation:none!important}
 }
 
 /* The collection moved into the preview; the remaining connectivity card spans the lower row. */
@@ -289,3 +289,17 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 
 /* Keep controls compact when the left preview has 30 creature cards. */
 .layout>.controls{align-self:start}
+
+/* v130: ten compact collection cards and touch-friendly reorder handles. */
+.stage>.preview-gallery .gallerygrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.stage>.preview-gallery .roster-entry>.specimen{min-height:75px;padding:24px 2px 22px}
+.stage>.preview-gallery .roster-entry>.specimen canvas{height:47px}
+.stage>.preview-gallery .roster-entry>.specimen span{font-size:9px;line-height:1.2}
+.stage>.preview-gallery .roster-lock,.stage>.preview-gallery .roster-delete{width:23px;min-width:23px;height:23px;min-height:23px;top:2px;font-size:14px;border-radius:7px}
+.stage>.preview-gallery .roster-delete{left:2px;font-size:17px}
+.stage>.preview-gallery .roster-lock{right:2px}
+.stage>.preview-gallery .roster-move{position:absolute;right:3px;bottom:2px;z-index:4;display:grid;place-items:center;width:25px;height:22px;border-radius:7px;border:1px solid #98b4ca;color:#234d6b;background:#e8f4ff;cursor:grab;touch-action:none;user-select:none;font-size:16px;font-weight:bold}
+.stage>.preview-gallery .roster-dragging{opacity:.65;transform:scale(.95)}
+.stage>.preview-gallery .roster-drop-target{outline:3px dashed #2789c5;outline-offset:-3px;border-radius:13px}
+#rosterArchiveDownload:not([hidden]){display:block;margin-top:8px}
+@media(max-width:730px){.stage>.preview-gallery .gallerygrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.stage>.preview-gallery .roster-entry>.specimen{min-height:80px;padding-top:24px}.stage>.preview-gallery .roster-entry>.specimen canvas{height:45px}.stage>.preview-gallery .roster-entry>.specimen span{font-size:8px}}
