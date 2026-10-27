@@ -1,0 +1,42 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
+const src=html.match(/<script>([\s\S]*?)<\/script>/)?.[1]||'';
+const a=src.indexOf('function saveProgress(){'),b=src.indexOf('// Local, opt-in progress export/import.',a);
+assert.ok(a>0&&b>a,'exploration reset and persistence code must be available');
+const reset=src.slice(a,b);
+assert.match(reset,/if\(match\|\|challengerHandoff\|\|survivalActive\)/,'never reset during battle or matchmaking');
+assert.match(reset,/localStorage\.setItem\('otodama\.progress'/,'reset persists');
+const seen=[],state={value:'',notice:''};
+let accept=true,fail=false;
+const storage={setItem(k,v){if(fail)throw Error('quota');state.value=JSON.parse(v)},getItem(){return null}};
+const dom=id=>({textContent:'',classList:{},disabled:false});
+const notice={textContent:''};
+const context={
+ window:{confirm:()=>accept},localStorage:storage,$:id=>id==='resetAdventureNotice'?notice:dom(id),
+ showCampaign:()=>seen.push('render'),console
+};
+const code=`let streak=8,recordStreak=19,careerWins=100,adventureStage=38,stageWins=37,stageAttempts=4,pendingBuff='power';\nlet match=null,challengerHandoff=false,survivalActive=false;\n${reset}\nglobalThis.testApi={resetAdventure,state:()=>({streak,recordStreak,careerWins,adventureStage,stageWins,stageAttempts,pendingBuff}),setBattle:v=>match=v};`;
+vm.runInNewContext(code,context);
+const api=context.testApi;
+accept=false;
+assert.equal(api.resetAdventure(),false,'reject confirmation');
+assert.equal(api.state().adventureStage,38,'decline leaves progress intact');
+accept=true;api.setBattle({live:false});
+assert.equal(api.resetAdventure(),false,'cannot reset while fighting');
+assert.equal(api.state().adventureStage,38,'battle does not erase progress');
+api.setBattle(null);fail=true;
+assert.equal(api.resetAdventure(),false,'quota denial fails safely');
+assert.equal(api.state().adventureStage,38,'failed save rolls back progress');
+fail=false;
+assert.equal(api.resetAdventure(),true,'confirmed reset succeeds');
+assert.equal(api.state().adventureStage,1);assert.equal(api.state().stageWins,0);
+assert.equal(api.state().stageAttempts,0);assert.equal(api.state().streak,0);
+assert.equal(api.state().pendingBuff,null);
+assert.equal(api.state().recordStreak,19,'best streak retained');
+assert.equal(api.state().careerWins,100,'lifetime wins retained');
+assert.equal(state.value.stage,1,'browser storage updated');
+assert.match(notice.textContent,/キャラの育成と記録はそのまま/);
+assert.match(html,/id="resetAdventureBtn"/);
+assert.match(src,/\$\('resetAdventureBtn'\)\.onclick=resetAdventure/);
+console.log('ADVENTURE RESET v135 PASS | confirm, in-fight guard, quota rollback, stage restart, character and record safety');
