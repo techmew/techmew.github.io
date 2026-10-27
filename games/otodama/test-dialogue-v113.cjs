@@ -125,7 +125,7 @@ const api=new Function('d',env+src+
  await api.playVictoryRoar(first);
  assert.equal(audio.state,'running','suspended context must resume');
  assert.equal(voices.length,beforeResume+2,'recovered AudioContext replays recorded victory roar');
- assert.ok(script.includes("if(won)scheduleNextAfterQuote(m)"),'auto win continues');
+ assert.ok(script.includes("if(won||m.live||m.mode===\'COM MATCH\')scheduleNextAfterQuote(m)"),'CPU and online advance after resolution');
  assert.ok(!html.includes('id="bowBanner"'),'no pre-fight bow');
  console.log('RESULT ROAR PASS | player win audio-only, CPU loss text, online voice restriction, mute, autoplay, replay, background');
 })().catch(error=>{console.error(error);process.exitCode=1});
