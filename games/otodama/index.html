@@ -750,7 +750,8 @@ function startBirthReveal(creature){
  $('birthSubline').textContent='録音した声から生成しています';
  overlay.hidden=false;
  const later=(ms,action)=>birthRevealTimers.push(setTimeout(()=>{
-  if(token!==birthRevealToken||cur.seed!==creature.seed||document.hidden){cancelBirthReveal();return}
+  if(token!==birthRevealToken)return;
+  if(cur.seed!==creature.seed||document.hidden){cancelBirthReveal();return}
   action();
  },ms));
  later(reduced?120:650,()=>{
