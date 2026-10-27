@@ -1,3 +1,25 @@
+# CURRENT_STATUS｜2026-10-27｜NEW CHALLENGER演出・復旧・毎時タスク修復
+
+## 今回実装
+- OTODAMA∞ 毎時開発タスク (6ade247b09e48191b4c6dd8ea15b39f1) が無効だったため再有効化。既存1時間ごとのスケジュールを維持し、最新アーケードPvP仕様・ユーザー体感・バグ修正・実テスト・毎回の引き継ぎを明記。
+- アーケードPvP切替時にCPUバトルの進行と自動入力・BGMを停止し、NEW CHALLENGERの強い視覚演出と短い自作シンセ音を追加。
+- 勝敗無関係のPvP→CPU復帰を維持。対人戦へ17秒以内に移行できない場合、通信切断/エラーを含めCPU戦へ自動復帰。再接続ループによる負荷を避けるため失敗後12秒のクールダウン。
+- 対人戦中のマッチ再検索、CPU結果確定後の誤割込、背面での検索を抑止。
+- メイン画面に加えてバトル画面ヘッダーに受付ON/OFFスイッチを設置し、両者の状態を同期、初期OFF、既存のゲーム画面・録音・バトルを保持。
+- アーケード切替の実行動作を検証する test-handoff-v125.cjs を追加し、npm test:node と test:ui に登録。
+
+## TEST_RESULTS
+- JS埋込コードの構文検査PASS、GitHub Actions Test and Deploy OTODAMA Worker #118: test PASS（新規handoffを含むNode/V8回帰）。Cloudflare Worker本体は変更していないため、pushによるdeployは設計どおりskipped。
+- GitHub Actions Verify OTODAMA live matchmaking #7: ライブWorker /health、2クライアントマッチ、room startとGitHub Pages公開接続先検証 PASS。
+- 「コード上の画面遷移」と「Android実機・別端末2台での全行程の成功」は区別。Android実機での視認性、対人実戦の終了からCPU復帰までは未検証。
+
+## NEXT_ACTIONS
+1. 2端末でCPU→NEW CHALLENGER→PvP→CPU通し確認。通信断・端末スリープ・OFF切替レースも調べる。
+2. optionalの旧ブラウザテストを最新のCPU自動戦/対人割込に合わせ、ブラウザの実UI検証をCIへ段階導入する。
+3. CPUの戦術・演出とステージ変化・効果音をさらに改善し、モバイル処理性能と色/可読性を点検。
+4. Cloudflare Workerはすでに公開済み。未公開と誤記しない。オンライン録音声の転送は安全審査実装まで停止継続。
+
+---
 # LATEST / 2026-10-27｜CPUアーケード・NEW CHALLENGER 自動割り込み（最優先仕様）
 
 ## CURRENT_STATUS
