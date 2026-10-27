@@ -1,0 +1,60 @@
+name: Verify OTODAMA live matchmaking
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'games/otodama/index.html'
+      - '.github/workflows/verify-otodama-online.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  online-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Live Worker health and random matchmaking via WebSockets
+        run: |
+          node --input-type=module <<'JS'
+          const origin = 'https://otodama-room.nekokichi005.workers.dev';
+          const healthResponse = await fetch(origin+'/health', {signal:AbortSignal.timeout(15000)});
+          if (!healthResponse.ok) throw new Error('Health HTTP '+healthResponse.status);
+          const health = await healthResponse.json();
+          if (health.ok !== true || health.randomMatch !== true) throw new Error('Unexpected health: '+JSON.stringify(health));
+          console.log('LIVE HEALTH PASS', JSON.stringify(health));
+          if (!globalThis.WebSocket) throw new Error('Node WebSocket missing');
+          const matched = await new Promise((resolve,reject)=>{
+            const sockets=[], codes=[null,null];
+            let settled=false;
+            const done=(error,result)=>{
+              if (settled) return;
+              settled=true;
+              clearTimeout(timeout);
+              for (const sock of sockets) try {sock.close()} catch {}
+              error?reject(error):resolve(result);
+            };
+            const timeout=setTimeout(()=>done(new Error('Timed out waiting for paired WebSocket messages')),15000);
+            for(let n=0;n<2;n++){
+              const socket = new WebSocket(origin.replace(/^https:/,'wss:')+'/random');
+              sockets.push(socket);
+              socket.addEventListener('open',()=>socket.send(JSON.stringify({type:'search'})));
+              socket.addEventListener('message',e=>{
+                let message;
+                try{ message=JSON.parse(e.data);}catch(error){done(error);return;}
+                if(message.type==='error'){done(new Error('Matchmaker: '+message.message));return;}
+                if(message.type==='matched'){
+                  codes[n]=message.code;
+                  if(codes.every(Boolean)) {
+                    if(!/^[A-HJ-NP-Z2-9]{6}$/.test(codes[0]) || codes[0]!==codes[1]) done(new Error('Mismatched room codes'));
+                    else done(null,codes[0]);
+                  }
+                }
+              });
+              socket.addEventListener('error',()=>done(new Error('WebSocket connection error')));
+            }
+          });
+          console.log('LIVE TWO-CLIENT RANDOM MATCH PASS:',matched);
+          JS
