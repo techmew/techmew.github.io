@@ -1514,6 +1514,8 @@ function maybeSpecialRush(m,ev){
  if(!ev?.skill||m.live||m.done||ev.rushSpecial)return false;
  // Every special attack gets its rush: the previous 1-in-3 gate hid most activations.
  ev.rushSpecial=true;
+ // Keep the seven recorded words audible before the battle advances or resolves.
+ m.rushEndsAt=performance.now()+1750;
  showRushBanner('必殺技　連打ラッシュ！');
  $('arenaEffect').textContent='必殺技　連打ラッシュ！';
  // Specials may become armed only on impact, after a normal voice has set busyUntil.
@@ -1827,8 +1829,8 @@ function showRushBanner(label,hits=7){
  rushCounterTimer=setInterval(()=>{
   count=Math.min(hits,count+1);banner.textContent=label+'　'+count+' HIT';
   if(count>=hits){clearInterval(rushCounterTimer);rushCounterTimer=null}
- },105);
- rushBannerTimer=setTimeout(()=>hideRushBanner(),Math.max(1050,hits*105+350));
+ },200);
+ rushBannerTimer=setTimeout(()=>hideRushBanner(),Math.max(1750,hits*200+350));
 }
 let matchIntroTimer=null;
 function hideMatchIntro(){if(matchIntroTimer!==null){clearTimeout(matchIntroTimer);matchIntroTimer=null;}$('matchIntro').hidden=true;}
@@ -2420,6 +2422,8 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  let ix=-1;const currentMatch=match;
  const act=()=>{
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
+  // A special rush needs more time than the standard 820 ms turn; do not cut off its recording.
+  if(match.rushEndsAt&&performance.now()<match.rushEndsAt)return;
   if(match.current&&!match.current.resolved&&match.interactive&&!match.live)return;
   if(match.endAfterCurrent || ix+1>=outcome.events.length){finishCombat();return;}
   ix++;const ev={...outcome.events[ix]};if(match.boss&&ev.atk===1&&!match.spectator){const bossKinds=['meteor','beam','shockwave','warp','spin'];const bossNames=['急降下攻撃','遠距離攻撃','広い範囲への攻撃','回り込み攻撃','連続攻撃'];const bossPower=[1.22,1.12,1.08,1.16,1.11];const bossArenas=['落雷の嵐','残響増幅','空間反転','無重力ゾーン','音速暴走'];const move=match.bossAttacks++%bossKinds.length;ev.bossMove=bossNames[move];ev.kind=bossKinds[move];ev.damage=Math.round(ev.damage*bossPower[move]);ev.arena=bossArenas[move];}match.turn=ix;if(interactive&&['COM MATCH','SURVIVAL'].includes(mode)){ev.hazard=stageHazard(match.stageNo,ix);if(ev.atk===1&&!match.spectator)ev.tactic=enemyTactic(match.stageNo,ix,match);}match.current=ev;match.pop=performance.now();match.arena=ev.arena||match.arena;match.guardUsed=false;match.parried=false;match.dodgeUsed=false;match.dodgeSuccess=false;match.strikeUsed=false;match.strikeSuccess=false;if(ev.atk===1&&match.dodgeCooldown>0)match.dodgeCooldown--;
