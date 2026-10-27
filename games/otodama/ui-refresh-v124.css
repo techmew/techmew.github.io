@@ -421,3 +421,7 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 #resetAdventureNotice{color:#486c7d;min-height:17px}
 .stage .creaturename{font-size:clamp(19px,2.5vw,27px);line-height:1.25;word-break:break-word}
 @media(max-width:730px){.layout>.stage{order:1}.layout>.controls{order:2}.stage>.status-card{padding:13px;margin-top:13px}.quest-progress{justify-items:start}}
+
+/* v135 rarity study: quiet, compact, readable feedback */
+.research-history{font-size:11px;line-height:1.55;margin-top:7px;padding:8px 10px;border:1px solid #cee3ea;border-radius:9px;background:#edf7fb;color:#2c596b;overflow-wrap:anywhere}
+@media(max-width:420px){.research-history{font-size:10px;padding:8px}}
