@@ -26,7 +26,7 @@ function choreography(event,p,lowFx=false){
  const power=ev.skill?1.35:ev.crit?1.2:.93;
  const zoom=lowFx?1+burst*.012:1+.024*dash+.043*burst*power;
  const shake=lowFx?hit*1.1:hit*(ev.skill?13:ev.crit?10:6)+dash*1.1;
- const flash=(ev.dodge||ev.guard)?0:cap(hit*(ev.skill ? .26 : .1),0,.28);
+ const flash=(ev.dodge||ev.guard)?0:cap(hit*(ev.skill ? .27 : .1),0,.28);
  const afterimages=lowFx?1:ev.skill?5:ev.hits>1?4:3;
  return {charge,dash,hit,combo,burst,zoom,shake,flash,afterimages};
 }
@@ -124,8 +124,23 @@ function renderAhead(c,ev,pos,p,turn,color,lowFx=false){
    c.lineTo(cx+Math.cos(ang)*range,cy+Math.sin(ang)*range);c.stroke();
   }
   if(!lowFx&&ev.skill){
+   // Sonic boom: a white-hot ring with a fractured, staggered 2D shock front.
    c.globalAlpha=f.hit*.43;c.strokeStyle='#ffffff';c.lineWidth=19;
    c.beginPath();c.arc(cx,cy,60+(1-f.hit)*210,0,TAU);c.stroke();
+   const radius=58+(1-f.hit)*92;
+   for(let j=0;j<12;j++){
+    const seed=hash(turn*2419+j*711),angle=j*TAU/12+(seed%21-10)*.011;
+    const far=radius+65+(seed%44),inner=radius*.46;
+    c.globalAlpha=f.hit*(.26+(seed%35)*.012);c.fillStyle=j%3===0?'#ffffff':color;
+    c.beginPath();
+    c.moveTo(cx+Math.cos(angle)*inner,cy+Math.sin(angle)*inner);
+    c.lineTo(cx+Math.cos(angle-.055)*far,cy+Math.sin(angle-.055)*far);
+    c.lineTo(cx+Math.cos(angle+.055)*far*.73,cy+Math.sin(angle+.055)*far*.73);
+    c.closePath();c.fill();
+   }
+   // A single aftershock sweeps the floor only for successful high-energy hits.
+   c.globalAlpha=f.hit*.6;c.strokeStyle=color;c.lineWidth=6;c.beginPath();
+   c.ellipse(cx,357,35+(1-f.hit)*190,13+(1-f.hit)*28,0,Math.PI*1.05,Math.PI*1.96);c.stroke();
   }
  }
  // Aerial launch, meteor landing and teleport make visibly different, grounded silhouettes.
