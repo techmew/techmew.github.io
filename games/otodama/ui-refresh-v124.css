@@ -350,3 +350,60 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 @media(prefers-reduced-motion:reduce){
  #controlCard .listen .birth-reveal #birthCreatureCanvas{animation:none!important}
 }
+
+
+/* v134: clear two-column character home. Actions below fighter; status to the right. */
+.layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(330px,.88fr);grid-template-rows:auto auto;gap:15px;align-items:start}
+.layout>.stage{grid-column:1;grid-row:1 / span 2;align-self:start}
+.layout>.status-card{grid-column:2;grid-row:1;align-self:start}
+.layout>.controls{grid-column:2;grid-row:2;align-self:start}
+.status-card{padding:18px;min-width:0}
+.status-main-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.status-main-title h2{font-size:18px;line-height:1.4;color:#213954;margin:0}
+.status-card .play-next{margin:0;padding:0;border:0;background:transparent;box-shadow:none}
+.status-card .play-next>.divider{display:none}
+.status-card .play-next .play-next-head{display:none}
+.status-card .play-next .paneltitle{margin:0 0 7px}
+.status-card .play-next .paneltitle h2{font-size:14px;color:#386b81}
+.status-card .metrics{margin:8px 0 11px}
+.status-card .voice-role{margin:8px 0}
+.status-card #characterDetails{margin-top:12px}
+.launchpad{padding:13px 17px 15px;margin:10px 14px 12px;border-radius:16px;background:#ffffffdb;border:1px solid #b8d9e9;box-shadow:0 4px 18px #32648112}
+.launch-actions{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.85fr);gap:9px}
+.launch-actions .btn{min-width:0;font-size:clamp(12px,2vw,16px);min-height:49px;font-weight:800}
+.launchpad .survival-online-setting{display:flex;align-items:center;gap:11px;margin:10px 0 4px;padding:11px 12px;border-radius:11px;background:#e9f7fb;border:1px solid #a7d1df;color:#1b5267;cursor:pointer}
+.launchpad .survival-online-setting input{width:19px;height:19px;accent-color:#248baa;flex:0 0 auto}
+.launchpad .survival-online-setting span{line-height:1.4}
+.launchpad .survival-online-setting b{font-size:13px}
+.launchpad .survival-online-setting small{font-size:11px!important;color:#537f8d}
+.launch-net-status{font-size:11px;color:#47778e;margin-top:4px;min-height:18px}
+.rarity-badge{display:inline-flex;align-items:center;justify-content:center;min-width:52px;min-height:35px;padding:4px 12px;border-radius:10px;background:#edf3f9;color:#4c6579;border:1px solid #bfccda;font-weight:900;font-size:20px;line-height:1}
+.rarity-badge[data-grade="A"]{color:#11776d;background:#e8faf2;border-color:#81c9b4}
+.rarity-badge[data-grade="S"]{color:#995013;background:#fff2d4;border-color:#edb85e}
+.rarity-badge[data-grade="S+"]{color:#fff;background:linear-gradient(120deg,#4952a7,#8d52c2,#bd6a35);border-color:#8677cf;box-shadow:0 0 16px #b873cf55}
+.gacha-grade-panel{margin-top:14px;padding:12px;border-radius:12px;background:#f7fafc;border:1px solid #dbe7ef}
+.gacha-grade-title{display:flex;justify-content:space-between;gap:10px;align-items:center;color:#294b64;font-size:13px}
+.grade-stages{display:flex;gap:4px}
+.grade-stages span{font-size:11px;font-weight:900;border-radius:6px;padding:3px 7px;background:#e4edf5;color:#41586c}
+.grade-stages span:last-child{color:#fff;background:#8c4d9b}
+.research-hint{font-size:12px;line-height:1.65;color:#507082;margin-top:8px}
+.evolution-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 12px;margin:12px 0;border:1px solid #aed4df;border-radius:13px;background:linear-gradient(105deg,#eefbfe,#eef4ff)}
+.evolution-card strong{font-size:14px;display:block;color:#23586b}
+.evolution-card span{font-size:12px;color:#527687;line-height:1.5;display:block}
+.evolution-card .btn{min-height:42px;font-size:12px;padding:9px 10px}
+#extraModes{display:none!important}
+.footer a{color:#2181b0;text-decoration:underline;text-underline-offset:2px}
+.stage>.preview-gallery{margin-top:10px}
+@media(max-width:940px) and (min-width:731px){.layout{grid-template-columns:minmax(0,1fr) minmax(305px,.88fr)}.launch-actions{grid-template-columns:1fr}.launch-actions .btn{min-height:43px}}
+@media(max-width:730px){
+ .layout{display:flex;flex-direction:column;gap:12px}
+ .layout>.stage,.layout>.status-card,.layout>.controls{width:100%;min-width:0;grid-column:auto;grid-row:auto}
+ .layout>.stage{order:1}.layout>.controls{order:2}.layout>.status-card{order:3}
+ .status-card{padding:16px}
+ .launchpad{margin:8px 9px 10px;padding:10px}
+ .launch-actions{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:7px}
+ .launch-actions .btn{min-height:47px;font-size:13px}
+ .evolution-card{grid-template-columns:minmax(0,1fr);gap:9px}
+ .evolution-card .btn{width:100%}
+}
+@media(max-width:375px){.launchpad .survival-online-setting small{font-size:10px!important}.launch-actions .btn{font-size:12px;padding:8px 6px}}
