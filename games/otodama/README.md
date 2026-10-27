@@ -1,3 +1,14 @@
+# 声魂｜キャラクター保護ロック修正（2026-10-27）
+
+CURRENT_STATUS: games/otodama/の作成キャラ一覧・ローカル保存・バックアップに鍵を実装。CPU/PvP/録音/音声の既存仕様は変更していない。Workerは公開済み、今回Workerコードは変更なし。
+CHANGELOG: (1) 5件表示中の鍵をカード内右上に配置。(2) 保存した全30体の展開・個別鍵操作。(3) 未保存の現キャラを鍵ワンタップで保存・保護。(4) 保存上限超過時は未保護キャラのみ整理。(5) 既に保護中のキャラを育成戦後の保存更新でも保護維持。(6) バックアップJSONで鍵状態を保存・復元、旧形式互換。(7) インポート時も既存のロック済みキャラを消さずにマージ。(8) 保存失敗時に鍵操作を巻き戻す。(9) スマホの鍵タップ領域・一覧列数調整。
+TEST_RESULTS: メイン埋込JSとtest-roster-lock.cjsのV8構文検査PASS。Node fs/vm/assert模擬ハーネスによる保護30件、展開・UI、保存/失敗、容量上限、インポート、書き出し/旧バックアップ、ワンタップ保護の回帰PASS。npm test:nodeの正式CLI/Actions、Pages実配信、Chrome/Android実操作はこのセッションから未確認。Web経由で公開Pages/Workerへアクセス不可だったため公開検証は未実施。
+BLOCKERS: ロックはブラウザのlocalStorage依存。ブラウザデータ削除・別端末・故障には対応しないためJSONエクスポートを案内（録音原音はバックアップ対象外）。Node CIとAndroid表示・操作の追検証が必要。
+NEXT_ACTIONS: Actionsでnpm test:nodeとPages deployを確認。ブラウザ縦390px/横表示、30件展開、鍵ON/OFF、30件全鍵、バックアップ読込、録音→自動バトル→育成後鍵維持を実操作検証。
+LATEST_CODE_COMMIT: 25ca8b3d9c81c9db61fb31faa82a51e9058e046c
+
+---
+
 # OTODAMA｜2026-10-27 15時｜対人割込・CPU復旧
 CURRENT_STATUS: mainのgames/otodama/のみ改修。Cloudflare Worker公開済み。録音声のオンライン転送は停止を維持。
 CHANGELOG: 接続失敗後はCPUの同じ敵・HP・攻撃ターンを再開。NEW CHALLENGER中のダメージ進行停止。背面化中の未確定対人割込を中断、復帰後にCPU再開。時計の二重加算防止。WebSocket生成/取消/サーバー拒否を安全処理。切断後12秒再試行制限。回帰テスト追加。
