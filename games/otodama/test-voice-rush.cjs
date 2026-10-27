@@ -24,11 +24,12 @@ const context={
  Uint8Array,Map,Math,Float32Array,clamp:(n,a,b)=>Math.min(b,Math.max(a,n)),
  atob:()=> 'test',
  $:id=>ui[id]||{checked:false},
- VOLUME:()=>.12,voiceOutput:()=>({}),unlockBattleAudio:()=>ac,trackAttackSource:()=>{},
+ VOLUME:()=>.12,voiceOutput:()=>({}),audioMaster:()=>({}),unlockBattleAudio:()=>ac,trackAttackSource:()=>{},
  synthVoice:(...args)=>synthCalls.push(args),
  voiceCache:new Map(),pendingVoice:new Map(),lastSoundStatus:'',bgmDuckUntil:0,
  performance:{now:()=>now},hash:()=>0,showRushBanner:text=>banners.push(text),
- match
+ match,
+ stopAttackVoices:()=>{functions.playDecodedVoice.busyUntil=0;functions.playDecodedVoice.generation=(functions.playDecodedVoice.generation||0)+1}
 };
 const functions=vm.runInNewContext(script.slice(start,end)+';({decodeVoice,playDecodedVoice,attackVoice,maybeSpecialRush})',context);
 async function test(){
@@ -48,16 +49,23 @@ async function test(){
  assert.ok(calls[8][0]>calls[2][0],'rush voices are staggered');
  assert.equal(banners.length,1,'special animation banner');
  assert.equal(functions.maybeSpecialRush(match,special),false,'special must not activate twice per hit');
+ // Regression: the special can become active at IMPACT after an ordinary hit has blocked voice replay.
+ now+=850;
+ functions.attackVoice(cr,0,{kind:'normal'});
+ const beforeLate=calls.length;
+ const late={skill:true,atk:0};
+ assert.equal(functions.maybeSpecialRush(match,late),true,'late-armed skill must become a rush');
+ assert.equal(calls.length,beforeLate+7,'late-armed rush plays all seven hits despite normal-voice busy gate');
  match.done=true;functions.attackVoice(cr,0);
- assert.equal(calls.length,9,'no attack voices after battle end');
+ assert.equal(calls.length,17,'no attack voices after battle end');
  match.done=false;match.mode='ONLINE LIVE';ui.muteOpponentVoice.checked=true;
  functions.attackVoice(cr,1);
- assert.equal(calls.length,9,'online opponent mute respected');
+ assert.equal(calls.length,17,'online opponent mute respected');
  ui.muteOpponentVoice.checked=false;match.mode='COM MATCH';
  now+=1600;
  functions.attackVoice({seed:5,voiceClip:'',voice:{pitch:50}},0,{hits:4});
  assert.equal(synthCalls.length,1,'synthetic fallback when recorded voice is absent');
  assert.equal(synthCalls[0][2].hits,1,'non-rush fallback also remains one voice');
- console.log('VOICE RUSH TEST PASS | recorded voice gain, non-overlap, single-hit normal combo, seven-hit explicit rush, mute and battle-end');
+ console.log('VOICE RUSH TEST PASS | recorded speech seven hits, late-armed skill priority, busy gate, mute and battle-end');
 }
 test().catch(error=>{console.error(error);process.exitCode=1});
