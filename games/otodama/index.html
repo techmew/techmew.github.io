@@ -498,21 +498,50 @@ async function importSave(file){
   const nextCur=restoreCreature(data.current),nextRoster=data.roster.map(restoreCreature),p=data.progress||{};
   const sane=v=>clamp(Math.floor(Number(v)||0),0,99999);
   const nextProgress={streak:sane(p.streak),recordStreak:sane(p.recordStreak),careerWins:sane(p.careerWins),adventureStage:clamp(sane(p.adventureStage),1,99999),stageWins:sane(p.stageWins),stageAttempts:sane(p.stageAttempts)};
-  const nextDiscovery=data.discovered.filter(v=>Number.isInteger(v)&&v>=0&&v<12);
-  if(!nextDiscovery.every(v=>Number.isInteger(v)))throw Error('図鑑データが不正です');
-  // Import cannot silently replace locally protected creatures.
+  if(!data.discovered.every(v=>Number.isInteger(v)&&v>=0&&v<12))throw Error('図鑑データが不正です');
+  const nextDiscovery=[...new Set(data.discovered)];
+  // Deduplicate imported IDs and retain the protected version if duplicates exist.
+  // Import must never silently replace a locally protected character.
   const keep=roster.filter(c=>c&&c.locked===true);
   const keepBySeed=new Map(keep.map(c=>[c.seed,c]));
-  const merged=nextRoster.map(c=>keepBySeed.get(c.seed)||c);
-  for(const protectedCreature of keep)if(!merged.some(c=>c.seed===protectedCreature.seed))merged.unshift(protectedCreature);
+  const merged=[],bySeed=new Map();
+  for(const candidate of nextRoster){
+   const c=keepBySeed.get(candidate.seed)||candidate;
+   const at=bySeed.get(c.seed);
+   if(at===undefined){bySeed.set(c.seed,merged.length);merged.push(c)}
+   else if(c.locked===true&&merged[at].locked!==true)merged[at]=c;
+  }
+  for(const protectedCreature of keep)if(!bySeed.has(protectedCreature.seed)){
+   merged.unshift(protectedCreature);
+   for(const [id,i] of bySeed)bySeed.set(id,i+1);
+   bySeed.set(protectedCreature.seed,0);
+  }
   while(merged.length>30){const i=merged.findLastIndex(c=>c.locked!==true);if(i<0)throw Error('保護キャラが30体を超えています');merged.splice(i,1)}
   const restoredCurrent=merged.find(c=>c.seed===nextCur.seed)||nextCur;
-  // Persist first: storage errors must not wipe the active protected roster.
-  localStorage.setItem('otodama.roster',JSON.stringify(merged));
-  closeBattle();cur=restoredCurrent;roster=merged;streak=nextProgress.streak;recordStreak=nextProgress.recordStreak;careerWins=nextProgress.careerWins;adventureStage=nextProgress.adventureStage;stageWins=nextProgress.stageWins;stageAttempts=nextProgress.stageAttempts;discovered=new Set(nextDiscovery);dailyCleared=/^\d{8}$/.test(data.dailyCleared||'')?data.dailyCleared:'';
-  localStorage.setItem('otodama.progress',JSON.stringify({streak,best:recordStreak,wins:careerWins,stage:adventureStage,stageWins,attempts:stageAttempts}));
-  localStorage.setItem(discoveryKey,JSON.stringify([...discovered]));localStorage.setItem('otodama.daily.clear',dailyCleared);
-  saveStore();setCurrent(cur);renderCodex();$('saveNotice').textContent='進行データを読み込みました。録音音声は復元されません。';
+  const restoredDaily=/^\d{8}$/.test(data.dailyCleared||'')?data.dailyCleared:'';
+  const writes=[
+   ['otodama.roster',JSON.stringify(merged)],
+   ['otodama.progress',JSON.stringify({streak:nextProgress.streak,best:nextProgress.recordStreak,wins:nextProgress.careerWins,stage:nextProgress.adventureStage,stageWins:nextProgress.stageWins,attempts:nextProgress.stageAttempts})],
+   [discoveryKey,JSON.stringify(nextDiscovery)],
+   ['otodama.daily.clear',restoredDaily]
+  ];
+  // Prepare all values first, and roll back written keys if any storage write fails.
+  const before=writes.map(([key])=>localStorage.getItem(key));
+  let written=0;
+  try{for(const [key,value] of writes){localStorage.setItem(key,value);written++}}
+  catch(e){
+   for(let i=written-1;i>=0;i--)try{
+    if(before[i]===null)localStorage.removeItem(writes[i][0]);
+    else localStorage.setItem(writes[i][0],before[i]);
+   }catch{}
+   throw Error('保存領域への書き込みに失敗しました。元の進行データを維持します');
+  }
+  closeBattle();cur=restoredCurrent;roster=merged;
+  streak=nextProgress.streak;recordStreak=nextProgress.recordStreak;careerWins=nextProgress.careerWins;
+  adventureStage=nextProgress.adventureStage;stageWins=nextProgress.stageWins;stageAttempts=nextProgress.stageAttempts;
+  discovered=new Set(nextDiscovery);dailyCleared=restoredDaily;
+  setCurrent(cur);renderCodex();
+  $('saveNotice').textContent='進行データを読み込みました。既存の保護キャラ'+keep.length+'体は維持しました。録音音声は復元されません。';
  }catch(e){$('saveNotice').textContent='読み込み失敗：'+(e.message||'保存ファイルを確認してください');}
  finally{$('importSaveFile').value='';}
 }
@@ -659,7 +688,7 @@ function renderRoster(){
  $('rosterCount').textContent='保存 '+roster.length+' / 30 · 保護 '+protectedCount;
  const showAll=$('rosterShowAll');
  showAll.hidden=all.length<=5;
- showAll.textContent=rosterExpanded?'先頭5体に戻す':'全'+roster.length+'体を表示';
+ showAll.textContent=rosterExpanded?'先頭5体に戻す':'全'+all.length+'体を表示';
  showAll.setAttribute('aria-expanded',String(rosterExpanded));
  showAll.onclick=()=>{rosterExpanded=!rosterExpanded;renderRoster()};
  const wrap=$('roster');wrap.replaceChildren();
