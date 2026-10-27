@@ -60,5 +60,5 @@ assert.ok(js.includes('dnaGrowthIndex(player,player.level)'),'actual level up re
 assert.ok(html.includes('id="dnaPanel"')&&html.includes('id="dnaTraits"'),'DNA results visible on mobile');
 assert.ok(!html.includes('id="allowCloudSpeech"')&&!js.includes('beginSpokenWordReview'),'recording must not be blocked by speech recognition');
 assert.ok(js.includes('function stopRecord()')&&js.includes('if(!voiceClip)voiceClip=pcmWavDataUrl'),'manual stop and WAV backup retained');
-assert.ok(js.includes('if(won)scheduleNextAfterQuote(m)'),'winner continues campaign');
+assert.ok(js.includes("if(won||m.live||m.mode==='COM MATCH')scheduleNextAfterQuote(m)"),'winner continues campaign');
 console.log('AUDIO DNA PASS | 36 FFT/wave features, same-sound determinism, contrasting voices, growth, hidden traits, input validation, mic safety');
