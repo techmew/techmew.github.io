@@ -1432,7 +1432,7 @@ function playDecodedVoice(cr,side,force=false,options={}){
  const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
  const phase=options.phase||'attack',event=options.event||{};
  const generation=playDecodedVoice.generation||0;
- if(!force)playDecodedVoice.busyUntil=nowMs+(rush?Math.ceil((hits-1)*174+340):740);
+ if(!force)playDecodedVoice.busyUntil=nowMs+(rush?Math.ceil((hits-1)*112+300):740);
  const plain={enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,echo:0,
   volume:1,segment:.7,phase};
  const fx=force?plain:voiceEffectProfile(cr,side,event,phase);
@@ -1471,13 +1471,13 @@ function playDecodedVoice(cr,side,force=false,options={}){
     source.start(at,clip.offset,portion);trackAttackSource(source);
    }
    for(let i=0;i<hits;i++){
-    const at=now+(rush?i*.174:0);
+    const at=now+(rush?i*.112:0);
     const shift=fx.enabled&&rush?1+(i%3-1)*.035:1;
     const from=fx.from*shift,to=fx.to*shift;
-    const length=rush?(i===hits-1?.185:.145):force?.7:phase==='reaction'?.22:.58;
-    // Rush voices are separated by 174 ms and may be louder without piling up seven sources.
+    const length=rush?(i===hits-1?.175:.105):force?.7:phase==='reaction'?.22:.58;
+    // Rush: 112 ms cadence, 1.5x previous recorded-voice gain, capped to prevent clipping.
     const level=rush
-      ?Math.min(.18,VOLUME()*Math.min(2.7,clip.gain||1)*fx.volume*.74)
+      ?Math.min(.27,VOLUME()*Math.min(2.7,clip.gain||1)*fx.volume*1.11)
       :Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
          (phase==='reaction'?.42:1)/Math.sqrt(.86));
     voiceAt(at,length,from,to,level);
