@@ -105,8 +105,8 @@ const byCat={}, catalog=[], rarityPools=[[],[],[],[]];let start=0;
 function hash(n){n=(n^0x9e3779b9)>>>0;n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;return (n^(n>>>16))>>>0}
 for(const cfg of conf){byCat[cfg.cat]=cfg;for(let i=0;i<cfg.count;i++){const a=cfg.styles.length,b=cfg.colors;let style=i%a,color=Math.floor(i/a)%b,pattern=Math.floor(i/(a*b))%10;const n=start+i;let r=hash(n+597)%10000;const rarity=r<100?3:r<750?2:r<3000?1:0;const item={id:n,cat:cfg.cat,idx:i,style,color,pattern,rarity,rarityLabel:rareSymbols[rarity],name:`${palettes[color][0]}${patterns[pattern][0]}の${cfg.styles[style]}`,hue:color};catalog.push(item);rarityPools[rarity].push(n)}start+=cfg.count}
 console.assert(catalog.length===TOTAL,'10,000種類が生成されていません');
-const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,shows:0,completed:false,lastResult:null}});
-let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null}
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null}});
+let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null}
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
@@ -297,7 +297,8 @@ let rivalCache={round:0,items:null,score:null};
 function getRivalLook(){
  const round=Math.max(1,st.show.round);
  if(rivalCache.round===round&&rivalCache.items)return rivalCache;
- const goal=clamp(Math.round(205+Math.min(55,(round-1)*2.5)+Math.min(10,st.show.streak*2)+(hash(round*337)%17-8)),195,275);
+ const themeOffset={classic:0,street:3,avant:8,color:-Math.min(18,(round-1)*.85),chaos:8,glam:-3}[showTheme()[1]]||0;
+ const goal=clamp(Math.round(205+Math.min(55,(round-1)*2.5)+Math.min(10,st.show.streak*2)-Math.min(24,st.show.lossStreak*5)+themeOffset+(hash(round*337)%17-8)),175,275);
  const natural=['hat','acc','top','bottom','shoes'];
  let best=null,bestGap=Infinity;
  for(let candidate=0;candidate<100;candidate++){
@@ -393,8 +394,8 @@ function endShow(){
  finalizePoseScore();showPhase='result';showTime=0;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
  if(!showSaved){
   st.show.shows++;st.show.best=Math.max(st.show.best,showScores.total);
-  if(showScores.win){st.show.wins++;st.show.streak++;showScores.prize=150+Math.min(200,st.show.streak*25)}
-  else{st.show.streak=0;showScores.prize=30}
+  if(showScores.win){st.show.wins++;st.show.streak++;st.show.lossStreak=0;showScores.prize=150+Math.min(200,st.show.streak*25)}
+  else{st.show.streak=0;st.show.lossStreak=Math.min(6,st.show.lossStreak+1);showScores.prize=30}
   st.coins+=showScores.prize;st.show.completed=true;st.show.lastResult={...showScores};showSaved=true;redrawUI();
  }
  const root=$('showJudges');root.replaceChildren();root.hidden=false;
