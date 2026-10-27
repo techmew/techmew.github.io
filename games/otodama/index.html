@@ -2243,7 +2243,7 @@ function battleDraw(ms){
   }
   canvas.save();canvas.globalCompositeOperation='screen';
   const trailSpeed=prev?Math.hypot(pt.x-prev.x,pt.y-prev.y):0;
-  for(let k=(lowFx?1:cinema?.choreography(event,p,false)?.afterimages||3);event&&trailSpeed>(lowFx?11:5)&&k>=1;k--){
+  for(let k=(lowFx?1:frameFX?.afterimages||3);event&&trailSpeed>(lowFx?11:5)&&k>=1;k--){
    let trailX=pt.x-(prev?(pt.x-prev.x)*k*.36:Math.cos(t*10+i)*k*25);
    let trailY=pt.y-(prev?(pt.y-prev.y)*k*.36:Math.sin(t*11+i)*k*16);
    drawCombatant(canvas,cr,trailX,trailY,pt.scale,t,i===1,pt.rot,.065+(3-k)*.035);
@@ -2557,6 +2557,8 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  let ix=-1;const currentMatch=match;
  const act=()=>{
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
+  // Fast polling removes the silent gap after the 7-hit rush without changing normal battle cadence.
+  if(match.current&&performance.now()-match.pop<EVENT_MS)return;
   // A special rush needs more time than the standard 820 ms turn; do not cut off its recording.
   if(match.rushEndsAt&&performance.now()<match.rushEndsAt)return;
   if(match.current&&!match.current.resolved&&match.interactive&&!match.live)return;
@@ -2578,7 +2580,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   matchIntroTimer=null;
   if(match!==currentMatch||currentMatch.done)return;
   hideMatchIntro();
-  if(!live){act();battleInterval=setInterval(act,EVENT_MS);}
+  if(!live){act();battleInterval=setInterval(act,80);}
  },MATCH_INTRO_MS);
  aframe=requestAnimationFrame(battleDraw);startBgm();
 }
