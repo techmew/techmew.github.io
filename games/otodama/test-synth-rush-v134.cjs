@@ -37,4 +37,32 @@ api.synthVoice(cr,0,{rush:true,hits:7,fx});
 assert.equal(starts.length,8,'mute blocks synthetic rush');
 assert.match(script,/banner\.animate\(/,'each visual hit receives an impact pulse');
 assert.match(script,/if\(match\.rushEndsAt&&performance\.now\(\)<match\.rushEndsAt\)return;/,'CPU combat waits for rush');
+// Execute the actual banner timer code, including seven-hit count and reduced-motion handling.
+const banner={hidden:true,textContent:'',animate(){this.pulses=(this.pulses||0)+1}};
+const timers={};let nextTimer=1,reduceMotion=false;
+const bannerStart=script.indexOf('let rushBannerTimer=null,rushCounterTimer=null;');
+const bannerEnd=script.indexOf('let matchIntroTimer=null;',bannerStart);
+assert.ok(bannerStart>=0&&bannerEnd>bannerStart,'rush banner code present');
+const bannerCtx={
+ Math,$:id=>id==='rushBanner'?banner:{},
+ window:{matchMedia:()=>({matches:reduceMotion})},
+ setInterval:(fn,delay)=>{const id=nextTimer++;timers[id]={fn,delay,kind:'interval'};return id},
+ clearInterval:id=>{delete timers[id]},
+ setTimeout:(fn,delay)=>{const id=nextTimer++;timers[id]={fn,delay,kind:'timeout'};return id},
+ clearTimeout:id=>{delete timers[id]}
+};
+const bannerApi=vm.runInNewContext(script.slice(bannerStart,bannerEnd)+';({showRushBanner,hideRushBanner})',bannerCtx);
+bannerApi.showRushBanner('必殺技',7);
+assert.equal(banner.textContent,'必殺技　1 HIT','initial count');
+const interval=Object.entries(timers).find(([,v])=>v.kind==='interval');
+assert.equal(interval[1].delay,200,'visual counter is synchronized to sound');
+for(let i=2;i<=7;i++){interval[1].fn();assert.equal(banner.textContent,'必殺技　'+i+' HIT','hit counter '+i)}
+assert.equal(banner.pulses,7,'every hit visibly pulses');
+const expiry=Object.entries(timers).find(([,v])=>v.kind==='timeout');
+assert.equal(expiry[1].delay,1750,'banner remains visible throughout seven-hit rush');
+expiry[1].fn();assert.equal(banner.hidden,true,'banner clears after rush');
+reduceMotion=true;const pulses=banner.pulses;
+bannerApi.showRushBanner('必殺技',7);
+assert.equal(banner.pulses,pulses,'reduced-motion disables pulses');
+bannerApi.hideRushBanner();
 console.log('SYNTH RUSH PASS | 7x 200ms, boosted capped gain, master limiter, mute, visual pulse, CPU hold');
