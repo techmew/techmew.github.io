@@ -53,7 +53,7 @@ const env='let match=d.first;let survivalActive=true,survivalAwaitingVisibility=
  'unlockBattleAudio=d.unlockBattleAudio,voiceOutput=d.voiceOutput,trackAttackSource=d.trackAttackSource,'+
  'stopAttackVoices=d.stopAttackVoices,setTimeout=d.setTimeout,clearTimeout=d.clearTimeout,'+
  'doCom=d.doCom,nextSurvivalBattle=d.nextSurvivalBattle,closeBattle=d.closeBattle,'+
- 'startRandomMatch=d.startRandomMatch,serverBase=d.serverBase;';
+ 'startRandomMatch=d.startRandomMatch,serverBase=d.serverBase,activatePendingChallenge=()=>false;';
 const api=new Function('d',env+src+
  'return {showBattleQuote,playVictoryRoar,scheduleNextAfterQuote,nextTaunt,advanceAfterWin,isCpuResult,'+
  'set match(v){match=v},get deferred(){return survivalAwaitingVisibility}}')(ctx);
