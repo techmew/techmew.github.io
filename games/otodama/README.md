@@ -1,3 +1,16 @@
+# 声魂 v131｜最終検証追記｜2026-10-27
+
+CURRENT_STATUS: 音声録音→4パターンのガチャ→演出画面内で実キャラを描画→10体ストックへ登録、という順序を実装。ストック登録結果の表示が閉じるまで録音操作を無効化。
+CHANGELOG: 誕生画面に実キャラ描画Canvas・拡大/発光/ストック完了演出。従来の「新キャラを先に保存してから演出」を廃止。画面背面化/離脱で未登録キャラを失わないための即時確定、登録拒否時の誤成功表示防止、重複録音防止。
+TEST_RESULTS: コード最終SHA 23832a3e9d94a985c7cc4a6fcfbed8d71e087245。GitHub Actions Node全27スイート run 40487953810 = PASS。GitHub Pages build/deploy run 40487953016 = SUCCESS。録音モック、実キャラ描画→ストック登録順序、タイマー多重呼出し、画面中断、上限10体をカバー。Cloudflare Workerコードは変更なし。
+BLOCKERS: Android実機でのマイク/演出画面/実音声・独立2端末での対戦は未検証。ストック満員なら利用者の入替え確認に従い、拒否時はキャラをプレビューに残す。
+NEXT_ACTIONS: Android Chrome縦横で実録音とキャラ描画、満員時の入替え、バックグラウンド遷移を実検証。
+LATEST_VERIFIED_CODE_COMMIT_SHA: 23832a3e9d94a985c7cc4a6fcfbed8d71e087245
+NODE_TEST: https://github.com/techmew/techmew.github.io/actions/runs/40487953810
+PAGES: https://github.com/techmew/techmew.github.io/actions/runs/40487953016
+
+---
+
 # 声魂 v131｜2026-10-27｜録音→ガチャ→キャラ誕生→ストック登録
 
 CURRENT_STATUS: 対象はgames/otodama/のみ。実際の録音が完了するまでガチャを開始しない。ガチャ画面内で新キャラの本物の描画を表示した後、10体ストックへ自動登録する。選択済みキャラ・保護ロック・10体入替確認・CPUオート戦・公開Workerは維持。
