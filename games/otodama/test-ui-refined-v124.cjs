@@ -30,7 +30,7 @@ for(const id of [...mainIDs,...drawerIDs]){
 }
 assert.equal((html.match(/<details class="home-details"/g)||[]).length,6);
 assert.equal((html.match(/<details class="battle-settings"/g)||[]).length,1);
-assert.match(html,/id="fightBtn">▶ バトルする<\/button>/);
+assert.match(html,/id="fightBtn">▶ オートバトル開始<\/button>/);
 assert.match(html,/id="recordBtn">● 録音して生成<\/button>/);
 assert.match(html,/id="battleMetrics"/,'five combat bars remain accessible');
 assert.match(script,/const CAPTURE_MS=2000/,'fixed microphone duration');
@@ -44,7 +44,10 @@ for(const fn of ['analyseVoiceDNA','pcmWavDataUrl','startRecord','stopRecord',
 assert.match(html,/id="shareVoice" disabled/);
 assert.match(html,/id="receiveVoice" disabled/);
 assert.match(html,/id="roster"/,'character collection remains');
-assert.match(script,/if\(won\)scheduleNextAfterQuote\(m\)/,'automatic next stage retained');
+assert.match(script,/if\(won\|\|m\.live\|\|m\.mode==='COM MATCH'\)scheduleNextAfterQuote\(m\)/,'CPU continues even after loss; PvP returns to CPU');
+assert.match(html,/id="survivalChallengerOptIn"/,'public matchmaking opt-in switch');
+assert.match(script,/function canSearchPvP\(\)/,'CPU-only PvP matchmaking guard');
+assert.match(script,/match\.resumeSurvival=interruptedSurvival/,'preserves interrupted survival');
 // Reject missing closing tags and accidental nesting of primary actions in collapsed drawers.
 const beforeScript=html.slice(0,html.indexOf('<script>')).replace(/<style>[\s\S]*?<\/style>/i,'');
 const tags=beforeScript.match(/<\/?[a-z][^>]*>/gi)||[];
