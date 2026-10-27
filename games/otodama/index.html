@@ -753,6 +753,7 @@ function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forE
 function setCurrent(cr,fromBirth=false){if(!fromBirth)cancelBirthReveal();cur=cr;persistSelected();trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
 // Four short, local-only birth ceremonies for characters created with the microphone.
 let birthRevealToken=0,birthRevealTimers=[],birthStockCallback=null;
+let birthRevealActive=false;
 const BIRTH_SCENES=[
  {type:'egg',symbol:'🥚',intro:'声のたまごをあたため中…',middle:'たまごが急に暴れだした！',outro:'ぱかっ！ 謎の生命体が誕生！'},
  {type:'capsule',symbol:'🎰',intro:'声ガチャを回しています…',middle:'大当たり……ではない予感！',outro:'ガチャーン！ とにかく誕生！'},
@@ -769,7 +770,7 @@ function paintNewborn(creature){
 }
 function cancelBirthReveal(){
  const pending=birthStockCallback;
- birthStockCallback=null;birthRevealToken++;
+ birthStockCallback=null;birthRevealActive=false;birthRevealToken++;
  for(const handle of birthRevealTimers)clearTimeout(handle);
  birthRevealTimers=[];
  const overlay=$('birthReveal');
@@ -788,7 +789,7 @@ function startBirthReveal(creature,addToStock){
  const scene=BIRTH_SCENES[hash((creature.seed>>>0)^0x7cd51a)%BIRTH_SCENES.length];
  const token=birthRevealToken;
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
- birthStockCallback=commit;
+ birthStockCallback=commit;birthRevealActive=true;
  overlay.dataset.variant=scene.type;overlay.dataset.phase='charge';
  $('birthCore').textContent=scene.symbol;
  $('birthHeadline').textContent=scene.intro;
@@ -825,7 +826,7 @@ function startBirthReveal(creature,addToStock){
  later(reduced?850:3800,()=>cancelBirthReveal());
  return true;
 }
-function newOne(){if(birthStockCallback)return;let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));saveNewborn(cur);$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
+function newOne(){if(birthRevealActive||birthStockCallback)return;let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));saveNewborn(cur);$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
 function deleteSavedCreature(seed){
  const index=roster.findIndex(c=>c.seed===seed);
  if(index<0)return false;
@@ -957,7 +958,7 @@ function pcmWavDataUrl(samples,rate){
  return 'data:audio/wav;base64,'+btoa(binary);
 }
 function changeCaptureButtons(active){
-  const busy=active||birthStockCallback!==null;
+  const busy=active||birthRevealActive||birthStockCallback!==null;
   $('recordBtn').disabled=busy;$('randomBtn').disabled=busy;
   $('recordBtn').textContent=active?'● 録音中…':'● 録音して生成';
   $('stopRecordBtn').style.display='none';
@@ -965,7 +966,7 @@ function changeCaptureButtons(active){
 }
 function stopRecord(){/* Fixed 2-second recording: no early manual finish. */}
 async function startRecord(){
- if(recording||recordingRequestPending||birthStockCallback!==null)return;
+ if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
  let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
