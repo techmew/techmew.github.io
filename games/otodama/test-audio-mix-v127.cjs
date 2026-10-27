@@ -9,6 +9,7 @@ const master=cut('let voiceLimiter=null,voiceLimiterContext=null;','function tra
 const bgm=cut('let bgmTimer=null,bgmNext=0,bgmStep=0,bgmSession=0,bgmStartAt=0,bgmDuckUntil=0;','const MUSIC_VOLUME=');
 const notes=cut('function musicNote(', 'function musicBridge(');
 const toneSrc=cut('function tone(', 'function synthVoice(');
+const stopSrc=cut('function stopBgm(){', 'function finishJingle(');
 const impact=cut('function impactSfx(', 'let lastBattleFrame=');
 let current=1000;
 const flags={mutedCheck:{checked:false}};
@@ -29,9 +30,9 @@ function audioCtx(){return {state:'running',currentTime:6,destination:node('dest
  createDynamicsCompressor:()=>node('compressor'),createGain:()=>node('gain'),
  createOscillator:()=>node('oscillator'),createBiquadFilter:()=>node('filter')}}
 const ac=audioCtx();
-const ctx={console,$,clamp,Math,performance:{now:()=>current},VOLUME:()=>.12,unlockBattleAudio:()=>ac};
-const api=vm.runInNewContext(master+'\n'+bgm+'\n'+notes+'\n'+toneSrc+'\n'+impact+
- ';this.mix={audioMaster,voiceOutput,bgmOutput,updateBgmDucking,musicNote,percussion,tone,impactSfx,setDuck(t){bgmDuckUntil=t}};this.mix',ctx);
+const ctx={console,$,clamp,Math,performance:{now:()=>current},VOLUME:()=>.12,unlockBattleAudio:()=>ac,battleSoundCtx:ac};
+const api=vm.runInNewContext(master+'\n'+bgm+'\n'+notes+'\n'+stopSrc+'\n'+toneSrc+'\n'+impact+
+ ';this.mix={audioMaster,voiceOutput,bgmOutput,updateBgmDucking,musicNote,percussion,stopBgm,tone,impactSfx,setDuck(t){bgmDuckUntil=t}};this.mix',ctx);
 const root=api.audioMaster(ac),voice=api.voiceOutput(ac),music=api.bgmOutput(ac);
 assert.equal(api.audioMaster(ac),root,'same master for the same context');
 assert.equal(api.voiceOutput(ac),voice,'reuse voice compressor');
@@ -42,6 +43,7 @@ assert.equal(music.target,root,'music bus feeds shared master');
 assert.equal(root.threshold.value,-24,'limit transient peaks across sources');
 api.setDuck(1300);api.updateBgmDucking(ac);
 assert.equal(music.gain.value,.44,'voice-triggered music duck reduces background');
+api.stopBgm();assert.equal(music.gain.value,1,'victory jingle starts at full music level');
 current=1500;api.updateBgmDucking(ac);
 assert.equal(music.gain.value,1,'music restores after voice ends');
 const beforeMusic=graph.length;
