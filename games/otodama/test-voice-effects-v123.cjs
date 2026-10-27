@@ -26,11 +26,12 @@ const key=cr.seed+'_'+voiceClip.length+'_'+voiceClip.slice(-32);
 let now=1000;
 const context={Math,Map,Uint8Array,Float32Array,atob:()=> 'demo',
  voiceCache:new Map([[key,{buffer:{},offset:.07,duration:.65,gain:1.4}]]),pendingVoice:new Map(),
- $ ,VOLUME:()=>.15,unlockBattleAudio:()=>ac,voiceOutput:()=>({}),
+ $ ,VOLUME:()=>.15,unlockBattleAudio:()=>ac,voiceOutput:()=>({}),audioMaster:()=>({}),
  trackAttackSource:()=>{},synthVoice:(...args)=>voices.push(args),
  hash:n=>{n=n>>>0;n=Math.imul(n^(n>>>16),0x7feb352d);return (n^(n>>>15))>>>0},
  clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),performance:{now:()=>now},
  bgmDuckUntil:0,lastSoundStatus:'',showRushBanner:x=>banner.push(x),
+ stopAttackVoices:()=>{api.playDecodedVoice.busyUntil=0;api.playDecodedVoice.generation=(api.playDecodedVoice.generation||0)+1},
  match:{done:false,mode:'COM MATCH',turn:1,live:false,a:cr,b:cr}
 };
 const api=vm.runInNewContext(selection+';({VOICE_EFFECTS,VOICE_ATTACK_VARIANTS,VOICE_REACTION_VARIANTS,voiceEffectProfile,playDecodedVoice,attackVoice,reactionVoice})',context);
@@ -64,7 +65,9 @@ assert.equal(clips.length,9,'only explicitly marked rush has seven samples');
 assert.ok(clips[8].time>clips[2].time,'rush voices are sequential');
 const normalPeak=gains[0].gain.ramps[0],rushPeak=gains[2].gain.ramps[0];
 assert.ok(rushPeak>=normalPeak*.65,'rush samples should be clearly audible relative to normal attack');
-assert.ok(rushPeak>0&&rushPeak<=.18,'individual rush peaks remain limited');
+assert.ok(rushPeak>0&&rushPeak<=.24,'individual rush peaks remain limited');
+assert.ok(rushPeak>=normalPeak*1.45,'rush recorded speech has about 1.5x the normal attack gain');
+assert.ok(clips.slice(2,9).every(x=>x.duration>=.6),'rush replays recorded phrase instead of clipped 100ms phonemes');
 const beforeReactions=clips.length;
 api.reactionVoice(cr,1,{kind:'rush',damage:18});
 api.reactionVoice(cr,1,{kind:'rush',damage:25,guard:true});
@@ -105,4 +108,4 @@ assert.equal(voices.length,0,'recorded sample did not require synthetic fallback
 assert.ok(html.includes('id="voiceFxLabel"')&&html.includes('id="voiceFxEnabled"'));
 assert.ok(js.includes('reactionVoice(def===0?m.a:m.b,def,ev)'),'CPU spectator reaction connected');
 assert.ok(js.includes('reactionVoice(data.atk===0?m.b:m.a,1-data.atk'),'online impact reaction connected');
-console.log('VOICE FX PASS | 28 profiles, louder capped rush, single attacks, guarded reactions, mute, clean preview');
+console.log('VOICE FX PASS | 28 profiles, full-phrase fast rush +1.5x gain, single attacks, guarded reactions, mute, clean preview');
