@@ -49,7 +49,7 @@ const birthSource=extract('let birthRevealToken=0,birthRevealTimers=[],birthStoc
 const elements=new Map();
 const $=id=>{if(!elements.has(id))elements.set(id,{hidden:true,dataset:{},textContent:'',width:320,height:280,getContext(){return {clearRect(){}}}});return elements.get(id)};
 let tasks=[],hidden=false,reduced=false,stockEvents=[],drawn=[];
-const ctx={console,Math,$,hash:n=>n>>>0,displayName:x=>x.name,drawCreature:(...args)=>drawn.push(args),recording:false,recordingRequestPending:false,changeCaptureButtons(){},roster:[],ROSTER_LIMIT:10,
+const ctx={console,Math,$,hash:n=>n>>>0,rarityOf:()=> 'B',displayName:x=>x.name,drawCreature:(...args)=>drawn.push(args),recording:false,recordingRequestPending:false,changeCaptureButtons(){},roster:[],ROSTER_LIMIT:10,
  cur:sample(101),document:{get hidden(){return hidden}},
  window:{matchMedia:()=>({get matches(){return reduced}})},
  setTimeout:(fn,delay)=>{const task={fn,delay,canceled:false};tasks.push(task);return task},
