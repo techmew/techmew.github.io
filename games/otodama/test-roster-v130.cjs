@@ -27,7 +27,7 @@ class Element{
  setAttribute(k,v){this.attrs[k]=v} addEventListener(k,fn){this.listeners[k]=fn}
  getContext(){return {}} }
 const elements=new Map(),$=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id)};
-const ctx={roster:[make(1,true),make(2),make(3)],cur:make(2),ROSTER_LIMIT:10,rosterMigrationWarning:'',archivedCreatures:()=>[],$,localStorage,Math,JSON,Map,Set,
+const ctx={roster:[make(1,true),make(2),make(3)],cur:make(2),ROSTER_LIMIT:10,rosterMigrationWarning:'',archivedCreatures:()=>[],downloadArchive(){},$,localStorage,Math,JSON,Map,Set,
  window:{confirm:()=>confirm},document:{createElement:t=>new Element(t),querySelectorAll:()=>[],elementFromPoint:()=>null},
  displayName:x=>x.name,levelOf:x=>x.level,drawCreature(){},clipData:()=>false,
  cancelBirthReveal(){},trackDiscovery(){},persistSelected(){},match:null,
