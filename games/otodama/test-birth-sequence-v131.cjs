@@ -24,7 +24,7 @@ function $(id){
 const newborn={seed:42,name:'声キャラ42'};
 let hidden=false;
 const ctx={
- Math,$,hash:n=>n>>>0,displayName:c=>c.name,drawCreature:(g,c)=>{drawn.push(c.seed);events.push('sprite')},
+ Math,$,hash:n=>n>>>0,rarityOf:()=> 'B',displayName:c=>c.name,drawCreature:(g,c)=>{drawn.push(c.seed);events.push('sprite')},
  window:{matchMedia:()=>({matches:false})},
  document:{get hidden(){return hidden}},
  roster:[],ROSTER_LIMIT:10,recording:false,recordingRequestPending:false,
