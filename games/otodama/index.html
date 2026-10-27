@@ -772,8 +772,8 @@ function deleteSavedCreature(seed){
  if(index<0)return false;
  const item=roster[index];
  if(item.locked===true){$('rosterNotice').textContent='🔒 保護中です。鍵を解除してから削除してください。';return false}
- if(!window.confirm('「'+displayName(item)+'」を削除しますか？\nこの操作は元に戻せません。'))return false;
  if(match&&!match.done){$('rosterNotice').textContent='対戦中は削除できません。';return false}
+ if(!window.confirm('「'+displayName(item)+'」を削除しますか？\nこの操作は元に戻せません。'))return false;
  const oldRoster=roster.slice();
  roster=roster.filter(c=>c.seed!==seed);
  if(!saveStore()){roster=oldRoster;renderRoster();$('rosterNotice').textContent='保存エラーのため削除を中止しました。';return false}
