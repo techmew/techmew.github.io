@@ -2179,7 +2179,7 @@ function finishCombat(){const m=match;if(!m||m.done)return;hideMatchIntro();hide
  if(won&&['COM MATCH','SURVIVAL','DAILY CHALLENGE','ONLINE LIVE'].includes(m.mode)){
   /* The next-battle button already communicates progression. */
  }
- resultSpeechTimer=setTimeout(()=>{resultSpeechTimer=null;showBattleQuote(m)},520);
+ resultSpeechTimer=setTimeout(()=>{resultSpeechTimer=null;showBattleQuote(m)},820);
  if(won||m.live||m.mode==='COM MATCH')scheduleNextAfterQuote(m);
 }
 function updateCampaignTrack(mode){
