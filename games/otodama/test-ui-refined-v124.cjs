@@ -53,12 +53,13 @@ const stack=[],found=new Map();
 for(const tag of tags){
  const mt=tag.match(/^<(\/?)([a-z0-9-]+)/i);if(!mt)continue;
  const [,closing,word]=mt,name=word.toLowerCase();
- if(voidTags.has(name))continue;
  if(!closing){
   const id=tag.match(/\bid="([^"]+)"/)?.[1];
   if(id)found.set(id,{tag:name,details:stack.filter(x=>x.name==='details').map(x=>x.id)});
+  if(voidTags.has(name))continue;
   if(!tag.endsWith('/>'))stack.push({name,id});
  }else{
+  if(voidTags.has(name))continue;
   const item=stack.pop();
   assert.equal(item?.name,name,'HTML closing tag must match '+tag);
  }
