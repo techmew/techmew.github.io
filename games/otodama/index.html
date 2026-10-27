@@ -2227,9 +2227,21 @@ function battleDraw(ms){
  }
  // Use the actual AI choice and fighting distance for choreography, replacing arbitrary oscillating travel.
  if(event&&typeof window!=='undefined'&&window.OtodamaDirector){
+   if(match.poseEvent!==event){
+     // Anchor the next move to the two fighters' last rendered positions, not a sudden reset.
+     match.poseEvent=event;
+     match.poseAnchor=match.prevPos?.map(pt=>({x:pt.x,y:pt.y}))||null;
+   }
    const action=window.OtodamaDirector.movement(event,p,atk);
    Object.assign(pos[atk],action.attacker);
    Object.assign(pos[def],action.defender);
+   if(match.poseAnchor&&p<.13){
+     const blend=ease(clamp(p/.13,0,1));
+     for(let side=0;side<2;side++){
+       pos[side].x=mix(match.poseAnchor[side].x,pos[side].x,blend);
+       pos[side].y=mix(match.poseAnchor[side].y,pos[side].y,blend);
+     }
+   }
  }
  // Camera-friendly directional motion cues are drawn BEHIND the sprites, only on active actions.
  const fxElement=['#ffe594','#ffad78','#91e8ff','#adffd6','#fff3ba','#d7b4ff','#d7e5f2','#83f4f9','#d0ff9f','#d9d4ff'];
