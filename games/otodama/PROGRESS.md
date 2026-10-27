@@ -1324,3 +1324,54 @@ GitHubコード正本・Drive引き継ぎ正本。実機/配信/本番を検証�
 - 最終index blob: e880fc2491f9fa158af49b3aa6aff0ba02386151
 
 変更はgames/otodama/のみ。録音・原音試聴・戦闘・勝者音声の既存動作を維持。未検証を確認済みと呼ばない。
+
+---
+
+# 声魂 v0.10.24 / 2026-10-27 / 承認済みUIのゲーム本体実装
+
+## CURRENT_STATUS
+- 対象ゲーム本体: techmew/techmew.github.io / games/otodama/index.html。デザイン見本 koedama_ui_refined_v01024.html に基づき、中学生〜大人向けの明るいブルー・ホワイト・ミント・コーラルのUIを実装。GitHub mainへコミット・再取得済み。
+- キャラの外見・生成エンジン・録音音声・音響DNA・戦闘・勝利演出・育成・データ保存・Cloudflare Workerは変更しない。既存キャラや声のセーブデータ形式は維持。
+- メイン画面常時表示：キャラプレビュー、2秒録音、原音試聴、攻撃/防御/速度/集中/必殺の5ステータス、ステージ/Lvとバトル/キャラ保存。
+- 詳細情報は必要な時だけ開く6ドロワー：詳しいステータス（声36項目含む）、別のゲームモード（日替わり/サバイバル）、キャラ図鑑、ヘルプ・データ管理、オンライン対戦、オンラインの接続・ランキング詳細。
+- バトル音声設定は折りたたみ、音声再開・次戦・戻るは初期表示に保持。プレイヤー勝利時の吹き出し非表示と録音雄叫び、28種類声変化を維持。
+- ヒーローキャンバスの補助的なランク/タイプ番号は削除しキャラを主役に。明色画面で視認できる波形線色へ更新。
+
+## CHANGELOG
+1. ui-refresh-v124.css（約11KB）新規作成。既存styleは消さず外部リンクで段階適用。
+2. index.htmlのキャラ画面・録音タイトル・ヘッダー文言整理とホームの情報再編。
+3. 必須ゲームIDを保持したまま詳細項目をdetails/summary化（キーボード操作/アクセシビリティ）。
+4. オンラインランキングと接続先設定は二段階の詳細表示へ移動、機能は残す。
+5. バトル画面のBGM/効果音/省電力/声変化/雄叫び設定を折りたたみ、音声再開を常時表示。
+6. 動的録音/試聴ボタン文言を一致させ、ゲームFooterの版数をv0.10.24へ。
+7. test-ui-refined-v124.cjsを作成し、package.jsonのtest:nodeとtest:uiに追加。
+8. 以前のtest-quality-v108.cjsが追加済みdnaGrowthIndexをモックせずGitHub Actionsで失敗していたため、旧キャラ用テストハーネスを補正。実ゲームの成長計算自体は変更なし。
+
+## TEST_RESULTS
+- GitHub mainからHTML/CSSを再取得。index.htmlのscript構文、全重要IDのユニーク性、HTMLタグ閉じ、常時表示操作/5ステータス、6ドロワー、2秒録音/音響DNA/録音声28種類のコード存在検証 PASS。
+- V8模擬実行で test-ui-source.cjs、test-ui-refined-v124.cjs、test-voice-effects-v123.cjs、test-audio-dna-v121.cjs、test-creature-auto.cjs PASS。
+- GitHub Actions「Test and Deploy OTODAMA Worker」最新run 40430332371：test job / 完全オフラインNode回帰ステップ成功（2026-10-27）。deploy jobはskipped。これはWorkerの本番公開完了を意味しない。
+- GitHub Pages workflow（後続コミット分）は要確認。公開URLのHTTP最新版、スマホ/Android録音・実スピーカー/プレイヤー操作は現環境で未検証。
+
+## BLOCKERS
+- 実Android縦横表示・CSS/UIの視覚確認は未実施。静的タグ検査とNode CLI回帰に留まる。
+- GitHub PagesはActionsのデプロイ実績とブラウザからの実ページ取得を区別し、後者の確認がまだできていない。
+- Cloudflare Workerのオンライン本番は今回変更していない。オンライン相手の生録音声転送は以前から停止中。
+
+## NEXT_ACTIONS
+1. https://techmew.github.io/games/otodama/?v=01024 をAndroid/PCのブラウザで更新し、明るい配色・キャラ表示・録音/試聴・主要5ステータス・バトルと各ドロワーを目視確認。
+2. 録音2秒→生成→原音試聴→COM戦→勝利雄叫び→次戦→保存を実操作で検証。
+3. GitHub Pages 最新workflowのsuccess確認。CSSロードエラー/フォント・ボタン高・320px横はみ出しを実画面で追跡。
+4. 長い説明をさらに削る場合は見やすさを損ねず、必須操作や注意を隠しすぎない。
+
+## COMMITS
+- UI stylesheet ec3351115d6f95076509b602a07dd2cbb4322728
+- Link/header 7f2a88f4aa6693b45f4557acf59f4b21d4242ffb
+- Home drawers 27e6be2df4a2649871b756c92d7c3d8dc1089d29
+- Online details 51f6536ba72584ead1d1f3d26a2b5e34e33c74be / 6d8c4714bc78fab593d8075657a050116e614e32
+- Battle controls e7c13e67d0ca6469afb55b3b31c31047f8ffc49a
+- Readable waveform and canvas 1202f554cfba78f077b04bbb09a961874f674f41
+- UI regression 0d129378dea75b9e304036028c56bf2e6e5c8a15 / 63721aa957cf15fe60f02427b241d28bf8d1d5d8 / 5a6b5ee7f4b5fc2bd7b97bc03d73582fdcc5eb98
+- Package 7e7f8725054144eb24e75624b51ae0d472b4aba7
+- README 417cc8a167fa041da514727463749990b2a3aea8
+- CI harness fix 633a88407bdc2d5fd193535793b61597cbab21ba
