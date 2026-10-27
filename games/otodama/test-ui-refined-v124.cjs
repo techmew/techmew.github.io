@@ -41,8 +41,11 @@ for(const fn of ['analyseVoiceDNA','pcmWavDataUrl','startRecord','stopRecord',
  assert.ok(script.includes('function '+fn+'(')||script.includes('async function '+fn+'('),
   'game function preserved: '+fn);
 }
-assert.match(html,/id="shareVoice" disabled/);
-assert.match(html,/id="receiveVoice" disabled/);
+assert.match(html,/id="shareVoice"/);
+assert.match(html,/id="receiveVoice"/);
+assert.doesNotMatch(html,/id="shareVoice" disabled/,'consensual audio sharing must be available');
+assert.match(script,/function sendVoiceConsent\(\)/);
+assert.match(script,/function forgetRemoteVoice\(\)/);
 assert.match(html,/id="roster"/,'character collection remains');
 assert.match(script,/if\(won\|\|m\.live\|\|m\.mode==='COM MATCH'\)scheduleNextAfterQuote\(m\)/,'CPU continues even after loss; PvP returns to CPU');
 assert.match(html,/id="survivalChallengerOptIn"/,'public matchmaking opt-in switch');
