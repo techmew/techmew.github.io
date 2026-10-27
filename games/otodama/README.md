@@ -1,3 +1,14 @@
+# OTODAMA∞｜2026-10-27｜キャラ全表示・削除・ラッシュ増音・CPU煽り・録音誕生演出
+
+CURRENT_STATUS: GitHub main の games/otodama/ のみ更新。キャラプレビューは前回選択済みのキャラをローカル復元（保存済みはID、未保存は必要な生成データ/録音声の範囲内で復元）。一覧はプレビュー直下に保存済み全30体＋未保存の現キャラを表示。オンラインWorkerは公開済み、変更なし。
+CHANGELOG: ① 保存キャラを表示順固定で全件表示、左上に削除「×」、右上に保護鍵。削除はwindow.confirmで明示確認、鍵付き/対戦中/保存失敗時は削除禁止、現在選択中を消した場合は残存キャラへ切替。最後の1体を消しても同じseedで再出現させない。② lastSelected.v1に最後に選択したキャラを保存し次回起動時に復元。旧データ不整合は安全な初期状態へフォールバック。③ 録音完了でのみ4種（たまご・声ガチャ・研究所・異世界ゲート）の約2.85秒の専用アニメを実行。省アニメ設定対応、キャラ変更・新規演出の競合/古いタイマー無効化。④ ラッシュ時の録音音声は一発ごとに音量上限0.18の範囲で増幅、合成声のラッシュも引き上げ、通常声の非重複・WebAudioマスターリミッター維持。⑤ CPU勝利時の煽りを短い一文から元の3文連結テキストへ拡大（500通り）、日本語TTS速度を少し落とし自動次戦前の発話待機期限を拡張。⑥ キャラ一覧移動で下部ネットワーク設定のレイアウトを整理。
+TEST_RESULTS: GitHub再取得したJSをV8構文検査PASS、CSS中括弧検査PASS。Node fs/vm/assert模擬V8で test-preview-birth-v129 / test-roster-lock / test-dialogue-v113 / test-result-clarity-v128 / test-audio-mix-v127 / test-voice-rush / test-voice-effects-v123 / test-ui-refined-v124 / test-ui-source の関連9スイートPASS。確認したのはローカル模擬相当であり、正式npm test:node全スイート実行、GitHub Actionsと最新Pages配信、Android実機録音/読み上げ/音量・外部二端末PvPは未確認。WebでPages/Worker /healthへ直接アクセス不可。
+BLOCKERS: 誕生演出はCSSアニメ/タイマーを実機未確認。日本語TTSはブラウザの再生制限を受ける可能性。選択キャラ保存はブラウザlocalStorageで、端末データ消去にはバックアップが必要（書出しに録音音声は含まれない）。
+NEXT_ACTIONS: GitHub ActionsのNode全回帰/Pages/WorkerライブヘルスとWebSocket2端末テスト確認。Android縦横で30体全表示と削除確認・鍵・再起動時選択復元・録音誕生4パターン・効果音/ラッシュ音量/CPU煽りTTSを実機確認。CI赤があれば修正。
+LATEST_CODE_COMMIT: 15de2289f165537e87338411c86065b8443e17cc
+
+---
+
 # 声魂｜2026-10-27｜CPU勝利セリフ・録音声のハレーション対策・結果表示の整理
 
 CURRENT_STATUS: GitHub mainのgames/otodama/のみ修正。CPU連続オート戦、挑戦者受付ON/OFF、勝者WIN/敗者破片、キャラロック、録音声のローカル再生を維持。公開済みCloudflare Workerは変更していない。
