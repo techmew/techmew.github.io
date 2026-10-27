@@ -14,7 +14,7 @@ get('battleModal').classList.contains=x=>x==='open';
 let storage=new Map();
 const ctx={Date:FakeDate,Math,JSON,console,window:{OtodamaPvpPace:paceModule.exports},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
  performance:{now:()=>now},document:{hidden:false},$:get,match:{done:false,live:false,mode:'COM MATCH',pop:7000,current:{impactAt:7300}},
- queueWs:null,ws:null,EVENT_MS:820,survivalActive:false,
+ queueWs:null,ws:null,battleInterval:123,EVENT_MS:820,survivalActive:false,
  serverBase:()=> 'https://otodama.example',
  setTimeout:(fn,ms)=>{const t={fn,ms,cancelled:false};timers.push(t);return t},clearTimeout:t=>{if(t)t.cancelled=true},
  clearInterval:()=>events.push('clearInterval'),setInterval:()=>77,clearAutoAction:()=>events.push('clearAuto'),
