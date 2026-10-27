@@ -57,4 +57,31 @@ jobs:
             }
           });
           console.log('LIVE TWO-CLIENT RANDOM MATCH PASS:',matched);
+          const roomStarted=await new Promise((resolve,reject)=>{
+            const sockets=[],started=[false,false];let finished=false;
+            const done=(err)=>{
+              if(finished)return;finished=true;clearTimeout(timer);
+              for(const sock of sockets)try{sock.close()}catch{}
+              err?reject(err):resolve(true);
+            };
+            const timer=setTimeout(()=>done(new Error('Room start timed out')),15000);
+            for(let n=0;n<2;n++){
+              const ws=new WebSocket(origin.replace(/^https:/,'wss:')+'/room/'+matched);
+              sockets.push(ws);
+              ws.addEventListener('open',()=>{
+                ws.send(JSON.stringify({type:'join',creature:{
+                  seed:10000+n,name:'接続試験'+(n+1),type:'音の生き物',element:'音',
+                  parts:{},voice:{vol:45,pitch:55,res:40,rhythm:60,stable:65,breath:40}
+                }}));
+              });
+              ws.addEventListener('message',e=>{
+                let msg;try{msg=JSON.parse(e.data)}catch(error){done(error);return}
+                if(msg.type==='error'){done(new Error('Room: '+msg.message));return}
+                if(msg.type==='session')ws.send(JSON.stringify({type:'ready',autoOnly:true}));
+                if(msg.type==='live_start'){started[n]=true;if(started.every(Boolean))done(null)}
+              });
+              ws.addEventListener('error',()=>done(new Error('Room socket error')));
+            }
+          });
+          console.log('LIVE TWO-CLIENT ROOM START PASS:',matched,roomStarted);
           JS
