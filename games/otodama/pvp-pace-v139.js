@@ -12,8 +12,8 @@
   function enable(time){const at=safeInt(time);if(!state.enabled){state.enabled=true;state.since=at;state.cpu=0}prune(at);return snapshot()}
   function disable(time){state.enabled=false;state.cpu=0;prune(time);return snapshot()}
   function completedCpu(time){if(!state.enabled)return snapshot();state.cpu=Math.min(9999,state.cpu+1);prune(time);return snapshot()}
-  function encounter(time){const at=safeInt(time);const status=eligibility(at);if(!status.ready)return false;
-    state.last=at;state.cpu=0;state.encounters.push(at);prune(at);return true}
+  function started(time){const at=safeInt(time);if(!at)return false;prune(at);state.last=at;state.cpu=0;state.encounters.push(at);prune(at);return true}
+  function encounter(time){const at=safeInt(time);if(!eligibility(at).ready)return false;return started(at)}
   function eligibility(time){const at=safeInt(time);prune(at);
     const anchor=Math.max(state.since,state.last);
     const waitMs=Math.max(0,anchor+MIN_GAP-at);
@@ -24,7 +24,7 @@
      hourRemaining:Math.max(0,MAX_PER_HOUR-state.encounters.length),lastEncounterAt:state.last};
   }
   function snapshot(){return {enabled:state.enabled,since:state.since,last:state.last,cpu:state.cpu,encounters:state.encounters.slice()}}
-  prune(t);return Object.freeze({enable,disable,completedCpu,encounter,eligibility,snapshot,
+  prune(t);return Object.freeze({enable,disable,completedCpu,encounter,started,eligibility,snapshot,
    limits:Object.freeze({gapMs:MIN_GAP,cpu:MIN_CPU,windowMs:WINDOW,hourly:MAX_PER_HOUR})});
  }
  return Object.freeze({create,MIN_GAP,MIN_CPU,WINDOW,MAX_PER_HOUR});
