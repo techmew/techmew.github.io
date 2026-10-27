@@ -44,12 +44,12 @@ const unsaved=vm.runInNewContext("const lastSelectedKey='otodama.lastSelected.v1
 });
 unsaved();
 assert.equal(JSON.parse(selections.get('otodama.lastSelected.v1')).snapshot.seed,708,'unsaved fighter snapshot persisted');
-assert.match(js,/function setCurrent\(cr\)\{cancelBirthReveal\(\);cur=cr;persistSelected\(\)/,'selection saved on preview change');
+assert.match(js,/function setCurrent\(cr,fromBirth=false\)\{if\(!fromBirth\)cancelBirthReveal\(\);cur=cr;persistSelected\(\)/,'selection saved on preview change');
 const birthSource=extract('let birthRevealToken=0,birthRevealTimers=[];','function newOne(){');
 const elements=new Map();
-const $=id=>{if(!elements.has(id))elements.set(id,{hidden:true,dataset:{},textContent:''});return elements.get(id)};
-let tasks=[],hidden=false,reduced=false;
-const ctx={console,Math,$,hash:n=>n>>>0,displayName:x=>x.name,
+const $=id=>{if(!elements.has(id))elements.set(id,{hidden:true,dataset:{},textContent:'',width:320,height:280,getContext(){return {clearRect(){}}}});return elements.get(id)};
+let tasks=[],hidden=false,reduced=false,stockEvents=[],drawn=[];
+const ctx={console,Math,$,hash:n=>n>>>0,displayName:x=>x.name,drawCreature:(...args)=>drawn.push(args),recording:false,recordingRequestPending:false,changeCaptureButtons(){},roster:[],ROSTER_LIMIT:10,
  cur:sample(101),document:{get hidden(){return hidden}},
  window:{matchMedia:()=>({get matches(){return reduced}})},
  setTimeout:(fn,delay)=>{const task={fn,delay,canceled:false};tasks.push(task);return task},
@@ -58,23 +58,27 @@ const ctx={console,Math,$,hash:n=>n>>>0,displayName:x=>x.name,
 const api=vm.runInNewContext(birthSource+';({BIRTH_SCENES,startBirthReveal,cancelBirthReveal})',ctx);
 assert.equal(api.BIRTH_SCENES.length,4,'four different humorous birth types');
 assert.equal(new Set(Array.from(api.BIRTH_SCENES,s=>s.type)).size,4,'birth types unique');
-api.startBirthReveal(ctx.cur);
+api.startBirthReveal(ctx.cur,()=>{stockEvents.push(ctx.cur.seed);return true});
 assert.equal($('birthReveal').hidden,false,'birth ceremony begins over recording controls');
 assert.equal($('birthReveal').dataset.phase,'charge','first phase charging');
-assert.equal(tasks.length,3,'charge, hatch, reveal and cleanup scheduled');
+assert.equal(tasks.length,4,'hatch, real-character reveal, stock, and cleanup scheduled');
 tasks[0].fn();assert.equal($('birthReveal').dataset.phase,'hatch','middle phase works');
-tasks[1].fn();assert.equal($('birthReveal').dataset.phase,'reveal','final visual reveals character');
+tasks[1].fn();assert.equal($('birthReveal').dataset.phase,'reveal','real sprite revealed before stock');
+assert.equal(drawn.length,1,'birth canvas draws actual game creature');
+assert.equal(stockEvents.length,0,'stock not committed until sprite is revealed');
 assert.match($('birthSubline').textContent,/仲間になった/,'name shown at birth');
-tasks[2].fn();assert.equal($('birthReveal').hidden,true,'overlay removed after reveal');
+tasks[2].fn();assert.equal($('birthReveal').dataset.phase,'stock','stock step follows creature reveal');
+assert.equal(stockEvents.length,1,'stock callback invoked once, after drawing');
+tasks[3].fn();assert.equal($('birthReveal').hidden,true,'overlay closes after showing stock result');
 tasks=[];ctx.cur=sample(102);api.startBirthReveal(ctx.cur);
 const oldTask=tasks[0];ctx.cur=sample(103);api.startBirthReveal(ctx.cur);
 assert.equal(oldTask.canceled,true,'new character cancels stale previous birth');
 oldTask.fn();assert.equal($('birthReveal').hidden,false,'stale callback cannot clear newer ceremony');
 api.cancelBirthReveal();assert.equal($('birthReveal').hidden,true,'selection cancels birth safely');
 tasks=[];reduced=true;ctx.cur=sample(104);api.startBirthReveal(ctx.cur);
-assert.ok(tasks[2].delay<=800,'reduced-motion reveal finishes quickly');
+assert.ok(tasks[3].delay<=900,'reduced-motion reveal finishes quickly');
 api.cancelBirthReveal();hidden=true;api.startBirthReveal(ctx.cur);
 assert.equal($('birthReveal').hidden,true,'hidden browser never animates');
-assert.match(js,/setCurrent\(newborn\);saveNewborn\(newborn\);startBirthReveal\(cur\)/,'new microphone creature auto-saved before birth');
+assert.match(js,/startBirthReveal\(newborn,\(\)=>\{setCurrent\(newborn,true\);return saveNewborn\(newborn\)\}\)/,'new microphone creature saved only after it appears');
 assert.doesNotMatch(extract('function newOne(){','function deleteSavedCreature(seed){'),/startBirthReveal/,'trial generator has no microphone-only ceremony');
-console.log('PREVIEW/BIRTH PASS | remembered selection, ten-slot gallery, 4 birth scenes, stale timers, reduced motion');
+console.log('PREVIEW/BIRTH PASS | saved preview, 4 actual-sprite births, sequential stock, stale timers, reduced motion');
