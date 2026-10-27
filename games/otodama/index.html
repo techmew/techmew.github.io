@@ -1237,10 +1237,13 @@ function playDecodedVoice(cr,side,force=false,options={}){
    function voiceAt(at,length,from,to,loudness){
     const source=ac.createBufferSource(),gain=ac.createGain();
     const portion=Math.min(clip.duration,Math.max(.08,length));
-    const rate=force?1:clamp((from+to)*.5,rush?.90:.86,rush?1.22:1.14);
+    const limitLow=rush?.88:.86,limitHigh=rush?1.20:1.14;
+    const safeFrom=force?1:clamp(from,limitLow,limitHigh);
+    const safeTo=force?1:clamp(to,limitLow,limitHigh);
+    const rate=(safeFrom+safeTo)*.5;
     const sec=portion/rate;
     source.buffer=clip.buffer;
-    voiceEffectRate(source.playbackRate,clamp(from,.5,2.1),clamp(to,.5,2.1),at,sec);
+    voiceEffectRate(source.playbackRate,safeFrom,safeTo,at,sec);
     gain.gain.setValueAtTime(0,at);
     gain.gain.linearRampToValueAtTime(loudness,at+.012);
     gain.gain.setValueAtTime(loudness,at+Math.max(.018,sec-.06));
