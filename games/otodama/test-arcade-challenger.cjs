@@ -15,9 +15,10 @@ assert.match(script,/if\(won\|\|m\.live\|\|m\.mode==='COM MATCH'\)scheduleNextAf
 const selection=script.slice(script.indexOf('function advanceAfterWin(m){'),script.indexOf('function scheduleNextAfterQuote(m){'));
 assert.ok(selection.startsWith('function advanceAfterWin('));
 const ctx={match:null,survivalActive:false,document:{hidden:false},queueWs:null,ws:null,challengerHandoff:false,pageSuspended:false,serverBase:()=> 'https://example.workers.dev',
- leaveRoom:()=>ctx.calls.push('leave'),nextSurvivalBattle:()=>ctx.calls.push('survival'),doCom:()=>ctx.calls.push('com'),stopBattleSpeech:()=>{},
+ leaveRoom:()=>ctx.calls.push('leave'),nextSurvivalBattle:()=>ctx.calls.push('survival'),doCom:()=>ctx.calls.push('com'),stopBattleSpeech:()=>{},activatePendingChallenge:()=>false,
  $:id=>id==='battleModal'?{classList:{contains:x=>x==='open'}}:id==='survivalChallengerOptIn'?{checked:true}:{},
  calls:[]};
+ctx.pvpPace={eligibility:()=>({ready:true})};ctx.pendingChallenge=null;
 vm.runInNewContext(selection+'\n'+script.slice(script.indexOf('function canSearchPvP(){'),script.indexOf('function maybeQueuePvP(){')),ctx);
 function advance(mode,winner,resumeSurvival,active){ctx.calls=[];ctx.survivalActive=active;ctx.match={done:true,mode,live:mode==='ONLINE LIVE',resumeSurvival,outcome:{winner}};ctx.advanceAfterWin(ctx.match);return ctx.calls.join(',')}
 assert.equal(advance('ONLINE LIVE',1,false,false),'leave,com','PvP loss returns to CPU');
