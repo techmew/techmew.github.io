@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#081b2c">
+<title>CLOSET CATCH — アクション釣り×10,000着コーデ</title>
+<style>
+:root{--navy:#0a2133;--deep:#102c41;--ink:#14364c;--cream:#f4f7ee;--sea:#2babc1;--mint:#baf1d8;--coral:#ff7a66;--gold:#ffc76c;--line:#deebe9;--shadow:0 18px 60px #0b293522}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;background:radial-gradient(circle at 85% -15%,#c9e6df 0,transparent 42%),#eff4ed;min-height:100vh}button{font:inherit;cursor:pointer;border:0}button:focus-visible,[tabindex]:focus-visible{outline:3px solid #e79554;outline-offset:3px}button:disabled{cursor:default;opacity:.5}
+.app{max-width:1510px;margin:0 auto;padding:22px 24px 70px}
+header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}.logo{display:flex;align-items:center;gap:14px}.logo-badge{width:53px;height:53px;display:grid;place-items:center;background:var(--navy);color:#a9eddd;border-radius:19px;font-size:26px;box-shadow:0 8px 0 #185a69;transform:rotate(-7deg)}h1{font-family:Impact,"Arial Black",system-ui,sans-serif;letter-spacing:.045em;font-size:clamp(27px,3.1vw,43px);line-height:1;margin:0;color:#0e3449}.logo p{margin:6px 0 0;font-size:12px;letter-spacing:.13em;font-weight:800;color:#6f8a90}.status{display:flex;gap:10px;flex-wrap:wrap}.stat{background:#fffdfa;border:1px solid #d4e5e0;border-radius:20px;padding:11px 17px;min-width:114px;box-shadow:0 6px 22px #213e4610}.stat small{display:block;color:#6e8e98;font-weight:800;font-size:10px;letter-spacing:.07em}.stat b{display:block;color:#153649;font-size:19px;font-variant-numeric:tabular-nums}.stat b em{font-size:11px;font-style:normal;color:#7199a0}
+main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap:18px;align-items:stretch}.panel{min-width:0;border:1px solid #d5e5df;border-radius:27px;background:#fff;box-shadow:var(--shadow);overflow:hidden;position:relative}.panel-head{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:18px 22px 13px}.section-label{font-weight:950;letter-spacing:.10em;font-size:12px;color:#208598}.section-label strong{font-size:20px;letter-spacing:.015em;color:#153c50;display:block;margin-top:1px}.mini-tag{border-radius:30px;background:#eff7f4;padding:8px 12px;color:#397b80;font-weight:900;font-size:11px;white-space:nowrap}.ocean-wrap{position:relative;margin:0 13px;border-radius:19px;overflow:hidden;background:#6fc4ce;touch-action:manipulation;cursor:crosshair}.ocean-wrap canvas{display:block;width:100%;height:clamp(390px,33vw,500px)}.ocean-glass{pointer-events:none;position:absolute;left:15px;top:15px;background:#073246b8;color:white;border:1px solid #ffffff40;border-radius:13px;padding:11px 14px;backdrop-filter:blur(7px);font-size:11px;font-weight:900;line-height:1.75}.ocean-glass span{color:#b2eedb}.hint{pointer-events:none;position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:max-content;max-width:90%;background:#fffcebdc;color:#244d5a;border:1px solid #ffffffc9;padding:10px 16px;border-radius:30px;font-weight:900;font-size:12px;text-align:center;box-shadow:0 10px 30px #10344533}.ocean-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 20px;flex-wrap:wrap}.sea-note{font-size:12px;color:#64858e;font-weight:750}.sea-note b{color:#1c5264}.controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.primary{background:var(--navy);color:white;border-radius:15px;padding:13px 22px;box-shadow:0 5px 0 #315d65;font-size:14px;font-weight:950;transition:transform .15s}.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #315d65}.icon-btn,.secondary{font-size:12px;border-radius:14px;padding:12px 14px;background:#e8f5f0;color:#2e6d73;font-weight:900}.secondary{background:#fff5e7;color:#815c3d}.icon-btn.active{background:#174152;color:white}
+.model-panel{background:linear-gradient(150deg,#f3f8ee,#e1f3ec 62%,#ffeedf)}.model-panel .panel-head{padding-bottom:6px}.model-frame{margin:0 19px 4px;position:relative;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at 50% 39%,#fffcef 0,#d9efe8 68%,#c3e1da 100%)}.model-frame canvas{width:100%;height:auto;aspect-ratio:440/510;display:block}.score-chip{position:absolute;left:12px;bottom:12px;background:#fffdf4ed;border:1px solid #fff;border-radius:14px;padding:9px 12px;box-shadow:0 7px 20px #1a584122}.score-chip small{color:#7b938b;font-weight:800;font-size:10px;display:block}.score-chip b{font-size:20px;letter-spacing:.06em}.rank{font-size:18px;margin-left:8px;color:#b46c48}.model-bottom{padding:14px 20px 20px}.equip-status{font-size:12px;color:#466c73;font-weight:850;min-height:24px}.model-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.model-actions button{flex:1;min-width:80px}.wardrobe{margin-top:18px;padding-bottom:16px}.wardrobe .panel-head{align-items:start;padding:22px 23px 13px}.tabs{display:flex;gap:7px;overflow:auto;padding:0 22px 14px;scrollbar-width:thin}.tab{flex:none;background:#f1f6f3;border:1px solid #e4edec;border-radius:18px;color:#5a7781;padding:9px 12px;font-weight:950;font-size:12px}.tab.active{background:#10394b;color:white;border-color:#10394b}.closet-meta{padding:0 23px 14px;color:#69888b;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.closet-meta .small{font-size:11px}.filters{display:flex;align-items:center;gap:9px}.filters select{font:inherit;color:#315569;font-size:12px;font-weight:800;background:#f7fbf8;border:1px solid #d9e9e7;border-radius:10px;padding:7px 10px}.inventory{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:11px;padding:0 22px}.garment-card{position:relative;background:#f8fbf9;border:2px solid #e5efec;border-radius:18px;padding:9px 7px 11px;min-width:0;transition:transform .15s,border-color .15s;cursor:pointer;text-align:center}.garment-card:hover{transform:translateY(-3px);border-color:#98cecb}.garment-card.equipped{border-color:#ed976b;background:#fff8ed}.garment-card canvas{display:block;width:100%;aspect-ratio:1/1;border-radius:12px}.garment-card b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:30px;line-height:1.4;font-size:11px;margin-top:4px;color:#234456;overflow-wrap:anywhere}.garment-card small{font-weight:900;font-size:9px;letter-spacing:.05em}.rarity-N{color:#719196}.rarity-R{color:#258bc6}.rarity-SR{color:#9b55c6}.rarity-SSR{color:#ce7d28}.tag-equip{position:absolute;top:6px;right:6px;background:#f09b68;color:#fff;border-radius:8px;font-size:9px;font-weight:950;padding:3px 6px}.tag-multi{position:absolute;top:6px;left:6px;background:#fff;color:#557782;border-radius:8px;font-size:10px;font-weight:900;padding:3px 6px}.empty{text-align:center;padding:42px 14px 55px;color:#739398;font-size:13px;font-weight:900}.empty .empty-icon{font-size:45px;display:block;margin-bottom:10px}.more{display:block;margin:16px auto 0;padding:11px 28px;border:1px solid #bcdad7;background:white;color:#2d737b;font-size:12px;font-weight:950;border-radius:30px}.more[hidden]{display:none}.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.bottom-box{background:#fff;border:1px solid #d7e6e1;border-radius:21px;box-shadow:0 8px 22px #193b4310;padding:18px 23px}.bottom-box h3{margin:0 0 13px;font-size:15px;color:#153b4e}.progress-label{display:flex;justify-content:space-between;font-size:12px;font-weight:900;color:#588088}.progress{background:#e5f1ed;height:11px;border-radius:50px;overflow:hidden;margin:9px 0}.progress>span{height:100%;display:block;background:linear-gradient(90deg,#31bfac,#81dcaa);width:0;border-radius:50px;transition:width .5s}.bottom-box p{font-size:12px;color:#65848a;line-height:1.7;margin:9px 0 0}.upgrade{display:flex;justify-content:space-between;gap:12px;align-items:center}.upgrade b{font-size:12px}.upgrade small{font-size:11px;color:#679095}.upgrade button{padding:11px 17px;border-radius:12px;background:#153b4e;color:white;font-weight:950;font-size:12px}.footer-note{text-align:center;color:#789195;font-size:11px;font-weight:750;margin-top:20px}
+.toast{position:fixed;z-index:20;right:22px;bottom:22px;width:min(400px,calc(100vw - 32px));display:flex;align-items:center;gap:12px;border-radius:22px;padding:14px;background:#fffef9;border:1px solid #e6d7bb;box-shadow:0 22px 90px #1538476e;animation:toastin .34s both}.toast.hidden{display:none}.toast canvas{width:78px;height:78px;background:#e9f3ed;border-radius:14px;flex:none}.toast .info{flex:1;min-width:0}.toast .info b{font-size:15px;display:block;line-height:1.4}.toast .info small{font-size:11px;font-weight:900}.toast .info p{font-size:11px;color:#668187;margin:4px 0 8px}.toast button{font-size:11px;background:#173b4e;color:white;border-radius:11px;padding:9px 12px;font-weight:900}.toast .close{background:#e9f0ed;color:#527478;padding:8px 10px}.event-msg{z-index:9;pointer-events:none;position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);padding:15px 24px;white-space:nowrap;max-width:95%;text-align:center;color:#fff;background:#112f46dc;border:2px solid #d9fcff70;border-radius:17px;box-shadow:0 14px 50px #09294777;font-weight:950;font-size:clamp(17px,2.5vw,27px);opacity:0;transition:opacity .2s}.event-msg.show{opacity:1}.quests{margin:0 20px 20px;padding-top:15px;border-top:1px solid #e0ece8;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.quest{background:#f4faf7;border:1px solid #e4efeb;border-radius:14px;padding:11px 11px 9px;display:flex;flex-direction:column;gap:4px;min-height:95px}.quest-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.quest b{font-size:11px}.quest small{font-size:10px;color:#6a9295;font-weight:750}.quest button{background:#d8efea;color:#306f72;border-radius:10px;padding:6px 9px;font-size:10px;font-weight:900}.quest button.claimable{background:#f9b763;color:#563e2b}.model-slot{display:flex;gap:7px;margin-top:9px}.model-slot button{flex:1;font-size:11px;font-weight:900;background:#ffffffa8;color:#49747c;border-radius:11px;border:1px solid #c9e0d9;padding:9px 5px}
+@keyframes toastin{from{opacity:0;transform:translateY(25px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:1050px){main{grid-template-columns:1fr}.model-panel{display:grid;grid-template-columns:1fr 1fr;gap:0}.model-panel>.panel-head{grid-column:1/-1}.model-frame{max-width:460px;align-self:start}.model-bottom{align-self:center;padding:20px}.model-slot{flex-direction:column}.bottom-row{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.app{padding:13px 10px 45px}header{align-items:center;margin-bottom:12px}.logo{gap:9px}.logo-badge{height:39px;width:39px;border-radius:13px;font-size:20px;box-shadow:0 4px 0 #185a69}.logo h1{font-size:28px}.logo p{font-size:10px;margin:3px 0 0}.status{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.stat{padding:8px 10px;min-width:0;border-radius:14px}.stat b{font-size:16px}.stat small{font-size:9px}.panel{border-radius:21px}.panel-head{padding:15px 14px 10px}.section-label strong{font-size:18px}.ocean-wrap{margin:0 8px;border-radius:15px}.ocean-glass{font-size:9px;padding:7px 9px;left:8px;top:8px}.ocean-wrap canvas{height:auto;aspect-ratio:1000/650}.hint{font-size:10px;bottom:8px;padding:7px 10px}.ocean-bottom{padding:12px;gap:9px}.quests{margin:0 12px 14px;gap:5px}.quest{padding:9px 7px;min-height:88px}.quest b{font-size:9px}.quest small{font-size:9px}.quest button{padding:6px 5px;font-size:9px}.sea-note{font-size:10px}.primary{padding:11px 18px}.model-panel{display:block}.model-frame{max-width:440px;margin:0 auto;max-height:400px}.model-frame canvas{max-height:400px;object-fit:contain}.model-bottom{padding:12px 15px 17px}.model-slot{flex-direction:row}.wardrobe .panel-head{padding:17px 15px 10px}.tabs{padding:0 12px 12px}.closet-meta{padding:0 13px 12px}.inventory{padding:0 11px;gap:7px;grid-template-columns:repeat(3,minmax(0,1fr))}.garment-card{padding:6px 5px 9px;border-radius:13px}.garment-card b{font-size:10px}.bottom-row{grid-template-columns:1fr;gap:10px;margin-top:10px}.bottom-box{padding:16px}.toast{right:9px;bottom:9px;width:calc(100vw - 18px)}}
+
+/* Fishing Battle update */
+.ocean-wrap{touch-action:none}
+.fight-hud{position:absolute;z-index:6;left:50%;bottom:48px;transform:translateX(-50%);width:min(510px,calc(100% - 22px));background:linear-gradient(145deg,#082b41ee,#114b65f5);border:1px solid #ffffff58;box-shadow:0 15px 38px #001d3470;border-radius:18px;color:#fff;padding:13px 18px 12px;pointer-events:none;display:none;backdrop-filter:blur(13px)}
+.fight-hud.show{display:block}
+.fight-head{display:flex;justify-content:space-between;gap:7px;align-items:center;font-size:12px;font-weight:900;margin-bottom:9px}
+.fight-head b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.fight-head b span{font-size:10px;color:#b8eadc;margin-left:4px}
+.fight-head strong{color:#ffe69a;font-size:15px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fight-row{display:flex;gap:11px;align-items:center;margin:7px 0}
+.fight-row>span{min-width:66px;font-size:11px;font-weight:950;color:#d6ede9}
+.fight-track{border:1px solid #ffffff3d;background:#102e43;height:14px;border-radius:99px;flex:1;overflow:hidden}
+.fight-track i{display:block;height:100%;border-radius:99px;transition:width .075s linear}
+.reel-fill{width:0;background:linear-gradient(90deg,#45e7bb,#b1ff80)}
+.tension-fill{width:0;background:linear-gradient(90deg,#5bc5e8,#ffcc81)}
+.fight-call{color:#ffeab9;font-size:11px;font-weight:950;text-align:center;margin-top:8px}
+#castBtn.reeling{background:#ffad57;box-shadow:0 5px 0 #ad643c;color:#133746}
+#castBtn{user-select:none;-webkit-user-select:none;touch-action:none}
+@media(max-width:620px){.fight-hud{bottom:37px;padding:9px 11px;border-radius:13px}.fight-head{font-size:10px}.fight-row{margin:5px 0}.fight-row>span{font-size:10px;min-width:58px}.fight-track{height:11px}.fight-call{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。海から始まるファッション。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
+<main>
+<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かんでいる服をタップすると釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服をタップして狙おう！ ヒット後は長押し！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → ヒットしたら長押し ／ 離して張りを調整<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div></section>
+<section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>STYLE SCORE</small><b id="score">0</b><span class="rank" id="rank">C</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
+</main>
+<section class="panel wardrobe"><div class="panel-head"><div class="section-label">03 / COLLECTION<strong>釣った服のクローゼット</strong></div><span class="mini-tag" id="itemSummary">所持 0着</span></div><div class="tabs" id="tabs"><button class="tab active" data-cat="all">すべて</button><button class="tab" data-cat="top">トップス</button><button class="tab" data-cat="bottom">ボトムス</button><button class="tab" data-cat="dress">ワンピース</button><button class="tab" data-cat="outer">アウター</button><button class="tab" data-cat="shoes">シューズ</button><button class="tab" data-cat="hat">帽子</button><button class="tab" data-cat="acc">小物</button><button class="tab" data-cat="under">パンツ</button></div><div class="closet-meta"><span id="filterInfo">まだ服がありません。まずは海へ！</span><div class="filters"><select id="sort"><option value="new">新しく釣った順</option><option value="rare">レア順</option><option value="type">種類順</option></select></div></div><div id="inventory" class="inventory"></div><button id="moreBtn" class="more" hidden>さらに表示</button></section>
+<div class="bottom-row"><section class="bottom-box"><h3>10,000着コレクション</h3><div class="progress-label"><span>図鑑の発見率</span><span id="percent">0.00%</span></div><div class="progress"><span id="progressFill"></span></div><p>トップス2,000／ボトムス1,900／ワンピース1,200／アウター1,000／靴1,300／帽子850／小物1,050／パンツ700。色・形・柄の組み合わせはすべて固有です。</p></section><section class="bottom-box"><h3>釣りざおショップ</h3><div class="upgrade"><div><b>レア服を狙う確率UP</b><br><small id="rodLevel">釣りざお Lv.1 ／ レア率 標準</small></div><button id="upgradeBtn">◈ <span id="upgradeCost">100</span> 強化</button></div><p>重複して釣れた服はコインに交換。強化するとレア衣装が出やすくなります。</p></section></div>
+<div class="footer-note">CLOSET CATCH / ブラウザ保存対応・オフラインプレイ可・全年齢向け</div>
+</div>
+<div id="toast" class="toast hidden"><canvas id="toastCanvas" width="120" height="120"></canvas><div class="info"><small id="toastRare">NEW!</small><b id="toastName"></b><p id="toastText">クローゼットに追加！</p><button id="equipBtn">いま着る</button> <button id="toastClose" class="close">とじる</button></div></div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), ocean=$('ocean'), sea=ocean.getContext('2d'), model=$('model'), mc=model.getContext('2d');
+const W=1000,H=545,TOTAL=10000,SAVE_KEY='closetcatch_save_v1';
+const conf=[
+ {cat:'top',label:'トップス',count:2000,styles:['Tシャツ','パーカー','シャツ','ニット','タンクトップ','ラグラン','セーラー','ポロ'],colors:25},
+ {cat:'bottom',label:'ボトムス',count:1900,styles:['デニム','スカート','ショートパンツ','カーゴ','ワイドパンツ','フレア','プリーツ','ジョガー','オーバーオール','チノ'],colors:19},
+ {cat:'dress',label:'ワンピース',count:1200,styles:['Aラインドレス','サロペット','ジャンパースカート','ロングワンピ','チュニック','フリルドレス'],colors:20},
+ {cat:'outer',label:'アウター',count:1000,styles:['ジャケット','ロングコート','カーディガン','ブルゾン','ポンチョ'],colors:20},
+ {cat:'shoes',label:'シューズ',count:1300,styles:['スニーカー','ブーツ','ローファー','サンダル','ハイカット'],colors:26},
+ {cat:'hat',label:'帽子',count:850,styles:['キャップ','ベレー帽','ニット帽','バケットハット','麦わら帽子'],colors:17},
+ {cat:'acc',label:'アクセサリー',count:1050,styles:['サングラス','バッグ','スカーフ','ネックレス','ヘッドホン','リボン','腕時計'],colors:15},
+ {cat:'under',label:'パンツ',count:700,styles:['ボクサー','トランクス','水着','ドットパンツ','ボーダーパンツ'],colors:14}
+];
+const palettes=[['ソーダ','#49bfd4'],['サクラ','#f18b9a'],['ミッドナイト','#243955'],['バニラ','#f6e4b8'],['グリーンティー','#4daa7a'],['レモン','#eddb64'],['ラベンダー','#af92d7'],['テラコッタ','#c46b55'],['スノー','#f2f5ed'],['ベリー','#b94171'],['オレンジ','#f3a04c'],['ミント','#95dab8'],['インディゴ','#4369aa'],['チョコ','#755044'],['スカイ','#8ac7ea'],['ライム','#acd957'],['アクア','#2da6a4'],['サンセット','#ef7777'],['サンド','#c6aa89'],['チャコール','#494f60'],['コーラル','#ffac9f'],['アメジスト','#7854a4'],['マスタード','#bda342'],['ピーチ','#efbe9f'],['ターコイズ','#2d9fbd'],['チェリー','#b8364c']];
+const patterns=[['無地','plain'],['ストライプ','stripe'],['ドット','dots'],['チェック','check'],['スター','star'],['フラワー','flower'],['タイダイ','tie'],['ウェーブ','wave'],['ダイヤ','diamond'],['ドローイング','scribble']];
+const rarityNames=['NORMAL','RARE','SUPER RARE','LEGEND'],rareSymbols=['N','R','SR','SSR'],rareColors=['#b8d9d5','#4eafd6','#b57cf6','#ffc665'];
+const byCat={}, catalog=[], rarityPools=[[],[],[],[]];let start=0;
+function hash(n){n=(n^0x9e3779b9)>>>0;n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;return (n^(n>>>16))>>>0}
+for(const cfg of conf){byCat[cfg.cat]=cfg;for(let i=0;i<cfg.count;i++){const a=cfg.styles.length,b=cfg.colors;let style=i%a,color=Math.floor(i/a)%b,pattern=Math.floor(i/(a*b))%10;const n=start+i;let r=hash(n+597)%10000;const rarity=r<100?3:r<750?2:r<3000?1:0;const item={id:n,cat:cfg.cat,idx:i,style,color,pattern,rarity,rarityLabel:rareSymbols[rarity],name:`${palettes[color][0]}${patterns[pattern][0]}の${cfg.styles[style]}`,hue:color};catalog.push(item);rarityPools[rarity].push(n)}start+=cfg.count}
+console.assert(catalog.length===TOTAL,'10,000種類が生成されていません');
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[]});
+let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;
+let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
+function gradient(ctx,x,y,r,c1,c2){let g=ctx.createRadialGradient(x-r*.3,y-r*.45,2,x,y,r);g.addColorStop(0,c1);g.addColorStop(1,c2);return g}
+function round(ctx,x,y,w,h,r,fill,stroke){if(w<=0||h<=0)return;ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function path(ctx,arr){ctx.beginPath();arr.forEach((pt,i)=>{if(i===0)ctx.moveTo(pt[0],pt[1]);else ctx.lineTo(pt[0],pt[1])});ctx.closePath()}
+function ellipse(ctx,x,y,rx,ry,color){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
+function textShadow(ctx,text,x,y,size,color,stroke='#133e51',lw=3){ctx.font=`900 ${size}px "Yu Gothic",sans-serif`;ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeText(text,x,y);ctx.fillStyle=color;ctx.fillText(text,x,y)}
+function colorOf(item){return palettes[item?.color??0][1]}
+function tint(hex,f){let n=parseInt(hex.slice(1),16);let c=[(n>>16)&255,(n>>8)&255,n&255];return '#'+c.map(v=>clamp(Math.round(v+(f>0?(255-v)*f:v*f)),0,255).toString(16).padStart(2,'0')).join('')}
+function patternFill(ctx,item,bounds,mask){if(!item)return;const {x,y,w,h}=bounds;ctx.save();ctx.clip(mask);let base=colorOf(item);let g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,tint(base,.17));g.addColorStop(.55,base);g.addColorStop(1,tint(base,-.24));ctx.fillStyle=g;ctx.fillRect(x,y,w,h);let bright=tint(base,.55),dark=tint(base,-.35);ctx.lineWidth=3;
+ const kind=item.pattern;ctx.strokeStyle=dark+'7e';ctx.fillStyle=bright+'bb';
+ if(kind===1||kind===3){for(let i=-h;i<w+h;i+=kind===1?17:23){ctx.beginPath();ctx.moveTo(x+i,y);ctx.lineTo(x+i+h*.35,y+h);ctx.lineWidth=kind===1?5:2;ctx.stroke()}}
+ if(kind===2||kind===5){for(let yy=y+11;yy<y+h;yy+=18)for(let xx=x+12;xx<x+w;xx+=20){let ex=xx+(Math.floor((yy-y)/18)%2)*9;ellipse(ctx,ex,yy,kind===2?4:3,kind===2?4:7,bright+'d5');if(kind===5){ellipse(ctx,ex,yy,6,2,dark+'55');ellipse(ctx,ex+1,yy,2,2,'#efc34d')}}}
+ if(kind===3){ctx.strokeStyle=bright+'aa';for(let j=0;j<h;j+=23){ctx.beginPath();ctx.moveTo(x,y+j);ctx.lineTo(x+w,y+j);ctx.stroke()}}
+ if(kind===4){for(let yy=y+16;yy<y+h;yy+=26)for(let xx=x+15;xx<x+w;xx+=26){ctx.fillStyle=bright+'e0';star(ctx,xx,yy,7,3,5);ctx.fill()}}
+ if(kind===6){for(let j=0;j<12;j++){let q=hash(item.id*19+j);ellipse(ctx,x+q%Math.max(1,Math.floor(w)),y+(q>>>8)%Math.max(1,Math.floor(h)),13+(q>>>15)%23,6+(q>>>22)%18,(j%2?bright:dark)+'59')}}
+ if(kind===7){ctx.strokeStyle=bright+'a0';for(let yy=y;yy<y+h;yy+=22){ctx.beginPath();for(let xx=x-10;xx<x+w+10;xx+=4){let vy=yy+Math.sin((xx-x)*.065)*5;if(xx===x-10)ctx.moveTo(xx,vy);else ctx.lineTo(xx,vy)}ctx.stroke()}}
+ if(kind===8){ctx.strokeStyle=bright+'bb';for(let yy=y;yy<y+h;yy+=22)for(let xx=x;xx<x+w;xx+=22){path(ctx,[[xx,yy-8],[xx+8,yy],[xx,yy+8],[xx-8,yy]]);ctx.stroke()}}
+ if(kind===9){ctx.strokeStyle=bright+'dd';for(let j=0;j<14;j++){let q=hash(item.id*37+j);let xx=x+q%Math.max(1,Math.floor(w)),yy=y+(q>>>10)%Math.max(1,Math.floor(h));ctx.beginPath();ctx.arc(xx,yy,5+(q>>>20)%8,(q%90)/100,2.8);ctx.stroke()}}
+ ctx.restore()}
+function star(ctx,cx,cy,r1,r2,n){ctx.beginPath();for(let i=0;i<n*2;i++){const a=i*Math.PI/n-Math.PI/2,r=i%2?r2:r1;let x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath()}
+function garmentShape(ctx,cat,style){ctx.beginPath();switch(cat){
+case 'top':{let slee=style===4?0:style===2?16:style===1?23:17;path(ctx,[[ -19,-31],[-32,-21],[-32-slee,-10],[-27-slee,8],[-27,0],[-26,34],[26,34],[27,0],[27+slee,8],[32+slee,-10],[32,-21],[19,-31],[12,-24],[-12,-24]]);break}
+case 'bottom':{if(style===1||style===5||style===6){path(ctx,[[-27,-31],[27,-31],[style===5?38:34,34],[-(style===5?38:34),34]])}else{let short=style===2?9:34;path(ctx,[[-27,-31],[27,-31],[29,short], [4,short],[0,-6],[-4,short],[-29,short]])}break}
+case 'dress':path(ctx,[[-17,-33],[-31,-22],[-38,-7],[-22,0],[-42,35],[42,35],[22,0],[38,-7],[31,-22],[17,-33],[9,-24],[-9,-24]]);break;
+case 'outer':path(ctx,[[-19,-33],[-35,-25],[-51,3],[-34,12],[-27,-3],[-31,39],[-2,39],[0,-7],[2,39],[31,39],[27,-3],[34,12],[51,3],[35,-25],[19,-33],[9,-23],[-9,-23]]);break;
+case 'shoes':path(ctx,[[-33,-3],[-6,-3],[1,13],[-2,25],[-41,25],[-45,16],[-33,-3]]);break;
+case 'hat':if(style===0||style===3){path(ctx,[[-29,5],[-27,-12],[-16,-28],[16,-28],[27,-12],[29,5],[39,9],[39,16],[-39,16],[-39,9]])}else if(style===1){ctx.ellipse(0,-2,36,23,-.08,0,2*Math.PI)}else{path(ctx,[[-28,12],[-24,-24],[-12,-34],[15,-34],[26,-21],[29,12]])}break;
+case 'acc':if(style===0||style===4){ctx.ellipse(0,0,33,17,0,0,2*Math.PI)}else if(style===1){path(ctx,[[-30,-10],[30,-10],[34,31],[-34,31]])}else if(style===6){path(ctx,[[-17,-10],[17,-10],[18,10],[-18,10]])}else{path(ctx,[[-8,-30],[12,-18],[10,29],[-15,21]])}break;
+case 'under':path(ctx,[[-29,-18],[29,-18],[27,25],[5,25],[0,9],[-5,25],[-27,25]]);break;
+}}
+function drawGarment(ctx,item,x,y,size,rotation=0){if(!item)return;ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.scale(size/115,size/115);ctx.shadowColor='#123f4f33';ctx.shadowBlur=10;ctx.shadowOffsetY=5;garmentShape(ctx,item.cat,item.style);const mask=new Path2D(); // traced from current shape via offscreen context-independent generated below
+ ctx.fillStyle=colorOf(item);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.save();ctx.clip();patternRect(ctx,item,-70,-65,140,130);ctx.restore();ctx.lineWidth=3;ctx.strokeStyle=tint(colorOf(item),-.3);ctx.stroke();
+ if(['top','outer','dress'].includes(item.cat)){ctx.beginPath();ctx.moveTo(-12,-26);ctx.quadraticCurveTo(0,-9,12,-26);ctx.strokeStyle=tint(colorOf(item),-.5);ctx.lineWidth=3;ctx.stroke()}
+ if(item.cat==='shoes'){ctx.beginPath();ctx.moveTo(-40,17);ctx.lineTo(-4,17);ctx.strokeStyle='#f5eee2';ctx.lineWidth=5;ctx.stroke();ctx.save();ctx.scale(-1,1);ctx.translate(49,-4);garmentShape(ctx,'shoes',item.style);ctx.fillStyle=tint(colorOf(item),-.05);ctx.fill();ctx.strokeStyle=tint(colorOf(item),-.3);ctx.lineWidth=2;ctx.stroke();ctx.restore()}
+ ctx.restore()}
+function patternRect(ctx,item,x,y,w,h){const k=item.pattern,c=colorOf(item),bright=tint(c,.55),dark=tint(c,-.35);ctx.save();ctx.fillStyle=bright+'61';ctx.strokeStyle=bright+'a9';ctx.lineWidth=2;
+ if(k===1||k===3){for(let p=-h;p<w+h;p+=k===1?18:22){ctx.beginPath();ctx.moveTo(x+p,y);ctx.lineTo(x+p+h*.35,y+h);ctx.lineWidth=k===1?5:2;ctx.stroke()}}
+ if(k===2||k===5){for(let py=y+9;py<y+h;py+=18)for(let px=x+9;px<x+w;px+=19){if(k===2)ellipse(ctx,px,py,3.5,3.5,bright);else{ellipse(ctx,px,py,5,3,bright);ellipse(ctx,px,py,2,2,'#ffe4a5')}}}
+ if(k===3){ctx.strokeStyle=dark+'7f';for(let py=y+9;py<y+h;py+=22){ctx.beginPath();ctx.moveTo(x,py);ctx.lineTo(x+w,py);ctx.stroke()}}
+ if(k===4){ctx.fillStyle=bright+'cb';for(let py=y+16;py<y+h;py+=27)for(let px=x+17;px<x+w;px+=27){star(ctx,px,py,6,2.5,5);ctx.fill()}}
+ if(k===6){for(let p=0;p<15;p++){let hsh=hash(item.id*47+p);ellipse(ctx,x+hsh%w,y+(hsh>>>8)%h,5+(hsh>>>16)%14,4+(hsh>>>20)%10,(p%2?bright:dark)+'7e')}}
+ if(k===7){for(let py=y+5;py<y+h;py+=20){ctx.beginPath();for(let px=x;px<x+w;px+=4){let yy=py+Math.sin(px*.15)*5;if(px===x)ctx.moveTo(px,yy);else ctx.lineTo(px,yy)}ctx.stroke()}}
+ if(k===8){for(let py=y+8;py<y+h;py+=22)for(let px=x+8;px<x+w;px+=22){path(ctx,[[px,py-8],[px+8,py],[px,py+8],[px-8,py]]);ctx.stroke()}}
+ if(k===9){for(let p=0;p<19;p++){let hsh=hash(item.id*61+p);ctx.beginPath();ctx.arc(x+hsh%w,y+(hsh>>>10)%h,4+(hsh>>>19)%6,0,2.4);ctx.stroke()}}
+ ctx.restore()}
+function pickRandomItem(){let w=[72,22,5.3,.7];let mul=st.rod-1;w=[Math.max(33,w[0]-mul*9),w[1]+mul*4,w[2]+mul*3.8,w[3]+mul*1.2];let sum=w.reduce((a,b)=>a+b,0),n=Math.random()*sum,r=0;for(let k=0;k<4;k++){r+=w[k];if(n<=r)return catalog[pick(rarityPools[k])]}return catalog[pick(rarityPools[0])]}
+function spawnSeaItem(skipIds=[]){let tries=0,it;do{it=pickRandomItem();tries++}while(tries<15&&skipIds.includes(it.id));return {item:it,x:rand(120,930),y:rand(240,491),vx:rand(-.14,.14),phase:rand(0,6.28),scale:rand(.9,1.1),born:performance.now()}}
+for(let i=0;i<17;i++)sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id)));
+const snd=()=>{try{return new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}};let audio=null;
+function tone(freq=500,dur=.1,type='sine',vol=.08,delay=0){if(!st.sound)return;try{audio=audio||snd();if(audio.state==='suspended')audio.resume();const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+dur+.03)}catch(e){}}
+function sfxCatch(r){[392,494,587,784].slice(0,Math.max(2,r+1)).forEach((f,i)=>tone(f,.16,'sine',.06,i*.09))}
+function bubble(x,y,n=18,c='#c9fff3'){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-4.3,4.3),vy:rand(-5,-.6),life:rand(25,66),max:66,r:rand(2,7),color:c,gravity:rand(.01,.07)})}
+function showEvent(t,d=1300){const el=$('eventMsg');el.textContent=t;el.classList.add('show');clearTimeout(noticeTimeout);noticeTimeout=setTimeout(()=>el.classList.remove('show'),d)}
+function popup(item,duplicate){pendingItem=item;const t=$('toast');t.classList.remove('hidden');$('toastRare').textContent=(duplicate?'DUPLICATE · ':'NEW GET · ')+rarityNames[item.rarity];$('toastRare').style.color=rareColors[item.rarity];$('toastName').textContent=item.name;$('toastText').textContent=duplicate?'同じ服なのでコインに交換！':'クローゼットに追加しました';$('equipBtn').textContent=st.equip[item.cat]===item.id?'着用中':'いま着る';$('equipBtn').disabled=duplicate&&!ownSet.has(item.id);drawGarmentCard($('toastCanvas'),item);clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.add('hidden'),7000)}
+function redrawUI(){ownSet=new Set(st.owned);$('count').textContent=st.owned.length.toLocaleString('ja-JP');$('coins').textContent=st.coins.toLocaleString('ja-JP');$('casts').textContent=st.casts.toLocaleString('ja-JP');$('itemSummary').textContent=`所持 ${st.owned.length}着`;$('percent').textContent=(st.owned.length/100).toFixed(2)+'%';$('progressFill').style.width=(st.owned.length/100)+'%';$('rodLevel').textContent=`釣りざお Lv.${st.rod} ／ レア率 ${st.rod===1?'標準':'アップ中'}`;$('upgradeCost').textContent=(st.rod*100).toLocaleString('ja-JP');$('upgradeBtn').disabled=st.coins<st.rod*100||st.rod>=8;$('upgradeBtn').title=st.rod>=8?'最大強化済み':'';$('comboLabel').textContent=`連続キャッチ ${st.combo}`;renderQuests();$('hint').style.display=st.catches?'none':'block';renderModel();renderInventory();save()}
+function scoreOutfit(){const slots=Object.values(st.equip).filter(x=>x!==null).map(x=>catalog[x]);if(!slots.length)return 0;let base=slots.reduce((n,item)=>n+[70,125,230,450][item.rarity],0);let cats=new Set(slots.map(x=>x.cat));if(cats.has('top')&&cats.has('bottom'))base+=120;if(cats.has('dress'))base+=140;if(cats.has('shoes'))base+=65;if(cats.has('hat'))base+=40;if(cats.has('acc'))base+=35;if(cats.has('outer'))base+=55;
+ const colors=slots.filter(x=>x.cat!=='under').map(x=>x.color);if(colors.length>1){let dist=0;for(let i=1;i<colors.length;i++)dist+=Math.min(Math.abs(colors[i]-colors[0]),26-Math.abs(colors[i]-colors[0]));base+=Math.max(0,130-Math.round(dist*7))}return base}
+function equipItem(item){if(!ownSet.has(item.id))return;st.equip[item.cat]=st.equip[item.cat]===item.id?null:item.id;if(item.cat==='dress'&&st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}if(['top','bottom'].includes(item.cat)&&st.equip[item.cat]!==null)st.equip.dress=null;redrawUI();tone(620,.1,'sine',.06);tone(780,.14,'sine',.05,.09)}
+function undress(trigger=false){for(let k of Object.keys(st.equip))st.equip[k]=null;redrawUI();if(trigger)showEvent('風でコーデが全部飛んだ！パンツ一丁！',2300)}
+function catchItem(sceneItem){const item=sceneItem.item;const duplicate=ownSet.has(item.id);st.catches++;sessionCatch++;st.combo++;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity]);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
+ popup(item,duplicate);
+ // A rare, optional slapstick surprise: everything remains in the inventory.
+ if(st.catches>10&&st.catches%15===0&&Math.random()<.17&&Object.values(st.equip).some(x=>x!==null)){setTimeout(()=>undress(true),1600)}
+ sceneItems=sceneItems.filter(s=>s!==sceneItem);setTimeout(()=>{sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id)))},400);redrawUI()}
+function castAt(x,y){
+ if(hook.active)return;
+ st.casts++;let selected=null,best=10000;
+ for(const s of sceneItems){const d=Math.hypot(s.x-x,s.y+Math.sin(animTime*.002+s.phase)*6-y);if(d<best){best=d;selected=s}}
+ if(best>108)selected=null;
+ Object.assign(hook,{active:true,stage:1,progress:0,chosen:selected,targetX:selected?selected.x:x,targetY:selected?selected.y:y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false});
+ focus=selected;tone(260,.13,'triangle',.06);updateFishingHud();redrawUI()
+}
+function endFight(caught,reason){
+ if(hook.stage!==2)return;
+ hook.stage=3;hook.progress=0;hook.result=caught;hook.pull=false;
+ if(caught){showEvent('CATCH! 服を釣り上げた！',850);bubble(hook.x,hook.y,18,rareColors[hook.chosen.item.rarity]);tone(720,.18,'sine',.07)}
+ else{st.combo=0;showEvent(reason||'逃げられた！ もう一度！',1500);bubble(hook.x,hook.y,12,'#fff4bf');tone(155,.28,'sawtooth',.045)}
+ updateFishingHud()
+}
+function finishCast(){
+ const caught=hook.result&&hook.chosen&&sceneItems.includes(hook.chosen);
+ const selected=hook.chosen;
+ Object.assign(hook,{active:false,stage:0,progress:0,pull:false,chosen:null,result:false});
+ focus=null;
+ if(caught){catchItem(selected)}
+ else{if(selected===null)showEvent('空振り！服の近くをタップ',1350);redrawUI()}
+ updateFishingHud()
+}
+function updateFishingHud(){
+ const fighting=hook.active&&hook.stage===2;
+ $('fightHud').classList.toggle('show',fighting);
+ $('castBtn').textContent=fighting?'長押しで引く！':hook.active?'仕掛けを操作中…':'ランダムにキャスト';
+ $('castBtn').classList.toggle('reeling',fighting&&hook.pull);
+ if(!fighting)return;
+ const item=hook.chosen.item;
+ $('fishName').textContent=item.name;
+ $('reelFill').style.width=clamp(hook.reel,0,100)+'%';
+ $('tensionFill').style.width=clamp(hook.tension,0,100)+'%';
+ $('tensionFill').style.background=hook.tension>75?'linear-gradient(90deg,#ffbb64,#ff506a)':'linear-gradient(90deg,#5bc5e8,#ffcc81)';
+ $('fightClock').textContent=Math.max(0,hook.limit-hook.elapsed).toFixed(1)+'秒';
+ $('fightCall').textContent=hook.pull?(hook.tension>72?'危険！ 指を離して糸を緩めよう':hook.surge?'抵抗中！ 強く引きすぎ注意':'引き寄せ中！'):hook.tension>36?'糸を休ませている…':'長押しで引く ／ 離して糸を緩める';
+}
+function updateGame(dt){
+ for(const s of sceneItems){s.x+=s.vx*dt*.055;if(s.x<80||s.x>955)s.vx*=-1}
+ for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt*.07;p.y+=p.vy*dt*.07;p.vy+=p.gravity*dt*.07;p.life-=dt*.065;if(p.life<=0)particles.splice(i,1)}
+ for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.r+=dt*.12;r.a-=dt*.0012;if(r.a<=0)ripples.splice(i,1)}
+ if(!hook.active)return;
+ const sec=dt/1000;
+ if(hook.stage===1){
+  hook.progress+=dt/620;
+  const p=clamp(hook.progress,0,1),e=1-Math.pow(1-p,2);
+  hook.x=204+(hook.targetX-204)*e;hook.y=149+(hook.targetY-149)*e-Math.sin(p*Math.PI)*35;
+  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=15+hook.chosen.item.rarity*1.8+st.rod*.65;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
+ }else if(hook.stage===2){
+  const r=hook.chosen.item.rarity;
+  hook.elapsed+=sec;
+  hook.surge=Math.sin(hook.elapsed*(2.5+r*.35)+hook.chosen.phase)>0.76;
+  const rhythm=(Math.sin(hook.elapsed*4.5+hook.chosen.phase)+1)*.5;
+  if(hook.pull){
+   hook.reel+=(24+st.rod*2.5-r*3.5+(rhythm>.77?9:0)-(hook.surge?9:0))*sec;
+   hook.tension+=(24+r*7+(hook.surge?30:0)-st.rod*2)*sec;
+   if(Math.random()<sec*11)bubble(hook.x,hook.y,1,'#fdf7a9');
+  }else{hook.reel-=(1.4+r*.6)*sec;hook.tension-=(55+st.rod*2.5)*sec}
+  hook.reel=clamp(hook.reel,0,100);hook.tension=clamp(hook.tension,0,105);
+  hook.x=hook.targetX+Math.sin(hook.elapsed*(3+r*.8))*((1-hook.reel/110)*17);
+  hook.y=hook.targetY+Math.sin(hook.elapsed*(5.5+r))*(5+8*(1-hook.reel/100));
+  if(hook.reel>=100)endFight(true);
+  else if(hook.tension>=100)endFight(false,'糸が切れた！引く・緩めるを切り替えよう');
+  else if(hook.elapsed>=hook.limit)endFight(false,'時間切れ！手早く引き寄せよう');
+  updateFishingHud()
+ }else if(hook.stage===3){
+  hook.progress+=dt/500;
+  const p=clamp(hook.progress,0,1);
+  hook.x=hook.targetX+(204-hook.targetX)*p;hook.y=hook.targetY+(149-hook.targetY)*p;
+  if(p>=1)finishCast()
+ }
+}
+function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#73cad4');bg.addColorStop(.29,'#b3e7da');bg.addColorStop(.3,'#69c1cb');bg.addColorStop(1,'#0d6582');sea.fillStyle=bg;sea.fillRect(0,0,W,H);
+ // distant islands and stylized coastal buildings
+ ellipse(sea,790,76,69,70,'#ffe8a8');ellipse(sea,790,76,51,52,'#fff2c5');
+ sea.fillStyle='#599db0';path(sea,[[0,153],[75,123],[125,134],[175,121],[221,155],[324,156],[372,135],[460,153],[570,158],[630,139],[715,154],[1000,145],[1000,165],[0,165]]);sea.fill();
+ sea.fillStyle='#457f94';path(sea,[[0,166],[33,151],[84,152],[138,166],[252,161],[291,144],[356,163],[420,165],[1000,161],[1000,178],[0,178]]);sea.fill();
+ // tiny harbor houses
+ for(let k=0;k<7;k++){let px=380+k*85,py=148+Math.sin(k*2)*5;round(sea,px,py-14,23,22,2,k%2?'#ffdfb2':'#ebc6b4');path(sea,[[px-5,py-14],[px+12,py-25],[px+28,py-14]]);sea.fillStyle='#cd7979';sea.fill()}
+ // clouds
+ for(let k=0;k<5;k++){let xx=(k*240+t*6)%1240-120,yy=55+(k%3)*24;ellipse(sea,xx,yy,40,12,'#f4fff6c7');ellipse(sea,xx-19,yy-4,20,12,'#f4fff6c7');ellipse(sea,xx+12,yy-7,26,13,'#f4fff6c7')}
+ // ocean depths
+ let depth=sea.createLinearGradient(0,165,0,H);depth.addColorStop(0,'#6cc7c5cc');depth.addColorStop(.38,'#278aa6de');depth.addColorStop(1,'#0a5273ef');sea.fillStyle=depth;sea.fillRect(0,165,W,H-165);
+ // glinting waves
+ for(let k=0;k<80;k++){const seed=hash(k+24),x=(seed%1030+t*(k%3+1)*1.7)%1050-30,y=183+((seed>>>9)%345),length=13+((seed>>>17)%44),alpha=.11+((seed>>>22)%15)/100;sea.strokeStyle=`rgba(223,255,232,${alpha})`;sea.lineWidth=(k%3===0?2:1.1);sea.beginPath();sea.moveTo(x,y+Math.sin(t*2+k)*2);sea.quadraticCurveTo(x+length/2,y-3,x+length,y);sea.stroke()}
+ // ocean light shafts
+ for(let k=0;k<6;k++){let xx=240+k*165;sea.fillStyle='rgba(224,255,242,.032)';path(sea,[[xx,164],[xx+26,164],[xx+150,H],[xx+54,H]]);sea.fill()}
+ // bubbles
+ for(let k=0;k<24;k++){let seed=hash(300+k),xx=seed%1000,yy=(seed>>>12)%360+196,sz=2+(seed>>>21)%4;let move=(t*(5+k%7))%400;sea.strokeStyle='#b9fae954';sea.lineWidth=1.5;sea.beginPath();sea.arc(xx,196+((yy-196-move+350)%350),sz,0,2*Math.PI);sea.stroke()}
+ // small boat + fishing character (fisher points toward the sea)
+ sea.save();sea.translate(203,142+Math.sin(t*2)*2.2);ellipse(sea,0,37,95,10,'#0d52746f');
+ path(sea,[[-79,0],[68,0],[50,35],[-57,35]]);sea.fillStyle='#173c52';sea.fill();sea.lineWidth=4;sea.strokeStyle='#f3b778';sea.beginPath();sea.moveTo(-72,2);sea.lineTo(63,2);sea.stroke();
+ round(sea,-47,-20,90,22,7,'#ecddba');round(sea,-6,-49,7,32,3,'#6b5550');path(sea,[[0,-77],[0,-31],[45,-31]]);sea.fillStyle='#fff2df';sea.fill();
+ ellipse(sea,-37,-24,15,16,'#f4ba8f');ellipse(sea,-35,-40,20,8,'#233d55');round(sea,-53,-15,29,20,5,'#f58669');sea.strokeStyle='#26465c';sea.lineWidth=5;sea.beginPath();sea.moveTo(-19,-9);sea.lineTo(8,7);sea.stroke();
+ // fishing pole
+ sea.strokeStyle='#513d43';sea.lineWidth=4;sea.beginPath();sea.moveTo(6,7);sea.lineTo(2,-46);sea.stroke();sea.restore();
+ // boat string and target hook
+ sea.save();sea.strokeStyle='#f8f7d0';sea.lineWidth=2;sea.setLineDash([5,3]);sea.beginPath();sea.moveTo(204,149);sea.quadraticCurveTo(290,(149+hook.y)/2,hook.x,hook.y);sea.stroke();sea.setLineDash([]);sea.translate(hook.x,hook.y);sea.strokeStyle='#17374b';sea.lineWidth=4;sea.beginPath();sea.moveTo(0,0);sea.lineTo(1,17);sea.quadraticCurveTo(16,25,18,9);sea.stroke();sea.restore();
+ // seabed vegetation
+ for(let k=0;k<26;k++){let x=(hash(k+888)%1000),y=H+15,sz=20+(hash(k+229)%40);sea.strokeStyle=k%2?'#176c75ac':'#1e837d9a';sea.lineWidth=3;sea.beginPath();sea.moveTo(x,y);sea.quadraticCurveTo(x-12,y-sz/2,x+Math.sin(t+k)*7,y-sz);sea.stroke()}
+ // underwater catchable clothing icons
+ for(const s of sceneItems){const yy=s.y+Math.sin(t*2.1+s.phase)*6;let active=focus===s;let glow=rareColors[s.item.rarity];sea.save();sea.translate(s.x,yy);sea.scale(s.scale,s.scale);if(s.item.rarity>1||active){sea.shadowColor=glow;sea.shadowBlur=26+Math.sin(t*5+s.phase)*5}
+ sea.fillStyle=gradient(sea,0,0,45,active?'#ffffffef':'#effff3e8','#ffffff33');sea.strokeStyle=active?'#ffffff':glow+'ca';sea.lineWidth=active?5:2;sea.beginPath();sea.arc(0,0,42,0,2*Math.PI);sea.fill();sea.stroke();sea.shadowBlur=0;drawGarment(sea,s.item,0,0,58,Math.sin(t*1.6+s.phase)*.09);if(s.item.rarity>=2){sea.fillStyle=glow;star(sea,33,-34,8,3,5);sea.fill()}sea.restore()}
+ for(const r of ripples){sea.beginPath();sea.arc(r.x,r.y,r.r,0,Math.PI*2);sea.lineWidth=2;sea.strokeStyle=`rgba(230,255,240,${r.a})`;sea.stroke()}
+ for(const p of particles){sea.globalAlpha=clamp(p.life/p.max,0,1);sea.fillStyle=p.color;ellipse(sea,p.x,p.y,p.r,p.r*.8,p.color)}sea.globalAlpha=1;
+ if(hook.active&&hook.stage===2&&hook.chosen){drawGarment(sea,hook.chosen.item,hook.x,hook.y+24,42,Math.sin(t*12)*.2)}
+}
+function skin(){return '#e7ad83'}
+function drawModel(){let ctx=mc,t=animTime*.001;ctx.clearRect(0,0,440,510);
+ // fashion editorial background
+ let bg=ctx.createLinearGradient(0,0,440,510);bg.addColorStop(0,'#effaf3');bg.addColorStop(1,'#e0e8d5');ctx.fillStyle=bg;ctx.fillRect(0,0,440,510);ctx.strokeStyle='#c8e6dc';ctx.lineWidth=1;for(let x=0;x<440;x+=35){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x-80,510);ctx.stroke()}
+ ellipse(ctx,228,226,155,202,'#fdfff5dd');ellipse(ctx,225,476,125,21,'#a5b9ae8a');round(ctx,130,467,196,11,5,'#fff6e3');
+ // decorative background labels
+ ctx.save();ctx.translate(62,155);ctx.rotate(-Math.PI/2);ctx.fillStyle='#7db1a8a0';ctx.font='900 13px sans-serif';ctx.fillText('THE DAILY LOOK',0,0);ctx.restore();ctx.fillStyle='#7caea9';ctx.font='900 12px sans-serif';ctx.fillText('NO. 0001',336,35);
+ ctx.save();ctx.translate(0,Math.sin(t*2)*2);
+ // behind hair
+ ellipse(ctx,212,123,59,74,'#253d47');ellipse(ctx,238,140,36,57,'#253d47');
+ // back legs
+ ctx.fillStyle=skin();ctx.strokeStyle='#cf8e72';ctx.lineWidth=2;round(ctx,185,325,28,132,13,skin());round(ctx,229,325,28,132,13,skin());
+ // body
+ let sg=ctx.createLinearGradient(150,190,285,355);sg.addColorStop(0,'#f5c69d');sg.addColorStop(.8,skin());ctx.fillStyle=sg;path(ctx,[[182,207],[255,207],[267,284],[253,348],[183,348],[173,277]]);ctx.fill();ctx.strokeStyle='#d6a182';ctx.lineWidth=2;ctx.stroke();
+ // arms
+ ctx.lineCap='round';ctx.strokeStyle='#e9b18b';ctx.lineWidth=25;ctx.beginPath();ctx.moveTo(178,232);ctx.lineTo(157,311);ctx.lineTo(148,352);ctx.stroke();ctx.beginPath();ctx.moveTo(263,235);ctx.lineTo(287,309);ctx.lineTo(293,350);ctx.stroke();ctx.strokeStyle='#ffd1a4';ctx.lineWidth=16;ctx.beginPath();ctx.moveTo(175,228);ctx.lineTo(156,313);ctx.stroke();ctx.beginPath();ctx.moveTo(264,229);ctx.lineTo(287,312);ctx.stroke();
+ // neck
+ round(ctx,206,182,29,39,12,'#e6ab82');
+ // default boxer shorts (always clothed)
+ let underwear=st.equip.under!==null?catalog[st.equip.under]:null;ctx.save();let upath=new Path2D();upath.moveTo(183,315);upath.lineTo(256,315);upath.lineTo(259,358);upath.lineTo(226,358);upath.lineTo(218,335);upath.lineTo(211,358);upath.lineTo(178,358);upath.closePath();ctx.fillStyle=underwear?colorOf(underwear):'#467eac';ctx.fill(upath);if(underwear)patternFill(ctx,underwear,{x:178,y:315,w:81,h:44},upath);ctx.strokeStyle='#375e78';ctx.lineWidth=2;ctx.stroke(upath);ctx.strokeStyle='#f8eee0';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(182,325);ctx.lineTo(255,325);ctx.stroke();ctx.restore();
+ // bottom
+ const bottom=st.equip.bottom!==null?catalog[st.equip.bottom]:null;if(bottom){let skirt=[1,5,6].includes(bottom.style);let p=new Path2D();p.moveTo(182,301);p.lineTo(257,301);if(skirt){p.lineTo(bottom.style===5?294:279,398);p.lineTo(149,398)}else{let yb=bottom.style===2?370:bottom.style===4?445:426;p.lineTo(261,yb);p.lineTo(226,yb);p.lineTo(218,340);p.lineTo(209,yb);p.lineTo(177,yb)}p.closePath();patternFill(ctx,bottom,{x:149,y:300,w:146,h:145},p);ctx.strokeStyle=tint(colorOf(bottom),-.24);ctx.lineWidth=2;ctx.stroke(p);ctx.beginPath();ctx.moveTo(183,314);ctx.lineTo(256,314);ctx.stroke();if(skirt&&bottom.style===6){ctx.strokeStyle=tint(colorOf(bottom),-.35);for(let x=170;x<=270;x+=20){ctx.beginPath();ctx.moveTo(x,323);ctx.lineTo(x+(x-219)*.24,392);ctx.stroke()}}}
+ // top
+ const top=st.equip.top!==null?catalog[st.equip.top]:null;if(top){let p=new Path2D();p.moveTo(188,207);p.lineTo(206,202);p.quadraticCurveTo(220,224,237,202);p.lineTo(254,207);if(top.style!==4){p.lineTo(281,244+(top.style===1?11:0));p.lineTo(266,268);p.lineTo(255,251)}else p.lineTo(252,245);p.lineTo(259,329);p.lineTo(179,329);p.lineTo(183,249);if(top.style!==4){p.lineTo(169,268);p.lineTo(154,247);p.lineTo(184,208)}p.closePath();patternFill(ctx,top,{x:145,y:201,w:141,h:133},p);ctx.strokeStyle=tint(colorOf(top),-.29);ctx.lineWidth=3;ctx.stroke(p);if(top.style===1){round(ctx,194,214,52,22,10,tint(colorOf(top),-.13));ctx.strokeStyle=tint(colorOf(top),-.4);ctx.beginPath();ctx.moveTo(210,226);ctx.lineTo(209,249);ctx.moveTo(230,226);ctx.lineTo(230,248);ctx.stroke()}}
+ // dress
+ const dress=st.equip.dress!==null?catalog[st.equip.dress]:null;if(dress){let p=new Path2D();p.moveTo(191,205);p.lineTo(209,202);p.quadraticCurveTo(219,220,232,202);p.lineTo(250,205);p.lineTo(273,249);p.lineTo(259,263);p.lineTo(253,254);p.lineTo(290,414);p.lineTo(150,414);p.lineTo(186,254);p.lineTo(173,263);p.lineTo(161,249);p.closePath();patternFill(ctx,dress,{x:150,y:199,w:140,h:218},p);ctx.strokeStyle=tint(colorOf(dress),-.32);ctx.lineWidth=3;ctx.stroke(p);ctx.beginPath();ctx.moveTo(182,302);ctx.quadraticCurveTo(223,311,257,300);ctx.stroke();}
+ // coat
+ const outer=st.equip.outer!==null?catalog[st.equip.outer]:null;if(outer){let len=outer.style===1?404:outer.style===4?370:340;let left=new Path2D();left.moveTo(189,203);left.lineTo(164,210);left.lineTo(142,315);left.lineTo(160,332);left.lineTo(179,260);left.lineTo(171,len);left.lineTo(216,len);left.lineTo(215,245);left.closePath();let right=new Path2D();right.moveTo(248,203);right.lineTo(273,210);right.lineTo(299,315);right.lineTo(278,332);right.lineTo(261,260);right.lineTo(270,len);right.lineTo(224,len);right.lineTo(225,245);right.closePath();for(const p of [left,right]){patternFill(ctx,outer,{x:140,y:201,w:160,h:205},p);ctx.strokeStyle=tint(colorOf(outer),-.33);ctx.lineWidth=2;ctx.stroke(p)}ctx.fillStyle='#fcf5df';ellipse(ctx,206,272,3,3,'#fcf5df');ellipse(ctx,205,303,3,3,'#fcf5df')}
+ // shoes
+ const shoes=st.equip.shoes!==null?catalog[st.equip.shoes]:null;for(const dx of [-26,26]){ctx.save();ctx.translate(220+dx,454);const c=shoes?colorOf(shoes):'#fff6e2';round(ctx,-21,-6,40,27,11,c);round(ctx,-24,14,49,11,5,shoes?'#f7eee1':'#c1b9a9');ctx.strokeStyle=shoes?tint(c,-.3):'#899e9d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-12,2);ctx.lineTo(5,2);ctx.moveTo(-10,8);ctx.lineTo(7,8);ctx.stroke();ctx.restore()}
+ // head and hair
+ ellipse(ctx,220,135,49,56,skin());ellipse(ctx,174,142,8,15,'#e5aa86');ellipse(ctx,266,142,8,15,'#e5aa86');
+ ctx.fillStyle='#263844';ctx.beginPath();ctx.moveTo(167,127);ctx.quadraticCurveTo(157,69,207,70);ctx.quadraticCurveTo(257,62,273,113);ctx.lineTo(266,127);ctx.quadraticCurveTo(247,102,235,108);ctx.quadraticCurveTo(213,131,185,114);ctx.lineTo(170,145);ctx.closePath();ctx.fill();
+ // face
+ ctx.strokeStyle='#3a4049';ctx.lineWidth=3;ctx.lineCap='round';for(const xx of [202,239]){ctx.beginPath();ctx.moveTo(xx-7,137);ctx.quadraticCurveTo(xx,132,xx+6,137);ctx.stroke();ellipse(ctx,xx,142,2.7,3.3,'#263e50')}
+ ellipse(ctx,191,159,10,5,'#ef9c8f75');ellipse(ctx,249,159,10,5,'#ef9c8f75');ctx.strokeStyle='#a76960';ctx.lineWidth=2;ctx.beginPath();ctx.arc(220,160,7,.1,Math.PI-.1);ctx.stroke();
+ // hat
+ const hat=st.equip.hat!==null?catalog[st.equip.hat]:null;if(hat){ctx.save();ctx.translate(219,83);ctx.scale(1.2,.72);garmentShape(ctx,'hat',hat.style);ctx.fillStyle=colorOf(hat);ctx.fill();ctx.save();ctx.clip();patternRect(ctx,hat,-55,-45,110,90);ctx.restore();ctx.strokeStyle=tint(colorOf(hat),-.35);ctx.lineWidth=2;ctx.stroke();ctx.restore()}
+ // accessories
+ const acc=st.equip.acc!==null?catalog[st.equip.acc]:null;if(acc){let col=colorOf(acc);ctx.strokeStyle=tint(col,-.2);ctx.fillStyle=col;ctx.lineWidth=5;switch(acc.style){case 0:round(ctx,179,132,37,21,8,'#264c6f9c',col);round(ctx,224,132,37,21,8,'#264c6f9c',col);ctx.beginPath();ctx.moveTo(215,140);ctx.lineTo(224,140);ctx.stroke();break;case 1:round(ctx,275,282,47,58,10,col);ctx.lineWidth=8;ctx.beginPath();ctx.arc(288,280,24,Math.PI,Math.PI*1.95);ctx.stroke();break;case 2:ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(194,209);ctx.lineTo(248,218);ctx.stroke();break;case 3:ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(196,209);ctx.quadraticCurveTo(221,276,246,209);ctx.stroke();ellipse(ctx,221,251,8,10,'#ffde91');break;case 4:ctx.lineWidth=8;ctx.beginPath();ctx.arc(220,131,59,Math.PI,Math.PI*2);ctx.stroke();round(ctx,154,118,13,37,6,col);round(ctx,273,118,13,37,6,col);break;case 5:ellipse(ctx,267,107,15,8,col);ellipse(ctx,251,112,15,8,col);break;case 6:round(ctx,140,321,22,12,5,col);break}}
+ ctx.restore();
+ // foreground frame
+ ctx.strokeStyle='#ffffffa5';ctx.lineWidth=3;round(ctx,10,10,420,490,23,null,'#ffffffa5');
+}
+function renderModel(){const s=scoreOutfit();$('score').textContent=s.toLocaleString('ja-JP');$('rank').textContent=s>=1600?'SS':s>=950?'S':s>=600?'A':s>=300?'B':'C';let dressed=Object.values(st.equip).filter(x=>x!==null).length;$('fitTitle').textContent=dressed===0?'パンツ一丁':`${dressed}アイテム着用`;$('equipStatus').textContent=dressed===0?'いまはパンツ一丁。服を釣って着せよう。':st.equip.dress!==null?'ワンピースで決めてみよう！':'釣った服の組み合わせでスコアが変わる！'}
+function drawGarmentCard(canvas,item){const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=gradient(ctx,w/2,h/2,w*.65,'#f8fcf9','#d8eae6');ctx.fillRect(0,0,w,h);let scale=Math.min(w,h)*.92;drawGarment(ctx,item,w/2,h/2,scale);if(item.rarity>=2){ctx.fillStyle=rareColors[item.rarity];star(ctx,w*.83,h*.18,8,4,5);ctx.fill()}}
+function renderInventory(){const sort=$('sort').value;let ids=st.owned.filter(id=>tab==='all'||catalog[id].cat===tab);if(sort==='rare')ids.sort((a,b)=>catalog[b].rarity-catalog[a].rarity);if(sort==='type')ids.sort((a,b)=>catalog[a].cat.localeCompare(catalog[b].cat));$('filterInfo').textContent=`${ids.length} 着が見つかりました。タップで着る・もう一度タップで脱ぐ。`;let root=$('inventory');root.replaceChildren();if(ids.length===0){let div=document.createElement('div');div.className='empty';div.style.gridColumn='1/-1';div.innerHTML='<span class="empty-icon">♧</span>まだ服がありません。海から釣ってみよう！';root.appendChild(div)}for(const id of ids.slice(0,shown)){let item=catalog[id],el=document.createElement('button');el.className='garment-card'+(st.equip[item.cat]===id?' equipped':'');el.title=item.name;let c=document.createElement('canvas');c.width=116;c.height=116;el.appendChild(c);let b=document.createElement('b');b.textContent=item.name;el.appendChild(b);let info=document.createElement('small');info.className='rarity-'+rareSymbols[item.rarity];info.textContent=rareSymbols[item.rarity]+' · #'+String(item.id+1).padStart(5,'0');el.appendChild(info);if(st.equip[item.cat]===id){let tag=document.createElement('span');tag.className='tag-equip';tag.textContent='着用中';el.appendChild(tag)}el.addEventListener('click',()=>equipItem(item));root.appendChild(el);drawGarmentCard(c,item)}$('moreBtn').hidden=ids.length<=shown}
+const questDefs=[{label:'釣りデビュー',target:3,amount:50,progress:()=>st.catches},{label:'おしゃれ収集家',target:5,amount:80,progress:()=>st.owned.length},{label:'コーデ研究家',target:500,amount:150,progress:scoreOutfit}];
+function renderQuests(){const q=$('quests');q.replaceChildren();if(!Array.isArray(st.claimed))st.claimed=[];questDefs.forEach((def,i)=>{let value=def.progress(),done=st.claimed.includes(i),ready=value>=def.target,el=document.createElement('div');el.className='quest';let top=document.createElement('div');top.className='quest-head';let b=document.createElement('b');b.textContent=def.label;let small=document.createElement('small');small.textContent=`${Math.min(value,def.target)}/${def.target}`;top.append(b,small);let prize=document.createElement('small');prize.textContent=done?'達成済み':`報酬 ◈${def.amount}`;let btn=document.createElement('button');btn.textContent=done?'受け取り済み':ready?'報酬を受け取る':'挑戦中';btn.disabled=done||!ready;btn.className=ready&&!done?'claimable':'';btn.addEventListener('click',()=>{if(!ready||st.claimed.includes(i))return;st.claimed.push(i);st.coins+=def.amount;showEvent(`クエスト達成！ +${def.amount}コイン`);sfxCatch(2);redrawUI()});el.append(top,prize,btn);q.append(el)})}
+function asSeaCoords(e){const r=ocean.getBoundingClientRect();return {x:clamp((e.clientX-r.left)/r.width*W,60,W-55),y:clamp((e.clientY-r.top)/r.height*H,185,H-35)}}
+function reelDown(){if(hook.stage===2){hook.pull=true;updateFishingHud()}}
+function reelUp(){if(hook.pull){hook.pull=false;updateFishingHud()}}
+ocean.addEventListener('pointerdown',e=>{e.preventDefault();if(hook.stage===2){reelDown()}else if(!hook.active){const p=asSeaCoords(e);castAt(p.x,p.y)}try{ocean.setPointerCapture(e.pointerId)}catch(_){}});
+ocean.addEventListener('pointerup',reelUp);ocean.addEventListener('pointercancel',reelUp);ocean.addEventListener('lostpointercapture',reelUp);
+$('castBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(hook.stage===2){reelDown()}else if(!hook.active){const it=pick(sceneItems);if(it)castAt(it.x,it.y)}});
+$('castBtn').addEventListener('pointerup',reelUp);$('castBtn').addEventListener('pointercancel',reelUp);$('castBtn').addEventListener('pointerleave',reelUp);
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&!['SELECT','INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();if(e.repeat)return;if(hook.stage===2)reelDown();else if(!hook.active){const it=pick(sceneItems);if(it)castAt(it.x,it.y)}}});
+document.addEventListener('keyup',e=>{if(e.code==='Space')reelUp()});
+window.addEventListener('blur',reelUp);document.addEventListener('visibilitychange',()=>{if(document.hidden)reelUp()});
+$('soundBtn').addEventListener('click',()=>{st.sound=!st.sound;$('soundBtn').classList.toggle('active',st.sound);$('soundBtn').textContent=st.sound?'♪ ON':'♪ OFF';tone(750,.15);save()});$('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-cat]');if(!b)return;tab=b.dataset.cat;shown=24;document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el===b));renderInventory()});$('sort').addEventListener('change',renderInventory);$('moreBtn').addEventListener('click',()=>{shown+=24;renderInventory()});$('equipBtn').addEventListener('click',()=>{if(pendingItem)equipItem(pendingItem);$('toast').classList.add('hidden')});$('toastClose').addEventListener('click',()=>$('toast').classList.add('hidden'));
+$('undressBtn').addEventListener('click',()=>{undress();showEvent('パンツ一丁！',900)});$('randomBtn').addEventListener('click',()=>{for(const cfg of conf){let ids=st.owned.filter(i=>catalog[i].cat===cfg.cat);st.equip[cfg.cat]=ids.length?pick(ids):null}if(st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}redrawUI();showEvent('おまかせコーデ完成！');tone(640,.15);tone(880,.25,'sine',.05,.13)});
+$('photoBtn').addEventListener('click',()=>{let out=document.createElement('canvas');out.width=880;out.height=1050;let c=out.getContext('2d');c.fillStyle='#eaf6ef';c.fillRect(0,0,880,1050);c.drawImage(model,0,0,880,1020);round(c,20,925,840,105,15,'#10364ae8');c.fillStyle='#ffffff';c.font='900 37px sans-serif';c.textAlign='center';c.fillText('CLOSET CATCH   |   STYLE '+scoreOutfit(),440,987);let a=document.createElement('a');a.href=out.toDataURL('image/png');a.download='closet-catch-coordinate.png';a.click();showEvent('コーデ写真を保存したよ！')});
+for(const btn of document.querySelectorAll('[data-slot]'))btn.addEventListener('click',()=>{const n=+btn.dataset.slot;if(st.slots[n]){if(confirm(`コーデ ${n+1} を呼び出しますか？\nキャンセルすると今のコーデを保存します。`)){for(let k of Object.keys(st.equip)){let id=st.slots[n][k];st.equip[k]=id!==null&&ownSet.has(id)?id:null}redrawUI();showEvent('保存コーデを呼び出したよ！')}else{st.slots[n]={...st.equip};save();showEvent('コーデを上書き保存！')}}else{st.slots[n]={...st.equip};save();showEvent(`コーデ ${n+1} を保存！`)}updateSlotButtons()});
+function updateSlotButtons(){document.querySelectorAll('[data-slot]').forEach(b=>{let n=+b.dataset.slot;b.textContent=`${n+1} ${st.slots[n]?'保存済み / 呼出':'コーデを保存'}`})}
+$('upgradeBtn').addEventListener('click',()=>{let cost=st.rod*100;if(st.coins<cost||st.rod>=8)return;st.coins-=cost;st.rod++;redrawUI();showEvent('釣りざおパワーアップ！');sfxCatch(2)});
+let reducedMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function loop(now){let dt=clamp(now-lastTime,0,42);lastTime=now;animTime+=reducedMotion?dt*.4:dt;updateGame(dt);drawSea();drawModel();requestAnimationFrame(loop)}
+updateSlotButtons();redrawUI();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
