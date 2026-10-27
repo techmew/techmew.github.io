@@ -1,3 +1,15 @@
+# 声魂 v133｜ラッシュ音声が反映されない問題への実経路修正｜2026-10-27
+
+CURRENT_STATUS: GitHub main の games/otodama/index.html を修正。必殺技ラッシュを「録音した声の全フレーズを高速再生する7連撃」に変更。Cloudflare Worker、他ゲーム・他サイトは変更なし。
+CHANGELOG: ① 旧0.105秒の語頭だけを7回刻む再生を廃止し、録音した音声を最大0.7秒まで丸ごと取得した7回の高速再生へ変更（200ms間隔、約1.55〜2.15倍速）。② 通常攻撃の録音声を基準に1.5倍ゲイン（0.24上限）へ調整。余分な声用圧縮をラッシュだけ迂回し、全体のマスターリミッターは維持。③ 旧1/3抽選を撤廃して必殺技は必ずラッシュ表示と連撃音声に接続。④ 技が着弾時に初めて発動した場合、通常声のbusyUntilによるラッシュ不発を防ぐため既存再生を停止して優先連撃を開始。⑤ BGMのダッキングを2200msへ延長。録音の試聴と通常声・オンライン音声の非転送は維持。
+TEST_RESULTS: GitHub mainのHTML中JavaScriptをV8構文検証 PASS。V8の模擬AudioContextで通常攻撃直後に必殺技が発動した状況を再現し、録音音声7発、各0.65秒の全音声ソース、200ms間隔、録音音声ゲイン1.5000倍、通常声の遮断解消を確認。関連 test-voice-rush / test-voice-effects-v123 / test-audio-mix-v127 を更新し、3テストファイルの構文と音声mix正規表現を点検。正式 npm run test:node、最新GitHub Actions、実配信HTTP、Android実機での試聴は未確認。未確認をPASSとは扱わない。
+BLOCKERS: PagesのCDN配信実体をこの実行環境からHTTPで取得できない。Android実機のスピーカー音量・WebAudio自動再生・ブラウザキャッシュは未検証。7回連撃は現在の820msターンより長いので、勝敗確定で再生が止まる場合がある。
+NEXT_ACTIONS: Actions最新テストとPages完了状態を確認し、実ブラウザで録音声の7連撃を検証。必要なら必殺技の勝利演出・ターン長に合わせて音声残響と連撃表示をさらに調整。
+LATEST_GAME_CODE_COMMIT_SHA: 5a5b57447a4b1f02c6cff7b6cd68bd510d5d21a0
+LATEST_TEST_ADJUSTMENT_COMMIT_SHA: 58a9f038532ad50d9ecfb76f2db4c5f902c7ae10
+
+---
+
 # 声魂 v131｜最終検証追記｜2026-10-27
 
 CURRENT_STATUS: 音声録音→4パターンのガチャ→演出画面内で実キャラを描画→10体ストックへ登録、という順序を実装。ストック登録結果の表示が閉じるまで録音操作を無効化。
