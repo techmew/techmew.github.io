@@ -58,14 +58,17 @@ function fakeRuntime(mediaRecorderEnabled){
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
   setTimeout:(fn,ms)=>{if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};return 1},clearTimeout(){},performance,recording:false,audioCtx:null,
-  stopBattleSpeech(){},wavePaint(){},saveNewborn(){notes.push('auto-saved')},startBirthReveal(){},micErrorMessage:e=>String(e?.name||e),
+  stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,
+  saveNewborn(creature){notes.push('auto-saved:'+creature.seed);return true},
+  startBirthReveal(creature,onStock){notes.push('gacha:'+creature.seed);ctxRef.stockCallback=onStock},
+  micErrorMessage:e=>String(e?.name||e),
   autocorr:()=>230,median:a=>a[0]||0,hash:n=>n>>>0,
   clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
   gen:(seed,voice)=>({seed,voice}),dnaFrame:()=>({t:0,rms:.1}),analyseVoiceDNA:()=>null,cur:{},clipData
  };
- context.setCurrent=c=>{context.cur=c;notes.push(c)};
+ context.setCurrent=(c,fromBirth)=>{context.cur=c;notes.push('preview:'+c.seed+':'+String(fromBirth))};
  const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl})',context);
- return{api,context,nodes,media,ctxRef};
+ return{api,context,nodes,media,ctxRef,notes};
 }
 async function attempt(mediaRecorderEnabled){
  const env=fakeRuntime(mediaRecorderEnabled);
@@ -86,6 +89,14 @@ async function attempt(mediaRecorderEnabled){
  await running;
  assert.equal(env.media.grants,1,'one permission request even with double tap');
  assert.equal(env.media.stops,1,'all microphone tracks closed');
+ assert.equal(env.context.cur.seed,undefined,'new character not selected before animation');
+ assert.equal(typeof env.ctxRef.stockCallback,'function','stock callback waits for animation');
+ assert.ok(env.notes.at(-1).startsWith('gacha:'),'gacha starts before stock update');
+ const eventCount=env.notes.length;
+ env.ctxRef.stockCallback();
+ assert.equal(env.notes.length,eventCount+2,'preview and stock updated after gacha callback');
+ assert.ok(env.notes.at(-2).startsWith('preview:'),'sprite preview selected after animation');
+ assert.ok(env.notes.at(-1).startsWith('auto-saved:'),'stock saved at end');
  assert.ok(env.context.cur.voiceClip?.startsWith(mediaRecorderEnabled?'data:audio/webm;base64,':'data:audio/wav;base64,'),'audio saved');
  assert.equal(env.nodes.get('voicePreviewBtn').disabled,false,'preview enabled');
  assert.equal(env.nodes.get('countdown').textContent,'VOICE OK','successful capture status');
@@ -99,5 +110,5 @@ async function attempt(mediaRecorderEnabled){
  assert.ok(html.includes('id="shareVoice" disabled')&&html.includes('id="receiveVoice" disabled'),'online live audio disabled');
  const worker=fs.readFileSync(__dirname+'/worker.js','utf8');
  assert.ok(worker.includes("type:'voice_rejected'"),'online voice uploads still rejected');
- console.log('MIC CAPTURE PASS | fixed 2-second recording, MediaRecorder/WAV, double-tap guard, preview, no ASR gate');
+ console.log('MIC CAPTURE PASS | fixed 2s recording, then gacha, then preview & stock; MediaRecorder/WAV, no ASR gate');
 })().catch(e=>{console.error(e);process.exitCode=1});
