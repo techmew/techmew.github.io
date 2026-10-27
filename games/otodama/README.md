@@ -1,3 +1,14 @@
+# 声魂｜2026-10-27 18時｜CPU勝利音声・戦闘の音重なり・結果画面整理
+
+CURRENT_STATUS: games/otodama/のUIと録音再生のみ更新。公開済みCloudflare Worker、CPU自動連戦、オンライン挑戦者受付ON/OFF、NEW CHALLENGER、未審査音声のオンライン転送停止を維持。
+CHANGELOG: CPUが勝ったときに短い日本語セリフを端末内の音声合成で読み上げ、勝利音声が終わってから発話。勝利セリフをアリーナの外・キャラ画像の下に移し、キャラを隠さない。ステージ/次の相手/評価の冗長な表示を削減。通常攻撃と通常コンボは録音1声、明示的な7連打必殺のみ複数声。重複録音の再生待機・古い非同期音声の無効化・声のエコー重ね禁止・速度変化を約0.86〜1.14倍に制限。勝利雄叫びも原音1声へ変更。打撃SEは必要なタイミングに整理。CPU勝利セリフの手動再生ボタンは維持。
+TEST_RESULTS: GitHub mainの埋込JavaScriptをV8で構文確認。Node fs/vm/assert相当の模擬ハーネスで、test-dialogue-v113、test-voice-effects-v123、test-voice-rush、test-audio-mix-v127、test-result-clarity-v128、test-ui-refined-v124、test-hourly-v116/v117、test-quality-v105/v108、test-ui-source、test-quality-v106、test-audio-dna、test-audio-dna-v121、test-survival-v109、test-queue-resilience-v126の計16スイートPASS。過去のv105/v108/v116/v117の旧表示・旧重複音声期待値を新仕様に合わせ修正。正式Node CLIのnpm test:node全スイート・今回のGitHub Actions最新run・Pages/WorkerライブHTTP・Android実機の聴感は未確認。
+BLOCKERS: TTSは端末の日本語音声エンジンと自動再生制限に依存。公開Pages最新版、録音の実聴感・Android縦横・独立2端末PvP→CPUの実動作は未確認。GitHub commit status APIは今回の最新commitにstatusesなし、成功を保証しない。
+NEXT_ACTIONS: 最新ActionsのNode/Pages/ライブWebSocketの結果と赤ログを確認し、必要なら修正。Android ChromeでCPU敗北→CPUの短いセリフ/読み上げ、WIN時のキャラ非遮蔽、通常1声/7連打、声とBGMの聴感、PvP ON/OFFと背面復帰を検証。
+LATEST_CODE_COMMIT: 3c09296a0ffb1c6f214cf26cec8a26dfc3bdb8ce
+
+---
+
 # OTODAMA∞｜2026-10-27｜キャラ選択位置固定・戦闘音ミックス改善
 
 CURRENT_STATUS: GitHub mainのgames/otodama/のみ変更。公開済みCloudflare Workerの実装・対人受付ON/OFF・NEW CHALLENGER・CPU連戦・録音/試聴・未審査音声転送停止は変更しない。
