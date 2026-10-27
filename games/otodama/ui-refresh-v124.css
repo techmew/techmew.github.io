@@ -283,3 +283,6 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 @media(prefers-reduced-motion:reduce){
  .stage .birth-reveal,.stage .birth-orbit,.stage .birth-core{animation:none!important}
 }
+
+/* The collection moved into the preview; the remaining connectivity card spans the lower row. */
+.bottom{grid-template-columns:minmax(0,1fr)}
