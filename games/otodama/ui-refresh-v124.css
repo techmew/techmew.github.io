@@ -303,3 +303,50 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 .stage>.preview-gallery .roster-drop-target{outline:3px dashed #2789c5;outline-offset:-3px;border-radius:13px}
 #rosterArchiveDownload:not([hidden]){display:block;margin-top:8px}
 @media(max-width:730px){.stage>.preview-gallery .gallerygrid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.stage>.preview-gallery .roster-entry>.specimen{min-height:80px;padding-top:24px}.stage>.preview-gallery .roster-entry>.specimen canvas{height:45px}.stage>.preview-gallery .roster-entry>.specimen span{font-size:8px}}
+
+/* v131: microphone -> gacha -> actual creature hatch -> stock confirmation. */
+#controlCard .listen .birth-reveal{
+ pointer-events:auto;
+ padding:12px 10px 14px;
+ background:radial-gradient(circle at 50% 36%,#285c87,#101c34 82%);
+}
+#controlCard #birthCreatureCanvas{
+ display:block;width:min(74%,260px);height:auto;max-height:215px;
+ object-fit:contain;margin:0 auto 4px;
+ filter:drop-shadow(0 4px 14px #55e9ff80);
+}
+#controlCard #birthCreatureCanvas[hidden]{display:none!important}
+#controlCard .listen .birth-reveal[data-phase="reveal"],
+#controlCard .listen .birth-reveal[data-phase="stock"]{
+ background:radial-gradient(circle at 50% 38%,#30668d,#10253d 86%);
+ animation:none;
+}
+#controlCard .listen .birth-reveal[data-phase="reveal"] .birth-orbit,
+#controlCard .listen .birth-reveal[data-phase="stock"] .birth-orbit{display:none}
+#controlCard .listen .birth-reveal[data-phase="reveal"] #birthCreatureCanvas{
+ animation:otodama-gacha-hatch .72s cubic-bezier(.2,1.5,.55,1) both;
+}
+#controlCard .listen .birth-reveal[data-phase="stock"] #birthCreatureCanvas{
+ animation:otodama-gacha-stock .6s ease-in-out both;
+}
+#controlCard .listen .birth-reveal[data-phase="stock"] #birthHeadline{color:#b9ffdc}
+#controlCard .listen .birth-reveal[data-phase="stock"]{
+ box-shadow:inset 0 0 0 2px #82dfac,0 0 18px #81ebbc55;
+}
+@keyframes otodama-gacha-hatch{
+ 0%{transform:scale(.16) rotate(-19deg);opacity:0;filter:blur(9px)}
+ 65%{transform:scale(1.13) rotate(5deg);opacity:1;filter:blur(0)}
+ 100%{transform:scale(1) rotate(0);opacity:1}
+}
+@keyframes otodama-gacha-stock{
+ 0%{transform:scale(1.07);filter:brightness(1.5)}
+ 100%{transform:scale(.93);filter:brightness(1)}
+}
+@media(max-width:420px){
+ #controlCard #birthCreatureCanvas{width:min(72%,205px);max-height:167px}
+ #controlCard .listen .birth-reveal{padding:6px}
+ #controlCard #birthHeadline{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){
+ #controlCard .listen .birth-reveal #birthCreatureCanvas{animation:none!important}
+}
