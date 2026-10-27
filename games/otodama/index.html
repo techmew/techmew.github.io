@@ -721,7 +721,50 @@ function persistSelected(){
  }
 }
 function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forEach((name,i)=>{let node=document.createElement('div');let v=clamp(vals[i],0,100);node.innerHTML=`<div class="metainfo"><span>${name}</span><b>${v}${suffix}</b></div><div class="bar"><i style="width:${v}%"></i></div>`;parent.appendChild(node)})}
-function setCurrent(cr){cur=cr;persistSelected();trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
+function setCurrent(cr){cancelBirthReveal();cur=cr;persistSelected();trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
+// Four short, local-only birth ceremonies for characters created with the microphone.
+let birthRevealToken=0,birthRevealTimers=[];
+const BIRTH_SCENES=[
+ {type:'egg',symbol:'🥚',intro:'声のたまごをあたため中…',middle:'たまごが急に暴れだした！',outro:'ぱかっ！ 謎の生命体が誕生！'},
+ {type:'capsule',symbol:'🎰',intro:'声ガチャを回しています…',middle:'大当たり……ではない予感！',outro:'ガチャーン！ とにかく誕生！'},
+ {type:'lab',symbol:'🧪',intro:'声の怪しい実験を開始…',middle:'警告！ 何かが育っています！',outro:'実験失敗？ キャラ誕生は成功！'},
+ {type:'portal',symbol:'🌀',intro:'声を異世界に発送中…',middle:'返品不可！ ゲートが開いた！',outro:'ようこそ！ 変な住人が来た！'}
+];
+function cancelBirthReveal(){
+ birthRevealToken++;
+ for(const handle of birthRevealTimers)clearTimeout(handle);
+ birthRevealTimers=[];
+ const overlay=$('birthReveal');
+ if(overlay){overlay.hidden=true;overlay.dataset.phase='charge'}
+}
+function startBirthReveal(creature){
+ cancelBirthReveal();
+ if(!creature||document.hidden)return;
+ const overlay=$('birthReveal');if(!overlay)return;
+ const scene=BIRTH_SCENES[hash((creature.seed>>>0)^0x7cd51a)%BIRTH_SCENES.length];
+ const token=birthRevealToken;
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
+ overlay.dataset.variant=scene.type;overlay.dataset.phase='charge';
+ $('birthCore').textContent=scene.symbol;
+ $('birthHeadline').textContent=scene.intro;
+ $('birthSubline').textContent='録音した声から生成しています';
+ overlay.hidden=false;
+ const later=(ms,action)=>birthRevealTimers.push(setTimeout(()=>{
+  if(token!==birthRevealToken||cur.seed!==creature.seed||document.hidden){cancelBirthReveal();return}
+  action();
+ },ms));
+ later(reduced?120:650,()=>{
+  overlay.dataset.phase='hatch';
+  $('birthHeadline').textContent=scene.middle;
+  $('birthSubline').textContent='';
+ });
+ later(reduced?280:1400,()=>{
+  overlay.dataset.phase='reveal';
+  $('birthHeadline').textContent=scene.outro;
+  $('birthSubline').textContent=displayName(creature)+'が仲間になった！';
+ });
+ later(reduced?780:2850,()=>cancelBirthReveal());
+}
 function newOne(){let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
 function deleteSavedCreature(seed){
  const index=roster.findIndex(c=>c.seed===seed);
@@ -925,7 +968,8 @@ async function startRecord(){
   let audioDNA=null;
   try{audioDNA=analyseVoiceDNA(dnaFrames)}catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
   const seed=audioDNA?audioDNA.signature:hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
-  setCurrent({...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip});
+  const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip};
+  setCurrent(newborn);startBirthReveal(newborn);
   $('micHint').textContent=voiceClip?'録音成功。試聴・戦闘・勝利の雄叫びに使えます':'声の特徴からキャラを生成しましたが、録音音声を保存できませんでした';
   $('countdown').textContent=voiceClip?(audioDNA?'DNA OK':'VOICE OK'):'NO CLIP';
   $('micNotice').textContent=voiceClip?(audioDNA?'36項目の音響DNAを解析し、声由来の能力・成長適性を保存しました。録音した声も試聴できます。':'録音声を保存しました。音響DNAの分析に必要な音量や長さが足りないため、基本解析を使用しました。'):'音声ファイルの保存に失敗しました。マイクの許可とブラウザを確認してください。戦闘は代替音で続行できます。';
@@ -1149,7 +1193,9 @@ function synthVoice(cr,side,options={}){
    osc.frequency.exponentialRampToValueAtTime(clamp(base*to,55,2000),start+dur);
    filter.type=fx.filter||'bandpass';
    filter.frequency.value=fx.cutoff||400+(cr?.voice?.res||50)*14;filter.Q.value=.8;
-   const peak=Math.max(.001,VOLUME()*(rush?.23:options.phase==='reaction'?.16:.40)*fx.volume/Math.sqrt(hits));
+   const peak=Math.max(.001,Math.min(rush?.095:.14,
+     VOLUME()*(rush?.50:options.phase==='reaction'?.16:.40)*fx.volume/
+     (rush?Math.sqrt(1.5):1)));
    gain.gain.setValueAtTime(.0001,start);
    gain.gain.exponentialRampToValueAtTime(peak,start+.018);
    gain.gain.exponentialRampToValueAtTime(.0001,start+dur);
@@ -1312,8 +1358,11 @@ function playDecodedVoice(cr,side,force=false,options={}){
     const shift=fx.enabled&&rush?1+(i%3-1)*.035:1;
     const from=fx.from*shift,to=fx.to*shift;
     const length=rush?(i===hits-1?.185:.145):force?.7:phase==='reaction'?.22:.58;
-    const level=Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
-      (phase==='reaction'?.42:rush?.49:1)/Math.sqrt(Math.max(1,hits)*.86));
+    // Rush voices are separated by 174 ms and may be louder without piling up seven sources.
+    const level=rush
+      ?Math.min(.18,VOLUME()*Math.min(2.7,clip.gain||1)*fx.volume*.74)
+      :Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
+         (phase==='reaction'?.42:1)/Math.sqrt(.86));
     voiceAt(at,length,from,to,level);
     // Additional voiced echoes are disabled: even a preset named 'echo' stays single-source.
    }
@@ -1507,10 +1556,10 @@ function queueCpuTaunt(m,immediate=false){
   try{
    synth.cancel();
    const line=new Utterance(m.tauntText);
-   line.lang='ja-JP';line.rate=1.14;line.pitch=.94;line.volume=.65;
+   line.lang='ja-JP';line.rate=1.08;line.pitch=.94;line.volume=.72;
    const japanese=synth.getVoices?.().find(v=>v.lang?.toLowerCase().startsWith('ja'));
    if(japanese)line.voice=japanese;
-   m.cpuSpeechDeadline=performance.now()+2700;
+   m.cpuSpeechDeadline=performance.now()+Math.min(7000,Math.max(3200,m.tauntText.length*195));
    line.onend=line.onerror=()=>{if(match===m)m.cpuSpeechDeadline=0};
    synth.speak(line);
   }catch(e){m.cpuSpeechDeadline=0}
@@ -1523,7 +1572,7 @@ function showBattleQuote(m){
   m.resultPresented=true;
   if(isCpuResult(m)){
    const winner=m.outcome.winner===0?m.a:m.b;
-   m.tauntText=nextTaunt('lose').split(/[。！？?!]/)[0].trim()+'。';
+   m.tauntText=nextTaunt('lose');
    $('battleSpeechWho').textContent=displayName(winner)+'：';
    $('battleSpeechText').textContent=m.tauntText;
   }else{
@@ -1556,7 +1605,7 @@ function scheduleNextAfterQuote(m){
   if(document.hidden){survivalAwaitingVisibility=true;return}
   const elapsed=performance.now()-start;
   const roaring=Number(m.roarEndsAt)>performance.now()&&elapsed<7000;
-  const cpuSpeaking=isCpuResult(m)&&Number(m.cpuSpeechDeadline)>performance.now()&&elapsed<5500;
+  const cpuSpeaking=isCpuResult(m)&&Number(m.cpuSpeechDeadline)>performance.now()&&elapsed<9000;
   if(elapsed<3350||roaring||cpuSpeaking){
    resultNextTimer=setTimeout(check,350);return;
   }
