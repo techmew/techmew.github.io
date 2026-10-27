@@ -816,7 +816,8 @@ function startBirthReveal(creature,addToStock){
   paintNewborn(creature);
   canvas.hidden=false;
   overlay.dataset.phase='reveal';
-  $('birthHeadline').textContent=scene.outro;
+  overlay.dataset.rarity=rarityOf(creature);
+  $('birthHeadline').textContent=rarityOf(creature)+' RANK · '+scene.outro;
   $('birthSubline').textContent=displayName(creature)+' 誕生！';
  });
  later(reduced?520:2950,()=>{
@@ -1121,7 +1122,7 @@ function updateRarityClock(){const el=$('rarityResearch');if(!el||!GROWTH)return
 }
 function commitEvolutionVoice(cr,voice,dna,clip){
  const idx=roster.findIndex(c=>c.seed===cr.seed);
- if(idx<0||!GROWTH?.canEvolve(cr)||!validAudioDNA(dna)){$('micNotice').textContent='進化に必要な条件や音声DNAを確認してください';return false}
+ if(idx<0||!GROWTH?.canEvolve(cr)||!validAudioDNA(dna)||!clipData({voiceClip:clip})||clip.length>90000){$('micNotice').textContent='進化に必要な条件や音声DNAを確認してください';return false}
  let next;try{next=GROWTH.applyEvolution(cr,voice,dna,clip,Date.now())}catch(e){$('micNotice').textContent=String(e.message||e);return false}
  const previous=roster[idx];roster[idx]=next;
  if(!saveStore()){roster[idx]=previous;$('micNotice').textContent='保存容量が足りません。進化は確定していません';return false}
@@ -1777,11 +1778,11 @@ function scheduleNextAfterQuote(m){
 }
 
 const AUTO_STYLES=['パワー型','スピード型','守備型','カウンター型','バランス型','変化型'];
-function specimenMutation(c){const tier=Math.min(4,Math.floor((levelOf(c)-1)/6));const rare=!!tier&&(c.audioDNA?.version===1?(c.audioDNA.traits?.length>=3&&c.audioDNA.potential>=65):hash((c.seed>>>0)^0x17b4a2)%24===0);return {tier,rare,label:tier?(rare?'希少変異・':'進化・')+['','光る紋様','新しい角','発光する体','特異な姿'][tier]:'未進化'};}
+function specimenMutation(c){const voiceCount=Math.min(3,Array.isArray(c?.evolutionVoices)?c.evolutionVoices.length:0);const tier=Math.min(4,Math.floor((levelOf(c)-1)/6)+voiceCount);const rare=!!tier&&(c.audioDNA?.version===1?(c.audioDNA.traits?.length>=3&&c.audioDNA.potential>=65):hash((c.seed>>>0)^0x17b4a2)%24===0);return {tier,rare,voiceCount,label:tier?(voiceCount?'共鳴進化・':rare?'希少変異・':'成長・')+['','光る紋様','新しい角','発光する体','特異な姿'][tier]:'未進化'};}
 function specimenAppearance(c){
- const p=c.parts,m=specimenMutation(c).tier;
- return m?{...p,crest:(p.crest+m*3)%30,pattern:(p.pattern+m*5)%24,
- ears:m>=2?(p.ears+3)%20:p.ears,back:m>=3?(p.back+4)%16:p.back}:p;
+ const p=c.parts,mutation=specimenMutation(c),m=mutation.tier,e=mutation.voiceCount;
+ return m?{...p,crest:(p.crest+m*3+e*2)%30,pattern:(p.pattern+m*5+e*3)%24,
+ ears:m>=2?(p.ears+3+e*2)%20:p.ears,back:m>=3?(p.back+4+e*3)%16:p.back}:p;
 }
 function specimenProfile(c){
  const s=c.stats,v=c.voice||{},score=[
