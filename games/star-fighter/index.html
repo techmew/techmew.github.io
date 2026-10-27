@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#050b19">
+<meta name="description" content="STAR FIGHTER — 3ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
+<title>STAR FIGHTER | 横スクロールシューティング</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="shell" id="shell">
+<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ 音声 ON</button><button id="pauseBtn" class="small-btn" aria-label="一時停止">Ⅱ ポーズ</button></div></header>
+<div class="game-frame" id="gameFrame">
+<canvas id="game" width="1200" height="675" aria-label="横スクロールシューティングゲーム"></canvas>
+<div class="screen-vignette"></div>
+<div class="hud" id="hud">
+ <div class="hud-left"><div class="kicker">SCORE</div><div class="hud-number" id="score">00000000</div><div class="score-line"><span>BEST <b id="best">00000000</b></span><span id="multiplier">×1.0</span></div></div>
+ <div class="hud-center"><span id="stageLabel">SECTOR 01</span><div class="progress"><i id="progressBar"></i></div><small id="areaName">ORBITAL FIELD</small></div>
+ <div class="hud-right"><span class="kicker">ARMOR</span><div class="hp-row" id="hpRow"><span></span><span></span><span></span></div><div class="sub-stats"><span id="lives">LIVES 03</span><span id="bombs">PULSE 02</span></div></div>
+</div>
+<div class="boss-hud" id="bossHud"><div class="boss-title"><b id="bossName">BOSS</b><span>WARNING // THREAT DETECTED</span></div><div class="boss-track"><i id="bossBar"></i></div></div>
+<div class="announce" id="announce"><span id="announceSmall">MISSION 01</span><strong id="announceMain">ORBITAL FIELD</strong><span id="announceDesc">外縁軌道を突破せよ</span></div>
+<div class="overlay" id="overlay">
+ <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>3 STAGES · 3 GIANT BOSSES</span><i></i></div>
+ <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
+ <button class="main-btn" id="startBtn">MISSION START <span>▶</span></button>
+ <p class="start-guide">移動：WASD / 矢印キー・スマホは画面ドラッグ<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
+</div>
+<div class="toast" id="toast"></div>
+</div>
+<div class="controlbar">
+  <div class="label-block"><strong>POWER UP</strong><small id="meterInfo">CAPSULE × 0 · SELECT AN UPGRADE</small></div>
+  <div class="upgrades" id="upgrades">
+    <button class="upgrade selected" data-up="0"><span class="u-key">01</span><b>BOOST</b><small>移動速度</small></button>
+    <button class="upgrade" data-up="1"><span class="u-key">02</span><b>SPREAD</b><small>拡散弾</small></button>
+    <button class="upgrade" data-up="2"><span class="u-key">03</span><b>LASER</b><small>貫通レーザー</small></button>
+    <button class="upgrade" data-up="3"><span class="u-key">04</span><b>MISSILE</b><small>誘導ミサイル</small></button>
+    <button class="upgrade" data-up="4"><span class="u-key">05</span><b>OPTION</b><small>追従僚機</small></button>
+    <button class="upgrade" data-up="5"><span class="u-key">06</span><b>SHIELD</b><small>防御バリア</small></button>
+  </div>
+  <button id="equipBtn" class="equip-btn">強化 <span>↗</span></button>
+  <button id="pulseBtn" class="pulse-btn">PULSE <span>✹</span></button>
+</div>
+<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 16:9</span><span class="note-divider"></span><span>オート射撃・ドラッグ移動対応</span><button id="helpBtn">操作方法 ?</button></div>
+</div>
+<script src="./game.js"></script>
+</body>
+</html>
