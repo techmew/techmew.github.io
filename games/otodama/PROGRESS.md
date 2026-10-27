@@ -1,3 +1,14 @@
+# 声魂 v134｜声ガチャ・共鳴進化・ホーム画面再設計・対戦接続改善｜2026-10-27
+
+CURRENT_STATUS: GitHub main の games/otodama/ のみ更新。最大Lv.40、音声は初期1＋追加3＝最大4声。Lv.10/20/30で追加声1枠ずつ解放。B/A/S/S+レア度は録音の36特徴量と4時間ごとに変わるJST時間帯の適性による決定論的判定で、抽選乱数を使わない。S+は音響条件達成時のみ出現。既存10体ロスター・自動CPU連戦・チャレンジャー受付ON/OFF・録音のローカル保存を維持。
+CHANGELOG: ① progression-v134.js追加（4時間ごとの得意要素：リズム/響き/安定/変化、グレード判定、解放レベル、声追加と能力上昇）。② 元の2秒録音を流用し、進化録音時のみ選択キャラに音声を追加する経路・DNA検査・レベル検査・端末容量超過時の保存ロールバック・保存済みキャラ限定・キャラ切替競合防止を導入。追加声はCPU戦の攻撃音声で交代使用、発光・体パーツ等の進化に反映。進化音声はオンラインに転送しない。③ ホーム画面を左キャラ＋その下にバトル開始・挑戦者受付・所持10体、右にバトルステータス＋S+研究ヒント＋進化ボタン＋詳細、録音パネルへ整理。スマホは縦に積む。その他ゲームモードは表示だけ非表示（元コード残存）。フッターにモード要望はブログコメントで募集と記載（ブログ自体変更なし）。④ PvPマッチ後、部屋参加→二人そろう→準備通知の二重送信防止、接続状況のホーム表示、準備待ち猶予30秒、通信失敗時のCPU復帰を強化。Cloudflare Workerは変更せず公開済みを維持。
+TEST_RESULTS: GitHub main再取得のインラインJS構文PASS、HTML mainのタグ対応PASS、CSS括弧整合PASS、主要ID重複なし。Node相当のV8模擬テスト：新規 test-rarity-evolution-v134 / test-live-handoff-v134 PASS、既存の relevant 10テスト（test-roster-v130 / test-preview-birth-v129 / test-birth-sequence-v131 / test-capture-interruption-v132 / test-voice-rush / test-voice-effects-v123 / test-audio-mix-v127 / test-queue-resilience-v126 / test-arcade-challenger / test-ui-source）PASS。これらは限定模擬であり、正式npm run test:node全スイートやGitHub Actionsを実行確認したものではない。
+BLOCKERS: 今回のユーザーメッセージでは丸印つき画像を参照できないため、バトル操作はキャラ画像直下に暫定配置。公開GitHub PagesとCloudflare /healthのHTTPは使用可能なWebからアクセス不能で検証不可。WebSocket独立二端末の実通信・Android Chromeマイク録音と操作・公開後のActions成功は未検証。既存の実際の対戦失敗原因はログ未取得で特定不可。オンラインの成長能力はサーバーが元の音声特徴から再生成するため、ローカル進化ステータス上昇をPvP成績に反映するためにはサーバー検証設計が別途必要。
+NEXT_ACTIONS: 最新Actionsのnpm test:node全実行とPages成果物を確認。公開/health→WebSocket2接続→room live_start・切断復帰を2端末で実測。Android録音→B/A/S/S+→10/20/30で声追加→CPU戦再生とストック永続化を実機検証。結果に応じたマッチ同期修復。丸印画像が利用可能になれば位置を合わせてUI再調整。
+LATEST_IMPLEMENTATION_AND_TEST_COMMIT_SHA: fc7a7df6a762aaf1436fa99262f1516c9c1f5c77
+
+---
+
 # 声魂 v134｜必殺ラッシュの音声・表示同期と回帰テスト｜2026-10-27
 
 CURRENT_STATUS: games/otodama/ のみ修正。必殺ラッシュは録音音声7回を200ms間隔で再生し、録音音声の通常攻撃比1.5倍ゲイン・1750msターン保留を維持。録音なし/デコード失敗時の合成代替音も7発・200ms間隔に揃え、従来比約1.5倍のゲイン、0.14上限・マスターリミッター経由へ変更。
