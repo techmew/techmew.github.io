@@ -1,3 +1,14 @@
+# 声魂｜2026-10-27｜CPU勝利セリフ・録音声のハレーション対策・結果表示の整理
+
+CURRENT_STATUS: GitHub mainのgames/otodama/のみ修正。CPU連続オート戦、挑戦者受付ON/OFF、勝者WIN/敗者破片、キャラロック、録音声のローカル再生を維持。公開済みCloudflare Workerは変更していない。
+CHANGELOG: (1) 勝者がCPUのとき短い日本語セリフを端末SpeechSynthesisで読み上げる。勝利時の声・ジングルのあとに話し、対人とプレイヤー勝利では読み上げない。ミュート/ページ非表示/次バトル開始時の取消に対応、読み上げボタンで再試行可能。(2) 吹き出しをCanvasの外・下へ移動しキャラとWIN演出の覆いを解消。(3) ステージ帯・相性・次戦・報酬・ランクの冗長説明を短縮。(4) 通常攻撃/通常コンボは録音声を一回のみ、明示的な連打必殺技のみ複数再生。必殺開始時に主音声と連打が二重に鳴るのを解消。(5) 攻撃再生中の録音被弾声・追撃声、追加エコーを抑制。録音音声の実再生速度を0.86〜1.14倍付近へ抑え、通常一声は約0.58秒、連打は個別短音の間隔を確保。(6) 未完了音声デコードの古い試合への遅延再生を世代番号で無効化。(7) CPU勝利後の録音雄叫びも二重重ねを解消し単一の音声ソースに修正。(8) 追加・既存テストの仕様変更を同期。
+TEST_RESULTS: GitHub再取得した埋込JS構文、HTML構造、CSS結果表示、テストコード構文をV8で確認。Node fs/vm/assertを模擬したV8実行で test-result-clarity-v128 / test-dialogue-v113 / test-voice-rush / test-voice-effects-v123 / test-audio-mix-v127 / test-ui-refined-v124 / test-ui-source / test-roster-lock の8スイートPASS。これは正式Node CLI npm test:node全スイート実行でもAndroidブラウザ動作でもない。今回コミットのGitHub Actions/PAGESは未確認。公開Pages/WorkerはWeb経由のHTTP取得が不可でライブ検証未実施。
+BLOCKERS: Android実機の録音/録音声の聴感と日本語SpeechSynthesisの利用可否・音量測定、GitHub Actionsと公開Pages反映、2端末オンラインは未検証。SpeechSynthesisの自動再生は端末/ブラウザの制限で鳴らないことがあるが手動セリフ再生ボタンを用意。
+NEXT_ACTIONS: Actions全テスト/Pages最新デプロイ/WorkerライブWebSocket確認。Android縦横で結果画面のCPUが隠れないこと、CPU勝利の日本語読み上げと手動再生、通常一音/連打七音、録音有無/ミュート/背景化/勝敗/次戦の競合を聴覚・画面で実確認。
+LATEST_CODE_COMMIT: 591d0e6a32061e79b77bcf5f4754ee3ca856f6fb
+
+---
+
 # 声魂｜2026-10-27 18時｜CPU勝利音声・戦闘の音重なり・結果画面整理
 
 CURRENT_STATUS: games/otodama/のUIと録音再生のみ更新。公開済みCloudflare Worker、CPU自動連戦、オンライン挑戦者受付ON/OFF、NEW CHALLENGER、未審査音声のオンライン転送停止を維持。
