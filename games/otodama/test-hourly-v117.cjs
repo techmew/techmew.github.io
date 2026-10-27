@@ -23,24 +23,29 @@ const gainParam={setValueAtTime(){},linearRampToValueAtTime(){}};
 const ac={currentTime:2,createBufferSource(){return{playbackRate:{value:1},connect(){},start(...args){starts.push(args)},stop(){}}},createGain(){return{gain:gainParam,connect(){}}}};
 const battle={done:false,mode:'COM MATCH',turn:2,live:false,a:creature,b:creature};
 const ui={mutedCheck:{checked:false},muteOpponentVoice:{checked:false},arenaEffect:{textContent:''}};
+let soundClock=1000;
 const soundCtx={
  match:battle,$:id=>ui[id]||{},clamp:(v,a,b)=>Math.min(b,Math.max(a,v)),VOLUME:()=>.18,unlockBattleAudio:()=>ac,
  voiceOutput:()=>({}),trackAttackSource:()=>{},synthVoice:()=>{},
  voiceCache:new Map([[key,{buffer:{duration:1},offset:.1,duration:.65,gain:1.8}]]),
- pendingVoice:new Map(),performance:{now:()=>1000},hash:()=>0,
+ pendingVoice:new Map(),performance:{now:()=>soundClock},hash:()=>0,
  showRushBanner:x=>banners.push(x),bgmDuckUntil:0,lastSoundStatus:''
 };
 const sound=vm.runInNewContext(slice('function clipData(cr)','function previewRecordedVoice()')+';({attackVoice,maybeSpecialRush})',soundCtx);
 sound.attackVoice(creature,0,{hits:2});
-assert.equal(starts.length,2,'2-hit combo should have two voices');
-assert.ok(starts[1][0]>starts[0][0],'voices must be staggered');
-sound.attackVoice(creature,0,{hits:5});assert.equal(starts.length,7,'5-hit combo');
+assert.equal(starts.length,1,'2-hit combo must use one voice');
+sound.attackVoice(creature,0,{hits:5});assert.equal(starts.length,1,'no overlapping second recording');
+soundClock+=800;
+sound.attackVoice(creature,0,{hits:5});assert.equal(starts.length,2,'5-hit combo uses one voice');
+soundClock+=800;
 const ev={skill:true,atk:0};
 assert.equal(sound.maybeSpecialRush(battle,ev),true,'special triggers on selected deterministic seed');
-assert.equal(starts.length,14,'7-hit special');
+assert.equal(starts.length,9,'only explicit special rush plays seven voices');
+assert.ok(starts[8][0]>starts[2][0],'special voices must be staggered');
 assert.equal(banners.length,1,'special banner');
 assert.equal(sound.maybeSpecialRush(battle,ev),false,'special once per attack');
-sound.attackVoice(creature,0);assert.equal(starts.length,15,'normal single voice');
+soundClock+=1800;
+sound.attackVoice(creature,0);assert.equal(starts.length,10,'normal single voice');
 const button={textContent:''};
 let testVolume=0;
 const audioCtx={battleSoundCtx:{state:'running'},$:id=>id==='audioResumeBtn'?button:{checked:false},VOLUME:()=>testVolume};
@@ -100,6 +105,6 @@ async function testSockets(){
  const flood=socket();for(let i=0;i<20;i++)await mm.webSocketMessage(flood,'{');
  assert.equal(flood.attachment.rateCount,20,'matchmaker rate counts malformed packets');
  await mm.webSocketMessage(flood,'{');assert.equal(flood.closed[0],1008,'matchmaker flood rejected');
- console.log('HOURLY V117 TEST PASS | voice 1/2/5/7, audio 0%/suspend, live dedup/side/charge, room/matchmaker byte/rate guards');
+ console.log('HOURLY V117 TEST PASS | one voice per normal attack, seven-hit special only, audio recovery, live dedup, packet/rate guards');
 }
 testSockets().catch(e=>{console.error(e);process.exitCode=1});
