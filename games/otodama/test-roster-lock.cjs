@@ -16,7 +16,7 @@ assert.match(css,/border:3px solid #087fe2/,'selected border blue');
 assert.match(css,/@media\(max-width:420px\)\{\.gallerygrid\{grid-template-columns:repeat\(3/);
 const extract=(first,last)=>{const a=script.indexOf(first),b=script.indexOf(last,a);assert.ok(a>=0&&b>a,'source boundary '+first);return script.slice(a,b)};
 const storeFns=extract('function trimRoster(){','function renderMeter(');
-const rosterFns=extract('function renderRoster(){',"let hc=$('heroCanvas')");
+const rosterFns=extract('function deleteSavedCreature(seed){',"let hc=$('heroCanvas')");
 const saveCurrentFn=extract('function saveCurrent(){','// v0.4: decoded');
 const make=(seed,locked=false)=>({seed,locked,level:1,name:'キャラ'+seed,voice:{vol:50,pitch:50,res:50,rhythm:50,stable:50,breath:50},stats:[50,50,50,50,50]});
 class El{
