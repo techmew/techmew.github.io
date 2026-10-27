@@ -1,3 +1,15 @@
+# 声魂 v134｜必殺ラッシュの音声・表示同期と回帰テスト｜2026-10-27
+
+CURRENT_STATUS: games/otodama/ のみ修正。必殺ラッシュは録音音声7回を200ms間隔で再生し、録音音声の通常攻撃比1.5倍ゲイン・1750msターン保留を維持。録音なし/デコード失敗時の合成代替音も7発・200ms間隔に揃え、従来比約1.5倍のゲイン、0.14上限・マスターリミッター経由へ変更。
+CHANGELOG: ① 合成代替ラッシュの旧108ms間隔を録音音声と同じ200msへ統一。② 代替ラッシュの音量係数を0.50→0.75、最大0.095→0.14に調整。③ ラッシュのHIT数字が変わるたびに小さく拡大・発光する視覚フィードバック追加（省アニメ設定尊重）。④ Androidブラウザのテーマ色を現行ライトUIに合わせた。⑤ 長いラッシュ再生のbusyUntilに合わせ既存2テストの時計を修正し、新規test-synth-rush-v134をnpm test:nodeに追加。
+TEST_RESULTS: 最新main再取得、インラインJS V8構文 PASS、ui-refresh CSS括弧バランス PASS。V8互換モックで関連4テスト(test-voice-rush / test-voice-effects-v123 / test-audio-mix-v127 / test-synth-rush-v134) PASS。新テストは合成音7回・200ms・増音上限・マスター経路・ミュート・7 HIT表示・省アニメを実行検査。直近既知ActionsのNode run 40493048653（2026-10-27 11:02 JST換算20:02）は成功、ライブ run 40492946294 は/health・ランダムWebSocket2本・room live_start成功。これらは今回コミットより前の実行。最新mainの正式npm test:node/Actions、公開HTTP、Android実機は未確認。
+BLOCKERS: この実行環境では最新GitHub Actions run一覧、Pages配信HTTP、Cloudflare /healthへの直接HTTP、Android実機スピーカーを確認できない。今回のゲイン数値は模擬WebAudio上の値であり実音量保証ではない。
+NEXT_ACTIONS: 最新mainのActions全29テストとPagesデプロイを確認。Android Chrome縦横で録音7連撃・音量・HIT表示・ミュート/背面化/復帰、2端末CPU→PvP→CPUを実測。赤ログがあれば修復。
+LATEST_GAME_CODE_COMMIT_SHA: 235b8dc69c1cf955c2e9ec8017991de042450bca
+LATEST_TEST_COMMIT_SHA: 9e9b9d3f7882254628f8ff27f6fd65d13640db6f
+
+---
+
 # 声魂 v131｜最終検証追記｜2026-10-27
 
 CURRENT_STATUS: 音声録音→4パターンのガチャ→演出画面内で実キャラを描画→10体ストックへ登録、という順序を実装。ストック登録結果の表示が閉じるまで録音操作を無効化。
