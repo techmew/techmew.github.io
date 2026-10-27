@@ -1426,13 +1426,13 @@ function playDecodedVoice(cr,side,force=false,options={}){
  if($('mutedCheck').checked||!VOLUME())return false;
  const nowMs=performance.now();
  // One recognizable recorded voice per normal exchange; only explicit rush may repeat.
- if(!force&&nowMs<(playDecodedVoice.busyUntil||0))return false;
+ if(!force&&!options.rush&&nowMs<(playDecodedVoice.busyUntil||0))return false;
  const session=match,turn=match?.turn,ac=unlockBattleAudio();
  if(!ac)return false;
  const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
  const phase=options.phase||'attack',event=options.event||{};
  const generation=playDecodedVoice.generation||0;
- if(!force)playDecodedVoice.busyUntil=nowMs+(rush?Math.ceil((hits-1)*112+300):740);
+ if(!force)playDecodedVoice.busyUntil=nowMs+(rush?Math.ceil((hits-1)*200+650):740);
  const plain={enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,echo:0,
   volume:1,segment:.7,phase};
  const fx=force?plain:voiceEffectProfile(cr,side,event,phase);
@@ -1444,13 +1444,13 @@ function playDecodedVoice(cr,side,force=false,options={}){
   if(!valid())return false;
   if(!clip||clip.duration<.075){fallback();return false}
   try{
-   const out=voiceOutput(ac),now=ac.currentTime+.018;
+   const out=rush?audioMaster(ac):voiceOutput(ac),now=ac.currentTime+.018;
    // Never layer recorded echoes over regular speech; the original consonants stay clear.
    const echoes=0;
    function voiceAt(at,length,from,to,loudness){
     const source=ac.createBufferSource(),gain=ac.createGain();
     const portion=Math.min(clip.duration,Math.max(.08,length));
-    const limitLow=rush?.88:.86,limitHigh=rush?1.20:1.14;
+    const limitLow=rush?1.55:.86,limitHigh=rush?2.15:1.14;
     const safeFrom=force?1:clamp(from,limitLow,limitHigh);
     const safeTo=force?1:clamp(to,limitLow,limitHigh);
     const rate=(safeFrom+safeTo)*.5;
@@ -1471,15 +1471,15 @@ function playDecodedVoice(cr,side,force=false,options={}){
     source.start(at,clip.offset,portion);trackAttackSource(source);
    }
    for(let i=0;i<hits;i++){
-    const at=now+(rush?i*.112:0);
+    const at=now+(rush?i*.200:0);
     const shift=fx.enabled&&rush?1+(i%3-1)*.035:1;
     const from=fx.from*shift,to=fx.to*shift;
-    const length=rush?(i===hits-1?.175:.105):force?.7:phase==='reaction'?.22:.58;
-    // Rush: 112 ms cadence, 1.5x previous recorded-voice gain, capped to prevent clipping.
-    const level=rush
-      ?Math.min(.27,VOLUME()*Math.min(2.7,clip.gain||1)*fx.volume*1.11)
-      :Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
+    const length=rush?clip.duration:force?.7:phase==='reaction'?.22:.58;
+    // Rush replays the recognizable recording at accelerated speed, instead of cutting it to 105 ms.
+    // The gain is 1.5x the NORMAL recorded-attack gain, with a final cap and master limiter.
+    const ordinaryLevel=Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
          (phase==='reaction'?.42:1)/Math.sqrt(.86));
+    const level=rush?Math.min(.24,ordinaryLevel*1.5):ordinaryLevel;
     voiceAt(at,length,from,to,level);
     // Additional voiced echoes are disabled: even a preset named 'echo' stays single-source.
    }
@@ -1497,7 +1497,7 @@ function attackVoice(cr,side,ev=null){
  if(match?.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
  const rush=ev?.rush===true;
  const hits=rush?Math.min(7,Math.max(2,Math.floor(ev?.hits||7))):1;
- bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+(rush?1350:760));
+ bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+(rush?2200:760));
  playDecodedVoice(cr,side,false,{rush,hits,event:ev||{kind:'normal'},phase:'attack'});
 }
 function reactionVoice(cr,side,ev){
@@ -1512,11 +1512,13 @@ function reactionVoice(cr,side,ev){
 
 function maybeSpecialRush(m,ev){
  if(!ev?.skill||m.live||m.done||ev.rushSpecial)return false;
- const seed=(ev.atk===0?m.a:m.b)?.seed||0;
- if((hash((seed^Math.imul(m.turn+1,0x45d9f3b))>>>0)>>>0)%3!==0)return false;
+ // Every special attack gets its rush: the previous 1-in-3 gate hid most activations.
  ev.rushSpecial=true;
  showRushBanner('必殺技　連打ラッシュ！');
  $('arenaEffect').textContent='必殺技　連打ラッシュ！';
+ // Specials may become armed only on impact, after a normal voice has set busyUntil.
+ // Stop that earlier recording and let the priority rush start immediately.
+ stopAttackVoices();
  attackVoice(ev.atk===0?m.a:m.b,ev.atk,{...ev,rush:true,hits:7});
  return true;
 }
