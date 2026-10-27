@@ -6,11 +6,11 @@ const css=fs.readFileSync(__dirname+'/ui-refresh-v124.css','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
 assert.ok(script,'embedded full game is present');
 new vm.Script(script,{filename:'koedama-v124-game.js'});
-assert.match(html,/href="\.\/ui-refresh-v124\.css\?v=131"/,'approved light-theme stylesheet is loaded');
+assert.match(html,/href="\.\/ui-refresh-v124\.css\?v=134"/,'approved light-theme stylesheet is loaded');
 assert.match(css,/KOEDAMA Refined UI v0\.10\.24/);
 assert.match(css,/--bg:#edf4fa/,'light base palette');
 assert.match(css,/\.modalbox\{background:#fff/,'readable game battle panel');
-assert.match(html,/試作版 v0\.10\.24/);
+assert.match(html,/追加モードの要望は/);
 const mainIDs=['heroCanvas','recordBtn','randomBtn','stopRecordBtn','voicePreviewBtn','waveCanvas',
  'micHint','countdown','micNotice','recordingCaution','controlCard','fightBtn','saveBtn',
  'voiceMetrics','battleMetrics','voiceRoleName','voiceRoleDesc','dnaPanel','dnaAllFeatures',
@@ -77,4 +77,8 @@ for(const id of ['dailyBox','survivalBtn'])assert.ok(found.get(id)?.details.incl
 for(const id of ['rankingAlias','serverUrl'])assert.ok(found.get(id)?.details.includes('onlineAdvanced'),'advanced server settings folded');
 assert.deepEqual(found.get('audioResumeBtn')?.details,[],'audio recovery always visible in fight');
 assert.ok(found.get('voiceFxEnabled')?.details.includes('battleAudioSettings'),'secondary fight settings folded');
-console.log('REFINED UI v0.10.24 PASS | DOM balanced, 5 visible stats, 6 drawers, full engine preserved, 2s mic, 28 FX and recovery');
+assert.ok(html.indexOf('id="fightBtn"')>html.indexOf('id="heroCanvas"')&&html.indexOf('id="fightBtn"')<html.indexOf('id="roster"'),'battle controls located under fighter');
+assert.ok(html.indexOf('id="statusCard"')>html.indexOf('id="roster"'),'selected fighter stats in separate right panel');
+assert.match(css,/\.layout>\.status-card\{grid-column:2/,'desktop selected stats on right');
+assert.match(html,/id="extraModes" hidden/,'other modes hidden on home');
+console.log('REFINED UI v134 PASS | DOM balanced, 5 stats on right, fight under preview, modes hidden, engine preserved');
