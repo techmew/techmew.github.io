@@ -39,7 +39,7 @@ const campaignCtx={
 const campaign=vm.runInNewContext('let adventureStage=1;'+slice('function updateCampaignTrack(mode){','function showBattle(')+';({updateCampaignTrack,setStage:n=>adventureStage=n})',campaignCtx);
 const updateCampaignTrack=campaign.updateCampaignTrack;
 updateCampaignTrack('COM MATCH');
-assert.ok(bar.textContent.includes('第1試合目')&&bar.textContent.includes('ボスまであと4戦'));
+assert.ok(bar.textContent.includes('STAGE 1')&&bar.textContent.includes('ボスまで4戦'),'compact campaign label');
 campaign.setStage(5);updateCampaignTrack('COM MATCH');
 assert.ok(bar.textContent.includes('ボス戦！'));
 assert.equal(bar.style['--chapter-progress'],'100%');
