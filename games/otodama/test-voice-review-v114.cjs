@@ -68,7 +68,7 @@ function fakeRuntime(mediaRecorderEnabled){
   gen:(seed,voice)=>({seed,voice}),dnaFrame:()=>({t:0,rms:.1}),analyseVoiceDNA:()=>null,cur:{},clipData
  };
  context.setCurrent=(c,fromBirth)=>{context.cur=c;notes.push('preview:'+c.seed+':'+String(fromBirth));$('voicePreviewBtn').disabled=!clipData(c)};
- const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl})',context);
+ const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl,abortCaptureForBackground})',context);
  return{api,context,nodes,media,ctxRef,notes};
 }
 async function attempt(mediaRecorderEnabled){
@@ -104,7 +104,29 @@ async function attempt(mediaRecorderEnabled){
  assert.equal(env.nodes.get('stopRecordBtn').style.display,'none','capture buttons reset');
  return env.context.cur.voiceClip.length;
 }
+async function attemptBackgroundAbort(){
+ const env=fakeRuntime(true);
+ let grant;
+ env.context.navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>{grant=resolve});
+ const pending=env.api.startRecord();
+ env.context.document.hidden=true;
+ env.api.abortCaptureForBackground();
+ grant({getTracks(){return[{stop(){env.media.stops++}}]}});
+ await pending;
+ assert.equal(env.media.stops,1,'late permission grant releases the microphone');
+ assert.equal(env.notes.filter(x=>x.startsWith('gacha:')).length,0,'no gacha after background permission grant');
+ assert.equal(env.nodes.get('countdown').textContent,'中断');
+ const live=fakeRuntime(true);
+ const capture=live.api.startRecord();
+ for(let i=0;i<12;i++)await Promise.resolve();
+ live.context.document.hidden=true;
+ live.api.abortCaptureForBackground();
+ await capture;
+ assert.equal(live.media.stops,1,'interrupted live recording closes tracks');
+ assert.equal(live.notes.filter(x=>x.startsWith('gacha:')).length,0,'partial recording never spawns a character');
+}
 (async()=>{
+ await attemptBackgroundAbort();
  const mediaLength=await attempt(true);
  const wavLength=await attempt(false);
  assert.ok(mediaLength>100&&wavLength>100,'voice samples are not empty');
