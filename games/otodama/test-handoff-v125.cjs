@@ -41,7 +41,7 @@ assert.equal(h.active,true,'handoff pending');
 assert.equal(ctx.battleInterval,null,'CPU interval stops');
 assert.ok(calls.includes('stop-interval')&&calls.includes('stop-auto')&&calls.includes('banner'),'visual cut-in freezes CPU');
 assert.equal(h.canSearchPvP(),false,'no second match during handoff');
-h.scheduleHandoffTimeout();assert.equal(timers.at(-1).ms,17000,'handoff failure deadline');
+h.scheduleHandoffTimeout();assert.equal(timers.at(-1).ms,30000,'mobile room-ready handshake deadline');
 now=6500;h.restoreCpuAfterHandoff();
 assert.equal(h.active,false,'handoff cleared');
 assert.equal(ctx.match,oldCpu,'same CPU fight');
