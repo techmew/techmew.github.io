@@ -12,7 +12,7 @@ assert.match(css,/#controlCard #birthCreatureCanvas\{/,'birth canvas is styled')
 assert.match(css,/data-phase="reveal"\] #birthCreatureCanvas/,'actual creature animated into the scene');
 assert.match(css,/data-phase="stock"/,'stock completion gets its own state');
 assert.match(script,/startBirthReveal\(newborn,\(\)=>\{setCurrent\(newborn,true\);return saveNewborn\(newborn\)\}\)/,'capture queues stock addition after reveal');
-const from=script.indexOf('let birthRevealToken=0,birthRevealTimers=[];'),to=script.indexOf('function newOne(){',from);
+const from=script.indexOf('let birthRevealToken=0,birthRevealTimers=[],birthStockCallback=null;'),to=script.indexOf('function newOne(){',from);
 assert.ok(from>0&&to>from);
 const src=script.slice(from,to);
 const elements=new Map(),drawn=[],events=[],tasks=[];
