@@ -2882,7 +2882,7 @@ function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base
   if(data.reason)$('voiceShareStatus').textContent=data.reason;
  }else if(data.type==='voice'){
   // The server relays clips only with both sides' explicit opt-in.
-  if(!$('receiveVoice').checked||$('muteOpponentVoice').checked)return;
+  if(!$('receiveVoice').checked)return; // Even if muted, retain the consensual clip for a later unmute.
   const incoming=typeof data.clip==='string'?data.clip:'';
   if(!/^data:audio\/(?:webm|wav|ogg|mp4|mpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(incoming)||incoming.length>175000||incoming.length<100)return;
   remoteVoiceClip=incoming;
