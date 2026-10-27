@@ -12,7 +12,7 @@ class FakeDate extends Date{static now(){return now}}
 const get=id=>{if(!nodes.has(id))nodes.set(id,{checked:false,hidden:true,textContent:'',classList:{contains:x=>x==='open'},style:{}});return nodes.get(id)};
 get('battleModal').classList.contains=x=>x==='open';
 let storage=new Map();
-const ctx={Date:FakeDate,Math,JSON,console,window:{OtodamaPvpPace:paceModule.exports},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
+const ctx={Date:FakeDate,Math,JSON,console,WebSocket:{OPEN:1},window:{OtodamaPvpPace:paceModule.exports},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
  performance:{now:()=>now},document:{hidden:false},$:get,match:{done:false,live:false,mode:'COM MATCH',pop:7000,current:{impactAt:7300}},
  queueWs:null,ws:null,battleInterval:123,EVENT_MS:820,survivalActive:false,
  serverBase:()=> 'https://otodama.example',
