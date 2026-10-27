@@ -140,8 +140,8 @@
 @media(prefers-reduced-motion:reduce){.challenger-banner:not([hidden]){animation:none}}@media(max-width:400px){.modalhead #battleTitle{font-size:12px}.pvp-accept{padding:5px;font-size:10px}}
 </style><link rel="stylesheet" href="./ui-refresh-v124.css?v=1"></head><body><div class="wrap"><header class="top"><div class="brand"><div class="brandmark">〰</div><div><div class="brandname">声魂<span style="font-size:.6em;letter-spacing:0">（こえだま）</span></div><div class="micro">VOICE-BORN CREATURE ARENA</div></div></div><div class="status"><span class="dot" id="netDot"></span><span id="netLabel">SOLO DEMO</span></div></header>
 <section class="heading"><div><div class="eyebrow">声を録って、キャラをつくる。</div><h1>その声が、<span style="color:var(--sky)">生き物になる。</span></h1><p>2秒の声からキャラを生成。自分だけのキャラでバトルしよう。</p></div><div class="count">声の特徴が、キャラの強さと成長に影響します。</div></section>
-<main class="layout"><section class="card stage"><div class="headrow"><div class="sectionname">キャラプレビュー</div><div class="idpill" id="creatureId">#-------</div></div><div class="preview-art"><canvas id="heroCanvas" width="700" height="520" aria-label="生成キャラのプレビュー"></canvas><div id="birthReveal" class="birth-reveal" hidden data-phase="charge" aria-live="polite" aria-label="録音からキャラが誕生"><div class="birth-orbit"><div class="birth-core" id="birthCore">?</div><i class="birth-spark s1"></i><i class="birth-spark s2"></i><i class="birth-spark s3"></i><i class="birth-spark s4"></i></div><b id="birthHeadline"></b><span id="birthSubline"></span></div></div><div class="nametag"><div><div class="kind" id="kind">声のタイプ</div><div class="creaturename" id="creatureName">---</div></div><span class="element" id="element">---</span></div><section class="gallery preview-gallery" aria-label="保存したキャラ一覧"><div class="galleryhead"><h2>作ったキャラ</h2><span class="sub" id="rosterCount">保存 0 / 30</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:10px 0 0">青枠：使用中 ／ 🔒：保護 ／ ×：削除（確認あり）。大切なキャラはバックアップしてください。</p><div id="rosterNotice" role="status" aria-live="polite"></div></section></section>
-<section class="card controls" id="controlCard"><div class="paneltitle"><h2>声を録る</h2><span class="sub">2秒で自動生成</span></div><div class="listen"><div class="listentop"><span id="micHint">声を2秒録音すると、自動でキャラを生成します</span><strong id="countdown">02.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 録音して生成</button><button class="btn stop-record" id="stopRecordBtn" style="display:none" disabled>2秒で自動終了</button><button class="btn ghost" id="randomBtn">おためし生成</button><button class="btn ghost" id="voicePreviewBtn" disabled>▶ 録音を試聴</button></div><div class="switch"><input type="checkbox" id="mutedCheck"><label for="mutedCheck">音声をミュート</label></div>
+<main class="layout"><section class="card stage"><div class="headrow"><div class="sectionname">キャラプレビュー</div><div class="idpill" id="creatureId">#-------</div></div><div class="preview-art"><canvas id="heroCanvas" width="700" height="520" aria-label="生成キャラのプレビュー"></canvas></div><div class="nametag"><div><div class="kind" id="kind">声のタイプ</div><div class="creaturename" id="creatureName">---</div></div><span class="element" id="element">---</span></div><section class="gallery preview-gallery" aria-label="保存したキャラ一覧"><div class="galleryhead"><h2>作ったキャラ</h2><span class="sub" id="rosterCount">保存 0 / 10</span></div><div class="gallerygrid" id="roster"></div><p class="tiny" style="margin:10px 0 0">青枠：使用中　↕：ドラッグで並べ替え　🔒：保護　×：削除。所持10体まで。</p><div id="rosterNotice" role="status" aria-live="polite"></div><button type="button" class="btn small ghost" id="rosterArchiveDownload" hidden>以前のキャラを書き出す</button></section></section>
+<section class="card controls" id="controlCard"><div class="paneltitle"><h2>声を録る</h2><span class="sub">2秒で自動生成</span></div><div class="listen"><div id="birthReveal" class="birth-reveal" hidden data-phase="charge" aria-live="polite" aria-label="録音からキャラが誕生"><div class="birth-orbit"><div class="birth-core" id="birthCore">?</div><i class="birth-spark s1"></i><i class="birth-spark s2"></i><i class="birth-spark s3"></i><i class="birth-spark s4"></i></div><b id="birthHeadline"></b><span id="birthSubline"></span></div><div class="listentop"><span id="micHint">声を2秒録音すると、自動でキャラを生成します</span><strong id="countdown">02.0 SEC</strong></div><canvas id="waveCanvas" class="wave" width="600" height="80"></canvas><div class="recordactions"><button class="btn primary" id="recordBtn">● 録音して生成</button><button class="btn stop-record" id="stopRecordBtn" style="display:none" disabled>2秒で自動終了</button><button class="btn ghost" id="randomBtn">おためし生成</button><button class="btn ghost" id="voicePreviewBtn" disabled>▶ 録音を試聴</button></div><div class="switch"><input type="checkbox" id="mutedCheck"><label for="mutedCheck">音声をミュート</label></div>
 <details class="recording-caution" id="recordingCaution"><summary>録音時の注意</summary><div class="caution-body"><strong>録音時の注意：</strong>卑猥な言葉、差別的な発言、暴言は使用しないでください。<small>録音声はこの端末内で保存・再生します。禁止ワードは発しないでください。音声の自動検査は行いません。オンラインへの録音声送信は停止中です。</small></div></details><div id="micNotice" class="tiny micnotice" aria-live="polite"></div></div>
 <section class="play-next" aria-label="キャラの能力とバトル"><div class="divider"></div><div class="paneltitle"><h2>バトルステータス</h2><span class="sub" id="totalPower">TOTAL / 000</span></div><div class="metrics combatbars" id="battleMetrics"></div><div class="voice-role"><b id="voiceRoleName">声のタイプ</b><span id="voiceRoleDesc">声の特徴から特殊能力が生まれます。</span></div><div class="questline" id="questLine"><div>冒険 <b id="adventureStage">STAGE 01</b><div class="next-stage-note" id="stageHint">声の冒険を始めよう</div></div><small id="stageWins">突破 0戦</small></div><div class="stage-mission" id="stageMissionHint" aria-live="polite">ステージミッションを準備中</div><div class="campaign"><span><b id="campaignRank">Lv.1</b> <small id="campaignXp">XP 0/3</small></span><span id="campaignStreak">連勝 0 / 最高 0</span></div><div class="play-next-head"><strong>バトル</strong><span>次のステージへ進む</span></div><div class="battlebuttons"><button class="btn fight" id="fightBtn">▶ オートバトル開始</button><button class="btn outline" id="saveBtn">＋ キャラを保存</button></div><label class="survival-online-setting" style="margin:10px 0;padding:12px;border:1px solid #80b9c8;border-radius:12px;background:rgba(104,185,207,.10)"><input type="checkbox" id="survivalChallengerOptIn"><span><b>オンライン挑戦者を受け付ける</b><small style="display:block;font-size:12px">ON：CPU戦の途中でマッチすると NEW CHALLENGER ／ OFF：CPU戦のみ</small></span></label></section><details class="home-details" id="characterDetails"><summary><span class="drawer-copy"><b>詳しいステータス</b><small>声の解析・36項目の音響DNA</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div class="divider"></div><div class="paneltitle"><h2>声の解析結果</h2><span class="sub" id="voiceType">サンプル</span></div><div class="metrics" id="voiceMetrics"></div><div class="dna-card" id="dnaPanel" aria-live="polite"><div class="dna-head"><strong>音響DNA・36項目解析</strong><span id="dnaQuality">体験キャラ</span></div><p id="dnaSummary">声を録音すると、音の変化・倍音・リズムから能力と潜在特性が決まります。</p><div id="dnaFeatures" class="dna-features"></div><details class="dna-all" id="dnaAllDetails"><summary>解析36項目をすべて表示</summary><div id="dnaAllFeatures" class="dna-features"></div></details><div id="dnaTraits" class="dna-traits"></div><small id="dnaGrowth">録音した声の組み合わせで、レベルアップ後の強さも変化します。</small></div></div></details><details class="home-details" id="extraModes"><summary><span class="drawer-copy"><b>別のゲームモード</b><small>日替わり対戦・サバイバル</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div class="challenge-box" id="dailyBox"><div class="challenge-head"><span>今日の対戦 <b id="dailyName">---</b></span><span class="challenge-tag" id="dailyFlag">未達成</span></div><div class="challenge-copy" id="dailyDesc">日替わりのライバルを倒して報酬を獲得</div><button class="btn challenge-btn" id="dailyBtn" type="button">今日の相手と対戦</button></div><div class="survival-home"><strong>サバイバル｜負けたら終了</strong><span id="survivalHomeStatus" aria-live="polite">最高記録：0 ポイント</span><div class="survival-history"><b>この端末の記録 TOP 5</b><ol id="survivalLocalTop5"><li>まだ記録がありません</li></ol></div><button class="btn primary" id="survivalBtn" type="button">▶ おまかせでスタート</button><small>自動で連戦。途中で手動操作に切り替えられます。ポイントはこの端末の記録で、オンラインランキングには反映されません。</small></div>
 </div></details><details class="home-details" id="collectionDetails"><summary><span class="drawer-copy"><b>キャラ図鑑</b><small>発見した種類を確認</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div class="collection-box"><b>声魂図鑑</b><span id="codexCounter">発見した種族 0 / 12</span><div class="codex-grid" id="codexGrid" aria-label="発見した種族"></div></div></div></details><details class="home-details" id="helpDetails"><summary><span class="drawer-copy"><b>ヘルプ・データ管理</b><small>遊び方・録音の注意・バックアップ</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div id="playGuide"><h3>遊び方 / 3ステップ</h3><div class="guideflow">① 声でキャラを作る → ② 対戦中にガード・特別な技を操作 → ③ 勝って育成しながら次のステージへ進む</div></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="save-tools"><button class="btn small ghost" type="button" id="exportSaveBtn">進行データを書き出す</button><label class="btn small ghost" for="importSaveFile">進行データを読み込む<input id="importSaveFile" type="file" accept=".json,application/json" hidden></label></div><div class="tiny" id="saveNotice" role="status">音声録音そのものはバックアップに含まれません。</div></div></details></section></main>
@@ -492,14 +492,15 @@ function exportSave(){
 async function importSave(file){
  if(!file)return;
  try{
-  if(file.size>256000)throw Error('ファイルが大きすぎます');
+  if(file.size>12000000)throw Error('ファイルが大きすぎます');
   const data=JSON.parse(await file.text());
-  if(!data||data.format!=='OTODAMA_SAVE'||data.version!==1||!Array.isArray(data.roster)||data.roster.length>30||!Array.isArray(data.discovered)||data.discovered.length>12)throw Error('対応していない保存形式です');
-  const nextCur=restoreCreature(data.current),nextRoster=data.roster.map(restoreCreature),p=data.progress||{};
+  const archivalImport=data?.format==='OTODAMA_ROSTER_ARCHIVE';
+  if(!data||(!archivalImport&&data.format!=='OTODAMA_SAVE')||data.version!==1||!Array.isArray(data.roster)||data.roster.length>(archivalImport?100:30)||(!archivalImport&&(!Array.isArray(data.discovered)||data.discovered.length>12)))throw Error('対応していない保存形式です');
+  const nextCur=restoreCreature(archivalImport?data.roster[0]:data.current),nextRoster=data.roster.map(raw=>{const cr=restoreCreature(raw);if(archivalImport&&clipData(raw))cr.voiceClip=raw.voiceClip;return cr}),p=data.progress||{};
   const sane=v=>clamp(Math.floor(Number(v)||0),0,99999);
-  const nextProgress={streak:sane(p.streak),recordStreak:sane(p.recordStreak),careerWins:sane(p.careerWins),adventureStage:clamp(sane(p.adventureStage),1,99999),stageWins:sane(p.stageWins),stageAttempts:sane(p.stageAttempts)};
-  if(!data.discovered.every(v=>Number.isInteger(v)&&v>=0&&v<12))throw Error('図鑑データが不正です');
-  const nextDiscovery=[...new Set(data.discovered)];
+  const nextProgress=archivalImport?{streak,recordStreak,careerWins,adventureStage,stageWins,stageAttempts}:{streak:sane(p.streak),recordStreak:sane(p.recordStreak),careerWins:sane(p.careerWins),adventureStage:clamp(sane(p.adventureStage),1,99999),stageWins:sane(p.stageWins),stageAttempts:sane(p.stageAttempts)};
+  if(!archivalImport&&!data.discovered.every(v=>Number.isInteger(v)&&v>=0&&v<12))throw Error('図鑑データが不正です');
+  const nextDiscovery=archivalImport?[...discovered]:[...new Set(data.discovered)];
   // Deduplicate imported IDs and retain the protected version if duplicates exist.
   // Import must never silently replace a locally protected character.
   const keep=roster.filter(c=>c&&c.locked===true);
@@ -516,10 +517,12 @@ async function importSave(file){
    for(const [id,i] of bySeed)bySeed.set(id,i+1);
    bySeed.set(protectedCreature.seed,0);
   }
-  while(merged.length>30){const i=merged.findLastIndex(c=>c.locked!==true);if(i<0)throw Error('保護キャラが30体を超えています');merged.splice(i,1)}
+  const split=splitSavedRoster(merged,nextCur.seed),overflow=split.overflow;
+  merged.splice(0,merged.length,...split.keep);
   const restoredCurrent=merged.find(c=>c.seed===nextCur.seed)||nextCur;
-  const restoredDaily=/^\d{8}$/.test(data.dailyCleared||'')?data.dailyCleared:'';
+  const restoredDaily=archivalImport?dailyCleared:/^\d{8}$/.test(data.dailyCleared||'')?data.dailyCleared:'';
   const writes=[
+   ...(overflow.length?[[ROSTER_ARCHIVE_KEY,JSON.stringify(mergedArchive(overflow))]]:[]),
    ['otodama.roster',JSON.stringify(merged)],
    ['otodama.progress',JSON.stringify({streak:nextProgress.streak,best:nextProgress.recordStreak,wins:nextProgress.careerWins,stage:nextProgress.adventureStage,stageWins:nextProgress.stageWins,attempts:nextProgress.stageAttempts})],
    [discoveryKey,JSON.stringify(nextDiscovery)],
@@ -596,7 +599,7 @@ function updateCharacterProgress(m){const player=m.a;let bonus=0;if(m.mode==='CO
  bonus+=(m.streakAwarded?2:0)+(m.comebackAwarded?1:0)+(m.underdogAwarded?1:0);
  m.missionAwarded=m.outcome.winner===0&&missionCompleted(m);if(m.missionAwarded)bonus++;m.cleanDefenseAwarded=m.mode==='COM MATCH'&&m.outcome.winner===0&&m.damageTaken<=4&&(m.parries+m.dodges)>=2;if(m.cleanDefenseAwarded)bonus++;const mutationBefore=specimenMutation(player).tier;let gained=(m.outcome.winner===0?2:1)+bonus;player.xp=(Number(player.xp)||0)+gained;let lvled=false;while(player.xp>=3&&levelOf(player)<30){player.xp-=3;player.level=levelOf(player)+1;const idx=dnaGrowthIndex(player,player.level);const bonusGrowth=player.audioDNA?.version===1&&player.level%5===0&&player.audioDNA.growth?.[idx]===3?1:0;player.stats[idx]=clamp(player.stats[idx]+1+bonusGrowth,27,99);lvled=true;}if(m.outcome.winner===0){streak++;careerWins++;recordStreak=Math.max(recordStreak,streak)}else{streak=0}if(m.mode==='COM MATCH'){if(m.outcome.winner===0){stageWins++;adventureStage=Math.min(99999,adventureStage+1);stageAttempts=0}else stageAttempts=Math.min(99999,stageAttempts+1);m.stageCompleted=adventureStage-(m.outcome.winner===0?1:0)}saveProgress();
  const previousRoster=roster.slice();
- if(!upsertCreature(player))$('micHint').textContent='全30体が保護中です。新しいキャラは保存されません';
+ if(!upsertCreature(player))$('micHint').textContent='所持10体が満員です。キャラを整理すると保存できます';
  else if(!saveStore())roster=previousRoster;if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign()}const mutated=specimenMutation(player).tier>mutationBefore;
  const msg=(m.outcome.winner===0?'勝利 +'+gained+'XP':'敗北 +1XP')+
   (lvled?' · Lv.'+levelOf(player)+' UP':'')+
@@ -695,17 +698,43 @@ try{
   }
  }
 }catch(e){}
+const ROSTER_LIMIT=10,ROSTER_ARCHIVE_KEY='otodama.roster.archived.v130';
+let rosterMigrationWarning='';
+function splitSavedRoster(items,preferredSeed=null){
+ const seen=new Set(),unique=[];for(const c of items){if(!c||!Number.isSafeInteger(c.seed)||seen.has(c.seed))continue;seen.add(c.seed);unique.push(c)}
+ const preferred=unique.find(c=>c.seed===preferredSeed);
+ const priority=[...(preferred?[preferred]:[]),...unique.filter(c=>c.locked===true),...unique];
+ const selected=new Set();for(const cr of priority){if(selected.size>=ROSTER_LIMIT)break;selected.add(cr.seed)}
+ return {keep:unique.filter(c=>selected.has(c.seed)),overflow:unique.filter(c=>!selected.has(c.seed))};
+}
+function archivedCreatures(){try{const x=JSON.parse(localStorage.getItem(ROSTER_ARCHIVE_KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+function mergedArchive(extra){const entries=archivedCreatures(),known=new Set(entries.map(c=>c.seed));for(const c of extra){if(!known.has(c.seed)){entries.push(c);known.add(c.seed)}}return entries}
+function downloadArchive(){
+ const entries=archivedCreatures();if(!entries.length)return;
+ const blob=new Blob([JSON.stringify({format:'OTODAMA_ROSTER_ARCHIVE',version:1,createdAt:new Date().toISOString(),roster:entries})],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='otodama-old-characters.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+ $('rosterNotice').textContent=entries.length+'体の以前のキャラを書き出しました。';
+}
+function migrateRosterToTen(){
+ if(roster.length<=ROSTER_LIMIT)return true;
+ const {keep,overflow}=splitSavedRoster(roster,cur.seed);
+ try{
+  localStorage.setItem(ROSTER_ARCHIVE_KEY,JSON.stringify(mergedArchive(overflow)));
+  localStorage.setItem('otodama.roster',JSON.stringify(keep));
+  roster=keep;rosterMigrationWarning=overflow.length+'体を以前のキャラとして退避しました。必要なら書き出してください。';return true;
+ }catch(e){rosterMigrationWarning='旧キャラの退避に失敗しました。元の保存データを維持しています。先にバックアップしてください。';return false}
+}
+migrateRosterToTen();
 const DEFAULT_SERVER_URL='https://otodama-room.nekokichi005.workers.dev'; // 公開したCloudflare Workerを標準接続先にする
 try{$('serverUrl').value=localStorage.getItem('otodama.server')||DEFAULT_SERVER_URL}catch(e){$('serverUrl').value=DEFAULT_SERVER_URL}
-function trimRoster(){while(roster.length>30){const i=roster.findLastIndex(c=>c.locked!==true);if(i<0)return false;roster.splice(i,1)}return true}
+function trimRoster(){while(roster.length>ROSTER_LIMIT){const i=roster.findLastIndex(c=>c.locked!==true);if(i<0)return false;roster.splice(i,1)}return true}
 // Save new creatures at the tail, not in the top-left; update existing fighters in place.
 function upsertCreature(cr){
  const existing=roster.findIndex(c=>c.seed===cr.seed);
  if(existing>=0){cr.locked=roster[existing].locked===true;roster[existing]=cr;return true}
- if(roster.length<30){roster.push(cr);return true}
- const replaceAt=roster.findLastIndex(c=>c.locked!==true);
- if(replaceAt<0)return false;
- roster[replaceAt]=cr;return true;
+ if(roster.length<ROSTER_LIMIT){roster.push(cr);return true}
+ // Do not silently evict an existing character during battle rewards.
+ return false;
 }
 function saveStore(){try{localStorage.setItem('otodama.roster',JSON.stringify(roster));return true}catch(e){$('micHint').textContent='保存に失敗しました。ブラウザの保存容量・設定を確認してください';return false}}
 function persistSelected(){
@@ -785,11 +814,34 @@ function deleteSavedCreature(seed){
  $('rosterNotice').textContent='キャラを削除しました。';
  return true;
 }
+function moveRoster(fromSeed,toSeed){
+ const from=roster.findIndex(c=>c.seed===fromSeed),to=roster.findIndex(c=>c.seed===toSeed);
+ if(from<0||to<0||from===to)return false;
+ const backup=roster.slice(),[creature]=roster.splice(from,1);roster.splice(to,0,creature);
+ if(!saveStore()){roster=backup;renderRoster();return false}
+ renderRoster();return true;
+}
+let rosterDragSeed=null,rosterPointerDrag=null;
+function attachRosterReorder(tile,handle,seed){
+ tile.dataset.seed=String(seed);tile.draggable=true;
+ tile.addEventListener('dragstart',e=>{if(e.target?.closest?.('.roster-delete,.roster-lock')){e.preventDefault();return}rosterDragSeed=seed;tile.classList.add('roster-dragging');if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(seed))}});
+ tile.addEventListener('dragover',e=>{if(rosterDragSeed===null||rosterDragSeed===seed)return;e.preventDefault();tile.classList.add('roster-drop-target')});
+ tile.addEventListener('dragleave',()=>tile.classList.remove('roster-drop-target'));
+ tile.addEventListener('drop',e=>{e.preventDefault();const from=rosterDragSeed;rosterDragSeed=null;if(from!==null)moveRoster(from,seed);else renderRoster()});
+ tile.addEventListener('dragend',()=>{rosterDragSeed=null;document.querySelectorAll('.roster-drop-target,.roster-dragging').forEach(el=>el.classList.remove('roster-drop-target','roster-dragging'))});
+ handle.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;e.preventDefault();rosterPointerDrag={id:e.pointerId,from:seed,to:seed};handle.setPointerCapture?.(e.pointerId);tile.classList.add('roster-dragging')});
+ handle.addEventListener('pointermove',e=>{if(rosterPointerDrag?.id!==e.pointerId)return;e.preventDefault();const other=document.elementFromPoint?.(e.clientX,e.clientY)?.closest?.('.roster-entry'),to=Number(other?.dataset?.seed);if(other&&roster.some(c=>c.seed===to)){rosterPointerDrag.to=to;document.querySelectorAll('.roster-drop-target').forEach(el=>el.classList.remove('roster-drop-target'));other.classList.add('roster-drop-target')}});
+ const finish=e=>{if(rosterPointerDrag?.id!==e.pointerId)return;const {from,to}=rosterPointerDrag;rosterPointerDrag=null;if(handle.hasPointerCapture?.(e.pointerId))handle.releasePointerCapture(e.pointerId);if(from!==to)moveRoster(from,to);else renderRoster()};
+ handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',()=>{rosterPointerDrag=null;renderRoster()});
+ handle.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;const from=roster.findIndex(c=>c.seed===seed),delta=e.key==='ArrowUp'?-5:e.key==='ArrowDown'?5:e.key==='ArrowLeft'?-1:1;const next=Math.max(0,Math.min(roster.length-1,from+delta));e.preventDefault();if(next!==from)moveRoster(seed,roster[next].seed)});
+}
 function renderRoster(){
  // All saved creatures are visible in their original order; only the active border changes.
- const all=roster.some(c=>c.seed===cur.seed)?roster.slice():[...roster,cur];
+ const all=roster.slice(0,ROSTER_LIMIT);
  const protectedCount=roster.filter(c=>c.locked===true).length;
- $('rosterCount').textContent='保存 '+roster.length+' / 30 · 保護 '+protectedCount;
+ $('rosterCount').textContent='保存 '+roster.length+' / '+ROSTER_LIMIT+' · 保護 '+protectedCount;
+ const archiveBtn=$('rosterArchiveDownload');archiveBtn.hidden=archivedCreatures().length===0;archiveBtn.onclick=downloadArchive;
+ if(rosterMigrationWarning)$('rosterNotice').textContent=rosterMigrationWarning;
  const wrap=$('roster');wrap.replaceChildren();
  all.forEach(cr=>{
   const saved=roster.find(c=>c.seed===cr.seed);
@@ -831,6 +883,7 @@ function renderRoster(){
    remove.setAttribute('aria-label',displayName(saved)+'を削除');
    remove.onclick=()=>deleteSavedCreature(saved.seed);
    tile.append(remove);
+   const handle=document.createElement('button');handle.type='button';handle.className='roster-move';handle.textContent='↕';handle.title='長押しして並べ替え';handle.setAttribute('aria-label',displayName(saved)+'を並べ替え');tile.append(handle);attachRosterReorder(tile,handle,saved.seed);
   }
   wrap.append(tile);
   const ctx=cv.getContext('2d');if(ctx)drawCreature(ctx,cr,62,55,.42,0);
@@ -971,7 +1024,7 @@ async function startRecord(){
   try{audioDNA=analyseVoiceDNA(dnaFrames)}catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
   const seed=audioDNA?audioDNA.signature:hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
   const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip};
-  setCurrent(newborn);startBirthReveal(newborn);
+  setCurrent(newborn);saveNewborn(newborn);startBirthReveal(cur);
   $('micHint').textContent=voiceClip?'録音成功。試聴・戦闘・勝利の雄叫びに使えます':'声の特徴からキャラを生成しましたが、録音音声を保存できませんでした';
   $('countdown').textContent=voiceClip?(audioDNA?'DNA OK':'VOICE OK'):'NO CLIP';
   $('micNotice').textContent=voiceClip?(audioDNA?'36項目の音響DNAを解析し、声由来の能力・成長適性を保存しました。録音した声も試聴できます。':'録音声を保存しました。音響DNAの分析に必要な音量や長さが足りないため、基本解析を使用しました。'):'音声ファイルの保存に失敗しました。マイクの許可とブラウザを確認してください。戦闘は代替音で続行できます。';
@@ -989,11 +1042,26 @@ function updateVoicePreviewButton(){
  const btn=$('voicePreviewBtn');btn.disabled=!clipData(cur);
  btn.textContent=btn.disabled?'▶ 録音を試聴':'▶ 録音を試聴';
 }
+function saveNewborn(creature){
+ const old=roster.slice(),existing=roster.findIndex(c=>c.seed===creature.seed);
+ if(roster.length>ROSTER_LIMIT){$('rosterNotice').textContent='旧キャラのバックアップ後、10体に整理してください';return false}
+ if(existing>=0){if(roster[existing].locked===true){setCurrent(roster[existing]);return false}roster[existing]=creature}
+ else if(roster.length<ROSTER_LIMIT)roster.push(creature);
+ else{
+  const candidate=roster.findLastIndex(c=>c.locked!==true);
+  if(candidate<0){$('rosterNotice').textContent='10体すべて保護中です。新キャラはプレビューのみ';return false}
+  const victim=roster[candidate];
+  if(!window.confirm('所持キャラは10体までです。\n「'+displayName(victim)+'」を新しい「'+displayName(creature)+'」に入れ替えますか？')){$('rosterNotice').textContent='入れ替えを見送りました';return false}
+  roster.splice(candidate,1);roster.push(creature);
+ }
+ if(!saveStore()){roster=old;$('rosterNotice').textContent='保存できませんでした。新キャラはプレビューに残っています';renderRoster();return false}
+ persistSelected();renderRoster();$('rosterNotice').textContent='新キャラを自動保存しました（'+roster.length+'/10体）';return true;
+}
 function saveCurrent(){
  trackDiscovery(cur);
  if(roster.some(c=>c.seed===cur.seed)){$('micHint').textContent='このキャラは保存済みです';return}
  const previous=roster.slice();
- if(!upsertCreature(cur)){$('micHint').textContent='全30体が保護中です。鍵を外してから保存してください';return}
+ if(!upsertCreature(cur)){$('micHint').textContent='所持10体が満員です。空きを作ってから保存してください';return}
  if(!saveStore()){roster=previous;renderRoster();return}
  renderRoster();$('micHint').textContent=displayName(cur)+' を保存しました';
 }
