@@ -85,7 +85,7 @@ function simulate(a,b,options={}){
   }
   // Modest stat spread, capped elemental edge, small rarity-independent growth, and low single-hit spike.
   const base=8+aa[0]*.123+aa[4]*.057-bb[1]*.067+(rng()-.5)*5;
-  const raw=base*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
+  const raw=base*(P.style===0?1.24:1)*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
      *(awaken[atk]?1.12:1)*clamp(edge(A,B),.89,1.11)
      *(1+Math.min(4,ps.mutation?.tier||0)*.0175)
      *(arena==='落雷の嵐'?1.10:arena==='空間反転'?.91:1);
