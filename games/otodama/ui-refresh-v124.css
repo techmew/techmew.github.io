@@ -191,3 +191,95 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
  #battleModal .modalbox>.battle-speech #battleSpeechWho{margin-right:7px}
  #battleModal .modalbox>.battle-speech #battleSpeechText{font-size:12px}
 }
+
+/* The character library lives directly below the selected-character preview. */
+.stage .preview-art{position:relative;width:100%;min-width:0}
+.stage .preview-art>#heroCanvas{display:block;width:100%}
+.stage>.preview-gallery{
+ width:100%;margin-top:1px;padding:13px 14px 16px;
+ border-top:1px solid #b2d4e5;background:#f8fcff;box-shadow:none;
+}
+.stage>.preview-gallery .galleryhead{margin:0 0 10px}
+.stage>.preview-gallery .galleryhead h2{font-size:15px}
+.stage>.preview-gallery .gallerygrid{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px
+}
+.stage>.preview-gallery .roster-entry{min-width:0;position:relative}
+.stage>.preview-gallery .roster-entry>.specimen{width:100%;min-height:110px;padding:34px 3px 8px}
+.stage>.preview-gallery .roster-entry>.specimen canvas{height:80px}
+.stage>.preview-gallery .roster-entry>.specimen span{font-size:11px}
+.stage>.preview-gallery .roster-lock,.stage>.preview-gallery .roster-delete{
+ position:absolute;z-index:3;top:4px;display:grid;place-items:center;
+ width:32px;min-width:32px;height:32px;min-height:32px;padding:0;
+ border-radius:9px;cursor:pointer;touch-action:manipulation;line-height:1;
+}
+.stage>.preview-gallery .roster-lock{right:4px}
+.stage>.preview-gallery .roster-delete{
+ left:4px;font-size:22px;font-weight:800;color:#933c3c;
+ background:#fff3f1;border:1px solid #dfa6a1
+}
+.stage>.preview-gallery .roster-delete:disabled{
+ cursor:not-allowed;opacity:.36;color:#5e6c75;background:#e5edf2;border-color:#cbd8df
+}
+.stage>.preview-gallery .roster-delete:focus-visible{
+ outline:3px solid #1278bd;outline-offset:2px
+}
+.stage>.preview-gallery #rosterNotice{font-size:12px;color:#7d4b30;margin-top:6px;min-height:0}
+.stage>.preview-gallery #rosterNotice:empty{display:none}
+.stage>.preview-gallery .tiny{color:#536a7b}
+@media(max-width:730px){
+ .stage>.preview-gallery{padding:12px 10px 15px}
+ .stage>.preview-gallery .gallerygrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+ .stage>.preview-gallery .roster-entry>.specimen{padding-top:38px}
+ .stage>.preview-gallery .roster-lock,.stage>.preview-gallery .roster-delete{
+  width:38px;min-width:38px;height:38px;min-height:38px
+ }
+}
+@media(min-width:731px) and (max-width:1024px){
+ .stage>.preview-gallery .gallerygrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* Microphone-birth ceremonies: four playful variants, character revealed underneath. */
+.stage .birth-reveal{
+ position:absolute;z-index:4;inset:0;overflow:hidden;pointer-events:none;
+ display:flex;flex-direction:column;justify-content:center;align-items:center;
+ padding:48px 15px 15px;text-align:center;
+ background:radial-gradient(circle at 50% 42%,#183e67f3,#101c34f7 80%);
+ color:#fff;border-radius:14px
+}
+.stage .birth-reveal[hidden]{display:none!important}
+.stage .birth-orbit{
+ position:relative;width:122px;height:122px;display:grid;place-items:center;
+ border:3px dashed #b8f8e5;border-radius:50%;margin:0 0 15px;
+ box-shadow:0 0 37px #7ae5da80,inset 0 0 30px #70b0ff55;
+ animation:birth-orbit-spin 2.1s linear infinite
+}
+.stage .birth-core{
+ width:76px;height:76px;border-radius:50%;display:grid;place-items:center;
+ font-size:43px;background:linear-gradient(130deg,#f8ffed,#6be4f1);
+ box-shadow:0 3px 22px #efffffa3,0 0 0 6px #ffffff22;
+ animation:birth-core-pulse .52s ease-in-out infinite alternate;
+}
+.stage .birth-spark{position:absolute;width:10px;height:10px;border-radius:50%;background:#ffee8b;box-shadow:0 0 14px #ffe366}
+.stage .birth-spark.s1{top:-2px;left:45%}
+.stage .birth-spark.s2{bottom:10px;right:-4px}
+.stage .birth-spark.s3{bottom:-5px;left:39%}
+.stage .birth-spark.s4{top:13px;left:-6px}
+.stage #birthHeadline{font-size:clamp(15px,3.5vw,21px);color:#fff9cc;line-height:1.4;text-shadow:0 2px 9px #0009}
+.stage #birthSubline{font-size:clamp(11px,2.5vw,14px);color:#d4f8ff;margin-top:8px;font-weight:700}
+.stage .birth-reveal[data-variant="capsule"] .birth-orbit{border-color:#f7b95e;box-shadow:0 0 42px #f7b95e66}
+.stage .birth-reveal[data-variant="lab"] .birth-orbit{border-color:#97ff8a;box-shadow:0 0 42px #97ff8a66}
+.stage .birth-reveal[data-variant="portal"] .birth-orbit{border-color:#d5a8ff;box-shadow:0 0 42px #d5a8ff66}
+.stage .birth-reveal[data-phase="hatch"] .birth-core{animation:birth-core-shake .16s ease-in-out infinite alternate}
+.stage .birth-reveal[data-phase="reveal"]{
+ background:radial-gradient(circle at 50% 42%,#153b5888,#081728cc);
+ animation:birth-vanish .9s ease-in-out both
+}
+.stage .birth-reveal[data-phase="reveal"] .birth-orbit{animation:birth-reveal-burst .66s ease-out both}
+@keyframes birth-orbit-spin{to{transform:rotate(360deg)}}
+@keyframes birth-core-pulse{to{transform:scale(1.13);filter:brightness(1.15)}}
+@keyframes birth-core-shake{to{transform:translateX(8px) rotate(12deg)}}
+@keyframes birth-reveal-burst{to{opacity:0;transform:scale(2.1) rotate(100deg)}}
+@keyframes birth-vanish{to{background:#0d243a08}}
+@media(prefers-reduced-motion:reduce){
+ .stage .birth-reveal,.stage .birth-orbit,.stage .birth-core{animation:none!important}
+}
