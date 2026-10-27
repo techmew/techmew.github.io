@@ -1,0 +1,44 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const growth=require('./progression-v134.js');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
+const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.ok(js,'inline game source');
+new vm.Script(js);
+assert.match(html,/<script src="\.\/progression-v134\.js\?v=134"><\/script>/,'rarity engine loads ahead of game');
+assert.equal(growth.MAX_LEVEL,40);
+assert.deepEqual([...growth.EVOLUTION_LEVELS],[10,20,30]);
+for(const [lv,expected] of [[1,0],[9,0],[10,1],[19,1],[20,2],[29,2],[30,3],[40,3]])
+ assert.equal(growth.slotsForLevel(lv),expected,'unlock at '+lv);
+const date=Date.UTC(2026,9,27,6); // 15:00 JST
+const feature=Array(36).fill(95);
+const strong={version:1,features:feature,potential:95,quality:100,signature:890};
+const low={version:1,features:Array(36).fill(9),potential:9,quality:50,signature:33};
+assert.equal(growth.rarityForDNA(strong,date).grade,'S+','crafted voice can reach S+');
+assert.equal(growth.rarityForDNA(low,date).grade,'B','poor resonance B');
+assert.deepEqual(growth.rarityForDNA(strong,date),growth.rarityForDNA(strong,date),'same waveform/time deterministic');
+const current=growth.phaseAt(date);
+const next=growth.phaseAt(current.nextChangeAt+1000);
+assert.notEqual(current.windowId,next.windowId,'four-hour period changes');
+assert.notEqual(current.slot,next.slot,'boost focus rotates');
+assert.equal(growth.legacyRarity({rarity:'S+'}),'S+','saved birth grade remains fixed');
+assert.equal(growth.canEvolve({level:9,evolutionVoices:[]}),false);
+assert.equal(growth.canEvolve({level:10,evolutionVoices:[]}),true);
+const base={seed:890,level:10,stats:[35,45,55,65,75],voice:{pitch:40},rarity:'S+'};
+const sample={vol:45,pitch:55,res:60,rhythm:75,stable:80,breath:45};
+const evolved=growth.applyEvolution(base,sample,strong,'data:audio/wav;base64,AAAA',date);
+assert.equal(evolved.evolutionVoices.length,1);
+assert.ok(evolved.stats.some((n,i)=>n>base.stats[i]),'added voice buffs local stats');
+assert.equal(base.evolutionVoices,undefined,'original object intact until save succeeds');
+assert.equal(evolved.rarity,'S+','evolution does not reroll birth grade');
+assert.equal(growth.canEvolve(evolved),false,'next extra sound requires Lv20');
+assert.equal(growth.canEvolve({...evolved,level:20}),true);
+assert.match(js,/function commitEvolutionVoice\(/,'voice fusion transaction');
+assert.match(js,/if\(evolutionRequested\)/,'mic route distinguishes fusion from newborn');
+assert.match(js,/if\(cur.seed!==selectedSeed\)/,'selection cannot race capture');
+assert.match(js,/const compactClip=voiceClip.length<=90000/,'clip bounded for browser quota');
+for(const id of ['statusCard','rarityBadge','rarityResearch','evolveBtn','evolutionInfo','fightBtn','survivalChallengerOptIn'])
+ assert.equal(html.split('id="'+id+'"').length-1,1,'single UI element '+id);
+assert.match(html,/id="extraModes" hidden/,'unrequested modes hidden');
+assert.match(html,/ブログのコメント/,'feedback destination visible');
+console.log('RARITY EVOLUTION V134 PASS | deterministic rotating conditions, S+, level gates, voice fusion, save/UI guards');
