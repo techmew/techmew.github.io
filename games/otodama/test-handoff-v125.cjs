@@ -1,69 +1,54 @@
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const html=fs.readFileSync(__dirname+'/index.html','utf8');
-const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
-assert.ok(script,'game script');
-const start=script.indexOf('function setConnectionUI(connected){');
-const end=script.indexOf('function cancelRandomSearch(',start);
-assert.ok(start>0&&end>start,'online handoff controller');
-const nodes=new Map();
-const $=id=>{
- if(!nodes.has(id))nodes.set(id,{checked:id==='survivalChallengerOptIn',hidden:true,textContent:'',style:{},classList:{toggle(){},contains(){return true}},querySelector(){return {textContent:''}}});
- return nodes.get(id);
+const html=fs.readFileSync(__dirname+'/index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.ok(js);new vm.Script(js);
+const paceSource=fs.readFileSync(__dirname+'/pvp-pace-v139.js','utf8'),paceModule={exports:{}};
+vm.runInNewContext(paceSource,{module:paceModule});
+const a=js.indexOf('let pvpPaceState=null;'),b=js.indexOf('function cancelRandomSearch(',a);
+assert.ok(a>0&&b>a,'deferred challenger functions exist');
+const events=[],outbox=[],timers=[],nodes=new Map();
+let now=10_000_000;
+class FakeDate extends Date{static now(){return now}}
+const get=id=>{if(!nodes.has(id))nodes.set(id,{checked:false,hidden:true,textContent:'',classList:{contains:x=>x==='open'},style:{}});return nodes.get(id)};
+get('battleModal').classList.contains=x=>x==='open';
+let storage=new Map();
+const ctx={Date:FakeDate,Math,JSON,console,window:{OtodamaPvpPace:paceModule.exports},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
+ performance:{now:()=>now},document:{hidden:false},$:get,match:{done:false,live:false,mode:'COM MATCH',pop:7000,current:{impactAt:7300}},
+ queueWs:null,ws:null,EVENT_MS:820,survivalActive:false,
+ serverBase:()=> 'https://otodama.example',
+ setTimeout:(fn,ms)=>{const t={fn,ms,cancelled:false};timers.push(t);return t},clearTimeout:t=>{if(t)t.cancelled=true},
+ clearInterval:()=>events.push('clearInterval'),setInterval:()=>77,clearAutoAction:()=>events.push('clearAuto'),
+ hideMatchIntro:()=>events.push('hideIntro'),stopBattleSpeech:()=>events.push('stopSpeech'),stopBgm:()=>events.push('stopBgm'),
+ stopAttackVoices:()=>events.push('stopVoices'),startBgm:()=>events.push('startBgm'),clearResultTimers:()=>events.push('clearResult'),
+ announceChallenger:()=>events.push('announce'),setConnectionUI:()=>{},
+ roomMessage:msg=>events.push(msg),cancelRandomSearch:()=>events.push('cancelSearch'),
+ startRandomMatch:()=>events.push('search'),leaveRoom:()=>{events.push('leaveRoom');ctx.ws=null},
+ advanceAfterWin:()=>events.push('nextCpu')
 };
-let now=1500;
-const calls=[],timers=[];
-const cpu=mode=>({mode,done:false,live:false,turn:2,pop:1000,current:{impactAt:1200},resumeCpuTick:()=>calls.push('cpu-tick')});
-const ctx={
- match:cpu('COM MATCH'),survivalActive:false,queueWs:null,ws:null,battleInterval:123,
- $: $,document:{hidden:false},performance:{now:()=>now},Date,Math,Number,JSON,console,EVENT_MS:720,
- setInterval:(fn,ms)=>{assert.equal(ms,720);calls.push('resume-interval');return 456},
- serverBase:()=> 'https://server.example',localStorage:{setItem(){}},
- clearInterval:x=>calls.push('stop-interval'),clearAutoAction:()=>calls.push('stop-auto'),hideMatchIntro:()=>calls.push('hide-intro'),
- stopBgm:()=>calls.push('stop-music'),stopAttackVoices:()=>calls.push('stop-voices'),startBgm:()=>calls.push('resume-music'),
- announceChallenger:()=>calls.push('banner'),
- roomMessage:msg=>calls.push('message'),
- leaveRoom:()=>calls.push('leave-room'),doCom:()=>calls.push('new-CPU'),
- nextSurvivalBattle:()=>calls.push('new-survival'),doDaily:()=>calls.push('new-daily'),
- cancelRandomSearch:()=>calls.push('cancel-search'),startRandomMatch:()=>calls.push('start-search'),
- setTimeout:(fn,ms)=>{const obj={fn,ms,cancelled:false};timers.push(obj);return obj},
- clearTimeout:t=>{if(t)t.cancelled=true}
-};
-vm.runInNewContext(script.slice(start,end)+`\n globalThis.handoff={startChallengerHandoff,restoreCpuAfterHandoff,resumeInterruptedCpu,scheduleHandoffTimeout,canSearchPvP,maybeQueuePvP,setPvPAcceptance,get active(){return challengerHandoff},get retryAt(){return lastHandoffFailure}}`,ctx);
-const h=ctx.handoff;
-assert.match(script,/match\.resumeCpuTick=live\?null:act/,'CPU tick retained');
-assert.match(script,/if\(challengerHandoff\)\{aframe=requestAnimationFrame\(battleDraw\);return;\}/,'hit clock frozen');
-assert.match(script,/if\(challengerHandoff\)restoreCpuAfterHandoff\(\);clearAutoAction/,'hidden tab abort');
-const oldCpu=ctx.match;
-assert.equal(h.canSearchPvP(),true,'CPU is eligible with acceptance enabled');
-assert.equal(h.startChallengerHandoff(),true,'handoff starts');
-assert.equal(h.active,true,'handoff pending');
-assert.equal(ctx.battleInterval,null,'CPU interval stops');
-assert.ok(calls.includes('stop-interval')&&calls.includes('stop-auto')&&calls.includes('banner'),'visual cut-in freezes CPU');
-assert.equal(h.canSearchPvP(),false,'no second match during handoff');
-h.scheduleHandoffTimeout();assert.equal(timers.at(-1).ms,30000,'mobile room-ready handshake deadline');
-now=6500;h.restoreCpuAfterHandoff();
-assert.equal(h.active,false,'handoff cleared');
-assert.equal(ctx.match,oldCpu,'same CPU fight');
-assert.equal(ctx.match.pop,6000,'pause time excluded');
-assert.equal(ctx.match.current.impactAt,6200,'impact time adjusted');
-assert.equal(ctx.battleInterval,456,'CPU interval restored');
-assert.ok(calls.includes('leave-room')&&calls.includes('resume-interval')&&calls.includes('resume-music'),'CPU resumed without reroll');
-assert.equal(ctx.$('challengerBanner').hidden,true,'banner closed after failure');
-ctx.battleInterval=123;ctx.match=cpu('SURVIVAL');ctx.survivalActive=true;now=7000;
-assert.equal(h.startChallengerHandoff(),true);
-ctx.document.hidden=true;now=8000;h.restoreCpuAfterHandoff();
-assert.equal(ctx.battleInterval,null,'hidden tab does not restart battle');
-assert.equal(ctx.match.mode,'SURVIVAL','survival round unchanged');
-ctx.document.hidden=false;now=10000;
-assert.equal(h.resumeInterruptedCpu(ctx.match),true,'foreground CPU resumes');
-assert.equal(ctx.match.pop,4000,'background pause counted once');
-assert.equal(ctx.battleInterval,456);
-ctx.survivalActive=false;ctx.match=cpu('COM MATCH');ctx.battleInterval=123;
-h.setPvPAcceptance(false);
-assert.equal(ctx.$('survivalChallengerOptIn').checked,false,'home OFF');
-assert.equal(ctx.$('battleChallengerOptIn').checked,false,'battle OFF synchronized');
-assert.equal(h.canSearchPvP(),false,'OFF prevents searching');
-h.setPvPAcceptance(true);
-assert.equal(ctx.$('battleChallengerOptIn').checked,true,'battle ON synchronized');
-console.log('ARCADE HANDOFF TEST PASS | CPU state preserved, time freeze, background resume, cooldown, ON/OFF');
+vm.runInNewContext(js.slice(a,b)+
+ ';globalThis.api={pvpPace,startChallengerHandoff,restoreCpuAfterHandoff,activatePendingChallenge,readyForDeferredChallenger,canSearchPvP,maybeQueuePvP,setPvPAcceptance,putPending:x=>pendingChallenge=x,get active(){return challengerHandoff},get retry(){return lastHandoffFailure}}',ctx);
+const api=ctx.api;ctx.match.done=false;
+api.setPvPAcceptance(true);
+assert.equal(api.canSearchPvP(),false,'first 10min or five CPU rounds must pass');
+assert.equal(api.startChallengerHandoff(),false,'cannot interrupt unfinished CPU fight');
+assert.equal(events.includes('clearInterval'),false,'uninterrupted CPU interval still active');
+for(let i=0;i<5;i++)api.pvpPace.completedCpu(now+i*60000);
+now+=600000;
+assert.equal(api.canSearchPvP(),true,'eligible after both gates');
+api.maybeQueuePvP();assert.ok(events.includes('search'),'starts matchmaking only when eligible');
+api.putPending({code:'ABCDEF',at:now,players:2});
+ctx.ws={readyState:1,send:raw=>outbox.push(JSON.parse(raw))};
+assert.equal(api.startChallengerHandoff(),false,'still cannot interrupt CPU before its result');
+ctx.match.done=true;
+assert.equal(api.activatePendingChallenge(ctx.match),true,'handoff starts only on completed CPU result');
+assert.equal(api.active,true);
+assert.equal(outbox.filter(x=>x.type==='ready').length,1,'one ready packet sent after fight');
+assert.equal(api.readyForDeferredChallenger(),false,'duplicate server ready blocked');
+assert.ok(timers.some(t=>t.ms===60000),'room setup time bounded');
+now+=4500;
+api.restoreCpuAfterHandoff();
+assert.equal(api.active,false);
+assert.ok(events.includes('nextCpu'),'failed handoff advances completed CPU result');
+api.setPvPAcceptance(false);assert.equal(api.canSearchPvP(),false,'OFF blocks future queue');
+assert.equal(get('battleChallengerOptIn').checked,false,'home and battle switches synchronized');
+console.log('HANDOFF V139 PASS | true CPU completion required, deferred room READY, failure resumes next round, opt-in gate');
