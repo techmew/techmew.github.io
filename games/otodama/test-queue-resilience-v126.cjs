@@ -31,6 +31,8 @@ class FakeSocket {
 const ctx={
  match:{mode:'COM MATCH',live:false,done:false,turn:2,pop:1000,current:{impactAt:1100},resumeCpuTick(){}},
  survivalActive:false,ws:null,queueWs:null,battleInterval:123,EVENT_MS:720,
+ reconnectTimer:null,resumeToken:'',reconnectCount:0,room:null,side:-1,
+ autoReadyRoom:false,remoteVoiceClip:'',sentVoice:false,voiceConsentSent:false,
  $: $,document:{hidden:false},Date:FakeDate,performance:{now:()=>now},WebSocket:FakeSocket,
  setTimeout:(fn,ms)=>{const t={fn,ms,cancelled:false};timers.push(t);return t},
  clearTimeout:t=>{if(t)t.cancelled=true},
