@@ -52,7 +52,7 @@ m.interactive=true;m.current={atk:0,damage:60,impactAt:2000,impactPoint:{x:410,y
 t=canvas();q.drawImpactBurst(t.c,m,2170,false);verify(t.output.fills===22,'full quality 22 shards');
 t=canvas();q.drawImpactBurst(t.c,m,2170,true);verify(t.output.fills===8,'low quality eight shards');
 t=canvas();q.drawImpactBurst(t.c,m,2670,false);verify(t.output.fills===0,'expired shards removed');
-for(const [effect,count] of [[{dodge:true},1],[{parry:true},2],[{skill:true},2],[{strike:true},2],[{},1]]){
+for(const [effect,count] of [[{dodge:true},1],[{parry:true},2],[{skill:true},2],[{strike:true},1],[{},1]]){
  const before=tones.length;q.impactSfx(33,effect);verify(tones.length-before===count,'impact SFX branch');
 }
 for(const feature of ['drawStageAtmosphere(canvas,biome,t,lowFx)','drawTimingArc(canvas,match,event,ms,pos,lowFx)','drawImpactBurst(canvas,match,ms,lowFx)','voiceCache.has(key)','OTODAMA_SAVE','次のバトルへ →','WIN❗️','id="timingCallout"','v0.10.']){
