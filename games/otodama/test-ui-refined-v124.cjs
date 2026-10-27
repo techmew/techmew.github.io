@@ -6,7 +6,7 @@ const css=fs.readFileSync(__dirname+'/ui-refresh-v124.css','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
 assert.ok(script,'embedded full game is present');
 new vm.Script(script,{filename:'koedama-v124-game.js'});
-assert.match(html,/href="\.\/ui-refresh-v124\.css\?v=130"/,'approved light-theme stylesheet is loaded');
+assert.match(html,/href="\.\/ui-refresh-v124\.css\?v=131"/,'approved light-theme stylesheet is loaded');
 assert.match(css,/KOEDAMA Refined UI v0\.10\.24/);
 assert.match(css,/--bg:#edf4fa/,'light base palette');
 assert.match(css,/\.modalbox\{background:#fff/,'readable game battle panel');
