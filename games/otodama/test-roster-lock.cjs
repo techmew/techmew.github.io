@@ -12,6 +12,7 @@ assert.match(css,/@media\(max-width:420px\)\{\.gallerygrid\{grid-template-column
 const extract=(first,last)=>{const a=script.indexOf(first),b=script.indexOf(last,a);assert.ok(a>=0&&b>a,'source boundary '+first);return script.slice(a,b)};
 const storeFns=extract('function trimRoster(){','function renderMeter(');
 const rosterFns=extract('function renderRoster(){',"let hc=$('heroCanvas')");
+const saveCurrentFn=extract('function saveCurrent(){','// v0.4: decoded');
 const make=(seed,locked=false)=>({seed,locked,level:1,name:'キャラ'+seed,voice:{vol:50,pitch:50,res:50,rhythm:50,stable:50,breath:50},stats:[50,50,50,50,50]});
 class El{
  constructor(tag='div'){this.tagName=tag;this.children=[];this.attrs={};this.hidden=false;this.textContent='';this.className='';this.title='';}
@@ -25,9 +26,9 @@ let saved=null,fail=false;
 const ctx={console,document:{createElement:tag=>new El(tag)},$:pick,
  localStorage:{setItem(k,v){if(fail)throw Error('quota');saved={key:k,value:v}}},
  hash:n=>n>>>0,gen:seed=>make(seed),levelOf:c=>c.level||1,displayName:c=>c.name,
- drawCreature(){},setCurrent(){},
+ drawCreature(){},setCurrent(){},trackDiscovery(){},
  roster:[],cur:make(1),rosterExpanded:false};
-vm.runInNewContext(storeFns+'\n'+rosterFns+'\nthis.api={trimRoster,saveStore,renderRoster}',ctx);
+vm.runInNewContext(storeFns+'\n'+rosterFns+'\n'+saveCurrentFn+'\nthis.api={trimRoster,saveStore,renderRoster,saveCurrent}',ctx);
 ctx.roster=[make(1,true),...Array.from({length:29},(_,i)=>make(i+2,i%6===0))];
 ctx.api.renderRoster();
 assert.equal(pick('roster').children.length,5,'collapsed list only draws five');
@@ -43,6 +44,14 @@ assert.equal(ctx.roster[22].locked,!original,'lock toggle updates creature');
 assert.equal(JSON.parse(saved.value)[22].locked,!original,'lock survives persistence');
 fail=true;pick('roster').children[22].children[1].onclick();fail=false;
 assert.equal(ctx.roster[22].locked,!original,'storage failure reverts lock state');
+ctx.roster=[];ctx.cur=make(990);ctx.rosterExpanded=false;ctx.api.renderRoster();
+assert.equal(pick('roster').children[0].children[1].title,'保存して保護','new character offers one-tap protection');
+pick('roster').children[0].children[1].onclick();
+assert.equal(ctx.roster.length,1,'one-tap protection saves character');
+assert.equal(ctx.roster[0].locked,true,'newly saved character is protected');
+ctx.roster=Array.from({length:30},(_,i)=>make(i+1,true));ctx.cur=make(999);ctx.api.renderRoster();
+pick('roster').children[0].children[1].onclick();
+assert.equal(ctx.roster.some(c=>c.seed===999),false,'all-protected roster refuses one-tap save');
 const protectedSeeds=ctx.roster.filter(c=>c.locked).map(c=>c.seed);
 ctx.roster.unshift(make(1001,false));ctx.api.trimRoster();
 assert.equal(ctx.roster.length,30,'roster size remains capped');
