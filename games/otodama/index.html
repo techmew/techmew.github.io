@@ -1020,26 +1020,30 @@ async function startRecord(mode='birth'){
  if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null||document.hidden)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
  const captureId=++captureGeneration;
- let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null;
+ let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
  recordingRequestPending=true;
+ $('micHint').textContent='マイクを起動しています…';$('countdown').textContent='MIC START';changeCaptureButtons(true);
+ const micRequestAt=performance.now();
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
    if(!captureIsCurrent(captureId))return;
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
   stopBattleSpeech(); // Prevent any result TTS from contaminating a new recording.
   $('micHint').textContent=evolutionRequested?'進化用の声を録音中（2秒）':'録音中：2秒で自動終了します（禁止ワードは発しないでください）';$('countdown').textContent='02.0 SEC';
-  aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
-  if(aud.state==='suspended')await aud.resume();
-   if(!captureIsCurrent(captureId))return;
+  // Do not wait for AudioContext resume or analyser construction before recording starts.
+  // Mobile MediaRecorder can start immediately after getUserMedia resolves.
   try{
    if(typeof MediaRecorder!=='undefined'){
     const type=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
     recorder=new MediaRecorder(stream,{...(type?{mimeType:type}:{}),audioBitsPerSecond:24000});
     recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
-    recorder.start(100);
+    recorder.start(100);captureStartedAt=performance.now();
    }
   }catch(e){recorder=null}
+  aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
+  if(aud.state==='suspended')await aud.resume();
+  if(!captureIsCurrent(captureId))return;
   src=aud.createMediaStreamSource(stream);const an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
   // PCM backup for browsers without MediaRecorder or with an undecodable recorder codec.
   // A zero-gain output keeps ScriptProcessor callbacks active without feeding mic audio to speakers.
@@ -1066,10 +1070,12 @@ async function startRecord(mode='birth'){
   const spectrum=typeof an.getFloatFrequencyData==='function'?new Float32Array(an.frequencyBinCount||an.fftSize/2):null;
   const lastSpectrum=spectrum?new Map():null;
   const CAPTURE_MS=2000;
-  let sig=2166136261,begin=performance.now(),captureDone=false,resolveCapture;
+  let sig=2166136261,begin=captureStartedAt||performance.now(),captureDone=false,resolveCapture;
+  const startedDelay=Math.round(begin-micRequestAt);
+  if(startedDelay>0){$('micNotice').textContent='マイク起動 '+startedDelay+'ms（初回の権限確認は端末依存）'}
   const capturePromise=new Promise(resolve=>resolveCapture=resolve);
   stopCaptureNow=()=>{if(!captureDone){captureDone=true;resolveCapture()}};
-  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),CAPTURE_MS+70);
+  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),Math.max(0,CAPTURE_MS-(performance.now()-begin))+70);
   const tick=()=>{
    if(captureDone)return;
    const elapsed=performance.now()-begin;
