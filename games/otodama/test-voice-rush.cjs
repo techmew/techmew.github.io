@@ -48,6 +48,9 @@ async function test(){
  assert.equal(calls.length,9,'special adds seven voiced hits');
  assert.ok(calls[8][0]>calls[2][0],'rush voices are staggered');
  assert.equal(banners.length,1,'special animation banner');
+ assert.equal(match.rushEndsAt,now+1750,'special rush reserves enough time for all recorded syllables');
+ assert.ok(script.includes('if(match.rushEndsAt&&performance.now()<match.rushEndsAt)return;'),'battle does not cut off the seven voices early');
+ assert.ok(html.includes('},200);'),'banner hit counter follows the 200 ms recorded-hit cadence');
  assert.equal(functions.maybeSpecialRush(match,special),false,'special must not activate twice per hit');
  // Regression: the special can become active at IMPACT after an ordinary hit has blocked voice replay.
  now+=850;
