@@ -17,7 +17,7 @@ function choreography(event,p,lowFx=false){
  const primary=successful?sharp(t-.54):0;
  let secondary=0;
  if(multihit)for(let i=0;i<hits;i++){
-  const center=.41+i*.29/Math.max(1,hits-1);
+  const center=.41+i*(ev.skill?.47:.29)/Math.max(1,hits-1);
   secondary=Math.max(secondary,sharp(t-center)*(.44+.38*i/(hits-1)));
  }
  const hit=cap(Math.max(primary,secondary));
