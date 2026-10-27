@@ -19,7 +19,7 @@ assert.equal(music.musicBridge(9,true,false),false);
 const rewardCode=part('function updateCharacterProgress(m){','function col(');
 const setup=[
 "let streak=0,recordStreak=0,careerWins=0,adventureStage=17,stageWins=0,stageAttempts=0,dailyCleared='';",
-"let roster=[],cur={seed:42};const notice={textContent:''};",
+"let roster=[],cur={seed:42};const notice={textContent:''};const GROWTH={MAX_LEVEL:40};",
 "const $=()=>notice,levelOf=c=>c.level||1,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),hash=n=>n>>>0,dnaGrowthIndex=(c,lv)=>hash(c.seed^lv)%5,specimenMutation=()=>({tier:0,label:'未進化'});",
 "const saveProgress=()=>{},saveStore=()=>true,upsertCreature=()=>true,setCurrent=()=>{},renderRoster=()=>{},showCampaign=()=>{},showStage=()=>{},showDaily=()=>{};",
 "const dailyKey=()=>'',missionCompleted=()=>false;"
