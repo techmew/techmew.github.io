@@ -496,7 +496,7 @@ async function importSave(file){
   const data=JSON.parse(await file.text());
   const archivalImport=data?.format==='OTODAMA_ROSTER_ARCHIVE';
   if(!data||(!archivalImport&&data.format!=='OTODAMA_SAVE')||data.version!==1||!Array.isArray(data.roster)||data.roster.length>(archivalImport?100:30)||(!archivalImport&&(!Array.isArray(data.discovered)||data.discovered.length>12)))throw Error('対応していない保存形式です');
-  const nextCur=restoreCreature(archivalImport?data.roster[0]:data.current),nextRoster=data.roster.map(raw=>{const cr=restoreCreature(raw);if(archivalImport&&clipData(raw))cr.voiceClip=raw.voiceClip;return cr}),p=data.progress||{};
+  const nextCur=restoreCreature(archivalImport?data.roster[0]:data.current),nextRoster=[...(archivalImport?roster:[]),...data.roster.map(raw=>{const cr=restoreCreature(raw);if(archivalImport&&clipData(raw))cr.voiceClip=raw.voiceClip;return cr})],p=data.progress||{};
   const sane=v=>clamp(Math.floor(Number(v)||0),0,99999);
   const nextProgress=archivalImport?{streak,recordStreak,careerWins,adventureStage,stageWins,stageAttempts}:{streak:sane(p.streak),recordStreak:sane(p.recordStreak),careerWins:sane(p.careerWins),adventureStage:clamp(sane(p.adventureStage),1,99999),stageWins:sane(p.stageWins),stageAttempts:sane(p.stageAttempts)};
   if(!archivalImport&&!data.discovered.every(v=>Number.isInteger(v)&&v>=0&&v<12))throw Error('図鑑データが不正です');
@@ -710,7 +710,7 @@ function splitSavedRoster(items,preferredSeed=null){
 function archivedCreatures(){try{const x=JSON.parse(localStorage.getItem(ROSTER_ARCHIVE_KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
 function mergedArchive(extra){const entries=archivedCreatures(),known=new Set(entries.map(c=>c.seed));for(const c of extra){if(!known.has(c.seed)){entries.push(c);known.add(c.seed)}}return entries}
 function downloadArchive(){
- const entries=archivedCreatures();if(!entries.length)return;
+ const entries=archivedCreatures().length?archivedCreatures():roster;if(!entries.length)return;
  const blob=new Blob([JSON.stringify({format:'OTODAMA_ROSTER_ARCHIVE',version:1,createdAt:new Date().toISOString(),roster:entries})],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='otodama-old-characters.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
  $('rosterNotice').textContent=entries.length+'体の以前のキャラを書き出しました。';
@@ -840,7 +840,7 @@ function renderRoster(){
  const all=roster.slice(0,ROSTER_LIMIT);
  const protectedCount=roster.filter(c=>c.locked===true).length;
  $('rosterCount').textContent='保存 '+roster.length+' / '+ROSTER_LIMIT+' · 保護 '+protectedCount;
- const archiveBtn=$('rosterArchiveDownload');archiveBtn.hidden=archivedCreatures().length===0;archiveBtn.onclick=downloadArchive;
+ const archiveBtn=$('rosterArchiveDownload');archiveBtn.hidden=archivedCreatures().length===0&&roster.length<=ROSTER_LIMIT;archiveBtn.onclick=downloadArchive;
  if(rosterMigrationWarning)$('rosterNotice').textContent=rosterMigrationWarning;
  const wrap=$('roster');wrap.replaceChildren();
  all.forEach(cr=>{
