@@ -19,6 +19,8 @@ const ELEMS=['雷','炎','水','風','光','影','鋼','音','樹','霧'];
 const SPECIES=Array.from({length:12},(_,i)=>'type'+i);
 const generateName=seed=>'声魂'+seed;
 const levelOf=c=>Math.max(1,Math.floor(Number(c.level)||1));
+const rarityOf=c=>c.rarity||'B';
+const GROWTH={legacyRarity:()=> 'B'};
 const elementalEdge=()=>1;
 `;
 const api=vm.runInNewContext(setup+engine+generator+combat+save+';({analyseVoiceDNA,validAudioDNA,dnaUnlocked,dnaGrowthIndex,DNA_FEATURE_NAMES,gen,randCombat,compactCreature,restoreCreature})',{Math,Date:{now:()=>123456789}});
