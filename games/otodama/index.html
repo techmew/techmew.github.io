@@ -2807,7 +2807,7 @@ function startChallengerHandoff(){
  $('fightLog').textContent='NEW CHALLENGER！ 対人戦へ切り替え中';announceChallenger();setConnectionUI(false);return true;
 }
 function resumeInterruptedCpu(m){
- if(match!==m||m.done||m.live||challengerHandoff||!$('battleModal').classList.contains('open')||document.hidden)return false;
+ if(match!==m||m.live||challengerHandoff||!$('battleModal').classList.contains('open')||document.hidden)return false;
  if(m.handoffPausedAt){
   const gap=Math.max(0,performance.now()-m.handoffPausedAt);
   m.pop+=gap;if(m.current?.impactAt)m.current.impactAt+=gap;
