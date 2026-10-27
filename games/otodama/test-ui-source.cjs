@@ -9,7 +9,8 @@ new vm.Script(match[1],{filename:'otodama-client.js'});
 for(const id of ['recordBtn','stopRecordBtn','voicePreviewBtn','fightBtn','dailyBtn','codexGrid','battlePanel','guardBtn','skillBtn','battleVolume','searchBtn','serverUrl','arenaCanvas','musicVolume','adventureStage','rematchBtn','shareVoice','muteOpponentVoice','comboBadge','incomingBadge','dodgeBtn','strikeBtn','receiveVoice'])
  assert.ok(html.includes('id="'+id+'"'),'required UI control missing: '+id);
 for(const fn of ['drawVictorySequence','drawCreature','resolveCombatImpact','startRandomMatch','showDaily','elementalEdge','stageEnemy','startBgm','musicTick'])assert.ok(match[1].includes(fn),'missing '+fn);
-assert.ok(html.includes('id="shareVoice" disabled')&&html.includes('id="receiveVoice" disabled')&&match[1].includes('send:false,receive:false'),'unverified online voice must be disabled');
+assert.ok(html.includes('id="shareVoice"')&&html.includes('id="receiveVoice"')&&!html.includes('id="shareVoice" disabled'),'consent controls must be enabled by explicit action');
+assert.match(match[1],/voice_consent',send:!!\$\('shareVoice'\)\.checked,receive:!!\$\('receiveVoice'\)\.checked/,'never silently share without explicit choices');
 assert.ok(match[1].includes("$('muteOpponentVoice').checked"),'opponent mute required');
 assert.ok(match[1].includes("guardChain"),'guard counter chain required');
 assert.ok(match[1].includes("function dodgePress()"),'dodge action required');
