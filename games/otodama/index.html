@@ -777,7 +777,8 @@ function deleteSavedCreature(seed){
  roster=roster.filter(c=>c.seed!==seed);
  if(!saveStore()){roster=oldRoster;renderRoster();$('rosterNotice').textContent='保存エラーのため削除を中止しました。';return false}
  if(cur.seed===seed){
-  const candidate=roster[Math.min(index,roster.length-1)]||gen(1678719);
+  const freshSeed=hash((seed>>>0)^0x7241dabc);
+  const candidate=roster[Math.min(index,roster.length-1)]||gen(freshSeed===seed?(seed+1)>>>0:freshSeed);
   setCurrent(candidate);
  }else renderRoster();
  $('rosterNotice').textContent='キャラを削除しました。';
