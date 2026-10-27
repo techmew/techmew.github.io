@@ -1,3 +1,22 @@
+# 声魂 v136｜キャラ画面：縮小プレビュー＋右ステータス／名前Lv右に進化｜2026-10-27
+
+CURRENT_STATUS: GitHub mainの games/otodama/ のみ変更。Android Chrome画面（オレンジで囲われたキャラの右スペース）を基準に、生成キャラの左とステータスの右をプレビュー内で横2列に構成。既存の音声生成、キャラ10体、Lv40育成、進化録音、CPU戦、オンライン受付/Workerは維持。
+
+CHANGELOG:
+- 左のキャラを専用縦型canvas 460×590、描画倍率1.02へ縮小。横幅が小さいスマホでも文字と重ならないよう右ステータス側の最小幅と5能力バーを一列配置。
+- キャラ右には選択中のレア度B/A/S/S+、タイプ、合計能力、戦闘能力5本、戦型説明、開閉式「詳しいステータス」（声の解析・DNA36項目を内包）を集約。下部に同じ能力表が重複しないよう撤去。
+- キャラの名前とLvの右側へ「声を重ねて進化」の操作を移動。Lv.10・20・30の追加音声解放とLv.40上限を四段階の目安として常時表示。育成レベルと現在の声 1～4/4 に応じて「次はLv.XX」「追加録音可」「進化完了」、ボタン活性を更新。
+- 探索進行・リセットと声ガチャ研究履歴は「探索・声ガチャ研究」に別にまとる。10体一覧・バトル開始・受付トグル・録音メニューは維持。v136スタイルを別ファイルCSSへ追加しキャッシュバスターを更新。
+- ボタンのdisabled状態を明示的な真偽値に修正。
+TEST_RESULTS: GitHub mainでJS構文・HTMLタグ整合・全主要ID一意性 PASS。CI「Test and Deploy OTODAMA Worker」run 40511458613 は commit d071a2d37d48492e1e3e60be5120b0f9b1c6b541 に対し正式 Node 35スイート PASS。今回追加の test-preview-layout-v136.cjs は縮小キャンバス、右ステータス、詳細集約、進化Lv5/10/20/30/40、モバイルCSS、機能維持を確認。Live matchmaking smoke run 40511458645 同コミット SUCCESS。本番 AndroidのUI目視・録音は未実施。
+BLOCKERS: 静的DOM検証とCIの成功はAndroid実機の表示を完全保証しない。Google Pagesの最終実行 / Android実機 / フォント折返し・キャラの翼が収まるかの目視 / 実機の進化録音は未検証。
+NEXT_ACTIONS: GitHub Pages最終デプロイ確認→スマホ縦表示でスクリーンショット再確認→詳細展開時の画面長さとLv.10/20/30進化の録音チェック。万一見切れがあればプレビューの左右比率とバー文字を調整。
+LATEST_IMPLEMENTATION_COMMIT_SHA: d071a2d37d48492e1e3e60be5120b0f9b1c6b541
+TEST_CI: https://github.com/techmew/techmew.github.io/actions/runs/40511458613
+LIVE_CI: https://github.com/techmew/techmew.github.io/actions/runs/40511458645
+
+---
+
 # 声魂 v135｜全面ブラッシュアップ・探索UI改修｜2026-10-27
 
 CURRENT_STATUS: GitHub mainの games/otodama/ のみ更新。録音→キャラ誕生→所持10体→CPU自動連戦、4声で進化、B/A/S/S+、受付ON時のNEW CHALLENGER→PvP→CPU復帰を維持。Workerは既公開で変更なし。
