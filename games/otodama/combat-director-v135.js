@@ -29,6 +29,11 @@ function getCombatPersona(c,profile){
    patience:clamp(steady*.6+(quirks%13)/40,.08,.85),initiative:.32+beat*.24,
    feint:(quirks>>>4)%11===0,signature:quirks};
 }
+function voiceFusion(c){
+ const list=Array.isArray(c?.evolutionVoices)?c.evolutionVoices.slice(0,3):[];
+ const kinds=['リズム','響き','安定','変化'];const counts=kinds.map(name=>list.filter(v=>v?.focus===name).length);
+ return {extra:list.length,rhythm:counts[0],echo:counts[1],steady:counts[2],change:counts[3],unique:counts.filter(Boolean).length};
+}
 function arenaFor(stage,turn){
  if(turn<6||turn%7!==6)return null;
  const hazards=['無重力ゾーン','空間反転','残響増幅','音速暴走','落雷の嵐','無重力ゾーン'];
@@ -49,6 +54,7 @@ function simulate(a,b,options={}){
  const max=fighters.map((c,i)=>Math.round(132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7));
  const hp=max.slice(),events=[],rng=rand((options.seed===undefined?Date.now():options.seed)>>>0),energy=[0,0],awaken=[false,false],momentum=[0,0];
  const stage=Number(options.stage||b?.stage||1),traits=fighters.map(c=>Array.isArray(c?.audioDNA?.traits)?c.audioDNA.traits:[]);
+ const fused=fighters.map(voiceFusion);
  const edge=typeof options.edge==='function'?options.edge:()=>1;
  let distance=280,lastAtk=-1,streak=0,lastKind=['',''],arena=null;
  for(let turn=0;turn<50&&hp[0]>0&&hp[1]>0;turn++){
@@ -59,6 +65,7 @@ function simulate(a,b,options={}){
   if(streak>=3){atk=1-atk;streak=0}
   lastAtk=atk;
   const def=1-atk,A=fighters[atk],B=fighters[def],P=personas[atk],D=personas[def],ps=profiles[atk],ds=profiles[def],aa=A.stats,bb=B.stats;
+  const resonance=fused[atk],shelter=fused[def];
   const state=STYLES[P.style],retreat=STYLES[D.style];
   if(turn%7===6)arena=arenaFor(stage,turn);
   const before=distance;
@@ -70,12 +77,13 @@ function simulate(a,b,options={}){
   if(!skill&&energy[atk]>=72&&rng()<.27){kind='uppercut';}
   let hits=['combo','spin','aerial'].includes(kind)?2+Math.floor(rng()*3):1;
   if(skill)hits=Math.max(3,hits);
+  if(kind==='combo'&&resonance.rhythm&&rng()<.18*resonance.rhythm)hits=Math.min(5,hits+1);
   if(arena==='音速暴走')hits=Math.max(2,hits);
   const feint=P.feint&&rng()<.21&&!skill;
   const precision=clamp(.052+(aa[3]-50)/1300+(momentum[atk]*.018),.045,.18);
   const crit=rng()<precision;
-  const dodge=rng()<clamp(.07+retreat.dodge+(bb[2]-50)/1250+(arena==='無重力ゾーン'?.04:0)+(near?-.025:.018),.025,.27);
-  const guard=!dodge&&rng()<clamp(.10+retreat.guard+(bb[1]-50)/1400-(P.style===5?.025:0),.04,.35);
+  const dodge=rng()<clamp(.07+retreat.dodge+(bb[2]-50)/1250+(arena==='無重力ゾーン'?.04:0)+(near?-.025:.018)+shelter.change*.016,.025,.27);
+  const guard=!dodge&&rng()<clamp(.10+retreat.guard+(bb[1]-50)/1400-(P.style===5?.025:0)+shelter.steady*.018,.04,.35);
   const counter=!dodge&&rng()<clamp(.036+retreat.counter+(bb[3]-50)/1700+(guard?.025:0),.02,.25);
   let awakenSide=-1;
   for(const side of [atk,def]){
@@ -86,7 +94,7 @@ function simulate(a,b,options={}){
   // Modest stat spread, capped elemental edge, small rarity-independent growth, and low single-hit spike.
   const base=8+aa[0]*.123+aa[4]*.057-bb[1]*.067+(rng()-.5)*5;
   const raw=base*(P.style===0?1.24:1)*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
-     *(awaken[atk]?1.12:1)*clamp(edge(A,B),.89,1.11)
+     *(awaken[atk]?1.12:1)*(skill?1+resonance.echo*.024:1)*clamp(edge(A,B),.89,1.11)
      *(1+Math.min(4,ps.mutation?.tier||0)*.0175)
      *(arena==='落雷の嵐'?1.10:arena==='空間反転'?.91:1);
   let damage=clamp(Math.round(raw),3,39),selfDamage=0;
@@ -103,7 +111,7 @@ function simulate(a,b,options={}){
   const phase=turn<4?'序盤':hp[0]<max[0]*.42||hp[1]<max[1]*.42?'終盤':'中盤';
   const commentary=awakenSide>=0?'覚醒！ ここから逆転できるか':skill?'必殺技！':
     dodge?'相手の動きを読んで回避！':counter?'受けて返した！':guard?'攻撃をしのいだ！':
-    feint?'動きで相手を揺さぶった！':crit?'強打が決まった！':hits>1?'連撃をつないだ！':
+    feint?'動きで相手を揺さぶった！':crit?'強打が決まった！':hits>1&&resonance.rhythm?'重ねた声で連撃！':hits>1?'連撃をつないだ！':
     turn%7===6&&arena?'地形変化：'+arena:state.tell;
   events.push({atk,kind,damage,crit,hits,dodge,guard,counter,skill,selfDamage,arena,hp:hp.slice(),
     awakenSide,commentary,phase,feint,distanceBefore:before,distanceAfter:distance,style:P.style,enemyStyle:D.style,
@@ -145,5 +153,5 @@ function advice(events,winner){
  if(foe.some(e=>e.skill))return '相手の必殺に押されました。耐久型も試そう';
  return '相手の戦法が上手でした。別の声・キャラで再挑戦';
 }
-return Object.freeze({STYLES,hash,rand,styleFor,getCombatPersona,arenaFor,chooseAttack,simulate,movement,morphology,advice});
+return Object.freeze({STYLES,hash,rand,styleFor,getCombatPersona,voiceFusion,arenaFor,chooseAttack,simulate,movement,morphology,advice});
 });
