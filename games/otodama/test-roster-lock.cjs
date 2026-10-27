@@ -6,7 +6,10 @@ const css=fs.readFileSync(__dirname+'/ui-refresh-v124.css','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
 assert.ok(script,'embedded game source');
 new vm.Script(script,{filename:'otodama-game.js'});
-assert.match(html,/id="rosterShowAll"/);
+assert.doesNotMatch(html,/id="rosterShowAll"/,'no collapsed list button');
+assert.match(html,/<section class="gallery preview-gallery"/,'gallery beneath preview');
+assert.match(css,/\.preview-gallery .*\.roster-delete/,'per-card delete button styled');
+assert.match(css,/\.birth-reveal/,'microphone birth overlay styled');
 assert.match(css,/\.roster-lock\[aria-pressed="true"\]/);
 assert.match(css,/\.roster-entry>\.specimen\.active/,'selected fighter has its own border');
 assert.match(css,/border:3px solid #087fe2/,'selected border blue');
@@ -24,20 +27,20 @@ class El{
  getContext(){return {}}
 }
 const elements=new Map(),pick=id=>{if(!elements.has(id))elements.set(id,new El());return elements.get(id)};
-let saved=null,fail=false;
+let saved=null,fail=false,decision=false,confirmCount=0;
 const ctx={console,document:{createElement:tag=>new El(tag)},$:pick,
+ window:{confirm(){confirmCount++;return decision}},match:null,cancelBirthReveal(){},
  localStorage:{setItem(k,v){if(fail)throw Error('quota');saved={key:k,value:v}}},
  hash:n=>n>>>0,gen:seed=>make(seed),levelOf:c=>c.level||1,displayName:c=>c.name,
  drawCreature(){},setCurrent(cr){ctx.cur=cr;ctx.api.renderRoster()},trackDiscovery(){},
- roster:[],cur:make(1),rosterExpanded:false};
-vm.runInNewContext(storeFns+'\n'+rosterFns+'\n'+saveCurrentFn+'\nthis.api={trimRoster,upsertCreature,saveStore,renderRoster,saveCurrent}',ctx);
+ roster:[],cur:make(1)};
+vm.runInNewContext(storeFns+'\n'+rosterFns+'\n'+saveCurrentFn+'\nthis.api={trimRoster,upsertCreature,saveStore,deleteSavedCreature,renderRoster,saveCurrent}',ctx);
 ctx.roster=[make(1,true),...Array.from({length:29},(_,i)=>make(i+2,i%6===0))];
 ctx.api.renderRoster();
-assert.equal(pick('roster').children.length,5,'collapsed list only draws five');
-assert.equal(pick('rosterShowAll').hidden,false,'all stored creatures accessible');
+assert.equal(pick('roster').children.length,30,'all thirty saved creatures immediately visible');
 assert.match(pick('rosterCount').textContent,/保護/);
-pick('rosterShowAll').onclick();
-assert.equal(pick('roster').children.length,30,'expanded list has all thirty');
+assert.equal(pick('roster').children[22].children[2].textContent,'×','delete control on each saved creature');
+assert.equal(pick('roster').children[0].children[2].disabled,true,'protected creature cannot be deleted');
 const originalOrder=pick('roster').children.map(tile=>tile.children[0].title);
 pick('roster').children[15].children[0].onclick();
 assert.equal(ctx.cur.seed,16,'selection changes only the active fighter');
@@ -53,15 +56,32 @@ assert.equal(ctx.roster[22].locked,!original,'lock toggle updates creature');
 assert.equal(JSON.parse(saved.value)[22].locked,!original,'lock survives persistence');
 fail=true;pick('roster').children[22].children[1].onclick();fail=false;
 assert.equal(ctx.roster[22].locked,!original,'storage failure reverts lock state');
-ctx.roster=[];ctx.cur=make(990);ctx.rosterExpanded=false;ctx.api.renderRoster();
+ctx.roster=[];ctx.cur=make(990);ctx.api.renderRoster();
 assert.equal(pick('roster').children[0].children[1].title,'保存して保護','new character offers one-tap protection');
 pick('roster').children[0].children[1].onclick();
 assert.equal(ctx.roster.length,1,'one-tap protection saves character');
 assert.equal(ctx.roster[0].locked,true,'newly saved character is protected');
 ctx.roster=Array.from({length:30},(_,i)=>make(i+1,true));ctx.cur=make(999);ctx.api.renderRoster();
-pick('roster').children[4].children[1].onclick();
+assert.equal(pick('roster').children.length,31,'unsaved current fighter follows all thirty saved creatures');
+pick('roster').children[30].children[1].onclick();
 assert.equal(ctx.roster.some(c=>c.seed===999),false,'all-protected roster refuses one-tap save');
-assert.equal(pick('roster').children[4].children[0].attrs['aria-pressed'],'true','unsaved current fighter is last visible card');
+assert.equal(pick('roster').children[30].children[0].attrs['aria-pressed'],'true','unsaved current fighter is last visible card');
+// Delete only after explicit confirmation; protect locked items; keep selected fighter valid.
+ctx.roster=[make(10,true),make(11,false),make(12,false)];
+ctx.cur=ctx.roster[1];ctx.api.renderRoster();
+assert.equal(pick('roster').children[0].children[2].disabled,true,'delete disabled for protected');
+assert.equal(ctx.api.deleteSavedCreature(10),false,'locked deletion blocked even when invoked directly');
+assert.equal(confirmCount,0,'locked character cannot trigger delete confirmation');
+assert.equal(ctx.api.deleteSavedCreature(11),false,'dismissed confirmation prevents delete');
+assert.deepEqual(ctx.roster.map(c=>c.seed),[10,11,12],'cancel keeps exact order');
+decision=true;assert.equal(ctx.api.deleteSavedCreature(11),true,'confirmed deletion succeeds');
+assert.deepEqual(ctx.roster.map(c=>c.seed),[10,12],'saved character removed only once');
+assert.equal(ctx.cur.seed,12,'deleting selected fighter selects nearby saved fighter');
+assert.equal(pick('roster').children.length,2,'deleted tile removed from full list');
+ctx.roster=[make(10,true),make(13,false)];ctx.cur=ctx.roster[1];fail=true;
+assert.equal(ctx.api.deleteSavedCreature(13),false,'storage failure blocks delete');
+fail=false;assert.equal(ctx.roster.length,2,'failed persistence restores roster');
+ctx.roster=Array.from({length:30},(_,i)=>make(i+1,true));ctx.cur=make(999);ctx.api.renderRoster();
 const protectedSeeds=ctx.roster.filter(c=>c.locked).map(c=>c.seed);
 ctx.roster.unshift(make(1001,false));ctx.api.trimRoster();
 assert.equal(ctx.roster.length,30,'roster size remains capped');
@@ -169,5 +189,5 @@ assert.equal(ctx.api.upsertCreature(make(779)),false,'full protected roster refu
  assert.equal(importCtx.roster,fullProtected,'overflow must preserve existing 30 protected characters');
  assert.equal(storageValues.get('otodama.roster'),storedBefore,'overflow must not touch saved roster');
  assert.match(pick('saveNotice').textContent,/保護キャラが30体を超えています/);
- console.log('ROSTER LOCK PASS | 30 cards, lock rollback, one-tap, duplicate IDs, atomic import, overflow rejection, backup');
+ console.log('ROSTER LOCK PASS | 30 visible, confirm-delete, lock protection, persistence rollback, duplicate IDs, import and backup');
 })().catch(e=>{console.error(e);process.exitCode=1});
