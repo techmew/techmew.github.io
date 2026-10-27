@@ -1,3 +1,16 @@
+# 声魂 v131｜2026-10-27｜録音→ガチャ→キャラ誕生→ストック登録
+
+CURRENT_STATUS: 対象はgames/otodama/のみ。実際の録音が完了するまでガチャを開始しない。ガチャ画面内で新キャラの本物の描画を表示した後、10体ストックへ自動登録する。選択済みキャラ・保護ロック・10体入替確認・CPUオート戦・公開Workerは維持。
+CHANGELOG: 「録音完了→ガチャチャージ/揺れ→オーバーレイcanvasに実際の生成キャラを描画して登場→ストック追加の結果表示→閉じる」に順序変更。声たまご/声ガチャ/実験/異世界召喚の4種演出維持。録音後すぐにsetCurrent/保存してしまう旧順序を修正。誕生したキャラ画像を描く専用canvasを追加し、CSSスケール/発光とストック完了表示を実装。日本語表示と縮小アニメーション設定を維持。アニメ中の重複録音/おためし生成を防止。画面非表示・ページ離脱・選択切替でまだストック未登録なら即時登録して取りこぼしを防止（この例外のみ演出途中で処理）。定員10体なら従来通り入替確認、保護済みは守り、保存失敗時は誕生キャラをプレビューに維持。CSSキャッシュを?v=131に更新。
+TEST_RESULTS: v131追加 test-birth-sequence-v131 は実キャラ描画→ストック登録順序、旧タイマー競合、非表示/中断時の一度限りの保存、満員時の誤成功表示を検査。test-preview-birth-v129とtest-voice-review-v114を修正し、録音→ガチャ→選択とストック登録のイベント順序を検査。2026-10-27 GitHub Actions run 40487504582、最終コードcommit fb0c4ea317e3bbd6f96fcf6813d708975f06fa85 に対する正式 npm run test:node 全27スイートPASS。GitHub Pages run 40487503950 = success。今回Workerコード変更なし、Android実機のマイク/音声/描画・2端末オンライン戦は未検証。
+BLOCKERS: Android実機の画面サイズ・音声との連携・録音時のブラウザ権限・アニメ実測負荷は未検証。localStorageは端末削除に弱く、10体満員で置換を断ると新キャラはストックには増えない。端末背景化/離脱ではキャラ保全のため最後まで演出しない場合あり。
+NEXT_ACTIONS: Android Chrome縦横とPCで、2秒録音/キャラ初登場/登録完了/10体満員での入替確認/保護全件/保存容量不足/録音プレイヤーの試聴/BFCacheを実操作確認。Pages・Actionsが最新mainで継続緑か定期確認。
+LATEST_TESTED_CODE_COMMIT: fb0c4ea317e3bbd6f96fcf6813d708975f06fa85
+TEST_RUN: https://github.com/techmew/techmew.github.io/actions/runs/40487504582
+PAGES_RUN: https://github.com/techmew/techmew.github.io/actions/runs/40487503950
+
+---
+
 # 声魂 v130｜2026-10-27｜録音誕生・10体所持・並べ替え・自動登録
 
 CURRENT_STATUS: GitHub main games/otodama/のみ更新。保存キャラは10体、5列×2段・約60%サイズの一覧。録音からの誕生演出をキャラ画像上から録音操作領域へ移動。CPU連続オート戦と挑戦者受付ON/OFF、既公開Cloudflare Workerは維持。
