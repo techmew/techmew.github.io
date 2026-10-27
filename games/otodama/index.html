@@ -886,15 +886,28 @@ function saveCurrent(){trackDiscovery(cur);if(roster.some(c=>c.seed===cur.seed))
 // v0.4: decoded WebAudio buffers, mobile-autoplay-safe, voice loudness limited.
 let battleSoundCtx=null,voiceCache=new Map(),playingSources=[],pendingVoice=new Map(),lastSoundStatus='';
 let voiceLimiter=null,voiceLimiterContext=null;
-function voiceOutput(ac){
- if(voiceLimiter&&voiceLimiterContext===ac)return voiceLimiter;
+let audioMasterCtx=null,audioMasterNode=null;
+// All Web Audio paths share one peak safety limiter (BGM, recorded voices and hit SE).
+function audioMaster(ac){
+ if(audioMasterCtx===ac&&audioMasterNode)return audioMasterNode;
  try{
   if(typeof ac.createDynamicsCompressor!=='function')return ac.destination;
   const limiter=ac.createDynamicsCompressor();
+  limiter.threshold.value=-24;limiter.knee.value=14;limiter.ratio.value=5;
+  limiter.attack.value=.004;limiter.release.value=.22;
+  limiter.connect(ac.destination);
+  audioMasterCtx=ac;audioMasterNode=limiter;return limiter;
+ }catch(e){return ac.destination}
+}
+function voiceOutput(ac){
+ if(voiceLimiter&&voiceLimiterContext===ac)return voiceLimiter;
+ try{
+  if(typeof ac.createDynamicsCompressor!=='function')return audioMaster(ac);
+  const limiter=ac.createDynamicsCompressor();
   limiter.threshold.value=-18;limiter.knee.value=16;limiter.ratio.value=6;
   limiter.attack.value=.003;limiter.release.value=.14;
-  limiter.connect(ac.destination);voiceLimiter=limiter;voiceLimiterContext=ac;return limiter;
- }catch(e){return ac.destination}
+  limiter.connect(audioMaster(ac));voiceLimiter=limiter;voiceLimiterContext=ac;return limiter;
+ }catch(e){return audioMaster(ac)}
 }
 function trackAttackSource(source){
  playingSources.push(source);
@@ -948,6 +961,21 @@ $('audioResumeBtn').onclick=()=>{
 const NOTES=[0,2,3,7,10,12,14,15,19,22],SCALES=[0,5,7,3];
 const MUSIC_MOTIFS=[[0,7,12,10,7,3,2,7],[0,3,10,7,12,15,10,3],[0,5,7,12,10,5,3,2],[0,3,7,10,15,12,7,3],[0,7,10,15,19,15,10,7],[0,2,7,12,10,7,5,2]];
 let bgmTimer=null,bgmNext=0,bgmStep=0,bgmSession=0,bgmStartAt=0,bgmDuckUntil=0;
+let bgmMixCtx=null,bgmMixNode=null;
+function bgmOutput(ac){
+ if(bgmMixCtx===ac&&bgmMixNode)return bgmMixNode;
+ try{
+  const bus=ac.createGain();bus.gain.value=1;bus.connect(audioMaster(ac));
+  bgmMixCtx=ac;bgmMixNode=bus;return bus;
+ }catch(e){return audioMaster(ac)}
+}
+function updateBgmDucking(ac){
+ const bus=bgmOutput(ac);
+ if(!bus.gain)return;
+ const target=performance.now()<bgmDuckUntil?.44:1;
+ if(typeof bus.gain.setTargetAtTime==='function')bus.gain.setTargetAtTime(target,ac.currentTime,.075);
+ else bus.gain.value=target;
+}
 const MUSIC_VOLUME=()=>Math.max(0,Math.min(.18,(Number($('musicVolume')?.value)||0)/100));
 try{const saved=localStorage.getItem('otodama.music.volume');if(saved!==null)$('musicVolume').value=String(clamp(Number(saved),0,25))}catch(e){}
 $('musicVolumeLabel').textContent=$('musicVolume').value+'%';
@@ -962,24 +990,25 @@ function musicNote(ac,when,hz,length,kind,amplitude){
  osc.frequency.setValueAtTime(Math.max(40,hz),when);if(kind==='bass')osc.frequency.exponentialRampToValueAtTime(hz*.88,when+length);
  filter.type='lowpass';filter.frequency.value=kind==='bass'?570:kind==='melody'?1900:980;
  g.gain.setValueAtTime(.0001,when);g.gain.linearRampToValueAtTime(amplitude,when+.018);g.gain.exponentialRampToValueAtTime(.0001,when+Math.max(.08,length));
- osc.connect(filter);filter.connect(g);g.connect(ac.destination);osc.start(when);osc.stop(when+length+.02)
+ osc.connect(filter);filter.connect(g);g.connect(bgmOutput(ac));osc.start(when);osc.stop(when+length+.02)
  }catch(e){}
 }
 function percussion(ac,when,type,volume){
  if(!volume)return;try{const o=ac.createOscillator(),g=ac.createGain();o.type=type==='kick'?'sine':'triangle';const pitch=type==='kick'?125:type==='snare'?250:660;
  o.frequency.setValueAtTime(pitch,when);o.frequency.exponentialRampToValueAtTime(type==='kick'?47:type==='snare'?84:300,when+.095);
- g.gain.setValueAtTime(volume,when);g.gain.exponentialRampToValueAtTime(.0001,when+(type==='kick'?.15:.06));o.connect(g);g.connect(ac.destination);o.start(when);o.stop(when+.17)}catch(e){}
+ g.gain.setValueAtTime(volume,when);g.gain.exponentialRampToValueAtTime(.0001,when+(type==='kick'?.15:.06));o.connect(g);g.connect(bgmOutput(ac));o.start(when);o.stop(when+.17)}catch(e){}
 }
 function musicBridge(bar,urgent,boss){return !urgent&&!boss&&bar%16>=8&&bar%16<12}
 function musicPhraseOffset(bar,stage,urgent){const arc=[0,3,-2,5,2,-1,4,-3];return arc[(Math.floor(bar/4)+Math.max(1,stage)-1)%arc.length]+(urgent?7:0)}
 function musicTick(id){const m=match;if(id!==bgmSession||!m||m.done||!$('battleModal').classList.contains('open'))return;
  const ac=unlockBattleAudio();if(!ac||ac.state!=='running'||$('mutedCheck').checked||!MUSIC_VOLUME())return;
+ updateBgmDucking(ac);
  const level=m.hp?.length?Math.min(m.hp[0]/m.max[0],m.hp[1]/m.max[1]):1;
  const urgent=level<.4,combo=(m.guardChain||0)+(m.strikeChain||0),climax=urgent||combo>=3||(m.boss&&m.hp?.[1]<m.max?.[1]*.45),tempo=urgent?(m.boss?150:144):Math.min(140,104+(m.stageNo%6)*6+(m.boss?9:0)),stepSec=60/tempo/2;
  if(bgmNext<ac.currentTime-.5)bgmNext=ac.currentTime+.055;
  let count=0;while(bgmNext<ac.currentTime+.24&&count++<8){
    const k=bgmStep++,bar=Math.floor(k/8),slot=k%8,progression=SCALES[(Math.floor(bar/(m.boss?1:2))+(m.stageNo%4))%4];
-   const root=110*Math.pow(2,progression/12),vol=MUSIC_VOLUME()*(performance.now()<bgmDuckUntil?0.22:1),restBar=bar%8===7&&!urgent&&!m.boss,bridge=musicBridge(bar,urgent,m.boss),roleShift=['攻撃型','守備型','スピード型','ゲージ型','パワー型','フェイント型','連続型'].indexOf(m.b?.archetype);
+   const root=110*Math.pow(2,progression/12),vol=MUSIC_VOLUME(),restBar=bar%8===7&&!urgent&&!m.boss,bridge=musicBridge(bar,urgent,m.boss),roleShift=['攻撃型','守備型','スピード型','ゲージ型','パワー型','フェイント型','連続型'].indexOf(m.b?.archetype);
    if(slot%2===0){if(!bridge||slot===0)musicNote(ac,bgmNext,root,stepSec*1.65,'bass',vol*(bridge?.05:.075));if(!bridge||slot===0||slot===4)percussion(ac,bgmNext,'kick',vol*(bridge?.04:.07))}
    if((slot===2||slot===6)&&(!bridge||slot===6))percussion(ac,bgmNext,'snare',vol*(bridge?.014:.031));
    // Alternating stage grooves and a quieter pre-climax pickup reduce loop fatigue.
@@ -1004,9 +1033,20 @@ function finishJingle(won){if($('mutedCheck').checked||!MUSIC_VOLUME())return;
  notes.forEach((note,i)=>musicNote(ac,ac.currentTime+.04+i*.115,base*Math.pow(2,note/12),i===notes.length-1?.36:.17,'melody',MUSIC_VOLUME()*(won?.052:.029)));
 }
 
-function tone(hz,duration=.09){
+function tone(hz,duration=.09,weight=1){
  if($('mutedCheck').checked||!VOLUME())return;const ac=unlockBattleAudio();if(!ac)return;
- try{let now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(hz,now);o.frequency.exponentialRampToValueAtTime(Math.max(80,hz*.5),now+duration);g.gain.setValueAtTime(VOLUME()*.11,now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration)}catch(e){}
+ try{
+  const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+  const span=clamp(Number(duration)||.09,.035,.22),freq=clamp(Number(hz)||320,70,1800);
+  o.type=freq>=750?'sine':'triangle';
+  o.frequency.setValueAtTime(freq,now);
+  o.frequency.exponentialRampToValueAtTime(Math.max(75,freq*.56),now+span);
+  const peak=Math.min(.028,VOLUME()*.105*clamp(weight,.2,1.4));
+  g.gain.setValueAtTime(.0001,now);
+  g.gain.linearRampToValueAtTime(peak,now+.007);
+  g.gain.exponentialRampToValueAtTime(.0001,now+span);
+  o.connect(g);g.connect(audioMaster(ac));o.start(now);o.stop(now+span+.01);
+ }catch(e){}
 }
 function synthVoice(cr,side,options={}){
  if($('mutedCheck').checked||!VOLUME())return;
@@ -1026,7 +1066,7 @@ function synthVoice(cr,side,options={}){
    osc.frequency.exponentialRampToValueAtTime(clamp(base*to,55,2000),start+dur);
    filter.type=fx.filter||'bandpass';
    filter.frequency.value=fx.cutoff||400+(cr?.voice?.res||50)*14;filter.Q.value=.8;
-   const peak=Math.max(.002,VOLUME()*(rush?.31:options.phase==='reaction'?.22:.51)*fx.volume);
+   const peak=Math.max(.001,VOLUME()*(rush?.23:options.phase==='reaction'?.16:.40)*fx.volume/Math.sqrt(hits));
    gain.gain.setValueAtTime(.0001,start);
    gain.gain.exponentialRampToValueAtTime(peak,start+.018);
    gain.gain.exponentialRampToValueAtTime(.0001,start+dur);
@@ -1180,8 +1220,8 @@ function playDecodedVoice(cr,side,force=false,options={}){
     const shift=fx.enabled&&rush?1+(i%3-1)*.07:1;
     const from=fx.from*shift,to=fx.to*shift;
     const length=rush?(i===hits-1?.38:.235):fx.segment;
-    const level=Math.min(.28,VOLUME()*(clip.gain||1)*fx.volume*
-      (rush?.60:1)/Math.sqrt(Math.max(1,hits)*.45));
+    const level=Math.min(.19,VOLUME()*(clip.gain||1)*fx.volume*
+      (phase==='reaction'?.62:rush?.55:1)/Math.sqrt(Math.max(1,hits)*.7));
     voiceAt(at,length,from,to,level);
     if(i===hits-1&&echoes)for(let e=0;e<echoes;e++)
      voiceAt(at+(e+1)*fx.echo/1000,Math.min(length,.29),
@@ -1305,8 +1345,8 @@ function synthVictoryRoar(cr,ac){
   osc.frequency.exponentialRampToValueAtTime(base*.78,now+.91);
   filter.type='lowpass';filter.frequency.value=950+(Number(cr?.voice?.res)||50)*9;filter.Q.value=.65;
   gain.gain.setValueAtTime(.0001,now);
-  gain.gain.linearRampToValueAtTime(Math.min(.30,VOLUME()*.88),now+.17);
-  gain.gain.setValueAtTime(Math.min(.30,VOLUME()*.88),now+.53);
+  gain.gain.linearRampToValueAtTime(Math.min(.20,VOLUME()*.65),now+.17);
+  gain.gain.setValueAtTime(Math.min(.20,VOLUME()*.65),now+.53);
   gain.gain.linearRampToValueAtTime(.0001,now+1.03);
   osc.connect(filter);filter.connect(gain);gain.connect(voiceOutput(ac));
   osc.start(now);osc.stop(now+1.04);trackAttackSource(osc);
@@ -1340,7 +1380,7 @@ async function playVictoryRoar(m){
  if(clip&&clip.duration>=.08){
   try{
    const voices=2,now=ac.currentTime+.025;
-   const level=Math.min(.48,VOLUME()*Math.min(4,clip.gain||1)*.9);
+   const level=Math.min(.28,VOLUME()*Math.min(3,clip.gain||1)*.70);
    for(let i=0;i<voices;i++){
     const source=ac.createBufferSource(),gain=ac.createGain();
     const start=now+i*.32,rate=i===0?.88:.78,span=clip.duration/rate;
@@ -1720,11 +1760,14 @@ function drawImpactBurst(c,m,ms,lowFx){
  c.restore();
 }
 function impactSfx(damage,ev){
- if(ev?.dodge){tone(530,.045);return}
- if(ev?.parry){tone(740,.07);tone(1120,.045);return}
- if(ev?.skill){tone(150,.13);tone(450,.10);return}
- if(ev?.strike){tone(220+Math.min(280,damage*3),.085);tone(680,.055);return}
- tone(damage>0?160+Math.min(760,damage*6):480,.085);
+ // One primary cue, with a quiet accent only for important events. Avoid beep piles.
+ const power=clamp(Number(damage)||0,0,120);
+ if(ev?.dodge){tone(890,.045,.38);return}
+ if(ev?.parry){tone(770,.095,.75);tone(1150,.055,.34);return}
+ if(ev?.guard){tone(190,.07,.48);return}
+ if(ev?.skill){tone(155,.15,1.1);tone(550,.08,.60);return}
+ if(ev?.strike){tone(250+Math.min(260,power*2.5),.085,.75);return}
+ tone(power>0?155+Math.min(430,power*3.8):350,.075,.55);
 }
 
 let lastBattleFrame=0;
