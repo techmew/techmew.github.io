@@ -35,7 +35,7 @@ assert.equal(growth.canEvolve(evolved),false,'next extra sound requires Lv20');
 assert.equal(growth.canEvolve({...evolved,level:20}),true);
 assert.match(js,/function commitEvolutionVoice\(/,'voice fusion transaction');
 assert.match(js,/if\(evolutionRequested\)/,'mic route distinguishes fusion from newborn');
-assert.match(js,/if\(cur.seed!==selectedSeed\)/,'selection cannot race capture');
+assert.match(js,/if\(cur.seed!==selectedSeed\|\|evolutionDialogSeed!==selectedSeed\|\|\$\('evolutionDialog'\)\.hidden\)/,'selection, cancellation and closed dialog cannot commit an evolution');
 assert.match(js,/const compactClip=voiceClip.length<=90000/,'clip bounded for browser quota');
 for(const id of ['statusCard','rarityBadge','rarityResearch','evolveBtn','evolutionInfo','fightBtn','survivalChallengerOptIn'])
  assert.equal(html.split('id="'+id+'"').length-1,1,'single UI element '+id);
