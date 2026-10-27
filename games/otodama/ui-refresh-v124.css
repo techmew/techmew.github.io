@@ -161,3 +161,33 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 }
 .gallerygrid .roster-entry>.specimen:not(.active){border:2px solid #c2dceb;box-shadow:none}
 .gallerygrid .roster-entry>.specimen:focus-visible{outline:3px solid #0b76d1;outline-offset:3px}
+
+/* Result quote sits in document flow, never over either fighter or the WIN animation. */
+#battleModal .modalbox>.battle-speech{
+ position:static;left:auto;top:auto;transform:none;z-index:auto;
+ display:flex;align-items:center;gap:9px;max-width:100%;width:auto;
+ margin:7px 0;padding:8px 12px;background:#fff7ee;color:#39495c;
+ border:1px solid #e7b49a;border-radius:10px;box-shadow:none;
+ font-size:13px;line-height:1.45;text-align:left;
+}
+#battleModal .modalbox>.battle-speech::after{display:none}
+#battleModal .modalbox>.battle-speech[hidden]{display:none!important}
+#battleModal .modalbox>.battle-speech #battleSpeechWho{
+ display:inline;flex-shrink:0;font-size:12px;margin:0;color:#a65339;
+}
+#battleModal .modalbox>.battle-speech #battleSpeechText{
+ display:inline;font-size:13px;font-weight:700;line-height:1.5;
+}
+#battleModal .modalbox>.battle-speech #battleSpeechState[hidden]{display:none!important}
+#battleModal.victory #matchupBadge{display:none}
+#battleModal.victory #enemyTactic{display:none}
+#battleModal.victory #battleGuide{display:none}
+#battleModal.victory #battleMsg{display:none}
+#battleModal.victory #fightLog{min-height:0;margin:4px 0}
+#battleModal.victory #battleReport{padding:8px 12px;margin:5px 0;line-height:1.4}
+#battleModal.victory #nextStagePreview{margin:6px 0;font-weight:700}
+@media(max-width:480px){
+ #battleModal .modalbox>.battle-speech{display:block;margin:5px 0;padding:7px 10px}
+ #battleModal .modalbox>.battle-speech #battleSpeechWho{margin-right:7px}
+ #battleModal .modalbox>.battle-speech #battleSpeechText{font-size:12px}
+}
