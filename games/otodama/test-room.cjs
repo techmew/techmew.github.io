@@ -44,21 +44,30 @@ const creature={name:'検証キャラ',seed:555,element:'音',type:'テスト',r
  }
  assert.equal(room.cleanCreature({...creature,name:'局部的な雨',type:'音の旅人'}).name,'局部的な雨','harmless phrase rejected');
  const observer=fake();sockets.push(observer);
- // Online audio cannot be moderated authoritatively from a forged client flag.
- // Both participants may opt in, but the server must still refuse all audio.
- const clip='data:audio/wav;base64,AAAA';
+ // No clip is forwarded without both sender AND recipient opting in; data is never stored.
+ const clip='data:audio/wav;base64,'+'QUJD'.repeat(70);
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
+ assert.equal(a.messages.filter(x=>x.type==='voice_rejected').length,1,'unsolicited audio blocked');
  await room.webSocketMessage(a,JSON.stringify({type:'voice_consent',send:true,receive:false}));
  await room.webSocketMessage(b,JSON.stringify({type:'voice_consent',send:false,receive:true}));
- assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).canSend,false,'unsafe voice policy enabled');
- assert.equal(b.messages.filter(x=>x.type==='voice_policy').at(-1).canReceive,false,'unsafe voice reception enabled');
+ assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).canSend,true,'sender opt-in grants transmission');
+ assert.equal(b.messages.filter(x=>x.type==='voice_policy').at(-1).canReceive,true,'recipient opt-in grants playback');
  await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
- assert.equal(a.messages.filter(x=>x.type==='voice_rejected').length,1,'unsafe audio not explicitly rejected');
- assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'unmoderated audio leaked to opponent');
- assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'unmoderated audio leaked to observer');
- assert.notEqual(a.data.sentVoice,true,'rejected voice must not be marked sent');
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,1,'consensual voice should reach opponent');
+ assert.equal(b.messages.filter(x=>x.type==='voice').at(-1).clip,clip,'forward exact clip to opponent only');
+ assert.equal(observer.messages.filter(x=>x.type==='voice').length,0,'unjoined observer cannot hear audio');
+ assert.equal(a.data.sentVoice,true,'successful relay marked once');
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,1,'duplicate voice packet must not forward');
+ await room.webSocketMessage(b,JSON.stringify({type:'voice_consent',send:false,receive:false}));
+ assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).canSend,false,'recipient OFF blocks voice');
+ await room.webSocketMessage(b,JSON.stringify({type:'voice_consent',send:false,receive:true}));
+ assert.equal(a.messages.filter(x=>x.type==='voice_policy').at(-1).needClip,true,'new consent allows exactly one retransmission');
+ await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
+ assert.equal(b.messages.filter(x=>x.type==='voice').length,2,'receiver can reconsent');
+ await room.webSocketMessage(a,JSON.stringify({type:'voice_consent',send:false,receive:false}));
+ assert.equal(b.messages.filter(x=>x.type==='voice_revoked').length,1,'sender revocation erases opponent voice');
  observer.close();
- await room.webSocketMessage(a,JSON.stringify({type:'voice',clip}));
- assert.equal(b.messages.filter(x=>x.type==='voice').length,0,'repeated audio forwarded');
  await room.webSocketMessage(a,JSON.stringify({type:'ready'}));
  assert.equal(a.messages.filter(x=>x.type==='battle').length,0);
  await room.webSocketMessage(b,JSON.stringify({type:'ready'}));
