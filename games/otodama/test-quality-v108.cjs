@@ -21,14 +21,14 @@ const setup=[
 "let streak=0,recordStreak=0,careerWins=0,adventureStage=17,stageWins=0,stageAttempts=0,dailyCleared='';",
 "let roster=[],cur={seed:42};const notice={textContent:''};",
 "const $=()=>notice,levelOf=c=>c.level||1,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),hash=n=>n>>>0,dnaGrowthIndex=(c,lv)=>hash(c.seed^lv)%5,specimenMutation=()=>({tier:0,label:'未進化'});",
-"const saveProgress=()=>{},saveStore=()=>{},setCurrent=()=>{},renderRoster=()=>{},showCampaign=()=>{},showStage=()=>{},showDaily=()=>{};",
+"const saveProgress=()=>{},saveStore=()=>true,upsertCreature=()=>true,setCurrent=()=>{},renderRoster=()=>{},showCampaign=()=>{},showStage=()=>{},showDaily=()=>{};",
 "const dailyKey=()=>'',missionCompleted=()=>false;"
 ].join('\n');
 const harness=()=>new Function(setup+'\n'+rewardCode+'return {run:updateCharacterProgress,notice,setStreak(v){streak=v}};')();
 const player=()=>({seed:42,level:1,xp:0,stats:[50,50,50,50,50]});
 const fight=(p,damageTaken,parries,dodges,winner=0)=>({a:p,mode:'COM MATCH',outcome:{winner},grade:'C',damageTaken,parries,dodges,boss:false,rival:false});
 let t=harness(),p=player(),m=fight(p,4,2,0);t.run(m);
-assert.equal(m.cleanDefenseAwarded,true);assert.equal(p.level,2);assert.ok(t.notice.textContent.includes('完璧防御 +1XP'));
+assert.equal(m.cleanDefenseAwarded,true);assert.equal(p.level,2);assert.ok(t.notice.textContent.includes('勝利 +3XP'),'clean-defense bonus included in earned XP');
 t=harness();p=player();m=fight(p,5,2,0);t.run(m);assert.equal(m.cleanDefenseAwarded,false);assert.equal(p.level,1);assert.equal(p.xp,2);
 t=harness();p=player();m=fight(p,0,0,2);t.run(m);assert.equal(m.cleanDefenseAwarded,true);
 t=harness();p=player();m=fight(p,0,2,0,1);t.run(m);assert.equal(m.cleanDefenseAwarded,false);
@@ -39,7 +39,8 @@ t.run(m);
 assert.equal(m.streakAwarded,true,'fifth consecutive victory');
 assert.equal(m.comebackAwarded,true,'low HP comeback');
 assert.equal(m.underdogAwarded,true,'defeating stronger opponent');
-for(const label of ['5連勝報酬 +2XP','逆転勝利 +1XP','格上撃破 +1XP'])assert.ok(t.notice.textContent.includes(label),'missing '+label);
+assert.equal(p.level,3,'streak + comeback + underdog rewards add 4 XP to base 2');
+for(const label of ['5連勝','逆転勝利！','格上撃破！'])assert.ok(t.notice.textContent.includes(label),'missing concise result '+label);
 t=harness();t.setStreak(0);p=player();
 m={...fight(p,30,0,0),b:{stats:[45,45,45,45,45]},hp:[140,0],max:[200,200]};
 t.run(m);
