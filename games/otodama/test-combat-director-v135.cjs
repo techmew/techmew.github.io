@@ -6,7 +6,7 @@ const css=fs.readFileSync(__dirname+'/ui-refresh-v124.css','utf8');
 new vm.Script(source);new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)?.[1]||'throw Error("No game JS")');
 const directorModule={exports:{}};vm.runInNewContext(source,{module:directorModule});const D=directorModule.exports;
 assert.equal(D.STYLES.length,6,'six legible fighting archetypes');
-assert.match(html,/combat-director-v135\.js\?v=135/,'client actually loads director');
+assert.match(html,/combat-director-v135\.js\?v=138/,'client actually loads updated director');
 assert.match(html,/window\.OtodamaDirector\.simulate\(a,b/,'CPU uses director, not unused prototype');
 assert.match(html,/window\.OtodamaDirector\.movement\(event,p,atk\)/,'battle sprites follow chosen attack and distance');
 assert.match(html,/window\.OtodamaDirector\.morphology\(cr\)/,'voice-shaped fighter geometry is used by renderer');
