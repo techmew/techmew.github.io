@@ -5,6 +5,7 @@
  */
 import { DurableObject } from 'cloudflare:workers';
 import { sanitizePublicName, isForbiddenName } from './moderation.js';
+import { seasonJST, eloDelta, boundedRating, provisional, INITIAL_RATING } from './rankings-v139.js';
 
 const safeJson = (obj, code=200) => new Response(JSON.stringify(obj), {
   status:code, headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','cache-control':'no-store'}
@@ -40,15 +41,15 @@ export default {
     const url = new URL(request.url);
     const origin=request.headers.get('Origin');
     if(origin&&!/^https:\/\/techmew\.github\.io$/.test(origin)&&!/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))return safeJson({error:'Origin not allowed'},403);
-    if(request.method==='OPTIONS'&&['/identity','/leaderboard'].includes(url.pathname))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin||'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type','cache-control':'no-store'}});
-    if(url.pathname==='/identity'&&request.method==='POST'||url.pathname==='/leaderboard'&&request.method==='GET'){
+    if(request.method==='OPTIONS'&&['/identity','/leaderboard','/profile'].includes(url.pathname))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin||'*','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type','cache-control':'no-store'}});
+    if((url.pathname==='/identity'||url.pathname==='/profile')&&request.method==='POST'||url.pathname==='/leaderboard'&&request.method==='GET'){
       const obj=env.RANKINGS.get(env.RANKINGS.idFromName('seasonal-v1'));
       if(request.method==='POST'&&!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))return safeJson({error:'JSON required'},415);
       const textBody=request.method==='POST'?await readLimitedText(request):null;
       if(request.method==='POST'&&textBody===null)return safeJson({error:'Registration payload too large or invalid'},413);
-      return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
+      return obj.fetch(new Request('https://internal.example/'+(url.pathname==='/identity'?'issue':url.pathname==='/profile'?'profile':'leaderboard'),{method:request.method,headers:{'content-type':'application/json'},...(textBody!==null?{body:textBody}:{})}));
     }
-    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.19',randomMatch:true,seasonalRanking:true});
+    if (url.pathname === '/' || url.pathname === '/health') return safeJson({ok:true,service:'otodama-room',version:'0.10.28-v139',randomMatch:true,seasonalRanking:true,eloRating:true,encounterPace:'10m+5CPU+3h'});
     if(url.pathname==='/random'){
       if(request.method!=='GET'||(request.headers.get('Upgrade')||'').toLowerCase()!=='websocket')return safeJson({error:'WebSocket upgrade required'},426);
       return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('global-v1')).fetch(request);
@@ -438,6 +439,12 @@ export class Rankings extends DurableObject {
   this.sql.exec('CREATE TABLE IF NOT EXISTS scores (season TEXT NOT NULL, id TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0, losses INTEGER NOT NULL DEFAULT 0, streak INTEGER NOT NULL DEFAULT 0, best INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL, PRIMARY KEY(season,id))');
   this.sql.exec('CREATE TABLE IF NOT EXISTS results (match_id TEXT PRIMARY KEY, pair TEXT NOT NULL, created INTEGER NOT NULL)');
   this.sql.exec('CREATE TABLE IF NOT EXISTS issue_limits (bucket INTEGER PRIMARY KEY, amount INTEGER NOT NULL)');
+  // In-place schema migration: keep existing ranks/players and never delete existing seasons.
+  try{this.sql.exec('ALTER TABLE scores ADD COLUMN rating INTEGER NOT NULL DEFAULT 1000')}catch(e){}
+  try{this.sql.exec('ALTER TABLE scores ADD COLUMN matches INTEGER NOT NULL DEFAULT 0')}catch(e){}
+  this.sql.exec('UPDATE scores SET matches=wins+losses WHERE matches=0 AND (wins+losses)>0');
+  this.sql.exec('CREATE TABLE IF NOT EXISTS match_history (match_id TEXT NOT NULL,id TEXT NOT NULL,opponent TEXT NOT NULL,season TEXT NOT NULL,win INTEGER NOT NULL,delta INTEGER NOT NULL,rating INTEGER NOT NULL,created INTEGER NOT NULL,PRIMARY KEY(match_id,id))');
+  this.sql.exec('CREATE INDEX IF NOT EXISTS scores_rating_index ON scores(season,rating DESC,wins DESC,updated ASC)');
  }
  async hashToken(token){
   const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
@@ -445,12 +452,13 @@ export class Rankings extends DurableObject {
  }
  async fetch(request){
   const path=new URL(request.url).pathname,method=request.method;
-  const season=new Date().toISOString().slice(0,7);
+  const season=seasonJST(Date.now());
   if(path==='/leaderboard'&&method==='GET'){
-   const rows=[...this.sql.exec('SELECT p.id AS id,p.name AS name,s.points AS points,s.wins AS wins,s.losses AS losses,s.best AS best FROM scores s JOIN players p ON p.id=s.id WHERE s.season=? ORDER BY s.points DESC,s.wins DESC,s.updated ASC LIMIT 30',season)];
-   return safeJson({season,verifiedOnlineOnly:true,rows:rows.map((r,i)=>({...r,rank:i+1}))});
+   const rows=[...this.sql.exec('SELECT p.id AS id,p.name AS name,s.rating AS rating,s.matches AS matches,s.wins AS wins,s.losses AS losses,s.best AS best,s.points AS lifetimePoints FROM scores s JOIN players p ON p.id=s.id WHERE s.season=? ORDER BY s.rating DESC,s.wins DESC,s.updated ASC LIMIT 30',season)];
+   return safeJson({season,timezone:'Asia/Tokyo',ratingSystem:'elo-v139',provisionalMatches:5,verifiedOnlineOnly:true,
+     rows:rows.map((r,i)=>({...r,rank:i+1,provisional:provisional(r.matches)}))});
   }
-  if(!['/issue','/validate','/result'].includes(path)||method!=='POST')return safeJson({error:'Not found'},404);
+  if(!['/issue','/validate','/profile','/result'].includes(path)||method!=='POST')return safeJson({error:'Not found'},404);
   let data;try{data=await request.json()}catch{return safeJson({error:'Invalid JSON'},400)}
   if(!data||typeof data!=='object'||Array.isArray(data))return safeJson({error:'Invalid object'},400);
   if(path==='/issue'){
@@ -474,6 +482,19 @@ export class Rankings extends DurableObject {
    const player=[...this.sql.exec('SELECT id,name FROM players WHERE token_hash=?',hash)][0];
    return player?safeJson({valid:true,id:player.id,name:player.name}):safeJson({valid:false},401);
   }
+  if(path==='/profile'){
+   const token=typeof data.token==='string'?data.token:'';
+   if(!/^[a-f0-9]{48}$/.test(token))return safeJson({error:'Invalid restoration key'},401);
+   const tokenHash=await this.hashToken(token);
+   const player=[...this.sql.exec('SELECT id,name FROM players WHERE token_hash=?',tokenHash)][0];
+   if(!player)return safeJson({error:'Unknown restoration key'},401);
+   const score=[...this.sql.exec('SELECT rating,matches,wins,losses,best,points,updated FROM scores WHERE season=? AND id=?',season,player.id)][0];
+   const rank=score?[...this.sql.exec('SELECT COUNT(*) AS n FROM scores WHERE season=? AND (rating>? OR (rating=? AND wins>?) OR (rating=? AND wins=? AND updated<?))',season,score.rating,score.rating,score.wins,score.rating,score.wins,score.updated)][0]?.n+1:null;
+   const history=[...this.sql.exec('SELECT h.match_id AS matchId,p.name AS opponent,h.win AS win,h.delta AS delta,h.rating AS rating,h.created AS playedAt FROM match_history h JOIN players p ON p.id=h.opponent WHERE h.id=? AND h.season=? ORDER BY h.created DESC LIMIT 12',player.id,season)];
+   return safeJson({season,timezone:'Asia/Tokyo',name:player.name,rank,
+    rating:score?.rating??INITIAL_RATING,matches:score?.matches||0,wins:score?.wins||0,losses:score?.losses||0,
+    bestStreak:score?.best||0,provisional:provisional(score?.matches||0),history});
+  }
   // Internal, server-authored match results only. Reject guest/unverified match identities.
   if(!/^[a-f0-9]{32}$/.test(data.matchId||'')||!Array.isArray(data.ids)||data.ids.length!==2||
      !data.ids.every(id=>typeof id==='string'&&/^[a-f0-9]{32}$/.test(id))||
@@ -485,17 +506,23 @@ export class Rankings extends DurableObject {
   const repeats=[...this.sql.exec('SELECT COUNT(*) AS n FROM results WHERE pair=? AND created>?',pair,now-86400000)][0]?.n||0;
   if(repeats>=3)return safeJson({ranked:false,reason:'Same-opponent daily scoring cap'});
   this.sql.exec('INSERT INTO results(match_id,pair,created) VALUES(?,?,?)',data.matchId,pair,now);
+  const existing=data.ids.map(id=>[...this.sql.exec('SELECT rating,matches,streak,wins FROM scores WHERE season=? AND id=?',season,id)][0]||null);
+  for(const id of data.ids)this.sql.exec('INSERT INTO scores(season,id,points,wins,losses,streak,best,updated,rating,matches) VALUES(?,?,0,0,0,0,0,?,1000,0) ON CONFLICT(season,id) DO NOTHING',season,id,now);
+  const ratings=existing.map(row=>row?.rating??INITIAL_RATING),played=existing.map(row=>row?.matches??0);
+  const changes=eloDelta(ratings[0],ratings[1],data.winner,played[0],played[1]);
   for(let seat=0;seat<2;seat++){
    const id=data.ids[seat],won=seat===data.winner;
-   this.sql.exec('INSERT INTO scores(season,id,points,wins,losses,streak,best,updated) VALUES(?,?,0,0,0,0,0,?) ON CONFLICT(season,id) DO NOTHING',season,id,now);
-   if(won){
-    const prev=[...this.sql.exec('SELECT streak FROM scores WHERE season=? AND id=?',season,id)][0]?.streak||0;
-    const next=prev+1,points=100+Math.min(100,next*10);
-    this.sql.exec('UPDATE scores SET points=points+?,wins=wins+1,streak=?,best=MAX(best,?),updated=? WHERE season=? AND id=?',points,next,next,now,season,id);
-   }else this.sql.exec('UPDATE scores SET losses=losses+1,streak=0,updated=? WHERE season=? AND id=?',now,season,id);
+   const row=existing[seat],nextStreak=won?(row?.streak||0)+1:0,delta=changes[seat];
+   const nextRating=boundedRating(ratings[seat],delta);
+   const legacyPoints=won?100+Math.min(100,nextStreak*10):0;
+   this.sql.exec('UPDATE scores SET rating=?,matches=matches+1,points=points+?,wins=wins+?,losses=losses+?,streak=?,best=MAX(best,?),updated=? WHERE season=? AND id=?',
+     nextRating,legacyPoints,won?1:0,won?0:1,nextStreak,nextStreak,now,season,id);
+   this.sql.exec('INSERT INTO match_history(match_id,id,opponent,season,win,delta,rating,created) VALUES(?,?,?,?,?,?,?,?)',
+      data.matchId,id,data.ids[1-seat],season,won?1:0,nextRating-ratings[seat],nextRating,now);
   }
   this.sql.exec('DELETE FROM results WHERE created<?',now-2592000000);
-  return safeJson({ranked:true,season});
+  this.sql.exec('DELETE FROM match_history WHERE created<?',now-15552000000);
+  return safeJson({ranked:true,season,verified:true});
  }
 }
 
