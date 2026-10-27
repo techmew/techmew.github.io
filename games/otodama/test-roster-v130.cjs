@@ -12,7 +12,7 @@ const extract=(a,b)=>{const i=js.indexOf(a),j=js.indexOf(b,i);assert.ok(i>=0&&j>
 const make=(seed,locked=false)=>({seed,locked,name:'C'+seed,level:1,xp:0,voice:{vol:50,pitch:50,res:50,rhythm:50,stable:50,breath:50},stats:[50,50,50,50,50]});
 const store=new Map();let fail=false,confirm=false;
 const localStorage={getItem:k=>store.get(k)??null,setItem(k,v){if(fail)throw Error('quota');store.set(k,v)},removeItem:k=>store.delete(k)};
-const migCtx={roster:[],localStorage,Math,JSON,Map,Set,$:()=>({}),displayName:x=>x.name,Blob:class{},URL:{},document:{},setTimeout(){}};
+const migCtx={roster:[],cur:make(17),localStorage,Math,JSON,Map,Set,$:()=>({}),displayName:x=>x.name,Blob:class{},URL:{},document:{},setTimeout(){}};
 vm.runInNewContext(extract('const ROSTER_LIMIT=10,ROSTER_ARCHIVE_KEY=',"const DEFAULT_SERVER_URL='")+';this.api={migrateRosterToTen,archivedCreatures}',migCtx);
 const initial=Array.from({length:30},(_,i)=>make(i+1,i%4===0));
 migCtx.roster=initial.slice();store.set('otodama.roster',JSON.stringify(initial));store.set('otodama.lastSelected.v1',JSON.stringify({seed:17}));
