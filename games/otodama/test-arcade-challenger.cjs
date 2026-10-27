@@ -14,7 +14,7 @@ assert.match(script,/match\.resumeSurvival=interruptedSurvival;announceChallenge
 assert.match(script,/if\(won\|\|m\.live\|\|m\.mode==='COM MATCH'\)scheduleNextAfterQuote\(m\)/,'auto follow-up after PvP and CPU loss');
 const selection=script.slice(script.indexOf('function advanceAfterWin(m){'),script.indexOf('function scheduleNextAfterQuote(m){'));
 assert.ok(selection.startsWith('function advanceAfterWin('));
-const ctx={match:null,survivalActive:false,document:{hidden:false},queueWs:null,ws:null,serverBase:()=> 'https://example.workers.dev',
+const ctx={match:null,survivalActive:false,document:{hidden:false},queueWs:null,ws:null,challengerHandoff:false,serverBase:()=> 'https://example.workers.dev',
  leaveRoom:()=>ctx.calls.push('leave'),nextSurvivalBattle:()=>ctx.calls.push('survival'),doCom:()=>ctx.calls.push('com'),stopBattleSpeech:()=>{},
  $:id=>id==='battleModal'?{classList:{contains:x=>x==='open'}}:id==='survivalChallengerOptIn'?{checked:true}:{},
  calls:[]};
@@ -31,4 +31,9 @@ ctx.match.live=true;assert.equal(ctx.canSearchPvP(),false,'no NEW CHALLENGER dur
 ctx.match.live=false;ctx.match.done=true;assert.equal(ctx.canSearchPvP(),false,'no new room during result');
 ctx.match.done=false;ctx.document.hidden=true;assert.equal(ctx.canSearchPvP(),false,'no queue in background');
 ctx.document.hidden=false;ctx.queueWs={};assert.equal(ctx.canSearchPvP(),false,'never double-search');
+assert.equal(html.split('id="battleChallengerOptIn"').length-1,1,'visible battle switch exists');
+assert.match(script,/function startChallengerHandoff\(\)/,'freeze CPU before PvP');
+assert.match(script,/function restoreCpuAfterHandoff\(\)/,'recovery if matchmaking fails');
+assert.match(script,/if\(challengerHandoff&&!match\?\.live\)\{restoreCpuAfterHandoff\(\)\}/,'room failure resumes CPU');
+assert.match(script,/const delay=12000-\(Date\.now\(\)-lastHandoffFailure\)/,'failed handoff cooled down');
 console.log('ARCADE PVP FLOW PASS: opt-in, CPU continuity, new challenger, no queue during PvP, PvP resumes CPU');
