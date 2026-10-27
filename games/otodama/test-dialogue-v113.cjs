@@ -60,14 +60,14 @@ const api=new Function('d',env+src+
 (async()=>{
  api.showBattleQuote(first);
  await Promise.resolve();await Promise.resolve();
- assert.equal(voices.filter(v=>v==='recorded').length,2,'local winner roars using two recorded layers');
+ assert.equal(voices.filter(v=>v==='recorded').length,1,'local winner roar uses one original recording');
  assert.equal(spoken.length,0,'no Japanese speech synthesis of results');
  assert.ok($('battleSpeech').hidden,'player win cannot show a dialogue bubble');
  assert.equal($('battleSpeechText').textContent,'','player win is voice only');
  assert.ok(!$('repeatSpeechBtn').hidden,'replay button visible on result');
  const line=first.tauntText;
  await api.playVictoryRoar(first);
- assert.equal(voices.filter(v=>v==='recorded').length,4,'replay roar uses recording');
+ assert.equal(voices.filter(v=>v==='recorded').length,2,'replay roar uses one recording');
  api.showBattleQuote(first);
  assert.equal(first.tauntText,line,'resume does not consume another text line');
  api.scheduleNextAfterQuote(first);
@@ -132,7 +132,7 @@ const api=new Function('d',env+src+
  const beforeResume=voices.length;
  await api.playVictoryRoar(first);
  assert.equal(audio.state,'running','suspended context must resume');
- assert.equal(voices.length,beforeResume+2,'recovered AudioContext replays recorded victory roar');
+ assert.equal(voices.length,beforeResume+1,'recovered AudioContext replays one recorded victory roar');
  assert.ok(script.includes("if(won||m.live||m.mode===\'COM MATCH\')scheduleNextAfterQuote(m)"),'CPU and online advance after resolution');
  assert.ok(!html.includes('id="bowBanner"'),'no pre-fight bow');
  console.log('RESULT VOICE PASS | CPU Japanese TTS after roar, short dialogue, player/online privacy, mute, autoplay and stale async');
