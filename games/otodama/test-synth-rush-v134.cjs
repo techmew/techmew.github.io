@@ -9,10 +9,11 @@ const start=script.indexOf('function synthVoice('),end=script.indexOf('// 28 sou
 assert.ok(start>=0&&end>start,'synth voice section present');
 const starts=[],peaks=[],routes=[];
 const master={kind:'master'},voice={kind:'voice'};
-const param=()=>({value:1,setValueAtTime(v){this.value=v},exponentialRampToValueAtTime(v){if(v>.001)peaks.push(v)}});
+const param=()=>({value:1,setValueAtTime(v){this.value=v},exponentialRampToValueAtTime(v){this.value=v}});
+const gainParam=()=>({value:1,setValueAtTime(v){this.value=v},exponentialRampToValueAtTime(v){if(v>.001)peaks.push(v)}});
 const ac={currentTime:10,
  createOscillator(){return {frequency:param(),connect(){},start(t){starts.push(t)},stop(){}}},
- createGain(){return {gain:param(),connect(out){routes.push(out)}}},
+ createGain(){return {gain:gainParam(),connect(out){routes.push(out)}}},
  createBiquadFilter(){return {frequency:{value:0},Q:{value:0},connect(){}}}};
 const flags={mutedCheck:{checked:false}};
 const context={Math,$:id=>flags[id]||{},VOLUME:()=>.12,unlockBattleAudio:()=>ac,
