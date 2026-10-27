@@ -1191,7 +1191,7 @@ async function startRecord(mode='birth'){
   $('micHint').textContent=voiceClip?'録音成功。試聴・戦闘・勝利の雄叫びに使えます':'声の特徴からキャラを生成しましたが、録音音声を保存できませんでした';
   $('countdown').textContent=voiceClip?(audioDNA?'DNA OK':'VOICE OK'):'NO CLIP';
   $('micNotice').textContent=voiceClip?(audioDNA?'36項目の音響DNAを解析し、声由来の能力・成長適性を保存しました。録音した声も試聴できます。':'録音声を保存しました。音響DNAの分析に必要な音量や長さが足りないため、基本解析を使用しました。'):'音声ファイルの保存に失敗しました。マイクの許可とブラウザを確認してください。戦闘は代替音で続行できます。';
- }catch(e){if(!captureIsCurrent(captureId))return;const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';}
+ }catch(e){if(!captureIsCurrent(captureId))return;const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';if(evolutionRequested&&!$('evolutionDialog').hidden)$('evolutionDialogStatus').textContent=msg+'。録音開始からやり直せます。';}
  finally{
   if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
@@ -1253,9 +1253,8 @@ function recordEvolutionDraft(){
 function listenEvolutionDraft(){
  if(!evolutionDraft||evolutionDialogSeed!==cur.seed||recording)return;
  stopAttackVoices();
- if($('mutedCheck').checked||Number($('battleVolume').value)<1){
-  $('evolutionDialogStatus').textContent='音声がミュートされています。バトルの音声設定をONにして試聴してください。';return;
- }
+ if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.()}
+ if(Number($('battleVolume').value)<5){$('battleVolume').value='18';$('battleVolume').oninput?.()}
  unlockBattleAudio();playDecodedVoice({...cur,voiceClip:evolutionDraft.clip},0,true);
  $('evolutionDialogStatus').textContent='録音した声を再生しています。納得できなければ録り直せます。';
 }
@@ -2663,7 +2662,10 @@ function announceChallenger(){
 }
 
 function finishCombat(){const m=match;if(!m||m.done)return;
- if(!m.live&&['COM MATCH','SURVIVAL','DAILY CHALLENGE'].includes(m.mode)){pvpPace.completedCpu(Date.now());storePvpPace();}
+ if(!m.live&&['COM MATCH','SURVIVAL','DAILY CHALLENGE'].includes(m.mode)){
+  pvpPace.completedCpu(Date.now());storePvpPace();
+  if($('survivalChallengerOptIn').checked&&!pendingChallenge)$('launchNetStatus').textContent=pvpWaitMessage();
+ }
  hideMatchIntro();hideRushBanner();$('voiceFxLabel').hidden=true;m.done=true;stopBgm();stopAttackVoices();
  if(m.interactive&&!m.live){const win=m.hp[0]/m.max[0]>=m.hp[1]/m.max[1];const score=(win?40:0)+Math.min(30,m.parries*12)+Math.min(15,m.dodges*10)+Math.min(15,m.skillsUsed*8)+Math.min(10,m.strikes*5)+Math.round(20*m.hp[0]/m.max[0]);m.grade=score>=85?'S':score>=65?'A':score>=45?'B':'C';$('battleReport').classList.add('visible');$('battleReport').innerHTML='<strong>RANK '+m.grade+'</strong> · ガード '+m.parries+' · 回避 '+m.dodges+' · 必殺 '+m.skillsUsed+(win&&['S','A'].includes(m.grade)?' · XP +'+(m.grade==='S'?2:1):'');}
  else $('battleReport').classList.remove('visible');
