@@ -74,7 +74,8 @@ for(const id of ['heroCanvas','recordBtn','voicePreviewBtn','fightBtn','saveBtn'
 }
 for(const id of ['dnaPanel','voiceMetrics'])assert.ok(found.get(id)?.details.includes('characterDetails'),'advanced audio analysis folded: '+id);
 for(const id of ['dailyBox','survivalBtn'])assert.ok(found.get(id)?.details.includes('extraModes'),'other modes folded');
-for(const id of ['rankingAlias','serverUrl'])assert.ok(found.get(id)?.details.includes('onlineAdvanced'),'advanced server settings folded');
+assert.ok(found.get('serverUrl')?.details.includes('onlineAdvanced'),'advanced server settings folded');
+assert.ok(found.get('rankingAlias')?.details.includes('onlineDrawer')&&!found.get('rankingAlias')?.details.includes('onlineAdvanced'),'monthly leaderboard appears on the first ranking disclosure');
 assert.deepEqual(found.get('audioResumeBtn')?.details,[],'audio recovery always visible in fight');
 assert.ok(found.get('voiceFxEnabled')?.details.includes('battleAudioSettings'),'secondary fight settings folded');
 assert.ok(html.indexOf('id="fightBtn"')>html.indexOf('id="heroCanvas"')&&html.indexOf('id="fightBtn"')<html.indexOf('id="roster"'),'battle controls located under fighter');
