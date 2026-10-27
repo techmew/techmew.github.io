@@ -30,7 +30,7 @@ const ctx={console,document:{createElement:tag=>new El(tag)},$:pick,
  hash:n=>n>>>0,gen:seed=>make(seed),levelOf:c=>c.level||1,displayName:c=>c.name,
  drawCreature(){},setCurrent(cr){ctx.cur=cr;ctx.api.renderRoster()},trackDiscovery(){},
  roster:[],cur:make(1),rosterExpanded:false};
-vm.runInNewContext(storeFns+'\n'+rosterFns+'\n'+saveCurrentFn+'\nthis.api={trimRoster,saveStore,renderRoster,saveCurrent}',ctx);
+vm.runInNewContext(storeFns+'\n'+rosterFns+'\n'+saveCurrentFn+'\nthis.api={trimRoster,upsertCreature,saveStore,renderRoster,saveCurrent}',ctx);
 ctx.roster=[make(1,true),...Array.from({length:29},(_,i)=>make(i+2,i%6===0))];
 ctx.api.renderRoster();
 assert.equal(pick('roster').children.length,5,'collapsed list only draws five');
@@ -90,7 +90,23 @@ assert.equal(serializer.compactCreature(make(100,false)).locked,false,'backup wr
 assert.equal(serializer.restoreCreature(serializer.compactCreature(make(100,true))).locked,true,'backup restores lock');
 const legacy=serializer.compactCreature(make(200));delete legacy.locked;
 assert.equal(serializer.restoreCreature(legacy).locked,false,'old backups remain compatible');
-assert.match(script,/if\(exists>=0\)\{player\.locked=roster\[exists\]\.locked===true/,'battle rewards must retain the lock');
+assert.match(script,/if\(!upsertCreature\(player\)\)/,'battle rewards use stable-order saved roster');
+const oldFighters=[make(11,true),make(12,false),make(13,true)];
+ctx.roster=oldFighters.slice();
+ctx.api.upsertCreature(make(14,false));
+assert.deepEqual(ctx.roster.map(c=>c.seed),[11,12,13,14],'new saves append instead of jumping to top left');
+ctx.api.upsertCreature(make(12,true));
+assert.deepEqual(ctx.roster.map(c=>c.seed),[11,12,13,14],'updating battle fighter keeps card in original slot');
+assert.equal(ctx.roster[1].locked,false,'upsert cannot change existing lock');
+ctx.roster=Array.from({length:30},(_,i)=>make(i+1,true));
+ctx.roster[26].locked=false;
+assert.equal(ctx.api.upsertCreature(make(777)),true,'full roster can replace unlocked fighter');
+assert.equal(ctx.roster[26].seed,777,'replacement stays in unlocked slot');
+assert.ok(ctx.roster.every((cr,i)=>i===26||cr.locked===true),'protected fighter positions unchanged');
+assert.equal(ctx.api.upsertCreature(make(778)),true,'unlocked replacement slot remains reusable');
+ctx.roster[26].locked=true;
+assert.equal(ctx.api.upsertCreature(make(779)),false,'full protected roster refuses replacement');
+
 (async()=>{
  const importSource=extract('async function importSave(file){','function renderAudioDNA(');
  const storageValues=new Map([
