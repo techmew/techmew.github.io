@@ -7,7 +7,7 @@ const moduleInVM=name=>{const module={exports:{}};new vm.Script(read(name));vm.r
 const D=moduleInVM('combat-director-v135.js'),FX=moduleInVM('combat-cinema-v138.js');
 const html=read('index.html'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'browser game source present');new vm.Script(js);
-assert.match(html,/combat-cinema-v138\.js\?v=138/,'special effects module loaded');
+assert.match(html,/combat-cinema-v138\.js\?v=140/,'upgraded special effects module loaded without stale browser cache');
 assert.match(html,/combat-director-v135\.js\?v=138/,'refreshed choreography bypasses stale browser cache');
 assert.match(js,/cinema\.renderBehind\(canvas,event,pos,p,idx,fxColor,lowFx\)/,'speed trails rendered behind fighters');
 assert.match(js,/cinema\.renderAhead\(canvas,event,pos,p,idx,color,lowFx\)/,'attacks rendered above fighters');
