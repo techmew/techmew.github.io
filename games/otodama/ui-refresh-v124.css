@@ -526,3 +526,112 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
   .inline-evolution .evo-step{font-size:8px}
   .inline-evolution #evolutionInfo{font-size:9px}
 }
+
+
+/* v137: single primary battle action, layered large fighter, lean opt-in, relocated panels. */
+.stage .preview-art{
+ display:block;position:relative;isolation:isolate;
+ min-height:343px;padding:49px 11px 14px;
+ overflow:hidden;align-content:start
+}
+.stage .preview-figure{
+ position:absolute;z-index:0;pointer-events:none;
+ left:-8%;top:18px;width:118%;min-width:0;height:auto;
+ display:block;padding:0;overflow:visible
+}
+.stage .preview-art .preview-figure>#heroCanvas{
+ display:block;width:100%;height:auto!important;max-width:none!important;max-height:none!important;
+ aspect-ratio:700/570;object-fit:contain;transform:none!important;
+}
+.stage .preview-art>.preview-stat-pane{
+ position:relative;z-index:2;
+ margin:0 0 0 auto!important;width:49%;max-width:49%;min-width:0;
+ background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(247,253,255,.95));
+ box-shadow:0 8px 18px #285d7832;
+}
+.stage>.nametag.character-footer{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;
+ align-items:center;margin:3px 13px 8px;min-width:0
+}
+.character-nameblock{display:flex;flex-direction:column;gap:7px;min-width:0}
+.stage .inline-evolution{
+ display:flex;align-items:center;justify-content:flex-end;
+ padding:0;margin:0;border:0;background:transparent;box-shadow:none;
+ width:auto;max-width:190px;min-width:0
+}
+.stage .inline-evolution #evolveBtn{
+ font-size:12px;padding:10px 13px;min-height:42px;width:auto;
+ border-radius:10px;line-height:1.3;white-space:normal
+}
+#evolutionInfo[hidden],#saveBtn[hidden]{display:none!important}
+.stage .inline-evolution #evolveBtn:disabled{
+ background:#e6edf1!important;color:#66818f!important;
+ border:1px solid #bacdd5!important;box-shadow:none!important;opacity:.84;cursor:not-allowed
+}
+.stage .inline-evolution #evolveBtn:not(:disabled){
+ background:linear-gradient(115deg,#2a99c5,#277bb6);color:white;box-shadow:0 3px 12px #2295c950
+}
+.stage .launchpad{
+ padding:11px 12px 9px;margin:10px 12px 13px;
+ background:rgba(255,255,255,.94);border:1px solid #bcd9e5;box-shadow:0 3px 12px #32648112
+}
+.stage .launchpad .launch-actions{display:block}
+.stage .launchpad .battlebuttons{display:block!important;width:100%}
+.stage .launchpad #fightBtn{
+ display:block;width:100%;min-height:54px;margin:0;
+ padding:12px 18px;font-size:clamp(16px,3vw,19px);font-weight:900;
+ line-height:1.3;white-space:normal;text-align:center
+}
+.stage .launchpad #saveBtn{display:none!important}
+.stage .launchpad .survival-online-setting{
+ display:flex;gap:9px;min-height:36px;align-items:center;
+ padding:8px 10px;margin:8px 0 1px;border-radius:9px;
+ background:transparent;border:0;color:#2b6378;font-size:13px;font-weight:700
+}
+.stage .launchpad .survival-online-setting input{width:17px;height:17px;flex:0 0 17px}
+.stage .launchpad .survival-online-setting span{font-size:13px;line-height:1.4}
+.stage .launchpad .launch-net-status{
+ margin:1px 10px 0;min-height:14px;font-size:10px;color:#658395;line-height:1.3
+}
+.stage .battle-ranking{margin:9px 0 0;padding:0}
+.stage .battle-ranking>.card.online{
+ margin:0;padding:0;border:1px solid #d4e5eb;
+ box-shadow:none;background:#f7fbfd;border-radius:11px
+}
+.stage .battle-ranking #onlineDrawer{margin:0}
+.stage .battle-ranking #onlineDrawer>summary{
+ padding:11px 12px;min-height:42px;align-items:center
+}
+.stage .battle-ranking #onlineDrawer>summary b{font-size:13px}
+.stage .battle-ranking #onlineDrawer>summary small{font-size:10px}
+.stage .battle-ranking #onlineDrawer>.drawer-body{padding:10px 11px 12px}
+.stage .battle-ranking .online-ranking{margin:0 0 10px;border-radius:10px}
+.stage>.journey-summary .journey-heading{margin-bottom:9px}
+.controls>.gacha-grade-panel{
+ margin:14px 0 0;padding:12px;border-radius:13px;
+ border:1px solid #c8dfe8;background:#f7fbfd
+}
+@media(max-width:730px){
+ .stage .preview-art{
+   display:block;min-height:335px;padding:48px 9px 10px;
+ }
+ .stage .preview-figure{left:-9%;top:15px;width:120%;height:auto}
+ .stage .preview-art>.preview-stat-pane{
+   margin-left:auto!important;width:49%;max-width:49%;
+   padding:9px 7px;gap:4px
+ }
+ .stage>.nametag.character-footer{
+   grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:4px 11px 8px
+ }
+ .stage .inline-evolution #evolveBtn{font-size:11px;max-width:146px;padding:9px 10px;min-height:39px}
+ .stage .launchpad{margin:9px 9px 12px;padding:10px}
+ .stage .launchpad #fightBtn{min-height:53px;padding:11px 14px;font-size:17px}
+ .stage .launchpad .survival-online-setting{padding:7px 6px;margin-top:7px}
+}
+@media(max-width:375px){
+ .stage .preview-art{min-height:325px;padding:47px 7px 10px}
+ .stage .preview-figure{left:-12%;width:127%;top:12px}
+ .stage .preview-art>.preview-stat-pane{width:49%;max-width:49%;padding:8px 6px}
+ .stage .inline-evolution #evolveBtn{font-size:10px;max-width:128px;padding:8px 9px}
+ .stage .launchpad #fightBtn{font-size:16px}
+}
