@@ -66,7 +66,7 @@ function fakeRuntime(mediaRecorderEnabled){
   clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
   gen:(seed,voice)=>({seed,voice}),dnaFrame:()=>({t:0,rms:.1}),analyseVoiceDNA:()=>null,cur:{},clipData
  };
- context.setCurrent=(c,fromBirth)=>{context.cur=c;notes.push('preview:'+c.seed+':'+String(fromBirth))};
+ context.setCurrent=(c,fromBirth)=>{context.cur=c;notes.push('preview:'+c.seed+':'+String(fromBirth));$('voicePreviewBtn').disabled=!clipData(c)};
  const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl})',context);
  return{api,context,nodes,media,ctxRef,notes};
 }
