@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const growth=require('./progression-v134.js');
+const growthModule={exports:{}};vm.runInNewContext(fs.readFileSync(__dirname+'/progression-v134.js','utf8'),{module:growthModule});const growth=growthModule.exports;
 const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'inline game source');
