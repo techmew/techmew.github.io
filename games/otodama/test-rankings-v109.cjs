@@ -42,7 +42,11 @@ const submit=async(path,body)=>rank.fetch(new Request('https://internal.example'
  assert.equal(score.rows.length,2);
  assert.equal(score.rows[0].id,a.id);
  assert.equal(score.rows[0].wins,3);
- assert.equal(score.rows[0].points,110+120+130);
+ assert.ok(score.rows[0].rating>1000,'3 wins produce a positive server Elo rating');
+ assert.equal(score.rows[0].matches,3,'only verified games count');
+ const profile=await submit('/profile',{token:a.token});assert.equal(profile.status,200);
+ const my=await profile.json();assert.equal(my.wins,3);assert.equal(my.history.length,3);assert.equal(my.rank,1);
+ const fakeProfile=await submit('/profile',{token:'a'.repeat(48)});assert.equal(fakeProfile.status,401,'profile requires real identity proof');
  assert.equal(score.rows[1].losses,3);
  r=await submit('/result',{matchId:'5'.repeat(32),ids:[a.id,a.id],winner:0});
  assert.equal(r.status,400,'same anonymous player cannot play itself for points');
