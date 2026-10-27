@@ -1044,7 +1044,16 @@ function musicTick(id){const m=match;if(id!==bgmSession||!m||m.done||!$('battleM
  }
 }
 function startBgm(){stopBgm();bgmStep=((Math.max(1,match?.stageNo||1)-1)%8)*32;bgmSession++;const id=bgmSession;const ac=unlockBattleAudio();if(!ac)return;bgmNext=ac.currentTime+.09;musicTick(id);bgmTimer=setInterval(()=>musicTick(id),105)}
-function stopBgm(){if(bgmTimer!==null){clearInterval(bgmTimer);bgmTimer=null}bgmSession++;}
+function stopBgm(){
+ if(bgmTimer!==null){clearInterval(bgmTimer);bgmTimer=null}
+ bgmSession++;
+ // Reset attenuation after a match so the result jingle does not inherit old voice ducking.
+ if(bgmMixNode?.gain&&battleSoundCtx&&battleSoundCtx.state!=='closed'){
+  const gain=bgmMixNode.gain;
+  if(typeof gain.setTargetAtTime==='function')gain.setTargetAtTime(1,battleSoundCtx.currentTime,.04);
+  else gain.value=1;
+ }
+}
 function finishJingle(won){if($('mutedCheck').checked||!MUSIC_VOLUME())return;
  const ac=unlockBattleAudio();if(!ac||ac.state!=='running')return;
  const notes=won?[0,4,7,12]:[0,-3,-7],base=won?440:330;
