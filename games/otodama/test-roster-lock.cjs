@@ -8,6 +8,8 @@ assert.ok(script,'embedded game source');
 new vm.Script(script,{filename:'otodama-game.js'});
 assert.match(html,/id="rosterShowAll"/);
 assert.match(css,/\.roster-lock\[aria-pressed="true"\]/);
+assert.match(css,/\.roster-entry>\.specimen\.active/,'selected fighter has its own border');
+assert.match(css,/border:3px solid #087fe2/,'selected border blue');
 assert.match(css,/@media\(max-width:420px\)\{\.gallerygrid\{grid-template-columns:repeat\(3/);
 const extract=(first,last)=>{const a=script.indexOf(first),b=script.indexOf(last,a);assert.ok(a>=0&&b>a,'source boundary '+first);return script.slice(a,b)};
 const storeFns=extract('function trimRoster(){','function renderMeter(');
@@ -26,7 +28,7 @@ let saved=null,fail=false;
 const ctx={console,document:{createElement:tag=>new El(tag)},$:pick,
  localStorage:{setItem(k,v){if(fail)throw Error('quota');saved={key:k,value:v}}},
  hash:n=>n>>>0,gen:seed=>make(seed),levelOf:c=>c.level||1,displayName:c=>c.name,
- drawCreature(){},setCurrent(){},trackDiscovery(){},
+ drawCreature(){},setCurrent(cr){ctx.cur=cr;ctx.api.renderRoster()},trackDiscovery(){},
  roster:[],cur:make(1),rosterExpanded:false};
 vm.runInNewContext(storeFns+'\n'+rosterFns+'\n'+saveCurrentFn+'\nthis.api={trimRoster,saveStore,renderRoster,saveCurrent}',ctx);
 ctx.roster=[make(1,true),...Array.from({length:29},(_,i)=>make(i+2,i%6===0))];
@@ -36,6 +38,13 @@ assert.equal(pick('rosterShowAll').hidden,false,'all stored creatures accessible
 assert.match(pick('rosterCount').textContent,/保護/);
 pick('rosterShowAll').onclick();
 assert.equal(pick('roster').children.length,30,'expanded list has all thirty');
+const originalOrder=pick('roster').children.map(tile=>tile.children[0].title);
+pick('roster').children[15].children[0].onclick();
+assert.equal(ctx.cur.seed,16,'selection changes only the active fighter');
+assert.equal(pick('roster').children[15].children[0].attrs['aria-pressed'],'true','selected fighter stays in the same card');
+assert.equal(pick('roster').children[0].children[0].attrs['aria-pressed'],'false','old fighter is no longer active');
+assert.deepEqual(pick('roster').children.map(tile=>tile.children[0].title.replace(/・使用中|・タップして使用/g,'')),originalOrder.map(t=>t.replace(/・使用中|・タップして使用/g,'')),'switching never reorders existing cards');
+assert.doesNotMatch(pick('roster').children[15].children[0].children[1].textContent,/●/,'active fighter has border only');
 const tile=pick('roster').children[22],lock=tile.children[1],original=ctx.roster[22].locked;
 assert.equal(lock.tagName,'button','lock is a button inside a card');
 assert.equal(lock.attrs['aria-pressed'],String(original),'accessible lock state');
@@ -50,8 +59,9 @@ pick('roster').children[0].children[1].onclick();
 assert.equal(ctx.roster.length,1,'one-tap protection saves character');
 assert.equal(ctx.roster[0].locked,true,'newly saved character is protected');
 ctx.roster=Array.from({length:30},(_,i)=>make(i+1,true));ctx.cur=make(999);ctx.api.renderRoster();
-pick('roster').children[0].children[1].onclick();
+pick('roster').children[4].children[1].onclick();
 assert.equal(ctx.roster.some(c=>c.seed===999),false,'all-protected roster refuses one-tap save');
+assert.equal(pick('roster').children[4].children[0].attrs['aria-pressed'],'true','unsaved current fighter is last visible card');
 const protectedSeeds=ctx.roster.filter(c=>c.locked).map(c=>c.seed);
 ctx.roster.unshift(make(1001,false));ctx.api.trimRoster();
 assert.equal(ctx.roster.length,30,'roster size remains capped');
