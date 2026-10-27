@@ -407,3 +407,17 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
  .evolution-card .btn{width:100%}
 }
 @media(max-width:375px){.launchpad .survival-online-setting small{font-size:10px!important}.launch-actions .btn{font-size:12px;padding:8px 6px}}
+
+
+/* v135: fighter -> saved roster -> selected stats; recording controls stay in the opposite column. */
+.layout{grid-template-columns:minmax(0,1.12fr) minmax(330px,.88fr);grid-template-rows:auto}
+.layout>.stage{grid-column:1;grid-row:1;align-self:start}
+.layout>.controls{grid-column:2;grid-row:1;align-self:start}
+.stage>.status-card{margin:14px 0 0;background:linear-gradient(180deg,#fff,#f4f9fd);border:1px solid #c9dce9;border-radius:15px;box-shadow:0 7px 17px #244a7020}
+.stage>.status-card .questline{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.quest-progress{display:grid;gap:5px;justify-items:end}
+.quest-progress #resetAdventureBtn{padding:7px 11px;font-size:11px;min-height:34px;border:1px solid #aac3d4;color:#33657c;background:#f8fcff}
+.quest-progress #resetAdventureBtn:hover{border-color:#508faa;background:#edfaff}
+#resetAdventureNotice{color:#486c7d;min-height:17px}
+.stage .creaturename{font-size:clamp(19px,2.5vw,27px);line-height:1.25;word-break:break-word}
+@media(max-width:730px){.layout>.stage{order:1}.layout>.controls{order:2}.stage>.status-card{padding:13px;margin-top:13px}.quest-progress{justify-items:start}}
