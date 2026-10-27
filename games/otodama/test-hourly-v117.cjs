@@ -11,8 +11,8 @@ new vm.Script(client,{filename:'index.html'});
 const slice=(start,end)=>{const a=client.indexOf(start),b=client.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,'missing '+start);return client.slice(a,b)};
 assert.ok(html.includes('id="matchIntro"')&&html.includes('id="campaignTrack"'),'campaign progression UI');
 assert.ok(html.includes('name="viewport"')&&html.includes('id="audioResumeBtn"'),'mobile/audio controls');
-assert.ok(client.includes('if(won)scheduleNextAfterQuote(m)'),'winner advances');
-assert.ok(client.includes("if(!won){$('rematchBtn').textContent="),'loser stops');
+assert.ok(client.includes('if(won||m.live||m.mode==='COM MATCH')scheduleNextAfterQuote(m)'),'winner advances');
+assert.ok(client.includes("if(!won){$('rematchBtn').textContent="),'survival loss remains stopped');
 assert.ok(client.includes('function pcmWavDataUrl(')&&client.includes('function stopRecord('),'record/stop retained');
 assert.ok(client.includes('function exportSave(')&&client.includes('function importSave('),'save import/export retained');
 
