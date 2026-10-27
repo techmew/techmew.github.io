@@ -53,6 +53,7 @@ function fakeRuntime(mediaRecorderEnabled){
   }
  }
  const context={
+  document:{hidden:false},
   $,navigator:{mediaDevices:{async getUserMedia(){media.grants++;return{getTracks(){return[{stop(){media.stops++}}]}}}}},
   window:{AudioContext},MediaRecorder:mediaRecorderEnabled?FakeRecorder:undefined,
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
