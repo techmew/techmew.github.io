@@ -5,7 +5,19 @@
  */
 import { DurableObject } from 'cloudflare:workers';
 import { sanitizePublicName, isForbiddenName } from './moderation.js';
-import { seasonJST, eloDelta, boundedRating, provisional, INITIAL_RATING } from './rankings-v139.js';
+// Inline authoritative rating helpers for compatibility with worker's isolated Node test harness.
+const INITIAL_RATING=1000;
+const PROVISIONAL_MATCHES=5;
+function seasonJST(ms=Date.now()){return new Date(ms+32400000).toISOString().slice(0,7)}
+function eloDelta(ratingA,ratingB,winner,matchesA=0,matchesB=0){
+ const a=Math.max(400,Math.min(2600,Number(ratingA)||INITIAL_RATING)),b=Math.max(400,Math.min(2600,Number(ratingB)||INITIAL_RATING));
+ const expected=1/(1+Math.pow(10,(b-a)/400));
+ const k=Math.min(matchesA,matchesB)<PROVISIONAL_MATCHES?48:32;
+ const delta=Math.max(1,Math.round(k*((winner===0?1:0)-expected)));
+ return [delta,-delta];
+}
+function boundedRating(rating,delta){return Math.max(400,Math.min(2600,Math.round(rating+delta)))}
+function provisional(matches){return Number(matches||0)<PROVISIONAL_MATCHES}
 
 const safeJson = (obj, code=200) => new Response(JSON.stringify(obj), {
   status:code, headers:{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','cache-control':'no-store'}
