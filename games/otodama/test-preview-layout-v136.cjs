@@ -41,10 +41,11 @@ const nodes={evolutionInfo:{textContent:''},evolveBtn:{disabled:false,textConten
 const fixture={GROWTH,cur:{seed:113,rarity:'S',level:5,evolutionVoices:[]},roster:[{seed:113}],
  recording:false,recordingRequestPending:false,match:null,document:{querySelectorAll:()=>steps},
  $:id=>nodes[id],levelOf:c=>c.level,rarityOf:c=>c.rarity};
+fixture.evolutionEligible=()=>GROWTH.canEvolve(fixture.cur)&&fixture.roster.some(c=>c.seed===fixture.cur.seed)&&!fixture.recording&&!fixture.recordingRequestPending&&!fixture.match;
 const ui=vm.runInNewContext(markup+';updateEvolutionUI',fixture);
 function paint(level,used){fixture.cur.level=level;fixture.cur.evolutionVoices=Array.from({length:used},()=>({focus:'響き'}));ui();}
 paint(5,0);assert.equal(nodes.evolveBtn.disabled,true);assert.match(nodes.evolutionInfo.textContent,/Lv\.10/);
-paint(10,0);assert.equal(nodes.evolveBtn.disabled,false);assert.match(nodes.evolveBtn.title,/新しい声を録音/);
+paint(10,0);assert.equal(nodes.evolveBtn.disabled,false);assert.match(nodes.evolveBtn.title,/録音・試聴・録り直し・確定/);
 paint(10,1);assert.equal(nodes.evolveBtn.disabled,true);assert.match(nodes.evolveBtn.title,/Lv\.20/);
 paint(20,1);assert.equal(nodes.evolveBtn.disabled,false);
 paint(30,2);assert.equal(nodes.evolveBtn.disabled,false);
