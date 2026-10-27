@@ -38,8 +38,8 @@ const evolved={...base,evolutionVoices:[{focus:'リズム'},{focus:'響き'},{fo
 assert.equal(JSON.stringify(D.voiceFusion(evolved)),JSON.stringify({extra:3,rhythm:1,echo:1,steady:0,change:1,unique:3}));
 assert.equal(new Set(Array.from({length:600},(_,i)=>D.morphology(fighter(i)).kind)).size,6,'six separate silhouette forms');
 assert.match(html,/id="resetAdventureBtn"/,'adventure reset accessible');
-assert.ok(html.indexOf('id="statusCard"')>html.indexOf('id="roster"'),'stats immediately after created collection');
+assert.ok(html.indexOf('id="heroCanvas"')<html.indexOf('id="statusCard"')&&html.indexOf('id="statusCard"')<html.indexOf('id="creatureName"'),'stats are in the right side of the character preview');
 assert.match(html,/displayName\(cur\)\+'  Lv\.'\+levelOf\(cur\)/,'selected fighter shows level in name');
-assert.match(css,/\.stage>\.status-card/,'selected stats layout styles');
+assert.match(css,/\.stage \.preview-art>.preview-stat-pane/,'selected stats are in the preview two-column grid');
 assert.match(html,/voiceClip:typeof v\.voiceClip/,'persisted evolved voice samples restored');
 console.log('DIRECTOR v135 PASS | '+durations.length+' auto bouts; styles '+rates.map(x=>(x*100).toFixed(1)+'%').join(',')+'; '+avg.toFixed(1)+'s; '+events.size+' attack types; silhouette, voice, reset');
