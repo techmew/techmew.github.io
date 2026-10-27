@@ -1131,7 +1131,7 @@ function updateEvolutionUI(){
  const next=(GROWTH?.EVOLUTION_LEVELS||[10,20,30])[used];
  node.textContent='声 '+(1+used)+'/4 · '+(used<available?'今すぐ追加できる':next?'次は Lv.'+next:'追加完了')+' · 上限 Lv.40';
  document.querySelectorAll('.evo-step[data-level]').forEach(step=>{const milestone=Number(step.dataset.level);step.classList.toggle('unlocked',levelOf(cur)>=milestone);step.classList.toggle('next',milestone===next&&used<3);if(milestone===40)step.classList.toggle('at-max',levelOf(cur)>=40)});
- btn.disabled=!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed)||recording||recordingRequestPending||match&&!match.done;
+ btn.disabled=!!(!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed)||recording||recordingRequestPending||(match&&!match.done));
  btn.textContent=used>=3?'進化完了':GROWTH?.canEvolve(cur)?'● 声を追加して進化':'Lv.'+next+' で声を追加';
  const grade=rarityOf(cur);$('rarityBadge').textContent=grade;$('rarityBadge').dataset.grade=grade;
 }
