@@ -20,7 +20,7 @@ const harness=[
  "const guardPress=()=>calls.push('guard'),dodgePress=()=>calls.push('dodge'),strikePress=()=>calls.push('strike'),skillPress=()=>calls.push('skill');",
  "const stageEnemy=(n,p)=>({seed:n*313,level:n}),randCombat=()=>({max:[170,170],events:[]});",
  "const showBattle=(p,e,o,mode)=>{match={a:p,b:e,mode,done:false,interactive:true,live:false,current:null}};",
- "const leaveRoom=()=>calls.push('leaveRoom'),serverBase=()=>null,startRandomMatch=()=>calls.push('queue'),cancelRandomSearch=()=>calls.push('cancel');",
+ "const leaveRoom=()=>calls.push('leaveRoom'),serverBase=()=>null,startRandomMatch=()=>calls.push('queue'),maybeQueuePvP=()=>calls.push('queue'),cancelRandomSearch=()=>calls.push('cancel');",
  script.slice(begin,end),
  "globalThis.test={startSurvival,nextSurvivalBattle,finishSurvivalRound,survivalStyleBonus,setAutoBattle,scheduleAutoAction,get data(){return{survivalActive,survivalRound,survivalPoints,survivalWins,survivalBest,autoBattleEnabled,survivalAwaitingVisibility,match}},set hidden(v){document.hidden=v},get dom(){return dom},timers,calls,saved,set clock(v){clock=v}};"
 ].join('\n');
