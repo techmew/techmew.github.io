@@ -65,7 +65,7 @@ async function test(){
  functions.attackVoice(cr,1);
  assert.equal(calls.length,17,'online opponent mute respected');
  ui.muteOpponentVoice.checked=false;match.mode='COM MATCH';
- now+=1600;
+ now+=1900;
  functions.attackVoice({seed:5,voiceClip:'',voice:{pitch:50}},0,{hits:4});
  assert.equal(synthCalls.length,1,'synthetic fallback when recorded voice is absent');
  assert.equal(synthCalls[0][2].hits,1,'non-rush fallback also remains one voice');
