@@ -29,6 +29,7 @@ const corrupt=JSON.parse(JSON.stringify(old));corrupt.evolutionVoices[0].voiceCl
 assert.equal(api.restoreCreature(corrupt).evolutionVoices[0].voiceClip,'','reject external voice reference');
 const huge=JSON.parse(JSON.stringify(old));huge.evolutionVoices[0].voiceClip='data:audio/wav;base64,'+'A'.repeat(100000);
 assert.equal(api.restoreCreature(huge).evolutionVoices[0].voiceClip,'','reject oversized voice data');
-assert.match(html,/オンラインへの録音声送信は停止中/);
+assert.match(html,/自分の録音声を相手に送る/,'optional opt-in microphone transmission');
+assert.match(html,/相手の録音声を再生する/,'optional opt-in listening');
 assert.match(js,/creature:\{seed:cur\.seed,parts:cur\.parts,voice:cur\.voice,stats:cur\.stats/,'PvP sends stats preview but not recorded voice');
 console.log('EVOLUTION PERSISTENCE v135 PASS | saved voices survive reload; sanitized export, corrupted URL and quota bounds');
