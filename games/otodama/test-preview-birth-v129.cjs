@@ -77,4 +77,4 @@ api.cancelBirthReveal();hidden=true;api.startBirthReveal(ctx.cur);
 assert.equal($('birthReveal').hidden,true,'hidden browser never animates');
 assert.match(js,/setCurrent\(newborn\);saveNewborn\(newborn\);startBirthReveal\(cur\)/,'new microphone creature auto-saved before birth');
 assert.doesNotMatch(extract('function newOne(){','function deleteSavedCreature(seed){'),/startBirthReveal/,'trial generator has no microphone-only ceremony');
-console.log('PREVIEW/BIRTH PASS | remembered selection, all fighters shown, 4 birth scenes, stale timers, reduced motion');
+console.log('PREVIEW/BIRTH PASS | remembered selection, ten-slot gallery, 4 birth scenes, stale timers, reduced motion');
