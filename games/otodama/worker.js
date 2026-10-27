@@ -141,7 +141,7 @@ export class Room extends DurableObject {
       target=other?.deserializeAttachment()||{};
     const canSend=!!me.voiceConsent?.send&&!!target.voiceConsent?.receive,
           canReceive=!!me.voiceConsent?.receive&&!!target.voiceConsent?.send;
-    this.send(peer,{type:'voice_policy',canSend,canReceive,
+    this.send(peer,{type:'voice_policy',canSend,canReceive,needClip:canSend&&!me.sentVoice,
       reason:canSend||canReceive?'録音声を交換できます（録音内容は事前審査されません）':'録音声は送信・受信それぞれの同意があるときだけ共有されます'});
    }
   }
@@ -403,6 +403,11 @@ export class Room extends DurableObject {
     }
     if(data.type==='voice_consent'){
       if(!attachment.creature||typeof data.send!=='boolean'||typeof data.receive!=='boolean')return;
+      if(attachment.voiceConsent?.receive&&!data.receive){
+        // If a listener opts out, allow the sender to send again if the listener later reconsents.
+        const sender=this.livePeers().find(p=>p!==ws);
+        if(sender){const old=sender.deserializeAttachment()||{};sender.serializeAttachment({...old,sentVoice:false})}
+      }
       if(attachment.voiceConsent?.send&&!data.send){
        // Explicit revocation: forget any previously relayed voice on every other client.
        for(const peer of this.livePeers())if(peer!==ws)this.send(peer,{type:'voice_revoked'});
