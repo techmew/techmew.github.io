@@ -2203,7 +2203,8 @@ function battleDraw(ms){
   }
  const bases=[{x:205+17*Math.sin(t*1.9),y:209+9*Math.sin(t*2.1)},{x:515+17*Math.sin(t*1.8+2),y:209+9*Math.sin(t*2+1.7)}];
  const pos=bases.map(v=>({x:v.x,y:v.y,rot:0,scale:.66}));
- if(event){
+ // Old free-flight choreography is a fallback ONLY; director poses must not be computed twice.
+ if(event&&!(typeof window!=='undefined'&&window.OtodamaDirector)){
   const invert=atk===0?1:-1;
   const rush=['rush','combo','aerial','spin','warp','uppercut','meteor','counter'].includes(event.kind);
   const travel=rush?1:.55;
