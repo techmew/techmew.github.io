@@ -44,7 +44,7 @@ const unsaved=vm.runInNewContext("const lastSelectedKey='otodama.lastSelected.v1
 });
 unsaved();
 assert.equal(JSON.parse(selections.get('otodama.lastSelected.v1')).snapshot.seed,708,'unsaved fighter snapshot persisted');
-assert.match(js,/function setCurrent\(cr,fromBirth=false\)\{if\(!fromBirth\)cancelBirthReveal\(\);cur=cr;persistSelected\(\)/,'selection saved on preview change');
+assert.match(js,/function setCurrent\(cr,fromBirth=false\)\{if\(!fromBirth\)cancelBirthReveal\(\);if\(!fromBirth&&evolutionDialogSeed!==null&&cr.seed!==evolutionDialogSeed\)cancelEvolutionDialog\(\);cur=cr;persistSelected\(\)/,'selection saved on preview change and unrelated evolution draft discarded');
 const birthSource=extract('let birthRevealToken=0,birthRevealTimers=[],birthStockCallback=null;','function newOne(){');
 const elements=new Map();
 const $=id=>{if(!elements.has(id))elements.set(id,{hidden:true,dataset:{},textContent:'',width:320,height:280,getContext(){return {clearRect(){}}}});return elements.get(id)};
