@@ -1,3 +1,23 @@
+# 声魂 v140｜進化4ステップ・録音即応・PvPペース・双方の声・Elo順位・戦闘FX｜2026-10-28
+
+CURRENT_STATUS: techmew/techmew.github.io の games/otodama/ のみ更新。声からのキャラ生成・10体所持・Lv40/4声・B/A/S/S+・CPU自動連戦・既公開Cloudflare対戦を維持。
+CHANGELOG:
+- 進化ボタンはLv10/20/30で解放。進化画面で録音開始→聴く→録り直し→確定/キャンセルを完結。録音結果を一時保持して確定前はキャラや能力値を一切変更しない。キャラ切替・画面背面で破棄、保存失敗時はロールバック。条件未達は解放レベル等を短く表示。
+- 録音の初動を変更。マイク取得後にMediaRecorderをAudioContext再開やFFT解析より先に始め、実際の録音開始から2秒を測定。マイク起動中を即表示し、権限待ちと録音準備の遅延を明示。初回のブラウザ権限確認は省略できない。
+- NEW CHALLENGER標準は10分間隔＋CPU5戦以上＋1時間に最大3回。CPU戦の途中では切らず、両者のマッチング後も現在のCPU戦完了を待つ。PvP終了後はCPU自動戦を再開。OFF中の検索停止と保存・再開を整備。
+- Cloudflareサーバー所有のElo（初期1000、暫定5戦）、JST月間シーズン、上位30人、自分の順位と12戦の履歴、秘密復旧キー。相手2名の登録とサーバー確認済み結果だけランキング計算。複数受賞・同一相手ポイント稼ぎを抑制。
+- 2秒の録音声を双方の明示的同意がある場合だけWebSocketで一時交換。サイズ・形式上限、二重送信防止、共有の撤回、再同意時の再送信、未参加者への遮断。音声自体はサーバーで審査されない。オンライン受付欄のすぐ下から声の共有に同意できる（初期OFF）。受信声は相手キャラの攻撃時に再生。
+- 高速アクション・地上/空中追撃・7連撃・着弾火花・衝撃波・速度線・ズームなどの既存v138シネマ演出に、新しい発光音圧破片と地面を走る追加衝撃波をv140で組み込んだ。低負荷設定の粒子削減を維持。
+TEST_RESULTS: GitHub Actions Test and Deploy OTODAMA Worker run 40543501235 SUCCESS（38 Nodeスイート、commit 115e4ba729259249911c6ecde8453288705a7cf8）。EVOLUTION FLOW v140 / PVP PACE v139 / ROOM（相互音声同意） / RANKINGS（本人確認・JST月間） / COMBAT CINEMA（4040フレーム）PASS。GitHub Pages run 40543500781 SUCCESS（同一commit）。公開Workerの/health・WebSocket 2接続・room live_start のライブスモーク run 40543487667 SUCCESS（最終コードの一つ前の実行）。
+BLOCKERS: Android実機による録音開始の実測、進化画面、音量、戦闘FPSは未検証。独立したAndroid二端末で相互録音声を本当に聞けるか、PvP→CPU復帰を通した実機検証は未実施。マイク権限確認・モバイル自動再生制限は端末依存。録音声の内容審査は未実装なので任意同意のみ。
+NEXT_ACTIONS: Android ChromeでLv10/20/30の進化→録音→試聴→再録音→確定を操作。二端末ともオンライン受付ONと声の共有ONにして相互録音音声・切断・背景復帰を通し検証。必要なら粒子と画面揺れの負荷を微調整。
+IMPLEMENTATION_COMMIT_SHA: 115e4ba729259249911c6ecde8453288705a7cf8
+NODE_ACTION: https://github.com/techmew/techmew.github.io/actions/runs/40543501235
+PAGES_ACTION: https://github.com/techmew/techmew.github.io/actions/runs/40543500781
+LIVE_ACTION: https://github.com/techmew/techmew.github.io/actions/runs/40543487667
+
+---
+
 # 声魂 v138｜高速アクションと戦闘シネマ演出の再強化｜2026-10-27
 
 CURRENT_STATUS: GitHub main games/otodama/限定で変更。v135の新戦闘AIの位置計算が旧来の激しい移動を最終的に上書きしていたため、派手な動きを再設計。キャラの録音生成、10体保存、Lv40/4声進化、B/A/S/S+、CPU自動連戦、既公開オンラインPvP Workerは変更なし。
