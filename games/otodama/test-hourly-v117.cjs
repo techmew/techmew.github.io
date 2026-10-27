@@ -26,12 +26,13 @@ const ui={mutedCheck:{checked:false},muteOpponentVoice:{checked:false},arenaEffe
 let soundClock=1000;
 const soundCtx={
  match:battle,$:id=>ui[id]||{},clamp:(v,a,b)=>Math.min(b,Math.max(a,v)),VOLUME:()=>.18,unlockBattleAudio:()=>ac,
- voiceOutput:()=>({}),trackAttackSource:()=>{},synthVoice:()=>{},
+ voiceOutput:()=>({}),audioMaster:()=>({}),trackAttackSource:()=>{},synthVoice:()=>{},
+ stopAttackVoices:()=>{sound.playDecodedVoice.busyUntil=0;sound.playDecodedVoice.generation=(sound.playDecodedVoice.generation||0)+1},
  voiceCache:new Map([[key,{buffer:{duration:1},offset:.1,duration:.65,gain:1.8}]]),
  pendingVoice:new Map(),performance:{now:()=>soundClock},hash:()=>0,
  showRushBanner:x=>banners.push(x),bgmDuckUntil:0,lastSoundStatus:''
 };
-const sound=vm.runInNewContext(slice('function clipData(cr)','function previewRecordedVoice()')+';({attackVoice,maybeSpecialRush})',soundCtx);
+const sound=vm.runInNewContext(slice('function clipData(cr)','function previewRecordedVoice()')+';({attackVoice,maybeSpecialRush,playDecodedVoice})',soundCtx);
 sound.attackVoice(creature,0,{hits:2});
 assert.equal(starts.length,1,'2-hit combo must use one voice');
 sound.attackVoice(creature,0,{hits:5});assert.equal(starts.length,1,'no overlapping second recording');
