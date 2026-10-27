@@ -960,7 +960,13 @@ function resumeAudioFromGesture(){
 }
 document.addEventListener('pointerdown',resumeAudioFromGesture,{passive:true});
 document.addEventListener('keydown',resumeAudioFromGesture);
-function stopAttackVoices(){for(const s of playingSources){try{s.stop(0)}catch(e){}}playingSources=[]}
+function stopAttackVoices(){
+ // Invalidate pending asynchronous decode as well as currently sounding buffers.
+ playDecodedVoice.generation=(playDecodedVoice.generation||0)+1;
+ playDecodedVoice.busyUntil=0;
+ for(const s of playingSources){try{s.stop(0)}catch(e){}}
+ playingSources=[];
+}
 $('audioResumeBtn').onclick=()=>{
  if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.();}
  if(Number($('battleVolume').value)<5){$('battleVolume').value='15';$('battleVolume').oninput?.();}
@@ -1158,8 +1164,7 @@ function voiceEffectProfile(cr,side,ev=null,phase='attack'){
  return {enabled:true,label:name[0],from:clamp(name[1]*pitchShift,.5,2.1),
   to:clamp(name[2]*pitchShift,.5,2.1),filter:name[3],cutoff:name[4],echo:name[5],
   volume:phase==='reaction'?.53:e.skill?.85:.92,
-  segment:phase==='reaction'?(wounded?.34:.22):e.skill?.43:
-   kind==='beam'?.42:kind==='meteor'?.44:.33,phase,group};
+  segment:phase==='reaction'?(wounded?.32:.22):e.skill?.60:.58,phase,group};
 }
 function setVoiceEffectStatus(fx){
  const label=$('voiceFxLabel');
@@ -1205,27 +1210,34 @@ async function decodeVoice(cr){
  })();pendingVoice.set(key,task);try{return await task}finally{pendingVoice.delete(key)}
 }
 function playDecodedVoice(cr,side,force=false,options={}){
- if($('mutedCheck').checked||!VOLUME())return;
+ if($('mutedCheck').checked||!VOLUME())return false;
+ const nowMs=performance.now();
+ // One recognizable recorded voice per normal exchange; only explicit rush may repeat.
+ if(!force&&nowMs<(playDecodedVoice.busyUntil||0))return false;
  const session=match,turn=match?.turn,ac=unlockBattleAudio();
- if(!ac)return;
+ if(!ac)return false;
  const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
  const phase=options.phase||'attack',event=options.event||{};
+ const generation=playDecodedVoice.generation||0;
+ if(!force)playDecodedVoice.busyUntil=nowMs+(rush?Math.ceil((hits-1)*174+340):740);
  const plain={enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,echo:0,
   volume:1,segment:.7,phase};
  const fx=force?plain:voiceEffectProfile(cr,side,event,phase);
- const valid=()=>force||!!(match===session&&!match?.done&&match.turn===turn&&
-  !(side===1&&match.mode?.startsWith('ONLINE')&&$('muteOpponentVoice').checked));
+ const valid=()=>generation===(playDecodedVoice.generation||0)&&
+  (force||!!(match===session&&!match?.done&&match.turn===turn&&
+  !(side===1&&match.mode?.startsWith('ONLINE')&&$('muteOpponentVoice').checked)));
  const fallback=()=>{if(valid()&&!force)synthVoice(cr,side,{rush,hits,phase,event,fx})};
  const play=clip=>{
   if(!valid())return false;
   if(!clip||clip.duration<.075){fallback();return false}
   try{
    const out=voiceOutput(ac),now=ac.currentTime+.018;
-   const echoes=fx.enabled&&fx.echo>0?(fx.label==='三重反響'?2:1):0;
+   // Never layer recorded echoes over regular speech; the original consonants stay clear.
+   const echoes=0;
    function voiceAt(at,length,from,to,loudness){
     const source=ac.createBufferSource(),gain=ac.createGain();
     const portion=Math.min(clip.duration,Math.max(.08,length));
-    const rate=clamp((from+to)*.5,.5,2.1);
+    const rate=force?1:clamp((from+to)*.5,rush?.90:.86,rush?1.22:1.14);
     const sec=portion/rate;
     source.buffer=clip.buffer;
     voiceEffectRate(source.playbackRate,clamp(from,.5,2.1),clamp(to,.5,2.1),at,sec);
@@ -1234,7 +1246,7 @@ function playDecodedVoice(cr,side,force=false,options={}){
     gain.gain.setValueAtTime(loudness,at+Math.max(.018,sec-.06));
     gain.gain.linearRampToValueAtTime(0,at+Math.max(.045,sec));
     let node=source;
-    if(fx.enabled&&fx.filter&&typeof ac.createBiquadFilter==='function'){
+    if(rush&&fx.enabled&&fx.filter&&typeof ac.createBiquadFilter==='function'){
      const filter=ac.createBiquadFilter();
      filter.type=fx.filter;filter.frequency.value=fx.cutoff;filter.Q.value=.8;
      node.connect(filter);node=filter;
@@ -1243,18 +1255,16 @@ function playDecodedVoice(cr,side,force=false,options={}){
     source.start(at,clip.offset,portion);trackAttackSource(source);
    }
    for(let i=0;i<hits;i++){
-    const at=now+(rush?i*(fx.enabled?.094:.108):0);
-    const shift=fx.enabled&&rush?1+(i%3-1)*.07:1;
+    const at=now+(rush?i*.174:0);
+    const shift=fx.enabled&&rush?1+(i%3-1)*.035:1;
     const from=fx.from*shift,to=fx.to*shift;
-    const length=rush?(i===hits-1?.38:.235):fx.segment;
-    const level=Math.min(.19,VOLUME()*(clip.gain||1)*fx.volume*
-      (phase==='reaction'?.62:rush?.55:1)/Math.sqrt(Math.max(1,hits)*.7));
+    const length=rush?(i===hits-1?.185:.145):force?.7:phase==='reaction'?.22:.58;
+    const level=Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
+      (phase==='reaction'?.42:rush?.49:1)/Math.sqrt(Math.max(1,hits)*.86));
     voiceAt(at,length,from,to,level);
-    if(i===hits-1&&echoes)for(let e=0;e<echoes;e++)
-     voiceAt(at+(e+1)*fx.echo/1000,Math.min(length,.29),
-      from*(.90-e*.08),to*.91,level*(e===0?.30:.16));
+    // Additional voiced echoes are disabled: even a preset named 'echo' stays single-source.
    }
-   if(!force)setVoiceEffectStatus(fx);
+   if(!force)setVoiceEffectStatus({...fx,label:rush?fx.label:'クリア'});
    lastSoundStatus=(phase==='reaction'?'反応声':rush?'連撃の声':'攻撃声')+'：'+fx.label;
    return true;
   }catch(e){lastSoundStatus=String(e);fallback();return false}
@@ -1266,16 +1276,18 @@ function playDecodedVoice(cr,side,force=false,options={}){
 }
 function attackVoice(cr,side,ev=null){
  if(match?.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
- const rush=!!ev?.rush||(!!ev&&Number(ev.hits)>=2);
- const hits=ev?.rush?7:rush?Math.min(5,Math.max(2,Math.floor(ev.hits||2))):1;
- bgmDuckUntil=performance.now()+(rush?850:480);
+ const rush=ev?.rush===true;
+ const hits=rush?Math.min(7,Math.max(2,Math.floor(ev?.hits||7))):1;
+ bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+(rush?1350:760));
  playDecodedVoice(cr,side,false,{rush,hits,event:ev||{kind:'normal'},phase:'attack'});
 }
 function reactionVoice(cr,side,ev){
  if(!match||match.done||$('mutedCheck').checked||!VOLUME())return;
  if(match.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
- if(!(ev?.dodge||ev?.guard||ev?.parry||ev?.counter||Number(ev?.damage)>0))return;
- bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+320);
+ // Routine hit reactions use the impact SE, not a second recorded shout on the attack.
+ if(!(ev?.dodge||ev?.guard||ev?.parry))return;
+ if(performance.now()<(playDecodedVoice.busyUntil||0))return;
+ bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+260);
  playDecodedVoice(cr,side,false,{phase:'reaction',event:ev||{}});
 }
 
@@ -2197,8 +2209,9 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   $('arenaEffect').textContent=ev.crit?'大ダメージ！':ev.counter?'反撃成功!':ev.dodge?'回避成功':ev.arena?'地形：'+(ARENA_LABELS[ev.arena]||ev.arena):(ev.hits>1?ev.hits+' HIT 連続ヒット！':BATTLE_LABEL[ev.kind]);
   $('enemyTactic').classList.toggle('visible',!!ev.tactic);$('enemyTactic').textContent=ev.tactic?'⚠ '+COM_TACTICS[ev.tactic].label+'：'+COM_TACTICS[ev.tactic].hint:'';
   $('fightLog').textContent=displayName(attacker)+' の '+(BATTLE_LABEL[ev.kind]||'ジャンプ攻撃')+'！ '+(ev.hazard?'【地形：'+ev.hazard.label+'】':'')+(match.spectator?(ev.commentary||'自動戦闘中'):(interactive?'自動対戦中':(ev.dodge?'回避成功！':ev.damage+'ダメージ')));
-  attackVoice(attacker,ev.atk,ev);if(ev.counter)setTimeout(()=>{if(match===currentMatch&&match.turn===ix&&!match.done)attackVoice(defender,1-ev.atk,{kind:'counter',counter:true,damage:ev.damage})},180);
-  if(!interactive)tone(160+(ev.damage||10)*6,.09);else if(ev.atk===1)tone(ev.bossMove?250:340,.07);
+  // Explicit special-rush sound replaces the opening attack; never stack both.
+  if(!maybeSpecialRush(currentMatch,ev))attackVoice(attacker,ev.atk,ev);
+  // Impact SFX plays on contact, not over the first syllable of an attack.
   if(interactive){updateActionHud();if(!match.spectator)scheduleAutoAction(match)}
  };
  match.resumeCpuTick=live?null:act;
