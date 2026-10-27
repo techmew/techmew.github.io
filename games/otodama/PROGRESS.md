@@ -1,3 +1,15 @@
+# 声魂 v130｜2026-10-27｜録音誕生・10体所持・並べ替え・自動登録
+
+CURRENT_STATUS: GitHub main games/otodama/のみ更新。保存キャラは10体、5列×2段・約60%サイズの一覧。録音からの誕生演出をキャラ画像上から録音操作領域へ移動。CPU連続オート戦と挑戦者受付ON/OFF、既公開Cloudflare Workerは維持。
+CHANGELOG: 録音とおためし生成の新キャラを自動登録。10体満員なら未保護キャラの入替えに明示確認、保護済みは勝手に上書きしない。PCドラッグ・スマホの↕ハンドルで並べ替え、順番をlocalStorageに保存し失敗時は巻き戻す。旧30体は選択中・保護済み優先で10体を残し超過分を退避、JSON書き出し/再取込に対応。容量不足なら旧保存データを残して書き出しを促す。CSSキャッシュ?v=130。既存の録音・音声・対戦処理は変更しない。
+TEST_RESULTS: JavaScript埋込構文PASS、CSS中括弧数整合PASS。GitHub Actionsの Test and Deploy OTODAMA Worker run 40485604357（commit c5b5bfaa）で正式 npm run test:node 26スイート全PASS。v130新規テストは退避・10体制限・PC/タッチイベント登録・保存順・失敗時ロールバック・満員時確認・保護を検査。録音モックの自動保存/誕生演出、DNA生成テストを修正して緑化。Verify OTODAMA live matchmaking は commit deba4b02 のrun 40485478119で成功（公開済Worker /health・2 WebSocketマッチ・room live_startを含む）。本記録時点の最新Pages/Actionsは再確認対象。
+BLOCKERS: Android実機の縦横レイアウト・タッチD&D・録音音声・10体満員時の確認画面は未検証。ブラウザlocalStorage容量によって旧30体の自動退避が失敗する場合は旧データ維持と手動バックアップ表示。外部の未審査録音声転送は停止維持。
+NEXT_ACTIONS: 最新mainのCI/Pages配信を再取得し緑を確認。Android 320px縦/横、10体登録、旧30体移行、退避JSON復元、実録音・音声再生、CPU→PvP→CPUを実機確認。
+LATEST_VERIFIED_TEST_COMMIT: c5b5bfaae0532e1d4749754cd697886e5e951091
+TEST_RUN: https://github.com/techmew/techmew.github.io/actions/runs/40485604357
+
+---
+
 # OTODAMA∞｜2026-10-27｜キャラ全表示・削除・ラッシュ増音・CPU煽り・録音誕生演出
 
 CURRENT_STATUS: GitHub main の games/otodama/ のみ更新。キャラプレビューは前回選択済みのキャラをローカル復元（保存済みはID、未保存は必要な生成データ/録音声の範囲内で復元）。一覧はプレビュー直下に保存済み全30体＋未保存の現キャラを表示。オンラインWorkerは公開済み、変更なし。
