@@ -26,7 +26,7 @@ function choreography(event,p,lowFx=false){
  const power=ev.skill?1.35:ev.crit?1.2:.93;
  const zoom=lowFx?1+burst*.012:1+.024*dash+.043*burst*power;
  const shake=lowFx?hit*1.1:hit*(ev.skill?13:ev.crit?10:6)+dash*1.1;
- const flash=(ev.dodge||ev.guard)?0:cap(hit*(ev.skill?.26:.1),0,.28);
+ const flash=(ev.dodge||ev.guard)?0:cap(hit*(ev.skill ? .26 : .1),0,.28);
  const afterimages=lowFx?1:ev.skill?5:ev.hits>1?4:3;
  return {charge,dash,hit,combo,burst,zoom,shake,flash,afterimages};
 }
@@ -47,7 +47,7 @@ function renderBehind(c,ev,pos,p,turn,color,lowFx=false){
  c.save();c.globalCompositeOperation='screen';
  // Wind-up with an accelerating concentric halo; not a constant full-screen overlay.
  if(f.charge>.08){
-  c.globalAlpha=f.charge*(lowFx?.22:.53);c.strokeStyle=color;
+  c.globalAlpha=f.charge*(lowFx ? .22 : .53);c.strokeStyle=color;
   c.lineWidth=lowFx?3:5;c.shadowColor=color;c.shadowBlur=lowFx?0:24;
   for(let j=0;j<(lowFx?1:3);j++){
    const a=(turn*.53+j)*2.5+p*10,rad=55+j*17+18*f.charge;
@@ -92,7 +92,7 @@ function renderAhead(c,ev,pos,p,turn,color,lowFx=false){
  if(f.dash>.05||f.combo>.05){
   const sweep=Math.max(f.dash,f.combo);
   slash(c,(a.x+d.x)/2,(a.y+d.y)/2,Math.atan2(d.y-a.y,d.x-a.x)+Math.PI*.27,
-    (lowFx?95:135)*(ev.skill?1.16:1),color,sweep*(evaded?.35:.66),ev.skill?8:5);
+    (lowFx?95:135)*(ev.skill?1.16:1),color,sweep*(evaded ? .35 : .66),ev.skill?8:5);
   if(!lowFx&&(ev.hits>1||ev.kind==='spin')&&f.combo>.05)
    slash(c,(a.x+d.x)/2+14,(a.y+d.y)/2+8,-.9+p*TAU*.6,111,color,f.combo*.43,4);
  }
@@ -109,7 +109,7 @@ function renderAhead(c,ev,pos,p,turn,color,lowFx=false){
   }
  }else if(f.hit>.01&&Number(ev.damage)>0){
   // Main collision ring and shards hit where the defender is actually standing.
-  c.globalAlpha=f.hit*(lowFx?.49:.85);c.shadowColor=color;c.shadowBlur=lowFx?0:25;
+  c.globalAlpha=f.hit*(lowFx ? .49 : .85);c.shadowColor=color;c.shadowBlur=lowFx?0:25;
   c.strokeStyle='#fffdf2';c.lineWidth=lowFx?5:12;
   c.beginPath();c.arc(cx,cy,23+(1-f.hit)*96,0,TAU);c.stroke();
   c.strokeStyle=color;c.lineWidth=lowFx?5:17;
