@@ -1,3 +1,25 @@
+# LATEST / 2026-10-27｜CPUアーケード・NEW CHALLENGER 自動割り込み（最優先仕様）
+
+## CURRENT_STATUS
+- 公開Worker: https://otodama-room.nekokichi005.workers.dev （無料枠、公開済み）
+- GitHub Pages: https://techmew.github.io/games/otodama/ 。バックグラウンドにCloudflareランダムマッチ接続先を設定。
+- ホームで「オートバトル開始」→ CPU自動連戦。CPU戦中に「オンライン挑戦者を受け付ける」ONならWebSocket対戦相手検索。見つかると NEW CHALLENGER → サーバー判定対人戦 → 勝敗に関係なくCPU戦へ復帰。対人戦中は新しい挑戦者検索禁止。
+- オプトイン初期OFF（ローカルに保存）。単独のオンライン対戦ボタン/部屋対戦UIは非表示。ネット設定とランキングの詳細は維持。
+- サバイバルは敗北で終了の独立モード。対人戦で割り込まれた場合は元のサバイバルラウンドを維持し、対人戦の勝敗をローカルサバイバルスコアに加えない。
+- 接続再試行・前室切断・対戦中の復旧失敗ではCPUへ復帰する処理を追加。生録音音声の対人転送停止は継続。
+
+## TEST_RESULTS
+- GitHub Actions #111、#112、#113 の Node/V8総合回帰はPASS。追加 test-arcade-challenger.cjs はPvP敗北・勝利→CPU、サバイバル維持、二重マッチ検索防止などを検査。
+- GitHub Actions公開実通信テスト #6 は成功（Worker /health、ランダム2 WebSocket同室コード、ルーム参加・live_start、Pagesに公開先が埋込済み）。
+- 未確認：ユーザー端末2台での長時間実戦、Androidの全画面表示/通信切替/切断復帰、実マイク声品質。未検証を完成と表現しない。
+
+## NEXT_ACTIONS
+- 実ブラウザ2台で CPU→NEW CHALLENGER→PvP→CPU の表示と操作を検証。
+- PvPマッチングON/OFF変更中のネット競合、通信断、画面非表示の自動復帰を点検。
+- 旧「ランダムマッチ開始」単独ボタンを戻さない。CPUの連続自動バトルを維持。
+
+---
+
 # 声魂（こえだま） v0.10.14 追加開発 / 2026-10-26 19:00 JST — 安全なオンライン音声・キャンペーン報酬・回帰修復
 
 ## CURRENT_STATUS
