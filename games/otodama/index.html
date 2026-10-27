@@ -2131,14 +2131,14 @@ function setConnectionUI(connected){$('netDot').classList.toggle('ok',connected)
 let matchmakingRetryTimer=null,challengerHandoff=false,handoffTimer=null,lastHandoffFailure=0;
 // A WebSocket can remain CONNECTING forever on a flaky mobile network. Bound both
 // connection setup and the server's 120-second waiting-room lifetime.
-let queueConnectTimer=null,queueWaitTimer=null;
+let queueConnectTimer=null,queueWaitTimer=null,pageSuspended=false;
 function clearQueueTimers(){
  if(queueConnectTimer!==null){clearTimeout(queueConnectTimer);queueConnectTimer=null}
  if(queueWaitTimer!==null){clearTimeout(queueWaitTimer);queueWaitTimer=null}
 }
 function stopHandoffTimer(){if(handoffTimer!==null){clearTimeout(handoffTimer);handoffTimer=null}}
 function startChallengerHandoff(){
- if(!match||match.done||match.live||challengerHandoff||document.hidden||!$('battleModal').classList.contains('open'))return false;
+ if(!match||match.done||match.live||challengerHandoff||pageSuspended||document.hidden||!$('battleModal').classList.contains('open'))return false;
  challengerHandoff=true;match.handoffPausedAt=performance.now();clearInterval(battleInterval);battleInterval=null;clearAutoAction();hideMatchIntro();stopBgm();stopAttackVoices();
  $('fightLog').textContent='NEW CHALLENGER！ 対人戦へ切り替え中';announceChallenger();setConnectionUI(false);return true;
 }
@@ -2164,7 +2164,7 @@ function restoreCpuAfterHandoff(){
  resumeInterruptedCpu(old);
 }
 function scheduleHandoffTimeout(){stopHandoffTimer();handoffTimer=setTimeout(()=>{handoffTimer=null;if(challengerHandoff&&!match?.live)restoreCpuAfterHandoff()},17000)}
-function canSearchPvP(){return $('survivalChallengerOptIn').checked&&!!serverBase()&&!!match&&!match.live&&!match.done&&!challengerHandoff&&$('battleModal').classList.contains('open')&&!document.hidden&&!queueWs&&!ws}
+function canSearchPvP(){return $('survivalChallengerOptIn').checked&&!!serverBase()&&!!match&&!match.live&&!match.done&&!challengerHandoff&&$('battleModal').classList.contains('open')&&!document.hidden&&!pageSuspended&&!queueWs&&!ws}
 function maybeQueuePvP(){if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}if(!canSearchPvP())return;const delay=12000-(Date.now()-lastHandoffFailure);if(delay>0){matchmakingRetryTimer=setTimeout(()=>{matchmakingRetryTimer=null;maybeQueuePvP()},delay);return}startRandomMatch()}
 function setPvPAcceptance(on){
  $('survivalChallengerOptIn').checked=!!on;$('battleChallengerOptIn').checked=!!on;
@@ -2268,12 +2268,24 @@ document.addEventListener('visibilitychange',()=>{
  }
 });
 window.addEventListener('pagehide',()=>{
+ pageSuspended=true;
  cancelRandomSearch(true);
  if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}
  if(challengerHandoff)restoreCpuAfterHandoff();
- clearResultTimers();stopBattleSpeech();cancelAnimationFrame(animFrame);if(ws)ws.close();stopBgm();stopAttackVoices();
+ clearResultTimers();stopBattleSpeech();cancelAnimationFrame(animFrame);
+ // Detach first so the closing socket cannot start a hidden-tab reconnect.
+ if(ws){const old=ws;ws=null;try{old.close()}catch{}}
+ stopBgm();stopAttackVoices();
 });
 // BFCache restores do not rerun the script; restart only eligible CPU matchmaking.
-window.addEventListener('pageshow',event=>{if(event.persisted&&!document.hidden){if(match?.handoffPausedAt)resumeInterruptedCpu(match);else maybeQueuePvP()}});
+window.addEventListener('pageshow',event=>{
+ pageSuspended=false;
+ if(!event.persisted||document.hidden)return;
+ if(match?.live&&!match.done&&!ws){
+  const interruptedSurvival=!!match.resumeSurvival&&survivalActive;
+  leaveRoom();if(interruptedSurvival){match=null;nextSurvivalBattle()}else doCom();return;
+ }
+ if(match?.handoffPausedAt)resumeInterruptedCpu(match);else maybeQueuePvP();
+});
 })();
 </script></body></html>
