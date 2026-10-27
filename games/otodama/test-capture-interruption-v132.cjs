@@ -32,7 +32,7 @@ assert.ok(js.includes("if(!captureIsCurrent(captureId))return;"));
 assert.match(js,/await capturePromise;\s*if\(!captureIsCurrent\(captureId\)\)return/);
 assert.match(js,/if\(!captureIsCurrent\(captureId\)\)return;\s*if\(evolutionRequested\)/,'evolution capture route is checked after audio is complete');
 assert.match(js,/const newborn=\{\.\.\.gen\(/,'normal newborn route still exists');
-assert.match(js,/visibilitychange[\s\S]{0,100}if\(document.hidden\)abortCaptureForBackground\(\)/);
+assert.match(js,/visibilitychange[\s\S]{0,110}if\(document.hidden\)\{abortCaptureForBackground\(\);if\(evolutionDialogSeed!==null\)cancelEvolutionDialog\(\);\}/,'hidden tab aborts audio and pending evolution draft');
 assert.match(js,/pagehide[\s\S]{0,100}abortCaptureForBackground\(\)/);
 assert.match(js,/保存できず、並び順を元に戻しました/);
 console.log('CAPTURE INTERRUPTION V132 PASS: background abort, stale permission, restart, reorder rollback notice');
