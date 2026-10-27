@@ -35,20 +35,41 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 #castBtn.reeling{background:#ffad57;box-shadow:0 5px 0 #ad643c;color:#133746}
 #castBtn{user-select:none;-webkit-user-select:none;touch-action:none}
 @media(max-width:620px){.fight-hud{bottom:37px;padding:9px 11px;border-radius:13px}.fight-head{font-size:10px}.fight-row{margin:5px 0}.fight-row>span{font-size:10px;min-width:58px}.fight-track{height:11px}.fight-call{font-size:10px}}
+
+/* Broadway five-look runway */
+.round-dock{margin:0 18px 17px;padding:10px 13px;border-radius:14px;background:#153448;color:white;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.round-dock b{font-size:12px}.round-dock span{font-size:11px;color:#eac4a8}.round-pips{display:flex;gap:5px;flex:1;justify-content:center}.round-pips i{width:23px;height:13px;background:#496474;border:1px solid #ffffff35;border-radius:50px}.round-pips i.on{background:#ffc77e;box-shadow:0 0 12px #ffd5969c}
+.round-dock button{background:#ffd49b;color:#422c29;border-radius:9px;font-size:11px;font-weight:900;padding:9px}.round-dock button:disabled{background:#687f87;color:white}
+.show-record{padding:12px 20px 16px;font-size:12px;font-weight:900;color:#285e66}.show-record b{color:#aa4f71}
+.show-overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:#070d20e8;padding:12px;backdrop-filter:blur(8px)}.show-overlay.hidden{display:none}
+.show-shell{width:min(1030px,100%);max-height:calc(100dvh - 24px);overflow:auto;padding:17px;background:linear-gradient(145deg,#31213e,#111b32);color:#fff;border:1px solid #a479a6;border-radius:22px;box-shadow:0 18px 90px #000a}
+.show-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.show-head h2{font-family:Impact,system-ui,sans-serif;letter-spacing:.07em;font-size:clamp(24px,4vw,35px);margin:0}.show-head span{font-weight:900;color:#f9cba3;font-size:12px;text-align:right}
+#showCanvas{display:block;width:100%;aspect-ratio:900/510;background:#1f1836;border-radius:14px;border:1px solid #765b7b;margin-top:12px}
+.show-help{font-size:12px;color:#f7cee2;font-weight:800;margin:12px 0;line-height:1.5}
+.show-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.show-slot{color:white;display:flex;flex-direction:column;align-items:center;min-width:0;gap:4px;padding:7px 5px;border:2px solid #ffffff28;background:#ffffff13;border-radius:12px}.show-slot.selected{border-color:#ffc783;background:#ffffff2c}.show-slot:disabled{opacity:.8}
+.show-slot strong{color:#ffd2a7;font-size:11px}.show-slot canvas{display:block;width:min(100%,90px);height:auto;aspect-ratio:1;border-radius:8px}.show-slot small{font-size:10px;line-height:1.4;overflow-wrap:anywhere;min-height:28px}
+.show-actions{display:flex;gap:9px;margin-top:12px;align-items:center}.show-actions button{border-radius:11px;background:#ffdaad;color:#493045;font-size:12px;font-weight:950;padding:12px 17px}.show-actions .main{background:linear-gradient(110deg,#ff8c89,#ffd595);flex:1}
+.show-judges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}.show-judges[hidden],.show-result[hidden]{display:none}
+.show-judge{border:1px solid #ffffff2b;background:#ffffff16;border-radius:12px;text-align:center;padding:11px 5px}.show-judge b{display:block;color:#f9c79c;font-size:12px}.show-judge strong{font-size:25px}.show-judge span{font-size:10px;display:block}
+.show-result{font-size:14px;font-weight:950;line-height:1.7;margin:12px 0;color:#ffe3a4}
+@media(max-width:620px){.round-dock{margin:0 8px 13px;gap:5px;padding:9px}.round-pips i{width:13px;height:11px}.round-dock b,.round-dock button{font-size:10px}.show-overlay{padding:0}.show-shell{min-height:100dvh;max-height:100dvh;border-radius:0;padding:10px}.show-slots{gap:3px}.show-slot{padding:5px 2px;gap:2px}.show-slot strong{font-size:9px}.show-slot small{font-size:8px;min-height:37px}.show-help{font-size:11px}.show-actions button{padding:11px 9px;font-size:11px}.show-judge{padding:8px 3px}.show-judge b{font-size:10px}.show-judge strong{font-size:19px}}
 </style>
 </head>
 <body>
 <div class="app">
-<header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。海から始まるファッション。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
+<header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。5着でランウェイ対決。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
 <main>
-<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かんでいる服をタップすると釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服をタップして狙おう！ ヒット後は長押し！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → ヒットしたら長押し ／ 離して張りを調整<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div></section>
+<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かんでいる服をタップすると釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服をタップして狙おう！ ヒット後は長押し！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → ヒットしたら長押し ／ 離して張りを調整<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5着</button></div></section>
 <section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>STYLE SCORE</small><b id="score">0</b><span class="rank" id="rank">C</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
 </main>
+<div class="show-record" id="showRecord">BROADWAY SHOW　勝利 <b>0</b> ／ ベスト <b>0</b> 点 ／ 連勝 <b>0</b></div>
 <section class="panel wardrobe"><div class="panel-head"><div class="section-label">03 / COLLECTION<strong>釣った服のクローゼット</strong></div><span class="mini-tag" id="itemSummary">所持 0着</span></div><div class="tabs" id="tabs"><button class="tab active" data-cat="all">すべて</button><button class="tab" data-cat="top">トップス</button><button class="tab" data-cat="bottom">ボトムス</button><button class="tab" data-cat="dress">ワンピース</button><button class="tab" data-cat="outer">アウター</button><button class="tab" data-cat="shoes">シューズ</button><button class="tab" data-cat="hat">帽子</button><button class="tab" data-cat="acc">小物</button><button class="tab" data-cat="under">パンツ</button></div><div class="closet-meta"><span id="filterInfo">まだ服がありません。まずは海へ！</span><div class="filters"><select id="sort"><option value="new">新しく釣った順</option><option value="rare">レア順</option><option value="type">種類順</option></select></div></div><div id="inventory" class="inventory"></div><button id="moreBtn" class="more" hidden>さらに表示</button></section>
 <div class="bottom-row"><section class="bottom-box"><h3>10,000着コレクション</h3><div class="progress-label"><span>図鑑の発見率</span><span id="percent">0.00%</span></div><div class="progress"><span id="progressFill"></span></div><p>トップス2,000／ボトムス1,900／ワンピース1,200／アウター1,000／靴1,300／帽子850／小物1,050／パンツ700。色・形・柄の組み合わせはすべて固有です。</p></section><section class="bottom-box"><h3>釣りざおショップ</h3><div class="upgrade"><div><b>レア服を狙う確率UP</b><br><small id="rodLevel">釣りざお Lv.1 ／ レア率 標準</small></div><button id="upgradeBtn">◈ <span id="upgradeCost">100</span> 強化</button></div><p>重複して釣れた服はコインに交換。強化するとレア衣装が出やすくなります。</p></section></div>
 <div class="footer-note">CLOSET CATCH / ブラウザ保存対応・オフラインプレイ可・全年齢向け</div>
 </div>
 <div id="toast" class="toast hidden"><canvas id="toastCanvas" width="120" height="120"></canvas><div class="info"><small id="toastRare">NEW!</small><b id="toastName"></b><p id="toastText">クローゼットに追加！</p><button id="equipBtn">いま着る</button> <button id="toastClose" class="close">とじる</button></div></div>
+<div id="showOverlay" class="show-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="showTitle"><div class="show-shell"><div class="show-head"><h2 id="showTitle">BROADWAY RUNWAY</h2><span id="showTheme"></span></div><canvas id="showCanvas" width="900" height="510" aria-label="釣った5着すべてでランウェイを歩くステージ"></canvas><div class="show-help" id="showHelp">2箇所を順番にタップして衣装を交換。同じ服ばかりでも頭・顔・体・脚・足に着せられます。</div><div id="showSlots" class="show-slots"></div><div id="showJudges" class="show-judges" hidden></div><p id="showResult" class="show-result" hidden></p><div class="show-actions"><button id="showShuffle">並び替え</button><button id="showMain" class="main">ショーを始める</button></div></div></div>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), ocean=$('ocean'), sea=ocean.getContext('2d'), model=$('model'), mc=model.getContext('2d');
@@ -70,8 +91,8 @@ const byCat={}, catalog=[], rarityPools=[[],[],[],[]];let start=0;
 function hash(n){n=(n^0x9e3779b9)>>>0;n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;return (n^(n>>>16))>>>0}
 for(const cfg of conf){byCat[cfg.cat]=cfg;for(let i=0;i<cfg.count;i++){const a=cfg.styles.length,b=cfg.colors;let style=i%a,color=Math.floor(i/a)%b,pattern=Math.floor(i/(a*b))%10;const n=start+i;let r=hash(n+597)%10000;const rarity=r<100?3:r<750?2:r<3000?1:0;const item={id:n,cat:cfg.cat,idx:i,style,color,pattern,rarity,rarityLabel:rareSymbols[rarity],name:`${palettes[color][0]}${patterns[pattern][0]}の${cfg.styles[style]}`,hue:color};catalog.push(item);rarityPools[rarity].push(n)}start+=cfg.count}
 console.assert(catalog.length===TOTAL,'10,000種類が生成されていません');
-const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[]});
-let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,shows:0}});
+let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.show={...defaultState().show,...(st.show||{})};st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
@@ -128,17 +149,19 @@ function sfxCatch(r){[392,494,587,784].slice(0,Math.max(2,r+1)).forEach((f,i)=>t
 function bubble(x,y,n=18,c='#c9fff3'){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-4.3,4.3),vy:rand(-5,-.6),life:rand(25,66),max:66,r:rand(2,7),color:c,gravity:rand(.01,.07)})}
 function showEvent(t,d=1300){const el=$('eventMsg');el.textContent=t;el.classList.add('show');clearTimeout(noticeTimeout);noticeTimeout=setTimeout(()=>el.classList.remove('show'),d)}
 function popup(item,duplicate){pendingItem=item;const t=$('toast');t.classList.remove('hidden');$('toastRare').textContent=(duplicate?'DUPLICATE · ':'NEW GET · ')+rarityNames[item.rarity];$('toastRare').style.color=rareColors[item.rarity];$('toastName').textContent=item.name;$('toastText').textContent=duplicate?'同じ服なのでコインに交換！':'クローゼットに追加しました';$('equipBtn').textContent=st.equip[item.cat]===item.id?'着用中':'いま着る';$('equipBtn').disabled=duplicate&&!ownSet.has(item.id);drawGarmentCard($('toastCanvas'),item);clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.add('hidden'),7000)}
-function redrawUI(){ownSet=new Set(st.owned);$('count').textContent=st.owned.length.toLocaleString('ja-JP');$('coins').textContent=st.coins.toLocaleString('ja-JP');$('casts').textContent=st.casts.toLocaleString('ja-JP');$('itemSummary').textContent=`所持 ${st.owned.length}着`;$('percent').textContent=(st.owned.length/100).toFixed(2)+'%';$('progressFill').style.width=(st.owned.length/100)+'%';$('rodLevel').textContent=`釣りざお Lv.${st.rod} ／ レア率 ${st.rod===1?'標準':'アップ中'}`;$('upgradeCost').textContent=(st.rod*100).toLocaleString('ja-JP');$('upgradeBtn').disabled=st.coins<st.rod*100||st.rod>=8;$('upgradeBtn').title=st.rod>=8?'最大強化済み':'';$('comboLabel').textContent=`連続キャッチ ${st.combo}`;renderQuests();$('hint').style.display=st.catches?'none':'block';renderModel();renderInventory();save()}
+function showDock(){let v=st.show;$('roundLabel').textContent='ROUND '+v.round;$('roundPips').querySelectorAll('i').forEach((p,i)=>p.classList.toggle('on',i<v.queue.length));$('showEntry').disabled=v.queue.length!==5;$('showEntry').textContent=v.queue.length===5?'ショーに出場！':v.queue.length+' / 5着';$('showRecord').innerHTML='BROADWAY SHOW　勝利 <b>'+v.wins+'</b> ／ ベスト <b>'+v.best+'</b>点 ／ 連勝 <b>'+v.streak+'</b>'}
+function redrawUI(){showDock();ownSet=new Set(st.owned);$('count').textContent=st.owned.length.toLocaleString('ja-JP');$('coins').textContent=st.coins.toLocaleString('ja-JP');$('casts').textContent=st.casts.toLocaleString('ja-JP');$('itemSummary').textContent=`所持 ${st.owned.length}着`;$('percent').textContent=(st.owned.length/100).toFixed(2)+'%';$('progressFill').style.width=(st.owned.length/100)+'%';$('rodLevel').textContent=`釣りざお Lv.${st.rod} ／ レア率 ${st.rod===1?'標準':'アップ中'}`;$('upgradeCost').textContent=(st.rod*100).toLocaleString('ja-JP');$('upgradeBtn').disabled=st.coins<st.rod*100||st.rod>=8;$('upgradeBtn').title=st.rod>=8?'最大強化済み':'';$('comboLabel').textContent=`連続キャッチ ${st.combo}`;renderQuests();$('hint').style.display=st.catches?'none':'block';renderModel();renderInventory();save()}
 function scoreOutfit(){const slots=Object.values(st.equip).filter(x=>x!==null).map(x=>catalog[x]);if(!slots.length)return 0;let base=slots.reduce((n,item)=>n+[70,125,230,450][item.rarity],0);let cats=new Set(slots.map(x=>x.cat));if(cats.has('top')&&cats.has('bottom'))base+=120;if(cats.has('dress'))base+=140;if(cats.has('shoes'))base+=65;if(cats.has('hat'))base+=40;if(cats.has('acc'))base+=35;if(cats.has('outer'))base+=55;
  const colors=slots.filter(x=>x.cat!=='under').map(x=>x.color);if(colors.length>1){let dist=0;for(let i=1;i<colors.length;i++)dist+=Math.min(Math.abs(colors[i]-colors[0]),26-Math.abs(colors[i]-colors[0]));base+=Math.max(0,130-Math.round(dist*7))}return base}
 function equipItem(item){if(!ownSet.has(item.id))return;st.equip[item.cat]=st.equip[item.cat]===item.id?null:item.id;if(item.cat==='dress'&&st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}if(['top','bottom'].includes(item.cat)&&st.equip[item.cat]!==null)st.equip.dress=null;redrawUI();tone(620,.1,'sine',.06);tone(780,.14,'sine',.05,.09)}
 function undress(trigger=false){for(let k of Object.keys(st.equip))st.equip[k]=null;redrawUI();if(trigger)showEvent('風でコーデが全部飛んだ！パンツ一丁！',2300)}
-function catchItem(sceneItem){const item=sceneItem.item;const duplicate=ownSet.has(item.id);st.catches++;sessionCatch++;st.combo++;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity]);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
+function catchItem(sceneItem){const item=sceneItem.item;const duplicate=ownSet.has(item.id);st.catches++;sessionCatch++;st.combo++;st.show.queue.push(item.id);st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity]);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
  popup(item,duplicate);
  // A rare, optional slapstick surprise: everything remains in the inventory.
  if(st.catches>10&&st.catches%15===0&&Math.random()<.17&&Object.values(st.equip).some(x=>x!==null)){setTimeout(()=>undress(true),1600)}
  sceneItems=sceneItems.filter(s=>s!==sceneItem);setTimeout(()=>{sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id)))},400);redrawUI()}
 function castAt(x,y){
+ if(st.show.queue.length===5){openShow();return}
  if(hook.active)return;
  st.casts++;let selected=null,best=10000;
  for(const s of sceneItems){const d=Math.hypot(s.x-x,s.y+Math.sin(animTime*.002+s.phase)*6-y);if(d<best){best=d;selected=s}}
@@ -160,7 +183,7 @@ function finishCast(){
  focus=null;
  if(caught){catchItem(selected)}
  else{if(selected===null)showEvent('空振り！服の近くをタップ',1350);redrawUI()}
- updateFishingHud()
+ updateFishingHud();if(st.show.queue.length===5)openShow()
 }
 function updateFishingHud(){
  const fighting=hook.active&&hook.stage===2;
@@ -186,22 +209,22 @@ function updateGame(dt){
   hook.progress+=dt/620;
   const p=clamp(hook.progress,0,1),e=1-Math.pow(1-p,2);
   hook.x=204+(hook.targetX-204)*e;hook.y=149+(hook.targetY-149)*e-Math.sin(p*Math.PI)*35;
-  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=15+hook.chosen.item.rarity*1.8+st.rod*.65;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
+  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=13+st.rod*.55-hook.chosen.item.rarity*.6;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.rarity;
   hook.elapsed+=sec;
   hook.surge=Math.sin(hook.elapsed*(2.5+r*.35)+hook.chosen.phase)>0.76;
   const rhythm=(Math.sin(hook.elapsed*4.5+hook.chosen.phase)+1)*.5;
   if(hook.pull){
-   hook.reel+=(24+st.rod*2.5-r*3.5+(rhythm>.77?9:0)-(hook.surge?9:0))*sec;
-   hook.tension+=(24+r*7+(hook.surge?30:0)-st.rod*2)*sec;
+   hook.reel+=(19+st.rod*1.4-r*2.2+(rhythm>.77?4:0)-(hook.surge?10:0)+(hook.tension>=30&&hook.tension<=68?5:0))*sec;
+   hook.tension+=(34+r*8+(hook.surge?40:0)-st.rod*.9)*sec;
    if(Math.random()<sec*11)bubble(hook.x,hook.y,1,'#fdf7a9');
-  }else{hook.reel-=(1.4+r*.6)*sec;hook.tension-=(55+st.rod*2.5)*sec}
+  }else{hook.reel-=(3.2+r*1.5+(hook.surge?2:0))*sec;hook.tension-=(44+st.rod*2)*sec}
   hook.reel=clamp(hook.reel,0,100);hook.tension=clamp(hook.tension,0,105);
   hook.x=hook.targetX+Math.sin(hook.elapsed*(3+r*.8))*((1-hook.reel/110)*17);
   hook.y=hook.targetY+Math.sin(hook.elapsed*(5.5+r))*(5+8*(1-hook.reel/100));
   if(hook.reel>=100)endFight(true);
-  else if(hook.tension>=100)endFight(false,'糸が切れた！引く・緩めるを切り替えよう');
+  else if(hook.tension>=100)endFight(false,'糸が切れた！こまめに緩めよう');
   else if(hook.elapsed>=hook.limit)endFight(false,'時間切れ！手早く引き寄せよう');
   updateFishingHud()
  }else if(hook.stage===3){
@@ -211,6 +234,126 @@ function updateGame(dt){
   if(p>=1)finishCast()
  }
 }
+
+const showThemes=[['エレガントな夜','classic'],['ストリートの革命児','street'],['前衛！何でもあり','avant'],['カラフルな冒険','color'],['いたずらファッション','chaos'],['レッドカーペット','glam']];
+const showRoles=['頭','顔・サングラス','胴体','腰・脚','足'],showNames=['着こなし / レイ','独創性 / ミオ','テーマ / ジン'];
+const sc=$('showCanvas'),sx=sc.getContext('2d');
+let showPhase='closed',showTime=0,showSelected=-1,showScores=null,showSaved=false;
+function showTheme(){return showThemes[(Math.max(1,st.show.round)-1)%showThemes.length]}
+function showOutfit(){return st.show.order.map(i=>catalog[st.show.queue[i]])}
+function showScore(items){
+ let cats=items.map(o=>o.cat),unique=new Set(cats).size,repeats=5-unique,rarity=items.reduce((a,o)=>a+o.rarity,0);
+ const rules=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
+ let fits=items.reduce((a,o,i)=>a+(rules[i].includes(o.cat)?1:0),0),odd=5-fits;
+ let colors=items.map(o=>parseInt(colorOf(o).slice(1),16)),dist=0,num=0;
+ for(let i=0;i<5;i++)for(let j=0;j<i;j++){let a=colors[i],b=colors[j],d=Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255));dist+=d;num++}
+ let harmony=1-Math.min(1,dist/num/285),theme=showTheme()[1],novel=odd+repeats*.6;
+ let a=24+fits*10+harmony*18+rarity*1.2-repeats*3+(theme==='classic'?9:0);
+ let b=23+novel*10+unique*4+rarity+(theme==='avant'||theme==='chaos'?9:0);
+ let c=22+fits*5+unique*3+rarity*1.5;
+ if(theme==='classic')c+=fits*6+harmony*16-odd*3;
+ if(theme==='street')c+=novel*6+unique*3;
+ if(theme==='avant')c+=odd*9+repeats*4;
+ if(theme==='color')c+=harmony*23+unique*4;
+ if(theme==='chaos')c+=odd*8+repeats*8;
+ if(theme==='glam')c+=rarity*2+fits*6+harmony*8;
+ let judges=[a,b,c].map(v=>clamp(Math.round(v),10,100)),total=judges.reduce((x,y)=>x+y,0);
+ let rival=clamp(Math.round(171+Math.min(65,(st.show.round-1)*3.3)+(hash(st.show.round*337)%27-13)),120,262);
+ return {judges,total,rival,win:total>=rival,fits,odd,repeats}
+}
+function showSlots(){
+ const root=$('showSlots');root.replaceChildren();
+ showOutfit().forEach((it,i)=>{
+  const b=document.createElement('button');b.className='show-slot'+(showSelected===i?' selected':'');b.disabled=showPhase!=='prep';
+  const lab=document.createElement('strong');lab.textContent=showRoles[i];
+  const c=document.createElement('canvas');c.width=c.height=94;drawGarmentCard(c,it);
+  const name=document.createElement('small');name.textContent=it.name;b.append(lab,c,name);
+  b.addEventListener('click',()=>{if(showPhase!=='prep')return;if(showSelected<0)showSelected=i;else if(showSelected===i)showSelected=-1;else{const a=st.show.order;[a[showSelected],a[i]]=[a[i],a[showSelected]];showSelected=-1;save();tone(610,.1)}showSlots()});root.append(b)
+ })
+}
+function openShow(){
+ if(st.show.queue.length!==5||showPhase!=='closed')return;
+ showPhase='prep';showSelected=-1;showScores=null;showSaved=false;showTime=0;
+ $('toast').classList.add('hidden');$('showOverlay').classList.remove('hidden');
+ $('showTheme').textContent='ROUND '+st.show.round+' ／ '+showTheme()[0];
+ $('showHelp').textContent='2箇所を順番にタップして交換。ズボンでも帽子・サングラス・靴に強制変形！ テーマ：'+showTheme()[0];
+ $('showJudges').hidden=true;$('showResult').hidden=true;$('showShuffle').hidden=false;
+ $('showMain').textContent='ファッションショー開始';showSlots()
+}
+function beginShow(){
+ if(showPhase!=='prep')return;
+ showScores=showScore(showOutfit());showPhase='walk';showTime=0;$('showMain').textContent='審査へスキップ';
+ $('showShuffle').hidden=true;$('showHelp').textContent='モデルがランウェイを歩いています…';showSlots();tone(720,.18,'sine',.07);
+}
+function endShow(){
+ if(!['walk','judge'].includes(showPhase)||!showScores)return;
+ showPhase='result';showTime=0;
+ if(!showSaved){
+  st.show.shows++;st.show.best=Math.max(st.show.best,showScores.total);
+  if(showScores.win){st.show.wins++;st.show.streak++;showScores.prize=150+Math.min(200,st.show.streak*25)}
+  else{st.show.streak=0;showScores.prize=30}
+  st.coins+=showScores.prize;showSaved=true;redrawUI();
+ }
+ const root=$('showJudges');root.replaceChildren();root.hidden=false;
+ const notes=[showScores.fits>=3?'よく似合う！':'かなり奇抜！',showScores.repeats>=3?'大胆すぎる発想！':showScores.odd>=3?'意外性がある！':'色使いに注目！',showTheme()[0]+'に挑戦'];
+ showScores.judges.forEach((score,i)=>{let c=document.createElement('div');c.className='show-judge';let n=document.createElement('b');n.textContent=showNames[i];let v=document.createElement('strong');v.textContent=score+'点';let note=document.createElement('span');note.textContent=notes[i];c.append(n,v,note);root.append(c)});
+ $('showResult').hidden=false;
+ $('showResult').textContent=(showScores.win?'YOU WIN！ ライバルに勝利！':'LOSE… 次は逆転！')+'　YOU '+showScores.total+' vs CPU '+showScores.rival+'点　獲得コイン +'+showScores.prize+'　強引な着用 '+showScores.odd+'/5';
+ $('showMain').textContent='次の5着へ';$('showHelp').textContent='3人の合計300点満点。ラウンドが進むほどライバルは強くなる。';
+ if(showScores.win)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
+}
+function nextShow(){
+ if(showPhase!=='result')return;
+ st.show.queue=[];st.show.order=[0,1,2,3,4];st.show.round++;
+ showPhase='closed';showScores=null;$('showOverlay').classList.add('hidden');redrawUI();
+}
+function progressShow(dt){
+ if(showPhase!=='walk'&&showPhase!=='judge')return;
+ showTime+=dt/1000;if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showHelp').textContent='3人の審査員が採点中…'}
+ if(showTime>=8.1)endShow();
+}
+function dressRunway(ctx,x,y,z,t){
+ const items=showOutfit();if(items.length!==5)return;
+ ctx.save();ctx.translate(x,y+Math.sin(t*8)*3);ctx.scale(z,z);
+ ellipse(ctx,0,186,71,13,'#180b2d9c');
+ const skinC='#e8b18a';ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
+ for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*21,36);ctx.lineTo(side*(23+Math.sin(t*8)*8),165);ctx.stroke()}
+ ctx.fillStyle=skinC;path(ctx,[[-31,-70],[31,-70],[37,53],[-37,53]]);ctx.fill();
+ ctx.strokeStyle=skinC;ctx.lineWidth=17;
+ for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*31,-53);ctx.lineTo(side*47+Math.sin(t*8+side)*5,21);ctx.stroke()}
+ round(ctx,-28,40,56,35,8,'#508bb2','#e3ceba');
+ round(ctx,-11,-100,22,34,8,skinC);ellipse(ctx,0,-142,43,51,'#252943');ellipse(ctx,0,-137,35,43,skinC);
+ ellipse(ctx,-12,-137,3,4,'#253449');ellipse(ctx,12,-137,3,4,'#253449');
+ ctx.strokeStyle='#955466';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-116,8,.1,Math.PI-.1);ctx.stroke();
+ ctx.fillStyle='#252943';ctx.beginPath();ctx.arc(0,-163,38,Math.PI,0);ctx.lineTo(26,-151);ctx.quadraticCurveTo(0,-166,-26,-145);ctx.fill();
+ // Garment silhouettes are placed regardless of their original clothing category.
+ drawGarment(ctx,items[3],0,77,111,.03);
+ drawGarment(ctx,items[2],0,-22,126,-.02);
+ drawGarment(ctx,items[4],-21,163,57,-.1);drawGarment(ctx,items[4],22,163,57,.1);
+ if(['bottom','under'].includes(items[1].cat)){drawGarment(ctx,items[1],-20,-136,46,-Math.PI/2);drawGarment(ctx,items[1],20,-136,46,Math.PI/2)}
+ else drawGarment(ctx,items[1],0,-135,72);
+ drawGarment(ctx,items[0],0,-189,102,.04);
+ ctx.restore()
+}
+function drawShowStage(){
+ if(showPhase==='closed')return;
+ let ctx=sx,t=performance.now()/1000;ctx.clearRect(0,0,900,510);
+ let grad=ctx.createLinearGradient(0,0,0,510);grad.addColorStop(0,'#221539');grad.addColorStop(.7,'#4b2549');grad.addColorStop(1,'#11132a');ctx.fillStyle=grad;ctx.fillRect(0,0,900,510);
+ for(let k=0;k<9;k++){let x=50+k*100;ellipse(ctx,x,17,6,6,'#ffe6aa');let light=ctx.createRadialGradient(x,20,1,x,20,96);light.addColorStop(0,'#fff0d151');light.addColorStop(1,'#fff0d100');ctx.fillStyle=light;ctx.fillRect(x-96,0,192,190)}
+ round(ctx,248,30,400,62,12,'#180d2a','#ffcd90');ctx.fillStyle='#fff0b9';ctx.font='900 31px Impact,sans-serif';ctx.textAlign='center';ctx.fillText('BROADWAY FASHION',449,70);
+ ctx.fillStyle='#c56883';ctx.beginPath();ctx.moveTo(385,220);ctx.lineTo(522,220);ctx.lineTo(750,510);ctx.lineTo(140,510);ctx.closePath();ctx.fill();
+ ctx.strokeStyle='#ffdfa9';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(385,220);ctx.lineTo(140,510);ctx.moveTo(522,220);ctx.lineTo(750,510);ctx.stroke();
+ for(let side=0;side<2;side++){ctx.save();if(side){ctx.translate(900,0);ctx.scale(-1,1)}let curtain=ctx.createLinearGradient(0,0,190,0);curtain.addColorStop(0,'#210a35');curtain.addColorStop(.6,'#742b55');curtain.addColorStop(1,'#4d1749');ctx.fillStyle=curtain;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(180,0);ctx.bezierCurveTo(233,130,211,265,103,405);ctx.lineTo(0,465);ctx.closePath();ctx.fill();ctx.restore()}
+ for(let i=0;i<18;i++){let x=i*56+Math.sin(i)*10;ellipse(ctx,x,485+i%3*8,15,18,'#0b1027');ellipse(ctx,x,466+i%3*8,10,11,'#141125')}
+ for(let i=0;i<3;i++){let x=60+i*87;round(ctx,x-32,397,66,52,10,'#29223a','#ca94ba');ellipse(ctx,x,386,17,18,'#dca78e');ctx.fillStyle='#fff0b8';ctx.font='900 14px sans-serif';ctx.fillText(showPhase==='result'?showScores.judges[i]:'?',x,433)}
+ let p=showPhase==='walk'?Math.min(1,showTime/4.7):showPhase==='prep'?.7:1;
+ dressRunway(ctx,450-(1-p)*165,353-(1-p)*55,.77+.17*p,showPhase==='walk'?t:.1);
+ ctx.font='900 16px sans-serif';ctx.fillStyle='#ffe5ad';ctx.textAlign='center';ctx.fillText(showPhase==='result'?(showScores.win?'YOU WIN!':'SHOW COMPLETE'):showPhase==='judge'?'JUDGING…':showPhase==='walk'?'ON THE RUNWAY':'READY FOR THE SHOW',454,125);
+ ctx.fillStyle='#fbd3df';ctx.font='900 13px sans-serif';ctx.fillText(showTheme()[0],454,145)
+}
+$('showEntry').addEventListener('click',openShow);
+$('showShuffle').addEventListener('click',()=>{if(showPhase!=='prep')return;for(let i=4;i>0;i--){let j=Math.floor(Math.random()*(i+1));[st.show.order[i],st.show.order[j]]=[st.show.order[j],st.show.order[i]]}showSelected=-1;showSlots();save()});
+$('showMain').addEventListener('click',()=>{if(showPhase==='prep')beginShow();else if(showPhase==='walk'||showPhase==='judge')endShow();else if(showPhase==='result')nextShow()});
 function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#73cad4');bg.addColorStop(.29,'#b3e7da');bg.addColorStop(.3,'#69c1cb');bg.addColorStop(1,'#0d6582');sea.fillStyle=bg;sea.fillRect(0,0,W,H);
  // distant islands and stylized coastal buildings
  ellipse(sea,790,76,69,70,'#ffe8a8');ellipse(sea,790,76,51,52,'#fff2c5');
@@ -312,8 +455,8 @@ for(const btn of document.querySelectorAll('[data-slot]'))btn.addEventListener('
 function updateSlotButtons(){document.querySelectorAll('[data-slot]').forEach(b=>{let n=+b.dataset.slot;b.textContent=`${n+1} ${st.slots[n]?'保存済み / 呼出':'コーデを保存'}`})}
 $('upgradeBtn').addEventListener('click',()=>{let cost=st.rod*100;if(st.coins<cost||st.rod>=8)return;st.coins-=cost;st.rod++;redrawUI();showEvent('釣りざおパワーアップ！');sfxCatch(2)});
 let reducedMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function loop(now){let dt=clamp(now-lastTime,0,42);lastTime=now;animTime+=reducedMotion?dt*.4:dt;updateGame(dt);drawSea();drawModel();requestAnimationFrame(loop)}
-updateSlotButtons();redrawUI();requestAnimationFrame(loop);
+function loop(now){let dt=clamp(now-lastTime,0,42);lastTime=now;animTime+=reducedMotion?dt*.4:dt;updateGame(dt);progressShow(dt);drawSea();drawModel();drawShowStage();requestAnimationFrame(loop)}
+updateSlotButtons();redrawUI();if(st.show.queue.length===5)openShow();requestAnimationFrame(loop);
 })();
 </script>
 </body>
