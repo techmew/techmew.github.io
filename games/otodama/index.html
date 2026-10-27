@@ -2129,9 +2129,16 @@ function roomMessage(msg){$('roomLine').textContent=msg}
 function sendVoiceConsent(){if(ws?.readyState===WebSocket.OPEN&&side>=0){ws.send(JSON.stringify({type:'voice_consent',send:false,receive:false}));voiceConsentSent=true;}}
 function setConnectionUI(connected){$('netDot').classList.toggle('ok',connected);$('netLabel').textContent=match?.live?'対人バトル':challengerHandoff?'NEW CHALLENGER':connected?'挑戦者接続中':queueWs?'挑戦者を検索中':$('survivalChallengerOptIn').checked?'CPU戦 / 受付ON':'CPU戦 / 受付OFF';$('readyBar').style.display='none';$('battleChallengerOptIn').checked=$('survivalChallengerOptIn').checked;$('battleChallengerStatus').textContent=$('survivalChallengerOptIn').checked?'対人受付 ON':'対人受付 OFF'}
 let matchmakingRetryTimer=null,challengerHandoff=false,handoffTimer=null,lastHandoffFailure=0;
+// A WebSocket can remain CONNECTING forever on a flaky mobile network. Bound both
+// connection setup and the server's 120-second waiting-room lifetime.
+let queueConnectTimer=null,queueWaitTimer=null;
+function clearQueueTimers(){
+ if(queueConnectTimer!==null){clearTimeout(queueConnectTimer);queueConnectTimer=null}
+ if(queueWaitTimer!==null){clearTimeout(queueWaitTimer);queueWaitTimer=null}
+}
 function stopHandoffTimer(){if(handoffTimer!==null){clearTimeout(handoffTimer);handoffTimer=null}}
 function startChallengerHandoff(){
- if(!match||match.done||match.live||challengerHandoff)return false;
+ if(!match||match.done||match.live||challengerHandoff||document.hidden||!$('battleModal').classList.contains('open'))return false;
  challengerHandoff=true;match.handoffPausedAt=performance.now();clearInterval(battleInterval);battleInterval=null;clearAutoAction();hideMatchIntro();stopBgm();stopAttackVoices();
  $('fightLog').textContent='NEW CHALLENGER！ 対人戦へ切り替え中';announceChallenger();setConnectionUI(false);return true;
 }
@@ -2166,19 +2173,30 @@ function setPvPAcceptance(on){
  else{if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}cancelRandomSearch(true);if(challengerHandoff)restoreCpuAfterHandoff();else if(ws&&!match?.live)leaveRoom()}
  setConnectionUI(!!ws);roomMessage(on?'対人受付ON：CPU戦中に相手を探します':'対人受付OFF：CPUだけで戦います');
 }
-function cancelRandomSearch(silent=false){if(queueWs){const old=queueWs;queueWs=null;try{if(old.readyState===WebSocket.OPEN)old.send(JSON.stringify({type:'cancel'}))}catch{}try{old.close()}catch{}}$('searchBtn').disabled=false;$('searchBtn').textContent='⚡ ランダムマッチ開始';$('cancelSearchBtn').style.display='none';if(!silent){roomMessage('ランダムマッチを中止しました');setConnectionUI(!!ws)}}
+function cancelRandomSearch(silent=false){clearQueueTimers();if(queueWs){const old=queueWs;queueWs=null;try{if(old.readyState===WebSocket.OPEN)old.send(JSON.stringify({type:'cancel'}))}catch{}try{old.close()}catch{}}$('searchBtn').disabled=false;$('searchBtn').textContent='⚡ ランダムマッチ開始';$('cancelSearchBtn').style.display='none';if(!silent){roomMessage('ランダムマッチを中止しました');setConnectionUI(!!ws)}}
 function leaveRoom(){cancelRandomSearch(true);if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}resumeToken='';reconnectCount=0;if(ws){ws.close();ws=null}room=null;side=-1;autoReadyRoom=false;remoteVoiceClip='';sentVoice=false;voiceConsentSent=false;setConnectionUI(false);roomMessage('ルームから退出しました')}
 function startRandomMatch(){
  if(!canSearchPvP())return;
  const base=serverBase();if(!base){roomMessage('対戦サーバーURLが無効です。オンライン接続設定をご確認ください');return}
  leaveRoom();let sock;try{sock=new WebSocket(base.replace(/^https:/,'wss:').replace(/^http:/,'ws:')+'/random')}catch(e){lastHandoffFailure=Date.now();roomMessage('対戦接続を開始できません。再試行を待機します');maybeQueuePvP();return}queueWs=sock;let queueError='';
+ const timeoutSearch=message=>{
+  if(queueWs!==sock)return;
+  roomMessage(message);cancelRandomSearch(true);lastHandoffFailure=Date.now();maybeQueuePvP();
+ };
+ queueConnectTimer=setTimeout(()=>timeoutSearch('オンライン接続がタイムアウト。間隔を空けて再試行します'),12000);
  $('searchBtn').disabled=true;$('searchBtn').textContent='検索中…';$('cancelSearchBtn').style.display='';$('netLabel').textContent='SEARCHING';roomMessage('オンラインの対戦相手を検索中…');
- sock.onopen=()=>{if(queueWs===sock)sock.send(JSON.stringify({type:'search'}))};
+ sock.onopen=()=>{
+  if(queueWs!==sock)return;
+  if(queueConnectTimer!==null){clearTimeout(queueConnectTimer);queueConnectTimer=null}
+  try{sock.send(JSON.stringify({type:'search'}))}
+  catch{timeoutSearch('検索を開始できません。再接続します');return}
+  queueWaitTimer=setTimeout(()=>timeoutSearch('対戦相手の待機時間が終了。再検索します'),125000);
+ };
  sock.onmessage=ev=>{if(queueWs!==sock)return;let data;try{data=JSON.parse(ev.data)}catch{return}
   if(data.type==='matched'&&/^[A-HJ-NP-Z2-9]{6}$/.test(data.code)){cancelRandomSearch(true);if(!$('survivalChallengerOptIn').checked||match?.live||match?.done||!startChallengerHandoff())return;scheduleHandoffTimeout();roomMessage('NEW CHALLENGER！ 対戦相手が見つかりました');joinRoom(data.code,true)}
   else if(data.type==='error'){queueError=data.message||'マッチングサーバーエラー';roomMessage(queueError);try{sock.close(1008,'Search rejected')}catch{}}
  };
- sock.onerror=()=>{if(queueWs===sock)roomMessage('マッチングサーバーに接続できません。URL・公開状態を確認してください')};
+ sock.onerror=()=>{if(queueWs===sock){roomMessage('マッチングサーバーに接続できません。URL・公開状態を確認してください');try{sock.close()}catch{timeoutSearch('接続エラー。再試行します')}}};
  sock.onclose=()=>{if(queueWs===sock){cancelRandomSearch(true);lastHandoffFailure=Date.now();setConnectionUI(false);if(canSearchPvP()){roomMessage(queueError||'接続が切れました。間隔を空けて再検索します');maybeQueuePvP()}else roomMessage(queueError||'マッチング接続が終了しました')}};
 }
 function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base){roomMessage('先にCloudflare対戦サーバーURLを設定してください');return}if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){roomMessage('部屋コードは6文字です');return}if(!resuming)leaveRoom();else{sentVoice=false;voiceConsentSent=false;remoteVoiceClip='';if(match?.live)match.b.voiceClip='';}autoReadyRoom=auto;room=code;$('roomCode').value=code;const wsurl=base.replace(/^https:/,'wss:').replace(/^http:/,'ws:')+'/room/'+code+(resuming?'?resume='+encodeURIComponent(resumeToken):'');try{ws=new WebSocket(wsurl)}catch(e){roomMessage('WebSocket接続を開始できません');if(challengerHandoff&&!match?.live)restoreCpuAfterHandoff();return}roomMessage(resuming?'対戦に再接続中…':'接続中…');let socket=ws;socket.onopen=()=>{if(ws!==socket||resuming)return;socket.send(JSON.stringify({type:'join',creature:{seed:cur.seed,parts:cur.parts,voice:cur.voice,stats:cur.stats,name:cur.name,element:cur.element,type:cur.type,rank:cur.rank},...(rankingToken?{playerToken:rankingToken}:{})}))};socket.onmessage=ev=>{if(ws!==socket)return;let data;try{data=JSON.parse(ev.data)}catch(e){return}if(data.type==='session'){if(/^[a-f0-9]{32}$/.test(data.token)){resumeToken=data.token;if(!resuming)reconnectCount=0;}sendVoiceConsent();return}if(data.type==='live_resumed'){reconnectCount=0;setConnectionUI(true);if(!match?.live)beginLiveBattle(data);if(match?.live){match.max=data.max.slice();match.hp=data.hp.slice();match.charge=data.charge[0];if(Array.isArray(data.dodgeCooldown))match.dodgeCooldown=data.dodgeCooldown[0]||0;if(Array.isArray(data.skillArmed))match.skillArmed=!!data.skillArmed[0];if(Array.isArray(data.awakened))match.awakened=data.awakened.map(Boolean).slice(0,2);if(Array.isArray(data.stance))match.stance=data.stance[0]||'balance';$('hpA').style.width=clamp(match.hp[0]/match.max[0]*100,0,100)+'%';$('hpB').style.width=clamp(match.hp[1]/match.max[1]*100,0,100)+'%';$('battleMsg').textContent='対戦復帰！ 現在の攻撃状況を同期中';}return}if(data.type==='live_wait'){roomMessage('相手の再接続を待機中（最大15秒）');if(match?.live){match.current=null;$('battleMsg').textContent='相手の再接続待ち';}return}if(data.type==='state'){side=data.me;setConnectionUI(true);if(!voiceConsentSent)sendVoiceConsent()
@@ -2249,6 +2267,13 @@ document.addEventListener('visibilitychange',()=>{
   if(match.handoffPausedAt)resumeInterruptedCpu(match);else startBgm();if(autoBattleEnabled)scheduleAutoAction(match);maybeQueuePvP();
  }
 });
-window.addEventListener('pagehide',()=>{clearResultTimers();stopBattleSpeech();cancelAnimationFrame(animFrame);if(ws)ws.close();stopBgm();stopAttackVoices()});
+window.addEventListener('pagehide',()=>{
+ cancelRandomSearch(true);
+ if(matchmakingRetryTimer!==null){clearTimeout(matchmakingRetryTimer);matchmakingRetryTimer=null}
+ if(challengerHandoff)restoreCpuAfterHandoff();
+ clearResultTimers();stopBattleSpeech();cancelAnimationFrame(animFrame);if(ws)ws.close();stopBgm();stopAttackVoices();
+});
+// BFCache restores do not rerun the script; restart only eligible CPU matchmaking.
+window.addEventListener('pageshow',event=>{if(event.persisted&&!document.hidden){if(match?.handoffPausedAt)resumeInterruptedCpu(match);else maybeQueuePvP()}});
 })();
 </script></body></html>
