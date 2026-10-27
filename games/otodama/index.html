@@ -2878,7 +2878,7 @@ function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base
    // No READY during the CPU battle. The second player may also finish their current round.
    readyForDeferredChallenger();
  }}else if(data.type==='voice_policy'){
-  if(data.canSend&&$('shareVoice').checked)offerRecordedVoice();
+  if(data.canSend&&data.needClip&&$('shareVoice').checked){sentVoice=false;offerRecordedVoice();}
   if(data.reason)$('voiceShareStatus').textContent=data.reason;
  }else if(data.type==='voice'){
   // The server relays clips only with both sides' explicit opt-in.
@@ -2941,7 +2941,7 @@ $('roarEnabled').onchange=()=>{
 $('exportSaveBtn').onclick=exportSave;$('importSaveFile').onchange=ev=>importSave(ev.target.files?.[0]);$('guardBtn').onclick=()=>{setAutoBattle(false);guardPress()};$('dodgeBtn').onclick=()=>{setAutoBattle(false);dodgePress()};$('strikeBtn').onclick=()=>{setAutoBattle(false);strikePress()};$('skillBtn').onclick=()=>{setAutoBattle(false);skillPress()};$('autoBattleBtn').onclick=()=>setAutoBattle(!autoBattleEnabled);$('survivalBtn').onclick=startSurvival;$('rankingRegisterBtn').onclick=registerRanking;$('rankingRefreshBtn').onclick=refreshRanking;$('rankingRestoreBtn').onclick=restoreRankingIdentity;$('rankingCopyId').onclick=copyRankingIdentity;$('stanceRush').onclick=()=>setStance('rush');$('stanceBalance').onclick=()=>setStance('balance');$('stanceGuard').onclick=()=>setStance('guard');
 $('shareVoice').onchange=()=>{if(!$('shareVoice').checked)sentVoice=false;sendVoiceConsent();};
 $('receiveVoice').onchange=()=>{if(!$('receiveVoice').checked)forgetRemoteVoice();sendVoiceConsent();};
-$('muteOpponentVoice').onchange=()=>{if($('muteOpponentVoice').checked){forgetRemoteVoice()}else if($('receiveVoice').checked)sendVoiceConsent();};
+$('muteOpponentVoice').onchange=()=>{if($('muteOpponentVoice').checked){stopAttackVoices()}else if($('receiveVoice').checked)sendVoiceConsent();};
 $('applyServer').onclick=()=>{let b=serverBase();if(!b){roomMessage('HTTPSのURLを入力してください（ローカル開発ではlocalhostも可）');return}try{localStorage.setItem('otodama.server',b)}catch(e){}roomMessage('接続先を保存しました。部屋を作成・参加できます')};$('createRoom').onclick=()=>{let chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',v='';let bytes=crypto.getRandomValues(new Uint8Array(6));for(let b of bytes)v+=chars[b%chars.length];joinRoom(v)};$('joinRoom').onclick=()=>joinRoom($('roomCode').value.toUpperCase().trim());$('readyBtn').onclick=()=>{unlockBattleAudio();if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'ready',autoOnly:true}));$('readyBtn').disabled=true;$('readyBtn').textContent='準備済み'}};$('leaveBtn').onclick=leaveRoom;
 setCurrent(cur);renderCodex();showMicNotice();showSurvivalStatus();setConnectionUI(false);heroLoop(0);setInterval(()=>{if(!recording)wavePaint(null,false)},90);const fromUrl=new URLSearchParams(location.search).get('room');if(fromUrl){$('roomCode').value=fromUrl.toUpperCase().slice(0,6);roomMessage('招待された部屋：'+$('roomCode').value+'（接続先を設定して「参加」）')}
 document.addEventListener('visibilitychange',()=>{
