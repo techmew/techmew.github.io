@@ -1,3 +1,14 @@
+# OTODAMA∞｜2026-10-27｜キャラ選択位置固定・戦闘音ミックス改善
+
+CURRENT_STATUS: GitHub mainのgames/otodama/のみ変更。公開済みCloudflare Workerの実装・対人受付ON/OFF・NEW CHALLENGER・CPU連戦・録音/試聴・未審査音声転送停止は変更しない。
+CHANGELOG: キャラ選択で現キャラを一覧先頭に移動しない。保存順を維持し、使用中は青い太枠とaria-pressedで示し、●の文字を削除。新規キャラは末尾保存、既存キャラの育成は同位置更新。30体満杯なら未保護の末尾に上書き、保護キャラを上書きしない。WebAudio共通マスターコンプレッサーを追加し、既存の声コンプレッサー/BGM/打撃SEを接続。BGMを声の間に滑らかに減衰し終了後復帰、勝利ジングルの減衰持越しを解消。録音攻撃/連撃・合成声・被弾反応・雄叫びの音量を抑制し、ガード/回避/必殺の打撃SEを区別。既存録音試聴・28種類のFXは維持。
+TEST_RESULTS: GitHub現行コードを取得しV8で埋込JS/テストJS構文PASS、CSS中括弧バランスPASS。Node fs/vm/assertを模擬したV8ハーネスで test-roster-lock / test-audio-mix-v127 / test-ui-refined-v124 / test-ui-source / test-voice-effects-v123 の5スイートPASS。キャラ選択順、保護・保存、BGM減衰/復帰、共通マスター、ミュート、28FXとの整合性を検証。正式npm test:nodeの全テスト/GitHub Actions・Pages公開反映/ブラウザ音量/Android実機・2端末対戦は未確認。公開Pages/Worker URLへのHTTP直接アクセスはこのセッションでは失敗。
+BLOCKERS: WebAudioの実聴感（スピーカー/イヤホン）のバランス調整、Android録音とOS音量制限、公開配信状態とActions結果の確認が必要。コード中のピーク制御は測定済みLUFS/実端末での安全性を保証しない。
+NEXT_ACTIONS: GitHub Actions npm test:node/Pages/health-WebSocket-live_start の状態確認。Android縦横で非先頭キャラ選択・30体・新規キャラ保存後の順序を確認。実機で通常/ガード/回避/必殺/7連撃/勝利雄叫びを録音声/BGMと聴き比べ、ゲイン調整。観戦しやすい一目で分かる攻防・逆転・珍事件の演出、短い連戦テンポと次戦の報酬期待感を優先。数値/設定の露出は増やさない。
+LATEST_CODE_COMMIT: 2f857768af616bd9be4dc1b0678255f34bf27e47
+
+---
+
 # 声魂｜2026-10-27 17時｜バックアップ復元の整合性と保護キャラ保全
 
 CURRENT_STATUS: GitHub mainのgames/otodama/のみ更新。公開済みCloudflare Workerは変更なし。既存のCPU連続オート戦・ON/OFF受付・NEW CHALLENGER・録音声送信停止を維持。
