@@ -53,7 +53,7 @@ async function test(){
  assert.ok(html.includes('},200);'),'banner hit counter follows the 200 ms recorded-hit cadence');
  assert.equal(functions.maybeSpecialRush(match,special),false,'special must not activate twice per hit');
  // Regression: the special can become active at IMPACT after an ordinary hit has blocked voice replay.
- now+=850;
+ now+=1900;
  functions.attackVoice(cr,0,{kind:'normal'});
  const beforeLate=calls.length;
  const late={skill:true,atk:0};
