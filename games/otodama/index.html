@@ -147,8 +147,10 @@
 </div></details><details class="home-details" id="collectionDetails"><summary><span class="drawer-copy"><b>キャラ図鑑</b><small>発見した種類を確認</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div class="collection-box"><b>声魂図鑑</b><span id="codexCounter">発見した種族 0 / 12</span><div class="codex-grid" id="codexGrid" aria-label="発見した種族"></div></div></div></details><details class="home-details" id="helpDetails"><summary><span class="drawer-copy"><b>ヘルプ・データ管理</b><small>遊び方・録音の注意・バックアップ</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div id="playGuide"><h3>遊び方 / 3ステップ</h3><div class="guideflow">① 声でキャラを作る → ② 対戦中にガード・特別な技を操作 → ③ 勝って育成しながら次のステージへ進む</div></div><div class="statfoot">音量だけでは最強になりません。高さ・息の混ざり方・リズム・安定感の組み合わせで、得意な戦い方が変化します。</div><div class="save-tools"><button class="btn small ghost" type="button" id="exportSaveBtn">進行データを書き出す</button><label class="btn small ghost" for="importSaveFile">進行データを読み込む<input id="importSaveFile" type="file" accept=".json,application/json" hidden></label></div><div class="tiny" id="saveNotice" role="status">音声録音そのものはバックアップに含まれません。</div></div></details></section></main>
 <section class="bottom"><div class="card online"><details class="home-details" id="onlineDrawer"><summary><span class="drawer-copy"><b>通信・ランキングの設定</b><small>接続先・月間順位</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><p>対人戦は上部の「オンライン挑戦者を受け付ける」で設定します。</p><div class="field" style="display:none"><button class="btn primary" id="searchBtn" style="flex:1">⚡ ランダムマッチ開始</button><button class="btn ghost small" id="cancelSearchBtn" style="display:none">キャンセル</button></div><div class="field" style="display:none"><button class="btn small outline" id="createRoom">部屋を作る</button><input id="roomCode" maxlength="6" placeholder="6桁の部屋コード" aria-label="部屋コード"><button class="btn small outline" id="joinRoom">参加</button></div><div class="roomline" id="roomLine">サーバーを設定済み。ランダムマッチで対戦相手を探せます。</div><div class="field" id="readyBar" style="display:none"><button class="btn primary" id="readyBtn" style="flex:1">対戦準備OK</button><button class="btn ghost small" id="leaveBtn">退出</button></div><details class="home-details" id="onlineAdvanced"><summary><span class="drawer-copy"><b>接続・ランキング詳細</b><small>サーバーURL・順位・音声設定</small></span><span class="drawer-chevron" aria-hidden="true"></span></summary><div class="drawer-body"><div class="field"><input id="serverUrl" placeholder="https://xxxxx.workers.dev" aria-label="対戦サーバーURL"><button id="applyServer" class="btn small ghost">接続先保存</button></div><div class="online-ranking"><strong>オンライン月間ランキング</strong><p>登録した2人の対戦でサーバーが勝敗を確定した場合のみ加点。登録しない場合も通常対戦できます。</p><div class="field"><input id="rankingAlias" maxlength="18" placeholder="ランキングに表示する名前" aria-label="ランキング表示名"><button id="rankingRegisterBtn" type="button" class="btn small outline">ランキング登録</button></div><div class="field"><button id="rankingRefreshBtn" type="button" class="btn small ghost">順位を見る</button></div><div id="rankingStatus" role="status">オンライン月間ランキングを確認できます。</div><ol id="onlineLeaderboard"><li>まだオンラインの順位を取得していません</li></ol></div><div class="online-privacy"><label><input type="checkbox" id="shareVoice" disabled> 相手への録音声送信（審査対応まで停止）</label><label><input type="checkbox" id="receiveVoice" disabled> 相手の録音声受信（審査対応まで停止）</label><label><input type="checkbox" id="muteOpponentVoice"> 相手の声をミュート</label><small>オンラインで相手の録音音声は転送しません。自分の録音声はこの端末でのみ再生します。</small></div></div></details></div></details></div></section><footer class="footer">声魂（こえだま） 試作版 v0.10.24 · オンライン録音声は審査対応まで送受信停止 · 非公式の独立オリジナル作品</footer></div>
 <div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">声魂（こえだま） 対戦 / コンピューター戦</b><label class="pvp-accept"><input id="battleChallengerOptIn" type="checkbox" aria-label="対人挑戦者の受付"><span id="battleChallengerStatus">対人受付 OFF</span></label><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><div id="voiceFxLabel" class="voice-fx-label" hidden aria-live="off"></div><div id="rushBanner" class="rush-banner" role="status" aria-live="polite" hidden></div><div id="matchIntro" class="match-intro" role="status" aria-live="polite" hidden></div><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="timing-callout" id="timingCallout" aria-live="off"></div><div class="arena-effect" id="arenaEffect">準備中</div><div id="challengerBanner" class="challenger-banner" hidden role="status" aria-live="polite"><b>NEW CHALLENGER</b><small>オンラインの挑戦者が現れた！</small></div><div class="arena-battle-tip">素体同士が自動で勝負</div></div><div id="battleSpeech" class="battle-speech" role="status" aria-live="polite" hidden><b id="battleSpeechWho"></b><span id="battleSpeechText"></span><small id="battleSpeechState" hidden></small></div><div id="campaignTrack" class="campaign-track" aria-live="off" hidden></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="enemyTactic" role="status" aria-live="polite"></div><div id="battleReport" role="status" aria-live="polite"></div><div id="battlePanel"><div class="boss-panel" id="bossPanel" hidden><b id="bossWarning">ボス</b><div class="boss-break"><i id="bossBreakFill"></i></div><small>素体が自動で戦います。ボスの行動を見極めよう。</small></div><div class="survival-battle-bar"><span id="survivalBattleStatus" aria-live="polite" hidden></span><button type="button" id="autoBattleBtn" aria-pressed="false">自動操作：OFF</button></div><div class="battle-guide" id="battleGuide">素体の能力と個性で自動対戦。戦いの行方を見守ろう！</div><div class="battle-topline"><span id="skillName">特別な技</span><span>技ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ガード</button><button class="btn outline" id="dodgeBtn" type="button">↗ 回避</button><button class="btn outline" id="strikeBtn" type="button">⚡ タイミング攻撃</button><button class="btn" id="skillBtn" type="button" disabled>✦ 特別な技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div><div class="battle-tactics"><span id="comboBadge">ガード連続 0</span><span id="incomingBadge">敵の攻撃を見切れ！</span></div><div class="stage-mission" id="missionBadge" aria-live="polite" hidden></div><div class="battle-keyhint">PC操作：Space＝ガード / J＝回避 / L＝タイミング攻撃 / K＝特別な技 / 1・2・3＝戦術</div></div><div id="battlePrize" aria-live="polite"></div><div id="nextStagePreview" aria-live="polite" aria-live="polite" hidden></div><div id="nextBuffPanel" class="next-buff-panel" hidden><b>次のバトルの作戦を選択</b><div class="next-buff-choices"><button type="button" data-buff="power" aria-pressed="false">⚔ 攻撃 +15%</button><button type="button" data-buff="shield" aria-pressed="false">◆ HP +30</button><button type="button" data-buff="resonance" aria-pressed="false">✦ 技ゲージ +34</button><button type="button" data-buff="focus" aria-pressed="false">◎ タイミングが合わせやすくなる</button><button type="button" data-buff="lifeline" aria-pressed="false">♡ ピンチ時に一度ダメージ -20</button><button type="button" data-buff="rhythm" aria-pressed="false">♫ タイミング攻撃が続くと強化</button></div><small id="nextBuffHint">選択した強化は次のCOM戦のみ有効。選ばなくても進めます。</small></div><div class="modalfoot"><button type="button" id="audioResumeBtn" class="audio-recover">🔊 声を再開</button><details class="battle-settings" id="battleAudioSettings"><summary>音声設定</summary><div class="audio-rows"><label class="soundrow" for="battleVolume">声・効果音 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><label class="soundrow" for="musicVolume">BGM <input id="musicVolume" type="range" min="0" max="25" value="8"><b id="musicVolumeLabel">8%</b></label><label class="soundrow"><input type="checkbox" id="lowFx"> 省電力描画</label><label class="soundrow"><input type="checkbox" id="voiceFxEnabled" checked> 声の変化を使う（高低・速度・被弾）</label><label class="soundrow"><input type="checkbox" id="roarEnabled" checked> 勝者の雄叫びを鳴らす</label></div></details><button class="btn ghost" id="repeatSpeechBtn" type="button" hidden>▶ 雄叫びをもう一度鳴らす</button><button class="btn primary" id="rematchBtn" disabled>次のバトルへ →</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
+<script src="./progression-v134.js?v=134"></script>
 <script>
 (()=>{'use strict';
+const GROWTH=typeof window!=='undefined'?window.OtodamaGrowth:null;
 const $=id=>document.getElementById(id), TAU=Math.PI*2;
 const PALETTES=[['#58d7ef','#c0f8fb','#2b6585'],['#fb8a90','#ffd0b4','#974c7d'],['#ffd27a','#fff2ae','#b56e52'],['#b59cff','#dfdcff','#6556ad'],['#8eedba','#dcffcb','#338b82'],['#ff92df','#ffd7f9','#984c9f'],['#e6ecf4','#ffffff','#647d9f'],['#7eb9ff','#d7eaff','#436ac0'],['#eead7e','#ffe2a5','#986545'],['#b9ef75','#edffc0','#658d41']];
 const LEGACY_NAME_TITLES=`星屑 月影 蒼炎 虹色 深海 天空 雷鳴 夢幻 砂漠 雪原 極夜 黄昏 朝焼 紫電 白銀 黄金 紅蓮 翠緑 漆黒 真珠 霧中 未来 太古 野生 宇宙 天地 万象 混沌 虚空 海底 地底 樹海 泡沫 旋風 熱風 静寂 煌星 古代 魔境 瞬光 暗黒 猛毒 神秘 電脳 水晶 流星 常闇 獣王 鋼鉄 妖精 夜空 風来 太陽 月光 銀河 満月 幻想 影法師 火山 氷結 雷神 夢見 異界 光速`.split(' ');
@@ -357,7 +359,7 @@ function gen(seed,voice,audioDNA=null){let rng=getRand(seed),parts={body:Math.fl
  let v=voice||{vol:Math.round(between(rng,24,82)),pitch:Math.round(between(rng,24,90)),res:Math.round(between(rng,20,95)),rhythm:Math.round(between(rng,17,90)),stable:Math.round(between(rng,25,95)),breath:Math.round(between(rng,20,80))};
  let stats=[Math.round(clamp(25+v.vol*.14+v.res*.31+v.breath*.18+v.rhythm*.13,26,95)),Math.round(clamp(22+v.stable*.36+v.res*.23+v.breath*.12,27,95)),Math.round(clamp(19+v.pitch*.38+v.rhythm*.34,27,95)),Math.round(clamp(24+v.stable*.41+v.rhythm*.25,27,95)),Math.round(clamp(23+v.res*.34+v.pitch*.29+v.stable*.17,28,95))];
  if(audioDNA?.version===1&&Array.isArray(audioDNA.stats))stats=audioDNA.stats.slice();
- return{seed,parts,voice:v,stats,audioDNA:audioDNA?.version===1?audioDNA:undefined,name:generateName(seed),element:ELEMS[audioDNA?.version===1?audioDNA.elementIndex:Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),type:SPECIES[parts.family]+'・'+['小さな声','高い声','低い声','大きな声','抑揚のある声','澄んだ声','リズムのよい声','響く声'][Math.floor(rng()*8)]}}
+ return{seed,parts,voice:v,stats,audioDNA:audioDNA?.version===1?audioDNA:undefined,name:generateName(seed),element:ELEMS[audioDNA?.version===1?audioDNA.elementIndex:Math.floor(rng()*10)],rank:(stats.reduce((a,b)=>a+b,0)>=330?'A':stats.reduce((a,b)=>a+b,0)>=270?'B':'C'),rarity:'B',evolutionVoices:[],type:SPECIES[parts.family]+'・'+['小さな声','高い声','低い声','大きな声','抑揚のある声','澄んだ声','リズムのよい声','響く声'][Math.floor(rng()*8)]}}
 
 const SOULS=[
  {name:'スピード型',skill:'連続攻撃',detail:'高い声や速いリズムが特徴。連続して攻撃するのが得意。',bias:[1.65,1]},
@@ -368,7 +370,8 @@ const SOULS=[
  {name:'変化型',skill:'変化する攻撃',detail:'声の変化が大きいタイプ。技の威力が少し変わる。',bias:[1.42,2]}
 ];
 function soulFor(c){const v=c.voice||{};const score=[(v.pitch||0)*.58+(v.rhythm||0)*.42,100-(v.pitch||50)*.7+(v.res||50)*.3,(v.res||0)*.8+(v.stable||0)*.2,(v.breath||0)*.92+(100-(v.vol||50))*.08,(v.stable||0)*.97+(v.res||0)*.03,(100-(v.stable||50))*.8+(v.rhythm||0)*.2];return SOULS[score.indexOf(Math.max(...score))]}
-function levelOf(c){return Math.max(1,Math.floor(Number(c.level)||1))}
+function levelOf(c){return Math.min(GROWTH?.MAX_LEVEL||40,Math.max(1,Math.floor(Number(c?.level)||1)))}
+function rarityOf(c){return ['B','A','S','S+'].includes(c?.rarity)?c.rarity:(GROWTH?.legacyRarity(c)||'B')}
 let streak=0,recordStreak=0,careerWins=0,adventureStage=1,stageWins=0,stageAttempts=0,pendingBuff=null;
 // Six distinct visual biomes cycle through the adventure; no external art or licensing dependency.
 const BIOMES=[
@@ -475,11 +478,13 @@ function showDaily(){if(!$('dailyName'))return;const e=dailyEnemy();$('dailyName
 try{const pr=JSON.parse(localStorage.getItem('otodama.progress')||'{}');streak=Number(pr.streak)||0;recordStreak=Number(pr.best)||0;careerWins=Number(pr.wins)||0;adventureStage=clamp(Math.floor(Number(pr.stage)||1),1,99999);stageWins=Math.max(0,Math.floor(Number(pr.stageWins)||0));stageAttempts=clamp(Math.floor(Number(pr.attempts)||0),0,99999)}catch(e){}
 function saveProgress(){try{localStorage.setItem('otodama.progress',JSON.stringify({streak,best:recordStreak,wins:careerWins,stage:adventureStage,stageWins,attempts:stageAttempts}))}catch(e){}}
 // Local, opt-in progress export/import. Recorded audio is intentionally excluded.
-function compactCreature(c){return {seed:c.seed>>>0,voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,clamp(Math.round(Number(c.voice?.[k])||0),0,100)])),stats:(c.stats||[]).slice(0,5).map(v=>clamp(Math.round(Number(v)||30),25,99)),level:clamp(levelOf(c),1,30),xp:clamp(Math.floor(Number(c.xp)||0),0,2),audioDNA:validAudioDNA(c.audioDNA)||undefined,locked:c.locked===true}}
+function compactCreature(c){return {seed:c.seed>>>0,voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,clamp(Math.round(Number(c.voice?.[k])||0),0,100)])),stats:(c.stats||[]).slice(0,5).map(v=>clamp(Math.round(Number(v)||30),25,99)),level:clamp(levelOf(c),1,40),xp:clamp(Math.floor(Number(c.xp)||0),0,2),audioDNA:validAudioDNA(c.audioDNA)||undefined,rarity:rarityOf(c),rarityScore:clamp(Math.round(Number(c.rarityScore)||0),0,100),bornWindow:Math.floor(Number(c.bornWindow)||0),evolutionVoices:(Array.isArray(c.evolutionVoices)?c.evolutionVoices:[]).slice(0,3).map(v=>({voice:v.voice,signature:v.signature>>>0,focus:String(v.focus||'').slice(0,12),addedAt:Number(v.addedAt)||0,boost:Array.isArray(v.boost)?v.boost.slice(0,5):[]})),locked:c.locked===true}}
 function restoreCreature(raw){
  if(!raw||typeof raw!=='object'||!Number.isSafeInteger(raw.seed)||raw.seed<0||raw.seed>4294967295||!raw.voice||typeof raw.voice!=='object')throw Error('キャラクターデータが不正です');
  const voice={};for(const key of ['vol','pitch','res','rhythm','stable','breath']){if(!Number.isFinite(raw.voice[key]))throw Error('声データが不正です');voice[key]=clamp(Math.round(raw.voice[key]),0,100)}
- const dna=validAudioDNA(raw.audioDNA);const c=gen(raw.seed>>>0,voice,dna);c.level=clamp(Math.floor(Number(raw.level)||1),1,30);c.xp=clamp(Math.floor(Number(raw.xp)||0),0,2);
+ const dna=validAudioDNA(raw.audioDNA);const c=gen(raw.seed>>>0,voice,dna);c.level=clamp(Math.floor(Number(raw.level)||1),1,40);c.xp=clamp(Math.floor(Number(raw.xp)||0),0,2);
+ c.rarity=['B','A','S','S+'].includes(raw.rarity)?raw.rarity:rarityOf(c);c.rarityScore=clamp(Math.round(Number(raw.rarityScore)||0),0,100);c.bornWindow=Math.floor(Number(raw.bornWindow)||0);
+ c.evolutionVoices=Array.isArray(raw.evolutionVoices)?raw.evolutionVoices.slice(0,3).filter(v=>v&&typeof v==='object'&&v.voice&&['vol','pitch','res','rhythm','stable','breath'].every(k=>Number.isFinite(v.voice[k])&&v.voice[k]>=0&&v.voice[k]<=100)).map(v=>({voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(v.voice[k])])),signature:Number(v.signature)>>>0,focus:String(v.focus||'').slice(0,12),addedAt:Number(v.addedAt)||0,boost:Array.isArray(v.boost)?v.boost.slice(0,5).map(x=>clamp(Number(x)||0,0,2)):[],voiceClip:''})):[];
  if(Array.isArray(raw.stats)&&raw.stats.length===5&&raw.stats.every(Number.isFinite))c.stats=raw.stats.map(v=>clamp(Math.round(v),25,99));
  c.locked=raw.locked===true;return c;
 }
@@ -588,7 +593,7 @@ function renderAudioDNA(c){
   '。次のレベルで強くなる能力も、録音した音の特徴で決まります。';
 }
 
-function showCampaign(){showStage();if(!$('campaignRank'))return;$('campaignRank').textContent='Lv.'+levelOf(cur);$('campaignXp').textContent='XP '+(Number(cur.xp)||0)+'/3';$('campaignStreak').textContent=`連勝 ${streak} / 最高 ${recordStreak}`;const soul=soulFor(cur),profile=specimenProfile(cur);$('voiceRoleName').textContent='戦型：'+profile.name+' · '+profile.temperament+' · '+specimenMutation(cur).label;$('voiceRoleDesc').textContent='全自動戦闘。'+soul.detail+' 覚醒と必殺技は素体自身が判断します。'+(cur.audioDNA?.version===1?' 解放特性：'+(dnaUnlocked(cur).map(id=>DNA_TRAITS[id].name).join('・')||'育成で解放')+'。':'');}
+function showCampaign(){showStage();if(!$('campaignRank'))return;$('campaignRank').textContent='Lv.'+levelOf(cur)+' / '+(GROWTH?.MAX_LEVEL||40);$('campaignXp').textContent=levelOf(cur)>=(GROWTH?.MAX_LEVEL||40)?'MAX':'XP '+(Number(cur.xp)||0)+'/3';$('campaignStreak').textContent=`連勝 ${streak} / 最高 ${recordStreak}`;const soul=soulFor(cur),profile=specimenProfile(cur);$('voiceRoleName').textContent='戦型：'+profile.name+' · '+profile.temperament+' · '+specimenMutation(cur).label;$('voiceRoleDesc').textContent='全自動戦闘。'+soul.detail+' 覚醒と必殺技は素体自身が判断します。'+(cur.audioDNA?.version===1?' 解放特性：'+(dnaUnlocked(cur).map(id=>DNA_TRAITS[id].name).join('・')||'育成で解放')+'。':'');}
 function updateCharacterProgress(m){const player=m.a;let bonus=0;if(m.mode==='COM MATCH'&&m.outcome.winner===0)bonus+=m.grade==='S'?2:m.grade==='A'?1:0;if(m.mode==='DAILY CHALLENGE'&&m.outcome.winner===0&&dailyCleared!==dailyKey()){dailyCleared=dailyKey();try{localStorage.setItem('otodama.daily.clear',dailyCleared)}catch(e){}bonus=3;showDaily()}if(m.mode==='COM MATCH'&&m.boss&&m.outcome.winner===0)bonus+=m.bossReward;if(m.mode==='COM MATCH'&&m.rival&&m.outcome.winner===0)bonus+=2;
  const campaignWin=m.mode==='COM MATCH'&&m.outcome.winner===0;
  m.streakAwarded=campaignWin&&(streak+1)%5===0;
@@ -597,10 +602,10 @@ function updateCharacterProgress(m){const player=m.a;let bonus=0;if(m.mode==='CO
  const opponentTotal=Array.isArray(m.b?.stats)?m.b.stats.reduce((a,b)=>a+(Number(b)||0),0):0;
  m.underdogAwarded=campaignWin&&opponentTotal-playerTotal>=30;
  bonus+=(m.streakAwarded?2:0)+(m.comebackAwarded?1:0)+(m.underdogAwarded?1:0);
- m.missionAwarded=m.outcome.winner===0&&missionCompleted(m);if(m.missionAwarded)bonus++;m.cleanDefenseAwarded=m.mode==='COM MATCH'&&m.outcome.winner===0&&m.damageTaken<=4&&(m.parries+m.dodges)>=2;if(m.cleanDefenseAwarded)bonus++;const mutationBefore=specimenMutation(player).tier;let gained=(m.outcome.winner===0?2:1)+bonus;player.xp=(Number(player.xp)||0)+gained;let lvled=false;while(player.xp>=3&&levelOf(player)<30){player.xp-=3;player.level=levelOf(player)+1;const idx=dnaGrowthIndex(player,player.level);const bonusGrowth=player.audioDNA?.version===1&&player.level%5===0&&player.audioDNA.growth?.[idx]===3?1:0;player.stats[idx]=clamp(player.stats[idx]+1+bonusGrowth,27,99);lvled=true;}if(m.outcome.winner===0){streak++;careerWins++;recordStreak=Math.max(recordStreak,streak)}else{streak=0}if(m.mode==='COM MATCH'){if(m.outcome.winner===0){stageWins++;adventureStage=Math.min(99999,adventureStage+1);stageAttempts=0}else stageAttempts=Math.min(99999,stageAttempts+1);m.stageCompleted=adventureStage-(m.outcome.winner===0?1:0)}saveProgress();
+ m.missionAwarded=m.outcome.winner===0&&missionCompleted(m);if(m.missionAwarded)bonus++;m.cleanDefenseAwarded=m.mode==='COM MATCH'&&m.outcome.winner===0&&m.damageTaken<=4&&(m.parries+m.dodges)>=2;if(m.cleanDefenseAwarded)bonus++;const mutationBefore=specimenMutation(player).tier;let gained=(m.outcome.winner===0?2:1)+bonus;player.xp=(Number(player.xp)||0)+gained;let lvled=false;while(player.xp>=3&&levelOf(player)<(GROWTH?.MAX_LEVEL||40)){player.xp-=3;player.level=levelOf(player)+1;const idx=dnaGrowthIndex(player,player.level);const bonusGrowth=player.audioDNA?.version===1&&player.level%5===0&&player.audioDNA.growth?.[idx]===3?1:0;player.stats[idx]=clamp(player.stats[idx]+1+bonusGrowth,27,99);lvled=true;}if(levelOf(player)>=(GROWTH?.MAX_LEVEL||40))player.xp=0;if(m.outcome.winner===0){streak++;careerWins++;recordStreak=Math.max(recordStreak,streak)}else{streak=0}if(m.mode==='COM MATCH'){if(m.outcome.winner===0){stageWins++;adventureStage=Math.min(99999,adventureStage+1);stageAttempts=0}else stageAttempts=Math.min(99999,stageAttempts+1);m.stageCompleted=adventureStage-(m.outcome.winner===0?1:0)}saveProgress();
  const previousRoster=roster.slice();
  if(!upsertCreature(player))$('micHint').textContent='所持10体が満員です。キャラを整理すると保存できます';
- else if(!saveStore())roster=previousRoster;if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign()}const mutated=specimenMutation(player).tier>mutationBefore;
+ else if(!saveStore())roster=previousRoster;if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign();updateEvolutionUI()}const mutated=specimenMutation(player).tier>mutationBefore;
  const msg=(m.outcome.winner===0?'勝利 +'+gained+'XP':'敗北 +1XP')+
   (lvled?' · Lv.'+levelOf(player)+' UP':'')+
   (mutated?' · 進化！':'')+(streak>1?' · '+streak+'連勝':'');
@@ -750,7 +755,7 @@ function persistSelected(){
  }
 }
 function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forEach((name,i)=>{let node=document.createElement('div');let v=clamp(vals[i],0,100);node.innerHTML=`<div class="metainfo"><span>${name}</span><b>${v}${suffix}</b></div><div class="bar"><i style="width:${v}%"></i></div>`;parent.appendChild(node)})}
-function setCurrent(cr,fromBirth=false){if(!fromBirth)cancelBirthReveal();cur=cr;persistSelected();trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
+function setCurrent(cr,fromBirth=false){if(!fromBirth)cancelBirthReveal();cur=cr;persistSelected();trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+rarityOf(cur)+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign();updateEvolutionUI();updateRarityClock()}
 // Four short, local-only birth ceremonies for characters created with the microphone.
 let birthRevealToken=0,birthRevealTimers=[],birthStockCallback=null;
 let birthRevealActive=false;
@@ -884,7 +889,7 @@ function renderRoster(){
   btn.title=displayName(cr)+'（ID '+cr.seed+'）'+(selected?'・使用中':'・タップして使用');
   const cv=document.createElement('canvas');cv.width=125;cv.height=122;btn.append(cv);
   const txt=document.createElement('span');
-  txt.textContent=displayName(cr)+' Lv.'+levelOf(cr)+(saved?'':'（未保存）');
+  txt.textContent=displayName(cr)+' ['+rarityOf(cr)+'] Lv.'+levelOf(cr)+(saved?'':'（未保存）');
   btn.append(txt);btn.onclick=()=>{cancelBirthReveal();setCurrent(saved||cr)};tile.append(btn);
   if(saved||selected){
    const lock=document.createElement('button');lock.type='button';lock.className='roster-lock';
@@ -969,13 +974,15 @@ function pcmWavDataUrl(samples,rate){
 }
 function changeCaptureButtons(active){
   const busy=active||birthRevealActive||birthStockCallback!==null;
-  $('recordBtn').disabled=busy;$('randomBtn').disabled=busy;
+  $('recordBtn').disabled=busy;$('randomBtn').disabled=busy;if($('evolveBtn'))$('evolveBtn').disabled=busy||!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed);
   $('recordBtn').textContent=active?'● 録音中…':'● 録音して生成';
   $('stopRecordBtn').style.display='none';
   $('stopRecordBtn').disabled=true;
 }
 function stopRecord(){/* Fixed 2-second recording: no early manual finish. */}
-async function startRecord(){
+async function startRecord(mode='birth'){
+ const evolutionRequested=mode==='evolve',selectedSeed=cur.seed;
+ if(evolutionRequested&&(!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed)||match&&!match.done)){$('micNotice').textContent='進化には必要レベル・保存済みキャラ・空き枠が必要です';return;}
  if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null||document.hidden)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
  const captureId=++captureGeneration;
@@ -987,7 +994,7 @@ async function startRecord(){
    if(!captureIsCurrent(captureId))return;
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
   stopBattleSpeech(); // Prevent any result TTS from contaminating a new recording.
-  $('micHint').textContent='録音中：2秒で自動終了します（禁止ワードは発しないでください）';$('countdown').textContent='02.0 SEC';
+  $('micHint').textContent=evolutionRequested?'進化用の声を録音中（2秒）':'録音中：2秒で自動終了します（禁止ワードは発しないでください）';$('countdown').textContent='02.0 SEC';
   aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
   if(aud.state==='suspended')await aud.resume();
    if(!captureIsCurrent(captureId))return;
@@ -1070,7 +1077,15 @@ async function startRecord(){
   try{audioDNA=analyseVoiceDNA(dnaFrames)}catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
   const seed=audioDNA?audioDNA.signature:hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
   if(!captureIsCurrent(captureId))return;
+  if(evolutionRequested){
+   if(cur.seed!==selectedSeed){$('micNotice').textContent='キャラが切り替わったため進化を中止しました';return}
+   const compactClip=voiceClip.length<=90000?voiceClip:pcmWavDataUrl(pcmSamples,pcmRate);
+   const result=commitEvolutionVoice(cur,audioDNA?.voice||v,audioDNA,compactClip);
+   $('micHint').textContent=result?'声の追加に成功！ 進化しました':'進化できませんでした。表示内容を確認してください';
+   $('countdown').textContent=result?'EVOLVE!':'再録音';return;
+  }
    const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip};
+  const rated=GROWTH?.rarityForDNA(audioDNA,Date.now());newborn.rarity=rated?.grade||'B';newborn.rarityScore=rated?.score||0;newborn.bornWindow=rated?.phase?.windowId||0;
   startBirthReveal(newborn,()=>{setCurrent(newborn,true);return saveNewborn(newborn)});
   $('micHint').textContent=voiceClip?'録音成功。試聴・戦闘・勝利の雄叫びに使えます':'声の特徴からキャラを生成しましたが、録音音声を保存できませんでした';
   $('countdown').textContent=voiceClip?(audioDNA?'DNA OK':'VOICE OK'):'NO CLIP';
@@ -1081,13 +1096,35 @@ async function startRecord(){
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
   try{pcmNode?.disconnect()}catch(e){}try{pcmSilence?.disconnect()}catch(e){}try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
   try{await aud?.close()}catch(e){}audioCtx=null;
-  changeCaptureButtons(false);$('controlCard').classList.remove('recording');
+  changeCaptureButtons(false);$('controlCard').classList.remove('recording');updateEvolutionUI();
   updateVoicePreviewButton();
  }
 }
 function updateVoicePreviewButton(){
  const btn=$('voicePreviewBtn');btn.disabled=!clipData(cur);
  btn.textContent=btn.disabled?'▶ 録音を試聴':'▶ 録音を試聴';
+}
+function updateEvolutionUI(){
+ const node=$('evolutionInfo'),btn=$('evolveBtn');if(!node||!btn)return;
+ const used=Array.isArray(cur.evolutionVoices)?cur.evolutionVoices.length:0;
+ const available=GROWTH?.slotsForLevel(levelOf(cur))||0;
+ const next=(GROWTH?.EVOLUTION_LEVELS||[10,20,30])[used];
+ node.textContent='声 '+(1+used)+' / 4 · '+(used<available?'追加録音で進化できます':next?'次の声は Lv.'+next+' で解放':'全ての声を解放済み');
+ btn.disabled=!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed)||recording||recordingRequestPending||match&&!match.done;
+ btn.textContent=used>=3?'進化完了':GROWTH?.canEvolve(cur)?'● 声を追加して進化':'Lv.'+next+' で声を追加';
+ const grade=rarityOf(cur);$('rarityBadge').textContent=grade;$('rarityBadge').dataset.grade=grade;
+}
+function updateRarityClock(){const el=$('rarityResearch');if(!el||!GROWTH)return;
+ const state=GROWTH.phaseAt(Date.now()),minutes=Math.max(1,Math.ceil((state.nextChangeAt-Date.now())/60000));
+ el.textContent='声ガチャ研究：いまは「'+state.name+'」が有利。'+state.hint+' · 条件変更まで約'+minutes+'分。レア度は音の特徴と録音した時間帯で決まります（抽選なし）。';
+}
+function commitEvolutionVoice(cr,voice,dna,clip){
+ const idx=roster.findIndex(c=>c.seed===cr.seed);
+ if(idx<0||!GROWTH?.canEvolve(cr)||!validAudioDNA(dna)){$('micNotice').textContent='進化に必要な条件や音声DNAを確認してください';return false}
+ let next;try{next=GROWTH.applyEvolution(cr,voice,dna,clip,Date.now())}catch(e){$('micNotice').textContent=String(e.message||e);return false}
+ const previous=roster[idx];roster[idx]=next;
+ if(!saveStore()){roster[idx]=previous;$('micNotice').textContent='保存容量が足りません。進化は確定していません';return false}
+ setCurrent(next);$('micNotice').textContent='共鳴進化！ 追加した音声 '+next.evolutionVoices.length+' / 3。戦闘で声が切り替わります。';return true;
 }
 function saveNewborn(creature){
  const old=roster.slice(),existing=roster.findIndex(c=>c.seed===creature.seed);
@@ -1102,7 +1139,7 @@ function saveNewborn(creature){
   roster.splice(candidate,1);roster.push(creature);
  }
  if(!saveStore()){roster=old;$('rosterNotice').textContent='保存できませんでした。新キャラはプレビューに残っています';renderRoster();return false}
- persistSelected();renderRoster();$('rosterNotice').textContent='新キャラを自動保存しました（'+roster.length+'/10体）';return true;
+ persistSelected();renderRoster();updateEvolutionUI();$('rosterNotice').textContent='新キャラを自動保存しました（'+roster.length+'/10体）';return true;
 }
 function saveCurrent(){
  trackDiscovery(cur);
@@ -1110,7 +1147,7 @@ function saveCurrent(){
  const previous=roster.slice();
  if(!upsertCreature(cur)){$('micHint').textContent='所持10体が満員です。空きを作ってから保存してください';return}
  if(!saveStore()){roster=previous;renderRoster();return}
- renderRoster();$('micHint').textContent=displayName(cur)+' を保存しました';
+ renderRoster();updateEvolutionUI();$('micHint').textContent=displayName(cur)+' を保存しました';
 }
 // v0.4: decoded WebAudio buffers, mobile-autoplay-safe, voice loudness limited.
 let battleSoundCtx=null,voiceCache=new Map(),playingSources=[],pendingVoice=new Map(),lastSoundStatus='';
@@ -1498,7 +1535,10 @@ function attackVoice(cr,side,ev=null){
  const rush=ev?.rush===true;
  const hits=rush?Math.min(7,Math.max(2,Math.floor(ev?.hits||7))):1;
  bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+(rush?2200:760));
- playDecodedVoice(cr,side,false,{rush,hits,event:ev||{kind:'normal'},phase:'attack'});
+ const candidates=Array.isArray(cr?.evolutionVoices)?cr.evolutionVoices.filter(v=>clipData({voiceClip:v.voiceClip})):[];
+ const choice=candidates.length?Math.abs((match?.turn||0)+side)%(candidates.length+1):0;
+ const spoken=choice?{...cr,voiceClip:candidates[choice-1].voiceClip}:cr;
+ playDecodedVoice(spoken,side,false,{rush,hits,event:ev||{kind:'normal'},phase:'attack'});
 }
 function reactionVoice(cr,side,ev){
  if(!match||match.done||$('mutedCheck').checked||!VOLUME())return;
@@ -2647,7 +2687,7 @@ function joinRoom(code,auto=false,resuming=false){let base=serverBase();if(!base
 }}}
 function hydrate(obj){return{...obj,seed:obj.seed>>>0}}
 function reverseOutcome(o){return{events:o.events.map(e=>({...e,atk:1-e.atk,hp:e.hp.slice().reverse()})),max:o.max.slice().reverse(),winner:1-o.winner}}
-document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=()=>maybeQueuePvP();$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('survivalChallengerOptIn').onchange=()=>setPvPAcceptance($('survivalChallengerOptIn').checked);$('battleChallengerOptIn').onchange=()=>setPvPAcceptance($('battleChallengerOptIn').checked);try{$('survivalChallengerOptIn').checked=localStorage.getItem('otodama.pvp.accept')==='1';$('battleChallengerOptIn').checked=$('survivalChallengerOptIn').checked}catch{}$('recordBtn').onclick=startRecord;$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live)advanceAfterWin(match);};
+document.querySelectorAll('[data-buff]').forEach(btn=>btn.onclick=()=>chooseBuff(btn.dataset.buff));$('searchBtn').onclick=()=>maybeQueuePvP();$('cancelSearchBtn').onclick=()=>cancelRandomSearch();$('survivalChallengerOptIn').onchange=()=>setPvPAcceptance($('survivalChallengerOptIn').checked);$('battleChallengerOptIn').onchange=()=>setPvPAcceptance($('battleChallengerOptIn').checked);try{$('survivalChallengerOptIn').checked=localStorage.getItem('otodama.pvp.accept')==='1';$('battleChallengerOptIn').checked=$('survivalChallengerOptIn').checked}catch{}$('recordBtn').onclick=()=>startRecord();$('evolveBtn').onclick=()=>startRecord('evolve');$('stopRecordBtn').onclick=stopRecord;$('voicePreviewBtn').onclick=previewRecordedVoice;$('randomBtn').onclick=newOne;$('fightBtn').onclick=doCom;$('dailyBtn').onclick=doDaily;$('saveBtn').onclick=saveCurrent;$('closeBattle').onclick=closeBattle;$('backBtn').onclick=closeBattle;$('rematchBtn').onclick=()=>{if(match?.done&&(match.mode==='SURVIVAL'||match.survivalChallenge)){if(survivalActive)nextSurvivalBattle();else startSurvival()}else if(match?.done&&['COM MATCH','DAILY CHALLENGE'].includes(match.mode))doCom();else if(match?.done&&match.live)advanceAfterWin(match);};
 // No keyboard combat or stance intervention.
 $('repeatSpeechBtn').onclick=()=>{
  if(match?.done){
