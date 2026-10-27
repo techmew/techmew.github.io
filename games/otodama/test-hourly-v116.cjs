@@ -87,6 +87,6 @@ assert.ok(worker.includes('raw.length>8192')&&worker.includes("ws.close(1009,'Me
 assert.ok(script.includes('function resumeAudioFromGesture()'),'audio gesture resume');
 assert.ok(script.includes("document.addEventListener('pointerdown',resumeAudioFromGesture"),'touch audio resume');
 assert.ok(script.includes("if(!won){$('rematchBtn').textContent="),'survival defeat remains on result screen');
-assert.ok(script.includes('if(won||m.live||m.mode==='COM MATCH')scheduleNextAfterQuote(m)'),'victory auto-continues');
+assert.ok(script.includes("if(won||m.live||m.mode==='COM MATCH')scheduleNextAfterQuote(m)"),'victory auto-continues');
 assert.ok(html.includes('id="campaignTrack"')&&html.includes('id="matchIntro"'),'battle UI preserved');
 console.log('HOURLY V116 TEST PASS | PCM fallback, campaign, rush, live dedupe, packet limit, auto-next');
