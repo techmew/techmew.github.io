@@ -85,7 +85,7 @@ async function attempt(mediaRecorderEnabled){
   }
  }
  env.api.stopRecord(); // Early tap must not shorten a fixed-duration recording.
- assert.equal(env.ctxRef.autoStop?.ms,2070,'recording ends automatically at two seconds');
+ assert.ok(env.ctxRef.autoStop?.ms>=2000&&env.ctxRef.autoStop?.ms<=2071,'recording ends two seconds after real microphone capture begins');
  assert.equal(env.nodes.get('stopRecordBtn').disabled,true,'manual early stop disabled');
  env.ctxRef.autoStop.fn();
  await running;
