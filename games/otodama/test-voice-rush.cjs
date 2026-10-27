@@ -19,6 +19,7 @@ const ac={currentTime:10,decodeAudioData:async()=>buffer,
  createBufferSource:()=>({playbackRate:{value:1},connect(){},start(...args){calls.push(args)},stop(){}})};
 const cr={seed:8,voiceClip:'data:audio/webm;base64,dGVzdA==',voiceReview:'passed',voice:{rhythm:30}};
 const match={done:false,mode:'COM MATCH',turn:3,live:false,a:cr,b:{seed:9}};
+let now=1200;
 const context={
  Uint8Array,Map,Math,Float32Array,clamp:(n,a,b)=>Math.min(b,Math.max(a,n)),
  atob:()=> 'test',
@@ -26,7 +27,7 @@ const context={
  VOLUME:()=>.12,voiceOutput:()=>({}),unlockBattleAudio:()=>ac,trackAttackSource:()=>{},
  synthVoice:(...args)=>synthCalls.push(args),
  voiceCache:new Map(),pendingVoice:new Map(),lastSoundStatus:'',bgmDuckUntil:0,
- performance:{now:()=>1200},hash:()=>0,showRushBanner:text=>banners.push(text),
+ performance:{now:()=>now},hash:()=>0,showRushBanner:text=>banners.push(text),
  match
 };
 const functions=vm.runInNewContext(script.slice(start,end)+';({decodeVoice,playDecodedVoice,attackVoice,maybeSpecialRush})',context);
@@ -36,22 +37,27 @@ async function test(){
  functions.attackVoice(cr,0);
  assert.equal(calls.length,1,'ordinary attacks replay recorded voice once');
  functions.attackVoice(cr,0,{kind:'combo',hits:5});
- assert.equal(calls.length,6,'five rush hits must overlap with separate audio sources');
- assert.ok(calls[5][0]>calls[1][0],'rush voices must start in staggered succession');
+ assert.equal(calls.length,1,'replayed attack inside busy window is suppressed');
+ now+=850;
+ functions.attackVoice(cr,0,{kind:'combo',hits:5});
+ assert.equal(calls.length,2,'normal combo replays recording once, not five times');
+ now+=850;
  const special={skill:true,atk:0};
  assert.equal(functions.maybeSpecialRush(match,special),true,'occasional special rush should activate');
- assert.equal(calls.length,13,'special adds seven voiced hits');
+ assert.equal(calls.length,9,'special adds seven voiced hits');
+ assert.ok(calls[8][0]>calls[2][0],'rush voices are staggered');
  assert.equal(banners.length,1,'special animation banner');
  assert.equal(functions.maybeSpecialRush(match,special),false,'special must not activate twice per hit');
  match.done=true;functions.attackVoice(cr,0);
- assert.equal(calls.length,13,'no attack voices after battle end');
+ assert.equal(calls.length,9,'no attack voices after battle end');
  match.done=false;match.mode='ONLINE LIVE';ui.muteOpponentVoice.checked=true;
  functions.attackVoice(cr,1);
- assert.equal(calls.length,13,'online opponent mute respected');
+ assert.equal(calls.length,9,'online opponent mute respected');
  ui.muteOpponentVoice.checked=false;match.mode='COM MATCH';
+ now+=1600;
  functions.attackVoice({seed:5,voiceClip:'',voice:{pitch:50}},0,{hits:4});
  assert.equal(synthCalls.length,1,'synthetic fallback when recorded voice is absent');
- assert.equal(synthCalls[0][2].hits,4,'fallback also supports multi-hit rush');
- console.log('VOICE RUSH TEST PASS | recorded voice gain, single/multi-hit, special, fallback, mute and battle-end isolation');
+ assert.equal(synthCalls[0][2].hits,1,'non-rush fallback also remains one voice');
+ console.log('VOICE RUSH TEST PASS | recorded voice gain, non-overlap, single-hit normal combo, seven-hit explicit rush, mute and battle-end');
 }
 test().catch(error=>{console.error(error);process.exitCode=1});
