@@ -151,3 +151,13 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 @media(max-width:420px){.gallerygrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
  .gallerygrid .roster-lock{min-width:36px;min-height:36px}
  .gallerygrid .roster-entry>.specimen{padding-top:30px}}
+
+/* Selected fighter: stable grid position, blue border instead of relocating to slot 1. */
+.gallerygrid .roster-entry>.specimen.active{
+ border:3px solid #087fe2;
+ background:radial-gradient(ellipse at center,#dcf4ff 0%,#ecf9ff 85%);
+ box-shadow:0 0 0 2px #a0dcff,0 3px 12px rgba(11,112,197,.24);
+ color:#193e5e;
+}
+.gallerygrid .roster-entry>.specimen:not(.active){border:2px solid #c2dceb;box-shadow:none}
+.gallerygrid .roster-entry>.specimen:focus-visible{outline:3px solid #0b76d1;outline-offset:3px}
