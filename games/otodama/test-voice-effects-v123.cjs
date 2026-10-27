@@ -72,7 +72,7 @@ const beforeReactions=clips.length;
 api.reactionVoice(cr,1,{kind:'rush',damage:18});
 api.reactionVoice(cr,1,{kind:'rush',damage:25,guard:true});
 assert.equal(clips.length,beforeReactions,'reactions cannot overlap recorded rush');
-now+=1500;
+now+=1900;
 api.reactionVoice(cr,1,{kind:'rush',damage:18});
 assert.equal(clips.length,beforeReactions,'ordinary hit reactions use SE rather than voice');
 api.reactionVoice(cr,1,{kind:'rush',damage:25,guard:true});
