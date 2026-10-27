@@ -1,3 +1,13 @@
+# OTODAMA｜2026-10-27 15時｜対人割込・CPU復旧
+CURRENT_STATUS: mainのgames/otodama/のみ改修。Cloudflare Worker公開済み。録音声のオンライン転送は停止を維持。
+CHANGELOG: 接続失敗後はCPUの同じ敵・HP・攻撃ターンを再開。NEW CHALLENGER中のダメージ進行停止。背面化中の未確定対人割込を中断、復帰後にCPU再開。時計の二重加算防止。WebSocket生成/取消/サーバー拒否を安全処理。切断後12秒再試行制限。回帰テスト追加。
+TEST_RESULTS: 埋込JSとテストJSの構文コンパイルPASS。正式Node/Actionsは新コミット後に確認。過去の赤#40458364219は旧テストReferenceError、後続mainの#40458773508は成功。外部HTTP直接取得不可、実ブラウザ/Android/独立2端末は未検証。
+BLOCKERS: Androidマイク・BGM、外部二端末でCPU→PvP→CPU、端末スリープ・通信断の実通信テスト未完了。
+NEXT_ACTIONS: 新コミットのCI/Pages確認、切断・OFF・背景復帰・勝敗後CPU連戦の実端末検証。
+GITHUB_COMMIT: GitHubの本記録を含むコミット（SHAはDrive追記）。
+
+---
+
 # CURRENT_STATUS｜2026-10-27｜NEW CHALLENGER演出・復旧・毎時タスク修復
 
 ## 今回実装
