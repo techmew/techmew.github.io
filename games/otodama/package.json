@@ -7,12 +7,13 @@
     "deploy:server": "wrangler deploy",
     "dev:server": "wrangler dev",
     "test:auto": "node test-creature-auto.cjs",
-    "test:node": "node test-creature-auto.cjs && node test-ui-source.cjs && node test-ui-refined-v124.cjs && node test-moderation.mjs && node test-matchmaker.cjs && node test-room.cjs && node test-quality-v105.cjs && node test-quality-v106.cjs && node test-quality-v108.cjs && node test-rankings-v109.cjs && node test-survival-v109.cjs && node test-dialogue-v113.cjs && node test-voice-review-v114.cjs && node test-voice-rush.cjs && node test-hourly-v116.cjs && node test-hourly-v117.cjs && node test-audio-dna.cjs && node test-audio-dna-v121.cjs && node test-voice-effects-v123.cjs && node test-arcade-challenger.cjs && node test-handoff-v125.cjs && node test-queue-resilience-v126.cjs",
+    "test:node": "node test-creature-auto.cjs && node test-ui-source.cjs && node test-ui-refined-v124.cjs && node test-moderation.mjs && node test-matchmaker.cjs && node test-room.cjs && node test-quality-v105.cjs && node test-quality-v106.cjs && node test-quality-v108.cjs && node test-rankings-v109.cjs && node test-survival-v109.cjs && node test-dialogue-v113.cjs && node test-voice-review-v114.cjs && node test-voice-rush.cjs && node test-hourly-v116.cjs && node test-hourly-v117.cjs && node test-audio-dna.cjs && node test-audio-dna-v121.cjs && node test-voice-effects-v123.cjs && node test-arcade-challenger.cjs && node test-handoff-v125.cjs && node test-queue-resilience-v126.cjs && node test-roster-lock.cjs",
     "test:dialogue": "node test-dialogue-v113.cjs",
     "test:voice": "node test-moderation.mjs && node test-voice-review-v114.cjs && node test-voice-rush.cjs && node test-hourly-v116.cjs && node test-hourly-v117.cjs && node test-audio-dna.cjs && node test-audio-dna-v121.cjs && node test-voice-effects-v123.cjs",
     "test:dna": "node test-audio-dna.cjs && node test-audio-dna-v121.cjs",
     "test:effects": "node test-voice-effects-v123.cjs",
-    "test:ui": "node test-ui-source.cjs && node test-ui-refined-v124.cjs && node test-arcade-challenger.cjs && node test-handoff-v125.cjs && node test-queue-resilience-v126.cjs"
+    "test:ui": "node test-ui-source.cjs && node test-ui-refined-v124.cjs && node test-arcade-challenger.cjs && node test-handoff-v125.cjs && node test-queue-resilience-v126.cjs && node test-roster-lock.cjs",
+    "test:roster": "node test-roster-lock.cjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
