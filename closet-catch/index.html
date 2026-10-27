@@ -51,14 +51,14 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-slot strong{color:#ffd2a7;font-size:11px}.show-slot canvas{display:block;width:min(100%,90px);height:auto;aspect-ratio:1;border-radius:8px}.show-slot small{font-size:10px;line-height:1.4;overflow-wrap:anywhere;min-height:28px}
 .show-actions{display:flex;gap:9px;margin-top:12px;align-items:center}.show-actions button{border-radius:11px;background:#ffdaad;color:#493045;font-size:12px;font-weight:950;padding:12px 17px}.show-actions .main{background:linear-gradient(110deg,#ff8c89,#ffd595);flex:1}
 .show-judges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}.show-judges[hidden],.show-result[hidden]{display:none}
-.show-judge{border:1px solid #ffffff2b;background:#ffffff16;border-radius:12px;text-align:center;padding:11px 5px}.show-judge b{display:block;color:#f9c79c;font-size:12px}.show-judge strong{font-size:25px}.show-judge span{font-size:10px;display:block}
+.show-judge{border:1px solid #ffffff2b;background:#ffffff16;border-radius:12px;text-align:center;padding:11px 5px}.show-judge b{display:block;color:#f9c79c;font-size:12px}.show-judge strong{font-size:21px}.show-judge span{font-size:10px;display:block}
 .show-result{font-size:14px;font-weight:950;line-height:1.7;margin:12px 0;color:#ffe3a4}
 .show-pose-hud{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#493658;color:#ffe6b0;border-radius:11px;margin-top:8px;padding:9px 12px;font-size:11px;font-weight:900}
 .show-pose-hud[hidden],#showPose[hidden]{display:none}
 .show-actions #showPose{background:linear-gradient(115deg,#ffecae,#ffb28c);min-width:100px}
 .show-overlay.pose-active #showCanvas{cursor:pointer;touch-action:manipulation}
 @media(max-width:620px){.show-pose-hud{font-size:10px;padding:7px}.show-actions #showPose{min-width:75px}}
-@media(max-width:620px){.round-dock{margin:0 8px 13px;gap:5px;padding:9px}.round-pips i{width:13px;height:11px}.round-dock b,.round-dock button{font-size:10px}.show-overlay{padding:0}.show-shell{min-height:100dvh;max-height:100dvh;border-radius:0;padding:10px}.show-slots{gap:3px}.show-slot{padding:5px 2px;gap:2px}.show-slot strong{font-size:9px}.show-slot small{font-size:8px;min-height:37px}.show-help{font-size:11px}.show-actions button{padding:11px 9px;font-size:11px}.show-judge{padding:8px 3px}.show-judge b{font-size:10px}.show-judge strong{font-size:19px}}
+@media(max-width:620px){.round-dock{margin:0 8px 13px;gap:5px;padding:9px}.round-pips i{width:13px;height:11px}.round-dock b,.round-dock button{font-size:10px}.show-overlay{padding:0}.show-shell{min-height:100dvh;max-height:100dvh;border-radius:0;padding:10px}.show-slots{gap:3px}.show-slot{padding:5px 2px;gap:2px}.show-slot strong{font-size:9px}.show-slot small{font-size:8px;min-height:37px}.show-help{font-size:11px}.show-actions button{padding:11px 9px;font-size:11px}.show-judge{padding:8px 3px}.show-judge b{font-size:10px}.show-judge strong{font-size:16px}}
 .fight-hud.surge-warning{border-color:#ffd88e;box-shadow:0 0 0 2px #ffc66c55,0 15px 38px #001d3470}
 .fight-hud.tension-danger{border-color:#ff7087;box-shadow:0 0 0 2px #ff70874a,0 15px 38px #001d3470}
 .fight-head .surge-badge{display:none;font-size:10px;font-weight:950;letter-spacing:.03em;padding:3px 6px;border-radius:6px;background:#ffca80;color:#3d2434}
@@ -290,7 +290,35 @@ function finalizePoseScore(){
 
 function showTheme(){return showThemes[(Math.max(1,st.show.round)-1)%showThemes.length]}
 function showOutfit(){return st.show.order.map(i=>catalog[st.show.queue[i]])}
-function showScore(items){
+// The rival wears five real catalog garments and is scored by the exact same three judges.
+const rivalCategoryIds={};
+for(const item of catalog)(rivalCategoryIds[item.cat]??=[]).push(item.id);
+let rivalCache={round:0,items:null,score:null};
+function getRivalLook(){
+ const round=Math.max(1,st.show.round);
+ if(rivalCache.round===round&&rivalCache.items)return rivalCache;
+ const goal=clamp(Math.round(171+Math.min(68,(round-1)*3.3)+(hash(round*337)%27-13)),140,252);
+ const natural=['hat','acc','top','bottom','shoes'];
+ let best=null,bestGap=Infinity;
+ for(let candidate=0;candidate<100;candidate++){
+  const items=[];
+  const repeatCat=['bottom','top','dress','outer'][hash(round*53+candidate*7)%4];
+  for(let slot=0;slot<5;slot++){
+   const seed=hash(round*7919+candidate*65537+slot*1009);
+   const cat=candidate%7===0?repeatCat:candidate%3===0?natural[slot]:null;
+   const ids=cat?rivalCategoryIds[cat]:null;
+   const id=ids?ids[seed%ids.length]:seed%TOTAL;
+   items.push(catalog[id]);
+  }
+  const score=showScore(items,true);
+  const gap=Math.abs(score.total-goal);
+  if(gap<bestGap){bestGap=gap;best={items,score}}
+  if(gap===0)break;
+ }
+ rivalCache={round,items:best.items,score:best.score};
+ return rivalCache;
+}
+function showScore(items,skipRival=false){
  const cats=items.map(o=>o.cat),unique=new Set(cats).size,repeats=5-unique;
  const uniquePieces=new Set(items.map(o=>o.id)).size,duplicates=5-uniquePieces;
  const styleVariety=new Set(items.map(o=>o.cat+':'+o.style)).size;
@@ -313,8 +341,9 @@ function showScore(items){
  if(theme==='chaos'){b+=12;c+=odd*7+Math.min(3,repeats)*7+patternVariety*2}
  if(theme==='glam')c+=rarity*2+fits*6+harmony*8+(5-patternVariety)*1.2;
  const judges=[a,b,c].map(v=>clamp(Math.round(v),10,100)),total=judges.reduce((x,y)=>x+y,0);
- const rival=clamp(Math.round(171+Math.min(65,(st.show.round-1)*3.3)+(hash(st.show.round*337)%27-13)),120,262);
- return {judges,total,rival,win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit}
+ const opponent=skipRival?null:getRivalLook();
+ const rival=opponent?opponent.score.total:0;
+ return {judges,total,rival,rivalJudges:opponent?opponent.score.judges:null,rivalIds:opponent?opponent.items.map(o=>o.id):null,win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit}
 }
 function showPlacement(item,slot){
  const natural=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
@@ -329,7 +358,7 @@ function showStyleHint(){
  const estimate=showScore(items),t=showTheme()[1];
  const style=estimate.fits>=4?'正統派':estimate.odd>=4?'超前衛':estimate.odd>=2?'型破り':'ミックス';
  const themeHint=(t==='avant'||t==='chaos')?'変な位置への着用が高評価':t==='classic'||t==='glam'?'自然な位置と色の調和が重要':t==='color'?'色の調和と種類の豊富さが重要':'大胆さと種類の豊富さが重要';
- $('showHelp').textContent='現在：'+style+'（自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5）。'+themeHint+'。柄 '+estimate.patternVariety+'種・形 '+estimate.styleVariety+'種。CPU目標 '+estimate.rival+'点。2着タップで交換。';
+ $('showHelp').textContent='現在：'+style+'（自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5）。'+themeHint+'。柄 '+estimate.patternVariety+'種・形 '+estimate.styleVariety+'種。CPU実力 '+estimate.rival+'点（同じ審査基準）。2着タップで交換。';
 }
 function showSlots(){
  const root=$('showSlots');root.replaceChildren();
@@ -366,10 +395,10 @@ function endShow(){
  }
  const root=$('showJudges');root.replaceChildren();root.hidden=false;
  const notes=[showScores.fits>=3?'よく似合う！':'かなり奇抜！',showScores.repeats>=3?'大胆すぎる発想！':showScores.odd>=3?'意外性がある！':'色使いに注目！',showTheme()[0]+'に挑戦'];
- showScores.judges.forEach((score,i)=>{let c=document.createElement('div');c.className='show-judge';let n=document.createElement('b');n.textContent=showNames[i];let v=document.createElement('strong');v.textContent=score+'点';let note=document.createElement('span');note.textContent=notes[i];c.append(n,v,note);root.append(c)});
+ showScores.judges.forEach((score,i)=>{let c=document.createElement('div');c.className='show-judge';let n=document.createElement('b');n.textContent=showNames[i];let v=document.createElement('strong');v.textContent=score+' / '+(showScores.rivalJudges?.[i]??'—')+'点';let note=document.createElement('span');note.textContent=notes[i];c.append(n,v,note);root.append(c)});
  $('showResult').hidden=false;
  $('showResult').textContent=(showScores.win?'YOU WIN！ ライバルに勝利！':'LOSE… 次は逆転！')+'　YOU '+showScores.total+' vs CPU '+showScores.rival+'点　獲得コイン +'+showScores.prize+'　強引な着用 '+showScores.odd+'/5　柄 '+(showScores.patternVariety??'-')+'種　ポーズ '+(showScores.posePoints??0)+'/30';
- $('showMain').textContent='次の5着へ';$('showHelp').textContent='3人の合計300点満点。ラウンドが進むほどライバルは強くなる。';
+ $('showMain').textContent='次の5着へ';$('showHelp').textContent='審査員の数字は「あなた / CPU」。両者とも5着を同じ基準で審査。ポーズはあなたの追加点です。';
  if(showScores.win)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
 }
 function nextShow(){
@@ -387,20 +416,20 @@ function progressShow(dt){
  if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='3人の審査員が採点中…'}
  if(showTime>=8.1)endShow();
 }
-function dressRunway(ctx,x,y,z,t){
- const items=showOutfit();if(items.length!==5)return;
+function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
+ if(items.length!==5)return;
  ctx.save();ctx.translate(x,y+Math.sin(t*8)*3);ctx.rotate(showPhase==='walk'&&showTime-poseFlashAt<.45?Math.sin((showTime-poseFlashAt)*13)*.11:0);ctx.scale(z,z);
  ellipse(ctx,0,186,71,13,'#180b2d9c');
- const skinC='#e8b18a';ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
+ const skinC=isRival?'#ac785e':'#e8b18a',hairC=isRival?'#793e54':'#252943';ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
  for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*21,36);ctx.lineTo(side*(23+Math.sin(t*8)*8),165);ctx.stroke()}
  ctx.fillStyle=skinC;path(ctx,[[-31,-70],[31,-70],[37,53],[-37,53]]);ctx.fill();
  ctx.strokeStyle=skinC;ctx.lineWidth=17;
  for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*31,-53);ctx.lineTo(side*47+Math.sin(t*8+side)*5,21);ctx.stroke()}
  round(ctx,-28,40,56,35,8,'#508bb2','#e3ceba');
- round(ctx,-11,-100,22,34,8,skinC);ellipse(ctx,0,-142,43,51,'#252943');ellipse(ctx,0,-137,35,43,skinC);
+ round(ctx,-11,-100,22,34,8,skinC);ellipse(ctx,0,-142,43,51,hairC);ellipse(ctx,0,-137,35,43,skinC);
  ellipse(ctx,-12,-137,3,4,'#253449');ellipse(ctx,12,-137,3,4,'#253449');
  ctx.strokeStyle='#955466';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-116,8,.1,Math.PI-.1);ctx.stroke();
- ctx.fillStyle='#252943';ctx.beginPath();ctx.arc(0,-163,38,Math.PI,0);ctx.lineTo(26,-151);ctx.quadraticCurveTo(0,-166,-26,-145);ctx.fill();
+ ctx.fillStyle=hairC;ctx.beginPath();ctx.arc(0,-163,38,Math.PI,0);ctx.lineTo(26,-151);ctx.quadraticCurveTo(0,-166,-26,-145);ctx.fill();
  // Garment silhouettes are placed regardless of their original clothing category.
  drawGarment(ctx,items[3],0,77,111,.03);
  // Trouser-shirt: inverted legs form shoulder flaps.
@@ -435,6 +464,14 @@ function drawShowStage(){
  for(let i=0;i<18;i++){let x=i*56+Math.sin(i)*10;ellipse(ctx,x,485+i%3*8,15,18,'#0b1027');ellipse(ctx,x,466+i%3*8,10,11,'#141125')}
  for(let i=0;i<3;i++){let x=60+i*87;round(ctx,x-32,397,66,52,10,'#29223a','#ca94ba');ellipse(ctx,x,386,17,18,'#dca78e');ctx.fillStyle='#fff0b8';ctx.font='900 14px sans-serif';ctx.fillText(showPhase==='result'?showScores.judges[i]:'?',x,433)}
  let p=showPhase==='walk'?Math.min(1,showTime/4.7):showPhase==='prep'?.7:1;
+ // CPU rival appears on the opposite side wearing its actual five-piece outfit.
+ const rivalIds=showScores?.rivalIds;
+ const cpuItems=Array.isArray(rivalIds)&&rivalIds.length===5?rivalIds.map(id=>catalog[id]):getRivalLook().items;
+ const rivalWalk=showPhase==='walk'?Math.min(1,showTime/4.7):1;
+ dressRunway(ctx,691+(1-rivalWalk)*100,351,.54,showPhase==='walk'?t+.45:.1,cpuItems,true);
+ round(ctx,619,165,146,28,9,'#21192f','#d9a3c0');
+ ctx.fillStyle='#ffe3c2';ctx.textAlign='center';ctx.font='900 14px sans-serif';
+ ctx.fillText('CPU '+(showPhase==='result'?(showScores?.rival??'--')+'点':'CHALLENGER'),692,184);
  dressRunway(ctx,450-(1-p)*165,353-(1-p)*55,.77+.17*p,showPhase==='walk'?t:.1);
  if(showPhase==='walk'){
   const ready=poseBeats.findIndex((beat,i)=>poseResults[i]===null&&Math.abs(showTime-beat)<=poseTolerance);
