@@ -1341,9 +1341,10 @@ function nextTaunt(kind){
  try{localStorage.setItem(key,String((counter+1)%500))}catch(e){}
  return line;
 }
-let battleSpeechGeneration=0,resultSpeechTimer=null,resultNextTimer=null;
+let battleSpeechGeneration=0,resultSpeechTimer=null,resultNextTimer=null,cpuSpeechTimer=null;
 function stopBattleSpeech(){
  battleSpeechGeneration++;
+ if(cpuSpeechTimer!==null){clearTimeout(cpuSpeechTimer);cpuSpeechTimer=null}
  try{window.speechSynthesis?.cancel()}catch(e){}
 }
 function clearResultTimers(){
@@ -1351,8 +1352,7 @@ function clearResultTimers(){
  clearTimeout(resultNextTimer);resultNextTimer=null;
 }
 function speechStatus(value){const node=$('battleSpeechState');if(node)node.textContent=value;}
-// Spoken result dialogue has been replaced: only CPU battles show short text.
-// In online battles no opponent-recorded audio is transferred without review.
+// CPU victory lines use local device TTS only; no audio or text is sent to the game server.
 let resultRoarGeneration=0;
 function isCpuResult(m){
  // Only a CPU victor gets a text line. Human winners never receive a speech bubble.
@@ -1430,14 +1430,38 @@ async function playVictoryRoar(m){
  }
  m.roarEndsAt=performance.now()+durationMs;
 }
+function queueCpuTaunt(m,immediate=false){
+ if(!isCpuResult(m)||!m.tauntText||$('mutedCheck').checked||!VOLUME()||document.hidden)return false;
+ const synth=window.speechSynthesis,Utterance=window.SpeechSynthesisUtterance;
+ if(!synth||!Utterance||typeof synth.speak!=='function')return false;
+ // The voice line starts after the victory sound, never on top of it.
+ const generation=battleSpeechGeneration;
+ if(cpuSpeechTimer!==null)clearTimeout(cpuSpeechTimer);
+ const delay=immediate?0:Math.max(120,Math.ceil((m.roarEndsAt||0)-performance.now()+140));
+ cpuSpeechTimer=setTimeout(()=>{
+  cpuSpeechTimer=null;
+  if(match!==m||!m.done||document.hidden||$('mutedCheck').checked||!VOLUME()||generation!==battleSpeechGeneration)return;
+  try{
+   synth.cancel();
+   const line=new Utterance(m.tauntText);
+   line.lang='ja-JP';line.rate=1.14;line.pitch=.94;line.volume=.65;
+   const japanese=synth.getVoices?.().find(v=>v.lang?.toLowerCase().startsWith('ja'));
+   if(japanese)line.voice=japanese;
+   m.cpuSpeechDeadline=performance.now()+2700;
+   line.onend=line.onerror=()=>{if(match===m)m.cpuSpeechDeadline=0};
+   synth.speak(line);
+  }catch(e){m.cpuSpeechDeadline=0}
+ },delay);
+ return true;
+}
 function showBattleQuote(m){
  if(match!==m||!m.done)return;
  if(!m.resultPresented){
   m.resultPresented=true;
   if(isCpuResult(m)){
    const winner=m.outcome.winner===0?m.a:m.b;
-   m.tauntText=nextTaunt(m.outcome.winner===0?'win':'lose');
-   $('battleSpeechWho').textContent=displayName(winner)+'のセリフ';
+   m.tauntText=nextTaunt('lose').split(/[。！？?!]/)[0].trim()+'。';
+   $('battleSpeechWho').textContent=displayName(winner)+'：';
    $('battleSpeechText').textContent=m.tauntText;
   }else{
    m.tauntText='';
@@ -1448,8 +1472,9 @@ function showBattleQuote(m){
  $('battleSpeech').hidden=!isCpuResult(m);
  $('battleSpeech').classList.toggle('enemy-speaks',m.outcome.winner!==0);
  $('repeatSpeechBtn').hidden=false;
+ $('repeatSpeechBtn').textContent=isCpuResult(m)?'▶ セリフを聞く':'▶ 雄叫びを聞く';
  if(document.hidden){m.resultWasHidden=true;return}
- playVictoryRoar(m);
+ playVictoryRoar(m).then(()=>queueCpuTaunt(m)).catch(()=>queueCpuTaunt(m));
 }
 function advanceAfterWin(m){
  if(match!==m||!m.done||!$('battleModal').classList.contains('open'))return;
@@ -1468,7 +1493,8 @@ function scheduleNextAfterQuote(m){
   if(document.hidden){survivalAwaitingVisibility=true;return}
   const elapsed=performance.now()-start;
   const roaring=Number(m.roarEndsAt)>performance.now()&&elapsed<7000;
-  if(elapsed<3350||roaring){
+  const cpuSpeaking=isCpuResult(m)&&Number(m.cpuSpeechDeadline)>performance.now()&&elapsed<5500;
+  if(elapsed<3350||roaring||cpuSpeaking){
    resultNextTimer=setTimeout(check,350);return;
   }
   advanceAfterWin(m);
@@ -2139,15 +2165,13 @@ function finishCombat(){const m=match;if(!m||m.done)return;hideMatchIntro();hide
 }
 function updateCampaignTrack(mode){
  const bar=$('campaignTrack');if(mode!=='COM MATCH'){bar.hidden=true;return}
- const stage=Math.max(1,Math.floor(Number(adventureStage)||1)),chapter=Math.floor((stage-1)/5)+1;
+ const stage=Math.max(1,Math.floor(Number(adventureStage)||1));
  const untilBoss=(5-stage%5)%5;
- const biome=stageBiome(stage),story=CHAPTERS[(chapter-1)%CHAPTERS.length].split('。')[0];
- bar.textContent='第'+stage+'試合目　｜　第'+chapter+'章 '+biome.name+'　｜　'+(untilBoss?'ボスまであと'+untilBoss+'戦':'ボス戦！')+'　｜　'+story;
+ bar.textContent='STAGE '+stage+' · '+stageBiome(stage).name+' · '+(untilBoss?'ボスまで'+untilBoss+'戦':'ボス戦！');
  bar.style.setProperty('--chapter-progress',String((stage%5||5)*20)+'%');bar.hidden=false;
 }
 function showBattle(a,b,outcome,mode,buff=null,live=false){
- // Human victory commentary is audio-only; no TTS preparation.
- // Offline battles exclusively replay the creature-generated fight.
+ // CPU victory dialogue is read locally and never covers the combat canvas.
  clearResultTimers();resultRoarGeneration++;hideMatchIntro();hideRushBanner();stopBattleSpeech();$('voiceFxLabel').hidden=true;$('battleSpeech').hidden=true;$('repeatSpeechBtn').hidden=true;
  autoBattleEnabled=true;if(!live)buff=null;
 
@@ -2391,7 +2415,8 @@ $('repeatSpeechBtn').onclick=()=>{
   }
   if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.()}
   if(Number($('battleVolume').value)<5){$('battleVolume').value='15';$('battleVolume').oninput?.()}
-  playVictoryRoar(match);
+  if(isCpuResult(match)){stopBattleSpeech();queueCpuTaunt(match,true)}
+  else playVictoryRoar(match);
  }
 };
 try{
@@ -2412,7 +2437,7 @@ document.addEventListener('visibilitychange',()=>{
   survivalAwaitingVisibility=false;
   if(match?.done&&$('battleModal').classList.contains('open')){
    match.resultWasHidden=false;
-   if(match.resultPresented)playVictoryRoar(match);else showBattleQuote(match);
+   if(match.resultPresented)playVictoryRoar(match).then(()=>queueCpuTaunt(match));else showBattleQuote(match);
    if(match.outcome.winner===0||match.live||match.mode==='COM MATCH'){
     clearTimeout(resultNextTimer);resultNextTimer=null;scheduleNextAfterQuote(match);
    }
