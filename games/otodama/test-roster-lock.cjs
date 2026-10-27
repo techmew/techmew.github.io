@@ -134,5 +134,14 @@ assert.match(script,/if\(exists>=0\)\{player\.locked=roster\[exists\]\.locked===
  await importCtx.runImport(file());
  assert.equal(closed,1,'invalid discovery must reject before mutation');
  assert.match(pick('saveNotice').textContent,/図鑑データが不正/);
- console.log('ROSTER LOCK PASS | 30 cards, lock rollback, one-tap, duplicate IDs, atomic import, invalid discovery, backup');
+ data.discovered=[0,1];
+ const fullProtected=Array.from({length:30},(_,i)=>make(i+100,true));
+ importCtx.roster=fullProtected;
+ data.roster=Array.from({length:30},(_,i)=>serializer.compactCreature(make(i+200,true)));
+ const storedBefore=storageValues.get('otodama.roster');
+ await importCtx.runImport(file());
+ assert.equal(importCtx.roster,fullProtected,'overflow must preserve existing 30 protected characters');
+ assert.equal(storageValues.get('otodama.roster'),storedBefore,'overflow must not touch saved roster');
+ assert.match(pick('saveNotice').textContent,/保護キャラが30体を超えています/);
+ console.log('ROSTER LOCK PASS | 30 cards, lock rollback, one-tap, duplicate IDs, atomic import, overflow rejection, backup');
 })().catch(e=>{console.error(e);process.exitCode=1});
