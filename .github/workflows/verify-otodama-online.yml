@@ -30,6 +30,9 @@ jobs:
           const gameHtml=await page.text();
           if(!gameHtml.includes("const DEFAULT_SERVER_URL='https://otodama-room.nekokichi005.workers.dev'"))
             throw new Error('Published game has no default online server URL');
+          if(!gameHtml.includes('id="battleChallengerOptIn"')||!gameHtml.includes('function startChallengerHandoff()')||!gameHtml.includes('function restoreCpuAfterHandoff()'))
+            throw new Error('Published arcade handoff controls are stale or missing');
+          console.log('LIVE ARCADE HANDOFF UI DEPLOY PASS');
           console.log('LIVE GITHUB PAGES GAME CONFIG PASS');
           if (!globalThis.WebSocket) throw new Error('Node WebSocket missing');
           const matched = await new Promise((resolve,reject)=>{
