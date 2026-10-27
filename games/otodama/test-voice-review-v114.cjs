@@ -19,7 +19,7 @@ const savedAudio='data:audio/webm;base64,QUJDRA==';
 assert.equal(clipData({seed:1,voiceClip:savedAudio}),savedAudio,'old clips without review metadata are playable');
 assert.equal(clipData({seed:1,voiceClip:savedAudio,voiceReview:'unverified'}),savedAudio,'review metadata never blocks voice');
 assert.equal(clipData({seed:1,voiceClip:'notaudio'}),null,'invalid data URL rejected');
-const start=js.indexOf('let stopCaptureNow=null'),end=js.indexOf('function saveCurrent()',start);
+const start=js.indexOf('let stopCaptureNow=null'),end=js.indexOf('function saveNewborn(creature){',start);
 assert.ok(start>=0&&end>start,'full capture/stop/preview source');
 const source=js.slice(start,end);
 const notes=[];
@@ -58,7 +58,7 @@ function fakeRuntime(mediaRecorderEnabled){
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
   setTimeout:(fn,ms)=>{if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};return 1},clearTimeout(){},performance,recording:false,audioCtx:null,
-  stopBattleSpeech(){},wavePaint(){},micErrorMessage:e=>String(e?.name||e),
+  stopBattleSpeech(){},wavePaint(){},saveNewborn(){notes.push('auto-saved')},startBirthReveal(){},micErrorMessage:e=>String(e?.name||e),
   autocorr:()=>230,median:a=>a[0]||0,hash:n=>n>>>0,
   clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
   gen:(seed,voice)=>({seed,voice}),dnaFrame:()=>({t:0,rms:.1}),analyseVoiceDNA:()=>null,cur:{},clipData
