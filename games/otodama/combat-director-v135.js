@@ -122,19 +122,60 @@ function simulate(a,b,options={}){
  return {events,max,winner,profiles,personas,turns:events.length,estimatedSeconds:events.length*.82+1.5};
 }
 function smooth(x){const t=clamp(x,0,1);return t*t*(3-2*t)}
+// v138 cinematic blocking: coherent charge -> velocity burst -> shared impact -> aerial chase / knockback.
+// Every strike reaches the defender at p=0.54; no arbitrary sinusoidal fighter displacement.
 function movement(ev,progress,atk){
- const p=clamp(progress,0,1),forward=atk===0?1:-1,style=Number(ev?.style)||0;
- const before=clamp(Number(ev?.distanceBefore)||240,75,320),after=clamp(Number(ev?.distanceAfter)||120,68,320);
- const wind=clamp(Number(ev?.windup)||.17,.08,.4);
- const phase=smooth((p-wind)/Math.max(.2,.54-wind)),recover=smooth((p-.58)/.42),travel=(after-before)*phase;
- const center=360,contact=clamp(56+after*.52,90,212),back=clamp(115+before*.5,135,252);
- const ax=center-forward*(back+(contact-back)*phase+(back-contact)*.46*recover);
- const dx=center+forward*(back*.92+(contact-back*.92)*phase*.84+Math.max(0,before-after)*.23*recover);
- const jump=['aerial','uppercut','meteor','warp'].includes(ev.kind),step=style===1?36:style===0?12:24;
- const tilt=(ev.motion==='feint'?Math.sin(p*10)*.18:0)+(p<wind?-forward*.12:forward*.17*phase);
- const launch=jump?Math.sin(Math.PI*clamp((p-.18)/.65,0,1))*96:ev.kind==='spin'?Math.sin(Math.PI*p)*40:0;
- return {attacker:{x:clamp(ax,85,635),y:214-launch-step*.3*Math.sin(Math.PI*p),rot:tilt+ (ev.kind==='spin'?forward*p*Math.PI*1.35:0),scale:.69+(ev.skill?.1:0)},
- defender:{x:clamp(dx,85,635),y:216-(ev.dodge?Math.sin(Math.PI*p)*105:ev.guard?11*Math.sin(Math.PI*p):ev.damage?24*Math.sin(Math.PI*p):0),rot:ev.dodge?-forward*.19:ev.guard?forward*.10:ev.damage?-forward*.20*phase:0,scale:.69}};
+ const p=clamp(Number(progress),0,1),forward=atk===0?1:-1,kind=typeof ev?.kind==='string'?ev.kind:'rush';
+ const style=clamp(Number(ev?.style)||0,0,5),hits=clamp(Math.round(Number(ev?.hits)||1),1,7);
+ const before=clamp(Number(ev?.distanceBefore)||265,68,325),after=clamp(Number(ev?.distanceAfter)||135,68,325);
+ const charge=clamp(Number(ev?.windup)||.16,.08,.34),contact=.54;
+ const fast=clamp((p-charge)/(contact-charge),0,1),dash=1-Math.pow(1-fast,2.55);
+ const recoil=Math.sin(Math.PI*clamp(p/charge,0,1))*((style===0||ev?.skill)?23:12);
+ const recovery=smooth((p-contact)/.43),bodyHit=clamp((p-.48)/.16,0,1);
+ const startR=clamp(119+before*.34,140,231),settleR=clamp(105+after*.34,136,220);
+ const beam=['beam','shockwave'].includes(kind),teleport=kind==='warp';
+ const closeR=beam?clamp(103+after*.19,122,164):(ev?.dodge?47:51);
+ let approach=dash;
+ if(teleport&&p>.34&&p<.51)approach=clamp(approach+.19,0,1);
+ let attackR=startR+(closeR-startR)*approach+recoil*(1-approach);
+ let defendR=startR*.94+(closeR-startR*.94)*approach;
+ const hit=!!(Number(ev?.damage)>0)&&!ev?.dodge;
+ // Chasing a successful aerial knockback uses a second, smaller burst after impact.
+ const bounce=hit?(beam?38:Math.min(143,67+Number(ev.damage)*1.55+(ev?.skill?18:0))):0;
+ const evade=ev?.dodge?111:0;
+ const guarded=!!ev?.guard;
+ const counter=!!ev?.counter&&!ev?.dodge;
+ attackR=attackR+(settleR-attackR)*recovery*.78-(hits>1&&hit?29*Math.sin(Math.PI*recovery):0);
+ defendR=defendR+(settleR+bounce+evade-defendR)*recovery;
+ if(counter){attackR+=(55+23*recovery)*recovery;defendR-=50*recovery;}
+ if(ev?.dodge&&p>.54){attackR-=36*recovery;}
+ const jump=['aerial','uppercut','meteor','warp','spin','combo'].includes(kind);
+ const airborne=jump?Math.sin(Math.PI*clamp((p-.13)/.78,0,1)):0;
+ const attackerLift=kind==='meteor'
+   ?(p<.4?120*smooth((p-.1)/.3):120*(1-smooth((p-.4)/.15)))
+   :kind==='uppercut'?Math.sin(Math.PI*clamp((p-.24)/.68,0,1))*91:
+    kind==='warp'?Math.sin(Math.PI*clamp((p-.31)/.42,0,1))*115:
+    airborne*(kind==='aerial'?103:kind==='combo'?49:kind==='spin'?60:38);
+ const retaliate=counter?Math.sin(Math.PI*clamp((p-.48)/.5,0,1))*45:0;
+ const launched=hit?Math.sin(Math.PI*clamp((p-.51)/.49,0,1))*
+    (kind==='uppercut'||kind==='aerial'?142:kind==='meteor'?57:kind==='combo'?100:ev?.skill?104:69):0;
+ const dodgeLift=ev?.dodge?Math.sin(Math.PI*clamp((p-.32)/.61,0,1))*132:0;
+ // Distinct snap hits within a combo; avoids an always-static attacker during the recorded 7-hit rush.
+ const combo=hits>=3&&hit?Math.sin(Math.PI*2*hits*clamp((p-.40)/.37,0,1)):0;
+ const tremor=combo*(1-recovery)*14;
+ const ax=clamp(360-forward*attackR+forward*tremor,77,643);
+ const dx=clamp(360+forward*defendR+forward*(ev?.dodge?16*bodyHit:0),77,643);
+ const attackY=clamp(229-attackerLift+(ev?.skill?11*Math.sin(p*18):0)-Math.abs(combo)*7,70,339);
+ const defenseY=clamp(230-launched-dodgeLift-retaliate+(guarded?10:0),65,345);
+ const lungeTilt=forward*(p<charge?-.24:(.27+.22*(1-recovery))*dash);
+ const spin=kind==='spin'?forward*Math.PI*2.05*smooth(p):kind==='aerial'?forward*.58*airborne:kind==='uppercut'?-forward*.47*airborne:0;
+ const knocked=hit?-forward*(.68*bodyHit*(1-recovery)+.12*recovery):0;
+ return {attacker:{x:ax,y:attackY,rot:lungeTilt+spin+(teleport?forward*.15*airborne:0),scale:clamp(.73+.16*dash+(ev?.skill?.075:0)+Math.abs(combo)*.024,.68,1.03)},
+ defender:{x:dx,y:defenseY,rot:ev?.dodge?-forward*.32*dodgeLift/132:counter?forward*.35*recovery:guarded?forward*.12:knocked,
+ scale:clamp(.73-(hit?.035*bodyHit:0)+(guarded?.06:0),.65,.88)},
+ impact:{x:clamp((ax+dx)/2,85,635),y:clamp((attackY+defenseY)/2,78,355)},
+ intensity:clamp((dash*(1-recovery)*.6+Math.abs(combo)*.2+(ev?.skill?.3:0)),0,1),
+ rush:hits>1,charged:p<charge,hit:hit&&p>=contact-.09&&p<contact+.25};
 }
 function morphology(c){
  const seed=Number(c?.seed)||1,voice=c?.voice||{},e=Math.min(3,c?.evolutionVoices?.length||0);
