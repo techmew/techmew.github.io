@@ -1,0 +1,27 @@
+/* OTODAMA v140: voice evolution, one lightweight modal and four unmistakable actions. */
+.evo-overlay[hidden]{display:none!important}
+.evo-overlay{position:fixed;inset:0;z-index:100015;display:grid;place-items:center;
+ background:rgba(9,22,42,.77);padding:clamp(12px,4vw,28px);overscroll-behavior:contain}
+.evo-modal{width:min(100%,430px);max-height:min(90dvh,710px);overflow:auto;position:relative;
+ border:1px solid #91bdd5;border-radius:22px;box-shadow:0 24px 90px #0008;
+ background:linear-gradient(165deg,#f7fdff,#e7f3fd);color:#183b53;padding:20px;display:grid;gap:13px}
+.evo-modal h2{margin:0;padding-right:40px;font-size:clamp(19px,5vw,24px);font-weight:900;color:#183b53}
+.evo-modal p{margin:0;font-size:13px;line-height:1.65;color:#476a7d}
+.evo-modal .evo-stage{border-radius:14px;background:#fff;border:1px solid #c7dce6;padding:14px;text-align:center}
+.evo-modal .evo-stage strong{display:block;font-size:22px;color:#155e88;letter-spacing:1px}
+.evo-modal .evo-stage small{font-size:12px;color:#526e80}
+.evo-modal .evo-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.evo-modal .evo-actions button{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;
+ border-radius:11px;padding:9px 10px;font-size:14px;font-weight:800;white-space:normal}
+.evo-modal button:focus-visible{outline:3px solid #1196d8;outline-offset:2px}
+.evo-modal .evo-actions #evoRecordBtn{background:#168dc1;color:#fff;border:1px solid #0d6792}
+.evo-modal .evo-actions #evoListenBtn{background:#fff;color:#1c5b7e;border:1px solid #72b2cf}
+.evo-modal .evo-actions #evoRetryBtn{background:#e9f5fd;color:#22678f;border:1px solid #a5cfe1}
+.evo-modal .evo-actions #evoConfirmBtn{background:#2074bd;color:#fff;border:1px solid #13558f}
+.evo-modal .evo-actions button:disabled{opacity:.39;box-shadow:none}
+.evo-modal .evo-close{position:absolute;right:15px;top:13px;display:grid;place-items:center;
+ width:36px;height:36px;border:1px solid #c0dce7;border-radius:50%;color:#365e77;background:#fff}
+.evo-modal #evoStatus{font-size:13px;line-height:1.6;color:#2a5770;min-height:38px;word-break:break-word}
+.evo-modal #evoStep{font-size:12px;font-weight:700;color:#286e9a}
+@media(max-width:390px){.evo-modal{padding:15px;gap:11px}.evo-modal .evo-actions button{font-size:12px;min-height:46px}}
+@media(prefers-reduced-motion:reduce){.evo-overlay,.evo-modal{animation:none!important;transition:none!important}}
