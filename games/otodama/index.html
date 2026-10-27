@@ -595,7 +595,9 @@ function updateCharacterProgress(m){const player=m.a;let bonus=0;if(m.mode==='CO
  m.underdogAwarded=campaignWin&&opponentTotal-playerTotal>=30;
  bonus+=(m.streakAwarded?2:0)+(m.comebackAwarded?1:0)+(m.underdogAwarded?1:0);
  m.missionAwarded=m.outcome.winner===0&&missionCompleted(m);if(m.missionAwarded)bonus++;m.cleanDefenseAwarded=m.mode==='COM MATCH'&&m.outcome.winner===0&&m.damageTaken<=4&&(m.parries+m.dodges)>=2;if(m.cleanDefenseAwarded)bonus++;const mutationBefore=specimenMutation(player).tier;let gained=(m.outcome.winner===0?2:1)+bonus;player.xp=(Number(player.xp)||0)+gained;let lvled=false;while(player.xp>=3&&levelOf(player)<30){player.xp-=3;player.level=levelOf(player)+1;const idx=dnaGrowthIndex(player,player.level);const bonusGrowth=player.audioDNA?.version===1&&player.level%5===0&&player.audioDNA.growth?.[idx]===3?1:0;player.stats[idx]=clamp(player.stats[idx]+1+bonusGrowth,27,99);lvled=true;}if(m.outcome.winner===0){streak++;careerWins++;recordStreak=Math.max(recordStreak,streak)}else{streak=0}if(m.mode==='COM MATCH'){if(m.outcome.winner===0){stageWins++;adventureStage=Math.min(99999,adventureStage+1);stageAttempts=0}else stageAttempts=Math.min(99999,stageAttempts+1);m.stageCompleted=adventureStage-(m.outcome.winner===0?1:0)}saveProgress();
- const exists=roster.findIndex(c=>c.seed===player.seed);if(exists>=0){player.locked=roster[exists].locked===true;roster[exists]=player}else if(roster.length<30||roster.some(c=>c.locked!==true)){roster.unshift(player);trimRoster()}saveStore();if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign()}const mutated=specimenMutation(player).tier>mutationBefore;const msg=(m.outcome.winner===0?'勝利 +'+gained+'XP':'敗北 +1XP')+(lvled?' · LEVEL UP! Lv.'+levelOf(player):'')+(mutated?' · 進化：'+specimenMutation(player).label:'')+' · 連勝 '+streak; if($('battlePrize'))$('battlePrize').textContent=msg+(m.guardBest?' ／ ガード連続最高 '+m.guardBest:'')+(m.missionAwarded?' ／ ミッション達成 +1XP':'')+(m.cleanDefenseAwarded?' ／ 完璧防御 +1XP':'')+(m.rival&&m.outcome.winner===0?' ／ ライバル報酬 +2XP':'')+(m.streakAwarded?' ／ 5連勝報酬 +2XP':'')+(m.comebackAwarded?' ／ 逆転勝利 +1XP':'')+(m.underdogAwarded?' ／ 格上撃破 +1XP':'')+(m.mode==='COM MATCH'?' ／ 次：STAGE '+adventureStage:' ／ 次は冒険ステージ');showStage();return msg;
+ const previousRoster=roster.slice();
+ if(!upsertCreature(player))$('micHint').textContent='全30体が保護中です。新しいキャラは保存されません';
+ else if(!saveStore())roster=previousRoster;if(cur.seed===player.seed)setCurrent(player);else{renderRoster();showCampaign()}const mutated=specimenMutation(player).tier>mutationBefore;const msg=(m.outcome.winner===0?'勝利 +'+gained+'XP':'敗北 +1XP')+(lvled?' · LEVEL UP! Lv.'+levelOf(player):'')+(mutated?' · 進化：'+specimenMutation(player).label:'')+' · 連勝 '+streak; if($('battlePrize'))$('battlePrize').textContent=msg+(m.guardBest?' ／ ガード連続最高 '+m.guardBest:'')+(m.missionAwarded?' ／ ミッション達成 +1XP':'')+(m.cleanDefenseAwarded?' ／ 完璧防御 +1XP':'')+(m.rival&&m.outcome.winner===0?' ／ ライバル報酬 +2XP':'')+(m.streakAwarded?' ／ 5連勝報酬 +2XP':'')+(m.comebackAwarded?' ／ 逆転勝利 +1XP':'')+(m.underdogAwarded?' ／ 格上撃破 +1XP':'')+(m.mode==='COM MATCH'?' ／ 次：STAGE '+adventureStage:' ／ 次は冒険ステージ');showStage();return msg;
 }
 function col(hex,alpha){let h=hex.replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${alpha})`}
 function pathRound(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
@@ -676,6 +678,15 @@ try{roster=JSON.parse(localStorage.getItem('otodama.roster')||'[]');if(!Array.is
 const DEFAULT_SERVER_URL='https://otodama-room.nekokichi005.workers.dev'; // 公開したCloudflare Workerを標準接続先にする
 try{$('serverUrl').value=localStorage.getItem('otodama.server')||DEFAULT_SERVER_URL}catch(e){$('serverUrl').value=DEFAULT_SERVER_URL}
 function trimRoster(){while(roster.length>30){const i=roster.findLastIndex(c=>c.locked!==true);if(i<0)return false;roster.splice(i,1)}return true}
+// Save new creatures at the tail, not in the top-left; update existing fighters in place.
+function upsertCreature(cr){
+ const existing=roster.findIndex(c=>c.seed===cr.seed);
+ if(existing>=0){cr.locked=roster[existing].locked===true;roster[existing]=cr;return true}
+ if(roster.length<30){roster.push(cr);return true}
+ const replaceAt=roster.findLastIndex(c=>c.locked!==true);
+ if(replaceAt<0)return false;
+ roster[replaceAt]=cr;return true;
+}
 function saveStore(){try{localStorage.setItem('otodama.roster',JSON.stringify(roster));return true}catch(e){$('micHint').textContent='保存に失敗しました。ブラウザの保存容量・設定を確認してください';return false}}
 function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forEach((name,i)=>{let node=document.createElement('div');let v=clamp(vals[i],0,100);node.innerHTML=`<div class="metainfo"><span>${name}</span><b>${v}${suffix}</b></div><div class="bar"><i style="width:${v}%"></i></div>`;parent.appendChild(node)})}
 function setCurrent(cr){cur=cr;trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
@@ -882,7 +893,14 @@ function updateVoicePreviewButton(){
  const btn=$('voicePreviewBtn');btn.disabled=!clipData(cur);
  btn.textContent=btn.disabled?'▶ 録音を試聴':'▶ 録音を試聴';
 }
-function saveCurrent(){trackDiscovery(cur);if(roster.some(c=>c.seed===cur.seed)){$('micHint').textContent='このキャラは保存済みです';return}if(roster.length>=30&&roster.every(c=>c.locked===true)){$('micHint').textContent='全30体が保護中です。鍵を外してから保存してください';return}const previous=roster.slice();roster.unshift(cur);trimRoster();if(!saveStore()){roster=previous;renderRoster();return}renderRoster();$('micHint').textContent=displayName(cur)+' を保存しました'}
+function saveCurrent(){
+ trackDiscovery(cur);
+ if(roster.some(c=>c.seed===cur.seed)){$('micHint').textContent='このキャラは保存済みです';return}
+ const previous=roster.slice();
+ if(!upsertCreature(cur)){$('micHint').textContent='全30体が保護中です。鍵を外してから保存してください';return}
+ if(!saveStore()){roster=previous;renderRoster();return}
+ renderRoster();$('micHint').textContent=displayName(cur)+' を保存しました';
+}
 // v0.4: decoded WebAudio buffers, mobile-autoplay-safe, voice loudness limited.
 let battleSoundCtx=null,voiceCache=new Map(),playingSources=[],pendingVoice=new Map(),lastSoundStatus='';
 let voiceLimiter=null,voiceLimiterContext=null;
