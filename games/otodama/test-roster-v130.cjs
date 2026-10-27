@@ -31,10 +31,10 @@ const ctx={roster:[make(1,true),make(2),make(3)],cur:make(2),ROSTER_LIMIT:10,ros
  window:{confirm:()=>confirm},document:{createElement:t=>new Element(t),querySelectorAll:()=>[],elementFromPoint:()=>null},
  displayName:x=>x.name,levelOf:x=>x.level,drawCreature(){},clipData:()=>false,
  cancelBirthReveal(){},trackDiscovery(){},persistSelected(){},match:null,
- gen:make,hash:n=>n>>>0,setCurrent(x){ctx.cur=x;ctx.renderRoster()}};
+ gen:make,hash:n=>n>>>0,setCurrent(x){ctx.cur=x;ctx.api.renderRoster()}};
 const parts=extract('function trimRoster(){','function renderMeter(')+'\n'+extract('function moveRoster(fromSeed,toSeed){',"let hc=$('heroCanvas')")+'\n'+extract('function saveNewborn(creature){','function saveCurrent(){');
 vm.runInNewContext(parts+';this.api={moveRoster,saveNewborn,renderRoster,upsertCreature}',ctx);
-ctx.renderRoster();assert.equal($('roster').children.length,3);
+ctx.api.renderRoster();assert.equal($('roster').children.length,3);
 assert.ok($('roster').children.every(x=>x.listeners.dragstart));
 assert.ok($('roster').children.every(x=>x.children.at(-1).listeners.pointerdown));
 assert.equal(ctx.api.moveRoster(3,1),true);
