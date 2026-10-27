@@ -1427,20 +1427,18 @@ async function playVictoryRoar(m){
  let durationMs=0;
  if(clip&&clip.duration>=.08){
   try{
-   const voices=2,now=ac.currentTime+.025;
-   const level=Math.min(.28,VOLUME()*Math.min(3,clip.gain||1)*.70);
-   for(let i=0;i<voices;i++){
-    const source=ac.createBufferSource(),gain=ac.createGain();
-    const start=now+i*.32,rate=i===0?.88:.78,span=clip.duration/rate;
-    source.buffer=clip.buffer;source.playbackRate.value=rate;
-    gain.gain.setValueAtTime(0,start);
-    gain.gain.linearRampToValueAtTime(level*(i===0?1:.65),start+.06);
-    gain.gain.setValueAtTime(level*(i===0?1:.65),start+Math.max(.07,span-.20));
-    gain.gain.linearRampToValueAtTime(0,start+span);
-    source.connect(gain);gain.connect(voiceOutput(ac));
-    source.start(start,clip.offset,clip.duration);trackAttackSource(source);
-    durationMs=Math.max(durationMs,Math.ceil((i*.32+span+.04)*1000));
-   }
+   // One clean recording for the winner too. No second pitched layer.
+   const source=ac.createBufferSource(),gain=ac.createGain();
+   const start=ac.currentTime+.025,rate=1,span=clip.duration/rate;
+   const level=Math.min(.22,VOLUME()*Math.min(3,clip.gain||1)*.78);
+   source.buffer=clip.buffer;source.playbackRate.value=rate;
+   gain.gain.setValueAtTime(0,start);
+   gain.gain.linearRampToValueAtTime(level,start+.04);
+   gain.gain.setValueAtTime(level,start+Math.max(.05,span-.13));
+   gain.gain.linearRampToValueAtTime(0,start+span);
+   source.connect(gain);gain.connect(voiceOutput(ac));
+   source.start(start,clip.offset,clip.duration);trackAttackSource(source);
+   durationMs=Math.ceil((span+.04)*1000);
    lastSoundStatus='勝者の録音声を雄叫びとして再生';
    speechStatus('録音した声の雄叫び');
   }catch(e){lastSoundStatus=String(e);stopAttackVoices();durationMs=0}
