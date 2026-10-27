@@ -131,8 +131,8 @@ async function attemptBackgroundAbort(){
  const mediaLength=await attempt(true);
  const wavLength=await attempt(false);
  assert.ok(mediaLength>100&&wavLength>100,'voice samples are not empty');
- assert.ok(html.includes('id="shareVoice" disabled')&&html.includes('id="receiveVoice" disabled'),'online live audio disabled');
+ assert.ok(html.includes('id="shareVoice"')&&html.includes('id="receiveVoice"')&&!html.includes('id="shareVoice" disabled'),'live voice must require explicit consent, but controls stay available');
  const worker=fs.readFileSync(__dirname+'/worker.js','utf8');
- assert.ok(worker.includes("type:'voice_rejected'"),'online voice uploads still rejected');
+ assert.ok(worker.includes("type:'voice_rejected'")&&worker.includes("!attachment.voiceConsent?.send")&&worker.includes("!r.voiceConsent?.receive"),'voice relay rejects missing peer consent');
  console.log('MIC CAPTURE PASS | fixed 2s recording, then gacha, then preview & stock; MediaRecorder/WAV, no ASR gate');
 })().catch(e=>{console.error(e);process.exitCode=1});
