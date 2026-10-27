@@ -83,7 +83,7 @@ impact({...valid,hp:[-2,100]});assert.equal(liveCtx.impactCount,0,'negative HP r
 impact(valid);assert.equal(liveCtx.impactCount,1,'valid impact processed');
 impact(valid);assert.equal(liveCtx.impactCount,1,'duplicate impact rejected');
 
-assert.ok(worker.includes('raw.length>8192')&&worker.includes("ws.close(1009,'Message too large')"),'server packet bound');
+assert.ok(worker.includes('maxSize=maybeVoice?180500:8192')&&worker.includes("ws.close(1009,'Message too large')"),'gameplay packets still capped at 8KB, consenting short voice clips limited to 180KB');
 assert.ok(script.includes('function resumeAudioFromGesture()'),'audio gesture resume');
 assert.ok(script.includes("document.addEventListener('pointerdown',resumeAudioFromGesture"),'touch audio resume');
 assert.ok(script.includes("if(!won){$('rematchBtn').textContent="),'survival defeat remains on result screen');
