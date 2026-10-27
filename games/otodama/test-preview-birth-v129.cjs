@@ -66,7 +66,7 @@ tasks[0].fn();assert.equal($('birthReveal').dataset.phase,'hatch','middle phase 
 tasks[1].fn();assert.equal($('birthReveal').dataset.phase,'reveal','real sprite revealed before stock');
 assert.equal(drawn.length,1,'birth canvas draws actual game creature');
 assert.equal(stockEvents.length,0,'stock not committed until sprite is revealed');
-assert.match($('birthSubline').textContent,/仲間になった/,'name shown at birth');
+assert.match($('birthSubline').textContent,/誕生/,'character name shown on hatching screen');
 tasks[2].fn();assert.equal($('birthReveal').dataset.phase,'stock','stock step follows creature reveal');
 assert.equal(stockEvents.length,1,'stock callback invoked once, after drawing');
 tasks[3].fn();assert.equal($('birthReveal').hidden,true,'overlay closes after showing stock result');
