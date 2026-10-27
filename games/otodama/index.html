@@ -681,8 +681,10 @@ function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forE
 function setCurrent(cr){cur=cr;trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
 function newOne(){let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
 function renderRoster(){
- const all=[cur,...roster.filter(c=>c.seed!==cur.seed)];
- const shown=rosterExpanded?all:all.slice(0,5);
+ // A selection must never reorder the collection: keep the saved insertion order.
+ const selectedSaved=roster.some(c=>c.seed===cur.seed);
+ const all=selectedSaved?roster.slice():[...roster,cur];
+ const shown=rosterExpanded?all:(selectedSaved?all.slice(0,5):[...roster.slice(0,4),cur]);
  if(!rosterExpanded)while(shown.length<5)shown.push(gen(hash(352135+shown.length*234223)));
  const protectedCount=roster.filter(c=>c.locked===true).length;
  $('rosterCount').textContent='保存 '+roster.length+' / 30 · 保護 '+protectedCount;
@@ -696,11 +698,13 @@ function renderRoster(){
   const saved=roster.find(c=>c.seed===cr.seed);
   const tile=document.createElement('div');tile.className='roster-entry';
   const btn=document.createElement('button');btn.type='button';
-  btn.className='specimen'+(cr.seed===cur.seed?' active':'');
-  btn.title=displayName(cr)+'（ID '+cr.seed+'）を選択';
+  const selected=cr.seed===cur.seed;
+  btn.className='specimen'+(selected?' active':'');
+  btn.setAttribute('aria-pressed',String(selected));
+  btn.title=displayName(cr)+'（ID '+cr.seed+'）'+(selected?'・使用中':'・タップして使用');
   const cv=document.createElement('canvas');cv.width=125;cv.height=122;btn.append(cv);
   const txt=document.createElement('span');
-  txt.textContent=(i===0?'● ':'')+displayName(cr)+' Lv.'+levelOf(cr);
+  txt.textContent=displayName(cr)+' Lv.'+levelOf(cr);
   btn.append(txt);btn.onclick=()=>setCurrent(saved||cr);tile.append(btn);
   if(saved||cr.seed===cur.seed){
    const lock=document.createElement('button');lock.type='button';lock.className='roster-lock';
