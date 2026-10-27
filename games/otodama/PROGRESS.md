@@ -1,3 +1,25 @@
+# 声魂 v135｜全面ブラッシュアップ・探索UI改修｜2026-10-27
+
+CURRENT_STATUS: GitHub mainの games/otodama/ のみ更新。録音→キャラ誕生→所持10体→CPU自動連戦、4声で進化、B/A/S/S+、受付ON時のNEW CHALLENGER→PvP→CPU復帰を維持。Workerは既公開で変更なし。
+CHANGELOG:
+- combat-director-v135.js：音の特性と能力から6戦型・固有の間合い／AI判断／フェイント／回避／ガード／反撃／必殺／覚醒を決める。攻撃と距離が一致する移動を描画し、従来の意味のない大きなsin移動や過剰な速度線を抑制。6体型シルエット、進化声に応じた戦法適性、B/A/S/S+の特別な見た目、属性別の必殺色と放射状エフェクトを追加。
+- 画面変更：ステータスを「作ったキャラ」一覧の直下に移動、キャラ名にLv併記。探索STAGEを確認付きでSTAGE 01に戻すボタン追加。キャラ・Lv・録音・図鑑・累計勝利・最高連勝を保持。戦闘中は禁止、保存失敗は巻き戻す。
+- レア度研究：24回分の判定点・最高点・前回の条件を端末内に記録。S+の目標点との差を任意表示、抽選不使用・JST4時間ローテーション維持。
+- 進化録音声が再読み込み後に消える問題を修正。外部JSONバックアップには録音声を含めず、対戦Workerへ未審査音声を送らない。敵Lv上限を現在のLv40仕様に統一。初心者ガイドを3手順に整理。
+TEST_RESULTS:
+- 同条件CPU 1,200戦の比較：旧平均12.1秒→新18.9秒、回避1.1→2.6回/戦、コンボ6.3→7.6回/戦、味方勝率いずれも50%。
+- 同能力・6戦型・8,640戦別検証：戦型別総合勝率 50%,52%,50%,54%,47%,51%（優劣が一方的にならないよう調整）。
+- GitHub Actions「Test and Deploy OTODAMA Worker」run 40508576028 は commit 65a8abc1 の `npm test:node` 34スイート PASS（Node実行、Androidやブラウザ本番ではない）。
+- 「Verify OTODAMA live matchmaking」run 40508158771 で公開Worker /health・2 WebSocket接続・マッチ成立のライブスモーク PASS（本変更の前段階コード）。実独立2端末のマッチ中操作・切断復帰の通し試験ではない。
+- CSS/HTML構文・JS構文、録音、ガチャ、育成、ラッシュ、対戦の既存回帰をCIで検証。GitHub Pages run 40508575619 は執筆時点ではまだ完了確認待ち。
+BLOCKERS: Android実機（縦・横・マイク録音・音量）とブラウザ視覚/高負荷性能測定は未実施。GitHub Pages最新配信URLへの直接HTTPアクセスは接続できず、配信内容を実ブラウザ照合できていない。独立二端末の PvP→CPU復帰は未検証。音声DNA実録音の分布とS+研究の達成度は今後端末差を評価。
+NEXT_ACTIONS: Pagesの完了確認とブラウザで実画面の配置確認、Android実機で2秒録音→ガチャ→Lv10/20/30進化→追加声再生/端末再起動、二端末でCPU→PvP→CPU・切断/背面復帰、端末性能別自動FX品質調整。
+LATEST_IMPLEMENTATION_COMMIT_SHA: 65a8abc10403adafcf6568d5aca8c7fb11043be1
+GITHUB_ACTIONS_NODE: https://github.com/techmew/techmew.github.io/actions/runs/40508576028
+GITHUB_ACTIONS_LIVE: https://github.com/techmew/techmew.github.io/actions/runs/40508158771
+
+---
+
 v134追加品質確認（2026-10-27）: UI配置変更とマッチ準備30秒に伴い、test-ui-refined-v124 / test-handoff-v125を新仕様へ修正。旧 test-quality-v108 / test-audio-dna / test-voice-review-v114 / test-hourly-v117 の模擬環境依存コード（Lv40/成長エンジン/音声優先）を更新。V8相当の個別模擬実行で test-ui-refined-v124 / test-handoff-v125 / test-quality-v108 / test-audio-dna / test-synth-rush-v134 の計5件PASS、先行12件と合わせて主要17件PASS。test-voice-review-v114のV8簡易実行はテストホストにBlobがないため中断（実Nodeでの失敗の証拠ではない）。test-hourly-v117の簡易実行はホストTextEncoderなしのため中断。正式npm run test:node（全31スイート）、最新Actionsの成功判定、Pages本番、公開Worker、Android・2端末は依然未検証。
 LATEST_IMPLEMENTATION_AND_TEST_COMMIT_SHA: 281f2463bfcc61f3a6c2ddc7b357f160f1429381
 
