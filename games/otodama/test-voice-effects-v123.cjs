@@ -23,12 +23,13 @@ const ac={currentTime:10,
  createBiquadFilter(){const f={frequency:{value:0},Q:{value:0},type:'',connect(){}};filters.push(f);return f}};
 const voiceClip='data:audio/wav;base64,ZGVtbw==',cr={seed:54,voiceClip,voice:{pitch:78,rhythm:61}};
 const key=cr.seed+'_'+voiceClip.length+'_'+voiceClip.slice(-32);
+let now=1000;
 const context={Math,Map,Uint8Array,Float32Array,atob:()=> 'demo',
  voiceCache:new Map([[key,{buffer:{},offset:.07,duration:.65,gain:1.4}]]),pendingVoice:new Map(),
  $ ,VOLUME:()=>.15,unlockBattleAudio:()=>ac,voiceOutput:()=>({}),
  trackAttackSource:()=>{},synthVoice:(...args)=>voices.push(args),
  hash:n=>{n=n>>>0;n=Math.imul(n^(n>>>16),0x7feb352d);return (n^(n>>>15))>>>0},
- clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),performance:{now:()=>1000},
+ clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),performance:{now:()=>now},
  bgmDuckUntil:0,lastSoundStatus:'',showRushBanner:x=>banner.push(x),
  match:{done:false,mode:'COM MATCH',turn:1,live:false,a:cr,b:cr}
 };
@@ -53,15 +54,26 @@ assert.ok(clips[0].rate>.4&&clips[0].rate<=2.1,'pitch/rate modified');
 assert.equal(flags.voiceFxLabel.hidden,false,'FX name visible');
 assert.ok(flags.voiceFxLabel.textContent.includes('攻撃'),'attack label visible');
 api.attackVoice(cr,0,{kind:'combo',hits:5});
-assert.equal(clips.length,6,'5 recorded voice hits');
-assert.ok(clips[5].time>clips[1].time,'staggered attack');
+assert.equal(clips.length,1,'busy attack is not layered with a second recording');
+now+=850;
+api.attackVoice(cr,0,{kind:'combo',hits:5});
+assert.equal(clips.length,2,'ordinary multi-hit animation uses just one voice');
+now+=850;
 api.attackVoice(cr,0,{kind:'meteor',skill:true,rush:true,hits:7});
-assert.ok(clips.length>=13,'7 recorded special hits (plus possible echo)');
+assert.equal(clips.length,9,'only explicitly marked rush has seven samples');
+assert.ok(clips[8].time>clips[2].time,'rush voices are sequential');
 const beforeReactions=clips.length;
 api.reactionVoice(cr,1,{kind:'rush',damage:18});
 api.reactionVoice(cr,1,{kind:'rush',damage:25,guard:true});
+assert.equal(clips.length,beforeReactions,'reactions cannot overlap recorded rush');
+now+=1500;
+api.reactionVoice(cr,1,{kind:'rush',damage:18});
+assert.equal(clips.length,beforeReactions,'ordinary hit reactions use SE rather than voice');
+api.reactionVoice(cr,1,{kind:'rush',damage:25,guard:true});
+assert.equal(clips.length,beforeReactions+1,'guard can speak after attack finishes');
+now+=850;
 api.reactionVoice(cr,1,{kind:'rush',damage:0,dodge:true});
-assert.ok(clips.length>=beforeReactions+3,'hurt guard dodge trigger voice');
+assert.equal(clips.length,beforeReactions+2,'dodge has a separated response');
 assert.ok(flags.voiceFxLabel.textContent.includes('被弾'),'reaction label shown');
 const beforeMute=clips.length;flags.muteOpponentVoice.checked=true;
 context.match.mode='ONLINE LIVE';
@@ -74,6 +86,7 @@ flags.voiceFxEnabled.checked=false;
 const plain=api.voiceEffectProfile(cr,0,{kind:'meteor'},'attack');
 assert.equal(plain.enabled,false,'FX opt-out');
 assert.equal(plain.from,1);
+now+=850;
 api.attackVoice(cr,0,{kind:'meteor'});
 assert.equal(flags.voiceFxLabel.hidden,true,'FX label disabled');
 const previewBefore=clips.length;
@@ -89,4 +102,4 @@ assert.equal(voices.length,0,'recorded sample did not require synthetic fallback
 assert.ok(html.includes('id="voiceFxLabel"')&&html.includes('id="voiceFxEnabled"'));
 assert.ok(js.includes('reactionVoice(def===0?m.a:m.b,def,ev)'),'CPU spectator reaction connected');
 assert.ok(js.includes('reactionVoice(data.atk===0?m.b:m.a,1-data.atk'),'online impact reaction connected');
-console.log('VOICE FX PASS | 28 profiles, deterministic selection, attacks 1/5/7, hurt, guard, dodge, volume/mute, preview, battle end');
+console.log('VOICE FX PASS | 28 profiles, single isolated attacks, explicit rush only, guarded reactions, mute, clean preview');
