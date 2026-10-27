@@ -54,13 +54,16 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-judge{border:1px solid #ffffff2b;background:#ffffff16;border-radius:12px;text-align:center;padding:11px 5px}.show-judge b{display:block;color:#f9c79c;font-size:12px}.show-judge strong{font-size:25px}.show-judge span{font-size:10px;display:block}
 .show-result{font-size:14px;font-weight:950;line-height:1.7;margin:12px 0;color:#ffe3a4}
 @media(max-width:620px){.round-dock{margin:0 8px 13px;gap:5px;padding:9px}.round-pips i{width:13px;height:11px}.round-dock b,.round-dock button{font-size:10px}.show-overlay{padding:0}.show-shell{min-height:100dvh;max-height:100dvh;border-radius:0;padding:10px}.show-slots{gap:3px}.show-slot{padding:5px 2px;gap:2px}.show-slot strong{font-size:9px}.show-slot small{font-size:8px;min-height:37px}.show-help{font-size:11px}.show-actions button{padding:11px 9px;font-size:11px}.show-judge{padding:8px 3px}.show-judge b{font-size:10px}.show-judge strong{font-size:19px}}
+.fight-track.tension-track{position:relative}.fight-track.tension-track::after{content:"";position:absolute;left:30%;width:38%;top:0;bottom:0;border-left:2px dashed #eaffc9b8;border-right:2px dashed #eaffc9b8;pointer-events:none}
+.show-slot small{min-height:40px}.show-slot small em{display:block;color:#ffcb8b;font-style:normal;font-weight:900;font-size:9px;margin-top:3px}
+@media(max-width:620px){.show-slot small{min-height:52px}.show-slot small em{font-size:8px}}
 </style>
 </head>
 <body>
 <div class="app">
 <header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。5着でランウェイ対決。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
 <main>
-<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かんでいる服をタップすると釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服をタップして狙おう！ ヒット後は長押し！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → ヒットしたら長押し ／ 離して張りを調整<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5着</button></div></section>
+<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かんでいる服をタップすると釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服をタップして狙おう！ ヒット後は長押し！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が安全な張りの目安"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → ヒットしたら長押し ／ 離して張りを調整<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5着</button></div></section>
 <section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>STYLE SCORE</small><b id="score">0</b><span class="rank" id="rank">C</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
 </main>
 <div class="show-record" id="showRecord">BROADWAY SHOW　勝利 <b>0</b> ／ ベスト <b>0</b> 点 ／ 連勝 <b>0</b></div>
@@ -197,7 +200,7 @@ function updateFishingHud(){
  $('tensionFill').style.width=clamp(hook.tension,0,100)+'%';
  $('tensionFill').style.background=hook.tension>75?'linear-gradient(90deg,#ffbb64,#ff506a)':'linear-gradient(90deg,#5bc5e8,#ffcc81)';
  $('fightClock').textContent=Math.max(0,hook.limit-hook.elapsed).toFixed(1)+'秒';
- $('fightCall').textContent=hook.pull?(hook.tension>72?'危険！ 指を離して糸を緩めよう':hook.surge?'抵抗中！ 強く引きすぎ注意':'引き寄せ中！'):hook.tension>36?'糸を休ませている…':'長押しで引く ／ 離して糸を緩める';
+ $('fightCall').textContent=hook.pull?(hook.tension>76?'危険！すぐ離して張りを下げよう':hook.surge?'急に暴れた！短く引こう':hook.tension>=30&&hook.tension<=68?'好調！点線の間をキープ':'引き寄せ中！'):hook.tension>38?'糸を休ませている…':'点線30〜68%を狙って長押し！';
 }
 function updateGame(dt){
  for(const s of sceneItems){s.x+=s.vx*dt*.055;if(s.x<80||s.x>955)s.vx*=-1}
@@ -209,7 +212,7 @@ function updateGame(dt){
   hook.progress+=dt/620;
   const p=clamp(hook.progress,0,1),e=1-Math.pow(1-p,2);
   hook.x=204+(hook.targetX-204)*e;hook.y=149+(hook.targetY-149)*e-Math.sin(p*Math.PI)*35;
-  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=14.3+st.rod*.65-hook.chosen.item.rarity*.25;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
+  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=14.3+st.rod*.65-hook.chosen.item.rarity*.25+(hook.chosen.item.rarity===3?1.2:0);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.rarity;
   hook.elapsed+=sec;
@@ -247,19 +250,34 @@ function showScore(items){
  let fits=items.reduce((a,o,i)=>a+(rules[i].includes(o.cat)?1:0),0),odd=5-fits;
  let colors=items.map(o=>parseInt(colorOf(o).slice(1),16)),dist=0,num=0;
  for(let i=0;i<5;i++)for(let j=0;j<i;j++){let a=colors[i],b=colors[j],d=Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255));dist+=d;num++}
- let harmony=1-Math.min(1,dist/num/285),theme=showTheme()[1],novel=odd+repeats*.6;
+ let harmony=1-Math.min(1,dist/num/285),theme=showTheme()[1],novel=odd+Math.min(2,repeats)*.5;
  let a=24+fits*10+harmony*18+rarity*1.2-repeats*3+(theme==='classic'?9:0);
- let b=23+novel*10+unique*4+rarity+(theme==='avant'||theme==='chaos'?9:0);
+ let b=23+odd*8+Math.min(2,repeats)*4+unique*5+rarity*.85+(theme==='avant'||theme==='chaos'?12:0);
  let c=22+fits*5+unique*3+rarity*1.5;
  if(theme==='classic')c+=fits*6+harmony*16-odd*3;
  if(theme==='street')c+=novel*6+unique*3;
- if(theme==='avant')c+=odd*9+repeats*4;
+ if(theme==='avant')c+=odd*8+Math.min(3,repeats)*4;
  if(theme==='color')c+=harmony*23+unique*4;
- if(theme==='chaos')c+=odd*8+repeats*8;
+ if(theme==='chaos')c+=odd*7+Math.min(3,repeats)*7;
  if(theme==='glam')c+=rarity*2+fits*6+harmony*8;
  let judges=[a,b,c].map(v=>clamp(Math.round(v),10,100)),total=judges.reduce((x,y)=>x+y,0);
  let rival=clamp(Math.round(171+Math.min(65,(st.show.round-1)*3.3)+(hash(st.show.round*337)%27-13)),120,262);
  return {judges,total,rival,win:total>=rival,fits,odd,repeats}
+}
+function showPlacement(item,slot){
+ const natural=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
+ if(natural[slot].includes(item.cat))return 'ぴったり';
+ if(['bottom','under'].includes(item.cat))return ['ズボン帽子','ズボンサングラス','ズボンをシャツに！','ズボンを重ねる','ズボンブーツ'][slot];
+ if(item.cat==='shoes')return ['靴を頭に！','靴サングラス','靴をベストに','靴を腰巻きに',''][slot];
+ return ['頭に無理やり！','顔に巻く！','胴に着る！','腰に巻く！','足に装着！'][slot];
+}
+function showStyleHint(){
+ if(showPhase!=='prep')return;
+ const items=showOutfit();if(items.length!==5)return;
+ const estimate=showScore(items),t=showTheme()[1];
+ const style=estimate.fits>=4?'正統派':estimate.odd>=4?'超前衛':estimate.odd>=2?'型破り':'ミックス';
+ const themeHint=(t==='avant'||t==='chaos')?'変な位置への着用が高評価':t==='classic'||t==='glam'?'自然な位置と色の調和が重要':t==='color'?'色の調和と種類の豊富さが重要':'大胆さと種類の豊富さが重要';
+ $('showHelp').textContent='現在：'+style+'（自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5）。'+themeHint+'。CPU目標 '+estimate.rival+'点。2着タップで交換。';
 }
 function showSlots(){
  const root=$('showSlots');root.replaceChildren();
@@ -267,9 +285,9 @@ function showSlots(){
   const b=document.createElement('button');b.className='show-slot'+(showSelected===i?' selected':'');b.disabled=showPhase!=='prep';
   const lab=document.createElement('strong');lab.textContent=showRoles[i];
   const c=document.createElement('canvas');c.width=c.height=94;drawGarmentCard(c,it);
-  const name=document.createElement('small');name.textContent=it.name;b.append(lab,c,name);
+  const name=document.createElement('small');name.textContent=it.name;const note=document.createElement('em');note.textContent=showPlacement(it,i);name.append(note);b.append(lab,c,name);
   b.addEventListener('click',()=>{if(showPhase!=='prep')return;if(showSelected<0)showSelected=i;else if(showSelected===i)showSelected=-1;else{const a=st.show.order;[a[showSelected],a[i]]=[a[i],a[showSelected]];showSelected=-1;save();tone(610,.1)}showSlots()});root.append(b)
- })
+ });showStyleHint()
 }
 function openShow(){
  if(st.show.queue.length!==5||showPhase!=='closed')return;
@@ -328,11 +346,18 @@ function dressRunway(ctx,x,y,z,t){
  ctx.fillStyle='#252943';ctx.beginPath();ctx.arc(0,-163,38,Math.PI,0);ctx.lineTo(26,-151);ctx.quadraticCurveTo(0,-166,-26,-145);ctx.fill();
  // Garment silhouettes are placed regardless of their original clothing category.
  drawGarment(ctx,items[3],0,77,111,.03);
- drawGarment(ctx,items[2],0,-22,126,-.02);
+ // Trouser-shirt: inverted legs form shoulder flaps.
+ const torsoPants=['bottom','under'].includes(items[2].cat);
+ drawGarment(ctx,items[2],0,-22,torsoPants?117:126,torsoPants?Math.PI:-.02);
  drawGarment(ctx,items[4],-21,163,57,-.1);drawGarment(ctx,items[4],22,163,57,.1);
- if(['bottom','under'].includes(items[1].cat)){drawGarment(ctx,items[1],-20,-136,46,-Math.PI/2);drawGarment(ctx,items[1],20,-136,46,Math.PI/2)}
- else drawGarment(ctx,items[1],0,-135,72);
- drawGarment(ctx,items[0],0,-189,102,.04);
+ if(['bottom','under'].includes(items[1].cat)){
+  // Split trouser legs into two sunglass lenses and a bridge.
+  ctx.strokeStyle='#f6e8bf';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-29,-142);ctx.quadraticCurveTo(0,-152,29,-142);ctx.stroke();
+  drawGarment(ctx,items[1],-20,-137,45,-Math.PI/2);drawGarment(ctx,items[1],20,-137,45,Math.PI/2);
+  ctx.strokeStyle='#2a3046';ctx.lineWidth=2;for(const eye of [-20,20]){ctx.beginPath();ctx.ellipse(eye,-137,22,13,0,0,Math.PI*2);ctx.stroke()}
+ }else drawGarment(ctx,items[1],0,-135,72);
+ // Inverted trouser hat: waistband on crown, legs pointing up.
+ drawGarment(ctx,items[0],0,-189,102,['bottom','under'].includes(items[0].cat)?Math.PI:.04);
  ctx.restore()
 }
 function drawShowStage(){
