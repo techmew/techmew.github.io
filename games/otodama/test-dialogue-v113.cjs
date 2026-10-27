@@ -79,7 +79,7 @@ const api=new Function('d',env+src+
  assert.equal(voices.at(-1),'synth','CPU opponent wins with synthesized roar when no recorded clip exists');
  assert.ok(!$('battleSpeech').hidden,'CPU loss keeps dialogue text');
  assert.equal($('battleSpeechWho').textContent,'相手：');
- assert.ok(lost.tauntText.length<=18,'CPU line is a single short phrase');
+ assert.ok(lost.tauntText.length>=17&&lost.tauntText.length<=36,'CPU taunt speaks a fuller three-part line');
  await Promise.resolve();await Promise.resolve();await Promise.resolve();
  const speakTask=timers.filter(t=>!t.cancelled).at(-1);
  assert.ok(speakTask?.delay>=100,'CPU speaks only after its victory roar');
