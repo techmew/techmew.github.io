@@ -4,14 +4,14 @@
 const STYLES=[
  {name:'パワー型',distance:128,pace:.86,pressure:.13,guard:.02,dodge:0,counter:0,skills:['meteor','uppercut','shockwave'],tell:'重い一撃をためている'},
  {name:'スピード型',distance:91,pace:1.18,pressure:.08,guard:-.01,dodge:.08,counter:.02,skills:['combo','aerial','warp'],tell:'踏み込む隙を見ている'},
- {name:'守備型',distance:169,pace:.92,pressure:-.02,guard:.14,dodge:.02,counter:.045,skills:['shockwave','counter','spin'],tell:'相手の出方を見ている'},
- {name:'カウンター型',distance:147,pace:1.04,pressure:0,guard:.045,dodge:.065,counter:.135,skills:['counter','warp','uppercut'],tell:'反撃の機会をうかがう'},
+ {name:'守備型',distance:169,pace:.92,pressure:-.02,guard:.095,dodge:.02,counter:.04,skills:['shockwave','counter','spin'],tell:'相手の出方を見ている'},
+ {name:'カウンター型',distance:147,pace:1.04,pressure:0,guard:.035,dodge:.045,counter:.085,skills:['counter','warp','uppercut'],tell:'反撃の機会をうかがう'},
  {name:'バランス型',distance:127,pace:1.03,pressure:.045,guard:.035,dodge:.035,counter:.04,skills:['rush','aerial','uppercut'],tell:'相手の弱点を探している'},
- {name:'変化型',distance:193,pace:1.05,pressure:.045,guard:.015,dodge:.07,counter:.065,skills:['beam','warp','spin'],tell:'間合いを変えて揺さぶる'}
+ {name:'変化型',distance:193,pace:1.05,pressure:.045,guard:.015,dodge:.045,counter:.04,skills:['beam','warp','spin'],tell:'間合いを変えて揺さぶる'}
 ];
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,Number.isFinite(v)?v:lo));
 const hash=x=>{let v=(Number(x)||0)>>>0;v=Math.imul(v^v>>>16,0x45d9f3b);v=Math.imul(v^v>>>16,0x45d9f3b);return(v^v>>>16)>>>0};
-function rand(seed){let n=seed>>>0;return()=>{n=(Math.imul(1664525,n)+1013904223)>>>0;return n/4294967296}}
+function rand(seed){let n=seed>>>0;return()=>{n=(n+0x6D2B79F5)>>>0;let t=n;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
 function styleFor(c,profile){
  if(Number.isInteger(profile?.style))return clamp(profile.style,0,5);
  const s=Array.isArray(c?.stats)?c.stats:[50,50,50,50,50],v=c?.voice||{};
@@ -95,8 +95,8 @@ function simulate(a,b,options={}){
    if(counter){selfDamage=clamp(Math.round(4+bb[0]*.095),5,15);damage=Math.max(1,Math.round(damage*.72))}
   }
   hp[def]=Math.max(0,hp[def]-damage);hp[atk]=Math.max(0,hp[atk]-selfDamage);
-  energy[atk]=Math.min(100,(skill?0:energy[atk])+20+(arena==='残響増幅'?9:0));
-  energy[def]=Math.min(100,energy[def]+(guard?20:counter?16:9));
+  energy[atk]=Math.min(100,(skill?0:energy[atk])+14+(arena==='残響増幅'?8:0));
+  energy[def]=Math.min(100,energy[def]+(guard?14:counter?12:7));
   momentum[atk]=damage>0?Math.min(4,momentum[atk]+1):Math.max(-2,momentum[atk]-1);
   momentum[def]=counter?Math.min(4,momentum[def]+2):Math.max(-2,momentum[def]-1);
   lastKind[atk]=kind;
