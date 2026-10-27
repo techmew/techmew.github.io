@@ -62,7 +62,7 @@ assert.ok(fight.events.length>0&&fight.events.length<=52,'combat terminates');
 assert.ok([0,1].includes(fight.winner),'combat has a winner');
 assert.ok(fight.events.every(e=>Number.isFinite(e.damage)&&e.damage>=0&&e.hp.every(Number.isFinite)),'finite battle damage');
 assert.ok(js.includes('dnaFrames.push(dnaFrame('),'recording feeds analyser');
-assert.ok(js.includes('setCurrent({...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip})'),'DNA drives character creation');
+assert.ok(js.includes('const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip}')&&js.includes('saveNewborn(newborn)'),'DNA drives character creation');
 assert.ok(js.includes('音声特性：'),'local combat uses voice abilities');
 assert.ok(js.includes('const traits=fighters.map('),'auto combat uses voice abilities');
 assert.ok(js.includes('const CAPTURE_MS=2000'),'extended recording');
