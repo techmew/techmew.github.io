@@ -286,3 +286,6 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
 
 /* The collection moved into the preview; the remaining connectivity card spans the lower row. */
 .bottom{grid-template-columns:minmax(0,1fr)}
+
+/* Keep controls compact when the left preview has 30 creature cards. */
+.layout>.controls{align-self:start}
