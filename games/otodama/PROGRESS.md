@@ -1,3 +1,7 @@
+v133追補（2026-10-27）: 7連撃を次ターン・勝敗演出で途中停止させないため、match.rushEndsAt=発動時+1750msを設定してCPUターンの進行を保留。ラッシュHIT表示の更新間隔を音声と同じ200ms、表示時間を1750msに統一。関連テストにターン進行ガードとHIT表示間隔の確認を追加。JavaScript構文PASS。正式GitHub Actions・公開配信・Android実機は未確認。
+LATEST_RUSH_CODE_SHA: ffd85ba910c104899656a818eb09c2997caf9905
+LATEST_RUSH_TEST_SHA: 5d2b62e3ce8ebb9c11e1b97434ac22f71253cf9f
+
 # 声魂 v133｜ラッシュ音声が反映されない問題への実経路修正｜2026-10-27
 
 CURRENT_STATUS: GitHub main の games/otodama/index.html を修正。必殺技ラッシュを「録音した声の全フレーズを高速再生する7連撃」に変更。Cloudflare Worker、他ゲーム・他サイトは変更なし。
