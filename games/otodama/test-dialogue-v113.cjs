@@ -1,4 +1,4 @@
-// CPU-only text dialogue + winner roar; simulated Web Audio and result progression.
+// CPU victory short Japanese TTS + winner roar; simulated WebAudio and result progression.
 // No actual browser, microphone, speaker or Cloudflare test.
 'use strict';
 const fs=require('node:fs'),assert=require('node:assert/strict');
@@ -37,8 +37,8 @@ const audio={currentTime:5,state:'running',
  createGain(){return{gain:param,connect(){}}},
  createOscillator(){return{frequency:param,connect(){},start(){voices.push('synth')},stop(){}}},
  createBiquadFilter(){return{frequency:{value:0},Q:{value:0},connect(){}}}};
-const synth={speaking:false,cancel(){},speak(v){spoken.push(v)}};
-const ctx={first,window:{speechSynthesis:synth},document:{get hidden(){return invisible}},
+const synth={speaking:false,cancel(){this.speaking=false},speak(v){this.speaking=true;spoken.push(v)},getVoices(){return [{lang:'ja-JP'}]}};
+const ctx={first,window:{speechSynthesis:synth,SpeechSynthesisUtterance:class{constructor(text){this.text=text}}},document:{get hidden(){return invisible}},
  localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v))},
  performance:{now:()=>now},$,displayName:x=>x.name,VOLUME:()=>.12,clipData:x=>x.voiceClip||null,
  decodeVoice:async()=>({buffer:{},offset:.2,duration:.7,gain:1}),
@@ -78,7 +78,15 @@ const api=new Function('d',env+src+
  api.match=lost;api.showBattleQuote(lost);
  assert.equal(voices.at(-1),'synth','CPU opponent wins with synthesized roar when no recorded clip exists');
  assert.ok(!$('battleSpeech').hidden,'CPU loss keeps dialogue text');
- assert.equal($('battleSpeechWho').textContent,'相手のセリフ');
+ assert.equal($('battleSpeechWho').textContent,'相手：');
+ assert.ok(lost.tauntText.length<=18,'CPU line is a single short phrase');
+ await Promise.resolve();await Promise.resolve();await Promise.resolve();
+ const speakTask=timers.filter(t=>!t.cancelled).at(-1);
+ assert.ok(speakTask?.delay>=100,'CPU speaks only after its victory roar');
+ now+=1350;speakTask.fn();
+ assert.equal(spoken.length,1,'CPU victory text read aloud');
+ assert.equal(spoken[0].text,lost.tauntText,'spoken line matches on-screen text');
+ assert.equal(spoken[0].lang,'ja-JP','Japanese TTS');
  const before=timers.length;api.scheduleNextAfterQuote(lost);
  assert.equal(timers.length,before,'defeat does not schedule another battle');
  const online={a:own,b:foe,outcome:{winner:1},mode:'ONLINE LIVE',live:true,done:true};
@@ -86,7 +94,7 @@ const api=new Function('d',env+src+
  assert.ok($('battleSpeech').hidden,'online opponent gets NO dialogue text');
  assert.equal(online.tauntText,'','online winner has no generated dialogue');
  assert.equal(voices.length,beforeOnline,'online human without a recording must not use a synthetic voice');
- assert.equal(spoken.length,0,'no spoken result dialogue anywhere');
+ assert.equal(spoken.length,1,'online opponent must not trigger CPU TTS');
  $('muteOpponentVoice').checked=true;
  const soundCount=voices.length;await api.playVictoryRoar(online);
  assert.equal(voices.length,soundCount,'online opponent mute respected');
@@ -127,5 +135,5 @@ const api=new Function('d',env+src+
  assert.equal(voices.length,beforeResume+2,'recovered AudioContext replays recorded victory roar');
  assert.ok(script.includes("if(won||m.live||m.mode===\'COM MATCH\')scheduleNextAfterQuote(m)"),'CPU and online advance after resolution');
  assert.ok(!html.includes('id="bowBanner"'),'no pre-fight bow');
- console.log('RESULT ROAR PASS | player win audio-only, CPU loss text, online voice restriction, mute, autoplay, replay, background');
+ console.log('RESULT VOICE PASS | CPU Japanese TTS after roar, short dialogue, player/online privacy, mute, autoplay and stale async');
 })().catch(error=>{console.error(error);process.exitCode=1});
