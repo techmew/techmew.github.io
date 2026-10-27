@@ -26,7 +26,7 @@ const notes=[];
 function fakeRuntime(mediaRecorderEnabled){
  const nodes=new Map(),media={grants:0,stops:0},ctxRef={};
  const $=id=>{
-  if(!nodes.has(id))nodes.set(id,{disabled:false,style:{display:''},textContent:'',checked:false,
+  if(!nodes.has(id))nodes.set(id,{disabled:false,style:{display:''},dataset:{},textContent:'',checked:false,
    classList:{add(){},remove(){}}});
   return nodes.get(id);
  };
@@ -64,9 +64,9 @@ function fakeRuntime(mediaRecorderEnabled){
   startBirthReveal(creature,onStock){notes.push('gacha:'+creature.seed);ctxRef.stockCallback=onStock},
   micErrorMessage:e=>String(e?.name||e),
   autocorr:()=>230,median:a=>a[0]||0,hash:n=>n>>>0,
-  clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),liveWave:null,
+  clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),levelOf:()=>1,rarityOf:()=> 'B',liveWave:null,
   gen:(seed,voice)=>({seed,voice}),dnaFrame:()=>({t:0,rms:.1}),analyseVoiceDNA:()=>null,cur:{},clipData,
-  GROWTH:{rarityForDNA:()=>({grade:'B',score:0,phase:{windowId:0}}),canEvolve:()=>false},updateEvolutionUI(){}
+  GROWTH:{rarityForDNA:()=>({grade:'B',score:0,phase:{windowId:0}}),canEvolve:()=>false,slotsForLevel:()=>0},updateEvolutionUI(){}
  };
  context.setCurrent=(c,fromBirth)=>{context.cur=c;notes.push('preview:'+c.seed+':'+String(fromBirth));$('voicePreviewBtn').disabled=!clipData(c)};
  const api=vm.runInNewContext(source+';({startRecord,stopRecord,pcmWavDataUrl,abortCaptureForBackground})',context);
