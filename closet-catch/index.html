@@ -91,8 +91,8 @@ const byCat={}, catalog=[], rarityPools=[[],[],[],[]];let start=0;
 function hash(n){n=(n^0x9e3779b9)>>>0;n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;return (n^(n>>>16))>>>0}
 for(const cfg of conf){byCat[cfg.cat]=cfg;for(let i=0;i<cfg.count;i++){const a=cfg.styles.length,b=cfg.colors;let style=i%a,color=Math.floor(i/a)%b,pattern=Math.floor(i/(a*b))%10;const n=start+i;let r=hash(n+597)%10000;const rarity=r<100?3:r<750?2:r<3000?1:0;const item={id:n,cat:cfg.cat,idx:i,style,color,pattern,rarity,rarityLabel:rareSymbols[rarity],name:`${palettes[color][0]}${patterns[pattern][0]}の${cfg.styles[style]}`,hue:color};catalog.push(item);rarityPools[rarity].push(n)}start+=cfg.count}
 console.assert(catalog.length===TOTAL,'10,000種類が生成されていません');
-const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,shows:0}});
-let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.show={...defaultState().show,...(st.show||{})};st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,shows:0,completed:false,lastResult:null}});
+let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.show={...defaultState().show,...(st.show||{})};st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null}
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
@@ -209,15 +209,15 @@ function updateGame(dt){
   hook.progress+=dt/620;
   const p=clamp(hook.progress,0,1),e=1-Math.pow(1-p,2);
   hook.x=204+(hook.targetX-204)*e;hook.y=149+(hook.targetY-149)*e-Math.sin(p*Math.PI)*35;
-  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=13+st.rod*.55-hook.chosen.item.rarity*.6;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
+  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;hook.limit=14.3+st.rod*.65-hook.chosen.item.rarity*.25;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200)}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.rarity;
   hook.elapsed+=sec;
   hook.surge=Math.sin(hook.elapsed*(2.5+r*.35)+hook.chosen.phase)>0.76;
   const rhythm=(Math.sin(hook.elapsed*4.5+hook.chosen.phase)+1)*.5;
   if(hook.pull){
-   hook.reel+=(19+st.rod*1.4-r*2.2+(rhythm>.77?4:0)-(hook.surge?10:0)+(hook.tension>=30&&hook.tension<=68?5:0))*sec;
-   hook.tension+=(34+r*8+(hook.surge?40:0)-st.rod*.9)*sec;
+   hook.reel+=(19+st.rod*1.4-r*2.2+(rhythm>.77?4:0)-(hook.surge?10:0)+(hook.tension>=30&&hook.tension<=68?10:0))*sec;
+   hook.tension+=(34+r*7+(hook.surge?40:0)-st.rod*.9)*sec;
    if(Math.random()<sec*11)bubble(hook.x,hook.y,1,'#fdf7a9');
   }else{hook.reel-=(3.2+r*1.5+(hook.surge?2:0))*sec;hook.tension-=(44+st.rod*2)*sec}
   hook.reel=clamp(hook.reel,0,100);hook.tension=clamp(hook.tension,0,105);
@@ -278,7 +278,7 @@ function openShow(){
  $('showTheme').textContent='ROUND '+st.show.round+' ／ '+showTheme()[0];
  $('showHelp').textContent='2箇所を順番にタップして交換。ズボンでも帽子・サングラス・靴に強制変形！ テーマ：'+showTheme()[0];
  $('showJudges').hidden=true;$('showResult').hidden=true;$('showShuffle').hidden=false;
- $('showMain').textContent='ファッションショー開始';showSlots()
+ $('showMain').textContent='ファッションショー開始';showSlots();if(st.show.completed&&st.show.lastResult){showScores=st.show.lastResult;showSaved=true;showPhase='walk';endShow()}
 }
 function beginShow(){
  if(showPhase!=='prep')return;
@@ -292,7 +292,7 @@ function endShow(){
   st.show.shows++;st.show.best=Math.max(st.show.best,showScores.total);
   if(showScores.win){st.show.wins++;st.show.streak++;showScores.prize=150+Math.min(200,st.show.streak*25)}
   else{st.show.streak=0;showScores.prize=30}
-  st.coins+=showScores.prize;showSaved=true;redrawUI();
+  st.coins+=showScores.prize;st.show.completed=true;st.show.lastResult={...showScores};showSaved=true;redrawUI();
  }
  const root=$('showJudges');root.replaceChildren();root.hidden=false;
  const notes=[showScores.fits>=3?'よく似合う！':'かなり奇抜！',showScores.repeats>=3?'大胆すぎる発想！':showScores.odd>=3?'意外性がある！':'色使いに注目！',showTheme()[0]+'に挑戦'];
@@ -304,7 +304,7 @@ function endShow(){
 }
 function nextShow(){
  if(showPhase!=='result')return;
- st.show.queue=[];st.show.order=[0,1,2,3,4];st.show.round++;
+ st.show.queue=[];st.show.order=[0,1,2,3,4];st.show.completed=false;st.show.lastResult=null;st.show.round++;
  showPhase='closed';showScores=null;$('showOverlay').classList.add('hidden');redrawUI();
 }
 function progressShow(dt){
