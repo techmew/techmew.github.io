@@ -44,7 +44,7 @@ const ctx={
  console,Math,Number,JSON
 };
 vm.runInNewContext(script.slice(start,end)+
- '\n globalThis.queueTest={startRandomMatch,setPvPAcceptance,canSearchPvP,startChallengerHandoff,maybeQueuePvP,cancelRandomSearch,get queue(){return queueWs},get pending(){return {connect:queueConnectTimer,wait:queueWaitTimer,retry:matchmakingRetryTimer}},get handoff(){return challengerHandoff}}',ctx);
+ '\n globalThis.queueTest={startRandomMatch,setPvPAcceptance,canSearchPvP,startChallengerHandoff,maybeQueuePvP,cancelRandomSearch,get queue(){return queueWs},get pending(){return {connect:queueConnectTimer,wait:queueWaitTimer,retry:matchmakingRetryTimer}},get handoff(){return challengerHandoff},setSuspended(value){pageSuspended=!!value}}',ctx);
 const h=ctx.queueTest;
 assert.equal(h.canSearchPvP(),true);
 h.startRandomMatch();
@@ -79,6 +79,12 @@ assert.equal(h.pending.connect,null,'timeout cleared');
 assert.ok(h.pending.retry&&h.pending.retry.ms>0&&h.pending.retry.ms<=12000,'failure cooldown before retry');
 assert.equal(third.readyState,3,'stale socket closed');
 assert.equal(h.canSearchPvP(),true,'CPU remains eligible after network failure');
+h.setSuspended(true);
+assert.equal(h.canSearchPvP(),false,'pagehide cannot start another socket');
+assert.equal(h.startChallengerHandoff(),false,'pagehide cannot start a cut-in');
+h.setSuspended(false);
 assert.match(script,/window.addEventListener\('pagehide',[\s\S]*?cancelRandomSearch\(true\)/,'pagehide closes queue');
 assert.match(script,/window.addEventListener\('pageshow',[\s\S]*?event.persisted/,'BFCache return rechecks search');
+assert.match(script,/pageSuspended=true;[\s\S]*?cancelRandomSearch\(true\)/,'pagehide marks suspension before cleanup');
+assert.match(script,/if\(match\?\.live&&!match.done&&!ws\)/,'BFCache resumes CPU after closed PvP socket');
 console.log('QUEUE RESILIENCE PASS: connection/wait timeout, OFF, hidden match, stale socket, cooldown, BFCache hooks');
