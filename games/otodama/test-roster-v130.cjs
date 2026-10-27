@@ -29,7 +29,7 @@ class Element{
 const elements=new Map(),$=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id)};
 const ctx={roster:[make(1,true),make(2),make(3)],cur:make(2),ROSTER_LIMIT:10,rosterMigrationWarning:'',archivedCreatures:()=>[],downloadArchive(){},$,localStorage,Math,JSON,Map,Set,
  window:{confirm:()=>confirm},document:{createElement:t=>new Element(t),querySelectorAll:()=>[],elementFromPoint:()=>null},
- displayName:x=>x.name,levelOf:x=>x.level,drawCreature(){},clipData:()=>false,
+ displayName:x=>x.name,rarityOf:c=>c.rarity||'B',updateEvolutionUI(){},levelOf:x=>x.level,drawCreature(){},clipData:()=>false,
  cancelBirthReveal(){},trackDiscovery(){},persistSelected(){},match:null,
  gen:make,hash:n=>n>>>0,setCurrent(x){ctx.cur=x;ctx.api.renderRoster()}};
 const parts=extract('function trimRoster(){','function renderMeter(')+'\n'+extract('function moveRoster(fromSeed,toSeed){',"let hc=$('heroCanvas')")+'\n'+extract('function saveNewborn(creature){','function saveCurrent(){');
