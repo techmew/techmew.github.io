@@ -32,9 +32,10 @@ const ctx={
  setTimeout(fn,ms){const t={fn,ms,canceled:false};tasks.push(t);return t},
  clearTimeout(t){t.canceled=true}
 };
-const api=vm.runInNewContext(src+';({startBirthReveal,cancelBirthReveal})',ctx);
+const api=vm.runInNewContext(src+';({startBirthReveal,cancelBirthReveal,getActive(){return birthRevealActive}})',ctx);
 const stock=()=>{events.push('stock');ctx.roster.push(newborn);return true};
 assert.equal(api.startBirthReveal(newborn,stock),true,'gacha opens after recording');
+assert.equal(api.getActive(),true,'capture locked through entire ceremony');
 assert.equal(ctx.roster.length,0,'not saved before gacha starts');
 assert.equal($('birthCreatureCanvas').hidden,true,'real sprite hidden until hatch');
 assert.equal(tasks.length,4,'four timed transitions');
@@ -45,9 +46,11 @@ assert.deepEqual(drawn,[42],'render actual character, not a placeholder icon');
 assert.equal(ctx.roster.length,0,'still no stock insertion on reveal');
 tasks[2].fn();assert.equal($('birthReveal').dataset.phase,'stock');
 assert.equal(ctx.roster.length,1,'stock insertion follows reveal');
+assert.equal(api.getActive(),true,'recording stays locked while stock confirmation is displayed');
 assert.match($('birthHeadline').textContent,/ストックに追加/);
 assert.ok(events.indexOf('sprite')<events.indexOf('stock'),'real drawing precedes stock write');
 tasks[3].fn();assert.equal($('birthReveal').hidden,true,'overlay closes after stock message');
+assert.equal(api.getActive(),false,'recording unlocked only after overlay closes');
 assert.equal(ctx.roster.length,1,'completion cannot double-save');
 const before=tasks.length;
 api.startBirthReveal({seed:43,name:'中断キャラ'},()=>{events.push('interrupted');return true});
