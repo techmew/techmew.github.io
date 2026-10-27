@@ -60,7 +60,7 @@ api.impactSfx(100,{skill:true});assert.equal(graph.length,beforeMute,'mute block
 flags.mutedCheck.checked=false;
 const beforeDodge=graph.length;api.impactSfx(0,{dodge:true});
 assert.ok(graph.length>beforeDodge,'dodge remains audible');
-assert.match(script,/:Math\.min\(\.16,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'normal recorded voice peak capped');
+assert.match(script,/const ordinaryLevel=Math\.min\(\.16,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'normal recorded voice peak capped');
 assert.match(script,/const level=rush\?Math\.min\(\.24,ordinaryLevel\*1\.5\):ordinaryLevel/,'rush is 1.5x normal voice with capped peak');
 assert.match(script,/const out=rush\?audioMaster\(ac\):voiceOutput\(ac\)/,'rush bypasses excess voice compression but uses master safety limiter');
 assert.match(script,/phase==='reaction'\?\.42/,'reactions softer than attacks');
