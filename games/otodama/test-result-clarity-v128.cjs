@@ -26,7 +26,7 @@ assert.match(css,/#battleModal \.modalbox>\.battle-speech\{[^}]*position:static/
 assert.match(css,/#battleModal\.victory #matchupBadge\{display:none\}/,'result hides repeated matchup jargon');
 assert.match(css,/#battleModal\.victory #nextStagePreview/,'next stage remains available');
 assert.match(script,/function queueCpuTaunt\(m,immediate=false\)/,'CPU reads own victory line');
-assert.match(script,/m\.tauntText=nextTaunt\('lose'\)\.split/,'on-screen dialogue is one short line');
+assert.match(script,/m\.tauntText=nextTaunt\('lose'\);/,'CPU reads complete taunting dialogue');
 assert.match(script,/line\.lang='ja-JP'/,'use Japanese speech synthesizer');
 assert.match(script,/generation!==battleSpeechGeneration/,'stale TTS is canceled between fights');
 assert.match(script,/const rush=ev\?\.rush===true/,'only explicit rush repeats voice');
