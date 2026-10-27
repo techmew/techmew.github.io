@@ -1,3 +1,14 @@
+# 声魂｜2026-10-27 17時｜バックアップ復元の整合性と保護キャラ保全
+
+CURRENT_STATUS: GitHub mainのgames/otodama/のみ更新。公開済みCloudflare Workerは変更なし。既存のCPU連続オート戦・ON/OFF受付・NEW CHALLENGER・録音声送信停止を維持。
+CHANGELOG: バックアップ読込時の同一seed重複を統合し保護版を優先。既存保護キャラは上書き不可。保護30体を超える場合は読込を拒否し既存データを維持。図鑑番号の不正値を厳密拒否し重複を整理。roster/progress/discovery/dailyの4保存キーを先に検証・書込し、途中失敗時は書込済みキーをロールバック、ゲーム状態は成功後のみ更新。読込完了時に既存保護キャラ維持件数を表示。未保存の現キャラを含む一覧展開数を正確に表示。
+TEST_RESULTS: 最新埋込JS、Worker、moderation、変更テストのV8構文PASS。CSS括弧バランスPASS。Node fs/vm/assert模擬環境でtest-roster-lock（30体、保存失敗、重複、実importSave、途中書込失敗の復旧、不正図鑑、保護30体超過）、test-queue-resilience-v126、test-handoff-v125、test-ui-refined-v124の4スイートPASS。正式npm test:node全23スイートは未実行。今回のGitHub Actions/Pages公開反映は未確認。実ブラウザ/Android/外部2端末は未検証。公開Pages・WorkerのHTTP取得はアクセス不可。
+BLOCKERS: GitHub Actions最新結果と公開配信を検証できる環境が必要。localStorageのデータ全消去・端末故障はロックで防げない。rollbackもブラウザの保存領域が完全故障した場合は保証できない。
+NEXT_ACTIONS: Actionsの全23 Nodeテスト、Pages公開完了、/health→2WebSocket→live_startを確認。Android縦横で保存30体・鍵・バックアップの操作、CPU→PvP→CPUと切断復旧を実機検証。
+CODE_COMMIT_SHA: fe3cad99b1e2cb42303c1c3284f1bf326864b75b
+
+---
+
 # 声魂｜キャラクター保護ロック修正（2026-10-27）
 
 CURRENT_STATUS: games/otodama/の作成キャラ一覧・ローカル保存・バックアップに鍵を実装。CPU/PvP/録音/音声の既存仕様は変更していない。Workerは公開済み、今回Workerコードは変更なし。
