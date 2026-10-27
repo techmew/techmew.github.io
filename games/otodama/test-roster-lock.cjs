@@ -78,6 +78,16 @@ decision=true;assert.equal(ctx.api.deleteSavedCreature(11),true,'confirmed delet
 assert.deepEqual(ctx.roster.map(c=>c.seed),[10,12],'saved character removed only once');
 assert.equal(ctx.cur.seed,12,'deleting selected fighter selects nearby saved fighter');
 assert.equal(pick('roster').children.length,2,'deleted tile removed from full list');
+ctx.roster=[make(1678719,false)];ctx.cur=ctx.roster[0];ctx.api.renderRoster();
+assert.equal(ctx.api.deleteSavedCreature(1678719),true,'final saved fighter can be deleted');
+assert.equal(ctx.roster.length,0,'last saved fighter removed');
+assert.notEqual(ctx.cur.seed,1678719,'deleted fighter must not reappear as unsaved preview');
+ctx.roster=[make(21,false)];ctx.cur=ctx.roster[0];ctx.match={done:false};
+const promptsBefore=confirmCount;
+assert.equal(ctx.api.deleteSavedCreature(21),false,'deletion blocked during battle');
+assert.equal(confirmCount,promptsBefore,'blocked battle deletion does not show confirmation');
+assert.equal(ctx.roster.length,1,'battle deletion keeps saved fighter');
+ctx.match=null;
 ctx.roster=[make(10,true),make(13,false)];ctx.cur=ctx.roster[1];fail=true;
 assert.equal(ctx.api.deleteSavedCreature(13),false,'storage failure blocks delete');
 fail=false;assert.equal(ctx.roster.length,2,'failed persistence restores roster');
