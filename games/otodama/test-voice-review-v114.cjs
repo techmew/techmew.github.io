@@ -58,7 +58,7 @@ function fakeRuntime(mediaRecorderEnabled){
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
   setTimeout:(fn,ms)=>{if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};return 1},clearTimeout(){},performance,recording:false,audioCtx:null,
-  stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,
+  stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,birthRevealActive:false,
   saveNewborn(creature){notes.push('auto-saved:'+creature.seed);return true},
   startBirthReveal(creature,onStock){notes.push('gacha:'+creature.seed);ctxRef.stockCallback=onStock},
   micErrorMessage:e=>String(e?.name||e),
