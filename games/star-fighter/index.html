@@ -10,9 +10,10 @@
 </head>
 <body>
 <div class="shell" id="shell">
-<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ 音声 ON</button><button id="pauseBtn" class="small-btn" aria-label="一時停止">Ⅱ ポーズ</button></div></header>
+<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ BGM ON</button><button id="pauseBtn" class="small-btn" aria-label="一時停止">Ⅱ ポーズ</button></div></header>
 <div class="game-frame" id="gameFrame">
 <canvas id="game" width="1200" height="675" aria-label="横スクロールシューティングゲーム"></canvas>
+<div id="joystick" class="joystick" aria-label="移動用左スティック" role="group"><div id="joystickBase" class="joystick-base"><div id="joystickKnob" class="joystick-knob"></div></div><span class="joystick-label">MOVE</span></div>
 <div class="screen-vignette"></div>
 <div class="hud" id="hud">
  <div class="hud-left"><div class="kicker">SCORE</div><div class="hud-number" id="score">00000000</div><div class="score-line"><span>BEST <b id="best">00000000</b></span><span id="multiplier">×1.0</span></div></div>
@@ -25,7 +26,7 @@
  <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>3 STAGES · 3 GIANT BOSSES</span><i></i></div>
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
  <button class="main-btn" id="startBtn">MISSION START <span>▶</span></button>
- <p class="start-guide">移動：WASD / 矢印キー・スマホは画面ドラッグ<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
+ <p class="start-guide">移動：WASD / 矢印キー・スマホは左スティック<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
 <div class="toast" id="toast"></div>
 </div>
@@ -42,8 +43,10 @@
   <button id="equipBtn" class="equip-btn">強化 <span>↗</span></button>
   <button id="pulseBtn" class="pulse-btn">PULSE <span>✹</span></button>
 </div>
-<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 16:9</span><span class="note-divider"></span><span>オート射撃・ドラッグ移動対応</span><button id="helpBtn">操作方法 ?</button></div>
+<div class="rotate-overlay" id="rotateOverlay" role="status"><div class="phone-rotate">▯ <span>↻</span></div><strong>横画面にしてください</strong><p>スマートフォンを横向きにしてプレイ</p></div>
+<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 16:9</span><span class="note-divider"></span><span>オート射撃・左スティック移動対応</span><button id="helpBtn">操作方法 ?</button></div>
 </div>
+<script src="./music.js"></script>
 <script src="./game.js"></script>
 </body>
 </html>
