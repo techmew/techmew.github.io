@@ -170,9 +170,9 @@ function movement(ev,progress,atk){
  const lungeTilt=forward*(p<charge?-.24:(.27+.22*(1-recovery))*dash);
  const spin=kind==='spin'?forward*Math.PI*2.05*smooth(p):kind==='aerial'?forward*.58*airborne:kind==='uppercut'?-forward*.47*airborne:0;
  const knocked=hit?-forward*(.68*bodyHit*(1-recovery)+.12*recovery):0;
- return {attacker:{x:ax,y:attackY,rot:lungeTilt+spin+(teleport?forward*.15*airborne:0),scale:clamp(.73+.16*dash+(ev?.skill?.075:0)+Math.abs(combo)*.024,.68,1.03)},
+ return {attacker:{x:ax,y:attackY,rot:lungeTilt+spin+(teleport?forward*.15*airborne:0),scale:clamp(.73+.16*dash+(ev?.skill ? .075 : 0)+Math.abs(combo)*.024,.68,1.03)},
  defender:{x:dx,y:defenseY,rot:ev?.dodge?-forward*.32*dodgeLift/132:counter?forward*.35*recovery:guarded?forward*.12:knocked,
- scale:clamp(.73-(hit?.035*bodyHit:0)+(guarded?.06:0),.65,.88)},
+ scale:clamp(.73-(hit ? .035*bodyHit : 0)+(guarded ? .06 : 0),.65,.88)},
  impact:{x:clamp((ax+dx)/2,85,635),y:clamp((attackY+defenseY)/2,78,355)},
  intensity:clamp((dash*(1-recovery)*.6+Math.abs(combo)*.2+(ev?.skill?.3:0)),0,1),
  rush:hits>1,charged:p<charge,hit:hit&&p>=contact-.09&&p<contact+.25};
