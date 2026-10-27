@@ -679,8 +679,22 @@ function arm(side,index){c.save();c.translate(side*73,-12);c.rotate(side*(.18+Ma
  {let m=p.mouth%5,wide=16+Math.floor(p.mouth/5)*5;c.save();c.translate(0,30);c.strokeStyle='#11263b';c.fillStyle='#13233a';c.lineWidth=4;c.lineCap='round';c.beginPath();if(m===0){c.arc(0,-3,wide,0,Math.PI);c.stroke()}if(m===1){c.ellipse(0,0,wide*.7,8+wide*.21,0,0,TAU);c.fill();c.fillStyle='#ff91a3';c.beginPath();c.ellipse(0,8,wide*.38,5,0,0,TAU);c.fill()}if(m===2){c.moveTo(-wide,0);c.lineTo(wide,0);c.stroke();c.fillStyle='#fff';for(let i=0;i<3;i++){c.beginPath();c.moveTo(-wide+i*wide,0);c.lineTo(-wide*.55+i*wide,-7);c.lineTo(-wide*.15+i*wide,0);c.fill()}}if(m===3){c.moveTo(-wide,3);c.quadraticCurveTo(0,-16,wide,3);c.stroke();c.beginPath();c.moveTo(-wide,3);c.quadraticCurveTo(0,13,wide,3);c.stroke()}if(m===4){c.beginPath();c.ellipse(0,0,wide*.47,5+wide*.2,0,0,TAU);c.fill();c.fillStyle='#fff';c.fillRect(-wide*.25,-4,wide*.5,4)}c.restore()}
  c.restore();}
 // main state
-let cur=gen(1678719),roster=[],rosterExpanded=false,liveWave=[],audioCtx=null,recording=false,animFrame=0,match=null,ws=null,queueWs=null,room=null,side=-1,onlineReady=false,autoReadyRoom=false,remoteVoiceClip='',sentVoice=false,voiceConsentSent=false,resumeToken='',reconnectCount=0,reconnectTimer=null;
+let cur=gen(1678719),roster=[],liveWave=[],audioCtx=null,recording=false,animFrame=0,match=null,ws=null,queueWs=null,room=null,side=-1,onlineReady=false,autoReadyRoom=false,remoteVoiceClip='',sentVoice=false,voiceConsentSent=false,resumeToken='',reconnectCount=0,reconnectTimer=null;
 try{roster=JSON.parse(localStorage.getItem('otodama.roster')||'[]');if(!Array.isArray(roster))roster=[];let renamed=false;roster=roster.map(c=>{const fresh=migrateLegacyName(c);if(fresh!==c)renamed=true;return fresh});if(renamed)try{localStorage.setItem('otodama.roster',JSON.stringify(roster))}catch(e){}}catch(e){roster=[]}
+// Restore the most recently selected preview; older installs without this key keep their saved roster.
+const lastSelectedKey='otodama.lastSelected.v1';
+try{
+ const previous=JSON.parse(localStorage.getItem(lastSelectedKey)||'null');
+ if(previous&&Number.isSafeInteger(previous.seed)&&previous.seed>=0&&previous.seed<=4294967295){
+  const selected=roster.find(c=>c.seed===previous.seed);
+  if(selected)cur=selected;
+  else if(previous.snapshot&&previous.snapshot.seed===previous.seed){
+   const restored=restoreCreature(previous.snapshot);
+   if(typeof previous.voiceClip==='string'&&previous.voiceClip.length<180000&&previous.voiceClip.startsWith('data:audio/')&&previous.voiceClip.includes('base64,'))restored.voiceClip=previous.voiceClip;
+   cur=restored;
+  }
+ }
+}catch(e){}
 const DEFAULT_SERVER_URL='https://otodama-room.nekokichi005.workers.dev'; // 公開したCloudflare Workerを標準接続先にする
 try{$('serverUrl').value=localStorage.getItem('otodama.server')||DEFAULT_SERVER_URL}catch(e){$('serverUrl').value=DEFAULT_SERVER_URL}
 function trimRoster(){while(roster.length>30){const i=roster.findLastIndex(c=>c.locked!==true);if(i<0)return false;roster.splice(i,1)}return true}
@@ -694,24 +708,45 @@ function upsertCreature(cr){
  roster[replaceAt]=cr;return true;
 }
 function saveStore(){try{localStorage.setItem('otodama.roster',JSON.stringify(roster));return true}catch(e){$('micHint').textContent='保存に失敗しました。ブラウザの保存容量・設定を確認してください';return false}}
+function persistSelected(){
+ try{
+  const state={seed:cur.seed};
+  if(!roster.some(c=>c.seed===cur.seed)){
+   state.snapshot=compactCreature(cur);
+   if(clipData(cur))state.voiceClip=cur.voiceClip;
+  }
+  localStorage.setItem(lastSelectedKey,JSON.stringify(state));
+ }catch(e){
+  // Selecting a fighter is still possible when browser storage is unavailable.
+ }
+}
 function renderMeter(parent,names,vals,suffix=''){parent.innerHTML='';names.forEach((name,i)=>{let node=document.createElement('div');let v=clamp(vals[i],0,100);node.innerHTML=`<div class="metainfo"><span>${name}</span><b>${v}${suffix}</b></div><div class="bar"><i style="width:${v}%"></i></div>`;parent.appendChild(node)})}
-function setCurrent(cr){cur=cr;trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
+function setCurrent(cr){cur=cr;persistSelected();trackDiscovery(cr);showDaily();$('creatureId').textContent='#'+String(cur.seed>>>0).padStart(10,'0').slice(-10);$('creatureName').textContent=displayName(cur);$('element').textContent=cur.element+' 属性';$('kind').textContent='タイプ：'+cur.type+' · '+cur.rank+' RANK · 戦型：'+specimenProfile(cur).name+' · '+specimenMutation(cur).label;$('voiceType').textContent=cur.type.toUpperCase();let v=cur.voice;renderMeter($('voiceMetrics'),voiceNames,[v.vol,v.pitch,v.res,v.rhythm,v.stable,v.breath]);renderMeter($('battleMetrics'),statNames,cur.stats);$('totalPower').textContent='TOTAL / '+cur.stats.reduce((a,b)=>a+b,0);renderRoster();updateVoicePreviewButton();renderAudioDNA(cur);showCampaign()}
 function newOne(){let seed=crypto.getRandomValues(new Uint32Array(1))[0];setCurrent(gen(seed));$('micHint').textContent='おためし生成しました（音声入力なし）';$('countdown').textContent='DEMO'}
+function deleteSavedCreature(seed){
+ const index=roster.findIndex(c=>c.seed===seed);
+ if(index<0)return false;
+ const item=roster[index];
+ if(item.locked===true){$('rosterNotice').textContent='🔒 保護中です。鍵を解除してから削除してください。';return false}
+ if(!window.confirm('「'+displayName(item)+'」を削除しますか？\nこの操作は元に戻せません。'))return false;
+ if(match&&!match.done){$('rosterNotice').textContent='対戦中は削除できません。';return false}
+ const oldRoster=roster.slice();
+ roster=roster.filter(c=>c.seed!==seed);
+ if(!saveStore()){roster=oldRoster;renderRoster();$('rosterNotice').textContent='保存エラーのため削除を中止しました。';return false}
+ if(cur.seed===seed){
+  const candidate=roster[Math.min(index,roster.length-1)]||gen(1678719);
+  setCurrent(candidate);
+ }else renderRoster();
+ $('rosterNotice').textContent='キャラを削除しました。';
+ return true;
+}
 function renderRoster(){
- // A selection must never reorder the collection: keep the saved insertion order.
- const selectedSaved=roster.some(c=>c.seed===cur.seed);
- const all=selectedSaved?roster.slice():[...roster,cur];
- const shown=rosterExpanded?all:(selectedSaved?all.slice(0,5):[...roster.slice(0,4),cur]);
- if(!rosterExpanded)while(shown.length<5)shown.push(gen(hash(352135+shown.length*234223)));
+ // All saved creatures are visible in their original order; only the active border changes.
+ const all=roster.some(c=>c.seed===cur.seed)?roster.slice():[...roster,cur];
  const protectedCount=roster.filter(c=>c.locked===true).length;
  $('rosterCount').textContent='保存 '+roster.length+' / 30 · 保護 '+protectedCount;
- const showAll=$('rosterShowAll');
- showAll.hidden=all.length<=5;
- showAll.textContent=rosterExpanded?'先頭5体に戻す':'全'+all.length+'体を表示';
- showAll.setAttribute('aria-expanded',String(rosterExpanded));
- showAll.onclick=()=>{rosterExpanded=!rosterExpanded;renderRoster()};
  const wrap=$('roster');wrap.replaceChildren();
- shown.forEach((cr,i)=>{
+ all.forEach(cr=>{
   const saved=roster.find(c=>c.seed===cr.seed);
   const tile=document.createElement('div');tile.className='roster-entry';
   const btn=document.createElement('button');btn.type='button';
@@ -721,9 +756,9 @@ function renderRoster(){
   btn.title=displayName(cr)+'（ID '+cr.seed+'）'+(selected?'・使用中':'・タップして使用');
   const cv=document.createElement('canvas');cv.width=125;cv.height=122;btn.append(cv);
   const txt=document.createElement('span');
-  txt.textContent=displayName(cr)+' Lv.'+levelOf(cr);
-  btn.append(txt);btn.onclick=()=>setCurrent(saved||cr);tile.append(btn);
-  if(saved||cr.seed===cur.seed){
+  txt.textContent=displayName(cr)+' Lv.'+levelOf(cr)+(saved?'':'（未保存）');
+  btn.append(txt);btn.onclick=()=>{cancelBirthReveal();setCurrent(saved||cr)};tile.append(btn);
+  if(saved||selected){
    const lock=document.createElement('button');lock.type='button';lock.className='roster-lock';
    lock.textContent=saved?.locked===true?'🔒':'🔓';
    lock.title=!saved?'保存して保護':saved.locked===true?'保護を解除':'削除から保護';
@@ -733,6 +768,7 @@ function renderRoster(){
     if(!saved){
      const before=cur.locked===true;cur.locked=true;saveCurrent();
      if(!roster.some(c=>c.seed===cur.seed)){cur.locked=before;renderRoster()}
+     else persistSelected();
      return;
     }
     const before=saved.locked===true;
@@ -742,6 +778,14 @@ function renderRoster(){
     renderRoster();
    };
    tile.append(lock);
+  }
+  if(saved){
+   const remove=document.createElement('button');remove.type='button';remove.className='roster-delete';
+   remove.textContent='×';remove.disabled=saved.locked===true;
+   remove.title=remove.disabled?'保護解除後に削除':'削除する（確認あり）';
+   remove.setAttribute('aria-label',displayName(saved)+'を削除');
+   remove.onclick=()=>deleteSavedCreature(saved.seed);
+   tile.append(remove);
   }
   wrap.append(tile);
   const ctx=cv.getContext('2d');if(ctx)drawCreature(ctx,cr,62,55,.42,0);
