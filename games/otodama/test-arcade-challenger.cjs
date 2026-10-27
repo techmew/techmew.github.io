@@ -14,7 +14,7 @@ assert.match(script,/match\.resumeSurvival=interruptedSurvival;announceChallenge
 assert.match(script,/if\(won\|\|m\.live\|\|m\.mode==='COM MATCH'\)scheduleNextAfterQuote\(m\)/,'auto follow-up after PvP and CPU loss');
 const selection=script.slice(script.indexOf('function advanceAfterWin(m){'),script.indexOf('function scheduleNextAfterQuote(m){'));
 assert.ok(selection.startsWith('function advanceAfterWin('));
-const ctx={match:null,survivalActive:false,document:{hidden:false},queueWs:null,ws:null,challengerHandoff:false,serverBase:()=> 'https://example.workers.dev',
+const ctx={match:null,survivalActive:false,document:{hidden:false},queueWs:null,ws:null,challengerHandoff:false,pageSuspended:false,serverBase:()=> 'https://example.workers.dev',
  leaveRoom:()=>ctx.calls.push('leave'),nextSurvivalBattle:()=>ctx.calls.push('survival'),doCom:()=>ctx.calls.push('com'),stopBattleSpeech:()=>{},
  $:id=>id==='battleModal'?{classList:{contains:x=>x==='open'}}:id==='survivalChallengerOptIn'?{checked:true}:{},
  calls:[]};
