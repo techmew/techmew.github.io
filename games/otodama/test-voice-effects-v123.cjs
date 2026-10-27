@@ -7,19 +7,19 @@ assert.ok(js);new vm.Script(js);
 const start=js.indexOf('const VOICE_EFFECTS=['),end=js.indexOf('function previewRecordedVoice()',start);
 assert.ok(start>0&&end>start,'FX bank and player are present');
 const selection=js.slice(start,end);
-const clips=[],filters=[],voices=[],labels=[],banner=[];
+const clips=[],filters=[],voices=[],labels=[],banner=[],gains=[];
 const flags={mutedCheck:{checked:false},muteOpponentVoice:{checked:false},
  voiceFxEnabled:{checked:true},voiceFxLabel:{textContent:'',hidden:true},
  arenaEffect:{textContent:''}};
 const $=name=>flags[name]||{checked:false};
 const param=()=>({value:1,setValueAtTime(value,time){this.value=value;this.start=value;this.startAt=time},
  exponentialRampToValueAtTime(value,time){this.end=value;this.endAt=time},
- linearRampToValueAtTime(value,time){this.end=value;this.endAt=time}});
+ linearRampToValueAtTime(value,time){this.end=value;this.endAt=time;(this.ramps??=[]).push(value)}});
 const ac={currentTime:10,
  createBufferSource(){const s={playbackRate:param(),connect(node){this.next=node},
  start(time,offset,duration){clips.push({time,offset,duration,source:this,rate:this.playbackRate.start??this.playbackRate.value})},
  stop(){}};return s},
- createGain(){return {gain:param(),connect(){}}},
+ createGain(){const g={gain:param(),connect(){}};gains.push(g);return g},
  createBiquadFilter(){const f={frequency:{value:0},Q:{value:0},type:'',connect(){}};filters.push(f);return f}};
 const voiceClip='data:audio/wav;base64,ZGVtbw==',cr={seed:54,voiceClip,voice:{pitch:78,rhythm:61}};
 const key=cr.seed+'_'+voiceClip.length+'_'+voiceClip.slice(-32);
@@ -62,6 +62,9 @@ now+=850;
 api.attackVoice(cr,0,{kind:'meteor',skill:true,rush:true,hits:7});
 assert.equal(clips.length,9,'only explicitly marked rush has seven samples');
 assert.ok(clips[8].time>clips[2].time,'rush voices are sequential');
+const normalPeak=gains[0].gain.ramps[0],rushPeak=gains[2].gain.ramps[0];
+assert.ok(rushPeak>=normalPeak*.65,'rush samples should be clearly audible relative to normal attack');
+assert.ok(rushPeak>0&&rushPeak<=.18,'individual rush peaks remain limited');
 const beforeReactions=clips.length;
 api.reactionVoice(cr,1,{kind:'rush',damage:18});
 api.reactionVoice(cr,1,{kind:'rush',damage:25,guard:true});
@@ -102,4 +105,4 @@ assert.equal(voices.length,0,'recorded sample did not require synthetic fallback
 assert.ok(html.includes('id="voiceFxLabel"')&&html.includes('id="voiceFxEnabled"'));
 assert.ok(js.includes('reactionVoice(def===0?m.a:m.b,def,ev)'),'CPU spectator reaction connected');
 assert.ok(js.includes('reactionVoice(data.atk===0?m.b:m.a,1-data.atk'),'online impact reaction connected');
-console.log('VOICE FX PASS | 28 profiles, single isolated attacks, explicit rush only, guarded reactions, mute, clean preview');
+console.log('VOICE FX PASS | 28 profiles, louder capped rush, single attacks, guarded reactions, mute, clean preview');
