@@ -28,6 +28,14 @@
  <button class="main-btn" id="startBtn">MISSION START <span>▶</span></button>
  <p class="start-guide">移動：WASD / 矢印キー・スマホは左スティック<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
+<div class="route-panel" id="routePanel" aria-label="次の航路を選択">
+<div class="route-head"><span class="route-kicker">NAVIGATION / ROUTE SELECT</span><strong id="routeHeading">次の航路を選択</strong><small>次の戦場と報酬が変化する</small></div>
+<div class="route-junction" aria-hidden="true"><span>NOW</span><i></i><b>◇</b><i></i><span id="routeNextSector">SECTOR 02</span></div>
+<div class="route-cards">
+<button id="routeSafe" class="route-card safe"><span class="route-tier">01 / STANDARD</span><strong id="routeSafeName">静穏航路</strong><span id="routeSafeDesc">安定した敵編隊</span><em id="routeSafeBonus">カプセル +1 / パルス +1</em><span class="route-go">この航路へ ▶</span></button>
+<button id="routeRisk" class="route-card risky"><span class="route-tier">02 / HIGH RISK</span><strong id="routeRiskName">嵐の航路</strong><span id="routeRiskDesc">敵の攻勢が激化</span><em id="routeRiskBonus">カプセル +2 / 得点上昇</em><span class="route-go">この航路へ ▶</span></button>
+</div><p class="route-help">PC : 1 / 2 キーで選択　・　スマホ : タップして選択</p>
+</div>
 <div class="toast" id="toast"></div>
 </div>
 <div id="joystick" class="joystick" aria-label="移動用左スティック" role="group"><div id="joystickBase" class="joystick-base"><div id="joystickKnob" class="joystick-knob"></div></div><span class="joystick-label">MOVE</span></div>
