@@ -341,6 +341,14 @@ function fishCanBite(fish,target,now,probability=Math.random){
  fish.biteAt=now+(bit?1250:750);
  return bit
 }
+function fishFightProfile(item){
+ if(!item||item.cat!=='fish')return {label:'衣装',drag:0,tension:0,surge:0.76,time:0};
+ const type=item.style;
+ if([13,15,17,48].includes(type))return {label:'巨体・重量級',drag:2.4,tension:4.5,surge:0.77,time:2.3};
+ if([10,14,25,26,27,28].includes(type))return {label:'俊敏・回遊型',drag:1.1,tension:2,surge:0.71,time:1.1};
+ if([2,11,12,34,36].includes(type))return {label:'硬い・防御型',drag:1.8,tension:2.8,surge:0.78,time:1.7};
+ return {label:'おだやか・小型',drag:0,tension:0,surge:0.82,time:0.5}
+}
 function castAt(x,y){
  if(st.show.queue.length===5){openShow();return}
  if(hook.active)return;
@@ -384,7 +392,7 @@ function updateFishingHud(){
  $('castBtn').classList.toggle('reeling',fighting&&hook.pull);
  if(!fighting)return;
  const item=hook.chosen.item;
- $('fishName').textContent=item.name+(st.failStreak?' ・再挑戦+'+(st.failStreak*1.1).toFixed(1)+'秒':'');
+ $('fishName').textContent=item.name+(item.cat==='fish'?' ／ '+fishFightProfile(item).label:'')+(st.failStreak?' ・再挑戦+'+(st.failStreak*1.1).toFixed(1)+'秒':'');
  $('reelFill').style.width=clamp(hook.reel,0,100)+'%';
  $('tensionFill').style.width=clamp(hook.tension,0,100)+'%';
  $('tensionFill').style.background=hook.tension>75?'linear-gradient(90deg,#ffbb64,#ff506a)':'linear-gradient(90deg,#5bc5e8,#ffcc81)';
@@ -431,19 +439,20 @@ function updateGame(dt){
    const fish=nearbyFish.find(s=>fishCanBite(s,{x:hook.targetX,y:hook.targetY},performance.now()));
    if(fish){hook.chosen=fish;focus=fish;hook.targetX=fish.x;hook.targetY=fish.y;showEvent('魚が針に食いついた！',1100)}
    if(!hook.chosen&&hook.biteWait<2.8){if(hook.biteWait===0)showEvent('魚が針に近づいている…',1200);hook.biteWait=Math.min(2.8,hook.biteWait+sec);hook.progress=1;updateFishingHud();return}
-   hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
+   hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0)+fishFightProfile(hook.chosen.item).time;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.cat==='fish'?Math.max(0,hook.chosen.item.rarity-1.65):hook.chosen.item.rarity;
+  const fishProfile=fishFightProfile(hook.chosen.item);
   hook.skillCooldown=Math.max(0,(hook.skillCooldown||0)-sec);
   const seaPressure=Math.min(.26,Math.max(0,st.show.round-1)*.018);
   hook.elapsed+=sec;
   const wavePhase=hook.elapsed*(2.5+r*.35)+hook.chosen.phase;
-  hook.surge=Math.sin(wavePhase)>0.76||sceneItems.some(v=>v!==hook.chosen&&v.item.cat==='fish'&&Math.hypot(v.x-hook.x,v.y-hook.y)<75&&Math.sin(wavePhase*1.4+v.phase)>.88);
+  hook.surge=Math.sin(wavePhase)>fishProfile.surge||sceneItems.some(v=>v!==hook.chosen&&v.item.cat==='fish'&&Math.hypot(v.x-hook.x,v.y-hook.y)<75&&Math.sin(wavePhase*1.4+v.phase)>.88);
   hook.warning=!hook.surge&&Math.sin(wavePhase+1.2)>0.76;
   const rhythm=(Math.sin(hook.elapsed*4.5+hook.chosen.phase)+1)*.5;
   if(hook.pull){
-   hook.reel+=(19+st.rod*1.4-r*2.2+(rhythm>.77?4:0)-(hook.surge?10:0)+(hook.tension>=30&&hook.tension<=68?10:0)+st.failStreak*1.3)*sec*(1-seaPressure*.38);
-   hook.tension+=Math.max(22,34+r*7+(hook.surge?40:0)-st.rod*.9-st.failStreak*2.3)*sec*(1+seaPressure*.4);
+   hook.reel+=(19+st.rod*1.4-r*2.2+(rhythm>.77?4:0)-(hook.surge?10:0)+(hook.tension>=30&&hook.tension<=68?10:0)+st.failStreak*1.3-fishProfile.drag)*sec*(1-seaPressure*.38);
+   hook.tension+=Math.max(22,34+r*7+(hook.surge?40:0)-st.rod*.9-st.failStreak*2.3+fishProfile.tension)*sec*(1+seaPressure*.4);
    if(Math.random()<sec*11)bubble(hook.x,hook.y,1,'#fdf7a9');
   }else{hook.reel-=Math.max(2.3,3.2+r*1.5+(hook.surge?2:0)-st.failStreak*.23)*sec;hook.tension-=(44+st.rod*2+st.failStreak*2.5)*sec}
   hook.reel=clamp(hook.reel,0,100);hook.tension=clamp(hook.tension,0,105);
@@ -566,15 +575,22 @@ function showScore(items,skipRival=false){
  const targetVariety={classic:2,street:3,avant:4,color:5,chaos:5,glam:2}[theme];
  const patternFit=clamp(1-Math.abs(patternVariety-targetVariety)/4,0,1);
  const fishCount=cats.filter(c=>c==='fish').length;
+ const oddTheme=theme==='avant'||theme==='chaos';
+ const uniqueFish=new Set(items.filter(it=>it.cat==='fish').map(it=>it.id)).size;
+ // Different items of the same category are an intentional stunt; repeated IDs never qualify.
+ const costumeStunt=oddTheme&&duplicates===0&&unique===1&&patternVariety>=3&&styleVariety>=3;
+ const marineStunt=oddTheme&&duplicates===0&&fishCount>=3&&uniqueFish>=3&&!costumeStunt;
+ const stuntName=costumeStunt?'同種5点の超前衛コーデ':marineStunt?'深海ファッション革命':'';
+ const stuntBonus=costumeStunt?[0,11,16,8,10]:marineStunt?[0,4,11,5,8]:[0,0,0,0,0];
  const raw=Array.from({length:5},(_,i)=>components.reduce((sum,row)=>sum+row[i],0));
  const penalties=duplicates*10+Math.max(0,repeats-1)*3;
  // Scores have no random component; each judge is strict and rewards something different.
  const judges=[
-  clamp(Math.round(6+raw[0]+harmony*9-fishCount*2-penalties),0,100),
-  clamp(Math.round(4+raw[1]+unique*2+Math.min(5,odd)*2+fishCount*3-duplicates*14),0,100),
-  clamp(Math.round(6+raw[2]+patternFit*9+harmony*5-duplicates*9),0,100),
-  clamp(Math.round(5+raw[3]+unique*3+harmony*8-Math.max(0,repeats-1)*6-duplicates*12),0,100),
-  clamp(Math.round(6+raw[4]+styleVariety*2+contrast*5-duplicates*9),0,100)
+  clamp(Math.round(6+raw[0]+harmony*9-fishCount*2-penalties+stuntBonus[0]),0,100),
+  clamp(Math.round(4+raw[1]+unique*2+Math.min(5,odd)*2+fishCount*3-duplicates*14+stuntBonus[1]),0,100),
+  clamp(Math.round(6+raw[2]+patternFit*9+harmony*5-duplicates*9+stuntBonus[2]),0,100),
+  clamp(Math.round(5+raw[3]+unique*3+harmony*8-Math.max(0,repeats-1)*6-duplicates*12+stuntBonus[3]),0,100),
+  clamp(Math.round(6+raw[4]+styleVariety*2+contrast*5-duplicates*9+stuntBonus[4]),0,100)
  ];
  const total=judges.reduce((a,b)=>a+b,0);
  const opponent=skipRival?null:getRivalLook();
@@ -583,7 +599,7 @@ function showScore(items,skipRival=false){
  const rival=rivalJudges?rivalJudges.reduce((sum,v)=>sum+v,0):0;
  return {judges,total,rival,rivalJudges,rivalPosePoints,rivalIds:opponent?opponent.items.map(o=>o.id):null,
   win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit,flow,anchor,contrast,
-  fishCount,components,raw,penalties,version:5}
+  fishCount,components,raw,penalties,stuntName,stuntBonus,version:6}
 }
 function showPlacement(item,slot){
  const natural=[['hat','hair'],['acc'],['top','dress','outer','bodyCostume'],['bottom','under','dress','bodyCostume'],['shoes']];
@@ -601,7 +617,7 @@ function showStyleHint(){
  const estimate=showScore(items),t=showTheme()[1];
  const style=estimate.fits>=4?'正統派':estimate.odd>=4?'超前衛':estimate.odd>=2?'型破り':'ミックス';
  const themeHint=(t==='avant'||t==='chaos')?'変な位置への着用が高評価':t==='classic'||t==='glam'?'自然な位置と色の調和が重要':t==='color'?'色の調和と種類の豊富さが重要':'大胆さと種類の豊富さが重要';
- $('showHelp').textContent='衣装予想 YOU '+estimate.total+'/500点（'+estimate.judges.join(' / ')+'） vs CPU '+estimate.rival+'点（CPUポーズ+'+(estimate.rivalPosePoints??0)+'）。'+style+'：自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5。'+themeHint+'。2着タップで交換。ポーズ点は別途加算。';
+ $('showHelp').textContent='衣装予想 YOU '+estimate.total+'/500点（'+estimate.judges.join(' / ')+'） vs CPU '+estimate.rival+'点（CPUポーズ+'+(estimate.rivalPosePoints??0)+'）。'+style+'：自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5。'+(estimate.stuntName?'特別演出「'+estimate.stuntName+'」が加点！ ':'')+themeHint+'。2着タップで交換。ポーズ点は別途加算。';
 }
 function showSlots(focusSlot=-1){
  const root=$('showSlots');root.replaceChildren();
@@ -652,6 +668,7 @@ function renderShowAnalysis(){
  const margin=showScores.total-showScores.rival;
  detail.textContent='固定配点・5人×100点（500点満点）。得点差 '+(margin>=0?'+':'')+margin+'点。自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、魚 '+(showScores.fishCount??0)+'匹、同じアイテム重複 '+showScores.duplicates+'、柄 '+(showScores.patternVariety??'—')+'種。重複・同系統の偏りに減点。';
  root.append(detail);
+ if(showScores.stuntName){const stunt=document.createElement('p');stunt.className='show-analysis-detail';stunt.textContent='特別審査：'+showScores.stuntName+' ／ 追加点（着こなし・独創性・テーマ・組合せ・存在感） '+showScores.stuntBonus.join(' / ')+'。同一アイテム重複は対象外。';root.append(stunt)}
  if(Array.isArray(showScores.components)){const breakdown=document.createElement('div');breakdown.className='show-analysis-team';const heading=document.createElement('strong');heading.textContent='衣装別の基礎配点（着こなし / 独創性 / テーマ / 組合せ / 存在感）';breakdown.append(heading);
  const list=document.createElement('ol');showOutfit().forEach((it,i)=>{const li=document.createElement('li');li.textContent=showRoles[i]+' '+it.name+'：'+showScores.components[i].join(' / ');list.append(li)});breakdown.append(list);
  const bases=showScores.components.map(row=>row.reduce((a,b)=>a+b,0));
