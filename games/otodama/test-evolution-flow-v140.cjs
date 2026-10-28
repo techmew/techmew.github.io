@@ -17,7 +17,8 @@ assert.match(js,/evolutionDraft=\{seed:selectedSeed,voice:audioDNA\?\.voice\|\|v
 assert.match(js,/function confirmEvolutionDraft\(\)/,'confirmation guard');
 assert.match(js,/if\(cur.seed!==selectedSeed\|\|evolutionDialogSeed!==selectedSeed\|\|\$\('evolutionDialog'\)\.hidden\)/,'stale capture never commits');
 assert.match(js,/if\(!saved\).*syncEvolutionDialog\(\);return false/,'save failures retain draft');
-const GROWTH={EVOLUTION_LEVELS:[10,20,30],canEvolve:cr=>(cr.evolutionVoices||[]).length<3&&[10,20,30][(cr.evolutionVoices||[]).length]<=cr.level};
+const GROWTH={EVOLUTION_LEVELS:[10,20,30],canEvolve:cr=>(cr.evolutionVoices||[]).length<3&&[10,20,30][(cr.evolutionVoices||[]).length]<=cr.level,
+ evolutionCombatBonus:cr=>({attack:(cr.evolutionVoices||[]).length*12,hp:(cr.evolutionVoices||[]).length*8})};
 const nodes=new Map();
 const $=id=>{if(!nodes.has(id))nodes.set(id,{hidden:id==='evolutionDialog'||id==='evolutionDialogRecording',
  textContent:'',title:'',disabled:false,style:{},dataset:{},focus(){this.focused=true}});
