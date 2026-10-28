@@ -1756,6 +1756,35 @@ function tone(hz,duration=.09,weight=1){
   o.connect(g);g.connect(audioMaster(ac));o.start(now);o.stop(now+span+.01);
  }catch(e){}
 }
+// Rush restores seven AUDIBLE hits at the same 200ms cadence as the banner.
+// These are impact effects, not copies of the recorded words: one complete
+// fighter voice keeps playing without being shortened, layered or interrupted.
+function playRushHitSounds(ev,hits=7){
+ if($('mutedCheck').checked||!VOLUME())return 0;
+ const ac=unlockBattleAudio();if(!ac)return 0;
+ const count=Math.min(7,Math.max(2,Math.floor(Number(hits)||7)));
+ const start=ac.currentTime+.012,spacing=.2;
+ let emitted=0;
+ try{
+  for(let i=0;i<count;i++){
+   const when=start+i*spacing,span=i===count-1?.145:.088;
+   const osc=ac.createOscillator(),gain=ac.createGain();
+   const frequency=clamp(185+(i%3)*43+(i===count-1?85:0),130,450);
+   const peak=Math.min(.035,VOLUME()*(i===count-1?.18:.105));
+   osc.type=i===count-1?'sawtooth':'triangle';
+   osc.frequency.setValueAtTime(frequency,when);
+   osc.frequency.exponentialRampToValueAtTime(Math.max(76,frequency*.42),when+span);
+   gain.gain.setValueAtTime(.0001,when);
+   gain.gain.linearRampToValueAtTime(peak,when+.008);
+   gain.gain.exponentialRampToValueAtTime(.0001,when+span);
+   osc.connect(gain);gain.connect(audioMaster(ac));
+   osc.start(when);osc.stop(when+span+.015);trackAttackSource(osc);
+   emitted++;
+  }
+  bgmDuckUntil=Math.max(bgmDuckUntil,performance.now()+(count-1)*200+280);
+ }catch(e){lastSoundStatus='ラッシュ効果音の一部を再生できませんでした: '+String(e)}
+ return emitted;
+}
 function synthVoice(cr,side,options={}){
  if($('mutedCheck').checked||!VOLUME())return;
  const ac=unlockBattleAudio();if(!ac)return;
@@ -2009,12 +2038,14 @@ function maybeSpecialRush(m,ev){
  if(!ev?.skill||m.live||m.done||ev.rushSpecial)return false;
  // Every special attack gets its rush: the previous 1-in-3 gate hid most activations.
  ev.rushSpecial=true;
- // Keep the seven visual hits while protecting the complete spoken phrase.
+ // Seven hits are both VISUAL and AUDIBLE, but recorded speech stays one
+ // complete performance. Do not repeat chopped words or cancel an active word.
  m.rushEndsAt=performance.now()+1750;
- showRushBanner('必殺技　連打ラッシュ！');
+ showRushBanner('必殺技　連打ラッシュ！',7);
  $('arenaEffect').textContent='必殺技　連打ラッシュ！';
- // Do not interrupt a recorded word when a special starts.
- // Seven hits are still visual; recorded speech plays once, in full.
+ playRushHitSounds(ev,7);
+ // If an attack is already speaking, its full phrase has priority over
+ // another voice. Hit effects still sound on every rush activation.
  attackVoice(ev.atk===0?m.a:m.b,ev.atk,{...ev,rush:true,hits:7});
  m.rushEndsAt=Math.max(m.rushEndsAt,playDecodedVoice.busyUntil||0);
  return true;
