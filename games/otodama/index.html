@@ -198,8 +198,8 @@
   <p class="evolution-dialog-note">確定するまでキャラ・レベル・能力・登録済みの声は変わりません。</p>
  </div></div>
 <div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">声魂（こえだま） 対戦 / コンピューター戦</b><label class="pvp-accept"><input id="battleChallengerOptIn" type="checkbox" aria-label="対人挑戦者の受付"><span id="battleChallengerStatus">対人受付 OFF</span></label><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><div id="voiceFxLabel" class="voice-fx-label" hidden aria-live="off"></div><div id="rushBanner" class="rush-banner" role="status" aria-live="polite" hidden></div><div id="matchIntro" class="match-intro" role="status" aria-live="polite" hidden></div><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="timing-callout" id="timingCallout" aria-live="off"></div><div class="arena-effect" id="arenaEffect">準備中</div><div id="challengerBanner" class="challenger-banner" hidden role="status" aria-live="polite"><b>NEW CHALLENGER</b><small>オンラインの挑戦者が現れた！</small></div><div class="arena-battle-tip">素体同士が自動で勝負</div></div><div id="battleSpeech" class="battle-speech" role="status" aria-live="polite" hidden><b id="battleSpeechWho"></b><span id="battleSpeechText"></span><small id="battleSpeechState" hidden></small></div><div id="campaignTrack" class="campaign-track" aria-live="off" hidden></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="enemyTactic" role="status" aria-live="polite"></div><div id="battleReport" role="status" aria-live="polite"></div><div id="battlePanel"><div class="boss-panel" id="bossPanel" hidden><b id="bossWarning">ボス</b><div class="boss-break"><i id="bossBreakFill"></i></div><small>素体が自動で戦います。ボスの行動を見極めよう。</small></div><div class="survival-battle-bar"><span id="survivalBattleStatus" aria-live="polite" hidden></span><button type="button" id="autoBattleBtn" aria-pressed="false">自動操作：OFF</button></div><div class="battle-guide" id="battleGuide">素体の能力と個性で自動対戦。戦いの行方を見守ろう！</div><div class="battle-topline"><span id="skillName">特別な技</span><span>技ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ガード</button><button class="btn outline" id="dodgeBtn" type="button">↗ 回避</button><button class="btn outline" id="strikeBtn" type="button">⚡ タイミング攻撃</button><button class="btn" id="skillBtn" type="button" disabled>✦ 特別な技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div><div class="battle-tactics"><span id="comboBadge">ガード連続 0</span><span id="incomingBadge">敵の攻撃を見切れ！</span></div><div class="stage-mission" id="missionBadge" aria-live="polite" hidden></div><div class="battle-keyhint">PC操作：Space＝ガード / J＝回避 / L＝タイミング攻撃 / K＝特別な技 / 1・2・3＝戦術</div></div><div id="battlePrize" aria-live="polite"></div><div id="nextStagePreview" aria-live="polite" aria-live="polite" hidden></div><div id="nextBuffPanel" class="next-buff-panel" hidden><b>次のバトルの作戦を選択</b><div class="next-buff-choices"><button type="button" data-buff="power" aria-pressed="false">⚔ 攻撃 +15%</button><button type="button" data-buff="shield" aria-pressed="false">◆ HP +30</button><button type="button" data-buff="resonance" aria-pressed="false">✦ 技ゲージ +34</button><button type="button" data-buff="focus" aria-pressed="false">◎ タイミングが合わせやすくなる</button><button type="button" data-buff="lifeline" aria-pressed="false">♡ ピンチ時に一度ダメージ -20</button><button type="button" data-buff="rhythm" aria-pressed="false">♫ タイミング攻撃が続くと強化</button></div><small id="nextBuffHint">選択した強化は次のCOM戦のみ有効。選ばなくても進めます。</small></div><div class="modalfoot"><button type="button" id="audioResumeBtn" class="audio-recover">🔊 声を再開</button><details class="battle-settings" id="battleAudioSettings"><summary>音声設定</summary><div class="audio-rows"><label class="soundrow" for="battleVolume">声・効果音 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><label class="soundrow" for="musicVolume">BGM <input id="musicVolume" type="range" min="0" max="25" value="8"><b id="musicVolumeLabel">8%</b></label><label class="soundrow"><input type="checkbox" id="lowFx"> 省電力描画</label><label class="soundrow"><input type="checkbox" id="voiceFxEnabled" checked> 声の変化を使う（高低・速度・被弾）</label><label class="soundrow"><input type="checkbox" id="roarEnabled" checked> 勝者の雄叫びを鳴らす</label></div></details><button class="btn ghost" id="repeatSpeechBtn" type="button" hidden>▶ 雄叫びをもう一度鳴らす</button><button class="btn primary" id="rematchBtn" disabled>次のバトルへ →</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
-<script src="./progression-v134.js?v=134"></script>
-<script src="./combat-director-v135.js?v=138"></script>
+<script src="./progression-v134.js?v=143"></script>
+<script src="./combat-director-v135.js?v=143"></script>
 <script src="./pvp-pace-v139.js?v=139"></script>
 <script src="./combat-cinema-v138.js?v=140"></script>
 <script>
@@ -573,7 +573,7 @@ function restoreCreature(raw){
  const voice={};for(const key of ['vol','pitch','res','rhythm','stable','breath']){if(!Number.isFinite(raw.voice[key]))throw Error('声データが不正です');voice[key]=clamp(Math.round(raw.voice[key]),0,100)}
  const dna=validAudioDNA(raw.audioDNA);const c=gen(raw.seed>>>0,voice,dna);c.level=clamp(Math.floor(Number(raw.level)||1),1,40);c.xp=clamp(Math.floor(Number(raw.xp)||0),0,2);
  c.rarity=['B','A','S','S+'].includes(raw.rarity)?raw.rarity:rarityOf(c);c.rarityScore=clamp(Math.round(Number(raw.rarityScore)||0),0,100);c.bornWindow=Math.floor(Number(raw.bornWindow)||0);
- c.evolutionVoices=Array.isArray(raw.evolutionVoices)?raw.evolutionVoices.slice(0,3).filter(v=>v&&typeof v==='object'&&v.voice&&['vol','pitch','res','rhythm','stable','breath'].every(k=>Number.isFinite(v.voice[k])&&v.voice[k]>=0&&v.voice[k]<=100)).map(v=>({voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(v.voice[k])])),signature:Number(v.signature)>>>0,focus:String(v.focus||'').slice(0,12),addedAt:Number(v.addedAt)||0,boost:Array.isArray(v.boost)?v.boost.slice(0,5).map(x=>clamp(Number(x)||0,0,2)):[],voiceClip:typeof v.voiceClip==='string'&&v.voiceClip.length<=90000&&clipData({voiceClip:v.voiceClip})?v.voiceClip:''})):[];
+ c.evolutionVoices=Array.isArray(raw.evolutionVoices)?raw.evolutionVoices.slice(0,3).filter(v=>v&&typeof v==='object'&&v.voice&&['vol','pitch','res','rhythm','stable','breath'].every(k=>Number.isFinite(v.voice[k])&&v.voice[k]>=0&&v.voice[k]<=100)).map(v=>({voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(v.voice[k])])),signature:Number(v.signature)>>>0,focus:String(v.focus||'').slice(0,12),addedAt:Number(v.addedAt)||0,boost:Array.isArray(v.boost)?v.boost.slice(0,5).map(x=>clamp(Number(x)||0,0,6)):[],voiceClip:typeof v.voiceClip==='string'&&v.voiceClip.length<=90000&&clipData({voiceClip:v.voiceClip})?v.voiceClip:''})):[];
  if(Array.isArray(raw.stats)&&raw.stats.length===5&&raw.stats.every(Number.isFinite))c.stats=raw.stats.map(v=>clamp(Math.round(v),25,99));
  c.locked=raw.locked===true;return c;
 }
@@ -1392,7 +1392,7 @@ function openEvolutionDialog(){
  }
  stopAttackVoices();
  evolutionDialogSeed=cur.seed;evolutionDraft=null;
- $('evolutionTarget').textContent=displayName(cur)+' Lv.'+levelOf(cur)+'　声 '+(1+(cur.evolutionVoices?.length||0))+'/4';
+ $('evolutionTarget').textContent=displayName(cur)+' Lv.'+levelOf(cur)+'　声 '+(1+(cur.evolutionVoices?.length||0))+'/4　（進化1回：攻撃+12%・HP+8%）';
  $('evolutionDialogStatus').textContent='新しい声を2秒録音してください。録音後に試聴・録り直し・確定できます。';
  $('evolutionDialog').hidden=false;syncEvolutionDialog();
  $('evoRecord').focus();return true;
@@ -1428,7 +1428,7 @@ function confirmEvolutionDraft(){
  const saved=commitEvolutionVoice(cur,draft.voice,draft.dna,draft.clip);
  if(!saved){$('evolutionDialogStatus').textContent='確定できませんでした。空き容量または録音を確認してください。';syncEvolutionDialog();return false}
  evolutionDraft=null;evolutionDialogSeed=null;
- $('evolutionDialog').hidden=true;stopAttackVoices();updateEvolutionUI();return true;
+ $('evolutionDialog').hidden=true;stopAttackVoices();updateEvolutionUI();$('micNotice').textContent='進化成功！ 攻撃+'+Math.min(3,cur.evolutionVoices?.length||0)*12+'%・HP+'+Math.min(3,cur.evolutionVoices?.length||0)*8+'%（累積）';return true;
 }
 function updateEvolutionUI(){
  const node=$('evolutionInfo'),btn=$('evolveBtn');if(!node||!btn)return;
@@ -2323,7 +2323,7 @@ function randCombat(a,b){
    return window.OtodamaDirector.simulate(a,b,{profiles:profile,edge:elementalEdge,stage:b.stage||adventureStage,
      seed:hash(a.seed^Math.imul(b.seed,97)^Date.now())});
  }
- const max=fighters.map((c,i)=>Math.round(132+c.stats[1]*.92+profile[i].mutation.tier*7));
+ const max=fighters.map((c,i)=>Math.round((132+c.stats[1]*.92+profile[i].mutation.tier*7)*(1+Math.min(3,c.evolutionVoices?.length||0)*.08)));
  const hp=max.slice(),events=[],rng=getRand(hash(a.seed^Math.imul(b.seed,97)^Date.now()));
  const traits=fighters.map(c=>c.audioDNA?.version===1?dnaUnlocked(c):[]);
  const energy=[0,0],awaken=[false,false],momentum=[0,0];let prev=-1,chain=0,currentArena=null;
@@ -2355,7 +2355,7 @@ function randCombat(a,b){
   }
   let damage=Math.max(3,Math.round((10+P.power*.225+P.voice*.105-D.defense*.118+(rng()-.5)*11)*
    (hits>1?1+.13*(hits-1):1)*(crit?1.38:1)*(skill?1.53:1)*
-   (awaken[atk]?1.17:1)*elementalEdge(A,B)*(1+P.mutation.tier*.025)*
+   (awaken[atk]?1.17:1)*elementalEdge(A,B)*(1+P.mutation.tier*.025)*(1+Math.min(3,A.evolutionVoices?.length||0)*.12)*
    (arena==='落雷の嵐'?1.15:arena==='空間反転'?.82:arena==='音速暴走'?1.08:1)*
    (TA.includes(0)?1.09:1)*(skill&&TA.includes(5)?1.11:1)*(skill&&TA.includes(7)?1.08:1)));
   let selfDamage=0;
