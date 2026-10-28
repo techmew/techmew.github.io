@@ -54,6 +54,11 @@ assert.equal(calls[0].args.length,2,'main voice plays through natural end');
 assert.ok(calls[0].rate>=.86&&calls[0].rate<=1.16,'single styled voice has a restrained playback rate');
 assert.ok(calls[0].rateEnd>=.86&&calls[0].rateEnd<=1.16,'one source receives the selected pattern');
 assert.ok(statuses.at(-1).enabled,'style is visible in battle');
+// Opponent, counters and reactions cannot overlap an ongoing styled voice.
+api.attackVoice(cr,1,{kind:'uppercut',skill:true});
+api.reactionVoice(cr,1,{guard:true});
+api.attackVoice(cr,0,{kind:'combo'});
+assert.equal(calls.length,1,'no simultaneous character voice, counter voice or special clip while full styled recording is sounding');
 assert.ok(flags.voiceFxEnabled.checked,'styles default to enabled');
 const voiceFn=js.slice(js.indexOf('function playDecodedVoice('),js.indexOf('function attackVoice('));
 assert.equal(voiceFn.split('createBufferSource(').length-1,1,'single-source invariant, never layer same voice');
