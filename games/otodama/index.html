@@ -573,7 +573,7 @@ function restoreCreature(raw){
  const voice={};for(const key of ['vol','pitch','res','rhythm','stable','breath']){if(!Number.isFinite(raw.voice[key]))throw Error('声データが不正です');voice[key]=clamp(Math.round(raw.voice[key]),0,100)}
  const dna=validAudioDNA(raw.audioDNA);const c=gen(raw.seed>>>0,voice,dna);c.level=clamp(Math.floor(Number(raw.level)||1),1,40);c.xp=clamp(Math.floor(Number(raw.xp)||0),0,2);
  c.rarity=['B','A','S','S+'].includes(raw.rarity)?raw.rarity:rarityOf(c);c.rarityScore=clamp(Math.round(Number(raw.rarityScore)||0),0,100);c.bornWindow=Math.floor(Number(raw.bornWindow)||0);
- c.evolutionVoices=Array.isArray(raw.evolutionVoices)?raw.evolutionVoices.slice(0,3).filter(v=>v&&typeof v==='object'&&v.voice&&['vol','pitch','res','rhythm','stable','breath'].every(k=>Number.isFinite(v.voice[k])&&v.voice[k]>=0&&v.voice[k]<=100)).map(v=>({voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(v.voice[k])])),signature:Number(v.signature)>>>0,focus:String(v.focus||'').slice(0,12),addedAt:Number(v.addedAt)||0,boost:Array.isArray(v.boost)?v.boost.slice(0,5).map(x=>clamp(Number(x)||0,0,14)):[],attackBonus:Number.isFinite(v.attackBonus)?clamp(Math.round(v.attackBonus),8,14):undefined,hpBonus:Number.isFinite(v.hpBonus)?clamp(Math.round(v.hpBonus),5,10):undefined,quality:Number.isFinite(v.quality)?clamp(Math.round(v.quality),0,100):undefined,voiceClip:typeof v.voiceClip==='string'&&v.voiceClip.length<=90000&&clipData({voiceClip:v.voiceClip})?v.voiceClip:''})):[];
+ c.evolutionVoices=Array.isArray(raw.evolutionVoices)?raw.evolutionVoices.slice(0,3).filter(v=>v&&typeof v==='object'&&v.voice&&['vol','pitch','res','rhythm','stable','breath'].every(k=>Number.isFinite(v.voice[k])&&v.voice[k]>=0&&v.voice[k]<=100)).map(v=>({voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(v.voice[k])])),signature:Number(v.signature)>>>0,focus:String(v.focus||'').slice(0,12),addedAt:Number(v.addedAt)||0,boost:Array.isArray(v.boost)?v.boost.slice(0,5).map(x=>clamp(Number(x)||0,0,14)):[],attackBonus:Number.isFinite(v.attackBonus)?clamp(Math.round(v.attackBonus),8,14):undefined,hpBonus:Number.isFinite(v.hpBonus)?clamp(Math.round(v.hpBonus),5,10):undefined,quality:Number.isFinite(v.quality)?clamp(Math.round(v.quality),0,100):undefined,voiceClip:typeof v.voiceClip==='string'&&v.voiceClip.length<=125000&&clipData({voiceClip:v.voiceClip})?v.voiceClip:''})):[];
  if(Array.isArray(raw.stats)&&raw.stats.length===5&&raw.stats.every(Number.isFinite))c.stats=raw.stats.map(v=>clamp(Math.round(v),25,99));
  c.locked=raw.locked===true;return c;
 }
@@ -1113,7 +1113,7 @@ function abortCaptureForBackground(){
 }
 function pcmWavDataUrl(samples,rate){
  if(!Array.isArray(samples)||!Number.isFinite(rate)||rate<8000||samples.length<Math.round(rate*.25))return '';
- const count=Math.min(samples.length,Math.round(rate*3)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
+ const count=Math.min(samples.length,Math.round(rate*3.9)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
  const ascii=(at,str)=>{for(let i=0;i<str.length;i++)view.setUint8(at+i,str.charCodeAt(i))};
  ascii(0,'RIFF');view.setUint32(4,36+count*2,true);ascii(8,'WAVE');ascii(12,'fmt ');
  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
@@ -1178,14 +1178,16 @@ async function startRecord(mode='birth'){
  const captureId=++captureGeneration;
  let stream, aud, src, recorder=null, decodedAudio=null, chunks=[], timeoutHandle=null, countdownHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
- const pcmPreRoll=new Float32Array(Math.round(11025*.22));
+ // Keep a full 1.05 seconds before the start cue. A short 220ms buffer was
+ // insufficient on mobile where audio callbacks and UI paint are delayed.
+ const pcmPreRoll=new Float32Array(Math.round(11025*1.05));
  let pcmPreWrite=0,pcmPreCount=0;
  recordingRequestPending=true;
  if(evolutionRequested){evolutionDraft=null;$('evolutionDialogStatus').textContent='マイクを準備しています…';syncEvolutionDialog();}
  $('micHint').textContent='マイクを起動しています…';$('countdown').textContent='MIC START';changeCaptureButtons(true);
  const micRequestAt=performance.now();
  try{
-  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
    if(!captureIsCurrent(captureId))return;
   captureLiveStream=stream;
   stopBattleSpeech(); // No result speech in the microphone.
@@ -1220,14 +1222,14 @@ async function startRecord(mode='birth'){
     if(aud.state==='running'){
      src=aud.createMediaStreamSource(stream);
      an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
-     // The PCM capture is silent while preparing. The recording flag starts AFTER pre-roll.
+     // Continuously capture PCM during the countdown, retaining a rolling lead-in.
      if(typeof aud.createScriptProcessor==='function'){
       pcmRate=Math.min(11025,Math.round(aud.sampleRate));
       pcmNode=aud.createScriptProcessor(4096,1,1);
       pcmSilence=aud.createGain();pcmSilence.gain.value=0;
       pcmNode.onaudioprocess=ev=>{
-       // Buffer 220 ms before 録音開始, plus keep recording 650 ms after the timer.
-       if(recordingFinishing||pcmSamples.length>=Math.round(pcmRate*3))return;
+       // Preserve a 1050ms pre-roll and a 650ms tail, without dropping audio callbacks.
+       if(recordingFinishing||pcmSamples.length>=Math.round(pcmRate*3.9))return;
        const input=ev.inputBuffer.getChannelData(0);
        for(let i=0;i<input.length;i++){
         pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
@@ -1237,7 +1239,7 @@ async function startRecord(mode='birth'){
           pcmPreRoll[pcmPreWrite]=value;
           pcmPreWrite=(pcmPreWrite+1)%pcmPreRoll.length;
           pcmPreCount=Math.min(pcmPreCount+1,pcmPreRoll.length);
-         }else if(recording&&pcmSamples.length<Math.round(pcmRate*3)){
+         }else if(recording&&pcmSamples.length<Math.round(pcmRate*3.9)){
           pcmSamples.push(value);
          }
          pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
@@ -1361,7 +1363,7 @@ async function startRecord(mode='birth'){
     }
    }catch(e){}
   }
-  // PCM contains the guard samples at both the start and end.
+  // PCM captures the entire spoken word plus a generous lead-in and tail.
   if(pcmFallbackClip)voiceClip=pcmFallbackClip;
   // Cache captured PCM for immediate preview; no redundant WAV decode.
   if(voiceClip===pcmFallbackClip&&pcmSamples.length&&aud?.createBuffer){
@@ -1390,8 +1392,8 @@ async function startRecord(mode='birth'){
   if(!captureIsCurrent(captureId))return;
   if(voiceOnlyRequested){
    if(cur.seed!==selectedSeed||!birthRevealActive||birthRevealCreature?.seed!==selectedSeed)return;
-   const compactClip=voiceClip.length<=90000?voiceClip:pcmFallbackClip;
-   if(!compactClip||compactClip.length>90000||!replaceBirthVoice(selectedSeed,compactClip,decodedAudio)){
+   const compactClip=voiceClip.length<=125000?voiceClip:pcmFallbackClip;
+   if(!compactClip||compactClip.length>125000||!replaceBirthVoice(selectedSeed,compactClip,decodedAudio)){
     $('birthVoiceStatus').textContent='声を保存できませんでした。元の音声は維持しています。';return;
    }
    $('birthVoiceStatus').textContent='声を保存しました。「声を確認」で最初から最後まで再生できます。';
@@ -1402,8 +1404,8 @@ async function startRecord(mode='birth'){
    if(cur.seed!==selectedSeed||evolutionDialogSeed!==selectedSeed||$('evolutionDialog').hidden){
      $('micNotice').textContent='キャラの変更またはキャンセルにより、進化録音を破棄しました';return;
    }
-   const compactClip=voiceClip.length<=90000?voiceClip:pcmFallbackClip;
-   if(!validAudioDNA(audioDNA)||!clipData({voiceClip:compactClip})||compactClip.length>90000){
+   const compactClip=voiceClip.length<=125000?voiceClip:pcmFallbackClip;
+   if(!validAudioDNA(audioDNA)||!clipData({voiceClip:compactClip})||compactClip.length>125000){
     evolutionDraft=null;
     $('evolutionDialogStatus').textContent='声を保存・解析できませんでした。もう一度録音してください。';
     $('countdown').textContent='再録音';return;
@@ -1544,7 +1546,7 @@ function updateRarityClock(){const el=$('rarityResearch');if(!el||!GROWTH)return
 }
 function commitEvolutionVoice(cr,voice,dna,clip){
  const idx=roster.findIndex(c=>c.seed===cr.seed);
- if(idx<0||!GROWTH?.canEvolve(cr)||!validAudioDNA(dna)||!clipData({voiceClip:clip})||clip.length>90000){$('micNotice').textContent='進化に必要な条件や音声DNAを確認してください';return false}
+ if(idx<0||!GROWTH?.canEvolve(cr)||!validAudioDNA(dna)||!clipData({voiceClip:clip})||clip.length>125000){$('micNotice').textContent='進化に必要な条件や音声DNAを確認してください';return false}
  let next;try{next=GROWTH.applyEvolution(cr,voice,dna,clip,Date.now())}catch(e){$('micNotice').textContent=String(e.message||e);return false}
  const previous=roster[idx];roster[idx]=next;
  if(!saveStore()){roster[idx]=previous;$('micNotice').textContent='保存容量が足りません。進化は確定していません';return false}
