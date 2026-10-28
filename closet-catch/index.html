@@ -146,6 +146,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-details[hidden]{display:none}
 .show-details summary{cursor:pointer;padding:14px;font-weight:850;color:#ffe0b7;font-size:13px}
 .show-details .show-analysis{padding:0 10px 12px;margin-top:0}
+.show-judge:last-child:nth-child(odd){grid-column:1/-1}
 @media(max-width:620px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge{padding:10px 8px}.show-judge b{font-size:12px}.show-judge .judge-score-row strong{font-size:18px}.show-judge .judge-score-row span{font-size:10px}.show-result{margin:10px 0}.show-help{line-height:1.5}}
 .free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}</style>
 </head>
@@ -274,6 +275,7 @@ st.freeLook=Array.from({length:16},(_,i)=>{const id=st.freeLook[i];return Number
 const freeSeen=new Set();st.freeLook=st.freeLook.map(id=>{if(id===null||freeSeen.has(id))return null;freeSeen.add(id);return id});
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+const WEATHER_HINTS=['釣りやすい','少し時間短縮','糸の張りに注意','糸切れに注意','時間短縮に注意'];
 const WEATHERS=[
  {label:'☀ 晴れ',sky:'#ffedb7',tension:0,time:0,wave:0},
  {label:'☁ 曇り',sky:'#cad9e1',tension:0,time:.5,wave:.3},
@@ -283,7 +285,7 @@ const WEATHERS=[
 ];
 let weatherIndex=(st.show.round-1)%WEATHERS.length,weatherPrev=weatherIndex,weatherFade=1,weatherChangedAt=performance.now();
 function updateWeather(dt){
- if(!hook.active&&performance.now()-weatherChangedAt>=110000){weatherPrev=weatherIndex;weatherIndex=(weatherIndex+1)%WEATHERS.length;weatherFade=0;weatherChangedAt=performance.now();showDock()}
+ if(!hook.active&&performance.now()-weatherChangedAt>=110000){weatherPrev=weatherIndex;weatherIndex=(weatherIndex+1)%WEATHERS.length;weatherFade=0;weatherChangedAt=performance.now();showDock();showEvent('天候：'+WEATHERS[weatherIndex].label+'／'+WEATHER_HINTS[weatherIndex],1900)}
  weatherFade=Math.min(1,weatherFade+dt/2500);
 }
 function drawWeather(ctx,t){
@@ -414,7 +416,7 @@ function sfxCatch(r){[392,494,587,784].slice(0,Math.max(2,r+1)).forEach((f,i)=>t
 function bubble(x,y,n=18,c='#c9fff3'){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-4.3,4.3),vy:rand(-5,-.6),life:rand(25,66),max:66,r:rand(2,7),color:c,gravity:rand(.01,.07)})}
 function showEvent(t,d=1300){const el=$('eventMsg');el.textContent=t;el.classList.add('show');clearTimeout(noticeTimeout);noticeTimeout=setTimeout(()=>el.classList.remove('show'),d)}
 function popup(item,duplicate){pendingItem=item;const t=$('toast');t.classList.remove('hidden');$('toastRare').textContent=(duplicate?'DUPLICATE · ':'NEW GET · ')+rarityNames[item.rarity];$('toastRare').style.color=rareColors[item.rarity];$('toastName').textContent=item.name;$('toastText').textContent=duplicate?'重複のためコインに交換！':isAvatarCatch(item)?'カスタマイズに追加！':'クローゼットに追加！';$('equipBtn').textContent=isAvatarCatch(item)?'このスタイルを使う':'いま着る';$('equipBtn').disabled=false;drawGarmentCard($('toastCanvas'),item);clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.add('hidden'),7000)}
-function showDock(){let v=st.show;$('roundLabel').textContent='ROUND '+v.round+' ・ '+showTheme()[0];$('tideBadge').textContent=WEATHERS[weatherIndex].label+' · '+(v.round>=15?'荒波':v.round>=6?'うねり':'おだやか');$('roundPips').querySelectorAll('i').forEach((p,i)=>p.classList.toggle('on',i<v.queue.length));$('showEntry').disabled=v.queue.length!==5;$('showEntry').textContent=v.queue.length===5?'ショーに出場！':v.queue.length+' / 5点';$('showRecord').innerHTML='BROADWAY SHOW　勝利 <b>'+v.wins+'</b> ／ ベスト <b>'+v.best+'</b>点 ／ 連勝 <b>'+v.streak+'</b>'}
+function showDock(){let v=st.show;$('roundLabel').textContent='ROUND '+v.round+' ・ '+showTheme()[0];$('tideBadge').textContent=WEATHERS[weatherIndex].label+'｜'+WEATHER_HINTS[weatherIndex];$('tideBadge').title='現在の天候による釣りへの影響';$('roundPips').querySelectorAll('i').forEach((p,i)=>p.classList.toggle('on',i<v.queue.length));$('showEntry').disabled=v.queue.length!==5;$('showEntry').textContent=v.queue.length===5?'ショーに出場！':v.queue.length+' / 5点';$('showRecord').innerHTML='BROADWAY SHOW　勝利 <b>'+v.wins+'</b> ／ ベスト <b>'+v.best+'</b>点 ／ 連勝 <b>'+v.streak+'</b>'}
 function redrawUI(){showDock();ownSet=new Set(st.owned);$('count').textContent=st.owned.filter(i=>i<TOTAL).length.toLocaleString('ja-JP');$('coins').textContent=st.coins.toLocaleString('ja-JP');$('casts').textContent=st.casts.toLocaleString('ja-JP');$('itemSummary').textContent=`服 ${st.owned.filter(i=>i<TOTAL).length}着・魚 ${st.owned.filter(i=>i>=TOTAL).length}匹`;$('percent').textContent=(st.owned.filter(i=>i<TOTAL).length/100).toFixed(2)+'%';$('progressFill').style.width=(st.owned.filter(i=>i<TOTAL).length/100)+'%';$('rodLevel').textContent=`釣りざお Lv.${st.rod} ／ レア率 ${st.rod===1?'標準':'アップ中'}`;$('upgradeCost').textContent=(st.rod*100).toLocaleString('ja-JP');$('upgradeBtn').disabled=st.coins<st.rod*100||st.rod>=8;$('upgradeBtn').title=st.rod>=8?'最大強化済み':'';$('comboLabel').textContent=`連続キャッチ ${st.combo}`;renderQuests();$('hint').style.display=st.catches?'none':'block';renderModel();renderInventory();save()}
 function equipItem(item){if(!ownSet.has(item.id))return;st.equip[item.cat]=st.equip[item.cat]===item.id?null:item.id;if(item.cat==='dress'&&st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}if(['top','bottom'].includes(item.cat)&&st.equip[item.cat]!==null)st.equip.dress=null;redrawUI();tone(620,.1,'sine',.06);tone(780,.14,'sine',.05,.09)}
 function undress(trigger=false){for(let k of Object.keys(st.equip))st.equip[k]=null;redrawUI();if(trigger)showEvent('風でコーデが全部飛んだ！パンツ一丁！',2300)}
@@ -521,7 +523,7 @@ function updateGame(dt){
     s.vx=clamp(s.vx+Math.cos(a)*v*55,-115,115);
     s.vy=clamp(s.vy+Math.sin(a*1.2)*v*50,-90,90)
    }
-   const seconds=dt/1000;s.x+=s.vx*seconds;s.y+=s.vy*seconds;
+   const seconds=dt/1000,weatherCurrent=WEATHERS[weatherIndex].wave;s.x+=s.vx*seconds*(1+weatherCurrent*.08);s.y+=s.vy*seconds*(1+weatherCurrent*.06);
    if(s.x<72||s.x>950){s.vx*=-.9;s.x=clamp(s.x,72,950)}
    if(s.y<205||s.y>495){s.vy*=-.9;s.y=clamp(s.y,205,495)}
    continue
@@ -774,9 +776,12 @@ function renderRunwayItem(ctx,p,gait,t){
  if(drawFittedRunwayGarment(ctx,p))return;
  if(item.cat==='hair'&&p.natural){avatarHair(ctx,x,-137,.88,item.id-HAIR_ID_START,'front',t);return}
  if(item.cat==='fish'&&p.natural&&['torso','hips','back','neck'].includes(region)){
-  ctx.save();ctx.strokeStyle=tint(colorOf(item),-.45);ctx.lineWidth=4;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(-24,-65);ctx.quadraticCurveTo(5,-10,27,49);ctx.stroke();
-  ellipse(ctx,27,49,5,5,'#ffe7a7');ctx.restore()
+  ctx.save();ctx.strokeStyle=tint(colorOf(item),-.50);ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();
+  if(region==='hips'){ctx.moveTo(-33,45);ctx.quadraticCurveTo(0,56,33,45);ctx.moveTo(-33,52);ctx.quadraticCurveTo(0,63,33,52)}
+  else if(region==='neck'){ctx.moveTo(-22,-115);ctx.quadraticCurveTo(0,-77,22,-115)}
+  else if(region==='back'){ctx.moveTo(-26,-66);ctx.quadraticCurveTo(-38,-8,-19,38);ctx.moveTo(26,-66);ctx.quadraticCurveTo(38,-8,19,38)}
+  else{ctx.moveTo(-26,-63);ctx.quadraticCurveTo(-4,-17,27,47);ctx.moveTo(25,-63);ctx.quadraticCurveTo(2,-19,-27,47)}
+  ctx.stroke();ellipse(ctx,0,region==='neck'?-89:region==='hips'?55:3,5,5,'#ffe7a7');ctx.restore()
  }
  const cap={head:73,face:46,neck:62,torso:93,hips:81,legs:98,feet:49,hands:54,back:87}[region]||85;
  const fitted=Math.min(size,cap)*(item.cat==='fish'?.87:1);
@@ -1213,7 +1218,13 @@ function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume
   else if(index===12){for(const dx of [-28,28])drawSeaCollectible(ctx,item,220+dx,455,73,dx*.002)}
   else if(index===3){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*55,152,55,dx*.16)}
   else if(index===8){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*84,299,67,dx*.15)}
-  else drawSeaCollectible(ctx,item,part[1],part[2],part[3],part[4]);
+  else if(['top','outer','dress','bottom','under','shoes'].includes(item.cat)){
+   ctx.translate(220,270);ctx.scale(1.12,1.10);
+   drawFittedRunwayGarment(ctx,{item,stack:0,natural:true});
+  }else{
+   const fittedSize=item.cat==='fish'?Math.min(part[3],86):item.cat==='hat'?Math.min(part[3],120):item.cat==='acc'?Math.min(part[3],96):part[3];
+   drawSeaCollectible(ctx,item,part[1],part[2],fittedSize,part[4]);
+  }
   ctx.restore();
  }
  ctx.strokeStyle='#ffffffbb';ctx.lineWidth=4;round(ctx,8,8,424,494,18,null,'#ffffffbb');
