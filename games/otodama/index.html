@@ -1174,7 +1174,7 @@ async function startRecord(mode='birth'){
   if(voiceOnlyRequested){birthVoiceBusy=false;syncBirthVoiceActions()}
   return;
  }
- if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
+ if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();if(voiceOnlyRequested){birthVoiceBusy=false;syncBirthVoiceActions()}return;}
  const captureId=++captureGeneration;
  let stream, aud, src, recorder=null, decodedAudio=null, chunks=[], timeoutHandle=null, countdownHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
@@ -1494,7 +1494,7 @@ function listenEvolutionDraft(){
  stopAttackVoices();
  if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.()}
  if(Number($('battleVolume').value)<5){$('battleVolume').value='18';$('battleVolume').oninput?.()}
- unlockBattleAudio();playDecodedVoice({...cur,voiceClip:evolutionDraft.clip},0,true);
+ unlockBattleAudio();playDecodedVoice({...cur,voiceClip:evolutionDraft.clip},0,true,{full:true});
  $('evolutionDialogStatus').textContent='録音した声を再生しています。納得できなければ録り直せます。';
 }
 function retryEvolutionDraft(){
@@ -1856,7 +1856,9 @@ function voiceEffectRate(param,from,to,start,duration){
 }
 function decodedVoiceKey(cr){
  const data=clipData(cr);
- return data?cr.seed+'_'+data.length+'_'+data.slice(-32):'';
+ if(!data)return '';
+ const probes=[.12,.29,.47,.65,.83].map(p=>data.slice(Math.floor(data.length*p),Math.floor(data.length*p)+32)).join('|');
+ return cr.seed+'_'+data.length+'_'+probes;
 }
 // A finished MediaRecorder recording has already been decoded for validation/DNA.
 // Reuse its AudioBuffer so the first '聴く' press never decodes the same recording twice.
@@ -1881,7 +1883,7 @@ function cacheDecodedVoice(cr,decoded){
   if(rms<.0005){lastSoundStatus='録音音声が小さすぎます。録音し直してください';return null}
   const voiceGain=Math.min(8,Math.max(.85,.14/rms),.95/Math.max(.08,peak));
   const clip={buffer:decoded,offset:best/decoded.sampleRate,
-   duration:Math.min(.7,decoded.duration-best/decoded.sampleRate),gain:voiceGain};
+   duration:Math.min(.7,decoded.duration-best/decoded.sampleRate),gain:voiceGain,fullDuration:decoded.duration};
   voiceCache.set(key,clip);if(voiceCache.size>45)voiceCache.delete(voiceCache.keys().next().value);
   return clip;
  }catch(e){lastSoundStatus='録音音声の読み込み失敗: '+String(e);return null}
@@ -1925,11 +1927,13 @@ function playDecodedVoice(cr,side,force=false,options={}){
   if(!clip||clip.duration<.075){fallback();return false}
   try{
    const out=rush?audioMaster(ac):voiceOutput(ac),now=ac.currentTime+.018;
+   const fullPreview=force&&options.full===true;
+   const fullDuration=Math.min(3.6,Number(clip.buffer?.duration)||clip.fullDuration||clip.duration);
    // Never layer recorded echoes over regular speech; the original consonants stay clear.
    const echoes=0;
    function voiceAt(at,length,from,to,loudness){
     const source=ac.createBufferSource(),gain=ac.createGain();
-    const portion=Math.min(clip.duration,Math.max(.08,length));
+    const portion=Math.min(fullPreview?fullDuration:clip.duration,Math.max(.08,length));
     const limitLow=rush?1.55:.86,limitHigh=rush?2.15:1.14;
     const safeFrom=force?1:clamp(from,limitLow,limitHigh);
     const safeTo=force?1:clamp(to,limitLow,limitHigh);
@@ -1948,13 +1952,13 @@ function playDecodedVoice(cr,side,force=false,options={}){
      node.connect(filter);node=filter;
     }
     node.connect(gain);gain.connect(out);
-    source.start(at,clip.offset,portion);trackAttackSource(source);
+    source.start(at,fullPreview?0:clip.offset,portion);trackAttackSource(source);
    }
    for(let i=0;i<hits;i++){
     const at=now+(rush?i*.200:0);
     const shift=fx.enabled&&rush?1+(i%3-1)*.035:1;
     const from=fx.from*shift,to=fx.to*shift;
-    const length=rush?clip.duration:force?.7:phase==='reaction'?.22:.58;
+    const length=rush?clip.duration:fullPreview?fullDuration:force?.7:phase==='reaction'?.22:.58;
     // Rush replays the recognizable recording at accelerated speed, instead of cutting it to 105 ms.
     // The gain is 1.5x the NORMAL recorded-attack gain, with a final cap and master limiter.
     const ordinaryLevel=Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
@@ -1969,7 +1973,7 @@ function playDecodedVoice(cr,side,force=false,options={}){
   }catch(e){lastSoundStatus=String(e);fallback();return false}
  };
  if(!clipData(cr)){fallback();return}
- const key=cr.seed+'_'+cr.voiceClip.length+'_'+cr.voiceClip.slice(-32);
+ const key=decodedVoiceKey(cr);
  if(voiceCache.has(key)){play(voiceCache.get(key));return}
  decodeVoice(cr).then(play).catch(e=>{lastSoundStatus=String(e);fallback()});
 }
@@ -2011,13 +2015,21 @@ function primeBattleVoices(a,b){
  if(clipData(a))decodeVoice(a).catch(()=>{});
  if(clipData(b))decodeVoice(b).catch(()=>{});
 }
-function previewRecordedVoice(){
- unlockBattleAudio();if(!clipData(cur)){$('micNotice').textContent='まず音声を録音してください';return}
- decodeVoice(cur).then(clip=>{
-  if(!clip){$('micNotice').textContent='音声を読み込めませんでした: '+lastSoundStatus;return}
-  playDecodedVoice(cur,0,true);$('micNotice').textContent='録音した声を試聴しています（バトルと同じ小さめの音量）';
- })
+function previewFullVoice(creature,status){
+ if(!clipData(creature)){if(status)status.textContent='録音した声がありません';return}
+ stopAttackVoices();
+ if($('mutedCheck').checked){$('mutedCheck').checked=false;$('mutedCheck').onchange?.()}
+ if(Number($('battleVolume').value)<5){$('battleVolume').value='18';$('battleVolume').oninput?.()}
+ unlockBattleAudio();
+ const clip=clipData(creature);
+ decodeVoice(creature).then(sample=>{
+  if(!sample){if(status)status.textContent='音声を再生できませんでした: '+lastSoundStatus;return}
+  if(clipData(creature)!==clip)return;
+  playDecodedVoice(creature,0,true,{full:true});
+  if(status)status.textContent='録音した声を最初から最後まで再生しています。';
+ }).catch(e=>{if(status)status.textContent='試聴に失敗しました: '+String(e)});
 }
+function previewRecordedVoice(){previewFullVoice(cur,$('micNotice'))}
 // V0.3 BATTLE LOGIC: chance-based airborne action, dodges, rebounds, counters, chain hits.
 const COMBAT_KINDS=['rush','aerial','warp','beam','combo','spin','uppercut','shockwave','meteor','counter'];
 const ARENA_LABELS={'無重力ゾーン':'ふわっとする','落雷の嵐':'落雷','残響増幅':'音が響く','空間反転':'重力が変わる','音速暴走':'スピードアップ'};
