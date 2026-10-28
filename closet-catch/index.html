@@ -150,8 +150,14 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 @media(max-width:620px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge{padding:10px 8px}.show-judge b{font-size:12px}.show-judge .judge-score-row strong{font-size:18px}.show-judge .judge-score-row span{font-size:10px}.show-result{margin:10px 0}.show-help{line-height:1.5}}
 .free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}/* Phone runway camera: enlarge both model and clothing with the same canvas transform. */
 @media(max-width:620px){
- .show-stage-wrap{overflow:hidden;border-radius:14px}
- .show-stage-wrap #showCanvas{width:120%;max-width:none;margin-left:-10%;height:auto}
+ /* Keep the full runway and both models visible on narrow screens. */
+ .show-stage-wrap{display:flex;flex-wrap:wrap;align-items:stretch;gap:7px;overflow:visible;border-radius:14px}
+ .show-stage-wrap #showCanvas{width:100%;max-width:100%;height:auto;margin:8px 0 0;flex:0 0 100%}
+ /* Put the pose controls below the picture instead of covering the judges. */
+ .show-stage-wrap .show-pose-hud{position:static;left:auto;bottom:auto;width:calc(100% - 122px);min-width:0;min-height:60px;margin:0;padding:8px 10px;font-size:11px;gap:6px;flex:1 1 155px}
+ .show-stage-wrap .show-pose-float{position:static;right:auto;bottom:auto;min-width:115px;min-height:60px;margin:0;flex:0 0 115px;font-size:15px;border-radius:13px}
+ .show-stage-wrap .show-pose-hud[hidden],.show-stage-wrap .show-pose-float[hidden]{display:none}
+ @media(max-width:350px){.show-stage-wrap .show-pose-hud{font-size:10px;padding:7px}.show-stage-wrap .show-pose-float{min-width:100px;flex-basis:100px}}
  .show-head h2{font-size:23px}
  .show-head span{font-size:11px}
  .show-judge .judge-score-row{flex-wrap:wrap;gap:2px}
@@ -1463,6 +1469,10 @@ castControl.addEventListener('keyup',e=>{
  e.preventDefault();spaceHeld=false;if(!heldPointers.size)reelUp();
 });
 castControl.addEventListener('blur',()=>{if(spaceHeld){spaceHeld=false;if(!heldPointers.size)reelUp(false)}});
+ // A phone call, tab switch or window deactivation must never leave the reel held.
+ function cancelInterruptedReel(){heldPointers.clear();spaceHeld=false;reelUp(false)}
+ window.addEventListener('blur',cancelInterruptedReel);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelInterruptedReel()});
 castControl.addEventListener('click',e=>{
  if(e.detail!==0||showPhase!=='closed'||hook.active)return;
  const it=pick(sceneItems);if(it)castAt(it.x,it.y);
