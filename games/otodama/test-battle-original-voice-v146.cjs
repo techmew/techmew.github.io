@@ -30,7 +30,7 @@ const ctx={Math,Map,performance:{now:()=>now},
  unlockBattleAudio:()=>ac,voiceOutput:()=>({}),audioMaster:()=>({}),
  trackAttackSource(){},setVoiceEffectStatus:x=>labels.push(x),lastSoundStatus:'',
  synthVoice(){throw Error('Recording exists: must not synthesize instead')},
- showRushBanner:x=>rushBanners.push(x),
+ showRushBanner:x=>rushBanners.push(x),playRushHitSounds:(ev,hits)=>rushBanners.push('sound:'+hits),
  bgmDuckUntil:0,
  match:{done:false,mode:'COM MATCH',turn:1,a:saved,b:{seed:222},rushEndsAt:0},
  voiceEffectProfile(){return {enabled:false,label:'原音',from:1,to:1,volume:1}}
@@ -49,7 +49,8 @@ const skill={skill:true,atk:0};
 assert.equal(api.maybeSpecialRush(ctx.match,skill),true,'seven-hit special remains functional');
 assert.equal(starts.length,1,'special does not chop or replace the ongoing word');
 assert.ok(ctx.match.rushEndsAt>=api.playDecodedVoice.busyUntil,'special timing respects last syllable');
-assert.equal(rushBanners.length,1,'special still has visual impact');
+assert.equal(rushBanners.length,2,'special has visual impact AND seven audible strikes');
+assert.equal(rushBanners[1],'sound:7','rush restores seven sound hits');
 now=4100;ctx.match.turn++;
 api.attackVoice(saved,0,{kind:'normal'});
 assert.equal(starts.length,2,'new full recording starts after previous naturally finishes');
