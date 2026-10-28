@@ -36,7 +36,7 @@ ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mo
 ui.pause.addEventListener('click',pause);ui.sound.addEventListener('click',()=>{sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();bgm.setEnabled(true);bgm.start()}}else bgm?.setEnabled(false)});
 ui.equip.addEventListener('click',equip);ui.pulse.addEventListener('click',pulse);$('helpBtn').addEventListener('click',()=>{if(G.mode==='playing')pause();else if(G.mode==='title'){showToast('移動：矢印 / WASD / ドラッグ　強化：X→Enter　衝撃波：SPACE')}});
 ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{G.selected=i;if(G.mode==='playing'&&G.energy>=i+1&&G.levels[i]<MAX[i])showToast('強化を押して '+PNAMES[i]+' を装備');updateHud()}));
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')G.routeSelected=1-G.routeSelected;if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='enter'||k==='z')equip()});
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='enter'||k==='z')equip()});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
 /* Standard floating directional stick, separate from the ship's visual position. */
@@ -62,7 +62,7 @@ C.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==pid||G.mode!=='
 const release=e=>{if(e.pointerId===pid){dragging=false;pid=-1}};C.addEventListener('pointerup',release);C.addEventListener('pointercancel',release);
 function equip(){if(G.mode!=='playing')return;const i=G.selected,need=i+1;if(G.energy<need){showToast('カプセルが足りません');tone(150,.1,'triangle',.025);return}if(G.levels[i]>=MAX[i]){showToast('最大強化済み');return}G.energy-=need;G.levels[i]++;if(i===5)p.shield=3+G.levels[i];if(i===4)G.trail.length=0;for(let j=0;j<110;j++)G.trail.push({x:p.x-j*3,y:p.y});ring(p.x,p.y,115,'#64eaff',.65);emit(p.x,p.y,36,'#7df8ff',260);tone(430,.25,'sawtooth',.09,780);showToast(PNAMES[i]+' LEVEL '+G.levels[i]);G.selected=0;updateHud()}
 function pulse(){if(G.mode!=='playing'||G.pulses<=0)return;G.pulses--;G.shake=17;screenPulse=.85;G.bullets=[];p.invul=Math.max(p.invul,.65);ring(p.x,p.y,1250,'#a6faff',.75);emit(p.x,p.y,85,'#8bf4ff',460);G.enemies.forEach(e=>{e.hp-=75;emit(e.x,e.y,7,'#ffca81',160)});if(G.boss)G.boss.hp-=110;tone(120,.8,'sawtooth',.14,800);showToast('SHOCK PULSE');updateHud()}
-function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=NAMES[G.stage]+(G.stage>0?(G.routeRisk?' · STORM':' · SAFE'):'');ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/(G.stage===0?62:G.stage===1?68:74)*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='PULSE '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+' / 6 · '+(G.overdrive>0?'OVERDRIVE '+Math.ceil(G.overdrive)+'s':G.energy?'強化可能':'カプセルを集めよう');ui.upgrades.forEach((b,i)=>{b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',G.energy>=i+1&&G.levels[i]<MAX[i]);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);b.querySelector('.u-key').textContent=G.levels[i]?'LV '+G.levels[i]:(String(i+1).padStart(2,'0'))});ui.equip.disabled=G.mode!=='playing'||G.energy<G.selected+1||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
+function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/(G.stage===0?62:G.stage===1?68:74)*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='PULSE '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+' / 6 · '+(G.overdrive>0?'OVERDRIVE '+Math.ceil(G.overdrive)+'s':G.energy?'強化可能':'カプセルを集めよう');ui.upgrades.forEach((b,i)=>{b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',G.energy>=i+1&&G.levels[i]<MAX[i]);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);b.querySelector('.u-key').textContent=G.levels[i]?'LV '+G.levels[i]:(String(i+1).padStart(2,'0'))});ui.equip.disabled=G.mode!=='playing'||G.energy<G.selected+1||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
 function ring(x,y,max,color,life=.6){G.rings.push({x,y,r:4,max,color,life,t:0})}
 function emit(x,y,num,color,power=160){for(let i=0;i<num;i++){const a=R(0,TAU),s=R(power*.15,power);G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:R(.2,.85),maxLife:.85,size:R(1.2,4.4),color,glow:Math.random()>.55})}}
 function explosion(x,y,r=32){emit(x,y,Math.round(r*.85),'#ffb66c',r*7);emit(x,y,Math.round(r*.4),'#70dcff',r*4);ring(x,y,r*3,'#ffbd88');G.shake=Math.min(25,G.shake+r*.12);tone(R(70,115),.2,'sawtooth',.038,-50)}
@@ -118,6 +118,58 @@ tone(165,.11,'triangle',.015,50)
 }
 
 /* Route gate: paused time & risk/reward choices alter subsequent encounter pacing. */
+
+/* Navigation map: a fixed three-sector graph. Completed edges and the current
+   ship position are derived only from the route history, never guessed. */
+function renderRouteMap(){
+ const x=[86,450,814],top=40,bottom=138,center=90;
+ const at=(sector,risk)=>({x:x[sector],y:sector===0?center:(risk?bottom:top)});
+ const currentRisk=G.stage===0?0:(G.routeHistory[G.stage-1]?.risk||0);
+ const edges=[];
+ for(let sector=1;sector<3;sector++){
+  for(const sourceRisk of (sector===1?[0]:[0,1]))for(const risk of [0,1]){
+   const a=at(sector-1,sourceRisk),b=at(sector,risk);
+   const selected=sector<=G.stage&&G.routeHistory[sector-1]?.risk===risk&&(sector===1||G.routeHistory[sector-2]?.risk===sourceRisk);
+   const offered=sector===G.stage+1&&(sector===1||sourceRisk===currentRisk);
+   const cls=selected?'complete':offered?(risk?'offered risk':'offered safe'):'future';
+   edges.push('<path class="map-edge '+cls+'" d="M'+a.x+' '+a.y+' C'+(a.x+140)+' '+a.y+' '+(b.x-140)+' '+b.y+' '+b.x+' '+b.y+'"/>');
+  }
+ }
+ const nodes=[];
+ for(let sector=0;sector<3;sector++){
+  for(const risk of (sector===0?[0]:[0,1])){
+   const pt=at(sector,risk),isCurrent=sector===G.stage&&(sector===0||risk===currentRisk);
+   const completed=sector<G.stage&&(sector===0||G.routeHistory[sector-1]?.risk===risk);
+   const available=sector===G.stage+1;
+   const chosen=available&&G.routeSelected===risk;
+   const status=isCurrent?'current':completed?'complete':available?(risk?'available risk':'available safe'):'future';
+   const label=sector===0?'出撃地点':ROUTE_OPTIONS[sector-1][risk].name;
+   nodes.push('<g class="map-node '+status+(chosen?' chosen':'')+'" transform="translate('+pt.x+' '+pt.y+')">'+
+    '<circle class="map-halo" r="17"/><circle class="map-dot" r="9"/>'+
+    (isCurrent?'<path class="map-ship" d="M-5 0 L5 -6 L3 0 L5 6 Z"/>':'')+
+    '<text class="map-node-label" y="'+(risk===1?29:-22)+'" text-anchor="middle">'+label+'</text>'+
+    (isCurrent?'<text class="map-you" y="29" text-anchor="middle">● 現在地</text>':'')+
+    '</g>');
+  }
+ }
+ const svg='<svg viewBox="0 0 900 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+  '<text class="map-sector" x="86" y="13" text-anchor="middle">SECTOR 01</text>'+
+  '<text class="map-sector" x="450" y="13" text-anchor="middle">SECTOR 02</text>'+
+  '<text class="map-sector" x="814" y="13" text-anchor="middle">SECTOR 03</text>'+
+  edges.join('')+nodes.join('')+'</svg>';
+ const current=G.stage===0?'出撃地点':G.routeHistory[G.stage-1]?.route||NAMES[G.stage];
+ const next=ROUTE_OPTIONS[G.stage]||[];
+ const el=$('routeMap');el.innerHTML=svg;
+ el.setAttribute('aria-label','航路マップ。現在地：'+current+'。次の候補：'+next.map(o=>o.name).join('、')+'。');
+}
+function selectRouteCard(index){
+ if(G.mode!=='route'||index!==0&&index!==1)return;
+ G.routeSelected=index;
+ const buttons=[$('routeSafe'),$('routeRisk')];
+ buttons.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',String(i===index))});
+ renderRouteMap();
+}
+
 function openRoute(){
  if(G.stage>=2){endGame(true);return}
  G.mode='route';G.transitioning=false;resetStick();bgm?.stop();
@@ -130,7 +182,7 @@ function openRoute(){
  $('routeRiskName').textContent=options[1].name;
  $('routeRiskDesc').textContent=options[1].desc;
  $('routeRiskBonus').textContent=options[1].bonus;
- G.routeSelected=0;panel.classList.add('open');tone(440,.2,'triangle',.04,210);
+ G.routeSelected=0;panel.classList.add('open');selectRouteCard(0);tone(440,.2,'triangle',.04,210);
 }
 function chooseRoute(index){
  if(G.mode!=='route'||index!==0&&index!==1)return;
@@ -139,13 +191,17 @@ function chooseRoute(index){
  G.energy=Math.min(6,G.energy+(opt.risk?2:1));
  if(opt.risk){G.score+=1000*(G.stage+1);chargeDrive(18)}else G.pulses=Math.min(5,G.pulses+1);
  $('routePanel').classList.remove('open');G.mode='playing';
- nextStage();
+ nextStage();updateHud();
  if(sound&&bgm){bgm.setEnabled(true);bgm.start()}
  syncOrientation();
  showToast(opt.risk?'HIGH RISK · REWARD UP':'SAFE ROUTE · SUPPLIES UP');
 }
 $('routeSafe').addEventListener('click',()=>chooseRoute(0));
 $('routeRisk').addEventListener('click',()=>chooseRoute(1));
+$('routeSafe').addEventListener('focus',()=>selectRouteCard(0));
+$('routeRisk').addEventListener('focus',()=>selectRouteCard(1));
+$('routeSafe').addEventListener('pointerenter',()=>selectRouteCard(0));
+$('routeRisk').addEventListener('pointerenter',()=>selectRouteCard(1));
 
 function stageClear(){G.boss=null;G.bossDone=true;G.transitioning=true;G.transition=3.5;G.bullets=[];G.pulses=Math.min(5,G.pulses+1);p.hp=Math.min(3,p.hp+1);G.score+=5000*(G.stage+1);chargeDrive(22);showAnnounce('SECTOR CLEAR',NAMES[G.stage],'+ BONUS 5000 · ARMOR RECOVERED',3.1);tone(470,.55,'triangle',.055,450)}
 function nextStage(){G.stage++;if(G.stage>=3){endGame(true);return}G.stageTime=0;G.spawn=2*routeProfile().spawnInterval;G.transitioning=false;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=2.5;showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],3.4);tone(400,.3,'sine',.04,350)}
