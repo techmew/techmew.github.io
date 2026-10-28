@@ -317,8 +317,8 @@ function catchItem(sceneItem){const item=sceneItem.item;let duplicate;
  sceneItems=sceneItems.filter(s=>s!==sceneItem);replaceSeaSlot(400);renderAvatar();redrawUI()}
 function fishApproach(s,target,dt){
  const dx=target.x-s.x,dy=target.y-s.y,d=Math.max(1,Math.hypot(dx,dy));
- const speed=clamp(68+(s.item.rarity*6),65,104);
- const agility=Math.min(.19,dt*.0044);
+ const speed=clamp(143+(s.item.rarity*13),140,190);
+ const agility=Math.min(.28,dt*.0062);
  s.vx+=(dx/d*speed-s.vx)*agility;s.vy+=(dy/d*speed-s.vy)*agility
 }
 function fishCanBite(fish,target,now,probability=Math.random){
@@ -347,7 +347,7 @@ function endFight(caught,reason){
   replaceSeaSlot(950)
  }
  hook.stage=3;hook.progress=0;hook.result=caught;hook.pull=false;
- if(caught){showEvent('CATCH! 服を釣り上げた！',850);bubble(hook.x,hook.y,18,rareColors[hook.chosen.item.rarity]);tone(720,.18,'sine',.07)}
+ if(caught){showEvent(hook.chosen.item.cat==='fish'?'CATCH! 魚を釣り上げた！':'CATCH! 服を釣り上げた！',850);bubble(hook.x,hook.y,18,rareColors[hook.chosen.item.rarity]);tone(720,.18,'sine',.07)}
  else{st.combo=0;st.failStreak=Math.min(4,st.failStreak+1);showEvent(reason||'逃げられた！ もう一度！',1500);bubble(hook.x,hook.y,12,'#fff4bf');tone(155,.28,'sawtooth',.045)}
  updateFishingHud()
 }
@@ -391,7 +391,7 @@ function updateGame(dt){
   if(s.item.cat==='fish'){
    const tracking=hook.active&&(hook.stage===1||hook.stage===2)&&s!==hook.chosen;
    const target=hook.stage===1?{x:hook.targetX,y:hook.targetY}:{x:hook.x,y:hook.y};
-   if(tracking&&Math.hypot(s.x-target.x,s.y-target.y)<360)fishApproach(s,target,dt);
+   if(tracking&&Math.hypot(s.x-target.x,s.y-target.y)<470)fishApproach(s,target,dt);
    else{
     const a=s.phase+performance.now()*.0008;const v=dt*.0016;
     s.vx=clamp(s.vx+Math.cos(a)*v*55,-115,115);
@@ -416,7 +416,7 @@ function updateGame(dt){
    const nearbyFish=sceneItems.filter(s=>s.item.cat==='fish'&&Math.hypot(s.x-hook.targetX,s.y-hook.targetY)<63).sort((a,b)=>Math.hypot(a.x-hook.targetX,a.y-hook.targetY)-Math.hypot(b.x-hook.targetX,b.y-hook.targetY));
    const fish=nearbyFish.find(s=>fishCanBite(s,{x:hook.targetX,y:hook.targetY},performance.now()));
    if(fish){hook.chosen=fish;focus=fish;hook.targetX=fish.x;hook.targetY=fish.y;showEvent('魚が針に食いついた！',1100)}
-   if(!hook.chosen&&hook.biteWait<.95){hook.biteWait+=sec;hook.progress=1;updateFishingHud();return}
+   if(!hook.chosen&&hook.biteWait<2.8){if(hook.biteWait===0)showEvent('魚が針に近づいている…',1200);hook.biteWait+=sec;hook.progress=1;updateFishingHud();return}
    hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.cat==='fish'?Math.max(0,hook.chosen.item.rarity-1.65):hook.chosen.item.rarity;
@@ -746,7 +746,13 @@ function drawShowStage(){
   }
  for(let side=0;side<2;side++){ctx.save();if(side){ctx.translate(900,0);ctx.scale(-1,1)}let curtain=ctx.createLinearGradient(0,0,190,0);curtain.addColorStop(0,'#210a35');curtain.addColorStop(.6,'#742b55');curtain.addColorStop(1,'#4d1749');ctx.fillStyle=curtain;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(180,0);ctx.bezierCurveTo(233,130,211,265,103,405);ctx.lineTo(0,465);ctx.closePath();ctx.fill();ctx.restore()}
  for(let i=0;i<18;i++){let x=i*56+Math.sin(i)*10;ellipse(ctx,x,485+i%3*8,15,18,'#0b1027');ellipse(ctx,x,466+i%3*8,10,11,'#141125')}
- for(let i=0;i<3;i++){let x=60+i*87;round(ctx,x-32,397,66,52,10,'#29223a','#ca94ba');ellipse(ctx,x,386,17,18,'#dca78e');ctx.fillStyle='#fff0b8';ctx.font='900 14px sans-serif';ctx.fillText(showPhase==='result'?showScores.judges[i]:'?',x,433)}
+ for(let i=0;i<5;i++){
+   const x=42+i*72,by=398+(i%2)*7;
+   round(ctx,x-27,by,55,46,9,'#29223a','#ca94ba');
+   ellipse(ctx,x,by-10,14,15,['#dca78e','#d5a5a2','#b98e72','#efc7a7','#a78b9b'][i]);
+   ctx.fillStyle='#ffe9b7';ctx.textAlign='center';ctx.font='900 12px sans-serif';
+   ctx.fillText(showPhase==='result'?(showScores?.judges?.[i]??'?'):'?',x,by+31);
+  }
  let p=showPhase==='walk'?Math.min(1,showTime/4.7):showPhase==='prep'?.7:1;
  // CPU rival appears on the opposite side wearing its actual five-piece outfit.
  const rivalIds=showScores?.rivalIds;
@@ -838,7 +844,7 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  // seabed vegetation
  for(let k=0;k<26;k++){let x=(hash(k+888)%1000),y=H+15,sz=20+(hash(k+229)%40);sea.strokeStyle=k%2?'#176c75ac':'#1e837d9a';sea.lineWidth=3;sea.beginPath();sea.moveTo(x,y);sea.quadraticCurveTo(x-12,y-sz/2,x+Math.sin(t+k)*7,y-sz);sea.stroke()}
  // underwater catchable clothing icons
- for(const s of sceneItems){const yy=s.y+Math.sin(t*2.1+s.phase)*6;let active=focus===s;let glow=rareColors[s.item.rarity];sea.save();sea.translate(s.x,yy);sea.scale(s.scale,s.scale);sea.globalAlpha=clamp((s.ttl-(performance.now()-s.born))/2200,0,1);if(s.item.rarity>1||active){sea.shadowColor=glow;sea.shadowBlur=26+Math.sin(t*5+s.phase)*5}
+ for(const s of sceneItems){if(s===hook.chosen&&hook.stage===2)continue;const yy=s.y+Math.sin(t*2.1+s.phase)*6;let active=focus===s;let glow=rareColors[s.item.rarity];sea.save();sea.translate(s.x,yy);sea.scale(s.scale,s.scale);sea.globalAlpha=s===hook.chosen&&hook.active?1:clamp((s.ttl-(performance.now()-s.born))/2200,0,1);if(s.item.rarity>1||active){sea.shadowColor=glow;sea.shadowBlur=26+Math.sin(t*5+s.phase)*5}
  if(s.item.cat!=='fish'){sea.fillStyle=gradient(sea,0,0,45,active?'#ffffffef':'#effff3e8','#ffffff33');sea.strokeStyle=active?'#ffffff':glow+'ca';sea.lineWidth=active?5:2;sea.beginPath();sea.arc(0,0,42,0,2*Math.PI);sea.fill();sea.stroke()}else{sea.strokeStyle='#e3fff287';sea.lineWidth=1.5;sea.beginPath();sea.moveTo(-38,16);sea.quadraticCurveTo(-54,24,-70,18);sea.stroke()}sea.shadowBlur=0;
   const remaining=clamp((s.ttl-(performance.now()-s.born))/s.ttl,0,1);
   if(s.item.cat!=='fish'){sea.beginPath();sea.arc(0,0,47,-Math.PI/2,-Math.PI/2+Math.PI*2*remaining);sea.lineWidth=3.5;sea.strokeStyle=remaining<.2?'#ff9a75':'#e9ffe8bb';sea.stroke()}
@@ -846,7 +852,7 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
    sea.save();sea.globalAlpha*=.75;sea.strokeStyle='#ffe08e';sea.lineWidth=3;sea.setLineDash([4,5]);sea.beginPath();sea.arc(0,0,54+Math.sin(t*8+s.phase)*3,0,Math.PI*2);sea.stroke();sea.setLineDash([]);sea.restore();
    textShadow(sea,'!',0,-48,21,'#ffe9a0','#593e3c',3);
   }
-  if(s.item.cat==='fish'){sea.rotate(Math.atan2(s.vy,s.vx)*.18);drawSeaCollectible(sea,s.item,0,0,clamp(58+s.item.style%5*5,58,78),0)}else drawSeaCollectible(sea,s.item,0,0,58,Math.sin(t*1.6+s.phase)*.09);if(s.item.rarity>=2){sea.fillStyle=glow;star(sea,33,-34,8,3,5);sea.fill()}sea.restore()}
+  if(s.item.cat==='fish'){sea.rotate(Math.atan2(s.vy,s.vx)*.18);if(s.vx<0)sea.scale(-1,1);drawSeaCollectible(sea,s.item,0,0,clamp(58+s.item.style%5*5,58,78),0)}else drawSeaCollectible(sea,s.item,0,0,58,Math.sin(t*1.6+s.phase)*.09);if(s.item.rarity>=2){sea.fillStyle=glow;star(sea,33,-34,8,3,5);sea.fill()}sea.restore()}
  for(const r of ripples){sea.beginPath();sea.arc(r.x,r.y,r.r,0,Math.PI*2);sea.lineWidth=2;sea.strokeStyle=`rgba(230,255,240,${r.a})`;sea.stroke()}
  for(const p of particles){sea.globalAlpha=clamp(p.life/p.max,0,1);sea.fillStyle=p.color;ellipse(sea,p.x,p.y,p.r,p.r*.8,p.color)}sea.globalAlpha=1;
  if(hook.active&&hook.stage===2&&hook.chosen){drawSeaCollectible(sea,hook.chosen.item,hook.x,hook.y+24,42,Math.sin(t*12)*.2)}
