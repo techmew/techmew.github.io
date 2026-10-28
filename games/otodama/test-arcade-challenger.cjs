@@ -5,7 +5,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script,'game JavaScript exists');
 new vm.Script(script);
 assert.equal(html.split('id="survivalChallengerOptIn"').length-1,1,'exactly one opt-in');
-assert.match(html,/<button[^>]*id="fightBtn">▶ オートバトル開始<\/button>/,'CPU battle is primary');
+assert.match(html,/<button[^>]*id="fightBtn">▶ 探索開始<\/button>/,'CPU battle is primary');
 assert.match(html,/id="searchBtn"[^>]*>/,'legacy search control preserved for JS compatibility');
 assert.match(html,/<div class="field" style="display:none"><button class="btn primary" id="searchBtn"/,'manual matchmaking button hidden');
 assert.match(script,/function doCom\(\)\{[^\n]*maybeQueuePvP\(\)/,'regular CPU starts queue');
