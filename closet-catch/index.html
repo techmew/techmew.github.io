@@ -68,6 +68,17 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .fight-track.tension-track{position:relative}.fight-track.tension-track::after{content:"";position:absolute;left:30%;width:38%;top:0;bottom:0;border-left:2px dashed #eaffc9b8;border-right:2px dashed #eaffc9b8;pointer-events:none}
 .show-slot small{min-height:40px}.show-slot small em{display:block;color:#ffcb8b;font-style:normal;font-weight:900;font-size:9px;margin-top:3px}
 @media(max-width:620px){.show-slot small{min-height:52px}.show-slot small em{font-size:8px}}
+
+/* V7: pose input stays visible over the runway, including narrow phones */
+.show-stage-wrap{position:relative}
+.show-stage-wrap #showCanvas{margin-top:12px}
+.show-stage-wrap .show-pose-hud{position:absolute;left:12px;bottom:12px;z-index:2;margin:0;width:min(330px,calc(100% - 135px));min-height:42px;background:#201b37e8;border:1px solid #ffd89d7c;box-shadow:0 5px 22px #0807187d}
+.show-stage-wrap .show-pose-float{position:absolute;right:15px;bottom:14px;z-index:3;min-width:108px;min-height:76px;border:2px solid #fff3c4;background:linear-gradient(125deg,#ffe8a0,#ff9682);color:#34243e;border-radius:19px;box-shadow:0 6px 0 #9b5e67,0 0 28px #ffd1a26b;font-size:17px;font-weight:950;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.show-stage-wrap .show-pose-float:active{transform:translateY(3px);box-shadow:0 3px 0 #9b5e67}
+.show-stage-wrap .show-pose-float[hidden],#showPhoto[hidden]{display:none}
+.show-stage-wrap .show-pose-float.ready{background:linear-gradient(120deg,#fff7ba,#a8ffcc);box-shadow:0 6px 0 #41846f,0 0 35px #fff2a8a8}
+.show-actions #showPhoto{background:#d8f3ee;color:#284c5d}
+@media(max-width:620px){.show-stage-wrap .show-pose-hud{left:5px;bottom:5px;width:calc(100% - 102px);min-height:38px;padding:5px 7px;font-size:9px;gap:3px}.show-stage-wrap .show-pose-float{right:5px;bottom:5px;min-width:90px;min-height:56px;font-size:13px;border-radius:12px}.show-stage-wrap .show-pose-float.ready{box-shadow:0 4px 0 #41846f,0 0 18px #fff2a8a8}}
 </style>
 </head>
 <body>
@@ -83,7 +94,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 <div class="footer-note">CLOSET CATCH / ブラウザ保存対応・オフラインプレイ可・全年齢向け</div>
 </div>
 <div id="toast" class="toast hidden"><canvas id="toastCanvas" width="120" height="120"></canvas><div class="info"><small id="toastRare">NEW!</small><b id="toastName"></b><p id="toastText">クローゼットに追加！</p><button id="equipBtn">いま着る</button> <button id="toastClose" class="close">とじる</button></div></div>
-<div id="showOverlay" class="show-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="showTitle"><div class="show-shell"><div class="show-head"><h2 id="showTitle">BROADWAY RUNWAY</h2><span id="showTheme"></span></div><canvas id="showCanvas" width="900" height="510" aria-label="釣った5着すべてでランウェイを歩くステージ"></canvas><div id="showPoseHud" class="show-pose-hud" hidden><span id="showPoseStatus">光る合図でポーズ！</span><b id="showPoseCounter">0 / 3</b></div><div class="show-help" id="showHelp">2箇所を順番にタップして衣装を交換。同じ服ばかりでも頭・顔・体・脚・足に着せられます。</div><div id="showSlots" class="show-slots"></div><div id="showJudges" class="show-judges" hidden></div><p id="showResult" class="show-result" hidden></p><div class="show-actions"><button id="showPose" hidden>ポーズ！</button><button id="showShuffle">並び替え</button><button id="showMain" class="main">ショーを始める</button></div></div></div>
+<div id="showOverlay" class="show-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="showTitle"><div class="show-shell"><div class="show-head"><h2 id="showTitle">BROADWAY RUNWAY</h2><span id="showTheme"></span></div><div class="show-stage-wrap"><canvas id="showCanvas" width="900" height="510" aria-label="釣った5着すべてでランウェイを歩くステージ。タップでポーズ"></canvas><div id="showPoseHud" class="show-pose-hud" hidden><span id="showPoseStatus">光る合図でポーズ！</span><b id="showPoseCounter">0 / 3</b></div><button id="showPose" class="show-pose-float" type="button" aria-label="ランウェイでポーズを決める" hidden>ポーズ！</button></div><div class="show-help" id="showHelp">2箇所を順番にタップして衣装を交換。同じ服ばかりでも頭・顔・体・脚・足に着せられます。</div><div id="showSlots" class="show-slots"></div><div id="showJudges" class="show-judges" hidden></div><p id="showResult" class="show-result" hidden></p><div class="show-actions"><button id="showPhoto" type="button" hidden>ショー写真を保存</button><button id="showShuffle">並び替え</button><button id="showMain" class="main">ショーを始める</button></div></div></div>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), ocean=$('ocean'), sea=ocean.getContext('2d'), model=$('model'), mc=model.getContext('2d');
@@ -268,7 +279,7 @@ function updatePoseHud(){
  const ready=poseBeats.findIndex((t,i)=>poseResults[i]===null&&Math.abs(showTime-t)<=poseTolerance);
  $('showPoseCounter').textContent=done+' / 3';
  $('showPoseStatus').textContent=ready>=0?'NOW！ ここでポーズ！':poseFeedback||'合図が光ったらポーズ！';
- $('showPose').textContent=ready>=0?'POSE NOW！':'ポーズ！'
+ $('showPose').textContent=ready>=0?'POSE NOW！':'ポーズ！';$('showPose').classList.toggle('ready',ready>=0)
 }
 function recordPose(){
  if(showPhase!=='walk')return;
@@ -381,13 +392,13 @@ function openShow(){
  $('toast').classList.add('hidden');$('showOverlay').classList.remove('hidden');
  $('showTheme').textContent='ROUND '+st.show.round+' ／ '+showTheme()[0];
  $('showHelp').textContent='2箇所を順番にタップして交換。ズボンでも帽子・サングラス・靴に強制変形！ テーマ：'+showTheme()[0];
- $('showJudges').hidden=true;$('showResult').hidden=true;$('showShuffle').hidden=false;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
+ $('showJudges').hidden=true;$('showResult').hidden=true;$('showShuffle').hidden=false;$('showPhoto').hidden=true;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
  $('showMain').textContent='ファッションショー開始';showSlots();if(st.show.completed&&st.show.lastResult){showScores=st.show.lastResult;showSaved=true;showPhase='walk';endShow()}
 }
 function beginShow(){
  if(showPhase!=='prep')return;
  showScores=showScore(showOutfit());showPhase='walk';showTime=0;poseResults=[null,null,null];poseFeedback='';$('showPose').hidden=false;$('showPoseHud').hidden=false;$('showOverlay').classList.add('pose-active');updatePoseHud();$('showMain').textContent='審査へスキップ';
- $('showShuffle').hidden=true;$('showHelp').textContent='モデルがランウェイを歩いています…';showSlots();tone(720,.18,'sine',.07);
+ $('showShuffle').hidden=true;$('showOverlay').querySelector('.show-shell').scrollTop=0;$('showHelp').textContent='モデルがランウェイを歩いています…';showSlots();tone(720,.18,'sine',.07);
 }
 function endShow(){
  if(!['walk','judge'].includes(showPhase)||!showScores)return;
@@ -403,13 +414,13 @@ function endShow(){
  showScores.judges.forEach((score,i)=>{let c=document.createElement('div');c.className='show-judge';let n=document.createElement('b');n.textContent=showNames[i];let v=document.createElement('strong');v.textContent=score+' / '+(showScores.rivalJudges?.[i]??'—')+'点';let note=document.createElement('span');note.textContent=notes[i];c.append(n,v,note);root.append(c)});
  $('showResult').hidden=false;
  $('showResult').textContent=(showScores.win?'YOU WIN！ ライバルに勝利！':'LOSE… 次は逆転！')+'　YOU '+showScores.total+' vs CPU '+showScores.rival+'点　獲得コイン +'+showScores.prize+'　強引な着用 '+showScores.odd+'/5　柄 '+(showScores.patternVariety??'-')+'種　ポーズ '+(showScores.posePoints??0)+'/30';
- $('showMain').textContent='次の5着へ';$('showHelp').textContent='審査員の数字は「あなた / CPU」。両者とも5着を同じ基準で審査。ポーズはあなたの追加点です。';
+ $('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent='審査員の数字は「あなた / CPU」。両者とも5着を同じ基準で審査。ポーズはあなたの追加点です。';
  if(showScores.win)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
 }
 function nextShow(){
  if(showPhase!=='result')return;
  st.show.queue=[];st.show.order=[0,1,2,3,4];st.show.completed=false;st.show.lastResult=null;st.show.round++;
- showPhase='closed';showScores=null;$('showOverlay').classList.add('hidden');$('showOverlay').classList.remove('pose-active');redrawUI();
+ showPhase='closed';showScores=null;$('showPhoto').hidden=true;$('showOverlay').classList.add('hidden');$('showOverlay').classList.remove('pose-active');redrawUI();
 }
 function progressShow(dt){
  if(showPhase!=='walk'&&showPhase!=='judge')return;
@@ -423,13 +434,13 @@ function progressShow(dt){
 }
 function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  if(items.length!==5)return;
- ctx.save();ctx.translate(x,y+Math.sin(t*8)*3);ctx.rotate(showPhase==='walk'&&showTime-poseFlashAt<.45?Math.sin((showTime-poseFlashAt)*13)*.11:0);ctx.scale(z,z);
+ const walking=showPhase==='walk'&&!reducedMotion,gait=walking?Math.sin(showTime*11+(isRival?1.25:0)):0;ctx.save();ctx.translate(x+gait*3,y+(walking?Math.abs(gait)*3:0));ctx.rotate((showPhase==='walk'&&showTime-poseFlashAt<.45?Math.sin((showTime-poseFlashAt)*13)*.11:0)+gait*.018);ctx.scale(z,z);
  ellipse(ctx,0,186,71,13,'#180b2d9c');
  const skinC=isRival?'#ac785e':'#e8b18a',hairC=isRival?'#793e54':'#252943';ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
- for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*21,36);ctx.lineTo(side*(23+Math.sin(t*8)*8),165);ctx.stroke()}
+ for(let side of [-1,1]){const ankleX=side*(23+gait*11),ankleY=165-Math.max(0,side*gait)*15;ctx.beginPath();ctx.moveTo(side*21,36);ctx.lineTo(side*(23+gait*6),106);ctx.lineTo(ankleX,ankleY);ctx.stroke()}
  ctx.fillStyle=skinC;path(ctx,[[-31,-70],[31,-70],[37,53],[-37,53]]);ctx.fill();
  ctx.strokeStyle=skinC;ctx.lineWidth=17;
- for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*31,-53);ctx.lineTo(side*47+Math.sin(t*8+side)*5,21);ctx.stroke()}
+ for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*31,-53);ctx.lineTo(side*(43-gait*6),-7);ctx.lineTo(side*(46-gait*9),21);ctx.stroke()}
  round(ctx,-28,40,56,35,8,'#508bb2','#e3ceba');
  round(ctx,-11,-100,22,34,8,skinC);ellipse(ctx,0,-142,43,51,hairC);ellipse(ctx,0,-137,35,43,skinC);
  ellipse(ctx,-12,-137,3,4,'#253449');ellipse(ctx,12,-137,3,4,'#253449');
@@ -440,7 +451,7 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  // Trouser-shirt: inverted legs form shoulder flaps.
  const torsoPants=['bottom','under'].includes(items[2].cat);
  drawGarment(ctx,items[2],0,-22,torsoPants?117:126,torsoPants?Math.PI:-.02);
- drawGarment(ctx,items[4],-21,163,57,-.1);drawGarment(ctx,items[4],22,163,57,.1);
+ for(let side of [-1,1])drawGarment(ctx,items[4],side*(23+gait*11),165-Math.max(0,side*gait)*15,57,side*.1);
  if(['bottom','under'].includes(items[1].cat)){
   // Split trouser legs into two sunglass lenses and a bridge.
   ctx.strokeStyle='#f6e8bf';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-29,-142);ctx.quadraticCurveTo(0,-152,29,-142);ctx.stroke();
@@ -498,7 +509,29 @@ function drawShowStage(){
  ctx.font='900 16px sans-serif';ctx.fillStyle='#ffe5ad';ctx.textAlign='center';ctx.fillText(showPhase==='result'?(showScores.win?'YOU WIN!':'SHOW COMPLETE'):showPhase==='judge'?'JUDGING…':showPhase==='walk'?'ON THE RUNWAY':'READY FOR THE SHOW',454,125);
  ctx.fillStyle='#fbd3df';ctx.font='900 13px sans-serif';ctx.fillText(showTheme()[0],454,145)
 }
+
+function exportShowPhoto(){
+ if(showPhase!=='result'||!showScores)return;
+ drawShowStage();
+ const out=document.createElement('canvas');out.width=900;out.height=650;
+ const ctx=out.getContext('2d');if(!ctx)return;
+ ctx.fillStyle='#171a31';ctx.fillRect(0,0,900,650);
+ ctx.drawImage(sc,0,0,900,510);
+ ctx.fillStyle='#ffdbad';ctx.font='900 25px sans-serif';ctx.textAlign='left';
+ ctx.fillText('CLOSET CATCH  /  BROADWAY SHOW',30,550);
+ ctx.fillStyle='#fff';ctx.font='900 19px sans-serif';
+ ctx.fillText('ROUND '+st.show.round+'  ·  '+showTheme()[0],30,582);
+ ctx.font='900 27px sans-serif';ctx.fillStyle=showScores.win?'#b8ffcb':'#ffd0bc';
+ ctx.fillText((showScores.win?'WIN':'CHALLENGE')+'   YOU '+showScores.total+'  -  CPU '+showScores.rival,30,620);
+ ctx.fillStyle='#e5c6e2';ctx.font='800 17px sans-serif';ctx.textAlign='right';
+ ctx.fillText('JUDGES  '+showScores.judges.join(' / ')+'  ·  POSE '+(showScores.posePoints??0)+'/30',867,585);
+ try{
+  const link=document.createElement('a');link.href=out.toDataURL('image/png');
+  link.download='closet-catch-runway-'+st.show.round+'.png';document.body.append(link);link.click();link.remove();
+ }catch(e){$('showHelp').textContent='画像保存に失敗しました。ブラウザのダウンロード設定を確認してください。'}
+}
 $('showEntry').addEventListener('click',openShow);
+$('showPhoto').addEventListener('click',exportShowPhoto);
 $('showPose').addEventListener('click',recordPose);
 sc.addEventListener('pointerdown',e=>{if(showPhase==='walk'){e.preventDefault();recordPose()}});
 document.addEventListener('keydown',e=>{if(showPhase==='walk'&&(e.code==='KeyP'||e.code==='Space')&&!e.repeat){e.preventDefault();recordPose()}});
