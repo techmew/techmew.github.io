@@ -9,20 +9,32 @@ const start=script.indexOf('const TAUNT_PARTS='),end=script.indexOf('const AUTO_
 assert.ok(start>0&&end>start,'result presentation engine');
 const src=script.slice(start,end);
 const isolated=src.slice(0,src.indexOf('let battleSpeechGeneration='));
-const {tauntLine,TAUNT_COUNT,TAUNT_PARTS}=new Function(isolated+'return {tauntLine,TAUNT_COUNT,TAUNT_PARTS};')();
-assert.equal(TAUNT_COUNT,1000);
+const phraseStore=new Map();
+const {tauntLine,TAUNT_COUNT,TAUNT_PARTS,CPU_TAUNTS,nextTaunt}=new Function('localStorage',isolated+
+ 'return {tauntLine,TAUNT_COUNT,TAUNT_PARTS,CPU_TAUNTS,nextTaunt};')({
+ getItem:key=>phraseStore.get(key)||null,setItem:(key,value)=>phraseStore.set(key,String(value))});
+assert.equal(TAUNT_COUNT,500+CPU_TAUNTS.length);
+assert.ok(CPU_TAUNTS.length>=100,'curated CPU insults and laughter are numerous');
+assert.ok(CPU_TAUNTS.some(s=>/^([はふあおくうひっ！……]+)$/.test(s)),'pure laughter included');
+const recent=new Set();
+for(let i=0;i<CPU_TAUNTS.length;i++){
+ const line=nextTaunt('lose');
+ assert.ok(!recent.has(line),'no enemy line repeats until the complete pool is exhausted');
+ recent.add(line);
+}
+assert.equal(recent.size,CPU_TAUNTS.length,'every authored enemy line appears exactly once per cycle');
 const all=new Set();
 for(const kind of ['win','lose']){
  assert.equal(TAUNT_PARTS[kind].opening.length,10);
  assert.equal(TAUNT_PARTS[kind].middle.length,10);
  assert.equal(TAUNT_PARTS[kind].ending.length,5);
- for(let i=0;i<500;i++){
+ for(let i=0;i<(kind==='win'?500:CPU_TAUNTS.length);i++){
   const sentence=tauntLine(kind,i);
-  assert.ok(sentence.length>=17&&sentence.length<=36,'natural short Japanese result text');
+  assert.ok(sentence.length>=5&&sentence.length<=62,'original Japanese result text and short laughs');
   all.add(sentence);
  }
 }
-assert.equal(all.size,1000);
+assert.equal(all.size,TAUNT_COUNT);
 const nodes=new Map(),store=new Map(),timers=[],voices=[],actions=[],spoken=[];
 const $=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,checked:false,value:12,textContent:'',
  classList:{contains:()=>true,toggle(){} }});return nodes.get(id)};
@@ -79,7 +91,7 @@ const api=new Function('d',env+src+
  assert.equal(voices.at(-1),'synth','CPU opponent wins with synthesized roar when no recorded clip exists');
  assert.ok(!$('battleSpeech').hidden,'CPU loss keeps dialogue text');
  assert.equal($('battleSpeechWho').textContent,'相手：');
- assert.ok(lost.tauntText.length>=17&&lost.tauntText.length<=36,'CPU taunt speaks a fuller three-part line');
+ assert.ok(lost.tauntText.length>=5&&lost.tauntText.length<=62,'CPU taunt can be an original roast or standalone laugh');
  await Promise.resolve();await Promise.resolve();await Promise.resolve();
  const speakTask=timers.filter(t=>!t.cancelled).at(-1);
  assert.ok(speakTask?.delay>=100,'CPU speaks only after its victory roar');
@@ -135,5 +147,5 @@ const api=new Function('d',env+src+
  assert.equal(voices.length,beforeResume+1,'recovered AudioContext replays one recorded victory roar');
  assert.ok(script.includes("if(won||m.live||m.mode===\'COM MATCH\')scheduleNextAfterQuote(m)"),'CPU and online advance after resolution');
  assert.ok(!html.includes('id="bowBanner"'),'no pre-fight bow');
- console.log('RESULT VOICE PASS | CPU Japanese TTS after roar, short dialogue, player/online privacy, mute, autoplay and stale async');
+ console.log('RESULT VOICE PASS | unique original CPU taunts, laughter, Japanese TTS, privacy, autoplay and stale async');
 })().catch(error=>{console.error(error);process.exitCode=1});
