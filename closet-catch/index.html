@@ -366,9 +366,9 @@ function showScore(items,skipRival=false){
  const patternBeat=Array.from({length:4},(_,i)=>items[i].pattern!==items[i+1].pattern?1:0).reduce((a,b)=>a+b,0)/4;
  const theme=showTheme()[1],targets={classic:2,street:3,avant:4,color:4,chaos:5,glam:2};
  const patternFit=clamp(1-Math.abs(patternVariety-targets[theme])/4,0,1);
- let a=20+fits*9+harmony*10+flow*17+rarity*.9-repeats*3-duplicates*2;
- let b=19+odd*7+Math.min(3,repeats)*3+unique*3+styleVariety*1.4+patternVariety*1.5+contrast*13+patternBeat*8-duplicates*4+rarity*.6;
- let c=19+fits*3+unique*2.5+patternFit*9+flow*11+anchor*5+rarity*.7;
+ let a=20+fits*9+harmony*10+flow*17+rarity*.9-repeats*3-duplicates*7;
+ let b=19+odd*7+Math.min(3,repeats)*3+unique*3+styleVariety*1.4+patternVariety*1.5+contrast*13+patternBeat*8-duplicates*12+rarity*.6;
+ let c=19+fits*3+unique*2.5+patternFit*9+flow*11+anchor*5+rarity*.7-duplicates*6;
  if(theme==='classic'){a+=7;c+=fits*6+harmony*15+anchor*15-odd*3}
  if(theme==='street')c+=odd*5+contrast*17+patternBeat*6;
  if(theme==='avant'){b+=8;c+=odd*9+contrast*14+repeats*3}
@@ -443,7 +443,7 @@ function renderShowAnalysis(){
   if(items.length){const list=document.createElement('ol');items.forEach((it,i)=>{const li=document.createElement('li');li.textContent=showRoles[i]+'：'+it.name+'（'+showPlacement(it,i)+'）';list.append(li)});block.append(list)}
   else{const p=document.createElement('p');p.textContent='この記録には衣装の内訳がありません。';block.append(p)}root.append(block)
  }
- const detail=document.createElement('p');detail.className='show-analysis-detail';detail.textContent='審査ポイント：自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、同種カテゴリー '+showScores.repeats+'、柄の種類 '+(showScores.patternVariety??'—')+'。テーマと衣装の組み合わせが3人の得点に反映されます。';root.append(detail);root.hidden=false
+ const detail=document.createElement('p');detail.className='show-analysis-detail';detail.textContent='審査ポイント：自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、同種カテゴリー '+showScores.repeats+'、同じ衣装の重複 '+showScores.duplicates+'、柄の種類 '+(showScores.patternVariety??'—')+'。テーマと衣装の組み合わせが3人の得点に反映されます。';root.append(detail);root.hidden=false
 }
 function endShow(){
  if(!['walk','judge'].includes(showPhase)||!showScores)return;
@@ -526,6 +526,14 @@ function drawShowStage(){
  round(ctx,248,30,400,62,12,'#180d2a','#ffcd90');ctx.fillStyle='#fff0b9';ctx.font='900 31px Impact,sans-serif';ctx.textAlign='center';ctx.fillText('BROADWAY FASHION',449,70);
  ctx.fillStyle='#c56883';ctx.beginPath();ctx.moveTo(385,220);ctx.lineTo(522,220);ctx.lineTo(750,510);ctx.lineTo(140,510);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#ffdfa9';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(385,220);ctx.lineTo(140,510);ctx.moveTo(522,220);ctx.lineTo(750,510);ctx.stroke();
+  // Perspective runway lights: each pair chases toward the audience during the walk.
+  for(let i=0;i<8;i++){
+   const depth=(i+.6)/8,y=220+290*depth*depth;
+   const left=385+(140-385)*depth,right=522+(750-522)*depth;
+   const pulse=showPhase==='walk'&&!reducedMotion?.45+.55*Math.max(0,Math.sin(showTime*9-i*.95)):.65;
+   ctx.fillStyle='rgba(255,239,176,'+(pulse*.85).toFixed(3)+')';
+   ctx.beginPath();ctx.ellipse(left+7,y,3+depth*5,2+depth*3,0,0,Math.PI*2);ctx.ellipse(right-7,y,3+depth*5,2+depth*3,0,0,Math.PI*2);ctx.fill();
+  }
  for(let side=0;side<2;side++){ctx.save();if(side){ctx.translate(900,0);ctx.scale(-1,1)}let curtain=ctx.createLinearGradient(0,0,190,0);curtain.addColorStop(0,'#210a35');curtain.addColorStop(.6,'#742b55');curtain.addColorStop(1,'#4d1749');ctx.fillStyle=curtain;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(180,0);ctx.bezierCurveTo(233,130,211,265,103,405);ctx.lineTo(0,465);ctx.closePath();ctx.fill();ctx.restore()}
  for(let i=0;i<18;i++){let x=i*56+Math.sin(i)*10;ellipse(ctx,x,485+i%3*8,15,18,'#0b1027');ellipse(ctx,x,466+i%3*8,10,11,'#141125')}
  for(let i=0;i<3;i++){let x=60+i*87;round(ctx,x-32,397,66,52,10,'#29223a','#ca94ba');ellipse(ctx,x,386,17,18,'#dca78e');ctx.fillStyle='#fff0b8';ctx.font='900 14px sans-serif';ctx.fillText(showPhase==='result'?showScores.judges[i]:'?',x,433)}
@@ -698,12 +706,29 @@ $('castBtn').addEventListener('pointerdown',e=>{
 });
 for(const name of ['pointerup','pointercancel','pointerleave','lostpointercapture'])$('castBtn').addEventListener(name,releasePointer);
 document.addEventListener('keydown',e=>{
- if(showPhase!=='closed'||e.code!=='Space'||['SELECT','INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
+ if(showPhase!=='closed'||e.code!=='Space'||document.activeElement?.closest('button,a,input,textarea,select,[contenteditable="true"]'))return;
  e.preventDefault();if(e.repeat)return;spaceHeld=true;
  if(hook.stage===2)reelDown();
  else if(!hook.active){const it=pick(sceneItems);if(it)castAt(it.x,it.y)}
 });
 document.addEventListener('keyup',e=>{if(e.code==='Space'){spaceHeld=false;if(!heldPointers.size)reelUp()}});
+// Keyboard and assistive-technology activation of the fishing button.
+const castControl=$('castBtn');
+castControl.addEventListener('keydown',e=>{
+ if(showPhase!=='closed'||(e.code!=='Space'&&e.code!=='Enter'))return;
+ e.preventDefault();if(e.repeat)return;spaceHeld=true;
+ if(hook.stage===2)reelDown();
+ else if(!hook.active){const it=pick(sceneItems);if(it)castAt(it.x,it.y)}
+});
+castControl.addEventListener('keyup',e=>{
+ if(e.code!=='Space'&&e.code!=='Enter')return;
+ e.preventDefault();spaceHeld=false;if(!heldPointers.size)reelUp();
+});
+castControl.addEventListener('blur',()=>{if(spaceHeld){spaceHeld=false;if(!heldPointers.size)reelUp()}});
+castControl.addEventListener('click',e=>{
+ if(e.detail!==0||showPhase!=='closed'||hook.active)return;
+ const it=pick(sceneItems);if(it)castAt(it.x,it.y);
+});
 function releaseAllReelInputs(){heldPointers.clear();spaceHeld=false;reelUp()}
 window.addEventListener('blur',()=>{releaseAllReelInputs();persistShowProgress(true)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseAllReelInputs();persistShowProgress(true)}});
