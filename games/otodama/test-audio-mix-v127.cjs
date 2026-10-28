@@ -60,7 +60,7 @@ api.impactSfx(100,{skill:true});assert.equal(graph.length,beforeMute,'mute block
 flags.mutedCheck.checked=false;
 const beforeDodge=graph.length;api.impactSfx(0,{dodge:true});
 assert.ok(graph.length>beforeDodge,'dodge remains audible');
-assert.match(script,/const volume=Math\.min\(\.19,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'voice playback gain remains capped');
+assert.match(script,/const start=ac\.currentTime\+\.018,level=Math\.min\(\.19,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'voice playback gain remains capped');
 assert.match(script,/source\.playbackRate\.value=1/,'recorded voice always plays at normal speed');
 assert.match(script,/source\.start\(start,0\)/,'recorded voice starts at the first sample');
 assert.match(script,/const seconds=Number\(clip\?\.buffer\?\.duration/,'busy window covers whole original recording');
