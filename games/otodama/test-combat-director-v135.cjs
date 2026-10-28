@@ -6,7 +6,7 @@ const css=fs.readFileSync(__dirname+'/ui-refresh-v124.css','utf8');
 new vm.Script(source);new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)?.[1]||'throw Error("No game JS")');
 const directorModule={exports:{}};vm.runInNewContext(source,{module:directorModule});const D=directorModule.exports;
 assert.equal(D.STYLES.length,6,'six legible fighting archetypes');
-assert.match(html,/combat-director-v135\.js\?v=143/,'client actually loads updated director');
+assert.match(html,/combat-director-v135\.js\?v=144/,'client actually loads updated director');
 assert.match(html,/window\.OtodamaDirector\.simulate\(a,b/,'CPU uses director, not unused prototype');
 assert.match(html,/window\.OtodamaDirector\.movement\(event,p,atk\)/,'battle sprites follow chosen attack and distance');
 assert.match(html,/window\.OtodamaDirector\.morphology\(cr\)/,'voice-shaped fighter geometry is used by renderer');
@@ -39,6 +39,8 @@ assert.equal(JSON.stringify(D.voiceFusion(evolved)),JSON.stringify({extra:3,rhyt
 const baselineBattle=D.simulate(base,fighter(445),{seed:42,profiles:[{style:4,mutation:{tier:0}},{style:4,mutation:{tier:0}}]});
 const evolvedBattle=D.simulate(evolved,fighter(445),{seed:42,profiles:[{style:4,mutation:{tier:0}},{style:4,mutation:{tier:0}}]});
 assert.ok(evolvedBattle.max[0]>=baselineBattle.max[0]*1.23,'three evolutions boost HP by about 24%');
+assert.equal(D.evolutionCombatBonus(evolved).attack,36,'legacy three evolution attack +36%');
+assert.equal(D.evolutionCombatBonus({...base,evolutionVoices:[{attackBonus:14,hpBonus:10},{attackBonus:14,hpBonus:10},{attackBonus:14,hpBonus:10}]}).attack,42,'new evolution attack cap +42%');
 const baseFirst=baselineBattle.events.find(ev=>ev.atk===0&&ev.damage>0);
 const evoFirst=evolvedBattle.events.find(ev=>ev.atk===0&&ev.damage>0);
 assert.ok(baseFirst&&evoFirst&&evoFirst.damage>baseFirst.damage,'three evolutions improve actual outgoing combat damage');
