@@ -66,7 +66,7 @@ function fakeRuntime(mediaRecorderEnabled){
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
   setTimeout:(fn,ms)=>{
-   if(ms===470){queueMicrotask(fn);return 2}
+   if(ms===330){queueMicrotask(fn);return 2}
    if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};
    return 1
   },clearTimeout(){},performance,recording:false,audioCtx:null,
