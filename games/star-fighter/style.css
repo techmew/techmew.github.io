@@ -112,3 +112,10 @@
  .seed-controls{margin-top:4px;gap:5px;font-size:8px}.seed-controls input{min-height:22px;padding:2px 4px;font-size:10px;width:78px}.seed-controls span{font-size:8px;min-width:98px}.seed-controls button{font-size:8px;padding:3px 6px}
  .route-seed{font-size:8px;margin:1px 0}
 }
+
+/* Sector-boundary resume */
+.continue-btn{display:block;margin:9px auto 0;padding:10px 24px;border-radius:7px;border:1px solid #59d5ed;background:#0b3a4c;color:#d5fbff;font-size:12px;font-weight:900;letter-spacing:1px}
+.continue-btn:hover,.continue-btn:focus-visible{background:#155e73;outline:2px solid #80f0ff;outline-offset:2px}
+.continue-info{display:block;text-align:center;color:#9cc8d9;font:10px ui-monospace,monospace;margin:5px auto 0}
+.continue-btn[hidden],.continue-info[hidden]{display:none!important}
+@media(max-height:430px) and (orientation:landscape){.continue-btn{padding:5px 14px;font-size:10px;margin-top:4px}.continue-info{font-size:9px;margin-top:2px}}
