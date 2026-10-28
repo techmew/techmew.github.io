@@ -586,7 +586,8 @@ function getRivalLook(){
  const round=Math.max(1,st.show.round);
  if(rivalCache.round===round&&rivalCache.items)return rivalCache;
  const themeOffset={classic:5,street:-11,avant:0,color:-1,chaos:-6,glam:1}[showTheme()[1]]||0;
- const target=clamp(218+Math.min(37,(round-1)*2.1)+themeOffset*.45+Math.min(9,st.show.streak*1.5)-Math.min(24,st.show.lossStreak*5),190,268);
+ const themeTarget={classic:156,street:163,avant:187,color:165,chaos:185,glam:162}[showTheme()[1]];
+ const target=clamp(themeTarget+Math.min(25,(round-1)*1.35)+themeOffset*.25+Math.min(9,st.show.streak*1.5)-Math.min(25,st.show.lossStreak*5),140,225);
  const natural=['hat','acc','top','bottom','shoes'];
  let best=null,dist=Infinity;
  for(let candidate=0;candidate<160;candidate++){
@@ -626,7 +627,7 @@ function showScore(items,skipRival=false){
  const theme=showTheme()[1],cats=items.map(o=>o.cat),unique=new Set(cats).size,repeats=5-unique;
  const duplicates=5-new Set(items.map(o=>o.id)).size;
  const styleVariety=new Set(items.map(o=>o.cat+':'+o.style)).size,patternVariety=new Set(items.map(o=>o.pattern)).size;
- const plan=showPlan(items,!skipRival);const fits=plan.filter(p=>p.natural).length,odd=5-fits;
+ const plan=showPlan(items,!skipRival);const fits=plan.filter(p=>p.natural).length,odd=5-fits,styled=plan.filter(p=>p.mode>0).length;
  const components=items.map((it,i)=>itemJudgePoints(it,i,theme,!plan[i].natural));
  const colors=items.map(it=>parseInt(colorOf(it).slice(1),16));
  const dist=(a,b)=>Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255));
@@ -650,8 +651,8 @@ function showScore(items,skipRival=false){
  // All five items affect each category; rarity contributes only marginally.
  const judges=[
   clamp(Math.round(7+raw[0]*.77+raw[3]*.17+harmony*8-fishCount*1.5-penalties*.7+stuntBonus[0]),0,90),
-  clamp(Math.round(5+raw[1]*.74+raw[4]*.17+unique*1.5+odd*1.4+fishCount*2-duplicates*13+stuntBonus[1]+stuntBonus[4]*.4),0,90),
-  clamp(Math.round(6+raw[2]*.81+patternFit*8+harmony*4+(oddTheme?odd*1.7:fits*.8)-duplicates*9+stuntBonus[2]),0,90)
+  clamp(Math.round(5+raw[1]*.74+raw[4]*.17+unique*1.5+odd*1.4+fishCount*2+styled*(oddTheme?1.6:.5)-duplicates*13+stuntBonus[1]+stuntBonus[4]*.4),0,90),
+  clamp(Math.round(6+raw[2]*.81+patternFit*8+harmony*4+(oddTheme?odd*1.7:fits*.8)+styled*(oddTheme?1.1:theme==='street'?.5:-.4)-duplicates*9+stuntBonus[2]),0,90)
  ];
  const total=judges.reduce((a,b)=>a+b,0);
  const opponent=skipRival?null:getRivalLook();
