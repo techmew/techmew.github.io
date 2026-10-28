@@ -8,12 +8,13 @@ const take=(a,b)=>{const i=js.indexOf(a),j=js.indexOf(b,i);assert.ok(i>=0&&j>i,'
 for(const id of ['birthVoiceActions','birthVoicePlay','birthVoiceRetry','birthVoiceDone','birthVoiceStatus'])
  assert.equal(html.split('id="'+id+'"').length-1,1,'one visible birth review control: '+id);
 assert.match(js,/const CAPTURE_MS=2000,TAIL_MS=650,begin=performance\.now\(\)/,'keep 650ms audio tail');
-assert.match(js,/pcmPreRoll\[pcmPreWrite\]=value/,'220ms pre-recording PCM ring');
+assert.match(js,/pcmPreRoll\[pcmPreWrite\]=value/,'1050ms pre-recording PCM ring');
+assert.match(js,/const pcmPreRoll=new Float32Array\(Math.round\(11025\*1.05\)\)/,'one-second pre-cue buffer');
 assert.match(js,/for\(let i=0;i<pcmPreCount;i\+\+\)pcmSamples\.push/,'pre-roll copied into voice');
 assert.match(js,/if\(pcmFallbackClip\)voiceClip=pcmFallbackClip/,'bounded PCM clip is preferred');
-assert.match(js,/const count=Math\.min\(samples\.length,Math\.round\(rate\*3\)\)/,'wav stores the complete guarded recording');
-const maxBytes=44+Math.round(11025*3)*2;
-assert.ok(Math.ceil(maxBytes*4/3)+22<90000,'PCM still fits persisted evolution clip limit');
+assert.match(js,/const count=Math\.min\(samples\.length,Math\.round\(rate\*3\.9\)\)/,'wav stores the complete guarded recording');
+const maxBytes=44+Math.round(11025*3.9)*2;
+assert.ok(Math.ceil(maxBytes*4/3)+22<125000,'PCM still fits persisted evolution clip limit');
 const clipData=c=>typeof c?.voiceClip==='string'&&c.voiceClip.startsWith('data:audio/')?c.voiceClip:null;
 const original={seed:49,stats:[68,50,91,55,59],rarity:'S+',level:18,
  voiceClip:'data:audio/wav;base64,QUJDRA==',voice:{pitch:75},audioDNA:{version:1}};
@@ -54,4 +55,4 @@ assert.equal(starts[0][1],0,'preview starts at sample zero');
 assert.equal(starts[0].length,2,'no duration argument: original recording plays naturally to its end');
 assert.equal(starts[1][1],0,'no shortened segment even in basic preview mode');
 assert.equal(starts[1].length,2,'the entire original recording is used in every mode');
-console.log('VOICE BOUNDARY V145 PASS | 220ms pre-roll, 650ms tail, uncut playback, audio-only retake, rollback, cache');
+console.log('VOICE BOUNDARY V145 PASS | 1050ms pre-roll, 650ms tail, uncut playback, audio-only retake, rollback, cache');
