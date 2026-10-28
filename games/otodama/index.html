@@ -1031,10 +1031,12 @@ function showMicNotice(){
 
 // v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
 let stopCaptureNow=null, recordingFinishing=false, recordingRequestPending=false;
-let captureGeneration=0;
+let captureGeneration=0,captureLiveStream=null;
 function captureIsCurrent(generation){return generation===captureGeneration&&!document.hidden}
 function abortCaptureForBackground(){
  captureGeneration++;
+ try{captureLiveStream?.getTracks().forEach(t=>t.stop())}catch(e){}
+ captureLiveStream=null;
  if(recording||recordingRequestPending){
   stopCaptureNow?.();
   $('micHint').textContent='録音を中断しました。画面に戻ってからもう一度録音してください';
@@ -1064,6 +1066,24 @@ function changeCaptureButtons(active){
   $('stopRecordBtn').disabled=true;
 }
 function stopRecord(){/* Fixed 2-second recording: no early manual finish. */}
+async function waitForCaptureCountdown(captureId,evolutionRequested){
+ // Wait for microphone permission AND capture pipeline readiness before the 3-2-1 pre-roll.
+ for(const sec of [3,2,1]){
+  if(!captureIsCurrent(captureId))return false;
+  const label='録音まで '+sec;
+  $('micHint').textContent='マイク準備完了。'+label+'…';
+  $('countdown').textContent=sec.toString();
+  if(evolutionRequested){
+   $('evolutionDialogRecording').hidden=false;
+   $('evolutionCaptureLabel').textContent='録音まであと';
+   $('evolutionCountdown').textContent=sec+'秒';
+   $('evolutionCountdown').dataset.finished='false';
+   $('evolutionDialogStatus').textContent='まもなく録音開始。声の準備をしてください。';
+  }
+  await new Promise(resolve=>setTimeout(resolve,470));
+ }
+ return captureIsCurrent(captureId);
+}
 function displayCaptureCountdown(remainingMs,evolutionRequested){
  const remaining=(Math.max(0,Math.min(2000,remainingMs))/1000).toFixed(1);
  $('countdown').textContent=remaining+' SEC';
@@ -1089,24 +1109,91 @@ async function startRecord(mode='birth'){
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
    if(!captureIsCurrent(captureId))return;
-  recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
-  if(evolutionRequested)syncEvolutionDialog();
-  stopBattleSpeech(); // Prevent any result TTS from contaminating a new recording.
-  $('micHint').textContent=evolutionRequested?'進化用の声を録音中（2秒）':'録音中：2秒で自動終了します（禁止ワードは発しないでください）';
-  displayCaptureCountdown(2000,evolutionRequested);
-  // Do not wait for AudioContext resume or analyser construction before recording starts.
-  // Mobile MediaRecorder can start immediately after getUserMedia resolves.
+  captureLiveStream=stream;
+  stopBattleSpeech(); // No result speech in the microphone.
+  $('micHint').textContent='マイクを準備しています。まだ録音は始まっていません';
+  if(evolutionRequested){
+   $('evolutionDialogRecording').hidden=false;
+   $('evolutionCaptureLabel').textContent='マイク準備中';
+   $('evolutionCountdown').textContent='待機';
+   $('evolutionDialogStatus').textContent='マイクを準備中です。録音開始前に3・2・1を表示します。';
+  }
+  // Construct the recorder and analyser BEFORE the visible 3-2-1 pre-roll.
+  // Neither pathway is allowed to claim recording until it can actually capture audio.
   try{
    if(typeof MediaRecorder!=='undefined'){
-    const type=typeof MediaRecorder.isTypeSupported==='function'?['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t)):null;
+    const type=typeof MediaRecorder.isTypeSupported==='function'
+      ?['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t)):null;
     recorder=new MediaRecorder(stream,{...(type?{mimeType:type}:{}),audioBitsPerSecond:24000});
     recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
-    recorder.start(100);captureStartedAt=performance.now();
    }
   }catch(e){recorder=null}
-  // Start the independent 2-second clock before AudioContext initialization.
-  // Some Android devices leave AudioContext.resume() pending until another gesture.
-  const CAPTURE_MS=2000,begin=captureStartedAt||performance.now();
+  let an=null;
+  try{
+   if(typeof (window.AudioContext||window.webkitAudioContext)==='function'){
+    aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
+    if(aud.state==='suspended'&&typeof aud.resume==='function'){
+     await Promise.race([
+      Promise.resolve(aud.resume()).catch(()=>{}),
+      new Promise(resolve=>setTimeout(resolve,250))
+     ]);
+    }
+    if(!captureIsCurrent(captureId))return;
+    if(aud.state==='running'){
+     src=aud.createMediaStreamSource(stream);
+     an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
+     // The PCM capture is silent while preparing. The recording flag starts AFTER pre-roll.
+     if(typeof aud.createScriptProcessor==='function'){
+      pcmRate=Math.min(11025,Math.round(aud.sampleRate));
+      pcmNode=aud.createScriptProcessor(4096,1,1);
+      pcmSilence=aud.createGain();pcmSilence.gain.value=0;
+      pcmNode.onaudioprocess=ev=>{
+       if(!recording||recordingFinishing||!captureStartedAt||pcmSamples.length>=pcmRate*2)return;
+       const input=ev.inputBuffer.getChannelData(0);
+       for(let i=0;i<input.length;i++){
+        pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
+        if(pcmCarry>=aud.sampleRate){
+         pcmSamples.push(pcmSum/Math.max(1,pcmCount));
+         pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
+        }
+       }
+      };
+      src.connect(pcmNode);pcmNode.connect(pcmSilence);pcmSilence.connect(aud.destination);
+     }
+    }
+   }
+  }catch(e){
+   lastSoundStatus='音の解析を簡易モードに切り替えました';
+   try{pcmNode?.disconnect()}catch(e){}
+   try{pcmSilence?.disconnect()}catch(e){}
+   pcmNode=null;an=null;
+  }
+  if(!recorder&&!pcmNode){
+   $('micHint').textContent='録音を開始できませんでした。ブラウザでマイクを許可してから再試行してください。';
+   $('countdown').textContent='録音不可';
+   if(evolutionRequested)$('evolutionDialogStatus').textContent='音声キャプチャーを開始できません。もう一度録音してください。';
+   return;
+  }
+  if(!await waitForCaptureCountdown(captureId,evolutionRequested))return;
+  if(!captureIsCurrent(captureId))return;
+  // Start the REAL recording only now; no permission or prep delays count against 2 seconds.
+  if(recorder){
+   try{recorder.start(100)}catch(e){recorder=null}
+  }
+  if(!recorder&&!pcmNode){
+   $('micHint').textContent='録音の開始に失敗しました。マイクを許可して再試行してください。';
+   $('countdown').textContent='再録音';
+   if(evolutionRequested)$('evolutionDialogStatus').textContent='録音開始に失敗しました。もう一度お試しください。';
+   return;
+  }
+  const CAPTURE_MS=2000,begin=performance.now();
+  captureStartedAt=begin;
+  recording=true;recordingFinishing=false;changeCaptureButtons(true);
+  $('controlCard').classList.add('recording');
+  if(evolutionRequested)syncEvolutionDialog();
+  $('micHint').textContent='録音開始！ 2秒間声を出してください';
+  if(evolutionRequested)$('evolutionDialogStatus').textContent='録音開始！ 残り2秒です。';
+  displayCaptureCountdown(CAPTURE_MS,evolutionRequested);
   let captureDone=false,resolveCapture;
   const capturePromise=new Promise(resolve=>resolveCapture=resolve);
   stopCaptureNow=()=>{if(!captureDone){captureDone=true;resolveCapture()}};
@@ -1117,48 +1204,8 @@ async function startRecord(mode='birth'){
    if(remaining<=0){stopCaptureNow?.();return}
    countdownHandle=setTimeout(countdownTick,50);
   };
-  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),Math.max(0,CAPTURE_MS-(performance.now()-begin))+70);
+  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),CAPTURE_MS+70);
   countdownTick();
-  let an=null;
-  try{
-   if(typeof (window.AudioContext||window.webkitAudioContext)==='function'){
-    aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
-    if(aud.state==='suspended'&&typeof aud.resume==='function'){
-     await Promise.race([
-      Promise.resolve(aud.resume()).catch(()=>{}),
-      new Promise(resolve=>setTimeout(resolve,220))
-     ]);
-    }
-    if(!captureIsCurrent(captureId))return;
-    src=aud.createMediaStreamSource(stream);
-    an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
-    // PCM fallback when MediaRecorder is unavailable or its output is unsupported.
-    // Zero-gain processing cannot leak raw microphone input to loudspeakers.
-    if(typeof aud.createScriptProcessor==='function'){
-     pcmRate=Math.min(11025,Math.round(aud.sampleRate));
-     pcmNode=aud.createScriptProcessor(4096,1,1);
-     pcmSilence=aud.createGain();pcmSilence.gain.value=0;
-     pcmNode.onaudioprocess=ev=>{
-      if(!recording||recordingFinishing||pcmSamples.length>=pcmRate*2)return;
-      const input=ev.inputBuffer.getChannelData(0);
-      for(let i=0;i<input.length;i++){
-       pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
-       if(pcmCarry>=aud.sampleRate){
-        pcmSamples.push(pcmSum/Math.max(1,pcmCount));
-        pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
-       }
-      }
-     };
-     src.connect(pcmNode);pcmNode.connect(pcmSilence);pcmSilence.connect(aud.destination);
-    }
-   }
-  }catch(e){
-   // Keep the MediaRecorder capture alive even if Web Audio analysis cannot start.
-   lastSoundStatus='音の分析を簡易モードに切り替えました';
-   try{pcmNode?.disconnect()}catch{}
-   try{pcmSilence?.disconnect()}catch{}
-   pcmNode=null;an=null;
-  }
   const buf=new Float32Array(an?.fftSize||2048),samples=[],pitches=[],zcs=[],steps=[],dnaFrames=[];
   const spectrum=an&&typeof an.getFloatFrequencyData==='function'?new Float32Array(an.frequencyBinCount||an.fftSize/2):null;
   const lastSpectrum=spectrum?new Map():null;
@@ -1261,6 +1308,7 @@ async function startRecord(mode='birth'){
  }catch(e){if(!captureIsCurrent(captureId))return;const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';if(evolutionRequested&&!$('evolutionDialog').hidden)$('evolutionDialogStatus').textContent=msg+'。録音開始からやり直せます。';}
  finally{
   if(timeoutHandle)clearTimeout(timeoutHandle);if(countdownHandle)clearTimeout(countdownHandle);
+  if(captureLiveStream===stream)captureLiveStream=null;
   stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
   try{pcmNode?.disconnect()}catch(e){}try{pcmSilence?.disconnect()}catch(e){}try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
