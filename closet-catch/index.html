@@ -148,7 +148,16 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-details .show-analysis{padding:0 10px 12px;margin-top:0}
 .show-judge:last-child:nth-child(odd){grid-column:1/-1}
 @media(max-width:620px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge{padding:10px 8px}.show-judge b{font-size:12px}.show-judge .judge-score-row strong{font-size:18px}.show-judge .judge-score-row span{font-size:10px}.show-result{margin:10px 0}.show-help{line-height:1.5}}
-.free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}</style>
+.free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}/* Phone runway camera: enlarge both model and clothing with the same canvas transform. */
+@media(max-width:620px){
+ .show-stage-wrap{overflow:hidden;border-radius:14px}
+ .show-stage-wrap #showCanvas{width:140%;max-width:none;margin-left:-20%;height:auto}
+ .show-head h2{font-size:23px}
+ .show-head span{font-size:11px}
+ .show-judge .judge-score-row{flex-wrap:wrap;gap:2px}
+ .show-judge .judge-score-row span{font-size:11px}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -771,9 +780,39 @@ function drawFittedRunwayGarment(ctx,p){
  }
  ctx.restore();return true
 }
+function drawFittedRunwayAccessory(ctx,p){
+ const {item,stack}=p;if(item.cat!=='acc'||!p.natural)return false;
+ const c=colorOf(item),edge=tint(c,-.40),light=tint(c,.43),style=item.style%7;
+ ctx.save();ctx.translate((stack%2?1:-1)*Math.ceil(stack/2)*4,stack*3);ctx.lineCap='round';ctx.lineJoin='round';
+ if(style===0){
+  round(ctx,-29,-146,25,19,7,edge,'#ffe8c7');round(ctx,4,-146,25,19,7,edge,'#ffe8c7');
+  round(ctx,-25,-143,17,11,4,'#283b55');round(ctx,8,-143,17,11,4,'#283b55');
+  ctx.strokeStyle=light;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-4,-138);ctx.quadraticCurveTo(0,-144,4,-138);ctx.moveTo(-29,-138);ctx.lineTo(-35,-141);ctx.moveTo(29,-138);ctx.lineTo(35,-141);ctx.stroke();
+ }else if(style===1){
+  ctx.strokeStyle=edge;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(19,-62);ctx.quadraticCurveTo(62,-31,48,15);ctx.stroke();
+  round(ctx,28,-9,42,52,8,c,edge);round(ctx,31,-7,36,13,5,light,edge);round(ctx,44,13,10,8,3,edge);
+ }else if(style===2){
+  ctx.fillStyle=c;path(ctx,[[-23,-105],[0,-96],[23,-105],[19,-88],[8,-79],[-7,-80],[-20,-90]]);ctx.fill();ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.stroke();
+  path(ctx,[[6,-86],[19,-86],[16,-39],[6,-43]]);ctx.fillStyle=light;ctx.fill();ctx.stroke();
+ }else if(style===3){
+  ctx.strokeStyle=c;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-19,-103);ctx.quadraticCurveTo(0,-61,19,-103);ctx.stroke();
+  ellipse(ctx,0,-76,8,11,light);ellipse(ctx,0,-77,3,6,edge);
+ }else if(style===4){
+  ctx.strokeStyle=edge;ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(-35,-141);ctx.bezierCurveTo(-46,-215,46,-215,35,-141);ctx.stroke();
+  ctx.strokeStyle=light;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-35,-154);ctx.bezierCurveTo(-39,-205,39,-205,35,-154);ctx.stroke();
+  round(ctx,-43,-158,16,34,6,c,edge);round(ctx,27,-158,16,34,6,c,edge);
+ }else if(style===5){
+  ctx.fillStyle=c;path(ctx,[[-5,-189],[-33,-203],[-31,-177],[-5,-184]]);ctx.fill();
+  path(ctx,[[5,-189],[33,-203],[31,-177],[5,-184]]);ctx.fill();round(ctx,-7,-193,14,15,4,light,edge);
+ }else{
+  for(const side of [-1,1]){ctx.save();ctx.translate(side*47,16);ctx.rotate(side*.16);
+   round(ctx,-8,-16,16,31,5,edge);round(ctx,-11,-8,22,17,5,c,light);ellipse(ctx,0,0,4,4,'#f9f2df');ctx.restore()}
+ }
+ ctx.restore();return true
+}
 function renderRunwayItem(ctx,p,gait,t){
  const {item,region,stack,x,y,size,rotation}=p;
- if(drawFittedRunwayGarment(ctx,p))return;
+ if(drawFittedRunwayGarment(ctx,p)||drawFittedRunwayAccessory(ctx,p))return;
  if(item.cat==='hair'&&p.natural){avatarHair(ctx,x,-137,.88,item.id-HAIR_ID_START,'front',t);return}
  if(item.cat==='fish'&&p.natural&&['torso','hips','back','neck'].includes(region)){
   ctx.save();ctx.strokeStyle=tint(colorOf(item),-.50);ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();
@@ -897,7 +936,7 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  const flourish=walking?(isRival?poseBeats.reduce((v,beat)=>Math.max(v,Math.max(0,1-Math.abs(showTime-beat)/.36)),0)*.75:Math.max(0,1-Math.abs(showTime-poseFlashAt)/.6)):0;
  ctx.save();ctx.translate(x+gait*3,y+(walking?Math.abs(gait)*3:0));ctx.rotate(flourish*.08+gait*.018);ctx.scale(z,z);
  ellipse(ctx,0,186,71,13,'#180b2d9c');
- const skinC=isRival?'#ac785e':'#e8b18a', hairId=isRival?(st.show.round*37+80)%300:st.hair,bodyId=isRival?(st.show.round*17+20)%50:st.bodyCostume;ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
+ const skinC=isRival?'#ac785e':'#e8b18a', hairId=isRival?(st.show.round*37+80)%300:st.hair,bodyId=st.bodyCostume;ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
  for(let side of [-1,1]){const ankleX=side*(23+gait*11),ankleY=165-Math.max(0,side*gait)*15;ctx.beginPath();ctx.moveTo(side*21,36);ctx.lineTo(side*(23+gait*6),106);ctx.lineTo(ankleX,ankleY);ctx.stroke()}
  ctx.fillStyle=skinC;path(ctx,[[-31,-70],[31,-70],[37,53],[-37,53]]);ctx.fill();avatarBody(ctx,0,-7,.85,bodyId,'base',skinC);
  ctx.strokeStyle=skinC;ctx.lineWidth=17;
@@ -946,7 +985,7 @@ function drawShowStage(){
    round(ctx,x-27,by,55,46,9,'#29223a','#ca94ba');
    ellipse(ctx,x,by-10,14,15,['#dca78e','#d5a5a2','#b98e72','#efc7a7','#a78b9b'][i]);
    ctx.fillStyle='#ffe9b7';ctx.textAlign='center';ctx.font='900 12px sans-serif';
-   ctx.fillText(showPhase==='result'?(showScores?.judges?.[i]??'?'):'?',x,by+31);
+   ctx.fillText(showPhase==='result'?(showScores?.judges?.[i]??'?')+'/100':'—',x,by+31);ctx.fillStyle='#fff4d5';ctx.font='900 10px sans-serif';ctx.fillText(['着こなし','独創性','テーマ','組み合わせ','存在感'][i],x,by+44);
   }
  let p=showPhase==='walk'?Math.min(1,showTime/4.7):showPhase==='prep'?.7:1;
  // CPU rival appears on the opposite side wearing its actual five-piece outfit.
