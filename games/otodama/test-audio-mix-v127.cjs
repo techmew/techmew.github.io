@@ -64,7 +64,7 @@ assert.match(script,/const start=ac\.currentTime\+\.018,level=Math\.min\(\.19,VO
 assert.match(script,/source\.playbackRate\.value=1/,'recorded voice always plays at normal speed');
 assert.match(script,/source\.start\(start,0\)/,'recorded voice starts at the first sample');
 assert.match(script,/const seconds=Number\(clip\?\.buffer\?\.duration/,'busy window covers whole original recording');
-assert.match(script,/source\.connect\(gain\);gain\.connect\(voiceOutput\(ac\)\)/,'recorded voice uses limited safe bus');
+assert.match(script,/gain\.connect\(voiceOutput\(ac\)\)/,'recorded voice uses limited safe bus, with optional inline filter');
 assert.match(script,/const rush=ev\?\.rush===true/,'special remains differentiated');
 assert.match(script,/const level=Math\.min\(\.19,VOLUME\(\)\*Math\.min\(3,clip\.gain/,'victory voice capped');
 assert.match(script,/updateBgmDucking\(ac\);/,'music tick applies smooth ducking');
