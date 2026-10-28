@@ -284,12 +284,37 @@ function dnaFrame(an,buf,spectrum,sampleRate,t,pitch,rms,zc,rough,previous){
  }
  return {t,pitch:pitch||0,rms,zc,rough,centroid,low,mid,high,flat,roll,flux};
 }
+// Recover an actual acoustic profile from the recorded buffer if the live analyser
+// produced too few frames (common after Android AudioContext resume).
+// These are measured PCM frames, never fabricated DNA values.
+function recoveredAudioFrames(audioBuffer){
+ const sr=Number(audioBuffer?.sampleRate)||0;
+ if(sr<8000||sr>192000||typeof audioBuffer?.getChannelData!=='function')return [];
+ let raw;
+ try{raw=audioBuffer.getChannelData(0)}catch(e){return []}
+ if(!raw||raw.length<sr*.34)return [];
+ const frameSize=2048,step=Math.max(frameSize,Math.round(sr*.085));
+ const frames=[];
+ for(let offset=0;offset+frameSize<=raw.length&&frames.length<32;offset+=step){
+  const buf=new Float32Array(frameSize);
+  let sum=0,zc=0,diff=0;
+  for(let i=0;i<frameSize;i++){
+   const x=Number(raw[offset+i])||0;buf[i]=x;sum+=x*x;
+   if(i&&Math.sign(x)!==Math.sign(buf[i-1]))zc++;
+   if(i)diff+=Math.abs(x-buf[i-1]);
+  }
+  const rms=Math.sqrt(sum/frameSize);
+  const pitch=rms>=.004?autocorr(buf,sr):0;
+  frames.push(dnaFrame(null,buf,null,sr,offset/sr*1000,pitch,rms,zc/frameSize,diff/frameSize,null));
+ }
+ return frames;
+}
 function analyseVoiceDNA(frames){
  if(!Array.isArray(frames)||frames.length<7)return null;
  const clean=frames.filter(x=>Number.isFinite(x.rms)&&Number.isFinite(x.t));
  if(clean.length<7)return null;
  const maxR=Math.max(...clean.map(x=>x.rms));
- const active=clean.filter(x=>x.rms>=Math.max(.008,maxR*.17));
+ const active=clean.filter(x=>x.rms>=Math.max(.004,maxR*.17));
  if(active.length<6)return null; // Too little audible content for a reliable DNA profile.
  const av=(key)=>active.map(x=>Number(x[key])||0);
  const q=(key,p=.5)=>dnaQuantile(av(key),p);
@@ -1106,7 +1131,7 @@ async function startRecord(mode='birth'){
  if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null||document.hidden)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
  const captureId=++captureGeneration;
- let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, countdownHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
+ let stream, aud, src, recorder=null, decodedAudio=null, chunks=[], timeoutHandle=null, countdownHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
  recordingRequestPending=true;
  if(evolutionRequested){evolutionDraft=null;$('evolutionDialogStatus').textContent='マイクを準備しています…';syncEvolutionDialog();}
@@ -1256,7 +1281,7 @@ async function startRecord(mode='birth'){
       if(encoded.startsWith('data:audio/')){
        if(aud?.decodeAudioData){
         try{
-         await Promise.race([
+         decodedAudio=await Promise.race([
           aud.decodeAudioData(await blob.arrayBuffer()),
           new Promise((_,reject)=>setTimeout(()=>reject(new Error('decode timeout')),1200))
          ]);
@@ -1284,8 +1309,14 @@ async function startRecord(mode='birth'){
   const z=median(zcs)||0,rough=median(steps)||0;
   const v={vol:Math.round(clamp(10+Math.sqrt(rms)*155,8,96)),pitch:Math.round(clamp(12+Math.log2(pitch/70)*21,9,98)),res:Math.round(clamp(28+rough*310+z*65,15,96)),rhythm:Math.round(clamp(26+delta*940,17,95)),stable:Math.round(clamp(95-dev*.32,20,96)),breath:Math.round(clamp(15+z*290+rough*95,14,95))};
   // Analysis is isolated from capture: never discard a recording if FFT is unavailable.
-  let audioDNA=null;
-  try{audioDNA=analyseVoiceDNA(dnaFrames)}catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
+  let audioDNA=null,usedDecodedFallback=false;
+  try{
+   audioDNA=analyseVoiceDNA(dnaFrames);
+   if(!validAudioDNA(audioDNA)&&decodedAudio){
+    const recovered=analyseVoiceDNA(recoveredAudioFrames(decodedAudio));
+    if(validAudioDNA(recovered)){audioDNA=recovered;usedDecodedFallback=true}
+   }
+  }catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
   const seed=audioDNA?audioDNA.signature:hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
   if(!captureIsCurrent(captureId))return;
   if(evolutionRequested){
@@ -1300,7 +1331,7 @@ async function startRecord(mode='birth'){
    }
    // All evolution effects are deferred: no roster, levels or stats change until confirmation.
    evolutionDraft={seed:selectedSeed,voice:audioDNA?.voice||v,dna:audioDNA,clip:compactClip};
-   $('evolutionDialogStatus').textContent='録音できました。「聴く」で確認し、よければ「確定して進化」を押してください。';
+   $('evolutionDialogStatus').textContent=(usedDecodedFallback?'録音を復旧して保存しました。':'録音できました。')+'「聴く」で確認し、よければ「確定して進化」を押してください。';
    $('micHint').textContent='進化用の声を録音しました。確定前なら録り直せます。';
    $('countdown').textContent='VOICE OK';return;
   }
