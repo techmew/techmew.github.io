@@ -185,7 +185,45 @@ function explosion(x,y,r=32){emit(x,y,Math.round(r*.85),'#ffb66c',r*7);emit(x,y,
 function chargeDrive(amount){if(G.overdrive>0)return;G.driveCharge=Math.min(100,G.driveCharge+amount);if(G.driveCharge>=100){G.driveCharge=0;G.overdrive=8;G.shake=Math.max(G.shake,5);screenPulse=.24;ring(p.x,p.y,155,'#f7d989',.55);emit(p.x,p.y,25,'#ffe49b',180);showToast('OVERDRIVE · 8 SEC');tone(520,.28,'sawtooth',.08,720)}}
 function addScore(n){G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);G.comboTime=3.8;G.score+=Math.round(n*(1+Math.min(3,Math.floor(G.combo/8))*.5)*(G.overdrive>0?1.5:1)*routeProfile().score);if(G.score>G.best)G.best=G.score}
 function pickup(x,y,forced=false){G.pickups.push({x,y,vx:-GR(35,68),phase:GR(0,TAU),t:0,type:forced?'energy':gameRandom()>.92?'pulse':'energy'})}
-function enemy(type,x,y,extra={}){const tune=routeProfile();if(G.enemies.length>=tune.maxEnemies)return;let hp={scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25;hp*=(1+G.stage*.35)*tune.enemyHp;G.enemies.push({type,x,y,hp,maxHp:hp,t:0,fire:GR(.9,1.8)*tune.fireInterval,phase:GR(0,TAU),seed:GR(0,100),score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:250,...extra})}
+function enemy(type,x,y,extra={}){const tune=routeProfile();if(G.enemies.length>=tune.maxEnemies)return;
+if(x>=W){for(let attempt=0;attempt<12;attempt++){
+ const blocked=G.enemies.some(e=>e.x>=W-30&&Math.abs(e.x-x)<waveRadius(type)+waveRadius(e.type)+18&&Math.abs(e.y-y)<waveRadius(type)+waveRadius(e.type)+18);
+ if(!blocked)break;x+=90;
+}}
+let hp={scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25;hp*=(1+G.stage*.35)*tune.enemyHp;G.enemies.push({type,x,y,hp,maxHp:hp,t:0,fire:GR(.9,1.8)*tune.fireInterval,phase:GR(0,TAU),seed:GR(0,100),score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:250,...extra})}
+
+/* Preserve a traversable lane for each announced formation at entry.
+   The cue is not a shield: aimed bullets and later enemy motion still matter. */
+const WAVE_LANES=[155,337,515];
+function waveRadius(type){return type==='tank'||type==='carrier'?39:type==='interceptor'?29:24}
+function waveClearance(type){return 145+(type==='spinner'?20:type==='interceptor'?28:0)}
+function placeOutsideLane(y,lane,margin){
+ y=cl(y,108,H-88);const low=lane-margin,high=lane+margin;
+ if(y<=low||y>=high)return y;
+ const up=low>=108?low:null,down=high<=H-88?high:null;
+ if(up===null)return down;if(down===null)return up;
+ return y-up<=down-y?up:down;
+}
+function arrangeWave(units){
+ if(!units.length)return {units:[],safeY:337};
+ let best=null;
+ for(const lane of WAVE_LANES){
+  const adjusted=units.map(u=>({...u,y:placeOutsideLane(u.y,lane,waveClearance(u.type))}));
+  const move=adjusted.reduce((sum,u,i)=>sum+Math.abs(u.y-units[i].y),0);
+  const cost=Math.abs(lane-p.y)*2.1+move*.23;
+  if(!best||cost<best.cost)best={lane,adjusted,cost};
+ }
+ const placed=[];
+ for(const u of best.adjusted){
+  let x=u.x,rad=waveRadius(u.type);
+  for(let attempt=0;attempt<14;attempt++){
+   if(!placed.some(v=>Math.abs(x-v.x)<rad+waveRadius(v.type)+24&&Math.abs(u.y-v.y)<rad+waveRadius(v.type)+25))break;
+   x+=92;
+  }
+  if(!placed.some(v=>Math.abs(x-v.x)<rad+waveRadius(v.type)+24&&Math.abs(u.y-v.y)<rad+waveRadius(v.type)+25))placed.push({...u,x});
+ }
+ return {units:placed,safeY:best.lane};
+}
 function spawnWave(){
 if(G.pendingWave||G.boss||G.bossDone||G.transitioning)return;
 const planned=[];function queueEnemy(type,x,y,extra={}){if(G.enemies.length+planned.length<routeProfile().maxEnemies)planned.push({type,x,y,extra})}
@@ -213,7 +251,8 @@ if(risk&&s===1&&gameRandom()>.7)queueEnemy('turret',W+420,gameRandom()>.5?125:H-
 if(risk&&s===2&&gameRandom()>.65)queueEnemy('spinner',W+450,GR(195,480));
 if(!planned.length)return;
 const names=['偵察編隊','高速突撃','重装護衛','旋回部隊','輸送護衛','砲台戦線','機雷帯','迎撃隊','重装迎撃','複合編隊','輸送船団','螺旋編隊','上下挟撃','槍型編隊','機雷の回廊'];
-G.pendingWave={timer:1.15,label:names[w],units:planned,kind:w};
+const arranged=arrangeWave(planned);
+if(arranged.units.length)G.pendingWave={timer:1.35,label:names[w],units:arranged.units,kind:w,safeY:arranged.safeY};
 }
 function bullet(x,y,a,s=290,size=5,col='#ff8d61',damage=1){G.bullets.push({x,y,px:x,py:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,size,life:5,color:col,damage})}
 function aim(x,y,spread=0){return Math.atan2(p.y-y,p.x-x)+spread}
@@ -337,7 +376,7 @@ $('routeRisk').addEventListener('pointerenter',()=>selectRouteCard(1));
 /* One announced mid-stage event per chosen route. Events never use draw RNG. */
 function triggerRouteEvent(){
  const ev=G.activeEvent;
- if(!ev||G.eventTriggered||G.mode!=='playing'||G.boss||G.stageTime<ev.when)return;
+ if(!ev||G.eventTriggered||G.mode!=='playing'||G.boss||G.pendingWave||G.stageTime<ev.when)return;
  const risk=G.routeRisk===1;
  if(risk&&G.enemies.length>routeProfile().maxEnemies-4)return;
  G.eventTriggered=true;G.eventCount++;
@@ -462,6 +501,14 @@ function drawWaveWarning(){
 const wave=G.pendingWave;if(!wave||G.mode!=='playing'&&G.mode!=='paused')return;
 c.save();c.globalAlpha=.66+.23*Math.sin(G.time*12);c.textAlign='right';c.textBaseline='middle';c.fillStyle='#ffdb9d';c.font='bold 13px ui-monospace,monospace';
 c.fillText('⚠ '+wave.label+' / '+Math.max(0,wave.timer).toFixed(1)+'s',W-38,90);
+if(Number.isFinite(wave.safeY)){
+ const y=wave.safeY;
+ c.globalAlpha=.18;c.fillStyle='#59d8d2';c.fillRect(W-155,y-54,143,108);
+ c.globalAlpha=.8;c.strokeStyle='#65f2db';c.lineWidth=1.5;c.setLineDash([6,7]);
+ c.beginPath();c.moveTo(W-155,y);c.lineTo(W-18,y);c.stroke();c.setLineDash([]);
+ c.fillStyle='#b5fff0';c.font='bold 11px ui-monospace,monospace';c.fillText('SAFE',W-22,y-17);
+ c.globalAlpha=.66+.23*Math.sin(G.time*12);
+}
 const shown=[];for(const u of wave.units){const y=cl(u.y,108,H-70);if(shown.some(v=>Math.abs(v-y)<42))continue;shown.push(y);if(shown.length>5)break;
 c.strokeStyle='#ffb96e';c.lineWidth=2;c.setLineDash([9,7]);c.beginPath();c.moveTo(W-118,y);c.lineTo(W-20,y);c.stroke();c.setLineDash([]);
 c.beginPath();c.arc(W-37,y,12,0,TAU);c.stroke();c.beginPath();c.moveTo(W-50,y-5);c.lineTo(W-40,y);c.lineTo(W-50,y+5);c.stroke()}
