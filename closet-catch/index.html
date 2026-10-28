@@ -151,7 +151,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}/* Phone runway camera: enlarge both model and clothing with the same canvas transform. */
 @media(max-width:620px){
  .show-stage-wrap{overflow:hidden;border-radius:14px}
- .show-stage-wrap #showCanvas{width:140%;max-width:none;margin-left:-20%;height:auto}
+ .show-stage-wrap #showCanvas{width:120%;max-width:none;margin-left:-10%;height:auto}
  .show-head h2{font-size:23px}
  .show-head span{font-size:11px}
  .show-judge .judge-score-row{flex-wrap:wrap;gap:2px}
@@ -952,7 +952,9 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  // duplicate categories without forcibly transforming them into unrelated parts.
  const plan=showPlan(items,!isRival);
  const order={back:0,legs:1,hips:2,feet:3,torso:4,hands:5,neck:6,face:7,head:8};
- for(const p of [...plan].sort((a,b)=>order[a.region]-order[b.region]||a.stack-b.stack))renderRunwayItem(ctx,p,gait,t);
+ const clothingLayer={under:0,bottom:1,shoes:2,top:3,dress:4,outer:5};
+ const layer=p=>p.natural?(clothingLayer[p.item.cat]??(10+order[p.region])):10+order[p.region];
+ for(const p of [...plan].sort((a,b)=>layer(a)-layer(b)||a.stack-b.stack))renderRunwayItem(ctx,p,gait,t);
 
  ctx.restore()
 }
@@ -981,7 +983,7 @@ function drawShowStage(){
  for(let side=0;side<2;side++){ctx.save();if(side){ctx.translate(900,0);ctx.scale(-1,1)}let curtain=ctx.createLinearGradient(0,0,190,0);curtain.addColorStop(0,'#210a35');curtain.addColorStop(.6,'#742b55');curtain.addColorStop(1,'#4d1749');ctx.fillStyle=curtain;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(180,0);ctx.bezierCurveTo(233,130,211,265,103,405);ctx.lineTo(0,465);ctx.closePath();ctx.fill();ctx.restore()}
  for(let i=0;i<18;i++){let x=i*56+Math.sin(i)*10;ellipse(ctx,x,485+i%3*8,15,18,'#0b1027');ellipse(ctx,x,466+i%3*8,10,11,'#141125')}
  for(let i=0;i<5;i++){
-   const x=42+i*72,by=398+(i%2)*7;
+   const x=110+i*61,by=398+(i%2)*7;
    round(ctx,x-27,by,55,46,9,'#29223a','#ca94ba');
    ellipse(ctx,x,by-10,14,15,['#dca78e','#d5a5a2','#b98e72','#efc7a7','#a78b9b'][i]);
    ctx.fillStyle='#ffe9b7';ctx.textAlign='center';ctx.font='900 12px sans-serif';
@@ -992,12 +994,12 @@ function drawShowStage(){
  const rivalIds=showScores?.rivalIds;
  const cpuItems=Array.isArray(rivalIds)&&rivalIds.length===5?rivalIds.map(id=>catalog[id]):getRivalLook().items;
  const rivalWalk=showPhase==='walk'?Math.min(1,showTime/4.7):1;
- dressRunway(ctx,691+(1-rivalWalk)*100,351,.54,showPhase==='walk'?t+.45:.1,cpuItems,true);
+ dressRunway(ctx,691+(1-rivalWalk)*100,342,.78,showPhase==='walk'?t+.45:.1,cpuItems,true);
  round(ctx,619,165,146,28,9,'#21192f','#d9a3c0');
  ctx.fillStyle='#ffe3c2';ctx.textAlign='center';ctx.font='900 14px sans-serif';
  ctx.fillText('CPU '+(showPhase==='result'?(showScores?.rival??'--')+'点':'CHALLENGER'),692,184);
   if(showPhase==='walk'&&poseBeats.some(beat=>Math.abs(showTime-beat)<.25)){round(ctx,636,112,116,30,11,'#fff0bc','#a85881');ctx.fillStyle='#3c2545';ctx.font='900 14px sans-serif';ctx.fillText('CPU POSE!',694,133)}
- dressRunway(ctx,450-(1-p)*165,353-(1-p)*55,.77+.17*p,showPhase==='walk'?t:.1);
+ dressRunway(ctx,450-(1-p)*165,302-(1-p)*55,.86+.12*p,showPhase==='walk'?t:.1);
  if(showPhase==='walk'){
   const ready=poseBeats.findIndex((beat,i)=>poseResults[i]===null&&Math.abs(showTime-beat)<=poseTolerance);
   if(ready>=0){const p=1-Math.abs(showTime-poseBeats[ready])/poseTolerance;ctx.save();ctx.strokeStyle='#fff0a9';ctx.lineWidth=4;ctx.beginPath();ctx.arc(748,187,34+(1-p)*23,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff0bb';ctx.font='900 18px sans-serif';ctx.textAlign='center';ctx.fillText('POSE!',748,193);ctx.restore()}
