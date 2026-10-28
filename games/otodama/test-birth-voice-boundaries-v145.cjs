@@ -11,7 +11,7 @@ assert.match(js,/const CAPTURE_MS=2000,TAIL_MS=650,begin=performance\.now\(\)/,'
 assert.match(js,/pcmPreRoll\[pcmPreWrite\]=value/,'220ms pre-recording PCM ring');
 assert.match(js,/for\(let i=0;i<pcmPreCount;i\+\+\)pcmSamples\.push/,'pre-roll copied into voice');
 assert.match(js,/if\(pcmFallbackClip\)voiceClip=pcmFallbackClip/,'bounded PCM clip is preferred');
-assert.match(js,/const count=Math\.min\(samples\.length,Math\.round\(rate\*2\.85\)\)/,'wav stores the complete guarded recording');
+assert.match(js,/const count=Math\.min\(samples\.length,Math\.round\(rate\*3\)\)/,'wav stores the complete guarded recording');
 const maxBytes=44+Math.round(11025*3)*2;
 assert.ok(Math.ceil(maxBytes*4/3)+22<90000,'PCM still fits persisted evolution clip limit');
 const clipData=c=>typeof c?.voiceClip==='string'&&c.voiceClip.startsWith('data:audio/')?c.voiceClip:null;
