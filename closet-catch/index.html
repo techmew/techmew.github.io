@@ -162,6 +162,9 @@ const FISH_CATALOG=Array.from({length:50},(_,i)=>{const style=i%10,color=Math.fl
 catalog.push(...FISH_CATALOG);
 const HAIR_CATCH=AVATAR_HAIR.map((v,i)=>({id:HAIR_ID_START+i,cat:'hair',style:v.type,color:v.color,pattern:v.bang,rarity:Math.min(3,Math.floor(i/75)),name:v.name}));
 const BODY_CATCH=AVATAR_BODY.map((v,i)=>({id:BODY_ID_START+i,cat:'bodyCostume',style:v.type,color:v.finish,pattern:v.finish,rarity:Math.min(3,Math.floor(i/13)),name:v.name}));
+// Keep the original 10,000 garment IDs untouched; register catchable avatar items
+// at their fixed IDs so all five successful catches can enter the runway.
+catalog.push(...HAIR_CATCH,...BODY_CATCH);
 function isAvatarCatch(it){return it.cat==='hair'||it.cat==='bodyCostume'}
 function drawSeaCollectible(ctx,item,x,y,size,rot=0){
  if(item.cat==='hair'){ctx.save();ctx.translate(x,y);ctx.rotate(rot);avatarHair(ctx,0,9,size/110,item.id-HAIR_ID_START,'back');avatarHair(ctx,0,9,size/110,item.id-HAIR_ID_START,'front');ctx.restore()}
@@ -170,7 +173,7 @@ function drawSeaCollectible(ctx,item,x,y,size,rot=0){
 }
 function replaceSeaSlot(delay=450){setTimeout(()=>{if(sceneItems.length<17)sceneItems.push(spawnSeaItem(sceneItems.map(e=>e.item.id)))},delay)}
 const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null,fish:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,hairOwned:[0],bodyOwned:[0],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null}});
-let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL+FISH_COUNT))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.hair=Number.isInteger(st.hair)&&st.hair>=0&&st.hair<300?st.hair:0;st.bodyCostume=Number.isInteger(st.bodyCostume)&&st.bodyCostume>=0&&st.bodyCostume<50?st.bodyCostume:0;st.hairOwned=Array.isArray(st.hairOwned)?[...new Set([0,...st.hairOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<300):[0,st.hair];st.bodyOwned=Array.isArray(st.bodyOwned)?[...new Set([0,...st.bodyOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<50):[0,st.bodyCostume];if(!st.hairOwned.includes(st.hair))st.hair=0;if(!st.bodyOwned.includes(st.bodyCostume))st.bodyCostume=0;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL+FISH_COUNT).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==3||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
+let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL+FISH_COUNT))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.hair=Number.isInteger(st.hair)&&st.hair>=0&&st.hair<300?st.hair:0;st.bodyCostume=Number.isInteger(st.bodyCostume)&&st.bodyCostume>=0&&st.bodyCostume<50?st.bodyCostume:0;st.hairOwned=Array.isArray(st.hairOwned)?[...new Set([0,...st.hairOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<300):[0,st.hair];st.bodyOwned=Array.isArray(st.bodyOwned)?[...new Set([0,...st.bodyOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<50):[0,st.bodyCostume];if(!st.hairOwned.includes(st.hair))st.hair=0;if(!st.bodyOwned.includes(st.bodyCostume))st.bodyCostume=0;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<BODY_ID_START+50).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==3||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
@@ -179,7 +182,7 @@ function round(ctx,x,y,w,h,r,fill,stroke){if(w<=0||h<=0)return;ctx.beginPath();c
 function path(ctx,arr){ctx.beginPath();arr.forEach((pt,i)=>{if(i===0)ctx.moveTo(pt[0],pt[1]);else ctx.lineTo(pt[0],pt[1])});ctx.closePath()}
 function ellipse(ctx,x,y,rx,ry,color){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
 function textShadow(ctx,text,x,y,size,color,stroke='#133e51',lw=3){ctx.font=`900 ${size}px "Yu Gothic",sans-serif`;ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeText(text,x,y);ctx.fillStyle=color;ctx.fillText(text,x,y)}
-function colorOf(item){return palettes[item?.color??0][1]}
+function colorOf(item){if(item?.cat==='hair')return AVATAR_HAIR_COLORS[item.color][1];if(item?.cat==='bodyCostume')return AVATAR_BODY_FINISHES[item.color][1];if(item?.cat==='fish')return FISH_COLORS[item.color][1];return palettes[item?.color??0][1]}
 function tint(hex,f){let n=parseInt(hex.slice(1),16);let c=[(n>>16)&255,(n>>8)&255,n&255];return '#'+c.map(v=>clamp(Math.round(v+(f>0?(255-v)*f:v*f)),0,255).toString(16).padStart(2,'0')).join('')}
 function patternFill(ctx,item,bounds,mask){if(!item)return;const {x,y,w,h}=bounds;ctx.save();ctx.clip(mask);let base=colorOf(item);let g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,tint(base,.17));g.addColorStop(.55,base);g.addColorStop(1,tint(base,-.24));ctx.fillStyle=g;ctx.fillRect(x,y,w,h);let bright=tint(base,.55),dark=tint(base,-.35);ctx.lineWidth=3;
  const kind=item.pattern;ctx.strokeStyle=dark+'7e';ctx.fillStyle=bright+'bb';
@@ -277,9 +280,11 @@ function scoreOutfit(){const slots=Object.values(st.equip).filter(x=>x!==null).m
 function equipItem(item){if(!ownSet.has(item.id))return;st.equip[item.cat]=st.equip[item.cat]===item.id?null:item.id;if(item.cat==='dress'&&st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}if(['top','bottom'].includes(item.cat)&&st.equip[item.cat]!==null)st.equip.dress=null;redrawUI();tone(620,.1,'sine',.06);tone(780,.14,'sine',.05,.09)}
 function undress(trigger=false){for(let k of Object.keys(st.equip))st.equip[k]=null;redrawUI();if(trigger)showEvent('風でコーデが全部飛んだ！パンツ一丁！',2300)}
 function catchItem(sceneItem){const item=sceneItem.item;let duplicate;
+ // Every successful catch, including hair and body costumes, occupies a show slot.
+ if(st.show.queue.length<5)st.show.queue.push(item.id);
  if(item.cat==='hair'){const id=item.id-HAIR_ID_START;duplicate=st.hairOwned.includes(id);if(!duplicate){st.hairOwned.push(id);st.hair=id}}
  else if(item.cat==='bodyCostume'){const id=item.id-BODY_ID_START;duplicate=st.bodyOwned.includes(id);if(!duplicate){st.bodyOwned.push(id);st.bodyCostume=id}}
- else{duplicate=ownSet.has(item.id);st.show.queue.push(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}if(item.cat==='fish')st.equip.fish=item.id}
+ else{duplicate=ownSet.has(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}if(item.cat==='fish')st.equip.fish=item.id}
  st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity]);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
  popup(item,duplicate);
  // A rare, optional slapstick surprise: everything remains in the inventory.
@@ -476,7 +481,7 @@ function showScore(items,skipRival=false){
  const styleVariety=new Set(items.map(o=>o.cat+':'+o.style)).size;
  const patternVariety=new Set(items.map(o=>o.pattern)).size;
  const rarity=items.reduce((a,o)=>a+o.rarity,0);
- const rules=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
+ const rules=[['hat','hair'],['acc'],['top','dress','outer','bodyCostume'],['bottom','under','dress','bodyCostume'],['shoes']];
  const fits=items.reduce((a,o,i)=>a+(rules[i].includes(o.cat)?1:0),0),odd=5-fits;
  const colors=items.map(o=>parseInt(colorOf(o).slice(1),16));
  const colorGap=(i,j)=>{const a=colors[i],b=colors[j];return Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255))};
@@ -506,10 +511,12 @@ function showScore(items,skipRival=false){
  return {judges,total,rival,rivalJudges,rivalPosePoints,rivalIds:opponent?opponent.items.map(o=>o.id):null,win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit,flow,anchor,contrast}
 }
 function showPlacement(item,slot){
- const natural=[['hat'],['acc'],['top','dress','outer'],['bottom','under','dress'],['shoes']];
+ const natural=[['hat','hair'],['acc'],['top','dress','outer','bodyCostume'],['bottom','under','dress','bodyCostume'],['shoes']];
  if(natural[slot].includes(item.cat))return 'ぴったり';
  if(['bottom','under'].includes(item.cat))return ['ズボン帽子','ズボンサングラス','ズボンをシャツに！','ズボンを重ねる','ズボンブーツ'][slot];
  if(item.cat==='fish')return ['魚の帽子！','魚サングラス！','魚の胸当て','腰に魚！','魚スリッパ'][slot];
+ if(item.cat==='hair')return ['かぶるウィッグ','髪の毛サングラス！','毛束をシャツに！','毛束スカート','毛束ブーツ'][slot];
+ if(item.cat==='bodyCostume')return ['体型スーツを頭に！','体型スーツ眼鏡！','ボディスーツを重ね着','ボディスーツを腰巻き','体型スーツ靴'][slot];
   if(item.cat==='shoes')return ['靴を頭に！','靴サングラス','靴をベストに','靴を腰巻きに',''][slot];
  return ['頭に無理やり！','顔に巻く！','胴に着る！','腰に巻く！','足に装着！'][slot];
 }
@@ -622,30 +629,30 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  avatarBody(ctx,0,-7,.85,bodyId,'edge');
  if(!isRival&&st.equip.fish!==null&&catalog[st.equip.fish])drawGarment(ctx,catalog[st.equip.fish],-52,-42,52,-.3);
   // Garment silhouettes are placed regardless of their original clothing category.
- drawGarment(ctx,items[3],0,77,111,.03);
+ drawSeaCollectible(ctx,items[3],0,77,111,.03);
  // Trouser-shirt: inverted legs become shoulder flaps; the waistband is a collar.
  const torsoPants=['bottom','under'].includes(items[2].cat);
- drawGarment(ctx,items[2],0,-22,torsoPants?117:126,torsoPants?Math.PI:-.02);
+ drawSeaCollectible(ctx,items[2],0,-22,torsoPants?117:126,torsoPants?Math.PI:-.02);
  if(torsoPants){round(ctx,-26,-2,52,10,5,tint(colorOf(items[2]),-.3),'#ffe6bd');for(const side of [-1,1]){round(ctx,side*32-12,-58,24,10,4,tint(colorOf(items[2]),-.18),'#ffe6bd')}}
  // Pants on the feet turn into two absurd oversized boots with visible cuffs.
  for(let side of [-1,1]){
   const fx=side*(23+gait*11),fy=165-Math.max(0,side*gait)*15;
   if(['bottom','under'].includes(items[4].cat)){
    ctx.save();ctx.translate(fx,fy);ctx.rotate(side*.12);
-   drawGarment(ctx,items[4],0,-9,63,Math.PI);
+   drawSeaCollectible(ctx,items[4],0,-9,63,Math.PI);
    round(ctx,-22,10,44,13,5,tint(colorOf(items[4]),-.25),'#ffe8c1');
    ctx.restore();
-  }else drawGarment(ctx,items[4],fx,fy,57,side*.1);
+  }else drawSeaCollectible(ctx,items[4],fx,fy,57,side*.1);
  }
  if(['bottom','under'].includes(items[1].cat)){
   // Split trouser legs into two sunglass lenses and a bridge.
   ctx.strokeStyle='#f6e8bf';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-29,-142);ctx.quadraticCurveTo(0,-152,29,-142);ctx.stroke();
-  drawGarment(ctx,items[1],-20,-137,45,-Math.PI/2);drawGarment(ctx,items[1],20,-137,45,Math.PI/2);
+  drawSeaCollectible(ctx,items[1],-20,-137,45,-Math.PI/2);drawSeaCollectible(ctx,items[1],20,-137,45,Math.PI/2);
   ctx.strokeStyle='#2a3046';ctx.lineWidth=2;for(const eye of [-20,20]){ctx.beginPath();ctx.ellipse(eye,-137,22,13,0,0,Math.PI*2);ctx.stroke()}
- }else drawGarment(ctx,items[1],0,-135,72);
+ }else drawSeaCollectible(ctx,items[1],0,-135,72);
  // Inverted trouser hat: two pant legs stick up while the waistband hugs the head.
  const pantsHat=['bottom','under'].includes(items[0].cat);
- drawGarment(ctx,items[0],0,-189,102,pantsHat?Math.PI:.04);
+ drawSeaCollectible(ctx,items[0],0,-189,102,pantsHat?Math.PI:.04);
  if(pantsHat){round(ctx,-29,-168,58,10,4,tint(colorOf(items[0]),-.28),'#ffe6bd');for(const side of [-1,1]){ctx.strokeStyle='#ffeac7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(side*13,-211);ctx.lineTo(side*22,-222);ctx.stroke()}}
  ctx.restore()
 }
@@ -766,7 +773,10 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  for(let k=0;k<26;k++){let x=(hash(k+888)%1000),y=H+15,sz=20+(hash(k+229)%40);sea.strokeStyle=k%2?'#176c75ac':'#1e837d9a';sea.lineWidth=3;sea.beginPath();sea.moveTo(x,y);sea.quadraticCurveTo(x-12,y-sz/2,x+Math.sin(t+k)*7,y-sz);sea.stroke()}
  // underwater catchable clothing icons
  for(const s of sceneItems){const yy=s.y+Math.sin(t*2.1+s.phase)*6;let active=focus===s;let glow=rareColors[s.item.rarity];sea.save();sea.translate(s.x,yy);sea.scale(s.scale,s.scale);sea.globalAlpha=clamp((s.ttl-(performance.now()-s.born))/2200,0,1);if(s.item.rarity>1||active){sea.shadowColor=glow;sea.shadowBlur=26+Math.sin(t*5+s.phase)*5}
- sea.fillStyle=gradient(sea,0,0,45,active?'#ffffffef':'#effff3e8','#ffffff33');sea.strokeStyle=active?'#ffffff':glow+'ca';sea.lineWidth=active?5:2;sea.beginPath();sea.arc(0,0,42,0,2*Math.PI);sea.fill();sea.stroke();sea.shadowBlur=0;drawSeaCollectible(sea,s.item,0,0,58,Math.sin(t*1.6+s.phase)*.09);if(s.item.rarity>=2){sea.fillStyle=glow;star(sea,33,-34,8,3,5);sea.fill()}sea.restore()}
+ sea.fillStyle=gradient(sea,0,0,45,active?'#ffffffef':'#effff3e8','#ffffff33');sea.strokeStyle=active?'#ffffff':glow+'ca';sea.lineWidth=active?5:2;sea.beginPath();sea.arc(0,0,42,0,2*Math.PI);sea.fill();sea.stroke();sea.shadowBlur=0;
+  const remaining=clamp((s.ttl-(performance.now()-s.born))/s.ttl,0,1);
+  sea.beginPath();sea.arc(0,0,47,-Math.PI/2,-Math.PI/2+Math.PI*2*remaining);sea.lineWidth=3.5;sea.strokeStyle=remaining<.2?'#ff9a75':'#e9ffe8bb';sea.stroke();
+  drawSeaCollectible(sea,s.item,0,0,58,Math.sin(t*1.6+s.phase)*.09);if(s.item.rarity>=2){sea.fillStyle=glow;star(sea,33,-34,8,3,5);sea.fill()}sea.restore()}
  for(const r of ripples){sea.beginPath();sea.arc(r.x,r.y,r.r,0,Math.PI*2);sea.lineWidth=2;sea.strokeStyle=`rgba(230,255,240,${r.a})`;sea.stroke()}
  for(const p of particles){sea.globalAlpha=clamp(p.life/p.max,0,1);sea.fillStyle=p.color;ellipse(sea,p.x,p.y,p.r,p.r*.8,p.color)}sea.globalAlpha=1;
  if(hook.active&&hook.stage===2&&hook.chosen){drawSeaCollectible(sea,hook.chosen.item,hook.x,hook.y+24,42,Math.sin(t*12)*.2)}
