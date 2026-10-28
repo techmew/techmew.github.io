@@ -1883,8 +1883,8 @@ function cacheDecodedVoice(cr,decoded){
   const rms=Math.sqrt(power/Math.max(1,count));
   if(rms<.0005){lastSoundStatus='録音音声が小さすぎます。録音し直してください';return null}
   const voiceGain=Math.min(8,Math.max(.85,.14/rms),.95/Math.max(.08,peak));
-  const clip={buffer:decoded,offset:best/decoded.sampleRate,
-   duration:Math.min(.7,decoded.duration-best/decoded.sampleRate),gain:voiceGain,fullDuration:decoded.duration};
+  // The peak window above determines safe volume, never the playback start.
+  const clip={buffer:decoded,offset:0,duration:decoded.duration,gain:voiceGain,fullDuration:decoded.duration};
   voiceCache.set(key,clip);if(voiceCache.size>45)voiceCache.delete(voiceCache.keys().next().value);
   return clip;
  }catch(e){lastSoundStatus='録音音声の読み込み失敗: '+String(e);return null}
@@ -1990,7 +1990,7 @@ function maybeSpecialRush(m,ev){
  if(!ev?.skill||m.live||m.done||ev.rushSpecial)return false;
  // Every special attack gets its rush: the previous 1-in-3 gate hid most activations.
  ev.rushSpecial=true;
- // Keep the seven recorded words audible before the battle advances or resolves.
+ // Keep the seven visual hits while protecting the complete spoken phrase.
  m.rushEndsAt=performance.now()+1750;
  showRushBanner('必殺技　連打ラッシュ！');
  $('arenaEffect').textContent='必殺技　連打ラッシュ！';
@@ -2726,7 +2726,7 @@ function battleDraw(ms){
  if(match.interactive){resolveCombatImpact(ms);if(!match.spectator)updateActionHud();}
  const t=ms/1000,event=match.current,idx=Math.max(0,match.turn),lowFx=$('lowFx').checked;
  const cinema=typeof window!=='undefined'?window.OtodamaCinema:null;
- let p=match.live?(event?.resolved?clamp(.52+(ms-event.impactAt)/300*.48,.52,1):clamp((ms-match.pop)/(match.telegraphMs||900)*.49,0,.49)):clamp((ms-match.pop)/EVENT_MS,0,1);// Specials span seven recorded hits. Preserve the first true damage timestamp at .54,
+ let p=match.live?(event?.resolved?clamp(.52+(ms-event.impactAt)/300*.48,.52,1):clamp((ms-match.pop)/(match.telegraphMs||900)*.49,0,.49)):clamp((ms-match.pop)/EVENT_MS,0,1);// Special animation spans seven visual hits. Preserve the damage timestamp at .54,
  // then continue the visible combo until the last voice finishes instead of freezing at p=1.
  if(event?.skill&&match.rushEndsAt&&ms<match.rushEndsAt&&!match.live){
   const hitAt=EVENT_MS*.54,elapsed=Math.max(0,ms-match.pop);
@@ -3136,9 +3136,9 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  let ix=-1;const currentMatch=match;
  const act=()=>{
   if(match!==currentMatch||match.done||document.hidden||match.pausedAt)return;
-  // Fast polling removes the silent gap after the 7-hit rush without changing normal battle cadence.
+  // Fast polling keeps the visual seven-hit combo smooth with unaltered voices.
   if(match.current&&performance.now()-match.pop<EVENT_MS)return;
-  // A special rush needs more time than the standard 820 ms turn; do not cut off its recording.
+  // Allow the entire original recording to play through the visual special.
   if(match.rushEndsAt&&performance.now()<match.rushEndsAt)return;
   if(match.current&&!match.current.resolved&&match.interactive&&!match.live)return;
   if(match.endAfterCurrent || ix+1>=outcome.events.length){finishCombat();return;}
