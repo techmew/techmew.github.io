@@ -1113,7 +1113,7 @@ function abortCaptureForBackground(){
 }
 function pcmWavDataUrl(samples,rate){
  if(!Array.isArray(samples)||!Number.isFinite(rate)||rate<8000||samples.length<Math.round(rate*.25))return '';
- const count=Math.min(samples.length,Math.round(rate*2)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
+ const count=Math.min(samples.length,Math.round(rate*2.85)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
  const ascii=(at,str)=>{for(let i=0;i<str.length;i++)view.setUint8(at+i,str.charCodeAt(i))};
  ascii(0,'RIFF');view.setUint32(4,36+count*2,true);ascii(8,'WAVE');ascii(12,'fmt ');
  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
@@ -1164,13 +1164,21 @@ function displayCaptureCountdown(remainingMs,evolutionRequested){
  }
 }
 async function startRecord(mode='birth'){
- const evolutionRequested=mode==='evolve',selectedSeed=cur.seed;
+ const evolutionRequested=mode==='evolve',voiceOnlyRequested=mode==='voice-only',selectedSeed=cur.seed;
+ if(voiceOnlyRequested&&(!birthRevealActive||birthStockCallback!==null||birthRevealCreature?.seed!==selectedSeed||match&&!match.done)){
+  birthVoiceBusy=false;syncBirthVoiceActions();return;
+ }
  if(evolutionRequested&&(!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed)||match&&!match.done||$('evolutionDialog').hidden||evolutionDialogSeed!==selectedSeed)){$('evolutionDialogStatus').textContent='進化の条件を確認してから録音してください';return;}
- if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null||document.hidden)return;
+ if(recording||recordingRequestPending||(!voiceOnlyRequested&&(birthRevealActive||birthStockCallback!==null))||document.hidden){
+  if(voiceOnlyRequested){birthVoiceBusy=false;syncBirthVoiceActions()}
+  return;
+ }
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
  const captureId=++captureGeneration;
  let stream, aud, src, recorder=null, decodedAudio=null, chunks=[], timeoutHandle=null, countdownHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
+ const pcmPreRoll=new Float32Array(Math.round(11025*.22));
+ let pcmPreWrite=0,pcmPreCount=0;
  recordingRequestPending=true;
  if(evolutionRequested){evolutionDraft=null;$('evolutionDialogStatus').textContent='マイクを準備しています…';syncEvolutionDialog();}
  $('micHint').textContent='マイクを起動しています…';$('countdown').textContent='MIC START';changeCaptureButtons(true);
@@ -1217,12 +1225,20 @@ async function startRecord(mode='birth'){
       pcmNode=aud.createScriptProcessor(4096,1,1);
       pcmSilence=aud.createGain();pcmSilence.gain.value=0;
       pcmNode.onaudioprocess=ev=>{
-       if(!recording||recordingFinishing||!captureStartedAt||pcmSamples.length>=pcmRate*2)return;
+       // Buffer 220 ms before 録音開始, plus keep recording 650 ms after the timer.
+       if(recordingFinishing||pcmSamples.length>=Math.round(pcmRate*2.85))return;
        const input=ev.inputBuffer.getChannelData(0);
        for(let i=0;i<input.length;i++){
         pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
         if(pcmCarry>=aud.sampleRate){
-         pcmSamples.push(pcmSum/Math.max(1,pcmCount));
+         const value=pcmSum/Math.max(1,pcmCount);
+         if(!captureStartedAt){
+          pcmPreRoll[pcmPreWrite]=value;
+          pcmPreWrite=(pcmPreWrite+1)%pcmPreRoll.length;
+          pcmPreCount=Math.min(pcmPreCount+1,pcmPreRoll.length);
+         }else if(recording&&pcmSamples.length<Math.round(pcmRate*2.85)){
+          pcmSamples.push(value);
+         }
          pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
         }
        }
