@@ -30,7 +30,7 @@ assert.match(script,/m\.tauntText=nextTaunt\('lose'\);/,'CPU reads complete taun
 assert.match(script,/line\.lang='ja-JP'/,'use Japanese speech synthesizer');
 assert.match(script,/generation!==battleSpeechGeneration/,'stale TTS is canceled between fights');
 assert.match(script,/const rush=ev\?\.rush===true/,'only explicit rush repeats voice');
-assert.match(script,/const echoes=0/,'no extra recorded echoes');
+assert.match(script,/source\.start\(start,0\)/,'recorded voice plays in full, without repeated excerpts');
 assert.match(script,/playDecodedVoice\.busyUntil/,'recorded voices are serialized');
 assert.match(script,/playDecodedVoice\.generation/,'late audio decode is invalidated');
 assert.match(script,/if\(!maybeSpecialRush\(currentMatch,ev\)\)attackVoice\(attacker,ev\.atk,ev\)/,'rush replaces ordinary attack voice');
