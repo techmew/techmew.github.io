@@ -53,20 +53,64 @@
     const count=Array.isArray(cr?.evolutionVoices)?cr.evolutionVoices.length:0;
     return !!cr&&count<EVOLUTION_LEVELS.length&&slotsForLevel(cr.level||1)>count;
   }
+  // Voice quality affects the *amount* of growth. Loudness alone is never scored.
+  // The five priorities follow the recorded pitch movement, sustain, range, harmonics and tone.
+  function previewEvolution(cr,dna){
+    if(!dna||dna.version!==1||!Array.isArray(dna.features)||dna.features.length!==36)
+      throw new Error('声の音響解析が必要です');
+    const f=dna.features.map(x=>cap(x));
+    const quality=cap(Math.round(cap(dna.potential)*.30+cap(dna.quality)*.15+
+      f[33]*.20+f[35]*.20+f[11]*.15));
+    const budget=Math.max(6,Math.min(14,Math.round(6+quality*.08)));
+    const attackBonus=Math.max(8,Math.min(14,Math.round(8+quality*.06)));
+    const hpBonus=Math.max(5,Math.min(10,Math.round(5+quality*.05)));
+    const acoustic=[2,11,1,33,22];
+    const order=acoustic.map((idx,i)=>({i,score:f[idx]}))
+      .sort((a,b)=>b.score-a.score||a.i-b.i).map(x=>x.i);
+    const stats=(Array.isArray(cr?.stats)?cr.stats:[50,50,50,50,50]).slice(0,5).map(v=>Math.round(cap(v,25,99)));
+    const gains=Array(5).fill(0);
+    const targets=[Math.round(budget*.55),Math.round(budget*.30)];
+    targets.push(budget-targets[0]-targets[1]);
+    let remaining=budget;
+    for(let j=0;j<3;j++){
+      const i=order[j],delta=Math.min(targets[j],99-stats[i]);
+      gains[i]+=delta;remaining-=delta;
+    }
+    // No wasted gain at cap 99: redistribute spare points to remaining stats.
+    while(remaining>0){
+      let moved=false;
+      for(const i of order){
+        if(remaining<=0)break;
+        if(stats[i]+gains[i]<99){gains[i]++;remaining--;moved=true}
+      }
+      if(!moved)break; // All five attributes have reached 99.
+    }
+    return {quality,budget,boost:gains,attackBonus,hpBonus,unspent:remaining};
+  }
+  // Older saved evolutions keep their established +12% attack / +8% HP effect.
+  function evolutionCombatBonus(cr){
+    const voices=Array.isArray(cr?.evolutionVoices)?cr.evolutionVoices.slice(0,3):[];
+    let attack=0,hp=0;
+    for(const v of voices){
+      attack+=v&&Number.isFinite(v.attackBonus)?cap(v.attackBonus,8,14):12;
+      hp+=v&&Number.isFinite(v.hpBonus)?cap(v.hpBonus,5,10):8;
+    }
+    return {attack:Math.min(42,attack),hp:Math.min(30,hp)};
+  }
   function applyEvolution(cr,voice,dna,clip,instant=Date.now()){
     if(!canEvolve(cr))throw new Error('必要なレベルに到達していないか、声の追加枠が満杯です');
     const validVoice=['vol','pitch','res','rhythm','stable','breath'].every(k=>Number.isFinite(voice?.[k])&&voice[k]>=0&&voice[k]<=100);
     if(!validVoice || !dna || dna.version!==1 || !Array.isArray(dna.features) || dna.features.length!==36)
       throw new Error('追加した声を解析できません。録音し直してください');
     const old=Array.isArray(cr.evolutionVoices)?cr.evolutionVoices:[];
-    const acoustic=[2,11,1,33,22],boostIndex=acoustic.reduce((best,idx,i)=>Number(dna.features[idx])>Number(dna.features[acoustic[best]])?i:best,0);
-    const gains=Array.from({length:5},(_,i)=>i===boostIndex?6:i===(boostIndex+2)%5?3:i===(boostIndex+4)%5?1:0);
+    const result=previewEvolution(cr,dna);
     const item={voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(voice[k])])),
-      signature:(dna.signature>>>0),focus:phaseAt(instant).name,addedAt:Number(instant),boost:gains,
+      signature:(dna.signature>>>0),focus:phaseAt(instant).name,addedAt:Number(instant),boost:result.boost,
+      attackBonus:result.attackBonus,hpBonus:result.hpBonus,quality:result.quality,
       voiceClip:typeof clip==='string'&&clip.startsWith('data:audio/')&&clip.includes('base64,')&&clip.length<=90000?clip:''};
-    const stats=(cr.stats||[]).slice(0,5).map((v,i)=>Math.round(cap(Number(v)+gains[i],25,99)));
+    const stats=(cr.stats||[]).slice(0,5).map((v,i)=>Math.round(cap(Number(v)+result.boost[i],25,99)));
     return {...cr,stats,evolutionVoices:[...old,item],evolutionStage:old.length+1};
   }
   return Object.freeze({MAX_LEVEL,EVOLUTION_LEVELS,FOCUSES,phaseAt,rarityForDNA,legacyRarity,
-    slotsForLevel,nextEvolutionLevel,canEvolve,applyEvolution});
+    slotsForLevel,nextEvolutionLevel,canEvolve,previewEvolution,evolutionCombatBonus,applyEvolution});
 });
