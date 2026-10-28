@@ -7,7 +7,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
 assert.ok(script);new vm.Script(script);
 const start=script.indexOf('function clipData(cr)'),end=script.indexOf('function previewFullVoice(',start);
 assert.ok(start>0&&end>start);
-const starts=[],banners=[],synthetic=[];
+const starts=[],banners=[],synthetic=[],rushHits=[];
 const buffer={sampleRate:8000,duration:2.85,getChannelData(){return Float32Array.from({length:8000*2.85|0},(_,i)=>Math.sin(i*.08)*.07)}};
 const ac={currentTime:7,decodeAudioData:async()=>buffer,
  createGain:()=>({gain:{setValueAtTime(){}},connect(){}}),
@@ -20,7 +20,7 @@ const ctx={Math,Uint8Array,Map,Float32Array,atob:()=> 'ABCD',hash:()=>0,
  unlockBattleAudio:()=>ac,voiceOutput:()=>({}),audioMaster:()=>({}),
  trackAttackSource(){},setVoiceEffectStatus(){},lastSoundStatus:'',
  synthVoice:(...a)=>synthetic.push(a),voiceCache:new Map(),pendingVoice:new Map(),
- performance:{now:()=>now},bgmDuckUntil:0,showRushBanner:x=>banners.push(x),match:m};
+ performance:{now:()=>now},bgmDuckUntil:0,showRushBanner:x=>banners.push(x),playRushHitSounds:(ev,hits)=>rushHits.push(hits),match:m};
 const api=vm.runInNewContext(script.slice(start,end)+';({decodeVoice,playDecodedVoice,attackVoice,maybeSpecialRush})',ctx);
 (async()=>{
  const clip=await api.decodeVoice(fighter);
@@ -36,6 +36,8 @@ const api=vm.runInNewContext(script.slice(start,end)+';({decodeVoice,playDecoded
  assert.equal(api.maybeSpecialRush(m,special),true);
  assert.equal(starts.length,1,'special does not interrupt or overlap recorded speech');
  assert.equal(banners.length,1,'visual special still runs');
+ assert.equal(rushHits.length,1,'special always schedules seven audible rush hits');
+ assert.equal(rushHits[0],7,'seven audible hits are requested');
  assert.ok(m.rushEndsAt>=api.playDecodedVoice.busyUntil,'special waits for full recording');
  now=4000;m.turn++;
  api.attackVoice(fighter,0);
