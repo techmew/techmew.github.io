@@ -10,8 +10,8 @@ const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を�
 /* Stage 1 stays neutral. Each branch changes encounter pressure, drops and tactics. */
 const ROUTE_TUNING={
  normal:{spawnInterval:1,enemyHp:1,fireInterval:1,pickupRate:.24,magnet:120,bossHp:1,maxEnemies:16,score:1,speed:1},
- safe:{spawnInterval:1.22,enemyHp:.9,fireInterval:1.16,pickupRate:.38,magnet:160,bossHp:.90,maxEnemies:10,score:1,speed:.96},
- storm:{spawnInterval:.84,enemyHp:1.12,fireInterval:.90,pickupRate:.20,magnet:120,bossHp:1.16,maxEnemies:16,score:1.25,speed:1.08}
+ safe:{spawnInterval:1.16,enemyHp:.95,fireInterval:1.08,pickupRate:.35,magnet:155,bossHp:.94,maxEnemies:10,score:1,speed:.98},
+ storm:{spawnInterval:.96,enemyHp:1.08,fireInterval:.96,pickupRate:.22,magnet:120,bossHp:1.12,maxEnemies:14,score:1.25,speed:1.04}
 };
 function routeProfile(){return G.stage===0?ROUTE_TUNING.normal:(G.routeRisk?ROUTE_TUNING.storm:ROUTE_TUNING.safe)}
 const MAX=[2,3,2,2,3,3],PNAMES=['BOOST','SPREAD','LASER','MISSILE','OPTION','SHIELD'];
@@ -76,13 +76,13 @@ if(G.enemies.length>=tune.maxEnemies-2)return;
 const safeWaves=[0,0,1,2,3,4,5,6,10],stormWaves=[1,2,3,4,5,6,7,7,8,9];
 const w=s===0?ri(0,6):(risk?stormWaves[ri(0,stormWaves.length-1)]:safeWaves[ri(0,safeWaves.length-1)]);
 if(w===0){const yy=R(180,465);for(let i=0;i<(safe?4:6);i++)enemy('scout',W+60+i*68,cl(yy+Math.sin(i*.9)*66,122,H-70),{pattern:1})}
-else if(w===1){const n=safe?3:risk?5:4;for(let i=0;i<n;i++)enemy('dart',W+50+i*105,145+i*390/Math.max(1,n-1),{pattern:2})}
+else if(w===1){const n=safe?3:4;for(let i=0;i<n;i++)enemy('dart',W+50+i*105,145+i*390/Math.max(1,n-1),{pattern:2})}
 else if(w===2){enemy('tank',W+100,R(195,490));for(let i=0;i<(safe?2:3);i++)enemy('scout',W+230+i*85,R(140,545))}
-else if(w===3){for(let i=0;i<(safe?3:5);i++)enemy('spinner',W+60+i*80,R(145,540))}
+else if(w===3){for(let i=0;i<(safe?3:4);i++)enemy('spinner',W+60+i*80,R(145,540))}
 else if(w===4){enemy('carrier',W+70,R(180,500));for(let i=0;i<(safe?1:2);i++)enemy('scout',W+200+i*80,R(140,540))}
 else if(w===5){enemy('turret',W+90,105);if(!safe){enemy('turret',W+200,H-96);enemy('dart',W+175,340)}}
 else if(w===6){const n=safe?2:4;for(let i=0;i<n;i++)enemy('mine',W+50+i*85,170+i*320/Math.max(1,n-1))}
-else if(w===7){for(let i=0;i<3;i++)enemy('interceptor',W+100+i*110,160+i*145,{lockY:null})}
+else if(w===7){for(let i=0;i<2;i++)enemy('interceptor',W+100+i*110,160+i*145,{lockY:null})}
 else if(w===8){enemy('tank',W+125,R(220,440));enemy('interceptor',W+310,195,{lockY:null});enemy('interceptor',W+410,490,{lockY:null})}
 else if(w===9){enemy('carrier',W+100,R(210,450));enemy('dart',W+245,185);enemy('dart',W+350,490);enemy('spinner',W+450,345)}
 else{enemy('carrier',W+95,R(200,470));enemy('scout',W+260,210);enemy('scout',W+345,475)}
