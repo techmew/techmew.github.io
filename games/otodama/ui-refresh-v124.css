@@ -635,3 +635,51 @@ body{color:var(--white);background:radial-gradient(ellipse 80% 42% at 98% 2%,#e9
  .stage .inline-evolution #evolveBtn{font-size:10px;max-width:128px;padding:8px 9px}
  .stage .launchpad #fightBtn{font-size:16px}
 }
+
+/* v141: exploration panel sits immediately below the exploration start action. */
+.stage .launchpad>.journey-summary{
+ display:block;margin:9px 0 12px;padding:10px 11px;border:1px solid #c9e3e9;
+ border-radius:12px;background:linear-gradient(180deg,#f4fbfd,#f9fcff);box-shadow:none
+}
+.stage .launchpad>.journey-summary .journey-heading{
+ margin:0 0 5px;font-size:13px;font-weight:800;color:#2c6980
+}
+.stage .launchpad>.journey-summary .play-next{
+ padding:8px 10px;margin:0;border:0;border-radius:10px;background:#fff
+}
+.stage .launchpad>.journey-summary .questline{
+ display:flex;flex-wrap:wrap;gap:7px;align-items:center;
+ padding:5px 2px;margin:0;background:transparent;border:0
+}
+.stage .launchpad>.journey-summary .quest-progress{gap:5px;justify-items:start}
+.stage .launchpad>.journey-summary #stageHint{
+ font-size:11px;line-height:1.45;color:#567386
+}
+.stage .launchpad>.journey-summary #stageMissionHint{
+ padding:7px 9px;margin:6px 0;font-size:11px;line-height:1.35
+}
+.stage .launchpad>.journey-summary .campaign{margin-top:6px;padding:8px 10px;font-size:12px}
+@media(max-width:730px){
+ .stage .launchpad>.journey-summary{margin:9px 0 11px;padding:8px}
+ .stage .launchpad>.journey-summary .play-next{padding:7px}
+ .stage .launchpad>.journey-summary .questline{gap:5px}
+ .stage .launchpad>.journey-summary .quest-progress{justify-items:start}
+}
+/* Evolution recording: live countdown clearly visible inside the dialog, not behind it. */
+#evolutionDialogRecording[hidden]{display:none!important}
+#evolutionDialogRecording{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ margin:10px 0;padding:11px 14px;min-height:51px;
+ border:2px solid #39a8bf;border-radius:12px;
+ background:linear-gradient(90deg,#e5f9ff,#f7fbff);color:#176783;
+ font-weight:800;font-size:14px
+}
+#evolutionCountdown{
+ font-size:22px;font-variant-numeric:tabular-nums;
+ color:#145caa;white-space:nowrap;letter-spacing:.02em
+}
+#evolutionCountdown[data-finished="true"]{color:#387a63}
+#controlCard.recording #countdown{
+ display:inline-block;min-width:78px;font-size:19px;
+ font-weight:900;color:#116da8;font-variant-numeric:tabular-nums
+}
