@@ -26,11 +26,13 @@
  <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>3 STAGES · 3 GIANT BOSSES</span><i></i></div>
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
  <button class="main-btn" id="startBtn">MISSION START <span>▶</span></button>
+ <div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再挑戦 ↻</button></div>
  <p class="start-guide">移動：WASD / 矢印キー・スマホは左スティック<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
 <div class="route-panel" id="routePanel" aria-label="次の航路を選択">
 <div class="route-head"><span class="route-kicker">NAVIGATION / ROUTE SELECT</span><strong id="routeHeading">次の航路を選択</strong><small>次の戦場と報酬が変化する</small></div>
 <div class="route-map" id="routeMap" role="img" aria-label="航路マップ：現在地と次の航路を表示"></div>
+<div class="route-seed" id="routeSeed" aria-label="この周回のシード">SEED --------</div>
 <div class="route-junction" aria-hidden="true"><span>NOW</span><i></i><b>◇</b><i></i><span id="routeNextSector">SECTOR 02</span></div>
 <div class="route-cards">
 <button id="routeSafe" class="route-card safe"><span class="route-tier">01 / STANDARD</span><strong id="routeSafeName">静穏航路</strong><span id="routeSafeDesc">安定した敵編隊</span><em id="routeSafeBonus">カプセル +1 / パルス +1</em><span class="route-go">この航路へ ▶</span></button>
