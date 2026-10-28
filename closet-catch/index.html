@@ -174,6 +174,16 @@ function drawSeaCollectible(ctx,item,x,y,size,rot=0){
  else if(item.cat==='bodyCostume'){ctx.save();ctx.translate(x,y);ctx.rotate(rot);avatarBody(ctx,0,0,size/118,item.id-BODY_ID_START,'base');avatarBody(ctx,0,0,size/118,item.id-BODY_ID_START,'edge');ctx.restore()}
  else drawGarment(ctx,item,x,y,size,rot)
 }
+function pickFishForSea(skipIds=[]){
+ // Unseen species get priority without flooding the sea with legendary catches.
+ const available=FISH_CATALOG.filter(it=>!skipIds.includes(it.id));
+ const pool=available.length?available:FISH_CATALOG;
+ const weight=it=>[8,5,2.8,1.3][it.rarity]*(ownSet.has(it.id)?1:2.1);
+ const total=pool.reduce((sum,it)=>sum+weight(it),0);
+ let roll=Math.random()*total;
+ for(const it of pool){roll-=weight(it);if(roll<=0)return it}
+ return pool[pool.length-1]
+}
 function replaceSeaSlot(delay=450){setTimeout(()=>{if(sceneItems.length<17)sceneItems.push(spawnSeaItem(sceneItems.map(e=>e.item.id)))},delay)}
 const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null,fish:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,hairOwned:[0],bodyOwned:[0],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null}});
 let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL+FISH_COUNT))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.hair=Number.isInteger(st.hair)&&st.hair>=0&&st.hair<300?st.hair:0;st.bodyCostume=Number.isInteger(st.bodyCostume)&&st.bodyCostume>=0&&st.bodyCostume<50?st.bodyCostume:0;st.hairOwned=Array.isArray(st.hairOwned)?[...new Set([0,...st.hairOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<300):[0,st.hair];st.bodyOwned=Array.isArray(st.bodyOwned)?[...new Set([0,...st.bodyOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<50):[0,st.bodyCostume];if(!st.hairOwned.includes(st.hair))st.hair=0;if(!st.bodyOwned.includes(st.bodyCostume))st.bodyCostume=0;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<BODY_ID_START+50).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
@@ -288,7 +298,7 @@ function patternRect(ctx,item,x,y,w,h){const k=item.pattern,c=colorOf(item),brig
 function pickRandomItem(){let w=[72,22,5.3,.7];let mul=st.rod-1;w=[Math.max(33,w[0]-mul*9),w[1]+mul*4,w[2]+mul*3.8,w[3]+mul*1.2];let sum=w.reduce((a,b)=>a+b,0),n=Math.random()*sum,r=0;for(let k=0;k<4;k++){r+=w[k];if(n<=r)return catalog[pick(rarityPools[k])]}return catalog[pick(rarityPools[0])]}
 function spawnSeaItem(skipIds=[],forced=null){
  let tries=0,it;
- do{const dice=Math.random();it=forced==='hair'?pick(HAIR_CATCH):forced==='bodyCostume'?pick(BODY_CATCH):forced==='fish'?pick(FISH_CATALOG):dice<.14?pick(HAIR_CATCH):dice<.22?pick(BODY_CATCH):dice<.38?pick(FISH_CATALOG):pickRandomItem();tries++}while(tries<30&&skipIds.includes(it.id));
+ do{const dice=Math.random();it=forced==='hair'?pick(HAIR_CATCH):forced==='bodyCostume'?pick(BODY_CATCH):forced==='fish'?pickFishForSea(skipIds):dice<.14?pick(HAIR_CATCH):dice<.22?pick(BODY_CATCH):dice<.38?pickFishForSea(skipIds):pickRandomItem();tries++}while(tries<30&&skipIds.includes(it.id));
  const fish=it.cat==='fish',a=rand(0,Math.PI*2);return {item:it,x:rand(120,930),y:rand(240,491),vx:fish?Math.cos(a)*rand(35,85):rand(-.14,.14),vy:fish?Math.sin(a)*rand(25,72):0,phase:rand(0,6.28),scale:fish?rand(.85,1.22):rand(.9,1.1),born:performance.now(),ttl:rand(fish?23000:19000,fish?41000:35000),biteAt:0}
 }
 for(let i=0;i<17;i++)sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id),i===0?'hair':i===1?'bodyCostume':i===2?'fish':null));
@@ -310,7 +320,7 @@ function catchItem(sceneItem){const item=sceneItem.item;let duplicate;
  if(item.cat==='hair'){const id=item.id-HAIR_ID_START;duplicate=st.hairOwned.includes(id);if(!duplicate){st.hairOwned.push(id);st.hair=id}}
  else if(item.cat==='bodyCostume'){const id=item.id-BODY_ID_START;duplicate=st.bodyOwned.includes(id);if(!duplicate){st.bodyOwned.push(id);st.bodyCostume=id}}
  else{duplicate=ownSet.has(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}if(item.cat==='fish')st.equip.fish=item.id}
- st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity]);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
+ st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity])+(item.cat==='fish'&&!duplicate?18:0);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.cat==='fish'&&!duplicate?'NEW SPECIES! +18 COINS':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
  popup(item,duplicate);
  // A rare, optional slapstick surprise: everything remains in the inventory.
  if(st.catches>10&&st.catches%15===0&&Math.random()<.17&&Object.values(st.equip).some(x=>x!==null)){setTimeout(()=>undress(true),1600)}
@@ -340,7 +350,7 @@ function castAt(x,y){
  // Fish physically swim to this hook; the eventual bite is determined by proximity and probability.
  const originalTarget=selected;
  const castTarget={x:selected?selected.x:x,y:selected?selected.y:y};
- Object.assign(hook,{active:true,stage:1,progress:0,chosen:originalTarget?.item.cat==='fish'?null:originalTarget,targetX:castTarget.x,targetY:castTarget.y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false,biteWait:0});
+ Object.assign(hook,{active:true,stage:1,progress:0,chosen:originalTarget?.item.cat==='fish'?null:originalTarget,targetX:castTarget.x,targetY:castTarget.y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false,biteWait:0,overstrain:0,skillCooldown:0,skillReleases:0});
  focus=selected;tone(260,.13,'triangle',.06);updateFishingHud();$('casts').textContent=st.casts.toLocaleString('ja-JP');save()
 }
 function endFight(caught,reason){
@@ -369,7 +379,7 @@ function updateFishingHud(){
  $('fightHud').classList.toggle('show',fighting);
  $('fightHud').classList.toggle('surge-warning',fighting&&hook.warning);
  $('fightHud').classList.toggle('tension-danger',fighting&&hook.tension>=82);
- $('surgeBadge').textContent=hook.tension>=82?'糸切れ寸前！':hook.warning?'もうすぐ暴れる！':'抵抗中！';
+ $('surgeBadge').textContent=hook.tension>=100?'限界！指を離して！':hook.tension>=82?'糸切れ寸前！':hook.warning?'もうすぐ暴れる！':'抵抗中！';
  $('castBtn').textContent=fighting?'長押しで引く！':hook.active?'仕掛けを操作中…':'ランダムにキャスト';
  $('castBtn').classList.toggle('reeling',fighting&&hook.pull);
  if(!fighting)return;
@@ -379,7 +389,7 @@ function updateFishingHud(){
  $('tensionFill').style.width=clamp(hook.tension,0,100)+'%';
  $('tensionFill').style.background=hook.tension>75?'linear-gradient(90deg,#ffbb64,#ff506a)':'linear-gradient(90deg,#5bc5e8,#ffcc81)';
  $('fightClock').textContent=Math.max(0,hook.limit-hook.elapsed).toFixed(1)+'秒';
- $('fightCall').textContent=hook.pull?(hook.tension>76?'危険！すぐ離して張りを下げよう':hook.surge?'暴れている！短く引こう':hook.warning?'抵抗予告！今は指を離そう':hook.tension>=30&&hook.tension<=68?'好調！点線の間をキープ':'引き寄せ中！'):hook.warning?'抵抗予告！糸を緩めて備えよう':hook.tension>38?'糸を休ませている…':'点線30〜68%を狙って長押し！';
+ $('fightCall').textContent=hook.pull?(hook.tension>=100?'限界！'+Math.max(0,.3-hook.overstrain).toFixed(1)+'秒以内に離して！':hook.tension>76?'危険！すぐ離して張りを下げよう':hook.surge?'暴れている！短く引こう':hook.warning?'抵抗予告！今は指を離そう':hook.tension>=30&&hook.tension<=68?'好調！点線の間をキープ':'引き寄せ中！'):hook.warning?'抵抗予告！糸を緩めて備えよう':hook.tension>38?'糸を休ませている…':'点線30〜68%を狙って長押し！';
 }
 function updateGame(dt){
  // Expired targets dissolve and are eventually replaced. The hooked target
@@ -424,6 +434,7 @@ function updateGame(dt){
    hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.cat==='fish'?Math.max(0,hook.chosen.item.rarity-1.65):hook.chosen.item.rarity;
+  hook.skillCooldown=Math.max(0,(hook.skillCooldown||0)-sec);
   const seaPressure=Math.min(.26,Math.max(0,st.show.round-1)*.018);
   hook.elapsed+=sec;
   const wavePhase=hook.elapsed*(2.5+r*.35)+hook.chosen.phase;
@@ -436,10 +447,12 @@ function updateGame(dt){
    if(Math.random()<sec*11)bubble(hook.x,hook.y,1,'#fdf7a9');
   }else{hook.reel-=Math.max(2.3,3.2+r*1.5+(hook.surge?2:0)-st.failStreak*.23)*sec;hook.tension-=(44+st.rod*2+st.failStreak*2.5)*sec}
   hook.reel=clamp(hook.reel,0,100);hook.tension=clamp(hook.tension,0,105);
+  // Short reaction window avoids instantaneous losses on mobile touch screens.
+  hook.overstrain=hook.tension>=100?Math.min(.35,(hook.overstrain||0)+sec):0;
   hook.x=hook.targetX+Math.sin(hook.elapsed*(3+r*.8))*((1-hook.reel/110)*17);
   hook.y=hook.targetY+Math.sin(hook.elapsed*(5.5+r))*(5+8*(1-hook.reel/100));
   if(hook.reel>=100)endFight(true);
-  else if(hook.tension>=100)endFight(false,'糸が切れた！狙ったアイテムも消えた！');
+  else if(hook.overstrain>=.3)endFight(false,'糸が切れた！狙ったアイテムも消えた！');
   else if(hook.elapsed>=hook.limit)endFight(false,'時間切れ！アイテムが流されて消えた！');
   updateFishingHud()
  }else if(hook.stage===3){
@@ -635,9 +648,16 @@ function renderShowAnalysis(){
   if(items.length){const list=document.createElement('ol');items.forEach((it,i)=>{const li=document.createElement('li');li.textContent=showRoles[i]+'：'+it.name+'（'+showPlacement(it,i)+'）';list.append(li)});block.append(list)}
   else{const p=document.createElement('p');p.textContent='この記録には衣装の内訳がありません。';block.append(p)}root.append(block)
  }
- const detail=document.createElement('p');detail.className='show-analysis-detail';detail.textContent='固定配点・5人×100点（合計500点）：自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、魚 '+(showScores.fishCount??0)+'匹、同じアイテム重複 '+showScores.duplicates+'、柄 '+(showScores.patternVariety??'—')+'種。衣装ごとに評価し、ランダム採点なし。';root.append(detail);
+ const detail=document.createElement('p');detail.className='show-analysis-detail';
+ const margin=showScores.total-showScores.rival;
+ detail.textContent='固定配点・5人×100点（500点満点）。得点差 '+(margin>=0?'+':'')+margin+'点。自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、魚 '+(showScores.fishCount??0)+'匹、同じアイテム重複 '+showScores.duplicates+'、柄 '+(showScores.patternVariety??'—')+'種。重複・同系統の偏りに減点。';
+ root.append(detail);
  if(Array.isArray(showScores.components)){const breakdown=document.createElement('div');breakdown.className='show-analysis-team';const heading=document.createElement('strong');heading.textContent='衣装別の基礎配点（着こなし / 独創性 / テーマ / 組合せ / 存在感）';breakdown.append(heading);
- const list=document.createElement('ol');showOutfit().forEach((it,i)=>{const li=document.createElement('li');li.textContent=showRoles[i]+' '+it.name+'：'+showScores.components[i].join(' / ');list.append(li)});breakdown.append(list);root.append(breakdown)}
+ const list=document.createElement('ol');showOutfit().forEach((it,i)=>{const li=document.createElement('li');li.textContent=showRoles[i]+' '+it.name+'：'+showScores.components[i].join(' / ');list.append(li)});breakdown.append(list);
+ const bases=showScores.components.map(row=>row.reduce((a,b)=>a+b,0));
+ const min=Math.min(...bases),weak=bases.indexOf(min);
+ const tip=document.createElement('p');tip.textContent='基礎配点が最も低いのは「'+showRoles[weak]+'：'+showOutfit()[weak].name+'」（'+min+'点）。位置交換で着こなし・テーマ点が変化します。';
+ breakdown.append(tip);root.append(breakdown)}
  root.hidden=false
 }
 function endShow(){
@@ -1015,8 +1035,19 @@ function renderQuests(){const q=$('quests');q.replaceChildren();if(!Array.isArra
 function asSeaCoords(e){const r=ocean.getBoundingClientRect();return {x:clamp((e.clientX-r.left)/r.width*W,60,W-55),y:clamp((e.clientY-r.top)/r.height*H,185,H-35)}}
 let heldPointers=new Set(),spaceHeld=false;
 function reelDown(){if(hook.stage===2){hook.pull=true;updateFishingHud()}}
-function reelUp(){if(hook.pull){hook.pull=false;updateFishingHud()}}
-function releasePointer(e){heldPointers.delete(e.pointerId);if(!heldPointers.size&&!spaceHeld)reelUp()}
+function reelUp(award=true){
+ if(!hook.pull)return;
+ hook.pull=false;
+ if(award&&hook.stage===2&&hook.tension>=48&&hook.tension<=82&&hook.skillCooldown<=0&&hook.skillReleases<4){
+  hook.reel=clamp(hook.reel+2.5,0,100);
+  hook.tension=clamp(hook.tension-6,0,105);
+  hook.skillCooldown=1.05;hook.skillReleases++;
+  showEvent('GOOD RELEASE! +2.5% / 張り -6',700);
+  tone(650,.08,'sine',.025)
+ }
+ updateFishingHud()
+}
+function releasePointer(e){heldPointers.delete(e.pointerId);if(!heldPointers.size&&!spaceHeld)reelUp(e.type==='pointerup')}
 function captureHold(e,el){e.preventDefault();heldPointers.add(e.pointerId);try{el.setPointerCapture(e.pointerId)}catch(_){}}
 // Safety net for interrupted captures: releasing outside the canvas must stop reeling.
 for(const name of ['pointerup','pointercancel'])window.addEventListener(name,releasePointer);
@@ -1053,12 +1084,12 @@ castControl.addEventListener('keyup',e=>{
  if(e.code!=='Space'&&e.code!=='Enter')return;
  e.preventDefault();spaceHeld=false;if(!heldPointers.size)reelUp();
 });
-castControl.addEventListener('blur',()=>{if(spaceHeld){spaceHeld=false;if(!heldPointers.size)reelUp()}});
+castControl.addEventListener('blur',()=>{if(spaceHeld){spaceHeld=false;if(!heldPointers.size)reelUp(false)}});
 castControl.addEventListener('click',e=>{
  if(e.detail!==0||showPhase!=='closed'||hook.active)return;
  const it=pick(sceneItems);if(it)castAt(it.x,it.y);
 });
-function releaseAllReelInputs(){heldPointers.clear();spaceHeld=false;reelUp()}
+function releaseAllReelInputs(){heldPointers.clear();spaceHeld=false;reelUp(false)}
 window.addEventListener('blur',()=>{releaseAllReelInputs();persistShowProgress(true)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseAllReelInputs();persistShowProgress(true)}});
 $('soundBtn').addEventListener('click',()=>{st.sound=!st.sound;$('soundBtn').classList.toggle('active',st.sound);$('soundBtn').textContent=st.sound?'♪ ON':'♪ OFF';tone(750,.15);save()});$('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-cat]');if(!b)return;tab=b.dataset.cat;shown=24;document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el===b));renderInventory()});$('sort').addEventListener('change',renderInventory);$('moreBtn').addEventListener('click',()=>{shown+=24;renderInventory()});$('equipBtn').addEventListener('click',()=>{if(pendingItem){if(pendingItem.cat==='hair'&&st.hairOwned.includes(pendingItem.id-HAIR_ID_START)){st.hair=pendingItem.id-HAIR_ID_START;renderAvatar();save()}else if(pendingItem.cat==='bodyCostume'&&st.bodyOwned.includes(pendingItem.id-BODY_ID_START)){st.bodyCostume=pendingItem.id-BODY_ID_START;renderAvatar();save()}else equipItem(pendingItem)}$('toast').classList.add('hidden')});$('toastClose').addEventListener('click',()=>$('toast').classList.add('hidden'));
