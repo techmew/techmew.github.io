@@ -218,16 +218,16 @@ st.hairOwned=Array.isArray(st.hairOwned)?[...new Set([0,...st.hairOwned])].filte
 if(st.bodyMigration!==1){
  const oldBodyIds=Array.isArray(st.bodyOwned)?[...new Set(st.bodyOwned.filter(i=>Number.isInteger(i)&&i>0&&i<50))]:[];
  st.coins=(Number.isFinite(st.coins)?st.coins:0)+oldBodyIds.length*75;
- const replacement=st.owned.find(i=>i<TOTAL)??0;
  if(Array.isArray(st.show?.queue)){let changed=false;st.show.queue=st.show.queue.map(id=>{
    if(!Number.isInteger(id)||id<BODY_ID_START||id>=BODY_ID_START+50)return id;
+   const replacement=(id-BODY_ID_START)*197+61;
    if(!st.owned.includes(replacement))st.owned.unshift(replacement);
    changed=true;return replacement;
  });if(changed&&st.show.pendingResult)st.show.pendingResult=null}
  st.bodyMigration=1;
 }
 delete st.bodyOwned;
-st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
+st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)||st.show.pendingResult.version!==7))st.show.pendingResult=null;
 const FREE_PARTS=[
  ['髪型',220,112,130,0],['帽子',220,66,145,0],['顔飾り',220,144,108,0],['耳飾り',278,152,70,.12],['首飾り',220,198,93,0],['インナー',220,253,125,0],['トップス',220,264,166,0],['アウター',220,260,190,0],['手袋・手元',300,284,91,.15],['腰飾り',220,311,126,0],['ボトムス',220,348,162,0],['レッグウェア',220,403,120,0],['シューズ',220,455,113,0],['背中',327,255,150,-.2],['特殊アクセ',331,349,121,.16],['追加レイヤー',220,269,198,0]
 ];
@@ -648,7 +648,7 @@ function showScore(items,skipRival=false){
  const rival=rivalJudges?rivalJudges.reduce((sum,v)=>sum+v,0):0;
  return {judges,total,rival,rivalJudges,rivalPosePoints,rivalIds:opponent?opponent.items.map(o=>o.id):null,
   win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit,flow,anchor,contrast,
-  fishCount,components,raw,penalties,stuntName,stuntBonus,version:6}
+  fishCount,components,raw,penalties,stuntName,stuntBonus,version:7}
 }
 const SHOW_REGIONS={head:[0,-194,130,0],face:[0,-137,108,0],neck:[0,-101,145,0],torso:[0,-30,153,0],hips:[0,50,132,0],legs:[0,95,149,0],feet:[0,154,84,0],hands:[63,0,92,.12],back:[53,-39,155,-.25]};
 function naturalShowRegion(item){
@@ -1031,9 +1031,9 @@ function avatarInit(){
   const bc=$('bodySample').getContext('2d');bc.clearRect(0,0,160,160);ellipse(bc,80,35,18,20,'#e9b18e');avatarBody(bc,80,91,.67,body.id,'base');avatarBody(bc,80,91,.67,body.id,'edge')
  }
  h.addEventListener('change',()=>{const id=+h.value;if(st.hairOwned.includes(id)){st.hair=id;render();save()}});
- b.addEventListener('change',()=>{const id=+b.value;if(Number.isInteger(id)&&id>=0&&id<10){st.bodyCostume=id;render();save()}});
+ b.addEventListener('change',()=>{const id=+b.value;if(Number.isInteger(id)&&id>=0&&id<10){st.bodyCostume=id;render();drawFreeLook();save()}});
  $('hairShuffle').addEventListener('click',()=>{st.hair=pick(st.hairOwned);render();save()});
- $('bodyShuffle').addEventListener('click',()=>{st.bodyCostume=Math.floor(Math.random()*10);render();save()});
+ $('bodyShuffle').addEventListener('click',()=>{st.bodyCostume=Math.floor(Math.random()*10);render();drawFreeLook();save()});
  return render
 }
 const renderAvatar=avatarInit();
@@ -1146,7 +1146,7 @@ function readDuelChallenge(){
   const raw=atob(token.replace(/-/g,'+').replace(/_/g,'/')),data=JSON.parse(raw);
   if(data?.v!==1||!Number.isInteger(data.t)||data.t<0||data.t>5||!Array.isArray(data.ids)||data.ids.length!==16)return null;
   const ids=data.ids.map(id=>Number.isInteger(id)&&id>=0&&id<catalog.length?id:null);const body=Number.isInteger(data.body)&&data.body>=0&&data.body<10?data.body:0;
-  if(ids.filter(id=>id!==null).length>16)return null;
+  const selected=ids.filter(id=>id!==null);if(new Set(selected).size!==selected.length)return null;
   return {ids,theme:data.t,body}
  }catch(e){return null}
 }
