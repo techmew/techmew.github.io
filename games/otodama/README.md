@@ -1,3 +1,16 @@
+# 声魂 v142｜進化の強化量確認・録音と試聴の待ち時間短縮｜2026-10-28
+
+CURRENT_STATUS: GitHub main の games/otodama/ のみ変更。進化は Lv10/20/30 で1回ごとに5能力のうち最も声に適した1つ+2、別の1つ+1（合計+3）、3回で合計最大+9（各99上限）。声を4つまで保持し、キャラ10体・CPU探索・オンライン挑戦者受付は維持。
+CHANGELOG: (1) 録音前の3→2→1を470ms×3=約1.41秒から330ms×3=約0.99秒へ短縮。「録音開始！」と実録音の2.0秒は変更なし。表示は実際の秒数ではなく準備ステップとして表現。(2) MediaRecorderで音声形式確認用に解読済みのAudioBufferを、誕生したキャラと進化追加声の試聴キャッシュへ直接登録。初回「聴く」押下で同じ音源を二重デコードしない。リロード/別端末で未キャッシュなら従来どおり一度デコードしてキャッシュする。(3) 録音後のBlob→base64変換とAudioBufferデコードをPromise.allで同時実行（従来は直列）。デコード時のblob.arrayBuffer()も1.2秒上限内へ収め、ファイル変換1.5秒上限・録音停止2.5秒上限・WAVフォールバックは維持。(4) 録音元の音声をオンラインへ自動送信しない。
+TEST_RESULTS: GitHub Actions run 40638216540 で commit d45968131521b03c36e0c1ab29d0efa97f7d6134 の npm test:node 全スイート PASS、追加 test-voice-latency-v142 は音声キャッシュの最初の再デコード0回、進化声の別キャッシュキー、未キャッシュの正常デコードを検証。録音の3→2→1/2秒を test-exploration-capture-v141 と test-voice-review-v114 で確認。GitHub Pages run 40638216714 SUCCESS。
+BLOCKERS: Android実機のマイク許可、録音保存の実時間、音声再生までの遅延、録音・再生の音質は未実測。デバイスの録音権限確認とMediaRecorder停止はブラウザ依存で一定の遅延が残る。音声内容が短くても録音そのものは2秒固定。
+NEXT_ACTIONS: Android Chromeでボタン→準備→録音→保存→試聴の各ステップの実測ミリ秒と、進化録音/試聴、初回・2回目の再生遅延を計測。必要ならメディア変換のフォールバック改善。進化の小幅な+3/回は実装の事実であり、上昇量を増やすかは別途ゲームバランス検討。
+CODE_SHA: d45968131521b03c36e0c1ab29d0efa97f7d6134
+NODE_CI: https://github.com/techmew/techmew.github.io/actions/runs/40638216540
+PAGES_CI: https://github.com/techmew/techmew.github.io/actions/runs/40638216714
+
+---
+
 # 声魂 v135｜全面ブラッシュアップ・探索UI改修｜2026-10-27
 
 CURRENT_STATUS: GitHub mainの games/otodama/ のみ更新。録音→キャラ誕生→所持10体→CPU自動連戦、4声で進化、B/A/S/S+、受付ON時のNEW CHALLENGER→PvP→CPU復帰を維持。Workerは既公開で変更なし。
