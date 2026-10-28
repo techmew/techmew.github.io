@@ -89,6 +89,15 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-analysis-team p{font-size:10px}
 .show-analysis-detail{grid-column:1/-1;background:#ffffff13;border-radius:10px;padding:9px 12px;margin:0;font-size:11px;color:#ffe3bd;line-height:1.6}
 @media(max-width:620px){.show-analysis{gap:5px}.show-analysis-team{padding:8px 5px}.show-analysis-team strong{font-size:10px}.show-analysis-team ol{font-size:9px;padding-left:15px}}
+
+.avatar-lab{background:linear-gradient(135deg,#fdf1e8,#e7f4f2);margin-top:18px;padding-bottom:17px}
+.avatar-lab .panel-head{padding-bottom:6px}.avatar-controls{padding:8px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.avatar-controls label{font-size:11px;font-weight:950;color:#456775;display:flex;align-items:center;gap:5px}.avatar-controls select{font:inherit;font-size:11px;color:#244455;background:#fff;border:1px solid #cfdcdb;padding:8px 5px;border-radius:9px;max-width:150px}.avatar-controls button{background:#184355;border-radius:10px;color:white;font-size:11px;font-weight:900;padding:9px 12px}
+.avatar-preview{display:flex;align-items:center;gap:13px;margin:7px 20px 4px;padding:11px;border-radius:15px;border:1px solid #d8e5e1;background:#ffffffb5}
+.avatar-preview canvas{width:110px;height:110px;background:radial-gradient(#fff,#e0e9eb);border-radius:13px;flex:none}
+.avatar-preview p{font-size:12px;font-weight:900;color:#30586b;line-height:1.6}.avatar-preview p small{font-size:10px;color:#6e8891;font-weight:800}
+.avatar-lab hr{border:0;border-top:1px solid #d0dfdf;margin:12px 20px}
+.avatar-lab h3{font-size:14px;color:#204b5e;padding:3px 20px;margin:0}
+@media(max-width:620px){.avatar-lab .panel-head{padding:14px 12px 7px}.avatar-controls{padding:7px 11px;gap:8px}.avatar-controls select{max-width:115px;font-size:10px}.avatar-preview{margin:6px 11px;padding:8px}.avatar-preview canvas{width:88px;height:88px}.avatar-preview p{font-size:11px}.avatar-lab h3{padding:3px 11px}}
 </style>
 </head>
 <body>
@@ -99,7 +108,17 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 <section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>STYLE SCORE</small><b id="score">0</b><span class="rank" id="rank">C</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
 </main>
 <div class="show-record" id="showRecord">BROADWAY SHOW　勝利 <b>0</b> ／ ベスト <b>0</b> 点 ／ 連勝 <b>0</b></div>
-<section class="panel wardrobe"><div class="panel-head"><div class="section-label">03 / COLLECTION<strong>釣った服のクローゼット</strong></div><span class="mini-tag" id="itemSummary">所持 0着</span></div><div class="tabs" id="tabs"><button class="tab active" data-cat="all">すべて</button><button class="tab" data-cat="top">トップス</button><button class="tab" data-cat="bottom">ボトムス</button><button class="tab" data-cat="dress">ワンピース</button><button class="tab" data-cat="outer">アウター</button><button class="tab" data-cat="shoes">シューズ</button><button class="tab" data-cat="hat">帽子</button><button class="tab" data-cat="acc">小物</button><button class="tab" data-cat="under">パンツ</button></div><div class="closet-meta"><span id="filterInfo">まだ服がありません。まずは海へ！</span><div class="filters"><select id="sort"><option value="new">新しく釣った順</option><option value="rare">レア順</option><option value="type">種類順</option></select></div></div><div id="inventory" class="inventory"></div><button id="moreBtn" class="more" hidden>さらに表示</button></section>
+
+<section class="panel avatar-lab" id="avatarLab">
+ <div class="panel-head"><div class="section-label">03 / CHARACTER DESIGN<strong>髪型300 × 体型衣装50</strong></div><span class="mini-tag">自由にカスタム</span></div>
+ <h3>ヘアスタイル｜15型 × 10色 × 2種類の前髪</h3>
+ <div class="avatar-controls"><label>髪型<select id="hairStyleSelect"></select></label><label>髪色<select id="hairColorSelect"></select></label><label>前髪<select id="hairBangSelect"></select></label><button id="hairShuffle">おまかせ</button></div>
+ <div class="avatar-preview"><canvas id="hairSample" width="160" height="160"></canvas><p id="hairLabel">300種類のヘアアレンジ<br><small>選択するとモデルとショーに反映</small></p></div>
+ <hr><h3>体型衣装｜10体型 × 5つの衣装素材</h3>
+ <div class="avatar-controls"><label>体型<select id="bodyShapeSelect"></select></label><label>素材<select id="bodyFinishSelect"></select></label><button id="bodyShuffle">おまかせ</button></div>
+ <div class="avatar-preview"><canvas id="bodySample" width="160" height="160"></canvas><p id="bodyLabel">50種類の体型衣装<br><small>シルエットが変化し、ランウェイにも反映</small></p></div>
+</section>
+<section class="panel wardrobe"><div class="panel-head"><div class="section-label">04 / COLLECTION<strong>釣った服のクローゼット</strong></div><span class="mini-tag" id="itemSummary">所持 0着</span></div><div class="tabs" id="tabs"><button class="tab active" data-cat="all">すべて</button><button class="tab" data-cat="top">トップス</button><button class="tab" data-cat="bottom">ボトムス</button><button class="tab" data-cat="dress">ワンピース</button><button class="tab" data-cat="outer">アウター</button><button class="tab" data-cat="shoes">シューズ</button><button class="tab" data-cat="hat">帽子</button><button class="tab" data-cat="acc">小物</button><button class="tab" data-cat="under">パンツ</button></div><div class="closet-meta"><span id="filterInfo">まだ服がありません。まずは海へ！</span><div class="filters"><select id="sort"><option value="new">新しく釣った順</option><option value="rare">レア順</option><option value="type">種類順</option></select></div></div><div id="inventory" class="inventory"></div><button id="moreBtn" class="more" hidden>さらに表示</button></section>
 <div class="bottom-row"><section class="bottom-box"><h3>10,000着コレクション</h3><div class="progress-label"><span>図鑑の発見率</span><span id="percent">0.00%</span></div><div class="progress"><span id="progressFill"></span></div><p>トップス2,000／ボトムス1,900／ワンピース1,200／アウター1,000／靴1,300／帽子850／小物1,050／パンツ700。色・形・柄の組み合わせはすべて固有です。</p></section><section class="bottom-box"><h3>釣りざおショップ</h3><div class="upgrade"><div><b>レア服を狙う確率UP</b><br><small id="rodLevel">釣りざお Lv.1 ／ レア率 標準</small></div><button id="upgradeBtn">◈ <span id="upgradeCost">100</span> 強化</button></div><p>重複して釣れた服はコインに交換。強化するとレア衣装が出やすくなります。</p></section></div>
 <div class="footer-note">CLOSET CATCH / ブラウザ保存対応・オフラインプレイ可・全年齢向け</div>
 </div>
@@ -126,8 +145,8 @@ const byCat={}, catalog=[], rarityPools=[[],[],[],[]];let start=0;
 function hash(n){n=(n^0x9e3779b9)>>>0;n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;return (n^(n>>>16))>>>0}
 for(const cfg of conf){byCat[cfg.cat]=cfg;for(let i=0;i<cfg.count;i++){const a=cfg.styles.length,b=cfg.colors;let style=i%a,color=Math.floor(i/a)%b,pattern=Math.floor(i/(a*b))%10;const n=start+i;let r=hash(n+597)%10000;const rarity=r<100?3:r<750?2:r<3000?1:0;const item={id:n,cat:cfg.cat,idx:i,style,color,pattern,rarity,rarityLabel:rareSymbols[rarity],name:`${palettes[color][0]}${patterns[pattern][0]}の${cfg.styles[style]}`,hue:color};catalog.push(item);rarityPools[rarity].push(n)}start+=cfg.count}
 console.assert(catalog.length===TOTAL,'10,000種類が生成されていません');
-const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null}});
-let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==3||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null}});
+let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.hair=Number.isInteger(st.hair)&&st.hair>=0&&st.hair<300?st.hair:0;st.bodyCostume=Number.isInteger(st.bodyCostume)&&st.bodyCostume>=0&&st.bodyCostume<50?st.bodyCostume:0;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==3||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
@@ -486,17 +505,18 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  const flourish=walking?(isRival?poseBeats.reduce((v,beat)=>Math.max(v,Math.max(0,1-Math.abs(showTime-beat)/.36)),0)*.75:Math.max(0,1-Math.abs(showTime-poseFlashAt)/.6)):0;
  ctx.save();ctx.translate(x+gait*3,y+(walking?Math.abs(gait)*3:0));ctx.rotate(flourish*.08+gait*.018);ctx.scale(z,z);
  ellipse(ctx,0,186,71,13,'#180b2d9c');
- const skinC=isRival?'#ac785e':'#e8b18a',hairC=isRival?'#793e54':'#252943';ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
+ const skinC=isRival?'#ac785e':'#e8b18a', hairId=isRival?(st.show.round*37+80)%300:st.hair,bodyId=isRival?(st.show.round*17+20)%50:st.bodyCostume;ctx.strokeStyle=skinC;ctx.lineCap='round';ctx.lineWidth=22;
  for(let side of [-1,1]){const ankleX=side*(23+gait*11),ankleY=165-Math.max(0,side*gait)*15;ctx.beginPath();ctx.moveTo(side*21,36);ctx.lineTo(side*(23+gait*6),106);ctx.lineTo(ankleX,ankleY);ctx.stroke()}
- ctx.fillStyle=skinC;path(ctx,[[-31,-70],[31,-70],[37,53],[-37,53]]);ctx.fill();
+ ctx.fillStyle=skinC;path(ctx,[[-31,-70],[31,-70],[37,53],[-37,53]]);ctx.fill();avatarBody(ctx,0,-7,.85,bodyId,'base');
  ctx.strokeStyle=skinC;ctx.lineWidth=17;
  for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*31,-53);ctx.lineTo(side*(43-gait*6+flourish*8),-7-flourish*26);ctx.lineTo(side*(46-gait*9+flourish*20),21-flourish*(side===-1?100:84));ctx.stroke()}
  if(flourish>.05){ctx.save();ctx.globalAlpha=flourish*.9;for(let i=0;i<4;i++){const angle=i*Math.PI/2+showTime*.6;star(ctx,Math.cos(angle)*90,-120+Math.sin(angle)*77,9,4,5);ctx.fillStyle=i%2?'#ffe8a4':'#ff9dc4';ctx.fill()}ctx.restore()}
  round(ctx,-28,40,56,35,8,'#508bb2','#e3ceba');
- round(ctx,-11,-100,22,34,8,skinC);ellipse(ctx,0,-142,43,51,hairC);ellipse(ctx,0,-137,35,43,skinC);
+ avatarHair(ctx,0,-137,.9,hairId,'back',t);round(ctx,-11,-100,22,34,8,skinC);ellipse(ctx,0,-137,35,43,skinC);
  ellipse(ctx,-12,-137,3,4,'#253449');ellipse(ctx,12,-137,3,4,'#253449');
  ctx.strokeStyle='#955466';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-116,8,.1,Math.PI-.1);ctx.stroke();
- ctx.fillStyle=hairC;ctx.beginPath();ctx.arc(0,-163,38,Math.PI,0);ctx.lineTo(26,-151);ctx.quadraticCurveTo(0,-166,-26,-145);ctx.fill();
+ avatarHair(ctx,0,-137,.9,hairId,'front',t);
+ avatarBody(ctx,0,-7,.85,bodyId,'edge');
  // Garment silhouettes are placed regardless of their original clothing category.
  drawGarment(ctx,items[3],0,77,111,.03);
  // Trouser-shirt: inverted legs become shoulder flaps; the waistband is a collar.
@@ -647,6 +667,109 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  for(const p of particles){sea.globalAlpha=clamp(p.life/p.max,0,1);sea.fillStyle=p.color;ellipse(sea,p.x,p.y,p.r,p.r*.8,p.color)}sea.globalAlpha=1;
  if(hook.active&&hook.stage===2&&hook.chosen){drawGarment(sea,hook.chosen.item,hook.x,hook.y+24,42,Math.sin(t*12)*.2)}
 }
+
+/* 300 = 15 silhouettes x 10 colors x 2 bangs. 50 = 10 bodies x 5 costumes.
+   Separate from garment catalog: TOTAL and existing IDs are unchanged. */
+const AVATAR_HAIR_SHAPES=['ベリーショート','ショート','ボブ','マッシュ','ウルフ','ミディアム','ロング','ウェーブ','ポニーテール','ツインテール','おだんご','三つ編み','アフロ','モヒカン','スパイキー'];
+const AVATAR_HAIR_COLORS=[['ブラック','#293746'],['ダークブラウン','#634639'],['ブラウン','#a87552'],['ブロンド','#e8b966'],['シルバー','#c3ccdc'],['レッド','#aa4255'],['ピンク','#ed8eb7'],['ブルー','#4b93c3'],['パープル','#9981c6'],['ミント','#71b9a5']];
+const AVATAR_HAIR_BANGS=['流し前髪','ぱっつん前髪'];
+const AVATAR_BODY_SHAPES=['スリム','ナチュラル','スポーツ','ぽっちゃり','マッスル','洋ナシ','逆三角','四角','バルーン','ロボット'];
+const AVATAR_BODY_FINISHES=[['パステル','#eca1b5'],['デニム','#5887b9'],['スポーティ','#56b9a0'],['メタリック','#9caed1'],['ネオン','#b2dd63']];
+const AVATAR_HAIR=Array.from({length:300},(_,id)=>{const type=id%15,color=Math.floor(id/15)%10,bang=Math.floor(id/150);return{id,type,color,bang,name:AVATAR_HAIR_COLORS[color][0]+' '+AVATAR_HAIR_SHAPES[type]+'・'+AVATAR_HAIR_BANGS[bang]}});
+const AVATAR_BODY=Array.from({length:50},(_,id)=>{const type=id%10,finish=Math.floor(id/10);return{id,type,finish,name:AVATAR_BODY_SHAPES[type]+'・'+AVATAR_BODY_FINISHES[finish][0]+'スーツ'}});
+console.assert(AVATAR_HAIR.length===300&&new Set(AVATAR_HAIR.map(x=>x.name)).size===300,'hairstyles unique');
+console.assert(AVATAR_BODY.length===50&&new Set(AVATAR_BODY.map(x=>x.name)).size===50,'body costumes unique');
+function avatarHair(ctx,x,y,size,id,part='front',time=0){
+ const v=AVATAR_HAIR[Number.isInteger(id)&&id>=0&&id<300?id:0],t=v.type;
+ const color=AVATAR_HAIR_COLORS[v.color][1],shade=tint(color,-.28),light=tint(color,.25);
+ ctx.save();ctx.translate(x,y);ctx.scale(size,size);ctx.lineJoin='round';ctx.lineCap='round';
+ const circle=(a,b,rx,ry,c)=>ellipse(ctx,a,b,rx,ry,c);
+ if(part==='back'){
+  circle(0,-18,t===0?32:43,44,color);
+  const length={2:39,4:62,5:70,6:105,7:113,8:51,9:90,11:95}[t]||0;
+  if(length)for(let side of [-1,1]){
+   ctx.beginPath();ctx.moveTo(side*29,-41);
+   ctx.bezierCurveTo(side*(t===7?61:49),-20,side*(48+Math.sin(time+side)*4),length*.5,side*(43+(t===7?6:0)),length);
+   ctx.quadraticCurveTo(side*15,length+5,side*17,length-11);
+   ctx.lineTo(side*20,-30);ctx.closePath();ctx.fillStyle=color;ctx.fill();
+   if(t===7){ctx.strokeStyle=light;ctx.lineWidth=3;for(let j=0;j<3;j++){ctx.beginPath();ctx.moveTo(side*(31+j*4),0);ctx.bezierCurveTo(side*68,23,side*23,58,side*(42+j*3),length-7);ctx.stroke()}}
+  }
+  if(t===8){circle(44,-28,15,14,shade);ctx.beginPath();ctx.moveTo(41,-35);ctx.bezierCurveTo(94,-38,77,59,53,83);ctx.quadraticCurveTo(38,85,40,57);ctx.fillStyle=color;ctx.fill()}
+  if(t===9)for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*34,-34);ctx.bezierCurveTo(side*95,-65,side*85,71,side*47,91);ctx.quadraticCurveTo(side*35,89,side*39,53);ctx.lineTo(side*32,-23);ctx.fillStyle=color;ctx.fill();circle(side*41,-34,10,8,shade)}
+  if(t===10)for(let side of [-1,1]){circle(side*43,-47,23,24,shade);for(let i=0;i<6;i++){let a=i*Math.PI/3;circle(side*43+Math.cos(a)*13,-47+Math.sin(a)*13,9,9,color)}}
+  if(t===11)for(let side of [-1,1])for(let i=0;i<7;i++)circle(side*(45+i%2*4),8+i*14,10,10,i%2?shade:color);
+  if(t===12)for(let i=0;i<20;i++){let a=i*Math.PI/10;circle(Math.cos(a)*39,Math.sin(a)*41-14,17,16,i%3===0?shade:color)}
+  ctx.restore();return;
+ }
+ if(t===12){
+  for(let i=0;i<12;i++){let a=Math.PI+i*Math.PI/11;circle(Math.cos(a)*40,Math.sin(a)*42-15,16,17,i%3===0?shade:color)}
+ }else if(t===13){
+  ctx.beginPath();ctx.moveTo(-28,-27);ctx.lineTo(-20,-45);ctx.lineTo(-15,-77);ctx.lineTo(-7,-56);ctx.lineTo(0,-87);ctx.lineTo(7,-58);ctx.lineTo(17,-73);ctx.lineTo(24,-39);ctx.lineTo(29,-27);ctx.closePath();ctx.fillStyle=color;ctx.fill()
+ }else if(t===14||t===0||t===4){
+  ctx.beginPath();ctx.moveTo(-44,-14);ctx.lineTo(-43,-39);
+  const peaks=t===14?10:t===0?7:6;
+  for(let i=0;i<peaks;i++){let xx=-41+i*82/peaks;ctx.lineTo(xx,-41);ctx.lineTo(xx+4,-(t===14?69:t===0?46:63)-(i%3)*5)}
+  ctx.lineTo(41,-29);ctx.closePath();ctx.fillStyle=color;ctx.fill()
+ }else{
+  ctx.beginPath();ctx.moveTo(-40,-17);ctx.bezierCurveTo(-54,-75,34,-79,42,-33);ctx.quadraticCurveTo(t===2?5:25,t===3?1:-8,-39,-18);ctx.closePath();ctx.fillStyle=color;ctx.fill()
+ }
+ if(t===3)for(let i=0;i<4;i++)circle(-24+i*16,-28+i%2*3,13,9,color);
+ if(v.bang===1){
+  for(let i=0;i<7;i++){let xx=-36+i*12;ctx.beginPath();ctx.moveTo(xx,-42);ctx.quadraticCurveTo(xx,-16+(i%2)*3,xx+10,-12+(i%2)*4);ctx.lineTo(xx+10,-35);ctx.fillStyle=i%2?color:shade;ctx.fill()}
+ }else{
+  ctx.beginPath();ctx.moveTo(-34,-42);ctx.quadraticCurveTo(-12,-9,32,-33);ctx.strokeStyle=shade;ctx.lineWidth=10;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-34,-43);ctx.quadraticCurveTo(-12,-14,31,-34);ctx.strokeStyle=color;ctx.lineWidth=7;ctx.stroke()
+ }
+ ctx.strokeStyle=light;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-20,-55);ctx.quadraticCurveTo(-2,-62,17,-54);ctx.stroke();ctx.restore()
+}
+function avatarBody(ctx,x,y,size,id,part='base'){
+ const v=AVATAR_BODY[Number.isInteger(id)&&id>=0&&id<50?id:0],t=v.type,mat=v.finish,c=AVATAR_BODY_FINISHES[mat][1],dark=tint(c,-.36),light=tint(c,.3);
+ const shoulder=[30,43,49,53,66,37,66,52,58,52][t],waist=[29,36,36,58,39,45,28,52,60,51][t],hips=[30,41,39,56,47,66,33,51,61,53][t];
+ ctx.save();ctx.translate(x,y);ctx.scale(size,size);ctx.lineJoin='round';
+ if(part==='base'){
+  ctx.beginPath();ctx.moveTo(-shoulder,-64);ctx.quadraticCurveTo(-shoulder-10,-29,-waist,2);ctx.quadraticCurveTo(-hips-7,54,-hips,77);ctx.quadraticCurveTo(0,91,hips,77);ctx.quadraticCurveTo(hips+7,54,waist,2);ctx.quadraticCurveTo(shoulder+10,-29,shoulder,-64);ctx.quadraticCurveTo(0,-84,-shoulder,-64);ctx.closePath();
+  let g=ctx.createLinearGradient(-70,-80,70,92);g.addColorStop(0,light);g.addColorStop(.52,c);g.addColorStop(1,dark);ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=dark;ctx.lineWidth=4;ctx.stroke();
+  if(mat===0)for(let i=0;i<12;i++)ellipse(ctx,-waist+((i*21)%(waist*2||1)),-35+(i*17)%97,3,3,'#fff8faaa');
+  if(mat===1){ctx.strokeStyle='#effbff99';ctx.lineWidth=2;for(let i=-50;i<50;i+=18){ctx.beginPath();ctx.moveTo(i,-40);ctx.lineTo(i+20,70);ctx.stroke()}}
+  if(mat===2){ctx.strokeStyle='#e6fff1bd';ctx.lineWidth=6;for(let i=-20;i<=40;i+=30){ctx.beginPath();ctx.moveTo(-waist+6,i);ctx.lineTo(waist-6,i);ctx.stroke()}}
+  if(mat===3){ctx.strokeStyle='#fff9';ctx.lineWidth=3;for(let i=-25;i<55;i+=25){ctx.beginPath();ctx.moveTo(-waist+7,i);ctx.lineTo(waist-7,i+8);ctx.stroke()}}
+  if(mat===4){ctx.strokeStyle='#e4ff9b';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-waist,7);ctx.lineTo(-8,-25);ctx.lineTo(8,11);ctx.lineTo(waist,-22);ctx.stroke()}
+ }else{
+  // The edge and shoulder detailing is visible on top of the outfit.
+  if([3,4,7,8,9].includes(t)){for(let side of [-1,1]){ctx.strokeStyle=dark;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(side*shoulder,-65);ctx.quadraticCurveTo(side*(shoulder+13),-24,side*(waist+9),13);ctx.stroke()}}
+  if(t===4)for(let side of [-1,1])ellipse(ctx,side*shoulder,-41,15,15,c);
+  if(t===8)for(let side of [-1,1])ellipse(ctx,side*55,30,14,27,c);
+  if(t===9)for(let side of [-1,1])round(ctx,side*55-14,-44,28,30,5,c,light);
+ }
+ ctx.restore()
+}
+function avatarInit(){
+ const opts=(id,names)=>names.forEach((text,i)=>{let o=document.createElement('option');o.value=String(i);o.textContent=text;$(id).append(o)});
+ opts('hairStyleSelect',AVATAR_HAIR_SHAPES);opts('hairColorSelect',AVATAR_HAIR_COLORS.map(c=>c[0]));opts('hairBangSelect',AVATAR_HAIR_BANGS);
+ opts('bodyShapeSelect',AVATAR_BODY_SHAPES);opts('bodyFinishSelect',AVATAR_BODY_FINISHES.map(c=>c[0]));
+ function render(){
+  const h=AVATAR_HAIR[st.hair],b=AVATAR_BODY[st.bodyCostume];
+  $('hairStyleSelect').value=String(h.type);$('hairColorSelect').value=String(h.color);$('hairBangSelect').value=String(h.bang);
+  $('bodyShapeSelect').value=String(b.type);$('bodyFinishSelect').value=String(b.finish);
+  $('hairLabel').textContent=h.name+'（'+(h.id+1)+'/300）';
+  $('bodyLabel').textContent=b.name+'（'+(b.id+1)+'/50）';
+  const hc=$('hairSample').getContext('2d');hc.clearRect(0,0,160,160);
+  avatarHair(hc,80,90,.94,h.id,'back');ellipse(hc,80,93,32,38,'#e9b18e');
+  ellipse(hc,66,90,3,4,'#34475a');ellipse(hc,94,90,3,4,'#34475a');
+  avatarHair(hc,80,90,.94,h.id,'front');
+  const bc=$('bodySample').getContext('2d');bc.clearRect(0,0,160,160);
+  ellipse(bc,80,35,18,20,'#e9b18e');avatarBody(bc,80,91,.67,b.id,'base');avatarBody(bc,80,91,.67,b.id,'edge')
+ }
+ function changeHair(){st.hair=+($('hairStyleSelect').value)+15*(+($('hairColorSelect').value))+150*(+($('hairBangSelect').value));render();save()}
+ function changeBody(){st.bodyCostume=+($('bodyShapeSelect').value)+10*(+($('bodyFinishSelect').value));render();save()}
+ for(let id of ['hairStyleSelect','hairColorSelect','hairBangSelect'])$(id).addEventListener('change',changeHair);
+ for(let id of ['bodyShapeSelect','bodyFinishSelect'])$(id).addEventListener('change',changeBody);
+ $('hairShuffle').addEventListener('click',()=>{st.hair=Math.floor(Math.random()*300);render();save()});
+ $('bodyShuffle').addEventListener('click',()=>{st.bodyCostume=Math.floor(Math.random()*50);render();save()});
+ return render
+}
+const renderAvatar=avatarInit();
+
 function skin(){return '#e7ad83'}
 function drawModel(){let ctx=mc,t=animTime*.001;ctx.clearRect(0,0,440,510);
  // fashion editorial background
@@ -656,11 +779,11 @@ function drawModel(){let ctx=mc,t=animTime*.001;ctx.clearRect(0,0,440,510);
  ctx.save();ctx.translate(62,155);ctx.rotate(-Math.PI/2);ctx.fillStyle='#7db1a8a0';ctx.font='900 13px sans-serif';ctx.fillText('THE DAILY LOOK',0,0);ctx.restore();ctx.fillStyle='#7caea9';ctx.font='900 12px sans-serif';ctx.fillText('NO. 0001',336,35);
  ctx.save();ctx.translate(0,Math.sin(t*2)*2);
  // behind hair
- ellipse(ctx,212,123,59,74,'#253d47');ellipse(ctx,238,140,36,57,'#253d47');
+ avatarHair(ctx,220,135,1,st.hair,'back',t);
  // back legs
  ctx.fillStyle=skin();ctx.strokeStyle='#cf8e72';ctx.lineWidth=2;round(ctx,185,325,28,132,13,skin());round(ctx,229,325,28,132,13,skin());
  // body
- let sg=ctx.createLinearGradient(150,190,285,355);sg.addColorStop(0,'#f5c69d');sg.addColorStop(.8,skin());ctx.fillStyle=sg;path(ctx,[[182,207],[255,207],[267,284],[253,348],[183,348],[173,277]]);ctx.fill();ctx.strokeStyle='#d6a182';ctx.lineWidth=2;ctx.stroke();
+ let sg=ctx.createLinearGradient(150,190,285,355);sg.addColorStop(0,'#f5c69d');sg.addColorStop(.8,skin());ctx.fillStyle=sg;path(ctx,[[182,207],[255,207],[267,284],[253,348],[183,348],[173,277]]);ctx.fill();ctx.strokeStyle='#d6a182';ctx.lineWidth=2;ctx.stroke();avatarBody(ctx,220,273,1,st.bodyCostume,'base');
  // arms
  ctx.lineCap='round';ctx.strokeStyle='#e9b18b';ctx.lineWidth=25;ctx.beginPath();ctx.moveTo(178,232);ctx.lineTo(157,311);ctx.lineTo(148,352);ctx.stroke();ctx.beginPath();ctx.moveTo(263,235);ctx.lineTo(287,309);ctx.lineTo(293,350);ctx.stroke();ctx.strokeStyle='#ffd1a4';ctx.lineWidth=16;ctx.beginPath();ctx.moveTo(175,228);ctx.lineTo(156,313);ctx.stroke();ctx.beginPath();ctx.moveTo(264,229);ctx.lineTo(287,312);ctx.stroke();
  // neck
@@ -677,9 +800,10 @@ function drawModel(){let ctx=mc,t=animTime*.001;ctx.clearRect(0,0,440,510);
  const outer=st.equip.outer!==null?catalog[st.equip.outer]:null;if(outer){let len=outer.style===1?404:outer.style===4?370:340;let left=new Path2D();left.moveTo(189,203);left.lineTo(164,210);left.lineTo(142,315);left.lineTo(160,332);left.lineTo(179,260);left.lineTo(171,len);left.lineTo(216,len);left.lineTo(215,245);left.closePath();let right=new Path2D();right.moveTo(248,203);right.lineTo(273,210);right.lineTo(299,315);right.lineTo(278,332);right.lineTo(261,260);right.lineTo(270,len);right.lineTo(224,len);right.lineTo(225,245);right.closePath();for(const p of [left,right]){patternFill(ctx,outer,{x:140,y:201,w:160,h:205},p);ctx.strokeStyle=tint(colorOf(outer),-.33);ctx.lineWidth=2;ctx.stroke(p)}ctx.fillStyle='#fcf5df';ellipse(ctx,206,272,3,3,'#fcf5df');ellipse(ctx,205,303,3,3,'#fcf5df')}
  // shoes
  const shoes=st.equip.shoes!==null?catalog[st.equip.shoes]:null;for(const dx of [-26,26]){ctx.save();ctx.translate(220+dx,454);const c=shoes?colorOf(shoes):'#fff6e2';round(ctx,-21,-6,40,27,11,c);round(ctx,-24,14,49,11,5,shoes?'#f7eee1':'#c1b9a9');ctx.strokeStyle=shoes?tint(c,-.3):'#899e9d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-12,2);ctx.lineTo(5,2);ctx.moveTo(-10,8);ctx.lineTo(7,8);ctx.stroke();ctx.restore()}
+ avatarBody(ctx,220,273,1,st.bodyCostume,'edge');
  // head and hair
  ellipse(ctx,220,135,49,56,skin());ellipse(ctx,174,142,8,15,'#e5aa86');ellipse(ctx,266,142,8,15,'#e5aa86');
- ctx.fillStyle='#263844';ctx.beginPath();ctx.moveTo(167,127);ctx.quadraticCurveTo(157,69,207,70);ctx.quadraticCurveTo(257,62,273,113);ctx.lineTo(266,127);ctx.quadraticCurveTo(247,102,235,108);ctx.quadraticCurveTo(213,131,185,114);ctx.lineTo(170,145);ctx.closePath();ctx.fill();
+ avatarHair(ctx,220,135,1,st.hair,'front',t);
  // face
  ctx.strokeStyle='#3a4049';ctx.lineWidth=3;ctx.lineCap='round';for(const xx of [202,239]){ctx.beginPath();ctx.moveTo(xx-7,137);ctx.quadraticCurveTo(xx,132,xx+6,137);ctx.stroke();ellipse(ctx,xx,142,2.7,3.3,'#263e50')}
  ellipse(ctx,191,159,10,5,'#ef9c8f75');ellipse(ctx,249,159,10,5,'#ef9c8f75');ctx.strokeStyle='#a76960';ctx.lineWidth=2;ctx.beginPath();ctx.arc(220,160,7,.1,Math.PI-.1);ctx.stroke();
@@ -748,7 +872,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseAll
 $('soundBtn').addEventListener('click',()=>{st.sound=!st.sound;$('soundBtn').classList.toggle('active',st.sound);$('soundBtn').textContent=st.sound?'♪ ON':'♪ OFF';tone(750,.15);save()});$('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-cat]');if(!b)return;tab=b.dataset.cat;shown=24;document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el===b));renderInventory()});$('sort').addEventListener('change',renderInventory);$('moreBtn').addEventListener('click',()=>{shown+=24;renderInventory()});$('equipBtn').addEventListener('click',()=>{if(pendingItem)equipItem(pendingItem);$('toast').classList.add('hidden')});$('toastClose').addEventListener('click',()=>$('toast').classList.add('hidden'));
 $('undressBtn').addEventListener('click',()=>{undress();showEvent('パンツ一丁！',900)});$('randomBtn').addEventListener('click',()=>{for(const cfg of conf){let ids=st.owned.filter(i=>catalog[i].cat===cfg.cat);st.equip[cfg.cat]=ids.length?pick(ids):null}if(st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}redrawUI();showEvent('おまかせコーデ完成！');tone(640,.15);tone(880,.25,'sine',.05,.13)});
 $('photoBtn').addEventListener('click',()=>{let out=document.createElement('canvas');out.width=880;out.height=1050;let c=out.getContext('2d');c.fillStyle='#eaf6ef';c.fillRect(0,0,880,1050);c.drawImage(model,0,0,880,1020);round(c,20,925,840,105,15,'#10364ae8');c.fillStyle='#ffffff';c.font='900 37px sans-serif';c.textAlign='center';c.fillText('CLOSET CATCH   |   STYLE '+scoreOutfit(),440,987);let a=document.createElement('a');a.href=out.toDataURL('image/png');a.download='closet-catch-coordinate.png';a.click();showEvent('コーデ写真を保存したよ！')});
-for(const btn of document.querySelectorAll('[data-slot]'))btn.addEventListener('click',()=>{const n=+btn.dataset.slot;if(st.slots[n]){if(confirm(`コーデ ${n+1} を呼び出しますか？\nキャンセルすると今のコーデを保存します。`)){for(let k of Object.keys(st.equip)){let id=st.slots[n][k];st.equip[k]=id!==null&&ownSet.has(id)?id:null}redrawUI();showEvent('保存コーデを呼び出したよ！')}else{st.slots[n]={...st.equip};save();showEvent('コーデを上書き保存！')}}else{st.slots[n]={...st.equip};save();showEvent(`コーデ ${n+1} を保存！`)}updateSlotButtons()});
+for(const btn of document.querySelectorAll('[data-slot]'))btn.addEventListener('click',()=>{const n=+btn.dataset.slot;if(st.slots[n]){if(confirm(`コーデ ${n+1} を呼び出しますか？\nキャンセルすると今のコーデを保存します。`)){for(let k of Object.keys(st.equip)){let id=st.slots[n][k];st.equip[k]=id!==null&&ownSet.has(id)?id:null}if(Number.isInteger(st.slots[n].__hair)&&st.slots[n].__hair>=0&&st.slots[n].__hair<300)st.hair=st.slots[n].__hair;if(Number.isInteger(st.slots[n].__bodyCostume)&&st.slots[n].__bodyCostume>=0&&st.slots[n].__bodyCostume<50)st.bodyCostume=st.slots[n].__bodyCostume;renderAvatar();redrawUI();showEvent('保存コーデを呼び出したよ！')}else{st.slots[n]={...st.equip,__hair:st.hair,__bodyCostume:st.bodyCostume};save();showEvent('コーデを上書き保存！')}}else{st.slots[n]={...st.equip,__hair:st.hair,__bodyCostume:st.bodyCostume};save();showEvent(`コーデ ${n+1} を保存！`)}updateSlotButtons()});
 function updateSlotButtons(){document.querySelectorAll('[data-slot]').forEach(b=>{let n=+b.dataset.slot;b.textContent=`${n+1} ${st.slots[n]?'保存済み / 呼出':'コーデを保存'}`})}
 $('upgradeBtn').addEventListener('click',()=>{let cost=st.rod*100;if(st.coins<cost||st.rod>=8)return;st.coins-=cost;st.rod++;redrawUI();showEvent('釣りざおパワーアップ！');sfxCatch(2)});
 let reducedMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
