@@ -37,3 +37,31 @@
  .subtitle{margin:10px 0}.decor-line{margin:5px}.intro{margin:8px}
  .main-btn{padding:10px 22px;font-size:12px}.start-guide{margin-top:11px;font-size:9px}.credit{margin-top:8px}
 }
+
+
+/* Mission navigation — two legible branch choices, no dense RPG stat sheet. */
+.route-panel{position:absolute;inset:0;display:none;z-index:11;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px 9%;background:linear-gradient(125deg,#041323ef,#071e34ef 48%,#101325f2);backdrop-filter:blur(7px)}
+.route-panel.open{display:flex}
+.route-head{display:flex;flex-direction:column;gap:5px;align-items:center}
+.route-kicker{color:#72def1;font:900 clamp(8px,1vw,12px) ui-monospace,monospace;letter-spacing:3px}
+.route-head strong{font-size:clamp(18px,2.5vw,31px);letter-spacing:3px}
+.route-head small{font-size:clamp(9px,1.04vw,12px);color:#9fbdd0}
+.route-junction{display:flex;align-items:center;gap:12px;margin:15px 0;color:#83bed4;font:bold 10px ui-monospace,monospace;letter-spacing:1px}
+.route-junction i{display:block;width:clamp(20px,5vw,70px);height:1px;background:#5288aa}.route-junction b{color:#a9faff;font-size:20px}
+.route-cards{display:grid;grid-template-columns:1fr 1fr;gap:13px;width:min(100%,720px)}
+.route-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;min-height:180px;padding:20px 23px;border:1px solid #316580;border-radius:8px;text-align:left;background:linear-gradient(135deg,#163a50dc,#091a2bd9);color:#f3fbff;transition:.15s;position:relative;overflow:hidden}
+.route-card::after{content:"";position:absolute;right:-30px;top:-38px;width:160px;height:160px;border:1px solid #63ecff32;border-radius:50%;box-shadow:0 0 0 25px #8ae3ff09,0 0 0 50px #8ae3ff06}
+.route-card.risky{border-color:#ae695e;background:linear-gradient(135deg,#51303edc,#231828e0)}
+.route-card.risky::after{border-color:#ff9d7630;box-shadow:0 0 0 25px #ff9d7609,0 0 0 50px #ff9d7606}
+.route-card:hover,.route-card:focus-visible{transform:translateY(-3px);border-color:#d3fbff;box-shadow:0 0 23px #39bff04a;outline:none}
+.route-card.risky:hover,.route-card.risky:focus-visible{border-color:#ffdeb8;box-shadow:0 0 23px #f778664a}
+.route-tier{font:900 10px ui-monospace,monospace;letter-spacing:2px;color:#83dcef}
+.route-card.risky .route-tier{color:#ffb59e}
+.route-card strong{font-size:clamp(16px,2vw,24px);letter-spacing:1px}
+.route-card>span:not(.route-tier):not(.route-go){font-size:12px;color:#adc8d8}
+.route-card em{font-size:11px;color:#91e2ff;font-style:normal;font-weight:800}
+.route-card.risky em{color:#ffc48a}
+.route-go{margin-top:3px;font-size:11px;font-weight:900;letter-spacing:1px}
+.route-help{color:#748fa3;font-size:10px;letter-spacing:1px;margin:14px 0 0}
+@media(max-width:760px) and (orientation:landscape){.route-panel{padding:8px 8%}.route-head{gap:1px}.route-kicker{font-size:8px}.route-head strong{font-size:18px}.route-head small{font-size:9px}.route-junction{margin:5px 0;gap:6px}.route-cards{gap:8px}.route-card{min-height:100px;gap:4px;padding:9px 13px}.route-card strong{font-size:15px}.route-tier{font-size:8px}.route-card>span:not(.route-tier):not(.route-go){font-size:9px}.route-card em{font-size:9px}.route-go{font-size:9px}.route-help{font-size:9px;margin:6px 0}}
+@media(max-height:430px) and (orientation:landscape){.route-panel{padding:5px 7%}.route-junction{display:none}.route-head{margin-bottom:7px}.route-card{min-height:95px}.route-help{margin:4px 0}}
