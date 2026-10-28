@@ -206,14 +206,39 @@ case 'under':path(ctx,[[-29,-18],[29,-18],[27,25],[5,25],[0,9],[-5,25],[-27,25]]
 function drawGarment(ctx,item,x,y,size,rotation=0){
  if(!item)return;
  if(item.cat==='fish'){
-  const c=FISH_COLORS[item.color%5][1],z=size/115;ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.scale(z,z);
-  ctx.fillStyle=tint(c,-.3);path(ctx,[[-28,0],[-69,-33],[-65,33]]);ctx.fill();
-  ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(0,0,item.style===2?38:48,item.style===4?24:29,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=tint(c,.26);path(ctx,[[-14,-24],[18,-47],[29,-18]]);ctx.fill();
-  ctx.fillStyle=tint(c,.14);path(ctx,[[-8,24],[13,44],[30,19]]);ctx.fill();
-  ellipse(ctx,28,-7,7,7,'#fff');ellipse(ctx,30,-7,3.5,4,'#273f51');
-  ctx.strokeStyle=tint(c,-.35);ctx.lineWidth=3;ctx.beginPath();ctx.arc(39,8,6,.1,Math.PI-.7);ctx.stroke();
-  if(item.style===2||item.style===8)for(let k=-1;k<=1;k++){ctx.fillStyle='#f5d9ab';path(ctx,[[k*16-6,-24],[k*16,-34],[k*16+6,-24]]);ctx.fill()}
+  const c=FISH_COLORS[item.color%5][1],shade=tint(c,-.35),shine=tint(c,.30),t=item.style,z=size/115;
+  ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.scale(z,z);
+  // Fifty collectable fish: ten identifiable species, each in five colorways.
+  if(t===5){
+   // Seahorse: upright face, long curved neck, coiled tail.
+   ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(2,-40);ctx.bezierCurveTo(42,-65,47,-22,21,-14);
+   ctx.bezierCurveTo(-20,1,-24,53,14,47);ctx.bezierCurveTo(41,39,27,10,9,24);ctx.bezierCurveTo(-15,32,4,62,18,52);ctx.bezierCurveTo(-39,82,-45,7,-8,-20);ctx.closePath();ctx.fill();
+   path(ctx,[[20,-33],[54,-28],[26,-21]]);ctx.fillStyle=shine;ctx.fill();
+   ellipse(ctx,23,-39,4,5,'#f9ffff');ellipse(ctx,24,-39,2,2,'#203344');
+  }else{
+   if(t===7){ // Ray: diamond wings and a very long tail.
+    ctx.fillStyle=shade;path(ctx,[[-13,0],[-80,-33],[-39,27],[0,25],[42,30],[81,-33],[16,-3]]);ctx.fill();
+    ctx.strokeStyle=shade;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-10,22);ctx.lineTo(-24,83);ctx.stroke()
+   }else if(t===0){ // Goldfish: double ruffled tail.
+    for(let dy of [-24,24]){ctx.fillStyle=shade;path(ctx,[[-29,0],[-78,dy*1.55],[-62,dy*.15]]);ctx.fill()}
+   }else{
+    ctx.fillStyle=shade;path(ctx,[[-29,0],[-(t===4?82:69),-32],[-(t===4?77:65),32]]);ctx.fill()
+   }
+   const bx=t===6?39:t===2?38:t===4?55:t===7?45:t===3?52:48;
+   const by=t===6?44:t===2?37:t===4?19:t===7?20:t===3?24:29;
+   ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(0,0,bx,by,0,0,Math.PI*2);ctx.fill();
+   if(t===4){ctx.fillStyle=shade;path(ctx,[[-10,-17],[8,-51],[24,-13]]);ctx.fill();path(ctx,[[-15,15],[-3,30],[18,16]]);ctx.fill()}
+   else if(t===6){ctx.fillStyle=shine;path(ctx,[[-8,-42],[11,-65],[28,-29]]);ctx.fill();path(ctx,[[-13,42],[9,61],[30,29]]);ctx.fill()}
+   else if(t===7){ctx.fillStyle=shine;for(let side of [-1,1])ellipse(ctx,side*26,-8,10,7,shine)}
+   else{ctx.fillStyle=shine;path(ctx,[[-13,-23],[17,-45],[27,-16]]);ctx.fill();path(ctx,[[-7,23],[15,44],[30,18]]);ctx.fill()}
+   if(t===2){for(let k=0;k<12;k++){let a=k*Math.PI/6;ctx.fillStyle='#fff2c2';path(ctx,[[Math.cos(a)*38,Math.sin(a)*36],[Math.cos(a)*51,Math.sin(a)*48],[Math.cos(a+.12)*37,Math.sin(a+.12)*36]]);ctx.fill()}}
+   if(t===1){ctx.fillStyle=shine;for(let row=-1;row<=1;row++)for(let col=-2;col<=2;col++)ellipse(ctx,col*16,row*12+(col%2)*4,4,4,'#fff8dc68')}
+   if(t===3){ctx.strokeStyle=shade;ctx.lineWidth=3;for(let k=-1;k<=1;k++){ctx.beginPath();ctx.moveTo(38,7);ctx.quadraticCurveTo(62,7+k*16,65,25+k*18);ctx.stroke()}}
+   if(t===8){ctx.strokeStyle='#ffe99f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-5,-23);ctx.quadraticCurveTo(-11,-69,30,-63);ctx.lineTo(41,-47);ctx.stroke();ellipse(ctx,42,-46,11,9,'#fff8c9')}
+   if(t===9){ctx.strokeStyle=shade;ctx.lineWidth=9;for(let k=-1;k<=1;k++){ctx.beginPath();ctx.moveTo(-15+k*19,-24);ctx.lineTo(-13+k*19,26);ctx.stroke()}}
+   ellipse(ctx,28,-7,7,7,'#fff');ellipse(ctx,30,-7,3.5,4,'#273f51');
+   ctx.strokeStyle=shade;ctx.lineWidth=3;ctx.beginPath();ctx.arc(39,8,6,.1,Math.PI-.7);ctx.stroke()
+  }
   ctx.restore();return;
  }
  ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.scale(size/115,size/115);ctx.shadowColor='#123f4f33';ctx.shadowBlur=10;ctx.shadowOffsetY=5;garmentShape(ctx,item.cat,item.style);const mask=new Path2D(); // traced from current shape via offscreen context-independent generated below
