@@ -6,7 +6,7 @@ const css=fs.readFileSync(__dirname+'/ui-refresh-v124.css','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
 assert.ok(script,'embedded full game is present');
 new vm.Script(script,{filename:'koedama-v124-game.js'});
-assert.match(html,/href="\.\/ui-refresh-v124\.css\?v=137"/,'approved light-theme stylesheet is loaded');
+assert.match(html,/href="\.\/ui-refresh-v124\.css\?v=141"/,'approved light-theme stylesheet is loaded');
 assert.match(css,/KOEDAMA Refined UI v0\.10\.24/);
 assert.match(css,/--bg:#edf4fa/,'light base palette');
 assert.match(css,/\.modalbox\{background:#fff/,'readable game battle panel');
@@ -30,7 +30,7 @@ for(const id of [...mainIDs,...drawerIDs]){
 }
 assert.equal((html.match(/<details class="home-details"/g)||[]).length,6);
 assert.equal((html.match(/<details class="battle-settings"/g)||[]).length,1);
-assert.match(html,/id="fightBtn">▶ オートバトル開始<\/button>/);
+assert.match(html,/id="fightBtn">▶ 探索開始<\/button>/);
 assert.match(html,/id="recordBtn">● 録音して生成<\/button>/);
 assert.match(html,/id="battleMetrics"/,'five combat bars remain accessible');
 assert.match(script,/const CAPTURE_MS=2000/,'fixed microphone duration');
