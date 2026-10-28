@@ -5,7 +5,7 @@ const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'inline game source');
 new vm.Script(js);
-assert.match(html,/<script src="\.\/progression-v134\.js\?v=134"><\/script>/,'rarity engine loads ahead of game');
+assert.match(html,/<script src="\.\/progression-v134\.js\?v=143"><\/script>/,'rarity engine loads ahead of game');
 assert.equal(growth.MAX_LEVEL,40);
 assert.deepEqual([...growth.EVOLUTION_LEVELS],[10,20,30]);
 for(const [lv,expected] of [[1,0],[9,0],[10,1],[19,1],[20,2],[29,2],[30,3],[40,3]])
@@ -29,6 +29,8 @@ const sample={vol:45,pitch:55,res:60,rhythm:75,stable:80,breath:45};
 const evolved=growth.applyEvolution(base,sample,strong,'data:audio/wav;base64,AAAA',date);
 assert.equal(evolved.evolutionVoices.length,1);
 assert.ok(evolved.stats.some((n,i)=>n>base.stats[i]),'added voice buffs local stats');
+assert.equal(evolved.stats.reduce((a,b)=>a+b,0)-base.stats.reduce((a,b)=>a+b,0),10,'one evolution adds 10 stat points: +6/+3/+1');
+assert.deepEqual([...evolved.evolutionVoices[0].boost].sort((a,b)=>b-a),[6,3,1,0,0]);
 assert.equal(base.evolutionVoices,undefined,'original object intact until save succeeds');
 assert.equal(evolved.rarity,'S+','evolution does not reroll birth grade');
 assert.equal(growth.canEvolve(evolved),false,'next extra sound requires Lv20');
