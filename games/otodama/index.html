@@ -1101,17 +1101,18 @@ async function waitForCaptureCountdown(captureId,evolutionRequested){
  // Wait for microphone permission AND capture pipeline readiness before the 3-2-1 pre-roll.
  for(const sec of [3,2,1]){
   if(!captureIsCurrent(captureId))return false;
-  const label='録音まで '+sec;
+  const label='録音準備 '+sec;
   $('micHint').textContent='マイク準備完了。'+label+'…';
   $('countdown').textContent=sec.toString();
   if(evolutionRequested){
    $('evolutionDialogRecording').hidden=false;
-   $('evolutionCaptureLabel').textContent='録音まであと';
-   $('evolutionCountdown').textContent=sec+'秒';
+   $('evolutionCaptureLabel').textContent='録音スタートまで';
+   $('evolutionCountdown').textContent=String(sec);
    $('evolutionCountdown').dataset.finished='false';
    $('evolutionDialogStatus').textContent='まもなく録音開始。声の準備をしてください。';
   }
-  await new Promise(resolve=>setTimeout(resolve,470));
+  // Fast readable countdown (~1 second total). The figures are steps, not literal seconds.
+  await new Promise(resolve=>setTimeout(resolve,330));
  }
  return captureIsCurrent(captureId);
 }
@@ -1329,6 +1330,8 @@ async function startRecord(mode='birth'){
     $('evolutionDialogStatus').textContent='声を保存・解析できませんでした。もう一度録音してください。';
     $('countdown').textContent='再録音';return;
    }
+   // Use the already decoded recording for immediate, click-to-hear preview.
+   if(decodedAudio&&compactClip===voiceClip)cacheDecodedVoice({...cur,voiceClip:compactClip},decodedAudio);
    // All evolution effects are deferred: no roster, levels or stats change until confirmation.
    evolutionDraft={seed:selectedSeed,voice:audioDNA?.voice||v,dna:audioDNA,clip:compactClip};
    $('evolutionDialogStatus').textContent=(usedDecodedFallback?'録音を復旧して保存しました。':'録音できました。')+'「聴く」で確認し、よければ「確定して進化」を押してください。';
@@ -1336,6 +1339,7 @@ async function startRecord(mode='birth'){
    $('countdown').textContent='VOICE OK';return;
   }
    const newborn={...gen(seed,audioDNA?.voice||v,audioDNA),voiceClip};
+   if(decodedAudio)cacheDecodedVoice(newborn,decodedAudio);
   const rated=GROWTH?.rarityForDNA(audioDNA,Date.now());newborn.rarity=rated?.grade||'B';newborn.rarityScore=rated?.score||0;newborn.bornWindow=rated?.phase?.windowId||0;
   if(audioDNA&&rated)rememberRarity(rated);
   startBirthReveal(newborn,()=>{setCurrent(newborn,true);return saveNewborn(newborn)});
@@ -1771,8 +1775,41 @@ function voiceEffectRate(param,from,to,start,duration){
    param.linearRampToValueAtTime(to,start+Math.max(.04,duration*.85));
  }else param.value=from;
 }
+function decodedVoiceKey(cr){
+ const data=clipData(cr);
+ return data?cr.seed+'_'+data.length+'_'+data.slice(-32):'';
+}
+// A finished MediaRecorder recording has already been decoded for validation/DNA.
+// Reuse its AudioBuffer so the first '聴く' press never decodes the same recording twice.
+function cacheDecodedVoice(cr,decoded){
+ const key=decodedVoiceKey(cr);
+ if(!key||!decoded||!Number.isFinite(decoded.sampleRate)||decoded.sampleRate<=0
+    ||typeof decoded.getChannelData!=='function')return null;
+ try{
+  const channel=decoded.getChannelData(0);
+  if(!channel?.length)return null;
+  const windowSize=Math.min(channel.length,Math.round(.7*decoded.sampleRate));
+  let best=0,bestRms=-1;const hop=Math.max(1,Math.floor(decoded.sampleRate*.13));
+  for(let start=0;start+windowSize<=channel.length;start+=hop){
+   let en=0;for(let i=start;i<start+windowSize;i+=40)en+=channel[i]*channel[i];
+   if(en>bestRms){bestRms=en;best=start}
+  }
+  let power=0,peak=0,count=0;
+  for(let i=best;i<Math.min(channel.length,best+windowSize);i+=16){
+   const sample=channel[i];power+=sample*sample;peak=Math.max(peak,Math.abs(sample));count++;
+  }
+  const rms=Math.sqrt(power/Math.max(1,count));
+  if(rms<.0005){lastSoundStatus='録音音声が小さすぎます。録音し直してください';return null}
+  const voiceGain=Math.min(8,Math.max(.85,.14/rms),.95/Math.max(.08,peak));
+  const clip={buffer:decoded,offset:best/decoded.sampleRate,
+   duration:Math.min(.7,decoded.duration-best/decoded.sampleRate),gain:voiceGain};
+  voiceCache.set(key,clip);if(voiceCache.size>45)voiceCache.delete(voiceCache.keys().next().value);
+  return clip;
+ }catch(e){lastSoundStatus='録音音声の読み込み失敗: '+String(e);return null}
+}
 async function decodeVoice(cr){
- const data=clipData(cr);if(!data)return null;const key=cr.seed+'_'+data.length+'_'+data.slice(-32);
+ const data=clipData(cr),key=decodedVoiceKey(cr);
+ if(!key)return null;
  if(voiceCache.has(key))return voiceCache.get(key);
  if(pendingVoice.has(key))return pendingVoice.get(key);
  const task=(async()=>{
@@ -1781,23 +1818,10 @@ async function decodeVoice(cr){
    const payload=data.slice(data.indexOf(',')+1),raw=atob(payload),arr=new Uint8Array(raw.length);
    for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
    const decoded=await ac.decodeAudioData(arr.buffer);
-   // Find the clearest 0.70-second passage, skipping leading microphone silence.
-   const channel=decoded.getChannelData(0),windowSize=Math.min(channel.length,Math.round(.7*decoded.sampleRate));
-   let best=0,bestRms=-1;const hop=Math.max(1,Math.floor(decoded.sampleRate*.13));
-   for(let start=0;start+windowSize<=channel.length;start+=hop){let en=0;for(let i=start;i<start+windowSize;i+=40)en+=channel[i]*channel[i];if(en>bestRms){bestRms=en;best=start}}
-   // Quiet phone recordings need gain compensation, but peak limiting prevents clipping.
-   let power=0,peak=0,count=0;
-   for(let i=best;i<Math.min(channel.length,best+windowSize);i+=16){
-    const sample=channel[i];power+=sample*sample;peak=Math.max(peak,Math.abs(sample));count++;
-   }
-   const rms=Math.sqrt(power/Math.max(1,count));
-   if(rms<.0005){lastSoundStatus='録音音声が小さすぎます。録音し直してください';return null;}
-   const voiceGain=Math.min(8,Math.max(.85,.14/rms),.95/Math.max(.08,peak));
-   const clip={buffer:decoded,offset:best/decoded.sampleRate,duration:Math.min(.7,decoded.duration-best/decoded.sampleRate),gain:voiceGain};
-   voiceCache.set(key,clip);if(voiceCache.size>45)voiceCache.delete(voiceCache.keys().next().value);
-   return clip;
+   return cacheDecodedVoice(cr,decoded);
   }catch(e){lastSoundStatus='録音音声のデコード失敗: '+(e.message||e.name);return null}
- })();pendingVoice.set(key,task);try{return await task}finally{pendingVoice.delete(key)}
+ })();
+ pendingVoice.set(key,task);try{return await task}finally{pendingVoice.delete(key)}
 }
 function playDecodedVoice(cr,side,force=false,options={}){
  if($('mutedCheck').checked||!VOLUME())return false;
