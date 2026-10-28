@@ -1,6 +1,6 @@
 'use strict';
 // Regression: preserve the entire 28-effect bank, all attack/defense types, and
-// the unmodified original recording as an always-audible foundation.
+// the full recorded phrase as exactly one sound stream with its own processed profile.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
@@ -47,27 +47,30 @@ const buffer={duration:3.65},original={buffer,offset:0,duration:3.65,gain:1.1};
 context.voiceCache.set(api.decodedVoiceKey(cr),original);
 m.turn=200;
 api.attackVoice(cr,0,{kind:'meteor',skill:true});
-assert.equal(calls.length,2,'one original and one processed variation');
+assert.equal(calls.length,1,'one (and ONLY one) recorded voice plays in a styled attack');
 assert.strictEqual(calls[0].buffer,buffer,'the actual recorded data is the main voice');
 assert.equal(calls[0].args[1],0,'main voice begins with first syllable');
 assert.equal(calls[0].args.length,2,'main voice plays through natural end');
-assert.equal(calls[0].rate,1,'main voice speed is never modified');
-assert.equal(calls[1].args[1],0,'processed layer also uses the whole phrase');
-assert.equal(calls[1].args.length,2,'processed layer is never cropped');
+assert.ok(calls[0].rate>=.86&&calls[0].rate<=1.16,'single styled voice has a restrained playback rate');
+assert.ok(calls[0].rateEnd>=.86&&calls[0].rateEnd<=1.16,'one source receives the selected pattern');
 assert.ok(statuses.at(-1).enabled,'style is visible in battle');
 assert.ok(flags.voiceFxEnabled.checked,'styles default to enabled');
+const voiceFn=js.slice(js.indexOf('function playDecodedVoice('),js.indexOf('function attackVoice('));
+assert.equal(voiceFn.split('createBufferSource(').length-1,1,'single-source invariant, never layer same voice');
+assert.equal(voiceFn.split('source.start(').length-1,1,'one playback start per attack');
+assert.doesNotMatch(voiceFn,/variant\.start/,'old doubled voice graph removed');
 assert.match(html,/id="voiceFxEnabled" checked> 28種類の声の変化/,'style checkbox restored');
 now+=7000;m.turn++;
 flags.voiceFxEnabled.checked=false;
 api.attackVoice(cr,0,{kind:'aerial'});
-assert.equal(calls.length,3,'effects off still retains the full original only');
+assert.equal(calls.length,2,'effects OFF still plays one full original voice');
 assert.equal(calls.at(-1).args[1],0);
 assert.equal(calls.at(-1).rate,1);
 assert.equal(statuses.at(-1).enabled,false,'plain mode hides effect label');
 now+=7000;m.turn++;
 flags.voiceFxEnabled.checked=true;
 api.playDecodedVoice(cr,0,true,{full:true});
-assert.equal(calls.length,4,'manual listening always uses a single original voice');
+assert.equal(calls.length,3,'manual listening always uses a single original voice');
 assert.equal(calls.at(-1).rate,1);
 assert.equal(calls.at(-1).args.length,2);
-console.log('VOICE EFFECTS V123 PASS | all 28 styles, attack/defense/special banks, 100% raw speech + layered effects, opt-out');
+console.log('VOICE EFFECTS V123 PASS | all 28 styles, attack/defense/special banks, 100% uncut single-source speech, 28 selectable patterns, opt-out');
