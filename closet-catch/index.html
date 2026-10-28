@@ -439,7 +439,7 @@ function renderShowAnalysis(){
  const root=$('showAnalysis');root.replaceChildren();if(!showScores){root.hidden=true;return}
  const entries=[['あなたの5着',showOutfit()],['CPUの5着',(showScores.rivalIds||[]).map(id=>catalog[id]).filter(Boolean)]];
  for(const [heading,items] of entries){
-  const block=document.createElement('div');block.className='show-analysis-team',h=document.createElement('strong');h.textContent=heading;block.append(h);
+  const block=document.createElement('div'),h=document.createElement('strong');block.className='show-analysis-team';h.textContent=heading;block.append(h);
   if(items.length){const list=document.createElement('ol');items.forEach((it,i)=>{const li=document.createElement('li');li.textContent=showRoles[i]+'：'+it.name+'（'+showPlacement(it,i)+'）';list.append(li)});block.append(list)}
   else{const p=document.createElement('p');p.textContent='この記録には衣装の内訳がありません。';block.append(p)}root.append(block)
  }
