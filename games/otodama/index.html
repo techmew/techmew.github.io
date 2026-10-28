@@ -1360,9 +1360,10 @@ async function startRecord(mode='birth'){
     }
    }catch(e){}
   }
-  if(!voiceClip)voiceClip=pcmFallbackClip;
+  // PCM contains the guard samples at both the start and end.
+  if(pcmFallbackClip)voiceClip=pcmFallbackClip;
   // Cache captured PCM for immediate preview; no redundant WAV decode.
-  if(!decodedAudio&&voiceClip===pcmFallbackClip&&pcmSamples.length&&aud?.createBuffer){
+  if(voiceClip===pcmFallbackClip&&pcmSamples.length&&aud?.createBuffer){
    try{decodedAudio=aud.createBuffer(1,pcmSamples.length,pcmRate);decodedAudio.getChannelData(0).set(pcmSamples)}catch(e){decodedAudio=null}
   }
   if(!voiceClip){
@@ -1386,6 +1387,16 @@ async function startRecord(mode='birth'){
   }catch(e){lastSoundStatus='音響DNAの一部を解析できませんでした: '+String(e)}
   const seed=audioDNA?audioDNA.signature:hash(sig^(Math.round(pitch)*419)^(Math.round(rms*10000)<<11)^(Math.round(z*10000)*61));
   if(!captureIsCurrent(captureId))return;
+  if(voiceOnlyRequested){
+   if(cur.seed!==selectedSeed||!birthRevealActive||birthRevealCreature?.seed!==selectedSeed)return;
+   const compactClip=voiceClip.length<=90000?voiceClip:pcmFallbackClip;
+   if(!compactClip||compactClip.length>90000||!replaceBirthVoice(selectedSeed,compactClip,decodedAudio)){
+    $('birthVoiceStatus').textContent='声を保存できませんでした。元の音声は維持しています。';return;
+   }
+   $('birthVoiceStatus').textContent='声を保存しました。「声を確認」で最初から最後まで再生できます。';
+   $('birthSubline').textContent=displayName(birthRevealCreature)+' · キャラの能力は変更なし';
+   return;
+  }
   if(evolutionRequested){
    if(cur.seed!==selectedSeed||evolutionDialogSeed!==selectedSeed||$('evolutionDialog').hidden){
      $('micNotice').textContent='キャラの変更またはキャンセルにより、進化録音を破棄しました';return;
@@ -1424,6 +1435,7 @@ async function startRecord(mode='birth'){
    Promise.resolve(aud.close()).catch(()=>{}),
    new Promise(resolve=>setTimeout(resolve,250))
   ])}catch(e){}audioCtx=null;
+  if(voiceOnlyRequested){birthVoiceBusy=false;syncBirthVoiceActions()}
   changeCaptureButtons(false);$('controlCard').classList.remove('recording');updateEvolutionUI();syncEvolutionDialog();
   updateVoicePreviewButton();
  }
