@@ -26,8 +26,15 @@ const notes=[];
 function fakeRuntime(mediaRecorderEnabled){
  const nodes=new Map(),media={grants:0,stops:0},ctxRef={};
  const $=id=>{
-  if(!nodes.has(id))nodes.set(id,{disabled:false,style:{display:''},dataset:{},textContent:'',checked:false,
-   classList:{add(){},remove(){}}});
+  if(!nodes.has(id)){
+   const node={disabled:false,style:{display:''},dataset:{},textContent:'',checked:false,
+    classList:{add(){},remove(){}}};
+   if(id==='countdown'||id==='micHint'){
+    let value='';
+    Object.defineProperty(node,'textContent',{get(){return value},set(next){value=next;notes.push(id+':'+next)}});
+   }
+   nodes.set(id,node);
+  }
   return nodes.get(id);
  };
  class AudioContext {
@@ -89,6 +96,10 @@ async function attempt(mediaRecorderEnabled){
   }
  }
  env.api.stopRecord(); // Early tap must not shorten a fixed-duration recording.
+ const preRoll=['countdown:3','countdown:2','countdown:1','countdown:2.0 SEC'];
+ const order=preRoll.map(x=>env.notes.indexOf(x));
+ assert.ok(order.every(n=>n>=0)&&order.every((n,i)=>i===0||n>order[i-1]),'ready mic counts 3-2-1 before 2s recording timer');
+ assert.ok(env.notes.some(x=>x.startsWith('micHint:録音開始！')),'user sees clear recording-start instruction');
  assert.ok(env.ctxRef.autoStop?.ms>=2000&&env.ctxRef.autoStop?.ms<=2071,'recording ends two seconds after real microphone capture begins');
  assert.equal(env.nodes.get('countdown').textContent,'2.0 SEC','visible 2-second countdown starts only after pre-roll');
  assert.equal(env.nodes.get('stopRecordBtn').disabled,true,'manual early stop disabled');
