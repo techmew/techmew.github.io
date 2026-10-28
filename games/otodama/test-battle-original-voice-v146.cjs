@@ -70,7 +70,7 @@ ctx.match.done=true;
 api.attackVoice(saved,0);
 assert.equal(starts.length,previewCount+1,'no new recorded voice after finish');
 assert.ok(labels.every(x=>x?.enabled===false),'no FX status for original voice');
-assert.match(html,/id="voiceFxEnabled" disabled> 録音声は原音で再生/,'UI cannot re-enable pitch/speed effects');
+assert.match(html,/id="voiceFxEnabled" checked> 28種類の声の変化/,'voice patterns remain available');
 const rushSource=take('function maybeSpecialRush(m,ev){','function primeBattleVoices(');
 assert.doesNotMatch(rushSource,/stopAttackVoices\(\)/,'special must not cut live word');
 const finish=take('function finishCombat(){','function updateCampaignTrack(');
