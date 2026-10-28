@@ -79,4 +79,20 @@ const victory=take('async function playVictoryRoar(m){','function queueCpuTaunt(
 assert.match(victory,/source\.start\(start,0\)/,'winner recording starts at original sample zero');
 assert.doesNotMatch(victory,/source\.start\(start,clip\.offset/,'winner must not use loudest-only segment');
 assert.match(victory,/playDecodedVoice\.busyUntil/,'victory waits for last combat voice');
-console.log('BATTLE ORIGINAL VOICE V146 PASS | 100% recording, rate 1, no FX, no truncation, no overlap, uncut victory');
+// Slow device: decoding may complete after an animation turn and the battle result.
+let releaseDecoded;
+const lateMatch={...ctx.match,turn:9,done:false};
+const slowEnv={...ctx,match:lateMatch,voiceCache:new Map(),pendingVoice:new Map(),
+ decodeVoice:()=>new Promise(resolve=>{releaseDecoded=resolve})};
+const slow=vm.runInNewContext(playbackSrc+';({playDecodedVoice,attackVoice})',slowEnv);
+const oldLength=starts.length;
+slow.attackVoice(saved,0);
+assert.equal(starts.length,oldLength,'delayed decoder still pending');
+lateMatch.turn=10;lateMatch.done=true;
+releaseDecoded(priorCache);
+Promise.resolve().then(()=>{
+ assert.equal(starts.length,oldLength+1,'pending voice survives turn advance/result');
+ assert.equal(starts.at(-1).args[1],0,'delayed voice still starts at zero');
+ assert.equal(starts.at(-1).args.length,2,'delayed voice still plays through its natural end');
+ console.log('BATTLE ORIGINAL VOICE V146 PASS | 100% recording, rate 1, no FX, no truncation, no overlap, delayed-decoder recovery');
+}).catch(e=>{console.error(e);process.exitCode=1});
