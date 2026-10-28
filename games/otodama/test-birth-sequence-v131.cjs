@@ -21,13 +21,13 @@ function $(id){
   width:320,height:280,getContext(){return {clearRect(){events.push('clear')}}}});
  return elements.get(id);
 }
-const newborn={seed:42,name:'声キャラ42'};
+const newborn={seed:42,name:'声キャラ42',voiceClip:'data:audio/wav;base64,QUJD'};
 let hidden=false;
 const ctx={
  Math,$,hash:n=>n>>>0,rarityOf:()=> 'B',displayName:c=>c.name,drawCreature:(g,c)=>{drawn.push(c.seed);events.push('sprite')},
  window:{matchMedia:()=>({matches:false})},
  document:{get hidden(){return hidden}},
- roster:[],ROSTER_LIMIT:10,recording:false,recordingRequestPending:false,
+ roster:[],cur:newborn,clipData:c=>c?.voiceClip||null,ROSTER_LIMIT:10,recording:false,recordingRequestPending:false,
  changeCaptureButtons(active){events.push(active?'locked':'unlocked')},
  setTimeout(fn,ms){const t={fn,ms,canceled:false};tasks.push(t);return t},
  clearTimeout(t){t.canceled=true}
@@ -38,7 +38,7 @@ assert.equal(api.startBirthReveal(newborn,stock),true,'gacha opens after recordi
 assert.equal(api.getActive(),true,'capture locked through entire ceremony');
 assert.equal(ctx.roster.length,0,'not saved before gacha starts');
 assert.equal($('birthCreatureCanvas').hidden,true,'real sprite hidden until hatch');
-assert.equal(tasks.length,4,'four timed transitions');
+assert.equal(tasks.length,3,'hatch, reveal and stock; player closes the review');
 tasks[0].fn();assert.equal($('birthReveal').dataset.phase,'hatch');assert.equal(ctx.roster.length,0);
 tasks[1].fn();assert.equal($('birthReveal').dataset.phase,'reveal');
 assert.equal($('birthCreatureCanvas').hidden,false,'real sprite appears in gacha overlay');
@@ -49,7 +49,11 @@ assert.equal(ctx.roster.length,1,'stock insertion follows reveal');
 assert.equal(api.getActive(),true,'recording stays locked while stock confirmation is displayed');
 assert.match($('birthHeadline').textContent,/ストックに追加/);
 assert.ok(events.indexOf('sprite')<events.indexOf('stock'),'real drawing precedes stock write');
-tasks[3].fn();assert.equal($('birthReveal').hidden,true,'overlay closes after stock message');
+assert.equal($('birthVoiceActions').hidden,false,'voice controls visible with newborn');
+assert.equal($('birthVoicePlay').disabled,false,'preview button enabled');
+assert.equal($('birthVoiceRetry').disabled,false,'voice-only retry available after stock commit');
+assert.equal($('birthReveal').hidden,false,'birth remains visible for review');
+api.cancelBirthReveal();assert.equal($('birthReveal').hidden,true,'player closes birth review');
 assert.equal(api.getActive(),false,'recording unlocked only after overlay closes');
 assert.equal(ctx.roster.length,1,'completion cannot double-save');
 const before=tasks.length;
@@ -63,7 +67,7 @@ assert.equal(tasks.length,seen,'no invisible animation timers');
 assert.equal(events.filter(x=>x==='hidden').length,1,'hidden capture safely updates stock once');
 hidden=false;
 api.startBirthReveal({seed:45,name:'満杯のキャラ'},()=>false);
-const last=tasks.slice(-4);
+const last=tasks.slice(-3);
 last[0].fn();last[1].fn();last[2].fn();
 assert.equal($('birthReveal').dataset.phase,'stock');
 assert.match($('birthHeadline').textContent,/誕生/,'refused storage is not falsely announced as saved');
