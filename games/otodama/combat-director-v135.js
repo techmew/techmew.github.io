@@ -51,7 +51,7 @@ function chooseAttack(style,rng,energy,near,guarding,atWall,combo){
 function simulate(a,b,options={}){
  const fighters=[a,b],profiles=options.profiles||fighters.map(c=>({style:styleFor(c),mutation:{tier:0},potential:50}));
  const personas=fighters.map((c,i)=>getCombatPersona(c,profiles[i]));
- const max=fighters.map((c,i)=>Math.round(132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7));
+ const max=fighters.map((c,i)=>Math.round((132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7)*(1+voiceFusion(c).extra*.08)));
  const hp=max.slice(),events=[],rng=rand((options.seed===undefined?Date.now():options.seed)>>>0),energy=[0,0],awaken=[false,false],momentum=[0,0];
  const stage=Number(options.stage||b?.stage||1),traits=fighters.map(c=>Array.isArray(c?.audioDNA?.traits)?c.audioDNA.traits:[]);
  const fused=fighters.map(voiceFusion);
@@ -96,6 +96,7 @@ function simulate(a,b,options={}){
   const raw=base*(P.style===0?1.24:1)*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
      *(awaken[atk]?1.12:1)*(skill?1+resonance.echo*.024:1)*clamp(edge(A,B),.89,1.11)
      *(1+Math.min(4,ps.mutation?.tier||0)*.0175)
+     *(1+Math.min(3,resonance.extra)*.12)
      *(arena==='落雷の嵐'?1.10:arena==='空間反転'?.91:1);
   let damage=clamp(Math.round(raw),3,39),selfDamage=0;
   if(dodge)damage=0;
