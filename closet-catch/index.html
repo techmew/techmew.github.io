@@ -212,7 +212,7 @@ function pickFishForSea(skipIds=[]){
  return pool[pool.length-1]
 }
 function replaceSeaSlot(delay=450){setTimeout(()=>{if(sceneItems.length<17)sceneItems.push(spawnSeaItem(sceneItems.map(e=>e.item.id)))},delay)}
-const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null,fish:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],freeLook:null,sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,hairOwned:[0],bodyOwned:[0],bodyMigration:0,show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null,special:[0,0,0,0,0],judgeMigration:9}});
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null,fish:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],freeLook:null,sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,hairOwned:[0],bodyOwned:[0],bodyMigration:0,show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null,special:[0,0,0,0,0],judgeMigration:10}});
 let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL+FISH_COUNT))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.hair=Number.isInteger(st.hair)&&st.hair>=0&&st.hair<300?st.hair:0;st.bodyCostume=Number.isInteger(st.bodyCostume)&&st.bodyCostume>=0?st.bodyCostume%10:0;
 st.hairOwned=Array.isArray(st.hairOwned)?[...new Set([0,...st.hairOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<300):[0,st.hair];if(!st.hairOwned.includes(st.hair))st.hair=0;
 if(st.bodyMigration!==1){
@@ -227,18 +227,16 @@ if(st.bodyMigration!==1){
  st.bodyMigration=1;
 }
 delete st.bodyOwned;
-st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==3||!Number.isFinite(st.show.pendingResult.rival)||st.show.pendingResult.version!==9))st.show.pendingResult=null;
-// One-time migration preserves already awarded coins and wins from the former 500-point format.
-if(st.show.judgeMigration!==9){
- st.show.best=Math.max(0,Math.min(300,Math.round((Number(st.show.best)||0)*.6)));
- if(st.show.completed&&st.show.lastResult){
-  const old=st.show.lastResult;
-  const own=Array.isArray(old.judges)?old.judges.slice(0,3).map(v=>Math.max(0,Math.min(100,Math.round(v)))):[0,0,0];
-  const cpu=Array.isArray(old.rivalJudges)?old.rivalJudges.slice(0,3).map(v=>Math.max(0,Math.min(100,Math.round(v)))):[0,0,0];
-  st.show.lastResult={...old,judges:own,rivalJudges:cpu,total:own.reduce((a,b)=>a+b,0),rival:cpu.reduce((a,b)=>a+b,0),version:9,historical:true};
+st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.judgeMigration===9){
+ // A former task reduced the historical 500-point best score to 60%.
+ // Reverse its rounded conversion once, without touching prize balances or wins.
+ if(Number.isFinite(st.show.best)&&st.show.best>=0&&st.show.best<=300)st.show.best=Math.min(500,Math.round(st.show.best/.6));
+ if(st.show.lastResult&&Array.isArray(st.show.lastResult.judges)&&st.show.lastResult.judges.length===3){
+  st.show.lastResult={...st.show.lastResult,historical:true,legacyJudgeCount:3};
  }
- st.show.judgeMigration=9;
 }
+st.show.judgeMigration=10;
+if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)||st.show.pendingResult.version!==10))st.show.pendingResult=null;
 const FREE_PARTS=[
  ['髪型',220,112,130,0],['帽子',220,66,145,0],['顔飾り',220,144,108,0],['耳飾り',278,152,70,.12],['首飾り',220,198,93,0],['インナー',220,253,125,0],['トップス',220,264,166,0],['アウター',220,260,190,0],['手袋・手元',300,284,91,.15],['腰飾り',220,311,126,0],['ボトムス',220,348,162,0],['レッグウェア',220,403,120,0],['シューズ',220,455,113,0],['背中',327,255,150,-.2],['特殊アクセ',331,349,121,.16],['追加レイヤー',220,269,198,0]
 ];
@@ -535,13 +533,13 @@ function updateGame(dt){
 }
 
 const showThemes=[['エレガントな夜','classic'],['ストリートの革命児','street'],['前衛！何でもあり','avant'],['カラフルな冒険','color'],['いたずらファッション','chaos'],['レッドカーペット','glam']];
-const showRoles=['頭','顔','胴体','脚','足'],showNames=['着こなし / レイ','独創性 / ミオ','テーマ / ジン'];
+const showRoles=['釣果1','釣果2','釣果3','釣果4','釣果5'],showNames=['着こなし / レイ','独創性 / ミオ','テーマ / ジン','組み合わせ / サラ','存在感 / カイ'];
 const sc=$('showCanvas'),sx=sc.getContext('2d');
 let showPhase='closed',showTime=0,showSelected=-1,showScores=null,showSaved=false,showCheckpointAt=0;
 const poseBeats=[1.3,2.65,4.0],poseTolerance=.48;
 let poseResults=[null,null,null],poseFeedback='',poseFlashAt=-10;
 function poseGrade(distance){return distance<=.15?10:distance<=.31?6:distance<=poseTolerance?3:0}
-function poseBonusJudges(judges,points){const bonus=[Math.floor(points*.4),Math.floor(points*.3),0];bonus[2]=points-bonus[0]-bonus[1];return judges.map((score,i)=>clamp(score+(bonus[i]||0),0,100))}
+function poseBonusJudges(judges,points){const bonus=[Math.floor(points*.20),Math.floor(points*.10),Math.floor(points*.12),Math.floor(points*.12),0];bonus[4]=points-bonus.slice(0,4).reduce((a,b)=>a+b,0);return judges.map((score,i)=>clamp(score+(bonus[i]||0),0,100))}
 function updatePoseHud(){
  if(showPhase!=='walk')return;
  const done=poseResults.filter(v=>v!==null).length;
@@ -586,8 +584,7 @@ function getRivalLook(){
  const round=Math.max(1,st.show.round);
  if(rivalCache.round===round&&rivalCache.items)return rivalCache;
  const themeOffset={classic:5,street:-11,avant:0,color:-1,chaos:-6,glam:1}[showTheme()[1]]||0;
- const themeTarget={classic:156,street:163,avant:187,color:165,chaos:185,glam:162}[showTheme()[1]];
- const target=clamp(themeTarget+Math.min(25,(round-1)*1.35)+themeOffset*.25+Math.min(9,st.show.streak*1.5)-Math.min(25,st.show.lossStreak*5),140,225);
+ const target=clamp(306+Math.min(48,(round-1)*2.7)+themeOffset+Math.min(12,st.show.streak*1.8)-Math.min(25,st.show.lossStreak*5.5),280,356);
  const natural=['hat','acc','top','bottom','shoes'];
  let best=null,dist=Infinity;
  for(let candidate=0;candidate<160;candidate++){
@@ -627,7 +624,7 @@ function showScore(items,skipRival=false){
  const theme=showTheme()[1],cats=items.map(o=>o.cat),unique=new Set(cats).size,repeats=5-unique;
  const duplicates=5-new Set(items.map(o=>o.id)).size;
  const styleVariety=new Set(items.map(o=>o.cat+':'+o.style)).size,patternVariety=new Set(items.map(o=>o.pattern)).size;
- const plan=showPlan(items,!skipRival);const fits=plan.filter(p=>p.natural).length,odd=5-fits,styled=plan.filter(p=>p.mode>0).length;
+ const plan=showPlan(items,!skipRival);const fits=plan.filter(p=>p.natural).length,odd=5-fits;
  const components=items.map((it,i)=>itemJudgePoints(it,i,theme,!plan[i].natural));
  const colors=items.map(it=>parseInt(colorOf(it).slice(1),16));
  const dist=(a,b)=>Math.hypot(((a>>16)&255)-((b>>16)&255),((a>>8)&255)-((b>>8)&255),(a&255)-(b&255));
@@ -647,12 +644,12 @@ function showScore(items,skipRival=false){
  const raw=Array.from({length:5},(_,i)=>components.reduce((sum,row)=>sum+row[i],0));
  const penalties=duplicates*10+Math.max(0,repeats-1)*3;
  // Scores have no random component; each judge is strict and rewards something different.
- // Three judges, each capped at 90 before runway pose (up to +10 per judge).
- // All five items affect each category; rarity contributes only marginally.
  const judges=[
-  clamp(Math.round(7+raw[0]*.77+raw[3]*.17+harmony*8-fishCount*1.5-penalties*.7+stuntBonus[0]),0,90),
-  clamp(Math.round(5+raw[1]*.74+raw[4]*.17+unique*1.5+odd*1.4+fishCount*2+styled*(oddTheme?1.6:.5)-duplicates*13+stuntBonus[1]+stuntBonus[4]*.4),0,90),
-  clamp(Math.round(6+raw[2]*.81+patternFit*8+harmony*4+(oddTheme?odd*1.7:fits*.8)+styled*(oddTheme?1.1:theme==='street'?.5:-.4)-duplicates*9+stuntBonus[2]),0,90)
+  clamp(Math.round(6+raw[0]+harmony*9-fishCount*2-penalties+stuntBonus[0]),0,100),
+  clamp(Math.round(4+raw[1]+unique*2+Math.min(5,odd)*2+fishCount*3-duplicates*14+stuntBonus[1]),0,100),
+  clamp(Math.round(6+raw[2]+patternFit*9+harmony*5-duplicates*9+stuntBonus[2]),0,100),
+  clamp(Math.round(5+raw[3]+unique*3+harmony*8-Math.max(0,repeats-1)*6-duplicates*12+stuntBonus[3]),0,100),
+  clamp(Math.round(6+raw[4]+styleVariety*2+contrast*5-duplicates*9+stuntBonus[4]),0,100)
  ];
  const total=judges.reduce((a,b)=>a+b,0);
  const opponent=skipRival?null:getRivalLook();
@@ -661,7 +658,7 @@ function showScore(items,skipRival=false){
  const rival=rivalJudges?rivalJudges.reduce((sum,v)=>sum+v,0):0;
  return {judges,total,rival,rivalJudges,rivalPosePoints,rivalIds:opponent?opponent.items.map(o=>o.id):null,
   win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit,flow,anchor,contrast,
-  fishCount,components,raw,penalties,stuntName,stuntBonus,version:9}
+  fishCount,components,raw,penalties,stuntName,stuntBonus,version:10}
 }
 const SHOW_REGIONS={head:[0,-194,130,0],face:[0,-137,108,0],neck:[0,-101,145,0],torso:[0,-30,153,0],hips:[0,50,132,0],legs:[0,95,149,0],feet:[0,154,84,0],hands:[63,0,92,.12],back:[53,-39,155,-.25]};
 function naturalShowRegion(item){
@@ -678,49 +675,19 @@ function naturalShowRegion(item){
 }
 const SPECIAL_REGION={head:'hands',face:'back',neck:'head',torso:'head',hips:'back',legs:'head',feet:'hands',hands:'head',back:'head'};
 const SECONDARY_REGION={head:'back',face:'hands',neck:'back',torso:'back',hips:'hands',legs:'back',feet:'head',hands:'back',back:'neck'};
-const RUNWAY_SLOTS=['head','face','torso','legs','feet'];
-function naturalSlotFit(item,region){
- const allowed={head:['hat','hair'],face:['acc'],torso:['top','outer','dress'],legs:['bottom','under'],feet:['shoes']};
- return allowed[region].includes(item.cat);
-}
-function comicWearLabel(item,region){
- if(item.cat==='bottom'&&region==='head')return 'ズボン帽子';
- if(item.cat==='bottom'&&region==='face')return 'ズボン眼鏡';
- if(item.cat==='shoes'&&region==='head')return '靴の王冠';
- if(item.cat==='shoes'&&region==='face')return '靴サングラス';
- if(['top','outer','dress'].includes(item.cat)&&region==='feet')return '袖を靴に';
- if(item.cat==='fish')return '海の生き物を装着';
- return ({head:'頭にかぶせる',face:'顔に巻きつける',torso:'胴体に大胆装着',legs:'脚に巻きつける',feet:'足に無理やり装着'})[region];
-}
 function showPlan(items,player=true){
- return items.map((item,index)=>{
-  const region=RUNWAY_SLOTS[index],origin=player?(st.show.order?.[index]??index):index;
-  const mode=player?(st.show.special?.[origin]??0):0,natural=naturalSlotFit(item,region);
-  const [px,py,ps,pr]=SHOW_REGIONS[region];
-  const label=({head:'頭',face:'顔',torso:'胴体',legs:'脚',feet:'足'})[region];
-  return {item,index,region,natural,stack:0,mode,label:label+'・'+(natural?'自然な着こなし':comicWearLabel(item,region))+(mode?' / アレンジ'+mode:''),x:px,y:py,size:ps*(mode===1?1.13:mode===2?.84:1),rotation:pr+(mode===1?.18:mode===2?-.27:0)};
- });
-}
+ const counts={};return items.map((item,index)=>{
+ const base=naturalShowRegion(item),origin=st.show.order?.[index]??index;
+ const mode=player?(st.show.special?.[origin]??0):0,special=mode>0,region=mode===2?SECONDARY_REGION[base]:mode===1?SPECIAL_REGION[base]:base,stack=counts[region]||0;
+ counts[region]=stack+1;const [px,py,ps,pr]=SHOW_REGIONS[region];
+ const label=({head:'頭',face:'顔',neck:'首',torso:'上半身',hips:'腰',legs:'下半身',feet:'足',hands:'手',back:'背中'})[region];
+ return {item,index,region,natural:!special,stack,label:(special?'特殊：':'')+label+(stack?'・重ね着'+(stack+1)+'枚目':''),x:px+(stack?((stack%2)?1:-1)*Math.ceil(stack/2)*18:0),y:py+stack*13,size:ps*(stack?Math.max(.74,1-stack*.058):1),rotation:pr+Math.ceil(stack/2)*(stack%2?-.12:.12)};
+ })}
 function renderRunwayItem(ctx,p,gait,t){
- const {item,region,x,y,size,rotation,mode}=p;
- ctx.save();
- if(region==='face'&&(item.cat==='bottom'||item.cat==='shoes')){
-  // Comic spectacles: two trouser legs or shoes as lenses, with a visible bridge.
-  for(const side of [-1,1])drawSeaCollectible(ctx,item,side*19+x,y,Math.min(54,size*.55),rotation+side*.22);
-  ctx.strokeStyle=tint(colorOf(item),-.55);ctx.lineWidth=5;ctx.beginPath();
-  ctx.moveTo(-43+x,y-5);ctx.lineTo(-33+x,y-10);ctx.moveTo(-7+x,y-10);ctx.lineTo(7+x,y-10);
-  ctx.moveTo(33+x,y-10);ctx.lineTo(43+x,y-5);ctx.stroke();
- }else if(region==='feet'){
-  for(const side of [-1,1])drawSeaCollectible(ctx,item,side*(23+gait*11)+x,y,Math.min(size,86),rotation+side*(mode===2?.25:.12));
- }else if(region==='torso'&&item.cat==='shoes'){
-  for(const side of [-1,1])drawSeaCollectible(ctx,item,side*27+x,y-28,size*.63,rotation+side*.32);
- }else{
-  drawSeaCollectible(ctx,item,x,y+Math.sin(t*2+p.index)*1.5,size,rotation);
-  if(region==='head'&&item.cat==='bottom'){
-   ctx.strokeStyle=tint(colorOf(item),-.42);ctx.lineWidth=5;ctx.beginPath();ctx.arc(x,y+31,39,.08,Math.PI-.08);ctx.stroke();
-  }
- }
- ctx.restore();
+ const {item,region,stack,x,y,size,rotation}=p;
+ if(region==='feet')for(const side of [-1,1])drawSeaCollectible(ctx,item,side*(23+gait*11)+x,y+stack*3,size,rotation+side*.12);
+ else if(region==='hands')for(const side of [-1,1])drawSeaCollectible(ctx,item,side*(55+gait*6)+x*.24,y,Math.min(size,98),rotation*side);
+ else{ctx.save();if(stack>0){ctx.shadowColor='#17182bab';ctx.shadowBlur=12;ctx.shadowOffsetY=5}drawSeaCollectible(ctx,item,x,y+Math.sin(t*2+p.index)*1.5,size,rotation);ctx.restore()}
 }
 function showPlacement(item,slot,items=showOutfit(),player=true){return showPlan(items,player)[slot]?.label||naturalShowRegion(item)}
 function showStyleHint(){
@@ -729,17 +696,17 @@ function showStyleHint(){
  const estimate=showScore(items),t=showTheme()[1];
  const style=estimate.fits>=4?'正統派':estimate.odd>=4?'超前衛':estimate.odd>=2?'型破り':'ミックス';
  const themeHint=(t==='avant'||t==='chaos')?'変な位置への着用が高評価':t==='classic'||t==='glam'?'自然な位置と色の調和が重要':t==='color'?'色の調和と種類の豊富さが重要':'大胆さと種類の豊富さが重要';
- $('showHelp').textContent='衣装予想 YOU '+estimate.total+'/300点（'+estimate.judges.join(' / ')+'） vs CPU '+estimate.rival+'点（CPUポーズ+'+(estimate.rivalPosePoints??0)+'）。'+style+'：自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5。'+(estimate.stuntName?'特別演出「'+estimate.stuntName+'」が加点！ ':'')+themeHint+'。2点タップで配置を交換。着方ボタンで通常と2種類のアレンジを切替。ポーズ点は別途加算。';
+ $('showHelp').textContent='衣装予想 YOU '+estimate.total+'/500点（'+estimate.judges.join(' / ')+'） vs CPU '+estimate.rival+'点（CPUポーズ+'+(estimate.rivalPosePoints??0)+'）。'+style+'：自然 '+estimate.fits+'/5・強引 '+estimate.odd+'/5。'+(estimate.stuntName?'特別演出「'+estimate.stuntName+'」が加点！ ':'')+themeHint+'。2点タップで重ね順を交換。着方ボタンで通常と2種類の変則を切替。ポーズ点は別途加算。';
 }
 function showSlots(focusSlot=-1){
  const root=$('showSlots');root.replaceChildren();const plan=showPlan(showOutfit());
  showOutfit().forEach((it,i)=>{
   const wrap=document.createElement('div');wrap.className='show-slot-wrap';
-  const b=document.createElement('button');b.className='show-slot'+(showSelected===i?' selected':'');b.disabled=showPhase!=='prep';b.setAttribute('aria-pressed',String(showSelected===i));b.setAttribute('aria-label',showRoles[i]+'：'+it.name+'。'+plan[i].label+'。2点タップで装着先を交換');
+  const b=document.createElement('button');b.className='show-slot'+(showSelected===i?' selected':'');b.disabled=showPhase!=='prep';b.setAttribute('aria-pressed',String(showSelected===i));b.setAttribute('aria-label',showRoles[i]+'：'+it.name+'。装着先'+plan[i].label+'。2点タップで表示順を交換');
   const lab=document.createElement('strong');lab.textContent=showRoles[i];const c=document.createElement('canvas');c.width=c.height=94;drawGarmentCard(c,it);
   const name=document.createElement('small');name.textContent=it.name;const note=document.createElement('em');note.textContent=plan[i].label;name.append(note);b.append(lab,c,name);
   b.addEventListener('click',()=>{if(showPhase!=='prep')return;if(showSelected<0)showSelected=i;else if(showSelected===i)showSelected=-1;else{const a=st.show.order;[a[showSelected],a[i]]=[a[i],a[showSelected]];showSelected=-1;save();tone(610,.1)}showSlots(i)});
-  const button=document.createElement('button');button.className='show-special-btn';button.disabled=showPhase!=='prep';const origin=st.show.order[i],mode=st.show.special[origin];button.textContent=mode?'変則着用'+mode+'（'+plan[i].label+'）':'通常着用';button.setAttribute('aria-pressed',String(mode>0));button.setAttribute('aria-label',it.name+'の着方を変更。現在'+plan[i].label+'。タップして次のアレンジへ');
+  const button=document.createElement('button');button.className='show-special-btn';button.disabled=showPhase!=='prep';const origin=st.show.order[i],mode=st.show.special[origin];button.textContent=mode?'変則着用'+mode+'（'+plan[i].label+'）':'通常着用';button.setAttribute('aria-pressed',String(mode>0));button.setAttribute('aria-label',it.name+'の着方を変更。現在'+plan[i].label+'。タップして次の装着位置へ');
   button.addEventListener('click',()=>{if(showPhase!=='prep')return;st.show.special[origin]=(st.show.special[origin]+1)%3;save();showSlots(i)});
   wrap.append(b,button);root.append(wrap);
  });showStyleHint();if(focusSlot>=0)root.children[focusSlot]?.querySelector('.show-special-btn')?.focus({preventScroll:true})
@@ -749,7 +716,7 @@ function openShow(){
  showPhase='prep';showSelected=-1;showScores=null;showSaved=false;showTime=0;poseResults=[null,null,null];poseFeedback='';poseFlashAt=-10;
  $('toast').classList.add('hidden');$('showOverlay').classList.remove('hidden');
  $('showTheme').textContent='ROUND '+st.show.round+' ／ '+showTheme()[0];
- $('showHelp').textContent='5点を頭・顔・胴体・脚・足に1点ずつ配置。2点タップで配置を交換。着方ボタンで3つの見せ方を切替！ テーマ：'+showTheme()[0];
+ $('showHelp').textContent='5点を自然な部位へ自動装着。2点タップで重ね順を交換。着方ボタンで通常・変則1・変則2を切替！ テーマ：'+showTheme()[0];
  $('showJudges').hidden=true;$('showResult').hidden=true;$('showAnalysis').hidden=true;$('showShuffle').hidden=false;$('showPhoto').hidden=true;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
  $('showMain').textContent='ファッションショー開始';showSlots();if(st.show.completed&&st.show.lastResult){showScores=st.show.lastResult;showSaved=true;showPhase='walk';endShow()}
  else if(st.show.pendingResult){
@@ -781,7 +748,7 @@ function renderShowAnalysis(){
  }
  const detail=document.createElement('p');detail.className='show-analysis-detail';
  const margin=showScores.total-showScores.rival;
- detail.textContent='固定配点・3人×100点（300点満点）。得点差 '+(margin>=0?'+':'')+margin+'点。自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、魚 '+(showScores.fishCount??0)+'匹、同じアイテム重複 '+showScores.duplicates+'、柄 '+(showScores.patternVariety??'—')+'種。重複・同系統の偏りに減点。';
+ detail.textContent='固定配点・'+(showScores.historical&&showScores.judges?.length===3?'旧3人×100点（300点満点）':'5人×100点（500点満点）')+'。得点差 '+(margin>=0?'+':'')+margin+'点。自然な配置 '+showScores.fits+'/5、強引な着こなし '+showScores.odd+'/5、魚 '+(showScores.fishCount??0)+'匹、同じアイテム重複 '+showScores.duplicates+'、柄 '+(showScores.patternVariety??'—')+'種。重複・同系統の偏りに減点。';
  root.append(detail);
  if(showScores.stuntName){const stunt=document.createElement('p');stunt.className='show-analysis-detail';stunt.textContent='特別審査：'+showScores.stuntName+' ／ 追加点（着こなし・独創性・テーマ・組合せ・存在感） '+showScores.stuntBonus.join(' / ')+'。同一アイテム重複は対象外。';root.append(stunt)}
  if(Array.isArray(showScores.components)){const breakdown=document.createElement('div');breakdown.className='show-analysis-team';const heading=document.createElement('strong');heading.textContent='衣装別の基礎配点（着こなし / 独創性 / テーマ / 組合せ / 存在感）';breakdown.append(heading);
@@ -802,11 +769,12 @@ function endShow(){
   st.coins+=showScores.prize;st.show.completed=true;st.show.lastResult={...showScores};st.show.pendingResult=null;showSaved=true;redrawUI();
  }
  const root=$('showJudges');root.replaceChildren();root.hidden=false;
- const notes=[showScores.fits>=3?'部位の相性と全体のまとまりを評価。':'奇抜な配置とまとまりを評価。',showScores.fishCount?'海の意外性と固有性を評価。':'奇抜さ・種類・重複を評価。',showTheme()[0]+'への適合と柄を評価。'];
+ const legacyShow=showSaved&&Array.isArray(showScores.judges)&&showScores.judges.length===3;
+ const notes=[showScores.fits>=3?'配置が基本。雑な位置は減点。':'サイズ・配置に難あり。',showScores.fishCount?'魚の意外性を加点。ただし重複は厳禁。':'発想と固有性を厳格評価。',showTheme()[0]+'との一致を判定。','色・種類・連続性を採点。','舞台のインパクトを厳格評価。'];
  showScores.judges.forEach((score,i)=>{let c=document.createElement('div');c.className='show-judge';let n=document.createElement('b');n.textContent=showNames[i];let v=document.createElement('strong');v.textContent=score+' / '+(showScores.rivalJudges?.[i]??'—')+'点';let note=document.createElement('span');note.textContent=notes[i];c.append(n,v,note);root.append(c)});
  $('showResult').hidden=false;
- $('showResult').textContent=(showScores.win?'YOU WIN！ ライバルに勝利！':'LOSE… 次は逆転！')+'　YOU '+showScores.total+'/300 vs CPU '+showScores.rival+'/300点　獲得コイン +'+showScores.prize+'　強引な着用 '+showScores.odd+'/5　柄 '+(showScores.patternVariety??'-')+'種　ポーズ YOU '+(showScores.posePoints??0)+'/30・CPU '+(showScores.rivalPosePoints??0)+'/30';
- renderShowAnalysis();$('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent='各審査員の数字は「あなた / CPU」。3人が5点の衣装・配置・テーマを審査。独創性は魚に強い加点、ただし重複や配色を厳しく評価。ポーズは別途加算。';
+ $('showResult').textContent=(showScores.win?'YOU WIN！ ライバルに勝利！':'LOSE… 次は逆転！')+'　YOU '+showScores.total+'/'+(legacyShow?300:500)+' vs CPU '+showScores.rival+'/'+(legacyShow?300:500)+'点'+(legacyShow?'［旧3人審査の保存結果］':'')+'　獲得コイン +'+showScores.prize+'　強引な着用 '+showScores.odd+'/5　柄 '+(showScores.patternVariety??'-')+'種　ポーズ YOU '+(showScores.posePoints??0)+'/30・CPU '+(showScores.rivalPosePoints??0)+'/30';
+ renderShowAnalysis();$('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent=legacyShow?'旧3人審査で保存された結果です。コインや勝敗の再計算はしません。次の5点から5人審査を再開します。':'各審査員の数字は「あなた / CPU」。5人が衣装・魚・配置ごとに固定配点。独創性は魚に強い加点、ただし重複や配色を厳しく評価。ポーズは別途加算。';
  if(showScores.win)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
 }
 function nextShow(){
@@ -822,7 +790,7 @@ function progressShow(dt){
   for(let i=0;i<3;i++)if(poseResults[i]===null&&showTime>poseBeats[i]+poseTolerance){poseResults[i]=0;missed=true;poseFeedback='MISS… 次の合図で挽回！'}
   updatePoseHud();
  }
- if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='3人の審査員が採点中…'}
+ if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='5人の審査員が採点中…'}
  persistShowProgress(missed||showTime>=8.1);
  if(showTime>=8.1)endShow();
 }
@@ -844,7 +812,8 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  ctx.strokeStyle='#955466';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-116,8,.1,Math.PI-.1);ctx.stroke();
  avatarHair(ctx,0,-137,.9,hairId,'front',t);
  avatarBody(ctx,0,-7,.85,bodyId,'edge',skinC);
- // Every catch occupies exactly one of five body slots; mismatches become comic props.
+ // Place all five earned items on their appropriate anatomy, stacking
+ // duplicate categories without forcibly transforming them into unrelated parts.
  const plan=showPlan(items,!isRival);
  const order={back:0,legs:1,hips:2,feet:3,torso:4,hands:5,neck:6,face:7,head:8};
  for(const p of [...plan].sort((a,b)=>order[a.region]-order[b.region]||a.stack-b.stack))renderRunwayItem(ctx,p,gait,t);
@@ -875,8 +844,8 @@ function drawShowStage(){
   }
  for(let side=0;side<2;side++){ctx.save();if(side){ctx.translate(900,0);ctx.scale(-1,1)}let curtain=ctx.createLinearGradient(0,0,190,0);curtain.addColorStop(0,'#210a35');curtain.addColorStop(.6,'#742b55');curtain.addColorStop(1,'#4d1749');ctx.fillStyle=curtain;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(180,0);ctx.bezierCurveTo(233,130,211,265,103,405);ctx.lineTo(0,465);ctx.closePath();ctx.fill();ctx.restore()}
  for(let i=0;i<18;i++){let x=i*56+Math.sin(i)*10;ellipse(ctx,x,485+i%3*8,15,18,'#0b1027');ellipse(ctx,x,466+i%3*8,10,11,'#141125')}
- for(let i=0;i<3;i++){
-   const x=66+i*103,by=398+(i%2)*7;
+ for(let i=0;i<5;i++){
+   const x=42+i*72,by=398+(i%2)*7;
    round(ctx,x-27,by,55,46,9,'#29223a','#ca94ba');
    ellipse(ctx,x,by-10,14,15,['#dca78e','#d5a5a2','#b98e72','#efc7a7','#a78b9b'][i]);
    ctx.fillStyle='#ffe9b7';ctx.textAlign='center';ctx.font='900 12px sans-serif';
