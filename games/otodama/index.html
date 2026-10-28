@@ -1327,7 +1327,8 @@ async function startRecord(mode='birth'){
   // Audio collected in the 2-second PCM window is ready even if MediaRecorder is slow.
   const pcmFallbackClip=pcmWavDataUrl(pcmSamples,pcmRate);
   if(recorder&&recorder.state!=='inactive'){
-   try{
+   if(pcmFallbackClip){try{recorder.stop()}catch(e){}}
+   else try{
     const blob=await Promise.race([
      new Promise(resolve=>{recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||chunks[0]?.type||'audio/webm'}));recorder.stop()}),
      new Promise(resolve=>setTimeout(()=>resolve(null),pcmFallbackClip?400:2500))
