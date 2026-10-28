@@ -58,7 +58,11 @@ function fakeRuntime(mediaRecorderEnabled){
   window:{AudioContext},MediaRecorder:mediaRecorderEnabled?FakeRecorder:undefined,
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
-  setTimeout:(fn,ms)=>{if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};return 1},clearTimeout(){},performance,recording:false,audioCtx:null,
+  setTimeout:(fn,ms)=>{
+   if(ms===470){queueMicrotask(fn);return 2}
+   if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};
+   return 1
+  },clearTimeout(){},performance,recording:false,audioCtx:null,
   stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,birthRevealActive:false,
   saveNewborn(creature){notes.push('auto-saved:'+creature.seed);return true},
   startBirthReveal(creature,onStock){notes.push('gacha:'+creature.seed);ctxRef.stockCallback=onStock},
@@ -86,6 +90,7 @@ async function attempt(mediaRecorderEnabled){
  }
  env.api.stopRecord(); // Early tap must not shorten a fixed-duration recording.
  assert.ok(env.ctxRef.autoStop?.ms>=2000&&env.ctxRef.autoStop?.ms<=2071,'recording ends two seconds after real microphone capture begins');
+ assert.equal(env.nodes.get('countdown').textContent,'2.0 SEC','visible 2-second countdown starts only after pre-roll');
  assert.equal(env.nodes.get('stopRecordBtn').disabled,true,'manual early stop disabled');
  env.ctxRef.autoStop.fn();
  await running;
