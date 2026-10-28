@@ -157,6 +157,13 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
  .show-judge .judge-score-row{flex-wrap:wrap;gap:2px}
  .show-judge .judge-score-row span{font-size:11px}
 }
+/* Visual outfit picker: preview each owned item before choosing it. */
+.free-choices button{display:flex;align-items:center;gap:8px;min-height:70px;padding:7px;text-align:left}
+.free-choice-thumb{display:block;flex:0 0 54px;width:54px;height:54px;border-radius:8px;background:#eaf4f0}
+.free-choice-label{display:block;min-width:0;flex:1;line-height:1.35}
+.free-choice-label b{display:block;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.free-choices button.chosen{box-shadow:inset 0 0 0 2px #e6b24c}
+@media(max-width:390px){.free-choices{grid-template-columns:1fr}.free-choices button{min-height:68px}.free-choice-thumb{flex-basis:56px;width:56px;height:56px}}
 </style>
 </head>
 <body>
@@ -1237,10 +1244,24 @@ function drawGarmentCard(canvas,item){const ctx=canvas.getContext('2d'),w=canvas
 let freeActive=0,freeShown=24,freeAdvanced=false,freeAllItems=false;
 const FREE_MAIN_SLOTS=[0,1,2,6,7,10,12,14];
 const freeCanvas=$('freeCanvas'),fc=freeCanvas.getContext('2d');
+function fitsFreeLookSlot(index,item){
+ if(!item)return false;
+ const cat=item.cat;
+ return ((index===5||index===11)&&cat==='under')
+  ||(index===6&&(cat==='top'||cat==='dress'))
+  ||(index===7&&(cat==='outer'||cat==='dress'))
+  ||(index===10&&(cat==='bottom'||cat==='dress'))
+  ||(index===12&&cat==='shoes')
+  ||(index===15&&cat==='dress');
+}
 function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume){
  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,440,510);
  const bg=ctx.createLinearGradient(0,0,440,510);bg.addColorStop(0,'#f4eafa');bg.addColorStop(1,'#d8f1ed');ctx.fillStyle=bg;ctx.fillRect(0,0,440,510);
  ellipse(ctx,220,475,105,16,'#7a819b45');
+ // Back hair belongs behind the face and shoulders, not on top of clothes.
+ const backHair=look[0];
+ if(Number.isInteger(backHair)&&catalog[backHair]?.cat==='hair')
+  avatarHair(ctx,220,135,1.1,backHair-HAIR_ID_START,'back');
  ctx.lineCap='round';ctx.strokeStyle='#dba88d';ctx.lineWidth=28;
  for(const x of [194,246]){ctx.beginPath();ctx.moveTo(x,316);ctx.lineTo(x,451);ctx.stroke()}
  ctx.strokeStyle='#e3b599';ctx.lineWidth=25;
@@ -1259,11 +1280,11 @@ function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume
   else if(index===12&&item.cat!=='shoes'){for(const dx of [-28,28])drawSeaCollectible(ctx,item,220+dx,455,Math.min(73,item.cat==='fish'?57:73),dx*.002)}
   else if(index===3){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*55,152,55,dx*.16)}
   else if(index===8){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*84,299,67,dx*.15)}
-  else if(['top','outer','dress','bottom','under','shoes'].includes(item.cat)){
+  else if(fitsFreeLookSlot(index,item)){
    ctx.translate(220,270);ctx.scale(1.12,1.10);
    drawFittedRunwayGarment(ctx,{item,stack:0,natural:true});
   }else{
-   const fittedSize=item.cat==='fish'?Math.min(part[3],86):item.cat==='hat'?Math.min(part[3],120):item.cat==='acc'?Math.min(part[3],96):part[3];
+   const fittedSize=Math.min(part[3],item.cat==='fish'?82:item.cat==='hat'?116:item.cat==='acc'?88:90);
    drawSeaCollectible(ctx,item,part[1],part[2],fittedSize,part[4]);
   }
   ctx.restore();
@@ -1353,7 +1374,13 @@ function renderFreePicker(){
  clear.addEventListener('click',()=>{st.freeLook[freeActive]=null;save();renderFreeSlots();renderFreePicker()});root.append(clear);
  for(const id of ids.slice(0,freeShown)){
   const item=catalog[id],b=document.createElement('button');b.type='button';b.className=st.freeLook[freeActive]===id?'chosen':'';
-  b.textContent=item.name;const sub=document.createElement('small');sub.textContent=['COMMON','RARE','SUPER','LEGEND'][item.rarity]+' · #'+(id+1);b.append(sub);
+  b.setAttribute('aria-pressed',String(st.freeLook[freeActive]===id));
+  b.setAttribute('aria-label',item.name+' '+rareSymbols[item.rarity]+(st.freeLook[freeActive]===id?' 着用中':''));
+  const thumb=document.createElement('canvas');thumb.width=thumb.height=72;thumb.className='free-choice-thumb';
+  const label=document.createElement('span');label.className='free-choice-label';
+  const name=document.createElement('b');name.textContent=item.name;
+  const sub=document.createElement('small');sub.textContent=(st.freeLook[freeActive]===id?'着用中 · ':'')+rareSymbols[item.rarity]+' · #'+(id+1);
+  label.append(name,sub);b.append(thumb,label);drawGarmentCard(thumb,item);
   b.addEventListener('click',()=>{
    st.freeLook=st.freeLook.map((v,i)=>i!==freeActive&&v===id?null:v);
    st.freeLook[freeActive]=id;save();renderFreeSlots();renderFreePicker()
