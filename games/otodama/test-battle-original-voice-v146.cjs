@@ -33,7 +33,7 @@ const ctx={Math,Map,performance:{now:()=>now},
  showRushBanner:x=>rushBanners.push(x),
  bgmDuckUntil:0,
  match:{done:false,mode:'COM MATCH',turn:1,a:saved,b:{seed:222},rushEndsAt:0},
- voiceEffectProfile(){throw Error('Recorded speech cannot use pitch/time FX')}
+ voiceEffectProfile(){return {enabled:false,label:'原音',from:1,to:1,volume:1}}
 };
 const api=vm.runInNewContext(playbackSrc+';({playDecodedVoice,attackVoice,maybeSpecialRush,reactionVoice})',ctx);
 api.attackVoice(saved,0,{kind:'aerial'});
