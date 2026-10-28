@@ -66,11 +66,11 @@ function fakeRuntime(mediaRecorderEnabled){
   Blob,FileReader,Buffer,Float32Array,Uint8Array,ArrayBuffer,DataView,Math,
   btoa:s=>Buffer.from(s,'binary').toString('base64'),
   setTimeout:(fn,ms)=>{
-   if(ms===330){queueMicrotask(fn);return 2}
-   if(ms>=2000&&ms<=2100)ctxRef.autoStop={fn,ms};
+   if(ms===260){queueMicrotask(fn);return 2}
+   if(ms>=2750&&ms<=2850)ctxRef.autoStop={fn,ms};
    return 1
   },clearTimeout(){},performance,recording:false,audioCtx:null,
-  stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,birthRevealActive:false,
+  stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,birthRevealActive:false,birthVoiceBusy:false,
   cacheDecodedVoice(creature,buffer){notes.push('voice-cache:'+creature.seed);return buffer?{buffer}:null},
   saveNewborn(creature){notes.push('auto-saved:'+creature.seed);return true},
   startBirthReveal(creature,onStock){notes.push('gacha:'+creature.seed);ctxRef.stockCallback=onStock},
@@ -101,7 +101,7 @@ async function attempt(mediaRecorderEnabled){
  const order=preRoll.map(x=>env.notes.indexOf(x));
  assert.ok(order.every(n=>n>=0)&&order.every((n,i)=>i===0||n>order[i-1]),'ready mic counts 3-2-1 before 2s recording timer');
  assert.ok(env.notes.some(x=>x.startsWith('micHint:録音開始！')),'user sees clear recording-start instruction');
- assert.ok(env.ctxRef.autoStop?.ms>=2000&&env.ctxRef.autoStop?.ms<=2071,'recording ends two seconds after real microphone capture begins');
+ assert.ok(env.ctxRef.autoStop?.ms>=2650&&env.ctxRef.autoStop?.ms<=2850,'microphone retains voice tail after the visible two seconds');
  assert.equal(env.nodes.get('countdown').textContent,'2.0 SEC','visible 2-second countdown starts only after pre-roll');
  assert.equal(env.nodes.get('stopRecordBtn').disabled,true,'manual early stop disabled');
  env.ctxRef.autoStop.fn();
@@ -151,5 +151,5 @@ async function attemptBackgroundAbort(){
  assert.ok(html.includes('id="shareVoice"')&&html.includes('id="receiveVoice"')&&!html.includes('id="shareVoice" disabled'),'live voice must require explicit consent, but controls stay available');
  const worker=fs.readFileSync(__dirname+'/worker.js','utf8');
  assert.ok(worker.includes("type:'voice_rejected'")&&worker.includes("!attachment.voiceConsent?.send")&&worker.includes("!r.voiceConsent?.receive"),'voice relay rejects missing peer consent');
- console.log('MIC CAPTURE PASS | fixed 2s recording, then gacha, then preview & stock; MediaRecorder/WAV, no ASR gate');
+ console.log('MIC CAPTURE PASS | 2s voice plus protected tail, gacha preview, MediaRecorder/WAV, no ASR gate');
 })().catch(e=>{console.error(e);process.exitCode=1});
