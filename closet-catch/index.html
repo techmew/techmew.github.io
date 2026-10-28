@@ -578,7 +578,7 @@ function showScore(items,skipRival=false){
  const oddTheme=theme==='avant'||theme==='chaos';
  const uniqueFish=new Set(items.filter(it=>it.cat==='fish').map(it=>it.id)).size;
  // Different items of the same category are an intentional stunt; repeated IDs never qualify.
- const costumeStunt=oddTheme&&duplicates===0&&unique===1&&patternVariety>=3&&styleVariety>=3;
+ const costumeStunt=oddTheme&&duplicates===0&&unique===1&&fishCount===0&&patternVariety>=3&&styleVariety>=3;
  const marineStunt=oddTheme&&duplicates===0&&fishCount>=3&&uniqueFish>=3&&!costumeStunt;
  const stuntName=costumeStunt?'同種5点の超前衛コーデ':marineStunt?'深海ファッション革命':'';
  const stuntBonus=costumeStunt?[0,11,16,8,10]:marineStunt?[0,4,11,5,8]:[0,0,0,0,0];
