@@ -15,7 +15,7 @@ assert.ok(pos('heroCanvas')<pos('statusCard')&&pos('statusCard')<pos('creatureNa
 assert.ok(pos('battleMetrics')>pos('statusCard')&&pos('battleMetrics')<pos('characterDetails'),'combat bars are inside character panel');
 assert.ok(pos('characterDetails')>pos('statusCard')&&pos('characterDetails')<pos('creatureName'),'DNA details consolidated into right side');
 assert.ok(pos('creatureName')<pos('evolveBtn')&&pos('evolveBtn')<pos('fightBtn'),'level-side evolution, action buttons remain below');
-assert.ok(pos('roster')<pos('journeySummary')&&pos('journeySummary')<pos('controlCard'),'exploration section remains below roster');
+assert.ok(pos('fightBtn')<pos('journeySummary')&&pos('journeySummary')<pos('onlineDrawer')&&pos('onlineDrawer')<pos('roster'),'exploration details immediately follow the start button');
 assert.ok(pos('controlCard')<pos('rarityResearch'),'research moved below voice recording');
 assert.ok(pos('fightBtn')<pos('onlineDrawer')&&pos('onlineDrawer')<pos('roster'),'rankings immediately below start controls');
 assert.match(html,/id="saveBtn" type="button" hidden/,'manual save removed from UI');
