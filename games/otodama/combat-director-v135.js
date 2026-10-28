@@ -109,7 +109,8 @@ function simulate(a,b,options={}){
      *(1+Math.min(4,ps.mutation?.tier||0)*.0175)
      *(1+evo[atk].attack/100)
      *(arena==='落雷の嵐'?1.10:arena==='空間反転'?.91:1);
-  let damage=clamp(Math.round(raw),3,39),selfDamage=0;
+  // Evolved attacks get a slightly higher damage ceiling so the boost is not erased at 39.
+  let damage=clamp(Math.round(raw),3,39+Math.min(3,resonance.extra)*4),selfDamage=0;
   if(dodge)damage=0;
   else{if(guard)damage=Math.max(1,Math.round(damage*.34));
    if(counter){selfDamage=clamp(Math.round(4+bb[0]*.095),5,15);damage=Math.max(1,Math.round(damage*.72))}
