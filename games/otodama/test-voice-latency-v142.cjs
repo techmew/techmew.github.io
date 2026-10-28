@@ -8,6 +8,8 @@ const a=js.indexOf('function decodedVoiceKey(cr){'),b=js.indexOf('function playD
 assert.ok(a>0&&b>a,'cache and decoder functions exist');
 assert.match(js,/if\(decodedAudio&&compactClip===voiceClip\)cacheDecodedVoice\(/,'evolution recording reused immediately');
 assert.match(js,/if\(decodedAudio\)cacheDecodedVoice\(newborn,decodedAudio\)/,'birth recording reused immediately');
+assert.match(js,/const \[encoded,predecoded\]=await Promise\.all\(\[encodedTask,decodeTask\]\)/,'file encoding and codec check run in parallel');
+assert.match(js,/Promise\.resolve\(\)\.then\(async\(\)=>aud\.decodeAudioData\(await blob\.arrayBuffer\(\)\)\)/,'the blob reading itself is inside the decoder timeout');
 let calls=0;
 const samples=Float32Array.from({length:32000},(_,i)=>Math.sin(i*.08)*.07);
 const sampleBuffer={sampleRate:16000,duration:2,getChannelData(){return samples}};
