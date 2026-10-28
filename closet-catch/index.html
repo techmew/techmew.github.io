@@ -153,7 +153,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 <div class="app">
 <header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。5着でランウェイ対決。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
 <main>
-<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かぶ服・髪型・魚をタップして釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服・髪型・魚を釣ろう！魚は釣りを邪魔する！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><span class="surge-badge" id="surgeBadge">抵抗に注意！</span><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が安全な張りの目安"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → 長押しで引く／離して緩める。糸切れ・時間切れでアイテム消失<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5点</button></div></section>
+<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag" aria-live="polite">☀ 晴れ · おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かぶ服・髪型・魚をタップして釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服・髪型・魚を釣ろう！魚は釣りを邪魔する！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><span class="surge-badge" id="surgeBadge">抵抗に注意！</span><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が安全な張りの目安"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → 長押しで引く／離して緩める。糸切れ・時間切れでアイテム消失<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5点</button></div></section>
 <section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>着用アイテム</small><b id="score">0</b><span class="rank" id="rank">着</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
 </main>
 <div class="show-record" id="showRecord">BROADWAY SHOW　勝利 <b>0</b> ／ ベスト <b>0</b> 点 ／ 連勝 <b>0</b></div>
@@ -276,6 +276,27 @@ st.freeLook=Array.from({length:16},(_,i)=>{const id=st.freeLook[i];return Number
 const freeSeen=new Set();st.freeLook=st.freeLook.map(id=>{if(id===null||freeSeen.has(id))return null;freeSeen.add(id);return id});
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+const WEATHERS=[
+ {label:'☀ 晴れ',sky:'#ffedb7',tension:0,time:0,wave:0},
+ {label:'☁ 曇り',sky:'#cad9e1',tension:0,time:.5,wave:.3},
+ {label:'☂ 雨',sky:'#89b2c9',tension:.035,time:1.2,wave:.6},
+ {label:'☈ 嵐',sky:'#557a9a',tension:.08,time:2.8,wave:1.1},
+ {label:'≋ 霧',sky:'#d2e0e4',tension:.015,time:1.5,wave:.15}
+];
+let weatherIndex=(st.show.round-1)%WEATHERS.length,weatherPrev=weatherIndex,weatherFade=1,weatherChangedAt=performance.now();
+function updateWeather(dt){
+ if(!hook.active&&performance.now()-weatherChangedAt>=110000){weatherPrev=weatherIndex;weatherIndex=(weatherIndex+1)%WEATHERS.length;weatherFade=0;weatherChangedAt=performance.now();showDock()}
+ weatherFade=Math.min(1,weatherFade+dt/2500);
+}
+function drawWeather(ctx,t){
+ const fade=weatherFade,kind=WEATHERS[weatherIndex],prev=WEATHERS[weatherPrev];
+ if(weatherIndex!==0||weatherPrev!==0){ctx.save();ctx.globalAlpha=(1-fade)*.18;ctx.fillStyle=prev.sky;ctx.fillRect(0,0,W,168);ctx.globalAlpha=fade*.20;ctx.fillStyle=kind.sky;ctx.fillRect(0,0,W,168);ctx.restore()}
+ const fog=(weatherIndex===4?fade:0)+(weatherPrev===4?1-fade:0);
+ if(fog>0){ctx.save();ctx.globalAlpha=fog*.23;ctx.fillStyle='#f0f8f6';for(let i=0;i<5;i++)ctx.fillRect(0,175+i*70+Math.sin(t*.25+i)*9,W,23+i*5);ctx.restore()}
+ const rain=(weatherIndex===2||weatherIndex===3?fade*(weatherIndex===3?1.25:1):0)+(weatherPrev===2||weatherPrev===3?(1-fade)*(weatherPrev===3?1.25:1):0);
+ if(rain>0){ctx.save();ctx.strokeStyle='rgba(234,246,255,'+Math.min(.46,rain*.27)+')';ctx.lineWidth=1.3;ctx.beginPath();for(let i=0;i<110;i++){const h=hash(i*73+1041),x=((h%1200)+t*110)%1200-100,y=(((h>>>11)%660)+t*320)%660-70;ctx.moveTo(x,y);ctx.lineTo(x-8*rain,y+16*rain)}ctx.stroke();ctx.restore()}
+}
+
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
 function gradient(ctx,x,y,r,c1,c2){let g=ctx.createRadialGradient(x-r*.3,y-r*.45,2,x,y,r);g.addColorStop(0,c1);g.addColorStop(1,c2);return g}
 function round(ctx,x,y,w,h,r,fill,stroke){if(w<=0||h<=0)return;ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
@@ -395,7 +416,7 @@ function sfxCatch(r){[392,494,587,784].slice(0,Math.max(2,r+1)).forEach((f,i)=>t
 function bubble(x,y,n=18,c='#c9fff3'){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-4.3,4.3),vy:rand(-5,-.6),life:rand(25,66),max:66,r:rand(2,7),color:c,gravity:rand(.01,.07)})}
 function showEvent(t,d=1300){const el=$('eventMsg');el.textContent=t;el.classList.add('show');clearTimeout(noticeTimeout);noticeTimeout=setTimeout(()=>el.classList.remove('show'),d)}
 function popup(item,duplicate){pendingItem=item;const t=$('toast');t.classList.remove('hidden');$('toastRare').textContent=(duplicate?'DUPLICATE · ':'NEW GET · ')+rarityNames[item.rarity];$('toastRare').style.color=rareColors[item.rarity];$('toastName').textContent=item.name;$('toastText').textContent=duplicate?'重複のためコインに交換！':isAvatarCatch(item)?'カスタマイズに追加！':'クローゼットに追加！';$('equipBtn').textContent=isAvatarCatch(item)?'このスタイルを使う':'いま着る';$('equipBtn').disabled=false;drawGarmentCard($('toastCanvas'),item);clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.add('hidden'),7000)}
-function showDock(){let v=st.show;$('roundLabel').textContent='ROUND '+v.round+' ・ '+showTheme()[0];$('tideBadge').textContent=v.round>=15?'荒波の海':v.round>=6?'うねる海':'おだやかな海';$('roundPips').querySelectorAll('i').forEach((p,i)=>p.classList.toggle('on',i<v.queue.length));$('showEntry').disabled=v.queue.length!==5;$('showEntry').textContent=v.queue.length===5?'ショーに出場！':v.queue.length+' / 5点';$('showRecord').innerHTML='BROADWAY SHOW　勝利 <b>'+v.wins+'</b> ／ ベスト <b>'+v.best+'</b>点 ／ 連勝 <b>'+v.streak+'</b>'}
+function showDock(){let v=st.show;$('roundLabel').textContent='ROUND '+v.round+' ・ '+showTheme()[0];$('tideBadge').textContent=WEATHERS[weatherIndex].label+' · '+(v.round>=15?'荒波':v.round>=6?'うねり':'おだやか');$('roundPips').querySelectorAll('i').forEach((p,i)=>p.classList.toggle('on',i<v.queue.length));$('showEntry').disabled=v.queue.length!==5;$('showEntry').textContent=v.queue.length===5?'ショーに出場！':v.queue.length+' / 5点';$('showRecord').innerHTML='BROADWAY SHOW　勝利 <b>'+v.wins+'</b> ／ ベスト <b>'+v.best+'</b>点 ／ 連勝 <b>'+v.streak+'</b>'}
 function redrawUI(){showDock();ownSet=new Set(st.owned);$('count').textContent=st.owned.filter(i=>i<TOTAL).length.toLocaleString('ja-JP');$('coins').textContent=st.coins.toLocaleString('ja-JP');$('casts').textContent=st.casts.toLocaleString('ja-JP');$('itemSummary').textContent=`服 ${st.owned.filter(i=>i<TOTAL).length}着・魚 ${st.owned.filter(i=>i>=TOTAL).length}匹`;$('percent').textContent=(st.owned.filter(i=>i<TOTAL).length/100).toFixed(2)+'%';$('progressFill').style.width=(st.owned.filter(i=>i<TOTAL).length/100)+'%';$('rodLevel').textContent=`釣りざお Lv.${st.rod} ／ レア率 ${st.rod===1?'標準':'アップ中'}`;$('upgradeCost').textContent=(st.rod*100).toLocaleString('ja-JP');$('upgradeBtn').disabled=st.coins<st.rod*100||st.rod>=8;$('upgradeBtn').title=st.rod>=8?'最大強化済み':'';$('comboLabel').textContent=`連続キャッチ ${st.combo}`;renderQuests();$('hint').style.display=st.catches?'none':'block';renderModel();renderInventory();save()}
 function equipItem(item){if(!ownSet.has(item.id))return;st.equip[item.cat]=st.equip[item.cat]===item.id?null:item.id;if(item.cat==='dress'&&st.equip.dress!==null){st.equip.top=null;st.equip.bottom=null}if(['top','bottom'].includes(item.cat)&&st.equip[item.cat]!==null)st.equip.dress=null;redrawUI();tone(620,.1,'sine',.06);tone(780,.14,'sine',.05,.09)}
 function undress(trigger=false){for(let k of Object.keys(st.equip))st.equip[k]=null;redrawUI();if(trigger)showEvent('風でコーデが全部飛んだ！パンツ一丁！',2300)}
@@ -522,7 +543,7 @@ function updateGame(dt){
    const fish=nearbyFish.find(s=>fishCanBite(s,{x:hook.targetX,y:hook.targetY},performance.now()));
    if(fish){hook.chosen=fish;focus=fish;hook.targetX=fish.x;hook.targetY=fish.y;showEvent('魚が針に食いついた！',1100)}
    if(!hook.chosen&&hook.biteWait<2.8){if(hook.biteWait===0)showEvent('魚が針に近づいている…',1200);hook.biteWait=Math.min(2.8,hook.biteWait+sec);hook.progress=1;updateFishingHud();return}
-   hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0)+fishFightProfile(hook.chosen.item).time;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
+   hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.weather=weatherIndex;hook.limit=14.3+WEATHERS[hook.weather].time+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0)+fishFightProfile(hook.chosen.item).time;bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.cat==='fish'?Math.max(0,hook.chosen.item.rarity-1.65):hook.chosen.item.rarity;
   const fishProfile=fishFightProfile(hook.chosen.item);
@@ -535,7 +556,7 @@ function updateGame(dt){
   const rhythm=(Math.sin(hook.elapsed*4.5+hook.chosen.phase)+1)*.5;
   if(hook.pull){
    hook.reel+=(19+st.rod*1.4-r*2.2+(rhythm>.77?4:0)-(hook.surge?10:0)+(hook.tension>=30&&hook.tension<=68?10:0)+st.failStreak*1.3-fishProfile.drag)*sec*(1-seaPressure*.38);
-   hook.tension+=Math.max(22,34+r*7+(hook.surge?40:0)-st.rod*.9-st.failStreak*2.3+fishProfile.tension)*sec*(1+seaPressure*.4);
+   hook.tension+=Math.max(22,34+r*7+(hook.surge?40:0)-st.rod*.9-st.failStreak*2.3+fishProfile.tension)*sec*(1+seaPressure*.4+WEATHERS[hook.weather??0].tension);
    if(Math.random()<sec*11)bubble(hook.x,hook.y,1,'#fdf7a9');
   }else{hook.reel-=Math.max(2.3,3.2+r*1.5+(hook.surge?2:0)-st.failStreak*.23)*sec;hook.tension-=(44+st.rod*2+st.failStreak*2.5)*sec}
   hook.reel=clamp(hook.reel,0,100);hook.tension=clamp(hook.tension,0,105);
@@ -950,7 +971,7 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  // ocean depths
  let depth=sea.createLinearGradient(0,165,0,H);depth.addColorStop(0,'#6cc7c5cc');depth.addColorStop(.38,'#278aa6de');depth.addColorStop(1,'#0a5273ef');sea.fillStyle=depth;sea.fillRect(0,165,W,H-165);
  // glinting waves
- for(let k=0;k<80;k++){const seed=hash(k+24),x=(seed%1030+t*(k%3+1)*1.7)%1050-30,y=183+((seed>>>9)%345),length=13+((seed>>>17)%44),alpha=.11+((seed>>>22)%15)/100;sea.strokeStyle=`rgba(223,255,232,${alpha})`;sea.lineWidth=(k%3===0?2:1.1);sea.beginPath();sea.moveTo(x,y+Math.sin(t*2+k)*2);sea.quadraticCurveTo(x+length/2,y-3,x+length,y);sea.stroke()}
+ for(let k=0;k<80;k++){const seed=hash(k+24),x=(seed%1030+t*(k%3+1)*1.7)%1050-30,y=183+((seed>>>9)%345),length=13+((seed>>>17)%44),alpha=.11+((seed>>>22)%15)/100;sea.strokeStyle=`rgba(223,255,232,${alpha})`;sea.lineWidth=(k%3===0?2:1.1);sea.beginPath();sea.moveTo(x,y+Math.sin(t*2+k)*(2+WEATHERS[weatherIndex].wave*1.8));sea.quadraticCurveTo(x+length/2,y-3-WEATHERS[weatherIndex].wave*2,x+length,y);sea.stroke()}
  // ocean light shafts
  for(let k=0;k<6;k++){let xx=240+k*165;sea.fillStyle='rgba(224,255,242,.032)';path(sea,[[xx,164],[xx+26,164],[xx+150,H],[xx+54,H]]);sea.fill()}
  // bubbles
@@ -989,6 +1010,7 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  for(const r of ripples){sea.beginPath();sea.arc(r.x,r.y,r.r,0,Math.PI*2);sea.lineWidth=2;sea.strokeStyle=`rgba(230,255,240,${r.a})`;sea.stroke()}
  for(const p of particles){sea.globalAlpha=clamp(p.life/p.max,0,1);sea.fillStyle=p.color;ellipse(sea,p.x,p.y,p.r,p.r*.8,p.color)}sea.globalAlpha=1;
  if(hook.active&&hook.stage===2&&hook.chosen){drawSeaCollectible(sea,hook.chosen.item,hook.x,hook.y+24,42,Math.sin(t*12)*.2)}
+ drawWeather(sea,t);
 }
 
 /* 300 = 15 silhouettes x 10 colors x 2 bangs. 50 = 10 bodies x 5 costumes.
@@ -1327,7 +1349,7 @@ for(const btn of document.querySelectorAll('[data-slot]'))btn.addEventListener('
 function updateSlotButtons(){document.querySelectorAll('[data-slot]').forEach(b=>{let n=+b.dataset.slot;b.textContent=`${n+1} ${st.slots[n]?'保存済み / 呼出':'コーデを保存'}`})}
 $('upgradeBtn').addEventListener('click',()=>{let cost=st.rod*100;if(st.coins<cost||st.rod>=8)return;st.coins-=cost;st.rod++;redrawUI();showEvent('釣りざおパワーアップ！');sfxCatch(2)});
 let reducedMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function loop(now){let dt=clamp(now-lastTime,0,42);lastTime=now;animTime+=reducedMotion?dt*.4:dt;updateGame(dt);progressShow(dt);drawSea();drawModel();drawShowStage();requestAnimationFrame(loop)}
+function loop(now){let dt=clamp(now-lastTime,0,42);lastTime=now;animTime+=reducedMotion?dt*.4:dt;updateWeather(dt);updateGame(dt);progressShow(dt);drawSea();drawModel();drawShowStage();requestAnimationFrame(loop)}
 updateSlotButtons();redrawUI();if(st.show.queue.length===5)openShow();requestAnimationFrame(loop);
 })();
 </script>
