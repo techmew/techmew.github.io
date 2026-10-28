@@ -1215,7 +1215,7 @@ function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume
   ctx.save();
   if(index===13){ctx.globalAlpha=.84}
   if(item.cat==='hair'&&index===0){avatarHair(ctx,part[1],part[2],1.1,item.id-HAIR_ID_START,'front')}
-  else if(index===12){for(const dx of [-28,28])drawSeaCollectible(ctx,item,220+dx,455,73,dx*.002)}
+  else if(index===12&&item.cat!=='shoes'){for(const dx of [-28,28])drawSeaCollectible(ctx,item,220+dx,455,Math.min(73,item.cat==='fish'?57:73),dx*.002)}
   else if(index===3){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*55,152,55,dx*.16)}
   else if(index===8){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*84,299,67,dx*.15)}
   else if(['top','outer','dress','bottom','under','shoes'].includes(item.cat)){
