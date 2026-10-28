@@ -227,7 +227,7 @@ if(st.bodyMigration!==1){
  st.bodyMigration=1;
 }
 delete st.bodyOwned;
-st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)||st.show.pendingResult.version!==7))st.show.pendingResult=null;
+st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)||st.show.pendingResult.version!==8))st.show.pendingResult=null;
 const FREE_PARTS=[
  ['髪型',220,112,130,0],['帽子',220,66,145,0],['顔飾り',220,144,108,0],['耳飾り',278,152,70,.12],['首飾り',220,198,93,0],['インナー',220,253,125,0],['トップス',220,264,166,0],['アウター',220,260,190,0],['手袋・手元',300,284,91,.15],['腰飾り',220,311,126,0],['ボトムス',220,348,162,0],['レッグウェア',220,403,120,0],['シューズ',220,455,113,0],['背中',327,255,150,-.2],['特殊アクセ',331,349,121,.16],['追加レイヤー',220,269,198,0]
 ];
@@ -574,7 +574,8 @@ let rivalCache={round:0,items:null,score:null};
 function getRivalLook(){
  const round=Math.max(1,st.show.round);
  if(rivalCache.round===round&&rivalCache.items)return rivalCache;
- const target=clamp(268+Math.min(85,(round-1)*3.6)+Math.min(16,st.show.streak*2)-Math.min(32,st.show.lossStreak*7),258,355);
+ const themeOffset={classic:5,street:-11,avant:0,color:-1,chaos:-6,glam:1}[showTheme()[1]]||0;
+ const target=clamp(306+Math.min(48,(round-1)*2.7)+themeOffset+Math.min(12,st.show.streak*1.8)-Math.min(25,st.show.lossStreak*5.5),280,356);
  const natural=['hat','acc','top','bottom','shoes'];
  let best=null,dist=Infinity;
  for(let candidate=0;candidate<160;candidate++){
@@ -648,7 +649,7 @@ function showScore(items,skipRival=false){
  const rival=rivalJudges?rivalJudges.reduce((sum,v)=>sum+v,0):0;
  return {judges,total,rival,rivalJudges,rivalPosePoints,rivalIds:opponent?opponent.items.map(o=>o.id):null,
   win:total>=rival,fits,odd,repeats,patternVariety,styleVariety,duplicates,patternFit,flow,anchor,contrast,
-  fishCount,components,raw,penalties,stuntName,stuntBonus,version:7}
+  fishCount,components,raw,penalties,stuntName,stuntBonus,version:8}
 }
 const SHOW_REGIONS={head:[0,-194,130,0],face:[0,-137,108,0],neck:[0,-101,145,0],torso:[0,-30,153,0],hips:[0,50,132,0],legs:[0,95,149,0],feet:[0,154,84,0],hands:[63,0,92,.12],back:[53,-39,155,-.25]};
 function naturalShowRegion(item){
