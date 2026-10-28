@@ -23,7 +23,7 @@ let generation=44;
 const a=js.indexOf('async function waitForCaptureCountdown('),b=js.indexOf('async function startRecord(',a);
 assert.ok(a>=0&&b>a);
 const countdown=vm.runInNewContext(js.slice(a,b)+';({waitForCaptureCountdown,displayCaptureCountdown})',{
- $,captureIsCurrent:id=>id===generation,setTimeout(fn,ms){timers.push({fn,ms});return timers.length},
+ $,birthVoiceBusy:false,captureIsCurrent:id=>id===generation,setTimeout(fn,ms){timers.push({fn,ms});return timers.length},
  console,Math});
 (async()=>{
  const promise=countdown.waitForCaptureCountdown(44,true);
