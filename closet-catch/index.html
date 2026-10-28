@@ -232,13 +232,13 @@ function patternRect(ctx,item,x,y,w,h){const k=item.pattern,c=colorOf(item),brig
  if(k===9){for(let p=0;p<19;p++){let hsh=hash(item.id*61+p);ctx.beginPath();ctx.arc(x+hsh%w,y+(hsh>>>10)%h,4+(hsh>>>19)%6,0,2.4);ctx.stroke()}}
  ctx.restore()}
 function pickRandomItem(){let w=[72,22,5.3,.7];let mul=st.rod-1;w=[Math.max(33,w[0]-mul*9),w[1]+mul*4,w[2]+mul*3.8,w[3]+mul*1.2];let sum=w.reduce((a,b)=>a+b,0),n=Math.random()*sum,r=0;for(let k=0;k<4;k++){r+=w[k];if(n<=r)return catalog[pick(rarityPools[k])]}return catalog[pick(rarityPools[0])]}
-function spawnSeaItem(skipIds=[]){
+function spawnSeaItem(skipIds=[],forced=null){
  let tries=0,it;
- do{const dice=Math.random();it=dice<.14?pick(HAIR_CATCH):dice<.22?pick(BODY_CATCH):dice<.38?pick(FISH_CATALOG):pickRandomItem();tries++}while(tries<30&&skipIds.includes(it.id));
+ do{const dice=Math.random();it=forced==='hair'?pick(HAIR_CATCH):forced==='bodyCostume'?pick(BODY_CATCH):forced==='fish'?pick(FISH_CATALOG):dice<.14?pick(HAIR_CATCH):dice<.22?pick(BODY_CATCH):dice<.38?pick(FISH_CATALOG):pickRandomItem();tries++}while(tries<30&&skipIds.includes(it.id));
  const fish=it.cat==='fish';
  return {item:it,x:rand(120,930),y:rand(240,491),vx:rand(fish?-.8:-.14,fish?.8:.14),phase:rand(0,6.28),scale:rand(.9,1.1),born:performance.now(),ttl:rand(fish?15000:19000,fish?26000:35000)}
 }
-for(let i=0;i<17;i++)sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id)));
+for(let i=0;i<17;i++)sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id),i===0?'hair':i===1?'bodyCostume':i===2?'fish':null));
 const snd=()=>{try{return new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}};let audio=null;
 function tone(freq=500,dur=.1,type='sine',vol=.08,delay=0){if(!st.sound)return;try{audio=audio||snd();if(audio.state==='suspended')audio.resume();const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+dur+.03)}catch(e){}}
 function sfxCatch(r){[392,494,587,784].slice(0,Math.max(2,r+1)).forEach((f,i)=>tone(f,.16,'sine',.06,i*.09))}
@@ -254,7 +254,7 @@ function undress(trigger=false){for(let k of Object.keys(st.equip))st.equip[k]=n
 function catchItem(sceneItem){const item=sceneItem.item;let duplicate;
  if(item.cat==='hair'){const id=item.id-HAIR_ID_START;duplicate=st.hairOwned.includes(id);if(!duplicate){st.hairOwned.push(id);st.hair=id}}
  else if(item.cat==='bodyCostume'){const id=item.id-BODY_ID_START;duplicate=st.bodyOwned.includes(id);if(!duplicate){st.bodyOwned.push(id);st.bodyCostume=id}}
- else{duplicate=ownSet.has(item.id);st.show.queue.push(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}}
+ else{duplicate=ownSet.has(item.id);st.show.queue.push(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}if(item.cat==='fish')st.equip.fish=item.id}
  st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity]);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
  popup(item,duplicate);
  // A rare, optional slapstick surprise: everything remains in the inventory.
