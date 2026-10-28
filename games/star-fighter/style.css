@@ -98,3 +98,17 @@
  .route-map .map-node-label{font-size:18px}
 }
 @media(max-height:430px) and (orientation:landscape){.route-map{height:clamp(62px,15vh,78px);margin:1px auto}}
+
+/* Seed codes are optional and intentionally outside the combat HUD. */
+.seed-controls{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:8px auto 0;color:#a5c7d9;font:600 10px ui-monospace,monospace}
+.seed-controls label{letter-spacing:2px;color:#8bd8ed}
+.seed-controls input{width:92px;min-height:28px;padding:4px 8px;border:1px solid #3c6a82;border-radius:5px;background:#071b2d;color:#d9f8ff;font:700 12px ui-monospace,monospace;text-align:center;text-transform:uppercase}
+.seed-controls input:focus-visible{outline:2px solid #80dfff;outline-offset:1px}
+.seed-controls span{font-size:10px;min-width:122px;text-align:left}
+.seed-controls button{padding:6px 9px;border:1px solid #7aafc4;border-radius:5px;background:#183950;color:#effaff;font-weight:700;font-size:10px;cursor:pointer}
+.seed-controls button[hidden]{display:none}
+.route-seed{color:#86c9df;font:700 10px ui-monospace,monospace;letter-spacing:2px;margin:3px 0}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:600px){
+ .seed-controls{margin-top:4px;gap:5px;font-size:8px}.seed-controls input{min-height:22px;padding:2px 4px;font-size:10px;width:78px}.seed-controls span{font-size:8px;min-width:98px}.seed-controls button{font-size:8px;padding:3px 6px}
+ .route-seed{font-size:8px;margin:1px 0}
+}
