@@ -1032,10 +1032,16 @@ function showMicNotice(){
 // v0.4 microphone capture: manual stop, audible playback, and reliable cleanup.
 let stopCaptureNow=null, recordingFinishing=false, recordingRequestPending=false;
 let captureGeneration=0,captureLiveStream=null;
+const stoppedCaptureStreams=new WeakSet();
+function stopCaptureStream(stream){
+ if(!stream||stoppedCaptureStreams.has(stream))return;
+ stoppedCaptureStreams.add(stream);
+ try{stream.getTracks().forEach(track=>track.stop())}catch(e){}
+}
 function captureIsCurrent(generation){return generation===captureGeneration&&!document.hidden}
 function abortCaptureForBackground(){
  captureGeneration++;
- try{captureLiveStream?.getTracks().forEach(t=>t.stop())}catch(e){}
+ stopCaptureStream(captureLiveStream);
  captureLiveStream=null;
  if(recording||recordingRequestPending){
   stopCaptureNow?.();
@@ -1311,7 +1317,7 @@ async function startRecord(mode='birth'){
   if(captureLiveStream===stream)captureLiveStream=null;
   stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
-  try{pcmNode?.disconnect()}catch(e){}try{pcmSilence?.disconnect()}catch(e){}try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{pcmNode?.disconnect()}catch(e){}try{pcmSilence?.disconnect()}catch(e){}try{src?.disconnect()}catch(e){}stopCaptureStream(stream)
   try{if(aud&&typeof aud.close==='function')await Promise.race([
    Promise.resolve(aud.close()).catch(()=>{}),
    new Promise(resolve=>setTimeout(resolve,250))
