@@ -104,7 +104,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 <div class="app">
 <header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。5着でランウェイ対決。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
 <main>
-<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かんでいる服をタップすると釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服をタップして狙おう！ ヒット後は長押し！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><span class="surge-badge" id="surgeBadge">抵抗に注意！</span><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が安全な張りの目安"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → ヒットしたら長押し ／ 離して張りを調整<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5着</button></div></section>
+<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag">☼ おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かぶ服・髪型・体型衣装・魚をタップして釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服・髪・体型衣装・魚を釣ろう！魚は釣りを邪魔する！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><span class="surge-badge" id="surgeBadge">抵抗に注意！</span><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が安全な張りの目安"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → 長押しで引く／離して緩める。糸切れ・時間切れでアイテム消失<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5着</button></div></section>
 <section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>STYLE SCORE</small><b id="score">0</b><span class="rank" id="rank">C</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
 </main>
 <div class="show-record" id="showRecord">BROADWAY SHOW　勝利 <b>0</b> ／ ベスト <b>0</b> 点 ／ 連勝 <b>0</b></div>
@@ -232,7 +232,12 @@ function patternRect(ctx,item,x,y,w,h){const k=item.pattern,c=colorOf(item),brig
  if(k===9){for(let p=0;p<19;p++){let hsh=hash(item.id*61+p);ctx.beginPath();ctx.arc(x+hsh%w,y+(hsh>>>10)%h,4+(hsh>>>19)%6,0,2.4);ctx.stroke()}}
  ctx.restore()}
 function pickRandomItem(){let w=[72,22,5.3,.7];let mul=st.rod-1;w=[Math.max(33,w[0]-mul*9),w[1]+mul*4,w[2]+mul*3.8,w[3]+mul*1.2];let sum=w.reduce((a,b)=>a+b,0),n=Math.random()*sum,r=0;for(let k=0;k<4;k++){r+=w[k];if(n<=r)return catalog[pick(rarityPools[k])]}return catalog[pick(rarityPools[0])]}
-function spawnSeaItem(skipIds=[]){let tries=0,it;do{it=pickRandomItem();tries++}while(tries<15&&skipIds.includes(it.id));return {item:it,x:rand(120,930),y:rand(240,491),vx:rand(-.14,.14),phase:rand(0,6.28),scale:rand(.9,1.1),born:performance.now()}}
+function spawnSeaItem(skipIds=[]){
+ let tries=0,it;
+ do{const dice=Math.random();it=dice<.14?pick(HAIR_CATCH):dice<.22?pick(BODY_CATCH):dice<.38?pick(FISH_CATALOG):pickRandomItem();tries++}while(tries<30&&skipIds.includes(it.id));
+ const fish=it.cat==='fish';
+ return {item:it,x:rand(120,930),y:rand(240,491),vx:rand(fish?-.8:-.14,fish?.8:.14),phase:rand(0,6.28),scale:rand(.9,1.1),born:performance.now(),ttl:rand(fish?15000:19000,fish?26000:35000)}
+}
 for(let i=0;i<17;i++)sceneItems.push(spawnSeaItem(sceneItems.map(v=>v.item.id)));
 const snd=()=>{try{return new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}};let audio=null;
 function tone(freq=500,dur=.1,type='sine',vol=.08,delay=0){if(!st.sound)return;try{audio=audio||snd();if(audio.state==='suspended')audio.resume();const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+dur+.03)}catch(e){}}
@@ -261,11 +266,27 @@ function castAt(x,y){
  st.casts++;let selected=null,best=10000;
  for(const s of sceneItems){const d=Math.hypot(s.x-x,s.y+Math.sin(animTime*.002+s.phase)*6-y);if(d<best){best=d;selected=s}}
  if(best>108)selected=null;
+ // Sometimes a fish physically interrupts a cast aimed at an outfit.
+ if(selected&&selected.item.cat!=='fish'&&Math.random()<.28){
+  const available=sceneItems.filter(s=>s.item.cat==='fish');
+  if(available.length){
+   const fish=available.reduce((a,b)=>Math.hypot(a.x-x,a.y-y)<Math.hypot(b.x-x,b.y-y)?a:b);
+   fish.x=clamp(selected.x+rand(-26,26),95,945);
+   fish.y=clamp(selected.y+rand(-16,16),215,490);
+   selected=fish;
+   showEvent('魚が横取り！釣り上げたら着られる！',1800)
+  }
+ }
  Object.assign(hook,{active:true,stage:1,progress:0,chosen:selected,targetX:selected?selected.x:x,targetY:selected?selected.y:y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false});
  focus=selected;tone(260,.13,'triangle',.06);updateFishingHud();redrawUI()
 }
 function endFight(caught,reason){
  if(hook.stage!==2)return;
+ if(!caught&&hook.chosen){
+  // Broken fishing line / timeout: the target is gone from the ocean too.
+  const lost=hook.chosen;sceneItems=sceneItems.filter(v=>v!==lost);
+  replaceSeaSlot(950)
+ }
  hook.stage=3;hook.progress=0;hook.result=caught;hook.pull=false;
  if(caught){showEvent('CATCH! 服を釣り上げた！',850);bubble(hook.x,hook.y,18,rareColors[hook.chosen.item.rarity]);tone(720,.18,'sine',.07)}
  else{st.combo=0;st.failStreak=Math.min(4,st.failStreak+1);showEvent(reason||'逃げられた！ もう一度！',1500);bubble(hook.x,hook.y,12,'#fff4bf');tone(155,.28,'sawtooth',.045)}
@@ -298,7 +319,22 @@ function updateFishingHud(){
  $('fightCall').textContent=hook.pull?(hook.tension>76?'危険！すぐ離して張りを下げよう':hook.surge?'暴れている！短く引こう':hook.warning?'抵抗予告！今は指を離そう':hook.tension>=30&&hook.tension<=68?'好調！点線の間をキープ':'引き寄せ中！'):hook.warning?'抵抗予告！糸を緩めて備えよう':hook.tension>38?'糸を休ませている…':'点線30〜68%を狙って長押し！';
 }
 function updateGame(dt){
- for(const s of sceneItems){s.x+=s.vx*dt*.055;if(s.x<80||s.x>955)s.vx*=-1}
+ // Expired targets dissolve and are eventually replaced. The hooked target
+ // is protected until the catch/fail result is decided.
+ for(const s of [...sceneItems]){
+  if(s===hook.chosen&&hook.active)continue;
+  if(performance.now()-s.born>=s.ttl){
+   sceneItems=sceneItems.filter(v=>v!==s);
+   replaceSeaSlot(550);
+   continue
+  }
+  // Fish swim toward a hooked object and may disturb line tension.
+  if(s.item.cat==='fish'&&hook.active&&hook.chosen&&hook.chosen!==s&&hook.stage===2){
+   s.x+=clamp(hook.x-s.x,-1,1)*dt*.028;
+   s.y+=clamp(hook.y-s.y,-1,1)*dt*.020
+  }
+  s.x+=s.vx*dt*.055;if(s.x<80||s.x>955)s.vx*=-1
+ }
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt*.07;p.y+=p.vy*dt*.07;p.vy+=p.gravity*dt*.07;p.life-=dt*.065;if(p.life<=0)particles.splice(i,1)}
  for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.r+=dt*.12;r.a-=dt*.0012;if(r.a<=0)ripples.splice(i,1)}
  if(!hook.active)return;
@@ -307,13 +343,13 @@ function updateGame(dt){
   hook.progress+=dt/620;
   const p=clamp(hook.progress,0,1),e=1-Math.pow(1-p,2);
   hook.x=204+(hook.targetX-204)*e;hook.y=149+(hook.targetY-149)*e-Math.sin(p*Math.PI)*35;
-  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent('HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
+  if(p>=1){hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！服を狙おう',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
  }else if(hook.stage===2){
-  const r=hook.chosen.item.rarity;
+  const r=hook.chosen.item.rarity+(hook.chosen.item.cat==='fish'?.45:0);
   const seaPressure=Math.min(.26,Math.max(0,st.show.round-1)*.018);
   hook.elapsed+=sec;
   const wavePhase=hook.elapsed*(2.5+r*.35)+hook.chosen.phase;
-  hook.surge=Math.sin(wavePhase)>0.76;
+  hook.surge=Math.sin(wavePhase)>0.76||sceneItems.some(v=>v!==hook.chosen&&v.item.cat==='fish'&&Math.hypot(v.x-hook.x,v.y-hook.y)<75&&Math.sin(wavePhase*1.4+v.phase)>.88);
   hook.warning=!hook.surge&&Math.sin(wavePhase+1.2)>0.76;
   const rhythm=(Math.sin(hook.elapsed*4.5+hook.chosen.phase)+1)*.5;
   if(hook.pull){
@@ -325,8 +361,8 @@ function updateGame(dt){
   hook.x=hook.targetX+Math.sin(hook.elapsed*(3+r*.8))*((1-hook.reel/110)*17);
   hook.y=hook.targetY+Math.sin(hook.elapsed*(5.5+r))*(5+8*(1-hook.reel/100));
   if(hook.reel>=100)endFight(true);
-  else if(hook.tension>=100)endFight(false,'糸が切れた！こまめに緩めよう');
-  else if(hook.elapsed>=hook.limit)endFight(false,'時間切れ！手早く引き寄せよう');
+  else if(hook.tension>=100)endFight(false,'糸が切れた！狙ったアイテムも消えた！');
+  else if(hook.elapsed>=hook.limit)endFight(false,'時間切れ！アイテムが流されて消えた！');
   updateFishingHud()
  }else if(hook.stage===3){
   hook.progress+=dt/500;
@@ -704,7 +740,7 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  // seabed vegetation
  for(let k=0;k<26;k++){let x=(hash(k+888)%1000),y=H+15,sz=20+(hash(k+229)%40);sea.strokeStyle=k%2?'#176c75ac':'#1e837d9a';sea.lineWidth=3;sea.beginPath();sea.moveTo(x,y);sea.quadraticCurveTo(x-12,y-sz/2,x+Math.sin(t+k)*7,y-sz);sea.stroke()}
  // underwater catchable clothing icons
- for(const s of sceneItems){const yy=s.y+Math.sin(t*2.1+s.phase)*6;let active=focus===s;let glow=rareColors[s.item.rarity];sea.save();sea.translate(s.x,yy);sea.scale(s.scale,s.scale);if(s.item.rarity>1||active){sea.shadowColor=glow;sea.shadowBlur=26+Math.sin(t*5+s.phase)*5}
+ for(const s of sceneItems){const yy=s.y+Math.sin(t*2.1+s.phase)*6;let active=focus===s;let glow=rareColors[s.item.rarity];sea.save();sea.translate(s.x,yy);sea.scale(s.scale,s.scale);sea.globalAlpha=clamp((s.ttl-(performance.now()-s.born))/2200,0,1);if(s.item.rarity>1||active){sea.shadowColor=glow;sea.shadowBlur=26+Math.sin(t*5+s.phase)*5}
  sea.fillStyle=gradient(sea,0,0,45,active?'#ffffffef':'#effff3e8','#ffffff33');sea.strokeStyle=active?'#ffffff':glow+'ca';sea.lineWidth=active?5:2;sea.beginPath();sea.arc(0,0,42,0,2*Math.PI);sea.fill();sea.stroke();sea.shadowBlur=0;drawSeaCollectible(sea,s.item,0,0,58,Math.sin(t*1.6+s.phase)*.09);if(s.item.rarity>=2){sea.fillStyle=glow;star(sea,33,-34,8,3,5);sea.fill()}sea.restore()}
  for(const r of ripples){sea.beginPath();sea.arc(r.x,r.y,r.r,0,Math.PI*2);sea.lineWidth=2;sea.strokeStyle=`rgba(230,255,240,${r.a})`;sea.stroke()}
  for(const p of particles){sea.globalAlpha=clamp(p.life/p.max,0,1);sea.fillStyle=p.color;ellipse(sea,p.x,p.y,p.r,p.r*.8,p.color)}sea.globalAlpha=1;
