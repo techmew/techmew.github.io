@@ -761,7 +761,7 @@ function renderShowAnalysis(){
 }
 function endShow(){
  if(!['walk','judge'].includes(showPhase)||!showScores)return;
- if(!showSaved)finalizePoseScore();showPhase='result';showTime=0;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
+ if(!showSaved){finalizePoseScore();if(showScores&&!showScores.poseApplied)throw new Error('Pose scoring incomplete')}showPhase='result';showTime=0;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
  if(!showSaved){
   st.show.shows++;st.show.best=Math.max(st.show.best,showScores.total);
   if(showScores.win){st.show.wins++;st.show.streak++;st.show.lossStreak=0;showScores.prize=150+Math.min(200,st.show.streak*25)}
