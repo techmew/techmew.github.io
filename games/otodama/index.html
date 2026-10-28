@@ -1911,7 +1911,7 @@ function playDecodedVoice(cr,side,force=false,options={}){
  if($('mutedCheck').checked||!VOLUME())return false;
  if(!force&&(!match||match.done))return false;
  const nowMs=performance.now(),rush=!!options.rush,phase=options.phase||'attack',event=options.event||{};
- const session=match,turn=match?.turn,generation=playDecodedVoice.generation||0;
+ const session=match,generation=playDecodedVoice.generation||0;
  if(!force&&nowMs<(playDecodedVoice.busyUntil||0))return false;
  const ac=unlockBattleAudio();if(!ac)return false;
  const fallback=()=>{
@@ -1920,8 +1920,10 @@ function playDecodedVoice(cr,side,force=false,options={}){
     fx:{enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,volume:1}});
  };
  const valid=()=>generation===(playDecodedVoice.generation||0)&&
-  (force||!!(match===session&&!match?.done&&match.turn===turn&&
+  (force||!!(match===session&&
    !(side===1&&match.mode?.startsWith('ONLINE')&&$('muteOpponentVoice').checked)));
+// A slow decoder may finish after the battle's next animation frame (or result).
+// Still replay the complete phrase if this exact battle is on screen.
  // Reserve one whole-phrase slot while an uncached recording is being decoded.
  if(!force)playDecodedVoice.busyUntil=nowMs+3600;
  const play=clip=>{
