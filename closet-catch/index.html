@@ -325,7 +325,11 @@ function fishCanBite(fish,target,now,probability=Math.random){
  if(!fish||fish.item.cat!=='fish'||fish.biteAt>now||fish===hook.chosen)return false;
  const d=Math.hypot(fish.x-target.x,fish.y-target.y);
  if(d>63)return false;
- fish.biteAt=now+1250;return probability()<.82
+ // Failed casts slightly improve the next bite chance; runway scoring remains deterministic.
+ const chance=Math.min(.96,.82+st.failStreak*.035);
+ const bit=probability()<chance;
+ fish.biteAt=now+(bit?1250:750);
+ return bit
 }
 function castAt(x,y){
  if(st.show.queue.length===5){openShow();return}
@@ -337,7 +341,7 @@ function castAt(x,y){
  const originalTarget=selected;
  const castTarget={x:selected?selected.x:x,y:selected?selected.y:y};
  Object.assign(hook,{active:true,stage:1,progress:0,chosen:originalTarget?.item.cat==='fish'?null:originalTarget,targetX:castTarget.x,targetY:castTarget.y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false,biteWait:0});
- focus=selected;tone(260,.13,'triangle',.06);updateFishingHud();redrawUI()
+ focus=selected;tone(260,.13,'triangle',.06);updateFishingHud();$('casts').textContent=st.casts.toLocaleString('ja-JP');save()
 }
 function endFight(caught,reason){
  if(hook.stage!==2)return;
@@ -357,7 +361,7 @@ function finishCast(){
  Object.assign(hook,{active:false,stage:0,progress:0,pull:false,chosen:null,result:false});
  focus=null;
  if(caught){catchItem(selected)}
- else{if(selected===null)showEvent('空振り！服の近くをタップ',1350);redrawUI()}
+ else{if(selected===null)showEvent('空振り！服や魚の近くをタップ',1350);save()}
  updateFishingHud();if(st.show.queue.length===5)openShow()
 }
 function updateFishingHud(){
@@ -416,7 +420,7 @@ function updateGame(dt){
    const nearbyFish=sceneItems.filter(s=>s.item.cat==='fish'&&Math.hypot(s.x-hook.targetX,s.y-hook.targetY)<63).sort((a,b)=>Math.hypot(a.x-hook.targetX,a.y-hook.targetY)-Math.hypot(b.x-hook.targetX,b.y-hook.targetY));
    const fish=nearbyFish.find(s=>fishCanBite(s,{x:hook.targetX,y:hook.targetY},performance.now()));
    if(fish){hook.chosen=fish;focus=fish;hook.targetX=fish.x;hook.targetY=fish.y;showEvent('魚が針に食いついた！',1100)}
-   if(!hook.chosen&&hook.biteWait<2.8){if(hook.biteWait===0)showEvent('魚が針に近づいている…',1200);hook.biteWait+=sec;hook.progress=1;updateFishingHud();return}
+   if(!hook.chosen&&hook.biteWait<2.8){if(hook.biteWait===0)showEvent('魚が針に近づいている…',1200);hook.biteWait=Math.min(2.8,hook.biteWait+sec);hook.progress=1;updateFishingHud();return}
    hook.progress=0;if(!hook.chosen){hook.stage=3;hook.result=false;showEvent('空振り！獲物が針に来なかった',1200)}else{hook.stage=2;const rarity=hook.chosen.item.rarity;hook.limit=14.3+st.rod*.65-rarity*.25+(rarity===3?Math.max(2.5,6.8-(st.rod-1)*.65):0)+st.failStreak*1.1+Math.min(4.2,Math.max(0,st.show.round-1)*.28)+(hook.chosen.item.cat==='fish'?4.2:0);bubble(hook.x,hook.y,11);tone(500,.09,'square',.025);showEvent(hook.chosen.item.cat==='fish'?'魚が食いついた！長押しで引き上げよう！':isAvatarCatch(hook.chosen.item)?'カスタムアイテム発見！長押しで釣ろう！':'HIT! 長押しで引き寄せろ！',1200);if(heldPointers.size||spaceHeld)reelDown()}updateFishingHud()}
  }else if(hook.stage===2){
   const r=hook.chosen.item.cat==='fish'?Math.max(0,hook.chosen.item.rarity-1.65):hook.chosen.item.rarity;
@@ -839,6 +843,16 @@ function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H
  ellipse(sea,-37,-24,15,16,'#f4ba8f');ellipse(sea,-35,-40,20,8,'#233d55');round(sea,-53,-15,29,20,5,'#f58669');sea.strokeStyle='#26465c';sea.lineWidth=5;sea.beginPath();sea.moveTo(-19,-9);sea.lineTo(8,7);sea.stroke();
  // fishing pole
  sea.strokeStyle='#513d43';sea.lineWidth=4;sea.beginPath();sea.moveTo(6,7);sea.lineTo(2,-46);sea.stroke();sea.restore();
+ // Pulsing bait zone communicates the wait without enclosing fish in balloons.
+ if(hook.active&&hook.stage===1&&hook.progress>=1&&!hook.chosen){
+  const left=Math.max(0,2.8-hook.biteWait),pulse=5*Math.sin(t*7);
+  sea.save();sea.translate(hook.targetX,hook.targetY);
+  sea.strokeStyle='#ffe8a9';sea.lineWidth=3;sea.setLineDash([5,7]);
+  sea.beginPath();sea.arc(0,0,45+pulse,0,Math.PI*2);sea.stroke();sea.setLineDash([]);
+  sea.fillStyle='#12394bd9';sea.beginPath();sea.roundRect(-62,-78,124,29,12);sea.fill();
+  textShadow(sea,'食いつき待ち '+left.toFixed(1)+'秒',0,-58,13,'#fff2c3','#16364a',2);
+  sea.restore()
+ }
  // boat string and target hook
  sea.save();sea.strokeStyle='#f8f7d0';sea.lineWidth=2;sea.setLineDash([5,3]);sea.beginPath();sea.moveTo(204,149);sea.quadraticCurveTo(290,(149+hook.y)/2,hook.x,hook.y);sea.stroke();sea.setLineDash([]);sea.translate(hook.x,hook.y);sea.strokeStyle='#17374b';sea.lineWidth=4;sea.beginPath();sea.moveTo(0,0);sea.lineTo(1,17);sea.quadraticCurveTo(16,25,18,9);sea.stroke();sea.restore();
  // seabed vegetation
