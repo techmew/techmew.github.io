@@ -27,8 +27,8 @@ const countdown=vm.runInNewContext(js.slice(a,b)+';({waitForCaptureCountdown,dis
  const promise=countdown.waitForCaptureCountdown(44,true);
  for(let sec=3;sec>=1;sec--){
   assert.equal($('countdown').textContent,String(sec),'ready count '+sec);
-  assert.equal($('evolutionCountdown').textContent,sec+'秒');
-  const task=timers.shift();assert.equal(task.ms,470,'short deliberate pre-roll');
+  assert.equal($('evolutionCountdown').textContent,String(sec));
+  const task=timers.shift();assert.equal(task.ms,330,'fast pre-roll under one second total');
   task.fn();await Promise.resolve();
  }
  assert.equal(await promise,true,'mic ready after 3-2-1');
