@@ -27,7 +27,7 @@ assert.equal(bytes.readUInt16LE(34),16,'16-bit PCM');
 assert.equal(bytes.readUInt32LE(40),samples.length*2,'data chunk size');
 assert.equal(pcmWavDataUrl(Array(4000).fill(0),11025),'','silence should not be stored');
 assert.equal(pcmWavDataUrl(Array(20).fill(.12),11025),'','short clip rejected');
-assert.ok(script.includes('await aud.decodeAudioData(await blob.arrayBuffer())'),'recording codec validated before save');
+assert.ok(script.includes('aud.decodeAudioData(await blob.arrayBuffer())')&&script.includes('new Promise((_,reject)=>setTimeout(()=>reject(new Error(\'decode timeout\')),1200))'),'recording codec validation is time-bounded before save');
 assert.ok(script.includes('if(!voiceClip)voiceClip=pcmWavDataUrl(pcmSamples,pcmRate)'),'WAV capture fallback');
 assert.ok(script.includes('recording||recordingRequestPending'),'double tap microphone guard');
 
