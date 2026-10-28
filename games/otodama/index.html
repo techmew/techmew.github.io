@@ -1270,28 +1270,26 @@ async function startRecord(mode='birth'){
     ]);
     if(blob?.size>0&&blob.size<115000){
      try{
-      // Confirm this device can decode its own recording before storing the clip.
-      const encoded=await Promise.race([
+      // FileReader and decoder operate on the SAME finalized blob in parallel.
+      // Formerly they ran in series, and waiting for blob.arrayBuffer() escaped the decoder timeout.
+      const encodedTask=Promise.race([
        new Promise(resolve=>{
         const reader=new FileReader();
         reader.onload=()=>resolve(typeof reader.result==='string'?reader.result:'');
         reader.onerror=()=>resolve('');
-        reader.readAsDataURL(blob);
+        try{reader.readAsDataURL(blob)}catch(e){resolve('')}
        }),new Promise(resolve=>setTimeout(()=>resolve(''),1500))
       ]);
+      const decodeTask=aud?.decodeAudioData?Promise.race([
+       Promise.resolve().then(async()=>aud.decodeAudioData(await blob.arrayBuffer())),
+       new Promise((_,reject)=>setTimeout(()=>reject(new Error('decode timeout')),1200))
+      ]).catch(()=>null):Promise.resolve(null);
+      const [encoded,predecoded]=await Promise.all([encodedTask,decodeTask]);
       if(encoded.startsWith('data:audio/')){
-       if(aud?.decodeAudioData){
-        try{
-         decodedAudio=await Promise.race([
-          aud.decodeAudioData(await blob.arrayBuffer()),
-          new Promise((_,reject)=>setTimeout(()=>reject(new Error('decode timeout')),1200))
-         ]);
-         voiceClip=encoded;
-        }catch(e){
-         // Preserve legitimate recorded audio if decoding fails transiently on this device.
-         voiceClip=pcmWavDataUrl(pcmSamples,pcmRate)||encoded;
-         lastSoundStatus='音声の形式確認が不安定です。録音データは保持しました';
-        }
+       decodedAudio=predecoded;
+       if(!decodedAudio&&aud?.decodeAudioData){
+        voiceClip=pcmWavDataUrl(pcmSamples,pcmRate)||encoded;
+        lastSoundStatus='音声形式を確認できないため録音データを保持しました';
        }else voiceClip=encoded;
       }
      }catch(e){lastSoundStatus='録音形式を再生できないためWAVに切り替えます';}
