@@ -170,6 +170,13 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .free-choice-label b{display:block;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
 .free-choices button.chosen{box-shadow:inset 0 0 0 2px #e6b24c}
 @media(max-width:390px){.free-choices{grid-template-columns:1fr}.free-choices button{min-height:68px}.free-choice-thumb{flex-basis:56px;width:56px;height:56px}}
+
+/* Compare both contestants without opening the detailed breakdown. */
+.judge-bars{display:grid;gap:5px;margin-top:8px}
+.judge-bars .judge-bar{height:7px;background:#ffffff27}
+.judge-bars .judge-bar.cpu i{background:#88d6e7}
+.show-judge .judge-diff{display:block;margin-top:7px;color:#fff1d5;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums}
+@media(max-width:420px){.show-judge .judge-score-row{align-items:flex-start}.show-judge .judge-score-row strong{font-size:17px}.show-judge .judge-score-row span{font-size:11px}.result-scoreline{gap:5px}.result-scoreline strong{font-size:clamp(16px,4.7vw,23px)}}
 </style>
 </head>
 <body>
@@ -920,7 +927,28 @@ function endShow(){
  const root=$('showJudges');root.replaceChildren();root.hidden=false;
  const legacyShow=showSaved&&Array.isArray(showScores.judges)&&showScores.judges.length===3;
  const notes=[showScores.fits>=3?'配置が基本。雑な位置は減点。':'サイズ・配置に難あり。',showScores.fishCount?'魚の意外性を加点。ただし重複は厳禁。':'発想と固有性を厳格評価。',showTheme()[0]+'との一致を判定。','色・種類・連続性を採点。','舞台のインパクトを厳格評価。'];
- showScores.judges.forEach((score,i)=>{const c=document.createElement('div');c.className='show-judge';const title=document.createElement('b');title.textContent=['着こなし','独創性','テーマ','組み合わせ','存在感'][i];const row=document.createElement('div');row.className='judge-score-row';const yours=document.createElement('strong');yours.textContent=score+' / 100';const theirs=document.createElement('span');theirs.textContent='CPU '+(showScores.rivalJudges?.[i]??'—')+' / 100';row.append(yours,theirs);const bar=document.createElement('div');bar.className='judge-bar';const fill=document.createElement('i');fill.style.width=Math.max(0,Math.min(100,score))+'%';bar.append(fill);c.append(title,row,bar);root.append(c)});
+  showScores.judges.forEach((score,i)=>{
+    const names=['着こなし','独創性','テーマ','組み合わせ','存在感'];
+    const ownScore=clamp(Number(score)||0,0,100);
+    const cpuRaw=showScores.rivalJudges?.[i],cpuKnown=Number.isFinite(cpuRaw);
+    const cpuScore=cpuKnown?clamp(cpuRaw,0,100):0;
+    const c=document.createElement('div');c.className='show-judge';
+    c.setAttribute('aria-label',names[i]+' あなた'+ownScore+'点'+(cpuKnown?' CPU'+cpuScore+'点':''));
+    const title=document.createElement('b');title.textContent=names[i];
+    const row=document.createElement('div');row.className='judge-score-row';
+    const yours=document.createElement('strong');yours.textContent=ownScore+' / 100';
+    const theirs=document.createElement('span');theirs.textContent='CPU '+(cpuKnown?cpuScore:'—')+' / 100';
+    row.append(yours,theirs);
+    const bars=document.createElement('div');bars.className='judge-bars';
+    for(const [label,value,isCpu] of [['あなた',ownScore,false],['CPU',cpuScore,true]]){
+      const track=document.createElement('div');track.className='judge-bar'+(isCpu?' cpu':'');
+      track.setAttribute('role','img');track.setAttribute('aria-label',label+' '+(isCpu&&!cpuKnown?'記録なし':value+'点'));
+      const fill=document.createElement('i');fill.style.width=(isCpu&&!cpuKnown?0:value)+'%';track.append(fill);bars.append(track);
+    }
+    const difference=document.createElement('small');difference.className='judge-diff';
+    difference.textContent=cpuKnown?'点差 '+(ownScore-cpuScore>0?'+':'')+(ownScore-cpuScore):'CPUの記録なし';
+    c.append(title,row,bars,difference);root.append(c);
+  });
  $('showResult').hidden=false;
  $('showResult').replaceChildren();const resultTitle=document.createElement('h3');resultTitle.textContent=showScores.win?'勝利！':'惜しくも敗北';const scoreLine=document.createElement('div');scoreLine.className='result-scoreline';const my=document.createElement('div');const myLabel=document.createElement('small');myLabel.textContent='あなた';const myScore=document.createElement('strong');myScore.textContent=showScores.total+' / '+(legacyShow?300:500);my.append(myLabel,myScore);const versus=document.createElement('span');versus.textContent='VS';const foe=document.createElement('div');const foeLabel=document.createElement('small');foeLabel.textContent='CPU';const foeScore=document.createElement('strong');foeScore.textContent=showScores.rival+' / '+(legacyShow?300:500);foe.append(foeLabel,foeScore);scoreLine.append(my,versus,foe);const reward=document.createElement('p');reward.textContent='得点差 '+(showScores.total-showScores.rival>=0?'+':'')+(showScores.total-showScores.rival)+'点 ／ 獲得コイン ＋'+(showScores.prize??0)+(legacyShow?'　旧3人審査の記録':'');$('showResult').append(resultTitle,scoreLine,reward);
  renderShowAnalysis();$('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent=legacyShow?'以前の3人審査の記録です。報酬は受取済みです。':'5人の審査結果。各100点満点。詳しい配点は下の「内訳」から確認できます。';
