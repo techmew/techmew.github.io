@@ -71,6 +71,7 @@ function fakeRuntime(mediaRecorderEnabled){
    return 1
   },clearTimeout(){},performance,recording:false,audioCtx:null,
   stopBattleSpeech(){},wavePaint(){},birthStockCallback:null,birthRevealActive:false,
+  cacheDecodedVoice(creature,buffer){notes.push('voice-cache:'+creature.seed);return buffer?{buffer}:null},
   saveNewborn(creature){notes.push('auto-saved:'+creature.seed);return true},
   startBirthReveal(creature,onStock){notes.push('gacha:'+creature.seed);ctxRef.stockCallback=onStock},
   micErrorMessage:e=>String(e?.name||e),
