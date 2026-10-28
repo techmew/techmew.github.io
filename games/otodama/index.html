@@ -1905,78 +1905,66 @@ async function decodeVoice(cr){
  })();
  pendingVoice.set(key,task);try{return await task}finally{pendingVoice.delete(key)}
 }
+// Every battle voice plays the original recording from sample zero to its natural end.
+// No loud-part extraction, time compression, pitch shifting, phoneme cuts, or partial repeats.
 function playDecodedVoice(cr,side,force=false,options={}){
  if($('mutedCheck').checked||!VOLUME())return false;
- const nowMs=performance.now();
- // One recognizable recorded voice per normal exchange; only explicit rush may repeat.
- if(!force&&!options.rush&&nowMs<(playDecodedVoice.busyUntil||0))return false;
- const session=match,turn=match?.turn,ac=unlockBattleAudio();
- if(!ac)return false;
- const rush=!!options.rush,hits=rush?Math.min(7,Math.max(2,Math.floor(options.hits||5))):1;
- const phase=options.phase||'attack',event=options.event||{};
- const generation=playDecodedVoice.generation||0;
- if(!force)playDecodedVoice.busyUntil=nowMs+(rush?Math.ceil((hits-1)*200+650):740);
- const plain={enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,echo:0,
-  volume:1,segment:.7,phase};
- const fx=force?plain:voiceEffectProfile(cr,side,event,phase);
+ if(!force&&(!match||match.done))return false;
+ const nowMs=performance.now(),rush=!!options.rush,phase=options.phase||'attack',event=options.event||{};
+ const session=match,turn=match?.turn,generation=playDecodedVoice.generation||0;
+ if(!force&&nowMs<(playDecodedVoice.busyUntil||0))return false;
+ const ac=unlockBattleAudio();if(!ac)return false;
+ const fallback=()=>{
+  if(!force&&match===session&&!match?.done&&generation===(playDecodedVoice.generation||0))
+   synthVoice(cr,side,{rush,hits:rush?Math.min(7,Math.max(2,Math.floor(options.hits||7))):1,phase,event,
+    fx:{enabled:false,label:'原音',from:1,to:1,filter:'',cutoff:0,volume:1}});
+ };
  const valid=()=>generation===(playDecodedVoice.generation||0)&&
   (force||!!(match===session&&!match?.done&&match.turn===turn&&
-  !(side===1&&match.mode?.startsWith('ONLINE')&&$('muteOpponentVoice').checked)));
- const fallback=()=>{if(valid()&&!force)synthVoice(cr,side,{rush,hits,phase,event,fx})};
+   !(side===1&&match.mode?.startsWith('ONLINE')&&$('muteOpponentVoice').checked)));
+ // Reserve one whole-phrase slot while an uncached recording is being decoded.
+ if(!force)playDecodedVoice.busyUntil=nowMs+3600;
  const play=clip=>{
   if(!valid())return false;
-  if(!clip||clip.duration<.075){fallback();return false}
+  const seconds=Number(clip?.buffer?.duration)||Number(clip?.fullDuration)||0;
+  if(!clip||seconds<.075||!Number.isFinite(seconds)){
+   if(!force)playDecodedVoice.busyUntil=0;
+   fallback();return false;
+  }
   try{
-   const out=rush?audioMaster(ac):voiceOutput(ac),now=ac.currentTime+.018;
-   const fullPreview=force&&options.full===true;
-   const fullDuration=Math.min(3.6,Number(clip.buffer?.duration)||clip.fullDuration||clip.duration);
-   // Never layer recorded echoes over regular speech; the original consonants stay clear.
-   const echoes=0;
-   function voiceAt(at,length,from,to,loudness){
-    const source=ac.createBufferSource(),gain=ac.createGain();
-    const portion=Math.min(fullPreview?fullDuration:clip.duration,Math.max(.08,length));
-    const limitLow=rush?1.55:.86,limitHigh=rush?2.15:1.14;
-    const safeFrom=force?1:clamp(from,limitLow,limitHigh);
-    const safeTo=force?1:clamp(to,limitLow,limitHigh);
-    const rate=(safeFrom+safeTo)*.5;
-    const sec=portion/rate;
-    source.buffer=clip.buffer;
-    voiceEffectRate(source.playbackRate,safeFrom,safeTo,at,sec);
-    gain.gain.setValueAtTime(0,at);
-    gain.gain.linearRampToValueAtTime(loudness,at+.012);
-    gain.gain.setValueAtTime(loudness,at+Math.max(.018,sec-.06));
-    gain.gain.linearRampToValueAtTime(0,at+Math.max(.045,sec));
-    let node=source;
-    if(rush&&fx.enabled&&fx.filter&&typeof ac.createBiquadFilter==='function'){
-     const filter=ac.createBiquadFilter();
-     filter.type=fx.filter;filter.frequency.value=fx.cutoff;filter.Q.value=.8;
-     node.connect(filter);node=filter;
-    }
-    node.connect(gain);gain.connect(out);
-    source.start(at,fullPreview?0:clip.offset,portion);trackAttackSource(source);
+   const source=ac.createBufferSource(),gain=ac.createGain();
+   const start=ac.currentTime+.018;
+   const volume=Math.min(.19,VOLUME()*Math.min(3,clip.gain||1));
+   source.buffer=clip.buffer;
+   source.playbackRate.value=1;
+   // Adjust listening volume only. The complete original samples are unchanged.
+   gain.gain.setValueAtTime(volume,start);
+   source.connect(gain);gain.connect(voiceOutput(ac));
+   // No offset and NO duration argument: source naturally plays the complete buffer.
+   source.start(start,0);
+   trackAttackSource(source);
+   if(!force){
+    playDecodedVoice.busyUntil=performance.now()+seconds*1000+90;
+    bgmDuckUntil=Math.max(bgmDuckUntil,playDecodedVoice.busyUntil);
    }
-   for(let i=0;i<hits;i++){
-    const at=now+(rush?i*.200:0);
-    const shift=fx.enabled&&rush?1+(i%3-1)*.035:1;
-    const from=fx.from*shift,to=fx.to*shift;
-    const length=rush?clip.duration:fullPreview?fullDuration:force?.7:phase==='reaction'?.22:.58;
-    // Rush replays the recognizable recording at accelerated speed, instead of cutting it to 105 ms.
-    // The gain is 1.5x the NORMAL recorded-attack gain, with a final cap and master limiter.
-    const ordinaryLevel=Math.min(.16,VOLUME()*Math.min(3,clip.gain||1)*fx.volume*
-         (phase==='reaction'?.42:1)/Math.sqrt(.86));
-    const level=rush?Math.min(.24,ordinaryLevel*1.5):ordinaryLevel;
-    voiceAt(at,length,from,to,level);
-    // Additional voiced echoes are disabled: even a preset named 'echo' stays single-source.
-   }
-   if(!force)setVoiceEffectStatus({...fx,label:rush?fx.label:'クリア'});
-   lastSoundStatus=(phase==='reaction'?'反応声':rush?'連撃の声':'攻撃声')+'：'+fx.label;
+   setVoiceEffectStatus({enabled:false});
+   lastSoundStatus=(force?'試聴':rush?'必殺技':phase==='reaction'?'防御':'攻撃')+'：録音した声を原音で全再生';
    return true;
-  }catch(e){lastSoundStatus=String(e);fallback();return false}
+  }catch(e){
+   lastSoundStatus=String(e);
+   if(!force)playDecodedVoice.busyUntil=0;
+   fallback();return false;
+  }
  };
- if(!clipData(cr)){fallback();return}
+ if(!clipData(cr)){if(!force)playDecodedVoice.busyUntil=0;fallback();return false}
  const key=decodedVoiceKey(cr);
- if(voiceCache.has(key)){play(voiceCache.get(key));return}
- decodeVoice(cr).then(play).catch(e=>{lastSoundStatus=String(e);fallback()});
+ if(voiceCache.has(key))return play(voiceCache.get(key));
+ decodeVoice(cr).then(play).catch(e=>{
+  lastSoundStatus=String(e);
+  if(generation===(playDecodedVoice.generation||0)&&!force)playDecodedVoice.busyUntil=0;
+  fallback();
+ });
+ return true;
 }
 function attackVoice(cr,side,ev=null){
  if(match?.mode?.startsWith('ONLINE')&&side===1&&$('muteOpponentVoice').checked)return;
