@@ -60,7 +60,7 @@
       throw new Error('追加した声を解析できません。録音し直してください');
     const old=Array.isArray(cr.evolutionVoices)?cr.evolutionVoices:[];
     const acoustic=[2,11,1,33,22],boostIndex=acoustic.reduce((best,idx,i)=>Number(dna.features[idx])>Number(dna.features[acoustic[best]])?i:best,0);
-    const gains=Array.from({length:5},(_,i)=>i===boostIndex?2:i===(boostIndex+2)%5?1:0);
+    const gains=Array.from({length:5},(_,i)=>i===boostIndex?6:i===(boostIndex+2)%5?3:i===(boostIndex+4)%5?1:0);
     const item={voice:Object.fromEntries(['vol','pitch','res','rhythm','stable','breath'].map(k=>[k,Math.round(voice[k])])),
       signature:(dna.signature>>>0),focus:phaseAt(instant).name,addedAt:Number(instant),boost:gains,
       voiceClip:typeof clip==='string'&&clip.startsWith('data:audio/')&&clip.includes('base64,')&&clip.length<=90000?clip:''};
