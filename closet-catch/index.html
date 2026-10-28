@@ -51,8 +51,8 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-slot{color:white;display:flex;flex-direction:column;align-items:center;min-width:0;gap:4px;padding:7px 5px;border:2px solid #ffffff28;background:#ffffff13;border-radius:12px}.show-slot.selected{border-color:#ffc783;background:#ffffff2c}.show-slot:disabled{opacity:.8}
 .show-slot strong{color:#ffd2a7;font-size:11px}.show-slot canvas{display:block;width:min(100%,90px);height:auto;aspect-ratio:1;border-radius:8px}.show-slot small{font-size:10px;line-height:1.4;overflow-wrap:anywhere;min-height:28px}
 .show-actions{display:flex;gap:9px;margin-top:12px;align-items:center}.show-actions button{border-radius:11px;background:#ffdaad;color:#493045;font-size:12px;font-weight:950;padding:12px 17px}.show-actions .main{background:linear-gradient(110deg,#ff8c89,#ffd595);flex:1}
-.show-judges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}.show-judges[hidden],.show-result[hidden]{display:none}
-.show-judge{border:1px solid #ffffff2b;background:#ffffff16;border-radius:12px;text-align:center;padding:11px 5px}.show-judge b{display:block;color:#f9c79c;font-size:12px}.show-judge strong{font-size:21px}.show-judge span{font-size:10px;display:block}
+.show-judges{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:12px}.show-judges[hidden],.show-result[hidden]{display:none}
+.show-judge{border:1px solid #ffffff2b;background:#ffffff16;border-radius:12px;text-align:center;padding:11px 5px}.show-judge b{display:block;color:#f9c79c;font-size:12px}.show-judge strong{font-size:17px;white-space:nowrap}.show-judge span{font-size:10px;display:block}
 .show-result{font-size:14px;font-weight:950;line-height:1.7;margin:12px 0;color:#ffe3a4}
 .show-pose-hud{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#493658;color:#ffe6b0;border-radius:11px;margin-top:8px;padding:9px 12px;font-size:11px;font-weight:900}
 .show-pose-hud[hidden],#showPose[hidden]{display:none}
@@ -98,6 +98,9 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .avatar-lab hr{border:0;border-top:1px solid #d0dfdf;margin:12px 20px}
 .avatar-lab h3{font-size:14px;color:#204b5e;padding:3px 20px;margin:0}
 @media(max-width:620px){.avatar-lab .panel-head{padding:14px 12px 7px}.avatar-controls{padding:7px 11px;gap:8px}.avatar-controls select{max-width:115px;font-size:10px}.avatar-preview{margin:6px 11px;padding:8px}.avatar-preview canvas{width:88px;height:88px}.avatar-preview p{font-size:11px}.avatar-lab h3{padding:3px 11px}}
+
+@media(max-width:750px){.show-judges{grid-template-columns:repeat(3,minmax(0,1fr))}.show-judge{padding:10px 4px}.show-judge strong{font-size:15px}}
+@media(max-width:420px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge b{font-size:11px}}
 </style>
 </head>
 <body>
@@ -318,7 +321,7 @@ function castAt(x,y){
  // Fish physically swim to this hook; the eventual bite is determined by proximity and probability.
  const originalTarget=selected;
  const castTarget={x:selected?selected.x:x,y:selected?selected.y:y};
- Object.assign(hook,{active:true,stage:1,progress:0,chosen:originalTarget,targetX:castTarget.x,targetY:castTarget.y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false,biteWait:0});
+ Object.assign(hook,{active:true,stage:1,progress:0,chosen:originalTarget?.item.cat==='fish'?null:originalTarget,targetX:castTarget.x,targetY:castTarget.y,x:204,y:149,reel:0,tension:7,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false,biteWait:0});
  focus=selected;tone(260,.13,'triangle',.06);updateFishingHud();redrawUI()
 }
 function endFight(caught,reason){
@@ -670,33 +673,38 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  ctx.strokeStyle='#955466';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-116,8,.1,Math.PI-.1);ctx.stroke();
  avatarHair(ctx,0,-137,.9,hairId,'front',t);
  avatarBody(ctx,0,-7,.85,bodyId,'edge');
- if(!isRival&&st.equip.fish!==null&&catalog[st.equip.fish])drawGarment(ctx,catalog[st.equip.fish],-52,-42,52,-.3);
-  // Garment silhouettes are placed regardless of their original clothing category.
- drawSeaCollectible(ctx,items[3],0,77,111,.03);
+ // Runway composition is made exclusively of the five earned items (no extra stickers).
+ drawSeaCollectible(ctx,items[3],0,80,142,.03);
  // Trouser-shirt: inverted legs become shoulder flaps; the waistband is a collar.
  const torsoPants=['bottom','under'].includes(items[2].cat);
- drawSeaCollectible(ctx,items[2],0,-22,torsoPants?117:126,torsoPants?Math.PI:-.02);
+ drawSeaCollectible(ctx,items[2],0,-23,torsoPants?146:157,torsoPants?Math.PI:-.02);
  if(torsoPants){round(ctx,-26,-2,52,10,5,tint(colorOf(items[2]),-.3),'#ffe6bd');for(const side of [-1,1]){round(ctx,side*32-12,-58,24,10,4,tint(colorOf(items[2]),-.18),'#ffe6bd')}}
  // Pants on the feet turn into two absurd oversized boots with visible cuffs.
  for(let side of [-1,1]){
   const fx=side*(23+gait*11),fy=165-Math.max(0,side*gait)*15;
   if(['bottom','under'].includes(items[4].cat)){
    ctx.save();ctx.translate(fx,fy);ctx.rotate(side*.12);
-   drawSeaCollectible(ctx,items[4],0,-9,63,Math.PI);
+   drawSeaCollectible(ctx,items[4],0,-13,88,Math.PI);
    round(ctx,-22,10,44,13,5,tint(colorOf(items[4]),-.25),'#ffe8c1');
    ctx.restore();
-  }else drawSeaCollectible(ctx,items[4],fx,fy,57,side*.1);
+  }else drawSeaCollectible(ctx,items[4],fx,fy,84,side*.1);
  }
  if(['bottom','under'].includes(items[1].cat)){
   // Split trouser legs into two sunglass lenses and a bridge.
   ctx.strokeStyle='#f6e8bf';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-29,-142);ctx.quadraticCurveTo(0,-152,29,-142);ctx.stroke();
-  drawSeaCollectible(ctx,items[1],-20,-137,45,-Math.PI/2);drawSeaCollectible(ctx,items[1],20,-137,45,Math.PI/2);
+  drawSeaCollectible(ctx,items[1],-24,-146,63,-Math.PI/2);drawSeaCollectible(ctx,items[1],24,-146,63,Math.PI/2);
   ctx.strokeStyle='#2a3046';ctx.lineWidth=2;for(const eye of [-20,20]){ctx.beginPath();ctx.ellipse(eye,-137,22,13,0,0,Math.PI*2);ctx.stroke()}
- }else drawSeaCollectible(ctx,items[1],0,-135,72);
+ }else{
+  // Keep the full shape, draped off-center like a real mask/scarf/head accessory.
+  // Large fish costumes rest over the shoulder instead of a face-sized sticker.
+  ctx.strokeStyle='#f9e6c5';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-43,-155);ctx.quadraticCurveTo(0,-172,44,-155);ctx.stroke();
+  const pos=items[1].cat==='fish'?[-27,-111,135,-.34]:items[1].cat==='acc'?[0,-139,107,.02]:[41,-121,133,-.28];
+  drawSeaCollectible(ctx,items[1],pos[0],pos[1],pos[2],pos[3]);
+ }
  // Inverted trouser hat: two pant legs stick up while the waistband hugs the head.
  const pantsHat=['bottom','under'].includes(items[0].cat);
- drawSeaCollectible(ctx,items[0],0,-189,102,pantsHat?Math.PI:.04);
- if(pantsHat){round(ctx,-29,-168,58,10,4,tint(colorOf(items[0]),-.28),'#ffe6bd');for(const side of [-1,1]){ctx.strokeStyle='#ffeac7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(side*13,-211);ctx.lineTo(side*22,-222);ctx.stroke()}}
+ drawSeaCollectible(ctx,items[0],0,-205,137,pantsHat?Math.PI:.04);
+ if(pantsHat){round(ctx,-29,-173,58,10,4,tint(colorOf(items[0]),-.28),'#ffe6bd');for(const side of [-1,1]){ctx.strokeStyle='#ffeac7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(side*13,-211);ctx.lineTo(side*22,-222);ctx.stroke()}}
  ctx.restore()
 }
 function drawShowStage(){
