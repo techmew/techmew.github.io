@@ -45,13 +45,13 @@ const playbackEnv={clipData,Math,performance:{now:()=>1},$:()=>({checked:false})
  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),match:null,
  unlockBattleAudio:()=>audio,voiceOutput:()=>({}),audioMaster:()=>({}),
  decodedVoiceKey:()=> 'cached',voiceCache:new Map([['cached',{buffer:{duration:2.85},offset:.5,duration:.7,gain:1}]]),
- trackAttackSource(){},voiceEffectRate(){},lastSoundStatus:'',setVoiceEffectStatus(){},synthVoice(){},
+ trackAttackSource(){},setVoiceEffectStatus(){},voiceEffectRate(){},lastSoundStatus:'',setVoiceEffectStatus(){},synthVoice(){},
  voiceEffectProfile:()=>({enabled:false,from:1,to:1,volume:1})};
 const play=vm.runInNewContext(take('function playDecodedVoice(cr,side,force=false,options={})','function attackVoice(')+';playDecodedVoice',playbackEnv);
 play(preview,0,true,{full:true});
 play(preview,0,true);
-assert.equal(starts[0][1],0,'preview starts at the beginning');
-assert.equal(starts[0][2],2.85,'preview plays the full recording');
-assert.equal(starts[1][1],.5,'short battle attacks retain their distinct segment');
-assert.equal(starts[1][2],.7,'short battle excerpt is unchanged');
-console.log('VOICE BOUNDARY V145 PASS | 220ms pre-roll, 650ms tail, full playback, audio-only retake, rollback, cache');
+assert.equal(starts[0][1],0,'preview starts at sample zero');
+assert.equal(starts[0].length,2,'no duration argument: original recording plays naturally to its end');
+assert.equal(starts[1][1],0,'no shortened segment even in basic preview mode');
+assert.equal(starts[1].length,2,'the entire original recording is used in every mode');
+console.log('VOICE BOUNDARY V145 PASS | 220ms pre-roll, 650ms tail, uncut playback, audio-only retake, rollback, cache');
