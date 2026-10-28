@@ -101,6 +101,28 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 
 @media(max-width:750px){.show-judges{grid-template-columns:repeat(3,minmax(0,1fr))}.show-judge{padding:10px 4px}.show-judge strong{font-size:15px}}
 @media(max-width:420px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge b{font-size:11px}}
+
+.free-lab{margin-top:18px;background:linear-gradient(140deg,#effaf7,#f7e9f7);padding-bottom:16px}
+.free-intro,.free-note{font-size:12px;line-height:1.7;color:#345666;margin:8px 20px 14px}
+.free-layout{display:grid;grid-template-columns:minmax(190px,380px) 1fr;gap:14px;margin:0 20px}
+.free-preview{position:relative;align-self:start;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 22px #24496016}
+.free-preview canvas{display:block;width:100%;height:auto}
+.free-status{position:absolute;bottom:10px;left:10px;background:#1d405cd9;color:#fff;border-radius:12px;padding:8px 11px;font-weight:900;font-size:12px}
+.free-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:start}
+.free-slots button{min-width:0;text-align:left;border:1px solid #c7d8d8;background:#fff;border-radius:10px;padding:9px;cursor:pointer;color:#23485b}
+.free-slots button.active{background:#fff3ca;border-color:#e3a74f;box-shadow:0 0 0 2px #f6c86b}
+.free-slots button b{display:block;font-size:11px}.free-slots button small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;margin-top:3px;color:#5b7381}
+.free-controls{display:flex;flex-wrap:wrap;gap:8px;margin:14px 20px}
+.free-controls button,.free-picker>button{background:#235a73;color:#fff;border:0;border-radius:9px;padding:10px 13px;font-weight:900;cursor:pointer}
+.free-picker{margin:0 20px;border-radius:13px;background:#fff9;padding:13px}
+.free-picker>b{color:#275166;font-size:13px}
+.free-filters{display:flex;gap:7px;margin:9px 0}.free-filters input{flex:1;min-width:0}.free-filters input,.free-filters select{border:1px solid #c3d7d7;border-radius:8px;padding:9px;background:white;color:#2a5261}
+.free-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:6px;max-height:270px;overflow:auto}
+.free-choices button{border:1px solid #d7e2e0;background:#fff;border-radius:8px;padding:7px 8px;text-align:left;cursor:pointer;font-size:11px;color:#345268;overflow-wrap:anywhere}
+.free-choices button.chosen{border-color:#dfae58;background:#fff0c9}
+.free-choices button small{display:block;color:#69818c;font-size:9px;margin-top:3px}
+.free-note{margin-bottom:0}
+@media(max-width:620px){.free-layout{grid-template-columns:1fr;margin:0 11px}.free-preview{width:min(100%,320px);margin:auto}.free-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.free-intro,.free-note{margin:9px 11px}.free-controls,.free-picker{margin-left:11px;margin-right:11px}.free-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -121,7 +143,8 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
  <div class="avatar-controls"><label>所持体型衣装<select id="bodyShapeSelect"></select></label><label>素材<select id="bodyFinishSelect" disabled></select></label><button id="bodyShuffle">所持品でおまかせ</button></div>
  <div class="avatar-preview"><canvas id="bodySample" width="160" height="160"></canvas><p id="bodyLabel">50種類の体型衣装<br><small>シルエットが変化し、ランウェイにも反映</small></p></div>
 </section>
-<section class="panel wardrobe"><div class="panel-head"><div class="section-label">04 / COLLECTION<strong>釣った服のクローゼット</strong></div><span class="mini-tag" id="itemSummary">所持 0着</span></div><div class="tabs" id="tabs"><button class="tab active" data-cat="all">すべて</button><button class="tab" data-cat="top">トップス</button><button class="tab" data-cat="bottom">ボトムス</button><button class="tab" data-cat="dress">ワンピース</button><button class="tab" data-cat="outer">アウター</button><button class="tab" data-cat="shoes">シューズ</button><button class="tab" data-cat="hat">帽子</button><button class="tab" data-cat="acc">小物</button><button class="tab" data-cat="under">パンツ</button><button class="tab" data-cat="fish">魚</button></div><div class="closet-meta"><span id="filterInfo">まだ服がありません。まずは海へ！</span><div class="filters"><select id="sort"><option value="new">新しく釣った順</option><option value="rare">レア順</option><option value="type">種類順</option></select></div></div><div id="inventory" class="inventory"></div><button id="moreBtn" class="more" hidden>さらに表示</button></section>
+<section class="panel free-lab" id="freeLab"><div class="panel-head"><div class="section-label">04 / FREE STYLING<strong>自由コーデ・16部位</strong></div><span class="mini-tag">所持品だけで作成</span></div><p class="free-intro">釣った服・魚・髪型を16部位へ自由に配置。魚を帽子にするなどの変則コーデも可能。5着チャレンジとは別に保存されます。</p><div class="free-layout"><div class="free-preview"><canvas id="freeCanvas" width="440" height="510" aria-label="16部位フリーコーデのプレビュー"></canvas><div id="freeStatus" class="free-status">0 / 16部位</div></div><div id="freeSlots" class="free-slots" aria-label="自由コーデの16部位"></div></div><div class="free-controls"><button id="freeAuto" type="button">所持品で自動コーデ</button><button id="freeClear" type="button">すべて外す</button><button id="freePhoto" type="button">コーデ画像を保存</button></div><div class="free-picker"><b id="freePickerTitle">部位を選んでください</b><div class="free-filters"><input id="freeSearch" type="search" placeholder="衣装名・魚の名前で検索" aria-label="所持アイテムを検索"><select id="freeCategory" aria-label="アイテムの種類"><option value="all">すべて</option><option value="top">トップス</option><option value="bottom">ボトムス</option><option value="dress">ワンピース</option><option value="outer">アウター</option><option value="shoes">シューズ</option><option value="hat">帽子</option><option value="acc">小物</option><option value="under">パンツ</option><option value="fish">魚</option><option value="hair">髪型</option><option value="bodyCostume">体型衣装</option></select></div><div id="freeChoices" class="free-choices"></div><button id="freeMore" type="button" hidden>もっと見る</button></div><p class="free-note">ネット対戦は未接続。現在はローカルで自由コーデを保存・撮影できます。オンライン対戦では所持品と採点をサーバーで検証する予定です。</p></section>
+<section class="panel wardrobe"><div class="panel-head"><div class="section-label">05 / COLLECTION<strong>釣った服のクローゼット</strong></div><span class="mini-tag" id="itemSummary">所持 0着</span></div><div class="tabs" id="tabs"><button class="tab active" data-cat="all">すべて</button><button class="tab" data-cat="top">トップス</button><button class="tab" data-cat="bottom">ボトムス</button><button class="tab" data-cat="dress">ワンピース</button><button class="tab" data-cat="outer">アウター</button><button class="tab" data-cat="shoes">シューズ</button><button class="tab" data-cat="hat">帽子</button><button class="tab" data-cat="acc">小物</button><button class="tab" data-cat="under">パンツ</button><button class="tab" data-cat="fish">魚</button></div><div class="closet-meta"><span id="filterInfo">まだ服がありません。まずは海へ！</span><div class="filters"><select id="sort"><option value="new">新しく釣った順</option><option value="rare">レア順</option><option value="type">種類順</option></select></div></div><div id="inventory" class="inventory"></div><button id="moreBtn" class="more" hidden>さらに表示</button></section>
 <div class="bottom-row"><section class="bottom-box"><h3>10,000着コレクション</h3><div class="progress-label"><span>図鑑の発見率</span><span id="percent">0.00%</span></div><div class="progress"><span id="progressFill"></span></div><p>トップス2,000／ボトムス1,900／ワンピース1,200／アウター1,000／靴1,300／帽子850／小物1,050／パンツ700。色・形・柄の組み合わせはすべて固有です。</p></section><section class="bottom-box"><h3>釣りざおショップ</h3><div class="upgrade"><div><b>レア服を狙う確率UP</b><br><small id="rodLevel">釣りざお Lv.1 ／ レア率 標準</small></div><button id="upgradeBtn">◈ <span id="upgradeCost">100</span> 強化</button></div><p>重複して釣れた服はコインに交換。強化するとレア衣装が出やすくなります。</p></section></div>
 <div class="footer-note">CLOSET CATCH / ブラウザ保存対応・オフラインプレイ可・全年齢向け</div>
 </div>
@@ -185,8 +208,22 @@ function pickFishForSea(skipIds=[]){
  return pool[pool.length-1]
 }
 function replaceSeaSlot(delay=450){setTimeout(()=>{if(sceneItems.length<17)sceneItems.push(spawnSeaItem(sceneItems.map(e=>e.item.id)))},delay)}
-const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null,fish:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,hairOwned:[0],bodyOwned:[0],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null}});
+const defaultState=()=>({owned:[],seen:{},equip:{top:null,bottom:null,dress:null,outer:null,shoes:null,hat:null,acc:null,under:null,fish:null},coins:0,casts:0,catches:0,combo:0,rod:1,slots:[null,null,null],freeLook:null,sound:false,claimed:[],failStreak:0,hair:0,bodyCostume:0,hairOwned:[0],bodyOwned:[0],show:{round:1,queue:[],order:[0,1,2,3,4],wins:0,best:0,streak:0,lossStreak:0,shows:0,completed:false,lastResult:null,pendingResult:null}});
 let st=defaultState();try{const v=JSON.parse(localStorage.getItem(SAVE_KEY));if(v&&Array.isArray(v.owned)){st={...st,...v};st.equip={...defaultState().equip,...v.equip};st.owned=[...new Set(st.owned.filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL+FISH_COUNT))];st.seen=v.seen&&typeof v.seen==='object'?v.seen:{};st.slots=Array.isArray(v.slots)?v.slots.slice(0,3):[null,null,null]}}catch(e){}st.sound=false;st.hair=Number.isInteger(st.hair)&&st.hair>=0&&st.hair<300?st.hair:0;st.bodyCostume=Number.isInteger(st.bodyCostume)&&st.bodyCostume>=0&&st.bodyCostume<50?st.bodyCostume:0;st.hairOwned=Array.isArray(st.hairOwned)?[...new Set([0,...st.hairOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<300):[0,st.hair];st.bodyOwned=Array.isArray(st.bodyOwned)?[...new Set([0,...st.bodyOwned])].filter(i=>Number.isInteger(i)&&i>=0&&i<50):[0,st.bodyCostume];if(!st.hairOwned.includes(st.hair))st.hair=0;if(!st.bodyOwned.includes(st.bodyCostume))st.bodyCostume=0;st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<BODY_ID_START+50).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)))st.show.pendingResult=null;
+const FREE_PARTS=[
+ ['髪型',220,112,130,0],['帽子',220,66,145,0],['顔飾り',220,144,108,0],['耳飾り',278,152,70,.12],['首飾り',220,198,93,0],['インナー',220,253,125,0],['トップス',220,264,166,0],['アウター',220,260,190,0],['手袋・手元',300,284,91,.15],['腰飾り',220,311,126,0],['ボトムス',220,348,162,0],['レッグウェア',220,403,120,0],['シューズ',220,455,113,0],['背中',327,255,150,-.2],['特殊アクセ',331,349,121,.16],['体型衣装',220,269,198,0]
+];
+const freeOwnedIds=()=>[...new Set([...st.owned,...st.hairOwned.map(i=>HAIR_ID_START+i),...st.bodyOwned.map(i=>BODY_ID_START+i)])].filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length);
+const freeOwnedSet=new Set(freeOwnedIds());
+if(!Array.isArray(st.freeLook)){
+ st.freeLook=Array(16).fill(null);
+ const mapped={hat:1,acc:2,under:5,top:6,outer:7,bottom:10,shoes:12,fish:14,dress:15};
+ for(const [cat,slot] of Object.entries(mapped)){const id=st.equip[cat];if(freeOwnedSet.has(id))st.freeLook[slot]=id}
+ st.freeLook[0]=HAIR_ID_START+st.hair;
+ if(st.bodyCostume)st.freeLook[15]=BODY_ID_START+st.bodyCostume;
+}
+st.freeLook=Array.from({length:16},(_,i)=>{const id=st.freeLook[i];return Number.isInteger(id)&&freeOwnedSet.has(id)?id:null});
+const freeSeen=new Set();st.freeLook=st.freeLook.map(id=>{if(id===null||freeSeen.has(id))return null;freeSeen.add(id);return id});
 let ownSet=new Set(st.owned),tab='all',shown=24,animTime=0,lastTime=performance.now(),focus=null,sceneItems=[],particles=[],ripples=[],hook={active:false,stage:0,progress:0,x:204,y:140,targetX:620,targetY:360,chosen:null,reel:0,tension:0,pull:false,elapsed:0,limit:15,result:false,surge:false,warning:false},pendingItem=null,toastTimeout,noticeTimeout,sessionCatch=0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...st,sound:false}))}catch(e){}}
@@ -322,9 +359,8 @@ function catchItem(sceneItem){const item=sceneItem.item;let duplicate;
  else{duplicate=ownSet.has(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}if(item.cat==='fish')st.equip.fish=item.id}
  st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity])+(item.cat==='fish'&&!duplicate?18:0);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.cat==='fish'&&!duplicate?'NEW SPECIES! +18 COINS':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
  popup(item,duplicate);
- // A rare, optional slapstick surprise: everything remains in the inventory.
- if(st.catches>10&&st.catches%15===0&&Math.random()<.17&&Object.values(st.equip).some(x=>x!==null)){setTimeout(()=>undress(true),1600)}
- sceneItems=sceneItems.filter(s=>s!==sceneItem);replaceSeaSlot(400);renderAvatar();redrawUI()}
+ // Collected outfits remain equipped until the player explicitly changes them.
+ sceneItems=sceneItems.filter(s=>s!==sceneItem);replaceSeaSlot(400);renderAvatar();redrawUI();renderFreeSlots();renderFreePicker()}
 function fishApproach(s,target,dt){
  const dx=target.x-s.x,dy=target.y-s.y,d=Math.max(1,Math.hypot(dx,dy));
  const speed=clamp(143+(s.item.rarity*13),140,190);
@@ -1046,6 +1082,84 @@ function drawModel(){let ctx=mc,t=animTime*.001;ctx.clearRect(0,0,440,510);
 }
 function renderModel(){const s=scoreOutfit();$('score').textContent=s.toLocaleString('ja-JP');$('rank').textContent=s>=1600?'SS':s>=950?'S':s>=600?'A':s>=300?'B':'C';let dressed=Object.values(st.equip).filter(x=>x!==null).length;$('fitTitle').textContent=dressed===0?'パンツ一丁':`${dressed}アイテム着用`;$('equipStatus').textContent=dressed===0?'いまはパンツ一丁。服を釣って着せよう。':st.equip.dress!==null?'ワンピースで決めてみよう！':'釣った服の組み合わせでスコアが変わる！'}
 function drawGarmentCard(canvas,item){const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=gradient(ctx,w/2,h/2,w*.65,'#f8fcf9','#d8eae6');ctx.fillRect(0,0,w,h);let scale=Math.min(w,h)*.92;drawSeaCollectible(ctx,item,w/2,h/2,scale);if(item.rarity>=2){ctx.fillStyle=rareColors[item.rarity];star(ctx,w*.83,h*.18,8,4,5);ctx.fill()}}
+
+let freeActive=0,freeShown=48;
+const freeCanvas=$('freeCanvas'),fc=freeCanvas.getContext('2d');
+function drawFreeLook(){
+ const ctx=fc;ctx.clearRect(0,0,440,510);
+ const bg=ctx.createLinearGradient(0,0,440,510);bg.addColorStop(0,'#f4eafa');bg.addColorStop(1,'#d8f1ed');ctx.fillStyle=bg;ctx.fillRect(0,0,440,510);
+ ellipse(ctx,220,475,105,16,'#7a819b45');
+ ctx.lineCap='round';ctx.strokeStyle='#dba88d';ctx.lineWidth=28;
+ for(const x of [194,246]){ctx.beginPath();ctx.moveTo(x,316);ctx.lineTo(x,451);ctx.stroke()}
+ ctx.strokeStyle='#e3b599';ctx.lineWidth=25;
+ for(const a of [-1,1]){ctx.beginPath();ctx.moveTo(220+a*49,211);ctx.lineTo(220+a*79,325);ctx.stroke()}
+ round(ctx,170,198,100,151,28,'#e9b69a','#d7a58c');
+ ellipse(ctx,220,135,51,59,'#edbd9d');
+ for(const x of [201,239])ellipse(ctx,x,136,3.5,4,'#345266');
+ ctx.strokeStyle='#965b62';ctx.lineWidth=3;ctx.beginPath();ctx.arc(220,156,10,.1,Math.PI-.1);ctx.stroke();
+ const layers=[13,15,11,12,10,9,5,6,7,8,4,3,2,0,1,14];
+ for(const index of layers){
+  const id=st.freeLook[index];if(id===null)continue;
+  const item=catalog[id],part=FREE_PARTS[index];
+  ctx.save();
+  if(index===13){ctx.globalAlpha=.84}
+  if(item.cat==='hair'&&index===0){avatarHair(ctx,part[1],part[2],1.1,item.id-HAIR_ID_START,'front')}
+  else if(item.cat==='bodyCostume'&&index===15){avatarBody(ctx,220,270,1.05,item.id-BODY_ID_START,'base');avatarBody(ctx,220,270,1.05,item.id-BODY_ID_START,'edge')}
+  else if(index===12){for(const dx of [-28,28])drawSeaCollectible(ctx,item,220+dx,455,73,dx*.002)}
+  else if(index===3){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*55,152,55,dx*.16)}
+  else if(index===8){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*84,299,67,dx*.15)}
+  else drawSeaCollectible(ctx,item,part[1],part[2],part[3],part[4]);
+  ctx.restore();
+ }
+ ctx.strokeStyle='#ffffffbb';ctx.lineWidth=4;round(ctx,8,8,424,494,18,null,'#ffffffbb');
+}
+function renderFreeSlots(){
+ const root=$('freeSlots');root.replaceChildren();
+ FREE_PARTS.forEach((part,i)=>{
+  const b=document.createElement('button');b.type='button';b.className=i===freeActive?'active':'';
+  const title=document.createElement('b');title.textContent=String(i+1).padStart(2,'0')+' '+part[0];
+  const sub=document.createElement('small');sub.textContent=st.freeLook[i]===null?'未設定':catalog[st.freeLook[i]].name;
+  b.append(title,sub);b.setAttribute('aria-pressed',String(i===freeActive));
+  b.addEventListener('click',()=>{freeActive=i;freeShown=48;renderFreeSlots();renderFreePicker()});root.append(b)
+ });
+ const count=st.freeLook.filter(id=>id!==null).length;
+ $('freeStatus').textContent=count+' / 16部位 · 保存済み';
+ drawFreeLook();
+}
+function renderFreePicker(){
+ $('freePickerTitle').textContent=FREE_PARTS[freeActive][0]+'に着けるアイテム';
+ const query=$('freeSearch').value.trim().toLocaleLowerCase(),cat=$('freeCategory').value;
+ const ids=freeOwnedIds().filter(id=>{const it=catalog[id];return (cat==='all'||it.cat===cat)&&(!query||it.name.toLocaleLowerCase().includes(query)||String(id+1).includes(query))});
+ const root=$('freeChoices');root.replaceChildren();
+ const clear=document.createElement('button');clear.type='button';clear.textContent='外す（この部位を空にする）';
+ clear.addEventListener('click',()=>{st.freeLook[freeActive]=null;save();renderFreeSlots();renderFreePicker()});root.append(clear);
+ for(const id of ids.slice(0,freeShown)){
+  const item=catalog[id],b=document.createElement('button');b.type='button';b.className=st.freeLook[freeActive]===id?'chosen':'';
+  b.textContent=item.name;const sub=document.createElement('small');sub.textContent=['COMMON','RARE','SUPER','LEGEND'][item.rarity]+' · #'+(id+1);b.append(sub);
+  b.addEventListener('click',()=>{
+   st.freeLook=st.freeLook.map((v,i)=>i!==freeActive&&v===id?null:v);
+   st.freeLook[freeActive]=id;save();renderFreeSlots();renderFreePicker()
+  });root.append(b)
+ }
+ $('freeMore').hidden=ids.length<=freeShown;
+ if(!ids.length){const p=document.createElement('p');p.textContent='該当する所持アイテムはありません。';root.append(p)}
+}
+$('freeSearch').addEventListener('input',()=>{freeShown=48;renderFreePicker()});
+$('freeCategory').addEventListener('change',()=>{freeShown=48;renderFreePicker()});
+$('freeMore').addEventListener('click',()=>{freeShown+=48;renderFreePicker()});
+$('freeClear').addEventListener('click',()=>{st.freeLook=Array(16).fill(null);save();renderFreeSlots();renderFreePicker()});
+$('freeAuto').addEventListener('click',()=>{
+ const ids=freeOwnedIds();const used=new Set();
+ st.freeLook=FREE_PARTS.map((part,i)=>{
+  const preferred={0:'hair',1:'hat',2:'acc',3:'acc',4:'acc',5:'under',6:'top',7:'outer',8:'acc',9:'acc',10:'bottom',11:'under',12:'shoes',13:'dress',14:'fish',15:'bodyCostume'}[i];
+  const pool=ids.filter(id=>!used.has(id)),chosen=pool.find(id=>catalog[id].cat===preferred)??pool[0]??null;
+  if(chosen!==null)used.add(chosen);return chosen
+ });save();renderFreeSlots();renderFreePicker()
+});
+$('freePhoto').addEventListener('click',()=>{
+ drawFreeLook();const a=document.createElement('a');a.href=freeCanvas.toDataURL('image/png');a.download='closet-catch-free-16-look.png';a.click()
+});
+renderFreeSlots();renderFreePicker();
 function renderInventory(){const sort=$('sort').value;let ids=st.owned.filter(id=>tab==='all'||catalog[id].cat===tab);if(sort==='rare')ids.sort((a,b)=>catalog[b].rarity-catalog[a].rarity);if(sort==='type')ids.sort((a,b)=>catalog[a].cat.localeCompare(catalog[b].cat));$('filterInfo').textContent=`${ids.length} 着が見つかりました。タップで着る・もう一度タップで脱ぐ。`;let root=$('inventory');root.replaceChildren();if(ids.length===0){let div=document.createElement('div');div.className='empty';div.style.gridColumn='1/-1';div.innerHTML='<span class="empty-icon">♧</span>まだ服がありません。海から釣ってみよう！';root.appendChild(div)}for(const id of ids.slice(0,shown)){let item=catalog[id],el=document.createElement('button');el.className='garment-card'+(st.equip[item.cat]===id?' equipped':'');el.title=item.name;let c=document.createElement('canvas');c.width=116;c.height=116;el.appendChild(c);let b=document.createElement('b');b.textContent=item.name;el.appendChild(b);let info=document.createElement('small');info.className='rarity-'+rareSymbols[item.rarity];info.textContent=rareSymbols[item.rarity]+' · #'+String(item.id+1).padStart(5,'0');el.appendChild(info);if(st.equip[item.cat]===id){let tag=document.createElement('span');tag.className='tag-equip';tag.textContent='着用中';el.appendChild(tag)}el.addEventListener('click',()=>equipItem(item));root.appendChild(el);drawGarmentCard(c,item)}$('moreBtn').hidden=ids.length<=shown}
 const questDefs=[{label:'釣りデビュー',target:3,amount:50,progress:()=>st.catches},{label:'おしゃれ収集家',target:5,amount:80,progress:()=>st.owned.length},{label:'コーデ研究家',target:500,amount:150,progress:scoreOutfit}];
 function renderQuests(){const q=$('quests');q.replaceChildren();if(!Array.isArray(st.claimed))st.claimed=[];questDefs.forEach((def,i)=>{let value=def.progress(),done=st.claimed.includes(i),ready=value>=def.target,el=document.createElement('div');el.className='quest';let top=document.createElement('div');top.className='quest-head';let b=document.createElement('b');b.textContent=def.label;let small=document.createElement('small');small.textContent=`${Math.min(value,def.target)}/${def.target}`;top.append(b,small);let prize=document.createElement('small');prize.textContent=done?'達成済み':`報酬 ◈${def.amount}`;let btn=document.createElement('button');btn.textContent=done?'受け取り済み':ready?'報酬を受け取る':'挑戦中';btn.disabled=done||!ready;btn.className=ready&&!done?'claimable':'';btn.addEventListener('click',()=>{if(!ready||st.claimed.includes(i))return;st.claimed.push(i);st.coins+=def.amount;showEvent(`クエスト達成！ +${def.amount}コイン`);sfxCatch(2);redrawUI()});el.append(top,prize,btn);q.append(el)})}
