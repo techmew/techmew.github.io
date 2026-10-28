@@ -1113,7 +1113,7 @@ function abortCaptureForBackground(){
 }
 function pcmWavDataUrl(samples,rate){
  if(!Array.isArray(samples)||!Number.isFinite(rate)||rate<8000||samples.length<Math.round(rate*.25))return '';
- const count=Math.min(samples.length,Math.round(rate*2.85)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
+ const count=Math.min(samples.length,Math.round(rate*3)),bytes=new ArrayBuffer(44+count*2),view=new DataView(bytes);
  const ascii=(at,str)=>{for(let i=0;i<str.length;i++)view.setUint8(at+i,str.charCodeAt(i))};
  ascii(0,'RIFF');view.setUint32(4,36+count*2,true);ascii(8,'WAVE');ascii(12,'fmt ');
  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
@@ -1227,7 +1227,7 @@ async function startRecord(mode='birth'){
       pcmSilence=aud.createGain();pcmSilence.gain.value=0;
       pcmNode.onaudioprocess=ev=>{
        // Buffer 220 ms before 録音開始, plus keep recording 650 ms after the timer.
-       if(recordingFinishing||pcmSamples.length>=Math.round(pcmRate*2.85))return;
+       if(recordingFinishing||pcmSamples.length>=Math.round(pcmRate*3))return;
        const input=ev.inputBuffer.getChannelData(0);
        for(let i=0;i<input.length;i++){
         pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
@@ -1237,7 +1237,7 @@ async function startRecord(mode='birth'){
           pcmPreRoll[pcmPreWrite]=value;
           pcmPreWrite=(pcmPreWrite+1)%pcmPreRoll.length;
           pcmPreCount=Math.min(pcmPreCount+1,pcmPreRoll.length);
-         }else if(recording&&pcmSamples.length<Math.round(pcmRate*2.85)){
+         }else if(recording&&pcmSamples.length<Math.round(pcmRate*3)){
           pcmSamples.push(value);
          }
          pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
