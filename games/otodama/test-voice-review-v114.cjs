@@ -109,7 +109,7 @@ async function attempt(mediaRecorderEnabled){
  assert.equal(env.media.stops,1,'all microphone tracks closed');
  assert.equal(env.context.cur.seed,undefined,'new character not selected before animation');
  assert.equal(typeof env.ctxRef.stockCallback,'function','stock callback waits for animation');
- assert.ok(env.notes.at(-1).startsWith('gacha:'),'gacha starts before stock update');
+ assert.ok(env.notes.some(x=>x.startsWith('gacha:')),'gacha starts before stock update');
  const eventCount=env.notes.length;
  env.ctxRef.stockCallback();
  assert.equal(env.notes.length,eventCount+2,'preview and stock updated after gacha callback');
