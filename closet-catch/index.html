@@ -583,9 +583,12 @@ function exportShowPhoto(){
 }
 $('showEntry').addEventListener('click',openShow);
 $('showPhoto').addEventListener('click',exportShowPhoto);
-$('showPose').addEventListener('click',recordPose);
-sc.addEventListener('pointerdown',e=>{if(showPhase==='walk'){e.preventDefault();recordPose()}});
-document.addEventListener('keydown',e=>{if(showPhase==='walk'&&(e.code==='KeyP'||e.code==='Space')&&!e.repeat){e.preventDefault();recordPose()}});
+// Judge timing on press, not click/release: touch click latency can cost a PERFECT grade.
+$('showPose').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();recordPose()});
+// Keyboard and assistive-technology clicks have no pointerdown event.
+$('showPose').addEventListener('click',e=>{if(e.detail===0)recordPose()});
+sc.addEventListener('pointerdown',e=>{if(showPhase==='walk'&&(e.pointerType!=='mouse'||e.button===0)&&e.isPrimary!==false){e.preventDefault();recordPose()}});
+document.addEventListener('keydown',e=>{if(showPhase==='walk'&&(e.code==='KeyP'||e.code==='Space')&&!e.repeat&&!e.target.closest('button,a,input,textarea,select,[role="button"]')){e.preventDefault();recordPose()}});
 $('showShuffle').addEventListener('click',()=>{if(showPhase!=='prep')return;for(let i=4;i>0;i--){let j=Math.floor(Math.random()*(i+1));[st.show.order[i],st.show.order[j]]=[st.show.order[j],st.show.order[i]]}showSelected=-1;showSlots();save()});
 $('showMain').addEventListener('click',()=>{if(showPhase==='prep')beginShow();else if(showPhase==='walk'||showPhase==='judge')endShow();else if(showPhase==='result')nextShow()});
 function drawSea(){let t=animTime*.001;const bg=sea.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#73cad4');bg.addColorStop(.29,'#b3e7da');bg.addColorStop(.3,'#69c1cb');bg.addColorStop(1,'#0d6582');sea.fillStyle=bg;sea.fillRect(0,0,W,H);
@@ -678,15 +681,17 @@ function reelDown(){if(hook.stage===2){hook.pull=true;updateFishingHud()}}
 function reelUp(){if(hook.pull){hook.pull=false;updateFishingHud()}}
 function releasePointer(e){heldPointers.delete(e.pointerId);if(!heldPointers.size&&!spaceHeld)reelUp()}
 function captureHold(e,el){e.preventDefault();heldPointers.add(e.pointerId);try{el.setPointerCapture(e.pointerId)}catch(_){}}
+// Safety net for interrupted captures: releasing outside the canvas must stop reeling.
+for(const name of ['pointerup','pointercancel'])window.addEventListener(name,releasePointer);
 ocean.addEventListener('pointerdown',e=>{
- if(hook.stage===3)return;
+ if(hook.stage===3||(e.pointerType==='mouse'&&e.button!==0))return;
  captureHold(e,ocean);
  if(hook.stage===2)reelDown();
  else if(!hook.active){const p=asSeaCoords(e);castAt(p.x,p.y)}
 });
 for(const name of ['pointerup','pointercancel','lostpointercapture'])ocean.addEventListener(name,releasePointer);
 $('castBtn').addEventListener('pointerdown',e=>{
- if(hook.stage===3)return;
+ if(hook.stage===3||(e.pointerType==='mouse'&&e.button!==0))return;
  captureHold(e,$('castBtn'));
  if(hook.stage===2)reelDown();
  else if(!hook.active){const it=pick(sceneItems);if(it)castAt(it.x,it.y)}
