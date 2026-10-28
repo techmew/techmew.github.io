@@ -49,7 +49,7 @@ const birthSource=extract('let birthRevealToken=0,birthRevealTimers=[],birthStoc
 const elements=new Map();
 const $=id=>{if(!elements.has(id))elements.set(id,{hidden:true,dataset:{},textContent:'',width:320,height:280,getContext(){return {clearRect(){}}}});return elements.get(id)};
 let tasks=[],hidden=false,reduced=false,stockEvents=[],drawn=[];
-const ctx={console,Math,$,hash:n=>n>>>0,rarityOf:()=> 'B',displayName:x=>x.name,drawCreature:(...args)=>drawn.push(args),recording:false,recordingRequestPending:false,changeCaptureButtons(){},roster:[],ROSTER_LIMIT:10,
+const ctx={console,Math,$,hash:n=>n>>>0,rarityOf:()=> 'B',displayName:x=>x.name,drawCreature:(...args)=>drawn.push(args),recording:false,recordingRequestPending:false,changeCaptureButtons(){},clipData:c=>c?.voiceClip||null,roster:[],ROSTER_LIMIT:10,
  cur:sample(101),document:{get hidden(){return hidden}},
  window:{matchMedia:()=>({get matches(){return reduced}})},
  setTimeout:(fn,delay)=>{const task={fn,delay,canceled:false};tasks.push(task);return task},
@@ -61,7 +61,7 @@ assert.equal(new Set(Array.from(api.BIRTH_SCENES,s=>s.type)).size,4,'birth types
 api.startBirthReveal(ctx.cur,()=>{stockEvents.push(ctx.cur.seed);return true});
 assert.equal($('birthReveal').hidden,false,'birth ceremony begins over recording controls');
 assert.equal($('birthReveal').dataset.phase,'charge','first phase charging');
-assert.equal(tasks.length,4,'hatch, real-character reveal, stock, and cleanup scheduled');
+assert.equal(tasks.length,3,'hatch, real-character reveal, and stock scheduled');
 tasks[0].fn();assert.equal($('birthReveal').dataset.phase,'hatch','middle phase works');
 tasks[1].fn();assert.equal($('birthReveal').dataset.phase,'reveal','real sprite revealed before stock');
 assert.equal(drawn.length,1,'birth canvas draws actual game creature');
@@ -69,14 +69,15 @@ assert.equal(stockEvents.length,0,'stock not committed until sprite is revealed'
 assert.match($('birthSubline').textContent,/誕生/,'character name shown on hatching screen');
 tasks[2].fn();assert.equal($('birthReveal').dataset.phase,'stock','stock step follows creature reveal');
 assert.equal(stockEvents.length,1,'stock callback invoked once, after drawing');
-tasks[3].fn();assert.equal($('birthReveal').hidden,true,'overlay closes after showing stock result');
+assert.equal($('birthReveal').hidden,false,'overlay stays visible for voice review');
+api.cancelBirthReveal();assert.equal($('birthReveal').hidden,true,'player closes the completed review');
 tasks=[];ctx.cur=sample(102);api.startBirthReveal(ctx.cur);
 const oldTask=tasks[0];ctx.cur=sample(103);api.startBirthReveal(ctx.cur);
 assert.equal(oldTask.canceled,true,'new character cancels stale previous birth');
 oldTask.fn();assert.equal($('birthReveal').hidden,false,'stale callback cannot clear newer ceremony');
 api.cancelBirthReveal();assert.equal($('birthReveal').hidden,true,'selection cancels birth safely');
 tasks=[];reduced=true;ctx.cur=sample(104);api.startBirthReveal(ctx.cur);
-assert.ok(tasks[3].delay<=900,'reduced-motion reveal finishes quickly');
+assert.ok(tasks[2].delay<=520,'reduced-motion stock step finishes quickly');
 api.cancelBirthReveal();hidden=true;api.startBirthReveal(ctx.cur);
 assert.equal($('birthReveal').hidden,true,'hidden browser never animates');
 assert.match(js,/startBirthReveal\(newborn,\(\)=>\{setCurrent\(newborn,true\);return saveNewborn\(newborn\)\}\)/,'new microphone creature saved only after it appears');
