@@ -34,6 +34,16 @@ function voiceFusion(c){
  const kinds=['リズム','響き','安定','変化'];const counts=kinds.map(name=>list.filter(v=>v?.focus===name).length);
  return {extra:list.length,rhythm:counts[0],echo:counts[1],steady:counts[2],change:counts[3],unique:counts.filter(Boolean).length};
 }
+// Stage bonus is determined by the recorded evolution voice; older saves retain defaults.
+function evolutionCombatBonus(c){
+ const voices=Array.isArray(c?.evolutionVoices)?c.evolutionVoices.slice(0,3):[];
+ let attack=0,hp=0;
+ for(const v of voices){
+  attack+=Number.isFinite(v?.attackBonus)?clamp(v.attackBonus,8,14):12;
+  hp+=Number.isFinite(v?.hpBonus)?clamp(v.hpBonus,5,10):8;
+ }
+ return {attack:Math.min(42,attack),hp:Math.min(30,hp)};
+}
 function arenaFor(stage,turn){
  if(turn<6||turn%7!==6)return null;
  const hazards=['無重力ゾーン','空間反転','残響増幅','音速暴走','落雷の嵐','無重力ゾーン'];
@@ -51,7 +61,8 @@ function chooseAttack(style,rng,energy,near,guarding,atWall,combo){
 function simulate(a,b,options={}){
  const fighters=[a,b],profiles=options.profiles||fighters.map(c=>({style:styleFor(c),mutation:{tier:0},potential:50}));
  const personas=fighters.map((c,i)=>getCombatPersona(c,profiles[i]));
- const max=fighters.map((c,i)=>Math.round((132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7)*(1+voiceFusion(c).extra*.08)));
+ const evo=fighters.map(evolutionCombatBonus);
+ const max=fighters.map((c,i)=>Math.round((132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7)*(1+evo[i].hp/100)));
  const hp=max.slice(),events=[],rng=rand((options.seed===undefined?Date.now():options.seed)>>>0),energy=[0,0],awaken=[false,false],momentum=[0,0];
  const stage=Number(options.stage||b?.stage||1),traits=fighters.map(c=>Array.isArray(c?.audioDNA?.traits)?c.audioDNA.traits:[]);
  const fused=fighters.map(voiceFusion);
@@ -96,7 +107,7 @@ function simulate(a,b,options={}){
   const raw=base*(P.style===0?1.24:1)*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
      *(awaken[atk]?1.12:1)*(skill?1+resonance.echo*.024:1)*clamp(edge(A,B),.89,1.11)
      *(1+Math.min(4,ps.mutation?.tier||0)*.0175)
-     *(1+Math.min(3,resonance.extra)*.12)
+     *(1+evo[atk].attack/100)
      *(arena==='落雷の嵐'?1.10:arena==='空間反転'?.91:1);
   let damage=clamp(Math.round(raw),3,39),selfDamage=0;
   if(dodge)damage=0;
@@ -195,5 +206,5 @@ function advice(events,winner){
  if(foe.some(e=>e.skill))return '相手の必殺に押されました。耐久型も試そう';
  return '相手の戦法が上手でした。別の声・キャラで再挑戦';
 }
-return Object.freeze({STYLES,hash,rand,styleFor,getCombatPersona,voiceFusion,arenaFor,chooseAttack,simulate,movement,morphology,advice});
+return Object.freeze({STYLES,hash,rand,styleFor,getCombatPersona,voiceFusion,evolutionCombatBonus,arenaFor,chooseAttack,simulate,movement,morphology,advice});
 });
