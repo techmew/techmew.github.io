@@ -1064,13 +1064,23 @@ function changeCaptureButtons(active){
   $('stopRecordBtn').disabled=true;
 }
 function stopRecord(){/* Fixed 2-second recording: no early manual finish. */}
+function displayCaptureCountdown(remainingMs,evolutionRequested){
+ const remaining=(Math.max(0,Math.min(2000,remainingMs))/1000).toFixed(1);
+ $('countdown').textContent=remaining+' SEC';
+ if(evolutionRequested){
+  const label=$('evolutionCaptureLabel'),timer=$('evolutionCountdown');
+  if(label)label.textContent=remainingMs>0?'● 録音中':'● 録音完了';
+  if(timer){timer.textContent=remaining+'秒';timer.dataset.finished=String(remainingMs<=0)}
+  $('evolutionDialogRecording').hidden=false;
+ }
+}
 async function startRecord(mode='birth'){
  const evolutionRequested=mode==='evolve',selectedSeed=cur.seed;
  if(evolutionRequested&&(!GROWTH?.canEvolve(cur)||!roster.some(c=>c.seed===cur.seed)||match&&!match.done||$('evolutionDialog').hidden||evolutionDialogSeed!==selectedSeed)){$('evolutionDialogStatus').textContent='進化の条件を確認してから録音してください';return;}
  if(recording||recordingRequestPending||birthRevealActive||birthStockCallback!==null||document.hidden)return;
  if(!navigator.mediaDevices?.getUserMedia){$('micHint').textContent='マイクAPIを利用できません。ChromeからHTTPSのURLを開いてください';$('countdown').textContent='MIC BLOCKED';showMicNotice();return;}
  const captureId=++captureGeneration;
- let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
+ let stream, aud, src, recorder=null, chunks=[], timeoutHandle=null, countdownHandle=null, pcmNode=null, pcmSilence=null,captureStartedAt=0;
  const pcmSamples=[];let pcmRate=11025,pcmCarry=0,pcmSum=0,pcmCount=0;
  recordingRequestPending=true;
  if(evolutionRequested){evolutionDraft=null;$('evolutionDialogStatus').textContent='マイクを準備しています…';syncEvolutionDialog();}
@@ -1080,55 +1090,83 @@ async function startRecord(mode='birth'){
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
    if(!captureIsCurrent(captureId))return;
   recording=true;recordingFinishing=false;changeCaptureButtons(true);$('controlCard').classList.add('recording');
+  if(evolutionRequested)syncEvolutionDialog();
   stopBattleSpeech(); // Prevent any result TTS from contaminating a new recording.
-  $('micHint').textContent=evolutionRequested?'進化用の声を録音中（2秒）':'録音中：2秒で自動終了します（禁止ワードは発しないでください）';$('countdown').textContent='02.0 SEC';
+  $('micHint').textContent=evolutionRequested?'進化用の声を録音中（2秒）':'録音中：2秒で自動終了します（禁止ワードは発しないでください）';
+  displayCaptureCountdown(2000,evolutionRequested);
   // Do not wait for AudioContext resume or analyser construction before recording starts.
   // Mobile MediaRecorder can start immediately after getUserMedia resolves.
   try{
    if(typeof MediaRecorder!=='undefined'){
-    const type=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
+    const type=typeof MediaRecorder.isTypeSupported==='function'?['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t)):null;
     recorder=new MediaRecorder(stream,{...(type?{mimeType:type}:{}),audioBitsPerSecond:24000});
     recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
     recorder.start(100);captureStartedAt=performance.now();
    }
   }catch(e){recorder=null}
-  aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
-  if(aud.state==='suspended')await aud.resume();
-  if(!captureIsCurrent(captureId))return;
-  src=aud.createMediaStreamSource(stream);const an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
-  // PCM backup for browsers without MediaRecorder or with an undecodable recorder codec.
-  // A zero-gain output keeps ScriptProcessor callbacks active without feeding mic audio to speakers.
-  try{
-   if(typeof aud.createScriptProcessor==='function'){
-    pcmRate=Math.min(11025,Math.round(aud.sampleRate));
-    pcmNode=aud.createScriptProcessor(4096,1,1);
-    pcmSilence=aud.createGain();pcmSilence.gain.value=0;
-    pcmNode.onaudioprocess=ev=>{
-     if(!recording||recordingFinishing||pcmSamples.length>=pcmRate*2)return;
-     const input=ev.inputBuffer.getChannelData(0);
-     for(let i=0;i<input.length;i++){
-      pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
-      if(pcmCarry>=aud.sampleRate){
-       pcmSamples.push(pcmSum/Math.max(1,pcmCount));
-       pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
-      }
-     }
-    };
-    src.connect(pcmNode);pcmNode.connect(pcmSilence);pcmSilence.connect(aud.destination);
-   }
-  }catch(e){try{pcmNode?.disconnect()}catch{}try{pcmSilence?.disconnect()}catch{}pcmNode=null;}
-  const buf=new Float32Array(an.fftSize),samples=[],pitches=[],zcs=[],steps=[],dnaFrames=[];
-  const spectrum=typeof an.getFloatFrequencyData==='function'?new Float32Array(an.frequencyBinCount||an.fftSize/2):null;
-  const lastSpectrum=spectrum?new Map():null;
-  const CAPTURE_MS=2000;
-  let sig=2166136261,begin=captureStartedAt||performance.now(),captureDone=false,resolveCapture;
-  const startedDelay=Math.round(begin-micRequestAt);
-  if(startedDelay>0){$('micNotice').textContent='マイク起動 '+startedDelay+'ms（初回の権限確認は端末依存）'}
+  // Start the independent 2-second clock before AudioContext initialization.
+  // Some Android devices leave AudioContext.resume() pending until another gesture.
+  const CAPTURE_MS=2000,begin=captureStartedAt||performance.now();
+  let captureDone=false,resolveCapture;
   const capturePromise=new Promise(resolve=>resolveCapture=resolve);
   stopCaptureNow=()=>{if(!captureDone){captureDone=true;resolveCapture()}};
+  const countdownTick=()=>{
+   if(captureDone||!captureIsCurrent(captureId))return;
+   const remaining=Math.max(0,CAPTURE_MS-(performance.now()-begin));
+   displayCaptureCountdown(remaining,evolutionRequested);
+   if(remaining<=0){stopCaptureNow?.();return}
+   countdownHandle=setTimeout(countdownTick,50);
+  };
   timeoutHandle=setTimeout(()=>stopCaptureNow?.(),Math.max(0,CAPTURE_MS-(performance.now()-begin))+70);
+  countdownTick();
+  let an=null;
+  try{
+   if(typeof (window.AudioContext||window.webkitAudioContext)==='function'){
+    aud=new (window.AudioContext||window.webkitAudioContext)();audioCtx=aud;
+    if(aud.state==='suspended'&&typeof aud.resume==='function'){
+     await Promise.race([
+      Promise.resolve(aud.resume()).catch(()=>{}),
+      new Promise(resolve=>setTimeout(resolve,220))
+     ]);
+    }
+    if(!captureIsCurrent(captureId))return;
+    src=aud.createMediaStreamSource(stream);
+    an=aud.createAnalyser();an.fftSize=2048;src.connect(an);
+    // PCM fallback when MediaRecorder is unavailable or its output is unsupported.
+    // Zero-gain processing cannot leak raw microphone input to loudspeakers.
+    if(typeof aud.createScriptProcessor==='function'){
+     pcmRate=Math.min(11025,Math.round(aud.sampleRate));
+     pcmNode=aud.createScriptProcessor(4096,1,1);
+     pcmSilence=aud.createGain();pcmSilence.gain.value=0;
+     pcmNode.onaudioprocess=ev=>{
+      if(!recording||recordingFinishing||pcmSamples.length>=pcmRate*2)return;
+      const input=ev.inputBuffer.getChannelData(0);
+      for(let i=0;i<input.length;i++){
+       pcmSum+=input[i];pcmCount++;pcmCarry+=pcmRate;
+       if(pcmCarry>=aud.sampleRate){
+        pcmSamples.push(pcmSum/Math.max(1,pcmCount));
+        pcmCarry-=aud.sampleRate;pcmSum=0;pcmCount=0;
+       }
+      }
+     };
+     src.connect(pcmNode);pcmNode.connect(pcmSilence);pcmSilence.connect(aud.destination);
+    }
+   }
+  }catch(e){
+   // Keep the MediaRecorder capture alive even if Web Audio analysis cannot start.
+   lastSoundStatus='音の分析を簡易モードに切り替えました';
+   try{pcmNode?.disconnect()}catch{}
+   try{pcmSilence?.disconnect()}catch{}
+   pcmNode=null;an=null;
+  }
+  const buf=new Float32Array(an?.fftSize||2048),samples=[],pitches=[],zcs=[],steps=[],dnaFrames=[];
+  const spectrum=an&&typeof an.getFloatFrequencyData==='function'?new Float32Array(an.frequencyBinCount||an.fftSize/2):null;
+  const lastSpectrum=spectrum?new Map():null;
+  let sig=2166136261;
+  const startedDelay=Math.round(begin-micRequestAt);
+  if(startedDelay>0){$('micNotice').textContent='マイク起動 '+startedDelay+'ms（初回の権限確認は端末依存）'}
   const tick=()=>{
-   if(captureDone)return;
+   if(captureDone||!an)return;
    const elapsed=performance.now()-begin;
    if(elapsed>=CAPTURE_MS){stopCaptureNow?.();return;}
    an.getFloatTimeDomainData(buf);let rms=0,zc=0,diff=0;
@@ -1138,10 +1176,12 @@ async function startRecord(mode='birth'){
    if(dnaFrames.length<110)dnaFrames.push(dnaFrame(an,buf,spectrum,aud.sampleRate,elapsed,pitch,rms,zc/buf.length,diff/buf.length,lastSpectrum));
    for(let i=0;i<buf.length;i+=73)sig=Math.imul(sig^((buf[i]*1024)|0),16777619);
    liveWave=Array.from(buf).filter((_,i)=>i%8===0);wavePaint(liveWave,true);
-   $('countdown').textContent=(Math.max(0,CAPTURE_MS-elapsed)/1000).toFixed(1)+' SEC';setTimeout(tick,55);
+   setTimeout(tick,55);
   };tick();await capturePromise;
    if(!captureIsCurrent(captureId))return;
-  recordingFinishing=true;$('micHint').textContent='録音を保存しています…';$('stopRecordBtn').disabled=true;
+  recordingFinishing=true;displayCaptureCountdown(0,evolutionRequested);
+  $('micHint').textContent='録音を保存しています…';$('stopRecordBtn').disabled=true;
+  if(evolutionRequested){$('evolutionCaptureLabel').textContent='音声を保存しています…';syncEvolutionDialog()}
   let voiceClip='';
   if(recorder&&recorder.state!=='inactive'){
    try{
@@ -1152,13 +1192,40 @@ async function startRecord(mode='birth'){
     if(blob?.size>0&&blob.size<115000){
      try{
       // Confirm this device can decode its own recording before storing the clip.
-      await aud.decodeAudioData(await blob.arrayBuffer());
-      voiceClip=await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(typeof r.result==='string'?r.result:'');r.onerror=()=>resolve('');r.readAsDataURL(blob)});
+      const encoded=await Promise.race([
+       new Promise(resolve=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(typeof reader.result==='string'?reader.result:'');
+        reader.onerror=()=>resolve('');
+        reader.readAsDataURL(blob);
+       }),new Promise(resolve=>setTimeout(()=>resolve(''),1500))
+      ]);
+      if(encoded.startsWith('data:audio/')){
+       if(aud?.decodeAudioData){
+        try{
+         await Promise.race([
+          aud.decodeAudioData(await blob.arrayBuffer()),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error('decode timeout')),1200))
+         ]);
+         voiceClip=encoded;
+        }catch(e){
+         // Preserve legitimate recorded audio if decoding fails transiently on this device.
+         voiceClip=pcmWavDataUrl(pcmSamples,pcmRate)||encoded;
+         lastSoundStatus='音声の形式確認が不安定です。録音データは保持しました';
+        }
+       }else voiceClip=encoded;
+      }
      }catch(e){lastSoundStatus='録音形式を再生できないためWAVに切り替えます';}
     }
    }catch(e){}
   }
   if(!voiceClip)voiceClip=pcmWavDataUrl(pcmSamples,pcmRate);
+  if(!voiceClip){
+   $('micHint').textContent='録音ファイルを保存できませんでした。マイクの許可を確認し、もう一度録音してください。';
+   $('countdown').textContent='再録音';
+   if(evolutionRequested)$('evolutionDialogStatus').textContent='録音を保存できませんでした。もう一度録音してください。';
+   return;
+  }
   const rms=median(samples)||0,pitch=median(pitches)||230,dev=median(pitches.map(p=>Math.abs(p-pitch)))||0;
   let delta=0;for(let i=1;i<samples.length;i++)delta+=Math.abs(samples[i]-samples[i-1]);delta/=Math.max(1,samples.length-1);
   const z=median(zcs)||0,rough=median(steps)||0;
@@ -1193,10 +1260,14 @@ async function startRecord(mode='birth'){
   $('micNotice').textContent=voiceClip?(audioDNA?'36項目の音響DNAを解析し、声由来の能力・成長適性を保存しました。録音した声も試聴できます。':'録音声を保存しました。音響DNAの分析に必要な音量や長さが足りないため、基本解析を使用しました。'):'音声ファイルの保存に失敗しました。マイクの許可とブラウザを確認してください。戦闘は代替音で続行できます。';
  }catch(e){if(!captureIsCurrent(captureId))return;const msg=micErrorMessage(e);$('micHint').textContent=msg;$('micNotice').textContent=msg;$('countdown').textContent='MIC ERROR';if(evolutionRequested&&!$('evolutionDialog').hidden)$('evolutionDialogStatus').textContent=msg+'。録音開始からやり直せます。';}
  finally{
-  if(timeoutHandle)clearTimeout(timeoutHandle);stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
+  if(timeoutHandle)clearTimeout(timeoutHandle);if(countdownHandle)clearTimeout(countdownHandle);
+  stopCaptureNow=null;recording=false;recordingFinishing=false;recordingRequestPending=false;
   try{recorder?.state==='recording'&&recorder.stop()}catch(e){}
   try{pcmNode?.disconnect()}catch(e){}try{pcmSilence?.disconnect()}catch(e){}try{src?.disconnect()}catch(e){}try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
-  try{await aud?.close()}catch(e){}audioCtx=null;
+  try{if(aud&&typeof aud.close==='function')await Promise.race([
+   Promise.resolve(aud.close()).catch(()=>{}),
+   new Promise(resolve=>setTimeout(resolve,250))
+  ])}catch(e){}audioCtx=null;
   changeCaptureButtons(false);$('controlCard').classList.remove('recording');updateEvolutionUI();syncEvolutionDialog();
   updateVoicePreviewButton();
  }
