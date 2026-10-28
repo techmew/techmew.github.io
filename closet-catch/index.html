@@ -147,7 +147,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-details summary{cursor:pointer;padding:14px;font-weight:850;color:#ffe0b7;font-size:13px}
 .show-details .show-analysis{padding:0 10px 12px;margin-top:0}
 @media(max-width:620px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge{padding:10px 8px}.show-judge b{font-size:12px}.show-judge .judge-score-row strong{font-size:18px}.show-judge .judge-score-row span{font-size:10px}.show-result{margin:10px 0}.show-help{line-height:1.5}}
-</style>
+.free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}</style>
 </head>
 <body>
 <div class="app">
@@ -164,7 +164,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
  <div class="avatar-controls"><label>所持ヘア<select id="hairStyleSelect"></select></label><button id="hairShuffle">所持品でおまかせ</button></div>
  <div class="avatar-preview"><canvas id="hairSample" width="160" height="160"></canvas><p id="hairLabel">300種類のヘアアレンジ<br><small>選択するとモデルとショーに反映</small></p></div>
 </section>
-<section class="panel free-lab" id="freeLab"><div class="panel-head"><div class="section-label">04 / FREE STYLING<strong>自由コーデ・16部位</strong></div><span class="mini-tag">所持品だけで作成</span></div><p class="free-intro">釣った服・魚・髪型を16部位へ自由に配置。魚を帽子にするなどの変則コーデも可能。5着チャレンジとは別に保存されます。</p><div class="free-layout"><div class="free-preview"><canvas id="freeCanvas" width="440" height="510" aria-label="16部位フリーコーデのプレビュー"></canvas><div id="freeStatus" class="free-status">0 / 16部位</div></div><div id="freeSlots" class="free-slots" aria-label="自由コーデの16部位"></div></div><div class="free-controls"><button id="freeAuto" type="button">所持品で自動コーデ</button><button id="freeClear" type="button">すべて外す</button><button id="freePhoto" type="button">コーデ画像を保存</button></div><div class="free-picker"><b id="freePickerTitle">部位を選んでください</b><div class="free-filters"><input id="freeSearch" type="search" placeholder="衣装名・魚の名前で検索" aria-label="所持アイテムを検索"><select id="freeCategory" aria-label="アイテムの種類"><option value="all">すべて</option><option value="top">トップス</option><option value="bottom">ボトムス</option><option value="dress">ワンピース</option><option value="outer">アウター</option><option value="shoes">シューズ</option><option value="hat">帽子</option><option value="acc">小物</option><option value="under">パンツ</option><option value="fish">魚</option><option value="hair">髪型</option></select></div><div id="freeChoices" class="free-choices"></div><button id="freeMore" type="button" hidden>もっと見る</button></div><div class="duel-panel" id="duelPanel">
+<section class="panel free-lab" id="freeLab"><div class="panel-head"><div class="section-label">04 / FREE STYLING<strong>対戦コーデ・基本8部位</strong></div><span class="mini-tag">所持品だけで作成</span></div><p class="free-intro">基本8部位を選んでコーデ完成。こだわりたい人は追加パーツも使えます。</p><div class="free-layout"><div class="free-preview"><canvas id="freeCanvas" width="440" height="510" aria-label="対戦コーデのプレビュー"></canvas><div id="freeStatus" class="free-status">0 / 8部位</div></div><div id="freeSlots" class="free-slots" aria-label="対戦コーデの着用部位"></div></div><div class="free-controls"><button id="freeAuto" type="button">所持品で自動コーデ</button><button id="freeClear" type="button">すべて外す</button><button id="freePhoto" type="button">コーデ画像を保存</button></div><div class="free-picker"><b id="freePickerTitle">部位を選んでください</b><button id="freeAllItems" type="button" class="free-all-items" aria-pressed="false">ほかの種類も見る</button><div class="free-filters"><input id="freeSearch" type="search" placeholder="衣装名・魚の名前で検索" aria-label="所持アイテムを検索"><select id="freeCategory" aria-label="アイテムの種類"><option value="all">すべて</option><option value="top">トップス</option><option value="bottom">ボトムス</option><option value="dress">ワンピース</option><option value="outer">アウター</option><option value="shoes">シューズ</option><option value="hat">帽子</option><option value="acc">小物</option><option value="under">パンツ</option><option value="fish">魚</option><option value="hair">髪型</option></select></div><div id="freeChoices" class="free-choices"></div><button id="freeMore" type="button" hidden>もっと見る</button></div><div class="duel-panel" id="duelPanel">
  <div><b>非同期コーデ対決（招待リンク式）</b><small>他の人に招待リンクを送ると、その人の画面でコーデを比較できます。ランキング・所持品認証・勝敗のサーバー保存は未実装です。</small></div>
  <button id="duelShare" type="button">自分のコーデの招待リンクをコピー</button>
  <p id="duelScores" aria-live="polite">コーデを作って招待リンクを共有しよう</p>
@@ -1139,7 +1139,8 @@ function drawModel(){let ctx=mc,t=animTime*.001;ctx.clearRect(0,0,440,510);
 function renderModel(){const dressed=Object.values(st.equip).filter(x=>x!==null).length;$('score').textContent=dressed;$('rank').textContent='着';$('fitTitle').textContent=dressed===0?'パンツ一丁':`${dressed}アイテム着用`;$('equipStatus').textContent=dressed===0?'いまはパンツ一丁。服を釣って着せよう。':st.equip.dress!==null?'ワンピースで決めてみよう！':'本当の審査点はランウェイで決まります'}
 function drawGarmentCard(canvas,item){const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=gradient(ctx,w/2,h/2,w*.65,'#f8fcf9','#d8eae6');ctx.fillRect(0,0,w,h);let scale=Math.min(w,h)*.92;drawSeaCollectible(ctx,item,w/2,h/2,scale);if(item.rarity>=2){ctx.fillStyle=rareColors[item.rarity];star(ctx,w*.83,h*.18,8,4,5);ctx.fill()}}
 
-let freeActive=0,freeShown=48;
+let freeActive=0,freeShown=24,freeAdvanced=false,freeAllItems=false;
+const FREE_MAIN_SLOTS=[0,1,2,6,7,10,12,14];
 const freeCanvas=$('freeCanvas'),fc=freeCanvas.getContext('2d');
 function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume){
  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,440,510);
@@ -1229,20 +1230,23 @@ $('duelShare').addEventListener('click',async()=>{
 function renderFreeSlots(){
  const root=$('freeSlots');root.replaceChildren();
  FREE_PARTS.forEach((part,i)=>{
+  if(!freeAdvanced&&!FREE_MAIN_SLOTS.includes(i))return;
   const b=document.createElement('button');b.type='button';b.className=i===freeActive?'active':'';
   const title=document.createElement('b');title.textContent=String(i+1).padStart(2,'0')+' '+part[0];
   const sub=document.createElement('small');sub.textContent=st.freeLook[i]===null?'未設定':catalog[st.freeLook[i]].name;
   b.append(title,sub);b.setAttribute('aria-pressed',String(i===freeActive));
-  b.addEventListener('click',()=>{freeActive=i;freeShown=48;renderFreeSlots();renderFreePicker()});root.append(b)
+  b.addEventListener('click',()=>{freeActive=i;freeShown=24;freeAllItems=false;$('freeCategory').value='all';renderFreeSlots();renderFreePicker()});root.append(b)
  });
- const count=st.freeLook.filter(id=>id!==null).length;
- $('freeStatus').textContent=count+' / 16部位 · 保存済み';
+ const extra=st.freeLook.filter((id,i)=>id!==null&&!FREE_MAIN_SLOTS.includes(i)).length,mainCount=FREE_MAIN_SLOTS.filter(i=>st.freeLook[i]!==null).length;
+ const more=document.createElement('button');more.type='button';more.className='free-extra-toggle';more.textContent=freeAdvanced?'追加パーツを閉じる':'＋追加パーツ（8部位）'+(extra?' · 着用'+extra:'');more.setAttribute('aria-expanded',String(freeAdvanced));more.addEventListener('click',()=>{freeAdvanced=!freeAdvanced;renderFreeSlots()});root.append(more);
+ $('freeStatus').textContent=mainCount+' / 8部位'+(extra?' ＋追加'+extra+'点':'')+' · 保存済み';
  drawFreeLook();renderDuelPreview();
 }
 function renderFreePicker(){
  $('freePickerTitle').textContent=FREE_PARTS[freeActive][0]+'に着けるアイテム';
  const query=$('freeSearch').value.trim().toLocaleLowerCase(),cat=$('freeCategory').value;
- const ids=freeOwnedIds().filter(id=>{const it=catalog[id];return (cat==='all'||it.cat===cat)&&(!query||it.name.toLocaleLowerCase().includes(query)||String(id+1).includes(query))});
+ const ids=freeOwnedIds().filter(id=>{const it=catalog[id],preferred=DUEL_PART_CATS[freeActive],natural=it.cat===preferred||([6,10].includes(freeActive)&&it.cat==='dress');return (cat==='all'?(freeAllItems||natural):it.cat===cat)&&(!query||it.name.toLocaleLowerCase().includes(query)||String(id+1).includes(query))});
+ $('freeAllItems').textContent=freeAllItems?'部位に合う種類だけ':'ほかの種類も見る';$('freeAllItems').setAttribute('aria-pressed',String(freeAllItems));
  const root=$('freeChoices');root.replaceChildren();
  const clear=document.createElement('button');clear.type='button';clear.textContent='外す（この部位を空にする）';
  clear.addEventListener('click',()=>{st.freeLook[freeActive]=null;save();renderFreeSlots();renderFreePicker()});root.append(clear);
@@ -1257,20 +1261,22 @@ function renderFreePicker(){
  $('freeMore').hidden=ids.length<=freeShown;
  if(!ids.length){const p=document.createElement('p');p.textContent='該当する所持アイテムはありません。';root.append(p)}
 }
-$('freeSearch').addEventListener('input',()=>{freeShown=48;renderFreePicker()});
-$('freeCategory').addEventListener('change',()=>{freeShown=48;renderFreePicker()});
-$('freeMore').addEventListener('click',()=>{freeShown+=48;renderFreePicker()});
+$('freeSearch').addEventListener('input',()=>{freeShown=24;renderFreePicker()});
+$('freeCategory').addEventListener('change',()=>{freeShown=24;renderFreePicker()});
+$('freeMore').addEventListener('click',()=>{freeShown+=24;renderFreePicker()});
+$('freeAllItems').addEventListener('click',()=>{freeAllItems=!freeAllItems;freeShown=24;$('freeCategory').value='all';renderFreePicker()});
 $('freeClear').addEventListener('click',()=>{st.freeLook=Array(16).fill(null);save();renderFreeSlots();renderFreePicker()});
 $('freeAuto').addEventListener('click',()=>{
  const ids=freeOwnedIds();const used=new Set();
  st.freeLook=FREE_PARTS.map((part,i)=>{
+  if(!FREE_MAIN_SLOTS.includes(i))return null;
   const preferred={0:'hair',1:'hat',2:'acc',3:'acc',4:'acc',5:'under',6:'top',7:'outer',8:'acc',9:'acc',10:'bottom',11:'under',12:'shoes',13:'dress',14:'fish',15:'dress'}[i];
   const pool=ids.filter(id=>!used.has(id)),chosen=pool.find(id=>catalog[id].cat===preferred)??null;
   if(chosen!==null)used.add(chosen);return chosen
  });save();renderFreeSlots();renderFreePicker()
 });
 $('freePhoto').addEventListener('click',()=>{
- drawFreeLook();const a=document.createElement('a');a.href=freeCanvas.toDataURL('image/png');a.download='closet-catch-free-16-look.png';a.click()
+ drawFreeLook();const a=document.createElement('a');a.href=freeCanvas.toDataURL('image/png');a.download='closet-catch-free-look.png';a.click()
 });
 renderFreeSlots();renderFreePicker();
 function renderInventory(){const sort=$('sort').value;let ids=st.owned.filter(id=>tab==='all'||catalog[id].cat===tab);if(sort==='rare')ids.sort((a,b)=>catalog[b].rarity-catalog[a].rarity);if(sort==='type')ids.sort((a,b)=>catalog[a].cat.localeCompare(catalog[b].cat));$('filterInfo').textContent=`${ids.length} 着が見つかりました。タップで着る・もう一度タップで脱ぐ。`;let root=$('inventory');root.replaceChildren();if(ids.length===0){let div=document.createElement('div');div.className='empty';div.style.gridColumn='1/-1';div.innerHTML='<span class="empty-icon">♧</span>まだ服がありません。海から釣ってみよう！';root.appendChild(div)}for(const id of ids.slice(0,shown)){let item=catalog[id],el=document.createElement('button');el.className='garment-card'+(st.equip[item.cat]===id?' equipped':'');el.title=item.name;let c=document.createElement('canvas');c.width=116;c.height=116;el.appendChild(c);let b=document.createElement('b');b.textContent=item.name;el.appendChild(b);let info=document.createElement('small');info.className='rarity-'+rareSymbols[item.rarity];info.textContent=rareSymbols[item.rarity]+' · #'+String(item.id+1).padStart(5,'0');el.appendChild(info);if(st.equip[item.cat]===id){let tag=document.createElement('span');tag.className='tag-equip';tag.textContent='着用中';el.appendChild(tag)}el.addEventListener('click',()=>equipItem(item));root.appendChild(el);drawGarmentCard(c,item)}$('moreBtn').hidden=ids.length<=shown}
