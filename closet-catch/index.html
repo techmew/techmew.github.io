@@ -1238,7 +1238,7 @@ function renderFreeSlots(){
   b.addEventListener('click',()=>{freeActive=i;freeShown=24;freeAllItems=false;$('freeCategory').value='all';renderFreeSlots();renderFreePicker()});root.append(b)
  });
  const extra=st.freeLook.filter((id,i)=>id!==null&&!FREE_MAIN_SLOTS.includes(i)).length,mainCount=FREE_MAIN_SLOTS.filter(i=>st.freeLook[i]!==null).length;
- const more=document.createElement('button');more.type='button';more.className='free-extra-toggle';more.textContent=freeAdvanced?'追加パーツを閉じる':'＋追加パーツ（8部位）'+(extra?' · 着用'+extra:'');more.setAttribute('aria-expanded',String(freeAdvanced));more.addEventListener('click',()=>{freeAdvanced=!freeAdvanced;renderFreeSlots()});root.append(more);
+ const more=document.createElement('button');more.type='button';more.className='free-extra-toggle';more.textContent=freeAdvanced?'追加パーツを閉じる':'＋追加パーツ（8部位）'+(extra?' · 着用'+extra:'');more.setAttribute('aria-expanded',String(freeAdvanced));more.addEventListener('click',()=>{freeAdvanced=!freeAdvanced;if(!freeAdvanced&&!FREE_MAIN_SLOTS.includes(freeActive)){freeActive=FREE_MAIN_SLOTS[0];freeAllItems=false;$('freeCategory').value='all';renderFreePicker()}renderFreeSlots()});root.append(more);
  $('freeStatus').textContent=mainCount+' / 8部位'+(extra?' ＋追加'+extra+'点':'')+' · 保存済み';
  drawFreeLook();renderDuelPreview();
 }
