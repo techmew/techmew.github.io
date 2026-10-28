@@ -1141,6 +1141,7 @@ async function waitForCaptureCountdown(captureId,evolutionRequested){
   const label='録音準備 '+sec;
   $('micHint').textContent='マイク準備完了。'+label+'…';
   $('countdown').textContent=sec.toString();
+  if(birthVoiceBusy)$('birthVoiceStatus').textContent='録音準備 '+sec+'…';
   if(evolutionRequested){
    $('evolutionDialogRecording').hidden=false;
    $('evolutionCaptureLabel').textContent='録音スタートまで';
@@ -1259,25 +1260,26 @@ async function startRecord(mode='birth'){
    if(evolutionRequested)$('evolutionDialogStatus').textContent='音声キャプチャーを開始できません。もう一度録音してください。';
    return;
   }
+  // Warm the codec before the visible countdown to preserve the first sound.
+  if(recorder){try{recorder.start(100)}catch(e){recorder=null}}
   if(!await waitForCaptureCountdown(captureId,evolutionRequested))return;
   if(!captureIsCurrent(captureId))return;
-  // Start the REAL recording only now; no permission or prep delays count against 2 seconds.
-  if(recorder){
-   try{recorder.start(100)}catch(e){recorder=null}
-  }
+  // A rolling prebuffer is copied when the recording cue appears.
   if(!recorder&&!pcmNode){
    $('micHint').textContent='録音の開始に失敗しました。マイクを許可して再試行してください。';
    $('countdown').textContent='再録音';
    if(evolutionRequested)$('evolutionDialogStatus').textContent='録音開始に失敗しました。もう一度お試しください。';
    return;
   }
-  const CAPTURE_MS=2000,begin=performance.now();
+  const CAPTURE_MS=2000,TAIL_MS=650,begin=performance.now();
+  for(let i=0;i<pcmPreCount;i++)pcmSamples.push(pcmPreRoll[(pcmPreWrite-pcmPreCount+i+pcmPreRoll.length)%pcmPreRoll.length]);
   captureStartedAt=begin;
   recording=true;recordingFinishing=false;changeCaptureButtons(true);
   $('controlCard').classList.add('recording');
   if(evolutionRequested)syncEvolutionDialog();
   $('micHint').textContent='録音開始！ 2秒間声を出してください';
-  if(evolutionRequested)$('evolutionDialogStatus').textContent='録音開始！ 残り2秒です。';
+  if(evolutionRequested)$('evolutionDialogStatus').textContent='録音開始！ 残り2秒です。語尾も保存します。';
+  if(voiceOnlyRequested)$('birthVoiceStatus').textContent='● 録音開始！声を出してください。';
   displayCaptureCountdown(CAPTURE_MS,evolutionRequested);
   let captureDone=false,resolveCapture;
   const capturePromise=new Promise(resolve=>resolveCapture=resolve);
@@ -1286,10 +1288,17 @@ async function startRecord(mode='birth'){
    if(captureDone||!captureIsCurrent(captureId))return;
    const remaining=Math.max(0,CAPTURE_MS-(performance.now()-begin));
    displayCaptureCountdown(remaining,evolutionRequested);
-   if(remaining<=0){stopCaptureNow?.();return}
+   if(remaining<=0){
+    $('countdown').textContent='語尾を保存中…';
+    if(evolutionRequested){$('evolutionCaptureLabel').textContent='● 語尾を保存中';$('evolutionDialogStatus').textContent='声の終わりまで保存しています。'}
+    if(voiceOnlyRequested)$('birthVoiceStatus').textContent='● 語尾を保存中…';
+    if(performance.now()-begin>=CAPTURE_MS+TAIL_MS){stopCaptureNow?.();return}
+   }else if(voiceOnlyRequested){
+    $('birthVoiceStatus').textContent='● 録音中　残り'+(remaining/1000).toFixed(1)+'秒';
+   }
    countdownHandle=setTimeout(countdownTick,50);
   };
-  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),CAPTURE_MS+70);
+  timeoutHandle=setTimeout(()=>stopCaptureNow?.(),CAPTURE_MS+TAIL_MS+120);
   countdownTick();
   const buf=new Float32Array(an?.fftSize||2048),samples=[],pitches=[],zcs=[],steps=[],dnaFrames=[];
   const spectrum=an&&typeof an.getFloatFrequencyData==='function'?new Float32Array(an.frequencyBinCount||an.fftSize/2):null;
@@ -1300,7 +1309,7 @@ async function startRecord(mode='birth'){
   const tick=()=>{
    if(captureDone||!an)return;
    const elapsed=performance.now()-begin;
-   if(elapsed>=CAPTURE_MS){stopCaptureNow?.();return;}
+   if(elapsed>=CAPTURE_MS)return;
    an.getFloatTimeDomainData(buf);let rms=0,zc=0,diff=0;
    for(let i=0;i<buf.length;i++){rms+=buf[i]*buf[i];if(i&&Math.sign(buf[i])!==Math.sign(buf[i-1]))zc++;if(i)diff+=Math.abs(buf[i]-buf[i-1])}
    rms=Math.sqrt(rms/buf.length);samples.push(rms);zcs.push(zc/buf.length);steps.push(diff/buf.length);
