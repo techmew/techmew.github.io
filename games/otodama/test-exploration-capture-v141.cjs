@@ -14,7 +14,9 @@ assert.match(html,/id="evolutionCountdown"/,'evolution dialog has a dedicated ti
 assert.match(css,/#evolutionCountdown\{/,'large countdown styling');
 assert.match(css,/#controlCard\.recording #countdown\{/,'birth countdown styling');
 assert.match(js,/stopCaptureStream\(captureLiveStream\)/,'mic stream closed after backgrounding');
-assert.match(js,/const CAPTURE_MS=2000,begin=performance\.now\(\)/,'two seconds start after mic-ready pre-roll');
+assert.match(js,/pcmPreRoll\[pcmPreWrite\]=value/,'mic buffer protects first syllable');
+assert.match(js,/CAPTURE_MS\+TAIL_MS/,'microphone tail continues after visible counter reaches zero');
+assert.match(js,/const CAPTURE_MS=2000,TAIL_MS=650,begin=performance\.now\(\)/,'two seconds start after mic-ready pre-roll');
 const $nodes=new Map(),events=[],timers=[];
 const $=id=>{if(!$nodes.has(id))$nodes.set(id,{textContent:'',hidden:true,dataset:{}});return $nodes.get(id)};
 let generation=44;
