@@ -1908,9 +1908,8 @@ async function decodeVoice(cr){
  })();
  pendingVoice.set(key,task);try{return await task}finally{pendingVoice.delete(key)}
 }
-// Never cut an original recording: play all samples at normal speed.
-// Optional 28-style voice patterns are restored as a QUIETER second layer
-// rather than replacing or trimming the intelligible original speech.
+// Never cut an original recording: play every sample through its natural end.
+// Keep all 28 voice patterns on ONE stream. Never double the recorded speech.
 function playDecodedVoice(cr,side,force=false,options={}){
  if($('mutedCheck').checked||!VOLUME())return false;
  if(!force&&(!match||match.done))return false;
@@ -1937,36 +1936,32 @@ function playDecodedVoice(cr,side,force=false,options={}){
   }
   try{
    const start=ac.currentTime+.018,level=Math.min(.19,VOLUME()*Math.min(3,clip.gain||1));
-   // Original voice: always 1x and source.start(start,0) WITHOUT a duration.
+   // Exactly ONE recorded voice and ONE signal chain, never a second copy.
+   // Existing 28 patterns modify the same complete audio buffer.
    const source=ac.createBufferSource(),gain=ac.createGain();
    source.buffer=clip.buffer;source.playbackRate.value=1;
-   gain.gain.setValueAtTime(level,start);
-   source.connect(gain);gain.connect(voiceOutput(ac));
-   source.start(start,0);trackAttackSource(source);
-   let totalMs=seconds*1000;
-   // Restore all 28 voice-effect profiles, move-specific effects and evolution
-   // patterns. This layer cannot cut, replace or time-limit the raw main voice.
-   if(fx.enabled){
+   const styled=fx.enabled&&fx.label!=='原音';
+   // Slight pitch/speed movement is enough to distinguish attack styles without
+   // changing the speaker into an unintelligible or doubled synthetic voice.
+   const fromRate=styled?clamp(1+(Number(fx.from||1)-1)*.28,.86,1.16):1;
+   const toRate=styled?clamp(1+(Number(fx.to||1)-1)*.28,.86,1.16):1;
+   const totalMs=seconds/Math.min(1,fromRate,toRate)*1000;
+   if(styled)voiceEffectRate(source.playbackRate,fromRate,toRate,start,seconds/Math.min(fromRate,toRate));
+   gain.gain.setValueAtTime(level*(styled?clamp(Number(fx.volume)||1,.55,1):1),start);
+   let routed=false;
+   if(styled&&fx.filter&&typeof ac.createBiquadFilter==='function'){
     try{
-     const variant=ac.createBufferSource(),fxGain=ac.createGain();
-     const from=clamp(Number(fx.from)||1,.72,1.35),to=clamp(Number(fx.to)||1,.72,1.35);
-     const slowest=Math.min(from,to),variantSeconds=seconds/slowest;
-     variant.buffer=clip.buffer;
-     voiceEffectRate(variant.playbackRate,from,to,start,variantSeconds);
-     fxGain.gain.setValueAtTime(Math.min(.09,level*.40*Math.max(.3,Number(fx.volume)||1)),start);
-     let output=variant;
-     if(fx.filter&&typeof ac.createBiquadFilter==='function'){
-      const filter=ac.createBiquadFilter();
-      filter.type=fx.filter;
-      filter.frequency.value=clamp(Number(fx.cutoff)||1100,450,2850);
-      filter.Q.value=.65;
-      variant.connect(filter);output=filter;
-     }
-     output.connect(fxGain);fxGain.connect(voiceOutput(ac));
-     variant.start(start,0);trackAttackSource(variant);
-     totalMs=Math.max(totalMs,variantSeconds*1000);
-    }catch(e){lastSoundStatus='原音は再生中。声エフェクトのみ簡易化: '+String(e)}
+     const filter=ac.createBiquadFilter();
+     filter.type=fx.filter;
+     filter.frequency.value=clamp(Number(fx.cutoff)||1100,450,2850);
+     filter.Q.value=.65;
+     source.connect(filter);filter.connect(gain);routed=true;
+    }catch(e){lastSoundStatus='フィルターを省略して音声を再生: '+String(e)}
    }
+   if(!routed)source.connect(gain);
+   gain.connect(voiceOutput(ac));
+   // Two-argument start: sample zero through the recording's natural end.
+   source.start(start,0);trackAttackSource(source);
    if(!force){
     playDecodedVoice.busyUntil=performance.now()+totalMs+100;
     bgmDuckUntil=Math.max(bgmDuckUntil,playDecodedVoice.busyUntil);
