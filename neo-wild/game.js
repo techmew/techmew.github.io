@@ -49,7 +49,7 @@ window.addEventListener("resize",resize,{passive:true});resize();generateWorld()
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;guideCache=null;huntTarget=null;
- const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0};
+ const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
@@ -70,7 +70,7 @@ function spawnMob(initial=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1});
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
@@ -161,8 +161,8 @@ function attack(){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
   const travel=Math.min(53,Math.max(0,distance-(P.r+target.r+30)));
   if(travel>4&&routeClear(P,{x:P.x+Math.cos(angle)*travel,y:P.y+Math.sin(angle)*travel},P.r)){
-   move(P,Math.cos(angle)*travel,Math.sin(angle)*travel);
-   P.windup=Math.max(P.windup,.19);
+   P.pounceTime=.18;P.pounceRemaining=travel;P.pounceDir=angle;
+   P.windup=Math.max(P.windup,.24);
    blood(P.x,P.y,"#ffe6a6",5,38);
   }
  }
@@ -209,7 +209,7 @@ function dash(){
  const a=getAxes();if(Math.hypot(a.x,a.y)>.15){P.dir=Math.atan2(a.y,a.x)}
  P.dx=Math.cos(P.dir);P.dy=Math.sin(P.dir);
  const agile=P.type==="cat"&&P.abilityTime>0;
- P.sp-=agile?20:28;P.dashTime=P.type==="wolf"?.18:agile?.25:.21;
+ P.sp-=agile?20:28;P.pounceTime=0;P.pounceRemaining=0;P.dashTime=P.type==="wolf"?.18:agile?.25:.21;
  P.inv=agile?.39:P.type==="wolf"?.23:.28;
  P.dash=agile?.52:P.type==="cat"?.85:P.type==="wolf"?1.2:1.05;P.vx=0;P.vy=0;P.pendingStrike=false;P.ambushStrike=false;P.revealTimer=1.15;P.windup=0;P.noiseBurst=1.5;blood(P.x,P.y,"#a6e6d4",9,45);sound(250,.22,"sine",.05);
 }
@@ -289,9 +289,13 @@ function chooseEscape(m,away){
  for(const off of angles){
   const angle=away+off,step=78,x=m.x+Math.cos(angle)*step,y=m.y+Math.sin(angle)*step;
   if(!clearStep(m,angle,step))continue;
-  const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1.45:0;
+  const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1:0;
   const distance=P?Math.hypot(x-P.x,y-P.y):0;
-  const score=Math.cos(off)*2.1+distance*.003+cover-Math.abs(off)*.1;
+  // Rats hide, rabbits bound in straight lines, pigeons jink sideways.
+  const coverWeight=m.type==="rat"?3.3:m.type==="rabbit"?.5:.25;
+  const forwardWeight=m.type==="rabbit"?3.3:m.type==="rat"?1.65:1.55;
+  const sideStep=m.type==="pigeon"?Math.sin(off)*(m.evasionSide||1)*1.35:0;
+  const score=Math.cos(off)*forwardWeight+distance*.003+cover*coverWeight+sideStep-Math.abs(off)*.1;
   if(score>bestScore){bestScore=score;best=angle}
  }
  return best;
@@ -335,7 +339,20 @@ function update(dt){
  P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
-  if(P.dashTime>0){
+  if(P.pounceTime>0){
+   const step=Math.min(P.pounceRemaining,P.pounceRemaining/Math.max(P.pounceTime,dt)*dt);
+   const ox=P.x,oy=P.y;
+   move(P,Math.cos(P.pounceDir)*step,Math.sin(P.pounceDir)*step);
+   const moved=Math.hypot(P.x-ox,P.y-oy);
+   P.pounceRemaining=Math.max(0,P.pounceRemaining-moved);
+   P.pounceTime=Math.max(0,P.pounceTime-dt);
+   if(moved<step*.5||P.pounceRemaining<.5){
+    P.pounceTime=0;P.pounceRemaining=0;P.vx=0;P.vy=0;
+   }else{
+    P.vx=(P.x-ox)/Math.max(dt,.001);P.vy=(P.y-oy)/Math.max(dt,.001);
+   }
+   P.steps+=moved*.052;
+  }else if(P.dashTime>0){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
   }else{
@@ -372,14 +389,16 @@ function update(dt){
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
      if(m.escapeTimer<=0||!clearStep(m,m.dir,65)){
-       m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=.44;
+       m.evasionSide=-(m.evasionSide||1);
+       m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=m.type==="rat"?.23:m.type==="pigeon"?.32:.64;
      }
     }
    if(m.flee>0){
     if(s.prey&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
-      m.dir=chooseEscape(m,Math.atan2(m.y-P.y,m.x-P.x));m.escapeTimer=.48;
+      m.evasionSide=-(m.evasionSide||1);
+      m.dir=chooseEscape(m,Math.atan2(m.y-P.y,m.x-P.x));m.escapeTimer=m.type==="rat"?.23:m.type==="pigeon"?.32:.64;
     }
-    m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(.72+.73*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
+    m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(m.type==="rabbit"?.83+1.02*m.fleeEnergy:m.type==="pigeon"?.85+.87*m.fleeEnergy:.84+.57*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
    }else if(s.prey&&spotted){
     // Suspicious prey stop and watch instead of instantly sprinting from offscreen.
     m.dir=angle;m.wander=Math.max(m.wander,.3);vx=0;vy=0;
@@ -541,7 +560,7 @@ function drawCreature(o,isPlayer){
  oval(4,9,r*1.2,r*.55,"#031011a8");
  ctx.rotate(o.dir||0);
  ctx.translate(0,Math.abs(Math.sin(gait*.9))*motion*r*.045);
- if(isPlayer)ctx.scale(1.14,1.14);
+ if(isPlayer){ctx.scale(1.14,1.14);if(P.pounceTime>0)ctx.scale(1.16,.86)}
  if(t==="pigeon"){
   oval(-r*.3,0,r*.8,r*.58,fur);
   oval(-r*.48,-r*.38+pace,r*.63,r*.3,"#526d77",-.35);
@@ -846,6 +865,7 @@ function drawScene(){
   }
  if(P&&P.swing>0){
   ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle="rgba(253,207,141,"+(P.swing/.18)+")";ctx.lineWidth=12*P.swing/.18;ctx.lineCap="round";ctx.beginPath();ctx.arc(0,0,P.r+40,-.95,.95);ctx.stroke();ctx.strokeStyle="#fff7d6";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,P.r+47,-.75,.75);ctx.stroke();ctx.restore()}
+ if(P&&P.pounceTime>0){ctx.save();ctx.strokeStyle="#ffe2a49c";ctx.lineWidth=5;ctx.beginPath();ctx.arc(P.x,P.y,P.r+12,-.8,.8);ctx.stroke();ctx.restore()}
  if(P&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
  for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
