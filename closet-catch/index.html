@@ -774,8 +774,10 @@ const SECONDARY_REGION={head:'back',face:'hands',neck:'back',torso:'back',hips:'
 function showPlan(items,player=true){
  const counts={};return items.map((item,index)=>{
  const base=naturalShowRegion(item),origin=st.show.order?.[index]??index;
- const mode=player?(st.show.special?.[origin]??0):0,special=mode>0,region=mode===2?SECONDARY_REGION[base]:mode===1?SPECIAL_REGION[base]:base,stack=counts[region]||0;
- counts[region]=stack+1;const [px,py,ps,pr]=SHOW_REGIONS[region];
+ const mode=player?(st.show.special?.[origin]??0):0,special=mode>0,region=mode===2?SECONDARY_REGION[base]:mode===1?SPECIAL_REGION[base]:base;
+ // Layer distinct garment types flush to the same anatomy; offset only repeated types.
+ const stackKey=region+'|'+(special?'special':item.cat),stack=counts[stackKey]||0;
+ counts[stackKey]=stack+1;const [px,py,ps,pr]=SHOW_REGIONS[region];
  const label=({head:'頭',face:'顔',neck:'首',torso:'上半身',hips:'腰',legs:'下半身',feet:'足',hands:'手',back:'背中'})[region];
  return {item,index,region,natural:!special,stack,label:(special?'特殊：':'')+label+(stack?'・重ね着'+(stack+1)+'枚目':''),x:px+(stack?((stack%2)?1:-1)*Math.ceil(stack/2)*18:0),y:py+stack*13,size:ps*(stack?Math.max(.82,1-stack*.045):1),rotation:pr+Math.ceil(stack/2)*(stack%2?-.12:.12)};
  })}
@@ -1029,7 +1031,7 @@ function dressRunway(ctx,x,y,z,t,items=showOutfit(),isRival=false){
  // duplicate categories without forcibly transforming them into unrelated parts.
  const plan=showPlan(items,!isRival);
  const order={back:0,legs:1,hips:2,feet:3,torso:4,hands:5,neck:6,face:7,head:8};
- const clothingLayer={under:0,bottom:1,shoes:2,top:3,dress:4,outer:5};
+ const clothingLayer={under:0,bottom:1,shoes:2,top:3,dress:4,outer:5,hair:17,hat:19};
  const layer=p=>p.natural?(clothingLayer[p.item.cat]??(10+order[p.region])):10+order[p.region];
  for(const p of [...plan].sort((a,b)=>layer(a)-layer(b)||a.stack-b.stack))renderRunwayItem(ctx,p,gait,t);
 
