@@ -328,7 +328,9 @@ function runHarness(gameSource,musicSource,extrasSource){
  el('touchPad').getBoundingClientRect=originalPadRect;
  ev('sidePauseBtn','click');ok(G.mode==='paused','pause');
  ok(el('sidePauseBtn').innerHTML.includes('<span>再開</span>'),'pause label');
+ ok(el('sidePulseBtn').disabled===true&&el('sideEquipBtn').disabled===true,'only pause disables action buttons');
  ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
+ ok(el('sidePulseBtn').disabled===false&&el('sideEquipBtn').disabled===false,'both action buttons recover after resume');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'resume label');
  // Regression: a real Android click must still reach both visible controls.
  G.selected=0;G.energy=0;
@@ -346,6 +348,18 @@ function runHarness(gameSource,musicSource,extrasSource){
  ev('sidePulseBtn','click');
  ok(G.pulses===0&&el('toast').textContent.includes('再充填まで'),'empty NOVA tap reports remaining time');
  G.pulses=1;G.pulseRecharge=0;q.update(.016);
+ // Android two-thumb control: keep left pointer captured while tapping right.
+ G.pulses=2;G.energy=0;q.update(.016);
+ ev('touchPad','pointerdown',{pointerId:31,clientX:45,clientY:110});
+ const thumbStart=G.player.x;
+ ev('sidePulseBtn','click',{pointerId:32});
+ ok(G.pulses===1,'right NOVA works with left pad held');
+ ev('sideEquipBtn','click',{pointerId:32});
+ ok(el('toast').textContent.includes('カプセル不足'),'right upgrade gives feedback with left pad held');
+ ev('touchPad','pointermove',{pointerId:31,clientX:53,clientY:110});
+ ok(G.player.x>thumbStart,'left pad retains control while right button tapped');
+ ev('touchPad','pointercancel',{pointerId:31,clientX:53,clientY:110});
+ G.pulses=1;G.pulseRecharge=0;
  G.pulses=0;G.pulseRecharge=59.85;G.mode='playing';
  G.bossDone=true;G.transitioning=false;G.terrainIndex=2;G.terrain=null;
  G.enemies=[];G.shots=[];G.bullets=[];G.pickups=[];G.player.invul=100;
