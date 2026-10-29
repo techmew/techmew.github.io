@@ -49,7 +49,7 @@ window.addEventListener("resize",resize,{passive:true});resize();generateWorld()
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;
- const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false};
+ const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,abilityTime:0,instinctCD:0};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
@@ -117,6 +117,19 @@ function sound(f=350,d=.12,wave="triangle",vol=.035){
   o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d+.02);
  }catch(e){}
 }
+function instinct(){
+ if(mode!=="play"||P.instinctCD>0||P.sp<18)return;
+ P.sp-=18;P.instinctCD=P.type==="wolf"?16:12;P.abilityTime=P.type==="cat"?3.2:4;
+ if(P.type==="fox"){P.senseTime=Math.max(P.senseTime,4);notify("狐眼 / 気配が見える。次の一撃が強化");sound(660,.28,"sine",.04)}
+ if(P.type==="cat"){P.dash=Math.min(P.dash,.25);notify("俊足 / 3秒間の加速と回避");sound(820,.19,"triangle",.04)}
+ if(P.type==="wolf"){
+  P.noiseBurst=1.8;
+  for(const m of mobs){if(m.hp<=0||dist(P,m)>245||lineBlocked(P,m))continue;
+   if(m.type==="alpha"||m.type==="boar"){m.alert=Math.max(m.alert,1.4);continue}
+   m.flee=2.3;m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
+  blood(P.x,P.y,"#dce3db",16,140);notify("咆哮 / 周囲の小動物を威圧");sound(130,.36,"sawtooth",.07);
+ }
+}
 function attack(){
  if(mode!=="play"||P.atk>0||P.pendingStrike)return;
  P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.steps+=.1;
@@ -129,7 +142,9 @@ function resolveAttack(){
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   if(d<P.r+m.r+52&&Math.abs(angle)<1.22){
-   const damage=Math.round(P.damage*rnd(.86,1.16));m.hp-=damage;m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;hit++;
+   const bonus=P.type==="fox"&&P.abilityTime>0?1.7:1;
+    const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
+    if(bonus>1)P.abilityTime=0;m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;hit++;
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    m.x+=Math.cos(theta)*7;m.y+=Math.sin(theta)*7;
    if(m.hp<=0)kill(m);
@@ -217,7 +232,7 @@ function update(dt){
  const newWeather=day%4===0?"FOG":day%3===0?"RAIN":"CLEAR";if(newWeather!==weather){weather=newWeather;notify(weather==="RAIN"?"酸性雨の気配 / 視界が悪化":weather==="FOG"?"濃霧 / 視界が悪化":"空が晴れてきた")}
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
- P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0)resolveAttack()}
+ P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0)resolveAttack()}
  P.sp=clamp(P.sp+17*dt,0,100);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
@@ -225,7 +240,7 @@ function update(dt){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*3.8*dt,P.dy*P.speed*3.8*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
   }else{
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1);
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*(P.type==="cat"&&P.abilityTime>0?1.48:1);
    const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
    const limit=(len>.08?(P.type==="wolf"?680:900):(P.type==="wolf"?980:1300))*dt;
    const ratio=length>limit?limit/length:1;
@@ -256,7 +271,7 @@ function update(dt){
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:3.1;m.search=0}
    let vx=0,vy=0;
    if(s.prey&&spotted){m.flee=2;m.dir=angle+Math.PI}
-   if(s.prey&&m.flee>0){
+   if(m.flee>0){
     m.flee=Math.max(0,m.flee-dt);vx=Math.cos(m.dir)*s.speed*1.3;vy=Math.sin(m.dir)*s.speed*1.3;
    }else if(!s.prey&&m.alert>0){
     m.alert=Math.max(0,m.alert-dt);
@@ -309,11 +324,12 @@ function syncHUD(hour){
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
  const goal=getObjective(),guide=$("mission-guide");
+ const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"狐眼":P.type==="cat"?"俊足":"咆哮";
  if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal)):"▲ 周囲を探索中";
  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
- $("dash-touch").style.opacity=P.dash>0||P.sp<28?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";
+ $("dash-touch").style.opacity=P.dash>0||P.sp<28?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
 }
 function drawMini(){
  if(!P)return;
@@ -471,14 +487,14 @@ function drawScene(){
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play")return;if(code==="dash")dash();if(code==="sense")sense();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play")return;if(code==="dash")dash();if(code==="sense")sense();if(code==="instinct")instinct();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
  if(e.repeat&&["shift","q","p","escape","f"].includes(k))return;
  keys.add(k);
  if(k==="shift"||k==="k")act("dash");
- if(k==="q")act("sense");
+ if(k==="q")act("sense");if(k==="r")act("instinct");
  if(k==="e")act("eat");
  if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();
@@ -512,7 +528,7 @@ stick.addEventListener("pointerdown",e=>{e.preventDefault();joy.id=e.pointerId;s
 stick.addEventListener("pointermove",e=>{if(e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",()=>{joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"});
-for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["sense-touch","sense"],["eat-touch","eat"]]){
+for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["sense-touch","sense"],["eat-touch","eat"],["instinct-touch","instinct"]]){
  const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();b.classList.add("down");b.setPointerCapture(e.pointerId);if(action==="attack")attackTouch=true;act(action)});
  const end=()=>{b.classList.remove("down");if(action==="attack")attackTouch=false};
  b.addEventListener("pointerup",end);b.addEventListener("pointercancel",end);b.addEventListener("lostpointercapture",end);
