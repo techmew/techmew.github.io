@@ -74,7 +74,7 @@ function spawnMob(initial=false){
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
- if(nearBuilding(x,y,22))return;
+ if(collides(x,y,34))return;
  carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
 }
 function collides(x,y,r){if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;return nearBuilding(x,y,r*.8)}
@@ -695,16 +695,51 @@ function routeTo(goal,actor=P){
  }
  return null;
 }
+function reachableObjective(goal){
+ if(!goal||!P||!collides(goal.x,goal.y,P.r+5))return goal;
+ // Food can sit next to a wall; direct the player to an actual reachable pickup spot.
+ let best=null,cost=Infinity;
+ for(const radius of [42,54,63])for(let k=0;k<16;k++){
+  const a=k*Math.PI/8,c={x:goal.x+Math.cos(a)*radius,y:goal.y+Math.sin(a)*radius};
+  if(collides(c.x,c.y,P.r+5)||lineBlocked(c,goal))continue;
+  const score=dist(P,c)+dist(c,goal)*.1;
+  if(score<cost){cost=score;best=c}
+ }
+ return best?{x:best.x,y:best.y,label:goal.label,approach:true}:goal;
+}
 function guidancePoint(goal){
  if(!goal||!P)return null;
- if(routeClear(P,goal)){guideCache=null;return goal}
+ const destination=reachableObjective(goal);
+ if(routeClear(P,destination)){guideCache=null;return destination}
  if(guideCache&&elapsed-guideCache.time<.48&&Math.hypot(guideCache.px-P.x,guideCache.py-P.y)<72&&Math.hypot(guideCache.gx-goal.x,guideCache.gy-goal.y)<58)return guideCache.point;
- const route=routeTo(goal);
+ const route=routeTo(destination);
  let point=null;
  if(route){for(let i=route.length-1;i>=0;i--)if(routeClear(P,route[i])){point={x:route[i].x,y:route[i].y,label:goal.label,detour:true};break}}
  if(!point)point={x:P.x,y:P.y,label:goal.label,detour:true,blocked:true};
  guideCache={time:elapsed,px:P.x,py:P.y,gx:goal.x,gy:goal.y,point};
  return point;
+}
+function safeGuidePosition(x,y){
+ const minX=39,maxX=Math.max(39,vw-39),minY=116,maxY=Math.max(116,vh-116);
+ const base={x:clamp(x,minX,maxX),y:clamp(y,minY,maxY)};
+ const rects=["mission","touch-layer"].map(id=>{
+  const el=$(id);return el&&typeof el.getBoundingClientRect==="function"?el.getBoundingClientRect():null;
+ }).filter(r=>r&&r.width>0&&r.height>0);
+ const overlaps=(p,r)=>p.x>r.left-35&&p.x<r.right+35&&p.y>r.top-35&&p.y<r.bottom+52;
+ let pos=base;
+ for(let attempt=0;attempt<rects.length+1;attempt++){
+  const r=rects.find(q=>overlaps(pos,q));if(!r)break;
+  const options=[
+   {x:clamp(r.right+39,minX,maxX),y:pos.y},
+   {x:clamp(r.left-39,minX,maxX),y:pos.y},
+   {x:pos.x,y:clamp(r.top-55,minY,maxY)},
+   {x:pos.x,y:clamp(r.bottom+55,minY,maxY)}
+  ].filter(p=>!rects.some(q=>overlaps(p,q)));
+  if(!options.length)break;
+  options.sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y));
+  pos=options[0];
+ }
+ return pos;
 }
 function drawGoalGuide(){
  if(!P||mode!=="play")return;
@@ -719,11 +754,12 @@ function drawGoalGuide(){
   const radius=Math.min(maxX/Math.max(.01,Math.abs(ux)),maxY/Math.max(.01,Math.abs(uy)));
   x=clamp(px+ux*radius,70,vw-70);y=clamp(py+uy*radius,110,vh-110);
  }
+ const safe=safeGuidePosition(x,y);x=safe.x;y=safe.y;
  ctx.save();ctx.translate(x,y);ctx.fillStyle="#102126e8";ctx.strokeStyle="#ffc967";ctx.lineWidth=2;
  ctx.beginPath();ctx.arc(0,0,23,0,TWO);ctx.fill();ctx.stroke();
  ctx.save();ctx.rotate(angle+Math.PI/2);ctx.fillStyle="#ffe2a0";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 27px sans-serif";ctx.fillText("▲",0,-1);ctx.restore();
  ctx.fillStyle="#fff0ce";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 11px sans-serif";ctx.shadowColor="#000";ctx.shadowBlur=8;
- ctx.fillText((point.blocked?"経路を探索中":point.detour?"迂回 ▲ ":"")+(onscreen?"目標 · ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
+ ctx.fillText((point.blocked?"経路再探索":point.detour?"迂回 ▲ ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
 }
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
