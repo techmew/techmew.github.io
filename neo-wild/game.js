@@ -396,35 +396,123 @@ function drawItem(c){
  ctx.restore();
 }
 function drawCreature(o,isPlayer){
- const s=isPlayer?P.base:species[o.type],r=o.r,flashHit=!isPlayer&&o.flash>0;
+ const s=isPlayer?P.base:species[o.type],r=o.r,t=o.type;
+ const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
+ const pace=Math.sin((o.step||0)*.9)*r*.09;
+ const oval=(x,y,w,h,color,rot=0)=>{
+  ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,w),Math.max(.5,h),rot,0,TWO);ctx.fill();
+ };
+ const triangle=(pts,color)=>{
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(pts[0],pts[1]);
+  for(let i=2;i<pts.length;i+=2)ctx.lineTo(pts[i],pts[i+1]);
+  ctx.closePath();ctx.fill();
+ };
  ctx.save();ctx.translate(o.x,o.y);
- ctx.fillStyle="#03101194";ctx.beginPath();ctx.ellipse(4,9,r*1.1,r*.52,-.06,0,TWO);ctx.fill();
+ oval(4,9,r*1.2,r*.55,"#031011a8");
  ctx.rotate(o.dir||0);
- const step=Math.sin(o.step||0)*3,color=flashHit?"#ffdfbc":s.color,belly=s.belly;
- if(o.type==="pigeon"){
-  ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(-3,0,r*.85,r*.65,0,0,TWO);ctx.fill();
-  ctx.fillStyle="#9bb4ae";ctx.beginPath();ctx.ellipse(-3,-8+step*.35,10,4,-.35,0,TWO);ctx.ellipse(-3,8-step*.35,10,4,.35,0,TWO);ctx.fill();
-  ctx.fillStyle="#e8bd74";ctx.beginPath();ctx.moveTo(r+6,0);ctx.lineTo(r-1,-4);ctx.lineTo(r-1,4);ctx.fill();
- }else{
-  const legColor=o.type==="boar"?"#594f45":color;
-  ctx.fillStyle=legColor;ctx.fillRect(-r*.53,-r*.79+step*.3,r*.45,r*.49);ctx.fillRect(r*.16,-r*.79-step*.3,r*.45,r*.49);
-  ctx.fillRect(-r*.53,r*.29-step*.3,r*.45,r*.45);ctx.fillRect(r*.16,r*.29+step*.3,r*.45,r*.45);
-  ctx.save();ctx.translate(-r*.75,0);
-  ctx.fillStyle=color;ctx.beginPath();
-  if(o.type==="fox"||o.type==="wolf"||o.type==="dog"||o.type==="alpha"){ctx.moveTo(0,-r*.5);ctx.quadraticCurveTo(-r*1.2,-r*.86,-r*1.45,0);ctx.quadraticCurveTo(-r*.95,r*.82,0,r*.48)}
-  else{ctx.moveTo(0,-r*.22);ctx.quadraticCurveTo(-r*1.2,-r*.52,-r*1.15,0);ctx.quadraticCurveTo(-r*.65,r*.55,0,r*.22)}
-  ctx.fill();ctx.restore();
-  ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(-r*.12,0,r*.86,r*.68,0,0,TWO);ctx.fill();
-  ctx.fillStyle=belly;ctx.beginPath();ctx.ellipse(r*.25,0,r*.47,r*.39,0,0,TWO);ctx.fill();
-  ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(r*.65,0,r*.59,r*.58,0,0,TWO);ctx.fill();
-  if(o.type==="boar"){ctx.fillStyle="#c8ac8a";ctx.beginPath();ctx.ellipse(r*1.18,0,r*.36,r*.28,0,0,TWO);ctx.fill();ctx.fillStyle="#efdbac";for(const z of [-1,1]){ctx.beginPath();ctx.moveTo(r*.99,z*r*.2);ctx.lineTo(r*1.35,z*r*.37);ctx.lineTo(r*1.2,z*r*.07);ctx.fill()}}
-  else {
-   ctx.fillStyle=color;for(const z of [-1,1]){ctx.beginPath();ctx.moveTo(r*.26,z*r*.4);ctx.lineTo(r*.64,z*r*.95);ctx.lineTo(r*.87,z*r*.35);ctx.fill()}
-   ctx.fillStyle=belly;ctx.beginPath();ctx.moveTo(r*.64,-r*.25);ctx.lineTo(r*1.39,0);ctx.lineTo(r*.64,r*.25);ctx.fill();
+ if(isPlayer)ctx.scale(1.14,1.14);
+ if(t==="pigeon"){
+  oval(-r*.3,0,r*.8,r*.58,fur);
+  oval(-r*.48,-r*.38+pace,r*.63,r*.3,"#526d77",-.35);
+  oval(-r*.48,r*.38-pace,r*.63,r*.3,"#9cb5ae",.35);
+  oval(r*.6,0,r*.32,r*.28,"#839ca4");
+  triangle([r*.77,-3,r*1.23,0,r*.77,3],"#ebc27a");
+  triangle([-r,0,-r*1.55,-r*.29,-r*1.45,r*.32],"#adc6c3");
+  oval(r*.69,-r*.16,1.4,1.5,"#eaf6ef");
+ }else if(t==="rat"){
+  ctx.strokeStyle="#c08b87";ctx.lineWidth=3;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(-r*.8,0);ctx.bezierCurveTo(-r*1.55,-r*.65,-r*2.0,r*.55,-r*2.5,r*.08);ctx.stroke();
+  oval(-r*.25,0,r*.82,r*.49,fur);
+  oval(r*.39,0,r*.53,r*.43,fur);
+  oval(r*.35,-r*.46,r*.23,r*.25,"#cba6a4");oval(r*.35,r*.46,r*.23,r*.25,"#cba6a4");
+  triangle([r*.67,-r*.2,r*1.13,0,r*.67,r*.2],"#c1a39e");oval(r*1.13,0,1.8,1.8,"#db9ca0");
+  oval(r*.72,-r*.19,1.8,1.7,"#181a1e");
+ }else if(t==="rabbit"){
+  oval(-r*.98,0,r*.25,r*.28,"#fff1dc");
+  oval(-r*.15,0,r*.82,r*.72,fur);
+  oval(r*.57,0,r*.44,r*.43,fur);
+  for(const sign of [-1,1]){
+   oval(r*.48,sign*r*.99,r*.26,r*.69,fur,sign*.18);
+   oval(r*.48,sign*r*.99,r*.11,r*.48,"#e9ada7",sign*.18);
+   oval(-r*.35,sign*r*.49+pace*sign,r*.24,r*.16,"#a99b87");
   }
+  oval(r*.79,-r*.15,2,2,"#322d2a");oval(r*.96,0,1.8,1.7,"#d894a0");
+ }else if(t==="boar"){
+  triangle([-r*.8,-r*.55,-r*1.2,-r*.22,-r*.98,0], "#4f4640");
+  for(let i=0;i<7;i++)triangle([-r*.7+i*r*.21,-r*.63,-r*.6+i*r*.21,-r*.94,-r*.45+i*r*.21,-r*.66],"#4f4339");
+  for(const sign of [-1,1]){
+   oval(-r*.4,sign*r*.64+pace*sign,r*.34,r*.31,"#4d4137");
+   oval(r*.54,sign*r*.61-pace*sign,r*.32,r*.34,"#55433b");
+  }
+  oval(-r*.05,0,r*1.01,r*.83,fur);
+  oval(r*.67,0,r*.63,r*.57,"#766058");
+  oval(r*1.25,0,r*.31,r*.37,"#c7a78e");
+  oval(r*1.39,-r*.12,r*.07,r*.09,"#56453f");oval(r*1.39,r*.12,r*.07,r*.09,"#56453f");
+  for(const sign of [-1,1])triangle([r*.95,sign*r*.34,r*1.32,sign*r*.63,r*1.17,sign*r*.16],"#f1dfb6");
+  oval(r*.86,-r*.35,2.8,2.4,"#1c1f1d");
+ }else if(t==="cat"){
+  // 猫だけ細い身体、長く曲がる尻尾、丸い頭と小さい三角耳。
+  ctx.strokeStyle=fur;ctx.lineWidth=r*.27;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68,-r*2.25,-r*.26);ctx.stroke();
+  for(const sign of [-1,1]){
+   oval(-r*.44,sign*r*.48+pace*sign,r*.2,r*.28,fur);
+   oval(r*.36,sign*r*.44-pace*sign,r*.19,r*.27,fur);
+  }
+  oval(-r*.14,0,r*.79,r*.56,fur);
+  for(const q of [-.42,-.06,.3]){
+   ctx.strokeStyle="#6c776e";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(q*r,-r*.49);ctx.lineTo((q-.1)*r,-r*.19);ctx.stroke();
+  }
+  oval(r*.55,0,r*.49,r*.46,fur);
+  for(const sign of [-1,1]){
+   triangle([r*.27,sign*r*.29,r*.28,sign*r*.85,r*.7,sign*r*.41],fur);
+   triangle([r*.37,sign*r*.42,r*.34,sign*r*.69,r*.58,sign*r*.44],"#c49e9b");
+  }
+  oval(r*.78,-r*.18,r*.13,r*.1,"#d0ed82");oval(r*.78,r*.18,r*.13,r*.1,"#d0ed82");
+  oval(r*.83,-r*.18,1.5,2.4,"#1a241f");oval(r*.83,r*.18,1.5,2.4,"#1a241f");
+  triangle([r*.95,-r*.07,r*1.13,0,r*.95,r*.07],"#d78f88");
+  ctx.strokeStyle="#eae7d8";ctx.lineWidth=1;
+  for(const side of [-1,1])for(let k=-1;k<=1;k++){ctx.beginPath();ctx.moveTo(r*.95,side*r*.14);ctx.lineTo(r*1.42,side*r*(.14+k*.1));ctx.stroke()}
+ }else if(t==="fox"){
+  // 大きい白先端のふさふさした尾と長い尖った鼻、黒脚が狐の輪郭。
+  ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.55,-r*.4);ctx.bezierCurveTo(-r*1.15,-r*.79,-r*1.8,-r*.85,-r*2.5,-r*.26);
+  ctx.bezierCurveTo(-r*2.9,r*.15,-r*1.65,r*.71,-r*.63,r*.38);ctx.closePath();ctx.fill();
+  triangle([-r*2.18,-r*.47,-r*2.62,-r*.21,-r*2.29,r*.15],"#fff2d7");
+  for(const side of [-1,1])for(const px of [-.47,.3]){
+   oval(px*r,side*r*.52+pace*side,r*.16,r*.31,"#292a26");
+  }
+  oval(-r*.1,0,r*.87,r*.57,fur);
+  oval(r*.23,0,r*.5,r*.4,light);
+  oval(r*.62,0,r*.43,r*.46,fur);
+  for(const side of [-1,1])triangle([r*.36,side*r*.34,r*.45,side*r*1.0,r*.85,side*r*.42],fur);
+  triangle([r*.76,-r*.34,r*1.65,0,r*.76,r*.34],light);
+  triangle([r*1.53,-r*.075,r*1.78,0,r*1.53,r*.075],"#252526");
+  oval(r*.83,-r*.23,2.2,2.4,"#1a201c");oval(r*.83,r*.23,2.2,2.4,"#1a201c");
+ }else{
+  // 犬・狼・アルファは胴と肩が大きい。狼は立ち耳と鬣、犬は垂れ耳。
+  const wolf=t==="wolf"||t==="alpha",alpha=t==="alpha";
+  ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.62,-r*.31);ctx.lineTo(-r*1.54,-r*.64);ctx.lineTo(-r*1.7,-r*.33);ctx.lineTo(-r*1.4,r*.39);ctx.lineTo(-r*.62,r*.33);ctx.fill();
+  for(const side of [-1,1])for(const px of [-.44,.43])oval(px*r,side*r*.62+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
+  oval(-r*.14,0,r*.99,r*.74,fur);
+  oval(r*.1,-r*.04,r*.66,r*.57,wolf?"#576c73":"#8d6c51");
+  if(wolf)for(const side of [-1,1])for(let k=0;k<3;k++)
+   triangle([r*.01-k*r*.24,side*r*.52,-r*.08-k*r*.25,side*r*.92,r*.24-k*r*.25,side*r*.57],fur);
+  oval(r*.7,0,r*.58,r*.58,fur);
+  for(const side of [-1,1]){
+   if(wolf)triangle([r*.38,side*r*.39,r*.49,side*r*1.03,r*.92,side*r*.44],fur);
+   else oval(r*.41,side*r*.59,r*.23,r*.48,"#684d41",side*.44);
+  }
+  oval(r*1.03,0,r*.39,r*.23,light);oval(r*1.36,0,r*.12,r*.11,"#171d1d");
+  oval(r*.9,-r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
+  oval(r*.9,r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
+  if(alpha){ctx.strokeStyle="#e6d5c5";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(r*.56,-r*.36);ctx.lineTo(r*.91,-r*.06);ctx.moveTo(r*.72,-r*.48);ctx.lineTo(r*1.05,-r*.19);ctx.stroke();}
  }
- ctx.fillStyle=isPlayer?"#f4fbe2":"#fbe8ad";for(const z of [-1,1]){ctx.beginPath();ctx.arc(r*.74,z*r*.26,Math.max(1.6,r*.085),0,TWO);ctx.fill()}
- if(isPlayer){ctx.strokeStyle=P.inv>0?"#f6b969a9":"#adf3c996";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,r+6,0,TWO);ctx.stroke();ctx.fillStyle="#eef7df";ctx.font="900 10px sans-serif";ctx.textAlign="center";ctx.fillText(P.hidden?"潜伏中":"YOU",0,-r-19)}
+ if(isPlayer){
+  ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.arc(0,0,r+5,0,TWO);ctx.stroke();
+  ctx.font="900 10px sans-serif";ctx.textAlign="center";ctx.fillStyle="#f5fce8";
+  ctx.fillText(P.hidden?"潜伏中":"YOU",0,-r-21);
+  if(P.abilityTime>0){ctx.strokeStyle="#ffe0a0";ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(0,0,r+10,0,TWO);ctx.stroke();ctx.setLineDash([])}
+ }
  ctx.restore();
  if(!isPlayer&&!s.prey&&o.hp<o.maxHp){ctx.fillStyle="#101719c9";ctx.fillRect(o.x-21,o.y-r-17,42,4);ctx.fillStyle="#e9a077";ctx.fillRect(o.x-21,o.y-r-17,42*o.hp/o.maxHp,4)}
  if(P&&P.senseTime>0&&!isPlayer){ctx.strokeStyle=s.prey?"#91ebbc":"#ef9274";ctx.lineWidth=2;ctx.beginPath();ctx.arc(o.x,o.y,r+12+Math.sin(elapsed*8)*2,0,TWO);ctx.stroke()}
