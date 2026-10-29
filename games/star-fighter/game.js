@@ -303,6 +303,11 @@ function bindCombatAction(button,act){
  button.addEventListener('pointercancel',e=>{
   if(tracking&&e.pointerId===tracking.id){tracking=null;lastTouchUp=Date.now()}
  });
+ button.addEventListener('lostpointercapture',e=>{
+  // Android can drop capture during rotation, system gesture or app switch.
+  // Clear the stale finger so the next tap cannot get permanently locked out.
+  if(tracking&&e.pointerId===tracking.id){tracking=null;lastTouchUp=Date.now()}
+ });
  button.addEventListener('pointerup',e=>{
   if(!tracking||e.pointerId!==tracking.id)return;
   const touch=tracking;tracking=null;lastTouchUp=Date.now();
@@ -314,7 +319,7 @@ function bindCombatAction(button,act){
  });
  button.addEventListener('click',e=>{
   // A touch pointerup has already fired the action. Never fire a duplicate.
-  if(isTouch(e)||(e.detail>0&&e.pointerType!=='mouse'&&Date.now()-lastTouchUp<700)){
+  if(isTouch(e)||(e.detail>0&&Date.now()-lastTouchUp<700)){
    e.preventDefault();return;
   }
   act();
