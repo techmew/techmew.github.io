@@ -296,19 +296,23 @@ function bindCombatAction(button,act){
   tracking={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
   try{button.setPointerCapture(e.pointerId)}catch(_){}
  });
- button.addEventListener('pointermove',e=>{
+ const move=e=>{
   if(!tracking||e.pointerId!==tracking.id)return;
   if(Math.hypot(e.clientX-tracking.x,e.clientY-tracking.y)>18)tracking.moved=true;
- });
- button.addEventListener('pointercancel',e=>{
+ };
+ button.addEventListener('pointermove',move);
+ window.addEventListener('pointermove',move);
+ const cancel=e=>{
   if(tracking&&e.pointerId===tracking.id){tracking=null;lastTouchUp=Date.now()}
- });
+ };
+ button.addEventListener('pointercancel',cancel);
+ window.addEventListener('pointercancel',cancel);
  button.addEventListener('lostpointercapture',e=>{
   // Android can drop capture during rotation, system gesture or app switch.
   // Clear the stale finger so the next tap cannot get permanently locked out.
   if(tracking&&e.pointerId===tracking.id){tracking=null;lastTouchUp=Date.now()}
  });
- button.addEventListener('pointerup',e=>{
+ const finish=e=>{
   if(!tracking||e.pointerId!==tracking.id)return;
   const touch=tracking;tracking=null;lastTouchUp=Date.now();
   if(touch.moved||Math.hypot(e.clientX-touch.x,e.clientY-touch.y)>18)return;
@@ -316,7 +320,9 @@ function bindCombatAction(button,act){
   if(e.clientX<box.left||e.clientX>box.right||
      e.clientY<box.top||e.clientY>box.bottom)return;
   e.preventDefault();act(); // do not wait for the often-lost synthesized click
- });
+ };
+ button.addEventListener('pointerup',finish);
+ window.addEventListener('pointerup',finish); // fallback if capture was unavailable
  button.addEventListener('click',e=>{
   // A touch pointerup has already fired the action. Never fire a duplicate.
   if(isTouch(e)||(e.detail>0&&Date.now()-lastTouchUp<700)){
@@ -1306,7 +1312,7 @@ if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
 }
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt*(terrainApproaching()?2.2:1);if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
-for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{G.energy=Math.min(6,G.energy+1);G.selected=Math.max(0,Math.min(5,G.energy-1));showToast('POWER CAPSULE +1')}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
+for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{G.energy=Math.min(6,G.energy+1);showToast('POWER CAPSULE +1')}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
 for(let i=G.particles.length-1;i>=0;i--){const q=G.particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(.12,dt);q.vy*=Math.pow(.16,dt);if(q.life<=0)G.particles.splice(i,1)}if(G.particles.length>620)G.particles.splice(0,G.particles.length-620);
 for(let i=G.rings.length-1;i>=0;i--){const r=G.rings[i];r.t+=dt;r.r=r.max*(r.t/r.life);if(r.t>=r.life)G.rings.splice(i,1)}
 G.uiTime-=dt;if(G.uiTime<=0){updateHud();G.uiTime=.11}}
