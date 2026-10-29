@@ -398,3 +398,12 @@ html,body{overscroll-behavior:none}
 .reward-card.passive{border-color:#58ccad;background:linear-gradient(165deg,#134c48,#0a2932)}
 .reward-card.passive .reward-tag{color:#9fffc6}
 .reward-card.passive.selected{border-color:#e2ffe9;box-shadow:0 0 16px #38d8aa80}
+
+/* 16/36: visually distinguish the one optional rare/tradeoff card without new HUD. */
+.reward-card.rare{border-color:#dca76e;background:linear-gradient(165deg,#4a3243,#201d34)}
+.reward-card.rare .reward-tag{color:#ffe19d}
+.reward-card.risk{border-color:#ff9875;background:linear-gradient(165deg,#533044,#2b1b32)}
+.reward-card.risk .reward-tag{color:#ffb8a0}
+.reward-card.route-special{border-color:#76b9d8;background:linear-gradient(165deg,#184a5b,#0c283b)}
+.reward-card.route-special .reward-tag{color:#a6e6ff}
+.reward-card.rare.selected,.reward-card.risk.selected,.reward-card.route-special.selected{outline:2px solid #fff0b0;outline-offset:-2px;box-shadow:0 0 13px #ffe29a55}
