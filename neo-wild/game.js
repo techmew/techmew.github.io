@@ -53,7 +53,7 @@ function start(){
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
- plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
+ if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  syncHUD();notify("東京封鎖区 / 生存開始");
  sound(280,.14,"triangle",.07);
@@ -185,7 +185,7 @@ function checkMission(){
  if(mission===0&&meals>=1){mission=1;notify("食料確保！ ▲ 茂みで身を隠せ")}
  if(mission===1&&hiddenHold>=.75){mission=2;notify("潜伏成功！ ▲ 獲物を追え")}
  if(mission===2&&kills>=1){mission=3;notify("初狩猟成功！ ▲ 旧新宿駅へ向かえ")}
- if(mission===3&&P.x>=2390){mission=4;freeStep=0;freeTarget=meals+1;notify("探索区域に到着 / 新たな生存目標が始まる")}
+ if(mission===3&&Math.hypot(P.x-2460,P.y-1170)<115){mission=4;freeStep=0;freeTarget=meals+1;notify("探索区域に到着 / 新たな生存目標が始まる")}
  if(mission===4){
   if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;notify("補給完了！ ▲ 次の獲物を追え")}
   else if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;notify("生存記録 "+expedition+" / ▲ 次の食料を探せ")}
