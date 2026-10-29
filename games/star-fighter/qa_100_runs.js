@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,PASSIVES};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource){
   G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
-  G.selected=0;G.energy=0;G.pulses=2;G.levels=[0,0,0,0,0,0];
+  G.selected=0;G.energy=0;G.pulses=2;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.fireTimer=0;G.missileTimer=0;
   q.seedStage();
  };
@@ -206,19 +206,68 @@ function runHarness(gameSource,musicSource){
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  const priorSeed=G.runSeed;
+
+ // Rank-by-rank effect and checkpoint regression; no touchpad/HUD changes.
+ G.mode='playing';G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];
+ G.passives=[0,0,0,0,0,0];G.bossDone=true;G.terrainIndex=2;G.terrain=null;
+ G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];G.particles=[];G.rings=[];
+ G.player.invul=999;G.stageTime=3;G.fireTimer=0;G.missileTimer=100;
+ q.update(.016);const baseFire=G.fireTimer;
+ G.passives[0]=2;G.fireTimer=0;q.update(.016);
+ ok(G.fireTimer<baseFire*.8,'rapid fire rank 2');
+ G.passives[1]=2;
+ ok(q.pickupMagnetRadius()===q.routeProfile().magnet+140,'magnet radius');
+ ok(q.pickupPullSpeed()===380,'magnet pull speed');
+ G.passives[2]=2;G.driveCharge=0;G.overdrive=0;
+ q.chargeDrive(10);ok(Math.abs(G.driveCharge-14.4)<.001,'capacitor drive gain');
+ G.passives[3]=1;G.player.shield=0;G.stage=0;G.bossDone=true;
+ q.nextStage();ok(G.player.shield===1&&G.stage===1,'plating next sector');
+ G.passives[4]=2;G.pulses=2;G.enemies=[{hp:1000,x:800,y:300}];G.boss={hp:1000};
+ q.pulse();ok(G.enemies[0].hp===880&&G.boss.hp===824,'pulse amplifier');
+ G.boss=null;G.enemies=[];G.passives[5]=2;
+ ok(Math.abs(q.salvageRate()-(q.routeProfile().pickupRate+.14))<.001,'salvage chance');
+ G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];
+ G.passives=[1,2,0,1,0,2];G.player.hp=3;G.player.shield=1;
+ G.mode='playing';G.driveCharge=12;G.lives=3;G.energy=0;G.pulses=2;
+ G.levels=[0,0,0,0,0,0];G.eventCount=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.score=0;G.runSeed=123;
+ q.saveCheckpoint('sector');const saved=q.readCheckpoint();
+ ok(JSON.stringify(saved?.passives)===JSON.stringify(G.passives),'passive checkpoint');
+ const legacy={...saved};delete legacy.passives;
+ storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(legacy));
+ ok(q.readCheckpoint()?.passives===undefined,'old checkpoint accepted');
+ storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...saved,passives:[9,0,0,0,0,0]}));
+ ok(q.readCheckpoint()===null,'corrupt passive checkpoint rejected');
+ storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(saved));
+ ev('titleReturnBtn','click');ev('continueBtn','click');
+ ok(JSON.stringify(G.passives)===JSON.stringify(saved.passives),'passive restore');
+ G.passives=[0,0,0,0,0,0];G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];
+ G.player.hp=3;G.player.shield=0;G.lives=3;G.energy=0;G.pulses=2;G.driveCharge=0;
+ G.boss=null;G.bossDone=false;G.transitioning=false;G.terrain=null;G.terrainIndex=2;G.mode='playing';
+
  const rewardTypes=new Set();
  for(let j=0;j<100;j++){
   G.runSeed=j*1234567>>>0;
   const a=q.rewardOptions(),b=q.rewardOptions();
   ok(a.length===3&&new Set(a.map(x=>x.id)).size===3,'reward uniqueness '+j);
   ok(JSON.stringify(a)===JSON.stringify(b),'reward seed determinism '+j);
+  ok(a.some(o=>o.id.startsWith('passive_')),'draft passive guarantee '+j);
   for(const offer of a)rewardTypes.add(offer.id);
  }
  ok(rewardTypes.size>=5,'insufficient reward variety');
+ ok(q.PASSIVES.length===6,'six passive modules');
+ for(let i=0;i<6;i++){
+  let found=false;
+  for(let j=0;j<240;j++){
+   G.passives=[0,0,0,0,0,0];G.runSeed=Math.imul(j+1,239017)>>>0;
+   if(q.rewardOptions().some(o=>o.id==='passive_'+i)){found=true;break}
+  }
+  ok(found,'passive never offered '+i);
+ }
+ G.passives=[2,2,2,2,2,2];
  G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=3;G.lives=3;G.driveCharge=100;G.levels=[2,3,2,2,3,3];
  const capped=q.rewardOptions();
  ok(capped.length===3&&capped.every(o=>o.id.startsWith('score')),'capped resources must have three usable rewards');
- G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];
+ G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
  G.runSeed=priorSeed;
  q.spawnBoss();ok(!!G.boss,'boss spawn');
  G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
