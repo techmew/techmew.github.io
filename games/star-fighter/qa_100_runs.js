@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=manual-input-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=boss-telegraph-20261030-1'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -991,6 +991,62 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   }
   ok(signatures[0]!==signatures[1],'route interception should differ '+stage);
  }
+ // 24/36: first-contact readability and boss difficulty/reward regression.
+ // Real hardware FPS and human dodge success are NOT inferred from these tests.
+ const bossCases=[[0,0],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1],[4,0],[4,1],
+  [5,0],[5,1],[6,0],[6,1],[7,0],[7,1]];
+ let worstVolley=0,minTravel=Infinity,minEntryWarning=Infinity;
+ ok(gameSource.includes('entryReady:false')&&gameSource.includes('b.fire=Math.max(b.fire,.82)'),
+   'all bosses must telegraph first entry');
+ ok(!gameSource.includes('c.setLineDash([18,12])')&&
+   !gameSource.includes("line(b.x-135,b.y,p.x,p.y"),
+   'no legacy orange enemy navigator or screen-spanning boss aim line');
+ for(const [stage,risk] of bossCases){
+  stageSetup(seeds[stage*7+risk],stage,risk);
+  G.routeHistory=[];G.activeEvent=null;G.enemies=[];G.player.invul=999;
+  q.spawnBoss();G.boss.x=1000;G.boss.fire=.01;
+  G.fireTimer=999;G.missileTimer=999;G.spawn=999;
+  q.update(.016);
+  ok(G.boss.fire>=.79&&G.bullets.length===0,'boss does not shoot from outside viewport '+stage+'/'+risk);
+  for(let i=0;i<80&&G.boss.x>980;i++)q.update(.016);
+  ok(G.boss.entryReady&&G.boss.x<=980,'boss entry becomes visible '+stage+'/'+risk);
+  minEntryWarning=Math.min(minEntryWarning,G.boss.fire);
+  ok(G.boss.fire>=.79&&G.bullets.length===0,'first salvo needs >=0.79s cue '+stage+'/'+risk);
+  q.drawScene();q.update(.30);
+  ok(G.bullets.length===0,'opening volley remains withheld during visual cue '+stage+'/'+risk);
+  q.update(.55);
+  ok(G.bullets.length>0,'opening volley starts after cue '+stage+'/'+risk);
+  G.boss=null;G.bullets=[];G.shots=[];
+ }
+ for(const seed of seeds)for(const [stage,risk] of bossCases){
+  stageSetup(seed,stage,risk);G.routeHistory=[];G.activeEvent=null;
+  q.spawnBoss();const b=G.boss;b.x=930;b.y=337;b.t=1.4;
+  ok(b.maxHp>=1500&&b.maxHp<15000,'boss HP bound '+stage+'/'+risk);
+  const levels=G.levels.slice(),energy=G.energy;
+  for(const phase of [0,1])for(let pattern=0;pattern<3;pattern++){
+   b.phase=phase;b.pattern=pattern;b.charge=0;b.beam=0;G.bullets=[];
+   q.bossAttack(b);
+   const count=G.bullets.length;worstVolley=Math.max(worstVolley,count);
+   ok(count>=4&&count<=16,'boss salvo bounded '+stage+'/'+risk+'/'+phase+'/'+pattern);
+   for(const shot of G.bullets){
+    const speed=Math.hypot(shot.vx,shot.vy);
+    ok(speed>=130&&speed<=360&&shot.size>=4&&shot.size<=6,
+     'readable boss projectile speed/size '+stage+'/'+risk);
+    if(shot.vx<0){
+     const travel=(shot.x-215-23)/-shot.vx;
+     minTravel=Math.min(minTravel,travel);
+     ok(travel>=1.3,'boss bullet must give >1.3s approach time '+stage+'/'+risk);
+    }
+   }
+  }
+  ok(G.levels.every((n,i)=>n===levels[i])&&G.energy===energy,
+   'boss attacks must not auto-upgrade or spend capsules');
+  G.boss=null;G.bullets=[];
+ }
+ stats.bossReadability={bossVariants:bossCases.length,seeds:seeds.length,
+  worstVolley,minProjectileTravelSeconds:+minTravel.toFixed(2),
+  minOpeningWarningSeconds:+minEntryWarning.toFixed(2),method:'headless geometry and scripted input, not human/device timing'};
+
  // 18/36: 100 deterministic builds sampled from actual projectile emission.
  // Twelve-second stationary-target expected DPS uses conservative hit weights;
  // theoretical time-to-kill is NOT measured human play or device performance.
