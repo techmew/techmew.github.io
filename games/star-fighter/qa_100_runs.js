@@ -537,11 +537,12 @@ function runHarness(gameSource,musicSource){
   const dps=weighted(primary)/interval+weighted(missiles)/1.15+splash;
   return {dps,ttk6:5650/dps,projectiles:primary.length+missiles.length};
  }
- let rng=0x734b0ca5;const roll=()=>{rng=(Math.imul(rng,1664525)+1013904223)>>>0;return rng};
+ let rng=0x734b0ca5;const roll=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return rng>>>0};
  const caps=[2,3,2,2,3,3],baseline=estimate([0,0,0,0,0,0],[0,0,0,0,0,0]);
  ok(baseline.dps>100&&baseline.dps<130,'baseline DPS');
  for(let i=0;i<100;i++){
-  const levels=caps.map(cap=>roll()%(cap+1)),passives=caps.map(()=>roll()%3);
+  const levels=i===0?caps.map(()=>0):i===1?caps.slice():i>=2&&i<8?caps.map((cap,j)=>j===i-2?cap:0):caps.map(cap=>roll()%(cap+1));
+  const passives=i<8?caps.map(()=>0):i>=8&&i<14?caps.map((_,j)=>j===i-8?2:0):caps.map(()=>roll()%3);
   const v=estimate(levels,passives);
   ok(Number.isFinite(v.dps)&&v.dps>=baseline.dps*.96,'build lower than base '+i);
   ok(v.dps<1700&&v.ttk6>3&&v.ttk6<65,'DPS/TTK outlier '+i);
