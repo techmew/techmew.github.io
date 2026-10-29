@@ -264,7 +264,7 @@ function melody(dt){if(sound&&bgm)bgm.update(G.stage,!!G.boss)}
 function showToast(txt){ui.toast.textContent=txt;ui.toast.classList.add('show');G.toastTime=2}
 function showAnnounce(head,title,sub,duration=3){ui.small.textContent=head;ui.main.textContent=title;ui.desc.textContent=sub;ui.announce.classList.add('show');G.announceTime=duration}
 function hideOverlay(){ui.overlay.classList.add('hidden')}
-function showOverlay(kind){$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で開始 <span>▶</span>'}}
+function showOverlay(kind){ui.overlay.dataset.state=kind;$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で開始 <span>▶</span>'}}
 function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;G.mode='playing';$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
 function pause(){if(G.mode==='playing'){G.mode='paused';resetStick();showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}$('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>'}
 function endGame(victory=false){if(victory)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';clearCheckpoint();if(G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
@@ -277,35 +277,32 @@ ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{G.selected=i;if(G.mod
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='enter'||k==='z')equip()});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
-/* Immediate displacement with continuous velocity-sensitive gain.
-   Never cruise, drift, warp on contact, or measure layout during pointermove. */
+/* Physical finger displacement only: stable fixed gain, no speed-dependent
+   surges, velocity spikes, autopilot, inertia or jump on first touch.
+   Capture permits continuing a drag beyond the decorative pad boundary. */
 const pad=$('touchPad');
-let padPointer=null,padLastX=0,padLastY=0,padLastTime=0,padScale={x:1,y:1},padCaptured=false;
+let padPointer=null,padLastX=0,padLastY=0,padScale={x:1,y:1},padCaptured=false;
 function resetStick(){
  stickX=stickY=0;stickPointer=null;padPointer=null;padCaptured=false;
  pad?.classList.remove('touching');
 }
 function touchScale(){
- const box=pad.getBoundingClientRect();
- return {x:cl((W-197)/Math.max(110,box.width*1.55),1.6,7),
-         y:cl((H-149)/Math.max(110,box.height*1.15),1.2,4.5)};
-}
-function touchGain(dx,dy,dt){
- const speed=Math.hypot(dx,dy)*1000/Math.max(4,dt);
- const t=cl((speed-220)/1150,0,1);
- return .60+1.48*t*t*(3-2*t);
+ // Cache geometry once per gesture; bounded scale on narrow landscape pads.
+ const rect=pad.getBoundingClientRect();
+ const width=Math.max(90,rect.width),height=Math.max(90,rect.height);
+ return {
+  x:cl((W-197)/Math.max(240,width*1.55),2.2,3.85),
+  y:cl((H-149)/Math.max(215,height*1.15),1.5,2.45)
+ };
 }
 function padMove(e){
  if(G.mode!=='playing'||padPointer!==e.pointerId||!p)return;
- const all=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():null;
- const q=all?.length?all[all.length-1]:e;
- const dx=q.clientX-padLastX,dy=q.clientY-padLastY;
- const now=Number.isFinite(q.timeStamp)&&q.timeStamp>0?q.timeStamp:(Number.isFinite(e.timeStamp)&&e.timeStamp>0?e.timeStamp:padLastTime+16);
- const dt=now>padLastTime?Math.min(42,now-padLastTime):16;
- padLastX=q.clientX;padLastY=q.clientY;padLastTime=now;
+ const dx=e.clientX-padLastX,dy=e.clientY-padLastY;
  if(!Number.isFinite(dx)||!Number.isFinite(dy))return;
- const gain=touchGain(dx,dy,dt);
- const nx=cl(p.x+dx*padScale.x*gain,62,W-135),ny=cl(p.y+dy*padScale.y*gain,98,H-111);
+ padLastX=e.clientX;padLastY=e.clientY;
+ if(dx===0&&dy===0)return;
+ // Every input delta is linear and reproducible regardless of event timing.
+ const nx=cl(p.x+dx*padScale.x,62,W-135),ny=cl(p.y+dy*padScale.y,98,H-111);
  p.angle=cl((ny-p.y)*.025,-.22,.22);
  p.x=p.targetX=nx;p.y=p.targetY=ny;G.firstInput=true;
 }
@@ -313,7 +310,6 @@ pad.addEventListener('pointerdown',e=>{
  if(G.mode!=='playing'||padPointer!==null)return;
  e.preventDefault();padPointer=e.pointerId;
  padLastX=e.clientX;padLastY=e.clientY;
- padLastTime=Number.isFinite(e.timeStamp)&&e.timeStamp>0?e.timeStamp:16;
  padScale=touchScale();pad.classList.add('touching');
  try{pad.setPointerCapture(e.pointerId);padCaptured=true}catch(_){padCaptured=false}
 });
@@ -326,11 +322,11 @@ for(const kind of ['pointerup','pointercancel'])
 window.addEventListener('blur',resetStick);
 /* Portrait is supported. Changing orientation must never auto-pause the run. */
 function syncOrientation(){
- resetStick();
+ // Browser chrome resize alone must not interrupt a held finger.
  last=performance.now();
 }
 window.addEventListener('resize',syncOrientation);
-window.addEventListener('orientationchange',syncOrientation);
+window.addEventListener('orientationchange',()=>{resetStick();syncOrientation()});
 let dragging=false,pid=-1;
 function coords(e){const b=C.getBoundingClientRect();return{x:(e.clientX-b.left)/b.width*W,y:(e.clientY-b.top)/b.height*H}}
 C.addEventListener('pointerdown',e=>{if(G.mode!=='playing'||e.pointerType==='touch')return;dragging=true;pid=e.pointerId;try{C.setPointerCapture(pid)}catch(err){}const q=coords(e);G.player.targetX=cl(q.x,60,W-130);G.player.targetY=cl(q.y,88,H-111);G.firstInput=true});
