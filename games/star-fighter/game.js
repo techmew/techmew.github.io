@@ -1463,11 +1463,85 @@ function drawDepthPlane(index){
  }
  c.restore();
 }
+
+/* 26/36 — route-specific nebula installations and ruins. Procedural original
+   vector artwork, cached per seed/stage/route; no combat RNG, no collisions. */
+const ROUTE_ART=[
+ [['relay','#69dce9','#245d77'],['wreck','#bd9cff','#45305d']],
+ [['dock','#77e9db','#2a5860'],['fortress','#ffac91','#62374b']],
+ [['reef','#6ce8cf','#2b6461'],['spires','#f59ac9','#5c365d']],
+ [['foundry','#ffc77b','#694237'],['solar','#ff8c73','#743849']],
+ [['cargo','#a8f3ff','#365b73'],['icefall','#e0e8ff','#3c5072']],
+ [['archive','#a4f3c9','#3a6657'],['obelisk','#dbabf3','#4c3a6d']],
+ [['phase','#83f9e6','#325e75'],['rift','#d4a0ff','#533b76']],
+ [['beacon','#ffe3a4','#71604a'],['orbit','#c6a8ff','#51426c']]
+];
+const ROUTE_PATHS={
+ relay:[[-48,0,48,0],[0,-47,0,47],[-32,-32,32,32],[-32,32,32,-32]],
+ wreck:[[-60,-20,-18,-38,10,-8,49,-30,24,22,-16,10,-50,36],[-18,-38,-25,13,24,22]],
+ dock:[[-57,-22,57,-22,57,22,-57,22,-57,-22],[-32,-37,32,-37,32,37,-32,37,-32,-37],[-16,-22,-16,22],[16,-22,16,22]],
+ fortress:[[-56,31,-47,-19,-20,-19,0,-54,20,-19,47,-19,56,31,-56,31],[-40,0,40,0],[0,-19,0,31]],
+ reef:[[-52,22,-32,-33,-14,4,0,-53,20,6,38,-33,54,22],[-40,22,40,22]],
+ spires:[[-57,33,-40,-30,-25,33],[-30,33,-7,-53,13,33],[7,33,30,-38,54,33]],
+ foundry:[[-46,34,-46,-28,46,-28,46,34,-46,34],[-27,-28,-27,-52,-12,-52,-12,-28],[17,-28,17,-58,34,-58,34,-28],[-34,5,34,5]],
+ solar:[[-50,0,-33,0],[33,0,50,0],[0,-50,0,-33],[0,33,0,50],[-37,-37,-24,-24],[24,24,37,37],[-37,37,-24,24],[24,-24,37,-37]],
+ cargo:[[-54,-24,-17,-24,-17,24,-54,24,-54,-24],[-14,-36,24,-36,24,12,-14,12,-14,-36],[27,-12,58,-12,58,34,27,34,27,-12]],
+ icefall:[[-59,-34,-21,-7,-39,20,3,42,24,6,59,-27],[-20,-52,0,-20,27,-41],[3,42,35,55]],
+ archive:[[-57,33,57,33],[-49,-25,-49,33],[-28,-25,-28,33],[-10,-25,-10,33],[10,-25,10,33],[28,-25,28,33],[49,-25,49,33],[-57,-25,0,-57,57,-25]],
+ obelisk:[[0,-58,49,0,0,58,-49,0,0,-58],[-23,-23,23,-23,23,23,-23,23,-23,-23],[-23,-23,23,23],[23,-23,-23,23]],
+ phase:[[-57,-19,-30,-44,3,-6,34,-35,57,-9],[-57,19,-30,44,3,6,34,35,57,9]],
+ rift:[[-50,-51,-18,-19,-36,2,7,18,-12,51,51,11],[-36,2,-56,30],[7,18,39,50]],
+ beacon:[[-33,39,-14,-28,14,-28,33,39,-33,39],[-25,-40,25,-40,25,-28,-25,-28,-25,-40],[-48,-48,48,-48],[-33,-58,33,-58]],
+ orbit:[[-55,0,-28,-18,0,-7,28,-18,55,0],[55,0,28,18,0,7,-28,18,-55,0]]
+};
+let routeArtCache={key:'',value:null};
+function routeArtField(){
+ const key=[G.runSeed>>>0,G.stage,G.routeRisk].join(':');
+ if(routeArtCache.key===key)return routeArtCache.value;
+ let state=mixSeed(G.runSeed>>>0,G.stage+37,G.routeRisk+23)||0x6d2b79f5;
+ const rand=()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return(state>>>0)/4294967296};
+ const [motif,ink,fill]=ROUTE_ART[G.stage]?.[G.routeRisk?1:0]||ROUTE_ART[0][0];
+ const layers=[0,1].map(k=>({speed:k?.43:.13,span:W+460,nodes:Array.from({length:k?7:5},(_,i)=>({
+  x:rand()*(W+460),y:(i%2?H-92:92)+(rand()-.5)*66,
+  size:(k?59:41)+rand()*(k?32:26),angle:(rand()-.5)*.19,
+  alpha:(k?.29:.18)+rand()*.06
+ }))}));
+ return(routeArtCache={key,value:{key,motif,ink,fill,layers}}).value;
+}
+function drawRouteArt(pass){
+ const f=routeArtField(),layer=f.layers[pass],paths=ROUTE_PATHS[f.motif];
+ c.save();c.strokeStyle=f.ink;c.fillStyle=f.fill;c.lineWidth=2.4;
+ for(const node of layer.nodes){
+  const x=((node.x-G.scroll*layer.speed)%layer.span+layer.span)%layer.span-230;
+  if(x<-130||x>W+130)continue;
+  c.save();c.translate(x,node.y);c.rotate(node.angle);c.scale(node.size/65,node.size/65);
+  c.globalAlpha=node.alpha;
+  for(const path of paths){
+   c.beginPath();c.moveTo(path[0],path[1]);
+   for(let j=2;j<path.length;j+=2)c.lineTo(path[j],path[j+1]);
+   if(path.length>=8&&path[0]===path[path.length-2]&&path[1]===path[path.length-1]){
+    c.globalAlpha=node.alpha*.42;c.fill();c.globalAlpha=node.alpha;
+   }
+   c.stroke();
+  }
+  // Orbital structures are distinct from the rectilinear docks and ruins.
+  if(['relay','reef','solar','orbit','phase'].includes(f.motif)){
+   c.beginPath();c.ellipse(0,0,f.motif==='orbit'?52:30,
+    f.motif==='phase'?22:32,f.motif==='orbit'?.55:0,0,TAU);c.stroke();
+  }
+  c.globalAlpha=node.alpha*.8;c.fillStyle=f.ink;
+  c.beginPath();c.arc(0,0,f.motif==='orbit'?10:4,0,TAU);c.fill();
+  c.restore();
+ }
+ c.restore();
+}
 function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else if(stage===3){grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}else if(stage===4){grad.addColorStop(0,'#091f37');grad.addColorStop(.5,G.routeRisk?'#25455e':'#1b5b76');grad.addColorStop(1,'#071b35')}else if(stage===5){grad.addColorStop(0,G.routeRisk?'#241332':'#0a2427');grad.addColorStop(.5,G.routeRisk?'#40305b':'#285047');grad.addColorStop(1,G.routeRisk?'#150d29':'#071d22')}else if(stage===7){grad.addColorStop(0,G.routeRisk?'#180b31':'#141d30');grad.addColorStop(.5,G.routeRisk?'#4c225c':'#5c493d');grad.addColorStop(1,G.routeRisk?'#080b1e':'#171e2b')}else{grad.addColorStop(0,G.routeRisk?'#240d43':'#062f3a');grad.addColorStop(.5,G.routeRisk?'#4a2265':'#19646a');grad.addColorStop(1,G.routeRisk?'#0a1032':'#061b32')}c.fillStyle=grad;c.fillRect(0,0,W,H);
 const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:stage===3?['#ee8037','#c43942','#ffc059'][i]:stage===4?['#b5e8ff','#4e8fb6','#d7faff'][i]:stage===5?(G.routeRisk?['#8853c4','#4d397c','#bd8fcf']:['#79d8a9','#5b9b91','#d1c387'])[i]:stage===7?(G.routeRisk?['#ac59c9','#743d8b','#d18edc']:['#d5b56d','#9d7c63','#ffdaa2'])[i]:(G.routeRisk?['#a44ed6','#5d3eb3','#b56bff']:['#54b6bb','#57d7b4','#82e9f3'])[i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
 drawDepthPlane(0);
+drawRouteArt(0);
 for(const s of G.stars){let x=((s.x-G.scroll*s.z*.22)%(W+20)+W+20)%(W+20),y=s.y,a=.38+Math.sin(G.time*.8+s.tw)*.22+s.z*.11;c.globalAlpha=cl(a,0,1);c.fillStyle=s.z>1.9?'#d8faff':'#8babc6';c.fillRect(x,y,s.size*s.z*.75,s.size*s.z*.75);if(s.z>1.6)line(x+1,y,x+2+G.scroll%7*s.z,y,'#9cd9f0',.5)}c.globalAlpha=1;
 drawDepthPlane(1);
+drawRouteArt(1);
 if(stage===0){for(let i=0;i<13;i++){const x=((i*232-G.scroll*.6)%(W+300)+W+300)%(W+300)-120,y=100+((i*181)%520),r=14+(i*29)%65;c.save();c.translate(x,y);c.rotate(i*1.2+G.time*.03);poly([-r,0,-r*.75,-r*.65,r*.22,-r*.9,r*.9,-r*.28,r*.72,r*.7,-r*.2,r],i%2?'#172c42':'#1e394f','#315169',1.2);poly([-r*.35,-r*.2,-r*.1,-r*.46,r*.32,-r*.29,r*.4,-r*.08,r*.15,r*.13],'#35546a55');c.restore()}}
 if(stage===1){for(let i=0;i<10;i++){const x=((i*235-G.scroll*.74)%(W+320)+W+320)%(W+320)-160;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);poly([-130,0,136,0,108,40,95,88,-100,87], '#243045','#607286',2);c.fillStyle='#111c2b';c.fillRect(-102,24,180,37);for(let j=0;j<5;j++){c.fillStyle=(i+j)%2?'#6c798c':'#bf7d5c';c.fillRect(-92+j*35,29,13,6)}line(-106,89,106,89,'#d98959',2);c.restore()}}}
 if(stage===2){for(let i=0;i<9;i++){let x=((i*196-G.scroll*.65)%(W+320)+W+320)%(W+320)-140;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);c.fillStyle='#361e43';c.beginPath();c.moveTo(-120,0);c.lineTo(120,0);c.bezierCurveTo(80,110,30,78,-25,115);c.bezierCurveTo(-55,72,-100,80,-120,0);c.fill();c.strokeStyle='#a64d8277';c.lineWidth=4;c.stroke();for(let j=0;j<5;j++)glowCircle(-82+j*43,27+Math.sin(j*2+i)*23,4,'#dd60c4',10);c.restore()}}}
