@@ -25,16 +25,17 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  const document={getElementById:el,querySelectorAll(q){return q==='.upgrade'?upgrades:[]},addEventListener(){}};
  const storageData=new Map([['star_fighter_sound','off']]);
  const storage={getItem:k=>storageData.get(k)||null,setItem:(k,v)=>storageData.set(k,String(v)),removeItem:k=>storageData.delete(k)};
- const audioStats={starts:0,stops:0,updates:0};
+ const audioStats={starts:0,stops:0,updates:0,sfxRoutes:0};
  class AudioStub{
   constructor(){this.state='running';this.destination={};this.currentTime=0}
   resume(){return Promise.resolve()}
   createOscillator(){return {frequency:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},start(){},stop(){}}}
-  createGain(){return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}}}
+  createGain(){return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(dest){if(dest?.isSfxBus)audioStats.sfxRoutes++},disconnect(){}}}
  }
  const window={devicePixelRatio:2,innerWidth:390,innerHeight:840,location:{search:''},
   AudioContext:AudioStub,CyberBGM:class{
-   constructor(){this.enabled=true}
+   constructor(){this.enabled=true;this.sfxInput={isSfxBus:true}}
+   setMix(music,effects){this.musicLevel=music;this.effectsLevel=effects}
    setEnabled(x){this.enabled=x}
    start(){audioStats.starts++}
    stop(){audioStats.stops++}
@@ -52,7 +53,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,7 +65,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=projectile-contrast-20261030-28'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=audio-mix-20261030-29'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -218,10 +219,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   // Exercise original Web Audio sequencing across every normal/boss score.
   const musicWindow={};
   new Function('window',musicSource)(musicWindow);
-  const gainParam=()=>({value:0,cancelScheduledValues(){},setTargetAtTime(){}});
+  const gainParam=()=>({value:0,cancelScheduledValues(){},setTargetAtTime(v){this.value=v}});
   const node=()=>({gain:gainParam(),connect(){},disconnect(){}});
   const mockAudio={
-   sampleRate:8000,currentTime:0,destination:{},
+   sampleRate:8000,currentTime:0,state:'running',destination:{},
    createGain:node,
    createDynamicsCompressor(){return {threshold:{value:0},ratio:{value:0},attack:{value:0},release:{value:0},connect(){}}},
    createDelay(){return {delayTime:{value:0,setTargetAtTime(){}},connect(){}}},
@@ -240,6 +241,24 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    musicSignatures.add(signature);
   }
   ok(musicSignatures.size===16,'eight stage themes and eight boss arrangements');
+  for(const boss of [false,true]){
+   synth.stage=0;synth.boss=boss;const counts=[];
+   for(let movement=0;movement<4;movement++){
+    let notes=0;synth.note=()=>{notes++};
+    for(let i=movement*32;i<(movement+1)*32;i++)synth.sequence(i*.12,i);
+    counts.push(notes);
+   }
+   ok(new Set(counts).size>=3,'four-movement arrangement missing '+boss);
+  }
+  synth.setMix(1.2,.55);
+  ok(Math.abs(synth.master.gain.value-.252)<1e-9,'music preset gain');
+  ok(Math.abs(synth.sfxInput.gain.value-.3025)<1e-9,'effects preset gain');
+  synth.stop();ok(synth.master.gain.value===0&&synth.sfxInput.gain.value>0,'music stop keeps ending SFX');
+  synth.start();ok(synth.master.gain.value>0,'music resumes after pause');
+  synth.setEnabled(false);ok(synth.master.gain.value===0&&synth.sfxInput.gain.value===0,'mute both buses');
+  synth.setEnabled(true);ok(synth.master.gain.value>0&&synth.sfxInput.gain.value>0,'unmute both buses');
+  synth.start();synth.update(0,false);ok(synth.step>0,'music scheduler resumes');
+  synth.setMix(-10,99);ok(synth.musicLevel===0&&synth.effectsLevel===1.35,'preset bounds');
 
  ok(musicSource.includes('ancient resonant machinery'),'stage six original composition exists');
  // Simulate all 100 seeds across all six sectors (100 complete synthetic runs).
@@ -501,6 +520,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ok(G.player.hp===2&&G.lives===2&&G.pulses===1,'new run limited hull and lives');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
+ if(el('soundBtn').textContent!=='♫ BGM ON')ev('soundBtn','click');
+ q.tone(440,.08);ok(audioStats.sfxRoutes>0,'game SFX uses limited bus');
+ ev('soundBtn','click',{shiftKey:true});ok(storageData.get('star_fighter_mix')==='1','sound preset saved');
+ ok(el('soundBtn').textContent==='♫ BGM ON','mix selection does not mute');
  const priorSeed=G.runSeed;
 
  // Cosmetic unlocks never modify player power.
