@@ -137,7 +137,9 @@ function instinct(){
 }
 function attack(){
  if(mode!=="play"||P.atk>0||P.pendingStrike)return;
- P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
+ const cost=P.type==="wolf"?17:P.type==="cat"?9:12;
+ if(P.sp<cost){P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
+ P.sp-=cost;P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.05);sound(260,.055,"triangle",.018);
 }
 function resolveAttack(){
@@ -146,16 +148,21 @@ function resolveAttack(){
  mobs.forEach(m=>{
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
-  if(d<P.r+m.r+52&&Math.abs(angle)<1.22){
+  const reach=P.type==="wolf"?55:P.type==="cat"?39:51;
+  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
+  // Claws cannot pass through solid buildings, even at a diagonal corner.
+  if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1);
    const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
-   m.windup=0;m.stun=stealthHit?.92:.38;m.attack=Math.max(m.attack,.45);hit++;
+   m.windup=0;m.stun=stealthHit?.92:P.type==="wolf"?.66:P.type==="cat"?.23:.41;m.attack=Math.max(m.attack,.45);hit++;
    if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
-   move(m,Math.cos(theta)*7,Math.sin(theta)*7);
+   const knock=P.type==="wolf"?17:P.type==="cat"?3:8;
+   move(m,Math.cos(theta)*knock,Math.sin(theta)*knock);
+   if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
    if(m.hp<=0)kill(m);
   }
  });
@@ -277,7 +284,7 @@ function update(dt){
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
  P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0)resolveAttack()}
- P.sp=clamp(P.sp+17*dt,0,100);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
+ P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.dashTime>0){
@@ -721,8 +728,9 @@ function drawScene(){
  }
  if(P&&P.pendingStrike){
   const pct=1-P.windup/Math.max(.001,Math.min(.15,P.rate*.38));
-  ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle="#ffe1a8";ctx.lineWidth=3+pct*3;
-  ctx.beginPath();ctx.arc(0,0,P.r+42,-1.12,-1.12+2.24*pct);ctx.stroke();ctx.restore();
+  ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle=P.type==="wolf"?"#ffc17f":P.type==="cat"?"#b8e8d1":"#ffe1a8";ctx.lineWidth=3+pct*3;
+  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
+  ctx.beginPath();ctx.arc(0,0,P.r+(P.type==="cat"?39:P.type==="wolf"?55:51),-arc,-arc+2*arc*pct);ctx.stroke();ctx.restore();
  }
   for(const m of entities){
    if(m===P||species[m.type].prey||m.windup<=0)continue;
