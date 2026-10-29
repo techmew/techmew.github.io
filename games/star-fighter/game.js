@@ -276,7 +276,8 @@ function arrangeWave(units){
  return {units:placed,safeY:best.lane};
 }
 function spawnWave(){
-if(G.pendingWave||G.boss||G.bossDone||G.transitioning)return false;
+// A terrain warning or active barrier must never share the entry window with a formation.
+if(G.pendingWave||G.terrain||terrainQueued()||G.boss||G.bossDone||G.transitioning)return false;
 const director=encounterDirector();
 const planned=[];function queueEnemy(type,x,y,extra={}){if(planned.length<director.budget&&G.enemies.length+planned.length<routeProfile().maxEnemies)planned.push({type,x,y,extra})}
 
@@ -310,7 +311,12 @@ G.pendingWave={timer:1.35,label:names[w],units:arranged.units,kind:w,safeY:arran
 G.directorWaveCount++;
 return true;
 }
-function bullet(x,y,a,s=290,size=5,col='#ff8d61',damage=1){G.bullets.push({x,y,px:x,py:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,size,life:5,color:col,damage})}
+const MAX_HOSTILE_BULLETS=120;
+function bullet(x,y,a,s=290,size=5,col='#ff8d61',damage=1){
+ // Preserve a readable upper bound on projectile density, especially on mobile.
+ if(G.bullets.length>=MAX_HOSTILE_BULLETS)return;
+ G.bullets.push({x,y,px:x,py:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,size,life:5,color:col,damage});
+}
 function aim(x,y,spread=0){return Math.atan2(p.y-y,p.x-x)+spread}
 
 /* Distinct enemy motion; synchronized wave roles are derived at spawn, not
@@ -518,7 +524,9 @@ function terrainQueued(){return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.ter
 function planTerrain(){
  if(G.terrain||G.terrainIndex>=2||G.boss||G.bossDone||G.transitioning||G.pendingWave||G.mode!=='playing')return false;
  if(G.stageTime<G.terrainSchedule[G.terrainIndex]||G.stageTime>[62,68,74][G.stage]-11)return false;
- if(G.enemies.length>2||G.bullets.length>10||G.directorGrace>0)return false;
+ // The hazard occupies two lanes: do not start it while stray enemies or shots
+ // could enter the one remaining escape corridor. Wait until the field is clear.
+ if(G.enemies.length!==0||G.bullets.length!==0||G.directorGrace>0)return false;
  const roll=mixSeed(G.runSeed,G.stage+113,G.terrainIndex*17+G.routeRisk*7);
  const safeLane=TERRAIN_LANES.reduce((best,y,i)=>Math.abs(p.y-y)<Math.abs(p.y-TERRAIN_LANES[best])?i:best,0);
  const type=roll%2?'wreck':'ion';
