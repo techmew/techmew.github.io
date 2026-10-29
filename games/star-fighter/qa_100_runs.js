@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -233,6 +233,17 @@ function runHarness(gameSource,musicSource){
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  const priorSeed=G.runSeed;
 
+ // Cosmetic unlocks never modify player power.
+ const medalBefore=[G.player.hp,G.lives,G.pulses,G.energy,...G.levels];
+ ok(q.MEDALS.length===4,'four cosmetic unlocks');
+ ok(q.unlockMedal('first'),'first boss medal');
+ ok(!q.unlockMedal('first'),'no duplicate medal');
+ ok(!q.unlockMedal('invalid'),'invalid medal rejected');
+ ok(q.unlockMedal('risk'),'risk medal');
+ ok(q.unlockMedal('graze'),'graze medal');
+ ok(q.readMedals().unlocked.length===3,'medals persist');
+ ev('medalBtn','click');ok(q.readMedals().active==='risk','badge cycles');
+ ok(JSON.stringify([G.player.hp,G.lives,G.pulses,G.energy,...G.levels])===JSON.stringify(medalBefore),'no permanent stats');
  // Rank-by-rank effect and checkpoint regression; no touchpad/HUD changes.
  G.mode='playing';G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];
  G.passives=[0,0,0,0,0,0];G.bossDone=true;G.terrainIndex=2;G.terrain=null;
@@ -472,6 +483,7 @@ function runHarness(gameSource,musicSource){
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
  ok(G.mode==='win','five-sector victory');
+ ok(q.readMedals().unlocked.includes('clear'),'victory medal persists');
  ok(G.rewardHistory.length===4,'four rewards across five sectors');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
  ok(G.passives.every(n=>n===0),'new run clears all passive ranks');
