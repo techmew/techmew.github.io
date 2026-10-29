@@ -368,6 +368,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sidePulseBtn','click',{pointerType:'touch',pointerId:27,detail:1});
  ok(G.pulses===1,'NOVA finger-up fires once, never double-fires');
  ok(G.rings.length>=novaRingsBefore+2,'NOVA emits two visible shockwave rings');
+ ev('sidePulseBtn','click',{pointerType:'mouse',detail:1});
+ ok(G.pulses===1,'touch-generated compatibility mouse click is ignored');
  ok(G.player.invul>=.65,'NOVA defensive protection occurs');
  ev('sidePulseBtn','click',{detail:0});ok(G.pulses===0,'NOVA keyboard accessibility action works');
  ok(el('sidePulseBtn').disabled===false,'NOVA empty state is still tappable');
@@ -401,6 +403,11 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  G.pulses=1;G.pulseRecharge=0;G.bossDone=false;
  G.energy=6;q.update(.016);
  ok(el('sideEquipBtn').disabled===false,'equipped upgrade tap receives native click');
+ // Capture loss must not leave the right rail stuck or trigger a stray buy.
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
+ ev('sideEquipBtn','lostpointercapture',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
+ ok(G.levels[0]===0,'lost pointer capture does not buy an upgrade');
  // Swipe across the right button cannot purchase. Focused Enter cannot auto-purchase.
  const equipBeforeLevel=G.levels[0],equipBeforeEnergy=G.energy;
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:41,clientX:80,clientY:120});
