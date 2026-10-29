@@ -790,7 +790,7 @@ function planTerrain(){
  if(G.enemies.length!==0||G.bullets.length!==0||G.directorGrace>0)return false;
  const roll=mixSeed(G.runSeed,G.stage+113,G.terrainIndex*17+G.routeRisk*7);
  const safeLane=TERRAIN_LANES.reduce((best,y,i)=>Math.abs(p.y-y)<Math.abs(p.y-TERRAIN_LANES[best])?i:best,0);
- const type=roll%2?'wreck':'ion';
+ const type=G.stage===3?'flare':roll%2?'wreck':'ion';
  G.terrain={type,phase:'warning',timer:2.1,x:W+135,speed:215+((roll>>>4)%4)*12,
   safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:9999})),seed:roll};
  G.terrainIndex++;G.spawn=Math.max(G.spawn,3);
@@ -819,7 +819,7 @@ function drawTerrain(){
   const blink=.65+.24*Math.sin(G.time*11);
   c.globalAlpha=blink;
   c.font='bold 16px ui-monospace,monospace';c.textAlign='right';c.textBaseline='middle';
-  c.fillStyle='#ffe0aa';c.fillText((t.type==='wreck'?'⚠ DEBRIS':'⚠ ION FIELD')+'  '+Math.max(0,t.timer).toFixed(1)+'s',W-35,79);
+  c.fillStyle='#ffe0aa';c.fillText((t.type==='wreck'?'⚠ DEBRIS':t.type==='flare'?'⚠ HEAT VENTS':'⚠ ION FIELD')+'  '+Math.max(0,t.timer).toFixed(1)+'s',W-35,79);
   for(let i=0;i<3;i++){
    const y=TERRAIN_LANES[i],safe=i===t.safeLane;
    c.fillStyle=safe?'#35d7be':'#ff845e';c.globalAlpha=safe?.13:.2;
@@ -834,7 +834,17 @@ function drawTerrain(){
    if(block.hp<=0)continue;
    const x=t.x,y=block.y;
    c.save();c.translate(x,y);
-   if(t.type==='wreck'){
+   if(t.type==='flare'){
+     // Stage four's volcanic vents have a two-second warning and a safe lane.
+     const glow=.7+.2*Math.sin(G.time*9+block.y);
+     c.shadowColor='#ff9c47';c.shadowBlur=18;c.globalAlpha=.9;
+     ellipse(0,0,62,60,'#7b342c','#ffcd7a',4);
+     c.globalAlpha=glow;
+     for(let k=0;k<6;k++){const aa=k*TAU/6+G.time*.6;
+      poly([Math.cos(aa)*30,Math.sin(aa)*30,Math.cos(aa+.3)*48,Math.sin(aa+.3)*48,
+       Math.cos(aa+.7)*35,Math.sin(aa+.7)*35],'#ff8c4e','#ffe1a0',1)}
+     glowCircle(0,0,19,'#fff1a9',12);
+    }else if(t.type==='wreck'){
     c.rotate(Math.sin(t.seed+block.y)*.23);
     c.shadowColor='#ff8c62';c.shadowBlur=18;
     poly([-64,-18,-43,-60,14,-66,60,-32,71,17,30,63,-30,61,-70,24],
