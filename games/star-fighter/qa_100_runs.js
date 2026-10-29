@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource){
   G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
-  G.selected=0;G.energy=0;G.pulses=2;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.selected=0;G.energy=0;G.pulses=2;G.pulseRecharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.fireTimer=0;G.missileTimer=0;
   q.seedStage();
  };
@@ -214,7 +214,7 @@ function runHarness(gameSource,musicSource){
     live.maxBullets=Math.max(live.maxBullets,G.bullets.length);
     if(G.terrain&&G.pendingWave)live.overlapFrames++;
     ok(G.enemies.length<=q.routeProfile().maxEnemies,'live enemy overflow');
-    ok(G.bullets.length<=120,'live bullet overflow');
+    ok(G.bullets.length<=100,'live bullet overflow');
     if(G.boss)break;
    }
    live.stageCases++;
@@ -231,7 +231,7 @@ function runHarness(gameSource,musicSource){
  for(let i=0;i<300;i++)q.bullet(900,200,Math.PI,300,5);
  stats.maxBullets=G.bullets.length;
  ok(!gameSource.includes('function drawWaveWarning()')&&!gameSource.includes('function drawSquadWarning()'),'red navigator cannot return');
- ok(G.bullets.length<=120,'unbounded hostile bullets');
+ ok(G.bullets.length===100,'hostile bullet cap');
  G.bullets=[];G.player.invul=9999;
  q.update(.016);ok(G.shots.length>0,'auto fire regression');
  // The relative pad must not read layout on each pointermove (input lag).
@@ -312,6 +312,14 @@ function runHarness(gameSource,musicSource){
  ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'resume label');
  ev('sidePulseBtn','click');ok(G.pulses===1,'pulse');
+ G.pulses=0;G.pulseRecharge=59.85;G.mode='playing';
+ G.bossDone=true;G.transitioning=false;G.terrainIndex=2;G.terrain=null;
+ G.enemies=[];G.shots=[];G.bullets=[];G.pickups=[];G.player.invul=100;
+ q.update(.1);ok(G.pulses===0,'NOVA does not refill early');
+ q.update(.1);ok(G.pulses===1&&G.pulseRecharge<.06,'NOVA regenerates each 60 active seconds');
+ G.pulses=5;G.pulseRecharge=20;q.update(.05);
+ ok(G.pulses===5&&G.pulseRecharge===0,'NOVA charge does not overflow');
+ G.pulses=1;G.pulseRecharge=0;G.bossDone=false;
  G.energy=6;ev('sideEquipBtn','click');ok(G.levels[0]===1,'upgrade');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
