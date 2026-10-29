@@ -1859,12 +1859,44 @@ function drawFlightGate(){
 
 function drawTacticalMeter(){if(G.mode!=='playing'&&G.mode!=='paused')return;const x=236,y=H-36,w=166,h=7,active=G.overdrive>0;
 c.save();c.globalAlpha=.95;c.fillStyle='#071422ba';c.fillRect(x-12,y-29,w+25,56);c.font='bold 12px ui-monospace,monospace';c.textAlign='left';c.textBaseline='middle';c.fillStyle=active?'#ffe99f':'#82d6ea';c.fillText(active?'OVERDRIVE '+G.overdrive.toFixed(1)+'s':'OVERDRIVE CHARGE',x,y-10);c.fillStyle='#24425b';c.fillRect(x,y,w,h);c.fillStyle=active?'#ffdb7b':'#4cdded';c.fillRect(x,y,w*(active?G.overdrive/8:G.driveCharge/100),h);c.strokeStyle=active?'#ffe19a':'#5ccdeb';c.lineWidth=1;c.strokeRect(x,y,w,h);c.restore()}
+/* 28/36: Enemy bullets remain readable without hue discrimination.
+   A dark outline + bright interior distinguish them from friendly cyan fire.
+   Geometry conveys threat even under red/green colour-vision deficiencies.
+   No per-projectile shadowBlur, RNG, extra particles or gameplay changes. */
+const HOSTILE_BULLET_PALETTE={
+ orb:{core:'#ffe58c',rim:'#10152b',mark:'#ffffff'},
+ lance:{core:'#ffb6dc',rim:'#10152b',mark:'#ffffff'},
+ heavy:{core:'#c7b7ff',rim:'#10152b',mark:'#ffffff'}
+};
+function hostileBulletVisual(a){
+ const speed=Math.hypot(a.vx||0,a.vy||0);
+ const shape=a.size>=8||a.damage>1?'heavy':speed>=390?'lance':'orb';
+ return {shape,...HOSTILE_BULLET_PALETTE[shape],radius:Math.max(3,a.size)};
+}
+function drawHostileBullet(a){
+ const v=hostileBulletVisual(a),r=v.radius;
+ c.save();c.translate(a.x,a.y);c.rotate(Math.atan2(a.vy,a.vx));
+ c.lineJoin='round';c.lineCap='round';c.lineWidth=3;
+ c.strokeStyle=v.rim;c.fillStyle=v.core;c.beginPath();
+ if(v.shape==='heavy'){
+  c.moveTo(r+3,0);c.lineTo(0,-r-3);c.lineTo(-r-3,0);c.lineTo(0,r+3);c.closePath();
+ }else if(v.shape==='lance'){
+  c.moveTo(r+3,0);c.lineTo(-r-2,-r*.9);c.lineTo(-r*.45,0);
+  c.lineTo(-r-2,r*.9);c.closePath();
+ }else c.arc(0,0,r+1,0,TAU);
+ c.fill();c.stroke();
+ c.strokeStyle=v.mark;c.fillStyle=v.mark;
+ if(v.shape==='orb'){c.beginPath();c.arc(0,0,Math.max(1.5,r*.33),0,TAU);c.fill()}
+ else if(v.shape==='lance'){c.lineWidth=1.5;c.beginPath();c.moveTo(-r*.55,0);c.lineTo(r+1,0);c.stroke()}
+ else{c.lineWidth=1.7;c.beginPath();c.moveTo(-r*.4,0);c.lineTo(r*.4,0);c.moveTo(0,-r*.4);c.lineTo(0,r*.4);c.stroke()}
+ c.restore();
+}
 function drawScene(){c.save();if(G.shake>.2)c.translate(R(-G.shake,G.shake),R(-G.shake,G.shake));drawBackground();if(G.mode==='title'){drawShip(274,344,0,0);for(let i=0;i<4;i++){const e={x:750+i*122,y:210+i*90,type:i%2?'scout':'spinner',t:G.time*.7,phase:i};drawEnemy(e)}}
 else{for(const q of G.pickups){c.save();c.translate(q.x,q.y);c.rotate(q.t*1.5);c.shadowColor=q.type==='elite'?'#c9a5ff':q.type==='pulse'?'#ffcb60':'#7dfff8';c.shadowBlur=22;poly([0,-18,18,0,0,18,-18,0],q.type==='elite'?'#5d438e':q.type==='pulse'?'#9e7129':'#157881',q.type==='elite'?'#f2ddff':q.type==='pulse'?'#fff3a0':'#d4fff7',2);c.font='bold 18px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#f5ffff';c.rotate(-q.t*1.5);c.fillText(q.type==='elite'?'✦':q.type==='pulse'?'✹':'P',0,1);c.restore()}
 drawTerrain();drawEnemyWindup();drawFlightGate();
 for(const e of G.enemies){drawEnemy(e);if(e.eventDrop){c.save();c.globalAlpha=.72;c.strokeStyle='#ffec99';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,43+Math.sin(G.time*5)*3,0,TAU);c.stroke();c.restore()}}if(G.boss){drawBoss(G.boss);drawBossBeam(G.boss)}
 for(const s of G.shots){c.save();c.shadowBlur=15;c.shadowColor=s.kind==='missile'?'#ffae57':'#72edff';c.lineCap='round';if(s.kind==='laser'){line(s.x-95,s.y,s.x+24,s.y,'#178fff',14);line(s.x-105,s.y,s.x+24,s.y,'#83faff',6);line(s.x-105,s.y,s.x+28,s.y,'#fff',2)}else if(s.kind==='missile'){poly([s.x+12,s.y,s.x-13,s.y-7,s.x-8,s.y,s.x-13,s.y+7],'#ffbc81','#fff1b4',1);line(s.x-28,s.y+R(-2,2),s.x-10,s.y,'#ff954d',5)}else{line(s.x-20,s.y-s.vy*.012,s.x+12,s.y+s.vy*.012,'#55d6ff',s.kind==='shot'?6:3.5);line(s.x-16,s.y,s.x+14,s.y,'#d4fbff',2)}c.restore()}
-for(const a of G.bullets){c.save();c.shadowColor=a.color;c.shadowBlur=15;line(a.x-a.vx*.045,a.y-a.vy*.045,a.x,a.y,a.color,Math.max(2,a.size*1.3));glowCircle(a.x,a.y,Math.max(2,a.size*.62),'#fff0d9',6);c.restore()}
+for(const a of G.bullets)drawHostileBullet(a)
 for(let i=G.levels[4]-1;i>=0;i--){let tr=G.trail[Math.min(G.trail.length-1,17+i*24)];if(tr)drawDrone(tr.x-9,tr.y,i)}drawShip(p.x,p.y,p.angle,p.invul);
 for(const q of G.particles){c.save();c.globalAlpha=cl(q.life/q.maxLife,0,1);
 if(q.kind==='shard'){c.translate(q.x,q.y);c.rotate(q.rot);c.fillStyle=q.color;c.fillRect(-q.size*.5,-q.size*.18,q.size,q.size*.36);c.globalAlpha*=.65;c.fillStyle='#eaf6ff';c.fillRect(-q.size*.3,-q.size*.13,q.size*.43,q.size*.08)}
