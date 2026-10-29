@@ -2,14 +2,14 @@
  * Run from games/star-fighter/: node qa_100_runs.js
  * Deterministic headless tests; not a replacement for physical-device QA. */
 'use strict';
-function runHarness(gameSource,musicSource,extrasSource){
+function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  const assert=(condition,message)=>{if(!condition)throw Error(message)};
  const elements=new Map();
  function el(id){
   if(elements.has(id))return elements.get(id);
   const obj={id,hidden:false,textContent:'',innerHTML:'',value:'',title:'',style:{},dataset:{},
    classList:{add(){},remove(){},toggle(){}},setAttribute(){},getAttribute(){},
-   setPointerCapture(){},getBoundingClientRect(){return {left:0,top:0,width:200,height:180}},
+   setPointerCapture(){},getBoundingClientRect(){return {left:0,top:0,right:200,bottom:180,width:200,height:180}},
    children:[{classList:{toggle(){}}},{classList:{toggle(){}}},{classList:{toggle(){}}}],
    addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)},
    querySelector(q){return el(id+' '+q)}};
@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -63,6 +63,17 @@ function runHarness(gameSource,musicSource,extrasSource){
  const stats={seeds:100,stageCases:0,waves:0,units:0,terrains:0,warningSeconds:Infinity,
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
+ if(htmlSource&&cssSource){
+  ok(htmlSource.includes('game.js?v=controls-20261029-2'),'cache-bust game JS');
+  ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
+  ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
+  ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
+  ok(cssSource.includes('grid-template-rows:max-content minmax(0,1fr)!important'),'portrait action panels below canvas');
+  for(const width of [320,390,430]){
+   const height=width*9/16,barTop=height;
+   ok(barTop>=height&&barTop+25>height,'portrait non-overlap sizing '+width);
+  }
+ }
  const seeds=Array.from({length:100},(_,i)=>(Math.imul(i+1,0x9e3779b9)^0xa5a5a5a5)>>>0);
  const stageSetup=(seed,stage,risk)=>{
   G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
@@ -332,6 +343,15 @@ function runHarness(gameSource,musicSource,extrasSource){
  ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
  ok(el('sidePulseBtn').disabled===false&&el('sideEquipBtn').disabled===false,'both action buttons recover after resume');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'resume label');
+ // Game-over must clear NOVA timer; background render must never refill.
+ G.pulses=0;G.pulseRecharge=37.5;
+ q.endGame();
+ ok(G.mode==='over'&&G.pulseRecharge===0&&G.pulses===0,'game over resets NOVA timer and stock');
+ ok(el('novaActionState').textContent.includes('次の出撃'),'game over has no phantom countdown');
+ const beforeEndTotal=G.total;q.render(1000);q.render(1100);
+ ok(G.total===beforeEndTotal&&G.pulseRecharge===0,'background frame cannot recharge NOVA');
+ ev('startBtn','click');
+ ok(G.mode==='playing'&&G.pulses===1&&G.pulseRecharge===0,'retry resets NOVA to one new use');
  // Regression: a real Android click must still reach both visible controls.
  G.selected=0;G.energy=0;
  q.update(.016);
@@ -341,8 +361,15 @@ function runHarness(gameSource,musicSource,extrasSource){
  ev('sideEquipBtn','click');
  ok(G.energy===0&&G.levels[0]===0,'no free upgrade without capsule');
  ok(el('toast').textContent.includes('カプセル不足'),'shortage tap reports requirement');
- ev('sidePulseBtn','click');ok(G.pulses===1,'NOVA first touch fires');
- ev('sidePulseBtn','click');ok(G.pulses===0,'NOVA second touch fires');
+ G.pulses=2;G.pulseRecharge=0;q.update(.016);
+ const novaRingsBefore=G.rings.length;
+ ev('sidePulseBtn','pointerdown',{pointerType:'touch',pointerId:27,clientX:80,clientY:120});
+ ev('sidePulseBtn','pointerup',{pointerType:'touch',pointerId:27,clientX:80,clientY:120});
+ ev('sidePulseBtn','click',{pointerType:'touch',pointerId:27,detail:1});
+ ok(G.pulses===1,'NOVA finger-up fires once, never double-fires');
+ ok(G.rings.length>=novaRingsBefore+2,'NOVA emits two visible shockwave rings');
+ ok(G.player.invul>=.65,'NOVA defensive protection occurs');
+ ev('sidePulseBtn','click',{detail:0});ok(G.pulses===0,'NOVA keyboard accessibility action works');
  ok(el('sidePulseBtn').disabled===false,'NOVA empty state is still tappable');
  ok(el('novaActionState').textContent.includes('補充まで'),'NOVA status shows recharge countdown');
  ev('sidePulseBtn','click');
@@ -352,9 +379,13 @@ function runHarness(gameSource,musicSource,extrasSource){
  G.pulses=2;G.energy=0;q.update(.016);
  ev('touchPad','pointerdown',{pointerId:31,clientX:45,clientY:110});
  const thumbStart=G.player.x;
- ev('sidePulseBtn','click',{pointerId:32});
+ ev('sidePulseBtn','pointerdown',{pointerType:'touch',pointerId:32,clientX:80,clientY:120});
+ ev('sidePulseBtn','pointerup',{pointerType:'touch',pointerId:32,clientX:80,clientY:120});
+ ev('sidePulseBtn','click',{pointerType:'touch',pointerId:32,detail:1});
  ok(G.pulses===1,'right NOVA works with left pad held');
- ev('sideEquipBtn','click',{pointerId:32});
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:32,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:32,clientX:80,clientY:120});
+ ev('sideEquipBtn','click',{pointerType:'touch',pointerId:32,detail:1});
  ok(el('toast').textContent.includes('カプセル不足'),'right upgrade gives feedback with left pad held');
  ev('touchPad','pointermove',{pointerId:31,clientX:53,clientY:110});
  ok(G.player.x>thumbStart,'left pad retains control while right button tapped');
@@ -370,8 +401,21 @@ function runHarness(gameSource,musicSource,extrasSource){
  G.pulses=1;G.pulseRecharge=0;G.bossDone=false;
  G.energy=6;q.update(.016);
  ok(el('sideEquipBtn').disabled===false,'equipped upgrade tap receives native click');
- ev('sideEquipBtn','click');ok(G.levels[0]===1,'upgrade');
+ // Swipe across the right button cannot purchase. Focused Enter cannot auto-purchase.
+ const equipBeforeLevel=G.levels[0],equipBeforeEnergy=G.energy;
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:41,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointermove',{pointerType:'touch',pointerId:41,clientX:132,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:41,clientX:132,clientY:120});
+ ev('sideEquipBtn','click',{pointerType:'touch',pointerId:41,detail:1});
+ ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'swipe across button is NOT an upgrade');
+ for(const fn of window.handlers?.keydown||[])fn({key:'Enter',repeat:false,target:{closest:()=>({})},preventDefault(){}});
+ ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'focused Enter never auto-upgrades');
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:42,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:42,clientX:80,clientY:120});
+ ev('sideEquipBtn','click',{pointerType:'touch',pointerId:42,detail:1});
+ ok(G.levels[0]===equipBeforeLevel+1,'intentional finger tap buys exactly one upgrade');
  ok(G.energy===5,'upgrade deducts the selected cost');
+ ok(!gameSource.includes('if(invul>0&&Math.sin(G.time*20)>0.55)return'),'invulnerable ship remains visible');
  ok(el('equipActionState').textContent.includes('5/1'),'upgrade status refreshes after purchase');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
@@ -845,7 +889,7 @@ function runHarness(gameSource,musicSource,extrasSource){
 if(typeof module!=='undefined'&&require.main===module){
  const fs=require('node:fs');
  try{
-  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'));
+  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'));
   process.stdout.write(JSON.stringify(result,null,2)+'\n');
  }catch(e){process.stderr.write('FAIL '+(e.stack||e)+'\n');process.exitCode=1}
 }
