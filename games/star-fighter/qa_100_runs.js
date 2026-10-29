@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=boss-telegraph-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=parallax-20261030-25'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -990,6 +990,37 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    G.boss=null;G.bullets=[];G.shots=[];
   }
   ok(signatures[0]!==signatures[1],'route interception should differ '+stage);
+ }
+
+ // 25/36: deterministic three-speed parallax with no combat RNG use.
+ // Near-depth decoration must remain at screen edges and not obscure the ship.
+ for(let stage=0;stage<8;stage++)for(let risk=0;risk<=1;risk++){
+  G.stage=stage;G.routeRisk=risk;G.runSeed=seeds[(stage*7+risk)%seeds.length];G.scroll=0;
+  const field=q.depthField();
+  ok(field.layers.length===3,'three background depth planes '+stage+'/'+risk);
+  ok(field.layers[0].speed<field.layers[1].speed&&field.layers[1].speed<field.layers[2].speed,
+   'background parallax speeds strictly ordered '+stage+'/'+risk);
+  ok(field.layers.map(l=>l.nodes.length).join(',')==='12,10,8','background draw budget '+stage+'/'+risk);
+  ok(q.depthField()===field,'background geometry cached without per-frame allocation');
+  const signature=field.layers.map(l=>l.nodes.map(n=>[n.x,n.y,n.size,n.opacity,n.angle].join(':')).join('|')).join('/');
+  for(let k=0;k<3;k++){
+   const layer=field.layers[k];
+   for(const node of layer.nodes){
+    ok([node.x,node.y,node.size,node.opacity,node.angle].every(Number.isFinite),'finite depth geometry');
+    ok(node.opacity>=0&&node.opacity<=.14,'low-opacity background cannot hide bullets');
+    if(k===2)ok(node.y<85||node.y>590,'fast foreground kept off the ship lane');
+    const before=q.depthX(node,layer,0),after=q.depthX(node,layer,12);
+    if(before>60&&before<1050)ok(Math.abs((before-after)-12*layer.speed)<.0001,'smooth depth scrolling');
+   }
+   q.drawDepthPlane(k);
+  }
+  G.scroll=150;
+  ok(q.depthField()===field,'scroll does not rebuild background textures');
+  G.scroll=0;
+  ok(field.layers.map(l=>l.nodes.map(n=>[n.x,n.y,n.size,n.opacity,n.angle].join(':')).join('|')).join('/')===signature,
+   'background seed deterministic across frames');
+  const oldSeed=G.runSeed;G.runSeed=(oldSeed+1)>>>0;
+  ok(q.depthField().key!==field.key,'new run changes depth geometry');
  }
  // 24/36: first-contact readability and boss difficulty/reward regression.
  // Real hardware FPS and human dodge success are NOT inferred from these tests.
