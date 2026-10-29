@@ -286,14 +286,22 @@ function endGame(victory=false){if(victory)unlockMedal('clear');G.terrain=null;b
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode!=='playing')startGame()});
 $('landscapeStartBtn').addEventListener('click',()=>{if(G.mode==='title')startGame()});
 ui.pause.addEventListener('click',pause);
-/* Deliberate mobile action: trigger once on the UP of the same finger that
-   started inside this button. Never convert a drag or touchpad gesture into
-   an upgrade. Keyboard/mouse use their standard explicit click. */
+/* A purchase must originate from one physical press on the right action
+   button, or a genuine focused keyboard activation. Ignore every unpaired
+   compatibility click: Android can synthesize one after pointer cancellation,
+   rotation, multitouch, or a touch that began elsewhere on the screen. */
+const manualUpgradeToken=Symbol('confirmed-manual-upgrade');
 function bindCombatAction(button,act){
- let tracking=null,lastTouchUp=0;
- const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
+ let tracking=null;
+ const within=e=>{
+  const r=button.getBoundingClientRect();
+  return e.clientX>=r.left&&e.clientX<=r.right&&
+         e.clientY>=r.top&&e.clientY<=r.bottom;
+ };
  button.addEventListener('pointerdown',e=>{
-  if(G.mode!=='playing'||!isTouch(e)||tracking)return;
+  if(G.mode!=='playing'||tracking)return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  if(!within(e))return;
   tracking={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
   try{button.setPointerCapture(e.pointerId)}catch(_){}
  });
@@ -304,41 +312,35 @@ function bindCombatAction(button,act){
  button.addEventListener('pointermove',move);
  window.addEventListener('pointermove',move);
  const cancel=e=>{
-  if(tracking&&e.pointerId===tracking.id){tracking=null;lastTouchUp=Date.now()}
+  if(tracking&&e.pointerId===tracking.id)tracking=null;
  };
  button.addEventListener('pointercancel',cancel);
  window.addEventListener('pointercancel',cancel);
- button.addEventListener('lostpointercapture',e=>{
-  // Android can drop capture during rotation, system gesture or app switch.
-  // Clear the stale finger so the next tap cannot get permanently locked out.
-  if(tracking&&e.pointerId===tracking.id){tracking=null;lastTouchUp=Date.now()}
- });
+ button.addEventListener('lostpointercapture',cancel);
  const finish=e=>{
   if(!tracking||e.pointerId!==tracking.id)return;
-  const touch=tracking;tracking=null;lastTouchUp=Date.now();
-  if(touch.moved||Math.hypot(e.clientX-touch.x,e.clientY-touch.y)>18)return;
-  const box=button.getBoundingClientRect();
-  if(e.clientX<box.left||e.clientX>box.right||
-     e.clientY<box.top||e.clientY>box.bottom)return;
-  e.preventDefault();act(); // do not wait for the often-lost synthesized click
+  const pressed=tracking;tracking=null;
+  if(G.mode!=='playing'||pressed.moved||
+     Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>18||!within(e))return;
+  e.preventDefault();act();
  };
  button.addEventListener('pointerup',finish);
- window.addEventListener('pointerup',finish); // fallback if capture was unavailable
+ window.addEventListener('pointerup',finish);
  button.addEventListener('click',e=>{
-  // A touch pointerup has already fired the action. Never fire a duplicate.
-  if(isTouch(e)||(e.detail>0&&Date.now()-lastTouchUp<700)){
-   e.preventDefault();return;
-  }
-  act();
+  // Never upgrade from synthesized/retargeted mouse or touch clicks.
+  // Real keyboard activation of this *focused* button remains accessible.
+  if(e.detail!==0||e.isTrusted!==true||document.activeElement!==button||
+     G.mode!=='playing'){e.preventDefault();return}
+  e.preventDefault();act();
  });
 }
 bindCombatAction(sideNovaButton,pulse);
-bindCombatAction(sideEquipButton,equip);
+bindCombatAction(sideEquipButton,()=>equip(manualUpgradeToken));
 $('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;bgm?.stop();resetStick();G.mode='title';G.pulseRecharge=0;screenPulse=0;G.rings=[];$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('click',()=>{sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();bgm.setEnabled(true);bgm.start()}}else bgm?.setEnabled(false)});
 // Hidden duplicate action buttons must not initiate purchases or NOVA.
 $('helpBtn').addEventListener('click',()=>{if(G.mode==='playing')pause();else if(G.mode==='title'){showToast('左タッチパッドをなぞって移動 / 自動射撃 / ノヴァ：SPACE')}});
 ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{G.selected=i;if(G.mode==='playing'&&(G.energy>=i+1||G.pendingUpgrades[i]>0)&&G.levels[i]<MAX[i])showToast('強化を押して '+PNAMES[i]+' を装備');updateHud()}));
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const focusedControl=!!e.target?.closest?.('button,input,textarea,select,[contenteditable="true"]');if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if((k==='enter'||k==='z')&&!focusedControl)equip()});
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const focusedControl=!!e.target?.closest?.('button,input,textarea,select,[contenteditable="true"]');if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='z'&&!focusedControl&&!e.ctrlKey&&!e.metaKey&&!e.altKey)equip(manualUpgradeToken)});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
 /* Physical finger displacement only: stable fixed gain, no speed-dependent
@@ -404,8 +406,8 @@ function queueManualUpgrade(index,count=1){
  const received=Math.min(count,slots);G.pendingUpgrades[index]+=received;
  return received;
 }
-function equip(){
- if(G.mode!=='playing')return;
+function equip(intent){
+ if(G.mode!=='playing'||intent!==manualUpgradeToken)return;
  const i=G.selected,need=i+1,name=PNAMES[i],free=G.pendingUpgrades[i]>0;
  if(G.levels[i]>=MAX[i]){
   showToast(name+'は最大強化済み');tone(155,.07,'triangle',.02);
