@@ -18,7 +18,7 @@ const species={
  alpha:{hp:235,r:29,speed:169,damage:25,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
-let elapsed=0,day=1,kills=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
+let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
@@ -48,10 +48,12 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");elapsed=0;day=1;kills=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;
+ mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;
  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
+ carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
+ plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  syncHUD();notify("東京封鎖区 / 生存開始");
  sound(280,.14,"triangle",.07);
@@ -160,17 +162,40 @@ function eat(){
  let c=null,near=65;
  for(const f of carcasses){const d=dist(P,f);if(d<near){near=d;c=f}}
  if(!c){notify("食べ物が近くにない");return}
- P.hunger=clamp(P.hunger+c.amount,0,100);P.hp=clamp(P.hp+(c.type==="meat"?8:3),0,P.maxHp);
+ P.hunger=clamp(P.hunger+c.amount,0,100);P.hp=clamp(P.hp+(c.type==="meat"?8:3),0,P.maxHp);meals++;
  carcasses.splice(carcasses.indexOf(c),1);label(P.x,P.y-30,"+"+c.amount+" FOOD","#bfe89e");
- blood(P.x,P.y,"#d6c17f",7,45);sound(440,.13,"sine",.035);
+ blood(P.x,P.y,"#d6c17f",7,45);sound(440,.13,"sine",.035);checkMission();
 }
 function checkMission(){
- if(mission===0&&kills>=3){mission=1;notify("MISSION COMPLETE / 生き延びろ");}
- if(mission===1&&day>=2){mission=2;notify("新たな縄張りへ / 旧新宿駅を目指せ");}
- if(mission===2&&P.x>2350){mission=3;notify("最終試練 / 9体を狩って3日目を迎えろ");}
- if(mission===3&&day>=3&&kills>=9&&!missionComplete){
-  missionComplete=true;mode="clear";finish(true);
+ if(mission===0&&meals>=1){mission=1;notify("食料確保！ ▲ 茂みで身を隠せ")}
+ if(mission===1&&hiddenHold>=.75){mission=2;notify("潜伏成功！ ▲ 獲物を追え")}
+ if(mission===2&&kills>=1){mission=3;notify("初狩猟成功！ ▲ 旧新宿駅へ向かえ")}
+ if(mission===3&&P.x>=2390){mission=4;freeStep=0;freeTarget=meals+1;notify("探索区域に到着 / 新たな生存目標が始まる")}
+ if(mission===4){
+  if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;notify("補給完了！ ▲ 次の獲物を追え")}
+  else if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;notify("生存記録 "+expedition+" / ▲ 次の食料を探せ")}
  }
+}
+function nearestGoal(list){
+ if(!P||!list.length)return null;
+ let bestItem=null,bestDist=Infinity;
+ for(const q of list){const d=dist(P,q);if(d<bestDist){bestDist=d;bestItem=q}}
+ return bestItem;
+}
+function getObjective(){
+ if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
+ if(mission===1){
+  const p=nearestGoal(plants.filter(p=>p.type===2));
+  return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
+ }
+ if(mission===3)return {x:2460,y:1170,label:"旧新宿駅方面"};
+ const findFood=mission===0||(mission===4&&freeStep===0);
+ if(findFood){
+  const f=nearestGoal(carcasses.filter(q=>q.ttl>0));
+  return f?{x:f.x,y:f.y,label:"食料を取る / E"}:null;
+ }
+ const m=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
+ return m?{x:m.x,y:m.y,label:"獲物を追う / Jで攻撃"}:null;
 }
 function finish(won=false){
  if(!P)return;
@@ -218,7 +243,7 @@ function update(dt){
   const speed=Math.hypot(P.vx,P.vy);
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
-  P.hidden=inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0;
+  P.hidden=inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" ")||attackTouch)&&P.atk<=0)attack();
  
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);
@@ -274,14 +299,17 @@ function syncHUD(hour){
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
  const objectives=[
- ["食料を確保せよ","小動物を3匹狩る",kills/3],
- ["夜を越えろ","DAY 02まで生き延びる",(elapsed%85)/85],
- ["新たな縄張りへ","旧新宿駅方面へ移動する",(P.x-1850)/550],
- ["頂点を目指せ","DAY 03到達 ＋ 狩猟9体",Math.min(day/3,kills/9)]
+  ["食料を確保せよ","▲ に従って食料へ / Eで食べる",meals],
+  ["身を隠せ","▲ の茂みで静止 / Cで潜伏",hiddenHold/.75],
+  ["獲物を仕留めろ","▲ の獲物を追い、Jで攻撃",kills],
+  ["旧新宿駅を目指せ","▲ を追って東へ進む",(P.x-1850)/540],
+  freeStep===0?["食料を補給せよ","▲ の食料を探す",0]:["狩りを続けろ","▲ の獲物を追う",0]
  ];
- const ob=objectives[Math.min(mission,3)];
- $("mission-progress").textContent="0"+(Math.min(mission,3)+1)+" / 04";
- $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",ob[2]*100);
+ const ob=objectives[Math.min(mission,4)];
+ $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
+ $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
+ const goal=getObjective(),guide=$("mission-guide");
+ if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal)):"▲ 周囲を探索中";
  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -296,6 +324,7 @@ function drawMini(){
  for(const y of roadsY){mc.beginPath();mc.moveTo(0,y/WORLD.h*h);mc.lineTo(w,y/WORLD.h*h);mc.stroke()}
  mc.fillStyle="#3d5051";for(const b of buildings)mc.fillRect(b.x/WORLD.w*w,b.y/WORLD.h*h,b.w/WORLD.w*w,b.h/WORLD.h*h);
  for(const m of mobs){if(dist(P,m)>650&&P.senseTime<=0)continue;mc.fillStyle=species[m.type].prey?"#c4d1ab":"#f39c74";mc.fillRect(m.x/WORLD.w*w-1,m.y/WORLD.h*h-1,2.5,2.5)}
+ const obj=getObjective();if(obj){const tx=obj.x/WORLD.w*w,ty=obj.y/WORLD.h*h;mc.fillStyle="#ffda82";mc.beginPath();mc.moveTo(tx,ty-5);mc.lineTo(tx-4,ty+3);mc.lineTo(tx+4,ty+3);mc.closePath();mc.fill();}
  mc.fillStyle="#fff5c4";mc.beginPath();mc.arc(P.x/WORLD.w*w,P.y/WORLD.h*h,3,0,TWO);mc.fill();
  mc.strokeStyle="#a3e7c5";mc.lineWidth=.8;mc.strokeRect(cam.x/WORLD.w*w,cam.y/WORLD.h*h,vw/WORLD.w*w,vh/WORLD.h*h);
 }
@@ -384,6 +413,25 @@ function drawCreature(o,isPlayer){
  if(!isPlayer&&!s.prey&&o.hp<o.maxHp){ctx.fillStyle="#101719c9";ctx.fillRect(o.x-21,o.y-r-17,42,4);ctx.fillStyle="#e9a077";ctx.fillRect(o.x-21,o.y-r-17,42*o.hp/o.maxHp,4)}
  if(P&&P.senseTime>0&&!isPlayer){ctx.strokeStyle=s.prey?"#91ebbc":"#ef9274";ctx.lineWidth=2;ctx.beginPath();ctx.arc(o.x,o.y,r+12+Math.sin(elapsed*8)*2,0,TWO);ctx.stroke()}
 }
+function drawGoalGuide(){
+ if(!P||mode!=="play")return;
+ const goal=getObjective();if(!goal)return;
+ const gx=goal.x-cam.x,gy=goal.y-cam.y,dx=goal.x-P.x,dy=goal.y-P.y;
+ const angle=Math.atan2(dy,dx),range=Math.hypot(dx,dy);
+ const onscreen=gx>70&&gy>110&&gx<vw-70&&gy<vh-108;
+ const px=P.x-cam.x,py=P.y-cam.y;
+ let x=gx,y=gy;
+ if(!onscreen){
+  const ux=Math.cos(angle),uy=Math.sin(angle),maxX=Math.max(70,vw*.5-90),maxY=Math.max(70,vh*.5-120);
+  const radius=Math.min(maxX/Math.max(.01,Math.abs(ux)),maxY/Math.max(.01,Math.abs(uy)));
+  x=clamp(px+ux*radius,70,vw-70);y=clamp(py+uy*radius,110,vh-110);
+ }
+ ctx.save();ctx.translate(x,y);ctx.fillStyle="#102126e8";ctx.strokeStyle="#ffc967";ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(0,0,23,0,TWO);ctx.fill();ctx.stroke();
+ ctx.save();ctx.rotate(angle+Math.PI/2);ctx.fillStyle="#ffe2a0";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 27px sans-serif";ctx.fillText("▲",0,-1);ctx.restore();
+ ctx.fillStyle="#fff0ce";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 11px sans-serif";ctx.shadowColor="#000";ctx.shadowBlur=8;
+ ctx.fillText((onscreen?"目標 · ":"▲ ")+Math.round(range),0,29);ctx.restore();
+}
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh);
@@ -419,6 +467,7 @@ function drawScene(){
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.senseTime>0){ctx.strokeStyle="#89eabb74";ctx.lineWidth=1;ctx.beginPath();ctx.arc(vw/2,vh/2,78,0,TWO);ctx.stroke()}
+ drawGoalGuide();
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
