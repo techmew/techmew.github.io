@@ -92,7 +92,7 @@ function runHarness(gameSource,musicSource){
   stats.maxUnits=Math.max(stats.maxUnits,w.units.length);stats.types.add(w.kind);
  }
  for(const seed of seeds){
-  for(const stage of [0,1,2,3]){
+  for(const stage of [0,1,2,3,4]){
    for(const risk of stage===0?[0]:[0,1]){
     stats.stageCases++;
     stageSetup(seed,stage,risk);
@@ -123,6 +123,7 @@ function runHarness(gameSource,musicSource){
      stats.warningSeconds=Math.min(stats.warningSeconds,t.timer);
      ok(t.phase==='warning'&&t.timer>=2.1,'terrain warning short');
       if(stage===3)ok(t.type==='flare','stage four must have heat vent hazard');
+      if(stage===4)ok(t.type===(risk?'blizzard':'ice'),'stage five terrain differs by route');
      ok(t.blocks.filter(b=>b.hp>0).length===2,'terrain should block two lanes');
      ok(t.blocks[t.safeLane].hp===0,'terrain safe lane obstructed');
      ok(!q.spawnWave() && G.pendingWave===null,'terrain allows wave overlap');
@@ -149,19 +150,19 @@ function runHarness(gameSource,musicSource){
    }
   }
  }
- // Simulate all 100 seeds across all three sectors (100 complete synthetic runs).
+ // Simulate all 100 seeds across all five sectors (100 complete synthetic runs).
  // The ship is invulnerable to isolate spawn safety; this is not a human win-rate test.
  const live={runs:seeds.length,stageCases:0,terrainComplete:0,missed:[],
   maxEnemies:0,maxBullets:0,overlapFrames:0,eventsTriggered:0,simulationTicks:0};
  for(const seed of seeds){
-  for(const stage of [0,1,2,3]){
+  for(const stage of [0,1,2,3,4]){
    const risk=stage===0?0:(seed>>>stage)&1;
    stageSetup(seed,stage,risk);
    G.stageTime=0;G.terrainIndex=0;q.resetTerrain();G.spawn=1.4;
    G.player.invul=10000;G.activeEvent=stage===0?null:q.routeOffer(stage-1,risk).event;
    G.eventTriggered=false;G.eventChain=false;
    G.particles=[];G.rings=[];G.trail=[];G.pickups=[];G.bullets=[];G.shots=[];
-   const deadline=[62,68,74,72][stage];
+   const deadline=[62,68,74,72,76][stage];
    let ticks=0;
    while(G.stageTime<deadline+.2&&ticks++<1900){
     q.update(.05);
@@ -385,7 +386,7 @@ function runHarness(gameSource,musicSource){
  for(const [stage,risk,variant,name] of [
   [1,0,'octopus','KRAKEN ENGINE'],[1,1,'original','FORTRESS CORE'],
   [2,1,'dinosaur','IRON TYRANT'],[2,0,'original','ABYSS TITAN'],
-  [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM']
+  [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM'],[4,0,'mammoth','FROST MAMMOTH'],[4,1,'leviathan','GLACIAL LEVIATHAN']
  ]){
   G.stage=stage;G.routeRisk=risk;G.bullets=[];G.enemies=[];
   ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
@@ -428,8 +429,13 @@ function runHarness(gameSource,musicSource){
  ev('routeRisk','click');ok(G.stage===3&&G.routeRisk===1,'fourth sector entered');
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
- ok(G.mode==='win','four-sector victory');
- ok(G.rewardHistory.length===3,'three rewards across four sectors');
+ ok(G.mode==='reward','fourth sector reward gate');
+ ev('rewardCard0','click');ok(G.mode==='route','fourth sector route gate');
+ ev('routeSafe','click');ok(G.stage===4&&G.routeRisk===0,'fifth sector entered');
+ q.spawnBoss();G.boss.hp=0;q.update(.016);
+ for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
+ ok(G.mode==='win','five-sector victory');
+ ok(G.rewardHistory.length===4,'four rewards across five sectors');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
  ok(G.passives.every(n=>n===0),'new run clears all passive ranks');
  ok(!!q.readCheckpoint(),'checkpoint exists');
