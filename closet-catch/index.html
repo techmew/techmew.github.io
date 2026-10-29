@@ -853,9 +853,22 @@ function drawFittedRunwayAccessory(ctx,p){
  }
  ctx.restore();return true
 }
+function drawFittedRunwayHat(ctx,p){
+ if(!p.natural||p.item.cat!=='hat')return false;
+ // Match the runway head (center y=-137, radius 35) using the fitted hat silhouette.
+ const stack=p.stack||0,side=stack%2?1:-1;
+ ctx.save();
+ ctx.translate(side*Math.ceil(stack/2)*5,-137-stack*8);
+ const scale=Math.max(.46,.55-stack*.022);
+ ctx.scale(scale,scale);
+ ctx.translate(-220,-135);
+ drawFittedFreeHat(ctx,p.item);
+ ctx.restore();
+ return true;
+}
 function renderRunwayItem(ctx,p,gait,t){
  const {item,region,stack,x,y,size,rotation}=p;
- if(drawFittedRunwayGarment(ctx,p)||drawFittedRunwayAccessory(ctx,p))return;
+ if(drawFittedRunwayGarment(ctx,p)||drawFittedRunwayAccessory(ctx,p)||drawFittedRunwayHat(ctx,p))return;
  if(item.cat==='hair'&&p.natural){avatarHair(ctx,x,-137,.88,item.id-HAIR_ID_START,'front',t);return}
  if(item.cat==='fish'&&p.natural&&['torso','hips','back','neck'].includes(region)){
   ctx.save();ctx.strokeStyle=tint(colorOf(item),-.50);ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();
@@ -1516,11 +1529,11 @@ function reelDown(){if(hook.stage===2){hook.pull=true;updateFishingHud()}}
 function reelUp(award=true){
  if(!hook.pull)return;
  hook.pull=false;
- if(award&&hook.stage===2&&hook.tension>=48&&hook.tension<=82&&hook.skillCooldown<=0&&hook.skillReleases<4){
+ if(award&&hook.stage===2&&hook.tension>=30&&hook.tension<=68&&hook.skillCooldown<=0&&hook.skillReleases<4){
   hook.reel=clamp(hook.reel+2.5,0,100);
   hook.tension=clamp(hook.tension-6,0,105);
   hook.skillCooldown=1.05;hook.skillReleases++;
-  showEvent('GOOD RELEASE! +2.5% / 張り -6',700);
+  showEvent('タイミング成功！ 引き寄せ＋2.5%／張り−6%',900);
   tone(650,.08,'sine',.025)
  }
  updateFishingHud()
