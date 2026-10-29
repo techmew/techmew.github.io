@@ -287,6 +287,11 @@ const savedCoins=Number(st.coins),savedRod=Number(st.rod);
 st.coins=Number.isFinite(savedCoins)?Math.max(0,Math.floor(savedCoins)):0;
 st.rod=Number.isFinite(savedRod)?Math.max(1,Math.min(8,Math.trunc(savedRod))):1;
 st.show={...defaultState().show,...(st.show||{})};
+// Normalize old/corrupt counters without touching valid inventory or coin balances.
+const savedCounter=(value,cap=1000000000)=>{const n=Number(value);return Number.isSafeInteger(n)&&n>=0?Math.min(n,cap):0};
+for(const key of ['casts','catches','combo'])st[key]=savedCounter(st[key]);
+for(const key of ['wins','shows','streak'])st.show[key]=savedCounter(st.show[key]);
+st.show.best=savedCounter(st.show.best,500);
 const savedRound=Number(st.show.round);
 st.show.round=Number.isSafeInteger(savedRound)&&savedRound>=1?savedRound:1;
 st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.judgeMigration===9){
@@ -936,7 +941,7 @@ function openShow(){
   showCheckpointAt=showTime;showPhase=showTime>=4.7?'judge':'walk';
   $('showShuffle').hidden=true;$('showPose').hidden=showPhase!=='walk';$('showPoseHud').hidden=showPhase!=='walk';
   $('showOverlay').classList.toggle('pose-active',showPhase==='walk');
-  $('showMain').textContent='審査へスキップ';showSlots();
+  $('showMain').textContent=showPhase==='walk'?'残りのポーズを飛ばして採点':'採点結果を見る';showSlots();
   $('showHelp').textContent='中断したショーを'+showTime.toFixed(1)+'秒地点から再開。記録済みポーズを保持。';
   if(showPhase==='walk')updatePoseHud();
   if(showTime>=8.1)endShow();
@@ -944,7 +949,7 @@ function openShow(){
 }
 function beginShow(){
  if(showPhase!=='prep')return;
- showScores=showScore(showOutfit());st.show.pendingResult={...showScores,poseResults:[null,null,null],elapsed:0};save();showPhase='walk';showTime=0;showCheckpointAt=0;poseResults=[null,null,null];poseFeedback='';$('showPose').hidden=false;$('showPoseHud').hidden=false;$('showOverlay').classList.add('pose-active');updatePoseHud();$('showMain').textContent='審査へスキップ';
+ showScores=showScore(showOutfit());st.show.pendingResult={...showScores,poseResults:[null,null,null],elapsed:0};save();showPhase='walk';showTime=0;showCheckpointAt=0;poseResults=[null,null,null];poseFeedback='';$('showPose').hidden=false;$('showPoseHud').hidden=false;$('showOverlay').classList.add('pose-active');updatePoseHud();$('showMain').textContent='残りのポーズを飛ばして採点';
  $('showShuffle').hidden=true;$('showOverlay').querySelector('.show-shell').scrollTop=0;$('showHelp').textContent='モデルがランウェイを歩いています…';showSlots();tone(720,.18,'sine',.07);
 }
 
@@ -1005,7 +1010,7 @@ function endShow(){
   });
  $('showResult').hidden=false;
  $('showResult').replaceChildren();const resultTitle=document.createElement('h3');resultTitle.textContent=showScores.win?'勝利！':'惜しくも敗北';const scoreLine=document.createElement('div');scoreLine.className='result-scoreline';const my=document.createElement('div');const myLabel=document.createElement('small');myLabel.textContent='あなた';const myScore=document.createElement('strong');myScore.textContent=showScores.total+' / '+(legacyShow?300:500);my.append(myLabel,myScore);const versus=document.createElement('span');versus.textContent='VS';const foe=document.createElement('div');const foeLabel=document.createElement('small');foeLabel.textContent='CPU';const foeScore=document.createElement('strong');foeScore.textContent=showScores.rival+' / '+(legacyShow?300:500);foe.append(foeLabel,foeScore);scoreLine.append(my,versus,foe);const reward=document.createElement('p');reward.textContent='得点差 '+(showScores.total-showScores.rival>=0?'+':'')+(showScores.total-showScores.rival)+'点 ／ 獲得コイン ＋'+(showScores.prize??0)+(legacyShow?'　旧3人審査の記録':'');$('showResult').append(resultTitle,scoreLine,reward);
- renderShowAnalysis();$('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent=legacyShow?'以前の3人審査の記録です。報酬は受取済みです。':'5人の審査結果。各100点満点。詳しい配点は下の「内訳」から確認できます。';
+ renderShowAnalysis();$('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent=legacyShow?'以前の3人審査の記録です。報酬は受取済みです。':'5人の審査結果。各100点満点。未実施のポーズは0点。詳しい配点は下の「内訳」から確認できます。';
  if(showScores.win)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
 }
 function nextShow(){
@@ -1021,7 +1026,7 @@ function progressShow(dt){
   for(let i=0;i<3;i++)if(poseResults[i]===null&&showTime>poseBeats[i]+poseTolerance){poseResults[i]=0;missed=true;poseFeedback='失敗。次の合図で挽回！'}
   updatePoseHud();
  }
- if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='5人の審査員が採点中…'}
+ if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='5人の審査員が採点中…';$('showMain').textContent='採点結果を見る'}
  persistShowProgress(missed||showTime>=8.1);
  if(showTime>=8.1)endShow();
 }
@@ -1145,7 +1150,7 @@ $('showPose').addEventListener('click',e=>{if(e.detail===0)recordPose()});
 sc.addEventListener('pointerdown',e=>{if(showPhase==='walk'&&(e.pointerType!=='mouse'||e.button===0)&&e.isPrimary!==false){e.preventDefault();recordPose()}});
 document.addEventListener('keydown',e=>{if(showPhase==='walk'&&(e.code==='KeyP'||e.code==='Space')&&!e.repeat&&!e.target.closest('button,a,input,textarea,select,[role="button"]')){e.preventDefault();recordPose()}});
 $('showShuffle').addEventListener('click',()=>{if(showPhase!=='prep')return;for(let i=4;i>0;i--){let j=Math.floor(Math.random()*(i+1));[st.show.order[i],st.show.order[j]]=[st.show.order[j],st.show.order[i]]}showSelected=-1;showSlots();save()});
-$('showMain').addEventListener('click',()=>{if(showPhase==='prep')beginShow();else if(showPhase==='walk'||showPhase==='judge')endShow();else if(showPhase==='result')nextShow()});
+$('showMain').addEventListener('click',()=>{if(showPhase==='prep')beginShow();else if(showPhase==='walk'){poseResults=poseResults.map(v=>v===null?0:v);persistShowProgress(true);endShow()}else if(showPhase==='judge')endShow();else if(showPhase==='result')nextShow()});
 function drawSea(){let t=animTime*.001;const wave=currentWeatherWave();const [skyTop,skyHorizon,waterTop,waterBottom,depthTop,depthBottom]=currentSeaPalette();const bg=sea.createLinearGradient(0,0,0,H);bg.addColorStop(0,skyTop);bg.addColorStop(.29,skyHorizon);bg.addColorStop(.3,waterTop);bg.addColorStop(1,waterBottom);sea.fillStyle=bg;sea.fillRect(0,0,W,H);
  // distant islands and stylized coastal buildings
  const skyLight=[1,.55,.25,.10,.35],sunlight=skyLight[weatherPrev]*(1-weatherFade)+skyLight[weatherIndex]*weatherFade;
