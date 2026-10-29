@@ -608,17 +608,20 @@ if(b.variant==='centipede'||b.variant==='warden'){
    for(let i=0;i<n;i++)bullet(b.x-122,b.y,a+(i-(n-1)/2)*.20,speed-35,5,'#da81ff');
   }else{for(let k=-2;k<=2;k++){if(k===0)continue;bullet(b.x-100,b.y+k*38,Math.PI,205+(angry?40:0),5,'#a3d3ff')}}
  }else{
-  if(b.pattern%3===0){ // Plasma jaws: a broad bite fan, not a solid wall.
-   const a=aim(b.x-155,b.y-36),n=angry?9:7;
-   for(let i=0;i<n;i++)bullet(b.x-155,b.y-36,a+(i-(n-1)/2)*.17,speed+(angry?35:0),5,'#ffad62');
-  }else if(b.pattern%3===1){ // Tail spines: symmetric, avoidable diagonals.
-   for(const side of [-1,1])for(let k=0;k<4;k++)bullet(b.x-22,b.y+side*(55+k*30),Math.PI+side*(.17+k*.13),245,5,'#ff7c90');
-  }else{
-   const a=aim(b.x-150,b.y-42);
-   for(let i=-2;i<=2;i++)bullet(b.x-150,b.y-42,a+i*.21,235+(angry?35:0),5,'#ffc26e');
-  }
+  // IRON TYRANT: three distinct, bounded salvos; the jaw opening is a counterattack window.
+  const exposed=b.weakOpen,spd=angry?253:225;
+  if(b.pattern%3===0){const a=aim(b.x-155,b.y-48);
+   for(const side of [-1,1])for(let k=0;k<(exposed?3:4);k++)
+    bullet(b.x-155,b.y-48,a+side*(.20+k*.18),spd,5,'#ffad62');
+  }else if(b.pattern%3===1){
+   for(const side of [-1,1])for(let k=0;k<3;k++)
+    bullet(b.x-28,b.y+side*(64+k*36),Math.PI+side*(.20+k*.16),230+(angry?20:0),5,'#ff8799');
+  }else{for(const side of [-1,1])for(let k=0;k<2;k++){
+    const y=cl(b.y+side*(78+k*68),100,H-95);
+    bullet(b.x-153,y,Math.atan2(p.y-y,p.x-(b.x-153))+side*.16,spd-8,5,'#ffd19c');
+  }}
  }
- b.pattern++;b.fire=octo?(angry?1.18:1.46):(angry?1.12:1.57);
+ b.pattern++;b.fire=octo?(angry?1.18:1.46):(b.weakOpen?(angry?1.32:1.57):(angry?1.18:1.48));
  tone(octo?235:135,.12,octo?'triangle':'sawtooth',.018,octo?60:90);
 }
 
@@ -669,7 +672,19 @@ if(s===0){
   }
   b.pattern++;b.fire=angry?1.24:1.72;tone(165,.11,'triangle',.018,45);return;
  }
- const count=angry?3:2;
+ if(s===2){
+ // ABYSS TITAN: open-gap vortex ring, flank cannons and split fan.
+ const pattern=b.pattern%3,spd=angry?240:210;
+ if(pattern===0){for(let i=0;i<12;i++)if(i%4!==1)bullet(b.x-95,b.y,i*TAU/12+b.t*.12,spd-34,4.5,'#dc9dff')}
+ else if(pattern===1){for(const side of [-1,1])for(let k=0;k<3;k++){
+  const y=cl(b.y+side*(68+k*52),95,H-95);
+  bullet(b.x-148,y,Math.atan2(p.y-y,p.x-(b.x-148))+side*(.14+k*.11),spd+12,5,'#f6a6dd');
+ }}
+ else{const a=aim(b.x-135,b.y);for(const side of [-1,1])for(let k=0;k<3;k++)
+  bullet(b.x-135,b.y,a+side*(.24+k*.19),spd+5,5,'#a5d9ff')}
+ b.pattern++;b.fire=angry?1.12:1.52;tone(190,.14,'triangle',.018,-70);return;
+}
+const count=angry?3:2;
 if(b.pattern%3===0){
  for(let i=-(3+s+count);i<=3+s+count;i++)bullet(b.x-130,b.y,a+i*.12,220+s*20+(angry?35:0),5,'#ff628c')
 }else if(b.pattern%3===1){
@@ -1162,6 +1177,12 @@ b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*(b.variant==='di
   b.weakOpen=cycle>=openAt&&cycle<closeAt;
   b.weakWarn=cycle>=openAt-.65&&cycle<openAt;
  }
+ if(G.stage===2){
+  const cycle=b.t%(b.variant==='dinosaur'?5.9:6.4);
+  const openAt=b.variant==='dinosaur'?2.1:2.4,closeAt=b.variant==='dinosaur'?3.9:4.4;
+  b.weakOpen=cycle>=openAt&&cycle<closeAt;
+  b.weakWarn=cycle>=openAt-.65&&cycle<openAt;
+ }
 if(G.stage===7&&b.phase===1&&b.hp<=b.maxHp*.32){
   b.phase=2;b.fire=1.45;G.bullets=[];screenPulse=.38;
   ring(b.x-75,b.y,190,'#ffe4ad',.6);showToast('FINAL PHASE');tone(240,.55,'sawtooth',.075,-170);
@@ -1170,7 +1191,7 @@ if(G.stage===7&&b.phase===1&&b.hp<=b.maxHp*.32){
  b.phase=1;b.fire=1.35;G.bullets=[];screenPulse=.34;
  ring(b.x-75,b.y,192,'#ff94b4',.6);
  emit(b.x-80,b.y,40,'#f7a4aa',240);
- showToast('BOSS · SECOND PHASE');
+ showToast(G.stage===2?(b.variant==='dinosaur'?'IRON TYRANT · RAGE':'ABYSS TITAN · AWAKENED'):'BOSS · SECOND PHASE');if(G.stage===2)ring(b.x-94,b.y,126,'#9de8f6',.35);
  for(let i=0;i<(G.stage===7?3:2+G.stage);i++)enemy('dart',W+100+i*70,200+i*80);
  tone(280,.55,'sawtooth',.08,-210);
 }
@@ -1187,9 +1208,10 @@ if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
  const b=G.boss;
  const weak=b.weakOpen&&(
   (G.stage===0&&circleHit(s.x,s.y,7,b.x+20,b.y,28))||
-  (G.stage===1&&circleHit(s.x,s.y,7,b.x+(b.variant==='octopus'?-39:-20),b.y,34))
+  (G.stage===1&&circleHit(s.x,s.y,7,b.x+(b.variant==='octopus'?-39:-20),b.y,34))||
+  (G.stage===2&&circleHit(s.x,s.y,7,b.x+(b.variant==='dinosaur'?-137:-35),b.y+(b.variant==='dinosaur'?-56:0),b.variant==='dinosaur'?26:32))
  );
- b.hp-=s.dmg*(weak?(G.stage===0?1.65:1.5):1);
+ b.hp-=s.dmg*(weak?(G.stage===0?1.65:G.stage===2?(b.variant==='dinosaur'?1.55:1.6):1.5):1);
  applyShotSynergy(s,b);emit(s.x,s.y,ri(2,4),weak?'#9ffff1':'#ffca82',95);
  s.pierce--;if(s.pierce<=0)gone=true
 }
@@ -1370,9 +1392,9 @@ function drawCreatureBoss(b){
   for(let k=0;k<7;k++){const x=-35+k*21,y=-79+(k%2)*-14;poly([x-12,y+18,x,y-22,x+18,y+18],'#b8a39c','#ffe0b2',2)}
   for(const a of [-1,1]){c.save();c.translate(46,a*60);c.rotate(Math.sin(t*2+a)*.09);poly([-24,0,20,0,35,45,0,39],'#786878','#ffd0a5',2);poly([-1,32,40,42,45,53,-8,49],'#b4a0a0','#ffe1b8',1);c.restore()}
   poly([-57,-66,-145,-106,-189,-78,-171,-18,-88,8,-31,-11],'#6e6577','#ffbd90',3);
-  poly([-169,-30,-91,-12,-49,-6,-60,36,-123,30,-177,8],'#303a53','#ffd4a9',3);
+  const jawGap=b.weakOpen?18:0;poly([-169,-30,-91,-12,-49,-6,-60,36+jawGap,-123,30+jawGap,-177,8+jawGap],'#303a53','#ffd4a9',3);
   for(let k=0;k<6;k++){const x=-155+k*15;poly([x,1,x+8,1,x+4,13],'#fff0be')}
-  glowCircle(-137,-56,10,hurt?'#ff6a5c':'#ffd167',12);
+  glowCircle(-137,-56,b.weakOpen?21:10,b.weakOpen?'#a6fff0':hurt?'#ff6a5c':'#ffd167',b.weakOpen?20:12);if(b.weakWarn){c.strokeStyle='#9ef7e8';c.lineWidth=2.5;c.beginPath();c.arc(-137,-56,29,0,TAU);c.stroke()}
   ellipse(0,2,39,33,'#30334f','#b9aac0',3);
   glowCircle(-1,0,17,hurt?'#ff774f':'#9ef3ff',14);
   poly([45,-15,99,-30,92,3,48,12],'#a59994','#ffe4be',2);
@@ -1387,7 +1409,7 @@ if(s===0){poly([-157,-36,-118,-91,-5,-114,122,-69,151,0,122,69,-5,114,-118,91,-1
 else if(s===1){poly([-150,-68,-80,-142,64,-120,149,-42,165,55,64,120,-80,142,-150,68],'#45445c','#aaafb9',4);for(let i=0;i<9;i++){c.save();c.rotate(i*TAU/9+b.t*.07);poly([-11,-130,18,-130,38,-91,21,-68],'#6c556e','#c18c94',2);c.restore()}ellipse(-20,0,101,101,'#18283f','#a1a9c3',5);c.save();c.rotate(-b.t*.4);for(let j=0;j<8;j++){c.rotate(TAU/8);poly([-13,-94,13,-94,23,-60,-17,-60],'#b27e8d','#ffd2bd',1)}c.restore();glowCircle(-20,0,b.weakOpen?45:34,b.weakOpen?'#9ffff1':'#fd777f',b.weakOpen?27:19);
  ellipse(-20,0,32,32,b.weakOpen?'#c6fff5':'#ffe4aa','#fff4d0',3);
  if(b.weakWarn){c.strokeStyle='#83ffec';c.lineWidth=2.5;c.beginPath();c.arc(-20,0,49,0,TAU);c.stroke()}for(let i of [-1,1]){glowCircle(-110,i*57,10,'#ffa36d',22)}}
-else{for(let i=0;i<9;i++){const ang=i*TAU/9+b.t*.1,rx=Math.cos(ang)*115,ry=Math.sin(ang)*121;line(rx*.36,ry*.36,rx+Math.sin(b.t*2+i)*16,ry+Math.cos(b.t*2+i)*21,'#9b4e9c',20);glowCircle(rx+Math.sin(b.t*2+i)*16,ry+Math.cos(b.t*2+i)*21,12,'#e165b6',13)}ellipse(0,0,104,96,'#49305a','#e597c7',5);ellipse(12,0,82,70,'#281f48','#8ba5e5',4);for(let i=0;i<8;i++){const a=i*TAU/8+b.t*.5;glowCircle(Math.cos(a)*67,Math.sin(a)*58,7,'#f07fc5',8)}glowCircle(-34,0,42,'#d979fb',27);ellipse(-35,0,30,30,'#ffdbef','#ffffff',2);poly([-163,-32,-110,-55,-68,-27,-60,0,-68,27,-110,55,-163,32],'#794c79','#ff9dd6',3)}
+else{for(let i=0;i<9;i++){const ang=i*TAU/9+b.t*.1,rx=Math.cos(ang)*115,ry=Math.sin(ang)*121;line(rx*.36,ry*.36,rx+Math.sin(b.t*2+i)*16,ry+Math.cos(b.t*2+i)*21,'#9b4e9c',20);glowCircle(rx+Math.sin(b.t*2+i)*16,ry+Math.cos(b.t*2+i)*21,12,'#e165b6',13)}ellipse(0,0,104,96,'#49305a','#e597c7',5);ellipse(12,0,82,70,'#281f48','#8ba5e5',4);for(let i=0;i<8;i++){const a=i*TAU/8+b.t*.5;glowCircle(Math.cos(a)*67,Math.sin(a)*58,7,'#f07fc5',8)}glowCircle(-34,0,b.weakOpen?43:31,b.weakOpen?'#a9fff1':'#d979fb',b.weakOpen?30:19);ellipse(-35,0,30,30,b.weakOpen?'#bbfff1':'#ffdbef','#ffffff',2);if(b.weakWarn){c.strokeStyle='#a9fff1';c.lineWidth=2.5;c.beginPath();c.arc(-35,0,44,0,TAU);c.stroke()}if(!b.weakOpen)poly([-62,-27,-18,-27,-32,0,-18,27,-62,27,-46,0],'#624b78','#d8b5e5',2);poly([-163,-32,-110,-55,-68,-27,-60,0,-68,27,-110,55,-163,32],'#794c79','#ff9dd6',3)}
 c.shadowBlur=0;c.restore()}
 
 function drawBossBeam(b){
