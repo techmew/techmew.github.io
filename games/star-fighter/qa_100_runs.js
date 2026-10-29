@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -520,6 +520,48 @@ function runHarness(gameSource,musicSource){
  G.player.invul=0;G.player.hp=1;G.lives=1;
  q.hitPlayer(1);ok(G.mode==='over','game over');
  ok(q.readCheckpoint()===null,'checkpoint cleared on game over');
+
+ // 18/36: 100 deterministic builds sampled from actual projectile emission.
+ // Twelve-second stationary-target expected DPS uses conservative hit weights;
+ // theoretical time-to-kill is NOT measured human play or device performance.
+ const builds=[];
+ function estimate(levels,passives){
+  G.levels=levels.slice();G.passives=passives.slice();G.stage=5;G.routeRisk=0;
+  G.mode='playing';G.overdrive=0;G.shots=[];G.enemies=[];G.boss=null;
+  G.trail=[{x:230,y:337}];G.player.x=G.player.targetX=230;G.player.y=G.player.targetY=337;
+  q.playerFire();const primary=G.shots.slice();G.shots=[];q.missileFire();
+  const missiles=G.shots.slice(),hit={shot:1,laser:.85,spread:.47,drone:.65,missile:.78};
+  const weighted=arr=>arr.reduce((sum,p)=>sum+p.dmg*(hit[p.kind]||0),0);
+  const interval=(levels[2]>0?.22:.165)*Math.pow(.88,passives[0]);
+  const splash=q.synergyActive(2)?missiles.length*(10+8*passives[4])*.24/1.15:0;
+  const dps=weighted(primary)/interval+weighted(missiles)/1.15+splash;
+  return {dps,ttk6:5650/dps,projectiles:primary.length+missiles.length};
+ }
+ let rng=0x734b0ca5;const roll=()=>{rng=(Math.imul(rng,1664525)+1013904223)>>>0;return rng};
+ const caps=[2,3,2,2,3,3],baseline=estimate([0,0,0,0,0,0],[0,0,0,0,0,0]);
+ ok(baseline.dps>100&&baseline.dps<130,'baseline DPS');
+ for(let i=0;i<100;i++){
+  const levels=caps.map(cap=>roll()%(cap+1)),passives=caps.map(()=>roll()%3);
+  const v=estimate(levels,passives);
+  ok(Number.isFinite(v.dps)&&v.dps>=baseline.dps*.96,'build lower than base '+i);
+  ok(v.dps<1700&&v.ttk6>3&&v.ttk6<65,'DPS/TTK outlier '+i);
+  ok(v.projectiles<=21,'projectile burst too large '+i);
+  ok(Math.abs(estimate(levels,passives).dps-v.dps)<1e-8,'non-deterministic build '+i);
+  for(const slot of [1,2,3,4])if(levels[slot]<caps[slot]){
+   const stronger=levels.slice();stronger[slot]++;
+   ok(estimate(stronger,passives).dps>=v.dps-1e-8,'upgrade reduces damage '+i+'/'+slot);
+  }
+  builds.push(v.dps);
+ }
+ builds.sort((a,b)=>a-b);
+ const p10=builds[9],p50=builds[49],p90=builds[89];
+ ok(p90/p10<6,'100-build power skew too high');
+ ok(p50>baseline.dps*1.3,'builds not stronger than starter');
+ stats.buildBalance={count:100,baseline:+baseline.dps.toFixed(1),min:+builds[0].toFixed(1),p10:+p10.toFixed(1),
+  median:+p50.toFixed(1),p90:+p90.toFixed(1),max:+builds[99].toFixed(1),
+  skew90to10:+(p90/p10).toFixed(2),theoreticalBoss6TtkMedian:+(5650/p50).toFixed(1),
+  method:'actual projectile volleys, conservative hit weighting, 12s sustained, no overdrive'};
+ G.shots=[];G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
