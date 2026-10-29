@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=route-art-20261030-26'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=impact-motion-20261030-27'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -1128,6 +1128,60 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  stats.bossReadability={bossVariants:bossCases.length,seeds:seeds.length,
   worstVolley,rewardCases:bossCases.length,minProjectileTravelSeconds:+minTravel.toFixed(2),
   minOpeningWarningSeconds:+minEntryWarning.toFixed(2),method:'headless geometry and scripted input, not human/device timing'};
+
+ // 27/36: visual-only motion, damage flashes and class-specific debris.
+ // These may not alter collision, loot, energy, weapon ranks or input handling.
+ stageSetup(seeds[0],3,0);G.mode='playing';G.bossDone=true;
+ G.terrain=null;G.terrainIndex=2;G.terrainSchedule=[];G.enemies=[];G.shots=[];G.bullets=[];G.particles=[];G.rings=[];
+ G.player.invul=999;G.player.hp=2;G.fireTimer=999;G.missileTimer=999;
+ G.activeEvent=null;G.eventTriggered=true;G.ambientTimer=999;G.spawn=999;
+ q.enemy('tank',530,300,{noLoot:true});
+ const impactTarget=G.enemies[0],impactHp=impactTarget.hp;
+ G.shots=[{x:impactTarget.x-10,y:impactTarget.y,px:impactTarget.x-10,py:impactTarget.y,
+  vx:0,vy:0,dmg:12,pierce:1,kind:'shot',life:1}];
+ q.update(.016);
+ ok(impactTarget.hp<impactHp&&impactTarget.hitFlash>.10&&impactTarget.recoil>0,
+   'projectile must trigger bounded enemy hit flash and recoil');
+ const flashBefore=impactTarget.hitFlash,recoilBefore=impactTarget.recoil;
+ q.drawEnemy(impactTarget);q.update(.10);
+ ok(impactTarget.hitFlash<flashBefore&&impactTarget.recoil<recoilBefore&&impactTarget.recoil>=0,
+   'enemy impact feedback fades without moving collision body');
+ const visualEnergy=G.energy,visualLevels=G.levels.slice();
+ G.particles=[];q.destroyEnemy(0);
+ const heavyShards=G.particles.filter(v=>v.kind==='shard');
+ ok(heavyShards.length===10&&heavyShards.every(v=>v.life>0&&v.maxLife===v.life&&v.size>0&&Number.isFinite(v.vx)&&Number.isFinite(v.spin)),
+   'armored enemies produce ten bounded hull fragments');
+ ok(G.energy===visualEnergy&&G.levels.every((v,i)=>v===visualLevels[i]),
+   'debris must not consume capsules or upgrade weapons');
+ const initialRotation=heavyShards[0].rot;q.update(.12);q.drawScene();
+ ok(heavyShards[0].rot!==initialRotation&&heavyShards[0].life<heavyShards[0].maxLife,
+   'fragments tumble and fade through the existing particle pool');
+ const fragmentSpec={type:'boss',x:850,y:330,phase:1.2};
+ G.particles=[];q.wreckFragments(fragmentSpec);
+ const bossShards=G.particles.filter(v=>v.kind==='shard');
+ const signature=JSON.stringify(bossShards);
+ ok(bossShards.length===18,'boss death creates distinct but bounded debris');
+ G.particles=[];q.wreckFragments(fragmentSpec);
+ ok(JSON.stringify(G.particles)===signature,'visual fragments deterministic and gameplay RNG independent');
+ G.particles=[];q.wreckFragments({type:'scout',x:400,y:250,phase:0});
+ ok(G.particles.length===5,'small enemies have restrained destruction');
+ G.particles=[];G.player.invul=0;G.player.hp=2;G.player.shield=0;
+ q.hitPlayer(1);
+ ok(G.player.hp===1&&G.player.hitFlash>.1,'ship hull hit has visible flash without extra damage');
+ q.drawShip(G.player.x,G.player.y,G.player.angle,G.player.invul);
+ G.player.invul=999;const moveY=G.player.y;
+ const keyDown=(window.handlers?.keydown||[])[0],keyUp=(window.handlers?.keyup||[])[0];
+ ok(!!keyDown&&!!keyUp,'keyboard controls available');
+ keyDown({key:'ArrowDown',repeat:false,target:{closest(){return null}},preventDefault(){}});
+ q.update(.016);
+ keyUp({key:'ArrowDown'});
+ ok(G.player.y>moveY&&G.player.visualMotion>0&&G.player.visualMotion<=1,
+   'ship engine visual responds to actual movement without changing input mapping');
+ q.drawShip(G.player.x,G.player.y,G.player.angle,G.player.invul);
+ const hitBefore=G.player.hitFlash;q.update(.1);
+ ok(G.player.hitFlash<hitBefore,'ship damage feedback fades with simulation time');
+ stats.visualFeedback={heavyFragments:heavyShards.length,bossFragments:bossShards.length,
+  scoutFragments:5,hitFlashSeconds:.14,physicalDeviceTested:false};
 
  // 18/36: 100 deterministic builds sampled from actual projectile emission.
  // Twelve-second stationary-target expected DPS uses conservative hit weights;
