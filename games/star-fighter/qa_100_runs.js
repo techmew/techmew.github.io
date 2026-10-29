@@ -337,6 +337,7 @@ function runHarness(gameSource,musicSource){
    }
   }
  }
+ stats.rewardSpecialCounts={...specialCounts};stats.specialRewardTypes=specialSeen.size;
  ok(specialCounts.storm>specialCounts.safe*1.5,'storm reward probability must exceed safe');
  ok(specialCounts.safe>=270&&specialCounts.safe<=610,'safe reward rate out of bounds');
  ok(specialCounts.storm>=680&&specialCounts.storm<=1040,'storm reward rate out of bounds');
