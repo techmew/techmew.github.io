@@ -7,10 +7,15 @@
 <meta name="description" content="STAR FIGHTER — 3ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
 <link rel="stylesheet" href="./style.css">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 <div class="shell" id="shell">
-<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ BGM ON</button><button id="pauseBtn" class="small-btn" aria-label="一時停止">Ⅱ ポーズ</button></div></header>
+<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="fullscreenBtn" class="small-btn fullscreen-btn" type="button" aria-label="ゲームを全画面にする" aria-pressed="false">⛶ 全画面</button><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ BGM ON</button><button id="pauseBtn" class="small-btn" aria-label="一時停止">Ⅱ ポーズ</button></div></header>
+<div id="fullscreenHint" class="fullscreen-hint" role="status" aria-live="polite" hidden></div>
 <div class="game-frame" id="gameFrame">
 <canvas id="game" width="1200" height="675" aria-label="横スクロールシューティングゲーム"></canvas>
 
@@ -61,5 +66,6 @@
 </div>
 <script src="./music.js"></script>
 <script src="./game.js"></script>
+<script src="./fullscreen.js"></script>
 </body>
 </html>
