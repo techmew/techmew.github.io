@@ -19,7 +19,7 @@ const species={
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
-let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false;
+let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
@@ -191,7 +191,7 @@ function sense(){
 function eat(){
  if(mode!=="play")return;
  let c=null,near=65;
- for(const f of carcasses){const d=dist(P,f);if(d<near){near=d;c=f}}
+ for(const f of carcasses){const d=dist(P,f);if(d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食べ物が近くにない");return}
  P.hunger=clamp(P.hunger+c.amount,0,100);P.hp=clamp(P.hp+(c.type==="meat"?8:3),0,P.maxHp);meals++;
  carcasses.splice(carcasses.indexOf(c),1);label(P.x,P.y-30,"+"+c.amount+" FOOD","#bfe89e");
@@ -264,7 +264,8 @@ function steerPursuit(m,tx,ty){
  const look=clamp(distance*.45,42,94);
  if(routeClear(m,goal,m.r)){m.navPath=null;return desired}
  const stale=!m.navGoal||dist(m.navGoal,goal)>70;
- if((stale||!m.navPath||m.navIndex>=m.navPath.length)&&elapsed>=(m.navRetry||0)){
+ if((stale||!m.navPath||m.navIndex>=m.navPath.length)&&elapsed>=(m.navRetry||0)&&navPlansThisFrame<2){
+   navPlansThisFrame++;
   m.navPath=routeTo(goal,m);m.navGoal={x:tx,y:ty};m.navIndex=0;
   m.navRetry=elapsed+1.05;
  }
@@ -287,6 +288,7 @@ function steerPursuit(m,tx,ty){
  return desired+Math.PI*.65*m.avoidSide;
 }
 function update(dt){
+ navPlansThisFrame=0;
  elapsed+=dt;day=1+Math.floor(elapsed/85);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  const newWeather=day%4===0?"FOG":day%3===0?"RAIN":"CLEAR";if(newWeather!==weather){weather=newWeather;notify(weather==="RAIN"?"酸性雨の気配 / 視界が悪化":weather==="FOG"?"濃霧 / 視界が悪化":"空が晴れてきた")}
@@ -611,9 +613,22 @@ function drawCreature(o,isPlayer){
 }
 let guideCache=null,navGrid=new Map();
 function routeClear(a,b,radius=P.r){
- if(collides(a.x,a.y,radius+5)||collides(b.x,b.y,radius+5)||lineBlocked(a,b))return false;
- const d=dist(a,b),steps=Math.ceil(d/18);
- for(let i=1;i<steps;i++){const t=i/steps;if(collides(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,radius+5))return false}
+ // Exact swept-circle/expanded-AABB segment test, replacing per-18px sampling.
+ const pad=(radius+5)*.8,border=radius+17;
+ if(a.x<border||a.y<border||b.x<border||b.y<border||
+    a.x>WORLD.w-border||b.x>WORLD.w-border||a.y>WORLD.h-border||b.y>WORLD.h-border)return false;
+ const dx=b.x-a.x,dy=b.y-a.y;
+ for(const box of buildings){
+  let enter=0,exit=1;
+  const axes=[[a.x,dx,box.x-pad,box.x+box.w+pad],[a.y,dy,box.y-pad,box.y+box.h+pad]];
+  for(const [origin,velocity,min,max] of axes){
+   if(Math.abs(velocity)<1e-9){if(origin<min||origin>max){enter=2;break}continue}
+   const t1=(min-origin)/velocity,t2=(max-origin)/velocity;
+   enter=Math.max(enter,Math.min(t1,t2));exit=Math.min(exit,Math.max(t1,t2));
+   if(enter>exit)break;
+  }
+  if(enter<=exit&&enter<=1&&exit>=0)return false;
+ }
  return true;
 }
 function navSetup(radius=P.r){
