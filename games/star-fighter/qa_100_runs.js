@@ -189,11 +189,11 @@ function runHarness(gameSource,musicSource){
  // Simulate all 100 seeds across all six sectors (100 complete synthetic runs).
  // The ship is invulnerable to isolate spawn safety; this is not a human win-rate test.
  const live={runs:seeds.length,stageCases:0,terrainComplete:0,missed:[],
-  maxEnemies:0,maxBullets:0,overlapFrames:0,eventsTriggered:0,simulationTicks:0};
+  maxEnemies:0,maxBullets:0,overlapFrames:0,eventsTriggered:0,simulationTicks:0,quietFrames:0,maxQuietFrames:0,quietFramesCurrent:0};
  for(const seed of seeds){
   for(const stage of [0,1,2,3,4,5,6,7]){
    const risk=stage===0?0:(seed>>>stage)&1;
-   stageSetup(seed,stage,risk);
+   stageSetup(seed,stage,risk);live.quietFramesCurrent=0;
    G.stageTime=0;G.terrainIndex=0;q.resetTerrain();G.spawn=1.4;
    G.player.invul=10000;G.activeEvent=stage===0?null:q.routeOffer(stage-1,risk).event;
    G.eventTriggered=false;G.eventChain=false;
@@ -203,6 +203,13 @@ function runHarness(gameSource,musicSource){
    while(G.stageTime<deadline+.2&&ticks++<1900){
     q.update(.05);
     live.simulationTicks++;
+    // Every real-time sector should have combat targets with no long empty stretch.
+    // This is a deterministic headless metric, not actual player/device performance.
+    if(G.stageTime>2&&G.stageTime<deadline-3){
+     const active=G.enemies.some(e=>e.hp>0&&e.x<1200&&e.x>-60);
+     if(!active){live.quietFrames++;live.quietFramesCurrent++;live.maxQuietFrames=Math.max(live.maxQuietFrames,live.quietFramesCurrent)}
+     else live.quietFramesCurrent=0;
+    }
     live.maxEnemies=Math.max(live.maxEnemies,G.enemies.length);
     live.maxBullets=Math.max(live.maxBullets,G.bullets.length);
     if(G.terrain&&G.pendingWave)live.overlapFrames++;
@@ -217,6 +224,7 @@ function runHarness(gameSource,musicSource){
   }
  }
  ok(live.overlapFrames>0,'terrain and hostile waves should overlap safely');
+ ok(live.maxQuietFrames<=30,'combat went idle for more than 1.5s');
  ok(live.missed.length===0,'terrain encounter missing in simulated run');
  stats.liveSimulation=live;
  stageSetup(seeds[0],0,0);
