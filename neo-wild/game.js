@@ -70,7 +70,7 @@ function spawnMob(initial=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0});
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
@@ -144,9 +144,9 @@ function resolveAttack(){
   if(d<P.r+m.r+52&&Math.abs(angle)<1.22){
    const bonus=P.type==="fox"&&P.abilityTime>0?1.7:1;
     const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
-    if(bonus>1)P.abilityTime=0;m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;hit++;
+    if(bonus>1)P.abilityTime=0;m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;m.windup=0;m.stun=.38;m.attack=Math.max(m.attack,.45);hit++;
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
-   m.x+=Math.cos(theta)*7;m.y+=Math.sin(theta)*7;
+   move(m,Math.cos(theta)*7,Math.sin(theta)*7);
    if(m.hp<=0)kill(m);
   }
  });
@@ -226,6 +226,17 @@ function finish(won=false){
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
  show("result");sound(won?700:140,.5,won?"sine":"sawtooth",.045);
 }
+function chooseEscape(m,away){
+ const angles=[0,.52,-.52,1.08,-1.08,1.72,-1.72,2.45,-2.45];
+ let best=away,bestScore=-Infinity;
+ for(const off of angles){
+  const a=away+off,step=68,x=m.x+Math.cos(a)*step,y=m.y+Math.sin(a)*step;
+  if(collides(x,y,m.r+5))continue;
+  const score=Math.cos(off)*2.2+(P?Math.hypot(x-P.x,y-P.y)*.003:0)-Math.abs(off)*.13;
+  if(score>bestScore){bestScore=score;best=a}
+ }
+ return best;
+}
 function update(dt){
  elapsed+=dt;day=1+Math.floor(elapsed/85);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
@@ -266,11 +277,16 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
-  const s=species[m.type];m.wander-=dt;m.attack-=dt;m.flash=Math.max(0,m.flash-dt);m.step+=dt*8;
+  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.step+=dt*8;
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:3.1;m.search=0}
    let vx=0,vy=0;
-   if(s.prey&&spotted){m.flee=2;m.dir=angle+Math.PI}
+   if(s.prey&&spotted){
+     m.flee=2;
+     if(m.escapeTimer<=0||collides(m.x+Math.cos(m.dir)*42,m.y+Math.sin(m.dir)*42,m.r+5)){
+       m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=.48;
+     }
+    }
    if(m.flee>0){
     m.flee=Math.max(0,m.flee-dt);vx=Math.cos(m.dir)*s.speed*1.3;vy=Math.sin(m.dir)*s.speed*1.3;
    }else if(!s.prey&&m.alert>0){
@@ -287,10 +303,27 @@ function update(dt){
     if(m.wander<0){m.dir+=rnd(-2.5,2.5);m.wander=rnd(.5,2.5)}
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
    }
+   if(!s.prey&&m.windup>0){
+     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
+     if(m.windup===0){
+       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
+       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
+       if(m.stun<=0&&P.inv<=0&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
+         const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
+         P.hp-=damage;P.inv=.55;shake=9;flash=.23;
+         label(P.x,P.y-35,"-"+damage,"#ff9890");
+         blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
+       }else if(dist(P,m)<reach+50)label(m.x,m.y-m.r-16,"回避！","#a6f5d8");
+     }
+   }
+   if(m.stun>0){vx=0;vy=0}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);
   if(ox===m.x&&oy===m.y){m.dir+=1.7;m.wander=0}
-  if(!s.prey&&d<P.r+m.r+10&&(spotted||m.alert>0)&&m.attack<=0&&P.inv<=0){
-   P.hp-=s.damage*(1+Math.max(0,day-1)*.15);P.inv=.55;m.attack=1.3;shake=9;flash=.23;label(P.x,P.y-35,"-"+Math.round(s.damage),"#ff9890");blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
+  if(!s.prey&&m.windup<=0&&m.stun<=0&&d<P.r+m.r+29&&(spotted||m.alert>0)&&m.attack<=0){
+   m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.58:.53;
+   m.windup=m.windupTotal;m.strikeDir=angle;m.attack=1.45;
+   m.dir=angle;label(m.x,m.y-m.r-24,"危険！","#ffb76d");
+   sound(310,.11,"sawtooth",.03);
   }
  }
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0||dist(mobs[i],P)>Math.max(vw,vh)*2.7)mobs.splice(i,1);
@@ -583,6 +616,18 @@ function drawScene(){
  const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
  entities.sort((a,b)=>a.y-b.y);
  for(const e of entities)drawCreature(e,e===P);
+  for(const m of entities){
+   if(m===P||species[m.type].prey||m.windup<=0)continue;
+   const progress=1-m.windup/Math.max(.01,m.windupTotal);
+   ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.strikeDir);
+   ctx.fillStyle="rgba(244,75,48,"+(.11+progress*.31)+")";
+   ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.closePath();ctx.fill();
+   ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
+   ctx.beginPath();ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.stroke();
+   ctx.restore();
+   ctx.font="900 12px sans-serif";ctx.textAlign="center";ctx.fillStyle="#ffcf9c";
+   ctx.fillText("!",m.x,m.y-m.r-23);
+  }
  if(P&&P.swing>0){
   ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle="rgba(253,207,141,"+(P.swing/.18)+")";ctx.lineWidth=12*P.swing/.18;ctx.lineCap="round";ctx.beginPath();ctx.arc(0,0,P.r+40,-.95,.95);ctx.stroke();ctx.strokeStyle="#fff7d6";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,P.r+47,-.75,.75);ctx.stroke();ctx.restore()}
  if(P&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
