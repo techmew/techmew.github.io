@@ -206,12 +206,19 @@ function runHarness(gameSource,musicSource){
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  const priorSeed=G.runSeed;
+ const rewardTypes=new Set();
  for(let j=0;j<100;j++){
   G.runSeed=j*1234567>>>0;
   const a=q.rewardOptions(),b=q.rewardOptions();
   ok(a.length===3&&new Set(a.map(x=>x.id)).size===3,'reward uniqueness '+j);
   ok(JSON.stringify(a)===JSON.stringify(b),'reward seed determinism '+j);
+  for(const offer of a)rewardTypes.add(offer.id);
  }
+ ok(rewardTypes.size>=5,'insufficient reward variety');
+ G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=3;G.lives=3;G.driveCharge=100;G.levels=[2,3,2,2,3,3];
+ const capped=q.rewardOptions();
+ ok(capped.length===3&&capped.every(o=>o.id.startsWith('score')),'capped resources must have three usable rewards');
+ G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];
  G.runSeed=priorSeed;
  q.spawnBoss();ok(!!G.boss,'boss spawn');
  G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
@@ -225,6 +232,9 @@ function runHarness(gameSource,musicSource){
  ev('rewardCard0','click');
  ok(G.mode==='route','reward then route');
  ok(q.readCheckpoint()?.mode==='route','reward claim checkpoint');
+ const claimedRewards=G.rewardHistory.length;
+ ev('titleReturnBtn','click');ev('continueBtn','click');
+ ok(G.mode==='route'&&G.rewardHistory.length===claimedRewards,'claimed reward cannot be repeated after reload');
  ev('routeRisk','click');ok(G.mode==='playing'&&G.stage===1,'risk route');
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
@@ -235,6 +245,7 @@ function runHarness(gameSource,musicSource){
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
  ok(G.mode==='win','3-stage victory');
+ ok(G.rewardHistory.length===2,'two rewards across three stages');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
  ok(!!q.readCheckpoint(),'checkpoint exists');
  ev('titleReturnBtn','click');ok(G.mode==='title','title before continue');
