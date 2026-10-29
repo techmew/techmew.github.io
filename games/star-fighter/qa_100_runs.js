@@ -249,6 +249,24 @@ function runHarness(gameSource,musicSource){
  ev('touchPad','pointerup',{clientX:100,clientY:100});
  const stopped=G.player.x;
  q.update(.016);ok(Math.abs(G.player.x-stopped)<1,'touch release drift');
+ // Adaptive gain, instant reverse, no drift when held.
+ G.player.x=G.player.targetX=220;G.player.y=G.player.targetY=337;
+ ev('touchPad','pointerdown',{clientX:45,clientY:110,timeStamp:1000});
+ const ax=G.player.x;
+ ev('touchPad','pointermove',{clientX:48,clientY:110,timeStamp:1016});
+ const small=G.player.x-ax;
+ ok(small>1&&small<12,'slow swipe precision');
+ ev('touchPad','pointermove',{clientX:93,clientY:110,timeStamp:1032});
+ ok(G.player.x-ax-small>small*6,'fast swipe higher reach');
+ const hold=G.player.x;for(let n=0;n<5;n++)q.update(.016);
+ ok(Math.abs(G.player.x-hold)<.1,'no movement while finger rests');
+ ev('touchPad','pointermove',{clientX:86,clientY:110,timeStamp:1048});
+ ok(G.player.x<hold,'immediate reversal');
+ const back=G.player.x;
+ ev('touchPad','pointermove',{clientX:133,clientY:110,timeStamp:1064});
+ ok(G.player.x>back,'track beyond pad border');
+ ev('touchPad','pointerup',{clientX:133,clientY:110,timeStamp:1080});
+ ok(gameSource.includes('function touchGain(dx,dy,dt)'),'speed-sensitive touch gain');
  // Simulate narrow portrait and wide landscape pad geometry without a browser.
  for(const [width,height] of [[120,280],[320,100]]){
   el('touchPad').getBoundingClientRect=function(){return {left:0,top:0,width,height}};
