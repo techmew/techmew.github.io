@@ -475,7 +475,7 @@ function catchItem(sceneItem){const item=sceneItem.item;let duplicate;
  if(st.show.queue.length<5)st.show.queue.push(item.id);
  if(item.cat==='hair'){const id=item.id-HAIR_ID_START;duplicate=st.hairOwned.includes(id);if(!duplicate){st.hairOwned.push(id);st.hair=id}}
  else{duplicate=ownSet.has(item.id);if(!duplicate){st.owned.unshift(item.id);ownSet.add(item.id)}if(item.cat==='fish')st.equip.fish=item.id}
- st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity])+(item.cat==='fish'&&!duplicate?18:0);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'LEGENDARY CATCH!':item.cat==='fish'&&!duplicate?'NEW SPECIES! +18 COINS':item.rarity===2?'SUPER RARE!':st.combo>=3?`${st.combo} COMBO!`:'NICE CATCH!',1200);sfxCatch(item.rarity);
+ st.catches++;sessionCatch++;st.combo++;st.failStreak=0;st.coins+=(duplicate?[5,12,25,60][item.rarity]:[10,19,40,90][item.rarity])+(item.cat==='fish'&&!duplicate?18:0);bubble(sceneItem.x,sceneItem.y,25,rareColors[item.rarity]);ripples.push({x:sceneItem.x,y:sceneItem.y,r:3,a:1});showEvent(item.rarity===3?'伝説級をゲット！':item.cat==='fish'&&!duplicate?'新しい魚を発見！ +18コイン':item.rarity===2?'超レアをゲット！':st.combo>=3?`${st.combo}連続キャッチ！`:'釣れた！',1200);sfxCatch(item.rarity);
  popup(item,duplicate);
  // Collected outfits remain equipped until the player explicitly changes them.
  sceneItems=sceneItems.filter(s=>s!==sceneItem);replaceSeaSlot(400);renderAvatar();redrawUI();renderFreeSlots();renderFreePicker()}
@@ -1048,7 +1048,7 @@ function drawShowStage(){
   ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x-15,0);ctx.lineTo(x+15,0);ctx.lineTo(x+beam+145,420);ctx.lineTo(x+beam-145,420);ctx.closePath();ctx.fill();
  }
  for(let k=0;k<9;k++){let x=50+k*100;ellipse(ctx,x,17,6,6,'#ffe6aa');let light=ctx.createRadialGradient(x,20,1,x,20,96);light.addColorStop(0,'#fff0d151');light.addColorStop(1,'#fff0d100');ctx.fillStyle=light;ctx.fillRect(x-96,0,192,190)}
- round(ctx,248,30,400,62,12,'#180d2a','#ffcd90');ctx.fillStyle='#fff0b9';ctx.font='900 31px Impact,sans-serif';ctx.textAlign='center';ctx.fillText('BROADWAY FASHION',449,70);
+ round(ctx,248,30,400,62,12,'#180d2a','#ffcd90');ctx.fillStyle='#fff0b9';ctx.font='900 31px Impact,sans-serif';ctx.textAlign='center';ctx.fillText('ファッションショー',449,70);
  ctx.fillStyle='#c56883';ctx.beginPath();ctx.moveTo(385,220);ctx.lineTo(522,220);ctx.lineTo(750,510);ctx.lineTo(140,510);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#ffdfa9';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(385,220);ctx.lineTo(140,510);ctx.moveTo(522,220);ctx.lineTo(750,510);ctx.stroke();
   // Perspective runway lights: each pair chases toward the audience during the walk.
@@ -1076,12 +1076,12 @@ function drawShowStage(){
  dressRunway(ctx,691+(1-rivalWalk)*100,342,.78,showPhase==='walk'?t+.45:.1,cpuItems,true);
  round(ctx,619,165,146,28,9,'#21192f','#d9a3c0');
  ctx.fillStyle='#ffe3c2';ctx.textAlign='center';ctx.font='900 14px sans-serif';
- ctx.fillText('CPU '+(showPhase==='result'?(showScores?.rival??'--')+'点':'CHALLENGER'),692,184);
-  if(showPhase==='walk'&&poseBeats.some(beat=>Math.abs(showTime-beat)<.25)){round(ctx,636,112,116,30,11,'#fff0bc','#a85881');ctx.fillStyle='#3c2545';ctx.font='900 14px sans-serif';ctx.fillText('CPU POSE!',694,133)}
+ ctx.fillText('CPU '+(showPhase==='result'?(showScores?.rival??'--')+'点':'挑戦者'),692,184);
+  if(showPhase==='walk'&&poseBeats.some(beat=>Math.abs(showTime-beat)<.25)){round(ctx,636,112,116,30,11,'#fff0bc','#a85881');ctx.fillStyle='#3c2545';ctx.font='900 14px sans-serif';ctx.fillText('CPU ポーズ！',694,133)}
  dressRunway(ctx,450-(1-p)*165,302-(1-p)*55,.86+.12*p,showPhase==='walk'?t:.1);
  if(showPhase==='walk'){
   const ready=poseBeats.findIndex((beat,i)=>poseResults[i]===null&&Math.abs(showTime-beat)<=poseTolerance);
-  if(ready>=0){const p=1-Math.abs(showTime-poseBeats[ready])/poseTolerance;ctx.save();ctx.strokeStyle='#fff0a9';ctx.lineWidth=4;ctx.beginPath();ctx.arc(748,187,34+(1-p)*23,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff0bb';ctx.font='900 18px sans-serif';ctx.textAlign='center';ctx.fillText('POSE!',748,193);ctx.restore()}
+  if(ready>=0){const p=1-Math.abs(showTime-poseBeats[ready])/poseTolerance;ctx.save();ctx.strokeStyle='#fff0a9';ctx.lineWidth=4;ctx.beginPath();ctx.arc(748,187,34+(1-p)*23,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff0bb';ctx.font='900 18px sans-serif';ctx.textAlign='center';ctx.fillText('今！',748,193);ctx.restore()}
   for(let i=0;i<3;i++){ellipse(ctx,699+i*45,254,12,12,poseResults[i]===null?'#77677c':poseResults[i]>0?'#ffdc85':'#6c4b67');ctx.fillStyle='#31233d';ctx.font='900 11px sans-serif';ctx.textAlign='center';ctx.fillText(String(i+1),699+i*45,258)}
  }
  if(showPhase==='walk'&&!reducedMotion){
@@ -1465,10 +1465,17 @@ function renderFreeSlots(){
 function setFreeLookItem(slot,id){
  const next=st.freeLook.slice();
  // A dress occupies upper and lower clothing; keep manual looks coherent.
- if(id!==null&&catalog[id]?.cat==='dress'&&[6,10,15].includes(slot)){
-  next[6]=null;next[10]=null;next[15]=id;slot=15;
+ if(id!==null&&catalog[id]?.cat==='dress'&&[6,7,10,15].includes(slot)){
+  // A one-piece outfit replaces upper/lower layers even when chosen from outerwear.
+  for(const i of [6,10,15])next[i]=null;
+  if(next[7]!==null&&catalog[next[7]]?.cat==='dress')next[7]=null;
+  next[15]=id;slot=15;
  }else{
-  if(id!==null&&[6,10].includes(slot))next[15]=null;
+  // Choosing a separate top or bottom takes off any existing one-piece.
+  if(id!==null&&[6,10].includes(slot)){
+   next[15]=null;
+   if(next[7]!==null&&catalog[next[7]]?.cat==='dress')next[7]=null;
+  }
   next[slot]=id;
  }
  if(id!==null)for(let i=0;i<next.length;i++)if(i!==slot&&next[i]===id)next[i]=null;
