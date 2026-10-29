@@ -260,17 +260,26 @@ function chooseEscape(m,away){
  return best;
 }
 function steerPursuit(m,tx,ty){
- const desired=Math.atan2(ty-m.y,tx-m.x),distance=Math.hypot(tx-m.x,ty-m.y);
+ const goal={x:tx,y:ty},desired=Math.atan2(ty-m.y,tx-m.x),distance=dist(m,goal);
  const look=clamp(distance*.45,42,94);
- if(clearStep(m,desired,look))return desired;
- // Hold the chosen side until the obstacle is passed; otherwise the NPC oscillates.
+ if(routeClear(m,goal,m.r)){m.navPath=null;return desired}
+ const stale=!m.navGoal||dist(m.navGoal,goal)>70;
+ if((stale||!m.navPath||m.navIndex>=m.navPath.length)&&elapsed>=(m.navRetry||0)){
+  m.navPath=routeTo(goal,m);m.navGoal={x:tx,y:ty};m.navIndex=0;
+  m.navRetry=elapsed+1.05;
+ }
+ if(m.navPath&&m.navPath.length){
+  while(m.navIndex<m.navPath.length-1&&dist(m,m.navPath[m.navIndex])<30)m.navIndex++;
+  const next=m.navPath[m.navIndex];
+  if(next&&routeClear(m,next,m.r))return Math.atan2(next.y-m.y,next.x-m.x);
+ }
  if(!m.avoidSide)m.avoidSide=((Math.floor(m.x/90)+Math.floor(m.y/90))%2?1:-1);
  let best=null,bestScore=-Infinity;
  for(const offset of [.42,.82,1.22,1.65,2.12]){
   for(const side of [m.avoidSide,-m.avoidSide]){
    const angle=desired+offset*side;
    if(!clearStep(m,angle,look))continue;
-   const score=Math.cos(offset)*2.4+(side===m.avoidSide?.38:0)+Math.min(1,distance/300)*.1;
+   const score=Math.cos(offset)*2.4+(side===m.avoidSide?.38:0);
    if(score>bestScore){bestScore=score;best=angle}
   }
  }
@@ -597,22 +606,22 @@ function drawCreature(o,isPlayer){
  if(!isPlayer&&!s.prey&&o.hp<o.maxHp){ctx.fillStyle="#101719c9";ctx.fillRect(o.x-21,o.y-r-17,42,4);ctx.fillStyle="#e9a077";ctx.fillRect(o.x-21,o.y-r-17,42*o.hp/o.maxHp,4)}
  if(P&&P.senseTime>0&&!isPlayer){ctx.strokeStyle=s.prey?"#91ebbc":"#ef9274";ctx.lineWidth=2;ctx.beginPath();ctx.arc(o.x,o.y,r+12+Math.sin(elapsed*8)*2,0,TWO);ctx.stroke()}
 }
-let guideCache=null,navGrid=null;
-function routeClear(a,b){
- if(collides(a.x,a.y,P.r+5)||collides(b.x,b.y,P.r+5)||lineBlocked(a,b))return false;
+let guideCache=null,navGrid=new Map();
+function routeClear(a,b,radius=P.r){
+ if(collides(a.x,a.y,radius+5)||collides(b.x,b.y,radius+5)||lineBlocked(a,b))return false;
  const d=dist(a,b),steps=Math.ceil(d/18);
- for(let i=1;i<steps;i++){const t=i/steps;if(collides(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,P.r+5))return false}
+ for(let i=1;i<steps;i++){const t=i/steps;if(collides(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,radius+5))return false}
  return true;
 }
-function navSetup(){
- const cell=72,cols=Math.ceil(WORLD.w/cell),rows=Math.ceil(WORLD.h/cell),radius=P.r;
- if(navGrid&&navGrid.radius===radius)return navGrid;
+function navSetup(radius=P.r){
+ const cell=72,cols=Math.ceil(WORLD.w/cell),rows=Math.ceil(WORLD.h/cell);
+ if(navGrid.has(radius))return navGrid.get(radius);
  const pass=new Uint8Array(cols*rows);
  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)pass[y*cols+x]=collides((x+.5)*cell,(y+.5)*cell,radius+8)?0:1;
- navGrid={cell,cols,rows,pass,radius};return navGrid;
+ const grid={cell,cols,rows,pass,radius};navGrid.set(radius,grid);return grid;
 }
-function routeTo(goal){
- const {cell,cols,rows,pass}=navSetup(),size=cols*rows;
+function routeTo(goal,actor=P){
+ const {cell,cols,rows,pass}=navSetup(actor.r),size=cols*rows;
  const center=i=>({x:(i%cols+.5)*cell,y:(Math.floor(i/cols)+.5)*cell});
  const nearest=p=>{
   const cx=clamp(Math.floor(p.x/cell),0,cols-1),cy=clamp(Math.floor(p.y/cell),0,rows-1);
@@ -622,13 +631,13 @@ function routeTo(goal){
     if(r>0&&Math.max(Math.abs(xx-cx),Math.abs(yy-cy))!==r)continue;
     const id=yy*cols+xx;if(!pass[id])continue;
     const q=center(id),d=dist(p,q);
-    if(d<bestDist&&routeClear(p,q)){best=id;bestDist=d}
+    if(d<bestDist&&routeClear(p,q,actor.r)){best=id;bestDist=d}
    }
    if(best>=0)return best;
   }
   return best;
  };
- const start=nearest(P),end=nearest(goal);if(start<0||end<0)return null;
+ const start=nearest(actor),end=nearest(goal);if(start<0||end<0)return null;
  const score=new Float64Array(size);score.fill(Infinity);score[start]=0;
  const from=new Int32Array(size);from.fill(-1);
  const closed=new Uint8Array(size),heap=[];
@@ -660,7 +669,7 @@ function routeTo(goal){
    const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=cols||ny>=rows)continue;
    const next=ny*cols+nx;if(!pass[next]||closed[next])continue;
    if(dx&&dy&&(!pass[y*cols+nx]||!pass[ny*cols+x]))continue;
-   if(!routeClear(center(cur),center(next)))continue;
+   if(!routeClear(center(cur),center(next),actor.r))continue;
    const value=score[cur]+(dx&&dy?Math.SQRT2:1);
    if(value>=score[next])continue;
    score[next]=value;from[next]=cur;push(next,value+heuristic(next));
