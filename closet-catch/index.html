@@ -1296,6 +1296,30 @@ function fitsFreeLookSlot(index,item){
   ||(index===12&&cat==='shoes')
   ||(index===15&&cat==='dress');
 }
+function drawFittedFreeHat(ctx,item){
+ const edge=tint(colorOf(item),-.35),light=tint(colorOf(item),.35);
+ ctx.save();ctx.lineJoin='round';ctx.lineWidth=2.4;
+ // Crown and brim follow the head silhouette rather than a floating collectible icon.
+ if(item.style===1){
+  ellipse(ctx,220,83,58,18,edge);
+  runwayFabric(ctx,item,[[171,82],[176,62],[192,49],[220,46],[247,51],[263,67],[269,82]],{x:171,y:46,w:98,h:40});
+ }else if(item.style===2){
+  runwayFabric(ctx,item,[[173,91],[174,60],[187,45],[252,45],[266,60],[267,91]],{x:173,y:45,w:94,h:48});
+  round(ctx,170,85,100,13,6,edge);
+ }else if(item.style===3){
+  ellipse(ctx,220,98,72,12,edge);
+  runwayFabric(ctx,item,[[177,93],[185,55],[199,46],[241,46],[255,55],[263,93]],{x:177,y:46,w:86,h:49});
+ }else if(item.style===4){
+  ellipse(ctx,220,98,79,11,edge);
+  runwayFabric(ctx,item,[[178,93],[184,56],[199,46],[241,46],[256,56],[262,93]],{x:178,y:46,w:84,h:48});
+  ctx.strokeStyle=light;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(182,85);ctx.quadraticCurveTo(220,91,258,85);ctx.stroke();
+ }else{
+  runwayFabric(ctx,item,[[173,94],[180,66],[198,51],[242,51],[261,66],[268,94]],{x:173,y:51,w:95,h:44});
+  ellipse(ctx,220,97,67,10,edge);
+  round(ctx,214,87,12,9,3,light,edge);
+ }
+ ctx.restore();
+}
 function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume){
  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,440,510);
  const bg=ctx.createLinearGradient(0,0,440,510);bg.addColorStop(0,'#f4eafa');bg.addColorStop(1,'#d8f1ed');ctx.fillStyle=bg;ctx.fillRect(0,0,440,510);
@@ -1319,6 +1343,7 @@ function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume
   ctx.save();
   if(index===13){ctx.globalAlpha=.84}
   if(item.cat==='hair'&&index===0){avatarHair(ctx,part[1],part[2],1.1,item.id-HAIR_ID_START,'front')}
+  else if(index===1&&item.cat==='hat'){drawFittedFreeHat(ctx,item)}
   else if(index===12&&item.cat!=='shoes'){for(const dx of [-28,28])drawSeaCollectible(ctx,item,220+dx,455,Math.min(73,item.cat==='fish'?57:73),dx*.002)}
   else if(index===3){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*55,152,55,dx*.16)}
   else if(index===8){for(const dx of [-1,1])drawSeaCollectible(ctx,item,220+dx*84,299,67,dx*.15)}
@@ -1406,6 +1431,19 @@ function renderFreeSlots(){
  $('freeStatus').textContent=mainCount+' / 8部位'+(extra?' ＋追加'+extra+'点':'')+' · 保存済み';
  drawFreeLook();renderDuelPreview();
 }
+function setFreeLookItem(slot,id){
+ const next=st.freeLook.slice();
+ // A dress occupies upper and lower clothing; keep manual looks coherent.
+ if(id!==null&&catalog[id]?.cat==='dress'&&[6,10,15].includes(slot)){
+  next[6]=null;next[10]=null;next[15]=id;slot=15;
+ }else{
+  if(id!==null&&[6,10].includes(slot))next[15]=null;
+  next[slot]=id;
+ }
+ if(id!==null)for(let i=0;i<next.length;i++)if(i!==slot&&next[i]===id)next[i]=null;
+ st.freeLook=next;
+ return slot;
+}
 function renderFreePicker(){
  $('freePickerTitle').textContent=FREE_PARTS[freeActive][0]+'に着けるアイテム';
  const query=$('freeSearch').value.trim().toLocaleLowerCase(),cat=$('freeCategory').value;
@@ -1424,8 +1462,8 @@ function renderFreePicker(){
   const sub=document.createElement('small');sub.textContent=(st.freeLook[freeActive]===id?'着用中 · ':'')+rareSymbols[item.rarity]+' · #'+(id+1);
   label.append(name,sub);b.append(thumb,label);drawGarmentCard(thumb,item);
   b.addEventListener('click',()=>{
-   st.freeLook=st.freeLook.map((v,i)=>i!==freeActive&&v===id?null:v);
-   st.freeLook[freeActive]=id;save();renderFreeSlots();renderFreePicker()
+   freeActive=setFreeLookItem(freeActive,id);
+   save();renderFreeSlots();renderFreePicker()
   });root.append(b)
  }
  $('freeMore').hidden=ids.length<=freeShown;
