@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -937,6 +937,40 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  q.update(.016);
  ok(G.pulses===beforeNOVA+1,'rare NOVA pickup failed');
  ok(G.levels.every((n,i)=>n===beforeLevels[i]),'rare reward upgraded weapon');
+ // 23/36: branch-only interceptions and boss doctrines remain deterministic,
+ // readable, scarce and non-modal on every selectable sector.
+ for(let stage=1;stage<8;stage++){
+  const signatures=[];
+  for(const risk of [0,1]){
+   stageSetup((0x2468ace0+stage*17)>>>0,stage,risk);
+   G.routeHistory=Array.from({length:stage},(_,i)=>({stage:i+2,risk,route:'QA',event:'qa',eventName:'QA',chain:false}));
+   G.activeEvent=q.routeOffer(stage-1,risk).event;
+   G.stageTime=[62,68,74,72,76,80,84,90][stage]*.41;
+   G.terrainSchedule=[];G.terrainIndex=0;G.routePatrolSpawned=false;
+   ok(q.spawnRoutePatrol(),'route interception absent '+stage+'/'+risk);
+   ok(G.routePatrolSpawned&&G.enemies.length===2,'route patrol size '+stage+'/'+risk);
+   const captain=G.enemies.find(e=>e.routeCaptain);
+   ok(!!captain&&captain.routeRisk===risk,'route captain '+stage+'/'+risk);
+   ok(G.enemies.every(e=>e.noLoot&&e.routePatrol),'route patrol must not increase capsule drops');
+   ok(!q.spawnRoutePatrol()&&G.enemies.length===2,'duplicate route patrol');
+   ok(G.enemies.every(e=>Math.abs(e.y-captain.aiSafeY)>=q.waveClearance(e.type)-.001),'route patrol safe corridor');
+   signatures.push(G.enemies.map(e=>e.type).join('/'));
+   G.bullets=[];q.fireEnemy(captain);
+   ok(G.bullets.length===(risk?6:4),'route captain fire gap '+stage+'/'+risk);
+   ok(G.bullets.every(b=>b.size===4.5),'route bullet bounds '+stage+'/'+risk);
+   const levels=G.levels.slice(),before=G.pickups.length;
+   q.destroyEnemy(G.enemies.indexOf(captain));
+   ok(G.pickups.length===before&&G.levels.every((n,i)=>n===levels[i]),'route patrol no auto-loot/upgrade');
+   G.enemies=[];G.bullets=[];
+   q.spawnBoss();ok(G.boss.routeDoctrine===G.activeEvent.id,'boss route doctrine '+stage+'/'+risk);
+   G.boss.x=930;G.boss.pattern=4;G.boss.fire=0;
+   q.bossAttack(G.boss);
+   ok(G.bullets.length===(risk?6:4)&&G.boss.pattern===5,'route boss replacement salvo '+stage+'/'+risk);
+   ok(G.bullets.every(b=>b.size===4.5&&b.life>0),'route boss readable bullets '+stage+'/'+risk);
+   G.boss=null;G.bullets=[];G.shots=[];
+  }
+  ok(signatures[0]!==signatures[1],'route interception should differ '+stage);
+ }
  // 18/36: 100 deterministic builds sampled from actual projectile emission.
  // Twelve-second stationary-target expected DPS uses conservative hit weights;
  // theoretical time-to-kill is NOT measured human play or device performance.
