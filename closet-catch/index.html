@@ -179,7 +179,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .judge-bars .judge-bar{height:7px;background:#ffffff27}
 .judge-bars .judge-bar.cpu i{background:#88d6e7}
 .show-judge .judge-diff{display:block;margin-top:7px;color:#fff1d5;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums}
-@media(max-width:420px){.show-judge .judge-score-row{align-items:flex-start}.show-judge .judge-score-row strong{font-size:15px}.show-judge .judge-score-row span{font-size:11px}.result-scoreline{gap:5px}.result-scoreline strong{font-size:clamp(16px,4.7vw,23px)}}
+@media(max-width:420px){.show-judge .judge-score-row{align-items:flex-start;display:grid;grid-template-columns:minmax(0,1fr);gap:2px;text-align:left}.show-judge .judge-score-row strong{font-size:15px}.show-judge .judge-score-row span{font-size:11px}.show-judges>.show-judge:last-child:nth-child(odd){grid-column:1/-1}.result-scoreline{gap:5px}.result-scoreline strong{font-size:clamp(16px,4.7vw,23px)}}
 </style>
 </head>
 <body>
@@ -777,7 +777,7 @@ function drawFittedRunwayGarment(ctx,p){
  const {item,stack}=p,cat=item.cat;
  if(!p.natural||!['top','outer','dress','bottom','under','shoes'].includes(cat))return false;
  const shift=stack===0?0:(stack%2?1:-1)*Math.ceil(stack/2)*4;
- ctx.save();ctx.translate(shift,stack*2);ctx.shadowColor='#14223955';ctx.shadowBlur=stack?5:2;ctx.shadowOffsetY=stack?2:1;
+ ctx.save();ctx.translate(shift,stack*2);ctx.scale(Math.max(.78,1-stack*.052),Math.max(.87,1-stack*.028));ctx.shadowColor='#14223955';ctx.shadowBlur=stack?5:2;ctx.shadowOffsetY=stack?2:1;
  if(cat==='top'){
   const sleeve=item.style===4?0:item.style===1?9:18;
   runwayFabric(ctx,item,[[-28,-67],[-15,-69],[-10,-62],[0,-57],[10,-62],[15,-69],[28,-67],[40+sleeve,-51],[36+sleeve,-31],[29,-27],[32,40],[-32,40],[-29,-27],[-36-sleeve,-31],[-40-sleeve,-51]],{x:-65,y:-72,w:130,h:115});
@@ -811,7 +811,7 @@ function drawFittedRunwayGarment(ctx,p){
 function drawFittedRunwayAccessory(ctx,p){
  const {item,stack}=p;if(item.cat!=='acc'||!p.natural)return false;
  const c=colorOf(item),edge=tint(c,-.40),light=tint(c,.43),style=item.style%7;
- ctx.save();ctx.translate((stack%2?1:-1)*Math.ceil(stack/2)*4,stack*3);ctx.lineCap='round';ctx.lineJoin='round';
+ ctx.save();ctx.translate((stack%2?1:-1)*Math.ceil(stack/2)*4,stack*3);ctx.scale(Math.max(.83,1-stack*.04),Math.max(.86,1-stack*.035));ctx.lineCap='round';ctx.lineJoin='round';
  if(style===0){
   round(ctx,-29,-146,25,19,7,edge,'#ffe8c7');round(ctx,4,-146,25,19,7,edge,'#ffe8c7');
   round(ctx,-25,-143,17,11,4,'#283b55');round(ctx,8,-143,17,11,4,'#283b55');
