@@ -1003,7 +1003,7 @@ function chooseReward(index){
   G.flowPhase='route';G.transition=2.4;G.routeOffers=[routeOffer(G.stage,0),routeOffer(G.stage,1)];
   saveCheckpoint('route');
  }else openRoute();
- updateHud();showToast('REWARD · '+o.name+(['module','rare_arsenal','storm_gamble'].includes(o.id)?' · 該当装備を選んで「強化」で確定':synergy?' · '+synergy.name:''));
+ updateHud();showToast(['module','rare_arsenal','storm_gamble'].includes(o.id)?'無料強化券'+(o.id==='rare_arsenal'?'×2':'×1')+' · 装備選択→強化':'REWARD · '+o.name+(synergy?' · '+synergy.name:''));
 }
 for(let i=0;i<3;i++){
  const b=$('rewardCard'+i);
