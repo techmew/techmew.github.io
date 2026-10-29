@@ -19,7 +19,7 @@ const species={
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
-let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0;
+let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
@@ -48,7 +48,7 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;guideCache=null;
+ mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;guideCache=null;huntTarget=null;
  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -135,11 +135,38 @@ function instinct(){
   blood(P.x,P.y,"#dce3db",16,140);notify("咆哮 / 周囲の小動物を威圧");sound(130,.36,"sawtooth",.07);
  }
 }
+function combatAim(maxTurn=.56){
+ // A small forward-facing correction makes a single-button attack usable on touch,
+ // but never snaps to a target behind the player or through a wall.
+ let best=null,bestScore=Infinity,aim=P.dir;
+ for(const m of mobs){
+  if(m.hp<=0||dist(P,m)>P.r+m.r+105||lineBlocked(P,m))continue;
+  const angle=Math.atan2(m.y-P.y,m.x-P.x);
+  const diff=Math.atan2(Math.sin(angle-P.dir),Math.cos(angle-P.dir));
+  if(Math.abs(diff)>1.28)continue;
+  const score=dist(P,m)+(huntTarget===m?-24:0)+Math.abs(diff)*28;
+  if(score<bestScore){best=m;bestScore=score;aim=P.dir+clamp(diff,-maxTurn,maxTurn)}
+ }
+ if(best)P.dir=aim;
+ return best;
+}
 function attack(){
  if(mode!=="play"||P.atk>0||P.pendingStrike)return;
  const cost=P.type==="wolf"?17:P.type==="cat"?9:12;
  if(P.sp<cost){P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
- P.sp-=cost;P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
+ P.sp-=cost;P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.ambushStrike=P.hidden&&P.revealTimer<=0;
+ const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:.55);
+ // Fox instinct is a short, collision-safe forward pounce, not a teleport.
+ if(P.type==="fox"&&P.abilityTime>0&&target){
+  const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
+  const travel=Math.min(53,Math.max(0,distance-(P.r+target.r+30)));
+  if(travel>4&&routeClear(P,{x:P.x+Math.cos(angle)*travel,y:P.y+Math.sin(angle)*travel},P.r)){
+   move(P,Math.cos(angle)*travel,Math.sin(angle)*travel);
+   P.windup=Math.max(P.windup,.19);
+   blood(P.x,P.y,"#ffe6a6",5,38);
+  }
+ }
+ P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.05);sound(260,.055,"triangle",.018);
 }
 function resolveAttack(){
@@ -178,10 +205,13 @@ function kill(m){
  checkMission();
 }
 function dash(){
- if(mode!=="play"||P.dash>0||P.sp<28)return;
+ if(mode!=="play"||P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28))return;
  const a=getAxes();if(Math.hypot(a.x,a.y)>.15){P.dir=Math.atan2(a.y,a.x)}
  P.dx=Math.cos(P.dir);P.dy=Math.sin(P.dir);
- P.sp-=28;P.dashTime=.21;P.inv=.28;P.dash=1.05;P.vx=0;P.vy=0;P.pendingStrike=false;P.ambushStrike=false;P.revealTimer=1.15;P.windup=0;P.noiseBurst=1.5;blood(P.x,P.y,"#a6e6d4",9,45);sound(250,.22,"sine",.05);
+ const agile=P.type==="cat"&&P.abilityTime>0;
+ P.sp-=agile?20:28;P.dashTime=P.type==="wolf"?.18:agile?.25:.21;
+ P.inv=agile?.39:P.type==="wolf"?.23:.28;
+ P.dash=agile?.52:P.type==="cat"?.85:P.type==="wolf"?1.2:1.05;P.vx=0;P.vy=0;P.pendingStrike=false;P.ambushStrike=false;P.revealTimer=1.15;P.windup=0;P.noiseBurst=1.5;blood(P.x,P.y,"#a6e6d4",9,45);sound(250,.22,"sine",.05);
 }
 function sense(){
  if(mode!=="play"||P.sense>0)return;
@@ -225,8 +255,15 @@ function getObjective(){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0));
   return f?{x:f.x,y:f.y,label:"食料を取る / E"}:null;
  }
- const m=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
- return m?{x:m.x,y:m.y,label:"獲物を追う / Jで攻撃"}:null;
+ // Keep one visible hunting objective until it is lost, killed, or truly far away.
+ // Otherwise the ▲ flips between different prey every few frames.
+ if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>760)
+  huntTarget=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
+ if(!huntTarget)return null;
+ const lead=.22,px=clamp(huntTarget.x+(huntTarget.vx||0)*lead,35,WORLD.w-35);
+ const py=clamp(huntTarget.y+(huntTarget.vy||0)*lead,35,WORLD.h-35);
+ const safe=!collides(px,py,P.r+5);
+ return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / Jで攻撃"};
 }
 function finish(won=false){
  if(!P)return;
@@ -299,12 +336,12 @@ function update(dt){
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.dashTime>0){
-   P.vx=0;P.vy=0;move(P,P.dx*P.speed*3.8*dt,P.dy*P.speed*3.8*dt);
+   P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
   }else{
    const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*(P.type==="cat"&&P.abilityTime>0?1.48:1);
    const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
-   const limit=(len>.08?(P.type==="wolf"?680:900):(P.type==="wolf"?980:1300))*dt;
+   const limit=(len>.08?(P.type==="wolf"?590:P.type==="cat"?1320:900):(P.type==="wolf"?760:P.type==="cat"?1640:1300))*dt;
    const ratio=length>limit?limit/length:1;
    P.vx+=dx*ratio;P.vy+=dy*ratio;
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
@@ -313,7 +350,7 @@ function update(dt){
    if(speed>8){
     const facing=Math.atan2(P.vy,P.vx);
     const diff=Math.atan2(Math.sin(facing-P.dir),Math.cos(facing-P.dir));
-    P.dir+=diff*Math.min(1,dt*(P.type==="wolf"?8:13));
+    P.dir+=diff*Math.min(1,dt*(P.type==="wolf"?5.5:P.type==="cat"?19:11));
     P.steps+=speed*dt*.052;
    }
   }
@@ -419,7 +456,7 @@ function syncHUD(hour){
  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
- $("dash-touch").style.opacity=P.dash>0||P.sp<28?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
+ $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28)?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
 }
 function drawMini(){
  if(!P)return;
