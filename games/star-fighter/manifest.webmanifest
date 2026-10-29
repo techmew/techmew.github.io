@@ -1,0 +1,23 @@
+{
+  "name": "STAR FIGHTER",
+  "short_name": "STAR FIGHTER",
+  "description": "分岐航路とローグライト要素のある横スクロールSTG",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "landscape",
+  "background_color": "#050914",
+  "theme_color": "#050914",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
