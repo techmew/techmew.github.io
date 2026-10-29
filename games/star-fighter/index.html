@@ -16,6 +16,8 @@
 <div class="shell" id="shell">
 <header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="fullscreenBtn" class="small-btn fullscreen-btn" type="button" aria-label="ゲームを全画面にする" aria-pressed="false">⛶ 全画面</button><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ BGM ON</button><button id="pauseBtn" class="small-btn" aria-label="一時停止">Ⅱ ポーズ</button></div></header>
 <div id="fullscreenHint" class="fullscreen-hint" role="status" aria-live="polite" hidden></div>
+<div class="play-layout" id="playLayout">
+<div class="touch-pad" id="touchPad" aria-label="ドラッグした距離だけ機体が移動するタッチパッド" role="group"><div class="touch-pad-center"><span class="touch-pad-glyph">✧</span><b>MOVE</b><small>なぞって移動</small></div></div>
 <div class="game-frame" id="gameFrame">
 <canvas id="game" width="1200" height="675" aria-label="横スクロールシューティングゲーム"></canvas>
 
@@ -33,7 +35,7 @@
  <button class="main-btn" id="startBtn">MISSION START <span>▶</span></button>
  <button class="continue-btn" id="continueBtn" type="button" hidden>CONTINUE ▶</button><span class="continue-info" id="continueInfo" hidden></span>
  <div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再挑戦 ↻</button></div>
- <p class="start-guide">移動：WASD / 矢印キー・スマホは左スティック<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
+ <p class="start-guide">移動：WASD / 矢印キー・スマホは左タッチパッド<br>自動射撃 ／ 強化：カプセル入手 → 下の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
 <div class="route-panel" id="routePanel" aria-label="次の航路を選択">
 <div class="route-head"><span class="route-kicker">NAVIGATION / ROUTE SELECT</span><strong id="routeHeading">次の航路を選択</strong><small>次の戦場と報酬が変化する</small></div>
@@ -47,7 +49,14 @@
 </div>
 <div class="toast" id="toast"></div>
 </div>
-<div id="joystick" class="joystick" aria-label="移動用左スティック" role="group"><div id="joystickBase" class="joystick-base"><div id="joystickKnob" class="joystick-knob"></div></div><span class="joystick-label">MOVE</span></div>
+<aside class="action-panel" id="actionPanel" aria-label="ゲーム操作">
+<button type="button" id="titleReturnBtn" class="side-action side-title">⌂ <span>タイトルへ</span></button>
+<button type="button" id="sidePauseBtn" class="side-action">Ⅱ <span>一時停止</span></button>
+<button type="button" id="sideFullscreenBtn" class="side-action side-fullscreen">⛶ <span>最大化</span></button>
+<button type="button" id="sidePulseBtn" class="side-action side-pulse">✹ <span>衝撃波</span></button>
+<button type="button" id="sideEquipBtn" class="side-action">↗ <span>強化</span></button>
+</aside>
+</div>
 <div class="controlbar">
   <div class="label-block"><strong>POWER UP</strong><small id="meterInfo">CAPSULE × 0 · SELECT AN UPGRADE</small></div>
   <div class="upgrades" id="upgrades">
@@ -61,8 +70,8 @@
   <button id="equipBtn" class="equip-btn">強化 <span>↗</span></button>
   <button id="pulseBtn" class="pulse-btn">PULSE <span>✹</span></button>
 </div>
-<div class="rotate-overlay" id="rotateOverlay" role="status"><div class="phone-rotate">▯ <span>↻</span></div><strong>横画面にしてください</strong><p>スマートフォンを横向きにしてプレイ</p></div>
-<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 16:9</span><span class="note-divider"></span><span>オート射撃・左スティック移動対応</span><button id="helpBtn">操作方法 ?</button></div>
+
+<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 縦横対応</span><span class="note-divider"></span><span>オート射撃・左スティック移動対応</span><button id="helpBtn">操作方法 ?</button></div>
 </div>
 <script src="./music.js"></script>
 <script src="./game.js"></script>
