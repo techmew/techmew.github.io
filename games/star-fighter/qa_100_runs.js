@@ -92,7 +92,7 @@ function runHarness(gameSource,musicSource){
   stats.maxUnits=Math.max(stats.maxUnits,w.units.length);stats.types.add(w.kind);
  }
  for(const seed of seeds){
-  for(const stage of [0,1,2]){
+  for(const stage of [0,1,2,3]){
    for(const risk of stage===0?[0]:[0,1]){
     stats.stageCases++;
     stageSetup(seed,stage,risk);
@@ -153,14 +153,14 @@ function runHarness(gameSource,musicSource){
  const live={runs:seeds.length,stageCases:0,terrainComplete:0,missed:[],
   maxEnemies:0,maxBullets:0,overlapFrames:0,eventsTriggered:0,simulationTicks:0};
  for(const seed of seeds){
-  for(const stage of [0,1,2]){
+  for(const stage of [0,1,2,3]){
    const risk=stage===0?0:(seed>>>stage)&1;
    stageSetup(seed,stage,risk);
    G.stageTime=0;G.terrainIndex=0;q.resetTerrain();G.spawn=1.4;
    G.player.invul=10000;G.activeEvent=stage===0?null:q.routeOffer(stage-1,risk).event;
    G.eventTriggered=false;G.eventChain=false;
    G.particles=[];G.rings=[];G.trail=[];G.pickups=[];G.bullets=[];G.shots=[];
-   const deadline=[62,68,74][stage];
+   const deadline=[62,68,74,72][stage];
    let ticks=0;
    while(G.stageTime<deadline+.2&&ticks++<1900){
     q.update(.05);
@@ -384,7 +384,7 @@ function runHarness(gameSource,musicSource){
  for(const [stage,risk,variant,name] of [
   [1,0,'octopus','KRAKEN ENGINE'],[1,1,'original','FORTRESS CORE'],
   [2,1,'dinosaur','IRON TYRANT'],[2,0,'original','ABYSS TITAN'],
-  [0,0,'original','BATTLE CRUISER']
+  [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM']
  ]){
   G.stage=stage;G.routeRisk=risk;G.bullets=[];G.enemies=[];
   ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
@@ -421,9 +421,14 @@ function runHarness(gameSource,musicSource){
  ok(G.mode==='route','second reward then route');
  ev('routeSafe','click');ok(G.stage===2,'safe route');
  q.spawnBoss();G.boss.hp=0;q.update(.016);
+ for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
+ ok(G.mode==='reward','third sector must give reward');
+ ev('rewardCard0','click');ok(G.mode==='route','third route after reward');
+ ev('routeRisk','click');ok(G.stage===3&&G.routeRisk===1,'fourth sector entered');
+ q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
- ok(G.mode==='win','3-stage victory');
- ok(G.rewardHistory.length===2,'two rewards across three stages');
+ ok(G.mode==='win','four-sector victory');
+ ok(G.rewardHistory.length===3,'three rewards across four sectors');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
  ok(G.passives.every(n=>n===0),'new run clears all passive ranks');
  ok(!!q.readCheckpoint(),'checkpoint exists');
