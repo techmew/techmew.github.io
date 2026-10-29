@@ -541,9 +541,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  G.levels=[0,0,0,0,0,0];G.eventCount=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.score=0;G.runSeed=123;
  q.saveCheckpoint('sector');const saved=q.readCheckpoint();
  ok(JSON.stringify(saved?.passives)===JSON.stringify(G.passives),'passive checkpoint');
- const legacy={...saved};delete legacy.passives;
+ const legacy={...saved};delete legacy.passives;delete legacy.pendingUpgrades;
  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(legacy));
  ok(q.readCheckpoint()?.passives===undefined,'old checkpoint accepted');
+ ok(q.readCheckpoint()?.pendingUpgrades===undefined,'old checkpoint needs no vouchers');
+ storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...saved,pendingUpgrades:[99,0,0,0,0,0]}));
+ ok(q.readCheckpoint()===null,'corrupt upgrade voucher save rejected');
+ storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(saved));
  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...saved,passives:[9,0,0,0,0,0]}));
  ok(q.readCheckpoint()===null,'corrupt passive checkpoint rejected');
  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(saved));
@@ -648,6 +652,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:94,clientX:80,clientY:120});
  ev('sideEquipBtn','click',{pointerType:'touch',pointerId:94,detail:1});
  ok(G.levels[2]===1&&G.pendingUpgrades[2]===0&&G.energy===0,'one manual tap redeems one module voucher');
+ ok(q.queueManualUpgrade(2,100)===1&&G.pendingUpgrades[2]===1,'free vouchers obey weapon upgrade cap');
+ G.pendingUpgrades[2]=0;
  G.levels[1]=0;G.pendingUpgrades[1]=2;G.energy=0;ev('upgrade1','click');
  ev('sideEquipBtn','click',{detail:0});
  ok(G.levels[1]===1&&G.pendingUpgrades[1]===1&&G.energy===0,'first of two manual vouchers');
