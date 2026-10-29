@@ -371,6 +371,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sidePulseBtn','click',{pointerType:'mouse',detail:1});
  ok(G.pulses===1,'touch-generated compatibility mouse click is ignored');
  ok(G.player.invul>=.65,'NOVA defensive protection occurs');
+ // Release delivered to window still works if the native capture was lost.
+ G.pulses=2;G.pulseRecharge=0;
+ ev('sidePulseBtn','pointerdown',{pointerType:'touch',pointerId:28,clientX:80,clientY:120});
+ for(const handler of window.handlers?.pointerup||[])
+  handler({pointerType:'touch',pointerId:28,clientX:80,clientY:120,preventDefault(){}});
+ ok(G.pulses===1,'window pointerup fallback fires NOVA once');
+ G.pulses=1;
  ev('sidePulseBtn','click',{detail:0});ok(G.pulses===0,'NOVA keyboard accessibility action works');
  ok(el('sidePulseBtn').disabled===false,'NOVA empty state is still tappable');
  ok(el('novaActionState').textContent.includes('補充まで'),'NOVA status shows recharge countdown');
@@ -422,6 +429,14 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sideEquipBtn','click',{pointerType:'touch',pointerId:42,detail:1});
  ok(G.levels[0]===equipBeforeLevel+1,'intentional finger tap buys exactly one upgrade');
  ok(G.energy===5,'upgrade deducts the selected cost');
+ // A capsule can change inventory but may NEVER change the selected weapon
+ // or grant an upgrade without an explicit purchase.
+ G.selected=2;const beforePickupLevels=G.levels.slice();
+ G.energy=1;G.pickups=[{x:G.player.x,y:G.player.y,vx:0,phase:0,t:0,type:'energy'}];
+ q.update(.016);
+ ok(G.energy===2&&G.selected===2,'pickup never auto-selects another upgrade');
+ ok(JSON.stringify(G.levels)===JSON.stringify(beforePickupLevels),'pickup never auto-purchases');
+ G.selected=0;G.pickups=[];
  ok(!gameSource.includes('if(invul>0&&Math.sin(G.time*20)>0.55)return'),'invulnerable ship remains visible');
  ok(el('equipActionState').textContent.includes('5/1'),'upgrade status refreshes after purchase');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
