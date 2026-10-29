@@ -204,6 +204,21 @@ function runHarness(gameSource,musicSource){
  ev('touchPad','pointerup',{clientX:100,clientY:100});
  const stopped=G.player.x;
  q.update(.016);ok(Math.abs(G.player.x-stopped)<1,'touch release drift');
+ // Simulate narrow portrait and wide landscape pad geometry without a browser.
+ for(const [width,height] of [[120,280],[320,100]]){
+  el('touchPad').getBoundingClientRect=function(){return {left:0,top:0,width,height}};
+  G.player.x=G.player.targetX=300;G.player.y=G.player.targetY=300;
+  ev('touchPad','pointerdown',{clientX:75,clientY:95});
+  ok(G.player.x===300&&G.player.y===300,'touch start must never warp '+width);
+  ev('touchPad','pointermove',{clientX:77,clientY:98});
+  ok(G.player.x>300&&G.player.x<315,'fine X drag '+width);
+  ok(G.player.y>300&&G.player.y<313,'fine Y drag '+height);
+  ev('touchPad','pointercancel',{clientX:77,clientY:98});
+  const holdX=G.player.x,holdY=G.player.y;
+  ev('touchPad','pointermove',{clientX:100,clientY:110});
+  ok(G.player.x===holdX&&G.player.y===holdY,'pointer cancel stops movement '+width);
+ }
+ el('touchPad').getBoundingClientRect=originalPadRect;
  ev('sidePauseBtn','click');ok(G.mode==='paused','pause');
  ok(el('sidePauseBtn').innerHTML.includes('<span>再開</span>'),'pause label');
  ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
