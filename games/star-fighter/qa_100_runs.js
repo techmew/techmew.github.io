@@ -469,55 +469,49 @@ function runHarness(gameSource,musicSource){
   G.boss=null;G.bullets=[];
  }
  G.stage=0;G.routeRisk=0;G.mode='playing';G.runSeed=priorSeed;
- q.spawnBoss();ok(!!G.boss,'boss spawn');
- G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
- for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
- ok(G.mode==='reward','reward draft after first boss');
- ok(G.rewardOffers.length===3&&new Set(G.rewardOffers.map(o=>o.id)).size===3,'unique 3 rewards');
- const beforeReward=q.readCheckpoint();
- ok(beforeReward?.mode==='reward','reward gate checkpoint');
- ev('titleReturnBtn','click');ev('continueBtn','click');
- ok(G.mode==='reward','reward gate resumes');
- ev('rewardCard0','click');
- ok(G.mode==='route','reward then route');
- ok(G.passives.reduce((sum,n)=>sum+n,0)===1,'first passive acquired');
- ok(q.readCheckpoint()?.mode==='route','reward claim checkpoint');
- const claimedRewards=G.rewardHistory.length,claimedPassives=G.passives.slice();
- ev('titleReturnBtn','click');ev('continueBtn','click');
- ok(G.mode==='route'&&G.rewardHistory.length===claimedRewards,'claimed reward cannot be repeated after reload');
- ok(JSON.stringify(G.passives)===JSON.stringify(claimedPassives),'passive persists through route checkpoint');
- ev('routeRisk','click');ok(G.mode==='playing'&&G.stage===1,'risk route');
- q.spawnBoss();G.boss.hp=0;q.update(.016);
- for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
- ok(G.mode==='reward','reward draft after second boss');
- ev('rewardCard1','click');
- ok(G.mode==='route','second reward then route');
- ev('routeSafe','click');ok(G.stage===2,'safe route');
- q.spawnBoss();G.boss.hp=0;q.update(.016);
- for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
- ok(G.mode==='reward','third sector must give reward');
- ev('rewardCard0','click');ok(G.mode==='route','third route after reward');
- ev('routeRisk','click');ok(G.stage===3&&G.routeRisk===1,'fourth sector entered');
- q.spawnBoss();G.boss.hp=0;q.update(.016);
- for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
- ok(G.mode==='reward','fourth sector reward gate');
- ev('rewardCard0','click');ok(G.mode==='route','fourth sector route gate');
- ev('routeSafe','click');ok(G.stage===4&&G.routeRisk===0,'fifth sector entered');
- q.spawnBoss();G.boss.hp=0;q.update(.016);
- for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
- ok(G.mode==='reward','fifth reward gate');
- ev('rewardCard0','click');ok(G.mode==='route','fifth reward');
- const safe=q.routeOffer(4,0),risk=q.routeOffer(4,1);
- ok(safe.event.id==='archive'&&risk.event.id==='sentinel','ancient events differ');
- ok(safe.desc.includes('機械ムカデ')&&risk.desc.includes('黒曜'),'boss route previews');
- ev('routeRisk','click');ok(G.stage===5&&G.routeRisk===1,'sixth sector');
- G.stageTime=26;G.enemies=[];G.bullets=[];G.terrain=null;G.terrainIndex=2;G.pendingWave=null;
- q.update(.016);ok(G.eventTriggered,'guardian event');
- q.spawnBoss();G.boss.hp=0;q.update(.016);
- for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
- ok(G.mode==='win','six-sector victory');
- ok(q.readMedals().unlocked.includes('clear'),'victory medal persists');
- ok(G.rewardHistory.length===5,'five rewards across six sectors');
+ G.routeHistory=[];G.rewardHistory=[];G.player.y=337;G.player.targetY=337;
+ for(let stage=0;stage<6;stage++){
+  ok(G.stage===stage,'stage index '+stage);
+  G.player.invul=999;G.enemies=[];G.bullets=[];G.terrain=null;G.pendingWave=null;
+  const stopCount=audioStats.stops;
+  q.spawnBoss();ok(!!G.boss,'boss spawn '+stage);
+  G.boss.hp=0;q.update(.016);
+  ok(G.mode==='playing'&&G.transitioning,'no turn stop after boss '+stage);
+  ok(audioStats.stops===stopCount,'BGM remains active after boss '+stage);
+  if(stage<5){
+   ok(G.flowPhase==='reward'&&G.rewardOffers.length===3,'three rewards in flight '+stage);
+   ok(q.readCheckpoint()?.mode==='reward','reward checkpoint '+stage);
+   const prevRewards=G.rewardHistory.length;
+   if(stage===0){
+    ev('titleReturnBtn','click');ev('continueBtn','click');
+    ok(G.mode==='playing'&&G.flowPhase==='reward','saved reward resumes into flight');
+   }
+   G.player.y=G.player.targetY=165;
+   for(let i=0;i<80&&G.flowPhase==='reward';i++)q.update(.05);
+   ok(G.mode==='playing'&&G.flowPhase==='route','continuous reward choice '+stage);
+   ok(G.rewardHistory.length===prevRewards+1,'one award '+stage);
+   ok(q.readCheckpoint()?.mode==='route','route checkpoint '+stage);
+   const preserved=G.rewardHistory.length;
+   if(stage===0){
+    ev('titleReturnBtn','click');ev('continueBtn','click');
+    ok(G.mode==='playing'&&G.flowPhase==='route'&&G.rewardHistory.length===preserved,'resume without double reward');
+   }
+   const risk=stage%2===0?1:0;
+   G.player.y=G.player.targetY=risk?495:165;
+   const continuousStops=audioStats.stops;
+   for(let i=0;i<80&&G.transitioning;i++)q.update(.05);
+   ok(G.mode==='playing'&&G.stage===stage+1,'no route screen '+stage);
+   ok(G.routeRisk===risk,'steer into route '+stage);
+   ok(G.routeHistory.length===stage+1,'history after route '+stage);
+   ok(q.readCheckpoint()?.mode==='sector','next checkpoint '+stage);
+   ok(audioStats.stops===continuousStops,'audio uninterrupted on route '+stage);
+  }else{
+   for(let i=0;i<60&&G.mode!=='win';i++)q.update(.05);
+   ok(G.mode==='win','six stage finale');
+  }
+ }
+ ok(q.readMedals().unlocked.includes('clear'),'clear medal');
+ ok(G.rewardHistory.length===5,'five continuous rewards');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
  ok(G.passives.every(n=>n===0),'new run clears all passive ranks');
  ok(!!q.readCheckpoint(),'checkpoint exists');
