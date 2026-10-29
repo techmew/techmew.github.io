@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -77,8 +77,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  const seeds=Array.from({length:100},(_,i)=>(Math.imul(i+1,0x9e3779b9)^0xa5a5a5a5)>>>0);
  const stageSetup=(seed,stage,risk)=>{
   G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
-  G.enemies=[];G.bullets=[];G.shots=[];G.pendingWave=null;G.terrain=null;G.terrainIndex=2;
-  G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;
+  G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];G.pendingWave=null;G.terrain=null;G.terrainIndex=2;
+  G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;G.eliteSpawned=false;
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
   G.selected=0;G.energy=0;G.pulses=2;G.pulseRecharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
@@ -901,7 +901,43 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   q.spawnBoss();ok(!!G.boss&&G.boss.name,'R2 boss after resume '+stage+'/'+risk);
   G.boss=null;G.bullets=[];G.shots=[];
  }
-// 18/36: 100 deterministic builds sampled from actual projectile emission.
+// 22/36: eight sectors, both routes, telegraphed elite fire and scarce manual-only reward.
+ for(const stage of [0,1,2,3,4,5,6,7])for(const risk of stage===0?[0]:[0,1]){
+  stageSetup((0x1234abcd+stage*17+risk)>>>0,stage,risk);
+  G.stageTime=[62,68,74,72,76,80,84,90][stage]*.56;
+  G.terrainSchedule=[];G.terrainIndex=0;G.activeEvent=null;G.eventTriggered=true;
+  G.spawn=999;G.ambientTimer=999;G.fireTimer=999;G.missileTimer=999;G.player.invul=100;
+  ok(q.spawnElite(),'elite did not spawn '+stage+'/'+risk);
+  const e=G.enemies[0],count=G.enemies.length;
+  ok(e.elite&&e.noLoot&&e.hp===e.maxHp&&e.hp>200,'elite durability '+stage+'/'+risk);
+  ok(e.fire===999&&e.eliteFire>0,'elite separate fire timer '+stage+'/'+risk);
+  ok(!q.spawnElite()&&G.enemies.length===count,'elite duplicated '+stage+'/'+risk);
+  e.x=900;e.eliteFire=0;G.bullets=[];
+  q.update(.016);
+  ok(e.eliteWarn>.5&&G.bullets.length===0,'elite attack without windup '+stage+'/'+risk);
+  q.update(.8);
+  ok(G.bullets.length===4,'elite gap volley '+stage+'/'+risk);
+  ok(G.bullets.every(b=>b.size===5&&b.life>0),'elite bounded shots '+stage+'/'+risk);
+  const levels=G.levels.slice();
+  const index=G.enemies.indexOf(e);ok(index>=0,'elite not found');
+  q.destroyEnemy(index);
+  ok(!G.enemies.includes(e)&&G.levels.every((n,i)=>n===levels[i]),'elite auto weapon upgrade '+stage+'/'+risk);
+ }
+ let rareSeed=0;
+ for(let s=1;s<=300;s++)if(q.mixSeed(s,2,93)%100<32){rareSeed=s;break}
+ ok(rareSeed>0,'rare cache seed not found');
+ stageSetup(rareSeed,2,0);G.stageTime=74*.56;G.terrainSchedule=[];G.terrainIndex=0;
+ G.activeEvent=null;G.eventTriggered=true;G.spawn=999;G.ambientTimer=999;G.fireTimer=999;G.missileTimer=999;G.player.invul=100;
+ ok(q.spawnElite(),'rare elite spawn');const rare=G.enemies[0];
+ rare.x=G.player.x+15;rare.y=G.player.y+10;
+ const beforeLevels=G.levels.slice(),beforeNOVA=G.pulses;
+ q.destroyEnemy(0);
+ ok(G.pickups.filter(x=>x.type==='elite').length===1,'rare reward not collectible');
+ ok(G.levels.every((n,i)=>n===beforeLevels[i]),'rare pickup auto-upgraded weapon');
+ q.update(.016);
+ ok(G.pulses===beforeNOVA+1,'rare NOVA pickup failed');
+ ok(G.levels.every((n,i)=>n===beforeLevels[i]),'rare reward upgraded weapon');
+ // 18/36: 100 deterministic builds sampled from actual projectile emission.
  // Twelve-second stationary-target expected DPS uses conservative hit weights;
  // theoretical time-to-kill is NOT measured human play or device performance.
  const builds=[];
