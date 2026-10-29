@@ -2,7 +2,7 @@
  * Run from games/star-fighter/: node qa_100_runs.js
  * Deterministic headless tests; not a replacement for physical-device QA. */
 'use strict';
-function runHarness(gameSource,musicSource){
+function runHarness(gameSource,musicSource,extrasSource){
  const assert=(condition,message)=>{if(!condition)throw Error(message)};
  const elements=new Map();
  function el(id){
@@ -42,11 +42,12 @@ function runHarness(gameSource,musicSource){
   },matchMedia(q){return {matches:q.includes('pointer: coarse')}},
   addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)}
  };
+ if(extrasSource)new Function('window',extrasSource)(window);
  const ev=(id,type,more={})=>(el(id).handlers?.[type]||[]).forEach(fn=>fn({
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -88,6 +89,7 @@ function runHarness(gameSource,musicSource){
     ok(!(Math.abs(u.x-v.x)<gap&&Math.abs(u.y-v.y)<gap+1),'overlapping enemy entry');
    }
   }
+  if(w.kind>=19)ok(stage>=w.kind-18,'stage gated unlock '+stage+'/'+w.kind);
   stats.waves++;stats.units+=w.units.length;stats.minUnits=Math.min(stats.minUnits,w.units.length);
   stats.maxUnits=Math.max(stats.maxUnits,w.units.length);stats.types.add(w.kind);
  }
@@ -156,6 +158,18 @@ function runHarness(gameSource,musicSource){
     G.enemies=[];
    }
   }
+ }
+ for(let kind=19;kind<=25;kind++)ok(stats.types.has(kind),'missing new stage wave '+kind);
+ for(const config of window.StarFighterEnemyExtras.roster){
+  stageSetup(seeds[0],config.unlock,0);
+  G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];
+  q.enemy(config.type,900,337,config.type==='lancer'?{lockY:null}:{});
+  ok(G.enemies.length===1&&G.enemies[0].type===config.type,'enemy spawn '+config.type);
+  const specimen=G.enemies[0];
+  ok(specimen.hp>0&&specimen.hp<550,'bounded enemy HP '+config.type);
+  q.drawEnemy(specimen);q.fireEnemy(specimen);
+  ok(G.bullets.length<=1,'no barrage spam by special '+config.type);
+  if(config.type==='bulk')ok(specimen.maxHp<60,'large target must remain weak');
  }
  ok(musicSource.includes('[142,136,112,148,124,118,106,152]'),'stage seven tempo exists');
   ok(musicSource.includes('unstable boundary'),'stage seven original theme exists');
@@ -743,7 +757,7 @@ function runHarness(gameSource,musicSource){
 if(typeof module!=='undefined'&&require.main===module){
  const fs=require('node:fs');
  try{
-  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'));
+  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'));
   process.stdout.write(JSON.stringify(result,null,2)+'\n');
  }catch(e){process.stderr.write('FAIL '+(e.stack||e)+'\n');process.exitCode=1}
 }
