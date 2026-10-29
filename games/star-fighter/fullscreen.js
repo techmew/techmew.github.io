@@ -6,6 +6,7 @@
 const shell=document.getElementById('shell');
 const btn=document.getElementById('fullscreenBtn');
 const hint=document.getElementById('fullscreenHint');
+const sideBtn=document.getElementById('sideFullscreenBtn');
 const primary=['startBtn','continueBtn','seedReplay'];
 if(!shell||!btn)return;
 let hintTimer=0;
@@ -21,6 +22,7 @@ function showHint(){
 function updateBtn(){
  const on=fullscreenActive()||installed();
  btn.textContent=on?'⤢ 全画面中':'⛶ 全画面';
+ if(sideBtn){const label=sideBtn.querySelector('span');if(label)label.textContent=on?'縮小':'最大化';sideBtn.setAttribute('aria-pressed',on?'true':'false')}
  btn.setAttribute('aria-label',on?'全画面を終了':'ゲームを全画面にする');
  btn.setAttribute('aria-pressed',on?'true':'false');
  btn.title=installed()?'アプリ表示中':on?'通常表示に戻す':'アドレスバーを隠して最大化';
@@ -34,9 +36,7 @@ function enterFullscreen(notify=true){
   if(promise&&typeof promise.then==='function'){
    promise.then(()=>{
     updateBtn();
-    if(window.matchMedia?.('(pointer: coarse)').matches){
-     try{screen.orientation?.lock?.('landscape')?.catch?.(()=>{})}catch(_){}
-    }
+    /* Keep the current device orientation; portrait and landscape are both playable. */
    }).catch(()=>{updateBtn();if(notify)showHint()});
   }else updateBtn();
  }catch(_){updateBtn();if(notify)showHint()}
@@ -49,6 +49,7 @@ function toggleFullscreen(){
  }else enterFullscreen(true)
 }
 btn.addEventListener('click',toggleFullscreen);
+sideBtn?.addEventListener('click',toggleFullscreen);
 /* Capture ensures a click is still a user gesture before game setup proceeds.
    Auto-enter only on touch devices; desktop users can use the button. */
 for(const id of primary){
