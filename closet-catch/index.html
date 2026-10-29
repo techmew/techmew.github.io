@@ -504,6 +504,7 @@ function fishFightProfile(item){
  return {label:'おだやか・小型',drag:0,tension:0,surge:0.82,time:0.5}
 }
 function castAt(x,y){
+ if(showPhase!=='closed')return;
  if(st.show.queue.length===5){openShow();return}
  if(hook.active)return;
  st.casts++;let selected=null,best=10000;
@@ -523,7 +524,7 @@ function endFight(caught,reason){
   replaceSeaSlot(950)
  }
  hook.stage=3;hook.progress=0;hook.result=caught;hook.pull=false;
- if(caught){showEvent(hook.chosen.item.cat==='fish'?'CATCH! 魚を釣り上げた！':'CATCH! 服を釣り上げた！',850);bubble(hook.x,hook.y,18,rareColors[hook.chosen.item.rarity]);tone(720,.18,'sine',.07)}
+ if(caught){showEvent(hook.chosen.item.cat==='fish'?'魚を釣り上げた！':'服を釣り上げた！',850);bubble(hook.x,hook.y,18,rareColors[hook.chosen.item.rarity]);tone(720,.18,'sine',.07)}
  else{st.combo=0;st.failStreak=Math.min(4,st.failStreak+1);showEvent(reason||'逃げられた！ もう一度！',1500);bubble(hook.x,hook.y,12,'#fff4bf');tone(155,.28,'sawtooth',.045)}
  updateFishingHud()
 }
@@ -544,6 +545,7 @@ function updateFishingHud(){
  $('surgeBadge').textContent=hook.tension>=100?'限界！指を離して！':hook.tension>=82?'糸切れ寸前！':hook.warning?'もうすぐ暴れる！':'抵抗中！';
  $('castBtn').textContent=fighting?(hook.pull?'引いています・離して緩める':'長押しで引く'):hook.active?'仕掛けを操作中…':'ランダムにキャスト';
  $('castBtn').classList.toggle('reeling',fighting&&hook.pull);
+ $('castBtn').setAttribute('aria-pressed',String(fighting&&hook.pull));
  $('reelValue').textContent=Math.round(clamp(hook.reel,0,100))+'%';
  $('tensionValue').textContent=Math.round(clamp(hook.tension,0,100))+'%';
  if(!fighting)return;
@@ -553,7 +555,7 @@ function updateFishingHud(){
  $('tensionFill').style.width=clamp(hook.tension,0,100)+'%';
  $('tensionFill').style.background=hook.tension>75?'linear-gradient(90deg,#ffbb64,#ff506a)':'linear-gradient(90deg,#5bc5e8,#ffcc81)';
  $('fightClock').textContent=Math.max(0,hook.limit-hook.elapsed).toFixed(1)+'秒';
- $('fightCall').textContent=hook.pull?(hook.tension>=100?'限界！'+Math.max(0,.3-hook.overstrain).toFixed(1)+'秒以内に離して！':hook.tension>76?'危険！すぐ離して張りを下げよう':hook.surge?'暴れている！短く引こう':hook.warning?'抵抗予告！今は指を離そう':hook.tension>=30&&hook.tension<=68?'好調！点線の間をキープ':'引き寄せ中！'):hook.warning?'抵抗予告！糸を緩めて備えよう':hook.tension>38?'糸を休ませている…':'点線30〜68%を狙って長押し！';
+ $('fightCall').textContent=hook.pull?(hook.tension>=100?'限界！'+Math.max(0,.3-hook.overstrain).toFixed(1)+'秒以内に離して！':hook.tension>76?'危険！すぐ離して張りを下げよう':hook.surge?'暴れている！短く引こう':hook.warning?'抵抗予告！今は指を離そう':hook.tension>=30&&hook.tension<=68?(hook.skillCooldown<=0&&hook.skillReleases<4?'今離すと引き寄せ＋2.5%！':'張りは適正・短く引こう'):'引き寄せ中！'):hook.warning?'抵抗予告！糸を緩めて備えよう':hook.tension>38?'糸を休ませている…':'長押し→張り30〜68%で離す！';
 }
 function updateGame(dt){
  // Expired targets dissolve and are eventually replaced. The hooked target
@@ -1552,14 +1554,14 @@ function captureHold(e,el){e.preventDefault();heldPointers.add(e.pointerId);try{
 // Safety net for interrupted captures: releasing outside the canvas must stop reeling.
 for(const name of ['pointerup','pointercancel'])window.addEventListener(name,releasePointer);
 ocean.addEventListener('pointerdown',e=>{
- if(hook.stage===3||(e.pointerType==='mouse'&&e.button!==0))return;
+ if(showPhase!=='closed'||hook.stage===3||(e.pointerType==='mouse'&&e.button!==0))return;
  captureHold(e,ocean);
  if(hook.stage===2)reelDown();
  else if(!hook.active){const p=asSeaCoords(e);castAt(p.x,p.y)}
 });
 for(const name of ['pointerup','pointercancel','lostpointercapture'])ocean.addEventListener(name,releasePointer);
 $('castBtn').addEventListener('pointerdown',e=>{
- if(hook.stage===3||(e.pointerType==='mouse'&&e.button!==0))return;
+ if(showPhase!=='closed'||hook.stage===3||(e.pointerType==='mouse'&&e.button!==0))return;
  captureHold(e,$('castBtn'));
  if(hook.stage===2)reelDown();
  else if(!hook.active){const it=pick(sceneItems);if(it)castAt(it.x,it.y)}
@@ -1585,10 +1587,6 @@ castControl.addEventListener('keyup',e=>{
  e.preventDefault();spaceHeld=false;if(!heldPointers.size)reelUp();
 });
 castControl.addEventListener('blur',()=>{if(spaceHeld){spaceHeld=false;if(!heldPointers.size)reelUp(false)}});
- // A phone call, tab switch or window deactivation must never leave the reel held.
- function cancelInterruptedReel(){heldPointers.clear();spaceHeld=false;reelUp(false)}
- window.addEventListener('blur',cancelInterruptedReel);
- document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelInterruptedReel()});
 castControl.addEventListener('click',e=>{
  if(e.detail!==0||showPhase!=='closed'||hook.active)return;
  const it=pick(sceneItems);if(it)castAt(it.x,it.y);
