@@ -1,6 +1,6 @@
 /* STAR FIGHTER v1.0 — original canvas arcade shooter. No external dependencies. */
 (()=>{'use strict';
-const W=1200,H=675,TAU=Math.PI*2;
+const W=1200,H=675,TAU=Math.PI*2,EXTRA=window.StarFighterEnemyExtras;
 const C=document.getElementById('game'),c=C.getContext('2d',{alpha:false});
 const $=id=>document.getElementById(id);
 const ui={overlay:$('overlay'),start:$('startBtn'),pause:$('sidePauseBtn'),sound:$('soundBtn'),score:$('score'),best:$('best'),mult:$('multiplier'),stage:$('stageLabel'),area:$('areaName'),progress:$('progressBar'),hp:$('hpRow'),lives:$('lives'),bombs:$('bombs'),boss:$('bossHud'),bossName:$('bossName'),bossBar:$('bossBar'),announce:$('announce'),small:$('announceSmall'),main:$('announceMain'),desc:$('announceDesc'),toast:$('toast'),meter:$('meterInfo'),upgrades:[...document.querySelectorAll('.upgrade')],equip:$('equipBtn'),pulse:$('pulseBtn')};
@@ -359,13 +359,13 @@ if(x>=W){for(let attempt=0;attempt<12;attempt++){
  const blocked=G.enemies.some(e=>e.x>=W-30&&Math.abs(e.x-x)<waveRadius(type)+waveRadius(e.type)+18&&Math.abs(e.y-y)<waveRadius(type)+waveRadius(e.type)+18);
  if(!blocked)break;x+=90;
 }}
-let hp={scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25;hp*=(1+G.stage*.35)*tune.enemyHp;G.enemies.push({type,x,y,hp,maxHp:hp,t:0,fire:GR(.9,1.8)*tune.fireInterval*(G.directorGrace>0?1.18:1),phase:GR(0,TAU),seed:GR(0,100),aiHomeY:y,aiPhase:0,aiWarn:0,aiVolleyArmed:false,score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:250,...extra})}
+let hp=EXTRA?.stats[type]?.hp??({scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25);hp*=(1+G.stage*.35)*tune.enemyHp;G.enemies.push({type,x,y,hp,maxHp:hp,t:0,fire:GR(.9,1.8)*tune.fireInterval*(G.directorGrace>0?1.18:1),phase:GR(0,TAU),seed:GR(0,100),aiHomeY:y,aiPhase:0,aiWarn:0,aiVolleyArmed:false,score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:(EXTRA?.stats[type]?.score||250),windup:0,aimX:0,aimY:0,...extra})}
 
 /* Preserve a traversable lane for each announced formation at entry.
    The cue is not a shield: aimed bullets and later enemy motion still matter. */
 const WAVE_LANES=[155,337,515];
-function waveRadius(type){return type==='tank'||type==='carrier'?39:type==='interceptor'?29:24}
-function waveClearance(type){return 145+(type==='spinner'?20:type==='interceptor'?28:0)}
+function waveRadius(type){return EXTRA?.stats[type]?.radius??(type==='tank'||type==='carrier'?39:type==='interceptor'?29:24)}
+function waveClearance(type){return EXTRA?.stats[type]?.clearance??(145+(type==='spinner'?20:type==='interceptor'?28:0))}
 function placeOutsideLane(y,lane,margin){
  y=cl(y,108,H-88);const low=lane-margin,high=lane+margin;
  if(y<=low||y>=high)return y;
@@ -420,7 +420,8 @@ const safeWaves=[0,0,1,2,3,4,5,6,10,11,14],stormWaves=[1,2,3,4,5,6,7,7,8,9,11,12
 const stormPool=risk&&director.pressure<.53?[0,1,2,3,4,5,6,7,11,12,14]:stormWaves;
 const gatePool=risk?[7,8,12,13,14,16,16,9]:[0,3,4,10,11,15,15];
  const finalPool=risk?[7,8,12,13,16,16,17,18]:[4,10,11,15,17,17,18];
- const w=s===7?finalPool[gri(0,finalPool.length-1)]:s===6?gatePool[gri(0,gatePool.length-1)]:s===0?[0,0,1,2,3,4,5,6,11,14][gri(0,9)]:(risk?stormPool[gri(0,stormPool.length-1)]:safeWaves[gri(0,safeWaves.length-1)]);
+ const baseWave=s===7?finalPool[gri(0,finalPool.length-1)]:s===6?gatePool[gri(0,gatePool.length-1)]:s===0?[0,0,1,2,3,4,5,6,11,14][gri(0,9)]:(risk?stormPool[gri(0,stormPool.length-1)]:safeWaves[gri(0,safeWaves.length-1)]);
+ const w=EXTRA?.pick(s,baseWave,gameRandom,gri)??baseWave;
 if(w===0){const yy=GR(180,465);for(let i=0;i<(safe?4:6);i++)queueEnemy('scout',W+60+i*68,cl(yy+Math.sin(i*.9)*66,122,H-70),{pattern:1})}
 else if(w===1){const n=safe?3:4;for(let i=0;i<n;i++)queueEnemy('dart',W+50+i*105,145+i*390/Math.max(1,n-1),{pattern:2})}
 else if(w===2){queueEnemy('tank',W+100,GR(195,490));for(let i=0;i<(safe?2:3);i++)queueEnemy('scout',W+230+i*85,GR(140,545))}
@@ -440,12 +441,13 @@ else if(w===14){const n=safe?4:6;for(let i=0;i<n;i++)queueEnemy('mine',W+80+i*98
  else if(w===16){for(let i=0;i<2;i++)queueEnemy('interceptor',W+110+i*130,205+i*260,{lockY:null,pattern:8});for(let i=0;i<2;i++)queueEnemy('mine',W+360+i*90,i?505:160,{pattern:8})}
  else if(w===17){queueEnemy('carrier',W+110,340,{pattern:9});for(let i=0;i<(risk?3:2);i++)queueEnemy('spinner',W+260+i*105,i%2?480:195,{pattern:9})}
  else if(w===18){for(let i=0;i<(risk?3:2);i++)queueEnemy('interceptor',W+120+i*130,i%2?470:190,{lockY:null,pattern:10});queueEnemy('tank',W+470,337,{pattern:10})}
+ else if(w>=19&&w<=25)EXTRA?.wave(w,queueEnemy,W,GR,risk);
 if(risk&&s===1&&gameRandom()>.7)queueEnemy('turret',W+420,gameRandom()>.5?125:H-110);
 if(risk&&s===2&&gameRandom()>.65)queueEnemy('spinner',W+450,GR(195,480));
  if(risk&&s===6&&gameRandom()>.7)queueEnemy('turret',W+490,gameRandom()>.5?125:540);
  if(risk&&s===7&&gameRandom()>.72)queueEnemy('turret',W+540,gameRandom()>.5?155:520);
 if(!planned.length)return false;
-const names=['偵察編隊','高速突撃','重装護衛','旋回部隊','輸送護衛','砲台戦線','機雷帯','迎撃隊','重装迎撃','複合編隊','輸送船団','螺旋編隊','上下挟撃','槍型編隊','機雷の回廊','位相旋回隊','裂界追撃隊','終端輸送隊','収束迎撃隊'];
+const names=['偵察編隊','高速突撃','重装護衛','旋回部隊','輸送護衛','砲台戦線','機雷帯','迎撃隊','重装迎撃','複合編隊','輸送船団','螺旋編隊','上下挟撃','槍型編隊','機雷の回廊','位相旋回隊','裂界追撃隊','終端輸送隊','収束迎撃隊','大型脆弱艦','多関節機兵','攻城砲台','槍型突進機','裂界滑空機','軌道監視機','虚空機影'];
 const arranged=arrangeWave(planned);
 if(!arranged.units.length)return false;
 G.pendingWave={timer:.28,label:names[w],units:arranged.units,kind:w,safeY:arranged.safeY,id:++G.waveSerial,phase:GR(0,TAU)};
@@ -480,6 +482,8 @@ function moveEnemyAI(e,dt){
  else if(e.type==='carrier')target=home+Math.cos(e.t*1.4+phase)*28;
  else if(e.type==='tank')target=home+Math.sin(e.t*1.05+phase)*13;
  else if(e.type==='mine')target=home+Math.sin(e.t*1.4+slot*.9+phase)*15;
+ const special=EXTRA?.motion(e,home,phase);
+ if(special){target=special.target;follow=special.follow}
  if(e.type==='turret')return;
  target=cl(target,108,H-88);
  if(Number.isFinite(e.aiSafeY)&&e.x>540)target=placeOutsideLane(target,e.aiSafeY,105);
@@ -489,7 +493,7 @@ function moveEnemyAI(e,dt){
    The warning reticle stays fixed even if the player moves. */
 function coordinateVolley(e){
  if(!e.aiVolleyArmed||e.squadId===undefined||e.x>980||e.x<450||e.t<.75||(G.squadAttackCooldown>0||G.directorGrace>0))return;
- const eligible=G.enemies.filter(v=>v.squadId===e.squadId&&v.hp>0&&v.x<W-25&&v.x>130&&v.type!=='mine'&&v.type!=='interceptor').sort((a,b)=>a.squadSlot-b.squadSlot);
+ const eligible=G.enemies.filter(v=>v.squadId===e.squadId&&v.hp>0&&v.x<W-25&&v.x>130&&v.type!=='mine'&&v.type!=='interceptor'&&!EXTRA?.contains(v.type)).sort((a,b)=>a.squadSlot-b.squadSlot);
  if(eligible.length<2||eligible[0]!==e)return;
  const chosen=eligible.slice(0,3),targetX=cl(p.x,80,W-250),targetY=cl(p.y,105,H-75);
  for(const v of G.enemies)if(v.squadId===e.squadId)v.aiVolleyArmed=false;
@@ -499,6 +503,7 @@ function coordinateVolley(e){
 
 function fireEnemy(e,target=null){
  if(e.type==='mine'||e.type==='interceptor')return;
+ if(EXTRA?.fire(e,target,p,bullet,G.stage))return;
  const a=target?Math.atan2(target.y-e.y,target.x-(e.x-30)):aim(e.x-30,e.y);
  const base=G.stage*22+(G.stage>0&&G.routeRisk?10:0);
  if(e.type==='tank'||e.type==='carrier'){
@@ -1142,11 +1147,11 @@ if(G.transitioning){
  else if(G.flowPhase==='route'&&G.transition<=0){chooseRoute(flightRouteIndex());return}
  else if(G.flowPhase==='finish'&&G.transition<=0){endGame(true);return}
 }
-for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140)*routeProfile().speed;e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}if(e.type!=='interceptor')moveEnemyAI(e,dt);
+for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=(EXTRA?.stats[e.type]?.speed??({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140))*routeProfile().speed;e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}EXTRA?.advance(e,dt,p,fireEnemy,vx,W,H);if(e.type!=='interceptor')moveEnemyAI(e,dt);
 if(e.aiWarn>0){e.aiWarn-=dt;if(e.aiWarn<=0&&e.hp>0&&e.x<W-35&&e.x>100){fireEnemy(e,{x:e.aiAimX,y:e.aiAimY});e.fire=Math.max(e.fire,1.35)}}
 if(e.aiWarn<=0&&!terrainApproaching())coordinateVolley(e);
 e.fire-=dt;
-if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){fireEnemy(e);e.fire=Math.max(.9,(GR(e.type==='turret'?1.15:1.65,e.type==='turret'?1.65:2.65)-G.stage*.065)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,e.type==='tank'||e.type==='carrier'?36:21))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
+if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){if(!EXTRA?.trigger(e,p))fireEnemy(e);e.fire=Math.max(.9,(GR(e.type==='turret'?1.15:1.65,e.type==='turret'?1.65:2.65)-G.stage*.065)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,EXTRA?.stats[e.type]?.ship??(e.type==='tank'||e.type==='carrier'?36:21)))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
 b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*(b.variant==='dinosaur'?.85:1.15))*(b.variant==='octopus'?58:G.stage===2?95:G.stage===7?54:68);
  if(G.stage===0){const cycle=b.t%5.2;b.weakOpen=cycle>=2.2&&cycle<4.2;b.weakWarn=cycle>=1.55&&cycle<2.2}
@@ -1176,7 +1181,7 @@ if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
 if(b.hp<=0){explosion(b.x-60,b.y,170);emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
-let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=e.type==='tank'||e.type==='carrier'?39:23;if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
+let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=EXTRA?.stats[e.type]?.shot??(e.type==='tank'||e.type==='carrier'?39:23);if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'||G.terrain.type==='rune'||G.terrain.type==='membrane'||G.terrain.type==='prism'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
  const b=G.boss;
@@ -1251,7 +1256,7 @@ line(-25,-18,-7,-18,'#dafaff',1);line(-25,18,-7,18,'#dafaff',1);
 if(p.shield>0){c.save();c.globalAlpha=.55+.14*Math.sin(G.time*8);c.strokeStyle='#70f9ff';c.lineWidth=2.5;c.shadowColor='#4aeaff';c.shadowBlur=22;c.beginPath();c.arc(0,0,43,0,TAU);c.stroke();for(let i=0;i<6;i++){const a=i*TAU/6+G.time*.4;line(Math.cos(a)*41,Math.sin(a)*41,Math.cos(a+.18)*43,Math.sin(a+.18)*43,'#c5fdff',2)}c.restore()}
 c.restore()}
 function drawDrone(x,y,i){c.save();c.translate(x,y);c.rotate(Math.sin(G.time*2+i)*.08);poly([-19,0,-4,-13,14,-7,24,0,14,7,-4,13],'#2e709e','#8bdeff',1.6);poly([-11,-5,12,0,-11,5],'#b6efff');glowCircle(10,0,3,'#3cebff',10);glowCircle(-13,0,3,'#ffa85b',8);c.restore()}
-function drawEnemy(e){const {x,y,type,t}=e;c.save();c.translate(x,y);if(type==='interceptor'){c.rotate(Math.sin(t*7)*.06);poly([-40,-13,-8,-24,41,0,-8,24,-40,13,-22,0],'#5e4553','#ffb87d',2);poly([-10,-17,14,-29,14,-7],'#a85e65','#ffe1a9',1.5);poly([-10,17,14,29,14,7],'#a85e65','#ffe1a9',1.5);poly([-25,-7,35,0,-25,7],'#2d4058','#ffe4be',1.3);glowCircle(-26,0,6,'#ff9a51',13)}else if(type==='scout'||type==='dart'){c.rotate(Math.sin(t*4+e.phase)*.14);const d=type==='dart'?1.3:1;poly([-30*d,0,-2*d,-15*d,19*d,-18*d,7*d,0,19*d,18*d,-2*d,15*d],'#6c334e','#ff7083',2);poly([-17*d,-3*d,12*d,-5*d,33*d,0,12*d,5*d,-17*d,3*d],'#ac5570','#f7b4be',1);glowCircle(-17*d,0,5,'#ffb26b',12)}else if(type==='tank'||type==='carrier'){const r=type==='tank'?1:1.25;c.scale(r,r);poly([-37,-23,-15,-34,36,-28,48,0,36,28,-15,34,-37,23,-24,0],'#573846','#e29573',2);poly([-37,-16,25,-23,32,0,25,23,-37,16],'#28374d','#a9acbc',1.5);poly([-12,-19,16,-18,29,0,16,18,-12,19],'#905868','#ffb483',1.4);glowCircle(-4,0,12,'#ff9377',18);line(-12,-34,30,-27,'#c2d2e4',3);line(-12,34,30,27,'#c2d2e4',3)}else if(type==='turret'){poly([-28,-26,20,-22,31,0,20,22,-28,26],'#544466','#ff9a8c',2);ellipse(0,0,19,19,'#263c57','#d6abb4',2);poly([-35,-8,-49,-6,-49,6,-35,8],'#fd7685');glowCircle(0,0,7,'#ff7093',17)}else if(type==='spinner'){c.rotate(t*2);for(let k=0;k<4;k++){c.save();c.rotate(k*TAU/4);poly([-8,-8,7,-9,29,-27,21,8],'#9a4776','#ff8ba0',1.2);c.restore()}glowCircle(0,0,12,'#ffc17b',17)}else{c.rotate(t*.5);poly([-19,-16,2,-28,27,-8,23,20,-5,27,-28,10],'#594061','#ff957f',1.4);glowCircle(0,0,5,'#ff6f83',11)}c.restore()}
+function drawEnemy(e){const {x,y,type,t}=e;c.save();c.translate(x,y);if(EXTRA?.draw(e,c,{poly,ellipse,line,glowCircle})){c.restore();return}if(type==='interceptor'){c.rotate(Math.sin(t*7)*.06);poly([-40,-13,-8,-24,41,0,-8,24,-40,13,-22,0],'#5e4553','#ffb87d',2);poly([-10,-17,14,-29,14,-7],'#a85e65','#ffe1a9',1.5);poly([-10,17,14,29,14,7],'#a85e65','#ffe1a9',1.5);poly([-25,-7,35,0,-25,7],'#2d4058','#ffe4be',1.3);glowCircle(-26,0,6,'#ff9a51',13)}else if(type==='scout'||type==='dart'){c.rotate(Math.sin(t*4+e.phase)*.14);const d=type==='dart'?1.3:1;poly([-30*d,0,-2*d,-15*d,19*d,-18*d,7*d,0,19*d,18*d,-2*d,15*d],'#6c334e','#ff7083',2);poly([-17*d,-3*d,12*d,-5*d,33*d,0,12*d,5*d,-17*d,3*d],'#ac5570','#f7b4be',1);glowCircle(-17*d,0,5,'#ffb26b',12)}else if(type==='tank'||type==='carrier'){const r=type==='tank'?1:1.25;c.scale(r,r);poly([-37,-23,-15,-34,36,-28,48,0,36,28,-15,34,-37,23,-24,0],'#573846','#e29573',2);poly([-37,-16,25,-23,32,0,25,23,-37,16],'#28374d','#a9acbc',1.5);poly([-12,-19,16,-18,29,0,16,18,-12,19],'#905868','#ffb483',1.4);glowCircle(-4,0,12,'#ff9377',18);line(-12,-34,30,-27,'#c2d2e4',3);line(-12,34,30,27,'#c2d2e4',3)}else if(type==='turret'){poly([-28,-26,20,-22,31,0,20,22,-28,26],'#544466','#ff9a8c',2);ellipse(0,0,19,19,'#263c57','#d6abb4',2);poly([-35,-8,-49,-6,-49,6,-35,8],'#fd7685');glowCircle(0,0,7,'#ff7093',17)}else if(type==='spinner'){c.rotate(t*2);for(let k=0;k<4;k++){c.save();c.rotate(k*TAU/4);poly([-8,-8,7,-9,29,-27,21,8],'#9a4776','#ff8ba0',1.2);c.restore()}glowCircle(0,0,12,'#ffc17b',17)}else{c.rotate(t*.5);poly([-19,-16,2,-28,27,-8,23,20,-5,27,-28,10],'#594061','#ff957f',1.4);glowCircle(0,0,5,'#ff6f83',11)}c.restore()}
 function drawCreatureBoss(b){
  c.save();c.translate(b.x,b.y);
  const hurt=b.phase>0,t=b.t,octo=b.variant==='octopus';
