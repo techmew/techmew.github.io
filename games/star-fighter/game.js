@@ -536,10 +536,13 @@ function selectRouteCard(index){
 
 /* Three distinct, seed-stable choices after sectors 1 and 2.  This PRNG
    never touches encounterState or the rendering/audio RNG. */
+/* 16/36: deterministic, capped risk-weighted draft. One special offer at
+   most; a passive remains guaranteed while one is still upgradeable.
+   All probabilities are internal and never clutter the battle HUD. */
 function rewardOptions(){
  const available=[];
  const add=(id,name,desc,tag,eligible=true,extra={})=>{
-  if(eligible)available.push({id,name,desc,tag,...extra});
+  if(eligible)available.push({id,name,desc,tag,rarity:'common',...extra});
  };
  add('capsule','カプセル +2','装備の強化を早める','POWER',G.energy<6);
  add('pulse','衝撃波 +2','ピンチを切り抜ける','ATTACK',G.pulses<5);
@@ -550,20 +553,51 @@ function rewardOptions(){
  const upgradeable=G.levels.map((level,i)=>level<MAX[i]?i:-1).filter(i=>i>=0);
  const weapon=upgradeable.length?upgradeable[mixSeed(G.runSeed^0x7a1b9d43,G.stage+51,G.routeRisk)%upgradeable.length]:-1;
  add('module',weapon<0?'武装を強化':PNAMES[weapon]+' Lv+1','装備を1段階強化','UPGRADE',weapon>=0,{levelIndex:weapon});
- for(let i=0;i<PASSIVES.length;i++)if(passiveRank(i)<2){const a=PASSIVES[i];add('passive_'+i,a.name+' Lv'+(passiveRank(i)+1),a.desc,'PASSIVE',true,{passiveIndex:i});}
+ const unmaxed=PASSIVES.map((_,i)=>passiveRank(i)<2?i:-1).filter(i=>i>=0);
+ for(const i of unmaxed){const a=PASSIVES[i];add('passive_'+i,a.name+' Lv'+(passiveRank(i)+1),a.desc,'PASSIVE',true,{passiveIndex:i});}
  add('score','スコア獲得','ボーナス '+(3000*(G.stage+1)).toLocaleString()+'点','SCORE');
- // A fully stocked ship still receives three meaningful (score) alternatives.
+ // Preserve three valid score fallbacks if every resource and rank is capped.
  add('scorePlus','追加スコア','ボーナス '+(4500*(G.stage+1)).toLocaleString()+'点','SCORE',available.length<3);
  add('scoreMax','大量スコア','ボーナス '+(6000*(G.stage+1)).toLocaleString()+'点','SCORE',available.length<3);
  const salt=mixSeed(G.runSeed^0x8f24a13d,G.stage+71,G.routeRisk);
- available.sort((a,b)=>{
-  const av=mixSeed(salt,G.stage+89,a.id.split('').reduce((n,ch)=>n*31+ch.charCodeAt(0)|0,0));
-  const bv=mixSeed(salt,G.stage+89,b.id.split('').reduce((n,ch)=>n*31+ch.charCodeAt(0)|0,0));
-  return av-bv||a.id.localeCompare(b.id);
- });
- // Always offer at least one passive, with two other seed-stable choices.
+ const hash=id=>id.split('').reduce((n,ch)=>Math.imul(n,31)+ch.charCodeAt(0)|0,0);
+ const priority=o=>{
+  const h=mixSeed(salt,G.stage+89,hash(o.id))/4294967296;
+  const favored=G.stage>0&&(G.routeRisk===1?
+   ['ATTACK','POWER','ENERGY','UPGRADE'].includes(o.tag):
+   ['DEFENSE','RECOVERY','SURVIVAL'].includes(o.tag));
+  return h-(favored?.22:0);
+ };
+ available.sort((a,b)=>priority(a)-priority(b)||a.id.localeCompare(b.id));
+ const special=[];
+ const offer=(id,name,desc,tag,eligible,extra={})=>{
+  if(eligible)special.push({id,name,desc,tag,rarity:'rare',tradeoff:true,...extra});
+ };
+ const doubleWeapons=upgradeable.filter(i=>i!==5&&MAX[i]-G.levels[i]>=2);
+ const doubleWeapon=doubleWeapons.length?doubleWeapons[mixSeed(salt,117,3)%doubleWeapons.length]:-1;
+ const focusPassive=unmaxed.length?unmaxed[mixSeed(salt,119,5)%unmaxed.length]:-1;
+ offer('rare_arsenal','武装オーバークロック','武装+2段階 / バリア-1','RARE · COST',doubleWeapon>=0&&p.shield>0,{levelIndex:doubleWeapon});
+ offer('rare_reactor','高出力リアクター','ドライブ+45・衝撃波+1 / バリア-1','RARE · COST',p.shield>0&&G.driveCharge<=55&&G.pulses<5);
+ offer('rare_rescue','緊急再生キット','装甲全回復・残機+1 / カプセル-2','RARE · COST',G.energy>=2&&p.hp<3&&G.lives<3);
+ offer('rare_focus','適応コア','パッシブ+1・ドライブ+15 / 衝撃波-1','RARE · COST',focusPassive>=0&&G.pulses>0,{passiveIndex:focusPassive});
+ if(G.stage>0&&G.routeRisk===1){
+  offer('storm_bounty','危険宙域の戦利品','カプセル+3・ドライブ+25 / バリア-1','HIGH RISK',G.energy<=3&&p.shield>0,{risk:'storm'});
+  offer('storm_gamble','決死の武装換装','武装+1・ドライブ+25 / 装甲-1','HIGH RISK',weapon>=0&&p.hp>1,{levelIndex:weapon,risk:'storm'});
+ }else if(G.stage>0){
+  offer('safe_refit','補給基地で再整備','装甲+1・バリア+1','SUPPLY',p.hp<3&&p.shield<5,{rarity:'route',tradeoff:false,risk:'safe'});
+  offer('safe_supply','航路補給パック','カプセル+1・衝撃波+1','SUPPLY',G.energy<6&&G.pulses<5,{rarity:'route',tradeoff:false,risk:'safe'});
+ }
+ // 14% neutral / 22% supply / 44% storm special chance. Seed-stable,
+ // independent from formation RNG. No more than one rare/route offer per draft.
+ const chance=G.stage===0?14:G.routeRisk===1?44:22;
+ const roll=mixSeed(salt,G.stage+107,G.routeRisk+13)%100;
+ const chosen=roll<chance&&special.length?
+  special[mixSeed(salt^0x3c2a19f1,G.stage+127,G.routeRisk+3)%special.length]:null;
  const passive=available.find(o=>o.id.startsWith('passive_'));
- return passive?[passive,...available.filter(o=>o!==passive).slice(0,2)]:available.slice(0,3);
+ const result=passive?[passive]:[];
+ if(chosen)result.push(chosen);
+ for(const o of available){if(result.length>=3)break;if(o!==passive)result.push(o)}
+ return result;
 }
 function selectRewardCard(index){
  if(G.mode!=='reward'||index<0||index>=3)return;
@@ -583,6 +617,9 @@ function openReward(){
  for(let i=0;i<3;i++){
   const o=G.rewardOffers[i],b=$('rewardCard'+i);
   b.classList.toggle('passive',o.id.startsWith('passive_'));
+  b.classList.toggle('rare',o.rarity==='rare');
+  b.classList.toggle('route-special',o.rarity==='route');
+  b.classList.toggle('risk',o.risk==='storm');
   b.querySelector('.reward-tag').textContent=o.tag;
   b.querySelector('.reward-name').textContent=o.name;
   b.querySelector('.reward-desc').textContent=o.desc;
@@ -597,6 +634,22 @@ function chooseReward(index){
  if(o.id.startsWith('passive_')&&Number.isInteger(o.passiveIndex)&&o.passiveIndex>=0&&o.passiveIndex<PASSIVES.length&&passiveRank(o.passiveIndex)<2){
   G.passives[o.passiveIndex]++;
   if(o.passiveIndex===3)p.shield=Math.min(5,p.shield+1);
+ }else if(o.id==='rare_arsenal'&&Number.isInteger(o.levelIndex)&&o.levelIndex!==5&&G.levels[o.levelIndex]<MAX[o.levelIndex]&&p.shield>0){
+  G.levels[o.levelIndex]=Math.min(MAX[o.levelIndex],G.levels[o.levelIndex]+2);p.shield--;
+ }else if(o.id==='rare_reactor'&&p.shield>0){
+  p.shield--;G.pulses=Math.min(5,G.pulses+1);chargeDrive(45);
+ }else if(o.id==='rare_rescue'&&G.energy>=2){
+  G.energy-=2;p.hp=3;G.lives=Math.min(3,G.lives+1);
+ }else if(o.id==='rare_focus'&&Number.isInteger(o.passiveIndex)&&passiveRank(o.passiveIndex)<2&&G.pulses>0){
+  G.pulses--;G.passives[o.passiveIndex]++;if(o.passiveIndex===3)p.shield=Math.min(5,p.shield+1);chargeDrive(15);
+ }else if(o.id==='storm_bounty'&&p.shield>0){
+  p.shield--;G.energy=Math.min(6,G.energy+3);chargeDrive(25);
+ }else if(o.id==='storm_gamble'&&p.hp>1&&Number.isInteger(o.levelIndex)&&G.levels[o.levelIndex]<MAX[o.levelIndex]){
+  p.hp--;G.levels[o.levelIndex]++;if(o.levelIndex===5)p.shield=Math.max(p.shield,Math.min(5,3+G.levels[5]));chargeDrive(25);
+ }else if(o.id==='safe_refit'){
+  p.hp=Math.min(3,p.hp+1);p.shield=Math.min(5,p.shield+1);
+ }else if(o.id==='safe_supply'){
+  G.energy=Math.min(6,G.energy+1);G.pulses=Math.min(5,G.pulses+1);
  }else if(o.id==='capsule')G.energy=Math.min(6,G.energy+2);
  else if(o.id==='pulse')G.pulses=Math.min(5,G.pulses+2);
  else if(o.id==='shield')p.shield=Math.min(5,p.shield+2);
