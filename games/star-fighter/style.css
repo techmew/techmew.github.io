@@ -466,3 +466,41 @@ html,body{overscroll-behavior:none}
 @media(pointer:coarse) and (orientation:portrait){
  #shell .side-action .action-state{font-size:clamp(9px,2.3vw,12px)}
 }
+
+/* 2026-10-29: portrait flight view and six-color rail must NEVER overlap.
+   The rail stays attached to the game-frame, but occupies its own grid row
+   below the complete 16:9 canvas; no player pixels can be hidden by it. */
+@media (pointer:coarse) and (orientation:portrait){
+ #shell .play-layout>.game-frame,
+ #shell:fullscreen .play-layout>.game-frame,
+ #shell:-webkit-full-screen .play-layout>.game-frame{
+  display:grid;grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto 25px;align-content:start;
+  aspect-ratio:auto!important;width:100%;height:max-content!important;
+  max-height:none!important;min-height:0;overflow:hidden;
+ }
+ #shell .game-frame>#game,
+ #shell:fullscreen .game-frame>#game,
+ #shell:-webkit-full-screen .game-frame>#game{
+  display:block;grid-column:1;grid-row:1;
+  width:100%;height:auto!important;aspect-ratio:16/9;
+  min-height:0;object-fit:contain;
+ }
+ #shell .game-frame>.controlbar,
+ #shell:fullscreen .game-frame>.controlbar,
+ #shell:-webkit-full-screen .game-frame>.controlbar{
+  position:relative!important;grid-column:1;grid-row:2;
+  inset:auto!important;bottom:auto!important;left:auto!important;right:auto!important;
+  display:flex;width:100%!important;height:25px!important;min-height:0;
+  max-height:25px;margin:0;padding:1px;gap:1px;z-index:4;
+  background:#061524;box-shadow:none;border:1px solid #29485a;
+ }
+ #shell .game-frame>.controlbar .label-block{display:none}
+ #shell .game-frame>.controlbar .upgrades{height:100%;width:100%;gap:2px}
+ #shell .game-frame .upgrade{height:100%;min-height:0;padding:0 1px}
+ #shell .game-frame .upgrade b{font-size:clamp(7px,1.95vw,9px);line-height:1}
+ #shell .game-frame .upgrade .u-key{font-size:clamp(7px,1.75vw,8px);line-height:1}
+ #shell .game-frame>.screen-vignette{bottom:25px}
+ #shell .play-layout{grid-template-rows:max-content minmax(0,1fr)!important}
+ #shell .play-layout>.touch-pad,#shell .play-layout>.action-panel{min-height:0}
+}
