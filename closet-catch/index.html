@@ -292,7 +292,7 @@ st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStrea
 st.show.judgeMigration=10;
 if(st.show.pendingResult&&(!Array.isArray(st.show.pendingResult.judges)||st.show.pendingResult.judges.length!==5||!Number.isFinite(st.show.pendingResult.rival)||st.show.pendingResult.version!==10))st.show.pendingResult=null;
 const FREE_PARTS=[
- ['髪型',220,112,130,0],['帽子',220,66,145,0],['顔飾り',220,144,108,0],['耳飾り',278,152,70,.12],['首飾り',220,198,93,0],['インナー',220,253,125,0],['トップス',220,264,166,0],['アウター',220,260,190,0],['手袋・手元',300,284,91,.15],['腰飾り',220,311,126,0],['ボトムス',220,348,162,0],['レッグウェア',220,403,120,0],['シューズ',220,455,113,0],['背中',327,255,150,-.2],['特殊アクセ',331,349,121,.16],['追加レイヤー',220,269,198,0]
+ ['髪型',220,112,130,0],['帽子',220,66,145,0],['顔飾り',220,144,108,0],['耳飾り',278,152,70,.12],['首飾り',220,198,93,0],['インナー',220,253,125,0],['トップス',220,264,166,0],['アウター',220,260,190,0],['手袋・手元',300,284,91,.15],['腰飾り',220,311,126,0],['ボトムス',220,348,162,0],['レッグウェア',220,403,120,0],['シューズ',220,455,113,0],['背中',327,255,150,-.2],['魚・特殊アクセ',331,349,121,.16],['ワンピース',220,269,198,0]
 ];
 const freeOwnedIds=()=>[...new Set([...st.owned,...st.hairOwned.map(i=>HAIR_ID_START+i)])].filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length);
 const freeOwnedSet=new Set(freeOwnedIds());
@@ -1284,7 +1284,7 @@ function renderModel(){const dressed=Object.values(st.equip).filter(x=>x!==null)
 function drawGarmentCard(canvas,item){const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=gradient(ctx,w/2,h/2,w*.65,'#f8fcf9','#d8eae6');ctx.fillRect(0,0,w,h);let scale=Math.min(w,h)*.92;drawSeaCollectible(ctx,item,w/2,h/2,scale);if(item.rarity>=2){ctx.fillStyle=rareColors[item.rarity];star(ctx,w*.83,h*.18,8,4,5);ctx.fill()}}
 
 let freeActive=0,freeShown=24,freeAdvanced=false,freeAllItems=false;
-const FREE_MAIN_SLOTS=[0,1,2,6,7,10,12,14];
+const FREE_MAIN_SLOTS=[0,1,2,6,7,10,12,15];
 const freeCanvas=$('freeCanvas'),fc=freeCanvas.getContext('2d');
 function fitsFreeLookSlot(index,item){
  if(!item)return false;
@@ -1346,13 +1346,13 @@ function freeLookScore(look,theme){
  const cohesion=counter?Math.max(0,1-distance/(counter*420)):1;
  const weird=['avant','chaos'].includes(showThemes[theme]?.[1]);
  const fishRarity=fish.reduce((sum,v)=>sum+v.item.rarity+([4,10,11,12,13,14,15,48].includes(v.item.style)?2:0),0);
- const filled=Math.min(16,n),valid=uniq/n;
+ const filled=Math.min(8,n),valid=uniq/n;
  const val=[
- Math.round(good/n*45+Math.min(n,9)*3+cohesion*15),
+ Math.round(good/n*45+Math.min(n,8)*3+cohesion*15),
  Math.round(9+varieties*4+fishRarity*3+Math.min(5,filled)*3+(weird?8:0)-(n-uniq)*12),
  Math.round(12+cohesion*23+good/n*(weird?12:30)+Math.min(6,varieties)*3+Math.min(12,fishRarity)),
  Math.round(8+cohesion*33+Math.min(7,varieties)*5+Math.min(8,good)*3-(n-uniq)*11),
- Math.round(9+Math.min(13,filled)*4+Math.min(10,fish.length)*4+scored.reduce((v,r)=>v+Math.min(2,r.item.rarity),0))
+ Math.round(9+Math.min(8,filled)*4+Math.min(10,fish.length)*4+scored.reduce((v,r)=>v+Math.min(2,r.item.rarity),0))
  ];
  const judges=val.map(v=>Math.max(0,Math.min(100,v))),total=judges.reduce((a,b)=>a+b,0);
  return {judges,total,filled,valid}
@@ -1438,8 +1438,12 @@ $('freeAllItems').addEventListener('click',()=>{freeAllItems=!freeAllItems;freeS
 $('freeClear').addEventListener('click',()=>{st.freeLook=Array(16).fill(null);save();renderFreeSlots();renderFreePicker()});
 $('freeAuto').addEventListener('click',()=>{
  const ids=freeOwnedIds();const used=new Set();
+ const hasCategory=cat=>ids.some(id=>catalog[id].cat===cat);
+ const useDress=hasCategory('dress')&&(!hasCategory('top')||!hasCategory('bottom'));
  st.freeLook=FREE_PARTS.map((part,i)=>{
   if(!FREE_MAIN_SLOTS.includes(i))return null;
+  if(useDress&&(i===6||i===10))return null;
+  if(!useDress&&i===15)return null;
   const preferred={0:'hair',1:'hat',2:'acc',3:'acc',4:'acc',5:'under',6:'top',7:'outer',8:'acc',9:'acc',10:'bottom',11:'under',12:'shoes',13:'dress',14:'fish',15:'dress'}[i];
   const pool=ids.filter(id=>!used.has(id)),chosen=pool.find(id=>catalog[id].cat===preferred)??null;
   if(chosen!==null)used.add(chosen);return chosen
