@@ -249,7 +249,7 @@ function runHarness(gameSource,musicSource){
  ev('touchPad','pointerup',{clientX:100,clientY:100});
  const stopped=G.player.x;
  q.update(.016);ok(Math.abs(G.player.x-stopped)<1,'touch release drift');
- // Adaptive gain, instant reverse, no drift when held.
+ // Stable linear gain, instant reverse, no drift when held.
  G.player.x=G.player.targetX=220;G.player.y=G.player.targetY=337;
  ev('touchPad','pointerdown',{clientX:45,clientY:110,timeStamp:1000});
  const ax=G.player.x;
@@ -266,7 +266,32 @@ function runHarness(gameSource,musicSource){
  ev('touchPad','pointermove',{clientX:133,clientY:110,timeStamp:1064});
  ok(G.player.x>back,'track beyond pad border');
  ev('touchPad','pointerup',{clientX:133,clientY:110,timeStamp:1080});
- ok(gameSource.includes('function touchGain(dx,dy,dt)'),'speed-sensitive touch gain');
+ ok(!gameSource.includes('function touchGain(dx,dy,dt)'),'remove unstable speed-dependent gain');
+ // Same physical swipe must have identical travel regardless of input event rate.
+ G.player.x=G.player.targetX=310;G.player.y=G.player.targetY=337;
+ ev('touchPad','pointerdown',{clientX:40,clientY:90,timeStamp:1000});
+ ev('touchPad','pointermove',{clientX:80,clientY:90,timeStamp:1001});
+ const oneEvent=G.player.x-310;
+ ev('touchPad','pointerup',{clientX:80,clientY:90});
+ G.player.x=G.player.targetX=310;
+ ev('touchPad','pointerdown',{clientX:40,clientY:90,timeStamp:2000});
+ for(let k=1;k<=40;k++)ev('touchPad','pointermove',{clientX:40+k,clientY:90,timeStamp:2000+16*k});
+ const fortyEvents=G.player.x-310;
+ ok(Math.abs(oneEvent-fortyEvents)<.001,'stable finger displacement independent of sample rate');
+ const noJump=G.player.x;
+ ev('touchPad','pointerdown',{clientX:100,clientY:110,pointerId:2});
+ ev('touchPad','pointermove',{clientX:290,clientY:210,pointerId:2});
+ ok(Math.abs(G.player.x-noJump)<.001,'secondary finger cannot drive ship');
+ ev('touchPad','pointermove',{clientX:80,clientY:90,timeStamp:2700});
+ ok(G.player.x===noJump,'held finger without delta stays still');
+ ev('touchPad','pointerup',{clientX:80,clientY:90});
+ // Window resize must not interrupt the active pointer (orientation changes may).
+ ev('touchPad','pointerdown',{clientX:40,clientY:90,timeStamp:4000});
+ const resizeX=G.player.x;
+ for(const handler of window.handlers?.resize||[])handler();
+ ev('touchPad','pointermove',{clientX:48,clientY:90,timeStamp:4016});
+ ok(G.player.x>resizeX,'browser toolbar resize does not cancel drag');
+ ev('touchPad','pointerup',{clientX:48,clientY:90});
  // Simulate narrow portrait and wide landscape pad geometry without a browser.
  for(const [width,height] of [[120,280],[320,100]]){
   el('touchPad').getBoundingClientRect=function(){return {left:0,top:0,width,height}};
