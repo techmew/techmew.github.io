@@ -453,8 +453,13 @@ function update(dt){
       blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);
      }else label(P.x,P.y-35,"回避！","#a6f5d8");
     }
-    if(denom<(s.speed*3.65*dt*.35)**2){
+    const forward=ddx*Math.cos(m.chargeDir)+ddy*Math.sin(m.chargeDir);
+    if(forward<s.speed*3.65*dt*.4){
      m.chargeTime=0;m.stun=Math.max(m.stun,.7);
+     label(m.x,m.y-m.r-20,"激突！","#bdf6cc");
+    }else if(m.chargeTime<=0){
+     // Sidestepping the locked charge direction opens a counterattack window.
+     m.stun=Math.max(m.stun,.55);
      label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
     }
    }
