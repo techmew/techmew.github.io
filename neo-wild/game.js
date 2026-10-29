@@ -95,8 +95,13 @@ function detectsPlayer(m,sp,d){
  const night=Math.cos((elapsed%85)/85*TWO)<-.45;
  const sightRange=(sp.prey?185:265)*(weather==="FOG"?.62:weather==="RAIN"?.82:1)*(night?.8:1)*(P.hidden?.29:1);
  const los=!lineBlocked(m,P);
- const visibleNow=los&&d<Math.max(42,sightRange);
- const heard=los&&d<38+P.noise*125;
+ const facing=Math.atan2(P.y-m.y,P.x-m.x);
+ const delta=Math.atan2(Math.sin(facing-m.dir),Math.cos(facing-m.dir));
+ // Small prey have broad peripheral vision; hunters must actually face a target.
+ const inSight=Math.abs(delta)<(sp.prey?2.22:1.37)||d<57;
+ const visibleNow=los&&inSight&&d<Math.max(42,sightRange);
+ // Sound is attenuated by buildings, but does not magically require line of sight.
+ const heard=d<(los?38:24)+P.noise*(los?116:58);
  const wind=Math.sin(elapsed*.022)*Math.PI;
  const smelled=d<(weather==="RAIN"?38:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
  return visibleNow||heard||smelled||(los&&d<P.r+m.r+17);
@@ -230,17 +235,40 @@ function finish(won=false){
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
  show("result");sound(won?700:140,.5,won?"sine":"sawtooth",.045);
 }
+function clearStep(m,angle,step){
+ const dx=Math.cos(angle),dy=Math.sin(angle);
+ return !collides(m.x+dx*step*.45,m.y+dy*step*.45,m.r+4)&&!collides(m.x+dx*step,m.y+dy*step,m.r+4);
+}
 function chooseEscape(m,away){
- const angles=[0,.52,-.52,1.08,-1.08,1.72,-1.72,2.45,-2.45];
+ const angles=[0,.44,-.44,.88,-.88,1.35,-1.35,1.9,-1.9,2.5,-2.5];
  let best=away,bestScore=-Infinity;
  for(const off of angles){
-  const a=away+off,step=68,x=m.x+Math.cos(a)*step,y=m.y+Math.sin(a)*step;
-  if(collides(x,y,m.r+5))continue;
-  const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.65)?1.05:0;
-  const score=Math.cos(off)*2.2+(P?Math.hypot(x-P.x,y-P.y)*.003:0)-Math.abs(off)*.13+cover;
-  if(score>bestScore){bestScore=score;best=a}
+  const angle=away+off,step=78,x=m.x+Math.cos(angle)*step,y=m.y+Math.sin(angle)*step;
+  if(!clearStep(m,angle,step))continue;
+  const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1.45:0;
+  const distance=P?Math.hypot(x-P.x,y-P.y):0;
+  const score=Math.cos(off)*2.1+distance*.003+cover-Math.abs(off)*.1;
+  if(score>bestScore){bestScore=score;best=angle}
  }
  return best;
+}
+function steerPursuit(m,tx,ty){
+ const desired=Math.atan2(ty-m.y,tx-m.x),distance=Math.hypot(tx-m.x,ty-m.y);
+ const look=clamp(distance*.45,42,94);
+ if(clearStep(m,desired,look))return desired;
+ // Hold the chosen side until the obstacle is passed; otherwise the NPC oscillates.
+ if(!m.avoidSide)m.avoidSide=((Math.floor(m.x/90)+Math.floor(m.y/90))%2?1:-1);
+ let best=null,bestScore=-Infinity;
+ for(const offset of [.42,.82,1.22,1.65,2.12]){
+  for(const side of [m.avoidSide,-m.avoidSide]){
+   const angle=desired+offset*side;
+   if(!clearStep(m,angle,look))continue;
+   const score=Math.cos(offset)*2.4+(side===m.avoidSide?.38:0)+Math.min(1,distance/300)*.1;
+   if(score>bestScore){bestScore=score;best=angle}
+  }
+ }
+ if(best!==null){m.avoidSide=Math.sign(Math.atan2(Math.sin(best-desired),Math.cos(best-desired)))||m.avoidSide;return best}
+ return desired+Math.PI*.65*m.avoidSide;
 }
 function update(dt){
  elapsed+=dt;day=1+Math.floor(elapsed/85);
@@ -286,14 +314,17 @@ function update(dt){
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:3.1;m.search=0}
    let vx=0,vy=0;
-   if(s.prey&&spotted){
+   if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
-     if(m.escapeTimer<=0||collides(m.x+Math.cos(m.dir)*42,m.y+Math.sin(m.dir)*42,m.r+5)){
-       m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=.48;
+     if(m.escapeTimer<=0||!clearStep(m,m.dir,65)){
+       m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=.44;
      }
     }
    if(m.flee>0){
     m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(.72+.73*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
+   }else if(s.prey&&spotted){
+    // Suspicious prey stop and watch instead of instantly sprinting from offscreen.
+    m.dir=angle;m.wander=Math.max(m.wander,.3);vx=0;vy=0;
    }else if(!s.prey&&m.alert>0){
     m.alert=Math.max(0,m.alert-dt);
     const aim=Math.atan2(m.lastY-m.y,m.lastX-m.x);
@@ -302,7 +333,7 @@ function update(dt){
      m.search=Math.max(0,m.search-dt);
      if(m.wander<0){m.dir=aim+rnd(-1.6,1.6);m.wander=rnd(.3,.8)}
      vx=Math.cos(m.dir)*s.speed*.32;vy=Math.sin(m.dir)*s.speed*.32;
-    }else{m.dir=aim;vx=Math.cos(aim)*s.speed;vy=Math.sin(aim)*s.speed}
+    }else{m.dir=steerPursuit(m,m.lastX,m.lastY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed}
    }else{
     m.alert=Math.max(0,m.alert-dt);
     if(m.wander<0){m.dir+=rnd(-2.5,2.5);m.wander=rnd(.5,2.5)}
@@ -323,7 +354,7 @@ function update(dt){
    }
    if(m.stun>0){vx=0;vy=0}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
-  if(ox===m.x&&oy===m.y){m.dir+=1.7;m.wander=0}
+  if(ox===m.x&&oy===m.y){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
   if(!s.prey&&m.windup<=0&&m.stun<=0&&d<P.r+m.r+29&&(spotted||m.alert>0)&&m.attack<=0){
    m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.58:.53;
    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=1.45;
@@ -681,7 +712,7 @@ function drawScene(){
  for(const e of entities)drawCreature(e,e===P);
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=species[m.type].prey?(m.flee>0?"!":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.fillStyle=species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
