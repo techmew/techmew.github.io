@@ -1034,6 +1034,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    ok(f.layers.map(x=>x.nodes.length).join(',')==='5,7','route art draw budget');
    ok(q.routeArtField()===f,'route art cached');
    const signature=JSON.stringify(f.layers);
+   ok([f.haze.x,f.haze.y,f.haze.radius].every(Number.isFinite),'route nebula geometry finite');
+   ok(f.haze.radius>=230&&f.haze.radius<=320,'route nebula radius bounded');
    for(const layer of f.layers)for(const n of layer.nodes){
     ok([n.x,n.y,n.size,n.angle,n.alpha].every(Number.isFinite),'route art geometry finite');
     ok(n.alpha<.36,'route art must remain behind projectiles');
