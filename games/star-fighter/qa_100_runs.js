@@ -154,6 +154,32 @@ function runHarness(gameSource,musicSource){
  }
  ok(musicSource.includes('[142,136,112,148,124,118,106]'),'stage seven tempo exists');
   ok(musicSource.includes('unstable boundary'),'stage seven original theme exists');
+  // Exercise original Web Audio sequencing across every normal/boss score.
+  const musicWindow={};
+  new Function('window',musicSource)(musicWindow);
+  const gainParam=()=>({value:0,cancelScheduledValues(){},setTargetAtTime(){}});
+  const node=()=>({gain:gainParam(),connect(){},disconnect(){}});
+  const mockAudio={
+   sampleRate:8000,currentTime:0,destination:{},
+   createGain:node,
+   createDynamicsCompressor(){return {threshold:{value:0},ratio:{value:0},attack:{value:0},release:{value:0},connect(){}}},
+   createDelay(){return {delayTime:{value:0,setTargetAtTime(){}},connect(){}}},
+   createBuffer(ch,length){return {getChannelData(){return new Float32Array(length)}}}
+  };
+  const synth=new musicWindow.CyberBGM(mockAudio);
+  const musicSignatures=new Set();
+  for(let stage=0;stage<7;stage++)for(const boss of [false,true]){
+   synth.stage=stage;synth.boss=boss;
+   const notes=[];synth.note=(pitch,time,duration,type)=>notes.push([pitch,type]);
+   synth.kick=()=>{};synth.noiseHit=()=>{};
+   for(let i=0;i<32;i++)synth.sequence(i*.12,i);
+   ok(notes.length>20,'silent original music '+stage+'/'+boss);
+   const signature=JSON.stringify(notes);
+   ok(!musicSignatures.has(signature),'reused identical stage/boss composition '+stage+'/'+boss);
+   musicSignatures.add(signature);
+  }
+  ok(musicSignatures.size===14,'seven stage themes and seven boss arrangements');
+
  ok(musicSource.includes('ancient resonant machinery'),'stage six original composition exists');
  // Simulate all 100 seeds across all six sectors (100 complete synthetic runs).
  // The ship is invulnerable to isolate spawn safety; this is not a human win-rate test.
