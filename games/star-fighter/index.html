@@ -37,6 +37,14 @@
  <div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再挑戦 ↻</button></div>
  <p class="start-guide">移動：WASD / 矢印キー・スマホは左タッチパッド<br>自動射撃 ／ 強化：カプセル入手 → 画面内の装備を選択 ／ Xキーで選択・Enterで実行<br>衝撃波：SPACE ／ 一時停止：P</p><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
+<div class="reward-panel" id="rewardPanel" aria-label="ステージクリア報酬を選択" role="group">
+ <div class="reward-heading"><small id="rewardStage">SECTOR 01 CLEAR</small><strong>報酬を1つ選択</strong><span>選択後に次の航路へ</span></div>
+ <div class="reward-cards">
+ <button type="button" id="rewardCard0" class="reward-card"><span class="reward-tag">POWER</span><strong class="reward-name">報酬</strong><small class="reward-desc">報酬内容</small><em>1 · 受け取る ▶</em></button>
+ <button type="button" id="rewardCard1" class="reward-card"><span class="reward-tag">DEFENSE</span><strong class="reward-name">報酬</strong><small class="reward-desc">報酬内容</small><em>2 · 受け取る ▶</em></button>
+ <button type="button" id="rewardCard2" class="reward-card"><span class="reward-tag">SCORE</span><strong class="reward-name">報酬</strong><small class="reward-desc">報酬内容</small><em>3 · 受け取る ▶</em></button>
+ </div><p class="reward-help">タップして選択 ／ PC：1・2・3 または ← → と Enter</p>
+</div>
 <div class="route-panel" id="routePanel" aria-label="次の航路を選択">
 <div class="route-head"><span class="route-kicker">NAVIGATION / ROUTE SELECT</span><strong id="routeHeading">次の航路を選択</strong><small>次の戦場と報酬が変化する</small></div>
 <div class="route-map" id="routeMap" role="img" aria-label="航路マップ：現在地と次の航路を表示"></div>
