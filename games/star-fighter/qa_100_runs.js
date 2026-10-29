@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=controls-20261029-2'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=controls-20261029-3'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -352,6 +352,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ok(G.total===beforeEndTotal&&G.pulseRecharge===0,'background frame cannot recharge NOVA');
  ev('startBtn','click');
  ok(G.mode==='playing'&&G.pulses===1&&G.pulseRecharge===0,'retry resets NOVA to one new use');
+ // Returning to title from a half-charged live run also clears stale timer.
+ G.pulses=0;G.pulseRecharge=43;
+ ev('titleReturnBtn','click');
+ ok(G.mode==='title'&&G.pulseRecharge===0,'title return clears the NOVA timer');
+ ok(el('novaActionState').textContent.includes('出撃時'),'title shows no live countdown');
+ ev('startBtn','click');
+ ok(G.mode==='playing'&&G.pulses===1&&G.pulseRecharge===0,'fresh start after title resets NOVA');
  // Regression: a real Android click must still reach both visible controls.
  G.selected=0;G.energy=0;
  q.update(.016);
@@ -405,6 +412,11 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  G.enemies=[];G.shots=[];G.bullets=[];G.pickups=[];G.player.invul=100;
  q.update(.1);ok(G.pulses===0,'NOVA does not refill early');
  q.update(.1);ok(G.pulses===1&&G.pulseRecharge<.06,'NOVA regenerates each 60 active seconds');
+ // Refreshed charge must actually fire when the player taps the rail again.
+ ev('sidePulseBtn','pointerdown',{pointerType:'touch',pointerId:66,clientX:80,clientY:120});
+ ev('sidePulseBtn','pointerup',{pointerType:'touch',pointerId:66,clientX:80,clientY:120});
+ ev('sidePulseBtn','click',{pointerType:'touch',pointerId:66,detail:1});
+ ok(G.pulses===0&&el('toast').textContent==='NOVA BURST','refreshed NOVA is usable immediately');
  G.pulses=5;G.pulseRecharge=20;q.update(.05);
  ok(G.pulses===5&&G.pulseRecharge===0,'NOVA charge does not overflow');
  G.pulses=1;G.pulseRecharge=0;G.bossDone=false;
