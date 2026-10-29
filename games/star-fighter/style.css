@@ -392,3 +392,9 @@ html,body{overscroll-behavior:none}
  .reward-card .reward-desc{font-size:clamp(9px,1.1vw,11px)}
  .reward-help{font-size:9px}
 }
+
+/* Compact passive status is visible only during the reward draft. */
+.reward-heading .passive-owned{max-width:95%;font:700 clamp(8px,.82vw,11px) ui-sans-serif,sans-serif;color:#b4f4c7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reward-card.passive{border-color:#58ccad;background:linear-gradient(165deg,#134c48,#0a2932)}
+.reward-card.passive .reward-tag{color:#9fffc6}
+.reward-card.passive.selected{border-color:#e2ffe9;box-shadow:0 0 16px #38d8aa80}
