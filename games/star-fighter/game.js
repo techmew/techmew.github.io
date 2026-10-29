@@ -1506,11 +1506,21 @@ function routeArtField(){
   size:(k?59:41)+rand()*(k?32:26),angle:(rand()-.5)*.19,
   alpha:(k?.29:.18)+rand()*.06
  }))}));
- return(routeArtCache={key,value:{key,motif,ink,fill,layers}}).value;
+ const haze={x:rand()*(W+360),y:rand()>.5?H*.73:H*.27,radius:230+rand()*90};
+ return(routeArtCache={key,value:{key,motif,ink,fill,layers,haze}}).value;
 }
 function drawRouteArt(pass){
  const f=routeArtField(),layer=f.layers[pass],paths=ROUTE_PATHS[f.motif];
  c.save();c.strokeStyle=f.ink;c.fillStyle=f.fill;c.lineWidth=2.4;
+ if(pass===0){
+  // One route-colored, slow-moving nebula per frame, behind stars and bullets.
+  const h=f.haze,x=((h.x-G.scroll*.07)%(W+360)+W+360)%(W+360)-180;
+  const glow=c.createRadialGradient(x,h.y,0,x,h.y,h.radius);
+  glow.addColorStop(0,f.ink+'27');glow.addColorStop(.58,f.ink+'0c');glow.addColorStop(1,f.ink+'00');
+  c.fillStyle=glow;c.fillRect(x-h.radius,h.y-h.radius,h.radius*2,h.radius*2);
+  c.fillStyle=f.fill;
+ }
+ const roundMotif=f.motif==='relay'||f.motif==='reef'||f.motif==='solar'||f.motif==='orbit'||f.motif==='phase';
  for(const node of layer.nodes){
   const x=((node.x-G.scroll*layer.speed)%layer.span+layer.span)%layer.span-230;
   if(x<-130||x>W+130)continue;
@@ -1525,7 +1535,7 @@ function drawRouteArt(pass){
    c.stroke();
   }
   // Orbital structures are distinct from the rectilinear docks and ruins.
-  if(['relay','reef','solar','orbit','phase'].includes(f.motif)){
+  if(roundMotif){
    c.beginPath();c.ellipse(0,0,f.motif==='orbit'?52:30,
     f.motif==='phase'?22:32,f.motif==='orbit'?.55:0,0,TAU);c.stroke();
   }
