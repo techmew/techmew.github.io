@@ -1043,8 +1043,27 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    'boss attacks must not auto-upgrade or spend capsules');
   G.boss=null;G.bullets=[];
  }
+ // Defeating any of the 15 bosses must lead to a live reward/finish
+ // without consuming a capsule or auto-equipping a weapon.
+ for(const [stage,risk] of bossCases){
+  stageSetup(seeds[stage*9+risk],stage,risk);
+  G.routeHistory=[];G.activeEvent=null;G.energy=2;G.player.invul=999;
+  G.player.hp=2;G.lives=2;G.fireTimer=999;G.missileTimer=999;
+  q.spawnBoss();G.boss.x=930;G.boss.fire=999;
+  const beforeLevels=G.levels.slice(),beforeEnergy=G.energy;
+  G.boss.hp=0;q.update(.016);
+  ok(G.mode==='playing'&&G.transitioning,'boss clear never pauses play '+stage+'/'+risk);
+  ok(G.levels.every((n,i)=>n===beforeLevels[i])&&G.energy===beforeEnergy,
+    'boss clear must not spend capsules or auto-equip '+stage+'/'+risk);
+  if(stage<7){
+   ok(G.flowPhase==='reward'&&G.rewardOffers.length===3,
+    'three in-flight reward offers after boss '+stage+'/'+risk);
+   ok(new Set(G.rewardOffers.map(o=>o.id)).size===3,
+    'no duplicate boss rewards '+stage+'/'+risk);
+  }else ok(G.flowPhase==='finish','last boss transitions to finale');
+ }
  stats.bossReadability={bossVariants:bossCases.length,seeds:seeds.length,
-  worstVolley,minProjectileTravelSeconds:+minTravel.toFixed(2),
+  worstVolley,rewardCases:bossCases.length,minProjectileTravelSeconds:+minTravel.toFixed(2),
   minOpeningWarningSeconds:+minEntryWarning.toFixed(2),method:'headless geometry and scripted input, not human/device timing'};
 
  // 18/36: 100 deterministic builds sampled from actual projectile emission.
