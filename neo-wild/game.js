@@ -49,7 +49,7 @@ window.addEventListener("resize",resize,{passive:true});resize();generateWorld()
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;guideCache=null;
- const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,abilityTime:0,instinctCD:0};
+ const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
@@ -70,7 +70,7 @@ function spawnMob(initial=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1});
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
@@ -132,19 +132,23 @@ function instinct(){
 }
 function attack(){
  if(mode!=="play"||P.atk>0||P.pendingStrike)return;
- P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.steps+=.1;
+ P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.05);sound(260,.055,"triangle",.018);
 }
 function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
- P.pendingStrike=false;P.swing=.18;let hit=0;
+ P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
  mobs.forEach(m=>{
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   if(d<P.r+m.r+52&&Math.abs(angle)<1.22){
-   const bonus=P.type==="fox"&&P.abilityTime>0?1.7:1;
-    const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
-    if(bonus>1)P.abilityTime=0;m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;m.windup=0;m.stun=.38;m.attack=Math.max(m.attack,.45);hit++;
+   const foxBurst=P.type==="fox"&&P.abilityTime>0;
+   const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1);
+   const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
+   if(foxBurst)P.abilityTime=0;
+   m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
+   m.windup=0;m.stun=stealthHit?.92:.38;m.attack=Math.max(m.attack,.45);hit++;
+   if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    move(m,Math.cos(theta)*7,Math.sin(theta)*7);
    if(m.hp<=0)kill(m);
@@ -165,7 +169,7 @@ function dash(){
  if(mode!=="play"||P.dash>0||P.sp<28)return;
  const a=getAxes();if(Math.hypot(a.x,a.y)>.15){P.dir=Math.atan2(a.y,a.x)}
  P.dx=Math.cos(P.dir);P.dy=Math.sin(P.dir);
- P.sp-=28;P.dashTime=.21;P.inv=.28;P.dash=1.05;P.vx=0;P.vy=0;P.pendingStrike=false;P.windup=0;P.noiseBurst=1.5;blood(P.x,P.y,"#a6e6d4",9,45);sound(250,.22,"sine",.05);
+ P.sp-=28;P.dashTime=.21;P.inv=.28;P.dash=1.05;P.vx=0;P.vy=0;P.pendingStrike=false;P.ambushStrike=false;P.revealTimer=1.15;P.windup=0;P.noiseBurst=1.5;blood(P.x,P.y,"#a6e6d4",9,45);sound(250,.22,"sine",.05);
 }
 function sense(){
  if(mode!=="play"||P.sense>0)return;
@@ -232,7 +236,8 @@ function chooseEscape(m,away){
  for(const off of angles){
   const a=away+off,step=68,x=m.x+Math.cos(a)*step,y=m.y+Math.sin(a)*step;
   if(collides(x,y,m.r+5))continue;
-  const score=Math.cos(off)*2.2+(P?Math.hypot(x-P.x,y-P.y)*.003:0)-Math.abs(off)*.13;
+  const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.65)?1.05:0;
+  const score=Math.cos(off)*2.2+(P?Math.hypot(x-P.x,y-P.y)*.003:0)-Math.abs(off)*.13+cover;
   if(score>bestScore){bestScore=score;best=a}
  }
  return best;
@@ -243,7 +248,7 @@ function update(dt){
  const newWeather=day%4===0?"FOG":day%3===0?"RAIN":"CLEAR";if(newWeather!==weather){weather=newWeather;notify(weather==="RAIN"?"酸性雨の気配 / 視界が悪化":weather==="FOG"?"濃霧 / 視界が悪化":"空が晴れてきた")}
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
- P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0)resolveAttack()}
+ P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0)resolveAttack()}
  P.sp=clamp(P.sp+17*dt,0,100);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
@@ -269,7 +274,7 @@ function update(dt){
   const speed=Math.hypot(P.vx,P.vy);
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
-  P.hidden=inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
+  P.hidden=P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" ")||attackTouch)&&P.atk<=0)attack();
  
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);
@@ -277,18 +282,18 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
-  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);
+  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:3.1;m.search=0}
    let vx=0,vy=0;
    if(s.prey&&spotted){
-     m.flee=2;
+     m.flee=Math.max(m.flee,1.7);
      if(m.escapeTimer<=0||collides(m.x+Math.cos(m.dir)*42,m.y+Math.sin(m.dir)*42,m.r+5)){
        m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=.48;
      }
     }
    if(m.flee>0){
-    m.flee=Math.max(0,m.flee-dt);vx=Math.cos(m.dir)*s.speed*1.3;vy=Math.sin(m.dir)*s.speed*1.3;
+    m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(.72+.73*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
    }else if(!s.prey&&m.alert>0){
     m.alert=Math.max(0,m.alert-dt);
     const aim=Math.atan2(m.lastY-m.y,m.lastX-m.x);
@@ -674,6 +679,20 @@ function drawScene(){
  const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
  entities.sort((a,b)=>a.y-b.y);
  for(const e of entities)drawCreature(e,e===P);
+ for(const m of entities){
+  if(m===P||m.hp<=0||m.windup>0)continue;
+  const symbol=species[m.type].prey?(m.flee>0?"!":null):(m.search>0?"?":m.alert>0?"!":null);
+  if(!symbol)continue;
+  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillStyle=species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+  ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
+  const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
+ }
+ if(P&&P.pendingStrike){
+  const pct=1-P.windup/Math.max(.001,Math.min(.15,P.rate*.38));
+  ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle="#ffe1a8";ctx.lineWidth=3+pct*3;
+  ctx.beginPath();ctx.arc(0,0,P.r+42,-1.12,-1.12+2.24*pct);ctx.stroke();ctx.restore();
+ }
   for(const m of entities){
    if(m===P||species[m.type].prey||m.windup<=0)continue;
    const progress=1-m.windup/Math.max(.01,m.windupTotal);
