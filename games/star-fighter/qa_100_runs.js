@@ -475,8 +475,23 @@ function runHarness(gameSource,musicSource){
  G.boss=null;
  stageSetup(seeds[0],0,0);q.spawnBoss();G.boss.x=930;G.boss.t=2.8;G.boss.hp=G.boss.maxHp;
  q.update(.016);ok(G.boss.weakOpen,'cruiser exposed weak point');
- G.boss.t=4.5;q.update(.016);ok(!G.boss.weakOpen,'cruiser shutter closes');
+ G.boss.fire=9;G.shots=[{x:G.boss.x+20,y:G.boss.y,px:0,py:0,vx:0,vy:0,life:1,dmg:20,pierce:1,kind:'shot'}];
+ const openHp=G.boss.hp;q.update(.016);
+ ok(Math.abs(openHp-G.boss.hp-33)<.01,'cruiser weak reactor deals 65 percent extra damage');
+ G.boss.t=4.5;G.boss.fire=9;q.update(.016);ok(!G.boss.weakOpen,'cruiser shutter closes');
+ G.shots=[{x:G.boss.x+20,y:G.boss.y,px:0,py:0,vx:0,vy:0,life:1,dmg:20,pierce:1,kind:'shot'}];
+ const closedHp=G.boss.hp;q.update(.016);
+ ok(Math.abs(closedHp-G.boss.hp-20)<.01,'closed reactor no extra damage');
  G.boss=null;
+ stageSetup(seeds[0],7,1);G.routeHistory=Array.from({length:7},(_,i)=>({risk:1,stage:i+2}));
+ q.spawnBoss();G.boss.x=930;G.boss.hp=G.boss.maxHp*.66;G.boss.fire=9;
+ q.update(.016);ok(G.boss.phase===1,'final boss phase two');
+ G.boss.hp=G.boss.maxHp*.30;q.update(.016);ok(G.boss.phase===2,'final boss phase three');
+ G.boss.pattern=0;G.bullets=[];q.bossAttack(G.boss);
+ ok(G.bullets.length>=8&&G.bullets.length<=16,'final third phase attack density');
+ G.boss.pattern=3;G.boss.charge=0;q.bossAttack(G.boss);
+ ok(G.boss.charge>0,'final third phase beam warning');
+ G.boss=null;G.bullets=[];
  // Stage seven route-specific events.
  stageSetup(seeds[0],6,0);G.activeEvent=q.routeOffer(5,0).event;
  G.eventTriggered=false;G.terrainIndex=2;G.stageTime=30;G.driveCharge=0;G.spawn=10;
