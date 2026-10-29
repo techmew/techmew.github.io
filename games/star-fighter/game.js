@@ -4,9 +4,9 @@ const W=1200,H=675,TAU=Math.PI*2;
 const C=document.getElementById('game'),c=C.getContext('2d',{alpha:false});
 const $=id=>document.getElementById(id);
 const ui={overlay:$('overlay'),start:$('startBtn'),pause:$('sidePauseBtn'),sound:$('soundBtn'),score:$('score'),best:$('best'),mult:$('multiplier'),stage:$('stageLabel'),area:$('areaName'),progress:$('progressBar'),hp:$('hpRow'),lives:$('lives'),bombs:$('bombs'),boss:$('bossHud'),bossName:$('bossName'),bossBar:$('bossBar'),announce:$('announce'),small:$('announceSmall'),main:$('announceMain'),desc:$('announceDesc'),toast:$('toast'),meter:$('meterInfo'),upgrades:[...document.querySelectorAll('.upgrade')],equip:$('equipBtn'),pulse:$('pulseBtn')};
-const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM','FROZEN GRAVE','RELIC BELT','ABYSSAL GATE'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ','氷結残骸帯を突破せよ','古代遺跡の封印を突破せよ','異界境界の位相嵐を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB','FROST MAMMOTH','RELIC CENTIPEDE','AETHER JELLYFISH'];
-const STAGE_LENGTHS=[62,68,74,72,76,80,84],BOSS_HP=[1900,2650,3600,4250,4850,5650,6450];
-const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'氷結整備回廊',desc:'氷片を射撃で破壊可能・補給重視 / BOSS 機械マンモス',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'白夜の追撃帯',desc:'吹雪で視界悪化・精鋭部隊 / BOSS 氷海竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'遺跡の記録庫',desc:'破壊可能なルーン柱・防御イベント / ボス: 機械ムカデ',bonus:'衝撃波 +1 / 古代装甲の修復',risk:0},{name:'封印中枢への突入',desc:'封印格子・守護隊の奇襲 / ボス: 黒曜の守護者',bonus:'カプセル +1 / 希少報酬抽選↑',risk:1}],[{name:'位相の避難帯',desc:'透過膜を破壊・位相共鳴 / ボス: 宇宙クラゲ',bonus:'ドライブ充填 / 低密度編隊',risk:0},{name:'裂界の追撃路',desc:'空間裂傷・異界迎撃隊 / ボス: 裂界メデューサ',bonus:'撃破補給1個 / 希少報酬抽選↑',risk:1}]];
+const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM','FROZEN GRAVE','RELIC BELT','ABYSSAL GATE','LAST HORIZON'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ','氷結残骸帯を突破せよ','古代遺跡の封印を突破せよ','異界境界の位相嵐を突破せよ','収束する終端宙域を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB','FROST MAMMOTH','RELIC CENTIPEDE','AETHER JELLYFISH','HORIZON ARK'];
+const STAGE_LENGTHS=[62,68,74,72,76,80,84,90],BOSS_HP=[1900,2650,3600,4250,4850,5650,6450,7400];
+const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'氷結整備回廊',desc:'氷片を射撃で破壊可能・補給重視 / BOSS 機械マンモス',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'白夜の追撃帯',desc:'吹雪で視界悪化・精鋭部隊 / BOSS 氷海竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'遺跡の記録庫',desc:'破壊可能なルーン柱・防御イベント / ボス: 機械ムカデ',bonus:'衝撃波 +1 / 古代装甲の修復',risk:0},{name:'封印中枢への突入',desc:'封印格子・守護隊の奇襲 / ボス: 黒曜の守護者',bonus:'カプセル +1 / 希少報酬抽選↑',risk:1}],[{name:'位相の避難帯',desc:'透過膜を破壊・位相共鳴 / ボス: 宇宙クラゲ',bonus:'ドライブ充填 / 低密度編隊',risk:0},{name:'裂界の追撃路',desc:'空間裂傷・異界迎撃隊 / ボス: 裂界メデューサ',bonus:'撃破補給1個 / 希少報酬抽選↑',risk:1}],[{name:'光の帰還航路',desc:'破壊可能な光晶・終端補給 / ボス: ホライゾン・アーク',bonus:'バリア補給 / 低密度編隊',risk:0},{name:'特異点の突入路',desc:'破壊不能な重力断層・最終迎撃隊 / ボス: 特異点の皇帝',bonus:'撃破補給1個 / 精鋭・高得点',risk:1}]];
 
 
 /* Event choices are rolled from the run seed and previous branch, not visual RNG. */
@@ -16,7 +16,8 @@ const ROUTE_NAMES=[
  [['火山灰の補給路','冷却管の峡谷','溶岩の迂回路'],['恒星フレア回廊','赤い突破線','熱圏の追撃路']],
   [['氷結整備回廊','青氷の補給線','凍土の避難路'],['白夜の追撃帯','氷嵐の裂け目','白い危険宙域']],
  [['古代の記録庫','青銅の回廊','静かな碑文帯'],['封印中枢','黒曜の狭間','守護者の門']],
- [['位相の避難帯','透過する海','薄明の宙道'],['裂界の追撃路','異界の傷跡','歪曲する門']]
+ [['位相の避難帯','透過する海','薄明の宙道'],['裂界の追撃路','異界の傷跡','歪曲する門']],
+ [['光の帰還航路','最後の灯火','終端の補給線'],['特異点の突入路','収束する闇','決戦の深層']]
 ];
 const ROUTE_EVENTS={
  safe:[
@@ -37,7 +38,7 @@ function routeOffer(stage,index){
  const salt=(G.runSeed^Math.imul(previous+2,0x45d9f3b))>>>0;
  const nameRoll=mixSeed(salt,stage+11,index+3);
  const eventRoll=mixSeed(salt^0xa1f5c3d9,stage+29,index+7);
- const event=stage===5?(index?{id:'riftHunters',name:'異界迎撃隊',short:'撃破補給1個',desc:'空間裂け目から迎撃機が出現',when:29}:{id:'phaseEcho',name:'位相共鳴',short:'ドライブ+18',desc:'異界の残響を回収して充填',when:29}):stage===4?(index?{id:'sentinel',name:'封印守護隊',short:'精鋭撃破で補給1個',desc:'古代守護隊を撃破して1個回収',when:25}:{id:'archive',name:'古代記録庫',short:'バリア+1 / ドライブ+12',desc:'防御装置を起動',when:25}):ROUTE_EVENTS[index?'storm':'safe'][eventRoll%4];
+ const event=stage===6?(index?{id:'finalHunters',name:'最終迎撃隊',short:'撃破で補給1個',desc:'過去の危険航路数で追撃が強まる',when:30}:{id:'finalBeacon',name:'終端の灯台',short:'バリア+1 / ドライブ+15',desc:'残された航路記録から補給を回収',when:30}):stage===5?(index?{id:'riftHunters',name:'異界迎撃隊',short:'撃破補給1個',desc:'空間裂け目から迎撃機が出現',when:29}:{id:'phaseEcho',name:'位相共鳴',short:'ドライブ+18',desc:'異界の残響を回収して充填',when:29}):stage===4?(index?{id:'sentinel',name:'封印守護隊',short:'精鋭撃破で補給1個',desc:'古代守護隊を撃破して1個回収',when:25}:{id:'archive',name:'古代記録庫',short:'バリア+1 / ドライブ+12',desc:'防御装置を起動',when:25}):ROUTE_EVENTS[index?'storm':'safe'][eventRoll%4];
  const chain=stage>0&&previous===index;
  return {...ROUTE_OPTIONS[stage][index],name:ROUTE_NAMES[stage][index][nameRoll%3],event,chain};
 }
@@ -386,7 +387,8 @@ if(G.enemies.length>=Math.min(tune.maxEnemies-2,Math.floor(tune.maxEnemies*.78))
 const safeWaves=[0,0,1,2,3,4,5,6,10,11,14],stormWaves=[1,2,3,4,5,6,7,7,8,9,11,12,13,14];
 const stormPool=risk&&director.pressure<.53?[0,1,2,3,4,5,6,7,11,12,14]:stormWaves;
 const gatePool=risk?[7,8,12,13,14,16,16,9]:[0,3,4,10,11,15,15];
- const w=s===6?gatePool[gri(0,gatePool.length-1)]:s===0?[0,0,1,2,3,4,5,6,11,14][gri(0,9)]:(risk?stormPool[gri(0,stormPool.length-1)]:safeWaves[gri(0,safeWaves.length-1)]);
+ const finalPool=risk?[7,8,12,13,16,16,17,18]:[4,10,11,15,17,17,18];
+ const w=s===7?finalPool[gri(0,finalPool.length-1)]:s===6?gatePool[gri(0,gatePool.length-1)]:s===0?[0,0,1,2,3,4,5,6,11,14][gri(0,9)]:(risk?stormPool[gri(0,stormPool.length-1)]:safeWaves[gri(0,safeWaves.length-1)]);
 if(w===0){const yy=GR(180,465);for(let i=0;i<(safe?4:6);i++)queueEnemy('scout',W+60+i*68,cl(yy+Math.sin(i*.9)*66,122,H-70),{pattern:1})}
 else if(w===1){const n=safe?3:4;for(let i=0;i<n;i++)queueEnemy('dart',W+50+i*105,145+i*390/Math.max(1,n-1),{pattern:2})}
 else if(w===2){queueEnemy('tank',W+100,GR(195,490));for(let i=0;i<(safe?2:3);i++)queueEnemy('scout',W+230+i*85,GR(140,545))}
@@ -404,11 +406,14 @@ else if(w===13){queueEnemy('tank',W+115,GR(245,430));for(let i=0;i<4;i++)queueEn
 else if(w===14){const n=safe?4:6;for(let i=0;i<n;i++)queueEnemy('mine',W+80+i*98,i%2?H-135:135,{pattern:6})}
  else if(w===15){for(let i=0;i<3;i++)queueEnemy('spinner',W+90+i*110,185+i*130,{pattern:7});queueEnemy('dart',W+380,337,{pattern:7})}
  else if(w===16){for(let i=0;i<2;i++)queueEnemy('interceptor',W+110+i*130,205+i*260,{lockY:null,pattern:8});for(let i=0;i<2;i++)queueEnemy('mine',W+360+i*90,i?505:160,{pattern:8})}
+ else if(w===17){queueEnemy('carrier',W+110,340,{pattern:9});for(let i=0;i<(risk?3:2);i++)queueEnemy('spinner',W+260+i*105,i%2?480:195,{pattern:9})}
+ else if(w===18){for(let i=0;i<(risk?3:2);i++)queueEnemy('interceptor',W+120+i*130,i%2?470:190,{lockY:null,pattern:10});queueEnemy('tank',W+470,337,{pattern:10})}
 if(risk&&s===1&&gameRandom()>.7)queueEnemy('turret',W+420,gameRandom()>.5?125:H-110);
 if(risk&&s===2&&gameRandom()>.65)queueEnemy('spinner',W+450,GR(195,480));
  if(risk&&s===6&&gameRandom()>.7)queueEnemy('turret',W+490,gameRandom()>.5?125:540);
+ if(risk&&s===7&&gameRandom()>.72)queueEnemy('turret',W+540,gameRandom()>.5?155:520);
 if(!planned.length)return false;
-const names=['偵察編隊','高速突撃','重装護衛','旋回部隊','輸送護衛','砲台戦線','機雷帯','迎撃隊','重装迎撃','複合編隊','輸送船団','螺旋編隊','上下挟撃','槍型編隊','機雷の回廊','位相旋回隊','裂界追撃隊'];
+const names=['偵察編隊','高速突撃','重装護衛','旋回部隊','輸送護衛','砲台戦線','機雷帯','迎撃隊','重装迎撃','複合編隊','輸送船団','螺旋編隊','上下挟撃','槍型編隊','機雷の回廊','位相旋回隊','裂界追撃隊','終端輸送隊','収束迎撃隊'];
 const arranged=arrangeWave(planned);
 if(!arranged.units.length)return false;
 G.pendingWave={timer:1.35,label:names[w],units:arranged.units,kind:w,safeY:arranged.safeY,id:++G.waveSerial,phase:GR(0,TAU)};
@@ -821,7 +826,14 @@ function triggerRouteEvent(){
  const risk=G.routeRisk===1;
  if(risk&&G.enemies.length>routeProfile().maxEnemies-4)return;
  G.eventTriggered=true;G.eventCount++;
- if(ev.id==='salvage'||ev.id==='cache'){
+ if(ev.id==='finalBeacon'){
+   const earlierRisk=G.routeHistory.slice(0,-1).filter(r=>r.risk===1).length;
+   p.shield=Math.min(5,p.shield+1);chargeDrive(earlierRisk>=3?24:15);ring(p.x,p.y,110,'#ffe3a5',.55);
+  }else if(ev.id==='finalHunters'){
+   const earlierRisk=G.routeHistory.slice(0,-1).filter(r=>r.risk===1).length;
+   enemy('tank',W+120,340,{eventDrop:true});enemy('interceptor',W+275,205,{lockY:null});
+   if(earlierRisk>=3)enemy('spinner',W+425,485);
+  }else if(ev.id==='salvage'||ev.id==='cache'){
   pickup(W+80,337,true);
   }else if(ev.id==='phaseEcho'){chargeDrive(18);ring(p.x,p.y,110,'#88ffdb',.55)}else if(ev.id==='riftHunters'){enemy('interceptor',W+100,220,{lockY:null,eventDrop:true});enemy('interceptor',W+265,475,{lockY:null});enemy('spinner',W+415,337)}else if(ev.id==='archive'){
   p.shield=Math.min(5,p.shield+1);chargeDrive(12);ring(p.x,p.y,100,'#7ae5be',.7);
@@ -902,9 +914,9 @@ function planTerrain(){
  if(G.enemies.length!==0||G.bullets.length!==0||G.directorGrace>0)return false;
  const roll=mixSeed(G.runSeed,G.stage+113,G.terrainIndex*17+G.routeRisk*7);
  const safeLane=TERRAIN_LANES.reduce((best,y,i)=>Math.abs(p.y-y)<Math.abs(p.y-TERRAIN_LANES[best])?i:best,0);
- const type=G.stage===6?(G.routeRisk?'fracture':'membrane'):G.stage===5?(G.routeRisk?'seal':'rune'):G.stage===4?(G.routeRisk?'blizzard':'ice'):G.stage===3?'flare':roll%2?'wreck':'ion';
+ const type=G.stage===7?(G.routeRisk?'gravity':'prism'):G.stage===6?(G.routeRisk?'fracture':'membrane'):G.stage===5?(G.routeRisk?'seal':'rune'):G.stage===4?(G.routeRisk?'blizzard':'ice'):G.stage===3?'flare':roll%2?'wreck':'ion';
  G.terrain={type,phase:'warning',timer:2.1,x:W+135,speed:215+((roll>>>4)%4)*12+(G.stage===4&&G.routeRisk?22:0),
-  safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:type==='ice'?185:type==='rune'?190:type==='membrane'?205:9999})),seed:roll};
+  safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:type==='ice'?185:type==='rune'?190:type==='membrane'?205:type==='prism'?230:9999})),seed:roll};
  G.terrainIndex++;G.spawn=Math.max(G.spawn,3);
  tone(420,.16,'triangle',.045,-190);
  return true;
@@ -946,7 +958,14 @@ function drawTerrain(){
    if(block.hp<=0)continue;
    const x=t.x,y=block.y;
    c.save();c.translate(x,y);
-   if(t.type==='membrane'||t.type==='fracture'){
+   if(t.type==='prism'||t.type==='gravity'){
+   const gravity=t.type==='gravity',edge=gravity?'#d9a1fa':'#f9e6a2';
+   c.rotate(G.time*.16);c.shadowColor=edge;c.shadowBlur=14;
+   poly([-64,0,-22,-61,37,-55,69,0,30,58,-32,62],gravity?'#442653':'#736444',edge,3);
+   for(let j=0;j<4;j++){const aa=j*TAU/4+G.time*.45;
+    line(Math.cos(aa)*43,Math.sin(aa)*43,Math.cos(aa+.6)*29,Math.sin(aa+.6)*29,edge,2)}
+   glowCircle(0,0,14,edge,8);
+  }else if(t.type==='membrane'||t.type==='fracture'){
  const fracture=t.type==='fracture';c.rotate(Math.sin(G.time*1.1+block.y)*.035);
  c.globalAlpha=.82;c.shadowColor=fracture?'#e69aff':'#75ffda';c.shadowBlur=14;
  ellipse(0,0,62,66,fracture?'#43265d':'#205b60',fracture?'#ecb0ff':'#abffe6',3);
@@ -1039,7 +1058,7 @@ if(b.hp<=0){explosion(b.x-60,b.y,170);emit(b.x,b.y,180,'#ffe3a6',800);addScore(1
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
 let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=e.type==='tank'||e.type==='carrier'?39:23;if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
-if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'||G.terrain.type==='rune'||G.terrain.type==='membrane'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
+if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'||G.terrain.type==='rune'||G.terrain.type==='membrane'||G.terrain.type==='prism'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){G.boss.hp-=s.dmg;applyShotSynergy(s,G.boss);emit(s.x,s.y,ri(2,4),'#ffca82',95);s.pierce--;if(s.pierce<=0)gone=true}
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt*(terrainApproaching()?2.2:1);if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
@@ -1052,8 +1071,8 @@ function poly(points,fill,stroke,width=1){c.beginPath();c.moveTo(points[0],point
 function glowCircle(x,y,r,col,blur=16){c.save();c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.restore()}
 function ellipse(x,y,rx,ry,fill,stroke,width=1){c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fillStyle=fill;c.fill();if(stroke){c.lineWidth=width;c.strokeStyle=stroke;c.stroke()}}
 function line(x,y,x2,y2,color,w=1){c.strokeStyle=color;c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke()}
-function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else if(stage===3){grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}else if(stage===4){grad.addColorStop(0,'#091f37');grad.addColorStop(.5,G.routeRisk?'#25455e':'#1b5b76');grad.addColorStop(1,'#071b35')}else if(stage===5){grad.addColorStop(0,G.routeRisk?'#241332':'#0a2427');grad.addColorStop(.5,G.routeRisk?'#40305b':'#285047');grad.addColorStop(1,G.routeRisk?'#150d29':'#071d22')}else{grad.addColorStop(0,G.routeRisk?'#240d43':'#062f3a');grad.addColorStop(.5,G.routeRisk?'#4a2265':'#19646a');grad.addColorStop(1,G.routeRisk?'#0a1032':'#061b32')}c.fillStyle=grad;c.fillRect(0,0,W,H);
-const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:stage===3?['#ee8037','#c43942','#ffc059'][i]:stage===4?['#b5e8ff','#4e8fb6','#d7faff'][i]:stage===5?(G.routeRisk?['#8853c4','#4d397c','#bd8fcf']:['#79d8a9','#5b9b91','#d1c387'])[i]:(G.routeRisk?['#a44ed6','#5d3eb3','#b56bff']:['#54b6bb','#57d7b4','#82e9f3'])[i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
+function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else if(stage===3){grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}else if(stage===4){grad.addColorStop(0,'#091f37');grad.addColorStop(.5,G.routeRisk?'#25455e':'#1b5b76');grad.addColorStop(1,'#071b35')}else if(stage===5){grad.addColorStop(0,G.routeRisk?'#241332':'#0a2427');grad.addColorStop(.5,G.routeRisk?'#40305b':'#285047');grad.addColorStop(1,G.routeRisk?'#150d29':'#071d22')}else if(stage===7){grad.addColorStop(0,G.routeRisk?'#180b31':'#141d30');grad.addColorStop(.5,G.routeRisk?'#4c225c':'#5c493d');grad.addColorStop(1,G.routeRisk?'#080b1e':'#171e2b')}else{grad.addColorStop(0,G.routeRisk?'#240d43':'#062f3a');grad.addColorStop(.5,G.routeRisk?'#4a2265':'#19646a');grad.addColorStop(1,G.routeRisk?'#0a1032':'#061b32')}c.fillStyle=grad;c.fillRect(0,0,W,H);
+const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:stage===3?['#ee8037','#c43942','#ffc059'][i]:stage===4?['#b5e8ff','#4e8fb6','#d7faff'][i]:stage===5?(G.routeRisk?['#8853c4','#4d397c','#bd8fcf']:['#79d8a9','#5b9b91','#d1c387'])[i]:stage===7?(G.routeRisk?['#ac59c9','#743d8b','#d18edc']:['#d5b56d','#9d7c63','#ffdaa2'])[i]:(G.routeRisk?['#a44ed6','#5d3eb3','#b56bff']:['#54b6bb','#57d7b4','#82e9f3'])[i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
 for(const s of G.stars){let x=((s.x-G.scroll*s.z*.22)%(W+20)+W+20)%(W+20),y=s.y,a=.38+Math.sin(G.time*.8+s.tw)*.22+s.z*.11;c.globalAlpha=cl(a,0,1);c.fillStyle=s.z>1.9?'#d8faff':'#8babc6';c.fillRect(x,y,s.size*s.z*.75,s.size*s.z*.75);if(s.z>1.6)line(x+1,y,x+2+G.scroll%7*s.z,y,'#9cd9f0',.5)}c.globalAlpha=1;
 if(stage===0){for(let i=0;i<13;i++){const x=((i*232-G.scroll*.6)%(W+300)+W+300)%(W+300)-120,y=100+((i*181)%520),r=14+(i*29)%65;c.save();c.translate(x,y);c.rotate(i*1.2+G.time*.03);poly([-r,0,-r*.75,-r*.65,r*.22,-r*.9,r*.9,-r*.28,r*.72,r*.7,-r*.2,r],i%2?'#172c42':'#1e394f','#315169',1.2);poly([-r*.35,-r*.2,-r*.1,-r*.46,r*.32,-r*.29,r*.4,-r*.08,r*.15,r*.13],'#35546a55');c.restore()}}
 if(stage===1){for(let i=0;i<10;i++){const x=((i*235-G.scroll*.74)%(W+320)+W+320)%(W+320)-160;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);poly([-130,0,136,0,108,40,95,88,-100,87], '#243045','#607286',2);c.fillStyle='#111c2b';c.fillRect(-102,24,180,37);for(let j=0;j<5;j++){c.fillStyle=(i+j)%2?'#6c798c':'#bf7d5c';c.fillRect(-92+j*35,29,13,6)}line(-106,89,106,89,'#d98959',2);c.restore()}}}
@@ -1073,6 +1092,14 @@ if(stage===5)for(let i=0;i<11;i++){
   c.save();c.translate(x,y);c.rotate(i*.18);c.globalAlpha=.8;
   poly([-r,-r,r,-r,r,r,-r,r],G.routeRisk?'#463b6d':'#315c56',G.routeRisk?'#a78bd5':'#9bc9ad',2);c.restore();
  }
+ if(stage===7)for(let i=0;i<13;i++){
+   const x=((i*233-G.scroll*(i%2?.31:.57))%(W+450)+W+450)%(W+450)-200;
+   const y=65+(i*113)%535,r=24+(i%4)*13;
+   c.save();c.translate(x,y);c.rotate(G.time*.035+i*.4);c.globalAlpha=.63;
+   c.strokeStyle=G.routeRisk?'#b990ff':'#f8d99b';c.lineWidth=2;
+   c.beginPath();c.ellipse(0,0,r*1.7,r*.7,0,0,TAU);c.stroke();
+   line(-r*.9,0,r*.9,0,G.routeRisk?'#b47ddc':'#ffdfb3',1.5);c.restore();
+  }
  if(stage===6)for(let i=0;i<12;i++){
   const x=((i*184-G.scroll*(i%2?.36:.65))%(W+420)+W+420)%(W+420)-190;
   const y=75+(i*139)%530,r=22+i%5*11;
