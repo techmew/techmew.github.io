@@ -4,14 +4,16 @@ const W=1200,H=675,TAU=Math.PI*2;
 const C=document.getElementById('game'),c=C.getContext('2d',{alpha:false});
 const $=id=>document.getElementById(id);
 const ui={overlay:$('overlay'),start:$('startBtn'),pause:$('sidePauseBtn'),sound:$('soundBtn'),score:$('score'),best:$('best'),mult:$('multiplier'),stage:$('stageLabel'),area:$('areaName'),progress:$('progressBar'),hp:$('hpRow'),lives:$('lives'),bombs:$('bombs'),boss:$('bossHud'),bossName:$('bossName'),bossBar:$('bossBar'),announce:$('announce'),small:$('announceSmall'),main:$('announceMain'),desc:$('announceDesc'),toast:$('toast'),meter:$('meterInfo'),upgrades:[...document.querySelectorAll('.upgrade')],equip:$('equipBtn'),pulse:$('pulseBtn')};
-const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN'];
-const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'カプセル +1 / パルス +1',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'カプセル +1 / パルス +1',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}]];
+const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB'];
+const STAGE_LENGTHS=[62,68,74,72],BOSS_HP=[1900,2650,3600,4250];
+const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'カプセル +1 / パルス +1',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'カプセル +1 / パルス +1',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'カプセル +1 / パルス +1',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}]];
 
 
 /* Event choices are rolled from the run seed and previous branch, not visual RNG. */
 const ROUTE_NAMES=[
  [['漂流船の回廊','青い残響','補給航路'],['プラズマ急流','赤い追跡線','雷光の峡谷']],
- [['星雲の静域','蒼光の水路','星屑の避難帯'],['紅色の裂け目','雷雲の回廊','深紅の追撃路']]
+ [['星雲の静域','蒼光の水路','星屑の避難帯'],['紅色の裂け目','雷雲の回廊','深紅の追撃路']],
+ [['火山灰の補給路','冷却管の峡谷','溶岩の迂回路'],['恒星フレア回廊','赤い突破線','熱圏の追撃路']]
 ];
 const ROUTE_EVENTS={
  safe:[
@@ -49,7 +51,7 @@ function routeProfile(){return G.stage===0?ROUTE_TUNING.normal:(G.routeRisk?ROUT
    Storms stay riskier than supply routes, while crowding and damage buy space.
    No difficulty values are added to the visible HUD. */
 function encounterDirector(){
- const tune=routeProfile(),phase=cl(G.stageTime/[62,68,74][G.stage],0,1);
+ const tune=routeProfile(),phase=cl(G.stageTime/STAGE_LENGTHS[G.stage],0,1);
  const base=G.stage===0?.32:(G.routeRisk===1?.57:.27);
  const crowd=cl(G.enemies.length/tune.maxEnemies,0,1);
  const bullets=cl(G.bullets.length/55,0,1);
@@ -161,7 +163,7 @@ function readCheckpoint(){
  try{
   const raw=localStorage.getItem(CHECKPOINT_KEY);if(!raw)return null;
   const d=JSON.parse(raw),int=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
-  if(!d||d.v!==1||!['sector','route','reward'].includes(d.mode)||!int(d.stage,0,2)||!int(d.runSeed,0,0xffffffff)||
+  if(!d||d.v!==1||!['sector','route','reward'].includes(d.mode)||!int(d.stage,0,NAMES.length-1)||!int(d.runSeed,0,0xffffffff)||
     !int(d.score,0,1e9)||!int(d.lives,1,3)||!int(d.pulses,0,5)||!int(d.energy,0,6)||
     !int(d.selected,0,5)||!Array.isArray(d.levels)||d.levels.length!==6||!d.levels.every((v,i)=>int(v,0,MAX[i]))||
     !Array.isArray(d.routeHistory)||d.routeHistory.length!==d.stage||!int(d.routeRisk,0,1)||
@@ -170,8 +172,8 @@ function readCheckpoint(){
     d.routeHistory.some((r,i)=>!r||r.stage!==i+2||!int(r.risk,0,1)||typeof r.route!=='string'||r.route.length>30||
       typeof r.event!=='string'||r.event.length>30)||
     (d.stage===0&&d.routeRisk!==0)||(d.stage>0&&d.routeRisk!==d.routeHistory[d.stage-1].risk)||
-    (d.mode==='reward'&&d.stage>=2)||
-    (d.rewardHistory!==undefined&&(!Array.isArray(d.rewardHistory)||d.rewardHistory.length>2||d.rewardHistory.some((r,i)=>!r||!Number.isInteger(r.stage)||r.stage!==i||typeof r.id!=='string'||r.id.length>24||typeof r.name!=='string'||r.name.length>40)))||
+    (d.mode==='reward'&&d.stage>=NAMES.length-1)||
+    (d.rewardHistory!==undefined&&(!Array.isArray(d.rewardHistory)||d.rewardHistory.length>NAMES.length-1||d.rewardHistory.some((r,i)=>!r||!Number.isInteger(r.stage)||r.stage!==i||typeof r.id!=='string'||r.id.length>24||typeof r.name!=='string'||r.name.length>40)))||
     (d.passives!==undefined&&(!Array.isArray(d.passives)||d.passives.length!==PASSIVES.length||!d.passives.every(v=>int(v,0,2)))))throw Error('invalid checkpoint');
   return d;
  }catch(e){try{localStorage.removeItem(CHECKPOINT_KEY)}catch(err){}return null}
@@ -223,7 +225,7 @@ function melody(dt){if(sound&&bgm)bgm.update(G.stage,!!G.boss)}
 function showToast(txt){ui.toast.textContent=txt;ui.toast.classList.add('show');G.toastTime=2}
 function showAnnounce(head,title,sub,duration=3){ui.small.textContent=head;ui.main.textContent=title;ui.desc.textContent=sub;ui.announce.classList.add('show');G.announceTime=duration}
 function hideOverlay(){ui.overlay.classList.add('hidden')}
-function showOverlay(kind){ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全3ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='MISSION START <span>▶</span>'}}
+function showOverlay(kind){ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='MISSION START <span>▶</span>'}}
 function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;G.mode='playing';$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=1.4;G.score=0;G.combo=0;G.comboTime=0;G.lives=3;G.pulses=2;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:3,invul:2,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
 function pause(){if(G.mode==='playing'){G.mode='paused';resetStick();showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}$('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>'}
 function endGame(victory=false){G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';clearCheckpoint();if(G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
@@ -288,7 +290,7 @@ C.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==pid||G.mode!=='
 const release=e=>{if(e.pointerId===pid){dragging=false;pid=-1}};C.addEventListener('pointerup',release);C.addEventListener('pointercancel',release);
 function equip(){if(G.mode!=='playing')return;const i=G.selected,need=i+1;if(G.energy<need){showToast('カプセルが足りません');tone(150,.1,'triangle',.025);return}if(G.levels[i]>=MAX[i]){showToast('最大強化済み');return}G.energy-=need;G.levels[i]++;if(i===5)p.shield=3+G.levels[i];if(i===4)G.trail.length=0;for(let j=0;j<110;j++)G.trail.push({x:p.x-j*3,y:p.y});ring(p.x,p.y,115,'#64eaff',.65);emit(p.x,p.y,36,'#7df8ff',260);tone(430,.25,'sawtooth',.09,780);const synergy=SYNERGIES.find(s=>s.weapon===i&&passiveRank(s.passive)>0);showToast(synergy?'SYNERGY · '+synergy.name:PNAMES[i]+' LEVEL '+G.levels[i]);G.selected=0;updateHud()}
 function pulse(){if(G.mode!=='playing'||G.pulses<=0)return;G.pulses--;G.shake=17;screenPulse=.85;G.bullets=[];if(G.terrain?.phase==='active')G.terrain.blocks.forEach(b=>b.hp=0);p.invul=Math.max(p.invul,.65);ring(p.x,p.y,1250,'#a6faff',.75);emit(p.x,p.y,85,'#8bf4ff',460);G.enemies.forEach(e=>{e.hp-=Math.round(75*(1+.30*passiveRank(4)));emit(e.x,e.y,7,'#ffca81',160)});if(G.boss)G.boss.hp-=Math.round(110*(1+.30*passiveRank(4)));tone(120,.8,'sawtooth',.14,800);showToast('SHOCK PULSE');updateHud()}
-function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/(G.stage===0?62:G.stage===1?68:74)*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='PULSE '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+(G.overdrive>0?' · DRIVE '+Math.ceil(G.overdrive)+'s':'');ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'パッシブ：未取得';ui.upgrades.forEach((b,i)=>{b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',G.energy>=i+1&&G.levels[i]<MAX[i]);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);b.querySelector('.u-key').textContent=G.levels[i]?'LV '+G.levels[i]:(String(i+1).padStart(2,'0'))});ui.equip.disabled=G.mode!=='playing'||G.energy<G.selected+1||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;$('sideEquipBtn').disabled=ui.equip.disabled;$('sidePulseBtn').disabled=ui.pulse.disabled;ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
+function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='PULSE '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+(G.overdrive>0?' · DRIVE '+Math.ceil(G.overdrive)+'s':'');ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'パッシブ：未取得';ui.upgrades.forEach((b,i)=>{b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',G.energy>=i+1&&G.levels[i]<MAX[i]);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);b.querySelector('.u-key').textContent=G.levels[i]?'LV '+G.levels[i]:(String(i+1).padStart(2,'0'))});ui.equip.disabled=G.mode!=='playing'||G.energy<G.selected+1||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;$('sideEquipBtn').disabled=ui.equip.disabled;$('sidePulseBtn').disabled=ui.pulse.disabled;ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
 function ring(x,y,max,color,life=.6){G.rings.push({x,y,r:4,max,color,life,t:0})}
 function emit(x,y,num,color,power=160){for(let i=0;i<num;i++){const a=R(0,TAU),s=R(power*.15,power);G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:R(.2,.85),maxLife:.85,size:R(1.2,4.4),color,glow:Math.random()>.55})}}
 function explosion(x,y,r=32){emit(x,y,Math.round(r*.85),'#ffb66c',r*7);emit(x,y,Math.round(r*.4),'#70dcff',r*4);ring(x,y,r*3,'#ffbd88');G.shake=Math.min(25,G.shake+r*.12);tone(R(70,115),.2,'sawtooth',.038,-50)}
@@ -419,8 +421,8 @@ function fireEnemy(e,target=null){if(e.type==='mine'||e.type==='interceptor')ret
 /* Boss variants are tied to the chosen branch, so legacy bosses remain playable.
    Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
    The first sector and the other two branches retain their original bosses. */
-function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':'original'}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':BOSSES[G.stage];const hp=Math.round([1900,2650,3600][G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
+function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':'crab'):'original'}
+function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':BOSSES[G.stage];const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -430,7 +432,14 @@ function creatureBossAttack(b){
   b.charge=1.15;b.beamY=cl(p.y,112,H-88);b.fire=2.65;b.pattern++;
   tone(octo?190:140,.3,'sawtooth',.045,-75);return;
  }
- if(octo){
+ if(b.variant==='crab'||b.variant==='solarwyrm'){
+  const crab=b.variant==='crab';
+  if(b.pattern%3===0){for(const side of [-1,1])for(let i=0;i<4;i++){
+   const y=cl(b.y+side*(90+i*33),80,H-75),x=b.x-145;
+   bullet(x,y,Math.atan2(p.y-y,p.x-x)+side*.11,crab?210:238,5,crab?'#ffb574':'#ffdb8c');
+  }}else if(b.pattern%3===1){const a=aim(b.x-140,b.y);for(let i=-3;i<=3;i++)bullet(b.x-140,b.y,a+i*.19,225,5,'#ff936a')}
+  else for(let i=-2;i<=2;i++)if(i!==0)bullet(b.x-130,b.y+i*51,Math.PI,210,5,'#ff789c');
+ }else if(octo){
   if(b.pattern%3===0){ // Four clearly separated tentacle tips, paired aimed bolts.
    for(const side of [-1,1])for(let k=0;k<2;k++){
     const y=cl(b.y+side*(68+k*68),80,H-70),x=b.x-136+k*19;
@@ -486,21 +495,21 @@ tone(165,.11,'triangle',.015,50)
 /* Navigation map: a fixed three-sector graph. Completed edges and the current
    ship position are derived only from the route history, never guessed. */
 function renderRouteMap(){
- const x=[86,450,814],top=40,bottom=138,center=90;
+ const x=Array.from({length:NAMES.length},(_,i)=>86+i*728/(NAMES.length-1)),top=40,bottom=138,center=90;
  const at=(sector,risk)=>({x:x[sector],y:sector===0?center:(risk?bottom:top)});
  const currentRisk=G.stage===0?0:(G.routeHistory[G.stage-1]?.risk||0);
  const edges=[];
- for(let sector=1;sector<3;sector++){
+ for(let sector=1;sector<NAMES.length;sector++){
   for(const sourceRisk of (sector===1?[0]:[0,1]))for(const risk of [0,1]){
-   const a=at(sector-1,sourceRisk),b=at(sector,risk);
+   const a=at(sector-1,sourceRisk),b=at(sector,risk),curve=(b.x-a.x)*.36;
    const selected=sector<=G.stage&&G.routeHistory[sector-1]?.risk===risk&&(sector===1||G.routeHistory[sector-2]?.risk===sourceRisk);
    const offered=sector===G.stage+1&&(sector===1||sourceRisk===currentRisk);
    const cls=selected?'complete':offered?(risk?'offered risk':'offered safe'):'future';
-   edges.push('<path class="map-edge '+cls+'" d="M'+a.x+' '+a.y+' C'+(a.x+140)+' '+a.y+' '+(b.x-140)+' '+b.y+' '+b.x+' '+b.y+'"/>');
+   edges.push('<path class="map-edge '+cls+'" d="M'+a.x+' '+a.y+' C'+(a.x+curve)+' '+a.y+' '+(b.x-curve)+' '+b.y+' '+b.x+' '+b.y+'"/>');
   }
  }
  const nodes=[];
- for(let sector=0;sector<3;sector++){
+ for(let sector=0;sector<NAMES.length;sector++){
   for(const risk of (sector===0?[0]:[0,1])){
    const pt=at(sector,risk),isCurrent=sector===G.stage&&(sector===0||risk===currentRisk);
    const completed=sector<G.stage&&(sector===0||G.routeHistory[sector-1]?.risk===risk);
@@ -517,9 +526,7 @@ function renderRouteMap(){
   }
  }
  const svg='<svg viewBox="0 0 900 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
-  '<text class="map-sector" x="86" y="13" text-anchor="middle">SECTOR 01</text>'+
-  '<text class="map-sector" x="450" y="13" text-anchor="middle">SECTOR 02</text>'+
-  '<text class="map-sector" x="814" y="13" text-anchor="middle">SECTOR 03</text>'+
+  x.map((value,i)=>'<text class="map-sector" x="'+value+'" y="13" text-anchor="middle">SECTOR '+String(i+1).padStart(2,'0')+'</text>').join('')+
   edges.join('')+nodes.join('')+'</svg>';
  const current=G.stage===0?'出撃地点':G.routeHistory[G.stage-1]?.route||NAMES[G.stage];
  const next=G.routeOffers;
@@ -610,7 +617,7 @@ function selectRewardCard(index){
  }
 }
 function openReward(){
- if(G.stage>=2){endGame(true);return}
+ if(G.stage>=NAMES.length-1){endGame(true);return}
  G.mode='reward';G.transitioning=false;resetStick();bgm?.stop();
  G.rewardOffers=rewardOptions();G.rewardSelected=0;
  $('rewardStage').textContent='SECTOR 0'+(G.stage+1)+' CLEAR';
@@ -676,16 +683,16 @@ for(let i=0;i<3;i++){
 }
 
 function openRoute(){
- if(G.stage>=2){endGame(true);return}
+ if(G.stage>=NAMES.length-1){endGame(true);return}
  G.mode='route';G.transitioning=false;resetStick();bgm?.stop();
  const options=G.routeOffers=[routeOffer(G.stage,0),routeOffer(G.stage,1)],panel=$('routePanel');
  $('routeHeading').textContent='次の航路を選択';
  $('routeNextSector').textContent='SECTOR 0'+(G.stage+2);$('routeSeed').textContent='SEED '+seedHex(G.runSeed);
  $('routeSafeName').textContent=options[0].name;
- $('routeSafeDesc').textContent='EVENT · '+options[0].event.name+(options[0].chain?' · 連続航路':'');
+ $('routeSafeDesc').textContent='BOSS · '+(G.stage===0?'KRAKEN ENGINE':G.stage===1?'ABYSS TITAN':'MOLTEN CRAB')+' / EVENT · '+options[0].event.name+(options[0].chain?' · 連続航路':'');
  $('routeSafeBonus').textContent=options[0].bonus+' · '+options[0].event.short;
  $('routeRiskName').textContent=options[1].name;
- $('routeRiskDesc').textContent='EVENT · '+options[1].event.name+(options[1].chain?' · 連続航路':'');
+ $('routeRiskDesc').textContent='BOSS · '+(G.stage===0?'FORTRESS CORE':G.stage===1?'IRON TYRANT':'SOLAR WYRM')+' / EVENT · '+options[1].event.name+(options[1].chain?' · 連続航路':'');
  $('routeRiskBonus').textContent=options[1].bonus+' · '+options[1].event.short;
  $('routeSafe').title=options[0].event.desc;$('routeRisk').title=options[1].event.desc;
  G.routeSelected=0;panel.classList.add('open');selectRouteCard(0);saveCheckpoint('route');tone(440,.2,'triangle',.04,210);
@@ -745,7 +752,7 @@ function triggerRouteEvent(){
 }
 
 function stageClear(){G.pendingWave=null;G.terrain=null;G.boss=null;G.bossDone=true;G.transitioning=true;G.transition=3.5;G.bullets=[];G.pulses=Math.min(5,G.pulses+1);p.hp=Math.min(3,p.hp+1);G.score+=5000*(G.stage+1);chargeDrive(22);showAnnounce('SECTOR CLEAR',NAMES[G.stage],'+ BONUS 5000 · ARMOR RECOVERED',3.1);tone(470,.55,'triangle',.055,450)}
-function nextStage(){G.stage++;if(G.stage>=3){endGame(true);return}G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.directorGrace=0;G.directorWaveCount=0;seedStage();resetTerrain();G.stageTime=0;G.spawn=2*routeProfile().spawnInterval;G.transitioning=false;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=2.5;p.shield=Math.min(5,p.shield+passiveRank(3));showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],3.4);tone(400,.3,'sine',.04,350)}
+function nextStage(){G.stage++;if(G.stage>=NAMES.length){endGame(true);return}G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.directorGrace=0;G.directorWaveCount=0;seedStage();resetTerrain();G.stageTime=0;G.spawn=2*routeProfile().spawnInterval;G.transitioning=false;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=2.5;p.shield=Math.min(5,p.shield+passiveRank(3));showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],3.4);tone(400,.3,'sine',.04,350)}
 function hitPlayer(damage=1){if(p.invul>0||G.mode!=='playing')return;if(p.shield>0){G.directorGrace=Math.max(G.directorGrace,4.5);G.spawn=Math.max(G.spawn,3.2);p.shield--;p.invul=.7;ring(p.x,p.y,62,'#5df4ff');
  if(synergyActive(4)){
   const radius=115+35*passiveRank(3);
@@ -772,12 +779,12 @@ function resetTerrain(){
 function terrainApproaching(){
  // Reserve six seconds before each terrain encounter for a clear, dodgeable lane.
  // Existing enemies retreat and stop shooting; bullets expire naturally.
- return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]-6&&G.stageTime<=[62,68,74][G.stage]-11;
+ return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]-6&&G.stageTime<=STAGE_LENGTHS[G.stage]-11;
 }
-function terrainQueued(){return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]&&G.stageTime<=[62,68,74][G.stage]-11}
+function terrainQueued(){return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]&&G.stageTime<=STAGE_LENGTHS[G.stage]-11}
 function planTerrain(){
  if(G.terrain||G.terrainIndex>=2||G.boss||G.bossDone||G.transitioning||G.pendingWave||G.mode!=='playing')return false;
- if(G.stageTime<G.terrainSchedule[G.terrainIndex]||G.stageTime>[62,68,74][G.stage]-11)return false;
+ if(G.stageTime<G.terrainSchedule[G.terrainIndex]||G.stageTime>STAGE_LENGTHS[G.stage]-11)return false;
  // The hazard occupies two lanes: do not start it while stray enemies or shots
  // could enter the one remaining escape corridor. Wait until the field is clear.
  if(G.enemies.length!==0||G.bullets.length!==0||G.directorGrace>0)return false;
@@ -861,7 +868,7 @@ G.trail.unshift({x:p.x,y:p.y});if(G.trail.length>140)G.trail.length=140;
 if(Math.random()>.1)G.particles.push({x:p.x-37,y:p.y+R(-7,7),vx:-R(165,330),vy:R(-30,30),life:R(.15,.4),maxLife:.4,size:R(2,5),color:Math.random()>.4?'#30e6ff':'#ffce77',glow:true});
 G.fireTimer-=dt;if(G.fireTimer<=0){playerFire();G.fireTimer=(G.levels[2]>0?.22:.165)*(G.overdrive>0?.59:1)*Math.pow(.88,passiveRank(0))}
 G.missileTimer-=dt;if(G.missileTimer<=0){missileFire();G.missileTimer=G.overdrive>0?.7:1.15}
-if(!G.boss&&!G.bossDone&&!G.transitioning){triggerRouteEvent();const deadline=[62,68,74][G.stage];if(G.stageTime>=deadline)spawnBoss();else{G.spawn-=dt;if(G.spawn<=0){G.spawn=G.terrain||terrainApproaching()||terrainQueued()?1.25:(spawnWave()?nextWaveDelay():1.15)}if(Math.floor((G.stageTime-dt)/9)<Math.floor(G.stageTime/9))pickup(W-20,GR(155,525),true)}}
+if(!G.boss&&!G.bossDone&&!G.transitioning){triggerRouteEvent();const deadline=STAGE_LENGTHS[G.stage];if(G.stageTime>=deadline)spawnBoss();else{G.spawn-=dt;if(G.spawn<=0){G.spawn=G.terrain||terrainApproaching()||terrainQueued()?1.25:(spawnWave()?nextWaveDelay():1.15)}if(Math.floor((G.stageTime-dt)/9)<Math.floor(G.stageTime/9))pickup(W-20,GR(155,525),true)}}
 if(G.pendingWave){G.pendingWave.timer-=dt;if(G.pendingWave.timer<=0){const wave=G.pendingWave;G.pendingWave=null;wave.units.forEach((u,i)=>enemy(u.type,u.x,u.y,{...u.extra,squadId:wave.id,squadKind:wave.kind,squadSlot:i,squadSize:wave.units.length,aiHomeY:u.y,aiPhase:wave.phase,aiSafeY:wave.safeY,aiVolleyArmed:true}))}}
 if(G.transitioning){G.transition-=dt;if(G.transition<=0){openReward();return}}
 for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140)*routeProfile().speed;e.x-=(vx+(terrainApproaching()?390:0))*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}if(e.type!=='interceptor')moveEnemyAI(e,dt);
@@ -888,7 +895,7 @@ if(b.hp<=0){explosion(b.x-60,b.y,170);emit(b.x,b.y,180,'#ffe3a6',800);addScore(1
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
 let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=e.type==='tank'||e.type==='carrier'?39:23;if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.terrain?.phase==='active'&&G.terrain.type==='wreck')for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
-if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage===2?110:100)){G.boss.hp-=s.dmg;applyShotSynergy(s,G.boss);emit(s.x,s.y,ri(2,4),'#ffca82',95);s.pierce--;if(s.pierce<=0)gone=true}
+if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){G.boss.hp-=s.dmg;applyShotSynergy(s,G.boss);emit(s.x,s.y,ri(2,4),'#ffca82',95);s.pierce--;if(s.pierce<=0)gone=true}
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt;if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
 for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('PULSE +1')}else{G.energy=Math.min(6,G.energy+1);G.selected=Math.max(0,Math.min(5,G.energy-1));showToast('POWER CAPSULE +1')}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
@@ -900,12 +907,15 @@ function poly(points,fill,stroke,width=1){c.beginPath();c.moveTo(points[0],point
 function glowCircle(x,y,r,col,blur=16){c.save();c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.restore()}
 function ellipse(x,y,rx,ry,fill,stroke,width=1){c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fillStyle=fill;c.fill();if(stroke){c.lineWidth=width;c.strokeStyle=stroke;c.stroke()}}
 function line(x,y,x2,y2,color,w=1){c.strokeStyle=color;c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke()}
-function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else{grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}c.fillStyle=grad;c.fillRect(0,0,W,H);
-const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:['#943679','#1e8b9b','#723681'][i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
+function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else{grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}c.fillStyle=grad;c.fillRect(0,0,W,H);
+const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:['#ee8037','#c43942','#ffc059'][i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
 for(const s of G.stars){let x=((s.x-G.scroll*s.z*.22)%(W+20)+W+20)%(W+20),y=s.y,a=.38+Math.sin(G.time*.8+s.tw)*.22+s.z*.11;c.globalAlpha=cl(a,0,1);c.fillStyle=s.z>1.9?'#d8faff':'#8babc6';c.fillRect(x,y,s.size*s.z*.75,s.size*s.z*.75);if(s.z>1.6)line(x+1,y,x+2+G.scroll%7*s.z,y,'#9cd9f0',.5)}c.globalAlpha=1;
 if(stage===0){for(let i=0;i<13;i++){const x=((i*232-G.scroll*.6)%(W+300)+W+300)%(W+300)-120,y=100+((i*181)%520),r=14+(i*29)%65;c.save();c.translate(x,y);c.rotate(i*1.2+G.time*.03);poly([-r,0,-r*.75,-r*.65,r*.22,-r*.9,r*.9,-r*.28,r*.72,r*.7,-r*.2,r],i%2?'#172c42':'#1e394f','#315169',1.2);poly([-r*.35,-r*.2,-r*.1,-r*.46,r*.32,-r*.29,r*.4,-r*.08,r*.15,r*.13],'#35546a55');c.restore()}}
 if(stage===1){for(let i=0;i<10;i++){const x=((i*235-G.scroll*.74)%(W+320)+W+320)%(W+320)-160;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);poly([-130,0,136,0,108,40,95,88,-100,87], '#243045','#607286',2);c.fillStyle='#111c2b';c.fillRect(-102,24,180,37);for(let j=0;j<5;j++){c.fillStyle=(i+j)%2?'#6c798c':'#bf7d5c';c.fillRect(-92+j*35,29,13,6)}line(-106,89,106,89,'#d98959',2);c.restore()}}}
 if(stage===2){for(let i=0;i<9;i++){let x=((i*196-G.scroll*.65)%(W+320)+W+320)%(W+320)-140;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);c.fillStyle='#361e43';c.beginPath();c.moveTo(-120,0);c.lineTo(120,0);c.bezierCurveTo(80,110,30,78,-25,115);c.bezierCurveTo(-55,72,-100,80,-120,0);c.fill();c.strokeStyle='#a64d8277';c.lineWidth=4;c.stroke();for(let j=0;j<5;j++)glowCircle(-82+j*43,27+Math.sin(j*2+i)*23,4,'#dd60c4',10);c.restore()}}}
+if(stage===3){for(let i=0;i<10;i++){const x=((i*231-G.scroll*.58)%(W+340)+W+340)%(W+340)-120;
+  for(const side of [-1,1]){c.save();c.translate(x,side<0?0:H);c.scale(1,side<0?1:-1);
+  poly([-90,0,95,0,66,91+i%3*17,-47,111+i%4*16],'#572b33','#c06a53',2);c.restore()}}}
 c.globalAlpha=.13;c.fillStyle='#9dc8e3';for(let y=0;y<H;y+=5)c.fillRect(0,y,W,.55);c.globalAlpha=1;
 const outer=c.createLinearGradient(0,0,W,0);outer.addColorStop(0,'#00000033');outer.addColorStop(.5,'#00000000');outer.addColorStop(1,'#00000033');c.fillStyle=outer;c.fillRect(0,0,W,H)}
 function drawShip(x,y,angle=0,invul=0){if(invul>0&&Math.sin(G.time*20)>0.55)return;c.save();c.translate(x,y);c.rotate(angle);const flame=25+Math.sin(G.time*34)*14;
@@ -924,7 +934,27 @@ function drawCreatureBoss(b){
  c.save();c.translate(b.x,b.y);
  const hurt=b.phase===1,t=b.t,octo=b.variant==='octopus';
  c.shadowColor=octo?'#d47bff':'#ff9454';c.shadowBlur=10;
- if(octo){
+ if(b.variant==='crab'){
+  // Mechanical crab: articulated claws, shell armor and exposed core.
+  for(const side of [-1,1]){c.save();c.scale(1,side);
+   poly([-30,40,65,60,125,123,70,149,5,93],'#8b493c','#ffc187',3);
+   poly([-83,70,-169,99,-205,52,-144,29,-77,38],'#bc6044','#ffdb99',3);
+   for(let j=0;j<3;j++)poly([10+j*40,44,55+j*25,99,66+j*24,126,39+j*26,69],'#653b47','#ed986c',2);
+   c.restore()}
+  ellipse(0,0,110,85,'#5d3442','#ffcb81',4);
+  poly([-83,-22,16,-75,108,-29,118,26,19,68,-83,21],'#a65a43','#ffe5a1',3);
+  for(let i=0;i<5;i++)poly([-50+i*27,-55,-40+i*27,-83,-21+i*27,-52],'#bf6648','#ffdc9b',2);
+  glowCircle(-54,0,33,hurt?'#ff5b88':'#ffc76b',15);
+ }else if(b.variant==='solarwyrm'){
+  // Solar serpent with broad wings, separate from the armored dinosaur.
+  for(let i=0;i<7;i++){const x=50+i*24,y=i*17-35+Math.sin(t*2+i)*11;
+   ellipse(x,y,32-i*2,28-i,'#773e4e','#ffad77',2)}
+  for(const side of [-1,1]){c.save();c.scale(1,side);
+   poly([-6,18,62,40,125,151,41,114,-58,47],'#ac4750','#ffe4ab',3);c.restore()}
+  poly([-33,-41,-123,-89,-183,-55,-202,-8,-146,24,-60,37],'#873a55','#ffca88',4);
+  poly([-198,-4,-108,8,-43,27,-115,46,-187,34],'#613449','#ffe0a6',2);
+  glowCircle(-134,-55,10,'#fff0aa',12);glowCircle(-44,0,31,hurt?'#ff4b88':'#ffd16c',17);
+ }else if(octo){
   // Eight individually animated, plated arms are procedural, not borrowed art.
   for(let i=0;i<8;i++){
    const upper=i<4,side=upper?-1:1,k=i%4;
