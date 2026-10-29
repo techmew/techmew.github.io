@@ -316,6 +316,21 @@ const WEATHERS=[
  {label:'≋ 霧',sky:'#d2e0e4',tension:.015,time:1.5,wave:.15}
 ];
 let weatherIndex=(st.show.round-1)%WEATHERS.length,weatherPrev=weatherIndex,weatherFade=1,weatherChangedAt=performance.now();
+// Distinct sky and water palettes fade together with the weather mechanics.
+const SEA_WEATHER_COLORS=[
+ ['#78cfe3','#b8e8d9','#73c8ca','#0f6481','#79c5c5','#0c5274'],
+ ['#9bbcc8','#d0d9d5','#729eae','#315a76','#6e9fac','#244e6a'],
+ ['#769eb7','#a9c3ca','#527f9c','#1d496b','#5c8ca3','#143f63'],
+ ['#405a78','#7c91a4','#3b667f','#112f4e','#477188','#102e4c'],
+ ['#b3c9cb','#d8e2de','#91b5b4','#456c78','#8db0b0','#386574']
+];
+function blendWeatherColor(a,b,f){
+ const channel=i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-f)+parseInt(b.slice(i,i+2),16)*f).toString(16).padStart(2,'0');
+ return '#'+channel(1)+channel(3)+channel(5);
+}
+function currentSeaPalette(){
+ return SEA_WEATHER_COLORS[weatherPrev].map((color,i)=>blendWeatherColor(color,SEA_WEATHER_COLORS[weatherIndex][i],weatherFade));
+}
 function currentWeatherWave(){return WEATHERS[weatherPrev].wave*(1-weatherFade)+WEATHERS[weatherIndex].wave*weatherFade}
 function updateWeather(dt){
  if(!hook.active&&performance.now()-weatherChangedAt>=110000){weatherPrev=weatherIndex;weatherIndex=(weatherIndex+1)%WEATHERS.length;weatherFade=0;weatherChangedAt=performance.now();showDock();showEvent('天候：'+WEATHERS[weatherIndex].label+'／'+WEATHER_HINTS[weatherIndex],1900)}
@@ -1100,7 +1115,7 @@ sc.addEventListener('pointerdown',e=>{if(showPhase==='walk'&&(e.pointerType!=='m
 document.addEventListener('keydown',e=>{if(showPhase==='walk'&&(e.code==='KeyP'||e.code==='Space')&&!e.repeat&&!e.target.closest('button,a,input,textarea,select,[role="button"]')){e.preventDefault();recordPose()}});
 $('showShuffle').addEventListener('click',()=>{if(showPhase!=='prep')return;for(let i=4;i>0;i--){let j=Math.floor(Math.random()*(i+1));[st.show.order[i],st.show.order[j]]=[st.show.order[j],st.show.order[i]]}showSelected=-1;showSlots();save()});
 $('showMain').addEventListener('click',()=>{if(showPhase==='prep')beginShow();else if(showPhase==='walk'||showPhase==='judge')endShow();else if(showPhase==='result')nextShow()});
-function drawSea(){let t=animTime*.001;const wave=currentWeatherWave();const bg=sea.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#73cad4');bg.addColorStop(.29,'#b3e7da');bg.addColorStop(.3,'#69c1cb');bg.addColorStop(1,'#0d6582');sea.fillStyle=bg;sea.fillRect(0,0,W,H);
+function drawSea(){let t=animTime*.001;const wave=currentWeatherWave();const [skyTop,skyHorizon,waterTop,waterBottom,depthTop,depthBottom]=currentSeaPalette();const bg=sea.createLinearGradient(0,0,0,H);bg.addColorStop(0,skyTop);bg.addColorStop(.29,skyHorizon);bg.addColorStop(.3,waterTop);bg.addColorStop(1,waterBottom);sea.fillStyle=bg;sea.fillRect(0,0,W,H);
  // distant islands and stylized coastal buildings
  const skyLight=[1,.55,.25,.10,.35],sunlight=skyLight[weatherPrev]*(1-weatherFade)+skyLight[weatherIndex]*weatherFade;
  sea.save();sea.globalAlpha=sunlight;ellipse(sea,790,76,69,70,'#ffe8a8');ellipse(sea,790,76,51,52,'#fff2c5');sea.restore();
@@ -1109,9 +1124,10 @@ function drawSea(){let t=animTime*.001;const wave=currentWeatherWave();const bg=
  // tiny harbor houses
  for(let k=0;k<7;k++){let px=380+k*85,py=148+Math.sin(k*2)*5;round(sea,px,py-14,23,22,2,k%2?'#ffdfb2':'#ebc6b4');path(sea,[[px-5,py-14],[px+12,py-25],[px+28,py-14]]);sea.fillStyle='#cd7979';sea.fill()}
  // clouds
- for(let k=0;k<5;k++){let xx=(k*240+t*6)%1240-120,yy=55+(k%3)*24;ellipse(sea,xx,yy,40,12,'#f4fff6c7');ellipse(sea,xx-19,yy-4,20,12,'#f4fff6c7');ellipse(sea,xx+12,yy-7,26,13,'#f4fff6c7')}
+ const cloudCover=[.12,.55,.8,1,.68],cover=cloudCover[weatherPrev]*(1-weatherFade)+cloudCover[weatherIndex]*weatherFade;
+ sea.save();for(let k=0;k<9;k++){if(k>=5&&cover<.2)continue;sea.globalAlpha=Math.min(.9,(k<5?.54:.12)+cover*.48);let xx=(k*167+t*(6+cover*5))%1250-120,yy=42+(k%4)*27;ellipse(sea,xx,yy,43+cover*12,12+cover*4,'#f4fff6');ellipse(sea,xx-19,yy-4,23,14,'#f4fff6');ellipse(sea,xx+15,yy-8,30,16,'#f4fff6')}sea.restore();
  // ocean depths
- let depth=sea.createLinearGradient(0,165,0,H);depth.addColorStop(0,'#6cc7c5cc');depth.addColorStop(.38,'#278aa6de');depth.addColorStop(1,'#0a5273ef');sea.fillStyle=depth;sea.fillRect(0,165,W,H-165);
+ let depth=sea.createLinearGradient(0,165,0,H);depth.addColorStop(0,depthTop+'cc');depth.addColorStop(.38,blendWeatherColor(depthTop,depthBottom,.52)+'de');depth.addColorStop(1,depthBottom+'ef');sea.fillStyle=depth;sea.fillRect(0,165,W,H-165);
  // glinting waves
  for(let k=0;k<80;k++){const seed=hash(k+24),x=(seed%1030+t*(k%3+1)*1.7)%1050-30,y=183+((seed>>>9)%345),length=13+((seed>>>17)%44),alpha=.11+((seed>>>22)%15)/100;sea.strokeStyle=`rgba(223,255,232,${alpha})`;sea.lineWidth=(k%3===0?2:1.1);sea.beginPath();sea.moveTo(x,y+Math.sin(t*2+k)*(2+wave*1.8));sea.quadraticCurveTo(x+length/2,y-3-wave*2,x+length,y);sea.stroke()}
  // ocean light shafts
