@@ -10,9 +10,10 @@ BOSS_LEAD=[[12,16,19,23,24,19,16,12,19,23,26,24,23,19,16,12],
 [12,15,19,22,24,22,19,15,12,19,22,24,27,24,19,15],[12,19,24,26,24,19,17,12,19,24,29,26,24,22,19,17],[12,19,24,31,27,24,19,15,12,22,27,31,29,24,19,17],[12,15,19,22,24,19,15,12,22,26,24,19,27,24,19,15],[12,18,19,25,27,19,18,12,25,31,27,19,30,25,19,18],[12,19,24,31,36,31,24,19,12,17,24,29,36,31,24,19]];
 const hz=m=>440*Math.pow(2,(m-69)/12);
 class CyberBGM{
-constructor(a){this.a=a;this.stage=0;this.boss=false;this.step=0;this.next=0;this.running=false;this.enabled=true;this.master=a.createGain();this.master.gain.value=.21;const comp=a.createDynamicsCompressor();comp.threshold.value=-22;comp.ratio.value=4;comp.attack.value=.008;comp.release.value=.18;this.master.connect(comp);comp.connect(a.destination);const delay=a.createDelay(1),fb=a.createGain(),wet=a.createGain();delay.delayTime.value=.245;fb.gain.value=.23;wet.gain.value=.15;delay.connect(fb);fb.connect(delay);delay.connect(wet);wet.connect(this.master);this.delay=delay;this.noise=a.createBuffer(1,Math.floor(a.sampleRate*.9),a.sampleRate);const d=this.noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
-setEnabled(on){this.enabled=on;const t=this.a.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(on?.21:0,t,.045);if(!on)this.running=false}
-start(){this.running=true;this.step=0;this.next=this.a.currentTime+.03}
+constructor(a){this.a=a;this.stage=0;this.boss=false;this.step=0;this.next=0;this.running=false;this.enabled=true;this.master=a.createGain();this.master.gain.value=.21;const comp=a.createDynamicsCompressor();comp.threshold.value=-22;comp.ratio.value=4;comp.attack.value=.008;comp.release.value=.18;this.master.connect(comp);comp.connect(a.destination);this.sfxInput=a.createGain();this.sfxInput.gain.value=.55;const fxLimiter=a.createDynamicsCompressor();fxLimiter.threshold.value=-16;fxLimiter.ratio.value=7;fxLimiter.attack.value=.003;fxLimiter.release.value=.11;this.sfxInput.connect(fxLimiter);fxLimiter.connect(a.destination);this.musicLevel=1;this.effectsLevel=1;const delay=a.createDelay(1),fb=a.createGain(),wet=a.createGain();delay.delayTime.value=.245;fb.gain.value=.23;wet.gain.value=.15;delay.connect(fb);fb.connect(delay);delay.connect(wet);wet.connect(this.master);this.delay=delay;this.noise=a.createBuffer(1,Math.floor(a.sampleRate*.9),a.sampleRate);const d=this.noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+setMix(music=1,effects=1){const bound=n=>Number.isFinite(n)?Math.max(0,Math.min(1.35,n)):1;this.musicLevel=bound(music);this.effectsLevel=bound(effects);const t=this.a.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(this.enabled?.21*this.musicLevel:0,t,.045);this.sfxInput.gain.cancelScheduledValues(t);this.sfxInput.gain.setTargetAtTime(this.enabled?.55*this.effectsLevel:0,t,.03)}
+setEnabled(on){this.enabled=on;const t=this.a.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(on?.21*this.musicLevel:0,t,.045);this.sfxInput.gain.cancelScheduledValues(t);this.sfxInput.gain.setTargetAtTime(on?.55*this.effectsLevel:0,t,.03);if(!on)this.running=false}
+start(){this.running=true;this.step=0;const t=this.a.currentTime;this.next=t+.03;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(this.enabled?.21*this.musicLevel:0,t,.045)}
 stop(){this.running=false;const t=this.a.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(0,t,.04)}
 note(m,t,d,type='lead',vel=1){const a=this.a,st=this.stage,opts={lead:[['sawtooth','square','triangle','sawtooth','triangle','square','sine','sawtooth'][st],[3100,1850,1400,2450,2900,1850,2050,1750][st],[.065,.075,.066,.062,.058,.058,.063,.062][st]],arp:[['triangle','square','sine','triangle','sine','triangle','sine','triangle'][st],[4300,2750,2000,3500,4800,2850,3600,3900][st],[.032,.024,.030,.029,.031,.028,.027,.028][st]],bass:[['sawtooth','square','triangle','sawtooth','triangle','square','triangle','sawtooth'][st],[750,450,390,670,570,460,340,420][st],[.125,.165,.16,.14,.12,.12,.13,.14][st]],pad:[['triangle','sawtooth','sine','triangle','sine','sine','sine','triangle'][st],[1650,850,700,1190,1950,1150,920,1380][st],[.042,.028,.052,.044,.056,.047,.065,.058][st]]},[wave,cut,vol]=opts[type]||opts.lead;const o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();o.type=wave;o.frequency.setValueAtTime(hz(m),t);f.type='lowpass';f.Q.value=type==='bass'?4:1;f.frequency.setValueAtTime(cut*.65,t);if(type!=='pad')f.frequency.exponentialRampToValueAtTime(Math.max(120,cut*.28),t+d*.85);const att=type==='pad'?.085:.008,end=t+d+(type==='pad'?.27:.12),v=vol*vel;g.gain.setValueAtTime(.00001,t);g.gain.exponentialRampToValueAtTime(Math.max(.00001,v),t+att);g.gain.setValueAtTime(Math.max(.00001,v*.6),t+d*.7);g.gain.exponentialRampToValueAtTime(.00001,end);o.connect(f);f.connect(g);g.connect(this.master);if(type==='lead'||type==='arp')g.connect(this.delay);o.start(t);o.stop(end+.03);o.onended=()=>{o.disconnect();f.disconnect();g.disconnect()}}
 noiseHit(t,d,cut,v,type='highpass'){const a=this.a,s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=this.noise;f.type=type;f.frequency.value=cut;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.00001,t+d);s.connect(f);f.connect(g);g.connect(this.master);s.start(t);s.stop(t+d+.001);s.onended=()=>{s.disconnect();f.disconnect();g.disconnect()}}
@@ -88,11 +89,21 @@ sequence(t,i){
   if([0,3,6,9,12,15].includes(s)||boss&&s%2===0)this.note(root+12+theme[s],t,.23,'lead',.83);
  }
  if(boss){
-  // Boss pursuit pushes all three stage identities into a faster battle arrangement.
+  // Boss pursuit pushes all eight stage identities into a faster battle arrangement.
   if(s===4||s===12)this.noiseHit(t,.15,2100,.29);
   if(s%2===1)this.note(root+24+arp[(s+bar)%arp.length],t,.074,'arp',.77);
   if(s===0||s===8)this.note(root-12,t,.29,'bass',1.25);
  }
+ this.arrange(t,i,root,arp,theme,boss);
+}
+// Four original two-bar movements: opening, ascent, climax and release.
+arrange(t,i,root,arp,theme,boss){
+ const s=i%16,phase=Math.floor(i/32)%4,bar=Math.floor(i/16);
+ if(phase===0){if(s===0)this.note(root+24,t,1.15,'pad',.3);return}
+ if(phase===1){if(s===2||s===10)this.note(root+12+arp[(s/2+bar)%arp.length],t,.16,'arp',.58);return}
+ if(phase===2){if(s%4===2)this.note(root+24+theme[s],t,.14,'lead',boss?.67:.36);if(s===8)this.noiseHit(t,.10,3200,boss?.13:.075);return}
+ if(s===0||s===8)this.note(root+19,t,.46,'pad',boss?.7:.42);
+ if(s===14)this.note(root+12+theme[s],t,.28,'lead',boss?.8:.48);
 }
 
 update(stage,boss){if(!this.enabled||!this.running||this.a.state!=='running')return;const now=this.a.currentTime;if(stage!==this.stage||boss!==this.boss){this.stage=stage;this.boss=boss;this.step=0;this.next=now+.03;this.delay.delayTime.setTargetAtTime([.19,.255,.32,.21,.29,.34,.37,.23][stage],now,.06)}if(this.next<now-.25)this.next=now+.02;const beat=60/([142,136,112,148,124,118,106,152][stage]+(boss?27:0))/4;let safety=0;while(this.next<now+.11&&safety++<5){this.sequence(this.next,this.step++);this.next+=beat}}
