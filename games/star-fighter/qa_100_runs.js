@@ -187,10 +187,16 @@ function runHarness(gameSource,musicSource){
  ok(G.bullets.length<=120,'unbounded hostile bullets');
  G.bullets=[];G.player.invul=9999;
  q.update(.016);ok(G.shots.length>0,'auto fire regression');
+ // The relative pad must not read layout on each pointermove (input lag).
+ const originalPadRect=el('touchPad').getBoundingClientRect;let padRectReads=0;
+ el('touchPad').getBoundingClientRect=function(){padRectReads++;return originalPadRect.call(this)};
+ ok(el('game').width===1200&&el('game').height===675,'coarse pointer DPR cap');
  ev('touchPad','pointerdown',{clientX:50,clientY:100});
  const before=G.player.x;
  ev('touchPad','pointermove',{clientX:100,clientY:100});
  ok(G.player.x>before+40,'touchpad latency');
+ for(let j=0;j<12;j++)ev('touchPad','pointermove',{clientX:102+j,clientY:100});
+ ok(padRectReads===1,'pointermove forced layout: touch geometry not cached');
  ev('touchPad','pointerup',{clientX:100,clientY:100});
  const stopped=G.player.x;
  q.update(.016);ok(Math.abs(G.player.x-stopped)<1,'touch release drift');
