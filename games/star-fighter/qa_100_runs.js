@@ -43,9 +43,14 @@ function runHarness(gameSource,musicSource,extrasSource){
   addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)}
  };
  if(extrasSource)new Function('window',extrasSource)(window);
- const ev=(id,type,more={})=>(el(id).handlers?.[type]||[]).forEach(fn=>fn({
+ // Native disabled buttons never dispatch click. Model this instead of
+ // bypassing disabled as the previous headless test incorrectly did.
+ const ev=(id,type,more={})=>{
+  if(type==='click'&&el(id).disabled)return;
+  return (el(id).handlers?.[type]||[]).forEach(fn=>fn({
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
+ };
  let frame=null,clock=0;
  const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
@@ -325,7 +330,22 @@ function runHarness(gameSource,musicSource,extrasSource){
  ok(el('sidePauseBtn').innerHTML.includes('<span>再開</span>'),'pause label');
  ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'resume label');
- ev('sidePulseBtn','click');ok(G.pulses===1,'pulse');
+ // Regression: a real Android click must still reach both visible controls.
+ G.selected=0;G.energy=0;
+ q.update(.016);
+ ok(el('sideEquipBtn').disabled===false,'empty equip must remain tappable');
+ ok(el('sidePulseBtn').disabled===false,'NOVA must remain tappable');
+ ok(el('equipActionState').textContent.includes('0/1'),'equip requirement displayed before collection');
+ ev('sideEquipBtn','click');
+ ok(G.energy===0&&G.levels[0]===0,'no free upgrade without capsule');
+ ok(el('toast').textContent.includes('カプセル不足'),'shortage tap reports requirement');
+ ev('sidePulseBtn','click');ok(G.pulses===1,'NOVA first touch fires');
+ ev('sidePulseBtn','click');ok(G.pulses===0,'NOVA second touch fires');
+ ok(el('sidePulseBtn').disabled===false,'NOVA empty state is still tappable');
+ ok(el('novaActionState').textContent.includes('補充まで'),'NOVA status shows recharge countdown');
+ ev('sidePulseBtn','click');
+ ok(G.pulses===0&&el('toast').textContent.includes('再充填まで'),'empty NOVA tap reports remaining time');
+ G.pulses=1;G.pulseRecharge=0;q.update(.016);
  G.pulses=0;G.pulseRecharge=59.85;G.mode='playing';
  G.bossDone=true;G.transitioning=false;G.terrainIndex=2;G.terrain=null;
  G.enemies=[];G.shots=[];G.bullets=[];G.pickups=[];G.player.invul=100;
@@ -334,7 +354,11 @@ function runHarness(gameSource,musicSource,extrasSource){
  G.pulses=5;G.pulseRecharge=20;q.update(.05);
  ok(G.pulses===5&&G.pulseRecharge===0,'NOVA charge does not overflow');
  G.pulses=1;G.pulseRecharge=0;G.bossDone=false;
- G.energy=6;ev('sideEquipBtn','click');ok(G.levels[0]===1,'upgrade');
+ G.energy=6;q.update(.016);
+ ok(el('sideEquipBtn').disabled===false,'equipped upgrade tap receives native click');
+ ev('sideEquipBtn','click');ok(G.levels[0]===1,'upgrade');
+ ok(G.energy===5,'upgrade deducts the selected cost');
+ ok(el('equipActionState').textContent.includes('5/1'),'upgrade status refreshes after purchase');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
