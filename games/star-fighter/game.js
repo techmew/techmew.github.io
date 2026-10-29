@@ -19,9 +19,9 @@ const ROUTE_NAMES=[
 ];
 const ROUTE_EVENTS={
  safe:[
-  {id:'salvage',name:'漂流物資',short:'補給ポッド×2',desc:'航行中に物資が漂着',when:21},
+  {id:'salvage',name:'漂流物資',short:'補給ポッド×1',desc:'航行中に物資が漂着',when:21},
   {id:'beacon',name:'修復ビーコン',short:'バリア +1',desc:'防御装置の信号を受信',when:24},
-  {id:'cache',name:'旧式補給庫',short:'補給ポッド×2',desc:'旧式の補給庫を発見',when:27},
+  {id:'cache',name:'旧式補給庫',short:'補給ポッド×1',desc:'旧式の補給庫を発見',when:27},
   {id:'charge',name:'青い共鳴',short:'ドライブ +30',desc:'オーバードライブを充填',when:20}
  ],
  storm:[
