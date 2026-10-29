@@ -325,7 +325,7 @@ function syncHUD(hour){
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
  const goal=getObjective(),guide=$("mission-guide");
  const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"狐眼":P.type==="cat"?"俊足":"咆哮";
- if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal)):"▲ 周囲を探索中";
+ if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal))+(guidancePoint(goal)?.detour?" / 迂回":""):"▲ 周囲を探索中";
  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -517,10 +517,38 @@ function drawCreature(o,isPlayer){
  if(!isPlayer&&!s.prey&&o.hp<o.maxHp){ctx.fillStyle="#101719c9";ctx.fillRect(o.x-21,o.y-r-17,42,4);ctx.fillStyle="#e9a077";ctx.fillRect(o.x-21,o.y-r-17,42*o.hp/o.maxHp,4)}
  if(P&&P.senseTime>0&&!isPlayer){ctx.strokeStyle=s.prey?"#91ebbc":"#ef9274";ctx.lineWidth=2;ctx.beginPath();ctx.arc(o.x,o.y,r+12+Math.sin(elapsed*8)*2,0,TWO);ctx.stroke()}
 }
+let guideCache=null;
+function guidancePoint(goal){
+ if(!goal||!P)return null;
+ if(!lineBlocked(P,goal))return goal;
+ if(guideCache&&elapsed-guideCache.time<.32&&Math.hypot(guideCache.px-P.x,guideCache.py-P.y)<90&&Math.hypot(guideCache.gx-goal.x,guideCache.gy-goal.y)<70)return guideCache.point;
+ const total=dist(P,goal),ux=(goal.x-P.x)/Math.max(1,total),uy=(goal.y-P.y)/Math.max(1,total),pad=P.r+43;
+ let obstacle=null;
+ for(let d=40;d<total;d+=30){
+  const x=P.x+ux*d,y=P.y+uy*d;
+  obstacle=buildings.find(b=>x>b.x-pad&&x<b.x+b.w+pad&&y>b.y-pad&&y<b.y+b.h+pad);
+  if(obstacle)break;
+ }
+ let waypoint=null,score=Infinity;
+ if(obstacle){
+  const corners=[
+   {x:obstacle.x-pad,y:obstacle.y-pad},{x:obstacle.x+obstacle.w+pad,y:obstacle.y-pad},
+   {x:obstacle.x-pad,y:obstacle.y+obstacle.h+pad},{x:obstacle.x+obstacle.w+pad,y:obstacle.y+obstacle.h+pad}
+  ];
+  for(const c of corners){
+   if(collides(c.x,c.y,P.r+5)||Math.hypot(c.x-P.x,c.y-P.y)<32||lineBlocked(P,c))continue;
+   const detour=dist(P,c)+dist(c,goal)+(lineBlocked(c,goal)?140:0);
+   if(detour<score){score=detour;waypoint=c;}
+  }
+ }
+ const point=waypoint?{x:waypoint.x,y:waypoint.y,label:goal.label,detour:true}:goal;
+ guideCache={time:elapsed,px:P.x,py:P.y,gx:goal.x,gy:goal.y,point};
+ return point;
+}
 function drawGoalGuide(){
  if(!P||mode!=="play")return;
  const goal=getObjective();if(!goal)return;
- const gx=goal.x-cam.x,gy=goal.y-cam.y,dx=goal.x-P.x,dy=goal.y-P.y;
+ const point=guidancePoint(goal),gx=point.x-cam.x,gy=point.y-cam.y,dx=point.x-P.x,dy=point.y-P.y;
  const angle=Math.atan2(dy,dx),range=Math.hypot(dx,dy);
  const onscreen=gx>70&&gy>110&&gx<vw-70&&gy<vh-108;
  const px=P.x-cam.x,py=P.y-cam.y;
@@ -534,7 +562,7 @@ function drawGoalGuide(){
  ctx.beginPath();ctx.arc(0,0,23,0,TWO);ctx.fill();ctx.stroke();
  ctx.save();ctx.rotate(angle+Math.PI/2);ctx.fillStyle="#ffe2a0";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 27px sans-serif";ctx.fillText("▲",0,-1);ctx.restore();
  ctx.fillStyle="#fff0ce";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 11px sans-serif";ctx.shadowColor="#000";ctx.shadowBlur=8;
- ctx.fillText((onscreen?"目標 · ":"▲ ")+Math.round(range),0,29);ctx.restore();
+ ctx.fillText((point.detour?"迂回 ▲ ":"")+(onscreen?"目標 · ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
 }
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
