@@ -4,16 +4,17 @@ const W=1200,H=675,TAU=Math.PI*2;
 const C=document.getElementById('game'),c=C.getContext('2d',{alpha:false});
 const $=id=>document.getElementById(id);
 const ui={overlay:$('overlay'),start:$('startBtn'),pause:$('sidePauseBtn'),sound:$('soundBtn'),score:$('score'),best:$('best'),mult:$('multiplier'),stage:$('stageLabel'),area:$('areaName'),progress:$('progressBar'),hp:$('hpRow'),lives:$('lives'),bombs:$('bombs'),boss:$('bossHud'),bossName:$('bossName'),bossBar:$('bossBar'),announce:$('announce'),small:$('announceSmall'),main:$('announceMain'),desc:$('announceDesc'),toast:$('toast'),meter:$('meterInfo'),upgrades:[...document.querySelectorAll('.upgrade')],equip:$('equipBtn'),pulse:$('pulseBtn')};
-const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB'];
-const STAGE_LENGTHS=[62,68,74,72],BOSS_HP=[1900,2650,3600,4250];
-const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'カプセル +1 / パルス +1',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'カプセル +1 / パルス +1',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'カプセル +1 / パルス +1',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}]];
+const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM','FROZEN GRAVE'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ','氷結残骸帯を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB','FROST MAMMOTH'];
+const STAGE_LENGTHS=[62,68,74,72,76],BOSS_HP=[1900,2650,3600,4250,4850];
+const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'カプセル +1 / パルス +1',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'カプセル +1 / パルス +1',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'カプセル +1 / パルス +1',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'氷結整備回廊',desc:'氷片を射撃で破壊可能・補給重視 / BOSS 機械マンモス',bonus:'カプセル +1 / パルス +1',risk:0},{name:'白夜の追撃帯',desc:'吹雪で視界悪化・精鋭部隊 / BOSS 氷海竜',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}]];
 
 
 /* Event choices are rolled from the run seed and previous branch, not visual RNG. */
 const ROUTE_NAMES=[
  [['漂流船の回廊','青い残響','補給航路'],['プラズマ急流','赤い追跡線','雷光の峡谷']],
  [['星雲の静域','蒼光の水路','星屑の避難帯'],['紅色の裂け目','雷雲の回廊','深紅の追撃路']],
- [['火山灰の補給路','冷却管の峡谷','溶岩の迂回路'],['恒星フレア回廊','赤い突破線','熱圏の追撃路']]
+ [['火山灰の補給路','冷却管の峡谷','溶岩の迂回路'],['恒星フレア回廊','赤い突破線','熱圏の追撃路']],
+  [['氷結整備回廊','青氷の補給線','凍土の避難路'],['白夜の追撃帯','氷嵐の裂け目','白い危険宙域']]
 ];
 const ROUTE_EVENTS={
  safe:[
@@ -421,8 +422,8 @@ function fireEnemy(e,target=null){if(e.type==='mine'||e.type==='interceptor')ret
 /* Boss variants are tied to the chosen branch, so legacy bosses remain playable.
    Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
    The first sector and the other two branches retain their original bosses. */
-function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':'crab'):'original'}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':BOSSES[G.stage];const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
+function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':'crab'):G.stage===4?(G.routeRisk?'leviathan':'mammoth'):'original'}
+function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':BOSSES[G.stage];const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -431,6 +432,18 @@ function creatureBossAttack(b){
  if(angry&&b.pattern%4===3){
   b.charge=1.15;b.beamY=cl(p.y,112,H-88);b.fire=2.65;b.pattern++;
   tone(octo?190:140,.3,'sawtooth',.045,-75);return;
+ }
+ if(b.variant==='mammoth'||b.variant==='leviathan'){
+  const mammoth=b.variant==='mammoth';
+  if(b.pattern%3===0){for(const side of [-1,1])for(let k=0;k<3;k++){
+   const y=cl(b.y+side*(50+k*54),75,H-70),x=b.x-142;
+   bullet(x,y,Math.PI+side*(.12+k*.10),mammoth?206:231,5,mammoth?'#91e7ff':'#b9b0ff');
+  }}else if(b.pattern%3===1){const a=aim(b.x-148,b.y);for(let k=-3;k<=3;k++)if(k!==0)bullet(b.x-148,b.y,a+k*.19,218,5,'#a5e9ff')}
+  else{for(const side of [-1,1])for(let k=0;k<2;k++){
+   const y=cl(b.y+side*(78+k*79),75,H-70),x=b.x-175;
+   bullet(x,y,Math.atan2(p.y-y,p.x-x)+side*.15,225+(angry?24:0),5,'#7ecfff');
+  }}
+  b.pattern++;b.fire=angry?1.20:1.68;tone(mammoth?155:310,.14,'triangle',.019,75);return;
  }
  if(b.variant==='crab'||b.variant==='solarwyrm'){
   const crab=b.variant==='crab';
@@ -689,10 +702,10 @@ function openRoute(){
  $('routeHeading').textContent='次の航路を選択';
  $('routeNextSector').textContent='SECTOR 0'+(G.stage+2);$('routeSeed').textContent='SEED '+seedHex(G.runSeed);
  $('routeSafeName').textContent=options[0].name;
- $('routeSafeDesc').textContent='BOSS · '+(G.stage===0?'KRAKEN ENGINE':G.stage===1?'ABYSS TITAN':'MOLTEN CRAB')+' / EVENT · '+options[0].event.name+(options[0].chain?' · 連続航路':'');
+ $('routeSafeDesc').textContent='NEXT · '+NAMES[G.stage+1]+' / '+options[0].desc+' / EVENT · '+options[0].event.name+(options[0].chain?' · 連続航路':'');
  $('routeSafeBonus').textContent=options[0].bonus+' · '+options[0].event.short;
  $('routeRiskName').textContent=options[1].name;
- $('routeRiskDesc').textContent='BOSS · '+(G.stage===0?'FORTRESS CORE':G.stage===1?'IRON TYRANT':'SOLAR WYRM')+' / EVENT · '+options[1].event.name+(options[1].chain?' · 連続航路':'');
+ $('routeRiskDesc').textContent='NEXT · '+NAMES[G.stage+1]+' / '+options[1].desc+' / EVENT · '+options[1].event.name+(options[1].chain?' · 連続航路':'');
  $('routeRiskBonus').textContent=options[1].bonus+' · '+options[1].event.short;
  $('routeSafe').title=options[0].event.desc;$('routeRisk').title=options[1].event.desc;
  G.routeSelected=0;panel.classList.add('open');selectRouteCard(0);saveCheckpoint('route');tone(440,.2,'triangle',.04,210);
@@ -790,9 +803,9 @@ function planTerrain(){
  if(G.enemies.length!==0||G.bullets.length!==0||G.directorGrace>0)return false;
  const roll=mixSeed(G.runSeed,G.stage+113,G.terrainIndex*17+G.routeRisk*7);
  const safeLane=TERRAIN_LANES.reduce((best,y,i)=>Math.abs(p.y-y)<Math.abs(p.y-TERRAIN_LANES[best])?i:best,0);
- const type=G.stage===3?'flare':roll%2?'wreck':'ion';
- G.terrain={type,phase:'warning',timer:2.1,x:W+135,speed:215+((roll>>>4)%4)*12,
-  safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:9999})),seed:roll};
+ const type=G.stage===4?(G.routeRisk?'blizzard':'ice'):G.stage===3?'flare':roll%2?'wreck':'ion';
+ G.terrain={type,phase:'warning',timer:2.1,x:W+135,speed:215+((roll>>>4)%4)*12+(G.stage===4&&G.routeRisk?22:0),
+  safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:type==='ice'?185:9999})),seed:roll};
  G.terrainIndex++;G.spawn=Math.max(G.spawn,3);
  tone(420,.16,'triangle',.045,-190);
  return true;
@@ -819,7 +832,7 @@ function drawTerrain(){
   const blink=.65+.24*Math.sin(G.time*11);
   c.globalAlpha=blink;
   c.font='bold 16px ui-monospace,monospace';c.textAlign='right';c.textBaseline='middle';
-  c.fillStyle='#ffe0aa';c.fillText((t.type==='wreck'?'⚠ DEBRIS':t.type==='flare'?'⚠ HEAT VENTS':'⚠ ION FIELD')+'  '+Math.max(0,t.timer).toFixed(1)+'s',W-35,79);
+  c.fillStyle='#ffe0aa';c.fillText((t.type==='wreck'?'⚠ DEBRIS':t.type==='flare'?'⚠ HEAT VENTS':t.type==='ice'?'⚠ ICE SHARDS':t.type==='blizzard'?'⚠ WHITEOUT':'⚠ ION FIELD')+'  '+Math.max(0,t.timer).toFixed(1)+'s',W-35,79);
   for(let i=0;i<3;i++){
    const y=TERRAIN_LANES[i],safe=i===t.safeLane;
    c.fillStyle=safe?'#35d7be':'#ff845e';c.globalAlpha=safe?.13:.2;
@@ -844,6 +857,11 @@ function drawTerrain(){
       poly([Math.cos(aa)*30,Math.sin(aa)*30,Math.cos(aa+.3)*48,Math.sin(aa+.3)*48,
        Math.cos(aa+.7)*35,Math.sin(aa+.7)*35],'#ff8c4e','#ffe1a0',1)}
      glowCircle(0,0,19,'#fff1a9',12);
+    }else if(t.type==='ice'||t.type==='blizzard'){
+     c.shadowColor='#91dfff';c.shadowBlur=12;
+     poly([-65,8,-28,-59,13,-72,56,-17,70,30,19,62,-37,52],t.type==='ice'?'#316b87':'#3a536c','#bdefff',3);
+     poly([-28,-20,13,-72,21,12,-7,35],'#a2eaff','#e2ffff',2);
+     for(let j=0;j<4;j++)line(-42+j*27,28,-26+j*27,48,'#d6f9ff',2);
     }else if(t.type==='wreck'){
     c.rotate(Math.sin(t.seed+block.y)*.23);
     c.shadowColor='#ff8c62';c.shadowBlur=18;
@@ -904,7 +922,7 @@ if(b.hp<=0){explosion(b.x-60,b.y,170);emit(b.x,b.y,180,'#ffe3a6',800);addScore(1
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
 let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=e.type==='tank'||e.type==='carrier'?39:23;if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
-if(!gone&&G.terrain?.phase==='active'&&G.terrain.type==='wreck')for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
+if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){G.boss.hp-=s.dmg;applyShotSynergy(s,G.boss);emit(s.x,s.y,ri(2,4),'#ffca82',95);s.pierce--;if(s.pierce<=0)gone=true}
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt;if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
@@ -917,8 +935,8 @@ function poly(points,fill,stroke,width=1){c.beginPath();c.moveTo(points[0],point
 function glowCircle(x,y,r,col,blur=16){c.save();c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.restore()}
 function ellipse(x,y,rx,ry,fill,stroke,width=1){c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fillStyle=fill;c.fill();if(stroke){c.lineWidth=width;c.strokeStyle=stroke;c.stroke()}}
 function line(x,y,x2,y2,color,w=1){c.strokeStyle=color;c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke()}
-function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else{grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}c.fillStyle=grad;c.fillRect(0,0,W,H);
-const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:['#ee8037','#c43942','#ffc059'][i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
+function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else if(stage===3){grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}else{grad.addColorStop(0,'#091f37');grad.addColorStop(.5,G.routeRisk?'#25455e':'#1b5b76');grad.addColorStop(1,'#071b35')}c.fillStyle=grad;c.fillRect(0,0,W,H);
+const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:stage===3?['#ee8037','#c43942','#ffc059'][i]:['#b5e8ff','#4e8fb6','#d7faff'][i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
 for(const s of G.stars){let x=((s.x-G.scroll*s.z*.22)%(W+20)+W+20)%(W+20),y=s.y,a=.38+Math.sin(G.time*.8+s.tw)*.22+s.z*.11;c.globalAlpha=cl(a,0,1);c.fillStyle=s.z>1.9?'#d8faff':'#8babc6';c.fillRect(x,y,s.size*s.z*.75,s.size*s.z*.75);if(s.z>1.6)line(x+1,y,x+2+G.scroll%7*s.z,y,'#9cd9f0',.5)}c.globalAlpha=1;
 if(stage===0){for(let i=0;i<13;i++){const x=((i*232-G.scroll*.6)%(W+300)+W+300)%(W+300)-120,y=100+((i*181)%520),r=14+(i*29)%65;c.save();c.translate(x,y);c.rotate(i*1.2+G.time*.03);poly([-r,0,-r*.75,-r*.65,r*.22,-r*.9,r*.9,-r*.28,r*.72,r*.7,-r*.2,r],i%2?'#172c42':'#1e394f','#315169',1.2);poly([-r*.35,-r*.2,-r*.1,-r*.46,r*.32,-r*.29,r*.4,-r*.08,r*.15,r*.13],'#35546a55');c.restore()}}
 if(stage===1){for(let i=0;i<10;i++){const x=((i*235-G.scroll*.74)%(W+320)+W+320)%(W+320)-160;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);poly([-130,0,136,0,108,40,95,88,-100,87], '#243045','#607286',2);c.fillStyle='#111c2b';c.fillRect(-102,24,180,37);for(let j=0;j<5;j++){c.fillStyle=(i+j)%2?'#6c798c':'#bf7d5c';c.fillRect(-92+j*35,29,13,6)}line(-106,89,106,89,'#d98959',2);c.restore()}}}
@@ -926,6 +944,13 @@ if(stage===2){for(let i=0;i<9;i++){let x=((i*196-G.scroll*.65)%(W+320)+W+320)%(W
 if(stage===3){for(let i=0;i<10;i++){const x=((i*231-G.scroll*.58)%(W+340)+W+340)%(W+340)-120;
   for(const side of [-1,1]){c.save();c.translate(x,side<0?0:H);c.scale(1,side<0?1:-1);
   poly([-90,0,95,0,66,91+i%3*17,-47,111+i%4*16],'#572b33','#c06a53',2);c.restore()}}}
+if(stage===4){for(let i=0;i<13;i++){
+ const x=((i*177-G.scroll*(i%2?.67:.42))%(W+320)+W+320)%(W+320)-130;
+ const y=70+(i*113)%540,r=15+(i*23)%48;
+ c.save();c.translate(x,y);c.rotate(i*.8+G.time*.025);
+ poly([-r,0,-r*.4,-r*.7,r*.3,-r*.95,r,.1,r*.25,r*.75],i%2?'#1b5c80':'#2d7594','#a9eaff',1.6);
+ line(-r*.25,-r*.45,r*.2,r*.43,'#c7f6ff',1.5);c.restore();
+}}
 c.globalAlpha=.13;c.fillStyle='#9dc8e3';for(let y=0;y<H;y+=5)c.fillRect(0,y,W,.55);c.globalAlpha=1;
 const outer=c.createLinearGradient(0,0,W,0);outer.addColorStop(0,'#00000033');outer.addColorStop(.5,'#00000000');outer.addColorStop(1,'#00000033');c.fillStyle=outer;c.fillRect(0,0,W,H)}
 function drawShip(x,y,angle=0,invul=0){if(invul>0&&Math.sin(G.time*20)>0.55)return;c.save();c.translate(x,y);c.rotate(angle);const flame=25+Math.sin(G.time*34)*14;
@@ -944,7 +969,25 @@ function drawCreatureBoss(b){
  c.save();c.translate(b.x,b.y);
  const hurt=b.phase===1,t=b.t,octo=b.variant==='octopus';
  c.shadowColor=octo?'#d47bff':'#ff9454';c.shadowBlur=10;
- if(b.variant==='crab'){
+ if(b.variant==='mammoth'){
+  for(const side of [-1,1]){c.save();c.scale(1,side);
+   poly([5,49,90,75,119,123,73,131,34,80],'#426780','#b3e5f4',3);
+   poly([-92,26,-157,45,-190,105,-163,110,-117,68,-69,54],'#d7f2f7','#ffffff',3);
+   c.restore()}
+  ellipse(0,0,111,87,'#35536c','#c4e8f5',4);
+  for(let k=0;k<6;k++)poly([-78+k*29,-63,-62+k*29,-91,-43+k*29,-58],'#7cb4cc','#d9f9ff',2);
+  poly([-75,-34,-153,-29,-174,12,-155,72,-132,77,-122,13],'#537c98','#d0f4ff',3);
+  glowCircle(-70,0,29,hurt?'#ff82b2':'#81edff',17);
+ }else if(b.variant==='leviathan'){
+  for(let i=7;i>=0;i--){const x=65+i*22,y=Math.sin(t*2+i*.6)*18;
+   ellipse(x,y,31-i*2,29-i,'#294c70','#9cdff7',2)}
+  for(const side of [-1,1]){c.save();c.scale(1,side);
+   poly([-40,29,55,42,115,133,19,99,-112,37],'#397d9b','#c6faff',3);
+   for(let k=0;k<4;k++)poly([k*31-20,40,k*31-6,72,k*31+11,39],'#72c2df','#e8ffff',1);
+   c.restore()}
+  poly([-38,-36,-117,-63,-188,-29,-202,0,-157,32,-62,28],'#3c6a88','#d8f9ff',4);
+  glowCircle(-162,-28,9,'#e4ffff',10);glowCircle(-55,0,31,hurt?'#ff86bb':'#93ecff',15);
+ }else if(b.variant==='crab'){
   // Mechanical crab: articulated claws, shell armor and exposed core.
   for(const side of [-1,1]){c.save();c.scale(1,side);
    poly([-30,40,65,60,125,123,70,149,5,93],'#8b493c','#ffc187',3);
