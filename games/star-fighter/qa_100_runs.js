@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -81,7 +81,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
-  G.selected=0;G.energy=0;G.pulses=2;G.pulseRecharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.selected=0;G.energy=0;G.pulses=2;G.pulseRecharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.fireTimer=0;G.missileTimer=0;
   q.seedStage();
  };
@@ -575,12 +575,12 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(found,'passive never offered '+i);
  }
  G.passives=[2,2,2,2,2,2];
- G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=3;G.lives=3;G.driveCharge=100;G.levels=[2,3,2,2,3,3];
+ G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=3;G.lives=3;G.driveCharge=100;G.levels=[2,3,2,2,3,3];G.pendingUpgrades=[0,0,0,0,0,0];
  const capped=q.rewardOptions();
  ok(capped.length===3&&capped.every(o=>o.id.startsWith('score')),'capped resources must have three usable rewards');
  // 16/36: 2,000-seed per-route rarity/risk sampling and full grant effects.
  const specialSeen=new Set(),specialCounts={safe:0,storm:0};
- G.stage=1;G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];
+ G.stage=1;G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
  G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=10;
  for(const [risk,key] of [[0,'safe'],[1,'storm']]){
   G.routeRisk=risk;
@@ -610,14 +610,14 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }
  // Test each grant with a real route-gate transition and valid checkpoint.
  const expected={
-  rare_arsenal:[2,1,2,2,2,0,0,0],
-  rare_reactor:[0,1,2,3,2,45,0,0],
-  rare_rescue:[0,2,0,2,3,0,0,0],
-  rare_focus:[0,2,2,1,2,15,1,0],
-  storm_bounty:[0,1,5,2,2,25,0,0],
-  storm_gamble:[1,2,2,2,1,25,0,0],
-  safe_refit:[0,3,2,2,3,0,0,0],
-  safe_supply:[0,2,3,3,2,0,0,0]
+  rare_arsenal:[0,1,2,2,2,0,0,0,2],
+  rare_reactor:[0,1,2,3,2,45,0,0,0],
+  rare_rescue:[0,2,0,2,3,0,0,0,0],
+  rare_focus:[0,2,2,1,2,15,1,0,0],
+  storm_bounty:[0,1,5,2,2,25,0,0,0],
+  storm_gamble:[0,2,2,2,1,25,0,0,1],
+  safe_refit:[0,3,2,2,3,0,0,0,0],
+  safe_supply:[0,2,3,3,2,0,0,0,0]
  };
  for(const [id,want] of Object.entries(expected)){
   const risk=id.startsWith('storm_')?1:0;
@@ -625,23 +625,43 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   G.routeHistory=[{stage:2,route:'test',risk,event:'cache',eventName:'cache',chain:false}];
   G.rewardHistory=[{stage:0,id:'score',name:'score'}];
   G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
-  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];
   q.chooseReward(0);
   ok(G.mode==='route'&&G.rewardHistory.length===2,'special claim route checkpoint '+id);
-  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives-2];
+  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives-2,G.pendingUpgrades[1]];
   const exp=[...want];if(id==='rare_rescue')exp[7]=1;
   ok(JSON.stringify(got)===JSON.stringify(exp),'special effect '+id+': '+JSON.stringify(got));
   ok(q.readCheckpoint()?.mode==='route','special reward checkpoint '+id);
+  ok(q.readCheckpoint()?.pendingUpgrades?.[1]===G.pendingUpgrades[1],'special voucher saved '+id);
  }
+ // Boss-flight reward is chosen by Y lane, but levels MUST wait for a user tap.
+ G.stage=1;G.routeRisk=0;G.mode='reward';G.rewardHistory=[{stage:0,id:'score',name:'score'}];
+ G.routeHistory=[{stage:2,route:'test',risk:0,event:'cache',eventName:'cache',chain:false}];
+ G.player.hp=2;G.player.shield=0;G.energy=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
+ G.rewardOffers=[{id:'module',name:'LASER 無料強化券',levelIndex:2}];q.chooseReward(0);
+ ok(G.levels[2]===0&&G.pendingUpgrades[2]===1,'auto-claim module never levels weapon');
+ ok(q.readCheckpoint()?.pendingUpgrades?.[2]===1,'module voucher retained in checkpoint');
+ G.mode='playing';ev('upgrade2','click');q.update(.016);
+ ok(G.selected===2&&el('equipActionState').textContent.includes('無料強化'),'manual voucher upgrade visible');
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:94,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:94,clientX:80,clientY:120});
+ ev('sideEquipBtn','click',{pointerType:'touch',pointerId:94,detail:1});
+ ok(G.levels[2]===1&&G.pendingUpgrades[2]===0&&G.energy===0,'one manual tap redeems one module voucher');
+ G.levels[1]=0;G.pendingUpgrades[1]=2;G.energy=0;ev('upgrade1','click');
+ ev('sideEquipBtn','click',{detail:0});
+ ok(G.levels[1]===1&&G.pendingUpgrades[1]===1&&G.energy===0,'first of two manual vouchers');
+ ev('sideEquipBtn','click',{detail:0});
+ ok(G.levels[1]===2&&G.pendingUpgrades[1]===0&&G.energy===0,'second of two manual vouchers');
+ G.pendingUpgrades=[0,0,0,0,0,0];
  G.stage=1;G.routeRisk=1;G.player.hp=1;G.player.shield=0;G.energy=0;G.pulses=0;
- G.passives=[2,2,2,2,2,2];G.levels=[2,3,2,2,3,3];
+ G.passives=[2,2,2,2,2,2];G.levels=[2,3,2,2,3,3];G.pendingUpgrades=[0,0,0,0,0,0];
  for(let j=0;j<250;j++){
   G.runSeed=j+1;
   ok(!q.rewardOptions().some(o=>o.tradeoff),'unaffordable tradeoff must not be offered');
  }
  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
- G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+ G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
  // The reduced hull and scarce free refills are permanent balance invariants.
  G.mode='playing';G.stage=0;G.player.hp=2;G.player.shield=0;G.pulses=1;
  q.stageClear();ok(G.player.hp===2&&G.pulses===1,'sector one no free full recovery');
@@ -856,7 +876,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   });
   G.routeRisk=stage?risk:0;G.rewardHistory=[];G.mode='playing';G.score=12345+stage;
   G.player.hp=2;G.player.shield=1;G.lives=2;G.pulses=1;G.pulseRecharge=17;G.energy=2;G.selected=1;
-  G.levels=[1,1,0,0,0,0];G.passives=[0,1,0,0,0,0];G.driveCharge=36;G.grazes=0;G.maxCombo=0;G.killCount=0;G.eventCount=0;
+  G.levels=[1,1,0,0,0,0];G.pendingUpgrades=[0,1,0,0,0,0];G.passives=[0,1,0,0,0,0];G.driveCharge=36;G.grazes=0;G.maxCombo=0;G.killCount=0;G.eventCount=0;
   q.saveCheckpoint('sector');const cp=q.readCheckpoint();
   ok(cp?.stage===stage&&cp?.routeHistory.length===stage,'R2 save chain '+stage+'/'+risk);
   ev('titleReturnBtn','click');ev('continueBtn','click');
@@ -864,6 +884,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(G.routeRisk===risk&&G.routeHistory.length===stage,'R2 route resume '+stage+'/'+risk);
   ok(G.pulses===1&&G.pulseRecharge===17&&G.energy===2,'R2 NOVA and resources resume '+stage+'/'+risk);
   ok(G.levels[0]===1&&G.passives[1]===1&&G.player.hp===2,'R2 build resume '+stage+'/'+risk);
+  ok(G.pendingUpgrades[1]===1,'R2 voucher continued '+stage+'/'+risk);
   G.routeOffers=stage<7?[q.routeOffer(stage,0),q.routeOffer(stage,1)]:[];
   q.renderRouteMap();const map=el('routeMap').innerHTML;
   ok((map.match(/class="map-sector"/g)||[]).length===8,'R2 map sectors '+stage+'/'+risk);
