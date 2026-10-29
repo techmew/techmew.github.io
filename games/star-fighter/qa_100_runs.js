@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,PASSIVES};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -226,6 +226,47 @@ function runHarness(gameSource,musicSource){
  q.pulse();ok(G.enemies[0].hp===880&&G.boss.hp===824,'pulse amplifier');
  G.boss=null;G.enemies=[];G.passives[5]=2;
  ok(Math.abs(q.salvageRate()-(q.routeProfile().pickupRate+.14))<.001,'salvage chance');
+ // 15/36: weapon/passive synergy activation and bounded effects.
+ G.enemies=[];G.boss=null;G.shots=[];G.bullets=[];G.particles=[];G.rings=[];
+ G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+ ok(q.SYNERGIES.length>=5,'at least five unique synergies');
+ for(let i=0;i<q.SYNERGIES.length;i++){
+  const s=q.SYNERGIES[i];
+  ok(!q.synergyActive(i),'synergy inactive '+i);
+  G.levels[s.weapon]=1;ok(!q.synergyActive(i),'synergy requires passive '+i);
+  G.passives[s.passive]=1;ok(q.synergyActive(i),'synergy activates '+i);
+  G.levels[s.weapon]=0;ok(!q.synergyActive(i),'synergy requires weapon '+i);
+  G.passives[s.passive]=0;
+ }
+ G.levels[1]=1;G.passives[0]=2;G.shots=[];q.playerFire();
+ ok(G.shots.filter(s=>s.kind==='spread').length===4,'spread bonus two pellets');
+ G.passives[0]=0;G.shots=[];q.playerFire();
+ ok(G.shots.filter(s=>s.kind==='spread').length===2,'spread baseline');
+ G.levels=[0,0,1,0,0,0];G.passives=[0,0,2,0,0,0];G.driveCharge=0;G.overdrive=0;
+ const laser={kind:'laser',x:100,y:100};q.applyShotSynergy(laser,{});
+ ok(laser.driveCharged&&Math.abs(G.driveCharge-1.4*1.44)<.001,'laser first-hit charge');
+ const charged=G.driveCharge;q.applyShotSynergy(laser,{});
+ ok(G.driveCharge===charged,'laser charges once per shot');
+ G.levels=[0,0,0,1,0,0];G.passives=[0,0,0,0,2,0];
+ G.enemies=[{x:400,y:300,hp:100},{x:440,y:315,hp:100},{x:850,y:600,hp:100}];
+ const missile={kind:'missile',x:400,y:300};q.applyShotSynergy(missile,G.enemies[0]);
+ ok(G.enemies[0].hp===100&&G.enemies[1].hp===74&&G.enemies[2].hp===100,'missile bounded splash');
+ q.applyShotSynergy(missile,G.enemies[0]);ok(G.enemies[1].hp===74,'missile single splash');
+ G.levels=[0,0,0,0,1,0];G.passives=[0,1,0,0,0,0];
+ G.enemies=[{x:420,y:350,hp:100}];
+ const drone={kind:'drone',x:100,y:200,vx:890,vy:0};q.steerDrone(drone,.1);
+ ok(drone.vy>0&&Number.isFinite(drone.vx)&&Math.hypot(drone.vx,drone.vy)<=900,'drone bounded homing');
+ G.passives[1]=0;const noTrack={kind:'drone',x:100,y:200,vx:890,vy:0};q.steerDrone(noTrack,.1);
+ ok(noTrack.vy===0,'drone baseline');
+ G.levels=[0,0,0,0,0,1];G.passives=[0,0,0,1,0,0];G.player.shield=2;G.player.invul=0;
+ G.bullets=[{x:G.player.x+50,y:G.player.y,life:2,size:5},{x:G.player.x+300,y:G.player.y,life:2,size:5}];
+ q.hitPlayer(1);
+ ok(G.player.shield===1&&G.bullets[0].life===0&&G.bullets[1].life===2,'shield burst selective clear');
+ G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,2];const baseSalvage=q.salvageRate();
+ G.levels[0]=1;ok(Math.abs(q.salvageRate()-(baseSalvage+.12))<.001,'boost salvage bonus');
+ ok(q.synergySummary().includes('加速回収'),'synergy status tooltip');
+ G.levels=[0,0,0,0,0,0];ok(!q.synergySummary(),'synergy deactivation');
+ G.enemies=[];G.bullets=[];G.shots=[];G.rings=[];G.particles=[];G.player.invul=999;
  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];
  G.passives=[1,2,0,1,0,2];G.player.hp=3;G.player.shield=1;
  G.mode='playing';G.driveCharge=12;G.lives=3;G.energy=0;G.pulses=2;
