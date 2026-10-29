@@ -415,8 +415,48 @@ function coordinateVolley(e){
 }
 
 function fireEnemy(e,target=null){if(e.type==='mine'||e.type==='interceptor')return;const a=target?Math.atan2(target.y-e.y,target.x-(e.x-30)):aim(e.x-30,e.y);const base=G.stage*22+(G.stage>0&&G.routeRisk?10:0);if(e.type==='tank'||e.type==='carrier'){for(let i=-1;i<=1;i++)bullet(e.x-42,e.y,a+i*.20,270+base,6,'#ffac71')}else if(e.type==='turret'){for(let i=-2;i<=2;i++)bullet(e.x-32,e.y,a+i*.14,260+base,5,'#ff577e')}else if(e.type==='spinner'){for(let i=0;i<6;i++)bullet(e.x,e.y,e.t*1.5+i*TAU/6,210+base,4,'#ffcc7e')}else{bullet(e.x-24,e.y,a,290+base,4,'#f9767f')}}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const hp=Math.round([1900,2650,3600][G.stage]*routeProfile().bossHp);G.boss={name:BOSSES[G.stage],x:W+220,y:335,w:[250,280,300][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),BOSSES[G.stage],'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
+/* Boss variants are tied to the chosen branch, so legacy bosses remain playable.
+   Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
+   The first sector and the other two branches retain their original bosses. */
+function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':'original'}
+function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':BOSSES[G.stage];const hp=Math.round([1900,2650,3600][G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
+/* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
+   All projectile paths use the existing bullet renderer and collision rules. */
+function creatureBossAttack(b){
+ if(b.x>980)return;
+ const angry=b.phase===1,octo=b.variant==='octopus',speed=octo?220:260;
+ if(angry&&b.pattern%4===3){
+  b.charge=1.15;b.beamY=cl(p.y,112,H-88);b.fire=2.65;b.pattern++;
+  tone(octo?190:140,.3,'sawtooth',.045,-75);return;
+ }
+ if(octo){
+  if(b.pattern%3===0){ // Four clearly separated tentacle tips, paired aimed bolts.
+   for(const side of [-1,1])for(let k=0;k<2;k++){
+    const y=cl(b.y+side*(68+k*68),80,H-70),x=b.x-136+k*19;
+    const a=Math.atan2(p.y-y,p.x-x);
+    for(const delta of [-.12,.12])bullet(x,y,a+delta,speed+(angry?35:0),5,'#ff9bd9');
+   }
+  }else if(b.pattern%3===1){ // Slow fan with a wider, readable safe interval.
+   const a=aim(b.x-122,b.y),n=angry?9:7;
+   for(let i=0;i<n;i++)bullet(b.x-122,b.y,a+(i-(n-1)/2)*.20,speed-35,5,'#da81ff');
+  }else{for(let k=-2;k<=2;k++){if(k===0)continue;bullet(b.x-100,b.y+k*38,Math.PI,205+(angry?40:0),5,'#a3d3ff')}}
+ }else{
+  if(b.pattern%3===0){ // Plasma jaws: a broad bite fan, not a solid wall.
+   const a=aim(b.x-155,b.y-36),n=angry?9:7;
+   for(let i=0;i<n;i++)bullet(b.x-155,b.y-36,a+(i-(n-1)/2)*.17,speed+(angry?35:0),5,'#ffad62');
+  }else if(b.pattern%3===1){ // Tail spines: symmetric, avoidable diagonals.
+   for(const side of [-1,1])for(let k=0;k<4;k++)bullet(b.x-22,b.y+side*(55+k*30),Math.PI+side*(.17+k*.13),245,5,'#ff7c90');
+  }else{
+   const a=aim(b.x-150,b.y-42);
+   for(let i=-2;i<=2;i++)bullet(b.x-150,b.y-42,a+i*.21,235+(angry?35:0),5,'#ffc26e');
+  }
+ }
+ b.pattern++;b.fire=angry?1.12:1.57;
+ tone(octo?235:135,.12,octo?'triangle':'sawtooth',.018,octo?60:90);
+}
+
 function bossAttack(b){
+if(b.variant&&b.variant!=='original'){creatureBossAttack(b);return}
 if(b.x>980)return;
 const a=aim(b.x-105,b.y),s=G.stage,angry=b.phase===1;
 if(angry&&b.pattern%4===3){
@@ -776,7 +816,7 @@ if(e.aiWarn<=0&&!terrainApproaching())coordinateVolley(e);
 e.fire-=dt;
 if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){fireEnemy(e);e.fire=Math.max(.7,(GR(e.type==='turret'?.95:1.5,e.type==='turret'?1.4:2.4)-G.stage*.11)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,e.type==='tank'||e.type==='carrier'?36:21))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
-b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*1.15)*(G.stage===2?95:68);
+b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*(b.variant==='dinosaur'?.85:1.15))*(b.variant==='octopus'?58:G.stage===2?95:68);
 if(!b.phase&&b.hp<=b.maxHp*.55){
  b.phase=1;b.fire=1.35;G.bullets=[];screenPulse=.34;
  ring(b.x-75,b.y,192,'#ff94b4',.6);
@@ -826,7 +866,49 @@ if(p.shield>0){c.save();c.globalAlpha=.55+.14*Math.sin(G.time*8);c.strokeStyle='
 c.restore()}
 function drawDrone(x,y,i){c.save();c.translate(x,y);c.rotate(Math.sin(G.time*2+i)*.08);poly([-19,0,-4,-13,14,-7,24,0,14,7,-4,13],'#2e709e','#8bdeff',1.6);poly([-11,-5,12,0,-11,5],'#b6efff');glowCircle(10,0,3,'#3cebff',10);glowCircle(-13,0,3,'#ffa85b',8);c.restore()}
 function drawEnemy(e){const {x,y,type,t}=e;c.save();c.translate(x,y);if(type==='interceptor'){c.rotate(Math.sin(t*7)*.06);poly([-40,-13,-8,-24,41,0,-8,24,-40,13,-22,0],'#5e4553','#ffb87d',2);poly([-10,-17,14,-29,14,-7],'#a85e65','#ffe1a9',1.5);poly([-10,17,14,29,14,7],'#a85e65','#ffe1a9',1.5);poly([-25,-7,35,0,-25,7],'#2d4058','#ffe4be',1.3);glowCircle(-26,0,6,'#ff9a51',13)}else if(type==='scout'||type==='dart'){c.rotate(Math.sin(t*4+e.phase)*.14);const d=type==='dart'?1.3:1;poly([-30*d,0,-2*d,-15*d,19*d,-18*d,7*d,0,19*d,18*d,-2*d,15*d],'#6c334e','#ff7083',2);poly([-17*d,-3*d,12*d,-5*d,33*d,0,12*d,5*d,-17*d,3*d],'#ac5570','#f7b4be',1);glowCircle(-17*d,0,5,'#ffb26b',12)}else if(type==='tank'||type==='carrier'){const r=type==='tank'?1:1.25;c.scale(r,r);poly([-37,-23,-15,-34,36,-28,48,0,36,28,-15,34,-37,23,-24,0],'#573846','#e29573',2);poly([-37,-16,25,-23,32,0,25,23,-37,16],'#28374d','#a9acbc',1.5);poly([-12,-19,16,-18,29,0,16,18,-12,19],'#905868','#ffb483',1.4);glowCircle(-4,0,12,'#ff9377',18);line(-12,-34,30,-27,'#c2d2e4',3);line(-12,34,30,27,'#c2d2e4',3)}else if(type==='turret'){poly([-28,-26,20,-22,31,0,20,22,-28,26],'#544466','#ff9a8c',2);ellipse(0,0,19,19,'#263c57','#d6abb4',2);poly([-35,-8,-49,-6,-49,6,-35,8],'#fd7685');glowCircle(0,0,7,'#ff7093',17)}else if(type==='spinner'){c.rotate(t*2);for(let k=0;k<4;k++){c.save();c.rotate(k*TAU/4);poly([-8,-8,7,-9,29,-27,21,8],'#9a4776','#ff8ba0',1.2);c.restore()}glowCircle(0,0,12,'#ffc17b',17)}else{c.rotate(t*.5);poly([-19,-16,2,-28,27,-8,23,20,-5,27,-28,10],'#594061','#ff957f',1.4);glowCircle(0,0,5,'#ff6f83',11)}c.restore()}
-function drawBoss(b){const s=G.stage;c.save();c.translate(b.x,b.y);const q=Math.sin(b.t*3)*4;c.shadowColor=s===2?'#d03bc0':'#ff7364';c.shadowBlur=18;
+function drawCreatureBoss(b){
+ c.save();c.translate(b.x,b.y);
+ const hurt=b.phase===1,t=b.t,octo=b.variant==='octopus';
+ c.shadowColor=octo?'#d47bff':'#ff9454';c.shadowBlur=10;
+ if(octo){
+  // Eight individually animated, plated arms are procedural, not borrowed art.
+  for(let i=0;i<8;i++){
+   const upper=i<4,side=upper?-1:1,k=i%4;
+   const sy=side*(30+k*12),endY=side*(110+k*42+Math.sin(t*2.2+i*1.7)*18);
+   const endX=-165-k*18+Math.sin(t*1.6+i)*21;
+   c.strokeStyle=hurt?'#ad557b':'#47778f';c.lineWidth=21-k*2;
+   c.beginPath();c.moveTo(-16,sy);c.bezierCurveTo(-95,sy+side*25,-90-k*20,endY-side*34,endX,endY);c.stroke();
+   c.strokeStyle='#87d8e4';c.lineWidth=3;c.stroke();
+   for(let j=0;j<3;j++)glowCircle(-90-j*23,endY*(.40+j*.18),3,'#a4d7f1',0);
+   glowCircle(endX,endY,7,hurt?'#ff8ea6':'#6fe8ee',5);
+  }
+  ellipse(12,0,107,94,'#233e59','#92b7d0',5);
+  poly([-56,-65,24,-112,96,-81,115,0,96,81,24,112,-56,65],'#345d75','#c6e4ef',3);
+  for(let j=-1;j<=1;j++)poly([-30,j*27-11,72,j*27-7,86,j*27+7,-30,j*27+11],'#35566d','#8cc9e2',1);
+  ellipse(-48,0,55,62,'#162c43','#b4d6e2',4);
+  for(const sign of [-1,1]){ellipse(-78,sign*27,16,13,'#091425','#c0eaf3',2);glowCircle(-83,sign*27,7,hurt?'#ff90bf':'#69f7ef',9)}
+  glowCircle(-39,0,21,hurt?'#ff639d':'#76f1fe',17);
+  poly([-128,-13,-102,-26,-98,0,-102,26,-128,13],'#7f9db5','#e0f9ff',2);
+ }else{
+  // Armored saurian profile: segmented tail, back spines, moving jaw and legs.
+  for(let j=0;j<6;j++){
+   const xx=80+j*25,yy=35+Math.sin(t*2+j*.5)*7+j*j*.6;
+   poly([xx-15,yy-19,xx+16,yy-12,xx+23,yy+8,xx-18,yy+12],'#62566a','#de987d',2);
+  }
+  poly([-52,-65,-5,-107,58,-93,114,-47,112,44,34,90,-52,66,-88,12],'#57536b','#e0ad90',4);
+  for(let k=0;k<7;k++){const x=-35+k*21,y=-79+(k%2)*-14;poly([x-12,y+18,x,y-22,x+18,y+18],'#b8a39c','#ffe0b2',2)}
+  for(const a of [-1,1]){c.save();c.translate(46,a*60);c.rotate(Math.sin(t*2+a)*.09);poly([-24,0,20,0,35,45,0,39],'#786878','#ffd0a5',2);poly([-1,32,40,42,45,53,-8,49],'#b4a0a0','#ffe1b8',1);c.restore()}
+  poly([-57,-66,-145,-106,-189,-78,-171,-18,-88,8,-31,-11],'#6e6577','#ffbd90',3);
+  poly([-169,-30,-91,-12,-49,-6,-60,36,-123,30,-177,8],'#303a53','#ffd4a9',3);
+  for(let k=0;k<6;k++){const x=-155+k*15;poly([x,1,x+8,1,x+4,13],'#fff0be')}
+  glowCircle(-137,-56,10,hurt?'#ff6a5c':'#ffd167',12);
+  ellipse(0,2,39,33,'#30334f','#b9aac0',3);
+  glowCircle(-1,0,17,hurt?'#ff774f':'#9ef3ff',14);
+  poly([45,-15,99,-30,92,3,48,12],'#a59994','#ffe4be',2);
+ }
+ c.shadowBlur=0;c.restore();
+}
+function drawBoss(b){if(b.variant&&b.variant!=='original'){drawCreatureBoss(b);return}const s=G.stage;c.save();c.translate(b.x,b.y);const q=Math.sin(b.t*3)*4;c.shadowColor=s===2?'#d03bc0':'#ff7364';c.shadowBlur=18;
 if(s===0){poly([-157,-36,-118,-91,-5,-114,122,-69,151,0,122,69,-5,114,-118,91,-157,36],'#35455c','#afc5d4',3);poly([-157,-18,-80,-53,70,-47,131,0,70,47,-80,53,-157,18],'#21314b','#e5ac81',2);for(let a of [-1,1]){c.save();c.scale(1,a);poly([-80,42,-10,117,65,98,94,43],'#485673','#c5d9e6',2);poly([-85,59,29,76,41,56],'#8997b3');for(let j=0;j<3;j++)glowCircle(-44+j*38,82,5,'#ffab74',12);c.restore()}glowCircle(20,0,30+q*.3,'#ff9c70',30);ellipse(21,0,22,22,'#ffe4b0','#fffae0',2);poly([-174,-32,-124,-19,-126,18,-174,34],'#be7f72','#ffe0b0',2)}
 else if(s===1){poly([-150,-68,-80,-142,64,-120,149,-42,165,55,64,120,-80,142,-150,68],'#45445c','#aaafb9',4);for(let i=0;i<9;i++){c.save();c.rotate(i*TAU/9+b.t*.07);poly([-11,-130,18,-130,38,-91,21,-68],'#6c556e','#c18c94',2);c.restore()}ellipse(-20,0,101,101,'#18283f','#a1a9c3',5);c.save();c.rotate(-b.t*.4);for(let j=0;j<8;j++){c.rotate(TAU/8);poly([-13,-94,13,-94,23,-60,-17,-60],'#b27e8d','#ffd2bd',1)}c.restore();glowCircle(-20,0,43,'#fd777f',32);ellipse(-20,0,32,32,'#ffe4aa','#fff4d0',3);for(let i of [-1,1]){glowCircle(-110,i*57,10,'#ffa36d',22)}}
 else{for(let i=0;i<9;i++){const ang=i*TAU/9+b.t*.1,rx=Math.cos(ang)*115,ry=Math.sin(ang)*121;line(rx*.36,ry*.36,rx+Math.sin(b.t*2+i)*16,ry+Math.cos(b.t*2+i)*21,'#9b4e9c',20);glowCircle(rx+Math.sin(b.t*2+i)*16,ry+Math.cos(b.t*2+i)*21,12,'#e165b6',13)}ellipse(0,0,104,96,'#49305a','#e597c7',5);ellipse(12,0,82,70,'#281f48','#8ba5e5',4);for(let i=0;i<8;i++){const a=i*TAU/8+b.t*.5;glowCircle(Math.cos(a)*67,Math.sin(a)*58,7,'#f07fc5',8)}glowCircle(-34,0,42,'#d979fb',27);ellipse(-35,0,30,30,'#ffdbef','#ffffff',2);poly([-163,-32,-110,-55,-68,-27,-60,0,-68,27,-110,55,-163,32],'#794c79','#ff9dd6',3)}
