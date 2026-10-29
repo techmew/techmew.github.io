@@ -264,11 +264,12 @@ function melody(dt){if(sound&&bgm)bgm.update(G.stage,!!G.boss)}
 function showToast(txt){ui.toast.textContent=txt;ui.toast.classList.add('show');G.toastTime=2}
 function showAnnounce(head,title,sub,duration=3){ui.small.textContent=head;ui.main.textContent=title;ui.desc.textContent=sub;ui.announce.classList.add('show');G.announceTime=duration}
 function hideOverlay(){ui.overlay.classList.add('hidden')}
-function showOverlay(kind){updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='MISSION START <span>▶</span>'}}
+function showOverlay(kind){$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で開始 <span>▶</span>'}}
 function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;G.mode='playing';$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
 function pause(){if(G.mode==='playing'){G.mode='paused';resetStick();showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}$('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>'}
 function endGame(victory=false){if(victory)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';clearCheckpoint();if(G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode!=='playing')startGame()});
+$('landscapeStartBtn').addEventListener('click',()=>{if(G.mode==='title')startGame()});
 ui.pause.addEventListener('click',pause);$('sidePulseBtn').addEventListener('click',pulse);$('sideEquipBtn').addEventListener('click',equip);
 $('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;bgm?.stop();resetStick();G.mode='title';$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('click',()=>{sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();bgm.setEnabled(true);bgm.start()}}else bgm?.setEnabled(false)});
 ui.equip.addEventListener('click',equip);ui.pulse.addEventListener('click',pulse);$('helpBtn').addEventListener('click',()=>{if(G.mode==='playing')pause();else if(G.mode==='title'){showToast('左タッチパッドをなぞって移動 / 自動射撃 / 衝撃波：SPACE')}});
@@ -276,46 +277,52 @@ ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{G.selected=i;if(G.mod
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='enter'||k==='z')equip()});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
-/* Relative touchpad: pointer delta is applied immediately to the ship.
-   No joystick dead zone or low-pass movement on touch; first touch never jumps. */
+/* Immediate displacement with continuous velocity-sensitive gain.
+   Never cruise, drift, warp on contact, or measure layout during pointermove. */
 const pad=$('touchPad');
-let padPointer=null,padLastX=0,padLastY=0,padScale={x:1,y:1};
+let padPointer=null,padLastX=0,padLastY=0,padLastTime=0,padScale={x:1,y:1},padCaptured=false;
 function resetStick(){
- stickX=stickY=0;stickPointer=null;padPointer=null;
+ stickX=stickY=0;stickPointer=null;padPointer=null;padCaptured=false;
  pad?.classList.remove('touching');
 }
 function touchScale(){
- // Precise pad motion. Lift and retouch to traverse more ground.
  const box=pad.getBoundingClientRect();
- return {x:cl((W-197)/Math.max(110,box.width*1.55),1.6,7),y:cl((H-149)/Math.max(110,box.height*1.15),1.2,4.5)};
+ return {x:cl((W-197)/Math.max(110,box.width*1.55),1.6,7),
+         y:cl((H-149)/Math.max(110,box.height*1.15),1.2,4.5)};
+}
+function touchGain(dx,dy,dt){
+ const speed=Math.hypot(dx,dy)*1000/Math.max(4,dt);
+ const t=cl((speed-220)/1150,0,1);
+ return .60+1.48*t*t*(3-2*t);
 }
 function padMove(e){
  if(G.mode!=='playing'||padPointer!==e.pointerId||!p)return;
- const events=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():null;
- const q=events&&events.length?events[events.length-1]:e;
+ const all=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():null;
+ const q=all?.length?all[all.length-1]:e;
  const dx=q.clientX-padLastX,dy=q.clientY-padLastY;
- padLastX=q.clientX;padLastY=q.clientY;
+ const now=Number.isFinite(q.timeStamp)&&q.timeStamp>0?q.timeStamp:(Number.isFinite(e.timeStamp)&&e.timeStamp>0?e.timeStamp:padLastTime+16);
+ const dt=now>padLastTime?Math.min(42,now-padLastTime):16;
+ padLastX=q.clientX;padLastY=q.clientY;padLastTime=now;
  if(!Number.isFinite(dx)||!Number.isFinite(dy))return;
- // Cache geometry at pointerdown: no forced layout per pointermove.
- // Precision curve runs synchronously, avoiding input lag and layouts.
-  const fine=n=>.58+.42*Math.min(1,Math.abs(n)/18);
-  const nx=cl(p.x+dx*padScale.x*fine(dx),62,W-135),ny=cl(p.y+dy*padScale.y*fine(dy),98,H-111);
+ const gain=touchGain(dx,dy,dt);
+ const nx=cl(p.x+dx*padScale.x*gain,62,W-135),ny=cl(p.y+dy*padScale.y*gain,98,H-111);
  p.angle=cl((ny-p.y)*.025,-.22,.22);
- p.x=p.targetX=nx;p.y=p.targetY=ny;
- G.firstInput=true;
+ p.x=p.targetX=nx;p.y=p.targetY=ny;G.firstInput=true;
 }
 pad.addEventListener('pointerdown',e=>{
  if(G.mode!=='playing'||padPointer!==null)return;
  e.preventDefault();padPointer=e.pointerId;
  padLastX=e.clientX;padLastY=e.clientY;
- padScale=touchScale();
- pad.classList.add('touching');
- try{pad.setPointerCapture(e.pointerId)}catch(_){}
+ padLastTime=Number.isFinite(e.timeStamp)&&e.timeStamp>0?e.timeStamp:16;
+ padScale=touchScale();pad.classList.add('touching');
+ try{pad.setPointerCapture(e.pointerId);padCaptured=true}catch(_){padCaptured=false}
 });
 pad.addEventListener('pointermove',e=>{if(e.pointerId===padPointer){e.preventDefault();padMove(e)}});
-for(const kind of ['pointerup','pointercancel','lostpointercapture']){
+window.addEventListener('pointermove',e=>{if(!padCaptured&&e.pointerId===padPointer)padMove(e)});
+for(const kind of ['pointerup','pointercancel','lostpointercapture'])
  pad.addEventListener(kind,e=>{if(e.pointerId===padPointer){e.preventDefault();resetStick()}});
-}
+for(const kind of ['pointerup','pointercancel'])
+ window.addEventListener(kind,e=>{if(!padCaptured&&e.pointerId===padPointer)resetStick()});
 window.addEventListener('blur',resetStick);
 /* Portrait is supported. Changing orientation must never auto-pause the run. */
 function syncOrientation(){
@@ -995,18 +1002,13 @@ function drawTerrain(){
  const t=G.terrain;if(!t||G.mode==='title')return;
  c.save();
  if(t.phase==='warning'){
-  const blink=.65+.24*Math.sin(G.time*11);
-  c.globalAlpha=blink;
-  c.font='bold 16px ui-monospace,monospace';c.textAlign='right';c.textBaseline='middle';
-  c.fillStyle='#ffe0aa';// Obstacle boundaries are shown in world space, not a text navigator.
+  // Small edge cues only. No translucent SAFE/DANGER guidance panels.
+  c.globalAlpha=.38+.22*Math.sin(G.time*9);c.strokeStyle='#ffaf82';c.lineWidth=3;
   for(let i=0;i<3;i++){
-   const y=TERRAIN_LANES[i],safe=i===t.safeLane;
-   c.fillStyle=safe?'#35d7be':'#ff845e';c.globalAlpha=safe?.13:.2;
-   c.fillRect(W-270,y-69,252,138);
-   c.globalAlpha=blink;c.strokeStyle=safe?'#74ffe1':'#ffbd7b';c.lineWidth=safe?2:3;
-   c.setLineDash(safe?[10,8]:[14,7]);c.beginPath();c.moveTo(W-270,y);c.lineTo(W-18,y);c.stroke();c.setLineDash([]);
-   c.fillStyle=safe?'#b8ffed':'#ffe1b9';c.font='bold 13px ui-monospace,monospace';
-   // Clear lane geometry remains; do not label SAFE/DANGER.
+   if(i===t.safeLane)continue;
+   const y=TERRAIN_LANES[i];
+   c.beginPath();c.moveTo(W-72,y-44);c.lineTo(W-40,y-44);
+   c.moveTo(W-72,y+44);c.lineTo(W-40,y+44);c.stroke();
   }
  }else{
   for(const block of t.blocks){
@@ -1339,7 +1341,7 @@ function drawBossBeam(b){
   line(0,y,endpoint,y,'#ff557d',4);
   c.setLineDash([]);
   c.fillStyle='#ffdce9';c.font='bold 16px ui-monospace,monospace';c.textAlign='left';
-  c.fillText('⚠  BEAM INCOMING',20,y-15);
+  // The beam itself remains the warning. No text navigator.
  }
  c.restore();
 }
