@@ -64,7 +64,7 @@ function encounterDirector(){
 }
 function nextWaveDelay(){
  const d=encounterDirector(),tune=routeProfile();
- const raw=(GR(3.6,5.35)-G.stage*.34)*tune.spawnInterval;
+ const raw=(GR(2.85,4.5)-G.stage*.22)*tune.spawnInterval;
  const crowdDelay=d.crowd>0.5?(d.crowd-.5)*2.3:0;
  const recoveryDelay=G.directorGrace>0?1.15:0;
  return cl(raw*(1.08-(d.pressure-.3)*.23)+crowdDelay+recoveryDelay,2.7,8.5);
@@ -837,12 +837,13 @@ function stageClear(){
  G.pendingWave=null;G.terrain=null;G.boss=null;G.bossDone=true;G.transitioning=true;G.bullets=[];
  G.flowPhase=G.stage>=NAMES.length-1?'finish':'reward';
  G.transition=G.flowPhase==='finish'?1.8:4.8;
- if(G.flowPhase==='reward'){G.rewardOffers=rewardOptions();G.routeOffers=[];saveCheckpoint('reward')}
+ // The checkpoint is saved after rescue and score changes to avoid losing progress.
  // Rescue critically damaged ships on every second sector only.
  const rescued=G.stage%2===1&&p.hp===1;
  if(rescued)p.hp=2;
  if(G.stage%2===1)G.pulses=Math.min(5,G.pulses+1);
  G.score+=5000*(G.stage+1);chargeDrive(22);
+ if(G.flowPhase==='reward'){G.rewardOffers=rewardOptions();G.routeOffers=[];saveCheckpoint('reward')}
  showAnnounce('SECTOR CLEAR',NAMES[G.stage],'+ BONUS 5000'+(rescued?' · ARMOR +1':G.stage%2===1?' · PULSE +1':''),.9);
  tone(470,.55,'triangle',.055,450)
 }
@@ -873,7 +874,7 @@ function resetTerrain(){
 function terrainApproaching(){
  // Reserve six seconds before each terrain encounter for a clear, dodgeable lane.
  // Existing enemies retreat and stop shooting; bullets expire naturally.
- return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]-6&&G.stageTime<=STAGE_LENGTHS[G.stage]-11;
+ return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]-4&&G.stageTime<=STAGE_LENGTHS[G.stage]-11;
 }
 function terrainQueued(){return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]&&G.stageTime<=STAGE_LENGTHS[G.stage]-11}
 function planTerrain(){
