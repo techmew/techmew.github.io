@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -61,7 +61,7 @@ function runHarness(gameSource,musicSource){
  const stageSetup=(seed,stage,risk)=>{
   G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
   G.enemies=[];G.bullets=[];G.shots=[];G.pendingWave=null;G.terrain=null;G.terrainIndex=2;
-  G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;
+  G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
   G.selected=0;G.energy=0;G.pulses=2;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
@@ -75,7 +75,7 @@ function runHarness(gameSource,musicSource){
  function checkWave(seed,stage,risk,index){
   const w=G.pendingWave;
   ok(!!w,'no formation '+[seed,stage,risk,index]);
-  ok(w.timer>=1.35,'warning shorter than 1.35s');
+  ok(w.timer>=.28&&w.timer<=.4,'new waves enter promptly');
   ok(w.units.length>=1&&w.units.length<=8,'wave budget');
   ok(w.units.length<=q.routeProfile().maxEnemies,'enemy limit');
   ok([155,337,515].includes(w.safeY),'safe lane invalid');
@@ -129,7 +129,8 @@ function runHarness(gameSource,musicSource){
        if(stage===7)ok(t.type===(risk?'gravity':'prism'),'stage eight terrain differs by route');
      ok(t.blocks.filter(b=>b.hp>0).length===2,'terrain should block two lanes');
      ok(t.blocks[t.safeLane].hp===0,'terrain safe lane obstructed');
-     ok(!q.spawnWave() && G.pendingWave===null,'terrain allows wave overlap');
+     ok(q.spawnWave()&&G.pendingWave.safeY===[165,337,509][t.safeLane],'enemy squads keep terrain lane open');
+     G.pendingWave=null;
      q.advanceTerrain(2.1);
      ok(t.phase==='active','terrain never activated');
      G.player.y=[165,337,509][t.safeLane];G.player.invul=0;G.player.hp=3;
@@ -140,12 +141,15 @@ function runHarness(gameSource,musicSource){
     }
     G.terrainIndex=0;
     G.stageTime=G.terrainSchedule[0];
-    G.enemies=[{x:1100,y:337}];G.bullets=[];
-    ok(!q.planTerrain(),'terrain began while hostile still active');
-    G.enemies=[];G.bullets=[{x:600,y:337}];
-    ok(!q.planTerrain(),'terrain began while hostile bullets active');
-    G.bullets=[];
+    G.enemies=[{x:1100,y:337}];G.bullets=[{x:600,y:337}];
+    ok(q.planTerrain(),'terrain must start with enemies present');
+    ok(G.terrain.phase==='warning','hazard preview is preserved');
+    G.terrain=null;G.enemies=[];G.bullets=[];
     G.terrainIndex=2;
+    G.enemies=[];G.pickups=[];
+    ok(q.spawnAmbient(),'patrol should bridge quiet moments');
+    ok(G.enemies.length===1&&G.enemies[0].noLoot,'background enemies must never farm power items');
+    q.destroyEnemy(0);ok(G.pickups.length===0,'no increased power capsule drops');
     const max=q.routeProfile().maxEnemies;
     G.enemies=Array.from({length:max},(_,i)=>({x:1000+i*8,y:120}));
     ok(!q.spawnWave(),'formation over max enemy budget');
@@ -212,12 +216,13 @@ function runHarness(gameSource,musicSource){
    else live.missed.push({seed,stage,terrainIndex:G.terrainIndex,time:G.stageTime});
   }
  }
- ok(live.overlapFrames===0,'live terrain-wave overlap');
+ ok(live.overlapFrames>0,'terrain and hostile waves should overlap safely');
  ok(live.missed.length===0,'terrain encounter missing in simulated run');
  stats.liveSimulation=live;
  stageSetup(seeds[0],0,0);
  for(let i=0;i<300;i++)q.bullet(900,200,Math.PI,300,5);
  stats.maxBullets=G.bullets.length;
+ ok(!gameSource.includes('function drawWaveWarning()')&&!gameSource.includes('function drawSquadWarning()'),'red navigator cannot return');
  ok(G.bullets.length<=120,'unbounded hostile bullets');
  G.bullets=[];G.player.invul=9999;
  q.update(.016);ok(G.shots.length>0,'auto fire regression');
