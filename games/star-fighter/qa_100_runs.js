@@ -431,6 +431,21 @@ function runHarness(gameSource,musicSource){
  G.player.invul=0;q.hitPlayer(1);G.player.invul=0;q.hitPlayer(1);
  ok(G.mode==='over','four unshielded hits end run');
  ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===2&&G.lives===2,'retry resets hull');
+ // Stage six safe route restores defense; dangerous route spawns a loot-bearing elite.
+ stageSetup(seeds[0],5,0);G.activeEvent=q.routeOffer(4,0).event;
+ G.eventTriggered=false;G.terrainIndex=2;G.stageTime=26;G.player.shield=0;G.driveCharge=0;G.spawn=10;
+ q.update(.016);
+ ok(G.eventTriggered&&G.player.shield===1&&G.driveCharge>=12,'stage six archive effect');
+ stageSetup(seeds[0],5,1);G.activeEvent=q.routeOffer(4,1).event;
+ G.eventTriggered=false;G.terrainIndex=2;G.stageTime=26;G.spawn=10;
+ q.update(.016);
+ ok(G.eventTriggered&&G.enemies.some(e=>e.eventDrop),'stage six guardian event');
+ G.routeRisk=0;G.routeHistory=Array.from({length:5},(_,i)=>({stage:i+2,route:'test',risk:0,event:'archive',eventName:'古代記録庫',chain:false}));
+ G.rewardHistory=[];G.eventCount=0;G.player.hp=2;G.player.shield=0;G.lives=2;G.mode='playing';
+ q.saveCheckpoint('sector');ok(q.readCheckpoint()?.stage===5,'stage six checkpoint');
+ ev('titleReturnBtn','click');ev('continueBtn','click');
+ ok(G.mode==='playing'&&G.stage===5,'stage six continue');
+ stageSetup(seeds[0],0,0);G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
  // Regression lock: never remove the route-selected creature bosses.
  // Safe stage 2: mechanical octopus. Storm stage 3: armored dinosaur.
  // Both inverse routes preserve original stage bosses.
@@ -443,8 +458,13 @@ function runHarness(gameSource,musicSource){
   ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
   q.spawnBoss();ok(G.boss.variant===variant&&G.boss.name===name,'boss identity '+name);
   G.boss.x=930;G.boss.y=337;G.boss.t=1;
-  q.bossAttack(G.boss);
-  ok(G.bullets.length>0,'boss projectiles '+name);
+  for(let pattern=0;pattern<3;pattern++){
+   G.boss.pattern=pattern;G.bullets=[];q.bossAttack(G.boss);
+   ok(G.bullets.length>0&&G.bullets.length<=120,'boss pattern '+pattern+' '+name);
+  }
+  G.boss.phase=1;G.boss.pattern=3;G.boss.charge=0;G.boss.beam=0;
+  q.bossAttack(G.boss);ok(G.boss.charge>0,'second phase beam warning '+name);
+  G.boss.phase=0;G.boss.charge=0;G.boss.beam=0;
   q.drawScene();
   G.boss=null;G.bullets=[];
  }
