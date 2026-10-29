@@ -195,6 +195,8 @@ function runHarness(gameSource,musicSource){
  ok(el('game').width===1200&&el('game').height===675,'coarse pointer DPR cap');
  ev('touchPad','pointerdown',{clientX:50,clientY:100});
  const before=G.player.x;
+ ev('touchPad','pointermove',{clientX:52,clientY:100});
+ ok(G.player.x-before>1&&G.player.x-before<10,'small swipe accurate');
  ev('touchPad','pointermove',{clientX:100,clientY:100});
  ok(G.player.x>before+40,'touchpad latency');
  for(let j=0;j<12;j++)ev('touchPad','pointermove',{clientX:102+j,clientY:100});
@@ -211,6 +213,7 @@ function runHarness(gameSource,musicSource){
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
+ ok(G.player.hp===2&&G.lives===2&&G.pulses===1,'new run limited hull and lives');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  const priorSeed=G.runSeed;
@@ -233,10 +236,15 @@ function runHarness(gameSource,musicSource){
  G.passives[4]=2;G.pulses=2;G.enemies=[{hp:1000,x:800,y:300}];G.boss={hp:1000};
  q.pulse();ok(G.enemies[0].hp===880&&G.boss.hp===824,'pulse amplifier');
  G.boss=null;G.enemies=[];G.passives[5]=2;
- ok(Math.abs(q.salvageRate()-(q.routeProfile().pickupRate+.14))<.001,'salvage chance');
+ ok(Math.abs(q.salvageRate()-(q.routeProfile().pickupRate+.05))<.001,'salvage chance');
  // 15/36: weapon/passive synergy activation and bounded effects.
  G.enemies=[];G.boss=null;G.shots=[];G.bullets=[];G.particles=[];G.rings=[];
  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+ for(const [stage,risk,rate] of [[0,0,.08],[1,0,.12],[1,1,.075]]){
+  G.stage=stage;G.routeRisk=risk;
+  ok(Math.abs(q.salvageRate()-rate)<.00001,'base loot chance '+stage+'/'+risk);
+ }
+ G.stage=0;G.routeRisk=0;
  ok(q.SYNERGIES.length>=5,'at least five unique synergies');
  for(let i=0;i<q.SYNERGIES.length;i++){
   const s=q.SYNERGIES[i];
@@ -271,7 +279,7 @@ function runHarness(gameSource,musicSource){
  q.hitPlayer(1);
  ok(G.player.shield===1&&G.bullets[0].life===0&&G.bullets[1].life===2,'shield burst selective clear');
  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,2];const baseSalvage=q.salvageRate();
- G.levels[0]=1;ok(Math.abs(q.salvageRate()-(baseSalvage+.12))<.001,'boost salvage bonus');
+ G.levels[0]=1;ok(Math.abs(q.salvageRate()-(baseSalvage+.04))<.001,'boost salvage bonus');
  ok(q.synergySummary().includes('加速回収'),'synergy status tooltip');
  G.levels=[0,0,0,0,0,0];ok(!q.synergySummary(),'synergy deactivation');
  G.enemies=[];G.bullets=[];G.shots=[];G.rings=[];G.particles=[];G.player.invul=999;
@@ -293,6 +301,8 @@ function runHarness(gameSource,musicSource){
  G.player.hp=3;G.player.shield=0;G.lives=3;G.energy=0;G.pulses=2;G.driveCharge=0;
  G.boss=null;G.bossDone=false;G.transitioning=false;G.terrain=null;G.terrainIndex=2;G.mode='playing';
 
+ ok(gameSource.includes("G.stageTime-dt)/23"),'not nine second guaranteed capsules');
+ ok(gameSource.includes("e.type==='carrier'?.40:salvageRate()"),'carriers not guaranteed capsules');
  const rewardTypes=new Set();
  for(let j=0;j<100;j++){
   G.runSeed=j*1234567>>>0;
@@ -380,6 +390,18 @@ function runHarness(gameSource,musicSource){
  }
  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
  G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+ // The reduced hull and scarce free refills are permanent balance invariants.
+ G.mode='playing';G.stage=0;G.player.hp=2;G.player.shield=0;G.pulses=1;
+ q.stageClear();ok(G.player.hp===2&&G.pulses===1,'sector one no free full recovery');
+ G.stage=1;G.player.hp=1;G.pulses=1;
+ q.stageClear();ok(G.player.hp===2&&G.pulses===2,'critical rescue at sector two');
+ G.bossDone=false;G.transitioning=false;G.mode='playing';
+ G.stage=0;G.player.hp=2;G.player.shield=0;G.pulses=2;G.lives=2;G.player.invul=0;
+ q.hitPlayer(1);ok(G.player.hp===1&&G.lives===2,'hull damage one');
+ G.player.invul=0;q.hitPlayer(1);ok(G.player.hp===2&&G.lives===1,'lose a ship after two hits');
+ G.player.invul=0;q.hitPlayer(1);G.player.invul=0;q.hitPlayer(1);
+ ok(G.mode==='over','four unshielded hits end run');
+ ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===2&&G.lives===2,'retry resets hull');
  // Regression lock: never remove the route-selected creature bosses.
  // Safe stage 2: mechanical octopus. Storm stage 3: armored dinosaur.
  // Both inverse routes preserve original stage bosses.
