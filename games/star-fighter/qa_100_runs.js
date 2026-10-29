@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=controls-20261029-4'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=manual-input-20261030-1'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -365,7 +365,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ok(el('sideEquipBtn').disabled===false,'empty equip must remain tappable');
  ok(el('sidePulseBtn').disabled===false,'NOVA must remain tappable');
  ok(el('equipActionState').textContent.includes('0/1'),'equip requirement displayed before collection');
- ev('sideEquipBtn','click');
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:20,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:20,clientX:80,clientY:120});
  ok(G.energy===0&&G.levels[0]===0,'no free upgrade without capsule');
  ok(el('toast').textContent.includes('カプセル不足'),'shortage tap reports requirement');
  G.pulses=2;G.pulseRecharge=0;q.update(.016);
@@ -385,10 +386,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   handler({pointerType:'touch',pointerId:28,clientX:80,clientY:120,preventDefault(){}});
  ok(G.pulses===1,'window pointerup fallback fires NOVA once');
  G.pulses=1;
- ev('sidePulseBtn','click',{detail:0});ok(G.pulses===0,'NOVA keyboard accessibility action works');
+ document.activeElement=el('sidePulseBtn');
+ ev('sidePulseBtn','click',{detail:0,isTrusted:true});document.activeElement=null;
+ ok(G.pulses===0,'NOVA keyboard accessibility action works');
  ok(el('sidePulseBtn').disabled===false,'NOVA empty state is still tappable');
  ok(el('novaActionState').textContent.includes('補充まで'),'NOVA status shows recharge countdown');
- ev('sidePulseBtn','click');
+ ev('sidePulseBtn','pointerdown',{pointerType:'touch',pointerId:29,clientX:80,clientY:120});
+ ev('sidePulseBtn','pointerup',{pointerType:'touch',pointerId:29,clientX:80,clientY:120});
  ok(G.pulses===0&&el('toast').textContent.includes('再充填まで'),'empty NOVA tap reports remaining time');
  G.pulses=1;G.pulseRecharge=0;q.update(.016);
  // Android two-thumb control: keep left pointer captured while tapping right.
@@ -434,6 +438,20 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:41,clientX:132,clientY:120});
  ev('sideEquipBtn','click',{pointerType:'touch',pointerId:41,detail:1});
  ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'swipe across button is NOT an upgrade');
+
+ // Synthesis and pointer retargeting must NEVER spend a capsule.
+ ev('sideEquipBtn','click',{detail:1,pointerType:'mouse',isTrusted:true});
+ ev('sideEquipBtn','click',{detail:1,pointerType:'touch',isTrusted:true});
+ ev('sideEquipBtn','click',{detail:0,isTrusted:false});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:67,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:68,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointercancel',{pointerType:'touch',pointerId:68,clientX:80,clientY:120});
+ ev('sideEquipBtn','click',{detail:1,pointerType:'mouse',isTrusted:true});
+ ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'ghost/unpaired/retargeted click must not spend capsules');
+ // Nonfocused, untrusted, and field Enter do not count as purchase intent.
+ ev('sideEquipBtn','click',{detail:0,isTrusted:true});
+ ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'unfocused keyboard click does not buy');
+
  for(const fn of window.handlers?.keydown||[])fn({key:'Enter',repeat:false,target:{closest:()=>({})},preventDefault(){}});
  ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'focused Enter never auto-upgrades');
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:42,clientX:80,clientY:120});
@@ -655,9 +673,11 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ok(q.queueManualUpgrade(2,100)===1&&G.pendingUpgrades[2]===1,'free vouchers obey weapon upgrade cap');
  G.pendingUpgrades[2]=0;
  G.levels[1]=0;G.pendingUpgrades[1]=2;G.energy=0;ev('upgrade1','click');
- ev('sideEquipBtn','click',{detail:0});
+ ev('sideEquipBtn','pointerdown',{pointerType:'mouse',pointerId:95,button:0,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'mouse',pointerId:95,button:0,clientX:80,clientY:120});
  ok(G.levels[1]===1&&G.pendingUpgrades[1]===1&&G.energy===0,'first of two manual vouchers');
- ev('sideEquipBtn','click',{detail:0});
+ ev('sideEquipBtn','pointerdown',{pointerType:'mouse',pointerId:96,button:0,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'mouse',pointerId:96,button:0,clientX:80,clientY:120});
  ok(G.levels[1]===2&&G.pendingUpgrades[1]===0&&G.energy===0,'second of two manual vouchers');
  G.pendingUpgrades=[0,0,0,0,0,0];
  G.stage=1;G.routeRisk=1;G.player.hp=1;G.player.shield=0;G.energy=0;G.pulses=0;
