@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=impact-motion-20261030-27'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=projectile-contrast-20261030-28'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -74,6 +74,32 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    ok(barTop>=height&&barTop+25>height,'portrait non-overlap sizing '+width);
   }
  }
+ // 28/36: shape, outline and luminance cues must not depend on hue.
+ const projectileCases=[
+  [{x:210,y:150,vx:-290,vy:0,size:5,damage:1,color:'#ff8d61'},'orb'],
+  [{x:220,y:250,vx:-450,vy:12,size:5,damage:1,color:'#ff8d61'},'lance'],
+  [{x:230,y:350,vx:-260,vy:20,size:10,damage:2,color:'#ff8d61'},'heavy']
+ ];
+ const projectileShapes=new Set(),projectileColors=new Set();
+ let bulletArcs=0,bulletLines=0;
+ context.arc=()=>{bulletArcs++};
+ context.lineTo=()=>{bulletLines++};
+ for(const [spec,shape] of projectileCases){
+  const before=JSON.stringify(spec),levels=G.levels.slice(),energy=G.energy;
+  const visual=q.hostileBulletVisual(spec);
+  ok(visual.shape===shape,'enemy projectile geometry '+shape);
+  ok(visual.rim==='#10152b'&&visual.mark==='#ffffff','high-contrast projectile outline/core '+shape);
+  ok(/^#[0-9a-f]{6}$/i.test(visual.core)&&visual.radius>=spec.size,'visible projectile core '+shape);
+  projectileShapes.add(visual.shape);projectileColors.add(visual.core);
+  q.drawHostileBullet(spec);
+  ok(JSON.stringify(spec)===before&&G.energy===energy&&G.levels.every((n,i)=>n===levels[i]),'bullet draw cannot spend capsules or change combat '+shape);
+ }
+ ok(projectileShapes.size===3&&projectileColors.size===3,'shape and hue independently distinguish all threat classes');
+ ok(bulletArcs>0&&bulletLines>=7,'circle/chevron/diamond geometry actually rendered');
+ const bulletStress=Array.from({length:100},(_,i)=>({...projectileCases[i%3][0],x:100+i*8,y:80+i%30}));
+ for(const a of bulletStress)q.drawHostileBullet(a);
+ ok(bulletStress.length===100&&bulletStress.every(a=>Number.isFinite(a.x)&&Number.isFinite(a.y)),'100 enemy projectiles render without gameplay mutation');
+ context.arc=()=>{};context.lineTo=()=>{};
  const seeds=Array.from({length:100},(_,i)=>(Math.imul(i+1,0x9e3779b9)^0xa5a5a5a5)>>>0);
  const stageSetup=(seed,stage,risk)=>{
   G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
