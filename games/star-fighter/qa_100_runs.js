@@ -195,11 +195,15 @@ function runHarness(gameSource,musicSource){
  const stopped=G.player.x;
  q.update(.016);ok(Math.abs(G.player.x-stopped)<1,'touch release drift');
  ev('sidePauseBtn','click');ok(G.mode==='paused','pause');
+ ok(el('sidePauseBtn').innerHTML.includes('<span>再開</span>'),'pause label');
  ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
+ ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'resume label');
  ev('sidePulseBtn','click');ok(G.pulses===1,'pulse');
  G.energy=6;ev('sideEquipBtn','click');ok(G.levels[0]===1,'upgrade');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
+ ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
+ ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  q.spawnBoss();ok(!!G.boss,'boss spawn');
  G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
