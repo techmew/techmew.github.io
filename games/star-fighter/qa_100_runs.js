@@ -122,6 +122,7 @@ function runHarness(gameSource,musicSource){
      const t=G.terrain;
      stats.warningSeconds=Math.min(stats.warningSeconds,t.timer);
      ok(t.phase==='warning'&&t.timer>=2.1,'terrain warning short');
+      if(stage===3)ok(t.type==='flare','stage four must have heat vent hazard');
      ok(t.blocks.filter(b=>b.hp>0).length===2,'terrain should block two lanes');
      ok(t.blocks[t.safeLane].hp===0,'terrain safe lane obstructed');
      ok(!q.spawnWave() && G.pendingWave===null,'terrain allows wave overlap');
