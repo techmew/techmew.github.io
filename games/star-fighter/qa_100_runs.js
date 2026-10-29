@@ -52,7 +52,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,7 +64,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=parallax-20261030-25'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=route-art-20261030-26'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -1022,6 +1022,36 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   const oldSeed=G.runSeed;G.runSeed=(oldSeed+1)>>>0;
   ok(q.depthField().key!==field.key,'new run changes depth geometry');
  }
+
+ // 26/36: stage- and branch-specific procedural artwork. No combat RNG.
+ const routeMotifs=new Set();
+ for(let stage=0;stage<8;stage++){
+  const variants=[];
+  for(let risk=0;risk<=1;risk++){
+   G.stage=stage;G.routeRisk=risk;G.runSeed=seeds[(stage*11+risk)%seeds.length];G.scroll=0;
+   const f=q.routeArtField();variants.push([f.motif,f.ink,f.fill].join('/'));routeMotifs.add(f.motif);
+   ok(f.layers.length===2&&f.layers[0].speed<f.layers[1].speed,'route art parallax order');
+   ok(f.layers.map(x=>x.nodes.length).join(',')==='5,7','route art draw budget');
+   ok(q.routeArtField()===f,'route art cached');
+   const signature=JSON.stringify(f.layers);
+   for(const layer of f.layers)for(const n of layer.nodes){
+    ok([n.x,n.y,n.size,n.angle,n.alpha].every(Number.isFinite),'route art geometry finite');
+    ok(n.alpha<.36,'route art must remain behind projectiles');
+    ok(n.y<260||n.y>410,'route art avoids center ship lane');
+   }
+   q.drawRouteArt(0);q.drawRouteArt(1);
+   G.scroll=120;ok(q.routeArtField()===f&&JSON.stringify(f.layers)===signature,'route art scroll without allocations');
+   const old=G.runSeed;G.runSeed=(old+1)>>>0;
+   ok(q.routeArtField().key!==f.key,'route art changes with seed');
+  }
+  ok(variants[0]!==variants[1],'route silhouette/color differ '+stage);
+ }
+ ok(routeMotifs.size===16,'sixteen unique route landmarks');
+ stageSetup(seeds[22],5,1);q.spawnWave();const beforeRouteArt=waveSignature();
+ stageSetup(seeds[22],5,1);q.routeArtField();q.drawRouteArt(0);q.drawRouteArt(1);q.spawnWave();
+ ok(waveSignature()===beforeRouteArt,'route art does not change combat RNG');
+ stats.routeArt={motifs:routeMotifs.size,routePairs:8,objectsPerScene:12,
+  method:'headless Canvas geometry only, no real-device fps measurement'};
  // 24/36: first-contact readability and boss difficulty/reward regression.
  // Real hardware FPS and human dodge success are NOT inferred from these tests.
  const bossCases=[[0,0],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1],[4,0],[4,1],
