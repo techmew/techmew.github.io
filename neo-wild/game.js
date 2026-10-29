@@ -70,7 +70,7 @@ function spawnMob(initial=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false});
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
@@ -184,7 +184,7 @@ function resolveAttack(){
    const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
-   m.windup=0;m.stun=stealthHit?.92:P.type==="wolf"?.66:P.type==="cat"?.23:.41;m.attack=Math.max(m.attack,.45);hit++;
+   m.windup=0;m.chargeTime=0;m.stun=stealthHit?.92:P.type==="wolf"?.66:P.type==="cat"?.23:.41;m.attack=Math.max(m.attack,.45);hit++;
    if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=P.type==="wolf"?17:P.type==="cat"?3:8;
@@ -417,27 +417,54 @@ function update(dt){
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
    }
    if(!s.prey&&m.windup>0){
-     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
-     if(m.windup===0){
-       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
-       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
-       if(m.stun<=0&&P.inv<=0&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-         const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
-         P.hp-=damage;P.inv=.55;shake=9;flash=.23;
-         label(P.x,P.y-35,"-"+damage,"#ff9890");
-         blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
-       }else if(dist(P,m)<reach+50)label(m.x,m.y-m.r-16,"回避！","#a6f5d8");
+    vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
+    if(m.windup===0){
+     if(m.type==="boar"&&m.stun<=0){
+      m.chargeTime=.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
+      label(m.x,m.y-m.r-24,"突進！","#ffbf81");
+     }else{
+      const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
+      const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
+      if(m.stun<=0&&P.inv<=0&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
+       const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
+       P.hp-=damage;P.inv=.55;shake=9;flash=.23;
+       label(P.x,P.y-35,"-"+damage,"#ff9890");
+       blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
+      }else if(dist(P,m)<reach+50)label(m.x,m.y-m.r-16,"回避！","#a6f5d8");
      }
+    }
    }
-   if(m.stun>0){vx=0;vy=0}
+   const charging=!s.prey&&m.chargeTime>0&&m.stun<=0;
+   if(charging){
+    m.chargeTime=Math.max(0,m.chargeTime-dt);
+    m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*3.65;vy=Math.sin(m.chargeDir)*s.speed*3.65;
+   }
+   if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
-  if(ox===m.x&&oy===m.y){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
-  if(!s.prey&&m.windup<=0&&m.stun<=0&&d<P.r+m.r+29&&(spotted||m.alert>0)&&m.attack<=0){
-   m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.58:.53;
-   m.windup=m.windupTotal;m.strikeDir=angle;m.attack=1.45;
-   m.dir=angle;label(m.x,m.y-m.r-24,"危険！","#ffb76d");
-   sound(310,.11,"sawtooth",.03);
-  }
+   if(charging){
+    const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
+    const t=denom>0?clamp(((P.x-ox)*ddx+(P.y-oy)*ddy)/denom,0,1):0;
+    if(!m.chargeHit&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
+     m.chargeHit=true;m.chargeTime=0;
+     if(P.inv<=0){
+      const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
+      P.hp-=damage;P.inv=.6;shake=11;flash=.27;
+      label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
+      blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);
+     }else label(P.x,P.y-35,"回避！","#a6f5d8");
+    }
+    if(denom<(s.speed*3.65*dt*.35)**2){
+     m.chargeTime=0;m.stun=Math.max(m.stun,.7);
+     label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
+    }
+   }
+   if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
+   if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(m.type==="boar"?115:29)&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
+    m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.58:.53;
+    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=m.type==="boar"?1.8:1.45;
+    m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":"危険！","#ffb76d");
+    sound(310,.11,"sawtooth",.03);
+   }
  }
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0||dist(mobs[i],P)>Math.max(vw,vh)*2.7)mobs.splice(i,1);
  for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0)carcasses.splice(i,1);
@@ -845,6 +872,13 @@ function drawScene(){
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
+ for(const m of entities){
+  if(m===P||m.type!=="boar"||m.chargeTime<=0)continue;
+  ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.chargeDir);
+  ctx.strokeStyle="#ffc27b";ctx.lineWidth=4;ctx.setLineDash([11,8]);
+  ctx.beginPath();ctx.moveTo(-m.r,0);ctx.lineTo(m.r+42,0);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+ }
  if(P&&P.pendingStrike){
   const pct=1-P.windup/Math.max(.001,Math.min(.15,P.rate*.38));
   ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle=P.type==="wolf"?"#ffc17f":P.type==="cat"?"#b8e8d1":"#ffe1a8";ctx.lineWidth=3+pct*3;
@@ -856,9 +890,16 @@ function drawScene(){
    const progress=1-m.windup/Math.max(.01,m.windupTotal);
    ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.strikeDir);
    ctx.fillStyle="rgba(244,75,48,"+(.11+progress*.31)+")";
-   ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.closePath();ctx.fill();
-   ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
-   ctx.beginPath();ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.stroke();
+   if(m.type==="boar"){
+    const half=m.r+P.r*.6;
+    ctx.fillRect(m.r*.3,-half,166,half*2);
+    ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
+    ctx.strokeRect(m.r*.3,-half,166,half*2);
+   }else{
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
+    ctx.beginPath();ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.stroke();
+   }
    ctx.restore();
    ctx.font="900 12px sans-serif";ctx.textAlign="center";ctx.fillStyle="#ffcf9c";
    ctx.fillText("!",m.x,m.y-m.r-23);
