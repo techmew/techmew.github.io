@@ -158,3 +158,76 @@
  #shell:not(:fullscreen) .game-frame{width:min(100%,calc((100dvh - 99px)*16/9));height:auto;aspect-ratio:16/9;margin:auto}
  #shell:not(:fullscreen) .bottom-note{display:none}
 }
+
+
+/* Touch-first layout: proportional landscape rail / gameplay / action rail.
+   A large relative trackpad replaces the small joystick. */
+.shell{max-width:none;width:100%;padding:8px 12px;min-height:100dvh;box-sizing:border-box}
+.play-layout{display:grid;grid-template-columns:minmax(95px,1.05fr) minmax(0,4fr) minmax(96px,.85fr);gap:clamp(5px,1.1vw,14px);width:100%;max-height:calc(100dvh - 106px);align-items:stretch;justify-content:center}
+.play-layout .game-frame{width:100%;height:auto;aspect-ratio:16/9;min-width:0;max-height:calc(100dvh - 106px);margin:0;align-self:center;justify-self:center}
+.touch-pad{position:relative;display:flex;justify-content:center;align-items:center;min-width:0;min-height:0;overflow:hidden;border:1px solid #326c8c;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#164d64b8,#06192cbf 70%),repeating-linear-gradient(0deg,transparent 0 22px,#59c5ff0c 23px 24px);touch-action:none;-webkit-user-select:none;user-select:none;cursor:crosshair;overscroll-behavior:contain}
+.touch-pad::before{content:"";position:absolute;inset:10px;border:1px dashed #55cdeb52;border-radius:10px;pointer-events:none}
+.touch-pad::after{content:"";position:absolute;inset:23% 8%;border:1px solid #5eb9d627;border-radius:50%;pointer-events:none}
+.touch-pad-center{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;pointer-events:none;color:#91e5fa;text-align:center;letter-spacing:1.5px;text-shadow:0 0 14px #28d9ff70}
+.touch-pad-glyph{font-size:clamp(23px,3vw,44px);line-height:1}
+.touch-pad b{font-size:clamp(10px,1.1vw,16px);letter-spacing:3px}
+.touch-pad small{font-size:clamp(8px,.85vw,12px);color:#93acc5;letter-spacing:0}
+.touch-pad.touching{border-color:#7bf1ff;background:radial-gradient(ellipse at 50% 45%,#206f85d9,#06192cbf 75%)}
+.action-panel{display:grid;grid-template-rows:repeat(5,minmax(0,1fr));gap:clamp(4px,.7vw,10px);min-width:0;min-height:0}
+.side-action{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;border:1px solid #358db0;border-radius:9px;background:linear-gradient(130deg,#133d59,#081b30);color:#cdf9ff;font:bold clamp(10px,1.4vw,23px) sans-serif;cursor:pointer;box-shadow:inset 0 0 16px #4dbfe010;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.side-action span{font-size:clamp(9px,.86vw,12px);font-weight:800;letter-spacing:.1px}
+.side-action:active,.side-action:focus-visible{background:#17647b;border-color:#a2faff;outline:none}
+.side-title{border-color:#8eb6c9}.side-pulse{border-color:#bb798c;color:#ffd2dd}
+.rotate-overlay{display:none!important}
+.joystick{display:none!important}
+.play-layout .game-frame .overlay-inner{max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+@media(pointer:coarse) and (orientation:landscape){
+ .shell{visibility:visible;pointer-events:auto;width:100%;max-width:none;padding:3px 5px;min-height:100dvh;overflow:hidden}
+ .topline{height:clamp(21px,5dvh,34px);margin-bottom:3px}
+ .play-layout{grid-template-columns:minmax(80px,1fr) minmax(0,4.3fr) minmax(80px,.95fr);gap:6px;max-height:calc(100dvh - 79px)}
+ .play-layout .game-frame{width:100%;height:auto;max-height:calc(100dvh - 79px);aspect-ratio:16/9}
+ .touch-pad{min-height:calc(100dvh - 84px)}
+ .action-panel{min-height:calc(100dvh - 84px);gap:4px}
+ .controlbar{flex-wrap:nowrap;gap:3px;margin-top:4px}
+ .controlbar>.label-block{display:none}
+ .controlbar>.equip-btn,.controlbar>.pulse-btn{display:none}
+ .controlbar>.upgrades{flex:1;max-width:none}
+ .upgrades .upgrade{min-height:41px}
+ .side-action span{font-size:clamp(8px,1.25vw,11px)}
+ .side-action{font-size:clamp(12px,2.5vw,19px)}
+ .bottom-note{display:none}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+ .shell{visibility:visible;pointer-events:auto;display:flex;flex-direction:column;width:100%;max-width:none;min-height:100dvh;height:auto;overflow:visible;padding:5px 6px;gap:4px}
+ .topline{height:33px;min-height:33px;margin:0}
+ .brand{font-size:12px;letter-spacing:1px}.brand-symbol{font-size:15px}
+ .headright{gap:4px}.small-btn{padding:5px 6px;font-size:9px}
+ .play-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(118px,.85fr);grid-template-rows:auto minmax(240px,1fr);gap:6px;max-height:none;flex:1;width:100%}
+ .play-layout .game-frame{grid-area:1/1/2/3;width:100%;height:auto;max-height:none;aspect-ratio:16/9;margin:0}
+ .touch-pad{grid-area:2/1/3/2;min-height:240px}
+ .action-panel{grid-area:2/2/3/3;min-height:240px;gap:5px}
+ .side-action{font-size:19px;gap:0}.side-action span{font-size:10px}
+ .controlbar{margin:0;flex-wrap:wrap;gap:4px;min-height:55px}
+ .controlbar>.label-block{display:none}
+ .controlbar>.upgrades{flex:1 0 100%;gap:3px}
+ .controlbar>.equip-btn,.controlbar>.pulse-btn{display:none}
+ .controlbar .upgrade{min-height:45px;padding:4px 3px}
+ .controlbar .upgrade small{display:none}
+ .bottom-note{display:none}
+ .route-panel{overflow-y:auto;padding:8px 5%}.route-map{max-height:70px}
+ .route-cards{gap:6px}.route-card{padding:7px;min-height:95px;gap:3px}
+ .route-card strong{font-size:12px}.route-card em{font-size:9px}
+ .route-head strong{font-size:17px}.route-help{font-size:8px;margin:5px 0}
+ .title-mark{font-size:clamp(27px,9vw,44px)!important}
+ .overlay-inner .start-guide{font-size:7px}
+}
+/* A fullscreen shell retains the same grid instead of reverting to old centered canvas. */
+#shell:fullscreen,#shell:-webkit-full-screen{display:flex;flex-direction:column;justify-content:space-between;gap:3px;padding:4px}
+#shell:fullscreen .play-layout,#shell:-webkit-full-screen .play-layout{width:100%;flex:1;min-height:0;max-height:calc(100dvh - 84px)}
+#shell:fullscreen .play-layout .game-frame,#shell:-webkit-full-screen .play-layout .game-frame{width:100%;height:auto;min-width:0;max-width:none;aspect-ratio:16/9;align-self:center;margin:0}
+@media(pointer:coarse) and (orientation:portrait){
+ #shell:fullscreen,#shell:-webkit-full-screen{min-height:100dvh;height:100dvh;overflow:auto}
+ #shell:fullscreen .play-layout,#shell:-webkit-full-screen .play-layout{grid-template-rows:auto minmax(225px,1fr);max-height:none}
+ #shell:fullscreen .play-layout .game-frame,#shell:-webkit-full-screen .play-layout .game-frame{grid-column:1/3;grid-row:1;max-height:none;aspect-ratio:16/9}
+}
