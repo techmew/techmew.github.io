@@ -4,9 +4,9 @@ const W=1200,H=675,TAU=Math.PI*2;
 const C=document.getElementById('game'),c=C.getContext('2d',{alpha:false});
 const $=id=>document.getElementById(id);
 const ui={overlay:$('overlay'),start:$('startBtn'),pause:$('sidePauseBtn'),sound:$('soundBtn'),score:$('score'),best:$('best'),mult:$('multiplier'),stage:$('stageLabel'),area:$('areaName'),progress:$('progressBar'),hp:$('hpRow'),lives:$('lives'),bombs:$('bombs'),boss:$('bossHud'),bossName:$('bossName'),bossBar:$('bossBar'),announce:$('announce'),small:$('announceSmall'),main:$('announceMain'),desc:$('announceDesc'),toast:$('toast'),meter:$('meterInfo'),upgrades:[...document.querySelectorAll('.upgrade')],equip:$('equipBtn'),pulse:$('pulseBtn')};
-const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM','FROZEN GRAVE'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ','氷結残骸帯を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB','FROST MAMMOTH'];
-const STAGE_LENGTHS=[62,68,74,72,76],BOSS_HP=[1900,2650,3600,4250,4850];
-const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'カプセル +1 / パルス +1',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'カプセル +1 / パルス +1',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'カプセル +1 / パルス +1',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}],[{name:'氷結整備回廊',desc:'氷片を射撃で破壊可能・補給重視 / BOSS 機械マンモス',bonus:'カプセル +1 / パルス +1',risk:0},{name:'白夜の追撃帯',desc:'吹雪で視界悪化・精鋭部隊 / BOSS 氷海竜',bonus:'カプセル +2 / 撃破得点 +25%',risk:1}]];
+const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM','FROZEN GRAVE','RELIC BELT'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ','氷結残骸帯を突破せよ','古代遺跡の封印を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB','FROST MAMMOTH','RELIC CENTIPEDE'];
+const STAGE_LENGTHS=[62,68,74,72,76,80],BOSS_HP=[1900,2650,3600,4250,4850,5650];
+const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'氷結整備回廊',desc:'氷片を射撃で破壊可能・補給重視 / BOSS 機械マンモス',bonus:'衝撃波 +1 / 物資抽選↑',risk:0},{name:'白夜の追撃帯',desc:'吹雪で視界悪化・精鋭部隊 / BOSS 氷海竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'遺跡の記録庫',desc:'破壊可能なルーン柱・防御イベント / ボス: 機械ムカデ',bonus:'衝撃波 +1 / 古代装甲の修復',risk:0},{name:'封印中枢への突入',desc:'封印格子・守護隊の奇襲 / ボス: 黒曜の守護者',bonus:'カプセル +1 / 希少報酬抽選↑',risk:1}]];
 
 
 /* Event choices are rolled from the run seed and previous branch, not visual RNG. */
@@ -14,7 +14,8 @@ const ROUTE_NAMES=[
  [['漂流船の回廊','青い残響','補給航路'],['プラズマ急流','赤い追跡線','雷光の峡谷']],
  [['星雲の静域','蒼光の水路','星屑の避難帯'],['紅色の裂け目','雷雲の回廊','深紅の追撃路']],
  [['火山灰の補給路','冷却管の峡谷','溶岩の迂回路'],['恒星フレア回廊','赤い突破線','熱圏の追撃路']],
-  [['氷結整備回廊','青氷の補給線','凍土の避難路'],['白夜の追撃帯','氷嵐の裂け目','白い危険宙域']]
+  [['氷結整備回廊','青氷の補給線','凍土の避難路'],['白夜の追撃帯','氷嵐の裂け目','白い危険宙域']],
+ [['古代の記録庫','青銅の回廊','静かな碑文帯'],['封印中枢','黒曜の狭間','守護者の門']]
 ];
 const ROUTE_EVENTS={
  safe:[
@@ -35,7 +36,7 @@ function routeOffer(stage,index){
  const salt=(G.runSeed^Math.imul(previous+2,0x45d9f3b))>>>0;
  const nameRoll=mixSeed(salt,stage+11,index+3);
  const eventRoll=mixSeed(salt^0xa1f5c3d9,stage+29,index+7);
- const event=ROUTE_EVENTS[index?'storm':'safe'][eventRoll%4];
+ const event=stage===4?(index?{id:'sentinel',name:'封印守護隊',short:'精鋭撃破で補給1個',desc:'古代守護隊を撃破して1個回収',when:25}:{id:'archive',name:'古代記録庫',short:'バリア+1 / ドライブ+12',desc:'防御装置を起動',when:25}):ROUTE_EVENTS[index?'storm':'safe'][eventRoll%4];
  const chain=stage>0&&previous===index;
  return {...ROUTE_OPTIONS[stage][index],name:ROUTE_NAMES[stage][index][nameRoll%3],event,chain};
 }
@@ -459,8 +460,8 @@ function fireEnemy(e,target=null){if(e.type==='mine'||e.type==='interceptor')ret
 /* Boss variants are tied to the chosen branch, so legacy bosses remain playable.
    Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
    The first sector and the other two branches retain their original bosses. */
-function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':'crab'):G.stage===4?(G.routeRisk?'leviathan':'mammoth'):'original'}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':BOSSES[G.stage];const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
+function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':'crab'):G.stage===4?(G.routeRisk?'leviathan':'mammoth'):G.stage===5?(G.routeRisk?'warden':'centipede'):'original'}
+function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':BOSSES[G.stage];const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06));G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -469,6 +470,18 @@ function creatureBossAttack(b){
  if(angry&&b.pattern%4===3){
   b.charge=1.15;b.beamY=cl(p.y,112,H-88);b.fire=2.65;b.pattern++;
   tone(octo?190:140,.3,'sawtooth',.045,-75);return;
+ }
+ if(b.variant==='centipede'||b.variant==='warden'){
+  const cent=b.variant==='centipede',a=aim(b.x-155,b.y);
+  if(b.pattern%3===0){for(const side of [-1,1])for(let k=0;k<2;k++){
+   const y=cl(b.y+side*(62+k*86),90,H-80),x=b.x-155+k*21;
+   bullet(x,y,Math.atan2(p.y-y,p.x-x)+side*.16,cent?216:243,5,cent?'#b9e6ac':'#c6a3ff');
+  }}else if(b.pattern%3===1){
+   for(const d of [-.48,-.27,.27,.48])bullet(b.x-152,b.y,a+d,cent?232:249,5,cent?'#b6f1c1':'#e4aaff');
+  }else{for(const side of [-1,1])for(let k=0;k<2;k++){
+   const y=cl(b.y+side*(70+k*92),85,H-80);bullet(b.x-155,y,Math.PI+side*.08,cent?210:245,5,'#c0b4ff');
+  }}
+  b.pattern++;b.fire=angry?1.20:1.70;tone(cent?185:265,.13,'triangle',.021,65);return;
  }
  if(b.variant==='mammoth'||b.variant==='leviathan'){
   const mammoth=b.variant==='mammoth';
@@ -779,6 +792,10 @@ function triggerRouteEvent(){
  G.eventTriggered=true;G.eventCount++;
  if(ev.id==='salvage'||ev.id==='cache'){
   pickup(W+80,337,true);
+  }else if(ev.id==='archive'){
+  p.shield=Math.min(5,p.shield+1);chargeDrive(12);ring(p.x,p.y,100,'#7ae5be',.7);
+ }else if(ev.id==='sentinel'){
+  enemy('tank',W+125,340,{eventDrop:true});enemy('spinner',W+280,480);
  }else if(ev.id==='beacon'){
   p.shield=Math.min(5,p.shield+1);ring(p.x,p.y,95,'#6feaff',.7);
  }else if(ev.id==='charge'){
@@ -850,9 +867,9 @@ function planTerrain(){
  if(G.enemies.length!==0||G.bullets.length!==0||G.directorGrace>0)return false;
  const roll=mixSeed(G.runSeed,G.stage+113,G.terrainIndex*17+G.routeRisk*7);
  const safeLane=TERRAIN_LANES.reduce((best,y,i)=>Math.abs(p.y-y)<Math.abs(p.y-TERRAIN_LANES[best])?i:best,0);
- const type=G.stage===4?(G.routeRisk?'blizzard':'ice'):G.stage===3?'flare':roll%2?'wreck':'ion';
+ const type=G.stage===5?(G.routeRisk?'seal':'rune'):G.stage===4?(G.routeRisk?'blizzard':'ice'):G.stage===3?'flare':roll%2?'wreck':'ion';
  G.terrain={type,phase:'warning',timer:2.1,x:W+135,speed:215+((roll>>>4)%4)*12+(G.stage===4&&G.routeRisk?22:0),
-  safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:type==='ice'?185:9999})),seed:roll};
+  safeLane,blocks:TERRAIN_LANES.map((y,i)=>({y,hp:i===safeLane?0:type==='wreck'?160:type==='ice'?185:type==='rune'?190:9999})),seed:roll};
  G.terrainIndex++;G.spawn=Math.max(G.spawn,3);
  tone(420,.16,'triangle',.045,-190);
  return true;
@@ -879,7 +896,7 @@ function drawTerrain(){
   const blink=.65+.24*Math.sin(G.time*11);
   c.globalAlpha=blink;
   c.font='bold 16px ui-monospace,monospace';c.textAlign='right';c.textBaseline='middle';
-  c.fillStyle='#ffe0aa';c.fillText((t.type==='wreck'?'⚠ DEBRIS':t.type==='flare'?'⚠ HEAT VENTS':t.type==='ice'?'⚠ ICE SHARDS':t.type==='blizzard'?'⚠ WHITEOUT':'⚠ ION FIELD')+'  '+Math.max(0,t.timer).toFixed(1)+'s',W-35,79);
+  c.fillStyle='#ffe0aa';c.fillText((t.type==='wreck'?'⚠ DEBRIS':t.type==='flare'?'⚠ HEAT VENTS':t.type==='ice'?'⚠ ICE SHARDS':t.type==='blizzard'?'⚠ WHITEOUT':t.type==='rune'?'⚠ ANCIENT PILLARS':t.type==='seal'?'⚠ SEAL LATTICE':'⚠ ION FIELD')+'  '+Math.max(0,t.timer).toFixed(1)+'s',W-35,79);
   for(let i=0;i<3;i++){
    const y=TERRAIN_LANES[i],safe=i===t.safeLane;
    c.fillStyle=safe?'#35d7be':'#ff845e';c.globalAlpha=safe?.13:.2;
@@ -894,7 +911,13 @@ function drawTerrain(){
    if(block.hp<=0)continue;
    const x=t.x,y=block.y;
    c.save();c.translate(x,y);
-   if(t.type==='flare'){
+   if(t.type==='rune'||t.type==='seal'){
+  const seal=t.type==='seal';c.shadowColor=seal?'#c19bff':'#9df2c0';c.shadowBlur=13;
+  poly([-59,-55,-20,-75,38,-72,66,-35,62,49,21,71,-48,53],seal?'#42315e':'#335b50',seal?'#b79ef5':'#c2df9c',3);
+  poly([-30,-35,0,-50,29,-31,18,36,-11,47,-38,14],seal?'#6c5191':'#487e6c',seal?'#dec8ff':'#e3efb0',2);
+  for(let k=0;k<4;k++){const a=k*TAU/4+G.time*.18;line(Math.cos(a)*25,Math.sin(a)*31,Math.cos(a+1)*25,Math.sin(a+1)*31,seal?'#e6bcff':'#aafbd1',2)}
+  glowCircle(0,0,12,seal?'#f0baff':'#b9ffcc',8);
+ }else if(t.type==='flare'){
      // Stage four's volcanic vents have a two-second warning and a safe lane.
      const glow=.7+.2*Math.sin(G.time*9+block.y);
      c.shadowColor='#ff9c47';c.shadowBlur=18;c.globalAlpha=.9;
@@ -969,7 +992,7 @@ if(b.hp<=0){explosion(b.x-60,b.y,170);emit(b.x,b.y,180,'#ffe3a6',800);addScore(1
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
 let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=e.type==='tank'||e.type==='carrier'?39:23;if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
-if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
+if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'||G.terrain.type==='rune'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){G.boss.hp-=s.dmg;applyShotSynergy(s,G.boss);emit(s.x,s.y,ri(2,4),'#ffca82',95);s.pierce--;if(s.pierce<=0)gone=true}
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt;if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
@@ -982,8 +1005,8 @@ function poly(points,fill,stroke,width=1){c.beginPath();c.moveTo(points[0],point
 function glowCircle(x,y,r,col,blur=16){c.save();c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.restore()}
 function ellipse(x,y,rx,ry,fill,stroke,width=1){c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fillStyle=fill;c.fill();if(stroke){c.lineWidth=width;c.strokeStyle=stroke;c.stroke()}}
 function line(x,y,x2,y2,color,w=1){c.strokeStyle=color;c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke()}
-function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else if(stage===3){grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}else{grad.addColorStop(0,'#091f37');grad.addColorStop(.5,G.routeRisk?'#25455e':'#1b5b76');grad.addColorStop(1,'#071b35')}c.fillStyle=grad;c.fillRect(0,0,W,H);
-const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:stage===3?['#ee8037','#c43942','#ffc059'][i]:['#b5e8ff','#4e8fb6','#d7faff'][i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
+function drawBackground(dt){const stage=G.stage;let grad=c.createLinearGradient(0,0,0,H);if(stage===0){grad.addColorStop(0,'#070e27');grad.addColorStop(.53,'#102b48');grad.addColorStop(1,'#080e23')}else if(stage===1){grad.addColorStop(0,G.routeRisk?'#301523':'#0b2638');grad.addColorStop(.5,G.routeRisk?'#4c3040':'#1a4b60');grad.addColorStop(1,G.routeRisk?'#1c0f20':'#081a2d')}else if(stage===2){grad.addColorStop(0,G.routeRisk?'#3b101e':'#190d32');grad.addColorStop(.5,G.routeRisk?'#4a2735':'#12475a');grad.addColorStop(1,G.routeRisk?'#220f25':'#081c33')}else if(stage===3){grad.addColorStop(0,'#35131f');grad.addColorStop(.5,G.routeRisk?'#863120':'#7a3e24');grad.addColorStop(1,'#240e17')}else if(stage===4){grad.addColorStop(0,'#091f37');grad.addColorStop(.5,G.routeRisk?'#25455e':'#1b5b76');grad.addColorStop(1,'#071b35')}else{grad.addColorStop(0,G.routeRisk?'#241332':'#0a2427');grad.addColorStop(.5,G.routeRisk?'#40305b':'#285047');grad.addColorStop(1,G.routeRisk?'#150d29':'#071d22')}c.fillStyle=grad;c.fillRect(0,0,W,H);
+const neb=[[320,270,350,'#1b688a'],[850,385,260,'#524283'],[1150,170,370,'#145e83']];for(let i=0;i<3;i++){const ar=neb[i],x=((ar[0]-G.scroll*(.08+i*.05))%(W+750)+W+750)%(W+750)-250;const g=c.createRadialGradient(x,ar[1],10,x,ar[1],ar[2]);let color=stage===0?ar[3]:stage===1?['#4c375f','#784d3c','#1c5673'][i]:stage===2?['#943679','#1e8b9b','#723681'][i]:stage===3?['#ee8037','#c43942','#ffc059'][i]:stage===4?['#b5e8ff','#4e8fb6','#d7faff'][i]:(G.routeRisk?['#8853c4','#4d397c','#bd8fcf']:['#79d8a9','#5b9b91','#d1c387'])[i];g.addColorStop(0,color+'99');g.addColorStop(.45,color+'44');g.addColorStop(1,color+'00');c.fillStyle=g;c.fillRect(x-ar[2],ar[1]-ar[2],ar[2]*2,ar[2]*2)}
 for(const s of G.stars){let x=((s.x-G.scroll*s.z*.22)%(W+20)+W+20)%(W+20),y=s.y,a=.38+Math.sin(G.time*.8+s.tw)*.22+s.z*.11;c.globalAlpha=cl(a,0,1);c.fillStyle=s.z>1.9?'#d8faff':'#8babc6';c.fillRect(x,y,s.size*s.z*.75,s.size*s.z*.75);if(s.z>1.6)line(x+1,y,x+2+G.scroll%7*s.z,y,'#9cd9f0',.5)}c.globalAlpha=1;
 if(stage===0){for(let i=0;i<13;i++){const x=((i*232-G.scroll*.6)%(W+300)+W+300)%(W+300)-120,y=100+((i*181)%520),r=14+(i*29)%65;c.save();c.translate(x,y);c.rotate(i*1.2+G.time*.03);poly([-r,0,-r*.75,-r*.65,r*.22,-r*.9,r*.9,-r*.28,r*.72,r*.7,-r*.2,r],i%2?'#172c42':'#1e394f','#315169',1.2);poly([-r*.35,-r*.2,-r*.1,-r*.46,r*.32,-r*.29,r*.4,-r*.08,r*.15,r*.13],'#35546a55');c.restore()}}
 if(stage===1){for(let i=0;i<10;i++){const x=((i*235-G.scroll*.74)%(W+320)+W+320)%(W+320)-160;for(let side of [-1,1]){c.save();c.translate(x,side===-1?0:H);c.scale(1,side===-1?1:-1);poly([-130,0,136,0,108,40,95,88,-100,87], '#243045','#607286',2);c.fillStyle='#111c2b';c.fillRect(-102,24,180,37);for(let j=0;j<5;j++){c.fillStyle=(i+j)%2?'#6c798c':'#bf7d5c';c.fillRect(-92+j*35,29,13,6)}line(-106,89,106,89,'#d98959',2);c.restore()}}}
@@ -998,7 +1021,12 @@ if(stage===4){for(let i=0;i<13;i++){
  poly([-r,0,-r*.4,-r*.7,r*.3,-r*.95,r,.1,r*.25,r*.75],i%2?'#1b5c80':'#2d7594','#a9eaff',1.6);
  line(-r*.25,-r*.45,r*.2,r*.43,'#c7f6ff',1.5);c.restore();
 }}
-c.globalAlpha=.13;c.fillStyle='#9dc8e3';for(let y=0;y<H;y+=5)c.fillRect(0,y,W,.55);c.globalAlpha=1;
+if(stage===5)for(let i=0;i<11;i++){
+  const x=((i*194-G.scroll*(i%2?.57:.31))%(W+360)+W+360)%(W+360)-160,y=62+(i*137)%535,r=26+i%4*13;
+  c.save();c.translate(x,y);c.rotate(i*.18);c.globalAlpha=.8;
+  poly([-r,-r,r,-r,r,r,-r,r],G.routeRisk?'#463b6d':'#315c56',G.routeRisk?'#a78bd5':'#9bc9ad',2);c.restore();
+ }
+ c.globalAlpha=.13;c.fillStyle='#9dc8e3';for(let y=0;y<H;y+=5)c.fillRect(0,y,W,.55);c.globalAlpha=1;
 const outer=c.createLinearGradient(0,0,W,0);outer.addColorStop(0,'#00000033');outer.addColorStop(.5,'#00000000');outer.addColorStop(1,'#00000033');c.fillStyle=outer;c.fillRect(0,0,W,H)}
 function drawShip(x,y,angle=0,invul=0){if(invul>0&&Math.sin(G.time*20)>0.55)return;c.save();c.translate(x,y);c.rotate(angle);const flame=25+Math.sin(G.time*34)*14;
 const thrust=c.createLinearGradient(-flame-40,0,-22,0);thrust.addColorStop(0,'#00a5ff00');thrust.addColorStop(.75,'#56cfffad');thrust.addColorStop(1,'#c9faff');poly([-36,-7,-36-flame,0,-36,7],thrust);glowCircle(-31,0,7,'#5ef5ff',17);
@@ -1016,7 +1044,18 @@ function drawCreatureBoss(b){
  c.save();c.translate(b.x,b.y);
  const hurt=b.phase===1,t=b.t,octo=b.variant==='octopus';
  c.shadowColor=octo?'#d47bff':'#ff9454';c.shadowBlur=10;
- if(b.variant==='mammoth'){
+ if(b.variant==='centipede'){
+  for(let j=8;j>=0;j--){const x=40+j*25,y=Math.sin(t*2+j*.65)*14;
+   ellipse(x,y,28-j*.9,33-j*.8,'#41635b','#c2e3aa',2);
+   for(const side of [-1,1]){const yy=y+side*25;poly([x-9,yy,x+14,yy+side*18,x+35,yy+side*42,x+6,yy+side*24],'#4b7770','#d7e9b3',2)}}
+  poly([-60,-58,-139,-71,-191,-27,-198,26,-135,68,-63,45],'#527c67','#d6efb6',4);
+  glowCircle(-70,0,28,hurt?'#ff7d9e':'#a7ffd0',17);
+ }else if(b.variant==='warden'){
+  for(let k=0;k<6;k++){const a=k*TAU/6+t*.17,x=Math.cos(a)*111,y=Math.sin(a)*105;
+   c.save();c.translate(x,y);c.rotate(a+.4);poly([-16,-30,18,-30,31,12,0,37,-30,12],'#59486f','#d5bbff',2);glowCircle(0,0,5,'#d9c1ff',8);c.restore()}
+  poly([-89,-66,0,-109,95,-69,125,0,95,69,0,109,-89,66,-151,0],'#433c63','#bfa8ee',4);
+  glowCircle(-59,0,34,hurt?'#ff7d9f':'#d8b1ff',19);
+ }else if(b.variant==='mammoth'){
   for(const side of [-1,1]){c.save();c.scale(1,side);
    poly([5,49,90,75,119,123,73,131,34,80],'#426780','#b3e5f4',3);
    poly([-92,26,-157,45,-190,105,-163,110,-117,68,-69,54],'#d7f2f7','#ffffff',3);
