@@ -280,10 +280,12 @@ function runHarness(gameSource,musicSource){
  ok(G.mode==='reward','reward gate resumes');
  ev('rewardCard0','click');
  ok(G.mode==='route','reward then route');
+ ok(G.passives.reduce((sum,n)=>sum+n,0)===1,'first passive acquired');
  ok(q.readCheckpoint()?.mode==='route','reward claim checkpoint');
- const claimedRewards=G.rewardHistory.length;
+ const claimedRewards=G.rewardHistory.length,claimedPassives=G.passives.slice();
  ev('titleReturnBtn','click');ev('continueBtn','click');
  ok(G.mode==='route'&&G.rewardHistory.length===claimedRewards,'claimed reward cannot be repeated after reload');
+ ok(JSON.stringify(G.passives)===JSON.stringify(claimedPassives),'passive persists through route checkpoint');
  ev('routeRisk','click');ok(G.mode==='playing'&&G.stage===1,'risk route');
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
@@ -296,6 +298,7 @@ function runHarness(gameSource,musicSource){
  ok(G.mode==='win','3-stage victory');
  ok(G.rewardHistory.length===2,'two rewards across three stages');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
+ ok(G.passives.every(n=>n===0),'new run clears all passive ranks');
  ok(!!q.readCheckpoint(),'checkpoint exists');
  ev('titleReturnBtn','click');ok(G.mode==='title','title before continue');
  ev('continueBtn','click');ok(G.mode==='playing','checkpoint continue');
