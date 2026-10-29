@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -645,6 +645,47 @@ function runHarness(gameSource,musicSource){
  q.hitPlayer(1);ok(G.mode==='over','game over');
  ok(q.readCheckpoint()===null,'checkpoint cleared on game over');
 
+ // 20/36: live weak-core collision and non-invulnerable shutters.
+ for(const [risk,variant,coreX] of [[0,'octopus',-39],[1,'original',-20]]){
+  stageSetup(seeds[4],1,risk);G.routeHistory=[{stage:2,risk,route:'test',event:'beacon',eventName:'test',chain:false}];
+  q.spawnBoss();G.boss.x=930;G.boss.fire=9;G.boss.phase=0;
+  G.boss.t=3.05;G.player.invul=999;G.player.x=215;G.player.y=337;
+  q.update(.016);ok(G.boss.weakOpen,'second boss exposed core '+variant);
+  const openHp=G.boss.hp;
+  G.shots=[{x:G.boss.x+coreX,y:G.boss.y,px:0,py:0,vx:0,vy:0,life:1,dmg:20,pierce:1,kind:'shot'}];
+  q.update(.016);ok(Math.abs(openHp-G.boss.hp-30)<.01,'second boss weak hit x1.5 '+variant);
+  G.boss.t=5.05;G.boss.fire=9;G.shots=[];
+  q.update(.016);ok(!G.boss.weakOpen,'second boss core closes '+variant);
+  const closed=G.boss.hp;
+  G.shots=[{x:G.boss.x+coreX,y:G.boss.y,px:0,py:0,vx:0,vy:0,life:1,dmg:20,pierce:1,kind:'shot'}];
+  q.update(.016);ok(Math.abs(closed-G.boss.hp-20)<.01,'closed core still takes normal damage '+variant);
+  G.boss.fire=0;G.boss.pattern=0;G.bullets=[];q.bossAttack(G.boss);
+  ok(G.bullets.length>=4&&G.bullets.length<=12,'second boss readable first salvo '+variant);
+  if(risk===1)ok(G.bullets.length===8,'fortress ring has four gaps');
+  ok(G.boss.fire<=1.5,'second boss tempo '+variant);
+  G.boss=null;G.shots=[];G.bullets=[];
+ }
+ // R1: Seven non-pausing route gates show boss, threat, event and reward.
+ for(let stage=0;stage<7;stage++){
+  const a=q.routeOffer(stage,0),b=q.routeOffer(stage,1);
+  ok(a.bossName!==b.bossName,'different branch bosses '+stage);
+  ok(a.threat!==b.threat,'different branch enemies and hazards '+stage);
+  ok(a.event.id!==b.event.id,'different branch events '+stage);
+  ok(a.bonus!==b.bonus,'different entry rewards '+stage);
+  G.stage=stage;G.mode='playing';G.transitioning=true;G.flowPhase='route';
+  G.routeOffers=[a,b];G.player.y=218;
+  const shown=[];context.fillText=value=>shown.push(String(value));
+  q.drawFlightGate();context.fillText=()=>{};
+  for(const offer of [a,b]){
+   ok(shown.some(s=>s.includes(offer.name)),'route name visible '+stage);
+   ok(shown.some(s=>s.includes(offer.bossName)),'route boss visible '+stage);
+   ok(shown.some(s=>s.includes(offer.threat)),'route threat visible '+stage);
+   ok(shown.some(s=>s.includes(offer.event.short)),'route event visible '+stage);
+   ok(shown.some(s=>s.includes(offer.bonus)),'route reward visible '+stage);
+  }
+  ok(G.mode==='playing'&&G.transitioning,'route remains live '+stage);
+ }
+ G.transitioning=false;G.flowPhase=null;G.routeOffers=[];
  // 18/36: 100 deterministic builds sampled from actual projectile emission.
  // Twelve-second stationary-target expected DPS uses conservative hit weights;
  // theoretical time-to-kill is NOT measured human play or device performance.
