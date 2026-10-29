@@ -29,12 +29,15 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .fight-row>span{min-width:66px;font-size:11px;font-weight:950;color:#d6ede9}
 .fight-track{border:1px solid #ffffff3d;background:#102e43;height:14px;border-radius:99px;flex:1;overflow:hidden}
 .fight-track i{display:block;height:100%;border-radius:99px;transition:width .075s linear}
+.fight-row output{flex:0 0 48px;min-width:48px;text-align:right;color:#fff;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
+.tension-track{position:relative;background:linear-gradient(90deg,#102e43 0 30%,#225a61 30% 68%,#102e43 68% 100%)}
+.tension-track::after{content:"";position:absolute;inset:0 auto 0 30%;width:38%;border-left:2px dashed #d5f3ba;border-right:2px dashed #d5f3ba;pointer-events:none;box-sizing:border-box}
 .reel-fill{width:0;background:linear-gradient(90deg,#45e7bb,#b1ff80)}
 .tension-fill{width:0;background:linear-gradient(90deg,#5bc5e8,#ffcc81)}
 .fight-call{color:#ffeab9;font-size:11px;font-weight:950;text-align:center;margin-top:8px}
 #castBtn.reeling{background:#ffad57;box-shadow:0 5px 0 #ad643c;color:#133746}
 #castBtn{user-select:none;-webkit-user-select:none;touch-action:none}
-@media(max-width:620px){.fight-hud{bottom:37px;padding:9px 11px;border-radius:13px}.fight-head{font-size:10px}.fight-row{margin:5px 0}.fight-row>span{font-size:10px;min-width:58px}.fight-track{height:11px}.fight-call{font-size:10px}}
+@media(max-width:620px){.fight-hud{bottom:37px;padding:9px 11px;border-radius:13px}.fight-head{font-size:10px}.fight-row{margin:5px 0}.fight-row>span{font-size:10px;min-width:58px}.fight-track{height:11px}.fight-call{font-size:10px}.fight-row output{flex-basis:38px;min-width:38px;font-size:11px}}
 
 #castBtn{touch-action:none;user-select:none;-webkit-user-select:none}
 /* Broadway five-look runway */
@@ -138,7 +141,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-judge{padding:12px;text-align:left;background:#ffffff12;border:1px solid #ffffff36;border-radius:13px;min-width:0}
 .show-judge b{font-size:13px;color:#ffe0b7}
 .judge-score-row{display:flex;align-items:baseline;justify-content:space-between;gap:5px;margin:7px 0}
-.show-judge .judge-score-row strong{font-size:clamp(17px,4vw,23px);color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.show-judge .judge-score-row strong{font-size:clamp(15px,2.8vw,20px);color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
 .show-judge .judge-score-row span{font-size:12px;color:#fff1d5;white-space:nowrap}
 .judge-bar{height:6px;border-radius:6px;background:#ffffff30;overflow:hidden}
 .judge-bar i{display:block;height:100%;background:#ffd39b;border-radius:6px}
@@ -147,7 +150,7 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .show-details summary{cursor:pointer;padding:14px;font-weight:850;color:#ffe0b7;font-size:13px}
 .show-details .show-analysis{padding:0 10px 12px;margin-top:0}
 .show-judge:last-child:nth-child(odd){grid-column:1/-1}
-@media(max-width:620px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge{padding:10px 8px}.show-judge b{font-size:12px}.show-judge .judge-score-row strong{font-size:18px}.show-judge .judge-score-row span{font-size:10px}.show-result{margin:10px 0}.show-help{line-height:1.5}}
+@media(max-width:620px){.show-judges{grid-template-columns:repeat(2,minmax(0,1fr))}.show-judge{padding:10px 8px}.show-judge b{font-size:12px}.show-judge .judge-score-row strong{font-size:15px}.show-judge .judge-score-row span{font-size:10px}.show-result{margin:10px 0}.show-help{line-height:1.5}}
 .free-extra-toggle{grid-column:1/-1;padding:12px 14px;border-radius:12px;background:#eaf3ef;color:#315b65;font-weight:900;min-height:44px;border:1px solid #c8dfdb}.free-all-items{padding:9px 12px;margin-left:9px;border-radius:11px;background:#e9f5ef;color:#285b68;font-size:12px;font-weight:850;min-height:40px}.free-all-items[aria-pressed="true"]{background:#16465a;color:#fff}@media(max-width:620px){.free-extra-toggle,.free-all-items{font-size:12px;min-height:44px}}/* Phone runway camera: enlarge both model and clothing with the same canvas transform. */
 @media(max-width:620px){
  /* Keep the full runway and both models visible on narrow screens. */
@@ -176,14 +179,14 @@ main{display:grid;grid-template-columns:minmax(0,1.68fr) minmax(320px,.94fr);gap
 .judge-bars .judge-bar{height:7px;background:#ffffff27}
 .judge-bars .judge-bar.cpu i{background:#88d6e7}
 .show-judge .judge-diff{display:block;margin-top:7px;color:#fff1d5;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums}
-@media(max-width:420px){.show-judge .judge-score-row{align-items:flex-start}.show-judge .judge-score-row strong{font-size:17px}.show-judge .judge-score-row span{font-size:11px}.result-scoreline{gap:5px}.result-scoreline strong{font-size:clamp(16px,4.7vw,23px)}}
+@media(max-width:420px){.show-judge .judge-score-row{align-items:flex-start}.show-judge .judge-score-row strong{font-size:15px}.show-judge .judge-score-row span{font-size:11px}.result-scoreline{gap:5px}.result-scoreline strong{font-size:clamp(16px,4.7vw,23px)}}
 </style>
 </head>
 <body>
 <div class="app">
 <header><div class="logo"><div class="logo-badge">♧</div><div><h1>CLOSET CATCH</h1><p>釣って、着る。5着でランウェイ対決。</p></div></div><div class="status"><div class="stat"><small>コレクション</small><b><span id="count">0</span><em> / 10,000</em></b></div><div class="stat"><small>マイコイン</small><b>◈ <span id="coins">0</span></b></div><div class="stat"><small>釣った回数</small><b><span id="casts">0</span><em> 回</em></b></div></div></header>
 <main>
-<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag" aria-live="polite">☀ 晴れ · おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かぶ服・髪型・魚をタップして釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服・髪型・魚を釣ろう！魚は釣りを邪魔する！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><span class="surge-badge" id="surgeBadge">抵抗に注意！</span><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が安全な張りの目安"><i id="tensionFill" class="tension-fill"></i></div></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → 長押しで引く／離して緩める。糸切れ・時間切れでアイテム消失<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5点</button></div></section>
+<section class="panel"><div class="panel-head"><div class="section-label">01 / FISHING AREA<strong>ファッション・オーシャン</strong></div><span id="tideBadge" class="mini-tag" aria-live="polite">☀ 晴れ · おだやかな海</span></div><div id="oceanWrap" class="ocean-wrap"><canvas id="ocean" width="1000" height="545" aria-label="海に浮かぶ服・髪型・魚をタップして釣り上げます"></canvas><div class="ocean-glass">TODAY'S WATER<br><span id="comboLabel">連続キャッチ 0</span></div><div class="hint" id="hint">服・髪型・魚を釣ろう！魚は釣りを邪魔する！</div><div id="fightHud" class="fight-hud" aria-live="polite"><div class="fight-head"><b>FISHING BATTLE <span id="fishName"></span></b><span class="surge-badge" id="surgeBadge">抵抗に注意！</span><strong id="fightClock">15.0秒</strong></div><div class="fight-row"><span>引き寄せ</span><div class="fight-track"><i id="reelFill" class="reel-fill"></i></div><output id="reelValue" aria-label="引き寄せ進捗">0%</output></div><div class="fight-row"><span>糸の張り</span><div class="fight-track tension-track" title="点線の間が引きやすい範囲"><i id="tensionFill" class="tension-fill"></i></div><output id="tensionValue" aria-label="糸の張り">0%</output></div><div id="fightCall" class="fight-call">長押しで引く ／ 離して糸を緩める</div></div><div id="eventMsg" class="event-msg"></div></div><div class="ocean-bottom"><div class="sea-note">狙ってタップ → 長押しで引く／離して緩める。糸切れ・時間切れでアイテム消失<br><b>SPACE</b> キーでも操作可能</div><div class="controls"><button id="soundBtn" class="icon-btn" title="サウンドの切替">♪ OFF</button><button id="castBtn" class="primary">釣り糸を投げる ↗</button></div></div><div class="quests" id="quests"></div><div class="round-dock"><b id="roundLabel">ROUND 1</b><div class="round-pips" id="roundPips"><i></i><i></i><i></i><i></i><i></i></div><button id="showEntry" disabled>0 / 5点</button></div></section>
 <section class="panel model-panel"><div class="panel-head"><div class="section-label">02 / STYLING STUDIO<strong>今日のコーデ</strong></div><span id="fitTitle" class="mini-tag">パンツ一丁スタート</span></div><div class="model-frame"><canvas id="model" width="440" height="510" aria-label="着せ替えキャラクター"></canvas><div class="score-chip"><small>着用アイテム</small><b id="score">0</b><span class="rank" id="rank">着</span></div></div><div class="model-bottom"><div class="equip-status" id="equipStatus">いまは海パン一丁。服を釣って着せよう。</div><div class="model-actions"><button id="randomBtn" class="icon-btn">おまかせコーデ</button><button id="undressBtn" class="secondary">パンツ一丁に戻す</button><button id="photoBtn" class="icon-btn">写真を保存</button></div><div class="model-slot"><button data-slot="0">① 保存 / 呼出</button><button data-slot="1">② 保存 / 呼出</button><button data-slot="2">③ 保存 / 呼出</button></div></div></section>
 </main>
 <div class="show-record" id="showRecord">BROADWAY SHOW　勝利 <b>0</b> ／ ベスト <b>0</b> 点 ／ 連勝 <b>0</b></div>
@@ -521,8 +524,10 @@ function updateFishingHud(){
  $('fightHud').classList.toggle('surge-warning',fighting&&hook.warning);
  $('fightHud').classList.toggle('tension-danger',fighting&&hook.tension>=82);
  $('surgeBadge').textContent=hook.tension>=100?'限界！指を離して！':hook.tension>=82?'糸切れ寸前！':hook.warning?'もうすぐ暴れる！':'抵抗中！';
- $('castBtn').textContent=fighting?'長押しで引く！':hook.active?'仕掛けを操作中…':'ランダムにキャスト';
+ $('castBtn').textContent=fighting?(hook.pull?'引いています・離して緩める':'長押しで引く'):hook.active?'仕掛けを操作中…':'ランダムにキャスト';
  $('castBtn').classList.toggle('reeling',fighting&&hook.pull);
+ $('reelValue').textContent=Math.round(clamp(hook.reel,0,100))+'%';
+ $('tensionValue').textContent=Math.round(clamp(hook.tension,0,100))+'%';
  if(!fighting)return;
  const item=hook.chosen.item;
  $('fishName').textContent=item.name+(item.cat==='fish'?' ／ '+fishFightProfile(item).label:'')+(st.failStreak?' ・再挑戦+'+(st.failStreak*1.1).toFixed(1)+'秒':'');
@@ -936,7 +941,7 @@ function endShow(){
     c.setAttribute('aria-label',names[i]+' あなた'+ownScore+'点'+(cpuKnown?' CPU'+cpuScore+'点':''));
     const title=document.createElement('b');title.textContent=names[i];
     const row=document.createElement('div');row.className='judge-score-row';
-    const yours=document.createElement('strong');yours.textContent=ownScore+' / 100';
+    const yours=document.createElement('strong');yours.textContent='あなた '+ownScore+' / 100';
     const theirs=document.createElement('span');theirs.textContent='CPU '+(cpuKnown?cpuScore:'—')+' / 100';
     row.append(yours,theirs);
     const bars=document.createElement('div');bars.className='judge-bars';
