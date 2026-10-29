@@ -504,3 +504,47 @@ html,body{overscroll-behavior:none}
  #shell .play-layout{grid-template-rows:max-content minmax(0,1fr)!important}
  #shell .play-layout>.touch-pad,#shell .play-layout>.action-panel{min-height:0}
 }
+
+/* 30/36: mobile viewport ergonomics. Full 16:9 canvas and 25px rail stay separate. */
+@media(pointer:coarse) and (orientation:portrait){
+ #shell{padding-top:max(4px,env(safe-area-inset-top));padding-bottom:max(4px,env(safe-area-inset-bottom));padding-left:max(5px,env(safe-area-inset-left));padding-right:max(5px,env(safe-area-inset-right))}
+ #shell .topline{height:34px;min-height:34px;max-height:none;flex:0 0 34px}
+ #shell .headright{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;width:100%;min-width:0}
+ #shell .headright>.small-btn{min-width:0;min-height:34px;padding:3px 1px;font-size:clamp(7px,2vw,10px);letter-spacing:0;white-space:nowrap;overflow:hidden}
+ #shell .play-layout,#shell:fullscreen .play-layout,#shell:-webkit-full-screen .play-layout{min-width:0;grid-template-columns:minmax(0,1.3fr) minmax(112px,.8fr);grid-template-rows:max-content minmax(0,1fr)!important}
+ #shell .touch-pad{min-width:0;min-height:0}
+ #shell .action-panel{min-width:0;min-height:0;grid-template-rows:repeat(2,minmax(0,1fr))}
+ #shell .side-action{min-height:44px;gap:1px;padding:2px 1px}
+ #shell .hud{top:2%;left:2%;right:2%}
+ #shell .hud-left,#shell .hud-right{width:43%}
+ #shell .hud-number{font-size:clamp(12px,4.5vw,16px);letter-spacing:0}
+ #shell .score-line{gap:4px;font-size:clamp(6px,1.9vw,8px);letter-spacing:0}
+ #shell .sub-stats{flex-wrap:wrap;gap:3px 6px;margin-top:4px;font-size:clamp(6px,1.8vw,8px);letter-spacing:0}
+ #shell .hp-row{gap:3px;margin-top:3px}
+ #shell .hp-row span{width:clamp(10px,3vw,15px);height:6px}
+}
+@media(pointer:coarse) and (orientation:portrait) and (max-width:340px){
+ #shell .side-action strong{font-size:clamp(18px,6vw,25px)}
+ #shell .side-action span{font-size:10px}
+ #shell .game-frame .upgrade b{font-size:7px;letter-spacing:0}
+ #shell .game-frame .upgrade .u-key{font-size:7px}
+}
+@media(pointer:coarse) and (orientation:landscape){
+ #shell{padding-top:max(3px,env(safe-area-inset-top));padding-bottom:max(3px,env(safe-area-inset-bottom));padding-left:max(5px,env(safe-area-inset-left));padding-right:max(5px,env(safe-area-inset-right))}
+ #shell .play-layout,#shell:fullscreen .play-layout,#shell:-webkit-full-screen .play-layout{min-width:0;min-height:0;grid-template-columns:minmax(82px,1.45fr) minmax(0,6.9fr) minmax(62px,.95fr);gap:4px}
+ #shell .touch-pad,#shell .action-panel{min-width:0;min-height:0}
+ #shell .action-panel{grid-template-rows:repeat(2,minmax(0,1fr))}
+ #shell .side-action{min-height:44px;gap:1px}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-width:640px){
+ #shell .brand{display:none}
+ #shell .headright{width:100%;min-width:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+ #shell .headright>.small-btn{min-width:0;padding:2px 1px;font-size:clamp(7px,1.5vw,9px);letter-spacing:0;white-space:nowrap}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:360px){
+ #shell .game-frame>.controlbar{height:27px}
+ #shell .game-frame .upgrade b{font-size:8px}
+ #shell .game-frame .upgrade .u-key{font-size:7px}
+ #shell .hud{top:2%;left:2%;right:2%}
+ #shell .sub-stats{gap:5px;margin-top:4px}
+}
