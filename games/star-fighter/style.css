@@ -360,3 +360,35 @@ html,body{overscroll-behavior:none}
  #shell .game-frame>.controlbar .label-block small{font-size:8px}
  #shell .side-action strong{font-size:26px}#shell .side-action span{font-size:12px}
 }
+
+/* Stage-clear reward draft: full in-frame overlay, three obvious choices. */
+.reward-panel{position:absolute;inset:0;z-index:12;display:none;flex-direction:column;align-items:center;justify-content:center;gap:clamp(5px,1.2vh,12px);padding:clamp(6px,1.1vw,16px);background:linear-gradient(130deg,#041528f5,#071d2ef5 50%,#0c1830f6);backdrop-filter:blur(6px);overflow:auto}
+.reward-panel.open{display:flex}
+.reward-heading{display:flex;align-items:center;flex-direction:column;gap:2px;text-align:center;line-height:1.12}
+.reward-heading small{font:800 clamp(9px,1.25vw,14px) ui-monospace,monospace;letter-spacing:2px;color:#78dafa}
+.reward-heading strong{font-size:clamp(16px,2.3vw,27px);color:#f0fbff}
+.reward-heading span{font-size:clamp(9px,.95vw,12px);color:#b4d4e4}
+.reward-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(4px,1vw,12px);width:100%;max-width:900px}
+.reward-card{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:3px;min-width:0;min-height:clamp(76px,15vh,144px);padding:clamp(5px,.9vw,11px);border:1px solid #39718c;border-radius:9px;background:linear-gradient(165deg,#15374c,#091c30);color:#effbff;cursor:pointer;touch-action:manipulation}
+.reward-card .reward-tag{font:900 clamp(8px,1vw,11px) ui-monospace,monospace;color:#8fe8e9;letter-spacing:1px}
+.reward-card .reward-name{font-size:clamp(12px,1.55vw,19px);line-height:1.12;text-align:center}
+.reward-card .reward-desc{font-size:clamp(9px,1.1vw,13px);color:#a9cbd8;text-align:center;line-height:1.25}
+.reward-card em{font:800 clamp(9px,1vw,12px) sans-serif;color:#ffd68d;font-style:normal}
+.reward-card.selected,.reward-card:focus-visible{outline:2px solid #f8e7ac;outline-offset:-2px;border-color:#fff2b7;background:linear-gradient(160deg,#1c5066,#153447);box-shadow:0 0 14px #ffdc7840}
+.reward-help{font-size:clamp(9px,1vw,12px);color:#a7c2d4;margin:0;text-align:center}
+@media(pointer:coarse) and (orientation:portrait){
+ .reward-panel{position:fixed;inset:0;z-index:40;padding:calc(12px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom));gap:12px}
+ .reward-cards{grid-template-columns:1fr;max-width:390px;gap:9px}
+ .reward-card{min-height:92px;padding:10px}
+ .reward-card .reward-name{font-size:18px}
+ .reward-card .reward-desc{font-size:12px}
+ .reward-heading strong{font-size:23px}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:420px){
+ .reward-panel{gap:4px;padding:5px}
+ .reward-heading strong{font-size:17px}
+ .reward-card{min-height:70px;padding:4px}
+ .reward-card .reward-name{font-size:clamp(11px,1.7vw,15px)}
+ .reward-card .reward-desc{font-size:clamp(9px,1.1vw,11px)}
+ .reward-help{font-size:9px}
+}
