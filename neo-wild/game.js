@@ -48,7 +48,7 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;
+ mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;guideCache=null;
  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,abilityTime:0,instinctCD:0};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -358,7 +358,7 @@ function syncHUD(hour){
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
  const goal=getObjective(),guide=$("mission-guide");
  const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"狐眼":P.type==="cat"?"俊足":"咆哮";
- if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal))+(guidancePoint(goal)?.detour?" / 迂回":""):"▲ 周囲を探索中";
+ if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal))+(guidancePoint(goal)?.blocked?" / 経路再探索":guidancePoint(goal)?.detour?" / 迂回":""):"▲ 周囲を探索中";
  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -550,31 +550,85 @@ function drawCreature(o,isPlayer){
  if(!isPlayer&&!s.prey&&o.hp<o.maxHp){ctx.fillStyle="#101719c9";ctx.fillRect(o.x-21,o.y-r-17,42,4);ctx.fillStyle="#e9a077";ctx.fillRect(o.x-21,o.y-r-17,42*o.hp/o.maxHp,4)}
  if(P&&P.senseTime>0&&!isPlayer){ctx.strokeStyle=s.prey?"#91ebbc":"#ef9274";ctx.lineWidth=2;ctx.beginPath();ctx.arc(o.x,o.y,r+12+Math.sin(elapsed*8)*2,0,TWO);ctx.stroke()}
 }
-let guideCache=null;
-function guidancePoint(goal){
- if(!goal||!P)return null;
- if(!lineBlocked(P,goal))return goal;
- if(guideCache&&elapsed-guideCache.time<.32&&Math.hypot(guideCache.px-P.x,guideCache.py-P.y)<90&&Math.hypot(guideCache.gx-goal.x,guideCache.gy-goal.y)<70)return guideCache.point;
- const total=dist(P,goal),ux=(goal.x-P.x)/Math.max(1,total),uy=(goal.y-P.y)/Math.max(1,total),pad=P.r+43;
- let obstacle=null;
- for(let d=40;d<total;d+=30){
-  const x=P.x+ux*d,y=P.y+uy*d;
-  obstacle=buildings.find(b=>x>b.x-pad&&x<b.x+b.w+pad&&y>b.y-pad&&y<b.y+b.h+pad);
-  if(obstacle)break;
+let guideCache=null,navGrid=null;
+function routeClear(a,b){
+ if(collides(a.x,a.y,P.r+5)||collides(b.x,b.y,P.r+5)||lineBlocked(a,b))return false;
+ const d=dist(a,b),steps=Math.ceil(d/18);
+ for(let i=1;i<steps;i++){const t=i/steps;if(collides(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,P.r+5))return false}
+ return true;
+}
+function navSetup(){
+ const cell=72,cols=Math.ceil(WORLD.w/cell),rows=Math.ceil(WORLD.h/cell),radius=P.r;
+ if(navGrid&&navGrid.radius===radius)return navGrid;
+ const pass=new Uint8Array(cols*rows);
+ for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)pass[y*cols+x]=collides((x+.5)*cell,(y+.5)*cell,radius+8)?0:1;
+ navGrid={cell,cols,rows,pass,radius};return navGrid;
+}
+function routeTo(goal){
+ const {cell,cols,rows,pass}=navSetup(),size=cols*rows;
+ const center=i=>({x:(i%cols+.5)*cell,y:(Math.floor(i/cols)+.5)*cell});
+ const nearest=p=>{
+  const cx=clamp(Math.floor(p.x/cell),0,cols-1),cy=clamp(Math.floor(p.y/cell),0,rows-1);
+  let best=-1,bestDist=Infinity;
+  for(let r=0;r<=5;r++){
+   for(let yy=Math.max(0,cy-r);yy<=Math.min(rows-1,cy+r);yy++)for(let xx=Math.max(0,cx-r);xx<=Math.min(cols-1,cx+r);xx++){
+    if(r>0&&Math.max(Math.abs(xx-cx),Math.abs(yy-cy))!==r)continue;
+    const id=yy*cols+xx;if(!pass[id])continue;
+    const q=center(id),d=dist(p,q);
+    if(d<bestDist&&routeClear(p,q)){best=id;bestDist=d}
+   }
+   if(best>=0)return best;
+  }
+  return best;
+ };
+ const start=nearest(P),end=nearest(goal);if(start<0||end<0)return null;
+ const score=new Float64Array(size);score.fill(Infinity);score[start]=0;
+ const from=new Int32Array(size);from.fill(-1);
+ const closed=new Uint8Array(size),heap=[];
+ const heuristic=i=>{const dx=Math.abs(i%cols-end%cols),dy=Math.abs(Math.floor(i/cols)-Math.floor(end/cols));return Math.max(dx,dy)+(Math.SQRT2-1)*Math.min(dx,dy)};
+ function push(id,f){
+  const n={id,f};let i=heap.length;heap.push(n);
+  while(i>0){const parent=(i-1)>>1;if(heap[parent].f<=n.f)break;heap[i]=heap[parent];i=parent}
+  heap[i]=n;
  }
- let waypoint=null,score=Infinity;
- if(obstacle){
-  const corners=[
-   {x:obstacle.x-pad,y:obstacle.y-pad},{x:obstacle.x+obstacle.w+pad,y:obstacle.y-pad},
-   {x:obstacle.x-pad,y:obstacle.y+obstacle.h+pad},{x:obstacle.x+obstacle.w+pad,y:obstacle.y+obstacle.h+pad}
-  ];
-  for(const c of corners){
-   if(collides(c.x,c.y,P.r+5)||Math.hypot(c.x-P.x,c.y-P.y)<32||lineBlocked(P,c))continue;
-   const detour=dist(P,c)+dist(c,goal)+(lineBlocked(c,goal)?140:0);
-   if(detour<score){score=detour;waypoint=c;}
+ function pop(){
+  const top=heap[0],last=heap.pop();
+  if(heap.length){let i=0;while(true){let c=i*2+1;if(c>=heap.length)break;if(c+1<heap.length&&heap[c+1].f<heap[c].f)c++;if(heap[c].f>=last.f)break;heap[i]=heap[c];i=c}heap[i]=last}
+  return top.id;
+ }
+ push(start,heuristic(start));
+ const dirs=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+ let expanded=0;
+ while(heap.length&&expanded++<size){
+  const cur=pop();if(closed[cur])continue;closed[cur]=1;
+  if(cur===end){
+   const nodes=[];let id=end;
+   while(id!==start&&id>=0&&nodes.length<size){nodes.push(center(id));id=from[id]}
+   if(id!==start)return null;
+   nodes.push(center(start));nodes.reverse();nodes.push({x:goal.x,y:goal.y});
+   return nodes;
+  }
+  const x=cur%cols,y=Math.floor(cur/cols);
+  for(const [dx,dy] of dirs){
+   const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=cols||ny>=rows)continue;
+   const next=ny*cols+nx;if(!pass[next]||closed[next])continue;
+   if(dx&&dy&&(!pass[y*cols+nx]||!pass[ny*cols+x]))continue;
+   if(!routeClear(center(cur),center(next)))continue;
+   const value=score[cur]+(dx&&dy?Math.SQRT2:1);
+   if(value>=score[next])continue;
+   score[next]=value;from[next]=cur;push(next,value+heuristic(next));
   }
  }
- const point=waypoint?{x:waypoint.x,y:waypoint.y,label:goal.label,detour:true}:goal;
+ return null;
+}
+function guidancePoint(goal){
+ if(!goal||!P)return null;
+ if(routeClear(P,goal)){guideCache=null;return goal}
+ if(guideCache&&elapsed-guideCache.time<.48&&Math.hypot(guideCache.px-P.x,guideCache.py-P.y)<72&&Math.hypot(guideCache.gx-goal.x,guideCache.gy-goal.y)<58)return guideCache.point;
+ const route=routeTo(goal);
+ let point=null;
+ if(route){for(let i=route.length-1;i>=0;i--)if(routeClear(P,route[i])){point={x:route[i].x,y:route[i].y,label:goal.label,detour:true};break}}
+ if(!point)point={x:P.x,y:P.y,label:goal.label,detour:true,blocked:true};
  guideCache={time:elapsed,px:P.x,py:P.y,gx:goal.x,gy:goal.y,point};
  return point;
 }
@@ -595,7 +649,7 @@ function drawGoalGuide(){
  ctx.beginPath();ctx.arc(0,0,23,0,TWO);ctx.fill();ctx.stroke();
  ctx.save();ctx.rotate(angle+Math.PI/2);ctx.fillStyle="#ffe2a0";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 27px sans-serif";ctx.fillText("▲",0,-1);ctx.restore();
  ctx.fillStyle="#fff0ce";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 11px sans-serif";ctx.shadowColor="#000";ctx.shadowBlur=8;
- ctx.fillText((point.detour?"迂回 ▲ ":"")+(onscreen?"目標 · ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
+ ctx.fillText((point.blocked?"経路を探索中":point.detour?"迂回 ▲ ":"")+(onscreen?"目標 · ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
 }
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
