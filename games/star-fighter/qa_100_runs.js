@@ -75,6 +75,26 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    ok(barTop>=height&&barTop+25>height,'portrait non-overlap sizing '+width);
   }
  }
+ // 30/36: static responsive contracts and viewport budgets (not physical device QA).
+ if(htmlSource&&cssSource){
+  ok(htmlSource.includes('style.css?v=mobile-layout-20261030-30'),'mobile CSS cache refreshed');
+  ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
+  ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
+  ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
+  ok(cssSource.includes('#shell .side-action{min-height:44px'),'two action targets retain 44px minimum');
+  ok(cssSource.includes('.joystick{display:none!important}')&&cssSource.includes('.rotate-overlay{display:none!important}'),'old stick and portrait blocker disabled');
+  ok((htmlSource.match(/id="sidePulseBtn"/g)||[]).length===1&&(htmlSource.match(/id="sideEquipBtn"/g)||[]).length===1,'exactly two combat buttons');
+  ok((htmlSource.match(/class="upgrade(?: selected)?"/g)||[]).length===6,'six-color meter preserved');
+  for(const [w,h] of [[280,500],[320,480],[320,568],[360,640],[390,844],[430,932]]){
+   const usable=w-10,canvas=usable*9/16,remaining=h-34-25-canvas-16;
+   const padWidth=(usable-6-112)*1.3/2.1;
+   ok(remaining>=88&&padWidth>=80,'portrait viewport budget '+w+'x'+h);
+  }
+  for(const [w,h,notch] of [[480,320,0],[568,320,0],[667,375,47],[844,390,47],[932,430,47]]){
+   const usable=w-10-2*notch,canvasWidth=usable-82-62-8;
+   ok(canvasWidth>=240&&(h-40-6)/2>=44,'landscape viewport budget '+w+'x'+h);
+  }
+ }
  // 28/36: shape, outline and luminance cues must not depend on hue.
  const projectileCases=[
   [{x:210,y:150,vx:-290,vy:0,size:5,damage:1,color:'#ff8d61'},'orb'],
