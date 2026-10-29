@@ -308,6 +308,68 @@ function runHarness(gameSource,musicSource){
  G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=3;G.lives=3;G.driveCharge=100;G.levels=[2,3,2,2,3,3];
  const capped=q.rewardOptions();
  ok(capped.length===3&&capped.every(o=>o.id.startsWith('score')),'capped resources must have three usable rewards');
+ // 16/36: 2,000-seed per-route rarity/risk sampling and full grant effects.
+ const specialSeen=new Set(),specialCounts={safe:0,storm:0};
+ G.stage=1;G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];
+ G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=10;
+ for(const [risk,key] of [[0,'safe'],[1,'storm']]){
+  G.routeRisk=risk;
+  for(let j=0;j<2000;j++){
+   G.runSeed=Math.imul(j+1,0x9e3779b9)>>>0;
+   const offers=q.rewardOptions();
+   ok(offers.length===3&&new Set(offers.map(o=>o.id)).size===3,'risk draft uniqueness '+key+'/'+j);
+   ok(JSON.stringify(offers)===JSON.stringify(q.rewardOptions()),'risk draft deterministic '+key+'/'+j);
+   ok(offers.some(o=>o.id.startsWith('passive_')),'risk draft passive '+key+'/'+j);
+   const specials=offers.filter(o=>o.rarity==='rare'||o.rarity==='route');
+   ok(specials.length<=1,'too many rare offers '+key+'/'+j);
+   if(specials.length)specialCounts[key]++;
+   for(const o of specials){
+    specialSeen.add(o.id);
+    ok(!(risk===0&&o.id.startsWith('storm_')),'storm reward on supply route');
+    ok(!(risk===1&&o.id.startsWith('safe_')),'supply reward on storm route');
+    ok(o.tradeoff===false||o.desc.includes(' / '),'rare cost not visible '+o.id);
+   }
+  }
+ }
+ ok(specialCounts.storm>specialCounts.safe*1.5,'storm reward probability must exceed safe');
+ ok(specialCounts.safe>=270&&specialCounts.safe<=610,'safe reward rate out of bounds');
+ ok(specialCounts.storm>=680&&specialCounts.storm<=1040,'storm reward rate out of bounds');
+ for(const id of ['rare_arsenal','rare_reactor','rare_rescue','rare_focus','storm_bounty','storm_gamble','safe_refit','safe_supply']){
+  ok(specialSeen.has(id),'special reward unreachable '+id);
+ }
+ // Test each grant with a real route-gate transition and valid checkpoint.
+ const expected={
+  rare_arsenal:[2,1,2,2,2,0,0,0],
+  rare_reactor:[0,1,2,3,2,45,0,0],
+  rare_rescue:[0,2,0,2,3,0,0,0],
+  rare_focus:[0,2,2,1,2,15,1,0],
+  storm_bounty:[0,1,5,2,2,25,0,0],
+  storm_gamble:[1,2,2,2,1,25,0,0],
+  safe_refit:[0,3,2,2,3,0,0,0],
+  safe_supply:[0,2,3,3,2,0,0,0]
+ };
+ for(const [id,want] of Object.entries(expected)){
+  const risk=id.startsWith('storm_')?1:0;
+  G.stage=1;G.routeRisk=risk;G.mode='reward';G.runSeed=1234;
+  G.routeHistory=[{stage:2,route:'test',risk,event:'cache',eventName:'cache',chain:false}];
+  G.rewardHistory=[{stage:0,id:'score',name:'score'}];
+  G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
+  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];
+  q.chooseReward(0);
+  ok(G.mode==='route'&&G.rewardHistory.length===2,'special claim route checkpoint '+id);
+  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives-2];
+  const exp=[...want];if(id==='rare_rescue')exp[7]=1;
+  ok(JSON.stringify(got)===JSON.stringify(exp),'special effect '+id+': '+JSON.stringify(got));
+  ok(q.readCheckpoint()?.mode==='route','special reward checkpoint '+id);
+ }
+ G.stage=1;G.routeRisk=1;G.player.hp=1;G.player.shield=0;G.energy=0;G.pulses=0;
+ G.passives=[2,2,2,2,2,2];G.levels=[2,3,2,2,3,3];
+ for(let j=0;j<250;j++){
+  G.runSeed=j+1;
+  ok(!q.rewardOptions().some(o=>o.tradeoff),'unaffordable tradeoff must not be offered');
+ }
+ G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
  G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
  // Regression lock: never remove the route-selected creature bosses.
  // Safe stage 2: mechanical octopus. Storm stage 3: armored dinosaur.
