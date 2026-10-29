@@ -133,7 +133,7 @@ function resumeCheckpoint(){
 continueBtn.addEventListener('click',resumeCheckpoint);
 
 const KEY={};let audio=null,bgm=null,sound=true,last=0,screenPulse=0,stickX=0,stickY=0,stickPointer=null,pausedByRotation=false;
-const G={mode:'title',time:0,total:0,stage:0,stageTime:0,scroll:0,spawn:0,score:0,best:0,combo:0,comboTime:0,lives:3,pulses:2,energy:0,selected:0,levels:[0,0,0,0,0,0],boss:null,bossDone:false,transition:0,transitioning:false,shots:[],enemies:[],bullets:[],pickups:[],particles:[],rings:[],stars:[],player:null,trail:[],shake:0,announceTime:0,toastTime:0,fireTimer:0,missileTimer:0,musicTime:0,beat:0,uiTime:0,firstInput:false,driveCharge:0,overdrive:0,grazes:0,maxCombo:0,killCount:0,routeRisk:0,routeHistory:[],routeSelected:0,runSeed:0,routeOffers:[],activeEvent:null,eventTriggered:false,eventChain:false,eventCount:0,pendingWave:null};
+const G={mode:'title',time:0,total:0,stage:0,stageTime:0,scroll:0,spawn:0,score:0,best:0,combo:0,comboTime:0,lives:3,pulses:2,energy:0,selected:0,levels:[0,0,0,0,0,0],boss:null,bossDone:false,transition:0,transitioning:false,shots:[],enemies:[],bullets:[],pickups:[],particles:[],rings:[],stars:[],player:null,trail:[],shake:0,announceTime:0,toastTime:0,fireTimer:0,missileTimer:0,musicTime:0,beat:0,uiTime:0,firstInput:false,driveCharge:0,overdrive:0,grazes:0,maxCombo:0,killCount:0,routeRisk:0,routeHistory:[],routeSelected:0,runSeed:0,routeOffers:[],activeEvent:null,eventTriggered:false,eventChain:false,eventCount:0,pendingWave:null,waveSerial:0,squadAttackCooldown:0,aiVolleys:0};
 try{G.best=Number(localStorage.getItem('star_fighter_best')||0)||0;sound=localStorage.getItem('star_fighter_sound')!=='off'}catch(e){}
 ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';
 for(let i=0;i<170;i++)G.stars.push({x:R(0,W),y:R(0,H),z:R(.25,2.6),tw:R(0,TAU),size:R(.4,1.9)});
@@ -145,7 +145,7 @@ function showToast(txt){ui.toast.textContent=txt;ui.toast.classList.add('show');
 function showAnnounce(head,title,sub,duration=3){ui.small.textContent=head;ui.main.textContent=title;ui.desc.textContent=sub;ui.announce.classList.add('show');G.announceTime=duration}
 function hideOverlay(){ui.overlay.classList.add('hidden')}
 function showOverlay(kind){ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全3ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='MISSION START <span>▶</span>'}}
-function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;G.mode='playing';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=1.4;G.score=0;G.combo=0;G.comboTime=0;G.lives=3;G.pulses=2;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.runSeed=runSeed;seedStage();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:3,invul:2,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
+function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;G.mode='playing';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=1.4;G.score=0;G.combo=0;G.comboTime=0;G.lives=3;G.pulses=2;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.runSeed=runSeed;seedStage();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:3,invul:2,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
 function pause(){if(G.mode==='playing'){G.mode='paused';showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}}
 function endGame(victory=false){bgm?.stop();G.mode=victory?'win':'over';clearCheckpoint();if(G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode!=='playing')startGame()});
@@ -190,7 +190,7 @@ if(x>=W){for(let attempt=0;attempt<12;attempt++){
  const blocked=G.enemies.some(e=>e.x>=W-30&&Math.abs(e.x-x)<waveRadius(type)+waveRadius(e.type)+18&&Math.abs(e.y-y)<waveRadius(type)+waveRadius(e.type)+18);
  if(!blocked)break;x+=90;
 }}
-let hp={scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25;hp*=(1+G.stage*.35)*tune.enemyHp;G.enemies.push({type,x,y,hp,maxHp:hp,t:0,fire:GR(.9,1.8)*tune.fireInterval,phase:GR(0,TAU),seed:GR(0,100),score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:250,...extra})}
+let hp={scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25;hp*=(1+G.stage*.35)*tune.enemyHp;G.enemies.push({type,x,y,hp,maxHp:hp,t:0,fire:GR(.9,1.8)*tune.fireInterval,phase:GR(0,TAU),seed:GR(0,100),aiHomeY:y,aiPhase:0,aiWarn:0,aiVolleyArmed:false,score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:250,...extra})}
 
 /* Preserve a traversable lane for each announced formation at entry.
    The cue is not a shield: aimed bullets and later enemy motion still matter. */
@@ -252,11 +252,49 @@ if(risk&&s===2&&gameRandom()>.65)queueEnemy('spinner',W+450,GR(195,480));
 if(!planned.length)return;
 const names=['偵察編隊','高速突撃','重装護衛','旋回部隊','輸送護衛','砲台戦線','機雷帯','迎撃隊','重装迎撃','複合編隊','輸送船団','螺旋編隊','上下挟撃','槍型編隊','機雷の回廊'];
 const arranged=arrangeWave(planned);
-if(arranged.units.length)G.pendingWave={timer:1.35,label:names[w],units:arranged.units,kind:w,safeY:arranged.safeY};
+if(arranged.units.length)G.pendingWave={timer:1.35,label:names[w],units:arranged.units,kind:w,safeY:arranged.safeY,id:++G.waveSerial,phase:GR(0,TAU)};
 }
 function bullet(x,y,a,s=290,size=5,col='#ff8d61',damage=1){G.bullets.push({x,y,px:x,py:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,size,life:5,color:col,damage})}
 function aim(x,y,spread=0){return Math.atan2(p.y-y,p.x-x)+spread}
-function fireEnemy(e){if(e.type==='mine'||e.type==='interceptor')return;const a=aim(e.x-30,e.y);const base=G.stage*22+(G.stage>0&&G.routeRisk?10:0);if(e.type==='tank'||e.type==='carrier'){for(let i=-1;i<=1;i++)bullet(e.x-42,e.y,a+i*.20,270+base,6,'#ffac71')}else if(e.type==='turret'){for(let i=-2;i<=2;i++)bullet(e.x-32,e.y,a+i*.14,260+base,5,'#ff577e')}else if(e.type==='spinner'){for(let i=0;i<6;i++)bullet(e.x,e.y,e.t*1.5+i*TAU/6,210+base,4,'#ffcc7e')}else{bullet(e.x-24,e.y,a,290+base,4,'#f9767f')}}
+
+/* Distinct enemy motion; synchronized wave roles are derived at spawn, not
+   from frame-dependent RNG. The marked entry lane stays open until mid-screen. */
+function moveEnemyAI(e,dt){
+ const home=e.aiHomeY??e.y,slot=e.squadSlot||0,phase=e.aiPhase||e.phase;
+ let target=home,follow=2.4;
+ if(e.type==='scout'){
+  if(e.pattern===3){target=home+Math.sin(e.t*2.4+slot*.66+phase)*66;follow=3.2}
+  else if(e.pattern===5){target=home+Math.sin(e.t*1.6+slot*.22+phase)*23;follow=3}
+  else{target=home+Math.sin(e.t*2.8+e.phase)*37;follow=3}
+  if([2,4,10,13].includes(e.squadKind)){
+   const flagship=G.enemies.find(v=>v.squadId===e.squadId&&(v.type==='tank'||v.type==='carrier')&&v.hp>0);
+   if(flagship)target=flagship.y+cl(home-(flagship.aiHomeY??flagship.y),-125,125)*.7+Math.sin(e.t*2.5+slot*.4)*12;
+  }
+ }else if(e.type==='dart'){
+  if(e.pattern===4){target=home+(home<H/2?1:-1)*Math.sin(Math.min(1,e.t/2.4)*Math.PI)*68;follow=3.6}
+  else target=home+Math.sin(e.t*4.2+e.phase)*43;
+ }else if(e.type==='spinner')target=home+Math.sin(e.t*2.9+e.phase)*67;
+ else if(e.type==='carrier')target=home+Math.cos(e.t*1.4+phase)*28;
+ else if(e.type==='tank')target=home+Math.sin(e.t*1.05+phase)*13;
+ else if(e.type==='mine')target=home+Math.sin(e.t*1.4+slot*.9+phase)*15;
+ if(e.type==='turret')return;
+ target=cl(target,108,H-88);
+ if(Number.isFinite(e.aiSafeY)&&e.x>540)target=placeOutsideLane(target,e.aiSafeY,105);
+ e.y=cl(e.y+(target-e.y)*Math.min(1,dt*follow),100,H-75);
+}
+/* Locked-on squad volleys are announced for 0.92s, limited to 3 attackers.
+   The warning reticle stays fixed even if the player moves. */
+function coordinateVolley(e){
+ if(!e.aiVolleyArmed||e.squadId===undefined||e.x>980||e.x<450||e.t<.75||G.squadAttackCooldown>0)return;
+ const eligible=G.enemies.filter(v=>v.squadId===e.squadId&&v.hp>0&&v.x<W-25&&v.x>130&&v.type!=='mine'&&v.type!=='interceptor').sort((a,b)=>a.squadSlot-b.squadSlot);
+ if(eligible.length<2||eligible[0]!==e)return;
+ const chosen=eligible.slice(0,3),targetX=cl(p.x,80,W-250),targetY=cl(p.y,105,H-75);
+ for(const v of G.enemies)if(v.squadId===e.squadId)v.aiVolleyArmed=false;
+ for(const v of chosen){v.aiWarn=.92;v.aiAimX=targetX;v.aiAimY=targetY;v.aiWarningLead=v===e}
+ G.squadAttackCooldown=2.8;G.aiVolleys++;
+}
+
+function fireEnemy(e,target=null){if(e.type==='mine'||e.type==='interceptor')return;const a=target?Math.atan2(target.y-e.y,target.x-(e.x-30)):aim(e.x-30,e.y);const base=G.stage*22+(G.stage>0&&G.routeRisk?10:0);if(e.type==='tank'||e.type==='carrier'){for(let i=-1;i<=1;i++)bullet(e.x-42,e.y,a+i*.20,270+base,6,'#ffac71')}else if(e.type==='turret'){for(let i=-2;i<=2;i++)bullet(e.x-32,e.y,a+i*.14,260+base,5,'#ff577e')}else if(e.type==='spinner'){for(let i=0;i<6;i++)bullet(e.x,e.y,e.t*1.5+i*TAU/6,210+base,4,'#ffcc7e')}else{bullet(e.x-24,e.y,a,290+base,4,'#f9767f')}}
 function spawnBoss(){G.pendingWave=null;const hp=Math.round([1900,2650,3600][G.stage]*routeProfile().bossHp);G.boss={name:BOSSES[G.stage],x:W+220,y:335,w:[250,280,300][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),BOSSES[G.stage],'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
 function bossAttack(b){
 if(b.x>980)return;
@@ -405,21 +443,25 @@ function triggerRouteEvent(){
 }
 
 function stageClear(){G.pendingWave=null;G.boss=null;G.bossDone=true;G.transitioning=true;G.transition=3.5;G.bullets=[];G.pulses=Math.min(5,G.pulses+1);p.hp=Math.min(3,p.hp+1);G.score+=5000*(G.stage+1);chargeDrive(22);showAnnounce('SECTOR CLEAR',NAMES[G.stage],'+ BONUS 5000 · ARMOR RECOVERED',3.1);tone(470,.55,'triangle',.055,450)}
-function nextStage(){G.stage++;if(G.stage>=3){endGame(true);return}G.pendingWave=null;seedStage();G.stageTime=0;G.spawn=2*routeProfile().spawnInterval;G.transitioning=false;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=2.5;showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],3.4);tone(400,.3,'sine',.04,350)}
+function nextStage(){G.stage++;if(G.stage>=3){endGame(true);return}G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;seedStage();G.stageTime=0;G.spawn=2*routeProfile().spawnInterval;G.transitioning=false;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=2.5;showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],3.4);tone(400,.3,'sine',.04,350)}
 function hitPlayer(damage=1){if(p.invul>0||G.mode!=='playing')return;if(p.shield>0){p.shield--;p.invul=.7;ring(p.x,p.y,62,'#5df4ff');tone(330,.19,'triangle',.07,-200);return}p.hp-=damage;p.invul=1.5;G.shake=13;G.combo=0;G.driveCharge=Math.max(0,G.driveCharge-20);emit(p.x,p.y,25,'#8acbff',220);tone(190,.36,'sawtooth',.085,-160);if(p.hp<=0){G.lives--;explosion(p.x,p.y,57);if(G.lives<=0){endGame(false);return}p.hp=3;p.invul=3.2;p.x=165;p.y=H/2;p.targetX=p.x;p.targetY=p.y;G.levels[0]=Math.max(0,G.levels[0]-1);G.energy=0;showToast('SHIP LOST · '+G.lives+' REMAINING')}}
 function playerFire(){const l=G.levels,shotCount=l[2]>0?2:1;const speeds=G.overdrive>0?1250:950;if(l[2]>0){for(let i=0;i<shotCount;i++){let y=p.y+(i?9:-9);G.shots.push({x:p.x+42,y,px:p.x+42,py:y,vx:1200,vy:0,dmg:23+l[2]*12,pierce:3+l[2]*3,kind:'laser',life:1.5})}}else{G.shots.push({x:p.x+37,y:p.y,px:p.x+37,py:p.y,vx:speeds,vy:0,dmg:G.overdrive>0?28:19,pierce:1,kind:'shot',life:1.7})}if(l[1]){const spread=l[1]===1?[.16,-.16]:l[1]===2?[.12,-.12,.29,-.29]:[.09,-.09,.21,-.21,.35,-.35];for(let a of spread)G.shots.push({x:p.x+30,y:p.y,px:p.x+30,py:p.y,vx:890*Math.cos(a),vy:890*Math.sin(a),dmg:12+l[1]*2,pierce:1,kind:'spread',life:1.6})}const drones=l[4];for(let i=0;i<drones;i++){const tr=G.trail[Math.min(G.trail.length-1,17+i*24)]||p;G.shots.push({x:tr.x+20,y:tr.y,px:tr.x+20,py:tr.y,vx:890,vy:0,dmg:13,pierce:1,kind:'drone',life:1.7})}emit(p.x+44,p.y,3,'#6eeeff',75);tone(l[2]?680:380,.045,'triangle',.009,l[2]?350:110)}
 function missileFire(){if(!G.levels[3])return;const shots=G.levels[3];for(let i=0;i<shots;i++)G.shots.push({x:p.x-6,y:p.y+22,px:p.x-6,py:p.y+22,vx:300,vy:170+i*100,dmg:35,pierce:1,kind:'missile',life:3.8})}
 function circleHit(ax,ay,ar,bx,by,br){return (ax-bx)*(ax-bx)+(ay-by)*(ay-by)<(ar+br)*(ar+br)}
-function update(dt){G.time+=dt;G.total+=dt;G.scroll+=(120+G.stage*27)*dt;G.stageTime+=dt;G.shake*=Math.pow(.025,dt);screenPulse=Math.max(0,screenPulse-dt*2.1);p.invul=Math.max(0,p.invul-dt);if(G.toastTime>0){G.toastTime-=dt;if(G.toastTime<=0)ui.toast.classList.remove('show')}if(G.announceTime>0){G.announceTime-=dt;if(G.announceTime<=0)ui.announce.classList.remove('show')}if(G.comboTime>0){G.comboTime-=dt;if(G.comboTime<=0)G.combo=0}if(G.overdrive>0)G.overdrive=Math.max(0,G.overdrive-dt);melody(dt);
+function update(dt){G.time+=dt;G.total+=dt;G.scroll+=(120+G.stage*27)*dt;G.stageTime+=dt;G.shake*=Math.pow(.025,dt);screenPulse=Math.max(0,screenPulse-dt*2.1);p.invul=Math.max(0,p.invul-dt);if(G.toastTime>0){G.toastTime-=dt;if(G.toastTime<=0)ui.toast.classList.remove('show')}if(G.announceTime>0){G.announceTime-=dt;if(G.announceTime<=0)ui.announce.classList.remove('show')}if(G.comboTime>0){G.comboTime-=dt;if(G.comboTime<=0)G.combo=0}if(G.overdrive>0)G.overdrive=Math.max(0,G.overdrive-dt);G.squadAttackCooldown=Math.max(0,G.squadAttackCooldown-dt);melody(dt);
 let dx=(KEY['d']||KEY['arrowright']?1:0)-(KEY['a']||KEY['arrowleft']?1:0)+stickX,dy=(KEY['s']||KEY['arrowdown']?1:0)-(KEY['w']||KEY['arrowup']?1:0)+stickY;const speed=(335+G.levels[0]*85)*(KEY['shift']?.5:1);if(dx||dy){const norm=1/Math.max(1,Math.hypot(dx,dy));p.targetX=cl(p.targetX+dx*speed*dt*norm,('ontouchstart' in window?240:62),W-135);p.targetY=cl(p.targetY+dy*speed*dt*norm,98,H-51)}else if(!dragging){p.targetX=p.x;p.targetY=p.y}let ox=p.x,oy=p.y;p.x+=(p.targetX-p.x)*Math.min(1,dt*15);p.y+=(p.targetY-p.y)*Math.min(1,dt*15);p.angle=cl((p.y-oy)*.022,-.22,.22);
 G.trail.unshift({x:p.x,y:p.y});if(G.trail.length>140)G.trail.length=140;
 if(Math.random()>.1)G.particles.push({x:p.x-37,y:p.y+R(-7,7),vx:-R(165,330),vy:R(-30,30),life:R(.15,.4),maxLife:.4,size:R(2,5),color:Math.random()>.4?'#30e6ff':'#ffce77',glow:true});
 G.fireTimer-=dt;if(G.fireTimer<=0){playerFire();G.fireTimer=(G.levels[2]>0?.22:.165)*(G.overdrive>0?.59:1)}
 G.missileTimer-=dt;if(G.missileTimer<=0){missileFire();G.missileTimer=G.overdrive>0?.7:1.15}
 if(!G.boss&&!G.bossDone&&!G.transitioning){triggerRouteEvent();const deadline=[62,68,74][G.stage];if(G.stageTime>=deadline)spawnBoss();else{G.spawn-=dt;if(G.spawn<=0){spawnWave();G.spawn=Math.max(2.6,(GR(3.5,5.5)-G.stage*.38)*routeProfile().spawnInterval)}if(Math.floor((G.stageTime-dt)/9)<Math.floor(G.stageTime/9))pickup(W-20,GR(155,525),true)}}
-if(G.pendingWave){G.pendingWave.timer-=dt;if(G.pendingWave.timer<=0){const units=G.pendingWave.units;G.pendingWave=null;for(const u of units)enemy(u.type,u.x,u.y,u.extra)}}
+if(G.pendingWave){G.pendingWave.timer-=dt;if(G.pendingWave.timer<=0){const wave=G.pendingWave;G.pendingWave=null;wave.units.forEach((u,i)=>enemy(u.type,u.x,u.y,{...u.extra,squadId:wave.id,squadKind:wave.kind,squadSlot:i,squadSize:wave.units.length,aiHomeY:u.y,aiPhase:wave.phase,aiSafeY:wave.safeY,aiVolleyArmed:true}))}}
 if(G.transitioning){G.transition-=dt;if(G.transition<=0){openRoute();return}}
-for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140)*routeProfile().speed;e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}if(e.type==='scout')e.y+=Math.sin(e.t*3.8+e.phase)*63*dt;if(e.type==='dart')e.y+=Math.sin(e.t*5+e.phase)*75*dt;if(e.type==='spinner')e.y+=Math.sin(e.t*4+e.phase)*115*dt;if(e.type==='carrier')e.y+=Math.cos(e.t*1.65)*26*dt;if(e.type==='mine')e.y+=Math.sin(e.t*2+e.phase)*20*dt;e.fire-=dt;if(e.fire<0&&e.x<W-35&&e.x>80){fireEnemy(e);e.fire=Math.max(.7,(GR(e.type==='turret'?.95:1.5,e.type==='turret'?1.4:2.4)-G.stage*.11)*routeProfile().fireInterval)}if(circleHit(p.x,p.y,18,e.x,e.y,e.type==='tank'||e.type==='carrier'?36:21))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
+for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140)*routeProfile().speed;e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}if(e.type!=='interceptor')moveEnemyAI(e,dt);
+if(e.aiWarn>0){e.aiWarn-=dt;if(e.aiWarn<=0&&e.hp>0&&e.x<W-35&&e.x>100){fireEnemy(e,{x:e.aiAimX,y:e.aiAimY});e.fire=Math.max(e.fire,1.35)}}
+if(e.aiWarn<=0)coordinateVolley(e);
+e.fire-=dt;
+if(e.aiWarn<=0&&e.fire<0&&e.x<W-35&&e.x>80){fireEnemy(e);e.fire=Math.max(.7,(GR(e.type==='turret'?.95:1.5,e.type==='turret'?1.4:2.4)-G.stage*.11)*routeProfile().fireInterval)}if(circleHit(p.x,p.y,18,e.x,e.y,e.type==='tank'||e.type==='carrier'?36:21))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
 b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*1.15)*(G.stage===2?95:68);
 if(!b.phase&&b.hp<=b.maxHp*.55){
@@ -497,6 +539,23 @@ function drawBossBeam(b){
  c.restore();
 }
 
+
+function drawSquadWarning(){
+ const leader=G.enemies.find(e=>e.aiWarn>0&&e.aiWarningLead)||G.enemies.find(e=>e.aiWarn>0);
+ if(!leader)return;
+ const tx=leader.aiAimX,ty=leader.aiAimY;
+ c.save();c.globalAlpha=.55+.3*Math.sin(G.time*16);
+ c.strokeStyle='#ffb05e';c.lineWidth=2;c.setLineDash([9,8]);
+ c.beginPath();c.moveTo(leader.x-22,leader.y);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);
+ c.beginPath();c.arc(tx,ty,20,0,TAU);c.stroke();
+ line(tx-28,ty,tx-12,ty,'#ffda95',2);line(tx+12,ty,tx+28,ty,'#ffda95',2);
+ line(tx,ty-28,tx,ty-12,'#ffda95',2);line(tx,ty+12,tx,ty+28,'#ffda95',2);
+ for(const e of G.enemies)if(e.aiWarn>0&&e.squadId===leader.squadId){
+  c.beginPath();c.arc(e.x,e.y,Math.max(24,waveRadius(e.type)+5),0,TAU);c.stroke();
+ }
+ c.restore();
+}
+
 function drawWaveWarning(){
 const wave=G.pendingWave;if(!wave||G.mode!=='playing'&&G.mode!=='paused')return;
 c.save();c.globalAlpha=.66+.23*Math.sin(G.time*12);c.textAlign='right';c.textBaseline='middle';c.fillStyle='#ffdb9d';c.font='bold 13px ui-monospace,monospace';
@@ -518,7 +577,7 @@ function drawTacticalMeter(){if(G.mode!=='playing'&&G.mode!=='paused')return;con
 c.save();c.globalAlpha=.95;c.fillStyle='#071422ba';c.fillRect(x-12,y-29,w+25,56);c.font='bold 12px ui-monospace,monospace';c.textAlign='left';c.textBaseline='middle';c.fillStyle=active?'#ffe99f':'#82d6ea';c.fillText(active?'OVERDRIVE '+G.overdrive.toFixed(1)+'s':'OVERDRIVE CHARGE',x,y-10);c.fillStyle='#24425b';c.fillRect(x,y,w,h);c.fillStyle=active?'#ffdb7b':'#4cdded';c.fillRect(x,y,w*(active?G.overdrive/8:G.driveCharge/100),h);c.strokeStyle=active?'#ffe19a':'#5ccdeb';c.lineWidth=1;c.strokeRect(x,y,w,h);c.restore()}
 function drawScene(){c.save();if(G.shake>.2)c.translate(R(-G.shake,G.shake),R(-G.shake,G.shake));drawBackground();if(G.mode==='title'){drawShip(274,344,0,0);for(let i=0;i<4;i++){const e={x:750+i*122,y:210+i*90,type:i%2?'scout':'spinner',t:G.time*.7,phase:i};drawEnemy(e)}}
 else{for(const q of G.pickups){c.save();c.translate(q.x,q.y);c.rotate(q.t*1.5);c.shadowColor=q.type==='pulse'?'#ffcb60':'#7dfff8';c.shadowBlur=22;poly([0,-18,18,0,0,18,-18,0],q.type==='pulse'?'#9e7129':'#157881',q.type==='pulse'?'#fff3a0':'#d4fff7',2);c.font='bold 18px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#f5ffff';c.rotate(-q.t*1.5);c.fillText(q.type==='pulse'?'✹':'P',0,1);c.restore()}
-drawWaveWarning();
+drawWaveWarning();drawSquadWarning();
 for(const e of G.enemies){if(e.type==='interceptor'&&e.lockY!==null&&e.t<1){c.save();c.globalAlpha=.6;c.setLineDash([18,12]);line(0,e.lockY,e.x-36,e.lockY,'#ffb57b',1.8);c.setLineDash([]);c.restore()}drawEnemy(e);if(e.eventDrop){c.save();c.globalAlpha=.72;c.strokeStyle='#ffec99';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,43+Math.sin(G.time*5)*3,0,TAU);c.stroke();c.restore()}}if(G.boss){drawBoss(G.boss);drawBossBeam(G.boss)}
 for(const s of G.shots){c.save();c.shadowBlur=15;c.shadowColor=s.kind==='missile'?'#ffae57':'#72edff';c.lineCap='round';if(s.kind==='laser'){line(s.x-95,s.y,s.x+24,s.y,'#178fff',14);line(s.x-105,s.y,s.x+24,s.y,'#83faff',6);line(s.x-105,s.y,s.x+28,s.y,'#fff',2)}else if(s.kind==='missile'){poly([s.x+12,s.y,s.x-13,s.y-7,s.x-8,s.y,s.x-13,s.y+7],'#ffbc81','#fff1b4',1);line(s.x-28,s.y+R(-2,2),s.x-10,s.y,'#ff954d',5)}else{line(s.x-20,s.y-s.vy*.012,s.x+12,s.y+s.vy*.012,'#55d6ff',s.kind==='shot'?6:3.5);line(s.x-16,s.y,s.x+14,s.y,'#d4fbff',2)}c.restore()}
 for(const a of G.bullets){c.save();c.shadowColor=a.color;c.shadowBlur=15;line(a.x-a.vx*.045,a.y-a.vy*.045,a.x,a.y,a.color,Math.max(2,a.size*1.3));glowCircle(a.x,a.y,Math.max(2,a.size*.62),'#fff0d9',6);c.restore()}
