@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,hitPlayer,readCheckpoint};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -205,13 +205,32 @@ function runHarness(gameSource,musicSource){
  ev('startBtn','click');ok(G.mode==='playing','restart');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
+ const priorSeed=G.runSeed;
+ for(let j=0;j<100;j++){
+  G.runSeed=j*1234567>>>0;
+  const a=q.rewardOptions(),b=q.rewardOptions();
+  ok(a.length===3&&new Set(a.map(x=>x.id)).size===3,'reward uniqueness '+j);
+  ok(JSON.stringify(a)===JSON.stringify(b),'reward seed determinism '+j);
+ }
+ G.runSeed=priorSeed;
  q.spawnBoss();ok(!!G.boss,'boss spawn');
  G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
- for(let i=0;i<260&&G.mode!=='route';i++)q.update(.016);
- ok(G.mode==='route','route menu');
+ for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
+ ok(G.mode==='reward','reward draft after first boss');
+ ok(G.rewardOffers.length===3&&new Set(G.rewardOffers.map(o=>o.id)).size===3,'unique 3 rewards');
+ const beforeReward=q.readCheckpoint();
+ ok(beforeReward?.mode==='reward','reward gate checkpoint');
+ ev('titleReturnBtn','click');ev('continueBtn','click');
+ ok(G.mode==='reward','reward gate resumes');
+ ev('rewardCard0','click');
+ ok(G.mode==='route','reward then route');
+ ok(q.readCheckpoint()?.mode==='route','reward claim checkpoint');
  ev('routeRisk','click');ok(G.mode==='playing'&&G.stage===1,'risk route');
  q.spawnBoss();G.boss.hp=0;q.update(.016);
- for(let i=0;i<260&&G.mode!=='route';i++)q.update(.016);
+ for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
+ ok(G.mode==='reward','reward draft after second boss');
+ ev('rewardCard1','click');
+ ok(G.mode==='route','second reward then route');
  ev('routeSafe','click');ok(G.stage===2,'safe route');
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
