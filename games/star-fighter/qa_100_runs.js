@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -309,7 +309,24 @@ function runHarness(gameSource,musicSource){
  const capped=q.rewardOptions();
  ok(capped.length===3&&capped.every(o=>o.id.startsWith('score')),'capped resources must have three usable rewards');
  G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
- G.runSeed=priorSeed;
+ // Regression lock: never remove the route-selected creature bosses.
+ // Safe stage 2: mechanical octopus. Storm stage 3: armored dinosaur.
+ // Both inverse routes preserve original stage bosses.
+ for(const [stage,risk,variant,name] of [
+  [1,0,'octopus','KRAKEN ENGINE'],[1,1,'original','FORTRESS CORE'],
+  [2,1,'dinosaur','IRON TYRANT'],[2,0,'original','ABYSS TITAN'],
+  [0,0,'original','BATTLE CRUISER']
+ ]){
+  G.stage=stage;G.routeRisk=risk;G.bullets=[];G.enemies=[];
+  ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
+  q.spawnBoss();ok(G.boss.variant===variant&&G.boss.name===name,'boss identity '+name);
+  G.boss.x=930;G.boss.y=337;G.boss.t=1;
+  q.bossAttack(G.boss);
+  ok(G.bullets.length>0,'boss projectiles '+name);
+  q.drawScene();
+  G.boss=null;G.bullets=[];
+ }
+ G.stage=0;G.routeRisk=0;G.mode='playing';G.runSeed=priorSeed;
  q.spawnBoss();ok(!!G.boss,'boss spawn');
  G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
  for(let i=0;i<260&&G.mode!=='reward';i++)q.update(.016);
