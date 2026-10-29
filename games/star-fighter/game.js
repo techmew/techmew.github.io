@@ -168,31 +168,60 @@ function showAnnounce(head,title,sub,duration=3){ui.small.textContent=head;ui.ma
 function hideOverlay(){ui.overlay.classList.add('hidden')}
 function showOverlay(kind){ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全3ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='PLAY AGAIN <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='RETRY MISSION <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='MISSION START <span>▶</span>'}}
 function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;G.mode='playing';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=1.4;G.score=0;G.combo=0;G.comboTime=0;G.lives=3;G.pulses=2;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:3,invul:2,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
-function pause(){if(G.mode==='playing'){G.mode='paused';showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}}
+function pause(){if(G.mode==='playing'){G.mode='paused';resetStick();showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}$('sidePauseBtn').textContent=G.mode==='paused'?'▶ 再開':'Ⅱ 一時停止'}
 function endGame(victory=false){G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';clearCheckpoint();if(G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode!=='playing')startGame()});
-ui.pause.addEventListener('click',pause);ui.sound.addEventListener('click',()=>{sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();bgm.setEnabled(true);bgm.start()}}else bgm?.setEnabled(false)});
-ui.equip.addEventListener('click',equip);ui.pulse.addEventListener('click',pulse);$('helpBtn').addEventListener('click',()=>{if(G.mode==='playing')pause();else if(G.mode==='title'){showToast('移動：矢印 / WASD / ドラッグ　強化：X→Enter　衝撃波：SPACE')}});
+ui.pause.addEventListener('click',pause);$('sidePauseBtn').addEventListener('click',pause);$('sidePulseBtn').addEventListener('click',pulse);$('sideEquipBtn').addEventListener('click',equip);
+$('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;bgm?.stop();resetStick();G.mode='title';$('routePanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('click',()=>{sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();bgm.setEnabled(true);bgm.start()}}else bgm?.setEnabled(false)});
+ui.equip.addEventListener('click',equip);ui.pulse.addEventListener('click',pulse);$('helpBtn').addEventListener('click',()=>{if(G.mode==='playing')pause();else if(G.mode==='title'){showToast('左タッチパッドをなぞって移動 / 自動射撃 / 衝撃波：SPACE')}});
 ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{G.selected=i;if(G.mode==='playing'&&G.energy>=i+1&&G.levels[i]<MAX[i])showToast('強化を押して '+PNAMES[i]+' を装備');updateHud()}));
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter')startGame();return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='enter'||k==='z')equip()});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
-/* Standard floating directional stick, separate from the ship's visual position. */
-const joy=$('joystick'),joyBase=$('joystickBase'),joyKnob=$('joystickKnob');
-function resetStick(){stickX=stickY=0;stickPointer=null;joyKnob.style.transform='translate(-50%,-50%)'}
-function stickMove(e){
-const box=joyBase.getBoundingClientRect(),cx=box.left+box.width/2,cy=box.top+box.height/2,max=box.width*.29;
-const dx=(e.clientX-cx)/max,dy=(e.clientY-cy)/max,len=Math.hypot(dx,dy)||1,f=Math.min(1,1/len),x=dx*f,y=dy*f,mag=Math.hypot(x,y),dead=.1,v=mag<dead?0:(mag-dead)/(1-dead);
-stickX=mag?x/mag*v:0;stickY=mag?y/mag*v:0;
-joyKnob.style.transform='translate(calc(-50% + '+(x*max)+'px),calc(-50% + '+(y*max)+'px))';
+/* Relative touchpad: pointer delta is applied immediately to the ship.
+   No joystick dead zone or low-pass movement on touch; first touch never jumps. */
+const pad=$('touchPad');
+let padPointer=null,padLastX=0,padLastY=0;
+function resetStick(){
+ stickX=stickY=0;stickPointer=null;padPointer=null;
+ pad?.classList.remove('touching');
 }
-joy.addEventListener('pointerdown',e=>{if(G.mode!=='playing'||stickPointer!==null)return;e.preventDefault();e.stopPropagation();stickPointer=e.pointerId;try{joy.setPointerCapture(e.pointerId)}catch(err){}stickMove(e)});
-joy.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer){e.preventDefault();stickMove(e)}});
-for(const kind of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(kind,e=>{if(e.pointerId===stickPointer){e.preventDefault();resetStick()}});
-function isPortraitPhone(){return window.matchMedia?window.matchMedia('(pointer: coarse) and (orientation: portrait)').matches:false}
-function syncOrientation(){if(isPortraitPhone()&&G.mode==='playing'){pausedByRotation=true;G.mode='paused';bgm?.stop();resetStick()}else if(!isPortraitPhone()&&pausedByRotation){pausedByRotation=false;if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}}}
-window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);
-
+function touchScale(){
+ const width=Math.max(320,window.innerWidth||800),height=Math.max(300,window.innerHeight||480);
+ return cl(Math.min(W/width,H/height)*1.4,1.15,3.3);
+}
+function padMove(e){
+ if(G.mode!=='playing'||padPointer!==e.pointerId||!p)return;
+ const events=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():null;
+ const q=events&&events.length?events[events.length-1]:e;
+ const dx=q.clientX-padLastX,dy=q.clientY-padLastY;
+ padLastX=q.clientX;padLastY=q.clientY;
+ if(!Number.isFinite(dx)||!Number.isFinite(dy))return;
+ const scale=touchScale();
+ const nx=cl(p.x+dx*scale,62,W-135),ny=cl(p.y+dy*scale,98,H-51);
+ p.angle=cl((ny-p.y)*.025,-.22,.22);
+ p.x=p.targetX=nx;p.y=p.targetY=ny;
+ G.firstInput=true;
+}
+pad.addEventListener('pointerdown',e=>{
+ if(G.mode!=='playing'||padPointer!==null)return;
+ e.preventDefault();padPointer=e.pointerId;
+ padLastX=e.clientX;padLastY=e.clientY;
+ pad.classList.add('touching');
+ try{pad.setPointerCapture(e.pointerId)}catch(_){}
+});
+pad.addEventListener('pointermove',e=>{if(e.pointerId===padPointer){e.preventDefault();padMove(e)}});
+for(const kind of ['pointerup','pointercancel','lostpointercapture']){
+ pad.addEventListener(kind,e=>{if(e.pointerId===padPointer){e.preventDefault();resetStick()}});
+}
+window.addEventListener('blur',resetStick);
+/* Portrait is supported. Changing orientation must never auto-pause the run. */
+function syncOrientation(){
+ resetStick();
+ last=performance.now();
+}
+window.addEventListener('resize',syncOrientation);
+window.addEventListener('orientationchange',syncOrientation);
 let dragging=false,pid=-1;
 function coords(e){const b=C.getBoundingClientRect();return{x:(e.clientX-b.left)/b.width*W,y:(e.clientY-b.top)/b.height*H}}
 C.addEventListener('pointerdown',e=>{if(G.mode!=='playing'||e.pointerType==='touch')return;dragging=true;pid=e.pointerId;try{C.setPointerCapture(pid)}catch(err){}const q=coords(e);G.player.targetX=cl(q.x,60,W-130);G.player.targetY=cl(q.y,88,H-52);G.firstInput=true});
@@ -565,7 +594,7 @@ function drawTerrain(){
 }
 
 function update(dt){G.time+=dt;G.total+=dt;G.scroll+=(120+G.stage*27)*dt;G.stageTime+=dt;G.shake*=Math.pow(.025,dt);screenPulse=Math.max(0,screenPulse-dt*2.1);p.invul=Math.max(0,p.invul-dt);if(G.toastTime>0){G.toastTime-=dt;if(G.toastTime<=0)ui.toast.classList.remove('show')}if(G.announceTime>0){G.announceTime-=dt;if(G.announceTime<=0)ui.announce.classList.remove('show')}if(G.comboTime>0){G.comboTime-=dt;if(G.comboTime<=0)G.combo=0}if(G.overdrive>0)G.overdrive=Math.max(0,G.overdrive-dt);G.squadAttackCooldown=Math.max(0,G.squadAttackCooldown-dt);G.directorGrace=Math.max(0,G.directorGrace-dt);melody(dt);
-let dx=(KEY['d']||KEY['arrowright']?1:0)-(KEY['a']||KEY['arrowleft']?1:0)+stickX,dy=(KEY['s']||KEY['arrowdown']?1:0)-(KEY['w']||KEY['arrowup']?1:0)+stickY;const speed=(335+G.levels[0]*85)*(KEY['shift']?.5:1);if(dx||dy){const norm=1/Math.max(1,Math.hypot(dx,dy));p.targetX=cl(p.targetX+dx*speed*dt*norm,('ontouchstart' in window?240:62),W-135);p.targetY=cl(p.targetY+dy*speed*dt*norm,98,H-51)}else if(!dragging){p.targetX=p.x;p.targetY=p.y}let ox=p.x,oy=p.y;p.x+=(p.targetX-p.x)*Math.min(1,dt*15);p.y+=(p.targetY-p.y)*Math.min(1,dt*15);p.angle=cl((p.y-oy)*.022,-.22,.22);advanceTerrain(dt);
+let dx=(KEY['d']||KEY['arrowright']?1:0)-(KEY['a']||KEY['arrowleft']?1:0)+stickX,dy=(KEY['s']||KEY['arrowdown']?1:0)-(KEY['w']||KEY['arrowup']?1:0)+stickY;const speed=(335+G.levels[0]*85)*(KEY['shift']?.5:1);if(dx||dy){const norm=1/Math.max(1,Math.hypot(dx,dy));p.targetX=cl(p.targetX+dx*speed*dt*norm,62,W-135);p.targetY=cl(p.targetY+dy*speed*dt*norm,98,H-51)}else if(!dragging){p.targetX=p.x;p.targetY=p.y}let ox=p.x,oy=p.y;p.x+=(p.targetX-p.x)*Math.min(1,dt*29);p.y+=(p.targetY-p.y)*Math.min(1,dt*29);p.angle=cl((p.y-oy)*.022,-.22,.22);advanceTerrain(dt);
 G.trail.unshift({x:p.x,y:p.y});if(G.trail.length>140)G.trail.length=140;
 if(Math.random()>.1)G.particles.push({x:p.x-37,y:p.y+R(-7,7),vx:-R(165,330),vy:R(-30,30),life:R(.15,.4),maxLife:.4,size:R(2,5),color:Math.random()>.4?'#30e6ff':'#ffce77',glow:true});
 G.fireTimer-=dt;if(G.fireTimer<=0){playerFire();G.fireTimer=(G.levels[2]>0?.22:.165)*(G.overdrive>0?.59:1)}
@@ -705,5 +734,5 @@ drawTacticalMeter();
 if(screenPulse>0){c.fillStyle='rgba(197,244,255,'+(screenPulse*.25)+')';c.fillRect(0,0,W,H)}
 c.restore()}
 function render(ms){const dt=Math.min((ms-last)/1000||0,.034);last=ms;if(G.mode==='playing')update(dt);else{G.time+=dt;G.scroll+=30*dt}drawScene();requestAnimationFrame(render)}
-const dpr=Math.min(2,window.devicePixelRatio||1);C.width=W*dpr;C.height=H*dpr;c.setTransform(dpr,0,0,dpr,0,0);showOverlay('title');syncOrientation();updateHud();requestAnimationFrame(render);
+const dpr=window.matchMedia?.('(pointer: coarse)').matches?1:Math.min(1.5,window.devicePixelRatio||1);C.width=W*dpr;C.height=H*dpr;c.setTransform(dpr,0,0,dpr,0,0);showOverlay('title');syncOrientation();updateHud();requestAnimationFrame(render);
 })();
