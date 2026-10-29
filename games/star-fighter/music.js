@@ -1,20 +1,20 @@
 /* STAR FIGHTER — original cyber techno BGM; generated with Web Audio, no third-party music. */
 (()=>{'use strict';
-const ROOT=[[40,35,37,33],[30,27,30,28],[31,27,29,26],[33,36,29,31],[29,32,25,27]],
-ARP=[[0,4,7,11,12,16,19,23],[0,3,6,10,12,15,18,22],[0,3,7,10,12,15,19,22],[0,5,7,10,12,17,19,22],[0,3,7,12,15,19,22,24]],
+const ROOT=[[40,35,37,33],[30,27,30,28],[31,27,29,26],[33,36,29,31],[29,32,25,27],[33,28,30,26]],
+ARP=[[0,4,7,11,12,16,19,23],[0,3,6,10,12,15,18,22],[0,3,7,10,12,15,19,22],[0,5,7,10,12,17,19,22],[0,3,7,12,15,19,22,24],[0,3,7,10,15,19,22,27]],
 LEAD=[[0,4,7,12,11,7,4,7,12,16,14,11,7,4,7,11],
 [0,3,6,0,10,6,3,0,12,10,6,3,15,10,6,3],
-[0,0,12,10,7,0,6,3,0,7,10,6,3,0,3,0],[0,7,12,19,17,12,7,5,0,10,17,22,19,17,12,7],[0,7,12,7,3,0,7,12,15,12,7,3,0,3,7,12]],
+[0,0,12,10,7,0,6,3,0,7,10,6,3,0,3,0],[0,7,12,19,17,12,7,5,0,10,17,22,19,17,12,7],[0,7,12,7,3,0,7,12,15,12,7,3,0,3,7,12],[0,3,7,10,7,3,0,5,12,10,7,3,15,12,10,7]],
 BOSS_LEAD=[[12,16,19,23,24,19,16,12,19,23,26,24,23,19,16,12],
 [12,15,18,22,24,18,15,12,18,22,25,24,22,18,15,12],
-[12,15,19,22,24,22,19,15,12,19,22,24,27,24,19,15],[12,19,24,26,24,19,17,12,19,24,29,26,24,22,19,17],[12,19,24,31,27,24,19,15,12,22,27,31,29,24,19,17]];
+[12,15,19,22,24,22,19,15,12,19,22,24,27,24,19,15],[12,19,24,26,24,19,17,12,19,24,29,26,24,22,19,17],[12,19,24,31,27,24,19,15,12,22,27,31,29,24,19,17],[12,15,19,22,24,19,15,12,22,26,24,19,27,24,19,15]];
 const hz=m=>440*Math.pow(2,(m-69)/12);
 class CyberBGM{
 constructor(a){this.a=a;this.stage=0;this.boss=false;this.step=0;this.next=0;this.running=false;this.enabled=true;this.master=a.createGain();this.master.gain.value=.21;const comp=a.createDynamicsCompressor();comp.threshold.value=-22;comp.ratio.value=4;comp.attack.value=.008;comp.release.value=.18;this.master.connect(comp);comp.connect(a.destination);const delay=a.createDelay(1),fb=a.createGain(),wet=a.createGain();delay.delayTime.value=.245;fb.gain.value=.23;wet.gain.value=.15;delay.connect(fb);fb.connect(delay);delay.connect(wet);wet.connect(this.master);this.delay=delay;this.noise=a.createBuffer(1,Math.floor(a.sampleRate*.9),a.sampleRate);const d=this.noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
 setEnabled(on){this.enabled=on;const t=this.a.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(on?.21:0,t,.045);if(!on)this.running=false}
 start(){this.running=true;this.step=0;this.next=this.a.currentTime+.03}
 stop(){this.running=false;const t=this.a.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(0,t,.04)}
-note(m,t,d,type='lead',vel=1){const a=this.a,st=this.stage,opts={lead:[['sawtooth','square','triangle','sawtooth','triangle'][st],[3100,1850,1400,2450,2900][st],[.065,.075,.066,.062,.058][st]],arp:[['triangle','square','sine','triangle','sine'][st],[4300,2750,2000,3500,4800][st],[.032,.024,.030,.029,.031][st]],bass:[['sawtooth','square','triangle','sawtooth','triangle'][st],[750,450,390,670,570][st],[.125,.165,.16,.14,.12][st]],pad:[['triangle','sawtooth','sine','triangle','sine'][st],[1650,850,700,1190,1950][st],[.042,.028,.052,.044,.056][st]]},[wave,cut,vol]=opts[type]||opts.lead;const o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();o.type=wave;o.frequency.setValueAtTime(hz(m),t);f.type='lowpass';f.Q.value=type==='bass'?4:1;f.frequency.setValueAtTime(cut*.65,t);if(type!=='pad')f.frequency.exponentialRampToValueAtTime(Math.max(120,cut*.28),t+d*.85);const att=type==='pad'?.085:.008,end=t+d+(type==='pad'?.27:.12),v=vol*vel;g.gain.setValueAtTime(.00001,t);g.gain.exponentialRampToValueAtTime(Math.max(.00001,v),t+att);g.gain.setValueAtTime(Math.max(.00001,v*.6),t+d*.7);g.gain.exponentialRampToValueAtTime(.00001,end);o.connect(f);f.connect(g);g.connect(this.master);if(type==='lead'||type==='arp')g.connect(this.delay);o.start(t);o.stop(end+.03);o.onended=()=>{o.disconnect();f.disconnect();g.disconnect()}}
+note(m,t,d,type='lead',vel=1){const a=this.a,st=this.stage,opts={lead:[['sawtooth','square','triangle','sawtooth','triangle','square'][st],[3100,1850,1400,2450,2900,1850][st],[.065,.075,.066,.062,.058,.058][st]],arp:[['triangle','square','sine','triangle','sine','triangle'][st],[4300,2750,2000,3500,4800,2850][st],[.032,.024,.030,.029,.031,.028][st]],bass:[['sawtooth','square','triangle','sawtooth','triangle','square'][st],[750,450,390,670,570,460][st],[.125,.165,.16,.14,.12,.12][st]],pad:[['triangle','sawtooth','sine','triangle','sine','sine'][st],[1650,850,700,1190,1950,1150][st],[.042,.028,.052,.044,.056,.047][st]]},[wave,cut,vol]=opts[type]||opts.lead;const o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();o.type=wave;o.frequency.setValueAtTime(hz(m),t);f.type='lowpass';f.Q.value=type==='bass'?4:1;f.frequency.setValueAtTime(cut*.65,t);if(type!=='pad')f.frequency.exponentialRampToValueAtTime(Math.max(120,cut*.28),t+d*.85);const att=type==='pad'?.085:.008,end=t+d+(type==='pad'?.27:.12),v=vol*vel;g.gain.setValueAtTime(.00001,t);g.gain.exponentialRampToValueAtTime(Math.max(.00001,v),t+att);g.gain.setValueAtTime(Math.max(.00001,v*.6),t+d*.7);g.gain.exponentialRampToValueAtTime(.00001,end);o.connect(f);f.connect(g);g.connect(this.master);if(type==='lead'||type==='arp')g.connect(this.delay);o.start(t);o.stop(end+.03);o.onended=()=>{o.disconnect();f.disconnect();g.disconnect()}}
 noiseHit(t,d,cut,v,type='highpass'){const a=this.a,s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=this.noise;f.type=type;f.frequency.value=cut;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.00001,t+d);s.connect(f);f.connect(g);g.connect(this.master);s.start(t);s.stop(t+d+.001);s.onended=()=>{s.disconnect();f.disconnect();g.disconnect()}}
 kick(t,v=1){const a=this.a,o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.setValueAtTime(165,t);o.frequency.exponentialRampToValueAtTime(48,t+.14);g.gain.setValueAtTime(.75*v,t);g.gain.exponentialRampToValueAtTime(.00001,t+.24);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+.25);o.onended=()=>{o.disconnect();g.disconnect()}}
 sequence(t,i){
@@ -54,7 +54,7 @@ sequence(t,i){
   if(s===0||s===8)for(const n of [root+12,root+17,root+19])this.note(n,t,.75,'pad',.75);
   if(s%2===0)this.note(root+12+arp[(s/2+bar)%arp.length],t,.11,'arp',.95);
   if([0,3,4,7,8,11,12,15].includes(s)||boss&&s%2===0)this.note(root+12+theme[s],t,.13,'lead',.94);
- }else{
+ }else if(st===4){
   // Stage 5 frozen grave: glacial bells, sub-bass and granular wind.
   if([2,6,10,14].includes(s))this.noiseHit(t,.19,2900,.095);
   if([0,8].includes(s))this.noiseHit(t,.25,780,.20);
@@ -62,6 +62,14 @@ sequence(t,i){
   if(s===0||s===8)for(const n of [root+12,root+19,root+24])this.note(n,t,1.5,'pad',.68);
   if(s%2===0)this.note(root+12+arp[(s/2+bar)%arp.length],t,.16,'arp',.85);
   if([0,3,6,8,11,14].includes(s)||boss&&s%2===1)this.note(root+12+theme[s],t,.21,'lead',.80);
+ }else{
+  // Stage 6: ancient resonant machinery, pentatonic bells, ritual low drums.
+  if([0,7,8,15].includes(s))this.noiseHit(t,.18,980,.18,'bandpass');
+  if(s%4===2)this.noiseHit(t,.09,4300,.065);
+  if([0,4,8,12].includes(s))this.note(root-12+(s===12?5:0),t,.31,'bass',.93);
+  if(s===0||s===8)for(const n of [root+12,root+19,root+22])this.note(n,t,1.55,'pad',.77);
+  if(s%2===0)this.note(root+12+arp[(s/2+bar)%arp.length],t,.18,'arp',.82);
+  if([0,3,5,8,11,13].includes(s)||boss&&s%2===1)this.note(root+12+theme[s],t,.19,'lead',.85);
  }
  if(boss){
   // Boss pursuit pushes all three stage identities into a faster battle arrangement.
@@ -71,7 +79,7 @@ sequence(t,i){
  }
 }
 
-update(stage,boss){if(!this.enabled||!this.running||this.a.state!=='running')return;const now=this.a.currentTime;if(stage!==this.stage||boss!==this.boss){this.stage=stage;this.boss=boss;this.step=0;this.next=now+.03;this.delay.delayTime.setTargetAtTime([.19,.255,.32,.21,.29][stage],now,.06)}if(this.next<now-.25)this.next=now+.02;const beat=60/([142,136,112,148,124][stage]+(boss?27:0))/4;let safety=0;while(this.next<now+.11&&safety++<5){this.sequence(this.next,this.step++);this.next+=beat}}
+update(stage,boss){if(!this.enabled||!this.running||this.a.state!=='running')return;const now=this.a.currentTime;if(stage!==this.stage||boss!==this.boss){this.stage=stage;this.boss=boss;this.step=0;this.next=now+.03;this.delay.delayTime.setTargetAtTime([.19,.255,.32,.21,.29,.34][stage],now,.06)}if(this.next<now-.25)this.next=now+.02;const beat=60/([142,136,112,148,124,118][stage]+(boss?27:0))/4;let safety=0;while(this.next<now+.11&&safety++<5){this.sequence(this.next,this.step++);this.next+=beat}}
 }
 window.CyberBGM=CyberBGM;
 })();
