@@ -22,11 +22,11 @@
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">DAY 01 · 06:00 · 快晴</div></div>
   <div class="hud-right"><div class="top-actions"><button id="sound-btn" title="サウンド切替">♪</button><button id="full-btn" title="全画面">⛶</button><button id="pause-btn" title="一時停止">Ⅱ</button></div><div class="map-frame"><canvas id="minimap" width="150" height="94"></canvas><span>SCANNING TOKYO</span></div></div>
 </div>
-<div id="mission"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">01 / 04</span></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">小動物を3匹狩る</p><div class="mission-track"><i id="mission-bar"></i></div></div>
+<div id="mission"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">01 / 04</span></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">小動物を3匹狩る</p><div class="mission-track"><i id="mission-bar"></i></div><div id="mission-guide" aria-live="polite">▲ 食料を探す</div></div>
 <div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div>
 <div id="toast" role="status"></div>
-<div id="hint"><span class="desktop-hint">WASD 移動　J / SPACE 攻撃　SHIFT 回避　E 食べる　Q 索敵　C 潜伏　P 一時停止</span><span class="mobile-hint">左側で移動（浅く倒すと潜伏）・右側で行動</span></div>
-<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions"><button id="sense-touch" class="touch-btn minor" aria-label="索敵"><span>◎</span><small>索敵</small></button><button id="eat-touch" class="touch-btn minor" aria-label="食べる"><span>◆</span><small>食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="回避"><span>➤</span><small>回避</small></button><button id="attack-touch" class="touch-btn attack" aria-label="攻撃"><span>⚔</span><small>攻撃</small></button></div></div>
+<div id="hint"><span class="desktop-hint">WASD 移動　J / SPACE 攻撃　SHIFT 回避　E 食べる　Q 索敵　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動（ゆっくり潜伏）・右で攻撃／本能</span></div>
+<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions"><button id="sense-touch" class="touch-btn minor" aria-label="索敵"><span>◎</span><small>索敵</small></button><button id="eat-touch" class="touch-btn minor" aria-label="食べる"><span>◆</span><small>食べる</small></button><button id="instinct-touch" class="touch-btn instinct" aria-label="動物の本能を使う"><span>✦</span><small id="instinct-name">狐眼</small></button><button id="dash-touch" class="touch-btn dash" aria-label="回避"><span>➤</span><small>回避</small></button><button id="attack-touch" class="touch-btn attack" aria-label="攻撃"><span>⚔</span><small>攻撃</small></button></div></div>
 <div id="menu" class="overlay">
   <div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div>
   <div class="menu-shell">
@@ -36,9 +36,9 @@
     <p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
     <div class="pick-head"><span>01</span> 生き延びる個体を選択 <i>SELECT YOUR INSTINCT</i></div>
     <div class="animals">
-      <button class="animal-card selected" data-animal="fox"><span class="animal-icon">🦊</span><span><b>アカギツネ</b><small>俊敏 / バランス型</small></span><em>01</em></button>
-      <button class="animal-card" data-animal="cat"><span class="animal-icon">🐈</span><span><b>ノラネコ</b><small>高速 / 連続攻撃</small></span><em>02</em></button>
-      <button class="animal-card" data-animal="wolf"><span class="animal-icon">🐺</span><span><b>オオカミ</b><small>強靭 / 高攻撃力</small></span><em>03</em></button>
+      <button class="animal-card selected" data-animal="fox"><span class="animal-icon">🦊</span><span><b>アカギツネ</b><small>索敵強化 / 急襲</small></span><em>01</em></button>
+      <button class="animal-card" data-animal="cat"><span class="animal-icon">🐈</span><span><b>ノラネコ</b><small>俊足 / 高所向き</small></span><em>02</em></button>
+      <button class="animal-card" data-animal="wolf"><span class="animal-icon">🐺</span><span><b>オオカミ</b><small>咆哮 / 強襲</small></span><em>03</em></button>
     </div>
     <button id="start-btn" class="big-btn">生存を開始する <span>START SURVIVING →</span></button>
     <div class="menu-foot"><span>移動 / 狩り / 捕食 / 回避 / 索敵 / 進化</span><span id="best-score">BEST SCORE —</span></div>
