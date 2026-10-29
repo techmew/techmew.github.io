@@ -238,7 +238,7 @@ window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addE
 /* Relative touchpad: pointer delta is applied immediately to the ship.
    No joystick dead zone or low-pass movement on touch; first touch never jumps. */
 const pad=$('touchPad');
-let padPointer=null,padLastX=0,padLastY=0;
+let padPointer=null,padLastX=0,padLastY=0,padScale={x:1,y:1};
 function resetStick(){
  stickX=stickY=0;stickPointer=null;padPointer=null;
  pad?.classList.remove('touching');
@@ -255,8 +255,8 @@ function padMove(e){
  const dx=q.clientX-padLastX,dy=q.clientY-padLastY;
  padLastX=q.clientX;padLastY=q.clientY;
  if(!Number.isFinite(dx)||!Number.isFinite(dy))return;
- const scale=touchScale();
- const nx=cl(p.x+dx*scale.x,62,W-135),ny=cl(p.y+dy*scale.y,98,H-111);
+ // Cache geometry at pointerdown: no forced layout per pointermove.
+ const nx=cl(p.x+dx*padScale.x,62,W-135),ny=cl(p.y+dy*padScale.y,98,H-111);
  p.angle=cl((ny-p.y)*.025,-.22,.22);
  p.x=p.targetX=nx;p.y=p.targetY=ny;
  G.firstInput=true;
@@ -265,6 +265,7 @@ pad.addEventListener('pointerdown',e=>{
  if(G.mode!=='playing'||padPointer!==null)return;
  e.preventDefault();padPointer=e.pointerId;
  padLastX=e.clientX;padLastY=e.clientY;
+ padScale=touchScale();
  pad.classList.add('touching');
  try{pad.setPointerCapture(e.pointerId)}catch(_){}
 });
