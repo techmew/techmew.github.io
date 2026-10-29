@@ -46,7 +46,7 @@ function runHarness(gameSource,musicSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene,routeOffer,hitPlayer,readCheckpoint};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -64,6 +64,7 @@ function runHarness(gameSource,musicSource){
   G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
+  G.selected=0;G.energy=0;G.pulses=2;G.levels=[0,0,0,0,0,0];
   q.seedStage();
  };
  function waveSignature(){
@@ -146,6 +147,39 @@ function runHarness(gameSource,musicSource){
    }
   }
  }
+ // Simulate all 100 seeds across all three sectors (100 complete synthetic runs).
+ // The ship is invulnerable to isolate spawn safety; this is not a human win-rate test.
+ const live={runs:seeds.length,stageCases:0,terrainComplete:0,missed:[],
+  maxEnemies:0,maxBullets:0,overlapFrames:0,eventsTriggered:0,simulationTicks:0};
+ for(const seed of seeds){
+  for(const stage of [0,1,2]){
+   const risk=stage===0?0:(seed>>>stage)&1;
+   stageSetup(seed,stage,risk);
+   G.stageTime=0;G.terrainIndex=0;q.resetTerrain();G.spawn=1.4;
+   G.player.invul=10000;G.activeEvent=stage===0?null:q.routeOffer(stage-1,risk).event;
+   G.eventTriggered=false;G.eventChain=false;
+   G.particles=[];G.rings=[];G.trail=[];G.pickups=[];G.bullets=[];G.shots=[];
+   const deadline=[62,68,74][stage];
+   let ticks=0;
+   while(G.stageTime<deadline+.2&&ticks++<1900){
+    q.update(.05);
+    live.simulationTicks++;
+    live.maxEnemies=Math.max(live.maxEnemies,G.enemies.length);
+    live.maxBullets=Math.max(live.maxBullets,G.bullets.length);
+    if(G.terrain&&G.pendingWave)live.overlapFrames++;
+    ok(G.enemies.length<=q.routeProfile().maxEnemies,'live enemy overflow');
+    ok(G.bullets.length<=120,'live bullet overflow');
+    if(G.boss)break;
+   }
+   live.stageCases++;
+   if(G.eventTriggered)live.eventsTriggered++;
+   if(G.terrainIndex===2)live.terrainComplete++;
+   else live.missed.push({seed,stage,terrainIndex:G.terrainIndex,time:G.stageTime});
+  }
+ }
+ ok(live.overlapFrames===0,'live terrain-wave overlap');
+ ok(live.missed.length===0,'terrain encounter missing in simulated run');
+ stats.liveSimulation=live;
  stageSetup(seeds[0],0,0);
  for(let i=0;i<300;i++)q.bullet(900,200,Math.PI,300,5);
  stats.maxBullets=G.bullets.length;
@@ -177,6 +211,13 @@ function runHarness(gameSource,musicSource){
  q.spawnBoss();G.boss.hp=0;q.update(.016);
  for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
  ok(G.mode==='win','3-stage victory');
+ ev('startBtn','click');ok(G.mode==='playing','new game after win');
+ ok(!!q.readCheckpoint(),'checkpoint exists');
+ ev('titleReturnBtn','click');ok(G.mode==='title','title before continue');
+ ev('continueBtn','click');ok(G.mode==='playing','checkpoint continue');
+ G.player.invul=0;G.player.hp=1;G.lives=1;
+ q.hitPlayer(1);ok(G.mode==='over','game over');
+ ok(q.readCheckpoint()===null,'checkpoint cleared on game over');
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
