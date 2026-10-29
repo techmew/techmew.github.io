@@ -954,7 +954,7 @@ function openShow(){
  $('showTheme').textContent='ROUND '+st.show.round+' ／ '+showTheme()[0];
  $('showHelp').textContent='5点すべて着用。2点タップで順番を交換。着方はボタンで変更。テーマ：'+showTheme()[0];
  $('showJudges').hidden=true;$('showResult').hidden=true;$('showAnalysis').hidden=true;$('showShuffle').hidden=false;$('showPhoto').hidden=true;$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');
- $('showMain').textContent='ファッションショー開始';$('showDetails').hidden=true;$('showDetails').open=false;showSlots();if(st.show.completed&&st.show.lastResult){showScores=st.show.lastResult;showSaved=true;showPhase='walk';endShow()}
+ $('showMain').textContent='ファッションショー開始';$('showDetails').hidden=true;$('showDetails').open=false;showSlots();$('showMain').focus({preventScroll:true});if(st.show.completed&&st.show.lastResult){showScores=st.show.lastResult;showSaved=true;showPhase='walk';endShow()}
  else if(st.show.pendingResult){
   showScores={...st.show.pendingResult};
   poseResults=Array.isArray(showScores.poseResults)?showScores.poseResults.slice(0,3).map(v=>v===null||v===0||v===3||v===6||v===10?v:null):[null,null,null];
@@ -1033,7 +1033,8 @@ function endShow(){
  $('showResult').hidden=false;
  $('showResult').replaceChildren();const resultTitle=document.createElement('h3');resultTitle.textContent=showScores.win?'勝利！':'惜しくも敗北';const scoreLine=document.createElement('div');scoreLine.className='result-scoreline';const my=document.createElement('div');const myLabel=document.createElement('small');myLabel.textContent='あなた';const myScore=document.createElement('strong');myScore.textContent=showScores.total+' / '+(legacyShow?300:500);my.append(myLabel,myScore);const versus=document.createElement('span');versus.textContent='VS';const foe=document.createElement('div');const foeLabel=document.createElement('small');foeLabel.textContent='CPU';const foeScore=document.createElement('strong');foeScore.textContent=showScores.rival+' / '+(legacyShow?300:500);foe.append(foeLabel,foeScore);scoreLine.append(my,versus,foe);const reward=document.createElement('p');reward.textContent='得点差 '+(showScores.total-showScores.rival>=0?'+':'')+(showScores.total-showScores.rival)+'点 ／ 獲得コイン ＋'+(showScores.prize??0)+(legacyShow?'　旧3人審査の記録':'');$('showResult').append(resultTitle,scoreLine,reward);
  renderShowAnalysis();$('showPhoto').hidden=false;$('showMain').textContent='次の5着へ';$('showHelp').textContent=legacyShow?'以前の3人審査の記録です。報酬は受取済みです。':'5人の審査結果。各100点満点。未実施のポーズは0点。詳しい配点は下の「内訳」から確認できます。';
- if(showScores.win&&!wasAlreadyRewarded)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
+ const resultPanel=$('showResult');resultPanel.tabIndex=-1;resultPanel.focus({preventScroll:true});resultPanel.scrollIntoView({block:'nearest',behavior:reducedMotion?'auto':'smooth'});
+  if(showScores.win&&!wasAlreadyRewarded)[523,659,784,1047].forEach((f,i)=>tone(f,.21,'sine',.07,i*.13));
 }
 function nextShow(){
  if(showPhase!=='result')return;
@@ -1151,13 +1152,13 @@ function exportShowPhoto(){
  ctx.fillStyle='#171a31';ctx.fillRect(0,0,900,650);
  ctx.drawImage(sc,0,0,900,510);
  ctx.fillStyle='#ffdbad';ctx.font='900 25px sans-serif';ctx.textAlign='left';
- ctx.fillText('CLOSET CATCH  /  BROADWAY SHOW',30,550);
+ ctx.fillText('CLOSET CATCH  /  ファッションショー',30,550);
  ctx.fillStyle='#fff';ctx.font='900 19px sans-serif';
- ctx.fillText('ROUND '+st.show.round+'  ·  '+showTheme()[0],30,582);
+ ctx.fillText('第'+st.show.round+'ラウンド  ·  '+showTheme()[0],30,582);
  ctx.font='900 27px sans-serif';ctx.fillStyle=showScores.win?'#b8ffcb':'#ffd0bc';
- ctx.fillText((showScores.win?'WIN':'CHALLENGE')+'   YOU '+showScores.total+'  -  CPU '+showScores.rival,30,620);
+ ctx.fillText((showScores.win?'勝利！':'挑戦終了')+'  あなた '+showScores.total+'点  -  CPU '+showScores.rival+'点',30,620);
  ctx.fillStyle='#e5c6e2';ctx.font='800 17px sans-serif';ctx.textAlign='right';
- ctx.fillText('JUDGES  '+showScores.judges.join(' / ')+'  ·  POSE YOU '+(showScores.posePoints??0)+' CPU '+(showScores.rivalPosePoints??0),867,585);
+ ctx.fillText('審査 '+showScores.judges.join(' / ')+'  ·  ポーズ あなた '+(showScores.posePoints??0)+'点 / CPU '+(showScores.rivalPosePoints??0)+'点',867,585);
  try{
   const link=document.createElement('a');link.href=out.toDataURL('image/png');
   link.download='closet-catch-runway-'+st.show.round+'.png';document.body.append(link);link.click();link.remove();
