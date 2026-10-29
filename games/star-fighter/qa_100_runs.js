@@ -1,0 +1,190 @@
+/* STAR FIGHTER seed/formation safety regression.
+ * Run from games/star-fighter/: node qa_100_runs.js
+ * Deterministic headless tests; not a replacement for physical-device QA. */
+'use strict';
+function runHarness(gameSource,musicSource){
+ const assert=(condition,message)=>{if(!condition)throw Error(message)};
+ const elements=new Map();
+ function el(id){
+  if(elements.has(id))return elements.get(id);
+  const obj={id,hidden:false,textContent:'',innerHTML:'',value:'',title:'',style:{},dataset:{},
+   classList:{add(){},remove(){},toggle(){}},setAttribute(){},getAttribute(){},
+   setPointerCapture(){},getBoundingClientRect(){return {left:0,top:0,width:200,height:180}},
+   children:[{classList:{toggle(){}}},{classList:{toggle(){}}},{classList:{toggle(){}}}],
+   addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)},
+   querySelector(q){return el(id+' '+q)}};
+  elements.set(id,obj);return obj;
+ }
+ const context=new Proxy({
+  createLinearGradient(){return {addColorStop(){}}},
+  createRadialGradient(){return {addColorStop(){}}},
+  setTransform(){},save(){},restore(){}
+ },{get(target,key){return key in target?target[key]:()=>{}},set(target,key,value){target[key]=value;return true}});
+ el('game').getContext=()=>context;
+ const upgrades=Array.from({length:6},(_,i)=>el('upgrade'+i));
+ const document={getElementById:el,querySelectorAll(q){return q==='.upgrade'?upgrades:[]},addEventListener(){}};
+ const storageData=new Map([['star_fighter_sound','off']]);
+ const storage={getItem:k=>storageData.get(k)||null,setItem:(k,v)=>storageData.set(k,String(v)),removeItem:k=>storageData.delete(k)};
+ const audioStats={starts:0,stops:0,updates:0};
+ class AudioStub{
+  constructor(){this.state='running';this.destination={};this.currentTime=0}
+  resume(){return Promise.resolve()}
+  createOscillator(){return {frequency:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},start(){},stop(){}}}
+  createGain(){return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}}}
+ }
+ const window={devicePixelRatio:2,innerWidth:390,innerHeight:840,location:{search:''},
+  AudioContext:AudioStub,CyberBGM:class{
+   constructor(){this.enabled=true}
+   setEnabled(x){this.enabled=x}
+   start(){audioStats.starts++}
+   stop(){audioStats.stops++}
+   update(){audioStats.updates++}
+  },matchMedia(q){return {matches:q.includes('pointer: coarse')}},
+  addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)}
+ };
+ const ev=(id,type,more={})=>(el(id).handlers?.[type]||[]).forEach(fn=>fn({
+  pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
+ }));
+ let frame=null,clock=0;
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,stageClear,openRoute,chooseRoute,drawScene};})();');
+ assert(hooked!==gameSource,'cannot attach QA hooks');
+ new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
+  window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
+ const q=window.__QA,G=q.G;
+ assert(G.mode==='title','initial mode');
+ ev('startBtn','click');
+ assert(G.mode==='playing','start');
+ const stats={seeds:100,stageCases:0,waves:0,units:0,terrains:0,warningSeconds:Infinity,
+  types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
+ const ok=(x,message)=>{stats.checks++;assert(x,message)};
+ const seeds=Array.from({length:100},(_,i)=>(Math.imul(i+1,0x9e3779b9)^0xa5a5a5a5)>>>0);
+ const stageSetup=(seed,stage,risk)=>{
+  G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
+  G.enemies=[];G.bullets=[];G.shots=[];G.pendingWave=null;G.terrain=null;G.terrainIndex=2;
+  G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;
+  G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
+  G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
+  q.seedStage();
+ };
+ function waveSignature(){
+  const w=G.pendingWave;
+  return [w.kind,w.safeY,...w.units.map(u=>[u.type,Math.round(u.x),Math.round(u.y)])].join('|');
+ }
+ function checkWave(seed,stage,risk,index){
+  const w=G.pendingWave;
+  ok(!!w,'no formation '+[seed,stage,risk,index]);
+  ok(w.timer>=1.35,'warning shorter than 1.35s');
+  ok(w.units.length>=1&&w.units.length<=8,'wave budget');
+  ok(w.units.length<=q.routeProfile().maxEnemies,'enemy limit');
+  ok([155,337,515].includes(w.safeY),'safe lane invalid');
+  for(let i=0;i<w.units.length;i++){
+   const u=w.units[i];
+   ok(Number.isFinite(u.x)&&Number.isFinite(u.y),'invalid coordinate');
+   ok(Math.abs(u.y-w.safeY)>=q.waveClearance(u.type)-.001,'safe lane invaded');
+   for(let j=0;j<i;j++){
+    const v=w.units[j],gap=q.waveRadius(u.type)+q.waveRadius(v.type)+24;
+    ok(!(Math.abs(u.x-v.x)<gap&&Math.abs(u.y-v.y)<gap+1),'overlapping enemy entry');
+   }
+  }
+  stats.waves++;stats.units+=w.units.length;stats.minUnits=Math.min(stats.minUnits,w.units.length);
+  stats.maxUnits=Math.max(stats.maxUnits,w.units.length);stats.types.add(w.kind);
+ }
+ for(const seed of seeds){
+  for(const stage of [0,1,2]){
+   for(const risk of stage===0?[0]:[0,1]){
+    stats.stageCases++;
+    stageSetup(seed,stage,risk);
+    const signatures=[];
+    for(let j=0;j<16;j++){
+     G.stageTime=5+j*2.4;G.player.y=[155,337,515][j%3];
+     ok(q.spawnWave(),'failed to schedule wave');
+     checkWave(seed,stage,risk,j);
+     if(j<5)signatures.push(waveSignature());
+     ok(!q.spawnWave(),'double wave scheduling');
+     G.pendingWave=null;
+    }
+    stageSetup(seed,stage,risk);
+    for(let j=0;j<5;j++){
+     G.stageTime=5+j*2.4;G.player.y=[155,337,515][j%3];
+     ok(q.spawnWave(),'repeat schedule');
+     ok(waveSignature()===signatures[j],'seed replay diverged');
+     G.pendingWave=null;
+    }
+    stageSetup(seed,stage,risk);
+    G.terrainIndex=0;q.resetTerrain();
+    for(let j=0;j<2;j++){
+     G.stageTime=G.terrainSchedule[j];
+     G.player.y=[165,337,509][j===0?0:2];
+     ok(q.terrainQueued(),'terrain schedule missed');
+     ok(q.planTerrain(),'terrain did not schedule');
+     const t=G.terrain;
+     stats.warningSeconds=Math.min(stats.warningSeconds,t.timer);
+     ok(t.phase==='warning'&&t.timer>=2.1,'terrain warning short');
+     ok(t.blocks.filter(b=>b.hp>0).length===2,'terrain should block two lanes');
+     ok(t.blocks[t.safeLane].hp===0,'terrain safe lane obstructed');
+     ok(!q.spawnWave() && G.pendingWave===null,'terrain allows wave overlap');
+     q.advanceTerrain(2.1);
+     ok(t.phase==='active','terrain never activated');
+     G.player.y=[165,337,509][t.safeLane];G.player.invul=0;G.player.hp=3;
+     t.x=G.player.x+1;
+     q.advanceTerrain(.016);
+     ok(G.player.hp===3,'terrain damaged ship in safe lane');
+     G.terrain=null;stats.terrains++;
+    }
+    G.terrainIndex=0;
+    G.stageTime=G.terrainSchedule[0];
+    G.enemies=[{x:1100,y:337}];G.bullets=[];
+    ok(!q.planTerrain(),'terrain began while hostile still active');
+    G.enemies=[];G.bullets=[{x:600,y:337}];
+    ok(!q.planTerrain(),'terrain began while hostile bullets active');
+    G.bullets=[];
+    G.terrainIndex=2;
+    const max=q.routeProfile().maxEnemies;
+    G.enemies=Array.from({length:max},(_,i)=>({x:1000+i*8,y:120}));
+    ok(!q.spawnWave(),'formation over max enemy budget');
+    G.enemies=[];
+   }
+  }
+ }
+ stageSetup(seeds[0],0,0);
+ for(let i=0;i<300;i++)q.bullet(900,200,Math.PI,300,5);
+ stats.maxBullets=G.bullets.length;
+ ok(G.bullets.length<=120,'unbounded hostile bullets');
+ G.bullets=[];G.player.invul=9999;
+ q.update(.016);ok(G.shots.length>0,'auto fire regression');
+ ev('touchPad','pointerdown',{clientX:50,clientY:100});
+ const before=G.player.x;
+ ev('touchPad','pointermove',{clientX:100,clientY:100});
+ ok(G.player.x>before+40,'touchpad latency');
+ ev('touchPad','pointerup',{clientX:100,clientY:100});
+ const stopped=G.player.x;
+ q.update(.016);ok(Math.abs(G.player.x-stopped)<1,'touch release drift');
+ ev('sidePauseBtn','click');ok(G.mode==='paused','pause');
+ ev('sidePauseBtn','click');ok(G.mode==='playing','resume');
+ ev('sidePulseBtn','click');ok(G.pulses===1,'pulse');
+ G.energy=6;ev('sideEquipBtn','click');ok(G.levels[0]===1,'upgrade');
+ ev('titleReturnBtn','click');ok(G.mode==='title','title');
+ ev('startBtn','click');ok(G.mode==='playing','restart');
+ ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
+ q.spawnBoss();ok(!!G.boss,'boss spawn');
+ G.boss.hp=0;q.update(.016);ok(G.transitioning,'boss defeated');
+ for(let i=0;i<260&&G.mode!=='route';i++)q.update(.016);
+ ok(G.mode==='route','route menu');
+ ev('routeRisk','click');ok(G.mode==='playing'&&G.stage===1,'risk route');
+ q.spawnBoss();G.boss.hp=0;q.update(.016);
+ for(let i=0;i<260&&G.mode!=='route';i++)q.update(.016);
+ ev('routeSafe','click');ok(G.stage===2,'safe route');
+ q.spawnBoss();G.boss.hp=0;q.update(.016);
+ for(let i=0;i<260&&G.mode!=='win';i++)q.update(.016);
+ ok(G.mode==='win','3-stage victory');
+ assert(stats.types.size>=13,'too few wave variants');
+ return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
+  seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
+}
+if(typeof module!=='undefined'&&require.main===module){
+ const fs=require('node:fs');
+ try{
+  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'));
+  process.stdout.write(JSON.stringify(result,null,2)+'\n');
+ }catch(e){process.stderr.write('FAIL '+(e.stack||e)+'\n');process.exitCode=1}
+}
