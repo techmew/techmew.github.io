@@ -151,6 +151,8 @@ function runHarness(gameSource,musicSource){
    }
   }
  }
+ ok(musicSource.includes('[142,136,112,148,124,118]'),'stage six tempo exists');
+ ok(musicSource.includes('ancient resonant machinery'),'stage six original composition exists');
  // Simulate all 100 seeds across all six sectors (100 complete synthetic runs).
  // The ship is invulnerable to isolate spawn safety; this is not a human win-rate test.
  const live={runs:seeds.length,stageCases:0,terrainComplete:0,missed:[],
