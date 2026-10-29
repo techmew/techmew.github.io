@@ -277,7 +277,7 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
-  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.step+=dt*8;
+  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:3.1;m.search=0}
    let vx=0,vy=0;
@@ -317,7 +317,7 @@ function update(dt){
      }
    }
    if(m.stun>0){vx=0;vy=0}
-   const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);
+   const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
   if(ox===m.x&&oy===m.y){m.dir+=1.7;m.wander=0}
   if(!s.prey&&m.windup<=0&&m.stun<=0&&d<P.r+m.r+29&&(spotted||m.alert>0)&&m.attack<=0){
    m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.58:.53;
@@ -431,7 +431,10 @@ function drawItem(c){
 function drawCreature(o,isPlayer){
  const s=isPlayer?P.base:species[o.type],r=o.r,t=o.type;
  const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
- const pace=Math.sin((o.step||0)*.9)*r*.09;
+ const gait=(isPlayer?o.steps:o.step)||0;
+ const motion=isPlayer&&P.dashTime>0?1.5:clamp(Math.hypot(o.vx||0,o.vy||0)/Math.max(1,s.speed),0,1.5);
+ const pace=Math.sin(gait*.9)*r*.12*motion;
+ const tailSway=Math.sin(gait*.62)*r*.22*motion;
  const oval=(x,y,w,h,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,w),Math.max(.5,h),rot,0,TWO);ctx.fill();
  };
@@ -443,6 +446,7 @@ function drawCreature(o,isPlayer){
  ctx.save();ctx.translate(o.x,o.y);
  oval(4,9,r*1.2,r*.55,"#031011a8");
  ctx.rotate(o.dir||0);
+ ctx.translate(0,Math.abs(Math.sin(gait*.9))*motion*r*.045);
  if(isPlayer)ctx.scale(1.14,1.14);
  if(t==="pigeon"){
   oval(-r*.3,0,r*.8,r*.58,fur);
@@ -486,7 +490,7 @@ function drawCreature(o,isPlayer){
  }else if(t==="cat"){
   // 猫だけ細い身体、長く曲がる尻尾、丸い頭と小さい三角耳。
   ctx.strokeStyle=fur;ctx.lineWidth=r*.27;ctx.lineCap="round";
-  ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68,-r*2.25,-r*.26);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68+tailSway,-r*2.25,-r*.26+tailSway);ctx.stroke();
   for(const sign of [-1,1]){
    oval(-r*.44,sign*r*.48+pace*sign,r*.2,r*.28,fur);
    oval(r*.36,sign*r*.44-pace*sign,r*.19,r*.27,fur);
@@ -507,9 +511,9 @@ function drawCreature(o,isPlayer){
   for(const side of [-1,1])for(let k=-1;k<=1;k++){ctx.beginPath();ctx.moveTo(r*.95,side*r*.14);ctx.lineTo(r*1.42,side*r*(.14+k*.1));ctx.stroke()}
  }else if(t==="fox"){
   // 大きい白先端のふさふさした尾と長い尖った鼻、黒脚が狐の輪郭。
-  ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.55,-r*.4);ctx.bezierCurveTo(-r*1.15,-r*.79,-r*1.8,-r*.85,-r*2.5,-r*.26);
-  ctx.bezierCurveTo(-r*2.9,r*.15,-r*1.65,r*.71,-r*.63,r*.38);ctx.closePath();ctx.fill();
-  triangle([-r*2.18,-r*.47,-r*2.62,-r*.21,-r*2.29,r*.15],"#fff2d7");
+  ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.55,-r*.4);ctx.bezierCurveTo(-r*1.15,-r*.79,-r*1.8,-r*.85+tailSway,-r*2.5,-r*.26+tailSway);
+  ctx.bezierCurveTo(-r*2.9,r*.15+tailSway,-r*1.65,r*.71,-r*.63,r*.38);ctx.closePath();ctx.fill();
+  triangle([-r*2.18,-r*.47+tailSway,-r*2.62,-r*.21+tailSway,-r*2.29,r*.15+tailSway],"#fff2d7");
   for(const side of [-1,1])for(const px of [-.47,.3]){
    oval(px*r,side*r*.52+pace*side,r*.16,r*.31,"#292a26");
   }
@@ -523,7 +527,7 @@ function drawCreature(o,isPlayer){
  }else{
   // 犬・狼・アルファは胴と肩が大きい。狼は立ち耳と鬣、犬は垂れ耳。
   const wolf=t==="wolf"||t==="alpha",alpha=t==="alpha";
-  ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.62,-r*.31);ctx.lineTo(-r*1.54,-r*.64);ctx.lineTo(-r*1.7,-r*.33);ctx.lineTo(-r*1.4,r*.39);ctx.lineTo(-r*.62,r*.33);ctx.fill();
+  ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.62,-r*.31);ctx.lineTo(-r*1.54,-r*.64);ctx.lineTo(-r*1.7,-r*.33+tailSway);ctx.lineTo(-r*1.4,r*.39);ctx.lineTo(-r*.62,r*.33);ctx.fill();
   for(const side of [-1,1])for(const px of [-.44,.43])oval(px*r,side*r*.62+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
   oval(-r*.14,0,r*.99,r*.74,fur);
   oval(r*.1,-r*.04,r*.66,r*.57,wolf?"#576c73":"#8d6c51");
