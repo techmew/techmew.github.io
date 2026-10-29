@@ -1,7 +1,7 @@
 {
   "name": "STAR FIGHTER",
   "short_name": "STAR FIGHTER",
-  "description": "分岐航路とローグライト要素のある横スクロールSTG",
+  "description": "分岐航路とローグライト要素のある縦横対応の横スクロールSTG",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
@@ -9,7 +9,7 @@
     "fullscreen",
     "standalone"
   ],
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#050914",
   "theme_color": "#050914",
   "icons": [
