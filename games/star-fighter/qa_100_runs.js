@@ -65,6 +65,7 @@ function runHarness(gameSource,musicSource){
   G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
   G.selected=0;G.energy=0;G.pulses=2;G.levels=[0,0,0,0,0,0];
+  G.fireTimer=0;G.missileTimer=0;
   q.seedStage();
  };
  function waveSignature(){
