@@ -448,3 +448,21 @@ html,body{overscroll-behavior:none}
  #shell:fullscreen .play-layout{grid-template-columns:minmax(95px,1.45fr) minmax(0,6.9fr) minmax(64px,.95fr)}
  #shell .touch-pad-center small{display:none}
 }
+
+/* The action rail remains touchable in either orientation, even when empty.
+   Native disabled is reserved for pause/title/game-over, not low resources. */
+#shell .action-panel{position:relative;z-index:5;pointer-events:auto}
+#shell .side-action{position:relative;pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#shell .side-action .action-state{
+ display:block;font:700 clamp(9px,1vw,12px)/1.2 ui-sans-serif,system-ui,sans-serif;
+ color:#b8d9e5;text-align:center;white-space:normal;
+ font-variant-numeric:tabular-nums;max-width:100%;overflow-wrap:anywhere
+}
+#shell .side-action[data-ready="yes"] .action-state{color:#b3ffe0}
+#shell .side-action[data-ready="no"] .action-state{color:#ffe0b1}
+@media(pointer:coarse) and (orientation:landscape){
+ #shell .side-action .action-state{font-size:clamp(8px,1.25vw,11px)}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ #shell .side-action .action-state{font-size:clamp(9px,2.3vw,12px)}
+}
