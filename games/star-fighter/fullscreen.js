@@ -54,7 +54,11 @@ function toggle(){
   const exit=document.exitFullscreen||document.webkitExitFullscreen;
   try{const p=exit?.call(document);if(p&&typeof p.finally==='function')p.finally(unlock);else unlock()}
   catch(_){unlock()}
- }else enter(true);
+ }else{
+  // Explicit fullscreen always opts into landscape. Ordinary portrait play
+  // stays portrait until the player presses this button or chooses 横へ.
+  choose('landscape',true,true);
+ }
 }
 btn.addEventListener('click',toggle);
 document.getElementById('startBtn')?.addEventListener('click',()=>{
