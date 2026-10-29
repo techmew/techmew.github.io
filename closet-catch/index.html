@@ -964,14 +964,14 @@ function openShow(){
   $('showOverlay').classList.toggle('pose-active',showPhase==='walk');
   $('showMain').textContent=showPhase==='walk'?'残りのポーズを飛ばして採点':'採点結果を見る';showSlots();
   $('showHelp').textContent='中断したショーを'+showTime.toFixed(1)+'秒地点から再開。記録済みポーズを保持。';
-  if(showPhase==='walk')updatePoseHud();
+  if(showPhase==='walk'){updatePoseHud();$('showPose').focus({preventScroll:true})}
   if(showTime>=8.1)endShow();
  }
 }
 function beginShow(){
  if(showPhase!=='prep')return;
  showScores=showScore(showOutfit());st.show.pendingResult={...showScores,poseResults:[null,null,null],elapsed:0};save();showPhase='walk';showTime=0;showCheckpointAt=0;poseResults=[null,null,null];poseFeedback='';$('showPose').hidden=false;$('showPoseHud').hidden=false;$('showOverlay').classList.add('pose-active');updatePoseHud();$('showMain').textContent='残りのポーズを飛ばして採点';
- $('showShuffle').hidden=true;$('showOverlay').querySelector('.show-shell').scrollTop=0;$('showHelp').textContent='モデルがランウェイを歩いています…';showSlots();tone(720,.18,'sine',.07);
+ $('showShuffle').hidden=true;$('showOverlay').querySelector('.show-shell').scrollTop=0;$('showHelp').textContent='モデルがランウェイを歩いています…';showSlots();$('showPose').focus({preventScroll:true});tone(720,.18,'sine',.07);
 }
 
 function renderShowAnalysis(){
@@ -1049,7 +1049,7 @@ function progressShow(dt){
   for(let i=0;i<3;i++)if(poseResults[i]===null&&showTime>poseBeats[i]+poseTolerance){poseResults[i]=0;missed=true;poseFeedback='失敗。次の合図で挽回！'}
   updatePoseHud();
  }
- if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='5人の審査員が採点中…';$('showMain').textContent='採点結果を見る'}
+ if(showTime>=4.7&&showPhase==='walk'){showPhase='judge';$('showPose').hidden=true;$('showPoseHud').hidden=true;$('showOverlay').classList.remove('pose-active');$('showHelp').textContent='5人の審査員が採点中…';$('showMain').textContent='採点結果を見る';$('showMain').focus({preventScroll:true})}
  persistShowProgress(missed||showTime>=8.1);
  if(showTime>=8.1)endShow();
 }
@@ -1168,7 +1168,9 @@ $('showEntry').addEventListener('click',openShow);
 $('showPhoto').addEventListener('click',exportShowPhoto);
 // Judge timing on press, not click/release: touch click latency can cost a PERFECT grade.
 $('showPose').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();recordPose()});
-// Keyboard and assistive-technology clicks have no pointerdown event.
+// Judge keyboard timing on keydown, not the delayed native keyup click.
+$('showPose').addEventListener('keydown',e=>{if(showPhase!=='walk'||(e.code!=='Space'&&e.code!=='Enter'))return;e.preventDefault();if(!e.repeat)recordPose()});
+// Assistive-technology activation may dispatch click without a keydown.
 $('showPose').addEventListener('click',e=>{if(e.detail===0)recordPose()});
 sc.addEventListener('pointerdown',e=>{if(showPhase==='walk'&&(e.pointerType!=='mouse'||e.button===0)&&e.isPrimary!==false){e.preventDefault();recordPose()}});
 document.addEventListener('keydown',e=>{if(showPhase==='walk'&&(e.code==='KeyP'||e.code==='Space')&&!e.repeat&&!e.target.closest('button,a,input,textarea,select,[role="button"]')){e.preventDefault();recordPose()}});
@@ -1434,7 +1436,7 @@ function drawFreeLook(look=st.freeLook,canvas=freeCanvas,bodyType=st.bodyCostume
  ctx.strokeStyle='#ffffffbb';ctx.lineWidth=4;round(ctx,8,8,424,494,18,null,'#ffffffbb');
 }
 
-const DUEL_PART_CATS=['hair','hat','acc','acc','acc','under','top','outer','acc','acc','bottom','under','shoes','dress','fish','dress'];
+const DUEL_PART_CATS=['hair','hat','acc','acc','acc','under','top','outer','acc','acc','bottom','under','shoes','acc','fish','dress'];
 function freeLookScore(look,theme){
  const scored=look.map((id,i)=>Number.isInteger(id)&&id>=0&&id<catalog.length?{item:catalog[id],slot:i}:null).filter(Boolean);
  if(!scored.length)return {judges:[0,0,0,0,0],total:0,filled:0};
@@ -1568,7 +1570,7 @@ $('freeAuto').addEventListener('click',()=>{
   if(!FREE_MAIN_SLOTS.includes(i))return null;
   if(useDress&&(i===6||i===10))return null;
   if(!useDress&&i===15)return null;
-  const preferred={0:'hair',1:'hat',2:'acc',3:'acc',4:'acc',5:'under',6:'top',7:'outer',8:'acc',9:'acc',10:'bottom',11:'under',12:'shoes',13:'dress',14:'fish',15:'dress'}[i];
+  const preferred={0:'hair',1:'hat',2:'acc',3:'acc',4:'acc',5:'under',6:'top',7:'outer',8:'acc',9:'acc',10:'bottom',11:'under',12:'shoes',13:'acc',14:'fish',15:'dress'}[i];
   const pool=ids.filter(id=>!used.has(id)),chosen=pool.find(id=>catalog[id].cat===preferred)??null;
   if(chosen!==null)used.add(chosen);return chosen
  });save();renderFreeSlots();renderFreePicker()
