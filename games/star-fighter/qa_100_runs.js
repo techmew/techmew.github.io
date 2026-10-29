@@ -47,7 +47,7 @@ function runHarness(gameSource,musicSource,extrasSource){
   pointerId:1,clientX:80,clientY:120,preventDefault(){},stopPropagation(){},...more
  }));
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -708,7 +708,57 @@ function runHarness(gameSource,musicSource,extrasSource){
   ok(G.mode==='playing'&&G.transitioning,'route remains live '+stage);
  }
  G.transitioning=false;G.flowPhase=null;G.routeOffers=[];
- // 18/36: 100 deterministic builds sampled from actual projectile emission.
+ 
+ // 21/36: third-stage bosses have distinct weak windows and bounded salvos.
+ for(const [risk,variant,cx,cy,mult] of [[0,'original',-35,0,1.6],[1,'dinosaur',-137,-56,1.55]]){
+  stageSetup(seeds[17],2,risk);
+  G.routeHistory=[{stage:2,risk:0,route:'先行',event:'beacon',eventName:'先行',chain:false},
+   {stage:3,risk,route:'選択',event:'beacon',eventName:'選択',chain:false}];
+  G.player.invul=999;q.spawnBoss();G.boss.x=930;G.boss.fire=9;G.boss.t=1.85;
+  q.update(.016);ok(G.boss.weakWarn,'third boss core telegraph '+variant);
+  G.boss.t=2.8;G.boss.fire=9;q.update(.016);ok(G.boss.weakOpen,'third boss core opens '+variant);
+  let hp=G.boss.hp;G.shots=[{x:G.boss.x+cx,y:G.boss.y+cy,px:0,py:0,vx:0,vy:0,life:1,dmg:20,pierce:1,kind:'shot'}];
+  q.update(.016);ok(Math.abs(hp-G.boss.hp-20*mult)<.01,'third boss weak hit '+variant);
+  G.boss.t=5.1;G.boss.fire=9;G.shots=[];q.update(.016);ok(!G.boss.weakOpen,'third boss core closes '+variant);
+  hp=G.boss.hp;G.shots=[{x:G.boss.x+cx,y:G.boss.y+cy,px:0,py:0,vx:0,vy:0,life:1,dmg:20,pierce:1,kind:'shot'}];
+  q.update(.016);ok(Math.abs(hp-G.boss.hp-20)<.01,'third boss closed core normal damage '+variant);
+  for(let pattern=0;pattern<3;pattern++){
+   G.boss.pattern=pattern;G.boss.phase=0;G.bullets=[];q.bossAttack(G.boss);
+   ok(G.bullets.length>=4&&G.bullets.length<=10,'third boss readable salvo '+variant+'/'+pattern);
+   ok(G.boss.fire>=1.1,'third boss interval '+variant+'/'+pattern);
+  }
+  G.boss.phase=1;G.boss.pattern=3;G.boss.charge=0;q.bossAttack(G.boss);
+  ok(G.boss.charge>=.95,'third boss beam warning '+variant);
+  q.drawScene();G.boss=null;G.bullets=[];G.shots=[];
+ }
+ // R2: 8-sector graph, 15 route nodes, 26 edges, and branch-specific save/resume.
+ for(let stage=0;stage<8;stage++)for(const risk of (stage===0?[0]:[0,1])){
+  const seed=seeds[(stage*11+risk)%100];stageSetup(seed,stage,risk);
+  G.routeHistory=Array.from({length:stage},(_,i)=>{
+   const branch=i===stage-1?risk:(i+stage)%2,offer=q.routeOffer(i,branch);
+   return {stage:i+2,risk:branch,route:offer.name,event:offer.event.id,eventName:offer.event.name,chain:!!offer.chain};
+  });
+  G.routeRisk=stage?risk:0;G.rewardHistory=[];G.mode='playing';G.score=12345+stage;
+  G.player.hp=2;G.player.shield=1;G.lives=2;G.pulses=1;G.pulseRecharge=17;G.energy=2;G.selected=1;
+  G.levels=[1,1,0,0,0,0];G.passives=[0,1,0,0,0,0];G.driveCharge=36;G.grazes=0;G.maxCombo=0;G.killCount=0;G.eventCount=0;
+  q.saveCheckpoint('sector');const cp=q.readCheckpoint();
+  ok(cp?.stage===stage&&cp?.routeHistory.length===stage,'R2 save chain '+stage+'/'+risk);
+  ev('titleReturnBtn','click');ev('continueBtn','click');
+  ok(G.mode==='playing'&&G.stage===stage&&G.runSeed===seed,'R2 seed and stage resume '+stage+'/'+risk);
+  ok(G.routeRisk===risk&&G.routeHistory.length===stage,'R2 route resume '+stage+'/'+risk);
+  ok(G.pulses===1&&G.pulseRecharge===17&&G.energy===2,'R2 NOVA and resources resume '+stage+'/'+risk);
+  ok(G.levels[0]===1&&G.passives[1]===1&&G.player.hp===2,'R2 build resume '+stage+'/'+risk);
+  G.routeOffers=stage<7?[q.routeOffer(stage,0),q.routeOffer(stage,1)]:[];
+  q.renderRouteMap();const map=el('routeMap').innerHTML;
+  ok((map.match(/class="map-sector"/g)||[]).length===8,'R2 map sectors '+stage+'/'+risk);
+  ok((map.match(/class="map-node /g)||[]).length===15,'R2 map nodes '+stage+'/'+risk);
+  ok((map.match(/class="map-edge /g)||[]).length===26,'R2 map links '+stage+'/'+risk);
+  ok((map.match(/class="map-node complete/g)||[]).length===stage,'R2 completed route '+stage+'/'+risk);
+  if(stage<7)ok(map.includes(G.routeOffers[0].name)&&map.includes(G.routeOffers[1].name),'R2 map choices '+stage+'/'+risk);
+  q.spawnBoss();ok(!!G.boss&&G.boss.name,'R2 boss after resume '+stage+'/'+risk);
+  G.boss=null;G.bullets=[];G.shots=[];
+ }
+// 18/36: 100 deterministic builds sampled from actual projectile emission.
  // Twelve-second stationary-target expected DPS uses conservative hit weights;
  // theoretical time-to-kill is NOT measured human play or device performance.
  const builds=[];
