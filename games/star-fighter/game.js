@@ -277,7 +277,7 @@ function arrangeWave(units){
 }
 function spawnWave(){
 // A terrain warning or active barrier must never share the entry window with a formation.
-if(G.pendingWave||G.terrain||terrainQueued()||G.boss||G.bossDone||G.transitioning)return false;
+if(G.pendingWave||G.terrain||terrainApproaching()||terrainQueued()||G.boss||G.bossDone||G.transitioning)return false;
 const director=encounterDirector();
 const planned=[];function queueEnemy(type,x,y,extra={}){if(planned.length<director.budget&&G.enemies.length+planned.length<routeProfile().maxEnemies)planned.push({type,x,y,extra})}
 
@@ -476,7 +476,7 @@ $('routeRisk').addEventListener('pointerenter',()=>selectRouteCard(1));
 /* One announced mid-stage event per chosen route. Events never use draw RNG. */
 function triggerRouteEvent(){
  const ev=G.activeEvent;
- if(!ev||G.eventTriggered||G.mode!=='playing'||G.boss||G.pendingWave||G.terrain||terrainQueued()||G.stageTime<ev.when)return;
+ if(!ev||G.eventTriggered||G.mode!=='playing'||G.boss||G.pendingWave||G.terrain||terrainApproaching()||terrainQueued()||G.stageTime<ev.when)return;
  const risk=G.routeRisk===1;
  if(risk&&G.enemies.length>routeProfile().maxEnemies-4)return;
  G.eventTriggered=true;G.eventCount++;
@@ -519,6 +519,11 @@ function resetTerrain(){
  const salt=mixSeed(G.runSeed,G.stage+71,G.routeRisk+91);
  G.terrainSchedule=[15+salt%5,40+(salt>>>7)%5];
  G.terrainIndex=0;G.terrain=null;
+}
+function terrainApproaching(){
+ // Reserve six seconds before each terrain encounter for a clear, dodgeable lane.
+ // Existing enemies retreat and stop shooting; bullets expire naturally.
+ return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]-6&&G.stageTime<=[62,68,74][G.stage]-11;
 }
 function terrainQueued(){return !G.terrain&&G.terrainIndex<2&&G.stageTime>=G.terrainSchedule[G.terrainIndex]&&G.stageTime<=[62,68,74][G.stage]-11}
 function planTerrain(){
@@ -607,14 +612,14 @@ G.trail.unshift({x:p.x,y:p.y});if(G.trail.length>140)G.trail.length=140;
 if(Math.random()>.1)G.particles.push({x:p.x-37,y:p.y+R(-7,7),vx:-R(165,330),vy:R(-30,30),life:R(.15,.4),maxLife:.4,size:R(2,5),color:Math.random()>.4?'#30e6ff':'#ffce77',glow:true});
 G.fireTimer-=dt;if(G.fireTimer<=0){playerFire();G.fireTimer=(G.levels[2]>0?.22:.165)*(G.overdrive>0?.59:1)}
 G.missileTimer-=dt;if(G.missileTimer<=0){missileFire();G.missileTimer=G.overdrive>0?.7:1.15}
-if(!G.boss&&!G.bossDone&&!G.transitioning){triggerRouteEvent();const deadline=[62,68,74][G.stage];if(G.stageTime>=deadline)spawnBoss();else{G.spawn-=dt;if(G.spawn<=0){G.spawn=G.terrain||terrainQueued()?1.25:(spawnWave()?nextWaveDelay():1.15)}if(Math.floor((G.stageTime-dt)/9)<Math.floor(G.stageTime/9))pickup(W-20,GR(155,525),true)}}
+if(!G.boss&&!G.bossDone&&!G.transitioning){triggerRouteEvent();const deadline=[62,68,74][G.stage];if(G.stageTime>=deadline)spawnBoss();else{G.spawn-=dt;if(G.spawn<=0){G.spawn=G.terrain||terrainApproaching()||terrainQueued()?1.25:(spawnWave()?nextWaveDelay():1.15)}if(Math.floor((G.stageTime-dt)/9)<Math.floor(G.stageTime/9))pickup(W-20,GR(155,525),true)}}
 if(G.pendingWave){G.pendingWave.timer-=dt;if(G.pendingWave.timer<=0){const wave=G.pendingWave;G.pendingWave=null;wave.units.forEach((u,i)=>enemy(u.type,u.x,u.y,{...u.extra,squadId:wave.id,squadKind:wave.kind,squadSlot:i,squadSize:wave.units.length,aiHomeY:u.y,aiPhase:wave.phase,aiSafeY:wave.safeY,aiVolleyArmed:true}))}}
 if(G.transitioning){G.transition-=dt;if(G.transition<=0){openRoute();return}}
-for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140)*routeProfile().speed;e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}if(e.type!=='interceptor')moveEnemyAI(e,dt);
+for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;let vx=({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140)*routeProfile().speed;e.x-=(vx+(terrainApproaching()?390:0))*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}if(e.type!=='interceptor')moveEnemyAI(e,dt);
 if(e.aiWarn>0){e.aiWarn-=dt;if(e.aiWarn<=0&&e.hp>0&&e.x<W-35&&e.x>100){fireEnemy(e,{x:e.aiAimX,y:e.aiAimY});e.fire=Math.max(e.fire,1.35)}}
-if(e.aiWarn<=0)coordinateVolley(e);
+if(e.aiWarn<=0&&!terrainApproaching())coordinateVolley(e);
 e.fire-=dt;
-if(e.aiWarn<=0&&e.fire<0&&e.x<W-35&&e.x>80){fireEnemy(e);e.fire=Math.max(.7,(GR(e.type==='turret'?.95:1.5,e.type==='turret'?1.4:2.4)-G.stage*.11)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,e.type==='tank'||e.type==='carrier'?36:21))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
+if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){fireEnemy(e);e.fire=Math.max(.7,(GR(e.type==='turret'?.95:1.5,e.type==='turret'?1.4:2.4)-G.stage*.11)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,e.type==='tank'||e.type==='carrier'?36:21))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
 b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*1.15)*(G.stage===2?95:68);
 if(!b.phase&&b.hp<=b.maxHp*.55){
