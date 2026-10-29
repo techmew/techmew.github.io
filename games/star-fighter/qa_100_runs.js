@@ -92,7 +92,7 @@ function runHarness(gameSource,musicSource){
   stats.maxUnits=Math.max(stats.maxUnits,w.units.length);stats.types.add(w.kind);
  }
  for(const seed of seeds){
-  for(const stage of [0,1,2,3,4,5]){
+  for(const stage of [0,1,2,3,4,5,6]){
    for(const risk of stage===0?[0]:[0,1]){
     stats.stageCases++;
     stageSetup(seed,stage,risk);
@@ -125,6 +125,7 @@ function runHarness(gameSource,musicSource){
       if(stage===3)ok(t.type==='flare','stage four must have heat vent hazard');
       if(stage===4)ok(t.type===(risk?'blizzard':'ice'),'stage five terrain differs by route');
        if(stage===5)ok(t.type===(risk?'seal':'rune'),'stage six terrain differs by route');
+       if(stage===6)ok(t.type===(risk?'fracture':'membrane'),'stage seven terrain differs by route');
      ok(t.blocks.filter(b=>b.hp>0).length===2,'terrain should block two lanes');
      ok(t.blocks[t.safeLane].hp===0,'terrain safe lane obstructed');
      ok(!q.spawnWave() && G.pendingWave===null,'terrain allows wave overlap');
@@ -151,21 +152,22 @@ function runHarness(gameSource,musicSource){
    }
   }
  }
- ok(musicSource.includes('[142,136,112,148,124,118]'),'stage six tempo exists');
+ ok(musicSource.includes('[142,136,112,148,124,118,106]'),'stage seven tempo exists');
+  ok(musicSource.includes('unstable boundary'),'stage seven original theme exists');
  ok(musicSource.includes('ancient resonant machinery'),'stage six original composition exists');
  // Simulate all 100 seeds across all six sectors (100 complete synthetic runs).
  // The ship is invulnerable to isolate spawn safety; this is not a human win-rate test.
  const live={runs:seeds.length,stageCases:0,terrainComplete:0,missed:[],
   maxEnemies:0,maxBullets:0,overlapFrames:0,eventsTriggered:0,simulationTicks:0};
  for(const seed of seeds){
-  for(const stage of [0,1,2,3,4,5]){
+  for(const stage of [0,1,2,3,4,5,6]){
    const risk=stage===0?0:(seed>>>stage)&1;
    stageSetup(seed,stage,risk);
    G.stageTime=0;G.terrainIndex=0;q.resetTerrain();G.spawn=1.4;
    G.player.invul=10000;G.activeEvent=stage===0?null:q.routeOffer(stage-1,risk).event;
    G.eventTriggered=false;G.eventChain=false;
    G.particles=[];G.rings=[];G.trail=[];G.pickups=[];G.bullets=[];G.shots=[];
-   const deadline=[62,68,74,72,76,80][stage];
+   const deadline=[62,68,74,72,76,80,84][stage];
    let ticks=0;
    while(G.stageTime<deadline+.2&&ticks++<1900){
     q.update(.05);
@@ -431,6 +433,13 @@ function runHarness(gameSource,musicSource){
  G.player.invul=0;q.hitPlayer(1);G.player.invul=0;q.hitPlayer(1);
  ok(G.mode==='over','four unshielded hits end run');
  ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===2&&G.lives===2,'retry resets hull');
+ // Stage seven route-specific events.
+ stageSetup(seeds[0],6,0);G.activeEvent=q.routeOffer(5,0).event;
+ G.eventTriggered=false;G.terrainIndex=2;G.stageTime=30;G.driveCharge=0;G.spawn=10;
+ q.update(.016);ok(G.eventTriggered&&G.driveCharge>=18,'stage seven phase echo');
+ stageSetup(seeds[0],6,1);G.activeEvent=q.routeOffer(5,1).event;
+ G.eventTriggered=false;G.terrainIndex=2;G.stageTime=30;G.spawn=10;
+ q.update(.016);ok(G.eventTriggered&&G.enemies.some(e=>e.eventDrop),'stage seven hunters');
  // Stage six safe route restores defense; dangerous route spawns a loot-bearing elite.
  stageSetup(seeds[0],5,0);G.activeEvent=q.routeOffer(4,0).event;
  G.eventTriggered=false;G.terrainIndex=2;G.stageTime=26;G.player.shield=0;G.driveCharge=0;G.spawn=10;
@@ -452,7 +461,7 @@ function runHarness(gameSource,musicSource){
  for(const [stage,risk,variant,name] of [
   [1,0,'octopus','KRAKEN ENGINE'],[1,1,'original','FORTRESS CORE'],
   [2,1,'dinosaur','IRON TYRANT'],[2,0,'original','ABYSS TITAN'],
-  [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM'],[4,0,'mammoth','FROST MAMMOTH'],[4,1,'leviathan','GLACIAL LEVIATHAN'],[5,0,'centipede','RELIC CENTIPEDE'],[5,1,'warden','OBSIDIAN WARDEN']
+  [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM'],[4,0,'mammoth','FROST MAMMOTH'],[4,1,'leviathan','GLACIAL LEVIATHAN'],[5,0,'centipede','RELIC CENTIPEDE'],[5,1,'warden','OBSIDIAN WARDEN'],[6,0,'jellyfish','AETHER JELLYFISH'],[6,1,'riftmedusa','RIFT MEDUSA']
  ]){
   G.stage=stage;G.routeRisk=risk;G.bullets=[];G.enemies=[];
   ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
@@ -470,7 +479,7 @@ function runHarness(gameSource,musicSource){
  }
  G.stage=0;G.routeRisk=0;G.mode='playing';G.runSeed=priorSeed;
  G.routeHistory=[];G.rewardHistory=[];G.player.y=337;G.player.targetY=337;
- for(let stage=0;stage<6;stage++){
+ for(let stage=0;stage<7;stage++){
   ok(G.stage===stage,'stage index '+stage);
   G.player.invul=999;G.enemies=[];G.bullets=[];G.terrain=null;G.pendingWave=null;
   const stopCount=audioStats.stops;
@@ -478,7 +487,7 @@ function runHarness(gameSource,musicSource){
   G.boss.hp=0;q.update(.016);
   ok(G.mode==='playing'&&G.transitioning,'no turn stop after boss '+stage);
   ok(audioStats.stops===stopCount,'BGM remains active after boss '+stage);
-  if(stage<5){
+  if(stage<6){
    ok(G.flowPhase==='reward'&&G.rewardOffers.length===3,'three rewards in flight '+stage);
    ok(q.readCheckpoint()?.mode==='reward','reward checkpoint '+stage);
    const prevRewards=G.rewardHistory.length;
@@ -507,11 +516,11 @@ function runHarness(gameSource,musicSource){
    ok(audioStats.stops===continuousStops,'audio uninterrupted on route '+stage);
   }else{
    for(let i=0;i<60&&G.mode!=='win';i++)q.update(.05);
-   ok(G.mode==='win','six stage finale');
+   ok(G.mode==='win','seven stage finale');
   }
  }
  ok(q.readMedals().unlocked.includes('clear'),'clear medal');
- ok(G.rewardHistory.length===5,'five continuous rewards');
+ ok(G.rewardHistory.length===6,'six continuous rewards');
  ev('startBtn','click');ok(G.mode==='playing','new game after win');
  ok(G.passives.every(n=>n===0),'new run clears all passive ranks');
  ok(!!q.readCheckpoint(),'checkpoint exists');
