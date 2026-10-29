@@ -328,7 +328,7 @@ function update(dt){
   if(m.hp<=0)continue;
   const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
-   if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:3.1;m.search=0}
+   if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    let vx=0,vy=0;
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
@@ -337,6 +337,9 @@ function update(dt){
      }
     }
    if(m.flee>0){
+    if(s.prey&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
+      m.dir=chooseEscape(m,Math.atan2(m.y-P.y,m.x-P.x));m.escapeTimer=.48;
+    }
     m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(.72+.73*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
    }else if(s.prey&&spotted){
     // Suspicious prey stop and watch instead of instantly sprinting from offscreen.
