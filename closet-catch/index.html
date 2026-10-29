@@ -281,7 +281,15 @@ if(st.bodyMigration!==1){
 }
 delete st.bodyOwned;
 st.bodyCostume=1; // Fixed silhouette; old shared challenges may still render legacy shapes.
-st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;st.show={...defaultState().show,...(st.show||{})};st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.judgeMigration===9){
+st.failStreak=Number.isInteger(st.failStreak)?Math.max(0,Math.min(4,st.failStreak)):0;
+// Preserve valid legacy balances while rejecting broken state values before rendering.
+const savedCoins=Number(st.coins),savedRod=Number(st.rod);
+st.coins=Number.isFinite(savedCoins)?Math.max(0,Math.floor(savedCoins)):0;
+st.rod=Number.isFinite(savedRod)?Math.max(1,Math.min(8,Math.trunc(savedRod))):1;
+st.show={...defaultState().show,...(st.show||{})};
+const savedRound=Number(st.show.round);
+st.show.round=Number.isSafeInteger(savedRound)&&savedRound>=1?savedRound:1;
+st.show.lossStreak=Number.isInteger(st.show.lossStreak)?Math.max(0,Math.min(6,st.show.lossStreak)):0;st.show.queue=Array.isArray(st.show.queue)?st.show.queue.filter(i=>Number.isInteger(i)&&i>=0&&i<catalog.length).slice(0,5):[];st.show.order=Array.isArray(st.show.order)&&new Set(st.show.order).size===5&&st.show.order.every(i=>Number.isInteger(i)&&i>=0&&i<5)?st.show.order:[0,1,2,3,4];st.show.special=Array.from({length:5},(_,i)=>{const mode=st.show.special?.[i];return mode===true?1:Number.isInteger(mode)&&mode>=0&&mode<=2?mode:0});if(st.show.queue.length<5){st.show.completed=false;st.show.lastResult=null;st.show.pendingResult=null}if(st.show.judgeMigration===9){
  // A former task reduced the historical 500-point best score to 60%.
  // Reverse its rounded conversion once, without touching prize balances or wins.
  if(Number.isFinite(st.show.best)&&st.show.best>=0&&st.show.best<=300)st.show.best=Math.min(500,Math.round(st.show.best/.6));
@@ -543,7 +551,7 @@ function updateFishingHud(){
  $('fightHud').classList.toggle('surge-warning',fighting&&hook.warning);
  $('fightHud').classList.toggle('tension-danger',fighting&&hook.tension>=82);
  $('surgeBadge').textContent=hook.tension>=100?'限界！指を離して！':hook.tension>=82?'糸切れ寸前！':hook.warning?'もうすぐ暴れる！':'抵抗中！';
- $('castBtn').textContent=fighting?(hook.pull?'引いています・離して緩める':'長押しで引く'):hook.active?'仕掛けを操作中…':'ランダムにキャスト';
+ $('castBtn').textContent=fighting?(hook.tension>=76?(hook.pull?'危険！指を離す':'糸が張りすぎ・待つ'):hook.pull?'引いています・離すと緩む':'長押しで引く'):hook.active?'仕掛けを操作中…':'おまかせで投げる';
  $('castBtn').classList.toggle('reeling',fighting&&hook.pull);
  $('castBtn').setAttribute('aria-pressed',String(fighting&&hook.pull));
  $('reelValue').textContent=Math.round(clamp(hook.reel,0,100))+'%';
