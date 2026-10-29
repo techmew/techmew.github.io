@@ -57,7 +57,16 @@ function toggle(){
  }else enter(true);
 }
 btn.addEventListener('click',toggle);
-document.getElementById('startBtn')?.addEventListener('click',()=>choose('portrait',false),true);
+document.getElementById('startBtn')?.addEventListener('click',()=>{
+ const state=document.getElementById('overlay')?.dataset?.state;
+ if(state==='title'){
+  // Only the explicit portrait START selects portrait; RETRY/RESUME must not.
+  choose('portrait',false);
+ }else if((state==='over'||state==='win')&&preference==='landscape'&&!full()&&!installed()){
+  // Browser left fullscreen during the results overlay: restore the selected mode.
+  enter(false);
+ }
+},true);
 document.getElementById('landscapeStartBtn')?.addEventListener('click',()=>choose('landscape',true,true),true);
 for(const id of ['continueBtn','seedReplay'])
  document.getElementById(id)?.addEventListener('click',()=>{if(preference==='landscape')enter(false)},true);
