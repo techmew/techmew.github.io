@@ -155,10 +155,10 @@ function pilotThreat(){
    Armor never regenerates once a particular enemy's plates are broken. */
 function refreshEnemyStrength(e){
  if(!e||e.hp<=0||!Number.isFinite(e.baseHull))return;
- const threat=pilotThreat();
- if(Math.abs((e.combatTier||0)-threat)<.0001)return;
+ const threat=pilotThreat(),ease=.75+.25*cl(p.hp/Math.max(1,p.maxHp)/.7,0,1);
+ if(Math.abs((e.combatTier||0)-threat)<.0001&&Math.abs((e.scalingEase||1)-ease)<.01)return;
  const previous=Math.max(1,e.maxHp),fraction=cl(e.hp/previous,0,1);
- const maxHp=Math.max(1,Math.round(e.baseHull*(1+4.4*threat*(e.scalingEase||1))));
+ const maxHp=Math.max(1,Math.round(e.baseHull*(1+4.4*threat*ease)));
  const armorMax=e.adaptiveArmor?
   (threat>.14?Math.round(maxHp*(.08+.25*threat)):0):
   (threat>.58&&e.armorSignature===0?Math.round(maxHp*(.25+.28*threat)):0);
@@ -167,7 +167,7 @@ function refreshEnemyStrength(e){
  e.maxHp=maxHp;
  e.armorMax=armorMax;
  e.armor=e.armorBroken?0:Math.round(armorMax*armorFraction);
- e.combatTier=threat;
+ e.combatTier=threat;e.scalingEase=ease;
 }
 function refreshActiveEnemies(){
  if(!G.enemies?.length)return;
@@ -200,8 +200,8 @@ function damageEnemy(e,damage){
  if(old>0){
   const blocked=Math.min(old,damage*.65);
   e.armor=Math.max(0,old-blocked);damage-=blocked;
+  if(e.armor===0)e.armorBroken=true;
   if(e.armor===0&&e.hp>damage&&e.x<W-50&&e.x>190){
-   e.armorBroken=true;
    e.dodgeTime=.55;e.dodgeSide=e.y<H*.5?1:-1;
    if(G.bullets.length<55&&p.hp/Math.max(1,p.maxHp)>.32){
     e.aiWarn=Math.max(e.aiWarn,.72);e.aiAimX=p.x;e.aiAimY=p.y;
@@ -1077,7 +1077,7 @@ if(x>=W){for(let attempt=0;attempt<12;attempt++){
 }}
 let hp=EXTRA?.stats[type]?.hp??({scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25);
 const baseHull=hp*(1+G.stage*.35)*tune.enemyHp;
-const power=pilotThreat(),ease=p.hp/Math.max(1,p.maxHp)<.32?.84:1;
+const power=pilotThreat(),ease=.75+.25*cl(p.hp/Math.max(1,p.maxHp)/.7,0,1);
 hp=Math.max(1,Math.round(baseHull*(1+4.4*power*ease)));
 const heavy=['tank','carrier','turret','armature','howitzer','bulk','clamp','sting','mantis','orbiter','interceptor'].includes(type);
 const signature=Math.abs(Math.round(x*.13+y*.29+(G.runSeed||0)))%3;
@@ -1815,7 +1815,9 @@ function stageClear(){
  if(invulnerablePracticeBoss())return;
  TROPHIES.sectorClear();
  if(G.stage===0)unlockMedal('first');
- G.pendingWave=null;G.terrain=null;G.boss=null;G.bossDone=true;G.transitioning=true;G.bullets=[];
+ G.pendingWave=null;G.terrain=null;G.boss=null;G.bossDone=true;G.transitioning=true;
+ // The fleet stays through the boss fight; clear leftover hostiles only after victory.
+ G.enemies=[];G.bullets=[];
  G.flowPhase=G.stage>=NAMES.length-1?'finish':'reward';
  G.transition=G.flowPhase==='finish'?1.8:4.8;
  // The checkpoint is saved after rescue and score changes to avoid losing progress.
