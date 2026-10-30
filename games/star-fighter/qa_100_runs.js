@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor,pilotThreat,refreshEnemyStrength,refreshActiveEnemies};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor,pilotThreat,refreshEnemyStrength,refreshActiveEnemies,refreshBossStrength};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -2088,6 +2088,27 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(G.enemies.length===0&&G.pendingWave===null,'enemies clear after boss victory only');
   stats.liveThreat={weakHull,strongHull,armorBroken:mid.armorBroken,preservedOldEnemy:true,
    preservedPendingWave:true};
+ }
+
+ // Bosses react to upgrades during an ongoing fight, not only at spawn.
+ {
+  G.mode='playing';G.debugMode=false;G.debugBossOnly=false;G.transitioning=false;
+  G.stage=0;G.routeRisk=0;G.runSeed=7;G.routeHistory=[];G.activeEvent=null;
+  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];G.shipLevel=1;
+  G.boss=null;G.bossDone=false;G.enemies=[];G.pendingWave=null;G.terrain=null;
+  G.bullets=[];G.shots=[];G.fireTimer=999;G.missileTimer=999;G.spawn=999;
+  G.player.hp=G.player.maxHp=120;G.player.invul=999;
+  q.spawnBoss();const live=G.boss,baseHp=live.maxHp;
+  live.hp=baseHp*.65;
+  G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
+  q.update(.016);
+  ok(G.boss===live&&live.maxHp>=baseHp*8.1,'boss upgrades while already fighting');
+  ok(Math.abs(live.hp/live.maxHp-.65)<.002,'boss scales without resetting earned damage');
+  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  q.update(.016);
+  ok(live.maxHp===baseHp&&Math.abs(live.hp/live.maxHp-.65)<.002,
+   'boss weakens again when pilot offense drops, without damage reset');
+  stats.liveBossRetune={baselineHp:baseHp,upgradedHP:Math.round(baseHp*8.2),keptDamage:true};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
