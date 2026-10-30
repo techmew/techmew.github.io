@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -1904,6 +1904,72 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   }
   ok(tested===68&&activated===68&&guarded>=5&&trajectories.size===17,'all 68 moves and 17 unique boss trajectories tested');
   stats.specialBosses={bosses:17,uniqueActions:68,telegraphed:68,uniqueTrajectories:trajectories.size,guardDefenses:guarded};
+ }
+
+ // Power-aware difficulty is functional, not a static HP number adjustment.
+ // Test weak vs fully fitted ships, visible entry and an aggressive 2s burst.
+ {
+  G.mode='playing';G.debugMode=false;G.debugBossOnly=false;
+  G.stage=0;G.stageTime=0;G.routeRisk=0;G.routeHistory=[];
+  G.forcedBossVariant=null;G.activeEvent=null;G.runSeed=20261030;
+  G.player.hp=120;G.player.maxHp=120;G.player.invul=999;
+  G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  const lowPower=q.offensiveBuild();
+  G.enemies=[];q.enemy('tank',1080,330,{noLoot:true});
+  const weakEnemy=G.enemies[0];const weakEnemyHP=weakEnemy.maxHp;
+  q.spawnBoss();const weakBossHP=G.boss.maxHp;
+  ok(lowPower===0&&weakEnemy.armor===0,'unarmed ship has standard enemy durability');
+  G.boss=null;G.enemies=[];
+  G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
+  G.player.maxHp=312;G.player.hp=312;
+  const strongPower=q.offensiveBuild();
+  q.enemy('tank',1080,330,{noLoot:true});
+  const enemyStrong=G.enemies[0];
+  ok(strongPower>.98,'maximum offensive setup is recognized');
+  ok(enemyStrong.maxHp>weakEnemyHP*2.5&&enemyStrong.armor>0,'high powered ship encounters armored and tougher heavy enemies');
+  const armorBefore=enemyStrong.armor;
+  q.damageEnemy(enemyStrong,120);
+  ok(enemyStrong.armor<armorBefore&&enemyStrong.hp>0,'heavy armor absorbs a finite portion of damage');
+  let attacks=1;
+  while(enemyStrong.armor>0&&attacks<15){q.damageEnemy(enemyStrong,90);attacks++}
+  ok(attacks<15&&enemyStrong.armor===0,'armor can be broken by repeated shots');
+  ok(enemyStrong.dodgeTime>0&&enemyStrong.aiWarn>=.7,'armor break triggers readable evasive counterattack');
+  G.boss=null;G.enemies=[];
+  q.enemy('scout',1300,337,{noLoot:true});
+  const offscreen=G.enemies[0],hiddenHP=offscreen.hp;
+  G.bullets=[];G.shots=[{x:1300,y:337,px:1300,py:337,vx:0,vy:0,dmg:9999,pierce:1,kind:'shot',life:1}];
+  G.fireTimer=999;G.missileTimer=999;G.spawn=999;G.ambientTimer=999;
+  q.update(.016);
+  ok(offscreen.hp===hiddenHP,'enemies cannot be deleted by player bullets before they enter view');
+  G.enemies=[];G.bullets=[];G.shots=[];G.boss=null;
+  q.spawnBoss();const strongBoss=G.boss;strongBoss.x=930;strongBoss.y=337;
+  ok(strongBoss.maxHp>weakBossHP*4,'maximal offense triggers substantially harder boss');
+  strongBoss.t=.1;const armored=q.bossArmorMultiplier(strongBoss);
+  strongBoss.t=3;const exposed=q.bossArmorMultiplier(strongBoss);
+  ok(armored<.55&&exposed>1.2,'boss alternates armored and vulnerable windows');
+  G.player.hp=40;const reprieve=q.bossArmorMultiplier(strongBoss);
+  ok(reprieve>armored,'critical player hull exposes more boss vulnerability');
+  G.player.hp=312;strongBoss.t=3;strongBoss.hp=strongBoss.maxHp;
+  let sum=0;
+  for(let i=0;i<20;i++){
+   G.shots=[];q.playerFire();
+   for(const shot of G.shots){q.damageBoss(strongBoss,shot.dmg);sum+=shot.dmg}
+  }
+  G.shots=[];q.missileFire();
+  for(const shot of G.shots){q.damageBoss(strongBoss,shot.dmg);sum+=shot.dmg}
+  q.damageBoss(strongBoss,160);sum+=160;
+  ok(strongBoss.hp>0,'a two-second max-build burst cannot instantly destroy the boss');
+  ok(strongBoss.hp/strongBoss.maxHp>.1,'boss retains a meaningful second attack window after maximum burst');
+  q.drawScene();
+  // Shield and BOOST alone do not turn low-offense enemies into bullet sponges.
+  G.levels=[2,0,0,0,0,3];G.passives=[0,0,0,2,0,0];
+  ok(q.offensiveBuild()===0,'defensive upgrades do not increase enemy durability');
+  G.debugMode=true;G.debugBossOnly=true;
+  const hp=strongBoss.maxHp;strongBoss.hp=hp;q.damageBoss(strongBoss,100000);
+  ok(strongBoss.hp===hp,'both-immortal boss training remains untouched');
+  G.debugMode=false;G.debugBossOnly=false;
+  stats.adaptiveCombat={lowPower,strongPower,weakEnemyHP,strongEnemyHP:enemyStrong.maxHp,
+   weakBossHP,strongBossHP:strongBoss.maxHp,twoSecondBurst:sum,remainingAfterBurst:strongBoss.hp,armorBreakHits:attacks};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
