@@ -41,3 +41,12 @@
 .map-key{margin-top:10px;color:#edf3e6;font-size:12px;line-height:1.8}.map-help{margin:5px 0 0;font-size:11px;line-height:1.7;color:#c4d6c9}
 #map-btn{min-width:35px;font:800 11px "Noto Sans JP",sans-serif!important}
 @media(max-width:520px){.world-map-panel{padding:10px}.map-key{font-size:10px}.map-help{font-size:10px}.world-map-top strong{font-size:16px}}
+
+/* Keep the map control below the audio/fullscreen/pause row on narrow screens. */
+@media(pointer:coarse),(max-width:850px){
+ .top-actions{position:relative}
+ #map-btn{position:absolute;top:32px;right:0;width:52px!important;min-width:52px;height:27px!important;padding:0 3px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #map-btn{top:29px;height:25px!important}
+}
