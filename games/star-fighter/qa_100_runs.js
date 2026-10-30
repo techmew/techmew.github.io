@@ -752,7 +752,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  // 16/36: 2,000-seed per-route rarity/risk sampling and full grant effects.
  const specialSeen=new Set(),specialCounts={safe:0,storm:0};
  G.stage=1;G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
- G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=10;
+ G.player.hp=78;G.player.shield=2;G.lives=0;G.energy=2;G.pulses=2;G.driveCharge=10;
  for(const [risk,key] of [[0,'safe'],[1,'storm']]){
   G.routeRisk=risk;
   for(let j=0;j<2000;j++){
