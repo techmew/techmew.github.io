@@ -185,7 +185,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
     ok(!(Math.abs(u.x-v.x)<gap&&Math.abs(u.y-v.y)<gap+1),'overlapping enemy entry');
    }
   }
-  if(w.kind>=19)ok(stage>=w.kind-18,'stage gated unlock '+stage+'/'+w.kind);
+  if(w.kind>=19){
+    const spec=window.StarFighterEnemyExtras.roster.find(x=>(x.kind??18+x.unlock)===w.kind);
+    ok(!!spec&&stage>=spec.unlock,'stage gated unlock '+stage+'/'+w.kind);
+   }
   stats.waves++;stats.units+=w.units.length;stats.minUnits=Math.min(stats.minUnits,w.units.length);
   stats.maxUnits=Math.max(stats.maxUnits,w.units.length);stats.types.add(w.kind);
  }
@@ -256,6 +259,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   }
  }
  for(let kind=19;kind<=25;kind++)ok(stats.types.has(kind),'missing new stage wave '+kind);
+  for(const kind of [26,27,28])ok(stats.types.has(kind),'new mechanical formation '+kind);
+  for(const t of ['clamp','sting','mantis'])ok(window.StarFighterEnemyExtras.contains(t),'new mechanical enemy '+t);
  for(const config of window.StarFighterEnemyExtras.roster){
   stageSetup(seeds[0],config.unlock,0);
   G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];
