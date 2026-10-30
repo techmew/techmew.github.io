@@ -184,6 +184,10 @@ function startBossMove(b){
 function bossMoveStep(b,dt){
  const s=b.specialMove;if(!s)return;
  s.elapsed+=dt;s.active=s.elapsed>=s.warning&&s.elapsed<s.warning+s.duration;
+ // Do not overwrite an extended claw or a closed shell before its visible
+ // hitbox has fully retracted; each movement gets its complete active window.
+ if(s.elapsed<s.warning+s.duration)
+  b.fire=Math.max(b.fire,s.warning+s.duration-s.elapsed+.10);
  if(s.active&&!s.started){
   s.started=true;
   const bx=b.x-145,yy=b.y,fire=(x,y,a,vel=202,size=4.5)=>
@@ -226,13 +230,37 @@ function bossMoveStep(b,dt){
   const vx=b.x-100-shot.x,vy=b.y-shot.y,r=Math.hypot(vx,vy)||1;
   if(r<260){shot.vx+=vx/r*dt*14;shot.vy+=vy/r*dt*14}
  }
- if(s.active&&p.x<b.x-90&&p.x>120){
-  if(['tentacle','extend','neck'].includes(s.type)){
-   if(Math.abs(p.y-s.targetY)<17)hitPlayer(1);
+ if(s.active){
+  // Collision is measured against the SAME articulated geometry as drawBossSpecial.
+  // A neck, arm or claw cannot hit until it has actually reached the ship.
+  const t=cl((s.elapsed-s.warning)/s.duration,0,1);
+  const x=b.x-105,fx=145+(1-t)*75;
+  const nearSegment=(ax,ay,bx,by,px,py,r)=>{
+   const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy||1;
+   const u=cl(((px-ax)*dx+(py-ay)*dy)/len,0,1);
+   return Math.hypot(px-(ax+u*dx),py-(ay+u*dy))<=r;
+  };
+  const limbY=s.type==='whip'||s.type==='coil'?
+   s.targetY+Math.sin(s.elapsed*10)*40:s.targetY;
+  if(['tentacle','extend','neck','whip','coil'].includes(s.type)){
+   let contact=false;
+   if(s.type==='tentacle'||s.type==='coil'){
+    let prevX=x,prevY=b.y;
+    for(let i=1;i<=18;i++){
+     const u=i/18,v=1-u;
+     const bx=v*v*v*x+3*v*v*u*(x-120)+3*v*u*u*(fx+100)+u*u*u*fx;
+     const by=v*v*v*b.y+3*v*v*u*(b.y+60)+3*v*u*u*(limbY-70)+u*u*u*limbY;
+     contact=contact||nearSegment(prevX,prevY,bx,by,p.x,p.y,29);
+     prevX=bx;prevY=by;
+    }
+   }else contact=nearSegment(x,b.y,fx,limbY,p.x,p.y,s.type==='neck'?34:27);
+   if(contact)hitPlayer(1);
   }else if(s.type==='pincer'){
-   if(Math.abs(Math.abs(p.y-s.targetY)-47)<16)hitPlayer(1);
-  }else if(s.type==='whip'||s.type==='coil'){
-   if(Math.abs(p.y-(s.targetY+Math.sin(s.elapsed*10)*40))<16)hitPlayer(1);
+   for(const side of [-1,1]){
+    const mx=(x+fx)/2,my=b.y+side*110,ey=s.targetY+side*47;
+    if(nearSegment(x,b.y+side*72,mx,my,p.x,p.y,27)||
+       nearSegment(mx,my,fx,ey,p.x,p.y,27))hitPlayer(1);
+   }
   }
  }
  if(s.elapsed>s.warning+s.duration+.35)b.specialMove=null;
