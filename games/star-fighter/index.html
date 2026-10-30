@@ -30,7 +30,7 @@
 <div class="boss-hud" id="bossHud"><div class="boss-title"><b id="bossName">BOSS</b><span>WARNING // THREAT DETECTED</span></div><div class="boss-track"><i id="bossBar"></i></div></div>
 <div class="announce" id="announce"><span id="announceSmall">MISSION 01</span><strong id="announceMain">ORBITAL FIELD</strong><span id="announceDesc">外縁軌道を突破せよ</span></div>
 <div class="overlay" id="overlay">
- <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark" id="debugTrigger" role="button" tabindex="0" aria-label="STAR FIGHTER ロゴ"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 15 BOSS VARIANTS</span><i></i></div>
+ <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark" id="debugTrigger" role="button" tabindex="0" aria-label="STAR FIGHTER ロゴ"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 16 BOSS VARIANTS</span><i></i></div>
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
  <p class="quick-hint">左で機体移動・自動射撃 ／ 右はノヴァと手動強化<br>報酬と次の航路は飛行中に上下移動で選択</p>
  <div class="start-orientation"><button class="main-btn" id="startBtn" type="button">縦画面で開始 <span>▶</span></button><button class="main-btn mode-landscape" id="landscapeStartBtn" type="button">横画面で開始 <span>▶</span></button></div>
@@ -57,6 +57,7 @@
    <option value="2:0">03 · ABYSS TITAN</option>
    <option value="2:1">03 · IRON TYRANT</option>
    <option value="3:0">04 · MOLTEN CRAB</option>
+   <option value="3:2">04 · SCORPION DREAD（メカサソリ）</option>
    <option value="3:1">04 · SOLAR WYRM</option>
    <option value="4:0">05 · FROST MAMMOTH</option>
    <option value="4:1">05 · GLACIAL LEVIATHAN</option>
@@ -69,7 +70,7 @@
   </select>
  </div>
  <div class="debug-controls"><button id="debugLaunch" type="button">無敵で開始／ステージ移動</button></div>
- <small>ボス対決：全15種類から選択して即戦闘。自機もボスも無敵。攻撃と各形態を繰り返す持続練習モードです。一時停止から同じボスを再開・最初から再戦・別ボス選択ができます。通常の記録には反映しません。</small>
+ <small>ボス対決：全16種類から選択して即戦闘。自機もボスも無敵。攻撃と各形態を繰り返す持続練習モードです。一時停止から同じボスを再開・最初から再戦・別ボス選択ができます。通常の記録には反映しません。</small>
 </section><div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再出撃 ↻</button></div>
  <section class="run-result" id="runResult" aria-label="今回の戦績" hidden>
  <div class="run-result-top"><div><small>SCORE</small><strong id="resultScore">0</strong></div><div><small>BEST</small><strong id="resultBest">0</strong></div><div><small>SECTOR</small><strong id="resultSector">1 / 8</strong></div></div>
@@ -141,7 +142,7 @@
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
 <script src="./trophies.js?v=trophies-20261030-1"></script>
-<script src="./game.js?v=debug-dual-invincible-20261030-1"></script>
+<script src="./game.js?v=scorpion-mechs-20261030-1"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
