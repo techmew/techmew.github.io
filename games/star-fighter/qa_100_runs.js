@@ -8,7 +8,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  function el(id){
   if(elements.has(id))return elements.get(id);
   const obj={id,hidden:false,textContent:'',innerHTML:'',value:'',title:'',style:{},dataset:{},
-   classList:{add(){},remove(){},toggle(){}},setAttribute(){},getAttribute(){},
+   classList:{_s:new Set(),add(...v){v.forEach(x=>this._s.add(x))},remove(...v){v.forEach(x=>this._s.delete(x))},toggle(x,f){if(f===undefined)f=!this._s.has(x);if(f)this._s.add(x);else this._s.delete(x);return f},contains(x){return this._s.has(x)}},setAttribute(){},getAttribute(){},
    setPointerCapture(){},getBoundingClientRect(){return {left:0,top:0,right:200,bottom:180,width:200,height:180}},
    children:[{classList:{toggle(){}}},{classList:{toggle(){}}},{classList:{toggle(){}}}],
    addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)},
@@ -67,19 +67,27 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=perf-20261030-35'),'cache-bust game JS');
-  ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
+  ok(htmlSource.includes('game.js?v=manual-ui-20261030-1'),'cache-bust game JS');
+  ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
   ok(cssSource.includes('grid-template-rows:max-content minmax(0,1fr)!important'),'portrait action panels below canvas');
   for(const width of [320,390,430]){
    const height=width*9/16,barTop=height;
-   ok(barTop>=height&&barTop+25>height,'portrait non-overlap sizing '+width);
+   ok(barTop>=height&&barTop+38>height,'portrait non-overlap sizing '+width);
   }
  }
+ // 2026-10-30: no obstructive announcement; selected and ready differ.
+ if(htmlSource&&cssSource){
+  ok(cssSource.includes('#shell .announce,#shell .announce.show{display:none!important}'),'large announcement hidden');
+  ok(cssSource.includes('touch-action:none!important'),'action touch does not cause browser pan');
+  ok(cssSource.includes('.upgrade.selected.ready:not(.maxed)'),'ready and selected look distinct');
+  ok(cssSource.includes('grid-template-rows:auto 38px!important'),'portrait meter outside full canvas');
+ }
+ ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=perf-20261030-34'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=manual-ui-20261030-1'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -88,7 +96,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok((htmlSource.match(/id="sidePulseBtn"/g)||[]).length===1&&(htmlSource.match(/id="sideEquipBtn"/g)||[]).length===1,'exactly two combat buttons');
   ok((htmlSource.match(/class="upgrade(?: selected)?"/g)||[]).length===6,'six-color meter preserved');
   for(const [w,h] of [[280,500],[320,480],[320,568],[360,640],[390,844],[430,932]]){
-   const usable=w-10,canvas=usable*9/16,remaining=h-34-25-canvas-16;
+   const usable=w-10,canvas=usable*9/16,remaining=h-34-38-canvas-16;
    const padWidth=(usable-6-112)*1.3/2.1;
    ok(remaining>=88&&padWidth>=80,'portrait viewport budget '+w+'x'+h);
   }
@@ -509,6 +517,15 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sideEquipBtn','lostpointercapture',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
  ok(G.levels[0]===0,'lost pointer capture does not buy an upgrade');
+ // Two-thumb touch: minor 28px drift must still activate one explicit purchase.
+ G.energy=6;G.selected=0;const driftLevel=G.levels[0],driftEnergy=G.energy;
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:411,isPrimary:false,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointermove',{pointerType:'touch',pointerId:411,isPrimary:false,clientX:108,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:411,isPrimary:false,clientX:108,clientY:120});
+ ok(G.levels[0]===driftLevel+1&&G.energy===driftEnergy-1,'secondary right finger activates once');
+ ev('sideEquipBtn','click',{pointerType:'mouse',detail:1,isTrusted:true});
+ ok(G.levels[0]===driftLevel+1,'synthetic mouse click cannot buy twice');
+ G.levels[0]=driftLevel;G.energy=driftEnergy;
  // Swipe across the right button cannot purchase. Focused Enter cannot auto-purchase.
  const equipBeforeLevel=G.levels[0],equipBeforeEnergy=G.energy;
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:41,clientX:80,clientY:120});
@@ -557,10 +574,14 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  G.energy=1;G.pickups=[{x:G.player.x,y:G.player.y,vx:0,phase:0,t:0,type:'energy'}];
  q.update(.016);
  ok(G.energy===2&&G.selected===2,'pickup never auto-selects another upgrade');
+ ok(el('upgrade0').classList.contains('ready')&&el('upgrade1').classList.contains('ready'),'pickup lights affordable upgrades immediately');
+ ok(el('upgrade2').classList.contains('selected')&&!el('upgrade2').classList.contains('ready'),'selected differs from ready');
+ ok(el('sideEquipBtn').querySelector('span').textContent==='LASER 強化','right button names selected upgrade');
+ ok(el('sideEquipBtn').dataset.ready==='no','unaffordable selected item does not glow');
  ok(JSON.stringify(G.levels)===JSON.stringify(beforePickupLevels),'pickup never auto-purchases');
  G.selected=0;G.pickups=[];
  ok(!gameSource.includes('if(invul>0&&Math.sin(G.time*20)>0.55)return'),'invulnerable ship remains visible');
- ok(el('equipActionState').textContent.includes('5/1'),'upgrade status refreshes after purchase');
+ ok(el('equipActionState').textContent.includes('2/3'),'pickup refreshes current selected weapon');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
