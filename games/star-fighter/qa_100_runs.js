@@ -1659,6 +1659,48 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(G.mode==='playing','unsupported gamepad API does not block game');
   stats.debugGamepadQA={debugStageCases:16,invincible:true,gamepadStandard:true};
  }
+ 
+ // 300 additional independent cosmetic trophies (30 categories x 10 thresholds).
+ {
+  const t=window.STAR_TROPHIES;
+  ok(q.TROPHIES===t&&t.catalog.length===300&&t.groups.length===30,'trophy registry has exactly 300 entries');
+  ok(new Set(t.catalog.map(x=>x.id)).size===300&&new Set(t.catalog.map(x=>x.name)).size===300,'all 300 IDs and names are distinct');
+  ok(t.groups.every(f=>f.goals.length===10&&f.goals.every((v,i)=>v>0&&(!i||v>f.goals[i-1]))),'all goals ascending and attainable');
+  ok(t.catalog.every(x=>x.description.includes('達成')&&x.goal>0),'300 explicit objective descriptions');
+  ok(htmlSource.includes('id="trophyGallery"')&&htmlSource.includes('id="trophyBtn"')&&readmeSource.includes('TROPHIES_300.md'),'catalog visible and documented');
+  ok(cssSource.includes('#shell .trophy-gallery[hidden]'),'trophy modal hidden during gameplay');
+  const power=[G.player.hp,G.lives,G.energy,...G.levels];
+  t.begin(false,true);const capsules=t.metric('capsules');
+  t.event('capsules',4);
+  ok(t.metric('capsules')===capsules+4,'normal capsule collection increments trophy progress');
+  ok(JSON.stringify(power)===JSON.stringify([G.player.hp,G.lives,G.energy,...G.levels]),'no power changes from achievements');
+  ev('trophyBtn','click');
+  ok(el('trophyGallery').hidden===false&&el('trophyShown').textContent.includes('300件'),'open complete 300 gallery');
+  el('trophyCategory').value='weapon5';ev('trophyCategory','change');
+  ok(el('trophyShown').textContent.includes('10件'),'filter by family shows ten tiers');
+  el('trophyCategory').value='all';el('trophySearch').value='LASER';ev('trophySearch','input');
+  ok(el('trophyShown').textContent.includes('10件'),'search isolates LASER achievements');
+  ev('trophyClose','click');ok(el('trophyGallery').hidden===true,'gallery close works');
+  const oldCount=t.count(),oldKills=t.metric('kills');
+  t.setDebug(true);t.event('kills',10000);t.observe(8,{score:999999,grazes:999,maxCombo:99});
+  ok(t.count()===oldCount&&t.metric('kills')===oldKills,'debug mode cannot earn achievements');
+  t.setDebug(false);
+  for(const f of t.groups){
+   t.event(f.key,Math.max(0,f.goals[9]-t.metric(f.key)));
+   ok(t.metric(f.key)>=f.goals[9],'highest trophy tier attainable '+f.key);
+  }
+  ok(t.count()===300,'all 300 distinct trophy rewards unlock');
+  t.flush();
+  const stored=storageData.get('star_fighter_trophies_v1');
+  const parsed=JSON.parse(stored);
+  ok(parsed.v===1&&parsed.unlocked.length===300,'all trophy progress persists');
+  storageData.set('star_fighter_trophies_v1','{"v":1,"stats":{},"unlocked":["invalid"]}');
+  ok(t.read().unlocked.length===0,'corrupted trophy storage rejected');
+  storageData.set('star_fighter_trophies_v1',stored);
+  ok(t.read().unlocked.length===300,'valid trophy progress recoverable');
+  ok(JSON.stringify(power)===JSON.stringify([G.player.hp,G.lives,G.energy,...G.levels]),'all trophies remain cosmetics only');
+  stats.trophies={total:300,families:30,allUnlockable:true,debugDenied:true};
+ }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
