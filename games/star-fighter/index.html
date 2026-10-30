@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#050b19">
 <meta name="description" content="STAR FIGHTER — 8ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
-<link rel="stylesheet" href="./style.css?v=gradius-meter-20261030-2">
+<link rel="stylesheet" href="./style.css?v=debug-gamepad-20261030-1">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@
 <canvas id="game" width="1200" height="675" aria-label="横スクロールシューティングゲーム"></canvas>
 
 <div class="screen-vignette"></div>
-<div class="hud" id="hud">
+<div class="hud" id="hud"><span class="debug-status" id="debugStatus" hidden>DEBUG · 無敵</span>
  <div class="hud-left"><div class="kicker">SCORE</div><div class="hud-number" id="score">00000000</div><div class="score-line"><span>BEST <b id="best">00000000</b></span><span id="multiplier">×1.0</span></div></div>
  <div class="hud-center"><span id="stageLabel">SECTOR 01</span><div class="progress"><i id="progressBar"></i></div><small id="areaName">ORBITAL FIELD</small></div>
  <div class="hud-right"><span class="kicker">ARMOR</span><div class="hp-row" id="hpRow"><span></span><span></span><span></span></div><div class="sub-stats"><span id="lives">LIVES 03</span><span id="bombs">NOVA 02</span></div></div>
@@ -30,12 +30,24 @@
 <div class="boss-hud" id="bossHud"><div class="boss-title"><b id="bossName">BOSS</b><span>WARNING // THREAT DETECTED</span></div><div class="boss-track"><i id="bossBar"></i></div></div>
 <div class="announce" id="announce"><span id="announceSmall">MISSION 01</span><strong id="announceMain">ORBITAL FIELD</strong><span id="announceDesc">外縁軌道を突破せよ</span></div>
 <div class="overlay" id="overlay">
- <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 15 BOSS VARIANTS</span><i></i></div>
+ <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark" id="debugTrigger"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 15 BOSS VARIANTS</span><i></i></div>
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
  <p class="quick-hint">左で機体移動・自動射撃 ／ 右はノヴァと手動強化<br>報酬と次の航路は飛行中に上下移動で選択</p>
  <div class="start-orientation"><button class="main-btn" id="startBtn" type="button">縦画面で開始 <span>▶</span></button><button class="main-btn mode-landscape" id="landscapeStartBtn" type="button">横画面で開始 <span>▶</span></button></div>
  <button class="continue-btn" id="continueBtn" type="button" hidden>CONTINUE ▶</button><button class="continue-btn" id="medalBtn" type="button" aria-label="獲得した記章を切り替える">記章 0/4 · 未解禁 ↻</button><span class="continue-info" id="continueInfo" hidden></span>
- <div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再出撃 ↻</button></div>
+ <section class="debug-panel" id="debugPanel" hidden aria-label="隠しデバッグメニュー">
+ <strong>DEBUG MODE — 無敵・記録対象外</strong>
+ <div class="debug-controls">
+  <label for="debugStage">ステージ</label><select id="debugStage" aria-label="開始するステージ">
+   <option value="0">1 · ORBITAL FIELD</option><option value="1">2 · IRON CORRIDOR</option>
+   <option value="2">3 · DEEP NEBULA</option><option value="3">4 · BURNING STRATUM</option>
+   <option value="4">5 · FROZEN GRAVE</option><option value="5">6 · RELIC BELT</option>
+   <option value="6">7 · ABYSSAL GATE</option><option value="7">8 · LAST HORIZON</option>
+  </select>
+  <label for="debugRoute">航路</label><select id="debugRoute" aria-label="開始航路"><option value="0">補給</option><option value="1">高危険</option></select>
+  <button id="debugLaunch" type="button">無敵で開始／ステージ移動</button>
+ </div><small>タイトルで解放後は一時停止中も移動可。ハイスコア・記章・セーブは更新しません。</small>
+</section><div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再出撃 ↻</button></div>
  <section class="run-result" id="runResult" aria-label="今回の戦績" hidden>
  <div class="run-result-top"><div><small>SCORE</small><strong id="resultScore">0</strong></div><div><small>BEST</small><strong id="resultBest">0</strong></div><div><small>SECTOR</small><strong id="resultSector">1 / 8</strong></div></div>
  <p class="run-result-stats" id="resultStats">撃破 0 · 最大連続 0 · GRAZE 0</p>
@@ -44,7 +56,7 @@
  <div class="run-result-line"><b>航路</b><span id="resultRoutes">分岐なし</span></div>
  <div class="run-result-line"><b>報酬</b><span id="resultRewards">獲得なし</span></div>
  </section>
- <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾うと6色バーの点灯が1つ右へ進む。右の「強化」ボタンで点灯中の能力を強化し、メーターが空に戻る。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Zで点灯中の能力を強化、Pで一時停止。装備の選択操作は不要。</p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
+ <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾うと6色バーの点灯が1つ右へ進む。右の「強化」ボタンで点灯中の能力を強化し、メーターが空に戻る。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Zで点灯中の能力を強化、Pで一時停止。装備の選択操作は不要。</p><p>ゲームパッド：左スティック・十字キーで移動／Aで強化／Bでノヴァ／STARTで開始・一時停止・再開。接続後にボタンを押すとブラウザが認識します。</p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
 <div class="reward-panel" id="rewardPanel" aria-label="ステージクリア報酬を選択" role="group">
  <div class="reward-heading"><small id="rewardStage">SECTOR 01 CLEAR</small><strong>報酬を1つ選択</strong><span>選択後に次の航路へ</span><span class="passive-owned" id="passiveOwned" aria-live="polite">所持パッシブ：なし</span></div>
@@ -86,11 +98,11 @@
 </aside>
 </div>
 
-<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 縦横対応</span><span class="note-divider"></span><span>オート射撃・左タッチパッド対応</span><button id="helpBtn" type="button">操作方法 ?</button></div>
+<div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 縦横対応</span><span class="note-divider"></span><span>オート射撃・左タッチパッド対応</span><span id="gamepadStatus" class="gamepad-status" hidden aria-live="polite"></span><button id="helpBtn" type="button">操作方法 ?</button></div>
 </div>
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
-<script src="./game.js?v=gradius-meter-20261030-2"></script>
+<script src="./game.js?v=debug-gamepad-20261030-1"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
