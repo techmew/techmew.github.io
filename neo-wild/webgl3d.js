@@ -60,6 +60,10 @@ const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),cache=new Map();
 function color(hex){if(Array.isArray(hex))return hex;let c=cache.get(hex);if(c)return c;const raw=(hex||"#777777").replace("#","").slice(0,6),n=parseInt(raw,16);c=[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];cache.set(hex,c);return c;}
 function tone(hex,s){const c=color(hex);return c.map(v=>Math.min(1,v*s));}
 let data=[];
+ // Static district geometry is rebuilt only when the camera enters a new region.
+ // Animal and vegetation animation still update every frame.
+ const staticBuffer=gl.createBuffer();
+ let staticKey="",staticCount=0,staticRebuilds=0,dynamicCount=0;
 function triangle(a,b,c,t){
  const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
  let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
@@ -184,15 +188,16 @@ function render(o){
   const night=(1-(Math.cos(((elapsed%85)/85-.15)*TAU)+1)/2)*.68;
   gl.clearColor(.12*(1-night*.5),.18*(1-night*.48),.18*(1-night*.4),1);
   gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  data=[];
-  terrain(WORLD);
   const isVisible=(x,y,margin=150)=>{
    const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;
    const sx=vw/2+VIEW.a*dx+VIEW.c*dy,sy=vh/2+VIEW.b*dx+VIEW.d*dy;
    return sx>-margin&&sx<vw+margin&&sy>-margin&&sy<vh+margin;
   };
-  for(const b of buildings){
-   if(!isVisible(b.x+b.w/2,b.y+b.h/2,380))continue;
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,buildings.length,WORLD.w,WORLD.h].join(":");
+  if(regionKey!==staticKey){
+   data=[];terrain(WORLD);
+   for(const b of buildings){
+   if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    const h=135+(b.kind%4)*75; // Genuine extruded world-space geometry, not painted walls.
    box(b.x,b.y,0,b.w,b.h,h,b.kind%2?"#56646c":"#67736d",b.kind%2?"#45545b":"#58665e");
    box(b.x+13,b.y+13,h,b.w-26,b.h-26,6,"#394e50","#87918a");
@@ -208,23 +213,36 @@ function render(o){
      box(b.x+b.w-1,b.y+j*b.h/5-11,z,3,22,12,"#50656a","#85918a");
     }
    }
+   }
+   const staticVertices=new Float32Array(data);
+   gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
+   gl.bufferData(gl.ARRAY_BUFFER,staticVertices,gl.STATIC_DRAW);
+   staticCount=staticVertices.length/9;
+   staticKey=regionKey;staticRebuilds++;
   }
+  data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
   if(P)animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
   const vertices=new Float32Array(data);
   gl.useProgram(program);
-  gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
-  const stride=36;
-  for(const [a,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
-   if(a<0)continue;
-   gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,3,gl.FLOAT,false,stride,offset);
-  }
   gl.uniform2f(ucenter,cam.x+vw/2,cam.y+vh/2);
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
   gl.uniform1f(unight,night);
-  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
+  const bindAttributes=(buf)=>{
+   gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+   for(const [a,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
+    if(a<0)continue;
+    gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,3,gl.FLOAT,false,36,offset);
+   }
+  };
+  bindAttributes(staticBuffer);
+  if(staticCount)gl.drawArrays(gl.TRIANGLES,0,staticCount);
+  bindAttributes(buffer);
+  gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
+  dynamicCount=vertices.length/9;
+  if(dynamicCount)gl.drawArrays(gl.TRIANGLES,0,dynamicCount);
   frames++;
   return true;
  }catch(e){
@@ -232,5 +250,6 @@ function render(o){
   failed=true;window.Wild3D.available=false;canvas.style.display="none";return false;
  }
 }
-window.Wild3D={available:true,render,get frames(){return frames}};
+window.Wild3D={available:true,render,get frames(){return frames},
+ get stats(){return {staticRebuilds,staticTriangles:staticCount/3,dynamicTriangles:dynamicCount/3}}};
 })();
