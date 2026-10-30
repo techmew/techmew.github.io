@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=debug-dual-invincible-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=scorpion-mechs-20261030-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -912,7 +912,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   [2,1,'dinosaur','IRON TYRANT'],[2,0,'original','ABYSS TITAN'],
   [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM'],[4,0,'mammoth','FROST MAMMOTH'],[4,1,'leviathan','GLACIAL LEVIATHAN'],[5,0,'centipede','RELIC CENTIPEDE'],[5,1,'warden','OBSIDIAN WARDEN'],[6,0,'jellyfish','AETHER JELLYFISH'],[6,1,'riftmedusa','RIFT MEDUSA'],[7,0,'horizonark','HORIZON ARK'],[7,1,'singularity','SINGULARITY EMPEROR']
  ]){
-  G.stage=stage;G.routeRisk=risk;G.bullets=[];G.enemies=[];
+  G.stage=stage;G.routeRisk=risk;G.forcedBossVariant=stage===3&&risk===0?'crab':null;G.bullets=[];G.enemies=[];
   ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
   q.spawnBoss();ok(G.boss.variant===variant&&G.boss.name===name,'boss identity '+name);
   G.boss.x=930;G.boss.y=337;G.boss.t=1;
@@ -1254,7 +1254,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   }
   ok(G.levels.every((n,i)=>n===levels[i])&&G.energy===energy,
    'boss attacks must not auto-upgrade or spend capsules');
-  G.boss=null;G.bullets=[];
+  G.boss=null;G.forcedBossVariant=null;G.bullets=[];
  }
  // Defeating any of the 15 bosses must lead to a live reward/finish
  // without consuming a capsule or auto-equipping a weapon.
@@ -1578,8 +1578,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ev('debugTrigger','click');
   ok(el('debugPanel').hidden===false,'seventh title tap unlocks debug without count');
   // Boss-only debug must spawn exactly the chosen boss without campaign waves.
-  ok(q.DEBUG_BOSS_ROSTER.length===15,'all 15 selectable boss variants are defined');
-  ok((htmlSource.match(/<option value="[0-7]:[01]">/g)||[]).length===15,'15 selectable boss labels');
+  ok(q.DEBUG_BOSS_ROSTER.length===16,'all 16 selectable boss variants are defined');
+  ok((htmlSource.match(/<option value="[0-7]:[012]">/g)||[]).length===16,'16 selectable boss labels');
   ok(cssSource.includes('#shell .debug-controls[hidden]'),'boss mode hides unrelated controls');
   el('debugPlayMode').value='boss';ev('debugPlayMode','change');
   ok(el('debugStageControls').hidden&& !el('debugBossControls').hidden,'boss-only menu selection');
@@ -1616,12 +1616,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(G.mode==='playing'&&G.boss?.name==='KRAKEN ENGINE'&&G.boss!==boss,'practice can restart same boss from menu');
   for(const b of q.DEBUG_BOSS_ROSTER){
     ev('sidePauseBtn','click');
-    el('debugBoss').value=b.stage+':'+b.risk;ev('debugLaunch','click');
+    el('debugBoss').value=b.key;ev('debugLaunch','click');
     ok(G.mode==='playing'&&G.boss?.name===b.name&&G.stage===b.stage,'boss variant selected: '+b.name);
     ok(G.enemies.length===0&&G.terrain===null,'no standard stage enemies for '+b.name);
   }
+  ev('sidePauseBtn','click');el('debugBoss').value='7:1';ev('debugLaunch','click');
   const lastBoss=G.boss;
-  ok(lastBoss?.name==='SINGULARITY EMPEROR','final phase test selects S8 storm boss');
+  ok(lastBoss?.name==='SINGULARITY EMPEROR','final phase explicitly selects S8 storm boss');
   lastBoss.fire=999;lastBoss.t=18;q.update(.016);
   ok(lastBoss.phase===1&&lastBoss.hp===lastBoss.maxHp,'final boss reaches phase 2 without HP loss');
   lastBoss.fire=999;lastBoss.t=36;q.update(.016);
