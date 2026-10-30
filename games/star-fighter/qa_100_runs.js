@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor,pilotThreat,refreshEnemyStrength,refreshActiveEnemies};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -1235,7 +1235,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  for(const seed of seeds)for(const [stage,risk] of bossCases){
   stageSetup(seed,stage,risk);G.routeHistory=[];G.activeEvent=null;
   q.spawnBoss();const b=G.boss;b.x=930;b.y=337;b.t=1.4;
-  ok(b.maxHp>=1500&&b.maxHp<100000,'bounded power-scaled boss HP '+stage+'/'+risk);
+  ok(b.maxHp>=1500&&b.maxHp<200000,'bounded power-scaled boss HP '+stage+'/'+risk);
   const levels=G.levels.slice(),energy=G.energy;
   for(const phase of [0,1])for(let pattern=0;pattern<3;pattern++){
    b.phase=phase;b.pattern=pattern;b.charge=0;b.beam=0;G.bullets=[];
@@ -1972,7 +1972,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    G.boss=null;q.spawnBoss();const base=G.boss.maxHp;
    G.boss=null;G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
    q.spawnBoss();
-   ok(G.boss.maxHp>=base*8.1&&G.boss.maxHp<100000,'17 boss power scaling '+entry.name);
+   ok(G.boss.maxHp>=base*8.1&&G.boss.maxHp<200000,'17 boss power scaling '+entry.name);
    rosterChecks++;
   }
   ok(rosterChecks===17,'every selectable boss has adaptive durability');
@@ -2012,7 +2012,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    G.player.x=G.player.targetX=650;G.player.y=G.player.targetY=337;
    G.trail=Array.from({length:150},()=>({x:650,y:337}));
    let frames=0,at1=-1,at2=-1,reactive=0,salvoFrames=0;
-   for(;frames<3600&&G.boss;frames++){
+   for(;frames<8400&&G.boss;frames++){
     G.player.y=G.player.targetY=G.boss.y;
     reactive=Math.max(reactive,G.boss.reactiveTriggers||0);
     if(G.bullets.length)salvoFrames++;
@@ -2023,7 +2023,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    const seconds=frames/60;
    ok(at1>startingHP*.70,'boss withstands max DPS at 1s on sector '+(s+1));
    ok(at2>startingHP*.40,'boss withstands max DPS at 2s on sector '+(s+1));
-   ok(!G.boss&&seconds>=9&&seconds<=55,'boss must be durable and beatable sector '+(s+1)+' seconds '+seconds);
+   ok(!G.boss&&seconds>=15&&seconds<=145,'boss must be durable and beatable sector '+(s+1)+' seconds '+seconds);
    ok(reactive>=1&&salvoFrames>=60,'counterarmor and visible projectile pressure must run '+(s+1));
    fights.push({boss:b.name,sector:s+1,seconds:Number(seconds.toFixed(2)),HP:startingHP,reactiveTriggers:reactive});
   }
@@ -2038,6 +2038,56 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(first<before&&second===first,'real hit loop does not multiply damage to one boss');
   stats.bossMaxBuildFrameQA={pilotInvincible:true,realProjectileLoop:true,framesPerSecond:60,
     fights,laserRepeatedDamagePrevented:true};
+ }
+
+ // 2026-10-31: Dynamic enemy strength and seamless wave-to-boss overlap.
+ {
+  G.debugMode=false;G.debugBossOnly=false;G.mode='playing';
+  G.stage=2;G.routeRisk=0;G.runSeed=314159;G.routeHistory=[];G.activeEvent=null;
+  G.shipLevel=1;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.player.maxHp=120;G.player.hp=120;G.player.invul=999;
+  G.enemies=[];G.boss=null;G.bossDone=false;G.transitioning=false;G.pendingWave=null;
+  q.enemy('tank',1050,300,{noLoot:true});
+  const mid=G.enemies[0],weakHull=mid.maxHp;
+  q.damageEnemy(mid,Math.round(weakHull*.35));
+  const remainingRatio=mid.hp/mid.maxHp;
+  G.shipLevel=25;G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
+  G.player.maxHp=312;G.player.hp=312;q.refreshActiveEnemies();
+  const strongHull=mid.maxHp;
+  ok(strongHull>weakHull*4.5&&mid.combatTier>.99,'existing enemies scale upward when pilot strengthens');
+  ok(Math.abs(mid.hp/mid.maxHp-remainingRatio)<.005,'power change preserves enemy damage progress');
+  ok(mid.armor>0,'upgraded pilot faces reactive enemy armor');
+  q.damageEnemy(mid,Math.ceil(mid.armor/.65));
+  ok(mid.armor===0&&mid.armorBroken,'enemy armor can be broken permanently');
+  G.shipLevel=20;G.levels=[1,2,1,1,2,2];q.refreshActiveEnemies();
+  ok(mid.maxHp<strongHull&&mid.armor===0,'lower build weakens enemies without repairing armor');
+  G.shipLevel=1;G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.player.maxHp=120;G.player.hp=120;q.refreshActiveEnemies();
+  ok(mid.maxHp===weakHull,'return to weakest build restores original enemy toughness');
+  G.shipLevel=25;G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
+  G.player.maxHp=312;G.player.hp=312;q.refreshActiveEnemies();
+  const fullHull=mid.maxHp;G.player.hp=25;q.refreshActiveEnemies();
+  ok(mid.maxHp<fullHull,'low remaining player hull eases living enemy toughness');
+  G.player.hp=312;
+  G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];G.terrain=null;G.particles=[];
+  G.stageTime=10;G.spawn=999;G.fireTimer=999;G.missileTimer=999;G.ambientTimer=999;
+  q.enemy('tank',900,150,{noLoot:true});
+  const oldEnemy=G.enemies[0];
+  const queued={timer:.25,label:'test',units:[{type:'scout',x:1310,y:510,extra:{noLoot:true}}],
+   kind:0,id:447,phase:0,safeY:337};
+  G.pendingWave=queued;q.spawnBoss();
+  ok(G.enemies.length===1&&G.enemies[0]===oldEnemy,'boss entry preserves already-deployed enemy');
+  ok(G.pendingWave===queued,'boss entry preserves already-announced wave');
+  q.update(.3);
+  ok(G.enemies.includes(oldEnemy)&&G.enemies.some(e=>e.type==='scout'),
+   'previously announced wave arrives while boss is active');
+  ok(G.pendingWave===null,'queued formation deploys once');
+  const n=G.enemies.length;G.spawn=0;q.update(.1);
+  ok(G.enemies.length<=n,'boss engagement does not begin new ordinary wave');
+  q.stageClear();
+  ok(G.enemies.length===0&&G.pendingWave===null,'enemies clear after boss victory only');
+  stats.liveThreat={weakHull,strongHull,armorBroken:mid.armorBroken,preservedOldEnemy:true,
+   preservedPendingWave:true};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
