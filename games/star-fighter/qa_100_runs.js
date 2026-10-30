@@ -65,7 +65,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=audio-mix-20261030-29'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=onboarding-20261030-31'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -77,7 +77,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=mobile-layout-20261030-30'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=onboarding-20261030-31'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -95,7 +95,18 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    ok(canvasWidth>=240&&(h-40-6)/2>=44,'landscape viewport budget '+w+'x'+h);
   }
  }
- // 28/36: shape, outline and luminance cues must not depend on hue.
+ // 31/36: non-blocking start instructions, pause help and explicit retry choices.
+  if(htmlSource&&cssSource){
+   ok(htmlSource.includes('id="quickHelp"')&&htmlSource.includes('class="quick-hint"'),'short visible guide and expandable details');
+   ok(htmlSource.includes('拾うだけでは強化しない')&&htmlSource.includes('飛行中に上下移動'),'manual upgrades and continuous gate explained');
+   ok(htmlSource.includes('同じ配置で再出撃')&&cssSource.includes('/* 31/36: concise onboarding'),'explicit replay and mobile help styling');
+  }
+  ok(el('quickHelp').open===false,'help starts collapsed');
+  ev('helpBtn','click');
+  ok(G.mode==='paused'&&el('quickHelp').open===true,'in-game help pauses and opens real instructions');
+  ev('helpBtn','click');ok(el('quickHelp').open===false,'pause help toggles closed');
+  ev('startBtn','click');ok(G.mode==='playing','help pause resumes without restarting');
+  // 28/36: shape, outline and luminance cues must not depend on hue.
  const projectileCases=[
   [{x:210,y:150,vx:-290,vy:0,size:5,damage:1,color:'#ff8d61'},'orb'],
   [{x:220,y:250,vx:-450,vy:12,size:5,damage:1,color:'#ff8d61'},'lance'],
@@ -1294,7 +1305,19 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   skew90to10:+(p90/p10).toFixed(2),theoreticalBoss6TtkMedian:+(5650/p50).toFixed(1),
   method:'actual projectile volleys, conservative hit weighting, 12s sustained, no overdrive'};
  G.shots=[];G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];
- assert(stats.types.size>=13,'too few wave variants');
+ // 31/36: distinguish fresh random restart from deliberate same-seed replay.
+  const replayInput=el('seedInput');
+  replayInput.value='1A2B3C4D';q.endGame(false);
+  ok(G.mode==='over'&&el('seedReplay').hidden===false,'game-over offers same-seed replay');
+  const keyRestart=(window.handlers?.keydown||[])[0];
+  keyRestart({key:'Enter',repeat:false,target:{closest(){return {}}},preventDefault(){}});
+  ok(G.mode==='over','focused Enter does not accidentally launch another run');
+  ev('startBtn','click');
+  ok(G.mode==='playing'&&replayInput.value==='','fresh retry clears old typed seed');
+  G.runSeed=0x1a2b3c4d;replayInput.value='FFFFFFFF';q.endGame(false);
+  ev('seedReplay','click');
+  ok(G.mode==='playing'&&G.runSeed===0x1a2b3c4d&&replayInput.value==='1A2B3C4D','same-seed retry is explicit and deterministic');
+  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
 }
