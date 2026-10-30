@@ -15,9 +15,11 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    querySelector(q){return el(id+' '+q)}};
   elements.set(id,obj);return obj;
  }
+ const gradientStats={linear:0,radial:0},drawStats={rects:0};
  const context=new Proxy({
-  createLinearGradient(){return {addColorStop(){}}},
-  createRadialGradient(){return {addColorStop(){}}},
+  createLinearGradient(){gradientStats.linear++;return {addColorStop(){}}},
+  createRadialGradient(){gradientStats.radial++;return {addColorStop(){}}},
+  fillRect(){drawStats.rects++},
   setTransform(){},save(){},restore(){}
  },{get(target,key){return key in target?target[key]:()=>{}},set(target,key,value){target[key]=value;return true}});
  el('game').getContext=()=>context;
@@ -53,7 +55,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -65,7 +67,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=results-20261030-32'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=perf-20261030-33'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -77,7 +79,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=results-20261030-32'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=perf-20261030-33'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -1346,6 +1348,33 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    ok(cssSource.includes('.run-result[hidden]')&&cssSource.includes('max-height:clamp(95px,34dvh,260px)'),'result scroll containment');
    ok(cssSource.includes('orientation:portrait')&&cssSource.includes('orientation:landscape'),'responsive result styles retained');
   }
+ }
+
+ // 33/36: Canvas allocation/overdraw regression; no real-device FPS inference.
+ {
+  G.mode='playing';G.stage=0;G.routeRisk=0;G.runSeed=0x7eebbeef;G.scroll=0;
+  G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;
+  q.drawBackground();const warm={...gradientStats};
+  for(let i=0;i<10;i++){G.scroll+=19;q.drawBackground()}
+  ok(gradientStats.linear===warm.linear&&gradientStats.radial===warm.radial,'background gradients reallocated during scroll');
+  G.routeRisk=1;q.drawBackground();
+  ok(gradientStats.linear>warm.linear&&gradientStats.radial>warm.radial,'route gradient invalidation');
+  const routeWarm={...gradientStats};
+  G.runSeed++;q.drawBackground();
+  ok(gradientStats.linear===routeWarm.linear&&gradientStats.radial===routeWarm.radial+1,'seed refreshes only procedural haze');
+  G.stage=3;q.drawBackground();const stageWarm={...gradientStats};
+  for(let i=0;i<8;i++){G.scroll+=17;q.drawBackground()}
+  ok(gradientStats.linear===stageWarm.linear&&gradientStats.radial===stageWarm.radial,'stage gradients reallocated');
+  ok(!gameSource.includes("for(const s of G.shots){c.save();c.shadowBlur=15"),'friendly shot blur still allocated');
+  G.particles=[];q.drawScene();const emptyStart=drawStats.rects;q.drawScene();
+  const emptyRects=drawStats.rects-emptyStart;
+  G.particles=Array.from({length:620},(_,i)=>({x:100+i%100,y:200+i%20,life:1,maxLife:1,size:2,color:'#fff',glow:false}));
+  const fullStart=drawStats.rects;q.drawScene();
+  const visibleRects=drawStats.rects-fullStart-emptyRects;
+  ok(visibleRects===260,'particle draw budget '+visibleRects);
+  ok(G.particles.length===620,'draw cap changed simulation');
+  G.particles=[];
+  stats.renderBudget={gradientWarmup:stageWarm,particleDrawCap:visibleRects,hardwareFps:'not measured',inputLatency:'not measured'};
  }
   assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
