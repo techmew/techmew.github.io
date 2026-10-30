@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=secret-silent-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=debug-boss-only-20261030-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -91,7 +91,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=secret-silent-20261030-1'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=debug-boss-only-20261030-1'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -1572,6 +1572,32 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   }
   ev('debugTrigger','click');
   ok(el('debugPanel').hidden===false,'seventh title tap unlocks debug without count');
+  // Boss-only debug must spawn exactly the chosen boss without campaign waves.
+  ok(q.DEBUG_BOSS_ROSTER.length===15,'all 15 selectable boss variants are defined');
+  ok((htmlSource.match(/<option value="[0-7]:[01]">/g)||[]).length===15,'15 selectable boss labels');
+  ok(cssSource.includes('#shell .debug-controls[hidden]'),'boss mode hides unrelated controls');
+  el('debugPlayMode').value='boss';ev('debugPlayMode','change');
+  ok(el('debugStageControls').hidden&& !el('debugBossControls').hidden,'boss-only menu selection');
+  el('debugBoss').value='1:0';ev('debugLaunch','click');
+  ok(G.debugMode&&G.debugBossOnly&&G.stage===1&&G.boss?.name==='KRAKEN ENGINE','boss-only immediately spawns octopus');
+  ok(G.enemies.length===0&&G.terrain===null&&G.pendingWave===null,'no enemies/terrain before boss');
+  const savedPractice=storageData.get('star_fighter_checkpoint_v1'),medalPractice=JSON.stringify(q.readMedals()),trophyPractice=window.STAR_TROPHIES.count();
+  q.stageClear();
+  ok(G.mode==='paused'&&G.debugBossClear&&G.boss===null,'boss clear waits at victory menu');
+  ok(!G.transitioning&&G.flowPhase===null,'boss practice does not enter normal route transition');
+  ok(el('startBtn').innerHTML.includes('再戦'),'same-boss retry displayed');
+  ok(storageData.get('star_fighter_checkpoint_v1')===savedPractice&&JSON.stringify(q.readMedals())===medalPractice&&window.STAR_TROPHIES.count()===trophyPractice,'boss practice preserves normal records');
+  ev('startBtn','click');
+  ok(G.mode==='playing'&&G.boss?.name==='KRAKEN ENGINE','boss retry starts immediately');
+  for(const b of q.DEBUG_BOSS_ROSTER){
+    ev('sidePauseBtn','click');
+    el('debugBoss').value=b.stage+':'+b.risk;ev('debugLaunch','click');
+    ok(G.mode==='playing'&&G.boss?.name===b.name&&G.stage===b.stage,'boss variant selected: '+b.name);
+    ok(G.enemies.length===0&&G.terrain===null,'no standard stage enemies for '+b.name);
+  }
+  ev('titleReturnBtn','click');
+  el('debugPlayMode').value='stage';ev('debugPlayMode','change');
+  ok(!el('debugStageControls').hidden&&el('debugBossControls').hidden,'normal stage debug remains selectable');
   el('debugStage').value='7';el('debugRoute').value='1';
   ev('debugLaunch','click');
   ok(G.mode==='playing'&&G.debugMode&&G.stage===7&&G.routeRisk===1,'hidden launch enters final sector storm branch');
