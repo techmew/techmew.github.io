@@ -138,12 +138,40 @@ const SYNERGIES=[
 ];
 const synergyActive=i=>G.levels[SYNERGIES[i].weapon]>0&&passiveRank(SYNERGIES[i].passive)>0;
 const synergySummary=()=>SYNERGIES.filter((s,i)=>synergyActive(i)).map(s=>s.name).join(' / ');
-/* Scale the challenge with offensive equipment only: defensive upgrades
-   must never make enemies harder to defeat. No scaling during a fight. */
+/* Attack damage sets the primary threat. Ship level makes a small contribution
+   so the encounter director reacts to overall progress as well as upgrades.
+   Higher levels never secretly change a boss already in combat. */
 function offensiveBuild(){
  const l=G.levels||[0,0,0,0,0,0];
  return cl(((l[1]||0)*1+(l[2]||0)*2.6+(l[3]||0)*1.5+
   (l[4]||0)*1.6+(G.passives?.[0]||0)*.9)/17.8,0,1);
+}
+function pilotThreat(){
+ const offense=offensiveBuild();
+ const hullGrowth=cl(((G.shipLevel||1)-1)/(SHIP_MAX_LEVEL-1),0,1);
+ return cl(offense*.85+hullGrowth*.15,0,1);
+}
+/* Preserve earned damage when a player upgrades or changes power mid-wave.
+   Armor never regenerates once a particular enemy's plates are broken. */
+function refreshEnemyStrength(e){
+ if(!e||e.hp<=0||!Number.isFinite(e.baseHull))return;
+ const threat=pilotThreat();
+ if(Math.abs((e.combatTier||0)-threat)<.0001)return;
+ const previous=Math.max(1,e.maxHp),fraction=cl(e.hp/previous,0,1);
+ const maxHp=Math.max(1,Math.round(e.baseHull*(1+4.4*threat*(e.scalingEase||1))));
+ const armorMax=e.adaptiveArmor?
+  (threat>.14?Math.round(maxHp*(.08+.25*threat)):0):
+  (threat>.58&&e.armorSignature===0?Math.round(maxHp*(.25+.28*threat)):0);
+ const armorFraction=e.armorMax>0?cl((e.armor||0)/e.armorMax,0,1):1;
+ e.hp=Math.max(.1,maxHp*fraction);
+ e.maxHp=maxHp;
+ e.armorMax=armorMax;
+ e.armor=e.armorBroken?0:Math.round(armorMax*armorFraction);
+ e.combatTier=threat;
+}
+function refreshActiveEnemies(){
+ if(!G.enemies?.length)return;
+ for(const e of G.enemies)refreshEnemyStrength(e);
 }
 function bossArmorMultiplier(b){
  const tier=b?.adaptiveTier||0;
@@ -173,6 +201,7 @@ function damageEnemy(e,damage){
   const blocked=Math.min(old,damage*.65);
   e.armor=Math.max(0,old-blocked);damage-=blocked;
   if(e.armor===0&&e.hp>damage&&e.x<W-50&&e.x>190){
+   e.armorBroken=true;
    e.dodgeTime=.55;e.dodgeSide=e.y<H*.5?1:-1;
    if(G.bullets.length<55&&p.hp/Math.max(1,p.maxHp)>.32){
     e.aiWarn=Math.max(e.aiWarn,.72);e.aiAimX=p.x;e.aiAimY=p.y;
@@ -1047,14 +1076,17 @@ if(x>=W){for(let attempt=0;attempt<12;attempt++){
  if(!blocked)break;x+=90;
 }}
 let hp=EXTRA?.stats[type]?.hp??({scout:22,dart:15,tank:125,turret:75,spinner:35,carrier:100,mine:35,interceptor:65}[type]||25);
-const power=offensiveBuild(),ease=p.hp/Math.max(1,p.maxHp)<.32?.84:1;
-hp=Math.round(hp*(1+G.stage*.35)*tune.enemyHp*(1+2.15*power*ease));
+const baseHull=hp*(1+G.stage*.35)*tune.enemyHp;
+const power=pilotThreat(),ease=p.hp/Math.max(1,p.maxHp)<.32?.84:1;
+hp=Math.max(1,Math.round(baseHull*(1+4.4*power*ease)));
 const heavy=['tank','carrier','turret','armature','howitzer','bulk','clamp','sting','mantis','orbiter','interceptor'].includes(type);
 const signature=Math.abs(Math.round(x*.13+y*.29+(G.runSeed||0)))%3;
-const phaseScout=!heavy&&power>.50&&signature===0;
-const armor=power>.2&&heavy?Math.round(hp*(.08+.23*power)):
- phaseScout?Math.round(hp*(.65+.7*power)):0;
-G.enemies.push({type,x,y,hp,maxHp:hp,armor,armorMax:armor,dodgeTime:0,dodgeSide:0,t:0,hitFlash:0,recoil:0,fire:GR(.9,1.8)*tune.fireInterval*(G.directorGrace>0?1.18:1),phase:GR(0,TAU),seed:GR(0,100),aiHomeY:y,aiPhase:0,aiWarn:0,aiVolleyArmed:false,score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:(EXTRA?.stats[type]?.score||250),windup:0,aimX:0,aimY:0,...extra})}
+const phaseScout=!heavy&&power>.58&&signature===0;
+const armor=heavy&&power>.14?Math.round(hp*(.08+.25*power)):
+ phaseScout?Math.round(hp*(.25+.28*power)):0;
+G.enemies.push({type,x,y,hp,maxHp:hp,baseHull,combatTier:power,scalingEase:ease,
+ adaptiveArmor:heavy,armorSignature:signature,armorBroken:false,
+ armor,armorMax:armor,dodgeTime:0,dodgeSide:0,t:0,hitFlash:0,recoil:0,fire:GR(.9,1.8)*tune.fireInterval*(G.directorGrace>0?1.18:1),phase:GR(0,TAU),seed:GR(0,100),aiHomeY:y,aiPhase:0,aiWarn:0,aiVolleyArmed:false,score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:(EXTRA?.stats[type]?.score||250),windup:0,aimX:0,aimY:0,...extra})}
 
 /* Preserve a traversable lane for each announced formation at entry.
    The cue is not a shield: aimed bullets and later enemy motion still matter. */
@@ -1116,7 +1148,9 @@ function spawnElite(){
  enemy(type,W+115,y,{elite:true,noLoot:true,score:1700+G.stage*280,eliteFire:1.3,eliteWarn:0,eliteAimY:y,fire:999,aiSafeY:lane});
  if(G.enemies.length===before)return false;
  const e=G.enemies[G.enemies.length-1];
- e.hp*=2.6+(G.routeRisk?0.4:0);e.maxHp=e.hp;
+ const eliteBoost=2.6+(G.routeRisk?0.4:0);
+ e.hp*=eliteBoost;e.maxHp=e.hp;
+ if(e.baseHull)e.baseHull*=eliteBoost;
  G.eliteSpawned=true;
  showToast('ELITE · '+(type==='tank'?'VANGUARD':'BULWARK'));
  return true;
@@ -1245,7 +1279,7 @@ function fireEnemy(e,target=null){
  }
  if(EXTRA?.fire(e,target,p,bullet,G.stage))return;
  const a=target?Math.atan2(target.y-e.y,target.x-(e.x-30)):aim(e.x-30,e.y);
- const base=G.stage*22+(G.stage>0&&G.routeRisk?10:0);
+ const base=G.stage*22+(G.stage>0&&G.routeRisk?10:0)+Math.round(30*(e.combatTier||0));
  if(e.type==='tank'||e.type==='carrier'){
   for(const k of [-1,1])bullet(e.x-42,e.y,a+k*.13,260+base,6,'#ffac71');
  }else if(e.type==='turret'){
@@ -1258,12 +1292,15 @@ function fireEnemy(e,target=null){
    Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
    The first sector and the other two branches retain their original bosses. */
 function bossVariant(){if(G.forcedBossVariant&&(G.stage===3||G.stage===4)&&G.routeRisk===0)return G.forcedBossVariant;return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':mixSeed(G.runSeed,4,71)%4===0?'crab':'scorpion'):G.stage===4?(G.routeRisk?'leviathan':mixSeed(G.runSeed,5,82)%4===0?'turtle':'mammoth'):G.stage===5?(G.routeRisk?'warden':'centipede'):G.stage===6?(G.routeRisk?'riftmedusa':'jellyfish'):G.stage===7?(G.routeRisk?'singularity':'horizonark'):'original'}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='turtle'?'TURTLE BULWARK':variant==='scorpion'?'SCORPION DREAD':variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
+function spawnBoss(){
+ // Existing craft and already-telegraphed squads complete their flight through
+ // the boss entrance instead of vanishing or breaking the wave rhythm.
+ G.terrain=null;const variant=bossVariant(),name=variant==='turtle'?'TURTLE BULWARK':variant==='scorpion'?'SCORPION DREAD':variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
  const legacyChains=G.routeHistory.reduce((n,r,i,a)=>n+(i>0&&a[i-1].risk===r.risk?1:0),0);
  const adaptiveTier=offensiveBuild();
  const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06)*
-  (G.stage===7?1+Math.min(4,legacyRisk)*.035:1)*(1+7.2*adaptiveTier));
- G.boss={variant,name,adaptiveTier,reactiveShield:0,reactiveExpose:0,reactiveStrike:0,reactiveCooldown:0,reactiveDamage:0,reactiveTriggers:0,reactiveTargetY:335,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
+  (G.stage===7?1+Math.min(4,legacyRisk)*.035:1)*(1+7.2*adaptiveTier)*2);
+ G.boss={variant,name,adaptiveTier,reactiveShield:0,reactiveExpose:0,reactiveStrike:0,reactiveCooldown:0,reactiveDamage:0,reactiveTriggers:0,reactiveTargetY:335,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -1964,6 +2001,7 @@ if(!G.boss&&!G.bossDone&&!G.transitioning){
  G.ambientTimer-=dt;
  if(G.ambientTimer<=0){const added=spawnAmbient();G.ambientTimer=added?(.95+gameRandom()*.45):.28}
 }
+refreshActiveEnemies();
 if(G.pendingWave){G.pendingWave.timer-=dt;if(G.pendingWave.timer<=0){const wave=G.pendingWave;G.pendingWave=null;wave.units.forEach((u,i)=>enemy(u.type,u.x,u.y,{...u.extra,squadId:wave.id,squadKind:wave.kind,squadSlot:i,squadSize:wave.units.length,aiHomeY:u.y,aiPhase:wave.phase,aiSafeY:wave.safeY,aiVolleyArmed:true}))}}
 if(G.transitioning){
  G.transition-=dt;
@@ -1971,7 +2009,7 @@ if(G.transitioning){
  else if(G.flowPhase==='route'&&G.transition<=0){chooseRoute(flightRouteIndex());return}
  else if(G.flowPhase==='finish'&&G.transition<=0){endGame(true);return}
 }
-for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;e.hitFlash=Math.max(0,(e.hitFlash||0)-dt);e.recoil=Math.max(0,(e.recoil||0)-dt*48);let vx=(EXTRA?.stats[e.type]?.speed??({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140))*routeProfile().speed;e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}EXTRA?.advance(e,dt,p,fireEnemy,vx,W,H);if(e.type!=='interceptor')moveEnemyAI(e,dt);
+for(let i=G.enemies.length-1;i>=0;i--){const e=G.enemies[i];e.t+=dt;e.hitFlash=Math.max(0,(e.hitFlash||0)-dt);e.recoil=Math.max(0,(e.recoil||0)-dt*48);let vx=(EXTRA?.stats[e.type]?.speed??({scout:190,dart:305,tank:86,turret:76,spinner:157,carrier:100,mine:125,interceptor:98}[e.type]||140))*routeProfile().speed*(1+.20*(e.combatTier||0));e.x-=vx*dt;if(e.type==='interceptor'){if(e.lockY===null&&e.x<1050){e.lockY=cl(p.y,115,H-75);if(Number.isFinite(e.aiSafeY)&&e.x>540)e.lockY=placeOutsideLane(e.lockY,e.aiSafeY,110);e.t=0}if(e.lockY!==null){if(e.t<1){e.x+=vx*dt-43*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*1.15)}else{e.x-=465*dt;e.y+=(e.lockY-e.y)*Math.min(1,dt*5)}}}EXTRA?.advance(e,dt,p,fireEnemy,vx,W,H);if(e.type!=='interceptor')moveEnemyAI(e,dt);
 if(e.dodgeTime>0){e.y=cl(e.y+e.dodgeSide*170*dt,110,H-95);e.dodgeTime=Math.max(0,e.dodgeTime-dt);}
 if(e.elite){
  e.eliteFire-=dt;
@@ -1989,7 +2027,7 @@ if(e.elite){
 if(e.aiWarn>0){e.aiWarn-=dt;if(e.aiWarn<=0&&e.hp>0&&e.x<W-35&&e.x>100){fireEnemy(e,{x:e.aiAimX,y:e.aiAimY});e.fire=Math.max(e.fire,1.35)}}
 if(e.aiWarn<=0&&!terrainApproaching())coordinateVolley(e);
 e.fire-=dt;
-if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){if(!EXTRA?.trigger(e,p))fireEnemy(e);e.fire=Math.max(.9,(GR(e.type==='turret'?1.15:1.65,e.type==='turret'?1.65:2.65)-G.stage*.065)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,EXTRA?.stats[e.type]?.ship??(e.type==='tank'||e.type==='carrier'?36:21)))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
+if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){if(!EXTRA?.trigger(e,p))fireEnemy(e);e.fire=Math.max(.9,(GR(e.type==='turret'?1.15:1.65,e.type==='turret'?1.65:2.65)-G.stage*.065 )*routeProfile().fireInterval*(G.directorGrace>0?1.22:1)*(1-.35*(e.combatTier||0)))}if(circleHit(p.x,p.y,18,e.x,e.y,EXTRA?.stats[e.type]?.ship??(e.type==='tank'||e.type==='carrier'?36:21)))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
 const practice=invulnerablePracticeBoss();
 if(practice)b.hp=b.maxHp;
@@ -2052,7 +2090,7 @@ bossMoveStep(b,dt);
    }
   }
  }
- b.fire-=dt*(practice?1.25:1);if(b.fire<=0)bossAttack(b);
+ b.fire-=dt*(practice?1.25:1.22);if(b.fire<=0)bossAttack(b);
 if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
 if(!practice&&b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
 }
