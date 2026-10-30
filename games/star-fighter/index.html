@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#050b19">
 <meta name="description" content="STAR FIGHTER — 8ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
-<link rel="stylesheet" href="./style.css?v=debug-gamepad-20261030-1">
+<link rel="stylesheet" href="./style.css?v=portrait-overlay-20261030-2">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,7 +30,7 @@
 <div class="boss-hud" id="bossHud"><div class="boss-title"><b id="bossName">BOSS</b><span>WARNING // THREAT DETECTED</span></div><div class="boss-track"><i id="bossBar"></i></div></div>
 <div class="announce" id="announce"><span id="announceSmall">MISSION 01</span><strong id="announceMain">ORBITAL FIELD</strong><span id="announceDesc">外縁軌道を突破せよ</span></div>
 <div class="overlay" id="overlay">
- <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark" id="debugTrigger"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 15 BOSS VARIANTS</span><i></i></div>
+ <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark" id="debugTrigger" role="button" tabindex="0" aria-label="STAR FIGHTER ロゴ"><span>STAR</span><strong>FIGHTER</strong></div><span id="debugUnlockHint" class="debug-unlock-hint" hidden></span><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 15 BOSS VARIANTS</span><i></i></div>
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
  <p class="quick-hint">左で機体移動・自動射撃 ／ 右はノヴァと手動強化<br>報酬と次の航路は飛行中に上下移動で選択</p>
  <div class="start-orientation"><button class="main-btn" id="startBtn" type="button">縦画面で開始 <span>▶</span></button><button class="main-btn mode-landscape" id="landscapeStartBtn" type="button">横画面で開始 <span>▶</span></button></div>
@@ -102,7 +102,7 @@
 </div>
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
-<script src="./game.js?v=debug-gamepad-20261030-1"></script>
+<script src="./game.js?v=portrait-overlay-20261030-2"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
