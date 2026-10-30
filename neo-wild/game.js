@@ -443,12 +443,13 @@ function update(dt){
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
     // Rise before wall collision: a jump beside a low roof can reach its edge.
-    P.jumpTime=Math.max(0,P.jumpTime-dt);
-    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*(1-P.jumpTime/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
+    const jumpLeft=Math.max(0,P.jumpTime-dt);
+    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*(1-jumpLeft/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
     const ox=P.x,oy=P.y;
     const step=Math.min(P.jumpRemaining,P.jumpSpeed*dt);
     if(step>0)move(P,Math.cos(P.jumpDir)*step,Math.sin(P.jumpDir)*step);
     const covered=Math.hypot(P.x-ox,P.y-oy);
+    P.jumpTime=jumpLeft; // Move first while airborne; only then decide the landing surface.
     P.jumpRemaining=Math.max(0,P.jumpRemaining-covered);
     // A blocked first step does not cancel the entire leap.
     P.steps+=covered*.052;
