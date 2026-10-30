@@ -28,7 +28,7 @@ function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 // Keep wildlife rare enough to track, not a crowd of targets.
-const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,preyNeedRadius:760};
+const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,preyNeedRadius:420};
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
@@ -71,11 +71,11 @@ function spawnMob(initial=false,preyOnly=false){
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>dist(m,P)<WILDLIFE.localRadius).length:0;
  do{
-  const a=rnd(0,TWO),rad=preyOnly?rnd(330,570):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
+  const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
   x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
   y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
-  valid=!collides(x,y,40)&&(!P||dist(candidate,P)>230)
+  valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap);
  }while(!valid&&++tries<52);
@@ -300,7 +300,7 @@ function getObjective(){
  }
  // Keep one visible hunting objective until it is lost, killed, or truly far away.
  // Otherwise the → flips between different prey every few frames.
- if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>760)
+ if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>420)
   huntTarget=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
  if(!huntTarget)return null;
  const lead=.22,px=clamp(huntTarget.x+(huntTarget.vx||0)*lead,35,WORLD.w-35);
