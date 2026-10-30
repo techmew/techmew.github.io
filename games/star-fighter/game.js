@@ -324,23 +324,19 @@ function showOverlay(kind){
  ui.overlay.querySelector('.overlay-inner').scrollTop=0;
  ui.overlay.inert=false;
  ui.overlay.setAttribute('aria-hidden','false');
- $('debugUnlockHint').hidden=kind!=='title'||debugUnlocked||debugTapCount===0;
  ui.overlay.dataset.state=kind;$('debugPanel').hidden=!(debugUnlocked&&(kind==='title'||kind==='pause'));$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';$('trophyBtn').hidden=kind!=='title'&&kind!=='pause';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();if(quickHelp)quickHelp.open=false;seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');title.tabIndex=kind==='title'?0:-1;if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で出撃 <span>▶</span>'}}
 
 /* Secret diagnostic: seven title-mark clicks without time limit, session-only.
    Jumping routes leaves the normal save, score and medals untouched. */
 let debugUnlocked=false,debugTapCount=0;
 const debugPanel=$('debugPanel'),debugStage=$('debugStage'),debugRoute=$('debugRoute');
-const debugTrigger=$('debugTrigger'),debugHint=$('debugUnlockHint');
+const debugTrigger=$('debugTrigger');
 function unlockDebugTap(){
  if(G.mode!=='title'||debugUnlocked)return;
- // Seven deliberate taps, with no racing against a four-second timer.
- // The progress hint appears only after the first secret tap.
- debugTapCount=Math.min(7,debugTapCount+1);
- if(debugTapCount<7){
-  debugHint.hidden=false;debugHint.textContent='SECRET '+debugTapCount+'/7';
- }else{
-  debugUnlocked=true;debugHint.hidden=true;debugPanel.hidden=false;
+ // Hidden seven-tap unlock: no progress text, number, toast or visual counter.
+ // The full debug menu appears only after the seventh tap.
+ if(++debugTapCount===7){
+  debugUnlocked=true;debugPanel.hidden=false;
   debugPanel.scrollIntoView?.({block:'nearest',behavior:'smooth'});
   tone(750,.11,'triangle',.045,300);
  }
