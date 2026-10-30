@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#050b19">
 <meta name="description" content="STAR FIGHTER — 8ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
-<link rel="stylesheet" href="./style.css?v=manual-ui-20261030-1">
+<link rel="stylesheet" href="./style.css?v=gradius-meter-20261030-2">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -44,7 +44,7 @@
  <div class="run-result-line"><b>航路</b><span id="resultRoutes">分岐なし</span></div>
  <div class="run-result-line"><b>報酬</b><span id="resultRewards">獲得なし</span></div>
  </section>
- <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾う → 6色バーで装備を選ぶ → 右の「強化する」を押す。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Xで装備選択、Zで手動強化、Pで一時停止。</p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
+ <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾うと6色バーの点灯が1つ右へ進む。右の「強化」ボタンで点灯中の能力を強化し、メーターが空に戻る。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Zで点灯中の能力を強化、Pで一時停止。装備の選択操作は不要。</p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
 <div class="reward-panel" id="rewardPanel" aria-label="ステージクリア報酬を選択" role="group">
  <div class="reward-heading"><small id="rewardStage">SECTOR 01 CLEAR</small><strong>報酬を1つ選択</strong><span>選択後に次の航路へ</span><span class="passive-owned" id="passiveOwned" aria-live="polite">所持パッシブ：なし</span></div>
@@ -65,14 +65,14 @@
 </div><p class="route-help">PC : 1 / 2 キーで選択　・　スマホ : タップして選択</p>
 </div>
 <div class="controlbar">
-  <div class="label-block"><strong>POWER UP</strong><small id="meterInfo">CAPSULE × 0</small></div>
+  <div class="label-block"><strong>POWER UP</strong><small id="meterInfo">POWER 待機</small></div>
   <div class="upgrades" id="upgrades">
-    <button class="upgrade selected" data-up="0"><span class="u-key">01</span><b>BOOST</b><small>移動速度</small></button>
-    <button class="upgrade" data-up="1"><span class="u-key">02</span><b>SPREAD</b><small>拡散弾</small></button>
-    <button class="upgrade" data-up="2"><span class="u-key">03</span><b>LASER</b><small>貫通レーザー</small></button>
-    <button class="upgrade" data-up="3"><span class="u-key">04</span><b>MISSILE</b><small>誘導ミサイル</small></button>
-    <button class="upgrade" data-up="4"><span class="u-key">05</span><b>OPTION</b><small>追従僚機</small></button>
-    <button class="upgrade" data-up="5"><span class="u-key">06</span><b>SHIELD</b><small>防御バリア</small></button>
+    <div class="upgrade" data-up="0" role="img" aria-label="強化メーター・未点灯"><span class="u-key">01</span><b>BOOST</b><small>移動速度</small></div>
+    <div class="upgrade" data-up="1" role="img" aria-label="強化メーター・未点灯"><span class="u-key">02</span><b>SPREAD</b><small>拡散弾</small></div>
+    <div class="upgrade" data-up="2" role="img" aria-label="強化メーター・未点灯"><span class="u-key">03</span><b>LASER</b><small>貫通レーザー</small></div>
+    <div class="upgrade" data-up="3" role="img" aria-label="強化メーター・未点灯"><span class="u-key">04</span><b>MISSILE</b><small>誘導ミサイル</small></div>
+    <div class="upgrade" data-up="4" role="img" aria-label="強化メーター・未点灯"><span class="u-key">05</span><b>OPTION</b><small>追従僚機</small></div>
+    <div class="upgrade" data-up="5" role="img" aria-label="強化メーター・未点灯"><span class="u-key">06</span><b>SHIELD</b><small>防御バリア</small></div>
   </div>
   <button id="equipBtn" class="equip-btn">強化 <span>↗</span></button>
   <button id="pulseBtn" class="pulse-btn">NOVA <span>✹</span></button>
@@ -82,7 +82,7 @@
 </div>
 <aside class="action-panel" id="actionPanel" aria-label="戦闘操作">
 <button type="button" id="sidePulseBtn" class="side-action side-pulse" aria-label="ノヴァ · 残り1回"><strong>✹</strong><span>ノヴァ</span><small class="action-state" id="novaActionState" aria-live="off">残り1回</small></button>
-<button type="button" id="sideEquipBtn" class="side-action side-equip" aria-label="強化 · BOOST · カプセル0/1"><strong>↗</strong><span>BOOST 強化</span><small class="action-state" id="equipActionState" aria-live="off">カプセル 0/1</small></button>
+<button type="button" id="sideEquipBtn" class="side-action side-equip" aria-label="点灯中の能力を強化"><strong>↗</strong><span>強化する</span><small class="action-state" id="equipActionState" aria-live="off">カプセルを取る</small></button>
 </aside>
 </div>
 
@@ -90,7 +90,7 @@
 </div>
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
-<script src="./game.js?v=manual-ui-20261030-1"></script>
+<script src="./game.js?v=gradius-meter-20261030-2"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
