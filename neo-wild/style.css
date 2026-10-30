@@ -11,12 +11,12 @@
 @media (max-height:520px) and (orientation:landscape){#hud{padding:7px 14px}.vitals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}.hud-left{width:315px;max-width:none}.level{margin-top:7px}.hud-center{margin:0}#mission{top:98px;width:200px}#status{top:100px}.map-frame{display:none}#touch-layer{bottom:4px}#joystick{height:112px;width:118px}.joy-disc{width:90px;height:90px}.touch-actions{transform:scale(.86);transform-origin:bottom right}.menu-shell{max-width:640px}.hero-title{font-size:75px;margin-top:8px}.lead{margin:9px 0}.subtitle{margin-top:8px}.animals{margin:5px 0}.animal-card{min-height:50px;padding:8px}.micro{font-size:9px}.menu-foot{display:none}.overlay{padding:8px}}
 
 /* Guided survival missions and species-specific mobile ability. */
-#mission-guide{margin-top:9px;padding:8px 6px;border:1px solid #ffc96777;background:rgba(53,46,24,.55);color:#ffe2a0;font-size:11px;font-weight:800;line-height:1.45;letter-spacing:.1px;overflow-wrap:anywhere}
+
 #instinct-touch{grid-column:2;grid-row:1;width:64px;height:64px;border-color:#f5c67a;background:radial-gradient(circle at 40% 25%,#817447,#2a3932);box-shadow:0 0 15px #e9b66a40}
 #instinct-touch span{color:#ffe3ab}#instinct-touch:active{background:#957c42}
-@media (pointer:coarse),(max-width:850px){#mission-guide{font-size:9px;padding:5px 4px;margin-top:6px}#instinct-touch{width:62px;height:62px}}
-@media (max-width:520px){#instinct-touch{width:53px;height:53px}#instinct-touch span{font-size:20px}#mission{width:184px}#mission-guide{font-size:8px}}
-@media (max-height:520px) and (orientation:landscape){#mission-guide{font-size:8px;margin-top:4px;padding:4px}#mission{width:210px}}
+@media (pointer:coarse),(max-width:850px){#instinct-touch{width:62px;height:62px}}
+@media (max-width:520px){#instinct-touch{width:53px;height:53px}#instinct-touch span{font-size:20px}#mission{width:184px}}
+@media (max-height:520px) and (orientation:landscape){#mission{width:210px}}
 
 /* Optional native WebGL layer. Gameplay and 2D HUD remain independent. */
 #scene3d{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:0}
