@@ -39,7 +39,7 @@
   }catch(_){return {v:1,stats:Object.fromEntries(GROUPS.map(g=>[g.key,0])),unlocked:[]}}
  }
  const state=read(),earned=new Set(state.unlocked);
- let active=false,debug=false,elapsed=0,dirty=false,lastSave=0,lastScore=0,lastGraze=0,hitsStage=0,hitsRun=0;
+ let active=false,debug=false,elapsed=0,dirty=false,lastSave=0,lastScore=0,lastGraze=0,hitsStage=0,hitsRun=0,pendingFlight=0;
  const displayNum=n=>Math.floor(n).toLocaleString('ja-JP');
  const progressFor=t=>Math.min(100,Math.floor(100*state.stats[t.group]/t.goal));
  function refreshCounter(){
@@ -72,7 +72,7 @@
   const before=earned.size;evaluate(metric);if(earned.size!==before)write();
  }
  function begin(isDebug=false,resume=false){
-  active=true;debug=!!isDebug;hitsStage=0;hitsRun=0;lastScore=0;lastGraze=0;
+  active=true;debug=!!isDebug;hitsStage=0;hitsRun=0;lastScore=0;lastGraze=0;pendingFlight=0;
   if(!debug&&!resume)add('sorties',1);
  }
  function setDebug(value){if(value)write();debug=!!value}
@@ -80,9 +80,13 @@
   lastScore=Math.max(0,Number(snapshot?.score)||0);
   lastGraze=Math.max(0,Number(snapshot?.grazes)||0);
  }
- function observe(dt,snapshot={}){
+ function observe(dt,snapshot={},force=false){
   if(!active||debug)return;
-  if(validNumber(dt)&&dt>0)add('flight',Math.min(dt,.1));
+  if(validNumber(dt)&&dt>0)pendingFlight+=Math.min(dt,.1);
+  // Group trophy evaluation twice per second to protect the render budget.
+  if(pendingFlight<.48&&!force)return;
+  if(pendingFlight>0)add('flight',pendingFlight);
+  pendingFlight=0;
   const score=Math.max(0,Number(snapshot.score)||0),graze=Math.max(0,Number(snapshot.grazes)||0);
   if(score>lastScore)add('totalScore',score-lastScore);
   if(graze>lastGraze)add('grazes',graze-lastGraze);
@@ -104,12 +108,12 @@
  function finish(won,snapshot){
   if(!active)return;
   if(!debug){
-   observe(0,snapshot);
+   observe(0,snapshot,true);
    if(won){add('wins',1);if(hitsRun===0)add('perfectRuns',1)}
   }
   active=false;write();
  }
- function resetAfterResume(snapshot){baseline(snapshot);hitsStage=0;hitsRun=0}
+ function resetAfterResume(snapshot){baseline(snapshot);hitsStage=0;hitsRun=0;pendingFlight=0}
  function formatCard(t){
   const unlocked=earned.has(t.id);
   const got=state.stats[t.group],pct=progressFor(t);
