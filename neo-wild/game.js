@@ -246,13 +246,13 @@ function eat(){
  blood(P.x,P.y,"#d6c17f",7,45);sound(440,.13,"sine",.035);checkMission();
 }
 function checkMission(){
- if(mission===0&&meals>=1){mission=1;notify("食料確保！ ▲ 茂みで身を隠せ")}
- if(mission===1&&hiddenHold>=.75){mission=2;notify("潜伏成功！ ▲ 獲物を追え")}
- if(mission===2&&kills>=1){mission=3;notify("初狩猟成功！ ▲ 旧新宿駅へ向かえ")}
+ if(mission===0&&meals>=1){mission=1;notify("食料確保！ → 茂みで身を隠せ")}
+ if(mission===1&&hiddenHold>=.75){mission=2;notify("潜伏成功！ → 獲物を追え")}
+ if(mission===2&&kills>=1){mission=3;notify("初狩猟成功！ → 旧新宿駅へ向かえ")}
  if(mission===3&&Math.hypot(P.x-2460,P.y-1170)<115){mission=4;freeStep=0;freeTarget=meals+1;notify("探索区域に到着 / 新たな生存目標が始まる")}
  if(mission===4){
-  if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;notify("補給完了！ ▲ 次の獲物を追え")}
-  else if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;notify("生存記録 "+expedition+" / ▲ 次の食料を探せ")}
+  if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;notify("補給完了！ → 次の獲物を追え")}
+  else if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;notify("生存記録 "+expedition+" / → 次の食料を探せ")}
  }
 }
 function nearestGoal(list){
@@ -274,7 +274,7 @@ function getObjective(){
   return f?{x:f.x,y:f.y,label:"食料を取る / E"}:null;
  }
  // Keep one visible hunting objective until it is lost, killed, or truly far away.
- // Otherwise the ▲ flips between different prey every few frames.
+ // Otherwise the → flips between different prey every few frames.
  if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>760)
   huntTarget=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
  if(!huntTarget)return null;
@@ -534,11 +534,11 @@ function syncHUD(hour){
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
  const objectives=[
-  ["食料を確保せよ","▲ に従って食料へ / Eで食べる",meals],
-  ["身を隠せ","▲ の茂みで静止 / Cで潜伏",hiddenHold/.75],
-  ["獲物を仕留めろ","▲ の獲物を追い、Jで攻撃",kills],
-  ["旧新宿駅を目指せ","▲ を追って東へ進む",(P.x-1850)/540],
-  freeStep===0?["食料を補給せよ","▲ の食料を探す",0]:["狩りを続けろ","▲ の獲物を追う",0]
+  ["食料を確保せよ","方向矢印に従って食料へ / Eで食べる",meals],
+  ["身を隠せ","矢印が指す茂みで静止 / Cで潜伏",hiddenHold/.75],
+  ["獲物を仕留めろ","矢印が指す獲物を追い、Jで攻撃",kills],
+  ["旧新宿駅を目指せ","方向矢印を追って東へ進む",(P.x-1850)/540],
+  freeStep===0?["食料を補給せよ","矢印が指す食料を探す",0]:["狩りを続けろ","矢印が指す獲物を追う",0]
  ];
  const ob=objectives[Math.min(mission,4)];
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
@@ -1115,7 +1115,11 @@ function drawScene(){
  const dayCycle=(elapsed%85)/85,sunAmount=(Math.cos((dayCycle-.15)*TWO)+1)/2,nightAlpha=(1-sunAmount)*.47;
  if(!use3D){ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
  if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(229,153,73,.17)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
- if(weather==="FOG"&&!use3D){ctx.fillStyle="rgba(164,176,162,.11)";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
+ if(weather==="FOG"){
+  ctx.fillStyle="rgba(164,176,162,.11)";
+  if(use3D){ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillRect(0,0,vw,vh);ctx.restore();}
+  else ctx.fillRect(0,0,WORLD.w,WORLD.h);
+ }
  ctx.restore();
  if(weather==="RAIN"){ctx.strokeStyle="#9dc9cb5c";ctx.lineWidth=1.2;ctx.beginPath();for(const r of rain){const rx=(r.x+elapsed*r.s*.37)%vw,ry=(r.y+elapsed*r.s)%vh;ctx.moveTo(rx,ry);ctx.lineTo(rx-9,ry+r.z)}ctx.stroke()}
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
