@@ -311,7 +311,7 @@ function sense(){
 }
 function eat(){
  if(mode!=="play")return;
- if((P.groundZ||0)>20){notify("屋上からは地上の食べ物に届かない");return;}
+ if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0){notify("着地してから食べる");return;}
  let c=null,near=65;
  for(const f of carcasses){const d=dist(P,f);if(d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食べ物が近くにない");return}
@@ -449,8 +449,11 @@ function update(dt){
     const step=Math.min(P.jumpRemaining,P.jumpSpeed*dt);
     if(step>0)move(P,Math.cos(P.jumpDir)*step,Math.sin(P.jumpDir)*step);
     const covered=Math.hypot(P.x-ox,P.y-oy);
-    P.jumpTime=jumpLeft; // Move first while airborne; only then decide the landing surface.
-    P.jumpRemaining=Math.max(0,P.jumpRemaining-covered);
+    // Land when the descending body meets a reachable roof, not after falling through it.
+    const landingRoof=roofAt(P.x,P.y);
+    const touchesRoof=landingRoof>(P.groundZ||0)&&jumpLeft<=P.jumpDuration*.5&&P.jumpHeight<=landingRoof+4;
+    P.jumpTime=touchesRoof?0:jumpLeft;
+    P.jumpRemaining=touchesRoof?0:Math.max(0,P.jumpRemaining-covered);
     // A blocked first step does not cancel the entire leap.
     P.steps+=covered*.052;
     if(P.jumpTime===0){
@@ -498,7 +501,7 @@ function update(dt){
   const speed=Math.hypot(P.vx,P.vy);
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
-  P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
+  P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" ")||attackTouch)&&P.atk<=0)attack();
  
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);
