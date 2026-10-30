@@ -841,7 +841,7 @@ else if(w===14){const n=safe?4:6;for(let i=0;i<n;i++)queueEnemy('mine',W+80+i*98
  else if(w===16){for(let i=0;i<2;i++)queueEnemy('interceptor',W+110+i*130,205+i*260,{lockY:null,pattern:8});for(let i=0;i<2;i++)queueEnemy('mine',W+360+i*90,i?505:160,{pattern:8})}
  else if(w===17){queueEnemy('carrier',W+110,340,{pattern:9});for(let i=0;i<(risk?3:2);i++)queueEnemy('spinner',W+260+i*105,i%2?480:195,{pattern:9})}
  else if(w===18){for(let i=0;i<(risk?3:2);i++)queueEnemy('interceptor',W+120+i*130,i%2?470:190,{lockY:null,pattern:10});queueEnemy('tank',W+470,337,{pattern:10})}
- else if(w>=19&&w<=25)EXTRA?.wave(w,queueEnemy,W,GR,risk);
+ else if(w>=19&&w<=28)EXTRA?.wave(w,queueEnemy,W,GR,risk);
 if(risk&&s===1&&gameRandom()>.7)queueEnemy('turret',W+420,gameRandom()>.5?125:H-110);
 if(risk&&s===2&&gameRandom()>.65)queueEnemy('spinner',W+450,GR(195,480));
  if(risk&&s===6&&gameRandom()>.7)queueEnemy('turret',W+490,gameRandom()>.5?125:540);
