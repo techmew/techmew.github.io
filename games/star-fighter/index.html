@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#050b19">
 <meta name="description" content="STAR FIGHTER — 8ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
-<link rel="stylesheet" href="./style.css?v=secret-silent-20261030-1">
+<link rel="stylesheet" href="./style.css?v=debug-boss-only-20261030-1">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,6 +38,9 @@
  <section class="debug-panel" id="debugPanel" hidden aria-label="隠しデバッグメニュー">
  <strong>DEBUG MODE — 無敵・記録対象外</strong>
  <div class="debug-controls">
+  <label for="debugPlayMode">対戦モード</label><select id="debugPlayMode" aria-label="デバッグ対戦モード"><option value="stage">ステージ攻略</option><option value="boss">ボス対決のみ</option></select>
+ </div>
+ <div class="debug-controls" id="debugStageControls">
   <label for="debugStage">ステージ</label><select id="debugStage" aria-label="開始するステージ">
    <option value="0">1 · ORBITAL FIELD</option><option value="1">2 · IRON CORRIDOR</option>
    <option value="2">3 · DEEP NEBULA</option><option value="3">4 · BURNING STRATUM</option>
@@ -45,8 +48,28 @@
    <option value="6">7 · ABYSSAL GATE</option><option value="7">8 · LAST HORIZON</option>
   </select>
   <label for="debugRoute">航路</label><select id="debugRoute" aria-label="開始航路"><option value="0">補給</option><option value="1">高危険</option></select>
-  <button id="debugLaunch" type="button">無敵で開始／ステージ移動</button>
- </div><small>タイトルで解放後は一時停止中も移動可。ハイスコア・記章・セーブは更新しません。</small>
+ </div>
+ <div class="debug-controls" id="debugBossControls" hidden>
+  <label for="debugBoss">対戦ボス</label><select id="debugBoss" aria-label="対戦するボス">
+   <option value="0:0">01 · BATTLE CRUISER</option>
+   <option value="1:0">02 · KRAKEN ENGINE（メカタコ）</option>
+   <option value="1:1">02 · FORTRESS CORE</option>
+   <option value="2:0">03 · ABYSS TITAN</option>
+   <option value="2:1">03 · IRON TYRANT</option>
+   <option value="3:0">04 · MOLTEN CRAB</option>
+   <option value="3:1">04 · SOLAR WYRM</option>
+   <option value="4:0">05 · FROST MAMMOTH</option>
+   <option value="4:1">05 · GLACIAL LEVIATHAN</option>
+   <option value="5:0">06 · RELIC CENTIPEDE</option>
+   <option value="5:1">06 · OBSIDIAN WARDEN</option>
+   <option value="6:0">07 · AETHER JELLYFISH</option>
+   <option value="6:1">07 · RIFT MEDUSA</option>
+   <option value="7:0">08 · HORIZON ARK</option>
+   <option value="7:1">08 · SINGULARITY EMPEROR</option>
+  </select>
+ </div>
+ <div class="debug-controls"><button id="debugLaunch" type="button">無敵で開始／ステージ移動</button></div>
+ <small>ボス対決：全15種類から選択して即戦闘。撃破後は同じボスに再戦するか、別のボスに変更できます。無敵デバッグでは記章・トロフィー・スコア・セーブに反映しません。</small>
 </section><div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再出撃 ↻</button></div>
  <section class="run-result" id="runResult" aria-label="今回の戦績" hidden>
  <div class="run-result-top"><div><small>SCORE</small><strong id="resultScore">0</strong></div><div><small>BEST</small><strong id="resultBest">0</strong></div><div><small>SECTOR</small><strong id="resultSector">1 / 8</strong></div></div>
@@ -118,7 +141,7 @@
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
 <script src="./trophies.js?v=trophies-20261030-1"></script>
-<script src="./game.js?v=secret-silent-20261030-1"></script>
+<script src="./game.js?v=debug-boss-only-20261030-1"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
