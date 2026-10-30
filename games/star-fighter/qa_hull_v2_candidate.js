@@ -752,7 +752,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  // 16/36: 2,000-seed per-route rarity/risk sampling and full grant effects.
  const specialSeen=new Set(),specialCounts={safe:0,storm:0};
  G.stage=1;G.passives=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
- G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=10;
+ G.player.hp=78;G.player.shield=2;G.lives=0;G.energy=2;G.pulses=2;G.driveCharge=10;
  for(const [risk,key] of [[0,'safe'],[1,'storm']]){
   G.routeRisk=risk;
   for(let j=0;j<2000;j++){
@@ -781,30 +781,30 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }
  // Test each grant with a real route-gate transition and valid checkpoint.
  const expected={
-  rare_arsenal:[0,1,2,2,2,0,0,0,2],
-  rare_reactor:[0,1,2,3,2,45,0,0,0],
-  rare_rescue:[0,2,0,2,3,0,0,0,0],
-  rare_focus:[0,2,2,1,2,15,1,0,0],
-  storm_bounty:[0,1,5,2,2,25,0,0,0],
-  storm_gamble:[0,2,2,2,1,25,0,0,1],
-  safe_refit:[0,3,2,2,3,0,0,0,0],
-  safe_supply:[0,2,3,3,2,0,0,0,0]
+   rare_arsenal:[0,1,2,2,78,0,0,0,2],
+   rare_reactor:[0,1,2,3,78,45,0,0,0],
+   rare_rescue:[0,2,0,2,120,0,0,0,0],
+   rare_focus:[0,2,2,1,78,15,1,0,0],
+   storm_bounty:[0,1,5,2,78,25,0,0,0],
+   storm_gamble:[0,2,2,2,56,25,0,0,1],
+   safe_refit:[0,3,2,2,105,0,0,0,0],
+   safe_supply:[0,2,3,3,78,0,0,0,0]
  };
+ G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
  for(const [id,want] of Object.entries(expected)){
   const risk=id.startsWith('storm_')?1:0;
   G.stage=1;G.routeRisk=risk;G.mode='reward';G.runSeed=1234;
   G.routeHistory=[{stage:2,route:'test',risk,event:'cache',eventName:'cache',chain:false}];
   G.rewardHistory=[{stage:0,id:'score',name:'score'}];
-  G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
+  G.player.hp=78;G.player.shield=2;G.lives=0;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
   G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];
   q.chooseReward(0);
-  ok(G.mode==='route'&&G.rewardHistory.length===2,'special claim route checkpoint '+id);
-  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives-2,G.pendingUpgrades[1]];
-  const exp=[...want];if(id==='rare_rescue')exp[7]=1;
-  ok(JSON.stringify(got)===JSON.stringify(exp),'special effect '+id+': '+JSON.stringify(got));
-  ok(q.readCheckpoint()?.mode==='route','special reward checkpoint '+id);
-  ok(q.readCheckpoint()?.pendingUpgrades?.[1]===G.pendingUpgrades[1],'special voucher saved '+id);
+  ok(G.mode==='route'&&G.rewardHistory.length===2,'hull reward checkpoint '+id);
+  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives,G.pendingUpgrades[1]];
+  ok(JSON.stringify(got)===JSON.stringify(want),'hull reward effect '+id+': '+JSON.stringify(got));
+  ok(q.readCheckpoint()?.mode==='route'&&q.readCheckpoint()?.v===2,'v2 reward saved '+id);
+  ok(q.readCheckpoint()?.pendingUpgrades?.[1]===G.pendingUpgrades[1],'voucher saved '+id);
  }
  // Boss-flight reward is chosen by Y lane, but levels MUST wait for a user tap.
  G.stage=1;G.routeRisk=0;G.mode='reward';G.rewardHistory=[{stage:0,id:'score',name:'score'}];
