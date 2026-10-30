@@ -17,3 +17,8 @@
 @media (pointer:coarse),(max-width:850px){#mission-guide{font-size:9px;padding:5px 4px;margin-top:6px}#instinct-touch{width:62px;height:62px}}
 @media (max-width:520px){#instinct-touch{width:53px;height:53px}#instinct-touch span{font-size:20px}#mission{width:184px}#mission-guide{font-size:8px}}
 @media (max-height:520px) and (orientation:landscape){#mission-guide{font-size:8px;margin-top:4px;padding:4px}#mission{width:210px}}
+
+/* Optional native WebGL layer. Gameplay and 2D HUD remain independent. */
+#scene3d{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:0}
+#scene{z-index:1;pointer-events:none}
+#vignette{z-index:2}
