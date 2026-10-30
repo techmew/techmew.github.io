@@ -143,8 +143,145 @@ const invulnerablePracticeBoss=()=>G.debugMode===true&&G.debugBossOnly===true;
 function damageBoss(b,damage){
  if(!b||!Number.isFinite(damage)||damage<=0)return;
  if(invulnerablePracticeBoss()){b.hp=b.maxHp;return}
+ if(bossMoveGuarded(b))return;
  b.hp-=damage;
 }
+
+/* Distinct visual and mechanical moves for all 16 bosses, four each.
+   Telegraph >=.65s precedes physical collision, and guarded shells genuinely
+   block player damage. Original projectile attacks remain the baseline. */
+const BOSS_SPECIAL_MOVES=Object.freeze({
+"BATTLE CRUISER":Object.freeze([{"label":"主砲レール伸長","type":"extend"},{"label":"可動副砲旋回","type":"orbit"},{"label":"格納庫デコイ","type":"mine"},{"label":"艦体防御シャッター","type":"guard"}]),
+"KRAKEN ENGINE":Object.freeze([{"label":"八腕触手伸縮","type":"tentacle"},{"label":"交差触手拘束","type":"pincer"},{"label":"吸引渦","type":"vortex"},{"label":"触手砲台旋回","type":"orbit"}]),
+"FORTRESS CORE":Object.freeze([{"label":"防護壁閉鎖","type":"guard"},{"label":"中央貫通レール","type":"beam"},{"label":"分離砲台旋回","type":"orbit"},{"label":"左右砲塔挟撃","type":"pincer"}]),
+"ABYSS TITAN":Object.freeze([{"label":"空間圧縮渦","type":"vortex"},{"label":"次元跳躍","type":"warp"},{"label":"衝撃環","type":"ring"},{"label":"深淵裂け目","type":"wall"}]),
+"IRON TYRANT":Object.freeze([{"label":"顎の伸縮砲","type":"neck"},{"label":"装甲尾撃","type":"whip"},{"label":"重装甲防御","type":"guard"},{"label":"脚部突進","type":"charge"}]),
+"MOLTEN CRAB":Object.freeze([{"label":"溶融ハサミ挟撃","type":"pincer"},{"label":"甲殻防御","type":"guard"},{"label":"熱噴出口壁","type":"wall"},{"label":"多脚横滑り","type":"charge"}]),
+"SCORPION DREAD":Object.freeze([{"label":"プラズマ尾針","type":"tail"},{"label":"両ハサミ捕獲","type":"pincer"},{"label":"地中潜行","type":"warp"},{"label":"連続刺突","type":"whip"}]),
+"SOLAR WYRM":Object.freeze([{"label":"竜首伸長","type":"neck"},{"label":"翼の爆炎","type":"wave"},{"label":"恒星フレア","type":"ring"},{"label":"火炎急降下","type":"charge"}]),
+"FROST MAMMOTH":Object.freeze([{"label":"氷牙伸長","type":"neck"},{"label":"氷壁形成","type":"wall"},{"label":"氷晶機雷","type":"mine"},{"label":"重量踏み潰し","type":"charge"}]),
+"GLACIAL LEVIATHAN":Object.freeze([{"label":"長首伸縮","type":"neck"},{"label":"流氷圧縮波","type":"wave"},{"label":"冷却ブレス","type":"beam"},{"label":"翼ひれ挟撃","type":"pincer"}]),
+"RELIC CENTIPEDE":Object.freeze([{"label":"多節胴体締め付け","type":"coil"},{"label":"節砲掃射","type":"orbit"},{"label":"多脚壁走り","type":"charge"},{"label":"機械輪列","type":"ring"}]),
+"OBSIDIAN WARDEN":Object.freeze([{"label":"四腕封鎖","type":"pincer"},{"label":"石装甲封印","type":"guard"},{"label":"封印光線","type":"beam"},{"label":"石腕の振り下ろし","type":"whip"}]),
+"AETHER JELLYFISH":Object.freeze([{"label":"透過触手伸縮","type":"tentacle"},{"label":"電磁浮遊環","type":"ring"},{"label":"発光機雷","type":"mine"},{"label":"傘膜収縮","type":"wave"}]),
+"RIFT MEDUSA":Object.freeze([{"label":"位相転移","type":"warp"},{"label":"鏡像交差","type":"mirror"},{"label":"次元裂け目壁","type":"wall"},{"label":"石化光線","type":"beam"}]),
+"HORIZON ARK":Object.freeze([{"label":"格納庫放出","type":"mine"},{"label":"艦体防護モジュール","type":"guard"},{"label":"衛星アーム旋回","type":"orbit"},{"label":"航路レーザー","type":"beam"}]),
+"SINGULARITY EMPEROR":Object.freeze([{"label":"重力井戸","type":"vortex"},{"label":"黒点ワープ","type":"warp"},{"label":"事象環回転","type":"orbit"},{"label":"終末光格子","type":"wall"}])
+});
+function bossMoveGuarded(b){
+ const s=b?.specialMove;return s?.type==='guard'&&s.elapsed>=s.warning&&s.elapsed<s.warning+s.duration;
+}
+function startBossMove(b){
+ const list=BOSS_SPECIAL_MOVES[b.name];if(!list||b.x>980)return;
+ const move=list[b.pattern%4];
+ b.specialMove={
+  label:move.label,type:move.type,index:b.pattern%4,elapsed:0,warning:.72,
+  duration:move.type==='guard'?1.7:move.type==='beam'?1:.68,
+  targetY:cl(p.y,112,H-112),warpY:cl(p.y+(b.pattern%2?84:-84),152,H-152),
+  started:false,active:false,color:G.stage>=6?'#d6aaff':G.stage===4?'#a9eaff':G.stage===3?'#ffce92':'#b4ffea'
+ };
+}
+function bossMoveStep(b,dt){
+ const s=b.specialMove;if(!s)return;
+ s.elapsed+=dt;s.active=s.elapsed>=s.warning&&s.elapsed<s.warning+s.duration;
+ if(s.active&&!s.started){
+  s.started=true;
+  const bx=b.x-145,yy=b.y,fire=(x,y,a,vel=202,size=4.5)=>
+   bullet(x,y,a,vel+G.stage*2,size,s.color);
+  const aimed=(x,y)=>Math.atan2(p.y-y,p.x-x);
+  if(s.type==='orbit'||s.type==='ring'){
+   for(let i=0;i<10;i++){if(i===2||i===7)continue;
+    fire(bx,yy,TAU*i/10+b.t*(s.type==='orbit'?.38:.13),s.type==='orbit'?187:171,4)}
+  }else if(s.type==='mine'){
+   for(let k=-2;k<=2;k++)if(k!==0)fire(bx,yy+k*47,Math.PI+k*.09,173);
+  }else if(s.type==='wall'||s.type==='wave'){
+   for(let k=0;k<8;k++)if(k!==3&&k!==4){
+    const y=cl(98+k*74,95,H-95);
+    fire(bx,y,Math.PI+(k%2?.1:-.1),s.type==='wall'?185:202);
+   }
+  }else if(s.type==='vortex'){
+   for(const side of [-1,1])for(const off of [.18,.40,.62])
+    fire(bx,yy,aimed(bx,yy)+side*off,187);
+  }else if(s.type==='tail'){
+   const y=yy-115,a=aimed(bx-65,y);
+   for(const offset of [-.24,0,.24])fire(bx-65,y,a+offset,231,5);
+  }else if(s.type==='mirror'){
+   for(const side of [-1,1])for(const k of [0,1]){
+    const y=cl(yy+side*100,97,H-97);
+    fire(bx,y,aimed(bx,y)+side*(.14+k*.18),210);
+   }
+  }else if(s.type==='coil'){
+   for(let k=-2;k<=2;k++)fire(bx,yy+k*48,aimed(bx,yy+k*48)+k*.10,205);
+  }else if(s.type==='warp'){
+   for(const side of [-1,1])fire(bx,s.warpY+side*37,aimed(bx,s.warpY+side*37),199);
+  }else if(s.type==='guard'){
+   for(const side of [-1,1])fire(bx,yy+side*95,Math.PI+side*.15,181);
+  }else if(s.type==='beam'){
+   b.charge=Math.max(.8,b.charge||0);b.beamY=s.targetY;
+  }
+ }
+ if(s.type==='warp'&&s.active)b.y+=(s.warpY-b.y)*Math.min(1,dt*7);
+ if(s.type==='charge'&&s.active)b.x=Math.max(745,b.x-195*dt);
+ if(s.type==='vortex'&&s.active)for(const shot of G.bullets){
+  const vx=b.x-100-shot.x,vy=b.y-shot.y,r=Math.hypot(vx,vy)||1;
+  if(r<260){shot.vx+=vx/r*dt*14;shot.vy+=vy/r*dt*14}
+ }
+ if(s.active&&p.x<b.x-90&&p.x>120){
+  if(['tentacle','extend','neck'].includes(s.type)){
+   if(Math.abs(p.y-s.targetY)<17)hitPlayer(1);
+  }else if(s.type==='pincer'){
+   if(Math.abs(Math.abs(p.y-s.targetY)-47)<16)hitPlayer(1);
+  }else if(s.type==='whip'||s.type==='coil'){
+   if(Math.abs(p.y-(s.targetY+Math.sin(s.elapsed*10)*40))<16)hitPlayer(1);
+  }
+ }
+ if(s.elapsed>s.warning+s.duration+.35)b.specialMove=null;
+}
+function drawBossSpecial(b){
+ const s=b?.specialMove;if(!s)return;
+ const active=s.active,warn=s.elapsed<s.warning,
+  fraction=cl((s.elapsed-s.warning)/s.duration,0,1),col=s.color;
+ const x=b.x-105,y=b.y,endX=warn?x-90:145+(1-fraction)*75;
+ c.save();c.globalAlpha=warn?.47+.2*Math.sin(G.time*16):active?.96:.18;
+ if(['tentacle','extend','neck','whip','coil'].includes(s.type)){
+  const targetY=s.type==='whip'||s.type==='coil'?s.targetY+Math.sin(s.elapsed*10)*40:s.targetY;
+  c.beginPath();c.moveTo(x,y);c.strokeStyle=col;c.lineWidth=s.type==='neck'?25:18;
+  if(s.type==='tentacle'||s.type==='coil')
+   c.bezierCurveTo(x-120,y+60,endX+100,targetY-70,endX,targetY);
+  else c.lineTo(endX,targetY);
+  c.stroke();
+  for(let k=0;k<(s.type==='neck'?6:3);k++){
+   const px=x+(endX-x)*k/6,py=y+(targetY-y)*k/6;
+   ellipse(px,py,10,13,'#29495e',col,2);
+  }
+  glowCircle(endX,targetY,17,col,14);
+ }else if(s.type==='pincer'){
+  for(const side of [-1,1]){
+   const py=s.targetY+side*47;
+   c.strokeStyle=col;c.lineWidth=17;c.beginPath();c.moveTo(x,y+side*72);
+   c.lineTo((x+endX)/2,y+side*110);c.lineTo(endX,py);c.stroke();
+   glowCircle(endX,py,15,col,12);
+  }
+ }else if(s.type==='guard'){
+  ellipse(b.x-10,b.y,140,118,active?'#263e4ddd':'#2d384777',col,active?9:3);
+  for(let i=0;i<6;i++){const a=i*TAU/6+b.t*.2;
+   glowCircle(b.x-10+Math.cos(a)*115,b.y+Math.sin(a)*93,8,col,10)}
+ }else if(s.type==='warp'||s.type==='mirror'){
+  ellipse(b.x-130,s.warpY,94,48,'#313b6b22',col,4);
+  glowCircle(b.x-130,s.warpY,16,col,20);
+ }else if(s.type==='charge'){
+  line(b.x-120,y-90,b.x-120,y+90,col,9);
+  for(const side of [-1,1])glowCircle(b.x-120,y+side*92,13,col,12);
+ }else{
+  const radius=s.type==='vortex'?100:s.type==='ring'||s.type==='orbit'?88:61,
+   cy=s.type==='tail'?y-113:y;
+  c.beginPath();c.arc(x-30,cy,radius,0,TAU);c.strokeStyle=col;c.lineWidth=3;c.stroke();
+  for(let j=0;j<4;j++){const a=j*TAU/4+b.t*.8;
+   glowCircle(x-30+Math.cos(a)*radius,cy+Math.sin(a)*radius,6,col,6)}
+ }
+ c.restore();
+}
+
 function applyShotSynergy(shot,target){
  if(shot.kind==='laser'&&synergyActive(1)&&!shot.driveCharged){
   shot.driveCharged=true;chargeDrive(.7*passiveRank(2));
@@ -1098,6 +1235,7 @@ function routeBossAttack(b){
  return true;
 }
 function bossAttack(b){
+startBossMove(b);
 if(routeBossAttack(b))return;
 if(b.variant&&b.variant!=='original'){creatureBossAttack(b);return}
 if(b.x>980)return;
@@ -1719,7 +1857,8 @@ if(G.stage===7&&b.phase===1&&(practice?practiceCycle>=36:b.hp<=b.maxHp*.32)){
 }
 if(b.charge>0){b.charge-=dt;if(b.charge<=0){b.beam=.62;screenPulse=.2;tone(105,.4,'sawtooth',.07,-70)}}
 if(b.beam>0){b.beam-=dt;if(p.x<b.x-75&&Math.abs(p.y-b.beamY)<27)hitPlayer(1)}
-b.fire-=dt*(practice?1.25:1);if(b.fire<=0)bossAttack(b);
+bossMoveStep(b,dt);
+ b.fire-=dt*(practice?1.25:1);if(b.fire<=0)bossAttack(b);
 if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
 if(!practice&&b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
 }
@@ -2241,7 +2380,7 @@ function drawHostileBullet(a){
 function drawScene(){c.save();if(G.shake>.2)c.translate(R(-G.shake,G.shake),R(-G.shake,G.shake));drawBackground();if(G.mode==='title'){drawShip(274,344,0,0);for(let i=0;i<4;i++){const e={x:750+i*122,y:210+i*90,type:i%2?'scout':'spinner',t:G.time*.7,phase:i};drawEnemy(e)}}
 else{for(const q of G.pickups){c.save();c.translate(q.x,q.y);c.rotate(q.t*1.5);c.shadowColor=q.type==='elite'?'#c9a5ff':q.type==='pulse'?'#ffcb60':'#7dfff8';c.shadowBlur=22;poly([0,-18,18,0,0,18,-18,0],q.type==='elite'?'#5d438e':q.type==='pulse'?'#9e7129':'#157881',q.type==='elite'?'#f2ddff':q.type==='pulse'?'#fff3a0':'#d4fff7',2);c.font='bold 18px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#f5ffff';c.rotate(-q.t*1.5);c.fillText(q.type==='elite'?'✦':q.type==='pulse'?'✹':'P',0,1);c.restore()}
 drawTerrain();drawEnemyWindup();drawFlightGate();
-for(const e of G.enemies){drawEnemy(e);if(e.eventDrop){c.save();c.globalAlpha=.72;c.strokeStyle='#ffec99';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,43+Math.sin(G.time*5)*3,0,TAU);c.stroke();c.restore()}}if(G.boss){drawBoss(G.boss);drawBossBeam(G.boss)}
+for(const e of G.enemies){drawEnemy(e);if(e.eventDrop){c.save();c.globalAlpha=.72;c.strokeStyle='#ffec99';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,43+Math.sin(G.time*5)*3,0,TAU);c.stroke();c.restore()}}if(G.boss){drawBoss(G.boss);drawBossSpecial(G.boss);drawBossBeam(G.boss)}
 for(const s of G.shots){c.save();c.lineCap='round';if(s.kind==='laser'){line(s.x-95,s.y,s.x+24,s.y,'#178fff',14);line(s.x-105,s.y,s.x+24,s.y,'#83faff',6);line(s.x-105,s.y,s.x+28,s.y,'#fff',2)}else if(s.kind==='missile'){poly([s.x+12,s.y,s.x-13,s.y-7,s.x-8,s.y,s.x-13,s.y+7],'#ffbc81','#fff1b4',1);line(s.x-28,s.y+R(-2,2),s.x-10,s.y,'#ff954d',5)}else{line(s.x-20,s.y-s.vy*.012,s.x+12,s.y+s.vy*.012,'#55d6ff',s.kind==='shot'?6:3.5);line(s.x-16,s.y,s.x+14,s.y,'#d4fbff',2)}c.restore()}
 for(const a of G.bullets)drawHostileBullet(a)
 for(let i=G.levels[4]-1;i>=0;i--){let tr=G.trail[Math.min(G.trail.length-1,17+i*24)];if(tr)drawDrone(tr.x-9,tr.y,i)}drawShip(p.x,p.y,p.angle,p.invul);
