@@ -1854,7 +1854,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    'warp','ring','wall','neck','whip','charge','tail','wave','coil','mirror']);
   ok(names.every(name=>q.BOSS_SPECIAL_MOVES[name].every(x=>accepted.has(x.type))),
    'every special attack maps to a real mechanical effect');
-  let tested=0,activated=0,guarded=0;
+  let tested=0,activated=0,guarded=0;const trajectories=new Set();
   for(const entry of q.DEBUG_BOSS_ROSTER){
    G.mode='playing';G.debugMode=false;G.debugBossOnly=false;
    G.runSeed=9811;G.stage=entry.stage;G.routeRisk=entry.risk;
@@ -1870,6 +1870,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    for(let pattern=0;pattern<4;pattern++){
     b.phase=0;b.pattern=pattern;b.specialMove=null;b.charge=0;b.beam=0;b.t=2;
     G.bullets=[];q.bossAttack(b);
+    const baseProjectiles=G.bullets.length;
     const expected=q.BOSS_SPECIAL_MOVES[entry.name][pattern],m=b.specialMove;
     ok(m?.label===expected.label&&m.type===expected.type&&m.index===pattern,
      'correct distinct mechanical move '+entry.name+'/'+pattern);
@@ -1879,6 +1880,14 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
     q.bossMoveStep(b,.40);
     ok(m.started&&m.active,'active mechanic starts only after windup '+entry.name+'/'+pattern);
     q.drawBossSpecial(b);activated++;
+    ok(m.pulses>=1,'first signature volley after warning '+entry.name+'/'+pattern);
+    q.bossMoveStep(b,m.duration*.62);
+    ok(m.pulses===2,'two readable timed volleys '+entry.name+'/'+pattern);
+    const newShots=G.bullets.slice(baseProjectiles);
+    ok(newShots.length>0&&newShots.every(a=>[a.x,a.y,a.vx,a.vy].every(Number.isFinite)),
+     'scripted projectiles exist with finite vectors '+entry.name+'/'+pattern);
+    if(pattern===0)trajectories.add(JSON.stringify(newShots.slice(0,12).map(a=>
+     [a.x,a.y,Math.round(a.vx),Math.round(a.vy),a.curve||0])));
     if(m.type==='guard'){
      const hp=b.hp;q.damageBoss(b,150);
      ok(b.hp===hp&&q.bossMoveGuarded(b),'shell closure prevents player damage '+entry.name);
@@ -1888,13 +1897,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
      ok(b.hp===hp-150,'boss can be damaged again after opening shell');guarded++;
      b.hp=hp;
     }
-    ok(G.bullets.length<=140,'readable bullet ceiling on special attack '+entry.name+'/'+pattern);
+    ok(G.bullets.length<=100,'readable bullet ceiling on special attack '+entry.name+'/'+pattern);
     tested++;
    }
    G.boss=null;
   }
-  ok(tested===68&&activated===68&&guarded>=5,'68 actions and at least five defensive moves tested');
-  stats.specialBosses={bosses:17,uniqueActions:68,telegraphed:68,guardDefenses:guarded};
+  ok(tested===68&&activated===68&&guarded>=5&&trajectories.size===17,'all 68 moves and 17 unique boss trajectories tested');
+  stats.specialBosses={bosses:17,uniqueActions:68,telegraphed:68,uniqueTrajectories:trajectories.size,guardDefenses:guarded};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
