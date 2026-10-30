@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -1840,6 +1840,61 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   stats.hullV2={seeds:100,stageRouteCases:tested,shipLevelCap:25,
    startHull:120,endLevelMaxHull:312,oldCheckpointConverted:true,extraLives:false,
    humanClearRate:'not measured'};
+ }
+ // Four original special actions per boss: actual animations, warning,
+ // guard mechanics and hitbox geometry are exercised without claiming
+ // hardware frame-rate or human playtest results.
+ {
+  const names=Object.keys(q.BOSS_SPECIAL_MOVES);
+  ok(names.length===16,'all sixteen bosses have bespoke special move catalogs');
+  ok(names.every(name=>q.BOSS_SPECIAL_MOVES[name].length===4),'every boss has four attack actions');
+  const all=names.flatMap(name=>q.BOSS_SPECIAL_MOVES[name].map(move=>name+'::'+move.label));
+  ok(all.length===64&&new Set(all).size===64,'sixty-four distinct named attack actions');
+  const accepted=new Set(['extend','orbit','mine','guard','tentacle','pincer','vortex','beam',
+   'warp','ring','wall','neck','whip','charge','tail','wave','coil','mirror']);
+  ok(names.every(name=>q.BOSS_SPECIAL_MOVES[name].every(x=>accepted.has(x.type))),
+   'every special attack maps to a real mechanical effect');
+  let tested=0,activated=0,guarded=0;
+  for(const entry of q.DEBUG_BOSS_ROSTER){
+   G.mode='playing';G.debugMode=false;G.debugBossOnly=false;
+   G.runSeed=9811;G.stage=entry.stage;G.routeRisk=entry.risk;
+   G.routeHistory=Array.from({length:entry.stage},(_,i)=>({
+    stage:i+2,risk:i===entry.stage-1?entry.risk:0,
+    route:'test',event:'none',eventName:'none',chain:false}));
+   G.forcedBossVariant=entry.variant||null;G.activeEvent=null;G.bullets=[];G.enemies=[];
+   G.boss=null;G.bossDone=false;G.transitioning=false;G.player.invul=999;
+   G.player.hp=120;G.player.maxHp=120;G.player.x=215;G.player.y=337;
+   q.spawnBoss();G.boss.x=930;G.boss.y=337;G.boss.fire=0;
+   const b=G.boss;
+   ok(b?.name===entry.name,'specials are attached to correct boss '+entry.name);
+   for(let pattern=0;pattern<4;pattern++){
+    b.phase=0;b.pattern=pattern;b.specialMove=null;b.charge=0;b.beam=0;b.t=2;
+    G.bullets=[];q.bossAttack(b);
+    const expected=q.BOSS_SPECIAL_MOVES[entry.name][pattern],m=b.specialMove;
+    ok(m?.label===expected.label&&m.type===expected.type&&m.index===pattern,
+     'correct distinct mechanical move '+entry.name+'/'+pattern);
+    ok(m.warning>=.65&&!m.started&&!m.active,'no instant untelegraphed special hit');
+    q.bossMoveStep(b,.35);ok(!m.started&&!m.active,'warning stays visible '+entry.name+'/'+pattern);
+    q.drawBossSpecial(b);
+    q.bossMoveStep(b,.40);
+    ok(m.started&&m.active,'active mechanic starts only after windup '+entry.name+'/'+pattern);
+    q.drawBossSpecial(b);activated++;
+    if(m.type==='guard'){
+     const hp=b.hp;q.damageBoss(b,150);
+     ok(b.hp===hp&&q.bossMoveGuarded(b),'shell closure prevents player damage '+entry.name);
+     q.bossMoveStep(b,2.0);
+     ok(!q.bossMoveGuarded(b),'armor protection has finite duration');
+     q.damageBoss(b,150);
+     ok(b.hp===hp-150,'boss can be damaged again after opening shell');guarded++;
+     b.hp=hp;
+    }
+    ok(G.bullets.length<=140,'readable bullet ceiling on special attack '+entry.name+'/'+pattern);
+    tested++;
+   }
+   G.boss=null;
+  }
+  ok(tested===64&&activated===64&&guarded>=4,'64 actions and at least four defensive moves tested');
+  stats.specialBosses={bosses:16,uniqueActions:64,telegraphed:64,guardDefenses:guarded};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
