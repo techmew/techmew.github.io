@@ -755,3 +755,8 @@ html,body{overscroll-behavior:none}
  #shell .trophy-filters{padding:5px 0}
  #shell .trophy-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
 }
+
+/* Debug boss-only menu: native select, no new buttons in the combat area. */
+#shell .debug-controls[hidden]{display:none!important}
+#shell #debugPlayMode,#shell #debugBoss{flex:1 1 190px;width:100%;min-width:0;max-width:100%}
+#shell #debugBossControls label{white-space:nowrap}
