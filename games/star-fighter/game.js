@@ -202,6 +202,7 @@ function updateMedalButton(){
  b.title='タップで切替。'+MEDALS.map(x=>x.name+'：'+x.hint).join(' / ');
 }
 function unlockMedal(id){
+ if(G.debugMode)return false;
  if(!MEDALS.some(m=>m.id===id)||medalState.unlocked.includes(id))return false;
  medalState.unlocked.push(id);if(!medalState.active)medalState.active=id;
  saveMedals();updateMedalButton();showToast('記章解禁 · '+MEDALS.find(m=>m.id===id).name);return true;
@@ -241,7 +242,7 @@ function updateContinueButton(){
   continueInfo.textContent='SEED '+seedHex(d.runSeed)+' · セクター開始地点から再開'}
 }
 function saveCheckpoint(mode='sector'){
- if(!['playing','route','reward'].includes(G.mode))return;
+ if(G.debugMode||!['playing','route','reward'].includes(G.mode))return;
  const d={v:1,mode,stage:G.stage,runSeed:G.runSeed,score:Math.max(0,Math.floor(G.score)),
   lives:G.lives,pulses:G.pulses,pulseRecharge:Math.floor(G.pulseRecharge),energy:G.energy,selected:G.selected,levels:G.levels.slice(),pendingUpgrades:G.pendingUpgrades.slice(),
   routeRisk:G.routeRisk,routeHistory:G.routeHistory.map(r=>({...r})),rewardHistory:G.rewardHistory.map(r=>({...r})),passives:G.passives.slice(),
@@ -271,6 +272,7 @@ continueBtn.addEventListener('click',resumeCheckpoint);
 
 const KEY={};let audio=null,bgm=null,sound=true,last=0,screenPulse=0,stickX=0,stickY=0,stickPointer=null,pausedByRotation=false;
 const G={mode:'title',time:0,total:0,stage:0,stageTime:0,scroll:0,spawn:0,score:0,best:0,combo:0,comboTime:0,lives:3,pulses:2,pulseRecharge:0,energy:0,selected:0,levels:[0,0,0,0,0,0],pendingUpgrades:[0,0,0,0,0,0],boss:null,bossDone:false,transition:0,transitioning:false,flowPhase:null,shots:[],enemies:[],bullets:[],pickups:[],particles:[],rings:[],stars:[],player:null,trail:[],shake:0,announceTime:0,toastTime:0,fireTimer:0,missileTimer:0,musicTime:0,beat:0,uiTime:0,firstInput:false,driveCharge:0,overdrive:0,grazes:0,maxCombo:0,killCount:0,routeRisk:0,routeHistory:[],routeSelected:0,runSeed:0,routeOffers:[],rewardOffers:[],rewardSelected:0,rewardHistory:[],passives:[0,0,0,0,0,0],activeEvent:null,eventTriggered:false,eventChain:false,eventCount:0,pendingWave:null,waveSerial:0,squadAttackCooldown:0,aiVolleys:0,directorGrace:0,directorWaveCount:0,terrain:null,terrainSchedule:[],terrainIndex:0,ambientTimer:.6,eliteSpawned:false,routePatrolSpawned:false};
+G.debugMode=false;
 try{G.best=Number(localStorage.getItem('star_fighter_best')||0)||0;sound=localStorage.getItem('star_fighter_sound')!=='off'}catch(e){}
 const SOUND_MIXES=[{name:'標準',music:1,effects:1},{name:'BGM重視',music:1.2,effects:.55},{name:'効果音重視',music:.55,effects:1.2}];
 let soundMix=0,mixHoldTimer=null,suppressMixClick=false;
@@ -306,11 +308,57 @@ function updateRunResult(kind){
  set('resultRoutes',G.routeHistory.map(r=>'S'+String(r.stage).padStart(2,'0')+' '+(r.risk?'高危険':'補給')+' · '+r.route).join(' / ')||'分岐なし');
  set('resultRewards',G.rewardHistory.map(r=>'S'+String(r.stage+1).padStart(2,'0')+' '+r.name).join(' / ')||'獲得なし');
 }
-function showOverlay(kind){updateRunResult(kind);ui.overlay.dataset.state=kind;$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();if(quickHelp)quickHelp.open=false;seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で出撃 <span>▶</span>'}}
+function showOverlay(kind){updateRunResult(kind);ui.overlay.dataset.state=kind;$('debugPanel').hidden=!(debugUnlocked&&(kind==='title'||kind==='pause'));$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();if(quickHelp)quickHelp.open=false;seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で出撃 <span>▶</span>'}}
+
+/* Secret diagnostic: seven title-mark clicks in 4.2 s, session-only.
+   Jumping routes leaves the normal save, score and medals untouched. */
+let debugUnlocked=false,debugTapCount=0,debugTapTime=-Infinity;
+const debugPanel=$('debugPanel'),debugStage=$('debugStage'),debugRoute=$('debugRoute');
+$('debugTrigger').addEventListener('click',()=>{
+ if(G.mode!=='title')return;
+ const now=performance.now();
+ if(now-debugTapTime>4200)debugTapCount=0;
+ debugTapTime=now;
+ if(++debugTapCount>=7){debugTapCount=0;debugUnlocked=true;debugPanel.hidden=false;
+  tone(750,.11,'triangle',.045,300)}
+});
+function debugJumpTo(stage,risk=0){
+ if(!G.debugMode||G.mode!=='playing'||!Number.isInteger(stage)||stage<0||stage>=NAMES.length)return false;
+ risk=risk===1?1:0;
+ G.stage=stage;G.routeHistory=[];G.rewardHistory=[];
+ for(let i=0;i<stage;i++){
+  const route=i===stage-1?risk:0,offer=routeOffer(i,route);
+  G.routeHistory.push({stage:i+2,route:offer.name,risk:route,event:offer.event.id,
+   eventName:offer.event.name,chain:offer.chain});
+ }
+ G.routeRisk=stage?risk:0;
+ const chosen=stage?routeOffer(stage-1,risk):null;
+ G.activeEvent=chosen?.event||null;G.eventChain=!!chosen?.chain;
+ G.eventTriggered=false;G.eventCount=0;
+ G.stageTime=0;G.scroll=stage*1800;G.spawn=.42*routeProfile().spawnInterval;G.ambientTimer=.6;
+ G.eliteSpawned=false;G.routePatrolSpawned=false;G.pendingWave=null;G.waveSerial=0;
+ G.squadAttackCooldown=0;G.directorGrace=0;G.directorWaveCount=0;
+ G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;
+ G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.routeSelected=0;
+ G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];
+ G.lives=Math.max(2,G.lives);p.hp=2;p.invul=1.8;p.alive=true;
+ p.x=p.targetX=215;p.y=p.targetY=H/2;p.angle=0;
+ G.trail=Array.from({length:120},(_,i)=>({x:p.x-i*3,y:p.y}));
+ seedStage();resetTerrain();resetStick();updateHud();return true;
+}
+function launchDebug(){
+ if(!debugUnlocked||(G.mode!=='title'&&G.mode!=='paused'))return false;
+ const stage=Number(debugStage.value),risk=Number(debugRoute.value)===1?1:0;
+ if(!Number.isInteger(stage)||stage<0||stage>=NAMES.length)return false;
+ if(G.mode==='title'){startGame(true);if(G.mode!=='playing')return false}
+ else{G.debugMode=true;pause()}
+ return debugJumpTo(stage,risk);
+}
+$('debugLaunch').addEventListener('click',launchDebug);
 function startFreshRun(){seedInput.value='';startGame()}
-function startGame(){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);saveCheckpoint();updateHud()}
+function startGame(debugStart=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
 function pause(){cancelCombatPresses();if(G.mode==='playing'){G.mode='paused';resetStick();showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}$('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>';updateHud()}
-function endGame(victory=false){cancelCombatPresses();if(victory)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';G.pulses=0;G.pulseRecharge=0;screenPulse=0;G.rings=[];clearCheckpoint();if(G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
+function endGame(victory=false){cancelCombatPresses();if(victory&&!G.debugMode)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';G.pulses=0;G.pulseRecharge=0;screenPulse=0;G.rings=[];if(!G.debugMode)clearCheckpoint();if(!G.debugMode&&G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode==='over'||G.mode==='win')startFreshRun();else if(G.mode==='title')startGame()});
 $('landscapeStartBtn').addEventListener('click',()=>{if(G.mode==='title')startGame()});
 ui.pause.addEventListener('click',pause);
@@ -360,6 +408,76 @@ $('helpBtn').addEventListener('click',()=>{if(G.mode==='playing'){pause();quickH
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const focusedControl=!!e.target?.closest?.('button,input,textarea,select,[contenteditable="true"]');if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){if(e.shiftKey)cycleSoundMix();else ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter'&&!focusedControl){if(G.mode==='title')startGame();else startFreshRun()}return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='z'&&!focusedControl&&!e.ctrlKey&&!e.metaKey&&!e.altKey)equip(manualUpgradeToken)});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
+
+/* Standard Gamepad API. Left stick and D-pad steer, A confirms the lit
+   power-up, B fires NOVA, START starts/pauses/resumes. Edge-only activation
+   prevents repeated or newly connected held-button purchases. */
+const gpState={index:null,buttons:[],dx:0,dy:0};
+const gpStatus=$('gamepadStatus');
+function resetGamepad(){
+ gpState.index=null;gpState.buttons=[];gpState.dx=0;gpState.dy=0;
+ gpStatus.hidden=true;gpStatus.textContent='';
+}
+function gamepadButton(pad,i){
+ const b=pad.buttons?.[i];
+ return b===undefined?false:typeof b==='number'?b>.55:!!(b?.pressed||b?.value>.55);
+}
+function gamepadAxis(pad,i){
+ const v=pad.axes?.[i];return Number.isFinite(v)?cl(v,-1,1):0;
+}
+function gamepadVector(pad){
+ let x=gamepadAxis(pad,0),y=gamepadAxis(pad,1);
+ const mag=Math.hypot(x,y),dead=.19;
+ if(mag<=dead)x=y=0;
+ else{const strength=cl((mag-dead)/(1-dead),0,1);x=x/mag*strength;y=y/mag*strength}
+ const dpX=Number(gamepadButton(pad,15))-Number(gamepadButton(pad,14));
+ const dpY=Number(gamepadButton(pad,13))-Number(gamepadButton(pad,12));
+ if(dpX||dpY){x=dpX;y=dpY}
+ return {x,y};
+}
+function pollGamepad(){
+ if(typeof navigator.getGamepads!=='function'||document.hidden===true){resetGamepad();return}
+ let pads;try{pads=Array.from(navigator.getGamepads()||[])}catch(_){resetGamepad();return}
+ const old=gpState.index===null?null:pads[gpState.index];
+ const pad=old&&old.connected!==false?old:pads.find(x=>x&&x.connected!==false);
+ if(!pad){if(gpState.index!==null)resetGamepad();return}
+ const index=Number.isInteger(pad.index)?pad.index:pads.indexOf(pad),same=gpState.index===index;
+ const buttons=Array.from({length:Math.max(17,pad.buttons?.length||0)},(_,i)=>gamepadButton(pad,i));
+ if(!same){
+  gpState.index=index;gpState.buttons=buttons;
+  gpStatus.textContent='GAMEPAD 接続中';gpStatus.hidden=false;
+ }
+ const vector=gamepadVector(pad);
+ gpState.dx=G.mode==='playing'?vector.x:0;
+ gpState.dy=G.mode==='playing'?vector.y:0;
+ if(!same)return;
+ const pressed=i=>buttons[i]&&!gpState.buttons[i];
+ if(pressed(9)){
+  if(G.mode==='playing'||G.mode==='paused')pause();
+  else if(G.mode==='title')startGame();
+  else if(G.mode==='over'||G.mode==='win')startFreshRun();
+ }else if(G.mode==='playing'){
+  if(pressed(0))equip(manualUpgradeToken);
+  if(pressed(1))pulse();
+ }else if((G.mode==='title'||G.mode==='paused')&&debugUnlocked&&!debugPanel.hidden){
+  if(pressed(14)||pressed(15)){
+   const step=pressed(14)?-1:1;
+   debugStage.value=String((Number(debugStage.value)+step+NAMES.length)%NAMES.length);
+  }
+  if(pressed(12)||pressed(13))debugRoute.value=pressed(13)?'1':'0';
+  if(pressed(3))launchDebug();
+  else if(pressed(0)){if(G.mode==='paused')pause();else startGame()}
+ }else if(G.mode==='paused'&&pressed(0))pause();
+ else if(G.mode==='title'&&pressed(0))startGame();
+ else if((G.mode==='over'||G.mode==='win')&&pressed(0))startFreshRun();
+ gpState.buttons=buttons;
+}
+window.addEventListener('gamepadconnected',()=>{/* connected controller detected by next poll */});
+window.addEventListener('gamepaddisconnected',e=>{
+ if(gpState.index===e.gamepad?.index)resetGamepad();
+});
+window.addEventListener('blur',resetGamepad);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)resetGamepad()});
 /* Physical finger displacement only: stable fixed gain, no speed-dependent
    surges, velocity spikes, autopilot, inertia or jump on first touch.
    Capture permits continuing a drag beyond the decorative pad boundary. */
@@ -473,7 +591,7 @@ function pulse(){
 }
 function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');const activeIndex=powerMeterIndex();
  G.selected=Math.max(0,activeIndex);
- ui.meter.textContent=G.energy>0?'POWER '+G.energy+'/6':activeIndex>=0?'無料強化券':'POWER 待機';
+ ui.meter.textContent=G.energy>0?'POWER '+G.energy+'/6':activeIndex>=0?'無料強化券':'POWER 待機';$('debugStatus').hidden=!G.debugMode;
  ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'カプセルで点灯が1つ右へ進む';
  ui.upgrades.forEach((b,i)=>{
   const lit=i===activeIndex,ready=lit&&G.levels[i]<MAX[i];
@@ -1240,7 +1358,7 @@ function stageClear(){
  tone(470,.55,'triangle',.055,450)
 }
 function nextStage(){G.stage++;if(G.stage>=NAMES.length){endGame(true);return}G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.directorGrace=0;G.directorWaveCount=0;G.ambientTimer=.4;G.eliteSpawned=false;G.routePatrolSpawned=false;seedStage();resetTerrain();G.stageTime=0;G.spawn=.42*routeProfile().spawnInterval;G.transitioning=false;G.flowPhase=null;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=1.6;p.shield=Math.min(5,p.shield+passiveRank(3));showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],1.15);tone(400,.3,'sine',.04,350)}
-function hitPlayer(damage=1){if(p.invul>0||G.mode!=='playing')return;if(p.shield>0){G.directorGrace=Math.max(G.directorGrace,4.5);G.spawn=Math.max(G.spawn,3.2);p.shield--;p.invul=.55;p.hitFlash=Math.max(p.hitFlash||0,.11);ring(p.x,p.y,62,'#5df4ff');
+function hitPlayer(damage=1){if(G.debugMode||p.invul>0||G.mode!=='playing')return;if(p.shield>0){G.directorGrace=Math.max(G.directorGrace,4.5);G.spawn=Math.max(G.spawn,3.2);p.shield--;p.invul=.55;p.hitFlash=Math.max(p.hitFlash||0,.11);ring(p.x,p.y,62,'#5df4ff');
  if(synergyActive(4)){
   const radius=115+35*passiveRank(3);
   // Mark instead of splicing: the bullet loop removes expired projectiles.
@@ -1382,7 +1500,7 @@ function update(dt){
  if(G.pulses<5){G.pulseRecharge+=dt;if(G.pulseRecharge>=60){G.pulseRecharge-=60;G.pulses++;showToast('NOVA +1');updateHud()}}
  else G.pulseRecharge=0;
  G.time+=dt;G.total+=dt;G.scroll+=(120+G.stage*27)*dt;G.stageTime+=dt;G.shake*=Math.pow(.025,dt);screenPulse=Math.max(0,screenPulse-dt*2.1);p.invul=Math.max(0,p.invul-dt);if(G.toastTime>0){G.toastTime-=dt;if(G.toastTime<=0)ui.toast.classList.remove('show')}if(G.announceTime>0){G.announceTime-=dt;if(G.announceTime<=0)ui.announce.classList.remove('show')}if(G.comboTime>0){G.comboTime-=dt;if(G.comboTime<=0)G.combo=0}if(G.overdrive>0)G.overdrive=Math.max(0,G.overdrive-dt);G.squadAttackCooldown=Math.max(0,G.squadAttackCooldown-dt);G.directorGrace=Math.max(0,G.directorGrace-dt);melody(dt);
-let dx=(KEY['d']||KEY['arrowright']?1:0)-(KEY['a']||KEY['arrowleft']?1:0)+stickX,dy=(KEY['s']||KEY['arrowdown']?1:0)-(KEY['w']||KEY['arrowup']?1:0)+stickY;const speed=(335+G.levels[0]*85)*(KEY['shift']?.5:1);if(dx||dy){const norm=1/Math.max(1,Math.hypot(dx,dy));p.targetX=cl(p.targetX+dx*speed*dt*norm,62,W-135);p.targetY=cl(p.targetY+dy*speed*dt*norm,98,H-111)}else if(!dragging){p.targetX=p.x;p.targetY=p.y}let ox=p.x,oy=p.y;p.x+=(p.targetX-p.x)*Math.min(1,dt*29);p.y+=(p.targetY-p.y)*Math.min(1,dt*29);p.angle=cl((p.y-oy)*.022,-.22,.22);
+let dx=(KEY['d']||KEY['arrowright']?1:0)-(KEY['a']||KEY['arrowleft']?1:0)+stickX+gpState.dx,dy=(KEY['s']||KEY['arrowdown']?1:0)-(KEY['w']||KEY['arrowup']?1:0)+stickY+gpState.dy;const speed=(335+G.levels[0]*85)*(KEY['shift']?.5:1);if(dx||dy){const norm=1/Math.max(1,Math.hypot(dx,dy));p.targetX=cl(p.targetX+dx*speed*dt*norm,62,W-135);p.targetY=cl(p.targetY+dy*speed*dt*norm,98,H-111)}else if(!dragging){p.targetX=p.x;p.targetY=p.y}let ox=p.x,oy=p.y;p.x+=(p.targetX-p.x)*Math.min(1,dt*29);p.y+=(p.targetY-p.y)*Math.min(1,dt*29);p.angle=cl((p.y-oy)*.022,-.22,.22);
 const motion=cl(Math.hypot(p.x-ox,p.y-oy)/Math.max(dt,.001)/420,0,1);
 const visualBlend=1-Math.exp(-dt*12);
 p.visualMotion=cl((p.visualMotion||0)*(1-visualBlend)+motion*visualBlend,0,1);
@@ -1971,6 +2089,6 @@ for(const r of G.rings){c.save();c.globalAlpha=Math.max(0,1-r.t/r.life);c.stroke
 drawTacticalMeter();
 if(screenPulse>0){c.fillStyle='rgba(197,244,255,'+(screenPulse*.25)+')';c.fillRect(0,0,W,H)}
 c.restore()}
-function render(ms){const dt=Math.min((ms-last)/1000||0,.034);last=ms;if(G.mode==='playing')update(dt);else{G.time+=dt;G.scroll+=30*dt}drawScene();requestAnimationFrame(render)}
+function render(ms){const dt=Math.min((ms-last)/1000||0,.034);last=ms;pollGamepad();if(G.mode==='playing')update(dt);else{G.time+=dt;G.scroll+=30*dt}drawScene();requestAnimationFrame(render)}
 const dpr=window.matchMedia?.('(pointer: coarse)').matches?1:Math.min(1.5,window.devicePixelRatio||1);C.width=W*dpr;C.height=H*dpr;c.setTransform(dpr,0,0,dpr,0,0);showOverlay('title');syncOrientation();updateHud();requestAnimationFrame(render);
 })();
