@@ -724,6 +724,10 @@ function drawCreature(o,isPlayer){
  const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
  const gait=(isPlayer?o.steps:o.step)||0;
  const motion=isPlayer&&P.dashTime>0?1.5:clamp(Math.hypot(o.vx||0,o.vy||0)/Math.max(1,s.speed),0,1.5);
+ const attackPrep=isPlayer&&o.pendingStrike?clamp(1-o.windup/Math.max(.001,Math.min(.15,o.rate*.38)),0,1):(!isPlayer&&o.windup>0?clamp(1-o.windup/Math.max(.01,o.windupTotal||.53),0,1):0);
+ const attackSnap=isPlayer?clamp((o.swing||0)/.18,0,1):0;
+ const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
+ const attackReach=attackSnap+attackLeap;
  const stride=t==="cat"?1.46:t==="fox"?1.08:t==="wolf"?.62:.9;
  const pace=Math.sin(gait*stride)*r*(t==="cat"?.19:t==="fox"?.15:t==="wolf"?.09:.12)*motion;
  const tailSway=Math.sin(gait*(t==="cat"?.88:t==="fox"?.55:.62))*r*(t==="cat"?.29:t==="fox"?.19:.15)*motion;
@@ -742,7 +746,7 @@ function drawCreature(o,isPlayer){
  if(isPlayer&&P.hidden)ctx.globalAlpha=.44;
  ctx.rotate(o.dir||0);
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.085:t==="cat"?Math.abs(Math.sin(gait*1.46))*.028:t==="wolf"?Math.abs(Math.sin(gait*.62))*.017:Math.abs(Math.sin(gait*.9))*.045;
- ctx.translate(0,bound*motion*r);
+ ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
   ctx.scale(1.14,1.14);
   if(P.jumpTime>0)ctx.scale(1+(P.jumpDive?.21:.08),P.jumpDive?.77:.9);
@@ -853,6 +857,20 @@ function drawCreature(o,isPlayer){
   oval(r*.9,-r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
   oval(r*.9,r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
   if(alpha){for(const side of [-1,1])triangle([r*1.06,side*r*.16,r*1.26,side*r*.38,r*1.22,side*r*.08],"#f4dfc3");ctx.strokeStyle="#e6d5c5";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(r*.56,-r*.36);ctx.lineTo(r*.91,-r*.06);ctx.moveTo(r*.72,-r*.48);ctx.lineTo(r*1.05,-r*.19);ctx.stroke();}
+ }
+ if(attackPrep>0||attackReach>0){
+  if(t==="cat"){
+   const side=attackSnap>.44?-1:1;
+   oval(r*(.36+attackReach*.86),side*r*(.42-attackReach*.19),r*.22,r*.20,fur,-side*attackReach*.55);
+   if(attackReach>.15)triangle([r*(.51+attackReach*.91),side*r*.34,r*(.73+attackReach*.94),side*r*.24,r*(.52+attackReach*.9),side*r*.13],"#eee7d5");
+  }else if(t==="fox"){
+   for(const side of [-1,1])oval(r*(.29+attackReach*.71),side*r*(.52-attackReach*.10),r*.19,r*.25,"#292a26",side*attackReach*.2);
+   oval(r*(1.1+attackReach*.36),0,r*.39,r*(.11+attackReach*.08),"#f4ead7");
+  }else if(t==="wolf"||t==="alpha"||t==="dog"){
+   for(const side of [-1,1])oval(r*(.4+attackReach*.41),side*r*(.62-attackReach*.13),r*.29,r*.29,fur);
+   oval(r*(1.11+attackReach*.44),r*(.08+attackReach*.15),r*.35,r*(.09+attackReach*.14),"#222a2a");
+   oval(r*(1.16+attackReach*.43),-r*.04,r*.39,r*.14,light);
+  }
  }
  ctx.save();ctx.globalAlpha=hit?.1:isPlayer?.4:.24;
  const sheen=ctx.createLinearGradient(-r*.8,-r*.8,r*.6,r*.2);
@@ -1118,43 +1136,15 @@ function drawScene(){
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
- for(const m of entities){
-  if(m===P||(m.type!=="boar"&&m.type!=="alpha")||m.chargeTime<=0)continue;
-  ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.chargeDir);
-  ctx.strokeStyle="#ffc27b";ctx.lineWidth=4;ctx.setLineDash([11,8]);
-  ctx.beginPath();ctx.moveTo(-m.r,0);ctx.lineTo(m.r+42,0);ctx.stroke();
-  ctx.setLineDash([]);ctx.restore();
- }
- if(P&&P.pendingStrike){
-  const pct=1-P.windup/Math.max(.001,Math.min(.15,P.rate*.38));
-  ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle=P.type==="wolf"?"#ffc17f":P.type==="cat"?"#b8e8d1":"#ffe1a8";ctx.lineWidth=3+pct*3;
-  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
-  ctx.beginPath();ctx.arc(0,0,P.r+(P.type==="cat"?39:P.type==="wolf"?55:51),-arc,-arc+2*arc*pct);ctx.stroke();ctx.restore();
- }
+ // Remove artificial strike arcs, swipe streaks and charge rails.
+  // Keep a brief warning marker without hiding the creature animation.
   for(const m of entities){
    if(m===P||species[m.type].prey||m.windup<=0)continue;
-   const progress=1-m.windup/Math.max(.01,m.windupTotal);
-   ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.strikeDir);
-   ctx.fillStyle="rgba(244,75,48,"+(.11+progress*.31)+")";
-   if(m.type==="boar"||m.type==="alpha"){
-     const half=m.type==="alpha"?P.r+m.r*.35:m.r+P.r*.6;
-     const length=m.type==="alpha"?115:166;
-     ctx.fillRect(m.r*.3,-half,length,half*2);
-    ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
-    ctx.strokeRect(m.r*.3,-half,length,half*2);
-   }else{
-    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.closePath();ctx.fill();
-    ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
-    ctx.beginPath();ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.stroke();
-   }
-   ctx.restore();
-   ctx.font="900 12px sans-serif";ctx.textAlign="center";ctx.fillStyle="#ffcf9c";
-   ctx.fillText("!",m.x,m.y-m.r-23);
+   ctx.save();ctx.textAlign="center";ctx.font="900 15px sans-serif";
+   ctx.fillStyle=m.windup<.22?"#fff0b4":"#ffbc9c";
+   ctx.fillText("!",m.x,m.y-m.r-24);ctx.restore();
   }
- if(P&&P.swing>0){
-  ctx.save();ctx.translate(P.x,P.y);ctx.rotate(P.dir);ctx.strokeStyle="rgba(253,207,141,"+(P.swing/.18)+")";ctx.lineWidth=12*P.swing/.18;ctx.lineCap="round";ctx.beginPath();ctx.arc(0,0,P.r+40,-.95,.95);ctx.stroke();ctx.strokeStyle="#fff7d6";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,P.r+47,-.75,.75);ctx.stroke();ctx.restore()}
- if(P&&P.pounceTime>0){ctx.save();ctx.strokeStyle="#ffe2a49c";ctx.lineWidth=5;ctx.beginPath();ctx.arc(P.x,P.y,P.r+12,-.8,.8);ctx.stroke();ctx.restore()}
- if(P&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
+  if(P&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
  for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
