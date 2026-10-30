@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=boss-specials-17x4-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=boss-signature-salvos-20261030-2'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -1522,7 +1522,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(readmeSource.includes('35/36')&&readmeSource.includes('v1.0完成判定は保留'),'README marks hardware QA as pending');
   ok(readmeSource.includes('ロゴを合計7回タップ')&&readmeSource.includes('時間制限はありません'),'README documents debug');
   ok(readmeSource.includes('拾っただけでは強化されません')&&readmeSource.includes('メーターは表示専用'),'README documents auto meter and manual activation');
-  ok(readmeSource.includes('ボス撃破後もゲームは停止しません')&&readmeSource.includes('16種類の大型ボス'),'README documents continuous eight-stage combat');
+  ok(readmeSource.includes('ボス撃破後もゲームは停止しません')&&readmeSource.includes('17種類の大型ボス'),'README documents continuous eight-stage combat');
   ok(readmeSource.includes('実機のFPS、入力遅延')&&readmeSource.includes('node qa_100_runs.js'),'README separates simulated and real-device QA');
  }
  if(htmlSource)ok(htmlSource.includes('ORIGINAL BROWSER SHOOTER · PREVIEW / QA'),'release label does not claim unverified v1.0');
