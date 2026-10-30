@@ -413,7 +413,7 @@ function update(dt){
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
  P.jumpCD=Math.max(0,P.jumpCD-dt);
- P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0)resolveAttack()}
+ P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0)resolveAttack()}
  P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
@@ -421,18 +421,20 @@ function update(dt){
   P.hp=Math.min(P.maxHp,P.hp+2.8*dt);
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
+    // Rise before wall collision: a jump beside a low roof can reach its edge.
+    P.jumpTime=Math.max(0,P.jumpTime-dt);
+    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*(1-P.jumpTime/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
     const ox=P.x,oy=P.y;
     const step=Math.min(P.jumpRemaining,P.jumpSpeed*dt);
     if(step>0)move(P,Math.cos(P.jumpDir)*step,Math.sin(P.jumpDir)*step);
     const covered=Math.hypot(P.x-ox,P.y-oy);
     P.jumpRemaining=Math.max(0,P.jumpRemaining-covered);
-    if(covered<step*.5)P.jumpRemaining=0; // Solid walls still block a jump.
-    P.jumpTime=Math.max(0,P.jumpTime-dt);
-    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*(1-P.jumpTime/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
+    // A blocked first step does not cancel the entire leap.
     P.steps+=covered*.052;
     if(P.jumpTime===0){
+     const previousRoof=P.groundZ||0;
      P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.vx=0;P.vy=0;
-     if(P.groundZ>0)notify("屋上に到着 / 周囲を見渡せる");
+     if(P.groundZ>previousRoof){P.senseTime=Math.max(P.senseTime,3);notify("屋上に到着 / 獲物の位置を見渡せる");}
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive)resolveAttack();
      else P.jumpAmbush=false;
@@ -633,7 +635,7 @@ function syncHUD(hour){
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
- $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28)?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
+ $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
 }
 // Map only opens when requested. Shows places worth visiting without ground arrows.
 function drawWorldMap(){
@@ -659,13 +661,16 @@ function drawWorldMap(){
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
  };
  mark(SAFE_DEN.x,SAFE_DEN.y,"#9ee5ac",8);
- mark(STATION.x,STATION.y,"#e7c57b",7);
+ mark(STATION.x,STATION.y,"#83cde3",7);
  bm.font="bold 12px sans-serif";bm.textAlign="left";bm.fillStyle="#e9f7e3";
  bm.fillText("休息地",X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
  bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
  // Show nearby resources and predators, not every hidden creature in Tokyo.
  for(const q of carcasses)if(q.ttl>0&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
- for(const m of mobs)if(m.hp>0&&!species[m.type].prey&&dist(P,m)<650)mark(m.x,m.y,"#eb847b",4);
+ for(const m of mobs)if(m.hp>0&&dist(P,m)<650){
+   if(species[m.type].prey){if(P.senseTime>0||dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
+   else mark(m.x,m.y,"#eb847b",4);
+  }
  const obj=getObjective();if(obj&&mission!==3)mark(obj.x,obj.y,"#f1d885",4);
  mark(P.x,P.y,"#f7fbf4",8);
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
