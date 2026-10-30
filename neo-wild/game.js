@@ -1312,6 +1312,9 @@ window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="paus
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
 function resetControls(){
  keys.clear();attackTouch=false;joy.id=null;joy.x=0;joy.y=0;
+  // Map, pause and restart must discard captured orbit/pinch pointers.
+  for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
+  orbitPointers.clear();lastPinchDistance=0;
  if(knob)knob.style.transform="translate(0,0)";
  for(const id of ["attack-touch","dash-touch","eat-touch","instinct-touch","jump-touch"])$(id).classList.remove("down");
 }
