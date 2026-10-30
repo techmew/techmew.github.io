@@ -576,26 +576,19 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
+ // No compulsory on-screen arrow or tracking line.
  const objectives=[
-  ["食料を確保せよ","方向矢印に従って食料へ / Eで食べる",meals],
-  ["身を隠せ","矢印が指す茂みで静止 / Cで潜伏",hiddenHold/.75],
-  ["獲物を仕留めろ","矢印が指す獲物を追い、Jで攻撃",kills],
-  ["旧新宿駅を目指せ","方向矢印を追って東へ進む",(P.x-1850)/540],
-  freeStep===0?["食料を補給せよ","矢印が指す食料を探す",0]:["狩りを続けろ","矢印が指す獲物を追う",0]
+  ["食料を確保せよ","近くの食料を探して食べる / E",meals],
+  ["身を隠せ","茂みの中で足を止めて潜伏 / C",hiddenHold/.75],
+  ["獲物を仕留めろ","索敵で獲物を探し、近づいて攻撃 / J",kills],
+  ["旧新宿駅を探せ","廃墟を探索しながら東の旧駅方面へ",(P.x-1850)/540],
+  freeStep===0?["食料を補給せよ","周囲で食料を確保する / E",0]:["狩りを続けろ","周囲の気配を探り、獲物を狩る / J",0]
  ];
- const ob=objectives[Math.min(mission,4)];
+  const ob=objectives[Math.min(mission,4)];
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
- const goal=getObjective(),guide=$("mission-guide");
  const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"狐眼":P.type==="cat"?"俊足":"咆哮";
- if(guide){
-  const next=goal?guidancePoint(goal):null;
-  const p=next?project(P.x,P.y):null,q=next?project(next.x,next.y):null;
-  const angles=["→","↘","↓","↙","←","↖","↑","↗"];
-  const dir=next?angles[((Math.round(Math.atan2(q.y-p.y,q.x-p.x)/(Math.PI/4))%8)+8)%8]:"◎";
-  guide.textContent=goal?dir+" "+goal.label+" · 残り"+Math.round(dist(P,goal))+(next?.detour?" / 曲がり角":""):"◎ 周囲を探索中";
- }
- $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
+  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
@@ -1020,35 +1013,6 @@ function safeGuidePosition(x,y){
  }
  return pos;
 }
-function drawGoalGuide(){
- if(!P||mode!=="play")return;
- const goal=getObjective();if(!goal)return;
- const waypoint=guidancePoint(goal);if(!waypoint)return;
- const a=project(P.x,P.y),b=project(waypoint.x,waypoint.y);
- const dx=b.x-a.x,dy=b.y-a.y,angle=Math.atan2(dy,dx),length=Math.hypot(dx,dy);
- if(!Number.isFinite(length))return;
- const onscreen=b.x>70&&b.y>110&&b.x<vw-70&&b.y<vh-110;
- const pathLength=Math.min(length,Math.min(vw,vh)*.33);
- ctx.save();
- // The highlighted route points to the actual A* waypoint; never crosses known walls.
- ctx.lineCap="round";ctx.strokeStyle="#0b161bc7";ctx.lineWidth=10;
- ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x+Math.cos(angle)*pathLength,a.y+Math.sin(angle)*pathLength);ctx.stroke();
- ctx.strokeStyle="#ffdb88cc";ctx.lineWidth=4;ctx.setLineDash([12,9]);
- ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x+Math.cos(angle)*pathLength,a.y+Math.sin(angle)*pathLength);ctx.stroke();ctx.setLineDash([]);
- if(onscreen){
-  ctx.strokeStyle="#fff4cc";ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(b.x,b.y,14+Math.sin(elapsed*5)*2,0,TWO);ctx.stroke();
-  ctx.fillStyle="#ffd079";ctx.beginPath();ctx.arc(b.x,b.y,4,0,TWO);ctx.fill();
- }
- const distPx=onscreen?Math.min(length*.6,115):Math.min(170,Math.max(70,vw*.38));
- const aim=safeGuidePosition(a.x+Math.cos(angle)*distPx,a.y+Math.sin(angle)*distPx);
- ctx.translate(aim.x,aim.y);ctx.rotate(angle);
- ctx.shadowColor="#051016";ctx.shadowBlur=12;ctx.fillStyle="#132a2ce8";ctx.strokeStyle="#ffcc79";ctx.lineWidth=2.4;
- ctx.beginPath();ctx.moveTo(-29,-18);ctx.lineTo(10,-18);ctx.lineTo(32,0);ctx.lineTo(10,18);ctx.lineTo(-29,18);ctx.closePath();ctx.fill();ctx.stroke();
- ctx.fillStyle="#ffefa9";ctx.beginPath();ctx.moveTo(-22,-5);ctx.lineTo(4,-5);ctx.lineTo(4,-12);ctx.lineTo(22,0);ctx.lineTo(4,12);ctx.lineTo(4,5);ctx.lineTo(-22,5);ctx.closePath();ctx.fill();
- ctx.rotate(-angle);ctx.shadowBlur=0;ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 12px sans-serif";ctx.fillStyle="#fff3ce";
- ctx.fillText((waypoint.blocked?"経路探索":waypoint.detour?"曲がり角":"目的地")+" "+Math.round(dist(P,goal)),0,25);
- ctx.restore();
-}
 function drawIncomingWarning(){
  if(!P||mode!=="play")return;
  let threat=null,best=Infinity;
@@ -1191,7 +1155,6 @@ function drawScene(){
   ctx.beginPath();ctx.roundRect(pos.x-39,pos.y-80,78,25,8);ctx.fill();ctx.stroke();
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,pos.y-62);ctx.restore();
  }
- drawGoalGuide();
  drawIncomingWarning();
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
