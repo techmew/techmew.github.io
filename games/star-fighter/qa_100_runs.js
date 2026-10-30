@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=ship-hull-v2-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=boss-specials-17x4-20261030-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -913,7 +913,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   [2,1,'dinosaur','IRON TYRANT'],[2,0,'original','ABYSS TITAN'],
   [0,0,'original','BATTLE CRUISER'],[3,0,'crab','MOLTEN CRAB'],[3,1,'solarwyrm','SOLAR WYRM'],[4,0,'mammoth','FROST MAMMOTH'],[4,1,'leviathan','GLACIAL LEVIATHAN'],[5,0,'centipede','RELIC CENTIPEDE'],[5,1,'warden','OBSIDIAN WARDEN'],[6,0,'jellyfish','AETHER JELLYFISH'],[6,1,'riftmedusa','RIFT MEDUSA'],[7,0,'horizonark','HORIZON ARK'],[7,1,'singularity','SINGULARITY EMPEROR']
  ]){
-  G.stage=stage;G.routeRisk=risk;G.forcedBossVariant=stage===3&&risk===0?'crab':null;G.bullets=[];G.enemies=[];
+  G.stage=stage;G.routeRisk=risk;G.forcedBossVariant=stage===3&&risk===0?'crab':stage===4&&risk===0?'mammoth':null;G.bullets=[];G.enemies=[];
   ok(q.bossVariant()===variant,'boss route variant '+stage+'/'+risk);
   q.spawnBoss();ok(G.boss.variant===variant&&G.boss.name===name,'boss identity '+name);
   G.boss.x=930;G.boss.y=337;G.boss.t=1;
@@ -1569,8 +1569,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ev('debugTrigger','click');
   ok(el('debugPanel').hidden===false,'seventh title tap unlocks debug without count');
   // Boss-only debug must spawn exactly the chosen boss without campaign waves.
-  ok(q.DEBUG_BOSS_ROSTER.length===16,'all 16 selectable boss variants are defined');
-  ok((htmlSource.match(/<option value="[0-7]:[012]">/g)||[]).length===16,'16 selectable boss labels');
+  ok(q.DEBUG_BOSS_ROSTER.length===17,'all 17 selectable boss variants are defined');
+  ok((htmlSource.match(/<option value="[0-7]:[012]">/g)||[]).length===17,'17 selectable boss labels');
   ok(cssSource.includes('#shell .debug-controls[hidden]'),'boss mode hides unrelated controls');
   el('debugPlayMode').value='boss';ev('debugPlayMode','change');
   ok(el('debugStageControls').hidden&& !el('debugBossControls').hidden,'boss-only menu selection');
@@ -1846,10 +1846,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  // hardware frame-rate or human playtest results.
  {
   const names=Object.keys(q.BOSS_SPECIAL_MOVES);
-  ok(names.length===16,'all sixteen bosses have bespoke special move catalogs');
+  ok(names.length===17,'all seventeen bosses have bespoke special move catalogs');
   ok(names.every(name=>q.BOSS_SPECIAL_MOVES[name].length===4),'every boss has four attack actions');
   const all=names.flatMap(name=>q.BOSS_SPECIAL_MOVES[name].map(move=>name+'::'+move.label));
-  ok(all.length===64&&new Set(all).size===64,'sixty-four distinct named attack actions');
+  ok(all.length===68&&new Set(all).size===68,'sixty-eight distinct named attack actions');
   const accepted=new Set(['extend','orbit','mine','guard','tentacle','pincer','vortex','beam',
    'warp','ring','wall','neck','whip','charge','tail','wave','coil','mirror']);
   ok(names.every(name=>q.BOSS_SPECIAL_MOVES[name].every(x=>accepted.has(x.type))),
@@ -1893,8 +1893,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    }
    G.boss=null;
   }
-  ok(tested===64&&activated===64&&guarded>=4,'64 actions and at least four defensive moves tested');
-  stats.specialBosses={bosses:16,uniqueActions:64,telegraphed:64,guardDefenses:guarded};
+  ok(tested===68&&activated===68&&guarded>=5,'68 actions and at least five defensive moves tested');
+  stats.specialBosses={bosses:17,uniqueActions:68,telegraphed:68,guardDefenses:guarded};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
