@@ -896,7 +896,7 @@ function drawIncomingWarning(){
  const urgent=threat.windup<.29;
  ctx.save();
  ctx.strokeStyle=urgent?"#fff2a0":"#ff9c76";ctx.lineWidth=urgent?4:2.5;
- ctx.beginPath();ctx.arc(px,py,P.r+15,-.55,.55);ctx.stroke();
+ ctx.beginPath();ctx.arc(px,py,P.r+15,angle-.55,angle+.55);ctx.stroke();
  ctx.translate(pos.x,pos.y);ctx.rotate(angle+Math.PI/2);
  ctx.fillStyle=urgent?"#ffe09a":"#ff856c";
  ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(-12,9);ctx.lineTo(12,9);ctx.closePath();ctx.fill();
