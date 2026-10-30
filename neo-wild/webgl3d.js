@@ -102,9 +102,11 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){
 function animal(m,player,clock){
  const type=m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,dir=m.dir||0,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
- const gait=Math.sin(clock*(type==="cat"?18:type==="fox"?13:type==="wolf"?9:12)+((m.step||0)*2));
+ const moving=clamp(speed/95,0,1);
+ const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
+ const gait=Math.sin(phase)*moving;
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
- const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha";
+ const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
  const h=large?r*.74:r*.56;
  const x=m.x,y=m.y;
@@ -112,24 +114,49 @@ function animal(m,player,clock){
  ellipsoid(x+r*.16,y+r*.22,1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
-  const dx=k*r*.57,dy=s*r*.45,bob=gait*(k===s?1:-1)*r*.13*(speed>15?1:.1);
+  const dx=k*r*.57,dy=s*r*.45,bob=gait*(k===s?1:-1)*r*.13*moving;
   ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob),r*.21,r*.19,r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
  }
- ellipsoid(x,y,h+r*.28,large?r*1.22:r*.91,cat?r*.49:r*.69,large?r*.69:r*.55,torso,dir,11,6);
+ ellipsoid(x,y,h+r*.28,large?r*1.22:rat?r*.76:pigeon?r*.72:r*.91,cat?r*.49:rat?r*.40:pigeon?r*.46:r*.69,large?r*.69:r*.55,torso,dir,11,6);
+ if(type==="alpha"){
+  // Dense shoulder mane and raised hackles give the alpha a heavier silhouette.
+  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.60,r*.78,r*.83,r*.74,"#354d50",dir,10,6);
+  for(let side of [-1,1])for(let k=0;k<3;k++)
+   pyramid(fx(-r*.1+k*r*.31,side*r*.54),fy(-r*.1+k*r*.31,side*r*.54),h+r*.78,r*.16,r*.17,r*.31,"#3e5556");
+ }
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
  const neck=large?r*.70:r*.64,headR=cat?r*.47:fox?r*.50:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49,headR,headR*.80,headR*.83,torso,dir,9,5);
- if(fox||cat||wolf){
+ if(fox||cat||wolf||rabbit||rat){
   for(const side of [-1,1]){
-   pyramid(fx(neck-r*.18,side*r*.40),fy(neck-r*.18,side*r*.40),h+r*.79,r*.20,r*.13,r*(wolf?.59:fox?.52:.38),torso);
+   const earLength=rabbit?r*1.08:rat?r*.22:wolf?r*.59:fox?r*.52:r*.38;
+   const earWidth=rabbit?r*.14:rat?r*.22:r*.20;
+   pyramid(fx(neck-r*.18,side*r*.40),fy(neck-r*.18,side*r*.40),h+r*.79,earWidth,r*.13,earLength,torso);
+   if(rabbit)pyramid(fx(neck-r*.16,side*r*.40),fy(neck-r*.16,side*r*.40),h+r*.82,r*.075,r*.06,earLength*.82,"#dfaa9c");
   }
  }
- if(type==="boar")ellipsoid(fx(r*1.15,0),fy(r*1.15,0),h+r*.32,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
- else if(type==="pigeon"){
+ if(type==="boar"){
+  ellipsoid(fx(r*1.15,0),fy(r*1.15,0),h+r*.32,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
+  for(const side of [-1,1])pyramid(fx(r*1.19,side*r*.34),fy(r*1.19,side*r*.34),h+r*.40,r*.12,r*.13,r*.36,"#e9d7ad");
+ }else if(pigeon){
   for(const side of [-1,1])ellipsoid(fx(-r*.15,side*r*.55),fy(-r*.15,side*r*.55),h+r*.55,r*.60,r*.16,r*.25,"#aec3b8",dir,7,4);
  }else{
-  ellipsoid(fx(r*1.06,0),fy(r*1.06,0),h+r*.42,fox?r*.47:r*.31,fox?r*.19:r*.23,r*.19,belly,dir,8,4);
+  ellipsoid(fx(r*1.06,0),fy(r*1.06,0),h+r*.42,fox?r*.47:rat?r*.24:r*.31,fox?r*.19:r*.23,r*.19,belly,dir,8,4);
+ }
+ if(pigeon){
+  pyramid(fx(r*.95,0),fy(r*.95,0),h+r*.46,r*.23,r*.17,r*.27,"#d6b46c");
+ }else if(rat){
+  // Long tapered naked tail, unlike the cat's segmented raised tail.
+  for(let i=0;i<5;i++){
+   const t=i/5;
+   ellipsoid(fx(-r*(.9+i*.35),Math.sin(i*.4)*r*.15),fy(-r*(.9+i*.35),Math.sin(i*.4)*r*.15),h*.25,r*(.29-t*.22),r*.075,r*.08,"#ba928b",dir,6,3);
+  }
+ }else if(rabbit){
+  ellipsoid(fx(-r*.94,0),fy(-r*.94,0),h+r*.43,r*.35,r*.34,r*.36,"#f6efe0",dir,7,4);
+ }else if(type==="dog"){
+  // Drooping ears and long muzzle make dogs distinct from wolves.
+  for(const side of [-1,1])ellipsoid(fx(neck-r*.16,side*r*.51),fy(neck-r*.16,side*r*.51),h+r*.57,r*.25,r*.19,r*.36,torso,dir,7,4);
  }
  if(cat){
   // A bent segmented tail is visibly different from the fox's dense brush.
