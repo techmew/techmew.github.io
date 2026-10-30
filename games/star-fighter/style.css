@@ -704,3 +704,58 @@ html,body{overscroll-behavior:none}
  #shell .game-frame>.overlay .overlay-inner{padding-top:9px!important}
  #shell .game-frame>.overlay .title-mark{font-size:clamp(35px,9vw,52px)!important}
 }
+
+/* 300-trophy library, intentionally outside combat and game-frame. */
+#shell .trophy-gallery[hidden],#shell #trophyBtn[hidden]{display:none!important}
+#shell .trophy-open{border-color:#b49fff;color:#ebe1ff;background:#242446}
+#shell .trophy-gallery{position:fixed;inset:0;z-index:1200;display:flex;justify-content:center;
+ align-items:stretch;padding:clamp(8px,2vh,20px) max(8px,env(safe-area-inset-right))
+ calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
+ background:rgba(1,8,19,.96);overscroll-behavior:contain}
+#shell .trophy-modal{width:min(1040px,100%);height:100%;min-height:0;overflow-y:auto;
+ -webkit-overflow-scrolling:touch;overscroll-behavior:contain;border:1px solid #536c9b;
+ border-radius:12px;padding:clamp(10px,2vw,24px);background:#09192d}
+#shell .trophy-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+#shell .trophy-head small{color:#79afde;font-weight:900;letter-spacing:1.6px;font-size:10px}
+#shell .trophy-head h2{margin:5px 0 2px;font-size:clamp(20px,5vw,32px);line-height:1.2}
+#shell .trophy-head h2 span{color:#e7c37f}
+#shell .trophy-head p{margin:4px 0 8px;color:#d6e8fa;font-weight:800;font-size:12px}
+#shell #trophyClose{position:sticky;top:0;z-index:3;min-height:44px;padding:8px 14px;
+ background:#23435a;border:1px solid #79b9d7;border-radius:7px;color:#fff;font-weight:900}
+#shell .trophy-progress{height:9px;background:#26384f;border-radius:30px;overflow:hidden}
+#shell .trophy-progress i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#5bd6fd,#c5a5ff,#ffe19c)}
+#shell .trophy-filters{position:sticky;top:0;z-index:2;display:flex;align-items:end;
+ flex-wrap:wrap;gap:8px;padding:12px 0;background:#09192df5}
+#shell .trophy-filters label{display:flex;flex:1 1 115px;flex-direction:column;
+ gap:4px;font-size:10px;color:#bdd4ec;font-weight:800}
+#shell .trophy-filters label:last-child{flex:2 1 170px}
+#shell .trophy-filters select,#shell .trophy-filters input{width:100%;min-height:40px;min-width:0;
+ padding:7px;border-radius:6px;background:#152d46;border:1px solid #527394;color:#fff;font:700 12px system-ui,sans-serif}
+#shell .trophy-explain{font-size:11px;line-height:1.6;color:#a8c8df;margin:4px 0}
+#shell .trophy-shown{display:block;color:#9abed4;margin:8px 0;font-size:11px}
+#shell .trophy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:9px;padding-bottom:20px}
+#shell .trophy-tile{border:1px solid #384a63;border-radius:8px;padding:11px;
+ background:linear-gradient(155deg,#12253e,#081829);min-width:0}
+#shell .trophy-tile.earned{border-color:#e2bf71;background:linear-gradient(150deg,#353027,#132837)}
+#shell .trophy-tile-title{display:flex;justify-content:space-between;align-items:start;gap:8px}
+#shell .trophy-tile-title b{font-size:12px;line-height:1.45;color:#c6d7e8}
+#shell .trophy-tile.earned .trophy-tile-title b{color:#ffe1a2}
+#shell .trophy-tile-title small{font-size:9px;color:#7b99b4;white-space:nowrap}
+#shell .trophy-tile p{font-size:11px;line-height:1.6;margin:7px 0 11px;color:#9db5c8}
+#shell .trophy-tile-progress{height:5px;background:#304059;border-radius:20px;overflow:hidden}
+#shell .trophy-tile-progress i{height:100%;display:block;background:#68bcef}
+#shell .trophy-tile.earned .trophy-tile-progress i{background:#eac67f}
+#shell .trophy-tile>small{font-size:10px;display:block;margin-top:7px;color:#aec9dc}
+@media(pointer:coarse) and (orientation:portrait){
+ #shell .trophy-gallery{padding:0 0 env(safe-area-inset-bottom)}
+ #shell .trophy-modal{border-radius:0;max-width:100vw;padding:12px}
+ #shell .trophy-grid{grid-template-columns:1fr}
+ #shell .trophy-head h2{font-size:23px}
+ #shell .trophy-tile{padding:12px}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:430px){
+ #shell .trophy-modal{padding:8px}
+ #shell .trophy-head h2{font-size:20px}
+ #shell .trophy-filters{padding:5px 0}
+ #shell .trophy-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+}
