@@ -1235,7 +1235,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  for(const seed of seeds)for(const [stage,risk] of bossCases){
   stageSetup(seed,stage,risk);G.routeHistory=[];G.activeEvent=null;
   q.spawnBoss();const b=G.boss;b.x=930;b.y=337;b.t=1.4;
-  ok(b.maxHp>=1500&&b.maxHp<15000,'boss HP bound '+stage+'/'+risk);
+  ok(b.maxHp>=1500&&b.maxHp<60000,'bounded power-scaled boss HP '+stage+'/'+risk);
   const levels=G.levels.slice(),energy=G.energy;
   for(const phase of [0,1])for(let pattern=0;pattern<3;pattern++){
    b.phase=phase;b.pattern=pattern;b.charge=0;b.beam=0;G.bullets=[];
@@ -1960,7 +1960,22 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   q.damageBoss(strongBoss,160);sum+=160;
   ok(strongBoss.hp>0,'a two-second max-build burst cannot instantly destroy the boss');
   ok(strongBoss.hp/strongBoss.maxHp>.1,'boss retains a meaningful second attack window after maximum burst');
+  const remainingAfterBurst=strongBoss.hp;
   q.drawScene();
+  // Ensure all 17 selectable encounters scale across the campaign, not just S1.
+  let rosterChecks=0;
+  for(const entry of q.DEBUG_BOSS_ROSTER){
+   G.stage=entry.stage;G.routeRisk=entry.risk;G.runSeed=9811;
+   G.forcedBossVariant=entry.variant||null;
+   G.routeHistory=Array.from({length:entry.stage},(_,i)=>({stage:i+2,risk:i===entry.stage-1?entry.risk:0}));
+   G.levels=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+   G.boss=null;q.spawnBoss();const base=G.boss.maxHp;
+   G.boss=null;G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
+   q.spawnBoss();
+   ok(G.boss.maxHp>=base*5.1&&G.boss.maxHp<60000,'17 boss power scaling '+entry.name);
+   rosterChecks++;
+  }
+  ok(rosterChecks===17,'every selectable boss has adaptive durability');
   // Shield and BOOST alone do not turn low-offense enemies into bullet sponges.
   G.levels=[2,0,0,0,0,3];G.passives=[0,0,0,2,0,0];
   ok(q.offensiveBuild()===0,'defensive upgrades do not increase enemy durability');
@@ -1969,7 +1984,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(strongBoss.hp===hp,'both-immortal boss training remains untouched');
   G.debugMode=false;G.debugBossOnly=false;
   stats.adaptiveCombat={lowPower,strongPower,weakEnemyHP,strongEnemyHP:enemyStrong.maxHp,
-   weakBossHP,strongBossHP:strongBoss.maxHp,twoSecondBurst:sum,remainingAfterBurst:strongBoss.hp,armorBreakHits:attacks};
+   weakBossHP,strongBossHP:strongBoss.maxHp,twoSecondBurst:sum,remainingAfterBurst,armorBreakHits:attacks,bossVariants:rosterChecks};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
