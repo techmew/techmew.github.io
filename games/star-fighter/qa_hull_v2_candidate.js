@@ -845,8 +845,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  G.stage=1;G.player.hp=20;G.player.shield=0;G.pulses=1;
  q.stageClear();ok(G.player.hp>20&&G.player.hp<G.player.maxHp&&G.pulses===2,'limited rescue at sector 2');
  G.bossDone=false;G.transitioning=false;G.mode='playing';
- G.stage=0;G.player.hp=78;G.player.shield=0;G.player.invul=0;
- q.hitPlayer(1);ok(G.player.hp===65&&G.lives===0&&G.mode==='playing','13 hull damage no lives');
+ G.stage=0;G.player.hp=78;G.player.shield=0;G.player.invul=0;G.lives=0;
+ q.hitPlayer(1);ok(G.player.hp===65&&G.lives===0&&G.mode==='playing','13 hull damage no lives: '+JSON.stringify({hp:G.player.hp,lives:G.lives,mode:G.mode,stage:G.stage,invul:G.player.invul}));
  G.player.invul=0;q.hitPlayer(2);ok(G.player.hp===45,'heavy hit costs 20 hull');
  G.player.invul=0;G.player.hp=10;q.hitPlayer(1);
  ok(G.mode==='over'&&G.player.hp===0,'zero hull is immediate game over');
