@@ -2,6 +2,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
+let warned3DFallback=false;
 const mini=$("minimap"),mc=mini.getContext("2d");
 const TWO=Math.PI*2, WORLD={w:4200,h:2400};
 const animals={
@@ -1062,6 +1063,7 @@ function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
  if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,buildings,plants,mobs,P,elapsed,weather,WORLD,species});
+ if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
  ctx.setTransform(dpr,0,0,dpr,0,0);
  if(use3D)ctx.clearRect(0,0,vw,vh);else{ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh)}
  const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
