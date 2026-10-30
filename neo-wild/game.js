@@ -551,6 +551,23 @@ function roadDraw(){
  for(const x of roadsX)for(const y of roadsY){ctx.strokeStyle="#a6ab9b38";ctx.lineWidth=5;
   for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(x-110+k*24,y-98);ctx.lineTo(x-110+k*24,y-82);ctx.stroke();ctx.beginPath();ctx.moveTo(x+82,y-110+k*24);ctx.lineTo(x+98,y-110+k*24);ctx.stroke()}
  }
+ // Stable road cracks and reclaimed green verges, culled outside the oblique viewport.
+ ctx.save();ctx.lineWidth=1.4;
+ for(const y of roadsY)for(let i=0;i<35;i++){
+  const x=58+i*118+noise(i,y)*37;if(!visible(x,y,90))continue;
+  const bend=(noise(i+5,y)-.5)*19,side=noise(i+8,y)>.5?1:-1;
+  ctx.strokeStyle="#b0b3a12c";ctx.beginPath();ctx.moveTo(x,y+side*14);
+  ctx.lineTo(x+bend,y+side*30);ctx.lineTo(x+bend+15,y+side*42);ctx.stroke();
+  if(i%5===0){ctx.fillStyle="#55764c75";ctx.beginPath();ctx.ellipse(x,y+side*69,10,3,.2,0,TWO);ctx.fill()}
+ }
+ for(const x of roadsX)for(let i=0;i<23;i++){
+  const y=52+i*102+noise(i,x)*26;if(!visible(x,y,90))continue;
+  const bend=(noise(i+2,x)-.5)*17,side=noise(i+6,x)>.5?1:-1;
+  ctx.strokeStyle="#abb5aa30";ctx.beginPath();ctx.moveTo(x+side*11,y);
+  ctx.lineTo(x+side*27,y+bend);ctx.lineTo(x+side*40,y+bend+13);ctx.stroke();
+  if(i%4===0){ctx.fillStyle="#55764c6b";ctx.beginPath();ctx.ellipse(x+side*69,y,3,11,.2,0,TWO);ctx.fill()}
+ }
+ ctx.restore();
 }
 function drawBuilding(b){
  const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=85+(b.kind%4)*17;
@@ -956,17 +973,37 @@ function drawScene(){
  }
  roadDraw();
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
- for(const p of plants)if(visible(p.x,p.y,35))drawPlant(p);
- for(const b of buildings)if(visible(b.x+b.w/2,b.y+b.h/2,Math.max(b.w,b.h)))drawBuilding(b);
- for(const c of carcasses)if(visible(c.x,c.y,40))drawItem(c);
- for(const lamp of lamps)if(visible(lamp.x,lamp.y,20)){
-  ctx.strokeStyle="#849587";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(lamp.x,lamp.y+7);ctx.lineTo(lamp.x,lamp.y-15);ctx.stroke();ctx.fillStyle="#c8aa6f";ctx.fillRect(lamp.x-7,lamp.y-18,14,5)}
+ // Painter's algorithm: building fronts occlude animals behind them, not those in front.
  const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
- entities.sort((a,b)=>a.y-b.y);
- for(const e of entities)drawCreature(e,e===P);
- if(P)for(const p of plants){
-  if(p.type!==2||!visible(p.x,p.y,p.r)||Math.hypot(P.x-p.x,P.y-p.y)>p.r*1.05||P.y>p.y+p.r*.68)continue;
-  drawCoverForeground(p);
+ const layers=[],covers=new Map();
+ for(const e of entities)covers.set(e,[]);
+ for(const p of plants){
+  if(!visible(p.x,p.y,p.r))continue;
+  let depth=p.y+p.r*.12;
+  if(p.type===2)for(const e of entities)if(Math.hypot(e.x-p.x,e.y-p.y)<p.r*.82){
+   covers.get(e).push(p);
+   depth=Math.min(depth,e.y-.1);
+  }
+  layers.push({depth,kind:0,o:p});
+ }
+ for(const b of buildings)if(visible(b.x+b.w/2,b.y+b.h/2,Math.max(b.w,b.h)+140))
+  layers.push({depth:b.y+b.h,kind:1,o:b});
+ for(const c of carcasses)if(visible(c.x,c.y,40))layers.push({depth:c.y,kind:2,o:c});
+ for(const lamp of lamps)if(visible(lamp.x,lamp.y,35))layers.push({depth:lamp.y,kind:3,o:lamp});
+ for(const e of entities)layers.push({depth:e.y,kind:4,o:e});
+ layers.sort((a,b)=>a.depth-b.depth||a.kind-b.kind);
+ for(const layer of layers){
+  const o=layer.o;
+  if(layer.kind===0)drawPlant(o);
+  else if(layer.kind===1)drawBuilding(o);
+  else if(layer.kind===2)drawItem(o);
+  else if(layer.kind===3){
+   ctx.strokeStyle="#849587";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x,o.y+7);ctx.lineTo(o.x,o.y-15);ctx.stroke();
+   ctx.fillStyle="#c8aa6f";ctx.fillRect(o.x-7,o.y-18,14,5);
+  }else{
+   drawCreature(o,o===P);
+   for(const p of covers.get(o))drawCoverForeground(p);
+  }
  }
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
