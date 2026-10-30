@@ -1763,6 +1763,84 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(JSON.stringify(power)===JSON.stringify([G.player.hp,G.lives,G.energy,...G.levels]),'all trophies remain cosmetics only');
   stats.trophies={total:300,families:30,allUnlockable:true,debugDenied:true};
  }
+
+ // 2026-10-30: Level-based hull, old save migration and all eight damage curves.
+ {
+  ok(q.maxHull(1)===120&&q.maxHull(25)===312,'ship level 1..25 max hull bounds');
+  ok(G.lives===0,'full-run QA has no extra lives in new combat');
+  G.debugMode=false;G.mode='playing';G.shipLevel=1;G.shipXP=0;
+  G.player.maxHp=120;G.player.hp=50;G.player.shield=0;G.lives=0;
+  q.grantShipXP(98);
+  ok(G.shipLevel===2&&G.shipXP===0&&G.player.maxHp===128&&G.player.hp===61,'level 2 increases hull cap and grants small repair');
+  q.grantShipXP(126);
+  ok(G.shipLevel===3&&G.shipXP===0&&G.player.maxHp===136&&G.player.hp===72,'level 3 grows without resetting missing health');
+  G.debugMode=true;const debugLevel=G.shipLevel,debugXP=G.shipXP;
+  q.grantShipXP(1000);
+  ok(G.shipLevel===debugLevel&&G.shipXP===debugXP,'debug cannot accelerate ordinary ship experience');
+  G.debugMode=false;q.grantShipXP(100000);
+  ok(G.shipLevel===25&&G.player.maxHp===312&&G.player.hp<=312,'XP always stops at level 25 without overflow');
+  let tested=0;
+  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of stage===0?[0]:[0,1]){
+   G.mode='playing';G.debugMode=false;G.stage=stage;G.routeRisk=risk;G.runSeed=seed;
+   G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;G.player.hp=120;
+   G.player.shield=0;G.player.invul=0;G.lives=0;G.directorGrace=0;
+   const d=q.actualHullDamage(1),heavy=q.actualHullDamage(2);
+   ok(d>=12&&d<=27&&heavy>d&&heavy<42,'bounded stage-specific hull damage '+stage+'/'+risk);
+   const previous=G.player.hp;
+   q.hitPlayer(1);
+   ok(G.player.hp===previous-d&&G.mode==='playing'&&G.lives===0,'one hit cannot consume a life '+stage+'/'+risk);
+   q.hitPlayer(1);
+   ok(G.player.hp===previous-d&&G.player.invul>=1,'repeated contact during invulnerability is ignored');
+   tested++;
+  }
+  ok(tested===1500,'100-seed x 15 stage-route hull impact coverage');
+  G.mode='playing';G.debugMode=false;G.stage=0;G.routeRisk=0;
+  G.runSeed=123456;G.score=0;G.lives=0;G.shipLevel=1;G.shipXP=0;
+  G.player.hp=110;G.player.maxHp=120;G.player.shield=0;
+  G.routeHistory=[];G.rewardHistory=[];G.levels=[0,0,0,0,0,0];
+  G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.energy=0;G.selected=0;G.driveCharge=0;G.grazes=0;G.maxCombo=0;
+  G.killCount=0;G.eventCount=0;G.pulses=1;G.pulseRecharge=0;
+  q.saveCheckpoint('sector');
+  const modern=q.readCheckpoint();
+  ok(modern?.v===2&&modern.player.hp===110&&modern.player.maxHp===120&&modern.shipLevel===1,'new format saves hull, ship level and XP');
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...modern,player:{...modern.player,hp:121}}));
+  ok(q.readCheckpoint()===null,'malformed v2 hull above maximum is rejected');
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...modern,lives:2}));
+  ok(q.readCheckpoint()===null,'v2 cannot bring back old spare ships');
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(modern));
+  for(const oldHp of [1,2,3]){
+   const legacy={...modern,v:1,lives:2};
+   delete legacy.shipLevel;delete legacy.shipXP;
+   legacy.player={hp:oldHp,shield:0};
+   storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(legacy));
+   const migrated=q.readCheckpoint();
+   ok(migrated?.v===2&&migrated.shipLevel===1&&migrated.lives===0&&migrated.player.hp===40*oldHp&&migrated.player.maxHp===120,
+    'legacy checkpoint hull migration '+oldHp);
+  }
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(modern));
+  G.stage=3;G.routeRisk=0;G.runSeed=12831;G.forcedBossVariant='scorpion';G.mode='playing';
+  G.debugMode=false;G.boss=null;G.bossDone=false;G.transitioning=false;G.bullets=[];G.enemies=[];
+  q.spawnBoss();
+  const scorpion=G.boss;
+  ok(scorpion?.name==='SCORPION DREAD'&&scorpion.variant==='scorpion','normal stage four can spawn new mech scorpion');
+  scorpion.x=930;scorpion.y=337;scorpion.fire=0;
+  for(const pat of [0,1,2]){scorpion.pattern=pat;G.bullets=[];q.bossAttack(scorpion);
+   ok(G.bullets.length>=4&&G.bullets.length<=16,'scorpion attack pattern '+pat);
+   q.drawScene();
+  }
+  const beforeScorpion=scorpion.hp;q.damageBoss(scorpion,75);
+  ok(scorpion.hp===beforeScorpion-75,'scorpion takes damage in regular campaign');
+  G.forcedBossVariant='crab';G.boss=null;q.spawnBoss();
+  ok(G.boss?.name==='MOLTEN CRAB','original crab remains available in stage four');
+  G.forcedBossVariant=null;
+  G.boss=null;G.mode='playing';G.stage=0;G.player.hp=1;
+  G.player.invul=0;G.player.shield=0;q.hitPlayer(1);
+  ok(G.mode==='over'&&G.player.hp===0&&G.lives===0,'zero hull game over without respawn');
+  stats.hullV2={seeds:100,stageRouteCases:tested,shipLevelCap:25,
+   startHull:120,endLevelMaxHull:312,oldCheckpointConverted:true,extraLives:false,
+   humanClearRate:'not measured'};
+ }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
