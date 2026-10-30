@@ -24,7 +24,15 @@ let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTar
 let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
-const VIEW={a:.94,b:.20,c:-.28,d:.68},VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
+const VIEW={a:.94,b:.20,c:-.28,d:.68};
+let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
+let cameraYaw=0,cameraZoom=1;
+function updateCameraView(){
+ const cs=Math.cos(cameraYaw),sn=Math.sin(cameraYaw),z=cameraZoom;
+ VIEW.a=(.94*cs-.28*sn)*z;VIEW.c=(-.94*sn-.28*cs)*z;
+ VIEW.b=(.20*cs+.68*sn)*z;VIEW.d=(-.20*sn+.68*cs)*z;
+ VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
+}
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
@@ -60,8 +68,8 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0};
+ mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0};
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  spawnMob(false,true); // Guarantee one huntable species at a reasonable distance.
  for(let i=0;i<17;i++)spawnFood();
@@ -183,7 +191,7 @@ function sound(f=350,d=.12,wave="triangle",vol=.035){
 function instinct(){
  if(mode!=="play"||P.instinctCD>0||P.sp<18)return;
  P.sp-=18;P.instinctCD=P.type==="wolf"?16:12;P.abilityTime=P.type==="cat"?3.2:4;
- if(P.type==="fox"){P.senseTime=Math.max(P.senseTime,4);notify("狐眼 / 気配が見える。次の一撃が強化");sound(660,.28,"sine",.04)}
+ if(P.type==="fox"){notify("急襲 / 次の噛みつきが強化");sound(660,.28,"sine",.04)}
  if(P.type==="cat"){P.dash=Math.min(P.dash,.25);notify("俊足 / 3秒間の加速と回避");sound(820,.19,"triangle",.04)}
  if(P.type==="wolf"){
   P.noiseBurst=1.8;
@@ -303,11 +311,6 @@ function dash(){
  P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.2);sound(P.type==="wolf"?175:280,.13,"triangle",.04);
  return true;
-}
-function sense(){
- if(mode!=="play"||P.sense>0)return;
- P.sense=12;P.senseTime=4;particles.push({x:P.x,y:P.y,life:.85,max:.85,ring:true,r:3,color:"#82eac8"});
- notify("気配を探知 / 生命反応を表示");sound(660,.34,"sine",.035);
 }
 function eat(){
  if(mode!=="play")return;
@@ -434,7 +437,7 @@ function update(dt){
   P.jumpHeight=(P.groundZ||0)+(P.fallFromZ-(P.groundZ||0))*part*part;
   if(P.fallTime===0&&P.pendingStrike&&P.jumpDive)resolveAttack();
  }
- P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
+ P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
@@ -458,7 +461,7 @@ function update(dt){
     P.steps+=covered*.052;
     if(P.jumpTime===0){
      const reachedRoof=landOnSurface();P.vx=0;P.vy=0;
-     if(reachedRoof){P.senseTime=Math.max(P.senseTime,3);notify("屋上に到着 / 獲物の位置を見渡せる");}
+     if(reachedRoof)notify("屋上に到着");
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
      else P.jumpAmbush=false;
@@ -647,19 +650,19 @@ function syncHUD(hour){
  const objectives=[
   ["食料を確保せよ","近くの食料を探して食べる / E",meals],
   ["身を隠せ","茂みの中で足を止めて潜伏 / C",hiddenHold/.75],
-  ["獲物を仕留めろ","索敵で獲物を探し、近づいて攻撃 / J",kills],
+  ["獲物を仕留めろ","獲物に近づいて攻撃 / J",kills],
   ["旧新宿駅を探せ","廃墟を探索しながら東の旧駅方面へ",(P.x-1850)/540],
   freeStep===0?["食料を補給せよ","周囲で食料を確保する / E",0]:["狩りを続けろ","周囲の気配を探り、獲物を狩る / J",0]
  ];
   const ob=objectives[Math.min(mission,4)];
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
- const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"狐眼":P.type==="cat"?"俊足":"咆哮";
+ const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"急襲":P.type==="cat"?"俊足":"咆哮";
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
- $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
+ $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
 }
 // Map only opens when requested. Shows places worth visiting without ground arrows.
 function drawWorldMap(){
@@ -692,7 +695,7 @@ function drawWorldMap(){
  // Show nearby resources and predators, not every hidden creature in Tokyo.
  for(const q of carcasses)if(q.ttl>0&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
  for(const m of mobs)if(m.hp>0&&dist(P,m)<650){
-   if(species[m.type].prey){if(P.senseTime>0||dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
+   if(species[m.type].prey){if(dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
    else mark(m.x,m.y,"#eb847b",4);
   }
  const obj=getObjective();if(obj&&mission!==3)mark(obj.x,obj.y,"#f1d885",4);
@@ -716,7 +719,7 @@ function drawMini(){
  for(const x of roadsX){mc.beginPath();mc.moveTo(x/WORLD.w*w,0);mc.lineTo(x/WORLD.w*w,h);mc.stroke()}
  for(const y of roadsY){mc.beginPath();mc.moveTo(0,y/WORLD.h*h);mc.lineTo(w,y/WORLD.h*h);mc.stroke()}
  mc.fillStyle="#3d5051";for(const b of buildings)mc.fillRect(b.x/WORLD.w*w,b.y/WORLD.h*h,b.w/WORLD.w*w,b.h/WORLD.h*h);
- for(const m of mobs){if(dist(P,m)>650&&P.senseTime<=0)continue;mc.fillStyle=species[m.type].prey?"#c4d1ab":"#f39c74";mc.fillRect(m.x/WORLD.w*w-1,m.y/WORLD.h*h-1,2.5,2.5)}
+ for(const m of mobs){if(dist(P,m)>650)continue;mc.fillStyle=species[m.type].prey?"#c4d1ab":"#f39c74";mc.fillRect(m.x/WORLD.w*w-1,m.y/WORLD.h*h-1,2.5,2.5)}
  const obj=getObjective();if(obj){const tx=obj.x/WORLD.w*w,ty=obj.y/WORLD.h*h;mc.strokeStyle="#ffda82";mc.lineWidth=1.7;mc.beginPath();mc.arc(tx,ty,4,0,TWO);mc.stroke();mc.fillStyle="#ffda82";mc.beginPath();mc.arc(tx,ty,1.5,0,TWO);mc.fill();}
  mc.fillStyle="#fff5c4";mc.beginPath();mc.arc(P.x/WORLD.w*w,P.y/WORLD.h*h,3,0,TWO);mc.fill();
  mc.strokeStyle="#a3e7c5";mc.lineWidth=.8;mc.beginPath();
@@ -999,7 +1002,7 @@ function drawCreature(o,isPlayer){
  }
  ctx.restore();
  if(!isPlayer&&!s.prey&&o.hp<o.maxHp){ctx.fillStyle="#101719c9";ctx.fillRect(o.x-21,o.y-r-17,42,4);ctx.fillStyle="#e9a077";ctx.fillRect(o.x-21,o.y-r-17,42*o.hp/o.maxHp,4)}
- if(P&&P.senseTime>0&&!isPlayer){ctx.strokeStyle=s.prey?"#91ebbc":"#ef9274";ctx.lineWidth=2;ctx.beginPath();ctx.arc(o.x,o.y,r+12+Math.sin(elapsed*8)*2,0,TWO);ctx.stroke()}
+ 
 }
 let guideCache=null,navGrid=new Map();
 function routeClear(a,b,radius=P.r){
@@ -1268,7 +1271,7 @@ function drawScene(){
  if(weather==="RAIN"){ctx.strokeStyle="#9dc9cb5c";ctx.lineWidth=1.2;ctx.beginPath();for(const r of rain){const rx=(r.x+elapsed*r.s*.37)%vw,ry=(r.y+elapsed*r.s)%vh;ctx.moveTo(rx,ry);ctx.lineTo(rx-9,ry+r.z)}ctx.stroke()}
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
- if(P&&P.senseTime>0){const pos=project(P.x,P.y);ctx.strokeStyle="#89eabb74";ctx.lineWidth=1;ctx.beginPath();ctx.arc(pos.x,pos.y,78,0,TWO);ctx.stroke()}
+ 
  if(P&&P.hidden&&mode==="play"){
   const pos=project(P.x,P.y);ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(pos.x-39,pos.y-80,78,25,8);ctx.fill();ctx.stroke();
@@ -1278,14 +1281,14 @@ function drawScene(){
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="sense")sense();if(code==="instinct")instinct();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
  if(e.repeat&&["shift","q","p","escape","f","l","m"].includes(k))return;
  if(mode==="play")keys.add(k);
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
- if(k==="q")act("sense");if(k==="r")act("instinct");
+ if(k==="r")act("instinct");
  if(k==="e")act("eat");
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
@@ -1296,7 +1299,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="pl
 function resetControls(){
  keys.clear();attackTouch=false;joy.id=null;joy.x=0;joy.y=0;
  if(knob)knob.style.transform="translate(0,0)";
- for(const id of ["attack-touch","dash-touch","sense-touch","eat-touch","instinct-touch","jump-touch"])$(id).classList.remove("down");
+ for(const id of ["attack-touch","dash-touch","eat-touch","instinct-touch","jump-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
@@ -1326,11 +1329,35 @@ stick.addEventListener("pointerdown",e=>{if(mode!=="play")return;e.preventDefaul
 stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",()=>{joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"});
-for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["jump-touch","jump"],["sense-touch","sense"],["eat-touch","eat"],["instinct-touch","instinct"]]){
+for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["jump-touch","jump"],["eat-touch","eat"],["instinct-touch","instinct"]]){
  const b=$(id);b.addEventListener("pointerdown",e=>{if(mode!=="play")return;e.preventDefault();b.classList.add("down");b.setPointerCapture(e.pointerId);if(action==="attack")attackTouch=true;act(action)});
  const end=()=>{b.classList.remove("down");if(action==="attack")attackTouch=false};
  b.addEventListener("pointerup",end);b.addEventListener("pointercancel",end);b.addEventListener("lostpointercapture",end);
 }
+// Drag the empty world to orbit; two fingers on the world adjust zoom.
+// Controls capture their own pointers, so attacks, joystick and menus are unaffected.
+const gameSurface=$("app"),orbitPointers=new Map();
+let lastPinchDistance=0;
+gameSurface.addEventListener("pointerdown",e=>{
+ if(mode!=="play"||e.target!==gameSurface)return;
+ e.preventDefault();gameSurface.setPointerCapture(e.pointerId);
+ orbitPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});lastPinchDistance=0;
+});
+gameSurface.addEventListener("pointermove",e=>{
+ if(mode!=="play"||!orbitPointers.has(e.pointerId))return;
+ const previous=orbitPointers.get(e.pointerId),dx=e.clientX-previous.x;
+ orbitPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(orbitPointers.size===1){cameraYaw+=dx*.008;updateCameraView();}
+ else if(orbitPointers.size===2){
+  const [a,b]=[...orbitPointers.values()],gap=Math.hypot(a.x-b.x,a.y-b.y);
+  if(lastPinchDistance>12&&gap>12){cameraZoom=clamp(cameraZoom*gap/lastPinchDistance,.7,1.5);updateCameraView();}
+  lastPinchDistance=gap;
+ }
+});
+function stopCameraPointer(e){orbitPointers.delete(e.pointerId);lastPinchDistance=0;}
+gameSurface.addEventListener("pointerup",stopCameraPointer);
+gameSurface.addEventListener("pointercancel",stopCameraPointer);
+gameSurface.addEventListener("lostpointercapture",stopCameraPointer);
 document.addEventListener("contextmenu",e=>e.preventDefault());
 drawMini();
 })();
