@@ -1194,7 +1194,7 @@ if(b.variant==='centipede'||b.variant==='warden'){
    const armored=bossMoveGuarded(b),spd=armored?180:210;
    if(b.pattern%3===0){
     const y=cl(p.y,130,H-130),x=b.x-178,a=Math.atan2(p.y-y,p.x-x);
-    for(const off of [-.21,0,.21])bullet(x,y,a+off,spd+12,5,'#b1f7d8');
+    for(const off of [-.29,-.10,.10,.29])bullet(x,y,a+off,spd+12,5,'#b1f7d8');
    }else if(b.pattern%3===1){
     for(const side of [-1,1])for(let k=0;k<3;k++){
      const x=b.x-91,y=cl(b.y+side*(61+k*53),90,H-90);
