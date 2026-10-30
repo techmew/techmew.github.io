@@ -291,7 +291,13 @@ function showToast(txt){
  ui.toast.textContent=txt;ui.toast.classList.toggle('show',important);G.toastTime=important?1.15:0;
 }
 function showAnnounce(head,title,sub,duration=3){ui.announce.classList.remove('show');G.announceTime=0;}
-function hideOverlay(){ui.overlay.classList.add('hidden');$('runResult').hidden=true}
+function hideOverlay(){
+ ui.overlay.classList.add('hidden');
+ // Invisible menus must not remain keyboard-focusable during gameplay.
+ ui.overlay.inert=true;
+ ui.overlay.setAttribute('aria-hidden','true');
+ $('runResult').hidden=true;
+}
 
 /* 32/36: read-only post-run report; never purchases upgrades. */
 function updateRunResult(kind){
@@ -308,9 +314,17 @@ function updateRunResult(kind){
  set('resultRoutes',G.routeHistory.map(r=>'S'+String(r.stage).padStart(2,'0')+' '+(r.risk?'高危険':'補給')+' · '+r.route).join(' / ')||'分岐なし');
  set('resultRewards',G.rewardHistory.map(r=>'S'+String(r.stage+1).padStart(2,'0')+' '+r.name).join(' / ')||'獲得なし');
 }
-function showOverlay(kind){updateRunResult(kind);ui.overlay.dataset.state=kind;$('debugPanel').hidden=!(debugUnlocked&&(kind==='title'||kind==='pause'));$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();if(quickHelp)quickHelp.open=false;seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で出撃 <span>▶</span>'}}
+function showOverlay(kind){
+ updateRunResult(kind);
+ // Reset old scroll offsets when reopening title, pause and results.
+ ui.overlay.scrollTop=0;
+ ui.overlay.querySelector('.overlay-inner').scrollTop=0;
+ ui.overlay.inert=false;
+ ui.overlay.setAttribute('aria-hidden','false');
+ $('debugUnlockHint').hidden=kind!=='title'||debugUnlocked||debugTapCount===0;
+ ui.overlay.dataset.state=kind;$('debugPanel').hidden=!(debugUnlocked&&(kind==='title'||kind==='pause'));$('landscapeStartBtn').hidden=kind!=='title';updateMedalButton();$('medalBtn').hidden=kind!=='title';ui.overlay.classList.remove('hidden');continueBtn.hidden=kind!=='title';continueInfo.hidden=kind!=='title';if(kind==='title')updateContinueButton();if(quickHelp)quickHelp.open=false;seedLabel.textContent=kind==='title'?'SEED — 空欄ならランダム':'SEED '+seedHex(G.runSeed);seedReplay.hidden=kind!=='win'&&kind!=='over';const inner=ui.overlay.querySelector('.overlay-inner');const eyebrow=inner.querySelector('.eyebrow'),title=inner.querySelector('.title-mark'),subtitle=inner.querySelector('.subtitle'),intro=inner.querySelector('.intro');title.tabIndex=kind==='title'?0:-1;if(kind==='pause'){eyebrow.textContent='MISSION INTERRUPTED';title.innerHTML='<span>PAUSE</span><strong>MODE</strong>';subtitle.textContent='一時停止中';intro.innerHTML='準備ができたら戦闘に戻ろう。';ui.start.innerHTML='RESUME <span>▶</span>'}else if(kind==='win'){eyebrow.textContent='ALL SECTORS CLEAR';title.innerHTML='<span>MISSION</span><strong>CLEAR</strong>';subtitle.textContent='全'+NAMES.length+'ステージ突破';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 宇宙の平和を守り抜いた！';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else if(kind==='over'){eyebrow.textContent='SIGNAL LOST';title.innerHTML='<span>GAME</span><strong>OVER</strong>';subtitle.textContent='任務失敗';intro.innerHTML='SCORE '+G.score.toLocaleString()+' · MAX CHAIN '+G.maxCombo+'<br>GRAZE '+G.grazes+' · 再出撃して記録を更新しよう。';ui.start.innerHTML='新しい配置で再出撃 <span>▶</span>'}else{eyebrow.textContent='NEW ARCADE EXPERIENCE / 2026';title.innerHTML='<span>STAR</span><strong>FIGHTER</strong>';subtitle.textContent='横スクロール・シューティング';intro.innerHTML='高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。';ui.start.innerHTML='縦画面で出撃 <span>▶</span>'}}
 
-/* Secret diagnostic: seven title-mark clicks in 4.2 s, session-only.
+/* Secret diagnostic: seven title-mark clicks without time limit, session-only.
    Jumping routes leaves the normal save, score and medals untouched. */
 let debugUnlocked=false,debugTapCount=0;
 const debugPanel=$('debugPanel'),debugStage=$('debugStage'),debugRoute=$('debugRoute');
