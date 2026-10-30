@@ -108,9 +108,11 @@ function animal(m,player,clock){
  const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
  const gait=Math.sin(phase)*moving;
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
- const attackSnap=player?clamp((m.swing||0)/.18,0,1):0;
+ const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
+ const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
- const attackReach=attackSnap+airStrike;
+ const attackCharge=!player&&(type==="boar"||type==="alpha")?clamp((m.chargeTime||0)/(type==="alpha"?.24:.36),0,1)*.55:0;
+ const attackReach=Math.max(attackSnap,attackCharge)+airStrike;
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
  const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
@@ -150,8 +152,8 @@ function animal(m,player,clock){
   }
  }
  if(type==="boar"){
-  ellipsoid(fx(r*1.15,0),fy(r*1.15,0),h+r*.32,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
-  for(const side of [-1,1])pyramid(fx(r*1.19,side*r*.34),fy(r*1.19,side*r*.34),h+r*.40,r*.12,r*.13,r*.36,"#e9d7ad");
+  ellipsoid(fx(r*1.15+headDrive,0),fy(r*1.15+headDrive,0),h+r*.32-attackReach*r*.12,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
+  for(const side of [-1,1])pyramid(fx(r*1.19+headDrive,side*r*.34),fy(r*1.19+headDrive,side*r*.34),h+r*.40-attackReach*r*.10,r*.12,r*.13,r*.36,"#e9d7ad");
  }else if(pigeon){
   for(const side of [-1,1])ellipsoid(fx(-r*.15,side*r*.55),fy(-r*.15,side*r*.55),h+r*.55,r*.60,r*.16,r*.25,"#aec3b8",dir,7,4);
  }else{
@@ -183,13 +185,10 @@ function animal(m,player,clock){
  }else if(wolf){
   ellipsoid(fx(-r*1.21,0),fy(-r*1.21,0),h+r*.48,r*.54,r*.29,r*.29,torso,dir,7,4);
  }
- if(attackReach>.01&&(fox||cat||wolf)){
-  if(cat){
-   ellipsoid(fx(r*(1.12+attackReach*.58),-r*.35),fy(r*(1.12+attackReach*.58),-r*.35),h+r*(.13+attackReach*.26),r*.25,r*.18,r*.19,torso,dir,7,4);
-  }else{
-   ellipsoid(fx(r*1.04+headDrive,0),fy(r*1.04+headDrive,0),h+r*(.22-attackReach*.13),r*.37,r*.25,r*.12,"#28302b",dir,8,4);
-   ellipsoid(fx(r*1.1+headDrive,0),fy(r*1.1+headDrive,0),h+r*(.14-attackReach*.12),r*.32,r*.24,r*.10,belly,dir,8,4);
-  }
+ if(attackReach>.01&&(fox||wolf||type==="dog")){
+  // Cat uses its existing forepaw; canids open the jaw along the moving skull.
+  ellipsoid(fx(r*1.04+headDrive,0),fy(r*1.04+headDrive,0),h+r*(.22-attackReach*.13),r*.37,r*.25,r*.12,"#28302b",dir,8,4);
+  ellipsoid(fx(r*1.1+headDrive,0),fy(r*1.1+headDrive,0),h+r*(.14-attackReach*.12),r*.32,r*.24,r*.10,belly,dir,8,4);
  }
  // Eyes distinguish living characters from scenery at oblique camera distance.
  for(const side of [-1,1]){
