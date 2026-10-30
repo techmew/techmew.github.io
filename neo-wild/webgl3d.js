@@ -118,9 +118,10 @@ function animal(m,player,clock){
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
  const h=large?r*.74:r*.56;
  const x=m.x,y=m.y;
- animalLift=0; // Leave the ground shadow on the ground.
- // Genuine world-space contact shadow below the articulated 3D model.
- ellipsoid(x+r*.16,y+r*.22,1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
+ animalLift=0;
+ // Shadow is projected to the walkable roof when standing on one.
+ const contactZ=player?Math.max(0,m.groundZ||0):0;
+ ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  animalLift=player?Math.max(0,m.jumpHeight||0):0;
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
