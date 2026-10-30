@@ -251,14 +251,14 @@ function render(o){
    const sx=vw/2+VIEW.a*dx+VIEW.c*dy,sy=vh/2+VIEW.b*dx+VIEW.d*dy;
    return sx>-margin&&sx<vw+margin&&sy>-margin&&sy<vh+margin;
   };
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,buildings.length,WORLD.w,WORLD.h].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,WORLD.w,WORLD.h].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
    box(b.x,b.y,0,b.w,b.h,h,b.kind%2?"#56646c":"#67736d",b.kind%2?"#45545b":"#58665e");
-   box(b.x+13,b.y+13,h-6,b.w-26,b.h-26,6,"#394e50","#87918a");
+   box(b.x+13,b.y+13,h-5.2,b.w-26,b.h-26,6,"#394e50","#87918a");
    if(b.broken)box(b.x+b.w*.65,b.y+b.h*.28,h+6,b.w*.23,b.h*.30,14,"#343f42","#5e6a64");
    // Air conditioning and roof ducts
    box(b.x+b.w*.16,b.y+b.h*.2,h+6,28,35,28,"#586767","#9da39a");
