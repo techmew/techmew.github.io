@@ -760,3 +760,17 @@ html,body{overscroll-behavior:none}
 #shell .debug-controls[hidden]{display:none!important}
 #shell #debugPlayMode,#shell #debugBoss{flex:1 1 190px;width:100%;min-width:0;max-width:100%}
 #shell #debugBossControls label{white-space:nowrap}
+
+/* Progressive ship hull: a single, legible durability bar in both layouts. */
+#shell .hud-right .durability-track{height:9px!important;width:100%;max-width:156px;
+ display:block!important;margin:3px 0!important;padding:1px!important;overflow:hidden;
+ border:1px solid #517c87!important;border-radius:3px;background:#162335!important}
+#shell .hud-right .durability-track>i{display:block;height:100%;width:100%;
+ background:linear-gradient(90deg,#36c8be,#9cfff0);box-shadow:0 0 6px #45ebca;
+ border-radius:2px;transition:width .12s linear}
+#shell .hud-right .durability-readout{font:800 10px/1.15 ui-monospace,monospace;
+ color:#adf4e0;margin-top:1px;white-space:nowrap}
+@media(pointer:coarse) and (orientation:portrait){
+ #shell .hud-right .durability-track{height:8px!important;max-width:110px}
+ #shell .hud-right .durability-readout{font-size:clamp(8px,2.2vw,10px)}
+}
