@@ -17,6 +17,7 @@ uniform vec2 uCenter;
 uniform vec2 uSize;
 uniform vec4 uView;
 uniform float uNight;
+uniform float uAlpha;
 varying vec3 vColor;
 varying float vShade;
 void main(){
@@ -36,10 +37,10 @@ const fragment=String.raw`
 precision mediump float;
 varying vec3 vColor;
 varying float vShade;
-void main(){gl_FragColor=vec4(vColor*vShade,1.0);}
+void main(){gl_FragColor=vec4(vColor*vShade,uAlpha);}
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
-let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,unight;
+let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,unight,ualpha;
 try {
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
@@ -53,7 +54,7 @@ try {
  ucenter=gl.getUniformLocation(program,"uCenter");
  usize=gl.getUniformLocation(program,"uSize");
  uview=gl.getUniformLocation(program,"uView");
- unight=gl.getUniformLocation(program,"uNight");
+ unight=gl.getUniformLocation(program,"uNight");ualpha=gl.getUniformLocation(program,"uAlpha");
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
 }catch(err){console.warn("Wild3D shader unavailable; 2D fallback",err);canvas.style.display="none";window.Wild3D={available:false};return;}
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),cache=new Map();
@@ -79,11 +80,12 @@ function box(x,y,z,w,h,height,col,roofCol=col){
  quad([x1,y1,z],[x,y1,z],[x,y1,z1],[x1,y1,z1],tone(col,1.04));
  quad([x,y1,z],[x,y,z],[x,y,z1],[x,y1,z1],tone(col,.83));
 }
-function pyramid(x,y,z,rx,ry,h,col){
+let animalLift=0;
+function pyramid(x,y,z,rx,ry,h,col){z+=animalLift;
  const base=[[x-rx,y-ry,z],[x+rx,y-ry,z],[x+rx,y+ry,z],[x-rx,y+ry,z]],top=[x,y,z+h],c=color(col);
  for(let i=0;i<4;i++)triangle(base[i],base[(i+1)%4],top,c);
 }
-function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){
+function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLift;
  const c=color(col),cos=Math.cos(heading),sin=Math.sin(heading);
  const point=(phi,theta)=>{
   const lx=rx*Math.cos(phi)*Math.cos(theta),ly=ry*Math.cos(phi)*Math.sin(theta),lz=rz*Math.sin(phi);
@@ -110,11 +112,13 @@ function animal(m,player,clock){
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
  const h=large?r*.74:r*.56;
  const x=m.x,y=m.y;
+ animalLift=0; // Leave the ground shadow on the ground.
  // Genuine world-space contact shadow below the articulated 3D model.
  ellipsoid(x+r*.16,y+r*.22,1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
+ animalLift=player?Math.max(0,m.jumpHeight||0):0;
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
-  const dx=k*r*.57,dy=s*r*.45,bob=gait*(k===s?1:-1)*r*.13*moving;
+  const dx=k*r*.57,dy=s*r*.45,bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
   ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob),r*.21,r*.19,r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
  }
  ellipsoid(x,y,h+r*.28,large?r*1.22:rat?r*.76:pigeon?r*.72:r*.91,cat?r*.49:rat?r*.40:pigeon?r*.46:r*.69,large?r*.69:r*.55,torso,dir,11,6);
@@ -174,6 +178,7 @@ function animal(m,player,clock){
  for(const side of [-1,1]){
   ellipsoid(fx(neck+r*.32,side*headR*.53),fy(neck+r*.32,side*headR*.53),h+r*.58,r*.10,r*.08,r*.09,cat?"#d1f18e":"#f4dd9a",dir,5,3);
  }
+ animalLift=0;
 }
 function vegetation(p,clock){
  if(p.type===2){
@@ -270,13 +275,15 @@ function render(o){
   data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
+  const playerFirst=data.length/9;
   if(P)animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
+  const playerEnd=data.length/9;
   const vertices=new Float32Array(data);
   gl.useProgram(program);
   gl.uniform2f(ucenter,cam.x+vw/2,cam.y+vh/2);
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
-  gl.uniform1f(unight,night);
+  gl.uniform1f(unight,night);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
   const bindAttributes=(buf)=>{
    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
    for(const [a,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
@@ -289,7 +296,13 @@ function render(o){
   bindAttributes(buffer);
   gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
   dynamicCount=vertices.length/9;
-  if(dynamicCount)gl.drawArrays(gl.TRIANGLES,0,dynamicCount);
+  if(playerFirst)gl.drawArrays(gl.TRIANGLES,0,playerFirst);
+  if(P&&playerEnd>playerFirst){
+   if(P.hidden){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);gl.uniform1f(ualpha,.43);}
+   gl.drawArrays(gl.TRIANGLES,playerFirst,playerEnd-playerFirst);
+   gl.depthMask(true);gl.disable(gl.BLEND);gl.uniform1f(ualpha,1);
+  }
   frames++;
   return true;
  }catch(e){
