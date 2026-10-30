@@ -644,10 +644,6 @@ html,body{overscroll-behavior:none}
    Portrait menus must not be squeezed into the 16:9 canvas. The title,
    resume, pause, results and hidden debug share one viewport-scrolling panel.
    Gameplay canvas/touchpad/action placement is unchanged. */
-#shell .debug-unlock-hint[hidden]{display:none!important}
-#shell .debug-unlock-hint{display:block;margin:3px auto 0;width:max-content;max-width:100%;
- padding:2px 9px;border:1px solid #5197ab;border-radius:4px;background:#0c2939;
- font:800 10px ui-monospace,monospace;color:#9becfa;letter-spacing:1px}
 #shell .title-mark#debugTrigger{touch-action:manipulation;user-select:none;-webkit-user-select:none;
  -webkit-touch-callout:none;cursor:default}
 #shell .title-mark#debugTrigger:focus-visible{outline:2px solid #8feaff;outline-offset:3px;border-radius:5px}
