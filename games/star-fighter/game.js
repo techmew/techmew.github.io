@@ -330,6 +330,14 @@ function showOverlay(kind){
    Jumping routes leaves the normal save, score and medals untouched. */
 let debugUnlocked=false,debugTapCount=0;
 const debugPanel=$('debugPanel'),debugStage=$('debugStage'),debugRoute=$('debugRoute');
+const debugPlayMode=$('debugPlayMode'),debugBoss=$('debugBoss');
+const DEBUG_BOSS_ROSTER=[{stage:0,risk:0,name:BOSSES[0]},...ROUTE_BOSS_INTEL.flatMap((names,i)=>names.map((name,risk)=>({stage:i+1,risk,name})))];
+function updateDebugModeControls(){
+ const solo=debugPlayMode.value==='boss';
+ $('debugStageControls').hidden=solo;$('debugBossControls').hidden=!solo;
+ $('debugLaunch').textContent=solo?'選んだボスと対決':'無敵で開始／ステージ移動';
+}
+debugPlayMode.addEventListener('change',updateDebugModeControls);
 const debugTrigger=$('debugTrigger');
 function unlockDebugTap(){
  if(G.mode!=='title'||debugUnlocked)return;
@@ -361,7 +369,7 @@ function debugJumpTo(stage,risk=0){
  G.stageTime=0;G.scroll=stage*1800;G.spawn=.42*routeProfile().spawnInterval;G.ambientTimer=.6;
  G.eliteSpawned=false;G.routePatrolSpawned=false;G.pendingWave=null;G.waveSerial=0;
  G.squadAttackCooldown=0;G.directorGrace=0;G.directorWaveCount=0;
- G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;
+ G.boss=null;G.bossDone=false;G.debugBossClear=false;G.transition=0;G.transitioning=false;G.flowPhase=null;
  G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.routeSelected=0;
  G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];
  G.lives=Math.max(2,G.lives);p.hp=2;p.invul=1.8;p.alive=true;
@@ -369,18 +377,54 @@ function debugJumpTo(stage,risk=0){
  G.trail=Array.from({length:120},(_,i)=>({x:p.x-i*3,y:p.y}));
  seedStage();resetTerrain();resetStick();updateHud();return true;
 }
+function prepareDebugBoss(stage,risk){
+ if(!debugJumpTo(stage,risk))return false;
+ G.debugBossOnly=true;G.debugBossClear=false;
+ // Debug-only practice arsenal. Regular game builds and storage are unchanged.
+ G.levels=[1,1,1,1,1,1];G.pendingUpgrades=[0,0,0,0,0,0];
+ G.energy=0;G.pulses=3;G.pulseRecharge=0;G.stageTime=STAGE_LENGTHS[stage];
+ G.spawn=1e6;G.ambientTimer=1e6;G.terrain=null;G.pendingWave=null;
+ G.enemies=[];G.bullets=[];G.pickups=[];G.shots=[];
+ spawnBoss();updateHud();return true;
+}
 function launchDebug(){
  if(!debugUnlocked||(G.mode!=='title'&&G.mode!=='paused'))return false;
- const stage=Number(debugStage.value),risk=Number(debugRoute.value)===1?1:0;
- if(!Number.isInteger(stage)||stage<0||stage>=NAMES.length)return false;
+ const solo=debugPlayMode.value==='boss';
+ const bossSelection=DEBUG_BOSS_ROSTER.find(x=>x.stage+':'+x.risk===debugBoss.value);
+ const stage=solo?bossSelection?.stage:Number(debugStage.value);
+ const risk=solo?bossSelection?.risk:(Number(debugRoute.value)===1?1:0);
+ if(!Number.isInteger(stage)||stage<0||stage>=NAMES.length||![0,1].includes(risk))return false;
  if(G.mode==='title'){startGame(true);if(G.mode!=='playing')return false}
- else{G.debugMode=true;TROPHIES.setDebug(true);pause()}
- return debugJumpTo(stage,risk);
+ else{
+  G.debugMode=true;TROPHIES.setDebug(true);G.mode='playing';hideOverlay();
+  last=performance.now();
+  if(sound&&bgm){bgm.setEnabled(true);bgm.start()}
+  $('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';
+ }
+ G.debugBossOnly=solo;G.debugBossClear=false;
+ const ok=solo?prepareDebugBoss(stage,risk):debugJumpTo(stage,risk);
+ if(ok)updateHud();
+ return ok;
 }
 $('debugLaunch').addEventListener('click',launchDebug);
 function startFreshRun(){seedInput.value='';startGame()}
-function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
-function pause(){cancelCombatPresses();if(G.mode==='playing'){G.mode='paused';resetStick();showOverlay('pause');bgm?.stop()}else if(G.mode==='paused'){G.mode='playing';hideOverlay();last=performance.now();if(sound&&bgm){bgm.setEnabled(true);bgm.start()}}$('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>';updateHud()}
+function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;G.debugBossOnly=false;G.debugBossClear=false;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
+function pause(){
+ cancelCombatPresses();
+ if(G.mode==='paused'&&G.debugMode&&G.debugBossOnly&&G.debugBossClear){
+  const stage=G.stage,risk=G.routeRisk;G.mode='playing';
+  if(!prepareDebugBoss(stage,risk)){G.mode='paused';return}
+  hideOverlay();last=performance.now();
+  if(sound&&bgm){bgm.setEnabled(true);bgm.start()}
+ }else if(G.mode==='playing'){
+  G.mode='paused';resetStick();showOverlay('pause');bgm?.stop();
+ }else if(G.mode==='paused'){
+  G.mode='playing';hideOverlay();last=performance.now();
+  if(sound&&bgm){bgm.setEnabled(true);bgm.start()}
+ }
+ $('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>';
+ updateHud();
+}
 function endGame(victory=false){TROPHIES.finish(victory,{score:G.score,grazes:G.grazes,maxCombo:G.maxCombo});cancelCombatPresses();if(victory&&!G.debugMode)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';G.pulses=0;G.pulseRecharge=0;screenPulse=0;G.rings=[];if(!G.debugMode)clearCheckpoint();if(!G.debugMode&&G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode==='over'||G.mode==='win')startFreshRun();else if(G.mode==='title')startGame()});
 $('landscapeStartBtn').addEventListener('click',()=>{if(G.mode==='title')startGame()});
@@ -421,7 +465,7 @@ function bindCombatAction(button,act){
 }
 bindCombatAction(sideNovaButton,pulse);
 bindCombatAction(sideEquipButton,()=>equip(manualUpgradeToken));
-$('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;TROPHIES.finish(false,{score:G.score,grazes:G.grazes,maxCombo:G.maxCombo});cancelCombatPresses();bgm?.stop();resetStick();G.mode='title';G.debugMode=false;G.pulseRecharge=0;screenPulse=0;G.rings=[];$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('pointerdown',()=>{suppressMixClick=false;clearTimeout(mixHoldTimer);mixHoldTimer=setTimeout(()=>{mixHoldTimer=null;suppressMixClick=true;cycleSoundMix()},650)});
+$('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;TROPHIES.finish(false,{score:G.score,grazes:G.grazes,maxCombo:G.maxCombo});cancelCombatPresses();bgm?.stop();resetStick();G.mode='title';G.debugMode=false;G.debugBossOnly=false;G.debugBossClear=false;G.pulseRecharge=0;screenPulse=0;G.rings=[];$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('pointerdown',()=>{suppressMixClick=false;clearTimeout(mixHoldTimer);mixHoldTimer=setTimeout(()=>{mixHoldTimer=null;suppressMixClick=true;cycleSoundMix()},650)});
 for(const eventName of ['pointerup','pointercancel','pointerleave'])ui.sound.addEventListener(eventName,()=>{clearTimeout(mixHoldTimer);mixHoldTimer=null});
 ui.sound.addEventListener('contextmenu',e=>e.preventDefault());
 ui.sound.addEventListener('click',e=>{if(suppressMixClick){suppressMixClick=false;return}if(e.shiftKey){cycleSoundMix();return}sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();applySoundMix();bgm.setEnabled(true);if(G.mode==='playing')bgm.start()}}else bgm?.setEnabled(false)});
@@ -485,9 +529,13 @@ function pollGamepad(){
  }else if((G.mode==='title'||G.mode==='paused')&&debugUnlocked&&!debugPanel.hidden){
   if(pressed(14)||pressed(15)){
    const step=pressed(14)?-1:1;
-   debugStage.value=String((Number(debugStage.value)+step+NAMES.length)%NAMES.length);
+   if(debugPlayMode.value==='boss'){
+    const i=DEBUG_BOSS_ROSTER.findIndex(b=>b.stage+':'+b.risk===debugBoss.value);
+    const next=DEBUG_BOSS_ROSTER[(Math.max(0,i)+step+DEBUG_BOSS_ROSTER.length)%DEBUG_BOSS_ROSTER.length];
+    debugBoss.value=next.stage+':'+next.risk;
+   }else debugStage.value=String((Number(debugStage.value)+step+NAMES.length)%NAMES.length);
   }
-  if(pressed(12)||pressed(13))debugRoute.value=pressed(13)?'1':'0';
+  if(debugPlayMode.value==='stage'&&(pressed(12)||pressed(13)))debugRoute.value=pressed(13)?'1':'0';
   if(pressed(3))launchDebug();
   else if(pressed(0)){if(G.mode==='paused')pause();else startGame()}
  }else if(G.mode==='paused'&&pressed(0))pause();
@@ -878,7 +926,7 @@ function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2
 function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
  const legacyChains=G.routeHistory.reduce((n,r,i,a)=>n+(i>0&&a[i-1].risk===r.risk?1:0),0);
  const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06)*(G.stage===7?1+Math.min(4,legacyRisk)*.035:1));
- G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',2.4);tone(90,.9,'sawtooth',.09,170)}
+ G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -1366,6 +1414,20 @@ function triggerRouteEvent(){
 }
 
 function stageClear(){
+ if(G.debugMode&&G.debugBossOnly){
+  G.boss=null;G.bossDone=true;G.debugBossClear=true;
+  G.pendingWave=null;G.terrain=null;G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];
+  G.transitioning=false;G.transition=0;G.flowPhase=null;
+  G.mode='paused';resetStick();bgm?.stop();showOverlay('pause');
+  const inner=ui.overlay.querySelector('.overlay-inner');
+  inner.querySelector('.eyebrow').textContent='DEBUG · BOSS PRACTICE';
+  inner.querySelector('.title-mark').innerHTML='<span>BOSS</span><strong>CLEAR</strong>';
+  inner.querySelector('.subtitle').textContent='撃破成功 · 無敵練習';
+  inner.querySelector('.intro').textContent='再戦するか、下のデバッグメニューから別のボスを選択';
+  ui.start.innerHTML='同じボスと再戦 <span>▶</span>';
+  $('sidePauseBtn').innerHTML='▶ <span>再戦</span>';tone(540,.32,'triangle',.06,320);
+  updateHud();return;
+ }
  TROPHIES.sectorClear();
  if(G.stage===0)unlockMedal('first');
  G.pendingWave=null;G.terrain=null;G.boss=null;G.bossDone=true;G.transitioning=true;G.bullets=[];
@@ -1595,7 +1657,7 @@ if(G.stage===7&&b.phase===1&&b.hp<=b.maxHp*.32){
  ring(b.x-75,b.y,192,'#ff94b4',.6);
  emit(b.x-80,b.y,40,'#f7a4aa',240);
  showToast(G.stage===2?(b.variant==='dinosaur'?'IRON TYRANT · RAGE':'ABYSS TITAN · AWAKENED'):'BOSS · SECOND PHASE');if(G.stage===2)ring(b.x-94,b.y,126,'#9de8f6',.35);
- for(let i=0;i<(G.stage===7?3:2+G.stage);i++)enemy('dart',W+100+i*70,200+i*80);
+ if(!G.debugBossOnly)for(let i=0;i<(G.stage===7?3:2+G.stage);i++)enemy('dart',W+100+i*70,200+i*80);
  tone(280,.55,'sawtooth',.08,-210);
 }
 if(b.charge>0){b.charge-=dt;if(b.charge<=0){b.beam=.62;screenPulse=.2;tone(105,.4,'sawtooth',.07,-70)}}
