@@ -70,7 +70,7 @@ function spawnMob(initial=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
@@ -410,7 +410,17 @@ function update(dt){
      m.search=Math.max(0,m.search-dt);
      if(m.wander<0){m.dir=aim+rnd(-1.6,1.6);m.wander=rnd(.3,.8)}
      vx=Math.cos(m.dir)*s.speed*.32;vy=Math.sin(m.dir)*s.speed*.32;
-    }else{m.dir=steerPursuit(m,m.lastX,m.lastY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed}
+     }else{
+      let targetX=m.lastX,targetY=m.lastY;
+      // Feral dogs flank from alternating sides before closing for a bite.
+      if(m.type==="dog"&&spotted&&d>120&&d<325){
+       const heading=Math.hypot(P.vx,P.vy)>50?Math.atan2(P.vy,P.vx):P.dir,side=m.flankSide||1;
+       const fx=P.x-Math.cos(heading)*48-Math.sin(heading)*side*82;
+       const fy=P.y-Math.sin(heading)*48+Math.cos(heading)*side*82;
+       if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
+      }
+      m.dir=steerPursuit(m,targetX,targetY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed
+     }
    }else{
     m.alert=Math.max(0,m.alert-dt);
     if(m.wander<0){m.dir+=rnd(-2.5,2.5);m.wander=rnd(.5,2.5)}
@@ -419,9 +429,9 @@ function update(dt){
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
-     if(m.type==="boar"&&m.stun<=0){
-      m.chargeTime=.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
-      label(m.x,m.y-m.r-24,"突進！","#ffbf81");
+     if((m.type==="boar"||m.type==="alpha")&&m.stun<=0){
+      m.chargeTime=m.type==="alpha"?.24:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
+      label(m.x,m.y-m.r-24,m.type==="alpha"?"飛びかかり！":"突進！","#ffbf81");
      }else{
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
@@ -435,9 +445,10 @@ function update(dt){
     }
    }
    const charging=!s.prey&&m.chargeTime>0&&m.stun<=0;
+   const chargeSpeed=m.type==="alpha"?2.3:3.65;
    if(charging){
     m.chargeTime=Math.max(0,m.chargeTime-dt);
-    m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*3.65;vy=Math.sin(m.chargeDir)*s.speed*3.65;
+    m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
@@ -454,7 +465,7 @@ function update(dt){
      }else label(P.x,P.y-35,"回避！","#a6f5d8");
     }
     const forward=ddx*Math.cos(m.chargeDir)+ddy*Math.sin(m.chargeDir);
-    if(forward<s.speed*3.65*dt*.4){
+    if(forward<s.speed*chargeSpeed*dt*.4){
      m.chargeTime=0;m.stun=Math.max(m.stun,.7);
      label(m.x,m.y-m.r-20,"激突！","#bdf6cc");
     }else if(m.chargeTime<=0){
@@ -464,10 +475,10 @@ function update(dt){
     }
    }
    if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
-   if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(m.type==="boar"?115:29)&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
-    m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.58:.53;
-    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=m.type==="boar"?1.8:1.45;
-    m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":"危険！","#ffb76d");
+   if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(m.type==="boar"?115:m.type==="alpha"?112:29)&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
+    m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.72:.53;
+    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=m.type==="boar"?1.8:m.type==="alpha"?2.0:1.45;
+    m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！","#ffb76d");
     sound(310,.11,"sawtooth",.03);
    }
  }
@@ -678,6 +689,8 @@ function drawCreature(o,isPlayer){
   oval(r*.1,-r*.04,r*.66,r*.57,wolf?"#576c73":"#8d6c51");
   if(wolf)for(const side of [-1,1])for(let k=0;k<3;k++)
    triangle([r*.01-k*r*.24,side*r*.52,-r*.08-k*r*.25,side*r*.92,r*.24-k*r*.25,side*r*.57],fur);
+  if(alpha)for(const side of [-1,1])for(let k=0;k<4;k++)
+   triangle([r*(.26-k*.24),side*r*.64,r*(.1-k*.26),side*r*1.25,r*(.48-k*.24),side*r*.66],k%2?"#344a4a":"#546c68");
   oval(r*.7,0,r*.58,r*.58,fur);
   for(const side of [-1,1]){
    if(wolf)triangle([r*.38,side*r*.39,r*.49,side*r*1.03,r*.92,side*r*.44],fur);
@@ -686,7 +699,7 @@ function drawCreature(o,isPlayer){
   oval(r*1.03,0,r*.39,r*.23,light);oval(r*1.36,0,r*.12,r*.11,"#171d1d");
   oval(r*.9,-r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
   oval(r*.9,r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
-  if(alpha){ctx.strokeStyle="#e6d5c5";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(r*.56,-r*.36);ctx.lineTo(r*.91,-r*.06);ctx.moveTo(r*.72,-r*.48);ctx.lineTo(r*1.05,-r*.19);ctx.stroke();}
+  if(alpha){for(const side of [-1,1])triangle([r*1.06,side*r*.16,r*1.26,side*r*.38,r*1.22,side*r*.08],"#f4dfc3");ctx.strokeStyle="#e6d5c5";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(r*.56,-r*.36);ctx.lineTo(r*.91,-r*.06);ctx.moveTo(r*.72,-r*.48);ctx.lineTo(r*1.05,-r*.19);ctx.stroke();}
  }
  if(isPlayer){
   ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
@@ -878,7 +891,7 @@ function drawScene(){
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
  for(const m of entities){
-  if(m===P||m.type!=="boar"||m.chargeTime<=0)continue;
+  if(m===P||(m.type!=="boar"&&m.type!=="alpha")||m.chargeTime<=0)continue;
   ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.chargeDir);
   ctx.strokeStyle="#ffc27b";ctx.lineWidth=4;ctx.setLineDash([11,8]);
   ctx.beginPath();ctx.moveTo(-m.r,0);ctx.lineTo(m.r+42,0);ctx.stroke();
@@ -895,11 +908,12 @@ function drawScene(){
    const progress=1-m.windup/Math.max(.01,m.windupTotal);
    ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.strikeDir);
    ctx.fillStyle="rgba(244,75,48,"+(.11+progress*.31)+")";
-   if(m.type==="boar"){
-    const half=m.r+P.r*.6;
-    ctx.fillRect(m.r*.3,-half,166,half*2);
+   if(m.type==="boar"||m.type==="alpha"){
+     const half=m.type==="alpha"?P.r+m.r*.35:m.r+P.r*.6;
+     const length=m.type==="alpha"?115:166;
+     ctx.fillRect(m.r*.3,-half,length,half*2);
     ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
-    ctx.strokeRect(m.r*.3,-half,166,half*2);
+    ctx.strokeRect(m.r*.3,-half,length,half*2);
    }else{
     ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,m.r+P.r+37,-.92,.92);ctx.closePath();ctx.fill();
     ctx.strokeStyle=progress>.65?"#fff2aa":"#ff7758";ctx.lineWidth=3+progress*3;
