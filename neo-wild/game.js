@@ -15,9 +15,9 @@ const species={
  rat:{hp:22,r:12,speed:105,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
  rabbit:{hp:30,r:15,speed:150,damage:0,prey:true,xp:1,food:33,color:"#c8b899",belly:"#f0e5d5"},
  pigeon:{hp:18,r:12,speed:125,damage:0,prey:true,xp:1,food:19,color:"#738c92",belly:"#e5e4d5"},
- dog:{hp:80,r:22,speed:148,damage:12,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
- boar:{hp:135,r:28,speed:113,damage:18,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
- alpha:{hp:235,r:29,speed:169,damage:25,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
+ dog:{hp:124,r:22,speed:161,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
+ boar:{hp:190,r:28,speed:122,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
+ alpha:{hp:335,r:29,speed:178,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -98,7 +98,7 @@ function spawnMob(initial=false,preyOnly=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
 }
 function spawnFood(){
@@ -254,7 +254,15 @@ function resolveAttack(){
    const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
-   m.windup=0;m.chargeTime=0;m.swing=0;m.stun=stealthHit?.92:dive?.82:P.type==="wolf"?.66:P.type==="cat"?.23:.41;m.attack=Math.max(m.attack,.45);hit++;
+   // Ordinary repeated bites cannot indefinitely stun-lock a predator.
+    // A concealed ambush or airborne pounce can always interrupt the windup.
+    const disrupt=species[m.type].prey||m.staggerGuard<=0||stealthHit||dive;
+    if(disrupt){
+     m.windup=0;m.chargeTime=0;m.swing=0;
+     m.stun=stealthHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
+     m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,.22);
+    }else m.stun=Math.max(m.stun,.035);
+    hit++;
    if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
@@ -512,7 +520,7 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
-  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
+  const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    let vx=0,vy=0;
@@ -549,7 +557,12 @@ function update(dt){
        const fy=P.y-Math.sin(heading)*48+Math.cos(heading)*side*82;
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
-      m.dir=steerPursuit(m,targetX,targetY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed
+      m.dir=steerPursuit(m,targetX,targetY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed;
+      // Dogs and alpha predators circle during recovery instead of walking straight in.
+      if((m.type==="dog"||m.type==="alpha")&&spotted&&d>75&&d<205&&m.attack>.22){
+       const around=m.dir+(m.flankSide||1)*1.08;
+       if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
+      }
      }
    }else{
     m.alert=Math.max(0,m.alert-dt);
@@ -568,10 +581,10 @@ function update(dt){
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
        const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
-       P.hp-=damage;P.inv=.55;shake=9;flash=.23;
+       P.hp-=damage;P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
-      }else if(dist(P,m)<reach+50)label(m.x,m.y-m.r-16,"回避！","#a6f5d8");
+      }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
     }
    }
@@ -590,7 +603,7 @@ function update(dt){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
       const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
-      P.hp-=damage;P.inv=.6;shake=11;flash=.27;
+      P.hp-=damage;P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
       blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);
      }else label(P.x,P.y-35,"回避！","#a6f5d8");
@@ -607,8 +620,8 @@ function update(dt){
    }
    if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
    if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(m.type==="boar"?115:m.type==="alpha"?112:29)&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
-    m.windupTotal=m.type==="boar"?.76:m.type==="alpha"?.72:.53;
-    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=m.type==="boar"?1.8:m.type==="alpha"?2.0:1.45;
+    m.windupTotal=m.type==="boar"?.68:m.type==="alpha"?.60:.45;
+    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=m.type==="boar"?1.32:m.type==="alpha"?1.42:.98;
     m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！","#ffb76d");
     sound(310,.11,"sawtooth",.03);
    }
