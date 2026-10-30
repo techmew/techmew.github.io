@@ -34,6 +34,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   createOscillator(){return {frequency:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},start(){},stop(){}}}
   createGain(){return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(dest){if(dest?.isSfxBus)audioStats.sfxRoutes++},disconnect(){}}}
  }
+ let attachedPads=[];const navigatorMock={userAgent:'QA',getGamepads:()=>attachedPads};
  const window={devicePixelRatio:2,innerWidth:390,innerHeight:840,location:{search:''},
   AudioContext:AudioStub,CyberBGM:class{
    constructor(){this.enabled=true;this.sfxInput={isSfxBus:true}}
@@ -55,10 +56,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
-  window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
+  window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
  const q=window.__QA,G=q.G;
  assert(G.mode==='title','initial mode');
  ev('startBtn','click');
@@ -1512,7 +1513,119 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(full.sectors===128&&full.bosses===128&&full.routeDecisions===112&&full.rewards===112&&full.clears===16,'35 full-run coverage');
   stats.fullRun35=full;
  }
-  assert(stats.types.size>=13,'too few wave variants');
+  // 2026-10-30 extra: hidden debug, all eight sectors and 2 paths, invincibility,
+ // score/medal/checkpoint isolation, standard gamepad input, repeats and fallback.
+ {
+  if(htmlSource&&cssSource){
+   ok(htmlSource.includes('id="debugPanel" hidden')&&htmlSource.includes('id="debugTrigger"'),'debug interface hidden behind title');
+   ok((htmlSource.match(/<option value="[0-7]">[1-8] · /g)||[]).length===8,'all eight debug stage choices');
+   ok(htmlSource.includes('id="debugRoute"')&&htmlSource.includes('無敵・記録対象外'),'two route choices and debug label');
+   ok(htmlSource.includes('id="gamepadStatus"')&&htmlSource.includes('STARTで開始'),'gamepad UI status and instructions');
+   ok(cssSource.includes('.debug-panel[hidden]')&&cssSource.includes('.debug-status[hidden]'),'debug hidden styles');
+   ok(gameSource.includes("if(G.debugMode||p.invul>0||G.mode!=='playing')return"),'debug bypasses every hitPlayer path');
+   ok(gameSource.includes("if(G.debugMode||!['playing','route','reward'].includes(G.mode))return"),'debug never writes checkpoints');
+   ok(gameSource.includes("if(!G.debugMode&&G.score>G.best)"),'debug cannot write best score');
+  }
+  // Standard mode still cannot open diagnostic by title taps during gameplay.
+  ev('titleReturnBtn','click');ev('startBtn','click');
+  ok(G.mode==='playing'&&G.debugMode===false,'normal mode unchanged by debug code');
+  for(let n=0;n<7;n++)ev('debugTrigger','click');
+  ok(el('debugPanel').hidden!==false,'secret taps ignored while playing');
+  q.saveCheckpoint('sector');
+  const saved=storageData.get('star_fighter_checkpoint_v1');
+  const previousBest=G.best,previousBestStorage=storageData.get('star_fighter_best');
+  const medalsBefore=JSON.stringify(q.readMedals());
+  ev('titleReturnBtn','click');ok(G.mode==='title','back to title for hidden unlock');
+  for(let n=0;n<6;n++)ev('debugTrigger','click');
+  ok(el('debugPanel').hidden!==false,'secret not unlocked after six taps');
+  ev('debugTrigger','click');
+  ok(el('debugPanel').hidden===false,'seventh title tap unlocks hidden debug');
+  el('debugStage').value='7';el('debugRoute').value='1';
+  ev('debugLaunch','click');
+  ok(G.mode==='playing'&&G.debugMode&&G.stage===7&&G.routeRisk===1,'hidden launch enters final sector storm branch');
+  ok(G.routeHistory.length===7&&G.routeHistory[6].risk===1,'final boss route history valid');
+  ok(el('debugStatus').hidden===false,'only debug displays invincibility indicator');
+  G.player.invul=0;G.player.shield=0;G.player.hp=1;G.lives=1;
+  const debugSurvival=[G.player.hp,G.lives,G.player.shield];
+  q.hitPlayer(999);
+  ok(JSON.stringify([G.player.hp,G.lives,G.player.shield])===JSON.stringify(debugSurvival),'debug survives direct fatal hit');
+  q.saveCheckpoint();
+  ok(storageData.get('star_fighter_checkpoint_v1')===saved,'debug does not replace normal checkpoint');
+  ok(q.unlockMedal('clear')===false&&JSON.stringify(q.readMedals())===medalsBefore,'debug does not earn medals');
+  // Every sector both routes: real stage and boss setup, no hidden invalid route history.
+  for(let stage=0;stage<8;stage++)for(const risk of (stage===0?[0]:[0,1])){
+   ok(q.debugJumpTo(stage,risk),'debug jump works '+stage+'/'+risk);
+   ok(G.stage===stage&&G.routeHistory.length===stage,'debug route history count '+stage+'/'+risk);
+   ok(G.routeRisk===(stage===0?0:risk),'debug route risk '+stage+'/'+risk);
+   ok(G.stageTime===0&&G.boss===null&&G.bullets.length===0,'debug resets combat '+stage+'/'+risk);
+   ok(stage===0||!!G.activeEvent,'debug stage route event '+stage+'/'+risk);
+   q.spawnBoss();
+   ok(!!G.boss&&G.boss.name,'debug stage boss actually spawns '+stage+'/'+risk);
+   const hp=G.player.hp,lives=G.lives;
+   G.player.invul=0;q.hitPlayer(1);
+   ok(G.player.hp===hp&&G.lives===lives,'debug boss contact cannot damage '+stage+'/'+risk);
+   G.boss=null;
+  }
+  ev('sidePauseBtn','click');
+  ok(G.mode==='paused'&&el('debugPanel').hidden===false,'debug controls available while paused');
+  el('debugStage').value='3';el('debugRoute').value='0';
+  ev('debugLaunch','click');
+  ok(G.mode==='playing'&&G.stage===3&&G.routeRisk===0&&G.debugMode,'paused debug jump resumes play');
+  G.score=previousBest+9999999;
+  q.endGame(true);
+  ok(G.mode==='win'&&G.best===previousBest&&storageData.get('star_fighter_best')===previousBestStorage,'debug win cannot record score');
+  ok(storageData.get('star_fighter_checkpoint_v1')===saved,'debug win does not erase normal checkpoint');
+  ok(JSON.stringify(q.readMedals())===medalsBefore,'debug clear cannot earn medal');
+  ev('titleReturnBtn','click');ev('startBtn','click');
+  ok(G.mode==='playing'&&!G.debugMode&&el('debugStatus').hidden,'ordinary run resets god mode');
+  G.player.invul=0;G.player.shield=0;G.player.hp=2;q.hitPlayer(1);
+  ok(G.player.hp===1,'ordinary game still takes damage');
+  G.player.invul=99;
+  // Plug a standard pad into the navigator mock; held A at connect is baseline only.
+  const makeButton=()=>({pressed:false,value:0});
+  const gp={index:0,id:'QA standard controller',connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},makeButton)};
+  attachedPads=[gp];
+  G.energy=1;G.levels[0]=0;q.updateHud();
+  gp.buttons[0].pressed=true;q.pollGamepad();
+  ok(G.levels[0]===0&&G.energy===1,'held button at connection does not auto-upgrade');
+  ok(el('gamepadStatus').hidden===false,'gamepad connection status');
+  q.pollGamepad();ok(G.levels[0]===0,'held A never repeats without release');
+  gp.buttons[0].pressed=false;q.pollGamepad();
+  gp.buttons[0].pressed=true;q.pollGamepad();
+  ok(G.levels[0]===1&&G.energy===0,'A press explicitly upgrades current cursor');
+  q.pollGamepad();ok(G.levels[0]===1,'held A does not buy twice');
+  gp.buttons[0].pressed=false;q.pollGamepad();
+  G.pulses=2;gp.buttons[1].pressed=true;q.pollGamepad();
+  ok(G.pulses===1,'B fires one NOVA');
+  q.pollGamepad();ok(G.pulses===1,'held B does not spam NOVA');
+  gp.buttons[1].pressed=false;q.pollGamepad();
+  G.player.x=G.player.targetX=215;G.player.y=G.player.targetY=337;
+  gp.axes=[.05,.08];q.pollGamepad();q.update(.033);
+  ok(Math.abs(G.player.x-215)<.05&&Math.abs(G.player.y-337)<.05,'analog deadzone prevents stick drift');
+  gp.axes=[.75,-.65];q.pollGamepad();q.update(.033);
+  ok(G.player.x>215&&G.player.y<337,'left analog moves ship in both axes');
+  gp.axes=[0,0];gp.buttons[15].pressed=true;q.pollGamepad();const oldX=G.player.x;q.update(.033);
+  ok(G.player.x>oldX,'D-pad right moves ship');
+  gp.buttons[15].pressed=false;q.pollGamepad();
+  gp.buttons[9].pressed=true;q.pollGamepad();
+  ok(G.mode==='paused','START pauses in gameplay');
+  q.pollGamepad();ok(G.mode==='paused','holding START never unpauses');
+  gp.buttons[9].pressed=false;q.pollGamepad();
+  gp.buttons[9].pressed=true;q.pollGamepad();
+  ok(G.mode==='playing','new START press resumes');
+  gp.buttons[9].pressed=false;q.pollGamepad();
+  // Disconnect and denied Gamepad API must not break touch/keyboard or trigger a button.
+  gp.axes=[.9,.9];q.pollGamepad();attachedPads=[];q.pollGamepad();
+  ok(el('gamepadStatus').hidden===true,'disconnected pad removed from status');
+  const noPadX=G.player.x,noPadY=G.player.y;q.update(.016);
+  ok(Math.abs(G.player.x-noPadX)<.1&&Math.abs(G.player.y-noPadY)<.1,'disconnect clears movement');
+  navigatorMock.getGamepads=()=>{throw Error('SecurityError')};
+  q.pollGamepad();ok(el('gamepadStatus').hidden===true&&G.mode==='playing','blocked gamepad API falls back safely');
+  navigatorMock.getGamepads=undefined;q.pollGamepad();
+  ok(G.mode==='playing','unsupported gamepad API does not block game');
+  stats.debugGamepadQA={debugStageCases:16,invincible:true,gamepadStandard:true};
+ }
+ assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
 }
