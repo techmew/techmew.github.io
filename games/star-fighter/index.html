@@ -34,7 +34,7 @@
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
  <p class="quick-hint">左で機体移動・自動射撃 ／ 右はノヴァと手動強化<br>報酬と次の航路は飛行中に上下移動で選択</p>
  <div class="start-orientation"><button class="main-btn" id="startBtn" type="button">縦画面で開始 <span>▶</span></button><button class="main-btn mode-landscape" id="landscapeStartBtn" type="button">横画面で開始 <span>▶</span></button></div>
- <button class="continue-btn" id="continueBtn" type="button" hidden>CONTINUE ▶</button><button class="continue-btn" id="medalBtn" type="button" aria-label="獲得した記章を切り替える">記章 0/4 · 未解禁 ↻</button><span class="continue-info" id="continueInfo" hidden></span>
+ <button class="continue-btn" id="continueBtn" type="button" hidden>CONTINUE ▶</button><button class="continue-btn" id="medalBtn" type="button" aria-label="獲得した記章を切り替える">記章 0/4 · 未解禁 ↻</button><button class="continue-btn trophy-open" id="trophyBtn" type="button" aria-label="300個のトロフィー図鑑を開く">トロフィー 0/300 · 一覧を見る</button><span class="continue-info" id="continueInfo" hidden></span>
  <section class="debug-panel" id="debugPanel" hidden aria-label="隠しデバッグメニュー">
  <strong>DEBUG MODE — 無敵・記録対象外</strong>
  <div class="debug-controls">
@@ -98,11 +98,27 @@
 </aside>
 </div>
 
+<section id="trophyGallery" class="trophy-gallery" role="dialog" aria-modal="true" aria-label="トロフィー300個の図鑑" hidden>
+ <div class="trophy-modal">
+  <div class="trophy-head"><div><small>STAR FIGHTER · COLLECTION</small><h2>トロフィー図鑑 <span>300</span></h2><p id="trophyCount">0 / 300 解放</p></div>
+   <button type="button" id="trophyClose" aria-label="図鑑を閉じる">閉じる ×</button></div>
+  <div class="trophy-progress"><i id="trophyProgress"></i></div>
+  <div class="trophy-filters">
+   <label>系統 <select id="trophyCategory"><option value="all">全30系統</option></select></label>
+   <label>獲得 <select id="trophyStatus"><option value="all">すべて</option><option value="earned">獲得済み</option><option value="locked">未獲得</option></select></label>
+   <label>検索 <input type="search" id="trophySearch" placeholder="名前・条件で検索" aria-label="トロフィー検索"></label>
+  </div>
+  <p class="trophy-explain">30系統×10段階。すべて通常プレイで自動解放。無敵デバッグはカウントされません。効果は記念・収集のみです。</p>
+  <small class="trophy-shown" id="trophyShown">300件を表示</small>
+  <div id="trophyGrid" class="trophy-grid" aria-live="off"></div>
+ </div>
+</section>
 <div class="bottom-note"><span class="green-dot"></span><span>PC / MOBILE · 縦横対応</span><span class="note-divider"></span><span>オート射撃・左タッチパッド対応</span><span id="gamepadStatus" class="gamepad-status" hidden aria-live="polite"></span><button id="helpBtn" type="button">操作方法 ?</button></div>
 </div>
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
-<script src="./game.js?v=final-qa-20261030-3"></script>
+<script src="./trophies.js?v=trophies-20261030-1"></script>
+<script src="./game.js?v=trophies-20261030-1"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
