@@ -909,12 +909,13 @@ function drawCreature(o,isPlayer){
   oval(r*.72,-r*.19,1.8,1.7,"#181a1e");
  }else if(t==="rabbit"){
   oval(-r*.98,0,r*.25,r*.28,"#fff1dc");
-  oval(-r*.15,0,r*.82,r*.72,fur);
+  oval(-r*.15,0,r*.94,r*.56,fur);
   oval(r*.57,0,r*.44,r*.43,fur);
   for(const sign of [-1,1]){
    oval(r*.48,sign*r*.99,r*.26,r*.69,fur,sign*.18);
    oval(r*.48,sign*r*.99,r*.11,r*.48,"#e9ada7",sign*.18);
-   oval(-r*.35,sign*r*.49+pace*sign,r*.24,r*.16,"#a99b87");
+   oval(-r*.42,sign*r*.49+pace*sign,r*.41,r*.31,fur);
+   oval(-r*.76,sign*r*.54+pace*sign,r*.39,r*.18,"#a99b87");
   }
   oval(r*.79,-r*.15,2,2,"#322d2a");oval(r*.96,0,1.8,1.7,"#d894a0");
  }else if(t==="boar"){
@@ -932,13 +933,13 @@ function drawCreature(o,isPlayer){
   oval(r*.86,-r*.35,2.8,2.4,"#1c1f1d");
  }else if(t==="cat"){
   // 猫だけ細い身体、長く曲がる尻尾、丸い頭と小さい三角耳。
-  ctx.strokeStyle=fur;ctx.lineWidth=r*.27;ctx.lineCap="round";
+  ctx.strokeStyle=fur;ctx.lineWidth=r*.18;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68+tailSway,-r*2.25,-r*.26+tailSway);ctx.stroke();
   for(const sign of [-1,1]){
    oval(-r*.44,sign*r*.48+pace*sign,r*.2,r*.28,fur);
    oval(r*(.36+attackReach*(sign<0?1:.52)),sign*r*(.44-attackReach*.10)-pace*sign,r*.19,r*.27,fur);
   }
-  oval(-r*.14,0,r*.79,r*.56,fur);
+  oval(-r*.14,0,r*.96,r*.42,fur);
   for(const q of [-.42,-.06,.3]){
    ctx.strokeStyle="#6c776e";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(q*r,-r*.49);ctx.lineTo((q-.1)*r,-r*.19);ctx.stroke();
   }
@@ -960,11 +961,11 @@ function drawCreature(o,isPlayer){
   for(const side of [-1,1])for(const px of [-.47,.3]){
    oval((px+(px>0?attackReach*.62:0))*r,side*r*(.52-(px>0?attackReach*.10:0))+pace*side,r*.16,r*.31,"#292a26");
   }
-  oval(-r*.1,0,r*.87,r*.57,fur);
-  oval(r*.23,0,r*.5,r*.4,light);
-  oval(r*.62,0,r*.43,r*.46,fur);
+  oval(-r*.1,0,r*1.08,r*.40,fur);
+  oval(r*.23,0,r*.50,r*.30,light);
+  oval(r*.62,0,r*.42,r*.35,fur);
   for(const side of [-1,1])triangle([r*.36,side*r*.34,r*.45,side*r*1.0,r*.85,side*r*.42],fur);
-  triangle([r*.76,-r*.34,r*1.65,0,r*.76,r*.34],light);
+  triangle([r*.76,-r*.23,r*1.82,0,r*.76,r*.23],light);
   triangle([r*1.53,-r*.075,r*1.78,0,r*1.53,r*.075],"#252526");
   oval(r*.83,-r*.23,2.2,2.4,"#1a201c");oval(r*.83,r*.23,2.2,2.4,"#1a201c");
  }else{
