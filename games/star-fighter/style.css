@@ -548,3 +548,14 @@ html,body{overscroll-behavior:none}
  #shell .hud{top:2%;left:2%;right:2%}
  #shell .sub-stats{gap:5px;margin-top:4px}
 }
+
+/* 31/36: concise onboarding and accessible pause help; no gameplay overlay. */
+#shell .quick-hint{margin:8px auto 5px;max-width:520px;color:#bce6f4;font-size:clamp(9px,1vw,12px);line-height:1.45}
+#shell .quick-help{max-width:470px;margin:8px auto 0;border:1px solid #31566a;border-radius:6px;background:#08192ac9;color:#c6e5f2;font-size:11px;text-align:left}
+#shell .quick-help summary{padding:7px 12px;cursor:pointer;font-weight:800;text-align:center;color:#b2efff;list-style-position:inside}
+#shell .quick-help summary:focus-visible{outline:2px solid #8aefff;outline-offset:1px}
+#shell .quick-help-body{padding:2px 12px 9px;line-height:1.55}
+#shell .quick-help-body p{margin:4px 0}
+#shell .overlay[data-state="over"] .quick-help,#shell .overlay[data-state="win"] .quick-help,#shell .overlay[data-state="pause"] .quick-hint,#shell .overlay[data-state="over"] .quick-hint,#shell .overlay[data-state="win"] .quick-hint{display:none}
+@media(pointer:coarse) and (orientation:portrait){#shell .quick-hint{font-size:8px;margin:4px auto 3px;line-height:1.2}#shell .quick-help{font-size:9px;margin:4px auto 0}#shell .quick-help summary{padding:3px 6px}#shell .quick-help-body{padding:2px 7px 6px}}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:430px){#shell .quick-hint{font-size:8px;margin:2px auto}#shell .quick-help{font-size:9px;margin:2px auto}#shell .quick-help summary{padding:2px 6px}}
