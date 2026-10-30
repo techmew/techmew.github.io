@@ -17,7 +17,6 @@ uniform vec2 uCenter;
 uniform vec2 uSize;
 uniform vec4 uView;
 uniform float uNight;
-uniform float uAlpha;
 varying vec3 vColor;
 varying float vShade;
 void main(){
@@ -35,6 +34,7 @@ void main(){
 `;
 const fragment=String.raw`
 precision mediump float;
+uniform float uAlpha;
 varying vec3 vColor;
 varying float vShade;
 void main(){gl_FragColor=vec4(vColor*vShade,uAlpha);}
