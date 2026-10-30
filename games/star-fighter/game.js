@@ -173,6 +173,16 @@ function refreshActiveEnemies(){
  if(!G.enemies?.length)return;
  for(const e of G.enemies)refreshEnemyStrength(e);
 }
+function refreshBossStrength(b){
+ if(!b||b.hp<=0||invulnerablePracticeBoss())return;
+ const next=offensiveBuild();
+ if(Math.abs(next-(b.adaptiveTier||0))<.0001)return;
+ const ratio=cl(b.hp/Math.max(1,b.maxHp),0,1);
+ const newMax=Math.max(1,Math.round(b.adaptiveBaseHp*(1+7.2*next)));
+ b.maxHp=newMax;b.hp=Math.max(.1,newMax*ratio);
+ b.adaptiveTier=next;
+ b.reactiveDamage=Math.min(b.reactiveDamage||0,newMax*.10);
+}
 function bossArmorMultiplier(b){
  const tier=b?.adaptiveTier||0;
  if(tier<=0)return 1;
@@ -1300,7 +1310,7 @@ function spawnBoss(){
  const adaptiveTier=offensiveBuild();
  const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06)*
   (G.stage===7?1+Math.min(4,legacyRisk)*.035:1)*(1+7.2*adaptiveTier)*2);
- G.boss={variant,name,adaptiveTier,reactiveShield:0,reactiveExpose:0,reactiveStrike:0,reactiveCooldown:0,reactiveDamage:0,reactiveTriggers:0,reactiveTargetY:335,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
+ G.boss={variant,name,adaptiveTier,adaptiveBaseHp:hp/(1+7.2*adaptiveTier),reactiveShield:0,reactiveExpose:0,reactiveStrike:0,reactiveCooldown:0,reactiveDamage:0,reactiveTriggers:0,reactiveTargetY:335,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -2031,6 +2041,7 @@ if(e.aiWarn<=0&&!terrainApproaching())coordinateVolley(e);
 e.fire-=dt;
 if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){if(!EXTRA?.trigger(e,p))fireEnemy(e);e.fire=Math.max(.9,(GR(e.type==='turret'?1.15:1.65,e.type==='turret'?1.65:2.65)-G.stage*.065 )*routeProfile().fireInterval*(G.directorGrace>0?1.22:1)*(1-.35*(e.combatTier||0)))}if(circleHit(p.x,p.y,18,e.x,e.y,EXTRA?.stats[e.type]?.ship??(e.type==='tank'||e.type==='carrier'?36:21)))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
+refreshBossStrength(b);
 const practice=invulnerablePracticeBoss();
 if(practice)b.hp=b.maxHp;
 b.t+=dt;
