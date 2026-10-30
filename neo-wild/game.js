@@ -1258,7 +1258,7 @@ function keyDown(e){
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="q")act("sense");if(k==="r")act("instinct");
  if(k==="e")act("eat");
- if(k==="p"||k==="escape")togglePause();
+ if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
