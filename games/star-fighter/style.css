@@ -559,3 +559,19 @@ html,body{overscroll-behavior:none}
 #shell .overlay[data-state="over"] .quick-help,#shell .overlay[data-state="win"] .quick-help,#shell .overlay[data-state="pause"] .quick-hint,#shell .overlay[data-state="over"] .quick-hint,#shell .overlay[data-state="win"] .quick-hint{display:none}
 @media(pointer:coarse) and (orientation:portrait){#shell .quick-hint{font-size:8px;margin:4px auto 3px;line-height:1.2}#shell .quick-help{font-size:9px;margin:4px auto 0}#shell .quick-help summary{padding:3px 6px}#shell .quick-help-body{padding:2px 7px 6px}}
 @media(pointer:coarse) and (orientation:landscape) and (max-height:430px){#shell .quick-hint{font-size:8px;margin:2px auto}#shell .quick-help{font-size:9px;margin:2px auto}#shell .quick-help summary{padding:2px 6px}}
+
+/* 32/36: compact, scrollable results; only visible after game over or clear. */
+#shell .run-result[hidden]{display:none!important}
+#shell .run-result{width:min(100%,530px);max-height:clamp(95px,34dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:6px auto;padding:8px 10px;border:1px solid #376079;border-radius:8px;background:#071929ed;color:#d6edfa;text-align:left;font-size:clamp(9px,1.1vw,12px);scrollbar-width:thin}
+#shell .run-result-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+#shell .run-result-top>div{min-width:0;padding:5px 6px;background:#123147;border-radius:5px}
+#shell .run-result-top small{display:block;font-size:9px;color:#88c9df;letter-spacing:1px}
+#shell .run-result-top strong{display:block;overflow-wrap:anywhere;font-size:clamp(11px,1.5vw,17px);color:#e9fcff}
+#shell .run-result-stats{margin:6px 0;color:#a7d2e8;font-weight:700}
+#shell .run-result-line{display:grid;grid-template-columns:34px minmax(0,1fr);gap:7px;padding:4px 0;border-top:1px solid #24475c;line-height:1.4}
+#shell .run-result-line b{color:#89e6f7}
+#shell .run-result-line span{overflow-wrap:anywhere}
+#shell .overlay[data-state="win"] .run-result-top>div:first-child{background:#174a4d}
+#shell .overlay[data-state="over"] .run-result-top>div:first-child{background:#49323f}
+@media(pointer:coarse) and (orientation:portrait){#shell .run-result{margin:3px auto;padding:5px 7px;max-height:clamp(75px,27dvh,180px);font-size:9px}#shell .run-result-top>div{padding:3px 4px}#shell .run-result-top small{font-size:7px}#shell .run-result-line{padding:3px 0}}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:430px){#shell .run-result{max-height:clamp(65px,25dvh,125px);padding:4px 6px}#shell .run-result-top>div{padding:2px 4px}#shell .run-result-line{padding:2px 0}}
