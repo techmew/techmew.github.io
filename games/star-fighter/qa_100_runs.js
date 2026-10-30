@@ -159,7 +159,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
   G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];G.pendingWave=null;G.terrain=null;G.terrainIndex=2;
   G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;G.eliteSpawned=false;
-  G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;G.player.hp=120;G.player.invul=0;G.player.shield=0;G.lives=0;
+  G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
   G.selected=0;G.energy=0;G.pulses=2;G.pulseRecharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.fireTimer=0;G.missileTimer=0;
@@ -617,7 +617,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
- ok(G.player.hp===120&&G.player.maxHp===120&&G.shipLevel===1&&G.lives===0&&G.pulses===1,'new run full 120 hull without lives');
+ ok(G.player.hp===120&&G.player.maxHp===120&&G.shipLevel===1&&G.lives===0&&G.pulses===1,'start hull 120 level1 no lives');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  if(el('soundBtn').textContent!=='♫ BGM ON')ev('soundBtn','click');
@@ -780,32 +780,33 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(specialSeen.has(id),'special reward unreachable '+id);
  }
  // Test each grant with a real route-gate transition and valid checkpoint.
-const expected={
-  rare_arsenal:[0,1,2,2,78,0,0,0,2],
-  rare_reactor:[0,1,2,3,78,45,0,0,0],
-  rare_rescue:[0,2,0,2,120,0,0,0,0],
-  rare_focus:[0,2,2,1,78,15,1,0,0],
-  storm_bounty:[0,1,5,2,78,25,0,0,0],
-  storm_gamble:[0,2,2,2,56,25,0,0,1],
-  safe_refit:[0,3,2,2,105,0,0,0,0],
-  safe_supply:[0,2,3,3,78,0,0,0,0]
+ const expected={
+   rare_arsenal:[0,1,2,2,78,0,0,0,2],
+   rare_reactor:[0,1,2,3,78,45,0,0,0],
+   rare_rescue:[0,2,0,2,120,0,0,0,0],
+   rare_focus:[0,2,2,1,78,15,1,0,0],
+   storm_bounty:[0,1,5,2,78,25,0,0,0],
+   storm_gamble:[0,2,2,2,56,25,0,0,1],
+   safe_refit:[0,3,2,2,105,0,0,0,0],
+   safe_supply:[0,2,3,3,78,0,0,0,0]
  };
+ G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
  for(const [id,want] of Object.entries(expected)){
   const risk=id.startsWith('storm_')?1:0;
-  G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;G.stage=1;G.routeRisk=risk;G.mode='reward';G.runSeed=1234;
+  G.stage=1;G.routeRisk=risk;G.mode='reward';G.runSeed=1234;
   G.routeHistory=[{stage:2,route:'test',risk,event:'cache',eventName:'cache',chain:false}];
   G.rewardHistory=[{stage:0,id:'score',name:'score'}];
   G.player.hp=78;G.player.shield=2;G.lives=0;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
   G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
-  G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];q.chooseReward(0);
-  ok(G.mode==='route'&&G.rewardHistory.length===2,'hull reward route checkpoint '+id);
+  G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];
+  q.chooseReward(0);
+  ok(G.mode==='route'&&G.rewardHistory.length===2,'hull reward checkpoint '+id);
   const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives,G.pendingUpgrades[1]];
   ok(JSON.stringify(got)===JSON.stringify(want),'hull reward effect '+id+': '+JSON.stringify(got));
-  ok(q.readCheckpoint()?.mode==='route'&&q.readCheckpoint()?.v===2,'v2 reward checkpoint '+id);
+  ok(q.readCheckpoint()?.mode==='route'&&q.readCheckpoint()?.v===2,'v2 reward saved '+id);
   ok(q.readCheckpoint()?.pendingUpgrades?.[1]===G.pendingUpgrades[1],'voucher saved '+id);
  }
-
-  // Boss-flight reward is chosen by Y lane, but levels MUST wait for a user tap.
+ // Boss-flight reward is chosen by Y lane, but levels MUST wait for a user tap.
  G.stage=1;G.routeRisk=0;G.mode='reward';G.rewardHistory=[{stage:0,id:'score',name:'score'}];
  G.routeHistory=[{stage:2,route:'test',risk:0,event:'cache',eventName:'cache',chain:false}];
  G.player.hp=2;G.player.shield=0;G.energy=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
@@ -837,20 +838,20 @@ const expected={
  }
  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
  G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
-// Ship survival: one 120HP hull; zero hull is an immediate game over, no respawn.
- G.mode='playing';G.stage=0;G.routeRisk=0;G.shipLevel=1;G.shipXP=0;G.lives=0;G.player.maxHp=120;
+ // A single durable hull, no respawn.
+ G.mode='playing';G.stage=0;G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
  G.player.hp=78;G.player.shield=0;G.pulses=1;
- q.stageClear();ok(G.player.hp===78&&G.pulses===1,'sector one limited rescue');
+ q.stageClear();ok(G.player.hp===78&&G.pulses===1,'sector 1 does not full heal');
  G.stage=1;G.player.hp=20;G.player.shield=0;G.pulses=1;
- q.stageClear();ok(G.player.hp>20&&G.player.hp<G.player.maxHp&&G.pulses===2,'sector two limited recovery');
+ q.stageClear();ok(G.player.hp>20&&G.player.hp<G.player.maxHp&&G.pulses===2,'limited rescue at sector 2');
  G.bossDone=false;G.transitioning=false;G.mode='playing';
- G.stage=0;G.player.hp=78;G.player.shield=0;G.player.invul=0;
- q.hitPlayer(1);ok(G.player.hp===65&&G.lives===0&&G.mode==='playing','base collision deals 13 hull');
- G.player.invul=0;q.hitPlayer(2);ok(G.player.hp===45&&G.mode==='playing','heavy shot deals 20 hull');
- G.player.invul=0;G.player.hp=10;q.hitPlayer(1);ok(G.mode==='over'&&G.player.hp===0,'zero hull ends game without revival');
- ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===120&&G.shipLevel===1&&G.lives===0,'restart resets hull and level');
-
-  // Stage eight: previous route choices affect events and final boss pressure.
+ G.stage=0;G.player.hp=78;G.player.shield=0;G.player.invul=0;G.lives=0;
+ q.hitPlayer(1);ok(G.player.hp===65&&G.lives===0&&G.mode==='playing','13 hull damage no lives: '+JSON.stringify({hp:G.player.hp,lives:G.lives,mode:G.mode,stage:G.stage,invul:G.player.invul}));
+ G.player.invul=0;q.hitPlayer(2);ok(G.player.hp===45,'heavy hit costs 20 hull');
+ G.player.invul=0;G.player.hp=10;q.hitPlayer(1);
+ ok(G.mode==='over'&&G.player.hp===0,'zero hull is immediate game over');
+ ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===120&&G.shipLevel===1&&G.lives===0,'retry full hull no lives');
+ // Stage eight: previous route choices affect events and final boss pressure.
  stageSetup(seeds[0],7,0);G.routeHistory=Array.from({length:7},(_,i)=>({risk:i%2,stage:i+2}));
  G.activeEvent=q.routeOffer(6,0).event;G.eventTriggered=false;G.stageTime=31;G.terrainIndex=2;
  G.player.shield=0;G.driveCharge=0;G.spawn=10;
@@ -1059,7 +1060,7 @@ const expected={
   ok(G.mode==='playing'&&G.stage===stage&&G.runSeed===seed,'R2 seed and stage resume '+stage+'/'+risk);
   ok(G.routeRisk===risk&&G.routeHistory.length===stage,'R2 route resume '+stage+'/'+risk);
   ok(G.pulses===1&&G.pulseRecharge===17&&G.energy===2,'R2 NOVA and resources resume '+stage+'/'+risk);
-  ok(G.levels[0]===1&&G.passives[1]===1&&G.player.hp===cp.player.hp&&G.player.maxHp===cp.player.maxHp,'R2 saved hull and build '+stage+'/'+risk);
+  ok(G.levels[0]===1&&G.passives[1]===1&&G.player.hp===cp.player.hp&&G.player.maxHp===cp.player.maxHp,'R2 build resume '+stage+'/'+risk);
   ok(G.pendingUpgrades[1]===1,'R2 voucher continued '+stage+'/'+risk);
   G.routeOffers=stage<7?[q.routeOffer(stage,0),q.routeOffer(stage,1)]:[];
   q.renderRouteMap();const map=el('routeMap').innerHTML;
@@ -1316,8 +1317,8 @@ const expected={
  G.particles=[];q.wreckFragments({type:'scout',x:400,y:250,phase:0});
  ok(G.particles.length===5,'small enemies have restrained destruction');
  G.particles=[];G.player.invul=0;G.player.hp=78;G.player.shield=0;
- q.hitPlayer(1);
- ok(G.player.hp===78-q.actualHullDamage(1)&&G.player.hitFlash>.1,'ship hull damage feedback');
+ const hullDamage=q.actualHullDamage(1);q.hitPlayer(1);
+ ok(G.player.hp===78-hullDamage&&G.player.hitFlash>.1,'damage flash and stage-scaled hull impact');
  q.drawShip(G.player.x,G.player.y,G.player.angle,G.player.invul);
  G.player.invul=999;const moveY=G.player.y;
  const keyDown=(window.handlers?.keydown||[])[0],keyUp=(window.handlers?.keyup||[])[0];
@@ -1444,44 +1445,35 @@ const expected={
   G.particles=[];
   stats.renderBudget={gradientWarmup:stageWarm,particleDrawCap:visibleRects,hardwareFps:'not measured',inputLatency:'not measured'};
  }
-// 100 seeded route/sector crisis checks; human clear rate is not measured.
+ // 100 seed crisis reward/difficulty regression for the new hull system.
  {
-  const lengths=[62,68,74,72,76,80,84,90];
   const balance={seeds:100,stageRoutes:0,criticalDrafts:0,guaranteedRescue:0,
    criticalMaxPressure:0,healthyMaxPressure:0,humanCompletionRate:'not measured'};
-  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of stage===0?[0,1]:[0,1]){
-   // Both stage-1 branch labels share the same neutral route setup.
-   if(stage===0&&risk===1)continue;
-   balance.stageRoutes++;
-   G.mode='playing';G.stage=stage;G.routeRisk=risk;G.runSeed=seed;
+  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of (stage===0?[0]:[0,1])){
+   balance.stageRoutes++;G.mode='playing';G.stage=stage;G.routeRisk=risk;G.runSeed=seed;
    G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
-   G.stageTime=lengths[stage]*.78;G.enemies=[];G.bullets=[];G.directorGrace=0;
-   G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
-   G.passives=[0,0,0,0,0,0];G.energy=2;G.pulses=1;G.driveCharge=30;
-   G.player.shield=0;G.rewardHistory=[];G.player.hp=112;G.lives=0;
-   const healthy=q.encounterDirector();
+   G.stageTime=[62,68,74,72,76,80,84,90][stage]*.78;G.enemies=[];G.bullets=[];G.directorGrace=0;
+   G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+   G.energy=2;G.pulses=1;G.driveCharge=30;G.player.shield=0;G.rewardHistory=[];
+   G.player.hp=112;G.lives=0;const healthy=q.encounterDirector();
    balance.healthyMaxPressure=Math.max(balance.healthyMaxPressure,healthy.pressure);
-   for(const hull of [36,24,12]){
-    G.player.hp=hull;
-    const offers=q.rewardOptions(),repeat=q.rewardOptions();
-    ok(offers.length===3&&new Set(offers.map(o=>o.id)).size===3,'critical hull unique rewards');
-    ok(JSON.stringify(offers)===JSON.stringify(repeat),'critical hull deterministic draft');
-    ok(offers.some(o=>o.id.startsWith('passive_')),'critical hull passive');
-    ok(offers[1].id==='repair','critical hull central repair');
-    ok(offers.filter(o=>o.rarity==='rare'||o.rarity==='route').length<=1,'critical hull special cap');
-    const director=q.encounterDirector();
-    ok(director.pressure<=healthy.pressure,'low hull lowers pressure');
-    if(hull===12){ok(director.pressure<=.54&&director.budget<=3,'near-zero hull pressure cap');balance.criticalMaxPressure=Math.max(balance.criticalMaxPressure,director.pressure)}
+   for(const hp of [36,24,12]){
+    G.player.hp=hp;const offers=q.rewardOptions(),copy=q.rewardOptions();
+    ok(offers.length===3&&new Set(offers.map(o=>o.id)).size===3,'hull crisis valid three rewards');
+    ok(JSON.stringify(offers)===JSON.stringify(copy),'crisis seed determinism');
+    ok(offers.some(o=>o.id.startsWith('passive_')),'critical passive remains selectable');
+    ok(offers[1].id==='repair','critical hull guarantees middle repair');
+    ok(offers.filter(o=>o.rarity==='rare'||o.rarity==='route').length<=1,'special rarity cap');
+    const d=q.encounterDirector();ok(d.pressure<=healthy.pressure,'critical hull must not raise threat');
+    if(hp===12){ok(d.pressure<=.54&&d.budget<=3,'low hull director cap');balance.criticalMaxPressure=Math.max(balance.criticalMaxPressure,d.pressure)}
     balance.criticalDrafts++;balance.guaranteedRescue++;
    }
   }
-  ok(balance.stageRoutes===1500&&balance.criticalDrafts===4500,'100 seed full route/sector coverage');
-  ok(balance.guaranteedRescue===balance.criticalDrafts,'critical repair always offered');
-  ok(balance.criticalMaxPressure<=.54,'near-death pressure cap');
+  ok(balance.stageRoutes===1500&&balance.criticalDrafts===4500,'100 seed balance coverage');
+  ok(balance.guaranteedRescue===balance.criticalDrafts&&balance.criticalMaxPressure<=.54,'critical hull rescue and director cap');
   stats.balance34=balance;
  }
-
-  // 35/36 + R3: sixteen full eight-sector route histories.
+ // 35/36 + R3: sixteen full eight-sector route histories.
  // Simulated Canvas/touch; hardware FPS and latency are not measured.
  {
   const masks=[0,127,85,42,1,2,4,8,16,32,64,126,125,123,119,111];
@@ -1771,53 +1763,83 @@ const expected={
   ok(JSON.stringify(power)===JSON.stringify([G.player.hp,G.lives,G.energy,...G.levels]),'all trophies remain cosmetics only');
   stats.trophies={total:300,families:30,allUnlockable:true,debugDenied:true};
  }
- // Hull v2: exact stage curves, level progression and old-save migration.
+
+ // 2026-10-30: Level-based hull, old save migration and all eight damage curves.
  {
-  ok(htmlSource.includes('id="durabilityFill"')&&htmlSource.includes('id="durabilityText"'),'hull meter uses labeled actual/current values');
-  ok(cssSource.includes('#shell .hud-right .durability-track'),'portrait and landscape hull bar CSS exists');
-  ok(!htmlSource.includes('LIVES 03'),'old lives UI removed');
-  ok(q.maxHull(1)===120&&q.maxHull(25)===312,'ship 1-25 hull progression');
-  const dam=[];
-  G.mode='playing';G.debugMode=false;
-  for(let stage=0;stage<8;stage++){
-   G.stage=stage;G.routeRisk=stage===0?0:1;const storm=q.actualHullDamage(1);
-   G.routeRisk=0;const safe=q.actualHullDamage(1);
-   dam.push([safe,storm]);ok(storm>=safe&&safe>=13&&storm<=27,'stage hull hit range '+stage);
-   ok(q.actualHullDamage(2)>safe,'heavy projectiles deal additional damage '+stage);
-   if(stage>0)ok(safe>=dam[stage-1][0],'hull damage must not decline on later stages '+stage);
-  }
-  G.stage=0;G.routeRisk=0;G.shipLevel=1;G.shipXP=0;G.lives=0;
-  G.player.maxHp=120;G.player.hp=40;G.player.shield=0;
+  ok(q.maxHull(1)===120&&q.maxHull(25)===312,'ship level 1..25 max hull bounds');
+  ok(G.lives===0,'full-run QA has no extra lives in new combat');
+  G.debugMode=false;G.mode='playing';G.shipLevel=1;G.shipXP=0;
+  G.player.maxHp=120;G.player.hp=50;G.player.shield=0;G.lives=0;
   q.grantShipXP(98);
-  ok(G.shipLevel===2&&G.shipXP===0&&G.player.maxHp===128&&G.player.hp===51,'98 XP increases ship level and repairs 11 hull');
-  q.grantShipXP(1);ok(G.shipXP===1&&G.shipLevel===2,'XP threshold increments without unintended level');
-  G.shipLevel=24;G.shipXP=0;G.player.maxHp=q.maxHull(24);G.player.hp=180;
-  q.grantShipXP(1000000);
-  ok(G.shipLevel===25&&G.player.maxHp===312&&G.player.hp<=312,'ship max level capped to 25');
-  q.grantShipXP(1000000);ok(G.shipLevel===25&&G.player.maxHp===312,'no level beyond 25');
-  G.shipLevel=3;G.shipXP=42;G.player.maxHp=q.maxHull(3);G.player.hp=84;G.player.shield=1;G.lives=0;
-  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
-  G.energy=1;G.pulses=2;G.pulseRecharge=0;G.selected=0;
-  G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
-  G.grazes=0;G.maxCombo=0;G.killCount=0;G.eventCount=0;G.driveCharge=0;G.runSeed=12345;
+  ok(G.shipLevel===2&&G.shipXP===0&&G.player.maxHp===128&&G.player.hp===61,'level 2 increases hull cap and grants small repair');
+  q.grantShipXP(126);
+  ok(G.shipLevel===3&&G.shipXP===0&&G.player.maxHp===136&&G.player.hp===72,'level 3 grows without resetting missing health');
+  G.debugMode=true;const debugLevel=G.shipLevel,debugXP=G.shipXP;
+  q.grantShipXP(1000);
+  ok(G.shipLevel===debugLevel&&G.shipXP===debugXP,'debug cannot accelerate ordinary ship experience');
+  G.debugMode=false;q.grantShipXP(100000);
+  ok(G.shipLevel===25&&G.player.maxHp===312&&G.player.hp<=312,'XP always stops at level 25 without overflow');
+  let tested=0;
+  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of stage===0?[0]:[0,1]){
+   G.mode='playing';G.debugMode=false;G.stage=stage;G.routeRisk=risk;G.runSeed=seed;
+   G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;G.player.hp=120;
+   G.player.shield=0;G.player.invul=0;G.lives=0;G.directorGrace=0;
+   const d=q.actualHullDamage(1),heavy=q.actualHullDamage(2);
+   ok(d>=12&&d<=27&&heavy>d&&heavy<42,'bounded stage-specific hull damage '+stage+'/'+risk);
+   const previous=G.player.hp;
+   q.hitPlayer(1);
+   ok(G.player.hp===previous-d&&G.mode==='playing'&&G.lives===0,'one hit cannot consume a life '+stage+'/'+risk);
+   q.hitPlayer(1);
+   ok(G.player.hp===previous-d&&G.player.invul>=1,'repeated contact during invulnerability is ignored');
+   tested++;
+  }
+  ok(tested===1500,'100-seed x 15 stage-route hull impact coverage');
+  G.mode='playing';G.debugMode=false;G.stage=0;G.routeRisk=0;
+  G.runSeed=123456;G.score=0;G.lives=0;G.shipLevel=1;G.shipXP=0;
+  G.player.hp=110;G.player.maxHp=120;G.player.shield=0;
+  G.routeHistory=[];G.rewardHistory=[];G.levels=[0,0,0,0,0,0];
+  G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.energy=0;G.selected=0;G.driveCharge=0;G.grazes=0;G.maxCombo=0;
+  G.killCount=0;G.eventCount=0;G.pulses=1;G.pulseRecharge=0;
   q.saveCheckpoint('sector');
-  const durable=q.readCheckpoint();
-  ok(durable?.v===2&&durable.shipLevel===3&&durable.shipXP===42&&durable.player.maxHp===136&&durable.player.hp===84,'v2 checkpoint stores ship level XP and hull');
-  const checkpointKey='star_fighter_checkpoint_v1',v2Text=storageData.get(checkpointKey);
-  const malformed={...durable,player:{...durable.player,maxHp:999}};
-  storageData.set(checkpointKey,JSON.stringify(malformed));
-  ok(q.readCheckpoint()===null,'v2 rejects inconsistent max hull');
-  storageData.set(checkpointKey,v2Text);
-  const legacy={...durable,v:1,lives:2,player:{hp:2,shield:1}};
-  delete legacy.shipLevel;delete legacy.shipXP;
-  storageData.set(checkpointKey,JSON.stringify(legacy));
-  const migrated=q.readCheckpoint();
-  ok(migrated?.v===2&&migrated?.shipLevel===1&&migrated?.shipXP===0&&migrated?.player.hp===80&&migrated?.player.maxHp===120&&migrated?.lives===0,'old HP2 and lives2 checkpoint migrates to 80 hull with no revive');
-  storageData.set(checkpointKey,v2Text);
-  const savedLevel=G.shipLevel,savedXp=G.shipXP,savedHull=G.player.hp;
-  ev('titleReturnBtn','click');ev('continueBtn','click');
-  ok(G.shipLevel===savedLevel&&G.shipXP===savedXp&&G.player.hp===savedHull&&G.player.maxHp===136,'resume restores v2 level XP hull exactly');
-  stats.hullV2={startHull:120,maxLevel:25,maxHull:312,curve:dam,legacySaveMigrates:true,physicalDifficulty:'not measured'};
+  const modern=q.readCheckpoint();
+  ok(modern?.v===2&&modern.player.hp===110&&modern.player.maxHp===120&&modern.shipLevel===1,'new format saves hull, ship level and XP');
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...modern,player:{...modern.player,hp:121}}));
+  ok(q.readCheckpoint()===null,'malformed v2 hull above maximum is rejected');
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify({...modern,lives:2}));
+  ok(q.readCheckpoint()===null,'v2 cannot bring back old spare ships');
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(modern));
+  for(const oldHp of [1,2,3]){
+   const legacy={...modern,v:1,lives:2};
+   delete legacy.shipLevel;delete legacy.shipXP;
+   legacy.player={hp:oldHp,shield:0};
+   storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(legacy));
+   const migrated=q.readCheckpoint();
+   ok(migrated?.v===2&&migrated.shipLevel===1&&migrated.lives===0&&migrated.player.hp===40*oldHp&&migrated.player.maxHp===120,
+    'legacy checkpoint hull migration '+oldHp);
+  }
+  storage.setItem('star_fighter_checkpoint_v1',JSON.stringify(modern));
+  G.stage=3;G.routeRisk=0;G.runSeed=12831;G.forcedBossVariant='scorpion';G.mode='playing';
+  G.debugMode=false;G.boss=null;G.bossDone=false;G.transitioning=false;G.bullets=[];G.enemies=[];
+  q.spawnBoss();
+  const scorpion=G.boss;
+  ok(scorpion?.name==='SCORPION DREAD'&&scorpion.variant==='scorpion','normal stage four can spawn new mech scorpion');
+  scorpion.x=930;scorpion.y=337;scorpion.fire=0;
+  for(const pat of [0,1,2]){scorpion.pattern=pat;G.bullets=[];q.bossAttack(scorpion);
+   ok(G.bullets.length>=4&&G.bullets.length<=16,'scorpion attack pattern '+pat);
+   q.drawScene();
+  }
+  const beforeScorpion=scorpion.hp;q.damageBoss(scorpion,75);
+  ok(scorpion.hp===beforeScorpion-75,'scorpion takes damage in regular campaign');
+  G.forcedBossVariant='crab';G.boss=null;q.spawnBoss();
+  ok(G.boss?.name==='MOLTEN CRAB','original crab remains available in stage four');
+  G.forcedBossVariant=null;
+  G.boss=null;G.mode='playing';G.stage=0;G.player.hp=1;
+  G.player.invul=0;G.player.shield=0;q.hitPlayer(1);
+  ok(G.mode==='over'&&G.player.hp===0&&G.lives===0,'zero hull game over without respawn');
+  stats.hullV2={seeds:100,stageRouteCases:tested,shipLevelCap:25,
+   startHull:120,endLevelMaxHull:312,oldCheckpointConverted:true,extraLives:false,
+   humanClearRate:'not measured'};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
