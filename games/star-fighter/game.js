@@ -284,8 +284,11 @@ let p={x:215,y:337,targetX:215,targetY:337,angle:0,hp:3,invul:0,shield:0,alive:t
 function beginAudio(){if(!sound)return;try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();if(!bgm&&window.CyberBGM)bgm=new window.CyberBGM(audio);if(bgm){applySoundMix();bgm.setEnabled(true);bgm.start()}}catch(e){audio=null}}
 function tone(freq,dur=.08,type='sine',volume=.045,slide=0){if(!audio||!sound)return;try{const now=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(Math.max(30,freq),now);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,freq+slide),now+dur);g.gain.setValueAtTime(volume,now);g.gain.exponentialRampToValueAtTime(.0001,now+dur);o.connect(g);g.connect(bgm?.sfxInput||audio.destination);o.start(now);o.stop(now+dur+.01);o.onended=()=>{o.disconnect();g.disconnect()}}catch(e){}}
 function melody(dt){if(sound&&bgm)bgm.update(G.stage,!!G.boss)}
-function showToast(txt){ui.toast.textContent=txt;ui.toast.classList.add('show');G.toastTime=2}
-function showAnnounce(head,title,sub,duration=3){ui.small.textContent=head;ui.main.textContent=title;ui.desc.textContent=sub;ui.announce.classList.add('show');G.announceTime=duration}
+function showToast(txt){
+ const important=/カプセル不足|最大強化済み|LEVEL|SYNERGY|NOVA再充填|NOVA BURST|無料強化券|セーブデータがありません|音量バランス/.test(txt);
+ ui.toast.textContent=txt;ui.toast.classList.toggle('show',important);G.toastTime=important?1.15:0;
+}
+function showAnnounce(head,title,sub,duration=3){ui.announce.classList.remove('show');G.announceTime=0;}
 function hideOverlay(){ui.overlay.classList.add('hidden');$('runResult').hidden=true}
 
 /* 32/36: read-only post-run report; never purchases upgrades. */
@@ -319,51 +322,29 @@ const manualUpgradeToken=Symbol('confirmed-manual-upgrade');
 const combatPressCancels=[];
 function cancelCombatPresses(){for(const cancel of combatPressCancels)cancel()}
 function bindCombatAction(button,act){
- let tracking=null;
- const clearPress=()=>{tracking=null};
- combatPressCancels.push(clearPress);
- // Invalidate a press interrupted by app switching, rotation or visibility loss.
- window.addEventListener('blur',clearPress);
- window.addEventListener('orientationchange',clearPress);
+ let tracking=null;const clearPress=()=>{tracking=null};combatPressCancels.push(clearPress);
+ window.addEventListener('blur',clearPress);window.addEventListener('orientationchange',clearPress);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearPress()});
- const within=e=>{
-  const r=button.getBoundingClientRect();
-  return e.clientX>=r.left&&e.clientX<=r.right&&
-         e.clientY>=r.top&&e.clientY<=r.bottom;
- };
+ const inside=(e,pad=0)=>{const r=button.getBoundingClientRect();return e.clientX>=r.left-pad&&e.clientX<=r.right+pad&&e.clientY>=r.top-pad&&e.clientY<=r.bottom+pad};
  button.addEventListener('pointerdown',e=>{
-  if(G.mode!=='playing'||tracking)return;
-  if(e.pointerType==='mouse'&&e.button!==0)return;
-  if(!within(e))return;
+  // Secondary right thumb is allowed while left thumb controls movement.
+  if(G.mode!=='playing'||tracking||(e.pointerType==='mouse'&&e.button!==0)||!inside(e))return;
   tracking={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
-  try{button.setPointerCapture(e.pointerId)}catch(_){}
+  // Do not request explicit capture: layout/rotation may release it before up.
  });
- const move=e=>{
-  if(!tracking||e.pointerId!==tracking.id)return;
-  if(Math.hypot(e.clientX-tracking.x,e.clientY-tracking.y)>18)tracking.moved=true;
- };
- button.addEventListener('pointermove',move);
- window.addEventListener('pointermove',move);
- const cancel=e=>{
-  if(tracking&&e.pointerId===tracking.id)tracking=null;
- };
- button.addEventListener('pointercancel',cancel);
- window.addEventListener('pointercancel',cancel);
- button.addEventListener('lostpointercapture',cancel);
+ const move=e=>{if(tracking&&e.pointerId===tracking.id&&Math.hypot(e.clientX-tracking.x,e.clientY-tracking.y)>36)tracking.moved=true};
+ button.addEventListener('pointermove',move);window.addEventListener('pointermove',move);
+ const cancel=e=>{if(tracking&&e.pointerId===tracking.id)tracking=null};
+ button.addEventListener('pointercancel',cancel);window.addEventListener('pointercancel',cancel);button.addEventListener('lostpointercapture',cancel);
  const finish=e=>{
   if(!tracking||e.pointerId!==tracking.id)return;
   const pressed=tracking;tracking=null;
-  if(G.mode!=='playing'||pressed.moved||
-     Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>18||!within(e))return;
+  if(G.mode!=='playing'||pressed.moved||Math.hypot(e.clientX-pressed.x,e.clientY-pressed.y)>36||!inside(e,9))return;
   e.preventDefault();act();
  };
- button.addEventListener('pointerup',finish);
- window.addEventListener('pointerup',finish);
+ button.addEventListener('pointerup',finish);window.addEventListener('pointerup',finish);
  button.addEventListener('click',e=>{
-  // Never upgrade from synthesized/retargeted mouse or touch clicks.
-  // Real keyboard activation of this *focused* button remains accessible.
-  if(e.detail!==0||e.isTrusted!==true||document.activeElement!==button||
-     G.mode!=='playing'){e.preventDefault();return}
+  if(e.detail!==0||e.isTrusted!==true||document.activeElement!==button||G.mode!=='playing'){e.preventDefault();return}
   e.preventDefault();act();
  });
 }
@@ -375,7 +356,7 @@ ui.sound.addEventListener('contextmenu',e=>e.preventDefault());
 ui.sound.addEventListener('click',e=>{if(suppressMixClick){suppressMixClick=false;return}if(e.shiftKey){cycleSoundMix();return}sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();applySoundMix();bgm.setEnabled(true);if(G.mode==='playing')bgm.start()}}else bgm?.setEnabled(false)});
 // Hidden duplicate action buttons must not initiate purchases or NOVA.
 $('helpBtn').addEventListener('click',()=>{if(G.mode==='playing'){pause();quickHelp.open=true}else if(G.mode==='title'||G.mode==='paused')quickHelp.open=!quickHelp.open});
-ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{G.selected=i;if(G.mode==='playing'&&(G.energy>=i+1||G.pendingUpgrades[i]>0)&&G.levels[i]<MAX[i])showToast('強化を押して '+PNAMES[i]+' を装備');updateHud()}));
+ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{if(G.mode!=='playing')return;G.selected=i;updateHud();tone(570+i*48,.055,'sine',.026)}));
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const focusedControl=!!e.target?.closest?.('button,input,textarea,select,[contenteditable="true"]');if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){if(e.shiftKey)cycleSoundMix();else ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter'&&!focusedControl){if(G.mode==='title')startGame();else startFreshRun()}return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='z'&&!focusedControl&&!e.ctrlKey&&!e.metaKey&&!e.altKey)equip(manualUpgradeToken)});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
@@ -479,14 +460,20 @@ function pulse(){
  if(G.boss)G.boss.hp-=Math.round(110*(1+.30*passiveRank(4)));
  tone(120,.8,'sawtooth',.14,800);showToast('NOVA BURST');updateHud();
 }
-function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+(G.overdrive>0?' · DRIVE '+Math.ceil(G.overdrive)+'s':'');ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'パッシブ：未取得';ui.upgrades.forEach((b,i)=>{b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',(G.energy>=i+1||G.pendingUpgrades[i]>0)&&G.levels[i]<MAX[i]);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);b.querySelector('.u-key').textContent=G.pendingUpgrades[i]>0?'無料×'+G.pendingUpgrades[i]:(G.levels[i]?'LV '+G.levels[i]:String(i+1).padStart(2,'0'))});ui.equip.disabled=G.mode!=='playing'||(G.energy<G.selected+1&&G.pendingUpgrades[G.selected]===0)||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;// The two visible buttons must always accept a touch during play, even if
+function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+(G.overdrive>0?' · DRIVE '+Math.ceil(G.overdrive)+'s':'');ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'パッシブ：未取得';ui.upgrades.forEach((b,i)=>{
+ const ready=(G.energy>=i+1||G.pendingUpgrades[i]>0)&&G.levels[i]<MAX[i];
+ b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',ready);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);
+ b.setAttribute('aria-pressed',i===G.selected?'true':'false');
+ b.setAttribute('aria-label',PNAMES[i]+(i===G.selected?'・選択中':'')+(ready?'・強化可能':'')+'・レベル'+G.levels[i]);
+ b.querySelector('.u-key').textContent=G.pendingUpgrades[i]>0?'無料×'+G.pendingUpgrades[i]:(G.levels[i]?'LV '+G.levels[i]:String(i+1).padStart(2,'0'));
+});ui.equip.disabled=G.mode!=='playing'||(G.energy<G.selected+1&&G.pendingUpgrades[G.selected]===0)||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;// The two visible buttons must always accept a touch during play, even if
  // resources are empty. Otherwise native disabled suppresses click AND feedback.
  sideEquipButton.disabled=G.mode!=='playing';
  sideNovaButton.disabled=G.mode!=='playing';
- sideEquipButton.dataset.ready=(G.energy>=G.selected+1||G.pendingUpgrades[G.selected]>0)&&G.levels[G.selected]<MAX[G.selected]?'yes':'no';
+ sideEquipButton.dataset.ready=(G.energy>=G.selected+1||G.pendingUpgrades[G.selected]>0)&&G.levels[G.selected]<MAX[G.selected]?'yes':'no';sideEquipButton.dataset.target=String(G.selected);
  sideNovaButton.dataset.ready=G.pulses>0?'yes':'no';
  const nextNova=G.mode==='over'||G.mode==='win'?'次の出撃で回復':G.mode==='title'?'出撃時に補充':G.pulses>0?'残り'+G.pulses+'回':'補充まで'+Math.max(1,Math.ceil(60-G.pulseRecharge))+'秒';
- const nextEquip=G.levels[G.selected]>=MAX[G.selected]?'最大強化済み':G.pendingUpgrades[G.selected]>0?'無料強化 '+G.pendingUpgrades[G.selected]+'回':'カプセル '+G.energy+'/'+(G.selected+1);
+ const nextEquip=G.levels[G.selected]>=MAX[G.selected]?'最大強化済み':G.pendingUpgrades[G.selected]>0?'無料強化 '+G.pendingUpgrades[G.selected]+'回・使用可':'カプセル '+G.energy+'/'+(G.selected+1)+(G.energy>=G.selected+1?'・使用可':'・不足');const target=sideEquipButton.querySelector('span'),name=PNAMES[G.selected]+' 強化';if(target.textContent!==name)target.textContent=name;
  const novaInfo=$('novaActionState'),equipInfo=$('equipActionState');
  if(novaInfo.textContent!==nextNova)novaInfo.textContent=nextNova;
  if(equipInfo.textContent!==nextEquip)equipInfo.textContent=nextEquip;
@@ -1470,7 +1457,7 @@ if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
 }
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt*(terrainApproaching()?2.2:1);if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
-for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='elite'){G.pulses=Math.min(5,G.pulses+1);showToast('RARE · NOVA +1')}else if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{G.energy=Math.min(6,G.energy+1);showToast('POWER CAPSULE +1')}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
+for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='elite'){G.pulses=Math.min(5,G.pulses+1);showToast('RARE · NOVA +1')}else if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{G.energy=Math.min(6,G.energy+1);showToast('カプセル +1');updateHud()}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
 for(let i=G.particles.length-1;i>=0;i--){const q=G.particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(.12,dt);q.vy*=Math.pow(.16,dt);if(q.kind==='shard')q.rot+=q.spin*dt;if(q.life<=0)G.particles.splice(i,1)}if(G.particles.length>620)G.particles.splice(0,G.particles.length-620);
 for(let i=G.rings.length-1;i>=0;i--){const r=G.rings[i];r.t+=dt;r.r=r.max*(r.t/r.life);if(r.t>=r.life)G.rings.splice(i,1)}
 G.uiTime-=dt;if(G.uiTime<=0){updateHud();G.uiTime=.11}}
