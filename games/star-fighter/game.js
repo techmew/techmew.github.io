@@ -37,7 +37,7 @@ const ROUTE_EVENTS={
 /* Live flight gate: compact factual differences, derived from actual variants. */
 const ROUTE_BOSS_INTEL=[
  ['KRAKEN ENGINE','FORTRESS CORE'],['ABYSS TITAN','IRON TYRANT'],
- ['MOLTEN CRAB','SOLAR WYRM'],['FROST MAMMOTH','GLACIAL LEVIATHAN'],
+ ['MOLTEN CRAB / SCORPION DREAD','SOLAR WYRM'],['FROST MAMMOTH','GLACIAL LEVIATHAN'],
  ['RELIC CENTIPEDE','OBSIDIAN WARDEN'],['AETHER JELLYFISH','RIFT MEDUSA'],
  ['HORIZON ARK','SINGULARITY EMPEROR']
 ];
@@ -338,7 +338,14 @@ function showOverlay(kind){
 let debugUnlocked=false,debugTapCount=0;
 const debugPanel=$('debugPanel'),debugStage=$('debugStage'),debugRoute=$('debugRoute');
 const debugPlayMode=$('debugPlayMode'),debugBoss=$('debugBoss');
-const DEBUG_BOSS_ROSTER=[{stage:0,risk:0,name:BOSSES[0]},...ROUTE_BOSS_INTEL.flatMap((names,i)=>names.map((name,risk)=>({stage:i+1,risk,name})))];
+const DEBUG_BOSS_ROSTER=[
+ {stage:0,risk:0,name:BOSSES[0],key:'0:0'},
+ ...ROUTE_BOSS_INTEL.flatMap((names,i)=>names.map((name,risk)=>({
+  stage:i+1,risk,name:i===2&&risk===0?'MOLTEN CRAB':name,
+  key:(i+1)+':'+risk,variant:i===2&&risk===0?'crab':null
+ }))),
+ {stage:3,risk:0,name:'SCORPION DREAD',key:'3:2',variant:'scorpion'}
+];
 function updateDebugModeControls(){
  const solo=debugPlayMode.value==='boss';
  $('debugStageControls').hidden=solo;$('debugBossControls').hidden=!solo;
@@ -363,7 +370,7 @@ debugTrigger.addEventListener('keydown',e=>{
 function debugJumpTo(stage,risk=0){
  if(!G.debugMode||G.mode!=='playing'||!Number.isInteger(stage)||stage<0||stage>=NAMES.length)return false;
  risk=risk===1?1:0;
- G.stage=stage;G.routeHistory=[];G.rewardHistory=[];
+ G.stage=stage;G.forcedBossVariant=null;G.routeHistory=[];G.rewardHistory=[];
  for(let i=0;i<stage;i++){
   const route=i===stage-1?risk:0,offer=routeOffer(i,route);
   G.routeHistory.push({stage:i+2,route:offer.name,risk:route,event:offer.event.id,
@@ -386,6 +393,7 @@ function debugJumpTo(stage,risk=0){
 }
 function prepareDebugBoss(stage,risk){
  if(!debugJumpTo(stage,risk))return false;
+ G.forcedBossVariant=G.debugBossChoice;
  G.debugBossOnly=true;G.debugBossClear=false;
  // Debug-only practice arsenal. Regular game builds and storage are unchanged.
  G.levels=[1,1,1,1,1,1];G.pendingUpgrades=[0,0,0,0,0,0];
@@ -397,7 +405,7 @@ function prepareDebugBoss(stage,risk){
 function launchDebug(){
  if(!debugUnlocked||(G.mode!=='title'&&G.mode!=='paused'))return false;
  const solo=debugPlayMode.value==='boss';
- const bossSelection=DEBUG_BOSS_ROSTER.find(x=>x.stage+':'+x.risk===debugBoss.value);
+ const bossSelection=DEBUG_BOSS_ROSTER.find(x=>x.key===debugBoss.value);
  const stage=solo?bossSelection?.stage:Number(debugStage.value);
  const risk=solo?bossSelection?.risk:(Number(debugRoute.value)===1?1:0);
  if(!Number.isInteger(stage)||stage<0||stage>=NAMES.length||![0,1].includes(risk))return false;
@@ -408,14 +416,14 @@ function launchDebug(){
   if(sound&&bgm){bgm.setEnabled(true);bgm.start()}
   $('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';
  }
- G.debugBossOnly=solo;G.debugBossClear=false;
+ G.debugBossOnly=solo;G.debugBossClear=false;G.debugBossChoice=solo?bossSelection?.variant||null:null;
  const ok=solo?prepareDebugBoss(stage,risk):debugJumpTo(stage,risk);
  if(ok)updateHud();
  return ok;
 }
 $('debugLaunch').addEventListener('click',launchDebug);
 function startFreshRun(){seedInput.value='';startGame()}
-function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;G.debugBossOnly=false;G.debugBossClear=false;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
+function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;G.debugBossOnly=false;G.debugBossClear=false;G.forcedBossVariant=null;G.debugBossChoice=null;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
 function pause(){
  cancelCombatPresses();
  if(G.mode==='playing'){
@@ -532,9 +540,9 @@ function pollGamepad(){
   if(pressed(14)||pressed(15)){
    const step=pressed(14)?-1:1;
    if(debugPlayMode.value==='boss'){
-    const i=DEBUG_BOSS_ROSTER.findIndex(b=>b.stage+':'+b.risk===debugBoss.value);
+    const i=DEBUG_BOSS_ROSTER.findIndex(b=>b.key===debugBoss.value);
     const next=DEBUG_BOSS_ROSTER[(Math.max(0,i)+step+DEBUG_BOSS_ROSTER.length)%DEBUG_BOSS_ROSTER.length];
-    debugBoss.value=next.stage+':'+next.risk;
+    debugBoss.value=next.key;
    }else debugStage.value=String((Number(debugStage.value)+step+NAMES.length)%NAMES.length);
   }
   if(debugPlayMode.value==='stage'&&(pressed(12)||pressed(13)))debugRoute.value=pressed(13)?'1':'0';
