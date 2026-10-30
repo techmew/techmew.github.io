@@ -107,6 +107,10 @@ function animal(m,player,clock){
  const moving=clamp(speed/95,0,1);
  const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
  const gait=Math.sin(phase)*moving;
+ const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
+ const attackSnap=player?clamp((m.swing||0)/.18,0,1):0;
+ const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
+ const attackReach=attackSnap+airStrike;
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
  const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
@@ -118,10 +122,14 @@ function animal(m,player,clock){
  animalLift=player?Math.max(0,m.jumpHeight||0):0;
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
-  const dx=k*r*.57,dy=s*r*.45,bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
-  ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob),r*.21,r*.19,r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
+  const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
+  const dx=k*r*.57+(front?(attackReach*lead-attackPrep*.21)*r:0);
+  const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
+  const bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
+  const pawLift=front?attackReach*r*(cat?.34:fox?.20:.13):0;
+  ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob)+pawLift,r*.21,r*.19,r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
  }
- ellipsoid(x,y,h+r*.28,large?r*1.22:rat?r*.76:pigeon?r*.72:r*.91,cat?r*.49:rat?r*.40:pigeon?r*.46:r*.69,large?r*.69:r*.55,torso,dir,11,6);
+ ellipsoid(fx(r*(attackReach*.16-attackPrep*.16),0),fy(r*(attackReach*.16-attackPrep*.16),0),h+r*.28-attackPrep*r*.11+attackReach*r*.09,large?r*1.22:rat?r*.76:pigeon?r*.72:r*.91,cat?r*.49:rat?r*.40:pigeon?r*.46:r*.69,large?r*.69:r*.55,torso,dir,11,6);
  if(type==="alpha"){
   // Dense shoulder mane and raised hackles give the alpha a heavier silhouette.
   ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.60,r*.78,r*.83,r*.74,"#354d50",dir,10,6);
@@ -130,7 +138,8 @@ function animal(m,player,clock){
  }
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
- const neck=large?r*.70:r*.64,headR=cat?r*.47:fox?r*.50:large?r*.53:r*.49;
+ const headDrive=r*(attackReach*(cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
+ const neck=(large?r*.70:r*.64)+headDrive,headR=cat?r*.47:fox?r*.50:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49,headR,headR*.80,headR*.83,torso,dir,9,5);
  if(fox||cat||wolf||rabbit||rat){
   for(const side of [-1,1]){
@@ -146,7 +155,7 @@ function animal(m,player,clock){
  }else if(pigeon){
   for(const side of [-1,1])ellipsoid(fx(-r*.15,side*r*.55),fy(-r*.15,side*r*.55),h+r*.55,r*.60,r*.16,r*.25,"#aec3b8",dir,7,4);
  }else{
-  ellipsoid(fx(r*1.06,0),fy(r*1.06,0),h+r*.42,fox?r*.47:rat?r*.24:r*.31,fox?r*.19:r*.23,r*.19,belly,dir,8,4);
+  ellipsoid(fx(r*1.06+headDrive,0),fy(r*1.06+headDrive,0),h+r*.42-attackReach*r*.06,fox?r*.47:rat?r*.24:r*.31,fox?r*.19:r*.23,r*.19,belly,dir,8,4);
  }
  if(pigeon){
   pyramid(fx(r*.95,0),fy(r*.95,0),h+r*.46,r*.23,r*.17,r*.27,"#d6b46c");
@@ -173,6 +182,14 @@ function animal(m,player,clock){
   ellipsoid(fx(-r*2.28,0),fy(-r*2.28,0),h+r*.49,r*.37,r*.35,r*.38,"#f5e9ce",dir,8,5);
  }else if(wolf){
   ellipsoid(fx(-r*1.21,0),fy(-r*1.21,0),h+r*.48,r*.54,r*.29,r*.29,torso,dir,7,4);
+ }
+ if(attackReach>.01&&(fox||cat||wolf)){
+  if(cat){
+   ellipsoid(fx(r*(1.12+attackReach*.58),-r*.35),fy(r*(1.12+attackReach*.58),-r*.35),h+r*(.13+attackReach*.26),r*.25,r*.18,r*.19,torso,dir,7,4);
+  }else{
+   ellipsoid(fx(r*1.04+headDrive,0),fy(r*1.04+headDrive,0),h+r*(.22-attackReach*.13),r*.37,r*.25,r*.12,"#28302b",dir,8,4);
+   ellipsoid(fx(r*1.1+headDrive,0),fy(r*1.1+headDrive,0),h+r*(.14-attackReach*.12),r*.32,r*.24,r*.10,belly,dir,8,4);
+  }
  }
  // Eyes distinguish living characters from scenery at oblique camera distance.
  for(const side of [-1,1]){
