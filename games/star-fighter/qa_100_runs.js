@@ -1530,7 +1530,7 @@ const expected={
   ok(readmeSource.includes('35/36')&&readmeSource.includes('v1.0完成判定は保留'),'README marks hardware QA as pending');
   ok(readmeSource.includes('ロゴを合計7回タップ')&&readmeSource.includes('時間制限はありません'),'README documents debug');
   ok(readmeSource.includes('拾っただけでは強化されません')&&readmeSource.includes('メーターは表示専用'),'README documents auto meter and manual activation');
-  ok(readmeSource.includes('ボス撃破後もゲームは停止しません')&&readmeSource.includes('15種類の大型ボス'),'README documents continuous eight-stage combat');
+  ok(readmeSource.includes('ボス撃破後もゲームは停止しません')&&readmeSource.includes('16種類の大型ボス'),'README documents continuous eight-stage combat');
   ok(readmeSource.includes('実機のFPS、入力遅延')&&readmeSource.includes('node qa_100_runs.js'),'README separates simulated and real-device QA');
  }
  if(htmlSource)ok(htmlSource.includes('ORIGINAL BROWSER SHOOTER · PREVIEW / QA'),'release label does not claim unverified v1.0');
