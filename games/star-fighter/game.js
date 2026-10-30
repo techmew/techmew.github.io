@@ -412,7 +412,7 @@ function applyShotSynergy(shot,target){
  if(shot.kind==='missile'&&synergyActive(2)&&!shot.splashed){
   shot.splashed=true;
   const rank=passiveRank(4),radius=65+12*rank,damage=10+8*rank;
-  for(const e of G.enemies)if(e!==target&&circleHit(shot.x,shot.y,radius,e.x,e.y,20))damageEnemy(e,damage);
+  for(const e of G.enemies)if(e!==target&&e.x<=W-40&&circleHit(shot.x,shot.y,radius,e.x,e.y,20))damageEnemy(e,damage);
   if(G.boss&&G.boss!==target&&circleHit(shot.x,shot.y,radius,G.boss.x-53,G.boss.y,65))damageBoss(G.boss,Math.round(damage*.65));
   ring(shot.x,shot.y,radius,'#ffa76e',.26);
  }
@@ -956,7 +956,7 @@ function pulse(){
  if(G.terrain?.phase==='active')G.terrain.blocks.forEach(b=>b.hp=0);
  p.invul=Math.max(p.invul,.65);
  ring(p.x,p.y,1250,'#a6faff',.75);ring(p.x,p.y,580,'#ffffff',.48);emit(p.x,p.y,54,'#8bf4ff',420);sideNovaButton.animate?.([{filter:'brightness(2.2)'},{filter:'brightness(1)'}],{duration:240,easing:'ease-out'});
- G.enemies.forEach(e=>{damageEnemy(e,Math.round(75*(1+.30*passiveRank(4))));emit(e.x,e.y,7,'#ffca81',160)});
+ G.enemies.forEach(e=>{if(e.x>W-40)return;damageEnemy(e,Math.round(75*(1+.30*passiveRank(4))));emit(e.x,e.y,7,'#ffca81',160)});
  if(G.boss)damageBoss(G.boss,Math.round(110*(1+.30*passiveRank(4))));
  tone(120,.8,'sawtooth',.14,800);showToast('NOVA BURST');updateHud();
 }
@@ -1026,7 +1026,10 @@ let hp=EXTRA?.stats[type]?.hp??({scout:22,dart:15,tank:125,turret:75,spinner:35,
 const power=offensiveBuild(),ease=p.hp/Math.max(1,p.maxHp)<.32?.84:1;
 hp=Math.round(hp*(1+G.stage*.35)*tune.enemyHp*(1+2.15*power*ease));
 const heavy=['tank','carrier','turret','armature','howitzer','bulk','clamp','sting','mantis','orbiter','interceptor'].includes(type);
-const armor=power>.2&&heavy?Math.round(hp*(.08+.23*power)):0;
+const signature=Math.abs(Math.round(x*.13+y*.29+(G.runSeed||0)))%3;
+const phaseScout=!heavy&&power>.50&&signature===0;
+const armor=power>.2&&heavy?Math.round(hp*(.08+.23*power)):
+ phaseScout?Math.round(hp*(.65+.7*power)):0;
 G.enemies.push({type,x,y,hp,maxHp:hp,armor,armorMax:armor,dodgeTime:0,dodgeSide:0,t:0,hitFlash:0,recoil:0,fire:GR(.9,1.8)*tune.fireInterval*(G.directorGrace>0?1.18:1),phase:GR(0,TAU),seed:GR(0,100),aiHomeY:y,aiPhase:0,aiWarn:0,aiVolleyArmed:false,score:type==='tank'?750:type==='carrier'?700:type==='interceptor'?540:(EXTRA?.stats[type]?.score||250),windup:0,aimX:0,aimY:0,...extra})}
 
 /* Preserve a traversable lane for each announced formation at entry.
@@ -2011,7 +2014,7 @@ if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
 if(!practice&&b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
-let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=EXTRA?.stats[e.type]?.shot??(e.type==='tank'||e.type==='carrier'?39:23);if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){damageEnemy(e,s.dmg);e.hitFlash=.14;e.recoil=Math.min(8,(e.recoil||0)+Math.min(4,s.dmg*.12));applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
+let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=EXTRA?.stats[e.type]?.shot??(e.type==='tank'||e.type==='carrier'?39:23);if(e.x<=W-40&&circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){damageEnemy(e,s.dmg);e.hitFlash=.14;e.recoil=Math.min(8,(e.recoil||0)+Math.min(4,s.dmg*.12));applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'||G.terrain.type==='rune'||G.terrain.type==='membrane'||G.terrain.type==='prism'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
  const b=G.boss;
