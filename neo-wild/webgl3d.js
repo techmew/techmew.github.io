@@ -298,9 +298,18 @@ function render(o){
   dynamicCount=vertices.length/9;
   if(playerFirst)gl.drawArrays(gl.TRIANGLES,0,playerFirst);
   if(P&&playerEnd>playerFirst){
-   if(P.hidden){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-    gl.depthMask(false);gl.uniform1f(ualpha,.43);}
+   if(P.hidden){
+    // Depth-only prepass prevents 43% alpha from accumulating across
+    // overlapping 3D body triangles and turning a hidden animal opaque.
+    gl.colorMask(false,false,false,false);
+    gl.depthMask(true);
+    gl.drawArrays(gl.TRIANGLES,playerFirst,playerEnd-playerFirst);
+    gl.colorMask(true,true,true,true);
+    gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthFunc(gl.EQUAL);gl.depthMask(false);gl.uniform1f(ualpha,.43);
+   }
    gl.drawArrays(gl.TRIANGLES,playerFirst,playerEnd-playerFirst);
+   if(P.hidden)gl.depthFunc(gl.LEQUAL);
    gl.depthMask(true);gl.disable(gl.BLEND);gl.uniform1f(ualpha,1);
   }
   frames++;
