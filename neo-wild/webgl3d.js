@@ -282,10 +282,10 @@ function render(o){
    const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
    box(b.x,b.y,0,b.w,b.h,h,b.kind%2?"#56646c":"#67736d",b.kind%2?"#45545b":"#58665e");
    box(b.x+13,b.y+13,h-5.2,b.w-26,b.h-26,6,"#394e50","#87918a");
-   if(b.broken)box(b.x+b.w*.65,b.y+b.h*.28,h+6,b.w*.23,b.h*.30,14,"#343f42","#5e6a64");
+   if(b.broken)box(b.x+b.w*.65,b.y+b.h*.28,h+.8,b.w*.23,b.h*.30,14,"#343f42","#5e6a64");
    // Air conditioning and roof ducts
-   box(b.x+b.w*.16,b.y+b.h*.2,h+6,28,35,28,"#586767","#9da39a");
-   box(b.x+b.w*.72,b.y+b.h*.64,h+6,36,25,19,"#546667","#8e9992");
+   box(b.x+b.w*.16,b.y+b.h*.2,h+.8,28,35,28,"#586767","#9da39a");
+   box(b.x+b.w*.72,b.y+b.h*.64,h+.8,36,25,19,"#546667","#8e9992");
    // Broken parapets, displaced concrete and climbing vegetation use real height.
    for(let i=0;i<6;i++){
     const q=detailNoise(b.seed*37+i*17),t=detailNoise(b.seed*71+i*29);
