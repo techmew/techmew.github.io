@@ -55,7 +55,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -67,7 +67,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=perf-20261030-33'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=perf-20261030-34'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -79,7 +79,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=perf-20261030-33'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=perf-20261030-34'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -1375,6 +1375,44 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(G.particles.length===620,'draw cap changed simulation');
   G.particles=[];
   stats.renderBudget={gradientWarmup:stageWarm,particleDrawCap:visibleRects,hardwareFps:'not measured',inputLatency:'not measured'};
+ }
+ // 34/36: 100 seeds x 15 stage/routes x 3 critical conditions.
+ // This measures reward access and encounter pressure, NOT human win rates.
+ {
+  const lengths=[62,68,74,72,76,80,84,90];
+  const balance={seeds:100,stageRoutes:0,criticalDrafts:0,guaranteedRescue:0,
+   criticalMaxPressure:0,healthyMaxPressure:0,humanCompletionRate:'not measured'};
+  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of stage===0?[0]:[0,1]){
+   balance.stageRoutes++;
+   G.mode='playing';G.stage=stage;G.routeRisk=risk;G.runSeed=seed;
+   G.stageTime=lengths[stage]*.78;G.enemies=[];G.bullets=[];G.directorGrace=0;
+   G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
+   G.passives=[0,0,0,0,0,0];G.energy=2;G.pulses=1;G.driveCharge=30;
+   G.player.shield=0;G.rewardHistory=[];
+   G.player.hp=2;G.lives=2;
+   const healthy=q.encounterDirector();
+   balance.healthyMaxPressure=Math.max(balance.healthyMaxPressure,healthy.pressure);
+   for(const [hp,lives,want] of [[1,2,'repair'],[2,1,'life'],[1,1,'life']]){
+    G.player.hp=hp;G.lives=lives;
+    const offers=q.rewardOptions(),repeat=q.rewardOptions();
+    ok(offers.length===3&&new Set(offers.map(o=>o.id)).size===3,'34 unique critical rewards '+stage+'/'+risk);
+    ok(JSON.stringify(offers)===JSON.stringify(repeat),'34 seed stable critical rewards '+stage+'/'+risk);
+    ok(offers.some(o=>o.id.startsWith('passive_')),'34 passive retained '+stage+'/'+risk);
+    ok(offers[1].id===want,'34 center recovery option '+want+' '+stage+'/'+risk);
+    ok(offers.filter(o=>o.rarity==='rare'||o.rarity==='route').length<=1,'34 special cap');
+    const d=q.encounterDirector();
+    ok(d.pressure<=healthy.pressure+1e-9,'34 critical difficulty not eased '+stage+'/'+risk);
+    if(hp===1&&lives===1){
+     ok(d.pressure<=.52+1e-9&&d.budget<=3,'34 last life director budget '+stage+'/'+risk);
+     balance.criticalMaxPressure=Math.max(balance.criticalMaxPressure,d.pressure);
+    }
+    balance.criticalDrafts++;balance.guaranteedRescue++;
+   }
+  }
+  ok(balance.stageRoutes===1500&&balance.criticalDrafts===4500,'34 full 100-seed coverage');
+  ok(balance.guaranteedRescue===balance.criticalDrafts,'34 missing rescue choice');
+  ok(balance.criticalMaxPressure<=.52,'34 emergency pressure cap');
+  stats.balance34=balance;
  }
   assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
