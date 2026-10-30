@@ -104,6 +104,8 @@ function animal(m,player,clock){
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
  const h=large?r*.74:r*.56;
  const x=m.x,y=m.y;
+ // Genuine world-space contact shadow below the articulated 3D model.
+ ellipsoid(x+r*.16,y+r*.22,1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const dx=k*r*.57,dy=s*r*.45,bob=gait*(k===s?1:-1)*r*.13*(speed>15?1:.1);
