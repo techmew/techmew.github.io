@@ -1007,6 +1007,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="pl
 function resetControls(){
  keys.clear();attackTouch=false;joy.id=null;joy.x=0;joy.y=0;
  if(knob)knob.style.transform="translate(0,0)";
+ for(const id of ["attack-touch","dash-touch","sense-touch","eat-touch","instinct-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
