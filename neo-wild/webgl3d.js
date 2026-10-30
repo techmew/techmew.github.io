@@ -189,18 +189,27 @@ function vegetation(p,clock){
   pyramid(p.x,p.y,0,p.r*.5,p.r*.45,p.r*.8,"#4e7859");
  }
 }
+function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
 function terrain(w){
- // Ground and roads have real surfaces. No fake slanted canvas transformation.
+ // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
  for(const y of [465,1170,1890]){
   box(0,y-80,0,w.w,160,1,"#323d3e","#344145");
   box(0,y-86,0,w.w,6,2,"#565d54","#717e68");
-  box(0,y+80,0,w.w,6,2,"#565d54","#717e68");
+  box(0,y+80,0,w.w,6,5,"#565d54","#717e68");
+  for(let x=140;x<w.w;x+=280){
+   box(x,y-2,1,76,4,.8,"#697066","#8d9285");
+   if(detailNoise(x+y)>.45)pyramid(x+88,y+83,2,15,10,13,"#596b53");
+  }
  }
  for(const x of [530,1410,2320,3270]){
   box(x-80,0,0,160,w.h,1,"#323d3e","#344145");
   box(x-86,0,0,6,w.h,2,"#565d54","#717e68");
-  box(x+80,0,0,6,w.h,2,"#565d54","#717e68");
+  box(x+80,0,0,6,w.h,5,"#565d54","#717e68");
+  for(let y=150;y<w.h;y+=280){
+   box(x-2,y,1,4,70,.8,"#697066","#8d9285");
+   if(detailNoise(x+y)>.45)pyramid(x+84,y+82,2,13,11,16,"#536e54");
+  }
  }
 }
 let failed=false,frames=0;
@@ -232,6 +241,17 @@ function render(o){
    // Air conditioning and roof ducts
    box(b.x+b.w*.16,b.y+b.h*.2,h+6,28,35,28,"#586767","#9da39a");
    box(b.x+b.w*.72,b.y+b.h*.64,h+6,36,25,19,"#546667","#8e9992");
+   // Broken parapets, displaced concrete and climbing vegetation use real height.
+   for(let i=0;i<6;i++){
+    const q=detailNoise(b.seed*37+i*17),t=detailNoise(b.seed*71+i*29);
+    const bx=b.x+(i%2?b.w*.91:b.w*.09)+(q-.5)*15;
+    const by=b.y+b.h*(.12+t*.76);
+    pyramid(bx,by,1,9+q*16,8+t*13,7+q*23,i%3?"#6d716a":"#536b55");
+    if(i<3){
+     const wallX=b.x+(i%2?b.w*.97:b.w*.03);
+     pyramid(wallX,by,18+t*h*.55,11,13,35+q*65,"#42614b");
+    }
+   }
    // Windows and masonry accents are extruded, keeping the world from looking painted-flat.
    for(let k=1;k<5;k++){
     const z=k*h/5;
