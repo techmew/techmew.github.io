@@ -21,6 +21,10 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+// Oblique view leaves original world coordinates, collisions and A* intact.
+const VIEW={a:.94,b:.20,c:-.28,d:.68},VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
+function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
+function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
@@ -109,7 +113,9 @@ function detectsPlayer(m,sp,d){
 function getAxes(){
  let x=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)+joy.x;
  let y=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0)+joy.y;
- const l=Math.hypot(x,y);return l>1?{x:x/l,y:y/l}:{x,y};
+ const strength=Math.min(1,Math.hypot(x,y));
+  const wx=(VIEW.d*x-VIEW.c*y)/VIEW_DET,wy=(-VIEW.b*x+VIEW.a*y)/VIEW_DET,n=Math.hypot(wx,wy);
+  return n>1e-5?{x:wx/n*strength,y:wy/n*strength}:{x:0,y:0};
 }
 function blood(x,y,color,count=9,speed=125){for(let i=0;i<count;i++){const a=rnd(0,TWO),v=rnd(speed*.2,speed);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.25,.8),max:.8,size:rnd(1.6,4.4),color});}}
 function label(x,y,t,color="#ffffff"){popups.push({x,y,t,color,life:1.1})}
@@ -531,9 +537,10 @@ function drawMini(){
  for(const m of mobs){if(dist(P,m)>650&&P.senseTime<=0)continue;mc.fillStyle=species[m.type].prey?"#c4d1ab":"#f39c74";mc.fillRect(m.x/WORLD.w*w-1,m.y/WORLD.h*h-1,2.5,2.5)}
  const obj=getObjective();if(obj){const tx=obj.x/WORLD.w*w,ty=obj.y/WORLD.h*h;mc.fillStyle="#ffda82";mc.beginPath();mc.moveTo(tx,ty-5);mc.lineTo(tx-4,ty+3);mc.lineTo(tx+4,ty+3);mc.closePath();mc.fill();}
  mc.fillStyle="#fff5c4";mc.beginPath();mc.arc(P.x/WORLD.w*w,P.y/WORLD.h*h,3,0,TWO);mc.fill();
- mc.strokeStyle="#a3e7c5";mc.lineWidth=.8;mc.strokeRect(cam.x/WORLD.w*w,cam.y/WORLD.h*h,vw/WORLD.w*w,vh/WORLD.h*h);
+ mc.strokeStyle="#a3e7c5";mc.lineWidth=.8;mc.beginPath();
+  [[0,0],[vw,0],[vw,vh],[0,vh]].map(([x,y])=>unproject(x,y)).forEach((p,i)=>i?mc.lineTo(p.x/WORLD.w*w,p.y/WORLD.h*h):mc.moveTo(p.x/WORLD.w*w,p.y/WORLD.h*h));mc.closePath();mc.stroke();
 }
-function visible(x,y,r=50){return x+r>cam.x-80&&x-r<cam.x+vw+80&&y+r>cam.y-80&&y-r<cam.y+vh+80}
+function visible(x,y,r=50){const q=project(x,y),m=Math.max(100,r*1.9);return q.x>-m&&q.x<vw+m&&q.y>-m&&q.y<vh+m}
 function roadDraw(){
  ctx.fillStyle="#273639";
  for(const y of roadsY){ctx.fillRect(0,y-75,WORLD.w,150);ctx.fillStyle="#576460";ctx.fillRect(0,y-77,WORLD.w,5);ctx.fillRect(0,y+73,WORLD.w,5);ctx.fillStyle="#273639"}
@@ -859,10 +866,10 @@ function safeGuidePosition(x,y){
 function drawGoalGuide(){
  if(!P||mode!=="play")return;
  const goal=getObjective();if(!goal)return;
- const point=guidancePoint(goal),gx=point.x-cam.x,gy=point.y-cam.y,dx=point.x-P.x,dy=point.y-P.y;
- const angle=Math.atan2(dy,dx),range=Math.hypot(dx,dy);
- const onscreen=gx>70&&gy>110&&gx<vw-70&&gy<vh-108;
- const px=P.x-cam.x,py=P.y-cam.y;
+ const point=guidancePoint(goal),g=project(point.x,point.y),q=project(P.x,P.y);
+  const gx=g.x,gy=g.y,dx=g.x-q.x,dy=g.y-q.y,angle=Math.atan2(dy,dx);
+  const onscreen=gx>70&&gy>110&&gx<vw-70&&gy<vh-108;
+  const px=q.x,py=q.y;
  let x=gx,y=gy;
  if(!onscreen){
   const ux=Math.cos(angle),uy=Math.sin(angle),maxX=Math.max(70,vw*.5-90),maxY=Math.max(70,vh*.5-120);
@@ -890,8 +897,9 @@ function drawIncomingWarning(){
   if(urgency<best){best=urgency;threat=m}
  }
  if(!threat)return;
- const angle=Math.atan2(threat.y-P.y,threat.x-P.x);
- const px=P.x-cam.x,py=P.y-cam.y;
+ const q=project(P.x,P.y),threatPos=project(threat.x,threat.y);
+  const angle=Math.atan2(threatPos.y-q.y,threatPos.x-q.x);
+  const px=q.x,py=q.y;
  const pos=safeGuidePosition(clamp(px+Math.cos(angle)*(P.r+48),34,vw-34),clamp(py+Math.sin(angle)*(P.r+48),74,vh-74));
  const urgent=threat.windup<.29;
  ctx.save();
@@ -909,10 +917,10 @@ function drawIncomingWarning(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh);
- ctx.save();ctx.translate(-x,-y);
- const farLeft=Math.max(0,Math.floor(x/180)*180-180),farTop=Math.max(0,Math.floor(y/180)*180-180);
+ ctx.save();ctx.translate(vw/2,vh/2);ctx.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);ctx.translate(-x-vw/2,-y-vh/2);
+  const farLeft=Math.max(0,Math.floor((x-vw*.7)/180)*180-180),farTop=Math.max(0,Math.floor((y-vh*1.3)/180)*180-180);
  ctx.fillStyle="#1d302a";ctx.fillRect(0,0,1050,WORLD.h);ctx.fillStyle="#25332d";ctx.fillRect(1050,0,1050,WORLD.h);ctx.fillStyle="#24352f";ctx.fillRect(2100,0,1050,WORLD.h);ctx.fillStyle="#203c30";ctx.fillRect(3150,0,1050,WORLD.h);
- for(let xx=farLeft;xx<x+vw+180;xx+=180)for(let yy=farTop;yy<y+vh+180;yy+=180){
+ for(let xx=farLeft;xx<x+vw*1.8+180;xx+=180)for(let yy=farTop;yy<y+vh*2.3+180;yy+=180){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
  roadDraw();
@@ -976,14 +984,14 @@ function drawScene(){
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
  for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
  const dayCycle=(elapsed%85)/85,sunAmount=(Math.cos((dayCycle-.15)*TWO)+1)/2,nightAlpha=(1-sunAmount)*.47;
- ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(x-1,y-1,vw+2,vh+2);
+ ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);
  if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(229,153,73,.17)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
- if(weather==="FOG"){ctx.fillStyle="rgba(164,176,162,.11)";ctx.fillRect(x,y,vw,vh)}
+ if(weather==="FOG"){ctx.fillStyle="rgba(164,176,162,.11)";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
  ctx.restore();
  if(weather==="RAIN"){ctx.strokeStyle="#9dc9cb5c";ctx.lineWidth=1.2;ctx.beginPath();for(const r of rain){const rx=(r.x+elapsed*r.s*.37)%vw,ry=(r.y+elapsed*r.s)%vh;ctx.moveTo(rx,ry);ctx.lineTo(rx-9,ry+r.z)}ctx.stroke()}
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
- if(P&&P.senseTime>0){ctx.strokeStyle="#89eabb74";ctx.lineWidth=1;ctx.beginPath();ctx.arc(vw/2,vh/2,78,0,TWO);ctx.stroke()}
+ if(P&&P.senseTime>0){const pos=project(P.x,P.y);ctx.strokeStyle="#89eabb74";ctx.lineWidth=1;ctx.beginPath();ctx.arc(pos.x,pos.y,78,0,TWO);ctx.stroke()}
  drawGoalGuide();
  drawIncomingWarning();
 }
