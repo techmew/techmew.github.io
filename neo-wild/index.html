@@ -23,7 +23,7 @@
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">DAY 01 · 06:00 · 快晴</div></div>
   <div class="hud-right"><div class="top-actions"><button id="sound-btn" title="サウンド切替">♪</button><button id="full-btn" title="全画面">⛶</button><button id="pause-btn" title="一時停止">Ⅱ</button></div><div class="map-frame"><canvas id="minimap" width="150" height="94"></canvas><span>SCANNING TOKYO</span></div></div>
 </div>
-<div id="mission"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">01 / 04</span></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">小動物を3匹狩る</p><div class="mission-track"><i id="mission-bar"></i></div><div id="mission-guide" aria-live="polite">↗ 食料を探す</div></div>
+<div id="mission"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">01 / 04</span></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div>
 <div id="toast" role="status"></div>
 <div id="hint"><span class="desktop-hint">WASD 移動　J / SPACE 攻撃　SHIFT 回避　L ジャンプ（空中Jで飛びかかり）　E 食べる　Q 索敵　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動（ゆっくり潜伏）・跳躍中に攻撃で飛びかかり</span></div>
@@ -50,5 +50,5 @@
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">GAME OVER</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">もう一度、生存する →</button><button id="menu-btn" class="flat-btn">動物を選び直す</button></div></div>
 </div>
 <script src="./webgl3d.js?rev=20261030-attack-pose2" defer></script>
-<script src="./game.js?rev=20261030-attack-pose2" defer></script>
+<script src="./game.js?rev=20261030-no-path-overlay" defer></script>
 </body></html>
