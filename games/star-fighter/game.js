@@ -312,15 +312,25 @@ function showOverlay(kind){updateRunResult(kind);ui.overlay.dataset.state=kind;$
 
 /* Secret diagnostic: seven title-mark clicks in 4.2 s, session-only.
    Jumping routes leaves the normal save, score and medals untouched. */
-let debugUnlocked=false,debugTapCount=0,debugTapTime=-Infinity;
+let debugUnlocked=false,debugTapCount=0;
 const debugPanel=$('debugPanel'),debugStage=$('debugStage'),debugRoute=$('debugRoute');
-$('debugTrigger').addEventListener('click',()=>{
- if(G.mode!=='title')return;
- const now=performance.now();
- if(now-debugTapTime>4200)debugTapCount=0;
- debugTapTime=now;
- if(++debugTapCount>=7){debugTapCount=0;debugUnlocked=true;debugPanel.hidden=false;
-  tone(750,.11,'triangle',.045,300)}
+const debugTrigger=$('debugTrigger'),debugHint=$('debugUnlockHint');
+function unlockDebugTap(){
+ if(G.mode!=='title'||debugUnlocked)return;
+ // Seven deliberate taps, with no racing against a four-second timer.
+ // The progress hint appears only after the first secret tap.
+ debugTapCount=Math.min(7,debugTapCount+1);
+ if(debugTapCount<7){
+  debugHint.hidden=false;debugHint.textContent='SECRET '+debugTapCount+'/7';
+ }else{
+  debugUnlocked=true;debugHint.hidden=true;debugPanel.hidden=false;
+  debugPanel.scrollIntoView?.({block:'nearest',behavior:'smooth'});
+  tone(750,.11,'triangle',.045,300);
+ }
+}
+debugTrigger.addEventListener('click',unlockDebugTap);
+debugTrigger.addEventListener('keydown',e=>{
+ if(e.key==='Enter'||e.key===' '){e.preventDefault();unlockDebugTap()}
 });
 function debugJumpTo(stage,risk=0){
  if(!G.debugMode||G.mode!=='playing'||!Number.isInteger(stage)||stage<0||stage>=NAMES.length)return false;
@@ -398,7 +408,7 @@ function bindCombatAction(button,act){
 }
 bindCombatAction(sideNovaButton,pulse);
 bindCombatAction(sideEquipButton,()=>equip(manualUpgradeToken));
-$('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;cancelCombatPresses();bgm?.stop();resetStick();G.mode='title';G.pulseRecharge=0;screenPulse=0;G.rings=[];$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('pointerdown',()=>{suppressMixClick=false;clearTimeout(mixHoldTimer);mixHoldTimer=setTimeout(()=>{mixHoldTimer=null;suppressMixClick=true;cycleSoundMix()},650)});
+$('titleReturnBtn').addEventListener('click',()=>{if(G.mode==='title')return;cancelCombatPresses();bgm?.stop();resetStick();G.mode='title';G.debugMode=false;G.pulseRecharge=0;screenPulse=0;G.rings=[];$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');showOverlay('title');updateHud()});ui.sound.addEventListener('pointerdown',()=>{suppressMixClick=false;clearTimeout(mixHoldTimer);mixHoldTimer=setTimeout(()=>{mixHoldTimer=null;suppressMixClick=true;cycleSoundMix()},650)});
 for(const eventName of ['pointerup','pointercancel','pointerleave'])ui.sound.addEventListener(eventName,()=>{clearTimeout(mixHoldTimer);mixHoldTimer=null});
 ui.sound.addEventListener('contextmenu',e=>e.preventDefault());
 ui.sound.addEventListener('click',e=>{if(suppressMixClick){suppressMixClick=false;return}if(e.shiftKey){cycleSoundMix();return}sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();applySoundMix();bgm.setEnabled(true);if(G.mode==='playing')bgm.start()}}else bgm?.setEnabled(false)});
