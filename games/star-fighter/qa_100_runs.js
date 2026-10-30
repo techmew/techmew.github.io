@@ -838,7 +838,7 @@ const expected={
  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
  G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
 // Ship survival: one 120HP hull; zero hull is an immediate game over, no respawn.
- G.mode='playing';G.stage=0;G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
+ G.mode='playing';G.stage=0;G.routeRisk=0;G.shipLevel=1;G.shipXP=0;G.lives=0;G.player.maxHp=120;
  G.player.hp=78;G.player.shield=0;G.pulses=1;
  q.stageClear();ok(G.player.hp===78&&G.pulses===1,'sector one limited rescue');
  G.stage=1;G.player.hp=20;G.player.shield=0;G.pulses=1;
