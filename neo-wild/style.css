@@ -22,3 +22,11 @@
 #scene3d{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:0}
 #scene{z-index:1;pointer-events:none}
 #vignette{z-index:2}
+
+/* Jump control floats above attack without adding a cramped third action row. */
+.touch-actions{position:relative}
+#jump-touch{position:absolute;right:4px;bottom:143px;width:60px;height:60px;z-index:3;pointer-events:auto;border-color:#b1d9c7;background:linear-gradient(155deg,#527b70,#1d373c);box-shadow:0 0 14px #7ea99e4d}
+#jump-touch span{font-size:27px;line-height:1}#jump-touch small{font-size:9px}
+@media (pointer:coarse),(max-width:850px){#jump-touch{right:3px;bottom:136px;width:57px;height:57px}}
+@media (max-width:520px){#jump-touch{right:0;bottom:125px;width:51px;height:51px}#jump-touch span{font-size:23px}#jump-touch small{font-size:8px}}
+@media (max-height:520px) and (orientation:landscape){#jump-touch{bottom:120px;right:0;width:54px;height:54px}}
