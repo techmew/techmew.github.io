@@ -255,7 +255,7 @@ function render(o){
    data=[];terrain(WORLD);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
-   const h=135+(b.kind%4)*75; // Genuine extruded world-space geometry, not painted walls.
+   const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
    box(b.x,b.y,0,b.w,b.h,h,b.kind%2?"#56646c":"#67736d",b.kind%2?"#45545b":"#58665e");
    box(b.x+13,b.y+13,h,b.w-26,b.h-26,6,"#394e50","#87918a");
    if(b.broken)box(b.x+b.w*.65,b.y+b.h*.28,h+6,b.w*.23,b.h*.30,14,"#343f42","#5e6a64");
