@@ -41,7 +41,7 @@ void main(){gl_FragColor=vec4(vColor*vShade,uAlpha);}
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
 let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,unight,ualpha;
-try {
+function initializeGPU(){
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
  gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fragment));
@@ -56,14 +56,15 @@ try {
  uview=gl.getUniformLocation(program,"uView");
  unight=gl.getUniformLocation(program,"uNight");ualpha=gl.getUniformLocation(program,"uAlpha");
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
-}catch(err){console.warn("Wild3D shader unavailable; 2D fallback",err);canvas.style.display="none";window.Wild3D={available:false};return;}
+}
+try{initializeGPU()}catch(err){console.warn("Wild3D shader unavailable; 2D fallback",err);canvas.style.display="none";window.Wild3D={available:false};return;}
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),cache=new Map();
 function color(hex){if(Array.isArray(hex))return hex;let c=cache.get(hex);if(c)return c;const raw=(hex||"#777777").replace("#","").slice(0,6),n=parseInt(raw,16);c=[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];cache.set(hex,c);return c;}
 function tone(hex,s){const c=color(hex);return c.map(v=>Math.min(1,v*s));}
 let data=[];
  // Static district geometry is rebuilt only when the camera enters a new region.
  // Animal and vegetation animation still update every frame.
- const staticBuffer=gl.createBuffer();
+ let staticBuffer=gl.createBuffer();
  let staticKey="",staticCount=0,staticRebuilds=0,dynamicCount=0;
 function triangle(a,b,c,t){
  const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
@@ -246,6 +247,16 @@ function terrain(w){
 }
 let failed=false,frames=0;
 canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();failed=true;window.Wild3D.available=false;canvas.style.display="none";});
+canvas.addEventListener("webglcontextrestored",()=>{
+ try{
+  // A restored WebGL context invalidates shaders, programs and GPU buffers.
+  initializeGPU();staticBuffer=gl.createBuffer();staticKey="";staticCount=0;dynamicCount=0;
+  failed=false;canvas.style.display="block";window.Wild3D.available=true;
+ }catch(err){
+  failed=true;window.Wild3D.available=false;canvas.style.display="none";
+  console.warn("Wild3D context restoration failed; Canvas2D remains active",err);
+ }
+});
 function render(o){
  if(failed)return false;
  try{
