@@ -67,7 +67,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=perf-20261030-34'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=perf-20261030-35'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -532,6 +532,20 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
 
  for(const fn of window.handlers?.keydown||[])fn({key:'Enter',repeat:false,target:{closest:()=>({})},preventDefault(){}});
  ok(G.levels[0]===equipBeforeLevel&&G.energy===equipBeforeEnergy,'focused Enter never auto-upgrades');
+ // 35/36: stale physical presses after blur/rotation/pause must not fire.
+ for(const [kind,id] of [['blur',71],['orientationchange',72],['pause',73]]){
+  const level=G.levels[0],energy=G.energy,pulses=G.pulses;
+  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:id,clientX:80,clientY:120});
+  ev('sidePulseBtn','pointerdown',{pointerType:'touch',pointerId:id+100,clientX:80,clientY:120});
+  if(kind==='pause')ev('sidePauseBtn','click');
+  else for(const fn of window.handlers?.[kind]||[])fn();
+  if(G.mode==='paused')ev('sidePauseBtn','click');
+  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:id,clientX:80,clientY:120});
+  ev('sidePulseBtn','pointerup',{pointerType:'touch',pointerId:id+100,clientX:80,clientY:120});
+  ok(G.mode==='playing','35 resumed after '+kind);
+  ok(G.levels[0]===level&&G.energy===energy,'35 stale upgrade rejected '+kind);
+  ok(G.pulses===pulses,'35 stale NOVA rejected '+kind);
+ }
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:42,clientX:80,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:42,clientX:80,clientY:120});
  ev('sideEquipBtn','click',{pointerType:'touch',pointerId:42,detail:1});
@@ -1413,6 +1427,50 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(balance.guaranteedRescue===balance.criticalDrafts,'34 missing rescue choice');
   ok(balance.criticalMaxPressure<=.52,'34 emergency pressure cap');
   stats.balance34=balance;
+ }
+ // 35/36 + R3: sixteen full eight-sector route histories.
+ // Simulated Canvas/touch; hardware FPS and latency are not measured.
+ {
+  const masks=[0,127,85,42,1,2,4,8,16,32,64,126,125,123,119,111];
+  const full={routes:masks.length,sectors:0,bosses:0,routeDecisions:0,rewards:0,clears:0,hardwareFps:'not measured',inputLatency:'not measured'};
+  for(let n=0;n<masks.length;n++){
+   const mask=masks[n],seed=seeds[(n*7)%100];
+   stageSetup(seed,0,0);
+   G.routeHistory=[];G.rewardHistory=[];G.activeEvent=null;G.flowPhase=null;G.transitioning=false;G.score=0;
+   for(let stage=0;stage<8;stage++){
+    ok(G.mode==='playing'&&G.stage===stage,'35 continuous stage '+n+'/'+stage);
+    G.player.invul=9999;G.enemies=[];G.bullets=[];G.terrain=null;G.pendingWave=null;
+    q.spawnBoss();
+    ok(!!G.boss&&G.boss.name,'35 boss exists '+n+'/'+stage);
+    const stopBefore=audioStats.stops;
+    G.boss.hp=0;q.update(.016);
+    ok(G.mode==='playing'&&G.transitioning,'35 boss kill does not pause '+n+'/'+stage);
+    ok(audioStats.stops===stopBefore,'35 music uninterrupted '+n+'/'+stage);
+    full.bosses++;full.sectors++;
+    if(stage===7){
+     for(let j=0;j<70&&G.mode!=='win';j++)q.update(.05);
+     ok(G.mode==='win','35 finale '+n);
+     full.clears++;break;
+    }
+    ok(G.flowPhase==='reward'&&G.rewardOffers.length===3,'35 flight reward '+n+'/'+stage);
+    G.player.y=G.player.targetY=stage%3===0?165:stage%3===1?337:509;
+    const prev=G.rewardHistory.length,levels=G.levels.slice();
+    for(let j=0;j<85&&G.flowPhase==='reward';j++)q.update(.05);
+    ok(G.mode==='playing'&&G.flowPhase==='route'&&G.rewardHistory.length===prev+1,'35 reward once '+n+'/'+stage);
+    ok(JSON.stringify(G.levels)===JSON.stringify(levels),'35 no auto weapon level '+n+'/'+stage);
+    full.rewards++;
+    const risk=(mask>>stage)&1;
+    G.player.y=G.player.targetY=risk?495:165;
+    for(let j=0;j<85&&G.transitioning;j++)q.update(.05);
+    ok(G.mode==='playing'&&G.stage===stage+1&&G.routeRisk===risk,'35 selected route '+n+'/'+stage);
+    ok(G.routeHistory.length===stage+1&&G.rewardHistory.length===stage+1,'35 history integrity '+n+'/'+stage);
+    ok(q.readCheckpoint()?.mode==='sector','35 checkpoint '+n+'/'+stage);
+    full.routeDecisions++;
+   }
+   ok(G.routeHistory.length===7&&G.rewardHistory.length===7,'35 eight-sector history '+n);
+  }
+  ok(full.sectors===128&&full.bosses===128&&full.routeDecisions===112&&full.rewards===112&&full.clears===16,'35 full-run coverage');
+  stats.fullRun35=full;
  }
   assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
