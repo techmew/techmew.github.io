@@ -199,6 +199,7 @@
  </div></div>
 <div class="modal" id="battleModal" role="dialog" aria-modal="true" aria-label="バトル画面"><div class="modalbox"><div class="modalhead"><b id="battleTitle">声魂（こえだま） 対戦 / コンピューター戦</b><label class="pvp-accept"><input id="battleChallengerOptIn" type="checkbox" aria-label="対人挑戦者の受付"><span id="battleChallengerStatus">対人受付 OFF</span></label><button class="close" id="closeBattle" aria-label="バトルを閉じる">×</button></div><div class="arenaHud"><div class="fighter"><b id="nameA">PLAYER</b><div class="hpbg"><div id="hpA"></div></div></div><div class="vs">VS</div><div class="fighter enemy"><b id="nameB">COM</b><div class="hpbg"><div id="hpB"></div></div></div></div><div class="arena-wrap"><div id="voiceFxLabel" class="voice-fx-label" hidden aria-live="off"></div><div id="rushBanner" class="rush-banner" role="status" aria-live="polite" hidden></div><div id="matchIntro" class="match-intro" role="status" aria-live="polite" hidden></div><canvas id="arenaCanvas" width="720" height="450" aria-label="高速空中アクションバトル"></canvas><div class="timing-callout" id="timingCallout" aria-live="off"></div><div class="arena-effect" id="arenaEffect">準備中</div><div id="challengerBanner" class="challenger-banner" hidden role="status" aria-live="polite"><b>NEW CHALLENGER</b><small>オンラインの挑戦者が現れた！</small></div><div class="arena-battle-tip">素体同士が自動で勝負</div></div><div id="battleSpeech" class="battle-speech" role="status" aria-live="polite" hidden><b id="battleSpeechWho"></b><span id="battleSpeechText"></span><small id="battleSpeechState" hidden></small></div><div id="campaignTrack" class="campaign-track" aria-live="off" hidden></div><div class="battle-matchup" id="matchupBadge"></div><div class="fightlog" id="fightLog">声から生まれたキャラ同士がぶつかる！</div><div id="enemyTactic" role="status" aria-live="polite"></div><div id="battleReport" role="status" aria-live="polite"></div><div id="battlePanel"><div class="boss-panel" id="bossPanel" hidden><b id="bossWarning">ボス</b><div class="boss-break"><i id="bossBreakFill"></i></div><small>素体が自動で戦います。ボスの行動を見極めよう。</small></div><div class="survival-battle-bar"><span id="survivalBattleStatus" aria-live="polite" hidden></span><button type="button" id="autoBattleBtn" aria-pressed="false">自動操作：OFF</button></div><div class="battle-guide" id="battleGuide">素体の能力と個性で自動対戦。戦いの行方を見守ろう！</div><div class="battle-topline"><span id="skillName">特別な技</span><span>技ゲージ <b id="resonanceLabel">0 / 60</b></span></div><div id="guardMeter"><i id="guardFill"></i></div><div class="actions"><button class="btn outline" id="guardBtn" type="button">◆ ガード</button><button class="btn outline" id="dodgeBtn" type="button">↗ 回避</button><button class="btn outline" id="strikeBtn" type="button">⚡ タイミング攻撃</button><button class="btn" id="skillBtn" type="button" disabled>✦ 特別な技 60</button></div><div class="stance"><button type="button" id="stanceRush">攻め</button><button type="button" id="stanceBalance" class="active">バランス</button><button type="button" id="stanceGuard">守り</button></div><div id="battleMsg">攻撃の直前にガード！</div><div class="battle-tactics"><span id="comboBadge">ガード連続 0</span><span id="incomingBadge">敵の攻撃を見切れ！</span></div><div class="stage-mission" id="missionBadge" aria-live="polite" hidden></div><div class="battle-keyhint">PC操作：Space＝ガード / J＝回避 / L＝タイミング攻撃 / K＝特別な技 / 1・2・3＝戦術</div></div><div id="battlePrize" aria-live="polite"></div><div id="nextStagePreview" aria-live="polite" aria-live="polite" hidden></div><div id="nextBuffPanel" class="next-buff-panel" hidden><b>次のバトルの作戦を選択</b><div class="next-buff-choices"><button type="button" data-buff="power" aria-pressed="false">⚔ 攻撃 +15%</button><button type="button" data-buff="shield" aria-pressed="false">◆ HP +30</button><button type="button" data-buff="resonance" aria-pressed="false">✦ 技ゲージ +34</button><button type="button" data-buff="focus" aria-pressed="false">◎ タイミングが合わせやすくなる</button><button type="button" data-buff="lifeline" aria-pressed="false">♡ ピンチ時に一度ダメージ -20</button><button type="button" data-buff="rhythm" aria-pressed="false">♫ タイミング攻撃が続くと強化</button></div><small id="nextBuffHint">選択した強化は次のCOM戦のみ有効。選ばなくても進めます。</small></div><div class="modalfoot"><button type="button" id="audioResumeBtn" class="audio-recover">🔊 声を再開</button><details class="battle-settings" id="battleAudioSettings"><summary>音声設定</summary><div class="audio-rows"><label class="soundrow" for="battleVolume">声・効果音 <input id="battleVolume" type="range" min="0" max="30" value="12"><b id="battleVolumeLabel">12%</b></label><label class="soundrow" for="musicVolume">BGM <input id="musicVolume" type="range" min="0" max="25" value="8"><b id="musicVolumeLabel">8%</b></label><label class="soundrow"><input type="checkbox" id="lowFx"> 省電力描画</label><label class="soundrow"><input type="checkbox" id="voiceFxEnabled" checked> 28種類の声の変化（録音の原音も必ず再生）</label><label class="soundrow"><input type="checkbox" id="roarEnabled" checked> 勝者の雄叫びを鳴らす</label></div></details><button class="btn ghost" id="repeatSpeechBtn" type="button" hidden>▶ 雄叫びをもう一度鳴らす</button><button class="btn primary" id="rematchBtn" disabled>次のバトルへ →</button><button class="btn ghost" id="backBtn">戻る</button></div></div></div>
 <script src="./progression-v134.js?v=150"></script>
+<script src="./boss-roster-v150.js?v=150"></script>
 <script src="./combat-director-v135.js?v=144"></script>
 <script src="./pvp-pace-v139.js?v=139"></script>
 <script src="./combat-cinema-v138.js?v=140"></script>
@@ -461,7 +462,7 @@ const BIOMES=[
  {name:'夜の公園',sky:'#19163d',mid:'#403567',floor:'#0c102b',glow:'#f1a8ff',shape:'rings'},
  {name:'雪の山道',sky:'#102c42',mid:'#326b8b',floor:'#081a2c',glow:'#b2f8ff',shape:'crystals'}
 ];
-function stageBiome(n){return BIOMES[(Math.max(1,Math.floor(n))-1)%BIOMES.length]}
+function stageBiome(n){const spec=typeof window!=='undefined'?window.OtodamaBosses?.stage(n):null;return BIOMES[spec?([0,1,2,3,4,5,0,2,4,5][spec.chapter]):(Math.max(1,Math.floor(n))-1)%BIOMES.length]}
 const COM_TACTICS={
  heavy:{label:'強い攻撃',hint:'ダメージが大きい。ガードか回避で防ごう。'},
  drain:{label:'ゲージ減少',hint:'当たると技ゲージが減る。ガードか回避で防ごう。'},
@@ -528,10 +529,10 @@ const HAZARDS=[
 ];
 function stageHazard(stage,turn){return turn%3===2?HAZARDS[(stage-1)%6]:null}
 function learningRelief(stage,attempt){return Math.min(stage%5===0?4:8,Math.max(0,Math.floor(attempt)-1)*2)}
-function enemyAdvice(enemy){if(enemy.stage%5===0)return 'ボスの攻撃を防いで、大技のタイミングを狙おう';return ({'攻撃型':'ガードで受けてから反撃','守備型':'攻撃のタイミングを合わせよう','スピード型':'早い攻撃には回避が有効','ゲージ型':'相手のゲージ攻撃に注意','パワー型':'ガードしにくい攻撃は回避','フェイント型':'攻撃が遅れてくることがある','連続型':'連続攻撃に備えておこう'})[enemy.archetype]||'予兆を見て攻防を切り替える'}
+function enemyAdvice(enemy){if(enemy.stageBoss?.advice)return enemy.stageBoss.advice;if(enemy.stage%5===0)return 'ボスの攻撃を防いで、大技のタイミングを狙おう';return ({'攻撃型':'ガードで受けてから反撃','守備型':'攻撃のタイミングを合わせよう','スピード型':'早い攻撃には回避が有効','ゲージ型':'相手のゲージ攻撃に注意','パワー型':'ガードしにくい攻撃は回避','フェイント型':'攻撃が遅れてくることがある','連続型':'連続攻撃に備えておこう'})[enemy.archetype]||'予兆を見て攻防を切り替える'}
 function isRivalStage(n){return n%7===0&&n%5!==0}
-function stageTitle(n){return n%10===0?'節目のボス':n%5===0?'ボス戦':isRivalStage(n)?'ライバル戦':n%3===0?'すばやい相手':'新しい相手'}
-function stageEnemy(n,player,attempt=0){const seed=hash(((n*2654435761)>>>0)^(player.seed>>>0)^0x6F6D6574^Math.imul(attempt,0x9e3779b9));const enemy=gen(seed);enemy.level=Math.max(1,Math.min(GROWTH?.MAX_LEVEL||100,levelOf(player)+Math.floor(n/6)+(n%5===0?2:0)+(isRivalStage(n)?1:0)));const delta=Math.min(14,Math.floor(n/5)*1.1)+(n%10===0?5:n%5===0?3:isRivalStage(n)?2:0);enemy.stats=enemy.stats.map((x,i)=>clamp(x+delta+((n+i)%3)-1,25,95));if(n%5===0)enemy.name='ボス・'+enemy.name;else if(isRivalStage(n))enemy.name='ライバル・'+enemy.name;
+function stageTitle(n){const spec=typeof window!=='undefined'?window.OtodamaBosses?.stage(n):null;return spec?.title||(n%10===0?'節目のボス':n%5===0?'ボス戦':isRivalStage(n)?'ライバル戦':n%3===0?'すばやい相手':'新しい相手')}
+function stageEnemy(n,player,attempt=0){const book=typeof window!=='undefined'?window.OtodamaBosses:null;const fixed=book?.stage(n);const seed=fixed?.seed??hash(((n*2654435761)>>>0)^(player.seed>>>0)^0x6F6D6574^Math.imul(attempt,0x9e3779b9));const enemy=gen(seed);enemy.level=Math.max(1,Math.min(GROWTH?.MAX_LEVEL||100,levelOf(player)+Math.floor(n/6)+(n%5===0?2:0)+(isRivalStage(n)?1:0)));const delta=Math.min(14,Math.floor(n/5)*1.1)+(n%10===0?5:n%5===0?3:isRivalStage(n)?2:0);enemy.stats=enemy.stats.map((x,i)=>clamp(x+delta+((n+i)%3)-1,25,95));if(fixed){enemy.name=fixed.name;enemy.stageBoss=fixed;enemy.element=(['風','音','水','炎','影','水','雷','炎','音','霧'][fixed.chapter]);}else if(n%5===0)enemy.name='ボス・'+enemy.name;else if(isRivalStage(n))enemy.name='ライバル・'+enemy.name;
  // Three opponent archetypes create different combat profiles without altering the generated creature.
  if(n>=2&&n%5!==0){const roles=[{name:'攻撃型',hint:'攻撃が強い・体力は低め',mods:[10,-7,0,0,0]},
  {name:'守備型',hint:'体力が多い・攻撃は弱め',mods:[-6,10,0,2,0]},
@@ -541,9 +542,10 @@ function stageEnemy(n,player,attempt=0){const seed=hash(((n*2654435761)>>>0)^(pl
  {name:'フェイント型',hint:'攻撃タイミングをずらしてくる',mods:[-2,0,5,7,3]},
  {name:'連続型',hint:'速い攻撃を続けてくる',mods:[5,-5,9,0,1]}],role=roles[(n+attempt)%roles.length];
  enemy.archetype=role.name;enemy.archetypeHint=role.hint;enemy.stats=enemy.stats.map((v,i)=>clamp(v+role.mods[i],25,95));}
+ if(fixed&&fixed.tier!=='normal'){const boost=fixed.tier==='final'?8:fixed.tier==='boss'?6:3;enemy.stats=enemy.stats.map((v,i)=>clamp(v+boost+(i===1?3:0),25,99));enemy.archetypeHint=fixed.advice;}
  const relief=learningRelief(n,attempt);if(relief)enemy.stats=enemy.stats.map(v=>clamp(v-relief,25,95));enemy.learningRelief=relief;
  enemy.stage=n;return enemy}
-function showStage(){if(!$('adventureStage'))return;$('adventureStage').textContent='STAGE '+String(adventureStage).padStart(2,'0');$('stageHint').textContent=stageBiome(adventureStage).name+' · '+stageTitle(adventureStage)+' · '+CHAPTERS[Math.floor((adventureStage-1)/5)%CHAPTERS.length]+(adventureStage%5===0?' · ボス撃破で追加XP':isRivalStage(adventureStage)?' · ライバル撃破で追加XP +2':' · 毎戦違う相手')+(stageAttempts?' · 新しい挑戦者 '+(stageAttempts+1)+'人目':'')+(learningRelief(adventureStage,stageAttempts)?' · 攻略補正：敵能力 -'+learningRelief(adventureStage,stageAttempts):'');$('stageWins').textContent='突破 '+stageWins+'戦';$('stageMissionHint').textContent='目標：'+stageMission(adventureStage).label+'（勝利で +1XP）'}
+function showStage(){if(!$('adventureStage'))return;$('adventureStage').textContent='STAGE '+String(adventureStage).padStart(2,'0');$('stageHint').textContent=stageBiome(adventureStage).name+' · '+stageTitle(adventureStage)+'：'+(typeof window!=='undefined'?window.OtodamaBosses?.stage(adventureStage).name||'':'')+' · '+CHAPTERS[Math.floor((adventureStage-1)/5)%CHAPTERS.length]+(adventureStage%5===0?' · ボス撃破で追加XP':isRivalStage(adventureStage)?' · ライバル撃破で追加XP +2':' · 固定の声魂')+(stageAttempts?' · 再挑戦 '+(stageAttempts+1)+'回目':'')+(learningRelief(adventureStage,stageAttempts)?' · 攻略補正：敵能力 -'+learningRelief(adventureStage,stageAttempts):'');$('stageWins').textContent='突破 '+stageWins+'戦';$('stageMissionHint').textContent='目標：'+stageMission(adventureStage).label+'（勝利で +1XP）'}
 const dailyKey=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('')};
 const discoveryKey='otodama.discovery.v08';
 let discovered=new Set(),dailyCleared='';
@@ -2456,8 +2458,9 @@ function randCombat(a,b){
  const fighters=[a,b],profile=fighters.map(specimenProfile);
  // Preserve the historical simulator for extracted regression fragments; production uses the style-aware director.
  if(typeof window!=='undefined'&&window.OtodamaDirector){
-   return window.OtodamaDirector.simulate(a,b,{profiles:profile,edge:elementalEdge,stage:b.stage||adventureStage,
+   const outcome=window.OtodamaDirector.simulate(a,b,{profiles:profile,edge:elementalEdge,stage:b.stage||adventureStage,
      seed:hash(a.seed^Math.imul(b.seed,97)^Date.now())});
+   return b.stageBoss&&window.OtodamaBosses?window.OtodamaBosses.decorate(outcome,b.stage):outcome;
  }
  const max=fighters.map((c,i)=>Math.round((132+c.stats[1]*.92+profile[i].mutation.tier*7)*(1+(GROWTH?.evolutionCombatBonus(c).hp||0)/100)));
  const hp=max.slice(),events=[],rng=getRand(hash(a.seed^Math.imul(b.seed,97)^Date.now()));
@@ -2564,7 +2567,9 @@ function drawBlast(c,x,y,power,color,seed){
  c.globalAlpha=power*.8;c.strokeStyle=color;c.lineWidth=8;c.beginPath();c.arc(0,0,(1-power)*135+4,0,TAU);c.stroke();c.restore()
 }
 function drawCombatant(c,cr,x,y,scale,t,mirror,rot,alpha=1){
- c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha*=alpha;drawCreature(c,cr,0,0,scale,t,{mirror});
+ c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha*=alpha;
+ const designed=typeof window!=='undefined'&&window.OtodamaBosses?.draw(c,cr,t,{lowFx:$('lowFx').checked,phase:match?.current?.bossPhase||0});
+ if(!designed)drawCreature(c,cr,0,0,scale,t,{mirror});
  if(match?.spectator&&!match.done){
   const side=cr===match.a?0:cr===match.b?1:-1;
   if(side>=0){
@@ -2919,7 +2924,7 @@ function strikeTiming(m){const base=m.live?[.30,.73]:m.nextBuff==='focus'?[.22,.
 function lifelineMitigation(m,damage){if(m.nextBuff!=='lifeline'||m.lifelineUsed||damage<=0||m.hp[0]>m.max[0]*.4)return damage;m.lifelineUsed=true;return Math.max(0,damage-20)}
 function addBreak(m,amount){if(!m.boss)return;m.breakMeter=Math.min(100,m.breakMeter+amount);if(m.breakMeter>=100&&!m.bossStunned){m.bossStunned=true;$('battleMsg').textContent='ボスの攻撃を止めた！ 次の敵攻撃を封じる！';$('arenaEffect').textContent='ボスを止めた！';tone(860,.2)}}
 function updateActionHud(){const m=match;if(!m||!m.interactive)return;
- if(m.spectator){const ev=m.current,goal=stageMission(m.stageNo);$('bossPanel').hidden=!m.boss;$('timingCallout').textContent='';$('comboBadge').textContent='自動戦闘 · '+specimenProfile(m.a).name;$('incomingBadge').textContent=ev?.commentary||'素体の能力で勝負';$('missionBadge').hidden=m.mode!=='COM MATCH';if(m.mode==='COM MATCH')$('missionBadge').textContent='観戦目標 '+missionProgress(m)+'/'+goal.target+'：'+goal.label+'（勝利で+1XP）';if(m.boss)$('bossWarning').textContent='ボス戦 · '+stageBiome(m.stageNo).name;return;}
+ if(m.spectator){const ev=m.current,goal=stageMission(m.stageNo);$('bossPanel').hidden=!m.boss;$('timingCallout').textContent='';$('comboBadge').textContent='自動戦闘 · '+specimenProfile(m.a).name;$('incomingBadge').textContent=ev?.commentary||'素体の能力で勝負';$('missionBadge').hidden=m.mode!=='COM MATCH';if(m.mode==='COM MATCH')$('missionBadge').textContent='観戦目標 '+missionProgress(m)+'/'+goal.target+'：'+goal.label+'（勝利で+1XP）';if(m.boss)$('bossWarning').textContent=(m.b.stageBoss?.name||'ボス戦')+(m.current?.bossMove?' · '+m.current.bossMove:'');return;}
 const ev=m.current,p=(performance.now()-m.pop)/(m.live?(m.telegraphMs||900):EVENT_MS);
  const defend=!!ev&&ev.atk===1&&!ev.resolved&&!m.done;
  const [guardStart,guardEnd]=guardTiming(m,ev);
@@ -2937,7 +2942,7 @@ const ev=m.current,p=(performance.now()-m.pop)/(m.live?(m.telegraphMs||900):EVEN
  $('guardFill').style.width=defend?Math.round(clamp((p-guardStart)/Math.max(.01,guardEnd-guardStart),0,1)*100)+'%':'0%';$('guardMeter').classList.toggle('danger',windowOpen);if(windowOpen&&!m.guardUsed&&!m.dodgeUsed&&m.cueTurn!==m.turn){m.cueTurn=m.turn;tone(680,.035)}
  $('skillBtn').disabled=m.charge<RESONANCE_COST||m.done||m.skillArmed;
  $('skillBtn').textContent=m.skillArmed?'✦ 発動準備完了':'✦ '+soulFor(m.a).skill;
- $('bossPanel').hidden=!m.boss;if(m.boss){$('bossBreakFill').style.width=m.breakMeter+'%';$('bossWarning').textContent=m.bossStunned?'ボスを止めた： 次の攻撃を封じる':ev?.bossMove&&defend?'⚠ '+ev.bossMove:'ボス · '+stageBiome(m.stageNo).name+' · 停止ゲージ '+m.breakMeter+'%'}$('resonanceLabel').textContent=Math.round(m.charge)+' / 60';$('comboBadge').textContent='JUST '+m.guardChain+'連鎖 / 精密 '+m.strikeChain+'連鎖';const mission=$('missionBadge');mission.hidden=m.mode!=='COM MATCH';if(!mission.hidden){const goal=stageMission(m.stageNo);mission.textContent='目標 '+missionProgress(m)+'/'+goal.target+'：'+goal.label+' · 達成して勝利で +1XP'} $('incomingBadge').textContent=defend?(windowOpen?'いまガード！':p<guardStart?'敵が接近中…':'攻撃を受ける！'):(ev?.atk===0?(strikeWindow?'いまタイミング攻撃！':'攻撃のタイミングを狙え'):'次の攻撃を警戒');
+ $('bossPanel').hidden=!m.boss;if(m.boss){$('bossBreakFill').style.width=m.breakMeter+'%';$('bossWarning').textContent=m.bossStunned?'ボスを止めた： 次の攻撃を封じる':ev?.bossMove&&defend?'⚠ '+ev.bossMove:(m.b.stageBoss?.name||'ボス')+' · 停止ゲージ '+m.breakMeter+'%'}$('resonanceLabel').textContent=Math.round(m.charge)+' / 60';$('comboBadge').textContent='JUST '+m.guardChain+'連鎖 / 精密 '+m.strikeChain+'連鎖';const mission=$('missionBadge');mission.hidden=m.mode!=='COM MATCH';if(!mission.hidden){const goal=stageMission(m.stageNo);mission.textContent='目標 '+missionProgress(m)+'/'+goal.target+'：'+goal.label+' · 達成して勝利で +1XP'} $('incomingBadge').textContent=defend?(windowOpen?'いまガード！':p<guardStart?'敵が接近中…':'攻撃を受ける！'):(ev?.atk===0?(strikeWindow?'いまタイミング攻撃！':'攻撃のタイミングを狙え'):'次の攻撃を警戒');
  for(let k of Object.keys(stanceIds))$(stanceIds[k]).classList.toggle('active',m.stance===k);
 }
 function guardPress(){const m=match;if(!m||!m.interactive||m.done||m.spectator)return;
@@ -3164,7 +3169,7 @@ function updateCampaignTrack(mode){
  const bar=$('campaignTrack');if(mode!=='COM MATCH'){bar.hidden=true;return}
  const stage=Math.max(1,Math.floor(Number(adventureStage)||1));
  const untilBoss=(5-stage%5)%5;
- bar.textContent='STAGE '+stage+' · '+stageBiome(stage).name+' · '+(untilBoss?'ボスまで'+untilBoss+'戦':'ボス戦！');
+ bar.textContent='STAGE '+stage+' · '+stageBiome(stage).name+' · '+(typeof window!=='undefined'?window.OtodamaBosses?.stage(stage).name||'':'')+' · '+(untilBoss?'次のボスまで'+untilBoss+'戦':'ボス戦！');
  bar.style.setProperty('--chapter-progress',String((stage%5||5)*20)+'%');bar.hidden=false;
 }
 function showBattle(a,b,outcome,mode,buff=null,live=false){
@@ -3178,7 +3183,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
  $('nextBuffPanel').hidden=true;$('bossPanel').hidden=true;$('missionBadge').hidden=mode!=='COM MATCH';$('battleReport').classList.remove('visible');$('enemyTactic').classList.remove('visible');$('battleModal').classList.remove('victory');$('battleModal').classList.add('open');$('comboBadge').textContent='ガード連続 0';$('incomingBadge').textContent='敵の攻撃を見切れ！';$('battleTitle').textContent='声魂（こえだま） 対戦 / '+(mode==='COM MATCH'?'STAGE '+String(adventureStage).padStart(2,'0')+' · '+stageBiome(adventureStage).name+' · '+stageTitle(adventureStage):mode==='SURVIVAL'?'サバイバル 第'+survivalRound+'戦':({'DAILY CHALLENGE':'日替わり対戦','ONLINE LIVE':'オンライン対戦','ONLINE MATCH':'オンライン対戦'}[mode]||mode));
  const matchNumber=mode==='SURVIVAL'?survivalRound:mode==='COM MATCH'?adventureStage:1;
  showMatchIntro(matchNumber);updateCampaignTrack(mode);
- $('nameA').textContent=displayName(a)+' / Lv.'+levelOf(a);$('nameB').textContent=displayName(b)+' / Lv.'+levelOf(b);$('rematchBtn').disabled=true;
+ $('nameA').textContent=displayName(a)+' / Lv.'+levelOf(a);$('nameB').textContent=displayName(b)+' / Lv.'+levelOf(b);if(mode==='COM MATCH'&&b.stageBoss?.tier!=='normal')$('bossWarning').textContent=b.stageBoss.title+' · '+b.stageBoss.name+' · '+b.stageBoss.advice;$('rematchBtn').disabled=true;
  $('nextStagePreview').hidden=true;$('timingCallout').textContent='';$('hpA').style.width='100%';$('hpB').style.width='100%';$('fightLog').textContent='第'+matchNumber+'試合目！';$('arenaEffect').textContent='第'+matchNumber+'試合目！';$('battlePrize').textContent='';$('matchupBadge').textContent=specimenProfile(a).name+' VS '+specimenProfile(b).name+(elementalEdge(a,b)>1?' · 属性有利':elementalEdge(a,b)<1?' · 属性不利':'');
  $('battlePanel').classList.toggle('playable',interactive);$('battleGuide').textContent=live?'オンライン自動対戦中':'キャラが自動で戦います';
  const battleMax=outcome.max.slice();if(interactive&&buff==='shield')battleMax[0]+=30;
@@ -3197,7 +3202,7 @@ function showBattle(a,b,outcome,mode,buff=null,live=false){
   const attacker=ev.atk===0?a:b,defender=ev.atk===0?b:a;
   $('arenaEffect').textContent=ev.crit?'大ダメージ！':ev.counter?'反撃成功!':ev.dodge?'回避成功':ev.arena?'地形：'+(ARENA_LABELS[ev.arena]||ev.arena):(ev.hits>1?ev.hits+' HIT 連続ヒット！':BATTLE_LABEL[ev.kind]);
   $('enemyTactic').classList.toggle('visible',!!ev.tactic);$('enemyTactic').textContent=ev.tactic?'⚠ '+COM_TACTICS[ev.tactic].label+'：'+COM_TACTICS[ev.tactic].hint:'';
-  $('fightLog').textContent=displayName(attacker)+' の '+(BATTLE_LABEL[ev.kind]||'ジャンプ攻撃')+'！ '+(ev.hazard?'【地形：'+ev.hazard.label+'】':'')+(match.spectator?(ev.commentary||'自動戦闘中'):(interactive?'自動対戦中':(ev.dodge?'回避成功！':ev.damage+'ダメージ')));
+  $('fightLog').textContent=displayName(attacker)+' の '+(ev.bossMove||BATTLE_LABEL[ev.kind]||'ジャンプ攻撃')+'！ '+(ev.hazard?'【地形：'+ev.hazard.label+'】':'')+(match.spectator?(ev.commentary||'自動戦闘中'):(interactive?'自動対戦中':(ev.dodge?'回避成功！':ev.damage+'ダメージ')));
   // Explicit special-rush sound replaces the opening attack; never stack both.
   if(!maybeSpecialRush(currentMatch,ev))attackVoice(attacker,ev.atk,ev);
   // Impact SFX plays on contact, not over the first syllable of an attack.
