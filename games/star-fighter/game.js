@@ -155,6 +155,13 @@ function bossArmorMultiplier(b){
 }
 /* Heavier foes can shatter armor, dodge once, then fire a warned retort.
    Light scouts deliberately remain fragile to preserve power fantasy. */
+/* Piercing shots may damage several different targets, but not the same target
+   repeatedly on every animation frame while intersecting its hitbox. */
+function projectileFirstHit(shot,target){
+ if(!shot.hitTargets)shot.hitTargets=new Set();
+ if(shot.hitTargets.has(target))return false;
+ shot.hitTargets.add(target);return true;
+}
 function damageEnemy(e,damage){
  if(!e||!Number.isFinite(damage)||damage<=0||e.hp<=0)return;
  const old=e.armor||0;
@@ -2014,9 +2021,9 @@ if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
 if(!practice&&b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
-let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=EXTRA?.stats[e.type]?.shot??(e.type==='tank'||e.type==='carrier'?39:23);if(e.x<=W-40&&circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){damageEnemy(e,s.dmg);e.hitFlash=.14;e.recoil=Math.min(8,(e.recoil||0)+Math.min(4,s.dmg*.12));applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
+let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=EXTRA?.stats[e.type]?.shot??(e.type==='tank'||e.type==='carrier'?39:23);if(e.x<=W-40&&circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)&&projectileFirstHit(s,e)){damageEnemy(e,s.dmg);e.hitFlash=.14;e.recoil=Math.min(8,(e.recoil||0)+Math.min(4,s.dmg*.12));applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
 if(!gone&&G.terrain?.phase==='active'&&(G.terrain.type==='wreck'||G.terrain.type==='ice'||G.terrain.type==='rune'||G.terrain.type==='membrane'||G.terrain.type==='prism'))for(const block of G.terrain.blocks){if(block.hp>0&&circleHit(s.x,s.y,s.kind==='laser'?8:5,G.terrain.x,block.y,58)){block.hp-=s.dmg;emit(s.x,s.y,3,'#ffca81',60);s.pierce--;if(block.hp<=0){explosion(G.terrain.x,block.y,42);addScore(250)}if(s.pierce<=0){gone=true;break}}}
-if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
+if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)&&projectileFirstHit(s,G.boss)){
  const b=G.boss;
  const weak=b.weakOpen&&(
   (G.stage===0&&circleHit(s.x,s.y,7,b.x+20,b.y,28))||
