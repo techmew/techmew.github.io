@@ -68,7 +68,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=debug-gamepad-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=portrait-overlay-20261030-2'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -88,7 +88,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=debug-gamepad-20261030-1'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=portrait-overlay-20261030-2'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -1512,6 +1512,15 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   }
   ok(full.sectors===128&&full.bosses===128&&full.routeDecisions===112&&full.rewards===112&&full.clears===16,'35 full-run coverage');
   stats.fullRun35=full;
+ }
+  // Screenshot regression: portrait overlay is viewport scrollable, not canvas clipped.
+ if(htmlSource&&cssSource){
+  ok(htmlSource.includes('id="debugUnlockHint"')&&htmlSource.includes('id="debugTrigger"'),'discoverable secret logo progress marker');
+  ok(cssSource.includes('#shell .game-frame>.overlay{')&&cssSource.includes('position:fixed!important'),'portrait overlay escapes 16:9 canvas height');
+  ok(cssSource.includes('overflow-y:auto!important')&&cssSource.includes('max-height:none!important'),'portrait title/debug menu remains scrollable');
+  ok(cssSource.includes('#shell .game-frame>.overlay .debug-panel')&&cssSource.includes('overflow:visible!important'),'debug panel does not create trapped nested scroller');
+  ok(cssSource.includes('#shell .game-frame>.overlay.hidden'),'hidden overlay never obstructs live touchpad');
+  ok(!gameSource.includes('if(now-debugTapTime>4200)'),'secret logo taps have no timing race');
  }
   // 2026-10-30 extra: hidden debug, all eight sectors and 2 paths, invincibility,
  // score/medal/checkpoint isolation, standard gamepad input, repeats and fallback.
