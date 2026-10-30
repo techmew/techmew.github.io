@@ -247,7 +247,7 @@ function jump(){
  return true;
 }
 function dash(){
- if(mode!=="play"||P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28))return;
+ if(mode!=="play"||P.jumpTime>0||P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28))return;
  const a=getAxes();if(Math.hypot(a.x,a.y)>.15){P.dir=Math.atan2(a.y,a.x)}
  P.dx=Math.cos(P.dir);P.dy=Math.sin(P.dir);
  const agile=P.type==="cat"&&P.abilityTime>0;
