@@ -60,7 +60,7 @@ const ROUTE_EVENTS={
 /* Live flight gate: compact factual differences, derived from actual variants. */
 const ROUTE_BOSS_INTEL=[
  ['KRAKEN ENGINE','FORTRESS CORE'],['ABYSS TITAN','IRON TYRANT'],
- ['MOLTEN CRAB / SCORPION DREAD','SOLAR WYRM'],['FROST MAMMOTH','GLACIAL LEVIATHAN'],
+ ['MOLTEN CRAB / SCORPION DREAD','SOLAR WYRM'],['FROST MAMMOTH / TURTLE BULWARK','GLACIAL LEVIATHAN'],
  ['RELIC CENTIPEDE','OBSIDIAN WARDEN'],['AETHER JELLYFISH','RIFT MEDUSA'],
  ['HORIZON ARK','SINGULARITY EMPEROR']
 ];
@@ -159,6 +159,7 @@ const BOSS_SPECIAL_MOVES=Object.freeze({
 "MOLTEN CRAB":Object.freeze([{"label":"溶融ハサミ挟撃","type":"pincer"},{"label":"甲殻防御","type":"guard"},{"label":"熱噴出口壁","type":"wall"},{"label":"多脚横滑り","type":"charge"}]),
 "SCORPION DREAD":Object.freeze([{"label":"プラズマ尾針","type":"tail"},{"label":"両ハサミ捕獲","type":"pincer"},{"label":"地中潜行","type":"warp"},{"label":"連続刺突","type":"whip"}]),
 "SOLAR WYRM":Object.freeze([{"label":"竜首伸長","type":"neck"},{"label":"翼の爆炎","type":"wave"},{"label":"恒星フレア","type":"ring"},{"label":"火炎急降下","type":"charge"}]),
+"TURTLE BULWARK":Object.freeze([{"label":"油圧式の長首突進","type":"neck"},{"label":"亀甲全閉装甲","type":"guard"},{"label":"甲羅の旋回砲台","type":"orbit"},{"label":"四脚重装突進","type":"charge"}]),
 "FROST MAMMOTH":Object.freeze([{"label":"氷牙伸長","type":"neck"},{"label":"氷壁形成","type":"wall"},{"label":"氷晶機雷","type":"mine"},{"label":"重量踏み潰し","type":"charge"}]),
 "GLACIAL LEVIATHAN":Object.freeze([{"label":"長首伸縮","type":"neck"},{"label":"流氷圧縮波","type":"wave"},{"label":"冷却ブレス","type":"beam"},{"label":"翼ひれ挟撃","type":"pincer"}]),
 "RELIC CENTIPEDE":Object.freeze([{"label":"多節胴体締め付け","type":"coil"},{"label":"節砲掃射","type":"orbit"},{"label":"多脚壁走り","type":"charge"},{"label":"機械輪列","type":"ring"}]),
@@ -535,10 +536,11 @@ const debugPlayMode=$('debugPlayMode'),debugBoss=$('debugBoss');
 const DEBUG_BOSS_ROSTER=[
  {stage:0,risk:0,name:BOSSES[0],key:'0:0'},
  ...ROUTE_BOSS_INTEL.flatMap((names,i)=>names.map((name,risk)=>({
-  stage:i+1,risk,name:i===2&&risk===0?'MOLTEN CRAB':name,
+  stage:i+1,risk,name:i===2&&risk===0?'MOLTEN CRAB':i===3&&risk===0?'FROST MAMMOTH':name,
   key:(i+1)+':'+risk,variant:i===2&&risk===0?'crab':null
  }))),
- {stage:3,risk:0,name:'SCORPION DREAD',key:'3:2',variant:'scorpion'}
+ {stage:3,risk:0,name:'SCORPION DREAD',key:'3:2',variant:'scorpion'},
+ {stage:4,risk:0,name:'TURTLE BULWARK',key:'4:2',variant:'turtle'}
 ];
 function updateDebugModeControls(){
  const solo=debugPlayMode.value==='boss';
@@ -1129,11 +1131,11 @@ function fireEnemy(e,target=null){
 /* Boss variants are tied to the chosen branch, so legacy bosses remain playable.
    Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
    The first sector and the other two branches retain their original bosses. */
-function bossVariant(){if(G.forcedBossVariant&&G.stage===3&&G.routeRisk===0)return G.forcedBossVariant;return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':mixSeed(G.runSeed,4,71)%4===0?'crab':'scorpion'):G.stage===4?(G.routeRisk?'leviathan':'mammoth'):G.stage===5?(G.routeRisk?'warden':'centipede'):G.stage===6?(G.routeRisk?'riftmedusa':'jellyfish'):G.stage===7?(G.routeRisk?'singularity':'horizonark'):'original'}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='scorpion'?'SCORPION DREAD':variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
+function bossVariant(){if(G.forcedBossVariant&&(G.stage===3||G.stage===4)&&G.routeRisk===0)return G.forcedBossVariant;return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':mixSeed(G.runSeed,4,71)%4===0?'crab':'scorpion'):G.stage===4?(G.routeRisk?'leviathan':mixSeed(G.runSeed,5,82)%4===0?'turtle':'mammoth'):G.stage===5?(G.routeRisk?'warden':'centipede'):G.stage===6?(G.routeRisk?'riftmedusa':'jellyfish'):G.stage===7?(G.routeRisk?'singularity':'horizonark'):'original'}
+function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='turtle'?'TURTLE BULWARK':variant==='scorpion'?'SCORPION DREAD':variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
  const legacyChains=G.routeHistory.reduce((n,r,i,a)=>n+(i>0&&a[i-1].risk===r.risk?1:0),0);
  const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06)*(G.stage===7?1+Math.min(4,legacyRisk)*.035:1));
- G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
+ G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -1188,7 +1190,23 @@ if(b.variant==='centipede'||b.variant==='warden'){
   }}
   b.pattern++;b.fire=angry?1.20:1.70;tone(cent?185:265,.13,'triangle',.021,65);return;
  }
- if(b.variant==='mammoth'||b.variant==='leviathan'){
+ if(b.variant==='turtle'){
+   const armored=bossMoveGuarded(b),spd=armored?180:210;
+   if(b.pattern%3===0){
+    const y=cl(p.y,130,H-130),x=b.x-178,a=Math.atan2(p.y-y,p.x-x);
+    for(const off of [-.21,0,.21])bullet(x,y,a+off,spd+12,5,'#b1f7d8');
+   }else if(b.pattern%3===1){
+    for(const side of [-1,1])for(let k=0;k<3;k++){
+     const x=b.x-91,y=cl(b.y+side*(61+k*53),90,H-90);
+     bullet(x,y,Math.PI+side*(.16+k*.13),spd,5,'#d4ffec');
+    }
+   }else{for(let i=0;i<10;i++)if(i%5!==2){
+    bullet(b.x-118,b.y,i*TAU/10+b.t*.17,spd-27,4.5,'#b5d4ff');
+   }}
+   b.pattern++;b.fire=armored?1.85:b.phase?1.22:1.6;
+   tone(163,.15,'triangle',.025,-40);return;
+  }
+  if(b.variant==='mammoth'||b.variant==='leviathan'){
   const mammoth=b.variant==='mammoth';
   if(b.pattern%3===0){for(const side of [-1,1])for(let k=0;k<3;k++){
    const y=cl(b.y+side*(50+k*54),75,H-70),x=b.x-142;
@@ -2176,7 +2194,31 @@ function drawCreatureBoss(b){
    c.save();c.translate(x,y);c.rotate(a+.4);poly([-16,-30,18,-30,31,12,0,37,-30,12],'#59486f','#d5bbff',2);glowCircle(0,0,5,'#d9c1ff',8);c.restore()}
   poly([-89,-66,0,-109,95,-69,125,0,95,69,0,109,-89,66,-151,0],'#433c63','#bfa8ee',4);
   glowCircle(-59,0,34,hurt?'#ff7d9f':'#d8b1ff',19);
- }else if(b.variant==='mammoth'){
+ }else if(b.variant==='turtle'){
+   // Original four-legged siege turtle with hydraulic telescoping neck and
+   // damage-proof shell closure. Shell hitbox is governed by bossMoveGuarded().
+   const shell=bossMoveGuarded(b),ext=b.specialMove?.type==='neck'&&b.specialMove?.active?66:15;
+   for(const side of [-1,1]){c.save();c.scale(1,side);
+    for(let k=0;k<2;k++){const x=30+k*65,y=66+k*24+Math.sin(t*2.3+k)*8;
+     line(x,25,x+27,y-13,'#416775',16);
+     line(x+27,y-13,x+8,y+37,'#8dceb6',11);
+     ellipse(x+8,y+37,18,11,'#2d505e','#b3e7cf',2)}
+    c.restore()}
+   const neckX=shell?-39:-78-ext;
+   line(-45,0,neckX,0,'#5e908f',shell?15:32);
+   ellipse(neckX,0,shell?18:29,shell?18:27,'#315b65','#c0eadc',3);
+   if(!shell){poly([neckX-9,-22,neckX-36,-8,neckX-36,11,neckX-9,21],
+      '#7b9e94','#efffe0',3);glowCircle(neckX-16,-7,6,'#e0ffcb',11)}
+   ellipse(27,0,shell?139:133,shell?107:111,
+    shell?'#183b4e':'#396a73','#b6ffdf',shell?8:4);
+   for(let ringIdx=0;ringIdx<3;ringIdx++){
+    const size=110-ringIdx*27;
+    poly([-size,-46+ringIdx*18,-size+70,-78+ringIdx*11,size-12,-32+ringIdx*13,
+     size-12,32-ringIdx*13,-size+70,78-ringIdx*11,-size,46-ringIdx*18],
+     ringIdx%2?'#386c68':'#36646e',shell?'#e5fff0':'#8fd9cb',2);
+   }
+   for(let i=-2;i<=2;i++)glowCircle(38+i*35,0,7,shell?'#e8ffb2':'#8decda',6);
+  }else if(b.variant==='mammoth'){
   for(const side of [-1,1]){c.save();c.scale(1,side);
    poly([5,49,90,75,119,123,73,131,34,80],'#426780','#b3e5f4',3);
    poly([-92,26,-157,45,-190,105,-163,110,-117,68,-69,54],'#d7f2f7','#ffffff',3);
