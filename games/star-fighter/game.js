@@ -924,11 +924,11 @@ function fireEnemy(e,target=null){
 /* Boss variants are tied to the chosen branch, so legacy bosses remain playable.
    Safe sector 2 = abyssal octopus; dangerous sector 3 = armored dinosaur.
    The first sector and the other two branches retain their original bosses. */
-function bossVariant(){return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':'crab'):G.stage===4?(G.routeRisk?'leviathan':'mammoth'):G.stage===5?(G.routeRisk?'warden':'centipede'):G.stage===6?(G.routeRisk?'riftmedusa':'jellyfish'):G.stage===7?(G.routeRisk?'singularity':'horizonark'):'original'}
-function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
+function bossVariant(){if(G.forcedBossVariant&&G.stage===3&&G.routeRisk===0)return G.forcedBossVariant;return G.stage===1&&G.routeRisk===0?'octopus':G.stage===2&&G.routeRisk===1?'dinosaur':G.stage===3?(G.routeRisk?'solarwyrm':mixSeed(G.runSeed,4,71)%4===0?'crab':'scorpion'):G.stage===4?(G.routeRisk?'leviathan':'mammoth'):G.stage===5?(G.routeRisk?'warden':'centipede'):G.stage===6?(G.routeRisk?'riftmedusa':'jellyfish'):G.stage===7?(G.routeRisk?'singularity':'horizonark'):'original'}
+function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant(),name=variant==='scorpion'?'SCORPION DREAD':variant==='octopus'?'KRAKEN ENGINE':variant==='dinosaur'?'IRON TYRANT':variant==='solarwyrm'?'SOLAR WYRM':variant==='leviathan'?'GLACIAL LEVIATHAN':variant==='warden'?'OBSIDIAN WARDEN':variant==='riftmedusa'?'RIFT MEDUSA':variant==='singularity'?'SINGULARITY EMPEROR':BOSSES[G.stage];const legacyRisk=G.routeHistory.reduce((n,r)=>n+(r.risk===1?1:0),0);
  const legacyChains=G.routeHistory.reduce((n,r,i,a)=>n+(i>0&&a[i-1].risk===r.risk?1:0),0);
  const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06)*(G.stage===7?1+Math.min(4,legacyRisk)*.035:1));
- G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
+ G.boss={variant,name,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -994,6 +994,20 @@ if(b.variant==='centipede'||b.variant==='warden'){
    bullet(x,y,Math.atan2(p.y-y,p.x-x)+side*.15,225+(angry?24:0),5,'#7ecfff');
   }}
   b.pattern++;b.fire=angry?1.20:1.68;tone(mammoth?155:310,.14,'triangle',.019,75);return;
+ }
+ if(b.variant==='scorpion'){
+  const speed=angry?245:218,pat=b.pattern%3;
+  if(pat===0){for(const side of [-1,1])for(let i=0;i<3;i++){
+   const yy=cl(b.y+side*(69+i*54),92,H-87),xx=b.x-168;
+   bullet(xx,yy,Math.atan2(p.y-yy,p.x-xx)+side*.14,speed,5,'#ffc38a');
+  }}else if(pat===1){
+   const xx=b.x-186,yy=b.y-91,a=Math.atan2(p.y-yy,p.x-xx);
+   for(const offset of [-.4,-.2,0,.2,.4])bullet(xx,yy,a+offset,speed+8,5,'#ffdc9a');
+  }else{for(const side of [-1,1])for(let i=0;i<2;i++){
+   const yy=cl(b.y+side*(98+i*76),90,H-85),xx=b.x-151;
+   bullet(xx,yy,Math.atan2(p.y-yy,p.x-xx)+side*(.12+i*.14),speed-9,5,'#ff9dab');
+  }}
+  b.pattern++;b.fire=angry?1.26:1.65;tone(200,.13,'triangle',.026,-60);return;
  }
  if(b.variant==='crab'||b.variant==='solarwyrm'){
   const crab=b.variant==='crab';
@@ -1966,6 +1980,29 @@ function drawCreatureBoss(b){
    c.restore()}
   poly([-38,-36,-117,-63,-188,-29,-202,0,-157,32,-62,28],'#3c6a88','#d8f9ff',4);
   glowCircle(-162,-28,9,'#e4ffff',10);glowCircle(-55,0,31,hurt?'#ff86bb':'#93ecff',15);
+ }else if(b.variant==='scorpion'){
+  // Distinct eight-legged silhouette, paired claws and six-joint tail cannon.
+  for(const side of [-1,1]){c.save();c.scale(1,side);
+   for(let i=0;i<4;i++){
+    const x=-12+i*37,y=65+i*14+Math.sin(t*2+i)*8;
+    line(x,22,x+27,y-25,'#a65f54',11);line(x+27,y-25,x+5,y+13,'#f7bb82',7);
+    ellipse(x+27,y-25,9,9,'#643b49','#ffddab',2);
+   }
+   const swing=Math.sin(t*2+side)*19;
+   line(-58,35,-117,75+swing,'#8b5860',19);line(-117,75+swing,-182,104+swing,'#ffaf83',13);
+   poly([-183,103+swing,-225,83+swing,-241,110+swing,-201,140+swing],'#b4655c','#ffe1a9',3);
+   poly([-183,103+swing,-203,146+swing,-237,142+swing,-214,106+swing],'#693d4c','#ffb988',2);
+   c.restore()}
+  for(let j=5;j>=0;j--){
+   const x=65+j*31,y=-20-j*23+Math.sin(t*2+j)*9;
+   ellipse(x,y,28-j*2,23-j*1.5,'#6c3f4c','#ffd6a0',2);
+  }
+  poly([211,-138,270,-160,244,-117],'#ffb474','#fff4c7',3);
+  glowCircle(248,-141,10,'#ffe3a4',16);
+  ellipse(0,0,108,81,'#743f50','#ffd29c',4);
+  poly([-102,-36,10,-75,112,-40,129,0,112,40,10,75,-102,36],'#a56059','#ffe4ac',3);
+  for(let k=0;k<6;k++){const x=-48+k*27;poly([x,-58,x+11,-79,x+25,-57],'#b97960','#ffcf94',2)}
+  glowCircle(-49,0,29,hurt?'#ff6694':'#ffe4b1',18);
  }else if(b.variant==='crab'){
   // Mechanical crab: articulated claws, shell armor and exposed core.
   for(const side of [-1,1]){c.save();c.scale(1,side);
