@@ -1121,6 +1121,16 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
+ if(use3D&&P){
+  // Keep the player distinguishable from wildlife even with physically occluding 3D meshes.
+  const pos=project(P.x,P.y);ctx.save();
+  ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(pos.x,pos.y+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
+  ctx.textAlign="center";ctx.font="900 11px sans-serif";ctx.lineWidth=3;
+  ctx.strokeStyle="#102222";ctx.strokeText(P.hidden?"潜伏中":"YOU",pos.x,pos.y-52);
+  ctx.fillStyle="#e7f7e4";ctx.fillText(P.hidden?"潜伏中":"YOU",pos.x,pos.y-52);
+  ctx.restore();
+ }
  if(weather==="RAIN"){ctx.strokeStyle="#9dc9cb5c";ctx.lineWidth=1.2;ctx.beginPath();for(const r of rain){const rx=(r.x+elapsed*r.s*.37)%vw,ry=(r.y+elapsed*r.s)%vh;ctx.moveTo(rx,ry);ctx.lineTo(rx-9,ry+r.z)}ctx.stroke()}
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
