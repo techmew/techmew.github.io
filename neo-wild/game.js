@@ -26,6 +26,8 @@ const VIEW={a:.94,b:.20,c:-.28,d:.68},VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
+// Keep wildlife rare enough to track, not a crowd of targets.
+const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,preyNeedRadius:760};
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
@@ -55,7 +57,8 @@ function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).cl
 function start(){
  mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0};
- for(let i=0;i<26;i++)spawnMob(true);
+ for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
+ spawnMob(false,true); // Guarantee one huntable species at a reasonable distance.
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
@@ -63,19 +66,27 @@ function start(){
  syncHUD();notify("東京封鎖区 / 生存開始");
  sound(280,.14,"triangle",.07);
 }
-function spawnMob(initial=false){
- let tries=0,x,y;
+function spawnMob(initial=false,preyOnly=false){
+ let tries=0,x=0,y=0,valid=false;
+ const localCount=P?mobs.filter(m=>dist(m,P)<WILDLIFE.localRadius).length:0;
  do{
-   const a=rnd(0,TWO),rad=initial?rnd(230,1180):rnd(Math.max(vw,vh)*.55,Math.max(vw,vh)*1.15);
-   x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
- }while(++tries<35&&(nearBuilding(x,y,40)||(P&&dist({x,y},P)<220)));
- if(nearBuilding(x,y,40))return;
+  const a=rnd(0,TWO),rad=preyOnly?rnd(330,570):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
+  x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
+  y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
+  const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
+  valid=!collides(x,y,40)&&(!P||dist(candidate,P)>230)
+   &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
+   &&(!near||localCount<WILDLIFE.localCap);
+ }while(!valid&&++tries<52);
+ if(!valid)return false;
  let roll=Math.random(),type;
- if(day<2)type=roll<.4?"rat":roll<.72?"rabbit":roll<.87?"pigeon":"dog";
+ if(preyOnly)type=roll<.4?"rat":roll<.78?"rabbit":"pigeon";
+ else if(day<2)type=roll<.4?"rat":roll<.72?"rabbit":roll<.87?"pigeon":"dog";
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
  mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ return true;
 }
 function spawnFood(){
  const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
@@ -493,7 +504,20 @@ function update(dt){
  for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0)carcasses.splice(i,1);
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
  for(let i=popups.length-1;i>=0;i--){popups[i].life-=dt;popups[i].y-=28*dt;if(popups[i].life<=0)popups.splice(i,1)}
- spawnTimer+=dt;if(spawnTimer>1.45){spawnTimer=0;if(mobs.length<27+day*2)spawnMob();if(carcasses.filter(c=>c.type==="berries").length<20)spawnFood()}
+ spawnTimer+=dt;
+ if(spawnTimer>3.6){
+  spawnTimer=0;
+  const hunting=mission===2||(mission===4&&freeStep===1);
+  const nearbyPrey=mobs.some(m=>m.hp>0&&species[m.type].prey&&dist(P,m)<WILDLIFE.preyNeedRadius);
+  if(hunting&&!nearbyPrey){
+   if(mobs.length>=WILDLIFE.cap){
+    const farthest=mobs.reduce((a,b)=>!a||dist(P,b)>dist(P,a)?b:a,null);
+    if(farthest&&dist(P,farthest)>WILDLIFE.preyNeedRadius)mobs.splice(mobs.indexOf(farthest),1);
+   }
+   if(mobs.length<WILDLIFE.cap)spawnMob(false,true);
+  }else if(mobs.length<WILDLIFE.cap)spawnMob();
+  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
+ }
  checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
  cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*6);
@@ -575,8 +599,14 @@ function drawBuilding(b){
  const x=gx+VIEW.c*rise/VIEW_DET,y=gy-VIEW.a*rise/VIEW_DET;
  const polygon=(v,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(v[0],v[1]);for(let j=2;j<v.length;j+=2)ctx.lineTo(v[j],v[j+1]);ctx.closePath();ctx.fill()};
  ctx.fillStyle="#050f13ab";ctx.fillRect(gx+20,gy+25,w,h);
- polygon([x,y+h,x+w,y+h,gx+w,gy+h,gx,gy+h],b.kind%2?"#344850":"#425455");
- polygon([x+w,y,x+w,y+h,gx+w,gy+h,gx+w,gy],b.kind%2?"#1b3039":"#2a3c42");
+ const face=ctx.createLinearGradient(x,y+h,gx,gy+h);
+ face.addColorStop(0,b.kind%2?"#56666a":"#65716b");
+ face.addColorStop(.48,b.kind%2?"#344850":"#425455");
+ face.addColorStop(1,"#192c32");
+ polygon([x,y+h,x+w,y+h,gx+w,gy+h,gx,gy+h],face);
+ const side=ctx.createLinearGradient(x+w,y,gx+w,gy);
+ side.addColorStop(0,"#40565c");side.addColorStop(1,"#101f29");
+ polygon([x+w,y,x+w,y+h,gx+w,gy+h,gx+w,gy],side);
  for(let row=1;row<5;row++){
   const t=row/5,lx=x+(gx-x)*t,ly=y+h+(gy-y)*t;
   for(let col=0;col<5;col++){
@@ -657,7 +687,8 @@ function drawCreature(o,isPlayer){
   ctx.closePath();ctx.fill();
  };
  ctx.save();ctx.translate(o.x,o.y);
- oval(4,9,r*1.2,r*.55,"#031011a8");
+ oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
+ oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
  ctx.rotate(o.dir||0);
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.085:t==="cat"?Math.abs(Math.sin(gait*1.46))*.028:t==="wolf"?Math.abs(Math.sin(gait*.62))*.017:Math.abs(Math.sin(gait*.9))*.045;
  ctx.translate(0,bound*motion*r);
@@ -771,6 +802,10 @@ function drawCreature(o,isPlayer){
   oval(r*.9,r*.26,2.7,2.4,alpha?"#eeaa8f":"#e1dab1");
   if(alpha){for(const side of [-1,1])triangle([r*1.06,side*r*.16,r*1.26,side*r*.38,r*1.22,side*r*.08],"#f4dfc3");ctx.strokeStyle="#e6d5c5";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(r*.56,-r*.36);ctx.lineTo(r*.91,-r*.06);ctx.moveTo(r*.72,-r*.48);ctx.lineTo(r*1.05,-r*.19);ctx.stroke();}
  }
+ ctx.save();ctx.globalAlpha=hit?.1:isPlayer?.4:.24;
+ const sheen=ctx.createLinearGradient(-r*.8,-r*.8,r*.6,r*.2);
+ sheen.addColorStop(0,"#eef7df");sheen.addColorStop(1,"#eef7df00");
+ ctx.fillStyle=sheen;ctx.beginPath();ctx.ellipse(-r*.1,-r*.25,r*.73,r*.19,-.15,0,TWO);ctx.fill();ctx.restore();
  if(isPlayer){
   ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
   ctx.beginPath();ctx.arc(0,0,r+5,0,TWO);ctx.stroke();
