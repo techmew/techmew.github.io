@@ -5,10 +5,10 @@ const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'inline game source');
 new vm.Script(js);
-assert.match(html,/<script src="\.\/progression-v134\.js\?v=144"><\/script>/,'rarity engine loads ahead of game');
-assert.equal(growth.MAX_LEVEL,40);
-assert.deepEqual([...growth.EVOLUTION_LEVELS],[10,20,30]);
-for(const [lv,expected] of [[1,0],[9,0],[10,1],[19,1],[20,2],[29,2],[30,3],[40,3]])
+assert.match(html,/<script src="\.\/progression-v134\.js\?v=150"><\/script>/,'rarity engine loads ahead of game');
+assert.equal(growth.MAX_LEVEL,100);
+assert.deepEqual([...growth.EVOLUTION_LEVELS],[10,20,30,40,50,60,70,80,90]);
+for(const [lv,expected] of [[1,0],[9,0],[10,1],[19,1],[20,2],[29,2],[30,3],[40,4],[49,4],[50,5],[60,6],[70,7],[80,8],[90,9],[100,9]])
  assert.equal(growth.slotsForLevel(lv),expected,'unlock at '+lv);
 const date=Date.UTC(2026,9,27,6); // 15:00 JST
 const feature=Array(36).fill(95);
@@ -44,6 +44,14 @@ assert.equal(base.evolutionVoices,undefined,'original object intact until save s
 assert.equal(evolved.rarity,'S+','evolution does not reroll birth grade');
 assert.equal(growth.canEvolve(evolved),false,'next extra sound requires Lv20');
 assert.equal(growth.canEvolve({...evolved,level:20}),true);
+let veteran={...base,level:100,evolutionVoices:[]};
+for(let i=0;i<9;i++){
+ assert.equal(growth.canEvolve(veteran),true,'Lv100 voice '+(i+2)+' is available');
+ veteran=growth.applyEvolution(veteran,sample,strong,'data:audio/wav;base64,AAAA',date);
+ assert.equal(veteran.evolutionVoices.length,i+1);
+}
+assert.equal(growth.canEvolve(veteran),false,'ten sounds total, no eleventh');
+assert.equal(growth.nextEvolutionLevel(100,9),null,'no further evolution after Lv90');
 assert.match(js,/function commitEvolutionVoice\(/,'voice fusion transaction');
 assert.match(js,/if\(evolutionRequested\)/,'mic route distinguishes fusion from newborn');
 assert.match(js,/if\(cur.seed!==selectedSeed\|\|evolutionDialogSeed!==selectedSeed\|\|\$\('evolutionDialog'\)\.hidden\)/,'selection, cancellation and closed dialog cannot commit an evolution');
