@@ -65,7 +65,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=onboarding-20261030-31'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=results-20261030-32'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 25px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -77,7 +77,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=onboarding-20261030-31'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=results-20261030-32'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -1317,6 +1317,36 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   G.runSeed=0x1a2b3c4d;replayInput.value='FFFFFFFF';q.endGame(false);
   ev('seedReplay','click');
   ok(G.mode==='playing'&&G.runSeed===0x1a2b3c4d&&replayInput.value==='1A2B3C4D','same-seed retry is explicit and deterministic');
+
+ // 32/36: results are truthful, read-only, and hidden outside post-run screens.
+ {
+  const levels=[2,1,0,1,2,0],passives=[1,0,2,0,0,1];
+  G.mode='playing';G.stage=5;G.score=123456;G.total=125;G.killCount=47;G.maxCombo=19;G.grazes=11;
+  G.levels=levels.slice();G.passives=passives.slice();G.energy=3;G.pendingUpgrades=[0,1,0,0,0,0];
+  G.routeHistory=[{stage:2,route:'補給航路',risk:0},{stage:3,route:'突入路',risk:1}];
+  G.rewardHistory=[{stage:0,name:'装甲補修'},{stage:1,name:'武器券'}];
+  const before=JSON.stringify([G.levels,G.passives,G.energy,G.pendingUpgrades,G.routeHistory,G.rewardHistory]);
+  q.endGame(false);
+  ok(el('runResult').hidden===false&&el('resultSector').textContent==='6 / 8 到達','game over stage reached');
+  ok(el('resultScore').textContent==='123,456'&&el('resultBest').textContent.length>0,'score and best shown');
+  ok(el('resultStats').textContent.includes('撃破 47')&&el('resultStats').textContent.includes('2:05'),'kills and time shown');
+  ok(el('resultBuild').textContent.includes('BOOST 2/2')&&el('resultBuild').textContent.includes('OPTION 2/3'),'all weapon levels shown');
+  ok(el('resultPassives').textContent.includes('高速給弾 1')&&el('resultPassives').textContent.includes('蓄電回路 2'),'passive ranks shown');
+  ok(el('resultRoutes').textContent.includes('S02 補給')&&el('resultRoutes').textContent.includes('S03 高危険'),'route risk history shown');
+  ok(el('resultRewards').textContent.includes('S01 装甲補修')&&el('resultRewards').textContent.includes('S02 武器券'),'earned rewards shown');
+  ok(JSON.stringify([G.levels,G.passives,G.energy,G.pendingUpgrades,G.routeHistory,G.rewardHistory])===before,'results cannot auto-upgrade or spend capsules');
+  G.stage=7;q.endGame(true);
+  ok(el('runResult').hidden===false&&el('resultSector').textContent==='8 / 8 完走','final victory report');
+  ev('startBtn','click');
+  ok(G.mode==='playing'&&el('runResult').hidden===true,'result hidden after restart');
+  q.endGame(false);ev('seedReplay','click');
+  ok(G.mode==='playing'&&el('runResult').hidden===true,'result hidden after seed replay');
+  if(htmlSource&&cssSource){
+   ok(htmlSource.includes('id="runResult"')&&htmlSource.includes('id="resultRoutes"')&&htmlSource.includes('id="resultRewards"'),'result markup includes routes and rewards');
+   ok(cssSource.includes('.run-result[hidden]')&&cssSource.includes('max-height:clamp(95px,34dvh,260px)'),'result scroll containment');
+   ok(cssSource.includes('orientation:portrait')&&cssSource.includes('orientation:landscape'),'responsive result styles retained');
+  }
+ }
   assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
