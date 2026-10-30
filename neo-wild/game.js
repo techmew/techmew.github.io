@@ -553,8 +553,21 @@ function roadDraw(){
  }
 }
 function drawBuilding(b){
- const x=b.x,y=b.y,w=b.w,h=b.h;
- ctx.fillStyle="#050f13ab";ctx.fillRect(x+20,y+25,w,h);
+ const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=85+(b.kind%4)*17;
+ const x=gx+VIEW.c*rise/VIEW_DET,y=gy-VIEW.a*rise/VIEW_DET;
+ const polygon=(v,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(v[0],v[1]);for(let j=2;j<v.length;j+=2)ctx.lineTo(v[j],v[j+1]);ctx.closePath();ctx.fill()};
+ ctx.fillStyle="#050f13ab";ctx.fillRect(gx+20,gy+25,w,h);
+ polygon([x,y+h,x+w,y+h,gx+w,gy+h,gx,gy+h],b.kind%2?"#344850":"#425455");
+ polygon([x+w,y,x+w,y+h,gx+w,gy+h,gx+w,gy],b.kind%2?"#1b3039":"#2a3c42");
+ for(let row=1;row<5;row++){
+  const t=row/5,lx=x+(gx-x)*t,ly=y+h+(gy-y)*t;
+  for(let col=0;col<5;col++){
+   ctx.fillStyle=noise(col+row,b.seed)>.79?"#c9aa745f":"#96a69e67";
+   ctx.fillRect(lx+(col+.5)*w/5-9,ly-5,17,9);
+  }
+ }
+ ctx.strokeStyle="#a7b3a559";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(gx,gy+h);
+ ctx.moveTo(x+w,y+h);ctx.lineTo(gx+w,gy+h);ctx.stroke();
  ctx.fillStyle=b.kind%2?"#465459":"#34494b";ctx.fillRect(x,y,w,h);
  ctx.fillStyle="#23373c";ctx.fillRect(x+9,y+9,w-18,h-18);
  ctx.fillStyle="#57655e";ctx.fillRect(x+9,y+9,w-18,12);
@@ -571,10 +584,15 @@ function drawBuilding(b){
 function drawPlant(p){
  ctx.save();ctx.translate(p.x,p.y);let r=p.r;
  if(p.type===2){
-   ctx.fillStyle="#1e3424b8";ctx.beginPath();ctx.ellipse(0,5,r*1.2,r*.67,.1,0,TWO);ctx.fill();
-   for(let j=0;j<9;j++){const a=j*TWO/9+p.phase,px=Math.cos(a)*r*.64,py=Math.sin(a)*r*.5;
-    ctx.fillStyle=j%2?"#3d6542":"#52754c";ctx.beginPath();ctx.ellipse(px,py,r*.39,r*.27,a,0,TWO);ctx.fill()}
-   ctx.restore();return;
+  ctx.fillStyle="#172a22cf";ctx.beginPath();ctx.ellipse(2,7,r*1.08,r*.64,.1,0,TWO);ctx.fill();
+  for(let j=0;j<17;j++){
+   const a=j*TWO/17+p.phase,px=Math.cos(a)*r*.57,py=Math.sin(a)*r*.42;
+   const lobe=r*(.27+.10*noise(j,p.phase)),size=r*(.23+.09*noise(j+11,p.phase));
+   ctx.fillStyle=j%4===0?"#68875b":j%3?"#355c44":"#51724b";
+   ctx.beginPath();ctx.ellipse(px,py,lobe,size,a*.28,0,TWO);ctx.fill();
+   ctx.strokeStyle="#a0be8691";ctx.lineWidth=1;ctx.beginPath();
+   ctx.moveTo(px,py+size*.65);ctx.quadraticCurveTo(px+Math.sin(elapsed*1.8+p.phase+j)*r*.045,py-size*.2,px+Math.sin(a)*lobe*.5,py-size*.7);ctx.stroke();
+  }ctx.restore();return;
   }
   if(p.type===1){ctx.fillStyle="#4e5b4b";ctx.beginPath();ctx.ellipse(0,3,r*1.2,r*.47,.2,0,TWO);ctx.fill();
   for(let j=0;j<5;j++){let a=j*TWO/5+p.phase;ctx.strokeStyle="#78926d";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke()}
@@ -582,6 +600,19 @@ function drawPlant(p){
   for(let j=0;j<5;j++){let a=j*TWO/5+p.phase;ctx.fillStyle=j%2?"#315947":"#47765c";ctx.beginPath();ctx.ellipse(Math.cos(a)*r*.42,Math.sin(a)*r*.43,r*.65,r*.43,a,0,TWO);ctx.fill()}
   ctx.fillStyle="#668a64";ctx.beginPath();ctx.arc(0,0,r*.48,0,TWO);ctx.fill()}
  ctx.restore();
+}
+function drawCoverForeground(p){
+ const r=p.r,sway=Math.sin(elapsed*1.8+p.phase)*r*.028;
+ ctx.save();ctx.translate(p.x,p.y);
+ for(let i=0;i<11;i++){
+  const u=(i-5)/5,xx=u*r*.93,yy=r*(.29+.16*Math.cos(u*1.2)),tall=r*(.42+(i%3)*.065);
+  ctx.fillStyle=i%3===0?"#78986d":i%2?"#385f42":"#547b4d";
+  ctx.beginPath();ctx.moveTo(xx-r*.21,yy);
+  ctx.quadraticCurveTo(xx-r*.13+sway,yy-tall*.82,xx+sway,yy-tall);
+  ctx.quadraticCurveTo(xx+r*.24+sway,yy-tall*.47,xx+r*.22,yy);
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#d3e0a15e";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+sway*.7,yy-tall*.55);ctx.stroke();
+ }ctx.restore();
 }
 function drawItem(c){
  const pulse=Math.sin(elapsed*3+c.phase)*2;
@@ -933,6 +964,10 @@ function drawScene(){
  const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
  entities.sort((a,b)=>a.y-b.y);
  for(const e of entities)drawCreature(e,e===P);
+ if(P)for(const p of plants){
+  if(p.type!==2||!visible(p.x,p.y,p.r)||Math.hypot(P.x-p.x,P.y-p.y)>p.r*1.05||P.y>p.y+p.r*.68)continue;
+  drawCoverForeground(p);
+ }
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
   const symbol=species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
@@ -992,6 +1027,11 @@ function drawScene(){
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.senseTime>0){const pos=project(P.x,P.y);ctx.strokeStyle="#89eabb74";ctx.lineWidth=1;ctx.beginPath();ctx.arc(pos.x,pos.y,78,0,TWO);ctx.stroke()}
+ if(P&&P.hidden&&mode==="play"){
+  const pos=project(P.x,P.y);ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(pos.x-39,pos.y-80,78,25,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,pos.y-62);ctx.restore();
+ }
  drawGoalGuide();
  drawIncomingWarning();
 }
