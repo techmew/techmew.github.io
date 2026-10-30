@@ -49,6 +49,10 @@ paint(10,0);assert.equal(nodes.evolveBtn.disabled,false);assert.match(nodes.evol
 paint(10,1);assert.equal(nodes.evolveBtn.disabled,true);assert.match(nodes.evolveBtn.title,/Lv\.20/);
 paint(20,1);assert.equal(nodes.evolveBtn.disabled,false);
 paint(30,2);assert.equal(nodes.evolveBtn.disabled,false);
-paint(40,3);assert.equal(nodes.evolveBtn.disabled,true);assert.equal(nodes.evolveBtn.textContent,'進化完了');
+paint(40,3);assert.equal(nodes.evolveBtn.disabled,false);assert.equal(nodes.evolutionInfo.textContent,'声を追加できます');
+paint(40,4);assert.equal(nodes.evolveBtn.disabled,true);assert.match(nodes.evolutionInfo.textContent,/Lv\.50/);
+paint(90,8);assert.equal(nodes.evolveBtn.disabled,false);
+paint(90,9);assert.equal(nodes.evolveBtn.disabled,true);assert.equal(nodes.evolveBtn.textContent,'進化完了');
+paint(100,9);assert.equal(nodes.evolveBtn.disabled,true);
 assert.equal(nodes.rarityBadge.textContent,'S','selected rarity still shown');
 console.log('PREVIEW LAYOUT v137 PASS | big overlay fighter, one evolution button, long battle action, relocated ranking/research');
