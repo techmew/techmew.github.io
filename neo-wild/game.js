@@ -607,7 +607,7 @@ function update(dt){
       P.hp-=damage;P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
       blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);
-     }else label(P.x,P.y-35,"回避！","#a6f5d8");
+     }else label(P.x,P.y-35,"無傷","#a6f5d8");
     }
     const forward=ddx*Math.cos(m.chargeDir)+ddy*Math.sin(m.chargeDir);
     if(forward<s.speed*chargeSpeed*dt*.4){
@@ -1127,59 +1127,6 @@ function guidancePoint(goal){
  guideCache={time:elapsed,px:P.x,py:P.y,gx:goal.x,gy:goal.y,point};
  return point;
 }
-function safeGuidePosition(x,y){
- const minX=39,maxX=Math.max(39,vw-39),minY=116,maxY=Math.max(116,vh-116);
- const base={x:clamp(x,minX,maxX),y:clamp(y,minY,maxY)};
- const rects=["mission","touch-layer"].map(id=>{
-  const el=$(id);return el&&typeof el.getBoundingClientRect==="function"?el.getBoundingClientRect():null;
- }).filter(r=>r&&r.width>0&&r.height>0);
- const overlaps=(p,r)=>p.x>r.left-35&&p.x<r.right+35&&p.y>r.top-35&&p.y<r.bottom+52;
- let pos=base;
- for(let attempt=0;attempt<rects.length+1;attempt++){
-  const r=rects.find(q=>overlaps(pos,q));if(!r)break;
-  const options=[
-   {x:clamp(r.right+39,minX,maxX),y:pos.y},
-   {x:clamp(r.left-39,minX,maxX),y:pos.y},
-   {x:pos.x,y:clamp(r.top-55,minY,maxY)},
-   {x:pos.x,y:clamp(r.bottom+55,minY,maxY)}
-  ].filter(p=>!rects.some(q=>overlaps(p,q)));
-  if(!options.length)break;
-  options.sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y));
-  pos=options[0];
- }
- return pos;
-}
-function drawIncomingWarning(){
- if(!P||mode!=="play")return;
- let threat=null,best=Infinity;
- for(const m of mobs){
-  if(m.hp<=0||species[m.type].prey||m.windup<=0)continue;
-  const distance=dist(P,m);
-  if(distance>235||lineBlocked(m,P))continue;
-  const facing=Math.atan2(P.y-m.y,P.x-m.x);
-  const delta=Math.atan2(Math.sin(facing-m.strikeDir),Math.cos(facing-m.strikeDir));
-  if(Math.abs(delta)>(m.type==="dog"?1.2:.8))continue;
-  const urgency=m.windup+distance*.002;
-  if(urgency<best){best=urgency;threat=m}
- }
- if(!threat)return;
- const q=project(P.x,P.y),threatPos=project(threat.x,threat.y);
-  const angle=Math.atan2(threatPos.y-q.y,threatPos.x-q.x);
-  const px=q.x,py=q.y;
- const pos=safeGuidePosition(clamp(px+Math.cos(angle)*(P.r+48),34,vw-34),clamp(py+Math.sin(angle)*(P.r+48),74,vh-74));
- const urgent=threat.windup<.29;
- ctx.save();
- ctx.strokeStyle=urgent?"#fff2a0":"#ff9c76";ctx.lineWidth=urgent?4:2.5;
- ctx.beginPath();ctx.arc(px,py,P.r+15,angle-.55,angle+.55);ctx.stroke();
- ctx.translate(pos.x,pos.y);ctx.rotate(angle+Math.PI/2);
- ctx.fillStyle=urgent?"#ffe09a":"#ff856c";
- ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(-12,9);ctx.lineTo(12,9);ctx.closePath();ctx.fill();
- ctx.restore();
- ctx.save();ctx.textAlign="center";ctx.font="900 13px sans-serif";ctx.fillStyle=urgent?"#fff0ab":"#ffc1a7";
- ctx.shadowColor="#000";ctx.shadowBlur=6;
- ctx.fillText(urgent?"回避！":"危険",pos.x,pos.y-22);
- ctx.restore();
-}
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
@@ -1292,7 +1239,7 @@ function drawScene(){
   ctx.beginPath();ctx.roundRect(pos.x-39,pos.y-80,78,25,8);ctx.fill();ctx.stroke();
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,pos.y-62);ctx.restore();
  }
- drawIncomingWarning();
+
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
