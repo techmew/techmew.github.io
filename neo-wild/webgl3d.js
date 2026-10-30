@@ -16,14 +16,15 @@ attribute vec3 aColor;
 uniform vec2 uCenter;
 uniform vec2 uSize;
 uniform vec4 uView;
+uniform float uZoom;
 uniform float uNight;
 varying vec3 vColor;
 varying float vShade;
 void main(){
  vec2 d=aPosition.xy-uCenter;
  float sx=uSize.x*0.5+uView.x*d.x+uView.z*d.y;
- float sy=uSize.y*0.5+uView.y*d.x+uView.w*d.y-aPosition.z*0.93;
- float zDepth=-(uView.y*d.x+uView.w*d.y)*0.56-aPosition.z*1.24;
+ float sy=uSize.y*0.5+uView.y*d.x+uView.w*d.y-aPosition.z*0.93*uZoom;
+ float zDepth=-(uView.y*d.x+uView.w*d.y)*0.56-aPosition.z*1.24*uZoom;
  gl_Position=vec4(sx/(uSize.x*.5)-1.0,1.0-sy/(uSize.y*.5),zDepth/5000.0,1.0);
  vec3 n=normalize(aNormal);
  vec3 sun=normalize(vec3(-0.55,-0.7,1.2));
@@ -40,7 +41,7 @@ varying float vShade;
 void main(){gl_FragColor=vec4(vColor*vShade,uAlpha);}
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
-let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,unight,ualpha;
+let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,ualpha;
 function initializeGPU(){
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
@@ -54,6 +55,7 @@ function initializeGPU(){
  ucenter=gl.getUniformLocation(program,"uCenter");
  usize=gl.getUniformLocation(program,"uSize");
  uview=gl.getUniformLocation(program,"uView");
+  uzoom=gl.getUniformLocation(program,"uZoom");
  unight=gl.getUniformLocation(program,"uNight");ualpha=gl.getUniformLocation(program,"uAlpha");
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
 }
@@ -323,6 +325,7 @@ function render(o){
   gl.uniform2f(ucenter,cam.x+vw/2,cam.y+vh/2);
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
+   gl.uniform1f(uzoom,clamp(o.cameraZoom||1,.7,1.5));
   gl.uniform1f(unight,night);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
   const bindAttributes=(buf)=>{
    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
