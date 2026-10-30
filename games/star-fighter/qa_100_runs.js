@@ -1545,10 +1545,15 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   const previousBest=G.best,previousBestStorage=storageData.get('star_fighter_best');
   const medalsBefore=JSON.stringify(q.readMedals());
   ev('titleReturnBtn','click');ok(G.mode==='title','back to title for hidden unlock');
-  for(let n=0;n<6;n++)ev('debugTrigger','click');
+  for(let n=0;n<6;n++){
+   ev('debugTrigger','click');
+   ok(el('debugUnlockHint').hidden===false,'secret progress visible after tap '+(n+1));
+   ok(el('debugUnlockHint').textContent==='SECRET '+(n+1)+'/7','secret progress shows exact count '+(n+1));
+  }
   ok(el('debugPanel').hidden!==false,'secret not unlocked after six taps');
   ev('debugTrigger','click');
   ok(el('debugPanel').hidden===false,'seventh title tap unlocks hidden debug');
+  ok(el('debugUnlockHint').hidden===true,'unlock progress disappears once menu opens');
   el('debugStage').value='7';el('debugRoute').value='1';
   ev('debugLaunch','click');
   ok(G.mode==='playing'&&G.debugMode&&G.stage===7&&G.routeRisk===1,'hidden launch enters final sector storm branch');
