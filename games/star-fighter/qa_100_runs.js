@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -1588,6 +1588,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(boss.hp===hp,'direct high-damage hit cannot lower boss health');
   G.pulses=3;q.pulse();
   ok(boss.hp===hp,'NOVA cannot lower debug boss health');
+  G.levels[3]=1;G.passives[4]=1;
+  q.applyShotSynergy({kind:'missile',x:boss.x-53,y:boss.y},{x:0,y:0});
+  ok(boss.hp===hp,'missile splash cannot lower debug boss health');
+  boss.x=930;boss.y=337;boss.fire=999;
+  G.shots=[{x:boss.x-53,y:boss.y,px:0,py:0,vx:0,vy:0,life:1,dmg:999999,pierce:1,kind:'shot'}];
+  q.update(.016);
+  ok(G.boss===boss&&boss.hp===hp,'real projectile collision cannot damage practice boss');
   G.player.invul=0;G.player.shield=0;G.player.hp=1;G.lives=1;q.hitPlayer(99999);
   ok(G.player.hp===1&&G.lives===1,'pilot is also immortal in boss-only debug');
   boss.hp=-1;q.update(.016);
@@ -1608,12 +1615,24 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
     ok(G.mode==='playing'&&G.boss?.name===b.name&&G.stage===b.stage,'boss variant selected: '+b.name);
     ok(G.enemies.length===0&&G.terrain===null,'no standard stage enemies for '+b.name);
   }
+  const lastBoss=G.boss;
+  ok(lastBoss?.name==='SINGULARITY EMPEROR','final phase test selects S8 storm boss');
+  lastBoss.fire=999;lastBoss.t=18;q.update(.016);
+  ok(lastBoss.phase===1&&lastBoss.hp===lastBoss.maxHp,'final boss reaches phase 2 without HP loss');
+  lastBoss.fire=999;lastBoss.t=36;q.update(.016);
+  ok(lastBoss.phase===2&&lastBoss.hp===lastBoss.maxHp,'final boss reaches phase 3 without HP loss');
+  lastBoss.fire=999;lastBoss.t=60.1;q.update(.016);
+  ok(lastBoss.phase===0&&lastBoss.hp===lastBoss.maxHp,'final boss returns to first phase for unlimited practice');
+  ok(G.mode==='playing'&&G.boss===lastBoss,'all phases remain one continuous duel');
   ev('titleReturnBtn','click');
   el('debugPlayMode').value='stage';ev('debugPlayMode','change');
   ok(!el('debugStageControls').hidden&&el('debugBossControls').hidden,'normal stage debug remains selectable');
   el('debugStage').value='7';el('debugRoute').value='1';
   ev('debugLaunch','click');
   ok(G.mode==='playing'&&G.debugMode&&G.stage===7&&G.routeRisk===1,'hidden launch enters final sector storm branch');
+  ok(!G.debugBossOnly&&!q.invulnerablePracticeBoss(),'normal debug stage does not grant boss invincibility');
+  const campaignDummy={hp:500,maxHp:500};q.damageBoss(campaignDummy,70);
+  ok(campaignDummy.hp===430,'standard stage and campaign bosses still take damage');
   ok(G.routeHistory.length===7&&G.routeHistory[6].risk===1,'final boss route history valid');
   ok(el('debugStatus').hidden===false,'only debug displays invincibility indicator');
   G.player.invul=0;G.player.shield=0;G.player.hp=1;G.lives=1;
