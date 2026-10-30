@@ -39,7 +39,7 @@
   }catch(_){return {v:1,stats:Object.fromEntries(GROUPS.map(g=>[g.key,0])),unlocked:[]}}
  }
  const state=read(),earned=new Set(state.unlocked);
- let active=false,debug=false,elapsed=0,dirty=false,lastSave=0,lastScore=0,lastGraze=0,hitsStage=0,hitsRun=0,pendingFlight=0;
+ let active=false,debug=false,elapsed=0,dirty=false,lastSave=0,lastScore=0,lastGraze=0,hitsStage=0,hitsRun=0,pendingFlight=0,perfectEligible=false;
  const displayNum=n=>Math.floor(n).toLocaleString('ja-JP');
  const progressFor=t=>Math.min(100,Math.floor(100*state.stats[t.group]/t.goal));
  function refreshCounter(){
@@ -72,7 +72,7 @@
   const before=earned.size;evaluate(metric);if(earned.size!==before)write();
  }
  function begin(isDebug=false,resume=false){
-  active=true;debug=!!isDebug;hitsStage=0;hitsRun=0;lastScore=0;lastGraze=0;pendingFlight=0;
+  active=true;debug=!!isDebug;perfectEligible=!isDebug&&!resume;hitsStage=0;hitsRun=0;lastScore=0;lastGraze=0;pendingFlight=0;
   if(!debug&&!resume)add('sorties',1);
  }
  function setDebug(value){if(value)write();debug=!!value}
@@ -109,7 +109,7 @@
   if(!active)return;
   if(!debug){
    observe(0,snapshot,true);
-   if(won){add('wins',1);if(hitsRun===0)add('perfectRuns',1)}
+   if(won){add('wins',1);if(perfectEligible&&hitsRun===0)add('perfectRuns',1)}
   }
   active=false;write();
  }
