@@ -2,7 +2,7 @@
  * Run from games/star-fighter/: node qa_100_runs.js
  * Deterministic headless tests; not a replacement for physical-device QA. */
 'use strict';
-function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
+function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,readmeSource){
  const assert=(condition,message)=>{if(!condition)throw Error(message)};
  const elements=new Map();
  function el(id){
@@ -68,7 +68,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=portrait-overlay-20261030-2'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=final-qa-20261030-3'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -88,7 +88,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=portrait-overlay-20261030-2'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=final-qa-20261030-3'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -116,10 +116,15 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
    ok(htmlSource.includes('同じ配置で再出撃')&&cssSource.includes('/* 31/36: concise onboarding'),'explicit replay and mobile help styling');
   }
   ok(el('quickHelp').open===false,'help starts collapsed');
+  ok(el('overlay').inert===true,'gameplay overlay is inert');
+  el('overlay').scrollTop=440;el('overlay .overlay-inner').scrollTop=210;
   ev('helpBtn','click');
+  ok(el('overlay').scrollTop===0&&el('overlay .overlay-inner').scrollTop===0,'pause overlay resets scroll position');
+  ok(el('overlay').inert===false,'pause overlay is interactive');
   ok(G.mode==='paused'&&el('quickHelp').open===true,'in-game help pauses and opens real instructions');
   ev('helpBtn','click');ok(el('quickHelp').open===false,'pause help toggles closed');
   ev('startBtn','click');ok(G.mode==='playing','help pause resumes without restarting');
+  ok(el('overlay').inert===true,'resumed gameplay makes overlay inert');
   // 28/36: shape, outline and luminance cues must not depend on hue.
  const projectileCases=[
   [{x:210,y:150,vx:-290,vy:0,size:5,damage:1,color:'#ff8d61'},'orb'],
@@ -1513,6 +1518,15 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(full.sectors===128&&full.bosses===128&&full.routeDecisions===112&&full.rewards===112&&full.clears===16,'35 full-run coverage');
   stats.fullRun35=full;
  }
+  // 36/36 final QA: documentation and release label match current features.
+ if(readmeSource){
+  ok(readmeSource.includes('35/36')&&readmeSource.includes('v1.0完成判定は保留'),'README marks hardware QA as pending');
+  ok(readmeSource.includes('ロゴを合計7回タップ')&&readmeSource.includes('時間制限はありません'),'README documents debug');
+  ok(readmeSource.includes('拾っただけでは強化されません')&&readmeSource.includes('メーターは表示専用'),'README documents auto meter and manual activation');
+  ok(readmeSource.includes('ボス撃破後もゲームは停止しません')&&readmeSource.includes('15種類の大型ボス'),'README documents continuous eight-stage combat');
+  ok(readmeSource.includes('実機のFPS、入力遅延')&&readmeSource.includes('node qa_100_runs.js'),'README separates simulated and real-device QA');
+ }
+ if(htmlSource)ok(htmlSource.includes('ORIGINAL BROWSER SHOOTER · PREVIEW / QA'),'release label does not claim unverified v1.0');
   // Screenshot regression: portrait overlay is viewport scrollable, not canvas clipped.
  if(htmlSource&&cssSource){
   ok(htmlSource.includes('id="debugUnlockHint"')&&htmlSource.includes('id="debugTrigger"'),'discoverable secret logo progress marker');
@@ -1544,7 +1558,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   const saved=storageData.get('star_fighter_checkpoint_v1');
   const previousBest=G.best,previousBestStorage=storageData.get('star_fighter_best');
   const medalsBefore=JSON.stringify(q.readMedals());
+  el('overlay').scrollTop=620;el('overlay .overlay-inner').scrollTop=320;
   ev('titleReturnBtn','click');ok(G.mode==='title','back to title for hidden unlock');
+  ok(el('overlay').scrollTop===0&&el('overlay .overlay-inner').scrollTop===0,'returning to title starts at top');
+  ok(el('overlay').inert===false,'title overlay remains interactive');
   for(let n=0;n<6;n++){
    ev('debugTrigger','click');
    ok(el('debugUnlockHint').hidden===false,'secret progress visible after tap '+(n+1));
@@ -1646,7 +1663,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
 if(typeof module!=='undefined'&&require.main===module){
  const fs=require('node:fs');
  try{
-  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'));
+  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'),fs.readFileSync(__dirname+'/README.md','utf8'));
   process.stdout.write(JSON.stringify(result,null,2)+'\n');
  }catch(e){process.stderr.write('FAIL '+(e.stack||e)+'\n');process.exitCode=1}
 }
