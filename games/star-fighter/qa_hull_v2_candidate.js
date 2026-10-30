@@ -1316,9 +1316,9 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(JSON.stringify(G.particles)===signature,'visual fragments deterministic and gameplay RNG independent');
  G.particles=[];q.wreckFragments({type:'scout',x:400,y:250,phase:0});
  ok(G.particles.length===5,'small enemies have restrained destruction');
- G.particles=[];G.player.invul=0;G.player.hp=2;G.player.shield=0;
- q.hitPlayer(1);
- ok(G.player.hp===1&&G.player.hitFlash>.1,'ship hull hit has visible flash without extra damage');
+ G.particles=[];G.player.invul=0;G.player.hp=78;G.player.shield=0;
+ const hullDamage=q.actualHullDamage(1);q.hitPlayer(1);
+ ok(G.player.hp===78-hullDamage&&G.player.hitFlash>.1,'damage flash and stage-scaled hull impact');
  q.drawShip(G.player.x,G.player.y,G.player.angle,G.player.invul);
  G.player.invul=999;const moveY=G.player.y;
  const keyDown=(window.handlers?.keydown||[])[0],keyUp=(window.handlers?.keyup||[])[0];
