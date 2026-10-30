@@ -225,7 +225,7 @@ function resolveAttack(){
   const reach=P.type==="wolf"?55:P.type==="cat"?39:51;
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
   // Claws cannot pass through solid buildings, even at a diagonal corner.
-  if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&!lineBlocked(P,m)){
+  if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1)*(dive?1.4:1);
@@ -297,6 +297,7 @@ function sense(){
 }
 function eat(){
  if(mode!=="play")return;
+ if((P.groundZ||0)>20){notify("屋上からは地上の食べ物に届かない");return;}
  let c=null,near=65;
  for(const f of carcasses){const d=dist(P,f);if(d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食べ物が近くにない");return}
@@ -477,7 +478,7 @@ function update(dt){
   const speed=Math.hypot(P.vx,P.vy);
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
-  P.hidden=P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
+  P.hidden=(P.groundZ||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" ")||attackTouch)&&P.atk<=0)attack();
  
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);
@@ -539,7 +540,7 @@ function update(dt){
      }else{
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
-      if(m.stun<=0&&P.inv<=0&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
+      if(m.stun<=0&&P.inv<=0&&(P.groundZ||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
        const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
        P.hp-=damage;P.inv=.55;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
@@ -559,7 +560,7 @@ function update(dt){
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
     const t=denom>0?clamp(((P.x-ox)*ddx+(P.y-oy)*ddy)/denom,0,1):0;
-    if(!m.chargeHit&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
+    if(!m.chargeHit&&(P.groundZ||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
       const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
@@ -826,9 +827,13 @@ function drawCreature(o,isPlayer){
   ctx.closePath();ctx.fill();
  };
  ctx.save();ctx.translate(o.x,o.y);
+ // Offset height straight up on screen; do not displace player sideways.
+ const lift2D=z=>ctx.translate(VIEW.c*z*.93/VIEW_DET,-VIEW.a*z*.93/VIEW_DET);
+ const floorZ=isPlayer?(P.groundZ||0):0;
+ if(floorZ>0)lift2D(floorZ);
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
  oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
- if(isPlayer&&P.jumpHeight>0)ctx.translate(0,-P.jumpHeight/VIEW.d);
+ if(isPlayer&&P.jumpHeight>floorZ)lift2D(P.jumpHeight-floorZ);
  if(isPlayer&&P.hidden)ctx.globalAlpha=.44;
  ctx.rotate(o.dir||0);
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.085:t==="cat"?Math.abs(Math.sin(gait*1.46))*.028:t==="wolf"?Math.abs(Math.sin(gait*.62))*.017:Math.abs(Math.sin(gait*.9))*.045;
@@ -1227,12 +1232,13 @@ function drawScene(){
  if(use3D&&P){
   // Keep the player distinguishable from wildlife even with physically occluding 3D meshes.
   const pos=project(P.x,P.y);ctx.save();
+  const ringY=pos.y-(P.groundZ||0)*.93,headY=pos.y-(P.jumpHeight||0)*.93;
   ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
-  ctx.beginPath();ctx.ellipse(pos.x,pos.y+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(pos.x,ringY+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
   ctx.textAlign="center";ctx.font="900 11px sans-serif";ctx.lineWidth=3;
   if(!P.hidden){
-   ctx.strokeStyle="#102222";ctx.strokeText("YOU",pos.x,pos.y-52);
-   ctx.fillStyle="#e7f7e4";ctx.fillText("YOU",pos.x,pos.y-52);
+   ctx.strokeStyle="#102222";ctx.strokeText("YOU",pos.x,headY-52);
+   ctx.fillStyle="#e7f7e4";ctx.fillText("YOU",pos.x,headY-52);
   }
   ctx.restore();
  }
