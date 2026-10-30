@@ -30,7 +30,7 @@ function getCombatPersona(c,profile){
    feint:(quirks>>>4)%11===0,signature:quirks};
 }
 function voiceFusion(c){
- const list=Array.isArray(c?.evolutionVoices)?c.evolutionVoices.slice(0,3):[];
+ const list=Array.isArray(c?.evolutionVoices)?c.evolutionVoices.slice(0,9):[];
  const kinds=['リズム','響き','安定','変化'];const counts=kinds.map(name=>list.filter(v=>v?.focus===name).length);
  return {extra:list.length,rhythm:counts[0],echo:counts[1],steady:counts[2],change:counts[3],unique:counts.filter(Boolean).length};
 }
@@ -62,7 +62,7 @@ function simulate(a,b,options={}){
  const fighters=[a,b],profiles=options.profiles||fighters.map(c=>({style:styleFor(c),mutation:{tier:0},potential:50}));
  const personas=fighters.map((c,i)=>getCombatPersona(c,profiles[i]));
  const evo=fighters.map(evolutionCombatBonus);
- const max=fighters.map((c,i)=>Math.round((132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7)*(1+evo[i].hp/100)));
+ const max=fighters.map((c,i)=>{const tier=i===1?c?.stageBoss?.tier:'';const factor=tier==='final'?1.85:tier==='boss'?1.48:tier==='mid'?1.24:1;return Math.round((132+(c.stats?.[1]||50)*.92+(profiles[i].mutation?.tier||0)*7)*(1+evo[i].hp/100)*factor);});
  const hp=max.slice(),events=[],rng=rand((options.seed===undefined?Date.now():options.seed)>>>0),energy=[0,0],awaken=[false,false],momentum=[0,0];
  const stage=Number(options.stage||b?.stage||1),traits=fighters.map(c=>Array.isArray(c?.audioDNA?.traits)?c.audioDNA.traits:[]);
  const fused=fighters.map(voiceFusion);
@@ -104,7 +104,8 @@ function simulate(a,b,options={}){
   }
   // Modest stat spread, capped elemental edge, small rarity-independent growth, and low single-hit spike.
   const base=8+aa[0]*.123+aa[4]*.057-bb[1]*.067+(rng()-.5)*5;
-  const raw=base*(P.style===0?1.24:1)*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
+  const bossPressure=atk===1?(A?.stageBoss?.tier==='final'?1.17:A?.stageBoss?.tier==='boss'?1.12:A?.stageBoss?.tier==='mid'?1.06:1):1;
+  const raw=base*bossPressure*(P.style===0?1.24:1)*(hits>1?1+.11*(hits-1):1)*(crit?1.3:1)*(skill?1.53:1)
      *(awaken[atk]?1.12:1)*(skill?1+resonance.echo*.024:1)*clamp(edge(A,B),.89,1.11)
      *(1+Math.min(4,ps.mutation?.tier||0)*.0175)
      *(1+evo[atk].attack/100)
