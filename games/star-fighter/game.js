@@ -179,8 +179,62 @@ function startBossMove(b){
   label:move.label,type:move.type,index:b.pattern%4,elapsed:0,warning:.72,
   duration:move.type==='guard'?1.7:move.type==='beam'?1:.68,
   targetY:cl(p.y,112,H-112),warpY:cl(p.y+(b.pattern%2?84:-84),152,H-152),
-  started:false,active:false,color:G.stage>=6?'#d6aaff':G.stage===4?'#a9eaff':G.stage===3?'#ffce92':'#b4ffea'
+  started:false,active:false,pulses:0,color:G.stage>=6?'#d6aaff':G.stage===4?'#a9eaff':G.stage===3?'#ffce92':'#b4ffea'
  };
+}
+
+/* 17 individual boss salvos. Warning locks the target; bullets arrive
+   in successive beats, with distinct launch points, curves and safe gaps. */
+function bossSignatureVolley(b,m,beat){
+ const x=b.x-154,y=b.y,goal=m.targetY,side=beat%2?1:-1;
+ const fire=(xx,yy,a,speed=205,size=4.7,curve=0)=>{
+  const n=G.bullets.length;
+  bullet(xx,yy,a,speed+(b.phase?16:0),size,m.color);
+  if(curve&&G.bullets.length>n)G.bullets[G.bullets.length-1].curve=curve;
+ };
+ const at=(xx,yy)=>Math.atan2(goal-yy,p.x-xx),left=Math.PI;
+ switch(b.name){
+ case 'BATTLE CRUISER':
+  for(const h of [-82,82])for(let k=0;k<2;k++)fire(x-25,y+h,at(x-25,y+h)+side*k*.15,219+k*22);break;
+ case 'KRAKEN ENGINE':
+  for(let i=0;i<5;i++)fire(x-76,y+(i-2)*46,left+(i-2)*.15+side*.09,189+i*10,4.5,(i-2)*.27);break;
+ case 'FORTRESS CORE':
+  for(let i=0;i<7;i++)if(i!==3&&i!==1+beat%2)fire(x-42,110+i*73,left+(i%2?.055:-.055),210,5);break;
+ case 'ABYSS TITAN':
+  for(let i=0;i<8;i++)if(i!==beat%8&&i!==(beat+1)%8){
+   const a=i*TAU/8+beat*.23;fire(x+Math.cos(a)*56,y+Math.sin(a)*60,a+Math.PI*.32,186,4.4,side*.24)}break;
+ case 'IRON TYRANT':
+  for(const k of [-1,0,1])fire(x-78,y-70,at(x-78,y-70)+k*.18,252,5.3);
+  fire(x+28,y+107,left-side*.36,200,7);break;
+ case 'MOLTEN CRAB':
+  for(const h of [-118,118])for(let k=0;k<2;k++)fire(x-64,y+h,at(x-64,y+h)+Math.sign(h)*(k?.23:.07),211,5.2);break;
+ case 'SCORPION DREAD':
+  for(const k of [-1,0,1])fire(x-95,y-128,at(x-95,y-128)+k*(beat?.11:.24),274,6);break;
+ case 'SOLAR WYRM':
+  for(let i=0;i<4;i++)fire(x-i*18,102+((i+beat*2)%8)*70,left+side*.09,223+i*9,5);break;
+ case 'TURTLE BULWARK':
+  for(const h of [-105,105])for(const off of [-.2,.2])fire(x-49,y+h,at(x-49,y+h)+off,190,5.5);break;
+ case 'FROST MAMMOTH':
+  for(const h of [-68,68])for(let i=0;i<3;i++)fire(x-94,y+h,left+Math.sign(h)*(.08+i*.14),175+i*18,5.5);break;
+ case 'GLACIAL LEVIATHAN':
+  for(let i=0;i<5;i++)fire(x-35,y+(i-2)*53,left+side*.07*(i-2),211+Math.abs(i-2)*13,4.5,side*.19);break;
+ case 'RELIC CENTIPEDE':
+  for(let i=0;i<5;i++){const xx=x+34*i,yy=y+(i%2?1:-1)*(25+i*14);
+   fire(xx,yy,at(xx,yy)+(i-2)*side*.12,201+i*8)}break;
+ case 'OBSIDIAN WARDEN':
+  for(let i=0;i<4;i++){const yy=y+(i-1.5)*83;fire(x-44,yy,at(x-44,yy)+(i%2?-.2:.2)*side,212,5.1)}break;
+ case 'AETHER JELLYFISH':
+  for(let i=0;i<5;i++)fire(x-83,y+(i-2)*39,left+(i-2)*.10,164+i*15,4.2,side*(i-2)*.29);break;
+ case 'RIFT MEDUSA':
+  for(const h of [goal,H-goal])for(const k of [-1,1]){
+   const yy=cl(h,98,H-98);fire(x-39,yy,at(x-39,yy)+k*.18,218,5,side*.14)}break;
+ case 'HORIZON ARK':
+  for(let i=0;i<4;i++){const a=i*TAU/4+beat*.24,xx=x+Math.cos(a)*81,yy=y+Math.sin(a)*94;
+   fire(xx,yy,at(xx,yy)+(i-1.5)*.1,219,5)}break;
+ case 'SINGULARITY EMPEROR':
+  for(let i=0;i<6;i++)if(i!==beat%6){const a=i*TAU/6+beat*.35;
+   fire(x+Math.cos(a)*75,y+Math.sin(a)*77,a+left*.45,176,5,(i%2?1:-1)*.36)}break;
+ }
 }
 function bossMoveStep(b,dt){
  const s=b.specialMove;if(!s)return;
@@ -225,17 +279,23 @@ function bossMoveStep(b,dt){
    b.charge=Math.max(.8,b.charge||0);b.beamY=s.targetY;
   }
  }
+ if(s.active){
+  const count=b.phase>0?3:2,progress=(s.elapsed-s.warning)/s.duration;
+  while(s.pulses<count&&progress>=s.pulses/count){
+   bossSignatureVolley(b,s,s.pulses);s.pulses++;
+  }
+ }
  if(s.type==='warp'&&s.active)b.y+=(s.warpY-b.y)*Math.min(1,dt*7);
  if(s.type==='charge'&&s.active)b.x=Math.max(745,b.x-195*dt);
  if(s.type==='vortex'&&s.active)for(const shot of G.bullets){
   const vx=b.x-100-shot.x,vy=b.y-shot.y,r=Math.hypot(vx,vy)||1;
-  if(r<260){shot.vx+=vx/r*dt*14;shot.vy+=vy/r*dt*14}
+  if(r<260){shot.vx+=vx/r*dt*170;shot.vy+=vy/r*dt*170}
  }
  if(s.active){
   // Collision is measured against the SAME articulated geometry as drawBossSpecial.
   // A neck, arm or claw cannot hit until it has actually reached the ship.
   const t=cl((s.elapsed-s.warning)/s.duration,0,1);
-  const x=b.x-105,fx=145+(1-t)*75;
+  const x=b.x-105,fx=x-90-(x-90-170)*Math.sin(Math.PI*t);
   const nearSegment=(ax,ay,bx,by,px,py,r)=>{
    const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy||1;
    const u=cl(((px-ax)*dx+(py-ay)*dy)/len,0,1);
@@ -270,7 +330,7 @@ function drawBossSpecial(b){
  const s=b?.specialMove;if(!s)return;
  const active=s.active,warn=s.elapsed<s.warning,
   fraction=cl((s.elapsed-s.warning)/s.duration,0,1),col=s.color;
- const x=b.x-105,y=b.y,endX=warn?x-90:145+(1-fraction)*75;
+ const x=b.x-105,y=b.y,endX=warn?x-90:x-90-(x-90-170)*Math.sin(Math.PI*fraction);
  c.save();c.globalAlpha=warn?.47+.2*Math.sin(G.time*16):active?.96:.18;
  if(['tentacle','extend','neck','whip','coil'].includes(s.type)){
   const targetY=s.type==='whip'||s.type==='coil'?s.targetY+Math.sin(s.elapsed*10)*40:s.targetY;
@@ -1923,7 +1983,8 @@ if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
  s.pierce--;if(s.pierce<=0)gone=true
 }
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
-for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt*(terrainApproaching()?2.2:1);if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
+for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;if(a.curve){const q=a.curve*dt,co=Math.cos(q),si=Math.sin(q),vx=a.vx;
+ a.vx=vx*co-a.vy*si;a.vy=vx*si+a.vy*co;}a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt*(terrainApproaching()?2.2:1);if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
 for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='elite'){G.pulses=Math.min(5,G.pulses+1);showToast('RARE · NOVA +1')}else if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{advancePowerMeter(1);TROPHIES.event('capsules',1);showToast('POWER '+G.energy+'/6')}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
 for(let i=G.particles.length-1;i>=0;i--){const q=G.particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(.12,dt);q.vy*=Math.pow(.16,dt);if(q.kind==='shard')q.rot+=q.spin*dt;if(q.life<=0)G.particles.splice(i,1)}if(G.particles.length>620)G.particles.splice(0,G.particles.length-620);
 for(let i=G.rings.length-1;i>=0;i--){const r=G.rings[i];r.t+=dt;r.r=r.max*(r.t/r.life);if(r.t>=r.life)G.rings.splice(i,1)}
