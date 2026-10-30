@@ -25,6 +25,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),
 const VIEW={a:.94,b:.20,c:-.28,d:.68},VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
+function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
@@ -979,18 +980,18 @@ function drawScene(){
  for(const e of entities)covers.set(e,[]);
  for(const p of plants){
   if(!visible(p.x,p.y,p.r))continue;
-  let depth=p.y+p.r*.12;
+  let depth=screenDepth(p.x,p.y+p.r*.12);
   if(p.type===2)for(const e of entities)if(Math.hypot(e.x-p.x,e.y-p.y)<p.r*.82){
    covers.get(e).push(p);
-   depth=Math.min(depth,e.y-.1);
+   depth=Math.min(depth,screenDepth(e.x,e.y)-.1);
   }
   layers.push({depth,kind:0,o:p});
  }
  for(const b of buildings)if(visible(b.x+b.w/2,b.y+b.h/2,Math.max(b.w,b.h)+140))
-  layers.push({depth:b.y+b.h,kind:1,o:b});
- for(const c of carcasses)if(visible(c.x,c.y,40))layers.push({depth:c.y,kind:2,o:c});
- for(const lamp of lamps)if(visible(lamp.x,lamp.y,35))layers.push({depth:lamp.y,kind:3,o:lamp});
- for(const e of entities)layers.push({depth:e.y,kind:4,o:e});
+  layers.push({depth:screenDepth(b.x+b.w/2,b.y+b.h),kind:1,o:b});
+ for(const c of carcasses)if(visible(c.x,c.y,40))layers.push({depth:screenDepth(c.x,c.y),kind:2,o:c});
+ for(const lamp of lamps)if(visible(lamp.x,lamp.y,35))layers.push({depth:screenDepth(lamp.x,lamp.y),kind:3,o:lamp});
+ for(const e of entities)layers.push({depth:screenDepth(e.x,e.y),kind:4,o:e});
  layers.sort((a,b)=>a.depth-b.depth||a.kind-b.kind);
  for(const layer of layers){
   const o=layer.o;
