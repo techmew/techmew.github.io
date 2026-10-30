@@ -22,6 +22,7 @@ const species={
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
+const activeTouchPointers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
@@ -1312,6 +1313,11 @@ window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="paus
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
 function resetControls(){
  keys.clear();attackTouch=false;joy.id=null;joy.x=0;joy.y=0;
+ // A released first finger must not leave a second held action stuck after pause/map.
+ for(const [id,pointers] of activeTouchPointers){
+  for(const pointerId of [...pointers]){try{$(id).releasePointerCapture?.(pointerId)}catch(_){}}
+  pointers.clear();
+ }
   // Map, pause and restart must discard captured orbit/pinch pointers.
   for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
   orbitPointers.clear();lastPinchDistance=0;
@@ -1347,8 +1353,17 @@ stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
 for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["jump-touch","jump"],["eat-touch","eat"],["instinct-touch","instinct"]]){
- const b=$(id);b.addEventListener("pointerdown",e=>{if(mode!=="play")return;e.preventDefault();b.classList.add("down");b.setPointerCapture(e.pointerId);if(action==="attack")attackTouch=true;act(action)});
- const end=()=>{b.classList.remove("down");if(action==="attack")attackTouch=false};
+ const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
+ b.addEventListener("pointerdown",e=>{
+  if(mode!=="play"||pointers.has(e.pointerId))return;
+  e.preventDefault();pointers.add(e.pointerId);b.classList.add("down");b.setPointerCapture(e.pointerId);
+  if(action==="attack")attackTouch=true;
+  if(pointers.size===1)act(action); // One action per press, even with two fingers.
+ });
+ const end=e=>{
+  if(!pointers.delete(e.pointerId))return;
+  if(pointers.size===0){b.classList.remove("down");if(action==="attack")attackTouch=false;}
+ };
  b.addEventListener("pointerup",end);b.addEventListener("pointercancel",end);b.addEventListener("lostpointercapture",end);
 }
 // Drag the empty world to orbit; two fingers on the world adjust zoom.
