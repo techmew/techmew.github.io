@@ -1,7 +1,7 @@
 (() => {
 "use strict";
 const $ = id => document.getElementById(id);
-const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:false});
+const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 const mini=$("minimap"),mc=mini.getContext("2d");
 const TWO=Math.PI*2, WORLD={w:4200,h:2400};
 const animals={
@@ -545,7 +545,13 @@ function syncHUD(hour){
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
  const goal=getObjective(),guide=$("mission-guide");
  const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"狐眼":P.type==="cat"?"俊足":"咆哮";
- if(guide)guide.textContent=goal?"▲ "+goal.label+" · 残り"+Math.round(dist(P,goal))+(guidancePoint(goal)?.blocked?" / 経路再探索":guidancePoint(goal)?.detour?" / 迂回":""):"▲ 周囲を探索中";
+ if(guide){
+  const next=goal?guidancePoint(goal):null;
+  const p=next?project(P.x,P.y):null,q=next?project(next.x,next.y):null;
+  const angles=["→","↘","↓","↙","←","↖","↑","↗"];
+  const dir=next?angles[((Math.round(Math.atan2(q.y-p.y,q.x-p.x)/(Math.PI/4))%8)+8)%8]:"◎";
+  guide.textContent=goal?dir+" "+goal.label+" · 残り"+Math.round(dist(P,goal))+(next?.detour?" / 曲がり角":""):"◎ 周囲を探索中";
+ }
  $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -560,7 +566,7 @@ function drawMini(){
  for(const y of roadsY){mc.beginPath();mc.moveTo(0,y/WORLD.h*h);mc.lineTo(w,y/WORLD.h*h);mc.stroke()}
  mc.fillStyle="#3d5051";for(const b of buildings)mc.fillRect(b.x/WORLD.w*w,b.y/WORLD.h*h,b.w/WORLD.w*w,b.h/WORLD.h*h);
  for(const m of mobs){if(dist(P,m)>650&&P.senseTime<=0)continue;mc.fillStyle=species[m.type].prey?"#c4d1ab":"#f39c74";mc.fillRect(m.x/WORLD.w*w-1,m.y/WORLD.h*h-1,2.5,2.5)}
- const obj=getObjective();if(obj){const tx=obj.x/WORLD.w*w,ty=obj.y/WORLD.h*h;mc.fillStyle="#ffda82";mc.beginPath();mc.moveTo(tx,ty-5);mc.lineTo(tx-4,ty+3);mc.lineTo(tx+4,ty+3);mc.closePath();mc.fill();}
+ const obj=getObjective();if(obj){const tx=obj.x/WORLD.w*w,ty=obj.y/WORLD.h*h;mc.strokeStyle="#ffda82";mc.lineWidth=1.7;mc.beginPath();mc.arc(tx,ty,4,0,TWO);mc.stroke();mc.fillStyle="#ffda82";mc.beginPath();mc.arc(tx,ty,1.5,0,TWO);mc.fill();}
  mc.fillStyle="#fff5c4";mc.beginPath();mc.arc(P.x/WORLD.w*w,P.y/WORLD.h*h,3,0,TWO);mc.fill();
  mc.strokeStyle="#a3e7c5";mc.lineWidth=.8;mc.beginPath();
   [[0,0],[vw,0],[vw,vh],[0,vh]].map(([x,y])=>unproject(x,y)).forEach((p,i)=>i?mc.lineTo(p.x/WORLD.w*w,p.y/WORLD.h*h):mc.moveTo(p.x/WORLD.w*w,p.y/WORLD.h*h));mc.closePath();mc.stroke();
@@ -950,22 +956,31 @@ function safeGuidePosition(x,y){
 function drawGoalGuide(){
  if(!P||mode!=="play")return;
  const goal=getObjective();if(!goal)return;
- const point=guidancePoint(goal),g=project(point.x,point.y),q=project(P.x,P.y);
-  const gx=g.x,gy=g.y,dx=g.x-q.x,dy=g.y-q.y,angle=Math.atan2(dy,dx);
-  const onscreen=gx>70&&gy>110&&gx<vw-70&&gy<vh-108;
-  const px=q.x,py=q.y;
- let x=gx,y=gy;
- if(!onscreen){
-  const ux=Math.cos(angle),uy=Math.sin(angle),maxX=Math.max(70,vw*.5-90),maxY=Math.max(70,vh*.5-120);
-  const radius=Math.min(maxX/Math.max(.01,Math.abs(ux)),maxY/Math.max(.01,Math.abs(uy)));
-  x=clamp(px+ux*radius,70,vw-70);y=clamp(py+uy*radius,110,vh-110);
+ const waypoint=guidancePoint(goal);if(!waypoint)return;
+ const a=project(P.x,P.y),b=project(waypoint.x,waypoint.y);
+ const dx=b.x-a.x,dy=b.y-a.y,angle=Math.atan2(dy,dx),length=Math.hypot(dx,dy);
+ if(!Number.isFinite(length))return;
+ const onscreen=b.x>70&&b.y>110&&b.x<vw-70&&b.y<vh-110;
+ const pathLength=Math.min(length,Math.min(vw,vh)*.33);
+ ctx.save();
+ // The highlighted route points to the actual A* waypoint; never crosses known walls.
+ ctx.lineCap="round";ctx.strokeStyle="#0b161bc7";ctx.lineWidth=10;
+ ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x+Math.cos(angle)*pathLength,a.y+Math.sin(angle)*pathLength);ctx.stroke();
+ ctx.strokeStyle="#ffdb88cc";ctx.lineWidth=4;ctx.setLineDash([12,9]);
+ ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x+Math.cos(angle)*pathLength,a.y+Math.sin(angle)*pathLength);ctx.stroke();ctx.setLineDash([]);
+ if(onscreen){
+  ctx.strokeStyle="#fff4cc";ctx.lineWidth=2.6;ctx.beginPath();ctx.arc(b.x,b.y,14+Math.sin(elapsed*5)*2,0,TWO);ctx.stroke();
+  ctx.fillStyle="#ffd079";ctx.beginPath();ctx.arc(b.x,b.y,4,0,TWO);ctx.fill();
  }
- const safe=safeGuidePosition(x,y);x=safe.x;y=safe.y;
- ctx.save();ctx.translate(x,y);ctx.fillStyle="#102126e8";ctx.strokeStyle="#ffc967";ctx.lineWidth=2;
- ctx.beginPath();ctx.arc(0,0,23,0,TWO);ctx.fill();ctx.stroke();
- ctx.save();ctx.rotate(angle+Math.PI/2);ctx.fillStyle="#ffe2a0";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 27px sans-serif";ctx.fillText("▲",0,-1);ctx.restore();
- ctx.fillStyle="#fff0ce";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 11px sans-serif";ctx.shadowColor="#000";ctx.shadowBlur=8;
- ctx.fillText((point.blocked?"経路再探索":point.detour?"迂回 ▲ ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
+ const distPx=onscreen?Math.min(length*.6,115):Math.min(170,Math.max(70,vw*.38));
+ const aim=safeGuidePosition(a.x+Math.cos(angle)*distPx,a.y+Math.sin(angle)*distPx);
+ ctx.translate(aim.x,aim.y);ctx.rotate(angle);
+ ctx.shadowColor="#051016";ctx.shadowBlur=12;ctx.fillStyle="#132a2ce8";ctx.strokeStyle="#ffcc79";ctx.lineWidth=2.4;
+ ctx.beginPath();ctx.moveTo(-29,-18);ctx.lineTo(10,-18);ctx.lineTo(32,0);ctx.lineTo(10,18);ctx.lineTo(-29,18);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle="#ffefa9";ctx.beginPath();ctx.moveTo(-22,-5);ctx.lineTo(4,-5);ctx.lineTo(4,-12);ctx.lineTo(22,0);ctx.lineTo(4,12);ctx.lineTo(4,5);ctx.lineTo(-22,5);ctx.closePath();ctx.fill();
+ ctx.rotate(-angle);ctx.shadowBlur=0;ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 12px sans-serif";ctx.fillStyle="#fff3ce";
+ ctx.fillText((waypoint.blocked?"経路探索":waypoint.detour?"曲がり角":"目的地")+" "+Math.round(dist(P,goal)),0,25);
+ ctx.restore();
 }
 function drawIncomingWarning(){
  if(!P||mode!=="play")return;
@@ -1000,8 +1015,13 @@ function drawIncomingWarning(){
 }
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
- ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh);
+ let use3D=false;
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,buildings,plants,mobs,P,elapsed,weather,WORLD,species});
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(use3D)ctx.clearRect(0,0,vw,vh);else{ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh)}
+ const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
  ctx.save();ctx.translate(vw/2,vh/2);ctx.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);ctx.translate(-x-vw/2,-y-vh/2);
+ if(!use3D){
   const farLeft=Math.max(0,Math.floor((x-vw*.7)/180)*180-180),farTop=Math.max(0,Math.floor((y-vh*1.3)/180)*180-180);
  ctx.fillStyle="#1d302a";ctx.fillRect(0,0,1050,WORLD.h);ctx.fillStyle="#25332d";ctx.fillRect(1050,0,1050,WORLD.h);ctx.fillStyle="#24352f";ctx.fillRect(2100,0,1050,WORLD.h);ctx.fillStyle="#203c30";ctx.fillRect(3150,0,1050,WORLD.h);
  for(let xx=farLeft;xx<x+vw*1.8+180;xx+=180)for(let yy=farTop;yy<y+vh*2.3+180;yy+=180){
@@ -1010,7 +1030,6 @@ function drawScene(){
  roadDraw();
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  // Painter's algorithm: building fronts occlude animals behind them, not those in front.
- const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
  const layers=[],covers=new Map();
  for(const e of entities)covers.set(e,[]);
  for(const p of plants){
@@ -1041,6 +1060,8 @@ function drawScene(){
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
+ }
+ if(use3D){for(const c of carcasses)if(visible(c.x,c.y,35))drawItem(c)}
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
   const symbol=species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
@@ -1092,9 +1113,9 @@ function drawScene(){
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
  for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
  const dayCycle=(elapsed%85)/85,sunAmount=(Math.cos((dayCycle-.15)*TWO)+1)/2,nightAlpha=(1-sunAmount)*.47;
- ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);
+ if(!use3D){ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
  if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(229,153,73,.17)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
- if(weather==="FOG"){ctx.fillStyle="rgba(164,176,162,.11)";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
+ if(weather==="FOG"&&!use3D){ctx.fillStyle="rgba(164,176,162,.11)";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
  ctx.restore();
  if(weather==="RAIN"){ctx.strokeStyle="#9dc9cb5c";ctx.lineWidth=1.2;ctx.beginPath();for(const r of rain){const rx=(r.x+elapsed*r.s*.37)%vw,ry=(r.y+elapsed*r.s)%vh;ctx.moveTo(rx,ry);ctx.lineTo(rx-9,ry+r.z)}ctx.stroke()}
  if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
