@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=trophies-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=secret-silent-20261030-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -91,7 +91,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=final-qa-20261030-3'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=secret-silent-20261030-1'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -1532,7 +1532,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  if(htmlSource)ok(htmlSource.includes('ORIGINAL BROWSER SHOOTER · PREVIEW / QA'),'release label does not claim unverified v1.0');
   // Screenshot regression: portrait overlay is viewport scrollable, not canvas clipped.
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('id="debugUnlockHint"')&&htmlSource.includes('id="debugTrigger"'),'discoverable secret logo progress marker');
+  ok(htmlSource.includes('id="debugTrigger"')&&!htmlSource.includes('id="debugUnlockHint"'),'secret logo exists without a visible tap counter');
+   ok(!gameSource.includes('debugHint.textContent'),'secret unlock never writes a tap-count message');
   ok(cssSource.includes('#shell .game-frame>.overlay{')&&cssSource.includes('position:fixed!important'),'portrait overlay escapes 16:9 canvas height');
   ok(cssSource.includes('overflow-y:auto!important')&&cssSource.includes('max-height:none!important'),'portrait title/debug menu remains scrollable');
   ok(cssSource.includes('#shell .game-frame>.overlay .debug-panel')&&cssSource.includes('overflow:visible!important'),'debug panel does not create trapped nested scroller');
@@ -1567,13 +1568,10 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(el('overlay').inert===false,'title overlay remains interactive');
   for(let n=0;n<6;n++){
    ev('debugTrigger','click');
-   ok(el('debugUnlockHint').hidden===false,'secret progress visible after tap '+(n+1));
-   ok(el('debugUnlockHint').textContent==='SECRET '+(n+1)+'/7','secret progress shows exact count '+(n+1));
+   ok(el('debugPanel').hidden!==false,'debug remains hidden silently after tap '+(n+1));
   }
-  ok(el('debugPanel').hidden!==false,'secret not unlocked after six taps');
   ev('debugTrigger','click');
-  ok(el('debugPanel').hidden===false,'seventh title tap unlocks hidden debug');
-  ok(el('debugUnlockHint').hidden===true,'unlock progress disappears once menu opens');
+  ok(el('debugPanel').hidden===false,'seventh title tap unlocks debug without count');
   el('debugStage').value='7';el('debugRoute').value='1';
   ev('debugLaunch','click');
   ok(G.mode==='playing'&&G.debugMode&&G.stage===7&&G.routeRisk===1,'hidden launch enters final sector storm branch');
