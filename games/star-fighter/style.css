@@ -600,3 +600,17 @@ html,body{overscroll-behavior:none}
  #shell .game-frame .upgrade b{font-size:clamp(8px,2.25vw,10px)}
  #shell .game-frame .upgrade .u-key{font-size:clamp(8px,1.9vw,10px)}
 }
+
+/* Gradius-style auto-advancing single power cursor: not six buttons. */
+#shell .game-frame .upgrade{pointer-events:none!important;cursor:default!important}
+#shell .game-frame .upgrade:not(.selected){opacity:.56;border-width:1px!important;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--up),transparent 70%)!important;background:#081625df!important}
+#shell .game-frame .upgrade.ready:not(.maxed)::after{content:none!important}
+#shell .game-frame .upgrade.selected,#shell .game-frame .upgrade.selected.ready:not(.maxed){
+ opacity:1!important;border:3px solid #fff!important;outline:2px solid var(--up);
+ background:linear-gradient(180deg,var(--up),#12344c 86%)!important;
+ box-shadow:0 0 14px var(--up),inset 0 -5px 0 #ffffff99!important;color:#fff!important;z-index:1
+}
+#shell .game-frame .upgrade.selected::after,#shell .game-frame .upgrade.selected.ready:not(.maxed)::after{
+ content:'▶'!important;position:absolute;top:0;right:1px;padding:0 2px;background:#fff;color:#102639;border-radius:2px;font:900 10px/1.15 system-ui,sans-serif
+}
+#shell .game-frame .upgrade.selected.maxed{opacity:.86!important;filter:grayscale(.35)}
