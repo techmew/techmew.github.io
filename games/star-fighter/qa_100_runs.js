@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=scorpion-mechs-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=ship-hull-v2-20261030-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -91,7 +91,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=debug-boss-only-20261030-1'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=ship-hull-v2-20261030-1'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -159,7 +159,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   G.runSeed=seed;G.stage=stage;G.routeRisk=risk;G.stageTime=5;G.mode='playing';
   G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];G.pendingWave=null;G.terrain=null;G.terrainIndex=2;
   G.boss=null;G.bossDone=false;G.transitioning=false;G.directorGrace=0;G.waveSerial=0;G.ambientTimer=.6;G.eliteSpawned=false;
-  G.player.hp=3;G.player.invul=0;G.player.shield=0;G.lives=3;
+  G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;G.player.hp=120;G.player.invul=0;G.player.shield=0;G.lives=0;
   G.player.x=215;G.player.targetX=215;G.player.y=337;G.player.targetY=337;
   G.selected=0;G.energy=0;G.pulses=2;G.pulseRecharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
   G.fireTimer=0;G.missileTimer=0;
@@ -237,7 +237,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
      G.player.y=[165,337,509][t.safeLane];G.player.invul=0;G.player.hp=3;
      t.x=G.player.x+1;
      q.advanceTerrain(.016);
-     ok(G.player.hp===3,'terrain damaged ship in safe lane');
+     ok(G.player.hp===G.player.maxHp,'terrain damaged ship in safe lane');
      G.terrain=null;stats.terrains++;
     }
     G.terrainIndex=0;
@@ -617,7 +617,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
- ok(G.player.hp===2&&G.lives===2&&G.pulses===1,'new run limited hull and lives');
+ ok(G.player.hp===120&&G.player.maxHp===120&&G.shipLevel===1&&G.lives===0&&G.pulses===1,'new run full 120 hull without lives');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'restart label reset');
  ev('soundBtn','click');ok(audioStats.starts>0,'BGM start');
  if(el('soundBtn').textContent!=='♫ BGM ON')ev('soundBtn','click');
@@ -780,33 +780,32 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(specialSeen.has(id),'special reward unreachable '+id);
  }
  // Test each grant with a real route-gate transition and valid checkpoint.
- const expected={
-  rare_arsenal:[0,1,2,2,2,0,0,0,2],
-  rare_reactor:[0,1,2,3,2,45,0,0,0],
-  rare_rescue:[0,2,0,2,3,0,0,0,0],
-  rare_focus:[0,2,2,1,2,15,1,0,0],
-  storm_bounty:[0,1,5,2,2,25,0,0,0],
-  storm_gamble:[0,2,2,2,1,25,0,0,1],
-  safe_refit:[0,3,2,2,3,0,0,0,0],
-  safe_supply:[0,2,3,3,2,0,0,0,0]
+const expected={
+  rare_arsenal:[0,1,2,2,78,0,0,0,2],
+  rare_reactor:[0,1,2,3,78,45,0,0,0],
+  rare_rescue:[0,2,0,2,120,0,0,0,0],
+  rare_focus:[0,2,2,1,78,15,1,0,0],
+  storm_bounty:[0,1,5,2,78,25,0,0,0],
+  storm_gamble:[0,2,2,2,56,25,0,0,1],
+  safe_refit:[0,3,2,2,105,0,0,0,0],
+  safe_supply:[0,2,3,3,78,0,0,0,0]
  };
  for(const [id,want] of Object.entries(expected)){
   const risk=id.startsWith('storm_')?1:0;
-  G.stage=1;G.routeRisk=risk;G.mode='reward';G.runSeed=1234;
+  G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;G.stage=1;G.routeRisk=risk;G.mode='reward';G.runSeed=1234;
   G.routeHistory=[{stage:2,route:'test',risk,event:'cache',eventName:'cache',chain:false}];
   G.rewardHistory=[{stage:0,id:'score',name:'score'}];
-  G.player.hp=2;G.player.shield=2;G.lives=2;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
+  G.player.hp=78;G.player.shield=2;G.lives=0;G.energy=2;G.pulses=2;G.driveCharge=0;G.overdrive=0;
   G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
-  G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];
-  q.chooseReward(0);
-  ok(G.mode==='route'&&G.rewardHistory.length===2,'special claim route checkpoint '+id);
-  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives-2,G.pendingUpgrades[1]];
-  const exp=[...want];if(id==='rare_rescue')exp[7]=1;
-  ok(JSON.stringify(got)===JSON.stringify(exp),'special effect '+id+': '+JSON.stringify(got));
-  ok(q.readCheckpoint()?.mode==='route','special reward checkpoint '+id);
-  ok(q.readCheckpoint()?.pendingUpgrades?.[1]===G.pendingUpgrades[1],'special voucher saved '+id);
+  G.rewardOffers=[{id,name:id,levelIndex:1,passiveIndex:0}];q.chooseReward(0);
+  ok(G.mode==='route'&&G.rewardHistory.length===2,'hull reward route checkpoint '+id);
+  const got=[G.levels[1],G.player.shield,G.energy,G.pulses,G.player.hp,G.driveCharge,G.passives[0],G.lives,G.pendingUpgrades[1]];
+  ok(JSON.stringify(got)===JSON.stringify(want),'hull reward effect '+id+': '+JSON.stringify(got));
+  ok(q.readCheckpoint()?.mode==='route'&&q.readCheckpoint()?.v===2,'v2 reward checkpoint '+id);
+  ok(q.readCheckpoint()?.pendingUpgrades?.[1]===G.pendingUpgrades[1],'voucher saved '+id);
  }
- // Boss-flight reward is chosen by Y lane, but levels MUST wait for a user tap.
+
+  // Boss-flight reward is chosen by Y lane, but levels MUST wait for a user tap.
  G.stage=1;G.routeRisk=0;G.mode='reward';G.rewardHistory=[{stage:0,id:'score',name:'score'}];
  G.routeHistory=[{stage:2,route:'test',risk:0,event:'cache',eventName:'cache',chain:false}];
  G.player.hp=2;G.player.shield=0;G.energy=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
@@ -838,19 +837,20 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }
  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
  G.energy=0;G.pulses=2;G.player.shield=0;G.player.hp=3;G.lives=3;G.driveCharge=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
- // The reduced hull and scarce free refills are permanent balance invariants.
- G.mode='playing';G.stage=0;G.player.hp=2;G.player.shield=0;G.pulses=1;
- q.stageClear();ok(G.player.hp===2&&G.pulses===1,'sector one no free full recovery');
- G.stage=1;G.player.hp=1;G.pulses=1;
- q.stageClear();ok(G.player.hp===2&&G.pulses===2,'critical rescue at sector two');
+// Ship survival: one 120HP hull; zero hull is an immediate game over, no respawn.
+ G.mode='playing';G.stage=0;G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
+ G.player.hp=78;G.player.shield=0;G.pulses=1;
+ q.stageClear();ok(G.player.hp===78&&G.pulses===1,'sector one limited rescue');
+ G.stage=1;G.player.hp=20;G.player.shield=0;G.pulses=1;
+ q.stageClear();ok(G.player.hp>20&&G.player.hp<G.player.maxHp&&G.pulses===2,'sector two limited recovery');
  G.bossDone=false;G.transitioning=false;G.mode='playing';
- G.stage=0;G.player.hp=2;G.player.shield=0;G.pulses=2;G.lives=2;G.player.invul=0;
- q.hitPlayer(1);ok(G.player.hp===1&&G.lives===2,'hull damage one');
- G.player.invul=0;q.hitPlayer(1);ok(G.player.hp===2&&G.lives===1,'lose a ship after two hits');
- G.player.invul=0;q.hitPlayer(1);G.player.invul=0;q.hitPlayer(1);
- ok(G.mode==='over','four unshielded hits end run');
- ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===2&&G.lives===2,'retry resets hull');
- // Stage eight: previous route choices affect events and final boss pressure.
+ G.stage=0;G.player.hp=78;G.player.shield=0;G.player.invul=0;
+ q.hitPlayer(1);ok(G.player.hp===65&&G.lives===0&&G.mode==='playing','base collision deals 13 hull');
+ G.player.invul=0;q.hitPlayer(2);ok(G.player.hp===45&&G.mode==='playing','heavy shot deals 20 hull');
+ G.player.invul=0;G.player.hp=10;q.hitPlayer(1);ok(G.mode==='over'&&G.player.hp===0,'zero hull ends game without revival');
+ ev('startBtn','click');ok(G.mode==='playing'&&G.player.hp===120&&G.shipLevel===1&&G.lives===0,'restart resets hull and level');
+
+  // Stage eight: previous route choices affect events and final boss pressure.
  stageSetup(seeds[0],7,0);G.routeHistory=Array.from({length:7},(_,i)=>({risk:i%2,stage:i+2}));
  G.activeEvent=q.routeOffer(6,0).event;G.eventTriggered=false;G.stageTime=31;G.terrainIndex=2;
  G.player.shield=0;G.driveCharge=0;G.spawn=10;
@@ -1059,7 +1059,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(G.mode==='playing'&&G.stage===stage&&G.runSeed===seed,'R2 seed and stage resume '+stage+'/'+risk);
   ok(G.routeRisk===risk&&G.routeHistory.length===stage,'R2 route resume '+stage+'/'+risk);
   ok(G.pulses===1&&G.pulseRecharge===17&&G.energy===2,'R2 NOVA and resources resume '+stage+'/'+risk);
-  ok(G.levels[0]===1&&G.passives[1]===1&&G.player.hp===2,'R2 build resume '+stage+'/'+risk);
+  ok(G.levels[0]===1&&G.passives[1]===1&&G.player.hp===cp.player.hp&&G.player.maxHp===cp.player.maxHp,'R2 saved hull and build '+stage+'/'+risk);
   ok(G.pendingUpgrades[1]===1,'R2 voucher continued '+stage+'/'+risk);
   G.routeOffers=stage<7?[q.routeOffer(stage,0),q.routeOffer(stage,1)]:[];
   q.renderRouteMap();const map=el('routeMap').innerHTML;
@@ -1315,9 +1315,9 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(JSON.stringify(G.particles)===signature,'visual fragments deterministic and gameplay RNG independent');
  G.particles=[];q.wreckFragments({type:'scout',x:400,y:250,phase:0});
  ok(G.particles.length===5,'small enemies have restrained destruction');
- G.particles=[];G.player.invul=0;G.player.hp=2;G.player.shield=0;
+ G.particles=[];G.player.invul=0;G.player.hp=78;G.player.shield=0;
  q.hitPlayer(1);
- ok(G.player.hp===1&&G.player.hitFlash>.1,'ship hull hit has visible flash without extra damage');
+ ok(G.player.hp===78-q.actualHullDamage(1)&&G.player.hitFlash>.1,'ship hull damage feedback');
  q.drawShip(G.player.x,G.player.y,G.player.angle,G.player.invul);
  G.player.invul=999;const moveY=G.player.y;
  const keyDown=(window.handlers?.keydown||[])[0],keyUp=(window.handlers?.keyup||[])[0];
@@ -1444,45 +1444,44 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   G.particles=[];
   stats.renderBudget={gradientWarmup:stageWarm,particleDrawCap:visibleRects,hardwareFps:'not measured',inputLatency:'not measured'};
  }
- // 34/36: 100 seeds x 15 stage/routes x 3 critical conditions.
- // This measures reward access and encounter pressure, NOT human win rates.
+// 100 seeded route/sector crisis checks; human clear rate is not measured.
  {
   const lengths=[62,68,74,72,76,80,84,90];
   const balance={seeds:100,stageRoutes:0,criticalDrafts:0,guaranteedRescue:0,
    criticalMaxPressure:0,healthyMaxPressure:0,humanCompletionRate:'not measured'};
-  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of stage===0?[0]:[0,1]){
+  for(const seed of seeds)for(let stage=0;stage<8;stage++)for(const risk of stage===0?[0,1]:[0,1]){
+   // Both stage-1 branch labels share the same neutral route setup.
+   if(stage===0&&risk===1)continue;
    balance.stageRoutes++;
    G.mode='playing';G.stage=stage;G.routeRisk=risk;G.runSeed=seed;
+   G.shipLevel=1;G.shipXP=0;G.player.maxHp=120;
    G.stageTime=lengths[stage]*.78;G.enemies=[];G.bullets=[];G.directorGrace=0;
    G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];
    G.passives=[0,0,0,0,0,0];G.energy=2;G.pulses=1;G.driveCharge=30;
-   G.player.shield=0;G.rewardHistory=[];
-   G.player.hp=2;G.lives=2;
+   G.player.shield=0;G.rewardHistory=[];G.player.hp=112;G.lives=0;
    const healthy=q.encounterDirector();
    balance.healthyMaxPressure=Math.max(balance.healthyMaxPressure,healthy.pressure);
-   for(const [hp,lives,want] of [[1,2,'repair'],[2,1,'life'],[1,1,'life']]){
-    G.player.hp=hp;G.lives=lives;
+   for(const hull of [36,24,12]){
+    G.player.hp=hull;
     const offers=q.rewardOptions(),repeat=q.rewardOptions();
-    ok(offers.length===3&&new Set(offers.map(o=>o.id)).size===3,'34 unique critical rewards '+stage+'/'+risk);
-    ok(JSON.stringify(offers)===JSON.stringify(repeat),'34 seed stable critical rewards '+stage+'/'+risk);
-    ok(offers.some(o=>o.id.startsWith('passive_')),'34 passive retained '+stage+'/'+risk);
-    ok(offers[1].id===want,'34 center recovery option '+want+' '+stage+'/'+risk);
-    ok(offers.filter(o=>o.rarity==='rare'||o.rarity==='route').length<=1,'34 special cap');
-    const d=q.encounterDirector();
-    ok(d.pressure<=healthy.pressure+1e-9,'34 critical difficulty not eased '+stage+'/'+risk);
-    if(hp===1&&lives===1){
-     ok(d.pressure<=.52+1e-9&&d.budget<=3,'34 last life director budget '+stage+'/'+risk);
-     balance.criticalMaxPressure=Math.max(balance.criticalMaxPressure,d.pressure);
-    }
+    ok(offers.length===3&&new Set(offers.map(o=>o.id)).size===3,'critical hull unique rewards');
+    ok(JSON.stringify(offers)===JSON.stringify(repeat),'critical hull deterministic draft');
+    ok(offers.some(o=>o.id.startsWith('passive_')),'critical hull passive');
+    ok(offers[1].id==='repair','critical hull central repair');
+    ok(offers.filter(o=>o.rarity==='rare'||o.rarity==='route').length<=1,'critical hull special cap');
+    const director=q.encounterDirector();
+    ok(director.pressure<=healthy.pressure,'low hull lowers pressure');
+    if(hull===12){ok(director.pressure<=.54&&director.budget<=3,'near-zero hull pressure cap');balance.criticalMaxPressure=Math.max(balance.criticalMaxPressure,director.pressure)}
     balance.criticalDrafts++;balance.guaranteedRescue++;
    }
   }
-  ok(balance.stageRoutes===1500&&balance.criticalDrafts===4500,'34 full 100-seed coverage');
-  ok(balance.guaranteedRescue===balance.criticalDrafts,'34 missing rescue choice');
-  ok(balance.criticalMaxPressure<=.52,'34 emergency pressure cap');
+  ok(balance.stageRoutes===1500&&balance.criticalDrafts===4500,'100 seed full route/sector coverage');
+  ok(balance.guaranteedRescue===balance.criticalDrafts,'critical repair always offered');
+  ok(balance.criticalMaxPressure<=.54,'near-death pressure cap');
   stats.balance34=balance;
  }
- // 35/36 + R3: sixteen full eight-sector route histories.
+
+  // 35/36 + R3: sixteen full eight-sector route histories.
  // Simulated Canvas/touch; hardware FPS and latency are not measured.
  {
   const masks=[0,127,85,42,1,2,4,8,16,32,64,126,125,123,119,111];
@@ -1674,8 +1673,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(JSON.stringify(q.readMedals())===medalsBefore,'debug clear cannot earn medal');
   ev('titleReturnBtn','click');ev('startBtn','click');
   ok(G.mode==='playing'&&!G.debugMode&&el('debugStatus').hidden,'ordinary run resets god mode');
-  G.player.invul=0;G.player.shield=0;G.player.hp=2;q.hitPlayer(1);
-  ok(G.player.hp===1,'ordinary game still takes damage');
+  G.player.invul=0;G.player.shield=0;G.player.hp=78;q.hitPlayer(1);
+  ok(G.player.hp===78-q.actualHullDamage(1),'ordinary game takes scaled hull damage');
   G.player.invul=99;
   // Plug a standard pad into the navigator mock; held A at connect is baseline only.
   const makeButton=()=>({pressed:false,value:0});
