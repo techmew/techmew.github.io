@@ -30,3 +30,14 @@
 @media (pointer:coarse),(max-width:850px){#jump-touch{right:3px;bottom:136px;width:57px;height:57px}}
 @media (max-width:520px){#jump-touch{right:0;bottom:125px;width:51px;height:51px}#jump-touch span{font-size:23px}#jump-touch small{font-size:8px}}
 @media (max-height:520px) and (orientation:landscape){#jump-touch{bottom:120px;right:0;width:54px;height:54px}}
+
+/* On-demand readable map, not intrusive tracking arrows on the playfield. */
+#world-map{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:rgba(5,12,15,.95);padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));pointer-events:auto}
+#world-map.hidden{display:none!important}
+.world-map-panel{width:min(96vw,760px);max-height:95vh;overflow:auto;padding:14px;border:1px solid #668477;background:#142424;box-shadow:0 8px 40px #000c;border-radius:12px}
+.world-map-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.world-map-top strong{font-size:19px;letter-spacing:1px}
+#map-close{padding:8px 12px;border:1px solid #7d9b88;background:#243d35;color:#f6f3e7;border-radius:8px;font:700 13px "Noto Sans JP",sans-serif;cursor:pointer}
+#map-place{margin:7px 0;color:#d4e6da;font-size:12px}#world-map-canvas{display:block;width:100%;height:auto;max-height:57vh;border:1px solid #59716a;border-radius:5px;background:#0a1c1c}
+.map-key{margin-top:10px;color:#edf3e6;font-size:12px;line-height:1.8}.map-help{margin:5px 0 0;font-size:11px;line-height:1.7;color:#c4d6c9}
+#map-btn{min-width:35px;font:800 11px "Noto Sans JP",sans-serif!important}
+@media(max-width:520px){.world-map-panel{padding:10px}.map-key{font-size:10px}.map-help{font-size:10px}.world-map-top strong{font-size:16px}}
