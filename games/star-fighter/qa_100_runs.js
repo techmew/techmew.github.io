@@ -1771,6 +1771,54 @@ const expected={
   ok(JSON.stringify(power)===JSON.stringify([G.player.hp,G.lives,G.energy,...G.levels]),'all trophies remain cosmetics only');
   stats.trophies={total:300,families:30,allUnlockable:true,debugDenied:true};
  }
+ // Hull v2: exact stage curves, level progression and old-save migration.
+ {
+  ok(htmlSource.includes('id="durabilityFill"')&&htmlSource.includes('id="durabilityText"'),'hull meter uses labeled actual/current values');
+  ok(cssSource.includes('#shell .hud-right .durability-track'),'portrait and landscape hull bar CSS exists');
+  ok(!htmlSource.includes('LIVES 03'),'old lives UI removed');
+  ok(q.maxHull(1)===120&&q.maxHull(25)===312,'ship 1-25 hull progression');
+  const dam=[];
+  G.mode='playing';G.debugMode=false;
+  for(let stage=0;stage<8;stage++){
+   G.stage=stage;G.routeRisk=stage===0?0:1;const storm=q.actualHullDamage(1);
+   G.routeRisk=0;const safe=q.actualHullDamage(1);
+   dam.push([safe,storm]);ok(storm>=safe&&safe>=13&&storm<=27,'stage hull hit range '+stage);
+   ok(q.actualHullDamage(2)>safe,'heavy projectiles deal additional damage '+stage);
+   if(stage>0)ok(safe>=dam[stage-1][0],'hull damage must not decline on later stages '+stage);
+  }
+  G.stage=0;G.routeRisk=0;G.shipLevel=1;G.shipXP=0;G.lives=0;
+  G.player.maxHp=120;G.player.hp=40;G.player.shield=0;
+  q.grantShipXP(98);
+  ok(G.shipLevel===2&&G.shipXP===0&&G.player.maxHp===128&&G.player.hp===51,'98 XP increases ship level and repairs 11 hull');
+  q.grantShipXP(1);ok(G.shipXP===1&&G.shipLevel===2,'XP threshold increments without unintended level');
+  G.shipLevel=24;G.shipXP=0;G.player.maxHp=q.maxHull(24);G.player.hp=180;
+  q.grantShipXP(1000000);
+  ok(G.shipLevel===25&&G.player.maxHp===312&&G.player.hp<=312,'ship max level capped to 25');
+  q.grantShipXP(1000000);ok(G.shipLevel===25&&G.player.maxHp===312,'no level beyond 25');
+  G.shipLevel=3;G.shipXP=42;G.player.maxHp=q.maxHull(3);G.player.hp=84;G.player.shield=1;G.lives=0;
+  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.mode='playing';
+  G.energy=1;G.pulses=2;G.pulseRecharge=0;G.selected=0;
+  G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.grazes=0;G.maxCombo=0;G.killCount=0;G.eventCount=0;G.driveCharge=0;G.runSeed=12345;
+  q.saveCheckpoint('sector');
+  const durable=q.readCheckpoint();
+  ok(durable?.v===2&&durable.shipLevel===3&&durable.shipXP===42&&durable.player.maxHp===136&&durable.player.hp===84,'v2 checkpoint stores ship level XP and hull');
+  const checkpointKey='star_fighter_checkpoint_v1',v2Text=storageData.get(checkpointKey);
+  const malformed={...durable,player:{...durable.player,maxHp:999}};
+  storageData.set(checkpointKey,JSON.stringify(malformed));
+  ok(q.readCheckpoint()===null,'v2 rejects inconsistent max hull');
+  storageData.set(checkpointKey,v2Text);
+  const legacy={...durable,v:1,lives:2,player:{hp:2,shield:1}};
+  delete legacy.shipLevel;delete legacy.shipXP;
+  storageData.set(checkpointKey,JSON.stringify(legacy));
+  const migrated=q.readCheckpoint();
+  ok(migrated?.v===2&&migrated?.shipLevel===1&&migrated?.shipXP===0&&migrated?.player.hp===80&&migrated?.player.maxHp===120&&migrated?.lives===0,'old HP2 and lives2 checkpoint migrates to 80 hull with no revive');
+  storageData.set(checkpointKey,v2Text);
+  const savedLevel=G.shipLevel,savedXp=G.shipXP,savedHull=G.player.hp;
+  ev('titleReturnBtn','click');ev('continueBtn','click');
+  ok(G.shipLevel===savedLevel&&G.shipXP===savedXp&&G.player.hp===savedHull&&G.player.maxHp===136,'resume restores v2 level XP hull exactly');
+  stats.hullV2={startHull:120,maxLevel:25,maxHull:312,curve:dam,legacySaveMigrates:true,physicalDifficulty:'not measured'};
+ }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
