@@ -575,3 +575,28 @@ html,body{overscroll-behavior:none}
 #shell .overlay[data-state="over"] .run-result-top>div:first-child{background:#49323f}
 @media(pointer:coarse) and (orientation:portrait){#shell .run-result{margin:3px auto;padding:5px 7px;max-height:clamp(75px,27dvh,180px);font-size:9px}#shell .run-result-top>div{padding:3px 4px}#shell .run-result-top small{font-size:7px}#shell .run-result-line{padding:3px 0}}
 @media(pointer:coarse) and (orientation:landscape) and (max-height:430px){#shell .run-result{max-height:clamp(65px,25dvh,125px);padding:4px 6px}#shell .run-result-top>div{padding:2px 4px}#shell .run-result-line{padding:2px 0}}
+
+/* 2026-10-30: selected upgrade is white-bordered, affordable is coloured; no large combat notices. */
+#shell .announce,#shell .announce.show{display:none!important}
+#shell .toast{top:13%;max-width:min(70%,350px);white-space:normal;text-align:center;font-size:clamp(9px,1vw,12px);line-height:1.25;letter-spacing:0;padding:5px 9px;border-left-width:2px;border-radius:4px;background:#06172cdb;z-index:4}
+#shell .side-action{touch-action:none!important}
+#shell .game-frame .upgrade{touch-action:none;user-select:none;-webkit-user-select:none}
+#shell .game-frame .upgrade.ready:not(.maxed){background:linear-gradient(180deg,color-mix(in srgb,var(--up),#112339 38%),#13263a);border:2px solid var(--up);color:#fff;box-shadow:inset 0 -5px 0 var(--up),0 0 12px color-mix(in srgb,var(--up),transparent 40%)}
+#shell .game-frame .upgrade.ready:not(.maxed)::after{content:'OK';position:absolute;right:2px;top:1px;color:#071522;background:var(--up);border-radius:2px;padding:0 2px;font:900 7px/1.25 system-ui,sans-serif}
+#shell .game-frame .upgrade.selected,#shell .game-frame .upgrade.selected.ready:not(.maxed){border:3px solid #fff!important;color:#fff!important;outline:2px solid var(--up);outline-offset:-2px;background:linear-gradient(180deg,#20576c,#112839)!important;box-shadow:inset 0 -4px 0 var(--up),0 0 15px var(--up)!important;z-index:1}
+#shell .game-frame .upgrade.selected::after,#shell .game-frame .upgrade.selected.ready:not(.maxed)::after{content:'選択中';position:absolute;top:0;right:1px;padding:0 2px;color:#091c29;background:#fff;border-radius:2px;font:900 7px/1.2 system-ui,sans-serif}
+#shell .side-equip[data-target="0"]{--selected-up:#80e9fa}
+#shell .side-equip[data-target="1"]{--selected-up:#81f4ad}
+#shell .side-equip[data-target="2"]{--selected-up:#ffe083}
+#shell .side-equip[data-target="3"]{--selected-up:#f6a772}
+#shell .side-equip[data-target="4"]{--selected-up:#cb9bff}
+#shell .side-equip[data-target="5"]{--selected-up:#ff9dc8}
+#shell .side-equip[data-ready="yes"]{border:2px solid var(--selected-up,#a7faff);background:linear-gradient(160deg,#244f58,#102638);box-shadow:inset 0 0 10px #ffffff12,0 0 12px var(--selected-up,#a7faff)}
+#shell .side-equip span{color:#fff;font-weight:1000}
+#shell .side-equip[data-ready="yes"] .action-state{color:#cbffe4}
+@media(pointer:coarse) and (orientation:portrait){
+ #shell .play-layout>.game-frame,#shell:fullscreen .play-layout>.game-frame,#shell:-webkit-full-screen .play-layout>.game-frame{grid-template-rows:auto 38px!important}
+ #shell .game-frame>.controlbar,#shell:fullscreen .game-frame>.controlbar,#shell:-webkit-full-screen .game-frame>.controlbar{height:38px!important;min-height:38px;max-height:38px}
+ #shell .game-frame .upgrade b{font-size:clamp(8px,2.25vw,10px)}
+ #shell .game-frame .upgrade .u-key{font-size:clamp(8px,1.9vw,10px)}
+}
