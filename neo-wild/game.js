@@ -154,12 +154,12 @@ function instinct(){
   blood(P.x,P.y,"#dce3db",16,140);notify("咆哮 / 周囲の小動物を威圧");sound(130,.36,"sawtooth",.07);
  }
 }
-function combatAim(maxTurn=.56){
+function combatAim(maxTurn=.56,maxRange=105){
  // A small forward-facing correction makes a single-button attack usable on touch,
  // but never snaps to a target behind the player or through a wall.
  let best=null,bestScore=Infinity,aim=P.dir;
  for(const m of mobs){
-  if(m.hp<=0||dist(P,m)>P.r+m.r+105||lineBlocked(P,m))continue;
+  if(m.hp<=0||dist(P,m)>P.r+m.r+maxRange||lineBlocked(P,m))continue;
   const angle=Math.atan2(m.y-P.y,m.x-P.x);
   const diff=Math.atan2(Math.sin(angle-P.dir),Math.cos(angle-P.dir));
   if(Math.abs(diff)>1.28)continue;
@@ -183,7 +183,7 @@ function attack(){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
   const travel=Math.min(53,Math.max(0,distance-(P.r+target.r+30)));
   if(travel>4&&routeClear(P,{x:P.x+Math.cos(angle)*travel,y:P.y+Math.sin(angle)*travel},P.r)){
-   P.pounceTime=.18;P.pounceRemaining=travel;P.pounceDir=angle;
+   P.pounceTime=.18;P.pounceDuration=.18;P.pounceRemaining=travel;P.pounceDir=angle;
    P.windup=Math.max(P.windup,.24);
    blood(P.x,P.y,"#ffe6a6",5,38);
   }
@@ -247,14 +247,23 @@ function jump(){
  sound(cat?530:wolf?195:400,.13,"triangle",.032);
  return true;
 }
+// Shift / mobile button: spring forward, then bite at landing.
 function dash(){
- if(mode!=="play"||P.jumpTime>0||P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28))return;
- const a=getAxes();if(Math.hypot(a.x,a.y)>.15){P.dir=Math.atan2(a.y,a.x)}
- P.dx=Math.cos(P.dir);P.dy=Math.sin(P.dir);
- const agile=P.type==="cat"&&P.abilityTime>0;
- P.sp-=agile?20:28;P.pounceTime=0;P.pounceRemaining=0;P.dashTime=P.type==="wolf"?.18:agile?.25:.21;
- P.inv=agile?.39:P.type==="wolf"?.23:.28;
- P.dash=agile?.52:P.type==="cat"?.85:P.type==="wolf"?1.2:1.05;P.vx=0;P.vy=0;P.pendingStrike=false;P.ambushStrike=false;P.revealTimer=1.15;P.windup=0;P.noiseBurst=1.5;blood(P.x,P.y,"#a6e6d4",9,45);sound(250,.22,"sine",.05);
+ if(mode!=="play"||P.jumpTime>0||P.pounceTime>0||P.pendingStrike||P.dash>0)return false;
+ const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
+ if(P.sp<cost){notify("持久力が足りない");return false}
+ const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
+ const target=combatAim(.75,220);
+ const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
+ const maximum=P.type==="cat"?105:P.type==="wolf"?85:100;
+ const travel=target?clamp(dist(P,target)-(P.r+target.r+17),20,maximum):maximum;
+ P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.8:P.type==="wolf"?1.35:1.05;
+ P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.30:.26;P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
+ P.vx=0;P.vy=0;P.atk=Math.max(P.atk,P.rate);
+ P.windup=P.pounceDuration+.04;P.pendingStrike=true;P.jumpDive=true;
+ P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.1;
+ P.noiseBurst=Math.max(P.noiseBurst,1.2);sound(P.type==="wolf"?175:280,.13,"triangle",.04);
+ return true;
 }
 function sense(){
  if(mode!=="play"||P.sense>0)return;
@@ -412,6 +421,9 @@ function update(dt){
     P.vx=(P.x-ox)/Math.max(dt,.001);P.vy=(P.y-oy)/Math.max(dt,.001);
    }
    P.steps+=moved*.052;
+   const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
+   P.jumpHeight=Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?31:P.type==="wolf"?23:28);
+   if(P.pounceTime===0){P.jumpHeight=0;if(P.pendingStrike)resolveAttack();}
   }else if(P.dashTime>0){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
