@@ -151,7 +151,11 @@ function bossArmorMultiplier(b){
  const cycle=(Math.max(0,b.t||0)+.35)%5.8;
  const open=cycle>=2.05&&cycle<4.70;
  const lowHull=p.hp/Math.max(1,p.maxHp)<.31;
- return open?1+.26*tier:(lowHull?1-.18*tier:1-.54*tier);
+ // Burst fire triggers a short, visible counter-shield. Dodging its salvo
+ // buys a weak-core opening. Low hull softens defensive pressure.
+ if(b.reactiveShield>0)return lowHull?.38:.055;
+ if(b.reactiveExpose>0)return 1+.40*tier;
+ return open?1+.20*tier:(lowHull?1-.10*tier:1-.62*tier);
 }
 /* Heavier foes can shatter armor, dodge once, then fire a warned retort.
    Light scouts deliberately remain fragile to preserve power fantasy. */
@@ -185,7 +189,20 @@ function damageBoss(b,damage){
  if(!b||!Number.isFinite(damage)||damage<=0)return;
  if(invulnerablePracticeBoss()){b.hp=b.maxHp;return}
  if(bossMoveGuarded(b))return;
- b.hp-=damage*bossArmorMultiplier(b);
+ const dealt=damage*bossArmorMultiplier(b);
+ b.hp-=dealt;
+ if((b.adaptiveTier||0)>.22&&b.entryReady&&b.x<=980&&
+    (b.reactiveTriggers||0)<(G.stage===7?3:2)&&b.hp>Math.max(1,b.maxHp*.07)){
+  b.reactiveDamage=(b.reactiveDamage||0)+dealt;
+  if((b.reactiveCooldown||0)<=0&&b.reactiveDamage>=b.maxHp*.105){
+   b.reactiveShield=1.7;b.reactiveExpose=0;
+   b.reactiveCooldown=5.7;b.reactiveStrike=.79;
+   b.reactiveTargetY=cl(p.y,108,H-95);
+   b.reactiveDamage=0;b.reactiveTriggers=(b.reactiveTriggers||0)+1;
+   ring(b.x-62,b.y,180,'#83ceff',.55);
+   tone(160,.35,'sawtooth',.055,310);
+  }
+ }
 }
 
 /* Distinct visual and mechanical moves for all 16 bosses, four each.
@@ -1245,8 +1262,8 @@ function spawnBoss(){G.pendingWave=null;G.terrain=null;const variant=bossVariant
  const legacyChains=G.routeHistory.reduce((n,r,i,a)=>n+(i>0&&a[i-1].risk===r.risk?1:0),0);
  const adaptiveTier=offensiveBuild();
  const hp=Math.round(BOSS_HP[G.stage]*routeProfile().bossHp*(variant==='original'?1:1.06)*
-  (G.stage===7?1+Math.min(4,legacyRisk)*.035:1)*(1+4.2*adaptiveTier));
- G.boss={variant,name,adaptiveTier,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
+  (G.stage===7?1+Math.min(4,legacyRisk)*.035:1)*(1+7.2*adaptiveTier));
+ G.boss={variant,name,adaptiveTier,reactiveShield:0,reactiveExpose:0,reactiveStrike:0,reactiveCooldown:0,reactiveDamage:0,reactiveTriggers:0,reactiveTargetY:335,x:W+220,y:335,w:[250,280,300,320,330,355,365,380][G.stage],hp,maxHp:hp,t:0,fire:1.6,pattern:0,core:0,phase:0,charge:0,beam:0,beamY:0,legacyRisk,legacyChains,routeDoctrine:G.activeEvent?.id||null,routeRisk:G.routeRisk,weakOpen:false,weakWarn:false,entryReady:false};G.bossDone=false;G.enemies=[];showAnnounce('WARNING / SECTOR '+String(G.stage+1).padStart(2,'0'),name,variant==='octopus'?'機械触手の予兆に注意':variant==='dinosaur'?'顎部の砲門と尾の装甲に注意':variant==='turtle'?'長首の伸縮と閉じる甲羅に注意':variant==='scorpion'?'尾砲とハサミの弾幕を回避':variant==='crab'?'巨大鋏の熱弾を回避':variant==='solarwyrm'?'炎翼と熱線を回避':variant==='mammoth'?'氷の牙と予兆ビームに注意':variant==='leviathan'?'氷晶の散弾と予兆ビームに注意':variant==='centipede'?'節ごとの砲門を見て回避':variant==='warden'?'封印光線と弾幕の隙間を回避':variant==='jellyfish'?'触手の間を抜け、予兆ビームを回避':variant==='riftmedusa'?'位相弾の隙間を抜けて回避':variant==='singularity'?'重力収束の予兆を見て回避':variant==='horizonark'?'光輪の隙間を通り抜けよ':'大型反応接近　総攻撃開始',G.debugBossOnly?1.05:2.4);tone(90,.9,'sawtooth',.09,170)}
 /* Large creature attacks are bounded and telegraphed: no invisible tentacle hitboxes.
    All projectile paths use the existing bullet renderer and collision rules. */
 function creatureBossAttack(b){
@@ -2016,6 +2033,25 @@ if(G.stage===7&&b.phase===1&&(practice?practiceCycle>=36:b.hp<=b.maxHp*.32)){
 if(b.charge>0){b.charge-=dt;if(b.charge<=0){b.beam=.62;screenPulse=.2;tone(105,.4,'sawtooth',.07,-70)}}
 if(b.beam>0){b.beam-=dt;if(p.x<b.x-75&&Math.abs(p.y-b.beamY)<27)hitPlayer(1)}
 bossMoveStep(b,dt);
+ if(b.reactiveShield>0){
+  b.reactiveShield=Math.max(0,b.reactiveShield-dt);
+  if(b.reactiveShield===0){
+   b.reactiveExpose=2.1;ring(b.x-65,b.y,180,'#9bffcd',.45);
+   showToast('ARMOR BREAK · CORE EXPOSED');
+   tone(460,.2,'triangle',.05,-145);
+  }
+ }else if(b.reactiveExpose>0)b.reactiveExpose=Math.max(0,b.reactiveExpose-dt);
+ b.reactiveCooldown=Math.max(0,(b.reactiveCooldown||0)-dt);
+ if(b.reactiveStrike>0){
+  b.reactiveStrike-=dt;
+  if(b.reactiveStrike<=0&&G.bullets.length<=96&&p.hp/Math.max(1,p.maxHp)>.25){
+   const yy=cl(b.reactiveTargetY,115,H-90);
+   for(const offset of [-.27,0,.27]){
+    const aa=Math.atan2(yy-b.y,p.x-(b.x-118))+offset;
+    bullet(b.x-118,b.y,aa,235+G.stage*7,5.4,'#b1d4ff');
+   }
+  }
+ }
  b.fire-=dt*(practice?1.25:1);if(b.fire<=0)bossAttack(b);
 if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
 if(!practice&&b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
@@ -2455,6 +2491,24 @@ function drawAdaptiveBossArmor(b){
   glowCircle(-28,99,covered?6:10,covered?'#8eb8f8':'#b8ffde',8);c.restore();}
  c.restore();
 }
+function drawBossReactor(b){
+ if(!b||!(b.adaptiveTier>.22)||!(b.reactiveShield>0||b.reactiveExpose>0||b.reactiveStrike>0))return;
+ const protectedCore=b.reactiveShield>0,x=b.x-70,y=b.y;
+ c.save();
+ c.strokeStyle=protectedCore?'#8bcfff':'#aaffd2';c.lineWidth=protectedCore?6:3.5;
+ c.globalAlpha=protectedCore?.73:.82;
+ c.beginPath();c.ellipse(x,y,118+Math.sin(b.t*11)*5,99+Math.sin(b.t*11)*4,0,0,TAU);c.stroke();
+ if(protectedCore){
+  for(const a of [0,TAU/3,2*TAU/3]){
+   c.beginPath();c.arc(x+Math.cos(a)*115,y+Math.sin(a)*99,10,0,TAU);c.stroke();
+  }
+ }else glowCircle(x-30,y,16,'#b4ffda',14);
+ if(b.reactiveStrike>0){
+  c.globalAlpha=.83;c.strokeStyle='#b4cfff';c.lineWidth=3;
+  c.beginPath();c.arc(b.x-115,b.y,15+(1-b.reactiveStrike/.79)*18,0,TAU);c.stroke();
+ }
+ c.restore();
+}
 function drawBossBeam(b){
  // Three compact muzzle signatures preview the next volley: paired fan,
  // ring, or flank cannons. No full-screen reticle, long aim line or text.
@@ -2576,7 +2630,7 @@ function drawHostileBullet(a){
 function drawScene(){c.save();if(G.shake>.2)c.translate(R(-G.shake,G.shake),R(-G.shake,G.shake));drawBackground();if(G.mode==='title'){drawShip(274,344,0,0);for(let i=0;i<4;i++){const e={x:750+i*122,y:210+i*90,type:i%2?'scout':'spinner',t:G.time*.7,phase:i};drawEnemy(e)}}
 else{for(const q of G.pickups){c.save();c.translate(q.x,q.y);c.rotate(q.t*1.5);c.shadowColor=q.type==='elite'?'#c9a5ff':q.type==='pulse'?'#ffcb60':'#7dfff8';c.shadowBlur=22;poly([0,-18,18,0,0,18,-18,0],q.type==='elite'?'#5d438e':q.type==='pulse'?'#9e7129':'#157881',q.type==='elite'?'#f2ddff':q.type==='pulse'?'#fff3a0':'#d4fff7',2);c.font='bold 18px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#f5ffff';c.rotate(-q.t*1.5);c.fillText(q.type==='elite'?'✦':q.type==='pulse'?'✹':'P',0,1);c.restore()}
 drawTerrain();drawEnemyWindup();drawFlightGate();
-for(const e of G.enemies){drawEnemy(e);if(e.eventDrop){c.save();c.globalAlpha=.72;c.strokeStyle='#ffec99';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,43+Math.sin(G.time*5)*3,0,TAU);c.stroke();c.restore()}}if(G.boss){drawBoss(G.boss);drawAdaptiveBossArmor(G.boss);drawBossSpecial(G.boss);drawBossBeam(G.boss)}
+for(const e of G.enemies){drawEnemy(e);if(e.eventDrop){c.save();c.globalAlpha=.72;c.strokeStyle='#ffec99';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,43+Math.sin(G.time*5)*3,0,TAU);c.stroke();c.restore()}}if(G.boss){drawBoss(G.boss);drawAdaptiveBossArmor(G.boss);drawBossReactor(G.boss);drawBossSpecial(G.boss);drawBossBeam(G.boss)}
 for(const s of G.shots){c.save();c.lineCap='round';if(s.kind==='laser'){line(s.x-95,s.y,s.x+24,s.y,'#178fff',14);line(s.x-105,s.y,s.x+24,s.y,'#83faff',6);line(s.x-105,s.y,s.x+28,s.y,'#fff',2)}else if(s.kind==='missile'){poly([s.x+12,s.y,s.x-13,s.y-7,s.x-8,s.y,s.x-13,s.y+7],'#ffbc81','#fff1b4',1);line(s.x-28,s.y+R(-2,2),s.x-10,s.y,'#ff954d',5)}else{line(s.x-20,s.y-s.vy*.012,s.x+12,s.y+s.vy*.012,'#55d6ff',s.kind==='shot'?6:3.5);line(s.x-16,s.y,s.x+14,s.y,'#d4fbff',2)}c.restore()}
 for(const a of G.bullets)drawHostileBullet(a)
 for(let i=G.levels[4]-1;i>=0;i--){let tr=G.trail[Math.min(G.trail.length-1,17+i*24)];if(tr)drawDrone(tr.x-9,tr.y,i)}drawShip(p.x,p.y,p.angle,p.invul);
