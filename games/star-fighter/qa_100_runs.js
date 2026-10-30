@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=adaptive-boss-combat-20261030-3'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=boss-reactive-20261031-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -1235,7 +1235,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  for(const seed of seeds)for(const [stage,risk] of bossCases){
   stageSetup(seed,stage,risk);G.routeHistory=[];G.activeEvent=null;
   q.spawnBoss();const b=G.boss;b.x=930;b.y=337;b.t=1.4;
-  ok(b.maxHp>=1500&&b.maxHp<60000,'bounded power-scaled boss HP '+stage+'/'+risk);
+  ok(b.maxHp>=1500&&b.maxHp<100000,'bounded power-scaled boss HP '+stage+'/'+risk);
   const levels=G.levels.slice(),energy=G.energy;
   for(const phase of [0,1])for(let pattern=0;pattern<3;pattern++){
    b.phase=phase;b.pattern=pattern;b.charge=0;b.beam=0;G.bullets=[];
@@ -1972,7 +1972,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
    G.boss=null;q.spawnBoss();const base=G.boss.maxHp;
    G.boss=null;G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];
    q.spawnBoss();
-   ok(G.boss.maxHp>=base*5.1&&G.boss.maxHp<60000,'17 boss power scaling '+entry.name);
+   ok(G.boss.maxHp>=base*8.1&&G.boss.maxHp<100000,'17 boss power scaling '+entry.name);
    rosterChecks++;
   }
   ok(rosterChecks===17,'every selectable boss has adaptive durability');
@@ -1985,6 +1985,59 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   G.debugMode=false;G.debugBossOnly=false;
   stats.adaptiveCombat={lowPower,strongPower,weakEnemyHP,strongEnemyHP:enemyStrong.maxHp,
    weakBossHP,strongBossHP:strongBoss.maxHp,twoSecondBurst:sum,remainingAfterBurst,armorBreakHits:attacks,bossVariants:rosterChecks};
+ }
+
+ // Every real 60 FPS collision tick, not a spreadsheet DPS estimate.
+ // Simulated invincible pilot isolates boss endurance from player mistakes.
+ {
+  const laser={kind:'laser',dmg:47,pierce:9},bossTarget={hp:500},another={hp:400};
+  ok(q.projectileFirstHit(laser,bossTarget),'first laser contact counts');
+  ok(!q.projectileFirstHit(laser,bossTarget),'same laser cannot damage target on following frames');
+  ok(q.projectileFirstHit(laser,another),'one laser can pierce two different enemies');
+  G.mode='playing';G.debugMode=false;G.debugBossOnly=false;
+  G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];G.overdrive=8;
+  G.player.maxHp=312;G.player.hp=312;G.player.invul=999;G.player.shield=5;
+  const fighters=[
+   {s:0,r:0},{s:1,r:0},{s:2,r:1},{s:3,r:0},
+   {s:4,r:0},{s:5,r:1},{s:6,r:1},{s:7,r:1}
+  ];
+  const fights=[];
+  for(const {s,r} of fighters){
+   G.stage=s;G.routeRisk=r;G.routeHistory=[];G.activeEvent=null;G.forcedBossVariant=null;
+   G.runSeed=20261031;G.stageTime=10;
+   G.boss=null;G.bossDone=false;G.transitioning=false;G.pendingWave=null;G.terrain=null;
+   G.enemies=[];G.shots=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];
+   G.spawn=999;G.fireTimer=0;G.missileTimer=0;G.player.hp=312;G.player.invul=999;
+   q.spawnBoss();const b=G.boss,startingHP=b.maxHp;b.x=930;b.entryReady=true;b.fire=.85;
+   G.player.x=G.player.targetX=650;G.player.y=G.player.targetY=337;
+   G.trail=Array.from({length:150},()=>({x:650,y:337}));
+   let frames=0,at1=-1,at2=-1,reactive=0,salvoFrames=0;
+   for(;frames<3600&&G.boss;frames++){
+    G.player.y=G.player.targetY=G.boss.y;
+    reactive=Math.max(reactive,G.boss.reactiveTriggers||0);
+    if(G.bullets.length)salvoFrames++;
+    q.update(1/60);
+    if(frames===59)at1=G.boss?.hp??0;
+    if(frames===119)at2=G.boss?.hp??0;
+   }
+   const seconds=frames/60;
+   ok(at1>startingHP*.70,'boss withstands max DPS at 1s on sector '+(s+1));
+   ok(at2>startingHP*.40,'boss withstands max DPS at 2s on sector '+(s+1));
+   ok(!G.boss&&seconds>=9&&seconds<=55,'boss must be durable and beatable sector '+(s+1)+' seconds '+seconds);
+   ok(reactive>=1&&salvoFrames>=60,'counterarmor and visible projectile pressure must run '+(s+1));
+   fights.push({boss:b.name,sector:s+1,seconds:Number(seconds.toFixed(2)),HP:startingHP,reactiveTriggers:reactive});
+  }
+  G.boss=null;G.enemies=[];G.shots=[];G.bullets=[];G.mode='playing';G.debugMode=false;
+  G.stage=0;G.routeRisk=0;G.runSeed=1;G.routeHistory=[];G.activeEvent=null;
+  q.spawnBoss();const b=G.boss;b.x=930;b.y=337;b.t=.1;b.entryReady=true;b.fire=999;
+  G.player.x=G.player.targetX=650;G.player.y=G.player.targetY=337;
+  G.fireTimer=999;G.missileTimer=999;
+  G.shots=[{x:b.x-53,y:b.y,px:b.x-53,py:b.y,vx:0,vy:0,dmg:120,pierce:9,kind:'laser',life:1}];
+  const before=b.hp;q.update(1/60);const first=b.hp;
+  q.update(1/60);const second=b.hp;
+  ok(first<before&&second===first,'real hit loop does not multiply damage to one boss');
+  stats.bossMaxBuildFrameQA={pilotInvincible:true,realProjectileLoop:true,framesPerSecond:60,
+    fights,laserRepeatedDamagePrevented:true};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
