@@ -82,7 +82,7 @@
  }
  function observe(dt,snapshot={},force=false){
   if(!active||debug)return;
-  if(validNumber(dt)&&dt>0)pendingFlight+=Math.min(dt,.1);
+  if(validNumber(dt)&&dt>0){const elapsedFrame=Math.min(dt,.1);pendingFlight+=elapsedFrame;elapsed+=elapsedFrame}
   // Group trophy evaluation twice per second to protect the render budget.
   if(pendingFlight<.48&&!force)return;
   if(pendingFlight>0)add('flight',pendingFlight);
@@ -93,7 +93,7 @@
   lastScore=score;lastGraze=graze;
   peak('bestScore',score);peak('grazeBest',graze);
   peak('comboBest',Math.max(0,Number(snapshot.maxCombo)||0));
-  elapsed+=dt||0;if(elapsed-lastSave>=4)write();
+  if(elapsed-lastSave>=4)write();
  }
  function hit(blocked=false){
   if(!active||debug)return;
