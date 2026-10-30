@@ -254,7 +254,7 @@ function resumeCheckpoint(){
  const d=readCheckpoint();if(!d){updateContinueButton();showToast('セーブデータがありません');return}
  seedInput.value=seedHex(d.runSeed);startGame();if(G.mode!=='playing')return;
  G.stage=d.stage;G.score=d.score;G.lives=d.lives;G.pulses=d.pulses;G.pulseRecharge=d.pulseRecharge??0;G.energy=d.energy;G.selected=d.selected;
- G.levels=d.levels.slice();G.pendingUpgrades=d.pendingUpgrades?d.pendingUpgrades.slice():[0,0,0,0,0,0];G.passives=d.passives?d.passives.slice():[0,0,0,0,0,0];G.routeRisk=d.routeRisk;G.routeHistory=d.routeHistory.map(r=>({...r}));G.rewardHistory=(d.rewardHistory||[]).map(r=>({...r}));
+ G.levels=d.levels.slice();G.pendingUpgrades=d.pendingUpgrades?d.pendingUpgrades.slice():[0,0,0,0,0,0];G.selected=Math.max(0,powerMeterIndex());G.passives=d.passives?d.passives.slice():[0,0,0,0,0,0];G.routeRisk=d.routeRisk;G.routeHistory=d.routeHistory.map(r=>({...r}));G.rewardHistory=(d.rewardHistory||[]).map(r=>({...r}));
  G.driveCharge=d.driveCharge;G.grazes=d.grazes;G.maxCombo=d.maxCombo;G.killCount=d.killCount;G.eventCount=d.eventCount;
  p.hp=d.player.hp;p.shield=d.player.shield;p.invul=1.8;
  G.stageTime=0;G.eliteSpawned=false;G.routePatrolSpawned=false;G.scroll=G.stage*1800;G.pendingWave=null;G.spawn=2*routeProfile().spawnInterval;G.directorGrace=0;G.directorWaveCount=0;
@@ -356,8 +356,8 @@ ui.sound.addEventListener('contextmenu',e=>e.preventDefault());
 ui.sound.addEventListener('click',e=>{if(suppressMixClick){suppressMixClick=false;return}if(e.shiftKey){cycleSoundMix();return}sound=!sound;ui.sound.textContent=sound?'♫ BGM ON':'♫ BGM OFF';try{localStorage.setItem('star_fighter_sound',sound?'on':'off')}catch(e){}if(sound){if(!bgm)beginAudio();else{audio?.resume();applySoundMix();bgm.setEnabled(true);if(G.mode==='playing')bgm.start()}}else bgm?.setEnabled(false)});
 // Hidden duplicate action buttons must not initiate purchases or NOVA.
 $('helpBtn').addEventListener('click',()=>{if(G.mode==='playing'){pause();quickHelp.open=true}else if(G.mode==='title'||G.mode==='paused')quickHelp.open=!quickHelp.open});
-ui.upgrades.forEach((b,i)=>b.addEventListener('click',()=>{if(G.mode!=='playing')return;G.selected=i;updateHud();tone(570+i*48,.055,'sine',.026)}));
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const focusedControl=!!e.target?.closest?.('button,input,textarea,select,[contenteditable="true"]');if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){if(e.shiftKey)cycleSoundMix();else ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter'&&!focusedControl){if(G.mode==='title')startGame();else startFreshRun()}return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='x'||k==='tab'){if(k==='tab')e.preventDefault();G.selected=(G.selected+1)%6;updateHud();tone(550,.04,'sine',.025)}if(k==='z'&&!focusedControl&&!e.ctrlKey&&!e.metaKey&&!e.altKey)equip(manualUpgradeToken)});
+// The six meter cells are passive indicators; clicking them never selects equipment.
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();const focusedControl=!!e.target?.closest?.('button,input,textarea,select,[contenteditable="true"]');if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();KEY[k]=true;if(e.repeat)return;if(k==='p'||k==='escape'){pause();return}if(k==='m'){if(e.shiftKey)cycleSoundMix();else ui.sound.click();return}if(G.mode==='title'||G.mode==='over'||G.mode==='win'){if(k==='enter'&&!focusedControl){if(G.mode==='title')startGame();else startFreshRun()}return}if(G.mode==='reward'){if(k==='1'||k==='2'||k==='3')chooseReward(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRewardCard((G.rewardSelected+(k==='arrowright'?1:2))%3);if(k==='enter')chooseReward(G.rewardSelected);return}if(G.mode==='route'){if(k==='1'||k==='2')chooseRoute(Number(k)-1);if(k==='arrowleft'||k==='arrowright')selectRouteCard(1-G.routeSelected);if(k==='enter')chooseRoute(G.routeSelected);return}if(G.mode!=='playing')return;if(k===' '){pulse();return}if(k==='z'&&!focusedControl&&!e.ctrlKey&&!e.metaKey&&!e.altKey)equip(manualUpgradeToken)});
 window.addEventListener('keyup',e=>{KEY[e.key.toLowerCase()]=false});window.addEventListener('blur',()=>{if(G.mode==='playing')pause()});
 
 /* Physical finger displacement only: stable fixed gain, no speed-dependent
@@ -415,6 +415,22 @@ function coords(e){const b=C.getBoundingClientRect();return{x:(e.clientX-b.left)
 C.addEventListener('pointerdown',e=>{if(G.mode!=='playing'||e.pointerType==='touch')return;dragging=true;pid=e.pointerId;try{C.setPointerCapture(pid)}catch(err){}const q=coords(e);G.player.targetX=cl(q.x,60,W-130);G.player.targetY=cl(q.y,88,H-111);G.firstInput=true});
 C.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==pid||G.mode!=='playing')return;const q=coords(e);G.player.targetX=cl(q.x,60,W-130);G.player.targetY=cl(q.y,88,H-111)});
 const release=e=>{if(e.pointerId===pid){dragging=false;pid=-1}};C.addEventListener('pointerup',release);C.addEventListener('pointercancel',release);
+/* Power capsule moves one cursor step. No player selection of equipment. */
+function powerMeterIndex(){
+ if(G.energy>0)return G.energy-1;
+ return G.pendingUpgrades.findIndex((n,i)=>n>0&&G.levels[i]<MAX[i]);
+}
+function advancePowerMeter(count=1){
+ if(!Number.isInteger(count)||count<1)return;
+ G.energy=((G.energy+count-1)%6)+1;
+ G.selected=G.energy-1;
+ updateHud();
+}
+function reducePowerMeter(count=1){
+ G.energy=Math.max(0,G.energy-Math.max(0,count));
+ G.selected=Math.max(0,powerMeterIndex());
+ updateHud();
+}
 /* Weapon reward vouchers are not applied until an explicit action button tap.
    Preserve reward value, non-modal flight gates and checkpoint continuity. */
 function queueManualUpgrade(index,count=1){
@@ -425,16 +441,13 @@ function queueManualUpgrade(index,count=1){
 }
 function equip(intent){
  if(G.mode!=='playing'||intent!==manualUpgradeToken)return;
- const i=G.selected,need=i+1,name=PNAMES[i],free=G.pendingUpgrades[i]>0;
- if(G.levels[i]>=MAX[i]){
-  showToast(name+'は最大強化済み');tone(155,.07,'triangle',.02);
-  updateHud();return;
- }
- if(!free&&G.energy<need){
-  showToast(name+'：カプセル不足（'+G.energy+'/'+need+'）');
-  tone(150,.1,'triangle',.025);updateHud();return;
- }
- if(free)G.pendingUpgrades[i]--;else G.energy-=need;
+ const i=powerMeterIndex();
+ if(i<0){showToast('カプセル不足・拾うとメーターが進みます');tone(150,.09,'triangle',.025);updateHud();return}
+ const name=PNAMES[i],free=G.pendingUpgrades[i]>0;
+ if(G.levels[i]>=MAX[i]){showToast(name+'は最大強化済み・次のカプセルで進みます');tone(155,.07,'triangle',.02);updateHud();return}
+ if(free)G.pendingUpgrades[i]--;
+ // Confirmed activation only: clear the meter, then show any queued voucher.
+ G.energy=0;G.selected=Math.max(0,powerMeterIndex());
  G.levels[i]++;
  if(i===5)p.shield=Math.max(p.shield,G.levels[i]);
  if(i===4)G.trail.length=0;
@@ -442,9 +455,7 @@ function equip(intent){
  ring(p.x,p.y,115,'#64eaff',.65);emit(p.x,p.y,36,'#7df8ff',260);
  tone(430,.25,'sawtooth',.09,780);
  const synergy=SYNERGIES.find(s=>s.weapon===i&&passiveRank(s.passive)>0);
- showToast(synergy?'SYNERGY · '+synergy.name:name+' LEVEL '+G.levels[i]);
- if(G.pendingUpgrades[i]===0)G.selected=0;
- updateHud();
+ showToast(synergy?'SYNERGY · '+synergy.name:name+' LEVEL '+G.levels[i]);updateHud();
 }
 function pulse(){
  if(G.mode!=='playing')return;
@@ -460,25 +471,35 @@ function pulse(){
  if(G.boss)G.boss.hp-=Math.round(110*(1+.30*passiveRank(4)));
  tone(120,.8,'sawtooth',.14,800);showToast('NOVA BURST');updateHud();
 }
-function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');ui.meter.textContent='CAPSULE × '+G.energy+(G.overdrive>0?' · DRIVE '+Math.ceil(G.overdrive)+'s':'');ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'パッシブ：未取得';ui.upgrades.forEach((b,i)=>{
- const ready=(G.energy>=i+1||G.pendingUpgrades[i]>0)&&G.levels[i]<MAX[i];
- b.classList.toggle('selected',i===G.selected);b.classList.toggle('ready',ready);b.classList.toggle('maxed',G.levels[i]>=MAX[i]);
- b.setAttribute('aria-pressed',i===G.selected?'true':'false');
- b.setAttribute('aria-label',PNAMES[i]+(i===G.selected?'・選択中':'')+(ready?'・強化可能':'')+'・レベル'+G.levels[i]);
- b.querySelector('.u-key').textContent=G.pendingUpgrades[i]>0?'無料×'+G.pendingUpgrades[i]:(G.levels[i]?'LV '+G.levels[i]:String(i+1).padStart(2,'0'));
-});ui.equip.disabled=G.mode!=='playing'||(G.energy<G.selected+1&&G.pendingUpgrades[G.selected]===0)||G.levels[G.selected]>=MAX[G.selected];ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;// The two visible buttons must always accept a touch during play, even if
+function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');const activeIndex=powerMeterIndex();
+ G.selected=Math.max(0,activeIndex);
+ ui.meter.textContent=G.energy>0?'POWER '+G.energy+'/6':activeIndex>=0?'無料強化券':'POWER 待機';
+ ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'カプセルで点灯が1つ右へ進む';
+ ui.upgrades.forEach((b,i)=>{
+  const lit=i===activeIndex,ready=lit&&G.levels[i]<MAX[i];
+  b.classList.toggle('selected',lit);
+  b.classList.toggle('ready',ready);
+  b.classList.toggle('maxed',G.levels[i]>=MAX[i]);
+  b.setAttribute('aria-label',PNAMES[i]+(lit?'・現在点灯':'')+(G.pendingUpgrades[i]>0?'・無料強化券'+G.pendingUpgrades[i]+'回':'')+'・レベル'+G.levels[i]);
+  b.querySelector('.u-key').textContent=G.pendingUpgrades[i]>0?'無料×'+G.pendingUpgrades[i]:(G.levels[i]?'LV '+G.levels[i]:String(i+1).padStart(2,'0'));
+ });
+ ui.equip.disabled=G.mode!=='playing'||activeIndex<0||G.levels[activeIndex]>=MAX[activeIndex];
+ ui.pulse.disabled=G.mode!=='playing'||G.pulses===0;
+ // The two visible buttons must always accept a touch during play, even if
  // resources are empty. Otherwise native disabled suppresses click AND feedback.
  sideEquipButton.disabled=G.mode!=='playing';
  sideNovaButton.disabled=G.mode!=='playing';
- sideEquipButton.dataset.ready=(G.energy>=G.selected+1||G.pendingUpgrades[G.selected]>0)&&G.levels[G.selected]<MAX[G.selected]?'yes':'no';sideEquipButton.dataset.target=String(G.selected);
+ sideEquipButton.dataset.ready=activeIndex>=0&&G.levels[activeIndex]<MAX[activeIndex]?'yes':'no';sideEquipButton.dataset.target=String(activeIndex);
  sideNovaButton.dataset.ready=G.pulses>0?'yes':'no';
  const nextNova=G.mode==='over'||G.mode==='win'?'次の出撃で回復':G.mode==='title'?'出撃時に補充':G.pulses>0?'残り'+G.pulses+'回':'補充まで'+Math.max(1,Math.ceil(60-G.pulseRecharge))+'秒';
- const nextEquip=G.levels[G.selected]>=MAX[G.selected]?'最大強化済み':G.pendingUpgrades[G.selected]>0?'無料強化 '+G.pendingUpgrades[G.selected]+'回・使用可':'カプセル '+G.energy+'/'+(G.selected+1)+(G.energy>=G.selected+1?'・使用可':'・不足');const target=sideEquipButton.querySelector('span'),name=PNAMES[G.selected]+' 強化';if(target.textContent!==name)target.textContent=name;
+ const nextEquip=activeIndex<0?'カプセルを取る':G.levels[activeIndex]>=MAX[activeIndex]?'MAX・次のカプセル':G.pendingUpgrades[activeIndex]>0?'無料強化券 '+G.pendingUpgrades[activeIndex]+'回':'POWER '+G.energy+'/6・使用可';
+ const target=sideEquipButton.querySelector('span'),name=activeIndex<0?'強化する':PNAMES[activeIndex]+' 強化';
+ if(target.textContent!==name)target.textContent=name;
  const novaInfo=$('novaActionState'),equipInfo=$('equipActionState');
  if(novaInfo.textContent!==nextNova)novaInfo.textContent=nextNova;
  if(equipInfo.textContent!==nextEquip)equipInfo.textContent=nextEquip;
  sideNovaButton.setAttribute('aria-label','ノヴァ · '+nextNova);
- sideEquipButton.setAttribute('aria-label','強化 · '+PNAMES[G.selected]+' · '+nextEquip);ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
+ sideEquipButton.setAttribute('aria-label','強化 · '+(activeIndex<0?'カプセル待ち':PNAMES[activeIndex])+' · '+nextEquip);ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
 function ring(x,y,max,color,life=.6){G.rings.push({x,y,r:4,max,color,life,t:0})}
 function emit(x,y,num,color,power=160){for(let i=0;i<num;i++){const a=R(0,TAU),s=R(power*.15,power);G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:R(.2,.85),maxLife:.85,size:R(1.2,4.4),color,glow:Math.random()>.55})}}
 function explosion(x,y,r=32){emit(x,y,Math.round(r*.85),'#ffb66c',r*7);emit(x,y,Math.round(r*.4),'#70dcff',r*4);ring(x,y,r*3,'#ffbd88');G.shake=Math.min(25,G.shake+r*.12);tone(R(70,115),.2,'sawtooth',.038,-50)}
@@ -1086,18 +1107,18 @@ function chooseReward(index){
  }else if(o.id==='rare_reactor'&&p.shield>0){
   p.shield--;G.pulses=Math.min(5,G.pulses+1);chargeDrive(45);
  }else if(o.id==='rare_rescue'&&G.energy>=2){
-  G.energy-=2;p.hp=3;G.lives=Math.min(3,G.lives+1);
+  reducePowerMeter(2);p.hp=3;G.lives=Math.min(3,G.lives+1);
  }else if(o.id==='rare_focus'&&Number.isInteger(o.passiveIndex)&&passiveRank(o.passiveIndex)<2&&G.pulses>0){
   G.pulses--;G.passives[o.passiveIndex]++;if(o.passiveIndex===3)p.shield=Math.min(5,p.shield+1);chargeDrive(15);
  }else if(o.id==='storm_bounty'&&p.shield>0){
-  p.shield--;G.energy=Math.min(6,G.energy+3);chargeDrive(25);
+  p.shield--;advancePowerMeter(3);chargeDrive(25);
  }else if(o.id==='storm_gamble'&&p.hp>1&&Number.isInteger(o.levelIndex)&&G.levels[o.levelIndex]+G.pendingUpgrades[o.levelIndex]<MAX[o.levelIndex]){
   p.hp--;queueManualUpgrade(o.levelIndex,1);chargeDrive(25);
  }else if(o.id==='safe_refit'){
   p.hp=Math.min(3,p.hp+1);p.shield=Math.min(5,p.shield+1);
  }else if(o.id==='safe_supply'){
-  G.energy=Math.min(6,G.energy+1);G.pulses=Math.min(5,G.pulses+1);
- }else if(o.id==='capsule')G.energy=Math.min(6,G.energy+1);
+  advancePowerMeter(1);G.pulses=Math.min(5,G.pulses+1);
+ }else if(o.id==='capsule')advancePowerMeter(1);
  else if(o.id==='pulse')G.pulses=Math.min(5,G.pulses+1);
  else if(o.id==='shield')p.shield=Math.min(5,p.shield+1);
  else if(o.id==='repair')p.hp=Math.min(3,p.hp+1);
@@ -1114,7 +1135,7 @@ function chooseReward(index){
   G.flowPhase='route';G.transition=2.4;G.routeOffers=[routeOffer(G.stage,0),routeOffer(G.stage,1)];
   saveCheckpoint('route');
  }else openRoute();
- updateHud();showToast(['module','rare_arsenal','storm_gamble'].includes(o.id)?'無料強化券'+(o.id==='rare_arsenal'?'×2':'×1')+' · 装備選択→強化':'REWARD · '+o.name+(synergy?' · '+synergy.name:''));
+ updateHud();showToast(['module','rare_arsenal','storm_gamble'].includes(o.id)?'無料強化券'+(o.id==='rare_arsenal'?'×2':'×1')+' · 右の強化ボタン':'REWARD · '+o.name+(synergy?' · '+synergy.name:''));
 }
 for(let i=0;i<3;i++){
  const b=$('rewardCard'+i);
@@ -1144,7 +1165,7 @@ function chooseRoute(index){
  const opt=G.routeOffers[index];
  if(opt.risk)unlockMedal('risk');G.routeRisk=opt.risk;G.routeHistory.push({stage:G.stage+2,route:opt.name,risk:opt.risk,event:opt.event.id,eventName:opt.event.name,chain:opt.chain});
  G.activeEvent=opt.event;G.eventTriggered=false;G.eventChain=opt.chain;
- G.energy=Math.min(6,G.energy+(opt.risk?1:0));
+ if(opt.risk)advancePowerMeter(1);
  if(opt.risk){G.score+=1000*(G.stage+1);chargeDrive(18)}else G.pulses=Math.min(5,G.pulses+1);
  $('routePanel').classList.remove('open');G.mode='playing';G.flowPhase=null;
  nextStage();
@@ -1457,7 +1478,7 @@ if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
 }
 if(gone||s.x>W+160||s.y<-80||s.y>H+100||s.life<=0)G.shots.splice(i,1)}
 for(let i=G.bullets.length-1;i>=0;i--){const a=G.bullets[i];a.px=a.x;a.py=a.y;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt*(terrainApproaching()?2.2:1);if(circleHit(a.x,a.y,a.size,p.x,p.y,16)){hitPlayer(a.damage);ring(a.x,a.y,27,'#ffc391',.3);G.bullets.splice(i,1);continue}if(!a.grazed&&p.invul<=0&&circleHit(a.x,a.y,a.size,p.x,p.y,53)){a.grazed=true;G.grazes++;if(G.grazes>=20)unlockMedal('graze');G.score+=60;chargeDrive(5);emit(a.x,a.y,2,'#f8e9a5',40);if(G.grazes%10===0)showToast('GRAZE BONUS × '+G.grazes)}if(a.x<-35||a.x>W+35||a.y<-35||a.y>H+35||a.life<=0)G.bullets.splice(i,1)}
-for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='elite'){G.pulses=Math.min(5,G.pulses+1);showToast('RARE · NOVA +1')}else if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{G.energy=Math.min(6,G.energy+1);showToast('カプセル +1');updateHud()}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
+for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt;q.y+=Math.sin(q.t*2+q.phase)*17*dt;if(len(q.x-p.x,q.y-p.y)<pickupMagnetRadius()){const a=Math.atan2(p.y-q.y,p.x-q.x);q.x+=Math.cos(a)*pickupPullSpeed()*dt;q.y+=Math.sin(a)*pickupPullSpeed()*dt}if(circleHit(q.x,q.y,19,p.x,p.y,22)){if(q.type==='elite'){G.pulses=Math.min(5,G.pulses+1);showToast('RARE · NOVA +1')}else if(q.type==='pulse'){G.pulses=Math.min(5,G.pulses+1);showToast('NOVA +1')}else{advancePowerMeter(1);showToast('POWER '+G.energy+'/6')}emit(q.x,q.y,15,'#fffba6',155);tone(510,.15,'triangle',.055,380);G.pickups.splice(i,1)}else if(q.x<-40)G.pickups.splice(i,1)}
 for(let i=G.particles.length-1;i>=0;i--){const q=G.particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(.12,dt);q.vy*=Math.pow(.16,dt);if(q.kind==='shard')q.rot+=q.spin*dt;if(q.life<=0)G.particles.splice(i,1)}if(G.particles.length>620)G.particles.splice(0,G.particles.length-620);
 for(let i=G.rings.length-1;i>=0;i--){const r=G.rings[i];r.t+=dt;r.r=r.max*(r.t/r.life);if(r.t>=r.life)G.rings.splice(i,1)}
 G.uiTime-=dt;if(G.uiTime<=0){updateHud();G.uiTime=.11}}
