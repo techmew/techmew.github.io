@@ -74,8 +74,10 @@ function encounterDirector(){
  const crowd=cl(G.enemies.length/tune.maxEnemies,0,1);
  const bullets=cl(G.bullets.length/55,0,1);
  const recovery=G.directorGrace>0?Math.min(.24,.10+G.directorGrace*.016):0;
- const resilience=(p.hp===3?.05:p.hp===1?-.06:0)+(G.lives===1?-.06:0);
- const pressure=cl(base+phase*.16+resilience-crowd*.22-bullets*.09-recovery,.12,.82);
+ // 34/36: last-life recovery window; patrols and continuous combat remain active.
+ const critical=p.hp<=1&&G.lives<=1;
+ const resilience=(p.hp===3?.05:p.hp===1?-.08:0)+(G.lives===1?-.08:0);
+ const pressure=cl(base+phase*.16+resilience-crowd*.22-bullets*.09-recovery,.12,critical?.52:.82);
  return {pressure,crowd,bullets,recovery,budget:pressure>.59?4:pressure>.32?3:2};
 }
 function nextWaveDelay(){
@@ -1022,10 +1024,20 @@ function rewardOptions(){
  const chosen=roll<chance&&special.length?
   special[mixSeed(salt^0x3c2a19f1,G.stage+127,G.routeRisk+3)%special.length]:null;
  const passive=available.find(o=>o.id.startsWith('passive_'));
+ // 34/36: rescue is a selectable reward, never an automatic grant or upgrade.
+ const critical=p.hp<=1||G.lives<=1;
+ const rescue=critical?(
+  (G.lives<=1?available.find(o=>o.id==='life'):null)||
+  (p.hp<=1?available.find(o=>o.id==='repair'):null)||
+  available.find(o=>o.id==='shield')||
+  available.find(o=>o.id==='life')||
+  available.find(o=>o.id==='repair')
+ ):null;
  const result=passive?[passive]:[];
+ if(rescue&&rescue!==passive)result.push(rescue);
  if(chosen)result.push(chosen);
- for(const o of available){if(result.length>=3)break;if(o!==passive)result.push(o)}
- return result;
+ for(const o of available){if(result.length>=3)break;if(o!==passive&&o!==rescue)result.push(o)}
+ return result.slice(0,3);
 }
 function selectRewardCard(index){
  if(G.mode!=='reward'||index<0||index>=3)return;
