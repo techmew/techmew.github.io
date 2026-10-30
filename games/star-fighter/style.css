@@ -614,3 +614,28 @@ html,body{overscroll-behavior:none}
  content:'▶'!important;position:absolute;top:0;right:1px;padding:0 2px;background:#fff;color:#102639;border-radius:2px;font:900 10px/1.15 system-ui,sans-serif
 }
 #shell .game-frame .upgrade.selected.maxed{opacity:.86!important;filter:grayscale(.35)}
+
+/* Session-only secret debug, never covers ordinary gameplay. */
+#shell .debug-panel[hidden],#shell .debug-status[hidden],#shell .gamepad-status[hidden]{display:none!important}
+#shell .debug-panel{width:min(100%,550px);margin:7px auto;padding:9px 12px;background:#0a2634f5;
+ border:1px solid #72d6bc;border-radius:8px;color:#d4fff1;font-size:11px;text-align:left}
+#shell .debug-panel>strong{display:block;font-size:12px;letter-spacing:.7px;margin-bottom:6px}
+#shell .debug-controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#shell .debug-controls label{font-size:10px;font-weight:800;color:#a8e5dd}
+#shell .debug-controls select,#shell .debug-controls button{min-height:34px;min-width:0;max-width:100%;
+ padding:5px 8px;border:1px solid #4d8b94;border-radius:5px;background:#102d3f;color:#f2ffff;font-size:11px;font-weight:700}
+#shell .debug-controls select{flex:1 1 105px}
+#shell .debug-controls button{flex:1 1 155px;background:#215653;border-color:#83d7bf}
+#shell .debug-panel small{display:block;color:#a6cecc;margin-top:6px;line-height:1.45}
+#shell .debug-status{position:absolute;z-index:8;left:10px;top:62px;color:#baffdf;background:#0a3029c7;
+ border:1px solid #50a88d;border-radius:3px;padding:2px 5px;font:800 9px system-ui,sans-serif;pointer-events:none}
+#shell .gamepad-status{color:#9deacb;font-weight:700;font-size:10px}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:430px){
+ #shell .debug-panel{padding:4px 8px;margin:3px auto;max-height:33dvh;overflow-y:auto}
+ #shell .debug-controls select,#shell .debug-controls button{min-height:27px;font-size:10px}
+ #shell .debug-panel small{font-size:9px}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ #shell .debug-panel{max-height:32dvh;overflow-y:auto;padding:7px}
+ #shell .debug-controls{gap:4px}
+}
