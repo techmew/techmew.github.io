@@ -115,6 +115,13 @@ const SYNERGIES=[
 ];
 const synergyActive=i=>G.levels[SYNERGIES[i].weapon]>0&&passiveRank(SYNERGIES[i].passive)>0;
 const synergySummary=()=>SYNERGIES.filter((s,i)=>synergyActive(i)).map(s=>s.name).join(' / ');
+/* Boss and pilot are invulnerable only in the optional debug boss duel. */
+const invulnerablePracticeBoss=()=>G.debugMode===true&&G.debugBossOnly===true;
+function damageBoss(b,damage){
+ if(!b||!Number.isFinite(damage)||damage<=0)return;
+ if(invulnerablePracticeBoss()){b.hp=b.maxHp;return}
+ b.hp-=damage;
+}
 function applyShotSynergy(shot,target){
  if(shot.kind==='laser'&&synergyActive(1)&&!shot.driveCharged){
   shot.driveCharged=true;chargeDrive(.7*passiveRank(2));
@@ -123,7 +130,7 @@ function applyShotSynergy(shot,target){
   shot.splashed=true;
   const rank=passiveRank(4),radius=65+12*rank,damage=10+8*rank;
   for(const e of G.enemies)if(e!==target&&circleHit(shot.x,shot.y,radius,e.x,e.y,20))e.hp-=damage;
-  if(G.boss&&G.boss!==target&&circleHit(shot.x,shot.y,radius,G.boss.x-53,G.boss.y,65))G.boss.hp-=Math.round(damage*.65);
+  if(G.boss&&G.boss!==target&&circleHit(shot.x,shot.y,radius,G.boss.x-53,G.boss.y,65))damageBoss(G.boss,Math.round(damage*.65));
   ring(shot.x,shot.y,radius,'#ffa76e',.26);
  }
 }
@@ -411,12 +418,7 @@ function startFreshRun(){seedInput.value='';startGame()}
 function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;G.debugBossOnly=false;G.debugBossClear=false;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
 function pause(){
  cancelCombatPresses();
- if(G.mode==='paused'&&G.debugMode&&G.debugBossOnly&&G.debugBossClear){
-  const stage=G.stage,risk=G.routeRisk;G.mode='playing';
-  if(!prepareDebugBoss(stage,risk)){G.mode='paused';return}
-  hideOverlay();last=performance.now();
-  if(sound&&bgm){bgm.setEnabled(true);bgm.start()}
- }else if(G.mode==='playing'){
+ if(G.mode==='playing'){
   G.mode='paused';resetStick();showOverlay('pause');bgm?.stop();
  }else if(G.mode==='paused'){
   G.mode='playing';hideOverlay();last=performance.now();
@@ -657,12 +659,12 @@ function pulse(){
  p.invul=Math.max(p.invul,.65);
  ring(p.x,p.y,1250,'#a6faff',.75);ring(p.x,p.y,580,'#ffffff',.48);emit(p.x,p.y,54,'#8bf4ff',420);sideNovaButton.animate?.([{filter:'brightness(2.2)'},{filter:'brightness(1)'}],{duration:240,easing:'ease-out'});
  G.enemies.forEach(e=>{e.hp-=Math.round(75*(1+.30*passiveRank(4)));emit(e.x,e.y,7,'#ffca81',160)});
- if(G.boss)G.boss.hp-=Math.round(110*(1+.30*passiveRank(4)));
+ if(G.boss)damageBoss(G.boss,Math.round(110*(1+.30*passiveRank(4))));
  tone(120,.8,'sawtooth',.14,800);showToast('NOVA BURST');updateHud();
 }
 function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');const activeIndex=powerMeterIndex();
  G.selected=Math.max(0,activeIndex);
- ui.meter.textContent=G.energy>0?'POWER '+G.energy+'/6':activeIndex>=0?'無料強化券':'POWER 待機';$('debugStatus').hidden=!G.debugMode;
+ ui.meter.textContent=G.energy>0?'POWER '+G.energy+'/6':activeIndex>=0?'無料強化券':'POWER 待機';$('debugStatus').hidden=!G.debugMode;$('debugStatus').textContent=G.debugMode?(G.debugBossOnly?'DEBUG · 双方無敵':'DEBUG · 無敵'):'';
  ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'カプセルで点灯が1つ右へ進む';
  ui.upgrades.forEach((b,i)=>{
   const lit=i===activeIndex,ready=lit&&G.levels[i]<MAX[i];
@@ -688,7 +690,7 @@ function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.bes
  if(novaInfo.textContent!==nextNova)novaInfo.textContent=nextNova;
  if(equipInfo.textContent!==nextEquip)equipInfo.textContent=nextEquip;
  sideNovaButton.setAttribute('aria-label','ノヴァ · '+nextNova);
- sideEquipButton.setAttribute('aria-label','強化 · '+(activeIndex<0?'カプセル待ち':PNAMES[activeIndex])+' · '+nextEquip);ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'');ui.bossBar.style.width=cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
+ sideEquipButton.setAttribute('aria-label','強化 · '+(activeIndex<0?'カプセル待ち':PNAMES[activeIndex])+' · '+nextEquip);ui.boss.classList.toggle('active',!!G.boss);if(G.boss){ui.bossName.textContent=G.boss.name+(G.boss.phase?' · RAGE':'')+(invulnerablePracticeBoss()?' · ∞':'');ui.bossBar.style.width=invulnerablePracticeBoss()?'100%':cl(G.boss.hp/G.boss.maxHp*100,0,100)+'%'}}
 function ring(x,y,max,color,life=.6){G.rings.push({x,y,r:4,max,color,life,t:0})}
 function emit(x,y,num,color,power=160){for(let i=0;i<num;i++){const a=R(0,TAU),s=R(power*.15,power);G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:R(.2,.85),maxLife:.85,size:R(1.2,4.4),color,glow:Math.random()>.55})}}
 function explosion(x,y,r=32){emit(x,y,Math.round(r*.85),'#ffb66c',r*7);emit(x,y,Math.round(r*.4),'#70dcff',r*4);ring(x,y,r*3,'#ffbd88');G.shake=Math.min(25,G.shake+r*.12);tone(R(70,115),.2,'sawtooth',.038,-50)}
@@ -1414,20 +1416,8 @@ function triggerRouteEvent(){
 }
 
 function stageClear(){
- if(G.debugMode&&G.debugBossOnly){
-  G.boss=null;G.bossDone=true;G.debugBossClear=true;
-  G.pendingWave=null;G.terrain=null;G.enemies=[];G.bullets=[];G.shots=[];G.pickups=[];
-  G.transitioning=false;G.transition=0;G.flowPhase=null;
-  G.mode='paused';resetStick();bgm?.stop();showOverlay('pause');
-  const inner=ui.overlay.querySelector('.overlay-inner');
-  inner.querySelector('.eyebrow').textContent='DEBUG · BOSS PRACTICE';
-  inner.querySelector('.title-mark').innerHTML='<span>BOSS</span><strong>CLEAR</strong>';
-  inner.querySelector('.subtitle').textContent='撃破成功 · 無敵練習';
-  inner.querySelector('.intro').textContent='再戦するか、下のデバッグメニューから別のボスを選択';
-  ui.start.innerHTML='同じボスと再戦 <span>▶</span>';
-  $('sidePauseBtn').innerHTML='▶ <span>再戦</span>';tone(540,.32,'triangle',.06,320);
-  updateHud();return;
- }
+ // Practice never pays out a clear or enters a subsequent stage.
+ if(invulnerablePracticeBoss())return;
  TROPHIES.sectorClear();
  if(G.stage===0)unlockMedal('first');
  G.pendingWave=null;G.terrain=null;G.boss=null;G.bossDone=true;G.transitioning=true;G.bullets=[];
@@ -1627,7 +1617,13 @@ if(e.aiWarn<=0&&!terrainApproaching())coordinateVolley(e);
 e.fire-=dt;
 if(e.aiWarn<=0&&!terrainApproaching()&&e.fire<0&&e.x<W-35&&e.x>80){if(!EXTRA?.trigger(e,p))fireEnemy(e);e.fire=Math.max(.9,(GR(e.type==='turret'?1.15:1.65,e.type==='turret'?1.65:2.65)-G.stage*.065)*routeProfile().fireInterval*(G.directorGrace>0?1.22:1))}if(circleHit(p.x,p.y,18,e.x,e.y,EXTRA?.stats[e.type]?.ship??(e.type==='tank'||e.type==='carrier'?36:21)))hitPlayer(1);if(e.x<-140){G.enemies.splice(i,1);continue}if(e.hp<=0){destroyEnemy(i);continue}}
 let b=G.boss;if(b){
-b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*(b.variant==='dinosaur'?.85:1.15))*(b.variant==='octopus'?58:G.stage===2?95:G.stage===7?54:68);
+const practice=invulnerablePracticeBoss();
+if(practice)b.hp=b.maxHp;
+b.t+=dt;
+// Loop through attack phases every minute in endless dual-invincible practice.
+const practiceCycle=practice?b.t%60:0;
+if(practice&&practiceCycle<18&&b.phase>0){b.phase=0;b.charge=0;b.beam=0;b.fire=Math.min(1.6,b.fire);G.bullets=[]}
+b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*(b.variant==='dinosaur'?.85:1.15))*(b.variant==='octopus'?58:G.stage===2?95:G.stage===7?54:68);
  // 24/36: never fire the first salvo on the frame the boss enters view.
  // A visible muzzle cue precedes the opening attack on every route/variant.
  if(!b.entryReady){
@@ -1648,11 +1644,11 @@ b.t+=dt;b.x+=(930-b.x)*Math.min(1,dt*1.25);b.y=H/2+Math.sin(b.t*(b.variant==='di
   b.weakOpen=cycle>=openAt&&cycle<closeAt;
   b.weakWarn=cycle>=openAt-.65&&cycle<openAt;
  }
-if(G.stage===7&&b.phase===1&&b.hp<=b.maxHp*.32){
+if(G.stage===7&&b.phase===1&&(practice?practiceCycle>=36:b.hp<=b.maxHp*.32)){
   b.phase=2;b.fire=1.45;G.bullets=[];screenPulse=.38;
   ring(b.x-75,b.y,190,'#ffe4ad',.6);showToast('FINAL PHASE');tone(240,.55,'sawtooth',.075,-170);
  }
- if(!b.phase&&b.hp<=b.maxHp*(G.stage===7?.68:.55)){
+ if(!b.phase&&(practice?practiceCycle>=18:b.hp<=b.maxHp*(G.stage===7?.68:.55))){
  b.phase=1;b.fire=1.35;G.bullets=[];screenPulse=.34;
  ring(b.x-75,b.y,192,'#ff94b4',.6);
  emit(b.x-80,b.y,40,'#f7a4aa',240);
@@ -1662,9 +1658,9 @@ if(G.stage===7&&b.phase===1&&b.hp<=b.maxHp*.32){
 }
 if(b.charge>0){b.charge-=dt;if(b.charge<=0){b.beam=.62;screenPulse=.2;tone(105,.4,'sawtooth',.07,-70)}}
 if(b.beam>0){b.beam-=dt;if(p.x<b.x-75&&Math.abs(p.y-b.beamY)<27)hitPlayer(1)}
-b.fire-=dt;if(b.fire<=0)bossAttack(b);
+b.fire-=dt*(practice?1.25:1);if(b.fire<=0)bossAttack(b);
 if(circleHit(p.x,p.y,19,b.x-80,b.y,75))hitPlayer(1);
-if(b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
+if(!practice&&b.hp<=0){explosion(b.x-60,b.y,170);wreckFragments({x:b.x-60,y:b.y,type:'boss',phase:b.t});emit(b.x,b.y,180,'#ffe3a6',800);addScore(12000*(G.stage+1));stageClear()}
 }
 for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.px=s.x;s.py=s.y;s.life-=dt;if(s.kind==='drone')steerDrone(s,dt);if(s.kind==='missile'){let target=G.boss||G.enemies.filter(e=>e.x>s.x-30).sort((a,b)=>len(a.x-s.x,a.y-s.y)-len(b.x-s.x,b.y-s.y))[0];if(target){const a=Math.atan2(target.y-s.y,target.x-s.x);s.vx+=(Math.cos(a)*550-s.vx)*Math.min(1,dt*2.9);s.vy+=(Math.sin(a)*550-s.vy)*Math.min(1,dt*2.9)}else{s.vx+=(650-s.vx)*dt;s.vy*=.96}if(Math.random()>.25)G.particles.push({x:s.x-7,y:s.y,vx:-90,vy:R(-25,25),life:.3,maxLife:.3,size:3,color:'#ffbd6e',glow:true})}s.x+=s.vx*dt;s.y+=s.vy*dt;
 let gone=false;for(let j=G.enemies.length-1;j>=0;j--){const e=G.enemies[j],rad=EXTRA?.stats[e.type]?.shot??(e.type==='tank'||e.type==='carrier'?39:23);if(circleHit(s.x,s.y,s.kind==='laser'?8:5,e.x,e.y,rad)){e.hp-=s.dmg;e.hitFlash=.14;e.recoil=Math.min(8,(e.recoil||0)+Math.min(4,s.dmg*.12));applyShotSynergy(s,e);emit(s.x,s.y,3,'#8edfff',72);s.pierce--;if(e.hp<=0)destroyEnemy(j);if(s.pierce<=0){gone=true;break}}}
@@ -1676,7 +1672,7 @@ if(!gone&&G.boss&&circleHit(s.x,s.y,7,G.boss.x-53,G.boss.y,G.stage>=2?110:100)){
   (G.stage===1&&circleHit(s.x,s.y,7,b.x+(b.variant==='octopus'?-39:-20),b.y,34))||
   (G.stage===2&&circleHit(s.x,s.y,7,b.x+(b.variant==='dinosaur'?-137:-35),b.y+(b.variant==='dinosaur'?-56:0),b.variant==='dinosaur'?26:32))
  );
- b.hp-=s.dmg*(weak?(G.stage===0?1.65:G.stage===2?(b.variant==='dinosaur'?1.55:1.6):1.5):1);
+ damageBoss(b,s.dmg*(weak?(G.stage===0?1.65:G.stage===2?(b.variant==='dinosaur'?1.55:1.6):1.5):1));
  applyShotSynergy(s,b);emit(s.x,s.y,ri(2,4),weak?'#9ffff1':'#ffca82',95);
  s.pierce--;if(s.pierce<=0)gone=true
 }
