@@ -48,7 +48,7 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];keys.clear();attackTouch=false;joy.x=0;joy.y=0;guideCache=null;huntTarget=null;
+ mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0};
  for(let i=0;i<26;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -267,7 +267,7 @@ function getObjective(){
 }
 function finish(won=false){
  if(!P)return;
- mode=won?"clear":"over";
+ resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
  if(totalScore>best){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
  $("result-kicker").textContent=won?"TOKYO RECLAIMED":"SURVIVAL REPORT";
@@ -589,8 +589,9 @@ function drawCreature(o,isPlayer){
  const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
  const gait=(isPlayer?o.steps:o.step)||0;
  const motion=isPlayer&&P.dashTime>0?1.5:clamp(Math.hypot(o.vx||0,o.vy||0)/Math.max(1,s.speed),0,1.5);
- const pace=Math.sin(gait*.9)*r*.12*motion;
- const tailSway=Math.sin(gait*.62)*r*.22*motion;
+ const stride=t==="cat"?1.46:t==="fox"?1.08:t==="wolf"?.62:.9;
+ const pace=Math.sin(gait*stride)*r*(t==="cat"?.19:t==="fox"?.15:t==="wolf"?.09:.12)*motion;
+ const tailSway=Math.sin(gait*(t==="cat"?.88:t==="fox"?.55:.62))*r*(t==="cat"?.29:t==="fox"?.19:.15)*motion;
  const oval=(x,y,w,h,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,w),Math.max(.5,h),rot,0,TWO);ctx.fill();
  };
@@ -602,8 +603,21 @@ function drawCreature(o,isPlayer){
  ctx.save();ctx.translate(o.x,o.y);
  oval(4,9,r*1.2,r*.55,"#031011a8");
  ctx.rotate(o.dir||0);
- ctx.translate(0,Math.abs(Math.sin(gait*.9))*motion*r*.045);
- if(isPlayer){ctx.scale(1.14,1.14);if(P.pounceTime>0)ctx.scale(1.16,.86)}
+ const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.085:t==="cat"?Math.abs(Math.sin(gait*1.46))*.028:t==="wolf"?Math.abs(Math.sin(gait*.62))*.017:Math.abs(Math.sin(gait*.9))*.045;
+ ctx.translate(0,bound*motion*r);
+ if(isPlayer){
+  ctx.scale(1.14,1.14);
+  if(P.pounceTime>0)ctx.scale(1.16,.86);
+  else if(P.pendingStrike){
+   if(t==="cat"){ctx.translate(-r*.10,0);ctx.scale(.95,1.10)}
+   else if(t==="wolf"){ctx.translate(-r*.09,0);ctx.scale(.91,1.13)}
+   else{ctx.translate(-r*.13,0);ctx.scale(1.10,.87)}
+  }else if(P.swing>0){
+   if(t==="cat")ctx.scale(1.12,.88);
+   else if(t==="wolf")ctx.scale(1.20,1.12);
+   else ctx.scale(1.13,.92);
+  }
+ }
  if(t==="pigeon"){
   oval(-r*.3,0,r*.8,r*.58,fur);
   oval(-r*.48,-r*.38+pace,r*.63,r*.3,"#526d77",-.35);
@@ -862,6 +876,36 @@ function drawGoalGuide(){
  ctx.fillStyle="#fff0ce";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="800 11px sans-serif";ctx.shadowColor="#000";ctx.shadowBlur=8;
  ctx.fillText((point.blocked?"経路再探索":point.detour?"迂回 ▲ ":"▲ ")+Math.round(dist(P,goal)),0,29);ctx.restore();
 }
+function drawIncomingWarning(){
+ if(!P||mode!=="play")return;
+ let threat=null,best=Infinity;
+ for(const m of mobs){
+  if(m.hp<=0||species[m.type].prey||m.windup<=0)continue;
+  const distance=dist(P,m);
+  if(distance>235||lineBlocked(m,P))continue;
+  const facing=Math.atan2(P.y-m.y,P.x-m.x);
+  const delta=Math.atan2(Math.sin(facing-m.strikeDir),Math.cos(facing-m.strikeDir));
+  if(Math.abs(delta)>(m.type==="dog"?1.2:.8))continue;
+  const urgency=m.windup+distance*.002;
+  if(urgency<best){best=urgency;threat=m}
+ }
+ if(!threat)return;
+ const angle=Math.atan2(threat.y-P.y,threat.x-P.x);
+ const px=P.x-cam.x,py=P.y-cam.y;
+ const pos=safeGuidePosition(clamp(px+Math.cos(angle)*(P.r+48),34,vw-34),clamp(py+Math.sin(angle)*(P.r+48),74,vh-74));
+ const urgent=threat.windup<.29;
+ ctx.save();
+ ctx.strokeStyle=urgent?"#fff2a0":"#ff9c76";ctx.lineWidth=urgent?4:2.5;
+ ctx.beginPath();ctx.arc(px,py,P.r+15,-.55,.55);ctx.stroke();
+ ctx.translate(pos.x,pos.y);ctx.rotate(angle+Math.PI/2);
+ ctx.fillStyle=urgent?"#ffe09a":"#ff856c";
+ ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(-12,9);ctx.lineTo(12,9);ctx.closePath();ctx.fill();
+ ctx.restore();
+ ctx.save();ctx.textAlign="center";ctx.font="900 13px sans-serif";ctx.fillStyle=urgent?"#fff0ab":"#ffc1a7";
+ ctx.shadowColor="#000";ctx.shadowBlur=6;
+ ctx.fillText(urgent?"回避！":"危険",pos.x,pos.y-22);
+ ctx.restore();
+}
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh);
@@ -941,6 +985,7 @@ function drawScene(){
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.senseTime>0){ctx.strokeStyle="#89eabb74";ctx.lineWidth=1;ctx.beginPath();ctx.arc(vw/2,vh/2,78,0,TWO);ctx.stroke()}
  drawGoalGuide();
+ drawIncomingWarning();
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
@@ -949,7 +994,7 @@ function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
  if(e.repeat&&["shift","q","p","escape","f"].includes(k))return;
- keys.add(k);
+ if(mode==="play")keys.add(k);
  if(k==="shift"||k==="k")act("dash");
  if(k==="q")act("sense");if(k==="r")act("instinct");
  if(k==="e")act("eat");
@@ -957,15 +1002,19 @@ function keyDown(e){
  if(k==="f")fullScreen();
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
-window.addEventListener("blur",()=>{keys.clear();attackTouch=false;if(mode==="play"){mode="pause";show("pause")}});
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){mode="pause";show("pause")}});
-function togglePause(){if(mode==="play"){mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
+window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
+function resetControls(){
+ keys.clear();attackTouch=false;joy.id=null;joy.x=0;joy.y=0;
+ if(knob)knob.style.transform="translate(0,0)";
+}
+function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));sound(400,.08,"triangle",.025)}));
 $("start-btn").addEventListener("click",start);
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
-$("quit-btn").addEventListener("click",()=>{mode="menu";show("menu")});
+$("quit-btn").addEventListener("click",()=>{resetControls();mode="menu";show("menu")});
 $("retry-btn").addEventListener("click",start);
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
@@ -981,12 +1030,12 @@ function updateStick(e){
  joy.x=clamp(dx/lim,-1,1);joy.y=clamp(dy/lim,-1,1);const l=Math.hypot(joy.x,joy.y);if(l>1){joy.x/=l;joy.y/=l}
  knob.style.transform="translate("+(joy.x*lim)+"px,"+(joy.y*lim)+"px)";
 }
-stick.addEventListener("pointerdown",e=>{e.preventDefault();joy.id=e.pointerId;stick.setPointerCapture(e.pointerId);updateStick(e)});
-stick.addEventListener("pointermove",e=>{if(e.pointerId===joy.id)updateStick(e)});
+stick.addEventListener("pointerdown",e=>{if(mode!=="play")return;e.preventDefault();joy.id=e.pointerId;stick.setPointerCapture(e.pointerId);updateStick(e)});
+stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",()=>{joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"});
 for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["sense-touch","sense"],["eat-touch","eat"],["instinct-touch","instinct"]]){
- const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();b.classList.add("down");b.setPointerCapture(e.pointerId);if(action==="attack")attackTouch=true;act(action)});
+ const b=$(id);b.addEventListener("pointerdown",e=>{if(mode!=="play")return;e.preventDefault();b.classList.add("down");b.setPointerCapture(e.pointerId);if(action==="attack")attackTouch=true;act(action)});
  const end=()=>{b.classList.remove("down");if(action==="attack")attackTouch=false};
  b.addEventListener("pointerup",end);b.addEventListener("pointercancel",end);b.addEventListener("lostpointercapture",end);
 }
