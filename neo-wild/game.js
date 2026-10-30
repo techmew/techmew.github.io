@@ -86,7 +86,7 @@ function spawnMob(initial=false,preyOnly=false){
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
 }
 function spawnFood(){
@@ -207,7 +207,7 @@ function resolveAttack(){
    const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
-   m.windup=0;m.chargeTime=0;m.stun=stealthHit?.92:dive?.82:P.type==="wolf"?.66:P.type==="cat"?.23:.41;m.attack=Math.max(m.attack,.45);hit++;
+   m.windup=0;m.chargeTime=0;m.swing=0;m.stun=stealthHit?.92:dive?.82:P.type==="wolf"?.66:P.type==="cat"?.23:.41;m.attack=Math.max(m.attack,.45);hit++;
    if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
@@ -442,7 +442,7 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
-  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
+  const s=species[m.type];m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    let vx=0,vy=0;
@@ -489,6 +489,7 @@ function update(dt){
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
+     m.swing=.22; // Physical strike pose even if the attack misses.
      if((m.type==="boar"||m.type==="alpha")&&m.stun<=0){
       m.chargeTime=m.type==="alpha"?.24:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
       label(m.x,m.y-m.r-24,m.type==="alpha"?"飛びかかり！":"突進！","#ffbf81");
@@ -725,9 +726,11 @@ function drawCreature(o,isPlayer){
  const gait=(isPlayer?o.steps:o.step)||0;
  const motion=isPlayer&&P.dashTime>0?1.5:clamp(Math.hypot(o.vx||0,o.vy||0)/Math.max(1,s.speed),0,1.5);
  const attackPrep=isPlayer&&o.pendingStrike?clamp(1-o.windup/Math.max(.001,Math.min(.15,o.rate*.38)),0,1):(!isPlayer&&o.windup>0?clamp(1-o.windup/Math.max(.01,o.windupTotal||.53),0,1):0);
- const attackSnap=isPlayer?clamp((o.swing||0)/.18,0,1):0;
+ const swingDuration=isPlayer?.18:.22,swingLeft=clamp(o.swing||0,0,swingDuration);
+ const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
- const attackReach=attackSnap+attackLeap;
+ const attackCharge=!isPlayer&&(t==="boar"||t==="alpha")?clamp((o.chargeTime||0)/(t==="alpha"?.24:.36),0,1)*.55:0;
+ const attackReach=Math.max(attackSnap,attackCharge)+attackLeap;
  const stride=t==="cat"?1.46:t==="fox"?1.08:t==="wolf"?.62:.9;
  const pace=Math.sin(gait*stride)*r*(t==="cat"?.19:t==="fox"?.15:t==="wolf"?.09:.12)*motion;
  const tailSway=Math.sin(gait*(t==="cat"?.88:t==="fox"?.55:.62))*r*(t==="cat"?.29:t==="fox"?.19:.15)*motion;
@@ -806,7 +809,7 @@ function drawCreature(o,isPlayer){
   ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68+tailSway,-r*2.25,-r*.26+tailSway);ctx.stroke();
   for(const sign of [-1,1]){
    oval(-r*.44,sign*r*.48+pace*sign,r*.2,r*.28,fur);
-   oval(r*.36,sign*r*.44-pace*sign,r*.19,r*.27,fur);
+   oval(r*(.36+attackReach*(sign<0?1:.52)),sign*r*(.44-attackReach*.10)-pace*sign,r*.19,r*.27,fur);
   }
   oval(-r*.14,0,r*.79,r*.56,fur);
   for(const q of [-.42,-.06,.3]){
@@ -828,7 +831,7 @@ function drawCreature(o,isPlayer){
   ctx.bezierCurveTo(-r*2.9,r*.15+tailSway,-r*1.65,r*.71,-r*.63,r*.38);ctx.closePath();ctx.fill();
   triangle([-r*2.18,-r*.47+tailSway,-r*2.62,-r*.21+tailSway,-r*2.29,r*.15+tailSway],"#fff2d7");
   for(const side of [-1,1])for(const px of [-.47,.3]){
-   oval(px*r,side*r*.52+pace*side,r*.16,r*.31,"#292a26");
+   oval((px+(px>0?attackReach*.62:0))*r,side*r*(.52-(px>0?attackReach*.10:0))+pace*side,r*.16,r*.31,"#292a26");
   }
   oval(-r*.1,0,r*.87,r*.57,fur);
   oval(r*.23,0,r*.5,r*.4,light);
@@ -841,7 +844,7 @@ function drawCreature(o,isPlayer){
   // 犬・狼・アルファは胴と肩が大きい。狼は立ち耳と鬣、犬は垂れ耳。
   const wolf=t==="wolf"||t==="alpha",alpha=t==="alpha";
   ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.62,-r*.31);ctx.lineTo(-r*1.54,-r*.64);ctx.lineTo(-r*1.7,-r*.33+tailSway);ctx.lineTo(-r*1.4,r*.39);ctx.lineTo(-r*.62,r*.33);ctx.fill();
-  for(const side of [-1,1])for(const px of [-.44,.43])oval(px*r,side*r*.62+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
+  for(const side of [-1,1])for(const px of [-.44,.43])oval((px+(px>0?attackReach*.45:0))*r,side*r*(.62-(px>0?attackReach*.10:0))+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
   oval(-r*.14,0,r*.99,r*.74,fur);
   oval(r*.1,-r*.04,r*.66,r*.57,wolf?"#576c73":"#8d6c51");
   if(wolf)for(const side of [-1,1])for(let k=0;k<3;k++)
@@ -861,13 +864,13 @@ function drawCreature(o,isPlayer){
  if(attackPrep>0||attackReach>0){
   if(t==="cat"){
    const side=attackSnap>.44?-1:1;
-   oval(r*(.36+attackReach*.86),side*r*(.42-attackReach*.19),r*.22,r*.20,fur,-side*attackReach*.55);
-   if(attackReach>.15)triangle([r*(.51+attackReach*.91),side*r*.34,r*(.73+attackReach*.94),side*r*.24,r*(.52+attackReach*.9),side*r*.13],"#eee7d5");
+   // The claw follows the articulated foreleg; no detached fifth paw.
+   if(attackReach>.15)triangle([r*(.50+attackReach),side*r*.34,r*(.70+attackReach),side*r*.24,r*(.51+attackReach),side*r*.13],"#eee7d5");
   }else if(t==="fox"){
-   for(const side of [-1,1])oval(r*(.29+attackReach*.71),side*r*(.52-attackReach*.10),r*.19,r*.25,"#292a26",side*attackReach*.2);
+   // Existing forelegs extend; the mouth opens during contact.
    oval(r*(1.1+attackReach*.36),0,r*.39,r*(.11+attackReach*.08),"#f4ead7");
   }else if(t==="wolf"||t==="alpha"||t==="dog"){
-   for(const side of [-1,1])oval(r*(.4+attackReach*.41),side*r*(.62-attackReach*.13),r*.29,r*.29,fur);
+   // Existing forelegs extend; the lower jaw opens during contact.
    oval(r*(1.11+attackReach*.44),r*(.08+attackReach*.15),r*.35,r*(.09+attackReach*.14),"#222a2a");
    oval(r*(1.16+attackReach*.43),-r*.04,r*.39,r*.14,light);
   }
