@@ -4,6 +4,7 @@ const $ = id => document.getElementById(id);
 const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
 const mini=$("minimap"),mc=mini.getContext("2d");
+const bigMap=$("world-map-canvas"),bm=bigMap.getContext("2d");
 const TWO=Math.PI*2, WORLD={w:4200,h:2400};
 const animals={
  fox:{name:"アカギツネ",hp:110,speed:205,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
@@ -59,7 +60,7 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ mode="play";show("");$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0};
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  spawnMob(false,true); // Guarantee one huntable species at a reasonable distance.
@@ -634,6 +635,50 @@ function syncHUD(hour){
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
  $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="cat"&&P.abilityTime>0?20:28)?".5":"1";$("sense-touch").style.opacity=P.sense>0?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
 }
+// Map only opens when requested. Shows places worth visiting without ground arrows.
+function drawWorldMap(){
+ if(!P)return;
+ const width=bigMap.width,height=bigMap.height,X=x=>x/WORLD.w*width,Y=y=>y/WORLD.h*height;
+ bm.clearRect(0,0,width,height);bm.fillStyle="#142b28";bm.fillRect(0,0,width,height);
+ const zones=["封鎖区","廃線跡","旧新宿","緑化区"];
+ for(let k=0;k<4;k++){
+  bm.fillStyle=k%2?"#172a29":"#203831";
+  bm.fillRect(k*width/4,0,width/4,height);
+  bm.fillStyle="#acc3b6";bm.font="13px sans-serif";bm.textAlign="center";
+  bm.fillText(zones[k],(k+.5)*width/4,24);
+ }
+ bm.fillStyle="#586666";
+ for(const x of roadsX)bm.fillRect(X(x-75),0,Math.max(2,X(150)),height);
+ for(const y of roadsY)bm.fillRect(0,Y(y-75),width,Math.max(2,Y(150)));
+ for(const b of buildings){
+  bm.fillStyle=b.roofZ?"#8277a4":"#394b4e";
+  bm.fillRect(X(b.x),Y(b.y),Math.max(2,X(b.w)),Math.max(2,Y(b.h)));
+ }
+ const mark=(x,y,color,r=6)=>{
+  bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
+  bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
+ };
+ mark(SAFE_DEN.x,SAFE_DEN.y,"#9ee5ac",8);
+ mark(STATION.x,STATION.y,"#e7c57b",7);
+ bm.font="bold 12px sans-serif";bm.textAlign="left";bm.fillStyle="#e9f7e3";
+ bm.fillText("休息地",X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
+ bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
+ // Show nearby resources and predators, not every hidden creature in Tokyo.
+ for(const q of carcasses)if(q.ttl>0&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
+ for(const m of mobs)if(m.hp>0&&!species[m.type].prey&&dist(P,m)<650)mark(m.x,m.y,"#eb847b",4);
+ const obj=getObjective();if(obj&&mission!==3)mark(obj.x,obj.y,"#f1d885",4);
+ mark(P.x,P.y,"#f7fbf4",8);
+ bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
+ bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
+ bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
+ const area=districts[Math.min(3,Math.floor(P.x/(WORLD.w/4)))];
+ $("map-place").textContent="現在地："+area+"　休息地まで約"+Math.round(dist(P,SAFE_DEN));
+}
+function toggleWorldMap(){
+ if(mode==="play"){
+  resetControls();mode="map";$("world-map").classList.remove("hidden");drawWorldMap();
+ }else if(mode==="map"){mode="play";$("world-map").classList.add("hidden")}
+}
 function drawMini(){
  if(!P)return;
  const w=mini.width,h=mini.height;
@@ -1203,13 +1248,13 @@ const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash
 function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
- if(e.repeat&&["shift","q","p","escape","f","l"].includes(k))return;
+ if(e.repeat&&["shift","q","p","escape","f","l","m"].includes(k))return;
  if(mode==="play")keys.add(k);
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="q")act("sense");if(k==="r")act("instinct");
  if(k==="e")act("eat");
  if(k==="p"||k==="escape")togglePause();
- if(k==="f")fullScreen();
+ if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
@@ -1230,6 +1275,8 @@ $("retry-btn").addEventListener("click",start);
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("sound-btn").addEventListener("click",()=>{soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×"});
+$("map-btn").addEventListener("click",toggleWorldMap);
+$("map-close").addEventListener("click",toggleWorldMap);
 document.querySelectorAll("[data-upgrade]").forEach(b=>b.addEventListener("click",()=>{if(mode!=="upgrade")return;const up=b.dataset.upgrade;
  if(up==="fang")P.damage=Math.round(P.damage*1.25);else if(up==="fleet")P.speed=Math.round(P.speed*1.15);else{P.maxHp+=30;P.hp=Math.min(P.maxHp,P.hp+65)}
  mode="play";show("");notify("適応完了 / "+b.querySelector("b").textContent);sound(750,.26,"triangle",.05)
