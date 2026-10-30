@@ -69,7 +69,7 @@
   </select>
  </div>
  <div class="debug-controls"><button id="debugLaunch" type="button">無敵で開始／ステージ移動</button></div>
- <small>ボス対決：全15種類から選択して即戦闘。撃破後は同じボスに再戦するか、別のボスに変更できます。無敵デバッグでは記章・トロフィー・スコア・セーブに反映しません。</small>
+ <small>ボス対決：全15種類から選択して即戦闘。自機もボスも無敵。攻撃と各形態を繰り返す持続練習モードです。一時停止から同じボスを再開・最初から再戦・別ボス選択ができます。通常の記録には反映しません。</small>
 </section><div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再出撃 ↻</button></div>
  <section class="run-result" id="runResult" aria-label="今回の戦績" hidden>
  <div class="run-result-top"><div><small>SCORE</small><strong id="resultScore">0</strong></div><div><small>BEST</small><strong id="resultBest">0</strong></div><div><small>SECTOR</small><strong id="resultSector">1 / 8</strong></div></div>
@@ -141,7 +141,7 @@
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
 <script src="./trophies.js?v=trophies-20261030-1"></script>
-<script src="./game.js?v=debug-boss-only-20261030-1"></script>
+<script src="./game.js?v=debug-dual-invincible-20261030-1"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
