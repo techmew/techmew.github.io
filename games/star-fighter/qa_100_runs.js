@@ -234,7 +234,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
      G.pendingWave=null;
      q.advanceTerrain(2.1);
      ok(t.phase==='active','terrain never activated');
-     G.player.y=[165,337,509][t.safeLane];G.player.invul=0;G.player.hp=3;
+     G.player.y=[165,337,509][t.safeLane];G.player.invul=0;G.player.hp=G.player.maxHp;
      t.x=G.player.x+1;
      q.advanceTerrain(.016);
      ok(G.player.hp===G.player.maxHp,'terrain damaged ship in safe lane');
