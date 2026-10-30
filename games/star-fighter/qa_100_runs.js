@@ -746,7 +746,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(found,'passive never offered '+i);
  }
  G.passives=[2,2,2,2,2,2];
- G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=3;G.lives=3;G.driveCharge=100;G.levels=[2,3,2,2,3,3];G.pendingUpgrades=[0,0,0,0,0,0];
+ G.energy=6;G.pulses=5;G.player.shield=5;G.player.hp=G.player.maxHp;G.lives=0;G.driveCharge=100;G.levels=[2,3,2,2,3,3];G.pendingUpgrades=[0,0,0,0,0,0];
  const capped=q.rewardOptions();
  ok(capped.length===3&&capped.every(o=>o.id.startsWith('score')),'capped resources must have three usable rewards');
  // 16/36: 2,000-seed per-route rarity/risk sampling and full grant effects.
