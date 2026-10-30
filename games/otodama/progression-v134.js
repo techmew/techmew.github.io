@@ -5,8 +5,8 @@
   if (root) root.OtodamaGrowth = api;
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
-  const MAX_LEVEL = 40;
-  const EVOLUTION_LEVELS = Object.freeze([10, 20, 30]);
+  const MAX_LEVEL = 100;
+  const EVOLUTION_LEVELS = Object.freeze([10, 20, 30, 40, 50, 60, 70, 80, 90]);
   const FOCUSES = Object.freeze([
     {name:'リズム',indices:[9,10,35],hint:'拍をそろえ、間隔を意識する'},
     {name:'響き',indices:[22,23,29],hint:'声の響きと低音・高音のバランスを試す'},
@@ -48,7 +48,7 @@
     return cr?.rank==='A'?'A':'B';
   }
   function slotsForLevel(level){return EVOLUTION_LEVELS.filter(n=>cap(level,1,MAX_LEVEL)>=n).length}
-  function nextEvolutionLevel(level,used=0){return EVOLUTION_LEVELS[Math.max(0,Math.min(EVOLUTION_LEVELS.length-1,Math.floor(used)))]||null}
+  function nextEvolutionLevel(level,used=0){return EVOLUTION_LEVELS[Math.max(0,Math.floor(used))]||null}
   function canEvolve(cr){
     const count=Array.isArray(cr?.evolutionVoices)?cr.evolutionVoices.length:0;
     return !!cr&&count<EVOLUTION_LEVELS.length&&slotsForLevel(cr.level||1)>count;
