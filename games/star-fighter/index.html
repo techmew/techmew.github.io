@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#050b19">
 <meta name="description" content="STAR FIGHTER — 8ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
-<link rel="stylesheet" href="./style.css?v=onboarding-20261030-31">
+<link rel="stylesheet" href="./style.css?v=results-20261030-32">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,6 +36,14 @@
  <div class="start-orientation"><button class="main-btn" id="startBtn" type="button">縦画面で開始 <span>▶</span></button><button class="main-btn mode-landscape" id="landscapeStartBtn" type="button">横画面で開始 <span>▶</span></button></div>
  <button class="continue-btn" id="continueBtn" type="button" hidden>CONTINUE ▶</button><button class="continue-btn" id="medalBtn" type="button" aria-label="獲得した記章を切り替える">記章 0/4 · 未解禁 ↻</button><span class="continue-info" id="continueInfo" hidden></span>
  <div class="seed-controls" id="seedControls"><label for="seedInput">SEED</label><input id="seedInput" type="text" inputmode="text" maxlength="8" pattern="[0-9a-fA-F]{1,8}" placeholder="ランダム" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="再現用シード、空欄でランダム"><span id="seedLabel" aria-live="polite">SEED — 空欄ならランダム</span><button type="button" id="seedReplay" hidden>同じ配置で再出撃 ↻</button></div>
+ <section class="run-result" id="runResult" aria-label="今回の戦績" hidden>
+ <div class="run-result-top"><div><small>SCORE</small><strong id="resultScore">0</strong></div><div><small>BEST</small><strong id="resultBest">0</strong></div><div><small>SECTOR</small><strong id="resultSector">1 / 8</strong></div></div>
+ <p class="run-result-stats" id="resultStats">撃破 0 · 最大連続 0 · GRAZE 0</p>
+ <div class="run-result-line"><b>装備</b><span id="resultBuild">BOOST 0</span></div>
+ <div class="run-result-line"><b>能力</b><span id="resultPassives">なし</span></div>
+ <div class="run-result-line"><b>航路</b><span id="resultRoutes">分岐なし</span></div>
+ <div class="run-result-line"><b>報酬</b><span id="resultRewards">獲得なし</span></div>
+ </section>
  <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾う → 6色バーで装備を選ぶ → 右の「強化する」を押す。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Xで装備選択、Zで手動強化、Pで一時停止。</p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · v1.0</p></div>
 </div>
 <div class="reward-panel" id="rewardPanel" aria-label="ステージクリア報酬を選択" role="group">
@@ -82,7 +90,7 @@
 </div>
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
-<script src="./game.js?v=onboarding-20261030-31"></script>
+<script src="./game.js?v=results-20261030-32"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
