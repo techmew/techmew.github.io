@@ -155,7 +155,7 @@ function bossArmorMultiplier(b){
  // buys a weak-core opening. Low hull softens defensive pressure.
  if(b.reactiveShield>0)return lowHull?.38:.055;
  if(b.reactiveExpose>0)return 1+.40*tier;
- return open?1+.20*tier:(lowHull?1-.10*tier:1-.62*tier);
+ return open?1+.26*tier:(lowHull?1-.10*tier:1-.62*tier);
 }
 /* Heavier foes can shatter armor, dodge once, then fire a warned retort.
    Light scouts deliberately remain fragile to preserve power fantasy. */
