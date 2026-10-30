@@ -2,7 +2,7 @@
  * Run from games/star-fighter/: node qa_100_runs.js
  * Deterministic headless tests; not a replacement for physical-device QA. */
 'use strict';
-function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,readmeSource){
+function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,readmeSource,trophySource){
  const assert=(condition,message)=>{if(!condition)throw Error(message)};
  const elements=new Map();
  function el(id){
@@ -47,6 +47,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   addEventListener(type,fn){(this.handlers??={})[type]??=[];this.handlers[type].push(fn)}
  };
  if(extrasSource)new Function('window',extrasSource)(window);
+ assert(typeof trophySource==='string'&&trophySource.includes('CATALOG'),'trophies.js required');
+ new Function('window','document','localStorage',trophySource)(window,document,storage);
  // Native disabled buttons never dispatch click. Model this instead of
  // bypassing disabled as the previous headless test incorrectly did.
  const ev=(id,type,more={})=>{
@@ -56,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -68,7 +70,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=final-qa-20261030-3'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=trophies-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -1663,7 +1666,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
 if(typeof module!=='undefined'&&require.main===module){
  const fs=require('node:fs');
  try{
-  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'),fs.readFileSync(__dirname+'/README.md','utf8'));
+  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'),fs.readFileSync(__dirname+'/README.md','utf8'),fs.readFileSync(__dirname+'/trophies.js','utf8'));
   process.stdout.write(JSON.stringify(result,null,2)+'\n');
  }catch(e){process.stderr.write('FAIL '+(e.stack||e)+'\n');process.exitCode=1}
 }
