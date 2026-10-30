@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=debug-boss-only-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=debug-dual-invincible-20261030-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -1582,13 +1582,26 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(G.debugMode&&G.debugBossOnly&&G.stage===1&&G.boss?.name==='KRAKEN ENGINE','boss-only immediately spawns octopus');
   ok(G.enemies.length===0&&G.terrain===null&&G.pendingWave===null,'no enemies/terrain before boss');
   const savedPractice=storageData.get('star_fighter_checkpoint_v1'),medalPractice=JSON.stringify(q.readMedals()),trophyPractice=window.STAR_TROPHIES.count();
+  const boss=G.boss,hp=boss.maxHp;
+  ok(q.invulnerablePracticeBoss(),'boss is immortal in boss-only debug');
+  q.damageBoss(boss,1000000);
+  ok(boss.hp===hp,'direct high-damage hit cannot lower boss health');
+  G.pulses=3;q.pulse();
+  ok(boss.hp===hp,'NOVA cannot lower debug boss health');
+  G.player.invul=0;G.player.shield=0;G.player.hp=1;G.lives=1;q.hitPlayer(99999);
+  ok(G.player.hp===1&&G.lives===1,'pilot is also immortal in boss-only debug');
+  boss.hp=-1;q.update(.016);
+  ok(G.boss===boss&&boss.hp===hp&&G.mode==='playing','debug boss cannot die even from direct negative HP');
+  boss.t=18;boss.fire=999;q.update(.016);
+  ok(boss.phase===1&&boss.hp===hp,'phase two arrives by elapsed time');
+  boss.t=60.1;q.update(.016);
+  ok(boss.phase===0&&boss.hp===hp,'phase returns to beginning for ongoing sparring');
   q.stageClear();
-  ok(G.mode==='paused'&&G.debugBossClear&&G.boss===null,'boss clear waits at victory menu');
-  ok(!G.transitioning&&G.flowPhase===null,'boss practice does not enter normal route transition');
-  ok(el('startBtn').innerHTML.includes('再戦'),'same-boss retry displayed');
-  ok(storageData.get('star_fighter_checkpoint_v1')===savedPractice&&JSON.stringify(q.readMedals())===medalPractice&&window.STAR_TROPHIES.count()===trophyPractice,'boss practice preserves normal records');
-  ev('startBtn','click');
-  ok(G.mode==='playing'&&G.boss?.name==='KRAKEN ENGINE','boss retry starts immediately');
+  ok(G.mode==='playing'&&G.boss===boss&&!G.transitioning,'practice cannot enter clear/reward/route state');
+  ok(storageData.get('star_fighter_checkpoint_v1')===savedPractice&&JSON.stringify(q.readMedals())===medalPractice&&window.STAR_TROPHIES.count()===trophyPractice,'immortal duel does not touch normal records');
+  ev('sidePauseBtn','click');ok(G.mode==='paused','boss practice can pause');
+  el('debugBoss').value='1:0';ev('debugLaunch','click');
+  ok(G.mode==='playing'&&G.boss?.name==='KRAKEN ENGINE'&&G.boss!==boss,'practice can restart same boss from menu');
   for(const b of q.DEBUG_BOSS_ROSTER){
     ev('sidePauseBtn','click');
     el('debugBoss').value=b.stage+':'+b.risk;ev('debugLaunch','click');
