@@ -55,7 +55,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},{userAgent:'QA'});
@@ -67,7 +67,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=manual-ui-20261030-1'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=gradius-meter-20261030-2'),'cache-bust game JS');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -81,13 +81,13 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  if(htmlSource&&cssSource){
   ok(cssSource.includes('#shell .announce,#shell .announce.show{display:none!important}'),'large announcement hidden');
   ok(cssSource.includes('touch-action:none!important'),'action touch does not cause browser pan');
-  ok(cssSource.includes('.upgrade.selected.ready:not(.maxed)'),'ready and selected look distinct');
+  ok(cssSource.includes('.game-frame .upgrade:not(.selected)')&&cssSource.includes('.game-frame .upgrade.selected'),'one cursor with five dim slots');
   ok(cssSource.includes('grid-template-rows:auto 38px!important'),'portrait meter outside full canvas');
  }
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=manual-ui-20261030-1'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=gradius-meter-20261030-2'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -95,6 +95,9 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
   ok(cssSource.includes('.joystick{display:none!important}')&&cssSource.includes('.rotate-overlay{display:none!important}'),'old stick and portrait blocker disabled');
   ok((htmlSource.match(/id="sidePulseBtn"/g)||[]).length===1&&(htmlSource.match(/id="sideEquipBtn"/g)||[]).length===1,'exactly two combat buttons');
   ok((htmlSource.match(/class="upgrade(?: selected)?"/g)||[]).length===6,'six-color meter preserved');
+  ok((htmlSource.match(/<div class="upgrade"/g)||[]).length===6&&!htmlSource.includes('<button class="upgrade'),'meter is not a six-button selector');
+  ok(!gameSource.includes("ui.upgrades.forEach((b,i)=>b.addEventListener('click'"),'no manual cell selection listener');
+  ok(!gameSource.includes("G.selected=(G.selected+1)%6"),'no X/Tab selection');
   for(const [w,h] of [[280,500],[320,480],[320,568],[360,640],[390,844],[430,932]]){
    const usable=w-10,canvas=usable*9/16,remaining=h-34-38-canvas-16;
    const padWidth=(usable-6-112)*1.3/2.1;
@@ -450,7 +453,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  q.update(.016);
  ok(el('sideEquipBtn').disabled===false,'empty equip must remain tappable');
  ok(el('sidePulseBtn').disabled===false,'NOVA must remain tappable');
- ok(el('equipActionState').textContent.includes('0/1'),'equip requirement displayed before collection');
+ ok(el('equipActionState').textContent.includes('カプセルを取る'),'empty meter needs a capsule');
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:20,clientX:80,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:20,clientX:80,clientY:120});
  ok(G.energy===0&&G.levels[0]===0,'no free upgrade without capsule');
@@ -510,19 +513,19 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  G.pulses=5;G.pulseRecharge=20;q.update(.05);
  ok(G.pulses===5&&G.pulseRecharge===0,'NOVA charge does not overflow');
  G.pulses=1;G.pulseRecharge=0;G.bossDone=false;
- G.energy=6;q.update(.016);
- ok(el('sideEquipBtn').disabled===false,'equipped upgrade tap receives native click');
+ G.energy=1;q.update(.016);
+ ok(el('sideEquipBtn').disabled===false,'first cursor tap allowed');
  // Capture loss must not leave the right rail stuck or trigger a stray buy.
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
  ev('sideEquipBtn','lostpointercapture',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:40,clientX:80,clientY:120});
  ok(G.levels[0]===0,'lost pointer capture does not buy an upgrade');
  // Two-thumb touch: minor 28px drift must still activate one explicit purchase.
- G.energy=6;G.selected=0;const driftLevel=G.levels[0],driftEnergy=G.energy;
+ G.energy=1;G.selected=0;const driftLevel=G.levels[0],driftEnergy=G.energy;
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:411,isPrimary:false,clientX:80,clientY:120});
  ev('sideEquipBtn','pointermove',{pointerType:'touch',pointerId:411,isPrimary:false,clientX:108,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:411,isPrimary:false,clientX:108,clientY:120});
- ok(G.levels[0]===driftLevel+1&&G.energy===driftEnergy-1,'secondary right finger activates once');
+ ok(G.levels[0]===driftLevel+1&&G.energy===0,'two-thumb manual BOOST upgrade resets gauge');
  ev('sideEquipBtn','click',{pointerType:'mouse',detail:1,isTrusted:true});
  ok(G.levels[0]===driftLevel+1,'synthetic mouse click cannot buy twice');
  G.levels[0]=driftLevel;G.energy=driftEnergy;
@@ -567,21 +570,36 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:42,clientX:80,clientY:120});
  ev('sideEquipBtn','click',{pointerType:'touch',pointerId:42,detail:1});
  ok(G.levels[0]===equipBeforeLevel+1,'intentional finger tap buys exactly one upgrade');
- ok(G.energy===5,'upgrade deducts the selected cost');
- // A capsule can change inventory but may NEVER change the selected weapon
- // or grant an upgrade without an explicit purchase.
- G.selected=2;const beforePickupLevels=G.levels.slice();
- G.energy=1;G.pickups=[{x:G.player.x,y:G.player.y,vx:0,phase:0,t:0,type:'energy'}];
+ ok(G.energy===0,'manual upgrade resets six-slot gauge');
+ // Gradius-like cursor: pickup advances one step and never purchases.
+ const oldLevels=G.levels.slice();G.energy=1;G.selected=0;
+ G.pickups=[{x:G.player.x,y:G.player.y,vx:0,phase:0,t:0,type:'energy'}];
  q.update(.016);
- ok(G.energy===2&&G.selected===2,'pickup never auto-selects another upgrade');
- ok(el('upgrade0').classList.contains('ready')&&el('upgrade1').classList.contains('ready'),'pickup lights affordable upgrades immediately');
- ok(el('upgrade2').classList.contains('selected')&&!el('upgrade2').classList.contains('ready'),'selected differs from ready');
- ok(el('sideEquipBtn').querySelector('span').textContent==='LASER 強化','right button names selected upgrade');
- ok(el('sideEquipBtn').dataset.ready==='no','unaffordable selected item does not glow');
- ok(JSON.stringify(G.levels)===JSON.stringify(beforePickupLevels),'pickup never auto-purchases');
- G.selected=0;G.pickups=[];
- ok(!gameSource.includes('if(invul>0&&Math.sin(G.time*20)>0.55)return'),'invulnerable ship remains visible');
- ok(el('equipActionState').textContent.includes('2/3'),'pickup refreshes current selected weapon');
+ ok(G.energy===2&&G.selected===1,'pickup moves cursor from BOOST to SPREAD');
+ ok(el('upgrade1').classList.contains('selected')&&!el('upgrade0').classList.contains('selected'),'SPREAD alone is lit');
+ ok(el('upgrade1').classList.contains('ready')&&!el('upgrade2').classList.contains('ready'),'only lit slot ready');
+ ok(el('sideEquipBtn').querySelector('span').textContent==='SPREAD 強化','right button follows capsule cursor');
+ ok(G.levels.every((v,i)=>v===oldLevels[i]),'capsule never auto-upgrades');
+ G.pickups=[];ok(!gameSource.includes('if(invul>0&&Math.sin(G.time*20)>0.55)return'),'invulnerable ship remains visible');
+ ok(el('equipActionState').textContent.includes('2/6'),'meter shows step two');
+ G.energy=0;G.pendingUpgrades=[0,0,0,0,0,0];G.levels=[0,0,0,0,0,0];q.updateHud();
+ ok(q.powerMeterIndex()===-1&&![0,1,2,3,4,5].some(i=>el('upgrade'+i).classList.contains('selected')),'empty meter unlit');
+ for(let j=1;j<=6;j++){
+  q.advancePowerMeter(1);
+  ok(G.energy===j&&q.powerMeterIndex()===j-1&&G.selected===j-1,'advances to step '+j);
+  ok([0,1,2,3,4,5].filter(i=>el('upgrade'+i).classList.contains('selected')).length===1,'exactly one lit option '+j);
+ }
+ q.advancePowerMeter(1);ok(G.energy===1&&q.powerMeterIndex()===0,'seventh capsule wraps to first');
+ const beforeClick=G.levels.slice();ev('upgrade5','click');
+ ok(G.energy===1&&q.powerMeterIndex()===0&&G.levels.every((v,i)=>v===beforeClick[i]),'meter cells cannot choose or buy upgrades');
+ G.energy=6;q.updateHud();const wasShield=G.levels[5],other=G.levels.slice(0,5);
+ ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:445,clientX:80,clientY:120});
+ ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:445,clientX:80,clientY:120});
+ ok(G.levels[5]===wasShield+1&&G.energy===0&&q.powerMeterIndex()===-1,'SHIELD is upgraded when sixth slot is lit');
+ ok(G.levels.slice(0,5).every((v,i)=>v===other[i]),'other weapons unchanged');
+ q.advancePowerMeter(2);const beforeKeys=G.energy;
+ for(const key of ['x','Tab'])for(const fn of window.handlers?.keydown||[])fn({key,repeat:false,target:{closest:()=>null},preventDefault(){}});
+ ok(G.energy===beforeKeys&&q.powerMeterIndex()===1,'X/Tab cannot override automatic cursor');
  ev('titleReturnBtn','click');ok(G.mode==='title','title');
  ok(el('sidePauseBtn').innerHTML.includes('<span>一時停止</span>'),'title label reset');
  ev('startBtn','click');ok(G.mode==='playing','restart');
@@ -781,15 +799,16 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource){
  G.rewardOffers=[{id:'module',name:'LASER 無料強化券',levelIndex:2}];q.chooseReward(0);
  ok(G.levels[2]===0&&G.pendingUpgrades[2]===1,'auto-claim module never levels weapon');
  ok(q.readCheckpoint()?.pendingUpgrades?.[2]===1,'module voucher retained in checkpoint');
- G.mode='playing';ev('upgrade2','click');q.update(.016);
- ok(G.selected===2&&el('equipActionState').textContent.includes('無料強化'),'manual voucher upgrade visible');
+ G.mode='playing';q.updateHud();
+ ok(q.powerMeterIndex()===2&&el('equipActionState').textContent.includes('無料強化'),'voucher lights LASER automatically without touching meter');
+ ev('upgrade4','click');ok(q.powerMeterIndex()===2,'meter tapping cannot change voucher selection');
  ev('sideEquipBtn','pointerdown',{pointerType:'touch',pointerId:94,clientX:80,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'touch',pointerId:94,clientX:80,clientY:120});
  ev('sideEquipBtn','click',{pointerType:'touch',pointerId:94,detail:1});
  ok(G.levels[2]===1&&G.pendingUpgrades[2]===0&&G.energy===0,'one manual tap redeems one module voucher');
  ok(q.queueManualUpgrade(2,100)===1&&G.pendingUpgrades[2]===1,'free vouchers obey weapon upgrade cap');
  G.pendingUpgrades[2]=0;
- G.levels[1]=0;G.pendingUpgrades[1]=2;G.energy=0;ev('upgrade1','click');
+ G.levels[1]=0;G.pendingUpgrades[1]=2;G.energy=0;q.updateHud();ok(q.powerMeterIndex()===1,'two vouchers illuminate SPREAD automatically');
  ev('sideEquipBtn','pointerdown',{pointerType:'mouse',pointerId:95,button:0,clientX:80,clientY:120});
  ev('sideEquipBtn','pointerup',{pointerType:'mouse',pointerId:95,button:0,clientX:80,clientY:120});
  ok(G.levels[1]===1&&G.pendingUpgrades[1]===1&&G.energy===0,'first of two manual vouchers');
