@@ -259,7 +259,7 @@ function readCheckpoint(){
      (d.pendingUpgrades!==undefined&&(!Array.isArray(d.pendingUpgrades)||d.pendingUpgrades.length!==6||!d.pendingUpgrades.every((v,i)=>int(v,0,MAX[i]-d.levels[i]))))||
     !Array.isArray(d.routeHistory)||d.routeHistory.length!==d.stage||!int(d.routeRisk,0,1)||
     !d.player||!int(d.player.hp,1,d.v===1?3:400)||!int(d.player.shield,0,5)||!int(d.driveCharge,0,100)||
-    (d.v===2&&(!int(d.shipLevel,1,SHIP_MAX_LEVEL)||!int(d.shipXP,0,10000000)||d.player.maxHp!==maxHull(d.shipLevel)))||
+    (d.v===2&&(!int(d.shipLevel,1,SHIP_MAX_LEVEL)||!int(d.shipXP,0,10000000)||d.player.maxHp!==maxHull(d.shipLevel)||d.player.hp>d.player.maxHp||d.lives!==0))||
     !int(d.grazes,0,1e7)||!int(d.maxCombo,0,1e7)||!int(d.killCount,0,1e7)||!int(d.eventCount,0,2)||
     d.routeHistory.some((r,i)=>!r||r.stage!==i+2||!int(r.risk,0,1)||typeof r.route!=='string'||r.route.length>30||
       typeof r.event!=='string'||r.event.length>30)||
