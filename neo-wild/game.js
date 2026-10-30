@@ -31,6 +31,8 @@ function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,preyNeedRadius:420};
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
+const SAFE_DEN={x:1860,y:1170,r:90};
+const STATION={x:2460,y:1170};
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
 $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
 function noise(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)}
@@ -40,7 +42,8 @@ function generateWorld(){
  const xs=[80,755,1640,2570,3485],ys=[90,705,1410,2050];
  let k=0;
  for(const y of ys)for(const x of xs){const n=noise(k++,13),w=270+n*175,h=(y>1970?230:240)+noise(k,8)*110;
-   buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0});}
+   const roofZ=k%7===0?60:k%5===0?46:k%4===0?30:0;
+    buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ});}
  for(let i=0;i<400;i++){let x=rnd(30,WORLD.w-30),y=rnd(30,WORLD.h-30);
    if(nearBuilding(x,y,28))continue;
    plants.push({x,y,r:rnd(5,17),type:Math.random()<.23?1:0,phase:rnd(0,6),hue:Math.random()});}
@@ -57,7 +60,7 @@ window.addEventListener("resize",resize,{passive:true});resize();generateWorld()
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false};
+ const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,sense:0,senseTime:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0};
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  spawnMob(false,true); // Guarantee one huntable species at a reasonable distance.
  for(let i=0;i<17;i++)spawnFood();
@@ -94,8 +97,29 @@ function spawnFood(){
  if(collides(x,y,34))return;
  carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
 }
-function collides(x,y,r){if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;return nearBuilding(x,y,r*.8)}
-function move(o,dx,dy){if(!collides(o.x+dx,o.y,o.r))o.x+=dx;if(!collides(o.x,o.y+dy,o.r))o.y+=dy;}
+// Walkable lower rooftops are real surfaces. Tall buildings still stop animals.
+function roofAt(x,y){
+ for(const b of buildings)if(b.roofZ&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return b.roofZ;
+ return 0;
+}
+function collides(x,y,r,actor=null){
+ if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
+ for(const b of buildings){
+  if(x>b.x-r*.8&&x<b.x+b.w+r*.8&&y>b.y-r*.8&&y<b.y+b.h+r*.8){
+   if(actor&&actor===P&&b.roofZ&&(actor.jumpHeight||0)>=b.roofZ-4)continue;
+   return true;
+  }
+ }
+ return false;
+}
+function move(o,dx,dy){
+ if(!collides(o.x+dx,o.y,o.r,o===P?o:null))o.x+=dx;
+ if(!collides(o.x,o.y+dy,o.r,o===P?o:null))o.y+=dy;
+ if(o===P&&o.jumpTime<=0&&o.pounceTime<=0){
+  const roof=roofAt(o.x,o.y);
+  if(roof!==(o.groundZ||0)){o.groundZ=roof;o.jumpHeight=roof;}
+ }
+}
 function lineBlocked(a,b){
  for(const box of buildings){
   let lo=0,hi=1,dx=b.x-a.x,dy=b.y-a.y;
@@ -238,7 +262,7 @@ function jump(){
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
  const distance=cat?88:wolf?65:98;
  P.jumpDuration=cat?.41:wolf?.49:.45;
- P.jumpTime=P.jumpDuration;P.jumpHeight=0;
+ P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
  P.jumpRemaining=moving?distance:0;P.jumpSpeed=distance/P.jumpDuration;
  P.jumpDir=P.dir;P.jumpDive=false;P.jumpAmbush=P.hidden&&P.revealTimer<=0;
  P.jumpCD=cat?.74:wolf?1.25:.91;P.sp-=cost;
@@ -391,6 +415,9 @@ function update(dt){
  P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0)resolveAttack()}
  P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
+ // A home location matters: quiet rest restores a little health.
+ if(dist(P,SAFE_DEN)<SAFE_DEN.r&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
+  P.hp=Math.min(P.maxHp,P.hp+2.8*dt);
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
     const ox=P.x,oy=P.y;
@@ -400,10 +427,11 @@ function update(dt){
     P.jumpRemaining=Math.max(0,P.jumpRemaining-covered);
     if(covered<step*.5)P.jumpRemaining=0; // Solid walls still block a jump.
     P.jumpTime=Math.max(0,P.jumpTime-dt);
-    P.jumpHeight=Math.sin(Math.PI*(1-P.jumpTime/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
+    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*(1-P.jumpTime/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
     P.steps+=covered*.052;
     if(P.jumpTime===0){
-     P.jumpHeight=0;P.vx=0;P.vy=0;
+     P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.vx=0;P.vy=0;
+     if(P.groundZ>0)notify("屋上に到着 / 周囲を見渡せる");
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive)resolveAttack();
      else P.jumpAmbush=false;
@@ -422,8 +450,8 @@ function update(dt){
    }
    P.steps+=moved*.052;
    const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
-   P.jumpHeight=Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?31:P.type==="wolf"?23:28);
-   if(P.pounceTime===0){P.jumpHeight=0;if(P.pendingStrike)resolveAttack();}
+   P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?31:P.type==="wolf"?23:28);
+   if(P.pounceTime===0){P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;if(P.pendingStrike)resolveAttack();}
   }else if(P.dashTime>0){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
@@ -650,7 +678,7 @@ function roadDraw(){
  ctx.restore();
 }
 function drawBuilding(b){
- const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=85+(b.kind%4)*17;
+ const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=b.roofZ||85+(b.kind%4)*17;
  const x=gx+VIEW.c*rise/VIEW_DET,y=gy-VIEW.a*rise/VIEW_DET;
  const polygon=(v,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(v[0],v[1]);for(let j=2;j<v.length;j+=2)ctx.lineTo(v[j],v[j+1]);ctx.closePath();ctx.fill()};
  ctx.fillStyle="#050f13ab";ctx.fillRect(gx+20,gy+25,w,h);
