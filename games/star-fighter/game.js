@@ -7,6 +7,29 @@ const sideNovaButton=$('sidePulseBtn'),sideEquipButton=$('sideEquipBtn');
 const ui={overlay:$('overlay'),start:$('startBtn'),pause:$('sidePauseBtn'),sound:$('soundBtn'),score:$('score'),best:$('best'),mult:$('multiplier'),stage:$('stageLabel'),area:$('areaName'),progress:$('progressBar'),hp:$('hpRow'),lives:$('lives'),bombs:$('bombs'),boss:$('bossHud'),bossName:$('bossName'),bossBar:$('bossBar'),announce:$('announce'),small:$('announceSmall'),main:$('announceMain'),desc:$('announceDesc'),toast:$('toast'),meter:$('meterInfo'),upgrades:[...document.querySelectorAll('.upgrade')],equip:$('equipBtn'),pulse:$('pulseBtn')};
 const NAMES=['ORBITAL FIELD','IRON CORRIDOR','DEEP NEBULA','BURNING STRATUM','FROZEN GRAVE','RELIC BELT','ABYSSAL GATE','LAST HORIZON'],SUBS=['外縁軌道を突破せよ','機械要塞を突破せよ','星雲の深部を制圧せよ','灼熱惑星の熱波を突破せよ','氷結残骸帯を突破せよ','古代遺跡の封印を突破せよ','異界境界の位相嵐を突破せよ','収束する終端宙域を突破せよ'],BOSSES=['BATTLE CRUISER','FORTRESS CORE','ABYSS TITAN','MOLTEN CRAB','FROST MAMMOTH','RELIC CENTIPEDE','AETHER JELLYFISH','HORIZON ARK'];
 const STAGE_LENGTHS=[62,68,74,72,76,80,84,90],BOSS_HP=[1900,2650,3600,4250,4850,5650,6450,7400];
+/* Eight-step damage curve. A single hull and XP-based frame level replace
+   revives/lives. Growth is bounded to 25 levels; old saves are migrated. */
+const SHIP_MAX_LEVEL=25,HULL_BASE=120,HULL_PER_LEVEL=8;
+const HULL_HIT_BY_STAGE=Object.freeze([13,14,15,16,18,19,21,23]);
+function maxHull(level){return HULL_BASE+(Math.max(1,Math.min(SHIP_MAX_LEVEL,level))-1)*HULL_PER_LEVEL}
+function shipXPThreshold(level){return 70+28*level}
+function actualHullDamage(weight=1){
+ const base=HULL_HIT_BY_STAGE[Math.max(0,Math.min(7,G.stage))];
+ return Math.max(1,Math.round(base*(weight>1?1+.53*(weight-1):1)*(G.stage>0?(G.routeRisk?1.08:.94):1)));
+}
+function repairHull(amount){
+ if(!Number.isFinite(amount)||amount<=0)return 0;
+ const before=p.hp;p.hp=Math.min(p.maxHp,p.hp+Math.ceil(amount));return p.hp-before;
+}
+function grantShipXP(amount){
+ if(G.debugMode||G.mode!=='playing'||!Number.isFinite(amount)||amount<=0||G.shipLevel>=SHIP_MAX_LEVEL)return;
+ G.shipXP+=Math.floor(amount);let levels=0;
+ while(G.shipLevel<SHIP_MAX_LEVEL&&G.shipXP>=shipXPThreshold(G.shipLevel)){
+  G.shipXP-=shipXPThreshold(G.shipLevel);G.shipLevel++;
+  p.maxHp=maxHull(G.shipLevel);repairHull(HULL_PER_LEVEL+3);levels++;
+ }
+ if(levels){showToast('SHIP LEVEL '+G.shipLevel);updateHud()}
+}
 const ROUTE_OPTIONS=[[{name:'漂流船の回廊',desc:'敵が少なく物資を回収しやすい',bonus:'ノヴァ +1 / 物資抽選↑',risk:0},{name:'プラズマ急流',desc:'高速の編隊が出現し敵が増える',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'星雲の静域',desc:'敵の攻勢が穏やかになる',bonus:'ノヴァ +1 / 物資抽選↑',risk:0},{name:'紅色の裂け目',desc:'精鋭編隊と高密度の敵が出現',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'火山灰の補給路',desc:'冷却施設・回復中心 / ボス: 機械カニ',bonus:'ノヴァ +1 / 物資抽選↑',risk:0},{name:'恒星フレア回廊',desc:'高火力敵・希少報酬 / ボス: 太陽竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'氷結整備回廊',desc:'氷片を射撃で破壊可能・補給重視 / BOSS 機械マンモス',bonus:'ノヴァ +1 / 物資抽選↑',risk:0},{name:'白夜の追撃帯',desc:'吹雪で視界悪化・精鋭部隊 / BOSS 氷海竜',bonus:'カプセル +1 / 撃破得点 +25%',risk:1}],[{name:'遺跡の記録庫',desc:'破壊可能なルーン柱・防御イベント / ボス: 機械ムカデ',bonus:'ノヴァ +1 / 古代装甲の修復',risk:0},{name:'封印中枢への突入',desc:'封印格子・守護隊の奇襲 / ボス: 黒曜の守護者',bonus:'カプセル +1 / 希少報酬抽選↑',risk:1}],[{name:'位相の避難帯',desc:'透過膜を破壊・位相共鳴 / ボス: 宇宙クラゲ',bonus:'ドライブ充填 / 低密度編隊',risk:0},{name:'裂界の追撃路',desc:'空間裂傷・異界迎撃隊 / ボス: 裂界メデューサ',bonus:'撃破補給1個 / 希少報酬抽選↑',risk:1}],[{name:'光の帰還航路',desc:'破壊可能な光晶・終端補給 / ボス: ホライゾン・アーク',bonus:'バリア補給 / 低密度編隊',risk:0},{name:'特異点の突入路',desc:'破壊不能な重力断層・最終迎撃隊 / ボス: 特異点の皇帝',bonus:'撃破補給1個 / 精鋭・高得点',risk:1}]];
 
 
@@ -75,9 +98,9 @@ function encounterDirector(){
  const bullets=cl(G.bullets.length/55,0,1);
  const recovery=G.directorGrace>0?Math.min(.24,.10+G.directorGrace*.016):0;
  // 34/36: last-life recovery window; patrols and continuous combat remain active.
- const critical=p.hp<=1&&G.lives<=1;
- const resilience=(p.hp===3?.05:p.hp===1?-.08:0)+(G.lives===1?-.08:0);
- const pressure=cl(base+phase*.16+resilience-crowd*.22-bullets*.09-recovery,.12,critical?.52:.82);
+ const ratio=p.hp/Math.max(1,p.maxHp),critical=ratio<.28;
+ const resilience=ratio>.8?.05:ratio<.3?-.15:ratio<.5?-.08:0;
+ const pressure=cl(base+phase*.16+resilience-crowd*.22-bullets*.09-recovery,.12,critical?.54:.82);
  return {pressure,crowd,bullets,recovery,budget:pressure>.59?4:pressure>.32?3:2};
 }
 function nextWaveDelay(){
@@ -230,12 +253,13 @@ function readCheckpoint(){
  try{
   const raw=localStorage.getItem(CHECKPOINT_KEY);if(!raw)return null;
   const d=JSON.parse(raw),int=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
-  if(!d||d.v!==1||!['sector','route','reward'].includes(d.mode)||!int(d.stage,0,NAMES.length-1)||!int(d.runSeed,0,0xffffffff)||
-    !int(d.score,0,1e9)||!int(d.lives,1,3)||!int(d.pulses,0,5)||!int(d.pulseRecharge??0,0,59)||!int(d.energy,0,6)||
+  if(!d||![1,2].includes(d.v)||!['sector','route','reward'].includes(d.mode)||!int(d.stage,0,NAMES.length-1)||!int(d.runSeed,0,0xffffffff)||
+    !int(d.score,0,1e9)||!int(d.lives??0,0,3)||!int(d.pulses,0,5)||!int(d.pulseRecharge??0,0,59)||!int(d.energy,0,6)||
     !int(d.selected,0,5)||!Array.isArray(d.levels)||d.levels.length!==6||!d.levels.every((v,i)=>int(v,0,MAX[i]))||
      (d.pendingUpgrades!==undefined&&(!Array.isArray(d.pendingUpgrades)||d.pendingUpgrades.length!==6||!d.pendingUpgrades.every((v,i)=>int(v,0,MAX[i]-d.levels[i]))))||
     !Array.isArray(d.routeHistory)||d.routeHistory.length!==d.stage||!int(d.routeRisk,0,1)||
-    !d.player||!int(d.player.hp,1,3)||!int(d.player.shield,0,5)||!int(d.driveCharge,0,100)||
+    !d.player||!int(d.player.hp,1,d.v===1?3:400)||!int(d.player.shield,0,5)||!int(d.driveCharge,0,100)||
+    (d.v===2&&(!int(d.shipLevel,1,SHIP_MAX_LEVEL)||!int(d.shipXP,0,10000000)||d.player.maxHp!==maxHull(d.shipLevel)))||
     !int(d.grazes,0,1e7)||!int(d.maxCombo,0,1e7)||!int(d.killCount,0,1e7)||!int(d.eventCount,0,2)||
     d.routeHistory.some((r,i)=>!r||r.stage!==i+2||!int(r.risk,0,1)||typeof r.route!=='string'||r.route.length>30||
       typeof r.event!=='string'||r.event.length>30)||
@@ -243,6 +267,11 @@ function readCheckpoint(){
     (d.mode==='reward'&&d.stage>=NAMES.length-1)||
     (d.rewardHistory!==undefined&&(!Array.isArray(d.rewardHistory)||d.rewardHistory.length>NAMES.length-1||d.rewardHistory.some((r,i)=>!r||!Number.isInteger(r.stage)||r.stage!==i||typeof r.id!=='string'||r.id.length>24||typeof r.name!=='string'||r.name.length>40)))||
     (d.passives!==undefined&&(!Array.isArray(d.passives)||d.passives.length!==PASSIVES.length||!d.passives.every(v=>int(v,0,2)))))throw Error('invalid checkpoint');
+  if(d.v===1){
+   d.shipLevel=1;d.shipXP=0;
+   d.player.hp=Math.max(1,Math.round(HULL_BASE*d.player.hp/3));
+   d.player.maxHp=HULL_BASE;d.lives=0;d.v=2;
+  }
   return d;
  }catch(e){try{localStorage.removeItem(CHECKPOINT_KEY)}catch(err){}return null}
 }
@@ -253,10 +282,10 @@ function updateContinueButton(){
 }
 function saveCheckpoint(mode='sector'){
  if(G.debugMode||!['playing','route','reward'].includes(G.mode))return;
- const d={v:1,mode,stage:G.stage,runSeed:G.runSeed,score:Math.max(0,Math.floor(G.score)),
-  lives:G.lives,pulses:G.pulses,pulseRecharge:Math.floor(G.pulseRecharge),energy:G.energy,selected:G.selected,levels:G.levels.slice(),pendingUpgrades:G.pendingUpgrades.slice(),
+ const d={v:2,mode,stage:G.stage,runSeed:G.runSeed,score:Math.max(0,Math.floor(G.score)),
+  lives:0,shipLevel:G.shipLevel,shipXP:G.shipXP,pulses:G.pulses,pulseRecharge:Math.floor(G.pulseRecharge),energy:G.energy,selected:G.selected,levels:G.levels.slice(),pendingUpgrades:G.pendingUpgrades.slice(),
   routeRisk:G.routeRisk,routeHistory:G.routeHistory.map(r=>({...r})),rewardHistory:G.rewardHistory.map(r=>({...r})),passives:G.passives.slice(),
-  player:{hp:p.hp,shield:p.shield},driveCharge:Math.floor(G.driveCharge),
+  player:{hp:p.hp,maxHp:p.maxHp,shield:p.shield},driveCharge:Math.floor(G.driveCharge),
   grazes:G.grazes,maxCombo:G.maxCombo,killCount:G.killCount,eventCount:G.eventCount};
  try{localStorage.setItem(CHECKPOINT_KEY,JSON.stringify(d))}catch(e){}
 }
@@ -264,10 +293,10 @@ function clearCheckpoint(){try{localStorage.removeItem(CHECKPOINT_KEY)}catch(e){
 function resumeCheckpoint(){
  const d=readCheckpoint();if(!d){updateContinueButton();showToast('セーブデータがありません');return}
  seedInput.value=seedHex(d.runSeed);startGame(false,true);if(G.mode!=='playing')return;
- G.stage=d.stage;G.score=d.score;G.lives=d.lives;G.pulses=d.pulses;G.pulseRecharge=d.pulseRecharge??0;G.energy=d.energy;G.selected=d.selected;
+ G.stage=d.stage;G.score=d.score;G.lives=0;G.shipLevel=d.shipLevel;G.shipXP=d.shipXP;G.pulses=d.pulses;G.pulseRecharge=d.pulseRecharge??0;G.energy=d.energy;G.selected=d.selected;
  G.levels=d.levels.slice();G.pendingUpgrades=d.pendingUpgrades?d.pendingUpgrades.slice():[0,0,0,0,0,0];G.selected=Math.max(0,powerMeterIndex());G.passives=d.passives?d.passives.slice():[0,0,0,0,0,0];G.routeRisk=d.routeRisk;G.routeHistory=d.routeHistory.map(r=>({...r}));G.rewardHistory=(d.rewardHistory||[]).map(r=>({...r}));
  G.driveCharge=d.driveCharge;G.grazes=d.grazes;G.maxCombo=d.maxCombo;G.killCount=d.killCount;G.eventCount=d.eventCount;TROPHIES.resetAfterResume({score:G.score,grazes:G.grazes});
- p.hp=d.player.hp;p.shield=d.player.shield;p.invul=1.8;
+ p.hp=d.player.hp;p.maxHp=d.player.maxHp;p.shield=d.player.shield;p.invul=1.8;
  G.stageTime=0;G.eliteSpawned=false;G.routePatrolSpawned=false;G.scroll=G.stage*1800;G.pendingWave=null;G.spawn=2*routeProfile().spawnInterval;G.directorGrace=0;G.directorWaveCount=0;
  G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;
  if(G.stage>0){const prev=G.routeHistory[G.stage-1],offer=routeOffer(G.stage-1,prev.risk);
@@ -281,7 +310,7 @@ function resumeCheckpoint(){
 continueBtn.addEventListener('click',resumeCheckpoint);
 
 const KEY={};let audio=null,bgm=null,sound=true,last=0,screenPulse=0,stickX=0,stickY=0,stickPointer=null,pausedByRotation=false;
-const G={mode:'title',time:0,total:0,stage:0,stageTime:0,scroll:0,spawn:0,score:0,best:0,combo:0,comboTime:0,lives:3,pulses:2,pulseRecharge:0,energy:0,selected:0,levels:[0,0,0,0,0,0],pendingUpgrades:[0,0,0,0,0,0],boss:null,bossDone:false,transition:0,transitioning:false,flowPhase:null,shots:[],enemies:[],bullets:[],pickups:[],particles:[],rings:[],stars:[],player:null,trail:[],shake:0,announceTime:0,toastTime:0,fireTimer:0,missileTimer:0,musicTime:0,beat:0,uiTime:0,firstInput:false,driveCharge:0,overdrive:0,grazes:0,maxCombo:0,killCount:0,routeRisk:0,routeHistory:[],routeSelected:0,runSeed:0,routeOffers:[],rewardOffers:[],rewardSelected:0,rewardHistory:[],passives:[0,0,0,0,0,0],activeEvent:null,eventTriggered:false,eventChain:false,eventCount:0,pendingWave:null,waveSerial:0,squadAttackCooldown:0,aiVolleys:0,directorGrace:0,directorWaveCount:0,terrain:null,terrainSchedule:[],terrainIndex:0,ambientTimer:.6,eliteSpawned:false,routePatrolSpawned:false};
+const G={mode:'title',time:0,total:0,stage:0,stageTime:0,scroll:0,spawn:0,score:0,best:0,combo:0,comboTime:0,lives:0,shipLevel:1,shipXP:0,pulses:2,pulseRecharge:0,energy:0,selected:0,levels:[0,0,0,0,0,0],pendingUpgrades:[0,0,0,0,0,0],boss:null,bossDone:false,transition:0,transitioning:false,flowPhase:null,shots:[],enemies:[],bullets:[],pickups:[],particles:[],rings:[],stars:[],player:null,trail:[],shake:0,announceTime:0,toastTime:0,fireTimer:0,missileTimer:0,musicTime:0,beat:0,uiTime:0,firstInput:false,driveCharge:0,overdrive:0,grazes:0,maxCombo:0,killCount:0,routeRisk:0,routeHistory:[],routeSelected:0,runSeed:0,routeOffers:[],rewardOffers:[],rewardSelected:0,rewardHistory:[],passives:[0,0,0,0,0,0],activeEvent:null,eventTriggered:false,eventChain:false,eventCount:0,pendingWave:null,waveSerial:0,squadAttackCooldown:0,aiVolleys:0,directorGrace:0,directorWaveCount:0,terrain:null,terrainSchedule:[],terrainIndex:0,ambientTimer:.6,eliteSpawned:false,routePatrolSpawned:false};
 G.debugMode=false;
 try{G.best=Number(localStorage.getItem('star_fighter_best')||0)||0;sound=localStorage.getItem('star_fighter_sound')!=='off'}catch(e){}
 const SOUND_MIXES=[{name:'標準',music:1,effects:1},{name:'BGM重視',music:1.2,effects:.55},{name:'効果音重視',music:.55,effects:1.2}];
@@ -292,7 +321,7 @@ function applySoundMix(){const m=SOUND_MIXES[soundMix];bgm?.setMix?.(m.music,m.e
 function cycleSoundMix(){soundMix=(soundMix+1)%SOUND_MIXES.length;try{localStorage.setItem('star_fighter_mix',String(soundMix))}catch(e){}applySoundMix();showToast('音量バランス：'+SOUND_MIXES[soundMix].name)}
 applySoundMix();
 for(let i=0;i<170;i++)G.stars.push({x:R(0,W),y:R(0,H),z:R(.25,2.6),tw:R(0,TAU),size:R(.4,1.9)});
-let p={x:215,y:337,targetX:215,targetY:337,angle:0,hp:3,invul:0,shield:0,alive:true};G.player=p;
+let p={x:215,y:337,targetX:215,targetY:337,angle:0,hp:HULL_BASE,maxHp:HULL_BASE,invul:0,shield:0,alive:true};G.player=p;
 function beginAudio(){if(!sound)return;try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();if(!bgm&&window.CyberBGM)bgm=new window.CyberBGM(audio);if(bgm){applySoundMix();bgm.setEnabled(true);bgm.start()}}catch(e){audio=null}}
 function tone(freq,dur=.08,type='sine',volume=.045,slide=0){if(!audio||!sound)return;try{const now=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(Math.max(30,freq),now);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,freq+slide),now+dur);g.gain.setValueAtTime(volume,now);g.gain.exponentialRampToValueAtTime(.0001,now+dur);o.connect(g);g.connect(bgm?.sfxInput||audio.destination);o.start(now);o.stop(now+dur+.01);o.onended=()=>{o.disconnect();g.disconnect()}}catch(e){}}
 function melody(dt){if(sound&&bgm)bgm.update(G.stage,!!G.boss)}
@@ -386,7 +415,7 @@ function debugJumpTo(stage,risk=0){
  G.boss=null;G.bossDone=false;G.debugBossClear=false;G.transition=0;G.transitioning=false;G.flowPhase=null;
  G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.routeSelected=0;
  G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];
- G.lives=Math.max(2,G.lives);p.hp=2;p.invul=1.8;p.alive=true;
+ G.lives=0;p.hp=p.maxHp;p.invul=1.8;p.alive=true;
  p.x=p.targetX=215;p.y=p.targetY=H/2;p.angle=0;
  G.trail=Array.from({length:120},(_,i)=>({x:p.x-i*3,y:p.y}));
  seedStage();resetTerrain();resetStick();updateHud();return true;
@@ -423,7 +452,7 @@ function launchDebug(){
 }
 $('debugLaunch').addEventListener('click',launchDebug);
 function startFreshRun(){seedInput.value='';startGame()}
-function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;G.debugBossOnly=false;G.debugBossClear=false;G.forcedBossVariant=null;G.debugBossChoice=null;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=2;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:2,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
+function startGame(debugStart=false,resuming=false){const runSeed=chooseSeed();if(runSeed===null)return;cancelCombatPresses();G.mode='playing';G.debugMode=debugStart===true;G.debugBossOnly=false;G.debugBossClear=false;G.forcedBossVariant=null;G.debugBossChoice=null;screenPulse=0;$('sidePauseBtn').innerHTML='Ⅱ <span>一時停止</span>';stickX=stickY=0;resetStick();G.time=0;G.total=0;G.stage=0;G.stageTime=0;G.scroll=0;G.spawn=.42;G.ambientTimer=.6;G.eliteSpawned=false;G.routePatrolSpawned=false;G.score=0;G.combo=0;G.comboTime=0;G.lives=0;G.shipLevel=1;G.shipXP=0;G.pulses=1;G.pulseRecharge=0;G.energy=0;G.selected=0;G.levels=[0,0,0,0,0,0];G.pendingUpgrades=[0,0,0,0,0,0];G.shots=[];G.enemies=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];G.boss=null;G.bossDone=false;G.transition=0;G.transitioning=false;G.flowPhase=null;G.shake=0;G.fireTimer=0;G.missileTimer=0;G.beat=0;G.musicTime=0;G.firstInput=false;G.routeRisk=0;G.routeSelected=0;G.routeHistory=[];G.routeOffers=[];G.rewardOffers=[];G.rewardSelected=0;G.rewardHistory=[];G.passives=[0,0,0,0,0,0];G.activeEvent=null;G.eventTriggered=false;G.eventChain=false;G.eventCount=0;G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.aiVolleys=0;G.directorGrace=0;G.directorWaveCount=0;G.runSeed=runSeed;seedStage();resetTerrain();seedLabel.textContent='SEED '+seedHex(G.runSeed);$('routePanel').classList.remove('open');$('rewardPanel').classList.remove('open');G.driveCharge=0;G.overdrive=0;G.grazes=0;G.maxCombo=0;G.killCount=0;G.trail=[];G.player={x:215,y:337,targetX:215,targetY:337,angle:0,hp:HULL_BASE,maxHp:HULL_BASE,invul:1.6,shield:0,alive:true};p=G.player;for(let i=0;i<120;i++)G.trail.push({x:p.x-i*3.5,y:p.y});TROPHIES.begin(G.debugMode,resuming);showAnnounce('MISSION 01',NAMES[0],SUBS[0],3.5);hideOverlay();beginAudio();tone(440,.25,'sawtooth',.05,620);if(!G.debugMode)saveCheckpoint();updateHud()}
 function pause(){
  cancelCombatPresses();
  if(G.mode==='playing'){
@@ -670,7 +699,10 @@ function pulse(){
  if(G.boss)damageBoss(G.boss,Math.round(110*(1+.30*passiveRank(4))));
  tone(120,.8,'sawtooth',.14,800);showToast('NOVA BURST');updateHud();
 }
-function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';[...ui.hp.children].forEach((x,i)=>x.classList.toggle('off',i>=p.hp));ui.lives.textContent='LIVES '+String(G.lives).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');const activeIndex=powerMeterIndex();
+function updateHud(){ui.score.textContent=String(G.score).padStart(8,'0');ui.best.textContent=String(Math.max(G.best,G.score)).padStart(8,'0');ui.mult.textContent='×'+(1+Math.min(3,Math.floor(G.combo/8))*.5).toFixed(1);ui.stage.textContent='SECTOR 0'+(G.stage+1);ui.area.textContent=G.stage===0?NAMES[0]:(G.routeHistory[G.stage-1]?.route||NAMES[G.stage]);ui.area.title=NAMES[G.stage]+' / '+ui.area.textContent;ui.progress.style.width=(G.bossDone?100:Math.min(100,G.stageTime/STAGE_LENGTHS[G.stage]*100))+'%';$('durabilityFill').style.width=Math.max(0,Math.min(100,p.hp/Math.max(1,p.maxHp)*100))+'%';
+ $('durabilityText').textContent=Math.max(0,Math.ceil(p.hp))+' / '+p.maxHp;
+ ui.hp.setAttribute('aria-label','機体耐久 '+Math.max(0,Math.ceil(p.hp))+' / '+p.maxHp);
+ ui.lives.textContent='SHIP LV '+String(G.shipLevel).padStart(2,'0');ui.bombs.textContent='NOVA '+String(G.pulses).padStart(2,'0');const activeIndex=powerMeterIndex();
  G.selected=Math.max(0,activeIndex);
  ui.meter.textContent=G.energy>0?'POWER '+G.energy+'/6':activeIndex>=0?'無料強化券':'POWER 待機';$('debugStatus').hidden=!G.debugMode;$('debugStatus').textContent=G.debugMode?(G.debugBossOnly?'DEBUG · 双方無敵':'DEBUG · 無敵'):'';
  ui.meter.title=[passiveSummary(),synergySummary()].filter(Boolean).join(' / ')||'カプセルで点灯が1つ右へ進む';
@@ -1206,9 +1238,8 @@ function rewardOptions(){
  add('capsule','カプセル +1','装備の強化を早める','POWER',G.energy<6);
  add('pulse','ノヴァ +1','ピンチを切り抜ける','ATTACK',G.pulses<5);
  add('shield','バリア +1','被弾を1回防ぐ','DEFENSE',p.shield<5);
- add('repair','装甲を修復','耐久力を1回復','RECOVERY',p.hp<3);
+ add('repair','装甲を修復','耐久を36回復','RECOVERY',p.hp<p.maxHp);
  add('drive','ドライブ +35','OVERDRIVEに近づく','ENERGY',G.driveCharge<100);
- add('life','残機 +1','もう一度立て直せる','SURVIVAL',G.lives<3);
  const upgradeable=G.levels.map((level,i)=>level+G.pendingUpgrades[i]<MAX[i]?i:-1).filter(i=>i>=0);
  const weapon=upgradeable.length?upgradeable[mixSeed(G.runSeed^0x7a1b9d43,G.stage+51,G.routeRisk)%upgradeable.length]:-1;
  add('module',weapon<0?'武装の無料強化':PNAMES[weapon]+' 無料強化券','対象の装備を選び「強化」で確定','UPGRADE',weapon>=0,{levelIndex:weapon});
@@ -1224,7 +1255,7 @@ function rewardOptions(){
   const h=mixSeed(salt,G.stage+89,hash(o.id))/4294967296;
   const favored=G.stage>0&&(G.routeRisk===1?
    ['ATTACK','POWER','ENERGY','UPGRADE'].includes(o.tag):
-   ['DEFENSE','RECOVERY','SURVIVAL'].includes(o.tag));
+   ['DEFENSE','RECOVERY'].includes(o.tag));
   return h-(favored?.22:0);
  };
  available.sort((a,b)=>priority(a)-priority(b)||a.id.localeCompare(b.id));
@@ -1237,13 +1268,13 @@ function rewardOptions(){
  const focusPassive=unmaxed.length?unmaxed[mixSeed(salt,119,5)%unmaxed.length]:-1;
  offer('rare_arsenal','武装オーバークロック','無料強化券×2（手動） / バリア-1','RARE · COST',doubleWeapon>=0&&p.shield>0,{levelIndex:doubleWeapon});
  offer('rare_reactor','高出力リアクター','ドライブ+45・ノヴァ+1 / バリア-1','RARE · COST',p.shield>0&&G.driveCharge<=55&&G.pulses<5);
- offer('rare_rescue','緊急再生キット','装甲全回復・残機+1 / カプセル-2','RARE · COST',G.energy>=2&&p.hp<3&&G.lives<3);
+ offer('rare_rescue','緊急再生キット','耐久を60回復 / カプセル-2','RARE · COST',G.energy>=2&&p.hp<p.maxHp-35);
  offer('rare_focus','適応コア','パッシブ+1・ドライブ+15 / ノヴァ-1','RARE · COST',focusPassive>=0&&G.pulses>0,{passiveIndex:focusPassive});
  if(G.stage>0&&G.routeRisk===1){
   offer('storm_bounty','危険宙域の戦利品','カプセル+3・ドライブ+25 / バリア-1','HIGH RISK',G.energy<=3&&p.shield>0,{risk:'storm'});
-  offer('storm_gamble','決死の武装換装','無料強化券×1・ドライブ+25 / 装甲-1','HIGH RISK',weapon>=0&&p.hp>1,{levelIndex:weapon,risk:'storm'});
+  offer('storm_gamble','決死の武装換装','無料強化券×1・ドライブ+25 / 耐久-22','HIGH RISK',weapon>=0&&p.hp>30,{levelIndex:weapon,risk:'storm'});
  }else if(G.stage>0){
-  offer('safe_refit','補給基地で再整備','装甲+1・バリア+1','SUPPLY',p.hp<3&&p.shield<5,{rarity:'route',tradeoff:false,risk:'safe'});
+  offer('safe_refit','補給基地で再整備','耐久+27・バリア+1','SUPPLY',p.hp<p.maxHp&&p.shield<5,{rarity:'route',tradeoff:false,risk:'safe'});
   offer('safe_supply','航路補給パック','カプセル+1・ノヴァ+1','SUPPLY',G.energy<6&&G.pulses<5,{rarity:'route',tradeoff:false,risk:'safe'});
  }
  // 14% neutral / 22% supply / 44% storm special chance. Seed-stable,
@@ -1254,14 +1285,8 @@ function rewardOptions(){
   special[mixSeed(salt^0x3c2a19f1,G.stage+127,G.routeRisk+3)%special.length]:null;
  const passive=available.find(o=>o.id.startsWith('passive_'));
  // 34/36: rescue is a selectable reward, never an automatic grant or upgrade.
- const critical=p.hp<=1||G.lives<=1;
- const rescue=critical?(
-  (G.lives<=1?available.find(o=>o.id==='life'):null)||
-  (p.hp<=1?available.find(o=>o.id==='repair'):null)||
-  available.find(o=>o.id==='shield')||
-  available.find(o=>o.id==='life')||
-  available.find(o=>o.id==='repair')
- ):null;
+ const critical=p.hp/Math.max(1,p.maxHp)<=.35;
+ const rescue=critical?(available.find(o=>o.id==='repair')||available.find(o=>o.id==='shield')):null;
  const result=passive?[passive]:[];
  if(rescue&&rescue!==passive)result.push(rescue);
  if(chosen)result.push(chosen);
@@ -1320,23 +1345,22 @@ function chooseReward(index){
  }else if(o.id==='rare_reactor'&&p.shield>0){
   p.shield--;G.pulses=Math.min(5,G.pulses+1);chargeDrive(45);
  }else if(o.id==='rare_rescue'&&G.energy>=2){
-  reducePowerMeter(2);p.hp=3;G.lives=Math.min(3,G.lives+1);
+  reducePowerMeter(2);repairHull(60);
  }else if(o.id==='rare_focus'&&Number.isInteger(o.passiveIndex)&&passiveRank(o.passiveIndex)<2&&G.pulses>0){
   G.pulses--;G.passives[o.passiveIndex]++;if(o.passiveIndex===3)p.shield=Math.min(5,p.shield+1);chargeDrive(15);
  }else if(o.id==='storm_bounty'&&p.shield>0){
   p.shield--;advancePowerMeter(3);chargeDrive(25);
- }else if(o.id==='storm_gamble'&&p.hp>1&&Number.isInteger(o.levelIndex)&&G.levels[o.levelIndex]+G.pendingUpgrades[o.levelIndex]<MAX[o.levelIndex]){
-  p.hp--;queueManualUpgrade(o.levelIndex,1);chargeDrive(25);
+ }else if(o.id==='storm_gamble'&&p.hp>30&&Number.isInteger(o.levelIndex)&&G.levels[o.levelIndex]+G.pendingUpgrades[o.levelIndex]<MAX[o.levelIndex]){
+  p.hp-=22;queueManualUpgrade(o.levelIndex,1);chargeDrive(25);
  }else if(o.id==='safe_refit'){
-  p.hp=Math.min(3,p.hp+1);p.shield=Math.min(5,p.shield+1);
+  repairHull(27);p.shield=Math.min(5,p.shield+1);
  }else if(o.id==='safe_supply'){
   advancePowerMeter(1);G.pulses=Math.min(5,G.pulses+1);
  }else if(o.id==='capsule')advancePowerMeter(1);
  else if(o.id==='pulse')G.pulses=Math.min(5,G.pulses+1);
  else if(o.id==='shield')p.shield=Math.min(5,p.shield+1);
- else if(o.id==='repair')p.hp=Math.min(3,p.hp+1);
+ else if(o.id==='repair')repairHull(36);
  else if(o.id==='drive')chargeDrive(35);
- else if(o.id==='life')G.lives=Math.min(3,G.lives+1);
  else if(o.id==='module'&&Number.isInteger(o.levelIndex)&&G.levels[o.levelIndex]+G.pendingUpgrades[o.levelIndex]<MAX[o.levelIndex]){
   queueManualUpgrade(o.levelIndex,1);
  }else if(o.id==='score')G.score+=3000*(G.stage+1);
@@ -1447,22 +1471,37 @@ function stageClear(){
  G.transition=G.flowPhase==='finish'?1.8:4.8;
  // The checkpoint is saved after rescue and score changes to avoid losing progress.
  // Rescue critically damaged ships on every second sector only.
- const rescued=G.stage%2===1&&p.hp===1;
- if(rescued)p.hp=2;
+ grantShipXP(70+G.stage*12);
+ const rescued=G.stage%2===1&&p.hp/p.maxHp<.30;
+ if(rescued)repairHull(22);
  if(G.stage%2===1)G.pulses=Math.min(5,G.pulses+1);
  G.score+=5000*(G.stage+1);chargeDrive(22);
  if(G.flowPhase==='reward'){G.rewardOffers=rewardOptions();G.routeOffers=[];saveCheckpoint('reward')}
- showAnnounce('SECTOR CLEAR',NAMES[G.stage],'+ BONUS 5000'+(rescued?' · ARMOR +1':G.stage%2===1?' · NOVA +1':''),.9);
+ showAnnounce('SECTOR CLEAR',NAMES[G.stage],'+ BONUS 5000'+(rescued?' · HULL +22':G.stage%2===1?' · NOVA +1':''),.9);
  tone(470,.55,'triangle',.055,450)
 }
 function nextStage(){G.stage++;if(G.stage>=NAMES.length){endGame(true);return}G.pendingWave=null;G.waveSerial=0;G.squadAttackCooldown=0;G.directorGrace=0;G.directorWaveCount=0;G.ambientTimer=.4;G.eliteSpawned=false;G.routePatrolSpawned=false;seedStage();resetTerrain();G.stageTime=0;G.spawn=.42*routeProfile().spawnInterval;G.transitioning=false;G.flowPhase=null;G.bossDone=false;G.enemies=[];G.bullets=[];G.pickups=[];p.invul=1.6;p.shield=Math.min(5,p.shield+passiveRank(3));showAnnounce('MISSION 0'+(G.stage+1),NAMES[G.stage],SUBS[G.stage],1.15);tone(400,.3,'sine',.04,350)}
-function hitPlayer(damage=1){if(G.debugMode||p.invul>0||G.mode!=='playing')return;TROPHIES.hit(p.shield>0);if(p.shield>0){G.directorGrace=Math.max(G.directorGrace,4.5);G.spawn=Math.max(G.spawn,3.2);p.shield--;p.invul=.55;p.hitFlash=Math.max(p.hitFlash||0,.11);ring(p.x,p.y,62,'#5df4ff');
- if(synergyActive(4)){
-  const radius=115+35*passiveRank(3);
-  // Mark instead of splicing: the bullet loop removes expired projectiles.
-  for(const shot of G.bullets)if(circleHit(p.x,p.y,radius,shot.x,shot.y,shot.size||0))shot.life=0;
-  ring(p.x,p.y,radius,'#7cfce9',.28);
- }tone(330,.19,'triangle',.07,-200);return}G.directorGrace=Math.max(G.directorGrace,5);G.spawn=Math.max(G.spawn,3);p.hp-=damage;p.invul=1.05;p.hitFlash=.22;G.shake=13;G.combo=0;G.driveCharge=Math.max(0,G.driveCharge-20);emit(p.x,p.y,25,'#8acbff',220);tone(190,.36,'sawtooth',.085,-160);if(p.hp<=0){G.directorGrace=8;G.spawn=Math.max(G.spawn,4.3);G.lives--;explosion(p.x,p.y,57);if(G.lives<=0){endGame(false);return}p.hp=2;p.invul=2.0;p.x=165;p.y=H/2;p.targetX=p.x;p.targetY=p.y;G.levels[0]=Math.max(0,G.levels[0]-1);G.energy=0;showToast('SHIP LOST · '+G.lives+' REMAINING')}}
+function hitPlayer(damage=1){
+ if(G.debugMode||p.invul>0||G.mode!=='playing')return;
+ TROPHIES.hit(p.shield>0);
+ if(p.shield>0){
+  G.directorGrace=Math.max(G.directorGrace,4.5);
+  G.spawn=Math.max(G.spawn,3.2);p.shield--;p.invul=.62;p.hitFlash=.11;
+  ring(p.x,p.y,62,'#5df4ff');
+  if(synergyActive(4)){
+   const radius=115+35*passiveRank(3);
+   for(const shot of G.bullets)if(circleHit(p.x,p.y,radius,shot.x,shot.y,shot.size||0))shot.life=0;
+   ring(p.x,p.y,radius,'#7cfce9',.28);
+  }
+  tone(330,.19,'triangle',.07,-200);return;
+ }
+ G.directorGrace=Math.max(G.directorGrace,5);G.spawn=Math.max(G.spawn,3);
+ p.hp=Math.max(0,p.hp-actualHullDamage(damage));p.invul=1.10;p.hitFlash=.22;
+ G.shake=13;G.combo=0;G.driveCharge=Math.max(0,G.driveCharge-20);
+ emit(p.x,p.y,25,'#8acbff',220);tone(190,.36,'sawtooth',.085,-160);
+ if(p.hp<=0){explosion(p.x,p.y,57);endGame(false);return}
+ updateHud();
+}
 function playerFire(){const l=G.levels,shotCount=l[2]>0?2:1;const speeds=G.overdrive>0?1250:950;if(l[2]>0){for(let i=0;i<shotCount;i++){let y=p.y+(i?9:-9);G.shots.push({x:p.x+42,y,px:p.x+42,py:y,vx:1200,vy:0,dmg:23+l[2]*12,pierce:3+l[2]*3,kind:'laser',life:1.5})}}else{G.shots.push({x:p.x+37,y:p.y,px:p.x+37,py:p.y,vx:speeds,vy:0,dmg:G.overdrive>0?28:19,pierce:1,kind:'shot',life:1.7})}if(l[1]){const spread=l[1]===1?[.16,-.16]:l[1]===2?[.12,-.12,.29,-.29]:[.09,-.09,.21,-.21,.35,-.35];for(let a of spread)G.shots.push({x:p.x+30,y:p.y,px:p.x+30,py:p.y,vx:890*Math.cos(a),vy:890*Math.sin(a),dmg:12+l[1]*2,pierce:1,kind:'spread',life:1.6})}if(synergyActive(0))for(let i=0;i<passiveRank(0);i++){
  const a=i%2?-.055:.055;
  G.shots.push({x:p.x+30,y:p.y,px:p.x+30,py:p.y,vx:890*Math.cos(a),vy:890*Math.sin(a),dmg:9,pierce:1,kind:'spread',life:1.45});
@@ -1704,7 +1743,7 @@ for(let i=G.pickups.length-1;i>=0;i--){const q=G.pickups[i];q.t+=dt;q.x+=q.vx*dt
 for(let i=G.particles.length-1;i>=0;i--){const q=G.particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(.12,dt);q.vy*=Math.pow(.16,dt);if(q.kind==='shard')q.rot+=q.spin*dt;if(q.life<=0)G.particles.splice(i,1)}if(G.particles.length>620)G.particles.splice(0,G.particles.length-620);
 for(let i=G.rings.length-1;i>=0;i--){const r=G.rings[i];r.t+=dt;r.r=r.max*(r.t/r.life);if(r.t>=r.life)G.rings.splice(i,1)}
 TROPHIES.observe(dt,{score:G.score,grazes:G.grazes,maxCombo:G.maxCombo});G.uiTime-=dt;if(G.uiTime<=0){updateHud();G.uiTime=.11}}
-function destroyEnemy(i){const e=G.enemies[i];if(!e)return;addScore(e.score);if(e.routeCaptain)chargeDrive(e.routeRisk?16:8);G.killCount++;TROPHIES.event('kills',1);if(e.elite)TROPHIES.event('elites',1);if(e.type==='carrier')TROPHIES.event('carrierKills',1);chargeDrive(e.type==='tank'||e.type==='carrier'?13:6);explosion(e.x,e.y,e.type==='tank'||e.type==='carrier'?46:21);wreckFragments(e);if(e.elite){if(mixSeed(G.runSeed,G.stage,G.routeRisk+93)%100<32){G.pickups.push({x:e.x,y:e.y,vx:-50,phase:0,t:0,type:'elite'});showToast('RARE · NOVA CACHE')}else chargeDrive(16)}else if(e.eventDrop)pickup(e.x,e.y,true);else if(!e.noLoot&&gameRandom()<(e.type==='carrier'?.40:salvageRate()))pickup(e.x,e.y,gameRandom()>.08);G.enemies.splice(i,1)}
+function destroyEnemy(i){const e=G.enemies[i];if(!e)return;addScore(e.score);if(e.routeCaptain)chargeDrive(e.routeRisk?16:8);G.killCount++;grantShipXP(e.elite?34:e.type==='tank'||e.type==='carrier'?24:EXTRA?.contains(e.type)?19:12);TROPHIES.event('kills',1);if(e.elite)TROPHIES.event('elites',1);if(e.type==='carrier')TROPHIES.event('carrierKills',1);chargeDrive(e.type==='tank'||e.type==='carrier'?13:6);explosion(e.x,e.y,e.type==='tank'||e.type==='carrier'?46:21);wreckFragments(e);if(e.elite){if(mixSeed(G.runSeed,G.stage,G.routeRisk+93)%100<32){G.pickups.push({x:e.x,y:e.y,vx:-50,phase:0,t:0,type:'elite'});showToast('RARE · NOVA CACHE')}else chargeDrive(16)}else if(e.eventDrop)pickup(e.x,e.y,true);else if(!e.noLoot&&gameRandom()<(e.type==='carrier'?.40:salvageRate()))pickup(e.x,e.y,gameRandom()>.08);G.enemies.splice(i,1)}
 function poly(points,fill,stroke,width=1){c.beginPath();c.moveTo(points[0],points[1]);for(let i=2;i<points.length;i+=2)c.lineTo(points[i],points[i+1]);c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke()}}
 function glowCircle(x,y,r,col,blur=16){c.save();c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.restore()}
 function ellipse(x,y,rx,ry,fill,stroke,width=1){c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fillStyle=fill;c.fill();if(stroke){c.lineWidth=width;c.strokeStyle=stroke;c.stroke()}}
@@ -1910,7 +1949,7 @@ poly([-25,-7,8,-9,34,0,8,9,-25,7],'#173c64','#79e5fd',1.5);
 poly([-5,-8,21,-5,27,0,21,5,-5,8],'#91ebff','#eafaff',1.2);
 poly([28,-8,50,0,28,8,33,0],'#e6ffff');glowCircle(5,0,4,MEDALS.find(m=>m.id===medalState.active)?.color||'#43dfff',12);
 line(-25,-18,-7,-18,'#dafaff',1);line(-25,18,-7,18,'#dafaff',1);
-if((G.mode==='playing'||G.mode==='paused')&&p.hp===1){line(-21,-7,-5,-12,'#eeb48d',1.5);line(1,11,18,7,'#eeb48d',1.5)}
+if((G.mode==='playing'||G.mode==='paused')&&p.hp/p.maxHp<=.25){line(-21,-7,-5,-12,'#eeb48d',1.5);line(1,11,18,7,'#eeb48d',1.5)}
 if((G.mode==='playing'||G.mode==='paused')&&p.hitFlash>0){c.save();c.globalAlpha=cl(p.hitFlash/.22,0,1)*.78;line(-28,-14,22,-8,'#ff9d75',3);line(-28,14,22,8,'#ff9d75',3);c.restore()}
 if(p.shield>0){c.save();c.globalAlpha=.55+.14*Math.sin(G.time*8);c.strokeStyle='#70f9ff';c.lineWidth=2.5;c.shadowColor='#4aeaff';c.shadowBlur=22;c.beginPath();c.arc(0,0,43,0,TAU);c.stroke();for(let i=0;i<6;i++){const a=i*TAU/6+G.time*.4;line(Math.cos(a)*41,Math.sin(a)*41,Math.cos(a+.18)*43,Math.sin(a+.18)*43,'#c5fdff',2)}c.restore()}
 c.restore()}
