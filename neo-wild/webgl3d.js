@@ -116,7 +116,7 @@ function animal(m,player,clock){
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
  const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
- const h=large?r*.74:r*.56;
+ const h=large?r*.74:fox?r*.72:cat?r*.64:rabbit?r*.50:r*.56;
  const x=m.x,y=m.y;
  animalLift=0;
  // Shadow is projected to the walkable roof when standing on one.
@@ -130,9 +130,19 @@ function animal(m,player,clock){
   const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
   const bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
   const pawLift=front?attackReach*r*(cat?.34:fox?.20:.13):0;
-  ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob)+pawLift,r*.21,r*.19,r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
+  ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob)+pawLift,fox?r*.16:cat?r*.17:rabbit?(front?r*.15:r*.28):r*.21,fox?r*.14:cat?r*.14:rabbit?(front?r*.15:r*.24):r*.19,fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
  }
- ellipsoid(fx(r*(attackReach*.16-attackPrep*.16),0),fy(r*(attackReach*.16-attackPrep*.16),0),h+r*.28-attackPrep*r*.11+attackReach*r*.09,large?r*1.22:rat?r*.76:pigeon?r*.72:r*.91,cat?r*.49:rat?r*.40:pigeon?r*.46:r*.69,large?r*.69:r*.55,torso,dir,11,6);
+ ellipsoid(fx(r*(attackReach*.16-attackPrep*.16),0),fy(r*(attackReach*.16-attackPrep*.16),0),h+r*.28-attackPrep*r*.11+attackReach*r*.09,
+  large?r*1.22:fox?r*1.15:cat?r*1.04:rabbit?r*.91:type==="dog"?r*1.08:rat?r*.76:pigeon?r*.72:r*.91,
+  fox?r*.42:cat?r*.40:rabbit?r*.53:type==="dog"?r*.58:rat?r*.40:pigeon?r*.46:r*.69,
+  large?r*.69:fox?r*.46:cat?r*.43:rabbit?r*.52:type==="dog"?r*.58:r*.55,torso,dir,11,6);
+ if(rabbit){
+  // Rounded haunches and broad hind feet, not four identical short legs.
+  for(const side of [-1,1]){
+   ellipsoid(fx(-r*.49,side*r*.39),fy(-r*.49,side*r*.39),h+r*.12,r*.42,r*.30,r*.39,torso,dir,9,5);
+   ellipsoid(fx(-r*.78,side*r*.50),fy(-r*.78,side*r*.50),r*.19,r*.41,r*.23,r*.19,base,dir,8,4);
+  }
+ }
  if(type==="alpha"){
   // Dense shoulder mane and raised hackles give the alpha a heavier silhouette.
   ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.60,r*.78,r*.83,r*.74,"#354d50",dir,10,6);
@@ -142,7 +152,7 @@ function animal(m,player,clock){
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
  const headDrive=r*(attackReach*(cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
- const neck=(large?r*.70:r*.64)+headDrive,headR=cat?r*.47:fox?r*.50:large?r*.53:r*.49;
+ const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49,headR,headR*.80,headR*.83,torso,dir,9,5);
  if(fox||cat||wolf||rabbit||rat){
   for(const side of [-1,1]){
@@ -158,7 +168,7 @@ function animal(m,player,clock){
  }else if(pigeon){
   for(const side of [-1,1])ellipsoid(fx(-r*.15,side*r*.55),fy(-r*.15,side*r*.55),h+r*.55,r*.60,r*.16,r*.25,"#aec3b8",dir,7,4);
  }else{
-  ellipsoid(fx(r*1.06+headDrive,0),fy(r*1.06+headDrive,0),h+r*.42-attackReach*r*.06,fox?r*.47:rat?r*.24:r*.31,fox?r*.19:r*.23,r*.19,belly,dir,8,4);
+  ellipsoid(fx(r*1.06+headDrive,0),fy(r*1.06+headDrive,0),h+r*.42-attackReach*r*.06,fox?r*.60:rat?r*.24:r*.31,fox?r*.15:r*.23,fox?r*.16:r*.19,belly,dir,8,4);
  }
  if(pigeon){
   pyramid(fx(r*.95,0),fy(r*.95,0),h+r*.46,r*.23,r*.17,r*.27,"#d6b46c");
@@ -178,7 +188,7 @@ function animal(m,player,clock){
   // A bent segmented tail is visibly different from the fox's dense brush.
   for(let i=0;i<4;i++){
    const dx=-r*(1.06+i*.33),dy=Math.sin(clock*2+i*.7)*r*.25,z=h+r*(.43+i*.16);
-   ellipsoid(fx(dx,dy),fy(dx,dy),z,r*.26,r*.14,r*.15,torso,dir,6,4);
+   ellipsoid(fx(dx,dy),fy(dx,dy),z,r*.21,r*.105,r*.11,torso,dir,6,4);
   }
  }else if(fox){
   ellipsoid(fx(-r*1.58,0),fy(-r*1.58,0),h+r*.48,r*.85,r*.42,r*.45,torso,dir,9,5);
