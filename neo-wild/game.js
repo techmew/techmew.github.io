@@ -103,6 +103,14 @@ function roofAt(x,y){
  for(const b of buildings)if(b.roofZ&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return b.roofZ;
  return 0;
 }
+// Step down from a roof in visible time, not by teleporting the model downward.
+function landOnSurface(){
+ const old=P.groundZ||0,next=roofAt(P.x,P.y);
+ P.groundZ=next;
+ if(next<old){P.fallFromZ=old;P.fallTime=.30;P.jumpHeight=old;}
+ else{P.fallTime=0;P.jumpHeight=next;}
+ return next>old;
+}
 function collides(x,y,r,actor=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
  for(const b of buildings){
@@ -424,8 +432,9 @@ function update(dt){
   P.fallTime=Math.max(0,P.fallTime-dt);
   const part=P.fallTime/.30;
   P.jumpHeight=(P.groundZ||0)+(P.fallFromZ-(P.groundZ||0))*part*part;
+  if(P.fallTime===0&&P.pendingStrike&&P.jumpDive)resolveAttack();
  }
- P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0)resolveAttack()}
+ P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.sense=Math.max(0,P.sense-dt);P.senseTime=Math.max(0,P.senseTime-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
@@ -444,11 +453,10 @@ function update(dt){
     // A blocked first step does not cancel the entire leap.
     P.steps+=covered*.052;
     if(P.jumpTime===0){
-     const previousRoof=P.groundZ||0;
-     P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.fallTime=0;P.vx=0;P.vy=0;
-     if(P.groundZ>previousRoof){P.senseTime=Math.max(P.senseTime,3);notify("屋上に到着 / 獲物の位置を見渡せる");}
+     const reachedRoof=landOnSurface();P.vx=0;P.vy=0;
+     if(reachedRoof){P.senseTime=Math.max(P.senseTime,3);notify("屋上に到着 / 獲物の位置を見渡せる");}
      blood(P.x,P.y,"#b7be9e",5,26);
-     if(P.pendingStrike&&P.jumpDive)resolveAttack();
+     if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
      else P.jumpAmbush=false;
     }
    }else if(P.pounceTime>0){
@@ -466,7 +474,7 @@ function update(dt){
    P.steps+=moved*.052;
    const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?31:P.type==="wolf"?23:28);
-   if(P.pounceTime===0){P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;if(P.pendingStrike)resolveAttack();}
+   if(P.pounceTime===0){landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
   }else if(P.dashTime>0){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
