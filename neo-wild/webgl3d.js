@@ -131,7 +131,9 @@ function animal(m,player,clock){
   const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
   const bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
   const pawLift=front?attackReach*r*(cat?.34:fox?.20:.13):0;
-  ellipsoid(fx(dx,dy),fy(dx,dy),r*.29+Math.max(0,bob)+pawLift,fox?r*.16:cat?r*.17:rabbit?(front?r*.15:r*.28):r*.21,fox?r*.14:cat?r*.14:rabbit?(front?r*.15:r*.24):r*.19,fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
+  const legHeight=fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38;
+  // Keep the bottom of each paw on or above its walkable surface.
+  ellipsoid(fx(dx,dy),fy(dx,dy),legHeight+Math.max(0,bob)+pawLift,fox?r*.16:cat?r*.17:rabbit?(front?r*.15:r*.28):r*.21,fox?r*.14:cat?r*.14:rabbit?(front?r*.15:r*.24):r*.19,legHeight,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
  }
  ellipsoid(fx(r*(attackReach*.16-attackPrep*.16),0),fy(r*(attackReach*.16-attackPrep*.16),0),h+r*.28-attackPrep*r*.11+attackReach*r*.09,
   large?r*1.22:fox?r*1.15:cat?r*1.04:rabbit?r*.91:type==="dog"?r*1.08:rat?r*.76:pigeon?r*.72:r*.91,
