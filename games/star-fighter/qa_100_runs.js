@@ -1685,6 +1685,15 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   t.setDebug(true);t.event('kills',10000);t.observe(8,{score:999999,grazes:999,maxCombo:99});
   ok(t.count()===oldCount&&t.metric('kills')===oldKills,'debug mode cannot earn achievements');
   t.setDebug(false);
+  // Checkpoint resumes or damaged runs must never qualify for a flawless clear.
+  const perfect0=t.metric('perfectRuns');
+  t.begin(false,true);t.finish(true,{score:0,grazes:0,maxCombo:0});
+  ok(t.metric('perfectRuns')===perfect0,'checkpoint resume cannot claim a flawless full run');
+  t.begin(false,false);t.hit(false);t.finish(true,{score:0,grazes:0,maxCombo:0});
+  ok(t.metric('perfectRuns')===perfect0,'damaged run cannot claim flawless trophy');
+  t.begin(false,false);t.finish(true,{score:0,grazes:0,maxCombo:0});
+  ok(t.metric('perfectRuns')===perfect0+1,'uninterrupted no-hit win qualifies once');
+  t.begin(false,true);
   for(const f of t.groups){
    t.event(f.key,Math.max(0,f.goals[9]-t.metric(f.key)));
    ok(t.metric(f.key)>=f.goals[9],'highest trophy tier attainable '+f.key);
