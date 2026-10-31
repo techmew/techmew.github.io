@@ -396,6 +396,11 @@ function restoreSnapshot(snapshot){
   m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
   m.evadeTime=0;m.evadeDuration=0;m.evadeRemaining=0;m.evadeSpeed=0;m.evadeHeight=0;
   m.evadeAngle=Number.isFinite(m.evadeAngle)?m.evadeAngle:0;
+  // Old schema-2 snapshots have no indoor rest fields.
+  m.restNeed=Number.isFinite(m.restNeed)?clamp(m.restNeed,0,1):null;
+  m.restTime=Number.isFinite(m.restTime)?clamp(m.restTime,0,12):0;
+  m.restCooldown=Number.isFinite(m.restCooldown)?clamp(m.restCooldown,0,30):0;
+  m.resting=m.restTime>0;
  }
  const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
  const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
@@ -1242,6 +1247,36 @@ function rainShelterPoint(m){
  }
  return best;
 }
+// Indoor wildlife rest: existing animals lie down in real walkable rooms during rain.
+// No teleport, despawn, duplicate, new control, or change to save schema.
+function updateIndoorRest(m,sp,dt,spotted,d){
+ if(!Number.isFinite(m.restNeed))m.restNeed=clamp(.32+noise(Math.floor(m.x),Math.floor(m.y))*.55,0,1);
+ if(!Number.isFinite(m.restTime))m.restTime=0;
+ if(!Number.isFinite(m.restCooldown))m.restCooldown=0;
+ m.restNeed=clamp(m.restNeed+dt*.012,0,1);
+ m.restCooldown=Math.max(0,m.restCooldown-dt);
+ const indoors=insideShelter(m),rainy=weather==="RAIN"||weather==="THUNDER";
+ // Prey must react to hunters, and all animals wake if the player threatens them.
+ const hunter=sp.prey&&mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<155&&!lineBlocked(m,q));
+ const danger=spotted||m.alert>0||m.flee>0||m.stun>0||m.windup>0||
+  m.chargeTime>0||(m.evadeTime||0)>0||hunter||
+  (d<115&&!lineBlocked(m,P));
+ if(m.restTime>0&&(!indoors||!rainy||danger)){
+  m.restTime=0;m.restCooldown=danger?12:5;
+  m.restNeed=Math.min(m.restNeed,danger?.38:.65);
+ }
+ if(m.restTime<=0&&indoors&&rainy&&!danger&&m.restCooldown<=0&&m.restNeed>=.80){
+  m.restTime=5+noise(Math.floor(m.x*.37),Math.floor(m.y*.29))*4;
+  m.navPath=null; // Do not keep a stale walking route after waking.
+ }
+ m.resting=m.restTime>0;
+ if(!m.resting)return false;
+ m.restTime=Math.max(0,m.restTime-dt);
+ m.restNeed=Math.max(0,m.restNeed-dt*.14);
+ m.sheltered=true;m.vx=0;m.vy=0;m.wander=Math.max(m.wander,.4);
+ if(m.restTime===0){m.resting=false;m.restCooldown=8;}
+ return true;
+}
 // Weather-dependent bird roosting: approach a real roof/forest tree, rest, then take off.
 // Uses the existing 20 saved birds. Perch searches only occur at state transitions.
 function findBirdPerch(bird){
@@ -1465,6 +1500,8 @@ function update(dt){
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
+   // Sleep can be interrupted by the same detection, damage and predator rules as combat.
+   if(updateIndoorRest(m,s,dt,spotted,d))continue;
    let vx=0,vy=0;
    if(!s.prey)tryEnemyEmergencyEvade(m,s,d,spotted);
    if((m.evadeTime||0)>0){advanceEnemyEvade(m,dt);continue;}
@@ -2006,6 +2043,7 @@ function drawCreature(o,isPlayer){
  if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight); // Real sideways leap also clears the ground in Canvas2D.
  if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
  ctx.rotate(o.dir||0);
+ if(!isPlayer&&o.resting){ctx.scale(1.07,.68);ctx.translate(0,r*.15);}
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.19:t==="cat"?Math.abs(Math.sin(gait*1.46))*.13:t==="wolf"?Math.abs(Math.sin(gait*.62))*.105:Math.abs(Math.sin(gait*.9))*.09;
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
@@ -2463,10 +2501,10 @@ function drawScene(){
  // Food is now depth-tested inside WebGL; do not paint it above buildings.
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=m.sheltered?"雨":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=m.resting?"Zz":m.sheltered?"雨":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillStyle=m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+  ctx.fillStyle=m.resting?"#c8e7ff":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
