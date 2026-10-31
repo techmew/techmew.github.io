@@ -695,6 +695,43 @@ function combatEngaged(){
    dist(P,m)<240&&(m.alert>0||m.windup>0||m.chargeTime>0)));
 }
 function edibleFood(c){return c&&c.type!=="bones"&&Number(c.amount)>0}
+// Hungry wild predators walk to real remains and consume them without creating food.
+function scavengeWildFood(m,sp,dt,spotted,playerDistance){
+ m.scavengePose=Math.max(0,(m.scavengePose||0)-dt);
+ m.scavengeCooldown=Math.max(0,(m.scavengeCooldown||0)-dt);
+ m.scavengeNeed=Number.isFinite(m.scavengeNeed)?
+  clamp(m.scavengeNeed+dt*.009,0,1):.67+noise(Math.floor(m.x),Math.floor(m.y))*.31;
+ if(sp.prey||m.scavengeNeed<.72||spotted||m.alert>0||m.flee>0||
+    m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||playerDistance<110)return null;
+ // A predator prefers a live prey encounter; scavenging must not cancel combat.
+ if(mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&
+    Math.abs(q.x-m.x)<175&&Math.abs(q.y-m.y)<175&&dist(m,q)<175))return null;
+ let target=null,best=290*290;
+ for(const c of carcasses){
+  if(!edibleFood(c)||(c.type!=="corpse"&&c.type!=="meat"))continue;
+  const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
+  if(d2<best){best=d2;target=c}
+ }
+ if(!target)return null;
+ const biteRange=m.r+(target.r||9)+18;
+ if(best>biteRange*biteRange){
+  m.dir=steerPursuit(m,target.x,target.y);
+  return {vx:Math.cos(m.dir)*sp.speed*.60,vy:Math.sin(m.dir)*sp.speed*.60};
+ }
+ if(lineBlocked(m,target))return null; // Never feed through a room wall.
+ if(m.scavengeCooldown<=0){
+  const bite=Math.min(target.amount,Math.max(5,Math.round(sp.damage*.32)+4));
+  target.amount=Math.max(0,target.amount-bite);
+  if(target.amount<=0){
+   if(target.type==="corpse")toBones(target);
+   else carcasses.splice(carcasses.indexOf(target),1);
+  }
+  m.scavengeNeed=Math.max(0,m.scavengeNeed-.19);
+  m.scavengeCooldown=2.0;m.scavengePose=.9;m.navPath=null;
+  if(playerDistance<360)label(m.x,m.y-m.r-25,"死骸を食べる","#d9f0b9");
+ }
+ return {vx:0,vy:0};
+}
 function animalRemains(m){const n=species[m.type].food;return {x:m.x,y:m.y,r:Math.max(9,m.r*.78),type:"corpse",animalType:m.type,amount:n,initialAmount:n,ttl:150,phase:rnd(0,6)};}
 function toBones(c){c.type="bones";c.amount=0;c.ttl=150;}
 function nearbyFood(){
