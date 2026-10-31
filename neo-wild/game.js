@@ -726,6 +726,7 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
    if(target.type==="corpse")toBones(target);
    else carcasses.splice(carcasses.indexOf(target),1);
   }
+  m.hp=Math.min(m.maxHp||m.hp,m.hp+Math.min(5,bite*.4));
   m.scavengeNeed=Math.max(0,m.scavengeNeed-.065);
   m.scavengeCooldown=1.8;m.scavengePose=.9;m.navPath=null;
   if(playerDistance<360)label(m.x,m.y-m.r-25,"死骸を食べる","#d9f0b9");
