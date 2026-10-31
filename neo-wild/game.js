@@ -6,7 +6,7 @@ const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
 const mini=$("minimap"),mc=mini.getContext("2d");
 const bigMap=$("world-map-canvas"),bm=bigMap.getContext("2d");
-const TWO=Math.PI*2, WORLD={w:4200,h:2400};
+const TWO=Math.PI*2, WORLD={w:8400,h:6000};
 const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
  cat:{name:"ノラネコ",hp:85,speed:239,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
@@ -42,8 +42,23 @@ function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*d
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 // Keep wildlife rare enough to track, not a crowd of targets.
 const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,preyNeedRadius:420};
-const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
-const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
+const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
+const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
+function regionAt(x,y){
+ if(y<2600){
+  if(x<1400)return 0;if(x<2800)return 1;if(x<4200)return 2;if(x<6300)return 3;return 4;
+ }
+ if(x<2800)return 5;if(x<5600)return 6;return 7;
+}
+const EXPLORE_SITES=[
+ {id:"zoo",x:5250,y:1460,name:"上野・動物園跡",note:"大型動物の気配が残る獣舎"},
+ {id:"river",x:7270,y:1700,name:"荒川河川敷",note:"新たな水場と野鳥の生息地"},
+ {id:"forest",x:1550,y:4380,name:"代々木・深緑の森",note:"食料は豊富だが足元が見えにくい"},
+ {id:"factory",x:4380,y:4260,name:"湾岸・旧工業区",note:"高い足場と廃機械の残骸"},
+ {id:"canal",x:7000,y:4850,name:"江東運河",note:"水路沿いの獣道"},
+ {id:"ark",x:5520,y:2170,name:"地下管理区画の入口",note:"都市の旧設備から異音が聞こえる"}
+];
+let discoveredSites=[];
 const SAFE_DEN={x:1860,y:1170,r:90};
 const DEN_CAP=200, DEN_MAX_LEVEL=3, DEN_COSTS={2:60,3:120};
 let denStash=0,denLevel=1;
@@ -112,6 +127,50 @@ function generateWorld(){
  for(const y of ys)for(const x of xs){const n=noise(k++,13),w=270+n*175,h=(y>1970?230:240)+noise(k,8)*110;
    const roofZ=k%7===0?60:k%5===0?46:k%4===0?30:0;
     buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ});}
+// Open-world expansion: keep the original 4,200×2,400 region intact, and
+ // deterministically populate the east/south districts with different urban biomes.
+ const addBlock=(x,y,seed,biome)=>{
+  if(x<4200&&y<2450)return;
+  if(EXPLORE_SITES.some(site=>Math.hypot(site.x-x,site.y-y)<255))return;
+  const n=noise(seed,17),w=biome===5?135+120*n:biome===4?155+95*n:205+155*n;
+  const h=biome===5?105+92*noise(seed,4):175+155*noise(seed,4);
+  if(x+w>WORLD.w-35||y+h>WORLD.h-35)return;
+  const roadCollision=roadsX.some(rx=>rx>x-42&&rx<x+w+42)||roadsY.some(ry=>ry>y-42&&ry<y+h+42);
+  if(roadCollision)return;
+  const roofZ=seed%7===0?70:seed%3===0?50:seed%4===0?32:0;
+  buildings.push({x,y,w,h,seed,kind:biome===6?3:biome%4,sign:seed%5===0,broken:seed%4===0,roofZ});
+ };
+ let extSeed=240;
+ for(const y of [125,840,1660]){
+  for(const x of [4575,5500,6500,7490,8100])addBlock(x,y,extSeed++,regionAt(x,y));
+ }
+ for(const y of [2560,3260,4080,5010,5620]){
+  for(const x of [100,980,1850,2780,3590,4600,5500,6550,7580,8120])
+   addBlock(x,y,extSeed++,regionAt(x,y));
+ }
+ // Dense forest patches to the southwest, tall derelict blocks to the east.
+ for(let i=0;i<780;i++){
+  const x=120+rnd(0,WORLD.w-240),y=2450+rnd(0,WORLD.h-2580);
+  if(nearBuilding(x,y,45))continue;
+  const biome=regionAt(x,y),forest=biome===5,shrubs=forest?.46:biome===7?.24:.15;
+  plants.push({x,y,r:Math.random()<shrubs?rnd(34,65):rnd(7,24),
+   type:Math.random()<shrubs?2:Math.random()<.25?1:0,phase:rnd(0,TWO),hue:Math.random()});
+ }
+ for(let i=0;i<260;i++){
+  const x=4200+rnd(0,WORLD.w-4320),y=90+rnd(0,2400);
+  if(!nearBuilding(x,y,48))plants.push({x,y,r:rnd(8,46),type:i%5===0?2:i%3===0?1:0,phase:rnd(0,TWO),hue:Math.random()});
+ }
+ for(let i=0;i<520;i++){
+  const x=rnd(80,WORLD.w-80),y=rnd(2500,WORLD.h-70);
+  if(!nearBuilding(x,y,12))debris.push({x,y,r:rnd(2,12),a:rnd(0,TWO),kind:i%4});
+ }
+ for(const site of EXPLORE_SITES){
+  // Each discovered place has a few distinct edible patches.
+  for(let j=0;j<3;j++){
+   const ang=j*TWO/3,xx=site.x+Math.cos(ang)*155,yy=site.y+Math.sin(ang)*145;
+   if(!nearBuilding(xx,yy,32))plants.push({x:xx,y:yy,r:40,type:2,phase:j,hue:.3});
+  }
+ }
  // Two real opposing walls form an accessible alley for alternating cat triangle-kicks.
  // It is away from the starting den and mission food; other species can go around.
  const alley=[
@@ -131,15 +190,15 @@ function generateWorld(){
  for(const x of roadsX)for(const y of roadsY)for(const dx of [-100,100])for(const dy of [-87,87])lamps.push({x:x+dx,y:y+dy});
  
  // Roadside vehicles, bicycles and abandoned city furniture.
- for(let i=0;i<30;i++){
+ for(let i=0;i<72;i++){
   const along=i%3!==0,road=along?roadsY[Math.floor(i/8)%roadsY.length]:roadsX[i%roadsX.length];
-  const x=along?220+(i%8)*485+(noise(i,7)-.5)*70:road+(noise(i,7)-.5)*40;
-  const y=along?road+(noise(i,3)-.5)*35:180+(i%6)*350;
+  const x=along?220+(i%8)*1030+(noise(i,7)-.5)*70:road+(noise(i,7)-.5)*40;
+  const y=along?road+(noise(i,3)-.5)*35:180+(i%6)*920;
   const type=["car","bicycle","car","barrier","vending","bicycle","sign"][i%7],r=type==="car"?32:13;
   if(Math.hypot(x-SAFE_DEN.x,y-SAFE_DEN.y)>210&&!nearBuilding(x,y,44))
    streetProps.push({x,y,type,r,dir:along?0:Math.PI/2,seed:i});
  }
- for(let i=0;i<10;i++)birdFlocks.push({x:160+i*380,y:290+(i%4)*475,z:55+(i%4)*23,
+ for(let i=0;i<20;i++)birdFlocks.push({x:160+i*380,y:290+(i%6)*850,z:55+(i%4)*23,
   dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
 }
@@ -150,7 +209,7 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;discoveredSites=[];weather="CLEAR";weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
@@ -170,7 +229,7 @@ function isValidSnapshot(s){
   Number.isFinite(s.player.hp)&&s.player.hp>0&&Number.isFinite(s.player.level)&&s.player.level>=1&&
   Number.isFinite(s.elapsed)&&s.elapsed>=0&&s.elapsed<100000000&&
   Array.isArray(s.mobs)&&s.mobs.length<=120&&Array.isArray(s.carcasses)&&s.carcasses.length<=300&&
-  Array.isArray(s.plants)&&s.plants.length<=800&&Array.isArray(s.debris)&&s.debris.length<=500;
+  Array.isArray(s.plants)&&s.plants.length<=2600&&Array.isArray(s.debris)&&s.debris.length<=1800;
 }
 function getAutoSnapshot(){
  try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return isValidSnapshot(s)?s:null}catch(_){return null}
@@ -184,11 +243,11 @@ function clearAutoSave(){
 function currentSnapshot(){
  if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"))return null;
  return {
-  version:SAVE_SCHEMA,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
+  version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
-  mobs,carcasses,plants,debris,birdFlocks
+  mobs,carcasses,plants,debris,birdFlocks,discoveredSites
  };
 }
 function saveAuto(){
@@ -244,7 +303,12 @@ function restoreSnapshot(snapshot){
  denStash=clamp(snapshot.denStash||0,0,denCapacity());
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
- mobs=snapshot.mobs;carcasses=snapshot.carcasses;plants=snapshot.plants;debris=snapshot.debris;
+ mobs=snapshot.mobs;carcasses=snapshot.carcasses;
+ const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
+ const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
+ plants=snapshot.worldVersion===2?snapshot.plants:snapshot.plants.concat(expandedPlants);
+ debris=snapshot.worldVersion===2?snapshot.debris:snapshot.debris.concat(expandedDebris);
+ discoveredSites=Array.isArray(snapshot.discoveredSites)?snapshot.discoveredSites.filter(id=>EXPLORE_SITES.some(s=>s.id===id)):[];
  if(Array.isArray(snapshot.birdFlocks)&&snapshot.birdFlocks.length<=30)birdFlocks=snapshot.birdFlocks;
  cameraYaw=Number.isFinite(snapshot.camera?.yaw)?snapshot.camera.yaw:0;
  cameraZoom=clamp(Number.isFinite(snapshot.camera?.zoom)?snapshot.camera.zoom:.8,.47,1.6);
@@ -860,6 +924,12 @@ function update(dt){
  elapsed+=dt;day=1+Math.floor(elapsed/85);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
+ for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
+  discoveredSites.push(site.id);
+  notify("新エリア発見："+site.name);
+  label(P.x,P.y-38,"探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length,"#d6e9b3");
+  saveAuto();
+ }
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
  P.jumpCD=Math.max(0,P.jumpCD-dt);P.wallKickLock=Math.max(0,(P.wallKickLock||0)-dt);P.wallKickTime=Math.max(0,(P.wallKickTime||0)-dt);
@@ -1102,7 +1172,7 @@ function syncHUD(hour){
   $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3";
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
- const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
+ const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
  // No compulsory on-screen arrow or tracking line.
  const objectives=[
