@@ -1,0 +1,11 @@
+/* Game view controls and the original Tokyo title illustration */
+#zoom-controls{position:absolute;right:12px;top:230px;z-index:4;display:flex;align-items:center;gap:3px;padding:3px;background:#0c2526d9;border:1px solid #77948e88;border-radius:16px;pointer-events:auto}
+#zoom-controls button{width:30px;height:30px;background:#314b47;border:0;border-radius:12px;color:#e9efdb;font-size:19px;font-weight:800;touch-action:manipulation}
+#zoom-level{min-width:33px;font:700 10px sans-serif;text-align:center}
+@media(pointer:coarse),(max-width:850px){#zoom-controls{top:auto;bottom:210px;right:7px;opacity:.80}#zoom-controls button{width:29px;height:28px}}
+@media(max-height:520px) and (orientation:landscape){#zoom-controls{top:40px;bottom:auto;right:3px;transform:scale(.82);transform-origin:top right}}
+#mission-nav{font-size:10px;color:#bcd4c1}
+#menu{background:linear-gradient(90deg,rgba(5,13,14,.85),rgba(4,10,12,.47)),url("./title-tokyo.svg") center center/cover no-repeat}
+#menu .menu-bg{opacity:.18;pointer-events:none}
+#menu .menu-shell{position:relative;z-index:2;text-shadow:0 3px 11px #061012}
+#menu .hero-title{filter:drop-shadow(0 7px 15px #000e)}
