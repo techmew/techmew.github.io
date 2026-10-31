@@ -15,8 +15,8 @@ function ensure(){
  try{
   context=new C({latencyHint:"interactive"});
   master=context.createGain();master.gain.value=enabled?.82:0;master.connect(context.destination);
-  musicBus=context.createGain();musicBus.gain.value=.31;musicBus.connect(master);
-  atmosBus=context.createGain();atmosBus.gain.value=.29;atmosBus.connect(master);
+  musicBus=context.createGain();musicBus.gain.value=.73;musicBus.connect(master);
+  atmosBus=context.createGain();atmosBus.gain.value=.50;atmosBus.connect(master);
   sfxBus=context.createGain();sfxBus.gain.value=.45;sfxBus.connect(master);
   return context;
  }catch(_){context=null;return null}
@@ -133,12 +133,12 @@ function update(conditions){
  const forest=area===5||area===2||area===4,clock=context.currentTime;
  const paused=scene.mode&&scene.mode!=="play",mix=paused?.12:1;
  const targets={
-  explore:(danger?.04:forest?.11:.29)*mix,
-  forest:(danger?.07:forest?.31:.03)*mix,
-  danger:(danger?.34:storm?.12:.015)*mix,
-  wind:(scene.weather==="WIND"?.46:scene.weather==="FOG"?.23:.14)*mix,
-  forestWind:(forest?.22:.04)*mix,
-  rain:(storm?.56:rain?.31:0)*mix
+  explore:(danger?.06:forest?.14:.60)*mix,
+  forest:(danger?.06:forest?.65:.04)*mix,
+  danger:(danger?.64:storm?.17:.012)*mix,
+  wind:(scene.weather==="WIND"?.61:scene.weather==="FOG"?.28:.21)*mix,
+  forestWind:(forest?.37:.04)*mix,
+  rain:(storm?.72:rain?.51:0)*mix
  };
  for(const [name,value] of Object.entries(targets)){
   const gain=loopGains[name];
