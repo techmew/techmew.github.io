@@ -22,7 +22,7 @@ const species={
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
-let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
+let soundEnabled=true,audio=null,ambientNodes=null,footstepTimer=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
@@ -254,9 +254,39 @@ function getAxes(){
 function blood(x,y,color,count=9,speed=125){for(let i=0;i<count;i++){const a=rnd(0,TWO),v=rnd(speed*.2,speed);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.25,.8),max:.8,size:rnd(1.6,4.4),color});}}
 function label(x,y,t,color="#ffffff"){popups.push({x,y,t,color,life:1.1})}
 function notify(t){toastMessage=t;toastTime=2.1;$("toast").textContent=t;$("toast").classList.add("show")}
+// Original low-volume wind/ruin ambience and animal impact effects, generated locally.
+function startAmbient(){
+ if(!soundEnabled||ambientNodes||!audio||!audio.createBuffer)return;
+ try{
+  const buff=audio.createBuffer(1,Math.floor(audio.sampleRate*2),audio.sampleRate),data=buff.getChannelData(0);
+  let low=0;for(let k=0;k<data.length;k++){low=low*.96+(Math.random()*2-1)*.04;data[k]=low*.33;}
+  const wind=audio.createBufferSource(),filter=audio.createBiquadFilter(),gain=audio.createGain();
+  wind.buffer=buff;wind.loop=true;filter.type="lowpass";filter.frequency.value=470;gain.gain.value=.02;
+  wind.connect(filter);filter.connect(gain);gain.connect(audio.destination);wind.start();
+  const drones=[];
+  for(const [hz,level] of [[82.4,.0032],[123.5,.0021],[164.8,.0014]]){
+   const osc=audio.createOscillator(),g=audio.createGain();osc.type="sine";osc.frequency.value=hz;g.gain.value=level;
+   osc.connect(g);g.connect(audio.destination);osc.start();drones.push({gain:g,level});
+  }
+  ambientNodes={wind,gain,drones};
+ }catch(_){ambientNodes=null;}
+}
+function playEffect(kind){
+ if(!soundEnabled)return;
+ try{
+  audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();
+  startAmbient();
+  const [duration,hz,vol]={step:[.065,210,.012],bite:[.16,520,.05],wing:[.20,950,.024],jump:[.14,400,.024]}[kind]||[.12,380,.02];
+  const buff=audio.createBuffer(1,Math.floor(audio.sampleRate*duration),audio.sampleRate),data=buff.getChannelData(0);
+  let low=0;for(let k=0;k<data.length;k++){low=.70*low+(Math.random()*2-1)*.30;data[k]=low*Math.exp(-6*k/data.length);}
+  const source=audio.createBufferSource(),filter=audio.createBiquadFilter(),gain=audio.createGain();
+  source.buffer=buff;filter.type=kind==="wing"?"bandpass":"lowpass";filter.frequency.value=hz;
+  gain.gain.value=vol;source.connect(filter);filter.connect(gain);gain.connect(audio.destination);source.start();
+ }catch(_){}
+}
 function sound(f=350,d=.12,wave="triangle",vol=.035){
  if(!soundEnabled)return;
- try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();
+ try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();startAmbient();
   const o=audio.createOscillator(),g=audio.createGain();o.type=wave;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(50,f*.63),audio.currentTime+d);
   g.gain.setValueAtTime(vol,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);
   o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d+.02);
@@ -375,7 +405,7 @@ function resolveAttack(){
    if(m.hp<=0)kill(m);
   }
  });
- if(hit){shake=P.jumpDive?6:4;flash=.1;sound(130,.12,"sawtooth",.035)}else sound(290,.09,"triangle",.024);
+ if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");sound(130,.12,"triangle",.013)}else{playEffect("jump");sound(290,.09,"triangle",.009)}
  P.jumpDive=false;P.jumpAmbush=false;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
@@ -403,7 +433,7 @@ function jump(){
  P.jumpCD=cat?.74:wolf?1.25:.91;P.sp-=cost;
  P.vx=0;P.vy=0;
  P.hidden=false;P.revealTimer=.85;P.noiseBurst=Math.max(P.noiseBurst,.8);
- sound(cat?530:wolf?195:400,.13,"triangle",.032);
+ playEffect("jump");sound(cat?530:wolf?195:400,.13,"triangle",.012);
  return true;
 }
 // Shift / mobile button: spring forward, then bite at landing.
@@ -586,7 +616,7 @@ function update(dt){
  navPlansThisFrame=0;
  for(const bird of birdFlocks){
   bird.wing+=dt*(bird.fright>0?25:14);
-  if(P&&bird.fright<=0&&dist(P,bird)<110){bird.fright=2.2;bird.z=Math.max(70,bird.z);sound(430,.08,"triangle",.009);}
+  if(P&&bird.fright<=0&&dist(P,bird)<110){bird.fright=2.2;bird.z=Math.max(70,bird.z);playEffect("wing");}
   bird.fright=Math.max(0,bird.fright-dt);
   const speed=bird.speed*(bird.fright>0?1.6:1);
   bird.x+=Math.cos(bird.dir)*speed*dt;bird.y+=Math.sin(bird.dir)*speed*dt;
@@ -674,6 +704,11 @@ function update(dt){
    }
   }
   const speed=Math.hypot(P.vx,P.vy);
+  footstepTimer=Math.max(0,footstepTimer-dt);
+  if(speed>70&&!P.jumpTime&&!P.pounceTime&&!P.fallTime&&footstepTimer<=0){
+   footstepTimer=P.type==="wolf"?.32:P.type==="cat"?.21:.26;
+   playEffect("step");
+  }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
   P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
@@ -1555,7 +1590,14 @@ $("quit-btn").addEventListener("click",()=>{resetControls();mode="menu";show("me
 $("retry-btn").addEventListener("click",start);
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
-$("sound-btn").addEventListener("click",()=>{soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×"});
+$("sound-btn").addEventListener("click",()=>{
+ soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×";
+ if(soundEnabled)startAmbient();
+ if(ambientNodes){
+  ambientNodes.gain.gain.value=soundEnabled?.02:0;
+  for(const d of ambientNodes.drones)d.gain.gain.value=soundEnabled?d.level:0;
+ }
+});
 $("map-btn").addEventListener("click",toggleWorldMap);
 $("map-close").addEventListener("click",toggleWorldMap);
 function adjustZoom(delta){if(mode!=="play")return;cameraZoom=clamp(Math.round((cameraZoom+delta)*100)/100,.47,1.6);updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";}
