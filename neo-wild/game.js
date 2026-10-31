@@ -1420,7 +1420,7 @@ function resetControls(){
   for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
   orbitPointers.clear();lastPinchDistance=0;
  if(knob)knob.style.transform="translate(0,0)";
- for(const id of ["attack-touch","dash-touch","jump-touch","guard-touch"])$(id).classList.remove("down");
+ for(const id of ["attack-touch","dash-touch","jump-touch","action-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
@@ -1451,7 +1451,7 @@ stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
 // Each button owns its pointer IDs. Long presses fire once; no auto-repeat.
-for(const [id,action] of [["guard-touch","guard"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","context"]]){
+for(const [id,action] of [["action-touch","guard"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","context"]]){
  const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
  let longFired=false,pressStarted=0;
  b.addEventListener("pointerdown",e=>{
