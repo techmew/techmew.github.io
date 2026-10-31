@@ -1,5 +1,6 @@
 (() => {
 "use strict";
+// 2026-10-31: user-approved action/navigation rework pending QA.
 const $ = id => document.getElementById(id);
 const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
