@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#090d11">
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
-<link rel="stylesheet" href="./style.css?rev=20261031-audio-region-v2">
-<link rel="stylesheet" href="./visual.css?rev=20261031-wild-v3">
+<link rel="stylesheet" href="./style.css?rev=20261031-mission-v1">
+<link rel="stylesheet" href="./visual.css?rev=20261031-mission-v1">
 </head>
 <body>
 <div id="app">
@@ -24,7 +24,8 @@
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">DAY 01 · 06:00 · 快晴</div></div>
   <div class="hud-right"><div class="session-actions" aria-label="ゲームの操作"><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="top-actions"><button id="sound-btn" title="サウンド切替">♪</button><button id="map-btn" title="地図を見る" aria-label="地図を見る">地図</button><button id="full-btn" title="全画面">⛶</button></div><div class="map-frame"><canvas id="minimap" width="150" height="94"></canvas><span>TOKYO MAP</span></div></div>
 </div>
-<div id="mission" class="hidden" role="region" aria-label="生存目標"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">01 / 04</span><button id="mission-close" type="button" aria-label="目標を閉じる">×</button></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
+<div id="objective-banner" class="objective-banner" role="status" aria-live="polite" aria-atomic="true"><span class="objective-banner-kicker" id="objective-banner-stage">チュートリアル 1 / 4</span><strong id="objective-banner-title">食料を確保せよ</strong><span class="objective-banner-next" id="objective-banner-next">次の目的：身を隠せ</span></div>
+<div id="mission" class="hidden" role="region" aria-label="生存目標"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">チュートリアル 1 / 4</span><button id="mission-close" type="button" aria-label="目標を閉じる">×</button></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><p id="mission-next">次の目的：身を隠せ</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="zoom-controls"><button id="zoom-out" aria-label="もっと広く見る">−</button><span id="zoom-level">80%</span><button id="zoom-in" aria-label="近くを見る">＋</button></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div>
 <div id="toast" role="status"></div>
 <div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ・猫は壁際でL再入力　E 食事　G 運搬　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△食事・行動　□飛びつき（長押し本能）　○ジャンプ（猫は空中で再入力）　×5段攻撃</span></div>
@@ -81,6 +82,6 @@
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">GAME OVER</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">もう一度、生存する →</button><button id="menu-btn" class="flat-btn">動物を選び直す</button></div></div>
 </div>
 <script src="./audio.js?rev=20261031-soft-jump-sfx2" defer></script>
-<script src="./webgl3d.js?rev=20261031-wild-v3" defer></script>
-<script src="./game.js?rev=20261031-wild-v3" defer></script>
+<script src="./webgl3d.js?rev=20261031-mission-v1" defer></script>
+<script src="./game.js?rev=20261031-mission-v1" defer></script>
 </body></html>
