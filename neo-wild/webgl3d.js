@@ -294,6 +294,28 @@ function foodMesh(c,species){
   }
  }
 }
+function denBeddingMesh(d){
+ if(!d)return;
+ animalLift=0;
+ const x=d.x,y=d.y,k=d.type,level=d.level||1;
+ const size=1+level*.10,cat=k==="cat",fox=k==="fox";
+ ellipsoid(x,y,1.1,55*size,38*size,1.6,"#273b30",0,10,3);
+ ellipsoid(x,y,2.1,45*size,30*size,2.3,cat?"#998e77":fox?"#8f774a":"#676448",0,10,3);
+ ellipsoid(x,y,2.8,31*size,19*size,2.1,cat?"#687969":fox?"#5a6342":"#5d6e4b",0,9,3);
+ for(let i=0;i<11+level*4;i++){
+  const a=i*2.39996,r=21+(i%5)*7;
+  ellipsoid(x+Math.cos(a)*r,y+Math.sin(a)*r*.73,3.4,6,2.2,1,
+   cat?"#bda786":fox?(i%2?"#b78351":"#d0ac71"):"#a3936a",a,6,2);
+ }
+ if(cat){
+  box(x-47,y-32,1,94,4,7,"#9b8667");
+  box(x-47,y+28,1,94,4,7,"#9b8667");
+ }else if(!fox){
+  box(x-48,y-31,1,96,5,7,"#615b42");
+  box(x-48,y+27,1,96,5,7,"#615b42");
+ }
+ if(d.stash>0)ellipsoid(x+32,y+16,4,Math.min(20,8+d.stash*.06),8,5,"#a8906b",0,8,3);
+}
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
 // Lightweight location-specific 3D detail, decorative only.
 function landmarkMesh(site){
@@ -478,6 +500,7 @@ function render(o){
   }
   data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,P);
+  if(o.den&&isVisible(o.den.x,o.den.y,160))denBeddingMesh(o.den);
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
