@@ -857,7 +857,8 @@ function announceObjective(){
  // Restart transition after rapid successive completions.
  void $("objective-banner").offsetWidth;
  $("objective-banner").classList.add("visible");
- objectiveBannerTime=3.6;
+ // Wall-clock deadline: independent of low FPS and paused game simulation.
+ objectiveBannerTime=performance.now()+2600;
 }
 function advanceMission(next){
  mission=next;
@@ -1293,7 +1294,7 @@ function update(dt){
  }
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
- if(objectiveBannerTime>0){objectiveBannerTime-=dt;if(objectiveBannerTime<=0)$("objective-banner").classList.remove("visible")}
+
  cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  audioTick+=dt;
@@ -2094,7 +2095,15 @@ function drawScene(){
 
  drawGuideWisps();drawThreatNames();
 }
-function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
+function loop(t){
+ let dt=Math.min(.035,(t-last)/1000||.016);last=t;
+ // Presentation must use real elapsed time, not the FPS-throttled simulation clock.
+ if(objectiveBannerTime>0&&t>=objectiveBannerTime){
+  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+ }
+ if(mode==="play")update(dt);
+ drawScene();requestAnimationFrame(loop);
+}
 requestAnimationFrame(loop);
 const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry")carryFood();if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
@@ -2139,7 +2148,7 @@ function resetControls(){
 }
 function togglePause(){
  if(mode==="play"){
-  resetControls();mode="pause";show("pause");window.WildAudio?.update({mode:"pause",weather,area:P?regionAt(P.x,P.y):0,danger:false});
+  resetControls();mode="pause";show("pause");objectiveBannerTime=0;$("objective-banner").classList.remove("visible");window.WildAudio?.update({mode:"pause",weather,area:P?regionAt(P.x,P.y):0,danger:false});
   $("checkpoint-save-status").textContent=saveAuto()?"現在の状態を自動保存しました":"自動保存に失敗しました";
  }else if(mode==="pause"){mode="play";show("");autosaveClock=0;}
 }
