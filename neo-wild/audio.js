@@ -157,7 +157,9 @@ function play(name,options={}){
   const buf=effectBuffers[name]||(effectBuffers[name]=sample(name));
   const source=context.createBufferSource(),gain=context.createGain();
   source.buffer=buf;source.playbackRate.value=options.rate||(.95+rand()*.10);
-  gain.gain.value=(options.volume===undefined?.33:options.volume);
+  // Steps are background foley, not foreground SFX. Keep them quiet even if callers use a larger gain.
+  const step=name==="step"||name==="stepHard";
+  gain.gain.value=step?Math.min(options.volume===undefined?.055:options.volume,.06):(options.volume===undefined?.33:options.volume);
   source.connect(gain);gain.connect(sfxBus);source.start();
   source.onended=()=>{try{source.disconnect();gain.disconnect()}catch(_){}};
  }catch(_){}
