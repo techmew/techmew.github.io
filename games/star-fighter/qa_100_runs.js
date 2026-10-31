@@ -58,7 +58,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  }));
  };
  let frame=null,clock=0;
- const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor,pilotThreat,refreshEnemyStrength,refreshActiveEnemies,refreshBossStrength};})();');
+ const hooked=gameSource.replace(/\}\)\(\);\s*$/,'window.__QA={G,endGame,render,queueManualUpgrade,enemy,drawEnemy,fireEnemy,seedStage,spawnWave,routeProfile,encounterDirector,waveRadius,waveClearance,placeOutsideLane,spawnAmbient,spawnElite,spawnRoutePatrol,mixSeed,destroyEnemy,planTerrain,advanceTerrain,resetTerrain,terrainQueued,bullet,update,spawnBoss,bossVariant,bossAttack,stageClear,openRoute,chooseRoute,drawScene,drawShip,wreckFragments,drawFlightGate,routeOffer,rewardOptions,openReward,chooseReward,hitPlayer,readCheckpoint,saveCheckpoint,chargeDrive,playerFire,missileFire,pulse,nextStage,pickupMagnetRadius,pickupPullSpeed,salvageRate,MEDALS,medalState,readMedals,unlockMedal,cycleMedal,PASSIVES,SYNERGIES,synergyActive,synergySummary,applyShotSynergy,steerDrone,renderRouteMap,depthField,depthX,drawDepthPlane,drawBackground,routeArtField,drawRouteArt,hostileBulletVisual,drawHostileBullet,tone,updateHud,powerMeterIndex,advancePowerMeter,debugJumpTo,launchDebug,pollGamepad,gamepadVector,resetGamepad,startGame,pause,TROPHIES,DEBUG_BOSS_ROSTER,damageBoss,invulnerablePracticeBoss,applyShotSynergy,actualHullDamage,grantShipXP,maxHull,repairHull,BOSS_SPECIAL_MOVES,startBossMove,bossMoveStep,drawBossSpecial,bossMoveGuarded,offensiveBuild,bossArmorMultiplier,damageEnemy,drawAdaptiveBossArmor,projectileFirstHit,drawBossReactor,pilotThreat,refreshEnemyStrength,refreshActiveEnemies,refreshBossStrength,setDifficulty,difficultyProfile,bossStageMultiplier,DIFFICULTIES,resumeCheckpoint};})();');
  assert(hooked!==gameSource,'cannot attach QA hooks');
  new Function('window','document','localStorage','performance','requestAnimationFrame','navigator',hooked)(
   window,document,storage,{now:()=>clock},fn=>{frame=fn},navigatorMock);
@@ -70,7 +70,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=boss-double-dynamic-enemies-20261031-2'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=stage-difficulty-easy-normal-hard-20261031-3'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
@@ -91,7 +91,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=ship-hull-v2-20261030-1'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=difficulty-select-20261031-1'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -2109,6 +2109,64 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(live.maxHp===baseHp&&Math.abs(live.hp/live.maxHp-.65)<.002,
    'boss weakens again when pilot offense drops, without damage reset');
   stats.liveBossRetune={baselineHp:baseHp,upgradedHP:Math.round(baseHp*8.2),keptDamage:true};
+ }
+
+ // Three selectable difficulty levels, immediate combat effects, safe checkpoint.
+ {
+  ok(htmlSource.includes('id="difficultySelect"')&&
+    ['easy','normal','hard'].every(v=>htmlSource.includes('<option value="'+v+'"'))&&
+    (htmlSource.match(/<option value="(?:easy|normal|hard)"/g)||[]).length===3,
+    'native selector offers exactly Easy/Normal/Hard');
+  ok(cssSource.includes('#shell .difficulty-choice')&&cssSource.includes('touch-action:manipulation'),
+    'native difficulty select is accessible on mobile');
+  ok(Array.from({length:7},(_,i)=>q.bossStageMultiplier(i)<q.bossStageMultiplier(i+1)).every(Boolean),
+    'boss stage multipliers increase for all eight stages');
+  ok(q.DIFFICULTIES.easy.bossHp<q.DIFFICULTIES.normal.bossHp&&
+     q.DIFFICULTIES.normal.bossHp<q.DIFFICULTIES.hard.bossHp,
+    'difficulty profile has three distinct strength levels');
+  G.mode='playing';G.debugMode=false;G.debugBossOnly=false;G.stage=0;G.routeRisk=0;
+  G.runSeed=314159;G.routeHistory=[];G.activeEvent=null;G.boss=null;G.bossDone=false;
+  G.pendingWave=null;G.terrain=null;G.transitioning=false;
+  G.shipLevel=1;G.levels=[1,1,1,0,0,0];G.passives=[0,0,0,0,0,0];
+  G.player.maxHp=120;G.player.hp=120;G.player.invul=999;G.enemies=[];G.bullets=[];G.shots=[];
+  q.setDifficulty('normal');q.enemy('tank',1030,220,{noLoot:true});
+  const foe=G.enemies[0],foeHP=foe.maxHp;q.damageEnemy(foe,foeHP*.3);
+  const foeRatio=foe.hp/foe.maxHp,foeFire=foe.fire;
+  q.spawnBoss();const boss=G.boss,bossHP=boss.maxHp;boss.hp=bossHP*.62;
+  const normalHit=q.actualHullDamage(1);
+  el('difficultySelect').value='easy';ev('difficultySelect','change');
+  ok(G.difficulty==='easy'&&boss===G.boss&&foe===G.enemies[0],
+    'Easy selected midgame without deleting enemies or boss');
+  ok(boss.maxHp<bossHP&&foe.maxHp<foeHP&&foe.fire>foeFire&&q.actualHullDamage(1)<normalHit,
+    'Easy reduces live boss/enemy HP, firing frequency, player damage');
+  ok(Math.abs(boss.hp/boss.maxHp-.62)<.002&&Math.abs(foe.hp/foe.maxHp-foeRatio)<.006,
+    'difficulty adjustment preserves proportion of damage already dealt');
+  const easyBoss=boss.maxHp,easyFoe=foe.maxHp;
+  el('difficultySelect').value='hard';ev('difficultySelect','change');
+  ok(G.difficulty==='hard'&&boss.maxHp>bossHP&&foe.maxHp>foeHP&&
+     foe.fire<foeFire&&q.actualHullDamage(1)>normalHit,
+    'Hard selected midfight increases difficulty on currently alive targets');
+  const hardBoss=boss.maxHp,hardFoe=foe.maxHp;
+  ok(!q.setDifficulty('invalid')&&G.difficulty==='hard',
+    'invalid mode cannot modify difficulty');
+  G.shipLevel=1;G.shipXP=0;G.player.hp=G.player.maxHp=120;
+  G.stage=0;G.routeRisk=0;G.routeHistory=[];G.rewardHistory=[];G.score=0;
+  G.eventCount=0;G.grazes=0;G.maxCombo=0;G.killCount=0;
+  G.energy=0;G.selected=0;G.pulses=2;G.pulseRecharge=0;
+  G.driveCharge=0;G.player.shield=0;G.pendingUpgrades=[0,0,0,0,0,0];
+  q.saveCheckpoint('sector');
+  ok(q.readCheckpoint()?.difficulty==='hard','checkpoint stores selected difficulty');
+  G.mode='paused';q.setDifficulty('easy');
+  ok(q.readCheckpoint()?.difficulty==='easy','paused difficulty change updates stored checkpoint');
+  q.resumeCheckpoint();
+  ok(G.difficulty==='easy'&&el('difficultySelect').value==='easy'&&G.mode==='playing',
+    'resuming checkpoint restores mode and selector');
+  G.mode='title';q.setDifficulty('hard');q.startGame(false);
+  ok(G.difficulty==='hard','new game uses difficulty selected on title');
+  q.setDifficulty('normal');
+  stats.difficulty={options:3,stageCurve:8,liveBossRecalibration:true,
+    existingEnemyRecalibration:true,checkpointRestore:true,
+    easyBoss,normalBoss:bossHP,hardBoss,easyEnemy:easyFoe,normalEnemy:foeHP,hardEnemy:hardFoe};
  }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
