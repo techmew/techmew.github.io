@@ -465,10 +465,12 @@ function render(o){
   for(const bird of o.birdFlocks||[]){
    if(!isVisible(bird.x,bird.y,170))continue;
    const x=bird.x,y=bird.y,z=bird.z||55,c=Math.cos(bird.dir),s=Math.sin(bird.dir);
-   const wing=Math.sin(bird.wing)*11,colorWing=color(bird.type==="crow"?"#243036":"#91a19b");
+   const resting=bird.roostState==="rest";
+   const wing=resting?0:Math.sin(bird.wing)*11,spread=resting?6:19;
+   const colorWing=color(bird.type==="crow"?"#243036":"#91a19b");
    const pt=(dx,dy,dz)=>[x+dx*c-dy*s,y+dx*s+dy*c,z+dz];
-   triangle(pt(-7,-2,0),pt(6,0,1),pt(-13,-19,wing),colorWing);
-   triangle(pt(-7,2,0),pt(6,0,1),pt(-13,19,-wing),colorWing);
+   triangle(pt(-7,-2,0),pt(6,0,1),pt(resting?-10:-13,-spread,wing),colorWing);
+   triangle(pt(-7,2,0),pt(6,0,1),pt(resting?-10:-13,spread,-wing),colorWing);
    ellipsoid(x,y,z,8,3,3,bird.type==="crow"?"#293537":"#a5b1a9",bird.dir,6,3);
   }
   const playerFirst=data.length/9;
