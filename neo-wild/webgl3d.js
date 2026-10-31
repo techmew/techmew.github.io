@@ -366,12 +366,41 @@ function render(o){
    const sx=vw/2+VIEW.a*dx+VIEW.c*dy,sy=vh/2+VIEW.b*dx+VIEW.d*dy;
    return sx>-margin&&sx<vw+margin&&sy>-margin&&sy<vh+margin;
   };
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h].join(":");
+  // Rebuild the static room only when the roof changes to its playable cutaway.
+  const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible);
    for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
+   if(b.interior){
+    // Geometry matches the five physical wall rectangles in game.js.
+    const wall=15,door=b.x+b.w*.5,half=55,high=83;
+    box(b.x+wall,b.y+wall,-2,b.w-2*wall,b.h-2*wall,3,"#263e3b","#3c5850");
+    const walls=[
+     [b.x,b.y,door-half-b.x,wall],
+     [door+half,b.y,b.x+b.w-door-half,wall],
+     [b.x,b.y,wall,b.h],
+     [b.x+b.w-wall,b.y,wall,b.h],
+     [b.x,b.y+b.h-wall,b.w,wall]
+    ];
+    for(const [x,y,w,h] of walls)box(x,y,0,w,h,high,"#5c6c67","#9caba0");
+    for(const [x,y,w,h] of [
+      [b.x+34,b.y+b.h*.57,52,31],
+      [b.x+b.w-92,b.y+b.h*.58,54,30]
+    ])box(x,y,0,w,h,24,"#5b675a","#8e927a");
+    box(door-half,b.y-3,0,2*half,6,3,"#9a8658","#d4c58a");
+    const reveal=interiorReveal==="1";
+    if(!reveal)box(b.x,b.y,high,b.w,b.h,8,"#394b4a","#67766c");
+    else{
+     // Roof cutaway exposes animals and furniture after the player approaches.
+     box(b.x,b.y,high,b.w*.15,b.h,7,"#455653","#7c8979");
+     box(b.x+b.w*.85,b.y,high,b.w*.15,b.h,7,"#455653","#7c8979");
+     box(b.x+b.w*.15,b.y+b.h*.84,high,b.w*.70,b.h*.16,7,"#455653","#7c8979");
+    }
+    continue;
+   }
    const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
    box(b.x,b.y,0,b.w,b.h,h,b.kind%2?"#56646c":"#67736d",b.kind%2?"#45545b":"#58665e");
    box(b.x+13,b.y+13,h-5.2,b.w-26,b.h-26,6,"#394e50","#87918a");
