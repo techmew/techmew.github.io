@@ -66,7 +66,28 @@ const START_LOCATIONS={
  canal:{x:7000,y:4850,name:"江東運河・水路跡"},
  river:{x:7270,y:1700,name:"荒川河川敷"}
 };
-let discoveredSites=[];
+let discoveredSites=[],earnedDiscoveries=[];
+const DISCOVERY_PERKS={
+ zoo:{name:"強靭な生存力",description:"最大生命 +12"},
+ river:{name:"長距離回復",description:"持久力回復 +3/秒"},
+ forest:{name:"草地への適応",description:"空腹の進行 -20%"},
+ factory:{name:"廃都の脚力",description:"走力 +5%"},
+ canal:{name:"悪天候への適応",description:"雨の移動減速を軽減"},
+ ark:{name:"研ぎ澄まされた本能",description:"固有能力の再使用 -15%"}
+};
+function awardDiscovery(id,quiet=false){
+ if(!P||earnedDiscoveries.includes(id)||!DISCOVERY_PERKS[id])return false;
+ earnedDiscoveries.push(id);
+ if(id==="zoo"){P.maxHp+=12;P.hp=Math.min(P.maxHp,P.hp+12)}
+ if(id==="river")P.riverPerk=true;
+ if(id==="forest")P.foragePerk=true;
+ if(id==="factory")P.speed=Math.round(P.speed*1.05);
+ if(id==="canal")P.rainGrip=true;
+ if(id==="ark")P.instinctBonus=true;
+ if(!quiet)notify("発見報酬："+DISCOVERY_PERKS[id].name+"（"+DISCOVERY_PERKS[id].description+"）");
+ return true;
+}
+
 const CLAN_NAMES=["封鎖区の野犬","駅裏の群れ","緑地のイノシシ","上野の獣群","河川のカラス","森の群れ","工業区の野犬","運河の渡り鳥"];
 function initialEcology(){
  const prey=[31,28,43,36,48,59,23,39],predators=[10,13,12,15,8,9,16,9];
