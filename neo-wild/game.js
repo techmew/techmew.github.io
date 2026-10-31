@@ -182,7 +182,7 @@ function generateWorld(){
  let k=0;
  for(const y of ys)for(const x of xs){const n=noise(k++,13),w=270+n*175,h=(y>1970?230:240)+noise(k,8)*110;
    const roofZ=k%7===0?60:k%5===0?46:k%4===0?30:0;
-    buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ});}
+    buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ:x===1640&&y===1410?0:roofZ,interior:x===1640&&y===1410});}
 // Open-world expansion: keep the original 4,200×2,400 region intact, and
  // deterministically populate the east/south districts with different urban biomes.
  const addBlock=(x,y,seed,biome)=>{
@@ -471,6 +471,45 @@ function spawnFood(){
  }
  return false;
 }
+// First playable room: deterministic existing building, never persisted as a new world schema.
+// Five solid wall segments leave a 110-unit north entrance. Collision, LOS and A* share these rectangles.
+function shelterWalls(b){
+ const t=15,door=b.x+b.w*.5,half=55;
+ return [
+  {x:b.x,y:b.y,w:door-half-b.x,h:t},
+  {x:door+half,y:b.y,w:b.x+b.w-door-half,h:t},
+  {x:b.x,y:b.y,w:t,h:b.h},
+  {x:b.x+b.w-t,y:b.y,w:t,h:b.h},
+  {x:b.x,y:b.y+b.h-t,w:b.w,h:t}
+ ];
+}
+function shelterFurniture(b){
+ return [{x:b.x+34,y:b.y+b.h*.57,w:52,h:31},
+         {x:b.x+b.w-92,y:b.y+b.h*.58,w:54,h:30}];
+}
+function shelterInteriorPoint(b){return {x:b.x+b.w*.5,y:b.y+Math.min(b.h*.55,125)}}
+function shelterEntrance(b){return {x:b.x+b.w*.5,y:b.y-48}}
+function insideShelter(o){
+ return !!o&&buildings.some(b=>b.interior&&o.x>b.x+16&&o.x<b.x+b.w-16&&o.y>b.y+16&&o.y<b.y+b.h-16);
+}
+function circleRect(x,y,r,b){
+ const cx=clamp(x,b.x,b.x+b.w),cy=clamp(y,b.y,b.y+b.h);
+ return (x-cx)**2+(y-cy)**2<(r*.8)**2;
+}
+function segmentRect(a,b,rect,pad=0){
+ let lo=0,hi=1;
+ const dx=b.x-a.x,dy=b.y-a.y;
+ for(const [origin,velocity,min,max] of [[a.x,dx,rect.x-pad,rect.x+rect.w+pad],[a.y,dy,rect.y-pad,rect.y+rect.h+pad]]){
+  if(Math.abs(velocity)<1e-9){if(origin<min||origin>max)return false;continue}
+  const t1=(min-origin)/velocity,t2=(max-origin)/velocity;
+  lo=Math.max(lo,Math.min(t1,t2));hi=Math.min(hi,Math.max(t1,t2));
+  if(lo>hi)return false;
+ }
+ return lo<=1&&hi>=0;
+}
+function shelterRevealed(b){
+ return !!P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92;
+}
 // Walkable lower rooftops are real surfaces. Tall buildings still stop animals.
 function roofAt(x,y){
  for(const b of buildings)if(b.roofZ&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return b.roofZ;
@@ -491,6 +530,11 @@ function collides(x,y,r,actor=null){
   if(Math.hypot(x-prop.x,y-prop.y)<prop.r+8+r*.40)return true;
  }
  for(const b of buildings){
+  if(b.interior){
+   if(x<b.x-r||x>b.x+b.w+r||y<b.y-r||y>b.y+b.h+r)continue;
+   if(shelterWalls(b).some(w=>circleRect(x,y,r,w))||shelterFurniture(b).some(w=>circleRect(x,y,r,w)))return true;
+   continue;
+  }
   if(x>b.x-r*.8&&x<b.x+b.w+r*.8&&y>b.y-r*.8&&y<b.y+b.h+r*.8){
    if(actor&&actor===P&&b.roofZ&&(actor.jumpHeight||0)>=b.roofZ-4&&(actor.jumpTime>0||actor.pounceTime>0||(actor.groundZ||0)===b.roofZ))continue;
    return true;
@@ -519,6 +563,10 @@ function move(o,dx,dy){
 }
 function lineBlocked(a,b){
  for(const box of buildings){
+  if(box.interior){
+   if(shelterWalls(box).some(w=>segmentRect(a,b,w))||shelterFurniture(box).some(w=>segmentRect(a,b,w)))return true;
+   continue;
+  }
   let lo=0,hi=1,dx=b.x-a.x,dy=b.y-a.y;
   for(const [p,q] of [[-dx,a.x-box.x],[dx,box.x+box.w-a.x],[-dy,a.y-box.y],[dy,box.y+box.h-a.y]]){
    if(Math.abs(p)<1e-9){if(q<0){lo=2;break}}
@@ -1066,6 +1114,13 @@ function updateWeather(dt){
 // Rain shelters are reachable exterior eaves, not fake indoor rooms.
 // NPCs walk there normally and remain visible, detectable, and huntable.
 function rainShelterPoint(m){
+ // Enter a real room through its north doorway when a safe approach is visible.
+ // If the doorway cannot be reached, fall back to existing exterior eaves.
+ for(const b of buildings)if(b.interior){
+  const entry=shelterEntrance(b),inside=shelterInteriorPoint(b);
+  if(dist(m,entry)<470&&(insideShelter(m)||routeClear(m,entry,m.r))&&!collides(inside.x,inside.y,m.r+3))
+   return inside;
+ }
  let best=null,bestDist=470;
  for(const b of buildings){
   if(Math.abs(m.x-(b.x+b.w*.5))>470+b.w*.5||Math.abs(m.y-(b.y+b.h*.5))>470+b.h*.5)continue;
@@ -1417,7 +1472,7 @@ function syncHUD(hour){
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
-  $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3";
+  $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜"+(weather==="RAIN"||weather==="THUNDER"?"屋内避難中":"建物内"):"");
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
@@ -1530,8 +1585,11 @@ function drawMini(){
  for(const x of roadsX)if(Math.abs(x-P.x)<span)mc.fillRect(X(x-75),0,w*150/span,h);
  for(const y of roadsY)if(Math.abs(y-P.y)<span)mc.fillRect(0,Y(y-75),w,w*150/span);
  mc.fillStyle="#344d45";
- for(const b of buildings)if(Math.hypot(b.x+b.w/2-P.x,b.y+b.h/2-P.y)<span)
+ for(const b of buildings)if(Math.hypot(b.x+b.w/2-P.x,b.y+b.h/2-P.y)<span){
+  mc.fillStyle=b.interior?"#b7d9a5":"#344d45";
   mc.fillRect(X(b.x),Y(b.y),Math.max(2,b.w/span*w),Math.max(2,b.h/span*w));
+  if(b.interior){mc.fillStyle="#152d29";mc.fillRect(X(b.x+16),Y(b.y+16),Math.max(2,(b.w-32)/span*w),Math.max(2,(b.h-32)/span*w))}
+ }
  for(const m of mobs)if(m.hp>0&&dist(P,m)<580){
   mc.fillStyle=species[m.type].prey?"#e4d7b5":"#f09878";
   mc.fillRect(X(m.x)-1.5,Y(m.y)-1.5,3,3);
@@ -1599,6 +1657,17 @@ function drawFlyingBird(o){
  ctx.moveTo(3,0);ctx.quadraticCurveTo(13,8+wing,19,8+wing);ctx.stroke();ctx.restore();
 }
 function drawBuilding(b){
+ if(b.interior&&shelterRevealed(b)){
+  ctx.fillStyle="#182f2e";ctx.fillRect(b.x,b.y,b.w,b.h);
+  ctx.strokeStyle="#486d64";ctx.lineWidth=3;ctx.strokeRect(b.x+19,b.y+19,b.w-38,b.h-38);
+  ctx.fillStyle="#4c6862";for(const w of shelterWalls(b))ctx.fillRect(w.x,w.y,w.w,w.h);
+  ctx.fillStyle="#596b60";for(const f of shelterFurniture(b))ctx.fillRect(f.x,f.y,f.w,f.h);
+  const door=b.x+b.w*.5;
+  ctx.fillStyle="#e3d08c";ctx.fillRect(door-55,b.y-3,110,5);
+  ctx.textAlign="center";ctx.font="800 16px sans-serif";ctx.fillStyle="#fff0ae";ctx.fillText("入口",door,b.y-20);
+  ctx.font="800 13px sans-serif";ctx.fillStyle="#c1d9c5";ctx.fillText("屋内避難所",door,b.y+b.h*.35);
+  return;
+ }
  const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=b.roofZ||85+(b.kind%4)*17;
  const roofLift=rise*.93*cameraZoom;
   const x=gx+VIEW.c*roofLift/VIEW_DET,y=gy-VIEW.a*roofLift/VIEW_DET;
@@ -1898,6 +1967,10 @@ function routeClear(a,b,radius=P.r){
     a.x>WORLD.w-border||b.x>WORLD.w-border||a.y>WORLD.h-border||b.y>WORLD.h-border)return false;
  const dx=b.x-a.x,dy=b.y-a.y;
  for(const box of buildings){
+  if(box.interior){
+   if(shelterWalls(box).some(w=>segmentRect(a,b,w,pad))||shelterFurniture(box).some(w=>segmentRect(a,b,w,pad)))return false;
+   continue;
+  }
   let enter=0,exit=1;
   const axes=[[a.x,dx,box.x-pad,box.x+box.w+pad],[a.y,dy,box.y-pad,box.y+box.h+pad]];
   for(const [origin,velocity,min,max] of axes){
@@ -2010,6 +2083,7 @@ function guidancePoint(goal){
 // In Canvas2D, show clipped 25% silhouettes only behind projected building faces.
 function drawOccludedSilhouettes(entities){
  for(const b of buildings){
+  if(b.interior)continue; // Room is not a solid block; do not ghost actors behind its absent roof.
   if(!visible(b.x+b.w/2,b.y+b.h/2,Math.max(b.w,b.h)+180))continue;
   const rise=b.roofZ||85+(b.kind%4)*17,offset=rise*.93*cameraZoom;
   const ox=VIEW.c*offset/VIEW_DET,oy=-VIEW.a*offset/VIEW_DET;
