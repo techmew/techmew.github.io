@@ -16,7 +16,7 @@ const DIFFICULTIES=Object.freeze({
 });
 const validDifficulty=v=>v==='easy'||v==='normal'||v==='hard';
 function difficultyProfile(){return DIFFICULTIES[validDifficulty(G.difficulty)?G.difficulty:'normal']}
-function bossStageMultiplier(stage){return 1.22+.075*cl(stage,0,7)}
+function bossStageMultiplier(stage){return 1.22+.05*cl(stage,0,7)}
 const DIFFICULTY_KEY='star_fighter_difficulty';
 /* Eight-step damage curve. A single hull and XP-based frame level replace
    revives/lives. Growth is bounded to 25 levels; old saves are migrated. */
