@@ -110,6 +110,14 @@ function generateWorld(){
  for(const y of ys)for(const x of xs){const n=noise(k++,13),w=270+n*175,h=(y>1970?230:240)+noise(k,8)*110;
    const roofZ=k%7===0?60:k%5===0?46:k%4===0?30:0;
     buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ});}
+ // Two real opposing walls form an accessible alley for alternating cat triangle-kicks.
+ // It is away from the starting den and mission food; other species can go around.
+ const alley=[
+  {x:1990,y:835,w:75,h:210,seed:91,kind:1,sign:false,broken:true,roofZ:0},
+  {x:2185,y:835,w:75,h:210,seed:92,kind:2,sign:false,broken:true,roofZ:0},
+  {x:2085,y:765,w:85,h:60,seed:93,kind:3,sign:false,broken:false,roofZ:52}
+ ];
+ buildings.push(...alley); // wall-kick training alley; also serves open-city roof exploration.
  for(let i=0;i<400;i++){let x=rnd(30,WORLD.w-30),y=rnd(30,WORLD.h-30);
    if(nearBuilding(x,y,28))continue;
    plants.push({x,y,r:rnd(5,17),type:Math.random()<.23?1:0,phase:rnd(0,6),hue:Math.random()});}
