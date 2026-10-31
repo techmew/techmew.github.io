@@ -360,7 +360,7 @@ function contextAction(longPress=false){
 const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
 function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
-function interruptRush(){resetRush();P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
+function interruptRush(){resetRush();P.chargeStrike=false;P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
 function attack(){
  if(mode!=="play"||!P)return;
  // Each press advances the rush; input buffering never changes this into an action.
@@ -394,13 +394,14 @@ function resolveAttack(){
  mobs.forEach(m=>{
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
-  const reach=(P.type==="wolf"?55:P.type==="cat"?39:51)+(P.rushActiveStep===5?18:0);
+  const wolfCharge=P.type==="wolf"&&P.chargeStrike;
+   const reach=(P.type==="wolf"?55:P.type==="cat"?39:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
   // Claws cannot pass through solid buildings, even at a diagonal corner.
   if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
-    const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1)*(dive?1.4:1);
+    const bonus=(foxBurst?1.4:1)*(stealthHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
    const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
@@ -417,14 +418,14 @@ function resolveAttack(){
     if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
-   const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0);
+   const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0);
    move(m,Math.cos(theta)*knock,Math.sin(theta)*knock);
    if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
    if(m.hp<=0)kill(m);
   }
  });
  if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");sound(130,.12,"triangle",.013)}else{playEffect("jump");sound(290,.09,"triangle",.009)}
- P.jumpDive=false;P.jumpAmbush=false;
+ P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
@@ -510,10 +511,10 @@ function dash(){
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
  const target=combatAim(.75,220);
  const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
- const maximum=P.type==="cat"?105:P.type==="wolf"?85:100;
+ const maximum=P.type==="cat"?125:P.type==="wolf"?165+Math.min(85,(P.level-1)*10):112;
  const travel=target?clamp(dist(P,target)-(P.r+target.r+17),20,maximum):maximum;
- P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.8:P.type==="wolf"?1.35:1.05;
- P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.30:.26;P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
+ P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
+ P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.43:.26;P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
  P.vx=0;P.vy=0;P.atk=Math.max(P.atk,P.rate);
  P.windup=P.pounceDuration+.04;P.pendingStrike=true;P.jumpDive=true;
  P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.1;
@@ -696,7 +697,7 @@ function update(dt){
  const newWeather=day%4===0?"FOG":day%3===0?"RAIN":"CLEAR";if(newWeather!==weather){weather=newWeather;notify(weather==="RAIN"?"酸性雨の気配 / 視界が悪化":weather==="FOG"?"濃霧 / 視界が悪化":"空が晴れてきた")}
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
- P.jumpCD=Math.max(0,P.jumpCD-dt);
+ P.jumpCD=Math.max(0,P.jumpCD-dt);P.wallKickLock=Math.max(0,(P.wallKickLock||0)-dt);P.wallKickTime=Math.max(0,(P.wallKickTime||0)-dt);
  if(P.fallTime>0&&P.jumpTime<=0&&P.pounceTime<=0){
   P.fallTime=Math.max(0,P.fallTime-dt);
   const part=P.fallTime/.30;
@@ -715,7 +716,8 @@ function update(dt){
   if(P.jumpTime>0){
     // Rise before wall collision: a jump beside a low roof can reach its edge.
     const jumpLeft=Math.max(0,P.jumpTime-dt);
-    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*(1-jumpLeft/P.jumpDuration))*(P.type==="cat"?65:P.type==="wolf"?39:51);
+    const jumpProgress=clamp(1-jumpLeft/Math.max(.01,P.jumpDuration),0,1);
+    P.jumpHeight=(P.groundZ||0)+Math.max(0,(P.jumpFromHeight||0)*(1-jumpProgress)+Math.sin(Math.PI*jumpProgress)*(P.jumpPower||(P.type==="cat"?83:P.type==="wolf"?43:58)));
     const ox=P.x,oy=P.y;
     const step=Math.min(P.jumpRemaining,P.jumpSpeed*dt);
     if(step>0)move(P,Math.cos(P.jumpDir)*step,Math.sin(P.jumpDir)*step);
@@ -728,7 +730,7 @@ function update(dt){
     // A blocked first step does not cancel the entire leap.
     P.steps+=covered*.052;
     if(P.jumpTime===0){
-     const reachedRoof=landOnSurface();P.vx=0;P.vy=0;
+     const reachedRoof=landOnSurface();P.vx=0;P.vy=0;P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
      if(reachedRoof)notify("屋上に到着");
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
@@ -747,7 +749,11 @@ function update(dt){
     P.vx=(P.x-ox)/Math.max(dt,.001);P.vy=(P.y-oy)/Math.max(dt,.001);
    }
    P.steps+=moved*.052;
-   const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
+   // A wolf charge impacts when physically hitting prey rather than passing through.
+    if(P.chargeStrike&&P.pendingStrike&&mobs.some(m=>m.hp>0&&!lineBlocked(P,m)&&dist(P,m)<P.r+m.r+32&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-P.pounceDir)>.45)){
+     P.pounceTime=0;P.pounceRemaining=0;P.jumpHeight=P.groundZ||0;
+    }
+    const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?31:P.type==="wolf"?23:28);
    if(P.pounceTime===0){landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
   }else if(P.dashTime>0){
