@@ -1136,6 +1136,16 @@ function update(dt){
      m.dir=steerPursuit(m,nearest.x,nearest.y);
      vx=Math.cos(m.dir)*s.speed*.75;vy=Math.sin(m.dir)*s.speed*.75;
      m.wildTargetX=nearest.x;m.wildTargetY=nearest.y;
+     if(best<m.r+nearest.r+20&&m.wildAttack<=0){
+      m.wildAttack=1.8;nearest.hp-=Math.max(12,s.damage*1.4);
+      nearest.flee=1.8;nearest.dir=Math.atan2(nearest.y-m.y,nearest.x-m.x);
+      if(nearest.hp<=0){
+       nearest.hp=0;
+       carcasses.push({x:nearest.x,y:nearest.y,r:10,amount:species[nearest.type].food,type:"meat",ttl:140,phase:0});
+       const zone=regionAt(nearest.x,nearest.y);
+       ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
+      }
+     }
     }
    }
    if(!s.prey&&m.windup>0){
