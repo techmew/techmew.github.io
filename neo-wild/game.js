@@ -248,18 +248,12 @@ function nearbyFood(){
  return carcasses.some(f=>dist(P,f)<65&&!lineBlocked(P,f));
 }
 function contextAction(longPress=false){
- if(mode!=="play")return;
- // Combat always wins over food, including the three seconds after an attack.
- if(combatEngaged()){if(!longPress)attack();return}
+ if(mode!=="play"||!P)return;
  const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
- if(longPress){
-  if(home){upgradeDen();return}
-  if(!P.carry)carryFood();
-  return;
- }
- if(home&&(P.carry||(denStash>0&&P.hunger<95))){carryFood();return}
- if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return}
- attack();
+ if(longPress){if(home){upgradeDen();return;}if(!P.carry)carryFood();else notify("食料を運搬中 / 巣へ戻ろう");return;}
+ if(home&&(P.carry||(denStash>0&&P.hunger<95))){carryFood();return;}
+ if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return;}
+ notify(home?"巣に食料を持ち帰ろう":"食料や巣の近くで△を押す");
 }
 function beginGuard(){
  if(mode!=="play"||!P||P.sp<=5)return;
@@ -812,7 +806,7 @@ function syncHUD(hour){
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
-  contextLabel.textContent=combatEngaged()?"攻撃":home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":"攻撃";}
+  contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
