@@ -570,13 +570,10 @@ function update(dt){
   P.jumpHeight=(P.groundZ||0)+(P.fallFromZ-(P.groundZ||0))*part*part;
   if(P.fallTime===0&&P.pendingStrike&&P.jumpDive)resolveAttack();
  }
- P.guardCooldown=Math.max(0,P.guardCooldown-dt);P.counterWindow=Math.max(0,P.counterWindow-dt);
+ 
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
- if((guardTouch||keys.has("v"))&&P.rushWindow>0)resetRush();
- P.guarding=(guardTouch||keys.has("v"))&&P.sp>5&&P.jumpTime<=0&&P.pounceTime<=0&&!P.pendingStrike;
-  if(!P.guarding)P.guardFreshUntil=-1;
- P.sp=clamp(P.sp+(P.guarding?-22:17)*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
+ P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
  if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
@@ -710,9 +707,8 @@ function update(dt){
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=guardedDamage(m,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
-       if(damage===0){P.inv=.12;shake=3;flash=0;}
-        else{P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
+       const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
+       {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);}
       }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
@@ -733,7 +729,7 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=guardedDamage(m,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
+      const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
