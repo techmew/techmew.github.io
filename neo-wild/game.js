@@ -41,7 +41,8 @@ function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 // Keep wildlife rare enough to track, not a crowd of targets.
-const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,preyNeedRadius:420};
+// Slightly denser local encounters; storm animals remain in the simulation rather than disappearing.
+const WILDLIFE={initial:12,cap:16,localRadius:670,localCap:6,separation:130,preyNeedRadius:440};
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
 function regionAt(x,y){
@@ -424,11 +425,11 @@ function recordCheckpoint(){
  }
 }
 
-function spawnMob(initial=false,preyOnly=false){
+function spawnMob(initial=false,preyOnly=false,nearbyOnly=false){
  let tries=0,x=0,y=0,valid=false;
- const localCount=P?mobs.filter(m=>dist(m,P)<WILDLIFE.localRadius).length:0;
+ const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
  do{
-  const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
+  const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(220,Math.min(550,WILDLIFE.localRadius-40)):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
   x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
   y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
@@ -1056,6 +1057,25 @@ function updateWeather(dt){
   }
  }
 }
+// Rain shelters are reachable exterior eaves, not fake indoor rooms.
+// NPCs walk there normally and remain visible, detectable, and huntable.
+function rainShelterPoint(m){
+ let best=null,bestDist=470;
+ for(const b of buildings){
+  if(Math.abs(m.x-(b.x+b.w*.5))>470+b.w*.5||Math.abs(m.y-(b.y+b.h*.5))>470+b.h*.5)continue;
+  const gap=m.r*.8+10;
+  const candidates=[
+   {x:b.x-gap,y:b.y+b.h*.5},{x:b.x+b.w+gap,y:b.y+b.h*.5},
+   {x:b.x+b.w*.5,y:b.y-gap},{x:b.x+b.w*.5,y:b.y+b.h+gap}
+  ];
+  for(const q of candidates){
+   const distance=dist(m,q);
+   if(distance>=bestDist||collides(q.x,q.y,m.r)||!routeClear(m,q,m.r))continue;
+   bestDist=distance;best=q;
+  }
+ }
+ return best;
+}
 function update(dt){
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
@@ -1266,6 +1286,31 @@ function update(dt){
      }
     }
    }
+   // Calm wildlife seeks a reachable eave in rain; hunting, detection and fleeing take priority.
+   if(weather==="RAIN"||weather==="THUNDER"){
+    const calm=!spotted&&m.alert<=0&&m.flee<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0;
+    const hunting=!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170);
+    m.sheltered=false;
+    if(calm&&!hunting){
+     m.shelterRefresh=Math.max(0,(m.shelterRefresh||0)-dt);
+     if(m.shelterRefresh===0){
+      const spot=rainShelterPoint(m);
+      m.shelterX=spot?spot.x:null;m.shelterY=spot?spot.y:null;
+      m.shelterRefresh=2.8+rnd(0,1.5);
+     }
+     if(Number.isFinite(m.shelterX)&&Number.isFinite(m.shelterY)){
+      const remaining=Math.hypot(m.shelterX-m.x,m.shelterY-m.y);
+      if(remaining>m.r+8){
+       m.dir=steerPursuit(m,m.shelterX,m.shelterY);
+       vx=Math.cos(m.dir)*s.speed*.62;vy=Math.sin(m.dir)*s.speed*.62;
+      }else{
+       vx=0;vy=0;m.sheltered=true;
+      }
+     }
+    }
+   }else{
+    m.sheltered=false;m.shelterX=null;m.shelterY=null;m.shelterRefresh=0;
+   }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
@@ -1339,7 +1384,11 @@ function update(dt){
     if(farthest&&dist(P,farthest)>WILDLIFE.preyNeedRadius)mobs.splice(mobs.indexOf(farthest),1);
    }
    if(mobs.length<WILDLIFE.cap)spawnMob(false,true);
-  }else if(mobs.length<WILDLIFE.cap)spawnMob();
+  }else if(mobs.length<WILDLIFE.cap){
+   const storm=weather==="RAIN"||weather==="THUNDER";
+   const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+   spawnMob(false,false,storm&&nearby<5);
+  }
   if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
  }
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
@@ -2058,10 +2107,10 @@ function drawScene(){
  // Food is now depth-tested inside WebGL; do not paint it above buildings.
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=m.sheltered?"雨":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillStyle=species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+  ctx.fillStyle=m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
