@@ -276,7 +276,7 @@ function playEffect(kind){
  try{
   audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();
   startAmbient();
-  const [duration,hz,vol]={step:[.065,210,.012],bite:[.16,520,.05],wing:[.20,950,.024],jump:[.14,400,.024]}[kind]||[.12,380,.02];
+  const [duration,hz,vol]={step:[.065,210,.012],stepHard:[.052,740,.014],bite:[.16,520,.05],wing:[.20,950,.024],jump:[.14,400,.024]}[kind]||[.12,380,.02];
   const buff=audio.createBuffer(1,Math.floor(audio.sampleRate*duration),audio.sampleRate),data=buff.getChannelData(0);
   let low=0;for(let k=0;k<data.length;k++){low=.70*low+(Math.random()*2-1)*.30;data[k]=low*Math.exp(-6*k/data.length);}
   const source=audio.createBufferSource(),filter=audio.createBiquadFilter(),gain=audio.createGain();
@@ -707,7 +707,7 @@ function update(dt){
   footstepTimer=Math.max(0,footstepTimer-dt);
   if(speed>70&&!P.jumpTime&&!P.pounceTime&&!P.fallTime&&footstepTimer<=0){
    footstepTimer=P.type==="wolf"?.32:P.type==="cat"?.21:.26;
-   playEffect("step");
+   playEffect(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78)?"stepHard":"step");
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
@@ -1103,7 +1103,7 @@ function drawCreature(o,isPlayer){
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.15:rushPose===4?attackReach*.06:rushPose===5?attackReach*.62:base;
  const hindDrive=side=>rushPose===4?-attackReach*(side<0?.78:.22):0;
  const stride=t==="cat"?1.46:t==="fox"?1.08:t==="wolf"?.62:.9;
- const pace=Math.sin(gait*stride)*r*(t==="cat"?.19:t==="fox"?.15:t==="wolf"?.09:.12)*motion;
+ const pace=Math.sin(gait*stride)*r*(t==="cat"?.37:t==="fox"?.32:t==="wolf"?.25:.23)*motion;
  const tailSway=Math.sin(gait*(t==="cat"?.88:t==="fox"?.55:.62))*r*(t==="cat"?.29:t==="fox"?.19:.15)*motion;
  const oval=(x,y,w,h,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,w),Math.max(.5,h),rot,0,TWO);ctx.fill();
@@ -1123,11 +1123,11 @@ function drawCreature(o,isPlayer){
  if(isPlayer&&P.jumpHeight>floorZ)lift2D(P.jumpHeight-floorZ);
  if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
  ctx.rotate(o.dir||0);
- const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.085:t==="cat"?Math.abs(Math.sin(gait*1.46))*.028:t==="wolf"?Math.abs(Math.sin(gait*.62))*.017:Math.abs(Math.sin(gait*.9))*.045;
+ const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.19:t==="cat"?Math.abs(Math.sin(gait*1.46))*.13:t==="wolf"?Math.abs(Math.sin(gait*.62))*.105:Math.abs(Math.sin(gait*.9))*.09;
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
   ctx.scale(1.14,1.14);
-  if(P.jumpTime>0)ctx.scale(1+(P.jumpDive?.21:.08),P.jumpDive?.77:.9);
+  if(P.jumpTime>0)ctx.scale(1+(P.jumpDive?.30:.15),P.jumpDive?.70:.82);
    else if(P.pounceTime>0)ctx.scale(1.16,.86);
   else if(P.pendingStrike){
    if(t==="cat"){ctx.translate(-r*.10,0);ctx.scale(.95,1.10)}
@@ -1675,6 +1675,7 @@ gameSurface.addEventListener("pointerdown",e=>{
  e.preventDefault();gameSurface.setPointerCapture(e.pointerId);
  orbitPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});lastPinchDistance=0;
 });
+gameSurface.addEventListener("wheel",e=>{if(mode!=="play")return;e.preventDefault();adjustZoom(e.deltaY>0?-.09:.09)},{passive:false});
 gameSurface.addEventListener("pointermove",e=>{
  if(mode!=="play"||!orbitPointers.has(e.pointerId))return;
  const previous=orbitPointers.get(e.pointerId),dx=e.clientX-previous.x;
@@ -1682,7 +1683,7 @@ gameSurface.addEventListener("pointermove",e=>{
  if(orbitPointers.size===1){cameraYaw+=dx*.008;updateCameraView();}
  else if(orbitPointers.size===2){
   const [a,b]=[...orbitPointers.values()],gap=Math.hypot(a.x-b.x,a.y-b.y);
-  if(lastPinchDistance>12&&gap>12){cameraZoom=clamp(cameraZoom*gap/lastPinchDistance,.47,1.6);updateCameraView();}
+  if(lastPinchDistance>12&&gap>12){cameraZoom=clamp(cameraZoom*gap/lastPinchDistance,.47,1.6);updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";}
   lastPinchDistance=gap;
  }
 });
