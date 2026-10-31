@@ -847,7 +847,8 @@ function missionInfo(){
  }
 }
 function announceObjective(){
- if(!P||mode!=="play")return;
+ if(!P)return;
+ if(mode!=="play"){objectiveBannerTime=-1;return;}
  const info=missionInfo();
  $("objective-banner-stage").textContent=info.stage;
  $("objective-banner-title").textContent=info.title;
@@ -1010,6 +1011,7 @@ function updateWeather(dt){
  }
 }
 function update(dt){
+ if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
  for(const bird of birdFlocks){
   bird.wing+=dt*(bird.fright>0?25:14);
