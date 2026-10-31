@@ -1117,6 +1117,27 @@ function update(dt){
     if(m.wander<0){m.dir+=rnd(-2.5,2.5);m.wander=rnd(.5,2.5)}
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
    }
+   // Unscripted encounters: small wildlife changes course around nearby hunters.
+   m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
+   if(s.prey&&!spotted){
+    const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(q,m)<140);
+    if(hunter){
+     m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x));
+     m.flee=Math.max(m.flee,1);
+     vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
+    }
+   }
+   if(!s.prey&&!spotted&&m.alert<=0&&d>140&&m.windup<=0&&m.stun<=0){
+    let nearest=null,best=250;
+    for(const q of mobs)if(q.hp>0&&species[q.type].prey){
+     const near=dist(m,q);if(near<best&&!lineBlocked(m,q)){best=near;nearest=q}
+    }
+    if(nearest){
+     m.dir=steerPursuit(m,nearest.x,nearest.y);
+     vx=Math.cos(m.dir)*s.speed*.75;vy=Math.sin(m.dir)*s.speed*.75;
+     m.wildTargetX=nearest.x;m.wildTargetY=nearest.y;
+    }
+   }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
