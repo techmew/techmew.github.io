@@ -51,3 +51,53 @@
  #pause .modal p{margin:4px 0 8px;font-size:11px}
  #pause .modal .flat-btn{margin-top:7px}
 }
+
+/* User-requested minimalist objective: closed by default, never blocking the animal. */
+#hud #objective-toggle{
+ display:inline-flex;align-items:center;justify-content:center;margin-top:6px;
+ width:auto;min-width:91px;height:25px;padding:2px 9px;
+ border-radius:6px;border:1px solid #7b9d86;background:#102522de;
+ color:#e2f5d8;font:700 11px "Noto Sans JP",sans-serif;touch-action:manipulation;
+}
+#mission{z-index:7;pointer-events:auto;width:min(250px,76vw);max-height:42vh;overflow-y:auto;top:clamp(195px,28vh,285px);}
+#mission .mission-top{gap:5px}
+#mission #mission-close{
+ display:inline-flex;align-items:center;justify-content:center;
+ margin-left:6px;width:29px;height:29px;min-width:29px;min-height:29px;
+ background:#2d4541;border:1px solid #7a9b8a;border-radius:7px;color:#fff;
+ font-size:21px;pointer-events:auto;touch-action:manipulation;
+}
+#mission .mission-top span:last-of-type{margin-left:auto}
+#mission .mission-top small{font-size:9px}
+#mission-title{font-size:13px}
+@media(pointer:coarse),(max-width:850px){
+ #mission{left:10px;top:clamp(185px,27vh,265px);width:min(236px,68vw);padding:9px 11px;}
+ #hud #objective-toggle{height:26px;margin-top:5px;font-size:10px}
+}
+@media(max-width:520px) and (orientation:portrait){
+ #mission{top:clamp(200px,30vh,280px);width:min(210px,68vw)}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #mission{top:clamp(90px,35vh,170px);left:8px;width:205px;max-height:54vh}
+ #hud #objective-toggle{margin-top:3px;height:24px}
+}
+/* Saved session controls share the existing responsive title menu and pause dialog. */
+#save-menu-actions{display:flex;flex-direction:column;gap:5px;margin:8px 0;}
+.save-choice,.checkpoint-choice{
+ width:100%;min-height:37px;display:flex;align-items:center;justify-content:space-between;
+ gap:8px;padding:8px 12px;border-radius:7px;
+ border:1px solid #7eab96;background:#173a34e8;color:#e9f6e5;
+ font:700 12px "Noto Sans JP",sans-serif;text-align:left;touch-action:manipulation;
+}
+.save-choice small{font-size:10px;color:#b4d7c1;font-weight:500}
+.checkpoint-choice{min-height:34px;background:#132824e8;border-color:#567c71;font-size:11px;}
+#checkpoint-list{display:grid;gap:4px;margin:4px 0 8px;}
+#checkpoint-save-btn{margin:6px auto 0;}
+#pause .checkpoint-status{min-height:1.2em;margin:4px 0;font-size:10px;color:#9be7b7;}
+#menu .menu-shell{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:3px;}
+@media(max-height:520px) and (orientation:landscape){
+ #menu .menu-shell{max-height:calc(100dvh - 12px)}
+ #save-menu-actions{margin:3px 0;gap:3px}
+ .save-choice,.checkpoint-choice{min-height:28px;padding:4px 10px;font-size:11px}
+ #checkpoint-list{gap:2px}
+}
