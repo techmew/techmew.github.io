@@ -1451,7 +1451,7 @@ stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
 // Each button owns its pointer IDs. Long presses fire once; no auto-repeat.
-for(const [id,action] of [["action-touch","guard"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","context"]]){
+for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","attack"]]){
  const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
  let longFired=false,pressStarted=0;
  b.addEventListener("pointerdown",e=>{
@@ -1460,8 +1460,9 @@ for(const [id,action] of [["action-touch","guard"],["dash-touch","dash"],["jump-
   b.classList.add("down");b.setPointerCapture(e.pointerId);
   if(!first)return;
   pressStarted=performance.now();longFired=false;
-  if(action==="guard"){guardTouch=true;beginGuard();return}
+  
   if(action==="jump"){act("jump");return}
+  if(action==="attack"){act("attack");return}
   if(action==="dash"||action==="context"){
    const timer=setTimeout(()=>{
     touchHoldTimers.delete(id);
@@ -1478,7 +1479,7 @@ for(const [id,action] of [["action-touch","guard"],["dash-touch","dash"],["jump-
   b.classList.remove("down");
   const timer=touchHoldTimers.get(id);
   if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
-  if(action==="guard"){guardTouch=false;if(!keys.has("v"))endGuard();return}
+  
   if(mode!=="play"||longFired)return;
   const duration=performance.now()-pressStarted;
   if(action==="dash"){if(duration>=450)act("instinct");else act("dash")}
@@ -1488,13 +1489,13 @@ for(const [id,action] of [["action-touch","guard"],["dash-touch","dash"],["jump-
   if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
   b.classList.remove("down");
   const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
-  if(action==="guard"){guardTouch=false;if(!keys.has("v"))endGuard()}
+  
  });
  b.addEventListener("lostpointercapture",e=>{
   if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
   b.classList.remove("down");
   const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
-  if(action==="guard"){guardTouch=false;if(!keys.has("v"))endGuard()}
+  
  });
 }
 // Drag the empty world to orbit; two fingers on the world adjust zoom.
