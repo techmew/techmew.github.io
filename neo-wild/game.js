@@ -20,7 +20,7 @@ const species={
  boar:{hp:190,r:28,speed:122,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
  alpha:{hp:335,r:29,speed:178,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
 };
-let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
+let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
@@ -119,6 +119,18 @@ function generateWorld(){
    if(nearBuilding(x,y,8))continue;
    debris.push({x,y,r:rnd(2,10),a:rnd(0,7),kind:i%4});}
  for(const x of roadsX)for(const y of roadsY)for(const dx of [-100,100])for(const dy of [-87,87])lamps.push({x:x+dx,y:y+dy});
+ 
+ // Roadside vehicles, bicycles and abandoned city furniture.
+ for(let i=0;i<30;i++){
+  const along=i%3!==0,road=along?roadsY[Math.floor(i/8)%roadsY.length]:roadsX[i%roadsX.length];
+  const x=along?220+(i%8)*485+(noise(i,7)-.5)*70:road+(noise(i,7)-.5)*40;
+  const y=along?road+(noise(i,3)-.5)*35:180+(i%6)*350;
+  const type=["car","bicycle","car","barrier","vending","bicycle","sign"][i%7],r=type==="car"?32:13;
+  if(Math.hypot(x-SAFE_DEN.x,y-SAFE_DEN.y)>210&&!nearBuilding(x,y,44))
+   streetProps.push({x,y,type,r,dir:along?0:Math.PI/2,seed:i});
+ }
+ for(let i=0;i<10;i++)birdFlocks.push({x:160+i*380,y:290+(i%4)*475,z:55+(i%4)*23,
+  dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
 }
 function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
@@ -179,6 +191,10 @@ function landOnSurface(){
 }
 function collides(x,y,r,actor=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
+ for(const prop of streetProps){
+  if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
+  if(Math.hypot(x-prop.x,y-prop.y)<prop.r+8+r*.40)return true;
+ }
  for(const b of buildings){
   if(x>b.x-r*.8&&x<b.x+b.w+r*.8&&y>b.y-r*.8&&y<b.y+b.h+r*.8){
    if(actor&&actor===P&&b.roofZ&&(actor.jumpHeight||0)>=b.roofZ-4&&(actor.jumpTime>0||actor.pounceTime>0||(actor.groundZ||0)===b.roofZ))continue;
@@ -568,6 +584,17 @@ function steerPursuit(m,tx,ty){
 }
 function update(dt){
  navPlansThisFrame=0;
+ for(const bird of birdFlocks){
+  bird.wing+=dt*(bird.fright>0?25:14);
+  if(P&&bird.fright<=0&&dist(P,bird)<110){bird.fright=2.2;bird.z=Math.max(70,bird.z);sound(430,.08,"triangle",.009);}
+  bird.fright=Math.max(0,bird.fright-dt);
+  const speed=bird.speed*(bird.fright>0?1.6:1);
+  bird.x+=Math.cos(bird.dir)*speed*dt;bird.y+=Math.sin(bird.dir)*speed*dt;
+  bird.z=clamp(bird.z+(bird.fright>0?22:-2)*dt,46,162);
+  if(bird.x<20||bird.x>WORLD.w-20||bird.y<20||bird.y>WORLD.h-20){
+   bird.dir+=Math.PI*.8;bird.x=clamp(bird.x,20,WORLD.w-20);bird.y=clamp(bird.y,20,WORLD.h-20);
+  }
+ }
  elapsed+=dt;day=1+Math.floor(elapsed/85);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  const newWeather=day%4===0?"FOG":day%3===0?"RAIN":"CLEAR";if(newWeather!==weather){weather=newWeather;notify(weather==="RAIN"?"酸性雨の気配 / 視界が悪化":weather==="FOG"?"濃霧 / 視界が悪化":"空が晴れてきた")}
@@ -922,6 +949,32 @@ function roadDraw(){
   if(i%4===0){ctx.fillStyle="#55764c6b";ctx.beginPath();ctx.ellipse(x+side*69,y,3,11,.2,0,TWO);ctx.fill()}
  }
  ctx.restore();
+}
+function drawStreetProp(o){
+ ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.dir);
+ ctx.fillStyle="#0d1916bb";ctx.beginPath();ctx.ellipse(4,7,o.type==="car"?47:22,o.type==="car"?27:15,0,0,TWO);ctx.fill();
+ if(o.type==="car"){
+  ctx.fillStyle=o.seed%2?"#8b7365":"#637570";ctx.fillRect(-34,-20,68,40);
+  ctx.fillStyle="#263e43";ctx.fillRect(-6,-17,28,34);ctx.strokeStyle="#a9a89a";ctx.lineWidth=2;ctx.strokeRect(-34,-20,68,40);
+  ctx.fillStyle="#1b2928";for(const s of [-1,1])for(const side of [-1,1])ctx.fillRect(s*23-6,side*20-7,12,14);
+ }else if(o.type==="bicycle"){
+  ctx.strokeStyle="#a7b0a3";ctx.lineWidth=2.5;
+  for(const side of [-1,1]){ctx.beginPath();ctx.ellipse(side*13,0,8,10,0,0,TWO);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(0,-10);ctx.lineTo(13,0);ctx.lineTo(-13,0);ctx.lineTo(0,0);ctx.lineTo(0,-10);ctx.stroke();
+ }else{
+  ctx.fillStyle=o.type==="vending"?"#9a5e4c":o.type==="sign"?"#a18e67":"#807a6d";ctx.fillRect(-13,-8,26,16);
+  if(o.type==="vending"){ctx.fillStyle="#c6d2c1";ctx.fillRect(-5,-7,14,11);}
+  if(o.type==="barrier"){ctx.strokeStyle="#e9c08a";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-13,-6);ctx.lineTo(13,6);ctx.stroke();}
+ }
+ ctx.restore();
+}
+function drawFlyingBird(o){
+ ctx.save();ctx.translate(o.x,o.y);ctx.translate(VIEW.c*o.z*.93*cameraZoom/VIEW_DET,-VIEW.a*o.z*.93*cameraZoom/VIEW_DET);
+ ctx.rotate(o.dir);ctx.fillStyle=o.type==="crow"?"#1c292b":"#859c9b";ctx.beginPath();ctx.ellipse(0,0,9,3,0,0,TWO);ctx.fill();
+ const wing=Math.sin(o.wing)*12;
+ ctx.strokeStyle=o.type==="crow"?"#293333":"#a9b7b3";ctx.lineWidth=4;
+ ctx.beginPath();ctx.moveTo(-3,0);ctx.quadraticCurveTo(-13,-8-wing,-18,-8-wing);
+ ctx.moveTo(3,0);ctx.quadraticCurveTo(13,8+wing,19,8+wing);ctx.stroke();ctx.restore();
 }
 function drawBuilding(b){
  const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=b.roofZ||85+(b.kind%4)*17;
@@ -1343,7 +1396,7 @@ function drawThreatNames(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
  ctx.setTransform(dpr,0,0,dpr,0,0);
  if(use3D)ctx.clearRect(0,0,vw,vh);else{ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh)}
@@ -1373,6 +1426,7 @@ function drawScene(){
   layers.push({depth:screenDepth(b.x+b.w/2,b.y+b.h),kind:1,o:b});
  for(const c of carcasses)if(visible(c.x,c.y,40))layers.push({depth:screenDepth(c.x,c.y),kind:2,o:c});
  for(const lamp of lamps)if(visible(lamp.x,lamp.y,35))layers.push({depth:screenDepth(lamp.x,lamp.y),kind:3,o:lamp});
+ for(const o of streetProps)if(visible(o.x,o.y,75))layers.push({depth:screenDepth(o.x,o.y+o.r*.2),kind:5,o});
  for(const e of entities)layers.push({depth:screenDepth(e.x,e.y),kind:4,o:e});
  layers.sort((a,b)=>a.depth-b.depth||a.kind-b.kind);
  for(const layer of layers){
@@ -1380,6 +1434,7 @@ function drawScene(){
   if(layer.kind===0)drawPlant(o);
   else if(layer.kind===1)drawBuilding(o);
   else if(layer.kind===2)drawItem(o);
+  else if(layer.kind===5)drawStreetProp(o);
   else if(layer.kind===3){
    ctx.strokeStyle="#849587";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x,o.y+7);ctx.lineTo(o.x,o.y-15);ctx.stroke();
    ctx.fillStyle="#c8aa6f";ctx.fillRect(o.x-7,o.y-18,14,5);
@@ -1388,6 +1443,7 @@ function drawScene(){
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
+ for(const bird of birdFlocks)if(visible(bird.x,bird.y,90))drawFlyingBird(bird);
  drawOccludedSilhouettes(entities);
  }
  // Food is now depth-tested inside WebGL; do not paint it above buildings.
