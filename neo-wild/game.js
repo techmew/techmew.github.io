@@ -285,8 +285,14 @@ function start(){
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
+ // A living animal occupies the first accessible room; other starting regions keep their original counts.
+ const shelter=buildings.find(b=>b.interior);
+ if(shelter&&origin===START_LOCATIONS.home){
+  const room=shelterInteriorPoint(shelter);
+  spawnMob(false,true,false,{x:room.x,y:room.y+18});
+ }
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
- for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
+ for(let i=0;i<WILDLIFE.initial-(shelter&&origin===START_LOCATIONS.home?1:0);i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
@@ -431,18 +437,21 @@ function recordCheckpoint(){
  }
 }
 
-function spawnMob(initial=false,preyOnly=false,nearbyOnly=false){
+function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null){
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
  do{
-  const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(220,Math.min(550,WILDLIFE.localRadius-40)):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
-  x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
-  y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
+  if(forcedSpot){x=forcedSpot.x;y=forcedSpot.y}
+  else{
+   const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(220,Math.min(550,WILDLIFE.localRadius-40)):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
+   x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
+   y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
+  }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
   valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap);
- }while(!valid&&++tries<52);
+ }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  let roll=Math.random(),type;
  const biome=regionAt(x,y);
@@ -1473,6 +1482,8 @@ function syncHUD(hour){
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜"+(weather==="RAIN"||weather==="THUNDER"?"屋内避難中":"建物内"):"");
+ const entrance=buildings.find(b=>b.interior&&dist(P,shelterEntrance(b))<290);
+ $("shelter-hint").classList.toggle("hidden",!entrance||insideShelter(P));
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
