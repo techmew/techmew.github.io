@@ -222,3 +222,86 @@
 @media(prefers-reduced-motion:reduce){
  #hunt-cinematic.show{animation:wild-shadow-hunt 1.25s linear 1 both}
 }
+
+
+/* 2026-11-01 NAV3: resume is the primary title action; new game stays secondary when a save exists. */
+#menu #save-menu-actions{margin:12px 0 12px;gap:7px}
+#menu:not(.has-saved-game) #save-menu-actions{display:none}
+#menu .resume-primary{
+ display:flex;flex-direction:column;align-items:stretch;gap:7px;
+ min-height:88px;padding:15px 18px;
+ border:2px solid #f4df9e;border-radius:12px;
+ background:linear-gradient(112deg,#f3ce81 0%,#f4e3af 58%,#c6e8b7 100%);
+ box-shadow:0 0 0 3px #f5dd9540,0 9px 28px #0008,0 0 25px #f0e4b044;
+ color:#152621;text-shadow:none;text-align:left;
+}
+#menu .resume-cta-title{font:900 clamp(19px,3vw,25px) "Noto Sans JP",sans-serif;line-height:1.25;letter-spacing:.02em}
+#menu .resume-cta-title small{display:block;font:700 11px "Noto Sans JP",sans-serif;color:#395044;margin:5px 0 0}
+#menu #continue-detail.resume-detail{color:#2f4638;font:800 12px "Noto Sans JP",sans-serif;white-space:normal}
+#menu .has-saved-game .lead{display:none}
+#menu.has-saved-game .lead{display:none}
+#menu.has-saved-game .hero-title{margin-top:13px}
+#menu #new-game-options{margin-top:10px}
+#menu #new-game-summary{
+ list-style:none;cursor:pointer;display:block;
+ border:1px solid #647e74;border-radius:8px;
+ padding:10px 13px;color:#d1ded6;background:#142725db;
+ font:800 12px "Noto Sans JP",sans-serif;
+ touch-action:manipulation;
+}
+#menu #new-game-summary::-webkit-details-marker{display:none}
+#menu #new-game-summary::before{content:"+ ";color:#bfe7cf;font-weight:900}
+#menu #new-game-options[open] #new-game-summary::before{content:"− "}
+#menu:not(.has-saved-game) #new-game-summary{display:none}
+#menu.has-saved-game #new-game-options .new-game-config{padding-top:8px}
+#menu.has-saved-game #start-btn{
+ background:#1b3630;color:#d9e7dc;border:1px solid #647f74;
+ box-shadow:none;font-size:12px;padding:11px 13px;
+}
+#menu.has-saved-game:not(.has-auto-save) #checkpoint-menu-btn{
+ min-height:63px;padding:14px 17px;
+ border:2px solid #f1d692;background:linear-gradient(105deg,#e6c87c,#dbe2ac);
+ box-shadow:0 0 18px #f1d69245;color:#1e342a;font-size:17px;font-weight:900;
+}
+#menu .checkpoint-choice{background:#17352eea}
+#nav-hud{
+ position:absolute;left:50%;top:clamp(112px,18vh,165px);
+ transform:translateX(-50%);z-index:5;pointer-events:none;
+ display:flex;gap:9px;align-items:center;justify-content:center;
+ padding:5px 12px 5px 5px;
+ min-width:143px;max-width:min(260px,88vw);
+ border:1px solid rgba(224,250,168,.72);border-radius:40px;
+ background:linear-gradient(115deg,rgba(6,28,23,.91),rgba(15,43,39,.90));
+ box-shadow:0 3px 17px #000b,0 0 15px #c0f6a242;
+ color:#f1ffde;text-shadow:0 1px 4px #000;
+}
+#nav-hud-chevron{
+ display:flex;align-items:center;justify-content:center;
+ width:44px;height:44px;min-width:44px;border-radius:50%;
+ border:1px solid #e8ffb3;background:#385a43;
+ font:900 37px/1 "Noto Sans JP",sans-serif;color:#f1ffbe;
+ text-shadow:0 0 8px #e6ffb0;box-shadow:0 0 10px #c2fc9080;
+ transform-origin:center;will-change:transform;
+}
+#nav-hud .nav-hud-copy{font:800 12px "Noto Sans JP",sans-serif;white-space:nowrap}
+#nav-hud-distance{font:900 15px "Noto Sans JP",sans-serif;color:#fff2a3}
+@media(max-width:520px) and (orientation:portrait){
+ #menu .resume-primary{min-height:78px;padding:11px 13px}
+ #menu #continue-detail.resume-detail{font-size:11px}
+ #nav-hud{top:clamp(130px,20vh,180px);padding:4px 9px 4px 4px;min-width:134px}
+ #nav-hud-chevron{width:39px;height:39px;min-width:39px;font-size:33px}
+ #nav-hud .nav-hud-copy{font-size:11px}
+ #nav-hud-distance{font-size:14px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #menu .resume-primary{min-height:58px;padding:8px 12px;gap:3px}
+ #menu .resume-cta-title{font-size:18px}
+ #menu .resume-cta-title small{font-size:9px;margin-top:2px}
+ #menu #continue-detail.resume-detail{font-size:9px}
+ #menu #save-menu-actions{margin:6px 0}
+ #menu #new-game-summary{padding:7px 10px}
+ #nav-hud{top:65px;min-width:122px;padding:3px 7px 3px 3px;gap:6px}
+ #nav-hud-chevron{height:33px;width:33px;min-width:33px;font-size:29px}
+ #nav-hud .nav-hud-copy{font-size:10px}
+ #nav-hud-distance{font-size:12px}
+}
