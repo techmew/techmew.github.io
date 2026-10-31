@@ -123,3 +123,35 @@
  color:#d0e8d6;background:#1b352b;font:600 11px "Noto Sans JP",sans-serif;
  line-height:1.55;overflow-wrap:anywhere;}
 @media(max-width:520px){#map-perks{font-size:10px;padding:5px 7px;}}
+
+
+/* Short cinematic objective announcement; never captures touch input. */
+#objective-banner{
+ position:absolute;left:50%;top:43%;width:min(780px,90vw);max-width:90vw;z-index:9;
+ display:flex;flex-direction:column;align-items:center;gap:9px;
+ padding:25px clamp(16px,4vw,48px) 23px;
+ background:linear-gradient(90deg,rgba(3,12,16,.18),rgba(4,13,17,.92) 13%,rgba(4,13,17,.94) 87%,rgba(3,12,16,.18));
+ border-top:1px solid rgba(247,191,100,.65);border-bottom:1px solid rgba(247,191,100,.4);
+ box-shadow:0 15px 46px rgba(0,0,0,.3);color:#fff;text-align:center;
+ pointer-events:none;visibility:hidden;opacity:0;
+ transform:translate(-50%,-46%) scale(.97);
+ transition:opacity .32s ease,transform .32s ease,visibility .32s;
+}
+#objective-banner.visible{visibility:visible;opacity:1;transform:translate(-50%,-50%) scale(1)}
+.objective-banner-kicker{font:900 clamp(11px,1.3vw,14px) "Noto Sans JP",sans-serif;letter-spacing:.16em;color:#f7bf64}
+#objective-banner-title{display:block;font:900 clamp(23px,4vw,43px) "Noto Sans JP",sans-serif;line-height:1.35;letter-spacing:.07em;text-shadow:0 3px 16px #000}
+.objective-banner-next{font:700 clamp(10px,1.4vw,14px) "Noto Sans JP",sans-serif;color:#cfe8d4}
+#mission-next{padding-top:8px;margin:8px 0 0;border-top:1px solid #d8bb7d42;font-size:11px;line-height:1.55;color:#efd8a1}
+@media(max-width:520px){
+ #objective-banner{top:42%;width:95vw;max-width:95vw;padding:17px 13px 16px;gap:7px}
+ #objective-banner-title{font-size:clamp(19px,6vw,26px);letter-spacing:0}
+ .objective-banner-next{font-size:10px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #objective-banner{top:52%;width:min(630px,68vw);padding:10px 17px;gap:4px}
+ #objective-banner-title{font-size:clamp(18px,3.2vw,26px)}
+ .objective-banner-kicker,.objective-banner-next{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ #objective-banner{transition:none;transform:translate(-50%,-50%)}
+}
