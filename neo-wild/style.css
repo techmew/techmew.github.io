@@ -83,3 +83,18 @@
 #mission-nav{display:flex;align-items:center;gap:8px;margin:6px 0 3px;color:#dce9bd;font:800 12px "Noto Sans JP",sans-serif}
 #nav-arrow{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;border:1px solid #7d9e83;border-radius:7px;background:#203a35;color:#e5f7c7;font-size:22px}
 #nav-distance{white-space:nowrap;font-size:11px}
+
+/* 2026-10-31: keep pause and the existing three top controls separately tappable. */
+@media(max-height:520px) and (orientation:landscape){
+ #hud{padding:calc(7px + env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left));gap:7px}
+ .hud-left{width:260px;max-width:41vw;min-width:0}
+ .hud-center{max-width:130px;flex:0 1 130px}
+ .hud-right{min-width:145px;gap:5px;align-items:flex-end;flex-shrink:0}
+ #hud .session-actions{display:flex;position:static;justify-content:flex-end}
+ #hud .session-actions button{height:40px;min-width:66px;padding:0 9px;font-size:12px}
+ #hud .top-actions{display:flex;position:static;align-items:center;justify-content:flex-end;gap:5px}
+ #hud .top-actions button,#hud #map-btn{position:static!important;top:auto!important;right:auto!important;min-width:44px!important;width:44px!important;height:40px!important;padding:0 2px;flex:0 0 44px;touch-action:manipulation}
+ #mission{top:122px;width:200px}
+ #status{top:102px;right:max(8px,env(safe-area-inset-right))}
+ .map-frame{display:none}
+}
