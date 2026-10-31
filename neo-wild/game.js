@@ -28,7 +28,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),
 // Oblique view leaves original world coordinates, collisions and A* intact.
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
 let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
-let cameraYaw=0,cameraZoom=1;
+let cameraYaw=0,cameraZoom=.8,guideWisp=null;
 function updateCameraView(){
  const cs=Math.cos(cameraYaw),sn=Math.sin(cameraYaw),z=cameraZoom;
  VIEW.a=(.94*cs-.28*sn)*z;VIEW.c=(-.94*sn-.28*cs)*z;
@@ -125,7 +125,7 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
- mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
@@ -812,12 +812,8 @@ function syncHUD(hour){
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
- if(waypoint&&!waypoint.blocked){
-  const dx=waypoint.x-P.x,dy=waypoint.y-P.y,sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy;
-  const arrows=["→","↘","↓","↙","←","↖","↑","↗"];
-  $("nav-arrow").textContent=Math.hypot(dx,dy)<16?"◎":arrows[(Math.round(Math.atan2(sy,sx)/(Math.PI/4))+8)%8];
-  $("nav-distance").textContent=Math.round(dist(P,objective))+"m"+(waypoint.detour?" · 迂回":"");
- }else{$("nav-arrow").textContent=waypoint?"·":"—";$("nav-distance").textContent=waypoint?"経路を確認中":"目標を探索中";}
+ guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
+ $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
   contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":nearestTerritoryPost()?"縄張り":"行動";}
@@ -1317,6 +1313,33 @@ function drawOccludedSilhouettes(entities){
   ctx.restore();
  }
 }
+function drawGuideWisps(){
+ if(!P||!guideWisp||mode!=="play")return;
+ const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y,sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy,len=Math.hypot(sx,sy);
+ if(len<18)return;
+ const ux=sx/len,uy=sy/len,pos=project(P.x,P.y),height=(P.jumpHeight||0)*.93*cameraZoom;
+ ctx.save();ctx.globalCompositeOperation="screen";
+ for(let j=0;j<5;j++){
+  const phase=elapsed*1.2+j*.75,travel=26+j*11+(phase%1)*7,sway=Math.sin(phase*2.1)*3;
+  const x=pos.x+ux*travel-uy*sway,y=pos.y-height+uy*travel+ux*sway-15;
+  ctx.globalAlpha=.12+.25*(.5+.5*Math.sin(phase*3));
+  ctx.fillStyle=j%2?"#b9ebd1":"#f5e7ae";ctx.shadowColor="#d8f4b7";ctx.shadowBlur=6;
+  ctx.beginPath();ctx.arc(x,y,1.6+j%2*.5,0,TWO);ctx.fill();
+  if(j===2){ctx.globalAlpha=.14;ctx.fillRect(x-4,y-.4,8,.8);ctx.fillRect(x-.4,y-4,.8,8);}
+ }
+ ctx.restore();
+}
+function drawThreatNames(){
+ if(!P||mode!=="play")return;
+ ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
+ for(const m of mobs){
+  if(m.hp<=0||species[m.type].prey||dist(P,m)>280||!visible(m.x,m.y,55))continue;
+  const pos=project(m.x,m.y),names={dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ"},y=pos.y-m.r*cameraZoom-35;
+  ctx.globalAlpha=m.windup>0||m.alert>0?.92:.65;ctx.fillStyle="#172321";ctx.fillRect(pos.x-42,y-11,84,16);
+  ctx.fillStyle=m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(names[m.type]||"危険",pos.x,y+1);
+ }
+ ctx.restore();
+}
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
@@ -1431,6 +1454,7 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
+ drawGuideWisps();drawThreatNames();
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
@@ -1446,7 +1470,7 @@ function keyDown(e){
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
- if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
+ if(k==="f")fullScreen();if(k==="m")toggleWorldMap();if(k==="-"||k==="_")adjustZoom(-.13);if(k==="="||k==="+")adjustZoom(.13);
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
 window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
@@ -1478,6 +1502,9 @@ $("full-btn").addEventListener("click",fullScreen);
 $("sound-btn").addEventListener("click",()=>{soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×"});
 $("map-btn").addEventListener("click",toggleWorldMap);
 $("map-close").addEventListener("click",toggleWorldMap);
+function adjustZoom(delta){if(mode!=="play")return;cameraZoom=clamp(Math.round((cameraZoom+delta)*100)/100,.47,1.6);updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";}
+$("zoom-out").addEventListener("click",()=>adjustZoom(-.13));
+$("zoom-in").addEventListener("click",()=>adjustZoom(.13));
 document.querySelectorAll("[data-upgrade]").forEach(b=>b.addEventListener("click",()=>{if(mode!=="upgrade")return;const up=b.dataset.upgrade;
  if(up==="fang")P.damage=Math.round(P.damage*1.25);else if(up==="fleet")P.speed=Math.round(P.speed*1.15);else{P.maxHp+=30;P.hp=Math.min(P.maxHp,P.hp+65)}
  mode="play";show("");notify("適応完了 / "+b.querySelector("b").textContent);sound(750,.26,"triangle",.05)
@@ -1557,7 +1584,7 @@ gameSurface.addEventListener("pointermove",e=>{
  if(orbitPointers.size===1){cameraYaw+=dx*.008;updateCameraView();}
  else if(orbitPointers.size===2){
   const [a,b]=[...orbitPointers.values()],gap=Math.hypot(a.x-b.x,a.y-b.y);
-  if(lastPinchDistance>12&&gap>12){cameraZoom=clamp(cameraZoom*gap/lastPinchDistance,.7,1.5);updateCameraView();}
+  if(lastPinchDistance>12&&gap>12){cameraZoom=clamp(cameraZoom*gap/lastPinchDistance,.47,1.6);updateCameraView();}
   lastPinchDistance=gap;
  }
 });
