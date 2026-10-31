@@ -1869,6 +1869,7 @@ function drawCreature(o,isPlayer){
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
  oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
  if(isPlayer&&P.jumpHeight>floorZ)lift2D(P.jumpHeight-floorZ);
+ if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight); // Real sideways leap also clears the ground in Canvas2D.
  if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
  ctx.rotate(o.dir||0);
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.19:t==="cat"?Math.abs(Math.sin(gait*1.46))*.13:t==="wolf"?Math.abs(Math.sin(gait*.62))*.105:Math.abs(Math.sin(gait*.9))*.09;
