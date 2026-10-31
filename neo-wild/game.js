@@ -276,10 +276,11 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
+ if(id!=="")$("nav-hud").classList.add("hidden");
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
@@ -337,6 +338,11 @@ function checkpointLabel(s){
 }
 function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
+ // Returning players should see resume before any new-game setup.
+ const hasSave=!!auto||points.length>0;
+ $("menu").classList.toggle("has-saved-game",hasSave);
+ $("menu").classList.toggle("has-auto-save",!!auto);
+ $("new-game-options").open=!hasSave;
  $("continue-btn").classList.toggle("hidden",!auto);
  $("continue-detail").textContent=auto?checkpointLabel(auto):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
@@ -401,7 +407,7 @@ function restoreSnapshot(snapshot){
  updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";
  cam.x=clamp(Number.isFinite(snapshot.camera?.x)?snapshot.camera.x:P.x-vw/2,0,Math.max(0,WORLD.w-vw));
  cam.y=clamp(Number.isFinite(snapshot.camera?.y)?snapshot.camera.y:P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- huntTarget=null;ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");guideWisp=null;guideCache=null;particles=[];popups=[];autosaveClock=0;
+ huntTarget=null;ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");guideWisp=null;guideGoal=null;guideCache=null;particles=[];popups=[];autosaveClock=0;
  resetControls();
  try{localStorage.setItem("wild-reclaim-den-level-v1-"+choice,String(denLevel));localStorage.setItem("wild-reclaim-den-v1-"+choice,String(denStash));saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
@@ -1427,6 +1433,15 @@ function syncHUD(hour){
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
  guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
+ // Dedicated HUD guide remains obvious even if the actual target is beyond the screen.
+ const navTarget=guideWisp||guideGoal,navOn=mode==="play"&&!!navTarget;
+ $("nav-hud").classList.toggle("hidden",!navOn);
+ if(navOn){
+  const dx=navTarget.x-P.x,dy=navTarget.y-P.y;
+  const sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy;
+  $("nav-hud-chevron").style.transform="rotate("+Math.atan2(sy,sx)+"rad)";
+  $("nav-hud-distance").textContent=Math.round(dist(P,objective))+"m";
+ }
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
   contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":nearestTerritoryPost()?"縄張り":"行動";}
@@ -2020,33 +2035,43 @@ function drawOccludedSilhouettes(entities){
  }
 }
 // Destination glow is a screen overlay so it stays legible in WebGL and Canvas2D.
+// The real objective glows on-screen; when off-screen, a different edge beacon shows its bearing.
 function drawObjectiveGlow(){
  if(!P||!guideGoal||mode!=="play")return;
- const pos=project(guideGoal.x,guideGoal.y);
- if(pos.x<-65||pos.y<-85||pos.x>vw+65||pos.y>vh+65)return;
+ const raw=project(guideGoal.x,guideGoal.y);
+ const safeX=Math.max(43,Math.min(vw*.5-8,58));
+ const top=vh<=520?112:Math.min(190,vh*.24);
+ const bottom=vh<=520?88:Math.min(160,vh*.2);
+ const midX=vw*.5,midY=(top+(vh-bottom))*.5;
+ const limX=Math.max(30,midX-safeX),limY=Math.max(28,(vh-bottom-top)*.5);
+ const deltaX=raw.x-midX,deltaY=raw.y-midY;
+ const ratio=Math.min(1,limX/Math.max(1,Math.abs(deltaX)),limY/Math.max(1,Math.abs(deltaY)));
+ const offscreen=ratio<1,px=midX+deltaX*ratio,py=midY+deltaY*ratio;
  const near=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y)<140;
- const pulse=.5+.5*Math.sin(elapsed*3.7),radius=near?25:20,height=near?85:63;
+ const pulse=.5+.5*Math.sin(elapsed*4.2);
+ const radius=offscreen?17:near?32:27,height=offscreen?0:near?104:84;
  ctx.save();ctx.globalCompositeOperation="screen";
- const halo=ctx.createRadialGradient(pos.x,pos.y+3,3,pos.x,pos.y+3,64);
- halo.addColorStop(0,"rgba(255,238,161,"+(.31+.2*pulse)+")");
- halo.addColorStop(.43,"rgba(182,247,211,"+(.17+.13*pulse)+")");
- halo.addColorStop(1,"rgba(181,246,204,0)");
- ctx.fillStyle=halo;ctx.beginPath();ctx.arc(pos.x,pos.y+3,64,0,TWO);ctx.fill();
- const shaft=ctx.createLinearGradient(pos.x,pos.y-height,pos.x,pos.y+8);
- shaft.addColorStop(0,"rgba(255,252,213,0)");
- shaft.addColorStop(.72,"rgba(194,255,222,"+(.13+.07*pulse)+")");
- shaft.addColorStop(1,"rgba(255,237,159,"+(.32+.18*pulse)+")");
- ctx.fillStyle=shaft;ctx.fillRect(pos.x-7,pos.y-height,14,height+8);
- ctx.strokeStyle="rgba(248,249,181,"+(.66+.3*pulse)+")";
- ctx.lineWidth=2.6;ctx.shadowColor="#d6ffac";ctx.shadowBlur=12;
- ctx.beginPath();ctx.ellipse(pos.x,pos.y+4,radius+4*pulse,(radius+4*pulse)*.44,0,0,TWO);ctx.stroke();
- ctx.restore();
- if(pos.x>=26&&pos.x<=vw-26&&pos.y>=80&&pos.y<=vh-35){
-  ctx.save();ctx.font="800 11px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.strokeStyle="rgba(7,24,22,.9)";ctx.lineWidth=3.5;ctx.lineJoin="round";
-  ctx.strokeText("目的地",pos.x,pos.y-height-7);
-  ctx.fillStyle="#fff2c3";ctx.fillText("目的地",pos.x,pos.y-height-7);ctx.restore();
+ const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?40:80);
+ halo.addColorStop(0,"rgba(255,252,177,"+(.58+.22*pulse)+")");
+ halo.addColorStop(.35,"rgba(199,255,199,"+(.32+.15*pulse)+")");
+ halo.addColorStop(1,"rgba(175,255,199,0)");
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?40:80,0,TWO);ctx.fill();
+ if(!offscreen){
+  const shaft=ctx.createLinearGradient(px,py-height,px,py+8);
+  shaft.addColorStop(0,"rgba(255,250,195,0)");
+  shaft.addColorStop(.62,"rgba(234,255,196,"+(.22+.15*pulse)+")");
+  shaft.addColorStop(1,"rgba(255,233,138,"+(.53+.26*pulse)+")");
+  ctx.fillStyle=shaft;ctx.fillRect(px-9,py-height,18,height+8);
  }
+ ctx.strokeStyle="rgba(251,248,175,"+(.75+.24*pulse)+")";
+ ctx.lineWidth=offscreen?3:4;ctx.shadowColor="#f3ff9e";ctx.shadowBlur=20;
+ ctx.beginPath();ctx.ellipse(px,py+4,radius+5*pulse,(radius+5*pulse)*(offscreen?1:.48),0,0,TWO);ctx.stroke();
+ ctx.restore();
+ // Off-screen beacons are explicitly directions, never represented as the real location.
+ const label=offscreen?"目標方向":"目的地",labelY=offscreen?py-26:py-height-9;
+ ctx.save();ctx.font="900 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.lineWidth=4.5;ctx.lineJoin="round";ctx.strokeStyle="rgba(5,23,21,.96)";
+ ctx.strokeText(label,px,labelY);ctx.fillStyle="#fff6b7";ctx.fillText(label,px,labelY);ctx.restore();
 }
 function drawGuideWisps(){
  if(!P||!guideWisp||mode!=="play")return;
@@ -2331,7 +2356,10 @@ document.addEventListener("fullscreenchange",()=>{
 window.addEventListener("resize",updateRotationButton);
 window.addEventListener("orientationchange",updateRotationButton);
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));playEffect("menu")}));
-$("start-btn").addEventListener("click",()=>{clearAutoSave();start();announceObjective();});
+$("start-btn").addEventListener("click",()=>{
+ if(getAutoSnapshot()&&!window.confirm("保存した「続きから」のデータを上書きして、新しく始めますか？\nチェックポイントは残ります。"))return;
+ clearAutoSave();start();announceObjective();
+});
 $("continue-btn").addEventListener("click",()=>{
  const snapshot=getAutoSnapshot();if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
 });
