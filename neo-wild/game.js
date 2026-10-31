@@ -807,7 +807,7 @@ function dash(){
  const maximum=P.type==="cat"?235+Math.min(75,(P.level-1)*5)
   :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
   :235+Math.min(65,(P.level-1)*5);
- const travel=target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum;
+ const travel=(target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum)*.70;
  ambushTarget=target&&unawareOfPlayer(target)?target:null;
  P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
  P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.37:P.type==="cat"?.31:.30;
