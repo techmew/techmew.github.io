@@ -23,7 +23,7 @@ const species={
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
-let autosaveClock=0;
+let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 let soundEnabled=true,audio=null,ambientNodes=null,footstepTimer=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -150,7 +150,7 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
@@ -187,7 +187,7 @@ function currentSnapshot(){
   version:SAVE_SCHEMA,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
-  weather,scoreTimer,spawnTimer,denLevel,denStash,territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
+  weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   mobs,carcasses,plants,debris,birdFlocks
  };
 }
@@ -234,7 +234,11 @@ function restoreSnapshot(snapshot){
  kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
  expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
  mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete;
- totalScore=snapshot.totalScore||0;weather=["CLEAR","RAIN","FOG"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
+ totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
+ weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
+ nextWeather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.nextWeather)?snapshot.nextWeather:null;
+ thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
+ thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
  scoreTimer=snapshot.scoreTimer||0;spawnTimer=snapshot.spawnTimer||0;
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStash=clamp(snapshot.denStash||0,0,denCapacity());
@@ -358,7 +362,7 @@ function lineBlocked(a,b){
 function inCover(o){return plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75)}
 function detectsPlayer(m,sp,d){
  const night=Math.cos((elapsed%85)/85*TWO)<-.45;
- const sightRange=(sp.prey?185:265)*(weather==="FOG"?.62:weather==="RAIN"?.82:1)*(night?.8:1)*(P.hidden?.29:1);
+ const sightRange=(sp.prey?185:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*(night?.8:1)*(P.hidden?.29:1);
  const los=!lineBlocked(m,P);
  const facing=Math.atan2(P.y-m.y,P.x-m.x);
  const delta=Math.atan2(Math.sin(facing-m.dir),Math.cos(facing-m.dir));
@@ -368,7 +372,7 @@ function detectsPlayer(m,sp,d){
  // Sound is attenuated by buildings, but does not magically require line of sight.
  const heard=d<(los?38:24)+P.noise*(los?116:58);
  const wind=Math.sin(elapsed*.022)*Math.PI;
- const smelled=d<(weather==="RAIN"?38:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
+ const smelled=d<(weather==="RAIN"||weather==="THUNDER"?38:weather==="WIND"?105:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
  return visibleNow||heard||smelled||(los&&d<P.r+m.r+17);
 }
 function getAxes(){
@@ -802,6 +806,44 @@ function steerPursuit(m,tx,ty){
  if(best!==null){m.avoidSide=Math.sign(Math.atan2(Math.sin(best-desired),Math.cos(best-desired)))||m.avoidSide;return best}
  return desired+Math.PI*.65*m.avoidSide;
 }
+const WEATHER_NAMES={CLEAR:"晴れ",CLOUDY:"曇り",RAIN:"雨",THUNDER:"雷雨",FOG:"霧",WIND:"強風"};
+const WEATHER_EDGES={
+ CLEAR:[["CLOUDY",56],["WIND",23],["FOG",12],["RAIN",9]],
+ CLOUDY:[["CLEAR",27],["RAIN",37],["WIND",16],["FOG",12],["THUNDER",8]],
+ RAIN:[["CLOUDY",46],["THUNDER",19],["CLEAR",22],["FOG",13]],
+ THUNDER:[["RAIN",65],["CLOUDY",28],["CLEAR",7]],
+ FOG:[["CLOUDY",43],["CLEAR",45],["RAIN",12]],
+ WIND:[["CLEAR",35],["CLOUDY",46],["RAIN",14],["THUNDER",5]]
+};
+function rollNextWeather(current,random=Math.random()){
+ const options=WEATHER_EDGES[current]||WEATHER_EDGES.CLEAR;
+ let val=clamp(random,0,.999999)*options.reduce((sum,item)=>sum+item[1],0);
+ for(const [name,weight] of options){val-=weight;if(val<0)return name}
+ return options[options.length-1][0];
+}
+function updateWeather(dt){
+ weatherTimer-=dt;
+ if(weatherTimer<9&&!nextWeather){
+  nextWeather=rollNextWeather(weather);
+  if(nextWeather==="THUNDER")notify("遠雷が聞こえる / 雷雨が近づいている");
+  else if(nextWeather==="RAIN")notify("空が暗くなり、雨雲が迫っている");
+  else if(nextWeather==="WIND")notify("風が強まり、枝が大きく揺れ始めた");
+  else if(nextWeather==="FOG")notify("遠くの景色が白く霞み始めた");
+ }
+ if(weatherTimer<=0){
+  weather=nextWeather||rollNextWeather(weather);nextWeather=null;
+  weatherTimer=rnd(28,69);windDirection=rnd(0,TWO);thunderTimer=rnd(5,11);
+  notify("天候変化："+WEATHER_NAMES[weather]);
+ }
+ thunderFlash=Math.max(0,thunderFlash-dt*2.6);
+ if(weather==="THUNDER"){
+  thunderTimer-=dt;
+  if(thunderTimer<=0){
+   thunderFlash=.8+rnd(0,.2);thunderTimer=rnd(5,13);
+   shake=Math.max(shake,1.4);sound(58,.48,"sawtooth",.036);
+  }
+ }
+}
 function update(dt){
  navPlansThisFrame=0;
  for(const bird of birdFlocks){
@@ -817,7 +859,7 @@ function update(dt){
  }
  elapsed+=dt;day=1+Math.floor(elapsed/85);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
- const newWeather=day%4===0?"FOG":day%3===0?"RAIN":"CLEAR";if(newWeather!==weather){weather=newWeather;notify(weather==="RAIN"?"酸性雨の気配 / 視界が悪化":weather==="FOG"?"濃霧 / 視界が悪化":"空が晴れてきた")}
+ updateWeather(dt);
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
  P.jumpCD=Math.max(0,P.jumpCD-dt);P.wallKickLock=Math.max(0,(P.wallKickLock||0)-dt);P.wallKickTime=Math.max(0,(P.wallKickTime||0)-dt);
@@ -830,7 +872,7 @@ function update(dt){
  
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
- P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
+ P.sp=clamp(P.sp+(weather==="THUNDER"?10:weather==="WIND"?13:17)*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
  if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
@@ -885,7 +927,8 @@ function update(dt){
   }else{
    const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost;
+   const traction=weather==="RAIN"||weather==="THUNDER"?.89:weather==="WIND"?.96:1;
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction;
    const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
    const limit=(len>.08?(P.type==="wolf"?660:P.type==="cat"?1430:foxTurbo?2150:1160):(P.type==="wolf"?900:P.type==="cat"?1720:foxTurbo?2750:1550))*dt;
    const ratio=length>limit?limit/length:1;
@@ -1060,7 +1103,7 @@ function syncHUD(hour){
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
- $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
+ $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
  // No compulsory on-screen arrow or tracking line.
  const objectives=[
   ["食料を確保せよ","近くの食料を探して食べる / △・E",meals],
