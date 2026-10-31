@@ -416,7 +416,10 @@ function restoreSnapshot(snapshot){
  snapshot.earnedDiscoveries.filter(id=>typeof id==="string"&&DISCOVERY_PERKS[id]):[];
  // Saves made before perk implementation still award previously discovered places once.
  for(const id of discoveredSites)awardDiscovery(id,true);
- if(Array.isArray(snapshot.birdFlocks)&&snapshot.birdFlocks.length<=30)birdFlocks=snapshot.birdFlocks;
+ if(Array.isArray(snapshot.birdFlocks)&&snapshot.birdFlocks.length<=30){
+  // Legacy schema-2 saves lack roost fields; preserve every valid bird and position.
+  birdFlocks=snapshot.birdFlocks.filter(normalizeBirdRoost);
+ }
  cameraYaw=Number.isFinite(snapshot.camera?.yaw)?snapshot.camera.yaw:0;
  cameraZoom=clamp(Number.isFinite(snapshot.camera?.zoom)?snapshot.camera.zoom:.8,.47,1.6);
  updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";
@@ -1215,24 +1218,110 @@ function rainShelterPoint(m){
  }
  return best;
 }
-function update(dt){
- if(objectiveBannerTime<0)announceObjective();
- navPlansThisFrame=0;
- for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
+// Weather-dependent bird roosting: approach a real roof/forest tree, rest, then take off.
+// Uses the existing 20 saved birds. Perch searches only occur at state transitions.
+function findBirdPerch(bird){
+ let best=null,nearest=950;
+ for(const b of buildings){
+  if(b.interior)continue;
+  const height=b.roofZ||135+(b.kind%4)*75;
+  if(height>305)continue; // Keep all roosts within the save and 3D height budget.
+  const x=b.x+b.w*.46,y=b.y+b.h*.47,d=Math.hypot(x-bird.x,y-bird.y);
+  if(d<nearest){nearest=d;best={x,y,z:height+11,kind:"roof"};}
+ }
+ const forest=EXPLORE_SITES.find(site=>site.id==="forest");
+ if(forest)for(let i=0;i<12;i++){
+  const a=i*TWO/12,x=forest.x+Math.cos(a)*182,y=forest.y+Math.sin(a)*182;
+  const d=Math.hypot(x-bird.x,y-bird.y);
+  if(d<nearest){nearest=d;best={x,y,z:113,kind:"branch"};}
+ }
+ return best;
+}
+function normalizeBirdRoost(bird){
+ if(!Number.isFinite(bird.x)||!Number.isFinite(bird.y))return false;
+ bird.z=clamp(Number.isFinite(bird.z)?bird.z:60,35,360);
+ bird.wing=Number.isFinite(bird.wing)?bird.wing:0;
+ bird.fright=clamp(Number(bird.fright)||0,0,4);
+ bird.flightClock=clamp(Number(bird.flightClock)||0,0,35);
+ bird.restClock=clamp(Number(bird.restClock)||0,0,35);
+ bird.departClock=clamp(Number(bird.departClock)||0,0,3);
+ if(!["fly","approach","rest"].includes(bird.roostState))bird.roostState="fly";
+ const q=bird.perch;
+ if(bird.roostState!=="fly"&&(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isFinite(q.z)||
+  q.x<0||q.x>WORLD.w||q.y<0||q.y>WORLD.h||q.z<30||q.z>350)){
+  bird.roostState="fly";bird.perch=null;
+ }
+ return true;
+}
+function updateBirdFlocks(dt){
+ const storm=weather==="THUNDER",rainy=storm||weather==="RAIN";
  for(const bird of birdFlocks){
-  bird.wing+=dt*(bird.fright>0?25:14);
-  if(P&&bird.fright<=0&&dist(P,bird)<110){bird.fright=2.2;bird.z=Math.max(70,bird.z);playEffect("wing");}
-  bird.fright=Math.max(0,bird.fright-dt);
-  const speed=bird.speed*(bird.fright>0?1.6:1);
+  if(!Number.isFinite(bird.z)||!bird.roostState)normalizeBirdRoost(bird);
+  bird.flightClock=Math.max(0,(bird.flightClock||0)-dt);
+  bird.fright=Math.max(0,(bird.fright||0)-dt);
+  bird.departClock=Math.max(0,(bird.departClock||0)-dt);
+  if(P&&bird.fright<=0&&Math.hypot(P.x-bird.x,P.y-bird.y)<110){
+   bird.fright=2.2;bird.roostState="fly";bird.perch=null;
+   bird.flightClock=3.4;bird.departClock=2.3;playEffect("wing");
+  }
+  if(bird.roostState==="rest"){
+   bird.wing+=dt*.45;
+   bird.restClock=Math.max(0,(bird.restClock||0)-dt);
+   if(storm||(rainy&&bird.restClock>0))continue;
+   bird.roostState="fly";bird.perch=null;
+   bird.flightClock=rainy?8+rnd(0,7):3;
+   bird.departClock=2.3;
+  }
+  if(bird.roostState==="approach"){
+   if(!rainy||bird.fright>0||!bird.perch){
+    bird.roostState="fly";bird.perch=null;bird.flightClock=rainy?3:2;
+   }else{
+    const q=bird.perch,dx=q.x-bird.x,dy=q.y-bird.y,d=Math.hypot(dx,dy);
+    bird.dir=Math.atan2(dy,dx);
+    // Climb above the roof before crossing its footprint; lower only over the perch.
+    const targetZ=d<=8?q.z:q.z+18;
+    bird.z+=clamp(targetZ-bird.z,-65*dt,85*dt);
+    if(bird.z>=q.z+11&&d>0){
+     const step=Math.min(d,bird.speed*.86*dt);
+     bird.x+=dx/d*step;bird.y+=dy/d*step;
+    }
+    bird.wing+=dt*15;
+    if(d<=8&&Math.abs(bird.z-q.z)<4){
+     bird.x=q.x;bird.y=q.y;bird.z=q.z;
+     bird.roostState="rest";bird.restClock=storm?0:7+rnd(0,7);
+    }
+    continue;
+   }
+  }
+  if(rainy&&bird.fright<=0&&bird.flightClock<=0&&bird.departClock<=0){
+   if(storm||Math.random()<.62){
+    const q=findBirdPerch(bird);
+    if(q){bird.perch=q;bird.roostState="approach";continue;}
+   }
+   bird.flightClock=storm?4:6+rnd(0,5);
+  }
+  bird.wing+=dt*(bird.fright>0?25:rainy?11:14);
+  const speed=bird.speed*(bird.fright>0?1.6:rainy?.73:1);
   bird.x+=Math.cos(bird.dir)*speed*dt;bird.y+=Math.sin(bird.dir)*speed*dt;
-  bird.z=clamp(bird.z+(bird.fright>0?22:-2)*dt,46,162);
+  if(bird.departClock>0)bird.z+=35*dt;
+  else{
+   const targetZ=bird.fright>0?105:rainy?72:58;
+   bird.z+=clamp(targetZ-bird.z,-28*dt,28*dt);
+  }
+  bird.z=clamp(bird.z,35,360);
   if(bird.x<20||bird.x>WORLD.w-20||bird.y<20||bird.y>WORLD.h-20){
    bird.dir+=Math.PI*.8;bird.x=clamp(bird.x,20,WORLD.w-20);bird.y=clamp(bird.y,20,WORLD.h-20);
   }
  }
+}
+function update(dt){
+ if(objectiveBannerTime<0)announceObjective();
+ navPlansThisFrame=0;
+ for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
  elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
+ updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
   awardDiscovery(site.id);
@@ -1581,7 +1670,8 @@ function drawWorldMap(){
  if(!P)return;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius);
  const prey=nearby.filter(m=>species[m.type].prey).length;
- $("map-place").textContent="周辺の動物 "+nearby.length+"匹（獲物 "+prey+"・敵 "+(nearby.length-prey)+"）／全域で生存 "+mobs.filter(m=>m.hp>0).length+"匹。遠方の個体も保持。";
+ $("map-place").textContent="周辺の動物 "+nearby.length+"匹（獲物 "+prey+"・敵 "+(nearby.length-prey)+"）／全域で生存 "+mobs.filter(m=>m.hp>0).length+"匹。遠方の個体も保持。"+
+  ((weather==="RAIN"||weather==="THUNDER")?"　野鳥の羽休め "+birdFlocks.filter(b=>b.roostState==="rest").length+"/"+birdFlocks.length+"羽。":"");
  const width=bigMap.width,height=bigMap.height,X=x=>x/WORLD.w*width,Y=y=>y/WORLD.h*height;
  bm.clearRect(0,0,width,height);bm.fillStyle="#142b28";bm.fillRect(0,0,width,height);
  const regions=[
@@ -1724,10 +1814,10 @@ function drawStreetProp(o){
 function drawFlyingBird(o){
  ctx.save();ctx.translate(o.x,o.y);ctx.translate(VIEW.c*o.z*.93*cameraZoom/VIEW_DET,-VIEW.a*o.z*.93*cameraZoom/VIEW_DET);
  ctx.rotate(o.dir);ctx.fillStyle=o.type==="crow"?"#1c292b":"#859c9b";ctx.beginPath();ctx.ellipse(0,0,9,3,0,0,TWO);ctx.fill();
- const wing=Math.sin(o.wing)*12;
- ctx.strokeStyle=o.type==="crow"?"#293333":"#a9b7b3";ctx.lineWidth=4;
- ctx.beginPath();ctx.moveTo(-3,0);ctx.quadraticCurveTo(-13,-8-wing,-18,-8-wing);
- ctx.moveTo(3,0);ctx.quadraticCurveTo(13,8+wing,19,8+wing);ctx.stroke();ctx.restore();
+ const resting=o.roostState==="rest",wing=resting?0:Math.sin(o.wing)*12;
+ ctx.strokeStyle=o.type==="crow"?"#293333":"#a9b7b3";ctx.lineWidth=resting?5:4;
+ ctx.beginPath();ctx.moveTo(-3,0);ctx.quadraticCurveTo(resting?-8:-13,resting?-3:-8-wing,resting?-11:-18,resting?-3:-8-wing);
+ ctx.moveTo(3,0);ctx.quadraticCurveTo(resting?8:13,resting?3:8+wing,resting?11:19,resting?3:8+wing);ctx.stroke();ctx.restore();
 }
 function drawBuilding(b){
  if(b.interior&&shelterRevealed(b)){
