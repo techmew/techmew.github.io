@@ -131,20 +131,21 @@ function update(conditions){
  scene=conditions||scene;
  const area=Number(scene.area||0),danger=!!scene.danger,storm=scene.weather==="THUNDER",rain=scene.weather==="RAIN"||storm;
  const forest=area===5||area===2||area===4,clock=context.currentTime;
+ const paused=scene.mode&&scene.mode!=="play",mix=paused?.12:1;
  const targets={
-  explore:danger?.04:forest?.11:.29,
-  forest:danger?.07:forest?.31:.03,
-  danger:danger?.34:storm?.12:.015,
-  wind:scene.weather==="WIND"?.46:scene.weather==="FOG"?.23:.14,
-  forestWind:forest?.22:.04,
-  rain:storm?.56:rain?.31:0
+  explore:(danger?.04:forest?.11:.29)*mix,
+  forest:(danger?.07:forest?.31:.03)*mix,
+  danger:(danger?.34:storm?.12:.015)*mix,
+  wind:(scene.weather==="WIND"?.46:scene.weather==="FOG"?.23:.14)*mix,
+  forestWind:(forest?.22:.04)*mix,
+  rain:(storm?.56:rain?.31:0)*mix
  };
  for(const [name,value] of Object.entries(targets)){
   const gain=loopGains[name];
   if(gain)gain.gain.setTargetAtTime(value,clock,.9);
  }
  // Sparse, irregular background fauna: no alarms or distracting electronic effects.
- if(clock-lastAmbient>9+rand()*4){
+ if(!paused&&clock-lastAmbient>9+rand()*4){
   lastAmbient=clock;
   if(forest&&!storm)play("wing",{volume:.20,rate:.66+rand()*.3});
   else if(area===6)play("impact",{volume:.11,rate:.45});
