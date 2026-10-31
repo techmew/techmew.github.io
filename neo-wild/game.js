@@ -2004,6 +2004,24 @@ function drawCoverForeground(p){
   ctx.strokeStyle="#d3e0a15e";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+sway*.7,yy-tall*.55);ctx.stroke();
  }ctx.restore();
 }
+function drawDenBedding2D(){
+ if(!P||!visible(SAFE_DEN.x,SAFE_DEN.y,135))return;
+ const x=SAFE_DEN.x,y=SAFE_DEN.y,cat=P.type==="cat",fox=P.type==="fox";
+ ctx.save();ctx.translate(x,y);
+ ctx.fillStyle="#25332a";ctx.beginPath();ctx.ellipse(0,3,55+denLevel*7,40+denLevel*4,0,0,TWO);ctx.fill();
+ ctx.fillStyle=cat?"#938e75":fox?"#937448":"#615e47";
+ ctx.beginPath();ctx.ellipse(0,0,43+denLevel*5,29+denLevel*3,0,0,TWO);ctx.fill();
+ for(let i=0;i<12+denLevel*5;i++){
+  const a=i*2.4,rad=19+(i%5)*8;
+  ctx.save();ctx.translate(Math.cos(a)*rad,Math.sin(a)*rad*.7);ctx.rotate(a);
+  ctx.fillStyle=cat?"#c1b09b":fox?(i%2?"#b9894d":"#cfac70"):"#9e9266";
+  ctx.beginPath();ctx.ellipse(0,0,7,2,0,0,TWO);ctx.fill();ctx.restore();
+ }
+ if(cat){ctx.strokeStyle="#b8a17f";ctx.lineWidth=3;ctx.strokeRect(-42,-25,84,50)}
+ if(!cat&&!fox){ctx.strokeStyle="#695b40";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-40,-25);ctx.lineTo(43,-25);ctx.moveTo(-40,26);ctx.lineTo(43,26);ctx.stroke()}
+ if(denStash>0){ctx.fillStyle="#bba27d";ctx.fillRect(16,12,Math.min(31,8+denStash*.1),7)}
+ ctx.restore();
+}
 function drawItem(c){
  const pulse=Math.sin(elapsed*3+(c.phase||0))*2;
  ctx.save();ctx.translate(c.x,c.y);
@@ -2489,6 +2507,7 @@ function drawScene(){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
  roadDraw();
+ drawDenBedding2D();
  for(const site of EXPLORE_SITES)if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  // Painter's algorithm: building fronts occlude animals behind them, not those in front.
