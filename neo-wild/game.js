@@ -182,7 +182,7 @@ function generateWorld(){
  let k=0;
  for(const y of ys)for(const x of xs){const n=noise(k++,13),w=270+n*175,h=(y>1970?230:240)+noise(k,8)*110;
    const roofZ=k%7===0?60:k%5===0?46:k%4===0?30:0;
-    buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ:x===1640&&y===1410?0:roofZ,interior:x===1640&&y===1410});}
+    buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ:(x===1640&&y===1410)||(x===2570&&y===705)?0:roofZ,interior:(x===1640&&y===1410)||(x===2570&&y===705)});}
 // Open-world expansion: keep the original 4,200×2,400 region intact, and
  // deterministically populate the east/south districts with different urban biomes.
  const addBlock=(x,y,seed,biome)=>{
@@ -285,14 +285,17 @@ function start(){
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
- // A living animal occupies the first accessible room; other starting regions keep their original counts.
- const shelter=buildings.find(b=>b.interior);
- if(shelter&&origin===START_LOCATIONS.home){
-  const room=shelterInteriorPoint(shelter);
-  spawnMob(false,true,false,{x:room.x,y:room.y+18});
+ // Each accessible room begins with one ordinary huntable animal, not a scripted prop.
+ // Keep the original total wildlife budget and never duplicate these on save restore.
+ let roomPrey=0;
+ if(origin===START_LOCATIONS.home){
+  for(const shelter of buildings.filter(b=>b.interior)){
+   const room=shelterInteriorPoint(shelter);
+   if(spawnMob(false,true,false,{x:room.x,y:room.y+18}))roomPrey++;
+  }
  }
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
- for(let i=0;i<WILDLIFE.initial-(shelter&&origin===START_LOCATIONS.home?1:0);i++)spawnMob(true);
+ for(let i=0;i<WILDLIFE.initial-roomPrey;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
@@ -486,7 +489,7 @@ function spawnFood(){
  }
  return false;
 }
-// First playable room: deterministic existing building, never persisted as a new world schema.
+// Two walk-in rooms use deterministic pre-existing buildings; no save schema or region changes.
 // Five solid wall segments leave a 110-unit north entrance. Collision, LOS and A* share these rectangles.
 function shelterWalls(b){
  const t=15,door=b.x+b.w*.5,half=55;
@@ -1170,13 +1173,18 @@ function updateWeather(dt){
 // Rain shelters are reachable exterior eaves, not fake indoor rooms.
 // NPCs walk there normally and remain visible, detectable, and huntable.
 function rainShelterPoint(m){
- // Enter a real room through its north doorway when a safe approach is visible.
- // If the doorway cannot be reached, fall back to existing exterior eaves.
+ // Select the closest reachable room, not the first one in the building array.
+ // Animals still walk through its north entrance using normal collision and AI steering.
+ let bestRoom=null,bestRoomDistance=470;
  for(const b of buildings)if(b.interior){
   const entry=shelterEntrance(b),inside=shelterInteriorPoint(b);
-  if(dist(m,entry)<470&&(insideShelter(m)||routeClear(m,entry,m.r))&&!collides(inside.x,inside.y,m.r+3))
-   return inside;
+  const distance=dist(m,entry);
+  const inThisRoom=m.x>b.x+16&&m.x<b.x+b.w-16&&m.y>b.y+16&&m.y<b.y+b.h-16;
+  if(distance<bestRoomDistance&&(inThisRoom||routeClear(m,entry,m.r))&&!collides(inside.x,inside.y,m.r+3)){
+   bestRoom=inside;bestRoomDistance=distance;
+  }
  }
+ if(bestRoom)return bestRoom;
  let best=null,bestDist=470;
  for(const b of buildings){
   if(Math.abs(m.x-(b.x+b.w*.5))>470+b.w*.5||Math.abs(m.y-(b.y+b.h*.5))>470+b.h*.5)continue;
