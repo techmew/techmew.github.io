@@ -1480,6 +1480,36 @@ function drawBuilding(b){
  if(b.sign){ctx.save();ctx.translate(x+w-19,y+32);ctx.rotate(Math.PI/2);ctx.fillStyle="#c18c5760";ctx.fillRect(0,0,95,19);ctx.fillStyle="#1e2626";ctx.font="700 11px monospace";ctx.fillText("EXIT •  TOKYO",6,13);ctx.restore()}
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
+// Landmark silhouettes also appear when WebGL is unavailable.
+function drawLandmark2D(site){
+ const x=site.x,y=site.y;
+ ctx.save();ctx.translate(x,y);
+ if(site.id==="zoo"){
+  ctx.strokeStyle="#b0b7a6";ctx.lineWidth=5;ctx.strokeRect(-128,-104,256,208);
+  for(let i=-105;i<128;i+=36){ctx.beginPath();ctx.moveTo(i,-103);ctx.lineTo(i,104);ctx.stroke();}
+ }else if(site.id==="forest"){
+  for(let i=0;i<12;i++){
+   const t=i*TWO/12,tx=Math.cos(t)*180,ty=Math.sin(t)*180;
+   ctx.fillStyle="#305f3f";ctx.beginPath();ctx.arc(tx,ty,34,0,TWO);ctx.fill();
+   ctx.strokeStyle="#88a580";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(tx-9,ty-5);ctx.lineTo(tx+14,ty+12);ctx.stroke();
+  }
+ }else if(site.id==="factory"){
+  ctx.fillStyle="#6d726e";for(let i=0;i<3;i++)ctx.fillRect(-137+i*113,-105,40,140);
+  ctx.fillStyle="#876554";for(let i=0;i<3;i++)ctx.fillRect(-139+i*110,86,95,44);
+ }else if(site.id==="canal"||site.id==="river"){
+  ctx.fillStyle="#356975";ctx.fillRect(-224,-116,448,232);
+  ctx.fillStyle="#aab0a0";ctx.fillRect(-188,-14,376,28);
+  if(site.id==="canal"){ctx.strokeStyle="#d5d2c0";ctx.lineWidth=4;
+   for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(-214,side*111);ctx.lineTo(214,side*111);ctx.stroke();}
+  }
+ }else if(site.id==="ark"){
+  ctx.fillStyle="#596763";ctx.fillRect(-96,-70,192,140);
+  ctx.fillStyle="#1e363c";ctx.fillRect(-61,-40,122,80);
+  ctx.strokeStyle="#9aa69c";ctx.lineWidth=5;for(let i=-52;i<62;i+=17){ctx.beginPath();ctx.moveTo(i,-40);ctx.lineTo(i,40);ctx.stroke();}
+ }
+ ctx.fillStyle="#f1e9c4";ctx.font="900 14px sans-serif";ctx.textAlign="center";
+ ctx.fillText(site.name,0,-145);ctx.restore();
+}
 function drawPlant(p){
  ctx.save();ctx.translate(p.x,p.y);
  const nearby=P&&p.type===2?Math.hypot(P.x-p.x,P.y-p.y):9999;
@@ -1899,6 +1929,7 @@ function drawScene(){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
  roadDraw();
+ for(const site of EXPLORE_SITES)if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  // Painter's algorithm: building fronts occlude animals behind them, not those in front.
  const layers=[],covers=new Map();
