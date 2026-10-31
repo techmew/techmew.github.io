@@ -2005,11 +2005,35 @@ function drawCoverForeground(p){
  }ctx.restore();
 }
 function drawItem(c){
- const pulse=Math.sin(elapsed*3+c.phase)*2;
- ctx.save();ctx.translate(c.x,c.y);ctx.fillStyle="#04131590";ctx.beginPath();ctx.ellipse(2,5,17,7,0,0,TWO);ctx.fill();
- if(c.type==="meat"){ctx.fillStyle="#a75247";ctx.beginPath();ctx.ellipse(0,-2,9+pulse*.2,6,-.25,0,TWO);ctx.fill();ctx.fillStyle="#e8bdb0";ctx.fillRect(7,-6,9,3);ctx.beginPath();ctx.arc(15,-5,3,0,TWO);ctx.fill()}
- else{ctx.fillStyle="#648f66";ctx.beginPath();ctx.arc(0,0,12,0,TWO);ctx.fill();for(let i=0;i<4;i++){ctx.fillStyle=i%2?"#d6b17b":"#d77d5b";ctx.beginPath();ctx.arc(Math.sin(i*3)*6,Math.cos(i*2)*5,3,0,TWO);ctx.fill()}}
- if(P&&dist(P,c)<64){ctx.strokeStyle="#e7e1a7a6";ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,19+pulse,0,TWO);ctx.stroke()}
+ const pulse=Math.sin(elapsed*3+(c.phase||0))*2;
+ ctx.save();ctx.translate(c.x,c.y);
+ ctx.fillStyle="#081a1694";ctx.beginPath();ctx.ellipse(1,5,Math.max(16,(c.r||9)*1.6),8,0,0,TWO);ctx.fill();
+ if(c.type==="corpse"||c.type==="bones"){
+  const r=Math.max(9,c.r||9),fraction=c.type==="bones"?0:clamp(c.amount/Math.max(1,c.initialAmount||c.amount),0,1);
+  const fur=species[c.animalType]?.color||"#988b78";
+  ctx.save();ctx.rotate(c.phase||0);
+  ctx.strokeStyle="#c7c1a7";ctx.lineCap="round";ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-r*.8,0);ctx.lineTo(r*.85,0);
+  for(const side of [-1,1])for(let i=0;i<3;i++){
+   const x=(-.45+i*.40)*r;ctx.moveTo(x,0);ctx.lineTo(x+r*.12,side*r*.53);
+  }ctx.stroke();
+  ctx.fillStyle="#e3dec7";ctx.beginPath();ctx.ellipse(r*.91,0,r*.30,r*.26,0,0,TWO);ctx.fill();
+  if(fraction>0){
+   ctx.globalAlpha=.58+.42*fraction;ctx.fillStyle=fur;
+   ctx.beginPath();ctx.ellipse(-r*.13,-r*.10,r*(.43+.62*fraction),r*(.24+.35*fraction),0,0,TWO);ctx.fill();
+   ctx.beginPath();ctx.ellipse(r*.66,-r*.14,r*.34,r*.25,0,0,TWO);ctx.fill();
+  }
+  ctx.restore();
+ }else if(c.type==="meat"){
+  ctx.fillStyle="#a75247";ctx.beginPath();ctx.ellipse(0,-2,9+pulse*.2,6,-.25,0,TWO);ctx.fill();
+  ctx.fillStyle="#e8bdb0";ctx.fillRect(7,-6,9,3);
+ }else{
+  ctx.fillStyle="#648f66";ctx.beginPath();ctx.arc(0,0,12,0,TWO);ctx.fill();
+  for(let i=0;i<4;i++){ctx.fillStyle=i%2?"#d6b17b":"#d77d5b";ctx.beginPath();ctx.arc(Math.sin(i*3)*6,Math.cos(i*2)*5,3,0,TWO);ctx.fill()}
+ }
+ if(P&&edibleFood(c)&&dist(P,c)<64){
+  ctx.strokeStyle="#e7e1a7a6";ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,19+pulse,0,TWO);ctx.stroke();
+ }
  ctx.restore();
 }
 function drawCreature(o,isPlayer){
