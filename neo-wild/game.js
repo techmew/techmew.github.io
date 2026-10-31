@@ -261,7 +261,7 @@ function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
 function interruptRush(){resetRush();P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
 function attack(){
  if(mode!=="play"||!P)return;
- // Parry may cancel short guard recovery, never an active strike.
+ // Each press advances the rush; input buffering never changes this into an action.
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step];
@@ -453,7 +453,7 @@ function getObjective(){
  const findFood=mission===0||(mission===4&&freeStep===0);
  if(findFood){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0));
-  return f?{x:f.x,y:f.y,label:"食料を取る / E"}:null;
+  return f?{x:f.x,y:f.y,label:"食料を取る / △・E"}:null;
  }
  // Keep one visible hunting objective until it is lost, killed, or truly far away.
  // Otherwise the → flips between different prey every few frames.
@@ -463,7 +463,7 @@ function getObjective(){
  const lead=.22,px=clamp(huntTarget.x+(huntTarget.vx||0)*lead,35,WORLD.w-35);
  const py=clamp(huntTarget.y+(huntTarget.vy||0)*lead,35,WORLD.h-35);
  const safe=!collides(px,py,P.r+5);
- return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / Jで攻撃"};
+ return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / ×・Jで攻撃"};
 }
 function finish(won=false){
  if(!P)return;
@@ -763,11 +763,11 @@ function syncHUD(hour){
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
  // No compulsory on-screen arrow or tracking line.
  const objectives=[
-  ["食料を確保せよ","近くの食料を探して食べる / E",meals],
+  ["食料を確保せよ","近くの食料を探して食べる / △・E",meals],
   ["身を隠せ","茂みの中で足を止めて潜伏 / C",hiddenHold/.75],
-  ["獲物を仕留めろ","獲物に近づいて攻撃 / J",kills],
+  ["獲物を仕留めろ","獲物に近づいて攻撃 / ×・J",kills],
   ["旧新宿駅を探せ","廃墟を探索しながら東の旧駅方面へ",(P.x-1850)/540],
-  freeStep===0?["食料を補給せよ","周囲で食料を確保する / E",0]:["狩りを続けろ","周囲の気配を探り、獲物を狩る / J",0]
+  freeStep===0?["食料を補給せよ","周囲で食料を確保する / △・E",0]:["狩りを続けろ","周囲の気配を探り、獲物を狩る / J",0]
  ];
   const ob=objectives[Math.min(mission,4)];
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
