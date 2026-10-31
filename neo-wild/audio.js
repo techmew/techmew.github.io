@@ -17,7 +17,7 @@ function ensure(){
   master=context.createGain();master.gain.value=enabled?.82:0;master.connect(context.destination);
   musicBus=context.createGain();musicBus.gain.value=.73;musicBus.connect(master);
   atmosBus=context.createGain();atmosBus.gain.value=.50;atmosBus.connect(master);
-  sfxBus=context.createGain();sfxBus.gain.value=.45;sfxBus.connect(master);
+  sfxBus=context.createGain();sfxBus.gain.value=.32;sfxBus.connect(master);
   return context;
  }catch(_){context=null;return null}
 }
@@ -88,7 +88,7 @@ function sample(name){
    case "stepHard":v=mid*.55+low*.16+Math.sin(2*Math.PI*(130-70*u)*t)*.13;break;
    case "bite":v=mid*.57+low*.19+Math.sin(2*Math.PI*(280-180*u)*t)*.18;break;
    case "wing":v=mid*.26*Math.sin(u*Math.PI*4)**2+low*.3;break;
-   case "jump":v=mid*.3+Math.sin(2*Math.PI*(125+210*u)*t)*.13;break;
+   case "jump":v=low*.32+mid*.12+Math.sin(2*Math.PI*(122-64*u)*t)*.055;break;
    case "attack":v=mid*.62+low*.23+Math.sin(2*Math.PI*(170-90*u)*t)*.1;break;
    case "impact":v=low*.62+mid*.23+Math.sin(2*Math.PI*(110-75*u)*t)*.31;break;
    case "howl":v=(Math.sin(2*Math.PI*(165+90*Math.sin(u*Math.PI))*t)+.33*Math.sin(2*Math.PI*(330+180*Math.sin(u*Math.PI))*t)+mid*.07)*Math.sin(u*Math.PI)*.65;break;
@@ -157,9 +157,15 @@ function play(name,options={}){
   const buf=effectBuffers[name]||(effectBuffers[name]=sample(name));
   const source=context.createBufferSource(),gain=context.createGain();
   source.buffer=buf;source.playbackRate.value=options.rate||(.95+rand()*.10);
-  // Steps are background foley, not foreground SFX. Keep them quiet even if callers use a larger gain.
+  // Preserve music and weather beds. Foreground effects are subdued; jump in
+  // particular is a quiet low thump. Never let call-site volume override caps.
   const step=name==="step"||name==="stepHard";
-  gain.gain.value=step?Math.min(options.volume===undefined?.055:options.volume,.06):(options.volume===undefined?.33:options.volume);
+  const quietCap={
+   jump:.07,land:.08,attack:.13,bite:.12,impact:.12,
+   howl:.13,snarl:.11,damage:.11,thunder:.17,death:.12
+  }[name]??.17;
+  const asked=options.volume===undefined?.14:options.volume;
+  gain.gain.value=step?Math.min(asked,.055):Math.min(asked,quietCap);
   source.connect(gain);gain.connect(sfxBus);source.start();
   source.onended=()=>{try{source.disconnect();gain.disconnect()}catch(_){}};
  }catch(_){}
