@@ -1018,8 +1018,8 @@ function update(dt){
   const speed=Math.hypot(P.vx,P.vy);
   footstepTimer=Math.max(0,footstepTimer-dt);
   if(speed>70&&!P.jumpTime&&!P.pounceTime&&!P.fallTime&&footstepTimer<=0){
-   footstepTimer=P.type==="wolf"?.32:P.type==="cat"?.21:.26;
-   playEffect(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78)?"stepHard":"step",{volume:.18});
+   footstepTimer=P.type==="wolf"?.39:P.type==="cat"?.27:.34;
+   playEffect(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78)?"stepHard":"step",{volume:.045});
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
