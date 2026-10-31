@@ -701,7 +701,7 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
  m.scavengeCooldown=Math.max(0,(m.scavengeCooldown||0)-dt);
  m.scavengeNeed=Number.isFinite(m.scavengeNeed)?
   clamp(m.scavengeNeed+dt*.009,0,1):.67+noise(Math.floor(m.x),Math.floor(m.y))*.31;
- if(sp.prey||m.scavengeNeed<.72||spotted||m.alert>0||m.flee>0||
+ if(sp.prey||m.scavengeNeed<.69||spotted||m.alert>0||m.flee>0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||playerDistance<110)return null;
  // A predator prefers a live prey encounter; scavenging must not cancel combat.
  if(mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&
@@ -726,8 +726,8 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
    if(target.type==="corpse")toBones(target);
    else carcasses.splice(carcasses.indexOf(target),1);
   }
-  m.scavengeNeed=Math.max(0,m.scavengeNeed-.19);
-  m.scavengeCooldown=2.0;m.scavengePose=.9;m.navPath=null;
+  m.scavengeNeed=Math.max(0,m.scavengeNeed-.065);
+  m.scavengeCooldown=1.8;m.scavengePose=.9;m.navPath=null;
   if(playerDistance<360)label(m.x,m.y-m.r-25,"死骸を食べる","#d9f0b9");
  }
  return {vx:0,vy:0};
