@@ -639,10 +639,11 @@ function attack(){
   P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
  P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
   P.jumpDive=P.jumpTime>0;
-  P.ambushStrike=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
+  const concealed=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
  const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:.55);
-  ambushTarget=P.ambushStrike&&target&&unawareOfPlayer(target)?target:null;
+  ambushTarget=concealed&&target&&unawareOfPlayer(target)?target:null;
+  P.ambushStrike=!!ambushTarget;
  // Fox instinct is a short, collision-safe forward pounce, not a teleport.
  if(P.type==="fox"&&P.abilityTime>0&&target&&!P.jumpDive){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
@@ -670,22 +671,22 @@ function resolveAttack(){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
-    const bonus=(foxBurst?1.4:1)*(stealthHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
+    const bonus=(foxBurst?1.4:1)*(silentHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
    const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
    // Ordinary repeated bites cannot indefinitely stun-lock a predator.
     // A concealed ambush or airborne pounce can always interrupt the windup.
-    const disrupt=species[m.type].prey||m.staggerGuard<=0||stealthHit||dive;
+    const disrupt=species[m.type].prey||m.staggerGuard<=0||silentHit||dive;
     if(disrupt){
      m.windup=0;m.chargeTime=0;m.swing=0;
-     m.stun=stealthHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
+     m.stun=silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
      m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,.22);
     }else m.stun=Math.max(m.stun,.035);
     hit++;
    
     if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
-    else if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
+    // Detected animals do not trigger a false stealth cue.
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0);
@@ -773,6 +774,27 @@ function jump(){
  playEffect("jump");
  return true;
 }
+// Sweep each pounce frame against animals; stop at the FIRST real contact.
+function pounceImpactOnSegment(x0,y0,x1,y1){
+ const dx=x1-x0,dy=y1-y0,a=dx*dx+dy*dy;
+ if(a<1e-7)return null;
+ let nearest=null;
+ for(const m of mobs){
+  if(m.hp<=0||Math.abs((P.groundZ||0)-(m.groundZ||0))>=22)continue;
+  if(Math.cos(Math.atan2(m.y-y0,m.x-x0)-P.pounceDir)<.35)continue;
+  const ox=x0-m.x,oy=y0-m.y,r=P.r+m.r+10;
+  const b=2*(ox*dx+oy*dy),c=ox*ox+oy*oy-r*r,disc=b*b-4*a*c;
+  if(c>0&&disc<0)continue;
+  const t=c<=0?0:(-b-Math.sqrt(Math.max(0,disc)))/(2*a);
+  if(t<0||t>1||(nearest&&t>=nearest.t))continue;
+  const x=x0+dx*t,y=y0+dy*t,point={x,y};
+  // No contact through a building, parked car or barrier; never backtrack into a wall.
+  if(collides(x,y,P.r,P)||!routeClear({x:x0,y:y0},point,P.r)||
+     lineBlocked(point,m)||!routeClear(point,m,3))continue;
+  nearest={mob:m,x,y,t};
+ }
+ return nearest;
+}
 // Shift / mobile short press: long low-altitude predator lunge.
 function dash(){
  if(mode!=="play"||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
@@ -785,14 +807,14 @@ function dash(){
  const maximum=P.type==="cat"?235+Math.min(75,(P.level-1)*5)
   :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
   :235+Math.min(65,(P.level-1)*5);
- const travel=target?clamp(dist(P,target)-(P.r+target.r+14),20,maximum):maximum;
+ const travel=target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum;
  ambushTarget=target&&unawareOfPlayer(target)?target:null;
  P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
  P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.37:P.type==="cat"?.31:.30;
  P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
  P.vx=0;P.vy=0;P.atk=Math.max(P.atk,P.rate);
  P.windup=P.pounceDuration+.04;P.pendingStrike=true;P.jumpDive=true;
- P.ambushStrike=!!ambushTarget||(P.hidden&&P.revealTimer<=0);
+ P.ambushStrike=!!ambushTarget; // Concealment alone does not imply an unaware victim.
  P.hidden=false;P.revealTimer=1.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.2);playEffect(P.type==="wolf"?"impact":"attack");
  return true;
@@ -1104,7 +1126,7 @@ function update(dt){
    const step=Math.min(P.pounceRemaining,P.pounceRemaining/Math.max(P.pounceTime,dt)*dt);
    const ox=P.x,oy=P.y;
    move(P,Math.cos(P.pounceDir)*step,Math.sin(P.pounceDir)*step);
-   const moved=Math.hypot(P.x-ox,P.y-oy);
+   let moved=Math.hypot(P.x-ox,P.y-oy);
    P.pounceRemaining=Math.max(0,P.pounceRemaining-moved);
    P.pounceTime=Math.max(0,P.pounceTime-dt);
    if(moved<step*.5||P.pounceRemaining<.5){
@@ -1112,11 +1134,13 @@ function update(dt){
    }else{
     P.vx=(P.x-ox)/Math.max(dt,.001);P.vy=(P.y-oy)/Math.max(dt,.001);
    }
+   // Swept contact prevents a fast lunge passing straight through a fleeing animal.
+   const impact=P.pendingStrike?pounceImpactOnSegment(ox,oy,P.x,P.y):null;
+   if(impact){
+    P.x=impact.x;P.y=impact.y;moved=Math.hypot(P.x-ox,P.y-oy);
+    P.pounceTime=0;P.pounceRemaining=0;P.jumpHeight=P.groundZ||0;P.vx=0;P.vy=0;
+   }
    P.steps+=moved*.052;
-   // A wolf charge impacts when physically hitting prey rather than passing through.
-    if(P.chargeStrike&&P.pendingStrike&&mobs.some(m=>m.hp>0&&!lineBlocked(P,m)&&dist(P,m)<P.r+m.r+32&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-P.pounceDir)>.45)){
-     P.pounceTime=0;P.pounceRemaining=0;P.jumpHeight=P.groundZ||0;
-    }
     const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?11:P.type==="wolf"?8:10);
    pounceStreaks.push({x:P.x,y:P.y,z:P.jumpHeight,life:.17});
@@ -2135,6 +2159,9 @@ function loop(t){
  // Presentation must use real elapsed time, not the FPS-throttled simulation clock.
  if(objectiveBannerTime>0&&t>=objectiveBannerTime){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+ }
+ if(huntSlowUntil>0&&(t>=huntSlowUntil+520||mode!=="play")){
+  huntSlowUntil=0;$("hunt-cinematic").classList.remove("show");
  }
  if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
  else huntSlowUntil=0;
