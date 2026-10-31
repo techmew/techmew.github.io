@@ -6,6 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261031-ps-face1">
+<link rel="stylesheet" href="./visual.css?rev=20261031-city1">
 </head>
 <body>
 <div id="app">
@@ -26,7 +27,7 @@
 <div id="mission"><div class="mission-top"><span class="live-dot"></span><small>SURVIVAL OBJECTIVE</small><span id="mission-progress">01 / 04</span></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="zoom-controls"><button id="zoom-out" aria-label="もっと広く見る">−</button><span id="zoom-level">80%</span><button id="zoom-in" aria-label="近くを見る">＋</button></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div>
 <div id="toast" role="status"></div>
-<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ　E 食事　G 運搬　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・右は△食事・行動（長押し運搬・巣育成） □飛びつき ○ジャンプ ×ラッシュ攻撃</span></div>
+<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ　E 食事　G 運搬　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・右は△食事・行動（長押し運搬・巣育成） □飛びつき ○ジャンプ ×ラッシュ攻撃</span></div>
 <div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="△ 食べる・行動、長押し運搬・巣育成"><span>△</span><small id="context-action-label">行動</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 短押し飛びつき、長押しで固有能力"><span>□</span><small>飛びつく</small></button><button id="jump-touch" class="touch-btn jump" aria-label="○ ジャンプ"><span>○</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="× 5段ラッシュ攻撃"><span>×</span><small>攻撃</small></button></div></div>
 <div id="world-map" class="hidden" role="dialog" aria-label="東京の地図" aria-modal="true">
  <div class="world-map-panel">
@@ -58,6 +59,6 @@
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">GAME OVER</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">もう一度、生存する →</button><button id="menu-btn" class="flat-btn">動物を選び直す</button></div></div>
 </div>
-<script src="./webgl3d.js?rev=20261031-occlusion-stencil1" defer></script>
-<script src="./game.js?rev=20261031-territory1" defer></script>
+<script src="./webgl3d.js?rev=20261031-wild-scene2" defer></script>
+<script src="./game.js?rev=20261031-wild-scene2" defer></script>
 </body></html>
