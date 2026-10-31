@@ -321,3 +321,21 @@
 @media(max-height:520px) and (orientation:landscape){
  #shelter-hint{bottom:74px;left:50%;max-width:53vw;padding:5px 8px;font-size:10px}
 }
+
+/* Carry food into the den: concise guided survival task, no additional control. */
+#stockpile-guide{
+ position:absolute;left:50%;bottom:clamp(238px,34vh,320px);
+ transform:translateX(-50%);z-index:6;pointer-events:none;
+ width:max-content;max-width:min(86vw,370px);padding:8px 13px;
+ border:1px solid #bbdda0;border-radius:12px;
+ background:rgba(10,34,27,.92);color:#ebffcb;
+ box-shadow:0 4px 13px #000b,0 0 15px #b3e88835;
+ text-align:center;font:800 12px/1.55 "Noto Sans JP",sans-serif;
+ text-shadow:0 1px 3px #000;
+}
+@media(max-width:520px) and (orientation:portrait){
+ #stockpile-guide{bottom:clamp(235px,35vh,310px);max-width:84vw;font-size:11px;padding:7px 10px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #stockpile-guide{bottom:90px;left:51%;max-width:43vw;font-size:10px;padding:6px 8px}
+}
