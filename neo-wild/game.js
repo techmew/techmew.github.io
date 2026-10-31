@@ -770,7 +770,8 @@ function roadDraw(){
 }
 function drawBuilding(b){
  const gx=b.x,gy=b.y,w=b.w,h=b.h,rise=b.roofZ||85+(b.kind%4)*17;
- const x=gx+VIEW.c*rise/VIEW_DET,y=gy-VIEW.a*rise/VIEW_DET;
+ const roofLift=rise*.93*cameraZoom;
+  const x=gx+VIEW.c*roofLift/VIEW_DET,y=gy-VIEW.a*roofLift/VIEW_DET;
  const polygon=(v,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(v[0],v[1]);for(let j=2;j<v.length;j+=2)ctx.lineTo(v[j],v[j+1]);ctx.closePath();ctx.fill()};
  ctx.fillStyle="#050f13ab";ctx.fillRect(gx+20,gy+25,w,h);
  const face=ctx.createLinearGradient(x,y+h,gx,gy+h);
@@ -868,7 +869,7 @@ function drawCreature(o,isPlayer){
  };
  ctx.save();ctx.translate(o.x,o.y);
  // Offset height straight up on screen; do not displace player sideways.
- const lift2D=z=>ctx.translate(VIEW.c*z*.93/VIEW_DET,-VIEW.a*z*.93/VIEW_DET);
+ const lift2D=z=>ctx.translate(VIEW.c*z*.93*cameraZoom/VIEW_DET,-VIEW.a*z*.93*cameraZoom/VIEW_DET);
  const floorZ=isPlayer?(P.groundZ||0):0;
  if(floorZ>0)lift2D(floorZ);
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
@@ -1220,7 +1221,7 @@ function drawScene(){
  if(use3D&&P){
   // Keep the player distinguishable from wildlife even with physically occluding 3D meshes.
   const pos=project(P.x,P.y);ctx.save();
-  const ringY=pos.y-(P.groundZ||0)*.93,headY=pos.y-(P.jumpHeight||0)*.93;
+  const ringY=pos.y-(P.groundZ||0)*.93*cameraZoom,headY=pos.y-(P.jumpHeight||0)*.93*cameraZoom;
   ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
   ctx.beginPath();ctx.ellipse(pos.x,ringY+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
   ctx.textAlign="center";ctx.font="900 11px sans-serif";ctx.lineWidth=3;
@@ -1235,9 +1236,9 @@ function drawScene(){
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  
  if(P&&P.hidden&&mode==="play"){
-  const pos=project(P.x,P.y);ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.roundRect(pos.x-39,pos.y-80,78,25,8);ctx.fill();ctx.stroke();
-  ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,pos.y-62);ctx.restore();
+  const pos=project(P.x,P.y),labelY=pos.y-(P.jumpHeight||0)*.93*cameraZoom;ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(pos.x-39,labelY-80,78,25,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
 }
