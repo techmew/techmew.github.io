@@ -511,6 +511,19 @@ function shelterFurniture(b){
 }
 function shelterInteriorPoint(b){return {x:b.x+b.w*.5,y:b.y+Math.min(b.h*.55,125)}}
 function shelterEntrance(b){return {x:b.x+b.w*.5,y:b.y-48}}
+// The blue entrance is optional exploration; never confuse it with a mission target.
+function nearestShelterEntrance(){
+ if(!P||insideShelter(P))return null;
+ let nearest=null,minDistance=255;
+ for(const b of buildings){
+  if(!b.interior)continue;
+  const approach=shelterEntrance(b),distance=dist(P,approach);
+  if(distance<minDistance){
+   minDistance=distance;nearest={building:b,approach,distance};
+  }
+ }
+ return nearest;
+}
 function insideShelter(o){
  return !!o&&buildings.some(b=>b.interior&&o.x>b.x+16&&o.x<b.x+b.w-16&&o.y>b.y+16&&o.y<b.y+b.h-16);
 }
@@ -1005,6 +1018,17 @@ function nearestGoal(list){
  let bestItem=null,bestDist=Infinity;
  for(const q of list){const d=dist(P,q);if(d<bestDist){bestDist=d;bestItem=q}}
  return bestItem;
+}
+// Compact labels identify the actual mission marker, independent of optional buildings.
+function objectiveShortLabel(){
+ if(mission===0||(mission===7&&freeStep===0))return "食料";
+ if(mission===1)return "潜伏する茂み";
+ if(mission===2||(mission===7&&freeStep===1))return "獲物";
+ if(mission===3)return "探索地点";
+ if(mission===4)return "巣";
+ if(mission===5)return "縄張り標識";
+ if(mission===6)return "探索地点";
+ return "目標";
 }
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
@@ -1630,8 +1654,14 @@ function syncHUD(hour){
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜"+(weather==="RAIN"||weather==="THUNDER"?"屋内避難中":"建物内"):"");
- const entrance=buildings.find(b=>b.interior&&dist(P,shelterEntrance(b))<290);
- $("shelter-hint").classList.toggle("hidden",!entrance||insideShelter(P));
+ const entrance=nearestShelterEntrance();
+ // The yellow glowing circle belongs to the mission, not to this building.
+ // Only explain the door when the animal has actually approached its blue marker.
+ const nearDoor=!!entrance&&entrance.distance<112;
+ $("shelter-hint").classList.toggle("hidden",!nearDoor);
+ if(nearDoor)$("shelter-hint").textContent=(weather==="RAIN"||weather==="THUNDER"?
+  "青い「建物入口」へ進むと雨宿りできます（ボタン不要）":
+  "青い「建物入口」から歩いて入れます（ボタン不要）");
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
@@ -1645,7 +1675,7 @@ function syncHUD(hour){
  setBar("mission-bar",info.progress*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
- guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y}:null;
+ guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objectiveShortLabel()}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
  // Dedicated HUD guide remains obvious even if the actual target is beyond the screen.
  const navTarget=guideWisp||guideGoal,navOn=mode==="play"&&!!navTarget;
@@ -1654,6 +1684,7 @@ function syncHUD(hour){
   const dx=navTarget.x-P.x,dy=navTarget.y-P.y;
   const sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy;
   $("nav-hud-chevron").style.transform="rotate("+Math.atan2(sy,sx)+"rad)";
+  $("nav-hud-label").textContent=guideGoal?.label||"目標";
   $("nav-hud-distance").textContent=Math.round(dist(P,objective))+"m";
  }
  const contextLabel=$("context-action-label");
@@ -2306,10 +2337,40 @@ function drawObjectiveGlow(){
  ctx.beginPath();ctx.ellipse(px,py+4,radius+5*pulse,(radius+5*pulse)*(offscreen?1:.48),0,0,TWO);ctx.stroke();
  ctx.restore();
  // Off-screen beacons are explicitly directions, never represented as the real location.
- const label=offscreen?"目標方向":"目的地",labelY=offscreen?py-26:py-height-9;
+ const label=(guideGoal.label||"目標")+(offscreen?"方向":""),labelY=offscreen?py-26:py-height-9;
  ctx.save();ctx.font="900 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
  ctx.lineWidth=4.5;ctx.lineJoin="round";ctx.strokeStyle="rgba(5,23,21,.96)";
  ctx.strokeText(label,px,labelY);ctx.fillStyle="#fff6b7";ctx.fillText(label,px,labelY);ctx.restore();
+}
+// Separate cyan doorway beacon: always points at the actual north-wall opening.
+// This is NOT the golden mission target. Uses the common overlay for WebGL and 2D.
+function drawShelterEntranceMarker(){
+ if(mode!=="play")return;
+ const entry=nearestShelterEntrance();
+ if(!entry)return;
+ const b=entry.building,door={x:entry.approach.x,y:b.y-10},raw=project(door.x,door.y);
+ const top=vh<=520?104:Math.min(190,vh*.23),bottom=vh<=520?90:Math.min(175,vh*.21);
+ const px=clamp(raw.x,52,Math.max(53,vw-52));
+ const py=clamp(raw.y,top,Math.max(top+1,vh-bottom));
+ const offscreen=Math.hypot(px-raw.x,py-raw.y)>6,pulse=.5+.5*Math.sin(elapsed*3.9);
+ ctx.save();ctx.globalCompositeOperation="screen";
+ const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?34:54);
+ halo.addColorStop(0,"rgba(124,246,255,"+(.55+.17*pulse)+")");
+ halo.addColorStop(.48,"rgba(63,187,255,.22)");
+ halo.addColorStop(1,"rgba(63,187,255,0)");
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?34:54,0,TWO);ctx.fill();
+ ctx.lineWidth=3.5;ctx.strokeStyle="#7cedff";ctx.shadowColor="#57dfff";ctx.shadowBlur=16;
+ ctx.beginPath();ctx.ellipse(px,py+3,offscreen?15:22,offscreen?12:10,0,0,TWO);ctx.stroke();
+ if(!offscreen){
+  ctx.beginPath();ctx.moveTo(px-18,py-3);ctx.lineTo(px-18,py-20);
+  ctx.lineTo(px+18,py-20);ctx.lineTo(px+18,py-3);ctx.stroke();
+ }
+ ctx.restore();
+ const label=offscreen?"入口方向":"建物入口";
+ ctx.save();ctx.font="900 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.lineWidth=4;ctx.strokeStyle="#05202d";ctx.lineJoin="round";
+ ctx.strokeText(label,px,py-34);ctx.fillStyle="#affaff";ctx.fillText(label,px,py-34);
+ ctx.restore();
 }
 function drawGuideWisps(){
  if(!P||!guideWisp||mode!=="play")return;
@@ -2497,7 +2558,7 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
- drawObjectiveGlow();drawGuideWisps();drawThreatNames();
+ drawObjectiveGlow();drawShelterEntranceMarker();drawGuideWisps();drawThreatNames();
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
