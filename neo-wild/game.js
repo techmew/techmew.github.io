@@ -388,6 +388,12 @@ function restoreSnapshot(snapshot){
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
+ // Schema-2 saves from before this feature resume on the ground with the same wildlife.
+ for(const m of mobs){
+  m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
+  m.evadeTime=0;m.evadeDuration=0;m.evadeRemaining=0;m.evadeSpeed=0;m.evadeHeight=0;
+  m.evadeAngle=Number.isFinite(m.evadeAngle)?m.evadeAngle:0;
+ }
  const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
  const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
  plants=snapshot.worldVersion===2?snapshot.plants:snapshot.plants.concat(expandedPlants);
@@ -463,7 +469,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
 }
 function spawnFood(){
@@ -1054,6 +1060,47 @@ function chooseEscape(m,away){
  }
  return best;
 }
+// Hostile wildlife can see an incoming strike and leap sideways; never teleport or gain invulnerability.
+function tryEnemyEmergencyEvade(m,sp,d,spotted){
+ if(sp.prey||!spotted||!P||!P.pendingStrike||P.ambushStrike||m.hp<=0||
+    m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||(m.evadeCooldown||0)>0)return false;
+ const range=P.pounceTime>0?210:Math.min(155,P.r+m.r+111);
+ if(d>range||lineBlocked(m,P)||Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-P.dir)<.38)return false;
+ m.evadeCooldown=1.1; // Even a failed reaction cannot retry every frame.
+ if(Math.random()>=(m.type==="alpha"?.62:m.type==="dog"?.52:.38))return false;
+ const away=Math.atan2(m.y-P.y,m.x-P.x),side=m.evasionSide||1;
+ const travel=m.type==="boar"?58:m.type==="alpha"?74:67;
+ for(const offset of [side*1.26,-side*1.26,side*.75,-side*.75]){
+  const angle=away+offset,goal={x:m.x+Math.cos(angle)*travel,y:m.y+Math.sin(angle)*travel};
+  if(collides(goal.x,goal.y,m.r+3)||!routeClear(m,goal,m.r+3))continue;
+  m.evadeAngle=angle;m.evadeTime=.29;m.evadeDuration=.29;
+  m.evadeRemaining=travel;m.evadeSpeed=travel/.29;
+  m.evadeCooldown=3.5+rnd(0,1.2);m.evasionSide=-side;
+  m.windup=0;m.chargeTime=0;m.sheltered=false;m.shelterX=null;m.shelterY=null;
+  m.navPath=null;m.attack=Math.max(m.attack,.45);m.alert=Math.max(m.alert,2);
+  m.dir=angle;label(m.x,m.y-m.r-29,"飛び逃げ！","#e4ffbc");
+  playEffect("jump",{volume:.14});
+  return true;
+ }
+ return false;
+}
+function advanceEnemyEvade(m,dt){
+ const duration=Math.max(.01,m.evadeDuration||.29),time=Math.max(0,m.evadeTime||0);
+ const travel=Math.min(Math.max(0,m.evadeRemaining||0),Math.max(0,m.evadeSpeed||0)*Math.min(dt,time));
+ const ox=m.x,oy=m.y,steps=Math.max(1,Math.ceil(travel/7)),angle=m.evadeAngle||0;
+ let blocked=false;
+ for(let i=0;i<steps;i++){
+  const x=m.x,y=m.y;
+  move(m,Math.cos(angle)*travel/steps,Math.sin(angle)*travel/steps);
+  if(Math.hypot(m.x-x,m.y-y)<travel/steps*.5){blocked=true;break;}
+ }
+ const moved=Math.hypot(m.x-ox,m.y-oy);
+ m.evadeRemaining=Math.max(0,(m.evadeRemaining||0)-moved);
+ m.evadeTime=blocked||m.evadeRemaining<.5?0:Math.max(0,time-dt);
+ m.evadeHeight=m.evadeTime>0?Math.max(0,Math.sin(Math.PI*(1-m.evadeTime/duration))*19):0;
+ m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);
+ m.step=(m.step||0)+moved*.05;
+}
 function steerPursuit(m,tx,ty){
  const goal={x:tx,y:ty},desired=Math.atan2(ty-m.y,tx-m.x),distance=dist(m,goal);
  const look=clamp(distance*.45,42,94);
@@ -1275,11 +1322,13 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
-  const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
+  const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    let vx=0,vy=0;
+   if(!s.prey)tryEnemyEmergencyEvade(m,s,d,spotted);
+   if((m.evadeTime||0)>0){advanceEnemyEvade(m,dt);continue;}
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
      if(m.escapeTimer<=0||!clearStep(m,m.dir,65)){
