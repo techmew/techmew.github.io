@@ -67,6 +67,32 @@ const START_LOCATIONS={
  river:{x:7270,y:1700,name:"荒川河川敷"}
 };
 let discoveredSites=[];
+const CLAN_NAMES=["封鎖区の野犬","駅裏の群れ","緑地のイノシシ","上野の獣群","河川のカラス","森の群れ","工業区の野犬","運河の渡り鳥"];
+function initialEcology(){
+ const prey=[31,28,43,36,48,59,23,39],predators=[10,13,12,15,8,9,16,9];
+ return prey.map((n,i)=>({prey:n,predators:predators[i],food:55+(i%3)*13,pressure:0,dominance:i%2,events:0}));
+}
+let ecology=initialEcology(),ecologyClock=0,ecologyNews="生態系は変化し続けている";
+function simulateEcology(dt){
+ ecologyClock+=dt;if(ecologyClock<15)return;
+ const tick=Math.min(6,Math.floor(ecologyClock/15));ecologyClock-=tick*15;
+ for(let step=0;step<tick;step++)for(let i=0;i<ecology.length;i++){
+  const e=ecology[i],oldPrey=e.prey,oldDominance=e.dominance;
+  const growing=e.food>35&&e.prey<85?1+Math.floor((e.food-35)/35):0;
+  const hunted=Math.min(e.prey,Math.floor(e.predators/8)+(e.pressure>2?1:0));
+  e.prey=clamp(e.prey+growing-hunted,4,86);
+  e.food=clamp(e.food+2-Math.floor(e.prey/22),10,94);
+  const foodSupported=e.prey>=e.predators*1.6;
+  e.predators=clamp(e.predators+(foodSupported&&step%2===0?1:0)-(!foodSupported?1:0),3,31);
+  e.pressure=clamp(e.pressure+(e.prey<oldPrey?1:-1),0,5);
+  // Scavengers and hunting groups vie for a district without tracking all unseen NPC meshes.
+  if(e.pressure>=4&&(e.events+step+i)%3===0){
+   e.dominance=(e.dominance+1)%3;e.pressure=0;e.events++;
+  }
+  if(oldDominance!==e.dominance)ecologyNews=districts[i]+"：群れの勢力が交代";
+ }
+}
+
 const SAFE_DEN={x:1860,y:1170,r:90};
 const DEN_CAP=200, DEN_MAX_LEVEL=3, DEN_COSTS={2:60,3:120};
 let denStash=0,denLevel=1;
