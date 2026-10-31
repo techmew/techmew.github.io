@@ -1202,12 +1202,16 @@ function drawWorldMap(){
  if(!P)return;
  const width=bigMap.width,height=bigMap.height,X=x=>x/WORLD.w*width,Y=y=>y/WORLD.h*height;
  bm.clearRect(0,0,width,height);bm.fillStyle="#142b28";bm.fillRect(0,0,width,height);
- const zones=["封鎖区","廃線跡","旧新宿","緑化区"];
- for(let k=0;k<4;k++){
-  bm.fillStyle=k%2?"#172a29":"#203831";
-  bm.fillRect(k*width/4,0,width/4,height);
-  bm.fillStyle="#acc3b6";bm.font="13px sans-serif";bm.textAlign="center";
-  bm.fillText(zones[k],(k+.5)*width/4,24);
+ const regions=[
+  [0,0,1400,2600,"封鎖区","#243430"],[1400,0,1400,2600,"旧新宿","#243a32"],
+  [2800,0,1400,2600,"緑化区","#1d4232"],[4200,0,2100,2600,"上野","#283b38"],
+  [6300,0,2100,2600,"荒川","#1b4846"],[0,2600,2800,3400,"代々木の森","#214a31"],
+  [2800,2600,2800,3400,"湾岸工業区","#39423c"],[5600,2600,2800,3400,"江東運河","#1e4244"]
+ ];
+ for(const [x,y,w,h,name,color] of regions){
+  bm.fillStyle=color;bm.fillRect(X(x),Y(y),X(w),Y(h));
+  bm.fillStyle="#d2dfd5";bm.font="10px sans-serif";bm.textAlign="center";
+  bm.fillText(name,X(x+w/2),Y(y)+17);
  }
  bm.fillStyle="#586666";
  for(const x of roadsX)bm.fillRect(X(x-75),0,Math.max(2,X(150)),height);
@@ -1220,6 +1224,12 @@ function drawWorldMap(){
   bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
  };
+ for(const site of EXPLORE_SITES){
+  const found=discoveredSites.includes(site.id);
+  mark(site.x,site.y,found?"#99e9c7":"#c0b9a2",found?5:4);
+  bm.fillStyle=found?"#d5f8db":"#f6e1c6";bm.font="bold 10px sans-serif";bm.textAlign="left";
+  bm.fillText(found?site.name:"未踏の探索地点",clamp(X(site.x)+7,8,width-94),clamp(Y(site.y)-7,24,height-4));
+ }
  // Map-only den rest territory; no radar overlay in the play view.
  bm.fillStyle="rgba(139,226,168,.12)";bm.strokeStyle="#a0e7bc";bm.lineWidth=1.5;
  bm.beginPath();bm.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),X(denRadius()),0,TWO);bm.fill();bm.stroke();
@@ -1245,8 +1255,8 @@ function drawWorldMap(){
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
  bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
- const area=districts[Math.min(3,Math.floor(P.x/(WORLD.w/4)))];
- $("map-place").textContent="現在地："+area+"　巣まで約"+Math.round(dist(P,SAFE_DEN))+"　縄張り "+territoryOwned()+"/3（巣LV2以降、標識で△長押し）";
+ const area=districts[regionAt(P.x,P.y)];
+ $("map-place").textContent="現在地："+area+"　探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+"　巣まで約"+Math.round(dist(P,SAFE_DEN))+"　縄張り "+territoryOwned()+"/3";
 }
 function toggleWorldMap(){
  if(mode==="play"){
@@ -1255,18 +1265,25 @@ function toggleWorldMap(){
 }
 function drawMini(){
  if(!P)return;
- const w=mini.width,h=mini.height;
- mc.fillStyle="#132728";mc.fillRect(0,0,w,h);
- mc.strokeStyle="#486264";mc.lineWidth=4;
- for(const x of roadsX){mc.beginPath();mc.moveTo(x/WORLD.w*w,0);mc.lineTo(x/WORLD.w*w,h);mc.stroke()}
- for(const y of roadsY){mc.beginPath();mc.moveTo(0,y/WORLD.h*h);mc.lineTo(w,y/WORLD.h*h);mc.stroke()}
- mc.fillStyle="#3d5051";for(const b of buildings)mc.fillRect(b.x/WORLD.w*w,b.y/WORLD.h*h,b.w/WORLD.w*w,b.h/WORLD.h*h);
- for(const m of mobs){if(dist(P,m)>650)continue;mc.fillStyle=species[m.type].prey?"#c4d1ab":"#f39c74";mc.fillRect(m.x/WORLD.w*w-1,m.y/WORLD.h*h-1,2.5,2.5)}
- for(let i=0;i<3;i++){const p=TERRITORY_POSTS[i];mc.fillStyle=territoryClaims[i]?"#80e8a6":"#c7a476";mc.fillRect(p.x/WORLD.w*w-2,p.y/WORLD.h*h-2,4,4)}
- const obj=getObjective();if(obj){const tx=obj.x/WORLD.w*w,ty=obj.y/WORLD.h*h;mc.strokeStyle="#ffda82";mc.lineWidth=1.7;mc.beginPath();mc.arc(tx,ty,4,0,TWO);mc.stroke();mc.fillStyle="#ffda82";mc.beginPath();mc.arc(tx,ty,1.5,0,TWO);mc.fill();}
- mc.fillStyle="#fff5c4";mc.beginPath();mc.arc(P.x/WORLD.w*w,P.y/WORLD.h*h,3,0,TWO);mc.fill();
- mc.strokeStyle="#a3e7c5";mc.lineWidth=.8;mc.beginPath();
-  [[0,0],[vw,0],[vw,vh],[0,vh]].map(([x,y])=>unproject(x,y)).forEach((p,i)=>i?mc.lineTo(p.x/WORLD.w*w,p.y/WORLD.h*h):mc.moveTo(p.x/WORLD.w*w,p.y/WORLD.h*h));mc.closePath();mc.stroke();
+ const w=mini.width,h=mini.height,span=1270;
+ const X=x=>(x-P.x+span/2)/span*w,Y=y=>(y-P.y+span*h/w/2)/span*w;
+ mc.fillStyle="#19332e";mc.fillRect(0,0,w,h);
+ mc.fillStyle="#465553";
+ for(const x of roadsX)if(Math.abs(x-P.x)<span)mc.fillRect(X(x-75),0,w*150/span,h);
+ for(const y of roadsY)if(Math.abs(y-P.y)<span)mc.fillRect(0,Y(y-75),w,w*150/span);
+ mc.fillStyle="#344d45";
+ for(const b of buildings)if(Math.hypot(b.x+b.w/2-P.x,b.y+b.h/2-P.y)<span)
+  mc.fillRect(X(b.x),Y(b.y),Math.max(2,b.w/span*w),Math.max(2,b.h/span*w));
+ for(const m of mobs)if(m.hp>0&&dist(P,m)<580){
+  mc.fillStyle=species[m.type].prey?"#e4d7b5":"#f09878";
+  mc.fillRect(X(m.x)-1.5,Y(m.y)-1.5,3,3);
+ }
+ for(const site of EXPLORE_SITES)if(Math.hypot(site.x-P.x,site.y-P.y)<span*.7){
+  mc.fillStyle=discoveredSites.includes(site.id)?"#83e7c4":"#d5bea1";
+  mc.fillRect(X(site.x)-2,Y(site.y)-2,4,4);
+ }
+ mc.fillStyle="#f6fce5";mc.beginPath();mc.arc(w/2,h/2,4,0,TWO);mc.fill();
+ mc.strokeStyle="#b6e1c5";mc.lineWidth=1;mc.strokeRect(.5,.5,w-1,h-1);
 }
 function visible(x,y,r=50){const q=project(x,y),m=Math.max(100,r*1.9);return q.x>-m&&q.x<vw+m&&q.y>-m&&q.y<vh+m}
 function roadDraw(){
@@ -1768,7 +1785,12 @@ function drawScene(){
  ctx.save();ctx.translate(vw/2,vh/2);ctx.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);ctx.translate(-x-vw/2,-y-vh/2);
  if(!use3D){
   const farLeft=Math.max(0,Math.floor((x-vw*.7)/180)*180-180),farTop=Math.max(0,Math.floor((y-vh*1.3)/180)*180-180);
- ctx.fillStyle="#1d302a";ctx.fillRect(0,0,1050,WORLD.h);ctx.fillStyle="#25332d";ctx.fillRect(1050,0,1050,WORLD.h);ctx.fillStyle="#24352f";ctx.fillRect(2100,0,1050,WORLD.h);ctx.fillStyle="#203c30";ctx.fillRect(3150,0,1050,WORLD.h);
+ ctx.fillStyle="#22392f";ctx.fillRect(0,0,WORLD.w,WORLD.h);
+  ctx.fillStyle="#1f4830";ctx.fillRect(0,2600,2800,WORLD.h-2600);
+  ctx.fillStyle="#353f3b";ctx.fillRect(2800,2600,2800,WORLD.h-2600);
+  ctx.fillStyle="#244245";ctx.fillRect(5600,2600,2800,WORLD.h-2600);
+  ctx.fillStyle="#213b39";ctx.fillRect(4200,0,2100,2600);
+  ctx.fillStyle="#214346";ctx.fillRect(6300,0,2100,2600);
  for(let xx=farLeft;xx<x+vw*1.8+180;xx+=180)for(let yy=farTop;yy<y+vh*2.3+180;yy+=180){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
