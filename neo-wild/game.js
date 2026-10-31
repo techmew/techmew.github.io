@@ -1359,6 +1359,8 @@ function drawWorldMap(){
  $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
  "｜"+ecologyNews;
+ $("map-perks").textContent="探索能力 "+earnedDiscoveries.length+"/6：" +
+ (earnedDiscoveries.length?earnedDiscoveries.map(id=>DISCOVERY_PERKS[id].name).join("・"):"未解放。未踏地点を訪れると成長します");
 }
 function toggleWorldMap(){
  if(mode==="play"){
