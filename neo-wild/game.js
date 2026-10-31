@@ -1269,7 +1269,7 @@ function drawCreature(o,isPlayer){
 let guideCache=null,navGrid=new Map();
 function routeClear(a,b,radius=P.r){
  // Exact swept-circle/expanded-AABB segment test, replacing per-18px sampling.
- const pad=(radius+5)*.8,border=radius+17;
+ const radiusForRoute=radius,pad=(radius+5)*.8,border=radius+17;
  if(a.x<border||a.y<border||b.x<border||b.y<border||
     a.x>WORLD.w-border||b.x>WORLD.w-border||a.y>WORLD.h-border||b.y>WORLD.h-border)return false;
  const dx=b.x-a.x,dy=b.y-a.y;
@@ -1283,6 +1283,15 @@ function routeClear(a,b,radius=P.r){
    if(enter>exit)break;
   }
   if(enter<=exit&&enter<=1&&exit>=0)return false;
+ }
+ // A* and guidance must use the same roadside-obstacle clearance as movement.
+ for(const prop of streetProps){
+  if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
+  const clearance=prop.r+8+radiusForRoute*.40;
+  const vx=b.x-a.x,vy=b.y-a.y,length2=vx*vx+vy*vy;
+  const t=length2>1e-9?clamp(((prop.x-a.x)*vx+(prop.y-a.y)*vy)/length2,0,1):0;
+  const nx=a.x+vx*t-prop.x,ny=a.y+vy*t-prop.y;
+  if(nx*nx+ny*ny<clearance*clearance)return false;
  }
  return true;
 }
