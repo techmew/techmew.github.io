@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261101-nav3">
+<link rel="stylesheet" href="./visual.css?rev=20261101-room1">
 </head>
 <body>
 <div id="app">
@@ -25,6 +25,7 @@
   <div class="hud-right"><div class="session-actions" aria-label="ゲームの操作"><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="top-actions"><button id="sound-btn" title="サウンド切替">♪</button><button id="map-btn" title="地図を見る" aria-label="地図を見る">地図</button><button id="full-btn" title="全画面">⛶</button></div><div class="map-frame"><canvas id="minimap" width="150" height="94"></canvas><span>TOKYO MAP</span></div></div>
 </div>
 <div id="hunt-cinematic" role="status" aria-live="polite" aria-atomic="true"><div class="hunt-cinematic-core"><strong id="hunt-cinematic-title">SHADOW HUNT</strong><span id="hunt-cinematic-sub">UNDETECTED STRIKE</span></div></div>
+<div id="shelter-hint" class="hidden" aria-live="off">屋内避難所：光る入口から、そのまま中へ進めます</div>
 <div id="nav-hud" class="hidden" aria-hidden="true">
   <span id="nav-hud-chevron" aria-hidden="true">》</span>
   <span class="nav-hud-copy">目的地 <strong id="nav-hud-distance">--m</strong></span>
@@ -48,7 +49,7 @@
 <div id="menu" class="overlay">
   <div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div>
   <div class="menu-shell">
-    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261101-NAV3</div>
+    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261101-ROOM1</div>
     <div class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</div>
     <div class="subtitle">廃都生存記 <span>— TOKYO AFTER HUMANITY —</span></div>
     <div id="save-menu-actions" aria-label="保存したゲームから再開">
@@ -96,6 +97,6 @@
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">GAME OVER</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">もう一度、生存する →</button><button id="menu-btn" class="flat-btn">動物を選び直す</button></div></div>
 </div>
 <script src="./audio.js?rev=20261031-soft-jump-sfx2" defer></script>
-<script src="./webgl3d.js?rev=20261031-mission-v1" defer></script>
-<script src="./game.js?rev=20261101-nav3" defer></script>
+<script src="./webgl3d.js?rev=20261101-room1" defer></script>
+<script src="./game.js?rev=20261101-room1" defer></script>
 </body></html>
