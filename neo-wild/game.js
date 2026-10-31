@@ -760,9 +760,11 @@ function update(dt){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
   }else{
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*(P.type==="cat"&&P.abilityTime>0?1.48:1);
+   const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
+   const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost;
    const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
-   const limit=(len>.08?(P.type==="wolf"?590:P.type==="cat"?1320:900):(P.type==="wolf"?760:P.type==="cat"?1640:1300))*dt;
+   const limit=(len>.08?(P.type==="wolf"?660:P.type==="cat"?1430:foxTurbo?2150:1160):(P.type==="wolf"?900:P.type==="cat"?1720:foxTurbo?2750:1550))*dt;
    const ratio=length>limit?limit/length:1;
    P.vx+=dx*ratio;P.vy+=dy*ratio;
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
@@ -771,8 +773,9 @@ function update(dt){
    if(speed>8){
     const facing=Math.atan2(P.vy,P.vx);
     const diff=Math.atan2(Math.sin(facing-P.dir),Math.cos(facing-P.dir));
-    P.dir+=diff*Math.min(1,dt*(P.type==="wolf"?5.5:P.type==="cat"?19:11));
+    P.dir+=diff*Math.min(1,dt*(P.type==="wolf"?5.5:P.type==="cat"?21:P.abilityTime>0?12:11));
     P.steps+=speed*dt*.052;
+    if(P.type==="fox"&&P.abilityTime>0&&speed>360&&Math.random()<dt*24)blood(P.x,P.y,"#d9c99d",2,18);
    }
   }
   const speed=Math.hypot(P.vx,P.vy);
@@ -919,8 +922,8 @@ function update(dt){
  }
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
- cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*6);
- cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*6);
+ cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
+ cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
 }
 function syncHUD(hour){
@@ -1199,8 +1202,13 @@ function drawCreature(o,isPlayer){
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
   ctx.scale(1.14,1.14);
-  if(P.jumpTime>0)ctx.scale(1+(P.jumpDive?.30:.15),P.jumpDive?.70:.82);
-   else if(P.pounceTime>0)ctx.scale(1.16,.86);
+  if(P.wallKickTime>0&&t==="cat"){
+    const kick=Math.min(1,P.wallKickTime/.43);
+    ctx.rotate(Math.sin((1-kick)*Math.PI)*.32);
+    ctx.scale(1+.30*kick,.76+.15*(1-kick));
+   }else if(P.jumpTime>0)ctx.scale(1+(P.jumpDive?.30:.15),P.jumpDive?.70:.82);
+   else if(P.pounceTime>0)ctx.scale(t==="wolf"?1.34:1.16,t==="wolf"?0.73:0.86);
+   else if(t==="fox"&&P.abilityTime>0&&Math.hypot(P.vx,P.vy)>325)ctx.scale(1.24,.79);
   else if(P.pendingStrike){
    if(t==="cat"){ctx.translate(-r*.10,0);ctx.scale(.95,1.10)}
    else if(t==="wolf"){ctx.translate(-r*.09,0);ctx.scale(.91,1.13)}
