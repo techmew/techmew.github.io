@@ -24,7 +24,7 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
-let soundEnabled=true,audio=null,ambientNodes=null,footstepTimer=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
+let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
@@ -223,7 +223,7 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;discoveredSites=[];weather="CLEAR";weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;discoveredSites=[];weather="CLEAR";weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
@@ -233,7 +233,7 @@ function start(){
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  syncHUD();notify("東京封鎖区 / 生存開始");
- sound(280,.14,"triangle",.07);
+ playEffect("collect");
 }
 
 /* Local progress snapshots. No remote service is required and saving never advances the clock. */
@@ -476,44 +476,9 @@ function getAxes(){
 function blood(x,y,color,count=9,speed=125){for(let i=0;i<count;i++){const a=rnd(0,TWO),v=rnd(speed*.2,speed);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.25,.8),max:.8,size:rnd(1.6,4.4),color});}}
 function label(x,y,t,color="#ffffff"){popups.push({x,y,t,color,life:1.1})}
 function notify(t){toastMessage=t;toastTime=2.1;$("toast").textContent=t;$("toast").classList.add("show")}
-// Original low-volume wind/ruin ambience and animal impact effects, generated locally.
-function startAmbient(){
- if(!soundEnabled||ambientNodes||!audio||!audio.createBuffer)return;
- try{
-  const buff=audio.createBuffer(1,Math.floor(audio.sampleRate*2),audio.sampleRate),data=buff.getChannelData(0);
-  let low=0;for(let k=0;k<data.length;k++){low=low*.96+(Math.random()*2-1)*.04;data[k]=low*.33;}
-  const wind=audio.createBufferSource(),filter=audio.createBiquadFilter(),gain=audio.createGain();
-  wind.buffer=buff;wind.loop=true;filter.type="lowpass";filter.frequency.value=470;gain.gain.value=.02;
-  wind.connect(filter);filter.connect(gain);gain.connect(audio.destination);wind.start();
-  const drones=[];
-  for(const [hz,level] of [[82.4,.0032],[123.5,.0021],[164.8,.0014]]){
-   const osc=audio.createOscillator(),g=audio.createGain();osc.type="sine";osc.frequency.value=hz;g.gain.value=level;
-   osc.connect(g);g.connect(audio.destination);osc.start();drones.push({gain:g,level});
-  }
-  ambientNodes={wind,gain,drones};
- }catch(_){ambientNodes=null;}
-}
-function playEffect(kind){
- if(!soundEnabled)return;
- try{
-  audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();
-  startAmbient();
-  const [duration,hz,vol]={step:[.065,210,.012],stepHard:[.052,740,.014],bite:[.16,520,.05],wing:[.20,950,.024],jump:[.14,400,.024]}[kind]||[.12,380,.02];
-  const buff=audio.createBuffer(1,Math.floor(audio.sampleRate*duration),audio.sampleRate),data=buff.getChannelData(0);
-  let low=0;for(let k=0;k<data.length;k++){low=.70*low+(Math.random()*2-1)*.30;data[k]=low*Math.exp(-6*k/data.length);}
-  const source=audio.createBufferSource(),filter=audio.createBiquadFilter(),gain=audio.createGain();
-  source.buffer=buff;filter.type=kind==="wing"?"bandpass":"lowpass";filter.frequency.value=hz;
-  gain.gain.value=vol;source.connect(filter);filter.connect(gain);gain.connect(audio.destination);source.start();
- }catch(_){}
-}
-function sound(f=350,d=.12,wave="triangle",vol=.035){
- if(!soundEnabled)return;
- try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();startAmbient();
-  const o=audio.createOscillator(),g=audio.createGain();o.type=wave;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(50,f*.63),audio.currentTime+d);
-  g.gain.setValueAtTime(vol,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);
-  o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d+.02);
- }catch(e){}
-}
+// All adaptive BGM, ambience and physical effects now live in original audio.js.
+function startAmbient(){window.WildAudio?.unlock();}
+function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
 function instinct(){
  if(mode!=="play"||!P||P.instinctCD>0||P.sp<18)return;
  const level=P.level||1;P.sp-=18;
@@ -522,11 +487,11 @@ function instinct(){
  if(P.type==="fox"){
   P.noiseBurst=Math.max(P.noiseBurst,.85);
   notify("狐・疾風！ 爆速で駆け抜けろ");
-  blood(P.x,P.y,"#e7ddae",10,70);sound(560,.24,"triangle",.033);
+  blood(P.x,P.y,"#e7ddae",10,70);playEffect("attack");
  }else if(P.type==="cat"){
   P.dash=Math.min(P.dash,.15);
   notify("猫・壁際でジャンプを連打して三角飛び");
-  sound(840,.22,"triangle",.038);
+  playEffect("jump");
  }else if(P.type==="wolf"){
   P.noiseBurst=1.8;
   for(const m of mobs){
@@ -537,7 +502,7 @@ function instinct(){
   }
   blood(P.x,P.y,"#dce3db",19,145);
   notify("狼・咆哮！ 次の突進で敵を引き倒せ");
-  sound(126,.40,"sawtooth",.075);
+  playEffect("howl");
  }
 }
 function combatAim(maxTurn=.56,maxRange=105){
@@ -603,7 +568,7 @@ function attack(){
   }
  }
  P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
- P.noiseBurst=Math.max(P.noiseBurst,1.05);sound(260,.055,"triangle",.018);
+ P.noiseBurst=Math.max(P.noiseBurst,1.05);playEffect("attack",{volume:.22});
 }
 function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
@@ -641,7 +606,7 @@ function resolveAttack(){
    if(m.hp<=0)kill(m);
   }
  });
- if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");sound(130,.12,"triangle",.013)}else{playEffect("jump");sound(290,.09,"triangle",.009)}
+ if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
@@ -650,7 +615,7 @@ function kill(m){
  carcasses.push({x:m.x,y:m.y,r:Math.max(9,m.r*.78),amount:species[m.type].food,type:"meat",ttl:42,phase:rnd(0,6)});
  P.xp+=species[m.type].xp;
  label(m.x,m.y-50,"+"+species[m.type].xp+" DNA","#9aeac7");
- if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");sound(720,.35,"sine",.08)}
+ if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");playEffect("level")}
  if(kills===3||kills===9)notify("狩猟成功 / 食物連鎖が変化する");
  checkMission();
 }
@@ -717,7 +682,7 @@ function jump(){
  P.jumpCD=cat?.56:wolf?1.16:.81;P.sp-=cost;
  P.vx=0;P.vy=0;
  P.hidden=false;P.revealTimer=.85;P.noiseBurst=Math.max(P.noiseBurst,.8);
- playEffect("jump");sound(cat?530:wolf?195:400,.13,"triangle",.012);
+ playEffect("jump");
  return true;
 }
 // Shift / mobile button: spring forward, then bite at landing.
@@ -735,7 +700,7 @@ function dash(){
  P.vx=0;P.vy=0;P.atk=Math.max(P.atk,P.rate);
  P.windup=P.pounceDuration+.04;P.pendingStrike=true;P.jumpDive=true;
  P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.1;
- P.noiseBurst=Math.max(P.noiseBurst,1.2);sound(P.type==="wolf"?175:280,.13,"triangle",.04);
+ P.noiseBurst=Math.max(P.noiseBurst,1.2);playEffect(P.type==="wolf"?"impact":"attack");
  return true;
 }
 function upgradeDen(){
@@ -793,7 +758,7 @@ function eat(){
  if(!c){notify("食べ物が近くにない");return}
  P.hunger=clamp(P.hunger+c.amount,0,100);P.hp=clamp(P.hp+(c.type==="meat"?8:3),0,P.maxHp);meals++;
  carcasses.splice(carcasses.indexOf(c),1);label(P.x,P.y-30,"+"+c.amount+" FOOD","#bfe89e");
- blood(P.x,P.y,"#d6c17f",7,45);sound(440,.13,"sine",.035);checkMission();
+ blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();
 }
 function checkMission(){
  if(mission===0&&meals>=1){mission=1;notify("食料確保！ → 茂みで身を隠せ")}
@@ -846,7 +811,7 @@ function finish(won=false){
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>DAY "+String(day).padStart(2,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
- show("result");sound(won?700:140,.5,won?"sine":"sawtooth",.045);
+ show("result");playEffect(won?"level":"death");
 }
 function clearStep(m,angle,step){
  const dx=Math.cos(angle),dy=Math.sin(angle);
@@ -931,7 +896,7 @@ function updateWeather(dt){
   thunderTimer-=dt;
   if(thunderTimer<=0){
    thunderFlash=.8+rnd(0,.2);thunderTimer=rnd(5,13);
-   shake=Math.max(shake,1.4);sound(58,.48,"sawtooth",.036);
+   shake=Math.max(shake,1.4);playEffect("thunder",{volume:.65});
   }
  }
 }
@@ -1121,7 +1086,7 @@ function update(dt){
        const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
-       blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);}
+       blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");}
       }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
     }
@@ -1144,7 +1109,7 @@ function update(dt){
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
-      blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);}
+      blood(P.x,P.y,"#eb6356",15,150);playEffect("damage");}
      }else label(P.x,P.y-35,"無傷","#a6f5d8");
     }
     const forward=ddx*Math.cos(m.chargeDir)+ddy*Math.sin(m.chargeDir);
@@ -1162,7 +1127,7 @@ function update(dt){
     m.windupTotal=m.type==="boar"?.68:m.type==="alpha"?.60:.45;
     m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;m.attack=m.type==="boar"?1.32:m.type==="alpha"?1.42:.98;
     m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！","#ffb76d");
-    sound(310,.11,"sawtooth",.03);
+    playEffect("snarl");
    }
  }
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0||dist(mobs[i],P)>Math.max(vw,vh)*2.7)mobs.splice(i,1);
@@ -1187,6 +1152,12 @@ function update(dt){
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
  cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
+ audioTick+=dt;
+ if(audioTick>.35){
+  audioTick=0;
+  window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",
+   danger:mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<290)});
+ }
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
  autosaveClock+=dt;if(autosaveClock>=4){autosaveClock=0;saveAuto();}
 }
@@ -1994,7 +1965,7 @@ function resetControls(){
 }
 function togglePause(){
  if(mode==="play"){
-  resetControls();mode="pause";show("pause");
+  resetControls();mode="pause";show("pause");window.WildAudio?.update({mode:"pause",weather,area:P?regionAt(P.x,P.y):0,danger:false});
   $("checkpoint-save-status").textContent=saveAuto()?"現在の状態を自動保存しました":"自動保存に失敗しました";
  }else if(mode==="pause"){mode="play";show("");autosaveClock=0;}
 }
@@ -2032,7 +2003,7 @@ document.addEventListener("fullscreenchange",()=>{
 });
 window.addEventListener("resize",updateRotationButton);
 window.addEventListener("orientationchange",updateRotationButton);
-document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));sound(400,.08,"triangle",.025)}));
+document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));playEffect("menu")}));
 $("start-btn").addEventListener("click",()=>{clearAutoSave();start();});
 $("continue-btn").addEventListener("click",()=>{
  const snapshot=getAutoSnapshot();if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
@@ -2067,11 +2038,8 @@ $("rotate-btn").addEventListener("click",rotateScreen);
 updateRotationButton();
 $("sound-btn").addEventListener("click",()=>{
  soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×";
- if(soundEnabled)startAmbient();
- if(ambientNodes){
-  ambientNodes.gain.gain.value=soundEnabled?.02:0;
-  for(const d of ambientNodes.drones)d.gain.gain.value=soundEnabled?d.level:0;
- }
+ window.WildAudio?.setEnabled(soundEnabled);
+ $("sound-btn").title=soundEnabled?"BGM・環境音・効果音 ON":"BGM・環境音・効果音 OFF";
 });
 $("map-btn").addEventListener("click",toggleWorldMap);
 $("map-close").addEventListener("click",toggleWorldMap);
@@ -2080,7 +2048,7 @@ $("zoom-out").addEventListener("click",()=>adjustZoom(-.13));
 $("zoom-in").addEventListener("click",()=>adjustZoom(.13));
 document.querySelectorAll("[data-upgrade]").forEach(b=>b.addEventListener("click",()=>{if(mode!=="upgrade")return;const up=b.dataset.upgrade;
  if(up==="fang")P.damage=Math.round(P.damage*1.25);else if(up==="fleet")P.speed=Math.round(P.speed*1.15);else{P.maxHp+=30;P.hp=Math.min(P.maxHp,P.hp+65)}
- mode="play";show("");notify("適応完了 / "+b.querySelector("b").textContent);sound(750,.26,"triangle",.05)
+ mode="play";show("");notify("適応完了 / "+b.querySelector("b").textContent);playEffect("level")
 }));
 const stick=$("joystick"),knob=$("joy-knob");
 function updateStick(e){
