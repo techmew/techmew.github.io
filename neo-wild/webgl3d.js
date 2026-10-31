@@ -110,7 +110,11 @@ function animal(m,player,clock){
  const moving=clamp(speed/95,0,1);
  const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
  const gait=Math.sin(phase)*moving;
- const bodyBob=Math.abs(Math.sin(phase))*r*.17*moving,bodyDrive=Math.sin(phase)*r*.10*moving;
+ const kickPose=player&&type==="cat"?clamp((m.wallKickTime||0)/.43,0,1):0;
+ const turboPose=player&&type==="fox"&&m.abilityTime>0?clamp(speed/660,0,1):0;
+ const chargePose=player&&type==="wolf"&&m.chargeStrike&&m.pounceTime>0?1:0;
+ const bodyBob=Math.abs(Math.sin(phase))*r*.17*moving+kickPose*r*.32+turboPose*r*.10;
+ const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34;
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
@@ -132,9 +136,9 @@ function animal(m,player,clock){
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
-  const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0))+(k===s?1:-1)*gait*r*(cat?.34:fox?.29:wolf?.24:.22);
+  const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0))+(k===s?1:-1)*gait*r*(cat?.34:fox?.34:wolf?.27:.22)+(chargePose&&front?-r*.15:0);
   const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
-  const bob=Math.max(0,gait*(k===s?1:-1))*r*.29*moving+(player&&m.jumpTime>0?r*.18:0);
+  const bob=Math.max(0,gait*(k===s?1:-1))*r*.29*moving+(player&&m.jumpTime>0?r*.18:0)+(front&&kickPose>0?(s<0?1:.35)*r*.48*kickPose:0);
   const pawLift=front?foreDrive(s,attackReach)*r*(cat?.34:fox?.20:.13):(rushPose===4?attackReach*r*.27:0);
   const legHeight=fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38;
   // Keep the bottom of each paw on or above its walkable surface.
@@ -160,7 +164,7 @@ function animal(m,player,clock){
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
  const headDrive=r*(attackReach*((rushPose===1||rushPose===2)?.12:rushPose===4?.08:cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
- const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive+bodyDrive*.75,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
+ const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive+bodyDrive*.75+turboPose*r*.15,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49,headR,headR*.80,headR*.83,torso,dir,9,5);
  if(fox||cat||wolf||rabbit||rat){
   for(const side of [-1,1]){
