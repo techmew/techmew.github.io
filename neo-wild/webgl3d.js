@@ -347,7 +347,7 @@ function render(o){
   gl.uniform2f(ucenter,cam.x+vw/2,cam.y+vh/2);
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
-   gl.uniform1f(uzoom,clamp(o.cameraZoom||1,.7,1.5));
+   gl.uniform1f(uzoom,clamp(o.cameraZoom||1,.47,1.6));
   gl.uniform1f(unight,night);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
   const bindAttributes=(buf)=>{
    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
