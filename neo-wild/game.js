@@ -804,6 +804,13 @@ function syncHUD(hour){
   const ob=objectives[Math.min(mission,4)];
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
+ const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
+ if(waypoint&&!waypoint.blocked){
+  const dx=waypoint.x-P.x,dy=waypoint.y-P.y,sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy;
+  const arrows=["→","↘","↓","↙","←","↖","↑","↗"];
+  $("nav-arrow").textContent=Math.hypot(dx,dy)<16?"◎":arrows[(Math.round(Math.atan2(sy,sx)/(Math.PI/4))+8)%8];
+  $("nav-distance").textContent=Math.round(dist(P,objective))+"m"+(waypoint.detour?" · 迂回":"");
+ }else{$("nav-arrow").textContent=waypoint?"·":"—";$("nav-distance").textContent=waypoint?"経路を確認中":"目標を探索中";}
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
   contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":"行動";}
