@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#090d11">
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
-<link rel="stylesheet" href="./style.css?rev=20261031-ps-face1">
-<link rel="stylesheet" href="./visual.css?rev=20261031-user-selected-photos1">
+<link rel="stylesheet" href="./style.css?rev=20261031-landscape-hotfix1">
+<link rel="stylesheet" href="./visual.css?rev=20261031-landscape-hotfix1">
 </head>
 <body>
 <div id="app">
@@ -55,10 +55,10 @@
     <div class="menu-foot"><span>移動 / 狩り / 捕食 / 飛びつき / 視点回転 / 進化</span><span id="best-score">BEST SCORE —</span></div>
   </div>
 </div>
-<div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="quit-btn" class="flat-btn">タイトルに戻る</button></div></div>
+<div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="quit-btn" class="flat-btn">タイトルに戻る</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">GAME OVER</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">もう一度、生存する →</button><button id="menu-btn" class="flat-btn">動物を選び直す</button></div></div>
 </div>
 <script src="./webgl3d.js?rev=20261031-wild-scene2" defer></script>
-<script src="./game.js?rev=20261031-pause-only1" defer></script>
+<script src="./game.js?rev=20261031-landscape-hotfix1" defer></script>
 </body></html>
