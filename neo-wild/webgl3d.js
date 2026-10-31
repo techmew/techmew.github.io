@@ -107,11 +107,12 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
 function animal(m,player,clock){
  const type=m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,dir=m.dir||0,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
- const moving=clamp(speed/95,0,1);
+ const resting=!player&&!!m.resting;
+ const moving=resting?0:clamp(speed/95,0,1);
  const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
  const gait=Math.sin(phase)*moving;
  const idleBreath=(.5+.5*Math.sin(clock*2.8+(m.id||0)*.7))*r*.048;
- const headAttention=Math.sin(clock*.83+(m.id||0))*r*(moving>.4?.016:.07);
+ const headAttention=resting?0:Math.sin(clock*.83+(m.id||0))*r*(moving>.4?.016:.07);
  const landingCompression=player&&m.fallTime>0?-r*.12:0;
  const kickPose=player&&type==="cat"?clamp((m.wallKickTime||0)/.43,0,1):0;
  const turboPose=player&&type==="fox"&&m.abilityTime>0?clamp(speed/660,0,1):0;
@@ -129,7 +130,7 @@ function animal(m,player,clock){
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
  const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
- const h=large?r*.74:fox?r*.72:cat?r*.64:rabbit?r*.50:r*.56;
+ const h=(large?r*.74:fox?r*.72:cat?r*.64:rabbit?r*.50:r*.56)*(resting?.64:1);
  const x=m.x,y=m.y;
  animalLift=0;
  // Shadow is projected to the walkable roof when standing on one.
@@ -143,7 +144,7 @@ function animal(m,player,clock){
   const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
   const bob=Math.max(0,gait*(k===s?1:-1))*r*.29*moving+(player&&m.jumpTime>0?r*.18:0)+(front&&kickPose>0?(s<0?1:.35)*r*.48*kickPose:0);
   const pawLift=front?foreDrive(s,attackReach)*r*(cat?.34:fox?.20:.13):(rushPose===4?attackReach*r*.27:0);
-  const legHeight=fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38;
+  const legHeight=(fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38)*(resting?.55:1);
   // Separate upper joints and moving paws replace stiff single-piece legs.
   const jointFlex=Math.max(0,Math.sin(phase+(front?s:-s)*.6))*r*.10*moving;
   ellipsoid(fx(dx*.78-k*r*.08,dy*.89),fy(dx*.78-k*r*.08,dy*.89),
