@@ -244,8 +244,8 @@ function animal(m,player,clock){
 function vegetation(p,clock,player=null){
  if(p.type===2){
   // Keep the vegetation usable as cover without letting giant shrubs hide the camera view.
-  const distance=player?Math.hypot(p.x-player.x,p.y-player.y):9999;
-  const visualScale=distance<110?.44+.30*(distance/110):.74;
+  // Preserve shrub size when entering cover: no size-changing concealment effect.
+  const visualScale=.74;
   const count=9,r=p.r*visualScale;
   for(let i=0;i<count;i++){
    const a=i*TAU/count+p.phase,xx=p.x+Math.cos(a)*r*.44,yy=p.y+Math.sin(a)*r*.4;
