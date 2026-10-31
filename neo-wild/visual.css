@@ -137,7 +137,16 @@
  transform:translate(-50%,-46%) scale(.97);
  transition:opacity .32s ease,transform .32s ease,visibility .32s;
 }
-#objective-banner.visible{visibility:visible;opacity:1;transform:translate(-50%,-50%) scale(1)}
+/* Guaranteed real-time expiry, even if Android's 3D frame loop is slow or stops. */
+#objective-banner.visible{
+ visibility:visible;pointer-events:none;
+ animation:wild-mission-announce 2.6s ease-out 1 both;
+}
+@keyframes wild-mission-announce{
+ 0%{visibility:visible;opacity:0;transform:translate(-50%,-46%) scale(.97)}
+ 10%,75%{visibility:visible;opacity:1;transform:translate(-50%,-50%) scale(1)}
+ 100%{visibility:hidden;opacity:0;transform:translate(-50%,-52%) scale(1)}
+}
 .objective-banner-kicker{font:900 clamp(11px,1.3vw,14px) "Noto Sans JP",sans-serif;letter-spacing:.16em;color:#f7bf64}
 #objective-banner-title{display:block;font:900 clamp(23px,4vw,43px) "Noto Sans JP",sans-serif;line-height:1.35;letter-spacing:.07em;text-shadow:0 3px 16px #000}
 .objective-banner-next{font:700 clamp(10px,1.4vw,14px) "Noto Sans JP",sans-serif;color:#cfe8d4}
