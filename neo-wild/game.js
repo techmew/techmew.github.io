@@ -42,6 +42,14 @@ const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,prey
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
 const SAFE_DEN={x:1860,y:1170,r:90};
+const DEN_CAP=200;
+let denStash=0;
+function loadDenStash(animal){
+ try{return clamp(Number(localStorage.getItem("wild-reclaim-den-v1-"+animal))||0,0,DEN_CAP)}catch(_){return 0}
+}
+function saveDenStash(){
+ try{localStorage.setItem("wild-reclaim-den-v1-"+P.type,String(denStash))}catch(_){}
+}
 const STATION={x:2460,y:1170};
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
 $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
@@ -70,7 +78,8 @@ window.addEventListener("resize",resize,{passive:true});resize();generateWorld()
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0};
+ denStash=loadDenStash(choice);
+  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -320,6 +329,41 @@ function dash(){
  P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.2);sound(P.type==="wolf"?175:280,.13,"triangle",.04);
  return true;
+}
+function carryFood(){
+ if(mode!=="play")return false;
+ if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>20){notify("着地してから運ぶ");return false}
+ if((P.groundZ||0)>0){notify("地上で食料を運ぶ");return false}
+ if(dist(P,SAFE_DEN)<SAFE_DEN.r){
+  if(P.carry){
+   const amount=Math.min(P.carry.amount,DEN_CAP-denStash);
+   if(amount<=0){notify("巣の備蓄が満杯");return false}
+   denStash+=amount;P.carry.amount-=amount;
+   if(P.carry.amount<=0)P.carry=null;
+   saveDenStash();notify("巣に備蓄 +"+amount+" / "+denStash+"/"+DEN_CAP);syncHUD();
+   return true;
+  }
+  if(denStash>0&&P.hunger<95){
+   const amount=Math.min(denStash,Math.ceil(100-P.hunger));
+   denStash-=amount;P.hunger=clamp(P.hunger+amount,0,100);
+   P.hp=clamp(P.hp+Math.min(12,amount*.3),0,P.maxHp);
+   meals++;saveDenStash();checkMission();notify("巣の食料で回復 +"+amount);syncHUD();
+   return true;
+  }
+  notify("巣の備蓄 "+Math.round(denStash)+"/"+DEN_CAP+" / 食料を持ち帰ろう");
+  return false;
+ }
+ if(P.carry){notify("食料を運搬中 / 地図の休息地へ戻ろう");return false}
+ let selected=null,nearest=65;
+ for(const f of carcasses){
+  const d=dist(P,f);
+  if(d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
+ }
+ if(!selected){notify("運べる食料が近くにない");return false}
+ P.carry={type:selected.type,amount:selected.amount};
+ carcasses.splice(carcasses.indexOf(selected),1);
+ notify("食料を確保 "+Math.round(P.carry.amount)+" / 休息地へ運ぼう");
+ syncHUD();return true;
 }
 function eat(){
  if(mode!=="play")return;
@@ -657,6 +701,7 @@ function syncHUD(hour){
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
+  $("den-status").textContent="巣 "+Math.round(denStash)+"/"+DEN_CAP+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし");
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
@@ -1244,15 +1289,15 @@ function drawScene(){
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry")carryFood();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
- if(e.repeat&&["shift","q","p","escape","f","l","m"].includes(k))return;
+ if(e.repeat&&["shift","q","p","escape","f","l","m","g"].includes(k))return;
  if(mode==="play")keys.add(k);
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
- if(k==="e")act("eat");
+ if(k==="e")act("eat");if(k==="g")act("carry");
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
 }
@@ -1270,7 +1315,7 @@ function resetControls(){
   for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
   orbitPointers.clear();lastPinchDistance=0;
  if(knob)knob.style.transform="translate(0,0)";
- for(const id of ["attack-touch","dash-touch","eat-touch","instinct-touch","jump-touch"])$(id).classList.remove("down");
+ for(const id of ["attack-touch","dash-touch","eat-touch","instinct-touch","jump-touch","carry-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
@@ -1300,7 +1345,7 @@ stick.addEventListener("pointerdown",e=>{if(mode!=="play"||joy.id!==null)return;
 stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
-for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["jump-touch","jump"],["eat-touch","eat"],["instinct-touch","instinct"]]){
+for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["jump-touch","jump"],["eat-touch","eat"],["instinct-touch","instinct"],["carry-touch","carry"]]){
  const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
  b.addEventListener("pointerdown",e=>{
   if(mode!=="play"||pointers.has(e.pointerId))return;
