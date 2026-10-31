@@ -117,3 +117,9 @@
  #start-region{min-height:32px;padding:4px 9px;font-size:11px}
  #soundtrack-caption{font-size:9px;margin:2px 0 3px}
 }
+
+/* 2026-10-31 open-world build V3: earned exploration abilities. */
+#map-perks{margin:5px 0 8px;padding:7px 9px;border-left:3px solid #92cda8;
+ color:#d0e8d6;background:#1b352b;font:600 11px "Noto Sans JP",sans-serif;
+ line-height:1.55;overflow-wrap:anywhere;}
+@media(max-width:520px){#map-perks{font-size:10px;padding:5px 7px;}}
