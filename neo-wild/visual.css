@@ -9,3 +9,18 @@
 #menu .menu-bg{opacity:.18;pointer-events:none}
 #menu .menu-shell{position:relative;z-index:2;text-shadow:0 3px 11px #061012}
 #menu .hero-title{filter:drop-shadow(0 7px 15px #000e)}
+
+/* Visible session actions, positioned in the upper HUD without obscuring the game. */
+.hud-right .session-actions{display:flex;gap:5px;justify-content:flex-end;align-items:center;pointer-events:auto}
+#hud .session-actions button{width:auto;min-width:63px;height:32px;padding:0 10px;border-radius:8px;background:#162b2cdd;border:1px solid #729288;color:#ecf3e7;font:700 12px "Noto Sans JP",sans-serif;white-space:nowrap;touch-action:manipulation}
+#hud #title-btn{border-color:#e1bd7a8c;color:#ffe1a6}
+#hud .top-actions{justify-content:flex-end}
+@media(pointer:coarse),(max-width:850px){
+ .hud-right .session-actions{gap:4px}
+ #hud .session-actions button{min-width:47px;height:29px;padding:0 6px;font-size:10px}
+ .hud-right{gap:5px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #hud .session-actions button{height:25px}
+ .hud-right .session-actions{gap:3px}
+}
