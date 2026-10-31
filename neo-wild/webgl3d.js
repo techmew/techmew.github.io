@@ -254,7 +254,7 @@ function foodMesh(c){
  }
 }
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
-function terrain(w,roadsX,roadsY){
+function terrain(w,roadsX,roadsY,isVisible){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
  // Regional ground changes visibly without drawing every distant building.
@@ -268,6 +268,7 @@ function terrain(w,roadsX,roadsY){
   box(0,y-86,0,w.w,6,2,"#565d54","#717e68");
   box(0,y+80,0,w.w,6,5,"#565d54","#717e68");
   for(let x=140;x<w.w;x+=280){
+   if(!isVisible(x,y,850))continue; // Distant road details do not belong in the local GPU mesh.
    box(x,y-2,1,76,4,.8,"#697066","#8d9285");
    if(detailNoise(x+y)>.45)pyramid(x+88,y+83,2,15,10,13,"#596b53");
   }
@@ -277,6 +278,7 @@ function terrain(w,roadsX,roadsY){
   box(x-86,0,.18,6,w.h,2,"#565d54","#717e68");
   box(x+80,0,.18,6,w.h,5,"#565d54","#717e68");
   for(let y=150;y<w.h;y+=280){
+   if(!isVisible(x,y,850))continue; // Nearby details return after camera region changes.
    box(x-2,y,1.18,4,70,.8,"#697066","#8d9285");
    if(detailNoise(x+y)>.45)pyramid(x+84,y+82,2,13,11,16,"#536e54");
   }
@@ -313,7 +315,7 @@ function render(o){
   };
   const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h].join(":");
   if(regionKey!==staticKey){
-   data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890]);
+   data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
