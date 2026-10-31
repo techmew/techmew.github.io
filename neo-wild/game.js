@@ -42,10 +42,19 @@ const WILDLIFE={initial:10,cap:13,localRadius:610,localCap:4,separation:155,prey
 const roadsX=[530,1410,2320,3270],roadsY=[465,1170,1890];
 const districts=["霞ヶ関封鎖区","首都高廃線跡","旧新宿駅周辺","緑化侵食区域"];
 const SAFE_DEN={x:1860,y:1170,r:90};
-const DEN_CAP=200;
-let denStash=0;
+const DEN_CAP=200, DEN_MAX_LEVEL=3, DEN_COSTS={2:60,3:120};
+let denStash=0,denLevel=1;
+function denCapacity(){return [0,200,300,450][denLevel]}
+function denRadius(){return [0,SAFE_DEN.r,125,165][denLevel]}
+function denRestRate(){return [0,2.8,4.5,6.5][denLevel]}
+function loadDenLevel(animal){
+ try{const n=Number(localStorage.getItem("wild-reclaim-den-level-v1-"+animal));return Number.isInteger(n)?clamp(n,1,DEN_MAX_LEVEL):1}catch(_){return 1}
+}
+function saveDenLevel(){
+ try{localStorage.setItem("wild-reclaim-den-level-v1-"+P.type,String(denLevel))}catch(_){}
+}
 function loadDenStash(animal){
- try{return clamp(Number(localStorage.getItem("wild-reclaim-den-v1-"+animal))||0,0,DEN_CAP)}catch(_){return 0}
+ try{return clamp(Number(localStorage.getItem("wild-reclaim-den-v1-"+animal))||0,0,denCapacity())}catch(_){return 0}
 }
 function saveDenStash(){
  try{localStorage.setItem("wild-reclaim-den-v1-"+P.type,String(denStash))}catch(_){}
@@ -78,7 +87,7 @@ window.addEventListener("resize",resize,{passive:true});resize();generateWorld()
 function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- denStash=loadDenStash(choice);
+ denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);
   const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
@@ -330,17 +339,29 @@ function dash(){
  P.noiseBurst=Math.max(P.noiseBurst,1.2);sound(P.type==="wolf"?175:280,.13,"triangle",.04);
  return true;
 }
+function upgradeDen(){
+ if(mode!=="play")return false;
+ if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("地上に降りてから巣を育てる");return false}
+ if(dist(P,SAFE_DEN)>=denRadius()){notify("巣の中で強化できる / 地図の緑の拠点へ");return false}
+ if(denLevel>=DEN_MAX_LEVEL){notify("巣は最大LV3まで成長済み");return false}
+ const cost=DEN_COSTS[denLevel+1];
+ if(denStash<cost){notify("巣の成長には備蓄 "+cost+" 必要（あと"+(cost-denStash)+"）");return false}
+ denStash-=cost;denLevel++;
+ saveDenStash();saveDenLevel();
+ notify("巣 LV"+denLevel+" / 備蓄上限 "+denCapacity()+" / 安全な休息範囲が拡大");
+ syncHUD();return true;
+}
 function carryFood(){
  if(mode!=="play")return false;
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>20){notify("着地してから運ぶ");return false}
  if((P.groundZ||0)>0){notify("地上で食料を運ぶ");return false}
- if(dist(P,SAFE_DEN)<SAFE_DEN.r){
+ if(dist(P,SAFE_DEN)<denRadius()){
   if(P.carry){
-   const amount=Math.min(P.carry.amount,DEN_CAP-denStash);
+   const amount=Math.min(P.carry.amount,denCapacity()-denStash);
    if(amount<=0){notify("巣の備蓄が満杯");return false}
    denStash+=amount;P.carry.amount-=amount;
    if(P.carry.amount<=0)P.carry=null;
-   saveDenStash();notify("巣に備蓄 +"+amount+" / "+denStash+"/"+DEN_CAP);syncHUD();
+   saveDenStash();notify("巣に備蓄 +"+amount+" / "+denStash+"/"+denCapacity());syncHUD();
    return true;
   }
   if(denStash>0&&P.hunger<95){
@@ -350,7 +371,7 @@ function carryFood(){
    meals++;saveDenStash();checkMission();notify("巣の食料で回復 +"+amount);syncHUD();
    return true;
   }
-  notify("巣の備蓄 "+Math.round(denStash)+"/"+DEN_CAP+" / 食料を持ち帰ろう");
+  notify("巣の備蓄 "+Math.round(denStash)+"/"+denCapacity()+" / 食料を持ち帰ろう");
   return false;
  }
  if(P.carry){notify("食料を運搬中 / 地図の休息地へ戻ろう");return false}
@@ -494,8 +515,8 @@ function update(dt){
  P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
- if(dist(P,SAFE_DEN)<SAFE_DEN.r&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
-  P.hp=Math.min(P.maxHp,P.hp+2.8*dt);
+ if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
+  P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
     // Rise before wall collision: a jump beside a low roof can reach its edge.
@@ -701,7 +722,10 @@ function syncHUD(hour){
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
-  $("den-status").textContent="巣 "+Math.round(denStash)+"/"+DEN_CAP+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし");
+  $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし");
+ const denButton=$("den-upgrade");
+ denButton.textContent=denLevel>=DEN_MAX_LEVEL?"巣 LV3 完成":"巣を育てる（備蓄 "+DEN_COSTS[denLevel+1]+"）";
+ denButton.disabled=denLevel>=DEN_MAX_LEVEL;
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
@@ -746,10 +770,13 @@ function drawWorldMap(){
   bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
  };
+ // Map-only den rest territory; no radar overlay in the play view.
+ bm.fillStyle="rgba(139,226,168,.12)";bm.strokeStyle="#a0e7bc";bm.lineWidth=1.5;
+ bm.beginPath();bm.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),X(denRadius()),0,TWO);bm.fill();bm.stroke();
  mark(SAFE_DEN.x,SAFE_DEN.y,"#9ee5ac",8);
  mark(STATION.x,STATION.y,"#83cde3",7);
  bm.font="bold 12px sans-serif";bm.textAlign="left";bm.fillStyle="#e9f7e3";
- bm.fillText("休息地",X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
+ bm.fillText("巣 LV"+denLevel,X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
  bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
  // Show nearby resources and predators, not every hidden creature in Tokyo.
  for(const q of carcasses)if(q.ttl>0&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
@@ -1289,15 +1316,15 @@ function drawScene(){
 }
 function loop(t){let dt=Math.min(.035,(t-last)/1000||.016);last=t;if(mode==="play")update(dt);drawScene();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry")carryFood();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry")carryFood();if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
- if(e.repeat&&["shift","q","p","escape","f","l","m","g"].includes(k))return;
+ if(e.repeat&&["shift","q","p","escape","f","l","m","g","h"].includes(k))return;
  if(mode==="play")keys.add(k);
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
- if(k==="e")act("eat");if(k==="g")act("carry");
+ if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
 }
@@ -1329,6 +1356,7 @@ $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("sound-btn").addEventListener("click",()=>{soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×"});
 $("map-btn").addEventListener("click",toggleWorldMap);
+$("den-upgrade").addEventListener("click",upgradeDen);
 $("map-close").addEventListener("click",toggleWorldMap);
 document.querySelectorAll("[data-upgrade]").forEach(b=>b.addEventListener("click",()=>{if(mode!=="upgrade")return;const up=b.dataset.upgrade;
  if(up==="fang")P.damage=Math.round(P.damage*1.25);else if(up==="fleet")P.speed=Math.round(P.speed*1.15);else{P.maxHp+=30;P.hp=Math.min(P.maxHp,P.hp+65)}
