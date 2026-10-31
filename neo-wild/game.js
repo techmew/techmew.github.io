@@ -42,7 +42,7 @@ function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*d
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 // Keep wildlife rare enough to track, not a crowd of targets.
 // Slightly denser local encounters; storm animals remain in the simulation rather than disappearing.
-const WILDLIFE={initial:12,cap:16,localRadius:670,localCap:6,separation:130,preyNeedRadius:440};
+const WILDLIFE={initial:12,cap:96,localRadius:670,localCap:7,separation:115,preyNeedRadius:440,farAI:1300,localTargetRain:6,localTargetClear:5};
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
 function regionAt(x,y){
@@ -447,6 +447,7 @@ function recordCheckpoint(){
 }
 
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null){
+ if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
  do{
@@ -459,7 +460,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
   valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
-   &&(!near||localCount<WILDLIFE.localCap);
+   &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0));
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  let roll=Math.random(),type;
@@ -1147,6 +1148,19 @@ function rollNextWeather(current,random=Math.random()){
  for(const [name,weight] of options){val-=weight;if(val<0)return name}
  return options[options.length-1][0];
 }
+// One bounded replenishment per pulse. Rain does not delete or relocate NPCs.
+function maintainLocalWildlife(){
+ if(!P)return;
+ const hunting=mission===2||(mission===7&&freeStep===1);
+ const preyNearby=mobs.some(m=>m.hp>0&&species[m.type].prey&&dist(P,m)<WILDLIFE.preyNeedRadius);
+ const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+ const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
+ if(mobs.length<WILDLIFE.cap){
+  if(hunting&&!preyNearby)spawnMob(false,true,true);
+  else if(local<target)spawnMob(false,false,true);
+ }
+ if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
+}
 function updateWeather(dt){
  weatherTimer-=dt;
  if(weatherTimer<9&&!nextWeather){
@@ -1331,7 +1345,11 @@ function update(dt){
  for(const m of mobs){
   if(m.hp<=0)continue;
   const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
-  const d=dist(P,m),angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
+  const d=dist(P,m);
+  // Far animals retain their exact world coordinates. Eight-region ecology
+  // continues independently; full individual AI resumes on approach.
+  if(d>WILDLIFE.farAI){m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
+  const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    let vx=0,vy=0;
@@ -1496,28 +1514,12 @@ function update(dt){
     playEffect("snarl");
    }
  }
- for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0||dist(mobs[i],P)>Math.max(vw,vh)*2.7)mobs.splice(i,1);
+ for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0)mobs.splice(i,1); // Only dead animals are removed.
  for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0)carcasses.splice(i,1);
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
  for(let i=popups.length-1;i>=0;i--){popups[i].life-=dt;popups[i].y-=28*dt;if(popups[i].life<=0)popups.splice(i,1)}
  spawnTimer+=dt;
- if(spawnTimer>3.6){
-  spawnTimer=0;
-  const hunting=mission===2||(mission===7&&freeStep===1);
-  const nearbyPrey=mobs.some(m=>m.hp>0&&species[m.type].prey&&dist(P,m)<WILDLIFE.preyNeedRadius);
-  if(hunting&&!nearbyPrey){
-   if(mobs.length>=WILDLIFE.cap){
-    const farthest=mobs.reduce((a,b)=>!a||dist(P,b)>dist(P,a)?b:a,null);
-    if(farthest&&dist(P,farthest)>WILDLIFE.preyNeedRadius)mobs.splice(mobs.indexOf(farthest),1);
-   }
-   if(mobs.length<WILDLIFE.cap)spawnMob(false,true);
-  }else if(mobs.length<WILDLIFE.cap){
-   const storm=weather==="RAIN"||weather==="THUNDER";
-   const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
-   spawnMob(false,false,storm&&nearby<5);
-  }
-  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
- }
+ if(spawnTimer>3.6){spawnTimer=0;maintainLocalWildlife();}
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
 
@@ -1577,6 +1579,9 @@ function syncHUD(hour){
 // Map only opens when requested. Shows places worth visiting without ground arrows.
 function drawWorldMap(){
  if(!P)return;
+ const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius);
+ const prey=nearby.filter(m=>species[m.type].prey).length;
+ $("map-place").textContent="周辺の動物 "+nearby.length+"匹（獲物 "+prey+"・敵 "+(nearby.length-prey)+"）／全域で生存 "+mobs.filter(m=>m.hp>0).length+"匹。遠方の個体も保持。";
  const width=bigMap.width,height=bigMap.height,X=x=>x/WORLD.w*width,Y=y=>y/WORLD.h*height;
  bm.clearRect(0,0,width,height);bm.fillStyle="#142b28";bm.fillRect(0,0,width,height);
  const regions=[
