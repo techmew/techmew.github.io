@@ -774,3 +774,31 @@ html,body{overscroll-behavior:none}
  #shell .hud-right .durability-track{height:8px!important;max-width:110px}
  #shell .hud-right .durability-readout{font-size:clamp(8px,2.2vw,10px)}
 }
+
+/* Difficulty selector: a genuine native control available throughout combat.
+   Top-line placement prevents overlap with the moving ship or action buttons. */
+#shell .headright{min-width:0}
+#shell .difficulty-choice{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;
+ white-space:nowrap;color:#d0e6f4;font:bold 10px/1.1 system-ui,sans-serif}
+#shell .difficulty-choice select{appearance:auto;-webkit-appearance:menulist;touch-action:manipulation;
+ min-height:29px;min-width:87px;max-width:110px;border:1px solid #65a7c4;border-radius:5px;
+ background:#112b42;color:#f3fbff;font:800 11px system-ui,sans-serif;padding:3px 2px;
+ cursor:pointer}
+#shell .difficulty-choice select:focus-visible{outline:2px solid #b0f4ff;outline-offset:1px}
+@media(max-width:920px){
+ #shell .difficulty-choice{gap:2px;font-size:9px}
+ #shell .difficulty-choice select{min-width:78px;max-width:84px;min-height:26px;font-size:10px;padding:2px 0}
+}
+@media(max-width:650px){
+ #shell .topline{gap:2px}
+ #shell .brand{font-size:clamp(8px,2.8vw,11px);letter-spacing:0}
+ #shell .brand-symbol{display:none}
+ #shell .headright{gap:2px;flex-shrink:1}
+ #shell .difficulty-choice>span{display:none}
+ #shell .difficulty-choice select{min-width:75px;max-width:79px;min-height:26px;font-size:10px}
+ #shell .topline .small-btn{font-size:clamp(7px,1.95vw,9px);letter-spacing:0;padding:4px 2px}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:600px){
+ #shell .difficulty-choice>span{display:none}
+ #shell .difficulty-choice select{min-height:24px;min-width:76px;font-size:10px}
+}
