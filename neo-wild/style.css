@@ -68,7 +68,7 @@
 #touch-layer .touch-actions{position:relative;display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:0;width:168px;height:168px;transform:none;align-items:center;justify-items:center}
 #touch-layer .touch-actions .touch-btn{position:static;grid-row:auto;grid-column:auto;width:56px;height:56px;min-width:56px;min-height:56px;padding:0;justify-self:center;transform:none;pointer-events:auto;z-index:1}
 #touch-layer .touch-actions .touch-btn.down{transform:scale(.94)}
-#touch-layer #guard-touch{grid-column:2;grid-row:1;border-color:#b1d9c7;background:#23453e}
+#touch-layer #action-touch{grid-column:2;grid-row:1;border-color:#b1d9c7;background:#23453e}
 #touch-layer #dash-touch{grid-column:1;grid-row:2;background:#305a5c}
 #touch-layer #jump-touch{grid-column:3;grid-row:2;background:#345a51}
 #touch-layer #attack-touch{grid-column:2;grid-row:3;background:radial-gradient(circle at 40% 20%,#f7af66,#9d422a);border-color:#ffd5a4;box-shadow:0 0 18px #f07c4860}
@@ -79,3 +79,7 @@
  #touch-layer .touch-actions{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,50px);width:150px;height:150px}
  #touch-layer .touch-actions .touch-btn{width:50px;height:50px;min-width:50px;min-height:50px}
 }
+
+#mission-nav{display:flex;align-items:center;gap:8px;margin:6px 0 3px;color:#dce9bd;font:800 12px "Noto Sans JP",sans-serif}
+#nav-arrow{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;border:1px solid #7d9e83;border-radius:7px;background:#203a35;color:#e5f7c7;font-size:22px}
+#nav-distance{white-space:nowrap;font-size:11px}
