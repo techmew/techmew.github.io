@@ -35,3 +35,19 @@
  #hud .session-actions button{height:25px}
  .hud-right .session-actions{gap:3px}
 }
+
+/* 2026-10-31 landscape touch overlap hotfix: zoom is not a top-right button. */
+@media(max-height:520px) and (orientation:landscape){
+ #zoom-controls{top:auto;right:auto;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);transform-origin:center;opacity:1;gap:4px;padding:3px 5px}
+ #zoom-controls button{width:44px;height:40px;min-width:44px}
+ #zoom-level{min-width:40px;font-size:11px}
+}
+#rotate-btn{display:block;width:100%;min-height:44px;margin-top:10px;padding:8px 10px;border:1px solid #93b9b1;border-radius:8px;background:#234440;color:#e7fff1;font:800 13px "Noto Sans JP",sans-serif;touch-action:manipulation}
+#rotate-help{min-height:1.2em;margin:7px 0 0!important;font-size:10px;color:#d9e6d3;line-height:1.3}
+#pause .modal{max-height:calc(100dvh - 18px);overflow-y:auto}
+@media(max-height:520px) and (orientation:landscape){
+ #pause .modal{padding:10px 18px}
+ #pause .modal h2{font-size:36px;margin:2px 0}
+ #pause .modal p{margin:4px 0 8px;font-size:11px}
+ #pause .modal .flat-btn{margin-top:7px}
+}
