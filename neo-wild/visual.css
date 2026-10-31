@@ -101,3 +101,19 @@
  .save-choice,.checkpoint-choice{min-height:28px;padding:4px 10px;font-size:11px}
  #checkpoint-list{gap:2px}
 }
+
+/* build 20261031 sound and region picker */
+#spawn-picker{display:grid;gap:5px;margin:8px 0 4px;color:#e1ddca;
+ font:700 11px "Noto Sans JP",sans-serif;letter-spacing:.035em;}
+#start-region{display:block;width:100%;min-height:42px;max-width:100%;padding:9px 12px;
+ font:700 13px "Noto Sans JP",sans-serif;border-radius:8px;
+ border:1px solid #739c8e;background:#0e2e2b;color:#ebf8e9;
+ touch-action:manipulation;appearance:auto;}
+#start-region option{background:#152f2c;color:#fff;}
+#soundtrack-caption{margin:4px 0 8px;color:#adc4b8;text-align:center;
+ font:500 10px "Noto Sans JP",sans-serif;line-height:1.55;}
+@media(max-height:540px) and (orientation:landscape){
+ #spawn-picker{margin:3px 0;font-size:10px}
+ #start-region{min-height:32px;padding:4px 9px;font-size:11px}
+ #soundtrack-caption{font-size:9px;margin:2px 0 3px}
+}
