@@ -939,7 +939,8 @@ function carryFood(){
    if(amount<=0){notify("巣の備蓄が満杯");return false}
    denStash+=amount;P.carry.amount-=amount;
    if(P.carry.amount<=0)P.carry=null;
-   saveDenStash();notify("巣に備蓄 +"+amount+" / "+denStash+"/"+denCapacity());syncHUD();
+   saveDenStash();notify("巣に食料を備蓄 +"+amount+" / "+denStash+"/"+denCapacity());syncHUD();
+   if(mission===4)announceObjective();
    return true;
   }
   if(denStash>0&&P.hunger<95){
@@ -961,7 +962,8 @@ function carryFood(){
  if(!selected){notify("運べる食料が近くにない");return false}
  P.carry={type:selected.type,animalType:selected.animalType||null,amount:selected.amount};
  carcasses.splice(carcasses.indexOf(selected),1);
- notify("食料を確保 "+Math.round(P.carry.amount)+" / 休息地へ運ぼう");
+ notify("食料をくわえた！巣へ戻り、△短押しで備蓄（"+Math.round(P.carry.amount)+"）");
+ if(mission===4)announceObjective();
  syncHUD();return true;
 }
 function eat(){
@@ -977,13 +979,26 @@ function eat(){
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();
 }
 // Four tutorial chapters, three survival goals and an endless free-exploration loop.
+function stockpileStep(){
+ if(!P||mission!==4)return null;
+ if(P.carry)return {step:2,text:"② 巣へ戻る → △短押しで預ける",label:"巣"};
+ if(denStash>=DEN_COSTS[2])return {step:3,text:"③ 巣に入って△長押しでLV2に強化",label:"巣"};
+ return {step:1,text:"① 食料のそばで△を長押しして運ぶ",label:"食料"};
+}
 function missionInfo(){
  switch(mission){
   case 0:return {stage:"チュートリアル 1 / 4",title:"食料を確保せよ",detail:"近くの食料を探して食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
   case 1:return {stage:"チュートリアル 2 / 4",title:"身を隠せ",detail:"茂みで静止して潜伏 / C",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
   case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"旧新宿駅を探せ",progress:Math.min(1,kills)};
   case 3:return {stage:"チュートリアル 4 / 4",title:"旧新宿駅を探せ",detail:"廃墟を探索して旧駅に到達する",next:"巣をLV2に強化せよ",progress:clamp(1-Math.hypot(P.x-STATION.x,P.y-STATION.y)/750,0,1)};
-  case 4:return {stage:"生存目標 1 / 3",title:"巣をLV2に強化せよ",detail:"食料を運んで巣に預け、備蓄60で△長押し / H",next:"縄張りを1か所確保せよ",progress:denLevel>=2?1:Math.min(1,denStash/60)};
+  case 4:{
+   const step=stockpileStep();
+   return {stage:"生存目標 1 / 3・備蓄の練習",
+    title:step.step===1?"食料をくわえて巣に持ち帰ろう":step.step===2?"食料を巣に預けよう":"備蓄で巣をLV2にしよう",
+    detail:step.text+(step.step===1?"（約0.6秒）":"")+" / 備蓄 "+denStash+"/"+DEN_COSTS[2],
+    next:step.step===3?"巣をLV2に強化":step.step===2?"巣で△短押し":"食料を運んで備蓄",
+    progress:denLevel>=2?1:Math.min(1,denStash/DEN_COSTS[2])};
+  }
   case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で△長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
   case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"自由探索で生存記録を伸ばせ",progress:Math.min(1,discoveredSites.length/2)};
   default:return freeStep===0
@@ -1035,7 +1050,7 @@ function objectiveShortLabel(){
  if(mission===1)return "潜伏する茂み";
  if(mission===2||(mission===7&&freeStep===1))return "獲物";
  if(mission===3)return "探索地点";
- if(mission===4)return "巣";
+ if(mission===4)return stockpileStep().label;
  if(mission===5)return "縄張り標識";
  if(mission===6)return "探索地点";
  return "目標";
@@ -1047,7 +1062,13 @@ function getObjective(){
   return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
  }
  if(mission===3)return {x:STATION.x,y:STATION.y,label:"旧新宿駅方面"};
- if(mission===4)return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:"巣に食料を預け、LV2へ強化"};
+ if(mission===4){
+  if(P.carry||denStash>=DEN_COSTS[2])return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:"巣へ戻り食料を預ける"};
+  const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
+  if(food)return {x:food.x,y:food.y,label:"食料のそばで△長押しして運ぶ"};
+  const prey=nearestGoal(mobs.filter(m=>m.hp>0&&species[m.type].prey));
+  return prey?{x:prey.x,y:prey.y,label:"獲物を倒して食料を運ぶ"}:null;
+ }
  if(mission===5){const post=nearestGoal(TERRITORY_POSTS.filter((site,i)=>!territoryClaims[i]));return post?{x:post.x,y:post.y,label:"縄張り標識で△長押し"}:null;}
  if(mission===6){const site=nearestGoal(EXPLORE_SITES.filter(site=>!discoveredSites.includes(site.id)));return site?{x:site.x,y:site.y,label:"未発見の探索地点"}:null;}
  const findFood=mission===0||(mission===7&&freeStep===0);
@@ -1710,6 +1731,9 @@ function syncHUD(hour){
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
  // Display each chapter's name and upcoming objective without forcing a panel over gameplay.
  const info=missionInfo();
+ const stock=stockpileStep();
+ $("stockpile-guide").classList.toggle("hidden",!stock||mode!=="play");
+ if(stock){$("stockpile-guide").textContent=stock.text+"（備蓄 "+denStash+"/"+DEN_COSTS[2]+"）";}
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
  $("mission-sub").textContent=info.detail;
@@ -1731,7 +1755,7 @@ function syncHUD(hour){
  }
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
-  contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":nearestTerritoryPost()?"縄張り":"行動";}
+  contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":P.carry?"運搬中":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
