@@ -305,3 +305,19 @@
  #nav-hud .nav-hud-copy{font-size:10px}
  #nav-hud-distance{font-size:12px}
 }
+
+/* One real walk-in shelter: context-only prompt, no additional touch controls. */
+#shelter-hint{
+ position:absolute;left:50%;bottom:clamp(115px,25vh,210px);transform:translateX(-50%);
+ z-index:6;pointer-events:none;max-width:min(90vw,430px);width:max-content;
+ padding:9px 15px;border:1px solid #f0d78e;border-radius:9px;
+ background:rgba(10,31,28,.91);box-shadow:0 3px 16px #0008,0 0 15px #d6d78b3d;
+ color:#fff4bb;text-shadow:0 1px 3px #000;
+ font:800 12px/1.5 "Noto Sans JP",sans-serif;text-align:center;
+}
+@media(max-width:520px){
+ #shelter-hint{bottom:165px;max-width:86vw;padding:6px 9px;font-size:10px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #shelter-hint{bottom:74px;left:50%;max-width:53vw;padding:5px 8px;font-size:10px}
+}
