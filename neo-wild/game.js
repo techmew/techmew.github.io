@@ -24,7 +24,7 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
-let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
+let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
@@ -279,6 +279,7 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -404,7 +405,7 @@ function restoreSnapshot(snapshot){
  try{localStorage.setItem("wild-reclaim-den-level-v1-"+choice,String(denLevel));localStorage.setItem("wild-reclaim-den-v1-"+choice,String(denStash));saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
  syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
- saveAuto();notify("保存した場所から再開");
+ saveAuto();announceObjective();notify("保存した場所から再開");
  return true;
 }
 function recordCheckpoint(){
@@ -830,14 +831,49 @@ function eat(){
  carcasses.splice(carcasses.indexOf(c),1);label(P.x,P.y-30,"+"+c.amount+" FOOD","#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();
 }
+// Four tutorial chapters, three survival goals and an endless free-exploration loop.
+function missionInfo(){
+ switch(mission){
+  case 0:return {stage:"チュートリアル 1 / 4",title:"食料を確保せよ",detail:"近くの食料を探して食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
+  case 1:return {stage:"チュートリアル 2 / 4",title:"身を隠せ",detail:"茂みで静止して潜伏 / C",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
+  case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"旧新宿駅を探せ",progress:Math.min(1,kills)};
+  case 3:return {stage:"チュートリアル 4 / 4",title:"旧新宿駅を探せ",detail:"廃墟を探索して旧駅に到達する",next:"巣をLV2に強化せよ",progress:clamp(1-Math.hypot(P.x-STATION.x,P.y-STATION.y)/750,0,1)};
+  case 4:return {stage:"生存目標 1 / 3",title:"巣をLV2に強化せよ",detail:"食料を運んで巣に預け、備蓄60で△長押し / H",next:"縄張りを1か所確保せよ",progress:denLevel>=2?1:Math.min(1,denStash/60)};
+  case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で△長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
+  case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"自由探索で生存記録を伸ばせ",progress:Math.min(1,discoveredSites.length/2)};
+  default:return freeStep===0
+   ?{stage:"自由探索 / 生存 "+expedition,title:"食料を補給せよ",detail:"周囲で食料を確保する / △・E",next:"獲物を追い狩猟する",progress:0}
+   :{stage:"自由探索 / 生存 "+expedition,title:"狩りを続けろ",detail:"周囲の気配を探り、獲物を狩る / ×・J",next:"食料を補給して探索を続ける",progress:0};
+ }
+}
+function announceObjective(){
+ if(!P||mode!=="play")return;
+ const info=missionInfo();
+ $("objective-banner-stage").textContent=info.stage;
+ $("objective-banner-title").textContent=info.title;
+ $("objective-banner-next").textContent="次の目的："+info.next;
+ $("objective-banner").classList.remove("visible");
+ // Restart transition after rapid successive completions.
+ void $("objective-banner").offsetWidth;
+ $("objective-banner").classList.add("visible");
+ objectiveBannerTime=3.6;
+}
+function advanceMission(next){
+ mission=next;
+ if(next===7){freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition)}
+ announceObjective();syncHUD();
+}
 function checkMission(){
- if(mission===0&&meals>=1){mission=1;notify("食料確保！ → 茂みで身を隠せ")}
- if(mission===1&&hiddenHold>=.75){mission=2;notify("潜伏成功！ → 獲物を追え")}
- if(mission===2&&kills>=1){mission=3;notify("初狩猟成功！ → 旧新宿駅へ向かえ")}
- if(mission===3&&Math.hypot(P.x-2460,P.y-1170)<115){mission=4;freeStep=0;freeTarget=meals+1;notify("探索区域に到着 / 新たな生存目標が始まる")}
- if(mission===4){
-  if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;notify("補給完了！ → 次の獲物を追え")}
-  else if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;notify("生存記録 "+expedition+" / → 次の食料を探せ")}
+ if(mission===0&&meals>=1){advanceMission(1);return}
+ if(mission===1&&hiddenHold>=.75){advanceMission(2);return}
+ if(mission===2&&kills>=1){advanceMission(3);return}
+ if(mission===3&&Math.hypot(P.x-STATION.x,P.y-STATION.y)<115){advanceMission(4);return}
+ if(mission===4&&denLevel>=2){advanceMission(5);return}
+ if(mission===5&&territoryOwned()>=1){advanceMission(6);return}
+ if(mission===6&&discoveredSites.length>=2){advanceMission(7);return}
+ if(mission===7){
+  if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;announceObjective();return}
+  if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;announceObjective()}
  }
 }
 function nearestGoal(list){
@@ -852,8 +888,11 @@ function getObjective(){
   const p=nearestGoal(plants.filter(p=>p.type===2));
   return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
  }
- if(mission===3)return {x:2460,y:1170,label:"旧新宿駅方面"};
- const findFood=mission===0||(mission===4&&freeStep===0);
+ if(mission===3)return {x:STATION.x,y:STATION.y,label:"旧新宿駅方面"};
+ if(mission===4)return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:"巣に食料を預け、LV2へ強化"};
+ if(mission===5){const post=nearestGoal(TERRITORY_POSTS.filter((site,i)=>!territoryClaims[i]));return post?{x:post.x,y:post.y,label:"縄張り標識で△長押し"}:null;}
+ if(mission===6){const site=nearestGoal(EXPLORE_SITES.filter(site=>!discoveredSites.includes(site.id)));return site?{x:site.x,y:site.y,label:"未発見の探索地点"}:null;}
+ const findFood=mission===0||(mission===7&&freeStep===0);
  if(findFood){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0));
   return f?{x:f.x,y:f.y,label:"食料を取る / △・E"}:null;
@@ -1239,7 +1278,7 @@ function update(dt){
  spawnTimer+=dt;
  if(spawnTimer>3.6){
   spawnTimer=0;
-  const hunting=mission===2||(mission===4&&freeStep===1);
+  const hunting=mission===2||(mission===7&&freeStep===1);
   const nearbyPrey=mobs.some(m=>m.hp>0&&species[m.type].prey&&dist(P,m)<WILDLIFE.preyNeedRadius);
   if(hunting&&!nearbyPrey){
    if(mobs.length>=WILDLIFE.cap){
@@ -1252,6 +1291,7 @@ function update(dt){
  }
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
+ if(objectiveBannerTime>0){objectiveBannerTime-=dt;if(objectiveBannerTime<=0)$("objective-banner").classList.remove("visible")}
  cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  audioTick+=dt;
@@ -1274,17 +1314,13 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
- // No compulsory on-screen arrow or tracking line.
- const objectives=[
-  ["食料を確保せよ","近くの食料を探して食べる / △・E",meals],
-  ["身を隠せ","茂みの中で足を止めて潜伏 / C",hiddenHold/.75],
-  ["獲物を仕留めろ","獲物に近づいて攻撃 / ×・J",kills],
-  ["旧新宿駅を探せ","廃墟を探索しながら東の旧駅方面へ",(P.x-1850)/540],
-  freeStep===0?["食料を補給せよ","周囲で食料を確保する / △・E",0]:["狩りを続けろ","周囲の気配を探り、獲物を狩る / J",0]
- ];
-  const ob=objectives[Math.min(mission,4)];
- $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
- $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
+ // Display each chapter's name and upcoming objective without forcing a panel over gameplay.
+ const info=missionInfo();
+ $("mission-progress").textContent=info.stage;
+ $("mission-title").textContent=info.title;
+ $("mission-sub").textContent=info.detail;
+ $("mission-next").textContent="次の目的："+info.next;
+ setBar("mission-bar",info.progress*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
@@ -1512,8 +1548,7 @@ function drawLandmark2D(site){
 }
 function drawPlant(p){
  ctx.save();ctx.translate(p.x,p.y);
- const nearby=P&&p.type===2?Math.hypot(P.x-p.x,P.y-p.y):9999;
- let r=p.r*(p.type===2?(nearby<110?.44+.30*(nearby/110):.74):1);
+ let r=p.r*(p.type===2?.74:1);
  if(p.type===2){
   ctx.fillStyle="#172a22cf";ctx.beginPath();ctx.ellipse(2,7,r*1.08,r*.64,.1,0,TWO);ctx.fill();
   for(let j=0;j<17;j++){
@@ -2141,7 +2176,7 @@ document.addEventListener("fullscreenchange",()=>{
 window.addEventListener("resize",updateRotationButton);
 window.addEventListener("orientationchange",updateRotationButton);
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));playEffect("menu")}));
-$("start-btn").addEventListener("click",()=>{clearAutoSave();start();});
+$("start-btn").addEventListener("click",()=>{clearAutoSave();start();announceObjective();});
 $("continue-btn").addEventListener("click",()=>{
  const snapshot=getAutoSnapshot();if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
 });
@@ -2168,7 +2203,7 @@ $("mission-close").addEventListener("click",()=>{
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
-$("retry-btn").addEventListener("click",()=>{clearAutoSave();start()});
+$("retry-btn").addEventListener("click",()=>{clearAutoSave();start();announceObjective()});
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
