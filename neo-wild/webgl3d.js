@@ -116,6 +116,8 @@ function animal(m,player,clock){
  const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
  const attackCharge=!player&&(type==="boar"||type==="alpha")?clamp((m.chargeTime||0)/(type==="alpha"?.24:.36),0,1)*.55:0;
  const attackReach=Math.max(attackSnap,attackCharge)+airStrike;
+ const rushPose=player&&(m.pendingStrike||m.swing>0)?(m.rushActiveStep||0):0;
+ const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.14:rushPose===4?attackReach*.05:rushPose===5?attackReach*.60:base;
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
  const fox=type==="fox",cat=type==="cat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
@@ -129,10 +131,10 @@ function animal(m,player,clock){
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
-  const dx=k*r*.57+(front?(attackReach*lead-attackPrep*.21)*r:0);
+  const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0));
   const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
   const bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
-  const pawLift=front?attackReach*r*(cat?.34:fox?.20:.13):0;
+  const pawLift=front?foreDrive(s,attackReach)*r*(cat?.34:fox?.20:.13):(rushPose===4?attackReach*r*.27:0);
   const legHeight=fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38;
   // Keep the bottom of each paw on or above its walkable surface.
   ellipsoid(fx(dx,dy),fy(dx,dy),legHeight+Math.max(0,bob)+pawLift,fox?r*.16:cat?r*.17:rabbit?(front?r*.15:r*.28):r*.21,fox?r*.14:cat?r*.14:rabbit?(front?r*.15:r*.24):r*.19,legHeight,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
@@ -156,7 +158,7 @@ function animal(m,player,clock){
  }
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
- const headDrive=r*(attackReach*(cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
+ const headDrive=r*(attackReach*((rushPose===1||rushPose===2)?.12:rushPose===4?.08:cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
  const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49,headR,headR*.80,headR*.83,torso,dir,9,5);
  if(fox||cat||wolf||rabbit||rat){
@@ -201,7 +203,7 @@ function animal(m,player,clock){
  }else if(wolf){
   ellipsoid(fx(-r*1.21,0),fy(-r*1.21,0),h+r*.48,r*.54,r*.29,r*.29,torso,dir,7,4);
  }
- if(attackReach>.01&&(fox||wolf||type==="dog")){
+ if(attackReach>.01&&(fox||wolf||type==="dog")&&(!player||rushPose===3||rushPose===5)){
   // Cat uses its existing forepaw; canids open the jaw along the moving skull.
   ellipsoid(fx(r*1.04+headDrive,0),fy(r*1.04+headDrive,0),h+r*(.22-attackReach*.13),r*.37,r*.25,r*.12,"#28302b",dir,8,4);
   ellipsoid(fx(r*1.1+headDrive,0),fy(r*1.1+headDrive,0),h+r*(.14-attackReach*.12),r*.32,r*.24,r*.10,belly,dir,8,4);
