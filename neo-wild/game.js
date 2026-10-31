@@ -136,7 +136,7 @@ function generateWorld(){
   const h=biome===5?105+92*noise(seed,4):175+155*noise(seed,4);
   if(x+w>WORLD.w-35||y+h>WORLD.h-35)return;
   const roadCollision=roadsX.some(rx=>rx>x-42&&rx<x+w+42)||roadsY.some(ry=>ry>y-42&&ry<y+h+42);
-  if(roadCollision)return;
+  if(roadCollision||nearBuilding(x+w*.5,y+h*.5,Math.min(w,h)*.35))return;
   const roofZ=seed%7===0?70:seed%3===0?50:seed%4===0?32:0;
   buildings.push({x,y,w,h,seed,kind:biome===6?3:biome%4,sign:seed%5===0,broken:seed%4===0,roofZ});
  };
@@ -147,6 +147,20 @@ function generateWorld(){
  for(const y of [2560,3260,4080,5010,5620]){
   for(const x of [100,980,1850,2780,3590,4600,5500,6550,7580,8120])
    addBlock(x,y,extSeed++,regionAt(x,y));
+ }
+ // Additional compact neighborhoods make the expanded streets worth exploring.
+ // Each free road-block contains one or two structures and stays traversable.
+ for(let iy=0;iy<roadsY.length-1;iy++)for(let ix=0;ix<roadsX.length-1;ix++){
+  const left=roadsX[ix]+160,right=roadsX[ix+1]-220;
+  const top=roadsY[iy]+140,bottom=roadsY[iy+1]-240;
+  if(right-left<180||bottom-top<100)continue;
+  if(left<4150&&top<2450)continue;
+  const seed=++extSeed,biome=regionAt(left,top);
+  const span=right-left;
+  addBlock(left+noise(seed,51)*65,top+noise(seed,12)*45,++extSeed,biome);
+  if(span>400&&biome!==5){
+   addBlock(right-205-noise(seed,53)*38,top+noise(seed,13)*65,++extSeed,biome);
+  }
  }
  // Dense forest patches to the southwest, tall derelict blocks to the east.
  for(let i=0;i<780;i++){
@@ -353,7 +367,11 @@ function spawnMob(initial=false,preyOnly=false){
  }while(!valid&&++tries<52);
  if(!valid)return false;
  let roll=Math.random(),type;
- if(preyOnly)type=roll<.4?"rat":roll<.78?"rabbit":"pigeon";
+ const biome=regionAt(x,y);
+ if(preyOnly)type=biome===5?(roll<.20?"rat":"rabbit"):biome===4?(roll<.72?"pigeon":"rabbit"):roll<.4?"rat":roll<.78?"rabbit":"pigeon";
+ else if(biome===5)type=roll<.45?"rabbit":roll<.65?"rat":roll<.85?"boar":"dog";
+ else if(biome===6)type=roll<.32?"rat":roll<.62?"dog":roll<.88?"boar":"alpha";
+ else if(biome===4||biome===7)type=roll<.50?"pigeon":roll<.72?"rabbit":roll<.9?"dog":"boar";
  else if(day<2)type=roll<.4?"rat":roll<.72?"rabbit":roll<.87?"pigeon":"dog";
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
@@ -362,9 +380,18 @@ function spawnMob(initial=false,preyOnly=false){
  return true;
 }
 function spawnFood(){
- const x=rnd(70,WORLD.w-70),y=rnd(70,WORLD.h-70);
- if(collides(x,y,34))return;
- carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
+ // Keep edible forage within a reasonable hunt around the active animal in
+ // the large world; scattering every new berry globally would cause starvation.
+ for(let n=0;n<24;n++){
+  const local=P&&Math.random()<.82;
+  const angle=rnd(0,TWO),radius=rnd(185,760);
+  const x=local?clamp(P.x+Math.cos(angle)*radius,70,WORLD.w-70):rnd(70,WORLD.w-70);
+  const y=local?clamp(P.y+Math.sin(angle)*radius,70,WORLD.h-70):rnd(70,WORLD.h-70);
+  if(collides(x,y,34)||carcasses.some(c=>dist(c,{x,y})<65))continue;
+  carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
+  return true;
+ }
+ return false;
 }
 // Walkable lower rooftops are real surfaces. Tall buildings still stop animals.
 function roofAt(x,y){
