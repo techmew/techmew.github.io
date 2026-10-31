@@ -33,6 +33,7 @@
  <div class="world-map-panel">
   <div class="world-map-top"><strong>東京の地図</strong><button id="map-close" aria-label="地図を閉じる">閉じる ×</button></div>
   <p id="map-place">今いる場所と立ち寄れる場所</p>
+  <p id="map-perks" aria-live="off">探索で生存能力が解放されます</p>
   <canvas id="world-map-canvas" width="630" height="360" aria-label="現在地・休息地・駅・登れる屋上の地図"></canvas>
   <div class="map-key">白：現在地　緑：巣　青：旧駅　黄：食料　橙：探索地点　赤：敵　紫：屋上</div>
   <p class="map-help">巣LV2で縄張り標識が解放。地図の西・東・南の標識へ行き、敵を追い払って△長押しで確保。確保した縄張りは巣の休息力を上げ、野犬を牽制し、翌日以降に木の実を供給します。地図の点へ自動移動はしません。</p>
@@ -41,7 +42,7 @@
 <div id="menu" class="overlay">
   <div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div>
   <div class="menu-shell">
-    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261031-AUDIO2</div>
+    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261031-WILD-V3</div>
     <div class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</div>
     <div class="subtitle">廃都生存記 <span>— TOKYO AFTER HUMANITY —</span></div>
     <p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
@@ -80,6 +81,6 @@
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">GAME OVER</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">もう一度、生存する →</button><button id="menu-btn" class="flat-btn">動物を選び直す</button></div></div>
 </div>
 <script src="./audio.js?rev=20261031-soft-jump-sfx2" defer></script>
-<script src="./webgl3d.js?rev=20261031-world-weather-audio2" defer></script>
-<script src="./game.js?rev=20261031-quiet-footsteps1" defer></script>
+<script src="./webgl3d.js?rev=20261031-wild-v3" defer></script>
+<script src="./game.js?rev=20261031-wild-v3" defer></script>
 </body></html>
