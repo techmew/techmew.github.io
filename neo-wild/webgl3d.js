@@ -228,6 +228,23 @@ function vegetation(p,clock){
   pyramid(p.x,p.y,0,p.r*.5,p.r*.45,p.r*.8,"#4e7859");
  }
 }
+// Food shares depth with terrain, buildings and animals.
+function foodMesh(c){
+ const r=Math.max(6,Math.min(16,c.r||9));
+ animalLift=0;
+ ellipsoid(c.x+2,c.y+4,1.4,r*1.5,r*.82,1.3,"#243027",0,8,3);
+ if(c.type==="meat"){
+  ellipsoid(c.x,c.y,4.2,r*1.03,r*.70,3.8,"#a85149",-.24,10,5);
+  ellipsoid(c.x+r*.70,c.y-r*.16,4.4,r*.42,r*.20,1.4,"#d6b2a2",-.24,7,3);
+  ellipsoid(c.x+r*1.05,c.y-r*.18,4.8,r*.18,r*.21,2.0,"#eee2c6",0,7,3);
+ }else{
+  ellipsoid(c.x,c.y,2.9,r*1.03,r*.90,2.5,"#527b51",0,9,4);
+  for(let k=0;k<5;k++){
+   const angle=k*TAU/5;
+   ellipsoid(c.x+Math.cos(angle)*r*.53,c.y+Math.sin(angle)*r*.47,5.0,r*.25,r*.25,2.3,k%2?"#cf956b":"#c96e55",0,6,3);
+  }
+ }
+}
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
 function terrain(w){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
@@ -266,7 +283,7 @@ canvas.addEventListener("webglcontextrestored",()=>{
 function render(o){
  if(failed)return false;
  try{
-  const {vw,vh,dpr,cam,VIEW,buildings,plants,mobs,P,elapsed,weather,WORLD,species}=o;
+  const {vw,vh,dpr,cam,VIEW,buildings,plants,carcasses,mobs,P,elapsed,weather,WORLD,species}=o;
   const width=Math.max(1,Math.round(vw*dpr)),height=Math.max(1,Math.round(vh*dpr));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   gl.viewport(0,0,width,height);
@@ -318,6 +335,7 @@ function render(o){
   }
   data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed);
+  for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
   const playerFirst=data.length/9;
   if(P)animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
