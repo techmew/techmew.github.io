@@ -1406,11 +1406,11 @@ function keyDown(e){
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();
 }
-document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{const k=e.key.toLowerCase();keys.delete(k);if(k==="v"&&!guardTouch)endGuard()});
+document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
 window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
 function resetControls(){
- keys.clear();guardTouch=false;if(P){endGuard();P.counterWindow=0;P.counterStrike=false;resetRush();}joy.id=null;joy.x=0;joy.y=0;
+ keys.clear();guardTouch=false;if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
  // A released first finger must not leave a second held action stuck after pause/map.
  for(const [id,pointers] of activeTouchPointers){
