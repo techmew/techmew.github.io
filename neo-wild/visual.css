@@ -5,7 +5,19 @@
 @media(pointer:coarse),(max-width:850px){#zoom-controls{top:auto;bottom:210px;right:7px;opacity:.80}#zoom-controls button{width:29px;height:28px}}
 @media(max-height:520px) and (orientation:landscape){#zoom-controls{top:40px;bottom:auto;right:3px;transform:scale(.82);transform-origin:top right}}
 #mission-nav{font-size:10px;color:#bcd4c1}
-#menu{background:linear-gradient(90deg,rgba(5,13,14,.85),rgba(4,10,12,.47)),url("./title-tokyo.svg") center center/cover no-repeat}
+/* The exact user-provided photographs are selected by screen orientation. */
+#menu{
+ background-image:linear-gradient(90deg,rgba(5,13,14,.76),rgba(4,10,12,.24)),url("./title-landscape.jpg");
+ background-position:center center;
+ background-size:cover;
+ background-repeat:no-repeat;
+}
+@media (orientation:portrait){
+ #menu{
+  background-image:linear-gradient(180deg,rgba(5,13,14,.25),rgba(4,10,12,.60)),url("./title-portrait.jpg");
+  background-position:center center;
+ }
+}
 #menu .menu-bg{opacity:.18;pointer-events:none}
 #menu .menu-shell{position:relative;z-index:2;text-shadow:0 3px 11px #061012}
 #menu .hero-title{filter:drop-shadow(0 7px 15px #000e)}
