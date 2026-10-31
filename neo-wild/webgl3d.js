@@ -254,10 +254,16 @@ function foodMesh(c){
  }
 }
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
-function terrain(w){
+function terrain(w,roadsX,roadsY){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
- for(const y of [465,1170,1890]){
+ // Regional ground changes visibly without drawing every distant building.
+ box(0,2600,-.4,2800,w.h-2600,.45,"#31533c","#50714c"); // reclaimed forest
+ box(2800,2600,-.4,2800,w.h-2600,.45,"#4b504a","#666762"); // industrial district
+ box(5600,2600,-.4,w.w-5600,w.h-2600,.45,"#2e5551","#55716c"); // wet canals
+ box(4200,0,-.4,2100,2600,.45,"#384b49","#667368"); // deserted zoo
+ box(6300,0,-.4,w.w-6300,2600,.45,"#315656","#5d7771"); // river area
+ for(const y of roadsY){
   box(0,y-80,0,w.w,160,1,"#323d3e","#344145");
   box(0,y-86,0,w.w,6,2,"#565d54","#717e68");
   box(0,y+80,0,w.w,6,5,"#565d54","#717e68");
@@ -266,7 +272,7 @@ function terrain(w){
    if(detailNoise(x+y)>.45)pyramid(x+88,y+83,2,15,10,13,"#596b53");
   }
  }
- for(const x of [530,1410,2320,3270]){
+ for(const x of roadsX){
   box(x-80,0,.18,160,w.h,1,"#323d3e","#344145");
   box(x-86,0,.18,6,w.h,2,"#565d54","#717e68");
   box(x+80,0,.18,6,w.h,5,"#565d54","#717e68");
@@ -295,7 +301,9 @@ function render(o){
   const width=Math.max(1,Math.round(vw*dpr)),height=Math.max(1,Math.round(vh*dpr));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   gl.viewport(0,0,width,height);
-  const night=(1-(Math.cos(((elapsed%85)/85-.15)*TAU)+1)/2)*.68;
+  const ambient=(1-(Math.cos(((elapsed%85)/85-.15)*TAU)+1)/2)*.68;
+  const overcast=weather==="THUNDER"?.22:weather==="RAIN"?.14:weather==="CLOUDY"?.12:weather==="FOG"?.10:0;
+  const night=Math.min(.94,ambient+overcast);
   gl.clearColor(.12*(1-night*.5),.18*(1-night*.48),.18*(1-night*.4),1);
   gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   const isVisible=(x,y,margin=150)=>{
@@ -305,7 +313,7 @@ function render(o){
   };
   const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h].join(":");
   if(regionKey!==staticKey){
-   data=[];terrain(WORLD);
+   data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890]);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
