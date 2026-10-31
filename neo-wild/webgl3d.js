@@ -369,6 +369,7 @@ function render(o){
   const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible);
+   for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    const h=b.roofZ||135+(b.kind%4)*75; // Low roofs have matching walkable height.
