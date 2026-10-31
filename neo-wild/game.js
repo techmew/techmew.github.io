@@ -21,8 +21,8 @@ const species={
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
-let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},attackTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
-const activeTouchPointers=new Map();
+let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},guardTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
+const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
@@ -88,7 +88,7 @@ function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).cl
 function start(){
  mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);
-  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null};
+  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,guarding:false,lastCombatAt:-100};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -235,11 +235,46 @@ function combatAim(maxTurn=.56,maxRange=105){
  if(best)P.dir=aim;
  return best;
 }
+
+function combatEngaged(){
+ if(!P)return false;
+ if(P.pendingStrike||P.pounceTime>0||elapsed-P.lastCombatAt<3)return true;
+ return mobs.some(m=>m.hp>0&&!lineBlocked(P,m)&&
+  (species[m.type].prey?dist(P,m)<P.r+m.r+70:
+   dist(P,m)<240&&(m.alert>0||m.windup>0||m.chargeTime>0)));
+}
+function nearbyFood(){
+ return carcasses.some(f=>dist(P,f)<65&&!lineBlocked(P,f));
+}
+function contextAction(longPress=false){
+ if(mode!=="play")return;
+ // Combat always wins over food, including the three seconds after an attack.
+ if(combatEngaged()){if(!longPress)attack();return}
+ const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
+ if(longPress){
+  if(home){upgradeDen();return}
+  if(!P.carry)carryFood();
+  return;
+ }
+ if(home&&(P.carry||(denStash>0&&P.hunger<95))){carryFood();return}
+ if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return}
+ attack();
+}
+function guardedDamage(m,raw){
+ P.lastCombatAt=elapsed;
+ const angle=Math.atan2(m.y-P.y,m.x-P.x);
+ const facing=Math.atan2(Math.sin(angle-P.dir),Math.cos(angle-P.dir));
+ if(P.guarding&&P.sp>=9&&Math.abs(facing)<1.13){
+  P.sp-=9;label(P.x,P.y-35,"ガード","#a6f5d8");
+  return Math.max(1,Math.ceil(raw*.35));
+ }
+ return raw;
+}
 function attack(){
- if(mode!=="play"||P.atk>0||P.pendingStrike)return;
+ if(mode!=="play"||P.atk>0||P.pendingStrike||guardTouch||keys.has("v"))return;
  const cost=P.type==="wolf"?17:P.type==="cat"?9:12;
  if(P.sp<cost){P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
- P.sp-=cost;P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;
+ P.lastCombatAt=elapsed;P.sp-=cost;P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;
   P.jumpDive=P.jumpTime>0;
   P.ambushStrike=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
@@ -512,7 +547,8 @@ function update(dt){
   if(P.fallTime===0&&P.pendingStrike&&P.jumpDive)resolveAttack();
  }
  P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
- P.sp=clamp(P.sp+17*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
+ P.guarding=(guardTouch||keys.has("v"))&&P.sp>5&&P.jumpTime<=0&&P.pounceTime<=0&&!P.pendingStrike;
+ P.sp=clamp(P.sp+(P.guarding?-22:17)*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  // A home location matters: quiet rest restores a little health.
  if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
@@ -579,7 +615,7 @@ function update(dt){
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
   P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
-  if((keys.has("j")||keys.has(" ")||attackTouch)&&P.atk<=0)attack();
+  if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);
  if(P.hp<=0){P.hp=0;finish(false);return}
@@ -646,7 +682,7 @@ function update(dt){
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
+       const damage=guardedDamage(m,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
        P.hp-=damage;P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
@@ -668,7 +704,7 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=Math.round(s.damage*(1+Math.max(0,day-1)*.15));
+      const damage=guardedDamage(m,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
       P.hp-=damage;P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
       blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);
@@ -687,7 +723,7 @@ function update(dt){
    if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
    if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(m.type==="boar"?115:m.type==="alpha"?112:29)&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
     m.windupTotal=m.type==="boar"?.68:m.type==="alpha"?.60:.45;
-    m.windup=m.windupTotal;m.strikeDir=angle;m.attack=m.type==="boar"?1.32:m.type==="alpha"?1.42:.98;
+    m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;m.attack=m.type==="boar"?1.32:m.type==="alpha"?1.42:.98;
     m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！","#ffb76d");
     sound(310,.11,"sawtooth",.03);
    }
@@ -723,9 +759,7 @@ function syncHUD(hour){
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし");
- const denButton=$("den-upgrade");
- denButton.textContent=denLevel>=DEN_MAX_LEVEL?"巣 LV3 完成":"巣を育てる（備蓄 "+DEN_COSTS[denLevel+1]+"）";
- denButton.disabled=denLevel>=DEN_MAX_LEVEL;
+
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=Math.min(3,Math.floor(P.x/(WORLD.w/4)));$("district-tag").textContent="AREA 0"+(zone+1)+" / 04";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+({CLEAR:"晴天",RAIN:"降雨",FOG:"濃霧"}[weather]);
@@ -740,12 +774,14 @@ function syncHUD(hour){
   const ob=objectives[Math.min(mission,4)];
  $("mission-progress").textContent=mission<4?"0"+(mission+1)+" / 04":"探索 "+expedition;
  $("mission-title").textContent=ob[0];$("mission-sub").textContent=ob[1];setBar("mission-bar",mission===4?0:ob[2]*100);
- const skill=$("instinct-name");if(skill)skill.textContent=P.type==="fox"?"急襲":P.type==="cat"?"俊足":"咆哮";
+ const contextLabel=$("context-action-label");
+ if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
+  contextLabel.textContent=combatEngaged()?"攻撃":home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":nearbyFood()?"食べる":"攻撃";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
- $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";$("instinct-touch").style.opacity=P.instinctCD>0||P.sp<18?".5":"1";
+ $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";
 }
 // Map only opens when requested. Shows places worth visiting without ground arrows.
 function drawWorldMap(){
@@ -1332,7 +1368,8 @@ document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e
 window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
 function resetControls(){
- keys.clear();attackTouch=false;joy.id=null;joy.x=0;joy.y=0;
+ keys.clear();guardTouch=false;if(P)P.guarding=false;joy.id=null;joy.x=0;joy.y=0;
+ for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
  // A released first finger must not leave a second held action stuck after pause/map.
  for(const [id,pointers] of activeTouchPointers){
   for(const pointerId of [...pointers]){try{$(id).releasePointerCapture?.(pointerId)}catch(_){}}
@@ -1342,7 +1379,7 @@ function resetControls(){
   for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
   orbitPointers.clear();lastPinchDistance=0;
  if(knob)knob.style.transform="translate(0,0)";
- for(const id of ["attack-touch","dash-touch","eat-touch","instinct-touch","jump-touch","carry-touch"])$(id).classList.remove("down");
+ for(const id of ["attack-touch","dash-touch","jump-touch","guard-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
@@ -1356,7 +1393,6 @@ $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("sound-btn").addEventListener("click",()=>{soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×"});
 $("map-btn").addEventListener("click",toggleWorldMap);
-$("den-upgrade").addEventListener("click",upgradeDen);
 $("map-close").addEventListener("click",toggleWorldMap);
 document.querySelectorAll("[data-upgrade]").forEach(b=>b.addEventListener("click",()=>{if(mode!=="upgrade")return;const up=b.dataset.upgrade;
  if(up==="fang")P.damage=Math.round(P.damage*1.25);else if(up==="fleet")P.speed=Math.round(P.speed*1.15);else{P.maxHp+=30;P.hp=Math.min(P.maxHp,P.hp+65)}
@@ -1373,19 +1409,52 @@ stick.addEventListener("pointerdown",e=>{if(mode!=="play"||joy.id!==null)return;
 stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
-for(const [id,action] of [["attack-touch","attack"],["dash-touch","dash"],["jump-touch","jump"],["eat-touch","eat"],["instinct-touch","instinct"],["carry-touch","carry"]]){
+// Each button owns its pointer IDs. Long presses fire once; no auto-repeat.
+for(const [id,action] of [["guard-touch","guard"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","context"]]){
  const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
+ let longFired=false,pressStarted=0;
  b.addEventListener("pointerdown",e=>{
   if(mode!=="play"||pointers.has(e.pointerId))return;
-  e.preventDefault();pointers.add(e.pointerId);b.classList.add("down");b.setPointerCapture(e.pointerId);
-  if(action==="attack")attackTouch=true;
-  if(pointers.size===1)act(action); // One action per press, even with two fingers.
+  e.preventDefault();const first=pointers.size===0;pointers.add(e.pointerId);
+  b.classList.add("down");b.setPointerCapture(e.pointerId);
+  if(!first)return;
+  pressStarted=performance.now();longFired=false;
+  if(action==="guard"){guardTouch=true;return}
+  if(action==="jump"){act("jump");return}
+  if(action==="dash"||action==="context"){
+   const timer=setTimeout(()=>{
+    touchHoldTimers.delete(id);
+    if(mode!=="play"||pointers.size===0)return;
+    longFired=true;
+    if(action==="dash")act("instinct");else contextAction(true);
+   },action==="dash"?450:550);
+   touchHoldTimers.set(id,timer);
+  }
  });
  const end=e=>{
   if(!pointers.delete(e.pointerId))return;
-  if(pointers.size===0){b.classList.remove("down");if(action==="attack")attackTouch=false;}
+  if(pointers.size!==0)return;
+  b.classList.remove("down");
+  const timer=touchHoldTimers.get(id);
+  if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
+  if(action==="guard"){guardTouch=false;if(P)P.guarding=false;return}
+  if(mode!=="play"||longFired)return;
+  const duration=performance.now()-pressStarted;
+  if(action==="dash"){if(duration>=450)act("instinct");else act("dash")}
+  if(action==="context")contextAction(duration>=550);
  };
- b.addEventListener("pointerup",end);b.addEventListener("pointercancel",end);b.addEventListener("lostpointercapture",end);
+ b.addEventListener("pointerup",end);b.addEventListener("pointercancel",e=>{
+  if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
+  b.classList.remove("down");
+  const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
+  if(action==="guard"){guardTouch=false;if(P)P.guarding=false}
+ });
+ b.addEventListener("lostpointercapture",e=>{
+  if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
+  b.classList.remove("down");
+  const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
+  if(action==="guard"){guardTouch=false;if(P)P.guarding=false}
+ });
 }
 // Drag the empty world to orbit; two fingers on the world adjust zoom.
 // Controls capture their own pointers, so attacks, joystick and menus are unaffected.
