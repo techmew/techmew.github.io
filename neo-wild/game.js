@@ -30,7 +30,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),
 // Oblique view leaves original world coordinates, collisions and A* intact.
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
 let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
-let cameraYaw=0,cameraZoom=.8,guideWisp=null;
+let cameraYaw=0,cameraZoom=.8,guideWisp=null,guideGoal=null;
 function updateCameraView(){
  const cs=Math.cos(cameraYaw),sn=Math.sin(cameraYaw),z=cameraZoom;
  VIEW.a=(.94*cs-.28*sn)*z;VIEW.c=(-.94*sn-.28*cs)*z;
@@ -1425,6 +1425,7 @@ function syncHUD(hour){
  setBar("mission-bar",info.progress*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
+ guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
@@ -2018,21 +2019,52 @@ function drawOccludedSilhouettes(entities){
   ctx.restore();
  }
 }
+// Destination glow is a screen overlay so it stays legible in WebGL and Canvas2D.
+function drawObjectiveGlow(){
+ if(!P||!guideGoal||mode!=="play")return;
+ const pos=project(guideGoal.x,guideGoal.y);
+ if(pos.x<-65||pos.y<-85||pos.x>vw+65||pos.y>vh+65)return;
+ const near=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y)<140;
+ const pulse=.5+.5*Math.sin(elapsed*3.7),radius=near?25:20,height=near?85:63;
+ ctx.save();ctx.globalCompositeOperation="screen";
+ const halo=ctx.createRadialGradient(pos.x,pos.y+3,3,pos.x,pos.y+3,64);
+ halo.addColorStop(0,"rgba(255,238,161,"+(.31+.2*pulse)+")");
+ halo.addColorStop(.43,"rgba(182,247,211,"+(.17+.13*pulse)+")");
+ halo.addColorStop(1,"rgba(181,246,204,0)");
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(pos.x,pos.y+3,64,0,TWO);ctx.fill();
+ const shaft=ctx.createLinearGradient(pos.x,pos.y-height,pos.x,pos.y+8);
+ shaft.addColorStop(0,"rgba(255,252,213,0)");
+ shaft.addColorStop(.72,"rgba(194,255,222,"+(.13+.07*pulse)+")");
+ shaft.addColorStop(1,"rgba(255,237,159,"+(.32+.18*pulse)+")");
+ ctx.fillStyle=shaft;ctx.fillRect(pos.x-7,pos.y-height,14,height+8);
+ ctx.strokeStyle="rgba(248,249,181,"+(.66+.3*pulse)+")";
+ ctx.lineWidth=2.6;ctx.shadowColor="#d6ffac";ctx.shadowBlur=12;
+ ctx.beginPath();ctx.ellipse(pos.x,pos.y+4,radius+4*pulse,(radius+4*pulse)*.44,0,0,TWO);ctx.stroke();
+ ctx.restore();
+ if(pos.x>=26&&pos.x<=vw-26&&pos.y>=80&&pos.y<=vh-35){
+  ctx.save();ctx.font="800 11px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.strokeStyle="rgba(7,24,22,.9)";ctx.lineWidth=3.5;ctx.lineJoin="round";
+  ctx.strokeText("目的地",pos.x,pos.y-height-7);
+  ctx.fillStyle="#fff2c3";ctx.fillText("目的地",pos.x,pos.y-height-7);ctx.restore();
+ }
+}
 function drawGuideWisps(){
  if(!P||!guideWisp||mode!=="play")return;
- const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y,sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy,len=Math.hypot(sx,sy);
- if(len<18)return;
- const ux=sx/len,uy=sy/len,pos=project(P.x,P.y),height=(P.jumpHeight||0)*.93*cameraZoom;
- ctx.save();ctx.globalCompositeOperation="screen";
- for(let j=0;j<5;j++){
-  const phase=elapsed*1.2+j*.75,travel=26+j*11+(phase%1)*7,sway=Math.sin(phase*2.1)*3;
-  const x=pos.x+ux*travel-uy*sway,y=pos.y-height+uy*travel+ux*sway-15;
-  ctx.globalAlpha=.12+.25*(.5+.5*Math.sin(phase*3));
-  ctx.fillStyle=j%2?"#b9ebd1":"#f5e7ae";ctx.shadowColor="#d8f4b7";ctx.shadowBlur=6;
-  ctx.beginPath();ctx.arc(x,y,1.6+j%2*.5,0,TWO);ctx.fill();
-  if(j===2){ctx.globalAlpha=.14;ctx.fillRect(x-4,y-.4,8,.8);ctx.fillRect(x-.4,y-4,.8,8);}
- }
- ctx.restore();
+ const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y;
+ const sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy,len=Math.hypot(sx,sy);
+ if(len<52)return; // The glowing target is enough at close range.
+ const angle=Math.atan2(sy,sx),pos=project(P.x,P.y);
+ const step=Math.min(81,Math.max(35,len*.37));
+ const x=pos.x+Math.cos(angle)*step;
+ const y=pos.y-(P.jumpHeight||0)*.93*cameraZoom-12+Math.sin(angle)*step;
+ ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
+ ctx.font="900 29px 'Noto Sans JP',sans-serif";
+ ctx.lineWidth=5;ctx.strokeStyle="rgba(6,21,18,.95)";
+ ctx.strokeText("》",0,0);
+ ctx.globalAlpha=.75+.22*(.5+.5*Math.sin(elapsed*4));
+ ctx.fillStyle="#dbffcc";ctx.shadowColor="#d6ffc5";ctx.shadowBlur=10;
+ ctx.fillText("》",0,0);ctx.restore();
 }
 function drawThreatNames(){
  if(!P||mode!=="play")return;
@@ -2201,7 +2233,7 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
- drawGuideWisps();drawThreatNames();
+ drawObjectiveGlow();drawGuideWisps();drawThreatNames();
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
