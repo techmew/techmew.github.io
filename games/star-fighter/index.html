@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#050b19">
 <meta name="description" content="STAR FIGHTER — 8ステージ・大型ボス・装備強化の本格横スクロールシューティング。PC・スマートフォン対応。">
 <title>STAR FIGHTER | 横スクロールシューティング</title>
-<link rel="stylesheet" href="./style.css?v=ship-hull-v2-20261030-1">
+<link rel="stylesheet" href="./style.css?v=difficulty-select-20261031-1">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
 </head>
 <body>
 <div class="shell" id="shell">
-<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><button id="titleReturnBtn" class="small-btn system-btn" type="button">⌂ タイトル</button><button id="sidePauseBtn" class="small-btn system-btn" type="button">Ⅱ 一時停止</button><button id="fullscreenBtn" class="small-btn fullscreen-btn" type="button" aria-label="ゲームを全画面にする" aria-pressed="false">⛶ 最大化</button><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ BGM ON</button><button id="orientationBtn" class="small-btn orientation-btn" type="button" aria-label="縦横画面を切り替える">↻ 横へ</button></div></header>
+<header class="topline"><div class="brand"><span class="brand-symbol">✦</span><span>STAR <b>FIGHTER</b></span><em>ARCADE SHOOTER</em></div><div class="headright"><label class="difficulty-choice" for="difficultySelect"><span>難易度</span><select id="difficultySelect" aria-label="難易度を選択・プレイ中も変更できます"><option value="easy">イージー</option><option value="normal" selected>ノーマル</option><option value="hard">ハード</option></select></label><button id="titleReturnBtn" class="small-btn system-btn" type="button">⌂ タイトル</button><button id="sidePauseBtn" class="small-btn system-btn" type="button">Ⅱ 一時停止</button><button id="fullscreenBtn" class="small-btn fullscreen-btn" type="button" aria-label="ゲームを全画面にする" aria-pressed="false">⛶ 最大化</button><button id="soundBtn" class="small-btn" aria-label="サウンド切替">♫ BGM ON</button><button id="orientationBtn" class="small-btn orientation-btn" type="button" aria-label="縦横画面を切り替える">↻ 横へ</button></div></header>
 <div id="fullscreenHint" class="fullscreen-hint" role="status" aria-live="polite" hidden></div>
 <div class="play-layout" id="playLayout">
 <div class="touch-pad" id="touchPad" aria-label="ドラッグした距離だけ機体が移動するタッチパッド" role="group"><div class="touch-pad-center"><span class="touch-pad-glyph">✧</span><b>MOVE</b><small>細かく・素早くスワイプ</small></div></div>
@@ -35,7 +35,7 @@
 <div class="overlay" id="overlay">
  <div class="overlay-inner"><span class="eyebrow">NEW ARCADE EXPERIENCE / 2026</span><div class="title-mark" id="debugTrigger" role="button" tabindex="0" aria-label="STAR FIGHTER ロゴ"><span>STAR</span><strong>FIGHTER</strong></div><p class="subtitle">横スクロール・シューティング</p><div class="decor-line"><i></i><span>8 STAGES · 17 BOSS VARIANTS</span><i></i></div>
  <p class="intro">高速戦闘。装備進化。巨大戦艦との決戦。<br>シンプル操作で、撃ち抜く快感を。</p>
- <p class="quick-hint">左で機体移動・自動射撃 ／ 右はノヴァと手動強化<br>報酬と次の航路は飛行中に上下移動で選択</p>
+ <p class="quick-hint">左で機体移動・自動射撃 ／ 右はノヴァと手動強化<br>報酬と次の航路は飛行中に上下移動で選択<br>難易度は上部の「イージー／ノーマル／ハード」でいつでも変更できます</p>
  <div class="start-orientation"><button class="main-btn" id="startBtn" type="button">縦画面で開始 <span>▶</span></button><button class="main-btn mode-landscape" id="landscapeStartBtn" type="button">横画面で開始 <span>▶</span></button></div>
  <button class="continue-btn" id="continueBtn" type="button" hidden>CONTINUE ▶</button><button class="continue-btn" id="medalBtn" type="button" aria-label="獲得した記章を切り替える">記章 0/4 · 未解禁 ↻</button><button class="continue-btn trophy-open" id="trophyBtn" type="button" aria-label="300個のトロフィー図鑑を開く">トロフィー 0/300 · 一覧を見る</button><span class="continue-info" id="continueInfo" hidden></span>
  <section class="debug-panel" id="debugPanel" hidden aria-label="隠しデバッグメニュー">
@@ -84,7 +84,7 @@
  <div class="run-result-line"><b>航路</b><span id="resultRoutes">分岐なし</span></div>
  <div class="run-result-line"><b>報酬</b><span id="resultRewards">獲得なし</span></div>
  </section>
- <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾うと6色バーの点灯が1つ右へ進む。右の「強化」ボタンで点灯中の能力を強化し、メーターが空に戻る。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Zで点灯中の能力を強化、Pで一時停止。装備の選択操作は不要。</p><p>機体は耐久120で開始。被弾で減り、耐久0でゲームオーバー。敵を倒してSHIP LEVELを上げると最大耐久が増えます。残機はありません。</p><p>ゲームパッド：左スティック・十字キーで移動／Aで強化／Bでノヴァ／STARTで開始・一時停止・再開。接続後にボタンを押すとブラウザが認識します。</p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · PREVIEW / QA</p></div>
+ <details class="quick-help" id="quickHelp"><summary>操作を詳しく見る</summary><div class="quick-help-body"><p>移動：左タッチパッドをなぞる ／ PC：WASD・矢印キー。射撃は自動。</p><p>強化：カプセルを拾うと6色バーの点灯が1つ右へ進む。右の「強化」ボタンで点灯中の能力を強化し、メーターが空に戻る。拾うだけでは強化しない。</p><p>ノヴァ：右ボタン ／ PC：Space。60秒ごとに1回復。</p><p>ボス後：飛び続けながら報酬3択と進路2択を機体の上下位置で決める。</p><p>PC：Zで点灯中の能力を強化、Pで一時停止。装備の選択操作は不要。</p><p>機体は耐久120で開始。被弾で減り、耐久0でゲームオーバー。敵を倒してSHIP LEVELを上げると最大耐久が増えます。残機はありません。</p><p>ゲームパッド：左スティック・十字キーで移動／Aで強化／Bでノヴァ／STARTで開始・一時停止・再開。接続後にボタンを押すとブラウザが認識します。<p>難易度：画面上部のプルダウンからイージー・ノーマル・ハードをいつでも変更できます。次の面だけでなく今戦っているボスにも反映されます。</p></p></div></details><p class="credit">ORIGINAL BROWSER SHOOTER · PREVIEW / QA</p></div>
 </div>
 <div class="reward-panel" id="rewardPanel" aria-label="ステージクリア報酬を選択" role="group">
  <div class="reward-heading"><small id="rewardStage">SECTOR 01 CLEAR</small><strong>報酬を1つ選択</strong><span>選択後に次の航路へ</span><span class="passive-owned" id="passiveOwned" aria-live="polite">所持パッシブ：なし</span></div>
@@ -146,7 +146,7 @@
 <script src="./music.js?v=audio-arrangement-20261030-29"></script>
 <script src="./enemies_plus.js"></script>
 <script src="./trophies.js?v=trophies-20261030-1"></script>
-<script src="./game.js?v=boss-double-dynamic-enemies-20261031-2"></script>
+<script src="./game.js?v=stage-difficulty-easy-normal-hard-20261031-3"></script>
 <script src="./fullscreen.js"></script>
 </body>
 </html>
