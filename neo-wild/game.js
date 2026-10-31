@@ -2612,6 +2612,12 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
+ if(use3D&&P&&P.carry&&P.carry.amount>0){
+  const angle=P.dir||0;
+  const p=project(P.x+Math.cos(angle)*P.r*1.5,P.y+Math.sin(angle)*P.r*1.5);
+  ctx.save();ctx.fillStyle=P.carry.type==="berries"?"#c6ae7c":"#a47d65";
+  ctx.beginPath();ctx.ellipse(p.x,p.y-(P.jumpHeight||0)*cameraZoom*.9-12,11,6,angle,0,TWO);ctx.fill();ctx.restore();
+ }
  if(P&&pounceStreaks.length>=2){
   ctx.save();ctx.lineCap="round";
   for(let i=1;i<pounceStreaks.length;i++){
