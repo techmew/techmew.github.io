@@ -991,7 +991,7 @@ function drawCreature(o,isPlayer){
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
  oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
  if(isPlayer&&P.jumpHeight>floorZ)lift2D(P.jumpHeight-floorZ);
- if(isPlayer&&P.hidden)ctx.globalAlpha=.44;
+ if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
  ctx.rotate(o.dir||0);
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.085:t==="cat"?Math.abs(Math.sin(gait*1.46))*.028:t==="wolf"?Math.abs(Math.sin(gait*.62))*.017:Math.abs(Math.sin(gait*.9))*.045;
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
@@ -1244,6 +1244,33 @@ function guidancePoint(goal){
  guideCache={time:elapsed,px:P.x,py:P.y,gx:goal.x,gy:goal.y,point};
  return point;
 }
+// In Canvas2D, show clipped 25% silhouettes only behind projected building faces.
+function drawOccludedSilhouettes(entities){
+ for(const b of buildings){
+  if(!visible(b.x+b.w/2,b.y+b.h/2,Math.max(b.w,b.h)+180))continue;
+  const rise=b.roofZ||85+(b.kind%4)*17,offset=rise*.93*cameraZoom;
+  const ox=VIEW.c*offset/VIEW_DET,oy=-VIEW.a*offset/VIEW_DET;
+  const x=b.x,y=b.y,w=b.w,h=b.h,points=[];
+  for(const [dx,dy] of [[0,0],[w,0],[w,h],[0,h]])points.push([x+dx,y+dy],[x+dx+ox,y+dy+oy]);
+  points.sort((a,c)=>a[0]-c[0]||a[1]-c[1]);
+  const cross=(a,c,d)=>(c[0]-a[0])*(d[1]-a[1])-(c[1]-a[1])*(d[0]-a[0]);
+  const lower=[],upper=[];
+  for(const p of points){while(lower.length>1&&cross(lower.at(-2),lower.at(-1),p)<=0)lower.pop();lower.push(p);}
+  for(let k=points.length-1;k>=0;k--){const p=points[k];while(upper.length>1&&cross(upper.at(-2),upper.at(-1),p)<=0)upper.pop();upper.push(p);}
+  const hull=lower.slice(0,-1).concat(upper.slice(0,-1));if(hull.length<3)continue;
+  const behind=o=>screenDepth(o.x,o.y)<screenDepth(x+w/2,y+h)-2&&
+   Math.abs(o.x-(x+w/2))<w/2+350&&Math.abs(o.y-(y+h/2))<h/2+350&&
+   !(o===P&&(P.groundZ||0)>=rise-3&&P.x>=x&&P.x<=x+w&&P.y>=y&&P.y<=y+h);
+  const hiddenAnimals=entities.filter(behind),hiddenFood=carcasses.filter(o=>visible(o.x,o.y,45)&&behind(o));
+  if(!hiddenAnimals.length&&!hiddenFood.length)continue;
+  ctx.save();ctx.beginPath();ctx.moveTo(hull[0][0],hull[0][1]);
+  for(let k=1;k<hull.length;k++)ctx.lineTo(hull[k][0],hull[k][1]);
+  ctx.closePath();ctx.clip();ctx.globalAlpha*=.25;
+  for(const e of hiddenAnimals)drawCreature(e,e===P);
+  for(const food of hiddenFood)drawItem(food);
+  ctx.restore();
+ }
+}
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
@@ -1292,6 +1319,7 @@ function drawScene(){
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
+ drawOccludedSilhouettes(entities);
  }
  // Food is now depth-tested inside WebGL; do not paint it above buildings.
  for(const m of entities){
