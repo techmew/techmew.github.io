@@ -2046,6 +2046,15 @@ function drawDenBedding2D(){
  if(denStash>0){ctx.fillStyle="#bba27d";ctx.fillRect(16,12,Math.min(31,8+denStash*.1),7)}
  ctx.restore();
 }
+function drawCarriedFood2D(){
+ if(!P?.carry||P.carry.amount<=0)return;
+ const dir=P.dir||0,dx=Math.cos(dir),dy=Math.sin(dir);
+ ctx.save();ctx.translate(P.x+dx*P.r*1.45,P.y+dy*P.r*1.45);
+ ctx.rotate(dir);ctx.fillStyle=P.carry.type==="berries"?"#b4a16f":"#96735f";
+ ctx.beginPath();ctx.ellipse(0,0,Math.min(12,7+P.carry.amount*.10),5,0,0,TWO);ctx.fill();
+ ctx.fillStyle="#e2d9bf";ctx.beginPath();ctx.arc(7,0,2.5,0,TWO);ctx.fill();
+ ctx.restore();
+}
 function drawItem(c){
  const pulse=Math.sin(elapsed*3+(c.phase||0))*2;
  ctx.save();ctx.translate(c.x,c.y);
@@ -2564,6 +2573,7 @@ function drawScene(){
    ctx.fillStyle="#c8aa6f";ctx.fillRect(o.x-7,o.y-18,14,5);
   }else{
    drawCreature(o,o===P);
+   if(o===P)drawCarriedFood2D();
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
