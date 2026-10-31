@@ -391,7 +391,7 @@ function render(o){
       [b.x+b.w-92,b.y+b.h*.58,54,30]
     ])box(x,y,0,w,h,24,"#5b675a","#8e927a");
     box(door-half,b.y-3,0,2*half,6,3,"#9a8658","#d4c58a");
-    const reveal=interiorReveal==="1";
+    const reveal=!!P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92;
     if(!reveal)box(b.x,b.y,high,b.w,b.h,8,"#394b4a","#67766c");
     else{
      // Roof cutaway exposes animals and furniture after the player approaches.
