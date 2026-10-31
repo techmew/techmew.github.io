@@ -276,6 +276,37 @@ function foodMesh(c){
  }
 }
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
+// Lightweight location-specific 3D detail, decorative only.
+function landmarkMesh(site){
+ const x=site.x,y=site.y;animalLift=0;
+ if(site.id==="zoo"){
+  for(const s of [-1,1])for(let i=0;i<7;i++)box(x-130+i*42,y+s*105,0,5,7,68,"#84938a");
+  box(x-130,y-105,63,265,7,10,"#9d9d87");
+ }else if(site.id==="forest"){
+  for(let i=0;i<12;i++){
+   const a=i*TAU/12,tx=x+Math.cos(a)*185,ty=y+Math.sin(a)*185;
+   box(tx-5,ty-5,0,10,10,67,"#62543e");
+   pyramid(tx,ty,35,29,25,105,"#46774b");
+  }
+ }else if(site.id==="factory"){
+  for(let i=0;i<3;i++)box(x-130+i*108,y-115,0,35,35,120+i*18,"#76716b");
+  for(let i=0;i<3;i++)box(x-142+i*105,y+95,0,95,43,35,"#7c6559");
+ }else if(site.id==="canal"){
+  box(x-220,y-110,-1,440,220,1,"#386776");
+  for(const s of [-1,1])for(let i=0;i<6;i++)
+   box(x-215+i*85,y+s*115,0,6,6,32,"#9ca7a0");
+  box(x+70,y-30,1,110,44,14,"#8f8779");
+ }else if(site.id==="river"){
+  box(x-230,y-140,-1,460,280,1,"#3d6373");
+  box(x-180,y-16,1,360,32,8,"#909285");
+  for(let i=0;i<8;i++)ellipsoid(x+Math.cos(i*TAU/8)*214,y+Math.sin(i*TAU/8)*121,1,20,16,6,"#869087",0,7,4);
+ }else if(site.id==="ark"){
+  box(x-88,y-64,0,176,128,12,"#5b6764");
+  box(x-61,y-38,12,122,76,5,"#263e43");
+  for(let i=0;i<7;i++)box(x-57+i*18,y-35,17,5,70,3,"#8da49e");
+  box(x-105,y-75,0,20,27,96,"#88928d");box(x+85,y-75,0,20,27,96,"#88928d");
+ }
+}
 function terrain(w,roadsX,roadsY,isVisible){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
