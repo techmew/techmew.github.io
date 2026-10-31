@@ -1590,7 +1590,40 @@ function resetControls(){
  for(const id of ["attack-touch","dash-touch","jump-touch","action-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
-function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
+function fullScreen(){
+ if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().catch(()=>{});return}
+ try{screen.orientation?.unlock?.()}catch(e){}
+ document.exitFullscreen?.().catch(()=>{});
+}
+function updateRotationButton(){
+ const b=$("rotate-btn");
+ if(b)b.textContent=window.innerWidth>window.innerHeight?"縦画面に戻す":"横画面にする";
+}
+async function rotateScreen(){
+ const target=window.innerWidth>window.innerHeight?"portrait":"landscape";
+ const note=$("rotate-help");if(note)note.textContent="";
+ let enteredFullscreen=false;
+ try{
+  if(!screen.orientation?.lock)throw Error("orientation lock unavailable");
+  if(!document.fullscreenElement){
+   if(!document.documentElement.requestFullscreen)throw Error("fullscreen unavailable");
+   await document.documentElement.requestFullscreen();enteredFullscreen=true;
+  }
+  await screen.orientation.lock(target);
+  if(note)note.textContent=target==="portrait"?"縦画面に切り替えました":"横画面に切り替えました";
+  updateRotationButton();
+ }catch(e){
+  try{screen.orientation?.unlock?.()}catch(_){}
+  if(enteredFullscreen)try{await document.exitFullscreen?.()}catch(_){}
+  if(note)note.textContent="回転が制限されています。端末の自動回転をONにして回してください。";
+ }
+}
+document.addEventListener("fullscreenchange",()=>{
+ if(!document.fullscreenElement){try{screen.orientation?.unlock?.()}catch(e){}}
+ updateRotationButton();
+});
+window.addEventListener("resize",updateRotationButton);
+window.addEventListener("orientationchange",updateRotationButton);
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));sound(400,.08,"triangle",.025)}));
 $("start-btn").addEventListener("click",start);
 $("resume-btn").addEventListener("click",togglePause);
@@ -1599,6 +1632,8 @@ $("quit-btn").addEventListener("click",()=>{resetControls();mode="menu";$("world
 $("retry-btn").addEventListener("click",start);
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
+$("rotate-btn").addEventListener("click",rotateScreen);
+updateRotationButton();
 $("sound-btn").addEventListener("click",()=>{
  soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×";
  if(soundEnabled)startAmbient();
