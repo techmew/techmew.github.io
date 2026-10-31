@@ -298,16 +298,29 @@ function sound(f=350,d=.12,wave="triangle",vol=.035){
  }catch(e){}
 }
 function instinct(){
- if(mode!=="play"||P.instinctCD>0||P.sp<18)return;
- P.sp-=18;P.instinctCD=P.type==="wolf"?16:12;P.abilityTime=P.type==="cat"?3.2:4;
- if(P.type==="fox"){notify("急襲 / 次の噛みつきが強化");sound(660,.28,"sine",.04)}
- if(P.type==="cat"){P.dash=Math.min(P.dash,.25);notify("俊足 / 3秒間の加速と回避");sound(820,.19,"triangle",.04)}
- if(P.type==="wolf"){
+ if(mode!=="play"||!P||P.instinctCD>0||P.sp<18)return;
+ const level=P.level||1;P.sp-=18;
+ P.instinctCD=P.type==="wolf"?13:P.type==="fox"?9:8.5;
+ P.abilityTime=P.type==="cat"?3.4+Math.min(1.7,(level-1)*.18):P.type==="fox"?4.4+Math.min(1.8,(level-1)*.18):4+Math.min(1.2,(level-1)*.1);
+ if(P.type==="fox"){
+  P.noiseBurst=Math.max(P.noiseBurst,.85);
+  notify("狐・疾風！ 爆速で駆け抜けろ");
+  blood(P.x,P.y,"#e7ddae",10,70);sound(560,.24,"triangle",.033);
+ }else if(P.type==="cat"){
+  P.dash=Math.min(P.dash,.15);
+  notify("猫・壁際でジャンプを連打して三角飛び");
+  sound(840,.22,"triangle",.038);
+ }else if(P.type==="wolf"){
   P.noiseBurst=1.8;
-  for(const m of mobs){if(m.hp<=0||dist(P,m)>245||lineBlocked(P,m))continue;
-   if(m.type==="alpha"||m.type==="boar"){m.alert=Math.max(m.alert,1.4);continue}
-   m.flee=2.3;m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
-  blood(P.x,P.y,"#dce3db",16,140);notify("咆哮 / 周囲の小動物を威圧");sound(130,.36,"sawtooth",.07);
+  for(const m of mobs){
+   if(m.hp<=0||dist(P,m)>Math.min(420,255+(level-1)*18)||lineBlocked(P,m))continue;
+   if(m.type==="alpha"||m.type==="boar"){m.alert=Math.max(m.alert,1.8);continue}
+   m.flee=2.7;m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;
+   if(m.type==="dog")m.stun=Math.max(m.stun,.35);
+  }
+  blood(P.x,P.y,"#dce3db",19,145);
+  notify("狼・咆哮！ 次の突進で敵を引き倒せ");
+  sound(126,.40,"sawtooth",.075);
  }
 }
 function combatAim(maxTurn=.56,maxRange=105){
@@ -424,18 +437,66 @@ function kill(m){
  checkMission();
 }
 
+function catWallContact(){
+ if(!P||P.type!=="cat")return null;
+ let best=null,distance=Infinity;
+ for(let i=0;i<buildings.length;i++){
+  const b=buildings[i];
+  if(P.wallKicks>0&&P.wallKickLast===i)continue;
+  if((P.groundZ||0)>0&&roofAt(P.x,P.y)>0)continue;
+  const x=clamp(P.x,b.x,b.x+b.w),y=clamp(P.y,b.y,b.y+b.h);
+  let dx=P.x-x,dy=P.y-y,d=Math.hypot(dx,dy);
+  if(d>P.r+29||d>=distance)continue;
+  if(d<.001){
+   const edges=[[Math.abs(P.x-b.x),-1,0],[Math.abs(P.x-(b.x+b.w)),1,0],[Math.abs(P.y-b.y),0,-1],[Math.abs(P.y-(b.y+b.h)),0,1]];
+   edges.sort((a,b)=>a[0]-b[0]);dx=edges[0][1];dy=edges[0][2];d=1;
+  }
+  best={nx:dx/d,ny:dy/d,id:i};distance=d;
+ }
+ return best;
+}
+function catWallKick(){
+ if(!P||P.type!=="cat"||P.jumpTime<=0||P.wallKickLock>0||P.fallTime>0)return false;
+ const limit=Math.min(5,2+Math.floor((P.level-1)/2))+(P.abilityTime>0?1:0);
+ if(P.wallKicks>=limit)return false;
+ const wall=catWallContact(),cost=P.abilityTime>0?8:11;
+ if(!wall||P.sp<cost)return false;
+ const axes=getAxes(),want=Math.hypot(axes.x,axes.y);
+ const ux=want>.18?axes.x:Math.cos(P.dir),uy=want>.18?axes.y:Math.sin(P.dir);
+ const dot=ux*wall.nx+uy*wall.ny;
+ const tx=ux-dot*wall.nx,ty=uy-dot*wall.ny;
+ let vx=wall.nx*.79+tx*.85,vy=wall.ny*.79+ty*.85;
+ const mag=Math.hypot(vx,vy)||1;vx/=mag;vy/=mag;
+ if(!collides(P.x+wall.nx*5,P.y+wall.ny*5,P.r,P)){P.x+=wall.nx*5;P.y+=wall.ny*5;}
+ P.sp-=cost;P.wallKicks++;P.wallKickLast=wall.id;P.wallKickLock=.15;
+ P.wallKickTime=.43;P.wallKickDir=Math.atan2(vy,vx);P.dir=P.wallKickDir;
+ P.jumpFromHeight=Math.max(0,P.jumpHeight-(P.groundZ||0));
+ P.jumpPower=92+Math.min(32,(P.level-1)*4)+(P.abilityTime>0?20:0);
+ P.jumpDuration=.46;P.jumpTime=P.jumpDuration;
+ P.jumpRemaining=145+Math.min(85,(P.level-1)*10)+(P.abilityTime>0?42:0);
+ P.jumpSpeed=P.jumpRemaining/P.jumpDuration;P.jumpDir=P.wallKickDir;
+ P.jumpCD=.12;P.vx=0;P.vy=0;P.hidden=false;P.revealTimer=.9;
+ P.noiseBurst=Math.max(P.noiseBurst,.9);
+ blood(P.x,P.y,"#e4edc1",9,70);playEffect("jump");
+ if(P.wallKicks===1||P.wallKicks===limit)label(P.x,P.y-28,P.wallKicks===limit?"連続壁蹴り！":"三角飛び！","#dbf8c6");
+ return true;
+}
 function jump(){
- if(mode!=="play"||P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
+ if(mode!=="play"||!P)return false;
+ if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
+ if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
  const cat=P.type==="cat",wolf=P.type==="wolf",cost=cat?14:wolf?22:17;
  if(P.sp<cost){notify("持久力不足 / ジャンプできない");return false}
  const axis=getAxes(),moving=Math.hypot(axis.x,axis.y)>.18;
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
- const distance=cat?88:wolf?65:98;
- P.jumpDuration=cat?.41:wolf?.49:.45;
+ const distance=cat?109+Math.min(46,(P.level-1)*5):wolf?70:112;
+ P.jumpDuration=cat?.44:wolf?.49:.45;
  P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
+ P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:58;
  P.jumpRemaining=moving?distance:0;P.jumpSpeed=distance/P.jumpDuration;
  P.jumpDir=P.dir;P.jumpDive=false;P.jumpAmbush=P.hidden&&P.revealTimer<=0;
- P.jumpCD=cat?.74:wolf?1.25:.91;P.sp-=cost;
+ P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
+ P.jumpCD=cat?.56:wolf?1.16:.81;P.sp-=cost;
  P.vx=0;P.vy=0;
  P.hidden=false;P.revealTimer=.85;P.noiseBurst=Math.max(P.noiseBurst,.8);
  playEffect("jump");sound(cat?530:wolf?195:400,.13,"triangle",.012);
