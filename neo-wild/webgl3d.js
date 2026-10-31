@@ -110,6 +110,7 @@ function animal(m,player,clock){
  const moving=clamp(speed/95,0,1);
  const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
  const gait=Math.sin(phase)*moving;
+ const bodyBob=Math.abs(Math.sin(phase))*r*.17*moving,bodyDrive=Math.sin(phase)*r*.10*moving;
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
@@ -131,15 +132,15 @@ function animal(m,player,clock){
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
-  const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0));
+  const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0))+(k===s?1:-1)*gait*r*(cat?.34:fox?.29:wolf?.24:.22);
   const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
-  const bob=gait*(k===s?1:-1)*r*.13*moving+(player&&m.jumpTime>0?r*.18:0);
+  const bob=Math.max(0,gait*(k===s?1:-1))*r*.29*moving+(player&&m.jumpTime>0?r*.18:0);
   const pawLift=front?foreDrive(s,attackReach)*r*(cat?.34:fox?.20:.13):(rushPose===4?attackReach*r*.27:0);
   const legHeight=fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38;
   // Keep the bottom of each paw on or above its walkable surface.
   ellipsoid(fx(dx,dy),fy(dx,dy),legHeight+Math.max(0,bob)+pawLift,fox?r*.16:cat?r*.17:rabbit?(front?r*.15:r*.28):r*.21,fox?r*.14:cat?r*.14:rabbit?(front?r*.15:r*.24):r*.19,legHeight,large?"#465158":fox?"#372f2a":cat?"#89968b":base,dir,7,4);
  }
- ellipsoid(fx(r*(attackReach*.16-attackPrep*.16),0),fy(r*(attackReach*.16-attackPrep*.16),0),h+r*.28-attackPrep*r*.11+attackReach*r*.09,
+ ellipsoid(fx(r*(attackReach*.16-attackPrep*.16)+bodyDrive,0),fy(r*(attackReach*.16-attackPrep*.16)+bodyDrive,0),h+r*.28-attackPrep*r*.11+attackReach*r*.09+bodyBob,
   large?r*1.22:fox?r*1.15:cat?r*1.04:rabbit?r*.91:type==="dog"?r*1.08:rat?r*.76:pigeon?r*.72:r*.91,
   fox?r*.42:cat?r*.40:rabbit?r*.53:type==="dog"?r*.58:rat?r*.40:pigeon?r*.46:r*.69,
   large?r*.69:fox?r*.46:cat?r*.43:rabbit?r*.52:type==="dog"?r*.58:r*.55,torso,dir,11,6);
@@ -159,7 +160,7 @@ function animal(m,player,clock){
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
  const headDrive=r*(attackReach*((rushPose===1||rushPose===2)?.12:rushPose===4?.08:cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
- const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
+ const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive+bodyDrive*.75,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49,headR,headR*.80,headR*.83,torso,dir,9,5);
  if(fox||cat||wolf||rabbit||rat){
   for(const side of [-1,1]){
@@ -295,7 +296,7 @@ function render(o){
    const sx=vw/2+VIEW.a*dx+VIEW.c*dy,sy=vh/2+VIEW.b*dx+VIEW.d*dy;
    return sx>-margin&&sx<vw+margin&&sy>-margin&&sy<vh+margin;
   };
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,WORLD.w,WORLD.h].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD);
    for(const b of buildings){
@@ -327,6 +328,29 @@ function render(o){
     }
    }
    }
+   // Abandoned traffic has real 3D depth and matches the fallback drawings.
+   for(const prop of o.streetProps||[]){
+    if(!isVisible(prop.x,prop.y,150))continue;
+    const x=prop.x,y=prop.y;
+    if(prop.type==="car"){
+     const horiz=Math.abs(prop.dir)<.5,w=horiz?70:38,h=horiz?38:70;
+     box(x-w/2,y-h/2,2,w,h,16,prop.seed%2?"#7d6b60":"#63726c","#88928b");
+     box(x-w*.24,y-h*.34,18,w*.48,h*.68,17,"#50646b","#6a8080");
+     for(const side of [-1,1])for(const back of [-1,1])
+      box(x+side*w*.34-6,y+back*h*.44-6,0,12,12,12,"#1e282b","#363c3a");
+    }else if(prop.type==="bicycle"){
+     for(const side of [-1,1])box(x+side*13-7,y-6,1,14,12,13,"#34403f","#778986");
+     box(x-16,y-2,10,32,4,5,"#9aab9e","#aebfb1");
+    }else if(prop.type==="vending"){
+     box(x-14,y-10,1,28,20,42,"#885b53","#b57960");
+     box(x-11,y-11,15,21,4,21,"#acc4bd","#d6d6c3");
+    }else if(prop.type==="barrier"){
+     box(x-19,y-4,3,38,8,13,"#c59e6c","#ebc288");
+    }else{
+     box(x-2,y-2,0,4,4,43,"#52655f","#8e9585");
+     box(x-13,y-3,28,26,6,19,"#67817a","#a2aca0");
+    }
+   }
    const staticVertices=new Float32Array(data);
    gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
    gl.bufferData(gl.ARRAY_BUFFER,staticVertices,gl.STATIC_DRAW);
@@ -338,6 +362,15 @@ function render(o){
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
+  for(const bird of o.birdFlocks||[]){
+   if(!isVisible(bird.x,bird.y,170))continue;
+   const x=bird.x,y=bird.y,z=bird.z||55,c=Math.cos(bird.dir),s=Math.sin(bird.dir);
+   const wing=Math.sin(bird.wing)*11,colorWing=color(bird.type==="crow"?"#243036":"#91a19b");
+   const pt=(dx,dy,dz)=>[x+dx*c-dy*s,y+dx*s+dy*c,z+dz];
+   triangle(pt(-7,-2,0),pt(6,0,1),pt(-13,-19,wing),colorWing);
+   triangle(pt(-7,2,0),pt(6,0,1),pt(-13,19,-wing),colorWing);
+   ellipsoid(x,y,z,8,3,3,bird.type==="crow"?"#293537":"#a5b1a9",bird.dir,6,3);
+  }
   const playerFirst=data.length/9;
   if(P)animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
   const playerEnd=data.length/9;
