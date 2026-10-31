@@ -257,7 +257,7 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;discoveredSites=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -296,7 +296,7 @@ function currentSnapshot(){
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
-  mobs,carcasses,plants,debris,birdFlocks,discoveredSites
+  mobs,carcasses,plants,debris,birdFlocks,discoveredSites,ecology,ecologyClock,ecologyNews
  };
 }
 function saveAuto(){
@@ -358,6 +358,16 @@ function restoreSnapshot(snapshot){
  plants=snapshot.worldVersion===2?snapshot.plants:snapshot.plants.concat(expandedPlants);
  debris=snapshot.worldVersion===2?snapshot.debris:snapshot.debris.concat(expandedDebris);
  discoveredSites=Array.isArray(snapshot.discoveredSites)?snapshot.discoveredSites.filter(id=>EXPLORE_SITES.some(s=>s.id===id)):[];
+ ecology=Array.isArray(snapshot.ecology)&&snapshot.ecology.length===8?snapshot.ecology.map((e,i)=>({
+  prey:clamp(Number(e?.prey)||initialEcology()[i].prey,4,86),
+  predators:clamp(Number(e?.predators)||initialEcology()[i].predators,3,31),
+  food:clamp(Number(e?.food)||55,10,94),
+  pressure:clamp(Number(e?.pressure)||0,0,5),
+  dominance:clamp(Math.floor(Number(e?.dominance)||0),0,2),
+  events:clamp(Math.floor(Number(e?.events)||0),0,9999)
+ })):initialEcology();
+ ecologyClock=clamp(Number(snapshot.ecologyClock)||0,0,14.99);
+ ecologyNews=typeof snapshot.ecologyNews==="string"?snapshot.ecologyNews.slice(0,100):"生態系は変化し続けている";
  if(Array.isArray(snapshot.birdFlocks)&&snapshot.birdFlocks.length<=30)birdFlocks=snapshot.birdFlocks;
  cameraYaw=Number.isFinite(snapshot.camera?.yaw)?snapshot.camera.yaw:0;
  cameraZoom=clamp(Number.isFinite(snapshot.camera?.zoom)?snapshot.camera.zoom:.8,.47,1.6);
@@ -948,7 +958,7 @@ function update(dt){
    bird.dir+=Math.PI*.8;bird.x=clamp(bird.x,20,WORLD.w-20);bird.y=clamp(bird.y,20,WORLD.h-20);
   }
  }
- elapsed+=dt;day=1+Math.floor(elapsed/85);
+ elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
@@ -1288,8 +1298,10 @@ function drawWorldMap(){
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
  bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
- const area=districts[regionAt(P.x,P.y)];
- $("map-place").textContent="現在地："+area+"　探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+"　巣まで約"+Math.round(dist(P,SAFE_DEN))+"　縄張り "+territoryOwned()+"/3";
+ const zone=regionAt(P.x,P.y),area=districts[zone],eco=ecology[zone];
+ $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
+ "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
+ "｜"+ecologyNews;
 }
 function toggleWorldMap(){
  if(mode==="play"){
