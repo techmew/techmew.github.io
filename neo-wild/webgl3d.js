@@ -135,7 +135,7 @@ function animal(m,player,clock){
  // Shadow is projected to the walkable roof when standing on one.
  const contactZ=player?Math.max(0,m.groundZ||0):0;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
- animalLift=player?Math.max(0,m.jumpHeight||0):0;
+ animalLift=player?Math.max(0,m.jumpHeight||0):Math.max(0,m.evadeHeight||0); // NPC feet and body rise during a real emergency leap.
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
