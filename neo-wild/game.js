@@ -135,7 +135,7 @@ function generateWorld(){
 }
 function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
-function show(id){for(const key of ["menu","pause","result","upgrade","title-confirm"])$(key).classList.toggle("hidden",key!==id)}
+function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
 function start(){
  mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
@@ -1560,7 +1560,7 @@ function keyDown(e){
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
- if(k==="escape"&&mode==="title-confirm")cancelReturnToTitle();else if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
+ if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();if(k==="-"||k==="_")adjustZoom(-.13);if(k==="="||k==="+")adjustZoom(.13);
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
@@ -1581,26 +1581,11 @@ function resetControls(){
  for(const id of ["attack-touch","dash-touch","jump-touch","action-touch"])$(id).classList.remove("down");
 }
 function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
-function requestReturnToTitle(){
- if(mode!=="play")return;
- resetControls();mode="title-confirm";show("title-confirm");
-}
-function cancelReturnToTitle(){
- if(mode!=="title-confirm")return;
- mode="play";show("");
-}
-function returnToTitle(){
- if(mode!=="title-confirm"&&mode!=="pause"&&mode!=="over"&&mode!=="clear")return;
- resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu");
-}
 function fullScreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().then(()=>{try{screen.orientation.lock("landscape").catch(()=>{})}catch(e){}}).catch(()=>{})}else document.exitFullscreen?.().catch(()=>{})}
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));sound(400,.08,"triangle",.025)}));
 $("start-btn").addEventListener("click",start);
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
-$("title-btn").addEventListener("click",requestReturnToTitle);
-$("title-cancel").addEventListener("click",cancelReturnToTitle);
-$("title-confirm-yes").addEventListener("click",returnToTitle);
 $("quit-btn").addEventListener("click",()=>{resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
 $("retry-btn").addEventListener("click",start);
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
