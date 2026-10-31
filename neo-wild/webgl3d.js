@@ -260,11 +260,29 @@ function vegetation(p,clock,player=null){
  }
 }
 // Food shares depth with terrain, buildings and animals.
-function foodMesh(c){
- const r=Math.max(6,Math.min(16,c.r||9));
+function foodMesh(c,species){
+ const r=Math.max(6,Math.min(24,c.r||9));
  animalLift=0;
- ellipsoid(c.x+2,c.y+4,1.4,r*1.5,r*.82,1.3,"#243027",0,8,3);
- if(c.type==="meat"){
+ ellipsoid(c.x+2,c.y+4,1.4,r*1.5,r*.82,1.3,"#243027",0,7,3);
+ if(c.type==="corpse"||c.type==="bones"){
+  const fraction=c.type==="bones"?0:clamp(c.amount/Math.max(1,c.initialAmount||c.amount),0,1);
+  const angle=c.phase||0,cs=Math.cos(angle),sn=Math.sin(angle);
+  const p=(x,y)=>[c.x+x*cs-y*sn,c.y+x*sn+y*cs];
+  // Pale spine and ribs remain visible as the food is consumed.
+  ellipsoid(c.x,c.y,3,r*.95,r*.14,1.8,"#cbc8b4",angle,7,3);
+  for(let i=0;i<3;i++)for(const side of [-1,1]){
+   const [x,y]=p((-0.5+i*.45)*r,side*r*.39);
+   ellipsoid(x,y,2.8,r*.12,r*.38,1.5,"#c8c3ad",angle+side*.18,6,3);
+  }
+  const [hx,hy]=p(r*.95,0);
+  ellipsoid(hx,hy,3.6,r*.32,r*.29,r*.22,"#e0dac2",angle,7,3);
+  if(fraction>0){
+   const fur=species?.[c.animalType]?.color||"#a58c76";
+   const [bx,by]=p(-r*.12,-r*.08);
+   ellipsoid(bx,by,4.2,r*(.4+.66*fraction),r*(.25+.40*fraction),r*(.20+.13*fraction),fur,angle,9,4);
+   ellipsoid(hx,hy,4.3,r*.39,r*.28,r*.26,fur,angle,7,3);
+  }
+ }else if(c.type==="meat"){
   ellipsoid(c.x,c.y,4.2,r*1.03,r*.70,3.8,"#a85149",-.24,10,5);
   ellipsoid(c.x+r*.70,c.y-r*.16,4.4,r*.42,r*.20,1.4,"#d6b2a2",-.24,7,3);
   ellipsoid(c.x+r*1.05,c.y-r*.18,4.8,r*.18,r*.21,2.0,"#eee2c6",0,7,3);
@@ -461,7 +479,7 @@ function render(o){
   data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,P);
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
-  for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c);
+  for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
   for(const bird of o.birdFlocks||[]){
    if(!isVisible(bird.x,bird.y,170))continue;
