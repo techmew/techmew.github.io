@@ -22,7 +22,7 @@ const species={
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
-let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},guardTouch=false,heldDash=false,navPlansThisFrame=0,huntTarget=null;
+let soundEnabled=true,audio=null,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
@@ -89,7 +89,7 @@ function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).cl
 function start(){
  mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);
-  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,guarding:false,guardFreshUntil:-1,guardCooldown:0,counterWindow:0,counterStrike:false,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false};
+  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -255,31 +255,6 @@ function contextAction(longPress=false){
  if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return;}
  notify(home?"巣に食料を持ち帰ろう":"食料や巣の近くで△を押す");
 }
-function beginGuard(){
- if(mode!=="play"||!P||P.sp<=5)return;
- interruptRush();P.guarding=true;P.guardFreshUntil=elapsed+.15;P.counterWindow=0;
-}
-function endGuard(){if(!P)return;P.guarding=false;P.guardFreshUntil=-1}
-function guardedDamage(m,raw){
- P.lastCombatAt=elapsed;
- const angle=Math.atan2(m.y-P.y,m.x-P.x);
- const facing=Math.atan2(Math.sin(angle-P.dir),Math.cos(angle-P.dir));
- if(P.guarding&&P.sp>=9&&Math.abs(facing)<1.13){
-  if(P.guardFreshUntil>=elapsed&&P.guardCooldown<=0&&P.sp>=12){
-   P.sp-=12;P.guardFreshUntil=-1;P.guardCooldown=.65;P.counterWindow=.65;
-   m.windup=0;m.chargeTime=0;m.swing=0;
-   m.stun=Math.max(m.stun,m.type==="alpha"?.30:m.type==="boar"?.40:.52);
-   m.attack=Math.max(m.attack,.35);
-   label(P.x,P.y-35,"ジャストガード！","#b8ffdc");
-   label(m.x,m.y-m.r-20,"反撃の隙！","#b8ffdc");
-   sound(690,.13,"triangle",.04);
-   return 0;
-  }
-  P.sp-=9;label(P.x,P.y-35,"ガード","#a6f5d8");
-  return Math.max(1,Math.ceil(raw*.35));
- }
- return raw;
-}
 const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
 function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
@@ -313,7 +288,7 @@ function attack(){
 }
 function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
- P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;P.counterStrike=false;
+ P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
  mobs.forEach(m=>{
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
@@ -1392,7 +1367,7 @@ function keyDown(e){
  if(e.repeat&&["shift","q","p","escape","f","l","m","g","h"].includes(k))return;
  const alreadyHeld=keys.has(k);
  if(mode==="play")keys.add(k);
- if(k==="v"&&!alreadyHeld)beginGuard();
+ 
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
@@ -1403,7 +1378,7 @@ document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e
 window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
 function resetControls(){
- keys.clear();guardTouch=false;if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;
+ keys.clear();if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
  // A released first finger must not leave a second held action stuck after pause/map.
  for(const [id,pointers] of activeTouchPointers){
