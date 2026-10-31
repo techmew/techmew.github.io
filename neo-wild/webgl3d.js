@@ -7,7 +7,7 @@
 const canvas=document.getElementById("scene3d");
 if(!canvas){window.Wild3D={available:false};return;}
 let gl;
-try {gl=canvas.getContext("webgl",{alpha:false,depth:true,antialias:true,premultipliedAlpha:false});}catch(_){}
+try {gl=canvas.getContext("webgl",{alpha:false,depth:true,stencil:true,antialias:true,premultipliedAlpha:false});}catch(_){}
 if(!gl){canvas.style.display="none";window.Wild3D={available:false};return;}
 const vertex=String.raw`
 attribute vec3 aPosition;
@@ -335,11 +335,13 @@ function render(o){
   }
   data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed);
+  const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
   const playerFirst=data.length/9;
   if(P)animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
   const playerEnd=data.length/9;
+  const ghostEnd=playerEnd;
   const vertices=new Float32Array(data);
   gl.useProgram(program);
   gl.uniform2f(ucenter,cam.x+vw/2,cam.y+vh/2);
@@ -359,6 +361,18 @@ function render(o){
   bindAttributes(buffer);
   gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
   dynamicCount=vertices.length/9;
+  // Occluded silhouettes are drawn once per pixel behind static architecture.
+  // Stencil prevents overlapping body triangles from accumulating alpha.
+  if(ghostEnd>ghostStart&&gl.getContextAttributes()?.stencil){
+   gl.clearStencil(0);gl.stencilMask(0xff);gl.clear(gl.STENCIL_BUFFER_BIT);
+   gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.EQUAL,0,0xff);
+   gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);
+   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+   gl.depthFunc(gl.GREATER);gl.depthMask(false);gl.uniform1f(ualpha,.25);
+   gl.drawArrays(gl.TRIANGLES,ghostStart,ghostEnd-ghostStart);
+   gl.disable(gl.STENCIL_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);
+   gl.disable(gl.BLEND);gl.uniform1f(ualpha,1);
+  }
   if(playerFirst)gl.drawArrays(gl.TRIANGLES,0,playerFirst);
   if(P&&playerEnd>playerFirst){
    if(P.hidden){
