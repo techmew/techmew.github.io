@@ -2168,6 +2168,39 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
     existingEnemyRecalibration:true,checkpointRestore:true,
     easyBoss,normalBoss:bossHP,hardBoss,easyEnemy:easyFoe,normalEnemy:foeHP,hardEnemy:hardFoe};
  }
+
+ // Full-speed simulated fights show Easy < Normal < Hard in actual collision logic.
+ {
+  const stages=[0,7],modes=['easy','normal','hard'],results=[];
+  for(const stage of stages)for(const mode of modes){
+   G.mode='playing';G.debugMode=false;G.debugBossOnly=false;
+   G.stage=stage;G.routeRisk=stage===7?1:0;G.routeHistory=[];G.activeEvent=null;G.forcedBossVariant=null;
+   G.shipLevel=25;G.levels=[2,3,2,2,3,3];G.passives=[2,2,2,2,2,2];G.overdrive=8;
+   G.player.hp=312;G.player.maxHp=312;G.player.invul=999;G.player.shield=5;
+   G.boss=null;G.bossDone=false;G.transitioning=false;G.terrain=null;G.pendingWave=null;
+   G.enemies=[];G.shots=[];G.bullets=[];G.pickups=[];G.particles=[];G.rings=[];
+   G.spawn=999;G.fireTimer=0;G.missileTimer=0;G.runSeed=20261031;G.stageTime=10;
+   q.setDifficulty(mode);q.spawnBoss();const b=G.boss,initial=b.maxHp;b.x=930;b.entryReady=true;b.fire=.85;
+   G.player.x=G.player.targetX=650;G.player.y=G.player.targetY=337;
+   G.trail=Array.from({length:150},()=>({x:650,y:337}));
+   let frames=0;
+   for(;frames<10800&&G.boss;frames++){
+    G.player.y=G.player.targetY=G.boss.y;
+    q.update(1/60);
+   }
+   ok(!G.boss&&frames/60>=8,'difficulty boss remains beatable in frame simulation '+stage+'/'+mode);
+   results.push({stage:stage+1,mode,hp:initial,seconds:Number((frames/60).toFixed(2))});
+  }
+  for(const stage of [1,8]){
+   const list=results.filter(x=>x.stage===stage);
+   ok(list[0].hp<list[1].hp&&list[1].hp<list[2].hp,
+      'boss HP strictly increases Easy to Hard sector '+stage);
+   ok(list[0].seconds<list[1].seconds&&list[1].seconds<list[2].seconds,
+      'real frame kill time strictly increases Easy to Hard sector '+stage);
+  }
+  q.setDifficulty('normal');
+  stats.difficultyFrameCombat={scenes:6,simulatedFPS:60,pilotInvincible:true,results};
+ }
  assert(stats.types.size>=13,'too few wave variants');
  return {...stats,types:stats.types.size,uniqueSeeds:seeds.length,audioStarts:audioStats.starts,
   seedRange:[seeds[0].toString(16),seeds[99].toString(16)]};
