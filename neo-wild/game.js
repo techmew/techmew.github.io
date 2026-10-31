@@ -694,8 +694,11 @@ function combatEngaged(){
   (species[m.type].prey?dist(P,m)<P.r+m.r+70:
    dist(P,m)<240&&(m.alert>0||m.windup>0||m.chargeTime>0)));
 }
+function edibleFood(c){return c&&c.type!=="bones"&&Number(c.amount)>0}
+function animalRemains(m){const n=species[m.type].food;return {x:m.x,y:m.y,r:Math.max(9,m.r*.78),type:"corpse",animalType:m.type,amount:n,initialAmount:n,ttl:150,phase:rnd(0,6)};}
+function toBones(c){c.type="bones";c.amount=0;c.ttl=150;}
 function nearbyFood(){
- return carcasses.some(f=>dist(P,f)<65&&!lineBlocked(P,f));
+ return carcasses.some(f=>edibleFood(f)&&dist(P,f)<65&&!lineBlocked(P,f));
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
@@ -796,7 +799,7 @@ function resolveAttack(){
 }
 function kill(m){
  kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
- carcasses.push({x:m.x,y:m.y,r:Math.max(9,m.r*.78),amount:species[m.type].food,type:"meat",ttl:42,phase:rnd(0,6)});
+ carcasses.push(animalRemains(m));
  P.xp+=species[m.type].xp;
  label(m.x,m.y-50,"+"+species[m.type].xp+" DNA","#9aeac7");
  if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");playEffect("level")}
@@ -953,10 +956,10 @@ function carryFood(){
  let selected=null,nearest=65;
  for(const f of carcasses){
   const d=dist(P,f);
-  if(d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
+  if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
  }
  if(!selected){notify("運べる食料が近くにない");return false}
- P.carry={type:selected.type,amount:selected.amount};
+ P.carry={type:selected.type,animalType:selected.animalType||null,amount:selected.amount};
  carcasses.splice(carcasses.indexOf(selected),1);
  notify("食料を確保 "+Math.round(P.carry.amount)+" / 休息地へ運ぼう");
  syncHUD();return true;
@@ -965,10 +968,12 @@ function eat(){
  if(mode!=="play")return;
  if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0){notify("着地してから食べる");return;}
  let c=null,near=65;
- for(const f of carcasses){const d=dist(P,f);if(d<near&&!lineBlocked(P,f)){near=d;c=f}}
+ for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食べ物が近くにない");return}
- P.hunger=clamp(P.hunger+c.amount,0,100);P.hp=clamp(P.hp+(c.type==="meat"?8:3),0,P.maxHp);meals++;
- carcasses.splice(carcasses.indexOf(c),1);label(P.x,P.y-30,"+"+c.amount+" FOOD","#bfe89e");
+ const bite=c.type==="corpse"?Math.min(12,c.amount):c.amount;
+ P.hunger=clamp(P.hunger+bite,0,100);P.hp=clamp(P.hp+((c.type==="meat"||c.type==="corpse")?Math.min(8,bite*.5):3),0,P.maxHp);meals++;
+ if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c)}else carcasses.splice(carcasses.indexOf(c),1);
+ label(P.x,P.y-30,"+"+bite+" 食料","#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();
 }
 // Four tutorial chapters, three survival goals and an endless free-exploration loop.
@@ -1047,7 +1052,7 @@ function getObjective(){
  if(mission===6){const site=nearestGoal(EXPLORE_SITES.filter(site=>!discoveredSites.includes(site.id)));return site?{x:site.x,y:site.y,label:"未発見の探索地点"}:null;}
  const findFood=mission===0||(mission===7&&freeStep===0);
  if(findFood){
-  const f=nearestGoal(carcasses.filter(q=>q.ttl>0));
+  const f=nearestGoal(carcasses.filter(q=>q.ttl>0&&edibleFood(q)));
   return f?{x:f.x,y:f.y,label:"食料を取る / △・E"}:null;
  }
  // Keep one visible hunting objective until it is lost, killed, or truly far away.
@@ -1574,7 +1579,7 @@ function update(dt){
       nearest.flee=1.8;nearest.dir=Math.atan2(nearest.y-m.y,nearest.x-m.x);
       if(nearest.hp<=0){
        nearest.hp=0;
-       carcasses.push({x:nearest.x,y:nearest.y,r:10,amount:species[nearest.type].food,type:"meat",ttl:140,phase:0});
+       carcasses.push(animalRemains(nearest));
        const zone=regionAt(nearest.x,nearest.y);
        ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
       }
@@ -1665,7 +1670,7 @@ function update(dt){
    }
  }
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0)mobs.splice(i,1); // Only dead animals are removed.
- for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0)carcasses.splice(i,1);
+ for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0){if(carcasses[i].type==="corpse")toBones(carcasses[i]);else carcasses.splice(i,1)}
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
  for(let i=popups.length-1;i>=0;i--){popups[i].life-=dt;popups[i].y-=28*dt;if(popups[i].life<=0)popups.splice(i,1)}
  spawnTimer+=dt;
@@ -1785,7 +1790,7 @@ function drawWorldMap(){
  bm.fillText("巣 LV"+denLevel,X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
  bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
  // Show nearby resources and predators, not every hidden creature in Tokyo.
- for(const q of carcasses)if(q.ttl>0&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
+ for(const q of carcasses)if(q.ttl>0&&edibleFood(q)&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
  for(const m of mobs)if(m.hp>0&&dist(P,m)<650){
    if(species[m.type].prey){if(dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
    else mark(m.x,m.y,"#eb847b",4);
