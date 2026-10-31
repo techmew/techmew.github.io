@@ -88,7 +88,7 @@ function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).cl
 function start(){
  mode="play";show("");cameraYaw=0;cameraZoom=1;updateCameraView();$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);
-  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,guarding:false,lastCombatAt:-100};
+  const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,guarding:false,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
  for(let i=0;i<WILDLIFE.initial;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
@@ -270,11 +270,19 @@ function guardedDamage(m,raw){
  }
  return raw;
 }
+const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
+function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
+function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
+function interruptRush(){resetRush();P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
 function attack(){
- if(mode!=="play"||P.atk>0||P.pendingStrike||guardTouch||keys.has("v"))return;
- const cost=P.type==="wolf"?17:P.type==="cat"?9:12;
- if(P.sp<cost){P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
- P.lastCombatAt=elapsed;P.sp-=cost;P.atk=P.rate;P.windup=Math.min(.15,P.rate*.38);P.pendingStrike=true;
+ if(mode!=="play"||guardTouch||keys.has("v"))return;
+ if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
+ const step=nextRushStep(P.rushStep,P.rushWindow);
+ const cost=RUSH_COST[step];
+ if(P.sp<cost){resetRush();P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
+ P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;P.rushActiveStep=step;P.rushQueued=false;
+ P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
+ P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
   P.jumpDive=P.jumpTime>0;
   P.ambushStrike=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
@@ -298,14 +306,14 @@ function resolveAttack(){
  mobs.forEach(m=>{
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
-  const reach=P.type==="wolf"?55:P.type==="cat"?39:51;
+  const reach=(P.type==="wolf"?55:P.type==="cat"?39:51)+(P.rushActiveStep===5?18:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
   // Claws cannot pass through solid buildings, even at a diagonal corner.
   if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1)*(dive?1.4:1);
-   const damage=Math.round(P.damage*bonus*rnd(.86,1.16));m.hp-=damage;
+   const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
    // Ordinary repeated bites cannot indefinitely stun-lock a predator.
@@ -320,7 +328,7 @@ function resolveAttack(){
    if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
-   const knock=P.type==="wolf"?17:P.type==="cat"?3:8;
+   const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0);
    move(m,Math.cos(theta)*knock,Math.sin(theta)*knock);
    if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
    if(m.hp<=0)kill(m);
@@ -328,6 +336,7 @@ function resolveAttack(){
  });
  if(hit){shake=P.jumpDive?6:4;flash=.1;sound(130,.12,"sawtooth",.035)}else sound(290,.09,"triangle",.024);
  P.jumpDive=false;P.jumpAmbush=false;
+ if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
  kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
@@ -546,7 +555,9 @@ function update(dt){
   P.jumpHeight=(P.groundZ||0)+(P.fallFromZ-(P.groundZ||0))*part*part;
   if(P.fallTime===0&&P.pendingStrike&&P.jumpDive)resolveAttack();
  }
- P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
+ P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
+ if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
+ if((guardTouch||keys.has("v"))&&P.rushWindow>0)resetRush();
  P.guarding=(guardTouch||keys.has("v"))&&P.sp>5&&P.jumpTime<=0&&P.pounceTime<=0&&!P.pendingStrike;
  P.sp=clamp(P.sp+(P.guarding?-22:17)*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt,0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
@@ -683,7 +694,7 @@ function update(dt){
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
        const damage=guardedDamage(m,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
-       P.hp-=damage;P.inv=.42;shake=9;flash=.23;
+       P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);sound(90,.2,"sawtooth",.08);
       }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
@@ -705,7 +716,7 @@ function update(dt){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
       const damage=guardedDamage(m,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
-      P.hp-=damage;P.inv=.52;shake=11;flash=.27;
+      P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
       blood(P.x,P.y,"#eb6356",15,150);sound(90,.24,"sawtooth",.09);
      }else label(P.x,P.y-35,"無傷","#a6f5d8");
@@ -964,6 +975,9 @@ function drawCreature(o,isPlayer){
  const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
  const attackCharge=!isPlayer&&(t==="boar"||t==="alpha")?clamp((o.chargeTime||0)/(t==="alpha"?.24:.36),0,1)*.55:0;
  const attackReach=Math.max(attackSnap,attackCharge)+attackLeap;
+ const rushPose=isPlayer&&(o.pendingStrike||o.swing>0)?(o.rushActiveStep||0):0;
+ const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.15:rushPose===4?attackReach*.06:rushPose===5?attackReach*.62:base;
+ const hindDrive=side=>rushPose===4?-attackReach*(side<0?.78:.22):0;
  const stride=t==="cat"?1.46:t==="fox"?1.08:t==="wolf"?.62:.9;
  const pace=Math.sin(gait*stride)*r*(t==="cat"?.19:t==="fox"?.15:t==="wolf"?.09:.12)*motion;
  const tailSway=Math.sin(gait*(t==="cat"?.88:t==="fox"?.55:.62))*r*(t==="cat"?.29:t==="fox"?.19:.15)*motion;
@@ -1046,8 +1060,8 @@ function drawCreature(o,isPlayer){
   ctx.strokeStyle=fur;ctx.lineWidth=r*.18;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68+tailSway,-r*2.25,-r*.26+tailSway);ctx.stroke();
   for(const sign of [-1,1]){
-   oval(-r*.44,sign*r*.48+pace*sign,r*.2,r*.28,fur);
-   oval(r*(.36+attackReach*(sign<0?1:.52)),sign*r*(.44-attackReach*.10)-pace*sign,r*.19,r*.27,fur);
+   oval(r*(-.44+hindDrive(sign)),sign*r*.48+pace*sign,r*.2,r*.28,fur);
+   oval(r*(.36+foreDrive(sign,attackReach*(sign<0?1:.52))),sign*r*(.44-attackReach*.10)-pace*sign,r*.19,r*.27,fur);
   }
   oval(-r*.14,0,r*.96,r*.42,fur);
   for(const q of [-.42,-.06,.3]){
@@ -1069,7 +1083,7 @@ function drawCreature(o,isPlayer){
   ctx.bezierCurveTo(-r*2.9,r*.15+tailSway,-r*1.65,r*.71,-r*.63,r*.38);ctx.closePath();ctx.fill();
   triangle([-r*2.18,-r*.47+tailSway,-r*2.62,-r*.21+tailSway,-r*2.29,r*.15+tailSway],"#fff2d7");
   for(const side of [-1,1])for(const px of [-.47,.3]){
-   oval((px+(px>0?attackReach*.62:0))*r,side*r*(.52-(px>0?attackReach*.10:0))+pace*side,r*.16,r*.31,"#292a26");
+   oval((px+(px>0?foreDrive(side,attackReach*.62):hindDrive(side)))*r,side*r*(.52-(px>0?attackReach*.10:0))+pace*side,r*.16,r*.31,"#292a26");
   }
   oval(-r*.1,0,r*1.08,r*.40,fur);
   oval(r*.23,0,r*.50,r*.30,light);
@@ -1082,7 +1096,7 @@ function drawCreature(o,isPlayer){
   // 犬・狼・アルファは胴と肩が大きい。狼は立ち耳と鬣、犬は垂れ耳。
   const wolf=t==="wolf"||t==="alpha",alpha=t==="alpha";
   ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.62,-r*.31);ctx.lineTo(-r*1.54,-r*.64);ctx.lineTo(-r*1.7,-r*.33+tailSway);ctx.lineTo(-r*1.4,r*.39);ctx.lineTo(-r*.62,r*.33);ctx.fill();
-  for(const side of [-1,1])for(const px of [-.44,.43])oval((px+(px>0?attackReach*.45:0))*r,side*r*(.62-(px>0?attackReach*.10:0))+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
+  for(const side of [-1,1])for(const px of [-.44,.43])oval((px+(px>0?foreDrive(side,attackReach*.45):hindDrive(side)))*r,side*r*(.62-(px>0?attackReach*.10:0))+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
   oval(-r*.14,0,r*.99,r*.74,fur);
   oval(r*.1,-r*.04,r*.66,r*.57,wolf?"#576c73":"#8d6c51");
   if(wolf)for(const side of [-1,1])for(let k=0;k<3;k++)
@@ -1101,14 +1115,14 @@ function drawCreature(o,isPlayer){
  }
  if(attackPrep>0||attackReach>0){
   if(t==="cat"){
-   const side=attackSnap>.44?-1:1;
+   const side=rushPose===2?1:rushPose===1?-1:attackSnap>.44?-1:1;
    // The claw follows the articulated foreleg; no detached fifth paw.
-   if(attackReach>.15)triangle([r*(.50+attackReach),side*r*.34,r*(.70+attackReach),side*r*.24,r*(.51+attackReach),side*r*.13],"#eee7d5");
-  }else if(t==="fox"){
-   // Existing forelegs extend; the mouth opens during contact.
+   if(attackReach>.15&&(rushPose===0||rushPose<=2))triangle([r*(.50+attackReach),side*r*.34,r*(.70+attackReach),side*r*.24,r*(.51+attackReach),side*r*.13],"#eee7d5");
+  }else if(t==="fox"&&(rushPose===0||rushPose===3||rushPose===5)){
+   // Mouth opens for bite or ram.
    oval(r*(1.1+attackReach*.36),0,r*.39,r*(.11+attackReach*.08),"#f4ead7");
-  }else if(t==="wolf"||t==="alpha"||t==="dog"){
-   // Existing forelegs extend; the lower jaw opens during contact.
+  }else if((t==="wolf"||t==="alpha"||t==="dog")&&(rushPose===0||rushPose===3||rushPose===5)){
+   // Jaw opens for bite or ram.
    oval(r*(1.11+attackReach*.44),r*(.08+attackReach*.15),r*.35,r*(.09+attackReach*.14),"#222a2a");
    oval(r*(1.16+attackReach*.43),-r*.04,r*.39,r*.14,light);
   }
@@ -1368,7 +1382,7 @@ document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e
 window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
 function resetControls(){
- keys.clear();guardTouch=false;if(P)P.guarding=false;joy.id=null;joy.x=0;joy.y=0;
+ keys.clear();guardTouch=false;if(P){P.guarding=false;resetRush();}joy.id=null;joy.x=0;joy.y=0;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
  // A released first finger must not leave a second held action stuck after pause/map.
  for(const [id,pointers] of activeTouchPointers){
@@ -1419,7 +1433,7 @@ for(const [id,action] of [["guard-touch","guard"],["dash-touch","dash"],["jump-t
   b.classList.add("down");b.setPointerCapture(e.pointerId);
   if(!first)return;
   pressStarted=performance.now();longFired=false;
-  if(action==="guard"){guardTouch=true;return}
+  if(action==="guard"){interruptRush();guardTouch=true;return}
   if(action==="jump"){act("jump");return}
   if(action==="dash"||action==="context"){
    const timer=setTimeout(()=>{
