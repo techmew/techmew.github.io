@@ -283,20 +283,17 @@ function guardedDamage(m,raw){
 const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
 function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
-function interruptRush(){resetRush();P.pendingStrike=false;P.ambushStrike=false;P.counterStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
+function interruptRush(){resetRush();P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
 function attack(){
- if(mode!=="play"||guardTouch||keys.has("v"))return;
- const counter=P.counterWindow>0;
+ if(mode!=="play"||!P)return;
  // Parry may cancel short guard recovery, never an active strike.
- if(counter&&!P.pendingStrike&&P.atk<=.22)P.atk=0;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
- const step=counter?1:nextRushStep(P.rushStep,P.rushWindow);
- const cost=counter?10:RUSH_COST[step];
+ const step=nextRushStep(P.rushStep,P.rushWindow);
+ const cost=RUSH_COST[step];
  if(P.sp<cost){resetRush();P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
- P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;P.rushActiveStep=counter?3:step;P.rushQueued=false;
- P.counterStrike=counter;P.counterWindow=0;
- P.atk=counter?Math.min(.30,P.rate):P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
- P.windup=counter?.08:Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
+ P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;P.rushActiveStep=step;P.rushQueued=false;
+  P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
+ P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
   P.jumpDive=P.jumpTime>0;
   P.ambushStrike=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
@@ -316,7 +313,7 @@ function attack(){
 }
 function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
- P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike,counter=P.counterStrike;P.ambushStrike=false;P.counterStrike=false;
+ P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;P.counterStrike=false;
  mobs.forEach(m=>{
   if(m.hp<=0)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
@@ -326,20 +323,20 @@ function resolveAttack(){
   if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
-    const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1)*(dive?1.4:1)*(counter?2.1:1);
+    const bonus=(foxBurst?1.7:1)*(stealthHit?1.55:1)*(dive?1.4:1);
    const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
    // Ordinary repeated bites cannot indefinitely stun-lock a predator.
     // A concealed ambush or airborne pounce can always interrupt the windup.
-    const disrupt=species[m.type].prey||m.staggerGuard<=0||stealthHit||dive||counter;
+    const disrupt=species[m.type].prey||m.staggerGuard<=0||stealthHit||dive;
     if(disrupt){
      m.windup=0;m.chargeTime=0;m.swing=0;
-     m.stun=counter?.32:stealthHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
+     m.stun=stealthHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
      m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,.22);
     }else m.stun=Math.max(m.stun,.035);
     hit++;
-   if(counter)label(m.x,m.y-m.r-40,"カウンター！","#b8ffdc");
+   
     if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
