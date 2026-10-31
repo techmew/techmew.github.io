@@ -1644,10 +1644,15 @@ function update(dt){
      }
     }
    }
+   const scavenging=!s.prey?scavengeWildFood(m,s,dt,spotted,d):null;
+   if(scavenging){
+    vx=scavenging.vx;vy=scavenging.vy;
+    m.wander=Math.max(m.wander,.25);
+   }
    // Calm wildlife seeks a reachable eave in rain; hunting, detection and fleeing take priority.
    if(weather==="RAIN"||weather==="THUNDER"){
     const calm=!spotted&&m.alert<=0&&m.flee<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0;
-    const hunting=!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170);
+    const hunting=!!scavenging||(!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170));
     m.sheltered=false;
     if(calm&&!hunting){
      m.shelterRefresh=Math.max(0,(m.shelterRefresh||0)-dt);
@@ -2620,10 +2625,10 @@ function drawScene(){
  // Food is now depth-tested inside WebGL; do not paint it above buildings.
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=m.resting?"Zz":m.sheltered?"雨":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=m.resting?"Zz":(m.scavengePose||0)>0?"食":m.sheltered?"雨":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillStyle=m.resting?"#c8e7ff":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+  ctx.fillStyle=m.resting?"#c8e7ff":(m.scavengePose||0)>0?"#d9f0b9":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
