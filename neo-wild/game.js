@@ -1247,7 +1247,9 @@ function drawBuilding(b){
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
 function drawPlant(p){
- ctx.save();ctx.translate(p.x,p.y);let r=p.r;
+ ctx.save();ctx.translate(p.x,p.y);
+ const nearby=P&&p.type===2?Math.hypot(P.x-p.x,P.y-p.y):9999;
+ let r=p.r*(p.type===2?(nearby<110?.44+.30*(nearby/110):.74):1);
  if(p.type===2){
   ctx.fillStyle="#172a22cf";ctx.beginPath();ctx.ellipse(2,7,r*1.08,r*.64,.1,0,TWO);ctx.fill();
   for(let j=0;j<17;j++){
@@ -1267,8 +1269,9 @@ function drawPlant(p){
  ctx.restore();
 }
 function drawCoverForeground(p){
- const r=p.r,sway=Math.sin(elapsed*1.8+p.phase)*r*.028;
+ const r=p.r*.68,sway=Math.sin(elapsed*1.8+p.phase)*r*.028;
  ctx.save();ctx.translate(p.x,p.y);
+ if(P&&Math.hypot(P.x-p.x,P.y-p.y)<110)ctx.globalAlpha*=.38;
  for(let i=0;i<11;i++){
   const u=(i-5)/5,xx=u*r*.93,yy=r*(.29+.16*Math.cos(u*1.2)),tall=r*(.42+(i%3)*.065);
   ctx.fillStyle=i%3===0?"#78986d":i%2?"#385f42":"#547b4d";
