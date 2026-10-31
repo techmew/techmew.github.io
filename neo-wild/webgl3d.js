@@ -219,9 +219,12 @@ function animal(m,player,clock){
  }
  animalLift=0;
 }
-function vegetation(p,clock){
+function vegetation(p,clock,player=null){
  if(p.type===2){
-  const count=9,r=p.r;
+  // Keep the vegetation usable as cover without letting giant shrubs hide the camera view.
+  const distance=player?Math.hypot(p.x-player.x,p.y-player.y):9999;
+  const visualScale=distance<110?.44+.30*(distance/110):.74;
+  const count=9,r=p.r*visualScale;
   for(let i=0;i<count;i++){
    const a=i*TAU/count+p.phase,xx=p.x+Math.cos(a)*r*.44,yy=p.y+Math.sin(a)*r*.4;
    const size=r*(.24+.1*((i*7)%5)/5),height=r*(.5+.13*((i*3)%5)/5);
@@ -362,7 +365,7 @@ function render(o){
    staticKey=regionKey;staticRebuilds++;
   }
   data=[];
-  for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed);
+  for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,P);
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
