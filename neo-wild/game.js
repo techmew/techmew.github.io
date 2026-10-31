@@ -24,7 +24,7 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
-let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0;
+let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // Oblique view leaves original world coordinates, collisions and A* intact.
@@ -279,7 +279,7 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -400,7 +400,7 @@ function restoreSnapshot(snapshot){
  updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";
  cam.x=clamp(Number.isFinite(snapshot.camera?.x)?snapshot.camera.x:P.x-vw/2,0,Math.max(0,WORLD.w-vw));
  cam.y=clamp(Number.isFinite(snapshot.camera?.y)?snapshot.camera.y:P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- huntTarget=null;guideWisp=null;guideCache=null;particles=[];popups=[];autosaveClock=0;
+ huntTarget=null;ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");guideWisp=null;guideCache=null;particles=[];popups=[];autosaveClock=0;
  resetControls();
  try{localStorage.setItem("wild-reclaim-den-level-v1-"+choice,String(denLevel));localStorage.setItem("wild-reclaim-den-v1-"+choice,String(denStash));saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
@@ -614,6 +614,20 @@ const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
 function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
 function interruptRush(){resetRush();P.chargeStrike=false;P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
+// Snapshot detection before the lunge warns its victim.
+function unawareOfPlayer(m){
+ return !!m&&m.hp>0&&(m.alert||0)<=0&&(m.search||0)<=0&&(m.flee||0)<=0
+  &&!detectsPlayer(m,species[m.type],dist(P,m));
+}
+function showHuntCinematic(finisher){
+ if(!P||mode!=="play")return;
+ const splash=$("hunt-cinematic");
+ $("hunt-cinematic-title").textContent=finisher?"PHANTOM HUNT":"SHADOW HUNT";
+ $("hunt-cinematic-sub").textContent=finisher?"UNSEEN TAKEDOWN":"UNDETECTED STRIKE";
+ splash.classList.remove("show");void splash.offsetWidth;splash.classList.add("show");
+ huntSlowUntil=performance.now()+780;shake=Math.max(shake,7);
+ playEffect("impact",{volume:.34});
+}
 function attack(){
  if(mode!=="play"||!P)return;
  // Each press advances the rush; input buffering never changes this into an action.
@@ -628,6 +642,7 @@ function attack(){
   P.ambushStrike=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
  const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:.55);
+  ambushTarget=P.ambushStrike&&target&&unawareOfPlayer(target)?target:null;
  // Fox instinct is a short, collision-safe forward pounce, not a teleport.
  if(P.type==="fox"&&P.abilityTime>0&&target&&!P.jumpDive){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
@@ -654,6 +669,7 @@ function resolveAttack(){
   if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
+    const silentHit=stealthHit&&ambushTarget===m;
     const bonus=(foxBurst?1.4:1)*(stealthHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
    const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
@@ -668,7 +684,8 @@ function resolveAttack(){
     }else m.stun=Math.max(m.stun,.035);
     hit++;
    
-    if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
+    if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
+    else if(stealthHit){label(m.x,m.y-m.r-37,"奇襲！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0);
@@ -678,7 +695,7 @@ function resolveAttack(){
   }
  });
  if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
- P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;
+ P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;ambushTarget=null;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
@@ -756,21 +773,27 @@ function jump(){
  playEffect("jump");
  return true;
 }
-// Shift / mobile button: spring forward, then bite at landing.
+// Shift / mobile short press: long low-altitude predator lunge.
 function dash(){
  if(mode!=="play"||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
  const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
  if(P.sp<cost){notify("持久力が足りない");return false}
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
- const target=combatAim(.75,220);
+ const target=combatAim(.78,345);
  const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
- const maximum=P.type==="cat"?125:P.type==="wolf"?165+Math.min(85,(P.level-1)*10):112;
- const travel=target?clamp(dist(P,target)-(P.r+target.r+17),20,maximum):maximum;
+ // Ground-skimming dash with longer range; gradually improves through leveling.
+ const maximum=P.type==="cat"?235+Math.min(75,(P.level-1)*5)
+  :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
+  :235+Math.min(65,(P.level-1)*5);
+ const travel=target?clamp(dist(P,target)-(P.r+target.r+14),20,maximum):maximum;
+ ambushTarget=target&&unawareOfPlayer(target)?target:null;
  P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
- P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.43:.26;P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
+ P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.37:P.type==="cat"?.31:.30;
+ P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
  P.vx=0;P.vy=0;P.atk=Math.max(P.atk,P.rate);
  P.windup=P.pounceDuration+.04;P.pendingStrike=true;P.jumpDive=true;
- P.ambushStrike=P.hidden&&P.revealTimer<=0;P.hidden=false;P.revealTimer=1.1;
+ P.ambushStrike=!!ambushTarget||(P.hidden&&P.revealTimer<=0);
+ P.hidden=false;P.revealTimer=1.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.2);playEffect(P.type==="wolf"?"impact":"attack");
  return true;
 }
@@ -1014,6 +1037,7 @@ function updateWeather(dt){
 function update(dt){
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
+ for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
  for(const bird of birdFlocks){
   bird.wing+=dt*(bird.fright>0?25:14);
   if(P&&bird.fright<=0&&dist(P,bird)<110){bird.fright=2.2;bird.z=Math.max(70,bird.z);playEffect("wing");}
@@ -1094,7 +1118,9 @@ function update(dt){
      P.pounceTime=0;P.pounceRemaining=0;P.jumpHeight=P.groundZ||0;
     }
     const progress=1-P.pounceTime/Math.max(.001,P.pounceDuration||.18);
-   P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?31:P.type==="wolf"?23:28);
+   P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?11:P.type==="wolf"?8:10);
+   pounceStreaks.push({x:P.x,y:P.y,z:P.jumpHeight,life:.17});
+   if(pounceStreaks.length>11)pounceStreaks.shift();
    if(P.pounceTime===0){landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
   }else if(P.dashTime>0){
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
@@ -2037,8 +2063,17 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
+ if(P&&pounceStreaks.length>=2){
+  ctx.save();ctx.lineCap="round";
+  for(let i=1;i<pounceStreaks.length;i++){
+   const a=pounceStreaks[i-1],b=pounceStreaks[i],pa=project(a.x,a.y),pb=project(b.x,b.y),alpha=Math.min(a.life,b.life)/.17;
+   ctx.strokeStyle="rgba(237,243,207,"+(alpha*.38)+")";ctx.lineWidth=2.8*alpha;
+   ctx.beginPath();ctx.moveTo(pa.x,pa.y-a.z*.93*cameraZoom);ctx.lineTo(pb.x,pb.y-b.z*.93*cameraZoom);ctx.stroke();
+  }
+  ctx.restore();
+ }
  if(use3D){
-  // Preserve combat readability from the 2D fallback: wounded predators retain HP bars.
+   // Preserve combat readability from the 2D fallback: wounded predators retain HP bars.
   for(const m of mobs){
    if(!visible(m.x,m.y,80)||species[m.type].prey||m.hp>=m.maxHp)continue;
    const pos=project(m.x,m.y),pct=clamp(m.hp/m.maxHp,0,1),barY=pos.y-m.r-39;
@@ -2101,7 +2136,8 @@ function loop(t){
  if(objectiveBannerTime>0&&t>=objectiveBannerTime){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
  }
- if(mode==="play")update(dt);
+ if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
+ else huntSlowUntil=0;
  drawScene();requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -2148,7 +2184,7 @@ function resetControls(){
 }
 function togglePause(){
  if(mode==="play"){
-  resetControls();mode="pause";show("pause");objectiveBannerTime=0;$("objective-banner").classList.remove("visible");window.WildAudio?.update({mode:"pause",weather,area:P?regionAt(P.x,P.y):0,danger:false});
+  resetControls();mode="pause";show("pause");objectiveBannerTime=0;huntSlowUntil=0;$("hunt-cinematic").classList.remove("show");$("objective-banner").classList.remove("visible");window.WildAudio?.update({mode:"pause",weather,area:P?regionAt(P.x,P.y):0,danger:false});
   $("checkpoint-save-status").textContent=saveAuto()?"現在の状態を自動保存しました":"自動保存に失敗しました";
  }else if(mode==="pause"){mode="play";show("");autosaveClock=0;}
 }
