@@ -57,3 +57,8 @@
 #carry-touch span{font-size:16px;line-height:1}
 #carry-touch small{font-size:9px;margin-top:1px}
 @media(max-width:520px){#den-status{font-size:9px}#carry-touch{top:-39px;left:56px;width:51px;height:35px}}
+
+/* Nest growth action stays separate from carry and eat. */
+#den-upgrade{margin-top:4px;padding:5px 9px;max-width:100%;border:1px solid #89c8a2;border-radius:7px;background:#204638;color:#e2f7df;font:700 10px "Noto Sans JP",sans-serif;pointer-events:auto;touch-action:manipulation}
+#den-upgrade:disabled{opacity:.58;cursor:default}
+@media(max-width:520px){#den-upgrade{font-size:9px;padding:4px 7px}}
