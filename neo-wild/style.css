@@ -50,3 +50,10 @@
 @media(max-height:520px) and (orientation:landscape){
  #map-btn{top:29px;height:25px!important}
 }
+
+/* Den food inventory: readable without hiding the map or movement controls. */
+#den-status{margin-top:7px;color:#bde1bc;font:800 10px "Noto Sans JP",sans-serif;line-height:1.5}
+#carry-touch{position:absolute;left:64px;top:-43px;width:56px;height:37px;border-radius:10px;background:#325a42;border:1px solid #afdaa9;z-index:1}
+#carry-touch span{font-size:16px;line-height:1}
+#carry-touch small{font-size:9px;margin-top:1px}
+@media(max-width:520px){#den-status{font-size:9px}#carry-touch{top:-39px;left:56px;width:51px;height:35px}}
