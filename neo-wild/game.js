@@ -22,6 +22,8 @@ const species={
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
+const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
+let autosaveClock=0;
 let soundEnabled=true,audio=null,ambientNodes=null,footstepTimer=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null;
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -143,9 +145,12 @@ function generateWorld(){
 }
 function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
-function show(id){for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id)}
+function show(id){
+ for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
+ if(id==="menu")refreshSaveMenu();
+}
 function start(){
- mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;weather="CLEAR";shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:1860,y:1170,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
@@ -157,6 +162,115 @@ function start(){
  syncHUD();notify("東京封鎖区 / 生存開始");
  sound(280,.14,"triangle",.07);
 }
+
+/* Local progress snapshots. No remote service is required and saving never advances the clock. */
+function isValidSnapshot(s){
+ return !!s&&s.version===SAVE_SCHEMA&&s.player&&Object.prototype.hasOwnProperty.call(animals,s.player.type)&&
+  Number.isFinite(s.player.x)&&Number.isFinite(s.player.y)&&s.player.x>=0&&s.player.x<=WORLD.w&&s.player.y>=0&&s.player.y<=WORLD.h&&
+  Number.isFinite(s.player.hp)&&s.player.hp>0&&Number.isFinite(s.player.level)&&s.player.level>=1&&
+  Number.isFinite(s.elapsed)&&s.elapsed>=0&&s.elapsed<100000000&&
+  Array.isArray(s.mobs)&&s.mobs.length<=120&&Array.isArray(s.carcasses)&&s.carcasses.length<=300&&
+  Array.isArray(s.plants)&&s.plants.length<=800&&Array.isArray(s.debris)&&s.debris.length<=500;
+}
+function getAutoSnapshot(){
+ try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return isValidSnapshot(s)?s:null}catch(_){return null}
+}
+function getCheckpoints(){
+ try{const list=JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)||"[]");return Array.isArray(list)?list.filter(isValidSnapshot).slice(0,3):[]}catch(_){return []}
+}
+function clearAutoSave(){
+ try{localStorage.removeItem(AUTOSAVE_KEY)}catch(_){}
+}
+function currentSnapshot(){
+ if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"))return null;
+ return {
+  version:SAVE_SCHEMA,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
+  player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
+  elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
+  weather,scoreTimer,spawnTimer,denLevel,denStash,territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
+  mobs,carcasses,plants,debris,birdFlocks
+ };
+}
+function saveAuto(){
+ const snapshot=currentSnapshot();
+ if(!snapshot)return false;
+ try{
+  localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snapshot));
+  return true;
+ }catch(_){return false}
+}
+function checkpointLabel(s){
+ const animal=animals[s.player.type]?.name||"動物",lv=Math.max(1,Math.floor(s.player.level||1));
+ const date=new Date(s.savedAt||0),when=Number.isFinite(date.getTime())?date.toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+ return animal+" LV"+lv+"　DAY "+(s.day||1)+(when?"　"+when:"");
+}
+function refreshSaveMenu(){
+ const auto=getAutoSnapshot(),points=getCheckpoints();
+ $("continue-btn").classList.toggle("hidden",!auto);
+ $("continue-detail").textContent=auto?checkpointLabel(auto):"";
+ $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
+ if(!points.length){$("checkpoint-list").classList.add("hidden");$("checkpoint-menu-btn").setAttribute("aria-expanded","false");}
+ for(let i=0;i<3;i++){
+  const button=$("checkpoint-slot-"+i),snapshot=points[i];
+  button.classList.toggle("hidden",!snapshot);
+  if(snapshot)button.textContent=(i+1)+". "+checkpointLabel(snapshot);
+ }
+}
+function restoreSnapshot(snapshot){
+ if(!isValidSnapshot(snapshot))return false;
+ choice=snapshot.player.type;
+ document.querySelectorAll(".animal-card").forEach(b=>b.classList.toggle("selected",b.dataset.animal===choice));
+ start();
+ const p=snapshot.player;
+ P={...P,...p,base:animals[choice],type:choice};
+ P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
+ P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
+ // A session may have closed in the air or during an attack. Recover on a stable floor.
+ const roof=roofAt(P.x,P.y);
+ P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
+ P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
+ P.vx=0;P.vy=0;P.jumpDive=false;P.jumpAmbush=false;P.wallKickTime=0;P.wallKicks=0;P.wallKickLast=-1;
+ elapsed=snapshot.elapsed;day=Math.max(1,Math.floor(snapshot.day||1));
+ kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
+ expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
+ mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete;
+ totalScore=snapshot.totalScore||0;weather=["CLEAR","RAIN","FOG"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
+ scoreTimer=snapshot.scoreTimer||0;spawnTimer=snapshot.spawnTimer||0;
+ denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
+ denStash=clamp(snapshot.denStash||0,0,denCapacity());
+ territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
+ territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
+ mobs=snapshot.mobs;carcasses=snapshot.carcasses;plants=snapshot.plants;debris=snapshot.debris;
+ if(Array.isArray(snapshot.birdFlocks)&&snapshot.birdFlocks.length<=30)birdFlocks=snapshot.birdFlocks;
+ cameraYaw=Number.isFinite(snapshot.camera?.yaw)?snapshot.camera.yaw:0;
+ cameraZoom=clamp(Number.isFinite(snapshot.camera?.zoom)?snapshot.camera.zoom:.8,.47,1.6);
+ updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";
+ cam.x=clamp(Number.isFinite(snapshot.camera?.x)?snapshot.camera.x:P.x-vw/2,0,Math.max(0,WORLD.w-vw));
+ cam.y=clamp(Number.isFinite(snapshot.camera?.y)?snapshot.camera.y:P.y-vh/2,0,Math.max(0,WORLD.h-vh));
+ huntTarget=null;guideWisp=null;guideCache=null;particles=[];popups=[];autosaveClock=0;
+ resetControls();
+ try{localStorage.setItem("wild-reclaim-den-level-v1-"+choice,String(denLevel));localStorage.setItem("wild-reclaim-den-v1-"+choice,String(denStash));saveTerritoryClaims()}catch(_){}
+ mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
+ syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
+ saveAuto();notify("保存した場所から再開");
+ return true;
+}
+function recordCheckpoint(){
+ if(mode!=="pause")return false;
+ const snapshot=currentSnapshot();
+ if(!snapshot)return false;
+ try{
+  const points=[snapshot,...getCheckpoints()].slice(0,3);
+  localStorage.setItem(CHECKPOINTS_KEY,JSON.stringify(points));
+  $("checkpoint-save-status").textContent="保存完了："+checkpointLabel(snapshot);
+  saveAuto();
+  return true;
+ }catch(_){
+  $("checkpoint-save-status").textContent="保存できませんでした。端末の保存容量・設定を確認してください。";
+  return false;
+ }
+}
+
 function spawnMob(initial=false,preyOnly=false){
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>dist(m,P)<WILDLIFE.localRadius).length:0;
@@ -626,6 +740,7 @@ function getObjective(){
 }
 function finish(won=false){
  if(!P)return;
+ clearAutoSave();
  resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
  if(totalScore>best){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
@@ -933,6 +1048,7 @@ function update(dt){
  cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
+ autosaveClock+=dt;if(autosaveClock>=4){autosaveClock=0;saveAuto();}
 }
 function syncHUD(hour){
  if(!P)return;
@@ -1661,8 +1777,18 @@ function keyDown(e){
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();if(k==="-"||k==="_")adjustZoom(-.13);if(k==="="||k==="+")adjustZoom(.13);
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
-window.addEventListener("blur",()=>{resetControls();if(mode==="play"){mode="pause";show("pause")}});
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&mode==="play"){resetControls();mode="pause";show("pause")}});
+window.addEventListener("blur",()=>{
+ if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
+ else if(mode==="upgrade")saveAuto();
+});
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden){
+  if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
+  else if(mode==="pause"||mode==="upgrade")saveAuto();
+ }
+});
+window.addEventListener("pagehide",saveAuto);
+window.addEventListener("beforeunload",saveAuto);
 function resetControls(){
  keys.clear();if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
@@ -1677,7 +1803,12 @@ function resetControls(){
  if(knob)knob.style.transform="translate(0,0)";
  for(const id of ["attack-touch","dash-touch","jump-touch","action-touch"])$(id).classList.remove("down");
 }
-function togglePause(){if(mode==="play"){resetControls();mode="pause";show("pause")}else if(mode==="pause"){mode="play";show("")}}
+function togglePause(){
+ if(mode==="play"){
+  resetControls();mode="pause";show("pause");
+  $("checkpoint-save-status").textContent=saveAuto()?"現在の状態を自動保存しました":"自動保存に失敗しました";
+ }else if(mode==="pause"){mode="play";show("");autosaveClock=0;}
+}
 function fullScreen(){
  if(!document.fullscreenElement){document.documentElement.requestFullscreen?.().catch(()=>{});return}
  try{screen.orientation?.unlock?.()}catch(e){}
@@ -1713,11 +1844,34 @@ document.addEventListener("fullscreenchange",()=>{
 window.addEventListener("resize",updateRotationButton);
 window.addEventListener("orientationchange",updateRotationButton);
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));sound(400,.08,"triangle",.025)}));
-$("start-btn").addEventListener("click",start);
+$("start-btn").addEventListener("click",()=>{clearAutoSave();start();});
+$("continue-btn").addEventListener("click",()=>{
+ const snapshot=getAutoSnapshot();if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
+});
+$("checkpoint-menu-btn").addEventListener("click",()=>{
+ const target=$("checkpoint-list"),open=target.classList.contains("hidden");
+ target.classList.toggle("hidden",!open);
+ $("checkpoint-menu-btn").setAttribute("aria-expanded",String(open));
+});
+for(let i=0;i<3;i++)$("checkpoint-slot-"+i).addEventListener("click",()=>{
+ const snapshot=getCheckpoints()[i];if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
+});
+$("checkpoint-save-btn").addEventListener("click",recordCheckpoint);
+$("objective-toggle").addEventListener("click",()=>{
+ const open=$("mission").classList.contains("hidden");
+ $("mission").classList.toggle("hidden",!open);
+ $("objective-toggle").setAttribute("aria-expanded",String(open));
+ $("objective-toggle").textContent=open?"目標を隠す":"目標を見る";
+});
+$("mission-close").addEventListener("click",()=>{
+ $("mission").classList.add("hidden");
+ $("objective-toggle").setAttribute("aria-expanded","false");
+ $("objective-toggle").textContent="目標を見る";
+});
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
-$("quit-btn").addEventListener("click",()=>{resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
-$("retry-btn").addEventListener("click",start);
+$("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
+$("retry-btn").addEventListener("click",()=>{clearAutoSave();start()});
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
@@ -1824,5 +1978,5 @@ gameSurface.addEventListener("pointerup",stopCameraPointer);
 gameSurface.addEventListener("pointercancel",stopCameraPointer);
 gameSurface.addEventListener("lostpointercapture",stopCameraPointer);
 document.addEventListener("contextmenu",e=>e.preventDefault());
-drawMini();
+refreshSaveMenu();drawMini();
 })();
