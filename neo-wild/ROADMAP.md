@@ -1,3 +1,12 @@
+## 共通スプリント｜2026-11-02 JST｜即時描画改善・15分枠引継ぎ｜MISSION-DOUBLE-CHEVRONS-20261102
+- **要望**：チュートリアル/ミッションの「次に進む場所」を画面中の小さな「〉〉」で案内。かつて削除した巨大中央ナビの復活は禁止。プレイヤー近くの進行方向のみ、目的地がある期間に限定。旧GAME UI・右上3ボタン→ミニマップ→SCORE/HUNTと左ロゴ削除を維持。
+- **コード改修**：`neo-wild/game.js` commit `f8e04bf165d60d460216753bbb7a8a043044cb06`：新規`drawMissionChevrons()`は既存`getObjective()→guidancePoint()→guideWisp/guideGoal`に従い、プレイヤーから60/120ワールド座標程度前方の2組まで「〉〉」を描画。進行方向に投影ベクトルで回転、3D/Canvas2D共通Canvas overlay。フレームごとに画面向きへ追従、カメラ回転にも対応。障害物があれば既存迂回経由のwaypointを使い、blockedは無表示。mission>=7、到達42m以内、現在のガイド画面（ポーズ）での表示は禁止。色は暗背景でも読める細い黒縁＋薄緑（高彩度の大型光円やラベルは無し）。
+- **キャッシュ反映**：`neo-wild/index.html` commit `49735edd5997d0b7bd20bd4a3483b90c9313de93`。game.js?rev=`20261102-mission-double-chevrons-v1`へ更新。ほか6スクリプトの読み順とHUD/ミニマップは変更なし。
+- **実行QA**：新関数を取り出し、V8のモックCanvas + 実関数テキストで動的テスト。通常ミッションは「〉〉」2組、mission7完了・ガイド表示・waypoint消失・目的地近接・blockedは0組、カメラ投影方角の90度回転・短い横画面もPASS。実ゲーム6 JS全ファイルnew Function構文PASS、既存SAVE_SCHEMA2/alpha速度231.4/右スコアDOM/ID重複0・HTML revチェック全PASS。**未実施**：実Android Chrome/GPU・WebGL/Canvas2Dの本物の画面上での長時間プレイ、障害物回避の実プレイE2E/全6 viewport矩形測定。動的モックPASSと実機PASSは区別。
+- **Pages**：更新コードのHEAD `49735edd5997d0b7bd20bd4a3483b90c9313de93`、GitHub Pages `pages build and deployment` run `41324575307`、確認時 `completed` / `success`。build/deploy両成功前は配信済みと言わない。
+- **既存15分枠タスク**：`6ae373bfe9fc81918d84c77f6096a4c5` の最優先追補を更新済み。次の確認：(1) ミッション0/1/2/4/5/6・カメラ回転・迂回→到着→mission7で「〉〉」を実画面で追試 (2) HUD・夜目・地図と重ならないよう縦390/411横800/844/736/1536を測定 (3) 異常があれば最新mainの`drawMissionChevrons`のみ最小修正、Pages両段階成功まで確認。45分枠の強敵20種は従来どおり別担当、旧main上書き禁止。
+- **進捗**：71/100据え置き（実端末未確認、単一UI追加では加点しない）。
+
 ## 共通スプリント｜2026-11-02 JST｜15分枠引継ぎ／即時HUD修正｜UI-LEFT-NOBRAND-MAPSTATS-V2-20261102
 - **最新ユーザー画像**：縦Androidのゲーム画面で左上「W//R WILD RECLAIM 東京・生存戦線」を削除して生命/空腹/持久/LV/巣/備蓄/食料庫/ガイドを上詰め、右地図の真下にSCORE・HUNTを密着配置する。タイトルメニューのゲームタイトルは削除しない。右上の音楽→最大化→ポーズの横一列・常設地図を維持。
 - **担当**：既存15分枠タスク `6ae373bfe9fc81918d84c77f6096a4c5` を最新要求で更新済み。45分枠の強敵20種担当は変更しない。新規タスク作成なし。
