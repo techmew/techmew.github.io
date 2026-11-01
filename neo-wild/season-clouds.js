@@ -78,6 +78,8 @@ function project(o,x,y){
          y:o.vh*.5+o.VIEW.b*dx+o.VIEW.d*dy};
 }
 function drawFoliage(o,season){
+ // Winter native renderer owns branches; remove the pale elliptical overlay.
+ if(season.index===0)return;
  if(!o.plants||!o.cam)return;
  const max=season.index===0?40:55;
  let drawn=0;
