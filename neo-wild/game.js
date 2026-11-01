@@ -352,6 +352,7 @@ function restoreSnapshot(snapshot){
  start();
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
+ P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
  const roof=roofAt(P.x,P.y);
@@ -707,21 +708,26 @@ function normalizeRemains(c){
  if(c.type==="corpse"&&(!Number.isFinite(c.initialAmount)||c.initialAmount<=0))
   c.initialAmount=Math.max(1,Number(c.amount)||1);
 }
+function normalizeCarry(c){
+ if(!c||typeof c!=="object"||!Number.isFinite(Number(c.amount))||Number(c.amount)<=0)return null;
+ return {type:c.type==="berries"?"berries":"meat",animalType:typeof c.animalType==="string"?c.animalType:null,amount:clamp(Number(c.amount),0,500)};
+}
 function nearbyFood(){
  return carcasses.some(f=>edibleFood(f)&&dist(P,f)<65&&!lineBlocked(P,f));
 }
 function putDownFood(){
  if(!P?.carry||mode!=="play")return;
- if(P.jumpTime>0||P.pounceTime>0||(P.groundZ||0)>0){notify("地上で置いてください");return;}
+ if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>20||(P.groundZ||0)>0){notify("着地してから置く");return false;}
  const c=P.carry;
- carcasses.push({x:P.x,y:P.y,r:11,amount:c.amount,type:c.type==="corpse"?"meat":c.type,ttl:150,phase:0});
- P.carry=null;notify("食料を置いた");syncHUD();
+ carcasses.push({x:P.x,y:P.y,r:11,amount:c.amount,type:c.type==="berries"?"berries":"meat",animalType:c.animalType||null,ttl:150,phase:P.dir||0});
+ P.carry=null;notify("食料を置いた / △短押しで食べる・長押しで拾う");syncHUD();return true;
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
  const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
  if(longPress){if(P.carry){putDownFood();return;}if(home){upgradeDen();return;}if(!nearbyFood()&&markTerritory())return;carryFood();return;}
  if(home&&(P.carry||(denStash>0&&P.hunger<95))){carryFood();return;}
+ if(P.carry){if(P.eatCD<=0){P.eatCD=.34;eat();}return;}
  if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return;}
  notify(home?"巣に食料を持ち帰ろう":"食料や巣の近くで△を押す");
 }
@@ -959,30 +965,40 @@ function carryFood(){
   notify("巣の備蓄 "+Math.round(denStash)+"/"+denCapacity()+" / 食料を持ち帰ろう");
   return false;
  }
- if(P.carry){notify("食料を運搬中 / 地図の休息地へ戻ろう");return false}
+ if(P.carry)return putDownFood(); // G picks up or drops; triangle short at den stores.
  let selected=null,nearest=65;
  for(const f of carcasses){
   const d=dist(P,f);
   if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
  }
  if(!selected){notify("運べる食料が近くにない");return false}
- P.carry={type:selected.type,animalType:selected.animalType||null,amount:selected.amount};
- carcasses.splice(carcasses.indexOf(selected),1);
- notify("食料をくわえた！巣へ戻り、△短押しで備蓄（"+Math.round(P.carry.amount)+"）");
+ if(selected.type==="corpse"){
+  const portion=Math.min(24,Math.max(0,selected.amount-1));
+  if(portion<1){notify("死骸に運べる肉が残っていない");return false;}
+  selected.amount-=portion; // Carcass stays on site.
+  P.carry={type:"meat",animalType:selected.animalType||null,amount:portion};
+ }else{
+  P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
+  carcasses.splice(carcasses.indexOf(selected),1);
+ }
+ notify("食料をくわえた！△短押し 食べる／長押し 置く／巣で預ける（"+Math.round(P.carry.amount)+"）");
  if(mission===4)announceObjective();
  syncHUD();return true;
 }
 function eat(){
  if(mode!=="play")return;
- if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0){notify("着地してから食べる");return;}
- let c=null,near=65;
- for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
+ if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("着地してから食べる");return;}
+ let c=P.carry||null,near=65,carried=!!c;
+ if(!c)for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食べ物が近くにない");return}
- const bite=c.type==="corpse"?Math.min(12,c.amount):c.amount;
+ const bite=c.type==="corpse"||c.type==="meat"||carried?Math.min(12,c.amount):c.amount;
  P.hunger=clamp(P.hunger+bite,0,100);P.hp=clamp(P.hp+((c.type==="meat"||c.type==="corpse")?Math.min(8,bite*.5):3),0,P.maxHp);meals++;
- if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c)}else carcasses.splice(carcasses.indexOf(c),1);
+ if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null;}
+ else if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c);}
+ else if(c.type==="meat"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)carcasses.splice(carcasses.indexOf(c),1);}
+ else carcasses.splice(carcasses.indexOf(c),1);
  label(P.x,P.y-30,"+"+bite+" 食料","#bfe89e");
- blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();
+ blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
 }
 function stockpileStep(){
  if(!P||mission!==4)return null;
@@ -1707,8 +1723,9 @@ function syncHUD(hour){
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
  const info=missionInfo();
  const stock=stockpileStep();
- $("stockpile-guide").classList.toggle("hidden",!stock||mode!=="play");
- if(stock){$("stockpile-guide").textContent=stock.text+"（備蓄 "+denStash+"/"+DEN_COSTS[2]+"）";}
+ const carryGuide=P.carry?"運搬中：△短押し 食べる／△長押し 置く／巣で△短押し 備蓄":null;
+ $("stockpile-guide").classList.toggle("hidden",(!stock&&!carryGuide)||mode!=="play");
+ if(carryGuide||stock)$("stockpile-guide").textContent=carryGuide||(stock.text+"（備蓄 "+denStash+"/"+DEN_COSTS[2]+"）");
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
  $("mission-sub").textContent=info.detail;
@@ -1729,7 +1746,7 @@ function syncHUD(hour){
  }
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
-  contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":P.carry?"運搬中":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+  contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -2019,9 +2036,15 @@ function drawCarriedFood2D(){
  if(!P?.carry||P.carry.amount<=0)return;
  const dir=P.dir||0,dx=Math.cos(dir),dy=Math.sin(dir);
  ctx.save();ctx.translate(P.x+dx*P.r*1.45,P.y+dy*P.r*1.45);
- ctx.rotate(dir);ctx.fillStyle=P.carry.type==="berries"?"#b4a16f":"#96735f";
- ctx.beginPath();ctx.ellipse(0,0,Math.min(12,7+P.carry.amount*.10),5,0,0,TWO);ctx.fill();
- ctx.fillStyle="#e2d9bf";ctx.beginPath();ctx.arc(7,0,2.5,0,TWO);ctx.fill();
+ ctx.rotate(dir);
+ const r=Math.min(13,7+Math.sqrt(P.carry.amount));
+ ctx.fillStyle=P.carry.type==="berries"?"#58734c":"#592327";
+ ctx.beginPath();ctx.ellipse(0,1,r+2,7,-.15,0,TWO);ctx.fill();
+ ctx.fillStyle=P.carry.type==="berries"?"#b98c5e":"#bb5049";
+ ctx.beginPath();ctx.ellipse(-1,-1,r,5.8,-.18,0,TWO);ctx.fill();
+ ctx.fillStyle=P.carry.type==="berries"?"#d5b37b":"#e78f79";
+ ctx.beginPath();ctx.ellipse(-r*.35,-3,r*.45,1.8,-.2,0,TWO);ctx.fill();
+ ctx.fillStyle="#f0cdb6";ctx.beginPath();ctx.arc(r*.7,-1,2.7,0,TWO);ctx.fill();
  ctx.restore();
 }
 function drawItem(c){
@@ -2578,12 +2601,7 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
- if(use3D&&P&&P.carry&&P.carry.amount>0){
-  const angle=P.dir||0;
-  const p=project(P.x+Math.cos(angle)*P.r*1.5,P.y+Math.sin(angle)*P.r*1.5);
-  ctx.save();ctx.fillStyle=P.carry.type==="berries"?"#c6ae7c":"#a47d65";
-  ctx.beginPath();ctx.ellipse(p.x,p.y-(P.jumpHeight||0)*cameraZoom*.9-12,11,6,angle,0,TWO);ctx.fill();ctx.restore();
- }
+ 
  if(P&&pounceStreaks.length>=2){
   ctx.save();ctx.lineCap="round";
   for(let i=1;i<pounceStreaks.length;i++){
