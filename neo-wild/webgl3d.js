@@ -243,21 +243,34 @@ function animal(m,player,clock){
  }
  animalLift=0;
 }
-function vegetation(p,clock,player=null){
+// Palette is applied to the native 3D leaf/grass mesh, not merely a CSS tint.
+// Game climate calendar: one game day is 85 seconds; leap days and YEAR progression
+// are intentionally not introduced here. Index: winter/spring/summer/autumn.
+const SEASONAL_FOLIAGE=[
+ {shrub:["#a4a996","#8b947e","#b8baa4"],grass:"#929a80",reed:"#a4a78b"},
+ {shrub:["#a0cc72","#7fb45d","#b8d58c"],grass:"#81b967",reed:"#9bc46d"},
+ {shrub:["#548f54","#3e7648","#477e51"],grass:"#4d8548",reed:"#5c9156"},
+ {shrub:["#d49a48","#b96c3e","#c35c35"],grass:"#a89b56",reed:"#aa8050"}
+];
+function seasonIndexFromElapsed(seconds){
+ const day=((Math.floor(Math.max(0,seconds)/85)%365)+365)%365;
+ return day<59||day>=334?0:day<151?1:day<243?2:3;
+}
+function vegetation(p,clock,season=2){
+ const palette=SEASONAL_FOLIAGE[season]||SEASONAL_FOLIAGE[2];
  if(p.type===2){
-  // Keep the vegetation usable as cover without letting giant shrubs hide the camera view.
-  // Preserve shrub size when entering cover: no size-changing concealment effect.
+  // The shrub's existing cover radius and polygon count are never reduced.
   const visualScale=.74;
   const count=9,r=p.r*visualScale;
   for(let i=0;i<count;i++){
    const a=i*TAU/count+p.phase,xx=p.x+Math.cos(a)*r*.44,yy=p.y+Math.sin(a)*r*.4;
    const size=r*(.24+.1*((i*7)%5)/5),height=r*(.5+.13*((i*3)%5)/5);
-   ellipsoid(xx,yy,height*.67,size,size*.76,height*.46,i%3===0?"#648d52":i%3===1?"#3f734c":"#4c7f53",Math.sin(clock*.9+i)*.15,7,4);
+   ellipsoid(xx,yy,height*.67,size,size*.76,height*.46,palette.shrub[i%3],Math.sin(clock*.9+i)*.15,7,4);
   }
  }else if(p.type===1){
-  pyramid(p.x,p.y,0,p.r*.63,p.r*.53,p.r*1.4,"#56764f");
+  pyramid(p.x,p.y,0,p.r*.63,p.r*.53,p.r*1.4,palette.grass);
  }else{
-  pyramid(p.x,p.y,0,p.r*.5,p.r*.45,p.r*.8,"#4e7859");
+  pyramid(p.x,p.y,0,p.r*.5,p.r*.45,p.r*.8,palette.reed);
  }
 }
 // Food shares depth with terrain, buildings and animals.
@@ -581,7 +594,8 @@ function render(o){
    staticKey=regionKey;staticRebuilds++;
   }
   data=[];
-  for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,P);
+  const foliageSeason=seasonIndexFromElapsed(elapsed);
+  for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,foliageSeason);
   if(o.den&&isVisible(o.den.x,o.den.y,160))denBeddingMesh(o.den);
   // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
   if(typeof o.waterAt==="function"){
