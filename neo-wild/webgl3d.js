@@ -265,22 +265,23 @@ function foodMesh(c,species){
  animalLift=0;
  ellipsoid(c.x+2,c.y+4,1.4,r*1.5,r*.82,1.3,"#243027",0,7,3);
  if(c.type==="corpse"||c.type==="bones"){
-  const fraction=c.type==="bones"?0:clamp(c.amount/Math.max(1,c.initialAmount||c.amount),0,1);
-  const angle=c.phase||0,cs=Math.cos(angle),sn=Math.sin(angle);
-  const p=(x,y)=>[c.x+x*cs-y*sn,c.y+x*sn+y*cs];
-  // Pale spine and ribs remain visible as the food is consumed.
-  ellipsoid(c.x,c.y,3,r*.95,r*.14,1.8,"#cbc8b4",angle,7,3);
-  for(let i=0;i<3;i++)for(const side of [-1,1]){
-   const [x,y]=p((-0.5+i*.45)*r,side*r*.39);
-   ellipsoid(x,y,2.8,r*.12,r*.38,1.5,"#c8c3ad",angle+side*.18,6,3);
-  }
-  const [hx,hy]=p(r*.95,0);
-  ellipsoid(hx,hy,3.6,r*.32,r*.29,r*.22,"#e0dac2",angle,7,3);
-  if(fraction>0){
-   const fur=species?.[c.animalType]?.color||"#a58c76";
-   const [bx,by]=p(-r*.12,-r*.08);
-   ellipsoid(bx,by,4.2,r*(.4+.66*fraction),r*(.25+.40*fraction),r*(.20+.13*fraction),fur,angle,9,4);
-   ellipsoid(hx,hy,4.3,r*.39,r*.28,r*.26,fur,angle,7,3);
+  const size=Math.max(14,Math.min(36,(c.r||9)*1.28)),angle=c.phase||0,cs=Math.cos(angle),sn=Math.sin(angle);
+  const fraction=clamp(Number(c.amount)/Math.max(1,Number(c.initialAmount)||Number(c.amount)||1),0,1);
+  const part=(x,y,z,rx,ry,rz,col,turn=angle)=>ellipsoid(c.x+x*cs-y*sn,c.y+x*sn+y*cs,z,rx,ry,rz,col,turn,7,3);
+  if(c.type==="bones"){
+   part(-size*.05,0,3,size*.95,size*.12,2.7,"#f1ebdc");
+   for(let i=0;i<4;i++)for(const side of [-1,1])part((-.55+i*.35)*size,side*size*.29,2.8,size*.11,size*.37,2,"#e6dfcd",angle+side*.20);
+   part(size*.96,0,3.8,size*.37,size*.30,3.4,"#f1ebdc");
+   for(const side of [-1,1])part(size*1.05,side*size*.15,6.4,size*.08,size*.08,1.2,"#3b443e");
+  }else{
+   const fur=species?.[c.animalType]?.color||"#a58c76",belly=species?.[c.animalType]?.belly||"#bcae99";
+   part(-size*.99,0,4,size*.47,size*.15,3,fur,angle-.25);
+   for(const side of [-1,1])for(const front of [-1,1])part(front*size*.55,side*size*.65,4.4,size*.24,size*.44,4.1,fur,angle+front*.2);
+   part(-size*.08,0,7,size*(.9+.17*fraction),size*.60,6.1,fur);
+   part(size*.06,size*.20,11,size*.63,size*.22,2,belly);
+   part(size*.84,-size*.07,7.4,size*.45,size*.38,5.2,fur);
+   for(const side of [-1,1])part(size*.75,side*size*.4,6,size*.19,c.animalType==="rabbit"?size*.47:size*.24,3.4,fur);
+   part(size*1.23,-size*.04,6.5,size*.09,size*.08,2,"#3b3330");
   }
  }else if(c.type==="meat"){
   ellipsoid(c.x,c.y,4.2,r*1.03,r*.70,3.8,"#a85149",-.24,10,5);
