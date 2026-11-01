@@ -647,6 +647,9 @@ function restoreSnapshot(snapshot){
   m.forageNeed=Number.isFinite(m.forageNeed)?clamp(m.forageNeed,0,1):null;
   m.forageCooldown=clamp(Number(m.forageCooldown)||0,0,8);
   m.foragePose=0;
+  m.feedAfterKill=clamp(Number(m.feedAfterKill)||0,0,8);
+  m.scavengeNeed=Number.isFinite(m.scavengeNeed)?clamp(m.scavengeNeed,0,1):null;
+  m.scavengeCooldown=clamp(Number(m.scavengeCooldown)||0,0,8);
   m.thirstNeed=Number.isFinite(m.thirstNeed)?clamp(m.thirstNeed,0,1):null;
   m.drinkCooldown=clamp(Number(m.drinkCooldown)||0,0,10);
   m.drinkPose=0;
@@ -1102,9 +1105,10 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
  m.scavengeCooldown=Math.max(0,(m.scavengeCooldown||0)-dt);
  m.scavengeNeed=Number.isFinite(m.scavengeNeed)?
   clamp(m.scavengeNeed+dt*.009,0,1):.67+noise(Math.floor(m.x),Math.floor(m.y))*.31;
- if(sp.prey||m.scavengeNeed<.69||spotted||m.alert>0||m.flee>0||
+ const freshKill=(m.feedAfterKill||0)>0;
+ if(sp.prey||(!freshKill&&m.scavengeNeed<.69)||spotted||m.alert>0||m.flee>0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||playerDistance<110)return null;
- if(mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&
+ if(!freshKill&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&
     Math.abs(q.x-m.x)<175&&Math.abs(q.y-m.y)<175&&dist(m,q)<175))return null;
  let target=null,best=290*290;
  for(const c of carcasses){
@@ -1128,7 +1132,7 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
   }
   m.hp=Math.min(m.maxHp||m.hp,m.hp+Math.min(5,bite*.4));
   m.scavengeNeed=Math.max(0,m.scavengeNeed-.065);
-  m.scavengeCooldown=1.8;m.scavengePose=.9;m.navPath=null;
+  m.scavengeCooldown=1.8;m.scavengePose=.9;m.navPath=null;m.feedAfterKill=0;
   if(playerDistance<360)label(m.x,m.y-m.r-25,"死骸を食べる","#d9f0b9");
  }
  return {vx:0,vy:0};
@@ -1142,8 +1146,7 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
     m.stun>0||(m.evadeTime||0)>0||playerDistance<115||
     ((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
  // Feeding stops near predators; no food is consumed through walls.
- if(mobs.some(q=>q!==m&&q.hp>0&&isWildPredator(q)&&
-    dist(m,q)<175&&!lineBlocked(m,q)))return null;
+ if((sp.prey||m.type==="boar")&&nearbyVisibleWildPredator(m,175))return null;
  let target=null,best=245*245;
  for(const c of carcasses){
   if(c.type!=="berries"||!edibleFood(c))continue;
@@ -1184,8 +1187,7 @@ function drinkWildWater(m,sp,dt,spotted,playerDistance){
  if(m.thirstNeed<.72||m.drinkCooldown>0||spotted||m.alert>0||m.flee>0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||
     playerDistance<105||((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
- if(sp.prey&&mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&
-    dist(m,q)<170&&!lineBlocked(m,q)))return null;
+ if((sp.prey||m.type==="boar")&&nearbyVisibleWildPredator(m,170))return null;
  // Approach the real dry river/canal bank, not an exploration marker.
  let goal=null,best=310*310;
  const banks=[];
@@ -1831,7 +1833,7 @@ function tryPreyFeint(m,sp,d,spotted,dt){
   return advancePreyFeint(m,dt);
  }
  if(m.feintCooldown>0||m.stun>0||m.hp<=0||m.flee<=0||(m.fleeEnergy||0)<.28)return false;
- const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<150&&!lineBlocked(m,q));
+ const hunter=nearbyVisibleWildPredator(m,150);
  const playerThreat=!!P&&spotted&&d<160&&!lineBlocked(m,P);
  if(!hunter&&!playerThreat)return false;
  const urgent=playerThreat&&(P.pendingStrike||P.pounceTime>0||P.jumpTime>0);
@@ -1911,8 +1913,13 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
 const WILD_PREDATOR_TYPES=new Set(["dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
+function nearbyVisibleWildPredator(m,range=165){
+ let nearest=null,best=range;
+ for(const q of mobs){if(q===m||!isWildPredator(q))continue;const d=dist(m,q);if(d<best&&!lineBlocked(m,q)){nearest=q;best=d;}}
+ return nearest;
+}
 function huntWildPrey(m,sp,spotted,playerDistance){
- if(!isWildPredator(m)||spotted||(m.alert||0)>0||(m.flee||0)>0||
+ if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0||playerDistance<=140)return null;
  const maxRange=m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
@@ -1937,6 +1944,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
    if(!startlePrey(prey,m,"hit")){prey.flee=1.8;prey.dir=Math.atan2(prey.y-m.y,prey.x-m.x);}
   }else{
    carcasses.push(animalRemains(prey));
+   m.feedAfterKill=8;m.scavengeNeed=Math.max(.82,Number(m.scavengeNeed)||0);
    if(species[prey.type].prey){
     const zone=regionAt(prey.x,prey.y);
     ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
@@ -2195,7 +2203,7 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  const naturalNightCover=!rainy&&nightRestSeason()&&
   (m.type==="rabbit"||m.type==="pigeon")&&inCover(m);
  const safeRest=(indoors&&rainy)||naturalNightCover;
- const hunterAnimal=sp.prey?mobs.find(q=>q!==m&&isWildPredator(q)&&dist(m,q)<155&&!lineBlocked(m,q)):null;
+ const hunterAnimal=sp.prey?nearbyVisibleWildPredator(m,155):null;
  const hunter=!!hunterAnimal;
  // Awake prey also reacts immediately to a nearby visible wild predator.
  if(sp.prey&&hunterAnimal&&m.restTime<=0&&m.flee<=0)startlePrey(m,hunterAnimal,"alarm");
@@ -2440,9 +2448,9 @@ function update(dt){
      }
     }
    if(m.flee>0){
-    if(s.prey&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
+    if((s.prey||m.type==="boar")&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
       m.evasionSide=-(m.evasionSide||1);
-      const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<175&&!lineBlocked(m,q));
+      const hunter=nearbyVisibleWildPredator(m,175);
       const threat=hunter||(Number.isFinite(m.fleeThreatX)&&Number.isFinite(m.fleeThreatY)?{x:m.fleeThreatX,y:m.fleeThreatY}:P);
       if(hunter){m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;}
       m.dir=chooseEscape(m,Math.atan2(m.y-threat.y,m.x-threat.x),threat);
@@ -2480,8 +2488,9 @@ function update(dt){
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
    }
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
+   m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
    if((s.prey||m.type==="boar")&&!spotted){
-    const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(q,m)<140);
+    const hunter=nearbyVisibleWildPredator(m,140);
     if(hunter){
      m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;
      m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
