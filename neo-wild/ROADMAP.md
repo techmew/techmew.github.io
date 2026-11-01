@@ -1,3 +1,11 @@
+## 2026-11-01 16:20 JST｜手動対応・7回タップ診断UIの読み込み復旧／雲影修正のキャッシュ更新
+- **開始HEAD**：`960069bb5514ce5c6e78817036b39f897f10cc05`。mainの対象7ファイル、追加の`debug-mode.js`/`season-clouds.js`、直近コミット、ROADMAP先頭とDrive正本末尾を確認。並行する他枠の実装を再作成せず、既存成果を保持。
+- **原因**：`debug-mode.js`は`8d42383abbeac6e107cb621fc4d434d42f1b09a6`、ゲーム内操作用`WildDebugBridge`は`960069bb5514ce5c6e78817036b39f897f10cc05`としてmainにあったが、`index.html`に診断UIのscript読み込みがなく、タイトルを7回タップしても利用できない状態だった。さらに直近`38984a75`の空の雲除去に対して季節JSの古いキャッシュ識別子が残っていた。
+- **変更**：`neo-wild/index.html`のみ（コミット`ec9904003d3fee7a83fb090ed85e3a9dd3599f45`）。既存script順を維持したまま末尾へ`debug-mode.js?rev=20261101-seven-tap-v1`を追加。game.jsを`?rev=20261101-debug-bridge-v1`、季節雲レイヤーを`?rev=20261101-ground-shadows-only-v1`に変更。空の雲なし・地面の薄い雲影という最新指示を読み込みへ反映。
+- **QA**：mainから再取得した`game.js`（191082字）、`debug-mode.js`（8773字）、`season-clouds.js`（7769字）のJS構文をV8でコンパイルし3件PASS。index.htmlのscript5件の順序、デバッグブリッジAPI、雲本体の描画削除、save schema2と既存操作の非変更を確認。実Android/実ブラウザでの7連打・描画/FPS・Pagesの当該コミット配信は**未検証**。
+- **終了HEAD**：`ec9904003d3fee7a83fb090ed85e3a9dd3599f45`から本ROADMAP更新へ前進。**進捗71/100据え置き**（UI結線の復旧であり未検証分は加点しない）。
+- **次回15/45分枠**：最新mainのHEADと本引継ぎを再確認。実Androidでタイトル7回タップ→DEBUGパネル表示→ゲーム開始後の時刻/天候/移動/回復/雲影ON/OFF→デバッグ解除を確認。問題時は`neo-wild/`のみ最小修正。季節3D植生と川・橋、旧保存、4ボタンの回帰維持。
+
 ## 2026-11-01 16:15 JST｜15分枠・3D植生メッシュの四季色を実装して公開
 - **開始HEAD**：`8bab7a15afe189ed0f7663bc07f6cced19122d74`。開始時にmain対象7ファイル＋`season-clouds.js`・直近5コミット・ROADMAP先頭・Drive完成仕様設計書末尾を取得。既存の四季HUD/流れる雲/雲影の初期実装を確認し、二重実装やロールバックを回避。
 - **変更ファイル**：`neo-wild/webgl3d.js`（`a73db4be85449b58a26bb253290daf8e1c510806`）、`neo-wild/index.html`（`407bfd8691a68c3d57524c9c4aad3241d9c4f374`）、本ROADMAP。ゲーム本体`game.js`、保存形式、AI、川・橋衝突、チュートリアル、操作4ボタン、他ディレクトリは無変更。
