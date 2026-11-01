@@ -499,7 +499,7 @@ function start(){
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
-  const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
+  const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  let roomPrey=0;
  if(origin===START_LOCATIONS.home){
@@ -746,6 +746,13 @@ const STRONG_ATTACK_PROFILES={
  giantLizard:{windup:.54,reach:69,cooldown:1.63,damage:.93,tell:"大トカゲの噛み付き！"},
  rhino:{windup:.98,reach:157,cooldown:2.35,damage:1.18,tell:"サイが角を下げた！"}
 };
+// Food and safe den rest shorten a strong enemy's bleeding wound.
+function sootheStrongWound(foodPoints,atHome=false){
+ if(!P||!(P.strongWound>0))return 0;
+ const relief=Math.min(P.strongWound,Math.max(0,Number(foodPoints)||0)*(atHome?.15:.08));
+ P.strongWound=Math.max(0,P.strongWound-relief);
+ return relief;
+}
 function applyStrongStrikeEffect(m,angle,charging=false){
  if(m.type==="giantLizard"){
   P.strongWound=Math.max(P.strongWound||0,5.5);label(P.x,P.y-48,"噛み傷で出血！","#f9b2a2");
@@ -1682,19 +1689,19 @@ function eat(){
  if(!c){notify("食草・肉が近くにない");return}
  const bite=Math.min(12,c.amount),balance=foodBalance(c);
  const gain=Math.round(bite*balance.satiety),heal=Math.round(bite*balance.healing);
- P.hunger=clamp(P.hunger+gain,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);meals++;
+ P.hunger=clamp(P.hunger+gain,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);const woundRelief=sootheStrongWound(bite);meals++;
  if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null}
  else if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c)}
  else{c.amount=Math.max(0,c.amount-bite);if(c.amount===0)carcasses.splice(carcasses.indexOf(c),1)}
- label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal,"#bfe89e");
- blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
+ label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
+ blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();saveAuto();
 }
 function renderDenInventory(){
  if(!P)return;
  $("den-inventory-total").textContent="合計 "+denStash+" / "+denCapacity()+"pt";
  const trophyText=Object.entries(strongTrophies).filter(([type,count])=>STRONG_NAMES[type]&&Number(count)>0).map(([type,count])=>STRONG_NAMES[type]+"×"+Math.floor(Number(count))).join(" / ");
  $("den-inventory-help").textContent=(atDen()?"食べたい種類を選んでください。選択しなければ減りません。":"巣の外では閲覧のみ。食べるには巣へ戻ってください。")+(trophyText?" 希少素材："+trophyText:"");
- const canEat=atDen()&&(P.hunger<100||P.hp<P.maxHp);
+ const canEat=atDen()&&(P.hunger<100||P.hp<P.maxHp||(P.strongWound||0)>0);
  for(const key of ["meat","berries","legacy"]){
   $("den-row-"+key).classList.toggle("hidden",key==="legacy"&&denStores.legacy<=0);
   $("den-qty-"+key).textContent=denStores[key]+"pt";
@@ -1713,14 +1720,14 @@ function closeDenInventory(){
 }
 function eatFromDen(kind){
  if(mode!=="inventory"||!P||!atDen()||!["meat","berries","legacy"].includes(kind))return false;
- if(P.hunger>=100&&P.hp>=P.maxHp){notify("満腹で体力も最大です");return false}
+ if(P.hunger>=100&&P.hp>=P.maxHp&&!(P.strongWound>0)){notify("満腹で体力も最大です");return false}
  const points=Math.min(kind==="meat"?18:kind==="berries"?7:12,denStores[kind]);
  if(points<=0){notify("その食料はありません");return false}
  denStores[kind]-=points;syncDenStash();
  const heal=Math.round(points*(kind==="meat"?1/3:kind==="berries"?1/7:1/4));
- P.hunger=clamp(P.hunger+points,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);meals++;
+ P.hunger=clamp(P.hunger+points,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);const woundRelief=sootheStrongWound(points,true);meals++;
  saveDenStash();checkMission();saveAuto();syncHUD();renderDenInventory();
- notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+points+"・生命+"+heal);
+ notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+points+"・生命+"+heal+(woundRelief>0?"・出血緩和":""));
  return true;
 }
 function stockpileStep(){
@@ -2592,7 +2599,12 @@ function update(dt){
   P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
- if((P.strongWound||0)>0){const bleed=Math.min(dt,P.strongWound);P.hp-=bleed*2.6;P.strongWound=Math.max(0,P.strongWound-dt);}
+ if((P.strongWound||0)>0){
+  const bleed=Math.min(dt,P.strongWound);
+  P.hp-=bleed*2.6;
+  const safeDen=atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165);
+  P.strongWound=Math.max(0,P.strongWound-dt*(safeDen?2.2:1));
+ }
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt);
   if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
  if(P.hp<=0){P.hp=0;finish(false);return}
@@ -2782,7 +2794,7 @@ function syncHUD(hour){
  if(!P)return;
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
- $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
+ $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
