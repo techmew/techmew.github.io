@@ -790,3 +790,38 @@
        (orientation:landscape) and (max-height:520px) and (max-width:1024px){
   #hud .hud-right #status{font-size:9px;}
 }
+
+/* UI-LEFT-NOBRAND-MAPSTATS-V2-20261102: one compact left status column; score/hunt physically attached to the minimap. */
+#hud .hud-left > .vitals{margin-top:0!important;}
+#hud .hud-right .mini-map-stack{
+  display:flex!important;flex-direction:column;align-items:flex-end;justify-content:flex-start;
+  align-self:flex-end;flex:0 0 auto;gap:3px;margin:0;padding:0;
+  width:max-content;max-width:100%;min-width:0;pointer-events:none;
+}
+#hud .hud-right .mini-map-stack #mini-map-control{
+  display:block!important;position:relative!important;
+  top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;
+  margin:0!important;flex:0 0 auto;align-self:flex-end;pointer-events:auto;
+}
+#hud .hud-right .mini-map-stack #status{
+  display:grid!important;position:static!important;
+  top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;
+  margin:0!important;padding:0!important;align-self:flex-end;justify-items:end;
+  width:max-content;max-width:100%;gap:2px;
+  line-height:1.2;text-align:right;white-space:nowrap;pointer-events:none;
+}
+#hud .hud-right .mini-map-stack #combo-line:empty{display:none!important;}
+@media (orientation:portrait) and (max-width:600px){
+  #hud .hud-left > .vitals{margin-top:0!important;}
+  #hud .hud-right .mini-map-stack #mini-map-control{width:96px;height:96px;}
+  #hud .hud-right .mini-map-stack #status{font-size:10px;}
+}
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px){
+  #hud .hud-left > .vitals{margin-top:0!important;}
+  #hud .hud-right .mini-map-stack #mini-map-control{width:clamp(80px,23dvh,105px);height:clamp(80px,23dvh,105px);}
+  #hud .hud-right .mini-map-stack #status{font-size:9px;}
+}
+@media (orientation:landscape) and (max-height:390px) and (max-width:1024px){
+  #hud .hud-right .mini-map-stack #mini-map-control{width:80px;height:80px;}
+}
