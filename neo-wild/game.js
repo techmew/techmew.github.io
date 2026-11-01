@@ -508,9 +508,9 @@ function reconcileRestoredGoals(){
  if(mission===4&&denLevel>=2)mission=5;
  if(mission===5&&territoryOwned()>=1)mission=6;
  if(mission===6&&discoveredSites.length>=2){
-  mission=7;freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition);
+  mission=7;missionComplete=true;tutorialSeen.add(7);
  }
- for(let n=0;n<=Math.min(6,mission);n++)tutorialSeen.add(n);
+ for(let n=0;n<=Math.min(7,mission);n++)tutorialSeen.add(n);
  return mission!==previous;
 }
 function restoreSnapshot(snapshot){
@@ -531,7 +531,7 @@ function restoreSnapshot(snapshot){
  elapsed=snapshot.elapsed;day=Math.max(1,Math.floor(snapshot.day||1));
  kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
  expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
- mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete;
+ mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete||mission>=7;
  tutorialSeen.clear();
  // A resumed run has already reached and seen the current objective; never auto-replay it.
  for(let n=0;n<=Math.min(6,Math.max(0,Math.floor(Number(mission)||0)));n++)tutorialSeen.add(n);
@@ -1388,10 +1388,8 @@ function missionInfo(){
     progress:denLevel>=2?1:Math.min(1,denStash/DEN_COSTS[2])};
   }
   case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で△長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
-  case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"自由探索で生存記録を伸ばせ",progress:Math.min(1,discoveredSites.length/2)};
-  default:return freeStep===0
-   ?{stage:"自由探索 / 生存 "+expedition,title:"食草・肉を補給せよ",detail:"周囲で食草・肉を確保する / △・E",next:"獲物を追い狩猟する",progress:0}
-   :{stage:"自由探索 / 生存 "+expedition,title:"狩りを続けろ",detail:"周囲の気配を探り、獲物を狩る / ×・J",next:"食料を補給して探索を続ける",progress:0};
+  case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"生き残れ！",progress:Math.min(1,discoveredSites.length/2)};
+  default:return {stage:"目標",title:"生き残れ！",detail:"",next:"",progress:0};
  }
 }
 // Two help pages only: the current mission, then an optional one-screen control reminder.
@@ -1402,8 +1400,8 @@ const GUIDE_GOALS=[
  {title:"探索地点へ行く",what:"》の方向へ進んで旧駅へ。",how:"次は巣の備蓄。"},
  {title:"巣に食料を貯める",what:"食草・肉で△長押し → 巣で△。",how:"60ptで巣LV2。強化しても食料は減らない。"},
  {title:"縄張りを取る",what:"標識で△長押し。",how:"巣の安全性が上がる。"},
- {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"自由探索へ進む。"},
- {title:"自由探索",what:"狩りと食事を続けて生き残る。",how:"食料庫で備蓄を食べられる。"}
+ {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"最後の目標へ進む。"},
+ {title:"生き残れ！",what:"狩り・食事・休息を続け、生存日数を伸ばす。",how:"食料庫の備蓄も活用できる。"}
 ];
 const TUTORIAL_PAGES=[
  null, // Page 1 always shows the CURRENT goal; not a long sequence of seven lessons.
@@ -1449,6 +1447,7 @@ function tutorialMove(delta){
 }
 function announceObjective(){
  if(!P)return;
+ if(mission>=7){objectiveBannerTime=0;$("objective-banner").classList.remove("visible");return}
  if(mission<=6){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
   if(mission<=3&&mode==="play"&&!tutorialSeen.has(mission))openTutorial(0,true);
@@ -1465,10 +1464,10 @@ function announceObjective(){
 // Award first, then open the next lesson; do not rely on closing a lesson to show success.
 function showMissionMilestone(previous,next){
  if(!P||mode!=="play"||next!==previous+1||previous<0||previous>6)return false;
- const finishedTutorial=previous===3&&next===4;
- const duration=finishedTutorial?1000:780;
- $("mission-milestone-kicker").textContent=finishedTutorial?"TUTORIAL":previous<3?"NICE WORK":"SURVIVAL";
- $("mission-milestone-title").textContent=finishedTutorial?"COMPLETE!":"EXCELLENT!";
+ const finalTutorial=previous===6&&next===7;
+ const duration=finalTutorial?1900:previous===3&&next===4?1000:780;
+ $("mission-milestone-kicker").textContent=finalTutorial?"":previous<3?"NICE WORK":"SURVIVAL";
+ $("mission-milestone-title").textContent=finalTutorial?"チュートリアル終了":"EXCELLENT!";
  const el=$("mission-milestone");
  el.style.setProperty("--milestone-duration",duration+"ms");
  el.classList.remove("hidden");el.classList.remove("show");void el.offsetWidth;el.classList.add("show");
@@ -1489,8 +1488,8 @@ function finishMissionMilestone(){
 function advanceMission(next){
  const previous=mission;
  mission=next;
- if(next===7){freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition)}
- if(!showMissionMilestone(previous,next))announceObjective();
+ if(next===7){missionComplete=true;tutorialSeen.add(7)}
+ if(!showMissionMilestone(previous,next)&&next!==7)announceObjective();
  syncHUD();saveAuto();
 }
 function checkMission(){
@@ -1501,10 +1500,7 @@ function checkMission(){
  if(mission===4&&denLevel>=2){advanceMission(5);return}
  if(mission===5&&territoryOwned()>=1){advanceMission(6);return}
  if(mission===6&&discoveredSites.length>=2){advanceMission(7);return}
- if(mission===7){
-  if(freeStep===0&&meals>=freeTarget){freeStep=1;freeTarget=kills+1;announceObjective();return}
-  if(freeStep===1&&kills>=freeTarget){freeStep=0;freeTarget=meals+1;expedition++;announceObjective()}
- }
+ // No recurring missions after the final survival goal.
 }
 function nearestGoal(list){
  if(!P||!list.length)return null;
@@ -1513,9 +1509,10 @@ function nearestGoal(list){
  return bestItem;
 }
 function objectiveShortLabel(){
- if(mission===0||(mission===7&&freeStep===0)){const f=nearestGoal(carcasses.filter(c=>edibleFood(c)));return f?foodName(f):"食草・肉"}
+ if(mission>=7)return "生き残れ！";
+ if(mission===0){const f=nearestGoal(carcasses.filter(c=>edibleFood(c)));return f?foodName(f):"食草・肉"}
  if(mission===1)return visibleShrubCover()?"潜伏する茂み":"建物・車の陰";
- if(mission===2||(mission===7&&freeStep===1))return "獲物";
+ if(mission===2)return "獲物";
  if(mission===3)return "探索地点";
  if(mission===4){const step=stockpileStep();if(step?.step===1){const f=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));return f?foodName(f):"食草・肉"}return "巣"}
  if(mission===5)return "縄張り標識";
@@ -1523,7 +1520,7 @@ function objectiveShortLabel(){
  return "目標";
 }
 function getObjective(){
- if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
+ if(!P||mission>=7||mode==="menu"||mode==="over"||mode==="clear")return null;
  if(mission===1){
   if(!visibleShrubCover()){
    const p=winterCoverSpot();
@@ -1542,7 +1539,7 @@ function getObjective(){
  }
  if(mission===5){const post=nearestGoal(TERRITORY_POSTS.filter((site,i)=>!territoryClaims[i]));return post?{x:post.x,y:post.y,label:"縄張り標識で△長押し"}:null;}
  if(mission===6){const site=nearestGoal(EXPLORE_SITES.filter(site=>!discoveredSites.includes(site.id)));return site?{x:site.x,y:site.y,label:"未発見の探索地点"}:null;}
- const findFood=mission===0||(mission===7&&freeStep===0);
+ const findFood=mission===0;
  if(findFood){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0&&edibleFood(q)));
   return f?{x:f.x,y:f.y,label:foodName(f)+"を食べる / △・E"}:null;
@@ -1821,7 +1818,7 @@ function tokyoWeatherAt(seconds){
 }
 function maintainLocalWildlife(){
  if(!P)return;
- const hunting=mission===2||(mission===7&&freeStep===1);
+ const hunting=mission===2||mission>=7;
  const preyNearby=mobs.some(m=>m.hp>0&&species[m.type].prey&&dist(P,m)<WILDLIFE.preyNeedRadius);
  const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
@@ -2403,7 +2400,10 @@ function syncHUD(hour){
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
  $("mission-sub").textContent=info.detail;
- $("mission-next").textContent="次の目的："+info.next;
+ $("mission-next").textContent=info.next?"次の目的："+info.next:"";
+ $("mission-next").classList.toggle("hidden",mission>=7);
+ $("mission-nav").classList.toggle("hidden",mission>=7);
+ $("mission-bar").parentElement.classList.toggle("hidden",mission>=7);
  setBar("mission-bar",info.progress*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
