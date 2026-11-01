@@ -289,7 +289,7 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;tutorialCompletePending=false;$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -1132,7 +1132,7 @@ const TUTORIAL_PAGES=[
  null, // Page 1 always shows the CURRENT goal; not a long sequence of seven lessons.
  {stage:"操作早見表",title:"操作・食料の基本",what:"△ 食べる・運ぶ ／ × 攻撃 ／ □ 飛びつき ／ ○ ジャンプ",how:"巣で△：備蓄。手ぶらで△：食料庫。"}
 ];
-let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false;
+let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,tutorialCompletePending=false;
 function renderTutorial(){
  const info=tutorialPage===0
   ?{stage:missionInfo().stage,...GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)]}
@@ -1163,6 +1163,7 @@ function closeTutorial(){
  $("app").classList.remove("tutorial-paused");
  guideNeedsFrame=false;mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"play"});
+ if(tutorialCompletePending&&mission>=4){tutorialCompletePending=false;showTutorialComplete()}
 }
 function tutorialMove(delta){
  if(mode!=="guide")return;
@@ -1183,7 +1184,18 @@ function announceObjective(){
  $("objective-banner").classList.remove("visible");void $("objective-banner").offsetWidth;
  $("objective-banner").classList.add("visible");objectiveBannerTime=performance.now()+2600;
 }
+function showTutorialComplete(){
+ if(!P||mode!=="play")return false;
+ $("objective-banner-stage").textContent="TUTORIAL";
+ $("objective-banner-title").textContent="COMPLETE!";
+ $("objective-banner-next").textContent="";
+ const banner=$("objective-banner");banner.classList.remove("visible");void banner.offsetWidth;
+ banner.classList.add("visible");objectiveBannerTime=performance.now()+2600;
+ return true;
+}
 function advanceMission(next){
+ const previous=mission;
+ if(previous===3&&next===4)tutorialCompletePending=true;
  mission=next;
  if(next===7){freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition)}
  announceObjective();syncHUD();
