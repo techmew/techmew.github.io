@@ -2523,6 +2523,7 @@ function drawLandmark2D(site){
  ctx.fillText(site.name,0,-145);ctx.restore();
 }
 function drawPlant(p){
+ if(p.type===2&&window.WildSeasonClouds?.season?.index===0)return;
  ctx.save();ctx.translate(p.x,p.y);
  let r=p.r*(p.type===2?.74:1);
  if(p.type===2){
@@ -2544,6 +2545,7 @@ function drawPlant(p){
  ctx.restore();
 }
 function drawCoverForeground(p){
+ if(window.WildSeasonClouds?.season?.index===0)return;
  const r=p.r*.68,sway=Math.sin(elapsed*1.8+p.phase)*r*.028;
  ctx.save();ctx.translate(p.x,p.y);
  if(P&&Math.hypot(P.x-p.x,P.y-p.y)<110)ctx.globalAlpha*=.38;
