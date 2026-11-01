@@ -79,7 +79,27 @@ function project(o,x,y){
 }
 function drawFoliage(o,season){
  // Winter native renderer owns branches; remove the pale elliptical overlay.
- if(season.index===0)return;
+ if(season.index===0){
+  // 3D draws its own bare branches. 2D fallback covers the old green blobs.
+  if(!window.Wild3D?.available&&o.plants&&o.cam){
+   ctx.save();ctx.lineCap="round";let n=0;
+   for(const p of o.plants){
+    if(p.type!==2||n++>=40)continue;
+    const at=project(o,p.x,p.y),r=clamp(p.r*(o.cameraZoom||1)*.5,9,38);
+    if(at.x< -90||at.x>o.vw+90||at.y< -90||at.y>o.vh+90)continue;
+    ctx.fillStyle="#33372f";ctx.beginPath();ctx.ellipse(at.x,at.y,r,r*.7,0,0,6.283);ctx.fill();
+    for(let i=0;i<9;i++){
+     const a=i*6.283/9+(p.phase||0),tx=at.x+Math.cos(a)*r*.8,ty=at.y-r*.7+Math.sin(a)*r*.3;
+     ctx.strokeStyle=i%2?"#7c664b":"#a08b6b";ctx.lineWidth=Math.max(1.5,r*.08);
+     ctx.beginPath();ctx.moveTo(at.x,at.y);ctx.lineTo(tx,ty);ctx.stroke();
+     ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(at.x+(tx-at.x)*.6,at.y+(ty-at.y)*.6);
+     ctx.lineTo(tx+r*.14,ty-r*.15);ctx.stroke();
+    }
+   }
+   ctx.restore();
+  }
+  return;
+ }
  if(!o.plants||!o.cam)return;
  const max=season.index===0?40:55;
  let drawn=0;
