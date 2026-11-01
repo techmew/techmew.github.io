@@ -645,6 +645,8 @@ function restoreSnapshot(snapshot){
   strongRegionCurrent=-1;normalizeStrongBossSave();
  for(const c of carcasses)normalizeRemains(c);
  for(const m of mobs){
+  // Resume boss position/HP without an unseen projectile immediately striking on load.
+  if(m.type==="giantGorilla")m.rock=null;
   if(isAquaticStrong(m)){
    // Keep saved aquatic bosses in the river/canal; never migrate them onto land.
    const safe=nearestAquaticWater(m.x,m.y,m.r||18,m.strongRegion);
