@@ -280,7 +280,7 @@ function generateWorld(){
   dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
 }
-function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide")guideNeedsFrame=true;}
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
@@ -2846,7 +2846,7 @@ window.addEventListener("blur",()=>{
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden){
   if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
-  else if(mode==="pause"||mode==="upgrade"||mode==="guide"||mode==="inventory")saveAuto();
+  else if(mode==="pause"||mode==="upgrade"||mode==="guide"||mode==="inventory"){saveAuto();if(mode==="guide")guideNeedsFrame=true;}
  }
 });
 window.addEventListener("pagehide",saveAuto);
