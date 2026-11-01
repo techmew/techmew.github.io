@@ -1,3 +1,12 @@
+## 共通スプリント｜2026-11-02 04:12 JST｜15分枠｜ACTIVE_SPRINT_ID=STRONG-STAGE-20P-COMPLETE｜捕食後の採食・冬の見える食物・ライオン連撃回帰
+- **開始HEAD→コード終了HEAD**：`18245709d18b604343257e9df20225c3cab823ee` → `56dbcc5c22e7146ccb165f8b6d0b732896f1e8df`。直前45分枠の11/20種・ライオン追撃0.48秒、Drive設計書V0.9末尾、前15分枠の死骸採食を照合。既存の強敵定義/3D、即時旋回、ミッション小〉〉、HUD、旧保存、Gamepadは変更なし。変更は`neo-wild/game.js`と`neo-wild/index.html`（game.js rev=`20261102-wild-feed-lion-v1`）のみ。コードコミット`56dbcc5c`。
+- **プレイ動作の連動修正**：(1) 捕食者が死骸の近くにいても壁越しに食べたり、その場で食べられない死骸に固執する状態を防ぎ、届く死骸を選んでHPを回復。(2) 草食のベリー・植物選択も近距離の壁越し採食を除外し、冬に描画されない茂みを食べず見える草を食べる。春の茂み採食は維持。(3) 巨大ライオンの2連撃で追撃を回避・壁遮断・中断した場合に`lionCombo`を解消し、次の攻撃が追撃の残り状態を引きずらない。0.48秒追撃/0.42秒無敵時間は変更なし。
+- **QA**：実ソース関数と現行combat分岐の模擬V8動的12/12 PASS（冬の見える草/不可視茂み除外/春採食/壁越し採食防止/到達死骸の選択・HP回復/ライオン初撃→2撃目命中/回避/壁遮断/中断/旧状態解消）。旧SAVE_SCHEMA=2の`currentSnapshot/isValidSnapshot/getCheckpoints/normalizeStrongBossSave`を実関数で検証：保存可能・強敵状態保持・旧データ受入・チェックポイント3件上限・複数ボス正規化を確認。全配信JS構文6/6 PASS。**未検証**：実ブラウザ10～20分E2E、実Android/実GPU/物理パッド、全6画面BoundingClientRect/FPS、旧セーブの実DOM復元E2E、川橋を含む遠距離経路と3D/2D目視。模擬PASSを実機PASSと扱わない。
+- **Pages**：コードcommit `56dbcc5c` のPages run **41340518254**、build=success / deploy=success / report-build-status=success。**コード公開反映確認済み**。本ROADMAP記録コミットのrunは別途確認する。
+- **次15分枠**：(1) `huntWildPrey→scavengeWildFood→toBones`の捕食者が橋/建物を迂回し、死骸採食→HP回復→骨化する10分相当の動的経路試験。進めない経路は`steerPursuit/wildlifeBridgeWaypoint`を最小修正。(2) `currentSnapshot/restoreSnapshot/recordCheckpoint`を旧SAVE_SCHEMA2と強敵素材・`lionCombo`付き3チェックポイントで模擬DOM統合試験し、死亡後/再開後の攻撃・教程・備蓄の整合を修復。(3) 猫/狐/狼の180度即時移動・小〉〉・地図/SCORE/HUNT・夜目・冬潜伏を縦横モックで回帰。
+- **次45分枠**：(1) `update`のライオン追撃0.48秒とプレイヤー無敵0.42秒を実戦連続試験し、初撃→2撃目/空振り/壁/反撃/保存復元の攻撃状態を確認。(2) 同一11/20種の強敵出現20%・1体制限・野生捕食・固有3D/2Dを維持し、残9種のうち水辺固有行動（巨大ワニ/カバ/アナコンダ）を`waterBlocksLand/routeClear`と整合させて実装。(3) Pages build/deployと縦390×844・横800×360、4ボタン/ゲームパッド/夜目のQA。15分枠の`game.js`変更を巻き戻さない。
+- **進捗**：71/100据置。強敵基本実装11/20、残9種。実機・長時間E2E未完。
+
 ## 共通スプリント追補｜2026-11-02 03:58 JST｜45分枠｜ACTIVE_SPRINT_ID=STRONG-STAGE-20P-COMPLETE｜ライオン連撃の実命中タイミング修正
 - 直前コード`feda61cc`の巨大ライオン追撃は初撃後0.30秒で発動する一方、初撃命中時のプレイヤー無敵時間が0.42秒で、回避しなくても追撃が無効化される競合を確認。追撃予兆を**0.48秒**へ変更し、0.42秒の無敵が終了してから命中判定するよう調整。移動・回避・壁による空振りは維持。変更：game.js commit `910278e9c2b045b03902b4138a4aedeccb5cfdba`（blob `5f9ab872bdf8428fe64bd49c452ad45651c82040`）、index.html rev v2 commit `247a6e78436042895d932e159613bcc534765796`。JS全文構文PASS、0.48>0.42の時系列確認PASS。**実ゲーム連撃E2Eは未検証**。
 - 直前コード`feda61cc`のPages run **41338932062** はbuild/deploy/reportすべてsuccessを確認。**現行コード`247a6e78`のPagesは別runで確認必須**。15分/45分枠の未完事項と進捗71/100は直前記録から不変。
