@@ -424,6 +424,8 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
+ // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
+ previouslyOnboardedAtRunStart=automaticTutorialShown;
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
@@ -1434,7 +1436,7 @@ const TUTORIAL_PAGES=[
  null, // Page 1 always shows the CURRENT goal; not a long sequence of seven lessons.
  {stage:"操作早見表",title:"操作・食料の基本",what:"△ 食べる・運ぶ ／ × 攻撃 ／ □ 飛びつき ／ ○ ジャンプ",how:"巣で△：備蓄。手ぶらで△：食料庫。"}
 ];
-let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,milestoneUntil=0;
+let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,milestoneUntil=0,previouslyOnboardedAtRunStart=false;
 function renderTutorial(){
  const info=tutorialPage===0
   ?{stage:missionInfo().stage,...GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)]}
@@ -1490,6 +1492,7 @@ function announceObjective(){
 }
 // Award first, then open the next lesson; do not rely on closing a lesson to show success.
 function showMissionMilestone(previous,next){
+ if(previouslyOnboardedAtRunStart)return false;
  if(!P||mode!=="play"||(next!==previous+1&&!(previous===2&&next===4))||previous<0||previous>6)return false;
  const finalTutorial=previous===6&&next===7;
  const duration=finalTutorial?1900:previous===3&&next===4?1000:780;
