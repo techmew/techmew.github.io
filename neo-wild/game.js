@@ -802,7 +802,7 @@ function applyStrongStrikeEffect(m,angle,charging=false){
 }
 
 /* STRONG-WATER-3: water-only movement and bank attacks; dry bridges stay passable. */
-const AQUATIC_STRONG_TYPES=new Set(["giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]);
+const AQUATIC_STRONG_TYPES=new Set(["giantCrocodile","giantHippo","giantAnaconda"]);
 function isAquaticStrong(m){return !!m&&AQUATIC_STRONG_TYPES.has(m.type);}
 function aquaticStagePoints(region){
  if(!P||region!==4&&region!==7)return [];
@@ -2104,7 +2104,7 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda"]);
+const WILD_PREDATOR_TYPES=new Set(["giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -2126,7 +2126,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0||playerDistance<=140)return null;
- const maxRange=m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
@@ -2138,10 +2138,10 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
+  m.wildAttack=m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
   const bite=m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
-   Math.max(6,Math.round(sp.damage*(m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
+   Math.max(6,Math.round(sp.damage*(m.type==="albinoWolf"?.42:m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
   prey.hp=Math.max(0,prey.hp-bite);
   prey.flash=Math.max(prey.flash||0,.18);m.swing=Math.max(m.swing||0,.18);
   if(prey.hp>0){
@@ -2156,8 +2156,8 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   }
   if(P&&dist(P,m)<380)label(prey.x,prey.y-prey.r-20,prey.hp>0?"野生の狩り -"+bite:"野生の狩り","#eac6a1");
  }
- return {vx:Math.cos(m.dir)*sp.speed*(m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75),
-         vy:Math.sin(m.dir)*sp.speed*(m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75)};
+ return {vx:Math.cos(m.dir)*sp.speed*(m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75),
+         vy:Math.sin(m.dir)*sp.speed*(m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75)};
 }
 // Choose a real road bridge before generic A* when wildlife crosses open water.
 function wildlifeBridgeWaypoint(m,goal){
