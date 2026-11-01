@@ -2,8 +2,8 @@
 - **開始HEAD**：`764e3e8988fdbc27eb8a5a33b43229d91fef2556`。15分枠の猫速度・初回チュートリアル・死亡リトライ最新更新と、前45分枠のMINIMAP-COMPACT-MARKERS-01、Drive正本末尾を照合。ミニマップ3段階・長押し・敵色分けは既存実装を保持し再実装なし。
 - **完成したコード**：`game.js`で夜間最低環境光を0.17→0.22、2D暗転を0.88→0.80（上限0.82→0.76）に調整。猫/狐/狼の夜目パラメータを月齢・天候・昼夜と連動。前方約120度の柔らかい扇形視界と周辺視野を2Dではオフスクリーン暗転マスクで表現し、背後は最低環境光を維持。`webgl3d.js`ではワールド座標と進行方向を使い、fragment shaderで距離・角度の滑らかな視認性/コントラスト補正（発光/街灯追加なし）。猫は昼行性より遠方・高強度。旧SAVE_SCHEMA=2・3チェックポイント・月齢/雨・夜間狩猟AI・ゲームパッド・横画面・ミニマップを維持。`index.html`のgame.js/webgl3d.js revを更新。
 - **コードコミット**：game.js `63a7eb09828af6ff49118f52688083b5343ab9e1`、webgl3d.js `bc43c8387cea346db846547a77a5923a575f7d2c`、index.html `1b9c6976145352fe3606dde7d0f79a268424b5d1`。変更はneo-wild/のみ、force pushなし。
-- **QA**：両JS全文new Function構文PASS。昼/夜×猫狐狼6件、晴/曇/霧/雨/雷雨5件、猫の距離優位・悪天候の減衰・月齢満月優位3件、2D/3D呼び出し・uniform・既存SAVE_SCHEMA/miniMap/GamepadBridge・script6件の静的結線PASS。**未検証**：実WebGL GPU shaderコンパイル、実ブラウザ2D Canvas表示/描画負荷・夜目の見え方、Android/iOS縦横矩形、物理ゲームパッド、旧保存/チェックポイントのE2E、15分プレイ。構文/数値/静的結線を実機QAと混同しない。
-- **Pages**：この記録作成時点で新コードのbuild/deploy未確認。成功を確認するまで公開済みと称さない。
+- **QA**：両JS全文new Function構文PASS。実`moonlightProfile/dayLightProfile/nightVisionProfile`を抽出して昼夜×猫狐狼、晴/曇/霧/雨/雷雨、月齢新月/満月、猫の距離優位・悪天候減衰を動的PASS。実`drawNightVision2D`をモックCanvas2Dで実行し、向き0→90度で扇形4層クリップ・グラデーション・合成2回PASS。WebGL shaderのuniform/結線・既存SAVE_SCHEMA/miniMap/GamepadBridge・script6件は静的PASS。**未検証**：実WebGL GPU shaderコンパイル、実ブラウザ2D Canvas表示/描画負荷・夜目の見え方、Android/iOS縦横矩形、物理ゲームパッド、旧保存/チェックポイントのE2E、15分プレイ。構文/数値/静的結線を実機QAと混同しない。
+- **Pages**：新コードを含むHEAD `b55b28babc0d0c0abdc6d9d7e2ab12bd76ad2f57` のrun **41316644996** は2026-11-01 23:32 JSTに`completed/success`、build・deploy・report-build-status全3ジョブsuccess。コード配信成功。
 - **次15分枠**：(1) game.jsのnightCoverThreatened/updateIndoorRestと視認距離の乖離を晴/雨・猫/狐で確認、夜間休息→覚醒→逃走→狩りを実関数で検証。(2) 死亡リトライ・最初から・旧SAVE_SCHEMA2の教程既読が保持される実DOM+保存回帰。(3) 既存ミニマップの獲物/敵マーカー更新とmission4→7切替を継続。
 - **次45分枠**：(1) Android/PCブラウザで夜間2D/3Dの前方120度・背後最低照度・晴天新月/満月/曇/雷雨の実画像比較、GPUコンパイル/負荷確認。(2) 横800×360/844×390/736×414・縦390×844でミニマップ・月齢・結果ダイアログ・4ボタンの矩形衝突確認。(3) ミニマップ3段階→長押し詳細→閉じる・カメラピンチ・パッド肩ボタン・旧3チェックポイントを実機E2E。
 - **進捗**：71/100据え置き（実機E2E未検証）。
