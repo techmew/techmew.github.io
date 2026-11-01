@@ -140,7 +140,28 @@ function drawClouds(o,weather){
  }
  ctx.restore();
 }
-let lastFrame=0;
+let lastFrame=0,lastHudClock="",fallbackAnchor=0,fallbackTime=0;
+function fallbackScene(ms,day,hud,dw,dh){
+ // On low-end devices without WebGL, the normal 2D canvas is still playable.
+ // HUD provides the existing game clock and weather without touching game state.
+ const hour=Number((/·\s*(\d{2}):\d{2}/.exec(hud)||[])[1]||6);
+ const key=day+":"+hour;
+ if(key!==lastHudClock){
+  lastHudClock=key;fallbackAnchor=ms;
+  fallbackTime=(day-1)*85+((hour-6+24)%24)/24*85;
+ }
+ const estimated=fallbackTime+Math.max(0,ms-fallbackAnchor)/1000;
+ const weather=hud.includes("雷雨")?"THUNDER":hud.includes("雨")?"RAIN":
+  hud.includes("曇")?"CLOUDY":hud.includes("霧")?"FOG":
+  hud.includes("風")?"WIND":"CLEAR";
+ const brightness=hour>=19||hour<5?.12:hour>=10&&hour<15?1.16:
+  hour>=9&&hour<17?.90:hour>=6&&hour<9?.54:.38;
+ return {
+  vw:dw,vh:dh,cam:{x:0,y:0},VIEW:{a:1,b:0,c:0,d:1},
+  elapsed:estimated,weather,cameraZoom:1,plants:[],
+  lightProfile:{brightness,warmth:hour>=17&&hour<19?.7:hour>=5&&hour<8?.5:0,hour}
+ };
+}
 function frame(ms){
  requestAnimationFrame(frame);
  if(ms-lastFrame<32)return;
@@ -158,11 +179,11 @@ function frame(ms){
  const day=match?Number(match[1]):1;
  const season=seasonOfDay(day);
  label.textContent=season.name+" "+season.month+"月";
- const menu=document.getElementById("start-screen");
- const show=!!current&&!!match&&(!menu||menu.classList.contains("hidden"));
+ const menu=document.getElementById("menu");
+ const show=!!match&&(!menu||menu.classList.contains("hidden"));
  layer.style.visibility=show?"visible":"hidden";
  if(!show)return;
- const opts=current;
+ const opts=current||fallbackScene(ms,day,hud,dw,dh);
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
  drawFoliage(sc,seasons[season.index]);
