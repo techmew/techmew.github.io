@@ -3293,15 +3293,22 @@ function drawPlant(p){
  ctx.save();ctx.translate(p.x,p.y);
  let r=p.r*(p.type===2?.74:1);
  if(p.type===2){
-  ctx.fillStyle="#172a22cf";ctx.beginPath();ctx.ellipse(2,7,r*1.08,r*.64,.1,0,TWO);ctx.fill();
-  for(let j=0;j<17;j++){
-   const a=j*TWO/17+p.phase,px=Math.cos(a)*r*.57,py=Math.sin(a)*r*.42;
-   const lobe=r*(.27+.10*noise(j,p.phase)),size=r*(.23+.09*noise(j+11,p.phase));
-   ctx.fillStyle=j%4===0?"#68875b":j%3?"#355c44":"#51724b";
-   ctx.beginPath();ctx.ellipse(px,py,lobe,size,a*.28,0,TWO);ctx.fill();
-   ctx.strokeStyle="#a0be8691";ctx.lineWidth=1;ctx.beginPath();
-   ctx.moveTo(px,py+size*.65);ctx.quadraticCurveTo(px+Math.sin(elapsed*1.8+p.phase+j)*r*.045,py-size*.2,px+Math.sin(a)*lobe*.5,py-size*.7);ctx.stroke();
-  }ctx.restore();return;
+  // Actual grass shape: long narrow pointed blades with bright midribs, not round blobs.
+  ctx.fillStyle="#172820a6";ctx.beginPath();ctx.ellipse(0,9,r*1.03,r*.52,0,0,TWO);ctx.fill();
+  for(let layer=0;layer<2;layer++)for(let j=0;j<12;j++){
+   const n=j+layer*12,spread=(j-5.5)/5.5,baseX=spread*r*.79+Math.sin(n*3.7+p.phase)*r*.08;
+   const baseY=(layer===0?3:10)+Math.cos(n*1.8)*r*.06;
+   const tall=r*(.69+(n%5)*.135),bend=spread*r*.28+Math.sin(elapsed*1.6+p.phase+n)*r*.045;
+   const tipX=baseX+bend,tipY=baseY-tall,half=r*(.064+(n%3)*.014);
+   ctx.fillStyle=n%4===0?"#83a86a":n%3===0?"#436e47":n%2?"#527f4f":"#6c9655";
+   ctx.beginPath();ctx.moveTo(baseX-half,baseY);
+   ctx.quadraticCurveTo(baseX-half*1.3,baseY-tall*.62,tipX,tipY);
+   ctx.quadraticCurveTo(baseX+half*1.6,baseY-tall*.52,baseX+half,baseY);
+   ctx.closePath();ctx.fill();
+   ctx.strokeStyle="#bad29b87";ctx.lineWidth=.85;ctx.beginPath();
+   ctx.moveTo(baseX,baseY-2);ctx.quadraticCurveTo(baseX+bend*.36,baseY-tall*.62,tipX,tipY);ctx.stroke();
+  }
+  ctx.restore();return;
   }
   if(p.type===1){ctx.fillStyle="#4e5b4b";ctx.beginPath();ctx.ellipse(0,3,r*1.2,r*.47,.2,0,TWO);ctx.fill();
   for(let j=0;j<5;j++){let a=j*TWO/5+p.phase;ctx.strokeStyle="#78926d";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke()}
@@ -3325,9 +3332,11 @@ function drawCoverForeground(p){
   ctx.strokeStyle="#d3e0a15e";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+sway*.7,yy-tall*.55);ctx.stroke();
  }ctx.restore();
 }
-function drawDenBedding2D(){
- if(!P||!visible(SAFE_DEN.x,SAFE_DEN.y,135))return;
- const x=SAFE_DEN.x,y=SAFE_DEN.y,cat=P.type==="cat",fox=P.type==="fox";
+function drawDenBedding2D(roofOnly=false){
+ if(!P)return;
+ for(const site of denSites){
+ if((site.z>0)!==roofOnly||!visible(site.x,site.y,135))continue;
+ const x=site.x,y=site.y,cat=P.type==="cat",fox=P.type==="fox";
  ctx.save();ctx.translate(x,y);
  ctx.fillStyle="#25332a";ctx.beginPath();ctx.ellipse(0,3,55+denLevel*7,40+denLevel*4,0,0,TWO);ctx.fill();
  ctx.fillStyle=cat?"#938e75":fox?"#937448":"#615e47";
@@ -3341,7 +3350,9 @@ function drawDenBedding2D(){
  if(cat){ctx.strokeStyle="#b8a17f";ctx.lineWidth=3;ctx.strokeRect(-42,-25,84,50)}
  if(!cat&&!fox){ctx.strokeStyle="#695b40";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-40,-25);ctx.lineTo(43,-25);ctx.moveTo(-40,26);ctx.lineTo(43,26);ctx.stroke()}
  if(denStash>0){ctx.fillStyle="#bba27d";ctx.fillRect(16,12,Math.min(31,8+denStash*.1),7)}
+ if(site.z>0){ctx.strokeStyle="#d6e4df";ctx.lineWidth=2;ctx.strokeRect(-40,-26,80,52);}
  ctx.restore();
+ }
 }
 function drawCarriedFood2D(){
  if(!P?.carry||P.carry.amount<=0)return;
@@ -3946,7 +3957,7 @@ function drawThreatNames(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
@@ -3963,7 +3974,7 @@ function drawScene(){
  drawWater2D();
   roadDraw();
   drawScenery2D();
- drawDenBedding2D();
+ drawDenBedding2D(false);
  // Foot-level water wake, visible only while an animal is actually moving.
  for(const e of entities)if(waterDepth(e.x,e.y)>.10&&Math.hypot(e.vx||0,e.vy||0)>25){
   ctx.save();ctx.strokeStyle="#b4dedaaf";ctx.lineWidth=2;ctx.beginPath();
@@ -4004,6 +4015,7 @@ function drawScene(){
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
+ drawDenBedding2D(true); // Rooftop beds must be drawn above building roofs in 2D.
  for(const bird of birdFlocks)if(visible(bird.x,bird.y,90))drawFlyingBird(bird);
  drawOccludedSilhouettes(entities);
  }
