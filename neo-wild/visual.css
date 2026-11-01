@@ -521,3 +521,6 @@
 /* Lunar status sits under the clock, outside the gameplay canvas. */
 #moon-label{font:700 10px/1.3 "Noto Sans JP",sans-serif;color:#bdcfe3;letter-spacing:.02em;margin-top:3px;white-space:normal}
 @media(max-width:520px),(max-height:520px){#moon-label{font-size:9px;margin-top:2px}}
+
+/* Final objective remains readable without opening a large mission panel. */
+#survival-goal{display:inline-block;margin-top:4px;padding:3px 9px;border-radius:14px;background:rgba(15,37,31,.84);border:1px solid rgba(154,221,163,.58);color:#e2f6d9;font:800 clamp(11px,1.5vw,14px)/1.3 "Noto Sans JP",sans-serif;letter-spacing:.02em;white-space:nowrap;text-shadow:0 1px 3px #071a11}
