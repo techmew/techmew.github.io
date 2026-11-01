@@ -44,12 +44,13 @@ function hash(x,y){
  const n=Math.sin(x*127.1+y*311.7)*43758.5453;
  return n-Math.floor(n);
 }
-let current=null;
+let current=null,active3D=false;
 if(window.Wild3D&&typeof window.Wild3D.render==="function"){
  const original=window.Wild3D.render;
  window.Wild3D.render=function(options){
-  current=options;
-  return original.call(this,options);
+  const rendered=original.call(this,options);
+  if(rendered){current=options;active3D=true;}
+  return rendered;
  };
 }
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -172,19 +173,20 @@ function frame(ms){
  const show=!!match&&(!menu||menu.classList.contains("hidden"));
  layer.style.visibility=show?"visible":"hidden";
  if(!show)return;
- const opts=window.Wild3D?.available&&current?current:fallbackScene(ms,day,hud,dw,dh);
+ const opts=current||fallbackScene(ms,day,hud,dw,dh);
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
  drawFoliage(sc,seasons[season.index]);
  drawGroundShadows(sc,opts.weather||"CLEAR");
  const glCanvas=document.getElementById("scene3d");
- const target=window.Wild3D?.available&&current?glCanvas:main;
+ const target=active3D?glCanvas:main;
  if(target&&target.style.filter!==seasons[season.index].filter)
   target.style.filter=seasons[season.index].filter;
 }
 requestAnimationFrame(frame);
 window.WildSeasonClouds={
  seasonOfDay,cloudPatches,
+ capture2D(options){current=options;active3D=false;},
  setShadowsEnabled(value){shadowEnabled=!!value;},
  get shadowsEnabled(){return shadowEnabled;},
  get hasRenderState(){return !!current},
