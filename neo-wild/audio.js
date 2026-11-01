@@ -131,7 +131,7 @@ function update(conditions){
  scene=conditions||scene;
  const area=Number(scene.area||0),danger=!!scene.danger,storm=scene.weather==="THUNDER",rain=scene.weather==="RAIN"||storm;
  const forest=area===5||area===2||area===4,clock=context.currentTime;
- const paused=scene.mode&&scene.mode!=="play",mix=paused?.12:1;
+ const paused=scene.mode&&scene.mode!=="play",mix=scene.mode==="guide"?0:paused?.12:1;
  const targets={
   explore:(danger?.06:forest?.14:.60)*mix,
   forest:(danger?.06:forest?.65:.04)*mix,
