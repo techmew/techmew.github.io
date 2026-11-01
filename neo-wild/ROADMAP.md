@@ -1,3 +1,14 @@
+## 共通スプリント｜2026-11-02 JST｜15分枠引継ぎ／即時HUD修正｜UI-LEFT-NOBRAND-MAPSTATS-V2-20261102
+- **最新ユーザー画像**：縦Androidのゲーム画面で左上「W//R WILD RECLAIM 東京・生存戦線」を削除して生命/空腹/持久/LV/巣/備蓄/食料庫/ガイドを上詰め、右地図の真下にSCORE・HUNTを密着配置する。タイトルメニューのゲームタイトルは削除しない。右上の音楽→最大化→ポーズの横一列・常設地図を維持。
+- **担当**：既存15分枠タスク `6ae373bfe9fc81918d84c77f6096a4c5` を最新要求で更新済み。45分枠の強敵20種担当は変更しない。新規タスク作成なし。
+- **実コード**：`neo-wild/index.html` commit `2a46d89b721b0b2fd4b67fe3d74e3b1e23489636` はHUDの `.brand-small` をDOMから削除、`#mini-map-control` と `#status` を共通 `.mini-map-stack` に収納。CSS rev `20261102-hud-nobrand-mapstats-v2` に更新、ID・ゲームのscore/hunt更新関数は維持。
+- **実コード**：`neo-wild/visual.css` commit `09dba2bfddea33b74a144ee0ff0974593c3ed8be` は左 `.vitals` 上マージンを0にし、地図とSCORE/HUNTを3px gapの同じ縦flexカラムで固定、従来絶対座標指定をより高い特異度の `position:static!important` で解除。COMBO空欄の余白除去、縦96px/横80-105px地図サイズ維持。
+- **静的QA**：実mainのHTML+CSS+game.jsを再取得して16/16 PASS：左ブランド不在、タイトル画面維持、先頭生命表示、地図グループ/DOM順/唯一ID、CSS cache rev、余白解消、地図relative+スコアstatic、COMBO空行抑制、score/hunt実DOM更新維持、CSS波括弧、SAVE_SCHEMA=2、alpha速度231.4等。ゲームJSは非変更。
+- **未確認**：実Android表示、本番全CSSの実Chromium矩形、縦390×844/411×768と横800×360/844×390/736×414/1536×691の地図-SCORE/HUNT間隔実測、全画面・ミニマップ3段階+長押し・ゲームパッド・旧保存・WebGL/2D動的E2E。静的検査を実機PASSと称さない。
+- **Pages**：HEAD `09dba2bfddea33b74a144ee0ff0974593c3ed8be` のpages run `41323016158` は記録時点 `completed`、結論 `success`。build/deploy双方成功を確認するまで公開済みと報告しない。
+- **次15分枠**：①最新main全CSS/実HTMLで左生命パネルと `.mini-map-stack > #status` の矩形・上下間隔を縦横6条件とsafe-areaで測り、重なりがあれば最小CSS差分。②地図短押し3段階/550ms長押し、COMBO/スコア反映、ポーズ/全画面を動的検査。③実Androidと旧セーブ/ゲームパッド/夜目の未検証を明記し、重大バグのみ修復。45分枠の強敵パッケージと旧版で競合させない。
+- **進捗**：71/100据え置き。
+
 ## 共通スプリント｜2026-11-02 JST｜手動即時UI修正｜UI-MAP-SCORE-STACK-20261102 スコア・ハントを常設地図の真下へ
 - **ユーザー最新確定**：「スコアとハントを地図の下に配置」。右上の音楽→最大化→ポーズの横3列、下段ミニマップを維持。その直下にSCORE→HUNT→（コンボ発生時のみ）COMBOを縦積みする。
 - **変更**：`neo-wild/index.html` commit `f26b0fc9d08987a8806173c6b37b27131ea12737`：既存 `#status`（`#score-line/#kill-line/#combo-line`）をHUD外の絶対配置から `#hud .hud-right` 内の `#mini-map-control` 直後に移動。IDやゲームの更新処理は変更せず、CSS cache rev `20261102-map-score-stack-v1` に更新。
