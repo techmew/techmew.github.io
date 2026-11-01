@@ -391,6 +391,7 @@ function restoreSnapshot(snapshot){
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
+ for(const c of carcasses)normalizeRemains(c);
  // Schema-2 saves from before this feature resume on the ground with the same wildlife.
  for(const m of mobs){
   m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
@@ -734,7 +735,14 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
  return {vx:0,vy:0};
 }
 function animalRemains(m){const n=species[m.type].food;return {x:m.x,y:m.y,r:Math.max(9,m.r*.78),type:"corpse",animalType:m.type,amount:n,initialAmount:n,ttl:150,phase:rnd(0,6)};}
-function toBones(c){c.type="bones";c.amount=0;c.ttl=150;}
+const BONE_LIFETIME=45; // Seconds of actual unpaused game time.
+function toBones(c){c.type="bones";c.amount=0;c.ttl=BONE_LIFETIME;}
+function normalizeRemains(c){
+ if(!c||typeof c!=="object")return;
+ if(c.type==="bones")c.ttl=clamp(Number.isFinite(c.ttl)?c.ttl:BONE_LIFETIME,0,BONE_LIFETIME);
+ if(c.type==="corpse"&&(!Number.isFinite(c.initialAmount)||c.initialAmount<=0))
+  c.initialAmount=Math.max(1,Number(c.amount)||1);
+}
 function nearbyFood(){
  return carcasses.some(f=>edibleFood(f)&&dist(P,f)<65&&!lineBlocked(P,f));
 }
