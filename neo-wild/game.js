@@ -411,6 +411,9 @@ function restoreSnapshot(snapshot){
   m.forageNeed=Number.isFinite(m.forageNeed)?clamp(m.forageNeed,0,1):null;
   m.forageCooldown=clamp(Number(m.forageCooldown)||0,0,8);
   m.foragePose=0;
+  m.thirstNeed=Number.isFinite(m.thirstNeed)?clamp(m.thirstNeed,0,1):null;
+  m.drinkCooldown=clamp(Number(m.drinkCooldown)||0,0,10);
+  m.drinkPose=0;
   m.feintTime=0;m.feintRemaining=0;m.feintSpeed=0;
   m.feintAngle=Number.isFinite(m.feintAngle)?m.feintAngle:0;
   m.feintCooldown=clamp(Number(m.feintCooldown)||0,0,8);
@@ -492,7 +495,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
 }
 function spawnFood(){
@@ -762,6 +765,38 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
   m.forageCooldown=1.9;m.foragePose=1.05;m.navPath=null;
   if(playerDistance<320)label(m.x,m.y-m.r-24,"食事","#d9f0b9");
  }
+ return {vx:0,vy:0};
+}
+// NPCs approach the existing river/canal shoreline on foot and drink when safe.
+function drinkWildWater(m,sp,dt,spotted,playerDistance){
+ m.drinkPose=Math.max(0,(m.drinkPose||0)-dt);
+ m.drinkCooldown=Math.max(0,(m.drinkCooldown||0)-dt);
+ m.thirstNeed=Number.isFinite(m.thirstNeed)?clamp(m.thirstNeed+dt*.009,0,1):clamp(.30+noise(Math.floor(m.x),Math.floor(m.y))*.42,0,1);
+ if(m.thirstNeed<.72||m.drinkCooldown>0||spotted||m.alert>0||m.flee>0||
+    m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||
+    playerDistance<105||((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
+ if(sp.prey&&mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&
+    dist(m,q)<170&&!lineBlocked(m,q)))return null;
+ let goal=null,best=310*310;
+ for(const site of EXPLORE_SITES){
+  if(site.id!=="river"&&site.id!=="canal")continue;
+  const dx=m.x-site.x,dy=m.y-site.y;
+  if(Math.abs(dx)>330||Math.abs(dy)>300)continue;
+  const x=clamp(m.x,site.x-175,site.x+175),y=site.y+(dy>=0?121:-121);
+  const d2=(x-m.x)**2+(y-m.y)**2;
+  if(d2>=best||collides(x,y,m.r+4))continue;
+  goal={x,y};best=d2;
+ }
+ if(!goal)return null;
+ if(best>(m.r+10)**2){
+  m.dir=steerPursuit(m,goal.x,goal.y);
+  if(!clearStep(m,m.dir,Math.min(35,Math.sqrt(best))))return null;
+  return {vx:Math.cos(m.dir)*sp.speed*.42,vy:Math.sin(m.dir)*sp.speed*.42};
+ }
+ if(lineBlocked(m,goal))return null;
+ m.thirstNeed=Math.max(0,m.thirstNeed-.65);
+ m.drinkCooldown=7;m.drinkPose=1.1;m.navPath=null;
+ if(playerDistance<320)label(m.x,m.y-m.r-24,"水を飲む","#b5e8f1");
  return {vx:0,vy:0};
 }
 function animalRemains(m){const n=species[m.type].food;return {x:m.x,y:m.y,r:Math.max(9,m.r*.78),type:"corpse",animalType:m.type,amount:n,initialAmount:n,ttl:150,phase:rnd(0,6)};}
@@ -1867,8 +1902,9 @@ function update(dt){
    }
    const scavenging=!s.prey?scavengeWildFood(m,s,dt,spotted,d):null;
    const foraging=s.prey?forageWildBerries(m,s,dt,spotted,d):null;
-   if(scavenging||foraging){
-    const feeding=scavenging||foraging;
+   const drinking=!scavenging&&!foraging?drinkWildWater(m,s,dt,spotted,d):null;
+   if(scavenging||foraging||drinking){
+    const feeding=scavenging||foraging||drinking;
     vx=feeding.vx;vy=feeding.vy;
     m.wander=Math.max(m.wander,.25);
    }
@@ -2836,10 +2872,10 @@ function drawScene(){
  }
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=m.resting?"Zz":(m.scavengePose||0)>0||(m.foragePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=m.resting?"Zz":(m.drinkPose||0)>0?"水":(m.scavengePose||0)>0||(m.foragePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillStyle=m.resting?"#c8e7ff":(m.scavengePose||0)>0||(m.foragePose||0)>0?"#d9f0b9":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+  ctx.fillStyle=m.resting?"#c8e7ff":(m.drinkPose||0)>0?"#b5e8f1":(m.scavengePose||0)>0||(m.foragePose||0)>0?"#d9f0b9":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
