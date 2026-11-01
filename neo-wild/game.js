@@ -25,7 +25,7 @@ const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-chec
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 let debugWeatherOverride=null; // Session-only weather preview; never stored in saves.
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
-const activeTouchPointers=new Map(),touchHoldTimers=new Map();
+const activeTouchPointers=new Map(),touchHoldTimers=new Map(),gamepadAxes={x:0,y:0};
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
 let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
@@ -836,8 +836,8 @@ function detectsPlayer(m,sp,d){
  return visibleNow||heard||smelled||(los&&d<P.r+m.r+17);
 }
 function getAxes(){
- let x=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)+joy.x;
- let y=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0)+joy.y;
+ let x=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)+joy.x+gamepadAxes.x;
+ let y=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0)+joy.y+gamepadAxes.y;
  const strength=Math.min(1,Math.hypot(x,y));
   const wx=(VIEW.d*x-VIEW.c*y)/VIEW_DET,wy=(-VIEW.b*x+VIEW.a*y)/VIEW_DET,n=Math.hypot(wx,wy);
   return n>1e-5?{x:wx/n*strength,y:wy/n*strength}:{x:0,y:0};
@@ -3340,6 +3340,7 @@ function loop(t){
   huntSlowUntil=0;$("hunt-cinematic").classList.remove("show");
  }
  if(mode==="milestone"&&t>=milestoneUntil)finishMissionMilestone();
+ window.WildGamepad?.poll?.(dt);
  if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
  else huntSlowUntil=0;
  // Freeze 2D/WebGL gameplay behind achievement and tutorial.
@@ -3377,7 +3378,7 @@ document.addEventListener("visibilitychange",()=>{
 window.addEventListener("pagehide",saveAuto);
 window.addEventListener("beforeunload",saveAuto);
 function resetControls(){
- keys.clear();if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;
+ keys.clear();if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;gamepadAxes.x=0;gamepadAxes.y=0;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
  for(const [id,pointers] of activeTouchPointers){
   for(const pointerId of [...pointers]){try{$(id).releasePointerCapture?.(pointerId)}catch(_){}}
@@ -3608,5 +3609,22 @@ window.WildDebugBridge={
   return saveAuto();
  },
  save(){return saveAuto();}
+};
+
+/* Gamepad adapter invokes the same gameplay and UI functions as touch/keyboard. */
+window.WildGamepadBridge={
+ getMode:()=>mode,
+ setMove(x,y){gamepadAxes.x=clamp(Number(x)||0,-1,1);gamepadAxes.y=clamp(Number(y)||0,-1,1)},
+ turnCamera(v){if(mode!=="play"||!Number.isFinite(v))return;cameraYaw=(cameraYaw+v)%TWO;updateCameraView()},
+ zoom(v){if(mode==="play"&&Number.isFinite(v))adjustZoom(v)},
+ action(kind,long=false){
+  if(mode!=="play")return;
+  if(kind==="attack")act("attack");
+  else if(kind==="jump")act("jump");
+  else if(kind==="pounce")act(long?"instinct":"dash");
+  else if(kind==="context")contextAction(!!long);
+ },
+ pause(){if(mode==="play"||mode==="pause")togglePause()},
+ map(){if(mode==="play"||mode==="map")toggleWorldMap()}
 };
 })();

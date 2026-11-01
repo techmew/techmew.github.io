@@ -497,3 +497,8 @@
 #mission-milestone-title{font:900 clamp(33px,7vw,66px) "Barlow Condensed","Noto Sans JP",sans-serif;letter-spacing:.065em}
 @keyframes wild-milestone-first{0%{opacity:0}13%,78%{opacity:1}100%{opacity:0}}
 @media(max-width:520px){.mission-milestone-inner{padding:8px 12px}#mission-milestone-kicker{font-size:14px}#mission-milestone-title{font-size:clamp(31px,10vw,48px)}}
+
+/* Gamepad status and controller keyboard-like focus. */
+#gamepad-status{position:fixed;top:8px;right:8px;z-index:1200;max-width:min(75vw,390px);padding:5px 9px;border:1px solid #b3d4aa88;border-radius:8px;background:#102820d9;color:#dff7dd;font:600 11px/1.5 "Noto Sans JP",sans-serif;pointer-events:none;text-align:right}
+#gamepad-status[hidden]{display:none!important}
+#menu button:focus,#menu summary:focus,#pause button:focus,#upgrade button:focus,#result button:focus,#tutorial-dialog button:focus,#den-inventory button:focus,#world-map button:focus{outline:2px solid #e6ff9b;outline-offset:3px}

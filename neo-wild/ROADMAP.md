@@ -1,3 +1,11 @@
+## 共通スプリント｜2026-11-01 19:47 JST｜45分枠｜GAMEPAD-FULL-CONTROLS-01（物理パッドでゲーム開始から狩猟・メニューまで）
+- **優先／担当／開始HEAD**：P0・45分枠、`6ace94a0f84f7c3110a8a074bc5debefe244fe78`。15分枠の直前NIGHT-HUNT-WINTER-COVER-01（冬の実遮蔽物→夜間覚醒→逃走→狩猟）を保持し、15分枠はAI担当を継続。既存タスクのみで実装。
+- **連動改善**：①標準Gamepad API接続/切断/再接続、複数パッドの新押下選択、未接続時の従来入力退避。②左スティック/十字移動・右スティック視点/ズーム・肩ズーム。③×位置0連続攻撃、○位置1ジャンプ、□位置2短押し飛びつき/450ms長押し種族能力、△位置3短押し食事・運搬・備蓄/550ms長押し、エッジ検出と重複防止。④START停止/再開・SELECT地図・タイトル/ガイド/巣の食料庫/進化/結果画面の十字フォーカスと決定/戻る、日本語接続HUD。既存game.jsのアクションをBridge経由で再利用し、セーブ形式と旧タッチ/キー入力を保持。
+- **変更ファイル**：`neo-wild/gamepad.js`新規、`game.js`入力合成・毎フレームpoll・Bridge、`index.html`読込順/rev、`visual.css`HUD/フォーカス、`ROADMAP.md`本ログ。**実装コミット／終了HEAD**：本コミット（SHAは次回HEAD照合で確定）。
+- **QA PASS**：31項目（全文JS構文6ファイル、Gamepad APIモック接続・切断・複数選択・移動/視点・4ボタン短押し/長押し・連打抑止・START・地図・ズーム・APIなし、セーブ/チェックポイントと既存デバッグ・季節JS読込の静的回帰）。実Android/PC Chrome物理パッド、15分実プレイ、縦横実DOM、WebGL/Canvas2D、旧セーブE2E、Pages workflowは未検証。進捗71/100据え置き。
+- **次15分枠**：①`game.js:updateIndoorRest/startlePrey/chooseEscape`の夜の休息→覚醒→逃走→追跡を維持して実AIループ検証。②`getAxes/loop/resetControls`のパッド入力統合を巻き戻さず、既存操作4ボタンを維持。③冬の実車/建物陰潜伏→目標進行を実プレイ検証。
+- **次45分枠**：①実PS/Xboxパッド＋PC/Android Chromeでタイトル→続き/新規→移動/カメラ→5段攻撃→□長押し→△運搬→STARTを15分試験。②`gamepad.js:focus/navigate/confirm/back`のガイド/巣在庫/進化の実DOM・縦横レイアウト試験。③`game.js:getAxes/loop`で旧SAVE_SCHEMA=2と3チェックポイント再開、WebGL/2D・低FPS回帰。実機未検証のため実機対応完了とは断定しない。
+
 ## 共通スプリント｜2026-11-01 19:23 JST｜15分枠｜NIGHT-HUNT-WINTER-COVER-01（冬の潜伏→発見・覚醒→逃走・狩猟）
 - **優先度／担当／開始HEAD→実装HEAD**：P0・P1、15分ゲームプレイ担当、`a948c4bc9c3f57f3b67487480d876f9f1fbff7e2` → `28bfaadbc1ecbe7b2a8e0b68d883d4abc5adf01c`。45分枠は同じパッケージの可視性・経路・実ブラウザ回帰を担当し、別スプリントを立ち上げない。編集前にmainのgame/webgl/index/style/visual/audio/ROADMAP/season-clouds/debug全文、直近12コミット、Google Drive設計書末尾を確認。前15分夜間休息・前45分冬の不可視低木潜伏禁止を保持。
 - **問題と完成条件**：冬の低木を非描画にしたため`inCover`が常時偽となり、冬1月のチュートリアル「潜伏」が進行不能。加えて寝ている獲物が敵を察知しても睡眠解除のみで実逃走を開始しない場合があり、攻撃を受けた獲物は`resolveAttack`で逃走値を0へ戻される。プレイヤーが見える建物・車の陰へ移動して潜伏達成でき、夜の獲物が発見・攻撃・野犬噛みつきで起きて障害物を避けて逃げ、逃走マーク／近距離の「目覚めた！」を見られること。
