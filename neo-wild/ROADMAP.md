@@ -1,3 +1,8 @@
+## 共通スプリント追補｜2026-11-01 21時台｜SURVIVAL-FINAL-GOAL-01 最終目標HUDの常設化と回帰検査
+- **追加コミット**：game.js `0fe31697ec1ecbe603dc413733b9a26d95813774`、visual.css `89341571c2b9de28eca18c9308fb3661b42064a0`、index.html `7e35e71bbb33695e02e8e2c272817e0cbfb7e5d2`。最終mission7の「生き残れ！」を、手動開閉の大きなmissionパネルに頼らず、画面中央上の小さなHUDとして通常プレイ中だけ常設。終了告知中・新規ゲーム時は隠す。ゲームJS/visual.cssのキャッシュrevを更新。
+- **追加QA**：game.js/webgl3d.js/gamepad.js/audio.js/season-clouds.js/debug-mode.jsのJS全文構文 **6/6 PASS**。HTML内のgame.jsが参照するID **101種すべて存在**、旧「自由探索」表示文字列は対象6JS/HTML/CSSに**残存なし**。最終HUD DOM/表示切替/キャッシュrevの整合PASS。実Android・実ブラウザの10分プレイ/旧SAVE_SCHEMA=2チェックポイント3件E2E・GPU/パッド実機は引き続き**未検証**。Pages workflowはコネクタのcombined statuses空、PR限定workflow照会も0件で、build/deploy成功を判定できず**未確認**。進捗は**71/100据え置き**。
+- **次45分枠の追加確認**：縦横・横画面全画面メニュー・月齢HUDと並んだ「生き残れ！」ラベルが操作ボタン/地図/スコアに重ならないこと。特に狭いスマホ横画面で必要ならvisual.cssのサイズと配置のみ調整し、15分枠のミッション進行ロジックは保持する。
+
 ## 共通スプリント｜2026-11-01 21:15 JST｜15分枠｜SURVIVAL-FINAL-GOAL-01（自由探索の無限目標廃止）
 - **開始HEAD** `6463c0a969b325a125b59e308777dbfc14e5e69b` → **実装コミット** game.js `7d1bfd2b71c667c4ec35febf41117624cf557ee3`、index.html `175362966d53e9327cef80994255a47b96ecd2ec`。45分枠の横画面/ゲームパッド/月齢・街灯ハロー撤去を保持。ROADMAP追記コミットは本項目のコミット。
 - **プレイ上の変更①** mission6（探索地点2件）完了時、中央に「チュートリアル終了」を約1.9秒**1回だけ**表示し、mission7以降はHUDの「生き残れ！」に固定。途中の既存達成告知は短い「EXCELLENT!」にしてチュートリアル終了の二重表示を回避。終了告知後は通常プレイへ戻る。
