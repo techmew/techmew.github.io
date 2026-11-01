@@ -560,13 +560,13 @@
   #hud #survival-goal {margin-top:3px;padding:2px 7px;font-size:10px;}
   #hud .hud-right {width:100%;min-width:0;max-width:none;gap:3px;align-items:flex-end;}
   #hud .session-actions {position:static;display:flex;justify-content:flex-end;}
-  #hud .session-actions button {min-width:48px;height:36px;padding:0 7px;font-size:10px;}
+  #hud .session-actions button {min-width:48px;height:40px;padding:0 7px;font-size:10px;}
   #hud .top-actions {display:flex;position:static;justify-content:flex-end;gap:3px;}
   #hud .top-actions button,#hud #map-btn {position:static!important;top:auto!important;right:auto!important;
-    width:40px!important;min-width:40px!important;height:36px!important;flex:0 0 40px;
+    width:40px!important;min-width:40px!important;height:40px!important;flex:0 0 40px;
     font-size:11px!important;padding:0 2px;touch-action:manipulation;}
   #hud .map-frame {display:none;}
-  #status {top:calc(89px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
+  #status {top:calc(96px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
     font-size:10px;line-height:1.15;gap:2px;}
   #nav-hud {top:clamp(105px,29dvh,155px);min-width:0;max-width:min(190px,30vw);
     padding:3px 8px 3px 3px;gap:5px;}
