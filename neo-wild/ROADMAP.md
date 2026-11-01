@@ -1,3 +1,12 @@
+## 2026-11-01｜再開時チュートリアル再発の修正・キャッシュ対策（追加報告）
+- **開始HEAD**：`0af8adaad760ecefeeb71d87845351953eb3f979`。mainの7対象ファイルと直近ログ、Drive設計書末尾を再確認。
+- **原因**：前回の修正ではgame.jsのみ変更し、index.htmlの読み込みURLが旧`?rev=20261101-wild-drink1`のままだった。ブラウザが古いJSを再使用すると「続きから」で説明が再表示されうる。さらに旧セーブのtutorialSeenが空の場合、再開後の目標再通知で現在の説明が再度開く可能性があった。
+- **修正**：index.htmlのJS読み込みを`?rev=20261101-resume-autosave-v3`に変更しキャッシュ分離。restoreSnapshotで到達済みmissionまでの全チュートリアルを自動表示済みとして復元し、再開後の再通知でも再表示しない（「目標を見る」からの手動確認は可能）。game.jsの1秒ごとの自動保存、達成時即時保存、tutorialSeenスナップショット保存、旧SAVE_SCHEMA=2、チェックポイント3件、他のゲームロジックは維持。
+- **テスト**：game.js全文構文PASS、HTML旧新rev更新、旧セーブ（tutorialSeen欠落）mission 0/3/7・新セーブ（配列部分欠落）mission 6の4復元ケースPASS、実currentSnapshot/saveAuto関数のlocalStorageモックによるmission・tutorialSeen・位置の保存/復元PASS、1秒タイマー・復帰時の自動ポップアップ抑止の静的検査PASS。
+- **実装コミット**：game.js `c160297f2ed6b98e3598eb0d4b633446fd1ee3a8`、index.html `77f1d29d169477800b4ab7ed222c14f1abc72d79`。強制push・ロールバックなし。対象外変更なし。
+- **未検証**：Android実機、継続プレイ→リロード→再開の実ブラウザE2E、保存容量制限でlocalStorageに失敗する端末、Pages配信の利用端末キャッシュ。既存のブラウザ別・プライベートモード間のlocalStorageは同期しない。
+- **次アクション**：同一ブラウザで新規→チュートリアル達成→リロード→続きからを実機検証し、旧キャッシュや保存容量エラーがあれば端末条件に応じて修正する。次の15分/45分タスクは最新HEADとこのログを読んでから作業する。
+
 ## 2026-11-01｜続きから再開時のチュートリアル再表示・自動保存改善
 - **開始時確認**：最新game.jsでtutorialSeenが実行中のみのSetで、snapshotに未保存。restoreSnapshotがstart()で履歴を消し、announceObjective()が同じ説明を再表示することを確認。
 - **実装**：snapshotにtutorialSeenを追加し、旧SAVE_SCHEMA=2の保存はmissionから完了済みの段階を推定。復元時に履歴を戻し、続きからの説明ポップアップを抑止。自動保存4秒→1秒、ミッション遷移時にも即時保存。セーブキーとスキーマは不変。
