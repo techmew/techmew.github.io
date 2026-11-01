@@ -2029,19 +2029,23 @@ function drawItem(c){
  ctx.save();ctx.translate(c.x,c.y);
  ctx.fillStyle="#081a1694";ctx.beginPath();ctx.ellipse(1,5,Math.max(16,(c.r||9)*1.6),8,0,0,TWO);ctx.fill();
  if(c.type==="corpse"||c.type==="bones"){
-  const r=Math.max(9,c.r||9),fraction=c.type==="bones"?0:clamp(c.amount/Math.max(1,c.initialAmount||c.amount),0,1);
-  const fur=species[c.animalType]?.color||"#988b78";
-  ctx.save();ctx.rotate(c.phase||0);
-  ctx.strokeStyle="#c7c1a7";ctx.lineCap="round";ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(-r*.8,0);ctx.lineTo(r*.85,0);
-  for(const side of [-1,1])for(let i=0;i<3;i++){
-   const x=(-.45+i*.40)*r;ctx.moveTo(x,0);ctx.lineTo(x+r*.12,side*r*.53);
-  }ctx.stroke();
-  ctx.fillStyle="#e3dec7";ctx.beginPath();ctx.ellipse(r*.91,0,r*.30,r*.26,0,0,TWO);ctx.fill();
-  if(fraction>0){
-   ctx.globalAlpha=.58+.42*fraction;ctx.fillStyle=fur;
-   ctx.beginPath();ctx.ellipse(-r*.13,-r*.10,r*(.43+.62*fraction),r*(.24+.35*fraction),0,0,TWO);ctx.fill();
-   ctx.beginPath();ctx.ellipse(r*.66,-r*.14,r*.34,r*.25,0,0,TWO);ctx.fill();
+  const r=Math.max(15,Math.min(36,(c.r||9)*1.28)),fur=species[c.animalType]?.color||"#988b78";
+  const fraction=clamp(Number(c.amount)/Math.max(1,Number(c.initialAmount)||Number(c.amount)||1),0,1);
+  ctx.save();ctx.rotate(c.phase||0);ctx.lineCap="round";
+  if(c.type==="bones"){
+   ctx.strokeStyle="#f1ebdc";ctx.lineWidth=Math.max(3,r*.13);ctx.beginPath();ctx.moveTo(-r*.9,0);ctx.lineTo(r*.8,0);
+   for(let i=0;i<4;i++){const x=(-.55+i*.35)*r;for(const side of [-1,1]){ctx.moveTo(x,0);ctx.quadraticCurveTo(x+r*.13,side*r*.54,x+r*.28,side*r*.40);}}ctx.stroke();
+   ctx.fillStyle="#f1ebdc";ctx.beginPath();ctx.ellipse(r*.99,0,r*.38,r*.32,0,0,TWO);ctx.fill();
+   ctx.fillStyle="#3b443e";for(const side of [-1,1]){ctx.beginPath();ctx.ellipse(r*1.07,side*r*.15,r*.08,r*.08,0,0,TWO);ctx.fill();}
+  }else{
+   ctx.strokeStyle=fur;ctx.lineWidth=Math.max(3,r*.20);ctx.beginPath();ctx.moveTo(-r*.9,0);ctx.quadraticCurveTo(-r*1.5,-r*.2,-r*1.65,-r*.5);ctx.stroke();
+   ctx.fillStyle=fur;
+   for(const side of [-1,1])for(const front of [-1,1]){ctx.beginPath();ctx.ellipse(front*r*.55,side*r*.67,r*.24,r*.46,front*.20,0,TWO);ctx.fill();}
+   ctx.beginPath();ctx.ellipse(-r*.08,0,r*(.9+.17*fraction),r*.60,0,0,TWO);ctx.fill();
+   ctx.fillStyle=species[c.animalType]?.belly||"#bcae99";ctx.globalAlpha=.65;ctx.beginPath();ctx.ellipse(r*.05,r*.18,r*.63,r*.23,0,0,TWO);ctx.fill();ctx.globalAlpha=1;
+   ctx.fillStyle=fur;ctx.beginPath();ctx.ellipse(r*.84,-r*.07,r*.45,r*.38,0,0,TWO);ctx.fill();
+   for(const side of [-1,1]){ctx.beginPath();ctx.ellipse(r*.75,side*r*.40,r*.19,c.animalType==="rabbit"?r*.47:r*.24,side*.25,0,TWO);ctx.fill();}
+   ctx.strokeStyle="#2b302b";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(r*1.02,-r*.21);ctx.lineTo(r*1.16,-r*.19);ctx.stroke();
   }
   ctx.restore();
  }else if(c.type==="meat"){
@@ -2461,6 +2465,19 @@ function drawGuideWisps(){
  ctx.fillStyle="#dbffcc";ctx.shadowColor="#d6ffc5";ctx.shadowBlur=10;
  ctx.fillText("》",0,0);ctx.restore();
 }
+function drawRemainsLabels(){
+ if(!P||mode!=="play")return;
+ ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 13px sans-serif";let shown=0;
+ for(const c of carcasses){
+  if((c.type!=="corpse"&&c.type!=="bones")||dist(P,c)>205||!visible(c.x,c.y,65))continue;
+  const p=project(c.x,c.y),y=p.y-Math.max(15,(c.r||9)*1.28)*cameraZoom-17;
+  if(p.x<25||p.x>vw-25||y<20||y>vh-20)continue;
+  ctx.fillStyle=c.type==="bones"?"#263330e8":"#382c29e8";ctx.fillRect(p.x-24,y-11,48,22);
+  ctx.strokeStyle=c.type==="bones"?"#f1ebd8":"#e8c2a1";ctx.lineWidth=1.5;ctx.strokeRect(p.x-24,y-11,48,22);
+  ctx.fillStyle=c.type==="bones"?"#fff8e8":"#ffe1c3";ctx.fillText(c.type==="bones"?"骨":"死骸",p.x,y+1);
+  if(++shown>=5)break;
+ }ctx.restore();
+}
 function drawThreatNames(){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
@@ -2631,7 +2648,7 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
- drawObjectiveGlow();drawShelterEntranceMarker();drawGuideWisps();drawThreatNames();
+ drawObjectiveGlow();drawShelterEntranceMarker();drawGuideWisps();drawThreatNames();drawRemainsLabels();
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
