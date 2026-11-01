@@ -1117,27 +1117,39 @@ function missionInfo(){
    :{stage:"自由探索 / 生存 "+expedition,title:"狩りを続けろ",detail:"周囲の気配を探り、獲物を狩る / ×・J",next:"食料を補給して探索を続ける",progress:0};
  }
 }
+// Two help pages only: the current mission, then an optional one-screen control reminder.
+const GUIDE_GOALS=[
+ {title:"食草か肉を食べる",what:"食草・肉の近くで△短押し。",how:"空腹が回復する。"},
+ {title:"茂みに隠れる",what:"茂みで約1秒止まる。",how:"敵に見つかりにくくなる。"},
+ {title:"獲物を狩る",what:"×で攻撃、□で飛びつき。",how:"死骸から肉を取れる。"},
+ {title:"探索地点へ行く",what:"》の方向へ進んで旧駅へ。",how:"次は巣の備蓄。"},
+ {title:"巣に食料を貯める",what:"食草・肉で△長押し → 巣で△。",how:"60ptで巣LV2。強化しても食料は減らない。"},
+ {title:"縄張りを取る",what:"標識で△長押し。",how:"巣の安全性が上がる。"},
+ {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"自由探索へ進む。"},
+ {title:"自由探索",what:"狩りと食事を続けて生き残る。",how:"食料庫で備蓄を食べられる。"}
+];
 const TUTORIAL_PAGES=[
- {stage:"チュートリアル 1 / 4",title:"食べ物を探して食べる",what:"食草や肉を食べて空腹を回復する。",why:"空腹になると生命が減り、狩りや逃走が難しくなるため。",how:"食草や死骸の近くで△短押し。肉は回復量が多く、食草は少ない。",result:"1回食べると潜伏の練習に進む。"},
- {stage:"チュートリアル 2 / 4",title:"茂みで身を隠す",what:"茂みの中で静止して潜伏する。",why:"敵をやり過ごし、獲物に気付かれず近づくため。",how:"茂みへ移動し、約1秒静止する。PCではCキーも使える。",result:"潜伏すると狩りの練習へ進む。"},
- {stage:"チュートリアル 3 / 4",title:"獲物を狩る",what:"小動物を追い詰めて倒す。",why:"肉を確保し、経験値を得て成長するため。",how:"×で攻撃。□短押しで飛びつき、長押しで種族能力。○でジャンプ。",result:"獲物を倒すと探索が解放。死骸は複数回食べられる。"},
- {stage:"チュートリアル 4 / 4",title:"旧駅へ探索に向かう",what:"方向案内をたどって探索地点へ行く。",why:"新しい資源や危険を見つけ、生存範囲を広げるため。",how:"》形の方向案内と目的地の光を目印に進む。地図でも確認できる。",result:"旧駅に到着すると巣の備蓄の練習へ進む。"},
- {stage:"生存目標 1 / 3",title:"食料を備蓄し、巣を育てる",what:"肉や食草を巣へ運び、合計60pt以上備蓄する。",why:"後から食べられる食料を安全に保管し、飢えに備えるため。",how:"食草・肉のそばで△長押し→巣で△短押し。60pt以上なら巣で△長押ししてLV2に強化。",result:"LV2で縄張り解放。強化しても備蓄は減らない。巣の「食料庫」で肉・食草を選んで食べられる。"},
- {stage:"生存目標 2 / 3",title:"縄張りを確保する",what:"縄張り標識を1か所確保する。",why:"休息しやすい安全地帯を広げ、敵の接近を抑えるため。",how:"地図の標識へ移動し、敵を追い払って△長押し。",result:"巣の休息力が上がり、周辺の野犬を牽制する。"},
- {stage:"生存目標 3 / 3",title:"探索地点を発見する",what:"未発見の探索地点を2か所訪れる。",why:"新しい生息域・資源・危険を把握するため。",how:"地図と方向案内を確認して移動する。",result:"自由探索へ移り、狩りと生活を続けられる。"}
+ null, // Page 1 always shows the CURRENT goal; not a long sequence of seven lessons.
+ {stage:"操作早見表",title:"操作・食料の基本",what:"△ 食べる・運ぶ ／ × 攻撃 ／ □ 飛びつき ／ ○ ジャンプ",how:"巣で△：備蓄。手ぶらで△：食料庫。"}
 ];
 let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false;
 function renderTutorial(){
- const info=TUTORIAL_PAGES[tutorialPage];
- for(const key of ["stage","title","what","why","how","result"])$("tutorial-"+key).textContent=info[key];
+ const info=tutorialPage===0
+  ?{stage:missionInfo().stage,...GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)]}
+  :TUTORIAL_PAGES[tutorialPage];
+ $("tutorial-stage").textContent=info.stage;
+ $("tutorial-title").textContent=info.title;
+ $("tutorial-what").textContent=info.what;
+ $("tutorial-how").textContent=info.how;
+ $("tutorial-progress-label").textContent=tutorialPage===0?"いまやること":"必要なときだけ確認";
  $("tutorial-counter").textContent=(tutorialPage+1)+" / "+TUTORIAL_PAGES.length;
- $("tutorial-progress-label").textContent=tutorialPage<Math.min(mission,6)?"達成済み":tutorialPage===Math.min(mission,6)?"現在の目標":"これからの目標";
- $("tutorial-prev").disabled=tutorialPage===0;$("tutorial-next").disabled=tutorialPage===TUTORIAL_PAGES.length-1;
+ $("tutorial-prev").disabled=tutorialPage===0;
+ $("tutorial-next").disabled=tutorialPage===TUTORIAL_PAGES.length-1;
 }
-function openTutorial(page=Math.min(mission,6),automatic=false){
+function openTutorial(page=0,automatic=false){
  if(!P||!(mode==="play"||mode==="guide"))return false;
  tutorialPage=clamp(Math.floor(page),0,TUTORIAL_PAGES.length-1);
- if(automatic)tutorialSeen.add(tutorialPage);
+ if(automatic)tutorialSeen.add(mission);
  if(mode==="play"){saveAuto();resetControls();mode="guide"}
  guideNeedsFrame=true; // Render the scene once behind the popup, then freeze its frame.
  $("app").classList.add("tutorial-paused");
@@ -1160,7 +1172,7 @@ function announceObjective(){
  if(!P)return;
  if(mission<=6){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
-  if(mode==="play"&&!tutorialSeen.has(mission))openTutorial(mission,true);
+  if(mode==="play"&&!tutorialSeen.has(mission))openTutorial(0,true);
   return;
  }
  if(mode!=="play"){objectiveBannerTime=0;return}
