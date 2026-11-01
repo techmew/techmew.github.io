@@ -289,7 +289,7 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -329,7 +329,7 @@ function clearAutoSave(){
  try{localStorage.removeItem(AUTOSAVE_KEY)}catch(_){}
 }
 function currentSnapshot(){
- if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"))return null;
+ if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"||mode==="guide"))return null;
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
@@ -1076,6 +1076,7 @@ function openDenInventory(){
 function closeDenInventory(){
  if(mode!=="inventory")return;
  $("den-inventory").classList.add("hidden");mode="play";resetControls();syncHUD();saveAuto();
+ if(mission<=6&&!tutorialSeen.has(mission))announceObjective();
 }
 function eatFromDen(kind){
  if(mode!=="inventory"||!P||!atDen()||!["meat","berries","legacy"].includes(kind))return false;
@@ -1116,17 +1117,53 @@ function missionInfo(){
    :{stage:"自由探索 / 生存 "+expedition,title:"狩りを続けろ",detail:"周囲の気配を探り、獲物を狩る / ×・J",next:"食料を補給して探索を続ける",progress:0};
  }
 }
+const TUTORIAL_PAGES=[
+ {stage:"チュートリアル 1 / 4",title:"食べ物を探して食べる",what:"食草や肉を食べて空腹を回復する。",why:"空腹になると生命が減り、狩りや逃走が難しくなるため。",how:"食草や死骸の近くで△短押し。肉は回復量が多く、食草は少ない。",result:"1回食べると潜伏の練習に進む。"},
+ {stage:"チュートリアル 2 / 4",title:"茂みで身を隠す",what:"茂みの中で静止して潜伏する。",why:"敵をやり過ごし、獲物に気付かれず近づくため。",how:"茂みへ移動し、約1秒静止する。PCではCキーも使える。",result:"潜伏すると狩りの練習へ進む。"},
+ {stage:"チュートリアル 3 / 4",title:"獲物を狩る",what:"小動物を追い詰めて倒す。",why:"肉を確保し、経験値を得て成長するため。",how:"×で攻撃。□短押しで飛びつき、長押しで種族能力。○でジャンプ。",result:"獲物を倒すと探索が解放。死骸は複数回食べられる。"},
+ {stage:"チュートリアル 4 / 4",title:"旧駅へ探索に向かう",what:"方向案内をたどって探索地点へ行く。",why:"新しい資源や危険を見つけ、生存範囲を広げるため。",how:"》形の方向案内と目的地の光を目印に進む。地図でも確認できる。",result:"旧駅に到着すると巣の備蓄の練習へ進む。"},
+ {stage:"生存目標 1 / 3",title:"食料を備蓄し、巣を育てる",what:"肉や食草を巣へ運び、合計60pt以上備蓄する。",why:"後から食べられる食料を安全に保管し、飢えに備えるため。",how:"食草・肉のそばで△長押し→巣で△短押し。60pt以上なら巣で△長押ししてLV2に強化。",result:"LV2で縄張り解放。強化しても備蓄は減らない。巣の「食料庫」で肉・食草を選んで食べられる。"},
+ {stage:"生存目標 2 / 3",title:"縄張りを確保する",what:"縄張り標識を1か所確保する。",why:"休息しやすい安全地帯を広げ、敵の接近を抑えるため。",how:"地図の標識へ移動し、敵を追い払って△長押し。",result:"巣の休息力が上がり、周辺の野犬を牽制する。"},
+ {stage:"生存目標 3 / 3",title:"探索地点を発見する",what:"未発見の探索地点を2か所訪れる。",why:"新しい生息域・資源・危険を把握するため。",how:"地図と方向案内を確認して移動する。",result:"自由探索へ移り、狩りと生活を続けられる。"}
+];
+let tutorialPage=0;const tutorialSeen=new Set();
+function renderTutorial(){
+ const info=TUTORIAL_PAGES[tutorialPage];
+ for(const key of ["stage","title","what","why","how","result"])$("tutorial-"+key).textContent=info[key];
+ $("tutorial-counter").textContent=(tutorialPage+1)+" / "+TUTORIAL_PAGES.length;
+ $("tutorial-progress-label").textContent=tutorialPage<Math.min(mission,6)?"達成済み":tutorialPage===Math.min(mission,6)?"現在の目標":"これからの目標";
+ $("tutorial-prev").disabled=tutorialPage===0;$("tutorial-next").disabled=tutorialPage===TUTORIAL_PAGES.length-1;
+}
+function openTutorial(page=Math.min(mission,6),automatic=false){
+ if(!P||!(mode==="play"||mode==="guide"))return false;
+ tutorialPage=clamp(Math.floor(page),0,TUTORIAL_PAGES.length-1);
+ if(automatic)tutorialSeen.add(tutorialPage);
+ if(mode==="play"){saveAuto();resetControls();mode="guide"}
+ $("tutorial-dialog").classList.remove("hidden");$("objective-banner").classList.remove("visible");objectiveBannerTime=0;
+ renderTutorial();$("tutorial-close").focus({preventScroll:true});return true;
+}
+function closeTutorial(){
+ if(mode!=="guide")return;
+ $("tutorial-dialog").classList.add("hidden");mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
+}
+function tutorialMove(delta){
+ if(mode!=="guide")return;
+ tutorialPage=clamp(tutorialPage+delta,0,TUTORIAL_PAGES.length-1);renderTutorial();
+}
 function announceObjective(){
  if(!P)return;
- if(mode!=="play"){objectiveBannerTime=-1;return;}
+ if(mission<=6){
+  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+  if(mode==="play"&&!tutorialSeen.has(mission))openTutorial(mission,true);
+  return;
+ }
+ if(mode!=="play"){objectiveBannerTime=0;return}
  const info=missionInfo();
  $("objective-banner-stage").textContent=info.stage;
  $("objective-banner-title").textContent=info.title;
  $("objective-banner-next").textContent="次の目的："+info.next;
- $("objective-banner").classList.remove("visible");
- void $("objective-banner").offsetWidth;
- $("objective-banner").classList.add("visible");
- objectiveBannerTime=performance.now()+2600;
+ $("objective-banner").classList.remove("visible");void $("objective-banner").offsetWidth;
+ $("objective-banner").classList.add("visible");objectiveBannerTime=performance.now()+2600;
 }
 function advanceMission(next){
  mission=next;
@@ -2786,6 +2823,7 @@ function keyDown(e){
  if(mode==="play")keys.add(k);
  
  if(mode==="inventory"){if(k==="escape")closeDenInventory();return}
+ if(mode==="guide"){if(k==="arrowright"||k==="enter")tutorialMove(1);if(k==="arrowleft")tutorialMove(-1);if(k==="escape")closeTutorial();return}
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
@@ -2877,12 +2915,10 @@ $("checkpoint-save-btn").addEventListener("click",recordCheckpoint);
 $("den-inventory-btn").addEventListener("click",openDenInventory);
 $("den-inventory-close").addEventListener("click",closeDenInventory);
 for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
-$("objective-toggle").addEventListener("click",()=>{
- const open=$("mission").classList.contains("hidden");
- $("mission").classList.toggle("hidden",!open);
- $("objective-toggle").setAttribute("aria-expanded",String(open));
- $("objective-toggle").textContent=open?"目標を隠す":"目標を見る";
-});
+$("objective-toggle").addEventListener("click",()=>openTutorial());
+$("tutorial-prev").addEventListener("click",()=>tutorialMove(-1));
+$("tutorial-next").addEventListener("click",()=>tutorialMove(1));
+$("tutorial-close").addEventListener("click",closeTutorial);
 $("mission-close").addEventListener("click",()=>{
  $("mission").classList.add("hidden");
  $("objective-toggle").setAttribute("aria-expanded","false");
