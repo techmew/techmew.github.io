@@ -112,6 +112,9 @@ function simulateEcology(dt){
 
 const SAFE_DEN={x:1860,y:1170,r:90};
 const DEN_CAP=200, DEN_MAX_LEVEL=3, DEN_COSTS={2:60,3:120};
+const FOOD_BALANCE={meat:{satiety:1.5,healing:.5,stash:1.5},berries:{satiety:.6,healing:.08,stash:.6}};
+function foodName(c){return c?.type==="berries"?"食草":"肉"}
+function foodBalance(c){return FOOD_BALANCE[c?.type==="berries"?"berries":"meat"]}
 let denStash=0,denLevel=1;
 const TERRITORY_POSTS=[{x:1410,y:1170,name:"西の交差点"},{x:2320,y:1170,name:"東の交差点"},{x:1860,y:1890,name:"南の高架下"}];
 let territoryClaims=[false,false,false],territoryLastSupply=[0,0,0];
@@ -153,6 +156,7 @@ function territoryDetersDog(m){
 
 function denCapacity(){return [0,200,300,450][denLevel]}
 function denRadius(){return [0,SAFE_DEN.r,125,165][denLevel]}
+function atDen(){return !!P&&(P.groundZ||0)===0&&dist(P,SAFE_DEN)<=denRadius()+16}
 function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
 function loadDenLevel(animal){
  try{const n=Number(localStorage.getItem("wild-reclaim-den-level-v1-"+animal));return Number.isInteger(n)?clamp(n,1,DEN_MAX_LEVEL):1}catch(_){return 1}
@@ -761,12 +765,22 @@ function putDownFood(){
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
- const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
- if(longPress){if(P.carry){putDownFood();return;}if(home){upgradeDen();return;}if(!nearbyFood()&&markTerritory())return;carryFood();return;}
- if(home&&(P.carry||(denStash>0&&P.hunger<95))){carryFood();return;}
- if(P.carry){if(P.eatCD<=0){P.eatCD=.34;eat();}return;}
- if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return;}
- notify(home?"巣に食料を持ち帰ろう":"食料や巣の近くで△を押す");
+ const home=atDen();
+ if(longPress){
+  if(home){
+   if(mission===4&&denStash>=DEN_COSTS[2]&&denLevel===1){upgradeDen();return}
+   if(P.carry){carryFood();return}
+   upgradeDen();return;
+  }
+  if(P.carry){putDownFood();return}
+  if(!nearbyFood()&&markTerritory())return;
+  carryFood();return;
+ }
+ if(home&&P.carry){carryFood();return}
+ if(home&&mission!==4&&denStash>0&&P.hunger<95){carryFood();return}
+ if(P.carry){if(P.eatCD<=0){P.eatCD=.34;eat()}return}
+ if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return}
+ notify(home?"食草・肉を巣へ運んで備蓄":"食草・肉の近くで△を押す");
 }
 const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
@@ -969,7 +983,7 @@ function dash(){
 function upgradeDen(){
  if(mode!=="play")return false;
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("地上に降りてから巣を育てる");return false}
- if(dist(P,SAFE_DEN)>=denRadius()){notify("巣の中で強化できる / 地図の緑の拠点へ");return false}
+ if(!atDen()){notify("巣の中心に近づいて△長押しで強化");return false}
  if(denLevel>=DEN_MAX_LEVEL){notify("巣は最大LV3まで成長済み");return false}
  const cost=DEN_COSTS[denLevel+1];
  if(denStash<cost){notify("巣の成長には備蓄 "+cost+" 必要（あと"+(cost-denStash)+"）");return false}
@@ -981,71 +995,71 @@ function upgradeDen(){
 function carryFood(){
  if(mode!=="play")return false;
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>20){notify("着地してから運ぶ");return false}
- if((P.groundZ||0)>0){notify("地上で食料を運ぶ");return false}
- if(dist(P,SAFE_DEN)<denRadius()){
+ if((P.groundZ||0)>0){notify("地上で食草・肉を運ぶ");return false}
+ if(atDen()){
   if(P.carry){
-   const amount=Math.min(P.carry.amount,denCapacity()-denStash);
-   if(amount<=0){notify("巣の備蓄が満杯");return false}
-   denStash+=amount;P.carry.amount-=amount;
-   if(P.carry.amount<=0)P.carry=null;
-   saveDenStash();notify("巣に食料を備蓄 +"+amount+" / "+denStash+"/"+denCapacity());syncHUD();
+   const kind=foodName(P.carry),value=Math.max(1,Math.round(P.carry.amount*foodBalance(P.carry).stash));
+   const added=Math.min(value,denCapacity()-denStash);
+   if(added<=0){notify("巣の備蓄が満杯");return false}
+   denStash+=added;
+   if(added>=value)P.carry=null;
+   else P.carry.amount=Math.max(.01,Number((P.carry.amount*(1-added/value)).toFixed(2)));
+   saveDenStash();saveAuto();checkMission();syncHUD();
+   notify(kind+"を備蓄 +"+added+"（合計 "+denStash+"/"+DEN_COSTS[2]+"）");
    if(mission===4)announceObjective();
-   checkMission();return true;
+   return true;
   }
-  if(denStash>0&&P.hunger<95){
+  if(mission!==4&&denStash>0&&P.hunger<95){
    const amount=Math.min(denStash,Math.ceil(100-P.hunger));
    denStash-=amount;P.hunger=clamp(P.hunger+amount,0,100);
    P.hp=clamp(P.hp+Math.min(12,amount*.3),0,P.maxHp);
-   meals++;saveDenStash();checkMission();notify("巣の食料で回復 +"+amount);syncHUD();
-   return true;
+   meals++;saveDenStash();checkMission();syncHUD();
+   notify("巣の備蓄で回復 +"+amount);return true;
   }
-  notify("巣の備蓄 "+Math.round(denStash)+"/"+denCapacity()+" / 食料を持ち帰ろう");
-  return false;
+  notify("巣の備蓄 "+Math.round(denStash)+"/"+denCapacity()+"（LV2には"+DEN_COSTS[2]+"）");return false;
  }
- if(P.carry)return putDownFood(); // G picks up or drops; triangle short at den stores.
+ if(P.carry)return putDownFood();
  let selected=null,nearest=65;
  for(const f of carcasses){
-  const d=dist(P,f);
-  if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
+  const d=dist(P,f);if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
  }
- if(!selected){notify("運べる食料が近くにない");return false}
+ if(!selected){notify("運べる食草・肉が近くにない");return false}
  if(selected.type==="corpse"){
   const portion=Math.min(24,Math.max(0,selected.amount-1));
-  if(portion<1){notify("死骸に運べる肉が残っていない");return false;}
-  selected.amount-=portion; // Carcass stays on site.
-  P.carry={type:"meat",animalType:selected.animalType||null,amount:portion};
+  if(portion<1){notify("死骸に運べる肉が残っていない");return false}
+  selected.amount-=portion;P.carry={type:"meat",animalType:selected.animalType||null,amount:portion};
  }else{
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
  }
- notify("食料をくわえた！巣の中まで戻って△短押しで備蓄。△短押し 食べる／長押し 置く／巣で預ける（"+Math.round(P.carry.amount)+"）");
+ notify(foodName(P.carry)+"をくわえた。巣の中で△短押し・長押しどちらでも備蓄");
  if(mission===4)announceObjective();
  syncHUD();return true;
 }
 function eat(){
  if(mode!=="play")return;
- if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("着地してから食べる");return;}
+ if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("着地してから食べる");return}
  let c=P.carry||null,near=65,carried=!!c;
  if(!c)for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
- if(!c){notify("食べ物が近くにない");return}
- const bite=c.type==="corpse"||c.type==="meat"||carried?Math.min(12,c.amount):c.amount;
- P.hunger=clamp(P.hunger+bite,0,100);P.hp=clamp(P.hp+((c.type==="meat"||c.type==="corpse")?Math.min(8,bite*.5):3),0,P.maxHp);meals++;
- if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null;}
- else if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c);}
- else if(c.type==="meat"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)carcasses.splice(carcasses.indexOf(c),1);}
- else carcasses.splice(carcasses.indexOf(c),1);
- label(P.x,P.y-30,"+"+bite+" 食料","#bfe89e");
+ if(!c){notify("食草・肉が近くにない");return}
+ const bite=Math.min(12,c.amount),balance=foodBalance(c);
+ const gain=Math.round(bite*balance.satiety),heal=Math.round(bite*balance.healing);
+ P.hunger=clamp(P.hunger+gain,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);meals++;
+ if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null}
+ else if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c)}
+ else{c.amount=Math.max(0,c.amount-bite);if(c.amount===0)carcasses.splice(carcasses.indexOf(c),1)}
+ label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal,"#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
 }
 function stockpileStep(){
  if(!P||mission!==4)return null;
- if(P.carry)return {step:2,text:"② 巣へ戻る → △短押しで預ける",label:"巣"};
- if(denStash>=DEN_COSTS[2])return {step:3,text:"③ 巣に入って△長押しでLV2に強化",label:"巣"};
- return {step:1,text:"① 食料のそばで△を長押しして運ぶ",label:"食料"};
+ if(denStash>=DEN_COSTS[2])return {step:3,text:"③ 巣で△長押ししてLV2に強化",label:"巣"};
+ if(P.carry)return {step:2,text:"② 巣の中心へ戻り△で備蓄（短押し・長押し可）",label:"巣"};
+ return {step:1,text:"① 食草・肉のそばで△長押しして運ぶ",label:"食草・肉"};
 }
 function missionInfo(){
  switch(mission){
-  case 0:return {stage:"チュートリアル 1 / 4",title:"食料を確保せよ",detail:"近くの食料を探して食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
+  case 0:return {stage:"チュートリアル 1 / 4",title:"食草か肉を食べよう",detail:"近くの食草・肉を食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
   case 1:return {stage:"チュートリアル 2 / 4",title:"身を隠せ",detail:"茂みで静止して潜伏 / C",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
   case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"旧新宿駅を探せ",progress:Math.min(1,kills)};
   case 3:return {stage:"チュートリアル 4 / 4",title:"旧新宿駅を探せ",detail:"廃墟を探索して旧駅に到達する",next:"巣をLV2に強化せよ",progress:clamp(1-Math.hypot(P.x-STATION.x,P.y-STATION.y)/750,0,1)};
@@ -1060,7 +1074,7 @@ function missionInfo(){
   case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で△長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
   case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"自由探索で生存記録を伸ばせ",progress:Math.min(1,discoveredSites.length/2)};
   default:return freeStep===0
-   ?{stage:"自由探索 / 生存 "+expedition,title:"食料を補給せよ",detail:"周囲で食料を確保する / △・E",next:"獲物を追い狩猟する",progress:0}
+   ?{stage:"自由探索 / 生存 "+expedition,title:"食草・肉を補給せよ",detail:"周囲で食草・肉を確保する / △・E",next:"獲物を追い狩猟する",progress:0}
    :{stage:"自由探索 / 生存 "+expedition,title:"狩りを続けろ",detail:"周囲の気配を探り、獲物を狩る / ×・J",next:"食料を補給して探索を続ける",progress:0};
  }
 }
@@ -1101,7 +1115,7 @@ function nearestGoal(list){
  return bestItem;
 }
 function objectiveShortLabel(){
- if(mission===0||(mission===7&&freeStep===0))return "食料";
+ if(mission===0||(mission===7&&freeStep===0)){const f=nearestGoal(carcasses.filter(c=>edibleFood(c)));return f?foodName(f):"食草・肉"}
  if(mission===1)return "潜伏する茂み";
  if(mission===2||(mission===7&&freeStep===1))return "獲物";
  if(mission===3)return "探索地点";
@@ -1118,9 +1132,9 @@ function getObjective(){
  }
  if(mission===3)return {x:STATION.x,y:STATION.y,label:"旧新宿駅方面"};
  if(mission===4){
-  if(P.carry||denStash>=DEN_COSTS[2])return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:"巣へ戻り食料を預ける"};
+  if(P.carry||denStash>=DEN_COSTS[2])return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};
   const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
-  if(food)return {x:food.x,y:food.y,label:"食料のそばで△長押しして運ぶ"};
+  if(food)return {x:food.x,y:food.y,label:foodName(food)+"を△長押しで運ぶ"};
   const prey=nearestGoal(mobs.filter(m=>m.hp>0&&species[m.type].prey));
   return prey?{x:prey.x,y:prey.y,label:"獲物を倒して食料を運ぶ"}:null;
  }
@@ -1129,7 +1143,7 @@ function getObjective(){
  const findFood=mission===0||(mission===7&&freeStep===0);
  if(findFood){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0&&edibleFood(q)));
-  return f?{x:f.x,y:f.y,label:"食料を取る / △・E"}:null;
+  return f?{x:f.x,y:f.y,label:foodName(f)+"を食べる / △・E"}:null;
  }
  if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>420)
   huntTarget=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
@@ -1749,8 +1763,12 @@ function syncHUD(hour){
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
-  $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜"+(weather==="RAIN"||weather==="THUNDER"?"屋内避難中":"建物内"):"");
- const stashBarId="wild-stash-progress";let stashBar=$(stashBarId);if(!stashBar){stashBar=document.createElement("div");stashBar.id=stashBarId;stashBar.style.cssText="width:100%;height:9px;border:1px solid #8cae8c;border-radius:8px;background:#24332b;overflow:hidden;margin:4px 0 7px";stashBar.innerHTML='<div style="height:100%;width:0;background:#9cd47e;transition:width .2s"></div>';$("den-status").insertAdjacentElement("afterend",stashBar);}stashBar.firstElementChild.style.width=clamp(denStash/DEN_COSTS[2]*100,0,100)+"%";stashBar.setAttribute("aria-label","巣の強化に必要な備蓄 "+Math.round(denStash)+"/"+DEN_COSTS[2]);
+  $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
+ const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
+ $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+(denLevel===1?"（LV2まで）":"");
+ setBar("den-stash-bar",denStash/target*100);
+ $("den-stash-bar").parentElement.setAttribute("aria-valuenow",String(Math.round(denStash)));
+ $("den-stash-bar").parentElement.setAttribute("aria-valuemax",String(target));
  const entrance=nearestShelterEntrance();
  const nearDoor=!!entrance&&entrance.distance<112;
  $("shelter-hint").classList.toggle("hidden",!nearDoor);
@@ -1763,7 +1781,7 @@ function syncHUD(hour){
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
  const info=missionInfo();
  const stock=stockpileStep();
- const carryGuide=P.carry?"運搬中：△短押し 食べる／△長押し 置く／巣で△短押し 備蓄":null;
+ const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
  $("stockpile-guide").classList.toggle("hidden",(!stock&&!carryGuide)||mode!=="play");
  if(carryGuide||stock)$("stockpile-guide").textContent=carryGuide||(stock.text+"（備蓄 "+denStash+"/"+DEN_COSTS[2]+"）");
  $("mission-progress").textContent=info.stage;
@@ -1785,8 +1803,8 @@ function syncHUD(hour){
   $("nav-hud-distance").textContent=Math.round(dist(P,objective))+"m";
  }
  const contextLabel=$("context-action-label");
- if(contextLabel){const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
-  contextLabel.textContent=home&&P.carry?"預ける":home&&denStash>0&&P.hunger<95?"補給":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+ if(contextLabel){const home=atDen();
+  contextLabel.textContent=home&&P.carry?"備蓄":home&&mission===4&&denStash>=DEN_COSTS[2]?"巣を強化":home&&mission!==4&&denStash>0&&P.hunger<95?"補給":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -2459,22 +2477,22 @@ function drawObjectiveGlow(){
  const offscreen=ratio<1,px=midX+deltaX*ratio,py=midY+deltaY*ratio;
  const near=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y)<140;
  const pulse=.5+.5*Math.sin(elapsed*4.2);
- const radius=offscreen?17:near?32:27,height=offscreen?0:near?104:84;
+ const radius=offscreen?14:near?26:22,height=offscreen?0:near?70:55;
  ctx.save();ctx.globalCompositeOperation="screen";
- const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?40:80);
- halo.addColorStop(0,"rgba(255,252,177,"+(.58+.22*pulse)+")");
- halo.addColorStop(.35,"rgba(199,255,199,"+(.32+.15*pulse)+")");
+ const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?25:45);
+ halo.addColorStop(0,"rgba(255,252,177,"+(.17+.07*pulse)+")");
+ halo.addColorStop(.35,"rgba(199,255,199,"+(.09+.04*pulse)+")");
  halo.addColorStop(1,"rgba(175,255,199,0)");
- ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?40:80,0,TWO);ctx.fill();
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?25:45,0,TWO);ctx.fill();
  if(!offscreen){
   const shaft=ctx.createLinearGradient(px,py-height,px,py+8);
   shaft.addColorStop(0,"rgba(255,250,195,0)");
-  shaft.addColorStop(.62,"rgba(234,255,196,"+(.22+.15*pulse)+")");
-  shaft.addColorStop(1,"rgba(255,233,138,"+(.53+.26*pulse)+")");
-  ctx.fillStyle=shaft;ctx.fillRect(px-9,py-height,18,height+8);
+  shaft.addColorStop(.62,"rgba(234,255,196,"+(.04+.03*pulse)+")");
+  shaft.addColorStop(1,"rgba(255,233,138,"+(.13+.05*pulse)+")");
+  ctx.fillStyle=shaft;ctx.fillRect(px-5,py-height,10,height+8);
  }
- ctx.strokeStyle="rgba(251,248,175,"+(.75+.24*pulse)+")";
- ctx.lineWidth=offscreen?3:4;ctx.shadowColor="#f3ff9e";ctx.shadowBlur=20;
+ ctx.strokeStyle="rgba(251,248,175,"+(.37+.14*pulse)+")";
+ ctx.lineWidth=offscreen?2:2.5;ctx.shadowColor="#f3ff9e";ctx.shadowBlur=4;
  ctx.beginPath();ctx.ellipse(px,py+4,radius+5*pulse,(radius+5*pulse)*(offscreen?1:.48),0,0,TWO);ctx.stroke();
  ctx.restore();
  const label=(guideGoal.label||"目標")+(offscreen?"方向":""),labelY=offscreen?py-26:py-height-9;
@@ -2492,12 +2510,12 @@ function drawShelterEntranceMarker(){
  const py=clamp(raw.y,top,Math.max(top+1,vh-bottom));
  const offscreen=Math.hypot(px-raw.x,py-raw.y)>6,pulse=.5+.5*Math.sin(elapsed*3.9);
  ctx.save();ctx.globalCompositeOperation="screen";
- const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?34:54);
- halo.addColorStop(0,"rgba(124,246,255,"+(.55+.17*pulse)+")");
- halo.addColorStop(.48,"rgba(63,187,255,.22)");
+ const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?24:37);
+ halo.addColorStop(0,"rgba(124,246,255,"+(.17+.07*pulse)+")");
+ halo.addColorStop(.48,"rgba(63,187,255,.07)");
  halo.addColorStop(1,"rgba(63,187,255,0)");
- ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?34:54,0,TWO);ctx.fill();
- ctx.lineWidth=3.5;ctx.strokeStyle="#7cedff";ctx.shadowColor="#57dfff";ctx.shadowBlur=16;
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?24:37,0,TWO);ctx.fill();
+ ctx.lineWidth=2;ctx.strokeStyle="rgba(124,246,255,.65)";ctx.shadowColor="#57dfff";ctx.shadowBlur=4;
  ctx.beginPath();ctx.ellipse(px,py+3,offscreen?15:22,offscreen?12:10,0,0,TWO);ctx.stroke();
  if(!offscreen){
   ctx.beginPath();ctx.moveTo(px-18,py-3);ctx.lineTo(px-18,py-20);
@@ -2525,7 +2543,7 @@ function drawGuideWisps(){
  ctx.lineWidth=5;ctx.strokeStyle="rgba(6,21,18,.95)";
  ctx.strokeText("》",0,0);
  ctx.globalAlpha=.75+.22*(.5+.5*Math.sin(elapsed*4));
- ctx.fillStyle="#dbffcc";ctx.shadowColor="#d6ffc5";ctx.shadowBlur=10;
+ ctx.fillStyle="#c9ead1";ctx.shadowColor="#d6ffc5";ctx.shadowBlur=3;
  ctx.fillText("》",0,0);ctx.restore();
 }
 function drawRemainsLabels(){
