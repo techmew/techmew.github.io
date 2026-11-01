@@ -488,3 +488,12 @@
  #tutorial-dialog .tutorial-controls button{min-height:31px;padding:3px 10px}
  #tutorial-dialog .tutorial-note{font-size:9px;margin:1px 0 0}
 }
+
+/* Achievement appears BEFORE the next guide. No 2.6-second mission banner reuse. */
+#mission-milestone{position:absolute;inset:0;z-index:20;pointer-events:none;display:flex;justify-content:center;align-items:center;background:rgba(6,17,20,.10);opacity:0}
+#mission-milestone.show{animation:wild-milestone-first var(--milestone-duration,780ms) ease-out both}
+.mission-milestone-inner{display:flex;flex-direction:column;align-items:center;gap:3px;max-width:96vw;text-align:center;padding:12px 20px;color:#f8f6db;text-shadow:0 3px 14px rgba(0,0,0,.9);background:linear-gradient(90deg,transparent,rgba(5,24,24,.62) 22%,rgba(5,24,24,.62) 78%,transparent)}
+#mission-milestone-kicker{font:900 clamp(13px,2.5vw,21px) "Noto Sans JP",sans-serif;letter-spacing:.18em;color:#d9eeb6}
+#mission-milestone-title{font:900 clamp(33px,7vw,66px) "Barlow Condensed","Noto Sans JP",sans-serif;letter-spacing:.065em}
+@keyframes wild-milestone-first{0%{opacity:0}13%,78%{opacity:1}100%{opacity:0}}
+@media(max-width:520px){.mission-milestone-inner{padding:8px 12px}#mission-milestone-kicker{font-size:14px}#mission-milestone-title{font-size:clamp(31px,10vw,48px)}}
