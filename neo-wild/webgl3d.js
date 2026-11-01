@@ -19,6 +19,7 @@ uniform vec4 uView;
 uniform float uZoom;
 uniform float uNight;
 uniform vec3 uTint;
+varying vec2 vWorldXY;
 varying vec3 vColor;
 varying float vShade;
 void main(){
@@ -32,17 +33,35 @@ void main(){
  float bright=max(0.0,dot(n,sun));
  vShade=0.34+0.65*bright;
  vColor=aColor*uTint*(1.08-uNight*.91);
+ vWorldXY=aPosition.xy;
 }
 `;
 const fragment=String.raw`
 precision mediump float;
 uniform float uAlpha;
+uniform vec4 uNightVision; // player x/y, heading radians, range
+uniform float uNightVisionStrength;
 varying vec3 vColor;
 varying float vShade;
-void main(){gl_FragColor=vec4(vColor*vShade,uAlpha);}
+varying vec2 vWorldXY;
+void main(){
+ vec3 shaded=vColor*vShade;
+ if(uNightVisionStrength>0.001){
+  vec2 delta=vWorldXY-uNightVision.xy;
+  float distanceToPlayer=length(delta);
+  vec2 forward=vec2(cos(uNightVision.z),sin(uNightVision.z));
+  float alignment=dot(delta,forward)/max(distanceToPlayer,1.0);
+  float edge=smoothstep(0.30,0.70,alignment);
+  float reach=1.0-smoothstep(uNightVision.w*.62,uNightVision.w,distanceToPlayer);
+  float peripheral=(1.0-smoothstep(55.0,145.0,distanceToPlayer))*.30;
+  float acuity=max(edge*reach,peripheral)*uNightVisionStrength;
+  shaded=shaded*(1.0+acuity*.72)+vec3(.026,.040,.034)*acuity;
+ }
+ gl_FragColor=vec4(shaded,uAlpha);
+}
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
-let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,utint,ualpha;
+let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,utint,ualpha,unightVision,unightVisionStrength;
 function initializeGPU(){
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
@@ -58,6 +77,7 @@ function initializeGPU(){
  uview=gl.getUniformLocation(program,"uView");
   uzoom=gl.getUniformLocation(program,"uZoom");
  unight=gl.getUniformLocation(program,"uNight");utint=gl.getUniformLocation(program,"uTint");ualpha=gl.getUniformLocation(program,"uAlpha");
+ unightVision=gl.getUniformLocation(program,"uNightVision");unightVisionStrength=gl.getUniformLocation(program,"uNightVisionStrength");
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
 }
 try{initializeGPU()}catch(err){console.warn("Wild3D shader unavailable; 2D fallback",err);canvas.style.display="none";window.Wild3D={available:false};return;}
@@ -635,7 +655,10 @@ function render(o){
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
    gl.uniform1f(uzoom,clamp(o.cameraZoom||1,.47,1.6));
-  gl.uniform1f(unight,night);gl.uniform3f(utint,profile.tint[0],profile.tint[1],profile.tint[2]);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
+  gl.uniform1f(unight,night);gl.uniform3f(utint,profile.tint[0],profile.tint[1],profile.tint[2]);
+  const vision=o.nightVision;
+  gl.uniform4f(unightVision,P?.x||0,P?.y||0,P?.dir||0,vision?.range||1);
+  gl.uniform1f(unightVisionStrength,vision?.strength||0);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
   const bindAttributes=(buf)=>{
    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
    for(const [a,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
