@@ -183,14 +183,15 @@ function frame(ms){
  const show=!!match&&(!menu||menu.classList.contains("hidden"));
  layer.style.visibility=show?"visible":"hidden";
  if(!show)return;
- const opts=current||fallbackScene(ms,day,hud,dw,dh);
+ const opts=window.Wild3D?.available&&current?current:fallbackScene(ms,day,hud,dw,dh);
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
  drawFoliage(sc,seasons[season.index]);
  drawClouds(sc,opts.weather||"CLEAR");
  const glCanvas=document.getElementById("scene3d");
- if(glCanvas&&glCanvas.style.filter!==seasons[season.index].filter)
-  glCanvas.style.filter=seasons[season.index].filter;
+ const target=window.Wild3D?.available&&current?glCanvas:main;
+ if(target&&target.style.filter!==seasons[season.index].filter)
+  target.style.filter=seasons[season.index].filter;
 }
 requestAnimationFrame(frame);
 window.WildSeasonClouds={
