@@ -795,7 +795,15 @@ function visibleWinterCover(o){
   if(d>p.r+8+r*.40-2&&d<p.r+58)return true;
  }
  for(const b of buildings){
-  if(b.interior||o.x<b.x-r-40||o.x>b.x+b.w+r+40||o.y<b.y-r-40||o.y>b.y+b.h+r+40)continue;
+  if(o.x<b.x-r-40||o.x>b.x+b.w+r+40||o.y<b.y-r-40||o.y>b.y+b.h+r+40)continue;
+  // Enterable buildings also provide real exterior wall cover; an open doorway does not.
+  if(b.interior){
+   for(const wall of shelterWalls(b)){
+    const d=Math.hypot(o.x-clamp(o.x,wall.x,wall.x+wall.w),o.y-clamp(o.y,wall.y,wall.y+wall.h));
+    if(d>r*.65&&d<r+36)return true;
+   }
+   continue;
+  }
   const d=Math.hypot(o.x-clamp(o.x,b.x,b.x+b.w),o.y-clamp(o.y,b.y,b.y+b.h));
   if(d>r*.65&&d<r+36)return true;
  }
@@ -819,12 +827,16 @@ function winterCoverSpotFor(actor,maxRange=1300,avoid=null){
   for(let i=0;i<8;i++){const a=i*Math.PI/4;consider(p.x+Math.cos(a)*radius,p.y+Math.sin(a)*radius);}
  }
  for(const b of buildings){
-  if(b.interior||Math.abs(b.x+b.w*.5-actor.x)>maxRange+260||Math.abs(b.y+b.h*.5-actor.y)>maxRange+260)continue;
+  if(Math.abs(b.x+b.w*.5-actor.x)>maxRange+260||Math.abs(b.y+b.h*.5-actor.y)>maxRange+260)continue;
   const pad=actor.r+22;
   consider(b.x-pad,clamp(actor.y,b.y+10,b.y+b.h-10));
   consider(b.x+b.w+pad,clamp(actor.y,b.y+10,b.y+b.h-10));
   consider(clamp(actor.x,b.x+10,b.x+b.w-10),b.y-pad);
   consider(clamp(actor.x,b.x+10,b.x+b.w-10),b.y+b.h+pad);
+  if(b.interior){
+   // The front door is open: choose solid wall segments on either side.
+   for(const side of [-1,1])consider(b.x+b.w*.5+side*(55+actor.r+12),b.y-pad);
+  }
  }
  return best;
 }
@@ -1576,16 +1588,18 @@ function clearStep(m,angle,step){
 function chooseEscape(m,away,threat=P){
  const angles=[0,.44,-.44,.88,-.88,1.35,-1.35,1.9,-1.9,2.5,-2.5];
  let best=away,bestScore=-Infinity;
- for(const off of angles){
-  const angle=away+off,step=78,x=m.x+Math.cos(angle)*step,y=m.y+Math.sin(angle)*step;
+ // A blocked 78px sprint must not strand prey against a wall or canal bank.
+ // Try shorter real routes, but favour the longest safe forward escape.
+ for(const step of [78,44,24])for(const off of angles){
+  const angle=away+off,x=m.x+Math.cos(angle)*step,y=m.y+Math.sin(angle)*step;
   if(!clearStep(m,angle,step))continue;
   const cover=visibleShrubCover()&&plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1:0;
   const distance=threat?Math.hypot(x-threat.x,y-threat.y):0;
   const coverWeight=m.type==="rat"?3.3:m.type==="rabbit"?.5:.25;
   const forwardWeight=m.type==="rabbit"?3.3:m.type==="rat"?1.65:1.55;
   const sideStep=m.type==="pigeon"?Math.sin(off)*(m.evasionSide||1)*1.35:0;
-  const score=Math.cos(off)*forwardWeight+distance*.003+cover*coverWeight+sideStep-Math.abs(off)*.1;
-  if(score>bestScore){bestScore=score;best=angle}
+  const score=Math.cos(off)*forwardWeight+distance*.003+cover*coverWeight+sideStep-Math.abs(off)*.1+step*.012;
+  if(score>bestScore&&routeClear(m,{x,y},m.r)){bestScore=score;best=angle}
  }
  return best;
 }
