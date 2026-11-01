@@ -1339,6 +1339,12 @@ function resolveAttack(){
 function kill(m){
  kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  carcasses.push(animalRemains(m));
+ if(m.strongBoss){
+  strongTrophies[m.type]=(Number(strongTrophies[m.type])||0)+1;
+  const material=STRONG_NAMES[m.type]||m.type;
+  label(m.x,m.y-m.r-65,"希少素材 "+material+" +1","#ffd68c");
+  notify("強敵を討伐："+material+"の希少素材を獲得");
+ }
  P.xp+=species[m.type].xp;
  label(m.x,m.y-50,"+"+species[m.type].xp+" DNA","#9aeac7");
  if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");playEffect("level")}
@@ -1517,7 +1523,8 @@ function eat(){
 function renderDenInventory(){
  if(!P)return;
  $("den-inventory-total").textContent="合計 "+denStash+" / "+denCapacity()+"pt";
- $("den-inventory-help").textContent=atDen()?"食べたい種類を選んでください。選択しなければ減りません。":"巣の外では閲覧のみ。食べるには巣へ戻ってください。";
+ const trophyText=Object.entries(strongTrophies).filter(([type,count])=>STRONG_NAMES[type]&&Number(count)>0).map(([type,count])=>STRONG_NAMES[type]+"×"+Math.floor(Number(count))).join(" / ");
+ $("den-inventory-help").textContent=(atDen()?"食べたい種類を選んでください。選択しなければ減りません。":"巣の外では閲覧のみ。食べるには巣へ戻ってください。")+(trophyText?" 希少素材："+trophyText:"");
  const canEat=atDen()&&(P.hunger<100||P.hp<P.maxHp);
  for(const key of ["meat","berries","legacy"]){
   $("den-row-"+key).classList.toggle("hidden",key==="legacy"&&denStores.legacy<=0);
