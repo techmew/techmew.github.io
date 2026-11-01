@@ -1589,7 +1589,7 @@ function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
  if(atDen()){
   if(P.carry){carryFood();return}
-  if(longPress&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]){upgradeDen();return}
+  if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
   openDenInventory();return;
  }
  if(longPress){
@@ -1912,8 +1912,8 @@ function eatFromDen(kind){
 }
 function stockpileStep(){
  if(!P||mission!==4)return null;
- if(denStash>=DEN_COSTS[2])return {step:3,text:"③ 巣で△長押ししてLV2に強化",label:"巣"};
- if(P.carry)return {step:2,text:"② 巣の中心へ戻り△で備蓄（短押し・長押し可）",label:"巣"};
+ if(denStash>=DEN_COSTS[2])return {step:3,text:atDen()?"③ ここで△長押ししてLV2に強化":"③ 巣で△長押ししてLV2に強化",label:"巣"};
+ if(P.carry)return {step:2,text:atDen()?"② ここで△を押して備蓄":"② 巣の中心へ戻り△で備蓄（短押し・長押し可）",label:"巣"};
  return {step:1,text:"① 食草・肉のそばで△長押しして運ぶ",label:"食草・肉"};
 }
 function missionInfo(){
@@ -2075,9 +2075,9 @@ function getObjective(){
   const p=nearestGoal(plants.filter(p=>p.type===2));
   return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
  }
- if(mission===3){const site=closestDen(P,true);return {x:site.x,y:site.y,label:"巣へ食料を備蓄する"};}
+ if(mission===3){const site=denAtActor()||closestDen(P,true);return {x:site.x,y:site.y,label:"巣へ食料を備蓄する"};}
  if(mission===4){
-  if(P.carry||denStash>=DEN_COSTS[2]){const site=closestDen(P,true);return {x:site.x,y:site.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};}
+  if(P.carry||denStash>=DEN_COSTS[2]){const site=denAtActor()||closestDen(P,true);return {x:site.x,y:site.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};}
   const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
   if(food)return {x:food.x,y:food.y,label:foodName(food)+"を△長押しで運ぶ"};
   const prey=nearestGoal(mobs.filter(m=>m.hp>0&&species[m.type].prey));
@@ -2705,7 +2705,8 @@ function update(dt){
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1),0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
- if(atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
+ if(atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165&&
+   !((P.groundZ||0)>18&&m.type!=="giantEagle"&&(m.groundZ||0)<(P.groundZ||0)-12)))
   P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
  const a=getAxes(),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
