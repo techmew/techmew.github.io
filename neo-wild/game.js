@@ -405,6 +405,9 @@ function restoreSnapshot(snapshot){
   m.restTime=Number.isFinite(m.restTime)?clamp(m.restTime,0,12):0;
   m.restCooldown=Number.isFinite(m.restCooldown)?clamp(m.restCooldown,0,30):0;
   m.resting=m.restTime>0;
+  m.shelterDoorX=Number.isFinite(m.shelterDoorX)?m.shelterDoorX:null;
+  m.shelterDoorY=Number.isFinite(m.shelterDoorY)?m.shelterDoorY:null;
+  m.shelterPhase=m.shelterPhase===1?1:0;
   m.forageNeed=Number.isFinite(m.forageNeed)?clamp(m.forageNeed,0,1):null;
   m.forageCooldown=clamp(Number(m.forageCooldown)||0,0,8);
   m.foragePose=0;
@@ -1322,7 +1325,7 @@ function tryEnemyEmergencyEvade(m,sp,d,spotted){
   m.evadeAngle=angle;m.evadeTime=.29;m.evadeDuration=.29;
   m.evadeRemaining=travel;m.evadeSpeed=travel/.29;
   m.evadeCooldown=3.5+rnd(0,1.2);m.evasionSide=-side;
-  m.windup=0;m.chargeTime=0;m.sheltered=false;m.shelterX=null;m.shelterY=null;
+  m.windup=0;m.chargeTime=0;m.sheltered=false;m.shelterX=null;m.shelterY=null;m.shelterDoorX=null;m.shelterDoorY=null;m.shelterPhase=0;
   m.navPath=null;m.attack=Math.max(m.attack,.45);m.alert=Math.max(m.alert,2);
   m.dir=angle;label(m.x,m.y-m.r-29,"飛び逃げ！","#e4ffbc");
   playEffect("jump",{volume:.14});
@@ -1432,7 +1435,7 @@ function rainShelterPoint(m){
   const distance=dist(m,entry);
   const inThisRoom=m.x>b.x+16&&m.x<b.x+b.w-16&&m.y>b.y+16&&m.y<b.y+b.h-16;
   if(distance<bestRoomDistance&&(inThisRoom||routeClear(m,entry,m.r))&&!collides(inside.x,inside.y,m.r+3)){
-   bestRoom=inside;bestRoomDistance=distance;
+   bestRoom={x:inside.x,y:inside.y,doorX:entry.x,doorY:entry.y,room:true};bestRoomDistance=distance;
   }
  }
  if(bestRoom)return bestRoom;
@@ -1451,6 +1454,33 @@ function rainShelterPoint(m){
   }
  }
  return best;
+}
+// Rain sheltering: approach a real doorway before moving to the indoor rest point.
+function followRainShelter(m,sp,dt){
+ m.shelterRefresh=Math.max(0,(m.shelterRefresh||0)-dt);
+ if(m.shelterRefresh===0){
+  const spot=rainShelterPoint(m);
+  const same=!!spot&&Number.isFinite(m.shelterX)&&Number.isFinite(m.shelterY)&&Math.hypot(spot.x-m.shelterX,spot.y-m.shelterY)<8;
+  const oldPhase=m.shelterPhase===1;
+  m.shelterX=spot?spot.x:null;m.shelterY=spot?spot.y:null;
+  m.shelterDoorX=spot?.room?spot.doorX:null;m.shelterDoorY=spot?.room?spot.doorY:null;
+  m.shelterPhase=spot?.room&&(insideShelter(m)||(same&&oldPhase))?1:0;
+  m.shelterRefresh=2.8+rnd(0,1.5);
+ }
+ if(!Number.isFinite(m.shelterX)||!Number.isFinite(m.shelterY))return null;
+ const hasDoor=Number.isFinite(m.shelterDoorX)&&Number.isFinite(m.shelterDoorY);
+ if(hasDoor&&m.shelterPhase!==1){
+  const tolerance=clamp(55-m.r-10,18,30);
+  if(insideShelter(m)||Math.hypot(m.shelterDoorX-m.x,m.shelterDoorY-m.y)<tolerance)m.shelterPhase=1;
+ }
+ const tx=hasDoor&&m.shelterPhase!==1?m.shelterDoorX:m.shelterX;
+ const ty=hasDoor&&m.shelterPhase!==1?m.shelterDoorY:m.shelterY;
+ if(Math.hypot(tx-m.x,ty-m.y)<=m.r+8&&(!hasDoor||m.shelterPhase===1)){
+  m.sheltered=true;return {vx:0,vy:0};
+ }
+ m.dir=steerPursuit(m,tx,ty);
+ m.sheltered=insideShelter(m);
+ return {vx:Math.cos(m.dir)*sp.speed*.62,vy:Math.sin(m.dir)*sp.speed*.62};
 }
 function updateIndoorRest(m,sp,dt,spotted,d){
  if(!Number.isFinite(m.restNeed))m.restNeed=clamp(.32+noise(Math.floor(m.x),Math.floor(m.y))*.55,0,1);
@@ -1778,26 +1808,14 @@ function update(dt){
    if(weather==="RAIN"||weather==="THUNDER"){
     const calm=!spotted&&m.alert<=0&&m.flee<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0;
     const hunting=!!scavenging||!!foraging||(!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170));
-    m.sheltered=false;
+    m.sheltered=insideShelter(m);
     if(calm&&!hunting){
-     m.shelterRefresh=Math.max(0,(m.shelterRefresh||0)-dt);
-     if(m.shelterRefresh===0){
-      const spot=rainShelterPoint(m);
-      m.shelterX=spot?spot.x:null;m.shelterY=spot?spot.y:null;
-      m.shelterRefresh=2.8+rnd(0,1.5);
-     }
-     if(Number.isFinite(m.shelterX)&&Number.isFinite(m.shelterY)){
-      const remaining=Math.hypot(m.shelterX-m.x,m.shelterY-m.y);
-      if(remaining>m.r+8){
-       m.dir=steerPursuit(m,m.shelterX,m.shelterY);
-       vx=Math.cos(m.dir)*s.speed*.62;vy=Math.sin(m.dir)*s.speed*.62;
-      }else{
-       vx=0;vy=0;m.sheltered=true;
-      }
-     }
+     const retreat=followRainShelter(m,s,dt);
+     if(retreat){vx=retreat.vx;vy=retreat.vy;}
     }
    }else{
     m.sheltered=false;m.shelterX=null;m.shelterY=null;m.shelterRefresh=0;
+    m.shelterDoorX=null;m.shelterDoorY=null;m.shelterPhase=0;
    }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
