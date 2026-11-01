@@ -272,7 +272,7 @@ function moonlightProfile(seconds=elapsed,sky=weather){
  const illumination=(1-Math.cos(phase*TWO))*.5;
  const visibility=sky==="THUNDER"?.10:sky==="RAIN"?.20:sky==="FOG"?.28:sky==="CLOUDY"?.45:sky==="WIND"?.82:1;
  const name=phase<.06||phase>=.94?"新月":phase<.20?"満ちゆく月":phase<.31?"上弦":phase<.44?"満ちゆく月":phase<.56?"満月":phase<.69?"欠けゆく月":phase<.81?"下弦":"欠けゆく月";
- return {age,phase,illumination,visibility,ambient:.17+.09*illumination*visibility,name};
+ return {age,phase,illumination,visibility,ambient:.22+.09*illumination*visibility,name};
 }
 function dayLightProfile(seconds=elapsed){
  const hour=(6+((seconds%85+85)%85)/85*24)%24;
@@ -289,6 +289,58 @@ function dayLightProfile(seconds=elapsed){
  return {hour,brightness:.12,warmth:0,tint:[.60,.74,1.11]};
 }
 function worldDaylight(){return dayLightProfile().brightness;}
+
+/* Animal night vision: a soft 120-degree forward acuity field, not emitted light.
+ * Shared parameters drive the WebGL material contrast and 2D darkness mask. */
+function nightVisionProfile(seconds=elapsed,sky=weather,animalType=P?.type){
+ const light=dayLightProfile(seconds),hour=light.hour;
+ const nightWeight=hour<4.75||hour>=20?1:hour<6.5?clamp((6.5-hour)/1.75,0,1):hour>=18?clamp((hour-18)/2,0,1):0;
+ const lunar=moonlightProfile(seconds,sky);
+ const weatherFactor=sky==="THUNDER"?.55:sky==="RAIN"?.68:sky==="FOG"?.72:sky==="CLOUDY"?.80:sky==="WIND"?.94:1;
+ const nocturnal=animalType==="cat";
+ const baseRange=nocturnal?820:animalType==="wolf"?610:510;
+ const range=baseRange*weatherFactor*(.84+.16*lunar.illumination*lunar.visibility);
+ const strength=nightWeight*(nocturnal?.57:animalType==="wolf"?.39:.35)*(.82+.18*weatherFactor);
+ return {range,strength,nightWeight,halfAngle:Math.PI/3,ambient:light.brightness};
+}
+const nightVisionCanvas=document.createElement("canvas"),nightVisionCtx=nightVisionCanvas.getContext("2d");
+function drawNightVision2D(alpha){
+ if(alpha<=0||!nightVisionCtx)return;
+ const width=Math.max(1,Math.round(vw*dpr)),height=Math.max(1,Math.round(vh*dpr));
+ if(nightVisionCanvas.width!==width||nightVisionCanvas.height!==height){nightVisionCanvas.width=width;nightVisionCanvas.height=height;}
+ const n=nightVisionCtx;n.setTransform(dpr,0,0,dpr,0,0);n.clearRect(0,0,vw,vh);
+ n.fillStyle="rgba(3,10,29,"+alpha+")";n.fillRect(0,0,vw,vh);
+ if(P){
+  const vision=nightVisionProfile(),origin=project(P.x,P.y);
+  if(vision.strength>.001){
+   n.save();n.globalCompositeOperation="destination-out";
+   // Nested angular masks feather both edges of the 120-degree forward field.
+   for(const [halfDeg,opacity] of [[72,.11],[64,.15],[57,.21],[50,.25]]){
+    n.save();n.beginPath();n.moveTo(origin.x,origin.y);
+    for(let k=0;k<=24;k++){
+     const angle=P.dir+(k/24*2-1)*halfDeg*Math.PI/180;
+     const pt=project(P.x+Math.cos(angle)*vision.range,P.y+Math.sin(angle)*vision.range);
+     n.lineTo(pt.x,pt.y);
+    }
+    n.closePath();n.clip();
+    const radius=Math.max(1,vision.range*cameraZoom*.91);
+    const grad=n.createRadialGradient(origin.x,origin.y,0,origin.x,origin.y,radius);
+    const power=vision.strength*opacity/.57;
+    grad.addColorStop(0,"rgba(0,0,0,"+Math.min(.9,power)+")");
+    grad.addColorStop(.60,"rgba(0,0,0,"+(power*.88)+")");
+    grad.addColorStop(1,"rgba(0,0,0,0)");
+    n.fillStyle=grad;n.fillRect(0,0,vw,vh);n.restore();
+   }
+   // Peripheral vision never drops to absolute black behind the animal.
+   const near=n.createRadialGradient(origin.x,origin.y,0,origin.x,origin.y,Math.max(75,125*cameraZoom));
+   near.addColorStop(0,"rgba(0,0,0,"+(vision.strength*.25)+")");
+   near.addColorStop(1,"rgba(0,0,0,0)");
+   n.fillStyle=near;n.fillRect(0,0,vw,vh);n.restore();
+  }
+ }
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.drawImage(nightVisionCanvas,0,0,vw,vh);ctx.restore();
+}
+
 /* Same river/canal geometry in 2D, 3D and movement. Road crossings are dry bridges. */
 function waterDepth(x,y){
  let depth=0;
@@ -3278,7 +3330,7 @@ function drawThreatNames(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
@@ -3359,9 +3411,9 @@ function drawScene(){
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
  for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
- const light=dayLightProfile(elapsed),nightAlpha=clamp((1-light.brightness)*.88,0,.82);
+ const light=dayLightProfile(elapsed),nightAlpha=clamp((1-light.brightness)*.80,0,.76);
  if(!use3D){
-  if(nightAlpha>0){ctx.fillStyle="rgba(3,10,29,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);}
+  // Darkness is composed in screen space after world drawing, then feathered by night vision.
   if(light.warmth>.02){ctx.fillStyle="rgba(253,123,61,"+(light.warmth*.19)+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);}
   if(light.brightness>1){ctx.save();ctx.globalCompositeOperation="screen";ctx.fillStyle="rgba(255,252,222,"+((light.brightness-1)*.52)+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);ctx.restore();}
  }
@@ -3372,6 +3424,7 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
+ if(!use3D)drawNightVision2D(nightAlpha);
  
  if(P&&pounceStreaks.length>=2){
   ctx.save();ctx.lineCap="round";
