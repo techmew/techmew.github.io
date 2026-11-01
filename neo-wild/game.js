@@ -253,10 +253,20 @@ function worldDaylight(){
  const hour=(6+(elapsed%85)/85*24)%24;
  return Math.max(0,Math.sin((hour-6)*Math.PI/12));
 }
-function shallowWater(x,y){
- return (y>=0&&y<2600&&x>=6300&&Math.abs(x-riverAxis(y))<133)||
-        (x>=5600&&y>=2600&&Math.abs(y-canalAxis(x))<100);
+/* Same river/canal geometry in 2D, 3D and movement. Road crossings are dry bridges. */
+function waterDepth(x,y){
+ let depth=0;
+ if(y>=0&&y<2600&&x>=6300){
+  const offset=Math.abs(x-riverAxis(y));
+  if(offset<133&&!roadsY.some(ry=>Math.abs(y-ry)<80))depth=Math.min(1,(133-offset)/70);
+ }
+ if(x>=5600&&y>=2600){
+  const offset=Math.abs(y-canalAxis(x));
+  if(offset<100&&!roadsX.some(rx=>Math.abs(x-rx)<80))depth=Math.max(depth,Math.min(1,(100-offset)/55));
+ }
+ return depth;
 }
+function shallowWater(x,y){return waterDepth(x,y)>0;}
 
 function generateWorld(){
  if(worldMade)return;worldMade=true;
@@ -681,8 +691,13 @@ function move(o,dx,dy){
   for(let i=0;i<parts;i++)move(o,dx/parts,dy/parts);
   return;
  }
- if(!collides(o.x+dx,o.y,o.r,o===P?o:null))o.x+=dx;
- if(!collides(o.x,o.y+dy,o.r,o===P?o:null))o.y+=dy;
+ // Wading is physical for player and wildlife; jumps retain their existing arc and range.
+ const airborne=o===P&&(o.jumpTime>0||o.pounceTime>0||(o.jumpHeight||0)>(o.groundZ||0)+8);
+ const depth=airborne?0:Math.max(waterDepth(o.x,o.y),waterDepth(o.x+dx,o.y+dy));
+ const resistance=1-depth*(o===P?.37:.43);
+ const mx=dx*resistance,my=dy*resistance;
+ if(!collides(o.x+mx,o.y,o.r,o===P?o:null))o.x+=mx;
+ if(!collides(o.x,o.y+my,o.r,o===P?o:null))o.y+=my;
  if(o===P&&o.jumpTime<=0&&o.pounceTime<=0){
   const roof=roofAt(o.x,o.y),previous=o.groundZ||0;
   if(roof!==previous){
@@ -1872,7 +1887,7 @@ function update(dt){
    const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(shallowWater(P.x,P.y)?.80:1);
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction;
    const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
    const limit=(len>.08?(P.type==="wolf"?660:P.type==="cat"?1430:foxTurbo?2150:1160):(P.type==="wolf"?900:P.type==="cat"?1720:foxTurbo?2750:1550))*dt;
    const ratio=length>limit?limit/length:1;
@@ -2732,7 +2747,8 @@ function routeTo(goal,actor=P){
    const next=ny*cols+nx;if(!pass[next]||closed[next])continue;
    if(dx&&dy&&(!pass[y*cols+nx]||!pass[ny*cols+x]))continue;
    if(!routeClear(center(cur),center(next),actor.r))continue;
-   const value=score[cur]+(dx&&dy?Math.SQRT2:1);
+   const waypoint=center(next);
+   const value=score[cur]+(dx&&dy?Math.SQRT2:1)*(1+waterDepth(waypoint.x,waypoint.y)*1.8);
    if(value>=score[next])continue;
    score[next]=value;from[next]=cur;push(next,value+heuristic(next));
   }
@@ -2898,7 +2914,7 @@ function drawThreatNames(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
  ctx.setTransform(dpr,0,0,dpr,0,0);
  if(use3D)ctx.clearRect(0,0,vw,vh);else{ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh)}
@@ -2914,6 +2930,11 @@ function drawScene(){
   roadDraw();
   drawScenery2D();
  drawDenBedding2D();
+ // Foot-level water wake, visible only while an animal is actually moving.
+ for(const e of entities)if(waterDepth(e.x,e.y)>.10&&Math.hypot(e.vx||0,e.vy||0)>25){
+  ctx.save();ctx.strokeStyle="#b4dedaaf";ctx.lineWidth=2;ctx.beginPath();
+  ctx.ellipse(e.x,e.y,Math.max(11,e.r*1.35),Math.max(5,e.r*.64),0,0,TWO);ctx.stroke();ctx.restore();
+ }
  for(const site of EXPLORE_SITES)if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  const layers=[],covers=new Map();
