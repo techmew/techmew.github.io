@@ -17,8 +17,15 @@ const species={
  pigeon:{hp:18,r:12,speed:125,damage:0,prey:true,xp:1,food:19,color:"#738c92",belly:"#e5e4d5"},
  dog:{hp:124,r:22,speed:161,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
  boar:{hp:190,r:28,speed:122,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
- alpha:{hp:335,r:29,speed:231.4,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
+ alpha:{hp:335,r:29,speed:231.4,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"},
+ giantSnake:{hp:290,r:32,speed:105,damage:27,prey:false,xp:12,food:68,color:"#426c50",belly:"#b5b884"},
+ oldBear:{hp:480,r:43,speed:137,damage:44,prey:false,xp:17,food:100,color:"#654a3c",belly:"#b09a79"},
+ giantBoar:{hp:410,r:40,speed:160,damage:37,prey:false,xp:14,food:92,color:"#57463d",belly:"#c9ad88"},
+ blackPanther:{hp:270,r:29,speed:238,damage:31,prey:false,xp:13,food:68,color:"#232a31",belly:"#6d7c80"}
 };
+const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹"};
+const STRONG_REGIONS={0:["alpha","blackPanther"],1:["alpha","oldBear","blackPanther"],2:["giantSnake","oldBear","giantBoar"],3:["oldBear","blackPanther","alpha","giantSnake"],4:["giantSnake","giantBoar"],5:["giantSnake","oldBear","giantBoar","blackPanther"],6:["giantBoar","alpha","blackPanther"],7:["giantSnake","blackPanther"]};
+let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
@@ -477,7 +484,7 @@ function show(id){
 function start(){
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
@@ -496,7 +503,7 @@ function start(){
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- syncHUD();drawMini();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
+ enterStrongStage();syncHUD();drawMini();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
  playEffect("collect");
 }
 
@@ -525,7 +532,7 @@ function currentSnapshot(){
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
-  tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews
+  tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
 }
 function saveAuto(){
@@ -618,6 +625,9 @@ function restoreSnapshot(snapshot){
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
+  strongRolls=snapshot.strongRolls&&typeof snapshot.strongRolls==="object"&&!Array.isArray(snapshot.strongRolls)?JSON.parse(JSON.stringify(snapshot.strongRolls)):{};
+  strongTrophies=snapshot.strongTrophies&&typeof snapshot.strongTrophies==="object"?{...snapshot.strongTrophies}:{};
+  strongRegionCurrent=-1;normalizeStrongBossSave();
  for(const c of carcasses)normalizeRemains(c);
  for(const m of mobs){
   if(waterBlocksLand(m.x,m.y)){const safe=nearestDryBank(m.x,m.y,m.r||18);if(safe){m.x=safe.x;m.y=safe.y;}}
@@ -672,7 +682,7 @@ function restoreSnapshot(snapshot){
  try{saveDenLevel();saveDenStash();saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
  reconcileRestoredGoals();
- syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
+ enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
 }
@@ -690,6 +700,58 @@ function recordCheckpoint(){
   $("checkpoint-save-status").textContent="保存できませんでした。端末の保存容量・設定を確認してください。";
   return false;
  }
+}
+
+
+/* STRONG-STAGE-20P-V1: one draw per district, a single active boss, save-compatible. */
+function strongBossAlive(){return mobs.find(m=>m.hp>0&&(m.strongBoss||m.type==="alpha"))||null;}
+function strongStageCandidate(region){
+ const options=STRONG_REGIONS[region]||["alpha"];
+ const hour=(6+Math.floor((elapsed%85)/85*24))%24,night=hour>=19||hour<6;
+ const weights=options.map(t=>t==="blackPanther"?(night?3.2:.7):t==="giantSnake"?(weather==="RAIN"||weather==="THUNDER"?1.7:1.2):t==="oldBear"?(night?.7:1.5):t==="giantBoar"?(weather==="THUNDER"?.65:1.3):1.2);
+ let roll=Math.random()*weights.reduce((a,b)=>a+b,0);
+ for(let i=0;i<options.length;i++){roll-=weights[i];if(roll<=0)return options[i];}
+ return options[options.length-1];
+}
+function spawnStrongBoss(type,region){
+ if(!P||!species[type]||strongBossAlive()||mobs.length>=WILDLIFE.cap)return false;
+ const sp=species[type];
+ for(let i=0;i<100;i++){
+  const angle=rnd(0,TWO),radius=rnd(370,Math.min(930,WILDLIFE.farAI-90));
+  const x=clamp(P.x+Math.cos(angle)*radius,60,WORLD.w-60),y=clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
+  if(regionAt(x,y)!==region||collides(x,y,sp.r+6)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<135))continue;
+  const hp=Math.round(sp.hp*(1+Math.max(0,day-1)*.10));
+  mobs.push({x,y,type,r:sp.r,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
+   alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,
+   strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
+   chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintCooldown:2,
+   thirstNeed:.4,drinkCooldown:3,flankSide:Math.random()<.5?-1:1,
+   strongBoss:true,strongRegion:region,strongBirthDay:day});
+  notify("この地区に"+STRONG_NAMES[type]+"の気配がある");
+  return true;
+ }
+ return false;
+}
+function enterStrongStage(){
+ if(!P)return;
+ const region=regionAt(P.x,P.y);strongRegionCurrent=region;
+ if(!Object.prototype.hasOwnProperty.call(strongRolls,region))
+  strongRolls[region]=Math.random()<.20?{type:strongStageCandidate(region),spawned:false}:{type:null,spawned:true};
+ const roll=strongRolls[region];
+ if(roll&&roll.type&&!roll.spawned&&!strongBossAlive()&&spawnStrongBoss(roll.type,region)){
+  roll.spawned=true;saveAuto();
+ }
+}
+function normalizeStrongBossSave(){
+ let first=null;
+ for(const m of mobs){
+  if(!species[m.type]){m.type="dog";m.r=species.dog.r;}
+  if(m.strongBoss||m.type==="alpha"){
+   if(!first){first=m;m.strongBoss=true;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
+   else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
+  }
+ }
+ if(first)strongRolls[first.strongRegion]={type:first.type,spawned:true};
 }
 
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null){
@@ -713,11 +775,11 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
  const biome=regionAt(x,y);
  if(preyOnly)type=biome===5?(roll<.20?"rat":"rabbit"):biome===4?(roll<.72?"pigeon":"rabbit"):roll<.4?"rat":roll<.78?"rabbit":"pigeon";
  else if(biome===5)type=roll<.45?"rabbit":roll<.65?"rat":roll<.85?"boar":"dog";
- else if(biome===6)type=roll<.32?"rat":roll<.62?"dog":roll<.88?"boar":"alpha";
+ else if(biome===6)type=roll<.32?"rat":roll<.62?"dog":roll<.88?"boar":"dog";
  else if(biome===4||biome===7)type=roll<.50?"pigeon":roll<.72?"rabbit":roll<.9?"dog":"boar";
  else if(day<2)type=roll<.4?"rat":roll<.72?"rabbit":roll<.87?"pigeon":"dog";
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
- else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
+ else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"dog";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
  mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
@@ -2268,7 +2330,8 @@ function update(dt){
   P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
- P.eatCD=Math.max(0,(P.eatCD||0)-dt);
+ P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt);
+  if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
  if(P.hp<=0){P.hp=0;finish(false);return}
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
@@ -2453,7 +2516,7 @@ function update(dt){
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
  for(let i=popups.length-1;i>=0;i--){popups[i].life-=dt;popups[i].y-=28*dt;if(popups[i].life<=0)popups.splice(i,1)}
  spawnTimer+=dt;
- if(spawnTimer>3.6){spawnTimer=0;maintainLocalWildlife();}
+ if(spawnTimer>3.6){spawnTimer=0;maintainLocalWildlife();enterStrongStage();}
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
 
@@ -2607,7 +2670,7 @@ function drawMini(){
  const visibleMobs=mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<span/2&&Math.abs(m.y-P.y)<span/2)
   .sort((a,b)=>dist(P,a)-dist(P,b)).slice(0,30);
  for(const m of visibleMobs){
-  const sp=species[m.type],powerful=m.type==="alpha"||
+  const sp=species[m.type],powerful=!!m.strongBoss||m.type==="alpha"||
    (!sp.prey&&m.type!=="boar"&&m.maxHp>P.maxHp*1.65&&sp.damage>P.damage*1.35)||
    (m.type==="boar"&&m.maxHp>P.maxHp*1.65&&sp.damage>P.damage*1.35);
   const calmBoar=m.type==="boar"&&!powerful&&(m.alert||0)<=0&&(m.windup||0)<=0&&(m.search||0)<=0;
@@ -3260,7 +3323,7 @@ function drawThreatNames(){
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
   if(m.hp<=0||species[m.type].prey||dist(P,m)>280||!visible(m.x,m.y,55))continue;
-  const pos=project(m.x,m.y),names={dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ"},y=pos.y-m.r*cameraZoom-35;
+  const pos=project(m.x,m.y),names={dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹"},y=pos.y-m.r*cameraZoom-35;
   ctx.globalAlpha=m.windup>0||m.alert>0?.92:.65;ctx.fillStyle="#172321";ctx.fillRect(pos.x-42,y-11,84,16);
   ctx.fillStyle=m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(names[m.type]||"危険",pos.x,y+1);
  }
