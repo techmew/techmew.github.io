@@ -280,7 +280,7 @@ function generateWorld(){
   dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
 }
-function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide")guideNeedsFrame=true;}
+function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
@@ -289,7 +289,7 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;tutorialCompletePending=false;$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -329,7 +329,7 @@ function clearAutoSave(){
  try{localStorage.removeItem(AUTOSAVE_KEY)}catch(_){}
 }
 function currentSnapshot(){
- if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"||mode==="guide"))return null;
+ if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"||mode==="guide"||mode==="milestone"))return null;
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
@@ -1132,7 +1132,7 @@ const TUTORIAL_PAGES=[
  null, // Page 1 always shows the CURRENT goal; not a long sequence of seven lessons.
  {stage:"操作早見表",title:"操作・食料の基本",what:"△ 食べる・運ぶ ／ × 攻撃 ／ □ 飛びつき ／ ○ ジャンプ",how:"巣で△：備蓄。手ぶらで△：食料庫。"}
 ];
-let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,tutorialCompletePending=false;
+let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,milestoneUntil=0;
 function renderTutorial(){
  const info=tutorialPage===0
   ?{stage:missionInfo().stage,...GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)]}
@@ -1163,7 +1163,6 @@ function closeTutorial(){
  $("app").classList.remove("tutorial-paused");
  guideNeedsFrame=false;mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"play"});
- if(tutorialCompletePending&&mission>=4){tutorialCompletePending=false;showTutorialComplete()}
 }
 function tutorialMove(delta){
  if(mode!=="guide")return;
@@ -1184,21 +1183,36 @@ function announceObjective(){
  $("objective-banner").classList.remove("visible");void $("objective-banner").offsetWidth;
  $("objective-banner").classList.add("visible");objectiveBannerTime=performance.now()+2600;
 }
-function showTutorialComplete(){
- if(!P||mode!=="play")return false;
- $("objective-banner-stage").textContent="TUTORIAL";
- $("objective-banner-title").textContent="COMPLETE!";
- $("objective-banner-next").textContent="";
- const banner=$("objective-banner");banner.classList.remove("visible");void banner.offsetWidth;
- banner.classList.add("visible");objectiveBannerTime=performance.now()+2600;
+// Award first, then open the next lesson; do not rely on closing a lesson to show success.
+function showMissionMilestone(previous,next){
+ if(!P||mode!=="play"||next!==previous+1||previous<0||previous>6)return false;
+ const finishedTutorial=previous===3&&next===4;
+ const duration=finishedTutorial?1000:780;
+ $("mission-milestone-kicker").textContent=finishedTutorial?"TUTORIAL":previous<3?"NICE WORK":"SURVIVAL";
+ $("mission-milestone-title").textContent=finishedTutorial?"COMPLETE!":"EXCELLENT!";
+ const el=$("mission-milestone");
+ el.style.setProperty("--milestone-duration",duration+"ms");
+ el.classList.remove("hidden");el.classList.remove("show");void el.offsetWidth;el.classList.add("show");
+ milestoneUntil=performance.now()+duration;
+ resetControls();mode="milestone";guideNeedsFrame=true;
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+ window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"milestone"});
+ return true;
+}
+function finishMissionMilestone(){
+ if(mode!=="milestone")return false;
+ $("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");
+ milestoneUntil=0;mode="play";
+ if(mission<=6&&!tutorialSeen.has(mission))openTutorial(0,true);
+ else announceObjective();
  return true;
 }
 function advanceMission(next){
  const previous=mission;
- if(previous===3&&next===4)tutorialCompletePending=true;
  mission=next;
  if(next===7){freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition)}
- announceObjective();syncHUD();
+ if(!showMissionMilestone(previous,next))announceObjective();
+ syncHUD();
 }
 function checkMission(){
  if(mission===0&&meals>=1){advanceMission(1);return}
@@ -2839,10 +2853,11 @@ function loop(t){
  if(huntSlowUntil>0&&(t>=huntSlowUntil+520||mode!=="play")){
   huntSlowUntil=0;$("hunt-cinematic").classList.remove("show");
  }
+ if(mode==="milestone"&&t>=milestoneUntil)finishMissionMilestone();
  if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
  else huntSlowUntil=0;
- // Keep a visible, perfectly still 2D/WebGL frame behind the guide popup.
- if(mode!=="guide"||guideNeedsFrame){drawScene();guideNeedsFrame=false}
+ // Freeze 2D/WebGL gameplay behind achievement and tutorial.
+ if((mode!=="guide"&&mode!=="milestone")||guideNeedsFrame){drawScene();guideNeedsFrame=false}
  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -2865,12 +2880,12 @@ function keyDown(e){
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
 window.addEventListener("blur",()=>{
  if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
- else if(mode==="upgrade"||mode==="guide"||mode==="inventory")saveAuto();
+ else if(mode==="upgrade"||mode==="guide"||mode==="inventory"||mode==="milestone")saveAuto();
 });
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden){
   if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
-  else if(mode==="pause"||mode==="upgrade"||mode==="guide"||mode==="inventory"){saveAuto();if(mode==="guide")guideNeedsFrame=true;}
+  else if(mode==="pause"||mode==="upgrade"||mode==="guide"||mode==="inventory"||mode==="milestone"){saveAuto();if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
  }
 });
 window.addEventListener("pagehide",saveAuto);
