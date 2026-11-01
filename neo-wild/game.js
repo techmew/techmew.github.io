@@ -584,8 +584,11 @@ function restoreSnapshot(snapshot){
  P={...P,...p,base:animals[choice],type:choice};
  if(choice==="cat"&&!p.catSpeedV2){
   // Older SAVE_SCHEMA=2 cat runs retain their upgrades. New 320+ saves are not amplified.
-  const savedSpeed=Number(p.speed)||239;
-  P.speed=savedSpeed<320?Math.max(320,Math.round(savedSpeed*320/239)):savedSpeed;
+  // All legacy cats used base 239, including upgraded saves above 320.
+  // Preserve the earned speed multiplier against the new base exactly once.
+  const legacySpeed=Number(p.speed);
+  const savedSpeed=Number.isFinite(legacySpeed)&&legacySpeed>0?legacySpeed:239;
+  P.speed=Math.max(320,Math.round(savedSpeed*320/239));
   P.catSpeedV2=true;
  }
  P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
