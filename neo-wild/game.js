@@ -710,10 +710,17 @@ function normalizeRemains(c){
 function nearbyFood(){
  return carcasses.some(f=>edibleFood(f)&&dist(P,f)<65&&!lineBlocked(P,f));
 }
+function putDownFood(){
+ if(!P?.carry||mode!=="play")return;
+ if(P.jumpTime>0||P.pounceTime>0||(P.groundZ||0)>0){notify("地上で置いてください");return;}
+ const c=P.carry;
+ carcasses.push({x:P.x,y:P.y,r:11,amount:c.amount,type:c.type==="corpse"?"meat":c.type,ttl:150,phase:0});
+ P.carry=null;notify("食料を置いた");syncHUD();
+}
 function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
  const home=dist(P,SAFE_DEN)<denRadius()&&(P.groundZ||0)===0;
- if(longPress){if(home){upgradeDen();return;}if(!P.carry&&!nearbyFood()&&markTerritory())return;if(!P.carry)carryFood();else notify("食料を運搬中 / 巣へ戻ろう");return;}
+ if(longPress){if(P.carry){putDownFood();return;}if(home){upgradeDen();return;}if(!nearbyFood()&&markTerritory())return;carryFood();return;}
  if(home&&(P.carry||(denStash>0&&P.hunger<95))){carryFood();return;}
  if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return;}
  notify(home?"巣に食料を持ち帰ろう":"食料や巣の近くで△を押す");
