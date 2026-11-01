@@ -771,8 +771,13 @@ function lineBlocked(a,b){
 }
 function inCover(o){return plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75)}
 function detectsPlayer(m,sp,d){
- const night=Math.cos((elapsed%85)/85*TWO)<-.45;
- const sightRange=(sp.prey?185:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*(night?.8:1)*(P.hidden?.29:1);
+ // The visual clock is authoritative: the old cosine classified midnight as
+ // daytime. Daylight, not a second independent clock, now governs visual range.
+ const ambient=worldDaylight();
+ const lightFactor=clamp(.49+ambient*.49,.55,1.06);
+ const nocturnalBonus=sp.prey?0:(m.type==="alpha"?.17:m.type==="dog"?.13:.08);
+ const vision=clamp(lightFactor+nocturnalBonus*(1-clamp(ambient,0,1)),.55,1.06);
+ const sightRange=(sp.prey?185:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*vision*(P.hidden?.29:1);
  const los=!lineBlocked(m,P);
  const facing=Math.atan2(P.y-m.y,P.x-m.x);
  const delta=Math.atan2(Math.sin(facing-m.dir),Math.cos(facing-m.dir));
