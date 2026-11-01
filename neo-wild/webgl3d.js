@@ -129,7 +129,7 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
 /* STRONG-MODELS-3D-V2: species-specific anatomy, proportions and silhouettes. */
 function drawStrongAnimal3D(m,clock){
  const t=m.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena")return false;
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo")return false;
  const r=m.r||30,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const x=(dx,dy)=>m.x+dx*c-dy*sn,y=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||"#6c675d",belly=m.belly||"#b4a38e";
@@ -182,6 +182,25 @@ function drawStrongAnimal3D(m,clock){
   for(const side of [-1,1]){orb(r*.87,side*r*.44,r*1.17,r*.20,r*.20,r*.24,"#f6f3e8");orb(r*1.27,side*r*.28,r*.98,r*.10,r*.08,r*.09,"#d9ae70");}
   orb(r*1.53,0,r*.72,r*.33,r*.31,r*.23,"#f6f3e8");
   for(let i=0;i<6;i++)orb(-r*(1.00+i*.27),Math.sin(clock*1.6+i*.5)*r*.21,r*(.62+i*.06),r*.21,r*.14,r*.13,i%2?"#434b4d":"#e4e1d7");
+ }else if(t==="giantLion"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.63,side*r*.54,r*.32+pace*(front===side?1:-1),r*.26,r*.26,r*.36,"#a9824b");
+  orb(-r*.21,0,r*.79,r*1.18,r*.69,r*.65,"#cba56a");orb(r*.53,0,r*1.05,r*.83,r*.88,r*.90,"#966438");
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;spike(r*.57+Math.cos(a)*r*.65,Math.sin(a)*r*.67,r*1.08,r*.20,r*.18,r*.37,"#a36c37");}
+  orb(r*1.11,0,r*.92,r*.55,r*.45,r*.44,"#cba56a");orb(r*1.45,0,r*.73,r*.40,r*.30,r*.26,"#e6cb96");
+  for(const side of [-1,1]){orb(r*1.18,side*r*.29,r*1.06,r*.09,r*.07,r*.07,"#f6d19a");spike(r*.86,side*r*.42,r*1.28,r*.17,r*.14,r*.26,"#cba56a");}
+  for(let i=0;i<5;i++)orb(-r*(1.02+i*.30),Math.sin(clock*1.5+i*.55)*r*.15,r*(.68+i*.06),r*.19,r*.12,r*.12,"#cba56a");
+ }else if(t==="giantMoose"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.72,side*r*.52,r*.43+pace*(front===side?1:-1),r*.21,r*.20,r*.46,"#4d3a30");
+  orb(-r*.19,0,r*1.08,r*1.31,r*.72,r*.79,"#70523f");orb(r*.68,0,r*1.35,r*.65,r*.50,r*.62,"#80624a");orb(r*1.27,0,r*1.04,r*.61,r*.34,r*.34,"#b4a18b");
+  for(const side of [-1,1]){spike(r*.83,side*r*.29,r*1.61,r*.17,r*.16,r*.73,"#d6bb8b");
+   for(let k=0;k<4;k++)spike(r*(.55+k*.20),side*r*(.57+k*.20),r*(1.75+k*.11),r*.12,r*.12,r*.44,"#d6bb8b");
+   orb(r*1.15,side*r*.25,r*1.29,r*.07,r*.07,r*.09,"#261d19");}
+ }else if(t==="giantBuffalo"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.67,side*r*.59,r*.39+pace*(front===side?1:-1),r*.30,r*.27,r*.41,"#3a2e28");
+  orb(-r*.27,0,r*.93,r*1.24,r*.82,r*.80,"#514237");orb(r*.37,0,r*1.31,r*1.00,r*.98,r*1.09,"#42332a");
+  for(let i=0;i<8;i++)spike(-r*.80+i*r*.23,0,r*1.91,r*.16,r*.18,r*.32,"#382c25");
+  orb(r*1.17,0,r*1.05,r*.69,r*.63,r*.59,"#514237");orb(r*1.58,0,r*.83,r*.38,r*.34,r*.29,"#9c846b");
+  for(const side of [-1,1]){spike(r*1.08,side*r*.45,r*1.24,r*.18,r*.19,r*.75,"#e2d4af");orb(r*1.32,side*r*.35,r*1.22,r*.10,r*.09,r*.10,"#e8c78a");}
  }else if(t==="giantHyena"){
   for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.61,side*r*.48,r*.33+pace*(front===side?1:-1),r*.23,r*.23,r*.33,"#706149");
   orb(-r*.33,0,r*.62,r*.85,r*.52,r*.49,"#a68b63");
@@ -223,7 +242,7 @@ function animal(m,player,clock){
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
- const attackCharge=!player&&(type==="boar"||type==="alpha"||type==="oneEyedWolf"||type==="whiteTiger")?clamp((m.chargeTime||0)/(type==="alpha"?.24:type==="oneEyedWolf"?.28:type==="whiteTiger"?.39:.36),0,1)*.55:0;
+ const attackCharge=!player&&(type==="boar"||type==="alpha"||type==="oneEyedWolf"||type==="whiteTiger"||type==="giantMoose"||type==="giantBuffalo")?clamp((m.chargeTime||0)/(type==="alpha"?.24:type==="oneEyedWolf"?.28:type==="whiteTiger"?.39:type==="giantMoose"?.46:type==="giantBuffalo"?.53:.36),0,1)*.55:0;
  const attackReach=Math.max(attackSnap,attackCharge)+airStrike;
  const rushPose=player&&(m.pendingStrike||m.swing>0)?(m.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.14:rushPose===4?attackReach*.05:rushPose===5?attackReach*.60:base;
