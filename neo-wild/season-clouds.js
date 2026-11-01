@@ -198,7 +198,7 @@ function frame(ms){
  const opts=current||fallbackScene(ms,day,hud,dw,dh);
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
- drawFoliage(sc,seasons[season.index]);
+ // Disabled: these three-oval seasonal decals looked like unexplained white blobs.
  drawGroundShadows(sc,opts.weather||"CLEAR");
  const glCanvas=document.getElementById("scene3d");
  const target=active3D?glCanvas:main;
