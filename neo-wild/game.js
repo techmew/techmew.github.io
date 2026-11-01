@@ -2399,6 +2399,7 @@ function syncHUD(hour){
  if(carryGuide||stock)$("stockpile-guide").textContent=carryGuide||(stock.text+"（備蓄 "+denStash+"/"+DEN_COSTS[2]+"）");
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
+ $("survival-goal").classList.toggle("hidden",mission<7||mode!=="play");
  $("mission-sub").textContent=info.detail;
  $("mission-next").textContent=info.next?"次の目的："+info.next:"";
  $("mission-next").classList.toggle("hidden",mission>=7);
