@@ -429,6 +429,7 @@ function start(){
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
+ if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  let roomPrey=0;
  if(origin===START_LOCATIONS.home){
   for(const shelter of buildings.filter(b=>b.interior)){
@@ -528,6 +529,12 @@ function restoreSnapshot(snapshot){
  start();
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
+ if(choice==="cat"&&!p.catSpeedV2){
+  // Older SAVE_SCHEMA=2 cat runs retain their upgrades. New 320+ saves are not amplified.
+  const savedSpeed=Number(p.speed)||239;
+  P.speed=savedSpeed<320?Math.max(320,Math.round(savedSpeed*320/239)):savedSpeed;
+  P.catSpeedV2=true;
+ }
  P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
