@@ -379,6 +379,15 @@
 .den-food-row b{font-size:17px}.den-food-row small{font-size:11px;color:#b9d2c2}
 .den-food-row strong{font-size:15px;white-space:nowrap;color:#e7eebd}
 .den-pantry-note{margin:15px 0 0}
+/* Earned boss materials become persistent abilities only inside an upgraded den. */
+.strong-inheritance{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px;padding-top:12px;border-top:1px solid #688577}
+.strong-inheritance h3{grid-column:1/-1;margin:0;color:#f0e5bc;font-size:16px}
+#strong-inheritance-summary{grid-column:1/-1;margin:0 0 3px;color:#c5d7c8;font-size:12px;line-height:1.55}
+.strong-inheritance button{min-height:44px;border:1px solid #a0b19b;border-radius:9px;background:#365147;color:#f4f3df;padding:8px;font:700 12px/1.4 "Noto Sans JP",sans-serif;text-align:left;touch-action:manipulation}
+.strong-inheritance button:not(:disabled):focus-visible{outline:2px solid #d9eaa4;outline-offset:2px}
+@media(max-width:520px){.strong-inheritance{grid-template-columns:1fr}.strong-inheritance button{font-size:12px}}
+@media(max-height:520px) and (orientation:landscape){.strong-inheritance{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.strong-inheritance button{min-height:40px;padding:6px;font-size:11px}}
+
 @media(max-width:520px){
  .survival-dialog{padding:calc(9px + env(safe-area-inset-top)) calc(9px + env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) calc(9px + env(safe-area-inset-left))}
  .survival-card{padding:14px;max-height:91dvh}
