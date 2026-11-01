@@ -115,7 +115,21 @@ const DEN_CAP=200, DEN_MAX_LEVEL=3, DEN_COSTS={2:60,3:120};
 const FOOD_BALANCE={meat:{satiety:1.5,healing:.5,stash:1.5},berries:{satiety:.6,healing:.08,stash:.6}};
 function foodName(c){return c?.type==="berries"?"食草":"肉"}
 function foodBalance(c){return FOOD_BALANCE[c?.type==="berries"?"berries":"meat"]}
-let denStash=0,denLevel=1;
+let denStash=0,denLevel=1,denStores={meat:0,berries:0,legacy:0};
+function normalizeDenStores(raw,legacy=0){
+ const out={meat:0,berries:0,legacy:0};let remaining=denCapacity();
+ if(!raw||typeof raw!=="object"||Array.isArray(raw)){out.legacy=clamp(Math.round(Number(legacy)||0),0,remaining);return out}
+ for(const key of ["meat","berries","legacy"]){
+  const n=Number(raw[key]);out[key]=Math.min(remaining,Number.isFinite(n)?Math.max(0,Math.round(n)):0);remaining-=out[key];
+ }
+ return out;
+}
+function syncDenStash(){denStash=denStores.meat+denStores.berries+denStores.legacy;return denStash}
+function loadDenStores(animal){
+ let old=0;try{old=Number(localStorage.getItem("wild-reclaim-den-v1-"+animal))||0}catch(_){}
+ try{const raw=localStorage.getItem("wild-reclaim-den-stores-v1-"+animal);if(raw){const v=JSON.parse(raw);if(v&&typeof v==="object"&&!Array.isArray(v))return normalizeDenStores(v,old)}}catch(_){}
+ return normalizeDenStores(null,old);
+}
 const TERRITORY_POSTS=[{x:1410,y:1170,name:"西の交差点"},{x:2320,y:1170,name:"東の交差点"},{x:1860,y:1890,name:"南の高架下"}];
 let territoryClaims=[false,false,false],territoryLastSupply=[0,0,0];
 function loadTerritoryClaims(animal){
@@ -168,7 +182,11 @@ function loadDenStash(animal){
  try{return clamp(Number(localStorage.getItem("wild-reclaim-den-v1-"+animal))||0,0,denCapacity())}catch(_){return 0}
 }
 function saveDenStash(){
- try{localStorage.setItem("wild-reclaim-den-v1-"+P.type,String(denStash))}catch(_){}
+ syncDenStash();
+ try{
+  localStorage.setItem("wild-reclaim-den-v1-"+P.type,String(denStash));
+  localStorage.setItem("wild-reclaim-den-stores-v1-"+P.type,JSON.stringify(denStores));
+ }catch(_){}
 }
 const STATION={x:2460,y:1170};
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
@@ -271,9 +289,9 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
- denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
+ denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
  let roomPrey=0;
  if(origin===START_LOCATIONS.home){
@@ -311,12 +329,12 @@ function clearAutoSave(){
  try{localStorage.removeItem(AUTOSAVE_KEY)}catch(_){}
 }
 function currentSnapshot(){
- if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"))return null;
+ if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"))return null;
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
-  weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
+  weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews
  };
 }
@@ -374,7 +392,7 @@ function restoreSnapshot(snapshot){
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
  scoreTimer=snapshot.scoreTimer||0;spawnTimer=snapshot.spawnTimer||0;
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
- denStash=clamp(snapshot.denStash||0,0,denCapacity());
+ denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
@@ -419,7 +437,7 @@ function restoreSnapshot(snapshot){
  cam.y=clamp(Number.isFinite(snapshot.camera?.y)?snapshot.camera.y:P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  huntTarget=null;ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");guideWisp=null;guideGoal=null;guideCache=null;particles=[];popups=[];autosaveClock=0;
  resetControls();
- try{localStorage.setItem("wild-reclaim-den-level-v1-"+choice,String(denLevel));localStorage.setItem("wild-reclaim-den-v1-"+choice,String(denStash));saveTerritoryClaims()}catch(_){}
+ try{saveDenLevel();saveDenStash();saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
  syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  saveAuto();announceObjective();notify("保存した場所から再開");
@@ -765,22 +783,19 @@ function putDownFood(){
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
- const home=atDen();
+ if(atDen()){
+  if(P.carry){carryFood();return}
+  if(longPress&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]){upgradeDen();return}
+  openDenInventory();return;
+ }
  if(longPress){
-  if(home){
-   if(mission===4&&denStash>=DEN_COSTS[2]&&denLevel===1){upgradeDen();return}
-   if(P.carry){carryFood();return}
-   upgradeDen();return;
-  }
   if(P.carry){putDownFood();return}
   if(!nearbyFood()&&markTerritory())return;
   carryFood();return;
  }
- if(home&&P.carry){carryFood();return}
- if(home&&mission!==4&&denStash>0&&P.hunger<95){carryFood();return}
  if(P.carry){if(P.eatCD<=0){P.eatCD=.34;eat()}return}
  if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return}
- notify(home?"食草・肉を巣へ運んで備蓄":"食草・肉の近くで△を押す");
+ notify("食草・肉の近くで△を押す");
 }
 const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
@@ -986,11 +1001,11 @@ function upgradeDen(){
  if(!atDen()){notify("巣の中心に近づいて△長押しで強化");return false}
  if(denLevel>=DEN_MAX_LEVEL){notify("巣は最大LV3まで成長済み");return false}
  const cost=DEN_COSTS[denLevel+1];
- if(denStash<cost){notify("巣の成長には備蓄 "+cost+" 必要（あと"+(cost-denStash)+"）");return false}
- denStash-=cost;denLevel++;
- saveDenStash();saveDenLevel();
- notify("巣 LV"+denLevel+" / 備蓄上限 "+denCapacity()+(denLevel===2?" / 縄張り標識が解放":" / 休息範囲が拡大"));
- syncHUD();return true;
+ if(denStash<cost){notify("巣の成長には備蓄 "+cost+"pt必要（あと"+(cost-denStash)+"pt）");return false}
+ denLevel++; // The stockpile is an unlock requirement, not a consumable upgrade currency.
+ saveDenLevel();saveDenStash();
+ notify("巣 LV"+denLevel+"！ 食料は消費せず残ります。上限 "+denCapacity()+"pt");
+ checkMission();saveAuto();syncHUD();return true;
 }
 function carryFood(){
  if(mode!=="play")return false;
@@ -1001,28 +1016,19 @@ function carryFood(){
    const kind=foodName(P.carry),value=Math.max(1,Math.round(P.carry.amount*foodBalance(P.carry).stash));
    const added=Math.min(value,denCapacity()-denStash);
    if(added<=0){notify("巣の備蓄が満杯");return false}
-   denStash+=added;
+   denStores[P.carry.type==="berries"?"berries":"meat"]+=added;syncDenStash();
    if(added>=value)P.carry=null;
    else P.carry.amount=Math.max(.01,Number((P.carry.amount*(1-added/value)).toFixed(2)));
    saveDenStash();saveAuto();checkMission();syncHUD();
-   notify(kind+"を備蓄 +"+added+"（合計 "+denStash+"/"+DEN_COSTS[2]+"）");
+   notify(kind+"を備蓄 +"+added+"pt（合計 "+denStash+"pt）");
    if(mission===4)announceObjective();
    return true;
   }
-  if(mission!==4&&denStash>0&&P.hunger<95){
-   const amount=Math.min(denStash,Math.ceil(100-P.hunger));
-   denStash-=amount;P.hunger=clamp(P.hunger+amount,0,100);
-   P.hp=clamp(P.hp+Math.min(12,amount*.3),0,P.maxHp);
-   meals++;saveDenStash();checkMission();syncHUD();
-   notify("巣の備蓄で回復 +"+amount);return true;
-  }
-  notify("巣の備蓄 "+Math.round(denStash)+"/"+denCapacity()+"（LV2には"+DEN_COSTS[2]+"）");return false;
+  openDenInventory();return true;
  }
  if(P.carry)return putDownFood();
  let selected=null,nearest=65;
- for(const f of carcasses){
-  const d=dist(P,f);if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}
- }
+ for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}}
  if(!selected){notify("運べる食草・肉が近くにない");return false}
  if(selected.type==="corpse"){
   const portion=Math.min(24,Math.max(0,selected.amount-1));
@@ -1032,7 +1038,7 @@ function carryFood(){
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
  }
- notify(foodName(P.carry)+"をくわえた。巣の中で△短押し・長押しどちらでも備蓄");
+ notify(foodName(P.carry)+"をくわえた。巣の中で△を押すと備蓄");
  if(mission===4)announceObjective();
  syncHUD();return true;
 }
@@ -1050,6 +1056,38 @@ function eat(){
  else{c.amount=Math.max(0,c.amount-bite);if(c.amount===0)carcasses.splice(carcasses.indexOf(c),1)}
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal,"#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
+}
+function renderDenInventory(){
+ if(!P)return;
+ $("den-inventory-total").textContent="合計 "+denStash+" / "+denCapacity()+"pt";
+ $("den-inventory-help").textContent=atDen()?"食べたい種類を選んでください。選択しなければ減りません。":"巣の外では閲覧のみ。食べるには巣へ戻ってください。";
+ const canEat=atDen()&&(P.hunger<100||P.hp<P.maxHp);
+ for(const key of ["meat","berries","legacy"]){
+  $("den-row-"+key).classList.toggle("hidden",key==="legacy"&&denStores.legacy<=0);
+  $("den-qty-"+key).textContent=denStores[key]+"pt";
+  $("den-eat-"+key).disabled=!canEat||denStores[key]<=0;
+ }
+}
+function openDenInventory(){
+ if(mode!=="play"||!P)return false;
+ saveAuto();resetControls();mode="inventory";$("den-inventory").classList.remove("hidden");
+ renderDenInventory();$("den-inventory-close").focus({preventScroll:true});return true;
+}
+function closeDenInventory(){
+ if(mode!=="inventory")return;
+ $("den-inventory").classList.add("hidden");mode="play";resetControls();syncHUD();saveAuto();
+}
+function eatFromDen(kind){
+ if(mode!=="inventory"||!P||!atDen()||!["meat","berries","legacy"].includes(kind))return false;
+ if(P.hunger>=100&&P.hp>=P.maxHp){notify("満腹で体力も最大です");return false}
+ const points=Math.min(kind==="meat"?18:kind==="berries"?7:12,denStores[kind]);
+ if(points<=0){notify("その食料はありません");return false}
+ denStores[kind]-=points;syncDenStash();
+ const heal=Math.round(points*(kind==="meat"?1/3:kind==="berries"?1/7:1/4));
+ P.hunger=clamp(P.hunger+points,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);meals++;
+ saveDenStash();checkMission();saveAuto();syncHUD();renderDenInventory();
+ notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+points+"・生命+"+heal);
+ return true;
 }
 function stockpileStep(){
  if(!P||mission!==4)return null;
@@ -1765,7 +1803,7 @@ function syncHUD(hour){
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
- $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+(denLevel===1?"（LV2まで）":"");
+ $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel===1?"（LV2まで・消費なし）":"");
  setBar("den-stash-bar",denStash/target*100);
  $("den-stash-bar").parentElement.setAttribute("aria-valuenow",String(Math.round(denStash)));
  $("den-stash-bar").parentElement.setAttribute("aria-valuemax",String(target));
@@ -1804,7 +1842,7 @@ function syncHUD(hour){
  }
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=atDen();
-  contextLabel.textContent=home&&P.carry?"備蓄":home&&mission===4&&denStash>=DEN_COSTS[2]?"巣を強化":home&&mission!==4&&denStash>0&&P.hunger<95?"補給":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+  contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -2747,6 +2785,7 @@ function keyDown(e){
  const alreadyHeld=keys.has(k);
  if(mode==="play")keys.add(k);
  
+ if(mode==="inventory"){if(k==="escape")closeDenInventory();return}
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
@@ -2835,6 +2874,9 @@ for(let i=0;i<3;i++)$("checkpoint-slot-"+i).addEventListener("click",()=>{
  const snapshot=getCheckpoints()[i];if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
 });
 $("checkpoint-save-btn").addEventListener("click",recordCheckpoint);
+$("den-inventory-btn").addEventListener("click",openDenInventory);
+$("den-inventory-close").addEventListener("click",closeDenInventory);
+for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
 $("objective-toggle").addEventListener("click",()=>{
  const open=$("mission").classList.contains("hidden");
  $("mission").classList.toggle("hidden",!open);
