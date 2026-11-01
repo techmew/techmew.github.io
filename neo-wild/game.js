@@ -249,10 +249,29 @@ function drawScenery2D(){
   ctx.restore();
  }
 }
-function worldDaylight(){
- const hour=(6+(elapsed%85)/85*24)%24;
- return Math.max(0,Math.sin((hour-6)*Math.PI/12));
+/* Explicit dawn / noon / sunset / night lighting. Noon is the brightest period.
+ * The time axis keeps the existing 85-second DAY cycle; no save/schema changes. */
+const DAYLIGHT_KEYS=[
+ [0,.12,0,.60,.74,1.11],[4.75,.12,0,.60,.74,1.11],
+ [5.5,.23,.34,1.03,.77,.67],[6.5,.45,.74,1.19,.88,.67],
+ [8.5,.81,.16,1.12,1.03,.91],[10,1.00,0,1.12,1.12,1.10],
+ [12,1.16,0,1.20,1.19,1.14],[14,1.11,0,1.17,1.15,1.11],
+ [16,.98,0,1.12,1.06,.96],[17,.72,.58,1.20,.83,.65],
+ [18,.37,.91,1.24,.70,.51],[19,.17,.38,.83,.74,.88],
+ [20,.12,0,.60,.73,1.08],[24,.12,0,.60,.74,1.11]
+];
+function dayLightProfile(seconds=elapsed){
+ const hour=(6+((seconds%85+85)%85)/85*24)%24;
+ for(let i=1;i<DAYLIGHT_KEYS.length;i++){
+  const a=DAYLIGHT_KEYS[i-1],b=DAYLIGHT_KEYS[i];
+  if(hour>b[0])continue;
+  const t=clamp((hour-a[0])/(b[0]-a[0]),0,1),ease=t*t*(3-2*t);
+  const v=j=>a[j]+(b[j]-a[j])*ease;
+  return {hour,brightness:v(1),warmth:v(2),tint:[v(3),v(4),v(5)]};
+ }
+ return {hour,brightness:.12,warmth:0,tint:[.60,.74,1.11]};
 }
+function worldDaylight(){return dayLightProfile().brightness;}
 /* Same river/canal geometry in 2D, 3D and movement. Road crossings are dry bridges. */
 function waterDepth(x,y){
  let depth=0;
@@ -388,7 +407,7 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
@@ -507,7 +526,7 @@ function restoreSnapshot(snapshot){
  if(Array.isArray(snapshot.tutorialSeen))for(const n of snapshot.tutorialSeen){if(Number.isInteger(n)&&n>=0&&n<=6)tutorialSeen.add(n)}
  totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
  weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
- nextWeather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.nextWeather)?snapshot.nextWeather:null;
+ nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
  scoreTimer=snapshot.scoreTimer||0;spawnTimer=snapshot.spawnTimer||0;
@@ -1617,19 +1636,56 @@ function steerPursuit(m,tx,ty){
  return desired+Math.PI*.65*m.avoidSide;
 }
 const WEATHER_NAMES={CLEAR:"晴れ",CLOUDY:"曇り",RAIN:"雨",THUNDER:"雷雨",FOG:"霧",WIND:"強風"};
-const WEATHER_EDGES={
- CLEAR:[["CLOUDY",56],["WIND",23],["FOG",12],["RAIN",9]],
- CLOUDY:[["CLEAR",27],["RAIN",37],["WIND",16],["FOG",12],["THUNDER",8]],
- RAIN:[["CLOUDY",46],["THUNDER",19],["CLEAR",22],["FOG",13]],
- THUNDER:[["RAIN",65],["CLOUDY",28],["CLEAR",7]],
- FOG:[["CLOUDY",43],["CLEAR",45],["RAIN",12]],
- WIND:[["CLEAR",35],["CLOUDY",46],["RAIN",14],["THUNDER",5]]
-};
-function rollNextWeather(current,random=Math.random()){
- const options=WEATHER_EDGES[current]||WEATHER_EDGES.CLEAR;
- let val=clamp(random,0,.999999)*options.reduce((sum,item)=>sum+item[1],0);
- for(const [name,weight] of options){val-=weight;if(val<0)return name}
- return options[options.length-1][0];
+/* JMA Tokyo monthly normal days with >=1.0 mm precipitation (1991-2020).
+ * A game DAY samples a stable Tokyo-style climate day; rainfall occupies a
+ * short episode of the day rather than making every wet day rain constantly.
+ * The 365-day climate calendar repeats independently of future YEAR mechanics.
+ * Reference: JMA Tokyo station 47662 nml_sfc_ym 1991-2020.
+ */
+const TOKYO_MONTH_LENGTHS=[31,28,31,30,31,30,31,31,30,31,30,31];
+const TOKYO_RAIN_DAYS=[4.5,5.2,9.2,9.5,10.1,11.6,10.5,7.9,11.0,10.5,7.4,5.2];
+const tokyoRainCache=new Map();
+function climateHash(year,month,day,salt=0){
+ let n=Math.imul(year+1,374761393)^Math.imul(month+1,668265263)^
+       Math.imul(day+1,1274126177)^Math.imul(salt+1,2246822519);
+ n=Math.imul(n^(n>>>13),1274126177);n^=n>>>16;
+ return (n>>>0)/4294967296;
+}
+function tokyoCalendarDay(gameDay){
+ const year=Math.floor((gameDay-1)/365);
+ let remaining=(gameDay-1)%365,month=0;
+ while(month<11&&remaining>=TOKYO_MONTH_LENGTHS[month])remaining-=TOKYO_MONTH_LENGTHS[month++];
+ return {year,month,day:remaining+1};
+}
+function tokyoRainCalendar(year,month){
+ const key=year*12+month;
+ if(tokyoRainCache.has(key))return tokyoRainCache.get(key);
+ const days=TOKYO_MONTH_LENGTHS[month],normal=TOKYO_RAIN_DAYS[month];
+ const count=Math.floor(normal)+(climateHash(year,month,40,1)<normal%1?1:0);
+ const ranked=Array.from({length:days},(_,i)=>({i,rank:climateHash(year,month,i+1,2)}))
+  .sort((a,b)=>a.rank-b.rank);
+ const result=new Uint8Array(days);
+ for(let j=0;j<count;j++)result[ranked[j].i]=1;
+ if(tokyoRainCache.size>36)tokyoRainCache.clear();
+ tokyoRainCache.set(key,result);
+ return result;
+}
+function tokyoWeatherAt(seconds){
+ const absoluteDay=1+Math.floor(Math.max(0,seconds)/85);
+ const {year,month,day:dayOfMonth}=tokyoCalendarDay(absoluteDay);
+ const phase=((seconds%85)+85)%85/85;
+ const wet=tokyoRainCalendar(year,month)[dayOfMonth-1]===1;
+ const roll=climateHash(year,month,dayOfMonth,5);
+ const fair=roll<.67?"CLEAR":roll<.89?"CLOUDY":roll<.965?"WIND":"FOG";
+ if(!wet)return fair;
+ const start=.16+climateHash(year,month,dayOfMonth,7)*.39;
+ const end=Math.min(.94,start+.14+climateHash(year,month,dayOfMonth,8)*.20);
+ if(phase>=start&&phase<end){
+  const thunderRate=month>=5&&month<=9?.10:.022;
+  return climateHash(year,month,dayOfMonth,9)<thunderRate?"THUNDER":"RAIN";
+ }
+ if(phase>=start-.10&&phase<end+.10)return "CLOUDY";
+ return roll<.70?"CLOUDY":"CLEAR";
 }
 function maintainLocalWildlife(){
  if(!P)return;
@@ -1644,19 +1700,16 @@ function maintainLocalWildlife(){
  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
 }
 function updateWeather(dt){
- weatherTimer-=dt;
- if(weatherTimer<9&&!nextWeather){
-  nextWeather=rollNextWeather(weather);
-  if(nextWeather==="THUNDER")notify("遠雷が聞こえる / 雷雨が近づいている");
-  else if(nextWeather==="RAIN")notify("空が暗くなり、雨雲が迫っている");
-  else if(nextWeather==="WIND")notify("風が強まり、枝が大きく揺れ始めた");
-  else if(nextWeather==="FOG")notify("遠くの景色が白く霞み始めた");
+ const target=tokyoWeatherAt(elapsed);
+ if(weather!==target){
+  const previous=weather;weather=target;windDirection=rnd(0,TWO);
+  if(weather==="THUNDER")thunderTimer=rnd(5,11);
+  if(weather==="THUNDER"&&previous!=="RAIN")notify("遠雷と雨雲が近づいている");
+  else if(weather==="RAIN"&&previous!=="THUNDER")notify("天候変化：雨");
+  else notify("天候変化："+WEATHER_NAMES[weather]);
  }
- if(weatherTimer<=0){
-  weather=nextWeather||rollNextWeather(weather);nextWeather=null;
-  weatherTimer=rnd(28,69);windDirection=rnd(0,TWO);thunderTimer=rnd(5,11);
-  notify("天候変化："+WEATHER_NAMES[weather]);
- }
+ // Legacy save fields remain for compatibility, but no longer drive rain odds.
+ weatherTimer=85-(elapsed%85);nextWeather=null;
  thunderFlash=Math.max(0,thunderFlash-dt*2.6);
  if(weather==="THUNDER"){
   thunderTimer-=dt;
@@ -2159,7 +2212,7 @@ function syncHUD(hour){
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
- $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<6||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather];
+ $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather];
  const info=missionInfo();
  const stock=stockpileStep();
  const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
@@ -2956,7 +3009,7 @@ function drawThreatNames(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),den:{x:SAFE_DEN.x,y:SAFE_DEN.y,level:denLevel,stash:denStash,type:choice}});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
  ctx.setTransform(dpr,0,0,dpr,0,0);
  if(use3D)ctx.clearRect(0,0,vw,vh);else{ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh)}
@@ -3035,8 +3088,12 @@ function drawScene(){
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
  for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
- const nightAlpha=(1-worldDaylight())*.73;
- if(!use3D){ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
+ const light=dayLightProfile(elapsed),nightAlpha=clamp((1-light.brightness)*.88,0,.82);
+ if(!use3D){
+  if(nightAlpha>0){ctx.fillStyle="rgba(3,10,29,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);}
+  if(light.warmth>.02){ctx.fillStyle="rgba(253,123,61,"+(light.warmth*.19)+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);}
+  if(light.brightness>1){ctx.save();ctx.globalCompositeOperation="screen";ctx.fillStyle="rgba(255,252,222,"+((light.brightness-1)*.52)+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);ctx.restore();}
+ }
  if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(245,184,91,.43)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
  if(weather==="FOG"){
   ctx.fillStyle="rgba(164,176,162,.20)";
