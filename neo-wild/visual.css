@@ -741,3 +741,34 @@
 @media (orientation:landscape) and (max-height:390px) and (max-width:1024px){
   #hud .hud-right #mini-map-control{width:80px;height:80px;}
 }
+
+/* UI-RIGHT-TRIPLE-ROW-20261102: 音楽・最大化・ポーズを同じ段、その下に常設ミニマップ。 */
+#hud .hud-right{align-items:flex-end;gap:4px;}
+#hud .hud-right .top-actions.session-actions{
+  display:flex;position:relative;flex-direction:row;align-items:center;
+  justify-content:flex-end;gap:3px;margin:0;padding:0;width:max-content;max-width:100%;
+}
+#hud .hud-right .top-actions.session-actions button{
+  position:static!important;top:auto!important;right:auto!important;
+  box-sizing:border-box;flex:0 0 40px;width:40px!important;min-width:40px!important;
+  height:40px!important;min-height:40px!important;padding:0 2px!important;
+  margin:0!important;border-radius:8px;line-height:1.1;touch-action:manipulation;
+  font-size:17px!important;
+}
+#hud .hud-right .top-actions.session-actions #pause-btn{
+  font:700 11px/1.1 "Noto Sans JP",sans-serif!important;letter-spacing:0;
+}
+#hud .hud-right #mini-map-control{
+  display:block!important;position:relative!important;
+  top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;
+  margin:1px 0 0!important;align-self:flex-end;
+}
+@media (orientation:portrait) and (max-width:600px){
+  #hud .hud-right{min-width:126px;gap:3px;}
+  #hud .hud-right #mini-map-control{width:96px;height:96px;}
+}
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px){
+  #hud .hud-right{min-width:126px;gap:3px;}
+  #hud .hud-right #mini-map-control{width:clamp(80px,23dvh,105px);height:clamp(80px,23dvh,105px);}
+}
