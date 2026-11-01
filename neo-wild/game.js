@@ -411,6 +411,9 @@ function restoreSnapshot(snapshot){
   m.forageNeed=Number.isFinite(m.forageNeed)?clamp(m.forageNeed,0,1):null;
   m.forageCooldown=clamp(Number(m.forageCooldown)||0,0,8);
   m.foragePose=0;
+  m.feintTime=0;m.feintRemaining=0;m.feintSpeed=0;
+  m.feintAngle=Number.isFinite(m.feintAngle)?m.feintAngle:0;
+  m.feintCooldown=clamp(Number(m.feintCooldown)||0,0,8);
  }
  const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
  const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
@@ -489,7 +492,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"alpha";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
 }
 function spawnFood(){
@@ -1310,6 +1313,51 @@ function chooseEscape(m,away){
  }
  return best;
 }
+// Prey lateral feints: real collision-checked movement, no teleport or invulnerability.
+function advancePreyFeint(m,dt){
+ const remaining=Math.max(0,m.feintRemaining||0),time=Math.max(0,m.feintTime||0);
+ const travel=Math.min(remaining,Math.max(0,m.feintSpeed||0)*Math.min(dt,time));
+ const steps=Math.max(1,Math.ceil(travel/7)),piece=travel/steps,angle=m.feintAngle||0;
+ const ox=m.x,oy=m.y;
+ for(let i=0;i<steps;i++){
+  const x=m.x,y=m.y;
+  move(m,Math.cos(angle)*piece,Math.sin(angle)*piece);
+  if(Math.hypot(m.x-x,m.y-y)<piece*.45){m.feintTime=0;break}
+ }
+ const moved=Math.hypot(m.x-ox,m.y-oy);
+ m.feintRemaining=Math.max(0,remaining-moved);
+ m.feintTime=m.feintRemaining<.5?0:Math.max(0,m.feintTime-dt);
+ m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);
+ m.step=(m.step||0)+moved*.05;m.flee=Math.max(m.flee,.45);
+ return true;
+}
+function tryPreyFeint(m,sp,d,spotted,dt){
+ if(!sp.prey)return false;
+ m.feintCooldown=Math.max(0,(m.feintCooldown||0)-dt);
+ if((m.feintTime||0)>0){
+  if(m.stun>0||m.hp<=0){m.feintTime=0;return false}
+  return advancePreyFeint(m,dt);
+ }
+ if(m.feintCooldown>0||m.stun>0||m.hp<=0||m.flee<=0||(m.fleeEnergy||0)<.28)return false;
+ const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<150&&!lineBlocked(m,q));
+ const playerThreat=!!P&&spotted&&d<160&&!lineBlocked(m,P);
+ if(!hunter&&!playerThreat)return false;
+ const urgent=playerThreat&&(P.pendingStrike||P.pounceTime>0||P.jumpTime>0);
+ const chance=urgent?.57:Math.min(1,dt*(m.type==="rabbit"?1.65:m.type==="pigeon"?1.2:1.4));
+ if(Math.random()>=chance)return false;
+ m.feintCooldown=3.1+rnd(0,1.4);
+ const threat=playerThreat?P:hunter,away=Math.atan2(m.y-threat.y,m.x-threat.x);
+ const side=m.evasionSide||1,travel=m.type==="rabbit"?62:m.type==="rat"?40:48;
+ for(const offset of [side*1.23,-side*1.23,side*.77,-side*.77]){
+  const angle=away+offset,goal={x:m.x+Math.cos(angle)*travel,y:m.y+Math.sin(angle)*travel};
+  if(collides(goal.x,goal.y,m.r+3)||!routeClear(m,goal,m.r+3))continue;
+  m.feintAngle=angle;m.feintTime=.24;m.feintRemaining=travel;m.feintSpeed=travel/.24;
+  m.fleeEnergy=Math.max(0,m.fleeEnergy-.25);m.evasionSide=-side;m.navPath=null;m.dir=angle;
+  if(d<340)label(m.x,m.y-m.r-27,"フェイント！","#d7f3c6");
+  return advancePreyFeint(m,dt);
+ }
+ return false;
+}
 function tryEnemyEmergencyEvade(m,sp,d,spotted){
  if(sp.prey||!spotted||!P||!P.pendingStrike||P.ambushStrike||m.hp<=0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||(m.evadeCooldown||0)>0)return false;
@@ -1777,6 +1825,7 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
     }
    }
+   if(s.prey&&tryPreyFeint(m,s,d,spotted,dt))continue;
    if(!s.prey&&!spotted&&m.alert<=0&&d>140&&m.windup<=0&&m.stun<=0){
     let nearest=null,best=250;
     for(const q of mobs)if(q.hp>0&&species[q.type].prey){
