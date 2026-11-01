@@ -492,7 +492,9 @@ function render(o){
   // Explicit dawn/noon/sunset/night profile is shared with the 2D world.
   const profile=o.lightProfile||{brightness:Math.max(0,Math.sin(((6+(elapsed%85)/85*24)%24-6)*Math.PI/12)),warmth:0,tint:[1,1,1]};
   const overcast=weather==="THUNDER"?.22:weather==="RAIN"?.14:weather==="CLOUDY"?.12:weather==="FOG"?.10:0;
-  const night=clamp(Math.max(0,1-profile.brightness)+overcast*.8,0,.94),warm=profile.warmth||0;
+  // The shared profile already includes lunar phase and weather attenuation.
+  // Preserve a minimum silhouette light during storms and new moon.
+  const night=clamp(Math.max(0,1-profile.brightness)+overcast*.8,0,.91),warm=profile.warmth||0;
   gl.clearColor(
    clamp(.018+profile.brightness*.145+warm*.11,0,1),
    clamp(.030+profile.brightness*.175+warm*.018,0,1),
