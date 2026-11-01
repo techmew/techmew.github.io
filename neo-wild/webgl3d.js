@@ -433,13 +433,18 @@ function vegetation(p,clock,season=2){
  const palette=SEASONAL_FOLIAGE[season]||SEASONAL_FOLIAGE[2];
  if(p.type===2){
   if(season===0)return; // Winter decorative shrub is hidden; existing cover/collision data unchanged.
-  // Leafy shrubs keep their original silhouette and cover radius.
-  const visualScale=.74;
-  const count=9,r=p.r*visualScale;
-  for(let i=0;i<count;i++){
-   const a=i*TAU/count+p.phase,xx=p.x+Math.cos(a)*r*.44,yy=p.y+Math.sin(a)*r*.4;
-   const size=r*(.24+.1*((i*7)%5)/5),height=r*(.5+.13*((i*3)%5)/5);
-   ellipsoid(xx,yy,height*.67,size,size*.76,height*.46,palette.shrub[i%3],Math.sin(clock*.9+i)*.15,7,4);
+  // Tapered, bent grass leaves in 3D: real blade silhouettes, no green ovoid clumps.
+  // Two crossed leaf triangles for each blade keep it visible from multiple camera angles.
+  const r=p.r*.74;
+  for(let i=0;i<23;i++){
+   const a=i*2.39996+p.phase,rad=r*(.12+(i%5)*.12);
+   const bx=p.x+Math.cos(a)*rad,by=p.y+Math.sin(a)*rad;
+   const height=r*(.60+(i%6)*.14),width=r*(.075+(i%3)*.012);
+   const sway=Math.sin(clock*1.55+p.phase+i)*r*.045;
+   const tip=[bx+Math.cos(a)*r*.21+sway,by+Math.sin(a)*r*.18, height];
+   const tint=color(palette.shrub[i%3]),cross=color(palette.grass);
+   triangle([bx-width,by,1],[bx+width,by,1],tip,tint);
+   triangle([bx,by-width,1],[bx,by+width,1],tip,cross);
   }
  }else if(p.type===1){
   pyramid(p.x,p.y,0,p.r*.63,p.r*.53,p.r*1.4,palette.grass);
@@ -501,24 +506,24 @@ function carriedFoodMesh(p){
 function denBeddingMesh(d){
  if(!d)return;
  animalLift=0;
- const x=d.x,y=d.y,k=d.type,level=d.level||1;
+ const x=d.x,y=d.y,k=d.type,level=d.level||1,z=d.z||0;
  const size=1+level*.10,cat=k==="cat",fox=k==="fox";
- ellipsoid(x,y,1.1,55*size,38*size,1.6,"#273b30",0,10,3);
- ellipsoid(x,y,2.1,45*size,30*size,2.3,cat?"#998e77":fox?"#8f774a":"#676448",0,10,3);
- ellipsoid(x,y,2.8,31*size,19*size,2.1,cat?"#687969":fox?"#5a6342":"#5d6e4b",0,9,3);
+ ellipsoid(x,y,z+1.1,55*size,38*size,1.6,"#273b30",0,10,3);
+ ellipsoid(x,y,z+2.1,45*size,30*size,2.3,cat?"#998e77":fox?"#8f774a":"#676448",0,10,3);
+ ellipsoid(x,y,z+2.8,31*size,19*size,2.1,cat?"#687969":fox?"#5a6342":"#5d6e4b",0,9,3);
  for(let i=0;i<11+level*4;i++){
   const a=i*2.39996,r=21+(i%5)*7;
-  ellipsoid(x+Math.cos(a)*r,y+Math.sin(a)*r*.73,3.4,6,2.2,1,
+  ellipsoid(x+Math.cos(a)*r,y+Math.sin(a)*r*.73,z+3.4,6,2.2,1,
    cat?"#bda786":fox?(i%2?"#b78351":"#d0ac71"):"#a3936a",a,6,2);
  }
  if(cat){
-  box(x-47,y-32,1,94,4,7,"#9b8667");
-  box(x-47,y+28,1,94,4,7,"#9b8667");
+  box(x-47,y-32,z+1,94,4,7,"#9b8667");
+  box(x-47,y+28,z+1,94,4,7,"#9b8667");
  }else if(!fox){
-  box(x-48,y-31,1,96,5,7,"#615b42");
-  box(x-48,y+27,1,96,5,7,"#615b42");
+  box(x-48,y-31,z+1,96,5,7,"#615b42");
+  box(x-48,y+27,z+1,96,5,7,"#615b42");
  }
- if(d.stash>0)ellipsoid(x+32,y+16,4,Math.min(20,8+d.stash*.06),8,5,"#a8906b",0,8,3);
+ if(d.stash>0)ellipsoid(x+32,y+16,z+4,Math.min(20,8+d.stash*.06),8,5,"#a8906b",0,8,3);
 }
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
 // Lightweight location-specific 3D detail, decorative only.
@@ -772,7 +777,7 @@ function render(o){
   data=[];
   const foliageSeason=seasonIndexFromElapsed(elapsed);
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,foliageSeason);
-  if(o.den&&isVisible(o.den.x,o.den.y,160))denBeddingMesh(o.den);
+  for(const den of o.dens||[])if(isVisible(den.x,den.y,160))denBeddingMesh(den);
   // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
   if(typeof o.waterAt==="function"){
    animalLift=0;
