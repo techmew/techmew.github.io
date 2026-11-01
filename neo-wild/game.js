@@ -1133,7 +1133,6 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
   valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
-   &&!nearDenLocation(x,y,265)
    &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0));
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
@@ -1146,6 +1145,8 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
  else if(day<2)type=roll<.4?"rat":roll<.72?"rabbit":roll<.87?"pigeon":"dog";
  else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
  else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"dog";
+ // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
+ if(nearDenLocation(x,y,265)&&!species[type].prey)type=biome===4||biome===7?"pigeon":"rabbit";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
  mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
@@ -2980,7 +2981,7 @@ function syncHUD(hour){
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
-  $("den-status").textContent="巣 LV"+denLevel+"｜候補 "+denSites.length+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
+  $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
  $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel<DEN_MAX_LEVEL?"（LV"+(denLevel+1)+"まで・消費なし）":"（容量）");
  setBar("den-stash-bar",denStash/target*100);
@@ -3350,7 +3351,17 @@ function drawDenBedding2D(roofOnly=false){
  if(cat){ctx.strokeStyle="#b8a17f";ctx.lineWidth=3;ctx.strokeRect(-42,-25,84,50)}
  if(!cat&&!fox){ctx.strokeStyle="#695b40";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-40,-25);ctx.lineTo(43,-25);ctx.moveTo(-40,26);ctx.lineTo(43,26);ctx.stroke()}
  if(denStash>0){ctx.fillStyle="#bba27d";ctx.fillRect(16,12,Math.min(31,8+denStash*.1),7)}
- if(site.z>0){ctx.strokeStyle="#d6e4df";ctx.lineWidth=2;ctx.strokeRect(-40,-26,80,52);}
+ // Site-specific nesting materials are visible in 2D without changing collisions.
+ if(site.kind==="roof"){
+  ctx.strokeStyle="#d6e4df";ctx.lineWidth=2;ctx.strokeRect(-40,-26,80,52);
+  ctx.fillStyle="#71888f";for(let j=0;j<4;j++)ctx.fillRect(-39+j*22,24,14,3);
+ }else if(site.kind==="ruin"||site.kind==="yard"){
+  ctx.fillStyle=site.kind==="ruin"?"#837d6a":"#677d77";
+  for(let j=0;j<5;j++)ctx.fillRect(-53+j*24,-37+(j%2)*6,11,7);
+ }else if(site.kind==="reeds"){
+  ctx.strokeStyle="#bbbf81";ctx.lineWidth=2;
+  for(let j=0;j<6;j++){ctx.beginPath();ctx.moveTo(-56+j*22,26);ctx.lineTo(-48+j*22,-40-(j%3)*8);ctx.stroke();}
+ }
  ctx.restore();
  }
 }
@@ -3957,7 +3968,7 @@ function drawThreatNames(){
 function drawScene(){
  const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,level:denLevel,stash:denStash,type:choice}))});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
