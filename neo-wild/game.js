@@ -21,10 +21,13 @@ const species={
  giantSnake:{hp:290,r:32,speed:105,damage:27,prey:false,xp:12,food:68,color:"#426c50",belly:"#b5b884"},
  oldBear:{hp:480,r:43,speed:137,damage:44,prey:false,xp:17,food:100,color:"#654a3c",belly:"#b09a79"},
  giantBoar:{hp:410,r:40,speed:160,damage:37,prey:false,xp:14,food:92,color:"#57463d",belly:"#c9ad88"},
- blackPanther:{hp:270,r:29,speed:238,damage:31,prey:false,xp:13,food:68,color:"#232a31",belly:"#6d7c80"}
+ blackPanther:{hp:270,r:29,speed:238,damage:31,prey:false,xp:13,food:68,color:"#232a31",belly:"#6d7c80"},
+ oneEyedWolf:{hp:325,r:31,speed:224,damage:36,prey:false,xp:14,food:74,color:"#6e7276",belly:"#b8b5a8"},
+ whiteTiger:{hp:395,r:40,speed:229,damage:41,prey:false,xp:18,food:94,color:"#e4e1d7",belly:"#f6f3e8"},
+ giantHyena:{hp:355,r:35,speed:208,damage:33,prey:false,xp:15,food:76,color:"#a68b63",belly:"#d9c69d"}
 };
-const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹"};
-const STRONG_REGIONS={0:["alpha","blackPanther"],1:["alpha","oldBear","blackPanther"],2:["giantSnake","oldBear","giantBoar"],3:["oldBear","blackPanther","alpha","giantSnake"],4:["giantSnake","giantBoar"],5:["giantSnake","oldBear","giantBoar","blackPanther"],6:["giantBoar","alpha","blackPanther"],7:["giantSnake","blackPanther"]};
+const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ"};
+const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf"],2:["giantSnake","oldBear","giantBoar","whiteTiger"],3:["oldBear","blackPanther","alpha","giantSnake","whiteTiger"],4:["giantSnake","giantBoar","giantHyena"],5:["giantSnake","oldBear","giantBoar","blackPanther","whiteTiger"],6:["giantBoar","alpha","blackPanther","giantHyena"],7:["giantSnake","blackPanther","giantHyena"]};
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -709,15 +712,22 @@ const STRONG_ATTACK_PROFILES={
  giantSnake:{windup:.86,reach:58,cooldown:1.75,damage:1.05,tell:"巻き付き予兆！"},
  oldBear:{windup:.92,reach:58,cooldown:1.62,damage:1.22,tell:"重い爪の予兆！"},
  giantBoar:{windup:.76,reach:125,cooldown:1.46,damage:1.12,tell:"猛突進予兆！"},
- blackPanther:{windup:.43,reach:108,cooldown:1.26,damage:1.06,tell:"飛びかかり予兆！"}
+ blackPanther:{windup:.43,reach:108,cooldown:1.26,damage:1.06,tell:"飛びかかり予兆！"},
+ oneEyedWolf:{windup:.65,reach:108,cooldown:1.48,damage:1.12,tell:"回り込み予兆！"},
+ whiteTiger:{windup:.57,reach:132,cooldown:1.67,damage:1.23,tell:"跳躍予兆！"},
+ giantHyena:{windup:.48,reach:57,cooldown:1.18,damage:1.03,tell:"執拗な噛み付き！"}
 };
 function applyStrongStrikeEffect(m,angle,charging=false){
  if(m.type==="giantSnake"){
   P.strongSlow=Math.max(P.strongSlow||0,1.9);
   label(P.x,P.y-48,"締め付け！ 動きが鈍る","#ffc7a6");
- }else if(m.type==="oldBear"||m.type==="giantBoar"||m.type==="blackPanther"){
-  const knock=m.type==="oldBear"?39:m.type==="giantBoar"?48:23;
+ }else if(m.type==="giantHyena"){
+  P.sp=clamp(P.sp-16,0,100);
+  label(P.x,P.y-48,"持久力 -16","#ffc4a2");
+ }else if(m.type==="oneEyedWolf"||m.type==="oldBear"||m.type==="giantBoar"||m.type==="blackPanther"||m.type==="whiteTiger"){
+  const knock=m.type==="oldBear"?39:m.type==="giantBoar"?48:m.type==="whiteTiger"?38:m.type==="oneEyedWolf"?18:23;
   move(P,Math.cos(angle)*knock,Math.sin(angle)*knock);
+  if(m.type==="oneEyedWolf")P.sp=clamp(P.sp-8,0,100);
   label(P.x,P.y-48,charging?"吹き飛ばされた！":"強烈な一撃！","#ffbf91");
  }
 }
@@ -726,7 +736,7 @@ function strongBossAlive(){return mobs.find(m=>m.hp>0&&(m.strongBoss||m.type==="
 function strongStageCandidate(region){
  const options=STRONG_REGIONS[region]||["alpha"];
  const hour=(6+Math.floor((elapsed%85)/85*24))%24,night=hour>=19||hour<6;
- const weights=options.map(t=>t==="blackPanther"?(night?3.2:.7):t==="giantSnake"?(weather==="RAIN"||weather==="THUNDER"?1.7:1.2):t==="oldBear"?(night?.7:1.5):t==="giantBoar"?(weather==="THUNDER"?.65:1.3):1.2);
+ const weights=options.map(t=>t==="blackPanther"?(night?3.2:.7):t==="oneEyedWolf"?(night?2.2:1.1):t==="whiteTiger"?(night?.65:1.7):t==="giantHyena"?(weather==="RAIN"||weather==="THUNDER"?.55:1.5):t==="giantSnake"?(weather==="RAIN"||weather==="THUNDER"?1.7:1.2):t==="oldBear"?(night?.7:1.5):t==="giantBoar"?(weather==="THUNDER"?.65:1.3):1.2);
  let roll=Math.random()*weights.reduce((a,b)=>a+b,0);
  for(let i=0;i<options.length;i++){roll-=weights[i];if(roll<=0)return options[i];}
  return options[options.length-1];
@@ -1883,7 +1893,7 @@ function advanceEnemyEvade(m,dt){
 // Wild predators intercept moving prey from a flank, but never route through walls.
 function wildPreyInterceptPoint(m,prey,sp,distance){
  const direct={x:prey.x,y:prey.y};
- if((m.type!=="dog"&&m.type!=="alpha"&&m.type!=="blackPanther")||distance<115||distance>235||(prey.flee||0)<=0)return direct;
+ if((m.type!=="dog"&&m.type!=="alpha"&&m.type!=="blackPanther"&&m.type!=="oneEyedWolf"&&m.type!=="whiteTiger")||distance<115||distance>235||(prey.flee||0)<=0)return direct;
  const speed=Math.hypot(prey.vx||0,prey.vy||0);
  const heading=speed>38?Math.atan2(prey.vy,prey.vx):prey.dir;
  if(!Number.isFinite(heading))return direct;
@@ -1899,13 +1909,13 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["dog","alpha","giantSnake","oldBear","blackPanther"]);
+const WILD_PREDATOR_TYPES=new Set(["dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0||playerDistance<=140)return null;
- const maxRange=m.type==="blackPanther"?320:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
@@ -1917,7 +1927,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=m.type==="blackPanther"?1.35:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="dog"?1.6:1.8;
+  m.wildAttack=m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="dog"?1.6:1.8;
   const bite=m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
@@ -1934,8 +1944,8 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   }
   if(P&&dist(P,m)<380)label(prey.x,prey.y-prey.r-20,prey.hp>0?"野生の狩り -"+bite:"野生の狩り","#eac6a1");
  }
- return {vx:Math.cos(m.dir)*sp.speed*(m.type==="blackPanther"?.92:m.type==="giantSnake"?.76:.75),
-         vy:Math.sin(m.dir)*sp.speed*(m.type==="blackPanther"?.92:m.type==="giantSnake"?.76:.75)};
+ return {vx:Math.cos(m.dir)*sp.speed*(m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75),
+         vy:Math.sin(m.dir)*sp.speed*(m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75)};
 }
 // Choose a real road bridge before generic A* when wildlife crosses open water.
 function wildlifeBridgeWaypoint(m,goal){
@@ -2451,14 +2461,15 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*.32;vy=Math.sin(m.dir)*s.speed*.32;
      }else{
       let targetX=m.lastX,targetY=m.lastY;
-      if(m.type==="dog"&&spotted&&d>120&&d<325){
+      if((m.type==="dog"||m.type==="oneEyedWolf")&&spotted&&d>120&&d<375){
        const heading=Math.hypot(P.vx,P.vy)>50?Math.atan2(P.vy,P.vx):P.dir,side=m.flankSide||1;
-       const fx=P.x-Math.cos(heading)*48-Math.sin(heading)*side*82;
-       const fy=P.y-Math.sin(heading)*48+Math.cos(heading)*side*82;
+       const flankBack=m.type==="oneEyedWolf"?76:48,flankSide=m.type==="oneEyedWolf"?125:82;
+       const fx=P.x-Math.cos(heading)*flankBack-Math.sin(heading)*side*flankSide;
+       const fy=P.y-Math.sin(heading)*flankBack+Math.cos(heading)*side*flankSide;
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
-      m.dir=steerPursuit(m,targetX,targetY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed;
-      if((m.type==="dog"||m.type==="alpha")&&spotted&&d>75&&d<205&&m.attack>.22){
+      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:1;vx=Math.cos(m.dir)*s.speed*chaseBoost;vy=Math.sin(m.dir)*s.speed*chaseBoost;
+      if((m.type==="dog"||m.type==="alpha"||m.type==="oneEyedWolf")&&spotted&&d>75&&d<235&&m.attack>.22){
        const around=m.dir+(m.flankSide||1)*1.08;
        if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
       }
@@ -2511,9 +2522,9 @@ function update(dt){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
      m.swing=.22; // Physical strike pose even if the attack misses.
-     if((m.type==="boar"||m.type==="alpha"||m.type==="giantBoar"||m.type==="blackPanther")&&m.stun<=0){
-      m.chargeTime=m.type==="alpha"?.24:m.type==="blackPanther"?.31:m.type==="giantBoar"?.45:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
-      label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="blackPanther")?"飛びかかり！":"突進！","#ffbf81");
+     if((m.type==="boar"||m.type==="alpha"||m.type==="giantBoar"||m.type==="blackPanther"||m.type==="oneEyedWolf"||m.type==="whiteTiger")&&m.stun<=0){
+      m.chargeTime=m.type==="alpha"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
+      label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
      }else{
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
@@ -2527,7 +2538,7 @@ function update(dt){
     }
    }
    const charging=!s.prey&&m.chargeTime>0&&m.stun<=0;
-   const chargeSpeed=m.type==="alpha"?2.3:m.type==="blackPanther"?2.85:m.type==="giantBoar"?3.25:3.65;
+   const chargeSpeed=m.type==="alpha"?2.3:m.type==="blackPanther"?2.85:m.type==="oneEyedWolf"?2.65:m.type==="whiteTiger"?3.05:m.type==="giantBoar"?3.25:3.65;
    if(charging){
     m.chargeTime=Math.max(0,m.chargeTime-dt);
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
@@ -3006,7 +3017,7 @@ function drawItem(c){
 /* Separate readable top-down anatomy for the first four strong enemies. */
 function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
  const t=o.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther")return false;
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena")return false;
  if(t==="giantSnake"){
   for(let i=0;i<8;i++)oval(-r*1.76+i*r*.34,Math.sin(i*.76+(o.step||0)*.21)*r*.29,r*(.14+.07*i),r*(.16+.055*i),i%2?fur:"#365e47",Math.sin(i*.8)*.25);
   oval(r*.74,0,r*.63,r*.45,fur);oval(r*1.21,0,r*.47,r*.36,light);
@@ -3025,6 +3036,33 @@ function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
   oval(-r*.10,0,r*1.17,r*.80,fur);oval(r*.77,0,r*.68,r*.59,"#655146");
   oval(r*1.31,0,r*.36,r*.41,light);oval(r*1.52,-r*.12,r*.08,r*.08,"#42342e");oval(r*1.52,r*.12,r*.08,r*.08,"#42342e");
   for(const side of [-1,1])triangle([r*.94,side*r*.36,r*1.38,side*r*.82,r*1.32,side*r*.18],"#f5e5bc");
+ }else if(t==="oneEyedWolf"){
+  for(const side of [-1,1])for(const front of [-1,1])oval(front*r*.62,side*r*.45+pace*side,r*.23,r*.25,"#555a5e");
+  oval(-r*.15,0,r*1.10,r*.55,fur);oval(r*.70,0,r*.58,r*.49,"#858581");
+  for(const side of [-1,1])triangle([r*.43,side*r*.30,r*.37,side*r*.83,r*.81,side*r*.39],"#656a6b");
+  oval(r*1.10,0,r*.37,r*.24,light);
+  oval(r*.93,-r*.28,r*.12,r*.09,"#e4d3ab");oval(r*.93,r*.28,r*.12,r*.09,"#e4d3ab");
+  oval(r*.96,-r*.28,r*.05,r*.05,"#25292c");
+  triangle([r*.66,r*.14,r*1.18,r*.40,r*1.12,r*.47,r*.60,r*.21],"#b89b91");
+  oval(-r*1.15,0,r*.55,r*.19,"#4b5055");
+ }else if(t==="whiteTiger"){
+  for(const side of [-1,1])for(const front of [-1,1])oval(front*r*.60,side*r*.49+pace*side,r*.27,r*.29,"#ddd8cb");
+  oval(-r*.12,0,r*1.20,r*.75,fur);oval(r*.62,0,r*.72,r*.62,light);
+  for(let k=-3;k<=3;k++)for(const side of [-1,1])
+   triangle([k*r*.26,side*r*.70,(k+.24)*r*.26,side*r*.30,(k+.54)*r*.26,side*r*.68],"#3c4649");
+  for(const side of [-1,1]){oval(r*.78,side*r*.46,r*.24,r*.23,fur);oval(r*1.12,side*r*.31,r*.13,r*.11,"#d5b56e");}
+  oval(r*1.25,0,r*.40,r*.32,light);oval(r*1.57,0,r*.15,r*.11,"#554e49");
+  ctx.strokeStyle="#ece7d9";ctx.lineWidth=r*.18;ctx.lineCap="round";ctx.beginPath();
+  ctx.moveTo(-r*1.05,0);ctx.bezierCurveTo(-r*1.48,-r*.67,-r*1.93,r*.59,-r*2.20,r*.02);ctx.stroke();
+  for(let i=0;i<3;i++)oval(-r*(1.31+i*.32),Math.sin(i)*r*.18,r*.11,r*.16,"#353e40");
+ }else if(t==="giantHyena"){
+  for(const side of [-1,1])for(const front of [-1,1])oval(front*r*.61,side*r*.47+pace*side,r*.25,r*.29,"#74684f");
+  oval(-r*.30,0,r*.83,r*.50,fur);oval(r*.31,0,r*.93,r*.75,"#98805d");
+  for(let k=0;k<8;k++)triangle([(-.77+k*.23)*r,-r*.44,(-.67+k*.23)*r,-r*.87,(-.54+k*.23)*r,-r*.43],"#4d483b");
+  for(const side of [-1,1])triangle([r*.67,side*r*.35,r*.69,side*r*.86,r*.96,side*r*.36],"#554c3c");
+  oval(r*1.00,0,r*.49,r*.39,fur);oval(r*1.40,0,r*.41,r*.31,light);
+  for(const side of [-1,1])oval(r*1.10,side*r*.25,r*.10,r*.09,"#f0d392");
+  oval(-r*1.26,0,r*.49,r*.18,"#4a463c");
  }else{
   for(const side of [-1,1])for(const x of [-.62,.48])oval(r*x,side*r*.43+pace*side,r*.22,r*.29,fur);
   ctx.strokeStyle=fur;ctx.lineWidth=r*.20;ctx.lineCap="round";ctx.beginPath();
@@ -3045,7 +3083,7 @@ function drawCreature(o,isPlayer){
  const swingDuration=isPlayer?.18:.22,swingLeft=clamp(o.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
- const attackCharge=!isPlayer&&(t==="boar"||t==="alpha")?clamp((o.chargeTime||0)/(t==="alpha"?.24:.36),0,1)*.55:0;
+ const attackCharge=!isPlayer&&(t==="boar"||t==="alpha"||t==="oneEyedWolf"||t==="whiteTiger")?clamp((o.chargeTime||0)/(t==="alpha"?.24:t==="oneEyedWolf"?.28:t==="whiteTiger"?.39:.36),0,1)*.55:0;
  const attackReach=Math.max(attackSnap,attackCharge)+attackLeap;
  const rushPose=isPlayer&&(o.pendingStrike||o.swing>0)?(o.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.15:rushPose===4?attackReach*.06:rushPose===5?attackReach*.62:base;
@@ -3439,7 +3477,7 @@ function drawThreatNames(){
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
   if(m.hp<=0||species[m.type].prey||dist(P,m)>280||!visible(m.x,m.y,55))continue;
-  const pos=project(m.x,m.y),names={dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹"},y=pos.y-m.r*cameraZoom-35;
+  const pos=project(m.x,m.y),names={dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ"},y=pos.y-m.r*cameraZoom-35;
   ctx.globalAlpha=m.windup>0||m.alert>0?.92:.65;ctx.fillStyle="#172321";ctx.fillRect(pos.x-42,y-11,84,16);
   ctx.fillStyle=m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(names[m.type]||"危険",pos.x,y+1);
  }

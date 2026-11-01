@@ -129,7 +129,7 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
 /* STRONG-MODELS-3D-V2: species-specific anatomy, proportions and silhouettes. */
 function drawStrongAnimal3D(m,clock){
  const t=m.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther")return false;
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena")return false;
  const r=m.r||30,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const x=(dx,dy)=>m.x+dx*c-dy*sn,y=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||"#6c675d",belly=m.belly||"#b4a38e";
@@ -161,6 +161,36 @@ function drawStrongAnimal3D(m,clock){
   for(let i=0;i<8;i++)spike(-r*.83+i*r*.24,0,r*1.43,r*.15,r*.16,r*.43,"#42372d");
   orb(r*1.24,0,r*.77,r*.45,r*.44,r*.37,belly);
   for(const side of [-1,1]){spike(r*1.05,side*r*.43,r*.88,r*.16,r*.13,r*.48,"#f4e5bf");orb(r*1.52,side*r*.19,r*.74,r*.09,r*.10,r*.10,"#4b352e");}
+ }else if(t==="oneEyedWolf"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.65,side*r*.47,r*.32+pace*(front===side?1:-1),r*.22,r*.20,r*.33,"#51545a");
+  orb(-r*.15,0,r*.68,r*1.12,r*.55,r*.48,"#6e7276");
+  orb(r*.61,0,r*.85,r*.63,r*.51,r*.50,"#7e8181");
+  for(const side of [-1,1])spike(r*.58,side*r*.39,r*1.13,r*.20,r*.16,r*.47,"#5d6468");
+  orb(r*1.10,0,r*.69,r*.42,r*.25,r*.23,"#b8b5a8");
+  orb(r*.91,-r*.29,r*1.01,r*.12,r*.08,r*.10,"#e5d1a6");
+  orb(r*.91,r*.29,r*1.01,r*.12,r*.08,r*.10,"#c7b4a0");
+  orb(r*.95,-r*.32,r*1.05,r*.055,r*.04,r*.06,"#212b2d");
+  spike(r*.81,r*.32,r*1.13,r*.06,r*.09,r*.32,"#b08c86");
+  for(let i=0;i<4;i++)orb(-r*(1.04+i*.27),Math.sin(clock*1.2+i*.5)*r*.08,r*.55,r*.21,r*.14,r*.12,"#53575b");
+ }else if(t==="whiteTiger"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.64,side*r*.53,r*.34+pace*(front===side?1:-1),r*.25,r*.24,r*.35,"#dedbd0");
+  orb(-r*.12,0,r*.77,r*1.23,r*.77,r*.63,"#e4e1d7");
+  orb(r*.55,0,r*.91,r*.82,r*.71,r*.66,"#f6f3e8");
+  for(let i=0;i<7;i++)for(const side of [-1,1])
+   spike(-r*.89+i*r*.29,side*r*.54,r*1.12,r*.10,r*.14,r*.30,"#42494c");
+  orb(r*1.12,0,r*.86,r*.57,r*.51,r*.46,"#e4e1d7");
+  for(const side of [-1,1]){orb(r*.87,side*r*.44,r*1.17,r*.20,r*.20,r*.24,"#f6f3e8");orb(r*1.27,side*r*.28,r*.98,r*.10,r*.08,r*.09,"#d9ae70");}
+  orb(r*1.53,0,r*.72,r*.33,r*.31,r*.23,"#f6f3e8");
+  for(let i=0;i<6;i++)orb(-r*(1.00+i*.27),Math.sin(clock*1.6+i*.5)*r*.21,r*(.62+i*.06),r*.21,r*.14,r*.13,i%2?"#434b4d":"#e4e1d7");
+ }else if(t==="giantHyena"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.61,side*r*.48,r*.33+pace*(front===side?1:-1),r*.23,r*.23,r*.33,"#706149");
+  orb(-r*.33,0,r*.62,r*.85,r*.52,r*.49,"#a68b63");
+  orb(r*.26,0,r*1.00,r*.96,r*.75,r*.84,"#947852");
+  for(let i=0;i<9;i++)spike(-r*.77+i*r*.21,0,r*1.47,r*.13,r*.16,r*.44,"#4e4639");
+  orb(r*.93,0,r*.97,r*.58,r*.51,r*.48,"#a68b63");
+  for(const side of [-1,1]){spike(r*.75,side*r*.36,r*1.27,r*.20,r*.15,r*.45,"#514a3d");orb(r*1.16,side*r*.29,r*1.05,r*.10,r*.08,r*.09,"#f0d398");}
+  orb(r*1.35,0,r*.72,r*.46,r*.34,r*.27,"#d9c69d");
+  for(let i=0;i<3;i++)orb(-r*(1.0+i*.29),0,r*.50,r*.24,r*.16,r*.15,"#52483b");
  }else{
   for(const side of [-1,1])for(const front of [-1,1]){
    const dx=front*r*.72,dy=side*r*.43;
@@ -193,7 +223,7 @@ function animal(m,player,clock){
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
- const attackCharge=!player&&(type==="boar"||type==="alpha")?clamp((m.chargeTime||0)/(type==="alpha"?.24:.36),0,1)*.55:0;
+ const attackCharge=!player&&(type==="boar"||type==="alpha"||type==="oneEyedWolf"||type==="whiteTiger")?clamp((m.chargeTime||0)/(type==="alpha"?.24:type==="oneEyedWolf"?.28:type==="whiteTiger"?.39:.36),0,1)*.55:0;
  const attackReach=Math.max(attackSnap,attackCharge)+airStrike;
  const rushPose=player&&(m.pendingStrike||m.swing>0)?(m.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.14:rushPose===4?attackReach*.05:rushPose===5?attackReach*.60:base;
