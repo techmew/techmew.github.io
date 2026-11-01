@@ -1,3 +1,10 @@
+## 共通スプリント追補｜2026-11-01 20:50 JST｜LANDSCAPE-FULLSCREEN-TITLE-01 横画面タイトルのタッチ操作を補強
+- **作業開始HEAD**：`fb0e06f1b1d658d2cd2801eb33a557b00d6259c1`。並行45分枠が`NIGHT-MOONLIGHT-NO-LAMPGLOW-01`を`game.js/webgl3d.js/visual.css/index.html`に実装した直後の最新を確認してから、本横画面修正は`visual.css`と`index.html`のみに限定。新月/満月・天候・街灯ハロー撤去・Gamepad Bridgeを巻き戻さない。
+- **追加改善**：スマホ横画面の短い高さでタイトル内容があふれた場合、既存`html,body{touch-action:none}`によりメニューがスクロールできなくなる危険を軽減。メニュー/スクロール領域の`touch-action:pan-y`とボタン・選択欄の`manipulation`を明示し、スクロール領域にiOS向け慣性スクロール指定。新しい`visual.css`のrevを`20261101-night-moonlight-hud-landscape-v2`へ更新し、45分枠の月齢HUDを維持。
+- **コードコミット**：`neo-wild/visual.css` `9e4866f09ee3494578b9136bea51f401a3745af8`、`neo-wild/index.html` `306da0a98c13ca43b7ffa3e4c495425419005855`。横画面・全画面トップ選択の従前コミット`4a318e43/0da61111/c2d26e63/91853742`は保持。
+- **テスト**：main最新game.jsの全文構文PASS、タイトル選択のDOM/回転処理、6スクリプトとgamepad、最新月明かり関数とCSS新revの維持を確認。先行ブラウザAPI模擬6経路PASS。実Androidでのスクロール・横画面自動固定、実フルスクリーン、縦横HUDおよび新SHA Pages deployは**未検証**。コードmainコミット済みでも配信成功は未断定。
+- **終了HEAD**：本追補コミット。**進捗**71/100据え置き。**次45分枠**：(1)横画面メニュー選択→全画面→続き/新規→プレイを実Androidで確認、(2)画面が横にならない端末で自動回転案内・フルスクリーン非解除、タッチメニューのスクロールを実機確認、(3)月光HUD・Gamepad・冬の狩猟動作の縦横表示とPages build/deployを確認して、問題のみ最小修正。
+
 ## 共通スプリント｜2026-11-01 20:45 JST｜45分枠｜NIGHT-MOONLIGHT-NO-LAMPGLOW-01（街灯ハロー撤去・月齢と天候に連動した夜間照明）
 - **担当・HEAD**：45分表示/照明担当。開始HEAD `91853742e13896994bacccae131ad6d5d6d7b405`、実装HEAD `87ad359f1f49fa924468086ec55b604f65cb225d`。直前15分NIGHT-HUNT-WINTER-COVER-01と45分GAMEPAD-FULL-CONTROLS-01、Drive完成仕様設計書末尾を確認。狩猟AI・ゲームパッド・セーブを上書きしない。
 - **連動実装①**：game.jsのCanvas2D/3D共通オーバーレイで、街灯位置に描かれていた半径130の巨大な黄色・橙色の加算radialGradientを完全削除。街灯ポール・目的地/入口/狩猟マーカーは維持。WebGL側に街灯ハロー生成は元々なし。
