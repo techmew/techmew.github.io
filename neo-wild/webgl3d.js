@@ -579,6 +579,17 @@ function render(o){
   data=[];
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,P);
   if(o.den&&isVisible(o.den.x,o.den.y,160))denBeddingMesh(o.den);
+  // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
+  if(typeof o.waterAt==="function"){
+   animalLift=0;
+   for(const a of [P,...mobs]){
+    if(!a||!isVisible(a.x,a.y,95)||Math.hypot(a.vx||0,a.vy||0)<25)continue;
+    if(a===P&&(a.jumpTime>0||a.pounceTime>0||(a.jumpHeight||0)>(a.groundZ||0)+8))continue;
+    if(o.waterAt(a.x,a.y)<.10)continue;
+    const r=Math.max(10,Math.min(38,(a.r||16)*1.3));
+    ellipsoid(a.x,a.y,.58,r,r*.68,.32,"#8fc1c2",a.dir||0,9,2);
+   }
+  }
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
   for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
