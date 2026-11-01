@@ -1119,7 +1119,7 @@ function objectiveShortLabel(){
  if(mission===1)return "潜伏する茂み";
  if(mission===2||(mission===7&&freeStep===1))return "獲物";
  if(mission===3)return "探索地点";
- if(mission===4)return stockpileStep().label;
+ if(mission===4){const step=stockpileStep();if(step?.step===1){const f=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));return f?foodName(f):"食草・肉"}return "巣"}
  if(mission===5)return "縄張り標識";
  if(mission===6)return "探索地点";
  return "目標";
@@ -2478,7 +2478,7 @@ function drawObjectiveGlow(){
  const near=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y)<140;
  const pulse=.5+.5*Math.sin(elapsed*4.2);
  const radius=offscreen?14:near?26:22,height=offscreen?0:near?70:55;
- ctx.save();ctx.globalCompositeOperation="screen";
+ ctx.save();ctx.globalCompositeOperation="source-over";
  const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?25:45);
  halo.addColorStop(0,"rgba(255,252,177,"+(.17+.07*pulse)+")");
  halo.addColorStop(.35,"rgba(199,255,199,"+(.09+.04*pulse)+")");
@@ -2509,7 +2509,7 @@ function drawShelterEntranceMarker(){
  const px=clamp(raw.x,52,Math.max(53,vw-52));
  const py=clamp(raw.y,top,Math.max(top+1,vh-bottom));
  const offscreen=Math.hypot(px-raw.x,py-raw.y)>6,pulse=.5+.5*Math.sin(elapsed*3.9);
- ctx.save();ctx.globalCompositeOperation="screen";
+ ctx.save();ctx.globalCompositeOperation="source-over";
  const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?24:37);
  halo.addColorStop(0,"rgba(124,246,255,"+(.17+.07*pulse)+")");
  halo.addColorStop(.48,"rgba(63,187,255,.07)");
