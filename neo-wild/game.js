@@ -775,7 +775,48 @@ function visibleShrubCover(){
  const month=tokyoCalendarDay(1+Math.floor(Math.max(0,elapsed)/85)).month;
  return month>=2&&month<=10; // March-November (zero-based month).
 }
-function inCover(o){return visibleShrubCover()&&plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75)}
+function visibleWinterCover(o){
+ if(!o||visibleShrubCover())return false;
+ const r=Number(o.r)||18;
+ for(const p of streetProps){
+  if(p.type!=="car"&&p.type!=="barrier"&&p.type!=="vending")continue;
+  const d=Math.hypot(p.x-o.x,p.y-o.y);
+  if(d>p.r+8+r*.40-2&&d<p.r+58)return true;
+ }
+ for(const b of buildings){
+  if(b.interior||o.x<b.x-r-40||o.x>b.x+b.w+r+40||o.y<b.y-r-40||o.y>b.y+b.h+r+40)continue;
+  const d=Math.hypot(o.x-clamp(o.x,b.x,b.x+b.w),o.y-clamp(o.y,b.y,b.y+b.h));
+  if(d>r*.65&&d<r+36)return true;
+ }
+ return false;
+}
+function inCover(o){
+ return visibleShrubCover()?plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75):visibleWinterCover(o);
+}
+function winterCoverSpot(){
+ if(!P||visibleShrubCover())return null;
+ let best=null,bestScore=Infinity;
+ const consider=(x,y)=>{
+  const spot={x,y,r:P.r},d=dist(P,spot);
+  if(d>1300||collides(x,y,P.r)||!visibleWinterCover(spot))return;
+  const score=d+(routeClear(P,spot,P.r)?0:260);
+  if(score<bestScore){bestScore=score;best=spot;}
+ };
+ for(const p of streetProps){
+  if(!["car","barrier","vending"].includes(p.type)||Math.abs(p.x-P.x)>1300||Math.abs(p.y-P.y)>1300)continue;
+  const radius=p.r+P.r*.4+21;
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;consider(p.x+Math.cos(a)*radius,p.y+Math.sin(a)*radius);}
+ }
+ for(const b of buildings){
+  if(b.interior||Math.abs(b.x+b.w*.5-P.x)>1400||Math.abs(b.y+b.h*.5-P.y)>1400)continue;
+  const pad=P.r+22;
+  consider(b.x-pad,clamp(P.y,b.y+10,b.y+b.h-10));
+  consider(b.x+b.w+pad,clamp(P.y,b.y+10,b.y+b.h-10));
+  consider(clamp(P.x,b.x+10,b.x+b.w-10),b.y-pad);
+  consider(clamp(P.x,b.x+10,b.x+b.w-10),b.y+b.h+pad);
+ }
+ return best;
+}
 function detectsPlayer(m,sp,d){
  // The visual clock is authoritative: the old cosine classified midnight as
  // daytime. Daylight, not a second independent clock, now governs visual range.
@@ -1080,7 +1121,7 @@ function resolveAttack(){
     const bonus=(foxBurst?1.4:1)*(silentHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
    const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
-   m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
+   m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;if(!species[m.type].prey)m.flee=0;
     const disrupt=species[m.type].prey||m.staggerGuard<=0||silentHit||dive;
     if(disrupt){
      m.windup=0;m.chargeTime=0;m.swing=0;
@@ -1089,7 +1130,8 @@ function resolveAttack(){
     }else m.stun=Math.max(m.stun,.035);
     hit++;
    
-    if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
+    if(species[m.type].prey&&m.hp>0)startlePrey(m,P,"hit");
+     if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0);
@@ -1322,7 +1364,7 @@ function stockpileStep(){
 function missionInfo(){
  switch(mission){
   case 0:return {stage:"チュートリアル 1 / 4",title:"食草か肉を食べよう",detail:"近くの食草・肉を食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
-  case 1:return {stage:"チュートリアル 2 / 4",title:"身を隠せ",detail:"茂みで静止して潜伏 / C",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
+  case 1:return {stage:"チュートリアル 2 / 4",title:"身を隠せ",detail:visibleShrubCover()?"茂みで静止して潜伏 / C":"建物・車の陰で静止して潜伏 / C",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
   case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"旧新宿駅を探せ",progress:Math.min(1,kills)};
   case 3:return {stage:"チュートリアル 4 / 4",title:"旧新宿駅を探せ",detail:"廃墟を探索して旧駅に到達する",next:"巣をLV2に強化せよ",progress:clamp(1-Math.hypot(P.x-STATION.x,P.y-STATION.y)/750,0,1)};
   case 4:{
@@ -1343,7 +1385,7 @@ function missionInfo(){
 // Two help pages only: the current mission, then an optional one-screen control reminder.
 const GUIDE_GOALS=[
  {title:"食草か肉を食べる",what:"食草・肉の近くで△短押し。",how:"空腹が回復する。"},
- {title:"茂みに隠れる",what:"茂みで約1秒止まる。",how:"敵に見つかりにくくなる。"},
+ {title:"身を隠す",what:"春〜秋は茂み、冬は建物・車の陰で約1秒止まる。",how:"敵に見つかりにくくなる。"},
  {title:"獲物を狩る",what:"×で攻撃、□で飛びつき。",how:"死骸から肉を取れる。"},
  {title:"探索地点へ行く",what:"》の方向へ進んで旧駅へ。",how:"次は巣の備蓄。"},
  {title:"巣に食料を貯める",what:"食草・肉で△長押し → 巣で△。",how:"60ptで巣LV2。強化しても食料は減らない。"},
@@ -1460,7 +1502,7 @@ function nearestGoal(list){
 }
 function objectiveShortLabel(){
  if(mission===0||(mission===7&&freeStep===0)){const f=nearestGoal(carcasses.filter(c=>edibleFood(c)));return f?foodName(f):"食草・肉"}
- if(mission===1)return "潜伏する茂み";
+ if(mission===1)return visibleShrubCover()?"潜伏する茂み":"建物・車の陰";
  if(mission===2||(mission===7&&freeStep===1))return "獲物";
  if(mission===3)return "探索地点";
  if(mission===4){const step=stockpileStep();if(step?.step===1){const f=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));return f?foodName(f):"食草・肉"}return "巣"}
@@ -1471,6 +1513,10 @@ function objectiveShortLabel(){
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
  if(mission===1){
+  if(!visibleShrubCover()){
+   const p=winterCoverSpot();
+   return p?{x:p.x,y:p.y,label:"建物・車の陰で静止 / Cで潜伏"}:null;
+  }
   const p=nearestGoal(plants.filter(p=>p.type===2));
   return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
  }
@@ -1516,14 +1562,14 @@ function clearStep(m,angle,step){
  const dx=Math.cos(angle),dy=Math.sin(angle);
  return !collides(m.x+dx*step*.45,m.y+dy*step*.45,m.r+4)&&!collides(m.x+dx*step,m.y+dy*step,m.r+4);
 }
-function chooseEscape(m,away){
+function chooseEscape(m,away,threat=P){
  const angles=[0,.44,-.44,.88,-.88,1.35,-1.35,1.9,-1.9,2.5,-2.5];
  let best=away,bestScore=-Infinity;
  for(const off of angles){
   const angle=away+off,step=78,x=m.x+Math.cos(angle)*step,y=m.y+Math.sin(angle)*step;
   if(!clearStep(m,angle,step))continue;
   const cover=visibleShrubCover()&&plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1:0;
-  const distance=P?Math.hypot(x-P.x,y-P.y):0;
+  const distance=threat?Math.hypot(x-threat.x,y-threat.y):0;
   const coverWeight=m.type==="rat"?3.3:m.type==="rabbit"?.5:.25;
   const forwardWeight=m.type==="rabbit"?3.3:m.type==="rat"?1.65:1.55;
   const sideStep=m.type==="pigeon"?Math.sin(off)*(m.evasionSide||1)*1.35:0;
@@ -1531,6 +1577,20 @@ function chooseEscape(m,away){
   if(score>bestScore){bestScore=score;best=angle}
  }
  return best;
+}
+function startlePrey(m,threat,reason="alarm"){
+ if(!m||m.hp<=0||!species[m.type]?.prey||!threat)return false;
+ const away=Math.atan2(m.y-threat.y,m.x-threat.x);
+ m.flee=Math.max(m.flee||0,reason==="hit"?2.6:2.15);
+ m.fleeEnergy=Math.max(.42,m.fleeEnergy||0);
+ m.evasionSide=-(m.evasionSide||1);
+ m.dir=chooseEscape(m,away,threat);
+ m.escapeTimer=.40;m.wander=0;m.navPath=null;
+ m.restTime=0;m.resting=false;
+ m.restCooldown=Math.max(m.restCooldown||0,11);
+ m.restNeed=Math.min(Number.isFinite(m.restNeed)?m.restNeed:.6,.34);
+ if(reason==="wake"&&P&&dist(P,m)<260)label(m.x,m.y-m.r-28,"目覚めた！","#ffe8ac");
+ return true;
 }
 // Prey lateral feints: real collision-checked movement, no teleport or invulnerability.
 function advancePreyFeint(m,dt){
@@ -1870,13 +1930,16 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  const naturalNightCover=!rainy&&nightRestSeason()&&
   (m.type==="rabbit"||m.type==="pigeon")&&inCover(m);
  const safeRest=(indoors&&rainy)||naturalNightCover;
- const hunter=sp.prey&&mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<155&&!lineBlocked(m,q));
+ const hunterAnimal=sp.prey?mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<155&&!lineBlocked(m,q)):null;
+ const hunter=!!hunterAnimal;
  const danger=spotted||m.alert>0||m.flee>0||m.stun>0||m.windup>0||
   m.chargeTime>0||(m.evadeTime||0)>0||hunter||
   (d<115&&!lineBlocked(m,P));
  if(m.restTime>0&&(!safeRest||danger)){
   m.restTime=0;m.restCooldown=danger?12:5;
   m.restNeed=Math.min(m.restNeed,danger?.38:.65);
+  const wakeThreat=hunterAnimal&&(!spotted||dist(m,hunterAnimal)<d)?hunterAnimal:(spotted||d<115?P:null);
+  if(danger&&sp.prey&&wakeThreat)startlePrey(m,wakeThreat,"wake");
  }
  if(m.restTime<=0&&safeRest&&!danger&&m.restCooldown<=0&&m.restNeed>=(naturalNightCover?.68:.80)){
   m.restTime=5+noise(Math.floor(m.x*.37),Math.floor(m.y*.29))*4;
@@ -2153,7 +2216,7 @@ function update(dt){
    if((s.prey||m.type==="boar")&&!spotted){
     const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(q,m)<140);
     if(hunter){
-     m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x));
+     m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
      m.flee=Math.max(m.flee,1);
      vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
     }
@@ -2174,7 +2237,7 @@ function update(dt){
       const bite=m.type==="dog"?Math.max(2,Math.round(s.damage*.22)):
                  Math.max(5,Math.round(s.damage*.45));
       nearest.hp-=bite;nearest.flash=Math.max(nearest.flash||0,.18);
-      nearest.flee=1.8;nearest.dir=Math.atan2(nearest.y-m.y,nearest.x-m.x);
+      if(nearest.hp>0&&!startlePrey(nearest,m,"hit")){nearest.flee=1.8;nearest.dir=Math.atan2(nearest.y-m.y,nearest.x-m.x);}
       if(nearest.hp<=0){
        nearest.hp=0;
        carcasses.push(animalRemains(nearest));
