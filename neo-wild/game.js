@@ -1,6 +1,5 @@
 (() => {
 "use strict";
-// 2026-10-31: user-approved action/navigation rework pending QA.
 const $ = id => document.getElementById(id);
 const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
@@ -27,7 +26,6 @@ let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-// Oblique view leaves original world coordinates, collisions and A* intact.
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
 let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
 let cameraYaw=0,cameraZoom=.8,guideWisp=null,guideGoal=null;
@@ -40,8 +38,6 @@ function updateCameraView(){
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
-// Keep wildlife rare enough to track, not a crowd of targets.
-// Slightly denser local encounters; storm animals remain in the simulation rather than disappearing.
 const WILDLIFE={initial:12,cap:96,localRadius:670,localCap:7,separation:115,preyNeedRadius:440,farAI:1300,localTargetRain:6,localTargetClear:5};
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
@@ -107,7 +103,6 @@ function simulateEcology(dt){
   const foodSupported=e.prey>=e.predators*1.6;
   e.predators=clamp(e.predators+(foodSupported&&step%2===0?1:0)-(!foodSupported?1:0),3,31);
   e.pressure=clamp(e.pressure+(e.prey<oldPrey?1:-1),0,5);
-  // Scavengers and hunting groups vie for a district without tracking all unseen NPC meshes.
   if(e.pressure>=4&&(e.events+step+i)%3===0){
    e.dominance=(e.dominance+1)%3;e.pressure=0;e.events++;
   }
@@ -183,8 +178,6 @@ function generateWorld(){
  for(const y of ys)for(const x of xs){const n=noise(k++,13),w=270+n*175,h=(y>1970?230:240)+noise(k,8)*110;
    const roofZ=k%7===0?60:k%5===0?46:k%4===0?30:0;
     buildings.push({x,y,w,h,seed:k,kind:k%4,sign:k%3===0,broken:k%5===0,roofZ:(x===1640&&y===1410)||(x===2570&&y===705)?0:roofZ,interior:(x===1640&&y===1410)||(x===2570&&y===705)});}
-// Open-world expansion: keep the original 4,200×2,400 region intact, and
- // deterministically populate the east/south districts with different urban biomes.
  const addBlock=(x,y,seed,biome)=>{
   if(x<4200&&y<2450)return;
   if(EXPLORE_SITES.some(site=>Math.hypot(site.x-x,site.y-y)<255))return;
@@ -204,8 +197,6 @@ function generateWorld(){
   for(const x of [100,980,1850,2780,3590,4600,5500,6550,7580,8120])
    addBlock(x,y,extSeed++,regionAt(x,y));
  }
- // Additional compact neighborhoods make the expanded streets worth exploring.
- // Each free road-block contains one or two structures and stays traversable.
  for(let iy=0;iy<roadsY.length-1;iy++)for(let ix=0;ix<roadsX.length-1;ix++){
   const left=roadsX[ix]+160,right=roadsX[ix+1]-220;
   const top=roadsY[iy]+140,bottom=roadsY[iy+1]-240;
@@ -218,7 +209,6 @@ function generateWorld(){
    addBlock(right-205-noise(seed,53)*38,top+noise(seed,13)*65,++extSeed,biome);
   }
  }
- // Dense forest patches to the southwest, tall derelict blocks to the east.
  for(let i=0;i<780;i++){
   const x=120+rnd(0,WORLD.w-240),y=2450+rnd(0,WORLD.h-2580);
   if(nearBuilding(x,y,45))continue;
@@ -235,14 +225,11 @@ function generateWorld(){
   if(!nearBuilding(x,y,12))debris.push({x,y,r:rnd(2,12),a:rnd(0,TWO),kind:i%4});
  }
  for(const site of EXPLORE_SITES){
-  // Each discovered place has a few distinct edible patches.
   for(let j=0;j<3;j++){
    const ang=j*TWO/3,xx=site.x+Math.cos(ang)*155,yy=site.y+Math.sin(ang)*145;
    if(!nearBuilding(xx,yy,32))plants.push({x:xx,y:yy,r:40,type:2,phase:j,hue:.3});
   }
  }
- // Two real opposing walls form an accessible alley for alternating cat triangle-kicks.
- // It is away from the starting den and mission food; other species can go around.
  const alley=[
   {x:1990,y:835,w:75,h:210,seed:91,kind:1,sign:false,broken:true,roofZ:0},
   {x:2185,y:835,w:75,h:210,seed:92,kind:2,sign:false,broken:true,roofZ:0},
@@ -259,7 +246,6 @@ function generateWorld(){
    debris.push({x,y,r:rnd(2,10),a:rnd(0,7),kind:i%4});}
  for(const x of roadsX)for(const y of roadsY)for(const dx of [-100,100])for(const dy of [-87,87])lamps.push({x:x+dx,y:y+dy});
  
- // Roadside vehicles, bicycles and abandoned city furniture.
  for(let i=0;i<72;i++){
   const along=i%3!==0,road=along?roadsY[Math.floor(i/8)%roadsY.length]:roadsX[i%roadsX.length];
   const x=along?220+(i%8)*1030+(noise(i,7)-.5)*70:road+(noise(i,7)-.5)*40;
@@ -285,8 +271,6 @@ function start(){
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStash=loadDenStash(choice);territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
- // Each accessible room begins with one ordinary huntable animal, not a scripted prop.
- // Keep the original total wildlife budget and never duplicate these on save restore.
  let roomPrey=0;
  if(origin===START_LOCATIONS.home){
   for(const shelter of buildings.filter(b=>b.interior)){
@@ -347,7 +331,6 @@ function checkpointLabel(s){
 }
 function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
- // Returning players should see resume before any new-game setup.
  const hasSave=!!auto||points.length>0;
  $("menu").classList.toggle("has-saved-game",hasSave);
  $("menu").classList.toggle("has-auto-save",!!auto);
@@ -371,7 +354,6 @@ function restoreSnapshot(snapshot){
  P={...P,...p,base:animals[choice],type:choice};
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
- // A session may have closed in the air or during an attack. Recover on a stable floor.
  const roof=roofAt(P.x,P.y);
  P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
  P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
@@ -392,12 +374,10 @@ function restoreSnapshot(snapshot){
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
  for(const c of carcasses)normalizeRemains(c);
- // Schema-2 saves from before this feature resume on the ground with the same wildlife.
  for(const m of mobs){
   m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
   m.evadeTime=0;m.evadeDuration=0;m.evadeRemaining=0;m.evadeSpeed=0;m.evadeHeight=0;
   m.evadeAngle=Number.isFinite(m.evadeAngle)?m.evadeAngle:0;
-  // Old schema-2 snapshots have no indoor rest fields.
   m.restNeed=Number.isFinite(m.restNeed)?clamp(m.restNeed,0,1):null;
   m.restTime=Number.isFinite(m.restTime)?clamp(m.restTime,0,12):0;
   m.restCooldown=Number.isFinite(m.restCooldown)?clamp(m.restCooldown,0,30):0;
@@ -420,10 +400,8 @@ function restoreSnapshot(snapshot){
  ecologyNews=typeof snapshot.ecologyNews==="string"?snapshot.ecologyNews.slice(0,100):"生態系は変化し続けている";
  earnedDiscoveries=Array.isArray(snapshot.earnedDiscoveries)?
  snapshot.earnedDiscoveries.filter(id=>typeof id==="string"&&DISCOVERY_PERKS[id]):[];
- // Saves made before perk implementation still award previously discovered places once.
  for(const id of discoveredSites)awardDiscovery(id,true);
  if(Array.isArray(snapshot.birdFlocks)&&snapshot.birdFlocks.length<=30){
-  // Legacy schema-2 saves lack roost fields; preserve every valid bird and position.
   birdFlocks=snapshot.birdFlocks.filter(normalizeBirdRoost);
  }
  cameraYaw=Number.isFinite(snapshot.camera?.yaw)?snapshot.camera.yaw:0;
@@ -486,8 +464,6 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
  return true;
 }
 function spawnFood(){
- // Keep edible forage within a reasonable hunt around the active animal in
- // the large world; scattering every new berry globally would cause starvation.
  for(let n=0;n<24;n++){
   const local=P&&Math.random()<.82;
   const angle=rnd(0,TWO),radius=rnd(185,760);
@@ -499,8 +475,6 @@ function spawnFood(){
  }
  return false;
 }
-// Two walk-in rooms use deterministic pre-existing buildings; no save schema or region changes.
-// Five solid wall segments leave a 110-unit north entrance. Collision, LOS and A* share these rectangles.
 function shelterWalls(b){
  const t=15,door=b.x+b.w*.5,half=55;
  return [
@@ -517,7 +491,6 @@ function shelterFurniture(b){
 }
 function shelterInteriorPoint(b){return {x:b.x+b.w*.5,y:b.y+Math.min(b.h*.55,125)}}
 function shelterEntrance(b){return {x:b.x+b.w*.5,y:b.y-48}}
-// The blue entrance is optional exploration; never confuse it with a mission target.
 function nearestShelterEntrance(){
  if(!P||insideShelter(P))return null;
  let nearest=null,minDistance=255;
@@ -551,12 +524,10 @@ function segmentRect(a,b,rect,pad=0){
 function shelterRevealed(b){
  return !!P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92;
 }
-// Walkable lower rooftops are real surfaces. Tall buildings still stop animals.
 function roofAt(x,y){
  for(const b of buildings)if(b.roofZ&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return b.roofZ;
  return 0;
 }
-// Step down from a roof in visible time, not by teleporting the model downward.
 function landOnSurface(){
  const old=P.groundZ||0,next=roofAt(P.x,P.y);
  P.groundZ=next;
@@ -624,10 +595,8 @@ function detectsPlayer(m,sp,d){
  const los=!lineBlocked(m,P);
  const facing=Math.atan2(P.y-m.y,P.x-m.x);
  const delta=Math.atan2(Math.sin(facing-m.dir),Math.cos(facing-m.dir));
- // Small prey have broad peripheral vision; hunters must actually face a target.
  const inSight=Math.abs(delta)<(sp.prey?2.22:1.37)||d<57;
  const visibleNow=los&&inSight&&d<Math.max(42,sightRange);
- // Sound is attenuated by buildings, but does not magically require line of sight.
  const heard=d<(los?38:24)+P.noise*(los?116:58);
  const wind=Math.sin(elapsed*.022)*Math.PI;
  const smelled=d<(weather==="RAIN"||weather==="THUNDER"?38:weather==="WIND"?105:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
@@ -643,7 +612,6 @@ function getAxes(){
 function blood(x,y,color,count=9,speed=125){for(let i=0;i<count;i++){const a=rnd(0,TWO),v=rnd(speed*.2,speed);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.25,.8),max:.8,size:rnd(1.6,4.4),color});}}
 function label(x,y,t,color="#ffffff"){popups.push({x,y,t,color,life:1.1})}
 function notify(t){toastMessage=t;toastTime=2.1;$("toast").textContent=t;$("toast").classList.add("show")}
-// All adaptive BGM, ambience and physical effects now live in original audio.js.
 function startAmbient(){window.WildAudio?.unlock();}
 function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
 function instinct(){
@@ -673,8 +641,6 @@ function instinct(){
  }
 }
 function combatAim(maxTurn=.56,maxRange=105){
- // A small forward-facing correction makes a single-button attack usable on touch,
- // but never snaps to a target behind the player or through a wall.
  let best=null,bestScore=Infinity,aim=P.dir;
  for(const m of mobs){
   if(m.hp<=0||dist(P,m)>P.r+m.r+maxRange||lineBlocked(P,m))continue;
@@ -696,7 +662,6 @@ function combatEngaged(){
    dist(P,m)<240&&(m.alert>0||m.windup>0||m.chargeTime>0)));
 }
 function edibleFood(c){return c&&c.type!=="bones"&&Number(c.amount)>0}
-// Hungry wild predators walk to real remains and consume them without creating food.
 function scavengeWildFood(m,sp,dt,spotted,playerDistance){
  m.scavengePose=Math.max(0,(m.scavengePose||0)-dt);
  m.scavengeCooldown=Math.max(0,(m.scavengeCooldown||0)-dt);
@@ -704,7 +669,6 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
   clamp(m.scavengeNeed+dt*.009,0,1):.67+noise(Math.floor(m.x),Math.floor(m.y))*.31;
  if(sp.prey||m.scavengeNeed<.69||spotted||m.alert>0||m.flee>0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||playerDistance<110)return null;
- // A predator prefers a live prey encounter; scavenging must not cancel combat.
  if(mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&
     Math.abs(q.x-m.x)<175&&Math.abs(q.y-m.y)<175&&dist(m,q)<175))return null;
  let target=null,best=290*290;
@@ -758,7 +722,6 @@ const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
 function resetRush(){P.rushStep=0;P.rushWindow=0;P.rushQueued=false}
 function interruptRush(){resetRush();P.chargeStrike=false;P.pendingStrike=false;P.ambushStrike=false;P.windup=0;P.rushActiveStep=0;P.atk=Math.max(P.atk,.2)}
-// Snapshot detection before the lunge warns its victim.
 function unawareOfPlayer(m){
  return !!m&&m.hp>0&&(m.alert||0)<=0&&(m.search||0)<=0&&(m.flee||0)<=0
   &&!detectsPlayer(m,species[m.type],dist(P,m));
@@ -774,7 +737,6 @@ function showHuntCinematic(finisher){
 }
 function attack(){
  if(mode!=="play"||!P)return;
- // Each press advances the rush; input buffering never changes this into an action.
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step];
@@ -788,7 +750,6 @@ function attack(){
  const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:.55);
   ambushTarget=concealed&&target&&unawareOfPlayer(target)?target:null;
   P.ambushStrike=!!ambushTarget;
- // Fox instinct is a short, collision-safe forward pounce, not a teleport.
  if(P.type==="fox"&&P.abilityTime>0&&target&&!P.jumpDive){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
   const travel=Math.min(53,Math.max(0,distance-(P.r+target.r+30)));
@@ -810,7 +771,6 @@ function resolveAttack(){
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
    const reach=(P.type==="wolf"?55:P.type==="cat"?39:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
-  // Claws cannot pass through solid buildings, even at a diagonal corner.
   if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
@@ -819,8 +779,6 @@ function resolveAttack(){
    const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;m.flee=0;
-   // Ordinary repeated bites cannot indefinitely stun-lock a predator.
-    // A concealed ambush or airborne pounce can always interrupt the windup.
     const disrupt=species[m.type].prey||m.staggerGuard<=0||silentHit||dive;
     if(disrupt){
      m.windup=0;m.chargeTime=0;m.swing=0;
@@ -830,7 +788,6 @@ function resolveAttack(){
     hit++;
    
     if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
-    // Detected animals do not trigger a false stealth cue.
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0);
@@ -918,7 +875,6 @@ function jump(){
  playEffect("jump");
  return true;
 }
-// Sweep each pounce frame against animals; stop at the FIRST real contact.
 function pounceImpactOnSegment(x0,y0,x1,y1){
  const dx=x1-x0,dy=y1-y0,a=dx*dx+dy*dy;
  if(a<1e-7)return null;
@@ -932,14 +888,12 @@ function pounceImpactOnSegment(x0,y0,x1,y1){
   const t=c<=0?0:(-b-Math.sqrt(Math.max(0,disc)))/(2*a);
   if(t<0||t>1||(nearest&&t>=nearest.t))continue;
   const x=x0+dx*t,y=y0+dy*t,point={x,y};
-  // No contact through a building, parked car or barrier; never backtrack into a wall.
   if(collides(x,y,P.r,P)||!routeClear({x:x0,y:y0},point,P.r)||
      lineBlocked(point,m)||!routeClear(point,m,3))continue;
   nearest={mob:m,x,y,t};
  }
  return nearest;
 }
-// Shift / mobile short press: long low-altitude predator lunge.
 function dash(){
  if(mode!=="play"||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
  const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
@@ -947,7 +901,6 @@ function dash(){
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
  const target=combatAim(.78,345);
  const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
- // Ground-skimming dash with longer range; gradually improves through leveling.
  const maximum=P.type==="cat"?235+Math.min(75,(P.level-1)*5)
   :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
   :235+Math.min(65,(P.level-1)*5);
@@ -1024,7 +977,6 @@ function eat(){
  label(P.x,P.y-30,"+"+bite+" 食料","#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();
 }
-// Four tutorial chapters, three survival goals and an endless free-exploration loop.
 function stockpileStep(){
  if(!P||mission!==4)return null;
  if(P.carry)return {step:2,text:"② 巣へ戻る → △短押しで預ける",label:"巣"};
@@ -1060,10 +1012,8 @@ function announceObjective(){
  $("objective-banner-title").textContent=info.title;
  $("objective-banner-next").textContent="次の目的："+info.next;
  $("objective-banner").classList.remove("visible");
- // Restart transition after rapid successive completions.
  void $("objective-banner").offsetWidth;
  $("objective-banner").classList.add("visible");
- // Wall-clock deadline: independent of low FPS and paused game simulation.
  objectiveBannerTime=performance.now()+2600;
 }
 function advanceMission(next){
@@ -1090,7 +1040,6 @@ function nearestGoal(list){
  for(const q of list){const d=dist(P,q);if(d<bestDist){bestDist=d;bestItem=q}}
  return bestItem;
 }
-// Compact labels identify the actual mission marker, independent of optional buildings.
 function objectiveShortLabel(){
  if(mission===0||(mission===7&&freeStep===0))return "食料";
  if(mission===1)return "潜伏する茂み";
@@ -1122,8 +1071,6 @@ function getObjective(){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0&&edibleFood(q)));
   return f?{x:f.x,y:f.y,label:"食料を取る / △・E"}:null;
  }
- // Keep one visible hunting objective until it is lost, killed, or truly far away.
- // Otherwise the → flips between different prey every few frames.
  if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>420)
   huntTarget=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
  if(!huntTarget)return null;
@@ -1159,7 +1106,6 @@ function chooseEscape(m,away){
   if(!clearStep(m,angle,step))continue;
   const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1:0;
   const distance=P?Math.hypot(x-P.x,y-P.y):0;
-  // Rats hide, rabbits bound in straight lines, pigeons jink sideways.
   const coverWeight=m.type==="rat"?3.3:m.type==="rabbit"?.5:.25;
   const forwardWeight=m.type==="rabbit"?3.3:m.type==="rat"?1.65:1.55;
   const sideStep=m.type==="pigeon"?Math.sin(off)*(m.evasionSide||1)*1.35:0;
@@ -1168,7 +1114,6 @@ function chooseEscape(m,away){
  }
  return best;
 }
-// Hostile wildlife can see an incoming strike and leap sideways; never teleport or gain invulnerability.
 function tryEnemyEmergencyEvade(m,sp,d,spotted){
  if(sp.prey||!spotted||!P||!P.pendingStrike||P.ambushStrike||m.hp<=0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||(m.evadeCooldown||0)>0)return false;
@@ -1252,7 +1197,6 @@ function rollNextWeather(current,random=Math.random()){
  for(const [name,weight] of options){val-=weight;if(val<0)return name}
  return options[options.length-1][0];
 }
-// One bounded replenishment per pulse. Rain does not delete or relocate NPCs.
 function maintainLocalWildlife(){
  if(!P)return;
  const hunting=mission===2||(mission===7&&freeStep===1);
@@ -1288,11 +1232,7 @@ function updateWeather(dt){
   }
  }
 }
-// Rain shelters are reachable exterior eaves, not fake indoor rooms.
-// NPCs walk there normally and remain visible, detectable, and huntable.
 function rainShelterPoint(m){
- // Select the closest reachable room, not the first one in the building array.
- // Animals still walk through its north entrance using normal collision and AI steering.
  let bestRoom=null,bestRoomDistance=470;
  for(const b of buildings)if(b.interior){
   const entry=shelterEntrance(b),inside=shelterInteriorPoint(b);
@@ -1319,8 +1259,6 @@ function rainShelterPoint(m){
  }
  return best;
 }
-// Indoor wildlife rest: existing animals lie down in real walkable rooms during rain.
-// No teleport, despawn, duplicate, new control, or change to save schema.
 function updateIndoorRest(m,sp,dt,spotted,d){
  if(!Number.isFinite(m.restNeed))m.restNeed=clamp(.32+noise(Math.floor(m.x),Math.floor(m.y))*.55,0,1);
  if(!Number.isFinite(m.restTime))m.restTime=0;
@@ -1328,7 +1266,6 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  m.restNeed=clamp(m.restNeed+dt*.012,0,1);
  m.restCooldown=Math.max(0,m.restCooldown-dt);
  const indoors=insideShelter(m),rainy=weather==="RAIN"||weather==="THUNDER";
- // Prey must react to hunters, and all animals wake if the player threatens them.
  const hunter=sp.prey&&mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<155&&!lineBlocked(m,q));
  const danger=spotted||m.alert>0||m.flee>0||m.stun>0||m.windup>0||
   m.chargeTime>0||(m.evadeTime||0)>0||hunter||
@@ -1349,8 +1286,6 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  if(m.restTime===0){m.resting=false;m.restCooldown=8;}
  return true;
 }
-// Weather-dependent bird roosting: approach a real roof/forest tree, rest, then take off.
-// Uses the existing 20 saved birds. Perch searches only occur at state transitions.
 function findBirdPerch(bird){
  let best=null,nearest=950;
  for(const b of buildings){
@@ -1409,7 +1344,6 @@ function updateBirdFlocks(dt){
    }else{
     const q=bird.perch,dx=q.x-bird.x,dy=q.y-bird.y,d=Math.hypot(dx,dy);
     bird.dir=Math.atan2(dy,dx);
-    // Climb above the roof before crossing its footprint; lower only over the perch.
     const targetZ=d<=8?q.z:q.z+18;
     bird.z+=clamp(targetZ-bird.z,-65*dt,85*dt);
     if(bird.z>=q.z+11&&d>0){
@@ -1474,12 +1408,10 @@ function update(dt){
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1),0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
- // A home location matters: quiet rest restores a little health.
  if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
   P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
  const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
-    // Rise before wall collision: a jump beside a low roof can reach its edge.
     const jumpLeft=Math.max(0,P.jumpTime-dt);
     const jumpProgress=clamp(1-jumpLeft/Math.max(.01,P.jumpDuration),0,1);
     P.jumpHeight=(P.groundZ||0)+Math.max(0,(P.jumpFromHeight||0)*(1-jumpProgress)+Math.sin(Math.PI*jumpProgress)*(P.jumpPower||(P.type==="cat"?83:P.type==="wolf"?43:58)));
@@ -1487,12 +1419,10 @@ function update(dt){
     const step=Math.min(P.jumpRemaining,P.jumpSpeed*dt);
     if(step>0)move(P,Math.cos(P.jumpDir)*step,Math.sin(P.jumpDir)*step);
     const covered=Math.hypot(P.x-ox,P.y-oy);
-    // Land when the descending body meets a reachable roof, not after falling through it.
     const landingRoof=roofAt(P.x,P.y);
     const touchesRoof=landingRoof>(P.groundZ||0)&&jumpLeft<=P.jumpDuration*.5&&P.jumpHeight<=landingRoof+4;
     P.jumpTime=touchesRoof?0:jumpLeft;
     P.jumpRemaining=touchesRoof?0:Math.max(0,P.jumpRemaining-covered);
-    // A blocked first step does not cancel the entire leap.
     P.steps+=covered*.052;
     if(P.jumpTime===0){
      const reachedRoof=landOnSurface();P.vx=0;P.vy=0;P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
@@ -1513,7 +1443,6 @@ function update(dt){
    }else{
     P.vx=(P.x-ox)/Math.max(dt,.001);P.vy=(P.y-oy)/Math.max(dt,.001);
    }
-   // Swept contact prevents a fast lunge passing straight through a fleeing animal.
    const impact=P.pendingStrike?pounceImpactOnSegment(ox,oy,P.x,P.y):null;
    if(impact){
     P.x=impact.x;P.y=impact.y;moved=Math.hypot(P.x-ox,P.y-oy);
@@ -1566,13 +1495,10 @@ function update(dt){
   if(m.hp<=0)continue;
   const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
-  // Far animals retain their exact world coordinates. Eight-region ecology
-  // continues independently; full individual AI resumes on approach.
   if(d>WILDLIFE.farAI){m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
-   // Sleep can be interrupted by the same detection, damage and predator rules as combat.
    if(updateIndoorRest(m,s,dt,spotted,d))continue;
    let vx=0,vy=0;
    if(!s.prey)tryEnemyEmergencyEvade(m,s,d,spotted);
@@ -1591,7 +1517,6 @@ function update(dt){
     }
     m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(m.type==="rabbit"?.83+1.02*m.fleeEnergy:m.type==="pigeon"?.85+.87*m.fleeEnergy:.84+.57*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
    }else if(s.prey&&spotted){
-    // Suspicious prey stop and watch instead of instantly sprinting from offscreen.
     m.dir=angle;m.wander=Math.max(m.wander,.3);vx=0;vy=0;
    }else if(!s.prey&&m.alert>0){
     m.alert=Math.max(0,m.alert-dt);
@@ -1603,7 +1528,6 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*.32;vy=Math.sin(m.dir)*s.speed*.32;
      }else{
       let targetX=m.lastX,targetY=m.lastY;
-      // Feral dogs flank from alternating sides before closing for a bite.
       if(m.type==="dog"&&spotted&&d>120&&d<325){
        const heading=Math.hypot(P.vx,P.vy)>50?Math.atan2(P.vy,P.vx):P.dir,side=m.flankSide||1;
        const fx=P.x-Math.cos(heading)*48-Math.sin(heading)*side*82;
@@ -1611,7 +1535,6 @@ function update(dt){
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
       m.dir=steerPursuit(m,targetX,targetY);vx=Math.cos(m.dir)*s.speed;vy=Math.sin(m.dir)*s.speed;
-      // Dogs and alpha predators circle during recovery instead of walking straight in.
       if((m.type==="dog"||m.type==="alpha")&&spotted&&d>75&&d<205&&m.attack>.22){
        const around=m.dir+(m.flankSide||1)*1.08;
        if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
@@ -1622,7 +1545,6 @@ function update(dt){
     if(m.wander<0){m.dir+=rnd(-2.5,2.5);m.wander=rnd(.5,2.5)}
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
    }
-   // Unscripted encounters: small wildlife changes course around nearby hunters.
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
    if(s.prey&&!spotted){
     const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(q,m)<140);
@@ -1658,7 +1580,6 @@ function update(dt){
     vx=scavenging.vx;vy=scavenging.vy;
     m.wander=Math.max(m.wander,.25);
    }
-   // Calm wildlife seeks a reachable eave in rain; hunting, detection and fleeing take priority.
    if(weather==="RAIN"||weather==="THUNDER"){
     const calm=!spotted&&m.alert<=0&&m.flee<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0;
     const hunting=!!scavenging||(!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170));
@@ -1728,7 +1649,6 @@ function update(dt){
      m.chargeTime=0;m.stun=Math.max(m.stun,.7);
      label(m.x,m.y-m.r-20,"激突！","#bdf6cc");
     }else if(m.chargeTime<=0){
-     // Sidestepping the locked charge direction opens a counterattack window.
      m.stun=Math.max(m.stun,.55);
      label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
     }
@@ -1769,8 +1689,6 @@ function syncHUD(hour){
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜"+(weather==="RAIN"||weather==="THUNDER"?"屋内避難中":"建物内"):"");
  const entrance=nearestShelterEntrance();
- // The yellow glowing circle belongs to the mission, not to this building.
- // Only explain the door when the animal has actually approached its blue marker.
  const nearDoor=!!entrance&&entrance.distance<112;
  $("shelter-hint").classList.toggle("hidden",!nearDoor);
  if(nearDoor)$("shelter-hint").textContent=(weather==="RAIN"||weather==="THUNDER"?
@@ -1780,7 +1698,6 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
- // Display each chapter's name and upcoming objective without forcing a panel over gameplay.
  const info=missionInfo();
  const stock=stockpileStep();
  $("stockpile-guide").classList.toggle("hidden",!stock||mode!=="play");
@@ -1794,7 +1711,6 @@ function syncHUD(hour){
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
  guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objectiveShortLabel()}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
- // Dedicated HUD guide remains obvious even if the actual target is beyond the screen.
  const navTarget=guideWisp||guideGoal,navOn=mode==="play"&&!!navTarget;
  $("nav-hud").classList.toggle("hidden",!navOn);
  if(navOn){
@@ -1813,7 +1729,6 @@ function syncHUD(hour){
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
  $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";
 }
-// Map only opens when requested. Shows places worth visiting without ground arrows.
 function drawWorldMap(){
  if(!P)return;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius);
@@ -1850,7 +1765,6 @@ function drawWorldMap(){
   bm.fillStyle=found?"#d5f8db":"#f6e1c6";bm.font="bold 10px sans-serif";bm.textAlign="left";
   bm.fillText(found?site.name:"未踏の探索地点",clamp(X(site.x)+7,8,width-94),clamp(Y(site.y)-7,24,height-4));
  }
- // Map-only den rest territory; no radar overlay in the play view.
  bm.fillStyle="rgba(139,226,168,.12)";bm.strokeStyle="#a0e7bc";bm.lineWidth=1.5;
  bm.beginPath();bm.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),X(denRadius()),0,TWO);bm.fill();bm.stroke();
  mark(SAFE_DEN.x,SAFE_DEN.y,"#9ee5ac",8);
@@ -1864,7 +1778,6 @@ function drawWorldMap(){
  bm.font="bold 12px sans-serif";bm.textAlign="left";bm.fillStyle="#e9f7e3";
  bm.fillText("巣 LV"+denLevel,X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
  bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
- // Show nearby resources and predators, not every hidden creature in Tokyo.
  for(const q of carcasses)if(q.ttl>0&&edibleFood(q)&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
  for(const m of mobs)if(m.hp>0&&dist(P,m)<650){
    if(species[m.type].prey){if(dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
@@ -1923,7 +1836,6 @@ function roadDraw(){
  for(const x of roadsX)for(const y of roadsY){ctx.strokeStyle="#a6ab9b38";ctx.lineWidth=5;
   for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(x-110+k*24,y-98);ctx.lineTo(x-110+k*24,y-82);ctx.stroke();ctx.beginPath();ctx.moveTo(x+82,y-110+k*24);ctx.lineTo(x+98,y-110+k*24);ctx.stroke()}
  }
- // Stable road cracks and reclaimed green verges, culled outside the oblique viewport.
  ctx.save();ctx.lineWidth=1.4;
  for(const y of roadsY)for(let i=0;i<35;i++){
   const x=58+i*118+noise(i,y)*37;if(!visible(x,y,90))continue;
@@ -2014,7 +1926,6 @@ function drawBuilding(b){
  if(b.sign){ctx.save();ctx.translate(x+w-19,y+32);ctx.rotate(Math.PI/2);ctx.fillStyle="#c18c5760";ctx.fillRect(0,0,95,19);ctx.fillStyle="#1e2626";ctx.font="700 11px monospace";ctx.fillText("EXIT •  TOKYO",6,13);ctx.restore()}
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
-// Landmark silhouettes also appear when WebGL is unavailable.
 function drawLandmark2D(site){
  const x=site.x,y=site.y;
  ctx.save();ctx.translate(x,y);
@@ -2164,7 +2075,6 @@ function drawCreature(o,isPlayer){
   ctx.closePath();ctx.fill();
  };
  ctx.save();ctx.translate(o.x,o.y);
- // Offset height straight up on screen; do not displace player sideways.
  const lift2D=z=>ctx.translate(VIEW.c*z*.93*cameraZoom/VIEW_DET,-VIEW.a*z*.93*cameraZoom/VIEW_DET);
  const floorZ=isPlayer?(P.groundZ||0):0;
  if(floorZ>0)lift2D(floorZ);
@@ -2237,7 +2147,6 @@ function drawCreature(o,isPlayer){
   for(const sign of [-1,1])triangle([r*.95,sign*r*.34,r*1.32,sign*r*.63,r*1.17,sign*r*.16],"#f1dfb6");
   oval(r*.86,-r*.35,2.8,2.4,"#1c1f1d");
  }else if(t==="cat"){
-  // 猫だけ細い身体、長く曲がる尻尾、丸い頭と小さい三角耳。
   ctx.strokeStyle=fur;ctx.lineWidth=r*.18;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(-r*.7,-r*.06);ctx.bezierCurveTo(-r*1.6,-r*.7,-r*1.8,r*.68+tailSway,-r*2.25,-r*.26+tailSway);ctx.stroke();
   for(const sign of [-1,1]){
@@ -2259,7 +2168,6 @@ function drawCreature(o,isPlayer){
   ctx.strokeStyle="#eae7d8";ctx.lineWidth=1;
   for(const side of [-1,1])for(let k=-1;k<=1;k++){ctx.beginPath();ctx.moveTo(r*.95,side*r*.14);ctx.lineTo(r*1.42,side*r*(.14+k*.1));ctx.stroke()}
  }else if(t==="fox"){
-  // 大きい白先端のふさふさした尾と長い尖った鼻、黒脚が狐の輪郭。
   ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.55,-r*.4);ctx.bezierCurveTo(-r*1.15,-r*.79,-r*1.8,-r*.85+tailSway,-r*2.5,-r*.26+tailSway);
   ctx.bezierCurveTo(-r*2.9,r*.15+tailSway,-r*1.65,r*.71,-r*.63,r*.38);ctx.closePath();ctx.fill();
   triangle([-r*2.18,-r*.47+tailSway,-r*2.62,-r*.21+tailSway,-r*2.29,r*.15+tailSway],"#fff2d7");
@@ -2274,7 +2182,6 @@ function drawCreature(o,isPlayer){
   triangle([r*1.53,-r*.075,r*1.78,0,r*1.53,r*.075],"#252526");
   oval(r*.83,-r*.23,2.2,2.4,"#1a201c");oval(r*.83,r*.23,2.2,2.4,"#1a201c");
  }else{
-  // 犬・狼・アルファは胴と肩が大きい。狼は立ち耳と鬣、犬は垂れ耳。
   const wolf=t==="wolf"||t==="alpha",alpha=t==="alpha";
   ctx.fillStyle=fur;ctx.beginPath();ctx.moveTo(-r*.62,-r*.31);ctx.lineTo(-r*1.54,-r*.64);ctx.lineTo(-r*1.7,-r*.33+tailSway);ctx.lineTo(-r*1.4,r*.39);ctx.lineTo(-r*.62,r*.33);ctx.fill();
   for(const side of [-1,1])for(const px of [-.44,.43])oval((px+(px>0?foreDrive(side,attackReach*.45):hindDrive(side)))*r,side*r*(.62-(px>0?attackReach*.10:0))+pace*side,r*.3,r*.35,wolf?"#4a5658":"#765d4c");
@@ -2297,13 +2204,10 @@ function drawCreature(o,isPlayer){
  if(attackPrep>0||attackReach>0){
   if(t==="cat"){
    const side=rushPose===2?1:rushPose===1?-1:attackSnap>.44?-1:1;
-   // The claw follows the articulated foreleg; no detached fifth paw.
    if(attackReach>.15&&(rushPose===0||rushPose<=2))triangle([r*(.50+attackReach),side*r*.34,r*(.70+attackReach),side*r*.24,r*(.51+attackReach),side*r*.13],"#eee7d5");
   }else if(t==="fox"&&(rushPose===0||rushPose===3||rushPose===5)){
-   // Mouth opens for bite or ram.
    oval(r*(1.1+attackReach*.36),0,r*.39,r*(.11+attackReach*.08),"#f4ead7");
   }else if((t==="wolf"||t==="alpha"||t==="dog")&&(rushPose===0||rushPose===3||rushPose===5)){
-   // Jaw opens for bite or ram.
    oval(r*(1.11+attackReach*.44),r*(.08+attackReach*.15),r*.35,r*(.09+attackReach*.14),"#222a2a");
    oval(r*(1.16+attackReach*.43),-r*.04,r*.39,r*.14,light);
   }
@@ -2325,7 +2229,6 @@ function drawCreature(o,isPlayer){
 }
 let guideCache=null,navGrid=new Map();
 function routeClear(a,b,radius=P.r){
- // Exact swept-circle/expanded-AABB segment test, replacing per-18px sampling.
  const radiusForRoute=radius,pad=(radius+5)*.8,border=radius+17;
  if(a.x<border||a.y<border||b.x<border||b.y<border||
     a.x>WORLD.w-border||b.x>WORLD.w-border||a.y>WORLD.h-border||b.y>WORLD.h-border)return false;
@@ -2345,7 +2248,6 @@ function routeClear(a,b,radius=P.r){
   }
   if(enter<=exit&&enter<=1&&exit>=0)return false;
  }
- // A* and guidance must use the same roadside-obstacle clearance as movement.
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
   const clearance=prop.r+8+radiusForRoute*.40;
@@ -2422,7 +2324,6 @@ function routeTo(goal,actor=P){
 }
 function reachableObjective(goal){
  if(!goal||!P||!collides(goal.x,goal.y,P.r+5))return goal;
- // Food can sit next to a wall; direct the player to an actual reachable pickup spot.
  let best=null,cost=Infinity;
  for(const radius of [42,54,63])for(let k=0;k<16;k++){
   const a=k*Math.PI/8,c={x:goal.x+Math.cos(a)*radius,y:goal.y+Math.sin(a)*radius};
@@ -2444,7 +2345,6 @@ function guidancePoint(goal){
  guideCache={time:elapsed,px:P.x,py:P.y,gx:goal.x,gy:goal.y,point};
  return point;
 }
-// In Canvas2D, show clipped 25% silhouettes only behind projected building faces.
 function drawOccludedSilhouettes(entities){
  for(const b of buildings){
   if(b.interior)continue; // Room is not a solid block; do not ghost actors behind its absent roof.
@@ -2472,8 +2372,6 @@ function drawOccludedSilhouettes(entities){
   ctx.restore();
  }
 }
-// Destination glow is a screen overlay so it stays legible in WebGL and Canvas2D.
-// The real objective glows on-screen; when off-screen, a different edge beacon shows its bearing.
 function drawObjectiveGlow(){
  if(!P||!guideGoal||mode!=="play")return;
  const raw=project(guideGoal.x,guideGoal.y);
@@ -2505,14 +2403,11 @@ function drawObjectiveGlow(){
  ctx.lineWidth=offscreen?3:4;ctx.shadowColor="#f3ff9e";ctx.shadowBlur=20;
  ctx.beginPath();ctx.ellipse(px,py+4,radius+5*pulse,(radius+5*pulse)*(offscreen?1:.48),0,0,TWO);ctx.stroke();
  ctx.restore();
- // Off-screen beacons are explicitly directions, never represented as the real location.
  const label=(guideGoal.label||"目標")+(offscreen?"方向":""),labelY=offscreen?py-26:py-height-9;
  ctx.save();ctx.font="900 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
  ctx.lineWidth=4.5;ctx.lineJoin="round";ctx.strokeStyle="rgba(5,23,21,.96)";
  ctx.strokeText(label,px,labelY);ctx.fillStyle="#fff6b7";ctx.fillText(label,px,labelY);ctx.restore();
 }
-// Separate cyan doorway beacon: always points at the actual north-wall opening.
-// This is NOT the golden mission target. Uses the common overlay for WebGL and 2D.
 function drawShelterEntranceMarker(){
  if(mode!=="play")return;
  const entry=nearestShelterEntrance();
@@ -2594,7 +2489,6 @@ function drawScene(){
  drawDenBedding2D();
  for(const site of EXPLORE_SITES)if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
- // Painter's algorithm: building fronts occlude animals behind them, not those in front.
  const layers=[],covers=new Map();
  for(const e of entities)covers.set(e,[]);
  for(const p of plants){
@@ -2631,18 +2525,15 @@ function drawScene(){
  for(const bird of birdFlocks)if(visible(bird.x,bird.y,90))drawFlyingBird(bird);
  drawOccludedSilhouettes(entities);
  }
- // Food is now depth-tested inside WebGL; do not paint it above buildings.
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=m.resting?"Zz":(m.scavengePose||0)>0?"食":m.sheltered?"雨":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=m.resting?"Zz":(m.scavengePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.fillStyle=m.resting?"#c8e7ff":(m.scavengePose||0)>0?"#d9f0b9":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
- // Remove artificial strike arcs, swipe streaks and charge rails.
-  // Keep a brief warning marker without hiding the creature animation.
   for(const m of entities){
    if(m===P||species[m.type].prey||m.windup<=0)continue;
    ctx.save();ctx.textAlign="center";ctx.font="900 15px sans-serif";
@@ -2679,7 +2570,6 @@ function drawScene(){
   ctx.restore();
  }
  if(use3D){
-   // Preserve combat readability from the 2D fallback: wounded predators retain HP bars.
   for(const m of mobs){
    if(!visible(m.x,m.y,80)||species[m.type].prey||m.hp>=m.maxHp)continue;
    const pos=project(m.x,m.y),pct=clamp(m.hp/m.maxHp,0,1),barY=pos.y-m.r-39;
@@ -2688,7 +2578,6 @@ function drawScene(){
   }
  }
  if(use3D&&P){
-  // Keep the player distinguishable from wildlife even with physically occluding 3D meshes.
   const pos=project(P.x,P.y);ctx.save();
   const ringY=pos.y-(P.groundZ||0)*.93*cameraZoom,headY=pos.y-(P.jumpHeight||0)*.93*cameraZoom;
   ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
@@ -2739,7 +2628,6 @@ function drawScene(){
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
- // Presentation must use real elapsed time, not the FPS-throttled simulation clock.
  if(objectiveBannerTime>0&&t>=objectiveBannerTime){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
  }
@@ -2781,12 +2669,10 @@ window.addEventListener("beforeunload",saveAuto);
 function resetControls(){
  keys.clear();if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
- // A released first finger must not leave a second held action stuck after pause/map.
  for(const [id,pointers] of activeTouchPointers){
   for(const pointerId of [...pointers]){try{$(id).releasePointerCapture?.(pointerId)}catch(_){}}
   pointers.clear();
  }
-  // Map, pause and restart must discard captured orbit/pinch pointers.
   for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
   orbitPointers.clear();lastPinchDistance=0;
  if(knob)knob.style.transform="translate(0,0)";
@@ -2893,7 +2779,6 @@ stick.addEventListener("pointerdown",e=>{if(mode!=="play"||joy.id!==null)return;
 stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
-// Each button owns its pointer IDs. Long presses fire once; no auto-repeat.
 for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","attack"]]){
  const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
  let longFired=false,pressStarted=0;
@@ -2941,8 +2826,6 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   
  });
 }
-// Drag the empty world to orbit; two fingers on the world adjust zoom.
-// Controls capture their own pointers, so attacks, joystick and menus are unaffected.
 const gameSurface=$("app"),orbitPointers=new Map();
 let lastPinchDistance=0;
 gameSurface.addEventListener("pointerdown",e=>{
