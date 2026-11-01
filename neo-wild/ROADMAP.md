@@ -1,3 +1,13 @@
+## 共通スプリント｜2026-11-02 JST｜手動即時UI修正｜UI-MAP-SCORE-STACK-20261102 スコア・ハントを常設地図の真下へ
+- **ユーザー最新確定**：「スコアとハントを地図の下に配置」。右上の音楽→最大化→ポーズの横3列、下段ミニマップを維持。その直下にSCORE→HUNT→（コンボ発生時のみ）COMBOを縦積みする。
+- **変更**：`neo-wild/index.html` commit `f26b0fc9d08987a8806173c6b37b27131ea12737`：既存 `#status`（`#score-line/#kill-line/#combo-line`）をHUD外の絶対配置から `#hud .hud-right` 内の `#mini-map-control` 直後に移動。IDやゲームの更新処理は変更せず、CSS cache rev `20261102-map-score-stack-v1` に更新。
+- **変更**：`neo-wild/visual.css` commit `118ee0c5720222440389749d8edd6bc99095e390`：既存のモバイル/横画面位置指定を上書きし、地図とスコアを通常のflexフローで追従。右揃え・文字の折返しなし・縦/横の既存フォント設定を保持。
+- **静的検証PASS（7項目）**：ボタン→地図→SCORE→HUNT→COMBOのDOM順、`#status`のHUD内包含、HTML ID重複0、CSS rev参照、地図直後の要素順、`position:static`の上書き指定、CSS波括弧整合。前15分枠の猫の旧セーブ補正、強敵アルファ速度231.4、夜目/操作/セーブ/地図イベントのJSは非変更。
+- **未検証**：Android実機、実ブラウザ全CSSでの `getBoundingClientRect`、横800×360/844×390/736×414/1536×691・縦390×844/411×768でのスコアと地図・ゲームパッドステータス/四操作との衝突、長押し詳細地図。これらは次45分枠で確認。
+- **Pages**：該当コードHEAD `118ee0c5720222440389749d8edd6bc99095e390` の `pages build and deployment` run `41322468311`。記録時点はin_progressのため配信成功を未確認として扱う。
+- **次45分枠**：1) 実ブラウザ縦横6条件で`#status`が地図の直下にあり他HUD/右下タッチと非干渉か矩形測定。2) ミニマップ3段階短押し・550ms長押し詳細・ポーズ/全画面・COMBO発生/解除の表示確認。3) 強敵20種スプリント継続。今回の右上HUD/地図/スコアをロールバックしない。
+- **進捗**：71/100据え置き（配置のみ、実機未検証）。
+
 ## 共通スプリント｜2026/11/02 00:37 JST｜手動即時改修｜UI-RIGHT-TRIPLE-ROW-20261102 右上「音楽→最大化→ポーズ」一列＋直下地図
 - **対象・ユーザー実画像**：縦691×1536相当（DPR未確定）。右上のポーズが単独一段目、音/最大化が二段目に分離していた。新規タスクなし・他ゲーム変更なし。
 - **確認済み現行構造**：開始時点の `neo-wild/index.html` は `.session-actions`（pause）→`.top-actions`（sound/full）→`#mini-map-control`。既存 `visual.css` の最終portrait/landscape CSSでは地図はrelative表示でボタン列の後に追従。Gamepad/旧SAVE_SCHEMA2/狩猟AI/夜目/猫速度は非変更。
