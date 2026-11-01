@@ -129,14 +129,26 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
 /* STRONG-MODELS-3D-V2: species-specific anatomy, proportions and silhouettes. */
 function drawStrongAnimal3D(m,clock){
  const t=m.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda")return false;
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino")return false;
  const r=m.r||30,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const x=(dx,dy)=>m.x+dx*c-dy*sn,y=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||"#6c675d",belly=m.belly||"#b4a38e";
  const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(x(dx,dy),y(dx,dy),z,rx,ry,rz,col,dir,9,5);
  const spike=(dx,dy,z,rx,ry,h,col)=>pyramid(x(dx,dy),y(dx,dy),z,rx,ry,h,col);
  const pace=Math.sin((m.step||0)*2.1)*Math.min(1,Math.hypot(m.vx||0,m.vy||0)/110)*r*.11;
- if(t==="giantCrocodile"){
+ if(t==="giantLizard"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.59,side*r*.76,r*.24+pace,r*.43,r*.26,r*.25,"#50614d");
+  orb(-r*.22,0,r*.57,r*1.32,r*.66,r*.52,fur);orb(r*.70,0,r*.50,r*.77,r*.49,r*.43,fur);orb(r*1.34,0,r*.38,r*.64,r*.34,r*.30,belly);
+  for(let i=0;i<9;i++)spike(-r*1.1+i*r*.28,0,r*.98,r*.13,r*.16,r*.29,"#354d39");
+  for(let i=0;i<8;i++)orb(-r*(1.13+i*.25),Math.sin(clock*1.7+i*.7)*r*.18,r*(.36-i*.02),r*(.38-i*.03),r*(.28-i*.023),r*(.25-i*.02),i%2?"#566d50":"#8b946d");
+  for(const side of [-1,1]){orb(r*1.40,side*r*.27,r*.57,r*.14,r*.10,r*.10,"#ddbf75");orb(r*1.44,side*r*.28,r*.60,r*.05,r*.05,r*.06,"#19291f");}
+ }else if(t==="rhino"){
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.67,side*r*.62,r*.36+pace,r*.38,r*.33,r*.42,"#635e58");
+  orb(-r*.24,0,r*.93,r*1.40,r*.93,r*.86,fur);orb(r*.59,0,r*1.18,r*1.00,r*.83,r*.94,"#6b6660");orb(r*1.35,0,r*.96,r*.70,r*.55,r*.56,belly);
+  spike(r*1.46,0,r*1.34,r*.23,r*.24,r*1.05,"#e7ddc6");spike(r*.98,0,r*1.55,r*.16,r*.18,r*.52,"#c7bda8");
+  for(const side of [-1,1]){orb(r*1.08,side*r*.48,r*1.38,r*.21,r*.18,r*.29,fur);orb(r*1.38,side*r*.43,r*1.10,r*.10,r*.09,r*.10,"#252521");}
+  orb(-r*1.58,0,r*.73,r*.37,r*.15,r*.17,"#68635d");
+ }else if(t==="giantCrocodile"){
   orb(-r*.15,0,r*.43,r*1.38,r*.72,r*.48,fur);
   for(const side of [-1,1])for(const front of [-1,1]){orb(front*r*.55,side*r*.71,r*.21+pace,r*.37,r*.24,r*.25,"#405b48");}
   for(let i=0;i<8;i++)spike(-r*.97+i*r*.27,0,r*.87,r*.16,r*.17,r*.24,"#36513e");

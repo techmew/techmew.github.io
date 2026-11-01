@@ -30,10 +30,12 @@ const species={
  giantBuffalo:{hp:560,r:51,speed:169,damage:43,prey:false,xp:20,food:122,color:"#514237",belly:"#9c846b"},
  giantCrocodile:{hp:530,r:49,speed:148,damage:45,prey:false,xp:20,food:108,color:"#4d6451",belly:"#a5a785"},
  giantHippo:{hp:620,r:55,speed:127,damage:49,prey:false,xp:22,food:135,color:"#71636a",belly:"#b6a5a0"},
- giantAnaconda:{hp:420,r:42,speed:155,damage:35,prey:false,xp:19,food:96,color:"#3d705c",belly:"#b4bd8a"}
+ giantAnaconda:{hp:420,r:42,speed:155,damage:35,prey:false,xp:19,food:96,color:"#3d705c",belly:"#b4bd8a"},
+ giantLizard:{hp:385,r:37,speed:182,damage:35,prey:false,xp:17,food:85,color:"#60745b",belly:"#bdba91"},
+ rhino:{hp:690,r:57,speed:174,damage:50,prey:false,xp:24,food:138,color:"#7e7770",belly:"#b5aca0"}
 };
-const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ"};
-const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf"],2:["giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo"],3:["oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion"],4:["giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda"]};
+const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ"};
+const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf"],2:["giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo","giantLizard"],3:["oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion","giantLizard","rhino"],4:["giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo","giantLizard","rhino"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda"]};
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -608,6 +610,7 @@ function restoreSnapshot(snapshot){
   P.catSpeedV2=true;
  }
  P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
+ P.strongWound=clamp(Number(P.strongWound)||0,0,5.5);
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
  if(waterBlocksLand(P.x,P.y)){const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}}
@@ -739,10 +742,16 @@ const STRONG_ATTACK_PROFILES={
  giantBuffalo:{windup:.98,reach:145,cooldown:2.05,damage:1.13,tell:"群れを守る猛突進！"},
  giantCrocodile:{windup:.64,reach:142,cooldown:2.4,damage:1.10,tell:"水面から急襲！"},
  giantHippo:{windup:.93,reach:160,cooldown:2.7,damage:1.18,tell:"水辺から突進！"},
- giantAnaconda:{windup:.82,reach:125,cooldown:2.2,damage:.94,tell:"水面の巻き付き！"}
+ giantAnaconda:{windup:.82,reach:125,cooldown:2.2,damage:.94,tell:"水面の巻き付き！"},
+ giantLizard:{windup:.54,reach:69,cooldown:1.63,damage:.93,tell:"大トカゲの噛み付き！"},
+ rhino:{windup:.98,reach:157,cooldown:2.35,damage:1.18,tell:"サイが角を下げた！"}
 };
 function applyStrongStrikeEffect(m,angle,charging=false){
- if(m.type==="giantCrocodile"){
+ if(m.type==="giantLizard"){
+  P.strongWound=Math.max(P.strongWound||0,5.5);label(P.x,P.y-48,"噛み傷で出血！","#f9b2a2");
+ }else if(m.type==="rhino"){
+  P.sp=clamp(P.sp-16,0,100);move(P,Math.cos(angle)*68,Math.sin(angle)*68);label(P.x,P.y-48,"角突進！","#ffbf91");
+ }else if(m.type==="giantCrocodile"){
   P.strongSlow=Math.max(P.strongSlow||0,1.2);
   move(P,Math.cos(angle+Math.PI)*17,Math.sin(angle+Math.PI)*17);
   label(P.x,P.y-48,"水際へ引き込まれる！","#ffca9e");
@@ -892,7 +901,7 @@ function spawnStrongBoss(type,region){
   const y=spot?spot.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
   if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<135))continue;
   const hp=Math.round(sp.hp*(1+Math.max(0,day-1)*.10));
-  mobs.push({x,y,type,r:sp.r,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
+  mobs.push({x,y,type,r:sp.r,color:sp.color,belly:sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
    alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
    chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintCooldown:2,
@@ -918,7 +927,7 @@ function normalizeStrongBossSave(){
  for(const m of mobs){
   if(!species[m.type]){m.type="dog";m.r=species.dog.r;}
   if(m.strongBoss||m.type==="alpha"){
-   if(!first){first=m;m.strongBoss=true;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
+   if(!first){first=m;m.strongBoss=true;m.color=species[m.type].color;m.belly=species[m.type].belly;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
    else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
   }
  }
@@ -1463,10 +1472,13 @@ function resolveAttack(){
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
     const bonus=(foxBurst?1.4:1)*(silentHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
-   const damage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));m.hp-=damage;
+   const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));
+   const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
+   const damage=armored?Math.max(1,Math.round(rawDamage*.48)):rawDamage;
+   m.hp-=damage;if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;if(!species[m.type].prey)m.flee=0;
-    const disrupt=species[m.type].prey||m.staggerGuard<=0||silentHit||dive;
+    const disrupt=!armored&&(species[m.type].prey||m.staggerGuard<=0||silentHit||dive);
     if(disrupt){
      m.windup=0;m.chargeTime=0;m.swing=0;
      m.stun=silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
@@ -2056,7 +2068,7 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda"]);
+const WILD_PREDATOR_TYPES=new Set(["giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -2078,7 +2090,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0||playerDistance<=140)return null;
- const maxRange=m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
@@ -2090,7 +2102,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="dog"?1.6:1.8;
+  m.wildAttack=m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
   const bite=m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
@@ -2580,6 +2592,7 @@ function update(dt){
   P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
+ if((P.strongWound||0)>0){const bleed=Math.min(dt,P.strongWound);P.hp-=bleed*2.6;P.strongWound=Math.max(0,P.strongWound-dt);}
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt);
   if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
  if(P.hp<=0){P.hp=0;finish(false);return}
@@ -2633,7 +2646,7 @@ function update(dt){
        const fy=P.y-Math.sin(heading)*flankBack+Math.cos(heading)*side*flankSide;
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
-      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:1;vx=Math.cos(m.dir)*s.speed*chaseBoost;vy=Math.sin(m.dir)*s.speed*chaseBoost;
+      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:1;vx=Math.cos(m.dir)*s.speed*chaseBoost;vy=Math.sin(m.dir)*s.speed*chaseBoost;
       if((m.type==="dog"||m.type==="alpha"||m.type==="oneEyedWolf")&&spotted&&d>75&&d<235&&m.attack>.22){
        const around=m.dir+(m.flankSide||1)*1.08;
        if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
@@ -2659,8 +2672,8 @@ function update(dt){
    defendBuffaloHerd(m);
    const wildHunt=huntWildPrey(m,s,spotted,d);
    if(wildHunt){vx=wildHunt.vx;vy=wildHunt.vy;}
-   const scavenging=!wildHunt&&!s.prey&&m.type!=="boar"&&m.type!=="giantBoar"&&m.type!=="giantMoose"&&m.type!=="giantBuffalo"?scavengeWildFood(m,s,dt,spotted,d):null;
-   const foraging=(s.prey||m.type==="boar"||m.type==="giantBoar"||m.type==="giantMoose"||m.type==="giantBuffalo")?forageWildBerries(m,s,dt,spotted,d):null;
+   const scavenging=!wildHunt&&!s.prey&&m.type!=="boar"&&m.type!=="giantBoar"&&m.type!=="giantMoose"&&m.type!=="giantBuffalo"&&m.type!=="rhino"?scavengeWildFood(m,s,dt,spotted,d):null;
+   const foraging=(s.prey||m.type==="boar"||m.type==="giantBoar"||m.type==="giantMoose"||m.type==="giantBuffalo"||m.type==="rhino")?forageWildBerries(m,s,dt,spotted,d):null;
    const drinking=!wildHunt&&!scavenging&&!foraging?drinkWildWater(m,s,dt,spotted,d):null;
    if(scavenging||foraging||drinking){
     const feeding=scavenging||foraging||drinking;
@@ -2689,8 +2702,8 @@ function update(dt){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
      m.swing=.22; // Physical strike pose even if the attack misses.
-     if((m.type==="boar"||m.type==="alpha"||m.type==="giantBoar"||m.type==="blackPanther"||m.type==="oneEyedWolf"||m.type==="whiteTiger"||m.type==="giantMoose"||m.type==="giantBuffalo")&&m.stun<=0){
-      m.chargeTime=m.type==="alpha"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
+     if((m.type==="boar"||m.type==="alpha"||m.type==="giantBoar"||m.type==="blackPanther"||m.type==="oneEyedWolf"||m.type==="whiteTiger"||m.type==="giantMoose"||m.type==="giantBuffalo"||m.type==="rhino")&&m.stun<=0){
+      m.chargeTime=m.type==="alpha"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:m.type==="rhino"?.57:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
       label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
      }else{
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
@@ -3187,8 +3200,22 @@ function drawItem(c){
 /* Separate readable top-down anatomy for the first four strong enemies. */
 function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
  const t=o.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda")return false;
- if(t==="giantCrocodile"){
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino")return false;
+ if(t==="giantLizard"){
+  for(const side of [-1,1])for(const front of [-1,1])oval(front*r*.57,side*r*.73+pace*side,r*.40,r*.24,"#52644e");
+  for(let i=0;i<8;i++)triangle([(-1.35+i*.28)*r,-r*.50,(-1.20+i*.28)*r,-r*.87,(-1.02+i*.28)*r,-r*.48],"#364d3a");
+  oval(-r*.26,0,r*1.25,r*.65,fur);oval(r*.70,0,r*.75,r*.48,fur);oval(r*1.32,0,r*.65,r*.34,light);
+  for(let i=0;i<7;i++)oval(-r*(1.08+i*.25),Math.sin(i*.7+(o.step||0)*.15)*r*.18,r*(.34-i*.025),r*(.26-i*.022),i%2?"#536c50":"#8c966c");
+  for(const side of [-1,1]){oval(r*1.43,side*r*.27,r*.13,r*.09,"#d8bc75");oval(r*1.46,side*r*.28,r*.06,r*.06,"#1c2b23");}
+  if(attackReach>.1)triangle([r*1.72,0,r*2.02,-r*.09,r*1.91,0,r*2.02,r*.09],"#c67576");
+ }else if(t==="rhino"){
+  for(const side of [-1,1])for(const front of [-1,1])oval(front*r*.66,side*r*.62+pace*side,r*.36,r*.34,"#66615b");
+  oval(-r*.21,0,r*1.36,r*.89,fur);oval(r*.66,0,r*.98,r*.79,"#68645f");oval(r*1.35,0,r*.66,r*.57,light);
+  for(const side of [-1,1]){oval(r*.72,side*r*.64,r*.24,r*.21,fur);oval(r*1.23,side*r*.47,r*.10,r*.09,"#282723");}
+  triangle([r*1.35,-r*.21,r*2.13,-r*.10,r*1.50,r*.09],"#e7dbbf");
+  triangle([r*.95,-r*.23,r*1.36,-r*.10,r*1.06,r*.10],"#c9bda7");
+  oval(-r*1.50,0,r*.37,r*.15,"#66615b");
+ }else if(t==="giantCrocodile"){
   for(let k=0;k<7;k++)triangle([-r*(1.1+k*.26),-r*.24,-r*(1.28+k*.28),0,-r*(1.1+k*.26),r*.24],k%2?"#395a45":"#60795a");
   for(const side of [-1,1])for(const x of [-.57,.48])oval(r*x,side*r*.75+pace*side,r*.31,r*.25,"#405849");
   oval(-r*.17,0,r*1.35,r*.73,fur);for(let k=-3;k<=3;k++)oval(r*k*.25,-r*.25,r*.11,r*.10,"#314d3b");
@@ -3290,7 +3317,7 @@ function drawCreature(o,isPlayer){
  const swingDuration=isPlayer?.18:.22,swingLeft=clamp(o.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
- const attackCharge=!isPlayer&&(t==="boar"||t==="alpha"||t==="oneEyedWolf"||t==="whiteTiger"||t==="giantMoose"||t==="giantBuffalo")?clamp((o.chargeTime||0)/(t==="alpha"?.24:t==="oneEyedWolf"?.28:t==="whiteTiger"?.39:t==="giantMoose"?.46:t==="giantBuffalo"?.53:.36),0,1)*.55:0;
+ const attackCharge=!isPlayer&&(t==="boar"||t==="alpha"||t==="oneEyedWolf"||t==="whiteTiger"||t==="giantMoose"||t==="giantBuffalo"||t==="rhino")?clamp((o.chargeTime||0)/(t==="alpha"?.24:t==="oneEyedWolf"?.28:t==="whiteTiger"?.39:t==="giantMoose"?.46:t==="giantBuffalo"?.53:t==="rhino"?.57:.36),0,1)*.55:0;
  const attackReach=Math.max(attackSnap,attackCharge)+attackLeap;
  const rushPose=isPlayer&&(o.pendingStrike||o.swing>0)?(o.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.15:rushPose===4?attackReach*.06:rushPose===5?attackReach*.62:base;
