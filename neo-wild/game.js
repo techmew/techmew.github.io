@@ -930,7 +930,7 @@ function updateFlyingEagle(m,dt){
  m.airHeight=clamp(Number(m.airHeight)||125,10,175);
  m.airOrbit=(Number(m.airOrbit)||0)+dt*.72;
  m.airTimer=Math.max(0,(Number(m.airTimer)||0)-dt);
- m.attack=Math.max(0,(m.attack||0)-dt);
+ // Main wildlife loop already reduces attack cooldown once per frame.
  m.step=(m.step||0)+dt*3.6;
  const phase=m.airPhase||"circle";
  if(phase==="circle"){
