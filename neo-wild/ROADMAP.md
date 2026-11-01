@@ -1,3 +1,13 @@
+## 2026-11-01 17:50 JST｜手動最優先・白い3枚の花弁状オブジェクトの描画を完全停止
+- **開始HEAD**：`c72a0d6993efd396df8ee3f542f7cbee6101f6de`。編集前にmainのneo-wild/game.js、webgl3d.js、index.html、style.css、visual.css、audio.js、ROADMAP.md、season-clouds.jsと直近コミット、Drive「WILD RECLAIM｜完成仕様設計書」末尾を再取得。直前45分枠の川/運河NPC橋経路修正とPages配信競合を確認し、ロールバックなし。
+- **原因**：ユーザー実機スクリーンショットには画面各所で灰白色の楕円が3～4個まとまった不要な地表模様が多数表示。季節オーバーレイ`drawFoliage()`は3個の楕円を各低木に重ねる設計で、古い画面に残る症状と一致。前回の冬用茶色枝への置換だけでは解消できなかった。デザイン変更は白い塊そのものの廃止であり、別の塊へ置換しない。
+- **今回の修正**：`season-clouds.js`の`drawFoliage`呼出しを全季節で停止（草木のゲーム本体は春夏秋に従来描画、地面を動く雲影/季節HUDは保持）。冬の低木type2は`webgl3d.js`でメッシュを描かず、2D退避`game.js`の`drawPlant`と`drawCoverForeground`でも冬だけ非描画。植物の存在座標・潜伏判定・当たり判定・セーブを変更しない。春夏秋の本来の植物描画は残す。scriptの`?rev=20261101-remove-white-clumps-v3`を3ファイルに適用し旧キャッシュ再利用を回避。
+- **コミット**：季節上乗せの白い三葉の廃止`f838629014af90481e2e1d18a442a7ca1251bf1e`、冬3Dメッシュ非表示`7be5a04a1d0d02ddfe9a7a9e63d66d072dcd4f59`、冬2D・前景の非表示`1c97dfa47d3cff9ed4123eca4bd53e0fc8d908c5`、HTML版更新`2fe6c63192dabcf75f534652597e70cc479fbb0e`。本ROADMAPを引継ぎ。ほかのディレクトリ、GAS、ブログ、タスクは無変更。
+- **確認したQA**：GitHub最新に再取得したgame/webgl3d/season-clouds/audio/debug全文JS構文5件PASS。季節上乗せ楕円の呼出し0回、地面の雲影は維持。WebGL冬のtype2植生メッシュ0／春夏秋は各9房PASS。Canvas2D冬の草・前景楕円0／夏は18個PASS。旧SAVE_SCHEMA=2、saveAuto、restoreSnapshot、チェックポイント3つ、NPCの橋/水際飲水、4操作ボタン、DEBUG、HTML新3 revの存在を静的確認。
+- **未検証**：実Androidでの更新後画面、縦横・FPS、旧セーブの再開E2E、GitHub Pagesの当該SHA deploy success。公開URLへ直接アクセス試行は外部ネットワーク制約で不可。直前Pagesデプロイ競合が記録されているため、**mainコミット済み／Pages成功とは断定しない**。
+- **進捗**：71/100（前回71、±0。実機品質・公開未検証のため据え置き）。**記録前HEAD**：`2fe6c63192dabcf75f534652597e70cc479fbb0e`。ROADMAP追加後のHEADを次回照合。
+- **次15/45分枠の具体アクション**：開始時に最新HEADと本ログ、Driveを確認。GitHub Pagesのbuild/deploy実成功を検証し、実Androidの冬1月で白い三葉模様がゼロになったことを目視。春夏秋の自然な植生と冬の潜伏可視性を回帰、必要な場合は白い塊を増やさない枯れ草など別形状を小変更で検討。
+
 ## 2026-11-01 17:46 JST｜45分枠・Pages配信障害の追加引継ぎ
 - **確認HEAD**：`133e4b9ad57a888c555066749938954d28270fa6`。今回のゲーム実装とHTMLはmainへ正常コミット済み。Pages workflow `41290090392` はbuild成功、deploy失敗。失敗ジョブログは「以前の`f68a7943aa34fb90a99c588226d44a77aae0c45e`のデプロイが進行中で新規配信不可」。失敗ジョブを1回再実行したが同じ理由で再失敗。**Pages配信成功・実URLへの反映は未確認**、完了済みとは報告しない。
 - **変更**：このROADMAPの障害記録のみ。game.js/index.html・ほかのゲーム・旧セーブは追加変更なし。進捗71/100据え置き。
