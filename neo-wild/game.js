@@ -865,11 +865,11 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
  m.forageCooldown=Math.max(0,(m.forageCooldown||0)-dt);
  m.forageNeed=Number.isFinite(m.forageNeed)?
   clamp(m.forageNeed+dt*.013,0,1):clamp(.56+noise(Math.floor(m.x),Math.floor(m.y))*.30,0,1);
- if(!sp.prey||m.forageNeed<.70||spotted||m.alert>0||m.flee>0||
+ if(!(sp.prey||m.type==="boar")||m.forageNeed<.70||spotted||m.alert>0||m.flee>0||
     m.stun>0||(m.evadeTime||0)>0||playerDistance<115||
     ((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
  // Feeding stops near predators; no food is consumed through walls.
- if(mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&
+ if(mobs.some(q=>q!==m&&q.hp>0&&(q.type==="dog"||q.type==="alpha")&&
     dist(m,q)<175&&!lineBlocked(m,q)))return null;
  let target=null,best=245*245;
  for(const c of carcasses){
@@ -877,7 +877,14 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
   const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
   if(d2<best){best=d2;target=c}
  }
+ // Browsing is renewable: herbivores and boars also eat actual grass/shrubs.
+ if(!target)for(const p of plants){
+  if(p.type===1||waterBlocksLand(p.x,p.y))continue;
+  const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
+  if(d2<best){best=d2;target=p;}
+ }
  if(!target)return null;
+ const grazing=!Object.prototype.hasOwnProperty.call(target,"amount");
  const biteRange=m.r+(target.r||9)+12;
  if(best>biteRange*biteRange){
   m.dir=steerPursuit(m,target.x,target.y);
@@ -885,10 +892,12 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
  }
  if(lineBlocked(m,target))return null;
  if(m.forageCooldown<=0){
-  const bite=Math.min(target.amount,5);
-  target.amount=Math.max(0,target.amount-bite);
-  if(target.amount<=0)carcasses.splice(carcasses.indexOf(target),1);
-  m.forageNeed=Math.max(0,m.forageNeed-.21);
+  if(!grazing){
+   const bite=Math.min(target.amount,5);
+   target.amount=Math.max(0,target.amount-bite);
+   if(target.amount<=0)carcasses.splice(carcasses.indexOf(target),1);
+  }
+  m.forageNeed=Math.max(0,m.forageNeed-(grazing?.32:.21));
   m.forageCooldown=1.9;m.foragePose=1.05;m.navPath=null;
   if(playerDistance<320)label(m.x,m.y-m.r-24,"食事","#d9f0b9");
  }
@@ -1998,7 +2007,7 @@ function update(dt){
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
    }
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
-   if(s.prey&&!spotted){
+   if((s.prey||m.type==="boar")&&!spotted){
     const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(q,m)<140);
     if(hunter){
      m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x));
@@ -2007,9 +2016,9 @@ function update(dt){
     }
    }
    if(s.prey&&tryPreyFeint(m,s,d,spotted,dt))continue;
-   if(!s.prey&&!spotted&&m.alert<=0&&d>140&&m.windup<=0&&m.stun<=0){
+   if((m.type==="dog"||m.type==="alpha")&&!spotted&&m.alert<=0&&d>140&&m.windup<=0&&m.stun<=0){
     let nearest=null,best=250;
-    for(const q of mobs)if(q.hp>0&&species[q.type].prey){
+    for(const q of mobs)if(q!==m&&q.hp>0&&(species[q.type].prey||q.type==="boar")){
      const near=dist(m,q);if(near<best&&!lineBlocked(m,q)){best=near;nearest=q}
     }
     if(nearest){
@@ -2018,7 +2027,10 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*.75;vy=Math.sin(m.dir)*s.speed*.75;
      m.wildTargetX=nearest.x;m.wildTargetY=nearest.y;
      if(best<m.r+nearest.r+20&&m.wildAttack<=0){
-      m.wildAttack=1.8;nearest.hp-=Math.max(12,s.damage*1.4);
+      m.wildAttack=m.type==="dog"?1.6:1.8;
+      const bite=m.type==="dog"?Math.max(2,Math.round(s.damage*.22)):
+                 Math.max(5,Math.round(s.damage*.45));
+      nearest.hp-=bite;nearest.flash=Math.max(nearest.flash||0,.18);
       nearest.flee=1.8;nearest.dir=Math.atan2(nearest.y-m.y,nearest.x-m.x);
       if(nearest.hp<=0){
        nearest.hp=0;
@@ -2029,8 +2041,8 @@ function update(dt){
      }
     }
    }
-   const scavenging=!s.prey?scavengeWildFood(m,s,dt,spotted,d):null;
-   const foraging=s.prey?forageWildBerries(m,s,dt,spotted,d):null;
+   const scavenging=!s.prey&&m.type!=="boar"?scavengeWildFood(m,s,dt,spotted,d):null;
+   const foraging=(s.prey||m.type==="boar")?forageWildBerries(m,s,dt,spotted,d):null;
    const drinking=!scavenging&&!foraging?drinkWildWater(m,s,dt,spotted,d):null;
    if(scavenging||foraging||drinking){
     const feeding=scavenging||foraging||drinking;
