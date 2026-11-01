@@ -703,6 +703,24 @@ function recordCheckpoint(){
 }
 
 
+
+/* STRONG-COMBAT-4-V2: separate timing, impact, binding and charge. */
+const STRONG_ATTACK_PROFILES={
+ giantSnake:{windup:.86,reach:58,cooldown:1.75,damage:1.05,tell:"巻き付き予兆！"},
+ oldBear:{windup:.92,reach:58,cooldown:1.62,damage:1.22,tell:"重い爪の予兆！"},
+ giantBoar:{windup:.76,reach:125,cooldown:1.46,damage:1.12,tell:"猛突進予兆！"},
+ blackPanther:{windup:.43,reach:108,cooldown:1.26,damage:1.06,tell:"飛びかかり予兆！"}
+};
+function applyStrongStrikeEffect(m,angle,charging=false){
+ if(m.type==="giantSnake"){
+  P.strongSlow=Math.max(P.strongSlow||0,1.9);
+  label(P.x,P.y-48,"締め付け！ 動きが鈍る","#ffc7a6");
+ }else if(m.type==="oldBear"||m.type==="giantBoar"||m.type==="blackPanther"){
+  const knock=m.type==="oldBear"?39:m.type==="giantBoar"?48:23;
+  move(P,Math.cos(angle)*knock,Math.sin(angle)*knock);
+  label(P.x,P.y-48,charging?"吹き飛ばされた！":"強烈な一撃！","#ffbf91");
+ }
+}
 /* STRONG-STAGE-20P-V1: one draw per district, a single active boss, save-compatible. */
 function strongBossAlive(){return mobs.find(m=>m.hp>0&&(m.strongBoss||m.type==="alpha"))||null;}
 function strongStageCandidate(region){
@@ -2320,7 +2338,7 @@ function update(dt){
    const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction;
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(P.strongSlow>0?.54:1);
    applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
@@ -2469,23 +2487,23 @@ function update(dt){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
      m.swing=.22; // Physical strike pose even if the attack misses.
-     if((m.type==="boar"||m.type==="alpha")&&m.stun<=0){
-      m.chargeTime=m.type==="alpha"?.24:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
-      label(m.x,m.y-m.r-24,m.type==="alpha"?"飛びかかり！":"突進！","#ffbf81");
+     if((m.type==="boar"||m.type==="alpha"||m.type==="giantBoar"||m.type==="blackPanther")&&m.stun<=0){
+      m.chargeTime=m.type==="alpha"?.24:m.type==="blackPanther"?.31:m.type==="giantBoar"?.45:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
+      label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="blackPanther")?"飛びかかり！":"突進！","#ffbf81");
      }else{
       const reach=P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
+       const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15)));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
-       blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");}
+       blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);}
       }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
     }
    }
    const charging=!s.prey&&m.chargeTime>0&&m.stun<=0;
-   const chargeSpeed=m.type==="alpha"?2.3:3.65;
+   const chargeSpeed=m.type==="alpha"?2.3:m.type==="blackPanther"?2.85:m.type==="giantBoar"?3.25:3.65;
    if(charging){
     m.chargeTime=Math.max(0,m.chargeTime-dt);
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
@@ -2498,11 +2516,11 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(1+Math.max(0,day-1)*.15)));
+      const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15)));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
-      blood(P.x,P.y,"#eb6356",15,150);playEffect("damage");}
+      blood(P.x,P.y,"#eb6356",15,150);playEffect("damage");applyStrongStrikeEffect(m,m.chargeDir,true);}
      }else label(P.x,P.y-35,"無傷","#a6f5d8");
     }
     const forward=ddx*Math.cos(m.chargeDir)+ddy*Math.sin(m.chargeDir);
@@ -2515,10 +2533,10 @@ function update(dt){
     }
    }
    if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
-   if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(m.type==="boar"?115:m.type==="alpha"?112:29)&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
-    m.windupTotal=m.type==="boar"?.68:m.type==="alpha"?.60:.45;
-    m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;m.attack=m.type==="boar"?1.32:m.type==="alpha"?1.42:.98;
-    m.dir=angle;label(m.x,m.y-m.r-24,m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！","#ffb76d");
+   if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(STRONG_ATTACK_PROFILES[m.type]?.reach??(m.type==="boar"?115:m.type==="alpha"?112:29))&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
+    m.windupTotal=STRONG_ATTACK_PROFILES[m.type]?.windup??(m.type==="boar"?.68:m.type==="alpha"?.60:.45);
+    m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;m.attack=STRONG_ATTACK_PROFILES[m.type]?.cooldown??(m.type==="boar"?1.32:m.type==="alpha"?1.42:.98);
+    m.dir=angle;label(m.x,m.y-m.r-24,STRONG_ATTACK_PROFILES[m.type]?.tell??(m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！"),"#ffb76d");
     playEffect("snarl");
    }
  }
@@ -2960,6 +2978,40 @@ function drawItem(c){
  }
  ctx.restore();
 }
+
+/* Separate readable top-down anatomy for the first four strong enemies. */
+function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
+ const t=o.type;
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther")return false;
+ if(t==="giantSnake"){
+  for(let i=0;i<8;i++)oval(-r*1.76+i*r*.34,Math.sin(i*.76+(o.step||0)*.21)*r*.29,r*(.14+.07*i),r*(.16+.055*i),i%2?fur:"#365e47",Math.sin(i*.8)*.25);
+  oval(r*.74,0,r*.63,r*.45,fur);oval(r*1.21,0,r*.47,r*.36,light);
+  for(const side of [-1,1]){oval(r*1.04,side*r*.28,r*.11,r*.09,"#ffdf88");oval(r*1.08,side*r*.28,r*.04,r*.07,"#172620");}
+  triangle([r*1.54,0,r*1.96,-r*.13,r*1.8,0,r*1.96,r*.13],"#c97078");
+  if(attackReach>.1)oval(r*1.48,r*.12,r*.35,r*.10,"#21362b");
+ }else if(t==="oldBear"){
+  for(const side of [-1,1])for(const x of [-.67,.60])oval(r*x,side*r*.68+pace*side,r*.34,r*.38,"#473b32");
+  oval(-r*.08,0,r*1.15,r*.89,fur);oval(r*.32,0,r*.77,r*.77,"#503d32");oval(r*.88,0,r*.65,r*.61,fur);
+  for(const side of [-1,1]){oval(r*.61,side*r*.57,r*.24,r*.22,fur);oval(r*1.02,side*r*.33,r*.075,r*.09,"#f4c58d");}
+  oval(r*1.38,0,r*.38,r*.33,light);oval(r*1.68,0,r*.13,r*.11,"#251c1a");
+  for(const side of [-1,1])for(let k=0;k<3;k++)triangle([r*.82,side*r*(.62+k*.13),r*1.05,side*r*(.71+k*.13),r*.98,side*r*(.54+k*.13)],"#e7d9b7");
+ }else if(t==="giantBoar"){
+  for(const side of [-1,1])for(const x of [-.62,.57])oval(r*x,side*r*.61+pace*side,r*.32,r*.37,"#3f332c");
+  for(let k=0;k<8;k++)triangle([r*(-.85+k*.24),-r*.62,r*(-.74+k*.24),-r*.98,r*(-.58+k*.24),-r*.65],"#44382d");
+  oval(-r*.10,0,r*1.17,r*.80,fur);oval(r*.77,0,r*.68,r*.59,"#655146");
+  oval(r*1.31,0,r*.36,r*.41,light);oval(r*1.52,-r*.12,r*.08,r*.08,"#42342e");oval(r*1.52,r*.12,r*.08,r*.08,"#42342e");
+  for(const side of [-1,1])triangle([r*.94,side*r*.36,r*1.38,side*r*.82,r*1.32,side*r*.18],"#f5e5bc");
+ }else{
+  for(const side of [-1,1])for(const x of [-.62,.48])oval(r*x,side*r*.43+pace*side,r*.22,r*.29,fur);
+  ctx.strokeStyle=fur;ctx.lineWidth=r*.20;ctx.lineCap="round";ctx.beginPath();
+  ctx.moveTo(-r*.94,0);ctx.bezierCurveTo(-r*1.55,-r*.76,-r*1.86,r*.66,-r*2.28,r*.03);ctx.stroke();
+  oval(-r*.18,0,r*1.17,r*.43,fur);oval(r*.68,0,r*.51,r*.44,fur);
+  for(const side of [-1,1]){triangle([r*.42,side*r*.31,r*.50,side*r*.90,r*.79,side*r*.38],fur);oval(r*.91,side*r*.23,r*.12,r*.10,"#f6d58e");}
+  oval(r*1.17,0,r*.32,r*.20,light);oval(r*1.43,0,r*.12,r*.09,"#171d1d");
+ }
+ return true;
+}
+
 function drawCreature(o,isPlayer){
  const s=isPlayer?P.base:species[o.type],r=o.r,t=o.type;
  const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
@@ -3017,7 +3069,9 @@ function drawCreature(o,isPlayer){
    else ctx.scale(1.13,.92);
   }
  }
- if(t==="pigeon"){
+ if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
+  // Unique strong enemy silhouette.
+ }else if(t==="pigeon"){
   oval(-r*.3,0,r*.8,r*.58,fur);
   oval(-r*.48,-r*.38+pace,r*.63,r*.3,"#526d77",-.35);
   oval(-r*.48,r*.38-pace,r*.63,r*.3,"#9cb5ae",.35);
