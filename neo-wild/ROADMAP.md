@@ -1,3 +1,12 @@
+## 共通スプリント｜2026-11-02 JST｜15分枠｜MISSION-CHEVRONS-REGRESSION-QA-20261102
+- **開始HEAD**：`6f512c0ad629d56fc9b01f5b74d90aaed327cb53`。直近45分枠の即時方向転換（game.js/gamepad.js/index.html）とROADMAPの最新引継ぎ、Drive設計書末尾を照合。今回ゲームコード変更なし。最新`game.js` blob `5a154a816f6cfdf75e3f66475e6c2f1c1a97c87b`の既存`drawMissionChevrons`を再実装しない。
+- **結合QA 42/42 PASS**：現行`getObjective→guidancePoint→drawMissionChevrons`実関数をV8＋模擬Canvasで実行。縦390×844/411×768・横800×360/844×390/736×414/1536×691の6画面×mission0/1/2/4/5/6/7。各0/1/2/4/5/6で小「〉〉」2組が画面内に描画され、mission7で0。冬mission1は車/建物陰、mission2は獲物、mission4は食草、mission5は縄張り、mission6は探索地点を目標取得。旧駅ミッションを復活させない。
+- **追加動的QA**：ガイド中・経路blocked・目的地42m以内・waypoint不在・goal不在は描画0。短いwaypointは1組。カメラ0→90度で描画角度が変化。実`guidancePoint`で迂回waypoint採用をモック検証。関連JS6本構文6/6 PASS。HTML ID重複0、左ブランド無し、音楽→最大化→ポーズ→地図→SCORE/HUNT、`.mini-map-stack`と`#status`、旧巨大`#nav-hud`非表示、夜目/3段階地図/SAVE_SCHEMA2は静的照合。直近のキャッシュrevは即時操作修正で`game.js?rev=20261102-instant-move-v1`へ更新済みであり、旧chevron rev文字列に戻さない。
+- **Pages**：ゲームコードHEAD `de895b45d212e8800cc6fd78e37a84e7d5b40000` のrun `41325720081`はbuild/deploy/report-build-status全success。ROADMAPのみの今回コミットは別runで確認。
+- **未検証**：実Android/物理パッド、実WebGL/Canvas2D目視、6画面の**本番全HTML+CSSの実BoundingClientRect**、セーフエリア、実プレイでの建物迂回→到達。公開サイトの直接取得は実行環境でDNS不可。模擬Canvasの42/42を実ブラウザPASSとは扱わない。
+- **次45分枠**：①本番実DOMで右上3ボタン→地図→SCORE/HUNT、左生命列・4ボタンの縦横6画面重なり0を測定。②カメラ回転/迂回/到達/mission7の「〉〉」消灯を実プレイ確認。③地図3段階/550ms長押し、強敵20種、夜目、物理パッド/旧セーブを回帰。問題が出た箇所だけ最小差分修正。
+- **次15分枠**：初回チュートリアル→巣LV2→縄張り→探索→「生き残れ！」、死亡リトライ/猫速度/3チェックポイントと夜間狩猟を実ブラウザで回帰。**進捗71/100維持**（今回のQAだけで加点なし）。
+
 ## 共通スプリント｜2026-11-02 01:15 JST｜手動即時修正・15分枠引継ぎ｜INSTANT-DIRECTIONAL-CONTROLS-20261102
 - **症状・完成像**：十字キー（矢印/ゲームパッド）で反対方向へ入力してもプレイヤーが大回りで旋回し移動に遅れがある。通常歩行では入力フレーム内で方向と速度を即変更し、逆180度・横90度・斜めも回り込まず、離上時だけ自然な既存減速。ジャンプ/飛びつき/突進の固定軌道は維持。
 - **開始HEAD**：`e17728908bdfa48f56d2acc34861269ea5013a16`。GitHub main、`game.js`・`gamepad.js`・`index.html`現物とROADMAP上位を確認。前枠の小型「〉〉」ミッションナビ、猫/狐/狼速度、セーブスキーマ、右上HUDは上書きしない。
