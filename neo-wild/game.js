@@ -335,7 +335,7 @@ function currentSnapshot(){
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
-  mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews
+  tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews
  };
 }
 function saveAuto(){
@@ -385,6 +385,7 @@ function restoreSnapshot(snapshot){
  kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
  expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
  mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete;
+ tutorialSeen=new Set(Array.isArray(snapshot.tutorialSeen)?snapshot.tutorialSeen.filter(n=>Number.isInteger(n)&&n>=0&&n<=6):Array.from({length:Math.min(7,mission)},(_,i)=>i));
  totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
  weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
  nextWeather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.nextWeather)?snapshot.nextWeather:null;
@@ -449,7 +450,7 @@ function restoreSnapshot(snapshot){
  try{saveDenLevel();saveDenStash();saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
  syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
- saveAuto();announceObjective();notify("保存した場所から再開");
+ saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
 }
 function recordCheckpoint(){
@@ -1253,7 +1254,7 @@ function advanceMission(next){
  mission=next;
  if(next===7){freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition)}
  if(!showMissionMilestone(previous,next))announceObjective();
- syncHUD();
+ syncHUD();saveAuto();
 }
 function checkMission(){
  if(mission===0&&meals>=1){advanceMission(1);return}
@@ -1995,7 +1996,7 @@ function update(dt){
    danger:mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<290)});
  }
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
- autosaveClock+=dt;if(autosaveClock>=4){autosaveClock=0;saveAuto();}
+ autosaveClock+=dt;if(autosaveClock>=1){autosaveClock=0;saveAuto();}
 }
 function syncHUD(hour){
  if(!P)return;
