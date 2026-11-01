@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261101-pantry4">
+<link rel="stylesheet" href="./visual.css?rev=20261101-pantry-guide5">
 </head>
 <body>
 <div id="app">
@@ -19,7 +19,7 @@
     <div class="vitals"><div class="vital health"><label>生命 <b id="hp-text">100 / 100</b></label><div class="track"><i id="hp-bar"></i></div></div>
     <div class="vital food"><label>空腹 <b id="food-text">100%</b></label><div class="track"><i id="food-bar"></i></div></div>
     <div class="vital stamina"><label>持久 <b id="sp-text">100%</b></label><div class="track"><i id="sp-bar"></i></div></div></div>
-    <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1｜運搬 なし</div><div id="den-stash-panel"><div id="den-stash-count">備蓄 0 / 60pt（LV2まで・消費なし）</div><div class="den-stash-track" role="progressbar" aria-label="巣の備蓄" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="den-stash-bar"></i></div></div><button id="den-inventory-btn" type="button" aria-controls="den-inventory">食料庫</button><button id="objective-toggle" type="button" aria-expanded="false" aria-controls="mission">目標を見る</button>
+    <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1｜運搬 なし</div><div id="den-stash-panel"><div id="den-stash-count">備蓄 0 / 60pt（LV2まで・消費なし）</div><div class="den-stash-track" role="progressbar" aria-label="巣の備蓄" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="den-stash-bar"></i></div></div><button id="den-inventory-btn" type="button" aria-controls="den-inventory">食料庫</button><button id="objective-toggle" type="button" aria-controls="tutorial-dialog">ガイドを見る</button>
   </div>
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">DAY 01 · 06:00 · 快晴</div></div>
   <div class="hud-right"><div class="session-actions" aria-label="ゲームの操作"><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="top-actions"><button id="sound-btn" title="サウンド切替">♪</button><button id="map-btn" title="地図を見る" aria-label="地図を見る">地図</button><button id="full-btn" title="全画面">⛶</button></div><div class="map-frame"><canvas id="minimap" width="150" height="94"></canvas><span>TOKYO MAP</span></div></div>
@@ -55,10 +55,17 @@
  <div class="den-food-row hidden" id="den-row-legacy"><span><b>以前の備蓄</b><small>旧セーブから引き継いだ食料</small></span><strong id="den-qty-legacy">0pt</strong><button id="den-eat-legacy" type="button">旧備蓄を食べる</button></div>
  <p class="den-pantry-note">選んだ食料だけ減ります。巣の強化では備蓄を消費しません。</p></section>
 </div>
+<div id="tutorial-dialog" class="survival-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+ <section class="survival-card tutorial-card"><header class="survival-head"><div><small id="tutorial-stage">チュートリアル 1 / 4</small><h2 id="tutorial-title">生き残るために</h2></div><button id="tutorial-close" type="button">閉じる ×</button></header>
+ <div class="tutorial-status"><span id="tutorial-progress-label">現在の目標</span><span id="tutorial-counter">1 / 7</span></div>
+ <div class="tutorial-explainer"><h3>何をする？</h3><p id="tutorial-what"></p><h3>なぜする？</h3><p id="tutorial-why"></p><h3>操作方法</h3><p id="tutorial-how"></p><h3>どうなる？</h3><p id="tutorial-result"></p></div>
+ <p class="tutorial-note">ページを送っても目標はスキップされません。閉じるとゲーム再開。</p>
+ <footer class="tutorial-controls"><button id="tutorial-prev" type="button">← 戻る</button><button id="tutorial-next" type="button">次へ →</button></footer></section>
+</div>
 <div id="menu" class="overlay">
   <div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div>
   <div class="menu-shell">
-    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261101-CARRYMEAT1</div>
+    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261101-PANTRY-GUIDE5</div>
     <div class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</div>
     <div class="subtitle">廃都生存記 <span>— TOKYO AFTER HUMANITY —</span></div>
     <div id="save-menu-actions" aria-label="保存したゲームから再開">
@@ -107,5 +114,5 @@
 </div>
 <script src="./audio.js?rev=20261031-soft-jump-sfx2" defer></script>
 <script src="./webgl3d.js?rev=20261101-carrymeat1" defer></script>
-<script src="./game.js?rev=20261101-pantry4" defer></script>
+<script src="./game.js?rev=20261101-pantry-guide5" defer></script>
 </body></html>
