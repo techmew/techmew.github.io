@@ -289,7 +289,7 @@ function show(id){
 }
 function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=(["CLEAR","CLOUDY","RAIN","FOG","WIND","THUNDER"])[Math.floor(Math.random()*6)];weatherTimer=rnd(24,44);nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false};
@@ -1126,7 +1126,7 @@ const TUTORIAL_PAGES=[
  {stage:"生存目標 2 / 3",title:"縄張りを確保する",what:"縄張り標識を1か所確保する。",why:"休息しやすい安全地帯を広げ、敵の接近を抑えるため。",how:"地図の標識へ移動し、敵を追い払って△長押し。",result:"巣の休息力が上がり、周辺の野犬を牽制する。"},
  {stage:"生存目標 3 / 3",title:"探索地点を発見する",what:"未発見の探索地点を2か所訪れる。",why:"新しい生息域・資源・危険を把握するため。",how:"地図と方向案内を確認して移動する。",result:"自由探索へ移り、狩りと生活を続けられる。"}
 ];
-let tutorialPage=0;const tutorialSeen=new Set();
+let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false;
 function renderTutorial(){
  const info=TUTORIAL_PAGES[tutorialPage];
  for(const key of ["stage","title","what","why","how","result"])$("tutorial-"+key).textContent=info[key];
@@ -1139,12 +1139,18 @@ function openTutorial(page=Math.min(mission,6),automatic=false){
  tutorialPage=clamp(Math.floor(page),0,TUTORIAL_PAGES.length-1);
  if(automatic)tutorialSeen.add(tutorialPage);
  if(mode==="play"){saveAuto();resetControls();mode="guide"}
+ guideNeedsFrame=true; // Render the scene once behind the popup, then freeze its frame.
+ $("app").classList.add("tutorial-paused");
  $("tutorial-dialog").classList.remove("hidden");$("objective-banner").classList.remove("visible");objectiveBannerTime=0;
+ window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"guide"});
  renderTutorial();$("tutorial-close").focus({preventScroll:true});return true;
 }
 function closeTutorial(){
  if(mode!=="guide")return;
- $("tutorial-dialog").classList.add("hidden");mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
+ $("tutorial-dialog").classList.add("hidden");
+ $("app").classList.remove("tutorial-paused");
+ guideNeedsFrame=false;mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
+ window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"play"});
 }
 function tutorialMove(delta){
  if(mode!=="guide")return;
@@ -2811,7 +2817,9 @@ function loop(t){
  }
  if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
  else huntSlowUntil=0;
- drawScene();requestAnimationFrame(loop);
+ // Keep a visible, perfectly still 2D/WebGL frame behind the guide popup.
+ if(mode!=="guide"||guideNeedsFrame){drawScene();guideNeedsFrame=false}
+ requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
@@ -2833,12 +2841,12 @@ function keyDown(e){
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
 window.addEventListener("blur",()=>{
  if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
- else if(mode==="upgrade")saveAuto();
+ else if(mode==="upgrade"||mode==="guide"||mode==="inventory")saveAuto();
 });
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden){
   if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
-  else if(mode==="pause"||mode==="upgrade")saveAuto();
+  else if(mode==="pause"||mode==="upgrade"||mode==="guide"||mode==="inventory")saveAuto();
  }
 });
 window.addEventListener("pagehide",saveAuto);
