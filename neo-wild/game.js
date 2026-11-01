@@ -938,18 +938,34 @@ function drinkWildWater(m,sp,dt,spotted,playerDistance){
     playerDistance<105||((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
  if(sp.prey&&mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&
     dist(m,q)<170&&!lineBlocked(m,q)))return null;
+ // Approach the real dry river/canal bank, not an exploration marker.
  let goal=null,best=310*310;
- for(const site of EXPLORE_SITES){
-  if(site.id!=="river"&&site.id!=="canal")continue;
-  const dx=m.x-site.x,dy=m.y-site.y;
-  if(Math.abs(dx)>330||Math.abs(dy)>300)continue;
-  const x=clamp(m.x,site.x-175,site.x+175),y=site.y+(dy>=0?121:-121);
-  const d2=(x-m.x)**2+(y-m.y)**2;
-  if(d2>=best||collides(x,y,m.r+4))continue;
-  goal={x,y};best=d2;
+ const banks=[];
+ if(m.y>=0&&m.y<2600&&m.x>=6300){
+  for(const offset of [0,110,-110,220,-220]){
+   const y=clamp(m.y+offset,32,2568),axis=riverAxis(y);
+   const side=m.x<axis?-1:1,edge=axis+side*133;
+   const x=edge+side*(m.r+10);
+   if(!waterBlocksLand(edge-side*3,y))continue; // Bridges are not water.
+   banks.push({x,y});
+  }
+ }
+ if(m.x>=5600&&m.x<8400&&m.y>=2600){
+  for(const offset of [0,110,-110,220,-220]){
+   const x=clamp(m.x+offset,5632,8368),axis=canalAxis(x);
+   const side=m.y<axis?-1:1,edge=axis+side*100;
+   const y=edge+side*(m.r+10);
+   if(!waterBlocksLand(x,edge-side*3))continue;
+   banks.push({x,y});
+  }
+ }
+ for(const bank of banks){
+  const d2=(bank.x-m.x)**2+(bank.y-m.y)**2;
+  if(d2>=best||collides(bank.x,bank.y,m.r+4))continue;
+  goal=bank;best=d2;
  }
  if(!goal)return null;
- if(best>(m.r+10)**2){
+ if(best>12*12){
   m.dir=steerPursuit(m,goal.x,goal.y);
   if(!clearStep(m,m.dir,Math.min(35,Math.sqrt(best))))return null;
   return {vx:Math.cos(m.dir)*sp.speed*.42,vy:Math.sin(m.dir)*sp.speed*.42};
