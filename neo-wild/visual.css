@@ -372,3 +372,20 @@
  .den-food-row button{grid-column:1/-1;width:100%}
 }
 @media(max-height:520px) and (orientation:landscape){.survival-card{max-height:calc(100dvh - 14px);padding:12px 17px}}
+
+/* Read-only manual tutorial; the game is paused until Close. */
+#hud #objective-toggle{position:static!important;display:inline-flex;align-items:center;justify-content:center;min-width:0!important;width:auto!important;height:26px!important;padding:0 9px!important;margin:5px 0 0 6px!important;border-radius:8px!important;background:#203944!important;border-color:#7ba2b6!important;font:800 10px "Noto Sans JP",sans-serif!important;white-space:nowrap}
+.tutorial-card{width:min(740px,100%)}
+.tutorial-status{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #496a62;border-bottom:1px solid #496a62;padding:10px 0;color:#d6e8ad;font-size:13px;font-weight:800}
+.tutorial-explainer{display:grid;grid-template-columns:1fr;gap:4px;margin-top:10px}
+.tutorial-explainer h3{font-size:15px;color:#d9f0b2;margin:9px 0 0}
+.tutorial-explainer p{font-size:14px;line-height:1.7;margin:0;color:#f1f6ec}
+.tutorial-note{border-top:1px solid #496a62;margin:15px 0 8px;padding-top:10px;font-size:12px;line-height:1.6;color:#d3e5d7}
+.tutorial-controls{display:flex;gap:12px;justify-content:space-between;margin-top:12px}
+.tutorial-controls button{min-height:43px;min-width:110px;border:1px solid #8caf9f;border-radius:10px;background:#2a5148;color:#f2f9f0;padding:8px 13px;font-size:13px;font-weight:800;touch-action:manipulation}
+@media(max-width:520px){.tutorial-explainer h3{font-size:14px}.tutorial-explainer p{font-size:13px}}
+@media(max-height:520px) and (orientation:landscape){
+ .tutorial-explainer{grid-template-columns:1fr 1fr;column-gap:18px}
+ .tutorial-explainer h3{margin:5px 0 0}.tutorial-explainer p{font-size:12px}
+ .survival-head{margin-bottom:6px}.tutorial-note{margin:8px 0 3px}
+}
