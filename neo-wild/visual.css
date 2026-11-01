@@ -707,3 +707,37 @@
  #hud .hud-right #mini-map-control{top:calc(90px + env(safe-area-inset-top));width:80px;height:80px;}
  #status{top:calc(180px + env(safe-area-inset-top));}
 }
+
+
+/* UI-RIGHT-STACK-NONAV-01: hide the floating navigation pill; objective remains on the map. */
+#nav-hud{display:none!important;}
+@media (orientation:portrait) and (max-width:600px){
+  #hud .hud-right{gap:4px;align-items:flex-end;min-width:105px;}
+  #hud .hud-right .session-actions{display:flex;justify-content:flex-end;}
+  #hud .hud-right .session-actions button{min-width:60px;height:40px;min-height:40px;font-size:12px;padding:0 8px;}
+  #hud .hud-right .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px;}
+  #hud .hud-right .top-actions button{
+    position:static!important;top:auto!important;right:auto!important;
+    width:44px!important;min-width:44px!important;height:40px!important;min-height:40px!important;
+    flex:0 0 44px;padding:0 3px;font-size:16px!important;touch-action:manipulation;
+  }
+  /* Normal flex flow keeps the minimap immediately below the audio / fullscreen row. */
+  #hud .hud-right #mini-map-control{
+    position:relative!important;top:auto!important;right:auto!important;left:auto!important;
+    align-self:flex-end;margin:2px 0 0!important;width:96px;height:96px;
+  }
+  #status{top:calc(207px + env(safe-area-inset-top));right:max(9px,env(safe-area-inset-right));}
+  #gamepad-status{top:calc(248px + env(safe-area-inset-top));right:max(9px,env(safe-area-inset-right));}
+}
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px){
+  #hud .hud-right{gap:3px;align-items:flex-end;}
+  #hud .hud-right #mini-map-control{
+    position:relative!important;top:auto!important;right:auto!important;left:auto!important;
+    align-self:flex-end;margin:2px 0 0!important;
+    width:clamp(80px,23dvh,105px);height:clamp(80px,23dvh,105px);
+  }
+}
+@media (orientation:landscape) and (max-height:390px) and (max-width:1024px){
+  #hud .hud-right #mini-map-control{width:80px;height:80px;}
+}
