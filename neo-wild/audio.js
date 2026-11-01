@@ -69,6 +69,9 @@ function buildAtmos(name){
  return loopBuffer(seconds,(t,ch,low,hi)=>{
   if(name==="wind")return low*(.85+.15*Math.sin(t*.8+ch))*.45+hi*.013;
   if(name==="rain")return hi*.15+low*.24+Math.max(0,Math.sin(t*67))*hi*.06;
+  // Flowing river/canal ambience: layered low-frequency current and soft ripples.
+  if(name==="water")return low*(.48+.18*Math.sin(t*1.3+ch*.27))+
+    hi*(.12+.03*Math.sin(t*13+ch))+.085*Math.sin(2*Math.PI*(86+3*Math.sin(t*.8))*t)*Math.max(0,Math.sin(t*5))*.38;
   if(name==="forest")return low*.25+hi*.032+Math.sin(2*Math.PI*1650*t+Math.sin(t*4)*9)*.005*Math.pow(Math.max(0,Math.sin(t*2.3)),9);
   return 0;
  });
@@ -123,6 +126,7 @@ function unlock(){
   attachLoop("wind",buildAtmos("wind"),atmosBus,.22);
   attachLoop("forestWind",buildAtmos("forest"),atmosBus,0);
   attachLoop("rain",buildAtmos("rain"),atmosBus,0);
+   attachLoop("water",buildAtmos("water"),atmosBus,0);
   started=true;return true;
  }catch(e){console.warn("WILD RECLAIM audio init:",e);return false}
 }
@@ -138,9 +142,11 @@ function update(conditions){
   danger:(danger?.64:storm?.17:.012)*mix,
   wind:(scene.weather==="WIND"?.61:scene.weather==="FOG"?.28:.21)*mix,
   forestWind:(forest?.37:.04)*mix,
-  rain:(storm?.72:rain?.51:0)*mix
+  rain:(storm?.72:rain?.51:0)*mix,
+   water:clamp(Number(scene.waterNear)||0,0,1)*.77*mix
  };
- for(const [name,value] of Object.entries(targets)){
+ if(loopSources.water?.playbackRate)loopSources.water.playbackRate.setTargetAtTime(scene.waterKind==="canal"?.88:1,clock,.9);
+  for(const [name,value] of Object.entries(targets)){
   const gain=loopGains[name];
   if(gain)gain.gain.setTargetAtTime(value,clock,.9);
  }
