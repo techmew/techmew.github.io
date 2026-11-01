@@ -3277,6 +3277,33 @@ function drawOccludedSilhouettes(entities){
   ctx.restore();
  }
 }
+// Route-aware mission navigation: two discreet direction chevrons, never a large floating HUD.
+function drawMissionChevrons(){
+ if(!P||mode!=="play"||mission>=7||!guideWisp||!guideGoal)return;
+ const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y,waypointDistance=Math.hypot(dx,dy);
+ const goalDistance=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y);
+ if(!Number.isFinite(waypointDistance)||!Number.isFinite(goalDistance)||waypointDistance<12||goalDistance<42)return;
+ const ux=dx/waypointDistance,uy=dy/waypointDistance;
+ const start=project(P.x,P.y),forward=project(P.x+ux*100,P.y+uy*100);
+ const bearing=Math.atan2(forward.y-start.y,forward.x-start.x);
+ if(Math.hypot(forward.x-start.x,forward.y-start.y)<8)return;
+ const count=waypointDistance>=155&&goalDistance>=190?2:1;
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
+ ctx.font="900 "+(vh<=520?18:21)+"px sans-serif";
+ for(let i=0;i<count;i++){
+  const step=Math.min(waypointDistance*.82,62+i*64);
+  const pos=project(P.x+ux*step,P.y+uy*step);
+  if(!Number.isFinite(pos.x)||!Number.isFinite(pos.y)||pos.x<30||pos.x>vw-30||
+     pos.y<Math.min(72,vh*.16)||pos.y>vh-42)continue;
+  ctx.save();ctx.translate(pos.x,pos.y);ctx.rotate(bearing);
+  ctx.globalAlpha=.68+.15*(.5+.5*Math.sin(elapsed*4-i*.8));
+  ctx.strokeStyle="rgba(4,28,32,.88)";ctx.lineWidth=3.6;ctx.strokeText("〉〉",0,0);
+  ctx.fillStyle="#9ef4de";ctx.fillText("〉〉",0,0);ctx.restore();
+ }
+ ctx.restore();
+}
+
 function drawShelterEntranceMarker(){
  if(mode!=="play")return;
  const entry=nearestShelterEntrance();
@@ -3492,7 +3519,7 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
- drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels(); // Objective stays in the minimap, not over play.
+ drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels(); // Route hint only during active objectives.
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
