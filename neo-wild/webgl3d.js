@@ -30,7 +30,7 @@ void main(){
  vec3 sun=normalize(vec3(-0.55,-0.7,1.2));
  float bright=max(0.0,dot(n,sun));
  vShade=0.34+0.65*bright;
- vColor=aColor*(1.0-uNight*.42);
+ vColor=aColor*(1.0-uNight*.69);
 }
 `;
 const fragment=String.raw`
@@ -364,15 +364,34 @@ function landmarkMesh(site){
   box(x-105,y-75,0,20,27,96,"#88928d");box(x+85,y-75,0,20,27,96,"#88928d");
  }
 }
-function terrain(w,roadsX,roadsY,isVisible){
+function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
  // Regional ground changes visibly without drawing every distant building.
- box(0,2600,-.4,2800,w.h-2600,.45,"#31533c","#50714c"); // reclaimed forest
- box(2800,2600,-.4,2800,w.h-2600,.45,"#4b504a","#666762"); // industrial district
- box(5600,2600,-.4,w.w-5600,w.h-2600,.45,"#2e5551","#55716c"); // wet canals
- box(4200,0,-.4,2100,2600,.45,"#384b49","#667368"); // deserted zoo
- box(6300,0,-.4,w.w-6300,2600,.45,"#315656","#5d7771"); // river area
+ 
+ const regionalBases=[
+  [0,0,1400,2600,"#455552","#64716c"],[1400,0,1400,2600,"#584f47","#85715e"],
+  [2800,0,1400,2600,"#31533a","#608854"],[4200,0,2100,2600,"#455447","#66796b"],
+  [6300,0,2100,2600,"#6a7256","#9aa17b"],[0,2600,2800,3400,"#244c33","#3f8150"],
+  [2800,2600,2800,3400,"#554d48","#897565"],[5600,2600,2800,3400,"#405960","#6b8e96"]
+ ];
+ for(const [x,y,w,h,base,top] of regionalBases)box(x,y,-.4,w,h,.45,base,top);
+ const river=y=>7505+68*Math.sin(y/390),canal=x=>5025+35*Math.sin(x/390);
+ for(let y=0;y<2600;y+=125){
+  const y2=Math.min(2600,y+125),a=river(y),b=river(y2),h=133;
+  if(!isVisible((a+b)/2,(y+y2)/2,440))continue;
+  quad([a-h-22,y,.13],[a+h+22,y,.13],[b+h+22,y2,.13],[b-h-22,y2,.13],color("#a8af91"));
+  quad([a-h,y,.18],[a+h,y,.18],[b+h,y2,.18],[b-h,y2,.18],color("#34788b"));
+  box((a+b)/2-33,(y+y2)/2,.2,65,2,.10,"#72aab6","#a4d2ca");
+ }
+ for(let x=5600;x<8400;x+=125){
+  const x2=Math.min(8400,x+125),a=canal(x),b=canal(x2),h=100;
+  if(!isVisible((x+x2)/2,(a+b)/2,440))continue;
+  quad([x,a-h-23,.13],[x2,b-h-23,.13],[x2,b+h+23,.13],[x,a+h+23,.13],color("#929b91"));
+  quad([x,a-h,.18],[x2,b-h,.18],[x2,b+h,.18],[x,a+h,.18],color("#2c687f"));
+  box((x+x2)/2,(a+b)/2-28,.2,52,2,.10,"#64a0b0","#afc7c4");
+ }
+
  for(const y of roadsY){
   box(0,y-80,0,w.w,160,1,"#323d3e","#344145");
   box(0,y-86,0,w.w,6,2,"#565d54","#717e68");
@@ -393,6 +412,48 @@ function terrain(w,roadsX,roadsY,isVisible){
    if(detailNoise(x+y)>.45)pyramid(x+84,y+82,2,13,11,16,"#536e54");
   }
  }
+ // Deterministic, low-poly district landmarks across the whole region, not only at the six quest pins.
+ const styles=[
+ [0,0,1400,2600,"barrier"],[1400,0,1400,2600,"rail"],[2800,0,1400,2600,"ivy"],[4200,0,2100,2600,"cage"],
+ [6300,0,2100,2600,"reeds"],[0,2600,2800,3400,"forest"],[2800,2600,2800,3400,"factory"],[5600,2600,2800,3400,"dock"]
+ ];
+ for(const [zx,zy,zw,zh,kind] of styles){
+  const step=kind==="forest"?280:385;
+  for(let y=zy+120;y<zy+zh-75;y+=step)for(let x=zx+120;x<zx+zw-75;x+=step){
+   const n=detailNoise(x*.011+y*.017),px=x+(n-.5)*65,py=y+(detailNoise(x*.013-y*.021)-.5)*65;
+   if(n<.20||!isVisible(px,py,150))continue;
+   if(roadsX.some(v=>Math.abs(px-v)<112)||roadsY.some(v=>Math.abs(py-v)<112))continue;
+   if(buildings.some(b=>px>b.x-65&&px<b.x+b.w+65&&py>b.y-65&&py<b.y+b.h+65))continue;
+   if(kind==="reeds"&&Math.abs(px-river(py))<177||kind==="dock"&&Math.abs(py-canal(px))<150)continue;
+   if(kind==="barrier"){
+    box(px-34,py-10,0,68,20,16,"#888b83","#c1bba8");
+    for(let k=-2;k<=2;k++)box(px+k*12,py-12,16,5,24,2,"#b19a65");
+   }else if(kind==="rail"){
+    for(let k=-2;k<=2;k++)box(px+k*14,py-45,0,6,90,3,"#98816b");
+    for(const off of [-20,20])box(px-38,py+off,2,76,6,3,"#a9aaa1");
+   }else if(kind==="ivy"){
+    for(let k=0;k<6;k++){const a=k*TAU/6;pyramid(px+22*Math.cos(a),py+20*Math.sin(a),0,25,19,34,"#448b51");}
+   }else if(kind==="cage"){
+    for(const xx of [-42,0,42])for(const yy of [-28,28])box(px+xx-2,py+yy-2,0,4,4,62,"#9ca7a0");
+    for(const yy of [-28,28])box(px-44,py+yy,46,88,4,5,"#b5c0b2");
+   }else if(kind==="reeds"){
+    for(let k=-4;k<=4;k++)pyramid(px+k*8,py+(k%3)*14,0,5,5,24+(k+4)%4*9,"#a2b67b");
+   }else if(kind==="forest"){
+    box(px-6,py-7,0,12,14,79,"#635339");
+    pyramid(px,py,52,41,38,98,"#2b7b46");
+    pyramid(px+7,py+4,92,27,25,54,"#4b9959");
+   }else if(kind==="factory"){
+    box(px-40,py-20,0,80,40,17,"#9a7660","#c39c79");
+    box(px-40,py-20,17,80,40,7,"#765a50");
+    for(const t of [-30,30])box(px+t,py-5,0,7,10,47,"#8b8580");
+   }else if(kind==="dock"){
+    box(px-46,py-30,0,92,60,5,"#796a59","#b2a18b");
+    for(let k=-3;k<=3;k++)box(px+k*12,py-30,5,4,60,3,"#685f50");
+    for(const t of [-35,35])box(px+t-4,py-35,0,8,8,38,"#748d8e");
+   }
+  }
+ }
+
 }
 let failed=false,frames=0;
 canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();failed=true;window.Wild3D.available=false;canvas.style.display="none";});
@@ -413,10 +474,11 @@ function render(o){
   const width=Math.max(1,Math.round(vw*dpr)),height=Math.max(1,Math.round(vh*dpr));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   gl.viewport(0,0,width,height);
-  const ambient=(1-(Math.cos(((elapsed%85)/85-.15)*TAU)+1)/2)*.68;
+  const hour=(6+(elapsed%85)/85*24)%24;
+   const daylight=Math.max(0,Math.sin((hour-6)*Math.PI/12));
   const overcast=weather==="THUNDER"?.22:weather==="RAIN"?.14:weather==="CLOUDY"?.12:weather==="FOG"?.10:0;
-  const night=Math.min(.94,ambient+overcast);
-  gl.clearColor(.12*(1-night*.5),.18*(1-night*.48),.18*(1-night*.4),1);
+  const night=Math.min(.94,.81*(1-daylight)+overcast);
+  gl.clearColor(.12*(1-night*.73),.18*(1-night*.72),.19*(1-night*.68),1);
   gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   const isVisible=(x,y,margin=150)=>{
    const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;
@@ -427,7 +489,7 @@ function render(o){
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
   const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
-   data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible);
+   data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
