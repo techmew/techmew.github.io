@@ -812,12 +812,12 @@ function visibleWinterCover(o){
 function inCover(o){
  return visibleShrubCover()?plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75):visibleWinterCover(o);
 }
-function winterCoverSpotFor(actor,maxRange=1300,avoid=null){
+function winterCoverSpotFor(actor,maxRange=1300,avoid=null,accept=null){
  if(!actor||visibleShrubCover())return null;
  let best=null,bestScore=Infinity;
  const consider=(x,y)=>{
   const spot={x,y,r:actor.r},d=dist(actor,spot);
-  if(d>maxRange||collides(x,y,actor.r)||!visibleWinterCover(spot)||(avoid&&dist(avoid,spot)<140)||!routeClear(actor,spot,actor.r))return;
+  if(d>maxRange||collides(x,y,actor.r)||!visibleWinterCover(spot)||(avoid&&dist(avoid,spot)<140)||(accept&&!accept(spot))||!routeClear(actor,spot,actor.r))return;
   const score=d;
   if(score<bestScore){bestScore=score;best=spot;}
  };
@@ -1922,22 +1922,31 @@ function followRainShelter(m,sp,dt){
 function nightRestSeason(){
  return worldDaylight()<.30; // Winter rests use visible solid objects.
 }
+// Night rest must not route prey into a visible dog/alpha's hunting radius.
+// A concealed player can still approach for a stealth ambush.
+function nightCoverThreatened(m,x,y,includePlayer=true){
+ if(includePlayer&&P&&Math.hypot(P.x-x,P.y-y)<140)return true;
+ return mobs.some(q=>q!==m&&q.hp>0&&(q.type==="dog"||q.type==="alpha")&&
+  Math.hypot(q.x-x,q.y-y)<165&&!lineBlocked(q,{x,y}));
+}
 function followNightCover(m,sp,dt){
  if((m.type!=="rabbit"&&m.type!=="pigeon")||!nightRestSeason()||
     weather==="RAIN"||weather==="THUNDER"||(m.restNeed||0)<.68)return null;
- if(inCover(m))return {vx:0,vy:0};
- if(!visibleShrubCover()&&Number.isFinite(m.nightCoverX)&&Number.isFinite(m.nightCoverY)&&!visibleWinterCover({x:m.nightCoverX,y:m.nightCoverY,r:m.r}))m.nightCoverRefresh=0;
+ if(inCover(m)&&!nightCoverThreatened(m,m.x,m.y,false))return {vx:0,vy:0};
+ if(Number.isFinite(m.nightCoverX)&&Number.isFinite(m.nightCoverY)&&
+    (nightCoverThreatened(m,m.nightCoverX,m.nightCoverY)||
+     (!visibleShrubCover()&&!visibleWinterCover({x:m.nightCoverX,y:m.nightCoverY,r:m.r}))))m.nightCoverRefresh=0;
  m.nightCoverRefresh=Math.max(0,(m.nightCoverRefresh||0)-dt);
  if(m.nightCoverRefresh<=0){
   m.nightCoverRefresh=4+rnd(0,1);
   let nearest=null;
-  if(!visibleShrubCover())nearest=winterCoverSpotFor(m,300,P);
+  if(!visibleShrubCover())nearest=winterCoverSpotFor(m,300,P,spot=>!nightCoverThreatened(m,spot.x,spot.y));
   else{
    let best=300;
    for(const p of plants){
     if(p.type!==2)continue;
     const d=Math.hypot(p.x-m.x,p.y-m.y);
-    if(d>=best||d<20||Math.hypot(P.x-p.x,P.y-p.y)<140)continue;
+    if(d>=best||d<20||nightCoverThreatened(m,p.x,p.y))continue;
     if(collides(p.x,p.y,m.r+3)||!routeClear(m,p,m.r+3))continue;
     best=d;nearest=p;
    }
@@ -1945,7 +1954,7 @@ function followNightCover(m,sp,dt){
   m.nightCoverX=nearest?nearest.x:null;
   m.nightCoverY=nearest?nearest.y:null;
  }
- if(!Number.isFinite(m.nightCoverX)||!Number.isFinite(m.nightCoverY)||Math.hypot(P.x-m.nightCoverX,P.y-m.nightCoverY)<140)return null;
+ if(!Number.isFinite(m.nightCoverX)||!Number.isFinite(m.nightCoverY)||nightCoverThreatened(m,m.nightCoverX,m.nightCoverY))return null;
  m.dir=steerPursuit(m,m.nightCoverX,m.nightCoverY);
  return {vx:Math.cos(m.dir)*sp.speed*.44,vy:Math.sin(m.dir)*sp.speed*.44};
 }
@@ -1961,6 +1970,8 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  const safeRest=(indoors&&rainy)||naturalNightCover;
  const hunterAnimal=sp.prey?mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<155&&!lineBlocked(m,q)):null;
  const hunter=!!hunterAnimal;
+ // Awake prey also reacts immediately to a nearby visible wild predator.
+ if(sp.prey&&hunterAnimal&&m.restTime<=0&&m.flee<=0)startlePrey(m,hunterAnimal,"alarm");
  const danger=spotted||m.alert>0||m.flee>0||m.stun>0||m.windup>0||
   m.chargeTime>0||(m.evadeTime||0)>0||hunter||
   (d<115&&!lineBlocked(m,P));
