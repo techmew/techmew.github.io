@@ -524,6 +524,16 @@ function denBeddingMesh(d){
   box(x-48,y+27,z+1,96,5,7,"#615b42");
  }
  if(d.stash>0)ellipsoid(x+32,y+16,z+4,Math.min(20,8+d.stash*.06),8,5,"#a8906b",0,8,3);
+ // Small permanent site details distinguish each den without extra UI markers.
+ if(d.kind==="roof"){
+  for(let j=0;j<3;j++)box(x-45+j*29,y+27,z+.5,21,4,3,"#8b9a9e");
+ }else if(d.kind==="ruin"){
+  for(let j=0;j<4;j++)box(x-53+j*27,y-41+j%2*6,z+.5,13,8,6,"#878379");
+ }else if(d.kind==="yard"){
+  for(let j=0;j<3;j++)box(x-42+j*34,y-41,z+.5,25,5,4,"#717c6d");
+ }else if(d.kind==="reeds"){
+  for(let j=0;j<7;j++)pyramid(x-65+j*19,y+42,z+2,3,3,31+j%3*7,j%2?"#b7b47d":"#8caa73");
+ }
 }
 function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math.floor(x);}
 // Lightweight location-specific 3D detail, decorative only.
