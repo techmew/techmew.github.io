@@ -770,7 +770,12 @@ function lineBlocked(a,b){
  }
  return false;
 }
-function inCover(o){return plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75)}
+// Winter shrubs are intentionally invisible in both renderers: they cannot conceal animals.
+function visibleShrubCover(){
+ const month=tokyoCalendarDay(1+Math.floor(Math.max(0,elapsed)/85)).month;
+ return month>=2&&month<=10; // March-November (zero-based month).
+}
+function inCover(o){return visibleShrubCover()&&plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75)}
 function detectsPlayer(m,sp,d){
  // The visual clock is authoritative: the old cosine classified midnight as
  // daytime. Daylight, not a second independent clock, now governs visual range.
@@ -1517,7 +1522,7 @@ function chooseEscape(m,away){
  for(const off of angles){
   const angle=away+off,step=78,x=m.x+Math.cos(angle)*step,y=m.y+Math.sin(angle)*step;
   if(!clearStep(m,angle,step))continue;
-  const cover=plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1:0;
+  const cover=visibleShrubCover()&&plants.some(p=>p.type===2&&Math.hypot(x-p.x,y-p.y)<p.r*.75)?1:0;
   const distance=P?Math.hypot(x-P.x,y-P.y):0;
   const coverWeight=m.type==="rat"?3.3:m.type==="rabbit"?.5:.25;
   const forwardWeight=m.type==="rabbit"?3.3:m.type==="rat"?1.65:1.55;
