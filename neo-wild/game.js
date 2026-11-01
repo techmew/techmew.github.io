@@ -639,7 +639,16 @@ function restoreSnapshot(snapshot){
   strongRegionCurrent=-1;normalizeStrongBossSave();
  for(const c of carcasses)normalizeRemains(c);
  for(const m of mobs){
-  if(waterBlocksLand(m.x,m.y)){const safe=nearestDryBank(m.x,m.y,m.r||18);if(safe){m.x=safe.x;m.y=safe.y;}}
+  if(isAquaticStrong(m)){
+   // Keep saved aquatic bosses in the river/canal; never migrate them onto land.
+   const safe=nearestAquaticWater(m.x,m.y,m.r||18,m.strongRegion);
+   if(safe){m.x=safe.x;m.y=safe.y;}
+   // A load must not release a previously queued strike without its warning.
+   m.aquaticStrike=false;m.windup=0;m.windupTotal=0;
+   m.wildAttack=clamp(Number(m.wildAttack)||0,0,3);
+  }else if(waterBlocksLand(m.x,m.y)){
+   const safe=nearestDryBank(m.x,m.y,m.r||18);if(safe){m.x=safe.x;m.y=safe.y;}
+  }
   m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
   m.evadeTime=0;m.evadeDuration=0;m.evadeRemaining=0;m.evadeSpeed=0;m.evadeHeight=0;
   m.evadeAngle=Number.isFinite(m.evadeAngle)?m.evadeAngle:0;
@@ -776,16 +785,51 @@ function aquaticStagePoints(region){
  }
  return points;
 }
+// Restore a water boss at its saved water position, or a nearby valid water tile.
+function nearestAquaticWater(x,y,r,region){
+ if(waterDepth(x,y)>.035&&!collides(x,y,r,null,true))return {x,y};
+ const zone=Number.isInteger(region)?region:regionAt(x,y);
+ for(let distance=32;distance<=1800;distance+=32)for(let k=0;k<24;k++){
+  const angle=k*Math.PI/12,px=clamp(x+distance*Math.cos(angle),r+13,WORLD.w-r-13);
+  const py=clamp(y+distance*Math.sin(angle),r+13,WORLD.h-r-13);
+  if(regionAt(px,py)===zone&&waterDepth(px,py)>.09&&!collides(px,py,r,null,true))return {x:px,y:py};
+ }
+ return null;
+}
 function aquaticMove(m,dx,dy){
  const allowed=(x,y)=>waterDepth(x,y)>.035&&!collides(x,y,m.r,null,true);
  if(allowed(m.x+dx,m.y+dy)){m.x+=dx;m.y+=dy;return;}
  if(allowed(m.x+dx,m.y))m.x+=dx;
  if(allowed(m.x,m.y+dy))m.y+=dy;
 }
+// Water predators can catch wildlife at the shoreline without walking on land.
+function aquaticBankHunt(m,s,dt,playerDistance){
+ m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
+ if(m.wildAttack>0||m.stun>0||m.windup>0||m.aquaticStrike||playerDistance<175)return false;
+ let prey=null,closest=Infinity;
+ for(const q of mobs){
+  if(q===m||q.hp<=0||!(species[q.type]?.prey||q.type==="boar")||waterBlocksLand(q.x,q.y)||lineBlocked(m,q))continue;
+  const distance=dist(m,q);
+  if(distance<m.r+q.r+24&&distance<closest){closest=distance;prey=q;}
+ }
+ if(!prey)return false;
+ m.wildAttack=m.type==="giantHippo"?2.5:1.8;
+ m.swing=Math.max(m.swing||0,.26);
+ m.dir=Math.atan2(prey.y-m.y,prey.x-m.x);
+ const bite=Math.max(4,Math.round(s.damage*(m.type==="giantHippo"?.26:m.type==="giantCrocodile"?.32:.27)));
+ prey.hp=Math.max(0,prey.hp-bite);prey.flash=Math.max(prey.flash||0,.2);
+ if(prey.hp>0){
+  if(!startlePrey(prey,m,"hit")){prey.flee=Math.max(prey.flee||0,1.8);prey.fleeThreatX=m.x;prey.fleeThreatY=m.y;}
+ }else{
+  carcasses.push(animalRemains(prey));
+  if(species[prey.type]?.prey){const zone=regionAt(prey.x,prey.y);if(ecology[zone])ecology[zone].prey=Math.max(4,ecology[zone].prey-1);}
+ }
+ if(playerDistance<390)label(prey.x,prey.y-prey.r-20,prey.hp>0?"水辺の襲撃 -"+bite:"水辺の狩り","#f5c7a0");
+ return true;
+}
 function updateAquaticStrong(m,s,dt){
- // Water creatures do not use the terrestrial pursuit/bridge navigator.
+ // Common NPC update already decreases attack/swing/stun once per frame.
  const d=dist(P,m),near=d<330&&!lineBlocked(m,P),angle=Math.atan2(P.y-m.y,P.x-m.x);
- m.attack=Math.max(0,(m.attack||0)-dt);m.swing=Math.max(0,(m.swing||0)-dt);
  m.windup=Math.max(0,(m.windup||0)-dt);
  const profile=STRONG_ATTACK_PROFILES[m.type];
  if(m.stun>0){m.vx=0;m.vy=0;return;}
@@ -820,6 +864,7 @@ function updateAquaticStrong(m,s,dt){
  }
  m.vx=(m.x-previousX)/Math.max(.001,dt);m.vy=(m.y-previousY)/Math.max(.001,dt);
  m.step=(m.step||0)+Math.hypot(m.vx,m.vy)*dt*.05;
+ aquaticBankHunt(m,s,dt,d);
  // Nearby terrestrial wildlife recognizes the water predator and leaves the bank.
  for(const q of mobs)if(q!==m&&q.hp>0&&(species[q.type]?.prey||q.type==="boar")&&dist(m,q)<195&&!lineBlocked(m,q)){
   q.flee=Math.max(q.flee||0,1.1);q.fleeThreatX=m.x;q.fleeThreatY=m.y;
