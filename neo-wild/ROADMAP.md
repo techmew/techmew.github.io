@@ -1,3 +1,16 @@
+## 共通スプリント｜2026-11-01 20:45 JST｜45分枠｜NIGHT-MOONLIGHT-NO-LAMPGLOW-01（街灯ハロー撤去・月齢と天候に連動した夜間照明）
+- **担当・HEAD**：45分表示/照明担当。開始HEAD `91853742e13896994bacccae131ad6d5d6d7b405`、実装HEAD `87ad359f1f49fa924468086ec55b604f65cb225d`。直前15分NIGHT-HUNT-WINTER-COVER-01と45分GAMEPAD-FULL-CONTROLS-01、Drive完成仕様設計書末尾を確認。狩猟AI・ゲームパッド・セーブを上書きしない。
+- **連動実装①**：game.jsのCanvas2D/3D共通オーバーレイで、街灯位置に描かれていた半径130の巨大な黄色・橙色の加算radialGradientを完全削除。街灯ポール・目的地/入口/狩猟マーカーは維持。WebGL側に街灯ハロー生成は元々なし。
+- **連動実装②③**：elapsed/85から29.530588ゲームDAY周期の月齢を決定（新月/上弦/満月/下弦）。旧セーブから自動復元し保存形式は変更しない。新月でも環境光0.17、晴天満月0.26程度、曇/雨/雷雨/霧は月光減衰。昼正午照度は従来維持、朝夕から夜へ滑らかに移行。game.js:dayLightProfile/worldDaylightをWebGL uNight/Canvas2D夜間暗転/NPC検知距離で共用。WebGL暗さ上限を0.91にして悪天候の輪郭を保持。
+- **連動実装④**：DAY/時刻/天候の下に小さな月齢HUD。PC/縦横モバイルの文字サイズを設定。空の雲や発光球は追加せず、薄い地上雲影を維持。
+- **変更ファイル／実装コミット**：game.js `e5cf6ea19e986ff5bedbab104a66fb7a4eb94c93`、webgl3d.js `42c7b3c3d50ec4ebbeb93bdd01158e89bd1b0053`、visual.css `0d6f5a8852c279938b3654ff71f20d4f0ccdfd28`、index.html `87ad359f1f49fa924468086ec55b604f65cb225d`（3種のキャッシュrev更新）。neo-wild/外の編集なし。
+- **QA 31項目PASS**：現行JS全文構文2件、実moonlightProfile/dayLightProfileで晴天の新月/上弦/満月/下弦、満月の曇/雨/雷雨/霧、昼正午/朝/夕の11条件で負値なし・光度順位、29.53日周期、3D/2Dの光度順位、街灯ハロー消去/ポール存続、目標表示、HUD、ゲームパッドBridge、SAVE_SCHEMA=2/3チェックポイント、川/雨宿り/狩猟の静的回帰。静的項目を実ブラウザE2Eと混同しない。
+- **Pages**：実装HEADのPages run `41303442694` は20:47 JST時点pending。build/deploy success未確認、公開反映済みとは報告しない。Android/PC実ブラウザ・物理パッド・実GPU FPS・縦横HUD・旧セーブ実localStorage E2Eは未検証。
+- **進捗71/100**：画面実機・Pages配信が未確認のため据え置き。検証完了でのみ再判定。
+- **次15分枠**：①最新HEADを読んでgame.js:worldDaylight/detectsPlayerの新月・満月・悪天候のNPC感知→睡眠覚醒→逃走を実関数で試験。②冬の可視潜伏→mission2→狩猟→死骸→食事の連続プレイを完成。③gamepad Bridge/moon-label/旧セーブ/橋経路を維持、入力箇所と描画箇所を競合させない。
+- **次45分枠**：①DEBUGで新月/満月/雷雨を切替えて3D/2Dの街灯黄色円ゼロ・動物の夜間視認性・縦横HUDを実画面確認。②物理PS/Xboxパッドでタイトル→移動→視点→4ボタン→一時停止/メニューを15分試験。③旧セーブ/3チェックポイント・WebGL/Canvas2DとPages build/deploy成功を検証。未完なら同パッケージで継続。
+- **ROADMAP追記前HEAD**：`87ad359f1f49fa924468086ec55b604f65cb225d`。本ログコミットが次枠の照合HEAD。
+
 ## 共通スプリント｜2026-11-01 20:37 JST｜手動最優先｜LANDSCAPE-FULLSCREEN-TITLE-01（タイトルから横画面・全画面へ）
 - **担当／開始HEAD→現在HEAD**：45分枠・描画/画面/UI担当（同一既存タスクへ追補済み）。着手`ba5a98835f1f12ae81772294b61bf540f45cc59e` → 実装`91853742e13896994bacccae131ad6d5d6d7b405`。15分枠の夜間捕食者AI、45分枠のGamepad Bridge、月明かりパッケージの前提を維持。GitHub対象10ファイルとDrive正本末尾、前2枠ROADMAPを再読した上で最小差分。
 - **ユーザーの最新要望**：「横画面にできなくなっている。トップ画面に横画面で全画面プレイの選択肢を追加」。実装① `game.js`の従来`rotateScreen`は`ScreenOrientation.lock`が拒否されたときに自分でフルスクリーンを解除していた。共通`setFullscreenOrientation(target,note)`へ改修。端末が対応すればユーザー押下でrequestFullscreen→landscapeロック。非対応時は誤った成功表示をせず、可能なら全画面維持＋手動回転を明示。既存一時停止画面の縦横切替も共通関数を利用。② `index.html`タイトルの続きから/新規開始の近くに`menu-landscape-btn`と`menu-landscape-note`を追加し、押した後は従来の続き/新規ゲームを選べる。③ `visual.css`に横画面高さ520px以下と縦画面のコンパクトボタン/HUD用スタイルを追加。HTMLにgame.jsとvisual.cssの`?rev`更新。保存形式、4操作、gamepad.js、AI、川橋など変更なし。
