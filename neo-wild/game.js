@@ -990,7 +990,7 @@ function carryFood(){
    if(P.carry.amount<=0)P.carry=null;
    saveDenStash();notify("巣に食料を備蓄 +"+amount+" / "+denStash+"/"+denCapacity());syncHUD();
    if(mission===4)announceObjective();
-   return true;
+   checkMission();return true;
   }
   if(denStash>0&&P.hunger<95){
    const amount=Math.min(denStash,Math.ceil(100-P.hunger));
@@ -1018,7 +1018,7 @@ function carryFood(){
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
  }
- notify("食料をくわえた！△短押し 食べる／長押し 置く／巣で預ける（"+Math.round(P.carry.amount)+"）");
+ notify("食料をくわえた！巣の中まで戻って△短押しで備蓄。△短押し 食べる／長押し 置く／巣で預ける（"+Math.round(P.carry.amount)+"）");
  if(mission===4)announceObjective();
  syncHUD();return true;
 }
@@ -1750,6 +1750,7 @@ function syncHUD(hour){
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp;
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+" 備蓄 "+Math.round(denStash)+"/"+denCapacity()+"｜運搬 "+(P.carry?Math.round(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜"+(weather==="RAIN"||weather==="THUNDER"?"屋内避難中":"建物内"):"");
+ const stashBarId="wild-stash-progress";let stashBar=$(stashBarId);if(!stashBar){stashBar=document.createElement("div");stashBar.id=stashBarId;stashBar.style.cssText="width:100%;height:9px;border:1px solid #8cae8c;border-radius:8px;background:#24332b;overflow:hidden;margin:4px 0 7px";stashBar.innerHTML='<div style="height:100%;width:0;background:#9cd47e;transition:width .2s"></div>';$("den-status").insertAdjacentElement("afterend",stashBar);}stashBar.firstElementChild.style.width=clamp(denStash/DEN_COSTS[2]*100,0,100)+"%";stashBar.setAttribute("aria-label","巣の強化に必要な備蓄 "+Math.round(denStash)+"/"+DEN_COSTS[2]);
  const entrance=nearestShelterEntrance();
  const nearDoor=!!entrance&&entrance.distance<112;
  $("shelter-hint").classList.toggle("hidden",!nearDoor);
