@@ -272,7 +272,7 @@
  min-width:143px;max-width:min(260px,88vw);
  border:1px solid rgba(224,250,168,.72);border-radius:40px;
  background:linear-gradient(115deg,rgba(6,28,23,.91),rgba(15,43,39,.90));
- box-shadow:0 3px 17px #000b,0 0 15px #c0f6a242;
+ box-shadow:0 3px 12px #0009,0 0 5px #c0f6a21c;
  color:#f1ffde;text-shadow:0 1px 4px #000;
 }
 #nav-hud-chevron{
@@ -280,7 +280,7 @@
  width:44px;height:44px;min-width:44px;border-radius:50%;
  border:1px solid #e8ffb3;background:#385a43;
  font:900 37px/1 "Noto Sans JP",sans-serif;color:#f1ffbe;
- text-shadow:0 0 8px #e6ffb0;box-shadow:0 0 10px #c2fc9080;
+ text-shadow:0 0 2px #e6ffb055;box-shadow:0 0 3px #c2fc9040;
  transform-origin:center;will-change:transform;
 }
 #nav-hud .nav-hud-copy{font:800 12px "Noto Sans JP",sans-serif;white-space:nowrap}
@@ -339,3 +339,10 @@
 @media(max-height:520px) and (orientation:landscape){
  #stockpile-guide{bottom:90px;left:51%;max-width:43vw;font-size:10px;padding:6px 8px}
 }
+
+/* Stockpile bar: tutorial goal, not total den capacity. */
+#den-stash-panel{margin-top:3px;width:min(235px,100%);pointer-events:none}
+#den-stash-count{font:800 10px/1.4 'Noto Sans JP',sans-serif;color:#c8eabe}
+.den-stash-track{height:9px;margin-top:3px;overflow:hidden;border:1px solid #8ba88c;border-radius:8px;background:rgba(7,23,16,.85)}
+#den-stash-bar{display:block;width:0;height:100%;background:linear-gradient(90deg,#79a96f,#b1e28c);transition:width .18s ease}
+@media(max-height:520px) and (orientation:landscape){#den-stash-panel{width:170px}#den-stash-count{font-size:9px}.den-stash-track{height:6px}}
