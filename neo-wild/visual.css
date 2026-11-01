@@ -656,3 +656,31 @@
   #menu .micro {font-size:8px;}
   #menu .subtitle {font-size:11px;}
 }
+
+/* Always-on minimap reuses the existing canvas; landscape zoom stays at lower left. */
+#hud .hud-right .map-frame{
+ display:block!important;position:absolute;top:calc(166px + env(safe-area-inset-top));
+ right:max(12px,env(safe-area-inset-right));width:112px;height:112px;
+ margin:0;padding:3px;border-radius:8px;overflow:hidden;
+ background:rgba(5,20,22,.88);border:1px solid rgba(139,190,174,.7);
+ box-shadow:0 2px 12px rgba(0,0,0,.36);pointer-events:none;
+}
+#hud .hud-right .map-frame canvas{display:block;width:100%;height:100%;}
+#hud .hud-right .map-frame span{display:none;}
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px){
+ #hud .hud-right .map-frame{
+  top:calc(118px + env(safe-area-inset-top));
+  right:calc(max(8px,env(safe-area-inset-right)) + 162px);
+  width:clamp(80px,23dvh,112px);height:clamp(80px,23dvh,112px);
+ }
+}
+@media (orientation:landscape) and (max-height:390px) and (max-width:1024px){
+ #hud .hud-right .map-frame{top:calc(115px + env(safe-area-inset-top));}
+}
+@media (orientation:portrait) and (max-width:600px){
+ #hud .hud-right .map-frame{
+  top:calc(clamp(220px,28dvh,260px) + env(safe-area-inset-top));
+  right:max(8px,env(safe-area-inset-right));width:94px;height:94px;
+ }
+}

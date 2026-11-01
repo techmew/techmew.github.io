@@ -437,7 +437,7 @@ function start(){
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- syncHUD();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
+ syncHUD();drawMini();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
  playEffect("collect");
 }
 
@@ -2534,7 +2534,28 @@ function drawMini(){
   mc.fillStyle=discoveredSites.includes(site.id)?"#83e7c4":"#d5bea1";
   mc.fillRect(X(site.x)-2,Y(site.y)-2,4,4);
  }
- mc.fillStyle="#f6fce5";mc.beginPath();mc.arc(w/2,h/2,4,0,TWO);mc.fill();
+ // Den and mission target use world coordinates and are never cached between goals.
+ if(Math.abs(SAFE_DEN.x-P.x)<span/2&&Math.abs(SAFE_DEN.y-P.y)<span/2){
+  mc.fillStyle="#8be9bd";mc.beginPath();mc.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),3.5,0,TWO);mc.fill();
+ }
+ const goal=getObjective();
+ if(goal){
+  const dx=(goal.x-P.x)*w/span,dy=(goal.y-P.y)*w/span;
+  const radius=Math.min(w,h)/2-10,range=Math.hypot(dx,dy);
+  const factor=Math.min(1,radius/Math.max(1,range));
+  const gx=w/2+dx*factor,gy=h/2+dy*factor;
+  mc.fillStyle="#f6c56c";mc.strokeStyle="#172d2a";mc.lineWidth=1.5;
+  mc.save();mc.translate(gx,gy);
+  if(factor<1){mc.rotate(Math.atan2(dy,dx)+Math.PI/2);
+   mc.beginPath();mc.moveTo(0,-6);mc.lineTo(4,4);mc.lineTo(-4,4);mc.closePath();
+  }else{mc.beginPath();mc.arc(0,0,4,0,TWO);}
+  mc.fill();mc.stroke();mc.restore();
+ }
+ // Directional player marker (world east is right on the map).
+ mc.save();mc.translate(w/2,h/2);mc.rotate(P.dir+Math.PI/2);
+ mc.fillStyle="#f6fce5";mc.strokeStyle="#102a25";mc.lineWidth=1.8;
+ mc.beginPath();mc.moveTo(0,-7);mc.lineTo(5,5);mc.lineTo(0,2);mc.lineTo(-5,5);mc.closePath();
+ mc.fill();mc.stroke();mc.restore();
  mc.strokeStyle="#b6e1c5";mc.lineWidth=1;mc.strokeRect(.5,.5,w-1,h-1);
 }
 function visible(x,y,r=50){const q=project(x,y),m=Math.max(100,r*1.9);return q.x>-m&&q.x<vw+m&&q.y>-m&&q.y<vh+m}
