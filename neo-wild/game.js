@@ -40,6 +40,14 @@ const species={
 };
 const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲"};
 const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf","albinoWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf","albinoWolf"],2:["giantEagle","giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo","giantLizard","giantGorilla"],3:["giantEagle","oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion","giantLizard","rhino","giantElephant"],4:["giantEagle","giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantEagle","giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo","giantLizard","rhino","giantGorilla","giantElephant"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantEagle","giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]};
+// Each trophy is earned through an actual boss kill; the first five can be inherited at an LV2 den.
+const STRONG_TRAITS={
+ alpha:{name:"追跡の脚力",effect:"移動速度 +8%"},
+ oldBear:{name:"熊の生命力",effect:"最大生命 +28"},
+ blackPanther:{name:"黒豹の爪",effect:"攻撃力 +12%"},
+ giantEagle:{name:"大鷲の夜目",effect:"夜間の前方視認距離 +22%"},
+ giantLizard:{name:"鱗の止血",effect:"強敵の出血ダメージ -35%"}
+};
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -388,8 +396,9 @@ function nightVisionProfile(seconds=elapsed,sky=weather,animalType=P?.type){
  const weatherFactor=sky==="THUNDER"?.55:sky==="RAIN"?.68:sky==="FOG"?.72:sky==="CLOUDY"?.80:sky==="WIND"?.94:1;
  const nocturnal=animalType==="cat";
  const baseRange=nocturnal?820:animalType==="wolf"?610:510;
- const range=baseRange*weatherFactor*(.84+.16*lunar.illumination*lunar.visibility);
- const strength=nightWeight*(nocturnal?.57:animalType==="wolf"?.39:.35)*(.82+.18*weatherFactor);
+ const inheritedEagle=!!(P&&animalType===P.type&&P.inheritedTraits?.giantEagle);
+ const range=baseRange*weatherFactor*(.84+.16*lunar.illumination*lunar.visibility)*(inheritedEagle?1.22:1);
+ const strength=nightWeight*(nocturnal?.57:animalType==="wolf"?.39:.35)*(.82+.18*weatherFactor)*(inheritedEagle?1.10:1);
  return {range,strength,nightWeight,halfAngle:Math.PI/3,ambient:light.brightness};
 }
 const nightVisionCanvas=document.createElement("canvas"),nightVisionCtx=nightVisionCanvas.getContext("2d");
@@ -571,7 +580,7 @@ function start(){
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
-  const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0};
+  const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  let roomPrey=0;
  if(origin===START_LOCATIONS.home){
@@ -681,6 +690,7 @@ function restoreSnapshot(snapshot){
   P.speed=Math.max(320,Math.round(savedSpeed*320/239));
   P.catSpeedV2=true;
  }
+ P.inheritedTraits=Object.fromEntries(Object.keys(STRONG_TRAITS).map(type=>[type,P.inheritedTraits?.[type]===true]));
  P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
  P.strongWound=clamp(Number(P.strongWound)||0,0,5.5);
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
@@ -1876,11 +1886,39 @@ function eat(){
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();saveAuto();
 }
+function inheritStrongTrait(type){
+ if(mode!=="inventory"||!P||!atDen()||!STRONG_TRAITS[type])return false;
+ if(denLevel<2){notify("能力継承には巣LV2が必要");return false;}
+ if(P.inheritedTraits?.[type]){notify("この能力は継承済み");return false;}
+ const available=Math.max(0,Math.floor(Number(strongTrophies[type])||0));
+ if(available<1){notify("必要な希少素材がありません");return false;}
+ // Commit the cost and the benefit in the same autosave; the trait cannot be learned twice.
+ strongTrophies[type]=available-1;
+ P.inheritedTraits={...(P.inheritedTraits||{}),[type]:true};
+ if(type==="alpha")P.speed=Math.round(P.speed*1.08);
+ else if(type==="oldBear"){P.maxHp+=28;P.hp=Math.min(P.maxHp,P.hp+28);}
+ else if(type==="blackPanther")P.damage=Math.round(P.damage*1.12);
+ // Eagle and lizard traits are applied in nightVisionProfile/update, not as a one-time stat.
+ renderDenInventory();syncHUD();saveAuto();
+ notify("能力継承："+STRONG_TRAITS[type].name+"（"+STRONG_TRAITS[type].effect+"）");
+ playEffect("level");
+ return true;
+}
 function renderDenInventory(){
  if(!P)return;
  $("den-inventory-total").textContent="合計 "+denStash+" / "+denCapacity()+"pt";
  const trophyText=Object.entries(strongTrophies).filter(([type,count])=>STRONG_NAMES[type]&&Number(count)>0).map(([type,count])=>STRONG_NAMES[type]+"×"+Math.floor(Number(count))).join(" / ");
  $("den-inventory-help").textContent=(atDen()?"食べたい種類を選んでください。選択しなければ減りません。":"巣の外では閲覧のみ。食べるには巣へ戻ってください。")+(trophyText?" 希少素材："+trophyText:"");
+ const traitSummary=$("strong-inheritance-summary");
+ if(traitSummary)traitSummary.textContent=denLevel<2?"巣LV2で解放。強敵の希少素材を1個消費して能力を継承。":"強敵の希少素材1個で1能力を継承（各能力1回）。";
+ for(const btn of document.querySelectorAll("[data-strong-trait]")){
+  const type=btn.dataset.strongTrait,trait=STRONG_TRAITS[type];
+  if(!trait)continue;
+  const learned=!!P.inheritedTraits?.[type],count=Math.max(0,Math.floor(Number(strongTrophies[type])||0));
+  btn.textContent=learned?"継承済み":trait.name+"（"+trait.effect+"）｜素材 "+count+"個";
+  btn.disabled=learned||denLevel<2||!atDen()||count<1;
+  btn.setAttribute("aria-label",trait.name+" "+trait.effect+(learned?" 継承済み":" 必要素材1個、所持"+count+"個"));
+ }
  const canEat=atDen()&&(P.hunger<100||P.hp<P.maxHp||(P.strongWound||0)>0);
  for(const key of ["meat","berries","legacy"]){
   $("den-row-"+key).classList.toggle("hidden",key==="legacy"&&denStores.legacy<=0);
@@ -2782,7 +2820,7 @@ function update(dt){
  
  if((P.strongWound||0)>0){
   const bleed=Math.min(dt,P.strongWound);
-  P.hp-=bleed*2.6;
+  P.hp-=bleed*2.6*(P.inheritedTraits?.giantLizard?.65:1);
   const safeDen=atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165);
   P.strongWound=Math.max(0,P.strongWound-dt*(safeDen?2.2:1));
  }
@@ -4264,6 +4302,7 @@ for(let i=0;i<3;i++)$("checkpoint-slot-"+i).addEventListener("click",()=>{
 $("checkpoint-save-btn").addEventListener("click",recordCheckpoint);
 $("den-inventory-btn").addEventListener("click",openDenInventory);
 $("den-inventory-close").addEventListener("click",closeDenInventory);
+document.querySelectorAll("[data-strong-trait]").forEach(b=>b.addEventListener("click",()=>inheritStrongTrait(b.dataset.strongTrait)));
 for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
 $("objective-toggle").addEventListener("click",()=>openTutorial());
 $("tutorial-prev").addEventListener("click",()=>tutorialMove(-1));
