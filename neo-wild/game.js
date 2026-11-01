@@ -1591,7 +1591,7 @@ function finish(won=false){
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
  $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。リトライか、最初から始めるかを選んでください。";
- $("retry-btn").textContent=getCheckpoints().length?"リトライ（最後のチェックポイント）":"リトライ（同じ動物）";
+ $("retry-btn").textContent=getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）";
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>DAY "+String(day).padStart(2,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
@@ -3581,7 +3581,7 @@ $("mission-close").addEventListener("click",()=>{
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
-$("retry-btn").addEventListener("click",()=>{const save=getCheckpoints()[0];if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}clearAutoSave();start();announceObjective()});
+$("retry-btn").addEventListener("click",()=>{const save=getCheckpoints().find(s=>s.player.type===P?.type);if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}clearAutoSave();start();announceObjective()});
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu");$("new-game-options").open=true});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
