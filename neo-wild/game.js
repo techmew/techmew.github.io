@@ -3490,7 +3490,7 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
- drawObjectiveGlow();drawShelterEntranceMarker();drawGuideWisps();drawThreatNames();drawRemainsLabels();
+ drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels(); // Objective stays in the minimap, not over play.
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
