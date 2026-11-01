@@ -1,3 +1,13 @@
+## 共同スプリント・次担当｜2026/11/2 5:17:50 JST｜15分枠｜ACTIVE_SPRINT_ID=STRONG-STAGE-20P-COMPLETE｜水辺強敵の野生襲撃・水中セーブ復旧
+- **開始HEAD→終了HEAD（コード）**：`4042642be09350a88dc38954a258ec8690e79e3f` → `51fd9af7bd36ff8221d420df1392e40bf11e7241`。対象は`neo-wild/game.js`・`neo-wild/index.html`と本ROADMAPのみ。直前45分枠14/20種、前15分枠の採食、Drive設計書V0.9末尾を確認。
+- **プレイ変化**：(1) 巨大ワニ・巨大カバ・巨大アナコンダが岸辺のウサギ/ハト/イノシシを実際に攻撃。逃走・死亡・岸に残る死骸・地区獲物数へ連動。死骸はプレイヤーが食事/運搬/巣備蓄できる既存形式。(2) 水辺NPC襲撃は壁遮断・水中獲物除外・再攻撃待機・プレイヤー戦闘時抑止を実装。ボスは水から出ない。(3) SAVE_SCHEMA2の水辺ボス再開で水中位置を維持し、旧岸上座標は同地区の水へ補正。読み込み直後の予兆なし攻撃を解除。(4) 水辺ボスのattack/swingタイマー二重減算を解消。強敵出現20%・同時1体・アルファ231.4・即時旋回・小〉〉・右HUD・夜目は不変。
+- **変更**：game.js と index.html のキャッシュrev=`20261102-aquatic-bank-save-v1`。コードcommit `51fd9af7bd36ff8221d420df1392e40bf11e7241`。ROADMAPは本記録コミット。
+- **QA**：全配信JS構文 **6/6 PASS**。現物関数`updateAquaticStrong/aquaticBankHunt/nearestAquaticWater`動的 **30/30 PASS**（3種の野生襲撃→死亡→岸死骸→生態更新、水域移動・クールダウン、壁遮断、NPC逃走、交戦中抑止、旧水中/岸上座標補正）。**未検証**：実ブラウザ10～20分、実Android/実GPU/物理Gamepad、縦横DOM矩形/FPS、旧SAVE_SCHEMA2と3チェックポイントの実DOM復元E2E、橋長距離AI。模擬関数試験を実機PASSとは呼ばない。
+- **Pages**：新コードrun ID / build / deploy **確認待ち**。両success確認まで公開反映済みとしない。
+- **次15分枠**：(1) `restoreSnapshot→normalizeStrongBossSave→enterStrongStage`で水辺3種/旧保存/強敵素材/3チェックポイントを実DOM連続再開し、ボス再抽選や陸上転移がないこと。(2) `aquaticBankHunt→animalRemains→contextAction/carryFood→denStores`で岸死骸→巣備蓄→巣LV2の実プレイを完成。(3) 猫/狐/狼の即時180度転換・小〉〉・地図/SCORE/HUNT・冬夜目の縦横実矩形QA。
+- **次45分枠**：(1) `webgl3d.js/drawStrongCreature2D`の水辺3種の野生襲撃・予兆・死骸の目視とFPSを回帰。(2) 未実装6種（巨大オオトカゲ/大鷲/巨大ゴリラ/サイ/巨大ゾウ/アルビノ狼）の固有AI/攻撃/造形/報酬を順次追加。(3) Pages build/deploy・縦横HUD・夜目・Gamepad・旧保存を確認。今回のgame.jsの水中保存/襲撃を巻き戻さない。
+- **進捗**：71/100据置、強敵基本実装14/20。実機E2E・素材能力継承未完。
+
 ## 共同スプリント・次担当｜2026-11-02 04:52 JST｜45分枠｜ACTIVE_SPRINT_ID=STRONG-STAGE-20P-COMPLETE｜水辺強敵3種・14/20
 - **開始HEAD→コード終了HEAD**：`64f267abee486e9bee830fb5484493312a42b8b2` → `5dc61b02142877912ed338fda2d713d18185fde0`。直前15分枠の捕食・冬採食・ライオン追撃とDrive設計書末尾を照合。15分枠のgame.js変更を現行main上で引継ぎ、古い版へ戻していない。
 - **実コード**：`neo-wild/game.js` commit `290819f4631fe73fec41f2abfd120de832373d28` blob `2650959f429968ddec42c41122357aa52aca1f99`、`neo-wild/webgl3d.js` commit `08352ebb880a6aebceaee8df57518d1903c3557f` blob `e635613f5eac102255be59ce9076ebabd9cff1e5`、`neo-wild/index.html` rev commit `5dc61b02142877912ed338fda2d713d18185fde0` blob `efaedb2100ceaf20c2fb15ec3927dbe779031433`。ROADMAP記録は本コミット。neo-wild/以外変更なし。
