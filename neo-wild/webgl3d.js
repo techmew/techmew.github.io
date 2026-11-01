@@ -18,6 +18,7 @@ uniform vec2 uSize;
 uniform vec4 uView;
 uniform float uZoom;
 uniform float uNight;
+uniform vec3 uTint;
 varying vec3 vColor;
 varying float vShade;
 void main(){
@@ -30,7 +31,7 @@ void main(){
  vec3 sun=normalize(vec3(-0.55,-0.7,1.2));
  float bright=max(0.0,dot(n,sun));
  vShade=0.34+0.65*bright;
- vColor=aColor*(1.0-uNight*.69);
+ vColor=aColor*uTint*(1.08-uNight*.91);
 }
 `;
 const fragment=String.raw`
@@ -41,7 +42,7 @@ varying float vShade;
 void main(){gl_FragColor=vec4(vColor*vShade,uAlpha);}
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
-let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,ualpha;
+let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,utint,ualpha;
 function initializeGPU(){
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
@@ -56,7 +57,7 @@ function initializeGPU(){
  usize=gl.getUniformLocation(program,"uSize");
  uview=gl.getUniformLocation(program,"uView");
   uzoom=gl.getUniformLocation(program,"uZoom");
- unight=gl.getUniformLocation(program,"uNight");ualpha=gl.getUniformLocation(program,"uAlpha");
+ unight=gl.getUniformLocation(program,"uNight");utint=gl.getUniformLocation(program,"uTint");ualpha=gl.getUniformLocation(program,"uAlpha");
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
 }
 try{initializeGPU()}catch(err){console.warn("Wild3D shader unavailable; 2D fallback",err);canvas.style.display="none";window.Wild3D={available:false};return;}
@@ -474,11 +475,14 @@ function render(o){
   const width=Math.max(1,Math.round(vw*dpr)),height=Math.max(1,Math.round(vh*dpr));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   gl.viewport(0,0,width,height);
-  const hour=(6+(elapsed%85)/85*24)%24;
-   const daylight=Math.max(0,Math.sin((hour-6)*Math.PI/12));
+  // Explicit dawn/noon/sunset/night profile is shared with the 2D world.
+  const profile=o.lightProfile||{brightness:Math.max(0,Math.sin(((6+(elapsed%85)/85*24)%24-6)*Math.PI/12)),warmth:0,tint:[1,1,1]};
   const overcast=weather==="THUNDER"?.22:weather==="RAIN"?.14:weather==="CLOUDY"?.12:weather==="FOG"?.10:0;
-  const night=Math.min(.94,.81*(1-daylight)+overcast);
-  gl.clearColor(.12*(1-night*.73),.18*(1-night*.72),.19*(1-night*.68),1);
+  const night=clamp(Math.max(0,1-profile.brightness)+overcast*.8,0,.94),warm=profile.warmth||0;
+  gl.clearColor(
+   clamp(.018+profile.brightness*.145+warm*.11,0,1),
+   clamp(.030+profile.brightness*.175+warm*.018,0,1),
+   clamp(.066+profile.brightness*.16-warm*.018,0,1),1);
   gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   const isVisible=(x,y,margin=150)=>{
    const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;
@@ -614,7 +618,7 @@ function render(o){
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
    gl.uniform1f(uzoom,clamp(o.cameraZoom||1,.47,1.6));
-  gl.uniform1f(unight,night);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
+  gl.uniform1f(unight,night);gl.uniform3f(utint,profile.tint[0],profile.tint[1],profile.tint[2]);gl.uniform1f(ualpha,1);gl.disable(gl.BLEND);gl.depthMask(true);
   const bindAttributes=(buf)=>{
    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
    for(const [a,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
