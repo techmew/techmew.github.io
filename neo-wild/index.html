@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261101-corpse-nest-tutorial1">
+<link rel="stylesheet" href="./visual.css?rev=20261101-stashbalance2">
 </head>
 <body>
 <div id="app">
@@ -19,7 +19,7 @@
     <div class="vitals"><div class="vital health"><label>生命 <b id="hp-text">100 / 100</b></label><div class="track"><i id="hp-bar"></i></div></div>
     <div class="vital food"><label>空腹 <b id="food-text">100%</b></label><div class="track"><i id="food-bar"></i></div></div>
     <div class="vital stamina"><label>持久 <b id="sp-text">100%</b></label><div class="track"><i id="sp-bar"></i></div></div></div>
-    <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1 備蓄 0/200｜運搬 なし</div><button id="objective-toggle" type="button" aria-expanded="false" aria-controls="mission">目標を見る</button>
+    <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1｜運搬 なし</div><div id="den-stash-panel"><div id="den-stash-count">備蓄 0 / 60（LV2まで）</div><div class="den-stash-track" role="progressbar" aria-label="巣の備蓄" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="den-stash-bar"></i></div></div><button id="objective-toggle" type="button" aria-expanded="false" aria-controls="mission">目標を見る</button>
   </div>
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">DAY 01 · 06:00 · 快晴</div></div>
   <div class="hud-right"><div class="session-actions" aria-label="ゲームの操作"><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="top-actions"><button id="sound-btn" title="サウンド切替">♪</button><button id="map-btn" title="地図を見る" aria-label="地図を見る">地図</button><button id="full-btn" title="全画面">⛶</button></div><div class="map-frame"><canvas id="minimap" width="150" height="94"></canvas><span>TOKYO MAP</span></div></div>
@@ -30,7 +30,7 @@
   <span id="nav-hud-chevron" aria-hidden="true">》</span>
   <span class="nav-hud-copy"><span id="nav-hud-label">目標</span> <strong id="nav-hud-distance">--m</strong></span>
 </div>
-<div id="stockpile-guide" class="hidden" aria-live="off">① 食料のそばで△長押しして運ぶ</div>
+<div id="stockpile-guide" class="hidden" aria-live="off">① 食草・肉のそばで△長押しして運ぶ</div>
 <div id="objective-banner" class="objective-banner" role="status" aria-live="polite" aria-atomic="true"><span class="objective-banner-kicker" id="objective-banner-stage">チュートリアル 1 / 4</span><strong id="objective-banner-title">食料を確保せよ</strong><span class="objective-banner-next" id="objective-banner-next">次の目的：身を隠せ</span></div>
 <div id="mission" class="hidden" role="region" aria-label="生存目標"><div class="mission-top"><span class="live-dot"></span><small>ミッション</small><span id="mission-progress">チュートリアル 1 / 4</span><button id="mission-close" type="button" aria-label="目標を閉じる">×</button></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><p id="mission-next">次の目的：身を隠せ</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="zoom-controls"><button id="zoom-out" aria-label="もっと広く見る">−</button><span id="zoom-level">80%</span><button id="zoom-in" aria-label="近くを見る">＋</button></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div>
@@ -99,5 +99,5 @@
 </div>
 <script src="./audio.js?rev=20261031-soft-jump-sfx2" defer></script>
 <script src="./webgl3d.js?rev=20261101-carrymeat1" defer></script>
-<script src="./game.js?rev=20261101-carrymeat1" defer></script>
+<script src="./game.js?rev=20261101-stashbalance2" defer></script>
 </body></html>
