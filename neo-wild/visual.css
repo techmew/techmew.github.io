@@ -524,3 +524,135 @@
 
 /* Final objective remains readable without opening a large mission panel. */
 #survival-goal{display:inline-block;margin-top:4px;padding:3px 9px;border-radius:14px;background:rgba(15,37,31,.84);border:1px solid rgba(154,221,163,.58);color:#e2f6d9;font:800 clamp(11px,1.5vw,14px)/1.3 "Noto Sans JP",sans-serif;letter-spacing:.02em;white-space:nowrap;text-shadow:0 1px 3px #071a11}
+
+
+/* WILD-LANDSCAPE-COMPACT-01: full HUD, controls and title reflow; keep portrait and desktop unchanged. */
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px) {
+  :root { --wr-pad:clamp(44px,12dvh,50px); --wr-edge:max(8px,env(safe-area-inset-left)); }
+  /* Three separate columns prevent the area, health and session buttons overlapping. */
+  #hud {display:grid;grid-template-columns:minmax(170px,27%) minmax(0,1fr) minmax(130px,18%);
+    align-items:start;gap:clamp(5px,1vw,13px);padding:calc(5px + env(safe-area-inset-top))
+    max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left));}
+  #hud .hud-left {width:100%;max-width:none;min-width:0;}
+  #hud .brand-small {font-size:clamp(10px,1.4dvh,12px);gap:5px;letter-spacing:.6px;}
+  #hud .brand-mark {font-size:clamp(16px,2.4dvh,21px);padding-right:5px;}
+  #hud .brand-small small {font-size:8px;letter-spacing:.4px;margin-top:1px;}
+  #hud .vitals {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:5px;}
+  #hud .vital {min-width:0;margin:0;}
+  #hud .vital label {display:flex;flex-wrap:wrap;gap:0 3px;align-items:baseline;
+    font-size:clamp(8px,1.35dvh,10px);line-height:1.15;letter-spacing:0;}
+  #hud .vital b {font-size:clamp(9px,1.5dvh,11px);letter-spacing:0;}
+  #hud .track {height:4px;margin-top:3px;}
+  #hud .level {margin-top:5px;gap:6px;}
+  #hud .level b {font-size:12px;}
+  #hud #den-status {margin-top:3px;font-size:9px;line-height:1.25;}
+  #hud #den-stash-panel {margin-top:2px;width:min(205px,100%);}
+  #hud #den-stash-count {font-size:9px;line-height:1.2;}
+  #hud .den-stash-track {height:5px;margin-top:2px;}
+  #hud #den-inventory-btn,#hud #objective-toggle {height:29px!important;margin:4px 3px 0 0!important;
+    padding:0 7px!important;font-size:9px!important;min-width:0!important;}
+  #hud .hud-center {width:100%;max-width:none;min-width:0;flex:none;margin:0;text-align:center;}
+  #hud .eyebrow {font-size:9px;letter-spacing:1.6px;}
+  #hud #district {display:block;font-size:clamp(12px,1.9dvh,17px);letter-spacing:.4px;line-height:1.25;}
+  #hud .subinfo {font-size:clamp(9px,1.35dvh,11px);letter-spacing:0;line-height:1.25;margin-top:2px;}
+  #hud #moon-label {font-size:9px;margin-top:2px;line-height:1.25;}
+  #hud #survival-goal {margin-top:3px;padding:2px 7px;font-size:10px;}
+  #hud .hud-right {width:100%;min-width:0;max-width:none;gap:3px;align-items:flex-end;}
+  #hud .session-actions {position:static;display:flex;justify-content:flex-end;}
+  #hud .session-actions button {min-width:48px;height:36px;padding:0 7px;font-size:10px;}
+  #hud .top-actions {display:flex;position:static;justify-content:flex-end;gap:3px;}
+  #hud .top-actions button,#hud #map-btn {position:static!important;top:auto!important;right:auto!important;
+    width:40px!important;min-width:40px!important;height:36px!important;flex:0 0 40px;
+    font-size:11px!important;padding:0 2px;touch-action:manipulation;}
+  #hud .map-frame {display:none;}
+  #status {top:calc(89px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
+    font-size:10px;line-height:1.15;gap:2px;}
+  #nav-hud {top:clamp(105px,29dvh,155px);min-width:0;max-width:min(190px,30vw);
+    padding:3px 8px 3px 3px;gap:5px;}
+  #nav-hud-chevron {width:32px;height:32px;min-width:32px;font-size:27px;}
+  #nav-hud .nav-hud-copy {font-size:10px;}
+  #nav-hud-distance {font-size:12px;}
+  #mission {top:clamp(124px,34dvh,170px);left:max(8px,env(safe-area-inset-left));
+    width:min(185px,29vw);max-height:min(35dvh,145px);padding:6px 8px;}
+  #mission-title {font-size:11px;margin-top:4px;}
+  #mission-sub,#mission-next {font-size:9px;margin-top:3px;padding-top:3px;}
+  #mission .mission-top small {font-size:8px;}
+  #mission #mission-close {width:28px;height:28px;min-width:28px;min-height:28px;}
+  /* Shrink actual hitboxes; avoid transform:scale and mismatched touch coordinates. */
+  #touch-layer {bottom:calc(6px + env(safe-area-inset-bottom));
+    padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));}
+  #joystick {width:clamp(94px,26dvh,118px);height:clamp(98px,28dvh,120px);}
+  #joystick .joy-disc {width:clamp(76px,20dvh,94px);height:clamp(76px,20dvh,94px);}
+  #joystick .joy-disc:before {inset:15px;}
+  #joy-knob {width:clamp(28px,8dvh,34px);height:clamp(28px,8dvh,34px);
+    margin-left:calc(clamp(28px,8dvh,34px) / -2);margin-top:calc(clamp(28px,8dvh,34px) / -2);}
+  #joystick>span {font-size:9px;margin-top:2px;letter-spacing:1.5px;}
+  #touch-layer .touch-actions {width:calc(var(--wr-pad)*3);height:calc(var(--wr-pad)*3);
+    grid-template-columns:repeat(3,var(--wr-pad));grid-template-rows:repeat(3,var(--wr-pad));transform:none;}
+  #touch-layer .touch-actions .touch-btn {width:var(--wr-pad);height:var(--wr-pad);
+    min-width:var(--wr-pad);min-height:var(--wr-pad);padding:0;transform:none;}
+  #touch-layer .touch-actions .touch-btn span,#touch-layer .touch-actions #attack-touch span {font-size:clamp(20px,3.2dvh,24px);}
+  #touch-layer .touch-actions .touch-btn small {font-size:8px;margin-top:1px;line-height:1.1;}
+  /* Zoom moves from the large bottom-center panel to the lower-left beside the stick. */
+  #zoom-controls {top:auto;right:auto;left:calc(max(8px,env(safe-area-inset-left)) + clamp(108px,30dvh,138px));
+    bottom:calc(9px + env(safe-area-inset-bottom));transform:none;transform-origin:center;
+    opacity:.95;gap:3px;padding:3px 4px;border-radius:12px;}
+  #zoom-controls button {width:40px;height:40px;min-width:40px;min-height:40px;border-radius:9px;font-size:18px;}
+  #zoom-level {min-width:30px;font-size:10px;}
+  #gamepad-status {top:clamp(139px,30dvh,190px);right:max(8px,env(safe-area-inset-right));
+    max-width:155px;font-size:9px;padding:3px 6px;}
+  #shelter-hint {bottom:clamp(65px,18dvh,105px);max-width:40vw;font-size:9px;padding:4px 7px;}
+  #stockpile-guide {bottom:clamp(77px,20dvh,115px);max-width:40vw;font-size:9px;padding:4px 7px;}
+  /* Two-column title screen: compact branding at left, three usable choices at right. */
+  #menu {padding:calc(7px + env(safe-area-inset-top)) max(9px,env(safe-area-inset-right))
+    calc(7px + env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left));}
+  #menu .menu-shell {display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);
+    grid-template-rows:auto auto auto auto auto;gap:5px clamp(12px,2vw,24px);
+    width:min(940px,100%);max-width:100%;max-height:calc(100dvh - 14px);
+    padding:5px 3px;align-content:center;overflow-y:auto;touch-action:pan-y;}
+  #menu .micro {grid-column:1/-1;grid-row:1;font-size:9px;line-height:1.3;letter-spacing:1px;}
+  #menu .micro i {width:16px;margin:0 4px 2px;}
+  #menu .hero-title {grid-column:1;grid-row:2/4;align-self:center;
+    font-size:clamp(46px,8.4vw,92px);line-height:.82;letter-spacing:-1px;
+    margin:0;max-width:100%;overflow-wrap:normal;}
+  #menu .slash {letter-spacing:-4px;}
+  #menu .subtitle {grid-column:1;grid-row:4;align-self:start;
+    margin:0;font-size:clamp(11px,1.5vw,16px);line-height:1.3;letter-spacing:1px;}
+  #menu .subtitle span {display:block;margin-top:3px;font-size:9px;letter-spacing:1px;}
+  #menu #save-menu-actions {grid-column:2;grid-row:2;min-width:0;margin:0;gap:4px;}
+  #menu .resume-primary {min-height:58px;padding:7px 10px;gap:3px;border-radius:9px;}
+  #menu .resume-cta-title {font-size:clamp(15px,2.3vw,20px);line-height:1.2;}
+  #menu .resume-cta-title small {font-size:9px;margin-top:1px;}
+  #menu #continue-detail.resume-detail {font-size:10px;line-height:1.2;}
+  #menu .landscape-menu-choice {grid-column:2;grid-row:3;max-width:none;margin:0;gap:2px;}
+  #menu #menu-landscape-btn {min-height:40px;padding:5px 9px;font-size:12px;}
+  #menu #menu-landscape-note {font-size:9px;line-height:1.3;min-height:0;}
+  #menu #new-game-options {grid-column:2;grid-row:4;margin:0;min-width:0;}
+  #menu #new-game-summary {min-height:40px;padding:9px 11px;font-size:11px;margin:0;}
+  #menu .lead,#menu .menu-foot {display:none;}
+  #menu .checkpoint-choice {min-height:34px;}
+  #menu .new-game-config {padding-top:4px;}
+  #menu .animals {gap:5px;margin:5px 0;}
+  #menu .animal-card {min-height:50px;padding:5px;}
+  /* All secondary dialogs scroll within the short landscape viewport. */
+  #pause .modal,#upgrade .modal,#result .modal {max-height:calc(100dvh - 16px);
+    overflow-y:auto;padding:clamp(9px,2dvh,17px);}
+  #world-map .world-map-panel {max-height:calc(100dvh - 16px);padding:9px;}
+  #world-map-canvas {max-height:39dvh;}
+  .map-key,.map-help {font-size:9px;line-height:1.4;}
+  .survival-card {max-height:calc(100dvh - 16px);padding:10px 14px;}
+  #tutorial-dialog .tutorial-card {max-height:75dvh;}
+}
+@media (orientation:landscape) and (max-height:390px) and (max-width:1024px) {
+  #hud .brand-small small {display:none;}
+  #hud .brand-small {font-size:10px;}
+  #hud .vitals {margin-top:3px;}
+  #hud .level {margin-top:3px;}
+  #hud #den-status {margin-top:2px;}
+  #hud #den-inventory-btn,#hud #objective-toggle {height:27px!important;margin-top:2px!important;}
+  #menu .menu-shell {gap:3px 12px;}
+  #menu .hero-title {font-size:clamp(43px,7.7vw,68px);}
+  #menu .micro {font-size:8px;}
+  #menu .subtitle {font-size:11px;}
+}
