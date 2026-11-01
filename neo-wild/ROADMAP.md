@@ -1,3 +1,14 @@
+## 共通スプリント｜2026/11/02 00:20 JST｜15分枠即時対応｜CAT-LEGACY-SPEED-RETRY-QA-01 旧猫強化セーブ救済＋教程/死亡リトライ統合QA
+- **開始HEAD→コード終了HEAD**：`89679fa78a1815f726b8d0840a9a1e2161a3f202` → `af413283234b2459699c1514a573feb7558b8a3b`。先行45分枠の右上UI・中央ナビ撤去、夜目120度・月齢・ゲームパッドを現物確認。Google Drive設計書末尾の初回教程/旧猫速度/死亡リトライ仕様を確認。変更競合なし。
+- **動的統合試験で発見した実不具合**：旧猫セーブの `catSpeedV2` 未設定かつ `speed>=320`（例：旧基準239から強化した365）の場合、復元後も速度365のままで、新基準320への倍率移行が失われる。修正前の実ゲーム関数+模擬DOM/localStorage試験では22/23 PASS、旧強化速度365→期待489だけFAIL。
+- **実コード修正**：`neo-wild/game.js` commit `15b6b63697b5d3f6e5a833a75d7ebeac3341066e`。旧猫は速度239を基準とする強化倍率を常に320基準へ1回換算し、速度値不正時は239に補正。 `catSpeedV2` を立てて再復元の二重加速を防ぐ。新規猫320、狐285、アルファ231.4、操作/スタミナ/衝突の既存実装は変更なし。 `neo-wild/index.html` commit `af413283234b2459699c1514a573feb7558b8a3b`：`game.js?rev=20261102-cat-legacy-speed-v3` へ更新。他ファイル・ゲームパッド・HUD・月齢/夜目・地図は未変更。
+- **動的QA**：パッチ済みの**実game.js全文**を模擬DOM/Canvas/localStorageで実行。初回猫320→自動ガイド1回→食事→潜伏→狩猟→駅を飛ばし巣mission4→巣LV2→縄張り→探索→mission7の「チュートリアル終了」→常設「生き残れ！」、死亡結果→同種チェックポイント復元、再開後自動ポップアップなし、最初から→狐選択、3チェックポイント上限、旧mission3→4移行、旧猫速度239/300/365/700の倍率保持と二重補正なし、旧mission7復元を含め**46/46 PASS**。パッチ前に確認した旧猫強化セーブ1件のFAILを解消。実ブラウザでなく模擬DOMでの動的実行であることを明示。
+- **静的QA**：game.js/webgl3d.js/gamepad.js/audio.js/season-clouds.js/debug-mode.js全6本のJS全文構文PASS、HTML ID重複0、revとSAVE_SCHEMA=2・チェックポイント3件・夜目/4操作・巣・最終生存HUD等の静的維持検査8件PASS（計14/14）。**未検証**：実Android Chrome・実GPU WebGL/Canvas2D描画・物理Gamepad・フルゲーム10〜20分E2E・旧保存実ブラウザ復元。静的確認を実機PASSとみなさない。
+- **Pages**：コードHEAD `af413283234b2459699c1514a573feb7558b8a3b` のbuild/deploy run IDを取得できず**未確認**。旧HEADの成功は今回の配信成功とみなさない。次枠で最新workflow runを確認しbuild/deploy別々に記録すること。
+- **次45分枠**：(1) `game.js:restoreSnapshot` の旧猫速度239/300/365/700→320基準換算と再読込二重加速なしを実ブラウザのlocalStorage+3チェックポイントで確認。(2) フルDOM/CSSで縦390/411、横800/844/736/1536の右上地図/4操作/死亡結果と夜目2D/3Dの実矩形/描画を確認。(3) 実Gamepad4ボタンと月齢/雨天夜目、Pages最新build/deployを検証し、失敗時だけ最小差分修正。
+- **次15分枠**：(1) `updateIndoorRest/startlePrey/chooseEscape/resolveAttack` の夜間休息→犬警戒→追跡→攻撃→死骸→食事を実関数連結QA。(2) `carryFood/upgradeDen/checkMission` の運搬→備蓄→LV2を実操作で完走し、途中死亡→リトライ後も初回ガイド非表示を確認。(3) 同種/異種が混在するチェックポイント3件と旧SAVE_SCHEMA2で保存/復帰、アルファ速度231.4・猫320・狐285を回帰。45分枠のUI・Gamepad・夜目コードに重複編集を加えない。
+- **進捗**：71/100据え置き。旧強化セーブの速度欠損を修正したがPagesと実ブラウザE2E未確認のため72への条件未達。
+
 ## 共通スプリント｜2026-11-01 23:48–23:55 JST｜45分枠｜UI-RIGHT-STACK-NONAV-02 旧中央ナビ完全撤去＋6画面ブラウザ矩形回帰
 - **開始HEAD**：`54961e3eaa3d36d1a6d2f35d0466180d5697033e`。前15分枠の猫速度・死亡時同種チェックポイント・教程既読・夜間AI、前45分枠の夜目/常設ミニマップ、Drive正本末尾の確定仕様を照合。中央大型ナビ非表示と右上ポーズ→音/全画面→地図のCSSレイアウトは**前回既に実装済み**であり、重複作成・旧版上書きなし。
 - **本回の実コード変更**：`game.js` `cf819f092823611d0bc52fcbdef3a7d4432ffe11` で、CSSで隠していた旧`#nav-hud`へのDOM更新（`show`/毎回`syncHUD`）を完全削除。未使用の大型目的地発光`drawObjectiveGlow`と追従矢印`drawGuideWisps`関数定義を削除（JS約3459文字減）。`index.html` `030eb870cba0ed500a06084ba2141b176ac48b98` で旧`#nav-hud` DOM一式を削除（231文字減）、`game.js?rev=20261101-right-stack-no-nav-v2`に更新。右上3操作・地図、青い実入口`drawShelterEntranceMarker`、シアン目標、狩猟表示は維持。`visual.css`は前回の配置を保持、今後の旧CSS上書きに対する`#nav-hud{display:none!important}`ガードは残す。
