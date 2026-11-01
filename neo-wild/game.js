@@ -1123,7 +1123,7 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
  for(const c of carcasses){
   if(!edibleFood(c)||(c.type!=="corpse"&&c.type!=="meat"))continue;
   const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
-  if(d2<best){best=d2;target=c}
+  if(d2<best&&(d2>Math.pow(m.r+(c.r||9)+18,2)||!lineBlocked(m,c))){best=d2;target=c}
  }
  if(!target)return null;
  const biteRange=m.r+(target.r||9)+18;
@@ -1160,13 +1160,13 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
  for(const c of carcasses){
   if(c.type!=="berries"||!edibleFood(c))continue;
   const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
-  if(d2<best){best=d2;target=c}
+  if(d2<best&&(d2>Math.pow(m.r+(c.r||9)+12,2)||!lineBlocked(m,c))){best=d2;target=c}
  }
  // Browsing is renewable: herbivores and boars also eat actual grass/shrubs.
  if(!target)for(const p of plants){
-  if(p.type===1||waterBlocksLand(p.x,p.y))continue;
+  if(p.type===1||(p.type===2&&!visibleShrubCover())||waterBlocksLand(p.x,p.y))continue;
   const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
-  if(d2<best){best=d2;target=p;}
+  if(d2<best&&(d2>Math.pow(m.r+(p.r||9)+12,2)||!lineBlocked(m,p))){best=d2;target=p;}
  }
  if(!target)return null;
  const grazing=!Object.prototype.hasOwnProperty.call(target,"amount");
@@ -2568,6 +2568,8 @@ function update(dt){
      }
     }
    }
+   // A missed, blocked or interrupted lion follow-up ends the combo; no stale save state.
+   if(m.type==="giantLion"&&m.lionCombo&&m.windup<=0)m.lionCombo=0;
    const charging=!s.prey&&m.chargeTime>0&&m.stun<=0;
    const chargeSpeed=m.type==="alpha"?2.3:m.type==="blackPanther"?2.85:m.type==="oneEyedWolf"?2.65:m.type==="whiteTiger"?3.05:m.type==="giantBoar"?3.25:m.type==="giantMoose"?2.85:m.type==="giantBuffalo"?3.15:3.65;
    if(charging){
