@@ -656,7 +656,8 @@ function restoreSnapshot(snapshot){
    // A load must not release a previously queued strike without its warning.
    m.aquaticStrike=false;m.windup=0;m.windupTotal=0;
    m.wildAttack=clamp(Number(m.wildAttack)||0,0,3);
-  }else if(waterBlocksLand(m.x,m.y)){
+  }else if(m.type!=="giantEagle"&&waterBlocksLand(m.x,m.y)){
+   // Aerial species may resume above water; only ground species move to the bank.
    const safe=nearestDryBank(m.x,m.y,m.r||18);if(safe){m.x=safe.x;m.y=safe.y;}
   }
   m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
