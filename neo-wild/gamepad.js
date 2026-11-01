@@ -58,8 +58,8 @@ function poll(dt=.016){
   const [lx,ly]=stick(axis(p,0),axis(p,1));
   const tx=clamp(lx+(now[15]?1:0)-(now[14]?1:0),-1,1);
   const ty=clamp(ly+(now[13]?1:0)-(now[12]?1:0),-1,1);
-  const a=1-Math.exp(-clamp(dt,.001,.06)*20);
-  mx+=(tx-mx)*a;my+=(ty-my)*a;if(Math.abs(mx)<.005)mx=0;if(Math.abs(my)<.005)my=0;
+  // Direction changes and D-pad reversals must reach the player in this poll.
+  mx=tx;my=ty;
   b.setMove(mx,my);
   const [rx,ry]=stick(axis(p,2),axis(p,3));
   if(rx)b.turnCamera(rx*clamp(dt,0,.06)*2.9);
