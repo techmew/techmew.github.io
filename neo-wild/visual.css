@@ -700,7 +700,7 @@
 @media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
        (orientation:landscape) and (max-height:520px) and (max-width:1024px){
  #hud .hud-right #mini-map-control{top:calc(93px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));width:clamp(80px,23dvh,105px);height:clamp(80px,23dvh,105px);}
- #status{top:calc(188px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));font-size:9px;}
+ #status{top:calc(210px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));font-size:9px;}
  #gamepad-status{top:calc(112px + env(safe-area-inset-top));right:calc(116px + env(safe-area-inset-right));max-width:105px;}
 }
 @media (orientation:landscape) and (max-height:390px) and (max-width:1024px){
