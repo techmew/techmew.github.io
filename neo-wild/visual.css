@@ -772,3 +772,21 @@
   #hud .hud-right{min-width:126px;gap:3px;}
   #hud .hud-right #mini-map-control{width:clamp(80px,23dvh,105px);height:clamp(80px,23dvh,105px);}
 }
+
+/* UI-MAP-SCORE-STACK-20261102: attach SCORE/HUNT/conditional COMBO to the minimap in normal HUD flow. */
+#hud .hud-right #status{
+  position:static!important;
+  top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+  display:grid;align-self:flex-end;justify-items:end;gap:2px;
+  width:max-content;max-width:100%;min-width:0;
+  margin:2px 0 0!important;padding:0;
+  text-align:right;line-height:1.25;white-space:nowrap;
+  font-variant-numeric:tabular-nums;pointer-events:none;
+}
+@media (orientation:portrait) and (max-width:600px){
+  #hud .hud-right #status{font-size:10px;}
+}
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px){
+  #hud .hud-right #status{font-size:9px;}
+}
