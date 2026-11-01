@@ -5,7 +5,7 @@
 - **完成した連動改善③**：新規開始直後に`drawMini()`を追加。既存の旧セーブ復元時`drawMini()`、毎0.14秒更新、既存「地図」ボタンと詳細地図`world-map-canvas`を維持。Canvasを128×128へ変更し、`index.html`のgame.js/visual.cssキャッシュrevを更新。SAVE_SCHEMA=2/3チェックポイント・Gamepad Bridge・月齢照明・15分枠の冬狩猟AIは変更なし。
 - **変更ファイル／コードコミット**：`neo-wild/game.js`、`neo-wild/visual.css`、`neo-wild/index.html` → `5250b4b0d37dc9b3abeb6000cd7813973ff3ce1b`。他ゲーム/他ディレクトリ編集なし。force pushなし。
 - **QA**：全`game.js`構文、HTML ID一意、既存詳細地図・横画面CSS・Gamepad/月齢・旧セーブ形式、開始/復元の再描画、実`drawMini`関数をモックCanvasで起動→位置移動/地区変更→向き変更→目的地切替→目標消去、横800×360/844×390/736×414/1536×691・縦390×844のCSS寸法推定を合計**19/19 PASS**。**注意：レイアウトは数式推定であり実ブラウザgetBoundingClientRectではない。** WebGL/Canvas2D実画面、Android実機・縦横全画面、物理パッド、旧セーブ/チェックポイント3件のブラウザE2E、10～20分プレイ/FPSは未検証。旧セーブとAIの実機動作をPASSと誤認しない。
-- **Pages**：コードHEADのrun ID `41313302361`、22:48 JST照会時`queued`。build/deploy成功未確認。**進捗71/100据え置き**（実画面・配信未確認のため）。
+- **Pages**：コードHEAD `5250b4b0d37dc9b3abeb6000cd7813973ff3ce1b` のrun ID `41313302361`は**completed/success**、ジョブ`build`・`deploy`・`report-build-status`すべて**success**を確認。コードのPages配信成功。実Android/実ブラウザでのミニマップ表示・矩形実測は未確認。**進捗71/100据え置き**（実画面・実プレイ未検証のため）。
 - **次15分枠（狩猟/ミッション担当）**：(1) 最新HEADから`game.js:getObjective`と`drawMini`の依存関係を確認し、冬の狩猟AI更新時に旧目標/自由探索マーカーを戻さない。(2) `updateIndoorRest/startlePrey/chooseEscape`で壁陰休息→犬接近→逃走→攻撃→食事を実プレイ相当で通し、地図の獲物マーカーが現在位置に追従することを確認。(3) `mission6→7`の終了後、ミニマップ目標マーカーなし・常設「生き残れ！」を維持する。
 - **次45分枠（表示/統合担当）**：(1) 800×360/844×390/736×414/縦390×844/PCで実ブラウザ`getBoundingClientRect`を取得し、ミニマップと右上操作・score・Gamepad状態・nav・右4ボタン・左ズームの非重複を確認し、必要なら`visual.css`を最小修正。(2) 実Chromeで新規/旧セーブ/3チェックポイント→横全画面→移動・視点・目標切替→地図→縦復帰を試し、WebGL/2D・パッドの実機未確認を解消。(3) Pages run `41313302361`のbuild/deploy成功を照合し、公開反映後に実URLで常設表示を確認する。
 - **終了HEAD**：コード `5250b4b0d37dc9b3abeb6000cd7813973ff3ce1b`、本ROADMAP追記コミットが次の引継ぎHEAD。
