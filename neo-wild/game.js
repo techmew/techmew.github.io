@@ -1483,6 +1483,8 @@ function finishMissionMilestone(){
  milestoneUntil=0;mode="play";
  if(mission<=3&&!tutorialSeen.has(mission))openTutorial(0,true);
  else announceObjective();
+ // Reveal the final survival HUD on the exact frame that the one-time notice ends.
+ syncHUD();
  return true;
 }
 function advanceMission(next){
