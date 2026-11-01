@@ -367,6 +367,21 @@ function refreshSaveMenu(){
   if(snapshot)button.textContent=(i+1)+". "+checkpointLabel(snapshot);
  }
 }
+// Reconcile already-completed goals in older saves without replaying lessons.
+function reconcileRestoredGoals(){
+ const previous=mission;
+ if(mission===0&&meals>=1)mission=1;
+ if(mission===1&&hiddenHold>=.75)mission=2;
+ if(mission===2&&kills>=1)mission=3;
+ if(mission===3&&Math.hypot(P.x-STATION.x,P.y-STATION.y)<115)mission=4;
+ if(mission===4&&denLevel>=2)mission=5;
+ if(mission===5&&territoryOwned()>=1)mission=6;
+ if(mission===6&&discoveredSites.length>=2){
+  mission=7;freeStep=0;freeTarget=meals+1;expedition=Math.max(1,expedition);
+ }
+ for(let n=0;n<=Math.min(6,mission);n++)tutorialSeen.add(n);
+ return mission!==previous;
+}
 function restoreSnapshot(snapshot){
  if(!isValidSnapshot(snapshot))return false;
  choice=snapshot.player.type;
@@ -452,6 +467,7 @@ function restoreSnapshot(snapshot){
  resetControls();
  try{saveDenLevel();saveDenStash();saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
+ reconcileRestoredGoals();
  syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
@@ -1121,7 +1137,7 @@ function openDenInventory(){
 function closeDenInventory(){
  if(mode!=="inventory")return;
  $("den-inventory").classList.add("hidden");mode="play";resetControls();syncHUD();saveAuto();
- if(mission<=6&&!tutorialSeen.has(mission))announceObjective();
+ if(mission<=3&&!tutorialSeen.has(mission))announceObjective();
 }
 function eatFromDen(kind){
  if(mode!=="inventory"||!P||!atDen()||!["meat","berries","legacy"].includes(kind))return false;
@@ -1193,6 +1209,8 @@ function renderTutorial(){
 }
 function openTutorial(page=0,automatic=false){
  if(!P||!(mode==="play"||mode==="guide"))return false;
+ // Survival objectives are HUD-only; completed lessons never auto-reopen.
+ if(automatic&&(mission>=4||tutorialSeen.has(mission)))return false;
  tutorialPage=clamp(Math.floor(page),0,TUTORIAL_PAGES.length-1);
  if(automatic)tutorialSeen.add(mission);
  if(mode==="play"){saveAuto();resetControls();mode="guide"}
@@ -1217,7 +1235,7 @@ function announceObjective(){
  if(!P)return;
  if(mission<=6){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
-  if(mode==="play"&&!tutorialSeen.has(mission))openTutorial(0,true);
+  if(mission<=3&&mode==="play"&&!tutorialSeen.has(mission))openTutorial(0,true);
   return;
  }
  if(mode!=="play"){objectiveBannerTime=0;return}
@@ -1248,7 +1266,7 @@ function finishMissionMilestone(){
  if(mode!=="milestone")return false;
  $("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");
  milestoneUntil=0;mode="play";
- if(mission<=6&&!tutorialSeen.has(mission))openTutorial(0,true);
+ if(mission<=3&&!tutorialSeen.has(mission))openTutorial(0,true);
  else announceObjective();
  return true;
 }
