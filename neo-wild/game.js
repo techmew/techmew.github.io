@@ -138,7 +138,74 @@ function simulateEcology(dt){
  }
 }
 
-const SAFE_DEN={x:1860,y:1170,r:90};
+const SAFE_DEN={x:1860,y:1170,r:90}; // Legacy location; saved data is unchanged.
+
+const DEN_PATTERNS=[
+ {id:"thicket",name:"草陰のねぐら",x:1890,y:1540,kind:"grass"},
+ {id:"grove",name:"森の深い草むら",x:1490,y:4410,kind:"forest"},
+ {id:"ruin",name:"崩れた塀の陰",x:5460,y:1650,kind:"ruin"},
+ {id:"factory",name:"廃工場の裏庭",x:4690,y:4320,kind:"yard"},
+ {id:"reeds",name:"水路脇の葦原",x:6920,y:4550,kind:"reeds"},
+ {id:"roof",name:"高台の屋上",x:3460,y:1350,kind:"roof"}
+];
+let denSites=[];
+function nearDenLocation(x,y,r=255){return denSites.some(q=>Math.hypot(x-q.x,y-q.y)<r);}
+function denAtActor(actor=P){
+ if(!actor)return null;
+ return denSites.find(q=>Math.abs((actor.groundZ||0)-q.z)<10&&Math.hypot(actor.x-q.x,actor.y-q.y)<=denRadius()+16)||null;
+}
+function closestDen(actor=P,groundOnly=false){
+ if(!actor)return denSites[0]||SAFE_DEN;
+ const sites=denSites.filter(q=>!groundOnly||q.z===0);
+ const choices=sites.length?sites:denSites;
+ return choices.reduce((best,q)=>{
+  const score=Math.hypot(actor.x-q.x,actor.y-q.y)+(Math.abs((actor.groundZ||0)-q.z)>12?180:0);
+  const old=best?Math.hypot(actor.x-best.x,actor.y-best.y)+(Math.abs((actor.groundZ||0)-best.z)>12?180:0):Infinity;
+  return score<old?q:best;
+ },null)||SAFE_DEN;
+}
+function initializeDenSites(){
+ if(denSites.length)return denSites;
+ const sites=[];
+ for(const p of DEN_PATTERNS){
+  if(p.kind==="roof"){
+   const roofs=buildings.filter(b=>!b.interior&&b.roofZ>=26&&b.roofZ<=44&&b.w>=125&&b.h>=105&&
+     !buildingOverlapsWater(b.x,b.y,b.w,b.h)&&
+     !sites.some(q=>Math.hypot(q.x-b.x-b.w*.5,q.y-b.y-b.h*.5)<680))
+     .sort((a,b)=>Math.hypot(a.x+a.w*.5-p.x,a.y+a.h*.5-p.y)-Math.hypot(b.x+b.w*.5-p.x,b.y+b.h*.5-p.y));
+   if(roofs.length){const b=roofs[0];sites.push({...p,x:b.x+b.w*.5,y:b.y+b.h*.5,z:b.roofZ,r:65});}
+   continue;
+  }
+  let found=null;
+  for(const radius of [0,65,125,190,260,340,430]){
+   for(let j=0;j<(radius===0?1:16);j++){
+    const a=j*Math.PI/8,x=p.x+Math.cos(a)*radius,y=p.y+Math.sin(a)*radius;
+    if(x<100||y<100||x>WORLD.w-100||y>WORLD.h-100||collides(x,y,54)||
+       roadsX.some(road=>Math.abs(road-x)<102)||roadsY.some(road=>Math.abs(road-y)<96)||
+       sites.some(q=>Math.hypot(q.x-x,q.y-y)<710))continue;
+    found={...p,x,y,z:0,r:72};break;
+   }
+   if(found)break;
+  }
+  if(found)sites.push(found);
+ }
+ denSites=sites;
+ return denSites;
+}
+function ensureDenCover(){
+ for(const site of denSites){
+  if(site.z>0||plants.some(q=>q.denSite===site.id))continue;
+  for(let j=0;j<10;j++){
+   const angle=j*TWO/10+.31,spread=122+(j%3)*17;
+   const x=site.x+Math.cos(angle)*spread,y=site.y+Math.sin(angle)*spread;
+   if(j===2||j===3||collides(x,y,38)||waterBlocksLand(x,y))continue;
+   plants.push({x,y,r:47+(j%4)*5,type:2,phase:j*.93,hue:.24,denSite:site.id});
+  }
+  if(!plants.some(q=>q.denSite===site.id)&&!collides(site.x+76,site.y+30,24))
+   plants.push({x:site.x+76,y:site.y+30,r:48,type:2,phase:1.1,denSite:site.id});
+ }
+}
+
 const DEN_CAP=200, DEN_MAX_LEVEL=3, DEN_COSTS={2:60,3:120};
 const FOOD_BALANCE={meat:{satiety:1.5,healing:.5,stash:1.5},berries:{satiety:.6,healing:.08,stash:.6}};
 function foodName(c){return c?.type==="berries"?"食草":"肉"}
@@ -198,7 +265,7 @@ function territoryDetersDog(m){
 
 function denCapacity(){return [0,200,300,450][denLevel]}
 function denRadius(){return [0,SAFE_DEN.r,125,165][denLevel]}
-function atDen(){return !!P&&(P.groundZ||0)===0&&dist(P,SAFE_DEN)<=denRadius()+16}
+function atDen(){return !!denAtActor()}
 function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
 function loadDenLevel(animal){
  try{const n=Number(localStorage.getItem("wild-reclaim-den-level-v1-"+animal));return Number.isInteger(n)?clamp(n,1,DEN_MAX_LEVEL):1}catch(_){return 1}
@@ -491,7 +558,7 @@ function generateWorld(){
  buildScenicProps();
 }
 function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
-window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
+window.addEventListener("resize",resize,{passive:true});resize();generateWorld();initializeDenSites();ensureDenCover();
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
  if(id==="menu")refreshSaveMenu();
@@ -502,6 +569,7 @@ function start(){
  autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
+ ensureDenCover();
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
@@ -686,6 +754,7 @@ function restoreSnapshot(snapshot){
  const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
  const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
  plants=snapshot.worldVersion===2?snapshot.plants:snapshot.plants.concat(expandedPlants);
+ ensureDenCover();
  debris=snapshot.worldVersion===2?snapshot.debris:snapshot.debris.concat(expandedDebris);
  discoveredSites=Array.isArray(snapshot.discoveredSites)?snapshot.discoveredSites.filter(id=>EXPLORE_SITES.some(s=>s.id===id)):[];
  ecology=Array.isArray(snapshot.ecology)&&snapshot.ecology.length===8?snapshot.ecology.map((e,i)=>({
