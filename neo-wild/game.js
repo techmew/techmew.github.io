@@ -1840,7 +1840,7 @@ function syncHUD(hour){
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
- $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel===1?"（LV2まで・消費なし）":"");
+ $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel<DEN_MAX_LEVEL?"（LV"+(denLevel+1)+"まで・消費なし）":"（容量）");
  setBar("den-stash-bar",denStash/target*100);
  $("den-stash-bar").parentElement.setAttribute("aria-valuenow",String(Math.round(denStash)));
  $("den-stash-bar").parentElement.setAttribute("aria-valuemax",String(target));
