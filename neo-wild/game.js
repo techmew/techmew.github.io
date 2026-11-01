@@ -23,6 +23,7 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
+let debugWeatherOverride=null; // Session-only weather preview; never stored in saves.
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
 const activeTouchPointers=new Map(),touchHoldTimers=new Map();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -407,7 +408,7 @@ function show(id){
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
- autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
+ autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
@@ -1705,7 +1706,7 @@ function maintainLocalWildlife(){
  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
 }
 function updateWeather(dt){
- const target=tokyoWeatherAt(elapsed);
+ const target=debugWeatherOverride||tokyoWeatherAt(elapsed);
  if(weather!==target){
   const previous=weather;weather=target;windDirection=rnd(0,TWO);
   if(weather==="THUNDER")thunderTimer=rnd(5,11);
@@ -3404,4 +3405,51 @@ gameSurface.addEventListener("pointercancel",stopCameraPointer);
 gameSurface.addEventListener("lostpointercapture",stopCameraPointer);
 document.addEventListener("contextmenu",e=>e.preventDefault());
 refreshSaveMenu();drawMini();
+/* Opt-in debugging interface. Display UI is unlocked by seven title taps.
+ * No debug flag is serialized; normal save schema, input and autosave remain intact. */
+window.WildDebugBridge={
+ getState(){
+  const active=!!P&&mode!=="menu"&&mode!=="result";
+  const loc=active?{x:P.x,y:P.y}:null;
+  return {
+   mode,day,hour:Math.floor(dayLightProfile(elapsed).hour),
+   region:loc?districts[regionAt(loc.x,loc.y)]:null,position:loc,
+   weather:WEATHER_NAMES[weather]||weather,weatherOverride:!!debugWeatherOverride,
+   mobCount:mobs.filter(m=>m.hp>0).length,carcassCount:carcasses.length,
+   hp:active?Math.ceil(P.hp):null,denLevel,animal:animals[choice]?.name||choice
+  };
+ },
+ setHour(hour){
+  if(mode!=="play"||!P||!Number.isInteger(hour)||hour<0||hour>23)return false;
+  elapsed=Math.floor(elapsed/85)*85+(((hour-6+24)%24)/24)*85;
+  day=1+Math.floor(elapsed/85);
+  updateWeather(0);syncHUD(hour);
+  return saveAuto();
+ },
+ setWeather(name){
+  if(name!==null&&!["CLEAR","CLOUDY","RAIN","THUNDER","WIND","FOG"].includes(name))return false;
+  debugWeatherOverride=name;
+  if(mode!=="play"||!P)return name===null;
+  updateWeather(0);syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  return true;
+ },
+ warp(place){
+  if(mode!=="play"||!P||!Object.prototype.hasOwnProperty.call(START_LOCATIONS,place))return false;
+  const source=START_LOCATIONS[place],p=nearestDryBank(source.x,source.y,P.r);
+  if(!p||collides(p.x,p.y,P.r,P))return false;
+  P.x=p.x;P.y=p.y;P.groundZ=roofAt(P.x,P.y);
+  P.jumpHeight=P.groundZ;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
+  P.fallTime=0;P.vx=0;P.vy=0;resetControls();
+  cam.x=P.x-vw*.5;cam.y=P.y-vh*.5;
+  syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  return saveAuto();
+ },
+ heal(){
+  if(mode!=="play"||!P)return false;
+  P.hp=P.maxHp;P.hunger=100;P.sp=100;
+  syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  return saveAuto();
+ },
+ save(){return saveAuto();}
+};
 })();
