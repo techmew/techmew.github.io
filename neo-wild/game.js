@@ -1629,10 +1629,42 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
  }
  return direct;
 }
+// Choose a real road bridge before generic A* when wildlife crosses open water.
+function wildlifeBridgeWaypoint(m,goal){
+ let best=null;
+ const consider=(near,far)=>{
+  if(collides(near.x,near.y,m.r+4)||collides(far.x,far.y,m.r+4)||!routeClear(near,far,m.r))return;
+  const farVisible=routeClear(m,far,m.r);
+  if(!farVisible&&!routeClear(m,near,m.r))return;
+  const cost=dist(m,near)+dist(near,far)+dist(far,goal);
+  if(!best||cost<best.cost)best={point:farVisible?far:near,cost};
+ };
+ if(m.y>=0&&m.y<2600&&goal.y>=0&&goal.y<2600){
+  const side=Math.sign(m.x-riverAxis(m.y)),other=Math.sign(goal.x-riverAxis(goal.y));
+  if(side&&side===-other&&Math.abs(goal.x-riverAxis(goal.y))>133){
+   for(const y of roadsY){if(y>=2600)continue;
+    const axis=riverAxis(y),offset=133+m.r+24;
+    consider({x:axis+side*offset,y},{x:axis-side*offset,y});
+   }
+  }
+ }
+ if(m.x>=5600&&m.x<8400&&goal.x>=5600&&goal.x<8400&&m.y>=2600&&goal.y>=2600){
+  const side=Math.sign(m.y-canalAxis(m.x)),other=Math.sign(goal.y-canalAxis(goal.x));
+  if(side&&side===-other&&Math.abs(goal.y-canalAxis(goal.x))>100){
+   for(const x of roadsX){if(x<5600||x>=8400)continue;
+    const axis=canalAxis(x),offset=100+m.r+24;
+    consider({x,y:axis+side*offset},{x,y:axis-side*offset});
+   }
+  }
+ }
+ return best?.point||null;
+}
 function steerPursuit(m,tx,ty){
  const goal={x:tx,y:ty},desired=Math.atan2(ty-m.y,tx-m.x),distance=dist(m,goal);
  const look=clamp(distance*.45,42,94);
  if(routeClear(m,goal,m.r)){m.navPath=null;return desired}
+ const bridge=wildlifeBridgeWaypoint(m,goal);
+ if(bridge){m.navPath=null;return Math.atan2(bridge.y-m.y,bridge.x-m.x)}
  const stale=!m.navGoal||dist(m.navGoal,goal)>70;
  if((stale||!m.navPath||m.navIndex>=m.navPath.length)&&elapsed>=(m.navRetry||0)&&navPlansThisFrame<2){
    navPlansThisFrame++;
