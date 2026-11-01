@@ -1,3 +1,14 @@
+## 共通スプリント｜2026-11-01 19:23 JST｜15分枠｜NIGHT-HUNT-WINTER-COVER-01（冬の潜伏→発見・覚醒→逃走・狩猟）
+- **優先度／担当／開始HEAD→実装HEAD**：P0・P1、15分ゲームプレイ担当、`a948c4bc9c3f57f3b67487480d876f9f1fbff7e2` → `28bfaadbc1ecbe7b2a8e0b68d883d4abc5adf01c`。45分枠は同じパッケージの可視性・経路・実ブラウザ回帰を担当し、別スプリントを立ち上げない。編集前にmainのgame/webgl/index/style/visual/audio/ROADMAP/season-clouds/debug全文、直近12コミット、Google Drive設計書末尾を確認。前15分夜間休息・前45分冬の不可視低木潜伏禁止を保持。
+- **問題と完成条件**：冬の低木を非描画にしたため`inCover`が常時偽となり、冬1月のチュートリアル「潜伏」が進行不能。加えて寝ている獲物が敵を察知しても睡眠解除のみで実逃走を開始しない場合があり、攻撃を受けた獲物は`resolveAttack`で逃走値を0へ戻される。プレイヤーが見える建物・車の陰へ移動して潜伏達成でき、夜の獲物が発見・攻撃・野犬噛みつきで起きて障害物を避けて逃げ、逃走マーク／近距離の「目覚めた！」を見られること。
+- **実装①冬の実在遮蔽物**：`game.js`の`visibleWinterCover`を追加。12～2月は見える車・自販機・バリケード・建物外壁の近傍だけ`inCover`成立、白い塊や不可視低木を復活しない。春～秋は従来の実在低木。冬チュートリアルの短文・ガイド・目的地を`winterCoverSpot`による実在障害物の通行可能な外側へ切替。水・建物衝突と連動して到達点を選択し、旧セーブのmission1も達成可能にする。目的地検索はmission1に限定。
+- **実装②③④夜の狩猟連携**：`startlePrey`で眠る獲物の覚醒・休息クールダウン・既存経路解除・逃走タイマーと方向を統一。実捕食者オブジェクトを取得（旧`some`真偽値を方向計算に渡さない）し、`chooseEscape`の脅威距離をその捕食者に合わせて実衝突チェックで方向決定。プレイヤー攻撃の非致死命中と野犬の噛みつきでも同じ逃走を起動。近距離覚醒は「目覚めた！」、従来の`!`逃走表示・3D/2D・攻撃報酬を使用。新ボタンなし、NPCワープ・削除なし。
+- **変更ファイル／コミット**：`neo-wild/game.js` `df30dc3e3b1b094eea92c593a177941fcf0a4eb3`、`neo-wild/index.html` `28bfaadbc1ecbe7b2a8e0b68d883d4abc5adf01c`（game.js `?rev=20261101-winter-hardcover-startle-v1`）。ほかのゲーム・ルート・保存スキーマは無変更。書込前にHEADと両blob SHAを再取得して一致を確認。
+- **QA PASS**：実`inCover/visibleWinterCover/winterCoverSpot/startlePrey/updateIndoorRest`の隔離実行で冬の不可視低木不成立・車/建物の陰・開けた地面不成立・冬ガイド地点・夏低木の従来動作・休息解除・実捕食者方向・近距離覚醒表示・プレイヤー攻撃/野犬噛みつき接続など23ケースPASS。現行mainを再取得したgame/webgl3d/audio/season-clouds/debugの全文JS構文5件PASS、操作4ボタン/3D/2D/雲影/冬の白い塊なし/夜の休息/川の橋/雨宿り/SAVE_SCHEMA=2/1秒自動保存/3チェックポイント/旧セーブ復元/手動ガイド/7タップDEBUG等20静的回帰PASS。静的項目は動作E2Eと区別。
+- **Pages**：実装HEAD`28bfaadb`のPages run `41297242578`は19:23 JST確認時点`queued`。直前HEAD `a948c4bc`のPages run `41294777292`はsuccess。**今回HEADの公開反映は未確認**。Android縦横/GPU/FPS・10～20分の実ブラウザ操作・実旧セーブ/チェックポイント再開E2E・遮蔽物周辺の本物のAI長時間経路は未検証。
+- **進捗**：71/100（前回71、±0。統合実装は完了、Pages/実機E2E未確認のため据え置き）。**ROADMAP追記直前HEAD**：`28bfaadbc1ecbe7b2a8e0b68d883d4abc5adf01c`。本ログコミットが終了HEADとなる。
+- **次45分枠の具体的3作業**：①最新HEADを再取得し、`game.js:visibleWinterCover/winterCoverSpot/getObjective`で冬1月のmission1を開始・実車/建物の陰へ歩行→0.75秒潜伏→mission2へ進行する統合シミュレーション。ルート不可・遮蔽物不在の開始地点があれば最小差分修正。②`updateIndoorRest/startlePrey/chooseEscape`と`resolveAttack`、野犬`wildAttack`を実NPCループで夜間覚醒→逃走→攻撃→死骸まで確認し、川/橋/建物の衝突・振動を検証。③`drawScene`の3D/2D冬の可視遮蔽物・`!`・目覚めた表示、縦横HUDとPages run `41297242578`のbuild/deploy結果を確認。Android実機が無理なら実DOM模擬で保存復元と10分相当のAI進行をテスト。ロールバック・白い塊・空の雲の再導入禁止。
+
 ## 2026/11/01 18:49 JST｜45分枠・冬の不可視低木で潜伏できる不整合を修正
 - **開始HEAD**：`f3d9193e5f3523544efb6612f0a0b4689d98a718`。mainのgame/webgl/index/style/visual/audio/ROADMAP、season-clouds/debug、直近コミット、Drive設計書末尾を再取得。15分枠の夜間ウサギ・ハトの草陰休息を維持。15分枠のPagesデプロイはworkflow `41292466047` successを新たに確認。
 - **原因**：17:50修正で冬の低木(type2)を3D/2Dとも非描画にしたが、`inCover`は通年type2を潜伏扱いし、プレイヤーが冬の見えない草で隠れられ、NPCの逃走方向も見えない低木を高評価していた。夜間休息の季節判定（3～11月）は既に正しいため再実装しない。
