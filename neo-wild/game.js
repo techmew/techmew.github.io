@@ -8,7 +8,7 @@ const bigMap=$("world-map-canvas"),bm=bigMap.getContext("2d");
 const TWO=Math.PI*2, WORLD={w:8400,h:6000};
 const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
- cat:{name:"ノラネコ",hp:85,speed:239,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
+ cat:{name:"ノラネコ",hp:85,speed:320,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
  wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"}
 };
 const species={
@@ -22,6 +22,11 @@ const species={
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
+const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1";
+let automaticTutorialShown=false;
+try{automaticTutorialShown=localStorage.getItem(TUTORIAL_ONCE_KEY)==="1"}catch(_){}
+function rememberTutorialShown(){automaticTutorialShown=true;try{localStorage.setItem(TUTORIAL_ONCE_KEY,"1")}catch(_){}}
+function migrateSeenTutorial(snapshot){if(snapshot&&(Number(snapshot.mission)>0||(Array.isArray(snapshot.tutorialSeen)&&snapshot.tutorialSeen.length>0)))rememberTutorialShown();}
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 let debugWeatherOverride=null; // Session-only weather preview; never stored in saves.
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
@@ -484,6 +489,7 @@ function checkpointLabel(s){
 }
 function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
+ if(!automaticTutorialShown){migrateSeenTutorial(auto);for(const point of points)migrateSeenTutorial(point)}
  const hasSave=!!auto||points.length>0;
  $("menu").classList.toggle("has-saved-game",hasSave);
  $("menu").classList.toggle("has-auto-save",!!auto);
@@ -503,8 +509,9 @@ function reconcileRestoredGoals(){
  const previous=mission;
  if(mission===0&&meals>=1)mission=1;
  if(mission===1&&hiddenHold>=.75)mission=2;
- if(mission===2&&kills>=1)mission=3;
- if(mission===3&&Math.hypot(P.x-STATION.x,P.y-STATION.y)<115)mission=4;
+ if(mission===2&&kills>=1)mission=4;
+ // Retired station objective: continue old saves at the practical den lesson.
+ if(mission===3)mission=4;
  if(mission===4&&denLevel>=2)mission=5;
  if(mission===5&&territoryOwned()>=1)mission=6;
  if(mission===6&&discoveredSites.length>=2){
@@ -515,6 +522,7 @@ function reconcileRestoredGoals(){
 }
 function restoreSnapshot(snapshot){
  if(!isValidSnapshot(snapshot))return false;
+ migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
  document.querySelectorAll(".animal-card").forEach(b=>b.classList.toggle("selected",b.dataset.animal===choice));
  start();
@@ -1389,11 +1397,11 @@ function missionInfo(){
  switch(mission){
   case 0:return {stage:"チュートリアル 1 / 4",title:"食草か肉を食べよう",detail:"近くの食草・肉を食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
   case 1:return {stage:"チュートリアル 2 / 4",title:"身を隠せ",detail:visibleShrubCover()?"茂みで静止して潜伏 / C":"建物・車の陰で静止して潜伏 / C",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
-  case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"旧新宿駅を探せ",progress:Math.min(1,kills)};
-  case 3:return {stage:"チュートリアル 4 / 4",title:"旧新宿駅を探せ",detail:"廃墟を探索して旧駅に到達する",next:"巣をLV2に強化せよ",progress:clamp(1-Math.hypot(P.x-STATION.x,P.y-STATION.y)/750,0,1)};
+  case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"巣に食料を備蓄しよう",progress:Math.min(1,kills)};
+  case 3:return {stage:"チュートリアル 4 / 4",title:"巣に食料を備蓄しよう",detail:"食草か肉を運んで巣に備蓄し、巣を強化する",next:"巣をLV2に強化",progress:denLevel>=2?1:Math.min(1,denStash/DEN_COSTS[2])};
   case 4:{
    const step=stockpileStep();
-   return {stage:"生存目標 1 / 3・備蓄の練習",
+   return {stage:"チュートリアル 4 / 4・巣と備蓄",
     title:step.step===1?"食料をくわえて巣に持ち帰ろう":step.step===2?"食料を巣に預けよう":"備蓄で巣をLV2にしよう",
     detail:step.text+(step.step===1?"（約0.6秒）":"")+" / 備蓄 "+denStash+"/"+DEN_COSTS[2],
     next:step.step===3?"巣をLV2に強化":step.step===2?"巣で△短押し":"食料を運んで備蓄",
@@ -1409,7 +1417,7 @@ const GUIDE_GOALS=[
  {title:"食草か肉を食べる",what:"食草・肉の近くで△短押し。",how:"空腹が回復する。"},
  {title:"身を隠す",what:"春〜秋は茂み、冬は建物・車の陰で約1秒止まる。",how:"敵に見つかりにくくなる。"},
  {title:"獲物を狩る",what:"×で攻撃、□で飛びつき。",how:"死骸から肉を取れる。"},
- {title:"探索地点へ行く",what:"》の方向へ進んで旧駅へ。",how:"次は巣の備蓄。"},
+ {title:"巣の作り方",what:"食草・肉で△長押しして運ぶ。",how:"巣の中心で△短押しして備蓄し、△長押しでLV2に強化。"},
  {title:"巣に食料を貯める",what:"食草・肉で△長押し → 巣で△。",how:"60ptで巣LV2。強化しても食料は減らない。"},
  {title:"縄張りを取る",what:"標識で△長押し。",how:"巣の安全性が上がる。"},
  {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"最後の目標へ進む。"},
@@ -1436,9 +1444,9 @@ function renderTutorial(){
 function openTutorial(page=0,automatic=false){
  if(!P||!(mode==="play"||mode==="guide"))return false;
  // Survival objectives are HUD-only; completed lessons never auto-reopen.
- if(automatic&&(mission>=4||tutorialSeen.has(mission)))return false;
+ if(automatic&&(automaticTutorialShown||mission>=4||tutorialSeen.has(mission)))return false;
  tutorialPage=clamp(Math.floor(page),0,TUTORIAL_PAGES.length-1);
- if(automatic)tutorialSeen.add(mission);
+ if(automatic){tutorialSeen.add(mission);rememberTutorialShown();}
  if(mode==="play"){saveAuto();resetControls();mode="guide"}
  guideNeedsFrame=true; // Render the scene once behind the popup, then freeze its frame.
  $("app").classList.add("tutorial-paused");
@@ -1475,7 +1483,7 @@ function announceObjective(){
 }
 // Award first, then open the next lesson; do not rely on closing a lesson to show success.
 function showMissionMilestone(previous,next){
- if(!P||mode!=="play"||next!==previous+1||previous<0||previous>6)return false;
+ if(!P||mode!=="play"||(next!==previous+1&&!(previous===2&&next===4))||previous<0||previous>6)return false;
  const finalTutorial=previous===6&&next===7;
  const duration=finalTutorial?1900:previous===3&&next===4?1000:780;
  $("mission-milestone-kicker").textContent=finalTutorial?"":previous<3?"NICE WORK":"SURVIVAL";
@@ -1509,8 +1517,8 @@ function advanceMission(next){
 function checkMission(){
  if(mission===0&&meals>=1){advanceMission(1);return}
  if(mission===1&&hiddenHold>=.75){advanceMission(2);return}
- if(mission===2&&kills>=1){advanceMission(3);return}
- if(mission===3&&Math.hypot(P.x-STATION.x,P.y-STATION.y)<115){advanceMission(4);return}
+ if(mission===2&&kills>=1){advanceMission(4);return}
+ if(mission===3){advanceMission(4);return}
  if(mission===4&&denLevel>=2){advanceMission(5);return}
  if(mission===5&&territoryOwned()>=1){advanceMission(6);return}
  if(mission===6&&discoveredSites.length>=2){advanceMission(7);return}
@@ -1527,7 +1535,7 @@ function objectiveShortLabel(){
  if(mission===0){const f=nearestGoal(carcasses.filter(c=>edibleFood(c)));return f?foodName(f):"食草・肉"}
  if(mission===1)return visibleShrubCover()?"潜伏する茂み":"建物・車の陰";
  if(mission===2)return "獲物";
- if(mission===3)return "探索地点";
+ if(mission===3)return "巣";
  if(mission===4){const step=stockpileStep();if(step?.step===1){const f=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));return f?foodName(f):"食草・肉"}return "巣"}
  if(mission===5)return "縄張り標識";
  if(mission===6)return "探索地点";
@@ -1543,7 +1551,7 @@ function getObjective(){
   const p=nearestGoal(plants.filter(p=>p.type===2));
   return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
  }
- if(mission===3)return {x:STATION.x,y:STATION.y,label:"旧新宿駅方面"};
+ if(mission===3)return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:"巣へ食料を備蓄する"};
  if(mission===4){
   if(P.carry||denStash>=DEN_COSTS[2])return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};
   const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
@@ -1573,9 +1581,10 @@ function finish(won=false){
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
  if(totalScore>best){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
  $("result-kicker").textContent=won?"TOKYO RECLAIMED":"SURVIVAL REPORT";
- $("result-title").textContent=won?"SURVIVED":"GAME OVER";
+ $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
- $("result-reason").textContent=won?"生態系の頂点へ。東京に、あなたの縄張りを刻んだ。":"東京の食物連鎖に飲み込まれた。次は生き延びろ。";
+ $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。リトライか、最初から始めるかを選んでください。";
+ $("retry-btn").textContent=getCheckpoints().length?"リトライ（最後のチェックポイント）":"リトライ（同じ動物）";
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>DAY "+String(day).padStart(2,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
@@ -3565,8 +3574,8 @@ $("mission-close").addEventListener("click",()=>{
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
-$("retry-btn").addEventListener("click",()=>{clearAutoSave();start();announceObjective()});
-$("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
+$("retry-btn").addEventListener("click",()=>{const save=getCheckpoints()[0];if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}clearAutoSave();start();announceObjective()});
+$("menu-btn").addEventListener("click",()=>{mode="menu";show("menu");$("new-game-options").open=true});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
 $("menu-landscape-btn").addEventListener("click",()=>setFullscreenOrientation("landscape",$("menu-landscape-note")));
