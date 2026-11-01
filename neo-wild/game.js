@@ -2681,7 +2681,7 @@ function loop(t){
  drawScene();requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry")carryFood();if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
