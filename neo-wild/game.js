@@ -17,7 +17,7 @@ const species={
  pigeon:{hp:18,r:12,speed:125,damage:0,prey:true,xp:1,food:19,color:"#738c92",belly:"#e5e4d5"},
  dog:{hp:124,r:22,speed:161,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
  boar:{hp:190,r:28,speed:122,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
- alpha:{hp:335,r:29,speed:178,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
+ alpha:{hp:335,r:29,speed:231.4,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"}
 };
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
