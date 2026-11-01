@@ -1083,7 +1083,7 @@ function spawnStrongBoss(type,region){
   const spot=aquatic?waterSpots[Math.floor(Math.random()*waterSpots.length)]:null;
   const x=spot?spot.x:clamp(P.x+Math.cos(angle)*radius,60,WORLD.w-60);
   const y=spot?spot.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
-  if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<135))continue;
+  if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<135))continue;
   const hp=Math.round(sp.hp*(1+Math.max(0,day-1)*.10));
   mobs.push({x,y,type,r:sp.r,color:sp.color,belly:sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
    alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,
@@ -1133,6 +1133,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
   valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
+   &&!nearDenLocation(x,y,265)
    &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0));
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
@@ -1814,7 +1815,7 @@ function dash(){
 }
 function upgradeDen(){
  if(mode!=="play")return false;
- if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("地上に降りてから巣を育てる");return false}
+ if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0){notify("巣に着地してから強化");return false}
  if(!atDen()){notify("巣の中心に近づいて△長押しで強化");return false}
  if(denLevel>=DEN_MAX_LEVEL){notify("巣は最大LV3まで成長済み");return false}
  const cost=DEN_COSTS[denLevel+1];
@@ -1826,8 +1827,8 @@ function upgradeDen(){
 }
 function carryFood(){
  if(mode!=="play")return false;
- if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>20){notify("着地してから運ぶ");return false}
- if((P.groundZ||0)>0){notify("地上で食草・肉を運ぶ");return false}
+ if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>(P.groundZ||0)+20){notify("着地してから運ぶ");return false}
+ if((P.groundZ||0)>0&&!atDen()){notify("地上で食草・肉を運ぶ");return false}
  if(atDen()){
   if(P.carry){
    const kind=foodName(P.carry),value=Math.max(1,Math.round(P.carry.amount*foodBalance(P.carry).stash));
@@ -2073,9 +2074,9 @@ function getObjective(){
   const p=nearestGoal(plants.filter(p=>p.type===2));
   return p?{x:p.x,y:p.y,label:"茂みで静止 / Cで潜伏"}:null;
  }
- if(mission===3)return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:"巣へ食料を備蓄する"};
+ if(mission===3){const site=closestDen(P,true);return {x:site.x,y:site.y,label:"巣へ食料を備蓄する"};}
  if(mission===4){
-  if(P.carry||denStash>=DEN_COSTS[2])return {x:SAFE_DEN.x,y:SAFE_DEN.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};
+  if(P.carry||denStash>=DEN_COSTS[2]){const site=closestDen(P,true);return {x:site.x,y:site.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};}
   const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
   if(food)return {x:food.x,y:food.y,label:foodName(food)+"を△長押しで運ぶ"};
   const prey=nearestGoal(mobs.filter(m=>m.hp>0&&species[m.type].prey));
@@ -2703,7 +2704,7 @@ function update(dt){
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1),0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
- if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
+ if(atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
   P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
  const a=getAxes(),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
@@ -2979,7 +2980,7 @@ function syncHUD(hour){
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
  $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
-  $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
+  $("den-status").textContent="巣 LV"+denLevel+"｜候補 "+denSites.length+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
  $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel<DEN_MAX_LEVEL?"（LV"+(denLevel+1)+"まで・消費なし）":"（容量）");
  setBar("den-stash-bar",denStash/target*100);
@@ -3057,8 +3058,10 @@ function drawWorldMap(){
   bm.fillText(found?site.name:"未踏の探索地点",clamp(X(site.x)+7,8,width-94),clamp(Y(site.y)-7,24,height-4));
  }
  bm.fillStyle="rgba(139,226,168,.12)";bm.strokeStyle="#a0e7bc";bm.lineWidth=1.5;
- bm.beginPath();bm.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),X(denRadius()),0,TWO);bm.fill();bm.stroke();
- mark(SAFE_DEN.x,SAFE_DEN.y,"#9ee5ac",8);
+ for(const site of denSites){
+  bm.beginPath();bm.arc(X(site.x),Y(site.y),X(denRadius()),0,TWO);bm.fill();bm.stroke();
+  mark(site.x,site.y,site.z>0?"#90d7fc":"#9ee5ac",site.z>0?7:8);
+ }
  mark(STATION.x,STATION.y,"#83cde3",7);
  for(let i=0;i<3;i++){
   const p=TERRITORY_POSTS[i],owned=territoryClaims[i];
@@ -3067,7 +3070,7 @@ function drawWorldMap(){
   bm.fillText((owned?"確保 ":"未確保 ")+p.name,X(p.x)+7,Y(p.y)-8);
  }
  bm.font="bold 12px sans-serif";bm.textAlign="left";bm.fillStyle="#e9f7e3";
- bm.fillText("巣 LV"+denLevel,X(SAFE_DEN.x)+12,Y(SAFE_DEN.y)-10);
+ for(const site of denSites)bm.fillText(site.name+" LV"+denLevel,X(site.x)+12,Y(site.y)-10);
  bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
  for(const q of carcasses)if(q.ttl>0&&edibleFood(q)&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
  for(const m of mobs)if(m.hp>0&&dist(P,m)<650){
@@ -3132,8 +3135,8 @@ function drawMini(){
   mc.fillRect(X(site.x)-2,Y(site.y)-2,4,4);
  }
  // Den and mission target use world coordinates and are never cached between goals.
- if(Math.abs(SAFE_DEN.x-P.x)<span/2&&Math.abs(SAFE_DEN.y-P.y)<span/2){
-  mc.fillStyle="#76baff";mc.beginPath();mc.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),3.5,0,TWO);mc.fill();
+ for(const site of denSites)if(Math.abs(site.x-P.x)<span/2&&Math.abs(site.y-P.y)<span/2){
+  mc.fillStyle=site.z>0?"#e9c6ff":"#76baff";mc.beginPath();mc.arc(X(site.x),Y(site.y),3.5,0,TWO);mc.fill();
  }
  const goal=getObjective();
  if(goal){
