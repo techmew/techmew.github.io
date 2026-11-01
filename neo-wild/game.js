@@ -472,7 +472,6 @@ function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
- if(id!=="")$("nav-hud").classList.add("hidden");
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
@@ -2508,15 +2507,6 @@ function syncHUD(hour){
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
  guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objectiveShortLabel()}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
- const navTarget=guideWisp||guideGoal,navOn=mode==="play"&&!!navTarget;
- $("nav-hud").classList.toggle("hidden",!navOn);
- if(navOn){
-  const dx=navTarget.x-P.x,dy=navTarget.y-P.y;
-  const sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy;
-  $("nav-hud-chevron").style.transform="rotate("+Math.atan2(sy,sx)+"rad)";
-  $("nav-hud-label").textContent=guideGoal?.label||"目標";
-  $("nav-hud-distance").textContent=Math.round(dist(P,objective))+"m";
- }
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=atDen();
   contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
@@ -3221,42 +3211,6 @@ function drawOccludedSilhouettes(entities){
   ctx.restore();
  }
 }
-function drawObjectiveGlow(){
- if(!P||!guideGoal||mode!=="play")return;
- const raw=project(guideGoal.x,guideGoal.y);
- const safeX=Math.max(43,Math.min(vw*.5-8,58));
- const top=vh<=520?112:Math.min(190,vh*.24);
- const bottom=vh<=520?88:Math.min(160,vh*.2);
- const midX=vw*.5,midY=(top+(vh-bottom))*.5;
- const limX=Math.max(30,midX-safeX),limY=Math.max(28,(vh-bottom-top)*.5);
- const deltaX=raw.x-midX,deltaY=raw.y-midY;
- const ratio=Math.min(1,limX/Math.max(1,Math.abs(deltaX)),limY/Math.max(1,Math.abs(deltaY)));
- const offscreen=ratio<1,px=midX+deltaX*ratio,py=midY+deltaY*ratio;
- const near=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y)<140;
- const pulse=.5+.5*Math.sin(elapsed*4.2);
- const radius=offscreen?14:near?26:22,height=offscreen?0:near?70:55;
- ctx.save();ctx.globalCompositeOperation="source-over";
- const halo=ctx.createRadialGradient(px,py,2,px,py,offscreen?25:45);
- halo.addColorStop(0,"rgba(255,252,177,"+(.17+.07*pulse)+")");
- halo.addColorStop(.35,"rgba(199,255,199,"+(.09+.04*pulse)+")");
- halo.addColorStop(1,"rgba(175,255,199,0)");
- ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,offscreen?25:45,0,TWO);ctx.fill();
- if(!offscreen){
-  const shaft=ctx.createLinearGradient(px,py-height,px,py+8);
-  shaft.addColorStop(0,"rgba(255,250,195,0)");
-  shaft.addColorStop(.62,"rgba(234,255,196,"+(.04+.03*pulse)+")");
-  shaft.addColorStop(1,"rgba(255,233,138,"+(.13+.05*pulse)+")");
-  ctx.fillStyle=shaft;ctx.fillRect(px-5,py-height,10,height+8);
- }
- ctx.strokeStyle="rgba(251,248,175,"+(.37+.14*pulse)+")";
- ctx.lineWidth=offscreen?2:2.5;ctx.shadowColor="#f3ff9e";ctx.shadowBlur=4;
- ctx.beginPath();ctx.ellipse(px,py+4,radius+5*pulse,(radius+5*pulse)*(offscreen?1:.48),0,0,TWO);ctx.stroke();
- ctx.restore();
- const label=(guideGoal.label||"目標")+(offscreen?"方向":""),labelY=offscreen?py-26:py-height-9;
- ctx.save();ctx.font="900 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
- ctx.lineWidth=4.5;ctx.lineJoin="round";ctx.strokeStyle="rgba(5,23,21,.96)";
- ctx.strokeText(label,px,labelY);ctx.fillStyle="#fff6b7";ctx.fillText(label,px,labelY);ctx.restore();
-}
 function drawShelterEntranceMarker(){
  if(mode!=="play")return;
  const entry=nearestShelterEntrance();
@@ -3284,24 +3238,6 @@ function drawShelterEntranceMarker(){
  ctx.lineWidth=4;ctx.strokeStyle="#05202d";ctx.lineJoin="round";
  ctx.strokeText(label,px,py-34);ctx.fillStyle="#affaff";ctx.fillText(label,px,py-34);
  ctx.restore();
-}
-function drawGuideWisps(){
- if(!P||!guideWisp||mode!=="play")return;
- const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y;
- const sx=VIEW.a*dx+VIEW.c*dy,sy=VIEW.b*dx+VIEW.d*dy,len=Math.hypot(sx,sy);
- if(len<52)return; // The glowing target is enough at close range.
- const angle=Math.atan2(sy,sx),pos=project(P.x,P.y);
- const step=Math.min(81,Math.max(35,len*.37));
- const x=pos.x+Math.cos(angle)*step;
- const y=pos.y-(P.jumpHeight||0)*.93*cameraZoom-12+Math.sin(angle)*step;
- ctx.save();ctx.translate(x,y);ctx.rotate(angle);
- ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
- ctx.font="900 29px 'Noto Sans JP',sans-serif";
- ctx.lineWidth=5;ctx.strokeStyle="rgba(6,21,18,.95)";
- ctx.strokeText("》",0,0);
- ctx.globalAlpha=.75+.22*(.5+.5*Math.sin(elapsed*4));
- ctx.fillStyle="#c9ead1";ctx.shadowColor="#d6ffc5";ctx.shadowBlur=3;
- ctx.fillText("》",0,0);ctx.restore();
 }
 function drawRemainsLabels(){
  if(!P||mode!=="play")return;
