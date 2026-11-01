@@ -129,14 +129,24 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
 /* STRONG-MODELS-3D-V2: species-specific anatomy, proportions and silhouettes. */
 function drawStrongAnimal3D(m,clock){
  const t=m.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf")return false;
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf"&&t!=="giantEagle")return false;
  const r=m.r||30,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const x=(dx,dy)=>m.x+dx*c-dy*sn,y=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||"#6c675d",belly=m.belly||"#b4a38e";
  const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(x(dx,dy),y(dx,dy),z,rx,ry,rz,col,dir,9,5);
  const spike=(dx,dy,z,rx,ry,h,col)=>pyramid(x(dx,dy),y(dx,dy),z,rx,ry,h,col);
  const pace=Math.sin((m.step||0)*2.1)*Math.min(1,Math.hypot(m.vx||0,m.vy||0)/110)*r*.11;
- if(t==="giantGorilla"){
+ if(t==="giantEagle"){
+  const flap=Math.sin((m.step||0)*2.4),spread=1+.22*flap;
+  orb(-r*.17,0,r*.42,r*.89,r*.42,r*.31,fur);orb(r*.65,0,r*.46,r*.44,r*.33,r*.32,belly);
+  for(const side of [-1,1]){
+   for(let k=0;k<7;k++){const along=-.67+k*.22;orb(r*along,side*r*(.79+k*.10)*spread,r*(.44+flap*.13),r*.39,r*.36,r*.10,k%2?"#493a2c":"#8e6c46");}
+   orb(r*.9,side*r*.19,r*.65,r*.09,r*.08,r*.09,"#f3d78e");
+   for(let k=0;k<3;k++)spike(r*.38+k*r*.08,side*r*.20,r*.18,r*.07,r*.06,r*.22,"#dfc27b");
+  }
+  for(let k=-2;k<=2;k++)orb(-r*1.14,k*r*.18,r*.35,r*.63,r*.15,r*.09,"#a18b6a");
+  spike(r*1.18,0,r*.42,r*.18,r*.15,r*.36,"#e4bb66");
+ }else if(t==="giantGorilla"){
   for(const side of [-1,1]){orb(-r*.2,side*r*.83,r*.52+pace,r*.43,r*.39,r*.62,"#30332f");orb(r*.72,side*r*.8,r*.48+pace,r*.45,r*.39,r*.52,fur);}
   orb(-r*.25,0,r*1.16,r*1.25,r*.92,r*1.03,fur);orb(r*.53,0,r*1.25,r*.88,r*.78,r*.82,belly);
   for(const side of [-1,1]){orb(r*.1,side*r*.98,r*1.05,r*.55,r*.35,r*.67,fur);orb(r*1.04,side*r*.29,r*1.45,r*.12,r*.11,r*.12,"#262827");}
@@ -299,7 +309,7 @@ function animal(m,player,clock){
  // Shadow is projected to the walkable roof when standing on one.
  const contactZ=player?Math.max(0,m.groundZ||0):0;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
- animalLift=player?Math.max(0,m.jumpHeight||0):Math.max(0,m.evadeHeight||0); // NPC feet and body rise during a real emergency leap.
+ animalLift=player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0); // NPC feet and body rise during a real emergency leap.
  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;return;}
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
