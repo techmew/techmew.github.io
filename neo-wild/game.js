@@ -385,7 +385,10 @@ function restoreSnapshot(snapshot){
  kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
  expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
  mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete;
- tutorialSeen.clear();for(const n of (Array.isArray(snapshot.tutorialSeen)?snapshot.tutorialSeen.filter(n=>Number.isInteger(n)&&n>=0&&n<=6):Array.from({length:Math.min(7,mission)},(_,i)=>i)))tutorialSeen.add(n);
+ tutorialSeen.clear();
+ // A resumed run has already reached and seen the current objective; never auto-replay it.
+ for(let n=0;n<=Math.min(6,Math.max(0,Math.floor(Number(mission)||0)));n++)tutorialSeen.add(n);
+ if(Array.isArray(snapshot.tutorialSeen))for(const n of snapshot.tutorialSeen){if(Number.isInteger(n)&&n>=0&&n<=6)tutorialSeen.add(n)}
  totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
  weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
  nextWeather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.nextWeather)?snapshot.nextWeather:null;
