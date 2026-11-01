@@ -193,6 +193,71 @@ try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
 $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
 function noise(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)}
 function nearBuilding(x,y,r=0){return buildings.some(b=>x>b.x-r&&x<b.x+b.w+r&&y>b.y-r&&y<b.y+b.h+r)}
+
+/* Visual-only district identity; derived from world coordinates, never overwrites old saves. */
+const BIOME_AREAS=[
+ [0,0,1400,2600,"#455552","barrier"],[1400,0,1400,2600,"#584f47","rail"],
+ [2800,0,1400,2600,"#31533a","ivy"],[4200,0,2100,2600,"#455447","cage"],
+ [6300,0,2100,2600,"#69765b","reeds"],[0,2600,2800,3400,"#244c33","forest"],
+ [2800,2600,2800,3400,"#554d48","factory"],[5600,2600,2800,3400,"#405960","dock"]
+];
+const riverAxis=y=>7505+68*Math.sin(y/390),canalAxis=x=>5025+35*Math.sin(x/390);
+const WATER_RIBBONS=(()=>{
+ const out=[];
+ for(let y=0;y<2600;y+=125){const y2=Math.min(2600,y+125),a=riverAxis(y),b=riverAxis(y2);
+  out.push({kind:"river",cx:(a+b)/2,cy:(y+y2)/2,pts:[[a-133,y],[a+133,y],[b+133,y2],[b-133,y2]]});}
+ for(let x=5600;x<8400;x+=125){const x2=Math.min(8400,x+125),a=canalAxis(x),b=canalAxis(x2);
+  out.push({kind:"canal",cx:(x+x2)/2,cy:(a+b)/2,pts:[[x,a-100],[x2,b-100],[x2,b+100],[x,a+100]]});}
+ return out;
+})();
+let scenicProps=[];
+function buildScenicProps(){
+ if(scenicProps.length)return;
+ for(const [zx,zy,zw,zh,color,kind] of BIOME_AREAS){
+  const step=kind==="forest"?280:385;
+  for(let y=zy+120;y<zy+zh-75;y+=step)for(let x=zx+120;x<zx+zw-75;x+=step){
+   const n=noise(x*.011+y*.017,37),px=x+(n-.5)*65,py=y+(noise(x*.013-y*.021,17)-.5)*65;
+   if(n<.20||roadsX.some(t=>Math.abs(px-t)<112)||roadsY.some(t=>Math.abs(py-t)<112)||nearBuilding(px,py,65))continue;
+   if(kind==="reeds"&&Math.abs(px-riverAxis(py))<177||kind==="dock"&&Math.abs(py-canalAxis(px))<150)continue;
+   scenicProps.push({x:px,y:py,kind});
+  }
+ }
+}
+function drawWater2D(){
+ for(const seg of WATER_RIBBONS){
+  if(!visible(seg.cx,seg.cy,270))continue;
+  const p=seg.pts;ctx.save();ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);
+  for(let j=1;j<4;j++)ctx.lineTo(p[j][0],p[j][1]);ctx.closePath();
+  ctx.lineJoin="round";ctx.strokeStyle=seg.kind==="river"?"#abb392":"#969e93";
+  ctx.lineWidth=28;ctx.stroke();ctx.fillStyle=seg.kind==="river"?"#34788b":"#2c687f";ctx.fill();
+  ctx.strokeStyle="#a8d2d080";ctx.lineWidth=2;ctx.beginPath();
+  if(seg.kind==="river"){ctx.moveTo(seg.cx-32,seg.cy);ctx.lineTo(seg.cx+35,seg.cy);}
+  else{ctx.moveTo(seg.cx,seg.cy-30);ctx.lineTo(seg.cx,seg.cy+25);}
+  ctx.stroke();ctx.restore();
+ }
+}
+function drawScenery2D(){
+ for(const p of scenicProps){if(!visible(p.x,p.y,145))continue;ctx.save();ctx.translate(p.x,p.y);
+  if(p.kind==="barrier"){ctx.fillStyle="#999e94";ctx.fillRect(-34,-10,68,20);ctx.fillStyle="#c4a367";for(let k=-2;k<=2;k++)ctx.fillRect(k*12,-10,5,20);}
+  else if(p.kind==="rail"){ctx.fillStyle="#a5957c";for(let k=-2;k<=2;k++)ctx.fillRect(k*14,-44,6,88);ctx.fillStyle="#55585a";ctx.fillRect(-37,-22,74,5);ctx.fillRect(-37,19,74,5);}
+  else if(p.kind==="ivy"){ctx.fillStyle="#4c9454";for(let k=0;k<6;k++){const a=k*TWO/6;ctx.beginPath();ctx.ellipse(Math.cos(a)*22,Math.sin(a)*21,27,17,a,0,TWO);ctx.fill();}}
+  else if(p.kind==="cage"){ctx.strokeStyle="#c1c8b9";ctx.lineWidth=4;ctx.strokeRect(-43,-30,86,60);ctx.lineWidth=2;for(let j=-28;j<=28;j+=14){ctx.beginPath();ctx.moveTo(j,-29);ctx.lineTo(j,29);ctx.stroke();}}
+  else if(p.kind==="reeds"){ctx.strokeStyle="#b6bd85";ctx.lineWidth=3;for(let k=-4;k<=4;k++){ctx.beginPath();ctx.moveTo(k*7,22);ctx.lineTo(k*7+5,-18-k%3*6);ctx.stroke();}}
+  else if(p.kind==="forest"){ctx.fillStyle="#716045";ctx.fillRect(-6,-32,12,55);ctx.fillStyle="#33834c";for(const [dx,dy] of [[-20,-24],[20,-24],[0,-45],[0,0]]){ctx.beginPath();ctx.ellipse(dx,dy,23,19,0,0,TWO);ctx.fill();}}
+  else if(p.kind==="factory"){ctx.fillStyle="#a27e65";ctx.fillRect(-39,-19,78,38);ctx.fillStyle="#c7a884";ctx.fillRect(-39,-23,78,7);ctx.fillStyle="#75695d";ctx.fillRect(-31,19,8,28);ctx.fillRect(23,19,8,28);}
+  else if(p.kind==="dock"){ctx.fillStyle="#9f907a";ctx.fillRect(-45,-29,90,58);ctx.strokeStyle="#66584c";ctx.lineWidth=3;for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(k*12,-29);ctx.lineTo(k*12,29);ctx.stroke();}ctx.fillStyle="#abbab4";ctx.fillRect(35,-33,8,65);}
+  ctx.restore();
+ }
+}
+function worldDaylight(){
+ const hour=(6+(elapsed%85)/85*24)%24;
+ return Math.max(0,Math.sin((hour-6)*Math.PI/12));
+}
+function shallowWater(x,y){
+ return (y>=0&&y<2600&&x>=6300&&Math.abs(x-riverAxis(y))<133)||
+        (x>=5600&&y>=2600&&Math.abs(y-canalAxis(x))<100);
+}
+
 function generateWorld(){
  if(worldMade)return;worldMade=true;
  const xs=[80,755,1640,2570,3485],ys=[90,705,1410,2050];
@@ -279,6 +344,7 @@ function generateWorld(){
  for(let i=0;i<20;i++)birdFlocks.push({x:160+i*380,y:290+(i%6)*850,z:55+(i%4)*23,
   dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
+ buildScenicProps();
 }
 function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
 window.addEventListener("resize",resize,{passive:true});resize();generateWorld();
@@ -1806,7 +1872,7 @@ function update(dt){
    const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction;
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(shallowWater(P.x,P.y)?.80:1);
    const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
    const limit=(len>.08?(P.type==="wolf"?660:P.type==="cat"?1430:foxTurbo?2150:1160):(P.type==="wolf"?900:P.type==="cat"?1720:foxTurbo?2750:1550))*dt;
    const ratio=length>limit?limit/length:1;
@@ -2040,7 +2106,7 @@ function syncHUD(hour){
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
- $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 · "+WEATHER_NAMES[weather];
+ $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<6||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather];
  const info=missionInfo();
  const stock=stockpileStep();
  const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
@@ -2081,18 +2147,14 @@ function drawWorldMap(){
   ((weather==="RAIN"||weather==="THUNDER")?"　野鳥の羽休め "+birdFlocks.filter(b=>b.roostState==="rest").length+"/"+birdFlocks.length+"羽。":"");
  const width=bigMap.width,height=bigMap.height,X=x=>x/WORLD.w*width,Y=y=>y/WORLD.h*height;
  bm.clearRect(0,0,width,height);bm.fillStyle="#142b28";bm.fillRect(0,0,width,height);
- const regions=[
-  [0,0,1400,2600,"封鎖区","#243430"],[1400,0,1400,2600,"旧新宿","#243a32"],
-  [2800,0,1400,2600,"緑化区","#1d4232"],[4200,0,2100,2600,"上野","#283b38"],
-  [6300,0,2100,2600,"荒川","#1b4846"],[0,2600,2800,3400,"代々木の森","#214a31"],
-  [2800,2600,2800,3400,"湾岸工業区","#39423c"],[5600,2600,2800,3400,"江東運河","#1e4244"]
- ];
+ const regions=BIOME_AREAS.map((a,i)=>[a[0],a[1],a[2],a[3],districts[i],a[4]]);
  for(const [x,y,w,h,name,color] of regions){
   bm.fillStyle=color;bm.fillRect(X(x),Y(y),X(w),Y(h));
   bm.fillStyle="#d2dfd5";bm.font="10px sans-serif";bm.textAlign="center";
   bm.fillText(name,X(x+w/2),Y(y)+17);
  }
- bm.fillStyle="#586666";
+ for(const seg of WATER_RIBBONS){bm.fillStyle=seg.kind==="river"?"#4d9ca9":"#3c87a3";bm.beginPath();seg.pts.forEach((p,i)=>i?bm.lineTo(X(p[0]),Y(p[1])):bm.moveTo(X(p[0]),Y(p[1])));bm.closePath();bm.fill();}
+  bm.fillStyle="#586666";
  for(const x of roadsX)bm.fillRect(X(x-75),0,Math.max(2,X(150)),height);
  for(const y of roadsY)bm.fillRect(0,Y(y-75),width,Math.max(2,Y(150)));
  for(const b of buildings){
@@ -2149,7 +2211,8 @@ function drawMini(){
  const w=mini.width,h=mini.height,span=1270;
  const X=x=>(x-P.x+span/2)/span*w,Y=y=>(y-P.y+span*h/w/2)/span*w;
  mc.fillStyle="#19332e";mc.fillRect(0,0,w,h);
- mc.fillStyle="#465553";
+ for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-P.x)>span||Math.abs(seg.cy-P.y)>span)continue;mc.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";mc.beginPath();seg.pts.forEach((p,i)=>i?mc.lineTo(X(p[0]),Y(p[1])):mc.moveTo(X(p[0]),Y(p[1])));mc.closePath();mc.fill();}
+  mc.fillStyle="#465553";
  for(const x of roadsX)if(Math.abs(x-P.x)<span)mc.fillRect(X(x-75),0,w*150/span,h);
  for(const y of roadsY)if(Math.abs(y-P.y)<span)mc.fillRect(0,Y(y-75),w,w*150/span);
  mc.fillStyle="#344d45";
@@ -2843,16 +2906,13 @@ function drawScene(){
  ctx.save();ctx.translate(vw/2,vh/2);ctx.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);ctx.translate(-x-vw/2,-y-vh/2);
  if(!use3D){
   const farLeft=Math.max(0,Math.floor((x-vw*.7)/180)*180-180),farTop=Math.max(0,Math.floor((y-vh*1.3)/180)*180-180);
- ctx.fillStyle="#22392f";ctx.fillRect(0,0,WORLD.w,WORLD.h);
-  ctx.fillStyle="#1f4830";ctx.fillRect(0,2600,2800,WORLD.h-2600);
-  ctx.fillStyle="#353f3b";ctx.fillRect(2800,2600,2800,WORLD.h-2600);
-  ctx.fillStyle="#244245";ctx.fillRect(5600,2600,2800,WORLD.h-2600);
-  ctx.fillStyle="#213b39";ctx.fillRect(4200,0,2100,2600);
-  ctx.fillStyle="#214346";ctx.fillRect(6300,0,2100,2600);
+ for(const [x,y,w,h,col] of BIOME_AREAS){ctx.fillStyle=col;ctx.fillRect(x,y,w,h);}
  for(let xx=farLeft;xx<x+vw*1.8+180;xx+=180)for(let yy=farTop;yy<y+vh*2.3+180;yy+=180){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
- roadDraw();
+ drawWater2D();
+  roadDraw();
+  drawScenery2D();
  drawDenBedding2D();
  for(const site of EXPLORE_SITES)if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
@@ -2912,9 +2972,9 @@ function drawScene(){
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
  for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
- const dayCycle=(elapsed%85)/85,sunAmount=(Math.cos((dayCycle-.15)*TWO)+1)/2,nightAlpha=(1-sunAmount)*.47;
+ const nightAlpha=(1-worldDaylight())*.73;
  if(!use3D){ctx.fillStyle="rgba(3,10,25,"+nightAlpha+")";ctx.fillRect(0,0,WORLD.w,WORLD.h)}
- if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(229,153,73,.17)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
+ if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(245,184,91,.43)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
  if(weather==="FOG"){
   ctx.fillStyle="rgba(164,176,162,.20)";
   if(use3D){ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillRect(0,0,vw,vh);ctx.restore();}
