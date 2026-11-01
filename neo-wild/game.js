@@ -258,9 +258,17 @@ const DAYLIGHT_KEYS=[
  [8.5,.81,.16,1.12,1.03,.91],[10,1.00,0,1.12,1.12,1.10],
  [12,1.16,0,1.20,1.19,1.14],[14,1.11,0,1.17,1.15,1.11],
  [16,.98,0,1.12,1.06,.96],[17,.72,.58,1.20,.83,.65],
- [18,.37,.91,1.24,.70,.51],[19,.17,.38,.83,.74,.88],
+ [18,.37,.91,1.24,.70,.51],[19,.29,.38,.83,.74,.88],
  [20,.12,0,.60,.73,1.08],[24,.12,0,.60,.74,1.11]
 ];
+/* Lunar cycle uses elapsed time, without changing saves, weather or YEAR. */
+function moonlightProfile(seconds=elapsed,sky=weather){
+ const age=(Math.max(0,seconds)/85)%29.530588,phase=age/29.530588;
+ const illumination=(1-Math.cos(phase*TWO))*.5;
+ const visibility=sky==="THUNDER"?.10:sky==="RAIN"?.20:sky==="FOG"?.28:sky==="CLOUDY"?.45:sky==="WIND"?.82:1;
+ const name=phase<.06||phase>=.94?"新月":phase<.20?"満ちゆく月":phase<.31?"上弦":phase<.44?"満ちゆく月":phase<.56?"満月":phase<.69?"欠けゆく月":phase<.81?"下弦":"欠けゆく月";
+ return {age,phase,illumination,visibility,ambient:.17+.09*illumination*visibility,name};
+}
 function dayLightProfile(seconds=elapsed){
  const hour=(6+((seconds%85+85)%85)/85*24)%24;
  for(let i=1;i<DAYLIGHT_KEYS.length;i++){
@@ -268,7 +276,10 @@ function dayLightProfile(seconds=elapsed){
   if(hour>b[0])continue;
   const t=clamp((hour-a[0])/(b[0]-a[0]),0,1),ease=t*t*(3-2*t);
   const v=j=>a[j]+(b[j]-a[j])*ease;
-  return {hour,brightness:v(1),warmth:v(2),tint:[v(3),v(4),v(5)]};
+  // Moonlight blends into the original daylight curve without changing noon.
+   const moon=moonlightProfile(seconds,weather);
+   const nightWeight=hour<4.75||hour>=20?1:hour<6.5?clamp((6.5-hour)/1.75,0,1):hour>=18?clamp((hour-18)/2,0,1):0;
+   return {hour,brightness:v(1)+nightWeight*(moon.ambient-.12),warmth:v(2),tint:[v(3),v(4),v(5)]};
  }
  return {hour,brightness:.12,warmth:0,tint:[.60,.74,1.11]};
 }
@@ -2382,6 +2393,8 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather];
+ const moon=moonlightProfile(elapsed,weather);
+ $("moon-label").textContent="月齢 "+moon.age.toFixed(1)+" · "+moon.name;
  const info=missionInfo();
  const stock=stockpileStep();
  const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
@@ -3267,7 +3280,7 @@ function drawScene(){
   if(light.warmth>.02){ctx.fillStyle="rgba(253,123,61,"+(light.warmth*.19)+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);}
   if(light.brightness>1){ctx.save();ctx.globalCompositeOperation="screen";ctx.fillStyle="rgba(255,252,222,"+((light.brightness-1)*.52)+")";ctx.fillRect(0,0,WORLD.w,WORLD.h);ctx.restore();}
  }
- if(nightAlpha>.12){ctx.save();ctx.globalCompositeOperation="screen";for(const lamp of lamps){if(!visible(lamp.x,lamp.y,170))continue;const g=ctx.createRadialGradient(lamp.x,lamp.y,2,lamp.x,lamp.y,130);g.addColorStop(0,"rgba(245,184,91,.43)");g.addColorStop(1,"rgba(229,153,73,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lamp.x,lamp.y,130,0,TWO);ctx.fill()}ctx.restore()}
+ // Abandoned streetlights do not cast glowing ground halos.
  if(weather==="FOG"){
   ctx.fillStyle="rgba(164,176,162,.20)";
   if(use3D){ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillRect(0,0,vw,vh);ctx.restore();}
