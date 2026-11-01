@@ -105,16 +105,17 @@ function drawFoliage(o,season){
  }
  ctx.restore();
 }
-function drawClouds(o,weather){
+function drawGroundShadows(o,weather){
+ if(!shadowEnabled)return;
  const light=o.lightProfile||{brightness:.9,warmth:0,hour:12};
  const clouds=cloudPatches(o.elapsed,weather,o);
  const daylight=clamp((light.brightness-.20)/.75,0,1);
- const shade=(weather==="CLEAR"?.27:weather==="CLOUDY"?.20:
-  weather==="RAIN"?.11:.08)*daylight;
+ const shade=(weather==="CLEAR"?.075:weather==="CLOUDY"?.055:
+  weather==="RAIN"?.025:.018)*daylight;
  ctx.save();
  for(const p of clouds){
   const shadow=project(o,p.x+(light.hour<12?68:-68),p.y+56);
-  if(shade>.015&&shadow.x>-170&&shadow.x<o.vw+170&&shadow.y>-160&&shadow.y<o.vh+160){
+  if(shade>.004&&shadow.x>-170&&shadow.x<o.vw+170&&shadow.y>-160&&shadow.y<o.vh+160){
    const r=p.r*(o.cameraZoom||1);
    ctx.save();ctx.translate(shadow.x,shadow.y);ctx.scale(1.38,.77);
    const g=ctx.createRadialGradient(0,0,r*.18,0,0,r*1.15);
@@ -124,22 +125,10 @@ function drawClouds(o,weather){
    ctx.restore();
   }
  }
- // Semi-transparent clouds appear higher than their matching ground shadows.
- for(const p of clouds){
-  const pos=project(o,p.x,p.y);
-  const x=pos.x,y=pos.y-120,r=p.r*(o.cameraZoom||1);
-  if(x<-220||x>o.vw+220||y<-160||y>o.vh+170)continue;
-  const heavy=["CLOUDY","RAIN","THUNDER"].includes(weather);
-  ctx.save();ctx.translate(x,y);
-  ctx.fillStyle=heavy?"#b2bdc8":light.warmth>.34?"#ffe2b9":"#f4f8fb";
-  ctx.globalAlpha=(heavy?.31:.24)*(.65+.35*daylight);
-  for(const [dx,dy,rx,ry]of [[-.42,0,.56,.29],[0,-.11,.69,.36],[.47,.03,.55,.28]]){
-   ctx.beginPath();ctx.ellipse(dx*r,dy*r,rx*r,ry*r,0,0,Math.PI*2);ctx.fill();
-  }
-  ctx.restore();
- }
+ // No sky cloud sprites: only faint moving ground shadows.
  ctx.restore();
 }
+let shadowEnabled=true;
 let lastFrame=0,lastHudClock="",fallbackAnchor=0,fallbackTime=0;
 function fallbackScene(ms,day,hud,dw,dh){
  // On low-end devices without WebGL, the normal 2D canvas is still playable.
@@ -187,7 +176,7 @@ function frame(ms){
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
  drawFoliage(sc,seasons[season.index]);
- drawClouds(sc,opts.weather||"CLEAR");
+ drawGroundShadows(sc,opts.weather||"CLEAR");
  const glCanvas=document.getElementById("scene3d");
  const target=window.Wild3D?.available&&current?glCanvas:main;
  if(target&&target.style.filter!==seasons[season.index].filter)
@@ -196,6 +185,8 @@ function frame(ms){
 requestAnimationFrame(frame);
 window.WildSeasonClouds={
  seasonOfDay,cloudPatches,
+ setShadowsEnabled(value){shadowEnabled=!!value;},
+ get shadowsEnabled(){return shadowEnabled;},
  get hasRenderState(){return !!current},
  get season(){const d=Number((/DAY\s+(\d+)/.exec(document.getElementById("day-label")?.textContent||"")||[])[1])||1;return seasonOfDay(d)}
 };
