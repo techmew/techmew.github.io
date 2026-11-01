@@ -49,7 +49,15 @@
  <div class="den-food-row" id="den-row-meat"><span><b>肉</b><small>満腹+18 / 生命+6（18pt）</small></span><strong id="den-qty-meat">0pt</strong><button id="den-eat-meat" type="button">肉を食べる</button></div>
  <div class="den-food-row" id="den-row-berries"><span><b>食草</b><small>満腹+7 / 生命+1（7pt）</small></span><strong id="den-qty-berries">0pt</strong><button id="den-eat-berries" type="button">食草を食べる</button></div>
  <div class="den-food-row hidden" id="den-row-legacy"><span><b>以前の備蓄</b><small>旧セーブから引き継いだ食料</small></span><strong id="den-qty-legacy">0pt</strong><button id="den-eat-legacy" type="button">旧備蓄を食べる</button></div>
- <p class="den-pantry-note">選んだ食料だけ減ります。巣の強化では備蓄を消費しません。</p></section>
+ <p class="den-pantry-note">選んだ食料だけ減ります。巣の強化では備蓄を消費しません。</p>
+ <div id="strong-inheritance" class="strong-inheritance" role="group" aria-label="希少素材の能力継承">
+ <h3>希少素材の能力継承</h3><p id="strong-inheritance-summary">巣LV2で解放。強敵を倒して素材を集める。</p>
+ <button type="button" data-strong-trait="alpha" disabled>追跡の脚力（移動速度 +8%）</button>
+ <button type="button" data-strong-trait="oldBear" disabled>熊の生命力（最大生命 +28）</button>
+ <button type="button" data-strong-trait="blackPanther" disabled>黒豹の爪（攻撃力 +12%）</button>
+ <button type="button" data-strong-trait="giantEagle" disabled>大鷲の夜目（夜間視認距離 +22%）</button>
+ <button type="button" data-strong-trait="giantLizard" disabled>鱗の止血（出血ダメージ -35%）</button>
+ </div></section>
 </div>
 <div id="tutorial-dialog" class="survival-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
  <section class="survival-card tutorial-card"><header class="survival-head"><div><small id="tutorial-stage">チュートリアル 1 / 4</small><h2 id="tutorial-title">生き残るために</h2></div><button id="tutorial-close" type="button">閉じる ×</button></header>
@@ -114,7 +122,7 @@
 </div>
 <script src="./audio.js?rev=20261101-riverbanks-flow-v1" defer></script>
 <script src="./webgl3d.js?rev=20261102-six-nests-grass-v2" defer></script>
-<script src="./game.js?rev=20261102-roof-refuge-guide-v1" defer></script>
+<script src="./game.js?rev=20261102-strong-trait-inheritance-v1" defer></script>
 <script src="./gamepad.js?rev=20261102-instant-pad-v1" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261101-seven-tap-v1" defer></script>
