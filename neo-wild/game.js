@@ -3413,25 +3413,40 @@ function fullScreen(){
 function updateRotationButton(){
  const b=$("rotate-btn");
  if(b)b.textContent=window.innerWidth>window.innerHeight?"縦画面に戻す":"横画面にする";
+ const titleButton=$("menu-landscape-btn");
+ if(titleButton)titleButton.textContent=document.fullscreenElement&&window.innerWidth>window.innerHeight
+  ?"横画面・全画面：設定中":"横画面で全画面プレイ";
+}
+async function setFullscreenOrientation(target,note){
+ if(note)note.textContent="";
+ let fullscreenReady=!!document.fullscreenElement;
+ if(!fullscreenReady){
+  try{
+   if(!document.documentElement.requestFullscreen)throw Error("fullscreen unavailable");
+   await document.documentElement.requestFullscreen({navigationUI:"hide"});
+   fullscreenReady=!!document.fullscreenElement;
+  }catch(e){
+   if(note)note.textContent="全画面にできません。端末を横向きにすると横画面で遊べます。";
+  }
+ }
+ // Keep fullscreen even when the device/browser blocks orientation lock.
+ // iOS Safari and some Android WebViews require physical rotation instead.
+ try{
+  if(!screen.orientation?.lock)throw Error("orientation lock unavailable");
+  await screen.orientation.lock(target);
+  if(note)note.textContent=(target==="landscape"?"横画面":"縦画面")+"に切り替えました。開始・続きからを選んでください。";
+  resize();updateRotationButton();
+  return true;
+ }catch(e){
+  if(note&&fullscreenReady)note.textContent="全画面にしました。自動回転をONにして端末を横向きにしてください。";
+  else if(note&&!note.textContent)note.textContent="端末の自動回転をONにして横向きにしてください。";
+  updateRotationButton();
+  return false;
+ }
 }
 async function rotateScreen(){
  const target=window.innerWidth>window.innerHeight?"portrait":"landscape";
- const note=$("rotate-help");if(note)note.textContent="";
- let enteredFullscreen=false;
- try{
-  if(!screen.orientation?.lock)throw Error("orientation lock unavailable");
-  if(!document.fullscreenElement){
-   if(!document.documentElement.requestFullscreen)throw Error("fullscreen unavailable");
-   await document.documentElement.requestFullscreen();enteredFullscreen=true;
-  }
-  await screen.orientation.lock(target);
-  if(note)note.textContent=target==="portrait"?"縦画面に切り替えました":"横画面に切り替えました";
-  updateRotationButton();
- }catch(e){
-  try{screen.orientation?.unlock?.()}catch(_){}
-  if(enteredFullscreen)try{await document.exitFullscreen?.()}catch(_){}
-  if(note)note.textContent="回転が制限されています。端末の自動回転をONにして回してください。";
- }
+ await setFullscreenOrientation(target,$("rotate-help"));
 }
 document.addEventListener("fullscreenchange",()=>{
  if(!document.fullscreenElement){try{screen.orientation?.unlock?.()}catch(e){}}
@@ -3475,6 +3490,7 @@ $("retry-btn").addEventListener("click",()=>{clearAutoSave();start();announceObj
 $("menu-btn").addEventListener("click",()=>{mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
+$("menu-landscape-btn").addEventListener("click",()=>setFullscreenOrientation("landscape",$("menu-landscape-note")));
 updateRotationButton();
 $("sound-btn").addEventListener("click",()=>{
  soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×";
