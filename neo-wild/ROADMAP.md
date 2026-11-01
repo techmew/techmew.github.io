@@ -1,3 +1,14 @@
+## 共通スプリント｜2026-11-01 22:10 JST｜15分枠｜NIGHT-HUNT-WINTER-COVER-01 室内出入口のある建物でも冬の潜伏→覚醒→逃走→狩猟・食事をつなぐ
+- **開始HEAD→コード終了HEAD**：`6a1949a8be240207774819d61e1d0430e0e3e0c4` → `3f79c9ff0a8cc56114cd2a3066e56a6b6f731c77`。最新の45分枠のLANDSCAPE-COMPACT-UI-01と既存SURVIVAL-FINAL-GOAL-01、Drive正本末尾を確認。「自由探索」廃止、mission6→7で1回「チュートリアル終了」→常設「生き残れ！」は既に実装済み。重複修正せず維持。
+- **連動改善①・冬の可視遮蔽物**：`game.js:visibleWinterCover` が `b.interior` の建物を無条件除外していたため、入れる建物の外壁でも冬の潜伏が成立しない問題を修正。実在する `shelterWalls` の壁片から距離判定し、**開いたドアは遮蔽物にしない**。`winterCoverSpotFor` に入れる建物の外壁・扉両脇を候補追加し、衝突と実経路を通った地点だけ採用。冬の不可視低木は復活させない。
+- **連動改善②・敵からの逃走**：`game.js:chooseEscape` の78px候補だけの選択を、78/44/24pxの3距離＋既存 `routeClear` による建物・車・水路の実経路判定に変更。壁や河岸で長距離逃走候補が塞がれても、短い安全な回避を選択可能。長い安全経路・逃走方向を優先し、瞬間移動や水中侵入はさせない。
+- **連動改善③・攻撃→食事の結合検査**：現行実関数 `resolveAttack/kill/animalRemains/eat` を呼び、ウサギを攻撃→HP0→死骸→DNA取得→肉を食べて満腹・HP回復を再現。冬の実外壁で `updateIndoorRest` が休息開始→野犬接近→ `startlePrey/chooseEscape` で覚醒・逃走することも確認。プレイヤーの冬潜伏、旧ミッション、旧セーブ・3チェックポイントの処理は変更なし。
+- **コミット**：`neo-wild/game.js` `08ed4708c7bf0d41c940a1e28fa46ba4f2cce7f9`、`neo-wild/index.html`（game.jsキャッシュrev `20261101-winter-cover-escape-v1`）`3f79c9ff0a8cc56114cd2a3066e56a6b6f731c77`。その他のファイル、Gamepad Bridge、横画面CSS、月齢照明、SAVE_SCHEMA=2は未変更。
+- **QA**：6JS全文構文 **6/6 PASS**。実関数を模擬DOM・状態で動かす10項目（入れる建物の壁/ドア開口、冬潜伏地点、夜間休息→野犬接近→覚醒・逃走、短距離回避と河岸）**10/10 PASS**。実 `resolveAttack/kill/eat` の攻撃→死骸→食事・回復 **5/5 PASS**。実 `collides/routeClear/shelterWalls` を使う建物・開口・河川経路 **8/8 PASS**。計 **29/29 PASS**（うち6は構文）。実ゲーム全体のブラウザ10～20分E2Eではない。**未検証**：Android/物理パッド、実GPU 3D/Canvas2D描画、旧SAVE_SCHEMA2 localStorage実復元と3チェックポイントE2E、縦横実DOM矩形、Pages最新HEAD build/deploy。
+- **Pages**：このコミットのpush Pages workflow run IDを現在のGitHub connectorから取得できず、build/deployとも**未確認**。以前の別HEADの成功を今回の成功と混同しない。**進捗71/100据え置き**（Pagesと実プレイ未確認）。
+- **次45分枠**：(1) ブラウザで冬1月の車/入れる建物の実壁へ潜伏→ウサギ/ハトが休息→野犬接近で覚醒→逃走→攻撃→死骸→食事まで10～20分操作し、特にドア開口で潜伏不可・建物壁で潜伏可を視覚確認。(2) 横800×360/844×390/736×414の `#survival-goal/#nav-hud`、月齢・右4ボタン・左スティック/ズーム・ゲームパッド入力と旧セーブ3件のE2Eを実行し、重なりや再告知だけ最小修正。(3) `3f79c9ff0a8c` 以降のPages workflow run IDを取得してbuild/deploy両ジョブのsuccessを確認、未反映なら原因を記録。次15分枠は狩猟AIの連鎖で未完の部分を実ブラウザ相当で再現し、45分枠のUI/パッド/照明を上書きしない。
+- **終了HEAD**：コード `3f79c9ff0a8c`、本ROADMAP追記コミットが次の引継ぎHEAD。
+
 ## 45分枠追補｜2026-11-01 21:46 JST｜LANDSCAPE-COMPACT-UI-01 タップ領域の40px化
 - 横画面HUDの右上ポーズ・音・地図・全画面を**高さ40 CSS px**に統一（以前の36pxから修正）。スコア表示を上端96pxへ下げて右上操作列との重なりを回避。右下4アクション44～50px、ズーム40px、タイトル全画面ボタン40pxを維持。
 - 変更コミット：`visual.css` `02dc7de2c5cf9af0bb401f54e0b4b3b985fa92eb`、`index.html` `777a213ac29b8c257eb13b244fed41d821271258`（visual.css cache revを`20261101-landscape-compact-v2`に更新）。コード終了HEAD `777a213ac29b8c257eb13b244fed41d821271258`。
