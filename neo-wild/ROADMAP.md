@@ -1,3 +1,15 @@
+## 共通スプリント｜2026-11-02 01:15 JST｜手動即時修正・15分枠引継ぎ｜INSTANT-DIRECTIONAL-CONTROLS-20261102
+- **症状・完成像**：十字キー（矢印/ゲームパッド）で反対方向へ入力してもプレイヤーが大回りで旋回し移動に遅れがある。通常歩行では入力フレーム内で方向と速度を即変更し、逆180度・横90度・斜めも回り込まず、離上時だけ自然な既存減速。ジャンプ/飛びつき/突進の固定軌道は維持。
+- **開始HEAD**：`e17728908bdfa48f56d2acc34861269ea5013a16`。GitHub main、`game.js`・`gamepad.js`・`index.html`現物とROADMAP上位を確認。前枠の小型「〉〉」ミッションナビ、猫/狐/狼速度、セーブスキーマ、右上HUDは上書きしない。
+- **実コード修正**：`neo-wild/game.js` commit `440de492078f4ec9a6503c3cfd80b035494ef22f`。通常移動分岐に`applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo)`を導入。移動入力のあるフレームで`P.dir=atan2(axis.y,axis.x)`と`P.vx/P.vy=axis*target`を同時適用。旧低速加速度制限・速度追従旋回を撤去、離上時の従来の減速上限は維持。カメラ逆変換`getAxes`、種族別速度/天候/潜伏/能力倍率、衝突移動、攻撃/ジャンプ/飛びつき/ダッシュ分岐は従前のまま。
+- **ゲームパッド修正**：`neo-wild/gamepad.js` commit `19b89fb4232394b143b98ac72b5c342e46c0c85a`。左スティック/D-pad入力`mx/my`の平滑化遅延を除去。stickの20%デッドゾーン・右スティック視点回転・START/操作ボタン、非接続へのフォールバックは変更なし。
+- **HTMLキャッシュ**：`neo-wild/index.html` commit `de895b45d212e8800cc6fd78e37a84e7d5b40000`。game.js`?rev=20261102-instant-move-v1`、gamepad.js`?rev=20261102-instant-pad-v1`を更新。6本のscript読込順維持、HTML ID重複なし。
+- **動的QA**：現行ゲームの実`getAxes`と新`applyDirectionalInput`関数をV8で抽出実行し、入力逆転・入力瞬間の向き一致・狼175/猫320速度・斜め正規化・キーボード矢印・仮想スティック・ゲームパッド入力・キー離上停止・有限値 **10/10 PASS**。ゲームパッド本物の`gamepad.js`をモックwindow/navigator/標準パッドで実行し、D-pad右→即左・上下・アナログ右→即左・右視点・切断で中立化・平滑化除去など **8/8 PASS**。全6本のJS全文構文 PASS、移動関数/旧旋回撤去/保存/夜目/alpha速度231.4/地図/「〉〉」/rev等静的回帰 **15/15 PASS**。
+- **Pages**：コードHEAD `de895b45d212e8800cc6fd78e37a84e7d5b40000` の `pages build and deployment` run `41325720081` にて **build success / deploy success** を確認。以後ROADMAP追記コミットに対応する別workflowの成否は必要に応じ追加確認。
+- **未検証**：実Android Chrome、実物Gamepad、ゲーム全体10～20分実プレイ、WebGL・Canvas2Dでの反転アニメーション視認、雨/狭い衝突/斜め移動の実GPUフレームレート。模擬入力を実機試験とは言わない。
+- **次15分枠**：(1) 最新mainで矢印/WASD、D-pad、左スティックを180度・90度・斜めに即逆転し、移動とP.dirが同フレーム変わるか実ブラウザ動的検証。(2) 猫/狐/狼・雨/走行能力/潜伏/壁際・衝突/ジャンプ中を回帰し必要な不具合だけ最小修正。(3) 既存夜目/セーブ/ミニマップ/「〉〉」/右上HUDを維持し、Pages両段成功を確認。45分枠の強敵20種類担当は変えない。
+- **進捗**：71/100据え置き（操作感改善のみ・実機未検証）。
+
 ## 共通スプリント｜2026-11-02 JST｜即時描画改善・15分枠引継ぎ｜MISSION-DOUBLE-CHEVRONS-20261102
 - **要望**：チュートリアル/ミッションの「次に進む場所」を画面中の小さな「〉〉」で案内。かつて削除した巨大中央ナビの復活は禁止。プレイヤー近くの進行方向のみ、目的地がある期間に限定。旧GAME UI・右上3ボタン→ミニマップ→SCORE/HUNTと左ロゴ削除を維持。
 - **コード改修**：`neo-wild/game.js` commit `f8e04bf165d60d460216753bbb7a8a043044cb06`：新規`drawMissionChevrons()`は既存`getObjective()→guidancePoint()→guideWisp/guideGoal`に従い、プレイヤーから60/120ワールド座標程度前方の2組まで「〉〉」を描画。進行方向に投影ベクトルで回転、3D/Canvas2D共通Canvas overlay。フレームごとに画面向きへ追従、カメラ回転にも対応。障害物があれば既存迂回経由のwaypointを使い、blockedは無表示。mission>=7、到達42m以内、現在のガイド画面（ポーズ）での表示は禁止。色は暗背景でも読める細い黒縁＋薄緑（高彩度の大型光円やラベルは無し）。
