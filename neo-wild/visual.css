@@ -389,3 +389,54 @@
  .tutorial-explainer h3{margin:5px 0 0}.tutorial-explainer p{font-size:12px}
  .survival-head{margin-bottom:6px}.tutorial-note{margin:8px 0 3px}
 }
+
+/* Tutorial as an in-world popup: retain the actual frozen game image in view. */
+#tutorial-dialog{
+ background:rgba(4,12,16,.38);
+ backdrop-filter:none;
+ -webkit-backdrop-filter:none;
+}
+#tutorial-dialog .tutorial-card{
+ box-sizing:border-box;
+ display:flex;
+ flex-direction:column;
+ width:min(570px,calc(100vw - 36px));
+ max-height:min(68dvh,560px);
+ overflow:hidden;
+ padding:clamp(13px,2.4vw,22px);
+ border:1px solid rgba(190,219,193,.88);
+ box-shadow:0 10px 36px rgba(0,0,0,.65);
+ background:linear-gradient(150deg,rgba(21,45,39,.97),rgba(11,27,32,.97));
+}
+#tutorial-dialog .survival-head,
+#tutorial-dialog .tutorial-status,
+#tutorial-dialog .tutorial-note,
+#tutorial-dialog .tutorial-controls{flex:none}
+#tutorial-dialog .tutorial-explainer{
+ min-height:0;
+ flex:1 1 auto;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ touch-action:pan-y;
+ padding:2px 4px 8px 0;
+}
+#tutorial-dialog .tutorial-note{margin:9px 0 4px;padding-top:8px}
+#tutorial-dialog .tutorial-controls{margin-top:7px}
+#app.tutorial-paused *{animation-play-state:paused!important}
+@media(max-width:520px) and (orientation:portrait){
+ #tutorial-dialog{padding:10px 12px}
+ #tutorial-dialog .tutorial-card{max-height:65dvh;width:calc(100vw - 28px);padding:13px}
+ #tutorial-dialog .tutorial-explainer{padding:0 4px 5px 0}
+ #tutorial-dialog .tutorial-controls button{min-width:92px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #tutorial-dialog{padding:8px 14px}
+ #tutorial-dialog .tutorial-card{width:min(660px,calc(100vw - 36px));max-height:82dvh;padding:10px 15px}
+ #tutorial-dialog .tutorial-explainer{grid-template-columns:minmax(92px,130px) minmax(0,1fr);column-gap:12px;row-gap:7px}
+ #tutorial-dialog .tutorial-explainer h3{margin:0;font-size:12px}
+ #tutorial-dialog .tutorial-explainer p{margin:0;font-size:12px;line-height:1.45}
+ #tutorial-dialog .tutorial-status{padding:5px 0}
+ #tutorial-dialog .tutorial-note{margin:4px 0 1px;padding-top:5px;font-size:11px}
+ #tutorial-dialog .tutorial-controls{margin-top:4px}
+ #tutorial-dialog .tutorial-controls button{min-height:34px;padding:5px 13px}
+}
