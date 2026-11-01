@@ -383,6 +383,9 @@ function restoreSnapshot(snapshot){
   m.restTime=Number.isFinite(m.restTime)?clamp(m.restTime,0,12):0;
   m.restCooldown=Number.isFinite(m.restCooldown)?clamp(m.restCooldown,0,30):0;
   m.resting=m.restTime>0;
+  m.forageNeed=Number.isFinite(m.forageNeed)?clamp(m.forageNeed,0,1):null;
+  m.forageCooldown=clamp(Number(m.forageCooldown)||0,0,8);
+  m.foragePose=0;
  }
  const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
  const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
@@ -696,6 +699,40 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
   m.scavengeNeed=Math.max(0,m.scavengeNeed-.065);
   m.scavengeCooldown=1.8;m.scavengePose=.9;m.navPath=null;
   if(playerDistance<360)label(m.x,m.y-m.r-25,"死骸を食べる","#d9f0b9");
+ }
+ return {vx:0,vy:0};
+}
+function forageWildBerries(m,sp,dt,spotted,playerDistance){
+ m.foragePose=Math.max(0,(m.foragePose||0)-dt);
+ m.forageCooldown=Math.max(0,(m.forageCooldown||0)-dt);
+ m.forageNeed=Number.isFinite(m.forageNeed)?
+  clamp(m.forageNeed+dt*.013,0,1):clamp(.56+noise(Math.floor(m.x),Math.floor(m.y))*.30,0,1);
+ if(!sp.prey||m.forageNeed<.70||spotted||m.alert>0||m.flee>0||
+    m.stun>0||(m.evadeTime||0)>0||playerDistance<115||
+    ((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
+ // Feeding stops near predators; no food is consumed through walls.
+ if(mobs.some(q=>q!==m&&q.hp>0&&!species[q.type].prey&&
+    dist(m,q)<175&&!lineBlocked(m,q)))return null;
+ let target=null,best=245*245;
+ for(const c of carcasses){
+  if(c.type!=="berries"||!edibleFood(c))continue;
+  const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
+  if(d2<best){best=d2;target=c}
+ }
+ if(!target)return null;
+ const biteRange=m.r+(target.r||9)+12;
+ if(best>biteRange*biteRange){
+  m.dir=steerPursuit(m,target.x,target.y);
+  return {vx:Math.cos(m.dir)*sp.speed*.48,vy:Math.sin(m.dir)*sp.speed*.48};
+ }
+ if(lineBlocked(m,target))return null;
+ if(m.forageCooldown<=0){
+  const bite=Math.min(target.amount,5);
+  target.amount=Math.max(0,target.amount-bite);
+  if(target.amount<=0)carcasses.splice(carcasses.indexOf(target),1);
+  m.forageNeed=Math.max(0,m.forageNeed-.21);
+  m.forageCooldown=1.9;m.foragePose=1.05;m.navPath=null;
+  if(playerDistance<320)label(m.x,m.y-m.r-24,"食事","#d9f0b9");
  }
  return {vx:0,vy:0};
 }
@@ -1599,13 +1636,15 @@ function update(dt){
     }
    }
    const scavenging=!s.prey?scavengeWildFood(m,s,dt,spotted,d):null;
-   if(scavenging){
-    vx=scavenging.vx;vy=scavenging.vy;
+   const foraging=s.prey?forageWildBerries(m,s,dt,spotted,d):null;
+   if(scavenging||foraging){
+    const feeding=scavenging||foraging;
+    vx=feeding.vx;vy=feeding.vy;
     m.wander=Math.max(m.wander,.25);
    }
    if(weather==="RAIN"||weather==="THUNDER"){
     const calm=!spotted&&m.alert<=0&&m.flee<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0;
-    const hunting=!!scavenging||(!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170));
+    const hunting=!!scavenging||!!foraging||(!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170));
     m.sheltered=false;
     if(calm&&!hunting){
      m.shelterRefresh=Math.max(0,(m.shelterRefresh||0)-dt);
@@ -2574,10 +2613,10 @@ function drawScene(){
  }
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
-  const symbol=m.resting?"Zz":(m.scavengePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  const symbol=m.resting?"Zz":(m.scavengePose||0)>0||(m.foragePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillStyle=m.resting?"#c8e7ff":(m.scavengePose||0)>0?"#d9f0b9":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+  ctx.fillStyle=m.resting?"#c8e7ff":(m.scavengePose||0)>0||(m.foragePose||0)>0?"#d9f0b9":m.sheltered?"#a5ddec":species[m.type].prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
