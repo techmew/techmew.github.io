@@ -259,27 +259,7 @@ function seasonIndexFromElapsed(seconds){
 function vegetation(p,clock,season=2){
  const palette=SEASONAL_FOLIAGE[season]||SEASONAL_FOLIAGE[2];
  if(p.type===2){
-  if(season===0){
-   // Winter shrubs use visible woody stems and forks, never pale leaf spheres.
-   const r=p.r*.74,root=Math.max(1.5,r*.035);
-   ellipsoid(p.x,p.y,root,r*.40,r*.31,root,"#424238",0,7,3);
-   for(let i=0;i<9;i++){
-    const a=i*TAU/9+(p.phase||0),reach=r*(.57+.05*(i%3));
-    const height=r*(.64+.12*(i%3)),dx=Math.cos(a),dy=Math.sin(a);
-    const x=p.x+dx*reach,y=p.y+dy*reach*.78,w=Math.max(1.1,r*.05);
-    const px=-dy*w,py=dx*w,c=color(i%3?"#967d61":"#bea581");
-    quad([p.x-px,p.y-py,root],[p.x+px,p.y+py,root],
-         [x+px*.23,y+py*.23,height],[x-px*.23,y-py*.23,height],c);
-    quad([p.x,p.y,root-w*.6],[p.x,p.y,root+w*.6],
-         [x,y,height+w*.16],[x,y,height-w*.16],c);
-    const midX=p.x+(x-p.x)*.65,midY=p.y+(y-p.y)*.65,midZ=height*.65;
-    const b=a+(i%2?.52:-.52),fork=r*.25,f=color("#b9a080");
-    const fx=midX+Math.cos(b)*fork,fy=midY+Math.sin(b)*fork*.8;
-    quad([midX-1,midY-1,midZ],[midX+1,midY+1,midZ],
-         [fx+.25,fy+.25,midZ+height*.28],[fx-.25,fy-.25,midZ+height*.28],f);
-   }
-   return;
-  }
+  if(season===0)return; // Winter decorative shrub is hidden; existing cover/collision data unchanged.
   // Leafy shrubs keep their original silhouette and cover radius.
   const visualScale=.74;
   const count=9,r=p.r*visualScale;
