@@ -793,30 +793,31 @@ function visibleWinterCover(o){
 function inCover(o){
  return visibleShrubCover()?plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75):visibleWinterCover(o);
 }
-function winterCoverSpot(){
- if(!P||visibleShrubCover())return null;
+function winterCoverSpotFor(actor,maxRange=1300,avoid=null){
+ if(!actor||visibleShrubCover())return null;
  let best=null,bestScore=Infinity;
  const consider=(x,y)=>{
-  const spot={x,y,r:P.r},d=dist(P,spot);
-  if(d>1300||collides(x,y,P.r)||!visibleWinterCover(spot))return;
-  const score=d+(routeClear(P,spot,P.r)?0:260);
+  const spot={x,y,r:actor.r},d=dist(actor,spot);
+  if(d>maxRange||collides(x,y,actor.r)||!visibleWinterCover(spot)||(avoid&&dist(avoid,spot)<140)||!routeClear(actor,spot,actor.r))return;
+  const score=d;
   if(score<bestScore){bestScore=score;best=spot;}
  };
  for(const p of streetProps){
-  if(!["car","barrier","vending"].includes(p.type)||Math.abs(p.x-P.x)>1300||Math.abs(p.y-P.y)>1300)continue;
-  const radius=p.r+P.r*.4+21;
+  if(!["car","barrier","vending"].includes(p.type)||Math.abs(p.x-actor.x)>maxRange+85||Math.abs(p.y-actor.y)>maxRange+85)continue;
+  const radius=p.r+actor.r*.4+21;
   for(let i=0;i<8;i++){const a=i*Math.PI/4;consider(p.x+Math.cos(a)*radius,p.y+Math.sin(a)*radius);}
  }
  for(const b of buildings){
-  if(b.interior||Math.abs(b.x+b.w*.5-P.x)>1400||Math.abs(b.y+b.h*.5-P.y)>1400)continue;
-  const pad=P.r+22;
-  consider(b.x-pad,clamp(P.y,b.y+10,b.y+b.h-10));
-  consider(b.x+b.w+pad,clamp(P.y,b.y+10,b.y+b.h-10));
-  consider(clamp(P.x,b.x+10,b.x+b.w-10),b.y-pad);
-  consider(clamp(P.x,b.x+10,b.x+b.w-10),b.y+b.h+pad);
+  if(b.interior||Math.abs(b.x+b.w*.5-actor.x)>maxRange+260||Math.abs(b.y+b.h*.5-actor.y)>maxRange+260)continue;
+  const pad=actor.r+22;
+  consider(b.x-pad,clamp(actor.y,b.y+10,b.y+b.h-10));
+  consider(b.x+b.w+pad,clamp(actor.y,b.y+10,b.y+b.h-10));
+  consider(clamp(actor.x,b.x+10,b.x+b.w-10),b.y-pad);
+  consider(clamp(actor.x,b.x+10,b.x+b.w-10),b.y+b.h+pad);
  }
  return best;
 }
+function winterCoverSpot(){return winterCoverSpotFor(P,1300);}
 function detectsPlayer(m,sp,d){
  // The visual clock is authoritative: the old cosine classified midnight as
  // daytime. Daylight, not a second independent clock, now governs visual range.
@@ -1587,6 +1588,7 @@ function startlePrey(m,threat,reason="alarm"){
  m.dir=chooseEscape(m,away,threat);
  m.escapeTimer=.40;m.wander=0;m.navPath=null;
  m.restTime=0;m.resting=false;
+ m.fleeThreatX=threat.x;m.fleeThreatY=threat.y;
  m.restCooldown=Math.max(m.restCooldown||0,11);
  m.restNeed=Math.min(Number.isFinite(m.restNeed)?m.restNeed:.6,.34);
  if(reason==="wake"&&P&&dist(P,m)<260)label(m.x,m.y-m.r-28,"目覚めた！","#ffe8ac");
@@ -1894,29 +1896,32 @@ function followRainShelter(m,sp,dt){
 }
 /* Diurnal wildlife seeks visible cover on dry nights; no new save schema. */
 function nightRestSeason(){
- const month=tokyoCalendarDay(1+Math.floor(Math.max(0,elapsed)/85)).month;
- return worldDaylight()<.30&&month>=2&&month<=10;
+ return worldDaylight()<.30; // Winter rests use visible solid objects.
 }
 function followNightCover(m,sp,dt){
  if((m.type!=="rabbit"&&m.type!=="pigeon")||!nightRestSeason()||
     weather==="RAIN"||weather==="THUNDER"||(m.restNeed||0)<.68)return null;
  if(inCover(m))return {vx:0,vy:0};
+ if(!visibleShrubCover()&&Number.isFinite(m.nightCoverX)&&Number.isFinite(m.nightCoverY)&&!visibleWinterCover({x:m.nightCoverX,y:m.nightCoverY,r:m.r}))m.nightCoverRefresh=0;
  m.nightCoverRefresh=Math.max(0,(m.nightCoverRefresh||0)-dt);
  if(m.nightCoverRefresh<=0){
   m.nightCoverRefresh=4+rnd(0,1);
-  let nearest=null,best=300;
-  for(const p of plants){
-   if(p.type!==2)continue;
-   const d=Math.hypot(p.x-m.x,p.y-m.y);
-   if(d>=best||d<20||Math.hypot(P.x-p.x,P.y-p.y)<140)continue;
-   if(collides(p.x,p.y,m.r+3)||!routeClear(m,p,m.r+3))continue;
-   best=d;nearest=p;
+  let nearest=null;
+  if(!visibleShrubCover())nearest=winterCoverSpotFor(m,300,P);
+  else{
+   let best=300;
+   for(const p of plants){
+    if(p.type!==2)continue;
+    const d=Math.hypot(p.x-m.x,p.y-m.y);
+    if(d>=best||d<20||Math.hypot(P.x-p.x,P.y-p.y)<140)continue;
+    if(collides(p.x,p.y,m.r+3)||!routeClear(m,p,m.r+3))continue;
+    best=d;nearest=p;
+   }
   }
   m.nightCoverX=nearest?nearest.x:null;
   m.nightCoverY=nearest?nearest.y:null;
  }
- if(!Number.isFinite(m.nightCoverX)||!Number.isFinite(m.nightCoverY)||
-    Math.hypot(P.x-m.nightCoverX,P.y-m.nightCoverY)<140)return null;
+ if(!Number.isFinite(m.nightCoverX)||!Number.isFinite(m.nightCoverY)||Math.hypot(P.x-m.nightCoverX,P.y-m.nightCoverY)<140)return null;
  m.dir=steerPursuit(m,m.nightCoverX,m.nightCoverY);
  return {vx:Math.cos(m.dir)*sp.speed*.44,vy:Math.sin(m.dir)*sp.speed*.44};
 }
@@ -2180,7 +2185,11 @@ function update(dt){
    if(m.flee>0){
     if(s.prey&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
       m.evasionSide=-(m.evasionSide||1);
-      m.dir=chooseEscape(m,Math.atan2(m.y-P.y,m.x-P.x));m.escapeTimer=m.type==="rat"?.23:m.type==="pigeon"?.32:.64;
+      const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(m,q)<175&&!lineBlocked(m,q));
+      const threat=hunter||(Number.isFinite(m.fleeThreatX)&&Number.isFinite(m.fleeThreatY)?{x:m.fleeThreatX,y:m.fleeThreatY}:P);
+      if(hunter){m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;}
+      m.dir=chooseEscape(m,Math.atan2(m.y-threat.y,m.x-threat.x),threat);
+      m.escapeTimer=m.type==="rat"?.23:m.type==="pigeon"?.32:.64;
     }
     m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(m.type==="rabbit"?.83+1.02*m.fleeEnergy:m.type==="pigeon"?.85+.87*m.fleeEnergy:.84+.57*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
    }else if(s.prey&&spotted){
@@ -2216,6 +2225,7 @@ function update(dt){
    if((s.prey||m.type==="boar")&&!spotted){
     const hunter=mobs.find(q=>q!==m&&q.hp>0&&!species[q.type].prey&&dist(q,m)<140);
     if(hunter){
+     m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;
      m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
      m.flee=Math.max(m.flee,1);
      vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
