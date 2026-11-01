@@ -3524,8 +3524,11 @@ document.querySelectorAll("[data-upgrade]").forEach(b=>b.addEventListener("click
 }));
 const stick=$("joystick"),knob=$("joy-knob");
 function updateStick(e){
- const rect=stick.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2-11;
- const dx=e.clientX-cx,dy=e.clientY-cy,mag=Math.hypot(dx,dy),lim=44;
+ // Use the rendered disc dimensions: landscape CSS resizes the stick without scaling its hitbox.
+ const disc=stick.querySelector(".joy-disc").getBoundingClientRect();
+ const cx=disc.left+disc.width/2,cy=disc.top+disc.height/2;
+ const lim=Math.max(18,(disc.width-knob.offsetWidth)/2-3);
+ const dx=e.clientX-cx,dy=e.clientY-cy,mag=Math.hypot(dx,dy);
  joy.x=clamp(dx/lim,-1,1);joy.y=clamp(dy/lim,-1,1);const l=Math.hypot(joy.x,joy.y);if(l>1){joy.x/=l;joy.y/=l}
  knob.style.transform="translate("+(joy.x*lim)+"px,"+(joy.y*lim)+"px)";
 }
