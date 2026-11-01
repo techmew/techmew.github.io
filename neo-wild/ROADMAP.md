@@ -1,3 +1,11 @@
+## 共通スプリント｜2026-11-01 21:15 JST｜15分枠｜SURVIVAL-FINAL-GOAL-01（自由探索の無限目標廃止）
+- **開始HEAD** `6463c0a969b325a125b59e308777dbfc14e5e69b` → **実装コミット** game.js `7d1bfd2b71c667c4ec35febf41117624cf557ee3`、index.html `175362966d53e9327cef80994255a47b96ecd2ec`。45分枠の横画面/ゲームパッド/月齢・街灯ハロー撤去を保持。ROADMAP追記コミットは本項目のコミット。
+- **プレイ上の変更①** mission6（探索地点2件）完了時、中央に「チュートリアル終了」を約1.9秒**1回だけ**表示し、mission7以降はHUDの「生き残れ！」に固定。途中の既存達成告知は短い「EXCELLENT!」にしてチュートリアル終了の二重表示を回避。終了告知後は通常プレイへ戻る。
+- **変更②** 「自由探索 / 生存」の無限食事↔狩猟ミッション、進行カウンター、交互達成通知、次目標案内、最終目標の目的地マーカーを停止。手動ガイドの最終項目も「生き残れ！」に統一。巣・備蓄・狩猟・移動・生態系は継続し、最終段階でも野生獲物が補充されるよう `maintainLocalWildlife` の狩猟条件を調整。
+- **変更③** 旧SAVE_SCHEMA=2・3チェックポイント互換のため `freeStep/freeTarget/expedition` の読込/保存フィールドは残すがゲーム進行/UIでは使用しない。旧mission7復帰時は完了済み扱いとし、達成告知を再表示しない。旧mission6の既達成条件の復元時も告知は再生しない。mission7既読を `tutorialSeen` に保存。
+- **検証**：game.js全文JS構文PASS、実`missionInfo`の最終表示PASS、実`showMissionMilestone`の約1900ms/日本語表示PASS、実`advanceMission`6→7の既読/完了状態と無限告知抑止PASS、実`checkMission`のmission7後の無限ループ停止PASS、SAVE_SCHEMA=2互換のソース整合PASS。HTML game.js rev `20261101-survival-final-01` 更新済み。**実ブラウザ10〜20分・Android・物理パッド・旧セーブE2E/3チェックポイントE2E・3D/2D実描画・Pages build/deploy成功は未検証**。未検証をPASSと扱わない。進捗は**71/100据え置き**。
+- **次45分枠への引継ぎ**：(1)最新mainの`game.js:showMissionMilestone/finishMissionMilestone/advanceMission/missionInfo/syncHUD`をブラウザ相当でmission6→7→2秒終了→「生き残れ！」固定→食事/狩り10分→再開/チェックポイント3件の順に再現、無限通知やUI重なりがあれば修正。(2)45分枠担当の横画面・ゲームパッド・月齢/悪天候照明を維持し、縦横HUDの「目標」だけ表示・目的地マーカー消滅と狩猟/食事を実画面で確認。(3)Pagesの最新SHA build/deploy別々の成功確認、旧セーブ/実Android・物理パッドが未確認ならそのまま明記。15分枠は引き続き冬の潜伏→夜間覚醒→追跡→狩猟→食事の連動を次回完成させる。
+
 ## 共通スプリント追補｜2026-11-01 20:50 JST｜LANDSCAPE-FULLSCREEN-TITLE-01 横画面タイトルのタッチ操作を補強
 - **作業開始HEAD**：`fb0e06f1b1d658d2cd2801eb33a557b00d6259c1`。並行45分枠が`NIGHT-MOONLIGHT-NO-LAMPGLOW-01`を`game.js/webgl3d.js/visual.css/index.html`に実装した直後の最新を確認してから、本横画面修正は`visual.css`と`index.html`のみに限定。新月/満月・天候・街灯ハロー撤去・Gamepad Bridgeを巻き戻さない。
 - **追加改善**：スマホ横画面の短い高さでタイトル内容があふれた場合、既存`html,body{touch-action:none}`によりメニューがスクロールできなくなる危険を軽減。メニュー/スクロール領域の`touch-action:pan-y`とボタン・選択欄の`manipulation`を明示し、スクロール領域にiOS向け慣性スクロール指定。新しい`visual.css`のrevを`20261101-night-moonlight-hud-landscape-v2`へ更新し、45分枠の月齢HUDを維持。
