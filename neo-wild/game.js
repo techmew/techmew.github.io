@@ -1398,6 +1398,23 @@ function advanceEnemyEvade(m,dt){
  m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);
  m.step=(m.step||0)+moved*.05;
 }
+// Wild predators intercept moving prey from a flank, but never route through walls.
+function wildPreyInterceptPoint(m,prey,sp,distance){
+ const direct={x:prey.x,y:prey.y};
+ if((m.type!=="dog"&&m.type!=="alpha")||distance<115||distance>235||(prey.flee||0)<=0)return direct;
+ const speed=Math.hypot(prey.vx||0,prey.vy||0);
+ const heading=speed>38?Math.atan2(prey.vy,prey.vx):prey.dir;
+ if(!Number.isFinite(heading))return direct;
+ const lead=clamp(distance/(sp.speed+100),.18,.45);
+ const forward=clamp(speed*lead,25,65),sideOffset=clamp(distance*.27,35,58);
+ const preferred=m.flankSide||1;
+ for(const side of [preferred,-preferred]){
+  const x=clamp(prey.x+Math.cos(heading)*forward-Math.sin(heading)*side*sideOffset,35,WORLD.w-35);
+  const y=clamp(prey.y+Math.sin(heading)*forward+Math.cos(heading)*side*sideOffset,35,WORLD.h-35);
+  if(!collides(x,y,m.r+5)&&routeClear(m,{x,y},m.r+5))return {x,y};
+ }
+ return direct;
+}
 function steerPursuit(m,tx,ty){
  const goal={x:tx,y:ty},desired=Math.atan2(ty-m.y,tx-m.x),distance=dist(m,goal);
  const look=clamp(distance*.45,42,94);
@@ -1832,7 +1849,8 @@ function update(dt){
      const near=dist(m,q);if(near<best&&!lineBlocked(m,q)){best=near;nearest=q}
     }
     if(nearest){
-     m.dir=steerPursuit(m,nearest.x,nearest.y);
+     const intercept=wildPreyInterceptPoint(m,nearest,s,best);
+     m.dir=steerPursuit(m,intercept.x,intercept.y);
      vx=Math.cos(m.dir)*s.speed*.75;vy=Math.sin(m.dir)*s.speed*.75;
      m.wildTargetX=nearest.x;m.wildTargetY=nearest.y;
      if(best<m.r+nearest.r+20&&m.wildAttack<=0){
