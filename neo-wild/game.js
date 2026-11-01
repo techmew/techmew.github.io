@@ -35,10 +35,11 @@ const species={
  rhino:{hp:690,r:57,speed:174,damage:50,prey:false,xp:24,food:138,color:"#7e7770",belly:"#b5aca0"},
  giantGorilla:{hp:610,r:52,speed:147,damage:47,prey:false,xp:23,food:132,color:"#484844",belly:"#96918a"},
  giantElephant:{hp:880,r:69,speed:136,damage:55,prey:false,xp:29,food:176,color:"#878b87",belly:"#bfc0b5"},
- albinoWolf:{hp:375,r:33,speed:249,damage:38,prey:false,xp:19,food:83,color:"#e7e7dc",belly:"#faf7ec"}
+ albinoWolf:{hp:375,r:33,speed:249,damage:38,prey:false,xp:19,food:83,color:"#e7e7dc",belly:"#faf7ec"},
+ giantEagle:{hp:345,r:39,speed:248,damage:43,prey:false,xp:19,food:76,color:"#76583c",belly:"#d2b98a"}
 };
-const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼"};
-const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf","albinoWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf","albinoWolf"],2:["giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo","giantLizard","giantGorilla"],3:["oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion","giantLizard","rhino","giantElephant"],4:["giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo","giantLizard","rhino","giantGorilla","giantElephant"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]};
+const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲"};
+const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf","albinoWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf","albinoWolf"],2:["giantEagle","giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo","giantLizard","giantGorilla"],3:["giantEagle","oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion","giantLizard","rhino","giantElephant"],4:["giantEagle","giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantEagle","giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo","giantLizard","rhino","giantGorilla","giantElephant"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantEagle","giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]};
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -647,6 +648,7 @@ function restoreSnapshot(snapshot){
  for(const m of mobs){
   // Resume boss position/HP without an unseen projectile immediately striking on load.
   if(m.type==="giantGorilla")m.rock=null;
+  if(m.type==="giantEagle"){m.airPhase="circle";m.airHeight=Math.max(90,Number(m.airHeight)||125);m.airTimer=1.4;m.airTarget=null;m.airHit=false;m.windup=0;}
   if(isAquaticStrong(m)){
    // Keep saved aquatic bosses in the river/canal; never migrate them onto land.
    const safe=nearestAquaticWater(m.x,m.y,m.r||18,m.strongRegion);
@@ -752,7 +754,8 @@ const STRONG_ATTACK_PROFILES={
  rhino:{windup:.98,reach:157,cooldown:2.35,damage:1.18,tell:"サイが角を下げた！"},
  giantGorilla:{windup:.86,reach:245,cooldown:2.55,damage:1.12,tell:"ゴリラが岩を持ち上げた！"},
  giantElephant:{windup:1.12,reach:162,cooldown:2.65,damage:1.24,tell:"ゾウが踏み鳴らす！"},
- albinoWolf:{windup:.52,reach:118,cooldown:1.43,damage:1.02,tell:"白い影が飛びかかる！"}
+ albinoWolf:{windup:.52,reach:118,cooldown:1.43,damage:1.02,tell:"白い影が飛びかかる！"},
+ giantEagle:{windup:.84,reach:95,cooldown:3.4,damage:1.08,tell:"大鷲が急降下！"}
 };
 // Food and safe den rest shorten a strong enemy's bleeding wound.
 function sootheStrongWound(foodPoints,atHome=false){
@@ -768,6 +771,8 @@ function applyStrongStrikeEffect(m,angle,charging=false){
   P.strongSlow=Math.max(P.strongSlow||0,1.4);P.sp=clamp(P.sp-15,0,100);label(P.x,P.y-48,"つかまれた！","#ffd2a6");
  }else if(m.type==="giantElephant"){
   P.sp=clamp(P.sp-20,0,100);move(P,Math.cos(angle)*62,Math.sin(angle)*62);label(P.x,P.y-48,"踏みつけと鼻の一撃！","#ffd2a6");
+ }else if(m.type==="giantEagle"){
+  P.sp=clamp(P.sp-13,0,100);label(P.x,P.y-48,"大鷲の爪！","#ffd9a6");
  }else if(m.type==="albinoWolf"){
   P.sp=clamp(P.sp-12,0,100);label(P.x,P.y-48,"白狼の急襲！","#ffe3c0");
  }else if(m.type==="rhino"){
@@ -916,12 +921,85 @@ function updateGorillaRock(m,dt){
  if(r.ttl<=0)m.rock=null;
 }
 
+/* STRONG-EAGLE-FLIGHT: airborne orbit, warning, dive, collision, climb and prey ecology. */
+
+function updateFlyingEagle(m,dt){
+ if(!P||m.hp<=0)return;
+ const s=species.giantEagle;
+ m.airHeight=clamp(Number(m.airHeight)||125,10,175);
+ m.airOrbit=(Number(m.airOrbit)||0)+dt*.72;
+ m.airTimer=Math.max(0,(Number(m.airTimer)||0)-dt);
+ m.attack=Math.max(0,(m.attack||0)-dt);
+ m.step=(m.step||0)+dt*3.6;
+ const phase=m.airPhase||"circle";
+ if(phase==="circle"){
+  const playerNear=dist(P,m)<510&&!insideShelter(P)&&!lineBlocked(m,P);
+  if(playerNear){const pull=Math.min(1,dt*.25);m.airAnchorX+=(P.x-m.airAnchorX)*pull;m.airAnchorY+=(P.y-m.airAnchorY)*pull;}
+  const tx=clamp(m.airAnchorX+Math.cos(m.airOrbit)*160,70,WORLD.w-70);
+  const ty=clamp(m.airAnchorY+Math.sin(m.airOrbit)*160,70,WORLD.h-70);
+  const oldX=m.x,oldY=m.y,dir=Math.atan2(ty-m.y,tx-m.x);
+  const speed=Math.min(s.speed*dt,Math.hypot(tx-m.x,ty-m.y));
+  m.x+=Math.cos(dir)*speed;m.y+=Math.sin(dir)*speed;
+  m.vx=(m.x-oldX)/Math.max(dt,.001);m.vy=(m.y-oldY)/Math.max(dt,.001);m.dir=dir;
+  m.airHeight=clamp(m.airHeight+(125-m.airHeight)*Math.min(1,dt*2.8),15,175);
+  if(m.airTimer<=0&&m.attack<=0){
+   let target=playerNear?P:null;
+   if(!target){let best=365;for(const q of mobs){
+    if(q===m||q.hp<=0||!species[q.type]?.prey||insideShelter(q))continue;
+    const d=dist(m,q);if(d<best&&!lineBlocked(m,q)){best=d;target=q;}
+   }}
+   if(target){
+    m.airTarget=target===P?"player":"prey";m.airTargetX=target.x;m.airTargetY=target.y;
+    m.airPhase="warn";m.airTimer=.84;m.airHit=false;m.attack=3.5;
+    m.strikeDir=Math.atan2(target.y-m.y,target.x-m.x);
+    if(dist(P,m)<560)label(m.x,m.y-m.r-45,"大鷲が急降下！","#ffcc91");
+   }
+  }
+ }else if(phase==="warn"){
+  m.airHeight=125;m.dir=m.strikeDir;m.vx=0;m.vy=0;
+  if(m.airTarget==="player"&&P.hp>0){m.airTargetX=P.x;m.airTargetY=P.y;}
+  if(m.airTimer<=0){m.airPhase="dive";m.airTimer=1.15;}
+ }else if(phase==="dive"){
+  const oldX=m.x,oldY=m.y;
+  const angle=Math.atan2(m.airTargetY-m.y,m.airTargetX-m.x);
+  const step=Math.min(s.speed*2.7*dt,Math.hypot(m.airTargetX-m.x,m.airTargetY-m.y));
+  m.x=clamp(m.x+Math.cos(angle)*step,60,WORLD.w-60);
+  m.y=clamp(m.y+Math.sin(angle)*step,60,WORLD.h-60);
+  m.vx=(m.x-oldX)/Math.max(dt,.001);m.vy=(m.y-oldY)/Math.max(dt,.001);m.dir=angle;
+  m.airHeight=Math.max(11,m.airHeight-190*dt);
+  if(m.airHeight<=29&&!m.airHit){
+   if(m.airTarget==="player"&&P.inv<=0&&P.hp>0&&(P.jumpHeight||0)<24&&
+      !insideShelter(P)&&!lineBlocked(m,P)&&dist(P,m)<P.r+m.r+28){
+    const damage=Math.round(s.damage*1.08*(1+Math.max(0,day-1)*.15));
+    P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.46;interruptRush();shake=8;flash=.22;
+    label(P.x,P.y-37,"大鷲の爪 -"+damage,"#ffada0");blood(P.x,P.y,"#eaa17b",9,80);
+    applyStrongStrikeEffect(m,angle,false);playEffect("damage");m.airHit=true;
+   }else if(m.airTarget==="prey"){
+    const q=mobs.find(q=>q!==m&&q.hp>0&&species[q.type]?.prey&&dist(q,m)<q.r+m.r+22&&!insideShelter(q)&&!lineBlocked(m,q));
+    if(q){
+     q.hp=Math.max(0,q.hp-Math.round(s.damage*.75));q.flash=.2;m.airHit=true;
+     if(q.hp<=0){carcasses.push(animalRemains(q));m.feedAfterKill=8;
+      const zone=regionAt(q.x,q.y);ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
+     }else startlePrey(q,m,"hit");
+     if(dist(P,m)<480)label(q.x,q.y-30,"大鷲の狩り","#ffd7a2");
+    }
+   }
+  }
+  if(m.airHeight<=11||m.airTimer<=0||m.airHit){m.airPhase="climb";m.airTimer=.95;m.airTarget=null;}
+ }else{
+  m.airHeight=Math.min(125,m.airHeight+165*dt);
+  m.x=clamp(m.x+Math.cos(m.dir)*s.speed*.4*dt,60,WORLD.w-60);
+  m.y=clamp(m.y+Math.sin(m.dir)*s.speed*.4*dt,60,WORLD.h-60);
+  if(m.airTimer<=0&&m.airHeight>=120){m.airPhase="circle";m.airTimer=1.1;m.airAnchorX=m.x;m.airAnchorY=m.y;}
+ }
+}
+
 /* STRONG-STAGE-20P-V1: one draw per district, a single active boss, save-compatible. */
 function strongBossAlive(){return mobs.find(m=>m.hp>0&&(m.strongBoss||m.type==="alpha"))||null;}
 function strongStageCandidate(region){
  const options=(STRONG_REGIONS[region]||["alpha"]).filter(t=>!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length>0);
  const hour=(6+Math.floor((elapsed%85)/85*24))%24,night=hour>=19||hour<6;
- const weights=options.map(t=>t==="blackPanther"?(night?3.2:.7):t==="oneEyedWolf"?(night?2.2:1.1):t==="whiteTiger"?(night?.65:1.7):t==="giantHyena"?(weather==="RAIN"||weather==="THUNDER"?.55:1.5):t==="giantLion"?(night?1.8:1.1):t==="giantMoose"?(weather==="THUNDER"?.55:1.4):t==="giantBuffalo"?(weather==="RAIN"?1.5:1.2):t==="giantGorilla"?(weather==="THUNDER"?.55:1.0):t==="giantElephant"?(weather==="RAIN"?1.35:.95):t==="albinoWolf"?(night?.48:.18):t==="giantCrocodile"?(night?2.0:1.1):t==="giantHippo"?(weather==="RAIN"?1.8:1.1):t==="giantAnaconda"?(night?1.6:1.0):t==="giantSnake"?(weather==="RAIN"||weather==="THUNDER"?1.7:1.2):t==="oldBear"?(night?.7:1.5):t==="giantBoar"?(weather==="THUNDER"?.65:1.3):1.2);
+ const weights=options.map(t=>t==="blackPanther"?(night?3.2:.7):t==="oneEyedWolf"?(night?2.2:1.1):t==="whiteTiger"?(night?.65:1.7):t==="giantHyena"?(weather==="RAIN"||weather==="THUNDER"?.55:1.5):t==="giantLion"?(night?1.8:1.1):t==="giantMoose"?(weather==="THUNDER"?.55:1.4):t==="giantBuffalo"?(weather==="RAIN"?1.5:1.2):t==="giantGorilla"?(weather==="THUNDER"?.55:1.0):t==="giantElephant"?(weather==="RAIN"?1.35:.95):t==="giantEagle"?(weather==="THUNDER"?.25:weather==="RAIN"?.55:night?.65:1.5):t==="albinoWolf"?(night?.48:.18):t==="giantCrocodile"?(night?2.0:1.1):t==="giantHippo"?(weather==="RAIN"?1.8:1.1):t==="giantAnaconda"?(night?1.6:1.0):t==="giantSnake"?(weather==="RAIN"||weather==="THUNDER"?1.7:1.2):t==="oldBear"?(night?.7:1.5):t==="giantBoar"?(weather==="THUNDER"?.65:1.3):1.2);
  let roll=Math.random()*weights.reduce((a,b)=>a+b,0);
  for(let i=0;i<options.length;i++){roll-=weights[i];if(roll<=0)return options[i];}
  return options[options.length-1];
@@ -942,7 +1020,8 @@ function spawnStrongBoss(type,region){
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
    chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintCooldown:2,
    thirstNeed:.4,drinkCooldown:3,flankSide:Math.random()<.5?-1:1,
-   strongBoss:true,strongRegion:region,strongBirthDay:day});
+   strongBoss:true,strongRegion:region,strongBirthDay:day,
+   ...(type==="giantEagle"?{airHeight:125,airPhase:"circle",airTimer:1.7,airOrbit:angle,airAnchorX:x,airAnchorY:y,airTarget:null,airHit:false}: {})});
   notify("この地区に"+STRONG_NAMES[type]+"の気配がある");
   return true;
  }
@@ -2104,7 +2183,7 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]);
+const WILD_PREDATOR_TYPES=new Set(["giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -2644,6 +2723,7 @@ function update(dt){
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(d>WILDLIFE.farAI){m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
+  if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
@@ -3245,8 +3325,19 @@ function drawItem(c){
 /* Separate readable top-down anatomy for the first four strong enemies. */
 function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
  const t=o.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf")return false;
- if(t==="giantGorilla"){
+ if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf"&&t!=="giantEagle")return false;
+ if(t==="giantEagle"){
+  const flap=Math.sin((o.step||0)*2.4),spread=.9+.16*flap;
+  oval(-r*.20,0,r*.88,r*.38,fur);oval(r*.65,0,r*.45,r*.36,light);
+  for(const side of [-1,1]){
+   triangle([-r*.4,side*r*.22,-r*.96,side*r*2.15*spread,r*.48,side*r*1.35*spread],side<0?"#59452f":"#8e6e48");
+   for(let k=0;k<5;k++)triangle([(-.78+k*.26)*r,side*r*1.30*spread,(-1.05+k*.25)*r,side*r*(2.0+(.22*(k%2)))*spread,(-.59+k*.24)*r,side*r*1.40*spread],"#493a2d");
+   oval(r*.96,side*r*.18,r*.08,r*.09,"#f0d795");
+  }
+  for(let k=-2;k<=2;k++)triangle([-r*.84,k*r*.14,-r*1.75,k*r*.25,-r*.95,(k+.5)*r*.16],"#a39070");
+  triangle([r*1.03,-r*.12,r*1.50,0,r*1.03,r*.12],"#e8bd65");
+  for(const side of [-1,1])for(let k=0;k<3;k++)triangle([r*.32,side*r*.18,r*.53+k*r*.10,side*r*.30,r*.50,side*r*.08],"#dfbd71");
+ }else if(t==="giantGorilla"){
   for(const side of [-1,1]){oval(-r*.2,side*r*.83+pace*side,r*.4,r*.61,"#30332f");oval(r*.72,side*r*.81,r*.48,r*.38,fur);}
   oval(-r*.26,0,r*1.25,r*.91,fur);oval(r*.55,0,r*.89,r*.78,light);
   for(const side of [-1,1]){oval(r*.1,side*r*.99,r*.55,r*.29,fur);oval(r*1.06,side*r*.28,r*.12,r*.10,"#252827");}
@@ -3401,7 +3492,8 @@ function drawCreature(o,isPlayer){
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
  oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
  if(isPlayer&&P.jumpHeight>floorZ)lift2D(P.jumpHeight-floorZ);
- if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight); // Real sideways leap also clears the ground in Canvas2D.
+ if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight);
+ if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
  ctx.rotate(o.dir||0);
  if(!isPlayer&&o.resting){ctx.scale(1.07,.68);ctx.translate(0,r*.15);}
@@ -3772,7 +3864,7 @@ function drawThreatNames(){
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
   if(m.hp<=0||species[m.type].prey||dist(P,m)>280||!visible(m.x,m.y,55))continue;
-  const pos=project(m.x,m.y),names={dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-m.r*cameraZoom-35;
+  const pos=project(m.x,m.y),names={giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
   ctx.globalAlpha=m.windup>0||m.alert>0?.92:.65;ctx.fillStyle="#172321";ctx.fillRect(pos.x-42,y-11,84,16);
   ctx.fillStyle=m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(names[m.type]||"危険",pos.x,y+1);
  }
