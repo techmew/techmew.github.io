@@ -684,3 +684,26 @@
   right:max(8px,env(safe-area-inset-right));width:94px;height:94px;
  }
 }
+
+/* MINIMAP-COMPACT-MARKERS-01: tap to cycle ranges; hold for existing detailed map. */
+#hud #mini-map-control{pointer-events:auto;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none;}
+#hud #mini-map-control:focus-visible{outline:2px solid #9ee8ff;outline-offset:2px;}
+#hud #mini-map-control #mini-map-scale{display:block!important;position:absolute;bottom:4px;left:5px;padding:2px 5px;
+ background:rgba(5,20,22,.86);color:#e9fff5;border-radius:5px;font:700 10px/1.25 "Noto Sans JP",sans-serif;letter-spacing:0;pointer-events:none;}
+/* The old detached camera zoom panel is removed on touch devices; pinch and gamepad shoulders remain. */
+@media (pointer:coarse),(max-width:850px){#zoom-controls{display:none!important;}}
+@media (orientation:portrait) and (max-width:600px){
+ #hud .hud-right #mini-map-control{top:calc(120px + env(safe-area-inset-top));right:max(9px,env(safe-area-inset-right));width:96px;height:96px;}
+ #status{top:calc(230px + env(safe-area-inset-top));right:max(9px,env(safe-area-inset-right));font-size:10px;}
+ #gamepad-status{top:calc(275px + env(safe-area-inset-top));right:max(9px,env(safe-area-inset-right));}
+}
+@media (orientation:landscape) and (max-height:760px) and (pointer:coarse),
+       (orientation:landscape) and (max-height:520px) and (max-width:1024px){
+ #hud .hud-right #mini-map-control{top:calc(93px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));width:clamp(80px,23dvh,105px);height:clamp(80px,23dvh,105px);}
+ #status{top:calc(188px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));font-size:9px;}
+ #gamepad-status{top:calc(112px + env(safe-area-inset-top));right:calc(116px + env(safe-area-inset-right));max-width:105px;}
+}
+@media (orientation:landscape) and (max-height:390px) and (max-width:1024px){
+ #hud .hud-right #mini-map-control{top:calc(90px + env(safe-area-inset-top));width:80px;height:80px;}
+ #status{top:calc(180px + env(safe-area-inset-top));}
+}

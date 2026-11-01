@@ -2511,9 +2511,11 @@ function toggleWorldMap(){
   resetControls();mode="map";$("world-map").classList.remove("hidden");drawWorldMap();
  }else if(mode==="map"){mode="play";$("world-map").classList.add("hidden")}
 }
+const MINI_SPANS=[1270,1905,2800],MINI_SCALE_NAMES=["標準","遠目","広域"];
+let miniScaleIndex=0;
 function drawMini(){
  if(!P)return;
- const w=mini.width,h=mini.height,span=1270;
+ const w=mini.width,h=mini.height,span=MINI_SPANS[miniScaleIndex];
  const X=x=>(x-P.x+span/2)/span*w,Y=y=>(y-P.y+span*h/w/2)/span*w;
  mc.fillStyle="#19332e";mc.fillRect(0,0,w,h);
  for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-P.x)>span||Math.abs(seg.cy-P.y)>span)continue;mc.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";mc.beginPath();seg.pts.forEach((p,i)=>i?mc.lineTo(X(p[0]),Y(p[1])):mc.moveTo(X(p[0]),Y(p[1])));mc.closePath();mc.fill();}
@@ -2526,9 +2528,24 @@ function drawMini(){
   mc.fillRect(X(b.x),Y(b.y),Math.max(2,b.w/span*w),Math.max(2,b.h/span*w));
   if(b.interior){mc.fillStyle="#152d29";mc.fillRect(X(b.x+16),Y(b.y+16),Math.max(2,(b.w-32)/span*w),Math.max(2,(b.h-32)/span*w))}
  }
- for(const m of mobs)if(m.hp>0&&dist(P,m)<580){
-  mc.fillStyle=species[m.type].prey?"#e4d7b5":"#f09878";
-  mc.fillRect(X(m.x)-1.5,Y(m.y)-1.5,3,3);
+ // Classify live wildlife by actual species, alert state and strength relative to the player.
+ const visibleMobs=mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<span/2&&Math.abs(m.y-P.y)<span/2)
+  .sort((a,b)=>dist(P,a)-dist(P,b)).slice(0,30);
+ for(const m of visibleMobs){
+  const sp=species[m.type],powerful=m.type==="alpha"||
+   (!sp.prey&&m.type!=="boar"&&m.maxHp>P.maxHp*1.65&&sp.damage>P.damage*1.35)||
+   (m.type==="boar"&&m.maxHp>P.maxHp*1.65&&sp.damage>P.damage*1.35);
+  const calmBoar=m.type==="boar"&&!powerful&&(m.alert||0)<=0&&(m.windup||0)<=0&&(m.search||0)<=0;
+  const kind=sp.prey?"prey":powerful?"strong":calmBoar?"caution":"hostile";
+  const x=X(m.x),y=Y(m.y);
+  mc.save();mc.translate(x,y);mc.lineWidth=1.3;mc.strokeStyle="#0b1c1b";
+  mc.fillStyle=kind==="prey"?"#78e59c":kind==="strong"?"#f15b62":kind==="caution"?"#f3d56c":"#f7a05c";
+  mc.beginPath();
+  if(kind==="strong"){mc.moveTo(0,-5.5);mc.lineTo(5.5,0);mc.lineTo(0,5.5);mc.lineTo(-5.5,0);mc.closePath();}
+  else if(kind==="hostile"){mc.moveTo(0,-4.5);mc.lineTo(4.5,4);mc.lineTo(-4.5,4);mc.closePath();}
+  else if(kind==="caution"){mc.rect(-3.2,-3.2,6.4,6.4);}
+  else{mc.arc(0,0,3.2,0,TWO);}
+  mc.fill();mc.stroke();mc.restore();
  }
  for(const site of EXPLORE_SITES)if(Math.hypot(site.x-P.x,site.y-P.y)<span*.7){
   mc.fillStyle=discoveredSites.includes(site.id)?"#83e7c4":"#d5bea1";
@@ -2536,7 +2553,7 @@ function drawMini(){
  }
  // Den and mission target use world coordinates and are never cached between goals.
  if(Math.abs(SAFE_DEN.x-P.x)<span/2&&Math.abs(SAFE_DEN.y-P.y)<span/2){
-  mc.fillStyle="#8be9bd";mc.beginPath();mc.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),3.5,0,TWO);mc.fill();
+  mc.fillStyle="#76baff";mc.beginPath();mc.arc(X(SAFE_DEN.x),Y(SAFE_DEN.y),3.5,0,TWO);mc.fill();
  }
  const goal=getObjective();
  if(goal){
@@ -2544,7 +2561,7 @@ function drawMini(){
   const radius=Math.min(w,h)/2-10,range=Math.hypot(dx,dy);
   const factor=Math.min(1,radius/Math.max(1,range));
   const gx=w/2+dx*factor,gy=h/2+dy*factor;
-  mc.fillStyle="#f6c56c";mc.strokeStyle="#172d2a";mc.lineWidth=1.5;
+  mc.fillStyle="#65e3ff";mc.strokeStyle="#10282e";mc.lineWidth=1.5;
   mc.save();mc.translate(gx,gy);
   if(factor<1){mc.rotate(Math.atan2(dy,dx)+Math.PI/2);
    mc.beginPath();mc.moveTo(0,-6);mc.lineTo(4,4);mc.lineTo(-4,4);mc.closePath();
@@ -3548,7 +3565,42 @@ $("sound-btn").addEventListener("click",()=>{
  window.WildAudio?.setEnabled(soundEnabled);
  $("sound-btn").title=soundEnabled?"BGM・環境音・効果音 ON":"BGM・環境音・効果音 OFF";
 });
-$("map-btn").addEventListener("click",toggleWorldMap);
+const miniControl=$("mini-map-control"),miniScaleLabel=$("mini-map-scale");
+function setMiniScale(step){
+ if(mode!=="play")return;
+ miniScaleIndex=(miniScaleIndex+step+MINI_SPANS.length)%MINI_SPANS.length;
+ miniScaleLabel.textContent=MINI_SCALE_NAMES[miniScaleIndex];
+ miniControl.setAttribute("aria-label","周辺地図："+MINI_SCALE_NAMES[miniScaleIndex]+"。タップで表示範囲切替、長押しで詳細地図");
+ drawMini();
+}
+let miniPressTimer=null,miniPressAt=null,miniLongPressed=false;
+function clearMiniPress(){if(miniPressTimer!==null)clearTimeout(miniPressTimer);miniPressTimer=null;}
+miniControl.addEventListener("pointerdown",e=>{
+ if(mode!=="play"||e.button>0)return;
+ e.preventDefault();e.stopPropagation();clearMiniPress();miniLongPressed=false;
+ miniPressAt={id:e.pointerId,x:e.clientX,y:e.clientY};
+ miniControl.setPointerCapture?.(e.pointerId);
+ miniPressTimer=setTimeout(()=>{
+  miniPressTimer=null;miniLongPressed=true;miniPressAt=null;
+  if(mode==="play")toggleWorldMap();
+ },550);
+});
+miniControl.addEventListener("pointermove",e=>{
+ if(miniPressAt?.id===e.pointerId&&Math.hypot(e.clientX-miniPressAt.x,e.clientY-miniPressAt.y)>14){
+  clearMiniPress();miniPressAt=null;
+ }
+});
+miniControl.addEventListener("pointerup",e=>{
+ if(!miniPressAt||miniPressAt.id!==e.pointerId){clearMiniPress();return;}
+ e.preventDefault();e.stopPropagation();const wasLong=miniLongPressed;
+ clearMiniPress();miniPressAt=null;if(!wasLong)setMiniScale(1);
+});
+miniControl.addEventListener("pointercancel",()=>{clearMiniPress();miniPressAt=null;});
+miniControl.addEventListener("contextmenu",e=>e.preventDefault());
+miniControl.addEventListener("keydown",e=>{
+ if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();setMiniScale(1);}
+});
+
 $("map-close").addEventListener("click",toggleWorldMap);
 function adjustZoom(delta){if(mode!=="play")return;cameraZoom=clamp(Math.round((cameraZoom+delta)*100)/100,.47,1.6);updateCameraView();$("zoom-level").textContent=Math.round(cameraZoom*100)+"%";}
 $("zoom-out").addEventListener("click",()=>adjustZoom(-.13));
