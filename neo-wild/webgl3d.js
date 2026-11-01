@@ -295,6 +295,21 @@ function foodMesh(c,species){
   }
  }
 }
+function carriedFoodMesh(p){
+ const c=p.carry;if(!c||!(c.amount>0))return;
+ animalLift=0;
+ const dir=p.dir||0,cs=Math.cos(dir),sn=Math.sin(dir),r=Math.max(7,Math.min(13,6+Math.sqrt(c.amount)));
+ const x=p.x+cs*p.r*1.45,y=p.y+sn*p.r*1.45,z=Math.max(0,p.jumpHeight||p.groundZ||0)+p.r*.72;
+ if(c.type==="berries"){
+  ellipsoid(x,y,z,r,6,5,"#52774d",dir,9,4);
+  for(let i=0;i<4;i++)ellipsoid(x+cs*(i-1.5)*r*.3,y+sn*(i-1.5)*r*.3,z+3,3,2.5,2.8,i%2?"#d5a36d":"#c36c55",dir,6,3);
+ }else{
+  ellipsoid(x,y,z,r+2,7,5.5,"#61282a",dir,10,5);
+  ellipsoid(x-cs*1.4,y-sn*1.4,z+2,r,6.2,4.5,"#b94c49",dir,10,5);
+  ellipsoid(x-cs*r*.35,y-sn*r*.35,z+5,r*.48,2.3,1.1,"#e08a78",dir,7,3);
+  ellipsoid(x+cs*r*.78,y+sn*r*.78,z+1,3.3,2.7,2.4,"#edc9b3",dir,7,3);
+ }
+}
 function denBeddingMesh(d){
  if(!d)return;
  animalLift=0;
@@ -517,7 +532,7 @@ function render(o){
    ellipsoid(x,y,z,8,3,3,bird.type==="crow"?"#293537":"#a5b1a9",bird.dir,6,3);
   }
   const playerFirst=data.length/9;
-  if(P)animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
+  if(P){animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);carriedFoodMesh(P);}
   const playerEnd=data.length/9;
   const ghostEnd=playerEnd;
   const vertices=new Float32Array(data);
