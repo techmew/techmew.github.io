@@ -267,6 +267,30 @@ function waterDepth(x,y){
  return depth;
 }
 function shallowWater(x,y){return waterDepth(x,y)>0;}
+function waterBlocksLand(x,y){return waterDepth(x,y)>.0001;}
+function buildingOverlapsWater(x,y,w,h){
+ const l=x-18,r=x+w+18,t=y-18,b=y+h+18;
+ if(r>6300&&t<2600&&b>0)for(let yy=Math.max(0,t);yy<=Math.min(2600,b)+32;yy+=32){
+  const c=riverAxis(Math.min(2600,Math.min(b,yy)));if(l<c+133&&r>c-133)return true;
+ }
+ if(r>5600&&l<8400&&b>2600)for(let xx=Math.max(5600,l);xx<=Math.min(8400,r)+32;xx+=32){
+  const c=canalAxis(Math.min(8400,Math.min(r,xx)));if(t<c+100&&b>c-100)return true;
+ }
+ return false;
+}
+function nearestDryBank(x,y,r){
+ if(!waterBlocksLand(x,y))return {x,y};
+ for(let d=18;d<450;d+=18)for(let k=0;k<24;k++){
+  const a=k*Math.PI/12,px=clamp(x+d*Math.cos(a),r+13,WORLD.w-r-13),py=clamp(y+d*Math.sin(a),r+13,WORLD.h-r-13);
+  if(!waterBlocksLand(px,py)&&!collides(px,py,r))return {x:px,y:py};
+ }
+ return null;
+}
+function waterSoundAt(x,y){
+ const river=y>=0&&y<2600&&x>=6300?clamp(1-Math.max(0,Math.abs(x-riverAxis(y))-133)/350,0,1):0;
+ const canal=x>=5600&&x<8400&&y>=2600?clamp(1-Math.max(0,Math.abs(y-canalAxis(x))-100)/330,0,1):0;
+ return {waterKind:river>=canal?"river":"canal",waterNear:Math.max(river,canal)};
+}
 
 function generateWorld(){
  if(worldMade)return;worldMade=true;
@@ -282,7 +306,7 @@ function generateWorld(){
   const h=biome===5?105+92*noise(seed,4):175+155*noise(seed,4);
   if(x+w>WORLD.w-35||y+h>WORLD.h-35)return;
   const roadCollision=roadsX.some(rx=>rx>x-42&&rx<x+w+42)||roadsY.some(ry=>ry>y-42&&ry<y+h+42);
-  if(roadCollision||nearBuilding(x+w*.5,y+h*.5,Math.min(w,h)*.35))return;
+  if(roadCollision||nearBuilding(x+w*.5,y+h*.5,Math.min(w,h)*.35)||buildingOverlapsWater(x,y,w,h))return;
   const roofZ=seed%7===0?70:seed%3===0?50:seed%4===0?32:0;
   buildings.push({x,y,w,h,seed,kind:biome===6?3:biome%4,sign:seed%5===0,broken:seed%4===0,roofZ});
  };
@@ -308,23 +332,23 @@ function generateWorld(){
  }
  for(let i=0;i<780;i++){
   const x=120+rnd(0,WORLD.w-240),y=2450+rnd(0,WORLD.h-2580);
-  if(nearBuilding(x,y,45))continue;
+  if(nearBuilding(x,y,45)||waterBlocksLand(x,y))continue;
   const biome=regionAt(x,y),forest=biome===5,shrubs=forest?.46:biome===7?.24:.15;
   plants.push({x,y,r:Math.random()<shrubs?rnd(34,65):rnd(7,24),
    type:Math.random()<shrubs?2:Math.random()<.25?1:0,phase:rnd(0,TWO),hue:Math.random()});
  }
  for(let i=0;i<260;i++){
   const x=4200+rnd(0,WORLD.w-4320),y=90+rnd(0,2400);
-  if(!nearBuilding(x,y,48))plants.push({x,y,r:rnd(8,46),type:i%5===0?2:i%3===0?1:0,phase:rnd(0,TWO),hue:Math.random()});
+  if(!nearBuilding(x,y,48)&&!waterBlocksLand(x,y))plants.push({x,y,r:rnd(8,46),type:i%5===0?2:i%3===0?1:0,phase:rnd(0,TWO),hue:Math.random()});
  }
  for(let i=0;i<520;i++){
   const x=rnd(80,WORLD.w-80),y=rnd(2500,WORLD.h-70);
-  if(!nearBuilding(x,y,12))debris.push({x,y,r:rnd(2,12),a:rnd(0,TWO),kind:i%4});
+  if(!nearBuilding(x,y,12)&&!waterBlocksLand(x,y))debris.push({x,y,r:rnd(2,12),a:rnd(0,TWO),kind:i%4});
  }
  for(const site of EXPLORE_SITES){
   for(let j=0;j<3;j++){
    const ang=j*TWO/3,xx=site.x+Math.cos(ang)*155,yy=site.y+Math.sin(ang)*145;
-   if(!nearBuilding(xx,yy,32))plants.push({x:xx,y:yy,r:40,type:2,phase:j,hue:.3});
+   if(!nearBuilding(xx,yy,32)&&!waterBlocksLand(xx,yy))plants.push({x:xx,y:yy,r:40,type:2,phase:j,hue:.3});
   }
  }
  const alley=[
@@ -334,12 +358,12 @@ function generateWorld(){
  ];
  buildings.push(...alley); // wall-kick training alley; also serves open-city roof exploration.
  for(let i=0;i<400;i++){let x=rnd(30,WORLD.w-30),y=rnd(30,WORLD.h-30);
-   if(nearBuilding(x,y,28))continue;
+   if(nearBuilding(x,y,28)||waterBlocksLand(x,y))continue;
    plants.push({x,y,r:rnd(5,17),type:Math.random()<.23?1:0,phase:rnd(0,6),hue:Math.random()});}
  for(let i=0;i<75;i++){const x=rnd(65,WORLD.w-65),y=rnd(65,WORLD.h-65);
-  if(!nearBuilding(x,y,70))plants.push({x,y,r:rnd(34,67),type:2,phase:rnd(0,6)});}
+  if(!nearBuilding(x,y,70)&&!waterBlocksLand(x,y))plants.push({x,y,r:rnd(34,67),type:2,phase:rnd(0,6)});}
  for(let i=0;i<330;i++){let x=rnd(0,WORLD.w),y=rnd(0,WORLD.h);
-   if(nearBuilding(x,y,8))continue;
+   if(nearBuilding(x,y,8)||waterBlocksLand(x,y))continue;
    debris.push({x,y,r:rnd(2,10),a:rnd(0,7),kind:i%4});}
  for(const x of roadsX)for(const y of roadsY)for(const dx of [-100,100])for(const dy of [-87,87])lamps.push({x:x+dx,y:y+dy});
  
@@ -348,7 +372,7 @@ function generateWorld(){
   const x=along?220+(i%8)*1030+(noise(i,7)-.5)*70:road+(noise(i,7)-.5)*40;
   const y=along?road+(noise(i,3)-.5)*35:180+(i%6)*920;
   const type=["car","bicycle","car","barrier","vending","bicycle","sign"][i%7],r=type==="car"?32:13;
-  if(Math.hypot(x-SAFE_DEN.x,y-SAFE_DEN.y)>210&&!nearBuilding(x,y,44))
+  if(Math.hypot(x-SAFE_DEN.x,y-SAFE_DEN.y)>210&&!nearBuilding(x,y,44)&&!waterBlocksLand(x,y))
    streetProps.push({x,y,type,r,dir:along?0:Math.PI/2,seed:i});
  }
  for(let i=0;i<20;i++)birdFlocks.push({x:160+i*380,y:290+(i%6)*850,z:55+(i%4)*23,
@@ -382,7 +406,7 @@ function start(){
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  if(!plants.some(q=>q.type===2&&Math.hypot(q.x-(P.x+193),q.y-(P.y+72))<48))plants.push({x:P.x+193,y:P.y+72,r:60,type:2,phase:1.3});
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- syncHUD();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play"});notify(origin.name+" / 生存開始");
+ syncHUD();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
  playEffect("collect");
 }
 
@@ -468,6 +492,7 @@ function restoreSnapshot(snapshot){
  P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
+ if(waterBlocksLand(P.x,P.y)){const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}}
  const roof=roofAt(P.x,P.y);
  P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
  P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
@@ -493,6 +518,7 @@ function restoreSnapshot(snapshot){
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
  for(const c of carcasses)normalizeRemains(c);
  for(const m of mobs){
+  if(waterBlocksLand(m.x,m.y)){const safe=nearestDryBank(m.x,m.y,m.r||18);if(safe){m.x=safe.x;m.y=safe.y;}}
   m.evadeCooldown=clamp(Number(m.evadeCooldown)||0,0,8);
   m.evadeTime=0;m.evadeDuration=0;m.evadeRemaining=0;m.evadeSpeed=0;m.evadeHeight=0;
   m.evadeAngle=Number.isFinite(m.evadeAngle)?m.evadeAngle:0;
@@ -666,8 +692,9 @@ function landOnSurface(){
  else{P.fallTime=0;P.jumpHeight=next;}
  return next>old;
 }
-function collides(x,y,r,actor=null){
+function collides(x,y,r,actor=null,ignoreWater=false){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
+ if(!ignoreWater&&waterBlocksLand(x,y))return true;
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
   if(Math.hypot(x-prop.x,y-prop.y)<prop.r+8+r*.40)return true;
@@ -691,13 +718,12 @@ function move(o,dx,dy){
   for(let i=0;i<parts;i++)move(o,dx/parts,dy/parts);
   return;
  }
- // Wading is physical for player and wildlife; jumps retain their existing arc and range.
- const airborne=o===P&&(o.jumpTime>0||o.pounceTime>0||(o.jumpHeight||0)>(o.groundZ||0)+8);
- const depth=airborne?0:Math.max(waterDepth(o.x,o.y),waterDepth(o.x+dx,o.y+dy));
- const resistance=1-depth*(o===P?.37:.43);
- const mx=dx*resistance,my=dy*resistance;
- if(!collides(o.x+mx,o.y,o.r,o===P?o:null))o.x+=mx;
- if(!collides(o.x,o.y+my,o.r,o===P?o:null))o.y+=my;
+ // River and canal banks are solid for land animals; old saved positions can exit.
+ const previous=waterDepth(o.x,o.y);
+ const allowed=(x,y,d)=>!waterBlocksLand(x,y)||(d>.0001&&waterDepth(x,y)<d-.00001);
+ if(allowed(o.x+dx,o.y,previous)&&!collides(o.x+dx,o.y,o.r,o===P?o:null,true))o.x+=dx;
+ const afterX=waterDepth(o.x,o.y);
+ if(allowed(o.x,o.y+dy,afterX)&&!collides(o.x,o.y+dy,o.r,o===P?o:null,true))o.y+=dy;
  if(o===P&&o.jumpTime<=0&&o.pounceTime<=0){
   const roof=roofAt(o.x,o.y),previous=o.groundZ||0;
   if(roof!==previous){
@@ -2094,7 +2120,7 @@ function update(dt){
  audioTick+=dt;
  if(audioTick>.35){
   audioTick=0;
-  window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",
+  window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",...waterSoundAt(P.x,P.y),
    danger:mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<290)});
  }
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
@@ -2665,6 +2691,10 @@ function routeClear(a,b,radius=P.r){
  if(a.x<border||a.y<border||b.x<border||b.y<border||
     a.x>WORLD.w-border||b.x>WORLD.w-border||a.y>WORLD.h-border||b.y>WORLD.h-border)return false;
  const dx=b.x-a.x,dy=b.y-a.y;
+ if(Math.max(a.x,b.x)>5500){
+  const n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/32));
+  for(let k=0;k<=n;k++){const t=k/n;if(waterBlocksLand(a.x+dx*t,a.y+dy*t))return false;}
+ }
  for(const box of buildings){
   if(box.interior){
    if(shelterWalls(box).some(w=>segmentRect(a,b,w,pad))||shelterFurniture(box).some(w=>segmentRect(a,b,w,pad)))return false;
@@ -2748,7 +2778,7 @@ function routeTo(goal,actor=P){
    if(dx&&dy&&(!pass[y*cols+nx]||!pass[ny*cols+x]))continue;
    if(!routeClear(center(cur),center(next),actor.r))continue;
    const waypoint=center(next);
-   const value=score[cur]+(dx&&dy?Math.SQRT2:1)*(1+waterDepth(waypoint.x,waypoint.y)*1.8);
+   const value=score[cur]+(dx&&dy?Math.SQRT2:1);
    if(value>=score[next])continue;
    score[next]=value;from[next]=cur;push(next,value+heuristic(next));
   }
