@@ -1,3 +1,12 @@
+## 共通スプリント｜2026/11/02 00:37 JST｜手動即時改修｜UI-RIGHT-TRIPLE-ROW-20261102 右上「音楽→最大化→ポーズ」一列＋直下地図
+- **対象・ユーザー実画像**：縦691×1536相当（DPR未確定）。右上のポーズが単独一段目、音/最大化が二段目に分離していた。新規タスクなし・他ゲーム変更なし。
+- **確認済み現行構造**：開始時点の `neo-wild/index.html` は `.session-actions`（pause）→`.top-actions`（sound/full）→`#mini-map-control`。既存 `visual.css` の最終portrait/landscape CSSでは地図はrelative表示でボタン列の後に追従。Gamepad/旧SAVE_SCHEMA2/狩猟AI/夜目/猫速度は非変更。
+- **実コードコミット**：`ce6ede2bd83c915d62141af794e27f41528574d9` （`visual.css`：40pxタッチボタン3個を3px間隔の一列に、地図はその直下へrelative配置・縦横サイズ維持）。`65ba2edfbf9d62caa4f20ad3f5df8ceba043c34d` （`index.html`：既存sound/full/pause IDを単一 `.top-actions.session-actions` コンテナ内でその順に、地図の直前に配置。visual.css rev `20261102-right-triple-row-v1`）。
+- **QA**：HTMLの音→全画面→ポーズ→地図の順序、3操作IDと地図IDの重複0、CSSの括弧数整合0、既存ミニマップcanvas/scale DOM維持を静的確認。旧CSSキャッシュを更新。**未確認**：実ブラウザでの全CSSによるgetBoundingClientRect、縦390×844/411×768、横800×360/844×390/736×414/1536×691、端末セーフエリア、ゲームパッド・詳細地図長押し・実Android目視。静的検査を実機PASSとは称しない。
+- **Pages**：コードHEAD `65ba2edfbf9d62caa4f20ad3f5df8ceba043c34d` のrun `41322143835` は確認時点でin_progress。build/deploy両成功の確認まで公開済みとはしない。
+- **次45分枠**：1) 最新HEADで `#hud .hud-right .top-actions.session-actions` の3ボタンと `#mini-map-control` の矩形/タッチを縦横6サイズで検証し、衝突があれば最新CSS末尾に最小差分。2) 短押し3段階/長押し詳細地図/一時停止/全画面を模擬またはブラウザ動的確認。3) 強敵20種パッケージ開発を継続、今回の右上配置を旧版で巻き戻さない。
+- **進捗**：71/100据え置き。未実機検証のため加点なし。
+
 ## 共通スプリント｜2026/11/02 00:20 JST｜15分枠即時対応｜CAT-LEGACY-SPEED-RETRY-QA-01 旧猫強化セーブ救済＋教程/死亡リトライ統合QA
 - **開始HEAD→コード終了HEAD**：`89679fa78a1815f726b8d0840a9a1e2161a3f202` → `af413283234b2459699c1514a573feb7558b8a3b`。先行45分枠の右上UI・中央ナビ撤去、夜目120度・月齢・ゲームパッドを現物確認。Google Drive設計書末尾の初回教程/旧猫速度/死亡リトライ仕様を確認。変更競合なし。
 - **動的統合試験で発見した実不具合**：旧猫セーブの `catSpeedV2` 未設定かつ `speed>=320`（例：旧基準239から強化した365）の場合、復元後も速度365のままで、新基準320への倍率移行が失われる。修正前の実ゲーム関数+模擬DOM/localStorage試験では22/23 PASS、旧強化速度365→期待489だけFAIL。
