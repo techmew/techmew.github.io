@@ -800,7 +800,7 @@ function applyStrongStrikeEffect(m,angle,charging=false){
 }
 
 /* STRONG-WATER-3: water-only movement and bank attacks; dry bridges stay passable. */
-const AQUATIC_STRONG_TYPES=new Set(["giantCrocodile","giantHippo","giantAnaconda"]);
+const AQUATIC_STRONG_TYPES=new Set(["giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]);
 function isAquaticStrong(m){return !!m&&AQUATIC_STRONG_TYPES.has(m.type);}
 function aquaticStagePoints(region){
  if(!P||region!==4&&region!==7)return [];
@@ -2086,7 +2086,7 @@ function advanceEnemyEvade(m,dt){
 // Wild predators intercept moving prey from a flank, but never route through walls.
 function wildPreyInterceptPoint(m,prey,sp,distance){
  const direct={x:prey.x,y:prey.y};
- if((m.type!=="dog"&&m.type!=="alpha"&&m.type!=="blackPanther"&&m.type!=="oneEyedWolf"&&m.type!=="whiteTiger")||distance<115||distance>235||(prey.flee||0)<=0)return direct;
+ if((m.type!=="dog"&&m.type!=="alpha"&&m.type!=="blackPanther"&&m.type!=="oneEyedWolf"&&m.type!=="whiteTiger"&&m.type!=="albinoWolf")||distance<115||distance>235||(prey.flee||0)<=0)return direct;
  const speed=Math.hypot(prey.vx||0,prey.vy||0);
  const heading=speed>38?Math.atan2(prey.vy,prey.vx):prey.dir;
  if(!Number.isFinite(heading))return direct;
