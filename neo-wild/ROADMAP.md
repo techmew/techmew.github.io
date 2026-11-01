@@ -1,3 +1,13 @@
+## 2026-11-01 17:13 JST｜15分枠・2D退避の雲影を実世界座標へ同期／停止中の雲影移動を修正
+- **開始HEAD**：`b01d61630f5558e88a25ed3edef6bd4f846f85e6`。編集前にmain対象7ファイル＋`season-clouds.js`/`debug-mode.js`、直近12コミット、ROADMAP先頭、Drive正本末尾を再取得。直前45分枠の実水際飲水、既存四季・7タップDEBUG・「空の雲なし／地上の薄い雲影のみ」を確認し保持。
+- **原因**：`season-clouds.js`のCanvas2D退避はカメラ座標`{x:0,y:0}`の仮想画面と実時間`performance.now`で影を計算。移動しても影が世界座標に固定されず、ガイド/一時停止中も2D雲影が流れ続ける。WebGLが失敗したフレームも季節フィルターの適用先が3Dキャンバスのままになる場合があった。
+- **今回の1機能**：2D退避時に`game.js drawScene`から実カメラ、VIEW、植物、ゲーム内elapsed、天候、昼夜を`WildSeasonClouds.capture2D`へ渡す。影を実地面に固定し、プレイヤー移動・視点回転/ズームと連動、ガイド/停止中はゲーム時間とともに静止。WebGL描画成功時だけ3Dキャンバスを季節フィルター対象とし、描画失敗時は2Dキャンバスへ切替。空の雲モデルは追加しない。新しい保存項目・操作ボタン・UIなし。
+- **実装コミット**：`season-clouds.js` `cd1bda9ef3f9d57ce4331f2e22264a29d9ec9b91`、`game.js` `19fdae1fe1ccf144aecacc75123ebeac49879152`、`index.html` `646563a15f30e5b0861848567e8033db43d06dae`（両JSの新キャッシュ識別子）。各書き込み直前にmain HEADと対象ファイルSHAを照合し、古い版上書きなし。変更はneo-wild/のみ。
+- **QA**：mainから再取得したgame/webgl/audio/season-clouds/debug全文JS構文5件PASS。模擬DOM+Canvas2D/WebGLで縦390×844、横844×390、800×600の3画面を実行し、WebGL成功/失敗時の季節フィルター切替、実カメラ移動で地上影が動くこと、同じゲーム時間で一時停止時の影位置が不変なことを検証PASS。HTML ID重複なし、debug scriptと既存4ボタン・レスポンシブCSS保持。さらに実waterDepth/水域衝突/橋通行4ケース、旧SAVE_SCHEMA=2復元妥当性、チェックポイント3件、実saveAuto保存の計9動的回帰PASS。既存AI飲水・雨宿り・ミッション関数は変更なし、静的存在確認。
+- **未検証**：実Androidの縦横画面・GPU/FPS、実ブラウザの10〜20分プレイ/本物の旧セーブ再開E2E、実機の雲影透明度と地面への重なり、当該SHAのGitHub Pages deployment success（公開URLの外部アクセスは今回確認できず）。**mainコミット済みだがPages配信成功は未断定**。
+- **進捗**：71/100（前回71/100、±0。実機・実ブラウザE2E未完のため据え置き）。
+- **終了HEAD**：`646563a15f30e5b0861848567e8033db43d06dae`から本ROADMAPコミットへ前進。**次回45分枠**：最新HEAD/ROADMAP/Drive再照合後、実Android/ブラウザで7タップDEBUG→季節/昼夜/雲影ON/OFF→Canvas2D退避の移動/停止→巣・旧セーブ/川・橋・飲水の回帰を確認。障害物で岸に到達できないNPCの橋迂回を次の1機能として検討。空の雲は絶対に再導入しない。
+
 ## 2026/11/01 16:42 JST｜45分枠・野生動物の実水際飲水を修正
 - **開始HEAD**：`758477505ed116f516d86b2076d8bb5c2b5bb82b`。main対象7ファイル＋season-clouds/debug-mode、直近コミット、ROADMAP先頭、Drive正本末尾を照合。前枠の四季メッシュ・空の雲なし・薄い地上雲影・タイトル7タップデバッグを維持。
 - **変更ファイル**：`neo-wild/game.js`、`neo-wild/index.html`、`neo-wild/ROADMAP.md`。実水面のriverAxis/canalAxisと橋判定を用い、旧探索地点の固定座標で水を飲む誤判定を撤去。川は左右、運河は上下の乾いた岸に移動してから飲水。橋上は水と誤認せず、道路から少し離れた岸を候補にする。水中侵入・ワープなし。game.jsのキャッシュrev更新。
