@@ -512,3 +512,7 @@
 #gamepad-status{position:fixed;top:8px;right:8px;z-index:1200;max-width:min(75vw,390px);padding:5px 9px;border:1px solid #b3d4aa88;border-radius:8px;background:#102820d9;color:#dff7dd;font:600 11px/1.5 "Noto Sans JP",sans-serif;pointer-events:none;text-align:right}
 #gamepad-status[hidden]{display:none!important}
 #menu button:focus,#menu summary:focus,#pause button:focus,#upgrade button:focus,#result button:focus,#tutorial-dialog button:focus,#den-inventory button:focus,#world-map button:focus{outline:2px solid #e6ff9b;outline-offset:3px}
+
+/* Lunar status sits under the clock, outside the gameplay canvas. */
+#moon-label{font:700 10px/1.3 "Noto Sans JP",sans-serif;color:#bdcfe3;letter-spacing:.02em;margin-top:3px;white-space:normal}
+@media(max-width:520px),(max-height:520px){#moon-label{font-size:9px;margin-top:2px}}
