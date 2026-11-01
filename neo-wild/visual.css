@@ -586,7 +586,7 @@
   #joystick .joy-disc {width:clamp(76px,20dvh,94px);height:clamp(76px,20dvh,94px);}
   #joystick .joy-disc:before {inset:15px;}
   #joy-knob {width:clamp(28px,8dvh,34px);height:clamp(28px,8dvh,34px);
-    margin-left:calc(clamp(28px,8dvh,34px) / -2);margin-top:calc(clamp(28px,8dvh,34px) / -2);}
+    margin-left:clamp(-17px,-4dvh,-14px);margin-top:clamp(-17px,-4dvh,-14px);}
   #joystick>span {font-size:9px;margin-top:2px;letter-spacing:1.5px;}
   #touch-layer .touch-actions {width:calc(var(--wr-pad)*3);height:calc(var(--wr-pad)*3);
     grid-template-columns:repeat(3,var(--wr-pad));grid-template-rows:repeat(3,var(--wr-pad));transform:none;}
