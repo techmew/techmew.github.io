@@ -992,6 +992,23 @@ function detectsPlayer(m,sp,d){
  const smelled=d<(weather==="RAIN"||weather==="THUNDER"?38:weather==="WIND"?105:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
  return visibleNow||heard||smelled||(los&&d<P.r+m.r+17);
 }
+// Direct-control steering: both facing and velocity follow the input without a turning arc.
+// Scripted jump, pounce and dash trajectories are handled by separate update branches.
+function applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo=false){
+ const inputLength=Math.hypot(axis.x,axis.y);
+ if(inputLength>.08){
+  actor.dir=Math.atan2(axis.y,axis.x);
+  actor.vx=axis.x*targetSpeed;
+  actor.vy=axis.y*targetSpeed;
+ }else{
+  // Original braking is retained on release.
+  const speed=Math.hypot(actor.vx,actor.vy);
+  const brake=(actor.type==="wolf"?900:actor.type==="cat"?1720:foxTurbo?2750:1550)*dt;
+  const ratio=speed>0?Math.max(0,speed-brake)/speed:0;
+  actor.vx*=ratio;actor.vy*=ratio;
+ }
+}
+
 function getAxes(){
  let x=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)+joy.x+gamepadAxes.x;
  let y=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0)+joy.y+gamepadAxes.y;
@@ -2252,7 +2269,7 @@ function update(dt){
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  if(dist(P,SAFE_DEN)<denRadius()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165))
   P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
- const a=getAxes(),len=Math.hypot(a.x,a.y),sneaking=keys.has("c")||keys.has("control");
+ const a=getAxes(),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
     const jumpLeft=Math.max(0,P.jumpTime-dt);
     const jumpProgress=clamp(1-jumpLeft/Math.max(.01,P.jumpDuration),0,1);
@@ -2304,17 +2321,11 @@ function update(dt){
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
    const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction;
-   const dx=a.x*target-P.vx,dy=a.y*target-P.vy,length=Math.hypot(dx,dy);
-   const limit=(len>.08?(P.type==="wolf"?660:P.type==="cat"?1430:foxTurbo?2150:1160):(P.type==="wolf"?900:P.type==="cat"?1720:foxTurbo?2750:1550))*dt;
-   const ratio=length>limit?limit/length:1;
-   P.vx+=dx*ratio;P.vy+=dy*ratio;
+   applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
    const speed=Math.hypot(P.vx,P.vy);
    if(speed>8){
-    const facing=Math.atan2(P.vy,P.vx);
-    const diff=Math.atan2(Math.sin(facing-P.dir),Math.cos(facing-P.dir));
-    P.dir+=diff*Math.min(1,dt*(P.type==="wolf"?5.5:P.type==="cat"?21:P.abilityTime>0?12:11));
     P.steps+=speed*dt*.052;
     if(P.type==="fox"&&P.abilityTime>0&&speed>360&&Math.random()<dt*24)blood(P.x,P.y,"#d9c99d",2,18);
    }
