@@ -1,8 +1,8 @@
 ## 共通スプリント｜2026-11-01 19:47 JST｜45分枠｜GAMEPAD-FULL-CONTROLS-01（物理パッドでゲーム開始から狩猟・メニューまで）
 - **優先／担当／開始HEAD**：P0・45分枠、`6ace94a0f84f7c3110a8a074bc5debefe244fe78`。15分枠の直前NIGHT-HUNT-WINTER-COVER-01（冬の実遮蔽物→夜間覚醒→逃走→狩猟）を保持し、15分枠はAI担当を継続。既存タスクのみで実装。
 - **連動改善**：①標準Gamepad API接続/切断/再接続、複数パッドの新押下選択、未接続時の従来入力退避。②左スティック/十字移動・右スティック視点/ズーム・肩ズーム。③×位置0連続攻撃、○位置1ジャンプ、□位置2短押し飛びつき/450ms長押し種族能力、△位置3短押し食事・運搬・備蓄/550ms長押し、エッジ検出と重複防止。④START停止/再開・SELECT地図・タイトル/ガイド/巣の食料庫/進化/結果画面の十字フォーカスと決定/戻る、日本語接続HUD。既存game.jsのアクションをBridge経由で再利用し、セーブ形式と旧タッチ/キー入力を保持。
-- **変更ファイル**：`neo-wild/gamepad.js`新規、`game.js`入力合成・毎フレームpoll・Bridge、`index.html`読込順/rev、`visual.css`HUD/フォーカス、`ROADMAP.md`本ログ。**実装コミット／終了HEAD**：本コミット（SHAは次回HEAD照合で確定）。
-- **QA PASS**：31項目（全文JS構文6ファイル、Gamepad APIモック接続・切断・複数選択・移動/視点・4ボタン短押し/長押し・連打抑止・START・地図・ズーム・APIなし、セーブ/チェックポイントと既存デバッグ・季節JS読込の静的回帰）。実Android/PC Chrome物理パッド、15分実プレイ、縦横実DOM、WebGL/Canvas2D、旧セーブE2E、Pages workflowは未検証。進捗71/100据え置き。
+- **変更ファイル**：`neo-wild/gamepad.js`新規、`game.js`入力合成・毎フレームpoll・Bridge、`index.html`読込順/rev、`visual.css`HUD/フォーカス、`ROADMAP.md`本ログ。**実装コミット／実装HEAD**：`7236531c6a16793f957421c81c5e49ce9271a567`。本ROADMAP補足コミットの終了HEADは次枠で照合。
+- **QA PASS**：31項目（全文JS構文6ファイル、Gamepad APIモック接続・切断・複数選択・移動/視点・4ボタン短押し/長押し・連打抑止・START・地図・ズーム・APIなし、セーブ/チェックポイントと既存デバッグ・季節JS読込の静的回帰）。実Android/PC Chrome物理パッド、15分実プレイ、縦横実DOM、WebGL/Canvas2D、旧セーブE2E、Pages workflow `41299230710`：in_progress／結果待ち（実配信成功は未確認）。進捗71/100据え置き。
 - **次15分枠**：①`game.js:updateIndoorRest/startlePrey/chooseEscape`の夜の休息→覚醒→逃走→追跡を維持して実AIループ検証。②`getAxes/loop/resetControls`のパッド入力統合を巻き戻さず、既存操作4ボタンを維持。③冬の実車/建物陰潜伏→目標進行を実プレイ検証。
 - **次45分枠**：①実PS/Xboxパッド＋PC/Android Chromeでタイトル→続き/新規→移動/カメラ→5段攻撃→□長押し→△運搬→STARTを15分試験。②`gamepad.js:focus/navigate/confirm/back`のガイド/巣在庫/進化の実DOM・縦横レイアウト試験。③`game.js:getAxes/loop`で旧SAVE_SCHEMA=2と3チェックポイント再開、WebGL/2D・低FPS回帰。実機未検証のため実機対応完了とは断定しない。
 
