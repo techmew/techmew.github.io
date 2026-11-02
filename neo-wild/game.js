@@ -1991,7 +1991,7 @@ function resolveAttack(){
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
- window.WildBestiary?.recordKill(m.type);
+ if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
  kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);
  if(isAquaticStrong(m)){
