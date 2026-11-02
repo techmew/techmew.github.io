@@ -968,6 +968,53 @@ function render(o){
   failed=true;window.Wild3D.available=false;canvas.style.display="none";return false;
  }
 }
-window.Wild3D={available:true,render,get frames(){return frames},
+
+/* Bestiary viewport: renders the real animal geometry into a private framebuffer.
+ * Does not change the world camera, save data or main canvas dimensions. */
+let bestiaryFrame=null;
+function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
+ if(!target||!m||failed)return false;
+ const w=Math.max(80,Math.min(420,target.width||320)),h=Math.max(80,Math.min(360,target.height||260));
+ const oldViewport=gl.getParameter(gl.VIEWPORT),oldFrame=gl.getParameter(gl.FRAMEBUFFER_BINDING);
+ try{
+  if(!bestiaryFrame||bestiaryFrame.w!==w||bestiaryFrame.h!==h){
+   if(bestiaryFrame){gl.deleteFramebuffer(bestiaryFrame.fb);gl.deleteTexture(bestiaryFrame.tex);gl.deleteRenderbuffer(bestiaryFrame.depth);}
+   const fb=gl.createFramebuffer(),tex=gl.createTexture(),depth=gl.createRenderbuffer();
+   gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+   gl.bindRenderbuffer(gl.RENDERBUFFER,depth);gl.renderbufferStorage(gl.RENDERBUFFER,gl.DEPTH_COMPONENT16,w,h);
+   gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+   gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,depth);
+   if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error("図鑑3Dバッファ生成失敗");
+   bestiaryFrame={fb,tex,depth,w,h};
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,bestiaryFrame.fb);gl.viewport(0,0,w,h);
+  gl.clearColor(.055,.085,.095,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.STENCIL_TEST);
+  data=[];animal({...m,x:0,y:0,dir:yaw,vx:0,vy:0,step:0,steps:0,deathPose:0},false,0);
+  const vertices=new Float32Array(data);
+  const r=Math.max(9,m.r||20),factor=Math.min(1.55,34/r)*Math.min(w/300,h/255)*clamp(zoom,.55,2.3);
+  const elevation=clamp(.8+tilt*.45,.38,1.18);
+  gl.useProgram(program);gl.uniform2f(ucenter,0,-r*.65);gl.uniform2f(usize,w,h);
+  gl.uniform4f(uview,.97*factor,.23*factor*elevation,-.35*factor,.76*factor*elevation);
+  gl.uniform1f(uzoom,factor*elevation);gl.uniform1f(unight,0);
+  gl.uniform3f(utint,1.1,1.1,1.1);gl.uniform1f(ualpha,1);
+  gl.uniform4f(unightVision,0,0,0,1);gl.uniform1f(unightVisionStrength,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
+  for(const [attr,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
+   if(attr<0)continue;gl.enableVertexAttribArray(attr);gl.vertexAttribPointer(attr,3,gl.FLOAT,false,36,offset);
+  }
+  gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
+  const pixels=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+  const ctx=target.getContext("2d"),out=ctx.createImageData(w,h);
+  for(let row=0;row<h;row++)out.data.set(pixels.subarray((h-1-row)*w*4,(h-row)*w*4),row*w*4);
+  ctx.putImageData(out,0,0);return true;
+ }catch(err){console.warn("Bestiary 3D unavailable",err);return false;}
+ finally{
+  gl.bindFramebuffer(gl.FRAMEBUFFER,oldFrame);gl.viewport(oldViewport[0],oldViewport[1],oldViewport[2],oldViewport[3]);
+ }
+}
+window.Wild3D={available:true,render,previewAnimal:bestiaryRender,get frames(){return frames},
  get stats(){return {staticRebuilds,staticTriangles:staticCount/3,dynamicTriangles:dynamicCount/3}}};
 })();
