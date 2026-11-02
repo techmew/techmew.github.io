@@ -9,18 +9,24 @@ const species={
  wildFox:{hp:67,r:19,speed:215,damage:12,prey:false,xp:3,food:40,color:"#bc7752",belly:"#e8d6b5"},
  weasel:{hp:34,r:12,speed:220,damage:6,prey:false,xp:2,food:21,color:"#ae906a",belly:"#ddc7a7"},
  frog:{hp:14,r:10,speed:125,damage:0,prey:true,xp:1,food:12,color:"#75a66a",belly:"#b6d6a0"},
- deer:{hp:142,r:27,speed:220,damage:6,prey:true,xp:4,food:69,color:"#aa8865",belly:"#e0cbaa"}
+ deer:{hp:142,r:27,speed:220,damage:6,prey:true,xp:4,food:69,color:"#aa8865",belly:"#e0cbaa"},
+ cheetah:{hp:96,r:23,speed:345,damage:19,prey:false,xp:6,food:54,color:"#d4b174",belly:"#eedbb1"},
+ giraffe:{hp:245,r:35,speed:177,damage:25,prey:false,xp:9,food:105,color:"#c99e65",belly:"#ead09f"},
+ zebra:{hp:126,r:26,speed:237,damage:13,prey:true,xp:5,food:71,color:"#dfdbca",belly:"#404245"},
+ lion:{hp:245,r:37,speed:203,damage:27,prey:false,xp:9,food:108,color:"#bc8e56",belly:"#e7c89b"},
+ elephant:{hp:560,r:55,speed:124,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
+ hippo:{hp:425,r:46,speed:140,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo"];
 const weights=[
- [24,8,20,9,0,18,2,12,3,0,3,1,0,1],
- [20,9,18,11,1,16,3,12,4,1,4,1,0,1],
- [13,19,6,5,7,6,9,7,7,5,6,9,1,3],
- [12,14,10,7,9,6,7,11,7,3,5,7,2,2],
- [12,10,18,4,3,4,12,17,5,2,5,8,0,4],
- [11,19,4,3,12,4,10,6,10,7,7,6,1,3],
- [23,8,14,13,7,13,3,9,5,0,4,1,0,1],
- [11,11,20,5,3,7,12,14,6,2,4,5,0,4]
+ [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
+ [20,9,18,11,1,16,3,12,4,1,4,1,0,1,0,0,0,0,0,0],
+ [13,19,6,5,7,6,9,7,7,5,6,9,1,3,2,2,4,1,1,0],
+ [12,14,10,7,9,6,7,11,7,3,5,7,2,2,4,5,5,4,3,2],
+ [12,10,18,4,3,4,12,17,5,2,5,8,0,4,0,0,1,0,0,4],
+ [11,19,4,3,12,4,10,6,10,7,7,6,1,3,3,2,5,3,2,0],
+ [23,8,14,13,7,13,3,9,5,0,4,1,0,1,0,0,0,0,0,0],
+ [11,11,20,5,3,7,12,14,6,2,4,5,0,4,0,0,1,0,0,3]
 ];
 function weight(type,region,day=1,weather="CLEAR"){
  const idx=types.indexOf(type);if(idx<0)return 0;
@@ -31,6 +37,8 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(year>=30&&["deer","wildFox","raccoonDog"].includes(type))w*=1.25;
  if(year>=100&&["deer","boar","wildFox"].includes(type))w*=1.2;
  if(weather==="RAIN"||weather==="THUNDER"){
+  if(["cheetah","lion","giraffe","zebra"].includes(type))w*=.58;
+  if(type==="hippo")w*=1.25;
   if(type==="frog")w*=1.7;
   if(["pigeon","crow"].includes(type))w*=.65;
   if(type==="deer")w*=.75;
