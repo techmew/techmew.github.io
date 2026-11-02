@@ -202,7 +202,12 @@ function poll(dt=.016){
   else if(down(1)||down(8))back(mode);
   else if(mode==="guide"&&(down(0)||down(1)||down(3)||down(9)))document.getElementById("tutorial-close")?.click?.();
   else if(down(0)||down(3)||(mode!=="menu"&&down(9)))confirm(mode);
-  else if(!focused)focus(mode);
+  else if(!items(mode).includes(focused)){
+   // A menu action or a touch input may hide the previously selected control.
+   // Recover the visible focus before processing the next D-pad movement.
+   focus(mode);
+   navigateRepeat(mode,navigationDirection(p,now),t);
+  }
   else navigateRepeat(mode,navigationDirection(p,now),t);
  }
  for(const candidate of list)old.set(candidate.index,buttons(candidate));
