@@ -1246,6 +1246,22 @@ function applyStrongStrikeEffect(m,angle,charging=false){
  * The patterns are a pure module; all HP and save state remain in game.js. */
 const BOSS_PATTERNS=window.WildBossPatterns;
 let lastBossPresenceAt=-1e9,bossPresenceUntil=0;
+// Strong encounters change the nearby ecology: ordinary wildlife visibly
+// scatters without creating any new groups or raising the population cap.
+function scatterWildlifeAroundBoss(m,dt){
+ if(!m?.strongBoss||!P)return;
+ m.auraClock=Math.max(0,(m.auraClock||0)-dt);
+ if(m.auraClock>0)return;
+ m.auraClock=.83;
+ for(const q of mobs){
+  if(q===m||q.hp<=0||q.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,q.type))continue;
+  const radius=species[q.type]?.prey?290:170;
+  if(dist(q,m)>radius||lineBlocked(m,q))continue;
+  q.flee=Math.max(q.flee||0,1.45);
+  q.fleeThreatX=m.x;q.fleeThreatY=m.y;
+  q.resting=false;q.restTime=0;
+ }
+}
 function revealBossPresence(m,d){
  if(!m?.strongBoss||!P||d>535||m.bossPresenceShown||!visible(m.x,m.y,95)||mode!=="play")return false;
  if(elapsed-lastBossPresenceAt<14)return false;
@@ -3564,6 +3580,7 @@ function update(dt){
    continue;
   }
   if(m.strongBoss){
+   scatterWildlifeAroundBoss(m,dt);
    revealBossPresence(m,d);
    if(m.hp<m.maxHp*.45&&!m.enragedAnnounced&&d<490&&visible(m.x,m.y,95)){
     m.enragedAnnounced=true;
