@@ -3344,17 +3344,22 @@ function advanceEnemyEvade(m,dt){
 // Wild predators intercept moving prey from a flank, but never route through walls.
 function wildPreyInterceptPoint(m,prey,sp,distance){
  const direct={x:prey.x,y:prey.y};
- if((m.type!=="dog"&&m.type!=="alpha"&&m.type!=="blackPanther"&&m.type!=="oneEyedWolf"&&m.type!=="whiteTiger"&&m.type!=="albinoWolf")||distance<115||distance>235||(prey.flee||0)<=0)return direct;
+ const cave=MOUNTAIN?.zone(m.x)==="cave"&&MOUNTAIN.zone(prey.x)==="cave";
+ const caveHunter=cave&&["weasel","wildFox","raccoonDog"].includes(m.type);
+ const flanker=["dog","alpha","blackPanther","oneEyedWolf","whiteTiger","albinoWolf"].includes(m.type);
+ if((!flanker&&!caveHunter)||distance<(caveHunter?48:115)||distance>(caveHunter?325:235)||(prey.flee||0)<=0)return direct;
  const speed=Math.hypot(prey.vx||0,prey.vy||0);
  const heading=speed>38?Math.atan2(prey.vy,prey.vx):prey.dir;
  if(!Number.isFinite(heading))return direct;
- const lead=clamp(distance/(sp.speed+100),.18,.45);
- const forward=clamp(speed*lead,25,65),sideOffset=clamp(distance*.27,35,58);
+ const lead=clamp(distance/(sp.speed+100),.18,caveHunter?.34:.45);
+ const forward=clamp(speed*lead,caveHunter?12:25,caveHunter?48:65);
+ const sideOffset=caveHunter?clamp(distance*.13,12,32):clamp(distance*.27,35,58);
  const preferred=m.flankSide||1;
  for(const side of [preferred,-preferred]){
   const x=clamp(prey.x+Math.cos(heading)*forward-Math.sin(heading)*side*sideOffset,35,WORLD.w-35);
   const y=clamp(prey.y+Math.sin(heading)*forward+Math.cos(heading)*side*sideOffset,35,WORLD.h-35);
-  if(!collides(x,y,m.r+5)&&routeClear(m,{x,y},m.r+5))return {x,y};
+  if((!caveHunter||MOUNTAIN.zone(x)==="cave")&&!collides(x,y,m.r+5)&&
+     routeClear(m,{x,y},m.r+5))return {x,y};
  }
  return direct;
 }
@@ -3412,7 +3417,12 @@ function huntWildPrey(m,sp,spotted,playerDistance){
    if(Math.hypot(h.wildTargetX-q.x,h.wildTargetY-q.y)<Math.max(28,q.r+15))claimed++;
    if(claimed>=2)break;
   }
-  const score=distance+claimed*68;
+  // Maintain a moving target without switching between nearby prey.
+  // Existing target coordinates and timestamp are SAVE_SCHEMA2-compatible.
+  const tracked=Number.isFinite(m.wildTargetAt)&&elapsed-m.wildTargetAt<.8&&
+   Number.isFinite(m.wildTargetX)&&Number.isFinite(m.wildTargetY)&&
+   Math.hypot(m.wildTargetX-q.x,m.wildTargetY-q.y)<Math.max(36,q.r+sp.speed*.30);
+  const score=distance+claimed*68-(tracked?Math.min(65,38+distance*.07):0);
   if(score<bestScore){bestScore=score;best=distance;prey=q;}
  }
  if(!prey){m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;return null;}
@@ -3497,6 +3507,17 @@ function caveWildlifePath(m,goal){
 function steerPursuit(m,tx,ty){
  const goal={x:tx,y:ty},desired=Math.atan2(ty-m.y,tx-m.x),distance=dist(m,goal);
  const look=clamp(distance*.45,42,94);
+ const caveChase=MOUNTAIN?.zone(m.x)==="cave"&&MOUNTAIN.zone(tx)==="cave";
+ if(caveChase&&distance>60){
+  // Replan if a pillar blocks progress; never teleport an animal.
+  if(!Number.isFinite(m.navProbeAt)||elapsed-m.navProbeAt>=.72){
+   if(Number.isFinite(m.navProbeAt)&&
+      Math.hypot(m.x-m.navProbeX,m.y-m.navProbeY)<9&&!routeClear(m,goal,m.r)){
+    m.navPath=null;m.navIndex=0;m.navRetry=0;m.avoidSide=-(m.avoidSide||1);
+   }
+   m.navProbeAt=elapsed;m.navProbeX=m.x;m.navProbeY=m.y;
+  }
+ }else m.navProbeAt=-1;
  if(routeClear(m,goal,m.r)){m.navPath=null;return desired}
  const bridge=wildlifeBridgeWaypoint(m,goal);
  if(bridge){m.navPath=null;return Math.atan2(bridge.y-m.y,bridge.x-m.x)}
@@ -3504,7 +3525,7 @@ function steerPursuit(m,tx,ty){
  if((stale||!m.navPath||m.navIndex>=m.navPath.length)&&elapsed>=(m.navRetry||0)&&navPlansThisFrame<2){
    navPlansThisFrame++;
   m.navPath=caveWildlifePath(m,goal)||routeTo(goal,m);m.navGoal={x:tx,y:ty};m.navIndex=0;
-  m.navRetry=elapsed+1.05;
+  m.navRetry=elapsed+(caveChase?.48:1.05);
  }
  if(m.navPath&&m.navPath.length){
   while(m.navIndex<m.navPath.length-1&&dist(m,m.navPath[m.navIndex])<30&&
