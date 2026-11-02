@@ -1989,9 +1989,10 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
    }
   }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
-  valid=!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(preyOnly?145:230))
+  const caveBirth=requestedMountainZone==="cave"&&P&&MOUNTAIN.zone(P.x)==="cave";
+  valid=!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(caveBirth?(preyOnly?128:105):(preyOnly?145:230)))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
-   &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0))
+   &&(!near||localCount<WILDLIFE.localCap)
    &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
    // Prefer off-camera births; desktop-wide views may need a safe distant
    // in-view placement after exhaustive attempts rather than an empty district.
@@ -3335,7 +3336,9 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
- const maxRange=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const caveScent=MOUNTAIN?.zone(m.x)==="cave";
+ const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=caveScent?Math.max(330,maxRangeBase):maxRangeBase;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
@@ -3345,7 +3348,9 @@ function huntWildPrey(m,sp,spotted,playerDistance){
    if(!smallPrey.includes(q.type))continue;
   }
   const distance=dist(m,q);
-  if(distance<best&&!lineBlocked(m,q)){best=distance;prey=q;}
+  // Scent can cross a pillar; the existing bite check still needs clear LOS.
+  const scent=caveScent&&MOUNTAIN.zone(q.x)==="cave"&&distance<=325;
+  if(distance<best&&(scent||!lineBlocked(m,q))){best=distance;prey=q;}
  }
  if(!prey)return null;
  const intercept=wildPreyInterceptPoint(m,prey,sp,best);
@@ -3403,6 +3408,28 @@ function wildlifeBridgeWaypoint(m,goal){
  }
  return best?.point||null;
 }
+// Small cave-only path graph follows real stone collision without rebuilding
+// the full world grid for every NPC hunting or scavenging behind a pillar.
+function caveWildlifePath(m,goal){
+ if(!MOUNTAIN?.cave||m.r>34||MOUNTAIN.zone(m.x)!=="cave"||MOUNTAIN.zone(goal.x)!=="cave")return null;
+ const {start,end}=MOUNTAIN.cave,anchors=[];
+ for(let x=start+24;x<end;x+=38){const p={x,y:MOUNTAIN.center(x)};if(!collides(p.x,p.y,m.r+5))anchors.push(p);}
+ const starts=[],ends=[];
+ for(let i=0;i<anchors.length;i++){
+  const p=anchors[i];if(routeClear(m,p,m.r))starts.push({i,cost:dist(m,p)});
+  if(routeClear(p,goal,m.r))ends.push({i,cost:dist(p,goal)});
+ }
+ let best=null,bestCost=Infinity;
+ for(const a of starts)for(const b of ends){
+  const cost=a.cost+b.cost+Math.abs(a.i-b.i)*40;
+  if(cost<bestCost){bestCost=cost;best={a:a.i,b:b.i};}
+ }
+ if(!best)return null;
+ const path=[],step=best.a<=best.b?1:-1;
+ for(let i=best.a;;i+=step){path.push(anchors[i]);if(i===best.b)break;}
+ for(let i=1;i<path.length;i++)if(!routeClear(path[i-1],path[i],m.r))return null;
+ return path.concat([{x:goal.x,y:goal.y}]);
+}
 function steerPursuit(m,tx,ty){
  const goal={x:tx,y:ty},desired=Math.atan2(ty-m.y,tx-m.x),distance=dist(m,goal);
  const look=clamp(distance*.45,42,94);
@@ -3412,11 +3439,12 @@ function steerPursuit(m,tx,ty){
  const stale=!m.navGoal||dist(m.navGoal,goal)>70;
  if((stale||!m.navPath||m.navIndex>=m.navPath.length)&&elapsed>=(m.navRetry||0)&&navPlansThisFrame<2){
    navPlansThisFrame++;
-  m.navPath=routeTo(goal,m);m.navGoal={x:tx,y:ty};m.navIndex=0;
+  m.navPath=caveWildlifePath(m,goal)||routeTo(goal,m);m.navGoal={x:tx,y:ty};m.navIndex=0;
   m.navRetry=elapsed+1.05;
  }
  if(m.navPath&&m.navPath.length){
-  while(m.navIndex<m.navPath.length-1&&dist(m,m.navPath[m.navIndex])<30)m.navIndex++;
+  while(m.navIndex<m.navPath.length-1&&dist(m,m.navPath[m.navIndex])<30&&
+   routeClear(m,m.navPath[m.navIndex+1],m.r))m.navIndex++;
   const next=m.navPath[m.navIndex];
   if(next&&routeClear(m,next,m.r))return Math.atan2(next.y-m.y,next.x-m.x);
  }
@@ -3534,12 +3562,20 @@ function maintainLocalWildlife(){
  const zone=mountainHabitat(P.x,P.y)?MOUNTAIN.zone(P.x):null;
  const zoneCount=zone?mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius&&
   mountainHabitat(m.x,m.y)&&MOUNTAIN.zone(m.x)===zone).length:0;
- const caveEmpty=zone==="cave"&&zoneCount===0&&local<WILDLIFE.localCap;
+ // Keep both prey and a hunter in the cave when density permits.
+ const caveAnimals=zone==="cave"?mobs.filter(m=>m.hp>0&&MOUNTAIN.zone(m.x)==="cave"&&dist(P,m)<WILDLIFE.localRadius):[];
+ const cavePrey=caveAnimals.filter(m=>species[m.type]?.prey).length;
+ const caveHunter=caveAnimals.filter(m=>isWildPredator(m)).length;
+ const caveUnderstocked=zone==="cave"&&caveAnimals.length<4&&local<WILDLIFE.localCap;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
- if(mobs.length>=WILDLIFE.cap&&local<Math.min(3,target))retireFarCalmAnimal();
+ if(mobs.length>=WILDLIFE.cap&&(local<Math.min(3,target)||
+    (caveUnderstocked&&(cavePrey===0||caveHunter===0))))retireFarCalmAnimal();
  if(mobs.length<WILDLIFE.cap){
-  if(hunting&&!preyNearby)spawnMob(false,true,true,null,null,zone==="cave"?"cave":null);
-  else if(caveEmpty)spawnMob(false,true,true,null,null,"cave");
+  if(caveUnderstocked&&cavePrey===0)spawnMob(false,true,true,null,null,"cave");
+  else if(caveUnderstocked&&caveHunter===0){
+   const hunters=["weasel","snake","wildFox","raccoonDog"];
+   spawnMob(false,false,true,null,hunters[Math.floor(Math.random()*hunters.length)],"cave");
+  }else if(hunting&&!preyNearby)spawnMob(false,true,true,null,null,zone==="cave"?"cave":null);
   else if(local<target){
    if(P.level>=2&&local<=WILDLIFE.localCap-2&&Math.random()<(P.level>=5?WILDLIFE.packChanceLate:WILDLIFE.packChanceEarly))
     spawnLocalPack()||spawnMob(false,false,true);
