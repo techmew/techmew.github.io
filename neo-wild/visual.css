@@ -937,3 +937,31 @@
  #menu .orientation-choice-indicator{font-size:9px!important;padding:1px 4px!important;}
  #menu #menu-orientation-status{font-size:10px!important;}
 }
+
+
+/* TITLE-PAD-NAV-V2: only visible when a physical standard gamepad is connected. */
+#menu #gamepad-menu-guide[hidden]{display:none!important}
+#menu #gamepad-menu-guide{
+ position:sticky;top:0;z-index:7;display:flex!important;flex-direction:column;
+ width:100%;padding:8px 11px;margin:2px 0!important;gap:3px;
+ border:2px solid #71dff1;border-radius:10px;
+ background:rgba(9,34,40,.96);color:#f3faf9;text-align:left;text-shadow:none;
+ box-shadow:0 5px 17px rgba(0,0,0,.38);
+}
+#menu #gamepad-menu-guide strong{font-size:13px!important;line-height:1.2;color:#c2fcff}
+#menu #gamepad-menu-guide span{font-size:11px!important;line-height:1.4;font-weight:700;color:#ecf6f2}
+#menu #gamepad-menu-guide small{font-size:11px!important;line-height:1.35;font-weight:900;color:#fef4a8}
+#menu .gamepad-focused,
+#pause .gamepad-focused,#upgrade .gamepad-focused,
+#result .gamepad-focused,#tutorial-dialog .gamepad-focused,
+#den-inventory .gamepad-focused,#world-map .gamepad-focused{
+ outline:4px solid #71e6ff!important;outline-offset:2px!important;
+ box-shadow:0 0 0 5px rgba(3,20,25,.85),0 0 18px rgba(62,215,247,.65)!important;
+ position:relative;z-index:2;
+}
+#menu select.gamepad-focused{outline-offset:3px!important}
+@media (orientation:landscape) and (max-height:520px){
+ #menu #gamepad-menu-guide{padding:5px 8px!important;margin:0!important;gap:1px}
+ #menu #gamepad-menu-guide strong{font-size:11px!important}
+ #menu #gamepad-menu-guide span,#menu #gamepad-menu-guide small{font-size:10px!important;line-height:1.25!important}
+}
