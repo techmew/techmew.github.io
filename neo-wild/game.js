@@ -2424,7 +2424,11 @@ function beginDeath(){
 }
 function advanceDeath(dt){
  if(mode!=="dying"||!P)return false;
- deathSequenceTime=Math.min(DEATH_SEQUENCE_SECONDS,deathSequenceTime+Math.max(0,dt));
+ // Keep invalid deltas from poisoning the timer; low-FPS frames are handled by loop().
+ const step=Number.isFinite(dt)?Math.max(0,dt):0;
+ deathSequenceTime=Math.min(DEATH_SEQUENCE_SECONDS,deathSequenceTime+step);
+ // 0.2 * 11 may round just below 2.2, delaying the result by another frame.
+ if(deathSequenceTime>=DEATH_SEQUENCE_SECONDS-1e-6)deathSequenceTime=DEATH_SEQUENCE_SECONDS;
  P.deathPose=clamp(deathSequenceTime/.65,0,1);
  $("hud").style.opacity=String(1-.95*clamp((deathSequenceTime-.22)/1.30,0,1));
  if(deathSequenceTime>=DEATH_SEQUENCE_SECONDS)finish(false);
