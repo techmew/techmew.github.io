@@ -288,95 +288,6 @@ function drawStrongAnimal3D(m,clock){
 }
 
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
-function drawOrdinaryAnimal3D(m,clock){
- const t=m.type;
- if(!["snake","frog","crow","weasel","raccoonDog","deer"].includes(t))return false;
- const r=m.r||16,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
- const x=(dx,dy)=>m.x+dx*c-dy*sn,y=(dx,dy)=>m.y+dx*sn+dy*c;
- const fur=m.color||"#777c71",belly=m.belly||"#b5bcb1";
- const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(x(dx,dy),y(dx,dy),z,rx,ry,rz,col,dir,9,5);
- const horn=(dx,dy,z,rx,ry,h,col)=>pyramid(x(dx,dy),y(dx,dy),z,rx,ry,h,col);
- const pace=Math.sin((m.step||0)*2.1+clock*.4)*Math.min(1,Math.hypot(m.vx||0,m.vy||0)/100);
- orb(0,0,1,r*1.3,r*.78,1.2,"#182d2a");
- if(t==="snake"){
-  for(let i=0;i<9;i++){
-   const k=i/8,dx=r*(1.0-k*3.0),dy=r*(Math.sin(k*Math.PI*2+pace*.35)*.40);
-   orb(dx,dy,7+Math.sin(k*Math.PI)*r*.13,r*(.31-k*.20),r*(.27-k*.17),r*(.29-k*.17),fur);
-  }
-  orb(r*1.14,0,r*.52,r*.52,r*.40,r*.33,fur);
-  for(const side of [-1,1]){
-   orb(r*1.36,side*r*.27,r*.73,r*.09,r*.08,r*.10,"#e3d08a");
-   orb(r*1.39,side*r*.28,r*.74,r*.04,r*.04,r*.085,"#192319");
-  }
-  orb(r*1.55,0,r*.42,r*.18,r*.10,r*.06,"#b98986");
- }else if(t==="frog"){
-  for(const side of [-1,1]){
-   orb(-r*.46,side*r*.75,7,r*.55,r*.35,r*.30,fur);
-   orb(-r*.96,side*r*1.02,3+Math.max(0,pace)*3,r*.37,r*.19,r*.18,belly);
-   orb(r*.52,side*r*.52,6,r*.22,r*.24,r*.22,fur);
-  }
-  orb(-r*.10,0,r*.53,r*.92,r*.69,r*.52,fur);
-  orb(r*.64,0,r*.63,r*.56,r*.57,r*.45,fur);
-  for(const side of [-1,1]){
-   orb(r*.79,side*r*.42,r*1.04,r*.23,r*.20,r*.22,"#c6e3a2");
-   orb(r*.86,side*r*.47,r*1.10,r*.10,r*.09,r*.11,"#243c25");
-  }
- }else if(t==="crow"){
-  orb(-r*.18,0,r*.56,r*.89,r*.52,r*.55,fur);
-  orb(r*.65,0,r*.77,r*.42,r*.38,r*.40,fur);
-  for(const side of [-1,1]){
-   orb(-r*.35,side*r*.45,r*.72,r*.68,r*.20,r*.15,"#55616b");
-   orb(-r*.10,side*r*.21,r*.14,r*.09,r*.09,r*.22,"#616267");
-   orb(r*.84,side*r*.24,r*.85,r*.07,r*.07,r*.08,"#d4d7c0");
-  }
-  horn(r*1.12,0,r*.79,r*.25,r*.17,r*.29,"#4d5050");
-  for(const side of [-1,1])orb(-r*1.25,side*r*.20,r*.48,r*.42,r*.15,r*.11,fur);
- }else if(t==="weasel"){
-  for(const side of [-1,1])for(const forward of [-.65,.55]){
-   orb(r*forward,side*r*.42,r*.20,r*.14,r*.15,r*.21,"#67513c");
-  }
-  orb(-r*.13,0,r*.43,r*1.36,r*.41,r*.39,fur);
-  orb(r*.94,0,r*.51,r*.44,r*.30,r*.31,fur);
-  for(let k=0;k<4;k++)orb(-r*(1.37+k*.32),Math.sin(clock*2+k*.6)*r*.15,r*(.36+k*.05),r*.25,r*.11,r*.11,fur);
-  for(const side of [-1,1])orb(r*1.09,side*r*.22,r*.64,r*.11,r*.09,r*.085,"#252c2a");
- }else if(t==="raccoonDog"){
-  for(const side of [-1,1])for(const forward of [-.57,.50]){
-   orb(r*forward,side*r*.49,r*.25,r*.26,r*.23,r*.29,"#4d4a41");
-  }
-  orb(-r*.10,0,r*.72,r*1.12,r*.78,r*.72,fur);
-  orb(r*.83,0,r*.88,r*.57,r*.54,r*.54,fur);
-  for(const side of [-1,1]){
-   horn(r*.53,side*r*.36,r*1.16,r*.18,r*.14,r*.32,"#544b42");
-   orb(r*1.05,side*r*.35,r*.96,r*.33,r*.24,r*.18,"#413f38");
-   orb(r*1.14,side*r*.39,r*1.07,r*.085,r*.065,r*.075,"#eee6d3");
-  }
-  orb(r*1.42,0,r*.77,r*.22,r*.19,r*.16,"#41382f");
-  orb(-r*1.2,0,r*.80,r*.55,r*.43,r*.35,"#514c43");
- }else if(t==="deer"){
-  for(const side of [-1,1])for(const forward of [-.57,.53]){
-   const dx=r*forward,dy=side*r*.45;
-   orb(dx,dy,r*.72,r*.16,r*.17,r*.80,fur);
-   orb(dx+r*.03,dy,r*.13,r*.19,r*.20,r*.16,"#473a34");
-  }
-  orb(-r*.14,0,r*1.43,r*1.05,r*.46,r*.55,fur);
-  orb(r*.57,0,r*1.56,r*.34,r*.30,r*.48,fur);
-  orb(r*1.00,0,r*1.90,r*.49,r*.32,r*.36,fur);
-  orb(r*1.48,0,r*1.72,r*.42,r*.25,r*.19,belly);
-  orb(r*1.76,0,r*1.68,r*.15,r*.13,r*.13,"#3b322c");
-  for(const side of [-1,1]){
-   horn(r*.96,side*r*.30,r*2.06,r*.12,r*.10,r*.20,belly);
-   orb(r*1.24,side*r*.23,r*1.99,r*.10,r*.085,r*.10,"#252a26");
-   // Each antler has a main shaft plus two tines, unlike a rabbit's long ears.
-   horn(r*.71,side*r*.32,r*2.32,r*.12,r*.11,r*.87,"#c8ad86");
-   horn(r*.42,side*r*.55,r*2.69,r*.10,r*.09,r*.48,"#c8ad86");
-   horn(r*.96,side*r*.61,r*2.63,r*.09,r*.085,r*.34,"#c8ad86");
-  }
- }
- return true;
-}
-
-/* NORMAL-FAUNA-DISTRICTS-V1: silhouette-specific, low-poly 3D models.
- * All parts are collidable world positions and use normal ground height. */
 function drawCommonAnimal3D(m,clock){
  const t=m.type;
  if(!["snake","frog","crow","deer","weasel","raccoonDog"].includes(t))return false;
@@ -497,7 +408,7 @@ function animal(m,player,clock){
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(!player&&drawCommonAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
- if(!player&&drawOrdinaryAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
