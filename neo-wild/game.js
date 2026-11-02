@@ -163,8 +163,11 @@ function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
 const BOSS_BALANCE_VERSION=2;
 function bossHealthTarget(sp){
  if(!P)return Math.round(sp.hp*.85);
+ // Species HP provides a minimum, but must NEVER cap HP to a small number
+ // once the player has stacked fang/level damage upgrades. A rare enemy is
+ // always a substantial, winnable single-target duel (~27 base-power hits).
  const budget=Math.max(sp.hp*.85,(P.damage||20)*27*(1+enemyChallengeTier()*.021));
- return Math.round(clamp(budget,sp.hp*.85,sp.hp*3.2));
+ return Math.round(Math.min(200000,budget));
 }
 function bossStrikePower(m){
  return (m?.strongBoss?1.44+enemyChallengeTier()*.025:1)*
