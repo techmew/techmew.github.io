@@ -855,10 +855,31 @@ function render(o){
   };
   // Rebuild the static room only when the roof changes to its playable cutaway.
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,WORLD.w,WORLD.h,interiorReveal].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
+   // Light decorative rewilding; keep it out of physics and saved plants[].
+   for(const p of o.scenicProps||[]){
+    if(!isVisible(p.x,p.y,175))continue;
+    if(p.kind==="wildGrowth"){
+     for(let k=0;k<10;k++){
+      const a=k*2.4,r=8+(k%4)*7;
+      pyramid(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r*.65,.3,5+(k%3)*2,5+(k%2)*2,16+(k%5)*7,
+       k%3?"#4b8a52":"#90ad6b");
+     }
+     for(let k=0;k<3;k++)ellipsoid(p.x+(k-1)*16,p.y-12,29+(k%2)*9,3,3,3,"#d9c282",0,6,3);
+    }else if(p.kind==="sapling"){
+     box(p.x-4,p.y-4,.4,8,8,53,"#69573d");
+     for(let k=0;k<5;k++){const a=k*TAU/5;
+      pyramid(p.x+Math.cos(a)*19,p.y+Math.sin(a)*14,26,25,21,66,k%2?"#43814d":"#6b9c5b");
+     }
+    }else if(p.kind==="collapsed"){
+     box(p.x-34,p.y-13,.6,54,26,12,"#626d66","#8f9181");
+     box(p.x+17,p.y-18,1,14,20,19,"#4e5853","#969684");
+     for(let k=0;k<4;k++)pyramid(p.x-23+k*13,p.y+12,1,7,7,17+(k%3)*4,"#557b54");
+    }
+   }
    for(const b of buildings){
    if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    if(b.interior){
@@ -892,6 +913,25 @@ function render(o){
    box(b.x,b.y,0,b.w,b.h,h,b.kind%2?"#56646c":"#67736d",b.kind%2?"#45545b":"#58665e");
    box(b.x+13,b.y+13,h-5.2,b.w-26,b.h-26,6,"#394e50","#87918a");
    if(b.broken)box(b.x+b.w*.65,b.y+b.h*.28,h+.8,b.w*.23,b.h*.30,14,"#343f42","#5e6a64");
+   // Torn roofline, wall-creeping vines and broken windows: an old building,
+   // not a newly constructed intact office tower.
+   const age=detailNoise(b.seed*271);
+   if(b.broken||age>.26){
+    for(let k=0;k<6;k++){
+     const u=detailNoise(b.seed*17+k*9),side=k%2;
+     const px=b.x+(side?b.w*.95:b.w*.06),py=b.y+b.h*(.08+u*.83);
+     pyramid(px,py,h*(.15+u*.58),11+(k%3)*5,12,36+(k%4)*11,
+      k%2?"#497a4b":"#6c9362");
+    }
+    for(let k=0;k<4;k++){
+     const tx=b.x+30+k*(b.w-60)/3;
+     pyramid(tx,b.y+b.h*.24,h+1,13+(k%3)*6,17,26+(k%2)*16,"#4b8155");
+    }
+    for(let k=0;k<3;k++){
+     const xx=b.x+(k+1)*b.w/4;
+     box(xx-13,b.y-.8,h*(.23+k*.18),26,2,15,"#192829","#273a3a");
+    }
+   }
    // Air conditioning and roof ducts
    box(b.x+b.w*.16,b.y+b.h*.2,h+.8,28,35,28,"#586767","#9da39a");
    box(b.x+b.w*.72,b.y+b.h*.64,h+.8,36,25,19,"#546667","#8e9992");
