@@ -144,7 +144,7 @@ function updateCameraView(){
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
-const WILDLIFE={initial:12,cap:96,localRadius:670,localCap:7,separation:115,preyNeedRadius:440,farAI:1300,localTargetRain:6,localTargetClear:5};
+const WILDLIFE={initial:20,cap:96,localRadius:700,localCap:11,separation:99,preyNeedRadius:440,farAI:1300,localTargetRain:8,localTargetClear:10};
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
 function regionAt(x,y){
@@ -770,7 +770,14 @@ function start(){
   }
  }
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
- for(let i=0;i<WILDLIFE.initial-roomPrey;i++)spawnMob(true);
+ // A safe starting area contains ordinary wildlife, not only mission prey.
+ const startRegion=regionAt(P.x,P.y);
+ const starterTypes=startRegion===5?["wildFox","raccoonDog","snake","crow"]:
+  startRegion===4||startRegion===7?["snake","crow","frog","strayCat"]:
+  ["strayCat","strayCat","crow","snake"];
+ let starterCount=0;
+ for(const type of starterTypes)if(spawnMob(true,false,true,null,type))starterCount++;
+ for(let i=0;i<WILDLIFE.initial-roomPrey-starterCount;i++)spawnMob(true);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  ensureTrainingCoverNear(P);
@@ -1322,7 +1329,7 @@ function normalizeStrongBossSave(){
  if(first)strongRolls[first.strongRegion]={type:first.type,spawned:true};
 }
 
-function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null){
+function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null){
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
@@ -1339,19 +1346,15 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null)
    &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0));
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
- let roll=Math.random(),type;
  const biome=regionAt(x,y);
- if(preyOnly)type=biome===5?(roll<.20?"rat":"rabbit"):biome===4?(roll<.72?"pigeon":"rabbit"):roll<.4?"rat":roll<.78?"rabbit":"pigeon";
- else if(biome===5)type=roll<.45?"rabbit":roll<.65?"rat":roll<.85?"boar":"dog";
- else if(biome===6)type=roll<.32?"rat":roll<.62?"dog":roll<.88?"boar":"dog";
- else if(biome===4||biome===7)type=roll<.50?"pigeon":roll<.72?"rabbit":roll<.9?"dog":"boar";
- else if(day<2)type=roll<.4?"rat":roll<.72?"rabbit":roll<.87?"pigeon":"dog";
- else if(day<3)type=roll<.28?"rat":roll<.52?"rabbit":roll<.65?"pigeon":roll<.91?"dog":"boar";
- else type=roll<.2?"rat":roll<.38?"rabbit":roll<.52?"dog":roll<.86?"boar":"dog";
+ let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:window.WildFauna?.choose(biome,day,weather,preyOnly);
+ if(!species[type])type="rat";
+ // Prevent rare deer from dominating the world, even in a long-lived save.
+ if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
  if(nearDenLocation(x,y,265)&&!species[type].prey)type=biome===4||biome===7?"pigeon":"rabbit";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ mobs.push({x,y,type,r:s.r,color:s.color,belly:s.belly,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
 }
 function spawnFood(){
