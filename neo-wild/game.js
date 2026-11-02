@@ -677,6 +677,12 @@ function start(){
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
+ // World geometry can change between releases. Never begin a run inside water or a wall.
+ if(waterBlocksLand(P.x,P.y)){
+  const bank=nearestDryBank(P.x,P.y,P.r);
+  if(bank){P.x=bank.x;P.y=bank.y;}
+ }
+ recoverPlayerFromGap(P);
  let roomPrey=0;
  if(origin===START_LOCATIONS.home){
   for(const shelter of buildings.filter(b=>b.interior)){
@@ -4372,10 +4378,11 @@ function drawScene(){
  if(mode!=="dying"){
   drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
  } // Keep mission and enemy labels off the dying animal.
- if(mode==="dying"){
-  const dim=clamp((deathSequenceTime-.18)/1.48,0,1);
+ // Keep the world dark behind the result modal; otherwise it flashes bright at 2.2s.
+ if(mode==="dying"||mode==="over"){
+  const dim=mode==="over"?1:clamp((deathSequenceTime-.18)/1.48,0,1)*.94;
   ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle="rgba(5,9,12,"+(dim*.94)+")";ctx.fillRect(0,0,vw,vh);
+  ctx.fillStyle="rgba(5,9,12,"+dim+")";ctx.fillRect(0,0,vw,vh);
   ctx.restore();
  }
 }
