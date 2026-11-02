@@ -889,3 +889,24 @@
 #menu .menu-foot{display:flex!important;margin:3px 0 0!important;font-size:10px!important;gap:8px;flex-wrap:wrap;}
 @media (orientation:portrait) and (max-width:600px){#menu .menu-shell{gap:7px!important;}#menu .hero-title{font-size:clamp(60px,15vw,90px)!important;}#menu .animal-card{min-height:82px!important;padding:7px 5px!important;}#menu .orientation-choices .orientation-choice{min-height:88px!important;}}
 @media (orientation:landscape) and (max-height:520px){#menu .menu-shell{gap:4px!important;max-height:calc(100dvh - 12px)!important;}#menu .hero-title{font-size:clamp(44px,7vw,72px)!important;margin:0!important;}#menu .lead{font-size:11px!important;line-height:1.35!important;margin:0!important;}#menu .resume-primary{min-height:52px!important;padding:7px 11px!important;}#menu .resume-cta-title{font-size:16px!important;}#menu .animal-card{min-height:48px!important;padding:4px!important;}#menu .orientation-choices .orientation-choice{min-height:58px!important;padding:4px!important;}#menu #start-region{min-height:35px;}}
+
+/* COMPACT-LESSON-POPUP-V2: same centered pause popup for every onboarding stage. */
+#tutorial-dialog{background:rgba(4,12,16,.29)!important;padding:10px!important;}
+#tutorial-dialog .tutorial-card{width:min(390px,calc(100vw - 30px))!important;max-height:min(60dvh,300px)!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;gap:9px!important;padding:14px 17px!important;overflow-y:auto!important;border-radius:13px!important;border:1px solid rgba(185,221,180,.86)!important;background:linear-gradient(155deg,rgba(21,45,39,.97),rgba(10,28,32,.97))!important;}
+#tutorial-dialog .survival-head{display:block!important;margin:0!important;padding:0!important;}
+#tutorial-dialog .survival-head>div{display:block!important;}
+#tutorial-dialog .survival-head small{display:block!important;font-size:11px!important;color:#cae1b8!important;}
+#tutorial-dialog .survival-head h2{font-size:clamp(17px,4.5vw,21px)!important;line-height:1.3!important;margin:4px 0 2px!important;}
+#tutorial-dialog .tutorial-status,#tutorial-dialog .tutorial-note,#tutorial-dialog .tutorial-controls{display:none!important;}
+#tutorial-dialog .tutorial-explainer{display:flex!important;flex-direction:column!important;gap:4px!important;margin:0!important;padding:0!important;overflow:visible!important;flex:none!important;}
+#tutorial-dialog .tutorial-explainer p{font-size:clamp(12px,3.5vw,14px)!important;line-height:1.5!important;margin:0!important;}
+#tutorial-dialog #tutorial-close{display:block!important;position:static!important;flex:none!important;width:100%!important;min-height:44px!important;margin:4px 0 0!important;border-radius:9px!important;border:1px solid #c0d9a7!important;background:#315f51!important;color:#fff!important;font:800 14px "Noto Sans JP",sans-serif!important;text-align:center!important;touch-action:manipulation!important;}
+#mission-milestone .mission-milestone-inner{padding:8px 13px!important;border-radius:9px!important;}
+#mission-milestone #mission-milestone-kicker{display:none!important;}
+#mission-milestone #mission-milestone-title{font-size:clamp(19px,5.2vw,30px)!important;letter-spacing:0!important;}
+@media(max-height:460px) and (orientation:landscape){
+ #tutorial-dialog .tutorial-card{width:min(400px,calc(100vw - 44px))!important;max-height:calc(100dvh - 24px)!important;padding:9px 14px!important;gap:5px!important;}
+ #tutorial-dialog .survival-head h2{font-size:16px!important;}
+ #tutorial-dialog .tutorial-explainer p{font-size:12px!important;line-height:1.3!important;}
+ #tutorial-dialog #tutorial-close{min-height:38px!important;padding:6px!important;}
+}
