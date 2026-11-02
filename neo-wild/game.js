@@ -1402,6 +1402,13 @@ function spawnStrongBoss(type,region){
 function enterStrongStage(){
  if(!P)return;
  const region=regionAt(P.x,P.y);strongRegionCurrent=region;
+ // Keep 2-3 rare encounters in the travelled district rather than filling the
+ // global cap with long-abandoned bosses. Retire only unseen, very distant ones.
+ if(P.level>=6)for(let i=mobs.length-1;i>=0;i--){
+  const m=mobs[i];
+  if(m.strongBoss&&m.hp>0&&regionAt(m.x,m.y)!==region&&dist(P,m)>WILDLIFE.farAI)
+   mobs.splice(i,1);
+ }
  if(!Object.prototype.hasOwnProperty.call(strongRolls,region))
   strongRolls[region]=Math.random()<.20?{type:strongStageCandidate(region),spawned:false}:{type:null,spawned:true};
  const roll=strongRolls[region];
