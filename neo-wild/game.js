@@ -2109,6 +2109,9 @@ function resolveAttack(){
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
+ // A defeated entity grants exactly one carcass, trophy, XP reward and bestiary entry.
+ if(!m||m.hp>0||m._killRegistered)return;
+ m._killRegistered=true;
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
  kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);

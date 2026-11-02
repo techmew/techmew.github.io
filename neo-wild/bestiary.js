@@ -26,16 +26,22 @@ function configure(species,strongNames){
  load();
  // Import pre-existing boss trophies from legacy autosave/checkpoints once; do not
  // guess species from the aggregate HUNT counter (it lacks type information).
- try{
-  const snapshots=[JSON.parse(localStorage.getItem("wild-reclaim-autosave-v2")||"null"),...JSON.parse(localStorage.getItem("wild-reclaim-checkpoints-v2")||"[]")];
-  for(const snap of snapshots){
-   if(!snap||snap.version!==2||!snap.strongTrophies)continue;
-   for(const type of Object.keys(strongNames||{})){
-    const n=Number(snap.strongTrophies[type]);
-    if(Number.isSafeInteger(n)&&n>count(type))counts[type]=Math.min(n,999999);
-   }
+ const snapshots=[];
+ for(const key of ["wild-reclaim-autosave-v2","wild-reclaim-checkpoints-v2"]){
+  // One damaged save must not prevent migration from the other valid saves.
+  try{
+   const value=JSON.parse(localStorage.getItem(key)||"null");
+   if(Array.isArray(value))snapshots.push(...value.slice(0,3));
+   else if(value&&typeof value==="object")snapshots.push(value);
+  }catch(_){}
+ }
+ for(const snap of snapshots){
+  if(!snap||snap.version!==2||!snap.strongTrophies)continue;
+  for(const type of Object.keys(strongNames||{})){
+   const n=Number(snap.strongTrophies[type]);
+   if(Number.isSafeInteger(n)&&n>count(type))counts[type]=Math.min(n,999999);
   }
- }catch(_){}
+ }
  persist();updateSummary();
 }
 function recordKill(type){
