@@ -1539,6 +1539,8 @@ function updateGorillaRock(m,dt){
 
 // Mountain macaques share alarms, climb existing trees and use dodgeable stones.
 function updateMacaque(m,dt,d){
+ m.macaqueTell=Math.max(0,Number(m.macaqueTell)||0);
+ m.treeHeight=Math.max(0,Number(m.treeHeight)||0);
  const spec=species.macaque;
  m.macaqueCooldown=Math.max(0,(m.macaqueCooldown||0)-dt);
  const trees=[...(MOUNTAIN?.trees||[]),...(MOUNTAIN?.pines||[])];
