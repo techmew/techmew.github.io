@@ -975,7 +975,14 @@ let bestiaryFrame=null;
 function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
  if(!target||!m||failed)return false;
  const w=Math.max(80,Math.min(420,target.width||320)),h=Math.max(80,Math.min(360,target.height||260));
- const oldViewport=gl.getParameter(gl.VIEWPORT),oldFrame=gl.getParameter(gl.FRAMEBUFFER_BINDING);
+ const oldState={
+  viewport:gl.getParameter(gl.VIEWPORT),framebuffer:gl.getParameter(gl.FRAMEBUFFER_BINDING),
+  program:gl.getParameter(gl.CURRENT_PROGRAM),arrayBuffer:gl.getParameter(gl.ARRAY_BUFFER_BINDING),
+  renderbuffer:gl.getParameter(gl.RENDERBUFFER_BINDING),activeTexture:gl.getParameter(gl.ACTIVE_TEXTURE),
+  texture2D:gl.getParameter(gl.TEXTURE_BINDING_2D),clearColor:gl.getParameter(gl.COLOR_CLEAR_VALUE),
+  depthTest:gl.isEnabled(gl.DEPTH_TEST),blend:gl.isEnabled(gl.BLEND),stencil:gl.isEnabled(gl.STENCIL_TEST),
+  depthFunc:gl.getParameter(gl.DEPTH_FUNC),depthMask:gl.getParameter(gl.DEPTH_WRITEMASK)
+ };
  try{
   if(!bestiaryFrame||bestiaryFrame.w!==w||bestiaryFrame.h!==h){
    if(bestiaryFrame){gl.deleteFramebuffer(bestiaryFrame.fb);gl.deleteTexture(bestiaryFrame.tex);gl.deleteRenderbuffer(bestiaryFrame.depth);}
@@ -1012,7 +1019,15 @@ function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
   ctx.putImageData(out,0,0);return true;
  }catch(err){console.warn("Bestiary 3D unavailable",err);return false;}
  finally{
-  gl.bindFramebuffer(gl.FRAMEBUFFER,oldFrame);gl.viewport(oldViewport[0],oldViewport[1],oldViewport[2],oldViewport[3]);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,oldState.framebuffer);
+  gl.viewport(...oldState.viewport);gl.clearColor(...oldState.clearColor);
+  gl.depthFunc(oldState.depthFunc);gl.depthMask(oldState.depthMask);
+  for(const [cap,enabled] of [[gl.DEPTH_TEST,oldState.depthTest],[gl.BLEND,oldState.blend],[gl.STENCIL_TEST,oldState.stencil]]){
+   if(enabled)gl.enable(cap);else gl.disable(cap);
+  }
+  gl.useProgram(oldState.program);gl.bindBuffer(gl.ARRAY_BUFFER,oldState.arrayBuffer);
+  gl.bindRenderbuffer(gl.RENDERBUFFER,oldState.renderbuffer);
+  gl.activeTexture(oldState.activeTexture);gl.bindTexture(gl.TEXTURE_2D,oldState.texture2D);
  }
 }
 window.Wild3D={available:true,render,previewAnimal:bestiaryRender,get frames(){return frames},
