@@ -1946,10 +1946,33 @@ function spawnRegionalResident(region,kind=null){
  }
  return false;
 }
+// Retain at least one animal per city district and continuous mountain zone
+// when recycling calm wildlife. Neither world nor local caps are increased.
+function wildlifeHabitatKey(m){
+ return mountainHabitat(m.x,m.y)?"mountain:"+MOUNTAIN.zone(m.x):
+  "district:"+regionAt(m.x,m.y);
+}
+function wildlifeHabitatCounts(){
+ const counts=new Map();
+ for(const m of mobs)if(m.hp>0&&!m.strongBoss){
+  const key=wildlifeHabitatKey(m);
+  counts.set(key,(counts.get(key)||0)+1);
+ }
+ return counts;
+}
 function retireFarCalmAnimal(){
- const index=mobs.findIndex(m=>m.hp>0&&!m.strongBoss&&!Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)&&
-  dist(P,m)>Math.max(800,WILDLIFE.localRadius)&&!visible(m.x,m.y,75)&&(m.alert||0)<=0&&(m.windup||0)<=0&&
-  (m.chargeTime||0)<=0&&(m.flee||0)<=0);
+ if(!P)return false;
+ const counts=wildlifeHabitatCounts();
+ let index=-1,farthest=-1;
+ for(let i=0;i<mobs.length;i++){
+  const m=mobs[i],distance=dist(P,m);
+  if(m.hp<=0||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
+     distance<=Math.max(800,WILDLIFE.localRadius)||visible(m.x,m.y,75)||
+     (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
+     (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
+     (counts.get(wildlifeHabitatKey(m))||0)<=1)continue;
+  if(distance>farthest){farthest=distance;index=i;}
+ }
  if(index<0)return false;
  mobs.splice(index,1);
  return true;
@@ -1960,11 +1983,13 @@ function retireCalmCaveOverflow(needPrey,caveAnimals){
  if(!P||!MOUNTAIN||MOUNTAIN.zone(P.x)!=="cave")return false;
  const preyCount=caveAnimals.filter(m=>species[m.type]?.prey&&!isWildPredator(m)).length;
  const hunterCount=caveAnimals.filter(isWildPredator).length;
+ const habitatCounts=wildlifeHabitatCounts();
  const candidates=mobs.filter(m=>{
   if(m.hp<=0||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
      (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
      (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
-     dist(P,m)>=WILDLIFE.localRadius||visible(m.x,m.y,75))return false;
+     dist(P,m)>=WILDLIFE.localRadius||visible(m.x,m.y,75)||
+     (habitatCounts.get(wildlifeHabitatKey(m))||0)<=1)return false;
   if(MOUNTAIN.zone(m.x)!=="cave")return true;
   if(caveAnimals.length<4)return false;
   return needPrey?(isWildPredator(m)&&hunterCount>1):
@@ -3361,7 +3386,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  const caveScent=MOUNTAIN?.zone(m.x)==="cave";
  const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  const maxRange=caveScent?Math.max(330,maxRangeBase):maxRangeBase;
- let prey=null,best=maxRange;
+ let prey=null,best=maxRange,bestScore=Infinity;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
   if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque","chimpanzee"].includes(m.type)){
@@ -3372,7 +3397,19 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   const distance=dist(m,q);
   // Scent can cross a pillar; the existing bite check still needs clear LOS.
   const scent=caveScent&&MOUNTAIN.zone(q.x)==="cave"&&distance<=325;
-  if(distance<best&&(scent||!lineBlocked(m,q))){best=distance;prey=q;}
+  if(distance>=maxRange||!(scent||!lineBlocked(m,q)))continue;
+  // Nearby cave hunters split live prey instead of crowding one target.
+  // Last target coordinates already serialize safely in SAVE_SCHEMA2.
+  let claimed=0;
+  if(caveScent&&scent)for(const h of mobs){
+   if(h===m||h.hp<=0||!isWildPredator(h)||(h.alert||0)>0||
+      (h.feedAfterKill||0)>0||dist(h,q)>235||
+      !Number.isFinite(h.wildTargetX)||!Number.isFinite(h.wildTargetY))continue;
+   if(Math.hypot(h.wildTargetX-q.x,h.wildTargetY-q.y)<Math.max(28,q.r+15))claimed++;
+   if(claimed>=2)break;
+  }
+  const score=distance+claimed*68;
+  if(score<bestScore){bestScore=score;best=distance;prey=q;}
  }
  if(!prey)return null;
  const intercept=wildPreyInterceptPoint(m,prey,sp,best);
