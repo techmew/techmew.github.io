@@ -144,14 +144,17 @@
  window.addEventListener("load",()=>{
   if(window.WildGameReady)return;
   const note=get("menu-landscape-note");
-  note.textContent="ゲームデータの読み込みが完了していません。ページを更新してください。";
+  note.textContent="ゲームデータの読み込みに失敗しました。再読み込みしてください。";
   note.setAttribute("data-error","true");
+  get("resume-cta-label").textContent="再読み込みしてプレイ";
+  get("resume-cta-help").textContent="タップするとページを更新します";
+  get("continue-btn").addEventListener("click",()=>window.location.reload(),{once:true,capture:true});
  });
 })();
 </script>
 <script src="./audio.js?rev=20261102-faster-death-no-stuck-v1" defer></script>
 <script src="./webgl3d.js?rev=20261102-dense-grass-stealth-v1" defer></script>
-<script src="./game.js?rev=20261102-start-selection-recovery-v7" defer></script>
+<script src="./game.js?rev=20261102-start-selection-recovery-v8" defer></script>
 <script src="./gamepad.js?rev=20261102-tutorial-popup-unified-v2" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261102-tutorial-debug-flow-v4" defer></script>
