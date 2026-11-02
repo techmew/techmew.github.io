@@ -1,3 +1,9 @@
+## 2026/11/02 11:00 JST｜45分枠表示修正・タイトル画面の縦/横アイコン（UI-ORIENTATION-ICON-V2）
+- 直前の縦/横選択2ボタンを維持し、横向きアイコンを横長69×36 CSS px・左右矢印入り・端末画面/ベゼル/側面ボタン付きへ変更。縦向きは29×45 CSS px。高さ520px以下の横画面では横50×27・縦21×32に縮小。対象 `neo-wild/index.html`, `neo-wild/visual.css` のみ。変更コミット `62b22b53132dc60df1fec1e2f327bf737ed20010`, `cc7ca5bab5537882f6782f35ee3e1769f5dffc58`。index.html の visual.css キャッシュ rev 更新。
+- QA：HTMLの矢印要素とCSSの画面形状・レスポンシブ定義の存在確認PASS。実ブラウザ表示・Android実機・Pages build/deploy未確認（新規検証未実施）。視覚選択のみ変更。ゲーム本体・SAVE_SCHEMA2・Gamepadは無変更。
+- 進捗計測V2：A16.0 / B12.0 / C9.0 / D4.0 / E8.0 / F9.0 / G8.0 / H4.0 / I4.0 = **74.0/100**（前回74.0、差0.0）。アイコン修正だけでは未検証のF3（縦横HUD/実画面）の加点条件を満たさない。
+- 次45分枠：縦390×844/横800×360/844×390で両アイコンと選択強調・メニューの当たり判定/見切れを実ブラウザ確認、必要なら最小修正。次15分枠：飢餓HPと死亡→保存/再開の回帰を継続（UIに重複変更しない）。公開確認は新しいPages runでbuild/deploy両successのみを採用。
+
 ## 共同スプリント・次担当｜2026/11/02 10:45 JST｜45分枠｜ACTIVE_SPRINT_ID=DEN-REFUGE-SIX-AND-GRASS-V1 → DEATH-HUNGER-SEQ-V1（最優先）→ STRONG-STAGE-20P-COMPLETE｜死亡の倒れ込み・静寂・余韻を実装
 - **照合・担当**：開始main `a3bc0e5601511f6af39c994676f81cc5dfe41eb8`（前15分枠10:15のROADMAPと実行履歴、前45分枠09:45の能力継承、Drive完成仕様設計書末尾を確認）→ コード最終HEAD `9bb9e965922747b757711880c877b7a628188110`。15分枠の飢餓HP減少・死亡保存は未上書き。既存6巣・20強敵/20継承・猫速度・Gamepad・夜目・SAVE_SCHEMA2を保持。
 - **変更ファイル・commit・blob**：`neo-wild/game.js` `c99c73e`→`fce87ff` / blob `95355e67f6bef470adf2e6dff31cad3214be5238`、`neo-wild/webgl3d.js` `2bc99c1` / blob `ca2cf502533f41818a40e431ff2e79bb78a97e0e`、`neo-wild/audio.js` `c9ca543` / blob `a796b23b6af7a86ca0eb191a8efdeb64607ef161`、`neo-wild/index.html` `48369ce`→`9bb9e96` / blob `21d06d37e0ba482152a4226ffeac3861c368aa5b`（3ファイルのcache rev更新）。neo-wild/外変更なし。
