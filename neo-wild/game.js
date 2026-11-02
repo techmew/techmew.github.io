@@ -104,6 +104,9 @@ try{automaticTutorialShown=localStorage.getItem(TUTORIAL_ONCE_KEY)==="1"}catch(_
 function rememberTutorialShown(){automaticTutorialShown=true;try{localStorage.setItem(TUTORIAL_ONCE_KEY,"1")}catch(_){}}
 function migrateSeenTutorial(snapshot){if(snapshot&&(Number(snapshot.mission)>0||(Array.isArray(snapshot.tutorialSeen)&&snapshot.tutorialSeen.length>0)))rememberTutorialShown();}
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
+// Presentation-only state: never stored in SAVE_SCHEMA=2.
+const DEATH_SEQUENCE_SECONDS=3.2;
+let deathSequenceTime=0;
 let debugWeatherOverride=null; // Session-only weather preview; never stored in saves.
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
 const activeTouchPointers=new Map(),touchHoldTimers=new Map(),gamepadAxes={x:0,y:0};
@@ -628,7 +631,7 @@ function show(id){
 function start(){
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -2199,8 +2202,29 @@ function getObjective(){
  const safe=!collides(px,py,P.r+5);
  return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / ×・Jで攻撃"};
 }
+function beginDeath(){
+ if(!P||mode!=="play"||P.hp>0)return false;
+ P.hp=0;deathSequenceTime=0;mode="dying";
+ resetControls();P.deathPose=0;P.vx=0;P.vy=0;
+ P.jumpTime=0;P.pounceTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
+ P.pendingStrike=false;P.strongWound=0;huntSlowUntil=0;objectiveBannerTime=0;
+ $("hunt-cinematic").classList.remove("show");
+ $("objective-banner").classList.remove("visible");
+ playEffect("death");window.WildAudio?.fadeForDeath?.();
+ syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+ return true;
+}
+function advanceDeath(dt){
+ if(mode!=="dying"||!P)return false;
+ deathSequenceTime=Math.min(DEATH_SEQUENCE_SECONDS,deathSequenceTime+Math.max(0,dt));
+ P.deathPose=clamp(deathSequenceTime/.9,0,1);
+ $("hud").style.opacity=String(1-.72*clamp((deathSequenceTime-.6)/2.3,0,1));
+ if(deathSequenceTime>=DEATH_SEQUENCE_SECONDS)finish(false);
+ return true;
+}
 function finish(won=false){
- if(!P)return;
+ if(!P||mode==="over"||mode==="clear")return;
+ const deathAlreadyPlayed=mode==="dying";
  clearAutoSave();
  resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
@@ -2213,7 +2237,7 @@ function finish(won=false){
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>DAY "+String(day).padStart(2,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
- show("result");playEffect(won?"level":"death");
+ show("result");if(!deathAlreadyPlayed)playEffect(won?"level":"death");
 }
 function clearStep(m,angle,step){
  const dx=Math.cos(angle),dy=Math.sin(angle);
@@ -2888,7 +2912,7 @@ function update(dt){
  }
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt*traitEffect("giantSnake",1));
   if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
- if(P.hp<=0){P.hp=0;finish(false);return}
+ if(P.hp<=0){P.hp=0;beginDeath();return}
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(m.hp<=0)continue;
@@ -3697,7 +3721,8 @@ function drawCreature(o,isPlayer){
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
   ctx.scale(1.14,1.14);
-  if(P.wallKickTime>0&&t==="cat"){
+  if(P.deathPose>0){const fall=clamp(P.deathPose,0,1);ctx.rotate(fall*.34);ctx.scale(1+fall*.12,1-fall*.42);ctx.translate(-r*.08*fall,r*.16*fall);}
+  else if(P.wallKickTime>0&&t==="cat"){
     const kick=Math.min(1,P.wallKickTime/.43);
     ctx.rotate(Math.sin((1-kick)*Math.PI)*.32);
     ctx.scale(1+.30*kick,.76+.15*(1-kick));
@@ -3826,7 +3851,7 @@ function drawCreature(o,isPlayer){
  const sheen=ctx.createLinearGradient(-r*.8,-r*.8,r*.6,r*.2);
  sheen.addColorStop(0,"#eef7df");sheen.addColorStop(1,"#eef7df00");
  ctx.fillStyle=sheen;ctx.beginPath();ctx.ellipse(-r*.1,-r*.25,r*.73,r*.19,-.15,0,TWO);ctx.fill();ctx.restore();
- if(isPlayer){
+ if(isPlayer&&mode!=="dying"){
   ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
   ctx.beginPath();ctx.arc(0,0,r+5,0,TWO);ctx.stroke();
   ctx.font="900 10px sans-serif";ctx.textAlign="center";ctx.fillStyle="#f5fce8";
@@ -4231,6 +4256,12 @@ function drawScene(){
  }
 
  drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels(); // Route hint only during active objectives.
+ if(mode==="dying"){
+  const dim=clamp((deathSequenceTime-.45)/2.75,0,1);
+  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle="rgba(5,9,12,"+(dim*.70)+")";ctx.fillRect(0,0,vw,vh);
+  ctx.restore();
+ }
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
@@ -4243,6 +4274,7 @@ function loop(t){
  if(mode==="milestone"&&t>=milestoneUntil)finishMissionMilestone();
  window.WildGamepad?.poll?.(dt);
  if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
+ else if(mode==="dying")advanceDeath(dt);
  else huntSlowUntil=0;
  // Freeze 2D/WebGL gameplay behind achievement and tutorial.
  if((mode!=="guide"&&mode!=="milestone")||guideNeedsFrame){drawScene();guideNeedsFrame=false}
@@ -4379,7 +4411,7 @@ $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
 $("retry-btn").addEventListener("click",()=>{const save=getCheckpoints().find(s=>s.player.type===P?.type);if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}clearAutoSave();start();announceObjective()});
-$("menu-btn").addEventListener("click",()=>{mode="menu";show("menu");$("new-game-options").open=true});
+$("menu-btn").addEventListener("click",()=>{deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu");$("new-game-options").open=true});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
 $("menu-landscape-btn").addEventListener("click",()=>setFullscreenOrientation("landscape",$("menu-landscape-note")));
