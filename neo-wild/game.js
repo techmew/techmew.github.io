@@ -1298,6 +1298,10 @@ function updateBossSignature(m,dt,d){
  if(!m?.strongBoss||!P||!BOSS_PATTERNS)return false;
  m.signatureCooldown=Math.max(0,(m.signatureCooldown||0)-dt);
  const active=m.signature;
+ if(active&&m.stun>0){
+  m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown,2.8);
+  return false;
+ }
  if(active){
   m.windup=0;m.chargeTime=0;m.vx=0;m.vy=0;
   if(m.type==="giantGorilla")m.rock=null;
@@ -2318,6 +2322,10 @@ function resolveAttack(){
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;if(!species[m.type].prey)m.flee=0;
     const disrupt=!armored&&(species[m.type].prey||m.staggerGuard<=0||silentHit||dive);
     if(disrupt){
+     if(m.strongBoss&&m.signature){
+      m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,3.0);
+      label(m.x,m.y-m.r-41,"固有技を阻止！","#befbd6");
+     }
      m.windup=0;m.chargeTime=0;m.swing=0;
      m.stun=traitEffect("giantGorilla",silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
      m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,.22);
@@ -3550,6 +3558,7 @@ function update(dt){
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(d>WILDLIFE.farAI){m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
   if(rareEngagementBlocked(m)){
+   m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,.9);
    m.alert=0;m.search=0;m.windup=0;m.chargeTime=0;
    m.attack=Math.max(m.attack,.35);m.vx=0;m.vy=0;
    continue;
