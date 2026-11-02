@@ -1410,7 +1410,7 @@ function drawBossThreats(entities){
   ctx.fillStyle=m.hp<m.maxHp*.45?"#ff876d":"#d6514c";
   ctx.fillRect(m.x-width/2,by+5,width*clamp(m.hp/Math.max(1,m.maxHp),0,1),6);
   ctx.restore();
-  if(m.signature)BOSS_PATTERNS.draw(ctx,m.signature,elapsed);
+  if(m.signature)BOSS_PATTERNS.draw(ctx,m.signature,elapsed,P?.r*.55||0);
  }
 }
 

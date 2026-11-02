@@ -496,8 +496,10 @@ function hit(s,x,y,extra=0){
  }
  return false;
 }
-function draw(ctx,s,elapsed=0){
+function draw(ctx,s,elapsed=0,padding=0){
  if(!s)return;
+ // The warning includes the same body-radius padding as hit().
+ const extra=clamp(Number(padding)||0,0,80);
  const t=clamp(1-s.time/Math.max(.01,s.total),0,1);
  ctx.save();ctx.lineWidth=3;ctx.lineJoin="round";
  ctx.globalAlpha=.38+.22*t;ctx.strokeStyle="#ffb066";
@@ -507,7 +509,7 @@ function draw(ctx,s,elapsed=0){
  const segment=(turn=0,side=0)=>{
   const a=s.dir+turn,dx=Math.cos(a),dy=Math.sin(a),px=-dy,py=dx;
   const sx=s.ownerX+px*side,sy=s.ownerY+py*side;
-  const ex=sx+dx*s.range,ey=sy+dy*s.range,w=s.width;
+  const ex=sx+dx*s.range,ey=sy+dy*s.range,w=s.width+extra;
   path();ctx.moveTo(sx+px*w,sy+py*w);ctx.lineTo(ex+px*w,ey+py*w);
   ctx.lineTo(ex-px*w,ey-py*w);ctx.lineTo(sx-px*w,sy-py*w);ctx.closePath();
   ctx.fill();ctx.stroke();
@@ -525,22 +527,22 @@ function draw(ctx,s,elapsed=0){
   case "line":segment();break;
   case "twin":segment(0,64);segment(0,-64);break;
   case "fork":segment(.46);segment(-.46);break;
-  case "fan":{const a=clamp(s.width/s.range,.38,1.3);sector(s.dir-a,s.dir+a,s.range);break;}
-  case "sweep":{const a=clamp(s.width/s.range+.35,.8,1.5);sector(s.dir+.43-a,s.dir+.43+a,s.range,s.range*.24);break;}
-  case "back":{const a=clamp(s.width/s.range+.22,.6,1.3);sector(s.dir+Math.PI-a,s.dir+Math.PI+a,s.range);break;}
-  case "ground":path();ctx.arc(s.x,s.y,s.range,0,TWO);ctx.fill();ctx.stroke();break;
-  case "ring":ring(s.x,s.y,s.range*.73,s.width);break;
-  case "target":path();ctx.arc(s.x,s.y,s.width,0,TWO);ctx.fill();ctx.stroke();break;
-  case "donut":ring(s.x,s.y,s.range*.68,s.width);break;
+  case "fan":{const a=clamp(s.width/s.range,.38,1.3);sector(s.dir-a,s.dir+a,s.range+extra);break;}
+  case "sweep":{const a=clamp(s.width/s.range+.35,.8,1.5);sector(s.dir+.43-a,s.dir+.43+a,s.range+extra,Math.max(0,s.range*.24-extra));break;}
+  case "back":{const a=clamp(s.width/s.range+.22,.6,1.3);sector(s.dir+Math.PI-a,s.dir+Math.PI+a,s.range+extra);break;}
+  case "ground":path();ctx.arc(s.x,s.y,s.range+extra,0,TWO);ctx.fill();ctx.stroke();break;
+  case "ring":ring(s.x,s.y,s.range*.73,s.width+extra);break;
+  case "target":path();ctx.arc(s.x,s.y,s.width+extra,0,TWO);ctx.fill();ctx.stroke();break;
+  case "donut":ring(s.x,s.y,s.range*.68,s.width+extra);break;
   case "cross":
-   ctx.fillRect(s.x-s.width,s.y-s.range,s.width*2,s.range*2);
-   ctx.strokeRect(s.x-s.width,s.y-s.range,s.width*2,s.range*2);
-   ctx.fillRect(s.x-s.range,s.y-s.width,s.range*2,s.width*2);
-   ctx.strokeRect(s.x-s.range,s.y-s.width,s.range*2,s.width*2);
+   ctx.fillRect(s.x-s.width-extra,s.y-s.range,(s.width+extra)*2,s.range*2);
+   ctx.strokeRect(s.x-s.width-extra,s.y-s.range,(s.width+extra)*2,s.range*2);
+   ctx.fillRect(s.x-s.range,s.y-s.width-extra,s.range*2,(s.width+extra)*2);
+   ctx.strokeRect(s.x-s.range,s.y-s.width-extra,s.range*2,(s.width+extra)*2);
    break;
   case "scatter":for(const k of [-1,0,1]){
    path();ctx.arc(s.x+Math.cos(s.dir+k*2.05)*s.range*.52,
-    s.y+Math.sin(s.dir+k*2.05)*s.range*.52,s.width,0,TWO);
+    s.y+Math.sin(s.dir+k*2.05)*s.range*.52,s.width+extra,0,TWO);
    ctx.fill();ctx.stroke();
   }break;
  }
