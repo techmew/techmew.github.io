@@ -1,3 +1,17 @@
+## 共同スプリント・次担当｜2026/11/02 12:48 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜死亡時の戦闘表示・揺れ・気象エフェクトを静める
+
+- **照合・HEAD**：最新main `f629f40ef13b688db2cf2074945822ae84837e15`、ROADMAP直近12:44/11:15/10:45の両枠記録、Drive完成仕様設計書末尾、現行game.js/webgl3d.js/audio.js/debug-mode.js/index.htmlを確認。既存飢餓2.4HP/秒、3.2秒倒れ込み、3D回転・2D伏せ、音フェード、6巣、SAVE_SCHEMA2、3CPは再実装せず維持。コードHEAD `188fc03a61d4023121f36fb309b2d913be81a4c0`。
+- **実装差分**：`neo-wild/game.js` commit `21b71bc84f5b0c1d4ad2002bde8a5d4d074c0d93` / blob `0920fae1501b28e0adfd1399c558d1a5af6da13f`、`neo-wild/index.html` commit `188fc03a61d4023121f36fb309b2d913be81a4c0` / blob `0c5ad36d90a4d6f72e5159d2153ec50ab36cbbe3`（game.js cache rev更新）。
+- **プレイ改善3点**：(1) HP0時に直前の被弾赤フラッシュ、カメラ揺れ、攻撃残像、ポップアップを停止し、倒れ込みを視認可能にする。(2) 死亡3.2秒中はミッション矢印・巣入口・敵名・死骸ラベルを描画せず、結果画面が出るまでゲーム世界に集中できる。(3) 死亡中は2D/3D共通のCanvas上の雨線・風線・雷光・被弾フラッシュを止め、既存の3D/2D倒れ込み・画面暗転・音フェードを維持。通常プレイ時の天候描画は変更なし。
+- **QA**：現行読み込み6 JSの全文構文 **6/6 PASS**。実`beginDeath/advanceDeath`を環境モックに結合し、二重開始防止、被弾効果消去、移動停止/接地、音1回、3.15秒結果非表示、3.2秒以降結果1回、二重結果防止、死亡中の天候/ミッション表示ガードなど **11/11 PASS**。現行`audio.js:fadeForDeath/resetDeathFade`実関数のWebAudio gainモックで二重呼出し抑制と復帰（2 fade＋2 reset calls）PASS。**実ブラウザ実描画、縦横HUD実矩形、実Android/実GPU/物理Pad、10分E2E、死亡後3CP実再開は未検証**。実関数の一部を抽出した隔離QAであり、実ブラウザE2Eではない。
+- **Pages**：コードHEAD `188fc03a61d4023121f36fb309b2d913be81a4c0` run **41385153417**：12:48 JST時点 build=success、report-build-status=queued、deploy=waiting。**build/deploy両success未確認につき配信完了とは断定しない**。このROADMAP記録後のHEADは別runで確認する。
+- **進捗計測V2**：A **16.0/16**（生存/死亡/再開、game.js・既存11:15の30件QA）、B **12.0/12**（6巣・備蓄・屋上、前枠41件）、C **9.0/12**（環境/地区連続経路は検証待ち）、D **4.0/16**（20種登録、固有攻撃/外見/討伐保存の種類別結合は検証待ち）、E **8.0/8**（20素材・継承保存100件）、F **9.0/12**（実縦横HUD矩形待ち）、G **8.0/8**（SAVE_SCHEMA2・3CP・自動保存/再開既存試験）、H **4.0/6**（実ブラウザFPS/衝突/サイズ待ち）、I **4.0/10**（既存統合試験と配信証拠を継承、今回HEADのdeployは確認待ち）。**合計74.0/100、前回74.0→74.0、差0.0**。死亡表示の品質改善は既得点のA/H条件内であり、未検証条件への加点なし。
+- **次15分枠1**：`game.js:updateSurvivalNeeds/beginDeath/restoreSnapshot`で空腹0→食事同フレーム→HP0→3CP/旧SAVE_SCHEMA2復帰を実関数連結試験。死亡中に保存・再攻撃・重複報酬がないことを検証。
+- **次15分枠2**：`game.js:spawnStrongBoss/resolveAttack/kill`で20種の固有攻撃→討伐→素材→能力→セーブ復元を種類別に試験し、Dの不足条件を明確化。
+- **次45分枠1**：`game.js:drawScene/drawCreature`・`webgl3d.js:animal`・`audio.js:fadeForDeath`の3.2秒を実ブラウザ縦390×844/横800×360で画面と音まで検証。雨・風・雷・被弾の各死亡演出と再開復帰を確認。
+- **次45分枠2**：6巣の屋上アクセス・草束/地形/2D3D、右上HUD/ミニマップ、短い横画面の実BoundingClientRect/FPSを確認。問題時のみ現行HEADへ最小修正。
+- **次45分枠3**：強敵20種の3D/2D個体外見・攻撃エフェクト・水辺/飛行・1体制限を現行mainから種類別に試験し、未完成の固有戦闘を段階実装。
+
 ## 共同スプリント・次担当｜2026/11/02 12:44 JST｜手動デバッグQA拡張｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（既存維持）
 
 - 照合：最新main・ROADMAP直近15/45枠・Drive完成仕様設計書末尾・game.js/debug-mode.js/index.htmlを照合。開始コードHEAD 7dbd4a30、最終コードHEAD ffe83825。旧飢餓・死亡演出・6巣・SAVE_SCHEMA2・3チェックポイント・ゲームパッドを維持。
