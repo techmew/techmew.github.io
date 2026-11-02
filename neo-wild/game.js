@@ -2205,7 +2205,7 @@ function getObjective(){
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
  P.hp=0;deathSequenceTime=0;mode="dying";
- resetControls();P.deathPose=0;P.vx=0;P.vy=0;
+ resetControls();P.deathPose=0;P.hidden=false;P.vx=0;P.vy=0;
  P.jumpTime=0;P.pounceTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
  P.pendingStrike=false;P.strongWound=0;huntSlowUntil=0;objectiveBannerTime=0;
  $("hunt-cinematic").classList.remove("show");
@@ -4208,7 +4208,7 @@ function drawScene(){
    ctx.fillStyle="#ee9d79";ctx.fillRect(pos.x-22,barY,44*pct,6);
   }
  }
- if(use3D&&P){
+ if(use3D&&P&&mode!=="dying"){
   const pos=project(P.x,P.y);ctx.save();
   const ringY=pos.y-(P.groundZ||0)*.93*cameraZoom,headY=pos.y-(P.jumpHeight||0)*.93*cameraZoom;
   ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
