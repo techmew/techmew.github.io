@@ -3428,7 +3428,7 @@ function update(dt){
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
   if(m.hp<=0)continue;
-  const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
+  const s=species[m.type];if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(d>WILDLIFE.farAI){m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
@@ -3501,7 +3501,6 @@ function update(dt){
       m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;const cheetahBoost=m.type==="cheetah"&&m.sprintTime>0?1.58:1;
       vx=Math.cos(m.dir)*s.speed*chaseBoost*(m.speedScale||1)*cheetahBoost;
       vy=Math.sin(m.dir)*s.speed*chaseBoost*(m.speedScale||1)*cheetahBoost;
-      if(m.sprintTime>0)m.sprintTime=Math.max(0,m.sprintTime-dt);
       if((m.type==="dog"||m.type==="alpha"||m.type==="oneEyedWolf"||m.type==="albinoWolf")&&spotted&&d>75&&d<235&&m.attack>.22){
        const around=m.dir+(m.flankSide||1)*1.08;
        if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
@@ -4722,7 +4721,7 @@ function drawThreatNames(){
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
   if(m.hp<=0||species[m.type].prey||dist(P,m)>280||!visible(m.x,m.y,55))continue;
-  const pos=project(m.x,m.y),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
+  const pos=project(m.x,m.y),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
   const threatName=(names[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
   ctx.globalAlpha=m.windup>0||m.alert>0?.92:.74;ctx.fillStyle="#172321";ctx.fillRect(pos.x-53,y-11,106,16);
   ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(threatName,pos.x,y+1);
