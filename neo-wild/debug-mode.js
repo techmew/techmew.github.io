@@ -61,6 +61,8 @@ panel.innerHTML=[
 '<p class="wr-stage" id="wr-debug-boss-status">現在の強敵：なし</p>',
 '<button type="button" data-action="boss-area">出現地域へ移動</button>',
 '<div class="wr-row"><button type="button" data-action="boss" class="wr-primary">この強敵を出す</button><button type="button" data-action="boss-clear" class="wr-danger">今いる強敵を消す</button></div>',
+'<div class="wr-row"><button type="button" data-action="boss-weaken">強敵HPを1にする</button><button type="button" data-action="boss-trophy">選択素材を＋1</button></div>',
+'<p class="wr-note">HP1は実際の戦闘を試す用、素材＋1は能力継承を試す用です。どちらもデバッグ専用。</p>',
 '</div></details>',
 '<details class="wr-section"><summary>3. HP・空腹・巣を試す</summary><div class="wr-inside">',
 '<button type="button" data-action="heal" class="wr-primary">HP・空腹・持久を全回復</button>',
@@ -184,6 +186,8 @@ panel.addEventListener("click",async event=>{
   else if(action==="tutorial-stage")ok=api.tutorialStage(Number($("wr-debug-stage").value));
   else if(action==="boss")ok=api.spawnBoss($("wr-debug-boss").value);
   else if(action==="boss-clear")ok=api.clearBoss();
+  else if(action==="boss-weaken")ok=api.weakenBoss();
+  else if(action==="boss-trophy")ok=api.giveTrophy($("wr-debug-boss").value);
   else if(action==="boss-area")ok=api.warpBossArea($("wr-debug-boss").value);
   else if(action==="den-warp")ok=api.warpDen($("wr-debug-den").value);
   else if(action==="hp")ok=api.setHp(Number($("wr-debug-hp").value));
@@ -199,7 +203,7 @@ panel.addEventListener("click",async event=>{
  const messages={
   "tutorial-start":"チュートリアル通しテストを開始","tutorial-stop":"元のゲーム・保存内容に戻しました",
   "tutorial-prev":"前の段階へ移動","tutorial-next":"次の段階へ移動","tutorial-stage":"指定段階に移動",
-  "boss":"強敵を出現させました","boss-clear":"強敵を消しました（報酬なし）","boss-area":"強敵の出現地域に移動",
+  "boss":"強敵を出現させました","boss-clear":"強敵を消しました（報酬なし）","boss-weaken":"強敵のHPを1に変更","boss-trophy":"希少素材を1個追加","boss-area":"強敵の出現地域に移動",
   "hp":"HPを適用","hunger":"空腹を適用","den-warp":"選んだ巣に移動",
   "den-level":"巣レベルを適用","den-food":"備蓄を適用","heal":"全回復",
   "hour":"時刻を変更","weather":"天気を変更","warp":"移動しました","save":"現在状態を保存"
