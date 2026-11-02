@@ -8,6 +8,10 @@ const zone=x=>x>=CAVE_START&&x<=CAVE_END?"cave":x>=SUMMIT_START?"summit":x>FOOTH
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const center=x=>3770+110*Math.sin((x-WEST)/355)+(x>FOOTHILL_END?95*smooth(clamp((x-FOOTHILL_END)/720,0,1))*Math.sin((x-FOOTHILL_END)/300):0);
 const smooth=t=>t*t*(3-2*t);
+// Continuous side valley: no loading gate, shared with collision and renderers.
+const southReach=x=>720+430*smooth(clamp((x-10220)/520,0,1))*(1-smooth(clamp((x-11450)/430,0,1)));
+const meadowTrail=x=>center(x)+clamp((x-10380)/620,0,1)*720;
+const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35;
 const active=(x,y)=>x>=WEST&&x<=EAST&&y>=2600&&y<=5100;
 function height(x,y){
  if(x<=WEST)return 0;
@@ -16,8 +20,10 @@ function height(x,y){
  const old=90*smooth(p)+19*p*lateral+4*p*Math.sin(x/210)*Math.cos(y/245);
  if(x<=FOOTHILL_END)return old;
  const q=clamp((x-FOOTHILL_END)/(EAST-FOOTHILL_END),0,1);
- return old+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
+ const raw=old+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
   +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
+ const blend=smooth(clamp((x-10380)/450,0,1))*(1-smooth(clamp((x-11450)/440,0,1)))*smooth(clamp((y-center(x)-440)/290,0,1));
+ return raw-18*blend;
 }
 function trail(x){return center(x);}
 // Spawn along the same traversable ridge and cave passage used by collision.
@@ -32,6 +38,11 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
   const x=CAVE_START+20+span*(reverse?1-fraction:fraction);
   return {x,y:center(x)+[0,-22,22,0,12,-12][Math.floor(n/11)%6]};
  }
+ if(requestedZone==="slope"&&meadowAt(player.x,player.y)){
+  const x=clamp(player.x+((n%7)-3)*58,10710,11440);
+  const y=center(x)+clamp(730+(Math.floor(n/7)%5)*52,700,southReach(x)-75);
+  return {x,y};
+ }
  const direction=n%2?-1:1;
  const bounds=requestedZone==="cave"?[CAVE_START+50,CAVE_END-50]:
   requestedZone==="summit"?[SUMMIT_START+70,EAST-70]:
@@ -42,7 +53,7 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
  const band=x>=CAVE_START&&x<=CAVE_END?32:90;
  return {x,y:center(x)+((n%5)-2)*band/2};
 }
-const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],caveStones=[],caveColumns=[];
+const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],meadowGrass=[],caveStones=[],caveColumns=[];
 const cave=Object.freeze({start:CAVE_START,end:CAVE_END,halfWidth:CAVE_HALF});
 // Visual-only cave mineral seams and wall fragments, shared by 2D and 3D.
 const caveSeams=[],caveWallMarks=[];
@@ -93,6 +104,10 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
  const y=center(x)+side*(235+j*160);
  heather.push({x:x+Math.sin(x*.017+j)*26,y,r:13+j*4,z:height(x,y)});
 }
+for(let x=10680;x<11470;x+=82)for(let j=0;j<5;j++){
+ const y=center(x)+690+j*69+Math.sin(x*.027+j*2.1)*14;
+ if(meadowAt(x,y))meadowGrass.push({x:x+Math.sin(x*.011+j)*16,y,r:11+j%3*3,z:height(x,y)});
+}
 // Upper mountain vegetation and cave walls are deterministic; no save migration.
 for(let x=11930;x<13000;x+=176){
  const cy=center(x);
@@ -119,7 +134,7 @@ for(const [x,side] of [[13105,-1],[13210,1],[13320,-1]]){
 }
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
- if(y<center(x)-720+r||y>center(x)+720-r)return true;
+ if(y<center(x)-720+r||y>center(x)+southReach(x)-r)return true;
  if(x>=CAVE_START&&x<=CAVE_END&&Math.abs(y-center(x))>CAVE_HALF-r)return true;
   // Only the planked bridge is passable; the creek banks block land animals.
   if(Math.abs(x-creek.xAt(y))<creek.halfWidth+r*.65&&
@@ -176,7 +191,8 @@ function sightBlocked(a,b){
  return false;
 }
 function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="CLEAR"){
- const entries=zone(x)==="cave"?
+ const entries=meadowAt(x,y)?
+ [["deer",25],["rabbit",25],["boar",18],["wildFox",12],["macaque",12],["chimpanzee",8]]:zone(x)==="cave"?
  [["rat",30],["rabbit",30],["weasel",17],["snake",11],["wildFox",8],["raccoonDog",4]]:x>=SUMMIT_START?
  [["deer",24],["wildFox",9],["rabbit",20],["boar",12],["weasel",7],["raccoonDog",8],["crow",5],["macaque",10],["chimpanzee",5]]:x>FOOTHILL_END?
  [["deer",20],["wildFox",8],["rabbit",14],["boar",13],["weasel",6],["raccoonDog",7],["crow",6],["macaque",14],["chimpanzee",12]]:
@@ -196,13 +212,21 @@ function draw2D(ctx,visible){
   const x2=Math.min(EAST,x+95),cy=center(x),cy2=center(x2),z=height(x,cy);
   if(!visible(x,cy,1050))continue;
   const col=x>=SUMMIT_START?(x>=CAVE_START?"#515950":"#67746a"):x>FOOTHILL_END?(z>185?"#5c6c61":"#3f5c4c"):z<25?"#52714b":z<62?"#4a6647":"#526b53";
-  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x,cy-720);ctx.lineTo(x2,cy2-720);ctx.lineTo(x2,cy2+720);ctx.lineTo(x,cy+720);ctx.closePath();ctx.fill();
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x,cy-720);ctx.lineTo(x2,cy2-720);ctx.lineTo(x2,cy2+southReach(x2));ctx.lineTo(x,cy+southReach(x));ctx.closePath();ctx.fill();
   ctx.fillStyle="#887d5c";ctx.beginPath();ctx.moveTo(x,cy-130);ctx.lineTo(x2,cy2-130);ctx.lineTo(x2,cy2+130);ctx.lineTo(x,cy+130);ctx.closePath();ctx.fill();
   ctx.strokeStyle="#a7a58a88";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,cy-135);ctx.lineTo(x2,cy2-135);ctx.moveTo(x,cy+135);ctx.lineTo(x2,cy2+135);ctx.stroke();
   for(const sign of [-1,1]){
-   ctx.fillStyle="#777b6d";ctx.beginPath();ctx.moveTo(x,cy+sign*720);ctx.lineTo(x2,cy2+sign*720);ctx.lineTo(x2,cy2+sign*815);ctx.lineTo(x,cy+sign*815);ctx.closePath();ctx.fill();
-   ctx.strokeStyle="#b2b2a04d";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,cy+sign*720);ctx.lineTo(x2,cy2+sign*720);ctx.stroke();
+   ctx.fillStyle="#777b6d";ctx.beginPath();ctx.moveTo(x,cy+(sign<0?-720:southReach(x)));ctx.lineTo(x2,cy2+(sign<0?-720:southReach(x2)));ctx.lineTo(x2,cy2+(sign<0?-815:southReach(x2)+95));ctx.lineTo(x,cy+(sign<0?-815:southReach(x)+95));ctx.closePath();ctx.fill();
+   ctx.strokeStyle="#b2b2a04d";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,cy+(sign<0?-720:southReach(x)));ctx.lineTo(x2,cy2+(sign<0?-720:southReach(x2)));ctx.stroke();
   }
+ }
+ // The walkable meadow branch is a visible path from the original ridge.
+ ctx.strokeStyle="#b5a779";ctx.lineWidth=90;ctx.beginPath();
+ for(let x=10380;x<=11360;x+=45){const y=meadowTrail(x);if(x===10380)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+ ctx.strokeStyle="#dbd1a4";ctx.lineWidth=4;ctx.stroke();
+ for(const g of meadowGrass){if(!visible(g.x,g.y,45))continue;
+  ctx.strokeStyle="#91ae6d";ctx.lineWidth=2.6;
+  for(let k=-2;k<=2;k++){ctx.beginPath();ctx.moveTo(g.x,g.y);ctx.lineTo(g.x+k*3,g.y-13-Math.abs(k)*2);ctx.stroke();}
  }
  // Stream and bridge occupy exactly the world-space collision crossing.
   for(const [width,col] of [[94,"#5a665d"],[68,"#294f57"],[55,"#377c83"]]){
@@ -312,7 +336,7 @@ function draw2D(ctx,visible){
  }
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
-const forageSites=Object.freeze([...ferns,...heather,...alpineGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,spawnCandidate,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass]);
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();
