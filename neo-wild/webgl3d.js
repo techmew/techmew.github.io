@@ -444,7 +444,7 @@ function seasonIndexFromElapsed(seconds){
 function vegetation(p,clock,season=2){
  const palette=SEASONAL_FOLIAGE[season]||SEASONAL_FOLIAGE[2];
  if(p.type===2){
-  if(season===0)return; // Winter decorative shrub is hidden; existing cover/collision data unchanged.
+  if(season===0&&!p.denSite&&!p.trainingCover)return; // Evergreen bedding remains visibly leafy in winter.
   // Tapered, bent grass leaves in 3D: real blade silhouettes, no green ovoid clumps.
   // Two crossed leaf triangles for each blade keep it visible from multiple camera angles.
   const r=p.r*.74;
@@ -454,7 +454,7 @@ function vegetation(p,clock,season=2){
    const height=r*(.60+(i%6)*.14),width=r*(.075+(i%3)*.012);
    const sway=Math.sin(clock*1.55+p.phase+i)*r*.045;
    const tip=[bx+Math.cos(a)*r*.21+sway,by+Math.sin(a)*r*.18, height];
-   const tint=color(palette.shrub[i%3]),cross=color(palette.grass);
+   const tint=color(season===0?["#406f55","#5a8c66","#345943"][i%3]:palette.shrub[i%3]),cross=color(season===0?"#3c7058":palette.grass);
    triangle([bx-width,by,1],[bx+width,by,1],tip,tint);
    triangle([bx,by-width,1],[bx,by+width,1],tip,cross);
   }
