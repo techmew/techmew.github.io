@@ -1,3 +1,8 @@
+### 00分枠・出荷検証追記｜2026/11/03 JST｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1
+- **コード＋初回記録コミット**：`4f94c71e5bceef89b34cb17968825564bb7d1a60`。GitHub Pages run **41533544272** は **workflow=success / build=success / deploy=success / report-build-status=success** を個別確認。コードはPagesへ配信成功。記録追記コミット自身のrunは別途確認。
+- **追加回帰QA**：現行game.jsの実`isValidSnapshot/getAutoSnapshot/getCheckpoints/scoreRunIdFromSnapshot/loadTopScores/recordTopScore`を模擬localStorageで隔離実行し、旧SAVE_SCHEMA2/新追跡timestamp任意/無効HP・座標・上限/3CP/自動保存/旧lineage安定/TOP5/リトライ同一挑戦/最高記録保持を **15/15 PASS**。上記洞窟狩猟13/13と合わせて **28/28 checks PASS**。実ブラウザ・Android・GPU・物理Pad・長時間E2E・全40強敵技は未検証。進捗74/100据置。
+- **次20/40分枠**：直下の「共同スプリント・統合QA」項にある具体的な各3件を優先。最新HEAD・本追記と次枠の成果を読み、衝突回避して実装継続。
+
 ## 共同スプリント・統合QA｜2026/11/03 JST｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟ウサギ狩猟・捕食者分担・死骸摂食の統合修正
 - 開始HEAD `f56a4d16003ec35a04e175d50323e35a5e3bbec3`。前20分枠の洞窟複数捕食者/地域個体保護と前40分枠のイタチ・ヘビ固有姿勢を維持。変更はneo-wild/game.js・index.html・ROADMAP.mdのみ。
 - 実プレイ修正：洞窟イタチ/タヌキがウサギだけの洞窟では狩りを開始しない種判定の欠落を修正。キツネに加えてイタチ・タヌキもウサギを追跡・実ダメージ・死骸化できる。複数捕食者の分担で旧チェックポイントや追跡中断後の古い標的座標が生きた獲物を占有する問題を修正。1.2ゲーム秒以内の実追跡のみを分担対象とし、獲物消失・プレイヤー警戒・野生討伐時に標的を解除。旧SAVE_SCHEMA2互換、世界76/近隣9/9秒/群れ110秒は変更なし。
