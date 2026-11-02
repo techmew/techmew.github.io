@@ -1,3 +1,14 @@
+## 共同スプリント・次担当｜2026/11/02 20:18 JST｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜飢餓・死亡遷移・セーブ経時回帰と2.2秒端数修復
+- **開始HEAD→コードHEAD**：`09e48ed20e174d6b7fb5cb7632c475849d0add6b` → `981ebce53339c11780b7681e90b4ee2241f10933`。19:43の45分枠/19:15の15分枠とDrive正本末尾を照合。既存の空腹0→HP漸減・2.2秒の転倒/画面/音・6巣/13通常種/強敵20種・SAVE_SCHEMA2/3CPは重複実装せず維持。
+- **実コード修正①：2.2秒の死亡完了を厳密化**：`game.js:advanceDeath` は0.2秒×11フレームの浮動小数誤差で2.199999...秒となり、結果画面がもう1フレーム遅れる。1e-6秒の許容誤差で正規化し、正確に2.2秒で結果へ遷移。低FPSの転倒姿勢/暗転/3バス減衰は45分枠の既存実装を維持。
+- **実コード修正②：不正経過時間の死亡固着を防止**：`advanceDeath` の非有限dt（NaN/Infinity）は0秒として扱い、死亡時間がNaN化して永久に結果へ到達できなくなる経路を遮断。既存の入力遮断・HP0判定・二重finish防止を維持。コード `neo-wild/game.js` commit **`f66dc53b856806776e17e9463c694ecbc81dbcbd`** / blob `6a0ad6ca9f28035a266c2fa3d1102b7500a52582`、キャッシュ更新 `neo-wild/index.html` commit **`981ebce53339c11780b7681e90b4ee2241f10933`** / blob `40e8e0a0f70eb14b68e7ac6f6e564659167e15c3`。
+- **実関数QA**：`updateSurvivalNeeds/eat/beginDeath/advanceDeath` 600秒の0.035秒刻みで空腹0→実食事→再飢餓→HP0→死亡を再現、食事/HP0/二重死亡/保存遮断を検査（7/7 PASS、死亡時刻321.76秒）。`currentSnapshot/saveAuto/recordCheckpoint/getCheckpoints/isValidSnapshot/scoreRunIdFromSnapshot` で旧SAVE_SCHEMA2、3CP上限・順序・同一挑戦ID、備蓄・空腹・HPの保存値、再保存（13/13 PASS）。`spawnMob/regionAt` で8地区×巣265m内/外の捕食者置換・外部自然出現（16/16 PASS）。死亡状態の200ms×11、100ms×22、NaN、二重完了（4/4 PASS）、その他飢餓/順位保存回帰12/12 PASS、`game.js`全文構文PASS。**合計52/52 PASS（全て実関数＋モック、実ブラウザ/Androidではない）**。
+- **Pages**：コード＋HTML HEAD `981ebce5` の workflow run **`41435489620`** で **build=success / report-build-status=success / deploy=success** を個別job確認。ゲーム変更の公開反映を確認。今回のROADMAP追記commit自体のrunは別途確認する。
+- **進捗計測V2（固定100点）**：A **16.0** / B **12.0** / C **9.0** / D **4.0** / E **8.0** / F **9.0** / G **8.0** / H **4.0** / I **4.0** ＝ **74.0/100**。前回74.0→74.0、**差0.0**。死亡時間と旧セーブの品質改善であり未達成の独立採点条件を満たしたと偽らない。Cの季節/地域、Dの20種固有AI/外見/討伐保存、Fの実画面矩形、Hの実GPU/FPS、Iの10分実ブラウザ/Android実機/物理Pad実機は検証待ち（0点）。
+- **次15分枠（3件）**：①`restoreSnapshot` を実関数で起動経路まで接続し、旧SAVE_SCHEMA2の空腹0・巣/備蓄・3CP・TOP5挑戦IDの実再開と二重加算0を確認。②`maintainLocalWildlife/spawnMob/denThreatNearby` の屋上巣・夜間侵入・NPC狩猟を実関数で統合し、巣内新規出現0/外部侵入可を検証。③冬夜の潜伏→獲物覚醒/逃走→攻撃→死骸→食事を本番関数で連結し破綻時のみ最小修正。
+- **次45分枠（3件）**：①縦390×844・横800×360/844×390の実ブラウザで2D/WebGLの転倒・暗転・3バス音量と結果画面矩形/FPSを実測。②物理Padのタイトル選択・決定・キャンセル、死亡結果のリトライ/最初からを実機で検証（使用不可なら未検証）。③強敵20種の固有攻撃/3D・2D姿勢/討伐・報酬・保存を種類別に検証、同一スプリントで欠損だけ補完。
+- **未検証**：Android実機・物理パッド・実GPU/WebGL・10分以上実ブラウザE2E・旧セーブのブラウザ完全復元。今回の関数モックPASSを実機PASSと呼ばない。
+
 ## 共同スプリント・次担当｜2026/11/02 19:43 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜低FPS死亡時間と転倒後の静寂を統合
 - **開始HEAD→コードHEAD**：`16247a29d8b871a170eab342356c568a6e7a99b8` → `8834d779e81e432331bf772e4cdbcdee72f9b33a`。19:15の15分枠、18:42の45分枠、Drive設計書末尾を確認。飢餓0→HP漸減・食事で停止・HP0のみ死亡、死亡状態2.2秒、SAVE_SCHEMA2、3CP、6巣、通常13種、強敵20種を維持。重複実装なし。
 - **プレイ改善①：低FPSでも数秒で倒れて結果へ**：`game.js:loop`のプレイ用35ms物理dt上限と死亡演出用dtを分離。死亡中のみ実フレーム経過を最大200ms/描画で進め、5/10fpsでも2.2秒程度で完結。長時間のバックグラウンド復帰では瞬間的に結果画面へ飛ばない。死亡時の入力遮断・二重finish防止・保存は変更しない。コミット `ce594cbfdbb541bdfbf536cce64eec638d3e74ab`、blob `f5c6df85c0caeea48be39cf0b2839d88e8c2de9c`。
