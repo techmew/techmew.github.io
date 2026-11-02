@@ -1,3 +1,17 @@
+## 共同スプリント・次担当｜2026/11/02 13:49 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜草むら視認・潜伏の2D/3D統合
+- **開始→コード終了HEAD**：`cd275bd9de2e6a8d9cdee30bdb773024836878a5` → `ae12d930ddd460738b4e247c8ae48633b65f7b24`。先頭ROADMAP・直近15/45枠・Drive設計書末尾・現行mainを照合。飢餓0以降2.4HP/秒、死亡3.2秒、旧SAVE_SCHEMA2、3CP、6巣、20強敵・能力継承を重複実装せず維持。
+- **実コード変更**：`neo-wild/game.js` commit `5facf9c4dcb418266ca570ef230fbf3a28eefac6` / blob `171177fb1743a64254de37c43d5b30851db6baeb`、`neo-wild/webgl3d.js` commit `74fa3557bc4a71f49484941bc7cdba4449f58fa0` / blob `6363261b1296de72717c491bf33dd3afb599e9f9`、`neo-wild/index.html` commit `ae12d930ddd460738b4e247c8ae48633b65f7b24` / blob `8a13739b2358efeff82f101364319937fbc4ea35`。両JSのcache rev `20261102-dense-grass-stealth-v1`。neo-wild/外変更なし。
+- **プレイ改善3点**：(1) 従来3Dで単なる緑の三角錐だった`type=0/1`を、2D/3Dで複数の尖った草葉として描画。半径18以上は密生草として潜伏可能に統一し、小さい草は短く疎らに表示して隠れ判定なし。(2) `visibleShrub/inVisibleShrubCover/inCover`とCanvas2Dの前景葉判定を一致させ、旧セーブの植物にも追加フィールドなしで適用。冬に非表示の普通の`type=2`だけは潜伏不可、冬の可視巣・訓練草と新しい緑草は潜伏可。(3) Canvas2D潜伏時のプレイヤーを46%半透明にし、既存WebGL潜伏時43%半透明と整合。密生草の葉枚数も増やして見た目を明瞭化。
+- **QA**：現行6 JS全文構文 **6/6 PASS**。実`visibleShrub/inVisibleShrubCover/inCover`の冬・屋上・草種/半径と、実`drawPlant`/WebGL `vegetation`を模擬Canvas/三角形描画へ結合した **14/14 PASS**。実ブラウザ10分E2E・Android実機・実GPU・物理Pad・縦横BoundingClientRect・実FPS・旧SAVE_SCHEMA2端末E2Eは**未検証**。隔離した実関数テストを実機テストと呼ばない。コンテナの外部DNS不可によりPagesの実ブラウザ接続は未実施。
+- **Pages**：対象コードHEAD `ae12d930ddd460738b4e247c8ae48633b65f7b24`、run **41390468163**：jobs APIで **build=success / report-build-status=success / deploy=success** を個別確認。コードHEADの配信成功。ROADMAP記録コミット後のHEADは別途確認。
+- **進捗計測V2（前回72.0→今回74.0、差+2.0）**：A **16.0/16**（既存生存/死亡実関数試験）、B **12.0/12**（6巣/備蓄・既存試験）、C **9.0/12**（地区・橋・川連続実操作待ち）、D **4.0/16**（20種登録、固有AI/攻撃/2D3D/討伐保存は種類別未検証）、E **8.0/8**（20素材の既存継承試験）、F **9.0/12**（縦横HUD実矩形待ち）、G **8.0/8**（旧SAVE_SCHEMA2/3CP/自動保存・既存試験）、H **4.0/6**（実ブラウザFPS・画面サイズ待ち）、I **4.0/10**（実関数統合＋今回対象コードHEAD Pages build/deploy両success、10分ブラウザ/Android/物理Pad各0）。今回+2はIの対象HEAD配信確認のみ。草改善は既得点の表示品質向上で加点なし。
+- **次15分枠①**：`game.js:updateSurvivalNeeds/beginDeath/advanceDeath/restoreSnapshot`を実関数で連結し、空腹0→食事→HP0→3.2秒→3CPリトライ、SAVE_SCHEMA2再開・死亡中オートセーブ破棄を経時回帰。
+- **次15分枠②**：`game.js:inCover/update/checkMission`で旧保存のtype0/1密生草・冬trainingCoverへ入る→速度を落としてP.hidden→0.75秒教程達成→移動/攻撃で解除を実操作経路で検証。
+- **次15分枠③**：`game.js:spawnStrongBoss/resolveAttack/kill`の既存強敵20種を種類別に固有攻撃→討伐→素材→継承→SAVE_SCHEMA2復帰へ接続し、未完成を一覧化。
+- **次45分枠①**：実ブラウザ縦390×844/411×768・横800×360/844×390で新草のWebGL/2D葉数・前景・潜伏半透明とHUD/地図矩形を測定。実GPU FPSと草増量の負荷を確認し、重ければ密度を段階制御。
+- **次45分枠②**：`game.js:drawScene/drawCreature`、`webgl3d.js:animal/render`、`audio.js:fadeForDeath`の3.2秒死亡倒れ込み・音/フェードをブラウザ操作で検証、異常時のみ最小修正。
+- **次45分枠③**：6巣の地上/屋上アクセスと草/遮蔽を2D/3Dで確認後、強敵20種の固有外見・水辺/空中AI・固有攻撃を種類別に完成させる。
+
 ## 共同スプリント・次担当｜2026/11/02 13時台 JST｜動画QA・必須チュートリアル再構成（最優先ユーザー指示）｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（維持）
 - **原因・動画**：ユーザー68.3秒のAndroid縦1080×2400撮影を確認。冬1月に茂みが見えないため潜伏先を理解できない。従来game.jsは冬季`type=2`低木の2D/3D描画を消していた一方、壁/車の遮蔽滞在`hiddenHold`と既存の累計`kills`を後続チュートリアルへ流用。狩猟2→巣4の自動遷移後は`automaticTutorialShown/mission>=4`ガードで自動説明が出ず、巣運搬が唐突に発生した。
 - **修正・最新優先**：`neo-wild/game.js` commits `a8192bf491da8126fa3993173768259d89790d40`, `b1b14f3c8146f4c65ab3785dc2bb9414651f193f`, `d2f904923a775f83bc7ac7a22615924558227408`, `8f466729e0a6f137631ade0b1c17c0cb132c0f44`、`neo-wild/webgl3d.js` `caa67d2b89a1d6a546c3f8e4acd137894c695037`、`neo-wild/debug-mode.js` `744f4b5369ab13b97acaaf4c029774bc69c32747`、`neo-wild/index.html` 最終 `a24eddfe39d8cb0ee5203bac0697130d94aefcd6`（JS/3D/debug cache rev）。**13:15枠が並行実施したgame.js保存・飢餓改善`16c9cb4b`も最新mainに保持**。neo-wild/以外変更なし、強制push/ロールバックなし。
