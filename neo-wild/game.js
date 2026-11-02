@@ -4650,6 +4650,16 @@ window.WildDebugBridge={
   const index=mobs.indexOf(boss);if(index<0)return false;
   mobs.splice(index,1);saveAuto();return true;
  },
+ weakenBoss(){
+  if(mode!=="play"||!P)return false;
+  const boss=strongBossAlive();if(!boss)return false;
+  boss.hp=1;boss.attack=0;boss.windup=0;boss.chargeTime=0;saveAuto();return true;
+ },
+ giveTrophy(type){
+  if(mode!=="play"||!P||!Object.prototype.hasOwnProperty.call(STRONG_TRAITS,type))return false;
+  strongTrophies[type]=(Number(strongTrophies[type])||0)+1;
+  saveAuto();return true;
+ },
  warpBossArea(type){
   if(mode!=="play"||!P||!STRONG_TRAITS[type])return false;
   const allowed=Object.keys(STRONG_REGIONS).filter(key=>STRONG_REGIONS[key].includes(type)).map(Number);
