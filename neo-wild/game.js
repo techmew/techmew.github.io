@@ -2337,6 +2337,9 @@ function beginDeath(){
  // Discard the dead run immediately, not after the shortened death fade; checkpoints stay intact.
  clearAutoSave();
  resetControls();P.deathPose=0;P.hidden=false;P.vx=0;P.vy=0;
+ // A lethal hit cancels every attack/dash pose; the body must not keep striking or sprinting while falling.
+ P.dash=0;P.dashTime=0;P.swing=0;P.atk=0;P.windup=0;P.rushActiveStep=0;
+ P.rushQueued=false;P.rushWindow=0;P.abilityTime=0;P.chargeStrike=false;P.jumpDive=false;P.ambushStrike=false;
  P.jumpTime=0;P.pounceTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
  P.pendingStrike=false;P.strongWound=0;huntSlowUntil=0;objectiveBannerTime=0;
  // Clear the last hit effects before the quiet death sequence.
@@ -3853,7 +3856,7 @@ function drawCreature(o,isPlayer){
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
   ctx.scale(1.14,1.14);
-  if(P.deathPose>0){const fall=clamp(P.deathPose,0,1),ease=fall*fall*(3-2*fall);ctx.rotate(ease*.60);ctx.scale(1+ease*.12,1-ease*.55);ctx.translate(-r*.08*ease,r*.30*ease);}
+  if(P.deathPose>0){const fall=clamp(P.deathPose,0,1),ease=fall*fall*(3-2*fall);ctx.rotate(ease*1.08);ctx.scale(1+ease*.10,1-ease*.43);ctx.translate(-r*.14*ease,r*.42*ease);}
   else if(P.wallKickTime>0&&t==="cat"){
     const kick=Math.min(1,P.wallKickTime/.43);
     ctx.rotate(Math.sin((1-kick)*Math.PI)*.32);
@@ -4280,7 +4283,7 @@ function drawScene(){
    ctx.fillStyle="#c8aa6f";ctx.fillRect(o.x-7,o.y-18,14,5);
   }else{
    drawCreature(o,o===P);
-   if(o===P)drawCarriedFood2D();
+   if(o===P&&mode!=="dying"&&mode!=="over")drawCarriedFood2D();
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
@@ -4303,7 +4306,7 @@ function drawScene(){
    ctx.fillStyle=m.windup<.22?"#fff0b4":"#ffbc9c";
    ctx.fillText("!",m.x,m.y-m.r-24);ctx.restore();
   }
-  if(P&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
+  if(P&&mode==="play"&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
  for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
