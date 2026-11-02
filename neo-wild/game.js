@@ -1186,9 +1186,16 @@ function restoreSnapshot(snapshot){
  try{saveDenLevel();saveDenStash();saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
  reconcileRestoredGoals();
- // Legacy SAVE_SCHEMA2 can restore inside a cramped building gap; keep the same save format.
- recoverPlayerFromGap(P);
+ // Recover the player and saved wildlife from new cave pillars and mountain rocks.
+ // This also repairs old city gaps without changing SAVE_SCHEMA=2 or checkpoint counts.
+ const playerRepositioned=recoverPlayerFromGap(P);
+ const wildlifeRepositioned=repairRestoredMountainMobs();
+ if(playerRepositioned){
+  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
+  cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
+ }
  enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
+ if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
 }
@@ -2128,6 +2135,38 @@ function narrowBuildingPassage(x,y,r){
 }
 // Recover old saves and rare impact positions already inside an unwalkable alley.
 // Only used for a genuinely blocked location, never as a shortcut through an ordinary wall.
+// New cave columns and alpine rocks must not trap animals in old SAVE_SCHEMA=2 runs.
+// Relocate only living ground wildlife already inside new mountain collision geometry.
+function repairRestoredMountainMobs(){
+ if(!MOUNTAIN?.blocked)return 0;
+ let repaired=0;
+ for(const m of mobs){
+  if(!m||m.hp<=0||!Number.isFinite(m.x)||!Number.isFinite(m.y)||
+     isAquaticStrong(m)||m.type==="giantEagle")continue;
+  const radius=Math.max(6,Number(m.r)||18);
+  if(!mountainHabitat(m.x,m.y)||!MOUNTAIN.blocked(m.x,m.y,radius))continue;
+  const ox=m.x,oy=m.y,zone=MOUNTAIN.zone(ox);
+  let safe=null;
+  for(let distance=16;distance<=240&&!safe;distance+=16){
+   for(let k=0;k<24;k++){
+    const angle=k*Math.PI/12;
+    const x=clamp(ox+distance*Math.cos(angle),radius+13,WORLD.w-radius-13);
+    const y=clamp(oy+distance*Math.sin(angle),radius+13,WORLD.h-radius-13);
+    if(!mountainHabitat(x,y)||MOUNTAIN.zone(x)!==zone||collides(x,y,radius))continue;
+    if(P&&Math.hypot(x-P.x,y-P.y)<radius+P.r+12)continue;
+    if(mobs.some(other=>other!==m&&other.hp>0&&
+       Math.hypot(x-other.x,y-other.y)<radius+(other.r||18)+8))continue;
+    safe={x,y};break;
+   }
+  }
+  if(!safe)continue; // Never move a saved creature into another wall or region.
+  m.x=safe.x;m.y=safe.y;m.lastX=safe.x;m.lastY=safe.y;
+  m.vx=0;m.vy=0;m.alert=0;m.search=0;m.windup=0;m.signature=null;
+  repaired++;
+ }
+ return repaired;
+}
+
 function recoverPlayerFromGap(o){
  if(o!==P||!collides(o.x,o.y,o.r,o))return false;
  const originX=o.x,originY=o.y,roof=o.groundZ||0;

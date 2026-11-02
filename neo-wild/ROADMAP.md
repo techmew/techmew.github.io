@@ -1,3 +1,12 @@
+## 共同スプリント・統合QA｜2026/11/3 4:59:09 JST｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜旧SAVE2山岳石柱復元・NPC安全再配置・カメラ整合
+- **開始HEAD**：`b55603a00dcac844a29102bdc25d114de20a6a8a`。前20分枠の洞窟食物連鎖・前40分枠の洞窟石柱と2D/3D表現を維持。変更対象：`neo-wild/game.js`・`index.html`・`ROADMAP.md`のみ。
+- **プレイ挙動**：旧SAVE_SCHEMA=2/3チェックポイントの洞窟石柱・山岳岩に重なった地上野生動物を同じ山岳zone内の合法座標へ再配置。プレイヤー/他動物との重なり、別zoneへのワープ、死体・水生ボス・飛行ボスの不適切な移動を防止。再配置時は移動速度・索敵・攻撃予兆を安全リセット。既存のプレイヤー建物隙間復旧を保持し、復旧位置へカメラを追従。自動保存が修復後位置を保持する。新規の種・湧き枠・SAVE_SCHEMAは追加しない。
+- **動的QA**：実追加関数を実行し石柱内→合法な洞窟位置、同一zone、プレイヤー/他動物非重複、正常個体/水生/飛行/市街不変、個体数不変、速度/攻撃予兆リセット、二重実行冪等、JS全文構文、HTML rev、旧3CP保持 **16/16 PASS**（隔離モック）。Android実機、実GPU、物理Pad、縦横実ブラウザ、10分E2E/FPS、旧SAVE2実端末復元、強敵40技の全実戦検証は未実施。
+- **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4=**74/100**（前回74、差0）。実ブラウザE2E未検証のため据置。
+- **Pages**：開始HEAD `b55603a00dcac844a29102bdc25d114de20a6a8a` のrun 41512642356はbuild/deploy/report-build-status全success。今回の新コードHEADはコミット後のrunで別途検証し、未確認なら公開済みと呼ばない。
+- **次20分枠**：①`game.js:repairRestoredMountainMobs/restoreSnapshot`で旧SAVE2・3CPの洞窟入口/石柱/山腹を実関数経時QA。②`game.js:spawnMob/maintainLocalWildlife`で修復後の洞窟群れ・世界76/近隣9の密度維持と石柱回避。③`game.js:huntWildPrey/routeClear`で石柱を迂回する捕食・死骸・食料の一連を確認。
+- **次40分枠**：①`mountain.js:blocked/sightBlocked/draw2D`で洞窟柱の見た目と当たり判定を実画面で照合。②`webgl3d.js:mountainTerrain`で洞窟石柱のLOD・GPU・FPSを実機測定。③`gamepad.js:poll`と`game.js:move/restoreSnapshot`で洞窟復帰後の縦横・Pad・カメラを検証。
+
 ## 40分枠 Pages公開確認｜2026/11/03｜MOUNTAIN-CONTIGUOUS-FOOTHILL-V1
 - 洞窟石柱/湿潤床2D/3D・衝突・遮蔽・HTML revのコードcommit `b94a248819c30a90e996e8b70409e01a11294697` に対応する Pages run **41512405408**：**build=success / deploy=success / report-build-status=success**（各jobを個別確認）。ROADMAP記録commit自身の配信は別runとして確認する。Android実機/実GPU/物理Pad/10分E2Eは未検証。進捗V2 74.0/100（差0.0）。
 
