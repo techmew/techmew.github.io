@@ -3736,7 +3736,7 @@ function drawCreature(o,isPlayer){
  ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
  if(isPlayer){
   ctx.scale(1.14,1.14);
-  if(P.deathPose>0){const fall=clamp(P.deathPose,0,1);ctx.rotate(fall*.34);ctx.scale(1+fall*.12,1-fall*.42);ctx.translate(-r*.08*fall,r*.16*fall);}
+  if(P.deathPose>0){const fall=clamp(P.deathPose,0,1),ease=fall*fall*(3-2*fall);ctx.rotate(ease*.60);ctx.scale(1+ease*.12,1-ease*.55);ctx.translate(-r*.08*ease,r*.30*ease);}
   else if(P.wallKickTime>0&&t==="cat"){
     const kick=Math.min(1,P.wallKickTime/.43);
     ctx.rotate(Math.sin((1-kick)*Math.PI)*.32);
