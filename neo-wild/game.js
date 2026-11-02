@@ -324,6 +324,20 @@ function denCapacity(){return [0,200,300,450][denLevel]}
 function denRadius(){return [0,SAFE_DEN.r,125,165][denLevel]}
 function atDen(){return !!denAtActor()}
 function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
+// Starvation is progressive. An empty stomach cannot be cancelled by passive den healing.
+function updateSurvivalNeeds(dt){
+ const before=P.hunger;
+ const drain=(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1);
+ P.hunger=clamp(before-drain,0,100);
+ const emptySeconds=before<=0?dt:drain>0&&P.hunger===0?dt*clamp((drain-before)/drain,0,1):0;
+ const hungrySeconds=P.hunger<16?Math.max(0,dt-emptySeconds):0;
+ const hungerDamage=emptySeconds*2.4+hungrySeconds*1.2;
+ if(hungerDamage>0)P.hp=Math.max(0,P.hp-hungerDamage);
+ if(P.hp<=0)return false;
+ if(P.hunger>0&&atDen()&&!denThreatNearby())
+  P.hp=Math.min(P.maxHp,P.hp+traitEffect("giantElephant",denRestRate())*dt);
+ return true;
+}
 // Only reachable enemies interrupt rooftop rest and wound recovery.
 function denThreatNearby(){
  if(!P||!atDen())return false;
@@ -2828,10 +2842,7 @@ function update(dt){
  
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
- P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1),0,100);
- if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
- if(atDen()&&!denThreatNearby())
-  P.hp=Math.min(P.maxHp,P.hp+traitEffect("giantElephant",denRestRate())*dt);
+ P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
  const a=getAxes(),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
     const jumpLeft=Math.max(0,P.jumpTime-dt);
@@ -2915,6 +2926,7 @@ function update(dt){
  if(P.hp<=0){P.hp=0;beginDeath();return}
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
+  if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
   if(m.hp<=0)continue;
   const s=species[m.type];m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
@@ -3080,6 +3092,7 @@ function update(dt){
     playEffect("snarl");
    }
  }
+ if(P.hp<=0){P.hp=0;beginDeath();return;}
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0)mobs.splice(i,1); // Only dead animals are removed.
  for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0){if(carcasses[i].type==="corpse")toBones(carcasses[i]);else carcasses.splice(i,1)}
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
@@ -3105,7 +3118,7 @@ function syncHUD(hour){
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
- $("food-text").textContent=Math.ceil(P.hunger)+"%";$("sp-text").textContent=Math.ceil(P.sp)+"%";
+ $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
  $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel<DEN_MAX_LEVEL?"（LV"+(denLevel+1)+"まで・消費なし）":"（容量）");
