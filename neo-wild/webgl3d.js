@@ -748,6 +748,15 @@ function mountainTerrain(isVisible){
    if(isVisible(x,y,220))pyramid(x+tile*.45,y+sign*37,z,69,75,78,"#737c73");
   }
  }
+ for(const hut of m.ruins){
+  if(!isVisible(hut.x+hut.w/2,hut.y+hut.h/2,240))continue;
+  const z=m.height(hut.x+hut.w/2,hut.y+hut.h/2);
+  box(hut.x,hut.y,z,hut.w,hut.h,4,"#706e5c","#807c68");
+  box(hut.x,hut.y,z+4,10,hut.h,33,"#777566","#a7a18a");
+  box(hut.x+hut.w-10,hut.y,z+4,10,hut.h,22,"#6b7163","#a7a18a");
+  box(hut.x,hut.y,z+4,hut.w,9,27,"#797968","#aaa68c");
+  box(hut.x,hut.y+hut.h-10,z+4,hut.w,10,20,"#687367","#9c9b85");
+ }
  for(const r of m.rocks){
   if(!isVisible(r.x,r.y,150))continue;
   ellipsoid(r.x,r.y,r.z+r.r*.24,r.r,r.r*.76,r.r*.51,"#788078",.22,7,4);
