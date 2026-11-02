@@ -4467,6 +4467,12 @@ function drawMini(){
  mc.fillStyle="#19332e";mc.fillRect(0,0,w,h);
  if(MOUNTAIN&&P.x>7800){
   mc.fillStyle="#35523b";mc.fillRect(X(MOUNTAIN.WEST),0,w*(MOUNTAIN.EAST-MOUNTAIN.WEST)/span,h);
+  mc.fillStyle="#759364";
+  for(let x=10620;x<=11530;x+=65){const cy=MOUNTAIN.center(x),reach=MOUNTAIN.southReach(x);
+   mc.fillRect(X(x),Y(cy+620),Math.max(1,65/span*w),Math.max(0,(reach-650)/span*w));
+  }
+  mc.strokeStyle="#c5ad83";mc.lineWidth=2;mc.beginPath();
+  for(let x=10380;x<=11360;x+=60){if(x===10380)mc.moveTo(X(x),Y(MOUNTAIN.meadowTrail(x)));else mc.lineTo(X(x),Y(MOUNTAIN.meadowTrail(x)));}mc.stroke();
   mc.strokeStyle="#b1a27a";mc.lineWidth=3;mc.beginPath();
   for(let x=MOUNTAIN.WEST;x<=MOUNTAIN.EAST;x+=70){
    const px=X(x),py=Y(MOUNTAIN.trail(x));
