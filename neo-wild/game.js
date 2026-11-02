@@ -325,7 +325,8 @@ function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
 function denThreatNearby(){
  if(!P||!atDen())return false;
  return mobs.some(m=>m.hp>0&&!species[m.type]?.prey&&dist(P,m)<165&&
-  (m.type==="giantEagle"||Math.abs((m.groundZ||0)-(P.groundZ||0))<12));
+  (m.type==="giantEagle"||Math.abs((m.groundZ||0)-(P.groundZ||0))<12)&&
+  (m.type==="giantEagle"||!lineBlocked(P,m)));
 }
 function loadDenLevel(animal){
  try{const n=Number(localStorage.getItem("wild-reclaim-den-level-v1-"+animal));return Number.isInteger(n)?clamp(n,1,DEN_MAX_LEVEL):1}catch(_){return 1}
@@ -2376,7 +2377,7 @@ function defendBuffaloHerd(m){
 function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
-    (m.evadeTime||0)>0||playerDistance<=140)return null;
+    (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
  const maxRange=m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
