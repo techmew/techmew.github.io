@@ -1,3 +1,6 @@
+## 40分枠 Pages公開確認｜2026/11/03｜MOUNTAIN-CONTIGUOUS-FOOTHILL-V1
+- 洞窟石柱/湿潤床2D/3D・衝突・遮蔽・HTML revのコードcommit `b94a248819c30a90e996e8b70409e01a11294697` に対応する Pages run **41512405408**：**build=success / deploy=success / report-build-status=success**（各jobを個別確認）。ROADMAP記録commit自身の配信は別runとして確認する。Android実機/実GPU/物理Pad/10分E2Eは未検証。進捗V2 74.0/100（差0.0）。
+
 ## 共同スプリント・次担当｜2026/11/3 4:41:46 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟の実衝突石柱・2D/3D景観一致
 - **開始HEAD**：`27d0fd1768a6eb5335e89c6ed720d47909a69e05`。現行20分枠の洞窟食物連鎖とSAVE2互換を維持し、洞窟x=13040〜13450に実地形を追加。
 - **変更**：`neo-wild/mountain.js` に決定的な洞窟石柱3本（x=13105/13210/13320、中心線から±72、r=17）を追加。`blocked`と`sightBlocked`へ同じ座標を結合。中央通路は幅を残してプレイヤー/獲物が通れる。Canvas2Dに石柱と湿った床の縞、`webgl3d.js:mountainTerrain`に石柱と床メッシュを追加。近距離だけ描画。HTMLの2スクリプトrev更新。世界76・近隣9・群れ制限・8地区/6探索地点・SAVE_SCHEMA2/3CP・強敵20種は不変更。
