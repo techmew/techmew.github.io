@@ -1954,6 +1954,28 @@ function retireFarCalmAnimal(){
  mobs.splice(index,1);
  return true;
 }
+// Rebalance cave prey/hunters without increasing the shared wildlife cap.
+// Never despawn visible, alerted, fleeing or strong wildlife.
+function retireCalmCaveOverflow(needPrey,caveAnimals){
+ if(!P||!MOUNTAIN||MOUNTAIN.zone(P.x)!=="cave")return false;
+ const preyCount=caveAnimals.filter(m=>species[m.type]?.prey&&!isWildPredator(m)).length;
+ const hunterCount=caveAnimals.filter(isWildPredator).length;
+ const candidates=mobs.filter(m=>{
+  if(m.hp<=0||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
+     (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
+     (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
+     dist(P,m)>=WILDLIFE.localRadius||visible(m.x,m.y,75))return false;
+  if(MOUNTAIN.zone(m.x)!=="cave")return true;
+  if(caveAnimals.length<4)return false;
+  return needPrey?(isWildPredator(m)&&hunterCount>1):
+    (species[m.type]?.prey&&!isWildPredator(m)&&preyCount>1);
+ });
+ candidates.sort((a,b)=>(MOUNTAIN.zone(a.x)==="cave")-(MOUNTAIN.zone(b.x)==="cave")||
+   dist(P,b)-dist(P,a));
+ if(!candidates.length)return false;
+ mobs.splice(mobs.indexOf(candidates[0]),1);
+ return true;
+}
 let lastPopulatedRegion=-1;
 function settleNewRegion(){
  if(!P)return false;
@@ -3560,29 +3582,34 @@ function maintainLocalWildlife(){
  const preyNearby=mobs.some(m=>m.hp>0&&["rat","rabbit","pigeon","frog"].includes(m.type)&&dist(P,m)<WILDLIFE.preyNeedRadius);
  const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  const zone=mountainHabitat(P.x,P.y)?MOUNTAIN.zone(P.x):null;
- const zoneCount=zone?mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius&&
-  mountainHabitat(m.x,m.y)&&MOUNTAIN.zone(m.x)===zone).length:0;
- // Keep both prey and a hunter in the cave when density permits.
  const caveAnimals=zone==="cave"?mobs.filter(m=>m.hp>0&&MOUNTAIN.zone(m.x)==="cave"&&dist(P,m)<WILDLIFE.localRadius):[];
- const cavePrey=caveAnimals.filter(m=>species[m.type]?.prey).length;
- const caveHunter=caveAnimals.filter(m=>isWildPredator(m)).length;
- const caveUnderstocked=zone==="cave"&&caveAnimals.length<4&&local<WILDLIFE.localCap;
+ // A snake can hunt; a cave of snakes alone has no actual prey population.
+ const cavePrey=caveAnimals.filter(m=>species[m.type]?.prey&&!isWildPredator(m)).length;
+ const caveHunter=caveAnimals.filter(isWildPredator).length;
+ const caveNeedsPrey=zone==="cave"&&cavePrey===0;
+ const caveNeedsHunter=zone==="cave"&&caveHunter===0;
+ const caveNeedsBalance=caveNeedsPrey||caveNeedsHunter;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
- if(mobs.length>=WILDLIFE.cap&&(local<Math.min(3,target)||
-    (caveUnderstocked&&(cavePrey===0||caveHunter===0))))retireFarCalmAnimal();
+ if(caveNeedsBalance&&local>=WILDLIFE.localCap)retireCalmCaveOverflow(caveNeedsPrey,caveAnimals);
+ const localNow=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+ if(mobs.length>=WILDLIFE.cap&&(localNow<Math.min(3,target)||
+    (caveNeedsBalance&&localNow<WILDLIFE.localCap)))retireFarCalmAnimal();
  if(mobs.length<WILDLIFE.cap){
-  if(caveUnderstocked&&cavePrey===0)spawnMob(false,true,true,null,null,"cave");
-  else if(caveUnderstocked&&caveHunter===0){
-   const hunters=["weasel","snake","wildFox","raccoonDog"];
-   spawnMob(false,false,true,null,hunters[Math.floor(Math.random()*hunters.length)],"cave");
+  if(caveNeedsBalance&&localNow<WILDLIFE.localCap){
+   if(caveNeedsPrey)spawnMob(false,true,true,null,null,"cave");
+   else{
+    const hunters=["weasel","wildFox","raccoonDog"];
+    spawnMob(false,false,true,null,hunters[Math.floor(Math.random()*hunters.length)],"cave");
+   }
+  }else if(zone==="cave"&&caveAnimals.length<3&&localNow<WILDLIFE.localCap){
+   spawnMob(false,false,true,null,null,"cave");
   }else if(hunting&&!preyNearby)spawnMob(false,true,true,null,null,zone==="cave"?"cave":null);
-  else if(local<target){
-   if(P.level>=2&&local<=WILDLIFE.localCap-2&&Math.random()<(P.level>=5?WILDLIFE.packChanceLate:WILDLIFE.packChanceEarly))
+  else if(localNow<target){
+   if(P.level>=2&&localNow<=WILDLIFE.localCap-2&&Math.random()<(P.level>=5?WILDLIFE.packChanceLate:WILDLIFE.packChanceEarly))
     spawnLocalPack()||spawnMob(false,false,true);
    else spawnMob(false,false,true);
   }
  }
- // A new LV gradually improves existing enemies, without restoring their HP to full.
  for(const m of mobs)if(m.hp>0&&!m.strongBoss&&!species[m.type]?.prey)syncEnemyLevel(m);
  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
 }
