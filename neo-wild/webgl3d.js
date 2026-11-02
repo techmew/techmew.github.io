@@ -467,9 +467,10 @@ function animal(m,player,clock){
  const x=m.x,y=m.y;
  animalLift=0;
  // Shadow is projected to the walkable roof when standing on one.
- const contactZ=player?Math.max(0,m.groundZ||0):0;
+ const terrainZ=window.WildMountain?.height(m.x,m.y)||0;
+ const contactZ=(player?Math.max(0,m.groundZ||0):0)+terrainZ;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
- animalLift=player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0); // NPC feet and body rise during a real emergency leap.
+ animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
@@ -615,7 +616,7 @@ function vegetation(p,clock,season=2){
 // Food shares depth with terrain, buildings and animals.
 function foodMesh(c,species){
  const r=Math.max(6,Math.min(24,c.r||9));
- animalLift=0;
+ animalLift=window.WildMountain?.height(c.x,c.y)||0;
  ellipsoid(c.x+2,c.y+4,1.4,r*1.5,r*.82,1.3,"#243027",0,7,3);
  if(c.type==="corpse"||c.type==="bones"){
   const size=Math.max(14,Math.min(36,(c.r||9)*1.28)),angle=c.phase||0,cs=Math.cos(angle),sn=Math.sin(angle);
@@ -652,7 +653,7 @@ function carriedFoodMesh(p){
  const c=p.carry;if(!c||!(c.amount>0))return;
  animalLift=0;
  const dir=p.dir||0,cs=Math.cos(dir),sn=Math.sin(dir),r=Math.max(7,Math.min(13,6+Math.sqrt(c.amount)));
- const x=p.x+cs*p.r*1.45,y=p.y+sn*p.r*1.45,z=Math.max(0,p.jumpHeight||p.groundZ||0)+p.r*.72;
+ const x=p.x+cs*p.r*1.45,y=p.y+sn*p.r*1.45,z=(window.WildMountain?.height(p.x,p.y)||0)+Math.max(0,p.jumpHeight||p.groundZ||0)+p.r*.72;
  if(c.type==="berries"){
   ellipsoid(x,y,z,r,6,5,"#52774d",dir,9,4);
   for(let i=0;i<4;i++)ellipsoid(x+cs*(i-1.5)*r*.3,y+sn*(i-1.5)*r*.3,z+3,3,2.5,2.8,i%2?"#d5a36d":"#c36c55",dir,6,3);
@@ -727,6 +728,37 @@ function landmarkMesh(site){
   box(x-105,y-75,0,20,27,96,"#88928d");box(x+85,y-75,0,20,27,96,"#88928d");
  }
 }
+/* Only near-camera foothill tiles enter the cached GPU static mesh.
+ * All coordinates share the city world; there is no scene transition. */
+function mountainTerrain(isVisible){
+ const m=window.WildMountain;if(!m)return;
+ const tile=110;
+ for(let x=m.WEST;x<m.EAST;x+=tile){
+  const x2=Math.min(m.EAST,x+tile);
+  for(let y=2850;y<4850;y+=tile){
+   const y2=y+tile,cx=(x+x2)/2,cy=(y+y2)/2;
+   if(!isVisible(cx,cy,350))continue;
+   const h00=m.height(x,y),h10=m.height(x2,y),h11=m.height(x2,y2),h01=m.height(x,y2);
+   const edge=Math.abs(cy-m.center(cx))>690,trail=Math.abs(cy-m.center(cx))<148;
+   const col=color(edge?"#727a70":trail?"#81785a":(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
+   quad([x,y,h00+.24],[x2,y,h10+.24],[x2,y2,h11+.24],[x,y2,h01+.24],col);
+  }
+  for(const sign of [-1,1]){
+   const y=m.center(x)+sign*720,z=m.height(x,y);
+   if(isVisible(x,y,220))pyramid(x+tile*.45,y+sign*37,z,69,75,78,"#737c73");
+  }
+ }
+ for(const r of m.rocks){
+  if(!isVisible(r.x,r.y,150))continue;
+  ellipsoid(r.x,r.y,r.z+r.r*.24,r.r,r.r*.76,r.r*.51,"#788078",.22,7,4);
+ }
+ for(const t of m.trees){
+  if(!isVisible(t.x,t.y,180))continue;
+  box(t.x-5,t.y-5,t.z,10,10,47,"#6d5c43","#827050");
+  pyramid(t.x,t.y,t.z+22,t.r*.94,t.r*.86,71,"#315f43");
+  pyramid(t.x,t.y,t.z+52,t.r*.76,t.r*.72,56,"#3f7651");
+ }
+}
 function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
@@ -756,10 +788,10 @@ function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
  }
 
  for(const y of roadsY){
-  box(0,y-80,0,w.w,160,1,"#323d3e","#344145");
-  box(0,y-86,0,w.w,6,2,"#565d54","#717e68");
-  box(0,y+80,0,w.w,6,5,"#565d54","#717e68");
-  for(let x=140;x<w.w;x+=280){
+  box(0,y-80,0,8400,160,1,"#323d3e","#344145");
+  box(0,y-86,0,8400,6,2,"#565d54","#717e68");
+  box(0,y+80,0,8400,6,5,"#565d54","#717e68");
+  for(let x=140;x<8400;x+=280){
    if(!isVisible(x,y,850))continue; // Distant road details do not belong in the local GPU mesh.
    box(x,y-2,1,76,4,.8,"#697066","#8d9285");
    if(detailNoise(x+y)>.45)pyramid(x+88,y+83,2,15,10,13,"#596b53");
@@ -858,6 +890,7 @@ function render(o){
   const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
+   mountainTerrain(isVisible);
    for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
    // Light decorative rewilding; keep it out of physics and saved plants[].
    for(const p of o.scenicProps||[]){
