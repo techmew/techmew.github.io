@@ -351,10 +351,8 @@ function updateSurvivalNeeds(dt){
  P.hunger=clamp(before-drain,0,100);
  // Integrate the exact time spent below 16% and at 0%, independent of frame size.
  const emptySeconds=before<=0?dt:drain>0?dt*clamp((drain-before)/drain,0,1):0;
- const hungrySeconds=before<=16?Math.max(0,dt-emptySeconds):
-  drain>0?Math.max(0,dt*clamp((drain-(before-16))/drain,0,1)-emptySeconds):0;
- const hungerDamage=emptySeconds*2.4+hungrySeconds*1.2;
- if(hungerDamage>0)P.hp=Math.max(0,P.hp-hungerDamage);
+ // Only zero hunger causes starvation damage; a meal immediately stops it.
+ if(emptySeconds>0)P.hp=Math.max(0,P.hp-emptySeconds*2.4);
  if(before>0&&P.hunger===0&&P.hp>0)notify("空腹0：生命が減少中。食べ物を探そう");
  if(P.hp<=0)return false;
  if(P.hunger>0&&atDen()&&!denThreatNearby())
@@ -3240,7 +3238,7 @@ function syncHUD(hour){
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
- $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜衰弱：生命 -1.2/秒":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
+ $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜空腹に注意":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
  $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel<DEN_MAX_LEVEL?"（LV"+(denLevel+1)+"まで・消費なし）":"（容量）");
@@ -4526,6 +4524,7 @@ function launchGame(snapshot=null){
  try{
   if(snapshot){
    if(restoreSnapshot(snapshot))return true;
+   reportLaunchFailure(new Error("snapshot restore returned false"));
    note.textContent="保存データを再開できません。最初からプレイを選んでください。";
    note.setAttribute("data-error","true");return false;
   }
@@ -4534,12 +4533,14 @@ function launchGame(snapshot=null){
  }catch(error){reportLaunchFailure(error);return false}
 }
 $("start-btn").addEventListener("click",()=>{
+ if(mode!=="menu")return;
  if(getAutoSnapshot()&&!window.confirm("保存したデータを上書きして新しく始めますか？\nチェックポイントは残ります。"))return;
- clearAutoSave();launchGame();
+ if(launchGame())saveAuto(); // Preserve previous save if initialization fails.
 });
 $("continue-btn").addEventListener("click",()=>{
+ if(mode!=="menu")return;
  const snapshot=getAutoSnapshot()||getCheckpoints()[0];
- launchGame(snapshot||null);
+ if(launchGame(snapshot||null)&&!snapshot)saveAuto();
 });
 $("checkpoint-menu-btn").addEventListener("click",()=>{
  const target=$("checkpoint-list"),open=target.classList.contains("hidden");
@@ -4547,7 +4548,8 @@ $("checkpoint-menu-btn").addEventListener("click",()=>{
  $("checkpoint-menu-btn").setAttribute("aria-expanded",String(open));
 });
 for(let i=0;i<3;i++)$("checkpoint-slot-"+i).addEventListener("click",()=>{
- const snapshot=getCheckpoints()[i];if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
+ if(mode!=="menu")return;
+ const snapshot=getCheckpoints()[i];if(snapshot)launchGame(snapshot);else refreshSaveMenu();
 });
 $("checkpoint-save-btn").addEventListener("click",recordCheckpoint);
 $("den-inventory-btn").addEventListener("click",openDenInventory);
@@ -4567,8 +4569,8 @@ $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="men
 $("retry-btn").addEventListener("click",()=>{
  if(mode!=="over"&&mode!=="clear")return; // Ignore queued double taps after resuming.
  const save=getCheckpoints().find(s=>s.player.type===P?.type);
- if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}
- clearAutoSave();start();announceObjective();
+ if(save){if(launchGame(save))notify("チェックポイントからリトライ");return;}
+ if(launchGame())saveAuto();
 });
 $("menu-btn").addEventListener("click",()=>{
  if(mode!=="over"&&mode!=="clear")return;
