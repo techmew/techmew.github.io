@@ -36,7 +36,7 @@ function updateGuide(p,mode){
 }
 function status(p,mode){
  const s=p?"パッド"+(p.index+1)+" 接続｜"+(mode==="play"?"左:移動 右:視点 ×:攻撃 ○:ジャンプ □:飛びつき △:行動 START:停止":mode==="menu"?"十字/左スティック:選択 ×/A:決定 ○/B:戻る":"十字/左スティック:選択 ×/A:決定 ○/B:戻る"):"";
- if(s!==label){hud.textContent=s;label=s}hud.hidden=!p||mode==="menu";updateGuide(p,mode);
+ if(s!==label){hud.textContent=s;label=s}hud.hidden=!p||mode==="menu"||mode==="dying"||mode==="result";updateGuide(p,mode);
 }
 function visible(el){if(!el||el.disabled||el.closest?.(".hidden"))return false;const d=el.closest?.("details:not([open])");return (!d||el.tagName==="SUMMARY")&&(!el.getClientRects||el.getClientRects().length>0)}
 const scopes={menu:"menu",pause:"pause",upgrade:"upgrade",guide:"tutorial-dialog",inventory:"den-inventory",map:"world-map",result:"result"};
@@ -86,6 +86,7 @@ function back(mode){
   focused.dispatchEvent(new Event("change",{bubbles:true}));
   selectEditing=false;selectOriginal=null;updateGuide({index:active},mode);return;
  }
+ if(mode==="result"){document.getElementById("menu-btn")?.click?.();return}
  if(mode==="pause"){B()?.pause();return}
  if(mode==="menu"){
   const c=document.getElementById("checkpoint-list");
@@ -154,7 +155,9 @@ function poll(dt=.016){
  let p=list.find(p=>p.index===active)||list[0];
  for(const candidate of list){if(candidate.index===p.index)continue;const prev=old.get(candidate.index)||[];if(buttons(candidate).some((v,i)=>v&&!prev[i])){p=candidate;break}}
  if(active!==p.index){active=p.index;neutral();clearFocus()}
- const mode=b.getMode();
+ const rawMode=b.getMode();
+ // The game reports over/clear; both display the same result dialog.
+ const mode=rawMode==="over"||rawMode==="clear"?"result":rawMode;
  if(mode!==modeBefore){modeBefore=mode;neutral();clearFocus()}
  const now=buttons(p),prev=old.get(p.index)||[];
  const down=i=>!!now[i]&&!prev[i],up=i=>!now[i]&&!!prev[i];
@@ -182,6 +185,9 @@ function poll(dt=.016){
     if(up(i)){if(began.has(i)&&!fired.has(i))b.action(i===2?"pounce":"context",t-began.get(i)>=hold[i]);began.delete(i);fired.delete(i)}
    }
   }
+ }else if(mode==="dying"){
+  // The death animation is non-interactive; never activate a hidden menu.
+  b.setMove(0,0);mx=my=0;
  }else{
   b.setMove(0,0);mx=my=0;
   if(mode==="pause"&&down(9))b.pause();
