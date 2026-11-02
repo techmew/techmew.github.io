@@ -1535,7 +1535,7 @@ function spawnRegionalResident(region,kind=null){
 }
 function retireFarCalmAnimal(){
  const index=mobs.findIndex(m=>m.hp>0&&!m.strongBoss&&!Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)&&
-  dist(P,m)>WILDLIFE.farAI&&!visible(m.x,m.y,75)&&(m.alert||0)<=0&&(m.windup||0)<=0&&
+  dist(P,m)>Math.max(800,WILDLIFE.localRadius)&&!visible(m.x,m.y,75)&&(m.alert||0)<=0&&(m.windup||0)<=0&&
   (m.chargeTime||0)<=0&&(m.flee||0)<=0);
  if(index<0)return false;
  mobs.splice(index,1);
@@ -3033,14 +3033,14 @@ function easeOldOvercrowding(){
   const d=dist(P,m);
   if(d<365||visible(m.x,m.y,75)||m.alert>0||m.windup>0||m.chargeTime>0||m.flee>0)return false;
   if(mission===2&&species[m.type]?.prey&&d<WILDLIFE.preyNeedRadius)return false;
-  return (excessNearby>0&&d<WILDLIFE.localRadius)||(excessWorld>0&&d>WILDLIFE.farAI);
+  return (excessNearby>0&&d<WILDLIFE.localRadius)||(excessWorld>0&&d>Math.max(800,WILDLIFE.localRadius));
  }).sort((a,b)=>dist(P,b)-dist(P,a));
  let retired=0;
  for(const m of candidates){
   if(retired>=2)break;
   const d=dist(P,m);
   if(d<WILDLIFE.localRadius&&excessNearby>0){excessNearby--;excessWorld=Math.max(0,excessWorld-1);}
-  else if(d>WILDLIFE.farAI&&excessWorld>0)excessWorld--;
+  else if(d>Math.max(800,WILDLIFE.localRadius)&&excessWorld>0)excessWorld--;
   else continue;
   const i=mobs.indexOf(m);if(i<0)continue;
   mobs.splice(i,1);retired++;
