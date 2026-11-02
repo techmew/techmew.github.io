@@ -53,11 +53,17 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  for(const entry of pool){target-=entry.w;if(target<0&&entry.w>0)return entry.type;}
  return "rat";
 }
+// Pose selection is read-only; hunting AI and SAVE_SCHEMA remain unchanged.
+function visualState(o){
+ const feeding=(o.scavengePose||0)>0,bite=(o.swing||0)>0;
+ const tracking=!feeding&&Number.isFinite(o.wildTargetX)&&Number.isFinite(o.wildTargetY)&&Number.isFinite(o.wildTargetAt)&&o.wildTargetAt>=0&&Math.hypot((o.x||0)-o.wildTargetX,(o.y||0)-o.wildTargetY)<310;
+ return {feeding,bite,tracking,alert:!feeding&&((o.windup||0)>0||tracking),sprint:!feeding&&Math.hypot(o.vx||0,o.vy||0)>Math.max(85,(o.speed||170)*.65)};
+}
 // Dedicated 2D silhouettes for animals that are not merely reskinned cats or foxes.
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -202,6 +208,22 @@ function draw2D(ctx,o,r,fur,light,pace){
   }
   ellipse(headX+r*.38,-r*.03,1.6,1.5,"#252720");
 
+  }else if(type==="wildFox"){
+  const s=visualState(o),head=r*(s.bite?1.40:s.feeding?.94:1.17),low=s.feeding?r*.17:s.tracking?r*.08:0;
+  for(const side of [-1,1])for(const front of [-1,1])ellipse(front*r*.62+(s.bite&&front>0?r*.22:0),side*r*.47+pace*side*.65,r*.18,r*.24,"#644b39");
+  ellipse(-r*.16,low,r*(s.sprint?1.27:1.15),r*(s.tracking?.48:.55),fur);
+  ellipse(r*.41,low+r*.13,r*.63,r*.37,light);
+  for(let k=0;k<5;k++)ellipse(-r*(1.10+k*.31),Math.sin((o.step||0)*.6+k*.48)*r*.11,r*(.35-k*.026),r*(.31-k*.032),k===4?"#e7dfcf":fur);
+  ellipse(head,low,r*.48,r*.39,fur);
+  for(const side of [-1,1]){
+   poly([head-r*.20,side*r*.28,head-r*.12,side*r*.81,head+r*.15,side*r*.37],fur);
+   ellipse(head+r*.21,side*r*.23,r*.11,r*.09,"#f3e5c7");
+   ellipse(head+r*.24,side*r*.23,r*.045,r*.05,"#202822");
+  }
+  poly([head+r*.24,-r*.23,head+r*.88,0,head+r*.24,r*.23],light);
+  ellipse(head+r*.88,0,r*.10,r*.08,"#292d29");
+  if(s.bite)ellipse(head+r*.40,r*.24,r*.31,r*.09,"#4b2925");
+  if(s.alert)ellipse(head-r*.13,-r*.42,r*.24,r*.065,"#d5a67b");
  }else if(type==="cheetah"){
   for(const side of [-1,1])for(const x of [-r*.67,r*.56])ellipse(x,side*r*.48+pace*side,r*.18,r*.34,fur);
   line(-r*.9,0,-r*2.1,-r*.42,r*.12,fur);
@@ -258,18 +280,20 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(const side of [-1,1])for(const x of [-r*.5,r*.46]){
    ellipse(x,side*r*.63+pace*side,r*.25,r*.32,"#554a40");
   }
-  ellipse(-r*.13,0,r*1.12,r*.68,fur);
+  ellipse(-r*.13,(o.scavengePose||0)>0?r*.17:0,r*(Math.hypot(o.vx||0,o.vy||0)>125?1.21:1.12),r*(visualState(o).tracking?.58:.68),fur);
   ellipse(-r*1.37,0,r*.59,r*.34,"#554b40");
-  ellipse(r*.73,0,r*.62,r*.53,fur);
+  ellipse(r*.73+(visualState(o).bite?r*.25:visualState(o).feeding?-r*.15:visualState(o).tracking?r*.10:0),0,r*.62,r*.53,fur);
   for(const side of [-1,1]){
    ellipse(r*.78,side*r*.27,r*.27,r*.24,"#484843",side*.5);
    ellipse(r*.97,side*r*.24,r*.095,r*.075,"#e9d9b7");
    ellipse(r*.98,side*r*.24,r*.04,r*.05,"#1b201d");
   }
   ellipse(r*1.25,0,r*.24,r*.19,light);
+  if(visualState(o).bite)ellipse(r*1.20,r*.24,r*.30,r*.10,"#512c25");
+  if(visualState(o).alert)line(r*.75,-r*.51,r*1.06,-r*.57,Math.max(1,r*.08),"#d0b08e");
   ellipse(r*1.39,0,r*.09,r*.075,"#20221c");
  }
  return true;
 }
-window.WildFauna=Object.freeze({species,types,weights,weight,choose,draw2D});
+window.WildFauna=Object.freeze({species,types,weights,weight,choose,visualState,draw2D});
 })();

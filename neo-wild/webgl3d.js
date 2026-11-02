@@ -290,7 +290,7 @@ function drawStrongAnimal3D(m,clock){
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
- if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
  const r=m.r||14,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||(t==="crow"?"#313b44":t==="snake"?"#587b50":"#977c62");
@@ -439,7 +439,29 @@ function drawCommonAnimal3D(m,clock){
    orb(r*1.33+lean,side*r*.22,headZ+r*.12,r*.045,r*.043,r*.045,"#252720");
   }
  
- }else if(t==="cheetah"){
+  }else if(t==="wildFox"){
+   const s=window.WildFauna?.visualState?.(m)||{feeding:false,bite:false,tracking:false,alert:false,sprint:false};
+   const lean=s.bite?r*.27:s.feeding?-r*.14:s.tracking?r*.12:0,low=s.feeding?r*.16:s.tracking?r*.08:0;
+   for(const side of [-1,1])for(const front of [-1,1]){
+    const xx=front*r*.64+(front>0?lean*.65:0);
+    orb(xx,side*r*.41,r*.29+gait*r*.035*side*front,r*.17,r*.17,r*.28,"#694b39");
+    orb(xx+r*.05,side*r*.42,r*.10,r*.19,r*.18,r*.09,"#453a32");
+   }
+   orb(-r*.16,0,r*.68-low,r*(s.sprint?1.25:1.15),r*.43,r*(s.tracking?.40:.48),fur);
+   orb(r*.46,0,r*.62-low,r*.63,r*.42,r*.35,belly);
+   for(let k=0;k<5;k++)orb(-r*(1.11+k*.31),Math.sin((m.step||0)*.55+k*.44+clock)*r*.08,r*(.65-k*.045),r*(.32-k*.026),r*(.28-k*.030),r*(.27-k*.024),k===4?"#e9e0ce":fur);
+   const hx=r*1.12+lean,hz=r*.77-low;
+   orb(hx,0,hz,r*.50,r*.36,r*.39,fur);
+   orb(hx+r*.41,0,hz-r*.16,r*.37,r*.24,r*.17,belly);
+   orb(hx+r*.73,0,hz-r*.17,r*.11,r*.11,r*.10,"#302f2b");
+   for(const side of [-1,1]){
+    horn(hx-r*.12,side*r*.24,hz+r*.22,r*.18,r*.15,r*.43,fur);
+    orb(hx+r*.23,side*r*.28,hz+r*.04,r*.12,r*.075,r*.09,"#f3e2be");
+    orb(hx+r*.27,side*r*.29,hz+r*.05,r*.045,r*.04,r*.05,"#202622");
+   }
+   if(s.bite)orb(hx+r*.35,0,hz-r*.36,r*.30,r*.22,r*.075,"#4d2a27");
+   if(s.alert)orb(hx-r*.06,-r*.34,hz+r*.06,r*.23,r*.06,r*.07,"#d7a777");
+  }else if(t==="cheetah"){
   for(const side of [-1,1])for(const front of [-1,1])
    orb(front*r*.65,side*r*.42,r*.32+gait*r*.05*front*side,r*.17,r*.16,r*.33,fur);
   orb(-r*.16,0,r*.74,r*1.29,r*.42,r*.43,fur);orb(r*.78,0,r*.82,r*.45,r*.34,r*.34,fur);
@@ -502,9 +524,9 @@ function drawCommonAnimal3D(m,clock){
 }else if(t==="raccoonDog"){
   for(const side of [-1,1])for(const front of [-1,1])
    orb(front*r*.54,side*r*.55,r*.25,r*.22,r*.18,r*.29,"#554a42");
-  orb(-r*.18,0,r*.54,r*1.02,r*.64,r*.49,fur);
+  orb(-r*.18,0,r*.54-((m.scavengePose||0)>0?r*.16:0),r*(Math.hypot(m.vx||0,m.vy||0)>125?1.13:1.02),r*.64,r*(window.WildFauna?.visualState?.(m)?.tracking?.43:.49),fur);
   for(let k=0;k<3;k++)orb(-r*(1.22+k*.27),0,r*.60,r*.31,r*.23,r*.23,k%2?"#66574a":"#4d443e");
-  orb(r*.73,0,r*.62,r*.57,r*.52,r*.43,fur);
+  orb(r*.73+(window.WildFauna?.visualState?.(m)?.bite?r*.24:window.WildFauna?.visualState?.(m)?.feeding?-r*.16:window.WildFauna?.visualState?.(m)?.tracking?r*.12:0),0,r*.62,r*.57,r*.52,r*.43,fur);
   for(const side of [-1,1]){
    orb(r*.90,side*r*.30,r*.66,r*.27,r*.18,r*.25,"#3f4041");
    orb(r*1.01,side*r*.31,r*.77,r*.10,r*.08,r*.08,belly);
@@ -512,6 +534,8 @@ function drawCommonAnimal3D(m,clock){
    orb(r*.58,side*r*.40,r*1.00,r*.20,r*.16,r*.22,fur);
   }
   orb(r*1.26,0,r*.49,r*.29,r*.24,r*.20,belly);
+   if(window.WildFauna?.visualState?.(m)?.bite)orb(r*1.18,0,r*.27,r*.29,r*.20,r*.08,"#512c25");
+   if(window.WildFauna?.visualState?.(m)?.alert)orb(r*.75,-r*.39,r*.88,r*.23,r*.07,r*.07,"#d0b08e");
  }
  return true;
 }
