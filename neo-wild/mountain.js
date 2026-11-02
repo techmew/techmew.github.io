@@ -20,6 +20,21 @@ function height(x,y){
   +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
 }
 function trail(x){return center(x);}
+// Spawn along the same traversable ridge and cave passage used by collision.
+// Never create extra wildlife slots: the caller enforces the global/local caps.
+function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
+ if(!player||!active(player.x,player.y))return null;
+ const n=Math.max(0,attempt|0),distance=(preyOnly?165:255)+(n*47)%340;
+ const direction=n%2?-1:1;
+ const bounds=requestedZone==="cave"?[CAVE_START+50,CAVE_END-50]:
+  requestedZone==="summit"?[SUMMIT_START+70,EAST-70]:
+  requestedZone==="slope"?[FOOTHILL_END+70,SUMMIT_START-70]:
+  requestedZone==="foothill"?[CITY_EDGE+70,FOOTHILL_END-70]:
+  [CITY_EDGE+70,EAST-70];
+ const x=clamp(player.x+direction*distance,bounds[0],bounds[1]);
+ const band=x>=CAVE_START&&x<=CAVE_END?32:90;
+ return {x,y:center(x)+((n%5)-2)*band/2};
+}
 const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],caveStones=[];
 const cave=Object.freeze({start:CAVE_START,end:CAVE_END,halfWidth:CAVE_HALF});
  // This stream has a physical crossing; the world never loads a new stage.
@@ -72,7 +87,7 @@ for(let x=11930;x<13000;x+=176){
  }
 }
 for(let x=11910;x<13500;x+=112)for(const side of [-1,1]){
- const y=center(x)+side*(x>=CAVE_START&&x<=CAVE_END?89:220);
+ const y=center(x)+side*(x>=CAVE_START&&x<=CAVE_END?55:220);
  alpineGrass.push({x:x+Math.sin(x*.013)*12,y,r:13,z:height(x,y)});
 }
 for(let x=CAVE_START+25;x<CAVE_END-15;x+=83)for(const side of [-1,1]){
@@ -138,12 +153,13 @@ function sightBlocked(a,b){
  return false;
 }
 function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="CLEAR"){
- const entries=x>=SUMMIT_START?
+ const entries=zone(x)==="cave"?
+ [["rat",30],["rabbit",30],["weasel",17],["snake",11],["wildFox",8],["raccoonDog",4]]:x>=SUMMIT_START?
  [["deer",24],["wildFox",9],["rabbit",20],["boar",12],["weasel",7],["raccoonDog",8],["crow",5],["macaque",10],["chimpanzee",5]]:x>FOOTHILL_END?
  [["deer",20],["wildFox",8],["rabbit",14],["boar",13],["weasel",6],["raccoonDog",7],["crow",6],["macaque",14],["chimpanzee",12]]:
  [["deer",22],["wildFox",12],["rabbit",21],["boar",11],["weasel",8],["raccoonDog",9],["crow",5],["macaque",12]];
  const rainy=weather==="RAIN"||weather==="THUNDER";
- const pool=entries.filter(([type])=>!preyOnly||["deer","rabbit","crow"].includes(type))
+ const pool=entries.filter(([type])=>!preyOnly||["rat","deer","rabbit","crow"].includes(type))
   .map(([type,w])=>[type,rainy?w*(type==="crow"?.32:type==="macaque"?.58:type==="chimpanzee"?.53:type==="deer"?.72:type==="rabbit"?.86:type==="boar"?1.16:1):w]);
  const total=pool.reduce((sum,item)=>sum+item[1],0);
  let roll=clamp(Number.isFinite(random)?random:0,0,.999999999)*total;
@@ -247,6 +263,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,spawnCandidate,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();

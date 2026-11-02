@@ -1950,31 +1950,39 @@ function retireFarCalmAnimal(){
 let lastPopulatedRegion=-1;
 function settleNewRegion(){
  if(!P)return false;
- const region=regionAt(P.x,P.y),habitat=region+(mountainHabitat(P.x,P.y)?
-  ":"+MOUNTAIN.zone(P.x):"");
+ const region=regionAt(P.x,P.y),zone=mountainHabitat(P.x,P.y)?MOUNTAIN.zone(P.x):null;
+ const habitat=region+(zone?":"+zone:"");
  if(habitat===lastPopulatedRegion)return false;
  lastPopulatedRegion=habitat;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
- if(nearby>=2)return false;
+ const zoneNearby=zone?mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius&&
+  mountainHabitat(m.x,m.y)&&MOUNTAIN.zone(m.x)===zone).length:0;
+ // A cave cannot be declared inhabited merely because a distant summit
+ // animal happens to be within the shared 700m local-count circle.
+ if(nearby>=2&&!(zone&&zoneNearby===0&&nearby<WILDLIFE.localCap))return false;
  if(mobs.length>=WILDLIFE.cap&&!retireFarCalmAnimal())return false;
- return spawnMob(false,false,true);
+ return spawnMob(false,zone==="cave",true,null,null,zone);
 }
-function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null){
+function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null,requestedMountainZone=null){
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
  do{
   if(forcedSpot){x=forcedSpot.x;y=forcedSpot.y}
   else{
-   // Keep replenishment inside the player's local 700m ecology radius on
-   // portrait, landscape, zoomed-in and zoomed-out layouts alike.
-   const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(365,Math.min(615,WILDLIFE.localRadius-65)):
-    initial?rnd(260,1250):rnd(395,Math.min(665,WILDLIFE.localRadius-20));
-   x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
-   y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
+   const ridge=nearbyOnly&&P&&mountainHabitat(P.x,P.y)?
+    MOUNTAIN.spawnCandidate(P,tries,preyOnly,requestedMountainZone):null;
+   if(ridge){x=ridge.x;y=ridge.y;}
+   else{
+    // City districts keep the existing circular distribution.
+    const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(365,Math.min(615,WILDLIFE.localRadius-65)):
+     initial?rnd(260,1250):rnd(395,Math.min(665,WILDLIFE.localRadius-20));
+    x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
+    y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
+   }
   }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
-  valid=!collides(x,y,40)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(preyOnly?145:230))
+  valid=!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0))
    &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
@@ -1999,8 +2007,11 @@ function spawnFood(){
  for(let n=0;n<24;n++){
   const local=P&&Math.random()<.82;
   const angle=rnd(0,TWO),radius=rnd(185,760);
-  const x=local?clamp(P.x+Math.cos(angle)*radius,70,WORLD.w-70):rnd(70,WORLD.w-70);
-  const y=local?clamp(P.y+Math.sin(angle)*radius,70,WORLD.h-70):rnd(70,WORLD.h-70);
+  // Keep edible ground food on the actual cave floor rather than beyond walls.
+  const ridge=P&&mountainHabitat(P.x,P.y)&&n<16?
+   MOUNTAIN.spawnCandidate(P,n+2,true,MOUNTAIN.zone(P.x)):null;
+  const x=ridge?ridge.x:local?clamp(P.x+Math.cos(angle)*radius,70,WORLD.w-70):rnd(70,WORLD.w-70);
+  const y=ridge?ridge.y:local?clamp(P.y+Math.sin(angle)*radius,70,WORLD.h-70):rnd(70,WORLD.h-70);
   if(collides(x,y,34)||carcasses.some(c=>dist(c,{x,y})<65))continue;
   carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
   return true;
@@ -3481,10 +3492,15 @@ function maintainLocalWildlife(){
  const hunting=mission===2||mission>=7;
  const preyNearby=mobs.some(m=>m.hp>0&&["rat","rabbit","pigeon","frog"].includes(m.type)&&dist(P,m)<WILDLIFE.preyNeedRadius);
  const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+ const zone=mountainHabitat(P.x,P.y)?MOUNTAIN.zone(P.x):null;
+ const zoneCount=zone?mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius&&
+  mountainHabitat(m.x,m.y)&&MOUNTAIN.zone(m.x)===zone).length:0;
+ const caveEmpty=zone==="cave"&&zoneCount===0&&local<WILDLIFE.localCap;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
  if(mobs.length>=WILDLIFE.cap&&local<Math.min(3,target))retireFarCalmAnimal();
  if(mobs.length<WILDLIFE.cap){
-  if(hunting&&!preyNearby)spawnMob(false,true,true);
+  if(hunting&&!preyNearby)spawnMob(false,true,true,null,null,zone==="cave"?"cave":null);
+  else if(caveEmpty)spawnMob(false,true,true,null,null,"cave");
   else if(local<target){
    if(P.level>=2&&local<=WILDLIFE.localCap-2&&Math.random()<(P.level>=5?WILDLIFE.packChanceLate:WILDLIFE.packChanceEarly))
     spawnLocalPack()||spawnMob(false,false,true);
