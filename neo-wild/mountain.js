@@ -35,7 +35,7 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
  const band=x>=CAVE_START&&x<=CAVE_END?32:90;
  return {x,y:center(x)+((n%5)-2)*band/2};
 }
-const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],caveStones=[];
+const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],caveStones=[],caveColumns=[];
 const cave=Object.freeze({start:CAVE_START,end:CAVE_END,halfWidth:CAVE_HALF});
  // This stream has a physical crossing; the world never loads a new stage.
  const creek=Object.freeze({xAt:y=>9250+35*Math.sin((y-3800)/180),bridgeY:center(9250),halfWidth:31,bridgeHalf:170});
@@ -94,6 +94,12 @@ for(let x=CAVE_START+25;x<CAVE_END-15;x+=83)for(const side of [-1,1]){
  const y=center(x)+side*153;
  caveStones.push({x,y,r:40,z:height(x,y)});
 }
+// Alternating stone pillars narrow the cave edges but leave a safe central lane.
+// The same deterministic objects drive collision, visibility and both renderers.
+for(const [x,side] of [[13105,-1],[13210,1],[13320,-1]]){
+ const y=center(x)+side*72;
+ caveColumns.push({x,y,r:17,z:height(x,y)});
+}
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
  if(y<center(x)-720+r||y>center(x)+720-r)return true;
@@ -103,7 +109,7 @@ for(let x=CAVE_START+25;x<CAVE_END-15;x+=83)for(const side of [-1,1]){
      Math.abs(y-creek.bridgeY)>creek.bridgeHalf-Math.min(26,r*.45))return true;
  if(Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
  for(const hut of [...ruins,...ridgeHuts])if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
- for(const p of [...pines,...scree,...alpinePines,...alpineRocks,...caveStones])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+ for(const p of [...pines,...scree,...alpinePines,...alpineRocks,...caveStones,...caveColumns])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of trees)if(p!==sourceTree&&Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of rocks)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  return false;
@@ -137,7 +143,7 @@ function sightBlocked(a,b){
   return lo<=hi;
  };
  for(const h of [...ruins,...ridgeHuts])if(hitsRect(h))return true;
- for(const p of [...trees,...rocks,...pines,...scree,...alpinePines,...alpineRocks,...caveStones])if(hitsCircle(p))return true;
+ for(const p of [...trees,...rocks,...pines,...scree,...alpinePines,...alpineRocks,...caveStones,...caveColumns])if(hitsCircle(p))return true;
  if(maxX>=CAVE_START&&minX<=CAVE_END){
   const left=Math.max(minX,CAVE_START),right=Math.min(maxX,CAVE_END);
   if(Math.abs(dx)<1e-9){
@@ -211,6 +217,17 @@ function draw2D(ctx,visible){
   ctx.strokeStyle="#8b9087";ctx.lineWidth=13;
   for(const side of [-1,1]){ctx.beginPath();for(let x=CAVE_START;x<=CAVE_END;x+=20){const y=center(x)+side*CAVE_HALF;if(x===CAVE_START)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
   ctx.fillStyle="#9d9f8b";ctx.beginPath();ctx.ellipse(CAVE_START,center(CAVE_START),14,CAVE_HALF+22,0,0,Math.PI*2);ctx.stroke();
+  // The dark damp floor and the three solid pillars match the 3D cave mesh.
+  for(let x=CAVE_START+50;x<CAVE_END-20;x+=82){
+   if(!visible(x,center(x),170))continue;
+   ctx.fillStyle="#48544e";ctx.fillRect(x-7,center(x)-52,14,104);
+  }
+  for(const p of caveColumns){
+   if(!visible(p.x,p.y,85))continue;
+   ctx.fillStyle="#202b29";ctx.beginPath();ctx.ellipse(p.x+5,p.y+7,p.r*1.15,p.r*.70,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#7a847c";ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*.94,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#b0b8a8";ctx.lineWidth=2;ctx.stroke();
+  }
   for(const hut of [...ruins,...ridgeHuts]){
   if(!visible(hut.x+hut.w/2,hut.y+hut.h/2,160))continue;
   ctx.fillStyle="#776f5c";ctx.fillRect(hut.x,hut.y,hut.w,hut.h);
@@ -263,6 +280,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,spawnCandidate,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,spawnCandidate,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();

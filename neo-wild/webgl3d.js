@@ -850,6 +850,16 @@ function mountainTerrain(isVisible){
    for(const side of [-1,1])box(x-16,y+side*127-17,z,34,34,116,"#777c75","#a3a79c");
    box(x-16,y-132,z+116,34,264,16,"#727970","#9a9f94");
   }
+  // Cave floor texture and solid rock pillars use exactly the 2D/physics coordinates.
+  for(let x=m.cave.start+50;x<m.cave.end-20;x+=82){
+   const y=m.center(x);if(!isVisible(x,y,170))continue;
+   box(x-7,y-52,m.height(x,y)+1.6,14,104,.75,"#48544e","#5b6760");
+  }
+  for(const p of m.caveColumns||[]){
+   if(!isVisible(p.x,p.y,105))continue;
+   pyramid(p.x,p.y,p.z,p.r,p.r*.94,43,"#727d75");
+   ellipsoid(p.x,p.y,p.z+29,p.r*.58,p.r*.55,13,"#9aa39a",0,7,4);
+  }
   for(const a of m.alpineGrass){if(!isVisible(a.x,a.y,60))continue;
    for(let k=-2;k<=2;k++)pyramid(a.x+k*3,a.y-k*2,a.z,3,3,17+Math.abs(k)*3,"#7e9878");
   }

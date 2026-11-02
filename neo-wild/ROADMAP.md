@@ -1,3 +1,13 @@
+## 共同スプリント・次担当｜2026/11/3 4:41:46 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟の実衝突石柱・2D/3D景観一致
+- **開始HEAD**：`27d0fd1768a6eb5335e89c6ed720d47909a69e05`。現行20分枠の洞窟食物連鎖とSAVE2互換を維持し、洞窟x=13040〜13450に実地形を追加。
+- **変更**：`neo-wild/mountain.js` に決定的な洞窟石柱3本（x=13105/13210/13320、中心線から±72、r=17）を追加。`blocked`と`sightBlocked`へ同じ座標を結合。中央通路は幅を残してプレイヤー/獲物が通れる。Canvas2Dに石柱と湿った床の縞、`webgl3d.js:mountainTerrain`に石柱と床メッシュを追加。近距離だけ描画。HTMLの2スクリプトrev更新。世界76・近隣9・群れ制限・8地区/6探索地点・SAVE_SCHEMA2/3CP・強敵20種は不変更。
+- **動的QA**：実`mountain.js`評価、中心線43地点の歩行/壁、石柱3本の衝突/視線、中央通視、Canvas2D描画、実`webgl3d.js:mountainTerrain`をプリミティブモックで描画・可視範囲制限、2ファイル全文構文 **104 assertions PASS**。実GPU/Android/物理Pad/縦横実ブラウザ/10分E2E/FPS・旧SAVE2実機・全40技は未検証。模擬描画は実GPUと区別。
+- **配信**：コミット後のPages build/deployは別途確認。未成功なら公開済みと呼ばない。
+- **進捗V2**：A16.0/B12.0/C9.0/D4.0/E8.0/F9.0/G8.0/H4.0/I4.0=**74.0/100**（前回74.0、差0.0）。実機E2E等の条件未達につき据置。
+- **次00分枠**：①`game.js:move/collides/lineBlocked`で洞窟石柱の歩行迂回→戦闘予兆→狩猟→死骸を実関数で一連検証。②`game.js:restoreSnapshot/getCheckpoints`で旧SAVE2/3CPの洞窟内石柱重なりを検出し、必要時のみ安全位置へ復元。③HEAD対応Pagesのbuild/deploy両成功・ボス40技と入力回帰。
+- **次20分枠**：①`mountain.js:spawnCandidate`・`game.js:spawnMob`で石柱/壁から安全距離の洞窟出現。②`game.js:routeClear/huntWildPrey/forageWildBerries`で石柱の回り込み・採食成功率を経時検証。③`game.js:restoreSnapshot/normalizeStrongBossSave`で洞窟SAVE2/3CP・LV6/11ボスを回帰。
+- **次40分枠**：①`webgl3d.js:mountainTerrain`で石柱/床の実GPU可視性・洞窟LOD/FPSを測定。②`mountain.js:draw2D/blocked/sightBlocked`で石柱の表示と衝突・攻撃予兆の一致を縦横画面で検証。③`gamepad.js`・`game.js:move`で洞窟通路の物理Pad/カメラ・夜目を実機QA。
+
 ## 共同スプリント・次担当｜2026/11/03 04:29 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜山頂洞窟の生存食物連鎖・安全な出現・SAVE2回帰
 - **開始HEAD→コードHEAD**：`8540ef08d0ba47e4f957f4fd98aca4fefc4191a8` → `b83154b681f57db36655ee4381a8072623469a3e`。変更 `neo-wild/mountain.js` blob `a458eeb0`、`game.js` blob `9b45c038`、`index.html` blob `38c18004`。旧8地区/6探索地点/2橋/6巣/20強敵・40技/SAVE_SCHEMA2/3CPは保持。現行mainで00分枠の洞窟壁遮蔽を確認し同一スプリント継続。
 - **実際のプレイ変化**：①山頂洞窟x=13040〜13450の**同一ワールド座標内**に、ネズミ/ウサギを獲物、イタチ/ヘビ/キツネ/タヌキを捕食者とする既存種の食物連鎖を配置（洞窟だけの生息比率変更、種数/世界76/近隣9は不変）。②`mountain.js:spawnCandidate`と`game.js:spawnMob/settleNewRegion/maintainLocalWildlife`を連結し、洞窟幅220の内側の歩行可能な床へ合法な距離で獲物を配置。周囲700mに山頂動物が2体いても洞窟が空なら初回に1体補充、以後9秒補充を維持。山麓・山腹・山頂でも道/橋沿いの合法位置を優先し、崖/岩への出現を抑制。③洞窟の可視下草を壁から内側のy±55へ移し、草食/サルの`forageWildBerries`から到達・採食できるようにした。プレイヤー用の地上食料も`spawnFood`で洞窟通路に配置でき、狩猟→死骸→食事と空腹生存が途切れにくい。既存の2D/3D草モデル・衝突・食料/図鑑/保存を共用し、新スキーマや別ステージは作らない。
