@@ -4336,9 +4336,7 @@ function fullScreen(){
 function updateRotationButton(){
  const b=$("rotate-btn");
  if(b)b.textContent=window.innerWidth>window.innerHeight?"縦画面に戻す":"横画面にする";
- const titleButton=$("menu-landscape-btn");
- if(titleButton)titleButton.textContent=document.fullscreenElement&&window.innerWidth>window.innerHeight
-  ?"横画面・全画面：設定中":"横画面で全画面プレイ";
+
 }
 async function setFullscreenOrientation(target,note){
  if(note)note.textContent="";
@@ -4414,7 +4412,20 @@ $("retry-btn").addEventListener("click",()=>{const save=getCheckpoints().find(s=
 $("menu-btn").addEventListener("click",()=>{deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu");$("new-game-options").open=true});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
-$("menu-landscape-btn").addEventListener("click",()=>setFullscreenOrientation("landscape",$("menu-landscape-note")));
+function selectMenuOrientation(target){
+ const portrait=target==="portrait";
+ for(const [id,selected] of [["menu-portrait-btn",portrait],["menu-landscape-btn",!portrait]]){
+  const button=$(id);button.classList.toggle("selected",selected);button.setAttribute("aria-pressed",String(selected));
+ }
+ const note=$("menu-landscape-note");
+ if(portrait){
+  try{screen.orientation?.unlock?.()}catch(e){}
+  if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});
+  note.textContent="縦画面を選択しました。端末を縦にしてください。";
+ }else setFullscreenOrientation("landscape",note);
+}
+$("menu-portrait-btn").addEventListener("click",()=>selectMenuOrientation("portrait"));
+$("menu-landscape-btn").addEventListener("click",()=>selectMenuOrientation("landscape"));
 updateRotationButton();
 $("sound-btn").addEventListener("click",()=>{
  soundEnabled=!soundEnabled;$("sound-btn").textContent=soundEnabled?"♪":"×";
