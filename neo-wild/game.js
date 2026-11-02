@@ -886,7 +886,7 @@ function start(){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -1063,7 +1063,10 @@ function restoreSnapshot(snapshot){
   strongRegionCurrent=-1;normalizeStrongBossSave();
  for(const c of carcasses)normalizeRemains(c);
  for(const m of mobs){
-  // Resume boss position/HP without an unseen projectile immediately striking on load.
+  // In-flight special warnings never resolve on load without showing a fresh tell.
+  m.signature=null;m.signatureCooldown=clamp(Number(m.signatureCooldown)||0,0,16);
+  m.signatureUse=clamp(Math.floor(Number(m.signatureUse)||0),0,1000);
+  m.bossPresenceShown=false;
   if(m.type==="giantGorilla")m.rock=null;
   if(m.type==="giantEagle"){m.airPhase="circle";m.airHeight=Math.max(90,Number(m.airHeight)||125);m.airTimer=1.4;m.airTarget=null;m.airHit=false;m.windup=0;}
   if(isAquaticStrong(m)){
@@ -1236,6 +1239,120 @@ function applyStrongStrikeEffect(m,angle,charging=false){
   move(P,Math.cos(angle)*knock,Math.sin(angle)*knock);
   if(m.type==="oneEyedWolf")P.sp=clamp(P.sp-8,0,100);
   label(P.x,P.y-48,charging?"吹き飛ばされた！":"強烈な一撃！","#ffbf91");
+ }
+}
+
+/* BOSS-SIGNATURES-V1: 20 species × two distinct, avoidable signature attacks.
+ * The patterns are a pure module; all HP and save state remain in game.js. */
+const BOSS_PATTERNS=window.WildBossPatterns;
+let lastBossPresenceAt=-1e9,bossPresenceUntil=0;
+function revealBossPresence(m,d){
+ if(!m?.strongBoss||!P||d>535||m.bossPresenceShown||!visible(m.x,m.y,95)||mode!=="play")return false;
+ if(elapsed-lastBossPresenceAt<14)return false;
+ m.bossPresenceShown=true;lastBossPresenceAt=elapsed;bossPresenceUntil=elapsed+2.55;
+ const panel=$("boss-presence");
+ if(panel){
+  $("boss-presence-name").textContent=STRONG_NAMES[m.type]||"正体不明の強敵";
+  $("boss-presence-sub").textContent="危険な気配。攻撃範囲を見極めろ";
+  panel.classList.add("active");
+ }
+ shake=Math.max(shake,2.7);playEffect("howl",{volume:.13,rate:.69});
+ return true;
+}
+function applyBossSignatureEffect(m,s){
+ if(!P||!s)return;
+ const outward=Math.atan2(P.y-m.y,P.x-m.x);
+ const push=n=>move(P,Math.cos(outward)*n,Math.sin(outward)*n);
+ const stamina=n=>{P.sp=clamp(P.sp-n,0,100);};
+ const slow=n=>{P.strongSlow=Math.max(P.strongSlow||0,n);};
+ const wound=n=>{P.strongWound=Math.max(P.strongWound||0,n);};
+ // Each species keeps a distinct consequence beyond damage, with short,
+ // reversible debuffs rather than unavoidable death/status stacking.
+ switch(m.type){
+  case "alpha":stamina(17);P.noiseBurst=Math.max(P.noiseBurst||0,1.3);break;
+  case "giantSnake":slow(2.9);break;
+  case "oldBear":stamina(25);wound(1.35);break;
+  case "giantBoar":push(42);slow(1.15);break;
+  case "blackPanther":wound(3.4);break;
+  case "oneEyedWolf":stamina(14);push(21);break;
+  case "whiteTiger":push(31);wound(1.7);break;
+  case "giantHyena":stamina(15);slow(1.65);break;
+  case "giantLion":stamina(26);slow(.95);break;
+  case "giantMoose":push(61);stamina(12);break;
+  case "giantBuffalo":push(51);stamina(18);break;
+  case "giantCrocodile":slow(1.55);move(P,Math.cos(outward+Math.PI)*16,Math.sin(outward+Math.PI)*16);break;
+  case "giantHippo":push(66);stamina(16);break;
+  case "giantAnaconda":slow(3.35);stamina(17);break;
+  case "giantLizard":wound(4.3);break;
+  case "rhino":push(69);stamina(23);break;
+  case "giantGorilla":stamina(21);push(28);break;
+  case "giantElephant":stamina(26);push(79);break;
+  case "albinoWolf":slow(1.05);P.noiseBurst=Math.max(P.noiseBurst||0,1.25);break;
+  case "giantEagle":stamina(16);push(37);break;
+ }
+ // Each variant is not merely a renamed effect. The second move has a
+ // different telegraph shape and exchanges impact for a brief stamina hit.
+ if(m.signatureUse%2===0)stamina(4);
+}
+function updateBossSignature(m,dt,d){
+ if(!m?.strongBoss||!P||!BOSS_PATTERNS)return false;
+ m.signatureCooldown=Math.max(0,(m.signatureCooldown||0)-dt);
+ const active=m.signature;
+ if(active){
+  m.windup=0;m.chargeTime=0;m.vx=0;m.vy=0;
+  if(m.type==="giantGorilla")m.rock=null;
+  active.time=Math.max(0,active.time-dt);
+  if(active.time>.0001)return true;  // Visible warning remains before impact.
+  m.signature=null;m.swing=Math.max(m.swing||0,.28);
+  const cover=insideShelter(P)||lineBlocked(m,P);
+  const jumping=(P.jumpHeight||0)>Math.max(22,(P.groundZ||0)+17);
+  if(!cover&&!jumping&&P.inv<=0&&BOSS_PATTERNS.hit(active,P.x,P.y,P.r*.55)){
+   const raw=Math.round(species[m.type].damage*active.power*(1+enemyChallengeTier()*.038)*
+    (m.hp<m.maxHp*.45?1.12:1));
+   const amount=strongDamageTaken(raw);
+   P.hp=Math.max(0,P.hp-amount);P.lastCombatAt=elapsed;
+   interruptRush();P.inv=.58;shake=Math.max(shake,10);flash=Math.max(flash,.22);
+   blood(P.x,P.y,"#ec7966",13,115);playEffect("damage");
+   applyBossSignatureEffect(m,active);
+   label(P.x,P.y-45,active.name+" -"+amount,"#ffd2a8");
+  }else if(d<active.range+90){
+   m.stun=Math.max(m.stun,.33);
+   label(m.x,m.y-m.r-28,"見切った！","#b6f7dc");
+  }
+  return true;
+ }
+ if(m.signatureCooldown>0||m.stun>0||m.attack>.08||m.windup>0||m.chargeTime>0||
+    P.hidden||insideShelter(P)||d>370||d<1||lineBlocked(m,P))return false;
+ const n=m.signatureUse||0,descriptor=BOSS_PATTERNS.pattern(m.type,n);
+ if(!descriptor||d>Math.max(195,descriptor.range+100))return false;
+ const attack=BOSS_PATTERNS.target(m,P,descriptor);
+ if(!attack)return false;
+ if(m.hp<m.maxHp*.45){attack.total*=.88;attack.time=attack.total;}
+ m.signature=attack;m.signatureUse=n+1;
+ m.signatureCooldown=descriptor.cooldown+(m.hp<m.maxHp*.45?0:1.25);
+ m.attack=Math.max(m.attack,attack.total+.46);
+ m.windup=0;m.chargeTime=0;m.aquaticStrike=false;m.vx=0;m.vy=0;
+ m.dir=attack.dir;
+ label(m.x,m.y-m.r-37,"強敵技："+descriptor.name,"#ffae90");
+ playEffect("snarl",{volume:.10,rate:.74});
+ return true;
+}
+function drawBossThreats(entities){
+ if(!BOSS_PATTERNS)return;
+ for(const m of entities){
+  if(m===P||!m.strongBoss||m.hp<=0)continue;
+  ctx.save();const rhythm=(1+Math.sin(elapsed*3.8+m.r)*.10);
+  ctx.strokeStyle="rgba(255,95,78,.70)";ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.arc(m.x,m.y,m.r*rhythm+15,0,TWO);ctx.stroke();
+  ctx.textAlign="center";ctx.textBaseline="bottom";
+  ctx.font="900 12px sans-serif";ctx.lineWidth=3.2;ctx.strokeStyle="#1b1316";
+  const name=STRONG_NAMES[m.type]||"強敵",by=m.y-m.r-58;
+  ctx.strokeText("強敵・"+name,m.x,by);ctx.fillStyle="#ffd0bd";ctx.fillText("強敵・"+name,m.x,by);
+  const width=76;ctx.fillStyle="#301c22";ctx.fillRect(m.x-width/2,by+5,width,6);
+  ctx.fillStyle=m.hp<m.maxHp*.45?"#ff876d":"#d6514c";
+  ctx.fillRect(m.x-width/2,by+5,width*clamp(m.hp/Math.max(1,m.maxHp),0,1),6);
+  ctx.restore();
+  if(m.signature)BOSS_PATTERNS.draw(ctx,m.signature,elapsed);
  }
 }
 
@@ -1454,7 +1571,7 @@ function spawnStrongBoss(type,region){
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
    chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintCooldown:2,
    thirstNeed:.4,drinkCooldown:3,flankSide:Math.random()<.5?-1:1,
-   strongBoss:true,strongRegion:region,strongBirthDay:day,
+   strongBoss:true,strongRegion:region,strongBirthDay:day,signature:null,signatureUse:0,signatureCooldown:0,bossPresenceShown:false,
    ...(type==="giantEagle"?{airHeight:125,airPhase:"circle",airTimer:1.7,airOrbit:angle,airAnchorX:x,airAnchorY:y,airTarget:null,airHit:false}: {})});
   notify("この地区に"+STRONG_NAMES[type]+"の気配がある");
   return true;
@@ -3437,6 +3554,10 @@ function update(dt){
    m.attack=Math.max(m.attack,.35);m.vx=0;m.vy=0;
    continue;
   }
+  if(m.strongBoss){
+   revealBossPresence(m,d);
+   if(updateBossSignature(m,dt,d))continue;
+  }
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
@@ -4761,6 +4882,9 @@ function drawDeathVignette(){
  ctx.restore();
 }
 function drawScene(){
+ const presence=$("boss-presence");
+ if(presence)presence.classList.toggle("active",mode==="play"&&elapsed<bossPresenceUntil);
+ $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
  if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
@@ -4825,6 +4949,7 @@ function drawScene(){
  for(const bird of birdFlocks)if(visible(bird.x,bird.y,90))drawFlyingBird(bird);
  drawOccludedSilhouettes(entities);
  }
+ drawBossThreats(entities);
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
   const symbol=m.resting?"Zz":(m.drinkPose||0)>0?"水":(m.scavengePose||0)>0||(m.foragePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
