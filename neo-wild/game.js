@@ -582,6 +582,21 @@ function buildScenicProps(){
    scenicProps.push({x:px,y:py,kind});
   }
  }
+ // Procedural urban rewilding is derived from coordinates and never depends on
+ // the saved plants[] array. Old SAVE_SCHEMA2 worlds gain the same visual ruins.
+ for(const [zx,zy,zw,zh,color,biome] of BIOME_AREAS){
+  const step=biome==="forest"?270:245;
+  for(let yy=zy+96;yy<zy+zh-50;yy+=step)for(let xx=zx+96;xx<zx+zw-50;xx+=step){
+   const n=noise(xx*.013+yy*.009,71);
+   if(n<.29)continue;
+   const px=xx+(noise(xx*.027,yy*.019)-.5)*80;
+   const py=yy+(noise(yy*.017,xx*.013)-.5)*80;
+   if(waterBlocksLand(px,py)||nearBuilding(px,py,46))continue;
+   if(roadsX.some(v=>Math.abs(px-v)<83)||roadsY.some(v=>Math.abs(py-v)<83))continue;
+   const kind=n>.91?"sapling":n>.79?"collapsed":"wildGrowth";
+   scenicProps.push({x:px,y:py,kind,seed:Math.round((n+1)*1000)});
+  }
+ }
 }
 function drawWater2D(){
  for(const seg of WATER_RIBBONS){
@@ -606,6 +621,28 @@ function drawScenery2D(){
   else if(p.kind==="forest"){ctx.fillStyle="#716045";ctx.fillRect(-6,-32,12,55);ctx.fillStyle="#33834c";for(const [dx,dy] of [[-20,-24],[20,-24],[0,-45],[0,0]]){ctx.beginPath();ctx.ellipse(dx,dy,23,19,0,0,TWO);ctx.fill();}}
   else if(p.kind==="factory"){ctx.fillStyle="#a27e65";ctx.fillRect(-39,-19,78,38);ctx.fillStyle="#c7a884";ctx.fillRect(-39,-23,78,7);ctx.fillStyle="#75695d";ctx.fillRect(-31,19,8,28);ctx.fillRect(23,19,8,28);}
   else if(p.kind==="dock"){ctx.fillStyle="#9f907a";ctx.fillRect(-45,-29,90,58);ctx.strokeStyle="#66584c";ctx.lineWidth=3;for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(k*12,-29);ctx.lineTo(k*12,29);ctx.stroke();}ctx.fillStyle="#abbab4";ctx.fillRect(35,-33,8,65);}
+  else if(p.kind==="wildGrowth"){
+   ctx.fillStyle="#183e2a78";ctx.beginPath();ctx.ellipse(0,8,35,17,0,0,TWO);ctx.fill();
+   for(let j=0;j<15;j++){
+    const a=j*2.4,r=8+(j%5)*5,h=21+(j%4)*8,x=Math.cos(a)*r,y=Math.sin(a)*r*.45;
+    ctx.fillStyle=j%3?"#477e4f":"#8caa68";ctx.beginPath();ctx.moveTo(x-4,y+9);
+    ctx.quadraticCurveTo(x-12,y-h*.45,x+Math.sin(a)*15,y-h);
+    ctx.quadraticCurveTo(x+10,y-h*.4,x+5,y+8);ctx.fill();
+   }
+   for(let j=0;j<3;j++){ctx.fillStyle=j%2?"#d6bc73":"#d9e3ac";ctx.beginPath();ctx.arc((j-1)*13,-25-j%2*9,3.5,0,TWO);ctx.fill();}
+  }else if(p.kind==="sapling"){
+   ctx.fillStyle="#1f382c70";ctx.beginPath();ctx.ellipse(0,10,29,14,0,0,TWO);ctx.fill();
+   ctx.strokeStyle="#63543d";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(-4,-47);ctx.stroke();
+   for(let k=0;k<5;k++){const a=k*TWO/5;
+    ctx.fillStyle=k%2?"#3c7d4d":"#6a9c58";ctx.beginPath();
+    ctx.ellipse(-4+Math.cos(a)*24,-47+Math.sin(a)*15,21,16,a,0,TWO);ctx.fill();}
+  }else if(p.kind==="collapsed"){
+   ctx.fillStyle="#1b333066";ctx.beginPath();ctx.ellipse(0,11,43,20,0,0,TWO);ctx.fill();
+   ctx.save();ctx.rotate(-.19);ctx.fillStyle="#646e69";ctx.fillRect(-33,-13,53,25);
+   ctx.fillStyle="#424d47";ctx.fillRect(16,-17,14,18);
+   ctx.strokeStyle="#9daba073";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-21,-10);ctx.lineTo(-2,1);ctx.lineTo(10,-5);ctx.stroke();ctx.restore();
+   ctx.strokeStyle="#52815b";ctx.lineWidth=2;for(const k of [-22,6,25]){ctx.beginPath();ctx.moveTo(k,13);ctx.quadraticCurveTo(k+10,-3,k+4,-20);ctx.stroke();}
+  }
   ctx.restore();
  }
 }
@@ -3852,6 +3889,7 @@ function drawFlyingBird(o){
  ctx.beginPath();ctx.moveTo(-3,0);ctx.quadraticCurveTo(resting?-8:-13,resting?-3:-8-wing,resting?-11:-18,resting?-3:-8-wing);
  ctx.moveTo(3,0);ctx.quadraticCurveTo(resting?8:13,resting?3:8+wing,resting?11:19,resting?3:8+wing);ctx.stroke();ctx.restore();
 }
+function bayDecayed(b,decay){return b.broken||decay>.26;}
 function drawBuilding(b){
  if(b.interior&&shelterRevealed(b)){
   ctx.fillStyle="#182f2e";ctx.fillRect(b.x,b.y,b.w,b.h);
@@ -3896,6 +3934,22 @@ function drawBuilding(b){
  ctx.fillStyle="#7d8672";ctx.fillRect(x+w*.52,y+h*.6,43,15);ctx.fillStyle="#19282c";ctx.fillRect(x+w*.52+5,y+h*.6+3,33,8);
  ctx.strokeStyle="#9a9e7950";ctx.beginPath();ctx.moveTo(x+w*.52,y+h*.55);ctx.lineTo(x+w*.72,y+h*.38);ctx.stroke();
  if(b.broken){ctx.fillStyle="#0c171b";ctx.beginPath();ctx.moveTo(x+w*.73,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w,y+h*.24);ctx.lineTo(x+w*.87,y+h*.15);ctx.fill()}
+ // Cracks, dangling ivy and missing masonry show decades of abandonment.
+ const decay=noise(b.seed,271);
+ if(bayDecayed(b,decay)){
+  for(let k=0;k<5;k++){
+   const xx=x+14+w*(.10+k*.17),length=19+noise(k,b.seed)*h*.24;
+   ctx.strokeStyle=k%2?"#385f45":"#5d824e";ctx.lineWidth=4;
+   ctx.beginPath();ctx.moveTo(xx,y+5);ctx.bezierCurveTo(xx+8,y+length*.35,xx-9,y+length*.66,xx+5,y+length);ctx.stroke();
+   for(let j=0;j<3;j++){const yy=y+length*(j+1)/4;
+    ctx.fillStyle=j%2?"#46754a":"#75975f";ctx.beginPath();ctx.ellipse(xx+(j%2?8:-6),yy,7,4,j%2?.3:-.4,0,TWO);ctx.fill();}
+  }
+  ctx.strokeStyle="#131f22a5";ctx.lineWidth=2.2;
+  for(let k=0;k<3;k++){const cx=x+w*(.20+noise(k,b.seed)*.55),cy=y+h*(.4+k*.17);
+   ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+13,cy+15);ctx.lineTo(cx-4,cy+29);ctx.stroke();}
+  ctx.fillStyle="#526e49";for(let k=0;k<8;k++){const tx=x+8+(k+.5)*w/9;
+   ctx.beginPath();ctx.ellipse(tx,y+10,5+(k%3)*3,3+(k%2)*3,0,0,TWO);ctx.fill();}
+ }
  if(b.sign){ctx.save();ctx.translate(x+w-19,y+32);ctx.rotate(Math.PI/2);ctx.fillStyle="#c18c5760";ctx.fillRect(0,0,95,19);ctx.fillStyle="#1e2626";ctx.font="700 11px monospace";ctx.fillText("EXIT •  TOKYO",6,13);ctx.restore()}
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
@@ -4702,7 +4756,7 @@ function drawDeathVignette(){
 function drawScene(){
  const x=cam.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
