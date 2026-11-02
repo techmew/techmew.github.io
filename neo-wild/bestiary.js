@@ -23,7 +23,20 @@ function configure(species,strongNames){
   if(!species[type])continue;
   const item={type,name,boss:true,model:species[type]};catalog.push(item);registry[type]=item;
  }
- load();updateSummary();
+ load();
+ // Import pre-existing boss trophies from legacy autosave/checkpoints once; do not
+ // guess species from the aggregate HUNT counter (it lacks type information).
+ try{
+  const snapshots=[JSON.parse(localStorage.getItem("wild-reclaim-autosave-v2")||"null"),...JSON.parse(localStorage.getItem("wild-reclaim-checkpoints-v2")||"[]")];
+  for(const snap of snapshots){
+   if(!snap||snap.version!==2||!snap.strongTrophies)continue;
+   for(const type of Object.keys(strongNames||{})){
+    const n=Number(snap.strongTrophies[type]);
+    if(Number.isSafeInteger(n)&&n>count(type))counts[type]=Math.min(n,999999);
+   }
+  }
+ }catch(_){}
+ persist();updateSummary();
 }
 function recordKill(type){
  if(!registry[type])return;
