@@ -385,7 +385,57 @@ function saveDenStash(){
  }catch(_){}
 }
 const STATION={x:2460,y:1170};
+const TOP_SCORES_KEY="wild-reclaim-top5-v1";
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
+if(!Number.isSafeInteger(best)||best<0)best=0;
+// Only local best existed before the TOP 5 update. Keep that score as a legacy entry.
+function loadTopScores(){
+ let list=[];
+ try{
+  const parsed=JSON.parse(localStorage.getItem(TOP_SCORES_KEY)||"[]");
+  if(Array.isArray(parsed))list=parsed.slice(0,30).filter(e=>e&&Number.isSafeInteger(e.score)&&e.score>=0).map((e,i)=>({
+   id:typeof e.id==="string"&&e.id.length<=80?e.id:"imported-"+i,
+   score:e.score,animal:["cat","fox","wolf"].includes(e.animal)?e.animal:null,
+   day:Number.isInteger(e.day)&&e.day>0?e.day:0,
+   kills:Number.isInteger(e.kills)&&e.kills>=0?e.kills:0,
+   level:Number.isInteger(e.level)&&e.level>0?e.level:0,
+   at:Number.isFinite(e.at)&&e.at>0?e.at:0,legacy:!!e.legacy
+  }));
+ }catch(_){}
+ if(best>0&&!list.some(e=>e.score===best))list.push({id:"legacy",score:best,animal:null,day:0,kills:0,level:0,at:0,legacy:true});
+ return list.sort((a,b)=>b.score-a.score||b.at-a.at).slice(0,5);
+}
+function recordTopScore(score){
+ const previousBest=best,list=loadTopScores();
+ if(debugTutorialSession)return {list,id:null,high:false,saved:false,rank:0,test:true};
+ const id="run-"+Date.now()+"-"+Math.random().toString(36).slice(2,10);
+ const entry={id,score,animal:P.type,day,kills,level:P.level,at:Date.now(),legacy:false};
+ const next=[...list,entry].sort((a,b)=>b.score-a.score||b.at-a.at).slice(0,5);
+ let saved=false;
+ try{localStorage.setItem(TOP_SCORES_KEY,JSON.stringify(next));saved=true}catch(_){}
+ best=Math.max(previousBest,score);
+ try{localStorage.setItem("wild-reclaim-best",String(best))}catch(_){}
+ return {list:next,id,high:score>previousBest,saved,rank:next.findIndex(e=>e.id===id)+1,test:false};
+}
+function renderTopScores(record){
+ $("result-highscore").classList.toggle("hidden",!record.high);
+ const list=$("result-top5-list");list.replaceChildren();
+ for(const [i,e] of record.list.entries()){
+  const row=document.createElement("li");
+  if(e.id===record.id)row.classList.add("current");
+  const rank=document.createElement("span");rank.className="score-rank";rank.textContent=String(i+1)+"位";
+  const info=document.createElement("span");info.className="score-info";
+  const animal=document.createElement("b");
+  animal.textContent=e.legacy?"以前の最高記録":(animals[e.animal]?.name||"生存記録")+(e.id===record.id?"（今回）":"");
+  const meta=document.createElement("small");meta.textContent=e.legacy?"旧データから引き継ぎ":"DAY "+e.day+"・狩り "+e.kills+"・LV "+e.level;
+  info.append(animal,meta);
+  const points=document.createElement("strong");points.className="score-points";points.textContent=e.score.toLocaleString("ja-JP");
+  row.append(rank,info,points);list.appendChild(row);
+ }
+ $("result-top5-status").textContent=record.test?"デバッグ通しテスト中：記録は保存しません":
+  !record.saved?"記録を保存できませんでした。ブラウザの保存設定を確認してください。":
+  record.rank?"今回の順位："+record.rank+"位（この端末に保存）":"今回の記録は6位以下（TOP5は維持）";
+}
 $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
 function noise(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)}
 function nearBuilding(x,y,r=0){return buildings.some(b=>x>b.x-r&&x<b.x+b.w+r&&y>b.y-r&&y<b.y+b.h+r)}
@@ -2364,7 +2414,7 @@ function finish(won=false){
  // The autosave was cleared when death began, exactly once.
  resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
- if(totalScore>best&&!debugTutorialSession){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
+ const scoreRecord=recordTopScore(totalScore);
  $("result-kicker").textContent=won?"TOKYO RECLAIMED":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
@@ -2372,6 +2422,7 @@ function finish(won=false){
  $("retry-btn").textContent=getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）";
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>DAY "+String(day).padStart(2,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
+ renderTopScores(scoreRecord);
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
  show("result");if(!deathAlreadyPlayed)playEffect(won?"level":"death");
 }
