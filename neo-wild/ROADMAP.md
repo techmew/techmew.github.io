@@ -1,3 +1,18 @@
+## 共同スプリント・次担当｜2026/11/02 13:15 JST｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜死亡直後の自動保存保護・飢餓警告と摂食回復
+
+- **開始→終了HEAD**：開始 `d2f904923a775f83bc7ac7a22615924558227408` → コード終了 `ee6c59a9c7d431bcf77826b63d8a4cb597308213`。12:48の45分枠記録と最新main、Drive完成仕様末尾を照合。最新手動の茂み・巣教程変更 `b1b14f3` / `d2f9049` は保持。旧死亡3.2秒/3D2D倒れ込み/音フェード・空腹0の2.4HP秒/1〜16%の1.2HP秒・SAVE_SCHEMA2・3CPは再実装なし。
+- **コード変更**：`neo-wild/game.js` commit `16c9cb4b8cec4008cab05e1d59635f404b3a4f8a` / blob `47184ed7ffbcaa82dac839f330284c4556061e23`。`neo-wild/index.html` commit `ee6c59a9c7d431bcf77826b63d8a4cb597308213` / blob `e60430ea739e59c76bdcbeb46b4af89eb0a25dc2`。game.jsキャッシュrev `20261102-death-save-starvation-v2`。他ゲーム・他フォルダ変更なし。
+- **プレイ改善3点**：(1) `beginDeath`でHP0確定時に自動保存を即破棄し、3.2秒倒れ込み途中のページ再読込で死亡前の古い自動保存が復活する問題を防止。`finish`での二重破棄を削除。3CPは残し、デバッグ通しテストの元保存も保護。(2) 空腹が0に到達した瞬間だけ『空腹0：生命が減少中。食べ物を探そう』と短く通知し、繰り返し通知しない。(3) HUDの空腹表示を0%『飢餓：生命 -2.4/秒』、1〜16%『衰弱：生命 -1.2/秒』に変更。摂食→HP回復→飢餓ダメージ停止、巣回復、死亡HP0のみの既存ルールは維持。
+- **実関数動的QA**：現行`updateSurvivalNeeds/beginDeath/advanceDeath/finish/clearAutoSave/saveAuto/currentSnapshot/getCheckpoints/isValidSnapshot`を抜き出したV8模擬環境で22/22 PASS（空腹0の10秒減少/分割dt一致、0%一回警告、食事後ダメージ停止、巣回復境界、HP0のみ死亡、死亡直後オートセーブ破棄・3CP保持、二重開始/二重消去なし、3.19秒非表示→3.21秒結果、テスト保存保護）。さらに実`eat`を結合し空腹0→2秒飢餓→食事で空腹+24/HP+12→次フレーム減少停止→自動保存→HP0死亡→3CP保持→3.2秒結果の14/14 PASS。現行本番6JS全文構文6/6 PASS。**合計42/42の限定的検査。実ブラウザ10分E2E・実Android・実GPU・物理Pad・縦横矩形は未検証**。
+- **Pages**：コードHEAD `ee6c59a9c7d431bcf77826b63d8a4cb597308213` run **41387332771**、jobs APIで **build=success / report-build-status=success / deploy=success** 確認。前段game.js単体HEADのrunは後続commitでcancelled、最新版の成功を優先。ROADMAP記録後HEADの配信は次回別確認。
+- **進捗計測V2**：A **16.0/16**（生存/死亡/再開、今回実食事結合14件）、B **12.0/12**（既存6巣・屋上・備蓄試験）、C **9.0/12**（季節→橋→川→地区連続経路待ち）、D **4.0/16**（20種登録のみ種別固有戦闘未試験）、E **8.0/8**（既存20素材継承100件）、F **9.0/12**（縦横HUD矩形未試験）、G **8.0/8**（旧SAVE_SCHEMA2/3CP/再開、今回の死亡保存保護）、H **4.0/6**（実ブラウザFPS/当たり判定/画面サイズ未試験）、I **4.0/10**（実関数統合＋対象HEAD Pages両success、ブラウザ10分/Android/物理Pad各0）。**合計74.0/100、前回74.0→74.0、差0.0**。変更は既得点A/Gの品質回帰で、新条件達成なし。
+- **次15分枠1**：`game.js:restoreSnapshot/getCheckpoints/retry-btn`で飢餓0→HP0→3.2秒→3CP最新同種からリトライ/CPなし新規/最初からの実イベント結合、旧SAVE_SCHEMA2の保存二重加算を回帰。
+- **次15分枠2**：`game.js:updateSurvivalNeeds/update/eat/eatFromDen`で強敵出血と飢餓を同時進行→野外摂食/巣食事→死亡HP0判定の経時連結テスト。重複ダメージや食事優先の破綻だけ最小修正。
+- **次15分枠3**：現行mainの茂み・教程 `inVisibleShrubCover/ensureTrainingCoverNear/checkMission`を実動作で通し、可視茂み滞在→食事→狩猟→巣備蓄→『生き残れ！』まで自動達成・告知飛びのない一連のプレイに修正。
+- **次45分枠1**：`game.js:drawScene/drawCreature`、`webgl3d.js:animal`、`audio.js:fadeForDeath`の死亡3.2秒を縦390×844/横800×360の実ブラウザで姿勢・音・画面フェードと再開を検証。
+- **次45分枠2**：6巣の屋上/地上と右HUD/地図/SCORE/HUNT/デバッグUIの実DOM矩形、Canvas2D/WebGL/FPS、縦横を確認し必要時のみ修正。
+- **次45分枠3**：`spawnStrongBoss/resolveAttack/kill`と`webgl3d.js`で強敵20種の固有AI/外見/討伐→素材/保存を種類別に実結合し、Dの不足条件を解消。
+
 ## 共同スプリント・次担当｜2026/11/02 12:48 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜死亡時の戦闘表示・揺れ・気象エフェクトを静める
 
 - **照合・HEAD**：最新main `f629f40ef13b688db2cf2074945822ae84837e15`、ROADMAP直近12:44/11:15/10:45の両枠記録、Drive完成仕様設計書末尾、現行game.js/webgl3d.js/audio.js/debug-mode.js/index.htmlを確認。既存飢餓2.4HP/秒、3.2秒倒れ込み、3D回転・2D伏せ、音フェード、6巣、SAVE_SCHEMA2、3CPは再実装せず維持。コードHEAD `188fc03a61d4023121f36fb309b2d913be81a4c0`。
