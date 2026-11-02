@@ -2971,8 +2971,9 @@ function update(dt){
   P.strongWound=Math.max(0,P.strongWound-dt*(safeDen?2.2:1));
  }
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt*traitEffect("giantSnake",1));
-  if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
+  // A fatal bleed ends the frame before another region can roll/spawn a boss.
  if(P.hp<=0){P.hp=0;beginDeath();return}
+ if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
@@ -4474,8 +4475,16 @@ $("mission-close").addEventListener("click",()=>{
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
-$("retry-btn").addEventListener("click",()=>{const save=getCheckpoints().find(s=>s.player.type===P?.type);if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}clearAutoSave();start();announceObjective()});
-$("menu-btn").addEventListener("click",()=>{deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu")});
+$("retry-btn").addEventListener("click",()=>{
+ if(mode!=="over"&&mode!=="clear")return; // Ignore queued double taps after resuming.
+ const save=getCheckpoints().find(s=>s.player.type===P?.type);
+ if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}
+ clearAutoSave();start();announceObjective();
+});
+$("menu-btn").addEventListener("click",()=>{
+ if(mode!=="over"&&mode!=="clear")return;
+ deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu");
+});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
 function selectMenuOrientation(target){
