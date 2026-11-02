@@ -273,6 +273,8 @@ const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
 // The foothill shares the existing eighth ecology slot: old saves retain 8 entries.
 function mountainHabitat(x,y){return !!MOUNTAIN&&x>=MOUNTAIN.CITY_EDGE&&MOUNTAIN.active(x,y);}
+function strongHabitatKey(x,y){return mountainHabitat(x,y)?"7:foothill":regionAt(x,y);}
+const FOOTHILL_STRONG=["oldBear","giantBoar","blackPanther","giantEagle"];
 function regionAt(x,y){
  if(y<2600){
   if(x<1400)return 0;if(x<2800)return 1;if(x<4200)return 2;if(x<6300)return 3;return 4;
@@ -1608,7 +1610,7 @@ function updateFlyingEagle(m,dt){
 /* STRONG-STAGE-20P-V1: one draw per district, a single active boss, save-compatible. */
 function strongBossAlive(){return activeStrongBosses()[0]||null;}
 function strongStageCandidate(region){
- const options=(STRONG_REGIONS[region]||["alpha"]).filter(t=>!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length>0);
+ const options=(mountainHabitat(P?.x||0,P?.y||0)?FOOTHILL_STRONG:(STRONG_REGIONS[region]||["alpha"])).filter(t=>!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length>0);
  const hour=(6+Math.floor((elapsed%85)/85*24))%24,night=hour>=19||hour<6;
  const weights=options.map(t=>t==="blackPanther"?(night?3.2:.7):t==="oneEyedWolf"?(night?2.2:1.1):t==="whiteTiger"?(night?.65:1.7):t==="giantHyena"?(weather==="RAIN"||weather==="THUNDER"?.55:1.5):t==="giantLion"?(night?1.8:1.1):t==="giantMoose"?(weather==="THUNDER"?.55:1.4):t==="giantBuffalo"?(weather==="RAIN"?1.5:1.2):t==="giantGorilla"?(weather==="THUNDER"?.55:1.0):t==="giantElephant"?(weather==="RAIN"?1.35:.95):t==="giantEagle"?(weather==="THUNDER"?.25:weather==="RAIN"?.55:night?.65:1.5):t==="albinoWolf"?(night?.48:.18):t==="giantCrocodile"?(night?2.0:1.1):t==="giantHippo"?(weather==="RAIN"?1.8:1.1):t==="giantAnaconda"?(night?1.6:1.0):t==="giantSnake"?(weather==="RAIN"||weather==="THUNDER"?1.7:1.2):t==="oldBear"?(night?.7:1.5):t==="giantBoar"?(weather==="THUNDER"?.65:1.3):1.2);
  let roll=Math.random()*weights.reduce((a,b)=>a+b,0);
@@ -1624,7 +1626,7 @@ function spawnStrongBoss(type,region){
   const spot=aquatic?waterSpots[Math.floor(Math.random()*waterSpots.length)]:null;
   const x=spot?spot.x:clamp(P.x+Math.cos(angle)*radius,60,WORLD.w-60);
   const y=spot?spot.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
-  if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
+  if(regionAt(x,y)!==region||mountainHabitat(x,y)!==mountainHabitat(P.x,P.y)||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
   // Boss health stays near 7-12 ordinary hits at high LV, not a day-based infinity.
   const hp=bossHealthTarget(sp);
   mobs.push({x,y,type,r:sp.r,color:sp.color,belly:sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
@@ -1641,24 +1643,24 @@ function spawnStrongBoss(type,region){
 }
 function enterStrongStage(){
  if(!P)return;
- const region=regionAt(P.x,P.y);strongRegionCurrent=region;
+ const region=regionAt(P.x,P.y),habitat=strongHabitatKey(P.x,P.y);strongRegionCurrent=habitat;
  // Keep 2-3 rare encounters in the travelled district rather than filling the
  // global cap with long-abandoned bosses. Retire only unseen, very distant ones.
  if(P.level>=6)for(let i=mobs.length-1;i>=0;i--){
   const m=mobs[i];
-  if(m.strongBoss&&m.hp>0&&regionAt(m.x,m.y)!==region&&dist(P,m)>WILDLIFE.farAI)
+  if(m.strongBoss&&m.hp>0&&strongHabitatKey(m.x,m.y)!==habitat&&dist(P,m)>WILDLIFE.farAI)
    mobs.splice(i,1);
  }
- if(!Object.prototype.hasOwnProperty.call(strongRolls,region))
-  strongRolls[region]=Math.random()<.20?{type:strongStageCandidate(region),spawned:false}:{type:null,spawned:true};
- const roll=strongRolls[region];
+ if(!Object.prototype.hasOwnProperty.call(strongRolls,habitat))
+  strongRolls[habitat]=Math.random()<.20?{type:strongStageCandidate(region),spawned:false}:{type:null,spawned:true};
+ const roll=strongRolls[habitat];
  if(P.level>=6){
   let changed=false,attempts=0;
   while(activeStrongBosses().length<strongBossLimit()&&attempts++<9){
    let type=strongStageCandidate(region);
    const present=new Set(activeStrongBosses().map(m=>m.type));
    if(present.has(type)){
-    const alternatives=(STRONG_REGIONS[region]||[]).filter(t=>!present.has(t)&&(!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length));
+    const alternatives=(mountainHabitat(P.x,P.y)?FOOTHILL_STRONG:(STRONG_REGIONS[region]||[])).filter(t=>!present.has(t)&&(!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length));
     if(alternatives.length)type=alternatives[Math.floor(Math.random()*alternatives.length)];
    }
    if(spawnStrongBoss(type,region))changed=true;
@@ -1679,7 +1681,7 @@ function normalizeStrongBossSave(){
    else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
   }
  }
- if(first)strongRolls[first.strongRegion]={type:first.type,spawned:true};
+ if(first)strongRolls[strongHabitatKey(first.x,first.y)]={type:first.type,spawned:true};
  // A legacy SAVE_SCHEMA2 monster may have had only 10-14 basic-hit HP.
  // Upgrade it once while retaining the same injury percentage and checkpoints.
  if(P)for(const m of activeStrongBosses()){
@@ -3614,7 +3616,7 @@ function update(dt){
   // A fatal bleed ends the frame before another region can roll/spawn a boss.
  if(P.hp<=0){P.hp=0;beginDeath();return}
  settleNewRegion();
- if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
+ if(strongRegionCurrent!==strongHabitatKey(P.x,P.y))enterStrongStage();
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
