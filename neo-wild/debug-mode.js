@@ -24,6 +24,10 @@ style.textContent=[
 "#wr-debug-panel small{display:block;color:#bccfca;line-height:1.5;}",
 "#wr-debug-panel #wr-debug-message{min-height:1.4em;color:#a6e7cd;margin-top:9px;font-weight:700;}",
 "#wr-debug-panel .wr-debug-wide{grid-column:1 / -1;}",
+"#wr-debug-panel .wr-debug-section{margin:10px 0;padding:10px;border:1px solid #49645d;border-radius:9px;}",
+"#wr-debug-panel .wr-debug-section summary{font-size:14px;font-weight:800;cursor:pointer;padding:5px 0;}",
+"#wr-debug-panel .wr-debug-section label{margin:10px 0;}",
+"#wr-debug-panel .wr-debug-section button{width:100%;}",
 "@media(max-height:520px){#wr-debug-panel{max-height:90dvh;}}"
 ].join("");
 document.head.appendChild(style);
@@ -46,6 +50,8 @@ panel.innerHTML=[
 '<label class="wr-debug-wide">移動先<select id="wr-debug-location"><option value="home">巣周辺</option><option value="zoo">廃動物園</option><option value="forest">森林</option><option value="factory">工業区</option><option value="canal">運河沿い</option><option value="river">河川敷</option></select></label>',
 '<button type="button" data-action="warp">指定地点へ移動</button><button type="button" data-action="heal">HP・空腹・持久回復</button>',
 '</div>',
+'<details class="wr-debug-section"><summary>強敵を出す（20種類）</summary><small>現在地の周辺に1体出現。すでに強敵がいる場合は追加できません。水辺専用種は水辺で使用。</small><label>強敵を選ぶ<select id="wr-debug-boss"></select></label><button type="button" data-action="boss">選んだ強敵を出す</button></details>',
+'<details class="wr-debug-section"><summary>チュートリアルを試す</summary><small>開始から終了まで各段階を選べます。現在の進行状況が変更・保存されます。</small><label>開始する段階<select id="wr-debug-stage"><option value="0">最初から：食事</option><option value="1">潜伏</option><option value="2">狩猟</option><option value="4">巣・備蓄・強化</option><option value="5">縄張り</option><option value="6">探索地点</option><option value="7">終了：生き残れ！</option></select></label><button type="button" data-action="tutorial">この段階から試す</button></details>',
 '<div class="wr-debug-grid">',
 '<button type="button" data-action="shadows">雲影：ON</button><button type="button" data-action="save">現在状態を保存</button>',
 '<button type="button" data-action="copy">診断情報をコピー</button><button type="button" data-action="disable">デバッグ解除</button>',
@@ -62,7 +68,7 @@ const shadow=()=>window.WildSeasonClouds;
 function showPanel(value){
  if(!unlocked)return;
  panel.hidden=!value;
- if(value)renderStats();
+ if(value){fillBosses();renderStats();}
 }
 function unlockToggle(){
  unlocked=!unlocked;
@@ -126,6 +132,12 @@ function renderStats(){
  ].join("\n");
  stats.textContent=display;
 }
+function fillBosses(){
+ const select=panel.querySelector("#wr-debug-boss");
+ if(select.options.length)return;
+ const bosses=bridge()?.listBosses?.()||[];
+ for(const boss of bosses){const option=document.createElement("option");option.value=boss.id;option.textContent=boss.animal;select.appendChild(option);}
+}
 function say(text){message.textContent=text;renderStats();}
 panel.addEventListener("click",async ev=>{
  const button=ev.target.closest("button[data-action]");
@@ -153,6 +165,16 @@ panel.addEventListener("click",async ev=>{
  const api=bridge();
  if(!api){say("デバッグ連携を読み込めません");return;}
  let ok=false;
+ if(action==="boss"){
+  ok=api.spawnBoss?.(panel.querySelector("#wr-debug-boss").value);
+  say(ok?"強敵を出現させました":"出現できません。ゲーム開始・既存強敵・地形を確認してください");
+  return;
+ }
+ if(action==="tutorial"){
+  ok=api.tutorialStage?.(Number(panel.querySelector("#wr-debug-stage").value));
+  say(ok?"チュートリアル段階を切り替えました":"ゲームを開始してください");
+  return;
+ }
  if(action==="hour")ok=api.setHour(Number(panel.querySelector("#wr-debug-hour").value));
  if(action==="weather"){
   const value=panel.querySelector("#wr-debug-weather").value;
