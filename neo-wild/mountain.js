@@ -200,13 +200,13 @@ function sightBlocked(a,b){
 }
 function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="CLEAR"){
  const entries=meadowAt(x,y)?
- [["deer",25],["rabbit",25],["boar",18],["wildFox",12],["macaque",12],["chimpanzee",8]]:zone(x)==="cave"?
+ [["serow",30],["mountainGoat",26],["deer",10],["rabbit",14],["boar",9],["wildFox",7],["macaque",4]]:zone(x)==="cave"?
  [["rat",30],["rabbit",30],["weasel",17],["snake",11],["wildFox",8],["raccoonDog",4]]:x>=SUMMIT_START?
- [["deer",24],["wildFox",9],["rabbit",20],["boar",12],["weasel",7],["raccoonDog",8],["crow",5],["macaque",10],["chimpanzee",5]]:x>FOOTHILL_END?
- [["deer",20],["wildFox",8],["rabbit",14],["boar",13],["weasel",6],["raccoonDog",7],["crow",6],["macaque",14],["chimpanzee",12]]:
+ [["deer",19],["serow",14],["mountainGoat",13],["wildFox",8],["rabbit",17],["boar",10],["weasel",6],["raccoonDog",6],["crow",3],["macaque",7],["chimpanzee",4]]:x>FOOTHILL_END?
+ [["deer",15],["serow",10],["mountainGoat",8],["wildFox",8],["rabbit",12],["boar",12],["weasel",6],["raccoonDog",6],["crow",5],["macaque",10],["chimpanzee",8]]:
  [["deer",22],["wildFox",12],["rabbit",21],["boar",11],["weasel",8],["raccoonDog",9],["crow",5],["macaque",12]];
  const rainy=weather==="RAIN"||weather==="THUNDER";
- const pool=entries.filter(([type])=>!preyOnly||["rat","deer","rabbit","crow"].includes(type))
+ const pool=entries.filter(([type])=>!preyOnly||["rat","deer","rabbit","crow","serow","mountainGoat"].includes(type))
   .map(([type,w])=>[type,rainy?w*(type==="crow"?.32:type==="macaque"?.58:type==="chimpanzee"?.53:type==="deer"?.72:type==="rabbit"?.86:type==="boar"?1.16:1):w]);
  const total=pool.reduce((sum,item)=>sum+item[1],0);
  let roll=clamp(Number.isFinite(random)?random:0,0,.999999999)*total;
