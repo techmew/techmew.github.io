@@ -1097,6 +1097,11 @@ function recordCheckpoint(){
 
 /* STRONG-COMBAT-4-V2: separate timing, impact, binding and charge. */
 const STRONG_ATTACK_PROFILES={
+ strayCat:{windup:.29,reach:58,cooldown:1.24,damage:.90,tell:"猫が飛びかかる！"},
+ wildFox:{windup:.36,reach:68,cooldown:1.46,damage:1.03,tell:"狐が飛びかかる！"},
+ weasel:{windup:.25,reach:43,cooldown:1.08,damage:.90,tell:"イタチの噛みつき！"},
+ raccoonDog:{windup:.45,reach:49,cooldown:1.4,damage:1.03,tell:"タヌキが威嚇！"},
+ venomSnake:{windup:.46,reach:46,cooldown:1.65,damage:.87,tell:"毒牙に注意！"},
  giantSnake:{windup:.86,reach:58,cooldown:1.75,damage:1.05,tell:"巻き付き予兆！"},
  oldBear:{windup:.92,reach:58,cooldown:1.62,damage:1.22,tell:"重い爪の予兆！"},
  giantBoar:{windup:.76,reach:125,cooldown:1.46,damage:1.12,tell:"猛突進予兆！"},
@@ -3365,11 +3370,11 @@ function update(dt){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
      m.swing=.22; // Physical strike pose even if the attack misses.
-     if((m.type==="boar"||m.type==="alpha"||m.type==="giantBoar"||m.type==="blackPanther"||m.type==="oneEyedWolf"||m.type==="whiteTiger"||m.type==="giantMoose"||m.type==="giantBuffalo"||m.type==="rhino"||m.type==="albinoWolf")&&m.stun<=0){
-      m.chargeTime=m.type==="alpha"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:m.type==="rhino"?.57:m.type==="albinoWolf"?.33:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
-      label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
+     if((m.type==="boar"||m.type==="alpha"||m.type==="strayCat"||m.type==="wildFox"||m.type==="giantBoar"||m.type==="blackPanther"||m.type==="oneEyedWolf"||m.type==="whiteTiger"||m.type==="giantMoose"||m.type==="giantBuffalo"||m.type==="rhino"||m.type==="albinoWolf")&&m.stun<=0){
+      m.chargeTime=m.type==="alpha"?.24:m.type==="strayCat"?.20:m.type==="wildFox"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:m.type==="rhino"?.57:m.type==="albinoWolf"?.33:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
+      label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="strayCat"||m.type==="wildFox"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
      }else{
-      const reach=m.type==="giantElephant"?P.r+m.r+79:P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
+      const reach=m.type==="giantElephant"?P.r+m.r+79:m.type==="venomSnake"?P.r+m.r+39:P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.type==="giantGorilla"&&m.stun<=0&&dist(P,m)>P.r+m.r+37){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
@@ -3388,7 +3393,7 @@ function update(dt){
    // A missed, blocked or interrupted lion follow-up ends the combo; no stale save state.
    if(m.type==="giantLion"&&m.lionCombo&&m.windup<=0)m.lionCombo=0;
    const charging=!s.prey&&m.chargeTime>0&&m.stun<=0;
-   const chargeSpeed=m.type==="alpha"?2.3:m.type==="blackPanther"?2.85:m.type==="oneEyedWolf"?2.65:m.type==="whiteTiger"?3.05:m.type==="giantBoar"?3.25:m.type==="giantMoose"?2.85:m.type==="giantBuffalo"?3.15:m.type==="albinoWolf"?2.85:3.65;
+   const chargeSpeed=m.type==="alpha"?2.3:m.type==="strayCat"?2.15:m.type==="wildFox"?2.27:m.type==="blackPanther"?2.85:m.type==="oneEyedWolf"?2.65:m.type==="whiteTiger"?3.05:m.type==="giantBoar"?3.25:m.type==="giantMoose"?2.85:m.type==="giantBuffalo"?3.15:m.type==="albinoWolf"?2.85:3.65;
    if(charging){
     m.chargeTime=Math.max(0,m.chargeTime-dt);
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
