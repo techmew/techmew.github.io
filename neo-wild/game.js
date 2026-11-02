@@ -46,8 +46,54 @@ const STRONG_TRAITS={
  oldBear:{name:"熊の生命力",effect:"最大生命 +28"},
  blackPanther:{name:"黒豹の爪",effect:"攻撃力 +12%"},
  giantEagle:{name:"大鷲の夜目",effect:"夜間の前方視認距離 +22%"},
- giantLizard:{name:"鱗の止血",effect:"強敵の出血ダメージ -35%"}
+ giantLizard:{name:"鱗の止血",effect:"強敵の出血ダメージ -35%"},
+ giantSnake:{name:"大蛇の脱皮",effect:"拘束による減速の回復 +50%"},
+ giantBoar:{name:"猪の突進力",effect:"飛びつき距離 +14%"},
+ oneEyedWolf:{name:"隻眼の奇襲",effect:"未発見からの攻撃 +20%"},
+ whiteTiger:{name:"白虎の跳躍",effect:"ジャンプ移動距離 +16%"},
+ giantHyena:{name:"ハイエナの持久食",effect:"空腹の減少 -18%"},
+ giantLion:{name:"獅子の連撃",effect:"5段目の攻撃力 +22%"},
+ giantMoose:{name:"大角の足腰",effect:"ジャンプ持久力消費 -25%"},
+ giantBuffalo:{name:"野牛の押し",effect:"攻撃の吹き飛ばし距離 +35%"},
+ giantCrocodile:{name:"水辺の活力",effect:"水辺で持久力回復 +4/秒"},
+ giantHippo:{name:"河馬の皮膚",effect:"水辺で受ける物理ダメージ -14%"},
+ giantAnaconda:{name:"水蛇の柔軟さ",effect:"拘束中の移動速度低下を軽減"},
+ rhino:{name:"サイの装甲",effect:"受ける物理ダメージ -10%"},
+ giantGorilla:{name:"剛腕の威圧",effect:"攻撃で敵をひるませる時間 +0.15秒"},
+ giantElephant:{name:"巨象の休息",effect:"安全な巣で生命回復 +1.7/秒"},
+ albinoWolf:{name:"白狼の忍び足",effect:"潜伏移動時の足音 -25%"}
 };
+// Real gameplay hooks consume the same saved boolean flags as the den inheritance action.
+function hasStrongTrait(type){return !!(P&&P.inheritedTraits&&P.inheritedTraits[type]===true);}
+function traitEffect(type,base,condition=true){
+ if(!condition||!hasStrongTrait(type))return base;
+ switch(type){
+  case "giantSnake":return base*1.5;
+  case "giantBoar":return base*1.14;
+  case "oneEyedWolf":return base*1.20;
+  case "whiteTiger":return base*1.16;
+  case "giantHyena":return base*.82;
+  case "giantLion":return base*1.22;
+  case "giantMoose":return base*.75;
+  case "giantBuffalo":return base*1.35;
+  case "giantCrocodile":return base+4;
+  case "giantHippo":return base*.86;
+  case "giantAnaconda":return Math.min(1,base*1.35);
+  case "rhino":return base*.90;
+  case "giantGorilla":return base+.15;
+  case "giantElephant":return base+1.7;
+  case "albinoWolf":return base*.75;
+  default:return base;
+ }
+}
+function strongNearWater(){
+ return !!P&&((P.y>=0&&P.y<2600&&P.x>6200&&Math.abs(P.x-riverAxis(P.y))<460)||
+  (P.x>=5500&&P.y>=2600&&Math.abs(P.y-canalAxis(P.x))<370));
+}
+function strongDamageTaken(raw){
+ return Math.max(1,Math.round(traitEffect("giantHippo",traitEffect("rhino",raw),strongNearWater())));
+}
+
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -959,7 +1005,7 @@ function updateAquaticStrong(m,s,dt){
   m.aquaticStrike=false;m.swing=.3;
   const facing=Math.atan2(Math.sin(angle-(m.strikeDir||0)),Math.cos(angle-(m.strikeDir||0)));
   if(d<profile.reach+P.r&&Math.abs(facing)<.92&&!lineBlocked(m,P)&&(P.jumpHeight||0)<22&&P.inv<=0){
-   const damage=Math.round(s.damage*profile.damage*(1+Math.max(0,day-1)*.15));
+   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*(1+Math.max(0,day-1)*.15)));
    P.lastCombatAt=elapsed;P.hp-=damage;interruptRush();P.inv=.45;shake=10;flash=.25;
    label(P.x,P.y-35,"水辺 -"+damage,"#ff9890");blood(P.x,P.y,"#eb6356",12,110);
    playEffect("damage");applyStrongStrikeEffect(m,angle,false);
@@ -1000,7 +1046,7 @@ function updateGorillaRock(m,dt){
  if(collides(r.x,r.y,10,null)||lineBlocked({x:ox,y:oy},r)){m.rock=null;return;}
  const dx=r.x-ox,dy=r.y-oy,len=dx*dx+dy*dy,t=len>0?clamp(((P.x-ox)*dx+(P.y-oy)*dy)/len,0,1):0;
  if(P.inv<=0&&(P.jumpHeight||0)<25&&Math.hypot(P.x-ox-dx*t,P.y-oy-dy*t)<P.r+13){
-  const damage=Math.round(species.giantGorilla.damage*.68*(1+Math.max(0,day-1)*.15));
+  const damage=strongDamageTaken(Math.round(species.giantGorilla.damage*.68*(1+Math.max(0,day-1)*.15)));
   P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.42;interruptRush();shake=7;flash=.2;P.sp=clamp(P.sp-9,0,100);
   label(P.x,P.y-35,"投石 -"+damage,"#ffaaa0");blood(P.x,P.y,"#a79c8d",8,70);playEffect("damage");m.rock=null;return;
  }
@@ -1056,7 +1102,7 @@ function updateFlyingEagle(m,dt){
   if(m.airHeight<=29&&!m.airHit){
    if(m.airTarget==="player"&&P.inv<=0&&P.hp>0&&(P.jumpHeight||0)<24&&
       !insideShelter(P)&&!lineBlocked(m,P)&&dist(P,m)<P.r+m.r+28){
-    const damage=Math.round(s.damage*1.08*(1+Math.max(0,day-1)*.15));
+    const damage=strongDamageTaken(Math.round(s.damage*1.08*(1+Math.max(0,day-1)*.15)));
     P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.46;interruptRush();shake=8;flash=.22;
     label(P.x,P.y-37,"大鷲の爪 -"+damage,"#ffada0");blood(P.x,P.y,"#eaa17b",9,80);
     applyStrongStrikeEffect(m,angle,false);playEffect("damage");m.airHit=true;
@@ -1684,7 +1730,7 @@ function resolveAttack(){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
-    const bonus=(foxBurst?1.4:1)*(silentHit?1.55:1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1);
+    const bonus=(foxBurst?1.4:1)*(silentHit?1.55*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
    const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const damage=armored?Math.max(1,Math.round(rawDamage*.48)):rawDamage;
@@ -1694,7 +1740,7 @@ function resolveAttack(){
     const disrupt=!armored&&(species[m.type].prey||m.staggerGuard<=0||silentHit||dive);
     if(disrupt){
      m.windup=0;m.chargeTime=0;m.swing=0;
-     m.stun=silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24;
+     m.stun=traitEffect("giantGorilla",silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
      m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,.22);
     }else m.stun=Math.max(m.stun,.035);
     hit++;
@@ -1703,7 +1749,7 @@ function resolveAttack(){
      if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
-   const knock=(P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0);
+   const knock=((P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0))*traitEffect("giantBuffalo",1);
    move(m,Math.cos(theta)*knock,Math.sin(theta)*knock);
    if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
    if(m.hp<=0)kill(m);
@@ -1782,11 +1828,11 @@ function jump(){
  if(mode!=="play"||!P)return false;
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
  if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
- const cat=P.type==="cat",wolf=P.type==="wolf",cost=cat?14:wolf?22:17;
+ const cat=P.type==="cat",wolf=P.type==="wolf",cost=traitEffect("giantMoose",cat?14:wolf?22:17);
  if(P.sp<cost){notify("持久力不足 / ジャンプできない");return false}
  const axis=getAxes(),moving=Math.hypot(axis.x,axis.y)>.18;
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
- const distance=cat?109+Math.min(46,(P.level-1)*5):wolf?70:112;
+ const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:112)*traitEffect("whiteTiger",1);
  P.jumpDuration=cat?.44:wolf?.49:.45;
  P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
  P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:58;
@@ -1828,7 +1874,7 @@ function dash(){
  const maximum=P.type==="cat"?235+Math.min(75,(P.level-1)*5)
   :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
   :235+Math.min(65,(P.level-1)*5);
- const travel=(target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum)*.70;
+ const travel=(target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum)*.70*traitEffect("giantBoar",1);
  ambushTarget=target&&unawareOfPlayer(target)?target:null;
  P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
  P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.37:P.type==="cat"?.31:.30;
@@ -2757,10 +2803,10 @@ function update(dt){
  
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
- P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1),0,100);
+ P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1),0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
  if(atDen()&&!denThreatNearby())
-  P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
+  P.hp=Math.min(P.maxHp,P.hp+traitEffect("giantElephant",denRestRate())*dt);
  const a=getAxes(),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
     const jumpLeft=Math.max(0,P.jumpTime-dt);
@@ -2812,7 +2858,7 @@ function update(dt){
    const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(P.strongSlow>0?.54:1);
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1);
    applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
@@ -2829,7 +2875,7 @@ function update(dt){
    playEffect(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78)?"stepHard":"step",{volume:.045});
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
-  P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
+  P.noise=clamp(speed/P.speed*(sneaking?traitEffect("albinoWolf",.28):.94)+P.noiseBurst,0,1.8);
   P.hidden=(P.jumpHeight||0)<(P.groundZ||0)+20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
@@ -2839,7 +2885,7 @@ function update(dt){
   const safeDen=atDen()&&!denThreatNearby();
   P.strongWound=Math.max(0,P.strongWound-dt*(safeDen?2.2:1));
  }
- P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt);
+ P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt*traitEffect("giantSnake",1));
   if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
  if(P.hp<=0){P.hp=0;finish(false);return}
  const chaseRange=weather==="FOG"?195:260;
@@ -2960,7 +3006,7 @@ function update(dt){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
       }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15)));
+       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15))));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);
@@ -2985,7 +3031,7 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=(P.lastCombatAt=elapsed,Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15)));
+      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15))));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
