@@ -21,7 +21,7 @@ function items(mode){return Array.from(document.getElementById(scopes[mode])?.qu
 function focus(mode,step=0){
  const list=items(mode);if(!list.length){focused=null;return}
  let n=list.indexOf(focused);
- if(n<0){const priorities={menu:["continue-btn","new-game-summary","start-btn"],pause:["resume-btn"],guide:["tutorial-next"],result:["retry-btn"]}[mode]||[];n=Math.max(0,list.findIndex(el=>priorities.includes(el.id)))}
+ if(n<0){const priorities={menu:["continue-btn","new-game-summary","start-btn"],pause:["resume-btn"],guide:["tutorial-close"],result:["retry-btn"]}[mode]||[];n=Math.max(0,list.findIndex(el=>priorities.includes(el.id)))}
  else if(step)n=(n+step+list.length)%list.length;
  focused=list[n];focused.focus?.({preventScroll:true});
 }
@@ -82,8 +82,7 @@ function poll(dt=.016){
   if(mode==="pause"&&down(9))b.pause();
   else if(mode==="map"&&(down(1)||down(9)))b.map();
   else if(down(1)||down(8))back(mode);
-  else if(mode==="guide"&&down(14))document.getElementById("tutorial-prev")?.click?.();
-  else if(mode==="guide"&&down(15))document.getElementById("tutorial-next")?.click?.();
+  else if(mode==="guide"&&(down(0)||down(1)||down(3)||down(9)))document.getElementById("tutorial-close")?.click?.();
   else if(down(12)||down(14))navigate(mode,-1);
   else if(down(13)||down(15))navigate(mode,1);
   else if(down(0)||down(3)||down(9))confirm(mode);
