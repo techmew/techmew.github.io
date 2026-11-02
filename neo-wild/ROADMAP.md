@@ -1,3 +1,8 @@
+## 00分枠・実地形追加QAとPages公開確認｜2026/11/03｜MOUNTAIN-CONTIGUOUS-FOOTHILL-V1
+- コードHEAD `0959c80d33f9ae3378ad36eb27e9b0bea60a8aea` の Pages run **41514999454**：**build=success / deploy=success / report-build-status=success**（3ジョブ個別確認）。このROADMAP追記commitのrunは別途確認。
+- 追加の実地形QA：現行`mountain.js`を実行して洞窟石柱3本の座標を取得、現行`game.js:repairRestoredMountainMobs`を実関数実行。**3/3本とも合法な洞窟床へ移動、衝突なし、同一zone、プレイヤー非重複、再実行時移動0**。隔離モックの16/16 PASSとは別に確認。実GPU・Android・物理Pad・10分E2E・実端末旧SAVE2は未検証。
+- 進捗V2 **74/100（差0）**。次20分/40分枠は直前00分の修復を保持し、地形と捕食/描画の統合を継続。
+
 ## 共同スプリント・統合QA｜2026/11/3 4:59:09 JST｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜旧SAVE2山岳石柱復元・NPC安全再配置・カメラ整合
 - **開始HEAD**：`b55603a00dcac844a29102bdc25d114de20a6a8a`。前20分枠の洞窟食物連鎖・前40分枠の洞窟石柱と2D/3D表現を維持。変更対象：`neo-wild/game.js`・`index.html`・`ROADMAP.md`のみ。
 - **プレイ挙動**：旧SAVE_SCHEMA=2/3チェックポイントの洞窟石柱・山岳岩に重なった地上野生動物を同じ山岳zone内の合法座標へ再配置。プレイヤー/他動物との重なり、別zoneへのワープ、死体・水生ボス・飛行ボスの不適切な移動を防止。再配置時は移動速度・索敵・攻撃予兆を安全リセット。既存のプレイヤー建物隙間復旧を保持し、復旧位置へカメラを追従。自動保存が修復後位置を保持する。新規の種・湧き枠・SAVE_SCHEMAは追加しない。
