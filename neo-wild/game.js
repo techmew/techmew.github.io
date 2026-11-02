@@ -386,6 +386,16 @@ function saveDenStash(){
 }
 const STATION={x:2460,y:1170};
 const TOP_SCORES_KEY="wild-reclaim-top5-v1";
+// A retry from one of the three checkpoints is the same attempt for TOP5 purposes.
+let scoreRunId=null;
+function createScoreRunId(){return "attempt-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,11);}
+function scoreRunIdFromSnapshot(snapshot){
+ if(typeof snapshot?.scoreRunId==="string"&&snapshot.scoreRunId.length>=8&&snapshot.scoreRunId.length<=96)return snapshot.scoreRunId;
+ // Old SAVE_SCHEMA=2 checkpoints have no lineage ID; retrying one must remain one entry.
+ const at=Number.isFinite(snapshot?.savedAt)?Math.max(0,Math.floor(snapshot.savedAt)):0;
+ const elapsedAtSave=Number.isFinite(snapshot?.elapsed)?Math.floor(snapshot.elapsed*1000):0;
+ return "legacy-"+snapshot.player.type+"-"+at+"-"+elapsedAtSave;
+}
 try{best=+(localStorage.getItem("wild-reclaim-best")||0)}catch(e){}
 if(!Number.isSafeInteger(best)||best<0)best=0;
 // Only local best existed before the TOP 5 update. Keep that score as a legacy entry.
@@ -395,6 +405,7 @@ function loadTopScores(){
   const parsed=JSON.parse(localStorage.getItem(TOP_SCORES_KEY)||"[]");
   if(Array.isArray(parsed))list=parsed.slice(0,30).filter(e=>e&&Number.isSafeInteger(e.score)&&e.score>=0).map((e,i)=>({
    id:typeof e.id==="string"&&e.id.length<=80?e.id:"imported-"+i,
+   runId:typeof e.runId==="string"&&e.runId.length<=96?e.runId:null,
    score:e.score,animal:["cat","fox","wolf"].includes(e.animal)?e.animal:null,
    day:Number.isInteger(e.day)&&e.day>0?e.day:0,
    kills:Number.isInteger(e.kills)&&e.kills>=0?e.kills:0,
@@ -408,14 +419,18 @@ function loadTopScores(){
 function recordTopScore(score){
  const previousBest=best,list=loadTopScores();
  if(debugTutorialSession)return {list,id:null,high:false,saved:false,rank:0,test:true};
- const id="run-"+Date.now()+"-"+Math.random().toString(36).slice(2,10);
- const entry={id,score,animal:P.type,day,kills,level:P.level,at:Date.now(),legacy:false};
- const next=[...list,entry].sort((a,b)=>b.score-a.score||b.at-a.at).slice(0,5);
+ if(!scoreRunId)scoreRunId=createScoreRunId();
+ const prior=list.find(e=>e.runId===scoreRunId);
+ // Keep only the highest score for a checkpoint lineage.
+ if(prior&&score<=prior.score)return {list,id:prior.id,high:false,saved:true,rank:list.findIndex(e=>e.id===prior.id)+1,test:false,unchanged:true};
+ const id=prior?.id||"run-"+Date.now()+"-"+Math.random().toString(36).slice(2,10);
+ const entry={id,runId:scoreRunId,score,animal:P.type,day,kills,level:P.level,at:Date.now(),legacy:false};
+ const next=[...list.filter(e=>e.runId!==scoreRunId),entry].sort((a,b)=>b.score-a.score||b.at-a.at).slice(0,5);
  let saved=false;
  try{localStorage.setItem(TOP_SCORES_KEY,JSON.stringify(next));saved=true}catch(_){}
  best=Math.max(previousBest,score);
  try{localStorage.setItem("wild-reclaim-best",String(best))}catch(_){}
- return {list:next,id,high:score>previousBest,saved,rank:next.findIndex(e=>e.id===id)+1,test:false};
+ return {list:next,id,high:score>previousBest,saved,rank:next.findIndex(e=>e.id===id)+1,test:false,unchanged:false};
 }
 function renderTopScores(record){
  $("result-highscore").classList.toggle("hidden",!record.high);
@@ -434,6 +449,7 @@ function renderTopScores(record){
  }
  $("result-top5-status").textContent=record.test?"デバッグ通しテスト中：記録は保存しません":
   !record.saved?"記録を保存できませんでした。ブラウザの保存設定を確認してください。":
+  record.unchanged?"同じ挑戦の最高記録を維持（"+record.rank+"位）":
   record.rank?"今回の順位："+record.rank+"位（この端末に保存）":"今回の記録は6位以下（TOP5は維持）";
 }
 $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
@@ -729,6 +745,7 @@ function show(id){
 }
 function start(){
  if(!ensureWorldReady())return false;
+ scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
  deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
@@ -784,7 +801,7 @@ function clearAutoSave(){
 function currentSnapshot(){
  if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"||mode==="guide"||mode==="milestone"))return null;
  return {
-  version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
+  version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
@@ -845,6 +862,7 @@ function restoreSnapshot(snapshot){
  choice=snapshot.player.type;
  document.querySelectorAll(".animal-card").forEach(b=>b.classList.toggle("selected",b.dataset.animal===choice));
  if(!start())return false;
+ scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
  // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
