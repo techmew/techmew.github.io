@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261102-strong-trait-inheritance-v1">
+<link rel="stylesheet" href="./visual.css?rev=20261102-orientation-choice-v1">
 </head>
 <body>
 <div id="app">
@@ -100,8 +100,8 @@
       </div>
     </div>
     <div class="landscape-menu-choice">
-      <button id="menu-landscape-btn" type="button" aria-describedby="menu-landscape-note">横画面で全画面プレイ</button>
-      <p id="menu-landscape-note" role="status" aria-live="polite">選択後に「続きから」または「新しいゲーム」を押してください。</p>
+      <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-device landscape-device" aria-hidden="true"></span><strong>横画面</strong><small>横向き・全画面</small></button></div>
+      <p id="menu-landscape-note" role="status" aria-live="polite">画面の向きを選び、「続きから」または「新しいゲーム」を押してください。</p>
     </div>
     <p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
     <details id="new-game-options">
@@ -137,7 +137,7 @@
 </div>
 <script src="./audio.js?rev=20261102-death-fade-v1" defer></script>
 <script src="./webgl3d.js?rev=20261102-death-pose-v1" defer></script>
-<script src="./game.js?rev=20261102-death-sequence-v2" defer></script>
+<script src="./game.js?rev=20261102-orientation-choice-v1" defer></script>
 <script src="./gamepad.js?rev=20261102-instant-pad-v1" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261101-seven-tap-v1" defer></script>
