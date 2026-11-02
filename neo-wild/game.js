@@ -4024,7 +4024,9 @@ function drawCreature(o,isPlayer){
    else ctx.scale(1.13,.92);
   }
  }
- if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
+ if(!isPlayer&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
+  // Common wildlife has species-specific silhouettes.
+ }else if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
   // Unique strong enemy silhouette.
  }else if(!isPlayer&&drawOrdinaryCreature2D(o,r,fur,light,pace,oval,triangle)){
   // Distinct regular wildlife silhouette.
