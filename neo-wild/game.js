@@ -4396,9 +4396,12 @@ function drawDeathVignette(){
   if(quiet>0){
    const pos=P?project(P.x,P.y):{x:vw*.5,y:vh*.5};
    const cx=clamp(pos.x,0,vw),cy=clamp(pos.y,0,vh),radius=Math.max(vw,vh)*.86;
+   // Match the result screen's darkness during the final 340ms,
+   // rather than abruptly obscuring the fallen animal at the transition.
+   const finalQuiet=clamp((deathSequenceTime-1.86)/.34,0,1);
    const fade=ctx.createRadialGradient(cx,cy,radius*.05,cx,cy,radius);
-   fade.addColorStop(0,"rgba(5,9,12,"+(.79*quiet).toFixed(3)+")");
-   fade.addColorStop(.55,"rgba(5,9,12,"+(.89*quiet).toFixed(3)+")");
+   fade.addColorStop(0,"rgba(5,9,12,"+((.79+.17*finalQuiet)*quiet).toFixed(3)+")");
+   fade.addColorStop(.55,"rgba(5,9,12,"+((.89+.07*finalQuiet)*quiet).toFixed(3)+")");
    fade.addColorStop(1,"rgba(5,9,12,"+(.96*quiet).toFixed(3)+")");
    ctx.fillStyle=fade;ctx.fillRect(0,0,vw,vh);
   }
