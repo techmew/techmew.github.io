@@ -96,7 +96,7 @@ function strongDamageTaken(raw){
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
-let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
+let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1";
 let automaticTutorialShown=false;
@@ -650,7 +650,7 @@ function show(id){
 function start(){
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -698,7 +698,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,kills,meals,hiddenHold,tutorialHuntBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
+  elapsed,day,kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
@@ -744,11 +744,10 @@ function reconcileRestoredGoals(){
  if(mission===2&&kills>tutorialHuntBase)mission=4;
  // Retired station objective: continue old saves at the practical den lesson.
  if(mission===3)mission=4;
- if(mission===4&&denLevel>=2)mission=5;
- if(mission===5&&territoryOwned()>=1)mission=6;
- if(mission===6&&discoveredSites.length>=2){
-  mission=7;missionComplete=true;tutorialSeen.add(7);
- }
+ // A single successful deposit finishes the onboarding; territory/exploration are optional play.
+ if(mission===4&&denStash>tutorialStashBase)mission=7;
+ if(mission===5||mission===6)mission=7; // Old schema-2 optional-goal saves.
+ if(mission===7){missionComplete=true;tutorialSeen.add(7)}
  for(let n=0;n<=Math.min(7,mission);n++)tutorialSeen.add(n);
  return mission!==previous;
 }
@@ -798,6 +797,7 @@ function restoreSnapshot(snapshot){
  scoreTimer=snapshot.scoreTimer||0;spawnTimer=snapshot.spawnTimer||0;
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
+ tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  mobs=snapshot.mobs;carcasses=snapshot.carcasses;
@@ -2068,7 +2068,6 @@ function eatFromDen(kind){
 }
 function stockpileStep(){
  if(!P||mission!==4)return null;
- if(denStash>=DEN_COSTS[2])return {step:3,text:atDen()?"③ ここで△長押ししてLV2に強化":"③ 巣で△長押ししてLV2に強化",label:"巣"};
  if(P.carry)return {step:2,text:atDen()?"② ここで△を押して備蓄":"② 巣の中心へ戻り△で備蓄（短押し・長押し可）",label:"巣"};
  return {step:1,text:"① 食草・肉のそばで△長押しして運ぶ",label:"食草・肉"};
 }
@@ -2080,11 +2079,11 @@ function missionInfo(){
   case 3:return {stage:"チュートリアル 4 / 4",title:"巣に食料を備蓄しよう",detail:"食草か肉を運んで巣に備蓄し、巣を強化する",next:"巣をLV2に強化",progress:denLevel>=2?1:Math.min(1,denStash/DEN_COSTS[2])};
   case 4:{
    const step=stockpileStep();
-   return {stage:"チュートリアル 4 / 4・巣と備蓄",
-    title:step.step===1?"食料をくわえて巣に持ち帰ろう":step.step===2?"食料を巣に預けよう":"備蓄で巣をLV2にしよう",
-    detail:step.text+(step.step===1?"（約0.6秒）":"")+" / 備蓄 "+denStash+"/"+DEN_COSTS[2],
-    next:step.step===3?"巣をLV2に強化":step.step===2?"巣で△短押し":"食料を運んで備蓄",
-    progress:denLevel>=2?1:Math.min(1,denStash/DEN_COSTS[2])};
+   return {stage:"チュートリアル 4 / 4・巣に備蓄",
+    title:step.step===1?"食料をくわえて巣へ持ち帰ろう":"食料を巣に預けよう",
+    detail:step.text+(step.step===1?"（約0.6秒）":"")+"。1回備蓄すれば終了",
+    next:step.step===2?"巣で△短押し":"食料を運んで備蓄",
+    progress:denStash>tutorialStashBase?1:0};
   }
   case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で△長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
   case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"生き残れ！",progress:Math.min(1,discoveredSites.length/2)};
@@ -2097,7 +2096,7 @@ const GUIDE_GOALS=[
  {title:"身を隠す",what:"緑の葉がある茂みに入り、約1秒静止する。",how:"冬の緑の茂みでも潜伏できる。車や建物の陰も安全地帯。"},
  {title:"獲物を狩る",what:"×で攻撃、□で飛びつき。",how:"死骸から肉を取れる。"},
  {title:"巣の作り方",what:"食草・肉で△長押しして運ぶ。",how:"巣の中心で△短押しして備蓄し、△長押しでLV2に強化。"},
- {title:"巣に食料を貯める",what:"食草・肉で△長押し → 巣で△。",how:"60ptで巣LV2。強化しても食料は減らない。"},
+ {title:"巣に食料を貯める",what:"食料を△長押しで運び、巣の中心で△を押す。",how:"1回預ければチュートリアル終了。60ptでLV2強化もできる。"},
  {title:"縄張りを取る",what:"標識で△長押し。",how:"巣の安全性が上がる。"},
  {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"最後の目標へ進む。"},
  {title:"生き残れ！",what:"狩り・食事・休息を続け、生存日数を伸ばす。",how:"食料庫の備蓄も活用できる。"}
@@ -2163,9 +2162,9 @@ function announceObjective(){
 // Award first, then open the next lesson; do not rely on closing a lesson to show success.
 function showMissionMilestone(previous,next){
  if(previouslyOnboardedAtRunStart)return false;
- if(!P||mode!=="play"||(next!==previous+1&&!(previous===2&&next===4))||previous<0||previous>6)return false;
+ if(!P||mode!=="play"||(next!==previous+1&&!(previous===2&&next===4)&&!(previous===4&&next===7))||previous<0||previous>6)return false;
  const finalTutorial=previous===6&&next===7;
- const duration=finalTutorial?1900:previous===3&&next===4?1000:780;
+ const duration=finalTutorial?1500:previous===3&&next===4?1000:780;
  $("mission-milestone-kicker").textContent=finalTutorial?"":previous<3?"NICE WORK":"SURVIVAL";
  $("mission-milestone-title").textContent=finalTutorial?"チュートリアル終了":"達成！";
  const el=$("mission-milestone");
@@ -2192,6 +2191,7 @@ function advanceMission(next){
  const previous=mission;
  if(next===1)hiddenHold=0;
  if(next===2)tutorialHuntBase=kills;
+ if(next===4)tutorialStashBase=denStash;
  mission=next;
  if(next===7){missionComplete=true;tutorialSeen.add(7)}
  const milestone=showMissionMilestone(previous,next);
@@ -2206,7 +2206,7 @@ function checkMission(){
  if(mission===1&&hiddenHold>=.75&&inVisibleShrubCover(P)){advanceMission(2);return}
  if(mission===2&&kills>tutorialHuntBase){advanceMission(4);return}
  if(mission===3){advanceMission(4);return}
- if(mission===4&&denLevel>=2){advanceMission(5);return}
+ if(mission===4&&denStash>tutorialStashBase){advanceMission(7);return}
  if(mission===5&&territoryOwned()>=1){advanceMission(6);return}
  if(mission===6&&discoveredSites.length>=2){advanceMission(7);return}
  // No recurring missions after the final survival goal.
@@ -2236,7 +2236,7 @@ function getObjective(){
  }
  if(mission===3){const site=denAtActor()||closestDen(P,true);return {x:site.x,y:site.y,label:"巣へ食料を備蓄する"};}
  if(mission===4){
-  if(P.carry||denStash>=DEN_COSTS[2]){const site=denAtActor()||closestDen(P,true);return {x:site.x,y:site.y,label:denStash>=DEN_COSTS[2]?"巣をLV2に強化":"巣に備蓄する"};}
+  if(P.carry){const site=denAtActor()||closestDen(P,true);return {x:site.x,y:site.y,label:"巣に備蓄する"};}
   const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
   if(food)return {x:food.x,y:food.y,label:foodName(food)+"を△長押しで運ぶ"};
   const prey=nearestGoal(mobs.filter(m=>m.hp>0&&species[m.type].prey));
@@ -3185,7 +3185,7 @@ function syncHUD(hour){
  const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
  const lessonHint=mission===1?"緑の茂みの中で約1秒止まろう":mission===2?"獲物を×で狩ろう。□で飛びつき":null;
  $("stockpile-guide").classList.toggle("hidden",(!stock&&!carryGuide&&!lessonHint)||mode!=="play");
- if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（備蓄 "+denStash+"/"+DEN_COSTS[2]+"）":lessonHint);
+ if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（巣に1回預けたら完了）":lessonHint);
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
  $("survival-goal").classList.toggle("hidden",mission<7||mode!=="play");
@@ -4755,7 +4755,7 @@ window.WildDebugBridge={
   if(stage===0){meals=0;hiddenHold=0;kills=0;}
   if(stage===1)hiddenHold=0;
   if(stage===2)tutorialHuntBase=kills;
-  if(stage===4){denLevel=1;denStores=normalizeDenStores(null,0);syncDenStash();}
+  if(stage===4){denLevel=1;denStores=normalizeDenStores(null,0);syncDenStash();tutorialStashBase=denStash;}
   if(stage===5){denLevel=Math.max(2,denLevel);territoryClaims=[false,false,false];}
   if(stage===6){denLevel=Math.max(2,denLevel);territoryClaims=[true,false,false];discoveredSites=[];}
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
