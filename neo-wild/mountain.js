@@ -15,6 +15,10 @@ function height(x,y){
 }
 function trail(x){return center(x);}
 const trees=[],rocks=[];
+const ruins=[
+ {x:8545,y:center(8545)-370,w:112,h:84},
+ {x:8720,y:center(8720)+340,w:98,h:110}
+];
 for(let x=8515;x<10060;x+=158){
  const c=center(x);
  for(let j=-4;j<=4;j++){
@@ -29,6 +33,7 @@ for(let x=8515;x<10060;x+=158){
 function blocked(x,y,r=0){
  if(x<CITY_EDGE)return false;
  if(y<center(x)-720+r||y>center(x)+720-r)return true;
+ for(const hut of ruins)if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
  for(const p of trees)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of rocks)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  return false;
@@ -54,6 +59,13 @@ function draw2D(ctx,visible){
    ctx.strokeStyle="#b2b2a04d";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,cy+sign*720);ctx.lineTo(x2,cy2+sign*720);ctx.stroke();
   }
  }
+ for(const hut of ruins){
+  if(!visible(hut.x+hut.w/2,hut.y+hut.h/2,160))continue;
+  ctx.fillStyle="#776f5c";ctx.fillRect(hut.x,hut.y,hut.w,hut.h);
+  ctx.fillStyle="#3b5544";ctx.fillRect(hut.x+12,hut.y+12,hut.w-24,hut.h-24);
+  ctx.strokeStyle="#b0a68a";ctx.lineWidth=8;ctx.strokeRect(hut.x+4,hut.y+4,hut.w-8,hut.h-8);
+  ctx.fillStyle="#426d4a";ctx.beginPath();ctx.ellipse(hut.x+hut.w*.78,hut.y+7,23,11,0,0,Math.PI*2);ctx.fill();
+ }
  for(const p of rocks){if(!visible(p.x,p.y,75))continue;ctx.fillStyle="#4c5c55";ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*.72,.4,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#a1a99a";ctx.lineWidth=2;ctx.stroke();}
  for(const t of trees){if(!visible(t.x,t.y,95))continue;
   ctx.fillStyle="#1e3b2a8a";ctx.beginPath();ctx.ellipse(t.x+7,t.y+11,t.r*1.4,t.r*.6,0,0,Math.PI*2);ctx.fill();
@@ -61,6 +73,6 @@ function draw2D(ctx,visible){
   ctx.fillStyle="#315f40";for(const [dx,dy] of [[-15,-16],[16,-16],[0,-30]]){ctx.beginPath();ctx.ellipse(t.x+dx,t.y+dy,t.r*.84,t.r*.7,0,0,Math.PI*2);ctx.fill();}
  }
 }
-const api=Object.freeze({WEST,EAST,CITY_EDGE,center,trail,height,active,blocked,choose,trees,rocks,draw2D});
+const api=Object.freeze({WEST,EAST,CITY_EDGE,center,trail,height,active,blocked,choose,trees,rocks,ruins,draw2D});
 window.WildMountain=api;
 })();
