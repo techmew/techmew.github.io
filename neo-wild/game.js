@@ -184,6 +184,20 @@ function bossPoiseBreak(m,damage,heavy=false){
 }
 function strongBossLimit(){return !P||P.level<6?1:P.level<11?2:3;}
 function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)));}
+// When the player purchases a strong attack upgrade, living bosses remain
+// proportionally wounded but cannot be trivialized by the new damage tier.
+function syncStrongBossChallenge(){
+ if(!P)return;
+ for(const m of activeStrongBosses()){
+  const sp=species[m.type];if(!sp)continue;
+  const target=bossHealthTarget(sp),old=Math.max(1,Number(m.maxHp)||sp.hp);
+  if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||target>old*1.08){
+   const ratio=clamp(m.hp/old,0,1);
+   m.maxHp=target;m.hp=Math.max(1,Math.round(target*ratio));
+   m.bossBalanceVersion=BOSS_BALANCE_VERSION;
+  }
+ }
+}
 function syncEnemyLevel(m){
  if(!m||m.hp<=0||m.strongBoss||m.type==="alpha"||species[m.type]?.prey)return;
  const spec=species[m.type];if(!spec)return;
@@ -1502,7 +1516,7 @@ function updateGorillaRock(m,dt){
  if(collides(r.x,r.y,10,null)||lineBlocked({x:ox,y:oy},r)){m.rock=null;return;}
  const dx=r.x-ox,dy=r.y-oy,len=dx*dx+dy*dy,t=len>0?clamp(((P.x-ox)*dx+(P.y-oy)*dy)/len,0,1):0;
  if(P.inv<=0&&(P.jumpHeight||0)<25&&Math.hypot(P.x-ox-dx*t,P.y-oy-dy*t)<P.r+13){
-  const damage=strongDamageTaken(Math.round(species.giantGorilla.damage*.68*(1+Math.max(0,day-1)*.15)));
+  const damage=strongDamageTaken(Math.round(species.giantGorilla.damage*.77*bossStrikePower(m)));
   P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.42;interruptRush();shake=7;flash=.2;P.sp=clamp(P.sp-9,0,100);
   label(P.x,P.y-35,"投石 -"+damage,"#ffaaa0");blood(P.x,P.y,"#a79c8d",8,70);playEffect("damage");m.rock=null;return;
  }
@@ -1558,7 +1572,7 @@ function updateFlyingEagle(m,dt){
   if(m.airHeight<=29&&!m.airHit){
    if(m.airTarget==="player"&&P.inv<=0&&P.hp>0&&(P.jumpHeight||0)<24&&
       !insideShelter(P)&&!lineBlocked(m,P)&&dist(P,m)<P.r+m.r+28){
-    const damage=strongDamageTaken(Math.round(s.damage*1.08*(1+enemyChallengeTier()*.038)));
+    const damage=strongDamageTaken(Math.round(s.damage*1.08*bossStrikePower(m)));
     P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.46;interruptRush();shake=8;flash=.22;
     label(P.x,P.y-37,"大鷲の爪 -"+damage,"#ffada0");blood(P.x,P.y,"#eaa17b",9,80);
     applyStrongStrikeEffect(m,angle,false);playEffect("damage");m.airHit=true;
@@ -3819,7 +3833,7 @@ function update(dt){
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
  for(let i=popups.length-1;i>=0;i--){popups[i].life-=dt;popups[i].y-=28*dt;if(popups[i].life<=0)popups.splice(i,1)}
  spawnTimer+=dt;
- if(spawnTimer>WILDLIFE.spawnInterval){spawnTimer=0;maintainLocalWildlife();enterStrongStage();}
+ if(spawnTimer>WILDLIFE.spawnInterval){spawnTimer=0;maintainLocalWildlife();syncStrongBossChallenge();enterStrongStage();}
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
 
