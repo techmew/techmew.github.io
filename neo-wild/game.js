@@ -1346,7 +1346,7 @@ function drawBossThreats(entities){
  for(const m of entities){
   if(m===P||!m.strongBoss||m.hp<=0)continue;
   ctx.save();const rhythm=(1+Math.sin(elapsed*3.8+m.r)*.10);
-  ctx.strokeStyle="rgba(255,95,78,.70)";ctx.lineWidth=2.2;
+  ctx.strokeStyle=m.hp<m.maxHp*.45?"rgba(255,156,75,.85)":"rgba(255,95,78,.70)";ctx.lineWidth=2.2;
   ctx.beginPath();ctx.arc(m.x,m.y,m.r*rhythm+15,0,TWO);ctx.stroke();
   ctx.textAlign="center";ctx.textBaseline="bottom";
   ctx.font="900 12px sans-serif";ctx.lineWidth=3.2;ctx.strokeStyle="#1b1316";
@@ -3565,6 +3565,12 @@ function update(dt){
   }
   if(m.strongBoss){
    revealBossPresence(m,d);
+   if(m.hp<m.maxHp*.45&&!m.enragedAnnounced&&d<490&&visible(m.x,m.y,95)){
+    m.enragedAnnounced=true;
+    label(m.x,m.y-m.r-62,"激怒！ 攻撃速度が上がる","#ffa280");
+    playEffect("snarl",{volume:.12,rate:.66});
+    shake=Math.max(shake,4);
+   }
    if(updateBossSignature(m,dt,d))continue;
   }
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
@@ -3780,7 +3786,7 @@ function update(dt){
  if(audioTick>.35){
   audioTick=0;
   window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",...waterSoundAt(P.x,P.y),
-   danger:mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<290)});
+   danger:mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<(m.strongBoss?515:290))});
  }
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
  autosaveClock+=dt;if(autosaveClock>=1){autosaveClock=0;saveAuto();}
