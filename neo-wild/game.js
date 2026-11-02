@@ -155,6 +155,12 @@ const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake"]
 function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
+function bossHealthTarget(sp){
+ if(!P||P.level<6)return Math.round(sp.hp*(1+Math.min(12,Math.max(0,day-1))*.035));
+ const hits=sp.hp>=650?14:sp.hp>=480?12:10;
+ const budget=Math.max(sp.hp*.35,(P.damage||20)*hits*(1+enemyChallengeTier()*.018));
+ return Math.round(Math.min(sp.hp*1.6,budget));
+}
 function strongBossLimit(){return !P||P.level<6?1:P.level<11?2:3;}
 function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)));}
 function syncEnemyLevel(m){
@@ -1380,8 +1386,7 @@ function spawnStrongBoss(type,region){
   const y=spot?spot.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
   if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
   // Boss health stays near 7-12 ordinary hits at high LV, not a day-based infinity.
-  const playerStrike=Math.max(16,P.damage||20);
-  const hp=Math.round(Math.max(sp.hp*.84,Math.min(sp.hp*1.8,Math.max(sp.hp*(1+enemyChallengeTier()*.06),playerStrike*(P.level>=6?8.5:7)))));
+  const hp=bossHealthTarget(sp);
   mobs.push({x,y,type,r:sp.r,color:sp.color,belly:sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
    alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
@@ -1428,6 +1433,15 @@ function normalizeStrongBossSave(){
   }
  }
  if(first)strongRolls[first.strongRegion]={type:first.type,spawned:true};
+ // A legacy SAVE_SCHEMA2 monster may have an old unbounded day-scaled HP.
+ // Preserve its injury ratio while capping only the impossible excess.
+ if(P&&P.level>=6)for(const m of activeStrongBosses()){
+  const safe=bossHealthTarget(species[m.type]);
+  if(m.maxHp>safe){
+   const ratio=clamp(m.hp/Math.max(1,m.maxHp),0,1);
+   m.maxHp=safe;m.hp=Math.max(1,Math.round(safe*ratio));
+  }
+ }
 }
 
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null){
