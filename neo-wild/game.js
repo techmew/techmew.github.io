@@ -1607,6 +1607,16 @@ function updateMacaque(m,dt,d){
   m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
   const action=forageWildBerries(m,spec,dt,false,d)||huntWildPrey(m,spec,false,d);
   if(action)move(m,action.vx*dt,action.vy*dt);
+  else{
+   const leader=m.packId&&m.packOrder>0?mobs.find(q=>q.hp>0&&q.packId===m.packId&&q.packOrder===0):null;
+   if(leader&&dist(m,leader)>85)m.dir=Math.atan2(leader.y-m.y,leader.x-m.x);
+   else if((m.wander||0)<=0){m.dir+=rnd(-1.4,1.4);m.wander=rnd(.8,2.2);}
+   const pace=leader&&dist(m,leader)>85?.58:.22;
+   const nx=m.x+Math.cos(m.dir)*spec.speed*pace*dt;
+   const ny=m.y+Math.sin(m.dir)*spec.speed*pace*dt;
+   if(mountainHabitat(nx,ny))move(m,nx-m.x,ny-m.y);
+   else m.dir+=Math.PI*.7;
+  }
  }
  m.step=(m.step||0)+dt*(m.treeHeight>0?1.1:2.7);
  m.alert=Math.max(0,(m.alert||0)-dt*.4);
@@ -3699,7 +3709,7 @@ function update(dt){
   const s=species[m.type];if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
-  if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);continue;}
+  if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);else{m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(d>WILDLIFE.farAI){m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,1.2);m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
   if(rareEngagementBlocked(m)){
    m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,.9);
