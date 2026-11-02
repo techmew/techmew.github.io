@@ -838,19 +838,29 @@ function mountainTerrain(isVisible){
  const tile=110;
  for(let x=m.WEST;x<m.EAST;x+=tile){
   const x2=Math.min(m.EAST,x+tile);
-  for(let y=2850;y<4850;y+=tile){
+  for(let y=2850;y<5150;y+=tile){
    const y2=y+tile,cx=(x+x2)/2,cy=(y+y2)/2;
    if(!isVisible(cx,cy,350))continue;
    const h00=m.height(x,y),h10=m.height(x2,y),h11=m.height(x2,y2),h01=m.height(x,y2);
-   const edge=Math.abs(cy-m.center(cx))>690,trail=Math.abs(cy-m.center(cx))<148;
+   const edge=cy<m.center(cx)-690||cy>m.center(cx)+m.southReach(cx)-30,trail=Math.abs(cy-m.center(cx))<148,meadow=m.meadowAt(cx,cy);
    const upper=cx>m.FOOTHILL_END,alpine=cx>=m.SUMMIT_START;
-   const col=color(alpine?(edge?"#85877d":trail?"#8b806a":"#667368"):edge?(upper?"#777970":"#727a70"):trail?(upper?"#918467":"#81785a"):upper?((Math.floor(x/tile)+Math.floor(y/tile))%3?"#466450":"#52675a"):(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
+   const col=color(meadow?"#779260":alpine?(edge?"#85877d":trail?"#8b806a":"#667368"):edge?(upper?"#777970":"#727a70"):trail?(upper?"#918467":"#81785a"):upper?((Math.floor(x/tile)+Math.floor(y/tile))%3?"#466450":"#52675a"):(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
    quad([x,y,h00+.24],[x2,y,h10+.24],[x2,y2,h11+.24],[x,y2,h01+.24],col);
   }
   for(const sign of [-1,1]){
-   const y=m.center(x)+sign*720,z=m.height(x,y);
+   const y=m.center(x)+(sign<0?-720:m.southReach(x)),z=m.height(x,y);
    if(isVisible(x,y,220))pyramid(x+tile*.45,y+sign*37,z,69,75,78,"#737c73");
   }
+ }
+ // The branch path and real grazeable grass share 2D/3D world positions.
+ for(let x=10380;x<11360;x+=70){
+  const x2=x+70,y=m.meadowTrail(x),y2=m.meadowTrail(x2);
+  if(!isVisible(x,y,180))continue;
+  quad([x,y-42,m.height(x,y-42)+.9],[x2,y2-42,m.height(x2,y2-42)+.9],
+   [x2,y2+42,m.height(x2,y2+42)+.9],[x,y+42,m.height(x,y+42)+.9],color("#b1a07c"));
+ }
+ for(const g of m.meadowGrass||[]){if(!isVisible(g.x,g.y,65))continue;
+  for(let k=-2;k<=2;k++)pyramid(g.x+k*3,g.y-k*2,g.z,3.2,2.8,16+Math.abs(k)*3,"#8aa96e");
  }
  // Mountain creek: same coordinates and crossing as Canvas2D and physics.
   for(let y=3000;y<4650;y+=70){
