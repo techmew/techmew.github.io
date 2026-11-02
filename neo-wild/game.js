@@ -1160,6 +1160,7 @@ function restoreSnapshot(snapshot){
   m.signatureUse=clamp(Math.floor(Number(m.signatureUse)||0),0,1000);
   m.bossPresenceShown=false;
   if(m.type==="mountainGoat"){m.headbuttTell=0;m.headbuttArmed=false;}
+   if(m.type==="dog"){m.foodTheftTell=0;m.foodTheftArmed=false;m.foodTheftCooldown=Math.max(1,Number(m.foodTheftCooldown)||0);}
   if(m.type==="giantGorilla")m.rock=null;
   if(m.type==="macaque"){m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
   if(m.type==="chimpanzee"){m.chimpStone=null;m.chimpTell=0;m.chimpAttackKind=null;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
@@ -1708,6 +1709,46 @@ function updateMacaque(m,dt,d){
 }
 // CHIMP-TOOL-FOREST-V1: tree retreat, shared alarm, a dodgeable thrown stone,
 // and a short-range branch strike. All phases use existing mob save fields.
+// FOOD-THEFT-HUNT-V1: dogs contest meat during the trip back to a den.
+// The warning is avoidable; stolen meat remains in the world and can be reclaimed.
+function updateFoodThief(m,dt,d){
+ m.foodTheftCooldown=Math.max(0,(Number(m.foodTheftCooldown)||0)-dt);
+ const carrying=!!P?.carry&&P.carry.type!=="berries"&&P.carry.amount>0;
+ const eligible=carrying&&!atDen()&&!insideShelter(P)&&!P.hidden&&d<325&&!lineBlocked(m,P);
+ if(!eligible||m.stun>0||m.hp<=0){
+  m.foodTheftTell=0;m.foodTheftArmed=false;return false;
+ }
+ m.alert=Math.max(m.alert||0,3.2);m.lastX=P.x;m.lastY=P.y;
+ if((m.foodTheftTell||0)>0){
+  m.foodTheftTell=Math.max(0,m.foodTheftTell-dt);
+  m.vx=0;m.vy=0;
+  if(m.foodTheftTell===0&&m.foodTheftArmed){
+   m.foodTheftArmed=false;m.foodTheftCooldown=9.5;m.swing=.27;
+   if(P.carry&&P.carry.type!=="berries"&&d<m.r+P.r+34&&!lineBlocked(m,P)&&
+    (P.jumpHeight||0)<(P.groundZ||0)+22){
+    const food=P.carry;P.carry=null;
+    carcasses.push({x:m.x,y:m.y,r:11,amount:food.amount,
+     type:food.type==="berries"?"berries":"meat",animalType:food.animalType||null,ttl:150,phase:m.dir||0});
+    P.revealTimer=Math.max(P.revealTimer||0,.8);
+    label(P.x,P.y-42,"肉を奪われた！","#ffc0a2");
+    notify("野犬に肉を奪われた！ 地面の肉は拾い直せる");
+    syncHUD();playEffect("damage");
+   }else label(m.x,m.y-m.r-30,"横取りを回避！","#b4e6c2");
+  }
+  return true;
+ }
+ if(m.foodTheftCooldown>0)return false;
+ if(d<m.r+P.r+78){
+  m.foodTheftTell=.68;m.foodTheftArmed=true;
+  m.dir=Math.atan2(P.y-m.y,P.x-m.x);
+  label(m.x,m.y-m.r-35,"肉を狙って飛びかかる！","#ffd0a0");
+  return true;
+ }
+ const a=steerPursuit(m,P.x,P.y);m.dir=a;
+ const s=species[m.type],nx=m.x+Math.cos(a)*s.speed*.92*dt,ny=m.y+Math.sin(a)*s.speed*.92*dt;
+ move(m,nx-m.x,ny-m.y);m.step=(m.step||0)+dt*3;
+ return true;
+}
 function updateChimpanzee(m,dt,d){
  const spec=species.chimpanzee;
  m.chimpCooldown=Math.max(0,(Number(m.chimpCooldown)||0)-dt);
@@ -4086,6 +4127,7 @@ function update(dt){
   const s=species[m.type];if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
+  if(m.type==="dog"&&updateFoodThief(m,dt,d))continue;
   if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);else{m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(m.type==="chimpanzee"){if(d<WILDLIFE.farAI)updateChimpanzee(m,dt,d);else{m.chimpStone=null;m.chimpTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(d>WILDLIFE.farAI){m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,1.2);m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
@@ -5561,6 +5603,10 @@ function drawScene(){
  drawOccludedSilhouettes(entities);
  }
  drawBossThreats(entities);
+ for(const m of entities)if(m.type==="dog"&&m.hp>0&&(m.foodTheftTell||0)>0){
+  ctx.save();ctx.strokeStyle="#ffc38e";ctx.lineWidth=4;ctx.setLineDash([12,8]);
+  ctx.beginPath();ctx.arc(m.x,m.y,m.r+P.r+34,0,TWO);ctx.stroke();ctx.restore();
+ }
  for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&m.hp>0&&((m.macaqueTell||0)>0||(m.chimpTell||0)>0)){
   const a=Number.isFinite(m.chimpAim)&&m.type==="chimpanzee"?m.chimpAim:m.macaqueAim||0,reach=(m.type==="chimpanzee"?(m.chimpAttackKind==="branch"?m.r+P.r+48:350*1.02):395*.95);
   ctx.save();ctx.strokeStyle="#f0c486";ctx.lineWidth=4;ctx.setLineDash([15,11]);
