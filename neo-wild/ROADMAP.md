@@ -1,3 +1,13 @@
+## 共同スプリント・次担当｜2026/11/3 5:48:52 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟の実景・ネズミ固有モデル・入口出口視認
+- **コード開始HEAD→終了HEAD**：d10e155acb028810f5d0bbcf662af5ffa128eb99 → 81c8522c34387670ae9bd543f5e1dffe1dd0c18e。変更：neo-wild/fauna.js `96dd8ef5`、mountain.js `1912cafa`、webgl3d.js `5a6c5511`、index.html `81c8522c`。旧8地区/6探索地点/橋2本/洞窟石柱3本/20強敵40技/世界76近隣9/旧SAVE_SCHEMA2/3CPのルールは変更なし。
+- **実プレイ変化**：①洞窟床の湿潤鉱脈筋8か所・壁の岩片12か所を同一決定的座標で2D/3Dに追加（衝突なし）。②洞窟の入口と出口の両方に2D/3D石門を表示。中央通路は地続きで通行可能。③ネズミに独自2D/3Dモデル（低い胴体・耳・ヒゲ・尾）と逃走/休息姿勢を追加。④近距離静的GPUメッシュとCanvas2D代替は維持。新規動物の増殖や保存スキーマ変更なし。
+- **検証**：11テスト群PASS：syntax:mountain.js、syntax:webgl3d.js、syntax:fauna.js、38-point cave walk、pillars、nonblocking seams、mountain 2D draw、rat 2D flee/rest/normal、rat 3D flee/rest/normal、mountain 3D primitive integration、HTML cache rev。3Dはプリミティブモックであり実GPUではない。実Android/物理Pad/縦横実ブラウザ/10分E2E/FPS/旧SAVE2実機/全40強敵技は未検証。
+- **Pages**：コードHEAD `81c8522c` のbuild/deployは確認待ち（確認前に公開済みと呼ばない）。run ID未取得。
+- **進捗V2**：A16.0/B12.0/C9.0/D4.0/E8.0/F9.0/G8.0/H4.0/I4.0=74.0/100（前回差0.0）。新描画のみで加点なし。
+- **次00分枠**：①game.js:drawCreature/kill/restoreSnapshotで洞窟ネズミ討伐→死骸→図鑑/旧SAVE2復元を統合QA。②mountain.js:blocked/sightBlockedとgame.js:lineBlockedで両石門の通過/攻撃/視線を確認。③今回HEADのPages build/deploy個別確認、3CP/強敵40技/死亡復帰。
+- **次20分枠**：①game.js:maintainLocalWildlife/spawnMobで洞窟11候補・ネズミ/イタチ密度の経時測定。②game.js:steerPursuit/huntWildPreyで動くネズミの石柱迂回・捕食/死骸。③mountain.js:spawnCandidateとgame.js:restoreSnapshotで洞窟出口/山頂の旧セーブ復帰。
+- **次40分枠**：①webgl3d.js:mountainTerrainで実GPU/実ブラウザFPS・LODを測定。②webgl3d.js:drawCommonAnimal3Dとfauna.js:draw2Dで洞窟ネズミ/イタチ/ヘビの夜間視認性を改善。③gamepad.js:pollとgame.js:moveで洞窟両端・縦横・Pad操作の実機QA。
+
 ## 共同スプリント・次担当｜2026/11/3 5:26:33 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟の捕食者・獲物・石柱迂回・死骸摂食の実動作連結
 - **開始HEAD→コードHEAD**：`223f9588bbdbda892f80a4a469495a7e3377a079` → `2b06436da044172d201080141d79019dbf2f7e8d`。変更は `neo-wild/mountain.js` commit `8d0a6ede96b1a18bd61ef900e3149ddf3076c7f4`、`game.js` commit `e31e346661f85ca60810ddf56c916baa8f7052c4`、`index.html` commit `2b06436da044172d201080141d79019dbf2f7e8d`。元の山頂洞窟石柱3本/地続き座標/8地区/6探索地点/橋2本/巣6か所/20強敵/40技/BOSS-BALANCE-V2/旧SAVE_SCHEMA2/3CPを維持。
 - **一連のプレイ改善**：①`MOUNTAIN.spawnCandidate`の洞窟候補を実床の11地点に分散し、プレイヤーから遠い側を優先。旧230座標の市街型出現距離を洞窟だけ捕食者105/獲物128に調整し、壁/石柱衝突と個体間99の離隔・視界外優先を保持。②`game.js:maintainLocalWildlife/spawnMob`で洞窟内の獲物0なら獲物、獲物がいて捕食者0ならイタチ/ヘビ/キツネ/タヌキを既存総枠内で補充。洞窟の獲物・捕食者優先補充は4匹未満で行い、世界76/近隣9を超えない（洞窟の絶対上限4ではない）。③`caveWildlifePath/steerPursuit`で石柱周りの洞窟中心通路を小規模可視経路として共有。行き止まりでA*全世界格子を連発せず、障害物を飛ばしたウェイポイント進行を防止。④`huntWildPrey`で洞窟の獲物を遮蔽物越しにも匂い追跡できるが、噛みつきは従来どおりLOS必須。石柱迂回→実攻撃→死骸→摂食まで既存AIと結合。新種・別ステージ・保存フィールド追加なし。
