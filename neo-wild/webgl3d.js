@@ -740,7 +740,8 @@ function mountainTerrain(isVisible){
    if(!isVisible(cx,cy,350))continue;
    const h00=m.height(x,y),h10=m.height(x2,y),h11=m.height(x2,y2),h01=m.height(x,y2);
    const edge=Math.abs(cy-m.center(cx))>690,trail=Math.abs(cy-m.center(cx))<148;
-   const col=color(edge?"#727a70":trail?"#81785a":(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
+   const upper=cx>m.FOOTHILL_END;
+   const col=color(edge?(upper?"#777970":"#727a70"):trail?(upper?"#918467":"#81785a"):upper?((Math.floor(x/tile)+Math.floor(y/tile))%3?"#466450":"#52675a"):(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
    quad([x,y,h00+.24],[x2,y,h10+.24],[x2,y2,h11+.24],[x,y2,h01+.24],col);
   }
   for(const sign of [-1,1]){
@@ -765,7 +766,24 @@ function mountainTerrain(isVisible){
    for(const side of [-1,1])
     box(bridgeX-70,bridgeY+side*174-3,z+5,140,6,14,"#635f4e","#a89b79");
   }
-  for(const hut of m.ruins){
+  // Upper ravine uses the same world-space crossing as collision and 2D.
+  for(let y=3000;y<4650;y+=70){
+   const y2=Math.min(4650,y+70),x1=m.gorge.xAt(y),x2=m.gorge.xAt(y2);
+   if(!isVisible((x1+x2)/2,(y+y2)/2,210))continue;
+   const z1=m.height(x1,y)+1.6,z2=m.height(x2,y2)+1.6;
+   for(const [half,col] of [[63,"#777a70"],[44,"#384445"],[27,"#397582"]])
+    quad([x1-half,y,z1],[x1+half,y,z1],[x2+half,y2,z2],[x2-half,y2,z2],color(col));
+   if(Math.abs((y+y2)/2-m.gorge.bridgeY)>205)for(const sign of [-1,1])
+    box((x1+x2)/2+sign*59-8,(y+y2)/2-30,z1,16,60,24,"#676c67","#a2a59b");
+  }
+  const gorgeX=m.gorge.xAt(m.gorge.bridgeY),gorgeY=m.gorge.bridgeY;
+  if(isVisible(gorgeX,gorgeY,370)){
+   const z=m.height(gorgeX,gorgeY)+3;
+   box(gorgeX-82,gorgeY-158,z,164,316,6,"#625c4b","#a89a7a");
+   for(let x=gorgeX-75;x<gorgeX+78;x+=16)box(x,gorgeY-154,z+6,11,308,1.5,"#8b7a5e","#c3b18c");
+   for(const side of [-1,1])box(gorgeX-85,gorgeY+side*164-3,z+7,170,6,13,"#676453","#b8aa85");
+  }
+  for(const hut of [...m.ruins,...m.ridgeHuts]){
   if(!isVisible(hut.x+hut.w/2,hut.y+hut.h/2,240))continue;
   const z=m.height(hut.x+hut.w/2,hut.y+hut.h/2);
   box(hut.x,hut.y,z,hut.w,hut.h,4,"#706e5c","#807c68");
@@ -779,6 +797,17 @@ function mountainTerrain(isVisible){
    for(let k=-2;k<=2;k++)
     pyramid(f.x+k*f.r*.35,f.y-k*2,f.z,4.5,3.5,17+Math.abs(k)*2,
       k%2?"#477a4e":"#639264");
+  }
+  for(const h of m.heather){if(!isVisible(h.x,h.y,75))continue;
+   for(let k=-3;k<=3;k++)pyramid(h.x+k*3,h.y-k*2,h.z,2.7,2.3,12+Math.abs(k)*2,k%2?"#729b75":"#557e64");
+  }
+  for(const r of m.scree){if(!isVisible(r.x,r.y,125))continue;
+   pyramid(r.x,r.y,r.z,r.r,r.r*.77,r.r*.84,"#777d78");
+   ellipsoid(r.x+5,r.y-4,r.z+r.r*.19,r.r*.58,r.r*.51,r.r*.24,"#92978e",.22,6,3);
+  }
+  for(const t of m.pines){if(!isVisible(t.x,t.y,200))continue;
+   box(t.x-5,t.y-5,t.z,10,10,63,"#635b48","#857963");
+   for(let k=0;k<3;k++)pyramid(t.x,t.y,t.z+21+k*25,t.r*(1.12-k*.17),t.r*(.99-k*.16),57-k*6,k%2?"#356450":"#274d40");
   }
   for(const r of m.rocks){
   if(!isVisible(r.x,r.y,150))continue;

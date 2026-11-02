@@ -5,8 +5,8 @@ const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
 const mini=$("minimap"),mc=mini.getContext("2d");
 const bigMap=$("world-map-canvas"),bm=bigMap.getContext("2d");
-const TWO=Math.PI*2, WORLD={w:10100,h:6000}, CITY_WIDTH=8400;
 const MOUNTAIN=window.WildMountain;
+const TWO=Math.PI*2, WORLD={w:Math.max(10100,MOUNTAIN?.EAST||10100),h:6000}, CITY_WIDTH=8400;
 const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
  cat:{name:"ノラネコ",hp:85,speed:320,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
@@ -1761,7 +1761,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  const biome=regionAt(x,y);
- let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)&&!preyOnly?MOUNTAIN.choose():window.WildFauna?.choose(biome,day,weather,preyOnly);
+ let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)&&!preyOnly?MOUNTAIN.choose(Math.random(),x,y):window.WildFauna?.choose(biome,day,weather,preyOnly);
  if(!species[type])type="rat";
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
@@ -3937,6 +3937,7 @@ function drawWorldMap(){
   }bm.stroke();
   bm.fillStyle="#e0eac9";bm.font="bold 12px sans-serif";bm.textAlign="center";
   bm.fillText("山麓の森",X(9200),Y(3000));
+  if(MOUNTAIN.gorge){bm.fillStyle="#c4d2c5";bm.fillText("山腹・渓谷",X(10950),Y(2900));}
  }
  for(const seg of WATER_RIBBONS){bm.fillStyle=seg.kind==="river"?"#4d9ca9":"#3c87a3";bm.beginPath();seg.pts.forEach((p,i)=>i?bm.lineTo(X(p[0]),Y(p[1])):bm.moveTo(X(p[0]),Y(p[1])));bm.closePath();bm.fill();}
   bm.fillStyle="#586666";
@@ -3981,7 +3982,7 @@ function drawWorldMap(){
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
  bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
- const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?"山麓の森":districts[zone],eco=ecology[zone];
+ const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?(P.x>MOUNTAIN.FOOTHILL_END?"山腹・渓谷":"山麓の森"):districts[zone],eco=ecology[zone];
  $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
  "｜"+ecologyNews;
