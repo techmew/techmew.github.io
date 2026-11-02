@@ -1622,6 +1622,14 @@ function updateMacaque(m,dt,d){
   m.macaqueTell=.65;m.macaqueAim=Math.atan2(P.y-m.y,P.x-m.x);m.dir=m.macaqueAim;
   label(m.x,m.y-m.r-36,"石を構えた！","#ffe0ac");
  }
+ if(!seen&&m.alert>0&&m.treeHeight<=0&&m.macaqueTell<=0&&m.stun<=0){
+  const tx=Number.isFinite(m.lastX)?m.lastX:m.x,ty=Number.isFinite(m.lastY)?m.lastY:m.y;
+  if(Math.hypot(tx-m.x,ty-m.y)>95){
+   m.dir=steerPursuit(m,tx,ty);
+   const nx=m.x+Math.cos(m.dir)*spec.speed*.53*dt,ny=m.y+Math.sin(m.dir)*spec.speed*.53*dt;
+   if(mountainHabitat(nx,ny))move(m,nx-m.x,ny-m.y);
+  }
+ }
  if(!seen&&m.alert<=0&&m.treeHeight<=0&&m.stun<=0){
   m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
   m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
@@ -1717,6 +1725,15 @@ function updateChimpanzee(m,dt,d){
   if(seen&&d<125){
    const a=Math.atan2(m.y-P.y,m.x-P.x);m.dir=a;
    move(m,Math.cos(a)*spec.speed*.50*dt,Math.sin(a)*spec.speed*.50*dt);
+  }else if(!seen&&m.alert>0){
+   // A warned packmate actually investigates the last sighting, rather
+   // than standing motionless with an alert icon.
+   const tx=Number.isFinite(m.lastX)?m.lastX:m.x,ty=Number.isFinite(m.lastY)?m.lastY:m.y;
+   if(Math.hypot(tx-m.x,ty-m.y)>85){
+    m.dir=steerPursuit(m,tx,ty);
+    const nx=m.x+Math.cos(m.dir)*spec.speed*.58*dt,ny=m.y+Math.sin(m.dir)*spec.speed*.58*dt;
+    if(mountainHabitat(nx,ny))move(m,nx-m.x,ny-m.y);
+   }
   }else if(!seen&&m.alert<=0){
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
    m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
