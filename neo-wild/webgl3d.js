@@ -290,7 +290,7 @@ function drawStrongAnimal3D(m,clock){
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
- if(!["chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
  const r=m.r||14,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||(t==="crow"?"#313b44":t==="snake"?"#587b50":"#977c62");
@@ -298,7 +298,23 @@ function drawCommonAnimal3D(m,clock){
  const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(fx(dx,dy),fy(dx,dy),z,rx,ry,rz,col,dir,8,5);
  const horn=(dx,dy,z,rx,ry,h,col)=>pyramid(fx(dx,dy),fy(dx,dy),z,rx,ry,h,col);
  const gait=Math.sin((m.step||0)*.9+clock*1.1);
- if(t==="chimpanzee"){
+ if(t==="rat"){
+  const startled=(m.flee||0)>0,resting=!!m.resting;
+  const stretch=startled?1.2:resting?.83:1;
+  const bob=resting?0:Math.sin(clock*9+(m.step||0))*r*.045;
+  for(const side of [-1,1])for(const front of [-1,1])
+   orb(front*r*.54,side*r*.35,r*.12+Math.max(0,bob),r*.15,r*.13,r*.12,fur);
+  orb(-r*.18,0,r*.31+bob,r*1.03*stretch,r*.42,r*.32,fur);
+  orb(r*.69,0,r*.35+bob,r*.42,r*.37,r*.35,fur);
+  orb(r*1.04,0,r*.22,r*.32,r*.23,r*.19,belly);
+  for(const side of [-1,1]){
+   orb(r*.63,side*r*.34,r*.68,r*.22,r*.12,r*.22,"#bd9892");
+   orb(r*.94,side*r*.23,r*.46,r*.09,r*.07,r*.085,"#171c1a");
+   for(let k=-1;k<=1;k++)orb(r*1.17,side*(r*.18+k*r*.13),r*.19,r*.20,r*.018,r*.018,"#ddd0bd");
+  }
+  orb(r*1.31,0,r*.19,r*.10,r*.10,r*.08,"#d49e9b");
+  for(let k=0;k<7;k++)orb(-r*(1.04+k*.32),Math.sin(k*.47+clock*(startled?2.3:.8))*r*.11,r*(.25-k*.021),r*(.20-k*.017),r*.07,r*.075,"#c49d96");
+ }else if(t==="chimpanzee"){
   // Upright heavy torso, long grasping arms and broad bare face: not a
   // recoloured four-legged animal. Branch/stone props follow real AI state.
   const climbing=Math.max(0,m.treeHeight||0),ready=(m.chimpTell||0)>0;
@@ -845,8 +861,10 @@ function mountainTerrain(isVisible){
     box(x,y-16,z,65,32,62,"#686e69","#969b91");
    }
   }
-  if(isVisible(m.cave.start,m.center(m.cave.start),290)){
-   const x=m.cave.start,y=m.center(x),z=m.height(x,y);
+  // Entrance and exit share the same open, walkable world corridor.
+  for(const x of [m.cave.start,m.cave.end]){
+   const y=m.center(x);if(!isVisible(x,y,290))continue;
+   const z=m.height(x,y);
    for(const side of [-1,1])box(x-16,y+side*127-17,z,34,34,116,"#777c75","#a3a79c");
    box(x-16,y-132,z+116,34,264,16,"#727970","#9a9f94");
   }
@@ -854,6 +872,16 @@ function mountainTerrain(isVisible){
   for(let x=m.cave.start+50;x<m.cave.end-20;x+=82){
    const y=m.center(x);if(!isVisible(x,y,170))continue;
    box(x-7,y-52,m.height(x,y)+1.6,14,104,.75,"#48544e","#5b6760");
+  }
+  // Shared cave floor minerals and wall fragments are close-range static meshes.
+  for(const p of m.caveSeams||[]){
+   if(!isVisible(p.x,p.y,65))continue;
+   ellipsoid(p.x,p.y,p.z+1.7,p.rx,p.ry,.45,"#758c7e",-.12,7,2);
+   box(p.x-p.rx*.6,p.y-1,p.z+2,p.rx*1.2,2,.25,"#a5b6a4");
+  }
+  for(const p of m.caveWallMarks||[]){
+   if(!isVisible(p.x,p.y,65))continue;
+   pyramid(p.x,p.y,p.z,p.r,p.r*.8,15,"#89938a");
   }
   for(const p of m.caveColumns||[]){
    if(!isVisible(p.x,p.y,105))continue;
