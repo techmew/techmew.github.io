@@ -3106,7 +3106,7 @@ const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
- for(const q of mobs){if(q===m||!isWildPredator(q))continue;const d=dist(m,q);if(d<best&&!lineBlocked(m,q)){nearest=q;best=d;}}
+ for(const q of mobs){if(q===m||!isWildPredator(q)||(m.type==="macaque"&&q.type==="macaque"))continue;const d=dist(m,q);if(d<best&&!lineBlocked(m,q)){nearest=q;best=d;}}
  return nearest;
 }
 function defendBuffaloHerd(m){
