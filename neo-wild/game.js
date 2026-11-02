@@ -4387,7 +4387,8 @@ function drawDeathVignette(){
  if(mode==="over"){
   ctx.fillStyle="rgba(5,9,12,.96)";ctx.fillRect(0,0,vw,vh);
  }else{
-  const quiet=clamp((deathSequenceTime-.16)/1.50,0,1);
+  // Let the body finish falling before the surrounding world fades to black.
+  const quiet=clamp((deathSequenceTime-.58)/1.28,0,1);
   if(quiet>0){
    const pos=P?project(P.x,P.y):{x:vw*.5,y:vh*.5};
    const cx=clamp(pos.x,0,vw),cy=clamp(pos.y,0,vh),radius=Math.max(vw,vh)*.86;
@@ -4571,7 +4572,9 @@ function drawScene(){
  drawDeathVignette();
 }
 function loop(t){
- let dt=Math.min(.035,(t-last)/1000||.016);last=t;
+ // Keep simulation capped, but let the 2.2s death animation track real time on slow phones.
+ const frameSeconds=Math.max(0,(t-last)/1000||.016);
+ let dt=Math.min(.035,frameSeconds);last=t;
  if(objectiveBannerTime>0&&t>=objectiveBannerTime){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
  }
@@ -4581,7 +4584,7 @@ function loop(t){
  if(mode==="milestone"&&t>=milestoneUntil)finishMissionMilestone();
  window.WildGamepad?.poll?.(dt);
  if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
- else if(mode==="dying")advanceDeath(dt);
+ else if(mode==="dying")advanceDeath(Math.min(.20,frameSeconds));
  else huntSlowUntil=0;
  // Freeze 2D/WebGL gameplay behind achievement and tutorial.
  if((mode!=="guide"&&mode!=="milestone")||guideNeedsFrame){drawScene();guideNeedsFrame=false}
