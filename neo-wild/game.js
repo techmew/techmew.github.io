@@ -516,22 +516,25 @@ function drawScenery2D(){
  * The time axis keeps the existing 85-second DAY cycle; no save/schema changes. */
 const DAYLIGHT_KEYS=[
  [0,.12,0,.60,.74,1.11],[4.75,.12,0,.60,.74,1.11],
- [5.5,.23,.34,1.03,.77,.67],[6.5,.45,.74,1.19,.88,.67],
+ [5.5,.30,.34,1.03,.77,.67],[6.5,.55,.74,1.19,.88,.67],
  [8.5,.81,.16,1.12,1.03,.91],[10,1.00,0,1.12,1.12,1.10],
  [12,1.16,0,1.20,1.19,1.14],[14,1.11,0,1.17,1.15,1.11],
  [16,.98,0,1.12,1.06,.96],[17,.72,.58,1.20,.83,.65],
- [18,.37,.91,1.24,.70,.51],[19,.29,.38,.83,.74,.88],
+ [18,.48,.91,1.24,.70,.51],[19,.29,.38,.83,.74,.88],
  [20,.12,0,.60,.73,1.08],[24,.12,0,.60,.74,1.11]
 ];
 /* Lunar cycle uses elapsed time, without changing saves, weather or YEAR. */
 function moonlightProfile(seconds=elapsed,sky=weather){
- const age=(Math.max(0,seconds)/85)%29.530588,phase=age/29.530588;
- const illumination=(1-Math.cos(phase*TWO))*.5;
+ const cycle=29.530588,age=(Math.max(0,seconds)/85)%cycle,phase=age/cycle;
+ // One continuous phase controls the moon's side, icon, age and illumination.
+ const illumination=(1-Math.cos(phase*TWO))*.5,waxing=phase<.5;
  const visibility=sky==="THUNDER"?.10:sky==="RAIN"?.20:sky==="FOG"?.28:sky==="CLOUDY"?.45:sky==="WIND"?.82:1;
- const name=phase<.06||phase>=.94?"新月":phase<.20?"満ちゆく月":phase<.31?"上弦":phase<.44?"満ちゆく月":phase<.56?"満月":phase<.69?"欠けゆく月":phase<.81?"下弦":"欠けゆく月";
- return {age,phase,illumination,visibility,ambient:.22+.09*illumination*visibility,name};
+ const name=age<1.5||age>=28.3?"新月":age<5.9?"三日月":age<9?"上弦":age<11.5?"満ちゆく月":age<13.6?"十三夜":age<15.8?"満月":age<17.8?"十六夜":age<20.8?"欠けゆく月":age<23.6?"下弦":"有明月";
+ const symbol=["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"][Math.round(phase*8)%8];
+ // Storms suppress moonlight but never erase the terrain and nearby animals.
+ return {age,phase,illumination,visibility,ambient:.36+.14*illumination*visibility,name,waxing,symbol};
 }
-function dayLightProfile(seconds=elapsed){
+function dayLightProfile(seconds=elapsed,sky=weather){
  const hour=(6+((seconds%85+85)%85)/85*24)%24;
  for(let i=1;i<DAYLIGHT_KEYS.length;i++){
   const a=DAYLIGHT_KEYS[i-1],b=DAYLIGHT_KEYS[i];
@@ -539,8 +542,8 @@ function dayLightProfile(seconds=elapsed){
   const t=clamp((hour-a[0])/(b[0]-a[0]),0,1),ease=t*t*(3-2*t);
   const v=j=>a[j]+(b[j]-a[j])*ease;
   // Moonlight blends into the original daylight curve without changing noon.
-   const moon=moonlightProfile(seconds,weather);
-   const nightWeight=hour<4.75||hour>=20?1:hour<6.5?clamp((6.5-hour)/1.75,0,1):hour>=18?clamp((hour-18)/2,0,1):0;
+   const moon=moonlightProfile(seconds,sky);
+   const nightWeight=hour<4.75||hour>=20?1:hour<6.5?clamp((6.5-hour)/1.75,0,1):hour>=17.5?clamp((hour-17.5)/2.5,0,1):0;
    return {hour,brightness:v(1)+nightWeight*(moon.ambient-.12),warmth:v(2),tint:[v(3),v(4),v(5)]};
  }
  return {hour,brightness:.12,warmth:0,tint:[.60,.74,1.11]};
@@ -550,8 +553,8 @@ function worldDaylight(){return dayLightProfile().brightness;}
 /* Animal night vision: a soft 120-degree forward acuity field, not emitted light.
  * Shared parameters drive the WebGL material contrast and 2D darkness mask. */
 function nightVisionProfile(seconds=elapsed,sky=weather,animalType=P?.type){
- const light=dayLightProfile(seconds),hour=light.hour;
- const nightWeight=hour<4.75||hour>=20?1:hour<6.5?clamp((6.5-hour)/1.75,0,1):hour>=18?clamp((hour-18)/2,0,1):0;
+ const light=dayLightProfile(seconds,sky),hour=light.hour;
+ const nightWeight=hour<4.75||hour>=20?1:hour<6.5?clamp((6.5-hour)/1.75,0,1):hour>=17.5?clamp((hour-17.5)/2.5,0,1):0;
  const lunar=moonlightProfile(seconds,sky);
  const weatherFactor=sky==="THUNDER"?.55:sky==="RAIN"?.68:sky==="FOG"?.72:sky==="CLOUDY"?.80:sky==="WIND"?.94:1;
  const nocturnal=animalType==="cat";
@@ -3346,7 +3349,7 @@ function syncHUD(hour){
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather];
  const moon=moonlightProfile(elapsed,weather);
- $("moon-label").textContent="月齢 "+moon.age.toFixed(1)+" · "+moon.name;
+ $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name;
  const info=missionInfo();
  const stock=stockpileStep();
  const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
