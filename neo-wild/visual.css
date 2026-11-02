@@ -910,3 +910,30 @@
  #tutorial-dialog .tutorial-explainer p{font-size:12px!important;line-height:1.3!important;}
  #tutorial-dialog #tutorial-close{min-height:38px!important;padding:6px!important;}
 }
+
+/* MOBILE-START-RECOVERY-V7: orientation selected state is explicit. */
+#menu .orientation-choices .orientation-choice{
+ position:relative!important;isolation:isolate;padding-top:25px!important;
+ border:2px solid #758882!important;background:rgba(6,26,29,.87)!important;
+ color:#a8c4bb!important;box-shadow:none!important;opacity:.76!important;
+}
+#menu .orientation-choices .orientation-choice.selected,
+#menu .orientation-choices .orientation-choice[aria-pressed="true"]{
+ border:3px solid #ffe189!important;background:linear-gradient(155deg,#235f4b,#307758)!important;
+ color:#fff!important;box-shadow:0 0 0 2px rgba(255,224,140,.35),0 5px 17px #0008!important;opacity:1!important;
+}
+#menu .orientation-choice-indicator{display:none!important;position:absolute!important;top:3px;right:4px;
+ padding:2px 6px;border-radius:6px;background:#ffe189;color:#16382e;font-size:11px;font-weight:900;line-height:1.1;}
+#menu .orientation-choice.selected .orientation-choice-indicator,
+#menu .orientation-choice[aria-pressed="true"] .orientation-choice-indicator{display:block!important;}
+#menu #menu-orientation-status{display:block!important;margin:2px 0!important;font-size:12px!important;
+ font-weight:900!important;line-height:1.4!important;color:#ffdf80!important;text-align:center!important;
+ text-shadow:0 2px 5px #000e!important;}
+#menu #menu-landscape-note[data-error="true"]{display:block!important;background:#872e29!important;
+ color:white!important;border:1px solid #ffa68a!important;border-radius:7px!important;
+ padding:8px!important;font-size:12px!important;font-weight:800!important;min-height:35px!important;}
+@media(orientation:landscape) and (max-height:520px){
+ #menu .orientation-choices .orientation-choice{padding-top:17px!important;min-height:65px!important;}
+ #menu .orientation-choice-indicator{font-size:9px!important;padding:1px 4px!important;}
+ #menu #menu-orientation-status{font-size:10px!important;}
+}
