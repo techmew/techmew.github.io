@@ -798,7 +798,7 @@ function restoreSnapshot(snapshot){
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
  // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
- P.hunger=Number.isFinite(Number(p.hunger))?clamp(Number(p.hunger),0,100):100;
+ P.hunger=p.hunger==null||p.hunger===""?100:Number.isFinite(Number(p.hunger))?clamp(Number(p.hunger),0,100):100;
  if(choice==="cat"&&!p.catSpeedV2){
   // Older SAVE_SCHEMA=2 cat runs retain their upgrades. New 320+ saves are not amplified.
   // All legacy cats used base 239, including upgraded saves above 320.
@@ -2953,7 +2953,11 @@ function update(dt){
   saveAuto();
  }
  const oldDay=day; // accounted above
- if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");P.hp=Math.min(P.maxHp,P.hp+18)}
+ if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){
+  notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");
+  // Day transition must not heal an empty stomach or revive a defeated player.
+  if(P.hp>0&&P.hunger>0)P.hp=Math.min(P.maxHp,P.hp+18);
+ }
  P.jumpCD=Math.max(0,P.jumpCD-dt);P.wallKickLock=Math.max(0,(P.wallKickLock||0)-dt);P.wallKickTime=Math.max(0,(P.wallKickTime||0)-dt);
  if(P.fallTime>0&&P.jumpTime<=0&&P.pounceTime<=0){
   P.fallTime=Math.max(0,P.fallTime-dt);
