@@ -1419,7 +1419,11 @@ function ensureTrainingCoverNear(actor=P){
   !collides(p.x,p.y,Math.min(20,actor.r))&&!waterBlocksLand(p.x,p.y)&&routeClear(actor,p,actor.r);
  let patch=plants.find(p=>p.trainingCover&&suitable(p))||plants.find(suitable);
  if(patch){patch.trainingCover=true;return patch}
- for(const [dx,dy] of [[170,70],[-150,75],[115,-130],[-130,-105],[210,0],[0,190],[-200,0],[0,-210]]){
+ const candidates=[[170,70],[-150,75],[115,-130],[-130,-105],[210,0],[0,190],[-200,0],[0,-210]];
+ for(const radius of [115,165,225,270])for(let i=0;i<16;i++){
+  const a=i*Math.PI/8;candidates.push([Math.round(Math.cos(a)*radius),Math.round(Math.sin(a)*radius)]);
+ }
+ for(const [dx,dy] of candidates){
   const x=actor.x+dx,y=actor.y+dy;
   if(x<40||y<40||x>WORLD.w-40||y>WORLD.h-40||collides(x,y,29)||
     waterBlocksLand(x,y)||!routeClear(actor,{x,y},actor.r))continue;
@@ -2951,7 +2955,7 @@ function update(dt){
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?traitEffect("albinoWolf",.28):.94)+P.noiseBurst,0,1.8);
-  P.hidden=(P.jumpHeight||0)<(P.groundZ||0)+20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
+  P.hidden=(P.jumpHeight||0)<(P.groundZ||0)+20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=(mission===1?P.hidden&&inVisibleShrubCover(P):P.hidden)?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
  if((P.strongWound||0)>0){
