@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261102-poison-v1">
+<link rel="stylesheet" href="./visual.css?rev=20261102-boss-presence-v1">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -14,6 +14,11 @@
 <canvas id="scene3d" aria-hidden="true"></canvas>
 <canvas id="scene" aria-label="ゲーム画面"></canvas>
 <div id="vignette"></div>
+<div id="boss-presence" role="status" aria-live="polite" aria-atomic="true">
+ <span class="boss-presence-kicker">強敵接近</span>
+ <strong id="boss-presence-name">危険な気配</strong>
+ <span id="boss-presence-sub">攻撃範囲を見極めろ</span>
+</div>
 <div id="hud">
   <div class="hud-left">
     <div class="vitals"><div class="vital health"><label>生命 <b id="hp-text">100 / 100</b></label><div class="track"><i id="hp-bar"></i></div></div>
@@ -171,7 +176,8 @@
 <script src="./webgl3d.js?rev=20261102-safari-ruins-v1" defer></script>
 <script src="./bestiary.js?rev=20261102-safari-40-v1" defer></script>
 <script src="./fauna.js?rev=20261102-safari-six-v1" defer></script>
-<script src="./game.js?rev=20261102-offscreen-legacy-pop-v1" defer></script>
+<script src="./boss-patterns.js?rev=20261102-strong40-v1" defer></script>
+<script src="./game.js?rev=20261102-strong40-combat-v1" defer></script>
 <script src="./gamepad.js?rev=20261102-bestiary-pad-v1" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261102-tutorial-debug-flow-v4" defer></script>
