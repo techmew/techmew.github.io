@@ -124,7 +124,7 @@ function migrateSeenTutorial(snapshot){
 }
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 // Presentation-only state: never stored in SAVE_SCHEMA=2.
-const DEATH_SEQUENCE_SECONDS=3.2;
+const DEATH_SEQUENCE_SECONDS=2.2;
 let deathSequenceTime=0;
 let debugWeatherOverride=null; // Session-only weather preview; never stored in saves.
 let debugTutorialSession=null; // QA-only sandbox; saved progress is restored on exit.
@@ -896,6 +896,8 @@ function restoreSnapshot(snapshot){
  try{saveDenLevel();saveDenStash();saveTerritoryClaims()}catch(_){}
  mode=snapshot.savedMode==="upgrade"?"upgrade":"play";show(mode==="upgrade"?"upgrade":"");
  reconcileRestoredGoals();
+ // Legacy SAVE_SCHEMA2 can restore inside a cramped building gap; keep the same save format.
+ recoverPlayerFromGap(P);
  enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
@@ -1355,20 +1357,75 @@ function collides(x,y,r,actor=null,ignoreWater=false){
    return true;
   }
  }
+ if(actor===P&&(actor.jumpHeight||0)<18&&narrowBuildingPassage(x,y,r))return true;
  return false;
 }
+
+// Avoid admitting the player into gaps too tight to turn or walk back out.
+// The ordinary open streets and genuine shelter doors remain unaffected.
+function narrowBuildingPassage(x,y,r){
+ const margin=r*2+16;
+ const adjacent=buildings.filter(b=>!b.interior&&x>b.x-margin-12&&x<b.x+b.w+margin+12&&
+  y>b.y-margin-12&&y<b.y+b.h+margin+12);
+ for(let i=0;i<adjacent.length;i++)for(let j=i+1;j<adjacent.length;j++){
+  const a=adjacent[i],b=adjacent[j];
+  const left=a.x+a.w<=b.x?a:b.x+b.w<=a.x?b:null;
+  const right=left===a?b:left===b?a:null;
+  if(left&&right){
+   const gap=right.x-(left.x+left.w);
+   const lo=Math.max(a.y,b.y),hi=Math.min(a.y+a.h,b.y+b.h);
+   if(hi>lo&&gap>=0&&gap<margin&&x>left.x+left.w-1&&x<right.x+1&&y>lo-r*.45&&y<hi+r*.45)return true;
+  }
+  const top=a.y+a.h<=b.y?a:b.y+b.h<=a.y?b:null;
+  const bottom=top===a?b:top===b?a:null;
+  if(top&&bottom){
+   const gap=bottom.y-(top.y+top.h);
+   const lo=Math.max(a.x,b.x),hi=Math.min(a.x+a.w,b.x+b.w);
+   if(hi>lo&&gap>=0&&gap<margin&&y>top.y+top.h-1&&y<bottom.y+1&&x>lo-r*.45&&x<hi+r*.45)return true;
+  }
+ }
+ return false;
+}
+// Recover old saves and rare impact positions already inside an unwalkable alley.
+// Only used for a genuinely blocked location, never as a shortcut through an ordinary wall.
+function recoverPlayerFromGap(o){
+ if(o!==P||!collides(o.x,o.y,o.r,o))return false;
+ const originX=o.x,originY=o.y,roof=o.groundZ||0;
+ for(let radius=14;radius<=450;radius+=14){
+  let chosen=null,nearest=Infinity;
+  for(let k=0;k<32;k++){
+   const angle=k*Math.PI/16;
+   const x=clamp(originX+radius*Math.cos(angle),o.r+13,WORLD.w-o.r-13);
+   const y=clamp(originY+radius*Math.sin(angle),o.r+13,WORLD.h-o.r-13);
+   if(roofAt(x,y)!==roof||collides(x,y,o.r,o))continue;
+   const distance=Math.hypot(x-originX,y-originY);
+   if(distance<nearest){chosen={x,y};nearest=distance;}
+  }
+  if(chosen){o.x=chosen.x;o.y=chosen.y;o.vx=0;o.vy=0;return true;}
+ }
+ return false;
+}
+
 function move(o,dx,dy){
  if(o===P&&Math.max(Math.abs(dx),Math.abs(dy))>10){
   const parts=Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/10);
   for(let i=0;i<parts;i++)move(o,dx/parts,dy/parts);
   return;
  }
- // River and canal banks are solid for land animals; old saved positions can exit.
- const previous=waterDepth(o.x,o.y);
+ // A saved or knockback-displaced player in a gap must have a legal escape.
+ if(o===P)recoverPlayerFromGap(o);
+ // A complete diagonal step is checked first to avoid axis-order corner jamming.
+ // If blocked, slide on the unobstructed axis instead of cutting through walls or water.
+ const previous=waterDepth(o.x,o.y),actor=o===P?o:null;
  const allowed=(x,y,d)=>!waterBlocksLand(x,y)||(d>.0001&&waterDepth(x,y)<d-.00001);
- if(allowed(o.x+dx,o.y,previous)&&!collides(o.x+dx,o.y,o.r,o===P?o:null,true))o.x+=dx;
- const afterX=waterDepth(o.x,o.y);
- if(allowed(o.x,o.y+dy,afterX)&&!collides(o.x,o.y+dy,o.r,o===P?o:null,true))o.y+=dy;
+ const canStep=(x,y,d)=>allowed(x,y,d)&&!collides(x,y,o.r,actor,true);
+ if(dx&&dy&&canStep(o.x+dx,o.y+dy,previous)){
+  o.x+=dx;o.y+=dy;
+ }else{
+  if(canStep(o.x+dx,o.y,previous))o.x+=dx;
+  const afterX=waterDepth(o.x,o.y);
+  if(canStep(o.x,o.y+dy,afterX))o.y+=dy;
+ }
  if(o===P&&o.jumpTime<=0&&o.pounceTime<=0){
   const roof=roofAt(o.x,o.y),previous=o.groundZ||0;
   if(roof!==previous){
@@ -2259,7 +2316,7 @@ function getObjective(){
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
  P.hp=0;deathSequenceTime=0;mode="dying";
- // Discard the dead run immediately, not after the 3.2s fade; checkpoints stay intact.
+ // Discard the dead run immediately, not after the shortened death fade; checkpoints stay intact.
  clearAutoSave();
  resetControls();P.deathPose=0;P.hidden=false;P.vx=0;P.vy=0;
  P.jumpTime=0;P.pounceTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
@@ -2275,8 +2332,8 @@ function beginDeath(){
 function advanceDeath(dt){
  if(mode!=="dying"||!P)return false;
  deathSequenceTime=Math.min(DEATH_SEQUENCE_SECONDS,deathSequenceTime+Math.max(0,dt));
- P.deathPose=clamp(deathSequenceTime/.9,0,1);
- $("hud").style.opacity=String(1-.72*clamp((deathSequenceTime-.6)/2.3,0,1));
+ P.deathPose=clamp(deathSequenceTime/.65,0,1);
+ $("hud").style.opacity=String(1-.95*clamp((deathSequenceTime-.22)/1.30,0,1));
  if(deathSequenceTime>=DEATH_SEQUENCE_SECONDS)finish(false);
  return true;
 }
@@ -4316,9 +4373,9 @@ function drawScene(){
   drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
  } // Keep mission and enemy labels off the dying animal.
  if(mode==="dying"){
-  const dim=clamp((deathSequenceTime-.45)/2.75,0,1);
+  const dim=clamp((deathSequenceTime-.18)/1.48,0,1);
   ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle="rgba(5,9,12,"+(dim*.70)+")";ctx.fillRect(0,0,vw,vh);
+  ctx.fillStyle="rgba(5,9,12,"+(dim*.94)+")";ctx.fillRect(0,0,vw,vh);
   ctx.restore();
  }
 }
