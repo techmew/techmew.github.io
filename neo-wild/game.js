@@ -4741,17 +4741,17 @@ window.WildDebugBridge={
   start();
   denLevel=1;denStores=normalizeDenStores(null,0);syncDenStash();territoryClaims=[false,false,false];territoryLastSupply=[day,day,day];
   automaticTutorialShown=false;previouslyOnboardedAtRunStart=false;
-  mission=0;missionComplete=false;tutorialSeen.clear();meals=0;hiddenHold=0;kills=0;
+  mission=0;missionComplete=false;tutorialSeen.clear();meals=0;hiddenHold=0;kills=0;tutorialHuntBase=0;tutorialStashBase=denStash;
   syncHUD(Math.floor(dayLightProfile(elapsed).hour));openTutorial(0,false);
   return true;
  },
  tutorialStage(stage){
-  if(!debugTutorialSession||!P||![0,1,2,4,5,6,7].includes(stage)||["menu","over","dying","clear"].includes(mode))return false;
+  if(!debugTutorialSession||!P||![0,1,2,4,7].includes(stage)||["menu","over","dying","clear"].includes(mode))return false;
   if(mode==="guide")closeTutorial();
   if(mode==="milestone"){milestoneUntil=0;$("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");mode="play";}
   if(mode!=="play")return false;
   if(stage===7){
-   mission=6;missionComplete=false;previouslyOnboardedAtRunStart=false;
+   mission=4;missionComplete=false;previouslyOnboardedAtRunStart=false;
    advanceMission(7);return true;
   }
   mission=stage;missionComplete=false;tutorialSeen.delete(7);
@@ -4766,7 +4766,7 @@ window.WildDebugBridge={
  },
  tutorialStep(direction){
   if(!debugTutorialSession||![-1,1].includes(direction))return false;
-  const stages=[0,1,2,4,5,6,7],current=stages.indexOf(mission);
+  const stages=[0,1,2,4,7],current=stages.indexOf(mission);
   if(current<0)return false;
   const target=current+direction;
   if(target<0||target>=stages.length)return false;
