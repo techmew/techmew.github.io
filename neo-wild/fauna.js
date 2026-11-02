@@ -1,6 +1,8 @@
 /* Ordinary wildlife distribution: safe to load before game.js. */
 (()=>{"use strict";
 const species={
+ serow:{hp:136,r:23,speed:244,damage:11,prey:true,xp:5,food:57,color:"#756b5c",belly:"#c1b6a0"},
+ mountainGoat:{hp:154,r:25,speed:207,damage:18,prey:true,xp:5,food:64,color:"#c9bba0",belly:"#f2e7d5"},
  chimpanzee:{hp:154,r:26,speed:178,damage:19,prey:false,xp:6,food:66,color:"#3c3733",belly:"#887568"},
  macaque:{hp:88,r:19,speed:195,damage:12,prey:false,xp:4,food:38,color:"#867361",belly:"#c5b39c"},
  strayCat:{hp:58,r:17,speed:212,damage:10,prey:false,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
@@ -19,7 +21,7 @@ const species={
  elephant:{hp:560,r:55,speed:124,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
  hippo:{hp:425,r:46,speed:140,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat"];
 const weights=[
  [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
  [20,9,18,11,1,16,3,12,4,1,4,1,0,1,0,0,0,0,0,0],
@@ -63,7 +65,7 @@ function visualState(o){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -171,6 +173,22 @@ function draw2D(ctx,o,r,fur,light,pace){
   ellipse(r*.66,0,r*.42,r*.36,fur);
   poly([r*.93,-r*.15,r*1.53,0,r*.93,r*.17],"#747b7d");
   ellipse(r*.81,-r*.19,1.8,1.8,"#e5e4d4");
+ }else if(type==="serow"||type==="mountainGoat"){
+ const goat=type==="mountainGoat",lean=(o.headbuttTell||0)>0?r*.22:0,feeding=(o.foragePose||0)>0;
+ for(const side of [-1,1])for(const front of [-1,1])
+  line(front*r*.55,side*r*.4,front*r*.55+pace*.2,side*r*(goat?1.35:1.53),r*.17,"#5e584b");
+ ellipse(-r*.15,0,r*(goat?1.06:1.16),r*(goat?.72:.56),fur);
+ ellipse(r*.61,0,r*.60,r*.45,fur);
+ ellipse(r*1.12+lean,feeding?r*.12:0,r*.46,r*.31,fur);
+ ellipse(r*1.42+lean,feeding?r*.18:0,r*.28,r*.20,light);
+ for(const side of [-1,1]){
+  ellipse(r*.91+lean,side*r*.41,r*.20,r*.13,fur,side*.30);
+  line(r*.94+lean,side*r*.17,goat?r*.65+lean:r*1.03+lean,side*r*(goat?.85:.66),r*.11,goat?"#776e5c":"#4d4941");
+  line(goat?r*.65+lean:r*1.03+lean,side*r*(goat?.85:.66),goat?r*.43+lean:r*1.10+lean,side*r*(goat?1.03:.84),r*.075,goat?"#776e5c":"#4d4941");
+  ellipse(r*1.24+lean,side*r*.16,r*.08,r*.07,"#242923");
+ }
+ if(goat)ellipse(r*1.30+lean,r*.16,r*.15,r*.29,"#c8bda8");
+ ellipse(-r*1.10,0,r*.22,r*.18,light);
  }else if(type==="deer"){
   for(const side of [-1,1]){
    line(-r*.53,side*r*.50+pace*.16,-r*.80,side*r*1.50,r*.16,"#69543e");
