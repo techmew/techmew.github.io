@@ -11,7 +11,7 @@ const smooth=t=>t*t*(3-2*t);
 // Continuous side valley: no loading gate, shared with collision and renderers.
 const southReach=x=>720+430*smooth(clamp((x-10220)/520,0,1))*(1-smooth(clamp((x-11450)/430,0,1)));
 const meadowTrail=x=>center(x)+clamp((x-10970)/380,0,1)*720;
-const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35;
+const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35&&Math.abs(x-(10950+28*Math.sin((y-3820)/190)))>65;
 const active=(x,y)=>x>=WEST&&x<=EAST&&y>=2600&&y<=5100;
 function height(x,y){
  if(x<=WEST)return 0;
