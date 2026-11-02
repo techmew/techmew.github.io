@@ -1,25 +1,26 @@
 /* Ordinary wildlife distribution: safe to load before game.js. */
 (()=>{"use strict";
 const species={
- strayCat:{hp:58,r:17,speed:198,damage:9,prey:true,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
+ strayCat:{hp:58,r:17,speed:212,damage:10,prey:false,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
  snake:{hp:38,r:14,speed:122,damage:5,prey:true,xp:2,food:22,color:"#587b50",belly:"#abc68f"},
+ venomSnake:{hp:52,r:15,speed:154,damage:8,prey:false,xp:3,food:26,color:"#4d5d28",belly:"#ead16c"},
  crow:{hp:25,r:14,speed:174,damage:2,prey:true,xp:1,food:20,color:"#313b44",belly:"#777a83"},
- raccoonDog:{hp:78,r:20,speed:148,damage:5,prey:true,xp:2,food:41,color:"#89755b",belly:"#c5ad89"},
- wildFox:{hp:67,r:19,speed:206,damage:10,prey:true,xp:3,food:40,color:"#bc7752",belly:"#e8d6b5"},
- weasel:{hp:34,r:12,speed:220,damage:5,prey:true,xp:2,food:21,color:"#ae906a",belly:"#ddc7a7"},
+ raccoonDog:{hp:78,r:20,speed:148,damage:8,prey:false,xp:2,food:41,color:"#89755b",belly:"#c5ad89"},
+ wildFox:{hp:67,r:19,speed:215,damage:12,prey:false,xp:3,food:40,color:"#bc7752",belly:"#e8d6b5"},
+ weasel:{hp:34,r:12,speed:220,damage:6,prey:false,xp:2,food:21,color:"#ae906a",belly:"#ddc7a7"},
  frog:{hp:14,r:10,speed:125,damage:0,prey:true,xp:1,food:12,color:"#75a66a",belly:"#b6d6a0"},
  deer:{hp:142,r:27,speed:220,damage:6,prey:true,xp:4,food:69,color:"#aa8865",belly:"#e0cbaa"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake"];
 const weights=[
- [24,8,20,9,0,18,2,12,3,0,3,1,0],
- [20,9,18,11,1,16,3,12,4,1,4,1,0],
- [13,19,6,5,7,6,9,7,7,5,6,9,1],
- [12,14,10,7,9,6,7,11,7,3,5,7,2],
- [12,10,18,4,3,4,12,17,5,2,5,8,0],
- [11,19,4,3,12,4,10,6,10,7,7,6,1],
- [23,8,14,13,7,13,3,9,5,0,4,1,0],
- [11,11,20,5,3,7,12,14,6,2,4,5,0]
+ [24,8,20,9,0,18,2,12,3,0,3,1,0,1],
+ [20,9,18,11,1,16,3,12,4,1,4,1,0,1],
+ [13,19,6,5,7,6,9,7,7,5,6,9,1,3],
+ [12,14,10,7,9,6,7,11,7,3,5,7,2,2],
+ [12,10,18,4,3,4,12,17,5,2,5,8,0,4],
+ [11,19,4,3,12,4,10,6,10,7,7,6,1,3],
+ [23,8,14,13,7,13,3,9,5,0,4,1,0,1],
+ [11,11,20,5,3,7,12,14,6,2,4,5,0,4]
 ];
 function weight(type,region,day=1,weather="CLEAR"){
  const idx=types.indexOf(type);if(idx<0)return 0;
@@ -45,7 +46,7 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
 // Dedicated 2D silhouettes for animals that are not merely reskinned cats or foxes.
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
- const type=o.type;
+ const type=o.type==="venomSnake"?"snake":o.type;
  if(!["snake","frog","crow","deer","weasel","raccoonDog"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
@@ -69,6 +70,11 @@ function draw2D(ctx,o,r,fur,light,pace){
   ellipse(r*1.42,0,r*.48,r*.30,fur);
   ellipse(r*1.71,-r*.19,r*.075,r*.07,"#f5e5bd");
   line(r*1.89,0,r*2.2,-r*.1,1.3,"#dc8f8c");
+  if(o.type==="venomSnake"){
+   for(let j=0;j<6;j++)ellipse((2.2-j*.64)*r,Math.sin(j*.93)*r*.18,r*.12,r*.28,"#e6c64f",-.3);
+   ellipse(r*1.75,-r*.22,r*.12,r*.10,"#1b1d12");
+   line(r*1.88,r*.10,r*2.1,r*.28,1.6,"#fff2bf");
+  }
  }else if(type==="frog"){
   for(const side of [-1,1]){
    ellipse(-r*.58,side*r*.77+pace*.3,r*.38,r*.29,fur,side*.3);
