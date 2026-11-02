@@ -4380,6 +4380,26 @@ function drawThreatNames(){
  }
  ctx.restore();
 }
+// Screen-space vignette works identically over WebGL and Canvas2D.
+function drawDeathVignette(){
+ if(mode!=="dying"&&mode!=="over")return;
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(mode==="over"){
+  ctx.fillStyle="rgba(5,9,12,.96)";ctx.fillRect(0,0,vw,vh);
+ }else{
+  const quiet=clamp((deathSequenceTime-.16)/1.50,0,1);
+  if(quiet>0){
+   const pos=P?project(P.x,P.y):{x:vw*.5,y:vh*.5};
+   const cx=clamp(pos.x,0,vw),cy=clamp(pos.y,0,vh),radius=Math.max(vw,vh)*.86;
+   const fade=ctx.createRadialGradient(cx,cy,radius*.05,cx,cy,radius);
+   fade.addColorStop(0,"rgba(5,9,12,"+(.79*quiet).toFixed(3)+")");
+   fade.addColorStop(.55,"rgba(5,9,12,"+(.89*quiet).toFixed(3)+")");
+   fade.addColorStop(1,"rgba(5,9,12,"+(.96*quiet).toFixed(3)+")");
+   ctx.fillStyle=fade;ctx.fillRect(0,0,vw,vh);
+  }
+ }
+ ctx.restore();
+}
 function drawScene(){
  const x=cam.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
@@ -4547,13 +4567,8 @@ function drawScene(){
  if(mode!=="dying"){
   drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
  } // Keep mission and enemy labels off the dying animal.
- // Keep the world dark behind the result modal; otherwise it flashes bright at 2.2s.
- if(mode==="dying"||mode==="over"){
-  const dim=mode==="over"?1:clamp((deathSequenceTime-.18)/1.48,0,1)*.94;
-  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle="rgba(5,9,12,"+dim+")";ctx.fillRect(0,0,vw,vh);
-  ctx.restore();
- }
+ // Let the dying animal remain visible briefly before the world closes in.
+ drawDeathVignette();
 }
 function loop(t){
  let dt=Math.min(.035,(t-last)/1000||.016);last=t;
