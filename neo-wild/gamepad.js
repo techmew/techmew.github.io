@@ -162,6 +162,13 @@ function poll(dt=.016){
  const now=buttons(p),prev=old.get(p.index)||[];
  const down=i=>!!now[i]&&!prev[i],up=i=>!now[i]&&!!prev[i];
  const t=performance.now();status(p,mode);
+ // The encyclopedia is a modal above the title; never activate title controls behind it.
+ if(window.WildBestiary?.isOpen()){
+  b.setMove(0,0);mx=my=0;
+  window.WildBestiary.handlePad(p,down,clamp(dt,0,.06));
+  for(const candidate of list)old.set(candidate.index,buttons(candidate));
+  return;
+ }
  if(mode==="play"){
   const [lx,ly]=stick(axis(p,0),axis(p,1));
   const tx=clamp(lx+(now[15]?1:0)-(now[14]?1:0),-1,1);
