@@ -36,7 +36,7 @@ function updateGuide(p,mode){
 }
 function status(p,mode){
  const s=p?"パッド"+(p.index+1)+" 接続｜"+(mode==="play"?"左:移動 右:視点 ×:攻撃 ○:ジャンプ □:飛びつき △:行動 START:停止":mode==="menu"?"十字/左スティック:選択 ×/A:決定 ○/B:戻る":"十字/左スティック:選択 ×/A:決定 ○/B:戻る"):"";
- if(s!==label){hud.textContent=s;label=s}hud.hidden=!p;updateGuide(p,mode);
+ if(s!==label){hud.textContent=s;label=s}hud.hidden=!p||mode==="menu";updateGuide(p,mode);
 }
 function visible(el){if(!el||el.disabled||el.closest?.(".hidden"))return false;const d=el.closest?.("details:not([open])");return (!d||el.tagName==="SUMMARY")&&(!el.getClientRects||el.getClientRects().length>0)}
 const scopes={menu:"menu",pause:"pause",upgrade:"upgrade",guide:"tutorial-dialog",inventory:"den-inventory",map:"world-map",result:"result"};
