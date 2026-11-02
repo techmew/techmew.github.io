@@ -1,6 +1,7 @@
 /* Ordinary wildlife distribution: safe to load before game.js. */
 (()=>{"use strict";
 const species={
+ chimpanzee:{hp:154,r:26,speed:178,damage:19,prey:false,xp:6,food:66,color:"#3c3733",belly:"#887568"},
  macaque:{hp:88,r:19,speed:195,damage:12,prey:false,xp:4,food:38,color:"#867361",belly:"#c5b39c"},
  strayCat:{hp:58,r:17,speed:212,damage:10,prey:false,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
  snake:{hp:38,r:14,speed:122,damage:5,prey:true,xp:2,food:22,color:"#587b50",belly:"#abc68f"},
@@ -18,7 +19,7 @@ const species={
  elephant:{hp:560,r:55,speed:124,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
  hippo:{hp:425,r:46,speed:140,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee"];
 const weights=[
  [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
  [20,9,18,11,1,16,3,12,4,1,4,1,0,1,0,0,0,0,0,0],
@@ -56,7 +57,7 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
+ if(!["chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -69,7 +70,24 @@ function draw2D(ctx,o,r,fur,light,pace){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
  };
- if(type==="macaque"){
+ if(type==="chimpanzee"){
+  // Long-armed, broad-shouldered ape. Branch and stone are real combat states.
+  const ready=(o.chimpTell||0)>0,club=ready&&o.chimpAttackKind==="branch";
+  ellipse(-r*.20,0,r*1.02,r*.79,fur);
+  ellipse(r*.62,0,r*.72,r*.63,fur);
+  ellipse(r*1.04,0,r*.54,r*.48,"#706257");
+  ellipse(r*1.31,0,r*.31,r*.26,"#a58c78");
+  for(const side of [-1,1]){
+   ellipse(r*.83,side*r*.48,r*.24,r*.21,fur);
+   ellipse(r*1.20,side*r*.28,r*.09,r*.07,"#171b1a");
+   line(r*.23,side*r*.55,r*.34,side*r*1.39+(side<0?pace:0),r*.29,fur);
+   ellipse(r*.39,side*r*1.42,r*.24,r*.20,"#847267");
+   line(-r*.71,side*r*.44,-r*.93,side*r*.98-pace*.28,r*.27,fur);
+   ellipse(-r*.99,side*r*1.03,r*.27,r*.22,"#5b514b");
+  }
+  if(club){line(r*.42,-r*1.36,r*.96,-r*2.30,r*.18,"#91704a");ellipse(r*.97,-r*2.31,r*.22,r*.14,"#9c7951");}
+  else if(ready)ellipse(r*.44,-r*1.43,r*.26,r*.23,"#b5a997");
+ }else if(type==="macaque"){
   const climbing=Math.max(0,o.treeHeight||0),preparing=(o.macaqueTell||0)>0;
   for(const side of [-1,1]){
    line(-r*.54,side*r*.36,-r*.8,side*r*.91+pace*.35,r*.23,fur);
