@@ -27,7 +27,7 @@ for(let x=8515;x<10060;x+=158){
  }
 }
 function blocked(x,y,r=0){
- if(x<WEST+70)return false;
+ if(x<CITY_EDGE)return false;
  if(y<center(x)-720+r||y>center(x)+720-r)return true;
  for(const p of trees)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of rocks)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
@@ -40,7 +40,7 @@ function choose(random=Math.random()){
  return "rabbit";
 }
 function draw2D(ctx,visible){
- ctx.fillStyle="#344f3b";ctx.fillRect(WEST,0,EAST-WEST,6000);
+ ctx.fillStyle="#344f3b";ctx.fillRect(CITY_EDGE,0,EAST-CITY_EDGE,6000);
  // Continuous pass from the former city edge; rocky margins are impassable.
  for(let x=WEST;x<EAST;x+=95){
   const x2=Math.min(EAST,x+95),cy=center(x),cy2=center(x2),z=height(x,cy);
