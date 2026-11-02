@@ -148,7 +148,10 @@ function updateCameraView(){
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
-const WILDLIFE={initial:20,cap:112,localRadius:700,localCap:15,separation:91,preyNeedRadius:440,farAI:1300,localTargetRain:10,localTargetClear:12};
+// Population is a density budget, not an endless wave-spawner.
+const WILDLIFE={initial:13,cap:76,localRadius:700,localCap:9,separation:99,preyNeedRadius:440,farAI:1300,
+ localTargetRain:5,localTargetClear:7,spawnInterval:9,packCooldown:110,packChanceEarly:.06,packChanceLate:.12};
+let lastPackSpawnAt=-WILDLIFE.packCooldown;
 /* Dynamic encounter difficulty. Scale relative to the player's LV, but cap each
  * damage and HP curve so an old long-lived save cannot become impossible. */
 const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake"];
@@ -176,15 +179,22 @@ function syncEnemyLevel(m){
 }
 function spawnLocalPack(){
  if(!P||P.level<2||mobs.length>WILDLIFE.cap-3)return false;
+ if(elapsed-lastPackSpawnAt<WILDLIFE.packCooldown)return false;
+ // At most one coordinated pack in the whole player neighbourhood.
+ if(mobs.some(m=>m.hp>0&&m.packId&&dist(P,m)<950))return false;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
- if(nearby>WILDLIFE.localCap-3)return false;
+ const wanted=P.level>=8?2:1; // 3 members are a late-game exception.
+ if(nearby>WILDLIFE.localCap-(wanted+1))return false;
  const type=PACK_TYPES[Math.floor(Math.random()*PACK_TYPES.length)],before=mobs.length;
  if(!spawnMob(false,false,true,null,type))return false;
  const leader=mobs[mobs.length-1];
- if(mobs.length!==before+1||leader.type!==type||nearDenLocation(leader.x,leader.y,265))return false;
+ if(mobs.length!==before+1)return false;
+ // A den may convert a proposed predator to harmless prey: count it once,
+ // not as a failed pack followed by a duplicate spawn.
+ if(leader.type!==type||nearDenLocation(leader.x,leader.y,265))return true;
+ lastPackSpawnAt=elapsed;
  const id="pack-"+Math.round(elapsed*1000)+"-"+Math.round(leader.x)+"-"+Math.round(leader.y);
  leader.packId=id;leader.packOrder=0;let added=0;
- const wanted=P.level>=5?2:1;
  for(let i=0;i<wanted;i++)for(let attempt=0;attempt<18;attempt++){
   const a=leader.dir+i*Math.PI*1.2+rnd(-.95,.95);
   const r=rnd(110,188),x=leader.x+Math.cos(a)*r,y=leader.y+Math.sin(a)*r;
@@ -194,7 +204,8 @@ function spawnLocalPack(){
    const mate=mobs[mobs.length-1];mate.packId=id;mate.packOrder=i+1;added++;break;
   }
  }
- return added>0;
+ if(!added){delete leader.packId;delete leader.packOrder;}
+ return true; // Even a failed companion placement already spawned the leader.
 }
 function rareEngagementBlocked(m){
  if(!P||!m.strongBoss||strongBossLimit()<2)return false;
@@ -834,7 +845,7 @@ function start(){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -897,7 +908,7 @@ function currentSnapshot(){
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
-  weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
+  weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
 }
@@ -994,7 +1005,7 @@ function restoreSnapshot(snapshot){
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
- scoreTimer=snapshot.scoreTimer||0;spawnTimer=snapshot.spawnTimer||0;
+ scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
  tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
@@ -2893,8 +2904,49 @@ function tokyoWeatherAt(seconds){
  if(phase>=start-.10&&phase<end+.10)return "CLOUDY";
  return roll<.70?"CLOUDY":"CLEAR";
 }
+// Old SAVE_SCHEMA2 worlds can still contain many groups from the previous
+// aggressive spawn settings. Disband surplus groups without deleting visible
+// animals, and gradually retire only unseen, unengaged surplus wildlife.
+function easeOldOvercrowding(){
+ if(!P)return;
+ const groups=new Map();
+ for(const m of mobs){
+  if(!m.packId||m.hp<=0)continue;
+  const distance=dist(P,m);
+  if(distance>950)continue;
+  groups.set(m.packId,Math.min(groups.get(m.packId)??Infinity,distance));
+ }
+ if(groups.size>1){
+  const keep=[...groups].sort((a,b)=>a[1]-b[1])[0][0];
+  for(const m of mobs)if(m.packId&&groups.has(m.packId)&&m.packId!==keep){
+   delete m.packId;delete m.packOrder; // Existing animal stays and behaves independently.
+  }
+ }
+ let nearCount=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+ let excessNearby=Math.max(0,nearCount-WILDLIFE.localCap);
+ let excessWorld=Math.max(0,mobs.length-WILDLIFE.cap);
+ if(!excessNearby&&!excessWorld)return;
+ const candidates=mobs.filter(m=>{
+  if(m.hp<=0||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type))return false;
+  const d=dist(P,m);
+  if(d<365||visible(m.x,m.y,75)||m.alert>0||m.windup>0||m.chargeTime>0||m.flee>0)return false;
+  if(mission===2&&species[m.type]?.prey&&d<WILDLIFE.preyNeedRadius)return false;
+  return (excessNearby>0&&d<WILDLIFE.localRadius)||(excessWorld>0&&d>WILDLIFE.farAI);
+ }).sort((a,b)=>dist(P,b)-dist(P,a));
+ let retired=0;
+ for(const m of candidates){
+  if(retired>=2)break;
+  const d=dist(P,m);
+  if(d<WILDLIFE.localRadius&&excessNearby>0){excessNearby--;excessWorld=Math.max(0,excessWorld-1);}
+  else if(d>WILDLIFE.farAI&&excessWorld>0)excessWorld--;
+  else continue;
+  const i=mobs.indexOf(m);if(i<0)continue;
+  mobs.splice(i,1);retired++;
+ }
+}
 function maintainLocalWildlife(){
  if(!P)return;
+ easeOldOvercrowding();
  const hunting=mission===2||mission>=7;
  const preyNearby=mobs.some(m=>m.hp>0&&["rat","rabbit","pigeon","frog"].includes(m.type)&&dist(P,m)<WILDLIFE.preyNeedRadius);
  const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
@@ -2902,7 +2954,7 @@ function maintainLocalWildlife(){
  if(mobs.length<WILDLIFE.cap){
   if(hunting&&!preyNearby)spawnMob(false,true,true);
   else if(local<target){
-   if(P.level>=2&&local<=WILDLIFE.localCap-3&&Math.random()<(P.level>=5?.58:.34))
+   if(P.level>=2&&local<=WILDLIFE.localCap-2&&Math.random()<(P.level>=5?WILDLIFE.packChanceLate:WILDLIFE.packChanceEarly))
     spawnLocalPack()||spawnMob(false,false,true);
    else spawnMob(false,false,true);
   }
@@ -3460,7 +3512,7 @@ function update(dt){
  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=dt;q.x+=(q.vx||0)*dt;q.y+=(q.vy||0)*dt;if(q.life<=0)particles.splice(i,1)}
  for(let i=popups.length-1;i>=0;i--){popups[i].life-=dt;popups[i].y-=28*dt;if(popups[i].life<=0)popups.splice(i,1)}
  spawnTimer+=dt;
- if(spawnTimer>3.6){spawnTimer=0;maintainLocalWildlife();enterStrongStage();}
+ if(spawnTimer>WILDLIFE.spawnInterval){spawnTimer=0;maintainLocalWildlife();enterStrongStage();}
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
 
