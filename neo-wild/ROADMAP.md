@@ -1,3 +1,13 @@
+## 共同スプリント・次担当｜2026/11/03 07:45 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟キツネ・タヌキの先回り狩猟姿勢を2D/3D統一
+- **開始HEAD→コードHEAD**：`5584e3db3522e2066c6c42ca3a2067be86550325` → `c58d4b2cfd5b13d94121f773d7a09cb91279536b`。neo-wild/fauna.js・webgl3d.js・index.htmlのみ差分コミット。今回の記録コミットは別HEAD。
+- **実プレイ上の変化**：①`fauna.js:visualState`で既存AIの`wildTargetX/Y/At`・`swing`・`scavengePose`・`vx/vy`を読むだけの共通姿勢判定（追跡/噛みつき/摂食/疾走）を追加。②野生キツネ`wildFox`を汎用犬型から独自の2D/3Dモデル（白い尾先・尖った耳・明瞭な顔・四肢）へ変更し、獲物への先回り・噛みつき・摂食・疾走を姿勢に反映。③タヌキ`raccoonDog`の追跡時の胴体・噛みつき口・摂食時の低姿勢・警戒眉を2D/3Dで連動。洞窟暗所では白い尾先/目周りの模様によって識別しやすくするが、人工発光や街灯光は復活しない。④2 JSのHTML revを更新。AI・戦闘命中・保存スキーマ・動物総数は変更なし。洞窟ネズミ→イタチ/キツネ/タヌキの既存捕食連鎖に視覚状態を接続。
+- **実関数・描画モック試験**：fauna.js/webgl3d.js全文をV8のFunctionコンパイルPASS。実`WildFauna.draw2D`でキツネ/タヌキ各4状態（通常・追跡・噛みつき・摂食）の描画命令を実行し、各4姿勢の差異 8/8 PASS。実`drawCommonAnimal3D`関数を抽出し、ellipsoid/pyramidモックでキツネ/タヌキ各4状態のジオメトリを実生成し、各4姿勢の差異 8/8 PASS。合計16姿勢PASS。HTMLの2参照rev変更確認。ブラウザ上での実GPUレンダリング/Android実機/物理Pad/縦390×844・横800×360/844×390/10分E2E/FPS/旧SAVE2実端末/強敵40技実戦は**未検証**。静的/モックPASSを実機PASSとは呼ばない。
+- **Pages**：コードHEAD `c58d4b2` に対応するPages run **41539913129** は07:45時点でin_progress（build進行中）。build/deploy両成功はまだ未確認。前HEAD `5584e3db` のrun **41537695293** はsuccess。今回の記録HEADのPagesは別途確認。
+- **進捗V2**：A16.0/B12.0/C9.0/D4.0/E8.0/F9.0/G8.0/H4.0/I4.0＝**74.0/100**（前回74.0、差0.0）。実機・連続E2E等の採点条件未達のため加点なし。
+- **次00分枠**：①`game.js:huntWildPrey/scavengeWildFood`＋`fauna.js:visualState/draw2D`でキツネ/タヌキの動く獲物追跡→討伐→死骸摂食を10分E2Eで確認。②`game.js:restoreSnapshot/getCheckpoints`で旧SAVE2・3CPと死亡リトライ/洞窟石柱復元。③HEADに対応するPages run/jobsを照合し、失敗時は即修復。
+- **次20分枠**：①`game.js:wildPreyInterceptPoint/steerPursuit/huntWildPrey`でタヌキ/キツネの追跡ターゲット状態と投射姿勢を経時実関数試験。②`game.js:maintainLocalWildlife/spawnMob`で山頂洞窟の晴雨/世界76/近隣9/群れ制限と出現偏りを測定。③`mountain.js:blocked/sightBlocked`で石柱越しの不正命中・移動経路・死骸位置を回帰。
+- **次40分枠**：①`fauna.js:draw2D/visualState`と`webgl3d.js:drawCommonAnimal3D`で追跡/攻撃姿勢の実画面と夜間可読性を比較。②`webgl3d.js:mountainTerrain/render`で洞窟石柱・床・岩片の描画LOD/FPSを縦横実ブラウザで測定、必要時最適化。③`gamepad.js:poll`＋`game.js:move/restoreSnapshot`で洞窟往復・死亡再開・物理Padの入力回帰。
+
 ## 共同スプリント・次担当｜2026/11/03 07:29:22 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟で動く獲物を分担追跡→討伐→死骸摂食・石柱スタック復帰
 - **開始HEAD→コードHEAD**：`942ae538a8b8a1d17508aee9d30d3d801567d7db` → `bc5e3b327d254b4c05c6b11ff2a784cfbd318b8c`。game.js `4750ce0c0535a78a111517cd35e45770e13f2985`（blob `6515c4fce7c14022f49bfd4fadeb04023893fc19`）、index.html rev `bc5e3b327d254b4c05c6b11ff2a784cfbd318b8c`。今回のROADMAP記録は別HEAD。neo-wild/以外未変更。
 - **実際の遊びの変化**：①`wildPreyInterceptPoint`で洞窟イタチ/キツネ/タヌキが逃走中の獲物の移動先へ回り込む（洞窟外・崖・衝突地点への先回り禁止）。②`huntWildPrey`で移動中の同じ獲物への短時間追跡継続を加え、複数捕食者が別の獲物を追う既存分担を安定化。③`steerPursuit`で石柱付近の0.72秒実移動量を監視、移動できなければ再経路探索と迂回側変更（ワープなし）。洞窟の移動目標は経路再計算0.48秒、都市側は旧1.05秒を維持。死骸/食料/図鑑/旧SAVE_SCHEMA2のデータ形式は変更なし。
