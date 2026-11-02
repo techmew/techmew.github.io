@@ -3581,6 +3581,14 @@ function update(dt){
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);
        if(m.type==="venomSnake")inflictVenom(m);
+       if(m.type==="elephant"||m.type==="hippo"){
+        const shove=m.type==="elephant"?48:33;
+        move(P,Math.cos(aim)*shove,Math.sin(aim)*shove);
+        P.sp=clamp(P.sp-(m.type==="elephant"?12:8),0,100);
+        label(P.x,P.y-45,m.type==="elephant"?"鼻で吹き飛ばされた！":"カバの体当たり！","#ffd9ad");
+       }else if(m.type==="giraffe"){
+        P.sp=clamp(P.sp-8,0,100);
+       }
        if(m.type==="giantLion"){if(m.lionCombo){m.lionCombo=0;}else{m.lionCombo=1;m.windup=.48;m.windupTotal=.48;m.strikeDir=aim;label(m.x,m.y-m.r-24,"連撃！","#ffc589");}}}
       }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
@@ -4720,8 +4728,8 @@ function drawThreatNames(){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
-  if(m.hp<=0||species[m.type].prey||dist(P,m)>280||!visible(m.x,m.y,55))continue;
-  const pos=project(m.x,m.y),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
+  if(m.hp<=0||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55))continue;
+  const pos=project(m.x,m.y),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
   const threatName=(names[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
   ctx.globalAlpha=m.windup>0||m.alert>0?.92:.74;ctx.fillStyle="#172321";ctx.fillRect(pos.x-53,y-11,106,16);
   ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(threatName,pos.x,y+1);
