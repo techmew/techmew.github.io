@@ -404,7 +404,7 @@ function animal(m,player,clock){
  const contactZ=player?Math.max(0,m.groundZ||0):0;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  animalLift=player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0); // NPC feet and body rise during a real emergency leap.
- const tilt=collapse*1.23;
+ const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(!player&&drawCommonAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
