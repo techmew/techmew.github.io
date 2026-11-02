@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261102-tutorial-popup-unified-v2">
+<link rel="stylesheet" href="./visual.css?rev=20261102-start-selection-recovery-v7">
 </head>
 <body>
 <div id="app">
@@ -86,7 +86,7 @@
 <p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
       <button id="continue-btn" type="button" class="save-choice resume-primary">
-        <span class="resume-cta-title"><span id="resume-cta-label">最初からプレイ</span><small id="resume-cta-help">設定を選んで開始</small></span>
+        <span class="resume-cta-title"><span id="resume-cta-label">最初からプレイ</span><small id="resume-cta-help">種族・画面・出発地点を選んで開始</small></span>
         <span id="continue-detail" class="resume-detail"></span>
       </button>
       <button id="checkpoint-menu-btn" type="button" class="save-choice hidden" aria-controls="checkpoint-list" aria-expanded="false">チェックポイントから再開</button>
@@ -107,8 +107,8 @@
         
 <div class="pick-head"><span>02</span> 画面の向きを選択</div>
 <div class="landscape-menu-choice">
-      <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div>
-      <p id="menu-landscape-note" role="status" aria-live="polite">画面の向きを選び、「続きから」または「新しいゲーム」を押してください。</p>
+      <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div><p id="menu-orientation-status" role="status" aria-live="polite">✓ 選択中：縦画面</p>
+      <p id="menu-landscape-note" role="status" aria-live="polite">画面を選択して上の「プレイ」ボタンを押してください。</p>
     </div>
     
 <label id="spawn-picker" for="start-region">03　始める場所を選択（新規ゲーム）
@@ -130,9 +130,28 @@
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button></div></div>
 </div>
+<script>
+(function(){
+ const get=id=>document.getElementById(id);
+ function select(target){
+  for(const [id,on] of [["menu-portrait-btn",target==="portrait"],["menu-landscape-btn",target==="landscape"]]){
+   const b=get(id);b.classList.toggle("selected",on);b.setAttribute("aria-pressed",String(on));
+  }
+  get("menu-orientation-status").textContent="✓ 選択中："+(target==="portrait"?"縦画面":"横画面");
+ }
+ for(const [id,target] of [["menu-portrait-btn","portrait"],["menu-landscape-btn","landscape"]])
+  get(id).addEventListener("click",()=>select(target));
+ window.addEventListener("load",()=>{
+  if(window.WildGameReady)return;
+  const note=get("menu-landscape-note");
+  note.textContent="ゲームデータの読み込みが完了していません。ページを更新してください。";
+  note.setAttribute("data-error","true");
+ });
+})();
+</script>
 <script src="./audio.js?rev=20261102-faster-death-no-stuck-v1" defer></script>
 <script src="./webgl3d.js?rev=20261102-dense-grass-stealth-v1" defer></script>
-<script src="./game.js?rev=20261102-death-result-spawn-recovery-v3" defer></script>
+<script src="./game.js?rev=20261102-start-selection-recovery-v7" defer></script>
 <script src="./gamepad.js?rev=20261102-tutorial-popup-unified-v2" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261102-tutorial-debug-flow-v4" defer></script>
