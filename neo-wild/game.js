@@ -2167,6 +2167,7 @@ function move(o,dx,dy){
  }
 }
 function lineBlocked(a,b){
+ if(MOUNTAIN?.sightBlocked(a,b))return true;
  for(const box of buildings){
   if(box.interior){
    if(shelterWalls(box).some(w=>segmentRect(a,b,w))||shelterFurniture(box).some(w=>segmentRect(a,b,w)))return true;

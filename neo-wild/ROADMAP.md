@@ -1,3 +1,12 @@
+## 共同スプリント・統合QA｜2026/11/03 04:05 JST｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜山岳の遮蔽・戦闘・狩猟の統合
+- 開始HEAD `6944317e13e0b6891b58bb5e678e7bd070a1074e`。変更 `neo-wild/mountain.js`, `game.js`, `index.html`, `ROADMAP.md`。8地区/6探索地点/2橋/山頂洞窟/20強敵/SAVE_SCHEMA2/3CP維持。
+- 実装：`mountain.js:sightBlocked`を追加し山岳樹木・岩・廃墟小屋・洞窟壁を視線遮蔽に統合。川と渓谷は透明、洞窟の中心通路は通視可能。`game.js:lineBlocked`へ接続しNPCの索敵/捕食、プレイヤー攻撃、ボス40技の共通遮蔽判定、投石・食事判定に適用。岩や洞窟壁越しの不自然な攻撃・発見を防ぐ。
+- 動的試験：実`mountain.js`を評価、実`game.js:lineBlocked`抽出実行、洞窟中心/両壁/入口/岩/樹木/都市/橋/歩行/連携、JS全文構文、1500回処理の **13/13 PASS**。1500回の隔離視線試験 39ms（実機FPSではない）。Android/GPU/物理Pad/10分E2E/全40技/旧SAVE実端末は未検証。
+- 進捗V2 A16 B12 C9 D4 E8 F9 G8 H4 I4 = **74/100（前回74、差0）**。実機未検証につき据置。
+- 次20分：①`game.js:spawnMob/settleNewRegion`で山頂洞窟の生息密度上限と空白を検査。②`huntWildPrey/forageWildBerries`で岩/洞窟壁を迂回する採食・捕食を回帰。③`restoreSnapshot/collides/move`で旧SAVE2/3CP山頂復元を試験。
+- 次40分：①`webgl3d.js:mountainTerrain`/ `mountain.js:draw2D`で視線遮蔽と表示の整合。②`game.js:drawCreature`/ `webgl3d.js:drawCommonAnimal3D`で洞窟警告表示。③`gamepad.js`/縦横HUDで山頂・洞窟の入力とカメラを実機検証。
+- 次00分：①開始→山頂→戦闘→食料→巣→死亡→再開のE2E。②強敵20種×2技とNPCの岩越し攻撃回帰。③最新Pages build/deployとSAVE2/3CP・TOP5・Padを確認。
+
 ## 共同スプリント・次担当｜2026/11/03 03:40 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜地続き山頂登山道・歩行可能な洞窟・高山植生・2D/3D統合
 - **開始HEAD→コードHEAD**：`4a09234d8724f206542751e1d6105d061580fddf` → `298b1cc1171474d9c5c16ccfd9a4fb0d63984a30`。変更は `neo-wild/mountain.js`、`webgl3d.js`、`game.js`、`index.html` の4件。既存山麓/山腹・旧木橋2本・8地区/6探索地点・20強敵・SAVE_SCHEMA=2/3CPを削除せず、HEAD一致確認後に原子的Git tree/commit、forceなしでmain反映。
 - **プレイ可能な完成単位**：①山腹終端x=11800から山頂・洞窟x=13600まで**1,800座標単位**を旧座標系のまま延長。標高は境界で連続し、山頂側は約+190高くなる。②x=13040〜13450に山道からそのまま入れる**実通行可能な洞窟回廊**。入口アーチ、暗い床、左右の岩壁、壁衝突・岩障害をCanvas2D/WebGLで同じ中心線/幅に統合。ワープ/別ステージなし。③山頂の針葉樹・岩礫・草地を決定的配置し、岩/樹木は衝突、草は採食対象`forageSites`と表示を共用。④山頂動物は既存の総密度を増やさず、シカ/ウサギ/カラス/サル/チンパンジー等の比率のみ調整。⑤`game.js`の地域移動/旧セーブ復元/地図表示を`MOUNTAIN.zone`で山麓・山腹・山頂・洞窟に連動、`index.html`の3スクリプト?rev更新。

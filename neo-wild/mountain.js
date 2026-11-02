@@ -95,6 +95,48 @@ for(let x=CAVE_START+25;x<CAVE_END-15;x+=83)for(const side of [-1,1]){
 }
 // Wildlife slots are shared with the existing world cap, never added on top.
  // Mountain prey-only replenishment must not draw canal frogs/hippos from biome 7.
+
+// Mountains share opaque geometry with combat, stealth, prey and projectiles.
+// Streams and ravines remain transparent; cave walls, rock, trees and ruins do not.
+function sightBlocked(a,b){
+ if(!a||!b)return false;
+ const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x);
+ if(maxX<CITY_EDGE||minX>EAST)return false;
+ const minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
+ const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+ const hitsCircle=p=>{
+  const rr=p.r*.90;
+  if(p.x+rr<minX||p.x-rr>maxX||p.y+rr<minY||p.y-rr>maxY)return false;
+  const t=len2>1e-9?clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/len2,0,1):0;
+  const ox=a.x+dx*t-p.x,oy=a.y+dy*t-p.y;
+  return ox*ox+oy*oy<rr*rr;
+ };
+ const hitsRect=h=>{
+  if(maxX<h.x||minX>h.x+h.w||maxY<h.y||minY>h.y+h.h)return false;
+  let lo=0,hi=1;
+  for(const [p,q] of [[-dx,a.x-h.x],[dx,h.x+h.w-a.x],[-dy,a.y-h.y],[dy,h.y+h.h-a.y]]){
+   if(Math.abs(p)<1e-9){if(q<0)return false;}
+   else{const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);}
+   if(lo>hi)return false;
+  }
+  return lo<=hi;
+ };
+ for(const h of [...ruins,...ridgeHuts])if(hitsRect(h))return true;
+ for(const p of [...trees,...rocks,...pines,...scree,...alpinePines,...alpineRocks,...caveStones])if(hitsCircle(p))return true;
+ if(maxX>=CAVE_START&&minX<=CAVE_END){
+  const left=Math.max(minX,CAVE_START),right=Math.min(maxX,CAVE_END);
+  if(Math.abs(dx)<1e-9){
+   if(a.x>=CAVE_START&&a.x<=CAVE_END&&(minY<center(a.x)-CAVE_HALF+4||maxY>center(a.x)+CAVE_HALF-4))return true;
+  }else{
+   const n=Math.max(1,Math.ceil((right-left)/24));
+   for(let i=0;i<=n;i++){
+    const x=left+(right-left)*i/n,t=(x-a.x)/dx,y=a.y+dy*t;
+    if(t>=0&&t<=1&&Math.abs(y-center(x))>CAVE_HALF-4)return true;
+   }
+  }
+ }
+ return false;
+}
 function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="CLEAR"){
  const entries=x>=SUMMIT_START?
  [["deer",24],["wildFox",9],["rabbit",20],["boar",12],["weasel",7],["raccoonDog",8],["crow",5],["macaque",10],["chimpanzee",5]]:x>FOOTHILL_END?
@@ -205,6 +247,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,zone,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();
