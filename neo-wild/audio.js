@@ -181,8 +181,8 @@ function fadeForDeath(){
  deathFade=true;
  if(!context||!started)return;
  const t=context.currentTime;
- musicBus?.gain.setTargetAtTime(.035,t,.85);
- atmosBus?.gain.setTargetAtTime(.065,t,.95);
+ musicBus?.gain.setTargetAtTime(.025,t,.40);
+ atmosBus?.gain.setTargetAtTime(.045,t,.45);
 }
 function resetDeathFade(){
  if(!deathFade)return;
