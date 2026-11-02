@@ -125,15 +125,18 @@ function draw2D(ctx,o,r,fur,light,pace){
   if(preparing){ellipse(r*.55,-r*.99,r*.23,r*.22,"#91877a");line(r*.42,-r*.40,r*.55,-r*.98,r*.19,fur);}
   if(climbing>8)ellipse(-r*.15,r*.86,r*.50,r*.12,"#a2bda0");
  }else if(type==="snake"){
-  // Distinct long, curved, legless body rather than the generic mammal shape.
+  // Distinct long, curved, legless body; a raised head signals an actual attack windup.
+  const ready=(o.windup||0)>0,striking=(o.swing||0)>0;
   for(let k=7;k>=0;k--){
    const x=(3.6-k*.54)*r;
    const y=Math.sin(k*.93+(o.step||0)*.45)*r*.40;
    ellipse(x,y,r*(.42-k*.025),r*(.26-k*.016),k%2?fur:light,-k*.12);
   }
-  ellipse(r*1.42,0,r*.48,r*.30,fur);
-  ellipse(r*1.71,-r*.19,r*.075,r*.07,"#f5e5bd");
-  line(r*1.89,0,r*2.2,-r*.1,1.3,"#dc8f8c");
+  if(ready||striking)ellipse(r*.98,-r*.08,r*.33,r*.34,light);
+  ellipse(r*(ready?1.30:striking?1.66:1.42),ready?-r*.29:0,r*.48,r*(ready?.39:.30),fur);
+  ellipse(r*(ready?1.60:1.71),ready?-r*.42:-r*.19,r*.075,r*.07,"#f5e5bd");
+  line(r*(ready?1.72:1.89),ready?-r*.34:0,r*(ready?2.12:2.2),ready?-r*.49:-r*.1,1.3,"#dc8f8c");
+  if(ready)line(r*.93,r*.29,r*1.62,r*.48,Math.max(1,r*.08),"#d9b67a");
   if(o.type==="venomSnake"){
    for(let j=0;j<6;j++)ellipse((2.2-j*.64)*r,Math.sin(j*.93)*r*.18,r*.12,r*.28,"#e6c64f",-.3);
    ellipse(r*1.75,-r*.22,r*.12,r*.10,"#1b1d12");
@@ -179,15 +182,25 @@ function draw2D(ctx,o,r,fur,light,pace){
   ellipse(-r*1.21,0,r*.31,r*.18,light);
   ellipse(r*1.26,-r*.10,1.9,1.9,"#262927");
  }else if(type==="weasel"){
+  // Hunt, bite and feeding have separate silhouettes; no additional AI state.
+  const bite=(o.swing||0)>0,feeding=(o.scavengePose||0)>0;
+  const stalk=Number.isFinite(o.wildTargetX)&&Number.isFinite(o.wildTargetY)&&
+   Math.hypot(o.x-o.wildTargetX,o.y-o.wildTargetY)<240&&!feeding;
+  const headX=r*(bite?1.30:feeding?.99:1.13),tailWave=Math.sin((o.step||0)*.7)*r*.13;
   for(const side of [-1,1])for(const x of [-r*.77,r*.47]){
-   ellipse(x,side*r*.48+pace*side,r*.18,r*.23,"#685441");
+   ellipse(x+(bite&&x>0?r*.21:0),side*r*.48+pace*side,r*.18,r*.23,"#685441");
   }
-  for(let k=0;k<5;k++)ellipse(-r*(1.1+k*.30),Math.sin(k*.45)*r*.13,r*(.26-k*.037),r*.14,fur);
-  ellipse(-r*.16,0,r*1.35,r*.35,fur);
-  ellipse(r*1.13,0,r*.43,r*.31,fur);
-  ellipse(r*1.33,0,r*.24,r*.19,light);
-  for(const side of [-1,1])ellipse(r*.98,side*r*.29,r*.16,r*.19,fur);
-  ellipse(r*1.34,-r*.14,1.6,1.5,"#252720");
+  for(let k=0;k<5;k++)ellipse(-r*(1.1+k*.30),Math.sin(k*.45)*r*.13+tailWave,r*(.26-k*.037),r*.14,fur);
+  ellipse(-r*.16,0,r*(stalk?1.43:1.35),r*(feeding?.40:.35),fur);
+  ellipse(headX,feeding?r*.11:0,r*(bite?.47:.43),r*.31,fur);
+  ellipse(headX+r*.20,feeding?r*.16:0,r*.24,r*.19,light);
+  ellipse(headX+r*.22,bite?r*.20:r*.08,r*.20,r*(bite?.12:.055),bite?"#4b2925":light);
+  for(const side of [-1,1]){
+   ellipse(headX-r*.13,side*r*.29,r*.16,r*.19,fur);
+   ellipse(headX+r*.24,side*r*.18,r*.09,r*.075,"#e8d9b7");
+   ellipse(headX+r*.27,side*r*.18,r*.043,r*.048,"#252720");
+  }
+  ellipse(headX+r*.38,-r*.03,1.6,1.5,"#252720");
 
  }else if(type==="cheetah"){
   for(const side of [-1,1])for(const x of [-r*.67,r*.56])ellipse(x,side*r*.48+pace*side,r*.18,r*.34,fur);
