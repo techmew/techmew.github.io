@@ -85,6 +85,7 @@ function renderList(){
 function select(type){
  const item=registry[type];if(!item||!count(type))return;
  selected=type;yaw=.65;tilt=.1;zoom=1.15;
+ $("bestiary-list").classList.add("hidden");
  $("bestiary-detail").classList.remove("hidden");
  $("bestiary-name").textContent=item.name;
  $("bestiary-count").textContent="討伐 "+count(type)+"体";
@@ -100,7 +101,7 @@ function renderPreview(){
 }
 function openDialog(){
  if(!catalog.length)return;
- open=true;selected=null;$("bestiary").classList.remove("hidden");$("bestiary-detail").classList.add("hidden");
+ open=true;selected=null;$("bestiary").classList.remove("hidden");$("bestiary-detail").classList.add("hidden");$("bestiary-list").classList.remove("hidden");
  $("bestiary-open").setAttribute("aria-expanded","true");renderList();$("bestiary-close").focus({preventScroll:true});
 }
 function closeDialog(){
@@ -110,7 +111,7 @@ function adjustZoom(delta){zoom=clamp(zoom+delta,.60,2.25);renderPreview();}
 function install(){
  $("bestiary-open")?.addEventListener("click",openDialog);
  $("bestiary-close")?.addEventListener("click",closeDialog);
- $("bestiary-back")?.addEventListener("click",()=>{selected=null;$("bestiary-detail").classList.add("hidden");renderList();});
+ $("bestiary-back")?.addEventListener("click",()=>{selected=null;$("bestiary-detail").classList.add("hidden");$("bestiary-list").classList.remove("hidden");renderList();});
  $("bestiary-plus")?.addEventListener("click",()=>adjustZoom(.16));
  $("bestiary-minus")?.addEventListener("click",()=>adjustZoom(-.16));
  const canvas=$("bestiary-preview");
