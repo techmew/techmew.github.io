@@ -101,13 +101,14 @@ const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-chec
 const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1";
 let automaticTutorialShown=false;
 try{automaticTutorialShown=localStorage.getItem(TUTORIAL_ONCE_KEY)==="1"}catch(_){}
-function rememberTutorialShown(){automaticTutorialShown=true;try{localStorage.setItem(TUTORIAL_ONCE_KEY,"1")}catch(_){}}
+function rememberTutorialShown(){automaticTutorialShown=true;if(debugTutorialSession)return;try{localStorage.setItem(TUTORIAL_ONCE_KEY,"1")}catch(_){}}
 function migrateSeenTutorial(snapshot){if(snapshot&&(Number(snapshot.mission)>0||(Array.isArray(snapshot.tutorialSeen)&&snapshot.tutorialSeen.length>0)))rememberTutorialShown();}
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 // Presentation-only state: never stored in SAVE_SCHEMA=2.
 const DEATH_SEQUENCE_SECONDS=3.2;
 let deathSequenceTime=0;
 let debugWeatherOverride=null; // Session-only weather preview; never stored in saves.
+let debugTutorialSession=null; // QA-only sandbox; saved progress is restored on exit.
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
 const activeTouchPointers=new Map(),touchHoldTimers=new Map(),gamepadAxes={x:0,y:0};
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -287,7 +288,7 @@ let territoryClaims=[false,false,false],territoryLastSupply=[0,0,0];
 function loadTerritoryClaims(animal){
  try{const a=JSON.parse(localStorage.getItem("wild-reclaim-territory-v1-"+animal)||"null");return Array.isArray(a)&&a.length===3?a.map(v=>v===true):[false,false,false]}catch(_){return [false,false,false]}
 }
-function saveTerritoryClaims(){try{localStorage.setItem("wild-reclaim-territory-v1-"+P.type,JSON.stringify(territoryClaims))}catch(_){}}
+function saveTerritoryClaims(){if(debugTutorialSession)return;try{localStorage.setItem("wild-reclaim-territory-v1-"+P.type,JSON.stringify(territoryClaims))}catch(_){}}
 function territoryOwned(){return territoryClaims.filter(Boolean).length}
 function nearestTerritoryPost(radius=82){
  if(!P)return null;let best=null,d=radius;
@@ -351,6 +352,7 @@ function loadDenLevel(animal){
  try{const n=Number(localStorage.getItem("wild-reclaim-den-level-v1-"+animal));return Number.isInteger(n)?clamp(n,1,DEN_MAX_LEVEL):1}catch(_){return 1}
 }
 function saveDenLevel(){
+ if(debugTutorialSession)return;
  try{localStorage.setItem("wild-reclaim-den-level-v1-"+P.type,String(denLevel))}catch(_){}
 }
 function loadDenStash(animal){
@@ -358,6 +360,7 @@ function loadDenStash(animal){
 }
 function saveDenStash(){
  syncDenStash();
+ if(debugTutorialSession)return;
  try{
   localStorage.setItem("wild-reclaim-den-v1-"+P.type,String(denStash));
   localStorage.setItem("wild-reclaim-den-stores-v1-"+P.type,JSON.stringify(denStores));
@@ -687,6 +690,7 @@ function getCheckpoints(){
  try{const list=JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)||"[]");return Array.isArray(list)?list.filter(isValidSnapshot).slice(0,3):[]}catch(_){return []}
 }
 function clearAutoSave(){
+ if(debugTutorialSession)return;
  try{localStorage.removeItem(AUTOSAVE_KEY)}catch(_){}
 }
 function currentSnapshot(){
@@ -702,6 +706,7 @@ function currentSnapshot(){
 function saveAuto(){
  const snapshot=currentSnapshot();
  if(!snapshot)return false;
+ if(debugTutorialSession)return true;
  try{
   localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snapshot));
   return true;
@@ -874,6 +879,7 @@ function restoreSnapshot(snapshot){
  return true;
 }
 function recordCheckpoint(){
+ if(debugTutorialSession){$("checkpoint-save-status").textContent="通しテスト中はチェックポイントを変更しません";return false;}
  if(mode!=="pause")return false;
  const snapshot=currentSnapshot();
  if(!snapshot)return false;
@@ -2248,7 +2254,7 @@ function finish(won=false){
  clearAutoSave();
  resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
- if(totalScore>best){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
+ if(totalScore>best&&!debugTutorialSession){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
  $("result-kicker").textContent=won?"TOKYO RECLAIMED":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
@@ -4595,7 +4601,8 @@ window.WildDebugBridge={
    region:loc?districts[regionAt(loc.x,loc.y)]:null,position:loc,
    weather:WEATHER_NAMES[weather]||weather,weatherOverride:!!debugWeatherOverride,
    mobCount:mobs.filter(m=>m.hp>0).length,carcassCount:carcasses.length,
-   hp:active?Math.ceil(P.hp):null,denLevel,animal:animals[choice]?.name||choice
+   hp:active?Math.ceil(P.hp):null,hunger:active?Math.ceil(P.hunger):null,denLevel,denStash,animal:animals[choice]?.name||choice,
+   mission,debugTutorialActive:!!debugTutorialSession,strongBoss:strongBossAlive()?STRONG_NAMES[strongBossAlive().type]:null
   };
  },
  setHour(hour){
@@ -4629,24 +4636,110 @@ window.WildDebugBridge={
   syncHUD(Math.floor(dayLightProfile(elapsed).hour));
   return saveAuto();
  },
- listBosses(){return Object.keys(STRONG_TRAITS).map(id=>({id,name:STRONG_TRAITS[id].name,animal:species[id]?.name||id}));},
+ listBosses(){return Object.keys(STRONG_TRAITS).map(id=>({id,name:STRONG_NAMES[id],effect:STRONG_TRAITS[id].effect,regions:Object.entries(STRONG_REGIONS).filter(([,types])=>types.includes(id)).map(([index])=>districts[Number(index)])}));},
+ bossState(){const boss=strongBossAlive();return boss?{id:boss.type,name:STRONG_NAMES[boss.type]||boss.type,hp:Math.max(0,Math.ceil(boss.hp))}:null;},
  spawnBoss(type){
-  if(mode!=="play"||!P||!Object.prototype.hasOwnProperty.call(STRONG_TRAITS,type))return false;
-  if(strongBossAlive())return false;
-  const region=regionAt(P.x,P.y);
-  const success=spawnStrongBoss(type,region);
-  if(success)syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  if(mode!=="play"||!P||!Object.prototype.hasOwnProperty.call(STRONG_TRAITS,type)||strongBossAlive())return false;
+  const success=spawnStrongBoss(type,regionAt(P.x,P.y));
+  if(success){syncHUD(Math.floor(dayLightProfile(elapsed).hour));saveAuto();}
   return success;
  },
+ clearBoss(){
+  if(mode!=="play"||!P)return false;
+  const boss=strongBossAlive();if(!boss)return false;
+  const index=mobs.indexOf(boss);if(index<0)return false;
+  mobs.splice(index,1);saveAuto();return true;
+ },
+ warpBossArea(type){
+  if(mode!=="play"||!P||!STRONG_TRAITS[type])return false;
+  const allowed=Object.keys(STRONG_REGIONS).filter(key=>STRONG_REGIONS[key].includes(type)).map(Number);
+  const spots=Object.entries(START_LOCATIONS).filter(([,p])=>allowed.includes(regionAt(p.x,p.y)));
+  if(!spots.length)return false;
+  spots.sort((a,b)=>Math.hypot(a[1].x-P.x,a[1].y-P.y)-Math.hypot(b[1].x-P.x,b[1].y-P.y));
+  return this.warp(spots[0][0]);
+ },
+ listDens(){return denSites.map(site=>({id:site.id,name:site.name,roof:site.kind==="roof"}));},
+ warpDen(id){
+  if(mode!=="play"||!P)return false;
+  const site=denSites.find(q=>q.id===id);if(!site)return false;
+  P.x=site.x;P.y=site.y;P.groundZ=site.z;P.jumpHeight=site.z;
+  P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;P.fallTime=0;P.vx=0;P.vy=0;
+  resetControls();cam.x=P.x-vw*.5;cam.y=P.y-vh*.5;syncHUD(Math.floor(dayLightProfile(elapsed).hour));return saveAuto();
+ },
+ setHunger(value){
+  if(mode!=="play"||!P||!Number.isFinite(value))return false;
+  P.hunger=clamp(value,0,100);syncHUD(Math.floor(dayLightProfile(elapsed).hour));return saveAuto();
+ },
+ setHp(value){
+  if(mode!=="play"||!P||!Number.isFinite(value))return false;
+  P.hp=clamp(value,0,P.maxHp);
+  if(P.hp===0){beginDeath();return true;}
+  syncHUD(Math.floor(dayLightProfile(elapsed).hour));return saveAuto();
+ },
+ setDenLevel(level){
+  if(mode!=="play"||!P||!Number.isInteger(level)||level<1||level>DEN_MAX_LEVEL)return false;
+  denLevel=level;saveDenLevel();syncHUD(Math.floor(dayLightProfile(elapsed).hour));return saveAuto();
+ },
+ setDenFood(points){
+  if(mode!=="play"||!P||!Number.isFinite(points))return false;
+  denStores=normalizeDenStores(null,clamp(points,0,denCapacity()));
+  saveDenStash();syncHUD(Math.floor(dayLightProfile(elapsed).hour));return saveAuto();
+ },
+ tutorialStart(){
+  if(debugTutorialSession||!(mode==="play"||mode==="menu"||mode==="pause"))return false;
+  const original=currentSnapshot();
+  const storage={};
+  try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key&&key.startsWith("wild-reclaim-"))storage[key]=localStorage.getItem(key);}}catch(_){}
+  debugTutorialSession={original:original?JSON.parse(JSON.stringify(original)):null,storage,choice,shown:automaticTutorialShown,onboarded:previouslyOnboardedAtRunStart};
+  start();
+  denLevel=1;denStores=normalizeDenStores(null,0);syncDenStash();territoryClaims=[false,false,false];territoryLastSupply=[day,day,day];
+  automaticTutorialShown=false;previouslyOnboardedAtRunStart=false;
+  mission=0;missionComplete=false;tutorialSeen.clear();meals=0;hiddenHold=0;kills=0;
+  syncHUD(Math.floor(dayLightProfile(elapsed).hour));openTutorial(0,false);
+  return true;
+ },
  tutorialStage(stage){
-  if(mode!=="play"||!P||!Number.isInteger(stage)||stage<0||stage>7)return false;
-  mission=stage;missionComplete=stage>=7;
+  if(!debugTutorialSession||!P||![0,1,2,4,5,6,7].includes(stage)||["menu","over","dying","clear"].includes(mode))return false;
+  if(mode==="guide")closeTutorial();
+  if(mode==="milestone"){milestoneUntil=0;$("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");mode="play";}
+  if(mode!=="play")return false;
+  if(stage===7){
+   mission=6;missionComplete=false;previouslyOnboardedAtRunStart=false;
+   advanceMission(7);return true;
+  }
+  mission=stage;missionComplete=false;tutorialSeen.delete(7);
   if(stage===0){meals=0;hiddenHold=0;kills=0;}
-  if(stage===7)tutorialSeen.add(7);
-  milestoneUntil=0;objectiveBannerTime=0;
-  $("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");
-  syncHUD(Math.floor(dayLightProfile(elapsed).hour));
-  return saveAuto();
+  if(stage===1)hiddenHold=0;
+  if(stage===2)kills=0;
+  if(stage===4){denLevel=1;denStores=normalizeDenStores(null,0);syncDenStash();}
+  if(stage===5){denLevel=Math.max(2,denLevel);territoryClaims=[false,false,false];}
+  if(stage===6){denLevel=Math.max(2,denLevel);territoryClaims=[true,false,false];discoveredSites=[];}
+  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+  syncHUD(Math.floor(dayLightProfile(elapsed).hour));return true;
+ },
+ tutorialStep(direction){
+  if(!debugTutorialSession||![-1,1].includes(direction))return false;
+  const stages=[0,1,2,4,5,6,7],current=stages.indexOf(mission);
+  if(current<0)return false;
+  const target=current+direction;
+  if(target<0||target>=stages.length)return false;
+  return this.tutorialStage(stages[target]);
+ },
+ tutorialStop(){
+  if(!debugTutorialSession)return false;
+  const session=debugTutorialSession;debugTutorialSession=null;
+  automaticTutorialShown=session.shown;previouslyOnboardedAtRunStart=session.onboarded;
+  if(session.original){restoreSnapshot(session.original);}
+  else{resetControls();mode="menu";P=null;show("menu");}
+  try{
+   const keys=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key&&key.startsWith("wild-reclaim-"))keys.push(key);}
+   for(const key of keys)localStorage.removeItem(key);
+   for(const [key,value] of Object.entries(session.storage))localStorage.setItem(key,value);
+  }catch(_){}
+  best=+(session.storage["wild-reclaim-best"]||0);
+  automaticTutorialShown=session.shown;previouslyOnboardedAtRunStart=session.onboarded;
+  if(mode==="menu")refreshSaveMenu();else syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  return true;
  },
  save(){return saveAuto();}
 };
