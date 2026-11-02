@@ -1,3 +1,15 @@
+## 共同スプリント・PHASE A｜2026/11/03 08:44 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜運搬肉の横取り・回避・回収プレイループ
+- **PHASE=A_FEATURE_COMPLETION**（3枠共通。主要ループ未完成のためBへ移行禁止）。前20分の山岳草原・カモシカ/ヤギ・洞窟捕食者・旧セーブ復旧を維持。開始ROADMAP blob `da6c38471d9dc988c0ad8492439793bbc518843b`、今回コードコミット `6fb198882f1e0392c6a3657c84fd9e9d64e1851b`、HTML revコミット `152b42701225133f605240e62b301b84d0686814`。変更は `neo-wild/game.js` と `neo-wild/index.html` のみ。ROADMAP更新開始時HEAD `152b42701225133f605240e62b301b84d0686814`。
+- **新たに遊べるもの**：プレイヤーが肉を運搬している間、近距離の野犬が視線/距離/隠れを判定して追跡。射程に入ると**0.68秒の可視警告**を出し、予告終了時に実距離/遮蔽/ジャンプ高度を再判定して肉を横取り。横取りした肉は野犬の足元に実死骸/肉オブジェクトとして落ち、プレイヤーは従来の△長押しで拾い直せる。予告中に逃げる・壁/建物に隠れる・ジャンプする・先に肉を置くことで横取り回避。攻撃後は同じ野犬に9.5秒の再横取り待機。食草/巣の中/隠れ中は対象外。2D警告円は実判定半径と一致。既存の肉・草の巣備蓄、SAVE_SCHEMA2/3CP、世界76/近隣9、山岳/地区、他ゲームは変更しない。
+- **変更関数**：`game.js:updateFoodThief` 新規、`update` の野犬AI優先分岐、`restoreSnapshot` の横取り警告クリア、`drawBossThreats` 直後の野犬警告描画。 `index.html` の game.js revを更新。
+- **検査**：game.js全文V8構文PASS。実`updateFoodThief`をV8隔離実行し、野犬の警告→0.68秒後に肉28pt横取り→足元の回収可能肉1件生成、肉の二重複製なし、旧スキーマ宣言保持をPASS。**未検証**：実ブラウザでの野犬追跡→横取り→拾い直し→巣備蓄E2E、Android実機、実GPU/Pad、長時間FPS、旧端末実SAVE2。隔離試験を実機成功と呼ばない。
+- **公開**：game.js `6fb19888`、HTML `152b4270` はmainへ差分コミット成功。対象HEADのPages run ID、build/deployは**未確認**。前runの成功を流用しない。
+- **機能別状態**：ワールド途中／動物生態途中／生存ループ途中（運搬中の横取りと回収を追加）／戦闘強敵途中／UI操作途中。PHASE A継続。
+- **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4＝**74/100（前回差0）**。新たな採点条件のE2E根拠がなく据置。
+- **次00分枠**：①`game.js:updateFoodThief/putDownFood/carryFood`で横取り→回収→巣備蓄を実ゲーム連続検証し欠落を修復。②`game.js:restoreSnapshot/normalizeCarry`で横取り警告中の旧SAVE2/3CP復元を回帰。③HEADに対応するPages run/jobsを確認し公開障害を復旧。
+- **次20分枠**：①`game.js:huntWildPrey/scavengeWildFood`で横取りした肉を野犬が拾い食べる連鎖を実装。②`game.js:maintainLocalWildlife`で肉運搬中の野犬追跡が密度上限を壊さないことを確認。③`mountain.js:choose`と`game.js:spawnMob`で農地/山岳の未完成生態種を継続追加。
+- **次40分枠**：①`fauna.js:draw2D`と`webgl3d.js:drawCommonAnimal3D`で横取り専用の野犬飛びかかり姿勢・3D予兆円を実装。②`gamepad.js:poll`で横取り回避中のジャンプ・肉置き・拾い直しを縦横で実操作。③`game.js:drawMini`で肉の落下位置の視認性を改善。
+
 ## 共同スプリント・PHASE A｜2026/11/03 08:17 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜地続き南側山岳草原＋カモシカ・ヤギ生態の縦実装
 - **PHASE=A_FEATURE_COMPLETION（全3枠共通・Bへの切替禁止）**。直前の00分旧SAVE2破損復旧、40分のキツネ/タヌキ描画、20分の洞窟追跡は維持。開始HEAD `301cc118ed8bd50ff2ccbc6a4e017c5d74335ed0` → 今回コード/HTML HEAD `73ffa4f7ce8407f51ddf02bae3950369fad3aceb`。Drive「WILD RECLAIM｜完成仕様設計書」V0.9末尾・前00/20/40分ROADMAPを確認。対象は neo-wild/ のみ。
 - **今回新たに遊べるもの**：①既存山腹道から峡谷の既設橋を渡って南側の山岳草原へ歩いて入れる枝道を追加。草原は最大+430座標の実可動幅、滑らかな標高・崖の衝突・障害物のある連続ワールドで、別ステージ遷移なし。橋以外で渓谷を渡れず、標識の道は50地点連続通行可能。②再生可能な草45束を実地形に設置し、2D/3D描画とNPC採食の既存実関数 forageWildBerries に結合。③ニホンカモシカ（高速の急斜面逃走）とヤギ（0.54秒予兆→射程/壁判定付き角突き→逃走）を新規登録し、草原/山腹/山頂の分布を既存総枠内で再配分。各種2D/3D固有モデル、討伐死骸・食料、図鑑、SAVE_SCHEMA2を既存ゲーム経路で接続。④草原分岐と可動範囲をミニマップに追加。既存8地区・6探索地点・世界76/近隣9・初期13・晴7雨5・9秒・群れ110秒は不変。
