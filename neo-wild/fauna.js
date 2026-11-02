@@ -57,7 +57,7 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -70,7 +70,26 @@ function draw2D(ctx,o,r,fur,light,pace){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
  };
- if(type==="chimpanzee"){
+ if(type==="rat"){
+  // Cave prey: tapered tail, whiskers and alert ears, not a generic canine.
+  const startled=(o.flee||0)>0,resting=!!o.resting;
+  const stretch=startled?1.18:resting?.86:1;
+  for(let k=0;k<6;k++){
+   const x=-r*(1.02+k*.30),y=Math.sin(k*.55+(o.step||0)*.4)*r*.12;
+   ellipse(x,y,r*(.24-k*.024),r*.10,"#c39c96");
+  }
+  for(const side of [-1,1])for(const front of [-1,1])
+   ellipse(front*r*.55,side*r*.42+pace*side*.18,r*.18,r*.13,fur);
+  ellipse(-r*.14,0,r*1.02*stretch,r*.49,fur);
+  ellipse(r*.72,0,r*.51,r*.42,fur);
+  for(const side of [-1,1]){
+   ellipse(r*.54,side*r*.39,r*.24,r*.24,"#b9908b");
+   ellipse(r*.98,side*r*.25,r*.10,r*.09,"#171c1b");
+   for(let k=-1;k<=1;k++)line(r*1.13,side*r*.15,r*1.60,side*(r*.21+k*r*.12),1,"#e1d3c0");
+  }
+  ellipse(r*1.18,0,r*.31,r*.19,light);
+  ellipse(r*1.43,0,r*.10,r*.08,"#d3a4a0");
+ }else if(type==="chimpanzee"){
   // Long-armed, broad-shouldered ape. Branch and stone are real combat states.
   const ready=(o.chimpTell||0)>0,club=ready&&o.chimpAttackKind==="branch";
   ellipse(-r*.20,0,r*1.02,r*.79,fur);
