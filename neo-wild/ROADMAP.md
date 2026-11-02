@@ -1,3 +1,19 @@
+## 共同スプリント・次担当｜2026/11/02 12:44 JST｜手動デバッグQA拡張｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（既存維持）
+
+- 照合：最新main・ROADMAP直近15/45枠・Drive完成仕様設計書末尾・game.js/debug-mode.js/index.htmlを照合。開始コードHEAD 7dbd4a30、最終コードHEAD ffe83825。旧飢餓・死亡演出・6巣・SAVE_SCHEMA2・3チェックポイント・ゲームパッドを維持。
+- 変更1：neo-wild/game.js commit 34884983で通しチュートリアル専用テストを追加。食事→潜伏→狩猟→備蓄LV2→縄張り→探索→生き残れ！を実条件で進め、前/次・任意段階・元セーブへの復元が可能。テスト中のオートセーブ、CP、巣の永続保存、最高点変更を防止。
+- 変更2：game.js commit 32c88cbaで強敵20種の日本語名選択・地域移動・1体出現・消去・HP1化・希少素材追加。6巣への移動、空腹/HP、巣LV/備蓄変更。通常強敵の抽選20%・同時1体制限は維持。
+- 変更3：neo-wild/debug-mode.js commits 6cf44a98/c4f4cb88でスマホ向け折りたたみ5分類、44px操作ボタン、日本語説明、テスト終了で元に戻す、タイトル7タップ起動を実装。index.html commits 1623de9f/ffe83825でスクリプト読み込みrev v3。
+- QA：HTML参照6JS構文6/6 PASS。現行WildDebugBridge実メソッドを抽出した模擬環境で開始→全7段階→終了・元セーブ復元、強敵20種名称・1体制限・HP/空腹など16/16 PASS。追加の強敵HP1・素材＋1・保存など6/6 PASS。debug-mode.jsの模擬DOM起動・タイトル7タップ・20種選択・6巣選択・5分類など8/8 PASS。UIから呼ぶAPI欠落0、ID欠落0。合計限定的QA 36/36 PASS。実ブラウザ10分E2E・Android実機・GPU実描画・物理Pad・縦横実矩形は未検証。
+- Pages：コードHEAD ffe83825 の run 41384426715 で build=success / report-build-status=success / deploy=success をjobsで確認。ROADMAP記録後のHEADは別途確認。
+- 進捗V2：A16.0 / B12.0 / C9.0 / D4.0 / E8.0 / F9.0 / G8.0 / H4.0 / I4.0 = 74.0/100、前回74.0→74.0、差0.0。新デバッグ操作だけでは既定のA～I完成条件に加点不可。C/D/F/Hおよび実ブラウザ10分/Android/物理Padは検証待ち0点。
+- 次15分枠1：game.jsのcheckMission/advanceMission/tutorialStart/tutorialStopで実操作7段階を通し、途中スキップ・最終告知1回・元SAVE_SCHEMA2と3CP復元を検証。
+- 次15分枠2：spawnStrongBoss/kill/strongTrophiesで強敵20種を討伐→報酬→巣LV2継承→セーブ復元の種類別で実関数試験し、固有AI/2D3Dと同じ種類を照合。
+- 次15分枠3：飢餓0/出血/食事同フレームから死亡演出・リトライまでの経時回帰、旧機能重複改修は禁止。
+- 次45分枠1：debug-mode.js実Android縦390×844/411×768・横800×360/844×390でスクロール/タッチ/ラベル/画面隠れを確認。
+- 次45分枠2：warpBossArea/spawnStrongBossとwebgl3d.jsで水辺3種・地上17種の選択→出現→3D/2D描画→HP1討伐、1体制限を検証。
+- 次45分枠3：最新Pages build/deployを確認し、ゲームパッド・画面横縦・死亡シーケンス・デバッグ閉鎖を回帰。
+
 ## 共同スプリント・次担当｜2026/11/02 12:15 JST｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜飢餓16%/0%境界の経時整合・旧セーブ復帰
 
 - **照合**：開始HEAD `ff3f1cf24ac272a3e16e3777ba1dee7183593510`、直近11:45の45分枠による猫/狐/狼の3D横転・Canvas2D倒れ込み、11:15の飢餓2.4HP/秒、ROADMAP先頭・Drive完成仕様設計書末尾を読了。コード終了HEAD `6a2b34c6cc2165899d742ae1ddd0439d6c3e05ce`。既存3.2秒死亡演出・6巣・20強敵・20継承・Gamepad・タイトルUIを再実装せず維持。
