@@ -1,3 +1,18 @@
+## 共同スプリント・次担当｜2026/11/02 14:15 JST｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜死亡後の再操作重複と致死出血の処理順を修復
+
+- **照合**：開始main `67879ef122625159e3389acaf402430494b526b1`、13:49の45分枠ROADMAPと13:15の15分枠・Drive「WILD RECLAIM｜完成仕様設計書」末尾を確認。死亡3.2秒・飢餓0で2.4HP/秒・空腹1〜16で1.2HP/秒・食事回復・SAVE_SCHEMA2・3CP・6巣・20強敵・冬の密生草・4段階教程は再実装せず維持。
+- **コード変更**：`neo-wild/game.js` commit `c3570278c1cfc74536af1753669a8638e67c3756` / blob `ff2c27f05257b68ac4dc19904e187eb9e6c0bac7`。`neo-wild/index.html` commit `1d2bc87136a4c4a543f6aebaed324ac1c0132ae0` / blob `771936cdeb6a7b7fcc6d831bb03013167f14aae0`（game.js rev `20261102-death-retry-guard-v3`）。neo-wild/外の変更なし。
+- **プレイ変更3点**：(1) 強敵の出血でHP0になったフレームは直ちに`beginDeath`し、死亡後の地区移動による強敵出現・乱数抽選を行わない。(2) リザルト画面の「リトライ」を素早く2回タップしても最初の1回だけチェックポイント復帰または同種新規開始を行い、2回目の初期化・セーブ書き直しを防ぐ。(3) 「最初から」の二重タップでも、すでに結果画面から離れた後は再度メニュー遷移しない。
+- **動的QA**：6本の現行本番JS全文構文 **6/6 PASS**。本番イベントハンドラの実コードを抽出してリトライCPあり/なし、二重タップ、最初から二重タップ、致死出血後ボス出現禁止・非致死出血の正常抽選 **7/7 PASS**。本番`updateSurvivalNeeds/eat/isValidSnapshot/getAutoSnapshot/getCheckpoints/clearAutoSave/currentSnapshot/saveAuto/beginDeath/advanceDeath/finish`を結合した飢餓0→5秒HP減少→食事HP回復/飢餓停止→SAVE_SCHEMA2自動保存→3CP→HP0→3.19秒→3.21秒結果/二重開始防止/死亡中保存拒否 **19/19 PASS**（統合試験20項目のうち1項目は構文検査と重複のため除外）。実`restoreSnapshot/isValidSnapshot`を旧SAVE_SCHEMA2の空腹欠落/0・旧猫速度・巣18pt・希少素材・mission2/7・無効HP0 CPで **14/14 PASS**。**計46/46（6+7+19+14）PASS**。V8の実関数隔離/模擬DOM試験であり、実ブラウザ10分E2E、Android実機、実GPU、物理Pad、縦横実BoundingClientRect、実FPSは未検証。
+- **Pages**：対象コードHEAD `1d2bc87136a4c4a543f6aebaed324ac1c0132ae0` / run **41392810895**、jobs APIで **build=success / report-build-status=success / deploy=success** を別々に確認。ROADMAP記録後HEADのPagesは別途確認。
+- **進捗計測V2**：A **16.0/16**（game.js生存・食事・死亡・再開、今回の19/19）、B **12.0/12**（6巣/備蓄の既存実関数試験、現行コード保持）、C **9.0/12**（橋・川・季節・地区の一連E2E未確認）、D **4.0/16**（20種の出現定義、固有AI/外見/討伐保存は種類別未検証）、E **8.0/8**（20希少素材継承の既存動的試験、保持）、F **9.0/12**（縦横HUDの実矩形未確認）、G **8.0/8**（旧SAVE_SCHEMA2/3CP/自動保存、今回の14/14回帰）、H **4.0/6**（実FPS/当たり判定/画面サイズ未確認）、I **4.0/10**（実関数統合と今回HEADのPages build+deploy成功、ブラウザ10分/Android/物理Pad各0）。**合計74.0/100、前回74.0→74.0、差0.0**。A/Gの既存達成条件内の不具合修正であり、新しい完了条件は満たしていないため加点なし。各項目の過去根拠は直下の13:49/13:15枠のcommitとQAを継承。
+- **次15分枠①**：`game.js:update/updateSurvivalNeeds/eat/eatFromDen`で空腹0＋出血＋摂食入力を実フレーム時系列で結合し、HP0になる前に食べた場合のみ飢餓停止・回復すること、死亡後に行動しないことを確認し、実不具合のみ最小修正。
+- **次15分枠②**：`game.js:restoreSnapshot/recordCheckpoint/getCheckpoints`を実イベントで3CPの最新同種優先→復帰→再保存→二重加算なし、旧SAVE_SCHEMA2・巣/希少素材維持まで連結検証。
+- **次15分枠③**：`game.js:ensureTrainingCoverNear/inVisibleShrubCover/checkMission`で冬の見える茂み0.75秒潜伏→その後の新規討伐→巣1回備蓄→一度だけ終了→「生き残れ！」を実関数で通し、初回以外の自動ガイド再出現を回帰。
+- **次45分枠①**：`game.js:drawScene/drawCreature`、`webgl3d.js:animal`、`audio.js:fadeForDeath/resetDeathFade`で地上/屋上・縦390×844/横800×360の3.2秒死亡姿勢/暗転/音とリトライ後復帰を実ブラウザで確認。
+- **次45分枠②**：`index.html/style.css/visual.css/debug-mode.js`で実Android縦横のHUD/ミニマップ/結果ボタン/草前景のDOM矩形・タッチ領域・FPSを確認、重なりや負荷があれば最小修正。
+- **次45分枠③**：`game.js:spawnStrongBoss/resolveAttack/kill`と`webgl3d.js`で20強敵を固有攻撃→討伐→希少素材→継承→セーブ復元まで種類別に実結合し、Dの種類別未達を解消。
+
 ## 共同スプリント・次担当｜2026/11/02 13:49 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜草むら視認・潜伏の2D/3D統合
 - **開始→コード終了HEAD**：`cd275bd9de2e6a8d9cdee30bdb773024836878a5` → `ae12d930ddd460738b4e247c8ae48633b65f7b24`。先頭ROADMAP・直近15/45枠・Drive設計書末尾・現行mainを照合。飢餓0以降2.4HP/秒、死亡3.2秒、旧SAVE_SCHEMA2、3CP、6巣、20強敵・能力継承を重複実装せず維持。
 - **実コード変更**：`neo-wild/game.js` commit `5facf9c4dcb418266ca570ef230fbf3a28eefac6` / blob `171177fb1743a64254de37c43d5b30851db6baeb`、`neo-wild/webgl3d.js` commit `74fa3557bc4a71f49484941bc7cdba4449f58fa0` / blob `6363261b1296de72717c491bf33dd3afb599e9f9`、`neo-wild/index.html` commit `ae12d930ddd460738b4e247c8ae48633b65f7b24` / blob `8a13739b2358efeff82f101364319937fbc4ea35`。両JSのcache rev `20261102-dense-grass-stealth-v1`。neo-wild/外変更なし。
