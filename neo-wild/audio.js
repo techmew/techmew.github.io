@@ -188,6 +188,9 @@ function fadeForDeath(){
  musicBus?.gain.setTargetAtTime(.018,t+.48,.28);
  atmosBus?.gain.setTargetAtTime(.012,t+.58,.34);
  sfxBus?.gain.setTargetAtTime(.09,t+.82,.24);
+ // After the fall, silence even residual effects before the result.
+ // resetDeathFade cancels both ramps when the player retries.
+ sfxBus?.gain.setTargetAtTime(.015,t+1.65,.18);
 }
 function resetDeathFade(){
  if(!deathFade)return;
