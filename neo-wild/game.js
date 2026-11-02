@@ -1111,6 +1111,7 @@ function restoreSnapshot(snapshot){
   m.signatureUse=clamp(Math.floor(Number(m.signatureUse)||0),0,1000);
   m.bossPresenceShown=false;
   if(m.type==="giantGorilla")m.rock=null;
+  if(m.type==="macaque"){m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
   if(m.type==="giantEagle"){m.airPhase="circle";m.airHeight=Math.max(90,Number(m.airHeight)||125);m.airTimer=1.4;m.airTarget=null;m.airHit=false;m.windup=0;}
   if(isAquaticStrong(m)){
    // Keep saved aquatic bosses in the river/canal; never migrate them onto land.
@@ -1536,6 +1537,72 @@ function updateGorillaRock(m,dt){
 
 /* STRONG-EAGLE-FLIGHT: airborne orbit, warning, dive, collision, climb and prey ecology. */
 
+// Mountain macaques share alarms, climb existing trees and use dodgeable stones.
+function updateMacaque(m,dt,d){
+ const spec=species.macaque;
+ m.macaqueCooldown=Math.max(0,(m.macaqueCooldown||0)-dt);
+ const trees=[...(MOUNTAIN?.trees||[]),...(MOUNTAIN?.pines||[])];
+ let tree=null,best=135;
+ for(const t of trees){const v=Math.hypot(t.x-m.x,t.y-m.y);if(v<best){best=v;tree=t;}}
+ const seen=d<315&&!P.hidden&&!lineBlocked(m,P);
+ if(seen){
+  m.alert=Math.max(m.alert||0,3);m.lastX=P.x;m.lastY=P.y;
+  for(const q of mobs)if(q!==m&&q.type==="macaque"&&q.hp>0&&dist(q,m)<260){
+   q.alert=Math.max(q.alert||0,2.3);q.lastX=P.x;q.lastY=P.y;
+  }
+ }
+ if(m.macaqueStone){
+  const stone=m.macaqueStone,ox=stone.x,oy=stone.y;
+  stone.x+=stone.vx*dt;stone.y+=stone.vy*dt;stone.ttl-=dt;
+  const dx=stone.x-ox,dy=stone.y-oy,n=dx*dx+dy*dy;
+  const t=n>0?clamp(((P.x-ox)*dx+(P.y-oy)*dy)/n,0,1):0;
+  const hit=Math.hypot(P.x-ox-t*dx,P.y-oy-t*dy)<P.r+8;
+  const blocked=stone.ttl<=0||stone.x<20||stone.x>WORLD.w-20||
+   collides(stone.x,stone.y,5,null,true)||lineBlocked({x:ox,y:oy},{x:stone.x,y:stone.y});
+  if(hit&&!blocked&&P.inv<=0&&P.hp>0&&!insideShelter(P)){
+   const damage=Math.max(3,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.8));
+   P.hp=Math.max(0,P.hp-damage);P.inv=.43;P.lastCombatAt=elapsed;
+   interruptRush();shake=Math.max(shake,5);flash=Math.max(flash,.13);
+   label(P.x,P.y-34,"投石 -"+damage,"#ffc1a4");playEffect("damage");
+  }
+  if(blocked||hit)m.macaqueStone=null;
+ }
+ if(m.stun>0||m.hp<m.maxHp*.35){
+  m.macaqueTell=0;m.treeHeight=Math.max(0,(m.treeHeight||0)-dt*100);
+ }else if(m.macaqueTell>0){
+  m.macaqueTell=Math.max(0,m.macaqueTell-dt);
+  if(m.macaqueTell===0){
+   const aim=m.macaqueAim||Math.atan2(P.y-m.y,P.x-m.x);
+   m.macaqueStone={x:m.x+Math.cos(aim)*(m.r+21),y:m.y+Math.sin(aim)*(m.r+21),
+    vx:Math.cos(aim)*395,vy:Math.sin(aim)*395,ttl:.95};
+   m.macaqueCooldown=3.7;m.swing=.24;
+  }
+ }
+ if((m.treeHeight||0)>0){
+  m.macaqueTreeTime=Math.max(0,(m.macaqueTreeTime||0)-dt);
+  if(m.macaqueTreeTime<=0||!tree||d<65)m.treeHeight=Math.max(0,m.treeHeight-dt*55);
+  else m.treeHeight=Math.min(43,m.treeHeight+dt*64);
+ }else if(tree&&d<275&&m.alert>0&&m.stun<=0){
+  if(best<tree.r+m.r+12){
+   m.treeHeight=Math.min(43,(m.treeHeight||0)+dt*64);m.macaqueTreeTime=4.2;
+  }else{
+   const aim=Math.atan2(tree.y-m.y,tree.x-m.x);
+   m.dir=aim;move(m,Math.cos(aim)*spec.speed*.78*dt,Math.sin(aim)*spec.speed*.78*dt);
+  }
+ }
+ m.groundZ=m.treeHeight||0;m.evadeHeight=m.treeHeight||0;
+ if(m.treeHeight>0||m.macaqueTell>0){m.vx=0;m.vy=0;}
+ else if(m.alert>0&&d<100){
+  const away=Math.atan2(m.y-P.y,m.x-P.x);
+  m.dir=away;move(m,Math.cos(away)*spec.speed*.65*dt,Math.sin(away)*spec.speed*.65*dt);
+ }
+ if(seen&&d>75&&d<300&&m.macaqueCooldown<=0&&m.macaqueTell<=0&&!m.macaqueStone&&m.stun<=0){
+  m.macaqueTell=.65;m.macaqueAim=Math.atan2(P.y-m.y,P.x-m.x);m.dir=m.macaqueAim;
+  label(m.x,m.y-m.r-36,"石を構えた！","#ffe0ac");
+ }
+ m.step=(m.step||0)+dt*(m.treeHeight>0?1.1:2.7);
+ m.alert=Math.max(0,(m.alert||0)-dt*.4);
+}
 function updateFlyingEagle(m,dt){
  if(!P||m.hp<=0)return;
  const s=species.giantEagle;
@@ -3624,6 +3691,7 @@ function update(dt){
   const s=species[m.type];if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
+  if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);continue;}
   if(d>WILDLIFE.farAI){m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,1.2);m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
   if(rareEngagementBlocked(m)){
    m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,.9);
@@ -5059,6 +5127,11 @@ function drawScene(){
  drawOccludedSilhouettes(entities);
  }
  drawBossThreats(entities);
+ for(const m of entities)if(m.type==="macaque"&&m.macaqueStone){
+  const stone=m.macaqueStone;
+  ctx.save();ctx.fillStyle="#c1b7a0";ctx.strokeStyle="#574e44";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(stone.x,stone.y,7,0,TWO);ctx.fill();ctx.stroke();ctx.restore();
+ }
  for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
   const symbol=m.resting?"Zz":(m.drinkPose||0)>0?"水":(m.scavengePose||0)>0||(m.foragePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
