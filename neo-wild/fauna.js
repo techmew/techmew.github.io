@@ -1,6 +1,7 @@
 /* Ordinary wildlife distribution: safe to load before game.js. */
 (()=>{"use strict";
 const species={
+ macaque:{hp:88,r:19,speed:195,damage:12,prey:false,xp:4,food:38,color:"#867361",belly:"#c5b39c"},
  strayCat:{hp:58,r:17,speed:212,damage:10,prey:false,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
  snake:{hp:38,r:14,speed:122,damage:5,prey:true,xp:2,food:22,color:"#587b50",belly:"#abc68f"},
  venomSnake:{hp:52,r:15,speed:154,damage:8,prey:false,xp:3,food:26,color:"#4d5d28",belly:"#ead16c"},
@@ -55,7 +56,7 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
+ if(!["macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -68,7 +69,25 @@ function draw2D(ctx,o,r,fur,light,pace){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
  };
- if(type==="snake"){
+ if(type==="macaque"){
+  const climbing=Math.max(0,o.treeHeight||0),preparing=(o.macaqueTell||0)>0;
+  for(const side of [-1,1]){
+   line(-r*.54,side*r*.36,-r*.8,side*r*.91+pace*.35,r*.23,fur);
+   line(r*.46,side*r*.43,r*.66,side*r*.92-pace*.3,r*.24,fur);
+   ellipse(r*.70,side*r*.98,r*.21,r*.16,"#ac837b");
+  }
+  ellipse(-r*.24,0,r*.96,r*.68,fur);
+  ellipse(r*.58,0,r*.69,r*.62,fur);
+  ellipse(r*1.02,0,r*.46,r*.42,"#b47f7b");
+  ellipse(r*1.23,0,r*.24,r*.20,"#c99b93");
+  for(const side of [-1,1]){
+   ellipse(r*.68,side*r*.51,r*.22,r*.22,fur);
+   ellipse(r*1.12,side*r*.27,r*.08,r*.07,"#26292b");
+  }
+  line(-r*.99,0,-r*1.38,r*.22,r*.20,fur);
+  if(preparing){ellipse(r*.55,-r*.99,r*.23,r*.22,"#91877a");line(r*.42,-r*.40,r*.55,-r*.98,r*.19,fur);}
+  if(climbing>8)ellipse(-r*.15,r*.86,r*.50,r*.12,"#a2bda0");
+ }else if(type==="snake"){
   // Distinct long, curved, legless body rather than the generic mammal shape.
   for(let k=7;k>=0;k--){
    const x=(3.6-k*.54)*r;
