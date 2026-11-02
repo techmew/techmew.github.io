@@ -1546,11 +1546,11 @@ function traceMacaqueStone(stone,dt,target){
  const travel=Math.min(Math.max(0,dt),remaining);
  const dx=stone.vx*travel,dy=stone.vy*travel,length=Math.hypot(dx,dy);
  const steps=Math.max(1,Math.ceil(length/6));
- let stop=1;
+ let stop=1,hitWall=false;
  for(let k=1;k<=steps;k++){
   const f=k/steps,x=ox+dx*f,y=oy+dy*f;
   if(x<20||y<20||x>WORLD.w-20||y>WORLD.h-20||collides(x,y,5,null,true,stone.sourceTree||null)){
-   stop=f;break;
+   stop=f;hitWall=true;break;
   }
  }
  const t=length>0?clamp(((target.x-ox)*dx+(target.y-oy)*dy)/(length*length),0,1):0;
@@ -1558,7 +1558,7 @@ function traceMacaqueStone(stone,dt,target){
  const hit=length>0&&t<=stop&&Math.hypot(target.x-contactX,target.y-contactY)<target.r+8;
  // Swept collision is authoritative; a source tree's trunk is ignored only
  // for a throw launched from its elevated branch, never other terrain.
- const wall=stop<1;
+ const wall=hitWall;
  stone.x=ox+dx*stop;stone.y=oy+dy*stop;stone.ttl=Math.max(0,remaining-Math.max(0,dt));
  return {hit,blocked:wall||stone.ttl<=0};
 }
@@ -1720,7 +1720,8 @@ function updateChimpanzee(m,dt,d){
   }else if(!seen&&m.alert<=0){
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
    m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
-   const action=forageWildBerries(m,spec,dt,false,d)||huntWildPrey(m,spec,false,d);
+   const action=forageWildBerries(m,spec,dt,false,d)||huntWildPrey(m,spec,false,d)||
+    scavengeWildFood(m,spec,dt,false,d)||drinkWildWater(m,spec,dt,false,d);
    if(action)move(m,action.vx*dt,action.vy*dt);
    else{
     const leader=m.packId&&m.packOrder>0?mobs.find(q=>q.hp>0&&q.packId===m.packId&&q.packOrder===0):null;
