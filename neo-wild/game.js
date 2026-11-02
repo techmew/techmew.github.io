@@ -154,7 +154,7 @@ const WILDLIFE={initial:13,cap:76,localRadius:700,localCap:9,separation:99,preyN
 let lastPackSpawnAt=-WILDLIFE.packCooldown;
 /* Dynamic encounter difficulty. Scale relative to the player's LV, but cap each
  * damage and HP curve so an old long-lived save cannot become impossible. */
-const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake"];
+const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake","lion"];
 function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
@@ -183,9 +183,13 @@ function spawnLocalPack(){
  // At most one coordinated pack in the whole player neighbourhood.
  if(mobs.some(m=>m.hp>0&&m.packId&&dist(P,m)<950))return false;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
- const wanted=P.level>=8?2:1; // 3 members are a late-game exception.
+ // Lions only inhabit the zoo/greenbelt; no exotic packs appearing in city offices.
+ const biome=regionAt(P.x,P.y);
+ const eligible=PACK_TYPES.filter(t=>(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
+ if(!eligible.length)return false;
+ const type=eligible[Math.floor(Math.random()*eligible.length)],before=mobs.length;
+ const wanted=P.level>=8&&type!=="lion"?2:1;
  if(nearby>WILDLIFE.localCap-(wanted+1))return false;
- const type=PACK_TYPES[Math.floor(Math.random()*PACK_TYPES.length)],before=mobs.length;
  if(!spawnMob(false,false,true,null,type))return false;
  const leader=mobs[mobs.length-1];
  if(mobs.length!==before+1)return false;
@@ -1114,6 +1118,11 @@ function recordCheckpoint(){
 
 /* STRONG-COMBAT-4-V2: separate timing, impact, binding and charge. */
 const STRONG_ATTACK_PROFILES={
+ cheetah:{windup:.30,reach:63,cooldown:1.35,damage:.94,tell:"チーターの高速接近！"},
+ lion:{windup:.57,reach:79,cooldown:1.57,damage:1.06,tell:"ライオンが構えた！"},
+ giraffe:{windup:.70,reach:102,cooldown:1.85,damage:1.04,tell:"キリンの蹴り！"},
+ elephant:{windup:1.07,reach:125,cooldown:2.3,damage:1.08,tell:"ゾウが鼻を振り上げた！"},
+ hippo:{windup:.80,reach:112,cooldown:2.0,damage:1.04,tell:"カバの縄張り突進！"},
  strayCat:{windup:.29,reach:58,cooldown:1.24,damage:.90,tell:"猫が飛びかかる！"},
  wildFox:{windup:.36,reach:68,cooldown:1.46,damage:1.03,tell:"狐が飛びかかる！"},
  weasel:{windup:.25,reach:43,cooldown:1.08,damage:.90,tell:"イタチの噛みつき！"},
@@ -1770,6 +1779,11 @@ function winterCoverSpotFor(actor,maxRange=1300,avoid=null,accept=null){
 function winterCoverSpot(){return winterCoverSpotFor(P,1300);}
 function detectsPlayer(m,sp,d){
  if(!sharesPlayerElevation(m))return false;
+ // Grazer AI: quiet, uninjured animals do not endlessly chase at normal predator sight range.
+ if(["giraffe","elephant","hippo"].includes(m.type)){
+  const warning=m.type==="hippo"?160:m.type==="elephant"?128:110;
+  if(d>warning&&(m.alert||0)<=0&&m.hp>=m.maxHp*.97)return false;
+ }
  // The visual clock is authoritative: the old cosine classified midnight as
  // daytime. Daylight, not a second independent clock, now governs visual range.
  const ambient=worldDaylight();
@@ -2731,8 +2745,8 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
-const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","raccoonDog","frog","deer","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant"]);
+const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
+const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -2754,7 +2768,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
- const maxRange=["strayCat","weasel","snake","venomSnake"].includes(m.type)?165:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=["strayCat","weasel","snake","venomSnake"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
@@ -3336,6 +3350,13 @@ function update(dt){
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
+  if(m.type==="cheetah"){
+   m.sprintCooldown=Math.max(0,(m.sprintCooldown||0)-dt);
+   if(spotted&&d>95&&d<420&&m.sprintCooldown<=0&&m.alert>0){
+    m.sprintTime=1.05;m.sprintCooldown=5.8;
+    label(m.x,m.y-m.r-33,"瞬間加速！","#f4d29a");
+   }
+  }
   signalPack(m,spotted);
   // A pack member can now be alerted by another member on the same frame.
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
@@ -3344,6 +3365,13 @@ function update(dt){
    let vx=0,vy=0;
    if(!s.prey)tryEnemyEmergencyEvade(m,s,d,spotted);
    if((m.evadeTime||0)>0){advanceEnemyEvade(m,dt);continue;}
+   // A zebra is usually fleeing, but its hind kick punishes close pursuit.
+   if(m.type==="zebra"&&spotted&&d<P.r+m.r+24&&m.attack<=0&&P.inv<=0){
+    const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.85));
+    P.hp=Math.max(0,P.hp-damage);P.inv=.46;m.attack=2.55;m.swing=.23;
+    P.lastCombatAt=elapsed;interruptRush();shake=Math.max(shake,5);
+    label(P.x,P.y-38,"後ろ蹴り -"+damage,"#ffd2a5");playEffect("damage");
+   }
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
      if(m.escapeTimer<=0||!clearStep(m,m.dir,65)){
@@ -3380,7 +3408,10 @@ function update(dt){
        const fy=P.y-Math.sin(heading)*flankBack+Math.cos(heading)*side*flankSide;
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
-      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;vx=Math.cos(m.dir)*s.speed*chaseBoost*(m.speedScale||1);vy=Math.sin(m.dir)*s.speed*chaseBoost*(m.speedScale||1);
+      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;const cheetahBoost=m.type==="cheetah"&&m.sprintTime>0?1.58:1;
+      vx=Math.cos(m.dir)*s.speed*chaseBoost*(m.speedScale||1)*cheetahBoost;
+      vy=Math.sin(m.dir)*s.speed*chaseBoost*(m.speedScale||1)*cheetahBoost;
+      if(m.sprintTime>0)m.sprintTime=Math.max(0,m.sprintTime-dt);
       if((m.type==="dog"||m.type==="alpha"||m.type==="oneEyedWolf"||m.type==="albinoWolf")&&spotted&&d>75&&d<235&&m.attack>.22){
        const around=m.dir+(m.flankSide||1)*1.08;
        if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
