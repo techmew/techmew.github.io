@@ -1,7 +1,7 @@
 /* WILD RECLAIM: persistent defeated-animal encyclopedia, independent of SAVE_SCHEMA2. */
 (()=>{"use strict";
 const KEY="wild-reclaim-bestiary-v1";
-const NORMAL_NAMES={macaque:"ニホンザル",rat:"ネズミ",rabbit:"ウサギ",pigeon:"ハト",dog:"野犬",boar:"イノシシ",strayCat:"野良猫",snake:"ヘビ",venomSnake:"毒ヘビ",cheetah:"チーター",giraffe:"キリン",zebra:"シマウマ",lion:"ライオン",elephant:"ゾウ",hippo:"カバ",crow:"カラス",raccoonDog:"タヌキ",wildFox:"野生のキツネ",weasel:"イタチ",frog:"カエル",deer:"シカ"};
+const NORMAL_NAMES={chimpanzee:"チンパンジー",macaque:"ニホンザル",rat:"ネズミ",rabbit:"ウサギ",pigeon:"ハト",dog:"野犬",boar:"イノシシ",strayCat:"野良猫",snake:"ヘビ",venomSnake:"毒ヘビ",cheetah:"チーター",giraffe:"キリン",zebra:"シマウマ",lion:"ライオン",elephant:"ゾウ",hippo:"カバ",crow:"カラス",raccoonDog:"タヌキ",wildFox:"野生のキツネ",weasel:"イタチ",frog:"カエル",deer:"シカ"};
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 let catalog=[],registry={},counts={},selected=null,yaw=.65,tilt=.1,zoom=1.15,open=false,lastPadNavigation=0;
