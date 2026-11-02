@@ -94,7 +94,9 @@ function strongNearWater(){
   (P.x>=5500&&P.y>=2600&&Math.abs(P.y-canalAxis(P.x))<370));
 }
 function strongDamageTaken(raw){
- return Math.max(1,Math.round(traitEffect("giantHippo",traitEffect("rhino",raw),strongNearWater())));
+ const reduced=traitEffect("giantHippo",traitEffect("rhino",raw),strongNearWater());
+ // Even 2-3 late-game rare bosses must allow a narrow recovery window.
+ return Math.max(1,Math.min(Math.round(reduced),Math.ceil((P?.maxHp||110)*(strongBossLimit()>1?.21:.26))));
 }
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
@@ -146,7 +148,60 @@ function updateCameraView(){
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
-const WILDLIFE={initial:20,cap:96,localRadius:700,localCap:11,separation:99,preyNeedRadius:440,farAI:1300,localTargetRain:8,localTargetClear:10};
+const WILDLIFE={initial:20,cap:112,localRadius:700,localCap:15,separation:91,preyNeedRadius:440,farAI:1300,localTargetRain:10,localTargetClear:12};
+/* Dynamic encounter difficulty. Scale relative to the player's LV, but cap each
+ * damage and HP curve so an old long-lived save cannot become impossible. */
+const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake"];
+function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
+function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
+function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
+function strongBossLimit(){return !P||P.level<6?1:P.level<11?2:3;}
+function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||m.type==="alpha"));}
+function syncEnemyLevel(m){
+ if(!m||m.hp<=0||m.strongBoss||m.type==="alpha"||species[m.type]?.prey)return;
+ const spec=species[m.type];if(!spec)return;
+ const target=Math.round(spec.hp*enemyHealthFactor());
+ if(m.maxHp!==target){
+  const ratio=clamp(m.hp/Math.max(1,m.maxHp||spec.hp),0,1);
+  m.maxHp=target;m.hp=Math.max(1,Math.min(target,Math.round(target*ratio)));
+ }
+ m.damageScale=enemyDamageFactor();
+ m.speedScale=1+Math.min(10,enemyChallengeTier())*.018;
+}
+function spawnLocalPack(){
+ if(!P||P.level<2||mobs.length>WILDLIFE.cap-3)return false;
+ const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+ if(nearby>WILDLIFE.localCap-3)return false;
+ const type=PACK_TYPES[Math.floor(Math.random()*PACK_TYPES.length)],before=mobs.length;
+ if(!spawnMob(false,false,true,null,type))return false;
+ const leader=mobs[mobs.length-1];
+ if(mobs.length!==before+1||leader.type!==type||nearDenLocation(leader.x,leader.y,265))return false;
+ const id="pack-"+Math.round(elapsed*1000)+"-"+Math.round(leader.x)+"-"+Math.round(leader.y);
+ leader.packId=id;leader.packOrder=0;let added=0;
+ const wanted=P.level>=5?2:1;
+ for(let i=0;i<wanted;i++)for(let attempt=0;attempt<18;attempt++){
+  const a=leader.dir+i*Math.PI*1.2+rnd(-.95,.95);
+  const r=rnd(110,188),x=leader.x+Math.cos(a)*r,y=leader.y+Math.sin(a)*r;
+  if(x<55||y<55||x>WORLD.w-55||y>WORLD.h-55||nearDenLocation(x,y,265))continue;
+  const count=mobs.length;
+  if(spawnMob(false,false,false,{x,y},type)&&mobs.length===count+1&&mobs[mobs.length-1].type===type){
+   const mate=mobs[mobs.length-1];mate.packId=id;mate.packOrder=i+1;added++;break;
+  }
+ }
+ return added>0;
+}
+function signalPack(m,spotted){
+ if(!m.packId||!P||species[m.type]?.prey)return;
+ const mates=mobs.filter(q=>q!==m&&q.hp>0&&q.packId===m.packId&&dist(q,m)<360);
+ if(spotted)for(const q of mates){
+  if(territoryDetersDog(q))continue;
+  q.lastX=P.x;q.lastY=P.y;q.alert=Math.max(q.alert||0,3.4);
+  q.resting=false;q.restTime=0;
+ }else if(m.alert<=0){
+  const aware=mates.find(q=>q.alert>1.3&&dist(q,P)<460);
+  if(aware){m.lastX=aware.lastX;m.lastY=aware.lastY;m.alert=2.5;}
+ }
+}
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
 function regionAt(x,y){
@@ -348,6 +403,18 @@ function denRadius(){return [0,SAFE_DEN.r,125,165][denLevel]}
 function atDen(){return !!denAtActor()}
 function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
 // Starvation is progressive. An empty stomach cannot be cancelled by passive den healing.
+function inflictVenom(m){
+ if(!P||P.hp<=0)return;
+ const fresh=(P.poisonTime||0)<=0;
+ P.poisonTime=Math.max(P.poisonTime||0,7.5);
+ if(fresh){notify("毒ヘビに噛まれた！ 毒状態");label(P.x,P.y-55,"☠ 毒","#d3f29c");}
+}
+function updateVenom(dt){
+ if(!P||(P.poisonTime||0)<=0)return;
+ const poisonSeconds=Math.min(Math.max(0,dt),P.poisonTime);
+ P.poisonTime=Math.max(0,P.poisonTime-poisonSeconds);
+ P.hp=Math.max(0,P.hp-poisonSeconds*1.45);
+}
 function updateSurvivalNeeds(dt){
  const before=P.hunger;
  const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1);
@@ -759,7 +826,7 @@ function start(){
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
-  const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,inheritedTraits:{}};
+  const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  // World geometry can change between releases. Never begin a run inside water or a wall.
  if(waterBlocksLand(P.x,P.y)){
@@ -892,6 +959,7 @@ function restoreSnapshot(snapshot){
  P.inheritedTraits=Object.fromEntries(Object.keys(STRONG_TRAITS).map(type=>[type,P.inheritedTraits?.[type]===true]));
  P.carry=normalizeCarry(P.carry); // Legacy corpse/meat/berries compatibility.
  P.strongWound=clamp(Number(P.strongWound)||0,0,5.5);
+ P.poisonTime=clamp(Number(P.poisonTime)||0,0,9);
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
  if(waterBlocksLand(P.x,P.y)){const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}}
@@ -1280,7 +1348,7 @@ function updateFlyingEagle(m,dt){
 }
 
 /* STRONG-STAGE-20P-V1: one draw per district, a single active boss, save-compatible. */
-function strongBossAlive(){return mobs.find(m=>m.hp>0&&(m.strongBoss||m.type==="alpha"))||null;}
+function strongBossAlive(){return activeStrongBosses()[0]||null;}
 function strongStageCandidate(region){
  const options=(STRONG_REGIONS[region]||["alpha"]).filter(t=>!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length>0);
  const hour=(6+Math.floor((elapsed%85)/85*24))%24,night=hour>=19||hour<6;
@@ -1290,7 +1358,7 @@ function strongStageCandidate(region){
  return options[options.length-1];
 }
 function spawnStrongBoss(type,region){
- if(!P||!species[type]||strongBossAlive()||mobs.length>=WILDLIFE.cap)return false;
+ if(!P||!species[type]||activeStrongBosses().length>=strongBossLimit()||mobs.length>=WILDLIFE.cap)return false;
  const sp=species[type],aquatic=AQUATIC_STRONG_TYPES.has(type),waterSpots=aquatic?aquaticStagePoints(region):null;
  if(aquatic&&!waterSpots.length)return false;
  for(let i=0;i<100;i++){
@@ -1298,8 +1366,10 @@ function spawnStrongBoss(type,region){
   const spot=aquatic?waterSpots[Math.floor(Math.random()*waterSpots.length)]:null;
   const x=spot?spot.x:clamp(P.x+Math.cos(angle)*radius,60,WORLD.w-60);
   const y=spot?spot.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
-  if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<135))continue;
-  const hp=Math.round(sp.hp*(1+Math.max(0,day-1)*.10));
+  if(regionAt(x,y)!==region||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
+  // Boss health stays near 7-12 ordinary hits at high LV, not a day-based infinity.
+  const playerStrike=Math.max(16,P.damage||20);
+  const hp=Math.round(Math.max(sp.hp*.84,Math.min(sp.hp*1.8,Math.max(sp.hp*(1+enemyChallengeTier()*.06),playerStrike*(P.level>=6?8.5:7)))));
   mobs.push({x,y,type,r:sp.r,color:sp.color,belly:sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
    alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
@@ -1318,16 +1388,30 @@ function enterStrongStage(){
  if(!Object.prototype.hasOwnProperty.call(strongRolls,region))
   strongRolls[region]=Math.random()<.20?{type:strongStageCandidate(region),spawned:false}:{type:null,spawned:true};
  const roll=strongRolls[region];
+ if(P.level>=6){
+  let changed=false,attempts=0;
+  while(activeStrongBosses().length<strongBossLimit()&&attempts++<9){
+   let type=strongStageCandidate(region);
+   const present=new Set(activeStrongBosses().map(m=>m.type));
+   if(present.has(type)){
+    const alternatives=(STRONG_REGIONS[region]||[]).filter(t=>!present.has(t)&&(!AQUATIC_STRONG_TYPES.has(t)||aquaticStagePoints(region).length));
+    if(alternatives.length)type=alternatives[Math.floor(Math.random()*alternatives.length)];
+   }
+   if(spawnStrongBoss(type,region))changed=true;
+  }
+  if(changed)saveAuto();
+  return;
+ }
  if(roll&&roll.type&&!roll.spawned&&!strongBossAlive()&&spawnStrongBoss(roll.type,region)){
   roll.spawned=true;saveAuto();
  }
 }
 function normalizeStrongBossSave(){
- let first=null;
+ let first=null,kept=0;
  for(const m of mobs){
   if(!species[m.type]){m.type="dog";m.r=species.dog.r;}
   if(m.strongBoss||m.type==="alpha"){
-   if(!first){first=m;m.strongBoss=true;m.color=species[m.type].color;m.belly=species[m.type].belly;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
+   if(kept<strongBossLimit()){if(!first)first=m;kept++;m.strongBoss=true;m.color=species[m.type].color;m.belly=species[m.type].belly;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
    else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
   }
  }
@@ -1358,8 +1442,9 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
  if(nearDenLocation(x,y,265)&&(!species[type].prey||WILD_PREDATOR_TYPES.has(type)))type=biome===4||biome===7?"pigeon":"rabbit";
- const s=species[type],scale=1+Math.max(0,day-1)*.13;
- mobs.push({x,y,type,r:s.r,color:s.color,belly:s.belly,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
+ const s=species[type],scale=s.prey?1+Math.min(18,Math.max(0,day-1))*.055:enemyHealthFactor();
+ mobs.push({x,y,type,r:s.r,color:s.color,belly:s.belly,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1),
+  damageScale:s.prey?1:enemyDamageFactor(),speedScale:s.prey?1:1+Math.min(10,enemyChallengeTier())*.018});
  return true;
 }
 function spawnFood(){
@@ -2599,7 +2684,7 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
+const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
 const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","raccoonDog","frog","deer","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
@@ -2622,11 +2707,11 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
- const maxRange=["strayCat","weasel","snake"].includes(m.type)?165:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=["strayCat","weasel","snake","venomSnake"].includes(m.type)?165:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
-  if(["strayCat","wildFox","weasel","snake"].includes(m.type)){
+  if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog"].includes(m.type)){
    const smallPrey=["rat","frog","pigeon","crow","weasel"];
    if(m.type==="wildFox")smallPrey.push("rabbit");
    if(!smallPrey.includes(q.type))continue;
@@ -2639,8 +2724,8 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=["strayCat","weasel","snake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
-  const bite=["strayCat","wildFox","weasel","snake"].includes(m.type)?Math.max(2,Math.round(sp.damage*.70)):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
+  m.wildAttack=["strayCat","weasel","snake","venomSnake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
+  const bite=["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog"].includes(m.type)?Math.max(2,Math.round(sp.damage*.70)):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="albinoWolf"?.42:m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
   prey.hp=Math.max(0,prey.hp-bite);
@@ -2780,8 +2865,14 @@ function maintainLocalWildlife(){
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
  if(mobs.length<WILDLIFE.cap){
   if(hunting&&!preyNearby)spawnMob(false,true,true);
-  else if(local<target)spawnMob(false,false,true);
+  else if(local<target){
+   if(P.level>=2&&local<=WILDLIFE.localCap-3&&Math.random()<(P.level>=5?.58:.34))
+    spawnLocalPack()||spawnMob(false,false,true);
+   else spawnMob(false,false,true);
+  }
  }
+ // A new LV gradually improves existing enemies, without restoring their HP to full.
+ for(const m of mobs)if(m.hp>0&&!m.strongBoss&&!species[m.type]?.prey)syncEnemyLevel(m);
  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
 }
 function updateWeather(dt){
@@ -3136,6 +3227,7 @@ function update(dt){
   const safeDen=atDen()&&!denThreatNearby();
   P.strongWound=Math.max(0,P.strongWound-dt*(safeDen?2.2:1));
  }
+ updateVenom(dt);
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt*traitEffect("giantSnake",1));
   // A fatal bleed ends the frame before another region can roll/spawn a boss.
  if(P.hp<=0){P.hp=0;beginDeath();return}
@@ -3151,6 +3243,8 @@ function update(dt){
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
+  signalPack(m,spotted);
+  // A pack member can now be alerted by another member on the same frame.
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
    if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    if(updateIndoorRest(m,s,dt,spotted,d))continue;
@@ -3193,7 +3287,7 @@ function update(dt){
        const fy=P.y-Math.sin(heading)*flankBack+Math.cos(heading)*side*flankSide;
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
-      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;vx=Math.cos(m.dir)*s.speed*chaseBoost;vy=Math.sin(m.dir)*s.speed*chaseBoost;
+      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;vx=Math.cos(m.dir)*s.speed*chaseBoost*(m.speedScale||1);vy=Math.sin(m.dir)*s.speed*chaseBoost*(m.speedScale||1);
       if((m.type==="dog"||m.type==="alpha"||m.type==="oneEyedWolf"||m.type==="albinoWolf")&&spotted&&d>75&&d<235&&m.attack>.22){
        const around=m.dir+(m.flankSide||1)*1.08;
        if(clearStep(m,around,40)){m.dir=around;vx=Math.cos(around)*s.speed*.88;vy=Math.sin(around)*s.speed*.88;}
@@ -3203,6 +3297,16 @@ function update(dt){
     m.alert=Math.max(0,m.alert-dt);
     if(m.wander<0){m.dir+=rnd(-2.5,2.5);m.wander=rnd(.5,2.5)}
     vx=Math.cos(m.dir)*s.speed*.23;vy=Math.sin(m.dir)*s.speed*.23;
+    if(m.packId&&m.packOrder>0&&!s.prey){
+     const leader=mobs.find(q=>q.hp>0&&q.packId===m.packId&&q.packOrder===0);
+     if(leader&&dist(m,leader)>85&&dist(m,leader)<440){
+      const offset=(m.packOrder===1?1:-1)*58;
+      const heading=leader.dir||0;
+      const targetX=leader.x-Math.sin(heading)*offset,targetY=leader.y+Math.cos(heading)*offset;
+      m.dir=steerPursuit(m,targetX,targetY);
+      vx=Math.cos(m.dir)*s.speed*.68;vy=Math.sin(m.dir)*s.speed*.68;
+     }
+    }
    }
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
    m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
@@ -3259,10 +3363,11 @@ function update(dt){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
       }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15))));
+       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?1+enemyChallengeTier()*.038:(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);
+       if(m.type==="venomSnake")inflictVenom(m);
        if(m.type==="giantLion"){if(m.lionCombo){m.lionCombo=0;}else{m.lionCombo=1;m.windup=.48;m.windupTotal=.48;m.strikeDir=aim;label(m.x,m.y-m.r-24,"連撃！","#ffc589");}}}
       }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
@@ -3334,6 +3439,8 @@ function syncHUD(hour){
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
+ $("poison-status").classList.toggle("hidden",!(P.poisonTime>0));
+ if(P.poisonTime>0)$("poison-status").textContent="☠ 毒 "+Math.ceil(P.poisonTime)+"秒｜生命が減少";
  $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜空腹に注意":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
