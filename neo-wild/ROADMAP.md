@@ -1,3 +1,13 @@
+## 共同スプリント・次担当｜2026/11/2 23:54:32 JST｜45分枠｜ACTIVE_SPRINT_ID=BOSS-SIGNATURES-V1｜40固有技の警告・実命中境界の不一致を修正
+- **開始HEAD→コードHEAD**：`0a69ca233b000e2c778b84774886321d27e88b95` → `76f07d3982f21b3715dbeb5477ee34e4f2e8390f`。15分枠/手動の直近BOSS-BALANCE-V2強化（`46d4388c`/キャッシュ更新`0a69ca23`）を最新mainで取り込み、強敵HP・攻撃・AIは二重調整しない。コードcommit `76f07d3982f21b3715dbeb5477ee34e4f2e8390f`。今回も`neo-wild/`のみ。
+- **再現した実不具合**：`boss-patterns.js:hit(s,x,y,extra)`はプレイヤー半径の55%を足した判定なのに`draw(ctx,s)`は半径を含めず警告を描いていた。例：黒豹「影落ちの奇襲」の警告円半径43に対し、中心から47離れた位置が`extra=11`では命中、警告外から被弾する。40技共通の形状境界の問題。
+- **修正**：`boss-patterns.js`の`draw(ctx,s,elapsed,padding)`に同じ身体半径を渡し、直線/2列/V字の幅、扇/背面/横薙ぎの外径と内径、円/環/狙い撃ち/十字/3点の描画寸法を`hit()`と一致させた。`game.js:drawBossThreats`から`P.r*.55`を渡す。既存の回避時間・威力・40技・ボスLV6=2/LV11=3・通常密度13/76/9・晴7雨5/9秒・群れ6%/12%/110秒・旧SAVE_SCHEMA2は変更なし。`index.html`でboss-patterns/game.jsのcache revを更新。
+- **検査**：現行モジュールを実行し20種×2技=40図形を模擬Canvas APIで描画、形状ごとにパディング後の弧/矩形/線路の拡張を確認 **40/40 PASS**。game.js/boss-patterns.js/webgl3d.js/fauna.jsの構文 **4/4 PASS**、警告と命中で同一`P.r*.55`、図鑑40種・新通常6種・景観`scenicProps`・密度/強敵上限・SAVE_SCHEMA2・cache revを静的回帰PASS。実WebGL GPU・Android/実ブラウザ10分・390×844/800×360/844×390の実矩形/FPS/実物Pad・音量・旧セーブE2Eは**未検証**。模擬描画を実機PASSとしない。
+- **Pages**：コードcommit `76f07d3982f21b3715dbeb5477ee34e4f2e8390f`、workflow run **`41466262214`** の **build=success / deploy=success / report-build-status=success** を個別ジョブで確認。コードは配信済み。本ROADMAP記録コミットのrunは別途確認。
+- **進捗計測V2**：A16.0 / B12.0 / C9.0 / D4.0 / E8.0 / F9.0 / G8.0 / H4.0 / I4.0 = **74.0/100**。前回74.0→74.0、差**0.0**。新規機能完成点ではなく既存40技の公平性回帰修正。D固有外見/戦闘/討伐報酬/保存の実機E2EとH/Iの実機性能試験が未達で据置。
+- **次15分枠**：①`game.js:updateBossSignature/rareEngagementBlocked`の20種×LV1/6/11・0.06秒刻みの予兆/回避/命中/遮蔽物・無敵/死亡解除を実関数で再試験。②`syncStrongBossChallenge/bossHealthTarget/normalizeStrongBossSave`を高LV強化・旧SAVE_SCHEMA2/3CP・討伐/再開でHP割合とレア2/3を回帰。③`spawnLocalPack/maintainLocalWildlife`の13/76/9・晴7雨5・群れ1組を10分模擬巡回、強敵以外の個体増加を防止。
+- **次45分枠**：①実ブラウザが利用可能ならWebGL/Canvas2Dで40技の赤警告と実被弾範囲・回避余地を縦390×844/横800×360/844×390で比較、FPSとHUD非干渉を測定。②`drawStrongAnimal3D/drawStrongAnimal2D/bestiaryRender`の20強敵＋新通常6種の固有外見/図鑑360度、景観の白塊再発・旧セーブ`scenicProps`を確認。③実GPU/Android/物理Padが使えなければ未検証を保持し、実関数の不足を最小修正→HEAD照合→Pages build/deploy個別確認。新タスク作成禁止。
+
 ## 共同スプリント・次担当｜2026/11/02 JST｜ACTIVE_SPRINT_ID=BOSS-SIGNATURES-V1｜強敵20種の恐怖・固有技40種類
 - **最優先ユーザー要求**：「強敵は出てくるだけで恐怖する強さにして」「攻撃パターンを全部増やして独自の攻撃パターンを」。既存のレアLV6=2・LV11=3、ボスが「ギリギリ勝てる」HP難度を維持しつつ、20種のすべてに基本攻撃＋新固有技2種（計40新技、同一種でも異なる形と戦い方）を実装。通常生物は初期13/世界76/局所9/晴7雨5/9秒補充、群れ抽選6%/12%、110秒間隔、周辺1組を絶対に増やさない。
 - **コードHEAD**：`9ae9bdc22bc3e58370b1b8c6dcb15b2c46fb5d28`（`neo-wild/`内のみ）。新モジュール `boss-patterns.js`（commit `46c05bad`→`d4183aeb`）で20種×2技の名前・予兆時間・効果・攻撃形（直線/2列/V字/扇/横薙ぎ/背面扇/円/環状/狙い撃ち円/十字/3点）・ワールド座標描画・実当たり判定を共通定義。純粋なモジュールで新たなNPCや保存領域は要求しない。
