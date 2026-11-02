@@ -1,3 +1,12 @@
+## 共同スプリント・次担当｜2026/11/02 17:45 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜死亡結果のパッド操作復旧
+- **開始HEAD→コードHEAD**：`8c3bc56848a6308b3fc6b68717e4d6b6bf18d871` → `3da60da6fabb83322df68b8839e973f1a48a1044`。最新ROADMAP先頭の15分枠のスコア挑戦ID・TOP5保存、死亡2.2秒転倒/音/暗転を維持し、結果画面のゲームパッド操作の断線を修復。
+- **実変更**：`neo-wild/gamepad.js` commit `57fef48e3fafd5598a13e6af702868f99de36ece` blob `84b6b886569ebfeb2b492298785650e39e66d913`、`neo-wild/index.html` commit `3da60da6fabb83322df68b8839e973f1a48a1044` blob `c42fa928ea2db36f70e5ab8d4588c2bf5be28828`。ゲーム本体は死亡時 `mode="dying"` → 結果 `mode="over"`（勝利時 `"clear"`）なのにPadは `"result"` しか選択できなかった。実モードを結果UIに対応付け、死亡演出中は全パッド入力を無効化し、結果では×/Aでリトライ/最初から選択、十字で移動、○/Bで最初からへ。死亡中と結果画面のゲームパッド状態HUDは隠し、ボタンのフォーカス輪郭を維持。ゲーム開始・戦闘中の割当て、SAVE_SCHEMA2/3CPは変更なし。
+- **動的QA**：現行6 JS全文構文6/6、HTML rev 1、実gamepad.jsの標準パッド模擬で死亡中の入力遮断・結果初期フォーカス・十字移動・A決定・B戻る・勝利画面・生存時の攻撃・押し続け死亡移行・保存非変更の計13件、**20/20 PASS**。DOM/Pad APIは模擬。実Android縦390×844・横800×360、物理Pad、10分ブラウザE2E、実GPU/FPS、結果TOP5の実矩形は**未検証**。
+- **Pages**：コードHEAD `3da60da6fabb83322df68b8839e973f1a48a1044` のbuild/deployは本記録時点で**確認待ち**。最新runのbuildとdeploy両successが揃うまで公開済みと判定しない。
+- **進捗計測V2（固定配点）**：A **16.0** / B **12.0** / C **9.0** / D **4.0** / E **8.0** / F **9.0** / G **8.0** / H **4.0** / I **2.0** = **72.0/100（前回74.0→72.0、差-2.0、現コードHEADのPages確認待ち）**。Fのパッド操作は既得点の範囲で品質修復、実物パッドE2Eは0。Pagesがbuild/deploy両successになればI=4.0、合計74.0へ復帰。
+- **次15分枠（3件）**：(1) `game.js:restoreSnapshot/start/scoreRunIdFromSnapshot`を旧SAVE_SCHEMA2・3CPの実関数経路で連結し挑戦ID・TOP5重複防止を検証。(2) `updateSurvivalNeeds/eat/beginDeath/advanceDeath/finish`の85秒DAY/600秒経時で空腹0→食事→HP0→結果→再開を検証。(3) `spawnMob/maintainLocalWildlife`で通常獲物・巣安全の不足を調査し、プレイ可能な差分だけ実装。
+- **次45分枠（3件）**：(1) 実ブラウザ/Android縦390×844・横800×360で2.2秒転倒/フェード/TOP5結果の矩形・タップ・音・FPSを確認。(2) 物理Padで死亡中の入力無効→結果×リトライ・十字→最初から・○タイトルを実測、WebGL/Canvas2D双方確認。(3) 20種強敵の固有攻撃/2D/3D/報酬・保存の種類別動的統合を進め、D条件の未検証を減らす。
+
 ## 共同スプリント・次担当｜2026/11/02 17:15枠（17:31-17:36 JST）｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜3チェックポイント再挑戦でTOP5を重複占有しない
 - **開始HEAD→コードHEAD**：`e406f0f9a5a6d21dd0f4ee8733b954fdb9ff98c6` → `987ce3c068ab3ce0c8574c56d1b1fc6f12e58a12`。ROADMAP先頭の次15分枠、直近45分枠の死亡2.2秒演出/15分枠の飢餓・SAVE_SCHEMA2、Drive正本末尾を確認し重複実装せず継続。前回TOP5を基に保存経路を改善。
 - **変更（neo-wild/のみ）**：`game.js` commit `d9fc84b66648745947290e56c1ace94eebe15012` / blob `98ae8ce6ee7a81e2289adaad13e8cd433f6cb443`。`index.html` commit `987ce3c068ab3ce0c8574c56d1b1fc6f12e58a12` / blob `c7ff7d9dc7e6a43444299c0e365b72921e535cba`、game.js rev `20261102-score-lineage-v2`。
