@@ -1,3 +1,13 @@
+## 共同スプリント・統合QA｜2026/11/03 07:55 JST開始｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜旧セーブ破損耐性・ゲーム復帰の一括修復
+- **開始HEAD→コード/HTML HEAD**：`f9f8a7a29511700031ec1ceed138e0d57d1a9dad` → `2f23ce88063231f7293c29d8558892a8b63afa48`。コードコミット `1ceb73c7f5ab47513339fdccb184a4906e4553c1`、index.html キャッシュ更新 `2f23ce88063231f7293c29d8558892a8b63afa48`。変更対象は neo-wild/game.js・index.html・ROADMAP.md のみ。前20分の洞窟捕食者追跡・前40分のキツネ/タヌキ2D/3D姿勢を保持。Drive「完成仕様設計書 V0.9」末尾の既存セーブ/ゲームパッド/生態系互換仕様を確認。
+- **実際の修復**：①旧SAVE_SCHEMA2/3CP内に壊れた野生動物（null/非有限座標・HP・速度・半径・未知種）が混入しても、正常な個体を保持して不正個体を除外・復旧。②死骸/骨/食草、植物、障害物の不正レコードを取り除き、骨の旧形式amount未記載は0へ補正。③プレイヤーの速度/攻撃力/生命/スタミナ/方向/経験値/当たり判定の非有限値・欠落値を安全な初期値へ復旧。正常なLV/HP強化/速度強化/経験値は保持。元のセーブオブジェクトは変更しない。SAVE_SCHEMA番号、保存キー、3CP件数、既存山岳地形/戦闘/動物密度は変更なし。ゲーム開始・続きからでのクラッシュ/操作不能を防ぐための互換復旧。
+- **試験**：現行game.js全文のJSコンパイル、実`sanitizeSavedWorld/normalizeSavedPlayerStats`関数をV8で実行し、正常・破損野生個体、未知種、NaN座標/速度、死骸/骨、植物/障害物、旧セーブ非破壊、プレイヤーの正常強化保持/欠損修復、restore連結コードを **19/19 PASS**。静的・関数隔離試験であり、実ブラウザ10分E2E、Android実機、物理Pad、実GPU、旧端末実セーブ、ボス40技全実戦は**未検証**。未検証をPASSとしない。
+- **Pages**：前40分枠コードHEAD `c58d4b2` のrun **41539913129** はbuild/deploy/report-build-status各successをjobsで確認。今回コード/HTML HEAD `2f23ce88` に対応するPages run ID・build/deployは**未確認**（commit workflow APIはPR起動のみ、combined statusからは確定できない）。次00分枠はrun/jobsを照合し未公開なら復旧。
+- **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4＝**74/100（前回74、差0）**。実ブラウザ/実機E2E採点条件未達で据置。
+- **次20分枠（具体関数3件）**：①`game.js:sanitizeSavedWorld/restoreSnapshot/normalizeStrongBossSave`で破損・旧SAVE2/3CPを実地形上で再開し、洞窟NPCの位置修復・捕食者状態を回帰。②`game.js:huntWildPrey/scavengeWildFood/toBones`で2捕食者×2移動獲物の600秒追跡→死骸→骨化を経時試験。③`game.js:maintainLocalWildlife/retireFarCalmAnimal`で8地区＋山岳4zoneの空白・過密、世界76/近隣9/群れ110秒を確認。
+- **次40分枠（具体関数3件）**：①`fauna.js:visualState/draw2D`と`webgl3d.js:drawCommonAnimal3D`でキツネ/タヌキの追跡→噛みつき→摂食の2D/3D画面一致を実ブラウザ確認。②`mountain.js:blocked/sightBlocked`＋`webgl3d.js:mountainTerrain`で洞窟柱・崖の衝突と視認性/FPSを縦横実画面QA。③`gamepad.js:poll`＋`game.js:restoreSnapshot/move`で旧セーブ再開・死亡リトライ・Pad入力・縦横切替の実機QA。
+- **次00分枠**：今回の新HEADに対応するPages build/deployの実run/jobs確認、旧SAVE2実ブラウザ復元、タイトル→移動→狩り→備蓄→死亡→リトライの連続E2E。重大不具合は先に修復。
+
 ## 共同スプリント・次担当｜2026/11/03 07:45 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟キツネ・タヌキの先回り狩猟姿勢を2D/3D統一
 - **開始HEAD→コードHEAD**：`5584e3db3522e2066c6c42ca3a2067be86550325` → `c58d4b2cfd5b13d94121f773d7a09cb91279536b`。neo-wild/fauna.js・webgl3d.js・index.htmlのみ差分コミット。今回の記録コミットは別HEAD。
 - **実プレイ上の変化**：①`fauna.js:visualState`で既存AIの`wildTargetX/Y/At`・`swing`・`scavengePose`・`vx/vy`を読むだけの共通姿勢判定（追跡/噛みつき/摂食/疾走）を追加。②野生キツネ`wildFox`を汎用犬型から独自の2D/3Dモデル（白い尾先・尖った耳・明瞭な顔・四肢）へ変更し、獲物への先回り・噛みつき・摂食・疾走を姿勢に反映。③タヌキ`raccoonDog`の追跡時の胴体・噛みつき口・摂食時の低姿勢・警戒眉を2D/3Dで連動。洞窟暗所では白い尾先/目周りの模様によって識別しやすくするが、人工発光や街灯光は復活しない。④2 JSのHTML revを更新。AI・戦闘命中・保存スキーマ・動物総数は変更なし。洞窟ネズミ→イタチ/キツネ/タヌキの既存捕食連鎖に視覚状態を接続。
