@@ -181,16 +181,26 @@ function fadeForDeath(){
  deathFade=true;
  if(!context||!started)return;
  const t=context.currentTime;
- musicBus?.gain.setTargetAtTime(.025,t,.40);
- atmosBus?.gain.setTargetAtTime(.045,t,.45);
+ // Leave the final breath audible, then let the city and wildlife fall silent.
+ musicBus?.gain.cancelScheduledValues(t);
+ atmosBus?.gain.cancelScheduledValues(t);
+ sfxBus?.gain.cancelScheduledValues(t);
+ musicBus?.gain.setTargetAtTime(.018,t+.16,.28);
+ atmosBus?.gain.setTargetAtTime(.012,t+.30,.34);
+ sfxBus?.gain.setTargetAtTime(.09,t+.62,.24);
 }
 function resetDeathFade(){
  if(!deathFade)return;
  deathFade=false;
  if(!context||!started)return;
  const t=context.currentTime;
+ // Cancel future death ramps as well: an immediate retry must not become mute.
+ musicBus?.gain.cancelScheduledValues(t);
+ atmosBus?.gain.cancelScheduledValues(t);
+ sfxBus?.gain.cancelScheduledValues(t);
  musicBus?.gain.setTargetAtTime(.73,t,.14);
  atmosBus?.gain.setTargetAtTime(.50,t,.14);
+ sfxBus?.gain.setTargetAtTime(.32,t,.14);
 }
 function setEnabled(on){
  enabled=!!on;
