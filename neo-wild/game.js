@@ -348,9 +348,9 @@ function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
 // Starvation is progressive. An empty stomach cannot be cancelled by passive den healing.
 function updateSurvivalNeeds(dt){
  const before=P.hunger;
- const drain=(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1);
+ const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1);
  P.hunger=clamp(before-drain,0,100);
- // Integrate the exact time spent below 16% and at 0%, independent of frame size.
+ // Integrate the exact time at zero hunger even when a frame crosses the threshold.
  const emptySeconds=before<=0?dt:drain>0?dt*clamp((drain-before)/drain,0,1):0;
  // Only zero hunger causes starvation damage; a meal immediately stops it.
  if(emptySeconds>0)P.hp=Math.max(0,P.hp-emptySeconds*2.4);
@@ -363,7 +363,7 @@ function updateSurvivalNeeds(dt){
 // Only reachable enemies interrupt rooftop rest and wound recovery.
 function denThreatNearby(){
  if(!P||!atDen())return false;
- return mobs.some(m=>m.hp>0&&!species[m.type]?.prey&&dist(P,m)<165&&
+ return mobs.some(m=>m.hp>0&&(!species[m.type]?.prey||WILD_PREDATOR_TYPES.has(m.type))&&dist(P,m)<165&&
   (m.type==="giantEagle"||Math.abs((m.groundZ||0)-(P.groundZ||0))<12)&&
   (m.type==="giantEagle"||!lineBlocked(P,m)));
 }
@@ -1352,7 +1352,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
- if(nearDenLocation(x,y,265)&&!species[type].prey)type=biome===4||biome===7?"pigeon":"rabbit";
+ if(nearDenLocation(x,y,265)&&(!species[type].prey||WILD_PREDATOR_TYPES.has(type)))type=biome===4||biome===7?"pigeon":"rabbit";
  const s=species[type],scale=1+Math.max(0,day-1)*.13;
  mobs.push({x,y,type,r:s.r,color:s.color,belly:s.belly,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1)});
  return true;
@@ -2765,7 +2765,7 @@ function tokyoWeatherAt(seconds){
 function maintainLocalWildlife(){
  if(!P)return;
  const hunting=mission===2||mission>=7;
- const preyNearby=mobs.some(m=>m.hp>0&&species[m.type].prey&&dist(P,m)<WILDLIFE.preyNeedRadius);
+ const preyNearby=mobs.some(m=>m.hp>0&&["rat","rabbit","pigeon","frog"].includes(m.type)&&dist(P,m)<WILDLIFE.preyNeedRadius);
  const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
  if(mobs.length<WILDLIFE.cap){
