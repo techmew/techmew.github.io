@@ -1,3 +1,13 @@
+## 共同スプリント・次担当｜2026/11/03 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟捕食者の2D/3D固有姿勢・攻撃視認性
+- **開始HEAD→コードHEAD**：`3eb65a60a0e843ebb309bb678f4911b41231da49` → `0fda99d817b079cd98bf76a0a35ca3b6e5747e9c`。fauna.js `a3ad7754`、webgl3d.js `1fe14c8f`、index.html rev `0fda99d8`。今回の記録コミットは別HEAD。neo-wild/以外変更なし。旧コード全文の強制上書き・強制pushなし。
+- **実際のプレイ変化**：①洞窟のイタチに狩猟追跡（胴体伸長）・噛みつき（前肢/頭部前進、口の開閉）・死骸摂食（低い頭と胴体）を2D/3Dで同じ実AI状態から描き分け。②イタチの顔・耳・眼・口と尾の動きを追加し、洞窟でネズミと識別しやすくする。③通常ヘビ/毒ヘビの実windupに連動する頭部持上げと攻撃姿勢を2D/3Dで同期。毒ヘビ固有の黄模様は維持。判定・当たり判定・AI/密度/旧SAVE2/3CPは変更なし。見た目だけの別状態を偽装せず既存m.swing/m.windup/m.scavengePose/m.wildTargetX/Yを使用。
+- **動的/構文QA**：実fauna.js:draw2Dとwebgl3d.js:drawCommonAnimal3Dを抽出しV8で実行。ネズミ/イタチ/通常ヘビ/毒ヘビ×待機・攻撃・摂食・追跡・逃走×2D/3Dの**20組の状態組合せ（40描画呼出）PASS**。2Dのellipseと3Dのプリミティブ座標は全て有限、両描画がtrue。イタチの待機/攻撃/摂食/追跡4姿勢が2D/3Dで相違、通常ヘビ/毒ヘビの待機/予兆が2D/3Dで相違（6/6 PASS）。両JS全文の構文PASS。これはV8/描画プリミティブのモック試験であり、実GPU・実Android・物理Pad・縦横実ブラウザ・10分E2E・FPS・強敵40技の全実戦は**未検証**。
+- **Pages**：コードHEAD `0fda99d8` に対するGitHub combined statusは空、commit workflow runs取得も空（このAPIはPR起動のみ対象）。**今回コードのPages build/deployは未確認**。過去のrun成功を今回の成功と混同しない。次00分枠で実際のrun/jobsを取得し両方successを確認する。
+- **進捗V2**：A16.0/B12.0/C9.0/D4.0/E8.0/F9.0/G8.0/H4.0/I4.0＝**74.0/100（前回74.0、差0.0）**。姿勢追加は新たな採点条件の全完了に相当しない。
+- **次00分枠**：①`game.js:huntWildPrey/scavengeWildFood/kill`でイタチの追跡→噛みつき→死骸摂食→骨化を実関数統合QA。②`game.js:restoreSnapshot/getCheckpoints`で洞窟の旧SAVE2・3CP・死亡リトライ・討伐二重登録を回帰。③コードHEAD `0fda99d8` と記録HEADのPages run/jobsでbuild/deployを個別確認、障害なら復旧。
+- **次20分枠**：①`game.js:huntWildPrey/steerPursuit`で2イタチ対2ネズミ・石柱回避を経時試験。②`game.js:scavengeWildFood/animalRemains`で摂食・横取り・骨化を連結。③`game.js:maintainLocalWildlife/retireFarCalmAnimal`で洞窟/山頂/市街の最終個体と密度を維持。
+- **次40分枠**：①`webgl3d.js:mountainTerrain`の遠距離タイル描画・GPU負荷を測定しLOD/キャッシュ改善。②`fauna.js:draw2D`・`webgl3d.js:drawCommonAnimal3D`で夜間のイタチ/ネズミ/毒ヘビの視認性を実ブラウザで確認。③`gamepad.js:poll`・`game.js:move/restoreSnapshot`で縦横/洞窟往復/Pad復帰の実機QA。
+
 ## 共同スプリント・次担当｜2026/11/03 06:26:31 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟複数捕食者の狩り分担・8地区と山岳の生態個体保護
 - **開始HEAD→コードHEAD**：`ae6738f8daaa01474a736ea180dac6266a794be0` → `506e1c0d7dc76337c7eb5a02faad1d99d2788449`。変更：`neo-wild/game.js` commit `92722348ae2c341b2dab9106570acda21a2a54c5`、`neo-wild/index.html` cache rev commit `506e1c0d7dc76337c7eb5a02faad1d99d2788449`。対象外改変・強制push・旧全文上書きなし。
 - **実際のゲームプレイ改善**：①`wildlifeHabitatKey/wildlifeHabitatCounts/retireFarCalmAnimal`で遠方の平穏な個体を入れ替える際、既存8地区と地続き山岳4zoneの最後の生存個体を保護。遠方の余剰個体から優先入替えし、動物ゼロ地域の連鎖発生を抑制。②`retireCalmCaveOverflow`で洞窟の獲物/捕食者の欠落補充が山頂側の最後の個体を消さない。③`huntWildPrey`で洞窟の捕食者が近い複数の獲物を分担して追跡。既存の最終標的座標を利用し、別種・市街・通常の視線/命中条件は変更しない。総76/近隣9/初期13/晴7雨5/9秒/群れ110秒とSAVE_SCHEMA2は不変。
