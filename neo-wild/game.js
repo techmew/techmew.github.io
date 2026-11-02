@@ -1826,7 +1826,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
    y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
   }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
-  valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
+  valid=!collides(x,y,40)&&(!forcedType||forcedType!=="macaque"||mountainHabitat(x,y))&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0))
    &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
