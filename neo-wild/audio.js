@@ -5,7 +5,7 @@
 (()=>{"use strict";
 const names={explore:"ECHOES OF THE LOST CITY",forest:"RECLAIMED GREEN",danger:"THE HUNT",rain:"RAIN OVER TOKYO"};
 let context=null,master=null,musicBus=null,atmosBus=null,sfxBus=null,loopSources={},loopGains={},effectBuffers={};
-let enabled=true,started=false,scene={weather:"CLEAR",area:0,danger:false},lastAmbient=-1;
+let enabled=true,started=false,scene={weather:"CLEAR",area:0,danger:false},lastAmbient=-1,deathFade=false;
 let rngState=1289431;
 function rand(){rngState=(Math.imul(rngState,1664525)+1013904223)>>>0;return rngState/4294967296;}
 function clamp(v,a,b){return Math.min(b,Math.max(a,v))}
@@ -176,12 +176,28 @@ function play(name,options={}){
   source.onended=()=>{try{source.disconnect();gain.disconnect()}catch(_){}};
  }catch(_){}
 }
+function fadeForDeath(){
+ if(deathFade)return;
+ deathFade=true;
+ if(!context||!started)return;
+ const t=context.currentTime;
+ musicBus?.gain.setTargetAtTime(.035,t,.85);
+ atmosBus?.gain.setTargetAtTime(.065,t,.95);
+}
+function resetDeathFade(){
+ if(!deathFade)return;
+ deathFade=false;
+ if(!context||!started)return;
+ const t=context.currentTime;
+ musicBus?.gain.setTargetAtTime(.73,t,.14);
+ atmosBus?.gain.setTargetAtTime(.50,t,.14);
+}
 function setEnabled(on){
  enabled=!!on;
  if(!enabled&&context&&master)master.gain.setTargetAtTime(0,context.currentTime,.1);
  if(enabled){unlock();if(context&&master)master.gain.setTargetAtTime(.82,context.currentTime,.18)}
  return enabled;
 }
-window.WildAudio={unlock,update,play,setEnabled,get active(){return started},get enabled(){return enabled},
+window.WildAudio={unlock,update,play,setEnabled,fadeForDeath,resetDeathFade,get active(){return started},get enabled(){return enabled},
  get soundtrack(){return names[scene.danger?"danger":Number(scene.area)===5?"forest":"explore"]}};
 })();
