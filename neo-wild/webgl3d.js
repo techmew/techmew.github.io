@@ -365,13 +365,16 @@ function drawCommonAnimal3D(m,clock){
   orb(-r*1.28,r*.11,r*.72,r*.22,r*.14,r*.14,fur);
   if(preparing)orb(r*.62,-r*.76,r*2.22,r*.21,r*.19,r*.20,"#918b7c");
  }else if(t==="snake"){
+  const ready=(m.windup||0)>0,striking=(m.swing||0)>0;
+  const lift=ready?r*.48:striking?r*.24:0;
   for(let k=8;k>=0;k--){
    const x=r*(2.5-k*.48),y=Math.sin(k*.86+clock*.7)*r*.33;
    orb(x,y,r*.19,r*(.42-k*.022),r*(.28-k*.015),r*.20,k%2?fur:belly);
   }
-  orb(r*1.43,0,r*.23,r*.52,r*.35,r*.23,fur);
-  for(const side of [-1,1])orb(r*1.66,side*r*.23,r*.35,r*.06,r*.06,r*.07,"#f8e8b8");
-  horn(r*1.94,0,r*.16,r*.15,r*.09,r*.12,"#bc8179");
+  if(lift>0)orb(r*.96,0,r*.30+lift*.45,r*.28,r*.30,r*.30,belly);
+  orb(r*(ready?1.33:striking?1.64:1.43),0,r*.23+lift,r*.52,r*.35,r*.23,fur);
+  for(const side of [-1,1])orb(r*(ready?1.56:1.66),side*r*.23,r*.35+lift,r*.06,r*.06,r*.07,"#f8e8b8");
+  horn(r*(ready?1.85:1.94),0,r*.16+lift,r*.15,r*.09,r*.12,"#bc8179");
   if(m.type==="venomSnake"){
    for(let k=0;k<6;k++)orb(r*(2.5-k*.67),Math.sin(k*.7)*r*.14,r*.44,r*.12,r*.35,r*.09,"#e8c34f");
    for(const side of [-1,1])orb(r*1.61,side*r*.26,r*.39,r*.085,r*.075,r*.075,"#161b12");
@@ -418,13 +421,23 @@ function drawCommonAnimal3D(m,clock){
   }
   orb(-r*1.17,0,r*1.04,r*.29,r*.18,r*.17,belly);
  }else if(t==="weasel"){
+  const bite=(m.swing||0)>0,feeding=(m.scavengePose||0)>0;
+  const stalk=Number.isFinite(m.wildTargetX)&&Number.isFinite(m.wildTargetY)&&
+   Math.hypot(m.x-m.wildTargetX,m.y-m.wildTargetY)<240&&!feeding;
+  const lean=bite?r*.25:feeding?-r*.14:0;
+  const headZ=r*(feeding?.29:bite?.49:.40),tailWave=Math.sin((m.step||0)*.7+clock)*r*.14;
   for(const side of [-1,1])for(const front of [-1,1])
-   orb(front*r*.70,side*r*.39,r*.20,r*.16,r*.15,r*.19,fur);
-  for(let k=0;k<5;k++)orb(-r*(1.07+k*.29),Math.sin(k*.62)*r*.12,r*.23,r*(.23-k*.031),r*.13,r*.14,fur);
-  orb(-r*.18,0,r*.34,r*1.30,r*.30,r*.27,fur);
-  orb(r*1.03,0,r*.40,r*.41,r*.30,r*.30,fur);
-  orb(r*1.35,0,r*.27,r*.25,r*.18,r*.14,belly);
-  for(const side of [-1,1])orb(r*1.1,side*r*.24,r*.60,r*.13,r*.13,r*.15,fur);
+   orb(front*r*.70+(front>0?lean*.65:0),side*r*.39,r*.20+(bite&&front>0?r*.08:0),r*.16,r*.15,r*.19,fur);
+  for(let k=0;k<5;k++)orb(-r*(1.07+k*.29),Math.sin(k*.62)*r*.12+tailWave,r*.23,r*(.23-k*.031),r*.13,r*.14,fur);
+  orb(-r*.18,0,r*(feeding?.29:.34),r*(stalk?1.40:1.30),r*.30,r*.27,fur);
+  orb(r*1.03+lean,0,headZ,r*.41,r*.30,r*.30,fur);
+  orb(r*1.35+lean,0,headZ-r*.13,r*.25,r*.18,r*.14,belly);
+  if(bite)orb(r*1.38+lean,0,headZ-r*.29,r*.18,r*.17,r*.07,"#4b2925");
+  for(const side of [-1,1]){
+   orb(r*1.1+lean,side*r*.24,headZ+r*.20,r*.13,r*.13,r*.15,fur);
+   orb(r*1.31+lean,side*r*.22,headZ+r*.11,r*.09,r*.065,r*.07,"#eadbb8");
+   orb(r*1.33+lean,side*r*.22,headZ+r*.12,r*.045,r*.043,r*.045,"#252720");
+  }
  
  }else if(t==="cheetah"){
   for(const side of [-1,1])for(const front of [-1,1])
