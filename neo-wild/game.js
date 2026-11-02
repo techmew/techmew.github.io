@@ -95,8 +95,8 @@ function strongNearWater(){
 }
 function strongDamageTaken(raw){
  const reduced=traitEffect("giantHippo",traitEffect("rhino",raw),strongNearWater());
- // Even 2-3 late-game rare bosses must allow a narrow recovery window.
- return Math.max(1,Math.min(Math.round(reduced),Math.ceil((P?.maxHp||110)*(strongBossLimit()>1?.21:.26))));
+ // Rare blows hurt, but a single hit still leaves a recovery window.
+ return Math.max(1,Math.min(Math.round(reduced),Math.ceil((P?.maxHp||110)*(strongBossLimit()>1?.27:.32))));
 }
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
@@ -158,11 +158,29 @@ const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake",
 function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
+/* BOSS-BALANCE-V2: bosses survive multiple full attack chains.
+ * Damage-level based budget, not a runaway day counter. */
+const BOSS_BALANCE_VERSION=2;
 function bossHealthTarget(sp){
- if(!P)return sp.hp;
- const hits=sp.hp>=650?14:sp.hp>=480?12:10;
- const budget=Math.max(sp.hp*.35,(P.damage||20)*hits*(1+enemyChallengeTier()*.018));
- return Math.round(Math.min(sp.hp*1.6,budget));
+ if(!P)return Math.round(sp.hp*.85);
+ const budget=Math.max(sp.hp*.85,(P.damage||20)*27*(1+enemyChallengeTier()*.021));
+ return Math.round(clamp(budget,sp.hp*.85,sp.hp*3.2));
+}
+function bossStrikePower(m){
+ return (m?.strongBoss?1.44+enemyChallengeTier()*.025:1)*
+  (m?.strongBoss&&m.hp<m.maxHp*.45?1.16:1);
+}
+function bossPoiseBreak(m,damage,heavy=false){
+ if(!m?.strongBoss||m.hp<=0)return false;
+ // Only accumulated strikes break the boss's stance. Normal pokes
+ // no longer cancel a dangerous move on each frame.
+ if(elapsed-(m.poiseLastAt||elapsed)>3.1)m.poise=0;
+ m.poiseLastAt=elapsed;
+ m.poise=clamp((Number(m.poise)||0)+damage*(heavy?2.2:1),0,m.maxHp);
+ if(elapsed<(m.guardBreakUntil||0))return false;
+ if(m.poise<Math.max(72,m.maxHp*.20))return false;
+ m.poise=0;m.guardBreakUntil=elapsed+5.3;
+ return true;
 }
 function strongBossLimit(){return !P||P.level<6?1:P.level<11?2:3;}
 function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)));}
@@ -1592,7 +1610,7 @@ function spawnStrongBoss(type,region){
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
    chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintCooldown:2,
    thirstNeed:.4,drinkCooldown:3,flankSide:Math.random()<.5?-1:1,
-   strongBoss:true,strongRegion:region,strongBirthDay:day,signature:null,signatureUse:0,signatureCooldown:0,bossPresenceShown:false,
+   strongBoss:true,strongRegion:region,strongBirthDay:day,bossBalanceVersion:BOSS_BALANCE_VERSION,signature:null,signatureUse:0,signatureCooldown:0,bossPresenceShown:false,poise:0,poiseLastAt:0,guardBreakUntil:0,
    ...(type==="giantEagle"?{airHeight:125,airPhase:"circle",airTimer:1.7,airOrbit:angle,airAnchorX:x,airAnchorY:y,airTarget:null,airHit:false}: {})});
   notify("この地区に"+STRONG_NAMES[type]+"の気配がある");
   return true;
@@ -1640,14 +1658,18 @@ function normalizeStrongBossSave(){
   }
  }
  if(first)strongRolls[first.strongRegion]={type:first.type,spawned:true};
- // A legacy SAVE_SCHEMA2 monster may have an old unbounded day-scaled HP.
- // Preserve its injury ratio while capping only the impossible excess.
+ // A legacy SAVE_SCHEMA2 monster may have had only 10-14 basic-hit HP.
+ // Upgrade it once while retaining the same injury percentage and checkpoints.
  if(P)for(const m of activeStrongBosses()){
   const safe=bossHealthTarget(species[m.type]);
-  if(m.maxHp>safe){
-   const ratio=clamp(m.hp/Math.max(1,m.maxHp),0,1);
+  const ratio=clamp(m.hp/Math.max(1,Number(m.maxHp)||species[m.type].hp),0,1);
+  if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||m.maxHp>safe*1.04){
    m.maxHp=safe;m.hp=Math.max(1,Math.round(safe*ratio));
+   m.bossBalanceVersion=BOSS_BALANCE_VERSION;
   }
+  m.poise=clamp(Number(m.poise)||0,0,m.maxHp*.25);
+  m.poiseLastAt=Number.isFinite(m.poiseLastAt)?Math.min(elapsed,m.poiseLastAt):elapsed;
+  m.guardBreakUntil=clamp(Number(m.guardBreakUntil)||0,0,elapsed+5.3);
  }
 }
 
@@ -2333,20 +2355,24 @@ function resolveAttack(){
     const bonus=(foxBurst?1.4:1)*(silentHit?1.55*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
    const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
-   const damage=armored?Math.max(1,Math.round(rawDamage*.48)):rawDamage;
+   const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
+   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide));
    m.hp-=damage;if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;if(!species[m.type].prey)m.flee=0;
-    const disrupt=!armored&&(species[m.type].prey||m.staggerGuard<=0||silentHit||dive);
+    const heavy=silentHit||dive||wolfCharge||P.rushActiveStep===5;
+    const bossBroken=m.strongBoss?bossPoiseBreak(m,damage,heavy):false;
+    const disrupt=m.strongBoss?bossBroken:!armored&&(species[m.type].prey||m.staggerGuard<=0||silentHit||dive);
     if(disrupt){
      if(m.strongBoss&&m.signature){
       m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,3.0);
       label(m.x,m.y-m.r-41,"固有技を阻止！","#befbd6");
      }
      m.windup=0;m.chargeTime=0;m.swing=0;
-     m.stun=traitEffect("giantGorilla",silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
-     m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,.22);
-    }else m.stun=Math.max(m.stun,.035);
+     m.stun=traitEffect("giantGorilla",m.strongBoss?.54:silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
+     m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,m.strongBoss?.40:.22);
+     if(m.strongBoss)label(m.x,m.y-m.r-42,"体勢を崩した！","#bee6cf");
+    }else if(!m.strongBoss)m.stun=Math.max(m.stun,.035);
     hit++;
    
     if(species[m.type].prey&&m.hp>0)startlePrey(m,P,"hit");
@@ -2354,7 +2380,7 @@ function resolveAttack(){
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=((P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0))*traitEffect("giantBuffalo",1);
-   move(m,Math.cos(theta)*knock,Math.sin(theta)*knock);
+   move(m,Math.cos(theta)*knock*(m.strongBoss?(bossBroken?.48:.07):1),Math.sin(theta)*knock*(m.strongBoss?(bossBroken?.48:.07):1));
    if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
    if(m.hp<=0)kill(m);
   }
