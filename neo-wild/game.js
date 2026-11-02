@@ -166,7 +166,10 @@ function bossHealthTarget(sp){
  // Species HP provides a minimum, but must NEVER cap HP to a small number
  // once the player has stacked fang/level damage upgrades. A rare enemy is
  // always a substantial, winnable single-target duel (~27 base-power hits).
- const budget=Math.max(sp.hp*.85,(P.damage||20)*27*(1+enemyChallengeTier()*.021));
+ // Preserve each animal's weight class: a giant elephant should outlast a
+ // wolf even at high player level, while both scale with player attack upgrades.
+ const weight=clamp(Math.pow(sp.hp/420,.34),.92,1.34);
+ const budget=Math.max(sp.hp*.85,(P.damage||20)*27*weight*(1+enemyChallengeTier()*.021));
  return Math.round(Math.min(200000,budget));
 }
 function bossStrikePower(m){
