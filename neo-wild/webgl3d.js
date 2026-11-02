@@ -290,7 +290,7 @@ function drawStrongAnimal3D(m,clock){
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
- if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
  const r=m.r||14,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||(t==="crow"?"#313b44":t==="snake"?"#587b50":"#977c62");
@@ -402,6 +402,25 @@ function drawCommonAnimal3D(m,clock){
   orb(r*.56,0,r*.65,r*.42,r*.36,r*.32,fur);
   horn(r*.98,0,r*.55,r*.22,r*.17,r*.25,"#747979");
   for(const side of [-1,1])orb(r*.67,side*r*.31,r*.78,r*.07,r*.07,r*.07,"#e4e2d4");
+ }else if(t==="serow"||t==="mountainGoat"){
+  const goat=t==="mountainGoat",defending=(m.headbuttTell||0)>0||(m.swing||0)>0;
+  const feeding=(m.foragePose||0)>0,lean=defending?r*.22:0;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   orb(front*r*.55,side*r*.43,r*.29+gait*r*.04*front,r*.18,r*.17,r*(goat?.38:.48),"#665e51");
+   orb(front*r*.55,side*r*.43,r*.08,r*.19,r*.20,r*.11,"#3d4038");
+  }
+  orb(-r*.20,0,r*(goat?.86:.91),r*(goat?1.04:1.15),r*(goat?.63:.51),r*.61,fur);
+  orb(r*.63,0,r*.98,r*.53,r*.38,r*.52,fur);
+  orb(r*1.12+lean,0,r*(feeding?.79:1.17),r*.49,r*.36,r*.37,fur);
+  orb(r*1.47+lean,0,r*(feeding?.67:1.01),r*.28,r*.24,r*.20,belly);
+  for(const side of [-1,1]){
+   orb(r*1.01+lean,side*r*.36,r*1.33,r*.22,r*.13,r*.16,fur);
+   horn(r*.93+lean,side*r*.22,r*1.41,r*.12,r*.10,goat?r*.75:r*.48,goat?"#786e60":"#4b4c44");
+   if(goat)horn(r*.70+lean,side*r*.26,r*1.89,r*.08,r*.07,r*.24,"#746c61");
+   orb(r*1.32+lean,side*r*.21,r*1.19,r*.08,r*.07,r*.07,"#262a27");
+  }
+  if(goat)orb(r*1.35+lean,0,r*.70,r*.13,r*.14,r*.31,"#c2b59f");
+  orb(-r*1.13,0,r*.94,r*.21,r*.21,r*.20,belly);
  }else if(t==="deer"){
   for(const side of [-1,1])for(const front of [-1,1]){
    const dx=front*r*.59,dy=side*r*.46;
