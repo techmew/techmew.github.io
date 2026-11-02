@@ -50,7 +50,7 @@ panel.innerHTML=[
 '<button type="button" data-action="tutorial-start" class="wr-primary">最初から通しテストを開始</button>',
 '<div class="wr-stage" id="wr-debug-tutorial-status">通しテストは開始していません</div>',
 '<div class="wr-row"><button type="button" data-action="tutorial-prev">前の段階へ</button><button type="button" data-action="tutorial-next">次の段階へ</button></div>',
-'<label>段階を指定する<select id="wr-debug-stage"><option value="0">1/7 食事</option><option value="1">2/7 潜伏</option><option value="2">3/7 狩猟</option><option value="4">4/7 巣の備蓄・強化</option><option value="5">5/7 縄張り</option><option value="6">6/7 探索地点</option><option value="7">7/7 終了「生き残れ！」</option></select></label>',
+'<label>段階を指定する<select id="wr-debug-stage"><option value="0">1/5 食事</option><option value="1">2/5 茂みで潜伏</option><option value="2">3/5 狩猟</option><option value="4">4/5 巣に1回備蓄</option><option value="7">5/5 チュートリアル終了</option></select></label>',
 '<button type="button" data-action="tutorial-stage">指定の段階へ移動</button>',
 '<button type="button" data-action="tutorial-stop" class="wr-danger">テストを終了し、元に戻す</button>',
 '</div></details>',
