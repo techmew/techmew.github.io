@@ -185,9 +185,9 @@ function fadeForDeath(){
  musicBus?.gain.cancelScheduledValues(t);
  atmosBus?.gain.cancelScheduledValues(t);
  sfxBus?.gain.cancelScheduledValues(t);
- musicBus?.gain.setTargetAtTime(.018,t+.16,.28);
- atmosBus?.gain.setTargetAtTime(.012,t+.30,.34);
- sfxBus?.gain.setTargetAtTime(.09,t+.62,.24);
+ musicBus?.gain.setTargetAtTime(.018,t+.48,.28);
+ atmosBus?.gain.setTargetAtTime(.012,t+.58,.34);
+ sfxBus?.gain.setTargetAtTime(.09,t+.82,.24);
 }
 function resetDeathFade(){
  if(!deathFade)return;
