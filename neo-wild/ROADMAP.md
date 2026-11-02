@@ -1,3 +1,13 @@
+## 共同スプリント｜2026-11-02 15時台 JST｜ゲームパッド・タイトル操作｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1
+- 開始HEAD 4353013f → コードHEAD 887fbea7。現行main/ROADMAP両枠/Drive仕様末尾を確認。既存飢餓・死亡演出・セーブ・教程・強敵20種に変更なし。
+- gamepad.js commits 88a2c821, abf6fae5 / blob 2ce031cec1b66353d0b5944e7a84b90c25f38037：メニューの十字/左スティック上下、左右で動物/縦横/出発地点、PS×/Xbox A決定、PS○/Xbox B取消。押し続けで360ms後155ms間隔反復。PLAYの既存入力と即旋回を維持。
+- index.html commits 0d1d8dc3, 887fbea7 / blob 143701a255572ab633ffee308ca61fa29479de0a：パッド接続時の操作説明と現在の選択項目表示、JS/CSS rev更新。visual.css commit a01649c2 / blob 39adfc1adfb58d43b0b24c4a0bd2d831913bbdcb：選択候補の水色の太い輪郭、スクロール可能な説明枠。
+- QA：本番gamepad.js模擬Gamepad APIとDOM 21/21 PASS（タイトル、十字、スティック、左右、決定/取消、出発地編集、開始、PLAY即移動、メニュー復帰）。現行6 JS構文6/6 PASS、HTML/CSS/参照検査9/9 PASS、合計36/36。実Android/物理pad/ブラウザ10分E2E/縦横DOM実測/実GPUは未検証。
+- Pages：コードHEAD 887fbea71144b6c92a7b407012759e729d29dc45、run 41402170284、build/deploy/report-build-status全success。ROADMAP追記後HEADについては別途確認。
+- V2：A16.0 B12.0 C9.0 D4.0 E8.0 F9.0 G8.0 H4.0 I4.0 合計74.0/100、前回74.0→74.0、差0.0。物理Pad全操作は検証待ち。既定配点変更なし。
+- 次15分枠：①gamepad.js→WildGamepadBridge→game.jsタイトル開始と操作の動的結合。②3チェックポイント選択/取消/旧SAVE_SCHEMA2復元。③飢餓0/食事→死亡演出→結果→ゲームパッドでリトライを動的回帰。
+- 次45分枠：①実Android/物理Padで縦横画面のタイトル操作・フォーカス枠・表示重なり・DOM矩形を実測。②pause/guide/inventory/map/result/upgradeのPad決定/取消を実操作。③Stick保持反復/Pad切断・死亡2.2秒中入力無効とPages各jobを確認。
+
 ## 共同スプリント・次担当｜2026/11/02 15:21 JST｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜食事で飢餓停止・起動とリトライの保存保護
 - **基準/競合照合**：開始main HEAD `e1484374ca2181bbd8a8fffb3183fe76636e3fd0`。前45分枠（死亡2.2秒・開始地点救済）と前15分枠（飢餓・二重死亡・3CP）の履歴、Drive「WILD RECLAIM｜完成仕様設計書」末尾を確認。最新mainの既存6巣・20強敵・夜目・SAVE_SCHEMA2・縦横/ゲームパッドを再実装せず維持。今回のゲームコード終了HEAD `6b486c277fc61bff218531e61d3e4925b2d9f9e6`。
 - **実コード/コミット**：`neo-wild/game.js` `5b4ff5765529b5552217d7109e39ad0ec4b12ced` / blob `1f197fe466605d4c25dba931f9ff5385a9777938`、`neo-wild/index.html` `6b486c277fc61bff218531e61d3e4925b2d9f9e6` / blob `74bbae01c72f6eb0a704d6d1f4500a915bf1aebb`。変更はneo-wild/内だけ。JS rev `20261102-hunger-zero-safe-retry-v9`。
