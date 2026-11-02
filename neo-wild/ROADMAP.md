@@ -1,3 +1,13 @@
+## 共同スプリント・統合QA｜2026/11/03 JST｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟ウサギ狩猟・捕食者分担・死骸摂食の統合修正
+- 開始HEAD `f56a4d16003ec35a04e175d50323e35a5e3bbec3`。前20分枠の洞窟複数捕食者/地域個体保護と前40分枠のイタチ・ヘビ固有姿勢を維持。変更はneo-wild/game.js・index.html・ROADMAP.mdのみ。
+- 実プレイ修正：洞窟イタチ/タヌキがウサギだけの洞窟では狩りを開始しない種判定の欠落を修正。キツネに加えてイタチ・タヌキもウサギを追跡・実ダメージ・死骸化できる。複数捕食者の分担で旧チェックポイントや追跡中断後の古い標的座標が生きた獲物を占有する問題を修正。1.2ゲーム秒以内の実追跡のみを分担対象とし、獲物消失・プレイヤー警戒・野生討伐時に標的を解除。旧SAVE_SCHEMA2互換、世界76/近隣9/9秒/群れ110秒は変更なし。
+- 実関数QA：修正前の「イタチ→ウサギ狩猟不可」を再現。修正後の実huntWildPrey/scavengeWildFoodをV8隔離実行。イタチ/タヌキ→ウサギ追跡、古い標的除外・新しい標的分担、壁越し噛みつき禁止、討伐→死骸1個→捕食者摂食、討伐後・獲物不在・プレイヤー警戒時の追跡解除、JS全文構文を**13/13 PASS**。模擬壁・隔離環境であり実ブラウザ/Android/GPU/物理Pad/10分E2E/FPS/強敵40技全ケースは未検証。
+- Pages：今回コード/記録HEADのbuild/deployはコミット後にrun/jobsを個別確認。未確認時は未確認。
+- 進捗V2：A16/B12/C9/D4/E8/F9/G8/H4/I4＝**74/100（前回74、差0）**。実機・E2E未検証のため据置。
+- 次20分枠：①game.js:huntWildPrey/steerPursuit/caveWildlifePathでイタチ/タヌキ/キツネ×ウサギ/ネズミの10分相当の経時追跡、石柱迂回・捕食成功率を確認。②game.js:scavengeWildFood/toBones/animalRemainsで死骸摂食・骨化・プレイヤー運搬を連結。③game.js:maintainLocalWildlife/retireFarCalmAnimal/restoreSnapshotで8地区/山岳4zoneと旧SAVE2/3CPを回帰。
+- 次40分枠：①fauna.js:draw2D・webgl3d.js:drawCommonAnimal3Dでウサギを追うイタチ/タヌキ/キツネの追跡姿勢と夜間視認性。②mountain.js:blocked/sightBlocked/draw2D・webgl3d.js:mountainTerrainで石柱と攻撃遮蔽の2D/3D一致。③gamepad.js:poll・game.js:move/restoreSnapshotで洞窟往復・Pad/縦横・死亡再開を実ブラウザQA。
+- 次00分枠：①洞窟で野生狩り→死骸→摂食→プレイヤー備蓄→死亡/リトライをE2E。②強敵40技/スコアTOP5/旧SAVE2・3CP/密度76・9を回帰。③今回コミットと直近20/40分枠のPages build/deploy jobsを確認し失敗時は復旧。
+
 ## 共同スプリント・次担当｜2026/11/03 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜洞窟捕食者の2D/3D固有姿勢・攻撃視認性
 - **開始HEAD→コードHEAD**：`3eb65a60a0e843ebb309bb678f4911b41231da49` → `0fda99d817b079cd98bf76a0a35ca3b6e5747e9c`。fauna.js `a3ad7754`、webgl3d.js `1fe14c8f`、index.html rev `0fda99d8`。今回の記録コミットは別HEAD。neo-wild/以外変更なし。旧コード全文の強制上書き・強制pushなし。
 - **実際のプレイ変化**：①洞窟のイタチに狩猟追跡（胴体伸長）・噛みつき（前肢/頭部前進、口の開閉）・死骸摂食（低い頭と胴体）を2D/3Dで同じ実AI状態から描き分け。②イタチの顔・耳・眼・口と尾の動きを追加し、洞窟でネズミと識別しやすくする。③通常ヘビ/毒ヘビの実windupに連動する頭部持上げと攻撃姿勢を2D/3Dで同期。毒ヘビ固有の黄模様は維持。判定・当たり判定・AI/密度/旧SAVE2/3CPは変更なし。見た目だけの別状態を偽装せず既存m.swing/m.windup/m.scavengePose/m.wildTargetX/Yを使用。

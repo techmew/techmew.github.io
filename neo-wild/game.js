@@ -3382,7 +3382,10 @@ function defendBuffaloHerd(m){
 function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
-    (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
+    (m.evadeTime||0)>0){
+  m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;
+  return null;
+ } // Inactive hunters must not reserve stale prey.
  const caveScent=MOUNTAIN?.zone(m.x)==="cave";
  const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  const maxRange=caveScent?Math.max(330,maxRangeBase):maxRangeBase;
@@ -3391,7 +3394,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
   if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque","chimpanzee"].includes(m.type)){
    const smallPrey=["rat","frog","pigeon","crow","weasel"];
-   if(m.type==="wildFox")smallPrey.push("rabbit");
+   if(["wildFox","weasel","raccoonDog"].includes(m.type))smallPrey.push("rabbit"); // Cave mammal predators can hunt cave rabbits.
    if(!smallPrey.includes(q.type))continue;
   }
   const distance=dist(m,q);
@@ -3403,7 +3406,8 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   let claimed=0;
   if(caveScent&&scent)for(const h of mobs){
    if(h===m||h.hp<=0||!isWildPredator(h)||(h.alert||0)>0||
-      (h.feedAfterKill||0)>0||dist(h,q)>235||
+      (h.feedAfterKill||0)>0||!Number.isFinite(h.wildTargetAt)||
+      elapsed-h.wildTargetAt>1.2||dist(h,q)>235||
       !Number.isFinite(h.wildTargetX)||!Number.isFinite(h.wildTargetY))continue;
    if(Math.hypot(h.wildTargetX-q.x,h.wildTargetY-q.y)<Math.max(28,q.r+15))claimed++;
    if(claimed>=2)break;
@@ -3411,10 +3415,10 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   const score=distance+claimed*68;
   if(score<bestScore){bestScore=score;best=distance;prey=q;}
  }
- if(!prey)return null;
+ if(!prey){m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;return null;}
  const intercept=wildPreyInterceptPoint(m,prey,sp,best);
  m.dir=steerPursuit(m,intercept.x,intercept.y);
- m.wildTargetX=prey.x;m.wildTargetY=prey.y;
+ m.wildTargetX=prey.x;m.wildTargetY=prey.y;m.wildTargetAt=elapsed;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
   m.wildAttack=["strayCat","weasel","snake","venomSnake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
   const bite=["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog"].includes(m.type)?Math.max(2,Math.round(sp.damage*.70)):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
@@ -3426,6 +3430,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
    if(!startlePrey(prey,m,"hit")){prey.flee=1.8;prey.dir=Math.atan2(prey.y-m.y,prey.x-m.x);}
   }else{
    carcasses.push(animalRemains(prey));
+   m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;
    m.feedAfterKill=8;m.scavengeNeed=Math.max(.82,Number(m.scavengeNeed)||0);
    if(species[prey.type].prey){
     const zone=regionAt(prey.x,prey.y);
