@@ -5145,6 +5145,12 @@ function drawScene(){
  drawOccludedSilhouettes(entities);
  }
  drawBossThreats(entities);
+ for(const m of entities)if(m.type==="macaque"&&m.hp>0&&(m.macaqueTell||0)>0){
+  const a=m.macaqueAim||0,reach=395*.95;
+  ctx.save();ctx.strokeStyle="#f0c486";ctx.lineWidth=4;ctx.setLineDash([15,11]);
+  ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(m.x+Math.cos(a)*reach,m.y+Math.sin(a)*reach);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+ }
  for(const m of entities)if(m.type==="macaque"&&m.macaqueStone){
   const stone=m.macaqueStone;
   ctx.save();ctx.fillStyle="#c1b7a0";ctx.strokeStyle="#574e44";ctx.lineWidth=1.5;

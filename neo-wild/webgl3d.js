@@ -290,7 +290,7 @@ function drawStrongAnimal3D(m,clock){
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
- if(!["snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
+ if(!["macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
  const r=m.r||14,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||(t==="crow"?"#313b44":t==="snake"?"#587b50":"#977c62");
@@ -298,7 +298,31 @@ function drawCommonAnimal3D(m,clock){
  const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(fx(dx,dy),fy(dx,dy),z,rx,ry,rz,col,dir,8,5);
  const horn=(dx,dy,z,rx,ry,h,col)=>pyramid(fx(dx,dy),fy(dx,dy),z,rx,ry,h,col);
  const gait=Math.sin((m.step||0)*.9+clock*1.1);
- if(t==="snake"){
+ if(t==="macaque"){
+  // Dedicated macaque: expressive pink face, ears, four grasping limbs, short tail.
+  const climbing=Math.max(0,m.treeHeight||0),preparing=(m.macaqueTell||0)>0,throwing=(m.swing||0)>0&&!preparing;
+  const motion=climbing>2?Math.sin(clock*8+(m.step||0))*.14:gait*.17;
+  const pink="#b7847b",hand="#c8958b";
+  orb(-r*.20,0,r*.89,r*.80,r*.62,r*.72,fur);
+  orb(r*.45,0,r*1.09,r*.52,r*.49,r*.55,fur);
+  orb(r*.86,0,r*1.34,r*.59,r*.55,r*.52,fur);
+  orb(r*1.22,0,r*1.21,r*.34,r*.37,r*.35,pink);
+  orb(r*1.45,0,r*1.04,r*.21,r*.25,r*.16,hand);
+  for(const side of [-1,1]){
+   orb(r*.77,side*r*.53,r*1.43,r*.21,r*.16,r*.23,fur);
+   orb(r*.91,side*r*.58,r*1.43,r*.13,r*.10,r*.14,pink);
+   orb(r*1.31,side*r*.26,r*1.34,r*.085,r*.075,r*.09,"#242a29");
+   orb(r*.21,side*r*.57,r*.92,r*.28,r*.24,r*.31,fur);
+   const raised=side<0&&(preparing||throwing),foreZ=raised?r*(preparing?2.03:1.70):r*(.52+motion*side);
+   orb(r*.50,side*r*.69,(foreZ+r*.96)*.5,r*.18,r*.18,Math.abs(foreZ-r*.96)*.56+r*.16,fur);
+   orb(r*.62,side*r*.76,foreZ,r*.19,r*.17,r*.15,hand);
+   orb(-r*.67,side*r*.47,r*(.48-motion*side),r*.26,r*.24,r*.47,fur);
+   orb(-r*.82,side*r*.55,r*.16,r*.31,r*.24,r*.14,hand);
+  }
+  orb(-r*1.04,0,r*.77,r*.30,r*.17,r*.16,fur);
+  orb(-r*1.28,r*.11,r*.72,r*.22,r*.14,r*.14,fur);
+  if(preparing)orb(r*.62,-r*.76,r*2.22,r*.21,r*.19,r*.20,"#918b7c");
+ }else if(t==="snake"){
   for(let k=8;k>=0;k--){
    const x=r*(2.5-k*.48),y=Math.sin(k*.86+clock*.7)*r*.33;
    orb(x,y,r*.19,r*(.42-k*.022),r*(.28-k*.015),r*.20,k%2?fur:belly);
@@ -1106,6 +1130,21 @@ function render(o){
    triangle(pt(-7,-2,0),pt(6,0,1),pt(resting?-10:-13,-spread,wing),colorWing);
    triangle(pt(-7,2,0),pt(6,0,1),pt(resting?-10:-13,spread,-wing),colorWing);
    ellipsoid(x,y,z,8,3,3,bird.type==="crow"?"#293537":"#a5b1a9",bird.dir,6,3);
+  }
+  // World-coordinate macaque warning and projectile share the 2D hit path.
+  for(const m of mobs){
+   if(m.type!=="macaque"||m.hp<=0||!isVisible(m.x,m.y,420))continue;
+   const a=m.macaqueAim||0,c=Math.cos(a),s=Math.sin(a);
+   if((m.macaqueTell||0)>0)for(let k=1;k<=6;k++){
+    const d=27+k*49,px=m.x+c*d,py=m.y+s*d;
+    if(isVisible(px,py,55))ellipsoid(px,py,(window.WildMountain?.height(px,py)||0)+1.5,19,3.5,.8,k%2?"#e8b26d":"#f1d397",a,7,3);
+   }
+   const stone=m.macaqueStone;
+   if(stone&&Number.isFinite(stone.x)&&Number.isFinite(stone.y)&&isVisible(stone.x,stone.y,75)){
+    const z=window.WildMountain?.height(stone.x,stone.y)||0;
+    ellipsoid(stone.x,stone.y,z+1,8,6,1.1,"#373d36",0,7,3);
+    ellipsoid(stone.x,stone.y,z+20,7,6,5,"#b3a999",0,8,4);
+   }
   }
   const playerFirst=data.length/9;
   if(P){animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);carriedFoodMesh(P);}
