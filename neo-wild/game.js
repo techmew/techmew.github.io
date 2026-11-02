@@ -1346,8 +1346,7 @@ function updateBossSignature(m,dt,d){
   const cover=insideShelter(P)||lineBlocked(m,P);
   const jumping=(P.jumpHeight||0)>Math.max(22,(P.groundZ||0)+17);
   if(!cover&&!jumping&&P.inv<=0&&BOSS_PATTERNS.hit(active,P.x,P.y,P.r*.55)){
-   const raw=Math.round(species[m.type].damage*active.power*(1+enemyChallengeTier()*.038)*
-    (m.hp<m.maxHp*.45?1.12:1));
+   const raw=Math.round(species[m.type].damage*active.power*bossStrikePower(m));
    const amount=strongDamageTaken(raw);
    P.hp=Math.max(0,P.hp-amount);P.lastCombatAt=elapsed;
    interruptRush();P.inv=.58;shake=Math.max(shake,10);flash=Math.max(flash,.22);
@@ -1368,7 +1367,7 @@ function updateBossSignature(m,dt,d){
  if(!attack)return false;
  if(m.hp<m.maxHp*.45){attack.total*=.88;attack.time=attack.total;}
  m.signature=attack;m.signatureUse=n+1;
- m.signatureCooldown=descriptor.cooldown+(m.hp<m.maxHp*.45?0:1.25);
+ m.signatureCooldown=descriptor.cooldown*(m.hp<m.maxHp*.45?.49:.66)+(m.hp<m.maxHp*.45?0:.45);
  m.attack=Math.max(m.attack,attack.total+.46);
  m.windup=0;m.chargeTime=0;m.aquaticStrike=false;m.vx=0;m.vy=0;
  m.dir=attack.dir;
@@ -1462,7 +1461,7 @@ function updateAquaticStrong(m,s,dt){
   m.aquaticStrike=false;m.swing=.3;
   const facing=Math.atan2(Math.sin(angle-(m.strikeDir||0)),Math.cos(angle-(m.strikeDir||0)));
   if(d<profile.reach+P.r&&Math.abs(facing)<.92&&!lineBlocked(m,P)&&(P.jumpHeight||0)<22&&P.inv<=0){
-   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*(1+enemyChallengeTier()*.038)));
+   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*bossStrikePower(m)));
    P.lastCombatAt=elapsed;P.hp-=damage;interruptRush();P.inv=.45;shake=10;flash=.25;
    label(P.x,P.y-35,"水辺 -"+damage,"#ff9890");blood(P.x,P.y,"#eb6356",12,110);
    playEffect("damage");applyStrongStrikeEffect(m,angle,false);
@@ -2038,13 +2037,13 @@ function detectsPlayer(m,sp,d){
  const lightFactor=clamp(.49+ambient*.49,.55,1.06);
  const nocturnalBonus=sp.prey?0:(m.type==="alpha"?.17:m.type==="dog"?.13:.08);
  const vision=clamp(lightFactor+nocturnalBonus*(1-clamp(ambient,0,1)),.55,1.06);
- const sightRange=(sp.prey?185:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*vision*(P.hidden?.29:1);
+ const sightRange=(sp.prey?185:m.strongBoss?430:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*vision*(P.hidden?.29:1);
  const los=!lineBlocked(m,P);
  const facing=Math.atan2(P.y-m.y,P.x-m.x);
  const delta=Math.atan2(Math.sin(facing-m.dir),Math.cos(facing-m.dir));
- const inSight=Math.abs(delta)<(sp.prey?2.22:1.37)||d<57;
+ const inSight=Math.abs(delta)<(sp.prey?2.22:m.strongBoss?2.05:1.37)||d<(m.strongBoss?85:57);
  const visibleNow=los&&inSight&&d<Math.max(42,sightRange);
- const heard=d<(los?38:24)+P.noise*(los?116:58);
+ const heard=d<(los?38:24)+P.noise*(los?(m.strongBoss?195:116):58);
  const wind=Math.sin(elapsed*.022)*Math.PI;
  const smelled=d<(weather==="RAIN"||weather==="THUNDER"?38:weather==="WIND"?105:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
  return visibleNow||heard||smelled||(los&&d<P.r+m.r+17);
@@ -3678,7 +3677,7 @@ function update(dt){
        const fy=P.y-Math.sin(heading)*flankBack+Math.cos(heading)*side*flankSide;
        if(!collides(fx,fy,m.r+5)){targetX=fx;targetY=fy}
       }
-      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;const cheetahBoost=m.type==="cheetah"&&m.sprintTime>0?1.58:1;
+      m.dir=steerPursuit(m,targetX,targetY);const chaseBoost=m.strongBoss?(m.hp<m.maxHp*.45?1.40:1.24):m.type==="giantHyena"?1.13:m.type==="giantLizard"&&d<215?1.17:m.type==="albinoWolf"?1.09:1;const cheetahBoost=m.type==="cheetah"&&m.sprintTime>0?1.58:1;
       vx=Math.cos(m.dir)*s.speed*chaseBoost*(m.speedScale||1)*cheetahBoost;
       vy=Math.sin(m.dir)*s.speed*chaseBoost*(m.speedScale||1)*cheetahBoost;
       if((m.type==="dog"||m.type==="alpha"||m.type==="oneEyedWolf"||m.type==="albinoWolf")&&spotted&&d>75&&d<235&&m.attack>.22){
@@ -3756,7 +3755,7 @@ function update(dt){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
       }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?1+enemyChallengeTier()*.038:(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
+       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);
@@ -3790,7 +3789,7 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?1+enemyChallengeTier()*.038:(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
+      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
