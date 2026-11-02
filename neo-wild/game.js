@@ -156,7 +156,7 @@ function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
 function bossHealthTarget(sp){
- if(!P||P.level<6)return Math.round(sp.hp*(1+Math.min(12,Math.max(0,day-1))*.035));
+ if(!P)return sp.hp;
  const hits=sp.hp>=650?14:sp.hp>=480?12:10;
  const budget=Math.max(sp.hp*.35,(P.damage||20)*hits*(1+enemyChallengeTier()*.018));
  return Math.round(Math.min(sp.hp*1.6,budget));
@@ -1435,7 +1435,7 @@ function normalizeStrongBossSave(){
  if(first)strongRolls[first.strongRegion]={type:first.type,spawned:true};
  // A legacy SAVE_SCHEMA2 monster may have an old unbounded day-scaled HP.
  // Preserve its injury ratio while capping only the impossible excess.
- if(P&&P.level>=6)for(const m of activeStrongBosses()){
+ if(P)for(const m of activeStrongBosses()){
   const safe=bossHealthTarget(species[m.type]);
   if(m.maxHp>safe){
    const ratio=clamp(m.hp/Math.max(1,m.maxHp),0,1);
