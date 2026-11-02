@@ -4760,6 +4760,8 @@ window.WildDebugBridge={
   if(stage===5){denLevel=Math.max(2,denLevel);territoryClaims=[false,false,false];}
   if(stage===6){denLevel=Math.max(2,denLevel);territoryClaims=[true,false,false];discoveredSites=[];}
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
+  // The sandbox must show the same compact lesson in every selected stage.
+  if(TUTORIAL_STAGES.includes(stage)){tutorialSeen.delete(stage);openTutorial(0,true);}
   syncHUD(Math.floor(dayLightProfile(elapsed).hour));return true;
  },
  tutorialStep(direction){
