@@ -5,7 +5,8 @@ const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
 const mini=$("minimap"),mc=mini.getContext("2d");
 const bigMap=$("world-map-canvas"),bm=bigMap.getContext("2d");
-const TWO=Math.PI*2, WORLD={w:8400,h:6000};
+const TWO=Math.PI*2, WORLD={w:10100,h:6000}, CITY_WIDTH=8400;
+const MOUNTAIN=window.WildMountain;
 const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
  cat:{name:"ノラネコ",hp:85,speed:320,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
@@ -270,6 +271,8 @@ function signalPack(m,spotted){
 }
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
 const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
+// The foothill shares the existing eighth ecology slot: old saves retain 8 entries.
+function mountainHabitat(x,y){return !!MOUNTAIN&&x>=MOUNTAIN.CITY_EDGE&&MOUNTAIN.active(x,y);}
 function regionAt(x,y){
  if(y<2600){
   if(x<1400)return 0;if(x<2800)return 1;if(x<4200)return 2;if(x<6300)return 3;return 4;
@@ -853,18 +856,18 @@ function generateWorld(){
  }
  for(let i=0;i<780;i++){
   const x=120+rnd(0,WORLD.w-240),y=2450+rnd(0,WORLD.h-2580);
-  if(nearBuilding(x,y,45)||waterBlocksLand(x,y))continue;
+  if(nearBuilding(x,y,45)||waterBlocksLand(x,y)||x>=CITY_WIDTH)continue;
   const biome=regionAt(x,y),forest=biome===5,shrubs=forest?.46:biome===7?.24:.15;
   plants.push({x,y,r:Math.random()<shrubs?rnd(34,65):rnd(7,24),
    type:Math.random()<shrubs?2:Math.random()<.25?1:0,phase:rnd(0,TWO),hue:Math.random()});
  }
  for(let i=0;i<260;i++){
   const x=4200+rnd(0,WORLD.w-4320),y=90+rnd(0,2400);
-  if(!nearBuilding(x,y,48)&&!waterBlocksLand(x,y))plants.push({x,y,r:rnd(8,46),type:i%5===0?2:i%3===0?1:0,phase:rnd(0,TWO),hue:Math.random()});
+  if(x<CITY_WIDTH&&!nearBuilding(x,y,48)&&!waterBlocksLand(x,y))plants.push({x,y,r:rnd(8,46),type:i%5===0?2:i%3===0?1:0,phase:rnd(0,TWO),hue:Math.random()});
  }
  for(let i=0;i<520;i++){
   const x=rnd(80,WORLD.w-80),y=rnd(2500,WORLD.h-70);
-  if(!nearBuilding(x,y,12)&&!waterBlocksLand(x,y))debris.push({x,y,r:rnd(2,12),a:rnd(0,TWO),kind:i%4});
+  if(x<CITY_WIDTH&&!nearBuilding(x,y,12)&&!waterBlocksLand(x,y))debris.push({x,y,r:rnd(2,12),a:rnd(0,TWO),kind:i%4});
  }
  for(const site of EXPLORE_SITES){
   for(let j=0;j<3;j++){
@@ -879,12 +882,12 @@ function generateWorld(){
  ];
  buildings.push(...alley); // wall-kick training alley; also serves open-city roof exploration.
  for(let i=0;i<400;i++){let x=rnd(30,WORLD.w-30),y=rnd(30,WORLD.h-30);
-   if(nearBuilding(x,y,28)||waterBlocksLand(x,y))continue;
+   if(nearBuilding(x,y,28)||waterBlocksLand(x,y)||x>=CITY_WIDTH)continue;
    plants.push({x,y,r:rnd(5,17),type:Math.random()<.23?1:0,phase:rnd(0,6),hue:Math.random()});}
  for(let i=0;i<75;i++){const x=rnd(65,WORLD.w-65),y=rnd(65,WORLD.h-65);
-  if(!nearBuilding(x,y,70)&&!waterBlocksLand(x,y))plants.push({x,y,r:rnd(34,67),type:2,phase:rnd(0,6)});}
+  if(x<CITY_WIDTH&&!nearBuilding(x,y,70)&&!waterBlocksLand(x,y))plants.push({x,y,r:rnd(34,67),type:2,phase:rnd(0,6)});}
  for(let i=0;i<330;i++){let x=rnd(0,WORLD.w),y=rnd(0,WORLD.h);
-   if(nearBuilding(x,y,8)||waterBlocksLand(x,y))continue;
+   if(nearBuilding(x,y,8)||waterBlocksLand(x,y)||x>=CITY_WIDTH)continue;
    debris.push({x,y,r:rnd(2,10),a:rnd(0,7),kind:i%4});}
  for(const x of roadsX)for(const y of roadsY)for(const dx of [-100,100])for(const dy of [-87,87])lamps.push({x:x+dx,y:y+dy});
  
@@ -1089,7 +1092,7 @@ function restoreSnapshot(snapshot){
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
- scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;lastPopulatedRegion=regionAt(P.x,P.y);
+ scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;lastPopulatedRegion=regionAt(P.x,P.y)+(mountainHabitat(P.x,P.y)?":foothill":"");
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
  tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
@@ -1723,9 +1726,9 @@ function retireFarCalmAnimal(){
 let lastPopulatedRegion=-1;
 function settleNewRegion(){
  if(!P)return false;
- const region=regionAt(P.x,P.y);
- if(region===lastPopulatedRegion)return false;
- lastPopulatedRegion=region;
+ const region=regionAt(P.x,P.y),habitat=region+(mountainHabitat(P.x,P.y)?":foothill":"");
+ if(habitat===lastPopulatedRegion)return false;
+ lastPopulatedRegion=habitat;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  if(nearby>=2)return false;
  if(mobs.length>=WILDLIFE.cap&&!retireFarCalmAnimal())return false;
@@ -1756,7 +1759,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  const biome=regionAt(x,y);
- let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:window.WildFauna?.choose(biome,day,weather,preyOnly);
+ let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)&&!preyOnly?MOUNTAIN.choose():window.WildFauna?.choose(biome,day,weather,preyOnly);
  if(!species[type])type="rat";
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
@@ -1841,6 +1844,7 @@ function landOnSurface(){
 }
 function collides(x,y,r,actor=null,ignoreWater=false){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
+ if(MOUNTAIN?.blocked(x,y,r))return true;
  if(!ignoreWater&&waterBlocksLand(x,y))return true;
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
@@ -3922,6 +3926,16 @@ function drawWorldMap(){
   bm.fillStyle="#d2dfd5";bm.font="10px sans-serif";bm.textAlign="center";
   bm.fillText(name,X(x+w/2),Y(y)+17);
  }
+ if(MOUNTAIN){
+  bm.fillStyle="#334d3b";bm.fillRect(X(MOUNTAIN.WEST),0,X(MOUNTAIN.EAST-MOUNTAIN.WEST),height);
+  bm.strokeStyle="#b5aa82";bm.lineWidth=4;bm.beginPath();
+  for(let x=MOUNTAIN.WEST;x<=MOUNTAIN.EAST;x+=60){
+   const y=MOUNTAIN.trail(x);
+   if(x===MOUNTAIN.WEST)bm.moveTo(X(x),Y(y));else bm.lineTo(X(x),Y(y));
+  }bm.stroke();
+  bm.fillStyle="#e0eac9";bm.font="bold 12px sans-serif";bm.textAlign="center";
+  bm.fillText("山麓の森",X(9200),Y(3000));
+ }
  for(const seg of WATER_RIBBONS){bm.fillStyle=seg.kind==="river"?"#4d9ca9":"#3c87a3";bm.beginPath();seg.pts.forEach((p,i)=>i?bm.lineTo(X(p[0]),Y(p[1])):bm.moveTo(X(p[0]),Y(p[1])));bm.closePath();bm.fill();}
   bm.fillStyle="#586666";
  for(const x of roadsX)bm.fillRect(X(x-75),0,Math.max(2,X(150)),height);
@@ -3965,7 +3979,7 @@ function drawWorldMap(){
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
  bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
- const zone=regionAt(P.x,P.y),area=districts[zone],eco=ecology[zone];
+ const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?"山麓の森":districts[zone],eco=ecology[zone];
  $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
  "｜"+ecologyNews;
@@ -3984,6 +3998,14 @@ function drawMini(){
  const w=mini.width,h=mini.height,span=MINI_SPANS[miniScaleIndex];
  const X=x=>(x-P.x+span/2)/span*w,Y=y=>(y-P.y+span*h/w/2)/span*w;
  mc.fillStyle="#19332e";mc.fillRect(0,0,w,h);
+ if(MOUNTAIN&&P.x>7800){
+  mc.fillStyle="#35523b";mc.fillRect(X(MOUNTAIN.WEST),0,w*(MOUNTAIN.EAST-MOUNTAIN.WEST)/span,h);
+  mc.strokeStyle="#b1a27a";mc.lineWidth=3;mc.beginPath();
+  for(let x=MOUNTAIN.WEST;x<=MOUNTAIN.EAST;x+=70){
+   const px=X(x),py=Y(MOUNTAIN.trail(x));
+   if(x===MOUNTAIN.WEST)mc.moveTo(px,py);else mc.lineTo(px,py);
+  }mc.stroke();
+ }
  for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-P.x)>span||Math.abs(seg.cy-P.y)>span)continue;mc.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";mc.beginPath();seg.pts.forEach((p,i)=>i?mc.lineTo(X(p[0]),Y(p[1])):mc.moveTo(X(p[0]),Y(p[1])));mc.closePath();mc.fill();}
   mc.fillStyle="#465553";
  for(const x of roadsX)if(Math.abs(x-P.x)<span)mc.fillRect(X(x-75),0,w*150/span,h);
@@ -4044,10 +4066,10 @@ function drawMini(){
 function visible(x,y,r=50){const q=project(x,y),m=Math.max(100,r*1.9);return q.x>-m&&q.x<vw+m&&q.y>-m&&q.y<vh+m}
 function roadDraw(){
  ctx.fillStyle="#273639";
- for(const y of roadsY){ctx.fillRect(0,y-75,WORLD.w,150);ctx.fillStyle="#576460";ctx.fillRect(0,y-77,WORLD.w,5);ctx.fillRect(0,y+73,WORLD.w,5);ctx.fillStyle="#273639"}
+ for(const y of roadsY){ctx.fillRect(0,y-75,CITY_WIDTH,150);ctx.fillStyle="#576460";ctx.fillRect(0,y-77,CITY_WIDTH,5);ctx.fillRect(0,y+73,CITY_WIDTH,5);ctx.fillStyle="#273639"}
  for(const x of roadsX){ctx.fillRect(x-76,0,152,WORLD.h);ctx.fillStyle="#576460";ctx.fillRect(x-78,0,5,WORLD.h);ctx.fillRect(x+74,0,5,WORLD.h);ctx.fillStyle="#273639"}
  ctx.save();ctx.setLineDash([24,22]);ctx.strokeStyle="#b1a98357";ctx.lineWidth=3;
- for(const y of roadsY){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WORLD.w,y);ctx.stroke()}
+ for(const y of roadsY){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CITY_WIDTH,y);ctx.stroke()}
  for(const x of roadsX){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,WORLD.h);ctx.stroke()}ctx.restore();
  for(const x of roadsX)for(const y of roadsY){ctx.strokeStyle="#a6ab9b38";ctx.lineWidth=5;
   for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(x-110+k*24,y-98);ctx.lineTo(x-110+k*24,y-82);ctx.stroke();ctx.beginPath();ctx.moveTo(x+82,y-110+k*24);ctx.lineTo(x+98,y-110+k*24);ctx.stroke()}
@@ -4265,6 +4287,8 @@ function drawCarriedFood2D(){
  if(!P?.carry||P.carry.amount<=0)return;
  const dir=P.dir||0,dx=Math.cos(dir),dy=Math.sin(dir);
  ctx.save();ctx.translate(P.x+dx*P.r*1.45,P.y+dy*P.r*1.45);
+ const carryZ=MOUNTAIN?.height(P.x,P.y)||0;
+ if(carryZ>0)ctx.translate(VIEW.c*carryZ*.93*cameraZoom/VIEW_DET,-VIEW.a*carryZ*.93*cameraZoom/VIEW_DET);
  ctx.rotate(dir);
  const r=Math.min(13,7+Math.sqrt(P.carry.amount));
  ctx.fillStyle=P.carry.type==="berries"?"#58734c":"#592327";
@@ -4279,6 +4303,8 @@ function drawCarriedFood2D(){
 function drawItem(c){
  const pulse=Math.sin(elapsed*3+(c.phase||0))*2;
  ctx.save();ctx.translate(c.x,c.y);
+ const terrainZ=MOUNTAIN?.height(c.x,c.y)||0;
+ if(terrainZ>0)ctx.translate(VIEW.c*terrainZ*.93*cameraZoom/VIEW_DET,-VIEW.a*terrainZ*.93*cameraZoom/VIEW_DET);
  ctx.fillStyle="#081a1694";ctx.beginPath();ctx.ellipse(1,5,Math.max(16,(c.r||9)*1.6),8,0,0,TWO);ctx.fill();
  if(c.type==="corpse"||c.type==="bones"){
   const r=Math.max(15,Math.min(36,(c.r||9)*1.28)),fur=species[c.animalType]?.color||"#988b78";
@@ -4546,11 +4572,12 @@ function drawCreature(o,isPlayer){
  ctx.save();ctx.translate(o.x,o.y);
  if(isPlayer&&o.hidden)ctx.globalAlpha*=.46; // Match WebGL stealth translucency.
  const lift2D=z=>ctx.translate(VIEW.c*z*.93*cameraZoom/VIEW_DET,-VIEW.a*z*.93*cameraZoom/VIEW_DET);
- const floorZ=isPlayer?(P.groundZ||0):0;
+ const baseZ=isPlayer?(P.groundZ||0):0;
+ const floorZ=baseZ+(MOUNTAIN?.height(o.x,o.y)||0);
  if(floorZ>0)lift2D(floorZ);
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
  oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
- if(isPlayer&&P.jumpHeight>floorZ)lift2D(P.jumpHeight-floorZ);
+ if(isPlayer&&P.jumpHeight>baseZ)lift2D(P.jumpHeight-baseZ);
  if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight);
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
@@ -4976,6 +5003,7 @@ function drawScene(){
  if(!use3D){
   const farLeft=Math.max(0,Math.floor((x-vw*.7)/180)*180-180),farTop=Math.max(0,Math.floor((y-vh*1.3)/180)*180-180);
  for(const [x,y,w,h,col] of BIOME_AREAS){ctx.fillStyle=col;ctx.fillRect(x,y,w,h);}
+ MOUNTAIN?.draw2D(ctx,visible);
  for(let xx=farLeft;xx<x+vw*1.8+180;xx+=180)for(let yy=farTop;yy<y+vh*2.3+180;yy+=180){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
