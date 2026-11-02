@@ -44,6 +44,16 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
 }
 const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],caveStones=[],caveColumns=[];
 const cave=Object.freeze({start:CAVE_START,end:CAVE_END,halfWidth:CAVE_HALF});
+// Visual-only cave mineral seams and wall fragments, shared by 2D and 3D.
+const caveSeams=[],caveWallMarks=[];
+for(let x=CAVE_START+44,i=0;x<CAVE_END-28;x+=46,i++){
+ const y=center(x)+Math.sin(x*.043)*24;
+ caveSeams.push({x,y,rx:13+(i%3)*4,ry:4+(i%2),z:height(x,y)});
+}
+for(let x=CAVE_START+36,i=0;x<CAVE_END-18;x+=67,i++)for(const side of [-1,1]){
+ const y=center(x)+side*(CAVE_HALF+23);
+ caveWallMarks.push({x,y,r:7+(i%3)*2,z:height(x,y)});
+}
  // This stream has a physical crossing; the world never loads a new stage.
  const creek=Object.freeze({xAt:y=>9250+35*Math.sin((y-3800)/180),bridgeY:center(9250),halfWidth:31,bridgeHalf:170});
 const ruins=[
@@ -229,6 +239,22 @@ function draw2D(ctx,visible){
    if(!visible(x,center(x),170))continue;
    ctx.fillStyle="#48544e";ctx.fillRect(x-7,center(x)-52,14,104);
   }
+  for(const p of caveSeams){
+   if(!visible(p.x,p.y,55))continue;
+   ctx.fillStyle="#61736b";ctx.beginPath();ctx.ellipse(p.x,p.y,p.rx,p.ry,-.12,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#92a59a";ctx.lineWidth=1.3;ctx.beginPath();
+   ctx.moveTo(p.x-p.rx*.72,p.y+1);ctx.lineTo(p.x+p.rx*.65,p.y-1);ctx.stroke();
+  }
+  for(const p of caveWallMarks){
+   if(!visible(p.x,p.y,40))continue;
+   ctx.fillStyle="#828c81";ctx.beginPath();ctx.moveTo(p.x-p.r,p.y+p.r*.5);
+   ctx.lineTo(p.x,p.y-p.r);ctx.lineTo(p.x+p.r,p.y+p.r*.6);ctx.closePath();ctx.fill();
+  }
+  for(const gateX of [CAVE_START,CAVE_END]){
+   if(!visible(gateX,center(gateX),160))continue;
+   ctx.strokeStyle="#c2bba0";ctx.lineWidth=5;ctx.beginPath();
+   ctx.ellipse(gateX,center(gateX),14,CAVE_HALF+14,0,0,Math.PI*2);ctx.stroke();
+  }
   for(const p of caveColumns){
    if(!visible(p.x,p.y,85))continue;
    ctx.fillStyle="#202b29";ctx.beginPath();ctx.ellipse(p.x+5,p.y+7,p.r*1.15,p.r*.70,0,0,Math.PI*2);ctx.fill();
@@ -287,6 +313,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,spawnCandidate,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,spawnCandidate,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();
