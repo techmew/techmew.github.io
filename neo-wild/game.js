@@ -3897,8 +3897,75 @@ function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
  return true;
 }
 
+// Distinct silhouettes for the new small fauna. All geometry uses the existing Canvas2D camera.
+function drawOrdinaryCreature2D(o,r,fur,belly,pace,oval,triangle){
+ const t=o.type;
+ if(t==="snake"){
+  ctx.strokeStyle=fur;ctx.lineCap="round";ctx.lineWidth=r*.77;
+  ctx.beginPath();ctx.moveTo(-r*1.9,r*.55);
+  ctx.bezierCurveTo(-r*.8,-r*.85,-r*.3,r*1.07,r*.46,r*.12);
+  ctx.bezierCurveTo(r*.79,-r*.35,r*1.15,-r*.18,r*1.21,-r*.1);ctx.stroke();
+  oval(r*.95,-r*.09,r*.44,r*.33,fur);
+  oval(r*1.12,-r*.25,r*.09,r*.10,"#f3d698");oval(r*1.14,-r*.25,r*.035,r*.08,"#1e261f");
+  ctx.strokeStyle="#c87b6b";ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(r*1.33,0);ctx.lineTo(r*1.63,0);ctx.moveTo(r*1.51,0);ctx.lineTo(r*1.67,-r*.12);ctx.stroke();
+ }else if(t==="frog"){
+  for(const sign of [-1,1]){
+   oval(-r*.55,sign*r*.65,r*.41,r*.30,fur,sign*.24);
+   oval(-r*.88,sign*r*.87+pace*sign,r*.38,r*.18,belly,sign*.20);
+   oval(r*.54,sign*r*.44,r*.23,r*.22,fur);
+  }
+  oval(-r*.05,0,r*.93,r*.65,fur);oval(r*.53,0,r*.57,r*.55,fur);
+  for(const sign of [-1,1]){
+   oval(r*.74,sign*r*.41,r*.18,r*.21,"#d6eabd");
+   oval(r*.79,sign*r*.43,r*.075,r*.12,"#1f3425");
+  }
+  ctx.strokeStyle="#355f35";ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(r*.79,0,r*.26,.15,Math.PI-.15);ctx.stroke();
+ }else if(t==="crow"){
+  oval(-r*.22,0,r*.87,r*.50,fur);
+  for(const sign of [-1,1])oval(-r*.36,sign*r*.29+pace*.14,r*.68,r*.21,"#4e5865",sign*.31);
+  triangle([-r*.8,0,-r*1.55,-r*.37,-r*1.41,r*.34],fur);
+  oval(r*.58,0,r*.42,r*.39,fur);
+  triangle([r*.86,-r*.13,r*1.35,-r*.08,r*.86,r*.17],"#353a40");
+  oval(r*.65,-r*.19,r*.10,r*.10,"#c8d1c7");oval(r*.66,-r*.19,r*.045,r*.06,"#1a2121");
+ }else if(t==="weasel"){
+  ctx.strokeStyle=fur;ctx.lineWidth=r*.20;ctx.beginPath();
+  ctx.moveTo(-r*1.03,.0);ctx.bezierCurveTo(-r*1.55,-r*.55,-r*1.8,r*.28,-r*2.17,r*.04);ctx.stroke();
+  for(const sign of [-1,1])for(const px of [-.69,.55])oval(px*r,sign*r*.42+pace*sign,r*.15,r*.20,"#6b543b");
+  oval(-r*.1,0,r*1.25,r*.40,fur);oval(r*.75,0,r*.41,r*.32,fur);
+  oval(r*.68,-r*.19,r*.12,r*.09,"#171f1c");triangle([r*.97,-r*.13,r*1.29,0,r*.97,r*.13],belly);
+ }else if(t==="raccoonDog"){
+  oval(-r*1.18,0,r*.56,r*.48,"#685d4c");
+  for(const sign of [-1,1])for(const px of [-.59,.53])oval(px*r,sign*r*.58+pace*sign,r*.23,r*.31,"#413d38");
+  oval(-r*.13,0,r*1.10,r*.73,fur);oval(r*.79,0,r*.56,r*.51,fur);
+  for(const sign of [-1,1]){
+   oval(r*.95,sign*r*.27,r*.33,r*.23,"#403d38",sign*.22);
+   triangle([r*.58,sign*r*.32,r*.65,sign*r*.73,r*.97,sign*r*.42],"#4a4540");
+   oval(r*.98,sign*r*.25,r*.08,r*.07,"#e8e1d6");
+  }
+  oval(r*1.24,0,r*.25,r*.20,"#39342f");
+ }else if(t==="deer"){
+  for(const sign of [-1,1])for(const px of [-.55,.48]){
+   const x=r*px,y=sign*r*.40+pace*sign;
+   oval(x,y,r*.15,r*.56,fur);oval(x-r*.06,y+sign*r*.39,r*.21,r*.13,"#3e3833");
+  }
+  oval(-r*.1,0,r*1.06,r*.49,fur);oval(r*.82,0,r*.54,r*.34,fur);
+  triangle([r*.92,-r*.25,r*1.52,-r*.13,r*1.02,r*.21],belly);
+  for(const sign of [-1,1]){
+   triangle([r*.58,sign*r*.21,r*.48,sign*r*.70,r*.87,sign*r*.39],fur);
+   ctx.strokeStyle="#c2aa83";ctx.lineWidth=r*.085;ctx.lineCap="round";ctx.beginPath();
+   ctx.moveTo(r*.66,sign*r*.36);ctx.lineTo(r*.39,sign*r*1.09);
+   ctx.lineTo(r*.06,sign*r*1.34);ctx.moveTo(r*.37,sign*r*1.10);
+   ctx.lineTo(r*.60,sign*r*1.41);ctx.stroke();
+   oval(r*1.06,sign*r*.10,r*.09,r*.08,"#222323");
+  }
+  oval(r*1.42,0,r*.12,r*.10,"#3c3330");
+ }else return false;
+ return true;
+}
+
 function drawCreature(o,isPlayer){
- const s=isPlayer?P.base:species[o.type],r=o.r,t=o.type;
+ const s=isPlayer?P.base:species[o.type],r=o.r;
+ const t=!isPlayer&&o.type==="strayCat"?"cat":!isPlayer&&o.type==="wildFox"?"fox":o.type;
  const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
  const gait=(isPlayer?o.steps:o.step)||0;
  const motion=isPlayer&&P.dashTime>0?1.5:clamp(Math.hypot(o.vx||0,o.vy||0)/Math.max(1,s.speed),0,1.5);
@@ -3959,6 +4026,8 @@ function drawCreature(o,isPlayer){
  }
  if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
   // Unique strong enemy silhouette.
+ }else if(!isPlayer&&drawOrdinaryCreature2D(o,r,fur,light,pace,oval,triangle)){
+  // Distinct regular wildlife silhouette.
  }else if(t==="pigeon"){
   oval(-r*.3,0,r*.8,r*.58,fur);
   oval(-r*.48,-r*.38+pace,r*.63,r*.3,"#526d77",-.35);
