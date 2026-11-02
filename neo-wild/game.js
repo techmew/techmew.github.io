@@ -155,7 +155,7 @@ const WILDLIFE={initial:13,cap:76,localRadius:700,localCap:9,separation:99,preyN
 let lastPackSpawnAt=-WILDLIFE.packCooldown;
 /* Dynamic encounter difficulty. Scale relative to the player's LV, but cap each
  * damage and HP curve so an old long-lived save cannot become impossible. */
-const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake","lion"];
+const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake","lion","macaque"];
 function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
@@ -224,7 +224,7 @@ function spawnLocalPack(){
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  // Lions only inhabit the zoo/greenbelt; no exotic packs appearing in city offices.
  const biome=regionAt(P.x,P.y);
- const eligible=PACK_TYPES.filter(t=>(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
+ const eligible=PACK_TYPES.filter(t=>t==="macaque"?mountainHabitat(P.x,P.y):(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
  if(!eligible.length)return false;
  const type=eligible[Math.floor(Math.random()*eligible.length)],before=mobs.length;
  const wanted=P.level>=8&&type!=="lion"?2:1;
