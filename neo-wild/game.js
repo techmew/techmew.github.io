@@ -1259,6 +1259,7 @@ function scatterWildlifeAroundBoss(m,dt){
   if(dist(q,m)>radius||lineBlocked(m,q))continue;
   q.flee=Math.max(q.flee||0,1.45);
   q.fleeThreatX=m.x;q.fleeThreatY=m.y;
+  q.dir=Math.atan2(q.y-m.y,q.x-m.x);q.escapeTimer=0;
   q.resting=false;q.restTime=0;
  }
 }
