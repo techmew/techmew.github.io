@@ -1776,11 +1776,11 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
  m.forageCooldown=Math.max(0,(m.forageCooldown||0)-dt);
  m.forageNeed=Number.isFinite(m.forageNeed)?
   clamp(m.forageNeed+dt*.013,0,1):clamp(.56+noise(Math.floor(m.x),Math.floor(m.y))*.30,0,1);
- if(!(sp.prey||m.type==="boar"||m.type==="giantBoar")||m.forageNeed<.70||spotted||m.alert>0||m.flee>0||
+ if(!WILD_FORAGERS.has(m.type)||m.forageNeed<.70||spotted||m.alert>0||m.flee>0||
     m.stun>0||(m.evadeTime||0)>0||playerDistance<115||
     ((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
  // Feeding stops near predators; no food is consumed through walls.
- if((sp.prey||m.type==="boar")&&nearbyVisibleWildPredator(m,175))return null;
+ if(WILD_FORAGERS.has(m.type)&&nearbyVisibleWildPredator(m,175))return null;
  let target=null,best=245*245;
  for(const c of carcasses){
   if(c.type!=="berries"||!edibleFood(c))continue;
@@ -2589,7 +2589,8 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
+const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
+const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","raccoonDog","frog","deer","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -2611,10 +2612,15 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
- const maxRange=m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=["strayCat","weasel","snake"].includes(m.type)?165:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
+  if(["strayCat","wildFox","weasel","snake"].includes(m.type)){
+   const smallPrey=["rat","frog","pigeon","crow","weasel"];
+   if(m.type==="wildFox")smallPrey.push("rabbit");
+   if(!smallPrey.includes(q.type))continue;
+  }
   const distance=dist(m,q);
   if(distance<best&&!lineBlocked(m,q)){best=distance;prey=q;}
  }
@@ -2623,8 +2629,8 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
-  const bite=m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
+  m.wildAttack=["strayCat","weasel","snake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
+  const bite=["strayCat","wildFox","weasel","snake"].includes(m.type)?Math.max(2,Math.round(sp.damage*.70)):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="albinoWolf"?.42:m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
   prey.hp=Math.max(0,prey.hp-bite);
@@ -2890,7 +2896,7 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  m.restCooldown=Math.max(0,m.restCooldown-dt);
  const indoors=insideShelter(m),rainy=weather==="RAIN"||weather==="THUNDER";
  const naturalNightCover=!rainy&&nightRestSeason()&&
-  (m.type==="rabbit"||m.type==="pigeon")&&inCover(m);
+  ["rabbit","pigeon","strayCat","wildFox","weasel","deer","raccoonDog"].includes(m.type)&&inCover(m);
  const safeRest=(indoors&&rainy)||naturalNightCover;
  const hunterAnimal=sp.prey?nearbyVisibleWildPredator(m,155):null;
  const hunter=!!hunterAnimal;
@@ -3204,7 +3210,7 @@ function update(dt){
    const wildHunt=huntWildPrey(m,s,spotted,d);
    if(wildHunt){vx=wildHunt.vx;vy=wildHunt.vy;}
    const scavenging=!wildHunt&&!s.prey&&m.type!=="boar"&&m.type!=="giantBoar"&&m.type!=="giantMoose"&&m.type!=="giantBuffalo"&&m.type!=="rhino"&&m.type!=="giantGorilla"&&m.type!=="giantElephant"?scavengeWildFood(m,s,dt,spotted,d):null;
-   const foraging=(s.prey||m.type==="boar"||m.type==="giantBoar"||m.type==="giantMoose"||m.type==="giantBuffalo"||m.type==="rhino"||m.type==="giantGorilla"||m.type==="giantElephant")?forageWildBerries(m,s,dt,spotted,d):null;
+   const foraging=WILD_FORAGERS.has(m.type)?forageWildBerries(m,s,dt,spotted,d):null;
    const drinking=!wildHunt&&!scavenging&&!foraging?drinkWildWater(m,s,dt,spotted,d):null;
    if(scavenging||foraging||drinking){
     const feeding=scavenging||foraging||drinking;
