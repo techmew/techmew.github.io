@@ -25,6 +25,13 @@ function trail(x){return center(x);}
 function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
  if(!player||!active(player.x,player.y))return null;
  const n=Math.max(0,attempt|0),distance=(preyOnly?165:255)+(n*47)%340;
+ // Narrow cave: farthest legal floor slots first; no new population budget.
+ if(requestedZone==="cave"){
+  const slot=n%11,span=CAVE_END-CAVE_START-40,fraction=(slot+.5)/11;
+  const reverse=player.x<(CAVE_START+CAVE_END)*.5;
+  const x=CAVE_START+20+span*(reverse?1-fraction:fraction);
+  return {x,y:center(x)+[0,-22,22,0,12,-12][Math.floor(n/11)%6]};
+ }
  const direction=n%2?-1:1;
  const bounds=requestedZone==="cave"?[CAVE_START+50,CAVE_END-50]:
   requestedZone==="summit"?[SUMMIT_START+70,EAST-70]:
