@@ -336,6 +336,7 @@ function updateSurvivalNeeds(dt){
   drain>0?Math.max(0,dt*clamp((drain-(before-16))/drain,0,1)-emptySeconds):0;
  const hungerDamage=emptySeconds*2.4+hungrySeconds*1.2;
  if(hungerDamage>0)P.hp=Math.max(0,P.hp-hungerDamage);
+ if(before>0&&P.hunger===0&&P.hp>0)notify("空腹0：生命が減少中。食べ物を探そう");
  if(P.hp<=0)return false;
  if(P.hunger>0&&atDen()&&!denThreatNearby())
   P.hp=Math.min(P.maxHp,P.hp+traitEffect("giantElephant",denRestRate())*dt);
@@ -2260,6 +2261,8 @@ function getObjective(){
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
  P.hp=0;deathSequenceTime=0;mode="dying";
+ // Discard the dead run immediately, not after the 3.2s fade; checkpoints stay intact.
+ clearAutoSave();
  resetControls();P.deathPose=0;P.hidden=false;P.vx=0;P.vy=0;
  P.jumpTime=0;P.pounceTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
  P.pendingStrike=false;P.strongWound=0;huntSlowUntil=0;objectiveBannerTime=0;
@@ -2282,7 +2285,7 @@ function advanceDeath(dt){
 function finish(won=false){
  if(!P||mode==="over"||mode==="clear")return;
  const deathAlreadyPlayed=mode==="dying";
- clearAutoSave();
+ // The autosave was cleared when death began, exactly once.
  resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
  if(totalScore>best&&!debugTutorialSession){best=totalScore;try{localStorage.setItem("wild-reclaim-best",String(best))}catch(e){}}
@@ -3161,7 +3164,7 @@ function syncHUD(hour){
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
- $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
+ $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜衰弱：生命 -1.2/秒":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
   $("den-status").textContent="巣 LV"+denLevel+"｜運搬 "+(P.carry?foodName(P.carry)+" "+Math.ceil(P.carry.amount):"なし")+"｜縄張り "+territoryOwned()+"/3"+(insideShelter(P)?"｜屋内":"");
  const target=denLevel<3?DEN_COSTS[denLevel+1]:denCapacity();
  $("den-stash-count").textContent="備蓄 "+Math.round(denStash)+" / "+target+"pt"+(denLevel<DEN_MAX_LEVEL?"（LV"+(denLevel+1)+"まで・消費なし）":"（容量）");
