@@ -190,6 +190,13 @@ function spawnLocalPack(){
  }
  return added>0;
 }
+function rareEngagementBlocked(m){
+ if(!P||!m.strongBoss||strongBossLimit()<2)return false;
+ // Several rare animals exist, but only the nearest within battle reach may
+ // attack at once. This prevents an unavoidable three-boss damage burst.
+ const contenders=activeStrongBosses().filter(q=>dist(P,q)<355).sort((a,b)=>dist(P,a)-dist(P,b));
+ return contenders.length>1&&contenders[0]!==m;
+}
 function signalPack(m,spotted){
  if(!m.packId||!P||species[m.type]?.prey)return;
  const mates=mobs.filter(q=>q!==m&&q.hp>0&&q.packId===m.packId&&dist(q,m)<360);
@@ -3240,6 +3247,11 @@ function update(dt){
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(d>WILDLIFE.farAI){m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
+  if(rareEngagementBlocked(m)){
+   m.alert=0;m.search=0;m.windup=0;m.chargeTime=0;
+   m.attack=Math.max(m.attack,.35);m.vx=0;m.vy=0;
+   continue;
+  }
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
