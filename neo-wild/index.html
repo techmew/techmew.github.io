@@ -17,7 +17,7 @@
 <div id="hud">
   <div class="hud-left">
     <div class="vitals"><div class="vital health"><label>生命 <b id="hp-text">100 / 100</b></label><div class="track"><i id="hp-bar"></i></div></div>
-    <div class="vital food"><label>空腹 <b id="food-text">100%</b></label><div class="track"><i id="food-bar"></i></div></div>
+    <div id="poison-status" class="hidden" role="status" aria-live="polite">☠ 毒 0秒｜生命が減少</div><div class="vital food"><label>空腹 <b id="food-text">100%</b></label><div class="track"><i id="food-bar"></i></div></div>
     <div class="vital stamina"><label>持久 <b id="sp-text">100%</b></label><div class="track"><i id="sp-bar"></i></div></div></div>
     <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1｜運搬 なし</div><div id="den-stash-panel"><div id="den-stash-count">備蓄 0 / 60pt（LV2まで・消費なし）</div><div class="den-stash-track" role="progressbar" aria-label="巣の備蓄" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="den-stash-bar"></i></div></div><button id="den-inventory-btn" type="button" aria-controls="den-inventory">食料庫</button><button id="objective-toggle" type="button" aria-controls="tutorial-dialog">ガイドを見る</button>
   </div>
@@ -99,7 +99,7 @@
       </div>
     </div>
     
-<button id="bestiary-open" type="button" aria-controls="bestiary" aria-expanded="false">動物図鑑　0 / 33</button>
+<button id="bestiary-open" type="button" aria-controls="bestiary" aria-expanded="false">動物図鑑　0 / 34</button>
 <section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
 <div class="pick-head"><span>01</span> 生き延びる個体を選択</div>
 <div class="animals">
@@ -134,7 +134,7 @@
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button></div></div>
 <div id="bestiary" class="hidden" role="dialog" aria-modal="true" aria-labelledby="bestiary-title">
  <section class="bestiary-shell">
-  <header class="bestiary-head"><div><h2 id="bestiary-title">動物図鑑</h2><span id="bestiary-progress">登録 0 / 33種</span></div><button id="bestiary-close" type="button">閉じる</button></header>
+  <header class="bestiary-head"><div><h2 id="bestiary-title">動物図鑑</h2><span id="bestiary-progress">登録 0 / 34種</span></div><button id="bestiary-close" type="button">閉じる</button></header>
   <div id="bestiary-list" class="bestiary-list" aria-label="討伐した動物の一覧"></div>
   <div id="bestiary-detail" class="bestiary-detail hidden">
    <div class="bestiary-info"><button id="bestiary-back" type="button">一覧に戻る</button><strong id="bestiary-name"></strong><small id="bestiary-count"></small></div>
@@ -168,10 +168,10 @@
 })();
 </script>
 <script src="./audio.js?rev=20261102-death-finalquiet-v4" defer></script>
-<script src="./webgl3d.js?rev=20261102-bestiary-glstate-v2" defer></script>
-<script src="./bestiary.js?rev=20261102-bestiary-legacy-v3" defer></script>
-<script src="./fauna.js?rev=20261102-fauna13-2d-v2" defer></script>
-<script src="./game.js?rev=20261102-bestiary-record-v2" defer></script>
+<script src="./webgl3d.js?rev=20261102-venomsnake-v1" defer></script>
+<script src="./bestiary.js?rev=20261102-venom-species-v1" defer></script>
+<script src="./fauna.js?rev=20261102-venom-pack-v1" defer></script>
+<script src="./game.js?rev=20261102-pack-venom-scaling-v1" defer></script>
 <script src="./gamepad.js?rev=20261102-bestiary-pad-v1" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261102-tutorial-debug-flow-v4" defer></script>
