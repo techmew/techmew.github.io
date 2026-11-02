@@ -156,7 +156,7 @@ function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
 function strongBossLimit(){return !P||P.level<6?1:P.level<11?2:3;}
-function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||m.type==="alpha"));}
+function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)));}
 function syncEnemyLevel(m){
  if(!m||m.hp<=0||m.strongBoss||m.type==="alpha"||species[m.type]?.prey)return;
  const spec=species[m.type];if(!spec)return;
@@ -1410,7 +1410,7 @@ function normalizeStrongBossSave(){
  let first=null,kept=0;
  for(const m of mobs){
   if(!species[m.type]){m.type="dog";m.r=species.dog.r;}
-  if(m.strongBoss||m.type==="alpha"){
+  if(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)){
    if(kept<strongBossLimit()){if(!first)first=m;kept++;m.strongBoss=true;m.color=species[m.type].color;m.belly=species[m.type].belly;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
    else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
   }
