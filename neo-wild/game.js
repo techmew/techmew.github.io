@@ -40,6 +40,8 @@ const species={
 };
 Object.assign(species,window.WildFauna?.species||{});
 const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲"};
+// The encyclopedia is account-local and independent from SAVE_SCHEMA2 checkpoints.
+window.WildBestiary?.configure(species,STRONG_NAMES);
 const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf","albinoWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf","albinoWolf"],2:["giantEagle","giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo","giantLizard","giantGorilla"],3:["giantEagle","oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion","giantLizard","rhino","giantElephant"],4:["giantEagle","giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantEagle","giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo","giantLizard","rhino","giantGorilla","giantElephant"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantEagle","giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]};
 // Each trophy is earned through an actual boss kill; the first five can be inherited at an LV2 den.
 const STRONG_TRAITS={
@@ -1989,6 +1991,7 @@ function resolveAttack(){
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
+ window.WildBestiary?.recordKill(m.type);
  kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);
  if(isAquaticStrong(m)){
