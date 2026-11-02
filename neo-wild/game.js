@@ -1159,6 +1159,7 @@ function restoreSnapshot(snapshot){
   m.signature=null;m.signatureCooldown=clamp(Number(m.signatureCooldown)||0,0,16);
   m.signatureUse=clamp(Math.floor(Number(m.signatureUse)||0),0,1000);
   m.bossPresenceShown=false;
+  if(m.type==="mountainGoat"){m.headbuttTell=0;m.headbuttArmed=false;}
   if(m.type==="giantGorilla")m.rock=null;
   if(m.type==="macaque"){m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
   if(m.type==="chimpanzee"){m.chimpStone=null;m.chimpTell=0;m.chimpAttackKind=null;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
@@ -3410,7 +3411,7 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
 const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque","chimpanzee"]);
-const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque","chimpanzee"]);
+const WILD_FORAGERS=new Set(["serow","mountainGoat","rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque","chimpanzee"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -4123,6 +4124,26 @@ function update(dt){
    let vx=0,vy=0;
    if(!s.prey)tryEnemyEmergencyEvade(m,s,d,spotted);
    if((m.evadeTime||0)>0){advanceEnemyEvade(m,dt);continue;}
+   // Defensive goat: visible warning, stationary windup, real range/LOS hit,
+   // then escape. It remains edible prey, not a permanently hostile monster.
+   if(m.type==="mountainGoat"){
+    m.headbuttTell=Math.max(0,(m.headbuttTell||0)-dt);
+    if(m.headbuttTell>0&&d<P.r+m.r+120)m.dir=angle;
+    if(m.headbuttTell===0&&m.headbuttArmed){
+     m.headbuttArmed=false;m.swing=.28;
+     if(d<P.r+m.r+36&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
+      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.78));
+      P.hp=Math.max(0,P.hp-damage);P.inv=.48;P.lastCombatAt=elapsed;
+      interruptRush();shake=Math.max(shake,6);
+      label(P.x,P.y-35,"角突き -"+damage,"#ffd0a1");playEffect("damage");
+     }else if(d<230)label(m.x,m.y-m.r-24,"角突きを回避！","#b4e6c2");
+     m.flee=Math.max(m.flee,2.4);m.dir=angle+Math.PI;
+    }
+    if(!m.headbuttArmed&&m.headbuttTell===0&&spotted&&d<P.r+m.r+63&&m.attack<=0&&P.inv<=0){
+     m.headbuttTell=.54;m.headbuttArmed=true;m.attack=3.4;m.dir=angle;
+     label(m.x,m.y-m.r-32,"角突きの予兆！","#ffc68c");
+    }
+   }
    // A zebra is usually fleeing, but its hind kick punishes close pursuit.
    if(m.type==="zebra"&&spotted&&d<P.r+m.r+24&&m.attack<=0&&P.inv<=0){
     const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.85));
@@ -4146,7 +4167,7 @@ function update(dt){
       m.dir=chooseEscape(m,Math.atan2(m.y-threat.y,m.x-threat.x),threat);
       m.escapeTimer=m.type==="rat"?.23:m.type==="pigeon"?.32:.64;
     }
-    m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(m.type==="rabbit"?.83+1.02*m.fleeEnergy:m.type==="pigeon"?.85+.87*m.fleeEnergy:.84+.57*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
+    m.flee=Math.max(0,m.flee-dt);const burst=s.prey?(m.type==="serow"?1.08+1.07*m.fleeEnergy:m.type==="mountainGoat"?.82+.82*m.fleeEnergy:m.type==="rabbit"?.83+1.02*m.fleeEnergy:m.type==="pigeon"?.85+.87*m.fleeEnergy:.84+.57*m.fleeEnergy):1.3;vx=Math.cos(m.dir)*s.speed*burst;vy=Math.sin(m.dir)*s.speed*burst;
    }else if(s.prey&&spotted){
     m.dir=angle;m.wander=Math.max(m.wander,.3);vx=0;vy=0;
    }else if(!s.prey&&m.alert>0){
@@ -4271,6 +4292,7 @@ function update(dt){
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
+   if(m.type==="mountainGoat"&&m.headbuttTell>0){vx=0;vy=0;}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
