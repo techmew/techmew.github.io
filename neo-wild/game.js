@@ -2234,6 +2234,8 @@ function beginDeath(){
  resetControls();P.deathPose=0;P.hidden=false;P.vx=0;P.vy=0;
  P.jumpTime=0;P.pounceTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
  P.pendingStrike=false;P.strongWound=0;huntSlowUntil=0;objectiveBannerTime=0;
+ // Clear the last hit effects before the quiet death sequence.
+ shake=0;flash=0;popups.length=0;pounceStreaks.length=0;
  $("hunt-cinematic").classList.remove("show");
  $("objective-banner").classList.remove("visible");
  playEffect("death");window.WildAudio?.fadeForDeath?.();
@@ -4117,7 +4119,7 @@ function drawThreatNames(){
  ctx.restore();
 }
 function drawScene(){
- const x=cam.x+(shake?rnd(-shake,shake):0),y=cam.y+(shake?rnd(-shake,shake):0);
+ const x=cam.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
  if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
@@ -4249,7 +4251,7 @@ function drawScene(){
   ctx.fillStyle=weather==="THUNDER"?"rgba(15,25,35,.22)":weather==="RAIN"?"rgba(26,38,47,.15)":weather==="CLOUDY"?"rgba(32,42,50,.12)":"rgba(44,48,43,.07)";
   ctx.fillRect(0,0,vw,vh);
  }
- if(weather==="RAIN"||weather==="THUNDER"){
+ if((weather==="RAIN"||weather==="THUNDER")&&mode!=="dying"){
   ctx.save();ctx.globalAlpha=insideShelter(P)?.14:1;
   ctx.strokeStyle=weather==="THUNDER"?"#c9e1e7ab":"#9dc9cb79";
   ctx.lineWidth=weather==="THUNDER"?1.8:1.2;ctx.beginPath();
@@ -4260,18 +4262,18 @@ function drawScene(){
   }
   ctx.stroke();ctx.restore();
  }
- if(weather==="WIND"){
+ if(weather==="WIND"&&mode!=="dying"){
   ctx.strokeStyle="#d2c8a73b";ctx.lineWidth=1.4;ctx.beginPath();
   for(let i=0;i<22;i++){
    const y=(i*93+elapsed*49)%Math.max(1,vh),x=(i*131+elapsed*210)%Math.max(1,vw);
    ctx.moveTo(x,y);ctx.lineTo(x+24,y-6);
   }ctx.stroke();
  }
- if(thunderFlash>0&&weather==="THUNDER"){
+ if(thunderFlash>0&&weather==="THUNDER"&&mode!=="dying"){
   ctx.fillStyle="rgba(230,240,255,"+(thunderFlash*.44)+")";
   ctx.fillRect(0,0,vw,vh);
  }
- if(flash>0){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
+ if(flash>0&&mode!=="dying"){ctx.fillStyle="rgba(255,97,71,"+(flash*.35)+")";ctx.fillRect(0,0,vw,vh)}
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  
  if(P&&P.hidden&&mode==="play"){
@@ -4280,7 +4282,9 @@ function drawScene(){
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
 
- drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels(); // Route hint only during active objectives.
+ if(mode!=="dying"){
+  drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
+ } // Keep mission and enemy labels off the dying animal.
  if(mode==="dying"){
   const dim=clamp((deathSequenceTime-.45)/2.75,0,1);
   ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
