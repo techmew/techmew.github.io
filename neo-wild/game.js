@@ -985,6 +985,48 @@ function isValidSnapshot(s){
   Array.isArray(s.mobs)&&s.mobs.length<=120&&Array.isArray(s.carcasses)&&s.carcasses.length<=300&&
   Array.isArray(s.plants)&&s.plants.length<=2600&&Array.isArray(s.debris)&&s.debris.length<=1800;
 }
+
+// SAVE_SCHEMA=2 compatibility: repair damaged nested records without discarding
+// a healthy checkpoint or mutating the original snapshot in localStorage.
+function sanitizeSavedWorld(s){
+ const point=o=>!!o&&typeof o==="object"&&Number.isFinite(o.x)&&Number.isFinite(o.y)&&
+  o.x>=0&&o.x<=WORLD.w&&o.y>=0&&o.y<=WORLD.h;
+ const mobs=s.mobs.filter(m=>point(m)&&typeof m.type==="string"&&
+  Number.isFinite(m.hp)&&m.hp>0).map(m=>{
+   const type=Object.prototype.hasOwnProperty.call(species,m.type)?m.type:"dog";
+   const sp=species[type];
+   const maxHp=Number.isFinite(m.maxHp)&&m.maxHp>0?clamp(m.maxHp,1,100000):Math.max(sp.hp,m.hp);
+   return {...m,type,r:Number.isFinite(m.r)&&m.r>=4&&m.r<=120?m.r:sp.r,
+    maxHp,hp:clamp(m.hp,1,maxHp),vx:Number.isFinite(m.vx)?m.vx:0,
+    vy:Number.isFinite(m.vy)?m.vy:0,dir:Number.isFinite(m.dir)?m.dir:0};
+  });
+ const carcasses=s.carcasses.filter(c=>point(c)&&
+  ["corpse","meat","berries","bones"].includes(c.type)&&
+  (c.type==="bones"||Number.isFinite(c.amount)&&c.amount>0&&c.amount<=5000)).map(c=>({
+   ...c,amount:c.type==="bones"?0:c.amount,
+   r:Number.isFinite(c.r)&&c.r>0&&c.r<=120?c.r:9,
+   ttl:Number.isFinite(c.ttl)?clamp(c.ttl,0,1000):c.type==="bones"?45:150
+  }));
+ return {mobs,carcasses,plants:s.plants.filter(point),debris:s.debris.filter(point)};
+}
+function normalizeSavedPlayerStats(p,base){
+ const level=clamp(Math.floor(p.level),1,1000);
+ let threshold=5;
+ for(let i=1;i<level&&threshold<1000000000;i++)threshold=Math.min(1000000000,Math.round(threshold*1.5+2));
+ const maxHp=Number.isFinite(p.maxHp)&&p.maxHp>=base.hp?
+  clamp(p.maxHp,base.hp,1000000):Math.max(base.hp,p.hp);
+ return {
+  r:base.r,maxHp,hp:clamp(p.hp,1,maxHp),level,
+  sp:Number.isFinite(p.sp)?clamp(p.sp,0,100):100,
+  speed:Number.isFinite(p.speed)&&p.speed>0?clamp(p.speed,base.speed*.5,base.speed*20):base.speed,
+  damage:Number.isFinite(p.damage)&&p.damage>0?clamp(p.damage,1,1000000):base.damage,
+  dir:Number.isFinite(p.dir)?p.dir:0,
+  xp:Number.isFinite(p.xp)&&p.xp>=0?clamp(p.xp,0,1000000000):0,
+  nextXp:Number.isFinite(p.nextXp)&&p.nextXp>=1?clamp(p.nextXp,1,1000000000):threshold,
+  inv:Number.isFinite(p.inv)?clamp(p.inv,0,10):0
+ };
+}
+
 function getAutoSnapshot(){
  try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return isValidSnapshot(s)?s:null}catch(_){return null}
 }
@@ -1062,6 +1104,7 @@ function restoreSnapshot(snapshot){
  scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
+ Object.assign(P,normalizeSavedPlayerStats(p,animals[choice]));
  // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
  P.hunger=p.hunger==null||p.hunger===""?100:Number.isFinite(Number(p.hunger))?clamp(Number(p.hunger),0,100):100;
  if(choice==="cat"&&!p.catSpeedV2){
@@ -1105,7 +1148,8 @@ function restoreSnapshot(snapshot){
  tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
  territoryClaims=Array.isArray(snapshot.territoryClaims)&&snapshot.territoryClaims.length===3?snapshot.territoryClaims.map(Boolean):[false,false,false];
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
- mobs=snapshot.mobs;carcasses=snapshot.carcasses;
+ const cleanWorld=sanitizeSavedWorld(snapshot);
+ mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
   strongRolls=snapshot.strongRolls&&typeof snapshot.strongRolls==="object"&&!Array.isArray(snapshot.strongRolls)?JSON.parse(JSON.stringify(snapshot.strongRolls)):{};
   strongTrophies=snapshot.strongTrophies&&typeof snapshot.strongTrophies==="object"?{...snapshot.strongTrophies}:{};
   strongRegionCurrent=-1;normalizeStrongBossSave();
@@ -1155,10 +1199,10 @@ function restoreSnapshot(snapshot){
  }
  const expandedPlants=plants.filter(item=>item.x>4200||item.y>2400);
  const expandedDebris=debris.filter(item=>item.x>4200||item.y>2400);
- plants=snapshot.worldVersion===2?snapshot.plants:snapshot.plants.concat(expandedPlants);
+ plants=snapshot.worldVersion===2?cleanWorld.plants:cleanWorld.plants.concat(expandedPlants);
  ensureDenCover();
  if(mission<=1)ensureTrainingCoverNear(P);
- debris=snapshot.worldVersion===2?snapshot.debris:snapshot.debris.concat(expandedDebris);
+ debris=snapshot.worldVersion===2?cleanWorld.debris:cleanWorld.debris.concat(expandedDebris);
  discoveredSites=Array.isArray(snapshot.discoveredSites)?snapshot.discoveredSites.filter(id=>EXPLORE_SITES.some(s=>s.id===id)):[];
  ecology=Array.isArray(snapshot.ecology)&&snapshot.ecology.length===8?snapshot.ecology.map((e,i)=>({
   prey:clamp(Number(e?.prey)||initialEcology()[i].prey,4,86),
