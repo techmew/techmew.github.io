@@ -987,3 +987,7 @@
 #result .score-points{flex:0 0 auto;font:900 15px/1.2 "Barlow Condensed","Noto Sans JP",sans-serif;font-variant-numeric:tabular-nums}
 #result #result-top5-status{margin:7px 0 0!important;color:#c5dacf;font-size:10px!important;line-height:1.4!important}
 @media(max-height:520px){#result .result-top5{padding:6px 8px}#result #result-top5-list{gap:2px}#result #result-top5-list li{min-height:25px;padding:3px 5px}#result .result-highscore{padding:4px 10px!important}}
+
+/* VENOM-PACK-V1: immediately visible, readable poisoned status in both orientations. */
+#poison-status{margin:3px 0 7px;padding:5px 7px;width:max-content;max-width:100%;border-radius:6px;border:1px solid #b1e06e;background:#25331ae8;color:#d5f68d;font:800 11px/1.35 "Noto Sans JP",sans-serif;text-shadow:0 1px 2px #000}
+@media(max-height:520px) and (orientation:landscape){#poison-status{margin:2px 0 3px;padding:2px 5px;font-size:9px}}
