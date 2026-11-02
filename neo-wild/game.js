@@ -116,7 +116,12 @@ function rememberTutorialStage(stage){
  try{localStorage.setItem(TUTORIAL_LESSONS_KEY,JSON.stringify([...tutorialLessonsSeenEver]))}catch(_){}
  rememberTutorialShown();
 }
-function migrateSeenTutorial(snapshot){if(snapshot&&(Number(snapshot.mission)>0||(Array.isArray(snapshot.tutorialSeen)&&snapshot.tutorialSeen.length>0)))rememberTutorialShown();}
+function migrateSeenTutorial(snapshot){
+ if(!snapshot||(Number(snapshot.mission)<=0&&!(Array.isArray(snapshot.tutorialSeen)&&snapshot.tutorialSeen.length>0)))return;
+ tutorialLessonsSeenEver.add(0); // A pre-v2 saved run had already passed the introductory food lesson.
+ rememberTutorialShown();
+ if(!debugTutorialSession)try{localStorage.setItem(TUTORIAL_LESSONS_KEY,JSON.stringify([...tutorialLessonsSeenEver]))}catch(_){}
+}
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 // Presentation-only state: never stored in SAVE_SCHEMA=2.
 const DEATH_SEQUENCE_SECONDS=3.2;
