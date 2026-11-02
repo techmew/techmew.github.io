@@ -72,8 +72,8 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
 }
 function choose(random=Math.random(),x=9000){
  const entries=x>FOOTHILL_END?
- [["deer",29],["wildFox",12],["rabbit",18],["boar",17],["weasel",7],["raccoonDog",9],["crow",8]]:
- [["deer",24],["wildFox",15],["rabbit",24],["boar",12],["weasel",9],["raccoonDog",10],["crow",6]];
+ [["deer",24],["wildFox",10],["rabbit",16],["boar",15],["weasel",6],["raccoonDog",8],["crow",7],["macaque",14]]:
+ [["deer",22],["wildFox",12],["rabbit",21],["boar",11],["weasel",8],["raccoonDog",9],["crow",5],["macaque",12]];
  let roll=random*100;
  for(const [type,w] of entries){roll-=w;if(roll<0)return type;}
  return "rabbit";
