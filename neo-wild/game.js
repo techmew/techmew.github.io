@@ -155,7 +155,7 @@ const WILDLIFE={initial:13,cap:76,localRadius:700,localCap:9,separation:99,preyN
 let lastPackSpawnAt=-WILDLIFE.packCooldown;
 /* Dynamic encounter difficulty. Scale relative to the player's LV, but cap each
  * damage and HP curve so an old long-lived save cannot become impossible. */
-const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake","lion","macaque"];
+const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake","lion","macaque","chimpanzee"];
 function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
 function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
 function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
@@ -224,7 +224,7 @@ function spawnLocalPack(){
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  // Lions only inhabit the zoo/greenbelt; no exotic packs appearing in city offices.
  const biome=regionAt(P.x,P.y);
- const eligible=PACK_TYPES.filter(t=>t==="macaque"?mountainHabitat(P.x,P.y):(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
+ const eligible=PACK_TYPES.filter(t=>t==="chimpanzee"?mountainHabitat(P.x,P.y)&&P.x>MOUNTAIN.FOOTHILL_END:t==="macaque"?mountainHabitat(P.x,P.y):(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
  if(!eligible.length)return false;
  const type=eligible[Math.floor(Math.random()*eligible.length)],before=mobs.length;
  const wanted=P.level>=8&&type!=="lion"?2:1;
@@ -1112,6 +1112,7 @@ function restoreSnapshot(snapshot){
   m.bossPresenceShown=false;
   if(m.type==="giantGorilla")m.rock=null;
   if(m.type==="macaque"){m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
+  if(m.type==="chimpanzee"){m.chimpStone=null;m.chimpTell=0;m.chimpAttackKind=null;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
   if(m.type==="giantEagle"){m.airPhase="circle";m.airHeight=Math.max(90,Number(m.airHeight)||125);m.airTimer=1.4;m.airTarget=null;m.airHit=false;m.windup=0;}
   if(isAquaticStrong(m)){
    // Keep saved aquatic bosses in the river/canal; never migrate them onto land.
@@ -1548,15 +1549,16 @@ function traceMacaqueStone(stone,dt,target){
  let stop=1;
  for(let k=1;k<=steps;k++){
   const f=k/steps,x=ox+dx*f,y=oy+dy*f;
-  if(x<20||y<20||x>WORLD.w-20||y>WORLD.h-20||collides(x,y,5,null,true)){
+  if(x<20||y<20||x>WORLD.w-20||y>WORLD.h-20||collides(x,y,5,null,true,stone.sourceTree||null)){
    stop=f;break;
   }
  }
  const t=length>0?clamp(((target.x-ox)*dx+(target.y-oy)*dy)/(length*length),0,1):0;
  const contactX=ox+dx*t,contactY=oy+dy*t;
- const hit=length>0&&t<=stop&&Math.hypot(target.x-contactX,target.y-contactY)<target.r+8&&
-  !lineBlocked({x:ox,y:oy},{x:contactX,y:contactY});
- const wall=stop<1||lineBlocked({x:ox,y:oy},{x:ox+dx,y:oy+dy});
+ const hit=length>0&&t<=stop&&Math.hypot(target.x-contactX,target.y-contactY)<target.r+8;
+ // Swept collision is authoritative; a source tree's trunk is ignored only
+ // for a throw launched from its elevated branch, never other terrain.
+ const wall=stop<1;
  stone.x=ox+dx*stop;stone.y=oy+dy*stop;stone.ttl=Math.max(0,remaining-Math.max(0,dt));
  return {hit,blocked:wall||stone.ttl<=0};
 }
@@ -1593,7 +1595,8 @@ function updateMacaque(m,dt,d){
   if(m.macaqueTell===0){
    const aim=Number.isFinite(m.macaqueAim)?m.macaqueAim:Math.atan2(P.y-m.y,P.x-m.x);
    m.macaqueStone={x:m.x+Math.cos(aim)*(m.r+21),y:m.y+Math.sin(aim)*(m.r+21),
-    vx:Math.cos(aim)*395,vy:Math.sin(aim)*395,ttl:.95};
+    vx:Math.cos(aim)*395,vy:Math.sin(aim)*395,ttl:.95,
+    sourceTree:m.treeHeight>12&&tree&&best<tree.r+m.r+24?tree:null};
    m.macaqueCooldown=3.7;m.swing=.24;
   }
  }
@@ -1637,6 +1640,100 @@ function updateMacaque(m,dt,d){
  }
  m.step=(m.step||0)+dt*(m.treeHeight>0?1.1:2.7);
  m.alert=Math.max(0,(m.alert||0)-dt*.4);
+}
+// CHIMP-TOOL-FOREST-V1: tree retreat, shared alarm, a dodgeable thrown stone,
+// and a short-range branch strike. All phases use existing mob save fields.
+function updateChimpanzee(m,dt,d){
+ const spec=species.chimpanzee;
+ m.chimpCooldown=Math.max(0,(Number(m.chimpCooldown)||0)-dt);
+ m.chimpTell=Math.max(0,Number(m.chimpTell)||0);
+ m.treeHeight=Math.max(0,Number(m.treeHeight)||0);
+ const seen=d<350&&!P.hidden&&!lineBlocked(m,P);
+ const forest=[...(MOUNTAIN?.trees||[]),...(MOUNTAIN?.pines||[])];
+ let tree=null,best=125;
+ for(const t of forest){const n=Math.hypot(t.x-m.x,t.y-m.y);if(n<best){tree=t;best=n;}}
+ if(seen){
+  m.alert=Math.max(m.alert||0,4.2);m.lastX=P.x;m.lastY=P.y;
+  for(const q of mobs)if(q!==m&&q.type==="chimpanzee"&&q.hp>0&&dist(q,m)<330){
+   q.alert=Math.max(q.alert||0,3.1);q.lastX=P.x;q.lastY=P.y;
+  }
+ }
+ if(m.chimpStone){
+  const trace=traceMacaqueStone(m.chimpStone,dt,P);
+  if(trace.hit&&P.inv<=0&&P.hp>0&&!insideShelter(P)){
+   const amount=Math.max(4,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.78));
+   P.hp=Math.max(0,P.hp-amount);P.inv=.47;P.lastCombatAt=elapsed;
+   interruptRush();shake=Math.max(shake,6);flash=Math.max(flash,.16);
+   label(P.x,P.y-35,"道具の投石 -"+amount,"#ffd0aa");playEffect("damage");
+  }
+  if(trace.blocked||trace.hit)m.chimpStone=null;
+ }
+ if(m.stun>0||m.hp<m.maxHp*.28){
+  m.chimpTell=0;m.treeHeight=Math.max(0,m.treeHeight-dt*80);
+ }else if(m.chimpTell>0){
+  m.chimpTell=Math.max(0,m.chimpTell-dt);
+  if(m.chimpTell===0){
+   const a=Number.isFinite(m.chimpAim)?m.chimpAim:Math.atan2(P.y-m.y,P.x-m.x);
+   if(m.chimpAttackKind==="branch"){
+    // A visible .52-second swing is avoidable by moving out of reach.
+    if(d<m.r+P.r+48&&!lineBlocked(m,P)&&P.inv<=0&&P.hp>0&&m.treeHeight<8){
+     const amount=Math.max(5,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*1.20));
+     P.hp=Math.max(0,P.hp-amount);P.inv=.52;P.lastCombatAt=elapsed;
+     interruptRush();shake=Math.max(shake,7);flash=Math.max(flash,.17);
+     label(P.x,P.y-36,"枝の一撃 -"+amount,"#ffc8a1");playEffect("damage");
+    }
+   }else{
+    m.chimpStone={x:m.x+Math.cos(a)*(m.r+22),y:m.y+Math.sin(a)*(m.r+22),
+     vx:Math.cos(a)*350,vy:Math.sin(a)*350,ttl:1.02,
+     sourceTree:m.treeHeight>12&&tree&&best<tree.r+m.r+24?tree:null};
+   }
+   m.chimpCooldown=m.chimpAttackKind==="branch"?3.15:4.6;
+   m.swing=.25;
+  }
+ }
+ // Climb away from nearby predators; descend before the branch melee.
+ if(m.treeHeight>0){
+  m.chimpTreeTime=Math.max(0,(m.chimpTreeTime||0)-dt);
+  if(m.chimpTreeTime<=0||!tree||d<90||m.hp<m.maxHp*.28)m.treeHeight=Math.max(0,m.treeHeight-dt*66);
+  else m.treeHeight=Math.min(54,m.treeHeight+dt*62);
+ }else if(tree&&d>150&&d<315&&m.alert>0&&m.stun<=0&&m.chimpTell<=0){
+  if(best<tree.r+m.r+10){m.treeHeight=Math.min(54,m.treeHeight+dt*65);m.chimpTreeTime=5;}
+  else{const a=Math.atan2(tree.y-m.y,tree.x-m.x);m.dir=a;move(m,Math.cos(a)*spec.speed*.74*dt,Math.sin(a)*spec.speed*.74*dt);}
+ }
+ m.groundZ=m.treeHeight||0;m.evadeHeight=m.treeHeight||0;
+ if(m.treeHeight>0||m.chimpTell>0){m.vx=0;m.vy=0;}
+ if(seen&&m.chimpCooldown<=0&&m.chimpTell<=0&&!m.chimpStone&&m.stun<=0){
+  if(d<spec.r+P.r+62&&m.treeHeight<8){
+   m.chimpAttackKind="branch";m.chimpTell=.52;
+  }else if(d>105&&d<340){
+   m.chimpAttackKind="stone";m.chimpTell=.76;
+  }
+  if(m.chimpTell>0){
+   m.chimpAim=Math.atan2(P.y-m.y,P.x-m.x);m.dir=m.chimpAim;
+   label(m.x,m.y-m.r-41,m.chimpAttackKind==="branch"?"枝を振り上げた！":"石を構えた！","#ffcc92");
+  }
+ }
+ if(m.treeHeight<=0&&m.chimpTell<=0&&m.stun<=0){
+  if(seen&&d<125){
+   const a=Math.atan2(m.y-P.y,m.x-P.x);m.dir=a;
+   move(m,Math.cos(a)*spec.speed*.50*dt,Math.sin(a)*spec.speed*.50*dt);
+  }else if(!seen&&m.alert<=0){
+   m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
+   m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
+   const action=forageWildBerries(m,spec,dt,false,d)||huntWildPrey(m,spec,false,d);
+   if(action)move(m,action.vx*dt,action.vy*dt);
+   else{
+    const leader=m.packId&&m.packOrder>0?mobs.find(q=>q.hp>0&&q.packId===m.packId&&q.packOrder===0):null;
+    if(leader&&dist(m,leader)>95)m.dir=Math.atan2(leader.y-m.y,leader.x-m.x);
+    else if((m.wander||0)<=0){m.dir+=rnd(-1.2,1.2);m.wander=rnd(.8,2);}
+    const pace=leader&&dist(m,leader)>95?.64:.23;
+    const x=m.x+Math.cos(m.dir)*spec.speed*pace*dt,y=m.y+Math.sin(m.dir)*spec.speed*pace*dt;
+    if(mountainHabitat(x,y))move(m,x-m.x,y-m.y);else m.dir+=Math.PI*.8;
+   }
+  }
+ }
+ m.step=(m.step||0)+dt*(m.treeHeight>0?1.2:2.6);
+ m.alert=Math.max(0,(m.alert||0)-dt*.45);
 }
 function updateFlyingEagle(m,dt){
  if(!P||m.hp<=0)return;
@@ -1853,7 +1950,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
    y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
   }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
-  valid=!collides(x,y,40)&&(!forcedType||forcedType!=="macaque"||mountainHabitat(x,y))&&(!P||dist(candidate,P)>(preyOnly?145:230))
+  valid=!collides(x,y,40)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0))
    &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
@@ -1946,9 +2043,9 @@ function landOnSurface(){
  else{P.fallTime=0;P.jumpHeight=next;}
  return next>old;
 }
-function collides(x,y,r,actor=null,ignoreWater=false){
+function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
- if(MOUNTAIN?.blocked(x,y,r))return true;
+ if(MOUNTAIN?.blocked(x,y,r,mountainIgnore))return true;
  if(!ignoreWater&&waterBlocksLand(x,y))return true;
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
@@ -3128,8 +3225,8 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque"]);
-const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque"]);
+const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque","chimpanzee"]);
+const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque","chimpanzee"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -3151,11 +3248,11 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
- const maxRange=["strayCat","weasel","snake","venomSnake","macaque"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
-  if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque"].includes(m.type)){
+  if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque","chimpanzee"].includes(m.type)){
    const smallPrey=["rat","frog","pigeon","crow","weasel"];
    if(m.type==="wildFox")smallPrey.push("rabbit");
    if(!smallPrey.includes(q.type))continue;
@@ -3727,6 +3824,7 @@ function update(dt){
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);else{m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
+  if(m.type==="chimpanzee"){if(d<WILDLIFE.farAI)updateChimpanzee(m,dt,d);else{m.chimpStone=null;m.chimpTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(d>WILDLIFE.farAI){m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,1.2);m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
   if(rareEngagementBlocked(m)){
    m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,.9);
@@ -5162,14 +5260,14 @@ function drawScene(){
  drawOccludedSilhouettes(entities);
  }
  drawBossThreats(entities);
- for(const m of entities)if(m.type==="macaque"&&m.hp>0&&(m.macaqueTell||0)>0){
-  const a=m.macaqueAim||0,reach=395*.95;
+ for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&m.hp>0&&((m.macaqueTell||0)>0||(m.chimpTell||0)>0)){
+  const a=Number.isFinite(m.chimpAim)&&m.type==="chimpanzee"?m.chimpAim:m.macaqueAim||0,reach=(m.type==="chimpanzee"?(m.chimpAttackKind==="branch"?m.r+P.r+48:350*1.02):395*.95);
   ctx.save();ctx.strokeStyle="#f0c486";ctx.lineWidth=4;ctx.setLineDash([15,11]);
   ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(m.x+Math.cos(a)*reach,m.y+Math.sin(a)*reach);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
  }
- for(const m of entities)if(m.type==="macaque"&&m.macaqueStone){
-  const stone=m.macaqueStone;
+ for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&(m.macaqueStone||m.chimpStone)){
+  const stone=m.macaqueStone||m.chimpStone;
   ctx.save();ctx.fillStyle="#c1b7a0";ctx.strokeStyle="#574e44";ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(stone.x,stone.y,7,0,TWO);ctx.fill();ctx.stroke();ctx.restore();
  }
