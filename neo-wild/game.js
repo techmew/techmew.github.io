@@ -224,7 +224,11 @@ function spawnLocalPack(){
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  // Lions only inhabit the zoo/greenbelt; no exotic packs appearing in city offices.
  const biome=regionAt(P.x,P.y);
- const eligible=PACK_TYPES.filter(t=>t==="chimpanzee"?mountainHabitat(P.x,P.y)&&P.x>MOUNTAIN.FOOTHILL_END:t==="macaque"?mountainHabitat(P.x,P.y):(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
+ // Packs in the mountains use the mountain food web, not canal/city species.
+ const mountain=mountainHabitat(P.x,P.y);
+ const eligible=mountain?PACK_TYPES.filter(t=>["wildFox","raccoonDog","weasel","macaque","chimpanzee"].includes(t)&&
+  (t!=="chimpanzee"||P.x>MOUNTAIN.FOOTHILL_END)):
+  PACK_TYPES.filter(t=>t!=="macaque"&&t!=="chimpanzee"&&(window.WildFauna?.weight(t,biome,day,weather)||0)>0);
  if(!eligible.length)return false;
  const type=eligible[Math.floor(Math.random()*eligible.length)],before=mobs.length;
  const wanted=P.level>=8&&type!=="lion"?2:1;
@@ -1094,7 +1098,8 @@ function restoreSnapshot(snapshot){
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
- scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;lastPopulatedRegion=regionAt(P.x,P.y)+(mountainHabitat(P.x,P.y)?":foothill":"");
+ scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;lastPopulatedRegion=regionAt(P.x,P.y)+(mountainHabitat(P.x,P.y)?
+  (P.x>MOUNTAIN.FOOTHILL_END?":slope":":foothill"):"");
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
  tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
@@ -1945,7 +1950,8 @@ function retireFarCalmAnimal(){
 let lastPopulatedRegion=-1;
 function settleNewRegion(){
  if(!P)return false;
- const region=regionAt(P.x,P.y),habitat=region+(mountainHabitat(P.x,P.y)?":foothill":"");
+ const region=regionAt(P.x,P.y),habitat=region+(mountainHabitat(P.x,P.y)?
+  (P.x>MOUNTAIN.FOOTHILL_END?":slope":":foothill"):"");
  if(habitat===lastPopulatedRegion)return false;
  lastPopulatedRegion=habitat;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
@@ -1978,7 +1984,7 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  const biome=regionAt(x,y);
- let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)&&!preyOnly?MOUNTAIN.choose(Math.random(),x,y):window.WildFauna?.choose(biome,day,weather,preyOnly);
+ let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)?MOUNTAIN.choose(Math.random(),x,y,preyOnly,weather):window.WildFauna?.choose(biome,day,weather,preyOnly);
  if(!species[type])type="rat";
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
@@ -2434,6 +2440,14 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
   if(p.type===1||(p.type===2&&!visibleShrubCover())||waterBlocksLand(p.x,p.y))continue;
   const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
   if(d2<best&&(d2>Math.pow(m.r+(p.r||9)+12,2)||!lineBlocked(m,p))){best=d2;target=p;}
+ }
+ // Mountain forage is actual visible ground vegetation, not a hidden urban
+ // plant array. The animal must be able to reach it without crossing a cliff.
+ if(!target&&mountainHabitat(m.x,m.y))for(const p of MOUNTAIN.forageSites||[]){
+  const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
+  if(d2<best&&!collides(p.x,p.y,m.r)&&routeClear(m,p,m.r)){
+   best=d2;target=p;
+  }
  }
  if(!target)return null;
  const grazing=!Object.prototype.hasOwnProperty.call(target,"amount");
@@ -4967,6 +4981,16 @@ function routeClear(a,b,radius=P.r){
  if(Math.max(a.x,b.x)>5500){
   const n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/32));
   for(let k=0;k<=n;k++){const t=k/n;if(waterBlocksLand(a.x+dx*t,a.y+dy*t))return false;}
+ }
+ // A straight NPC route must respect the same mountain cliffs, trees and
+ // bridge openings as player collision. Sample only near mountain terrain.
+ if(MOUNTAIN&&Math.max(a.x,b.x)>=MOUNTAIN.CITY_EDGE&&
+    Math.min(a.x,b.x)<=MOUNTAIN.EAST&&Math.max(a.y,b.y)>=2450&&Math.min(a.y,b.y)<=5250){
+  const n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/22));
+  for(let k=1;k<n;k++){
+   const t=k/n;
+   if(MOUNTAIN.blocked(a.x+dx*t,a.y+dy*t,radiusForRoute))return false;
+  }
  }
  for(const box of buildings){
   if(box.interior){
