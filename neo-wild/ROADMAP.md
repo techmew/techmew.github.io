@@ -1,3 +1,15 @@
+## 共同スプリント・次担当｜2026/11/2 22:21:58 JST｜15分枠｜ACTIVE_SPRINT_ID=COMBAT-PACK-V1／BESTIARY-V1回帰｜討伐一度限り・旧セーブ移行保護
+- **開始HEAD→コードHEAD**：`19b8ebd3b1e3db79037dee4fec27ded3c14da788` → `97795ffc9ca3cfff5ada0d02b00096520cbf8018`。直前22:19のCOMBAT-PACK-V1（群れ/毒ヘビ/LV6・11レア2・3体）と21:45 BESTIARY-V1を照合。現行mainとDrive完成仕様設計書末尾を確認し、実装済みの群れ・図鑑34種・月齢・死亡・SAVE_SCHEMA2を再実装せず保持。
+- **修正①：討伐の二重加算防止**：`game.js:kill(m)` で同一個体の再呼出しを`m._killRegistered`で抑止。生存中の誤呼出しも無効化。図鑑件数・死骸・HUNT・経験値・強敵素材が同じ死体から二重に増えない。修正前の現行実関数は同じ死体を2回渡すと図鑑/死骸/報酬が二重増加（8件中2件FAIL）を再現。
+- **修正②：旧強敵実績の破損保存耐性**：`bestiary.js:configure` の旧autosaveと3チェックポイントのJSONを独立して読込。片方が破損しても他方の正しい`strongTrophies`最大値を図鑑へ移行。通常動物の未記録HUNTは種別推定せず、図鑑キーとSAVE_SCHEMA=2を変更しない。
+- **変更ファイル/commit**：`neo-wild/game.js`、`neo-wild/bestiary.js`、`neo-wild/index.html`（両JS rev更新）、**コードcommit `97795ffc9ca3cfff5ada0d02b00096520cbf8018`**。対象HEADのblobはコミット直前に再照合し、非強制fast-forwardでmainへ反映。
+- **動的QA**：図鑑/実`kill`の隔離V8で8/8 PASS（破損CPでも旧autosave移行、3CP最大値、再初期化で二重移行なし、通常1体討伐2回呼出しでも図鑑/死骸/HUNTは1、HP>0誤killなし、強敵素材/図鑑1回、DEBUG除外、再開相当で件数維持）。旧SAVE_SCHEMA2の`isValidSnapshot/getAutoSnapshot/getCheckpoints/clearAutoSave`実関数6/6 PASS（3CP上限・順序・死亡CP除外・死亡時autosaveのみ削除・破損CP）。`moonlightProfile/dayLightProfile/nightVisionProfile/updateSurvivalNeeds`実関数17/17 PASS（29.530588日境界、満ち欠け、5天候×新月/満月・120度、空腹0→HP漸減・食事後停止・HP0のみ死亡）。`game.js`と`bestiary.js`全文JS構文2/2 PASS。**本番ブラウザE2E、実Android、実GPU、物理Pad、実端末の旧セーブ復帰は未試験**。隔離試験を実機検証と呼ばない。
+- **Pages**：対象コードHEAD `97795ffc9ca3cfff5ada0d02b00096520cbf8018` workflow run **`41452229560`**、**build=success / report-build-status=success / deploy=success**を各jobで確認。コードの公開配信成功。ROADMAP記録commitのPagesは別途確認。
+- **共通V2採点**：A **16.0** / B **12.0** / C **9.0** / D **4.0** / E **8.0** / F **9.0** / G **8.0** / H **4.0** / I **4.0** ＝ **74.0/100**（前回74.0→74.0、差 **0.0**）。今回の二重計上防止は既達成のA/G/Iの品質維持、別の未達条件は達成していない。D固有AI/外見/報酬、C季節・河川・地区、F縦横実矩形、H実FPS、Iブラウザ10分/Android/物理Padは検証待ち。
+- **次15分枠**：①`game.js:resolveAttack/kill`→`bestiary.js:recordKill`→`restoreSnapshot`→3CP復帰を同一実関数ハーネスで接続し、毒ヘビ/通常/強敵の討伐後の増分と再開時の再登録なしを検証。②`spawnMob/spawnLocalPack/maintainLocalWildlife/signalPack`のLV2/5群れの予兆→反撃→巣回避→追跡/逃走を連結、破綻のみ修正。③`updateVenom/updateSurvivalNeeds/beginDeath/advanceDeath`の毒・飢餓→HP0→死亡2.2秒→3CP復帰の経時統合テスト。
+- **次45分枠**：①`webgl3d.js`の図鑑34種実モデルを実GPUで回転/拡縮・GL状態復帰、縦390×844/横800×360矩形と2Dフォールバックを確認。②LV6/11強敵2/3体・毒ヘビ・群れの3D/2D外見と戦闘難度を実ブラウザで確認し、最寄り1体だけ攻撃するか確認。③新月/半月/満月×晴/曇/雨で夜目120度と地形の最低明度を実ブラウザで確認、問題がある描画箇所のみ最小修正。
+- **未検証**：Android実機/実GPU・物理Pad/10分ブラウザE2E/実端末旧セーブ/3CP、実FPS・HUD矩形。公開済みと実機検証済みは区別する。
+
 ## 共同スプリント・次担当｜2026/11/02 22:19 JST｜手動統合｜ACTIVE_SPRINT_ID=COMBAT-PACK-V1｜群れの襲撃・レベル連動難易度・毒ヘビ
 - **開始HEAD→コードHEAD**：`86877050ad71f227f204c1a1ae810811b3301129` → `6f7e4617a3e0c7a55c73f4617e5bb14c326489cb`。現行21:45のBESTIARY-V1とLUNAR-VISIBILITY-V1、死亡2.2秒/飢餓/SAVE_SCHEMA2を確認。neo-wild/のみ変更、旧ファイルの巻き戻しなし。
 - **プレイ上の変更①：戦う通常動物・群れ**：`fauna.js`で野良猫・野生キツネ・イタチ・タヌキを逃走主体から攻撃NPCへ転換、毒ヘビを14番目の通常動物に追加。犬・猫・狐・イタチ・タヌキ・毒ヘビはLV2から2頭、LV5から最大3頭の群れを形成し、近距離の共有索敵→追跡・側方隊列→攻撃。野良猫・キツネは予兆付き短距離飛びつきと命中/回避/建物衝突を本番関数へ接続。弱いネズミ/ウサギ/ハト/カエルは通常の逃走を保持。巣265m以内への敵新規湧きは禁止を維持。
