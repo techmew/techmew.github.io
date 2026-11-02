@@ -1538,6 +1538,28 @@ function updateGorillaRock(m,dt){
 /* STRONG-EAGLE-FLIGHT: airborne orbit, warning, dive, collision, climb and prey ecology. */
 
 // Mountain macaques share alarms, climb existing trees and use dodgeable stones.
+// Sweep each thrown stone across terrain rather than testing only its end point.
+// Resolve player contact before any obstacle farther along the same frame.
+function traceMacaqueStone(stone,dt,target){
+ const ox=stone.x,oy=stone.y,remaining=Math.max(0,Number(stone.ttl)||0);
+ const travel=Math.min(Math.max(0,dt),remaining);
+ const dx=stone.vx*travel,dy=stone.vy*travel,length=Math.hypot(dx,dy);
+ const steps=Math.max(1,Math.ceil(length/6));
+ let stop=1;
+ for(let k=1;k<=steps;k++){
+  const f=k/steps,x=ox+dx*f,y=oy+dy*f;
+  if(x<20||y<20||x>WORLD.w-20||y>WORLD.h-20||collides(x,y,5,null,true)){
+   stop=f;break;
+  }
+ }
+ const t=length>0?clamp(((target.x-ox)*dx+(target.y-oy)*dy)/(length*length),0,1):0;
+ const contactX=ox+dx*t,contactY=oy+dy*t;
+ const hit=length>0&&t<=stop&&Math.hypot(target.x-contactX,target.y-contactY)<target.r+8&&
+  !lineBlocked({x:ox,y:oy},{x:contactX,y:contactY});
+ const wall=stop<1||lineBlocked({x:ox,y:oy},{x:ox+dx,y:oy+dy});
+ stone.x=ox+dx*stop;stone.y=oy+dy*stop;stone.ttl=Math.max(0,remaining-Math.max(0,dt));
+ return {hit,blocked:wall||stone.ttl<=0};
+}
 function updateMacaque(m,dt,d){
  m.macaqueTell=Math.max(0,Number(m.macaqueTell)||0);
  m.treeHeight=Math.max(0,Number(m.treeHeight)||0);
@@ -1554,27 +1576,22 @@ function updateMacaque(m,dt,d){
   }
  }
  if(m.macaqueStone){
-  const stone=m.macaqueStone,ox=stone.x,oy=stone.y;
-  stone.x+=stone.vx*dt;stone.y+=stone.vy*dt;stone.ttl-=dt;
-  const dx=stone.x-ox,dy=stone.y-oy,n=dx*dx+dy*dy;
-  const t=n>0?clamp(((P.x-ox)*dx+(P.y-oy)*dy)/n,0,1):0;
-  const hit=Math.hypot(P.x-ox-t*dx,P.y-oy-t*dy)<P.r+8;
-  const blocked=stone.ttl<=0||stone.x<20||stone.x>WORLD.w-20||
-   collides(stone.x,stone.y,5,null,true)||lineBlocked({x:ox,y:oy},{x:stone.x,y:stone.y});
-  if(hit&&!blocked&&P.inv<=0&&P.hp>0&&!insideShelter(P)){
+  const stone=m.macaqueStone;
+  const trace=traceMacaqueStone(stone,dt,P);
+  if(trace.hit&&P.inv<=0&&P.hp>0&&!insideShelter(P)){
    const damage=Math.max(3,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.8));
    P.hp=Math.max(0,P.hp-damage);P.inv=.43;P.lastCombatAt=elapsed;
    interruptRush();shake=Math.max(shake,5);flash=Math.max(flash,.13);
    label(P.x,P.y-34,"投石 -"+damage,"#ffc1a4");playEffect("damage");
   }
-  if(blocked||hit)m.macaqueStone=null;
+  if(trace.blocked||trace.hit)m.macaqueStone=null;
  }
  if(m.stun>0||m.hp<m.maxHp*.35){
   m.macaqueTell=0;m.treeHeight=Math.max(0,(m.treeHeight||0)-dt*100);
  }else if(m.macaqueTell>0){
   m.macaqueTell=Math.max(0,m.macaqueTell-dt);
   if(m.macaqueTell===0){
-   const aim=m.macaqueAim||Math.atan2(P.y-m.y,P.x-m.x);
+   const aim=Number.isFinite(m.macaqueAim)?m.macaqueAim:Math.atan2(P.y-m.y,P.x-m.x);
    m.macaqueStone={x:m.x+Math.cos(aim)*(m.r+21),y:m.y+Math.sin(aim)*(m.r+21),
     vx:Math.cos(aim)*395,vy:Math.sin(aim)*395,ttl:.95};
    m.macaqueCooldown=3.7;m.swing=.24;
