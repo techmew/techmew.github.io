@@ -1357,7 +1357,7 @@ function collides(x,y,r,actor=null,ignoreWater=false){
    return true;
   }
  }
- if(actor===P&&(actor.jumpHeight||0)<18&&narrowBuildingPassage(x,y,r))return true;
+ if(actor&&actor===P&&(actor.jumpHeight||0)<18&&narrowBuildingPassage(x,y,r))return true;
  return false;
 }
 
