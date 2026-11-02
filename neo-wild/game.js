@@ -716,9 +716,11 @@ function refreshSaveMenu(){
  const hasSave=!!auto||points.length>0;
  $("menu").classList.toggle("has-saved-game",hasSave);
  $("menu").classList.toggle("has-auto-save",!!auto);
- $("new-game-options").open=!hasSave;
- $("continue-btn").classList.toggle("hidden",!auto);
- $("continue-detail").textContent=auto?checkpointLabel(auto):"";
+ const primary=auto||points[0]||null;
+ $("continue-btn").classList.remove("hidden");
+ $("resume-cta-label").textContent=hasSave?"続きからプレイ":"最初からプレイ";
+ $("resume-cta-help").textContent=hasSave?"保存した地点から再開":"種族・画面・出発地点を選んで開始";
+ $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
  if(!points.length){$("checkpoint-list").classList.add("hidden");$("checkpoint-menu-btn").setAttribute("aria-expanded","false");}
  for(let i=0;i<3;i++){
@@ -4394,7 +4396,10 @@ $("start-btn").addEventListener("click",()=>{
  clearAutoSave();start();announceObjective();
 });
 $("continue-btn").addEventListener("click",()=>{
- const snapshot=getAutoSnapshot();if(snapshot)restoreSnapshot(snapshot);else refreshSaveMenu();
+ const snapshot=getAutoSnapshot()||getCheckpoints()[0];
+ if(snapshot){restoreSnapshot(snapshot);return}
+ if(!$("menu").classList.contains("has-saved-game")){start();announceObjective();return}
+ refreshSaveMenu();
 });
 $("checkpoint-menu-btn").addEventListener("click",()=>{
  const target=$("checkpoint-list"),open=target.classList.contains("hidden");
@@ -4422,7 +4427,7 @@ $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
 $("retry-btn").addEventListener("click",()=>{const save=getCheckpoints().find(s=>s.player.type===P?.type);if(save&&restoreSnapshot(save)){notify("チェックポイントからリトライ");return}clearAutoSave();start();announceObjective()});
-$("menu-btn").addEventListener("click",()=>{deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu");$("new-game-options").open=true});
+$("menu-btn").addEventListener("click",()=>{deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu")});
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
 function selectMenuOrientation(target){
