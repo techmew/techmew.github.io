@@ -1,3 +1,15 @@
+## 共同スプリント・次担当｜2026/11/02 21:16 JST｜15分枠｜ACTIVE_SPRINT_ID=LUNAR-VISIBILITY-V1｜月齢の連続位相と新月の最低視認性
+- **開始HEAD→コードHEAD**：`69305671a3052b317956415a28eb0dfc4c6ff58f` → `2533b25a1444d7fb97a1b29090663fca285efffe`。20:45の45分枠、20:18の15分枠、Drive設計正本末尾を照合。死亡/飢餓/3CP/SAVE_SCHEMA2/夜目120度/6巣/強敵20種を巻き戻さない。月齢修正を死亡パッケージより上位として同じ両枠で引き継ぐ。
+- **連動改善①：月相・月齢・照度の単一位相化**：`game.js:moonlightProfile`を29.530588ゲーム日周期の連続位相に統一。新月→三日月→上弦→満ちゆく月→十三夜→満月→十六夜→欠けゆく月→下弦→有明月→新月。満ちる/欠ける側はwaxingと8段階月相記号、照明は連続したilluminationから算出。HUDに月相記号・月齢・名称を表示。
+- **連動改善②：新月の視認性と天候差**：最低環境光を旧0.22→0.36、晴天満月を旧0.31→0.50。曇/雨/雷雨/霧は月光の増分だけ減衰し最低0.36は保持。Canvas2D暗転とWebGL共有の`dayLightProfile`が同じ値を参照。WebGL shader側の実GPU見え方は45分枠で要確認。
+- **連動改善③：朝夕の明暗逆転を防止**：5.5時/6.5時/18時の明度キーと17.5～20時の月光補間を調整し、朝は明るく、夕は徐々に暗く、12時が最大。**連動改善④：夜目と天候の一致**：`nightVisionProfile(seconds,sky)`から同じskyを`dayLightProfile`へ渡し、雨/雷雨指定時の夜目周辺明度と月相計算を一致。
+- **変更・証拠**：`neo-wild/game.js` commit `39765b9a9a9e4fe7c1b036e6b7b2376902149b41` / blob `5d28f0de1a4fdc34157cd90c49ea87da63795afa`。`neo-wild/index.html` rev `20261102-lunar-visible-v1` commit `2533b25a1444d7fb97a1b29090663fca285efffe` / blob `640dbf6efe580ce8f6ea3fbae40d21c039eef3ef`。
+- **動的QA**：現行実`moonlightProfile/dayLightProfile/nightVisionProfile`を評価し月齢11区間×名称/増減、5天候×新月/満月/最低照度/夜目120度/sky一致、590区間連続性、3天候×朝夕単調性/正午最大、合計 **646/646 PASS**。現行7 JS全文構文7/7 PASS、HTMLの7JS参照7/7 PASS。実関数＋V8での試験。**実ブラウザの見た目/実GPU/Android/物理Pad/10分E2E/旧セーブ実ブラウザ復帰は未検証**。保存関数・スキーマ・3CPは今回変更なし。
+- **Pages**：コードHEAD `2533b25a` のrun **`41443264452`**。build=success / report-build-status=success / deploy=未完了。配信成功は未確認。ROADMAP追記commit自身のrunは別途確認。
+- **進捗計測V2**：A **16.0** / B **12.0** / C **9.0** / D **4.0** / E **8.0** / F **9.0** / G **8.0** / H **4.0** / I **2.0** ＝ **72.0/100**。前回74.0→72.0（差-2.0）。IのPages条件4→2は対象HEADのdeploy未確認による暫定減点。 Cの地域、Dの固有戦闘/外見/討伐保存、Fの実HUD矩形、Hの実GPU/FPS、Iのブラウザ10分/Android/物理Padは0点・検証待ち。
+- **次45分枠（3件）**：①`webgl3d.js`の`uNight`/頂点shader/fragment shaderと`gl.clearColor`を実描画で点検し、新月・雷雨でも草/敵/地形が黒潰れしない最低材質明度を最小修正（ゲーム側の月齢算式は再実装しない）。②`drawNightVision2D`の暗転マスクとWebGLで新月/半月/満月×晴/曇/雨×縦390×844/横800×360を比較し、120度夜目/昼最大/夕方単調性を検証。③必要なshader変更とHTML revをmainへコミットし、対象HEADのPages build/deploy両success確認、旧SAVE_SCHEMA2/3CP・死亡2.2秒を回帰。
+- **次15分枠（3件）**：①`moonlightProfile/dayLightProfile/nightVisionProfile`のDAY85秒境界・29.530588日境界・旧elapsed保存復元を実関数で検証。②`restoreSnapshot/currentSnapshot/getCheckpoints`の3CP、旧SAVE_SCHEMA2、夜目/空腹0→HP漸減→死亡2.2秒→リトライを連結試験。③45分枠のshader結果を受けて`game.js`側の月相HUD/夜間狩猟AIと画面照明を実ブラウザで検証し、問題時のみ最小修正。
+
 ## 共同スプリント・次担当｜2026/11/02 20:45 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜死亡最終暗転と残響の途切れを修正
 - **開始HEAD→コードHEAD**：`423aaa51c0b745281182a9388472713ece312f0c` → `b67d06e064e85375e9ceb76cd00d63bd87a3e2f5`。20:18の15分枠と19:43の45分枠、Drive完成仕様設計書末尾を照合。空腹0→HP漸減、HP0のみ死亡、2.2秒死亡状態、6巣、強敵20種、SAVE_SCHEMA2、3CP、夜目、2D/3Dは重複実装・旧版上書きなし。
 - **実装①：死亡画面への切替で明度が跳ねる問題を修復**：`game.js:drawDeathVignette`の0.58秒からの暗転は維持し、最後の1.86～2.20秒で中心の暗さを0.79→0.96、中間を0.89→0.96へ補間。終了直後の結果背景0.96と一致させ、転倒後にゆっくり視界が消える。2D/3D共通の画面合成で動作する変更。commit `caacb64c77db4af5404ff1465fb5f721eefcac42` / blob `dc4bc807178ec2296cb388fe78b6ba0076601af6`。
