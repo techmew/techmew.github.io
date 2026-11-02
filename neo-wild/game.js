@@ -1602,6 +1602,12 @@ function updateMacaque(m,dt,d){
   m.macaqueTell=.65;m.macaqueAim=Math.atan2(P.y-m.y,P.x-m.x);m.dir=m.macaqueAim;
   label(m.x,m.y-m.r-36,"石を構えた！","#ffe0ac");
  }
+ if(!seen&&m.alert<=0&&m.treeHeight<=0&&m.stun<=0){
+  m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
+  m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
+  const action=forageWildBerries(m,spec,dt,false,d)||huntWildPrey(m,spec,false,d);
+  if(action)move(m,action.vx*dt,action.vy*dt);
+ }
  m.step=(m.step||0)+dt*(m.treeHeight>0?1.1:2.7);
  m.alert=Math.max(0,(m.alert||0)-dt*.4);
 }
@@ -3095,8 +3101,8 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle"]);
-const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant"]);
+const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque"]);
+const WILD_FORAGERS=new Set(["rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque"]);
 function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
@@ -3118,11 +3124,11 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0)return null; // Concealment permits nearby NPC hunts; player aggro still takes priority.
- const maxRange=["strayCat","weasel","snake","venomSnake"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRange=["strayCat","weasel","snake","venomSnake","macaque"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  let prey=null,best=maxRange;
  for(const q of mobs){
   if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
-  if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog"].includes(m.type)){
+  if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque"].includes(m.type)){
    const smallPrey=["rat","frog","pigeon","crow","weasel"];
    if(m.type==="wildFox")smallPrey.push("rabbit");
    if(!smallPrey.includes(q.type))continue;
