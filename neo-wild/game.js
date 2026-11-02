@@ -1238,7 +1238,7 @@ function updateAquaticStrong(m,s,dt){
   m.aquaticStrike=false;m.swing=.3;
   const facing=Math.atan2(Math.sin(angle-(m.strikeDir||0)),Math.cos(angle-(m.strikeDir||0)));
   if(d<profile.reach+P.r&&Math.abs(facing)<.92&&!lineBlocked(m,P)&&(P.jumpHeight||0)<22&&P.inv<=0){
-   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*(1+Math.max(0,day-1)*.15)));
+   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*(1+enemyChallengeTier()*.038)));
    P.lastCombatAt=elapsed;P.hp-=damage;interruptRush();P.inv=.45;shake=10;flash=.25;
    label(P.x,P.y-35,"水辺 -"+damage,"#ff9890");blood(P.x,P.y,"#eb6356",12,110);
    playEffect("damage");applyStrongStrikeEffect(m,angle,false);
@@ -1335,7 +1335,7 @@ function updateFlyingEagle(m,dt){
   if(m.airHeight<=29&&!m.airHit){
    if(m.airTarget==="player"&&P.inv<=0&&P.hp>0&&(P.jumpHeight||0)<24&&
       !insideShelter(P)&&!lineBlocked(m,P)&&dist(P,m)<P.r+m.r+28){
-    const damage=strongDamageTaken(Math.round(s.damage*1.08*(1+Math.max(0,day-1)*.15)));
+    const damage=strongDamageTaken(Math.round(s.damage*1.08*(1+enemyChallengeTier()*.038)));
     P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.46;interruptRush();shake=8;flash=.22;
     label(P.x,P.y-37,"大鷲の爪 -"+damage,"#ffada0");blood(P.x,P.y,"#eaa17b",9,80);
     applyStrongStrikeEffect(m,angle,false);playEffect("damage");m.airHit=true;
@@ -3406,7 +3406,7 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(1+Math.max(0,day-1)*.15))));
+      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?1+enemyChallengeTier()*.038:(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
