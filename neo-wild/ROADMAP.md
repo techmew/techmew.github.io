@@ -1,9 +1,9 @@
-## 共同スプリント・次担当｜2026/11/02 22:5x JST｜45分枠｜ACTIVE_SPRINT_ID=POPULATION-REBALANCE-V1｜旧SAVE_SCHEMA2画面外個体の段階整理
-- **開始HEAD**：`750431b9f3867530d8aff66850095424e4c57782`。同じPOPULATION-REBALANCE-V1を継続。直近15分/45分のROADMAP、Drive完成仕様末尾、現行game.jsを確認。旧13/76/9、晴7雨5、9秒、群れ6%/12%・110秒・近所1組・LV8以上3体を変更しない。最新の地域別動物・廃墟表示も維持。
+## 共同スプリント・次担当｜2026/11/02 22:55 JST｜45分枠｜ACTIVE_SPRINT_ID=POPULATION-REBALANCE-V1｜旧SAVE_SCHEMA2画面外個体の段階整理
+- **開始HEAD**：`750431b9f3867530d8aff66850095424e4c57782` → **実装コミット** `a57b5cfc743fd97cdaa9264608d961247ad05d36`。同じPOPULATION-REBALANCE-V1を継続。直近15分/45分のROADMAP、Drive完成仕様末尾、現行game.jsを確認。旧13/76/9、晴7雨5、9秒、群れ6%/12%・110秒・近所1組・LV8以上3体を変更しない。最新の地域別動物・廃墟表示も維持。
 - **発見した実不具合**：旧過密セーブで世界上限76を超えていても、画面外の非戦闘NPCがプレイヤーから800～1300mに偏る場合、`easeOldOvercrowding`は`farAI=1300`より遠い個体しか候補にせず、112体のまま減らない。同様に`retireFarCalmAnimal`が新地区の動物補充を妨げる。
 - **修正**：`game.js:easeOldOvercrowding/retireFarCalmAnimal`の安全な画面外退役距離を`max(800,localRadius=700)`に変更。視認可能・交戦中・逃走中・強敵・近傍365m・ミッション2近傍獲物を保護。旧SAVE_SCHEMA2の過密解消は従来通り1補充周期最大2体、急な大量削除なし。地域移動時の世界上限到達でも画面外・非戦闘個体1体のみ入れ替え。`index.html` game.js revを更新。密度定数、群れ、ボスLV6/11、図鑑、毒ヘビ、夜目、死亡、6巣は変更なし。
 - **実関数隔離動的QA**：5/5 PASS（112→110/周期、18周期で112→76、視認/戦闘/強敵を維持、新地区補充のための1体退役、800m未満や視認/戦闘中は退役しない）。`game.js`全文JS構文PASS。これは合成状態の関数試験であり実ブラウザFPS・WebGL GPU・Android・物理Pad・旧端末セーブE2Eではない。
-- **配信**：本記録作成時点では新HEADのPages build/deploy未確認。成功確認後に追記する。強制pushなし、neo-wild/のみ。
+- **配信**：コードHEAD `a57b5cfc743fd97cdaa9264608d961247ad05d36` のPages run `41457278414` は `build=success / deploy=success / report-build-status=success` を個別jobで確認。**コード公開反映済み**。強制pushなし、neo-wild/のみ。
 - **V2共通採点**：A16.0 / B12.0 / C9.0 / D4.0 / E8.0 / F9.0 / G8.0 / H4.0 / I4.0 = **74.0/100（前回74.0→74.0、差0.0）**。画面外退役バグ修正は既達成の生態品質維持であり新項目加点なし。実機E2E/FPS/矩形は検証待ち。
 - **次15分枠**：①`maintainLocalWildlife/easeOldOvercrowding`を旧SAVE_SCHEMA2のLV2/5/8/11、晴/雨、巣周囲、地区移動と結合してNPC数・群れ数を600秒相当追跡。②`restoreSnapshot/normalizeStrongBossSave`で3CP、レア2/3体、毒ヘビ、狩猟ミッション獲物を回帰。③`spawnRegionalResident/spawnMob`で地域固有種の初期13体予算と周辺9体上限を動的確認。
 - **次45分枠**：①実ブラウザ390×844/800×360/844×390で巣・雨・新地区・LV2/5/8/11の視認動物数と群れ連携を実画面QA。②図鑑40種（最新通常20＋強敵20）の3D/2D表示、毒蛇/強敵の固有外見、月齢最低照度、物理Padを実機確認。③10分以上E2EとFPS/描画・旧セーブの消失無しを確認し、問題のみ最小修正。実機未試験は継続。
