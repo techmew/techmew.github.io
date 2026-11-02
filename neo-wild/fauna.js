@@ -18,7 +18,7 @@ const species={
  elephant:{hp:560,r:55,speed:124,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
  hippo:{hp:425,r:46,speed:140,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque"];
 const weights=[
  [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
  [20,9,18,11,1,16,3,12,4,1,4,1,0,1,0,0,0,0,0,0],
@@ -31,7 +31,7 @@ const weights=[
 ];
 function weight(type,region,day=1,weather="CLEAR"){
  const idx=types.indexOf(type);if(idx<0)return 0;
- let w=(weights[region]||weights[0])[idx];
+ let w=(weights[region]||weights[0])[idx]||0;
  const year=1+Math.floor(Math.max(0,day-1)/365);
  if(year>=3&&["raccoonDog","wildFox","weasel","boar"].includes(type))w*=1.25;
  if(year>=10&&["wildFox","snake","deer","boar"].includes(type))w*=1.45;
