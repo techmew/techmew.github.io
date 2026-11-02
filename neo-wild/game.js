@@ -275,6 +275,12 @@ function denCapacity(){return [0,200,300,450][denLevel]}
 function denRadius(){return [0,SAFE_DEN.r,125,165][denLevel]}
 function atDen(){return !!denAtActor()}
 function denRestRate(){return [0,2.8,4.5,6.5][denLevel]+territoryOwned()*.9}
+// Only reachable enemies interrupt rooftop rest and wound recovery.
+function denThreatNearby(){
+ if(!P||!atDen())return false;
+ return mobs.some(m=>m.hp>0&&!species[m.type]?.prey&&dist(P,m)<165&&
+  (m.type==="giantEagle"||Math.abs((m.groundZ||0)-(P.groundZ||0))<12));
+}
 function loadDenLevel(animal){
  try{const n=Number(localStorage.getItem("wild-reclaim-den-level-v1-"+animal));return Number.isInteger(n)?clamp(n,1,DEN_MAX_LEVEL):1}catch(_){return 1}
 }
@@ -1320,7 +1326,12 @@ function visibleWinterCover(o){
  return false;
 }
 function inCover(o){
+ // Roof bedding conceals a crouching player; ground plants cannot conceal roof actors.
+ if((o?.groundZ||0)>18)return o===P&&!!denAtActor(o);
  return visibleShrubCover()?plants.some(p=>p.type===2&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75):visibleWinterCover(o);
+}
+function sharesPlayerElevation(m){
+ return !P||(P.groundZ||0)<18||m.type==="giantEagle"||(m.groundZ||0)>=P.groundZ-12;
 }
 function winterCoverSpotFor(actor,maxRange=1300,avoid=null,accept=null){
  if(!actor||visibleShrubCover())return null;
@@ -1352,6 +1363,7 @@ function winterCoverSpotFor(actor,maxRange=1300,avoid=null,accept=null){
 }
 function winterCoverSpot(){return winterCoverSpotFor(P,1300);}
 function detectsPlayer(m,sp,d){
+ if(!sharesPlayerElevation(m))return false;
  // The visual clock is authoritative: the old cosine classified midnight as
  // daytime. Daylight, not a second independent clock, now governs visual range.
  const ambient=worldDaylight();
@@ -1446,6 +1458,10 @@ function combatEngaged(){
    dist(P,m)<240&&(m.alert>0||m.windup>0||m.chargeTime>0)));
 }
 function edibleFood(c){return c&&c.type!=="bones"&&Number(c.amount)>0}
+// Old save food has no groundZ and remains on the ground, not the roof.
+function foodAtActorLevel(c,actor=P){
+ return !!actor&&edibleFood(c)&&Math.abs((Number(c.groundZ)||0)-(actor.groundZ||0))<12;
+}
 function scavengeWildFood(m,sp,dt,spotted,playerDistance){
  m.scavengePose=Math.max(0,(m.scavengePose||0)-dt);
  m.scavengeCooldown=Math.max(0,(m.scavengeCooldown||0)-dt);
@@ -1586,7 +1602,7 @@ function normalizeCarry(c){
  return {type:c.type==="berries"?"berries":"meat",animalType:typeof c.animalType==="string"?c.animalType:null,amount:clamp(Number(c.amount),0,500)};
 }
 function nearbyFood(){
- return carcasses.some(f=>edibleFood(f)&&dist(P,f)<65&&!lineBlocked(P,f));
+ return carcasses.some(f=>foodAtActorLevel(f)&&dist(P,f)<65&&!lineBlocked(P,f));
 }
 function putDownFood(){
  if(!P?.carry||mode!=="play")return;
@@ -1857,7 +1873,7 @@ function carryFood(){
  }
  if(P.carry)return putDownFood();
  let selected=null,nearest=65;
- for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}}
+ for(const f of carcasses){const d=dist(P,f);if(foodAtActorLevel(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}}
  if(!selected){notify("運べる食草・肉が近くにない");return false}
  if(selected.type==="corpse"){
   const portion=Math.min(24,Math.max(0,selected.amount-1));
@@ -1873,9 +1889,9 @@ function carryFood(){
 }
 function eat(){
  if(mode!=="play")return;
- if((P.jumpHeight||0)>20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("着地してから食べる");return}
+ if((P.jumpHeight||0)>(P.groundZ||0)+20||P.jumpTime>0||P.pounceTime>0||P.fallTime>0){notify("着地してから食べる");return}
  let c=P.carry||null,near=65,carried=!!c;
- if(!c)for(const f of carcasses){const d=dist(P,f);if(edibleFood(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
+ if(!c)for(const f of carcasses){const d=dist(P,f);if(foodAtActorLevel(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食草・肉が近くにない");return}
  const bite=Math.min(12,c.amount),balance=foodBalance(c);
  const gain=Math.round(bite*balance.satiety),heal=Math.round(bite*balance.healing);
@@ -2602,7 +2618,7 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  if(sp.prey&&hunterAnimal&&m.restTime<=0&&m.flee<=0)startlePrey(m,hunterAnimal,"alarm");
  const danger=spotted||m.alert>0||m.flee>0||m.stun>0||m.windup>0||
   m.chargeTime>0||(m.evadeTime||0)>0||hunter||
-  (d<115&&!lineBlocked(m,P));
+  (d<115&&sharesPlayerElevation(m)&&!lineBlocked(m,P));
  if(m.restTime>0&&(!safeRest||danger)){
   m.restTime=0;m.restCooldown=danger?12:5;
   m.restNeed=Math.min(m.restNeed,danger?.38:.65);
@@ -2743,8 +2759,7 @@ function update(dt){
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);P.hunger=clamp(P.hunger-(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1),0,100);
  if(P.hunger<16)P.hp-=(P.hunger===0?7:1.2)*dt;
- if(atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165&&
-   !((P.groundZ||0)>18&&m.type!=="giantEagle"&&(m.groundZ||0)<(P.groundZ||0)-12)))
+ if(atDen()&&!denThreatNearby())
   P.hp=Math.min(P.maxHp,P.hp+denRestRate()*dt);
  const a=getAxes(),sneaking=keys.has("c")||keys.has("control");
   if(P.jumpTime>0){
@@ -2815,13 +2830,13 @@ function update(dt){
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?.28:.94)+P.noiseBurst,0,1.8);
-  P.hidden=(P.jumpHeight||0)<20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
+  P.hidden=(P.jumpHeight||0)<(P.groundZ||0)+20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=P.hidden?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
  if((P.strongWound||0)>0){
   const bleed=Math.min(dt,P.strongWound);
   P.hp-=bleed*2.6*(P.inheritedTraits?.giantLizard?.65:1);
-  const safeDen=atDen()&&!mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<165);
+  const safeDen=atDen()&&!denThreatNearby();
   P.strongWound=Math.max(0,P.strongWound-dt*(safeDen?2.2:1));
  }
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt);
