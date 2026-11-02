@@ -1,3 +1,25 @@
+## 共同スプリント・次担当｜2026/11/02 09:19 JST｜15分枠｜ACTIVE_SPRINT_ID=DEN-REFUGE-SIX-AND-GRASS-V1（屋上安全・生態・保存）→STRONG-STAGE-20P-COMPLETE（45分枠継続）｜進捗V2初回採点
+
+- **開始HEAD→コード終了HEAD**：`12afddae11c08f49770016fea58a7b92e5d71096` → `1d070fa3bd6503a3cbdabc6506f57f933d29b98f`。開始時main/ROADMAP前2枠、Drive「完成仕様設計書」末尾、最新6巣・強敵20種・5能力の現行ソースを確認。15分枠のAI/操作/セーブ担当として既存巣・能力を重複実装せず修復。
+- **変更ファイル・コミット・blob**：`neo-wild/game.js` commit `e8aa46101e621e27fc7ea79270f74dd1981a7117` / blob `ecff44521a9d0a5264af87ccdaf96a892bf4d4c6`、`neo-wild/index.html` commit `1d070fa3bd6503a3cbdabc6506f57f933d29b98f` / blob `75cd75de2c04186191a4eb18be4a1f2780864171`。game.jsのrev更新。webgl3d.js・gamepad.js・他ゲーム・ブログ・ルートは変更なし。
+- **実プレイの連動改善4点**：(1) 屋上巣に着地・しゃがみ移動した時に寝床で潜伏可能。地上の草束で屋上動物が隠れる誤判定は防止。(2) 地上野犬は屋上プレイヤーを高さ無視で発見せず、同高度の敵と飛行する大鷲の警戒は残す。夜間の獲物の覚醒も高度判定に整合。(3) 地上の食草/肉を屋上から透過取得・摂食できない。屋上に持ち込んだ食料は着地後に食べられ、地上の通常摂食は従来どおり。(4) 屋上の生命回復と強敵出血の回復速度が同じ危険判定を共有。地上の敵は屋上休息を妨げず、大鷲/同高度の敵は妨げる。6巣共通備蓄、屋上LV2、旧SAVE_SCHEMA2を維持。
+- **今回のQA**：配信JS全文構文6/6 PASS。実関数`denAtActor/denThreatNearby/inCover/sharesPlayerElevation/detectsPlayer/foodAtActorLevel/nearbyFood/eat`を模擬世界で呼ぶ屋上・地上・大鷲・野犬・食事18/18 PASS。実`resolveAttack→kill→animalRemains→eat→HP/空腹回復→saveAuto`連結9/9 PASS。実`currentSnapshot/saveAuto/getCheckpoints/recordCheckpoint/restoreSnapshot`で新5能力の保存状態・素材残数、旧SAVE_SCHEMA2猫速度移行、同一セーブ再読込の二重加算なし、3チェックポイント上限26/26 PASS。合計53件の関数動的検証。実Android・実GPU・物理Pad・10分実ブラウザE2Eは未試験。既存6巣描画は前45分枠の模擬14項目、能力5種は前45分枠の8/8を根拠として引継ぎ。
+- **Pages**：コード終了HEAD `1d070fa3bd6503a3cbdabc6506f57f933d29b98f` のrun **41366359817** を確認。**build=success / report-build-status=success / deploy=success**。本ROADMAP追記コミットのrunは別途確認。実機公開目視・FPSは未検証。
+- **進捗V2初回基準**：2026/11/02 09:19 JST、採点対象HEAD `1d070fa3`。旧71/100を継承しない。初回のため前回V2との差は**比較対象なし**（旧方式71点との増減計算は不可）。以下はA/B/C/F/G/H/Iは条件ごとに満点または0点、D/Eは種類別のみ加点。実機を模擬試験と混同しない。
+  - **A 基本生存 12.0/16**：即方向転換4（`game.js/gamepad.js`、既存移動10/パッド8動的・Pages 41364072902）、狩猟→食事→回復4（本run実関数9/9・Pages 41366359817）、死亡→リトライ0【旧/3CP/死亡画面を通す統合試験待ち】、成長→生き残れ！4（`game.js`のmission7と過去18項目動的/配信）。
+  - **B 巣・備蓄 12.0/12**：6巣アクセス3（`game.js`/前15分枠17/17）、運搬→備蓄→LV2 3（同17/17）、安全休息回復3（同17/17＋今回18/18）、2D/3D・草区別3（`webgl3d.js/game.js`/前45分枠描画14件・Pages 41363977485）。屋上への実端末ジャンプは別途未検証。
+  - **C 生態・環境 9.0/12**：NPC警戒→追跡→逃走3（`game.js`/前15分枠25件）、食物連鎖3（`huntWildPrey`/前15分枠17件）、昼夜/天候/睡眠/夜目3（`game.js/webgl3d.js`/既存夜間/照明動的試験）、季節/橋/河川/地区移動0【4要素の連結実移動試験待ち】。
+  - **D 強敵 4.0/16**：20種×定義・地域出現0.2=4.0（`STRONG_NAMES/STRONG_REGIONS/spawnStrongBoss`、前45分枠20種登録QA）。20種それぞれの固有AI・攻撃、2D/3D固有外見、討伐報酬/上限/保存の**種類別一式検証が未完**のため、それらの条件は0点。基本登録のみで16点としない。
+  - **E 希少素材・能力継承 2.0/8**：アルファ/老熊/黒豹/大鷲/巨大オオトカゲの5種×0.4（`STRONG_TRAITS/inheritStrongTrait/nightVisionProfile/update`、前45分枠8/8、今回保存26/26、Pages 41364072902）。残り15種は0【実効果と保存の結合未実装】。
+  - **F UI・操作 9.0/12**：タッチ/即旋回3（`game.js`既存動的10件）、ゲームパッド4ボタン・方向3（`gamepad.js`既存動的8件）、縦横HUD/全画面0【実DOM矩形/横画面検証待ち】、教程/〉〉/常設地図3（`game.js/index.html`既存mission/地図動的試験）。物理PadはIの別未検証。
+  - **G セーブ 8.0/8**：1秒autosave2、旧SAVE_SCHEMA2互換2、3チェックポイント2、再開/二重加算なし2（`currentSnapshot/restoreSnapshot/recordCheckpoint`、今回26/26、Pages 41366359817）。
+  - **H 描画・性能 4.0/6**：WebGL/Canvas2D両描画2（`webgl3d.js/game.js`既存模擬描画14件）、夜/雲/草/月光2（`season-clouds.js/webgl3d.js/game.js`既存31項目照明/草試験）、実ブラウザFPS/当たり判定/画面サイズ0【実ブラウザ計測待ち】。
+  - **I 統合検証・配信 4.0/10**：実関数の連続統合2（今回9/9＋26/26）、ブラウザ10分E2E 0【未試験】、Android実機E2E 0【未試験】、物理Pad実機E2E 0【未試験】、対象HEAD Pages build/deploy両成功2（run 41366359817）。
+  - **合計 64.0/100、前回V2差：初回のためなし**。項目A12/B12/C9/D4/E2/F9/G8/H4/I4。採点項目/重みの変更なし。コード行数・コミット数だけでは加点しない。
+- **次15分枠（具体的3件）**：(1) `finish/retry/restoreSnapshot/getCheckpoints`で死亡→同種CP復帰/CPなし新規→最初から動物選択の実関数連結試験を作り、失敗すれば現行HEAD最小修正、A3判定。(2) `spawnMob/huntWildPrey/followNightCover/updateIndoorRest`で6巣265m内の敵新規出現0、侵入野犬の狩猟、屋上のプレイヤー・休息獲物・夜目を10分相当シミュレーションし、食物連鎖/高度不具合を修正。(3) `wildlifeBridgeWaypoint/steerPursuit/update`で冬の可視遮蔽物→川橋迂回→雨宿り→地区境界の実関数連結を試験し、C4を満たすまで検証。
+- **次45分枠（具体的3件）**：(1) `webgl3d.js:denBeddingMesh/vegetation`と`game.js:drawDenBedding2D/drawMini`の6巣を実ブラウザ縦390×844/411×768・横800×360/844×390/736×414/1536×691で目視・矩形・FPS検証し、屋上潜伏の3D可読性を整える。(2) `STRONG_TRAITS/inheritStrongTrait`の残15種を個別の消費→固有実効果→保存/重複拒否で実装し、45分担当の強敵AI/モデルとの競合を避ける。(3) `spawnStrongBoss/updateFlyingEagle/drawStrongAnimal3D`で20%抽選/1体上限/巣420m回避/屋上大鷲の固有戦闘と報酬保存を種類別動的試験し、Dの条件を証拠に応じて加点。Pages両job success確認。
+- **次担当共通**：両枠とも本V2採点表を基準に最新HEAD/ROADMAP先頭を再取得。旧「71据置」指示は無効。実Android・実GPU・物理Padの未検証は未検証のまま維持。新タスクなし。
+
 ## 共同スプリント・次担当｜2026/11/02 08:49 JST｜45分枠｜ACTIVE_SPRINT_ID=DEN-REFUGE-SIX-AND-GRASS-V1 → STRONG-STAGE-20P-COMPLETE｜6巣描画統合QA・希少素材5能力の実継承
 - **開始HEAD→コード終了HEAD**：`1f52f723625129dbbd6ba88395d64d257e13b0e8` → `23a7d65619629fc4ce2b36e1c0813eadfea3eb64`。開始時ROADMAP先頭、15分枠08:18の屋上巣/備蓄/回復修復、Drive完成仕様設計書末尾を再読。既存6巣/20種の基本登録は再実装しない。最新game.jsのAI・屋上誘導・SAVE_SCHEMA=2・alpha速度231.4を保持。
 - **コード変更**：`neo-wild/game.js` commit `93cd501a0c23c82348b3bef4bc1d38fea9329697` / blob `9551d89d0b725bec1c6a9e371d3a0b086d7db82b`、`neo-wild/index.html` commits `32fc63d45e9441f7c9ca5a8a732c1f3e717179fd`・`23a7d65619629fc4ce2b36e1c0813eadfea3eb64` / blob `0d7fedfa3e7a898ee4e1fc9e4f379dc90e67e08c`、`neo-wild/visual.css` commit `93e2e43ca4fb014ed6f245f7c9d834d5f7a73a24` / blob `ba6ed4eb0b7dda0c4fe9af6caf73b5d231665c93`。全てneo-wild/内、ゲーム/スタイルcache rev更新済み。
