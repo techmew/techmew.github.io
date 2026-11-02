@@ -86,7 +86,7 @@ function back(mode){
   focused.dispatchEvent(new Event("change",{bubbles:true}));
   selectEditing=false;selectOriginal=null;updateGuide({index:active},mode);return;
  }
- if(mode==="result"){document.getElementById("menu-btn")?.click?.();return}
+ if(mode==="result"){const choice=document.getElementById("menu-btn");if(visible(choice))focusElement(choice);return}
  if(mode==="pause"){B()?.pause();return}
  if(mode==="menu"){
   const c=document.getElementById("checkpoint-list");
@@ -171,10 +171,11 @@ function poll(dt=.016){
  }
  if(mode==="play"){
   const [lx,ly]=stick(axis(p,0),axis(p,1));
-  const tx=clamp(lx+(now[15]?1:0)-(now[14]?1:0),-1,1);
-  const ty=clamp(ly+(now[13]?1:0)-(now[12]?1:0),-1,1);
-  // Direction changes and D-pad reversals must reach the player in this poll.
-  mx=tx;my=ty;
+  // D-pad overrides a held analog stick on its own axis.
+  const dx=(now[15]?1:0)-(now[14]?1:0),dy=(now[13]?1:0)-(now[12]?1:0);
+  const tx=dx||lx,ty=dy||ly;
+  const length=Math.max(1,Math.hypot(tx,ty));
+  mx=tx/length;my=ty/length;
   b.setMove(mx,my);
   const [rx,ry]=stick(axis(p,2),axis(p,3));
   if(rx)b.turnCamera(rx*clamp(dt,0,.06)*2.9);
@@ -199,9 +200,12 @@ function poll(dt=.016){
   b.setMove(0,0);mx=my=0;
   if(mode==="pause"&&down(9))b.pause();
   else if(mode==="map"&&(down(1)||down(9)))b.map();
+  else if(mode==="guide"&&down(9))document.getElementById("tutorial-close")?.click?.();
+  else if(mode==="inventory"&&down(9))document.getElementById("den-inventory-close")?.click?.();
+  else if(mode==="result"&&down(9)){} // START never auto-retries or discards a run.
   else if(down(1)||down(8))back(mode);
-  else if(mode==="guide"&&(down(0)||down(1)||down(3)||down(9)))document.getElementById("tutorial-close")?.click?.();
-  else if(down(0)||down(3)||(mode!=="menu"&&down(9)))confirm(mode);
+  else if(mode==="guide"&&(down(0)||down(3)))document.getElementById("tutorial-close")?.click?.();
+  else if(down(0)||down(3))confirm(mode);
   else if(!items(mode).includes(focused)){
    // A menu action or a touch input may hide the previously selected control.
    // Recover the visible focus before processing the next D-pad movement.

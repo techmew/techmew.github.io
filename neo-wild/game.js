@@ -2309,8 +2309,12 @@ function applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo=false){
 }
 
 function getAxes(){
- let x=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)+joy.x+gamepadAxes.x;
- let y=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0)+joy.y+gamepadAxes.y;
+ const keyboardX=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0);
+ const keyboardY=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0);
+ // Active pad axes override other controls on that axis instead of cancelling
+ // them; facing and velocity then follow the selected direction this frame.
+ let x=Math.abs(gamepadAxes.x)>.08?gamepadAxes.x:keyboardX+joy.x;
+ let y=Math.abs(gamepadAxes.y)>.08?gamepadAxes.y:keyboardY+joy.y;
  const strength=Math.min(1,Math.hypot(x,y));
   const wx=(VIEW.d*x-VIEW.c*y)/VIEW_DET,wy=(-VIEW.b*x+VIEW.a*y)/VIEW_DET,n=Math.hypot(wx,wy);
   return n>1e-5?{x:wx/n*strength,y:wy/n*strength}:{x:0,y:0};
