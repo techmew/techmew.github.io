@@ -991,3 +991,29 @@
 /* VENOM-PACK-V1: immediately visible, readable poisoned status in both orientations. */
 #poison-status{margin:3px 0 7px;padding:5px 7px;width:max-content;max-width:100%;border-radius:6px;border:1px solid #b1e06e;background:#25331ae8;color:#d5f68d;font:800 11px/1.35 "Noto Sans JP",sans-serif;text-shadow:0 1px 2px #000}
 @media(max-height:520px) and (orientation:landscape){#poison-status{margin:2px 0 3px;padding:2px 5px;font-size:9px}}
+
+
+/* STRONG-40-V1: subtle fear atmosphere, readable on small portrait/landscape. */
+#boss-presence{position:absolute;left:50%;top:clamp(137px,24vh,224px);transform:translate(-50%,-10px);
+ z-index:6;pointer-events:none;opacity:0;max-width:min(330px,74vw);min-width:205px;
+ padding:8px 17px 10px;border-top:2px solid #e58570;border-bottom:1px solid #ad655c9c;
+ background:linear-gradient(110deg,#241012ed,#441e20de,#210f11e3);color:#ffe7d7;
+ text-align:center;box-shadow:0 9px 28px #18030688,0 0 28px #8d29214a;
+ border-radius:5px;transition:opacity .22s ease,transform .22s ease;}
+#boss-presence.active{opacity:1;transform:translate(-50%,0)}
+.boss-presence-kicker{display:block;font:900 10px/1.5 "Noto Sans JP",sans-serif;color:#ffb49a;letter-spacing:.30em}
+#boss-presence-name{display:block;font:900 clamp(16px,3.4vw,25px)/1.26 "Noto Sans JP",sans-serif;letter-spacing:.04em}
+#boss-presence-sub{display:block;margin-top:3px;font:700 10px/1.45 "Noto Sans JP",sans-serif;color:#f1c8b8}
+#vignette.boss-close{background:radial-gradient(ellipse at center,transparent 34%,rgba(71,9,13,.19) 76%,rgba(64,9,16,.35) 100%)}
+@media(max-width:480px) and (orientation:portrait){
+ #boss-presence{top:clamp(152px,25vh,240px);max-width:74vw;min-width:175px;padding:7px 8px 9px}
+ #boss-presence-name{font-size:16px}
+ .boss-presence-kicker{font-size:9px}
+ #boss-presence-sub{font-size:9px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #boss-presence{top:55px;left:50%;max-width:32vw;min-width:145px;padding:4px 8px 5px}
+ #boss-presence-name{font-size:13px;white-space:normal}
+ #boss-presence-sub{display:none}
+ .boss-presence-kicker{font-size:8px}
+}
