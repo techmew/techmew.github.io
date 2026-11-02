@@ -1,3 +1,14 @@
+## 共同スプリント・次担当｜2026/11/02 16:52 JST｜手動・SCORE上位5位保存とハイスコア表示｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（継続）
+- **対象/前後HEAD**：現行main・本ROADMAP先頭の15/45枠・Drive完成仕様の末尾を照合。開始HEAD `be6cacef8fdadd7b88d70edaa2a98ec4e85ebe91` → 実装済コードHEAD `ebb6d2bab22592e25900c2e8c1c7ee86b2e90a99`。変更先は`neo-wild/`のみ。
+- **実際の保存仕様**：従来は`wild-reclaim-best`に単一の最高点だけ保存。今回`wild-reclaim-top5-v1`を追加し、死亡/クリアで今回のスコアを記録し上位5件（点数降順）をlocalStorageへ保持。各行に動物・DAY・狩猟数・LV・得点を付ける。旧最高点が存在すれば「以前の最高記録」としてTOP5へ移行。既存最高点キーも引き続き更新、SAVE_SCHEMA2・3CP・autosave内容は変更しない。デバッグ通しテスト中のスコアは保存しない。通信や他端末との同期は行わない。
+- **表示**：死亡画面/クリア画面に「歴代TOP5（この端末）」を表示し、今回の順位をハイライト。現在の得点が従来の自己最高点を**超えた場合だけ**「ハイスコア！」の大きな表示。順位外ならランキング維持、ブラウザ保存が失敗した場合は失敗を明示。小画面でも結果画面を縦スクロールでき、リトライ/最初からのボタンを保持。
+- **変更ファイル/commit/blob**：`game.js` commit `93d2e1417bb0b3f9983f953dcdb894586514f778` / blob `00a929c380dab338e309e79a0a74ff6a77771c7d`（loadTopScores/recordTopScore/renderTopScoresとfinish）。`index.html` commit `15cb3048b7a356d7e907fc9a9df1110dd9975d51` / blob `85847b679cfa260351815b9c2e9a3b25a7754475`（UIとgame.js/visual.css rev v1）。`visual.css` commit `ebb6d2bab22592e25900c2e8c1c7ee86b2e90a99` / blob `9402be3857f8a8d67c8b0cb0eee7683201333837`。
+- **現行コード動的QA（23/23 PASS）**：実`game.js`から3つのスコア関数と`finish`を抽出し実行、旧単一最高500点の移行、低得点2位、新最高700点、同点ではハイスコア非表示、保存5件上限と順位ソート、ハイスコアの帯/新記録行の表示、デバッグ通しテスト時の保存禁止、再ロード・破損JSONの復帰、死亡結果画面の描画/重複finishで重複登録なし、JS本体6/6構文、HTMLの結果要素とキャッシュ、CSSレイアウトを検証。模擬DOM+localStorageによるテストでありAndroid/実ブラウザ10分/物理pad/実GPU・縦横矩形は未試験。
+- **Pages**：コードHEAD `ebb6d2bab22592e25900c2e8c1c7ee86b2e90a99` の`pages build and deployment` run `41408826481`：**build=success / report-build-status=success / deploy=success**。本ROADMAP追記commit後のHEADは別run確認が必要。
+- **進捗V2・固定100点**：A16.0 / B12.0 / C9.0 / D4.0 / E8.0 / F9.0 / G8.0 / H4.0 / I4.0 = **74.0/100（前回74.0→74.0、差0.0）**。既存生存/セーブ項目を強化したが規定の新たな完成条件は満たしていないため加点しない。実ブラウザ10分・Android・物理PadのE2Eは各0で検証待ち。
+- **次15分枠（3件）**：①`game.js:finish/recordTopScore`と旧SAVE_SCHEMA2/3CP復帰を連結して同じチェックポイントから死亡を繰り返した時の記録/ランキング挙動を検証。②空腹0→食事→HP0→死亡画面→順位保存→リトライの実関数通し試験。③20種強敵の討伐報酬と得点計算・保存を種類別に検証し未完成を修正。
+- **次45分枠（3件）**：①Android縦390×844/横800×360の死亡画面でTOP5・ハイスコア・リトライの視認性と重なりの実測。②gamepadでゲームオーバー画面のランキング閲覧・リトライ/タイトル選択、死亡2.2秒前後の入力無効を確認。③最新HEADのPages build+deploy両successを確認し、実ブラウザ10分E2E・WebGL/Canvas2Dの表示とFPSを検証。
+
 ## 共同スプリント・次担当｜2026/11/02 16:15枠（16:22 JST着手）｜15分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜飢餓中の日替わり回復防止・旧保存復帰の安全化
 - **開始→コードHEAD**：`999ff23811faf364a27806e0362e96792acc9f22` → `d47cedd2d8b259e17a9ab6d1ae12a572fb23092f`。前45分枠の2D転倒/2.2秒フェード・前15分枠の空腹0のHP減少/3CPとDrive設計正本末尾を確認。既存の6巣/20強敵/ゲームパッドタイトル操作/夜目/4段階教程を再実装せず維持。
 - **実変更（neo-wild/のみ）**：`game.js` commit `388b3f42ab7dbbad5c8deafc649a3442e37e46b7` / blob `56478481512f5688d73d8beac03114e66d457512`、`index.html` commit `d47cedd2d8b259e17a9ab6d1ae12a572fb23092f` / blob `01dec46c21948b6d26ec26a010b9b0383b0c6fea`、JS rev `20261102-starve-day-legacy-v11`。
