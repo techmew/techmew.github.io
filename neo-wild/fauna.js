@@ -55,7 +55,7 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["snake","frog","crow","deer","weasel","raccoonDog"].includes(type))return false;
+ if(!["snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -132,6 +132,59 @@ function draw2D(ctx,o,r,fur,light,pace){
   ellipse(r*1.33,0,r*.24,r*.19,light);
   for(const side of [-1,1])ellipse(r*.98,side*r*.29,r*.16,r*.19,fur);
   ellipse(r*1.34,-r*.14,1.6,1.5,"#252720");
+
+ }else if(type==="cheetah"){
+  for(const side of [-1,1])for(const x of [-r*.67,r*.56])ellipse(x,side*r*.48+pace*side,r*.18,r*.34,fur);
+  line(-r*.9,0,-r*2.1,-r*.42,r*.12,fur);
+  ellipse(-r*.08,0,r*1.32,r*.42,fur);ellipse(r*.93,0,r*.41,r*.33,fur);
+  for(let k=0;k<13;k++){const x=(-1.1+(k*7%13)*.18)*r,y=(((k*5)%9)-4)*r*.105;ellipse(x,y,r*.045,r*.07,"#463c30");}
+  for(const side of [-1,1]){ellipse(r*.96,side*r*.29,r*.12,r*.07,"#201e20");line(r*1.07,side*r*.18,r*1.20,side*r*.30,r*.05,"#39352c");}
+ }else if(type==="giraffe"){
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const x=front*r*.57;line(x,side*r*.36,x+front*r*.16,side*r*1.38,r*.13,fur);
+   ellipse(x+front*r*.18,side*r*1.39,r*.20,r*.11,"#5e4934");
+  }
+  ellipse(-r*.19,0,r*1.17,r*.45,fur);
+  for(let k=0;k<9;k++){const x=(-1+(k*7%10)*.19)*r,y=(((k*3)%7)-3)*r*.10;ellipse(x,y,r*.15,r*.13,"#a9733f");}
+  ellipse(r*.65,0,r*.50,r*.23,fur);ellipse(r*1.20,0,r*.55,r*.24,fur);
+  for(const side of [-1,1]){
+   ellipse(r*1.35,side*r*.27,r*.13,r*.14,fur);
+   line(r*1.12,side*r*.17,r*1.19,side*r*.42,r*.09,"#8e6a42");
+   ellipse(r*1.20,side*r*.46,r*.09,r*.08,"#6b513e");
+  }
+  ellipse(r*1.60,0,r*.25,r*.17,light);ellipse(r*1.42,-r*.16,r*.07,r*.07,"#242b25");
+  line(-r*1.25,0,-r*1.67,-r*.27,r*.08,"#725234");
+ }else if(type==="zebra"){
+  for(const side of [-1,1])for(const x of [-r*.66,r*.52])ellipse(x,side*r*.57+pace*side,r*.18,r*.30,"#42403e");
+  ellipse(-r*.2,0,r*1.20,r*.65,light);ellipse(r*.78,0,r*.57,r*.42,light);
+  for(let k=0;k<8;k++){const x=(-1.07+k*.25)*r;line(x,-r*.56,x+r*.15,r*.56,r*.095,"#35383a");}
+  for(const side of [-1,1])ellipse(r*.69,side*r*.48,r*.15,r*.23,light);
+  ellipse(r*1.18,0,r*.39,r*.21,"#4a4a46");ellipse(r*1.04,-r*.22,r*.06,r*.06,"#f3efe7");
+  line(-r*1.37,0,-r*2.00,-r*.19,r*.09,"#3f4644");
+ }else if(type==="lion"){
+  for(const side of [-1,1])for(const x of [-r*.59,r*.5])ellipse(x,side*r*.63+pace*side,r*.26,r*.33,fur);
+  ellipse(-r*.21,0,r*1.26,r*.66,fur);ellipse(r*.69,0,r*.77,r*.80,"#926a3d");
+  ellipse(r*1.12,0,r*.52,r*.42,fur);ellipse(r*1.48,0,r*.30,r*.18,light);
+  for(const side of [-1,1]){ellipse(r*1.2,side*r*.27,r*.12,r*.08,"#302923");ellipse(r*.80,side*r*.56,r*.20,r*.18,"#9c7549");}
+  line(-r*1.18,0,-r*1.85,r*.28,r*.12,fur);ellipse(-r*1.84,r*.26,r*.16,r*.13,"#655037");
+ }else if(type==="elephant"){
+  for(const side of [-1,1])for(const x of [-r*.60,r*.59])ellipse(x,side*r*.70+pace*side,r*.35,r*.41,"#68736d");
+  ellipse(-r*.17,0,r*1.42,r*1.04,fur);ellipse(r*.86,0,r*.99,r*.85,light);
+  for(const side of [-1,1]){
+   ellipse(r*.90,side*r*.87,r*.46,r*.59,"#78847d");
+   ellipse(r*1.25,side*r*.27,r*.10,r*.10,"#303835");
+   line(r*1.4,side*r*.34,r*2.0,side*r*.35,r*.13,"#e9dec6");
+  }
+  for(let k=0;k<5;k++)ellipse(r*(1.4+k*.19),Math.sin(k*.5)*r*.13,r*(.27-k*.025),r*(.27-k*.025),fur);
+ }else if(type==="hippo"){
+  for(const side of [-1,1])for(const x of [-r*.6,r*.56])ellipse(x,side*r*.72+pace*side,r*.32,r*.37,"#716867");
+  ellipse(-r*.18,0,r*1.34,r*1.04,fur);ellipse(r*.86,0,r*.82,r*.69,fur);
+  ellipse(r*1.39,0,r*.68,r*.49,light);
+  for(const side of [-1,1]){
+   ellipse(r*1.05,side*r*.65,r*.19,r*.22,fur);
+   ellipse(r*1.37,side*r*.36,r*.15,r*.12,"#342e2e");
+   ellipse(r*1.52,side*r*.17,r*.12,r*.10,"#554c4b");
+  }
  }else if(type==="raccoonDog"){
   for(const side of [-1,1])for(const x of [-r*.5,r*.46]){
    ellipse(x,side*r*.63+pace*side,r*.25,r*.32,"#554a40");
