@@ -1,3 +1,11 @@
+## 共同スプリント・次担当｜2026/11/02 JST｜起動不能を緊急修復｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（維持）
+- **障害**：直前の建物隙間対策 commit `7ed869c0` で `collides` に `actor===P&&(actor.jumpHeight||0)<18` を追加したが、ワールド生成時 `P===null` かつ省略時 `actor===null` なので条件前半が真となり、`actor.jumpHeight` 参照で TypeError、タイトルのワールド初期化が中断。ユーザーから「プレイ開始できなくなった」と報告。
+- **修正**：`neo-wild/game.js` commit `ef671803dc19b41c1394bcdcb82cfcedb6c9c7d7` / blob `d8aa0942613e22ab28e3c7ad10fcc5a4b884d4ec`、`actor&&actor===P` ガード追加。`neo-wild/index.html` commit `7cca79e01cd29f14b85a4e256beab6dc5dca847b` / cache rev `20261102-startup-crash-fix-v2`。既存の狭隙間禁止・救済と死亡2.2秒処理、チュートリアル、旧SAVE_SCHEMA2に触れず復旧。コード終了 HEAD `7cca79e01cd29f14b85a4e256beab6dc5dca847b`、ROADMAP記録後 HEADは本コミット。
+- **検証**：本番`collides`を実行し `P=null/actor=null`、P存在/actor=null、狭い隙間actor=P、通常通路actor=P **4/4 PASS**。本番`game.js`全文構文PASS。全game.jsを模擬DOM/Canvasで実行し初期化・ワールド生成・ボタン登録PASS、「続きから（セーブなし）」→教程画面・「新規開始」→playモード **2/2 PASS**。**模擬DOM検証であり実Android/実ブラウザ10分E2E・Pages対象HEAD build/deployは未確認**。模擬DOM `parentElement` 不備で出た試験自体のエラーはモック補完後解消。
+- **進捗V2**：A16.0/B12.0/C9.0/D4.0/E8.0/F9.0/G8.0/H4.0/I2.0＝**72.0/100、前回72.0→72.0、差0.0**。起動不能復旧だが既存達成条件の修復のみ、Pages対象HEAD成功未確認で加点なし。
+- **次15分枠**：(1) `collides`のP未生成時に引き続きnull参照がないか起動→新規→save/restoreの実関数を連結。(2) `recoverPlayerFromGap`が旧セーブのスタックだけ救出し、正常位置を変えないか検証。(3) 死亡2.2秒・HP0→結果→3CP復帰と初回教程済み判定を回帰。
+- **次45分枠**：(1) 実Android縦横のタイトル→最初から/続きからをタップして起動確認、ワールド生成時のコンソールエラーなし。(2) 実WebGL/Canvas2D両描画で狭路・壁/河川・屋上の移動、FPS/画面矩形を実測。(3) このコードHEAD以降のPages build/deploy jobが両successかrun IDで確認、失敗なら修復。新タスクなし。
+
 ## 共同スプリント・次担当｜2026/11/02 JST｜手動優先修正｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（継続）｜死亡暗転短縮・建物隙間スタック防止
 - **ユーザー最新要望**：「死んだときのブラックアウトをもう少し早く」「建物の隙間にはまって動けなくなるバグを解決」。開始HEADは直近ROADMAP `6c4839f6b8633f9d6f08409b1897bec48318816b`、現行game.js/audio.js/index.htmlを照合し、既存死亡セーブ保護・教程/草・巣・強敵を上書きせず最小変更。
 - **変更コード**：`neo-wild/game.js` `7ed869c0a1177940f2c4db16c415b7fa6d62e131` / blob `f6259f1fde425c808a09aea179c490aa822e7841`；`neo-wild/audio.js` `cb9c643fabd59411f97f4ef00777714a89c96a3b` / blob `c6e0e273e47d5f081816e238b1e589741d38599f`；`neo-wild/index.html` `c5ee732357afc38bbaa3aee7acd1aeff86bbfc5d` / blob `6a7681aab38819d9d3c027462580c93941e402e0`（両JS rev）。コード終了HEAD `c5ee732357afc38bbaa3aee7acd1aeff86bbfc5d`、ROADMAPコミットは別。neo-wild/外変更なし。
