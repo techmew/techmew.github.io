@@ -662,15 +662,28 @@ function generateWorld(){
  buildScenicProps();
 }
 function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
-window.addEventListener("resize",resize,{passive:true});resize();generateWorld();initializeDenSites();ensureDenCover();
+window.addEventListener("resize",resize,{passive:true});resize();
+// World building is deferred until Play; its failure must never disable title controls.
+let worldReady=false;
+function ensureWorldReady(){
+ if(worldReady)return true;
+ try{generateWorld();initializeDenSites();ensureDenCover();worldReady=true;return true;}
+ catch(error){
+  console.error("World initialization error",error);
+  const note=$("menu-landscape-note");
+  if(note){note.textContent="ゲームを準備できません。ページを更新してください。";note.setAttribute("data-error","true")}
+  return false;
+ }
+}
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
  if(id==="menu")refreshSaveMenu();
 }
 function start(){
+ if(!ensureWorldReady())return false;
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -697,7 +710,8 @@ function start(){
  ensureTrainingCoverNear(P);
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  enterStrongStage();syncHUD();drawMini();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
- playEffect("collect");
+ playEffect("collect");startAmbient();
+ return true;
 }
 
 /* Local progress snapshots. No remote service is required and saving never advances the clock. */
@@ -782,7 +796,7 @@ function restoreSnapshot(snapshot){
  migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
  document.querySelectorAll(".animal-card").forEach(b=>b.classList.toggle("selected",b.dataset.animal===choice));
- start();
+ if(!start())return false;
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
  // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
@@ -4499,15 +4513,33 @@ document.addEventListener("fullscreenchange",()=>{
 window.addEventListener("resize",updateRotationButton);
 window.addEventListener("orientationchange",updateRotationButton);
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));playEffect("menu")}));
+function reportLaunchFailure(error){
+ console.error("WILD RECLAIM launch failed",error);
+ resetControls();mode="menu";show("menu");
+ const note=$("menu-landscape-note");
+ note.textContent="ゲームを開始できません。ページを更新して再度お試しください。";
+ note.setAttribute("data-error","true");
+}
+function launchGame(snapshot=null){
+ const note=$("menu-landscape-note");
+ note.removeAttribute("data-error");
+ try{
+  if(snapshot){
+   if(restoreSnapshot(snapshot))return true;
+   note.textContent="保存データを再開できません。最初からプレイを選んでください。";
+   note.setAttribute("data-error","true");return false;
+  }
+  if(start()){announceObjective();return true}
+  reportLaunchFailure(new Error("world initialization returned false"));return false;
+ }catch(error){reportLaunchFailure(error);return false}
+}
 $("start-btn").addEventListener("click",()=>{
- if(getAutoSnapshot()&&!window.confirm("保存した「続きから」のデータを上書きして、新しく始めますか？\nチェックポイントは残ります。"))return;
- clearAutoSave();start();announceObjective();
+ if(getAutoSnapshot()&&!window.confirm("保存したデータを上書きして新しく始めますか？\nチェックポイントは残ります。"))return;
+ clearAutoSave();launchGame();
 });
 $("continue-btn").addEventListener("click",()=>{
  const snapshot=getAutoSnapshot()||getCheckpoints()[0];
- if(snapshot){restoreSnapshot(snapshot);return}
- if(!$("menu").classList.contains("has-saved-game")){start();announceObjective();return}
- refreshSaveMenu();
+ launchGame(snapshot||null);
 });
 $("checkpoint-menu-btn").addEventListener("click",()=>{
  const target=$("checkpoint-list"),open=target.classList.contains("hidden");
@@ -4549,6 +4581,7 @@ function selectMenuOrientation(target){
  for(const [id,selected] of [["menu-portrait-btn",portrait],["menu-landscape-btn",!portrait]]){
   const button=$(id);button.classList.toggle("selected",selected);button.setAttribute("aria-pressed",String(selected));
  }
+ $("menu-orientation-status").textContent="✓ 選択中："+(portrait?"縦画面":"横画面");
  const note=$("menu-landscape-note");
  if(portrait){
   try{screen.orientation?.unlock?.()}catch(e){}
@@ -4694,6 +4727,7 @@ gameSurface.addEventListener("pointercancel",stopCameraPointer);
 gameSurface.addEventListener("lostpointercapture",stopCameraPointer);
 document.addEventListener("contextmenu",e=>e.preventDefault());
 refreshSaveMenu();drawMini();
+window.WildGameReady=true;
 /* Opt-in debugging interface. Display UI is unlocked by seven title taps.
  * No debug flag is serialized; normal save schema, input and autosave remain intact. */
 window.WildDebugBridge={
