@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261102-orientation-icon-v2">
+<link rel="stylesheet" href="./visual.css?rev=20261102-menu-flow-v5">
 </head>
 <body>
 <div id="app">
@@ -81,15 +81,12 @@
  <p class="tutorial-note">閉じるとゲーム再開</p>
  <footer class="tutorial-controls"><button id="tutorial-prev" type="button">← 戻る</button><button id="tutorial-next" type="button">次へ →</button></footer></section>
 </div>
-<div id="menu" class="overlay">
-  <div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div>
-  <div class="menu-shell">
-    <div class="micro">8 REGIONS / 6 WEATHER / NEW SOUNDTRACK <i></i> BUILD 20261101-PANTRY-GUIDE5</div>
-    <div class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</div>
-    <div class="subtitle">廃都生存記 <span>— TOKYO AFTER HUMANITY —</span></div>
-    <div id="save-menu-actions" aria-label="保存したゲームから再開">
-      <button id="continue-btn" type="button" class="save-choice resume-primary hidden">
-        <span class="resume-cta-title">▶ 続きからプレイ<small>前回の保存地点から再開</small></span>
+<div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell">
+<h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
+<p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
+<div id="save-menu-actions" aria-label="保存したゲームから再開">
+      <button id="continue-btn" type="button" class="save-choice resume-primary">
+        <span class="resume-cta-title"><span id="resume-cta-label">最初からプレイ</span><small id="resume-cta-help">設定を選んで開始</small></span>
         <span id="continue-detail" class="resume-detail"></span>
       </button>
       <button id="checkpoint-menu-btn" type="button" class="save-choice hidden" aria-controls="checkpoint-list" aria-expanded="false">チェックポイントから再開</button>
@@ -99,21 +96,22 @@
         <button id="checkpoint-slot-2" type="button" class="checkpoint-choice hidden"></button>
       </div>
     </div>
-    <div class="landscape-menu-choice">
-      <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div>
-      <p id="menu-landscape-note" role="status" aria-live="polite">画面の向きを選び、「続きから」または「新しいゲーム」を押してください。</p>
-    </div>
-    <p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
-    <details id="new-game-options">
-      <summary id="new-game-summary">最初から始める（新規ゲーム）</summary>
-      <div class="new-game-config">
-        <div class="pick-head"><span>01</span> 生き延びる個体を選択 <i>SELECT YOUR INSTINCT</i></div>
-        <div class="animals">
+    
+<section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
+<div class="pick-head"><span>01</span> 生き延びる個体を選択</div>
+<div class="animals">
           <button class="animal-card selected" data-animal="fox"><span class="animal-icon">🦊</span><span><b>アカギツネ</b><small>爆速疾走 / □長押しで疾風</small></span><em>01</em></button>
           <button class="animal-card" data-animal="cat"><span class="animal-icon">🐈</span><span><b>ノラネコ</b><small>壁の三角飛び / 空中○で再ジャンプ</small></span><em>02</em></button>
           <button class="animal-card" data-animal="wolf"><span class="animal-icon">🐺</span><span><b>オオカミ</b><small>重量突進 / □長押しで咆哮</small></span><em>03</em></button>
         </div>
-        <label id="spawn-picker" for="start-region">02　出発地点を選択（初めから始める場合）
+        
+<div class="pick-head"><span>02</span> 画面の向きを選択</div>
+<div class="landscape-menu-choice">
+      <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div>
+      <p id="menu-landscape-note" role="status" aria-live="polite">画面の向きを選び、「続きから」または「新しいゲーム」を押してください。</p>
+    </div>
+    
+<label id="spawn-picker" for="start-region">03　始める場所を選択（新規ゲーム）
           <select id="start-region" aria-label="出発地点">
             <option value="home">東京・巣周辺（従来の開始地点）</option>
             <option value="zoo">上野・廃動物園</option>
@@ -123,21 +121,18 @@
             <option value="river">荒川河川敷</option>
           </select>
         </label>
-        <div id="soundtrack-caption">BGM：廃東京・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
-
-        <button id="start-btn" class="big-btn" type="button">新しいゲームを開始 <span>NEW GAME →</span></button>
-      </div>
-    </details>
-    <div class="menu-foot"><span>移動 / 狩り / 捕食 / 飛びつき / 視点回転 / 進化</span><span id="best-score">BEST SCORE —</span></div>
-  </div>
-</div>
+<button id="start-btn" class="big-btn" type="button">新しいゲームを開始 <span>NEW GAME →</span></button>
+<div id="soundtrack-caption">BGM：廃東京・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
+</div></section>
+<div class="menu-foot"><span>移動 / 狩り / 捕食 / 飛びつき / 視点回転 / 進化</span><span id="best-score">BEST SCORE —</span></div>
+</div></div>
 <div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button></div></div>
 </div>
 <script src="./audio.js?rev=20261102-death-fade-v1" defer></script>
 <script src="./webgl3d.js?rev=20261102-death-pose-v1" defer></script>
-<script src="./game.js?rev=20261102-starvation-death-v2" defer></script>
+<script src="./game.js?rev=20261102-menu-flow-v5" defer></script>
 <script src="./gamepad.js?rev=20261102-instant-pad-v1" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261101-seven-tap-v1" defer></script>
