@@ -289,7 +289,7 @@ function drawStrongAnimal3D(m,clock){
 
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
 function drawCommonAnimal3D(m,clock){
- const t=m.type;
+ const t=m.type==="venomSnake"?"snake":m.type;
  if(!["snake","frog","crow","deer","weasel","raccoonDog"].includes(t))return false;
  const r=m.r||14,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
@@ -306,6 +306,11 @@ function drawCommonAnimal3D(m,clock){
   orb(r*1.43,0,r*.23,r*.52,r*.35,r*.23,fur);
   for(const side of [-1,1])orb(r*1.66,side*r*.23,r*.35,r*.06,r*.06,r*.07,"#f8e8b8");
   horn(r*1.94,0,r*.16,r*.15,r*.09,r*.12,"#bc8179");
+  if(m.type==="venomSnake"){
+   for(let k=0;k<6;k++)orb(r*(2.5-k*.67),Math.sin(k*.7)*r*.14,r*.44,r*.12,r*.35,r*.09,"#e8c34f");
+   for(const side of [-1,1])orb(r*1.61,side*r*.26,r*.39,r*.085,r*.075,r*.075,"#161b12");
+   horn(r*1.94,-r*.18,r*.13,r*.08,r*.07,r*.17,"#fff0bd");
+  }
  }else if(t==="frog"){
   for(const side of [-1,1]){
    orb(-r*.58,side*r*.70,r*.20,r*.36,r*.29,r*.16,fur);
