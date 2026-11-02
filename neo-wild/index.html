@@ -7,6 +7,7 @@
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
 <link rel="stylesheet" href="./visual.css?rev=20261102-top5-v1">
+<link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
 <div id="app">
@@ -98,6 +99,7 @@
       </div>
     </div>
     
+<button id="bestiary-open" type="button" aria-controls="bestiary" aria-expanded="false">動物図鑑　0 / 33</button>
 <section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
 <div class="pick-head"><span>01</span> 生き延びる個体を選択</div>
 <div class="animals">
@@ -130,6 +132,18 @@
 <div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button></div></div>
+<div id="bestiary" class="hidden" role="dialog" aria-modal="true" aria-labelledby="bestiary-title">
+ <section class="bestiary-shell">
+  <header class="bestiary-head"><div><h2 id="bestiary-title">動物図鑑</h2><span id="bestiary-progress">登録 0 / 33種</span></div><button id="bestiary-close" type="button">閉じる</button></header>
+  <div id="bestiary-list" class="bestiary-list" aria-label="討伐した動物の一覧"></div>
+  <div id="bestiary-detail" class="bestiary-detail hidden">
+   <div class="bestiary-info"><button id="bestiary-back" type="button">一覧に戻る</button><strong id="bestiary-name"></strong><small id="bestiary-count"></small></div>
+   <canvas id="bestiary-preview" width="360" height="280" aria-label="動物の3Dモデル。指で360度回転・ピンチで拡大縮小"></canvas>
+   <div class="bestiary-detail-tools"><button id="bestiary-minus" type="button" aria-label="縮小">−</button><span id="bestiary-zoom">115%</span><button id="bestiary-plus" type="button" aria-label="拡大">＋</button></div>
+   <p id="bestiary-render-help">指で360度回転・ピンチで拡大縮小</p>
+  </div>
+ </section>
+</div>
 </div>
 <script>
 (function(){
@@ -154,9 +168,10 @@
 })();
 </script>
 <script src="./audio.js?rev=20261102-death-finalquiet-v4" defer></script>
-<script src="./webgl3d.js?rev=20261102-death-roll-v3" defer></script>
+<script src="./webgl3d.js?rev=20261102-bestiary-preview-v1" defer></script>
+<script src="./bestiary.js?rev=20261102-bestiary-v1" defer></script>
 <script src="./fauna.js?rev=20261102-fauna13-2d-v2" defer></script>
-<script src="./game.js?rev=20261102-lunar-visible-v1" defer></script>
+<script src="./game.js?rev=20261102-bestiary-record-v1" defer></script>
 <script src="./gamepad.js?rev=20261102-death-result-pad-v3" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261102-tutorial-debug-flow-v4" defer></script>
