@@ -860,3 +860,32 @@
  #menu .orientation-choice small{display:none;}
  #menu .orientation-choices{gap:6px;}
 }
+
+/* MENU-FLOW-V5 */
+#menu .menu-shell{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;width:min(650px,100%)!important;max-width:100%!important;max-height:calc(100dvh - 18px)!important;gap:8px!important;margin:auto!important;padding:4px 4px 16px!important;overflow-y:auto!important;}
+#menu .subtitle,#menu .micro{display:none!important;}
+#menu .hero-title{grid-column:auto!important;grid-row:auto!important;align-self:flex-start!important;font-size:clamp(56px,12vw,106px)!important;line-height:.82!important;margin:4px 0!important;}
+#menu .lead,#menu.has-saved-game .lead{display:block!important;grid-column:auto!important;grid-row:auto!important;margin:4px 0 7px!important;font-size:clamp(12px,2.8vw,16px)!important;line-height:1.6!important;font-weight:800!important;text-shadow:0 3px 8px #000,0 2px 13px #000!important;color:#fff!important;}
+#menu #save-menu-actions,#menu:not(.has-saved-game) #save-menu-actions{display:flex!important;grid-column:auto!important;grid-row:auto!important;flex-direction:column!important;gap:5px!important;margin:1px 0 8px!important;}
+#menu .resume-primary{display:flex!important;min-height:72px!important;padding:10px 14px!important;justify-content:center!important;align-items:flex-start!important;gap:4px!important;background:linear-gradient(105deg,#f3cf81,#f4e3af 70%,#cee5b7)!important;color:#152621!important;border:2px solid #f2d69b!important;text-shadow:none!important;}
+#menu .resume-cta-title{font-size:clamp(19px,4vw,25px)!important;}
+#menu .resume-cta-title small{color:#395044!important;font-size:11px!important;margin-top:3px!important;}
+#menu #continue-detail{font-size:11px!important;}
+#menu #new-game-options{display:block!important;grid-column:auto!important;grid-row:auto!important;width:100%;min-width:0;margin:0!important;padding:0!important;}
+#menu #new-game-options .new-game-config{display:flex!important;flex-direction:column!important;gap:7px!important;padding:0!important;}
+#menu .pick-head{margin:0!important;padding:6px 0 4px!important;line-height:1.3!important;}
+#menu .animals{margin:0 0 4px!important;gap:7px!important;}
+#menu .animal-card{min-width:0;min-height:83px!important;}
+#menu .landscape-menu-choice{display:flex!important;flex-direction:column!important;grid-column:auto!important;grid-row:auto!important;max-width:none!important;gap:5px!important;margin:0!important;}
+#menu .orientation-choices{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:9px!important;}
+#menu .orientation-choices .orientation-choice{display:flex!important;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;min-width:0;width:100%!important;min-height:84px!important;padding:7px 5px!important;gap:3px!important;}
+#menu .orientation-choices .orientation-choice.selected{border-color:#ffc568!important;background:rgba(34,69,56,.94)!important;box-shadow:inset 0 0 0 1px #ffc568!important;}
+#menu #menu-landscape-note{min-height:0!important;font-size:10px!important;line-height:1.3!important;}
+#menu #spawn-picker{display:flex!important;flex-direction:column;gap:5px;margin:0!important;}
+#menu #start-region{min-height:42px;}
+#menu #start-btn{display:flex!important;min-height:46px;padding:11px 14px!important;background:#203c33!important;color:#e5f3e8!important;border:1px solid #89a69b!important;box-shadow:none!important;}
+#menu:not(.has-saved-game) #start-btn{display:none!important;}
+#menu #soundtrack-caption{font-size:10px!important;margin:0!important;text-align:left;}
+#menu .menu-foot{display:flex!important;margin:3px 0 0!important;font-size:10px!important;gap:8px;flex-wrap:wrap;}
+@media (orientation:portrait) and (max-width:600px){#menu .menu-shell{gap:7px!important;}#menu .hero-title{font-size:clamp(60px,15vw,90px)!important;}#menu .animal-card{min-height:82px!important;padding:7px 5px!important;}#menu .orientation-choices .orientation-choice{min-height:88px!important;}}
+@media (orientation:landscape) and (max-height:520px){#menu .menu-shell{gap:4px!important;max-height:calc(100dvh - 12px)!important;}#menu .hero-title{font-size:clamp(44px,7vw,72px)!important;margin:0!important;}#menu .lead{font-size:11px!important;line-height:1.35!important;margin:0!important;}#menu .resume-primary{min-height:52px!important;padding:7px 11px!important;}#menu .resume-cta-title{font-size:16px!important;}#menu .animal-card{min-height:48px!important;padding:4px!important;}#menu .orientation-choices .orientation-choice{min-height:58px!important;padding:4px!important;}#menu #start-region{min-height:35px;}}
