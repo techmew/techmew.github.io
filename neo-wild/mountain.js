@@ -70,13 +70,19 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
  for(const p of rocks)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  return false;
 }
-function choose(random=Math.random(),x=9000){
+// Wildlife slots are shared with the existing world cap, never added on top.
+ // Mountain prey-only replenishment must not draw canal frogs/hippos from biome 7.
+function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="CLEAR"){
  const entries=x>FOOTHILL_END?
  [["deer",20],["wildFox",8],["rabbit",14],["boar",13],["weasel",6],["raccoonDog",7],["crow",6],["macaque",14],["chimpanzee",12]]:
  [["deer",22],["wildFox",12],["rabbit",21],["boar",11],["weasel",8],["raccoonDog",9],["crow",5],["macaque",12]];
- let roll=random*100;
- for(const [type,w] of entries){roll-=w;if(roll<0)return type;}
- return "rabbit";
+ const rainy=weather==="RAIN"||weather==="THUNDER";
+ const pool=entries.filter(([type])=>!preyOnly||["deer","rabbit","crow"].includes(type))
+  .map(([type,w])=>[type,rainy?w*(type==="crow"?.32:type==="macaque"?.58:type==="chimpanzee"?.53:type==="deer"?.72:type==="rabbit"?.86:type==="boar"?1.16:1):w]);
+ const total=pool.reduce((sum,item)=>sum+item[1],0);
+ let roll=clamp(Number.isFinite(random)?random:0,0,.999999999)*total;
+ for(const [type,w] of pool){roll-=w;if(roll<0)return type;}
+ return pool[pool.length-1]?.[0]||"rabbit";
 }
 function draw2D(ctx,visible){
  ctx.fillStyle="#344f3b";ctx.fillRect(CITY_EDGE,0,EAST-CITY_EDGE,6000);
@@ -152,6 +158,8 @@ function draw2D(ctx,visible){
   ctx.fillStyle="#315f40";for(const [dx,dy] of [[-15,-16],[16,-16],[0,-30]]){ctx.beginPath();ctx.ellipse(t.x+dx,t.y+dy,t.r*.84,t.r*.7,0,0,Math.PI*2);ctx.fill();}
  }
 }
-const api=Object.freeze({WEST,FOOTHILL_END,EAST,CITY_EDGE,center,trail,height,active,blocked,choose,trees,rocks,ferns,pines,scree,heather,ruins,ridgeHuts,creek,gorge,draw2D});
+// Renewable food sites are the same visible ferns/heather in both renderers.
+const forageSites=Object.freeze([...ferns,...heather]);
+const api=Object.freeze({WEST,FOOTHILL_END,EAST,CITY_EDGE,center,trail,height,active,blocked,choose,forageSites,trees,rocks,ferns,pines,scree,heather,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();
