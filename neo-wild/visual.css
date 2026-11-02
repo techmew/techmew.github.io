@@ -965,3 +965,25 @@
  #menu #gamepad-menu-guide strong{font-size:11px!important}
  #menu #gamepad-menu-guide span,#menu #gamepad-menu-guide small{font-size:10px!important;line-height:1.25!important}
 }
+
+
+/* SURVIVAL-TOP5-V1: compact, legible and scroll-safe game-over records. */
+#result .result-box{box-sizing:border-box;max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain;padding:clamp(12px,3.5dvh,28px) clamp(13px,4vw,26px);}
+#result .result-highscore{margin:6px auto!important;padding:7px 12px!important;max-width:270px;border:2px solid #f5cb65;border-radius:9px;background:#453620;color:#fff1b5;font:900 clamp(17px,5vw,23px)/1.2 "Noto Sans JP",sans-serif;letter-spacing:.06em;text-align:center;box-shadow:0 0 15px #ffdb7c55;}
+#result .result-highscore.hidden{display:none!important}
+#result .result-score{padding:9px 5px!important;margin-bottom:10px!important}
+#result .result-score strong{font-size:clamp(36px,9vw,52px)!important;line-height:1.05}
+#result .result-stats{margin:5px 0 10px!important}
+#result .result-top5{margin:7px 0 11px;padding:9px 10px;border:1px solid #6f9186;border-radius:10px;background:rgba(8,26,26,.8);text-align:left}
+#result .result-top5 h3{margin:0 0 7px;color:#f5e8bc;font:900 13px/1.25 "Noto Sans JP",sans-serif;letter-spacing:.03em}
+#result .result-top5 h3 small{font-size:10px;color:#b8c9c0;font-weight:600}
+#result #result-top5-list{display:grid;gap:4px;padding:0;margin:0;list-style:none}
+#result #result-top5-list li{display:flex;align-items:center;gap:7px;min-width:0;min-height:29px;padding:4px 6px;border-radius:6px;background:#1e3735;color:#f2f5ef}
+#result #result-top5-list li.current{border:1px solid #ffc864;background:#3b432b}
+#result .score-rank{flex:0 0 24px;color:#f1d796;font:800 12px/1.1 "Noto Sans JP",sans-serif}
+#result .score-info{display:flex;flex:1;min-width:0;flex-direction:column;gap:1px}
+#result .score-info b{font:800 11px/1.2 "Noto Sans JP",sans-serif;overflow-wrap:anywhere}
+#result .score-info small{color:#c3d5ca;font:600 9px/1.2 "Noto Sans JP",sans-serif;overflow-wrap:anywhere}
+#result .score-points{flex:0 0 auto;font:900 15px/1.2 "Barlow Condensed","Noto Sans JP",sans-serif;font-variant-numeric:tabular-nums}
+#result #result-top5-status{margin:7px 0 0!important;color:#c5dacf;font-size:10px!important;line-height:1.4!important}
+@media(max-height:520px){#result .result-top5{padding:6px 8px}#result #result-top5-list{gap:2px}#result #result-top5-list li{min-height:25px;padding:3px 5px}#result .result-highscore{padding:4px 10px!important}}
