@@ -329,8 +329,10 @@ function updateSurvivalNeeds(dt){
  const before=P.hunger;
  const drain=(.38+(day-1)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1);
  P.hunger=clamp(before-drain,0,100);
- const emptySeconds=before<=0?dt:drain>0&&P.hunger===0?dt*clamp((drain-before)/drain,0,1):0;
- const hungrySeconds=P.hunger<16?Math.max(0,dt-emptySeconds):0;
+ // Integrate the exact time spent below 16% and at 0%, independent of frame size.
+ const emptySeconds=before<=0?dt:drain>0?dt*clamp((drain-before)/drain,0,1):0;
+ const hungrySeconds=before<=16?Math.max(0,dt-emptySeconds):
+  drain>0?Math.max(0,dt*clamp((drain-(before-16))/drain,0,1)-emptySeconds):0;
  const hungerDamage=emptySeconds*2.4+hungrySeconds*1.2;
  if(hungerDamage>0)P.hp=Math.max(0,P.hp-hungerDamage);
  if(P.hp<=0)return false;
@@ -753,6 +755,8 @@ function restoreSnapshot(snapshot){
  start();
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
+ // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
+ P.hunger=Number.isFinite(Number(p.hunger))?clamp(Number(p.hunger),0,100):100;
  if(choice==="cat"&&!p.catSpeedV2){
   // Older SAVE_SCHEMA=2 cat runs retain their upgrades. New 320+ saves are not amplified.
   // All legacy cats used base 239, including upgraded saves above 320.
