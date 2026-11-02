@@ -1405,7 +1405,10 @@ function visibleWinterCover(o){
  return false;
 }
 function visibleShrub(p){
- return !!p&&p.type===2&&(visibleShrubCover()||!!p.denSite||p.trainingCover===true);
+ // Every visibly dense triangular green plant is usable cover, including old saves.
+ // Winter's invisible ordinary type-2 shrubs remain non-concealing.
+ return !!p&&((p.type===2&&(visibleShrubCover()||!!p.denSite||p.trainingCover===true))||
+  ((p.type===0||p.type===1)&&p.r>=18));
 }
 function inVisibleShrubCover(o){
  return !!o&&(o.groundZ||0)<18&&plants.some(p=>visibleShrub(p)&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75);
@@ -3477,34 +3480,31 @@ function drawLandmark2D(site){
 function drawPlant(p){
  if(p.type===2&&window.WildSeasonClouds?.season?.index===0&&!p.denSite&&!p.trainingCover)return;
  ctx.save();ctx.translate(p.x,p.y);
- let r=p.r*(p.type===2?.74:1);
- if(p.type===2){
-  // Actual grass shape: long narrow pointed blades with bright midribs, not round blobs.
-  ctx.fillStyle="#172820a6";ctx.beginPath();ctx.ellipse(0,9,r*1.03,r*.52,0,0,TWO);ctx.fill();
-  for(let layer=0;layer<2;layer++)for(let j=0;j<12;j++){
-   const n=j+layer*12,spread=(j-5.5)/5.5,baseX=spread*r*.79+Math.sin(n*3.7+p.phase)*r*.08;
-   const baseY=(layer===0?3:10)+Math.cos(n*1.8)*r*.06;
-   const tall=r*(.69+(n%5)*.135),bend=spread*r*.28+Math.sin(elapsed*1.6+p.phase+n)*r*.045;
-   const tipX=baseX+bend,tipY=baseY-tall,half=r*(.064+(n%3)*.014);
-   ctx.fillStyle=window.WildSeasonClouds?.season?.index===0?(n%3===0?"#71946c":n%2?"#315a49":"#4c7858"):(n%4===0?"#83a86a":n%3===0?"#436e47":n%2?"#527f4f":"#6c9655");
-   ctx.beginPath();ctx.moveTo(baseX-half,baseY);
-   ctx.quadraticCurveTo(baseX-half*1.3,baseY-tall*.62,tipX,tipY);
-   ctx.quadraticCurveTo(baseX+half*1.6,baseY-tall*.52,baseX+half,baseY);
-   ctx.closePath();ctx.fill();
-   ctx.strokeStyle="#bad29b87";ctx.lineWidth=.85;ctx.beginPath();
-   ctx.moveTo(baseX,baseY-2);ctx.quadraticCurveTo(baseX+bend*.36,baseY-tall*.62,tipX,tipY);ctx.stroke();
-  }
-  ctx.restore();return;
-  }
-  if(p.type===1){ctx.fillStyle="#4e5b4b";ctx.beginPath();ctx.ellipse(0,3,r*1.2,r*.47,.2,0,TWO);ctx.fill();
-  for(let j=0;j<5;j++){let a=j*TWO/5+p.phase;ctx.strokeStyle="#78926d";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke()}
- }else{ctx.fillStyle="#0c1b1b66";ctx.beginPath();ctx.ellipse(3,7,r,r*.55,0,0,TWO);ctx.fill();
-  for(let j=0;j<5;j++){let a=j*TWO/5+p.phase;ctx.fillStyle=j%2?"#315947":"#47765c";ctx.beginPath();ctx.ellipse(Math.cos(a)*r*.42,Math.sin(a)*r*.43,r*.65,r*.43,a,0,TWO);ctx.fill()}
-  ctx.fillStyle="#668a64";ctx.beginPath();ctx.arc(0,0,r*.48,0,TWO);ctx.fill()}
+ const dense=visibleShrub(p),r=p.r*(p.type===2?.74:dense?.94:.70);
+ const count=p.type===2?36:dense?26:9;
+ // Small decorative grass stays short; large formerly triangular plants are
+ // now readable, dense grass clumps with the same concealment footprint.
+ ctx.fillStyle="#172820a6";ctx.beginPath();ctx.ellipse(0,Math.max(2,r*.14),r*1.03,r*.49,0,0,TWO);ctx.fill();
+ for(let n=0;n<count;n++){
+  const spread=((n*.61803398875)%1)*2-1,layer=n%3;
+  const baseX=spread*r*.84+Math.sin(n*3.7+p.phase)*r*.07;
+  const baseY=(layer-1)*r*.14+Math.cos(n*1.8)*r*.06;
+  const tall=r*(dense?.80:.48)*(.80+(n%5)*.13);
+  const bend=spread*r*.24+Math.sin(elapsed*1.6+p.phase+n)*r*.045;
+  const tipX=baseX+bend,tipY=baseY-tall,half=Math.max(.65,r*(.052+(n%3)*.012));
+  const winter=window.WildSeasonClouds?.season?.index===0;
+  ctx.fillStyle=winter?(n%3===0?"#71946c":n%2?"#315a49":"#4c7858"):(n%4===0?"#83a86a":n%3===0?"#436e47":n%2?"#527f4f":"#6c9655");
+  ctx.beginPath();ctx.moveTo(baseX-half,baseY);
+  ctx.quadraticCurveTo(baseX-half*1.3,baseY-tall*.62,tipX,tipY);
+  ctx.quadraticCurveTo(baseX+half*1.6,baseY-tall*.52,baseX+half,baseY);
+  ctx.closePath();ctx.fill();
+  if(dense){ctx.strokeStyle="#bad29b87";ctx.lineWidth=.85;ctx.beginPath();
+   ctx.moveTo(baseX,baseY-2);ctx.quadraticCurveTo(baseX+bend*.36,baseY-tall*.62,tipX,tipY);ctx.stroke();}
+ }
  ctx.restore();
 }
 function drawCoverForeground(p){
- if(window.WildSeasonClouds?.season?.index===0&&!p.denSite&&!p.trainingCover)return;
+ if(!visibleShrub(p))return;
  const r=p.r*.68,sway=Math.sin(elapsed*1.8+p.phase)*r*.028;
  ctx.save();ctx.translate(p.x,p.y);
  if(P&&Math.hypot(P.x-p.x,P.y-p.y)<110)ctx.globalAlpha*=.38;
@@ -3766,6 +3766,7 @@ function drawCreature(o,isPlayer){
   ctx.closePath();ctx.fill();
  };
  ctx.save();ctx.translate(o.x,o.y);
+ if(isPlayer&&o.hidden)ctx.globalAlpha*=.46; // Match WebGL stealth translucency.
  const lift2D=z=>ctx.translate(VIEW.c*z*.93*cameraZoom/VIEW_DET,-VIEW.a*z*.93*cameraZoom/VIEW_DET);
  const floorZ=isPlayer?(P.groundZ||0):0;
  if(floorZ>0)lift2D(floorZ);
@@ -4184,7 +4185,7 @@ function drawScene(){
  for(const p of plants){
   if(!visible(p.x,p.y,p.r))continue;
   let depth=screenDepth(p.x,p.y+p.r*.12);
-  if(p.type===2)for(const e of entities)if(Math.hypot(e.x-p.x,e.y-p.y)<p.r*.82){
+  if(visibleShrub(p))for(const e of entities)if(Math.hypot(e.x-p.x,e.y-p.y)<p.r*.82){
    covers.get(e).push(p);
    depth=Math.min(depth,screenDepth(e.x,e.y)-.1);
   }
