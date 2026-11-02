@@ -290,7 +290,7 @@ function drawStrongAnimal3D(m,clock){
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
- if(!["macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
+ if(!["chimpanzee","macaque","snake","frog","crow","deer","weasel","raccoonDog","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
  const r=m.r||14,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||(t==="crow"?"#313b44":t==="snake"?"#587b50":"#977c62");
@@ -298,7 +298,33 @@ function drawCommonAnimal3D(m,clock){
  const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(fx(dx,dy),fy(dx,dy),z,rx,ry,rz,col,dir,8,5);
  const horn=(dx,dy,z,rx,ry,h,col)=>pyramid(fx(dx,dy),fy(dx,dy),z,rx,ry,h,col);
  const gait=Math.sin((m.step||0)*.9+clock*1.1);
- if(t==="macaque"){
+ if(t==="chimpanzee"){
+  // Upright heavy torso, long grasping arms and broad bare face: not a
+  // recoloured four-legged animal. Branch/stone props follow real AI state.
+  const climbing=Math.max(0,m.treeHeight||0),ready=(m.chimpTell||0)>0;
+  const club=ready&&m.chimpAttackKind==="branch",rock=ready&&m.chimpAttackKind!=="branch";
+  const armSwing=climbing>0?Math.sin(clock*7+(m.step||0))*.24:gait*.13;
+  const skin="#978274",palm="#827164";
+  orb(-r*.16,0,r*.93,r*.93,r*.77,r*.82,fur);
+  orb(r*.52,0,r*1.26,r*.62,r*.68,r*.62,fur);
+  orb(r*.92,0,r*1.58,r*.68,r*.59,r*.57,fur);
+  orb(r*1.28,0,r*1.49,r*.42,r*.42,r*.40,skin);
+  orb(r*1.54,0,r*1.29,r*.29,r*.29,r*.18,palm);
+  for(const side of [-1,1]){
+   orb(r*.94,side*r*.60,r*1.64,r*.19,r*.19,r*.23,fur);
+   orb(r*1.30,side*r*.33,r*1.70,r*.075,r*.075,r*.075,"#161a1a");
+   orb(r*.21,side*r*.75,r*1.22,r*.36,r*.30,r*.39,fur);
+   const raised=side<0&&ready,handZ=raised?r*2.34:r*(.33+armSwing*side);
+   orb(r*.29,side*r*.89,(handZ+r*1.18)*.5,r*.23,r*.23,Math.abs(handZ-r*1.18)*.56+r*.19,fur);
+   orb(r*.39,side*r*.98,handZ,r*.29,r*.24,r*.18,palm);
+   orb(-r*.65,side*r*.50,r*.51,r*.32,r*.29,r*.48,fur);
+   orb(-r*.76,side*r*.57,r*.16,r*.32,r*.27,r*.16,palm);
+  }
+  if(club){
+   orb(r*.52,-r*1.00,r*2.60,r*.12,r*.12,r*.72,"#856342");
+   orb(r*.53,-r*1.00,r*3.22,r*.18,r*.16,r*.25,"#a27b4c");
+  }else if(rock)orb(r*.42,-r*.99,r*2.56,r*.24,r*.23,r*.21,"#aaa398");
+ }else if(t==="macaque"){
   // Dedicated macaque: expressive pink face, ears, four grasping limbs, short tail.
   const climbing=Math.max(0,m.treeHeight||0),preparing=(m.macaqueTell||0)>0,throwing=(m.swing||0)>0&&!preparing;
   const motion=climbing>2?Math.sin(clock*8+(m.step||0))*.14:gait*.17;
@@ -1131,15 +1157,16 @@ function render(o){
    triangle(pt(-7,2,0),pt(6,0,1),pt(resting?-10:-13,spread,-wing),colorWing);
    ellipsoid(x,y,z,8,3,3,bird.type==="crow"?"#293537":"#a5b1a9",bird.dir,6,3);
   }
-  // World-coordinate macaque warning and projectile share the 2D hit path.
+  // Primate warnings and projectiles use the same world positions as hit tests.
   for(const m of mobs){
-   if(m.type!=="macaque"||m.hp<=0||!isVisible(m.x,m.y,420))continue;
-   const a=m.macaqueAim||0,c=Math.cos(a),s=Math.sin(a);
-   if((m.macaqueTell||0)>0)for(let k=1;k<=6;k++){
-    const d=27+k*49,px=m.x+c*d,py=m.y+s*d;
+   if(!["macaque","chimpanzee"].includes(m.type)||m.hp<=0||!isVisible(m.x,m.y,420))continue;
+   const chimp=m.type==="chimpanzee",a=chimp?(Number.isFinite(m.chimpAim)?m.chimpAim:0):(m.macaqueAim||0),c=Math.cos(a),s=Math.sin(a);
+   const warning=chimp?(m.chimpTell||0):(m.macaqueTell||0),reach=chimp&&m.chimpAttackKind==="branch"?95:chimp?355:395;
+   if(warning>0)for(let k=1;k<=6;k++){
+    const d=reach*(k/7),px=m.x+c*d,py=m.y+s*d;
     if(isVisible(px,py,55))ellipsoid(px,py,(window.WildMountain?.height(px,py)||0)+1.5,19,3.5,.8,k%2?"#e8b26d":"#f1d397",a,7,3);
    }
-   const stone=m.macaqueStone;
+   const stone=m.macaqueStone||m.chimpStone;
    if(stone&&Number.isFinite(stone.x)&&Number.isFinite(stone.y)&&isVisible(stone.x,stone.y,75)){
     const z=window.WildMountain?.height(stone.x,stone.y)||0;
     ellipsoid(stone.x,stone.y,z+1,8,6,1.1,"#373d36",0,7,3);
