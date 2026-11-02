@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=20261102-menu-flow-v5">
+<link rel="stylesheet" href="./visual.css?rev=20261102-tutorial-popup-unified-v2">
 </head>
 <body>
 <div id="app">
@@ -75,9 +75,9 @@
  </div></section>
 </div>
 <div id="tutorial-dialog" class="survival-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
- <section class="survival-card tutorial-card"><header class="survival-head"><div><small id="tutorial-stage">チュートリアル 1 / 4</small><h2 id="tutorial-title">生き残るために</h2></div><button id="tutorial-close" type="button">閉じる ×</button></header>
+ <section class="survival-card tutorial-card"><header class="survival-head"><div><small id="tutorial-stage">チュートリアル 1 / 4</small><h2 id="tutorial-title">生き残るために</h2></div></header>
  <div class="tutorial-status"><span id="tutorial-progress-label">現在の目標</span><span id="tutorial-counter">1 / 2</span></div>
- <div class="tutorial-explainer"><p id="tutorial-what"></p><p id="tutorial-how"></p></div>
+ <div class="tutorial-explainer"><p id="tutorial-what"></p><p id="tutorial-how"></p></div><button id="tutorial-close" type="button">わかった</button>
  <p class="tutorial-note">閉じるとゲーム再開</p>
  <footer class="tutorial-controls"><button id="tutorial-prev" type="button">← 戻る</button><button id="tutorial-next" type="button">次へ →</button></footer></section>
 </div>
@@ -132,8 +132,8 @@
 </div>
 <script src="./audio.js?rev=20261102-death-fade-v1" defer></script>
 <script src="./webgl3d.js?rev=20261102-dense-grass-stealth-v1" defer></script>
-<script src="./game.js?rev=20261102-death-retry-guard-v3" defer></script>
-<script src="./gamepad.js?rev=20261102-instant-pad-v1" defer></script>
+<script src="./game.js?rev=20261102-tutorial-popup-unified-v2" defer></script>
+<script src="./gamepad.js?rev=20261102-tutorial-popup-unified-v2" defer></script>
 <script src="./season-clouds.js?rev=20261101-remove-white-clumps-v3" defer></script>
 <script src="./debug-mode.js?rev=20261102-tutorial-debug-flow-v4" defer></script>
 </body></html>
