@@ -57,7 +57,7 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
  const y=center(x)+side*(235+j*160);
  heather.push({x:x+Math.sin(x*.017+j)*26,y,r:13+j*4,z:height(x,y)});
 }
- function blocked(x,y,r=0){
+ function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
  if(y<center(x)-720+r||y>center(x)+720-r)return true;
   // Only the planked bridge is passable; the creek banks block land animals.
@@ -65,8 +65,8 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
      Math.abs(y-creek.bridgeY)>creek.bridgeHalf-Math.min(26,r*.45))return true;
  if(Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
  for(const hut of [...ruins,...ridgeHuts])if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
- for(const p of [...pines,...scree])if(Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
- for(const p of trees)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+ for(const p of [...pines,...scree])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+ for(const p of trees)if(p!==sourceTree&&Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of rocks)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  return false;
 }
