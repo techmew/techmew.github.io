@@ -748,7 +748,24 @@ function mountainTerrain(isVisible){
    if(isVisible(x,y,220))pyramid(x+tile*.45,y+sign*37,z,69,75,78,"#737c73");
   }
  }
- for(const hut of m.ruins){
+ // Mountain creek: same coordinates and crossing as Canvas2D and physics.
+  for(let y=3000;y<4650;y+=70){
+   const y2=Math.min(4650,y+70),x1=m.creek.xAt(y),x2=m.creek.xAt(y2);
+   if(!isVisible((x1+x2)/2,(y+y2)/2,190))continue;
+   const z1=m.height(x1,y)+1.5,z2=m.height(x2,y2)+1.5;
+   for(const [half,col] of [[47,"#647268"],[34,"#315862"],[27,"#38818a"]])
+    quad([x1-half,y,z1],[x1+half,y,z1],[x2+half,y2,z2],[x2-half,y2,z2],color(col));
+  }
+  const bridgeX=m.creek.xAt(m.creek.bridgeY),bridgeY=m.creek.bridgeY;
+  if(isVisible(bridgeX,bridgeY,360)){
+   const z=m.height(bridgeX,bridgeY)+2;
+   box(bridgeX-70,bridgeY-168,z,140,336,5,"#625a48","#a69a78");
+   for(let x=bridgeX-63;x<bridgeX+65;x+=18)
+    box(x,bridgeY-165,z+5,12,330,1.4,"#82765a","#c2b18a");
+   for(const side of [-1,1])
+    box(bridgeX-70,bridgeY+side*174-3,z+5,140,6,14,"#635f4e","#a89b79");
+  }
+  for(const hut of m.ruins){
   if(!isVisible(hut.x+hut.w/2,hut.y+hut.h/2,240))continue;
   const z=m.height(hut.x+hut.w/2,hut.y+hut.h/2);
   box(hut.x,hut.y,z,hut.w,hut.h,4,"#706e5c","#807c68");
@@ -757,7 +774,13 @@ function mountainTerrain(isVisible){
   box(hut.x,hut.y,z+4,hut.w,9,27,"#797968","#aaa68c");
   box(hut.x,hut.y+hut.h-10,z+4,hut.w,10,20,"#687367","#9c9b85");
  }
- for(const r of m.rocks){
+ for(const f of m.ferns){
+   if(!isVisible(f.x,f.y,70))continue;
+   for(let k=-2;k<=2;k++)
+    pyramid(f.x+k*f.r*.35,f.y-k*2,f.z,4.5,3.5,17+Math.abs(k)*2,
+      k%2?"#477a4e":"#639264");
+  }
+  for(const r of m.rocks){
   if(!isVisible(r.x,r.y,150))continue;
   ellipsoid(r.x,r.y,r.z+r.r*.24,r.r,r.r*.76,r.r*.51,"#788078",.22,7,4);
  }
