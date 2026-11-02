@@ -104,16 +104,26 @@ function box(x,y,z,w,h,height,col,roofCol=col){
  quad([x1,y1,z],[x,y1,z],[x,y1,z1],[x1,y1,z1],tone(col,1.04));
  quad([x,y1,z],[x,y,z],[x,y,z1],[x,y1,z1],tone(col,.83));
 }
-let animalLift=0;
+let animalLift=0,animalCollapseTransform=null;
+// Only the dying player's mesh rolls onto its side; the roof-level shadow remains fixed.
+function collapseVertex(vertex){
+ const t=animalCollapseTransform;
+ if(!t)return vertex;
+ const [x,y,z]=vertex;
+ const side=-(x-t.x)*t.sin+(y-t.y)*t.cos,height=z-t.pivot;
+ const rolledSide=side*t.ct+height*t.st,rolledHeight=height*t.ct-side*t.st;
+ const shift=rolledSide-side;
+ return [x-shift*t.sin,y+shift*t.cos,Math.max(t.ground+.65,t.pivot+rolledHeight)];
+}
 function pyramid(x,y,z,rx,ry,h,col){z+=animalLift;
  const base=[[x-rx,y-ry,z],[x+rx,y-ry,z],[x+rx,y+ry,z],[x-rx,y+ry,z]],top=[x,y,z+h],c=color(col);
- for(let i=0;i<4;i++)triangle(base[i],base[(i+1)%4],top,c);
+ for(let i=0;i<4;i++)triangle(collapseVertex(base[i]),collapseVertex(base[(i+1)%4]),collapseVertex(top),c);
 }
 function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLift;
  const c=color(col),cos=Math.cos(heading),sin=Math.sin(heading);
  const point=(phi,theta)=>{
   const lx=rx*Math.cos(phi)*Math.cos(theta),ly=ry*Math.cos(phi)*Math.sin(theta),lz=rz*Math.sin(phi);
-  return [x+lx*cos-ly*sin,y+lx*sin+ly*cos,z+lz];
+  return collapseVertex([x+lx*cos-ly*sin,y+lx*sin+ly*cos,z+lz]);
  };
  for(let j=0;j<rings;j++){
   const a=-Math.PI/2+j*Math.PI/rings,b=-Math.PI/2+(j+1)*Math.PI/rings;
@@ -310,7 +320,9 @@ function animal(m,player,clock){
  const contactZ=player?Math.max(0,m.groundZ||0):0;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  animalLift=player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0); // NPC feet and body rise during a real emergency leap.
- if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;return;}
+ const tilt=collapse*1.23;
+ animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
+ if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
@@ -414,7 +426,7 @@ function animal(m,player,clock){
   ellipsoid(fx(neck+r*.32,side*headR*.53),fy(neck+r*.32,side*headR*.53),h+r*.58,r*.105,r*.08,r*.09,cat?"#d1f18e":"#edcc88",dir,5,3);
   ellipsoid(fx(neck+r*.37,side*headR*.57),fy(neck+r*.37,side*headR*.57),h+r*.587,r*.037,r*.034,r*.047,"#172420",dir,5,3);
  }
- animalLift=0;
+ animalLift=0;animalCollapseTransform=null;
 }
 // Palette is applied to the native 3D leaf/grass mesh, not merely a CSS tint.
 // Game climate calendar: one game day is 85 seconds; leap days and YEAR progression
