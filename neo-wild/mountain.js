@@ -10,7 +10,7 @@ const center=x=>3770+110*Math.sin((x-WEST)/355)+(x>FOOTHILL_END?95*smooth(clamp(
 const smooth=t=>t*t*(3-2*t);
 // Continuous side valley: no loading gate, shared with collision and renderers.
 const southReach=x=>720+430*smooth(clamp((x-10220)/520,0,1))*(1-smooth(clamp((x-11450)/430,0,1)));
-const meadowTrail=x=>center(x)+clamp((x-10380)/620,0,1)*720;
+const meadowTrail=x=>center(x)+clamp((x-10970)/380,0,1)*720;
 const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35;
 const active=(x,y)=>x>=WEST&&x<=EAST&&y>=2600&&y<=5100;
 function height(x,y){
@@ -131,6 +131,14 @@ for(let x=CAVE_START+25;x<CAVE_END-15;x+=83)for(const side of [-1,1]){
 for(const [x,side] of [[13105,-1],[13210,1],[13320,-1]]){
  const y=center(x)+side*72;
  caveColumns.push({x,y,r:17,z:height(x,y)});
+}
+// The marked footpath crosses the ravine only on the existing bridge. Keep
+// its actual walking corridor clear of previously generated pine/stone props.
+for(const group of [pines,scree]){
+ for(let i=group.length-1;i>=0;i--){
+  const p=group[i];
+  if(p.x>=10960&&p.x<=11410&&Math.abs(p.y-meadowTrail(p.x))<p.r+43)group.splice(i,1);
+ }
 }
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
