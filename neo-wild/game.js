@@ -849,7 +849,7 @@ function start(){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -877,7 +877,12 @@ function start(){
   ["strayCat","strayCat","crow","snake"];
  let starterCount=0;
  for(const type of starterTypes)if(spawnMob(true,false,true,null,type))starterCount++;
- for(let i=0;i<WILDLIFE.initial-roomPrey-starterCount;i++)spawnMob(true);
+ // Seed several other districts within the same original 13-animal budget.
+ // A visitor no longer finds the rest of the world completely empty.
+ const districtOrder=[3,5,4,2,7,6,1,0].filter(region=>region!==startRegion);
+ const residentBudget=Math.min(districtOrder.length,Math.max(0,WILDLIFE.initial-roomPrey-starterCount-1));
+ for(let i=0;i<WILDLIFE.initial-roomPrey-starterCount-residentBudget;i++)spawnMob(true);
+ for(const region of districtOrder.slice(0,residentBudget))spawnRegionalResident(region);
  for(let i=0;i<17;i++)spawnFood();
  carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
  ensureTrainingCoverNear(P);
@@ -1009,7 +1014,7 @@ function restoreSnapshot(snapshot){
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
- scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;
+ scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;lastPopulatedRegion=regionAt(P.x,P.y);
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
  tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
@@ -1471,6 +1476,45 @@ function normalizeStrongBossSave(){
  }
 }
 
+// Under-populated districts need native residents, not an infinite global enemy wave.
+const REGIONAL_WILDLIFE={
+ 0:["pigeon","rat"],1:["pigeon","strayCat"],2:["deer","zebra"],3:["zebra","giraffe","cheetah","lion","elephant"],
+ 4:["hippo","frog"],5:["deer","zebra","giraffe"],6:["raccoonDog","crow"],7:["hippo","frog"]
+};
+function spawnRegionalResident(region,kind=null){
+ if(!P||mobs.length>=WILDLIFE.cap||!BIOME_AREAS[region])return false;
+ const [zx,zy,zw,zh]=BIOME_AREAS[region];
+ const choices=REGIONAL_WILDLIFE[region]||["rabbit","pigeon"];
+ const speciesName=kind||choices[Math.floor(Math.random()*choices.length)];
+ for(let attempt=0;attempt<100;attempt++){
+  const x=zx+Math.max(70,zw*.07)+Math.random()*Math.max(1,zw-Math.max(140,zw*.14));
+  const y=zy+Math.max(70,zh*.07)+Math.random()*Math.max(1,zh-Math.max(140,zh*.14));
+  if(regionAt(x,y)!==region||waterBlocksLand(x,y)||nearDenLocation(x,y,275))continue;
+  // Deliberately place one resident in an unoccupied safe cell; do not
+  // telegraph the entire region by popping five animals into view.
+  if(spawnMob(false,false,false,{x,y},speciesName))return true;
+ }
+ return false;
+}
+function retireFarCalmAnimal(){
+ const index=mobs.findIndex(m=>m.hp>0&&!m.strongBoss&&!Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)&&
+  dist(P,m)>WILDLIFE.farAI&&!visible(m.x,m.y,75)&&(m.alert||0)<=0&&(m.windup||0)<=0&&
+  (m.chargeTime||0)<=0&&(m.flee||0)<=0);
+ if(index<0)return false;
+ mobs.splice(index,1);
+ return true;
+}
+let lastPopulatedRegion=-1;
+function settleNewRegion(){
+ if(!P)return false;
+ const region=regionAt(P.x,P.y);
+ if(region===lastPopulatedRegion)return false;
+ lastPopulatedRegion=region;
+ const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
+ if(nearby>=2)return false;
+ if(mobs.length>=WILDLIFE.cap&&!retireFarCalmAnimal())return false;
+ return spawnMob(false,false,true);
+}
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null){
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
@@ -1478,14 +1522,21 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  do{
   if(forcedSpot){x=forcedSpot.x;y=forcedSpot.y}
   else{
-   const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(220,Math.min(550,WILDLIFE.localRadius-40)):initial?rnd(260,1250):rnd(Math.max(vw,vh)*.61,Math.max(vw,vh)*1.16);
+   // Keep replenishment inside the player's local 700m ecology radius on
+   // portrait, landscape, zoomed-in and zoomed-out layouts alike.
+   const a=rnd(0,TWO),rad=preyOnly?rnd(160,270):nearbyOnly?rnd(365,Math.min(615,WILDLIFE.localRadius-65)):
+    initial?rnd(260,1250):rnd(395,Math.min(665,WILDLIFE.localRadius-20));
    x=clamp((P?P.x:1800)+Math.cos(a)*rad,40,WORLD.w-40);
    y=clamp((P?P.y:1170)+Math.sin(a)*rad,40,WORLD.h-40);
   }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
   valid=!collides(x,y,40)&&(!P||dist(candidate,P)>(preyOnly?145:230))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
-   &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0));
+   &&(!near||localCount<WILDLIFE.localCap+(preyOnly?1:0))
+   &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
+   // Prefer off-camera births; desktop-wide views may need a safe distant
+   // in-view placement after exhaustive attempts rather than an empty district.
+   &&(!nearbyOnly||tries>=30||!visible(x,y,75));
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  const biome=regionAt(x,y);
@@ -2965,6 +3016,7 @@ function maintainLocalWildlife(){
  const preyNearby=mobs.some(m=>m.hp>0&&["rat","rabbit","pigeon","frog"].includes(m.type)&&dist(P,m)<WILDLIFE.preyNeedRadius);
  const local=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
+ if(mobs.length>=WILDLIFE.cap&&local<Math.min(3,target))retireFarCalmAnimal();
  if(mobs.length<WILDLIFE.cap){
   if(hunting&&!preyNearby)spawnMob(false,true,true);
   else if(local<target){
@@ -3333,6 +3385,7 @@ function update(dt){
  P.eatCD=Math.max(0,(P.eatCD||0)-dt);P.strongSlow=Math.max(0,(P.strongSlow||0)-dt*traitEffect("giantSnake",1));
   // A fatal bleed ends the frame before another region can roll/spawn a boss.
  if(P.hp<=0){P.hp=0;beginDeath();return}
+ settleNewRegion();
  if(strongRegionCurrent!==regionAt(P.x,P.y))enterStrongStage();
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
