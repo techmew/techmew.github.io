@@ -1,3 +1,14 @@
+## 共同スプリント・次担当｜2026/11/02 18:42 JST｜45分枠｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1｜倒れる・暗転・環境音の統合改善
+- **開始HEAD→コードHEAD**：`3d4f289a1429d7972dc5f6a6ef7ac5b41ad423ea` → `52db92018d882dd78468a550ec0a3f2eae1d5899`。開始時に現行main/ROADMAP先頭（18:33通常13種、17:45死亡Pad、17:15飢餓/3CP）とDrive完成仕様末尾を照合。既存の空腹0→徐々にHP減、死亡2.2秒、SAVE_SCHEMA2、3CP、TOP5、13通常種/強敵20種は重複実装・変更せず保持。
+- **実装①・死亡音の静寂**：`audio.js` commit `0ee27b92` / blob `a70c78a1`。死亡音を鳴らした後、音楽・環境音・効果音の3バスを段階的に減衰。リトライ時は遅延フェード予約も取り消し、3バス全てを正常音量へ復帰。二重フェードを防止。
+- **実装②・倒れる姿勢の整合**：`webgl3d.js` commit `e5231159` / blob `f3035035`。WebGL四足動物の横倒し角を滑らかなease-in/outに変更し、既存Canvas2Dの倒れ方とタイミングを一致。屋上の接地高さ・陰影、死亡時の攻撃解除を維持。
+- **実装③・2D/3D共通の喪失感**：`game.js` commit `c069e30f` / blob `c5b3c9a4`。死亡後0.16秒からプレイヤーを中心としたスクリーン座標のビネット暗転、2.2秒で死亡結果へ。WebGL/Canvas2Dの両方に同一の画面処理。画面の瞬間的な明転を防ぐため結果画面背後は暗転維持。index.htmlの3資産キャッシュ更新 commit `52db9201` / blob `ea82e12b`。
+- **試験・証拠**：現行本番JS全7ファイル全文構文7/7 PASS。実`beginDeath/advanceDeath/finish`をモックDOMと接続し、HP0の1回判定、入力解除、0.65秒で横倒し、2.2秒前に結果を出さない、TOP5/セーブ消去/死亡音各1回、結果のリトライ表示をPASS。実`drawDeathVignette`を縦390×844、横800×360、横1536×691の6状態ずつ18/18 PASS。実`fadeForDeath/resetDeathFade`の3バス・二重実行防止・再開復帰PASS。WebGL倒れ角6点の単調性/端点PASS。いずれも実ブラウザではなく関数・DOM/Audioモックの検証。
+- **Pages**：コードHEAD `52db9201` の `pages build and deployment` run **41422794799** は記録時点**pending**。build/deploy両success未確認につき今回の変更を「公開済み」と断定しない。直前HEAD `3d4f289a` run `41421632768` はsuccess。ROADMAP記録後の新HEADは別runで確認する。
+- **進捗計測V2・固定100点**：A **16.0** / B **12.0** / C **9.0** / D **4.0** / E **8.0** / F **9.0** / G **8.0** / H **4.0** / I **4.0** ＝ **74.0/100**。前回74.0→74.0、**差0.0**。死亡演出は既得点の品質改善で新たな完成条件を増やさない。Cの季節/エリア、Fの縦横実矩形、Hの実GPU/FPS、Iのブラウザ10分・Android実機・物理Pad E2Eは検証待ち（該当条件0点）。実Android/物理Pad/実GPU/旧セーブ実ブラウザE2Eは未検証。
+- **次15分枠**：①`updateSurvivalNeeds/eat/beginDeath`で空腹0→食事でHP減少停止→再度0→HP0を85秒DAY跨ぎ/600秒の実関数で検証。②`restoreSnapshot/saveAuto/recordCheckpoint`で旧SAVE_SCHEMA2・3CPから再開した時のdeathPose/死亡フェード復帰・TOP5挑戦IDを確認。③`spawnMob/maintainLocalWildlife`で13通常種の8地区×天候×年代の過密/巣安全と死亡時スポーン停止を検証。
+- **次45分枠**：①縦390×844/横800×360で実ブラウザWebGLとCanvas2Dの転倒・暗転・結果画面矩形を検証し、見切れがあれば`game.js/visual.css`最小修正。②実音声/物理Padで死亡2.2秒→結果の入力/音量復帰、10分プレイ・FPSを実測（使えない環境では未検証のまま）。③Pages run `41422794799` と最新HEADのbuild/deploy各jobを確認し、強敵20種の3D/2D固有戦闘・報酬・保存の未試験を進める。
+
 ## 共同スプリント・次担当｜2026/11/02 18:33 JST｜手動・通常動物13種の地域配置｜ACTIVE_SPRINT_ID=DEATH-HUNGER-SEQ-V1（継続）
 - 開始HEAD `c7c2b539`、検証時コードHEAD `d3eb936441d68993e55e7ceab4ba3f5096074ed5`。ROADMAP直近15/45枠、Drive完成仕様末尾と最新mainを確認し重複実装を整理。変更対象：`neo-wild/fauna.js`（追加）、`game.js`、`webgl3d.js`、`index.html`のみ。
 - 既存通常5種に、野良猫・小型ヘビ・カラス・タヌキ・野生キツネ・イタチ・カエル・シカを追加し計13種。8地区の重み付け合計各100、年数3/10/30/100年で野生種の出現確率を段階調整。雨でカエル増、鳥減。シカは市街地/河川敷/工業区/運河で0%、緑化/森林1%、廃動物園2%、全域最大2体。
