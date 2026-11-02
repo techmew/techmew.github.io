@@ -1,0 +1,30 @@
+/* Defeated wildlife encyclopedia. Sits above the title, never the play HUD. */
+#bestiary-open{display:block;width:100%;max-width:420px;min-height:46px;margin:9px 0;padding:10px 15px;border:1px solid #90b5a2;border-radius:9px;background:#17312ded;color:#ecf7ee;font-weight:800;text-align:left;touch-action:manipulation}
+#bestiary-open:focus-visible{outline:3px solid #f5bc72}
+#bestiary{position:fixed;inset:0;z-index:2000;background:rgba(4,10,13,.97);color:#e9f1e9;touch-action:pan-y;display:flex;justify-content:center;padding:max(9px,env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))}
+#bestiary .bestiary-shell{width:min(920px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;background:#101e21;border:1px solid #55746a;border-radius:13px}
+#bestiary .bestiary-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid #344d48}
+#bestiary .bestiary-head h2{margin:0;font-size:19px;font-weight:900}
+#bestiary-progress{font-size:12px;color:#a9c4b5}
+#bestiary-close,#bestiary-back,#bestiary-plus,#bestiary-minus{min-height:40px;min-width:43px;border:1px solid #759488;background:#27403c;border-radius:8px;color:#f1f5ed;font-weight:800;touch-action:manipulation}
+#bestiary .bestiary-head button{white-space:nowrap}
+#bestiary .bestiary-list{overflow-y:auto;overscroll-behavior:contain;padding:11px 13px 35px;touch-action:pan-y;flex:1}
+#bestiary .bestiary-list h3{font-size:13px;font-weight:800;letter-spacing:1px;color:#c1d3c7;margin:10px 0 7px}
+#bestiary .bestiary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:9px}
+#bestiary .bestiary-entry{display:flex;align-items:center;flex-direction:column;gap:4px;padding:8px 5px 9px;min-width:0;min-height:124px;background:#192c2c;border:1px solid #455f56;border-radius:9px;color:#f3f5ec;touch-action:manipulation;text-align:center}
+#bestiary .bestiary-entry.unlocked{border-color:#779d87}
+#bestiary .bestiary-entry.locked{opacity:.54;filter:grayscale(.8);cursor:default}
+#bestiary .bestiary-entry.chosen{outline:2px solid #e8c07b}
+#bestiary .bestiary-entry strong{font-size:12px;overflow-wrap:anywhere;line-height:1.3}
+#bestiary .bestiary-entry small{font-size:10px;color:#b7c7be}
+#bestiary .bestiary-thumb{width:104px;max-width:100%;height:75px;object-fit:contain;border-radius:5px}
+#bestiary .bestiary-detail{display:flex;flex-direction:column;align-items:stretch;gap:9px;flex:1;min-height:0;padding:10px 12px 18px}
+#bestiary .bestiary-info{display:flex;justify-content:space-between;align-items:center;gap:7px}
+#bestiary .bestiary-info strong{font-size:17px}
+#bestiary .bestiary-info small{font-size:12px;color:#b9d0bf}
+#bestiary-preview{display:block;flex:1;min-height:125px;width:min(100%,420px);height:auto;aspect-ratio:360/280;align-self:center;border-radius:10px;border:1px solid #415e58;background:#101c20;touch-action:none}
+#bestiary .bestiary-detail-tools{display:flex;align-items:center;justify-content:center;gap:12px}
+#bestiary-zoom{min-width:50px;text-align:center;font-size:13px;font-weight:800}
+#bestiary-render-help{text-align:center;margin:0 0 7px;color:#c3d3c7;font-size:11px;line-height:1.5}
+@media(max-width:450px){#bestiary .bestiary-head h2{font-size:16px}#bestiary .bestiary-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}#bestiary .bestiary-entry{min-height:114px;padding:6px 2px}#bestiary .bestiary-thumb{height:65px}#bestiary-preview{max-height:calc(100dvh - 200px)}}
+@media(max-height:450px) and (orientation:landscape){#bestiary{padding:3px}#bestiary .bestiary-head{padding:5px 12px}#bestiary .bestiary-list{padding:5px 10px}#bestiary .bestiary-detail{padding:4px 12px}#bestiary-preview{width:240px;max-height:calc(100dvh - 132px)}#bestiary .bestiary-head h2{font-size:14px}}
