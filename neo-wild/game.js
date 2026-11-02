@@ -4629,6 +4629,25 @@ window.WildDebugBridge={
   syncHUD(Math.floor(dayLightProfile(elapsed).hour));
   return saveAuto();
  },
+ listBosses(){return Object.keys(STRONG_TRAITS).map(id=>({id,name:STRONG_TRAITS[id].name,animal:species[id]?.name||id}));},
+ spawnBoss(type){
+  if(mode!=="play"||!P||!Object.prototype.hasOwnProperty.call(STRONG_TRAITS,type))return false;
+  if(strongBossAlive())return false;
+  const region=regionAt(P.x,P.y);
+  const success=spawnStrongBoss(type,region);
+  if(success)syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  return success;
+ },
+ tutorialStage(stage){
+  if(mode!=="play"||!P||!Number.isInteger(stage)||stage<0||stage>7)return false;
+  mission=stage;missionComplete=stage>=7;
+  if(stage===0){meals=0;hiddenHold=0;kills=0;}
+  if(stage===7)tutorialSeen.add(7);
+  milestoneUntil=0;objectiveBannerTime=0;
+  $("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");
+  syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+  return saveAuto();
+ },
  save(){return saveAuto();}
 };
 
