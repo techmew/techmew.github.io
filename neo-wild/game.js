@@ -98,10 +98,24 @@ let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
-const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1";
-let automaticTutorialShown=false;
-try{automaticTutorialShown=localStorage.getItem(TUTORIAL_ONCE_KEY)==="1"}catch(_){}
+const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1",TUTORIAL_LESSONS_KEY="wild-reclaim-tutorial-lessons-v2";
+const TUTORIAL_STAGES=[0,1,2,4];
+let automaticTutorialShown=false;const tutorialLessonsSeenEver=new Set();
+try{
+ automaticTutorialShown=localStorage.getItem(TUTORIAL_ONCE_KEY)==="1";
+ const stages=JSON.parse(localStorage.getItem(TUTORIAL_LESSONS_KEY)||"null");
+ if(Array.isArray(stages))for(const stage of stages)if(TUTORIAL_STAGES.includes(stage)||stage===7)tutorialLessonsSeenEver.add(stage);
+ // Previous flag only recorded the first popup; it must not suppress later lessons.
+ if(automaticTutorialShown)tutorialLessonsSeenEver.add(0);
+}catch(_){}
 function rememberTutorialShown(){automaticTutorialShown=true;if(debugTutorialSession)return;try{localStorage.setItem(TUTORIAL_ONCE_KEY,"1")}catch(_){}}
+function rememberTutorialStage(stage){
+ tutorialSeen.add(stage);
+ if(debugTutorialSession)return;
+ tutorialLessonsSeenEver.add(stage);
+ try{localStorage.setItem(TUTORIAL_LESSONS_KEY,JSON.stringify([...tutorialLessonsSeenEver]))}catch(_){}
+ rememberTutorialShown();
+}
 function migrateSeenTutorial(snapshot){if(snapshot&&(Number(snapshot.mission)>0||(Array.isArray(snapshot.tutorialSeen)&&snapshot.tutorialSeen.length>0)))rememberTutorialShown();}
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
 // Presentation-only state: never stored in SAVE_SCHEMA=2.
@@ -652,7 +666,7 @@ function start(){
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
  deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;startAmbient();mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
- objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
+ objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
@@ -787,9 +801,9 @@ function restoreSnapshot(snapshot){
  expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
  mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete||mission>=7;
  tutorialSeen.clear();
- // A resumed run has already reached and seen the current objective; never auto-replay it.
- for(let n=0;n<=Math.min(6,Math.max(0,Math.floor(Number(mission)||0)));n++)tutorialSeen.add(n);
- if(Array.isArray(snapshot.tutorialSeen))for(const n of snapshot.tutorialSeen){if(Number.isInteger(n)&&n>=0&&n<=6)tutorialSeen.add(n)}
+ // Old saves skipped the current lesson (especially stage 4); completed earlier stages are not replayed.
+ for(const stage of TUTORIAL_STAGES)if(stage<mission||(!debugTutorialSession&&tutorialLessonsSeenEver.has(stage)))tutorialSeen.add(stage);
+ if(mission>=7)tutorialSeen.add(7);
  totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
  weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
@@ -2096,63 +2110,47 @@ function missionInfo(){
 }
 // Two help pages only: the current mission, then an optional one-screen control reminder.
 const GUIDE_GOALS=[
- {title:"食草か肉を食べる",what:"食草・肉の近くで△短押し。",how:"空腹が回復する。"},
- {title:"身を隠す",what:"緑の葉がある茂みに入り、約1秒静止する。",how:"冬の緑の茂みでも潜伏できる。車や建物の陰も安全地帯。"},
- {title:"獲物を狩る",what:"×で攻撃、□で飛びつき。",how:"死骸から肉を取れる。"},
+ {title:"食事をする",what:"食べ物に近づき、△を押す。",how:"食べると空腹が回復する。"},
+ {title:"茂みに隠れる",what:"緑の草むらに入り、少し止まる。",how:"隠れると体が薄くなる。"},
+ {title:"獲物を狩る",what:"×で攻撃、□で飛びつく。",how:"獲物を仕留めて肉を得る。"},
  {title:"巣の作り方",what:"食草・肉で△長押しして運ぶ。",how:"巣の中心で△短押しして備蓄し、△長押しでLV2に強化。"},
- {title:"巣に食料を貯める",what:"食料を△長押しで運び、巣の中心で△を押す。",how:"1回預ければチュートリアル終了。60ptでLV2強化もできる。"},
+ {title:"巣に備蓄する",what:"食料を△長押しで運ぶ。",how:"巣に戻り、△で預ける。"},
  {title:"縄張りを取る",what:"標識で△長押し。",how:"巣の安全性が上がる。"},
  {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"最後の目標へ進む。"},
  {title:"生き残れ！",what:"狩り・食事・休息を続け、生存日数を伸ばす。",how:"食料庫の備蓄も活用できる。"}
 ];
-const TUTORIAL_PAGES=[
- null, // Page 1 always shows the CURRENT goal; not a long sequence of seven lessons.
- {stage:"操作早見表",title:"操作・食料の基本",what:"△ 食べる・運ぶ ／ × 攻撃 ／ □ 飛びつき ／ ○ ジャンプ",how:"巣で△：備蓄。手ぶらで△：食料庫。"}
-];
 let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,milestoneUntil=0,previouslyOnboardedAtRunStart=false;
 function renderTutorial(){
- const info=tutorialPage===0
-  ?{stage:missionInfo().stage,...GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)]}
-  :TUTORIAL_PAGES[tutorialPage];
- $("tutorial-stage").textContent=info.stage;
- $("tutorial-title").textContent=info.title;
- $("tutorial-what").textContent=info.what;
- $("tutorial-how").textContent=info.how;
- $("tutorial-progress-label").textContent=tutorialPage===0?"いまやること":"必要なときだけ確認";
- $("tutorial-counter").textContent=(tutorialPage+1)+" / "+TUTORIAL_PAGES.length;
- $("tutorial-prev").disabled=tutorialPage===0;
- $("tutorial-next").disabled=tutorialPage===TUTORIAL_PAGES.length-1;
+ const index=TUTORIAL_STAGES.indexOf(mission),info=GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)];
+ $("tutorial-stage").textContent=index>=0?"チュートリアル "+(index+1)+" / 4":"生存ガイド";
+ $("tutorial-title").textContent=info.title;$("tutorial-what").textContent=info.what;$("tutorial-how").textContent=info.how;
+ $("tutorial-progress-label").textContent="いまやること";$("tutorial-counter").textContent=index>=0?(index+1)+" / 4":"自由探索";
+ $("tutorial-prev").disabled=true;$("tutorial-next").disabled=true;
 }
 function openTutorial(page=0,automatic=false){
  if(!P||!(mode==="play"||mode==="guide"))return false;
- // Survival objectives are HUD-only; completed lessons never auto-reopen.
- if(automatic&&(automaticTutorialShown||mission>=4||tutorialSeen.has(mission)))return false;
- tutorialPage=clamp(Math.floor(page),0,TUTORIAL_PAGES.length-1);
- if(automatic){tutorialSeen.add(mission);rememberTutorialShown();}
+ if(automatic&&(!TUTORIAL_STAGES.includes(mission)||tutorialSeen.has(mission)||(!debugTutorialSession&&tutorialLessonsSeenEver.has(mission))))return false;
+ tutorialPage=0;
+ if(automatic)rememberTutorialStage(mission);
  if(mode==="play"){saveAuto();resetControls();mode="guide"}
- guideNeedsFrame=true; // Render the scene once behind the popup, then freeze its frame.
- $("app").classList.add("tutorial-paused");
+ guideNeedsFrame=true;$("app").classList.add("tutorial-paused");
  $("tutorial-dialog").classList.remove("hidden");$("objective-banner").classList.remove("visible");objectiveBannerTime=0;
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"guide"});
  renderTutorial();$("tutorial-close").focus({preventScroll:true});return true;
 }
 function closeTutorial(){
  if(mode!=="guide")return;
- $("tutorial-dialog").classList.add("hidden");
- $("app").classList.remove("tutorial-paused");
+ $("tutorial-dialog").classList.add("hidden");$("app").classList.remove("tutorial-paused");
  guideNeedsFrame=false;mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"play"});
 }
-function tutorialMove(delta){
- if(mode!=="guide")return;
- tutorialPage=clamp(tutorialPage+delta,0,TUTORIAL_PAGES.length-1);renderTutorial();
-}
+function tutorialMove(delta){if(mode==="guide"&&delta>0)closeTutorial()}
 function announceObjective(){
  if(!P)return;
  if(mission>=7){objectiveBannerTime=0;$("objective-banner").classList.remove("visible");return}
  if(mission<=6){
   objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
-  if(mission<=3&&mode==="play"&&!tutorialSeen.has(mission))openTutorial(0,true);
+  if(TUTORIAL_STAGES.includes(mission)&&mode==="play")openTutorial(0,true);
   return;
  }
  if(mode!=="play"){objectiveBannerTime=0;return}
@@ -2165,16 +2163,14 @@ function announceObjective(){
 }
 // Award first, then open the next lesson; do not rely on closing a lesson to show success.
 function showMissionMilestone(previous,next){
- if(previouslyOnboardedAtRunStart)return false;
- if(!P||mode!=="play"||(next!==previous+1&&!(previous===2&&next===4)&&!(previous===4&&next===7))||previous<0||previous>6)return false;
- const finalTutorial=previous===6&&next===7;
- const duration=finalTutorial?1500:previous===3&&next===4?1000:780;
- $("mission-milestone-kicker").textContent=finalTutorial?"":previous<3?"NICE WORK":"SURVIVAL";
- $("mission-milestone-title").textContent=finalTutorial?"チュートリアル終了":"達成！";
+ if(!P||mode!=="play"||next!==7||![4,6].includes(previous)||(!debugTutorialSession&&tutorialLessonsSeenEver.has(7)))return false;
+ const duration=1250;
+ $("mission-milestone-kicker").textContent="";
+ $("mission-milestone-title").textContent="チュートリアル終了";
  const el=$("mission-milestone");
  el.style.setProperty("--milestone-duration",duration+"ms");
  el.classList.remove("hidden");el.classList.remove("show");void el.offsetWidth;el.classList.add("show");
- milestoneUntil=performance.now()+duration;
+ milestoneUntil=performance.now()+duration;rememberTutorialStage(7);
  resetControls();mode="milestone";guideNeedsFrame=true;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"milestone"});
@@ -2183,13 +2179,7 @@ function showMissionMilestone(previous,next){
 function finishMissionMilestone(){
  if(mode!=="milestone")return false;
  $("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");
- milestoneUntil=0;mode="play";
- if(mission<=3&&!tutorialSeen.has(mission))openTutorial(0,true);
- else announceObjective();
- if(mission===4)notify("次は巣に備蓄：食料を△長押しで運ぶ → 巣で△",4.2);
- // Reveal the final survival HUD on the exact frame that the one-time notice ends.
- syncHUD();
- return true;
+ milestoneUntil=0;mode="play";announceObjective();syncHUD();return true;
 }
 function advanceMission(next){
  const previous=mission;
@@ -2198,10 +2188,10 @@ function advanceMission(next){
  if(next===4)tutorialStashBase=denStash;
  mission=next;
  if(next===7){missionComplete=true;tutorialSeen.add(7)}
- const milestone=showMissionMilestone(previous,next);
+ const milestone=next===7&&showMissionMilestone(previous,next);
  if(!milestone&&next!==7){
   announceObjective();
-  if(next===4)notify("次は巣に備蓄：食料を△長押しで運ぶ → 巣で△",4.2);
+  if(next===4&&mode==="play")notify("巣へ食料を運び、△で備蓄",2.6);
  }
  syncHUD();saveAuto();
 }
@@ -4354,7 +4344,7 @@ function keyDown(e){
  if(mode==="play")keys.add(k);
  
  if(mode==="inventory"){if(k==="escape")closeDenInventory();return}
- if(mode==="guide"){if(k==="arrowright"||k==="enter")tutorialMove(1);if(k==="arrowleft")tutorialMove(-1);if(k==="escape")closeTutorial();return}
+ if(mode==="guide"){if(k==="enter"||k===" "||k==="escape")closeTutorial();return}
  if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
@@ -4464,8 +4454,6 @@ $("den-inventory-close").addEventListener("click",closeDenInventory);
 document.querySelectorAll("[data-strong-trait]").forEach(b=>b.addEventListener("click",()=>inheritStrongTrait(b.dataset.strongTrait)));
 for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
 $("objective-toggle").addEventListener("click",()=>openTutorial());
-$("tutorial-prev").addEventListener("click",()=>tutorialMove(-1));
-$("tutorial-next").addEventListener("click",()=>tutorialMove(1));
 $("tutorial-close").addEventListener("click",closeTutorial);
 $("mission-close").addEventListener("click",()=>{
  $("mission").classList.add("hidden");
