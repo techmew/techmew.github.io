@@ -585,10 +585,10 @@ function buildScenicProps(){
  // Procedural urban rewilding is derived from coordinates and never depends on
  // the saved plants[] array. Old SAVE_SCHEMA2 worlds gain the same visual ruins.
  for(const [zx,zy,zw,zh,color,biome] of BIOME_AREAS){
-  const step=biome==="forest"?270:245;
+  const step=biome==="forest"?250:["barrier","rail","ivy","cage"].includes(biome)?175:245;
   for(let yy=zy+96;yy<zy+zh-50;yy+=step)for(let xx=zx+96;xx<zx+zw-50;xx+=step){
    const n=noise(xx*.013+yy*.009,71);
-   if(n<.29)continue;
+   if(n<.25)continue;
    const px=xx+(noise(xx*.027,yy*.019)-.5)*80;
    const py=yy+(noise(yy*.017,xx*.013)-.5)*80;
    if(waterBlocksLand(px,py)||nearBuilding(px,py,46))continue;
@@ -858,7 +858,7 @@ function generateWorld(){
   if(Math.hypot(x-SAFE_DEN.x,y-SAFE_DEN.y)>210&&!nearBuilding(x,y,44)&&!waterBlocksLand(x,y))
    streetProps.push({x,y,type,r,dir:along?0:Math.PI/2,seed:i});
  }
- for(let i=0;i<20;i++)birdFlocks.push({x:160+i*380,y:290+(i%6)*850,z:55+(i%4)*23,
+ for(let i=0;i<28;i++)birdFlocks.push({x:180+(i*941)%(WORLD.w-400),y:220+(i*677)%(WORLD.h-410),z:55+(i%4)*23,
   dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
  buildScenicProps();
