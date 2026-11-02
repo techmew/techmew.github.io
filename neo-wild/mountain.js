@@ -2,7 +2,9 @@
  * Deterministic terrain/obstacles, shared by 2D, WebGL and collision.
  * Original city coordinates, 8 ecology regions and SAVE_SCHEMA2 stay intact. */
 (()=>{"use strict";
-const WEST=8300,FOOTHILL_END=10100,EAST=11800,CITY_EDGE=8400;
+const WEST=8300,FOOTHILL_END=10100,SUMMIT_START=11800,EAST=13600,CITY_EDGE=8400;
+const CAVE_START=13040,CAVE_END=13450,CAVE_HALF=110;
+const zone=x=>x>=CAVE_START&&x<=CAVE_END?"cave":x>=SUMMIT_START?"summit":x>FOOTHILL_END?"slope":"foothill";
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const center=x=>3770+110*Math.sin((x-WEST)/355)+(x>FOOTHILL_END?95*smooth(clamp((x-FOOTHILL_END)/720,0,1))*Math.sin((x-FOOTHILL_END)/300):0);
 const smooth=t=>t*t*(3-2*t);
@@ -14,10 +16,12 @@ function height(x,y){
  const old=90*smooth(p)+19*p*lateral+4*p*Math.sin(x/210)*Math.cos(y/245);
  if(x<=FOOTHILL_END)return old;
  const q=clamp((x-FOOTHILL_END)/(EAST-FOOTHILL_END),0,1);
- return old+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300);
+ return old+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
+  +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
 }
 function trail(x){return center(x);}
-const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[];
+const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],caveStones=[];
+const cave=Object.freeze({start:CAVE_START,end:CAVE_END,halfWidth:CAVE_HALF});
  // This stream has a physical crossing; the world never loads a new stage.
  const creek=Object.freeze({xAt:y=>9250+35*Math.sin((y-3800)/180),bridgeY:center(9250),halfWidth:31,bridgeHalf:170});
 const ruins=[
@@ -57,15 +61,34 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
  const y=center(x)+side*(235+j*160);
  heather.push({x:x+Math.sin(x*.017+j)*26,y,r:13+j*4,z:height(x,y)});
 }
+// Upper mountain vegetation and cave walls are deterministic; no save migration.
+for(let x=11930;x<13000;x+=176){
+ const cy=center(x);
+ for(const side of [-1,1])for(let j=0;j<3;j++){
+  const y=cy+side*(290+j*126),n=Math.sin(x*.021+side*9.1+j*6.8);
+  const px=x+n*37;
+  const obj={x:px,y:y+n*22,r:25+j*3,z:height(px,y)};
+  if(j===2||n>.18)alpinePines.push(obj);else alpineRocks.push(obj);
+ }
+}
+for(let x=11910;x<13500;x+=112)for(const side of [-1,1]){
+ const y=center(x)+side*(x>=CAVE_START&&x<=CAVE_END?89:220);
+ alpineGrass.push({x:x+Math.sin(x*.013)*12,y,r:13,z:height(x,y)});
+}
+for(let x=CAVE_START+25;x<CAVE_END-15;x+=83)for(const side of [-1,1]){
+ const y=center(x)+side*153;
+ caveStones.push({x,y,r:40,z:height(x,y)});
+}
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
  if(y<center(x)-720+r||y>center(x)+720-r)return true;
+ if(x>=CAVE_START&&x<=CAVE_END&&Math.abs(y-center(x))>CAVE_HALF-r)return true;
   // Only the planked bridge is passable; the creek banks block land animals.
   if(Math.abs(x-creek.xAt(y))<creek.halfWidth+r*.65&&
      Math.abs(y-creek.bridgeY)>creek.bridgeHalf-Math.min(26,r*.45))return true;
  if(Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
  for(const hut of [...ruins,...ridgeHuts])if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
- for(const p of [...pines,...scree])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+ for(const p of [...pines,...scree,...alpinePines,...alpineRocks,...caveStones])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of trees)if(p!==sourceTree&&Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of rocks)if(Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  return false;
@@ -73,7 +96,8 @@ for(let x=10270;x<11750;x+=165)for(const side of [-1,1])for(let j=0;j<2;j++){
 // Wildlife slots are shared with the existing world cap, never added on top.
  // Mountain prey-only replenishment must not draw canal frogs/hippos from biome 7.
 function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="CLEAR"){
- const entries=x>FOOTHILL_END?
+ const entries=x>=SUMMIT_START?
+ [["deer",24],["wildFox",9],["rabbit",20],["boar",12],["weasel",7],["raccoonDog",8],["crow",5],["macaque",10],["chimpanzee",5]]:x>FOOTHILL_END?
  [["deer",20],["wildFox",8],["rabbit",14],["boar",13],["weasel",6],["raccoonDog",7],["crow",6],["macaque",14],["chimpanzee",12]]:
  [["deer",22],["wildFox",12],["rabbit",21],["boar",11],["weasel",8],["raccoonDog",9],["crow",5],["macaque",12]];
  const rainy=weather==="RAIN"||weather==="THUNDER";
@@ -90,7 +114,7 @@ function draw2D(ctx,visible){
  for(let x=WEST;x<EAST;x+=95){
   const x2=Math.min(EAST,x+95),cy=center(x),cy2=center(x2),z=height(x,cy);
   if(!visible(x,cy,1050))continue;
-  const col=x>FOOTHILL_END?(z>185?"#5c6c61":"#3f5c4c"):z<25?"#52714b":z<62?"#4a6647":"#526b53";
+  const col=x>=SUMMIT_START?(x>=CAVE_START?"#515950":"#67746a"):x>FOOTHILL_END?(z>185?"#5c6c61":"#3f5c4c"):z<25?"#52714b":z<62?"#4a6647":"#526b53";
   ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x,cy-720);ctx.lineTo(x2,cy2-720);ctx.lineTo(x2,cy2+720);ctx.lineTo(x,cy+720);ctx.closePath();ctx.fill();
   ctx.fillStyle="#887d5c";ctx.beginPath();ctx.moveTo(x,cy-130);ctx.lineTo(x2,cy2-130);ctx.lineTo(x2,cy2+130);ctx.lineTo(x,cy+130);ctx.closePath();ctx.fill();
   ctx.strokeStyle="#a7a58a88";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,cy-135);ctx.lineTo(x2,cy2-135);ctx.moveTo(x,cy+135);ctx.lineTo(x2,cy2+135);ctx.stroke();
@@ -121,6 +145,14 @@ function draw2D(ctx,visible){
   ctx.fillStyle="#b3a17c";for(let x=gx-76;x<gx+79;x+=16)ctx.fillRect(x,gy-154,11,308);
   ctx.strokeStyle="#d1c4a0";ctx.lineWidth=6;
   for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(gx-85,gy+side*164);ctx.lineTo(gx+85,gy+side*164);ctx.stroke();}
+  // Cave floor and stone flanks use the same centerline as blocked().
+  ctx.fillStyle="#343c39";ctx.beginPath();
+  for(let x=CAVE_START;x<=CAVE_END;x+=20){const y=center(x)-CAVE_HALF;if(x===CAVE_START)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  for(let x=CAVE_END;x>=CAVE_START;x-=20)ctx.lineTo(x,center(x)+CAVE_HALF);
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#8b9087";ctx.lineWidth=13;
+  for(const side of [-1,1]){ctx.beginPath();for(let x=CAVE_START;x<=CAVE_END;x+=20){const y=center(x)+side*CAVE_HALF;if(x===CAVE_START)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+  ctx.fillStyle="#9d9f8b";ctx.beginPath();ctx.ellipse(CAVE_START,center(CAVE_START),14,CAVE_HALF+22,0,0,Math.PI*2);ctx.stroke();
   for(const hut of [...ruins,...ridgeHuts]){
   if(!visible(hut.x+hut.w/2,hut.y+hut.h/2,160))continue;
   ctx.fillStyle="#776f5c";ctx.fillRect(hut.x,hut.y,hut.w,hut.h);
@@ -142,6 +174,19 @@ function draw2D(ctx,visible){
    ctx.strokeStyle="#7da074";ctx.lineWidth=2.2;
    for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(h.x,h.y);ctx.lineTo(h.x+k*4,h.y-11-Math.abs(k)*2);ctx.stroke();}
   }
+  for(const a of alpineGrass){if(!visible(a.x,a.y,48))continue;
+   ctx.strokeStyle="#899e79";ctx.lineWidth=2.3;
+   for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x+k*4,a.y-13-Math.abs(k)*2);ctx.stroke();}
+  }
+  for(const p of [...alpineRocks,...caveStones]){if(!visible(p.x,p.y,90))continue;
+   ctx.fillStyle="#737b75";ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*.72,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#a3a89d";ctx.lineWidth=2;ctx.stroke();
+  }
+  for(const t of alpinePines){if(!visible(t.x,t.y,115))continue;
+   ctx.fillStyle="#5b594a";ctx.fillRect(t.x-5,t.y-6,10,22);ctx.fillStyle="#365a50";
+   for(let k=0;k<3;k++){const rr=t.r*(1.15-k*.19),yy=t.y-17-k*16;
+    ctx.beginPath();ctx.moveTo(t.x,yy-rr);ctx.lineTo(t.x-rr,yy+rr*.55);ctx.lineTo(t.x+rr,yy+rr*.55);ctx.closePath();ctx.fill();}
+  }
   for(const p of scree){if(!visible(p.x,p.y,85))continue;
    ctx.fillStyle="#737a74";ctx.beginPath();ctx.moveTo(p.x-p.r,p.y+6);ctx.lineTo(p.x-p.r*.35,p.y-p.r*.65);ctx.lineTo(p.x+p.r*.4,p.y-p.r*.8);ctx.lineTo(p.x+p.r,p.y+5);ctx.closePath();ctx.fill();
    ctx.strokeStyle="#a9aea2";ctx.lineWidth=2;ctx.stroke();
@@ -159,7 +204,7 @@ function draw2D(ctx,visible){
  }
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
-const forageSites=Object.freeze([...ferns,...heather]);
-const api=Object.freeze({WEST,FOOTHILL_END,EAST,CITY_EDGE,center,trail,height,active,blocked,choose,forageSites,trees,rocks,ferns,pines,scree,heather,ruins,ridgeHuts,creek,gorge,draw2D});
+const forageSites=Object.freeze([...ferns,...heather,...alpineGrass]);
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,zone,choose,forageSites,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();

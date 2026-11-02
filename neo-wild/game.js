@@ -1099,7 +1099,7 @@ function restoreSnapshot(snapshot){
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
  thunderFlash=0;windDirection=Number.isFinite(snapshot.windDirection)?snapshot.windDirection:0;
  scoreTimer=snapshot.scoreTimer||0;spawnTimer=clamp(Number(snapshot.spawnTimer)||0,0,WILDLIFE.spawnInterval);lastPackSpawnAt=Number.isFinite(snapshot.packLastSpawnAt)&&snapshot.packLastSpawnAt<=elapsed?snapshot.packLastSpawnAt:elapsed;lastPopulatedRegion=regionAt(P.x,P.y)+(mountainHabitat(P.x,P.y)?
-  (P.x>MOUNTAIN.FOOTHILL_END?":slope":":foothill"):"");
+  ":"+MOUNTAIN.zone(P.x):"");
  denLevel=clamp(Math.floor(snapshot.denLevel||1),1,DEN_MAX_LEVEL);
  denStores=normalizeDenStores(snapshot.denStores,snapshot.denStash||0);syncDenStash();
  tutorialStashBase=Number.isFinite(snapshot.tutorialStashBase)?clamp(snapshot.tutorialStashBase,0,denStash):denStash;
@@ -1951,7 +1951,7 @@ let lastPopulatedRegion=-1;
 function settleNewRegion(){
  if(!P)return false;
  const region=regionAt(P.x,P.y),habitat=region+(mountainHabitat(P.x,P.y)?
-  (P.x>MOUNTAIN.FOOTHILL_END?":slope":":foothill"):"");
+  ":"+MOUNTAIN.zone(P.x):"");
  if(habitat===lastPopulatedRegion)return false;
  lastPopulatedRegion=habitat;
  const nearby=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
@@ -4175,6 +4175,7 @@ function drawWorldMap(){
   bm.fillStyle="#e0eac9";bm.font="bold 12px sans-serif";bm.textAlign="center";
   bm.fillText("山麓の森",X(9200),Y(3000));
   if(MOUNTAIN.gorge){bm.fillStyle="#c4d2c5";bm.fillText("山腹・渓谷",X(10950),Y(2900));}
+  if(MOUNTAIN.SUMMIT_START){bm.fillText("山頂の岩場",X(12420),Y(2900));bm.fillText("山頂洞窟",X(13200),Y(3150));}
  }
  for(const seg of WATER_RIBBONS){bm.fillStyle=seg.kind==="river"?"#4d9ca9":"#3c87a3";bm.beginPath();seg.pts.forEach((p,i)=>i?bm.lineTo(X(p[0]),Y(p[1])):bm.moveTo(X(p[0]),Y(p[1])));bm.closePath();bm.fill();}
   bm.fillStyle="#586666";
@@ -4219,7 +4220,7 @@ function drawWorldMap(){
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
  bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
- const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?(P.x>MOUNTAIN.FOOTHILL_END?"山腹・渓谷":"山麓の森"):districts[zone],eco=ecology[zone];
+ const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?({foothill:"山麓の森",slope:"山腹・渓谷",summit:"山頂の岩場",cave:"山頂洞窟"}[MOUNTAIN.zone(P.x)]||"山地"):districts[zone],eco=ecology[zone];
  $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
  "｜"+ecologyNews;

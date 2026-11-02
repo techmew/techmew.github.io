@@ -790,8 +790,8 @@ function mountainTerrain(isVisible){
    if(!isVisible(cx,cy,350))continue;
    const h00=m.height(x,y),h10=m.height(x2,y),h11=m.height(x2,y2),h01=m.height(x,y2);
    const edge=Math.abs(cy-m.center(cx))>690,trail=Math.abs(cy-m.center(cx))<148;
-   const upper=cx>m.FOOTHILL_END;
-   const col=color(edge?(upper?"#777970":"#727a70"):trail?(upper?"#918467":"#81785a"):upper?((Math.floor(x/tile)+Math.floor(y/tile))%3?"#466450":"#52675a"):(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
+   const upper=cx>m.FOOTHILL_END,alpine=cx>=m.SUMMIT_START;
+   const col=color(alpine?(edge?"#85877d":trail?"#8b806a":"#667368"):edge?(upper?"#777970":"#727a70"):trail?(upper?"#918467":"#81785a"):upper?((Math.floor(x/tile)+Math.floor(y/tile))%3?"#466450":"#52675a"):(Math.floor(x/tile)+Math.floor(y/tile))%3?"#526f4c":"#47694b");
    quad([x,y,h00+.24],[x2,y,h10+.24],[x2,y2,h11+.24],[x,y2,h01+.24],col);
   }
   for(const sign of [-1,1]){
@@ -832,6 +832,33 @@ function mountainTerrain(isVisible){
    box(gorgeX-82,gorgeY-158,z,164,316,6,"#625c4b","#a89a7a");
    for(let x=gorgeX-75;x<gorgeX+78;x+=16)box(x,gorgeY-154,z+6,11,308,1.5,"#8b7a5e","#c3b18c");
    for(const side of [-1,1])box(gorgeX-85,gorgeY+side*164-3,z+7,170,6,13,"#676453","#b8aa85");
+  }
+  // Cave corridor is walkable, with open ceiling except for entrance arch.
+  for(let x=m.cave.start;x<m.cave.end;x+=65){
+   const x2=Math.min(m.cave.end,x+65),cx=(x+x2)/2,cy=m.center(cx);
+   if(!isVisible(cx,cy,260))continue;
+   const z=m.height(cx,cy);
+   quad([x,m.center(x)-m.cave.halfWidth,z+1],[x2,m.center(x2)-m.cave.halfWidth,z+1],
+        [x2,m.center(x2)+m.cave.halfWidth,z+1],[x,m.center(x)+m.cave.halfWidth,z+1],color("#383f3b"));
+   for(const side of [-1,1]){
+    const y=cy+side*(m.cave.halfWidth+17);
+    box(x,y-16,z,65,32,62,"#686e69","#969b91");
+   }
+  }
+  if(isVisible(m.cave.start,m.center(m.cave.start),290)){
+   const x=m.cave.start,y=m.center(x),z=m.height(x,y);
+   for(const side of [-1,1])box(x-16,y+side*127-17,z,34,34,116,"#777c75","#a3a79c");
+   box(x-16,y-132,z+116,34,264,16,"#727970","#9a9f94");
+  }
+  for(const a of m.alpineGrass){if(!isVisible(a.x,a.y,60))continue;
+   for(let k=-2;k<=2;k++)pyramid(a.x+k*3,a.y-k*2,a.z,3,3,17+Math.abs(k)*3,"#7e9878");
+  }
+  for(const t of m.alpinePines){if(!isVisible(t.x,t.y,190))continue;
+   box(t.x-5,t.y-5,t.z,10,10,59,"#605b4c","#827b66");
+   for(let k=0;k<3;k++)pyramid(t.x,t.y,t.z+18+k*23,t.r*(1.08-k*.18),t.r*(.96-k*.17),53-k*6,"#315c50");
+  }
+  for(const r of [...m.alpineRocks,...m.caveStones]){if(!isVisible(r.x,r.y,120))continue;
+   pyramid(r.x,r.y,r.z,r.r,r.r*.81,r.r*.92,"#767c76");
   }
   for(const hut of [...m.ruins,...m.ridgeHuts]){
   if(!isVisible(hut.x+hut.w/2,hut.y+hut.h/2,240))continue;
