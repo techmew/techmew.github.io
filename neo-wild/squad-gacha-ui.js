@@ -103,7 +103,8 @@ const ready=()=>{
    }
    if(type==="lion"&&canvas.dataset.sex!=="female")for(let i=0;i<12;i++){const a=i*Math.PI/6;oval(57+Math.cos(a)*29,-111+Math.sin(a)*32,14,15,"#8d633e")}
    if(type==="gorilla")for(const x of [-25,49]){line(x,-85,x+1,-20,dark,23)}
-   if(type==="tibetanFox"){line(40,-139,83,-139,dark,2);}\n   if((type==="deer"||type==="serow")&&canvas.dataset.sex!=="female"){for(const side of [-1,1]){line(57+side*9,-146,57+side*22,-181,"#c4a477",5);line(57+side*22,-181,57+side*32,-193,"#c4a477",4);}}
+   if(type==="tibetanFox"){line(40,-139,83,-139,dark,2);}
+   if((type==="deer"||type==="serow")&&canvas.dataset.sex!=="female"){for(const side of [-1,1]){line(57+side*9,-146,57+side*22,-181,"#c4a477",5);line(57+side*22,-181,57+side*32,-193,"#c4a477",4);}}
    if(type==="fox"||type==="tibetanFox"||type==="wolf"||type==="manul"){line(-65,-82,-111,-105,c,type==="manul"?26:19);oval(-115,-105,15,11,type==="fox"?light:c);}
    else if(type==="cat"||type==="dog")line(-70,-83,-103,-77,c,11);
   }
@@ -111,7 +112,8 @@ const ready=()=>{
  }
  function paint(canvas,m){
   if(!canvas||!m)return;canvas.width=canvas.width;const type=m.species,color=COLORS[type]||"#96a6a1";
-  canvas.dataset.ageStage=m.ageStage==="young"||m.age==="若い"?"young":"adult";\n  canvas.dataset.sex=m.sex==="メス"?"female":"male";
+  canvas.dataset.ageStage=m.ageStage==="young"||m.age==="若い"?"young":"adult";
+  canvas.dataset.sex=m.sex==="メス"?"female":"male";
   const model={type,r:(RADII[type]||19)*(canvas.dataset.ageStage==="young"?.8:1),color,belly:"#c6c3b6",age:m.age,sex:m.sex,ageStage:canvas.dataset.ageStage};
   let drawn=false;
   if(window.Wild3D?.available&&window.Wild3D.previewAnimal){
@@ -194,7 +196,9 @@ const ready=()=>{
    const card=makeBtn("",()=>{selected=m.id;showDraw()},"squad-candidate"+(selected===m.id?" selected":""));
    card.setAttribute("aria-pressed",String(selected===m.id));
    card.append(preview(m,"squad-candidate-image"),el("strong",null,m.speciesName),el("span",null,m.grade+"評価　"+(RARITY[m.rarity]||"基本")));
-   const mini=el("small",null,"HP "+Math.round(m.iv.hp*100)+" / 攻 "+Math.round(m.iv.attack*100)+" / 速 "+Math.round(m.iv.speed*100)+" / 持 "+Math.round(m.iv.stamina*100));card.append(mini);\n   card.append(el("small",null,m.sex+"・"+m.age+"・"+m.growthType+" ×"+m.growthRate));\n   if(m.id!==selected){const selectedMember=draw.options.find(x=>x.id===selected);if(selectedMember){const diff=METRICS.map(([k,label])=>{const d=Math.round((m.iv[k]-selectedMember.iv[k])*100);return label+(d>=0?"+":"")+d}).join(" / ");card.append(el("small","squad-candidate-diff","選択中との差 "+diff));}}
+   const mini=el("small",null,"HP "+Math.round(m.iv.hp*100)+" / 攻 "+Math.round(m.iv.attack*100)+" / 速 "+Math.round(m.iv.speed*100)+" / 持 "+Math.round(m.iv.stamina*100));card.append(mini);
+   card.append(el("small",null,m.sex+"・"+m.age+"・"+m.growthType+" ×"+m.growthRate));
+   if(m.id!==selected){const selectedMember=draw.options.find(x=>x.id===selected);if(selectedMember){const diff=METRICS.map(([k,label])=>{const d=Math.round((m.iv[k]-selectedMember.iv[k])*100);return label+(d>=0?"+":"")+d}).join(" / ");card.append(el("small","squad-candidate-diff","選択中との差 "+diff));}}
    group.append(card);
   }
   body.append(el("h3","squad-option-title","引いた候補から選択"),group);
