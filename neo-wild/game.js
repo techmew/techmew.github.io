@@ -1135,7 +1135,7 @@ function saveAuto(){
 function checkpointLabel(s){
  const animal=animals[s.player.type]?.name||"動物",lv=Math.max(1,Math.floor(s.player.level||1));
  const date=new Date(s.savedAt||0),when=Number.isFinite(date.getTime())?date.toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
- return animal+" LV"+lv+"　DAY "+(s.day||1)+(when?"　"+when:"");
+ return animal+" LV"+lv+"　YEAR "+String(Math.floor(Math.max(0,Number(s.elapsed)||0)/120)).padStart(3,"0")+(when?"　"+when:"");
 }
 function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
@@ -2608,14 +2608,21 @@ function detectsPlayer(m,sp,d){
 // Scripted jump, pounce and dash trajectories are handled by separate update branches.
 function applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo=false){
  const inputLength=Math.hypot(axis.x,axis.y);
- if(inputLength>.08){
+ const snow=actor===P&&!insideShelter(P)?currentSnowpack():0;
+ if(inputLength>.08&&snow>.08){
+  // The head faces input immediately; ice delays actual body velocity.
+  actor.dir=Math.atan2(axis.y,axis.x);
+  const response=Math.min(1,dt*(2.8+(1-snow)*8.2));
+  actor.vx+=(axis.x*targetSpeed-actor.vx)*response;
+  actor.vy+=(axis.y*targetSpeed-actor.vy)*response;
+ }else if(inputLength>.08){
   actor.dir=Math.atan2(axis.y,axis.x);
   actor.vx=axis.x*targetSpeed;
   actor.vy=axis.y*targetSpeed;
  }else{
   // Original braking is retained on release.
   const speed=Math.hypot(actor.vx,actor.vy);
-  const brake=(actor.type==="wolf"?900:actor.type==="cat"?1720:foxTurbo?2750:1550)*dt;
+  const brake=(snow>.08?(55+(1-snow)*260):(actor.type==="wolf"?900:actor.type==="cat"?1720:foxTurbo?2750:1550))*dt;
   const ratio=speed>0?Math.max(0,speed-brake)/speed:0;
   actor.vx*=ratio;actor.vy*=ratio;
  }
@@ -3288,8 +3295,8 @@ function missionInfo(){
     progress:denStash>tutorialStashBase?1:0};
   }
   case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で○長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
-  case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"生き残れ！",progress:Math.min(1,discoveredSites.length/2)};
-  default:return {stage:"目標",title:"生き残れ！",detail:"",next:"",progress:0};
+  case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"探索を続ける",progress:Math.min(1,discoveredSites.length/2)};
+  default:return {stage:"目標",title:"探索・狩猟・巣の発展",detail:"",next:"",progress:0};
  }
 }
 // Two help pages only: the current mission, then an optional one-screen control reminder.
@@ -3396,7 +3403,7 @@ function nearestGoal(list){
  return bestItem;
 }
 function objectiveShortLabel(){
- if(mission>=7)return "生き残れ！";
+ if(mission>=7)return "探索目標";
  if(mission===0){const f=nearestGoal(carcasses.filter(c=>edibleFood(c)));return f?foodName(f):"食草・肉"}
  if(mission===1)return visibleShrubCover()?"潜伏する茂み":"建物・車の陰";
  if(mission===2)return "獲物";
@@ -3885,7 +3892,8 @@ function steerPursuit(m,tx,ty){
  if(best!==null){m.avoidSide=Math.sign(Math.atan2(Math.sin(best-desired),Math.cos(best-desired)))||m.avoidSide;return best}
  return desired+Math.PI*.65*m.avoidSide;
 }
-const WEATHER_NAMES={CLEAR:"晴れ",CLOUDY:"曇り",RAIN:"雨",THUNDER:"雷雨",FOG:"霧",WIND:"強風"};
+const WEATHER_NAMES={CLEAR:"晴れ",CLOUDY:"曇り",RAIN:"雨",THUNDER:"雷雨",FOG:"霧",WIND:"強風",SNOW:"雪"};
+function currentSnowpack(){return window.WildWorldClock?.snowpackAt?.(elapsed)||0;}
 /* JMA Tokyo monthly normal days with >=1.0 mm precipitation (1991-2020).
  * A game DAY samples a stable Tokyo-style climate day; rainfall occupies a
  * short episode of the day rather than making every wet day rain constantly.
@@ -4079,7 +4087,8 @@ function updateWeather(dt){
  if(weather!==target){
   const previous=weather;weather=target;windDirection=rnd(0,TWO);
   if(weather==="THUNDER")thunderTimer=rnd(5,11);else lightningStrike=null;
-  if(weather==="THUNDER"&&previous!=="RAIN")notify("遠雷と雨雲が近づいている");
+  if(weather==="SNOW"&&previous!=="SNOW")notify("雪が降り始めた。凍った地面では滑る");
+  else if(weather==="THUNDER"&&previous!=="RAIN")notify("遠雷と雨雲が近づいている");
   else if(weather==="RAIN"&&previous!=="THUNDER")notify("天候変化：雨");
   else notify("天候変化："+WEATHER_NAMES[weather]);
  }
@@ -4405,7 +4414,7 @@ function update(dt){
  window.WildTrophies?.record?.("year",{year:currentWorldYear},notify);
  window.WildTrophies?.record?.("weather",{weather},notify);
  window.WildTrophies?.record?.("progress",{level:P.level},notify);
- if(currentWorldYear!==previousWorldYear&&[10,20,50,100,200,300].includes(currentWorldYear))notify('世界'+currentWorldYear+'年到達。生存は続く。');
+ if(currentWorldYear!==previousWorldYear)notify(currentWorldYear+"年目",2.6);
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateLightning(dt);
@@ -4427,7 +4436,7 @@ function update(dt){
  }
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){
-  notify("DAY "+String(day).padStart(2,"0")+" / 野生はさらに凶暴になる");
+  // DAY is used only for the independent 85-second light cycle.
   // Day transition must not heal an empty stomach or revive a defeated player.
   if(P.hp>0&&P.hunger>0)P.hp=Math.min(P.maxHp,P.hp+18);
  }
@@ -4893,7 +4902,7 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
   const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
-  $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+" · DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather]+" · 風"+windArrow;
+  $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0");
  const moon=moonlightProfile(elapsed,weather);
  $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name;
  const info=missionInfo();
@@ -4904,7 +4913,7 @@ function syncHUD(hour){
  if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（巣に1回預けたら完了）":lessonHint);
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
- $("survival-goal").classList.toggle("hidden",mission<7||mode!=="play");
+ $("survival-goal").classList.add("hidden");
  $("mission-sub").textContent=info.detail;
  $("mission-next").textContent=info.next?"次の目的："+info.next:"";
  $("mission-next").classList.toggle("hidden",mission>=7);
@@ -6216,6 +6225,16 @@ function drawScene(){
    ctx.moveTo(rx,ry);ctx.lineTo(rx-horizontal,ry+r.z*(weather==="THUNDER"?1.4:1));
   }
   ctx.stroke();ctx.restore();
+ }
+ if(weather==="SNOW"&&mode!=="dying"){
+  ctx.save();ctx.globalAlpha=.90;ctx.fillStyle="#e5f4fa";
+  for(let i=0;i<145;i++){
+   const speed=32+(i*17%58),drift=(i%7-3)*.12;
+   const py=((i*73.73+elapsed*speed)%(vh+30)+vh+30)%(vh+30)-15;
+   const px=((i*131.7+Math.sin(elapsed*.43+i)*22+elapsed*drift*10)%(vw+30)+vw+30)%(vw+30)-15;
+   const radius=i%9===0?2.2:i%4===0?1.5:.95;
+   ctx.beginPath();ctx.arc(px,py,radius,0,TWO);ctx.fill();
+  }ctx.restore();
  }
  if(weather==="WIND"&&mode!=="dying"){
   ctx.strokeStyle="#d2c8a73b";ctx.lineWidth=1.4;ctx.beginPath();
