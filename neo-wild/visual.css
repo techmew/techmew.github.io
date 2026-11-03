@@ -1081,3 +1081,47 @@
 #trophy-view .trophy-state{font:700 10px "Noto Sans JP",sans-serif;color:#cdd8d0}
 #result #death-title-btn{display:block;width:100%;min-height:42px;margin-top:7px;padding:8px 12px;white-space:normal}
 @media (max-height:450px){#trophy-view .trophy-head{padding:6px 12px 4px}#trophy-view .trophy-entry{padding:6px;margin-bottom:4px}#trophy-view .trophy-medal{height:27px;width:27px}}
+
+/* Controller-help left of gameplay settings: visual overlap fix 2026-11-03 */
+#gamepad-status{
+ position:fixed!important;
+ top:calc(8px + env(safe-area-inset-top))!important;
+ left:calc(clamp(205px,18vw,300px) + env(safe-area-inset-left))!important;
+ right:auto!important;
+ width:max-content;
+ max-width:min(410px,34vw)!important;
+ box-sizing:border-box;
+ text-align:left!important;
+ font-size:10px;
+ line-height:1.35;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ z-index:12;
+}
+@media (max-width:1100px){
+ #gamepad-status{
+  left:calc(clamp(176px,22vw,225px) + env(safe-area-inset-left))!important;
+  right:auto!important;
+  max-width:190px!important;
+  font-size:9px;
+ }
+}
+@media (orientation:portrait) and (max-width:600px){
+ #gamepad-status{
+  left:calc(8px + env(safe-area-inset-left))!important;
+  right:auto!important;
+  top:calc(235px + env(safe-area-inset-top))!important;
+  max-width:min(180px,46vw)!important;
+  font-size:9px;
+ }
+}
+@media (orientation:landscape) and (max-height:430px) and (max-width:1100px){
+ #gamepad-status{
+  left:calc(clamp(165px,24vw,210px) + env(safe-area-inset-left))!important;
+  right:auto!important;
+  top:calc(6px + env(safe-area-inset-top))!important;
+  max-width:min(190px,26vw)!important;
+  font-size:8.5px;
+  line-height:1.26;
+ }
+}
