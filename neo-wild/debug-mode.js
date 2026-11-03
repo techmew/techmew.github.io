@@ -82,8 +82,21 @@ panel.innerHTML=[
 '<button type="button" data-action="warp">選んだ場所へ移動</button>',
 '<button type="button" data-action="shadows">雲影を切り替える</button>',
 '</div></details>',
-'<details class="wr-section"><summary>5. 状態・保存・診断</summary><div class="wr-inside">',
+'<details class="wr-section"><summary>5. 全イベント・状態の強制テスト</summary><div class="wr-inside">',
+'<p class="wr-mini">実装済みの天候・地震・落雷・洪水・火災・UFO・亡霊・動物AI・負傷・年代・地形を操作。未実装機能は選択不可と表示します。</p>',
+'<label>検証するイベント・状態<select id="wr-debug-case"></select></label>',
+'<p class="wr-note" id="wr-debug-case-status">機能を読み込み中</p>',
+'<button type="button" data-action="case" class="wr-primary">選択したイベント・状態を実行</button>',
+'<div class="wr-row"><button type="button" data-action="qa-backup">QAバックアップを作成</button><button type="button" data-action="qa-restore" class="wr-danger">元の保存状態へ復元</button></div>',
+'<p class="wr-note" id="wr-debug-backup-status">初回テスト前に自動で保存内容を控えます。復元は画面を再読み込みします。</p>',
+'<label>表示方式<select id="wr-debug-renderer"><option value="auto">3D（可能なら）</option><option value="2d">2D強制表示</option></select></label>',
+'<button type="button" data-action="renderer">描画方式を切り替える</button>',
+'<p class="wr-mini">QAバックアップにはゲームの保存・災害・怪異の保存状態を含めます。デバッグ操作中の変更は保存される場合があります。</p>',
+'</div></details>',
+'<details class="wr-section"><summary>6. 状態・保存・診断</summary><div class="wr-inside">',
 '<pre id="wr-debug-stats" aria-live="off">診断を取得中</pre>',
+'<details><summary>詳しい状態・イベント履歴・検査対象</summary><pre id="wr-debug-qa-report">診断を取得中</pre></details>',
+'<pre id="wr-debug-errors">JavaScript例外：記録なし</pre>',
 '<div class="wr-row"><button type="button" data-action="save">現在状態を保存</button><button type="button" data-action="copy">診断内容をコピー</button></div>',
 '<button type="button" data-action="disable" class="wr-danger">デバッグモードを解除</button>',
 '<p class="wr-mini">通しテスト中の変更は通常の自動保存・チェックポイントに書き込みません。</p>',
@@ -91,6 +104,61 @@ panel.innerHTML=[
 ].join("");
 document.body.appendChild(panel);
 const $=id=>panel.querySelector("#"+id),bridge=()=>window.WildDebugBridge;
+const qaBackupKey="wild-reclaim-qa-session-backup-v1",recentErrors=[];
+function trackError(message){
+ recentErrors.push({time:new Date().toISOString(),message:String(message).slice(0,360)});
+ if(recentErrors.length>12)recentErrors.shift();
+}
+window.addEventListener("error",event=>trackError(event.message||event.error?.message||"不明な例外"));
+window.addEventListener("unhandledrejection",event=>trackError(event.reason?.message||event.reason||"未処理のPromiseエラー"));
+function qaCapture(force=false){
+ try{
+  if(!force&&sessionStorage.getItem(qaBackupKey))return true;
+  bridge()?.save?.();
+  const entries={};
+  for(let i=0;i<localStorage.length;i++){
+   const k=localStorage.key(i);
+   if(k&&(k.startsWith("wild-reclaim-")||k.startsWith("wild_reclaim_")))entries[k]=localStorage.getItem(k);
+  }
+  sessionStorage.setItem(qaBackupKey,JSON.stringify({createdAt:Date.now(),entries}));
+  return true;
+ }catch(error){trackError("QAバックアップ: "+error.message);return false}
+}
+function qaRestore(){
+ try{
+  const saved=JSON.parse(sessionStorage.getItem(qaBackupKey)||"null");
+  if(!saved||!saved.entries)return false;
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith("wild-reclaim-")||k.startsWith("wild_reclaim_")))keys.push(k)}
+  for(const key of keys)localStorage.removeItem(key);
+  for(const [key,value] of Object.entries(saved.entries))localStorage.setItem(key,value);
+  sessionStorage.removeItem(qaBackupKey);
+  location.reload();return true;
+ }catch(error){trackError("QA復元: "+error.message);return false}
+}
+function fillCases(){
+ const select=$("wr-debug-case");if(select.options.length)return;
+ const cases=bridge()?.listCases?.()||[],groups=new Map();
+ for(const item of cases){
+  if(!groups.has(item.group))groups.set(item.group,[]);
+  groups.get(item.group).push(item);
+ }
+ for(const [group,entries] of groups){
+  const optgroup=document.createElement("optgroup");optgroup.label=group;
+  for(const item of entries){
+   const option=document.createElement("option");option.value=item.id;option.textContent=(item.available?"":"未実装：")+item.label;
+   option.disabled=!item.available;optgroup.appendChild(option);
+  }
+  select.appendChild(optgroup);
+ }
+ select.value=cases.find(item=>item.available)?.id||"";
+}
+function updateCaseStatus(){
+ const cases=bridge()?.listCases?.()||[],selected=$("wr-debug-case").value;
+ const entry=cases.find(x=>x.id===selected),available=cases.filter(x=>x.available).length;
+ $("wr-debug-case-status").textContent=entry?(entry.available?"実装済み：":"未実装：")+entry.label+" ／ 実行可能 "+available+"件・未実装 "+(cases.length-available)+"件":"機能を読み込み中";
+}
+$("wr-debug-case").addEventListener("change",updateCaseStatus);
 const stages=[0,1,2,4,5,6,7],stageNames=["食事","潜伏","狩猟","巣の備蓄・強化","縄張り","探索地点","終了「生き残れ！」"];
 let unlocked=false,taps=0,frames=0,fps=0,lastFrame=0,rafStarted=false;
 function fillOptions(){
@@ -106,6 +174,7 @@ function fillOptions(){
   for(const d of dens){const opt=document.createElement("option");opt.value=d.id;opt.textContent=d.name+(d.roof?"（屋上）":"");denSelect.appendChild(opt);}
   if(dens.some(d=>d.id===selected))denSelect.value=selected;
  }
+ fillCases();updateCaseStatus();
  updateBossInfo();
 }
 function updateBossInfo(){
@@ -128,6 +197,14 @@ function render(){
  }
  panel.querySelector('[data-action="tutorial-start"]').disabled=inTest;
  const saveText=(()=>{try{const s=JSON.parse(localStorage.getItem("wild-reclaim-autosave-v2")||"null");return s?"DAY "+s.day+" v"+s.version:"なし";}catch(_){return "読み取り不可";}})();
+ try{
+  const snap=sessionStorage.getItem(qaBackupKey);
+  const meta=snap?JSON.parse(snap):null;
+  $("wr-debug-backup-status").textContent=meta?"QAバックアップあり："+new Date(meta.createdAt).toLocaleString("ja-JP")+"（保存キー "+Object.keys(meta.entries||{}).length+"件）":"QAバックアップなし";
+ }catch(_){$("wr-debug-backup-status").textContent="バックアップ確認失敗";}
+ $("wr-debug-renderer").value=b?.getRenderer?.()||"auto";
+ $("wr-debug-qa-report").textContent=JSON.stringify(b?.diagnostics?.()||{status:"ゲーム起動待ち"},null,2).slice(0,16000);
+ $("wr-debug-errors").textContent=recentErrors.length?"JavaScript例外（直近）:\\n"+recentErrors.map(e=>e.time+" "+e.message).join("\\n"):"JavaScript例外：記録なし";
  $("wr-debug-stats").textContent=[
   "FPS（画面更新）: "+fps,"描画: "+(window.Wild3D?.available?"WebGL":"Canvas2D"),
   "状態: "+(state?.mode||"不明"),"場所: "+(state?.region||"開始前"),
@@ -154,7 +231,7 @@ function toggle(){
  if(unlocked&&bridge()?.getState?.()?.debugTutorialActive)bridge()?.tutorialStop?.();
  unlocked=!unlocked;taps=0;pill.hidden=!unlocked;panel.hidden=!unlocked;
  if(!unlocked)bridge()?.setWeather?.(null);
- if(unlocked){runFps();render();}
+ if(unlocked){qaCapture(false);runFps();render();}
 }
 title.style.touchAction="manipulation";title.style.userSelect="none";
 title.setAttribute("tabindex","0");
@@ -170,6 +247,20 @@ panel.addEventListener("click",async event=>{
  if(action==="disable"){toggle();return;}
  if(action==="copy"){
   try{await navigator.clipboard.writeText($("wr-debug-stats").textContent);say("診断をコピーしました");}catch(_){say("コピーできませんでした");}return;
+ }
+ if(action==="qa-backup"){say(qaCapture(true)?"現在のセーブをQAバックアップに記録":"QAバックアップに失敗");return;}
+ if(action==="qa-restore"){if(!qaRestore())say("QAバックアップがありません。復元できません");return;}
+ if(action==="renderer"){
+  const success=bridge()?.setRenderer?.($("wr-debug-renderer").value);
+  say(success?"描画方式を切り替えました":"描画方式変更不可");return;
+ }
+ if(action==="case"){
+  if(!qaCapture(false)){say("QAバックアップの作成に失敗。実行を中止");return;}
+  let res;
+  try{res=bridge()?.runCase?.($("wr-debug-case").value)}
+  catch(error){trackError(error.message);res={ok:false,message:"実行時エラー："+error.message}}
+  say(res?.message||"実行できません");
+  return;
  }
  if(action==="shadows"){
   const svc=window.WildSeasonClouds;
