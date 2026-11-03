@@ -169,6 +169,15 @@ function poll(dt=.016){
   for(const candidate of list)old.set(candidate.index,buttons(candidate));
   return;
  }
+ // Trophy collection is a modal above the title; pad input must not start gameplay behind it.
+ if(window.WildTrophyView?.isOpen?.()){
+  b.setMove(0,0);mx=my=0;
+  const gallery=document.getElementById("trophy-list");
+  if((down(12)||down(13))&&gallery)gallery.scrollTop+=(down(13)?1:-1)*100;
+  if(down(1)||down(9)||down(0))window.WildTrophyView.close();
+  for(const candidate of list)old.set(candidate.index,buttons(candidate));
+  return;
+ }
  if(mode==="play"){
   const [lx,ly]=stick(axis(p,0),axis(p,1));
   // D-pad overrides a held analog stick on its own axis.
