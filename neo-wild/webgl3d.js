@@ -857,6 +857,15 @@ function landmarkMesh(site){
 function mountainTerrain(isVisible){
  const m=window.WildMountain;if(!m)return;
  const tile=110;
+ // North-east forest uses the same physical coordinates as WildMountain.blocked.
+ for(let x=m.CITY_EDGE;x<10800;x+=tile)for(let y=850;y<2580;y+=tile){
+  const x2=Math.min(10800,x+tile),y2=Math.min(2580,y+tile);
+  if(!isVisible((x+x2)/2,(y+y2)/2,280))continue;
+  const centerY=m.northTrail((x+x2)/2),path=Math.abs((y+y2)/2-centerY)<82;
+  const c=color(path?"#8d8467":((Math.floor(x/tile)+Math.floor(y/tile))%3?"#456b4a":"#50764f"));
+  quad([x,y,m.height(x,y)+.2],[x2,y,m.height(x2,y)+.2],
+   [x2,y2,m.height(x2,y2)+.2],[x,y2,m.height(x,y2)+.2],c);
+ }
  for(let x=m.WEST;x<m.EAST;x+=tile){
   const x2=Math.min(m.EAST,x+tile);
   for(let y=2850;y<5150;y+=tile){
