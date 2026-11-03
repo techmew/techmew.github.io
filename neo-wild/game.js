@@ -1247,6 +1247,7 @@ function restoreSnapshot(snapshot){
   m.signatureUse=clamp(Math.floor(Number(m.signatureUse)||0),0,1000);
   m.bossPresenceShown=false;
   if(m.type==="mountainGoat"){m.headbuttTell=0;m.headbuttArmed=false;}
+  m.cornerTell=0;m.cornerArmed=false;m.defenseTell=0;m.defenseArmed=false;
   if(m.type==="serow"||m.type==="zebra"){m.defenseTell=0;m.defenseArmed=false;}
   m.reactiveUntil=0;m.attackVariation=null;
    if(m.type==="dog"){m.foodTheftTell=0;m.foodTheftArmed=false;m.foodTheftCooldown=Math.max(1,Number(m.foodTheftCooldown)||0);}
@@ -4540,6 +4541,35 @@ function update(dt){
      label(m.x,m.y-m.r-32,m.attackVariation?.name||"角突きの予兆！","#ffc68c");
     }
    }
+   // Small wildlife fights only when trapped or injured: bite, kick, peck or wing slap.
+   // Prey normally flees; this move has a visible windup and can miss.
+   if(["rat","rabbit","pigeon","crow","frog","snake"].includes(m.type)){
+    m.cornerTell=Math.max(0,(Number(m.cornerTell)||0)-dt);
+    if(m.cornerArmed&&m.cornerTell===0){
+     m.cornerArmed=false;m.swing=.22;
+     const biteRange=P.r+m.r+27*(m.attackVariation?.reach||1);
+     const aimDelta=Math.atan2(Math.sin(angle-(m.cornerDir||0)),Math.cos(angle-(m.cornerDir||0)));
+     if(d<biteRange&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)&&Math.abs(aimDelta)<1.2){
+      const base=m.type==="rat"?2:m.type==="rabbit"?4:m.type==="pigeon"?2:m.type==="crow"?4:m.type==="frog"?1:4;
+      const damage=Math.max(1,Math.round(base*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+      P.hp=Math.max(0,P.hp-damage);P.inv=.28;P.lastCombatAt=elapsed;
+      if(m.type==="crow")P.strongWound=Math.max(P.strongWound||0,.45);
+      if(m.type==="rabbit")move(P,Math.cos(angle)*9,Math.sin(angle)*9);
+      if(m.type==="pigeon")P.sp=Math.max(0,P.sp-4);
+      label(P.x,P.y-29,(m.attackVariation?.name||({rat:"噛みつき",rabbit:"後脚蹴り",pigeon:"翼の威嚇",crow:"くちばし",frog:"跳ね飛び",snake:"噛みつき"}[m.type]))+" -"+damage,"#ffd2a2");
+     }
+     m.flee=Math.max(m.flee||0,2.2);m.dir=angle+Math.PI;
+    }
+    if(!m.cornerArmed&&m.cornerTell===0&&spotted&&
+       d<P.r+m.r+38&&m.attack<=0&&P.inv<=0&&
+       ((m.flee||0)>0||m.hp<m.maxHp*.85)){
+     m.attackVariation=COMBAT_LEVELS?.nextAttack(m)||null;
+     m.cornerTell=(m.type==="snake"?.43:.51)*(m.attackVariation?.windup||1);
+     m.cornerArmed=true;m.attack=(m.type==="snake"?2.1:2.8)*(m.attackVariation?.cooldown||1);
+     m.cornerDir=angle;m.dir=angle;
+     label(m.x,m.y-m.r-30,m.attackVariation?.name||"追い詰められた動物が反撃！","#ffe1a1");
+    }
+   }
    // Zebra and serow alternate distinct, telegraphed defensive moves.
    if(m.type==="zebra"||m.type==="serow"||m.type==="deer"){
     m.defenseTell=Math.max(0,(m.defenseTell||0)-dt);
@@ -4710,7 +4740,7 @@ function update(dt){
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
-   if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow"||m.type==="deer")&&m.defenseTell>0)){vx=0;vy=0;}
+   if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow"||m.type==="deer")&&m.defenseTell>0)||m.cornerTell>0){vx=0;vy=0;}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
