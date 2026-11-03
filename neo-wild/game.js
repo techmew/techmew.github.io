@@ -1151,6 +1151,13 @@ function restoreSnapshot(snapshot){
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  const cleanWorld=sanitizeSavedWorld(snapshot);
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
+ let restoredCompanion=false;
+ for(const m of mobs)if(m.companion){
+  if(!restoredCompanion&&m.companionOwner===choice&&["wildFox","strayCat","dog"].includes(m.type)&&!m.strongBoss){
+   restoredCompanion=true;m.companionAttackCD=0;m.companionHurtCD=1.2;
+   m.windup=0;m.chargeTime=0;m.packId=null;m.packOrder=0;
+  }else m.companion=false;
+ }
   strongRolls=snapshot.strongRolls&&typeof snapshot.strongRolls==="object"&&!Array.isArray(snapshot.strongRolls)?JSON.parse(JSON.stringify(snapshot.strongRolls)):{};
   strongTrophies=snapshot.strongTrophies&&typeof snapshot.strongTrophies==="object"?{...snapshot.strongTrophies}:{};
   strongRegionCurrent=-1;normalizeStrongBossSave();
@@ -2056,7 +2063,7 @@ function retireFarCalmAnimal(){
  let index=-1,farthest=-1;
  for(let i=0;i<mobs.length;i++){
   const m=mobs[i],distance=dist(P,m);
-  if(m.hp<=0||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
+  if(m.hp<=0||m.companion||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
      distance<=Math.max(800,WILDLIFE.localRadius)||visible(m.x,m.y,75)||
      (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
      (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
@@ -2075,7 +2082,7 @@ function retireCalmCaveOverflow(needPrey,caveAnimals){
  const hunterCount=caveAnimals.filter(isWildPredator).length;
  const habitatCounts=wildlifeHabitatCounts();
  const candidates=mobs.filter(m=>{
-  if(m.hp<=0||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
+  if(m.hp<=0||m.companion||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
      (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
      (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
      dist(P,m)>=WILDLIFE.localRadius||visible(m.x,m.y,75)||
@@ -2560,7 +2567,7 @@ function instinct(){
 function combatAim(maxTurn=.56,maxRange=105){
  let best=null,bestScore=Infinity,aim=P.dir;
  for(const m of mobs){
-  if(m.hp<=0||dist(P,m)>P.r+m.r+maxRange||lineBlocked(P,m))continue;
+  if(m.hp<=0||m.companion||dist(P,m)>P.r+m.r+maxRange||lineBlocked(P,m))continue;
   const angle=Math.atan2(m.y-P.y,m.x-P.x);
   const diff=Math.atan2(Math.sin(angle-P.dir),Math.cos(angle-P.dir));
   if(Math.abs(diff)>1.28)continue;
@@ -2574,7 +2581,7 @@ function combatAim(maxTurn=.56,maxRange=105){
 function combatEngaged(){
  if(!P)return false;
  if(P.pendingStrike||P.pounceTime>0||elapsed-P.lastCombatAt<3)return true;
- return mobs.some(m=>m.hp>0&&!lineBlocked(P,m)&&
+ return mobs.some(m=>m.hp>0&&!m.companion&&!lineBlocked(P,m)&&
   (species[m.type].prey?dist(P,m)<P.r+m.r+70:
    dist(P,m)<240&&(m.alert>0||m.windup>0||m.chargeTime>0)));
 }
@@ -2804,7 +2811,7 @@ function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
  P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
  mobs.forEach(m=>{
-  if(m.hp<=0)return;
+  if(m.hp<=0||m.companion)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
    const reach=(P.type==="wolf"?55:P.type==="cat"?39:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
@@ -3064,6 +3071,37 @@ function inheritStrongTrait(type){
  playEffect("level");
  return true;
 }
+// Explicit recruitment: den meat is spent only after pressing the pantry button.
+function companionOfPlayer(){return P?mobs.find(m=>window.WildCompanions?.isAlly?.(m,P.type)):null;}
+function recruitCompanion(){
+ if(mode!=="inventory"||!P||!atDen())return false;
+ const helper=window.WildCompanions;
+ if(!helper||denLevel<2){notify("巣LV2で仲間を迎えられます");return false;}
+ if(companionOfPlayer()){notify("仲間はすでに同行中");return false;}
+ if(denStores.meat<helper.cost){notify("仲間には肉24ptが必要");return false;}
+ if(mobs.length>=WILDLIFE.cap)retireFarCalmAnimal();
+ if(mobs.length>=WILDLIFE.cap||mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length>=WILDLIFE.localCap){
+  notify("周辺の動物が多い。少し時間を置こう");return false;
+ }
+ const sp=species[helper.speciesFor[P.type]];let spot=null;
+ for(const radius of [75,105,140,185,230,280]){
+  for(let k=0;k<16;k++){
+   const a=(P.dir||0)+k*Math.PI/8,x=P.x+Math.cos(a)*radius,y=P.y+Math.sin(a)*radius;
+   if(x<35||y<35||x>WORLD.w-35||y>WORLD.h-35||waterBlocksLand(x,y)||
+      collides(x,y,(sp?.r||20)+5)||mobs.some(m=>m.hp>0&&Math.hypot(m.x-x,m.y-y)<(m.r||18)+(sp?.r||20)+12))continue;
+   spot={x,y};break;
+  }
+  if(spot)break;
+ }
+ if(!spot){notify("巣の周囲に仲間が立てる場所がない");return false;}
+ const ally=helper.create(P.type,spot.x,spot.y,species);
+ if(!ally)return false;
+ mobs.push(ally);denStores.meat-=helper.cost;syncDenStash();saveDenStash();saveAuto();
+ renderDenInventory();syncHUD();drawMini();
+ notify("仲間が加わった！ 一緒に移動し、戦闘を援護する");
+ label(ally.x,ally.y-ally.r-26,"仲間になった！","#9eeadf");playEffect("collect");
+ return true;
+}
 function renderDenInventory(){
  if(!P)return;
  $("den-inventory-total").textContent="合計 "+denStash+" / "+denCapacity()+"pt";
@@ -3079,6 +3117,10 @@ function renderDenInventory(){
   btn.disabled=learned||denLevel<2||!atDen()||count<1;
   btn.setAttribute("aria-label",trait.name+" "+trait.effect+(learned?" 継承済み":" 必要素材1個、所持"+count+"個"));
  }
+ const ally=companionOfPlayer(),allyButton=$("den-companion-btn"),allyStatus=$("den-companion-status");
+ if(allyStatus)allyStatus.textContent=ally?"仲間が同行中｜生命 "+Math.ceil(ally.hp)+"/"+ally.maxHp:"巣LV2で肉24ptを使い、同行する仲間を1匹迎えられます。";
+ if(allyButton){allyButton.disabled=!atDen()||denLevel<2||denStores.meat<(window.WildCompanions?.cost||24)||!!ally||mobs.length>=WILDLIFE.cap;
+  allyButton.textContent=ally?"仲間が同行中":"仲間を迎える（肉24pt）";}
  const canEat=atDen()&&(P.hunger<100||P.hp<P.maxHp||(P.strongWound||0)>0);
  for(const key of ["meat","berries","legacy"]){
   $("den-row-"+key).classList.toggle("hidden",key==="legacy"&&denStores.legacy<=0);
@@ -3484,7 +3526,7 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
 const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque","chimpanzee"]);
 const WILD_FORAGERS=new Set(["serow","mountainGoat","rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque","chimpanzee"]);
-function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
+function isWildPredator(m){return !!m&&m.hp>0&&!m.companion&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
  for(const q of mobs){if(q===m||!isWildPredator(q)||((m.type==="macaque"||m.type==="chimpanzee")&&q.type===m.type))continue;const d=dist(m,q);if(d<best&&!lineBlocked(m,q)){nearest=q;best=d;}}
@@ -3805,7 +3847,7 @@ function maintainLocalWildlife(){
    else spawnMob(false,false,true);
   }
  }
- for(const m of mobs)if(m.hp>0&&!m.strongBoss&&!species[m.type]?.prey)syncEnemyLevel(m);
+ for(const m of mobs)if(m.hp>0&&!m.companion&&!m.strongBoss&&!species[m.type]?.prey)syncEnemyLevel(m);
  if(carcasses.filter(c=>c.type==="berries").length<14)spawnFood();
 }
 function updateWeather(dt){
@@ -4050,6 +4092,48 @@ function updateBirdFlocks(dt){
   }
  }
 }
+// Companion uses actual collision, saved NPC data and retaliatory damage.
+function updateCompanion(m,dt){
+ if(!P||m.hp<=0)return;
+ const sp=species[m.type],helper=window.WildCompanions;
+ m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,(m.flash||0)-dt);
+ m.companionAttackCD=Math.max(0,(m.companionAttackCD||0)-dt);
+ m.companionHurtCD=Math.max(0,(m.companionHurtCD||0)-dt);
+ const enemy=helper?.threat?.(m,P,mobs,species,(a,b)=>!lineBlocked(a,b),elapsed)||null;
+ const goal=enemy||helper?.followGoal?.(m,P),d=goal?dist(m,goal):0;
+ const ox=m.x,oy=m.y;
+ if(goal&&d>(enemy?m.r+enemy.r+21:70)&&d<1500){
+  const a=routeClear(m,goal,m.r)?Math.atan2(goal.y-m.y,goal.x-m.x):steerPursuit(m,goal.x,goal.y);
+  m.dir=a;const speed=sp.speed*(enemy?1.07:d>270?1.45:1.13);
+  move(m,Math.cos(a)*speed*dt,Math.sin(a)*speed*dt);
+ }
+ m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);
+ m.step=(m.step||0)+Math.hypot(m.x-ox,m.y-oy)*.05;
+ if(enemy&&m.companionAttackCD<=0&&dist(m,enemy)<m.r+enemy.r+24&&!lineBlocked(m,enemy)){
+  m.companionAttackCD=1.4;m.swing=.25;
+  const raw=Math.max(3,Math.round((sp.damage||12)*.76));
+  const bite=enemy.strongBoss?Math.min(2,raw):raw;
+  enemy.hp=enemy.strongBoss?Math.max(1,enemy.hp-bite):Math.max(0,enemy.hp-bite);
+  enemy.flash=.17;enemy.stun=Math.max(enemy.stun||0,.12);
+  if(dist(P,enemy)<360)label(enemy.x,enemy.y-enemy.r-24,"仲間の援護 -"+bite,"#a5eadd");
+  if(enemy.hp<=0&&!enemy._killRegistered){
+   enemy._killRegistered=true;carcasses.push(animalRemains(enemy));
+   if(dist(P,enemy)<350)label(enemy.x,enemy.y-35,"仲間が敵を撃退","#b4f3d5");
+  }
+ }
+ if(m.companionHurtCD<=0){
+  const attacker=mobs.find(q=>q!==m&&q.hp>0&&!q.companion&&!species[q.type]?.prey&&
+   (q.alert||0)>0&&dist(q,m)<(q.r||20)+m.r+25&&!lineBlocked(q,m));
+  if(attacker){
+   const damage=Math.max(2,Math.min(18,Math.round((species[attacker.type]?.damage||10)*.24)));
+   m.hp=Math.max(0,m.hp-damage);m.flash=.26;m.companionHurtCD=1.8;
+   if(dist(P,m)<350)label(m.x,m.y-m.r-30,"仲間 -"+damage,"#f9c6a7");
+  }
+ }
+ if(m.hp<=0){
+  if(!m._killRegistered){m._killRegistered=true;carcasses.push(animalRemains(m));notify("仲間が倒れた。巣で新たな仲間を迎えられる");}
+ }else if(atDen()&&dist(P,m)<120&&!denThreatNearby())m.hp=Math.min(m.maxHp,m.hp+dt*2.8);
+}
 function update(dt){
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
@@ -4170,6 +4254,7 @@ function update(dt){
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
   if(m.hp<=0)continue;
+  if(m.companion){updateCompanion(m,dt);continue;}
   const s=species[m.type];if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
@@ -4617,10 +4702,10 @@ function drawMini(){
    (!sp.prey&&m.type!=="boar"&&m.maxHp>P.maxHp*1.65&&sp.damage>P.damage*1.35)||
    (m.type==="boar"&&m.maxHp>P.maxHp*1.65&&sp.damage>P.damage*1.35);
   const calmBoar=m.type==="boar"&&!powerful&&(m.alert||0)<=0&&(m.windup||0)<=0&&(m.search||0)<=0;
-  const kind=sp.prey?"prey":powerful?"strong":calmBoar?"caution":"hostile";
+  const kind=m.companion?"ally":sp.prey?"prey":powerful?"strong":calmBoar?"caution":"hostile";
   const x=X(m.x),y=Y(m.y);
   mc.save();mc.translate(x,y);mc.lineWidth=1.3;mc.strokeStyle="#0b1c1b";
-  mc.fillStyle=kind==="prey"?"#78e59c":kind==="strong"?"#f15b62":kind==="caution"?"#f3d56c":"#f7a05c";
+  mc.fillStyle=kind==="ally"?"#5ce8e3":kind==="prey"?"#78e59c":kind==="strong"?"#f15b62":kind==="caution"?"#f3d56c":"#f7a05c";
   mc.beginPath();
   if(kind==="strong"){mc.moveTo(0,-5.5);mc.lineTo(5.5,0);mc.lineTo(0,5.5);mc.lineTo(-5.5,0);mc.closePath();}
   else if(kind==="hostile"){mc.moveTo(0,-4.5);mc.lineTo(4.5,4);mc.lineTo(-4.5,4);mc.closePath();}
@@ -5659,6 +5744,11 @@ function drawScene(){
  drawOccludedSilhouettes(entities);
  }
  drawBossThreats(entities);
+ for(const m of entities)if(m.companion&&m.hp>0){
+  ctx.save();ctx.textAlign="center";ctx.font="900 13px sans-serif";
+  ctx.lineWidth=3;ctx.strokeStyle="#123b37";ctx.strokeText("仲間",m.x,m.y-m.r-29);
+  ctx.fillStyle="#9af5e9";ctx.fillText("仲間",m.x,m.y-m.r-29);ctx.restore();
+ }
  for(const m of entities)if(m.type==="dog"&&m.hp>0&&(m.foodTheftTell||0)>0){
   ctx.save();ctx.strokeStyle="#ffc38e";ctx.lineWidth=4;ctx.setLineDash([12,8]);
   ctx.beginPath();ctx.arc(m.x,m.y,m.r+P.r+34,0,TWO);ctx.stroke();ctx.restore();
@@ -5948,6 +6038,7 @@ $("checkpoint-save-btn").addEventListener("click",recordCheckpoint);
 $("den-inventory-btn").addEventListener("click",openDenInventory);
 $("den-inventory-close").addEventListener("click",closeDenInventory);
 document.querySelectorAll("[data-strong-trait]").forEach(b=>b.addEventListener("click",()=>inheritStrongTrait(b.dataset.strongTrait)));
+$("den-companion-btn").addEventListener("click",recruitCompanion);
 for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
 $("objective-toggle").addEventListener("click",()=>openTutorial());
 $("tutorial-close").addEventListener("click",closeTutorial);
