@@ -108,7 +108,7 @@ function visualState(o){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(type))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -121,7 +121,50 @@ function draw2D(ctx,o,r,fur,light,pace){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
  };
- if(type==="rat"){
+ if(type==="otter"){
+  // Streamlined swimming mustelid: long tail, webbed feet and low-set ears.
+  for(let k=0;k<5;k++)ellipse(-r*(1.15+k*.28),Math.sin(k*.4)*r*.08,r*(.40-k*.065),r*(.29-k*.045),fur);
+  for(const side of [-1,1])for(const x of [-r*.65,r*.55])ellipse(x,side*r*.51+pace*.15,r*.29,r*.19,light);
+  ellipse(-r*.17,0,r*1.30,r*.55,fur);ellipse(r*.85,0,r*.57,r*.42,fur);
+  ellipse(r*1.18,0,r*.31,r*.23,light);
+  for(const side of [-1,1]){ellipse(r*.86,side*r*.34,r*.14,r*.13,fur);ellipse(r*1.12,side*r*.19,r*.075,r*.065,"#161c1a");}
+  ellipse(r*1.46,0,r*.10,r*.08,"#252421");
+ }else if(type==="armadillo"){
+  // Domed segmented armor and tapered head.
+  for(const side of [-1,1])for(const x of [-r*.57,r*.50])ellipse(x,side*r*.62+pace*.1,r*.24,r*.18,"#67594c");
+  line(-r*1.1,0,-r*1.95,r*.11,r*.15,"#8a7661");
+  ellipse(-r*.16,0,r*1.12,r*.72,"#a08c75");
+  for(let j=-2;j<=2;j++)ellipse(-r*.20+j*r*.30,0,r*.14,r*.69,j%2?"#786753":"#8e7b65");
+  ellipse(r*.87,0,r*.52,r*.31,fur);ellipse(r*1.28,0,r*.26,r*.18,light);
+  for(const side of [-1,1])ellipse(r*.99,side*r*.20,r*.06,r*.055,"#292720");
+ }else if(type==="hedgehog"){
+  // Spines are visible in both zoom levels, distinct from an ordinary rodent.
+  for(let j=0;j<22;j++){const a=j*Math.PI*2/22;line(-r*.18+Math.cos(a)*r*.67,Math.sin(a)*r*.64,-r*.18+Math.cos(a)*r*1.25,Math.sin(a)*r*1.12,r*.12,j%3?"#4d4037":"#e3d3b3");}
+  ellipse(-r*.12,0,r*.86,r*.66,fur);ellipse(r*.67,0,r*.51,r*.39,light);
+  for(const side of [-1,1])ellipse(r*.79,side*r*.24,r*.075,r*.065,"#24201d");
+  ellipse(r*1.12,0,r*.12,r*.10,"#292522");
+ }else if(type==="gorilla"){
+  for(const side of [-1,1]){line(-r*.58,side*r*.55,-r*.75,side*r*1.25,r*.44,"#343638");line(r*.43,side*r*.65,r*.57,side*r*1.57+pace*.12,r*.46,fur);ellipse(r*.62,side*r*1.59,r*.38,r*.31,"#363331");}
+  ellipse(-r*.18,0,r*1.25,r*.95,fur);ellipse(r*.74,0,r*.77,r*.70,"#444342");ellipse(r*1.12,0,r*.49,r*.42,"#77706b");
+  for(const side of [-1,1])ellipse(r*1.25,side*r*.25,r*.09,r*.075,"#201d1c");
+  ellipse(r*1.45,0,r*.31,r*.19,"#4d4440");
+ }else if(type==="blackBear"){
+  for(const side of [-1,1])for(const x of [-r*.64,r*.62])ellipse(x,side*r*.70+pace*.1,r*.34,r*.30,"#2e2b29");
+  ellipse(-r*.14,0,r*1.20,r*.87,fur);ellipse(r*.85,0,r*.75,r*.63,fur);
+  for(const side of [-1,1]){ellipse(r*.80,side*r*.54,r*.23,r*.22,fur);ellipse(r*1.18,side*r*.30,r*.09,r*.08,"#d9c6a7");}
+  ellipse(r*1.32,0,r*.35,r*.26,light);ellipse(r*1.57,0,r*.15,r*.12,"#242222");
+ }else if(type==="tiger"||type==="hyena"||type==="wildDog"||type==="tanuki"||type==="badger"){
+  const large=type==="tiger",short=type==="tanuki"||type==="badger",pack=type==="wildDog";
+  for(const side of [-1,1])for(const x of [-r*.65,r*.53])ellipse(x,side*r*.65+pace*.18,r*(short?.23:.28),r*.29,fur);
+  ellipse(-r*.18,0,r*(short?1.04:1.23),r*(short?.66:.64),fur);
+  ellipse(r*.80,0,r*.66,r*.50,fur);
+  ellipse(-r*1.38,0,r*(pack?.46:.59),r*.28,short?"#4d4540":light);
+  for(const side of [-1,1]){poly([r*.58,side*r*.40,r*.72,side*r*.85,r*.97,side*r*.46],short?"#554e45":fur);ellipse(r*1.06,side*r*.26,r*.09,r*.075,"#232421");}
+  ellipse(r*1.24,0,r*.37,r*.24,light);ellipse(r*1.52,0,r*.10,r*.09,"#282523");
+  if(large){for(let j=-3;j<=2;j++)line(j*r*.32,-r*.55,j*r*.32+r*.13,r*.52,r*.10,"#342d28");}
+  if(type==="badger"){for(const side of [-1,1])line(r*.67,side*r*.36,r*1.30,side*r*.14,r*.13,"#ded7ca");}
+  if(pack){for(const side of [-1,1])ellipse(-r*.33,side*r*.37,r*.40,r*.27,side<0?"#c7b49a":"#423c35");}
+ }else if(type==="rat"){
   // Cave prey: tapered tail, whiskers and alert ears, not a generic canine.
   const startled=(o.flee||0)>0,resting=!!o.resting;
   const stretch=startled?1.18:resting?.86:1;
