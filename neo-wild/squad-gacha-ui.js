@@ -248,6 +248,25 @@ const ready=()=>{
   refill=false;size=0;slot=0;chosen=[];draw=null;selected=null;streak=0;leader=null;
   root.hidden=false;showSize();root.scrollTop=0;
  }
+ // Gamepad/keyboard-friendly gacha: keep focus inside the modal and return it on close.
+ let lastFocus=null;
+ const oldBegin=begin;
+ root.addEventListener("keydown",event=>{
+  if(root.hidden)return;
+  if(event.key==="Escape"){event.preventDefault();close.click();return;}
+  if(event.key!=="Tab")return;
+  const controls=[...root.querySelectorAll("button:not([disabled]),input:not([disabled])")].filter(node=>node.getClientRects().length);
+  if(!controls.length)return;
+  const first=controls[0],last=controls[controls.length-1];
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+ });
+ const focusGacha=()=>{if(root.hidden)return;lastFocus=document.activeElement;requestAnimationFrame(()=>close.focus());};
+ const restoreGachaFocus=()=>{if(lastFocus?.isConnected)requestAnimationFrame(()=>lastFocus.focus());};
+ new MutationObserver(()=>{
+  if(root.hidden)restoreGachaFocus();
+  else focusGacha();
+ }).observe(root,{attributes:true,attributeFilter:["hidden"]});
  gacha.addEventListener("click",begin);
  // Refresh the roster whenever the title is shown after a death or a pause.
  if(typeof MutationObserver==="function"){
