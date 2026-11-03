@@ -1,3 +1,13 @@
+## 2026/11/03 12:05 JST｜格上相手の攻撃連打ハメ修復｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **実際の改善**：推奨LV5や17の格上動物がプレイヤーLV1の軽い攻撃連打で攻撃準備をキャンセルされ続ける問題を修正。COMBAT_LEVELS.canInterrupt で格上（差3以上）は通常攻撃でひるまず、奇襲・ジャンプ・狼突進・コンボ5段目などの重攻撃でのみスタッガー耐性/ガードクールダウン付きでひるむ。格上は通常打撃ノックバックを大幅減、攻撃を受けた事実を約2.3秒保持し死角/薄暗さでも近距離反撃、ひるんでいない場合は通常攻撃の再試行までの残り待機時間を格上最大0.16秒に縮める。**反撃のwindup/攻撃予兆は省略しない**。ボス20種の固有技40、旧SAVE_SCHEMA=2、野生密度13/76/9・9秒・群れ110秒を維持。
+- **変更**：当初HEAD 25480a06f2ae0ec8bab587d761f43c7b88b77ccc、neo-wild/combat-levels.js commit **f616608cb59cb1063c433b50f9af31cb549eed0b**、neo-wild/game.js commit **1ee689859b63b6748bba7a35e122b2f95a80044a**、neo-wild/index.html ?rev commit **faa0225493f08048fb948bc2f150b4abd056bf23**。他枠が後続でゲーム本体/HTMLを **3c0652bfaf16459a2a3bd6bad800b3e62b54e7a0** まで更新。現行game.js blob 61e682fcee33d2c0b4fc5ee7005c31ebb552252a、index.html blob 922223927370cb14b354a469712f73678698e465 でスタッガー修正と新コード読込維持を再照合。他ゲームとブログには書き込まず。
+- **テスト**：V8の実resolveAttack関数隔離試験（通常攻撃10回連続でもLV1対犬/ライオン/キリンのwindup維持、重攻撃フィニッシュ時のひるみ、同格犬の通常ひるみ、反撃待機短縮）、全44種LV表の割当、関数結線、現行ゲーム全文構文、save/density定数、最新HTML参照で **156/156 static + dynamic module条件 PASS**。実関数隔離試験の初回はキャッシュ改版期待が後続他枠のコミットで更新され110/111となったが、現行参照を再取得して整合156/156。実ブラウザ対戦、実Android/Pad、10分E2E、実際の勝率/被ダメージ、ボス実GPUは**未検証**。低レベルで絶対勝てないレベルロックは設けない。
+- **Pages**：コード修正HEAD 1ee68985 のPages build/deploy SUCCESSを取得。今回記録作成時の最新HEAD 3c0652bfaf16459a2a3bd6bad800b3e62b54e7a0 のPages状況は別途照合が必要。ROADMAP記録コミットは新たなActions runが必要。
+- **V2暫定**：前回A16/B12/C9/D4/E8/F9/G8/H4/I4=74.0/100、**差0.0**。戦闘実機E2E未確認のため加点しない。PHASE=A_FEATURES継続。
+- **次00分**：game.js:resolveAttack/update のLV1→5/17/18戦闘自動E2E・敵windup中断回帰とトロフィー報酬処理統合、currentSnapshot/restoreSnapshot反撃一時状態互換、Pages最終HEAD検証。
+- **次20分**：game.js:detectsPlayer/tryEnemyEmergencyEvade/update の視野死角・壁/ステルスと被弾後反撃を実挙動試験、spawnMob/syncEnemyLevelの地域別危険度、山林/郊外の大型敵行動パターン。
+- **次40分**：fauna.js:draw2D/game.js:drawThreatNamesとwebgl3d.jsで格上反撃の予兆/攻撃固有モーション明示、gamepad.jsの回避操作検証、動物図鑑に危険度・推奨LVとの差を見やすく表示。
+
 ## 2026/11/03 12:00 JST｜00分枠｜世界時計の死亡・再出発を跨ぐ永続化｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **新規実装**：world chronicle専用localStorageキーを追加し、実プレイ120秒/世界1年の積算を新しい動物で再開始してもリセットしない。死亡時即保存、プレイ中12秒ごと・通常オートセーブ時に保存。チェックポイント復帰では保存済みの世界時刻より巻き戻さず、旧SAVE_SCHEMA2のelapsedを読み込む。落雷履歴も最大24件を世界史の別保存へ継承。終了中の時間は進まない。世界年に紐づく季節/天候は開始時の継続時刻から初期化する。
 - **実コード**：game.js commit 5477e65527cc939c8b9ee5a34f9e04c881e696bd（blob 61e682fcee33d2c0b4fc5ee7005c31ebb552252a）、index.html キャッシュ更新 commit b4e2a4d2ee08386dca3e9a458a27bfd39f8542b9。対象はneo-wild/のみ。世界時計の別キー保存は死亡時/新規開始/復元の導線へ接続。
