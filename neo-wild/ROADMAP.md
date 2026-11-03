@@ -1,3 +1,14 @@
+## 共同スプリント｜2026/11/03 09:38:30 JST｜40分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜群れ包囲・挟み撃ち・回避戦闘
+- **PHASE=A_FEATURE_COMPLETION（継続）**。開始HEAD `4235037e404ea377548be375a309dacebdee7fc0` → コードHEAD `5423db9df56f6bcc538b1c1d5a7c532bcdeb4d5b`。致命的フリーズ/復元カメラの09:34修正を保持し、ユーザーの実Android再試験は未実施。旧保存を変更しない。
+- **新しく遊べるもの**：①既存群れ（2～3体）の先頭は正面追跡、左右の仲間はプレイヤー進行方向に応じた実通行可能な側面へ回り込み、壁/水/崖で塞がれた側は通常追跡へ戻る。②異なる方向から2匹が接近すると0.9秒の「群れの包囲！」予兆円を2D/3D共通HUDに表示。③予兆中に190座標以上離れる・遮蔽物へ隠れる・潜伏すると回避。回避できない場合は持久力14減・一時的に匂い/足音が増えるが、HP即死なし。13.5秒再発動待機。④新ゲーム/セーブ再開時に一時状態を初期化。動物数・群れ6%/12%・110秒・LV8以上3体・SAVE_SCHEMA2/3CPは不変。
+- **変更ファイル**：`neo-wild/pack-tactics.js` 新規（側面目標・包囲判定・予兆・描画）、`neo-wild/game.js`（NPC追跡・群れ戦闘・開始/再開・HUD連結）、`neo-wild/index.html`（script読込・rev更新）、本ROADMAP。対象blob SHA `game.js:fd1abc47ab01 / index.html:81fc65489457 / pack-tactics.js:85b4d13747e0`。
+- **検証**：V8で新モジュール実関数（左右目標、遮蔽、包囲角度、予兆、持久力減、逃走、潜伏、クールダウン、リセット）・game.js全文構文・既存密度・致命的ループ修復維持・HTML読込順の**28/28 PASS**。実ブラウザの長時間E2E、Android実機、実GPU、物理Pad、保存済み端末データ、全40強敵技は**未検証**。Pages build/deployは今回のコードHEADで別途確認する。失敗は未確認と記録。
+- **機能別状態**：ワールド=途中／動物生態=途中（群れ行動を追加）／生存ループ=途中／戦闘強敵=途中（包囲回避の新戦闘）／UI操作=途中。PHASE Bへの切替禁止。
+- **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4＝**74.0/100（前回差0.0）**。統合E2E・実機採点条件を満たさず据置。
+- **次00分枠**：①`game.js:restoreSnapshot/loop`でAndroid再開→可視・入力→死亡/再開の重大障害復旧を実機確認。②`game.js:signalPack/update`＋`pack-tactics.js:update/surrounded`で群れ2/3体の予兆→遮蔽/潜伏回避→持久力減の実ブラウザ統合。③本コードHEADのPages build/deploy jobsを個別照合し失敗時復旧。
+- **次20分枠**：①`game.js:generateWorld/regionAt`で農地・郊外の地続き新エリアを実移動・衝突・生態付きで増築。②`game.js:spawnMob/maintainLocalWildlife`で新エリアの動物分布を世界76・近隣9内で配分。③`game.js:huntWildPrey/nearbyAwareWildPredator`で群れ捕食・食草・肉の循環を統合。
+- **次40分枠**：①`webgl3d.js:drawCommonAnimal3D`＋`fauna.js:visualState/draw2D`で群れの左右追跡・包囲予兆に合わせた固有姿勢。②`gamepad.js:poll`＋`game.js:move/instinct`でPad/タッチの逃走・潜伏・狼咆哮による包囲回避を実操作接続。③`game.js:drawMini`で群れ方向の警告と可読性を実装。
+
 ## 重大障害復旧｜2026/11/03 09:34 JST｜ユーザー実機報告｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1
 - **PHASE=A_FEATURE_COMPLETION（継続）**。ユーザー動画にて「セーブから再開→自キャラ不可視・方向操作不能・フリーズ」を確認。致命的進行不能障害を最優先復旧し、新機能追加は今回は停止。既存保存を削除・スキーマ変更しない。
 - **原因を実関数で再現**：`neo-wild/game.js:huntWildPrey` 内に `if(caveScent&&scent)` があり、`scent` は未宣言。洞窟の捕食NPCが獲物を追跡しようとすると `ReferenceError: scent is not defined`。旧ゲームループは例外後に `requestAnimationFrame(loop)` を予約せず停止可能。復元済みカメラ座標がプレイヤーから離れている場合も、再開直後に自キャラが映らない。
