@@ -39,8 +39,8 @@ function status(p,mode){
  if(s!==label){hud.textContent=s;label=s}hud.hidden=!p||mode==="menu"||mode==="dying"||mode==="result";updateGuide(p,mode);
 }
 function visible(el){if(!el||el.disabled||el.closest?.(".hidden"))return false;const d=el.closest?.("details:not([open])");return (!d||el.tagName==="SUMMARY")&&(!el.getClientRects||el.getClientRects().length>0)}
-const scopes={menu:"menu",pause:"pause",upgrade:"upgrade",guide:"tutorial-dialog",inventory:"den-inventory",map:"world-map",result:"result"};
-function items(mode){return Array.from(document.getElementById(scopes[mode])?.querySelectorAll("button,summary,select")||[]).filter(visible)}
+const scopes={menu:"menu",gacha:"squad-gacha",pause:"pause",upgrade:"upgrade",guide:"tutorial-dialog",inventory:"den-inventory",map:"world-map",result:"result"};
+function items(mode){return Array.from(document.getElementById(scopes[mode])?.querySelectorAll("button,summary,select,input")||[]).filter(visible)}
 function focusElement(el){
  if(!el)return;
  if(focused!==el){
@@ -56,7 +56,11 @@ function focus(mode,step=0){
  const list=items(mode);if(!list.length){clearFocus();return}
  let n=list.indexOf(focused);
  if(n<0){
-  const priorities={menu:["continue-btn","start-btn"],pause:["resume-btn"],guide:["tutorial-close"],result:["retry-btn"]}[mode]||[];
+  const priorities={menu:["squad-open","continue-btn","start-btn"],pause:["resume-btn"],guide:["tutorial-close"],result:["retry-btn"]}[mode]||[];
+   if(mode==="gacha"){
+    n=list.findIndex(el=>["squad-count-button","squad-adopt","squad-candidate","squad-leader-button"].some(c=>el.classList?.contains(c)));
+    if(n<0)n=0;
+   }
   n=list.findIndex(el=>priorities.includes(el.id));
   if(n<0)n=0;
  }else if(step)n=(n+step+list.length)%list.length;
@@ -86,6 +90,7 @@ function back(mode){
   focused.dispatchEvent(new Event("change",{bubbles:true}));
   selectEditing=false;selectOriginal=null;updateGuide({index:active},mode);return;
  }
+ if(mode==="gacha"){document.getElementById("squad-gacha")?.querySelector(".squad-close")?.click?.();return;}
  if(mode==="result"){const choice=document.getElementById("menu-btn");if(visible(choice))focusElement(choice);return}
  if(mode==="pause"){B()?.pause();return}
  if(mode==="menu"){
@@ -157,7 +162,8 @@ function poll(dt=.016){
  if(active!==p.index){active=p.index;neutral();clearFocus()}
  const rawMode=b.getMode();
  // The game reports over/clear; both display the same result dialog.
- const mode=rawMode==="over"||rawMode==="clear"?"result":rawMode;
+ const gachaRoot=document.getElementById("squad-gacha");
+ const mode=gachaRoot&&!gachaRoot.hidden?"gacha":rawMode==="over"||rawMode==="clear"?"result":rawMode;
  if(mode!==modeBefore){modeBefore=mode;neutral();clearFocus()}
  const now=buttons(p),prev=old.get(p.index)||[];
  const down=i=>!!now[i]&&!prev[i],up=i=>!now[i]&&!!prev[i];
