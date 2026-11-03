@@ -205,6 +205,8 @@ let debugWeatherOverride=null; // Session-only weather preview; never stored in 
 let debugTutorialSession=null; // QA-only sandbox; saved progress is restored on exit.
 let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:0,y:0},heldDash=false,navPlansThisFrame=0,huntTarget=null,objectiveBannerTime=0,ambushTarget=null,huntSlowUntil=0,pounceStreaks=[];
 const activeTouchPointers=new Map(),touchHoldTimers=new Map(),gamepadAxes={x:0,y:0};
+// Transient input flags, never serialized into old save data.
+const heldActions={touchAttack:false,padAttack:false,touchSprint:false,padSprint:false};
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
 let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
@@ -4322,6 +4324,8 @@ function update(dt){
  
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
+ // Holding the upper face button automatically advances the five-hit chain.
+ if((heldActions.touchAttack||heldActions.padAttack)&&P.atk<=0&&!P.pendingStrike&&P.sp>=5)attack();
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
  P.stun=Math.max(0,(P.stun||0)-dt);
  const a=P.stun>0?{x:0,y:0}:getAxes(),sneaking=keys.has("c")||keys.has("control");
@@ -4376,7 +4380,14 @@ function update(dt){
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
    P.hauntedTime=Math.max(0,(P.hauntedTime||0)-dt);
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
+   const wantsSprint=heldActions.touchSprint||heldActions.padSprint;
+   if(!wantsSprint)P.sprintExhausted=false;
+   const sprinting=wantsSprint&&!P.sprintExhausted&&!sneaking&&Math.hypot(a.x,a.y)>.2&&P.sp>10;
+   if(sprinting){
+    P.sp=Math.max(0,P.sp-43*dt);
+    if(P.sp<=10)P.sprintExhausted=true;
+   }
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
@@ -6128,7 +6139,8 @@ document.addEventListener("visibilitychange",()=>{
 window.addEventListener("pagehide",saveAuto);
 window.addEventListener("beforeunload",saveAuto);
 function resetControls(){
- keys.clear();if(P)resetRush();joy.id=null;joy.x=0;joy.y=0;gamepadAxes.x=0;gamepadAxes.y=0;
+ keys.clear();if(P){resetRush();P.sprintExhausted=false;}joy.id=null;joy.x=0;joy.y=0;gamepadAxes.x=0;gamepadAxes.y=0;
+ heldActions.touchAttack=false;heldActions.padAttack=false;heldActions.touchSprint=false;heldActions.padSprint=false;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
  for(const [id,pointers] of activeTouchPointers){
   for(const pointerId of [...pointers]){try{$(id).releasePointerCapture?.(pointerId)}catch(_){}}
@@ -6351,13 +6363,14 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   pressStarted=performance.now();longFired=false;
   
   if(action==="jump"){act("jump");return}
-  if(action==="attack"){act("attack");return}
+  if(action==="attack"){heldActions.touchAttack=true;act("attack");return}
   if(action==="dash"||action==="context"){
    const timer=setTimeout(()=>{
     touchHoldTimers.delete(id);
     if(mode!=="play"||pointers.size===0)return;
     longFired=true;
-    if(action==="dash")act("instinct");else contextAction(true);
+    if(action==="dash")heldActions.touchSprint=true;
+    else contextAction(true);
    },action==="dash"?450:550);
    touchHoldTimers.set(id,timer);
   }
@@ -6369,20 +6382,26 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   const timer=touchHoldTimers.get(id);
   if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
   
+  if(action==="attack")heldActions.touchAttack=false;
+  if(action==="dash")heldActions.touchSprint=false;
   if(mode!=="play"||longFired)return;
   const duration=performance.now()-pressStarted;
-  if(action==="dash"){if(duration>=450)act("instinct");else act("dash")}
+  if(action==="dash"&&duration<450)act("dash");
   if(action==="context")contextAction(duration>=550);
  };
  b.addEventListener("pointerup",end);b.addEventListener("pointercancel",e=>{
   if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
   b.classList.remove("down");
+  if(action==="attack")heldActions.touchAttack=false;
+  if(action==="dash")heldActions.touchSprint=false;
   const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
   
  });
  b.addEventListener("lostpointercapture",e=>{
   if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
   b.classList.remove("down");
+  if(action==="attack")heldActions.touchAttack=false;
+  if(action==="dash")heldActions.touchSprint=false;
   const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
   
  });
@@ -6586,10 +6605,11 @@ window.WildGamepadBridge={
  turnCamera(v){if(mode!=="play"||!Number.isFinite(v))return;cameraYaw=(cameraYaw+v)%TWO;updateCameraView()},
  zoom(v){if(mode==="play"&&Number.isFinite(v))adjustZoom(v)},
  action(kind,long=false){
+  if(kind==="attack"){heldActions.padAttack=!!long;if(mode==="play"&&long)act("attack");return;}
+  if(kind==="sprint"){heldActions.padSprint=mode==="play"&&!!long;return;}
   if(mode!=="play")return;
-  if(kind==="attack")act("attack");
-  else if(kind==="jump")act("jump");
-  else if(kind==="pounce")act(long?"instinct":"dash");
+  if(kind==="jump")act("jump");
+  else if(kind==="pounce")act("dash");
   else if(kind==="context")contextAction(!!long);
  },
  pause(){if(mode==="play"||mode==="pause")togglePause()},
