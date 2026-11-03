@@ -454,7 +454,7 @@ function markTerritory(){
  if(P.carry){notify("食料を巣に預けてから縄張りを確保");return true}
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("地上に降りてから縄張りを確保");return true}
  if(P.sp<20){notify("縄張りを確保する持久力が不足");return true}
- if(mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(m,site)<190)){notify("敵を追い払ってから△長押し");return true}
+ if(mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(m,site)<190)){notify("敵を追い払ってから△長押し");return true}
  P.sp-=20;territoryClaims[site.index]=true;territoryLastSupply[site.index]=day;saveTerritoryClaims();
  notify(site.name+"を確保！ 巣の休息力が上昇・野犬を牽制");label(site.x,site.y-30,"縄張りを確保","#b5f4ba");syncHUD();return true;
 }
@@ -507,7 +507,7 @@ function updateSurvivalNeeds(dt){
 // Only reachable enemies interrupt rooftop rest and wound recovery.
 function denThreatNearby(){
  if(!P||!atDen())return false;
- return mobs.some(m=>m.hp>0&&(!species[m.type]?.prey||WILD_PREDATOR_TYPES.has(m.type))&&dist(P,m)<165&&
+ return mobs.some(m=>m.hp>0&&!m.companion&&(!species[m.type]?.prey||WILD_PREDATOR_TYPES.has(m.type))&&dist(P,m)<165&&
   (m.type==="giantEagle"||Math.abs((m.groundZ||0)-(P.groundZ||0))<12)&&
   (m.type==="giantEagle"||!lineBlocked(P,m)));
 }
@@ -4522,7 +4522,7 @@ function update(dt){
  if(audioTick>.35){
   audioTick=0;
   window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",...waterSoundAt(P.x,P.y),
-   danger:mobs.some(m=>m.hp>0&&!species[m.type].prey&&dist(P,m)<(m.strongBoss?515:290))});
+   danger:mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(P,m)<(m.strongBoss?515:290))});
  }
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
  autosaveClock+=dt;if(autosaveClock>=1){autosaveClock=0;saveAuto();}
