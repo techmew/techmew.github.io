@@ -41,7 +41,26 @@ const ready=()=>{
  const info=el("p","squad-gacha-info","編成数を選択");info.id="squad-info";
  const body=el("div","squad-gacha-body");body.id="squad-body";
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
- let size=0,slot=0,draw=null,chosen=[],selected=null,streak=0,leader=null;
+ let size=0,slot=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
+ const denPanel=$("den-inventory");
+ const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
+  const r=core.load();if(!r?.members?.length||r.members.length>=3)return;
+  if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
+  refill=true;size=1;chosen=[];streak=0;root.hidden=false;nextSlot();
+ },"squad-refill-button");
+ if(denPanel){
+  refillButton.id="squad-refill-den";
+  refillButton.hidden=true;
+  denPanel.append(refillButton);
+  const refreshDen=()=>{
+   const r=core.load(),n=r?.members?.length||0;
+   refillButton.hidden=denPanel.classList.contains("hidden")||n===0||n>=3;
+   refillButton.disabled=!(r?.gachaTickets>0);
+   refillButton.textContent="空き枠ガチャ（残り"+(r?.gachaTickets||0)+"権）";
+  };
+  if(typeof MutationObserver==="function")new MutationObserver(refreshDen).observe(denPanel,{attributes:true,attributeFilter:["class"]});
+  refillButton.addEventListener("focus",refreshDen);
+ }
  function plot(canvas,type){
   const ctx=canvas.getContext("2d");if(!ctx)return;
   const w=canvas.width,h=canvas.height;
@@ -176,7 +195,7 @@ const ready=()=>{
   actions.append(reroll,choose);body.append(actions);
  }
  function finish(){
-  info.textContent="編成確認　リーダーと名前を決めて出発";
+  info.textContent=refill?"空き枠へ迎える個体を確認":"編成確認　リーダーと名前を決めて出発";
   body.replaceChildren();leader=leader&&chosen.some(m=>m.id===leader)?leader:(chosen.find(m=>OPERABLE.has(m.species))?.id||chosen[0]?.id);
   for(const m of chosen){
    const card=el("article","squad-final-member"+(m.id===leader?" selected":""));
@@ -191,10 +210,19 @@ const ready=()=>{
   }
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("最後のガチャに戻る",()=>{chosen.pop();nextSlot()},"squad-reroll"));
-  const confirm=makeBtn("この編成で出発",()=>{
+  const confirm=makeBtn(refill?"この個体を空き枠に採用":"この編成で出発",()=>{
    if(!chosen.some(m=>OPERABLE.has(m.species))){info.textContent="操作可能な動物がいません。ガチャを引き直してください。";return}
    const chosenLeader=chosen.find(m=>m.id===leader);
    if(!chosenLeader||!OPERABLE.has(chosenLeader.species)){info.textContent="操作可能なリーダーを選んでください。";return}
+   if(refill){
+    const current=core.load();
+    if(!current?.members?.length||current.members.length>=3){info.textContent="空き枠がありません。";return;}
+    const result=core.fillVacancy(chosen[0]);
+    if(!result.ok){info.textContent=result.reason;return;}
+    root.hidden=true;updateHome();
+    window.dispatchEvent(new CustomEvent("wild-squad-refilled",{detail:{memberId:chosen[0].id}}));
+    return;
+   }
    if((core.load()?.members||[]).length){info.textContent="生存中の個体は破棄できません。";return;}
    core.newSquad(chosen,leader);updateHome();root.hidden=true;
    window.dispatchEvent(new CustomEvent("wild-squad-start"));
@@ -203,7 +231,7 @@ const ready=()=>{
  }
  function begin(){
   if((core.load()?.members||[]).length){updateHome();return;}
-  size=0;slot=0;chosen=[];draw=null;selected=null;streak=0;leader=null;
+  refill=false;size=0;slot=0;chosen=[];draw=null;selected=null;streak=0;leader=null;
   root.hidden=false;showSize();root.scrollTop=0;
  }
  gacha.addEventListener("click",begin);
