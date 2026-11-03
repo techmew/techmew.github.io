@@ -788,10 +788,10 @@ function nightVisionProfile(seconds=elapsed,sky=weather,animalType=P?.type){
  const lunar=moonlightProfile(seconds,sky);
  const weatherFactor=sky==="THUNDER"?.55:sky==="RAIN"?.68:sky==="FOG"?.72:sky==="CLOUDY"?.80:sky==="WIND"?.94:1;
  const nocturnal=animalType==="cat";
- const baseRange=nocturnal?820:animalType==="wolf"?610:510;
+ const baseRange=nocturnal?990:animalType==="wolf"?760:650;
  const inheritedEagle=!!(P&&animalType===P.type&&P.inheritedTraits?.giantEagle);
  const range=baseRange*weatherFactor*(.84+.16*lunar.illumination*lunar.visibility)*(inheritedEagle?1.22:1);
- const strength=nightWeight*(nocturnal?.57:animalType==="wolf"?.39:.35)*(.82+.18*weatherFactor)*(inheritedEagle?1.10:1);
+ const strength=clamp(nightWeight*(nocturnal?.83:animalType==="wolf"?.63:.57)*(.84+.16*weatherFactor)*(inheritedEagle?1.10:1),0,1);
  return {range,strength,nightWeight,halfAngle:Math.PI/3,ambient:light.brightness};
 }
 const nightVisionCanvas=document.createElement("canvas"),nightVisionCtx=nightVisionCanvas.getContext("2d");
@@ -818,13 +818,15 @@ function drawNightVision2D(alpha){
     const grad=n.createRadialGradient(origin.x,origin.y,0,origin.x,origin.y,radius);
     const power=vision.strength*opacity/.57;
     grad.addColorStop(0,"rgba(0,0,0,"+Math.min(.9,power)+")");
-    grad.addColorStop(.60,"rgba(0,0,0,"+(power*.88)+")");
+    grad.addColorStop(.53,"rgba(0,0,0,"+(power*.90)+")");
+    grad.addColorStop(.82,"rgba(0,0,0,"+(power*.48)+")");
     grad.addColorStop(1,"rgba(0,0,0,0)");
     n.fillStyle=grad;n.fillRect(0,0,vw,vh);n.restore();
    }
    // Peripheral vision never drops to absolute black behind the animal.
-   const near=n.createRadialGradient(origin.x,origin.y,0,origin.x,origin.y,Math.max(75,125*cameraZoom));
-   near.addColorStop(0,"rgba(0,0,0,"+(vision.strength*.25)+")");
+   const near=n.createRadialGradient(origin.x,origin.y,0,origin.x,origin.y,Math.max(145,vision.range*cameraZoom*.55));
+   near.addColorStop(0,"rgba(0,0,0,"+Math.min(.85,vision.strength*.72)+")");
+   near.addColorStop(.55,"rgba(0,0,0,"+(vision.strength*.40)+")");
    near.addColorStop(1,"rgba(0,0,0,0)");
    n.fillStyle=near;n.fillRect(0,0,vw,vh);n.restore();
   }
