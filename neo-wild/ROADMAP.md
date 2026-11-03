@@ -1,3 +1,10 @@
+# 2026-11-03 19:20 JST｜20分枠 地域疫病回復・群れ移動の生態負荷（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
+- 新規実プレイ機能（機能統合済・未実機検証）：era-ecology.js の5年単位・8地区の独立抽選に「疫病後の回復」「群れの大移動」を追加。回復期 food=0.76/animals=0.68、移動期 food=0.88/animals=1.22。game.js:simulateEcology が既存の era.food/animals を読み、食料の成長/獲物個体数に反映。既存の地区間集約移住と同時に動作する。抽選は到達年固定発生ではなく地域別ハッシュ、0〜20年は従来どおり平穏。保存キー変更なし。
+- 実変更：era-ecology.js commit e59f0bbf0f5b80cb97a8e39318659680623803b7 blob 6dacbe8a1d0a056e4151c9eb38c6647a2e76c89b / index.html cache commit 89378d793b9c7849615d09d1d261770065cc4d70 blob 7104c69d0525a97c320465bd2f72af47b3d623fc。
+- 検査：GitHub main 更新成功。実ブラウザ/構文実行/旧セーブ/Pad/Pagesは未検証。疫病感染NPC・リーダー付き群れの実移動・治療は未実装（「疫病後の回復」は地区集約生態負荷のみ）。
+- 40分担当へ：kind=recovery/migration の地区描画と動物行動を追加。00分担当へ：年表のイベント名と長期セーブ回帰を検査。次20分担当：実NPCの群れ移動/感染AIを地形衝突と接続。PHASE B禁止。
+
 # 2026-11-03 19:00 JST｜00分枠 UFO NPC誘拐の記録・トロフィー接続（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
 - 新たな実装（機能統合済・要検証）：ufo-events.js が実際にNPCを捕獲除去した時に発する onEvent('ufo-npc-abduction') を game.js のコアループで受信し、WildTrophies.record へ送信。捕獲された動物種・世界年・時刻を独立 localStorage キー wild-reclaim-ufo-abduction-history-v1 に最大80件保存。旧SAVE_SCHEMA2、チェックポイント3件、世界時計の保存形式は変更なし。
