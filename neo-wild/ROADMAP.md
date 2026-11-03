@@ -1,3 +1,9 @@
+# 2026-11-04｜04:00枠 共有経験値から空き枠ガチャ権を獲得（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】squad-core.js の addXp に共有経験値600ごとにガチャ権1回を付与する処理を追加。ticketMilestoneを編成セーブに永続化し、ロード・再実行で同じ到達報酬を重複付与しない。ガチャ権上限999、空き枠のみ消費、死亡個体復活禁止を維持。
+- 【コミット】a0b78a2d631250e24d63c7304c5aaa24b2cd8182 / squad-core.js blob 696d83f87dde26a64991e269010dfb436860974a（更新前 52b0332fd9ed2bcf431bfb168b2875d346e09065）。
+- 【未完・引継ぎ】game.jsの実狩猟XP獲得経路からWildSquad.addXpを呼ぶ統合が未完のため、実プレイで権利獲得できる状態とは未判定。00分担当は狩猟/ミッションXP接続と死亡即保存E2E、20分担当は探索条件、40分担当は巣ガチャUIと実3D確認。Android/Pad/旧SAVE_SCHEMA2実機/Pages配信未検証。
+
 # 2026-11-04｜03:40枠 巣で空き枠ガチャを実行・同行AI再同期（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】巣の食料庫に「空き枠ガチャ（残り権利）」を追加。生存1〜2体かつ巣の近く・チケット所持時のみ、1枠につき初回+最大3回の抽選候補から選んで採用。WildSquad.fillVacancyで1権利消費し、既存編成を破棄しない。採用後はwild-squad-refilledイベントでgame.jsのsyncSquadFollowers/syncSquadHud/saveAutoを即実行。
