@@ -1236,10 +1236,10 @@ function restoreSnapshot(snapshot){
  // This also repairs old city gaps without changing SAVE_SCHEMA=2 or checkpoint counts.
  const playerRepositioned=recoverPlayerFromGap(P);
  const wildlifeRepositioned=repairRestoredMountainMobs();
- if(playerRepositioned){
-  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
-  cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- }
+ // Saved cameras can belong to an old viewport or be stranded away from the player.
+ // Always make the restored animal visible on the first rendered frame.
+ cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
+ cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
