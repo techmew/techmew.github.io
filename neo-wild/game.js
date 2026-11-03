@@ -3315,7 +3315,7 @@ function updateFieldQuest(){
  P.sp=Math.min(100,P.sp+24);
  const done=goal.title;
  expedition+=1;freeStep=(freeStep+1)%4;
- freeTarget=freeStep===2&&discoveredSites.length>=EXPLORE_SITES.length?P.steps:fieldQuestCounter(freeStep);
+ freeTarget=freeStep===2?(discoveredSites.length>=EXPLORE_SITES.length?P.steps:discoveredSites.length):fieldQuestCounter(freeStep);
  notify("探索達成："+done+"／"+reward+"点",3.0);
  label(P.x,P.y-P.r-32,"探索報酬 +"+reward,"#d4f1c4");
  saveAuto();
