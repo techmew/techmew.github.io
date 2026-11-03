@@ -9,9 +9,9 @@
   const r=Math.max(0,Math.min(REGIONS-1,Math.floor(Number(region)||0)));
   const y=Math.max(0,Number(year)||0);
   const era=Math.floor(y/PERIOD);
-  if(y<20)return {region:r,era,kind:"stable",name:names[0],food:1,animals:1,year:era*PERIOD};
+  if(y<20/3)return {region:r,era,kind:"stable",name:names[0],food:1,animals:1,year:era*PERIOD};
   // An unlock never forces an event. Every region draws independently per five-year epoch.
-  const chance=y<50?.20:y<100?.27:y<200?.34:.39;
+  const chance=y<50/3?.20:y<100/3?.27:y<200/3?.34:.39;
   const roll=hash(r,era,0);
   if(roll>=chance)return {region:r,era,kind:"stable",name:names[0],food:1,animals:1,year:era*PERIOD};
   const selector=hash(r,era,1);
