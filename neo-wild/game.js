@@ -1050,7 +1050,7 @@ function ensureWorldReady(){
 }
 function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
- if(id==="menu")refreshSaveMenu();
+ if(id==="menu"){refreshSaveMenu();$("new-game-confirm")?.classList.add("hidden");}
 }
 function start(){
  if(!ensureWorldReady())return false;
@@ -1197,7 +1197,7 @@ function refreshSaveMenu(){
  const primary=auto||points[0]||null;
  $("continue-btn").classList.remove("hidden");
  $("resume-cta-label").textContent=hasSave?"続きからプレイ":"最初からプレイ";
- $("resume-cta-help").textContent=hasSave?"保存した地点から再開":"種族・画面・出発地点を選んで開始";
+ $("resume-cta-help").textContent=hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開（動物の変更は下の新規ゲームから）":"種族・画面・出発地点を選んで開始";
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
  if(!points.length){$("checkpoint-list").classList.add("hidden");$("checkpoint-menu-btn").setAttribute("aria-expanded","false");}
@@ -1226,7 +1226,7 @@ function restoreSnapshot(snapshot){
  if(!isValidSnapshot(snapshot))return false;
  migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
- document.querySelectorAll(".animal-card").forEach(b=>b.classList.toggle("selected",b.dataset.animal===choice));
+ selectNewGameAnimal(choice);
  if(!start())return false;
  scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
@@ -5788,7 +5788,7 @@ function drawCreature(o,isPlayer){
    else ctx.scale(1.13,.92);
   }
  }
- if(!isPlayer&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
+ if((!isPlayer||t==="deer")&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
   // Common wildlife has species-specific silhouettes.
  }else if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
   // Unique strong enemy silhouette.
@@ -6461,6 +6461,9 @@ function keyDown(e){
 }
 document.addEventListener("keydown",keyDown);document.addEventListener("keyup",e=>{keys.delete(e.key.toLowerCase())});
 window.addEventListener("blur",()=>{
+ // Mobile browser chrome, orientation controls and native dialogs may blur while visible.
+ // Only a genuinely hidden page should auto-pause; visibilitychange handles app switching.
+ if(!document.hidden)return;
  if(mode==="play"){resetControls();mode="pause";show("pause");saveAuto();}
  else if(mode==="upgrade"||mode==="guide"||mode==="inventory"||mode==="milestone")saveAuto();
 });
@@ -6538,7 +6541,19 @@ document.addEventListener("fullscreenchange",()=>{
 });
 window.addEventListener("resize",updateRotationButton);
 window.addEventListener("orientationchange",updateRotationButton);
-document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{choice=b.dataset.animal;document.querySelectorAll(".animal-card").forEach(c=>c.classList.toggle("selected",c===b));playEffect("menu")}));
+function selectNewGameAnimal(type){
+ if(!Object.prototype.hasOwnProperty.call(animals,type))return false;
+ choice=type;
+ document.querySelectorAll(".animal-card").forEach(c=>{
+  const selected=c.dataset.animal===choice;
+  c.classList.toggle("selected",selected);
+  c.setAttribute("aria-pressed",String(selected));
+ });
+ const selected=$("new-game-animal-label");
+ if(selected)selected.textContent="新規ゲームの操作動物："+animals[choice].name;
+ return true;
+}
+document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{selectNewGameAnimal(b.dataset.animal);playEffect("menu")}));
 function reportLaunchFailure(error){
  console.error("WILD RECLAIM launch failed",error);
  resetControls();mode="menu";show("menu");
@@ -6560,11 +6575,37 @@ function launchGame(snapshot=null){
   reportLaunchFailure(new Error("world initialization returned false"));return false;
  }catch(error){reportLaunchFailure(error);return false}
 }
+// An in-page confirmation works in Android in-app browsers where window.confirm is blocked.
+function hideNewGameConfirmation(){
+ const panel=$("new-game-confirm");
+ if(panel)panel.classList.add("hidden");
+}
+function startSelectedNewGame(){
+ if(mode!=="menu")return false;
+ hideNewGameConfirmation();
+ // Use the CURRENT selection, never the species from the continue/checkpoint slot.
+ if(!selectNewGameAnimal(choice))return false;
+ if(!launchGame())return false; // Keep the previous autosave on initialization failure.
+ saveAuto();
+ return true;
+}
 $("start-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
- if(getAutoSnapshot()&&!window.confirm("保存したデータを上書きして新しく始めますか？\nチェックポイントは残ります。"))return;
- if(launchGame())saveAuto(); // Preserve previous save if initialization fails.
+ // Existing auto-save/checkpoints never influence the newly selected species.
+ // Ask in the page instead of relying on a browser-native blocking modal.
+ if(getAutoSnapshot()){
+  const panel=$("new-game-confirm");
+  panel.classList.remove("hidden");
+  const label=$("new-game-confirm-species");
+  if(label)label.textContent=animals[choice].name;
+  panel.scrollIntoView?.({block:"nearest",behavior:"smooth"});
+  return;
+ }
+ startSelectedNewGame();
 });
+$("confirm-new-game-btn").addEventListener("click",startSelectedNewGame);
+$("cancel-new-game-btn").addEventListener("click",hideNewGameConfirmation);
+selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
  const snapshot=getAutoSnapshot()||getCheckpoints()[0];
