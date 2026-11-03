@@ -1301,3 +1301,12 @@
  #squad-party-hud{top:clamp(190px,27vh,230px);width:min(342px,90vw);padding:6px 8px}
  #squad-party-hud .squad-member{height:39px!important}
 }
+
+/* Gacha rarity is distinct from individual S–D evaluation; no external imagery. */
+#squad-gacha .squad-rarity-reveal{margin:8px 0;padding:7px 11px;border-radius:9px;border:1px solid #89a9a0;background:#193b3b;font-weight:900;letter-spacing:.035em}
+#squad-gacha .squad-rarity-rare{border-color:#70bce7!important;box-shadow:inset 0 0 20px #4c9fce24,0 0 10px #4c9fce25}
+#squad-gacha .squad-rarity-legendary{border-color:#f3c76a!important;box-shadow:inset 0 0 25px #e8b24a3b,0 0 18px #e8b24a50}
+#squad-gacha .squad-rarity-reveal.squad-rarity-legendary{color:#ffe4a3;background:linear-gradient(110deg,#4e381b,#624a21,#4e381b);animation:squadRarityPulse 1.4s ease-in-out 2}
+#squad-gacha .squad-rarity-reveal.squad-rarity-rare{color:#c2eaff;background:#18394e}
+@keyframes squadRarityPulse{50%{filter:brightness(1.55);transform:scale(1.015)}}
+@media(prefers-reduced-motion:reduce){#squad-gacha .squad-rarity-reveal{animation:none!important}}
