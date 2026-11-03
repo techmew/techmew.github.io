@@ -1474,25 +1474,25 @@ function render(o){
   bindAttributes(buffer);
   gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
   dynamicCount=vertices.length/9;
-  // Occluded silhouettes are drawn once per pixel behind static architecture.
-  // Stencil prevents overlapping body triangles from accumulating alpha.
-  if(ghostEnd>ghostStart&&gl.getContextAttributes()?.stencil){
+  // Animals behind walls and roofs remain faintly visible: the stencil draws
+  // exactly one translucent pixel where the static depth buffer occludes them.
+  const hasOcclusionStencil=!!gl.getContextAttributes()?.stencil;
+  if(ghostEnd>ghostStart&&hasOcclusionStencil){
    gl.clearStencil(0);gl.stencilMask(0xff);gl.clear(gl.STENCIL_BUFFER_BIT);
    gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.EQUAL,0,0xff);
    gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);
    gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-   gl.depthFunc(gl.GREATER);gl.depthMask(false);gl.uniform1f(ualpha,.25);
+   gl.depthFunc(gl.GREATER);gl.depthMask(false);gl.uniform1f(ualpha,.36);
    gl.drawArrays(gl.TRIANGLES,ghostStart,ghostEnd-ghostStart);
    gl.disable(gl.STENCIL_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);
    gl.disable(gl.BLEND);gl.uniform1f(ualpha,1);
   }
   if(playerFirst)gl.drawArrays(gl.TRIANGLES,0,playerFirst);
   if(P&&playerEnd>playerFirst){
-   // Terrain and elevated static scenery can completely occlude the player while
-   // the Canvas HUD still paints YOU/ring at the correct world XY. Keep the
-   // playable animal visible and let its own triangles depth-test normally.
-   // Only the player's draw remains: NPCs, scenery and save coordinates stay intact.
-   gl.clear(gl.DEPTH_BUFFER_BIT);
+   // Preserve the static building depth! Clearing it here made every player
+   // opaque and visible *over* buildings, undoing the translucent silhouette.
+   // The normal pass shows only visible faces, while the stencil ghost pass
+   // above retains a 36% outline wherever architecture blocks the animal.
    gl.depthFunc(gl.LEQUAL);
    gl.depthMask(true);
    // The player must remain legible even in a dark district/night; keep
