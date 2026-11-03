@@ -3,6 +3,7 @@
 - **新しく遊べるもの**：①既存群れ（2～3体）の先頭は正面追跡、左右の仲間はプレイヤー進行方向に応じた実通行可能な側面へ回り込み、壁/水/崖で塞がれた側は通常追跡へ戻る。②異なる方向から2匹が接近すると0.9秒の「群れの包囲！」予兆円を2D/3D共通HUDに表示。③予兆中に190座標以上離れる・遮蔽物へ隠れる・潜伏すると回避。回避できない場合は持久力14減・一時的に匂い/足音が増えるが、HP即死なし。13.5秒再発動待機。④新ゲーム/セーブ再開時に一時状態を初期化。動物数・群れ6%/12%・110秒・LV8以上3体・SAVE_SCHEMA2/3CPは不変。
 - **変更ファイル**：`neo-wild/pack-tactics.js` 新規（側面目標・包囲判定・予兆・描画）、`neo-wild/game.js`（NPC追跡・群れ戦闘・開始/再開・HUD連結）、`neo-wild/index.html`（script読込・rev更新）、本ROADMAP。対象blob SHA `game.js:fd1abc47ab01 / index.html:81fc65489457 / pack-tactics.js:85b4d13747e0`。
 - **検証**：V8で新モジュール実関数（左右目標、遮蔽、包囲角度、予兆、持久力減、逃走、潜伏、クールダウン、リセット）・game.js全文構文・既存密度・致命的ループ修復維持・HTML読込順の**28/28 PASS**。実ブラウザの長時間E2E、Android実機、実GPU、物理Pad、保存済み端末データ、全40強敵技は**未検証**。Pages build/deployは今回のコードHEADで別途確認する。失敗は未確認と記録。
+- **Pages公開確認追記**：コード+初回ROADMAPを含むHEAD `df194cdbb95b71a0d206a8d247b5a1f4af3f219a` のGitHub Pages run **41554312875** は workflow=success、build=success、deploy=success、report-build-status=success（jobs個別照合）。先行コード単独run `41554305115` は後続コミットによりcancelled。最終記録コミットのPagesは別runのため未確認。実Android再開・物理Pad・長時間FPSは未検証。
 - **機能別状態**：ワールド=途中／動物生態=途中（群れ行動を追加）／生存ループ=途中／戦闘強敵=途中（包囲回避の新戦闘）／UI操作=途中。PHASE Bへの切替禁止。
 - **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4＝**74.0/100（前回差0.0）**。統合E2E・実機採点条件を満たさず据置。
 - **次00分枠**：①`game.js:restoreSnapshot/loop`でAndroid再開→可視・入力→死亡/再開の重大障害復旧を実機確認。②`game.js:signalPack/update`＋`pack-tactics.js:update/surrounded`で群れ2/3体の予兆→遮蔽/潜伏回避→持久力減の実ブラウザ統合。③本コードHEADのPages build/deploy jobsを個別照合し失敗時復旧。
