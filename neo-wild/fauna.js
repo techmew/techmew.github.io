@@ -249,19 +249,21 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(let k=0;k<13;k++){const x=(-1.1+(k*7%13)*.18)*r,y=(((k*5)%9)-4)*r*.105;ellipse(x,y,r*.045,r*.07,"#463c30");}
   for(const side of [-1,1]){ellipse(r*.96,side*r*.29,r*.12,r*.07,"#201e20");line(r*1.07,side*r*.18,r*1.20,side*r*.30,r*.05,"#39352c");}
  }else if(type==="giraffe"){
+  const headAttack=!!o.attackVariation?.neckStrike&&((o.windup||0)>0||(o.swing||0)>0);
+  const headSway=headAttack?Math.sin(((o.windup||0)+(o.swing||0))*16)*r*.45:0;
   for(const side of [-1,1])for(const front of [-1,1]){
    const x=front*r*.57;line(x,side*r*.36,x+front*r*.16,side*r*1.38,r*.13,fur);
    ellipse(x+front*r*.18,side*r*1.39,r*.20,r*.11,"#5e4934");
   }
   ellipse(-r*.19,0,r*1.17,r*.45,fur);
   for(let k=0;k<9;k++){const x=(-1+(k*7%10)*.19)*r,y=(((k*3)%7)-3)*r*.10;ellipse(x,y,r*.15,r*.13,"#a9733f");}
-  ellipse(r*.65,0,r*.50,r*.23,fur);ellipse(r*1.20,0,r*.55,r*.24,fur);
+  ellipse(r*.65,0,r*.50,r*.23,fur);ellipse(r*1.20,headSway*.45,r*.55,r*.24,fur);
   for(const side of [-1,1]){
-   ellipse(r*1.35,side*r*.27,r*.13,r*.14,fur);
-   line(r*1.12,side*r*.17,r*1.19,side*r*.42,r*.09,"#8e6a42");
-   ellipse(r*1.20,side*r*.46,r*.09,r*.08,"#6b513e");
+   ellipse(r*1.35,headSway+side*r*.27,r*.13,r*.14,fur);
+   line(r*1.12,headSway*.55+side*r*.17,r*1.19,headSway+side*r*.42,r*.09,"#8e6a42");
+   ellipse(r*1.20,headSway+side*r*.46,r*.09,r*.08,"#6b513e");
   }
-  ellipse(r*1.60,0,r*.25,r*.17,light);ellipse(r*1.42,-r*.16,r*.07,r*.07,"#242b25");
+  ellipse(r*1.60,headSway,r*.25,r*.17,light);ellipse(r*1.42,headSway-r*.16,r*.07,r*.07,"#242b25");
   line(-r*1.25,0,-r*1.67,-r*.27,r*.08,"#725234");
  }else if(type==="zebra"){
   for(const side of [-1,1])for(const x of [-r*.66,r*.52])ellipse(x,side*r*.57+pace*side,r*.18,r*.30,"#42403e");
