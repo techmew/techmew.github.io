@@ -121,6 +121,8 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,questReady=false,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 const WORLD_CHRONICLE_KEY="wild-reclaim-world-chronicle-v1";
+// The 85-second daylight loop starts at 06:00. New worlds begin at 08:00.
+const NEW_WORLD_START_ELAPSED=85*(8-6)/24;
 let worldChronicleSaveClock=0;
 function loadWorldChronicle(){
  try{
@@ -1052,17 +1054,17 @@ function show(id){
  for(const key of ["menu","pause","result","upgrade"])$(key).classList.toggle("hidden",key!==id);
  if(id==="menu"){refreshSaveMenu();$("new-game-confirm")?.classList.add("hidden");}
 }
-function start(){
+function start(newWorld=false){
  if(!ensureWorldReady())return false;
  window.WildPackTactics?.reset?.();
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
- denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
+ denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  initializeLife(P,elapsed);
@@ -6554,6 +6556,21 @@ function selectNewGameAnimal(type){
  return true;
 }
 document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",()=>{selectNewGameAnimal(b.dataset.animal);playEffect("menu")}));
+function resetWorldHistoryForNewGame(){
+ // Distinct from Continue, checkpoint restore, and same-world retry.
+ // Reset the persisted clock BEFORE the next saveAuto() reads its max elapsed.
+ const fresh={version:1,elapsed,worldYearsElapsed:0,lightningHistory:[],savedAt:Date.now()};
+ localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify(fresh));
+ localStorage.removeItem("wild-reclaim-ufo-abduction-history-v1");
+ window.WildDisaster?.resetWorld?.();
+ window.WildApparitions?.resetWorld?.();
+ window.WildUFO?.resetWorld?.();
+ lightningHistory=[];worldChronicleSaveClock=0;
+ // A new world also begins with an empty den; old snapshots keep their own stores.
+ denLevel=1;denStores=normalizeDenStores(null,0);syncDenStash();
+ territoryClaims=[false,false,false];territoryLastSupply=[day,day,day];
+ saveDenLevel();saveDenStash();saveTerritoryClaims();
+}
 function reportLaunchFailure(error){
  console.error("WILD RECLAIM launch failed",error);
  resetControls();mode="menu";show("menu");
@@ -6561,7 +6578,7 @@ function reportLaunchFailure(error){
  note.textContent="ゲームを開始できません。ページを更新して再度お試しください。";
  note.setAttribute("data-error","true");
 }
-function launchGame(snapshot=null){
+function launchGame(snapshot=null,newWorld=false){
  const note=$("menu-landscape-note");
  note.removeAttribute("data-error");
  try{
@@ -6571,7 +6588,7 @@ function launchGame(snapshot=null){
    note.textContent="保存データを再開できません。最初からプレイを選んでください。";
    note.setAttribute("data-error","true");return false;
   }
-  if(start()){announceObjective();return true}
+  if(start(newWorld)){if(newWorld)resetWorldHistoryForNewGame();announceObjective();return true}
   reportLaunchFailure(new Error("world initialization returned false"));return false;
  }catch(error){reportLaunchFailure(error);return false}
 }
@@ -6585,7 +6602,7 @@ function startSelectedNewGame(){
  hideNewGameConfirmation();
  // Use the CURRENT selection, never the species from the continue/checkpoint slot.
  if(!selectNewGameAnimal(choice))return false;
- if(!launchGame())return false; // Keep the previous autosave on initialization failure.
+ if(!launchGame(null,true))return false; // Only explicit NEW GAME resets the world; old checkpoints remain.
  saveAuto();
  return true;
 }
@@ -6609,7 +6626,7 @@ selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
  const snapshot=getAutoSnapshot()||getCheckpoints()[0];
- if(launchGame(snapshot||null)&&!snapshot)saveAuto();
+ if(launchGame(snapshot||null,!snapshot)&&!snapshot)saveAuto();
 });
 $("checkpoint-menu-btn").addEventListener("click",()=>{
  const target=$("checkpoint-list"),open=target.classList.contains("hidden");
