@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=0e0c868e-mobile-roster">
+<link rel="stylesheet" href="./visual.css?rev=party-3-v1">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -29,6 +29,16 @@
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">YEAR 000</div><div class="subinfo" id="moon-label" aria-label="月齢">月齢 0.0 · 新月</div><div id="survival-goal" class="hidden" aria-live="off">探索依頼</div></div>
   <div class="hud-right"><div class="top-actions session-actions" aria-label="音楽・最大化・一時停止"><button id="sound-btn" type="button" title="音楽の切替" aria-label="音楽の切替">♪</button><button id="full-btn" type="button" title="最大化" aria-label="最大化">⛶</button><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="mini-map-stack" aria-label="周辺地図と生存記録"><div id="mini-map-control" class="map-frame" role="button" tabindex="0" aria-label="周辺地図：標準。タップで表示範囲切替、長押しで詳細地図"><canvas id="minimap" width="128" height="128" aria-label="常時表示の周辺地図"></canvas><span id="mini-map-scale">標準</span></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div></div></div>
 </div>
+<section id="squad-party-hud" class="hidden" role="region" aria-label="3体編成・操作キャラと仲間への指示">
+ <div class="squad-party-caption">パーティ <small>黄色が操作中・仲間をタップで交代</small></div>
+ <div id="squad-party-members" class="squad-party-members" aria-label="現在の編成"></div>
+ <div class="squad-party-commands" role="group" aria-label="仲間への指示">
+  <button type="button" data-squad-order="follow" aria-pressed="true">追従</button>
+  <button type="button" data-squad-order="attack" aria-pressed="false">攻撃</button>
+  <button type="button" data-squad-order="wait" aria-pressed="false">待機</button>
+  <button type="button" data-squad-order="flee" aria-pressed="false">逃走</button>
+ </div>
+</section>
 <div id="hunt-cinematic" role="status" aria-live="polite" aria-atomic="true"><div class="hunt-cinematic-core"><strong id="hunt-cinematic-title">SHADOW HUNT</strong><span id="hunt-cinematic-sub">UNDETECTED STRIKE</span></div></div>
 <div id="shelter-hint" class="hidden" aria-live="off">青い建物入口から歩いて入れます（ボタン不要）</div>
 <div id="stockpile-guide" class="hidden" aria-live="off">① 食草・肉のそばで○長押しして運ぶ</div>
@@ -154,7 +164,7 @@
 </div></div>
 <div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
-<div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button><button id="death-title-btn" type="button" class="flat-btn">タイトルに戻る</button></div></div>
+<div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><div id="squad-death-choice" class="squad-death-choice hidden" role="group" aria-label="残った仲間からリーダーを選ぶ"></div><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button><button id="death-title-btn" type="button" class="flat-btn">タイトルに戻る</button></div></div>
 <div id="world-history-view" class="trophy-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="world-history-title"><section class="trophy-shell"><header class="trophy-head"><div><h2 id="world-history-title">世界年表</h2><p id="world-history-summary" aria-live="polite">世界の記録</p></div><button id="world-history-close" type="button">閉じる</button></header><ol id="world-history-list" class="trophy-list" aria-label="年代・地域変動・災害の履歴"></ol></section></div>
 <div id="trophy-view" class="trophy-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="trophy-view-title">
  <section class="trophy-shell"><header class="trophy-head"><div><h2 id="trophy-view-title">トロフィー</h2><p id="trophy-count" aria-live="polite">獲得 0</p></div><button id="trophies-close" type="button">閉じる</button></header>
@@ -208,9 +218,9 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
-<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=190a0d52" defer></script>
+<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=d98dd14-party" defer></script>
 <script src="./squad-gacha-ui.js?rev=a6b999f2-age-sex" defer></script>
-<script src="./game.js?rev=f63e7b6cdf88-senior" defer></script>
+<script src="./game.js?rev=28eefa49-party" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=df730244-trophy-pad" defer></script>
