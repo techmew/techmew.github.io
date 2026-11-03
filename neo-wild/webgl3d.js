@@ -1157,7 +1157,7 @@ function render(o){
   };
   // Rebuild the static room only when the roof changes to its playable cutaway.
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,WORLD.w,WORLD.h,interiorReveal].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree").map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year)].join(",")).join(";"),WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    mountainTerrain(isVisible);
@@ -1257,6 +1257,32 @@ function render(o){
      box(b.x+b.w-1,b.y+j*b.h/5-11,z,3,22,12,"#50656a","#85918a");
     }
    }
+   }
+   // Fallen trees are world-space 3D obstacles, not flat HUD rectangles.
+   for(const e of o.disasterEvents||[]){
+    if(e.kind!=="fallen_tree"||!isVisible(e.x,e.y,210))continue;
+    const age=(o.elapsed||0)/120-e.year;
+    if(!e.permanent&&age>=e.duration)continue;
+    const angle=-.45+Math.sin(e.x*.017+e.y*.023)*.38;
+    const ux=Math.cos(angle),uy=Math.sin(angle),vx=-uy,vy=ux;
+    const trunk=(t,r,z,col)=>ellipsoid(e.x+ux*t,e.y+uy*t,z, r, r*.88,Math.max(4,r*.74),col,angle,10,5);
+    // Segmented tapered trunk, irregular bark and a visible cut/root end.
+    for(let k=0;k<7;k++){
+     const t=-31+k*11,rad=10-k*.85;
+     trunk(t,rad,8+rad*.2,k%2?"#71543b":"#806045");
+     for(let stripe=0;stripe<3;stripe++){
+      const side=(stripe-1)*rad*.48;
+      ellipsoid(e.x+ux*t+vx*side,e.y+uy*t+vy*side,13+stripe*.8,4,1.1,1.4,"#473728",angle,6,3);
+     }
+    }
+    ellipsoid(e.x-ux*39,e.y-uy*39,10,11,9,10,"#b08a60",angle,10,5);
+    ellipsoid(e.x-ux*40,e.y-uy*40,10,5,5,5,"#765036",angle,9,4);
+    for(let k=0;k<5;k++){
+     const t=4+k*11,side=k%2?1:-1;
+     const bx=e.x+ux*t+vx*side*13,by=e.y+uy*t+vy*side*13;
+     ellipsoid(bx,by,13,17-k*.7,10,10,k%2?"#3c7048":"#4c8150",angle+side*.42,9,5);
+     ellipsoid(bx+vx*side*11,by+vy*side*11,17,11,9,9,"#315e3c",angle,8,4);
+    }
    }
    // Abandoned traffic has real 3D depth and matches the fallback drawings.
    for(const prop of o.streetProps||[]){
