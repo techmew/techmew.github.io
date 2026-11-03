@@ -4792,6 +4792,11 @@ function drawWorldMap(){
    if(species[m.type].prey){if(dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
    else mark(m.x,m.y,"#eb847b",4);
   }
+ for(const e of window.WildDisaster?.events?.()||[]){
+  if(e.kind!=="flood"||elapsed/120-e.year>=e.duration)continue;
+  bm.save();bm.fillStyle="rgba(35,143,190,.38)";bm.strokeStyle="#90e7ff";bm.lineWidth=2;
+  bm.beginPath();bm.ellipse(X(e.x),Y(e.y),X(e.radius),Y(e.radius),0,0,TWO);bm.fill();bm.stroke();bm.restore();
+ }
  const obj=getObjective();if(obj&&mission!==3)mark(obj.x,obj.y,"#f1d885",4);
  mark(P.x,P.y,"#f7fbf4",8);
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
@@ -4839,6 +4844,12 @@ function drawMini(){
   mc.fillStyle=b.interior?"#b7d9a5":"#344d45";
   mc.fillRect(X(b.x),Y(b.y),Math.max(2,b.w/span*w),Math.max(2,b.h/span*w));
   if(b.interior){mc.fillStyle="#152d29";mc.fillRect(X(b.x+16),Y(b.y+16),Math.max(2,(b.w-32)/span*w),Math.max(2,(b.h-32)/span*w))}
+ }
+ // Live flood boundaries are shown on the minimap, including their dry bypasses.
+ for(const e of window.WildDisaster?.events?.()||[]){
+  if(e.kind!=="flood"||elapsed/120-e.year>=e.duration)continue;
+  mc.save();mc.strokeStyle="#7bdcf6";mc.fillStyle="rgba(35,143,190,.30)";mc.lineWidth=1.6;
+  mc.beginPath();mc.arc(X(e.x),Y(e.y),e.radius*w/span,0,TWO);mc.fill();mc.stroke();mc.restore();
  }
  // Classify live wildlife by actual species, alert state and strength relative to the player.
  const visibleMobs=mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<span/2&&Math.abs(m.y-P.y)<span/2)
