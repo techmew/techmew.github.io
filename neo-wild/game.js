@@ -860,7 +860,7 @@ function waterDepth(x,y){
  let depth=window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0;
  if(y>=0&&y<2600&&x>=6300){
   const offset=Math.abs(x-riverAxis(y));
-  if(offset<133&&!roadsY.some(ry=>Math.abs(y-ry)<80))depth=Math.min(1,(133-offset)/70);
+  if(offset<133&&!roadsY.some(ry=>Math.abs(y-ry)<80))depth=Math.max(depth,Math.min(1,(133-offset)/70));
  }
  if(x>=5600&&y>=2600){
   const offset=Math.abs(y-canalAxis(x));
@@ -4259,7 +4259,9 @@ function update(dt){
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateLightning(dt);
- window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD,roadsX,roadsY,buildings,riverAxis,canalAxis,weather});
+ window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD,roadsX,roadsY,buildings,riverAxis,canalAxis,weather,
+  isSheltered:insideShelter,
+  onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
  window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked});
  if(P.hp<=0){beginDeath();return;}
@@ -4793,8 +4795,9 @@ function drawWorldMap(){
    else mark(m.x,m.y,"#eb847b",4);
   }
  for(const e of window.WildDisaster?.events?.()||[]){
-  if(e.kind!=="flood"||elapsed/120-e.year>=e.duration)continue;
-  bm.save();bm.fillStyle="rgba(35,143,190,.38)";bm.strokeStyle="#90e7ff";bm.lineWidth=2;
+  if(!["flood","wildfire"].includes(e.kind)||elapsed/120-e.year>=e.duration)continue;
+  const isFire=e.kind==="wildfire";
+  bm.save();bm.fillStyle=isFire?"rgba(229,91,24,.38)":"rgba(35,143,190,.38)";bm.strokeStyle=isFire?"#ffc07b":"#90e7ff";bm.lineWidth=2;
   bm.beginPath();bm.ellipse(X(e.x),Y(e.y),X(e.radius),Y(e.radius),0,0,TWO);bm.fill();bm.stroke();bm.restore();
  }
  const obj=getObjective();if(obj&&mission!==3)mark(obj.x,obj.y,"#f1d885",4);
@@ -4847,8 +4850,9 @@ function drawMini(){
  }
  // Live flood boundaries are shown on the minimap, including their dry bypasses.
  for(const e of window.WildDisaster?.events?.()||[]){
-  if(e.kind!=="flood"||elapsed/120-e.year>=e.duration)continue;
-  mc.save();mc.strokeStyle="#7bdcf6";mc.fillStyle="rgba(35,143,190,.30)";mc.lineWidth=1.6;
+  if(!["flood","wildfire"].includes(e.kind)||elapsed/120-e.year>=e.duration)continue;
+  const isFire=e.kind==="wildfire";
+  mc.save();mc.strokeStyle=isFire?"#ffad62":"#7bdcf6";mc.fillStyle=isFire?"rgba(229,91,24,.30)":"rgba(35,143,190,.30)";mc.lineWidth=1.6;
   mc.beginPath();mc.arc(X(e.x),Y(e.y),e.radius*w/span,0,TWO);mc.fill();mc.stroke();mc.restore();
  }
  // Classify live wildlife by actual species, alert state and strength relative to the player.
