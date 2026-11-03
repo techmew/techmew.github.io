@@ -21,7 +21,7 @@ function tick(dt,world){
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
  traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
  persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
- if(!event){cooldown=Math.max(0,cooldown-dt);if(year>=50&&cooldown===0&&Math.random()<dt/950){summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420);cooldown=420;world.notify("空に正体不明の円盤が現れた！")};return}
+ if(!event){cooldown=Math.max(0,cooldown-dt);if(year>=Math.ceil(50/3)&&cooldown===0&&Math.random()<dt/950){summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420);cooldown=420;world.notify("空に正体不明の円盤が現れた！")};return}
  const e=event;e.t+=dt;
  if(e.stage==="approach"&&e.t>=3){e.stage="scan";e.t=0;world.notify("謎の光線！ 遮蔽物に隠れるか逃げろ")}
  if(e.stage==="scan"){
