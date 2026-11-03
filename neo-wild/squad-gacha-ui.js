@@ -44,7 +44,7 @@ const ready=()=>{
  let size=0,slot=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
  const denPanel=$("den-inventory");
  const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
-  const r=core.load();if(!r?.members?.length||r.members.length>=3)return;
+  const r=core.load();if(!window.__wildSquadAtDen||!r?.members?.length||r.members.length>=3)return;
   if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
   refill=true;size=1;chosen=[];streak=0;root.hidden=false;nextSlot();
  },"squad-refill-button");
@@ -54,7 +54,7 @@ const ready=()=>{
   denPanel.append(refillButton);
   const refreshDen=()=>{
    const r=core.load(),n=r?.members?.length||0;
-   refillButton.hidden=denPanel.classList.contains("hidden")||n===0||n>=3;
+   refillButton.hidden=denPanel.classList.contains("hidden")||!window.__wildSquadAtDen||n===0||n>=3;
    refillButton.disabled=!(r?.gachaTickets>0);
    refillButton.textContent="空き枠ガチャ（残り"+(r?.gachaTickets||0)+"権）";
   };
@@ -216,7 +216,7 @@ const ready=()=>{
    if(!chosenLeader||!OPERABLE.has(chosenLeader.species)){info.textContent="操作可能なリーダーを選んでください。";return}
    if(refill){
     const current=core.load();
-    if(!current?.members?.length||current.members.length>=3){info.textContent="空き枠がありません。";return;}
+    if(!window.__wildSquadAtDen||!current?.members?.length||current.members.length>=3){info.textContent="巣の近くで空き枠を確認してください。";return;}
     const result=core.fillVacancy(chosen[0]);
     if(!result.ok){info.textContent=result.reason;return;}
     root.hidden=true;updateHome();
