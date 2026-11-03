@@ -1043,7 +1043,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
+  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
@@ -3756,6 +3756,8 @@ function tokyoRainCalendar(year,month){
  return result;
 }
 function tokyoWeatherAt(seconds){
+ const clockWeather=window.WildWorldClock?.weatherAt?.(seconds);
+ if(clockWeather)return clockWeather;
  const absoluteDay=1+Math.floor(Math.max(0,seconds)/85);
  const {year,month,day:dayOfMonth}=tokyoCalendarDay(absoluteDay);
  const phase=((seconds%85)+85)%85/85;
@@ -4138,7 +4140,10 @@ function update(dt){
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
  for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
+ const previousWorldYear=Math.floor(elapsed/120);
  elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
+ const currentWorldYear=Math.floor(elapsed/120);
+ if(currentWorldYear!==previousWorldYear&&[10,20,50,100,200,300].includes(currentWorldYear))notify('世界'+currentWorldYear+'年到達。生存は続く。');
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateBirdFlocks(dt);
@@ -4551,7 +4556,7 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
   const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
-  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather]+" · 風"+windArrow;
+  $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+" · DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather]+" · 風"+windArrow;
  const moon=moonlightProfile(elapsed,weather);
  $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name;
  const info=missionInfo();
