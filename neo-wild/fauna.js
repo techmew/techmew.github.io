@@ -172,6 +172,24 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(type==="serow"&&![2,5].includes(region))w*=.12;
  if(type==="macaque"&&![2,3,5].includes(region))w*=.18;
  if(type==="hyena"&&[0,1,6].includes(region))w=0;
+ // Wetland food chain: fish and amphibian hunters concentrate where prey actually lives.
+ // These are multiplicative encounter weights, not additional spawn calls.
+ // No aquatic fish may enter the ordinary terrestrial NPC pool.
+ if(type==="otter"){
+  if(![4,7].includes(region))w=0;
+  else if(["RAIN","THUNDER","HEAVY_RAIN"].includes(weather))w*=1.18;
+ }
+ if(type==="shoebill"){
+  if(![4,7].includes(region))w=0;
+  else if(["RAIN","THUNDER","HEAVY_RAIN"].includes(weather))w*=.62;
+ }
+ if(type==="hippo"&&![4,7].includes(region))w=0;
+ // Carnivores favor established prey habitat, while urban scavengers remain scarce.
+ if(type==="wildDog"&&[3,5].includes(region)&&unlockedYear>=17)w*=1.12;
+ if(type==="hyena"&&[3,5].includes(region)&&unlockedYear>=17)w*=1.08;
+ if(type==="frog"&&[4,7].includes(region)&&["RAIN","THUNDER"].includes(weather))w*=1.22;
+ // Do not allow any remote predator to leak into starting residential districts.
+ if([0,1,6].includes(region)&&["lion","tiger","cheetah","elephant","hippo","gorilla","blackBear","hyena","wildDog"].includes(type))w=0;
  // Carp requires a dedicated aquatic spawn path; never materialize fish on dry roads.
  if(type==="carp")w=0;
  if(type==="otter"&&weather==="SNOW")w*=.55;
