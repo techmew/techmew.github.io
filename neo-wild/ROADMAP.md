@@ -1,3 +1,10 @@
+# 2026-11-04｜03:40枠 巣で空き枠ガチャを実行・同行AI再同期（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】巣の食料庫に「空き枠ガチャ（残り権利）」を追加。生存1〜2体かつ巣の近く・チケット所持時のみ、1枠につき初回+最大3回の抽選候補から選んで採用。WildSquad.fillVacancyで1権利消費し、既存編成を破棄しない。採用後はwild-squad-refilledイベントでgame.jsのsyncSquadFollowers/syncSquadHud/saveAutoを即実行。
+- 【コミット】squad-gacha-ui.js 9aaac1fd6c2055d26ee399ef78654ba95b991a70 → 2ef30a1ff9e0b62cc4c287611f3a38466d50dbc3、game.js 54b778e27060e2312b39c3ef596835fd87c6efb5。各ファイル更新直前にmain blob SHA取得。
+- 【検証】更新後mainの対象イベント・空き枠条件・巣判定を再取得して確認予定。Android実機/実ブラウザE2E/旧SAVE_SCHEMA2/Pad/Pages配信は未検証。狩り・探索からガチャ権を獲得する接続は未完成。
+- 【引継ぎ】00分：チケット付与と死亡永続化・保存のE2E、20分：巣判定と野生AI・獲得条件、40分：実機ガチャ表示・3D固有モデル・仲間AI実戦QA。30種のうち操作可能は現時点9種、PHASE A継続。
+
 # 2026-11-04｜03:20枠 野生動物の重み付き抽選を修正（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】fauna.js choose() で乱数関数を Number(random) と評価してNaN→0となる問題を修正。乱数関数を呼び出し、数値乱数も受け付ける。地域・年代・天候別の出現重みを野生動物抽選へ反映。密度上限・ガチャ30種・セーブ・世界時計は変更なし。
