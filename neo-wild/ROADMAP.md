@@ -1,3 +1,11 @@
+## 2026/11/03 10:4x JST｜40分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **今回実装（部分統合）**：UFO飛来→3秒接近→11秒照射→逃走/潜伏/遮蔽で回避→2.2秒連続照射でプレイヤー捕獲・死亡導線。NPCが光線内にいれば誘拐しHP0。世界50年以降の低確率発生、イベント間隔制限。2D Canvas HUD上に円盤・警告・光線を表示（WebGLでもHUD合成）。事件履歴をlocalStorage別キーに直近30件記録。**セーブ本体へのイベント状態統合、後継選択、NPC死骸/図鑑/トロフィー連動は未実装**。
+- **変更**：neo-wild/ufo-events.js（新規）、neo-wild/game.js（update/drawScene連結）、neo-wild/index.html（ロード順とrev）。開始HEAD 8e629e3d（記録時HEAD、実作業開始時は d6399b19）、コードコミット 18abc636→9abf839a→8e629e3d。コード検査：JS関数実行4/4 PASS（構文・捕獲死亡・潜伏回避・NPC誘拐）。ブラウザE2E、実Android/Pad、WebGL実画面、SAVE2/3CP実データ、Pages deployは未検証。Pages run 41561428206 は確認時 pending。
+- **V1.0機能状態**：UFO=途中（逃走/死亡の縦機能あり、後継/永続世界/図鑑未接続）、亡霊/異星人/怪獣=未実装または要コード実証、200トロフィー=未実装または要コード実証。世界時計・気象・雷=実装中、統合証拠不足。PHASE A継続。V2 A16 B12 C9 D4 E8 F9 G8 H4 I4=74/100（差0、採点据置）。
+- **次00分**：game.js:beginDeath/restoreSnapshot にUFO死亡→後継/世界継続を接続、saveAuto/restoreSnapshot に事件状態を追加、ufo-events.js:history と図鑑/トロフィー発火連動。
+- **次20分**：game.js:spawnMob/maintainLocalWildlife でUFO出現地域の動物分布、game.js:lineBlocked/insideShelter で照射遮蔽の実地形判定、世界災害/地域AIと誘拐後の痕跡を接続。
+- **次40分**：ufo-events.js:tick/draw の光線追跡・NPC死骸/痕跡、webgl3d.js:render で円盤3D描画、bestiary.js のUFO遭遇記録と世界年表UIを完成。
+
 ## 20分枠・落雷麻痺の実操作連結追記｜2026/11/03 10:24 JST｜PHASE=A_FEATURE_COMPLETION｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - 初回落雷実装のプレイヤー麻痺が状態付与のみだったため、`game.js:update` で `P.stun` をdt減算し、麻痺中は`getAxes()`の入力を0へ抑制。1.1秒経過後は通常入力に復帰。実コードコミット `cf106665f6497aca5270a84b565a8fc0d4029a66`、HTML rev `8410fd1bf5d53a15e8fdbb2ee1d28e712fe8b669`。JS全文構文PASS。実Android操作は未検証。既存SAVE_SCHEMA2を維持。Pages build/deployは後続HEADの結果を確認する。
 
