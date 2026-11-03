@@ -1,7 +1,7 @@
 /* WILD RECLAIM standard physical gamepad: PS/Xbox positions, no save changes. */
 (()=>{
 "use strict";
-const B=()=>window.WildGamepadBridge, dead=.2, hold={2:450,3:550};
+const B=()=>window.WildGamepadBridge, dead=.2, hold={2:450,1:550};
 let active=-1,modeBefore="",mx=0,my=0,focused=null,label="";
 let navDirection=0,navStarted=0,navLast=0,selectEditing=false,selectOriginal=null;
 const menuGuide=document.getElementById("gamepad-menu-guide"),menuCurrent=document.getElementById("gamepad-menu-current");
@@ -16,7 +16,7 @@ function clearFocus(){
  if(focused)focused.classList?.remove("gamepad-focused");
  focused=null;selectEditing=false;selectOriginal=null;navDirection=0;navStarted=0;navLast=0;
 }
-function neutral(){mx=my=0;began.clear();fired.clear();B()?.setMove(0,0)}
+function neutral(){mx=my=0;began.clear();fired.clear();B()?.setMove(0,0);B()?.action("sprint",false);B()?.action("attack",false)}
 function selectText(el){
  if(!el)return "項目を選択してください";
  if(el.id==="continue-btn")return "続きから／最初からプレイ";
@@ -35,7 +35,7 @@ function updateGuide(p,mode){
  if(menuCurrent.textContent!==tip)menuCurrent.textContent=tip;
 }
 function status(p,mode){
- const s=p?"パッド"+(p.index+1)+" 接続｜"+(mode==="play"?"左:移動 右:視点 ×:攻撃 ○:ジャンプ □:飛びつき △:行動 START:停止":mode==="menu"?"十字/左スティック:選択 ×/A:決定 ○/B:戻る":"十字/左スティック:選択 ×/A:決定 ○/B:戻る"):"";
+ const s=p?"パッド"+(p.index+1)+" 接続｜"+(mode==="play"?"左スティック:移動 右:視点 △/Y:連続攻撃 □/X:飛びつき/長押しダッシュ ○/B:食べる/くわえる ×/A:ジャンプ START:停止":mode==="menu"?"十字/左スティック:選択 ×/A:決定 ○/B:戻る":"十字/左スティック:選択 ×/A:決定 ○/B:戻る"):"";
  if(s!==label){hud.textContent=s;label=s}hud.hidden=!p||mode==="menu"||mode==="dying"||mode==="result";updateGuide(p,mode);
 }
 function visible(el){if(!el||el.disabled||el.closest?.(".hidden"))return false;const d=el.closest?.("details:not([open])");return (!d||el.tagName==="SUMMARY")&&(!el.getClientRects||el.getClientRects().length>0)}
@@ -183,14 +183,24 @@ function poll(dt=.016){
   if(down(9)){b.pause();neutral()}
   else if(down(8)||down(10)){b.map();neutral()}
   else{
-   if(down(0))b.action("attack",false);
-   if(down(1))b.action("jump",false);
+   // PS/Xbox position mapping: top △/Y, left □/X, right ○/B, bottom ×/A.
+   if(down(3))b.action("attack",true);
+   if(up(3))b.action("attack",false);
+   if(down(0))b.action("jump",false);
    if(down(4))b.zoom(-.12);
    if(down(5))b.zoom(.12);
-   for(const i of [2,3]){
+   for(const i of [2,1]){
     if(down(i)){began.set(i,t);fired.delete(i)}
-    if(now[i]&&began.has(i)&&!fired.has(i)&&t-began.get(i)>=hold[i]){b.action(i===2?"pounce":"context",true);fired.add(i)}
-    if(up(i)){if(began.has(i)&&!fired.has(i))b.action(i===2?"pounce":"context",t-began.get(i)>=hold[i]);began.delete(i);fired.delete(i)}
+    if(now[i]&&began.has(i)&&!fired.has(i)&&t-began.get(i)>=hold[i]){
+     b.action(i===2?"sprint":"context",true);fired.add(i);
+    }
+    if(up(i)){
+     if(i===2&&fired.has(i))b.action("sprint",false);
+     else if(began.has(i)&&!fired.has(i)&&t-began.get(i)<hold[i])
+      b.action(i===2?"pounce":"context",false);
+     else if(i===1&&began.has(i)&&!fired.has(i))b.action("context",true);
+     began.delete(i);fired.delete(i);
+    }
    }
   }
  }else if(mode==="dying"){
