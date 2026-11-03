@@ -207,11 +207,30 @@ function weight(type,region,day=1,weather="CLEAR"){
  }
  return w;
 }
+// Per-region encounter memory prevents repeat apex predators and same-species clusters.
+// Only modifies an existing spawn draw: never creates additional NPCs or save data.
+const encounterHistory=Array.from({length:8},()=>[]);
+const apexTypes=new Set(["lion","tiger","cheetah","elephant","hippo","gorilla","blackBear","hyena","wildDog"]);
 function choose(region,day,weather,preyOnly=false,random=Math.random()){
- const pool=types.map(type=>({type,w:preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather)}));
- const sum=pool.reduce((v,e)=>v+e.w,0);if(!(sum>0))return "rat";let target=Math.max(0,Math.min(.999999999999,Number(typeof random==="function"?random():random)||0))*sum;
- for(const entry of pool){target-=entry.w;if(target<0&&entry.w>0)return entry.type;}
- return "rat";
+ const index=Number.isInteger(region)&&region>=0&&region<8?region:0;
+ const history=encounterHistory[index];
+ const recentApex=history.slice(-5).filter(type=>apexTypes.has(type)).length;
+ const pool=types.map(type=>{
+  let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
+  if(w>0&&!preyOnly){
+   const same=history.slice(-4).filter(previous=>previous===type).length;
+   if(same)w*=Math.pow(.46,same);
+   if(apexTypes.has(type)&&recentApex)w*=recentApex>=2?.04:.28;
+  }
+  return {type,w};
+ });
+ const sum=pool.reduce((v,e)=>v+e.w,0);
+ if(!(sum>0))return "rat";
+ let target=Math.max(0,Math.min(.999999999999,Number(typeof random==="function"?random():random)||0))*sum;
+ let chosen="rat";
+ for(const entry of pool){target-=entry.w;if(target<0&&entry.w>0){chosen=entry.type;break;}}
+ if(!preyOnly){history.push(chosen);if(history.length>12)history.shift();}
+ return chosen;
 }
 // Pose selection is read-only; hunting AI and SAVE_SCHEMA remain unchanged.
 function visualState(o){
