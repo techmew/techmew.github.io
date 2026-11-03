@@ -35,6 +35,54 @@ const species={
  armadillo:{hp:65,r:17,speed:150,damage:5,prey:true,xp:4,food:28,color:"#8c7967",belly:"#b9a28a"},
  hedgehog:{hp:28,r:12,speed:110,damage:3,prey:true,xp:2,food:13,color:"#6b6053",belly:"#c6b39a"}
 };
+
+// Playable roster contract for the gacha/party owners. Wild NPC species remain separate.
+// unlockYear is the earliest world year; discovery/mission unlocks may additionally gate a species.
+const playableRoster=Object.freeze([
+ ["cat","猫","日本","basic",0,"land","俊足"],["dog","犬","日本","basic",0,"land","追跡"],
+ ["fox","狐","日本","basic",0,"land","伏撃"],["wolf","狼","日本","rare",7,"land","遠吠え"],
+ ["deer","鹿","日本","basic",0,"land","跳躍"],["boar","猪","日本","basic",0,"land","突進"],
+ ["crow","カラス","日本","basic",0,"air","滑空"],["pigeon","ハト","日本","basic",0,"air","飛翔"],
+ ["otter","カワウソ","日本","rare",7,"amphibious","潜水"],["carp","コイ","日本","rare",7,"water","水中突進"],
+ ["tanuki","タヌキ","日本","basic",0,"land","雑食"],["badger","アナグマ","日本","rare",7,"land","掘削"],
+ ["macaque","ニホンザル","日本","rare",7,"land","登攀"],["blackBear","ツキノワグマ","日本","legendary",17,"land","剛腕"],
+ ["serow","ニホンカモシカ","日本","rare",7,"land","登坂"],
+ ["manul","マヌルネコ","世界","rare",7,"land","隠密伏撃"],
+ ["tibetanFox","チベットスナギツネ","世界","rare",7,"land","追い出し急襲"],
+ ["shoebill","ハシビロコウ","世界","rare",17,"wading","静止嘴突き"],
+ ["lion","ライオン","世界","legendary",17,"land","咆哮"],["tiger","トラ","世界","legendary",17,"land","奇襲"],
+ ["cheetah","チーター","世界","rare",7,"land","高速疾走"],
+ ["elephant","ゾウ","世界","legendary",34,"land","踏みつけ"],
+ ["hippo","カバ","世界","legendary",34,"amphibious","大顎"],
+ ["gorilla","ゴリラ","世界","legendary",34,"land","強打"],
+ ["giraffe","キリン","世界","rare",17,"land","首打ち"],
+ ["zebra","シマウマ","世界","rare",7,"land","後脚蹴り"],
+ ["hyena","ハイエナ","世界","rare",17,"land","骨砕き"],
+ ["wildDog","リカオン","世界","rare",17,"land","連携狩り"],
+ ["armadillo","アルマジロ","世界","basic",7,"land","丸まり防御"],
+ ["hedgehog","ハリネズミ","世界","basic",7,"land","棘防御"]
+].map(([id,name,origin,rarity,unlockYear,movement,skill])=>
+ Object.freeze({id,name,origin,rarity,unlockYear,movement,skill})));
+const playableById=Object.freeze(Object.fromEntries(playableRoster.map(e=>[e.id,e])));
+const rarityWeights=Object.freeze({basic:65,rare:30,legendary:5});
+function availablePlayable(year=0,discovered=[]){
+ const visited=new Set(Array.isArray(discovered)?discovered:[]);
+ return playableRoster.filter(e=>year>=e.unlockYear||visited.has(e.id));
+}
+function drawPlayable(year=0,discovered=[],random=Math.random){
+ const available=availablePlayable(year,discovered);
+ if(!available.length)return playableById.cat;
+ const groups=["basic","rare","legendary"].map(rarity=>({
+  rarity,pool:available.filter(e=>e.rarity===rarity),weight:rarityWeights[rarity]
+ })).filter(g=>g.pool.length);
+ const sum=groups.reduce((n,g)=>n+g.weight,0);
+ const roll=()=>Math.min(.999999999999,Math.max(0,Number(random())||0));
+ let target=roll()*sum;
+ let group=groups[groups.length-1];
+ for(const g of groups){target-=g.weight;if(target<0){group=g;break;}}
+ return group.pool[Math.floor(roll()*group.pool.length)];
+}
+
 const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat","manul","tibetanFox","shoebill","otter","carp","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"];
 const weights=[
  [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
@@ -94,7 +142,7 @@ function weight(type,region,day=1,weather="CLEAR"){
 }
 function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const pool=types.map(type=>({type,w:preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather)}));
- const sum=pool.reduce((v,e)=>v+e.w,0);let target=random*sum;
+ const sum=pool.reduce((v,e)=>v+e.w,0);if(!(sum>0))return "rat";let target=Math.max(0,Math.min(.999999999999,Number(random)||0))*sum;
  for(const entry of pool){target-=entry.w;if(target<0&&entry.w>0)return entry.type;}
  return "rat";
 }
@@ -401,5 +449,5 @@ function draw2D(ctx,o,r,fur,light,pace){
  }
  return true;
 }
-window.WildFauna=Object.freeze({species,types,weights,weight,choose,visualState,draw2D});
+window.WildFauna=Object.freeze({species,types,weights,weight,choose,visualState,draw2D,playableRoster,playableById,rarityWeights,availablePlayable,drawPlayable});
 })();
