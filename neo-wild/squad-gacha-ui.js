@@ -152,8 +152,11 @@ const ready=()=>{
   info.textContent="編成 "+slot+" / "+size+"　残り引き直し "+(4-draw.options.length)+"回";
   body.replaceChildren();
   const option=draw.options.find(m=>m.id===selected)||draw.options[0];selected=option.id;
-  const hero=el("article","squad-featured");
+  const hero=el("article","squad-featured squad-rarity-"+(option.rarity||"basic"));
+  hero.setAttribute("aria-label",(RARITY[option.rarity]||"基本")+"の抽選個体");
   hero.append(preview(option,"squad-featured-image"),detail(option));body.append(hero);
+  const reveal=el("div","squad-rarity-reveal squad-rarity-"+(option.rarity||"basic"),"抽選結果："+(RARITY[option.rarity]||"基本")+" ／ "+option.grade+"評価");
+  reveal.setAttribute("role","status");body.insertBefore(reveal,hero);
   const group=el("div","squad-options");group.setAttribute("role","group");group.setAttribute("aria-label","抽選済み候補");
   for(const m of draw.options){
    const card=makeBtn("",()=>{selected=m.id;showDraw()},"squad-candidate"+(selected===m.id?" selected":""));
