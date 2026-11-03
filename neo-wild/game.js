@@ -7081,8 +7081,11 @@ function debugRunCase(id){
    const cover=plants.filter(visibleShrub).sort((a,b)=>dist(P,a)-dist(P,b)).find(p=>dist(P,p)<1100&&!collides(p.x,p.y,P.r,P)&&!waterBlocksLand(p.x,p.y));
    if(!cover||!debugTeleport(cover.x,cover.y))return no("潜伏できる茂みが見つかりません");
    P.hidden=true;P.revealTimer=0;
-  }else if(["level2","level10","level20"].includes(key)){
-   P.level=Number(key.slice(5));P.xp=0;P.nextXp=Math.max(5,Math.round(5*Math.pow(1.5,P.level-1)));syncStrongBossChallenge();
+  }else if(/^level[1-9][0-9]*$/.test(key)){
+   const level=Number(key.slice(5));if(level>1000)return no("レベル上限は1000です");
+   P.level=level;P.xp=0;
+   let threshold=5;for(let n=1;n<level&&threshold<1e9;n++)threshold=Math.min(1e9,Math.round(threshold*1.5+2));
+   P.nextXp=threshold;syncStrongBossChallenge();
   }else if(key==="death"){P.hp=0;beginDeath();return {ok:true,message:"死亡演出からリトライを確認"};}
   else return no("状態が未実装");
   return ok("自キャラ状態："+key);
@@ -7103,6 +7106,12 @@ function debugRunCase(id){
 }
 Object.assign(window.WildDebugBridge,{
  listCases:debugCaseList,diagnostics:debugDiagnostics,runCase:debugRunCase,
+ teleportTo(x,y){
+  if(mode!=="play"||!P||!Number.isFinite(x)||!Number.isFinite(y)||x<20||y<20||x>WORLD.w-20||y>WORLD.h-20)
+   return {ok:false,message:"ゲーム中にマップ内の座標を指定してください"};
+  if(!debugTeleport(x,y))return {ok:false,message:"この地点の周囲に移動できる地形がありません"};
+  saveAuto();return {ok:true,message:"移動座標："+Math.round(P.x)+", "+Math.round(P.y)};
+ },
  getRenderer:()=>debugRendererPreference,
  setRenderer(value){if(!["auto","2d"].includes(value))return false;
   debugRendererPreference=value;
