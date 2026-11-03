@@ -10,7 +10,7 @@ const $=id=>document.getElementById(id);
 const el=(tag,cl,text)=>{const node=document.createElement(tag);if(cl)node.className=cl;if(text!==undefined)node.textContent=text;return node};
 const makeBtn=(label,fn,cl)=>{const node=el("button",cl,label);node.type="button";node.addEventListener("click",fn);return node};
 const ready=()=>{
- const core=window.WildSquad,menu=$("menu");if(!core||!menu||$("squad-home"))return;
+ const core=window.WildSquad,menu=$("menu");if(!core||!menu||window.WildSquadGachaUI)return;
  // Leave the old choice buttons in the DOM solely for SAVE_SCHEMA2 game code.
  // They cannot be seen, focused or used to bypass the new squad flow.
  const oldPicker=menu.querySelector(".animals");
@@ -18,16 +18,16 @@ const ready=()=>{
  if(oldPicker){oldPicker.id="legacy-animal-picker";oldPicker.hidden=true;oldPicker.setAttribute("aria-hidden","true");oldPicker.querySelectorAll("button").forEach(b=>b.tabIndex=-1);}
  if(legacyTitle&&legacyTitle.classList.contains("pick-head")){legacyTitle.hidden=true;legacyTitle.setAttribute("aria-hidden","true");}
  const oldLabel=$("new-game-animal-label");if(oldLabel){oldLabel.hidden=true;oldLabel.setAttribute("aria-hidden","true");}
- const home=el("section","squad-home");home.id="squad-home";home.setAttribute("aria-label","編成ガチャと現在の仲間");
- const gacha=makeBtn("ガチャを引く・編成する",()=>{}, "squad-home-gacha");
+ const existingHome=$("squad-home");const home=existingHome||el("section","squad-home");home.id="squad-home";home.setAttribute("aria-label","編成ガチャと現在の仲間");
+ const gacha=$("squad-open")||makeBtn("ガチャを引く・編成する",()=>{}, "squad-home-gacha");
  // Handler is assigned below after begin exists.
  gacha.id="squad-open";
- const title=el("h2","squad-home-title","現在の編成");
- const roster=el("div","squad-home-roster");roster.id="squad-roster";
- const hint=el("p","squad-home-hint","ストックなし・最大3体。ガチャで編成して出発。");
- home.append(gacha,title,roster,hint);
+ const title=home.querySelector(".squad-home-title")||el("h2","squad-home-title","現在の編成");
+ const roster=$("squad-roster")||el("div","squad-home-roster");roster.id="squad-roster";
+ const hint=home.querySelector(".squad-home-hint")||el("p","squad-home-hint","ストックなし・最大3体。ガチャで編成して出発。");
+ if(!existingHome)home.append(gacha,title,roster,hint);
  const lead=menu.querySelector(".lead")||menu.querySelector(".hero-title");
- if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);
+ if(!existingHome){if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);}
  // Collapse rarely used information instead of stacking buttons in two columns.
  const extras=el("details","squad-menu-extras");extras.id="squad-menu-extras";
  extras.append(el("summary",null,"その他・画面設定・探索記録"));
@@ -254,7 +254,7 @@ const ready=()=>{
   const observer=new MutationObserver(()=>{if(!menu.classList.contains("hidden"))updateHome()});
   observer.observe(menu,{attributes:true,attributeFilter:["class"]});
  }
- window.WildSquadGachaUI={open:begin,refresh:updateHome};
+ window.WildSquadGachaUI={open:begin,refresh:updateHome};home.dataset.initialized="true";
  updateHome();
 };
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ready);else ready();
