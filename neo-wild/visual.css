@@ -1125,3 +1125,12 @@
   line-height:1.26;
  }
 }
+
+/* Mobile-safe new-game confirmation, separate from the saved-game resume route. */
+#new-game-animal-label{margin:2px 0 8px;color:#f7dfaa;font-weight:800;font-size:12px;line-height:1.4}
+#new-game-confirm{display:flex;flex-direction:column;gap:9px;margin-top:10px;padding:12px;border:1px solid #e9b865;background:#132927ee;box-shadow:0 6px 20px #0007}
+#new-game-confirm.hidden{display:none!important}
+#new-game-confirm p{margin:0;color:#f2f1df;font-size:13px;line-height:1.6}
+#new-game-confirm strong{color:#ffcf80}
+#new-game-confirm #confirm-new-game-btn{min-height:48px;justify-content:center;text-align:center}
+#new-game-confirm #cancel-new-game-btn{width:100%;min-height:44px;background:#29443f;border:1px solid #77978a;color:#eef6e8;text-align:center;font-size:13px;font-weight:800}
