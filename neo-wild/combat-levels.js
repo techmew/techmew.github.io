@@ -20,12 +20,22 @@ const variants=Object.freeze({
  venomSnake:{name:"二段毒牙",windup:.84,reach:1.22,power:.93,cooldown:1.28,slow:.60},
  cheetah:{name:"高速飛びかかり",windup:.68,reach:1.33,power:1.12,cooldown:1.25,stamina:12},
  lion:{name:"前脚の薙ぎ払い",windup:.90,reach:1.26,power:1.22,cooldown:1.20,stamina:15,knock:25,arc:1.38},
- giraffe:{name:"強烈な連続蹴り",windup:1.14,reach:1.18,power:1.22,cooldown:1.10,stamina:16},
+ giraffe:{name:"首と頭の横薙ぎ",windup:1.27,reach:1.48,power:1.34,cooldown:1.35,stamina:18,knock:32,arc:1.42,neckStrike:true},
  elephant:{name:"長い鼻の横薙ぎ",windup:.98,reach:1.22,power:1.24,cooldown:1.15,stamina:19,knock:42,arc:1.33},
  hippo:{name:"大口の噛みつき",windup:1.12,reach:1.17,power:1.27,cooldown:1.17,stamina:14,slow:.85},
  zebra:{name:"後ろ蹴り",windup:.90,reach:1.15,power:1.10,cooldown:1.12,stamina:8},
  serow:{name:"急斜面の頭突き",windup:.93,reach:1.12,power:1.08,cooldown:1.12,knock:13},
- mountainGoat:{name:"連続頭突き",windup:.88,reach:1.14,power:1.14,cooldown:1.14,knock:19}
+ mountainGoat:{name:"連続頭突き",windup:.88,reach:1.14,power:1.14,cooldown:1.14,knock:19},
+ // Each ordinary animal gets an appropriate move rather than a generic shared hit.
+ deer:{name:"角を振り上げる",windup:.97,reach:1.26,power:1.12,cooldown:1.24,knock:17,arc:1.2},
+ rabbit:{name:"後脚の蹴り",windup:.72,reach:1.04,power:.42,cooldown:1.6},
+ pigeon:{name:"翼で威嚇",windup:.58,reach:1.15,power:.25,cooldown:1.5},
+ crow:{name:"くちばしの突き",windup:.53,reach:1.16,power:.45,cooldown:1.32},
+ frog:{name:"跳び退き",windup:.62,reach:1.12,power:.18,cooldown:1.35},
+ rat:{name:"窮鼠の反撃",windup:.51,reach:1.10,power:.30,cooldown:1.25},
+ snake:{name:"飛びかかる噛みつき",windup:.76,reach:1.28,power:1.04,cooldown:1.10,slow:.45},
+ macaque:{name:"石を投げる",windup:.86,reach:1.20,power:1.10,cooldown:1.16},
+ chimpanzee:{name:"枝の振り下ろし",windup:1.00,reach:1.17,power:1.25,cooldown:1.35}
 });
 function level(type){return levels[type]||1;}
 function gap(type,playerLevel){return Math.max(0,level(type)-Math.max(1,Math.floor(Number(playerLevel)||1)));}
