@@ -6183,7 +6183,12 @@ function drawScene(){
  }
  if(use3D&&P&&mode!=="dying"){
   const pos=project(P.x,P.y);ctx.save();
-  const ringY=pos.y-(P.groundZ||0)*.93*cameraZoom,headY=pos.y-(P.jumpHeight||0)*.93*cameraZoom;
+  // The WebGL animal stands on the terrain elevation plus roof/jump height.
+  // Keep the HUD ring and YOU anchored to the very same 3D surface.
+  const terrainHeight=window.WildMountain?.height?.(P.x,P.y)||0;
+  const renderFeet=terrainHeight+Math.max(0,P.groundZ||0);
+  const renderBody=terrainHeight+Math.max(0,P.jumpHeight||0);
+  const ringY=pos.y-renderFeet*.93*cameraZoom,headY=pos.y-renderBody*.93*cameraZoom;
   ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
   ctx.beginPath();ctx.ellipse(pos.x,ringY+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
   ctx.textAlign="center";ctx.font="900 11px sans-serif";ctx.lineWidth=3;
