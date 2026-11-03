@@ -6,6 +6,11 @@
 (() => {
  "use strict";
  const YEAR_SECONDS=120,DAY_SECONDS=85,MONTH_SECONDS=10;
+ // Three hundred years of encounter progression fit in one hundred calendar years.
+ // This multiplier NEVER changes the 120s/year clock, seasons, aging or saves.
+ const EVENT_ERA_SCALE=3;
+ const eventYear=worldYear=>Math.max(0,Number(worldYear)||0)*EVENT_ERA_SCALE;
+ const eventIntervalYears=originalYears=>Math.max(0,Number(originalYears)||0)/EVENT_ERA_SCALE;
  const seasonNames=["冬","春","夏","秋"];
  const rainNormals=[4.5,5.2,9.2,9.5,10.1,11.6,10.5,7.9,11,10.5,7.4,5.2];
  const monthLengths=[31,28,31,30,31,30,31,31,30,31,30,31];
@@ -57,7 +62,7 @@
   return Math.round(cover*100)/100;
  }
  window.WildWorldClock=Object.freeze({
-  YEAR_SECONDS,DAY_SECONDS,MONTH_SECONDS,at,snowpackAt,
+  YEAR_SECONDS,DAY_SECONDS,MONTH_SECONDS,EVENT_ERA_SCALE,eventYear,eventIntervalYears,at,snowpackAt,
   fromDay(day){return at((Math.max(1,Number(day)||1)-1)*DAY_SECONDS);},
   weatherAt
  });
