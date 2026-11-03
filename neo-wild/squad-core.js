@@ -54,6 +54,22 @@ function addXp(amount){
  }
  return save(r);
 }
+// Tickets are earned in gameplay, never purchased. Only vacant slots can consume them.
+function grantTickets(amount=1){
+ const r=load();if(!r)return null;
+ const n=Number.isSafeInteger(amount)?Math.max(0,Math.min(100,amount)):0;
+ r.gachaTickets=Math.min(999,Math.max(0,r.gachaTickets||0)+n);
+ return save(r);
+}
+function fillVacancy(member){
+ const r=load();if(!r||!Array.isArray(r.members)||r.members.length>=3)return {ok:false,reason:"空き枠がありません"};
+ if(!member||!member.id||!playable.has(member.species)||member.alive===false||dead().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
+ if((r.gachaTickets||0)<1)return {ok:false,reason:"ガチャ権が不足しています"};
+ r.members.push({...member,alive:true});r.gachaTickets-=1;
+ const saved=save(r);
+ return {ok:true,roster:saved};
+}
+function livingCount(){return load()?.members?.length||0}
 function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
-window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,rarity,KEY,DEAD};
+window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,grantTickets,fillVacancy,livingCount,rarity,KEY,DEAD};
 })();
