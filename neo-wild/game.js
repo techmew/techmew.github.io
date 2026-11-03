@@ -408,7 +408,18 @@ function simulateEcology(dt){
   const growing=e.food>35&&e.prey<85?1+Math.floor((e.food-35)/35):0;
   const hunted=Math.min(e.prey,Math.floor(e.predators/8)+(e.pressure>2?1:0));
   e.prey=clamp(e.prey+growing-hunted,4,86);
-  e.food=clamp(e.food+2-Math.floor(e.prey/22),10,94);
+  // World-year seasons and disasters change actual regional carrying capacity.
+  // No new save keys: prey/predator/food remain in the existing 8-district
+  // ecology array and therefore survive old SAVE_SCHEMA2 restoration.
+  const era=window.WildEraEcology?.state?.(i,elapsed/120);
+  const season=window.WildWorldClock?.at?.(elapsed)?.seasonIndex??-1;
+  const snow=window.WildWorldClock?.snowpackAt?.(elapsed)??0;
+  const foodMultiplier=era?.food??1;
+  const drought=foodMultiplier<.85, winter=season===0;
+  const seasonalGrowth=winter?-2:season===1?2:season===2?1:0;
+  const weatherLoss=(weather==="THUNDER"||weather==="SNOW")?1:0;
+  e.food=clamp(e.food+2-Math.floor(e.prey/22)+seasonalGrowth-(drought?2:0)-weatherLoss-Math.round(snow*2),10,94);
+  if(era?.animals<.86&&e.prey>12)e.prey=Math.max(4,e.prey-1);
   const foodSupported=e.prey>=e.predators*1.6;
   e.predators=clamp(e.predators+(foodSupported&&step%2===0?1:0)-(!foodSupported?1:0),3,31);
   e.pressure=clamp(e.pressure+(e.prey<oldPrey?1:-1),0,5);
@@ -416,6 +427,30 @@ function simulateEcology(dt){
    e.dominance=(e.dominance+1)%3;e.pressure=0;e.events++;
   }
   if(oldDominance!==e.dominance)ecologyNews=districts[i]+"：群れの勢力が交代";
+ }
+ // Real inter-district migration: animals leave low-food regions for neighboring
+ // higher-food ones. This is population movement, not spawning/teleporting NPCs:
+ // live local animals are retained; the destination's future birth pool rises.
+ // Transfers are bounded and happen only once per 15-second ecology tick.
+ for(let i=0;i<ecology.length;i++){
+  const source=ecology[i];
+  if(source.food>=31||source.prey<=8)continue;
+  const candidates=(i<5?[i-1,i+1,i+5]:[i-5,i-1,i+1])
+   .filter(j=>j>=0&&j<ecology.length&&j!==i);
+  let best=-1,benefit=12;
+  for(const j of candidates){
+   const dest=ecology[j];
+   const era=window.WildEraEcology?.state?.(j,elapsed/120);
+   const food=dest.food*(era?.food??1);
+   const diff=food-source.food;
+   if(diff>benefit&&dest.prey<78){benefit=diff;best=j;}
+  }
+  if(best<0)continue;
+  const migrating=Math.min(3,Math.floor((31-source.food)/7)+1,source.prey-7,86-ecology[best].prey);
+  if(migrating<=0)continue;
+  source.prey-=migrating;ecology[best].prey+=migrating;
+  source.pressure=clamp(source.pressure+1,0,5);
+  ecologyNews=districts[i]+"から"+districts[best]+"へ獣群が移動";
  }
 }
 
