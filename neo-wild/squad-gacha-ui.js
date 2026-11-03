@@ -131,7 +131,7 @@ const ready=()=>{
    if(!m){card.append(el("div","squad-roster-empty","＋"),el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
-    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"リーダー":"仲間")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"));
+    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"リーダー":"仲間")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
    roster.append(card);
   }
@@ -199,6 +199,11 @@ const ready=()=>{
   root.hidden=false;showSize();root.scrollTop=0;
  }
  gacha.addEventListener("click",begin);
+ // Refresh the roster whenever the title is shown after a death or a pause.
+ if(typeof MutationObserver==="function"){
+  const observer=new MutationObserver(()=>{if(!menu.classList.contains("hidden"))updateHome()});
+  observer.observe(menu,{attributes:true,attributeFilter:["class"]});
+ }
  window.WildSquadGachaUI={open:begin,refresh:updateHome};
  updateHome();
 };
