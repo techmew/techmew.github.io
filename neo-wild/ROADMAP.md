@@ -1,3 +1,11 @@
+## 2026/11/03 11:40 JST｜40分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- 新たに遊べる機能：UFOの照射中、見えているプレイヤーを最大72座標/秒で追跡。潜伏・遮蔽時は野生動物を優先して追跡。NPC誘拐・プレイヤー捕獲地点に2時間相当ではなく実時間7200秒残る発光痕跡を2D HUD表示。円盤進行状態・痕跡・クールダウンをlocalStorageへ定期永続化しリロード後も遭遇を再開可能。
+- 変更：neo-wild/ufo-events.js commit c29f0eb69da3661c529a9519eabb57465855900d、neo-wild/index.html rev commit 3111ef094fe67bf9bba102d8398b01bbc48c5d94。開始時ROADMAP blob f3be0681c948d6f9c2c849d98adcb33f1bfebde8。対象以外変更なし。
+- PASS：実モジュール構文、潜伏回避、捕獲死亡、履歴・痕跡の再生成後復元。未検証：ブラウザE2E、Android/GPU/Pad、SAVE2/3、Pages build/deploy。UFO事件の世界本体セーブ・後継/図鑑/トロフィー連携は未完成。V2 A16 B12 C9 D4 E8 F9 G8 H4 I4=74/100（差0）、採点据置。
+- 次00分：game.js:beginDeath/restoreSnapshot/currentSnapshot に捕獲死亡後の後継と永続世界を統合、WildUFO.saveState をSAVE2互換追加フィールドへ接続。
+- 次20分：game.js:lineBlocked/insideShelter にUFO照射遮蔽を統合、game.js:spawnMob/maintainLocalWildlife で誘拐後の動物補充・生態分布を調整。
+- 次40分：webgl3d.js:render に円盤3D描画、bestiary.js にUFO痕跡/遭遇履歴、game.js:drawScene に照射予兆と死亡後表示を統合。
+
 ## 2026/11/03 10:4x JST｜40分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **今回実装（部分統合）**：UFO飛来→3秒接近→11秒照射→逃走/潜伏/遮蔽で回避→2.2秒連続照射でプレイヤー捕獲・死亡導線。NPCが光線内にいれば誘拐しHP0。世界50年以降の低確率発生、イベント間隔制限。2D Canvas HUD上に円盤・警告・光線を表示（WebGLでもHUD合成）。事件履歴をlocalStorage別キーに直近30件記録。**セーブ本体へのイベント状態統合、後継選択、NPC死骸/図鑑/トロフィー連動は未実装**。
 - **変更**：neo-wild/ufo-events.js（新規）、neo-wild/game.js（update/drawScene連結）、neo-wild/index.html（ロード順とrev）。開始HEAD 8e629e3d（記録時HEAD、実作業開始時は d6399b19）、コードコミット 18abc636→9abf839a→8e629e3d。コード検査：JS関数実行4/4 PASS（構文・捕獲死亡・潜伏回避・NPC誘拐）。ブラウザE2E、実Android/Pad、WebGL実画面、SAVE2/3CP実データ、Pages deployは未検証。Pages run 41561428206 は確認時 pending。
