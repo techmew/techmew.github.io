@@ -1,3 +1,11 @@
+## 2026/11/03 12:40枠｜40分・亡霊の実体験AIと憑依｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **新たな実プレイ機能**：世界45年以降の希少な亡霊出現。徘徊→実体化→プレイヤー追跡→消失。壁と隠れ状態で追跡を回避可能。接近したプレイヤーは恐怖が蓄積し、憑依でスタミナが減り移動速度が一時72%へ低下。NPC動物も近距離の亡霊を警戒し、既存の逃走・警戒AIで退避。Canvas画面上に亡霊を描画し、遭遇座標・世界年と次回出現年、進行中の亡霊を独立localStorageに保存。死亡/再ロード後も世界記録を維持。デバッグからWildApparitions.summon(x,y,year)で実遭遇を再現可能。既存UFO・倒木・年時計・旧SAVE2には干渉しない。
+- **コードSHA**：neo-wild/apparitions.js新規 commit 2aba255eac5f77cf30f23e6ec47860d8259dc88c、neo-wild/game.js 統合 commit 9f45c1a6bac1ce6f0c1c1955965bd73ca4f855ed と憑依移動処理 commit 66b06059bd535917cab1c5b5e1405129009e9ea7、neo-wild/index.html 読込/キャッシュ commit 0c7e6804ffd17f6e5cf14c129279060661a31e56。共通スプリント維持、他ゲーム/ブログは変更なし。
+- **検証**：JavaScript実モジュール動的試験18/18 PASS（出現・徘徊→実体化・スタミナ消費・憑依・NPC逃走・潜伏解除・消失・遭遇保存・Canvas呼出・本体構文・読込順・旧SAVE2）。実ブラウザ、Android/Pad、長時間FPS、旧端末実セーブのE2Eは**未検証**。怪異図鑑・200実績連携、幻覚・複数怪異・異星人基地・怪獣地形破壊は**未実装**。
+- **次00分への入力**：WildApparitions.history()/saveState() を世界年表・図鑑・200トロフィー・世界永久保存へ接続。死亡/後継/再出発時に遭遇履歴が失われないことをE2Eで確認。game.js:update 内 WildApparitions.tick、render内 draw、P.hauntedTime を参照。
+- **次20分への入力**：NPCの恐怖/逃走・生息地AIと亡霊の縄張り/廃村/洞窟の地域条件、災害と怪異の相互作用を実地形・衝突で接続。apparitions.js:tick の m.flee/m.alert、lineBlocked を参照。
+- **次40分**：UFO NPC誘拐の死骸/図鑑/家系接続、異星人観察/基地AI、亡霊幻覚・消失演出、WebGL描画、怪獣固有攻撃の次の縦切り。PHASE A継続、進捗74/100据え置き（実機未検証）。
+
 ## 2026/11/03 12時台｜20分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **新たな実プレイ機能**：5〜15世界年程度のランダム間隔で局所地震の前兆（4.5秒）→倒木→実移動衝突・迂回→近くのNPC動物が逃走→5〜14年後の自然回復。世界年120秒/年に同期。世界中のプレイヤー付近の合法地点から抽選し、障害物や世界境界・プレイヤー直近・行き止まりを避ける。Canvas HUDに危険予告と倒木を表示。死亡/再起動後も独立localStorageキーに最大12件の倒木と次の災害抽選年を保持。地形永久変化・洪水・隕石はまだ未実装。
 - **実変更**：開始HEAD 08bdc32edd3a4a3cbe1ea3111d93466c59f0e017。neo-wild/disaster-world.js 新規 commit ff6df1af6305b336c0275f2969ff8fc0974b0fff（blob 0dd08318b9748619f58814960c0b10c48433679d）。neo-wild/game.js 衝突/update/描画統合 commit 06c374aaf96f9991b3d025a7bc562d2083decfde（blob 085e1c3539e2af90cc5a3a43e787e36c80048448）。neo-wild/index.html 読込順とrev commit 4ba811a090cd211d899e9b883a5d6be8ab313f21（blob c0d0d74ea649c058e7a6cda8170179068a037a71）。記録直前HEAD 4ba811a090cd211d899e9b883a5d6be8ab313f21。他ゲーム・ブログ変更なし。
