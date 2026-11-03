@@ -2,30 +2,43 @@
 (function(){
 "use strict";
 const key="wild-reclaim-ufo-events-v1";
-let event=null, cooldown=0, history=[];
+let event=null, cooldown=0, history=[], traces=[];
+const stateKey="wild-reclaim-ufo-state-v2";
+try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,Number(saved.cooldown)||0);traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
+let persistTimer=0;
+function persist(){try{localStorage.setItem(stateKey,JSON.stringify({event,cooldown,traces:traces.slice(-12)}))}catch(_){}}
+function trace(kind,year,x,y){traces.push({kind,year,x,y,age:0});traces=traces.slice(-12);persist()}
 try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))history=v.slice(-30)}catch(_){}
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function record(kind,year,x,y){history.push({kind,year,x:Math.round(x),y:Math.round(y)});history=history.slice(-30);try{localStorage.setItem(key,JSON.stringify(history))}catch(_){}}
-function resetTransient(){event=null;cooldown=80}
-function summon(x,y){event={x,y,t:0,stage:"approach",beam:0,victim:null};return event}
+function resetTransient(){event=null;cooldown=80;persist()}
+function summon(x,y){event={x,y,t:0,stage:"approach",beam:0,victim:null,originX:x,originY:y};persist();return event}
 function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
+ traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
+ persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
  if(!event){cooldown=Math.max(0,cooldown-dt);if(year>=50&&cooldown===0&&Math.random()<dt/950){summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420);cooldown=420;world.notify("空に正体不明の円盤が現れた！")};return}
  const e=event;e.t+=dt;
  if(e.stage==="approach"&&e.t>=3){e.stage="scan";e.t=0;world.notify("謎の光線！ 遮蔽物に隠れるか逃げろ")}
  if(e.stage==="scan"){
+  // The saucer tracks a visible target, but cannot instantly teleport onto it.
+  const visible=!P.hidden&&!world.lineBlocked(P,e);
+  const target=visible?P:mobs.filter(m=>m.hp>0&&!m.companion).sort((a,b)=>distance(a,e)-distance(b,e))[0];
+  if(target){const d=distance(e,target);if(d>12){const step=Math.min(d,Math.min(72,20+e.t*3)*dt);e.x+=(target.x-e.x)/d*step;e.y+=(target.y-e.y)/d*step}}
   // NPC can be abducted before the player: nearest living wildlife in beam.
   const targets=mobs.filter(m=>m.hp>0&&!m.companion&&distance(m,e)<95).sort((a,b)=>distance(a,e)-distance(b,e));
-  if(targets.length&&e.t>2.5){const m=targets[0];m.hp=0;m._killRegistered=true;record("NPC誘拐",year,m.x,m.y);world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0}
-  else if(distance(P,e)<105&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
+  if(targets.length&&e.t>2.5){const m=targets[0];m.hp=0;m._killRegistered=true;record("NPC誘拐",year,m.x,m.y);trace("NPC誘拐",year,m.x,m.y);world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0}
+  else if(distance(P,e)<105&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
- if(e.stage==="depart"&&e.t>2){event=null;cooldown=Math.max(cooldown,300)}
+ if(e.stage==="depart"&&e.t>2){event=null;cooldown=Math.max(cooldown,300);persist()}
 }
 function draw(ctx,project,world){
- if(!event||!world||world.mode!=="play")return;
+ if(!world||world.mode!=="play")return;
+ for(const mark of traces){const q=project(mark.x,mark.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
+ if(!event)return;
  const e=event,p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
  const radius=35+Math.sin(e.t*5)*3;
  ctx.save();ctx.translate(p.x,p.y-110);ctx.fillStyle="#1b2837";ctx.strokeStyle="#a5e9ff";ctx.lineWidth=3;
@@ -36,5 +49,5 @@ function draw(ctx,project,world){
  if(e.beam>0){ctx.fillStyle="#ffe0a0";ctx.fillRect(-38,24,76*e.beam/2.2,5)}}
  ctx.restore();
 }
-window.WildUFO={tick,draw,resetTransient,summon,history:()=>history.slice(),get active(){return event}};
+window.WildUFO={tick,draw,resetTransient,summon,history:()=>history.slice(),traces:()=>traces.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12)}),get active(){return event}};
 })();
