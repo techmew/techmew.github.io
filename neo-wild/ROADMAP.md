@@ -1,3 +1,10 @@
+# 2026-11-04｜02:20枠 30種プレイ候補・排出帯と水陸適性データ（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実コード】fauna.jsに日本15種/世界15種のガチャ候補を種別ID・日本語名・基本/希少/伝説級・解放世界年・移動適性（陸/飛行/水中/水陸両用/浅瀬）・種族固有能力で定義。30種の重複なし。未解放帯を除いた65/30/5の再正規化抽選関数drawPlayableを公開。drawPlayable/availablePlayableはガチャ担当が呼べる純粋APIで、プレイヤー生成・抽選権・個体IVを勝手に変更しない。コイは水中専用、ハシビロコウは浅瀬専用。野生NPC選択のゼロ重み/乱数端点も保護。
+- 【実装SHA】fauna.js commit 376e6239ea157a073a6977d947ef1a6d2e832da6 / blob 102bfd9f4e65c9f8d4848e91b1ae1f19b4b0ae30。変更前blob a8f0c198f4dc41e37162236e9efaf1050cb6e896。
+- 【検証】最新mainを再取得、30種（日本15/世界15）重複なし静的確認。実ブラウザ・Android・Pad・セーブE2E・Pagesの最新反映は未検証。30種の3D操作実装済みとは判定しない。
+- 【次00分】WildFauna.drawPlayable(year,discovered,random) / playableById をsquad-core抽選に接続、既存抽選との二重抽選を防止しガチャ権/死亡セーブを保全。【次40分】movementとskillを編成画面・3Dプレビューと移動制限へ反映。【次20分】実際の野生NPC生態/ガチャ権をゲームプレイへ統合。
+
 # 2026-11-04｜02:00枠 個体別成長曲線と開始地点保存（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【コード実装】squad-core.js:addXpで全員に同一獲得XPを配分しつつ、個体別growthRateと早熟/標準/大器晩成の成長曲線を適用。大器晩成はLv12以降に伸びる。Lv100上限、無効XP・成長率の入力を制限。
