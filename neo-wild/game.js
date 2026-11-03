@@ -621,7 +621,14 @@ function updateVenom(dt){
 }
 function updateSurvivalNeeds(dt){
  const before=P.hunger;
- const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1);
+ // Age is measured by the unaccelerated 120-second world year. Senior animals
+ // require more food and recover more slowly, without permanently altering
+ // inherited/base combat stats or corrupting SAVE_SCHEMA2 snapshots.
+ const lifeFraction=Number.isFinite(P.ageYears)&&Number.isFinite(P.lifespanYears)&&P.lifespanYears>0
+  ?clamp(P.ageYears/P.lifespanYears,0,1):0;
+ const seniorNeed=lifeFraction>=.9?1.22:lifeFraction>=.75?1.10:1;
+ const seniorRecovery=lifeFraction>=.9?.65:lifeFraction>=.75?.85:1;
+ const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed;
  P.hunger=clamp(before-drain,0,100);
  // Integrate the exact time at zero hunger even when a frame crosses the threshold.
  const emptySeconds=before<=0?dt:drain>0?dt*clamp((drain-before)/drain,0,1):0;
@@ -630,7 +637,7 @@ function updateSurvivalNeeds(dt){
  if(before>0&&P.hunger===0&&P.hp>0)notify("空腹0：生命が減少中。食べ物を探そう");
  if(P.hp<=0)return false;
  if(P.hunger>0&&atDen()&&!denThreatNearby())
-  P.hp=Math.min(P.maxHp,P.hp+traitEffect("giantElephant",denRestRate())*dt);
+  P.hp=Math.min(P.maxHp,P.hp+traitEffect("giantElephant",denRestRate())*dt*seniorRecovery);
  return true;
 }
 // Only reachable enemies interrupt rooftop rest and wound recovery.
