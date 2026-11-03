@@ -2,15 +2,15 @@
 (function(){
 "use strict";
 const key="wild-reclaim-ufo-events-v1";
-let event=null, cooldown=0, history=[], traces=[];
+let event=null, cooldown=0, history=[], traces=[], alienSites=[];
 const MAX_HISTORY=80;
 const eraYear=y=>window.WildWorldClock?.eventYear?.(y)??y*3;
 const safeBlocked=(world,a,b)=>typeof world.lineBlocked==="function"&&world.lineBlocked(a,b);
 const beamRange=95, playerBeamRange=105;
 const stateKey="wild-reclaim-ufo-state-v2";
-try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,(Number(saved.cooldown)||0)/(saved.paceVersion===3?1:3));traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
+try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,(Number(saved.cooldown)||0)/(saved.paceVersion===3?1:3));traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];alienSites=Array.isArray(saved.alienSites)?saved.alienSites.slice(-4):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
 let persistTimer=0;
-function persist(){try{localStorage.setItem(stateKey,JSON.stringify({paceVersion:3,event,cooldown,traces:traces.slice(-12)}))}catch(_){}}
+function persist(){try{localStorage.setItem(stateKey,JSON.stringify({paceVersion:3,event,cooldown,traces:traces.slice(-12),alienSites:alienSites.slice(-4)}))}catch(_){}}
 function trace(kind,year,x,y){traces.push({kind,year,x,y,age:0});traces=traces.slice(-12);persist()}
 try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))history=v.slice(-MAX_HISTORY)}catch(_){}
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -20,6 +20,9 @@ function summon(x,y,formation=false){event={x,y,t:0,stage:"approach",beam:0,vict
 function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
+ // Alien observation sites are physical hazards: animals flee, the player can hide or leave.
+ for(const site of alienSites){site.age+=dt;if(site.age>210)continue;const d=distance(P,site);if(d<125&&!P.hidden&&!safeBlocked(world,P,site)){P.sp=Math.max(0,(Number(P.sp)||0)-dt*1.8);if(!site.warned){world.notify?.("異星の観測基地だ！ 身を隠すか離れろ");site.warned=true}}for(const m of mobs){if(m.hp>0&&distance(m,site)<155){m.flee=Math.max(Number(m.flee)||0,1.4);m.alert=Math.max(Number(m.alert)||0,1.4);m.lastX=site.x;m.lastY=site.y}}}
+ alienSites=alienSites.filter(site=>site.age<210);
  traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
  persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
  if(!event){cooldown=Math.max(0,cooldown-dt);if(eraYear(year)>=50&&cooldown===0&&Math.random()<dt/(950/3)){const formation=eraYear(year)>=100&&Math.random()<0.085;summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420,formation);cooldown=formation?240:420/3;world.notify(formation?"複数の円盤が飛来！ 動物たちが逃げ始めた":"空に正体不明の円盤が現れた！")};return}
@@ -92,11 +95,12 @@ function tick(dt,world){
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
- if(e.stage==="depart"&&e.t>2){event=null;cooldown=Math.max(cooldown,300/3);persist()}
+ if(e.stage==="depart"&&e.t>2){if(e.formation&&alienSites.length<4&&Math.random()<.42){alienSites.push({x:e.originX,y:e.originY,age:0,warned:false});record("異星観測基地",year,e.originX,e.originY);world.onEvent?.("alien-observation-site",{year,x:e.originX,y:e.originY});world.notify?.("円盤が去った跡に奇妙な観測装置が残った")}event=null;cooldown=Math.max(cooldown,300/3);persist()}
 }
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
  for(const mark of traces){const q=project(mark.x,mark.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
+ for(const site of alienSites){const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.min(.8,(210-site.age)/30);ctx.strokeStyle="#82f1cb";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,24,12,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x,q.y-38);ctx.lineTo(q.x-16,q.y);ctx.lineTo(q.x+16,q.y);ctx.closePath();ctx.stroke();ctx.restore()}
  if(!event)return;
  const e=event,p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
  if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
@@ -115,6 +119,6 @@ function draw(ctx,project,world){
  if(e.beam>0||e.npcBeam>0){ctx.fillStyle="#ffe0a0";ctx.fillRect(-38,24,76*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/2.4)),5)}}
  ctx.restore();
 }
-function resetWorld(){event=null;cooldown=0;history=[];traces=[];persistTimer=0;try{localStorage.setItem(key,"[]")}catch(_){}persist();return true}
-window.WildUFO={tick,draw,resetTransient,resetWorld,summon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12)}),get active(){return event}};
+function resetWorld(){event=null;cooldown=0;history=[];traces=[];alienSites=[];persistTimer=0;try{localStorage.setItem(key,"[]")}catch(_){}persist();return true}
+window.WildUFO={tick,draw,resetTransient,resetWorld,summon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),alienSites:()=>alienSites.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12),alienSites:alienSites.slice(-4)}),get active(){return event}};
 })();
