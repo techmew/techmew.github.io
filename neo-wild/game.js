@@ -6138,20 +6138,16 @@ function drawDeathVignette(){
  ctx.restore();
 }
 function drawScene(){
- // Quakes shake the entire play field (including HUD) for a short interval,
- // while world XY, collision, camera and saves remain physically unchanged.
+ // Earthquakes affect the world view only; never transform the app or HUD.
+ // Keep motion under two pixels to avoid motion sickness on mobile.
  const quake=mode==="play"?window.WildDisaster?.quakeShake?.(elapsed):null;
+ const quakeOffset=quake?{x:Math.max(-1.5,Math.min(1.5,quake.x*.12)),y:Math.max(-1.2,Math.min(1.2,quake.y*.12))}:{x:0,y:0};
  const appSurface=$("app");
- if(appSurface){
-  if(quake&&quake.strength>.01){
-   appSurface.style.transformOrigin="50% 50%";
-   appSurface.style.transform="translate3d("+quake.x.toFixed(2)+"px,"+quake.y.toFixed(2)+"px,0) rotate("+quake.rotation.toFixed(4)+"rad) scale(1.016)";
-  }else appSurface.style.transform="";
- }
+ if(appSurface&&appSurface.style.transform)appSurface.style.transform="";
  const presence=$("boss-presence");
  if(presence)presence.classList.toggle("active",mode==="play"&&elapsed<bossPresenceUntil);
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
- const x=cam.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
+ const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
  if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
