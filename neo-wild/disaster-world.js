@@ -4,6 +4,7 @@
 const KEY="wild_reclaim_disasters_v1",MAX=12;
 let events=[],nextYear=5+Math.random()*10,warning=null,lastYear=0;
 let nextFloodYear=8+Math.random()*14,floodWarning=null,history=[];
+let nextFireYear=14+Math.random()*23,fireWarning=null;
 const finite=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
 function restore(){
  try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return;
@@ -12,10 +13,12 @@ function restore(){
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
  nextFloodYear=Math.max(0,finite(x.nextFloodYear,8+Math.random()*14));
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
- history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","flood"].includes(e.kind)).slice(-60):[];
+ history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","flood","wildfire"].includes(e.kind)).slice(-60):[];
+ nextFireYear=Math.max(0,finite(x.nextFireYear,14+Math.random()*23));
+ fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
  }catch(_){}
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({events,nextYear,lastYear,warning,nextFloodYear,floodWarning,history}));}catch(_){}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history}));}catch(_){}}
 function active(e,year){return e.permanent||year-e.year<e.duration;}
 function blocked(x,y,r,year){return events.some(e=>e.kind==="fallen_tree"&&active(e,year)&&Math.hypot(x-e.x,y-e.y)<e.radius+r);}
 function floodDepth(x,y,year){
@@ -30,6 +33,38 @@ function floodDepth(x,y,year){
   depth=Math.max(depth,Math.min(.85,(1-d/e.radius)*1.4*scale));
  }
  return depth;
+}
+function fireIntensity(x,y,year){
+ let intensity=0;
+ for(const e of events)if(e.kind==="wildfire"&&active(e,year)){
+  const d=Math.hypot(x-e.x,y-e.y),age=Math.max(0,year-e.year);
+  if(d>=e.radius)continue;
+  const ramp=Math.min(1,(age+.04)/.16),cool=Math.min(1,Math.max(0,(e.duration-age)/.25));
+  intensity=Math.max(intensity,(1-d/e.radius)*ramp*cool);
+ }
+ return intensity;
+}
+function scheduleFire(api,year,forcedPosition=null){
+ if(fireWarning||events.some(e=>e.kind==="wildfire"&&active(e,year)))return false;
+ if(api.weather==="RAIN"||api.weather==="THUNDER")return false;
+ const r=118,{WORLD,P,collides,roadsX=[],roadsY=[],buildings=[]}=api;
+ const valid=(x,y)=>Number.isFinite(x)&&Number.isFinite(y)&&x>r+140&&y>r+140&&
+ x<WORLD.w-r-140&&y<WORLD.h-r-140&&Math.hypot(x-P.x,y-P.y)>r+180&&
+ !roadsX.some(v=>Math.abs(v-x)<r+75)&&!roadsY.some(v=>Math.abs(v-y)<r+75)&&
+ !buildings.some(b=>x>b.x-r-40&&x<b.x+b.w+r+40&&y>b.y-r-40&&y<b.y+b.h+r+40)&&
+ !collides(x,y,18,null,true)&&
+ [[r+60,0],[-r-60,0],[0,r+60],[0,-r-60]].filter(([dx,dy])=>!collides(x+dx,y+dy,18,null,true)).length>=3;
+ let spot=forcedPosition&&valid(forcedPosition.x,forcedPosition.y)?forcedPosition:null;
+ if(!spot)for(let k=0;k<80;k++){
+  const x=250+Math.random()*Math.max(1,WORLD.w-500);
+  const y=2600+Math.random()*Math.max(1,WORLD.h-2900);
+  if(valid(x,y)){spot={x,y};break;}
+ }
+ if(!spot)return false;
+ fireWarning={x:spot.x,y:spot.y,radius:r,seconds:7,year};
+ announceEscape(fireWarning,api.mobs);
+ if(Math.hypot(P.x-spot.x,P.y-spot.y)<1100)api.notify("焦げた臭いがする。山火事に警戒");
+ persist();return true;
 }
 function announceEscape(event,mobs){
  for(const m of mobs||[]){
@@ -136,12 +171,58 @@ function tick(dt,api){
    m.flee=Math.max(m.flee||0,2.0);m.fleeThreatX=e.x;m.fleeThreatY=e.y;
   }
  }
+ if(fireWarning){
+  fireWarning.seconds-=dt;
+  if(fireWarning.seconds<=0){
+   const e={kind:"wildfire",x:fireWarning.x,y:fireWarning.y,radius:fireWarning.radius,
+    year,duration:1.2+Math.random()*1.5,permanent:false};
+   events.push(e);events=events.slice(-MAX);
+   history.push({kind:e.kind,year,x:e.x,y:e.y});history=history.slice(-60);
+   fireWarning=null;announceEscape(e,api.mobs);
+   if(Math.hypot(api.P.x-e.x,api.P.y-e.y)<1100)api.notify("山火事発生！煙と炎から離れろ");
+   persist();
+  }
+ }else if(year>=nextFireYear){
+  nextFireYear=year+19+Math.random()*30;
+  scheduleFire(api,year);persist();
+ }
+ // Wildfire is an actual lethal hazard. Keep corpses in the main game's normal remains system.
+ const playerHeat=fireIntensity(api.P.x,api.P.y,year);
+ if(playerHeat>.12&&api.P.hp>0&&!api.isSheltered?.(api.P)){
+  api.P.hp=Math.max(0,api.P.hp-dt*(4+19*playerHeat));
+  api.P.sp=Math.max(0,(api.P.sp||0)-dt*8*playerHeat);
+  api.P.fireBurnTime=Math.max(api.P.fireBurnTime||0,1.4);
+ }
+ for(const m of api.mobs||[]){
+  if(!m||m.hp<=0)continue;
+  const heat=fireIntensity(m.x,m.y,year);
+  if(heat<=.04)continue;
+  const fire=events.find(e=>e.kind==="wildfire"&&active(e,year)&&Math.hypot(m.x-e.x,m.y-e.y)<e.radius);
+  if(fire){m.flee=Math.max(m.flee||0,3);m.fleeThreatX=fire.x;m.fleeThreatY=fire.y;
+   m.resting=false;m.restTime=0;}
+  m.hp=Math.max(0,m.hp-dt*(3+16*heat));
+  if(m.hp===0&&!m.wildfireCorpseMade){
+   m.wildfireCorpseMade=true;api.onAnimalDeath?.(m,"wildfire");
+  }
+ }
  if(Math.floor(year)!==Math.floor(lastYear)){
   const before=events.length;events=events.filter(e=>active(e,year));if(events.length!==before)persist();
  }
  lastYear=year;
 }
 function draw(ctx,project,year){
+ for(const e of events)if(e.kind==="wildfire"&&active(e,year)){
+  const p=project(e.x,e.y);if(!p)continue;
+  ctx.save();ctx.fillStyle="rgba(235,87,22,.23)";ctx.strokeStyle="#f9a044";ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(p.x,p.y,e.radius*.84,e.radius*.5,-.25,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#ffe5b3";ctx.font="bold 13px sans-serif";ctx.textAlign="center";
+  ctx.fillText("山火事・危険",p.x,p.y-55);ctx.restore();
+ }
+ if(fireWarning){const p=project(fireWarning.x,fireWarning.y);if(p){
+  ctx.save();ctx.strokeStyle="#ffc06b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,46,0,Math.PI*2);ctx.stroke();
+  ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillStyle="#ffe6b3";
+  ctx.fillText("煙の予兆・避難",p.x,p.y-54);ctx.restore();
+ }}
  for(const e of events){if(e.kind!=="flood"||!active(e,year))continue;
   const p=project(e.x,e.y);if(!p)continue;
   ctx.save();ctx.fillStyle="rgba(36,135,190,.24)";ctx.strokeStyle="rgba(93,208,241,.72)";ctx.lineWidth=2;
@@ -162,8 +243,9 @@ function draw(ctx,project,year){
  if(warning){const p=project(warning.x,warning.y);if(p){ctx.save();ctx.strokeStyle="#ffbd4b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,45,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#fff0bc";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText("地震・倒木に注意",p.x,p.y-52);ctx.restore();}}
 }
 restore();
-window.WildDisaster={tick,draw,blocked,floodDepth,history:()=>history.slice(),events:()=>events.slice(),
- getState:()=>({events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,history:history.slice()}),
+window.WildDisaster={tick,draw,blocked,floodDepth,fireIntensity,history:()=>history.slice(),events:()=>events.slice(),
+ getState:()=>({events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
  force:(api)=>schedule(api,api.elapsed/120),
- forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null)};
+ forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
+ forceFire:(api,x,y)=>scheduleFire(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null)};
 })();
