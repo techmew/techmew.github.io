@@ -4904,7 +4904,7 @@ function syncHUD(hour){
   const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
   $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0");
  const moon=moonlightProfile(elapsed,weather);
- $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name;
+ $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name+(currentSnowpack()>.08?" · 積雪 "+Math.round(currentSnowpack()*100)+"%":"");
  const info=missionInfo();
  const stock=stockpileStep();
  const carryGuide=P.carry?(atDen()?"巣の中：○で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：○短押し 食べる／長押し 置く／巣で備蓄"):null;
@@ -6058,7 +6058,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
+ if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
@@ -6075,6 +6075,16 @@ function drawScene(){
  }
  drawWater2D();
   roadDraw();
+  // Canvas2D fallback receives the same world-year snow cover as native 3D.
+  const snowCover=currentSnowpack();
+  if(snowCover>.06){
+   for(let xx=farLeft;xx<x+vw*1.8+180;xx+=90)
+    for(let yy=farTop;yy<y+vh*2.3+180;yy+=90){
+     if(noise(xx*.073,yy*.091)>snowCover||waterDepth(xx+44,yy+41)>.005)continue;
+     ctx.fillStyle=(Math.floor(xx/90)+Math.floor(yy/90))%3?"#dceaf0dd":"#f1f4f6db";
+     ctx.fillRect(xx+5,yy+8,81,78);
+    }
+  }
   drawScenery2D();
  drawDenBedding2D(false);
  // Foot-level water wake, visible only while an animal is actually moving.
