@@ -1,3 +1,11 @@
+# 2026-11-04｜02:00枠 個体別成長曲線と開始地点保存（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【コード実装】squad-core.js:addXpで全員に同一獲得XPを配分しつつ、個体別growthRateと早熟/標準/大器晩成の成長曲線を適用。大器晩成はLv12以降に伸びる。Lv100上限、無効XP・成長率の入力を制限。
+- 【保存】squad-core.js:saveでstartPositionを保存・次回保存へ継承。既存編成の死亡ID照合、1〜3枠、旧SAVE_SCHEMA2を変更しない。
+- 【変更SHA】squad-core.js commit be605585649d16cd99bcf0fd4e42c72c32670de5 / blob 7b5171ee25d6a88a84e17423c614531b93dd8f1b。更新前blob 17236b21270d5a20f0863fc1a7d58a85c2b6efd7。
+- 【検証範囲】GitHub更新API成功。実ゲームからaddXp呼び出しが全経路に接続されているか、実ブラウザ・Android・Pad・旧セーブE2E・Pages配信は未検証。したがって実プレイ完成とは判定しない。
+- 【次00分】game.jsの狩猟XP→WildSquad.addXpを統合、個体HP/IV/レベルの再開復元と全滅後同世界ガチャのE2Eを実装。【20分】狩猟/探索による抽選権と安全圏。【40分】仲間AI実戦と死亡時交代UI。PHASE A継続。
+
 # 2026-11-04｜01:40枠 ガチャ希少度別演出・個体評価の視認性（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】ガチャの選択中個体に種族希少度（基本/希少/伝説級）と個体評価S〜Dを独立して示す結果帯を追加。希少は青、伝説級は金の枠と短い発光演出、動きを減らすOS設定ではアニメーション無効。既存Canvas/WebGLプレビュー、抽選率、編成保存、リーダー操作、他枠の変更は保全。
