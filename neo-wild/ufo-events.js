@@ -48,7 +48,7 @@ function tick(dt,world){
     world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0;
    }
   }else{e.victim=null;e.npcBeam=Math.max(0,(e.npcBeam||0)-dt*2)}
-  else if(distance(P,e)<105&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
+  if(distance(P,e)<105&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
