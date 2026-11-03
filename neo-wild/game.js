@@ -6872,7 +6872,7 @@ function makePartyMate(member,i,pos=null,hp=null){
   hp:hp==null?Math.max(1,Math.round(maxHp*(member.hpRatio??1))):Math.max(1,Math.min(maxHp,hp)),maxHp,
   companion:true,companionOwner:P.type,squadIndividualId:member.id,squadName:member.name,
   squadOrder,squadSpeedIV:member.iv?.speed||1,squadAttackIV:member.iv?.attack||1,
-  level:member.level||1,xp:member.xp||0,dir:P.dir||0,vx:0,vy:0,step:0,flash:0,swing:0,
+  level:member.level||1,xp:member.xp||0,squadGrowthLevel:member.level||1,squadLevel:member.level||1,dir:P.dir||0,vx:0,vy:0,step:0,flash:0,swing:0,
   companionAttackCD:0,companionHurtCD:1};
 }
 function syncSquadFollowers(){
