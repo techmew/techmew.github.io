@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=party-3-v1">
+<link rel="stylesheet" href="./visual.css?rev=8c47d9ff-gacha-recovery">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -104,6 +104,12 @@
 <div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell">
 <h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
 <p class="lead">人の消えた日本の町。<br>支配者になったのは、飢えた野生だった。</p>
+<section id="squad-home" class="squad-home" aria-label="編成ガチャと現在の仲間">
+ <button id="squad-open" type="button" class="squad-home-gacha">ガチャを引く・編成する</button>
+ <h2 class="squad-home-title">現在の編成</h2>
+ <div id="squad-roster" class="squad-home-roster" aria-live="polite">編成を読み込み中</div>
+ <p class="squad-home-hint">1〜3体編成・ストックなし。初回ガチャから出発。</p>
+</section>
 <div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
       <button id="continue-btn" type="button" class="save-choice resume-primary">
@@ -218,8 +224,8 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
-<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=d98dd14-party" defer></script>
-<script src="./squad-gacha-ui.js?rev=a6b999f2-age-sex" defer></script>
+<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=bca986c3-squad-20261104" defer></script>
+<script src="./squad-gacha-ui.js?rev=11c7d5ad-gacha-recovery-20261104" defer></script>
 <script src="./game.js?rev=e88c3f65-level-party" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
