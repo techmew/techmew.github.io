@@ -168,7 +168,17 @@ const ready=()=>{
  }
  function nextSlot(){
   if(chosen.length>=size){finish();return}
-  slot=chosen.length+1;draw=core.drawSlot(0,0,streak);draw.roll();selected=draw.options[0].id;showDraw();
+  slot=chosen.length+1;
+  // The world clock persists through party wipes. Do not lock rare species
+  // back to year zero when a survivor refills a vacancy or a squad is lost.
+  let year=0,explored=0;
+  try{
+   const chronicle=JSON.parse(localStorage.getItem("wild-reclaim-world-chronicle-v1")||"null");
+   year=Math.max(0,Number(chronicle?.worldYearsElapsed)||Math.floor((Number(chronicle?.elapsed)||0)/120));
+  }catch(_){}
+  const liveClock=window.WildWorldTime?.getState?.();
+  if(Number.isFinite(liveClock?.year))year=Math.max(year,liveClock.year);
+  draw=core.drawSlot(year,explored,streak);draw.roll();selected=draw.options[0].id;showDraw();
  }
  function showDraw(){
   info.textContent="編成 "+slot+" / "+size+"　残り引き直し "+(4-draw.options.length)+"回";
