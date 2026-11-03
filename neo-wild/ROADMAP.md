@@ -4,6 +4,7 @@
 - **差分**：`neo-wild/game.js`（`nearbyAwareWildPredator`新規、`wildPreyInterceptPoint/huntWildPrey/updateFoodThief`、休息・採食・逃走の既存関数接続）、`neo-wild/index.html`（game.js cache rev）、`neo-wild/ROADMAP.md`（本引継ぎ）。コードと台帳は同一原子的コミットを試行。
 - **実関数/構文検査**：新game.js全文V8構文PASS。実`scentReachTo/nearbyAwareWildPredator/wildPreyInterceptPoint`のV8隔離実行で風上/風下・雨/強風・遮蔽・実通行可能迂回・逃走中直追跡などPASS。結線/保存不変/命中LOS/密度不変を含め**16/16 PASS**。実ブラウザE2E、Android実機、実GPU、物理Pad、FPS、旧端末保存復元は**未検証**。本試験は実機ではない。
 - **公開状況**：コミット直前HEAD/blob再照合PASS。mainコミット後のSHA/Pages run ID/build/deployは実結果を別途照合。未確認を成功と記載しない。
+- **公開検証追記**：コード・HTML・ROADMAP同一commit `3172651f38464e19bfb4634fbe1b6ceaa8c8c9ef` のPages run **41552400869** はbuild=success、report-build-status=success、deploy=success（jobs個別確認）。追加の実 `huntWildPrey` 隔離試験4/4 PASS（風向追跡、逆風非追跡、壁越し無傷、LOS致死→死骸1）。総試験20/20 PASS。実ブラウザ・Android・物理Padは未検証。本記録コミット自身のPagesは別runとして確認する。
 - **機能別状態**：ワールド=途中／動物生態=途中（風下狩り・嗅覚逃走・横取り肉の摂食追加）／生存ループ=途中／強敵戦闘=途中／UI操作=途中。PHASE A継続。
 - **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4=**74.0/100（前回差0.0）**。実機・統合試験の新しい採点条件を満たさず加点なし。
 - **次40分枠**：①`fauna.js:visualState/draw2D`と`webgl3d.js:drawCommonAnimal3D`に風下接近/匂い警戒の固有姿勢を接続。②`game.js:drawMini/syncHUD`で捕食者の風向・警戒を視認できる軽量表示を検討、縦横HUDを維持。③`gamepad.js:poll`と`game.js:resolveAttack`で風下狩り→肉回収→横取り回避の4ボタン経路を連結。
