@@ -61,6 +61,7 @@ const species={
  giantEagle:{hp:345,r:39,speed:248,damage:43,prey:false,xp:19,food:76,color:"#76583c",belly:"#d2b98a"}
 };
 Object.assign(species,window.WildFauna?.species||{});
+for(const type of ['cat','fox','wolf'])if(!species[type])species[type]={...animals[type],prey:false,xp:4,food:35};
 const COMBAT_LEVELS=window.WildCombatLevels;
 const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲"};
 // The encyclopedia is account-local and independent from SAVE_SCHEMA2 checkpoints.
@@ -1197,6 +1198,7 @@ function currentSnapshot(){
  };
 }
 function saveAuto(){
+ persistSquadVitals();
  const snapshot=currentSnapshot();
  if(!snapshot)return false;
  if(debugTutorialSession)return true;
@@ -1309,7 +1311,8 @@ function restoreSnapshot(snapshot){
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
  let restoredCompanion=false;
  for(const m of mobs)if(m.companion){
-  if(!restoredCompanion&&m.companionOwner===choice&&["wildFox","strayCat","dog","boar","crow"].includes(m.type)&&!m.strongBoss){
+  if(m.squadIndividualId){m.companion=true;m.companionAttackCD=0;m.companionHurtCD=1.2;continue;}
+   if(!restoredCompanion&&m.companionOwner===choice&&["wildFox","strayCat","dog","boar","crow"].includes(m.type)&&!m.strongBoss){
    restoredCompanion=true;m.companionAttackCD=0;m.companionHurtCD=1.2;
    m.windup=0;m.chargeTime=0;m.packId=null;m.packOrder=0;
   }else m.companion=false;
@@ -1408,7 +1411,7 @@ function restoreSnapshot(snapshot){
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
  cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  const nearbyPredatorsRestored=ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
- enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
+ syncSquadFollowers();enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
@@ -3328,6 +3331,7 @@ function inheritStrongTrait(type){
 // Explicit recruitment: den meat is spent only after pressing the pantry button.
 function companionOfPlayer(){return P?mobs.find(m=>window.WildCompanions?.isAlly?.(m,P.type)):null;}
 function recruitCompanion(){
+ if(P?.squadIndividualId){notify('編成仲間はガチャで決定します');return false;}
  if(mode!=="inventory"||!P||!atDen())return false;
  const helper=window.WildCompanions;
  if(!helper||denLevel<2){notify("巣LV2で仲間を迎えられます");return false;}
@@ -3371,7 +3375,8 @@ function renderDenInventory(){
   btn.disabled=learned||denLevel<2||!atDen()||count<1;
   btn.setAttribute("aria-label",trait.name+" "+trait.effect+(learned?" 継承済み":" 必要素材1個、所持"+count+"個"));
  }
- const ally=companionOfPlayer(),allyButton=$("den-companion-btn"),allyStatus=$("den-companion-status");
+ const oldRecruit=$("den-companion-btn")?.closest(".den-food-row");if(oldRecruit)oldRecruit.classList.toggle("hidden",!!P?.squadIndividualId);
+  const ally=companionOfPlayer(),allyButton=$("den-companion-btn"),allyStatus=$("den-companion-status");
  if(allyStatus)allyStatus.textContent=ally?"仲間が同行中｜生命 "+Math.ceil(ally.hp)+"/"+ally.maxHp:"巣LV2で肉24ptを使い、同行する仲間を1匹迎えられます。";
  if(allyButton){allyButton.disabled=!atDen()||denLevel<2||denStores.meat<(window.WildCompanions?.cost||24)||!!ally||mobs.length>=WILDLIFE.cap;
   allyButton.textContent=ally?"仲間が同行中":"仲間を迎える（肉24pt）";}
@@ -6453,7 +6458,7 @@ function drawScene(){
  for(const m of entities)if(m.companion&&m.hp>0){
   ctx.save();ctx.textAlign="center";ctx.font="900 13px sans-serif";
   ctx.lineWidth=3;ctx.strokeStyle="#123b37";ctx.strokeText("仲間",m.x,m.y-m.r-29);
-  ctx.fillStyle="#9af5e9";ctx.fillText("仲間",m.x,m.y-m.r-29);ctx.restore();
+  ctx.fillStyle="#9af5e9";ctx.fillText(m.squadIndividualId?(m.squadName||"仲間"):"仲間",m.x,m.y-m.r-29);ctx.restore();
  }
  for(const m of entities)if(m.type==="dog"&&m.hp>0&&(m.foodTheftTell||0)>0){
   ctx.save();ctx.strokeStyle="#ffc38e";ctx.lineWidth=4;ctx.setLineDash([12,8]);
@@ -6522,7 +6527,8 @@ function drawScene(){
    ctx.fillStyle="#ee9d79";ctx.fillRect(pos.x-22,barY,44*pct,6);
   }
  }
- if(use3D&&P&&mode!=="dying"){
+ if(P?.squadIndividualId&&mode!=="dying")drawSquadFieldMarkers();
+  if(use3D&&P&&mode!=="dying"){
   const pos=project(P.x,P.y);ctx.save();
   // The WebGL animal stands on the terrain elevation plus roof/jump height.
   // Keep the HUD ring and YOU anchored to the very same 3D surface.
@@ -6919,7 +6925,7 @@ function applySquadLeader(){
  P.maxSp=100*member.iv.stamina;P.sp=Math.min(P.maxSp,100);
  P.level=member.level||1;P.xp=member.xp||0;
  initializeLife(P,elapsed,false);
- saveAuto();return true;
+ syncSquadFollowers();syncSquadHud();saveAuto();return true;
 }
 window.addEventListener("wild-squad-start",()=>{
  const r=window.WildSquad?.load?.();const m=r?.members?.find(x=>x.id===r.leaderId);
