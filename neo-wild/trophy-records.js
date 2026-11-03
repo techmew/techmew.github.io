@@ -21,6 +21,16 @@ add("ghost-hallucination","幻影の目撃者","亡霊の幻覚を見る",true,(
 add("first-death","命の終わり","最初の死亡を経験する",false,(e)=>e==="death");
 add("lightning-survive","雷を生き延びた者","落雷の直撃から生還する",true,(e,d)=>e==="lightning"&&d.survived);
 add("lightning-fatal","落雷の犠牲","落雷によって死亡する",true,(e,d)=>e==="lightning"&&d.fatal);
+// Disaster achievements are event-specific: location, warning and survival matter.
+const disasterKinds=[["fallen_tree","倒木"],["flood","河川氾濫"],["wildfire","山火事"]];
+for(const [kind,label] of disasterKinds){
+ add("disaster-witness-"+kind,label+"の目撃者",label+"の発生現場を目撃する",false,
+  (e,d)=>e==="disaster-witness"&&d.kind===kind&&d.distance<=d.radius+250);
+ add("disaster-escape-"+kind,label+"からの生還",label+"の危険範囲から生きて脱出する",true,
+  (e,d)=>e==="disaster-escape"&&d.kind===kind&&d.exposed===true&&d.alive===true);
+}
+add("disaster-triple","三つの災厄を知る者","倒木・洪水・山火事をすべて目撃する",true,
+ (e,d)=>e==="disaster-triple"&&d.all===true);
 const completed=new Set();
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&saved.version===1&&Array.isArray(saved.ids))for(const id of saved.ids)if(defs.some(x=>x.id===id))completed.add(id)}catch(_){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({version:1,ids:[...completed],updatedAt:Date.now()}))}catch(_){}}
