@@ -1,3 +1,10 @@
+# 2026-11-03 19:00 JST｜00分枠 UFO NPC誘拐の記録・トロフィー接続（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
+- 新たな実装（機能統合済・要検証）：ufo-events.js が実際にNPCを捕獲除去した時に発する onEvent('ufo-npc-abduction') を game.js のコアループで受信し、WildTrophies.record へ送信。捕獲された動物種・世界年・時刻を独立 localStorage キー wild-reclaim-ufo-abduction-history-v1 に最大80件保存。旧SAVE_SCHEMA2、チェックポイント3件、世界時計の保存形式は変更なし。
+- 変更：game.js commit 0a34a0e8 / blob 69f2fc1f、index.html cache rev commit 681b56ad / blob d4e1dee3。対象は neo-wild/ のみ。
+- 検査：game.js 全文 JavaScript 構文 PASS、ufo-events.js の実際のイベント名・ペイロード確認。実ブラウザ誘拐発火、旧セーブ、スマホ/Pad、Pages deploy は未検証。
+- 未完成：当該イベントに対応するユニークなトロフィー条件の登録、世界年表への表示、家系繁殖・生前/死亡時後継交代、初期飛行水生4種。次20分担当：NPC誘拐後の群れAI参照を検査。次40分担当：UFOの異常事件を図鑑・年表へ接続。次00分担当：家系の永続化・後継者選択を優先して実装。全仕様未完成、PHASE B移行禁止。
+
 # 2026-11-03 18:40 JST｜40分枠 UFO誘拐NPC完全除去（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
 - 機能統合済・要検証：ufo-events.js の未定義 species による捕獲時例外を修正。種別をNPC属性から取得し、誘拐個体を mobs から除去。死骸・肉・報酬生成経路への流入を防止。既存の逃走・遮蔽・光線蓄積・記録・通知を維持。
