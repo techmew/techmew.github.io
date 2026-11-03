@@ -1,3 +1,10 @@
+# 2026-11-04｜06:20枠 湿地食物連鎖とLv1市街安全圏（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】fauna.jsの既存野生NPC抽選weight()へ、カワウソ/ハシビロコウ/カバの湿地生息域限定、降雨時の捕食・カエル活動補正、遠隔肉食動物の獲物生息域重み、市街3地区（0/1/6）の大型・強敵9種ゼロ出現を接続。追加spawnは発生させず、既存密度上限と30種ガチャ・セーブを維持。
+- 【コミット】b74990d9889bdcc5695ee355f98a41b66bc16de7 / fauna.js blob 0c31a1a857a525b3ea1ebd92bb0fa00e8b72170a（更新前6156959aba1cbb6e5463012cae48518deb00949f）。
+- 【未検証】Android実機・WebGL/Canvas・旧SAVE_SCHEMA2・長時間密度・Pages反映。構文・実ブラウザE2Eは未実施。
+- 【引継ぎ】00分：水生種の永久死亡とガチャ権保存。40分：湿地の描画・同行AI。20分：魚の水中専用spawn/操作と未操作21種の順次統合。
+
 # 2026-11-04｜06:00枠 狩猟XPを3体共有成長へ接続（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】game.jsの狩猟成功時、WildSquad.addXp(earnedDNA)を呼び、生存中の編成全員へ個体別成長率・成長型を適用。600共有XPごとの空き枠用ガチャ権も実狩猟から獲得可能。
