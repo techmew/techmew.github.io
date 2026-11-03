@@ -2458,6 +2458,19 @@ function winterCoverSpotFor(actor,maxRange=1300,avoid=null,accept=null){
  return best;
 }
 function winterCoverSpot(){return winterCoverSpotFor(P,1300);}
+// WIND-STALK-HUNT-V1: use the saved world wind instead of a separate sine clock.
+// The player leaves a scent trail in the downwind direction; rain weakens it.
+function scentReachTo(observer,source=P){
+ if(!observer||!source)return 0;
+ const bearing=Math.atan2(observer.y-source.y,observer.x-source.x);
+ const along=Math.cos(bearing-windDirection);
+ const base=weather==="RAIN"||weather==="THUNDER"?38:weather==="WIND"?105:75;
+ return Math.max(12,base*(along>.35?1.48:along<-.35?.18:.52));
+}
+function isDownwindStalk(target){
+ if(!P||!target||dist(P,target)<25)return false;
+ return Math.cos(Math.atan2(P.y-target.y,P.x-target.x)-windDirection)>.5;
+}
 function detectsPlayer(m,sp,d){
  if(!sharesPlayerElevation(m))return false;
  // Grazer AI: quiet, uninjured animals do not endlessly chase at normal predator sight range.
@@ -2478,8 +2491,7 @@ function detectsPlayer(m,sp,d){
  const inSight=Math.abs(delta)<(sp.prey?2.22:m.strongBoss?2.05:1.37)||d<(m.strongBoss?85:57);
  const visibleNow=los&&inSight&&d<Math.max(42,sightRange);
  const heard=d<(los?38:24)+P.noise*(los?(m.strongBoss?195:116):58);
- const wind=Math.sin(elapsed*.022)*Math.PI;
- const smelled=d<(weather==="RAIN"||weather==="THUNDER"?38:weather==="WIND"?105:75)&&Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-wind)>.45;
+  const smelled=d<scentReachTo(m);
  return visibleNow||heard||smelled||(los&&d<P.r+m.r+17);
 }
 // Direct-control steering: both facing and velocity follow the input without a turning arc.
@@ -2797,7 +2809,8 @@ function resolveAttack(){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
-    const bonus=(foxBurst?1.4:1)*(silentHit?1.55*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
+     const downwindStrike=silentHit&&isDownwindStalk(m);
+     const bonus=(foxBurst?1.4:1)*(silentHit?(downwindStrike?1.75:1.55)*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
    const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
@@ -2821,7 +2834,7 @@ function resolveAttack(){
     hit++;
    
     if(species[m.type].prey&&m.hp>0)startlePrey(m,P,"hit");
-     if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90)}
+     if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,downwindStrike?"風下からの奇襲！":"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90);if(downwindStrike&&m.hp<=0)m.windStalkReward=true;}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=((P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0))*traitEffect("giantBuffalo",1);
@@ -2852,8 +2865,10 @@ function kill(m){
   label(m.x,m.y-m.r-65,"希少素材 "+material+" +1","#ffd68c");
   notify("強敵を討伐："+material+"の希少素材を獲得");
  }
- P.xp+=species[m.type].xp;
- label(m.x,m.y-50,"+"+species[m.type].xp+" DNA","#9aeac7");
+ const windDNA=m.windStalkReward?Math.max(1,Math.round(species[m.type].xp*.25)):0;
+  const earnedDNA=species[m.type].xp+windDNA;
+  P.xp+=earnedDNA;
+  label(m.x,m.y-50,"+"+earnedDNA+" DNA"+(windDNA?"（風下狩猟）":""),"#9aeac7");
  if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");playEffect("level")}
  if(kills===3||kills===9)notify("狩猟成功 / 食物連鎖が変化する");
  checkMission();
@@ -4410,7 +4425,8 @@ function syncHUD(hour){
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
- $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather];
+  const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
+  $("day-label").textContent="DAY "+String(day).padStart(2,"0")+" · "+String(hour===undefined?6:hour).padStart(2,"0")+":00 "+(hour===undefined||hour<5||hour>=19?"夜":hour<9?"朝":hour<17?"昼":"夕")+" · "+WEATHER_NAMES[weather]+" · 風"+windArrow;
  const moon=moonlightProfile(elapsed,weather);
  $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name;
  const info=missionInfo();
