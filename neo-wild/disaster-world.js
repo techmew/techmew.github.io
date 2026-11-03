@@ -348,6 +348,15 @@ function quakeShake(now=0){
 }
 window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),
  getState:()=>({paceVersion:PACE,events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
+ resetWorld(){
+  // Only an explicit NEW GAME resets the world. Continue/retry retain history.
+  events=[];history=[];warning=null;floodWarning=null;fireWarning=null;
+  lastYear=0;seismicSeconds=0;seismicPhase=0;
+  nextYear=eventDelay(5+Math.random()*10);
+  nextFloodYear=eventDelay(6+Math.random()*9);
+  nextFireYear=eventDelay(7+Math.random()*8);
+  persist();return true;
+ },
  debugClear(){events=[];warning=null;floodWarning=null;fireWarning=null;seismicSeconds=0;persist();return true;},
  force:(api)=>schedule(api,api.elapsed/120),
  forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
