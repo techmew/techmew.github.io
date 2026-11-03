@@ -1169,11 +1169,18 @@ function normalizeSavedPlayerStats(p,base){
  };
 }
 
+function squadSnapshotAlive(snapshot){
+ if(!isValidSnapshot(snapshot))return false;
+ const id=snapshot.player?.squadIndividualId;
+ if(!id)return true; // Pre-gacha SAVE_SCHEMA2 remains readable.
+ const roster=window.WildSquad?.load?.();
+ return !!roster?.members?.some(m=>m.id===id&&m.alive!==false);
+}
 function getAutoSnapshot(){
- try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return isValidSnapshot(s)?s:null}catch(_){return null}
+ try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return squadSnapshotAlive(s)?s:null}catch(_){return null}
 }
 function getCheckpoints(){
- try{const list=JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)||"[]");return Array.isArray(list)?list.filter(isValidSnapshot).slice(0,3):[]}catch(_){return []}
+ try{const list=JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)||"[]");return Array.isArray(list)?list.filter(squadSnapshotAlive).slice(0,3):[]}catch(_){return []}
 }
 function clearAutoSave(){
  if(debugTutorialSession)return;
@@ -1239,7 +1246,7 @@ function reconcileRestoredGoals(){
  return mission!==previous;
 }
 function restoreSnapshot(snapshot){
- if(!isValidSnapshot(snapshot))return false;
+ if(!squadSnapshotAlive(snapshot))return false;
  migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
  selectNewGameAnimal(choice);
@@ -3596,9 +3603,11 @@ function getObjective(){
  return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / △・Jで攻撃"};
 }
 function beginDeath(){
- if(P?.squadIndividualId&&window.WildSquad){const next=window.WildSquad.kill(P.squadIndividualId);if(next?.members?.length){window.__wildSquadPendingLeader=true;}else{window.__wildSquadPendingLeader=false;}}
-
  if(!P||mode!=="play"||P.hp>0)return false;
+ if(P.squadIndividualId&&window.WildSquad){
+  const next=window.WildSquad.kill(P.squadIndividualId);
+  window.__wildSquadPendingLeader=!!next?.members?.length;
+ }
  P.hp=0;deathSequenceTime=0;mode="dying";
  window.WildTrophies?.record?.("death",{reason:P.deathReason||"unknown"},notify);
  // Discard the dead run immediately, not after the shortened death fade; checkpoints stay intact.
