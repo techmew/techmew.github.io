@@ -34,6 +34,8 @@ const seasons=[
  {name:"秋",leaf:"#cb783b",detail:"#e7aa54",filter:"sepia(.10) saturate(1.10)"}
 ];
 function seasonOfDay(day){
+ const seasonal=window.WildWorldClock?.fromDay?.(day);
+ if(seasonal)return seasonal;
  let remaining=(((Math.max(1,Math.floor(day))-1)%365)+365)%365;
  let month=0;
  while(month<11&&remaining>=months[month])remaining-=months[month++];
@@ -189,13 +191,13 @@ function frame(ms){
  const hud=document.getElementById("day-label")?.textContent||"";
  const match=/DAY\s+(\d+)/.exec(hud);
  const day=match?Number(match[1]):1;
- const season=seasonOfDay(day);
+ const opts=current||fallbackScene(ms,day,hud,dw,dh);
+ const season=window.WildWorldClock?.at?.(opts.elapsed) || seasonOfDay(day);
  label.textContent=season.name+" "+season.month+"月";
  const menu=document.getElementById("menu");
  const show=!!match&&(!menu||menu.classList.contains("hidden"));
  layer.style.visibility=show?"visible":"hidden";
  if(!show)return;
- const opts=current||fallbackScene(ms,day,hud,dw,dh);
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
  // Disabled: these three-oval seasonal decals looked like unexplained white blobs.
@@ -212,6 +214,6 @@ window.WildSeasonClouds={
  setShadowsEnabled(value){shadowEnabled=!!value;},
  get shadowsEnabled(){return shadowEnabled;},
  get hasRenderState(){return !!current},
- get season(){const d=Number((/DAY\s+(\d+)/.exec(document.getElementById("day-label")?.textContent||"")||[])[1])||1;return seasonOfDay(d)}
+ get season(){const d=Number((/DAY\s+(\d+)/.exec(document.getElementById("day-label")?.textContent||"")||[])[1])||1;return window.WildWorldClock?.at?.(current?.elapsed??((d-1)*85))||seasonOfDay(d)}
 };
 })();
