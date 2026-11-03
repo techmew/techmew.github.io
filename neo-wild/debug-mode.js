@@ -120,14 +120,18 @@ window.addEventListener("error",event=>trackError(event.message||event.error?.me
 window.addEventListener("unhandledrejection",event=>trackError(event.reason?.message||event.reason||"未処理のPromiseエラー"));
 function qaCapture(force=false){
  try{
-  if(!force&&sessionStorage.getItem(qaBackupKey))return true;
+  const previous=!force?JSON.parse(sessionStorage.getItem(qaBackupKey)||"null"):null;
+  const currentMode=bridge()?.getState?.()?.mode||"menu";
+  // Unlocking on the title can precede a new run. Capture the *actual* run
+  // before its first QA mutation rather than restoring an obsolete menu save.
+  if(previous&&!(previous.mode==="menu"&&currentMode==="play"))return true;
   bridge()?.save?.();
   const entries={};
   for(let i=0;i<localStorage.length;i++){
    const k=localStorage.key(i);
    if(k&&(k.startsWith("wild-reclaim-")||k.startsWith("wild_reclaim_")))entries[k]=localStorage.getItem(k);
   }
-  sessionStorage.setItem(qaBackupKey,JSON.stringify({createdAt:Date.now(),entries}));
+  sessionStorage.setItem(qaBackupKey,JSON.stringify({createdAt:Date.now(),mode:currentMode,entries}));
   return true;
  }catch(error){trackError("QAバックアップ: "+error.message);return false}
 }
