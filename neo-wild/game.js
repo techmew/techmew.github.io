@@ -3136,6 +3136,10 @@ function kill(m){
  const windDNA=m.windStalkReward?Math.max(1,Math.round(species[m.type].xp*.25)):0;
   const earnedDNA=species[m.type].xp+windDNA;
   P.xp+=earnedDNA;
+  if(P.squadIndividualId&&window.WildSquad?.addXp){
+   // Award the same hunt XP to every living member; individual growth is resolved by squad-core.
+   window.WildSquad.addXp(earnedDNA);
+  }
   label(m.x,m.y-50,"+"+earnedDNA+" DNA"+(windDNA?"（風下狩猟）":""),"#9aeac7");
  if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");playEffect("level")}
  if(kills===3||kills===9)notify("狩猟成功 / 食物連鎖が変化する");
@@ -6823,7 +6827,7 @@ function persistSquadVitals(){
  const core=window.WildSquad,r=core?.load?.();if(!r)return;
  for(const m of r.members){
   const actor=m.id===P.squadIndividualId?P:mobs.find(q=>q.squadIndividualId===m.id&&q.hp>0);
-  if(actor){m.hpRatio=Math.max(0,Math.min(1,actor.hp/Math.max(1,actor.maxHp)));m.level=actor.level||m.level||1;m.xp=actor.xp||m.xp||0;}
+  if(actor){m.hpRatio=Math.max(0,Math.min(1,actor.hp/Math.max(1,actor.maxHp)));if(!actor.squadIndividualId){m.level=actor.level||m.level||1;m.xp=actor.xp||m.xp||0;}}
  }
  core.save(r);
 }
