@@ -13,11 +13,11 @@ const animals={
  wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"}
 };
 const species={
- rat:{hp:22,r:12,speed:105,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
- rabbit:{hp:30,r:15,speed:150,damage:0,prey:true,xp:1,food:33,color:"#c8b899",belly:"#f0e5d5"},
- pigeon:{hp:18,r:12,speed:125,damage:0,prey:true,xp:1,food:19,color:"#738c92",belly:"#e5e4d5"},
- dog:{hp:124,r:22,speed:161,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
- boar:{hp:190,r:28,speed:122,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
+ rat:{hp:22,r:12,speed:131,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
+ rabbit:{hp:30,r:15,speed:204,damage:0,prey:true,xp:1,food:33,color:"#c8b899",belly:"#f0e5d5"},
+ pigeon:{hp:18,r:12,speed:179,damage:0,prey:true,xp:1,food:19,color:"#738c92",belly:"#e5e4d5"},
+ dog:{hp:124,r:22,speed:224,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
+ boar:{hp:190,r:28,speed:232,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
  alpha:{hp:335,r:29,speed:231.4,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"},
  giantSnake:{hp:290,r:32,speed:105,damage:27,prey:false,xp:12,food:68,color:"#426c50",belly:"#b5b884"},
  oldBear:{hp:480,r:43,speed:137,damage:44,prey:false,xp:17,food:100,color:"#654a3c",belly:"#b09a79"},
@@ -2425,7 +2425,7 @@ function recoverPlayerFromGap(o){
 }
 
 function move(o,dx,dy){
- if(o===P&&Math.max(Math.abs(dx),Math.abs(dy))>10){
+ if(Math.max(Math.abs(dx),Math.abs(dy))>10){
   const parts=Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/10);
   for(let i=0;i<parts;i++)move(o,dx/parts,dy/parts);
   return;
@@ -3638,6 +3638,29 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
 const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque","chimpanzee"]);
+const WILD_DIETS={
+ lion:["deer","zebra","boar","serow","mountainGoat"],
+ cheetah:["rabbit","deer","serow","mountainGoat"],
+ dog:["rabbit","rat","deer","boar"],
+ alpha:["deer","boar","rabbit","zebra","serow"],
+ wildFox:["rat","rabbit","pigeon","crow","frog","weasel"],
+ strayCat:["rat","pigeon","crow","rabbit","frog"],
+ weasel:["rat","rabbit","frog"],
+ snake:["rat","frog","rabbit"],
+ venomSnake:["rat","frog","rabbit"],
+ raccoonDog:["rat","rabbit","frog","pigeon"],
+ blackPanther:["deer","boar","zebra","serow"],
+ oneEyedWolf:["deer","boar","rabbit","zebra"],
+ albinoWolf:["deer","boar","rabbit","serow"],
+ whiteTiger:["deer","boar","zebra","serow"],
+ oldBear:["deer","boar","rabbit","rat"],
+ giantLion:["deer","zebra","boar","serow"],
+ giantHyena:["deer","zebra","boar","rabbit"],
+ giantLizard:["rabbit","rat","boar"],
+ giantSnake:["rabbit","rat","deer"],
+ macaque:["rat","frog","pigeon"],
+ chimpanzee:["rat","rabbit","frog"]
+};
 const WILD_FORAGERS=new Set(["serow","mountainGoat","rat","rabbit","pigeon","crow","frog","deer","zebra","giraffe","elephant","hippo","boar","giantBoar","giantMoose","giantBuffalo","rhino","giantGorilla","giantElephant","macaque","chimpanzee"]);
 function isWildPredator(m){return !!m&&m.hp>0&&!m.companion&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
@@ -3678,12 +3701,13 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   return null;
  } // Inactive hunters must not reserve stale prey.
  const caveScent=MOUNTAIN?.zone(m.x)==="cave";
+ const diet=WILD_DIETS[m.type]||null;
  const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  const maxRange=caveScent?Math.max(330,maxRangeBase):maxRangeBase;
  let prey=null,best=maxRange,bestScore=Infinity;
  for(const q of mobs){
-  if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake")))continue;
-  if(["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque","chimpanzee"].includes(m.type)){
+  if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake"))||(diet&&!diet.includes(q.type)))continue;
+  if(!diet&&["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque","chimpanzee"].includes(m.type)){
    const smallPrey=["rat","frog","pigeon","crow","weasel"];
    if(["wildFox","weasel","raccoonDog"].includes(m.type))smallPrey.push("rabbit"); // Cave mammal predators can hunt cave rabbits.
    if(!smallPrey.includes(q.type))continue;
@@ -3709,10 +3733,20 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   const tracked=Number.isFinite(m.wildTargetAt)&&elapsed-m.wildTargetAt<.8&&
    Number.isFinite(m.wildTargetX)&&Number.isFinite(m.wildTargetY)&&
    Math.hypot(m.wildTargetX-q.x,m.wildTargetY-q.y)<Math.max(36,q.r+sp.speed*.30);
-  const score=distance+claimed*68-(tracked?Math.min(65,38+distance*.07):0);
+  const chosenDiet=diet?Math.max(0,diet.indexOf(q.type)):0;
+  const score=distance+chosenDiet*17+claimed*68-(tracked?Math.min(65,38+distance*.07):0);
   if(score<bestScore){bestScore=score;best=distance;prey=q;}
  }
  if(!prey){m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;return null;}
+ if(best<220&&(prey.flee||0)<=0&&species[prey.type]?.prey)startlePrey(prey,m,"alarm");
+ // Lions and cheetahs have brief high-speed bursts, not permanent max-speed cruising.
+ m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0));
+ m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0));
+ if(["lion","cheetah","wildFox"].includes(m.type)&&best<260&&best>m.r+prey.r+25&&m.huntSprintCooldown<=0){
+  m.huntSprintLeft=m.type==="lion"?1.7:m.type==="cheetah"?1.25:1.15;
+  m.huntSprintCooldown=m.type==="lion"?6:m.type==="cheetah"?6.5:5;
+  if(P&&dist(P,m)<380)label(m.x,m.y-m.r-34,m.type==="lion"?"獅子の短距離加速！":m.type==="cheetah"?"チーターの疾走！":"狐の跳躍！","#fbd6a1");
+ }
  const intercept=wildPreyInterceptPoint(m,prey,sp,best);
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;m.wildTargetAt=elapsed;
@@ -3722,6 +3756,15 @@ function huntWildPrey(m,sp,spotted,playerDistance){
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="albinoWolf"?.42:m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
   prey.hp=Math.max(0,prey.hp-bite);
+  // A cornered larger grazer can counter a predator. Damage is real and cooldown-limited.
+  if(prey.hp>0&&["boar","deer","zebra","serow","mountainGoat"].includes(prey.type)&&
+     (prey.attack||0)<=0&&!lineBlocked(prey,m)){
+   const guard=prey.type==="boar"?18:prey.type==="zebra"?15:prey.type==="mountainGoat"?13:prey.type==="serow"?11:8;
+   m.hp=Math.max(0,m.hp-guard);prey.attack=2.8;prey.swing=.26;
+   m.stun=Math.max(m.stun||0,.21);m.flee=Math.max(m.flee||0,.24);
+   if(P&&dist(P,prey)<380)label(prey.x,prey.y-prey.r-24,"反撃！ -"+guard,"#f6d8a7");
+   if(m.hp<=0){carcasses.push(animalRemains(m));m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;}
+  }
   prey.flash=Math.max(prey.flash||0,.18);m.swing=Math.max(m.swing||0,.18);
   if(prey.hp>0){
    if(!startlePrey(prey,m,"hit")){prey.flee=1.8;prey.dir=Math.atan2(prey.y-m.y,prey.x-m.x);}
@@ -3736,8 +3779,10 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   }
   if(P&&dist(P,m)<380)label(prey.x,prey.y-prey.r-20,prey.hp>0?"野生の狩り -"+bite:"野生の狩り","#eac6a1");
  }
- return {vx:Math.cos(m.dir)*sp.speed*(m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75),
-         vy:Math.sin(m.dir)*sp.speed*(m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75)};
+ if(m.hp<=0)return null;
+ const sprint=(m.huntSprintLeft||0)>0?(m.type==="lion"?1.36:m.type==="cheetah"?1.42:1.14):1;
+ const pace=m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
+ return {vx:Math.cos(m.dir)*sp.speed*pace*sprint,vy:Math.sin(m.dir)*sp.speed*pace*sprint};
 }
 // Choose a real road bridge before generic A* when wildlife crosses open water.
 function wildlifeBridgeWaypoint(m,goal){
@@ -4429,7 +4474,7 @@ function update(dt){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
   if(m.hp<=0)continue;
   if(m.companion){updateCompanion(m,dt);continue;}
-  const s=species[m.type];if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
+  const s=species[m.type];m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0)-dt);m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0)-dt);if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(m.type==="dog"&&updateFoodThief(m,dt,d))continue;
