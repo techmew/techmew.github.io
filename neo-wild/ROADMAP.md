@@ -1,3 +1,15 @@
+## 重大障害復旧｜2026/11/03 09:34 JST｜ユーザー実機報告｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1
+- **PHASE=A_FEATURE_COMPLETION（継続）**。ユーザー動画にて「セーブから再開→自キャラ不可視・方向操作不能・フリーズ」を確認。致命的進行不能障害を最優先復旧し、新機能追加は今回は停止。既存保存を削除・スキーマ変更しない。
+- **原因を実関数で再現**：`neo-wild/game.js:huntWildPrey` 内に `if(caveScent&&scent)` があり、`scent` は未宣言。洞窟の捕食NPCが獲物を追跡しようとすると `ReferenceError: scent is not defined`。旧ゲームループは例外後に `requestAnimationFrame(loop)` を予約せず停止可能。復元済みカメラ座標がプレイヤーから離れている場合も、再開直後に自キャラが映らない。
+- **コード修復と実際の遊びの復旧**：①洞窟NPC狩猟の未宣言変数を除去（`if(caveScent)`）。②`loop` は例外時に操作をリセットして一時停止へ退避、WebGL障害時は2Dへ切替、`finally` で次フレームを必ず予約。③`restoreSnapshot` が元プレイヤー座標を基準にカメラを即時再中央化。④`index.html` の game.js cache revを更新。SAVE_SCHEMA=2/3CP、密度76/9、強敵20種・既存地区を維持。
+- **コードコミット**：`game.js` 未宣言/RAF復旧 `f25260e00da769996d6129cba86de9e15bd38c78`、HTML rev `538e53d05d451e1407520174ce8592d380c24539`、カメラ復元 `c85d9ddca65a3989343b0d9859cd7ae9d0d4d333`、最終HTML rev `8cecd202fa09dfad8a2ad975c095ead1d7c91eec`。修復直前main `f1ddb9e4468824f6f1d6cd6f2fb9ec805b302576`。今回記録時HEAD `8cecd202fa09dfad8a2ad975c095ead1d7c91eec`。
+- **検査**：元の実 `huntWildPrey` をV8で呼び洞窟時のReferenceError再現、修正後の洞窟/通常追跡・警戒中非追跡・洞窟遮蔽の匂い・通常遮蔽の非追跡PASS。元の実 `loop` を模擬DOMで例外発生させて次フレーム予約・pause退避・2D切替PASS、復元カメラのプレイヤー即時中央化をコード回帰、全game.js構文PASS：**10/10 PASS**。Android実機での修正後操作、実GPU、物理Pad、実ブラウザ長時間、旧端末実SAVE2は**未検証**。
+- **公開**：修正HEAD `8cecd202` に対応するGitHub Pages run `41553656562` は09:33時点queued。build/deploy成功を確認するまで**公開完了とは報告しない**。ROADMAP更新HEADは別run、各job確認が必要。
+- **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4＝**74.0/100（前回差0.0）**。重大復旧による根拠なき加点を禁止。
+- **次00分枠**：`game.js:restoreSnapshot/loop` で実ブラウザAndroid再開→自キャラ描画→十字方向入力→死亡/再試行を重点QA、異常が再現するなら最優先復旧。Pages runのbuild/deploy個別確認。
+- **次20分枠**：`game.js:huntWildPrey/nearbyAwareWildPredator` で洞窟/運河/山岳のNPC追跡を経時確認し同様の未定義参照を排除。復旧が安定なら農地・郊外の地続き区間追加。
+- **次40分枠**：`webgl3d.js:render` と `game.js:drawScene` の実Android WebGL→Canvas2D復旧・キャラクター視認性を確認。安定後は景観/モデル新機能を再開。
+
 ## 共同スプリント・PHASE A｜2026/11/03 09:20 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜NPC風下狩り・嗅覚逃走・肉横取り後の摂食
 - **PHASE=A_FEATURE_COMPLETION**。開始main HEAD `4ccf7b28f4e7e64a03fa67a3bdec42589c49cf43`、開始blob game/index/ROADMAP `6fdbdadad000017957c8fc4f3169d08f51b09252 / b3d13416e52c3608affb76358779c537b7778565 / 2b8c1b09500da269fc9eabde17b4486089faada3`。前00分の風向奇襲・前40分の野犬肉横取り・前20分の山岳草原と2種を保持。Drive V0.9採用済みの「風下忍び寄り/狩りの駆け引き」のみ実装。PHASE Bには移行しない。
 - **今回新しく遊べるもの**：①野生捕食者が風上で発見しづらい獲物を匂いで追跡し、障害物越しでも風下の匂いが届けば探索を始める。攻撃は従来どおり実距離+LOSで判定し、壁越し命中なし。②落ち着いた獲物には風下から接近できる実通行可能な迂回目標を使い、獲物が逃げ出したら直追跡へ戻す。③ウサギ・ネズミ等は風上にいる捕食者の匂いで潜伏/採食/休息を中断して逃走、風下・雨・強風で距離が変化。④野犬に横取りされた肉は拾い直せるが、放置すると野犬が食べるよう摂食欲求を高める。世界76/近隣9、旧SAVE_SCHEMA2/3CP、既存8地区/6地点は不変。
