@@ -3626,6 +3626,7 @@ function getObjective(){
 }
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
+ persistSquadVitals();
  if(P.squadIndividualId&&window.WildSquad){
   const next=window.WildSquad.kill(P.squadIndividualId);
   window.__wildSquadPendingLeader=!!next?.members?.length;
@@ -3672,12 +3673,15 @@ function finish(won=false){
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
  $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。残る仲間がいれば引き継げます。";
- $("retry-btn").textContent=getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）";
+ const partySurvivors=P.squadIndividualId?window.WildSquad?.load?.():null;
+ $("retry-btn").textContent=partySurvivors?(partySurvivors.members.length?"仲間から新リーダーを選択":"新しいガチャ編成"):(getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）");
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  renderTopScores(scoreRecord);
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
- show("result");if(!deathAlreadyPlayed)playEffect(won?"level":"death");
+ show("result");if(!won&&partySurvivors?.members?.length)showSquadDeathPicker(partySurvivors);
+ else $("squad-death-choice")?.classList.add("hidden");
+ if(!deathAlreadyPlayed)playEffect(won?"level":"death");
 }
 function clearStep(m,angle,step){
  const dx=Math.cos(angle),dy=Math.sin(angle);
@@ -4519,19 +4523,34 @@ function updateCompanion(m,dt){
  m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,(m.flash||0)-dt);
  m.companionAttackCD=Math.max(0,(m.companionAttackCD||0)-dt);
  m.companionHurtCD=Math.max(0,(m.companionHurtCD||0)-dt);
- const enemy=helper?.threat?.(m,P,mobs,species,(a,b)=>!lineBlocked(a,b),elapsed)||null;
- const goal=enemy||helper?.followGoal?.(m,P),d=goal?dist(m,goal):0;
+ const order=m.squadIndividualId?(m.squadOrder||squadOrder):"follow";
+ let enemy=order==="wait"||order==="flee"?null:helper?.threat?.(m,P,mobs,species,(a,b)=>!lineBlocked(a,b),elapsed)||null;
+ if(m.squadIndividualId&&order==="attack"&&!enemy)
+  enemy=mobs.filter(q=>q!==m&&q.hp>0&&!q.companion&&!species[q.type]?.prey&&dist(q,m)<300&&!lineBlocked(m,q)).sort((a,b)=>dist(a,m)-dist(b,m))[0]||null;
+ let goal=enemy||helper?.followGoal?.(m,P);
+ if(m.squadIndividualId){
+  const allies=mobs.filter(q=>q.squadIndividualId&&q.hp>0),index=allies.findIndex(q=>q.squadIndividualId===m.squadIndividualId);
+  const face=P.dir||0,side=index%2===0?1:-1;
+  if(!enemy&&order==="follow")goal={x:P.x-Math.cos(face)*90+Math.sin(face)*55*side,y:P.y-Math.sin(face)*90-Math.cos(face)*55*side};
+  if(order==="wait")goal=m.squadWait||{x:m.x,y:m.y};
+  if(order==="flee"){
+   const threat=mobs.filter(q=>q.hp>0&&!q.companion&&!species[q.type]?.prey&&dist(q,m)<300).sort((a,b)=>dist(a,m)-dist(b,m))[0];
+   goal=threat?{x:clamp(m.x+(m.x-threat.x)*1.2,35,WORLD.w-35),y:clamp(m.y+(m.y-threat.y)*1.2,35,WORLD.h-35)}:
+    {x:P.x-Math.cos(face)*165,y:P.y-Math.sin(face)*165};
+  }
+ }
+ const d=goal?dist(m,goal):0;
  const ox=m.x,oy=m.y;
- if(goal&&d>(enemy?m.r+enemy.r+21:70)&&d<1500){
+ if(goal&&d>(enemy?m.r+enemy.r+21:m.squadIndividualId?28:70)&&d<1500){
   const a=routeClear(m,goal,m.r)?Math.atan2(goal.y-m.y,goal.x-m.x):steerPursuit(m,goal.x,goal.y);
-  m.dir=a;const speed=sp.speed*(enemy?1.07:d>270?1.45:1.13);
+  m.dir=a;const speed=(m.squadIndividualId?(animals[m.type]?.speed||sp.speed)*(m.squadSpeedIV||1):sp.speed)*(enemy?1.07:d>270?1.9:1.13);
   move(m,Math.cos(a)*speed*dt,Math.sin(a)*speed*dt);
  }
  m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);
  m.step=(m.step||0)+Math.hypot(m.x-ox,m.y-oy)*.05;
  if(enemy&&m.companionAttackCD<=0&&dist(m,enemy)<m.r+enemy.r+24&&!lineBlocked(m,enemy)){
   m.companionAttackCD=1.4;m.swing=.25;
-  const raw=Math.max(3,Math.round((sp.damage||12)*.76));
+  const raw=Math.max(3,Math.round((m.squadIndividualId?(animals[m.type]?.damage||sp.damage||12)*(m.squadAttackIV||1):(sp.damage||12))*.76));
   const bite=enemy.strongBoss?Math.min(2,raw):raw;
   enemy.hp=enemy.strongBoss?Math.max(1,enemy.hp-bite):Math.max(0,enemy.hp-bite);
   enemy.flash=.17;enemy.stun=Math.max(enemy.stun||0,.12);
@@ -4551,7 +4570,11 @@ function updateCompanion(m,dt){
   }
  }
  if(m.hp<=0){
-  if(!m._killRegistered){m._killRegistered=true;carcasses.push(animalRemains(m));notify("仲間が倒れた。巣で新たな仲間を迎えられる");}
+  if(!m._killRegistered){
+   m._killRegistered=true;carcasses.push(animalRemains(m));
+   if(m.squadIndividualId){window.WildSquad?.kill?.(m.squadIndividualId);notify((m.squadName||"仲間")+"は永久に離脱");saveAuto();syncSquadHud();}
+   else notify("仲間が倒れた");
+  }
  }else if(atDen()&&dist(P,m)<120&&!denThreatNearby())m.hp=Math.min(m.maxHp,m.hp+dt*2.8);
 }
 // Persistent disaster encounter ledger, separate from legacy SAVE_SCHEMA2.
@@ -5097,6 +5120,7 @@ function update(dt){
 }
 function syncHUD(hour){
  if(!P)return;
+ syncSquadHud();
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
  $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?"｜"+P.ageYears.toFixed(1)+"歳 / 寿命"+P.lifespanYears+"年":"");
@@ -6995,6 +7019,11 @@ $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
 $("retry-btn").addEventListener("click",()=>{
  if(mode!=="over"&&mode!=="clear")return; // Ignore queued double taps after resuming.
+ if(P?.squadIndividualId){
+  const r=window.WildSquad?.load?.();
+  if(r?.members?.length){showSquadDeathPicker(r);return;}
+  returnToTitleFromDeath();window.WildSquadGachaUI?.open?.();return;
+ }
  const save=getCheckpoints().find(s=>s.player.type===P?.type);
  if(save){if(launchGame(save))notify("チェックポイントからリトライ");return;}
  if(launchGame())saveAuto();
