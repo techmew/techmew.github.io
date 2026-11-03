@@ -684,7 +684,8 @@ function animal(m,player,clock){
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
- if(!player&&drawCommonAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ // Deer uses the dedicated species model for both wildlife and the controlled player.
+ if((!player||type==="deer")&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
 
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
@@ -724,11 +725,12 @@ function animal(m,player,clock){
  const headDrive=r*(attackReach*((rushPose===1||rushPose===2)?.12:rushPose===4?.08:cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
  const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive+bodyDrive*.75+turboPose*r*.15,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49+headAttention*.15,headR,headR*.80,headR*.83,torso,dir,10,6);
- if(fox||cat||wolf||rabbit||rat){
+ if(fox||cat||wolf||rabbit||rat||type==="dog"){
   for(const side of [-1,1]){
-   const earLength=rabbit?r*1.08:rat?r*.22:wolf?r*.59:fox?r*.52:r*.38;
+   const earLength=rabbit?r*1.08:rat?r*.22:wolf?r*.59:fox?r*.52:type==="dog"?r*.25:r*.38;
    const earWidth=rabbit?r*.14:rat?r*.22:r*.20;
-   pyramid(fx(neck-r*.18,side*r*.40),fy(neck-r*.18,side*r*.40),h+r*.79,earWidth,r*.13,earLength,torso);
+   if(type==="dog")ellipsoid(fx(neck-r*.22,side*r*.54),fy(neck-r*.22,side*r*.54),h+r*.66,r*.20,r*.14,r*.26,base,dir,7,4);
+   else pyramid(fx(neck-r*.18,side*r*.40),fy(neck-r*.18,side*r*.40),h+r*.79,earWidth,r*.13,earLength,torso);
    if(rabbit)pyramid(fx(neck-r*.16,side*r*.40),fy(neck-r*.16,side*r*.40),h+r*.82,r*.075,r*.06,earLength*.82,"#dfaa9c");
   }
  }
