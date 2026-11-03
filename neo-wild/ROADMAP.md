@@ -1,3 +1,10 @@
+# 2026-11-04｜01:20枠 Lv1開始時の敵密度と安全圏（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】game.js に earlySquadSanctuary / earlySquadSpawnType を追加。開始後360秒以内かつLv3以下では開始位置周辺（初期半径520、経過時間で300まで縮小）に新規生成される危険な野生動物を小型獲物に置換。既存個体は消さず、遠方の強敵は維持。ensureLocalPredators の強制補充は安全圏中は0件。開始直後に強制的に敵が密集する問題を抑える。
+- 【コミット】game.js 1ec32f2a18cb6d4290e3690645dc447efb6b4698 / blob 1fd3c18f4743266c5124dc4512e901f82f3a1ac4。
+- 【検査】最新mainの game.js JavaScript構文=PASS。実ブラウザ/Android/Pad/旧セーブE2E/Pages配信は未検証。初期位置の永続保存は00分担当と調整要。
+- 【次担当】00分：WildSquad の startPosition を新規編成作成時に保存、旧セーブでの開始地点代替を確定。40分：仲間AIの危険領域移動・安全圏表示と整合。次20分：野生動物の固有狩猟AI、ガチャ権獲得条件と地域配置を接続。
+
 # 2026-11-04｜01:00枠 永久死亡IDと旧チェックポイント復活防止（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】game.js に squadSnapshotAlive を追加。ガチャ個体ID付きの自動セーブ・旧3チェックポイント・restoreSnapshotを、生存中の編成IDとの一致で検証。死亡IDは WildSquad.kill が先に永続保存し、死亡後の旧セーブ選択から同じ個体が復活する経路を遮断。ガチャ以前のSAVE_SCHEMA2（個体IDなし）は破壊せず読み込み可能。beginDeath の死亡判定を kill より前へ移動し、重複死亡処理を防止。
