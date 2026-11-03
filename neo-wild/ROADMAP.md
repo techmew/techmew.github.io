@@ -1,3 +1,11 @@
+# 2026-11-03 最新修正｜明示的NEW GAMEは世界0年・08:00で開始（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
+- 【最優先確定・旧仕様の上書き禁止】ユーザーが「新規ゲームは世界時間を引き継がない。301年目になるのは不具合。朝8時開始」を確定。**明示的NEW GAMEだけ全世界の開始年0、独立85秒時計の08:00**。この例外は従来の「再ロード・死亡・一族全滅で世界をリセットしない」という指定より優先。続きから・チェックポイント・同じ世界での死亡後リトライは保存年のまま。世界1年=120秒・100年分イベントを3倍密度で配置する仕様は不変。
+- コード統合：game.js:start(newWorld=true)はNEW_WORLD_START_ELAPSED=85×2/24秒をセットし、年0/8時で個体の誕生年・天候・年齢・動物配置を開始。初期化成功後 resetWorldHistoryForNewGame()が前世界のWORLD_CHRONICLE_KEY、落雷、UFO誘拐史、巣LV/備蓄/縄張りを新規の状態に書き替える。WildDisaster.resetWorld / WildUFO.resetWorld / WildApparitions.resetWorld で旧世界の災害痕・出現待機時刻・亡霊・UFO痕跡を消去。新規だけ reset、続きから/チェックポイントには呼ばない。古いチェックポイント3件と実績は維持。
+- コード参照：game.js blob 1005991a4d0f; disaster-world.js blob 957ef37185cc; apparitions.js blob 58064542fa33; ufo-events.js blob 19902051b5fd; index.html blob a293248a0737。すべて techmew/techmew.github.io main /neo-wild/ に限定。index.htmlはキャッシュ更新済み。
+- QA：world301の保存/災害/亡霊/UFO履歴をモック投入→明示NEW GAMEで世界year0・hour08:00、災害/UFO/亡霊記録0・巣LV1・縄張り未獲得・旧チェックポイントキー維持 PASS。JS構文チェックPASS。**実ブラウザ/スマホ/PAD/長時間セーブ・Pages新ビルドは別途確認**。
+- 次00分：ニューゲームの世界0年/08:00と保存継続・死亡後リトライを実機E2Eで検証、旧チェックポイント分離維持。次20分：世界リセット後の地形災害/地域生態の初期化・世界史表示を確認。次40分：開始時の朝の見え方とポーズ/操作・UFO/亡霊の初期履歴無しを確認。PHASE A継続。
+
 # 2026-11-03｜新規ゲームが起動しない・犬/鹿/猪の種別表示不具合を修正（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
 - **実プレイ修正**：保存済みYEAR300のあるAndroid画面では、新規開始がブラウザ標準 confirm ダイアログに依存していた。これを廃止して「新しいゲームを開始」→ページ内確認（選択動物名表示）→「選んだ動物で新しく開始」に変更。無セーブはワンタップ開始。チェックポイント3件を維持、ゲーム初期化失敗時は以前の自動保存に上書きしない。「続きから」は保存動物で復帰、「新しいゲーム」は今選択した個体で開始と明記。
