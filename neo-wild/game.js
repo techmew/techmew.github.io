@@ -6880,3 +6880,6 @@ window.WildGamepadBridge={
  map(){if(mode==="play"||mode==="map")toggleWorldMap()}
 };
 })();
+
+// Read-only active-play clock for the world chronology UI; never advances while offline.
+window.WildGameWorldTime=()=>elapsed;
