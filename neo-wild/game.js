@@ -345,7 +345,7 @@ function signalPack(m,spotted){
  }
 }
 const roadsX=[530,1410,2320,3270,4400,5320,6260,7340,8070],roadsY=[465,1170,1890,2800,3760,4820,5650];
-const districts=["霞ヶ関封鎖区","旧新宿駅周辺","緑化侵食区域","上野廃動物園","荒川河川敷","代々木緑地","湾岸旧工業区","江東運河"];
+const districts=["霞町の廃庁街","桜坂駅跡","蔦ヶ丘の古町","白鷺の獣舎跡","朝霧川の土手","楠の森","汐浜の廃工場","潮見の水路"];
 // The foothill shares the existing eighth ecology slot: old saves retain 8 entries.
 function mountainHabitat(x,y){return !!MOUNTAIN&&x>=MOUNTAIN.CITY_EDGE&&MOUNTAIN.active(x,y);}
 function strongHabitatKey(x,y){return mountainHabitat(x,y)?"7:foothill":regionAt(x,y);}
@@ -357,20 +357,20 @@ function regionAt(x,y){
  if(x<2800)return 5;if(x<5600)return 6;return 7;
 }
 const EXPLORE_SITES=[
- {id:"zoo",x:5250,y:1460,name:"上野・動物園跡",note:"大型動物の気配が残る獣舎"},
- {id:"river",x:7270,y:1700,name:"荒川河川敷",note:"新たな水場と野鳥の生息地"},
- {id:"forest",x:1550,y:4380,name:"代々木・深緑の森",note:"食料は豊富だが足元が見えにくい"},
- {id:"factory",x:4380,y:4260,name:"湾岸・旧工業区",note:"高い足場と廃機械の残骸"},
- {id:"canal",x:7000,y:4850,name:"江東運河",note:"水路沿いの獣道"},
- {id:"ark",x:5520,y:2170,name:"地下管理区画の入口",note:"都市の旧設備から異音が聞こえる"}
+ {id:"zoo",x:5250,y:1460,name:"白鷺の獣舎跡",note:"大型動物の気配が残る獣舎"},
+ {id:"river",x:7270,y:1700,name:"朝霧川の土手",note:"新たな水場と野鳥の生息地"},
+ {id:"forest",x:1550,y:4380,name:"楠の森",note:"食料は豊富だが足元が見えにくい"},
+ {id:"factory",x:4380,y:4260,name:"汐浜の廃工場",note:"高い足場と廃機械の残骸"},
+ {id:"canal",x:7000,y:4850,name:"潮見の水路",note:"水路沿いの獣道"},
+ {id:"ark",x:5520,y:2170,name:"山影の地下道入口",note:"都市の旧設備から異音が聞こえる"}
 ];
 const START_LOCATIONS={
- home:{x:1860,y:1170,name:"東京・巣周辺"},
+ home:{x:1860,y:1170,name:"霞町・草陰の巣"},
  zoo:{x:5250,y:1460,name:"上野・廃動物園"},
- forest:{x:1550,y:4380,name:"代々木・深緑の森"},
- factory:{x:4380,y:4260,name:"湾岸・旧工業区"},
- canal:{x:7000,y:4850,name:"江東運河・水路跡"},
- river:{x:7270,y:1700,name:"荒川河川敷"}
+ forest:{x:1550,y:4380,name:"楠の森"},
+ factory:{x:4380,y:4260,name:"汐浜の廃工場"},
+ canal:{x:7000,y:4850,name:"潮見の水路・水路跡"},
+ river:{x:7270,y:1700,name:"朝霧川の土手"}
 };
 let discoveredSites=[],earnedDiscoveries=[];
 const DISCOVERY_PERKS={
@@ -394,7 +394,7 @@ function awardDiscovery(id,quiet=false){
  return true;
 }
 
-const CLAN_NAMES=["封鎖区の野犬","駅裏の群れ","緑地のイノシシ","上野の獣群","河川のカラス","森の群れ","工業区の野犬","運河の渡り鳥"];
+const CLAN_NAMES=["霞町の野犬","桜坂の群れ","蔦ヶ丘のイノシシ","白鷺の獣群","朝霧川のカラス","楠の森の群れ","汐浜の野犬","潮見の水鳥"];
 function initialEcology(){
  const prey=[31,28,43,36,48,59,23,39],predators=[10,13,12,15,8,9,16,9];
  return prey.map((n,i)=>({prey:n,predators:predators[i],food:55+(i%3)*13,pressure:0,dominance:i%2,events:0}));
@@ -3469,7 +3469,7 @@ function finish(won=false){
  resetControls();mode=won?"clear":"over";
  totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
  const scoreRecord=recordTopScore(totalScore);
- $("result-kicker").textContent=won?"TOKYO RECLAIMED":"SURVIVAL REPORT";
+ $("result-kicker").textContent=won?"生存の記録":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
  $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。リトライか、最初から始めるかを選んでください。";
@@ -4897,7 +4897,8 @@ function drawWorldMap(){
  };
  for(const site of EXPLORE_SITES){
   const found=discoveredSites.includes(site.id);
-  mark(site.x,site.y,found?"#99e9c7":"#c0b9a2",found?5:4);
+  // The departure location can coincide exactly with a discovery point.
+  if(dist(P,site)>65)mark(site.x,site.y,found?"#99e9c7":"#c0b9a2",found?5:4);
   bm.fillStyle=found?"#d5f8db":"#f6e1c6";bm.font="bold 10px sans-serif";bm.textAlign="left";
   bm.fillText(found?site.name:"未踏の探索地点",clamp(X(site.x)+7,8,width-94),clamp(Y(site.y)-7,24,height-4));
  }
@@ -4915,7 +4916,7 @@ function drawWorldMap(){
  }
  bm.font="bold 12px sans-serif";bm.textAlign="left";bm.fillStyle="#e9f7e3";
  for(const site of denSites)bm.fillText(site.name+" LV"+denLevel,X(site.x)+12,Y(site.y)-10);
- bm.fillText("旧新宿駅",X(STATION.x)+10,Y(STATION.y)+22);
+ bm.fillText("桜坂駅跡",X(STATION.x)+10,Y(STATION.y)+22);
  for(const q of carcasses)if(q.ttl>0&&edibleFood(q)&&dist(P,q)<650)mark(q.x,q.y,"#f9da7c",3);
  for(const m of mobs)if(m.hp>0&&dist(P,m)<650){
    if(species[m.type].prey){if(dist(P,m)<260)mark(m.x,m.y,"#e7dcb1",3)}
@@ -4927,8 +4928,16 @@ function drawWorldMap(){
   bm.save();bm.fillStyle=isFire?"rgba(229,91,24,.38)":"rgba(35,143,190,.38)";bm.strokeStyle=isFire?"#ffc07b":"#90e7ff";bm.lineWidth=2;
   bm.beginPath();bm.ellipse(X(e.x),Y(e.y),X(e.radius),Y(e.radius),0,0,TWO);bm.fill();bm.stroke();bm.restore();
  }
- const obj=getObjective();if(obj&&mission!==3)mark(obj.x,obj.y,"#f1d885",4);
- mark(P.x,P.y,"#f7fbf4",8);
+ const obj=getObjective();if(obj&&mission!==3&&dist(P,obj)>85)mark(obj.x,obj.y,"#f1d885",4);
+ // High-contrast directional marker in true world coordinates (including waterfront).
+ bm.save();bm.translate(X(P.x),Y(P.y));
+ const facing=Number.isFinite(P.dir)?P.dir:0;
+ const mapHeading=Math.atan2(Math.sin(facing)*height/WORLD.h,Math.cos(facing)*width/WORLD.w);
+ bm.rotate(mapHeading+Math.PI/2);
+ bm.beginPath();bm.arc(0,0,12,0,TWO);bm.fillStyle="#0d342e";bm.fill();
+ bm.strokeStyle="#eaffb2";bm.lineWidth=2.5;bm.stroke();
+ bm.beginPath();bm.moveTo(0,-9);bm.lineTo(6,7);bm.lineTo(0,3);bm.lineTo(-6,7);bm.closePath();
+ bm.fillStyle="#ffffff";bm.fill();bm.strokeStyle="#13382c";bm.lineWidth=1.8;bm.stroke();bm.restore();
  bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
  bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
@@ -5001,7 +5010,7 @@ function drawMini(){
   else{mc.arc(0,0,3.2,0,TWO);}
   mc.fill();mc.stroke();mc.restore();
  }
- for(const site of EXPLORE_SITES)if(Math.hypot(site.x-P.x,site.y-P.y)<span*.7){
+ for(const site of EXPLORE_SITES)if(Math.hypot(site.x-P.x,site.y-P.y)<span*.7&&Math.hypot(site.x-P.x,site.y-P.y)>65){
   mc.fillStyle=discoveredSites.includes(site.id)?"#83e7c4":"#d5bea1";
   mc.fillRect(X(site.x)-2,Y(site.y)-2,4,4);
  }
@@ -5010,7 +5019,7 @@ function drawMini(){
   mc.fillStyle=site.z>0?"#e9c6ff":"#76baff";mc.beginPath();mc.arc(X(site.x),Y(site.y),3.5,0,TWO);mc.fill();
  }
  const goal=getObjective();
- if(goal){
+ if(goal&&dist(P,goal)>85){
   const dx=(goal.x-P.x)*w/span,dy=(goal.y-P.y)*w/span;
   const radius=Math.min(w,h)/2-10,range=Math.hypot(dx,dy);
   const factor=Math.min(1,radius/Math.max(1,range));
@@ -5022,8 +5031,10 @@ function drawMini(){
   }else{mc.beginPath();mc.arc(0,0,4,0,TWO);}
   mc.fill();mc.stroke();mc.restore();
  }
- // Directional player marker (world east is right on the map).
- mc.save();mc.translate(w/2,h/2);mc.rotate(P.dir+Math.PI/2);
+ // Dedicated player marker: the canal starting landmark and other icons never cover it.
+ mc.save();mc.translate(w/2,h/2);mc.rotate((Number.isFinite(P.dir)?P.dir:0)+Math.PI/2);
+ mc.beginPath();mc.arc(0,0,9,0,TWO);mc.fillStyle="rgba(9,43,38,.82)";mc.fill();
+ mc.strokeStyle="#eaffb2";mc.lineWidth=2.1;mc.stroke();
  mc.fillStyle="#f6fce5";mc.strokeStyle="#102a25";mc.lineWidth=1.8;
  mc.beginPath();mc.moveTo(0,-7);mc.lineTo(5,5);mc.lineTo(0,2);mc.lineTo(-5,5);mc.closePath();
  mc.fill();mc.stroke();mc.restore();
