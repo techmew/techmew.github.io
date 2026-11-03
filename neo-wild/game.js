@@ -626,8 +626,8 @@ function updateSurvivalNeeds(dt){
  // inherited/base combat stats or corrupting SAVE_SCHEMA2 snapshots.
  const lifeFraction=Number.isFinite(P.ageYears)&&Number.isFinite(P.lifespanYears)&&P.lifespanYears>0
   ?clamp(P.ageYears/P.lifespanYears,0,1):0;
- const seniorNeed=lifeFraction>=.9?1.22:lifeFraction>=.75?1.10:1;
- const seniorRecovery=lifeFraction>=.9?.65:lifeFraction>=.75?.85:1;
+ const seniorNeed=1;
+ const seniorRecovery=1;
  const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed;
  P.hunger=clamp(before-drain,0,100);
  // Integrate the exact time at zero hunger even when a frame crosses the threshold.
@@ -3596,6 +3596,8 @@ function getObjective(){
  return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / △・Jで攻撃"};
 }
 function beginDeath(){
+ if(P?.squadIndividualId&&window.WildSquad){const next=window.WildSquad.kill(P.squadIndividualId);if(next?.members?.length){window.__wildSquadPendingLeader=true;}else{window.__wildSquadPendingLeader=false;}}
+
  if(!P||mode!=="play"||P.hp>0)return false;
  P.hp=0;deathSequenceTime=0;mode="dying";
  window.WildTrophies?.record?.("death",{reason:P.deathReason||"unknown"},notify);
@@ -3638,7 +3640,7 @@ function finish(won=false){
  $("result-kicker").textContent=won?"生存の記録":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
- $("result-reason").textContent=won?"生存記録を残しました。":P.deathReason==="old_age"?"寿命を迎えました。世界の時間は引き継がれます。":"命を落としました。リトライか、最初から始めるかを選んでください。";
+ $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。残る仲間がいれば引き継げます。";
  $("retry-btn").textContent=getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）";
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
@@ -4565,7 +4567,7 @@ function update(dt){
    if(stage===1)notify("老齢期：残りの寿命は約3年",3.5);
    else if(stage===2)notify("老衰が近づいている。残り約1年",3.5);
   }
-  if(remaining<=0){P.deathReason="old_age";P.hp=0;beginDeath();return;}
+  // ガチャ個体は老衰で死亡しない。年齢は外見・成長傾向のみに利用する。
  }
  worldChronicleSaveClock+=dt;
  if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
@@ -6748,12 +6750,38 @@ function hideNewGameConfirmation(){
  const panel=$("new-game-confirm");
  if(panel)panel.classList.add("hidden");
 }
+
+// ガチャ編成と既存の移動・戦闘・セーブ経路を結ぶ。
+// 未実装種の専用移動を陸上種に偽装しないため開始を保留する。
+function applySquadLeader(){
+ const roster=window.WildSquad?.load?.();if(!P||!roster?.members?.length)return false;
+ const member=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
+ if(!animals[member.species]){notify(member.speciesName+"の操作は準備中");return false;}
+ choice=member.species;const a=animals[choice];
+ P.type=choice;P.base=a;P.r=a.r;P.squadIndividualId=member.id;
+ P.squadName=member.name;P.squadGrowthRate=member.growthRate;
+ P.maxHp=Math.max(1,Math.round(a.hp*member.iv.hp));P.hp=P.maxHp;
+ P.damage=a.damage*member.iv.attack;P.speed=a.speed*member.iv.speed;
+ P.maxSp=100*member.iv.stamina;P.sp=Math.min(P.maxSp,100);
+ P.level=member.level||1;P.xp=member.xp||0;
+ initializeLife(P,elapsed,false);
+ saveAuto();return true;
+}
+window.addEventListener("wild-squad-start",()=>{
+ const r=window.WildSquad?.load?.();const m=r?.members?.find(x=>x.id===r.leaderId);
+ if(!m||!animals[m.species]){notify("この種の操作は未実装です");return;}
+ choice=m.species;window.__wildSquadStartAuthorized=true;
+ try{startSelectedNewGame()}finally{window.__wildSquadStartAuthorized=false}
+});
+
 function startSelectedNewGame(){
+ if(window.WildSquad && !window.__wildSquadStartAuthorized){window.WildSquadGachaUI?.open?.();return false;}
  if(mode!=="menu")return false;
  hideNewGameConfirmation();
  // Use the CURRENT selection, never the species from the continue/checkpoint slot.
  if(!selectNewGameAnimal(choice))return false;
  if(!launchGame(null,true))return false; // Only explicit NEW GAME resets the world; old checkpoints remain.
+ applySquadLeader();
  saveAuto();
  return true;
 }
@@ -6777,6 +6805,7 @@ selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
  const snapshot=getAutoSnapshot()||getCheckpoints()[0];
+ if(window.WildSquad?.load?.()?.members?.length && !snapshot){window.WildSquadGachaUI?.open?.();return;}
  if(launchGame(snapshot||null,!snapshot)&&!snapshot)saveAuto();
 });
 $("checkpoint-menu-btn").addEventListener("click",()=>{
