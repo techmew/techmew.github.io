@@ -123,6 +123,29 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(["tiger","gorilla"].includes(type)&&unlockedYear<17)w=0;
   if(["tiger","gorilla","blackBear"].includes(type)&&unlockedYear<34)w*=.5;
  }
+ // Large predators and megafauna inhabit distinct remote biomes, not residential streets.
+ // These constraints affect wild NPCs only; gacha unlocks are independent.
+ const remoteHabitat={
+  lion:{3:.35,5:.22},cheetah:{3:.30,5:.32},elephant:{3:.14,5:.10},
+  giraffe:{3:.24,5:.16},zebra:{3:.45,5:.28},hippo:{4:.22,7:.34}
+ };
+ if(Object.prototype.hasOwnProperty.call(remoteHabitat,type)){
+  w=remoteHabitat[type][region]||0;
+  // Preserve a gentle first era: distant high-level wildlife unlocks with exploration time.
+  const earliest={lion:17,cheetah:7,elephant:34,giraffe:17,zebra:7,hippo:34}[type];
+  if(unlockedYear<earliest)w=0;
+ }
+ // Highland specialists remain uncommon in rain/snow and do not crowd the town.
+ if(["manul","tibetanFox"].includes(type)){
+  if(unlockedYear<7)w=0;
+  if(weather==="RAIN"||weather==="THUNDER")w*=.7;
+ }
+ if(type==="shoebill"){
+  if(unlockedYear<17)w=0;
+  if(weather==="SNOW")w*=.1;
+ }
+ // Wetland amphibians remain active in rain, but should not flood urban districts.
+ if(type==="frog"&&![2,4,5,7].includes(region))w*=.25;
  // Carp requires a dedicated aquatic spawn path; never materialize fish on dry roads.
  if(type==="carp")w=0;
  if(type==="otter"&&weather==="SNOW")w*=.55;
