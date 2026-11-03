@@ -4,24 +4,25 @@
 const key="wild-reclaim-ufo-events-v1";
 let event=null, cooldown=0, history=[], traces=[];
 const MAX_HISTORY=80;
+const eraYear=y=>window.WildWorldClock?.eventYear?.(y)??y*3;
 const safeBlocked=(world,a,b)=>typeof world.lineBlocked==="function"&&world.lineBlocked(a,b);
 const beamRange=95, playerBeamRange=105;
 const stateKey="wild-reclaim-ufo-state-v2";
-try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,Number(saved.cooldown)||0);traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
+try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,(Number(saved.cooldown)||0)/(saved.paceVersion===3?1:3));traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
 let persistTimer=0;
-function persist(){try{localStorage.setItem(stateKey,JSON.stringify({event,cooldown,traces:traces.slice(-12)}))}catch(_){}}
+function persist(){try{localStorage.setItem(stateKey,JSON.stringify({paceVersion:3,event,cooldown,traces:traces.slice(-12)}))}catch(_){}}
 function trace(kind,year,x,y){traces.push({kind,year,x,y,age:0});traces=traces.slice(-12);persist()}
 try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))history=v.slice(-MAX_HISTORY)}catch(_){}
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function record(kind,year,x,y){history.push({kind,year,x:Math.round(x),y:Math.round(y)});history=history.slice(-MAX_HISTORY);try{localStorage.setItem(key,JSON.stringify(history))}catch(_){}}
-function resetTransient(){event=null;cooldown=80;persist()}
+function resetTransient(){event=null;cooldown=80/3;persist()}
 function summon(x,y){event={x,y,t:0,stage:"approach",beam:0,victim:null,npcBeam:0,originX:x,originY:y};persist();return event}
 function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
  traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
  persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
- if(!event){cooldown=Math.max(0,cooldown-dt);if(year>=Math.ceil(50/3)&&cooldown===0&&Math.random()<dt/950){summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420);cooldown=420;world.notify("空に正体不明の円盤が現れた！")};return}
+ if(!event){cooldown=Math.max(0,cooldown-dt);if(eraYear(year)>=50&&cooldown===0&&Math.random()<dt/(950/3)){summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420);cooldown=420/3;world.notify("空に正体不明の円盤が現れた！")};return}
  const e=event;e.t+=dt;
  if(e.stage==="approach"&&e.t>=3){e.stage="scan";e.t=0;world.notify("謎の光線！ 遮蔽物に隠れるか逃げろ")}
  if(e.stage==="scan"){
@@ -68,7 +69,7 @@ function tick(dt,world){
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
- if(e.stage==="depart"&&e.t>2){event=null;cooldown=Math.max(cooldown,300);persist()}
+ if(e.stage==="depart"&&e.t>2){event=null;cooldown=Math.max(cooldown,300/3);persist()}
 }
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
