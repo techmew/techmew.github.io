@@ -2,19 +2,23 @@
 (function(){
 "use strict";
 const KEY="wild_reclaim_disasters_v1",MAX=12;
-let events=[],nextYear=5+Math.random()*10,warning=null,lastYear=0;
-let nextFloodYear=8+Math.random()*14,floodWarning=null,history=[];
-let nextFireYear=14+Math.random()*23,fireWarning=null;
+let events=[],nextYear=.45+Math.random()*.60,warning=null,lastYear=0;
+let seismicSeconds=0,seismicPhase=0;
+let nextFloodYear=1.8+Math.random()*1.5,floodWarning=null,history=[];
+let nextFireYear=2.8+Math.random()*2.8,fireWarning=null;
 const finite=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
 function restore(){
  try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return;
  events=Array.isArray(x.events)?x.events.filter(e=>e&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.year)).slice(-MAX):[];
- nextYear=Math.max(0,finite(x.nextYear,5));lastYear=Math.max(0,finite(x.lastYear,0));
+ nextYear=Math.max(0,finite(x.nextYear,.65));lastYear=Math.max(0,finite(x.lastYear,0));
+ // Existing saves created with the old long odds should enter the denser
+ // event cycle without erasing prior disasters or restarting world years.
+ nextYear=Math.min(nextYear,lastYear+.85);
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
- nextFloodYear=Math.max(0,finite(x.nextFloodYear,8+Math.random()*14));
+ nextFloodYear=Math.min(Math.max(0,finite(x.nextFloodYear,2.4)),lastYear+2.5);
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
  history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","flood","wildfire"].includes(e.kind)).slice(-60):[];
- nextFireYear=Math.max(0,finite(x.nextFireYear,14+Math.random()*23));
+ nextFireYear=Math.min(Math.max(0,finite(x.nextFireYear,3.5)),lastYear+3.8);
  fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
  }catch(_){}
 }
@@ -144,6 +148,7 @@ function schedule(api,year){
 function tick(dt,api){
  if(!api?.P||api.mode!=="play")return;
  const year=api.elapsed/120;
+ seismicSeconds=Math.max(0,seismicSeconds-dt);
  if(year<lastYear)lastYear=year; // Old SAVE_SCHEMA2 resumes must not erase world history.
  if(warning){
   warning.seconds-=dt;
@@ -151,14 +156,16 @@ function tick(dt,api){
    const e={x:warning.x,y:warning.y,year,kind:"fallen_tree",radius:34,duration:5+Math.random()*9,permanent:false};
    events.push(e);events=events.slice(-MAX);warning=null;
    history.push({kind:e.kind,year:e.year,x:e.x,y:e.y});history=history.slice(-60);
-   api.notify("倒木が道を塞いだ。迂回できる");
+   seismicSeconds=3.4;seismicPhase=Math.random()*Math.PI*2;
+   api.notify("地震発生！倒木と地割れに警戒");
    for(const m of api.mobs||[])if(m.hp>0&&Math.hypot(m.x-e.x,m.y-e.y)<210){
     const a=Math.atan2(m.y-e.y,m.x-e.x);m.flee=Math.max(m.flee||0,3.6);m.fleeThreatX=e.x;m.fleeThreatY=e.y;m.dir=a;m.resting=false;m.restTime=0;
    }
    persist();
   }
  }else if(year>=nextYear){
-  nextYear=year+5+Math.random()*10;schedule(api,year);
+  nextYear=year+.48+Math.random()*.80;
+  if(!floodWarning&&!fireWarning)schedule(api,year);
  }
  if(floodWarning){
   floodWarning.seconds-=dt;
@@ -173,8 +180,8 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFloodYear){
-  nextFloodYear=year+9+Math.random()*15;
-  scheduleFlood(api,year);persist();
+  nextFloodYear=year+1.6+Math.random()*2.0;
+  if(!warning&&!fireWarning)scheduleFlood(api,year);persist();
  }
  // Animals already in the expanding water retreat; no teleport or damage without warning.
  for(const e of events)if(e.kind==="flood"&&active(e,year)){
@@ -194,8 +201,8 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFireYear){
-  nextFireYear=year+19+Math.random()*30;
-  scheduleFire(api,year);persist();
+  nextFireYear=year+2.6+Math.random()*3.8;
+  if(!warning&&!floodWarning)scheduleFire(api,year);persist();
  }
  // Existing animals leave scorched habitat and return as vegetation recovers.
  for(const m of api.mobs||[]){
@@ -263,7 +270,15 @@ function draw(ctx,project,year){
  if(warning){const p=project(warning.x,warning.y);if(p){ctx.save();ctx.strokeStyle="#ffbd4b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,45,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#fff0bc";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText("地震・倒木に注意",p.x,p.y-52);ctx.restore();}}
 }
 restore();
-window.WildDisaster={tick,draw,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),
+function quakeShake(now=0){
+ if(seismicSeconds<=0)return {x:0,y:0,rotation:0,strength:0};
+ const fade=Math.min(1,seismicSeconds/.75),time=Number(now)||0;
+ const intensity=fade*(.55+.45*Math.sin((3.4-seismicSeconds)/3.4*Math.PI));
+ return {x:(Math.sin(time*42+seismicPhase)*9+Math.cos(time*73)*4)*intensity,
+  y:(Math.cos(time*34+seismicPhase)*7+Math.sin(time*62)*3)*intensity,
+  rotation:Math.sin(time*19+seismicPhase)*.010*intensity,strength:intensity};
+}
+window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),
  getState:()=>({events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
  force:(api)=>schedule(api,api.elapsed/120),
  forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
