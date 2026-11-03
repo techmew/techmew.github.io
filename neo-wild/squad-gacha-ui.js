@@ -19,7 +19,7 @@ const ready=()=>{
  if(legacyTitle&&legacyTitle.classList.contains("pick-head")){legacyTitle.hidden=true;legacyTitle.setAttribute("aria-hidden","true");}
  const oldLabel=$("new-game-animal-label");if(oldLabel){oldLabel.hidden=true;oldLabel.setAttribute("aria-hidden","true");}
  const home=el("section","squad-home");home.id="squad-home";home.setAttribute("aria-label","編成ガチャと現在の仲間");
- const gacha=makeBtn("ガチャを引く・新しい編成",()=>{}, "squad-home-gacha");
+ const gacha=makeBtn("ガチャを引く・編成する",()=>{}, "squad-home-gacha");
  // Handler is assigned below after begin exists.
  gacha.id="squad-open";
  const title=el("h2","squad-home-title","現在の編成");
@@ -49,7 +49,7 @@ const ready=()=>{
   ctx.fillStyle=ground;ctx.fillRect(0,0,w,h);
   ctx.fillStyle="#567c7760";ctx.beginPath();ctx.ellipse(w*.5,h*.84,w*.3,h*.042,0,0,7);ctx.fill();
   const c=COLORS[type]||"#8a9b95",dark="#273735",light="#e4ddc4",s=Math.min(w/250,h/180);
-  ctx.save();ctx.translate(w*.47,h*.72);ctx.scale(s,s);
+  ctx.save();ctx.translate(w*.47,h*.72);const ageScale=canvas.dataset.ageStage==="young"?.78:1;ctx.scale(s*ageScale,s*ageScale);
   const oval=(x,y,rx,ry,color)=>{ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill()};
   const line=(a,b,x,y,color,width)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(x,y);ctx.stroke()};
   const ear=(x,y,k)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(x-10,y);ctx.lineTo(x,y-23*k);ctx.lineTo(x+10,y);ctx.fill()};
@@ -92,7 +92,8 @@ const ready=()=>{
  }
  function paint(canvas,m){
   if(!canvas||!m)return;canvas.width=canvas.width;const type=m.species,color=COLORS[type]||"#96a6a1";
-  const model={type,r:RADII[type]||19,color,belly:"#c6c3b6",age:m.age,sex:m.sex,ageStage:m.ageStage};
+  canvas.dataset.ageStage=m.ageStage==="young"||m.age==="若い"?"young":"adult";
+  const model={type,r:(RADII[type]||19)*(canvas.dataset.ageStage==="young"?.8:1),color,belly:"#c6c3b6",age:m.age,sex:m.sex,ageStage:canvas.dataset.ageStage};
   let drawn=false;
   if(window.Wild3D?.available&&window.Wild3D.previewAnimal){
    try{drawn=!!window.Wild3D.previewAnimal(model,canvas,.6,1.45,.12)}catch(_){}
@@ -135,7 +136,9 @@ const ready=()=>{
    }
    roster.append(card);
   }
-  hint.textContent=members.length?members.length+"体で編成中。ストックはありません。":"まだ編成がありません。ガチャを引いて最大3体を選択。";
+  hint.textContent=members.length?members.length+"体で生存中。既存個体を破棄するガチャはできません。":"まだ編成がありません。ガチャを引いて最大3体を選択。";
+  gacha.disabled=members.length>0;
+  gacha.textContent=members.length?"生存中の編成を維持":"ガチャを引く・編成する";
  }
  function showSize(){
   info.textContent="編成数を選択してください。各枠、初回＋最大3回の引き直し。";
@@ -192,12 +195,14 @@ const ready=()=>{
    if(!chosen.some(m=>OPERABLE.has(m.species))){info.textContent="操作可能な動物がいません。ガチャを引き直してください。";return}
    const chosenLeader=chosen.find(m=>m.id===leader);
    if(!chosenLeader||!OPERABLE.has(chosenLeader.species)){info.textContent="操作可能なリーダーを選んでください。";return}
+   if((core.load()?.members||[]).length){info.textContent="生存中の個体は破棄できません。";return;}
    core.newSquad(chosen,leader);updateHome();root.hidden=true;
    window.dispatchEvent(new CustomEvent("wild-squad-start"));
   },"squad-adopt");
   actions.append(confirm);body.append(actions);
  }
  function begin(){
+  if((core.load()?.members||[]).length){updateHome();return;}
   size=0;slot=0;chosen=[];draw=null;selected=null;streak=0;leader=null;
   root.hidden=false;showSize();root.scrollTop=0;
  }
