@@ -1223,6 +1223,8 @@ function restoreSnapshot(snapshot){
   m.signatureUse=clamp(Math.floor(Number(m.signatureUse)||0),0,1000);
   m.bossPresenceShown=false;
   if(m.type==="mountainGoat"){m.headbuttTell=0;m.headbuttArmed=false;}
+  if(m.type==="serow"||m.type==="zebra"){m.defenseTell=0;m.defenseArmed=false;}
+  m.reactiveUntil=0;m.attackVariation=null;
    if(m.type==="dog"){m.foodTheftTell=0;m.foodTheftArmed=false;m.foodTheftCooldown=Math.max(1,Number(m.foodTheftCooldown)||0);}
   if(m.type==="giantGorilla")m.rock=null;
   if(m.type==="macaque"){m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}
@@ -2891,10 +2893,17 @@ function resolveAttack(){
    const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
    m.hp-=damage;if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(foxBurst)P.abilityTime=0;
-   m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;if(!species[m.type].prey)m.flee=0;
-    const heavy=silentHit||dive||wolfCharge||P.rushActiveStep===5;
-    const bossBroken=m.strongBoss?bossPoiseBreak(m,damage,heavy):false;
-    const disrupt=m.strongBoss?bossBroken:!armored&&(species[m.type].prey||m.staggerGuard<=0||silentHit||dive);
+   // A creature that was physically hit remembers the attack even when it
+   // could not see the player before the strike (behind, fog or night).
+   m.flash=.16;m.alert=Math.max(3,m.alert||0);m.lastX=P.x;m.lastY=P.y;
+   m.reactiveUntil=Math.max(m.reactiveUntil||0,elapsed+2.3);
+   m.search=0;if(!species[m.type].prey)m.flee=0;
+   const heavy=silentHit||dive||wolfCharge||P.rushActiveStep===5;
+   const gap=COMBAT_LEVELS?.gap(m.type,P.level)||0;
+   const bossBroken=m.strongBoss?bossPoiseBreak(m,damage,heavy):false;
+   const disrupt=m.strongBoss?bossBroken:!armored&&(COMBAT_LEVELS?
+    COMBAT_LEVELS.canInterrupt(m.type,P.level,heavy,m.staggerGuard<=0,species[m.type].prey):
+    (species[m.type].prey||m.staggerGuard<=0||silentHit||dive));
     if(disrupt){
      if(m.strongBoss&&m.signature){
       m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,3.0);
@@ -2904,7 +2913,14 @@ function resolveAttack(){
      m.stun=traitEffect("giantGorilla",m.strongBoss?.54:silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
      m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,m.strongBoss?.40:.22);
      if(m.strongBoss)label(m.x,m.y-m.r-42,"体勢を崩した！","#bee6cf");
-    }else if(!m.strongBoss)m.stun=Math.max(m.stun,.035);
+    }else if(!m.strongBoss&&gap<3)m.stun=Math.max(m.stun,.035);
+    // Repeated light attacks cannot freeze a stronger hunter behind its
+    // cooldown. It still signals a full windup before the retaliatory hit.
+    if(!m.strongBoss&&!species[m.type].prey&&gap>=1&&m.hp>0&&
+       m.windup<=0&&m.chargeTime<=0&&m.stun<=0){
+     const recovery=COMBAT_LEVELS?.retaliationWindow(m.type,P.level);
+     if(recovery!==null&&recovery!==undefined)m.attack=Math.min(m.attack||0,recovery);
+    }
     hit++;
    
     if(species[m.type].prey&&m.hp>0)startlePrey(m,P,"hit");
@@ -2912,7 +2928,8 @@ function resolveAttack(){
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
    const knock=((P.type==="wolf"?17:P.type==="cat"?3:8)+(P.rushActiveStep===5?16:P.rushActiveStep===4?4:0)+(wolfCharge?39:0))*traitEffect("giantBuffalo",1);
-   move(m,Math.cos(theta)*knock*(m.strongBoss?(bossBroken?.48:.07):1),Math.sin(theta)*knock*(m.strongBoss?(bossBroken?.48:.07):1));
+   const pushResistance=m.strongBoss?(bossBroken?.48:.07):(COMBAT_LEVELS?.knockback(m.type,P.level)||1);
+   move(m,Math.cos(theta)*knock*pushResistance,Math.sin(theta)*knock*pushResistance);
    if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
    if(m.hp<=0)kill(m);
   }
@@ -4353,7 +4370,9 @@ function update(dt){
   }
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
-  const angle=Math.atan2(P.y-m.y,P.x-m.x),spotted=detectsPlayer(m,s,d);
+  const angle=Math.atan2(P.y-m.y,P.x-m.x);
+  const spotted=detectsPlayer(m,s,d)||
+   (elapsed<(m.reactiveUntil||0)&&d<Math.max(190,P.r+m.r+125)&&!lineBlocked(m,P));
   if(m.type==="cheetah"){
    m.sprintCooldown=Math.max(0,(m.sprintCooldown||0)-dt);
    if(spotted&&d>95&&d<420&&m.sprintCooldown<=0&&m.alert>0){
