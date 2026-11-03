@@ -820,7 +820,7 @@ function animal(m,player,clock){
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
- if(player&&drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if(drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Deer uses the dedicated species model for both wildlife and the controlled player.
  if((!player||type==="deer")&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
