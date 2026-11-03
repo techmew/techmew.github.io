@@ -44,6 +44,17 @@ function fireIntensity(x,y,year){
  }
  return intensity;
 }
+function habitatQuality(x,y,year){
+ let quality=1;
+ for(const e of events){
+  if(e.kind!=="wildfire")continue;
+  const distance=Math.hypot(x-e.x,y-e.y),age=year-e.year;
+  if(distance>=e.radius||age<0||age>e.duration+7)continue;
+  const recovery=Math.max(0,Math.min(1,(age-e.duration)/7));
+  quality=Math.min(quality,1-.94*(1-recovery)*(1-distance/e.radius));
+ }
+ return Math.max(.06,Math.min(1,quality));
+}
 function scheduleFire(api,year,forcedPosition=null){
  if(fireWarning||events.some(e=>e.kind==="wildfire"&&active(e,year)))return false;
  if(api.weather==="RAIN"||api.weather==="THUNDER")return false;
@@ -186,6 +197,15 @@ function tick(dt,api){
   nextFireYear=year+19+Math.random()*30;
   scheduleFire(api,year);persist();
  }
+ // Existing animals leave scorched habitat and return as vegetation recovers.
+ for(const m of api.mobs||[]){
+  if(!m||m.hp<=0||habitatQuality(m.x,m.y,year)>=.78)continue;
+  const scar=events.find(e=>e.kind==="wildfire"&&year>=e.year&&year<e.year+e.duration+7&&Math.hypot(m.x-e.x,m.y-e.y)<e.radius);
+  if(!scar)continue;
+  m.flee=Math.max(m.flee||0,Math.min(2.8,1.2+dt*2));
+  m.fleeThreatX=scar.x;m.fleeThreatY=scar.y;
+  m.resting=false;m.foragePose=0;m.habitatDisplaced=true;
+ }
  // Wildfire is an actual lethal hazard. Keep corpses in the main game's normal remains system.
  const playerHeat=fireIntensity(api.P.x,api.P.y,year);
  if(playerHeat>.12&&api.P.hp>0&&!api.isSheltered?.(api.P)){
@@ -243,7 +263,7 @@ function draw(ctx,project,year){
  if(warning){const p=project(warning.x,warning.y);if(p){ctx.save();ctx.strokeStyle="#ffbd4b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,45,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#fff0bc";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText("地震・倒木に注意",p.x,p.y-52);ctx.restore();}}
 }
 restore();
-window.WildDisaster={tick,draw,blocked,floodDepth,fireIntensity,history:()=>history.slice(),events:()=>events.slice(),
+window.WildDisaster={tick,draw,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),
  getState:()=>({events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
  force:(api)=>schedule(api,api.elapsed/120),
  forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
