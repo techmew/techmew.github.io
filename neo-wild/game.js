@@ -6407,8 +6407,10 @@ function loop(t){
   huntSlowUntil=0;$("hunt-cinematic").classList.remove("show");
  }
  if(mode==="milestone"&&t>=milestoneUntil)finishMissionMilestone();
- window.WildGamepad?.poll?.(dt);
- if(mode==="play")update(dt*(t<huntSlowUntil?.28:1));
+ // The QA panel is a pause surface: no time, hunger, enemy AI, or Pad actions
+ // advance while selecting a scenario. Closing it resumes the actual event.
+ if(!window.WildDebugMode?.open)window.WildGamepad?.poll?.(dt);
+ if(mode==="play"&&!window.WildDebugMode?.open)update(dt*(t<huntSlowUntil?.28:1));
  else if(mode==="dying")advanceDeath(Math.min(.20,frameSeconds));
  else huntSlowUntil=0;
  // Freeze 2D/WebGL gameplay behind achievement and tutorial.
