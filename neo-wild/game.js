@@ -5721,7 +5721,7 @@ function drawCreature(o,isPlayer){
  if(isPlayer&&P.jumpHeight>baseZ)lift2D(P.jumpHeight-baseZ);
  if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight);
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
- if(isPlayer&&P.hidden)ctx.globalAlpha*=.44;
+ // Stealth alpha was already applied before shadow/body drawing.
  ctx.rotate(o.dir||0);
  if(!isPlayer&&o.resting){ctx.scale(1.07,.68);ctx.translate(0,r*.15);}
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.19:t==="cat"?Math.abs(Math.sin(gait*1.46))*.13:t==="wolf"?Math.abs(Math.sin(gait*.62))*.105:Math.abs(Math.sin(gait*.9))*.09;
@@ -6027,7 +6027,7 @@ function drawOccludedSilhouettes(entities){
   if(!hiddenAnimals.length&&!hiddenFood.length)continue;
   ctx.save();ctx.beginPath();ctx.moveTo(hull[0][0],hull[0][1]);
   for(let k=1;k<hull.length;k++)ctx.lineTo(hull[k][0],hull[k][1]);
-  ctx.closePath();ctx.clip();ctx.globalAlpha*=.25;
+  ctx.closePath();ctx.clip();ctx.globalAlpha*=.36;
   for(const e of hiddenAnimals)drawCreature(e,e===P);
   for(const food of hiddenFood)drawItem(food);
   ctx.restore();
