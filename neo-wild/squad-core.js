@@ -28,10 +28,13 @@ function rollSpecies(year=0,explored=0){
 }
 function generate(year=0,explored=0,poorStreak=0){
  const species=rollSpecies(year,explored);
- const iv=Object.fromEntries(["hp","attack","speed","stamina"].map(k=>[k,Math.round(rand(.6,1.4)*100)/100]));
+ // Low-grade streaks improve the actual rolled individual, not merely its displayed grade.
+ // Probability rises gradually and is capped; there is no guaranteed S-grade ceiling.
+ const streak=Math.max(0,Math.min(12,Math.floor(Number(poorStreak)||0)));
+ const lucky=Math.random()<Math.min(.36,streak*.03);
+ const iv=Object.fromEntries(["hp","attack","speed","stamina"].map(k=>[k,Math.round(rand(lucky?.88:.6,1.4)*100)/100]));
  const avg=Object.values(iv).reduce((a,b)=>a+b,0)/4;
- const bonus=Math.min(.16,Math.max(0,poorStreak)*.018);
- const score=avg+bonus;const grade=score>=1.22?"S":score>=1.10?"A":score>=.97?"B":score>=.84?"C":"D";
+ const score=avg;const grade=score>=1.22?"S":score>=1.10?"A":score>=.97?"B":score>=.84?"C":"D";
  const abilities=Array.from({length:Math.floor(rand(0,3))},()=>traits[Math.floor(rand(0,traits.length))]).filter((v,i,a)=>a.indexOf(v)===i);
  const id=globalThis.crypto?.randomUUID?.()||"wr-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);
  return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:names[species]+"-"+id.slice(-4),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
