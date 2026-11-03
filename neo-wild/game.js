@@ -1034,7 +1034,7 @@ function start(){
  const starterTypes=startRegion===5?["wildFox","raccoonDog","snake","crow"]:
   startRegion===4||startRegion===7?["snake","crow","frog","strayCat"]:
   ["strayCat","strayCat","crow","snake"];
- let starterCount=0;
+ let starterCount=ensureLocalPredators(startRegion===7?2:1);
  for(const type of starterTypes)if(spawnMob(true,false,true,null,type))starterCount++;
  // Seed several other districts within the same original 13-animal budget.
  // A visitor no longer finds the rest of the world completely empty.
@@ -1330,6 +1330,7 @@ function restoreSnapshot(snapshot){
  // Always make the restored animal visible on the first rendered frame.
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
  cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
+ const nearbyPredatorsRestored=ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
  enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
@@ -3973,6 +3974,44 @@ function easeOldOvercrowding(){
   mobs.splice(i,1);retired++;
  }
 }
+// Replenish reachable predators near the player, including waterfront and old-save starts.
+// Respect local/global caps, den safety, real collision, water and regional habitat.
+function ensureLocalPredators(target=1){
+ if(!P||mountainHabitat(P.x,P.y))return 0;
+ const region=regionAt(P.x,P.y);
+ const pool=region===7?["strayCat","dog","venomSnake","raccoonDog"]:
+  region===5?["wildFox","raccoonDog","strayCat"]:region===4?["dog","strayCat","venomSnake"]:
+  region===6?["dog","strayCat","raccoonDog"]:["strayCat","dog","wildFox"];
+ const localAnimals=()=>mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius);
+ const predators=()=>localAnimals().filter(m=>!m.companion&&!m.strongBoss&&!species[m.type]?.prey).length;
+ const want=clamp(Math.floor(target),0,2);
+ let placed=0;
+ for(let slot=0;slot<want;slot++){
+  if(predators()>=want||localAnimals().length>=WILDLIFE.localCap)break;
+  if(mobs.length>=WILDLIFE.cap&&!retireFarCalmAnimal())break;
+  const type=pool[(slot+region)%pool.length];
+  let settled=false;
+  for(const radius of [288,360,440,540,610]){
+   if(settled)break;
+   for(let k=0;k<20;k++){
+    const angle=((k*7+slot*3)%20)*TWO/20;
+    const x=clamp(P.x+Math.cos(angle)*radius,45,WORLD.w-45);
+    const y=clamp(P.y+Math.sin(angle)*radius,45,WORLD.h-45);
+    if(regionAt(x,y)!==region||mountainHabitat(x,y)||dist(P,{x,y})<245||
+      nearDenLocation(x,y,268)||collides(x,y,40)||
+      mobs.some(m=>m.hp>0&&Math.hypot(m.x-x,m.y-y)<WILDLIFE.separation)||
+      !routeClear(P,{x,y},Math.min(P.r,25)))continue;
+    if(!spawnMob(false,false,false,{x,y},type))continue;
+    // Forced species are verified, not just presumed; old den protection may replace a predator.
+    const born=mobs[mobs.length-1];
+    if(born.type!==type||species[born.type]?.prey){mobs.pop();continue;}
+    placed++;settled=true;break;
+   }
+  }
+  if(!settled)break;
+ }
+ return placed;
+}
 function maintainLocalWildlife(){
  if(!P)return;
  easeOldOvercrowding();
@@ -3988,6 +4027,8 @@ function maintainLocalWildlife(){
  const caveNeedsHunter=zone==="cave"&&caveHunter===0;
  const caveNeedsBalance=caveNeedsPrey||caveNeedsHunter;
  const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
+ // An old save with many distant creatures must not leave the current district empty.
+ if(!zone)ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
  if(caveNeedsBalance&&local>=WILDLIFE.localCap)retireCalmCaveOverflow(caveNeedsPrey,caveAnimals);
  const localNow=mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius).length;
  if(mobs.length>=WILDLIFE.cap&&(localNow<Math.min(3,target)||
