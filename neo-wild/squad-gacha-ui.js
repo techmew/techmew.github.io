@@ -92,9 +92,9 @@ const ready=()=>{
  }
  function paint(canvas,m){
   if(!canvas||!m)return;canvas.width=canvas.width;const type=m.species,color=COLORS[type]||"#96a6a1";
-  const model={type,r:RADII[type]||19,color,belly:"#c6c3b6"};
+  const model={type,r:RADII[type]||19,color,belly:"#c6c3b6",age:m.age,sex:m.sex,ageStage:m.ageStage};
   let drawn=false;
-  if(OPERABLE.has(type)&&window.Wild3D?.available&&window.Wild3D.previewAnimal){
+  if(window.Wild3D?.available&&window.Wild3D.previewAnimal){
    try{drawn=!!window.Wild3D.previewAnimal(model,canvas,.6,1.45,.12)}catch(_){}
   }
   if(!drawn)plot(canvas,type);
