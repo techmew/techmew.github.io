@@ -654,7 +654,11 @@ function drawCommonAnimal3D(m,clock){
 function drawRarePlayable3D(m,clock){
  const t=m.type;
  if(t!=="manul"&&t!=="tibetanFox"&&t!=="shoebill")return false;
- const r=m.r||18,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
+ // Individual age and sex affect silhouette without changing gameplay collision radius.
+ const young=m.age==="若い"||m.age==="若年"||m.ageStage==="young";
+ const male=m.sex==="オス"||m.sex==="male";
+ const sizeFactor=young?.84:1;
+ const r=(m.r||18)*sizeFactor,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
  const orb=(dx,dy,z,rx,ry,rz,col,seg=8,ring=5)=>ellipsoid(fx(dx,dy),fy(dx,dy),z,rx,ry,rz,col,dir,seg,ring);
  const spike=(dx,dy,z,rx,ry,height,col)=>pyramid(fx(dx,dy),fy(dx,dy),z,rx,ry,height,col);
@@ -687,6 +691,8 @@ function drawRarePlayable3D(m,clock){
   }
   const faceDrive=attack?.12*r:0;
   orb(r*.67+faceDrive,0,belly+r*.37,r*.70,r*.75,r*.47,"#c7c7bd",12,7);
+  // Adult males have a visibly broader cheek ruff; younger animals a smaller one.
+  for(const side of [-1,1])orb(r*.48,side*r*(male?.76:.69),belly+r*.29,r*(male?.27:.19),r*(male?.29:.22),r*.21,male?"#b1b0a6":"#c7c6ba",9,5);
   orb(r*.88+faceDrive,0,belly+r*.18,r*.55,r*.66,r*.32,cream,12,6);
   for(const side of [-1,1]){
    // Rounded tiny ears, set LOW and spread widely.
@@ -729,6 +735,7 @@ function drawRarePlayable3D(m,clock){
   // The flat mask is a wide face, not an ordinary pointed fox muzzle.
   const headX=r*.79+(attack?r*.11:0);
   orb(headX,0,r*.89+bob,r*.57,r*.79,r*.49,mask,12,7);
+  if(male)for(const side of [-1,1])orb(headX-r*.12,side*r*.64,r*.78+bob,r*.22,r*.18,r*.27,"#a49786",9,5);
   orb(headX+r*.09,0,r*.85+bob,r*.55,r*.78,r*.39,light,12,7);
   for(const side of [-1,1]){
    spike(r*.61,side*r*.55,r*1.08+bob,r*.15,r*.17,r*.49,"#8c7769");
@@ -789,7 +796,7 @@ function drawRarePlayable3D(m,clock){
   }
   // Huge rigid shoe-like beak with an actual hooked apex; pose darts forward.
   const beakX=r*1.46+lean,beakZ=r*1.80+bob-lean*.68;
-  orb(beakX,0,beakZ,r*.74,r*.53,r*.39,bill,12,7);
+  orb(beakX,0,beakZ,r*(male?.78:.72),r*(male?.55:.51),r*.39,bill,12,7);
   orb(beakX+r*.29,0,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
   orb(beakX-r*.08,0,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
   orb(beakX+r*.74,0,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
