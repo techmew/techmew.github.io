@@ -93,7 +93,8 @@ function renderList(){
    if(known)drawModel(thumb,item,.65,1.18,.12);
    else{const c=thumb.getContext("2d");c.fillStyle="#132027";c.fillRect(0,0,104,82);c.fillStyle="#738083";c.font="24px sans-serif";c.textAlign="center";c.fillText("？",52,51);}
    const name=document.createElement("strong");name.textContent=known?item.name:"？？？";
-   const countTag=document.createElement("small");countTag.textContent=known?"討伐 "+count(item.type)+"体":"未討伐";
+   const countTag=document.createElement("small");const recommended=window.WildCombatLevels?.level(item.type)||1;
+   countTag.textContent=(known?"討伐 "+count(item.type)+"体":"未討伐")+"｜推奨LV"+recommended;
    button.append(thumb,name,countTag);
    button.disabled=!known;button.addEventListener("click",()=>select(item.type));
    grid.appendChild(button);
@@ -107,7 +108,7 @@ function select(type){
  $("bestiary-list").classList.add("hidden");
  $("bestiary-detail").classList.remove("hidden");
  $("bestiary-name").textContent=item.name;
- $("bestiary-count").textContent="討伐 "+count(type)+"体";
+ $("bestiary-count").textContent="討伐 "+count(type)+"体｜推奨LV"+(window.WildCombatLevels?.level(type)||1);
  $("bestiary-render-help").textContent="指で回転・ピンチで拡大縮小。ゲームパッドは右スティックとL/R。";
  renderPreview();
  document.querySelectorAll(".bestiary-entry").forEach(e=>e.classList.toggle("chosen",e.dataset.type===type));
