@@ -1346,6 +1346,16 @@ function render(o){
   }
   if(playerFirst)gl.drawArrays(gl.TRIANGLES,0,playerFirst);
   if(P&&playerEnd>playerFirst){
+   // Terrain and elevated static scenery can completely occlude the player while
+   // the Canvas HUD still paints YOU/ring at the correct world XY. Keep the
+   // playable animal visible and let its own triangles depth-test normally.
+   // Only the player's draw remains: NPCs, scenery and save coordinates stay intact.
+   gl.clear(gl.DEPTH_BUFFER_BIT);
+   gl.depthFunc(gl.LEQUAL);
+   gl.depthMask(true);
+   // The player must remain legible even in a dark district/night; keep
+   // environmental lighting on the rest of the world unchanged.
+   gl.uniform1f(unight,Math.min(night,.36));
    if(P.hidden){
     // Depth-only prepass prevents 43% alpha from accumulating across
     // overlapping 3D body triangles and turning a hidden animal opaque.
@@ -1359,6 +1369,7 @@ function render(o){
    gl.drawArrays(gl.TRIANGLES,playerFirst,playerEnd-playerFirst);
    if(P.hidden)gl.depthFunc(gl.LEQUAL);
    gl.depthMask(true);gl.disable(gl.BLEND);gl.uniform1f(ualpha,1);
+   gl.uniform1f(unight,night);
   }
   frames++;
   return true;
