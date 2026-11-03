@@ -1253,3 +1253,10 @@
  #squad-gacha .squad-featured-image canvas{max-height:190px!important;}
  #menu .squad-roster-slot{min-height:92px!important;}
 }
+
+/* GACHA_FIRST_ORDER_V2: primary action and three slots always precede secondary menus. */
+#menu .menu-shell>.hero-title,#menu .menu-shell>.lead,#menu .menu-shell>#gamepad-menu-guide{order:0!important;}
+#menu .menu-shell>#squad-home{order:1!important;}
+#menu .menu-shell>#save-menu-actions{order:2!important;}
+#menu .menu-shell>#squad-menu-extras{order:3!important;}
+#menu .menu-shell>.menu-foot{order:4!important;}
