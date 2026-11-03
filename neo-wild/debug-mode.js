@@ -13,6 +13,7 @@ css.textContent=[
 "#wr-debug-panel *,#wr-debug-panel *:before,#wr-debug-panel *:after{box-sizing:border-box;}",
 "#wr-debug-panel header{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-13px;z-index:2;padding:7px 0 10px;background:#111e22;}",
 "#wr-debug-panel header strong{font-size:17px;}",
+"#wr-debug-panel input[type=number]{width:100%;min-height:42px;padding:7px 9px;border:1px solid #6a847c;border-radius:8px;background:#293d41;color:#fff;font-size:14px;}",
 "#wr-debug-panel button,#wr-debug-panel select{width:100%;min-height:44px;padding:9px 10px;color:#fff;background:#293d41;border:1px solid #6a847c;border-radius:8px;font-size:13px;font-weight:700;touch-action:manipulation;}",
 "#wr-debug-panel button:disabled{opacity:.37;}",
 "#wr-debug-panel button:focus-visible,#wr-debug-panel select:focus-visible,#wr-debug-panel summary:focus-visible{outline:3px solid #a8d6ff;outline-offset:2px;}",
@@ -91,6 +92,12 @@ panel.innerHTML=[
 '<p class="wr-note" id="wr-debug-backup-status">初回テスト前に自動で保存内容を控えます。復元は画面を再読み込みします。</p>',
 '<label>表示方式<select id="wr-debug-renderer"><option value="auto">3D（可能なら）</option><option value="2d">2D強制表示</option></select></label>',
 '<button type="button" data-action="renderer">描画方式を切り替える</button>',
+'<details><summary>任意の年代・LV・座標を指定</summary>',
+'<div class="wr-row"><label>世界年（現在以降）<input id="wr-debug-year" type="number" min="0" max="1000" value="50" inputmode="numeric"></label><label>LV<input id="wr-debug-level" type="number" min="1" max="1000" value="10" inputmode="numeric"></label></div>',
+'<div class="wr-row"><button type="button" data-action="custom-year">指定の世界年へ</button><button type="button" data-action="custom-level">指定LVへ</button></div>',
+'<div class="wr-row"><label>世界X座標<input id="wr-debug-x" type="number" min="20" max="13600" value="9000" inputmode="numeric"></label><label>世界Y座標<input id="wr-debug-y" type="number" min="20" max="6000" value="3800" inputmode="numeric"></label></div>',
+'<button type="button" data-action="custom-position">指定座標へ移動（安全な近傍を探索）</button>',
+'</details>',
 '<p class="wr-mini">QAバックアップにはゲームの保存・災害・怪異の保存状態を含めます。デバッグ操作中の変更は保存される場合があります。</p>',
 '</div></details>',
 '<details class="wr-section"><summary>6. 状態・保存・診断</summary><div class="wr-inside">',
@@ -253,6 +260,16 @@ panel.addEventListener("click",async event=>{
  if(action==="renderer"){
   const success=bridge()?.setRenderer?.($("wr-debug-renderer").value);
   say(success?"描画方式を切り替えました":"描画方式変更不可");return;
+ }
+ if(["custom-year","custom-level","custom-position"].includes(action)){
+  if(!qaCapture(false)){say("バックアップ作成失敗。検証を中止");return;}
+  const api=bridge();let res;
+  try{
+   if(action==="custom-position")res=api?.teleportTo?.(Number($("wr-debug-x").value),Number($("wr-debug-y").value));
+   else if(action==="custom-year")res=api?.runCase?.("year:"+$("wr-debug-year").value);
+   else res=api?.runCase?.("player:level"+$("wr-debug-level").value);
+  }catch(error){trackError(error.message);res={ok:false,message:"検証時エラー："+error.message};}
+  say(res?.message||"指定値を実行できません");return;
  }
  if(action==="case"){
   if(!qaCapture(false)){say("QAバックアップの作成に失敗。実行を中止");return;}
