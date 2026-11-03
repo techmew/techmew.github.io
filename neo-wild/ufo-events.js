@@ -3,6 +3,7 @@
 "use strict";
 const key="wild-reclaim-ufo-events-v1";
 let event=null, cooldown=0, history=[], traces=[];
+const beamRange=95, playerBeamRange=105;
 const stateKey="wild-reclaim-ufo-state-v2";
 try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,Number(saved.cooldown)||0);traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
 let persistTimer=0;
@@ -27,7 +28,13 @@ function tick(dt,world){
   const target=visible?P:mobs.filter(m=>m.hp>0&&!m.companion).sort((a,b)=>distance(a,e)-distance(b,e))[0];
   if(target){const d=distance(e,target);if(d>12){const step=Math.min(d,Math.min(72,20+e.t*3)*dt);e.x+=(target.x-e.x)/d*step;e.y+=(target.y-e.y)/d*step}}
   // NPC can be abducted before the player: nearest living wildlife in beam.
-  const targets=mobs.filter(m=>m.hp>0&&!m.companion&&distance(m,e)<95&&!world.lineBlocked?.(m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
+  const targets=mobs.filter(m=>m.hp>0&&!m.companion&&distance(m,e)<beamRange&&!world.lineBlocked?.(m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
+  // All nearby animals react; only the locked victim is subject to capture.
+  for(const animal of mobs){if(animal.hp<=0||animal.companion||distance(animal,e)>180)continue;
+   animal.flee=Math.max(Number(animal.flee)||0,1.8);
+   animal.alert=Math.max(Number(animal.alert)||0,1.8);
+   animal.lastX=e.x;animal.lastY=e.y;
+  }
   // NPCs receive a visible, escapable lock-on instead of instantaneous removal.
   const m=targets[0];
   if(m&&e.t>2.5){
@@ -41,14 +48,14 @@ function tick(dt,world){
    m.dir=Math.atan2(m.y-e.y,m.x-e.x);
    m.vx=(m.x-e.x)/d*Math.max(105,Number(m.speed)||105);
    m.vy=(m.y-e.y)/d*Math.max(105,Number(m.speed)||105);
-   if(e.npcBeam>=2.4&&distance(m,e)<95&&!world.lineBlocked?.(m,e)){
+   if(e.npcBeam>=2.4&&distance(m,e)<beamRange&&!world.lineBlocked?.(m,e)){
     m.hp=0;m._killRegistered=true;
     record("NPC誘拐",year,m.x,m.y);trace("NPC誘拐",year,m.x,m.y);
     world.onEvent?.("ufo-npc-abduction",{year,x:m.x,y:m.y});
     world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0;
    }
   }else{e.victim=null;e.npcBeam=Math.max(0,(e.npcBeam||0)-dt*2)}
-  if(distance(P,e)<105&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
+  if(distance(P,e)<playerBeamRange&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
