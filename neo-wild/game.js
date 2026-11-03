@@ -5773,6 +5773,95 @@ function drawOrdinaryCreature2D(o,r,fur,belly,pace,oval,triangle){
  return true;
 }
 
+
+/* Accurate-to-silhouette procedural 2D forms for the three new playable species.
+ * All features are actual geometric details: no sprites or external images. */
+function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
+ const t=o.type;if(!["manul","tibetanFox","shoebill"].includes(t))return false;
+ const line=(points,color,width=1.5)=>{
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.beginPath();ctx.moveTo(points[0],points[1]);
+  for(let i=2;i<points.length;i+=2)ctx.lineTo(points[i],points[i+1]);ctx.stroke();
+ };
+ if(t==="manul"){
+  // Pallas's cat: very short legs, thick frosted fur, round eyes and low-set ears.
+  for(let k=4;k>=0;k--){
+   const x=-r*(1.01+k*.34),band=k%2?"#6c6f6b":"#c8c5b8";
+   oval(x,Math.sin(k*.7)*r*.10,r*(.37-k*.034),r*(.25-k*.02),band,-.12);
+  }
+  for(const side of [-1,1])for(const front of [-1,1])
+   oval(front*r*.55,side*r*.53+pace*side*.20,r*.21,r*.18,"#77776f");
+  oval(-r*.21,0,r*1.30,r*.73,fur);
+  for(let k=0;k<14;k++){
+   const x=-r*.95+k*r*.145;
+   triangle([x,-r*.60,x+r*.07,-r*(.78+(k%3)*.055),x+r*.23,-r*.57],k%3?"#c8c5b7":"#8d9088");
+   triangle([x,r*.60,x+r*.12,r*(.82+(k%3)*.03),x+r*.23,r*.58],k%2?"#d0cbbd":"#96998f");
+  }
+  oval(r*.46,0,r*.82,r*.73,"#a4a49d"); // broad face
+  oval(r*.56,0,r*.66,r*.63,"#d4d0c3");
+  for(const side of [-1,1]){
+   oval(r*.22,side*r*.68,r*.20,r*.22,"#8c857b");
+   oval(r*.22,side*r*.72,r*.11,r*.12,"#a8948d");
+   oval(r*.74,side*r*.25,r*.15,r*.17,"#dcbf71");
+   oval(r*.78,side*r*.25,r*.082,r*.090,"#1c221e"); // round pupils
+   line([r*.50,side*r*.18,r*.30,side*r*.36],"#545c59",2);
+   line([r*.40,side*r*.42,r*.18,side*r*.53],"#626863",1.4);
+   for(let j=0;j<3;j++)line([r*.98,side*r*.09,r*(1.30+j*.14),side*r*(.12+j*.12)],"#e9e7dc",.85);
+  }
+  triangle([r*1.05,-r*.08,r*1.18,0,r*1.05,r*.08],"#8e6d70");
+  line([r*.98,0,r*.80,r*.12],"#5b5651",1.2);
+ }else if(t==="tibetanFox"){
+  // Tibetan sand fox: wide, nearly rectangular cheeks, narrow eyes, thick sand coat.
+  for(let k=5;k>=0;k--){
+   const x=-r*(1.04+k*.29);
+   oval(x,Math.sin(k*.4)*r*.10,r*(.30-k*.027),r*(.22-k*.016),k%2?"#c1a68a":"#e0c8a6");
+  }
+  for(const side of [-1,1])for(const front of [-1,1])
+   oval(front*r*.59,side*r*.53+pace*side*.22,r*.19,r*.25,"#8b7565");
+  oval(-r*.22,0,r*1.18,r*.56,"#b9a18b");
+  oval(r*.22,0,r*.90,r*.42,"#e4d1b9");
+  for(let j=0;j<10;j++)triangle([-r*.96+j*r*.21,-r*.5,-r*.87+j*r*.21,-r*.68,-r*.74+j*r*.21,-r*.52],j%2?"#ccb59c":"#a78d7c");
+  for(const side of [-1,1]){
+   triangle([r*.30,side*r*.38,r*.23,side*r*.88,r*.68,side*r*.45],"#82756d");
+   triangle([r*.39,side*r*.48,r*.31,side*r*.73,r*.54,side*r*.49],"#dfbaa7");
+   oval(r*.78,side*r*.34,r*.51,r*.27,"#9c958b");
+   oval(r*.97,side*r*.37,r*.45,r*.26,"#eee4d4");
+   oval(r*.90,side*r*.10,r*.20,r*.12,"#ded2c1");
+   oval(r*1.01,side*r*.15,r*.11,r*.055,"#282c2b",side*.13); // narrow gaze
+   line([r*.81,side*r*.20,r*1.17,side*r*.21],"#6d6761",1.6);
+  }
+  // The squared broad cheek line is defining (not a standard pointed fox head).
+  triangle([r*.95,-r*.53,r*1.51,-r*.39,r*1.51,r*.39,r*.95,r*.53],"#e5d5be");
+  oval(r*1.48,0,r*.18,r*.16,"#4d443e");
+  line([r*1.17,r*.20,r*1.4,r*.12],"#867a70",1.1);
+ }else{
+  // Shoebill: rigid upright stance, elongated legs, giant hooked shoe-shaped bill.
+  const thrust=o.beakVisual>0?.40:0,flap=o.jumpTime>0||o.pounceTime>0;
+  for(const side of [-1,1]){
+   line([-r*.25,side*r*.12,-r*.56,side*r*(.94+Math.sin((o.steps||0)*.7)*.1)],"#8b8e83",r*.14);
+   for(let toe=-1;toe<=1;toe++)
+    line([-r*.56,side*r*.92,-r*(.78+toe*.08),side*r*(.97+toe*.14)],"#6b7978",r*.085);
+  }
+  triangle([-r*1.18,-r*.28,-r*1.63,0,-r*1.16,r*.31],"#58686c");
+  oval(-r*.17,0,r*.84,r*.57,fur);
+  for(const side of [-1,1]){
+   oval(-r*.36,side*r*(flap?.75:.36),r*(flap?.98:.72),r*(flap?.37:.21),"#687982",side*.14);
+   for(let k=0;k<5;k++)line([-r*.80+k*r*.15,side*r*.40,-r*1.12+k*r*.13,side*r*(flap?1.01:.64)],"#9ba8aa",1.2);
+  }
+  oval(r*.55,0,r*.41,r*.44,"#87969b"); // short thick neck
+  oval(r*.88,0,r*.35,r*.32,"#a0adb0");
+  for(const side of [-1,1]){oval(r*.85,side*r*.26,r*.09,r*.085,"#efd396");oval(r*.88,side*r*.26,r*.043,r*.045,"#161c1d");}
+  // Oversized shoe bill with thick upper ridge and a sharply hooked tip.
+  triangle([r*1.03,-r*.38,r*(1.92+thrust),-r*.35,r*(2.10+thrust),0,r*(1.90+thrust),r*.35,r*1.03,r*.38],"#c3bb98");
+  oval(r*(1.47+thrust),0,r*.49,r*.35,"#b7b299");
+  line([r*1.16,-r*.18,r*(1.96+thrust),-r*.15],"#827f6b",r*.042);
+  triangle([r*(2.02+thrust),-r*.11,r*(2.21+thrust),0,r*(2.02+thrust),r*.12],"#625e54");
+  oval(r*(1.44+thrust),-r*.24,r*.045,r*.035,"#4a514b");
+  for(let k=0;k<3;k++)triangle([r*.31,-r*.24+k*r*.12,r*.42,-r*.48+k*r*.12,r*.58,-r*.28+k*r*.12],"#bdc7bf");
+ }
+ return true;
+}
+
 function drawCreature(o,isPlayer){
  const s=isPlayer?P.base:species[o.type],r=o.r;
  const t=!isPlayer&&o.type==="strayCat"?"cat":!isPlayer&&o.type==="wildFox"?"fox":o.type;
@@ -5835,7 +5924,9 @@ function drawCreature(o,isPlayer){
    else ctx.scale(1.13,.92);
   }
  }
- if((!isPlayer||t==="deer")&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
+ if(isPlayer&&drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
+  // Each playable species has its own body/face/special attack silhouette.
+ }else if((!isPlayer||t==="deer")&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
   // Common wildlife has species-specific silhouettes.
  }else if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
   // Unique strong enemy silhouette.
