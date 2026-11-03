@@ -136,6 +136,92 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
  }
 }
 
+
+/* Earthquake debris: physically grounded fallen wood, with deterministic variation.
+ * Unlike a flat rectangle or stacked oval, each trunk and bough is a tapered
+ * multi-face cylinder. All positions are in the existing world coordinate system.
+ */
+function fallenTreeMesh(e,worldYear){
+ const fract=n=>n-Math.floor(n),seed=fract(Math.sin(e.x*.031+e.y*.067)*43758.5453);
+ const angle=Number.isFinite(e.angle)?e.angle:-.48+(seed-.5)*.74;
+ const ca=Math.cos(angle),sa=Math.sin(angle);
+ const point=(forward,side,z)=>[e.x+ca*forward-sa*side,e.y+sa*forward+ca*side,z];
+ const tube=(a,b,ra,rb,shade,phase=0)=>{
+  const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2];
+  const flat=Math.max(.001,Math.hypot(dx,dy)),len=Math.max(.001,Math.hypot(flat,dz));
+  const side=[-dy/flat,dx/flat,0],up=[-dz*dx/(flat*len),-dz*dy/(flat*len),flat/len];
+  const count=12;
+  const ring=(p,rad,t,k)=>{
+   const theta=k*TAU/count,rough=1+.045*Math.sin(theta*5+phase+t*2.3);
+   const rx=Math.cos(theta)*rad*rough,ry=Math.sin(theta)*rad*rough;
+   return [p[0]+side[0]*rx+up[0]*ry,p[1]+side[1]*rx+up[1]*ry,p[2]+side[2]*rx+up[2]*ry];
+  };
+  for(let k=0;k<count;k++){
+   const a0=ring(a,ra,0,k),a1=ring(a,ra,0,k+1);
+   const b0=ring(b,rb,1,k),b1=ring(b,rb,1,k+1);
+   quad(a0,b0,b1,a1,tone(shade,k%4===0?.75:k%3===0?1.12:1));
+  }
+ };
+ // Continuous subtle ground shadow, buried roots and loose bark.
+ ellipsoid(e.x,e.y,.38,66,19,.45,"#233329",angle,12,3);
+ const root=point(-43,0,11);
+ ellipsoid(root[0],root[1],5,16,13,8,"#4d4638",angle,10,5);
+ ellipsoid(root[0]-sa*5,root[1]+ca*5,5,12,8,6,"#66543d",angle,9,4);
+ for(let k=0;k<4;k++){
+  const offset=(k-1.5)*5;
+  tube(point(-39,offset,7),point(-56-k*2,offset*1.85,2.5),3.8,1.2,"#594433",k);
+ }
+ // Trunk bends, tapers and touches the ground. No bright flat end disc.
+ const nodes=[
+  point(-40,0,12),point(-19,1.8,11),point(7,-1.4,9),
+  point(33,2.4,7),point(56,5,5)
+ ];
+ const radii=[12.8,10.8,8.5,6.1,3.4];
+ for(let k=0;k<nodes.length-1;k++){
+  tube(nodes[k],nodes[k+1],radii[k],radii[k+1],k%2?"#6c503c":"#79583f",seed*6+k*.3);
+ }
+ // Root-facing wood: restrained concentric grain, not a solid yellow circle.
+ const cap=nodes[0],side=[-sa,ca,0],height=[0,0,1],rings=[12.7,10.8,7.8,4.6,1.1];
+ const cols=["#4b392c","#866348","#a17b55","#74553d","#614632"];
+ const ringPoint=(rad,i)=>[cap[0]+side[0]*rad*Math.cos(i*TAU/16)+height[0]*rad*Math.sin(i*TAU/16),cap[1]+side[1]*rad*Math.cos(i*TAU/16),cap[2]+rad*Math.sin(i*TAU/16)];
+ for(let ri=0;ri<rings.length-1;ri++){
+  for(let i=0;i<16;i++){
+   quad(ringPoint(rings[ri],i),ringPoint(rings[ri],i+1),ringPoint(rings[ri+1],i+1),ringPoint(rings[ri+1],i),color(cols[ri]));
+  }
+ }
+ // Broken side branches sit in the ground, with twigs and uneven crown.
+ const boughs=[
+  {at:2,side:-1,len:26},{at:19,side:1,len:31},
+  {at:30,side:-1,len:24},{at:43,side:1,len:25},
+  {at:52,side:-1,len:15}
+ ];
+ const age=Math.max(0,(Number(worldYear)||0)-(Number(e.year)||0));
+ const leaves=age<4;
+ for(let k=0;k<boughs.length;k++){
+  const branch=boughs[k],b=point(branch.at,k%2?1:-1,8-k*.43);
+  const mid=point(branch.at+branch.len*.31,branch.side*branch.len*.48,12+(k%2)*4);
+  const end=point(branch.at+branch.len*.58,branch.side*branch.len,4+(k%2)*3);
+  tube(b,mid,3.8,2.3,"#6d513c",k*.8);
+  tube(mid,end,2.3,.9,"#76593f",k*.6);
+  const twig=point(branch.at+branch.len*.81,branch.side*branch.len*.85,3.5);
+  tube(mid,twig,1.6,.45,"#594532",k*1.5);
+  if(leaves){
+   for(let j=0;j<3;j++){
+    const at=point(branch.at+branch.len*(.45+j*.14),
+     branch.side*branch.len*(.65+j*.11)+(j-1)*4,5+j*1.6);
+    const crownColors=["#365e40","#476f46","#567b4e","#31593a"];
+    ellipsoid(at[0],at[1],at[2],8+(j%2)*3,5.6+j*.5,5.5,crownColors[(k+j)%4],angle+branch.side*.46,10,5);
+   }
+  }
+ }
+ // Bark fragments and broken twigs scattered under the canopy.
+ for(let k=0;k<6;k++){
+  const drift=(fract(Math.sin(seed*91+k*29.13)*7613.21)-.5);
+  const twig=point(-24+k*14,drift*25,1.7);
+  tube(twig,point(-20+k*14,drift*25+4,1.1),1.2,.4,k%2?"#785c45":"#4b4030",k);
+ }
+}
+
 /* STRONG-MODELS-3D-V2: species-specific anatomy, proportions and silhouettes. */
 function drawStrongAnimal3D(m,clock){
  const t=m.type;
@@ -1157,7 +1243,7 @@ function render(o){
   };
   // Rebuild the static room only when the roof changes to its playable cutaway.
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree").map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year)].join(",")).join(";"),WORLD.w,WORLD.h,interiorReveal].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year)].join(",")).join(";"),WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    mountainTerrain(isVisible);
@@ -1258,31 +1344,12 @@ function render(o){
     }
    }
    }
-   // Fallen trees are world-space 3D obstacles, not flat HUD rectangles.
+   // Persistent quake debris, same world positions as the collision geometry.
    for(const e of o.disasterEvents||[]){
     if(e.kind!=="fallen_tree"||!isVisible(e.x,e.y,210))continue;
-    const age=(o.elapsed||0)/120-e.year;
-    if(!e.permanent&&age>=e.duration)continue;
-    const angle=-.45+Math.sin(e.x*.017+e.y*.023)*.38;
-    const ux=Math.cos(angle),uy=Math.sin(angle),vx=-uy,vy=ux;
-    const trunk=(t,r,z,col)=>ellipsoid(e.x+ux*t,e.y+uy*t,z, r, r*.88,Math.max(4,r*.74),col,angle,10,5);
-    // Segmented tapered trunk, irregular bark and a visible cut/root end.
-    for(let k=0;k<7;k++){
-     const t=-31+k*11,rad=10-k*.85;
-     trunk(t,rad,8+rad*.2,k%2?"#71543b":"#806045");
-     for(let stripe=0;stripe<3;stripe++){
-      const side=(stripe-1)*rad*.48;
-      ellipsoid(e.x+ux*t+vx*side,e.y+uy*t+vy*side,13+stripe*.8,4,1.1,1.4,"#473728",angle,6,3);
-     }
-    }
-    ellipsoid(e.x-ux*39,e.y-uy*39,10,11,9,10,"#b08a60",angle,10,5);
-    ellipsoid(e.x-ux*40,e.y-uy*40,10,5,5,5,"#765036",angle,9,4);
-    for(let k=0;k<5;k++){
-     const t=4+k*11,side=k%2?1:-1;
-     const bx=e.x+ux*t+vx*side*13,by=e.y+uy*t+vy*side*13;
-     ellipsoid(bx,by,13,17-k*.7,10,10,k%2?"#3c7048":"#4c8150",angle+side*.42,9,5);
-     ellipsoid(bx+vx*side*11,by+vy*side*11,17,11,9,9,"#315e3c",angle,8,4);
-    }
+    const year=(o.elapsed||0)/120;
+    if(!e.permanent&&year-e.year>=e.duration)continue;
+    fallenTreeMesh(e,year);
    }
    // Abandoned traffic has real 3D depth and matches the fallback drawings.
    for(const prop of o.streetProps||[]){
