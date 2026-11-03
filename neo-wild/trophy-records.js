@@ -25,6 +25,9 @@ const weather=[["CLEAR","晴天の旅人"],["RAIN","雨を越えて"],["THUNDER"
 for(const [w,name] of weather)add("weather-"+w,name,"この天候で生存する",false,(e,d)=>e==="weather"&&d.weather===w);
 const species=[["strayCat","野良猫"],["wildFox","野生の狐"],["crow","カラス"],["snake","蛇"],["boar","イノシシ"],["deer","鹿"],["bear","熊"],["lion","ライオン"],["cheetah","チーター"],["elephant","ゾウ"],["hippo","カバ"],["gorilla","ゴリラ"]];
 for(const [s,name] of species)add("defeat-"+s,name+"との決着",name+"を初めて倒す",["lion","elephant","gorilla"].includes(s),(e,d)=>e==="kill"&&d.type===s);
+// A witnessed NPC abduction is distinct from the player's own capture.
+add("ufo-npc-witness","空の狩人を目撃","UFOが動物を連れ去る場面を目撃する",true,
+ (e,d)=>e==="ufo-npc-abduction"&&!!(d?.species||d?.type));
 add("ufo-captured","空からの失踪","UFOに捕獲される",true,(e,d)=>e==="death"&&d.reason==="ufo");
 add("ghost-possession","影に触れられた者","亡霊に憑依される",true,(e)=>e==="ghost-possession");
 add("ghost-hallucination","幻影の目撃者","亡霊の幻覚を見る",true,(e)=>e==="ghost-hallucination");
