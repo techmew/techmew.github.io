@@ -1260,3 +1260,44 @@
 #menu .menu-shell>#save-menu-actions{order:2!important;}
 #menu .menu-shell>#squad-menu-extras{order:3!important;}
 #menu .menu-shell>.menu-foot{order:4!important;}
+
+
+/* ACTIVE SQUAD: leader never blends in with AI followers. */
+#squad-party-hud{position:absolute;z-index:5;top:clamp(105px,14vh,150px);left:50%;transform:translateX(-50%);
+ width:clamp(245px,37vw,365px);max-width:calc(100vw - 20px);padding:7px 9px;border-radius:11px;
+ background:rgba(7,20,22,.88);border:1px solid rgba(121,199,180,.75);box-shadow:0 4px 20px #0008;
+ pointer-events:auto;display:grid;gap:5px;color:#f1f9f5;text-align:left;text-shadow:none}
+#squad-party-hud.hidden{display:none!important}
+#squad-party-hud .squad-party-caption{font-weight:900;font-size:11px;color:#e9faf4;display:flex;gap:7px;justify-content:space-between;align-items:center}
+#squad-party-hud .squad-party-caption small{color:#b5ddd2;font-size:8px;font-weight:600}
+#squad-party-hud .squad-party-members{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+#squad-party-hud .squad-member{display:block!important;width:100%!important;height:36px!important;min-width:0!important;
+ padding:3px 4px!important;white-space:normal;overflow-wrap:anywhere;line-height:1.12;text-align:left;
+ background:#143b3b!important;border:1px solid #538784!important;border-radius:6px!important;
+ color:#ccf9f0!important;font:800 10px "Noto Sans JP",sans-serif!important}
+#squad-party-hud .squad-member.is-leader{color:#ffe997!important;border:2px solid #ffe18b!important;
+ background:#53461e!important;box-shadow:0 0 9px #ecd36a55}
+#squad-party-hud .squad-member:disabled{opacity:1;cursor:default}
+#squad-party-hud .squad-party-commands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+#squad-party-hud .squad-party-commands button{width:100%!important;min-width:0!important;height:28px!important;
+ padding:0 2px!important;font:800 11px "Noto Sans JP",sans-serif!important;border-radius:6px!important;
+ background:#243f43!important;border:1px solid #799b99!important;color:#e4f2ed!important}
+#squad-party-hud .squad-party-commands button[aria-pressed="true"]{background:#1f6b59!important;
+ color:#ffffff!important;border-color:#b8f2d0!important}
+#squad-death-choice{display:grid;gap:7px;padding:12px;margin:10px 0;border:1px solid #8ecfbb;border-radius:9px;
+ background:#142826;color:#f3f7ef}
+#squad-death-choice.hidden{display:none!important}
+#squad-death-choice strong{font-size:14px}
+#squad-death-choice button{font:800 13px "Noto Sans JP",sans-serif;min-height:42px;border:1px solid #a7e5c1;
+ border-radius:7px;background:#225a4d;color:#fff;touch-action:manipulation}
+@media (max-height:460px) and (orientation:landscape){
+ #squad-party-hud{top:clamp(76px,18vh,100px);width:clamp(240px,37vw,360px);padding:4px 6px;gap:3px}
+ #squad-party-hud .squad-party-caption{font-size:9px}
+ #squad-party-hud .squad-party-caption small{font-size:7px}
+ #squad-party-hud .squad-member{height:29px!important;font-size:8px!important}
+ #squad-party-hud .squad-party-commands button{height:24px!important;font-size:9px!important}
+}
+@media(max-width:600px) and (orientation:portrait){
+ #squad-party-hud{top:clamp(190px,27vh,230px);width:min(342px,90vw);padding:6px 8px}
+ #squad-party-hud .squad-member{height:39px!important}
+}
