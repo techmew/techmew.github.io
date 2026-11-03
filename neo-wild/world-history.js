@@ -24,6 +24,16 @@ function entries(atSeconds=seconds()){
    const y=Number(e.year);if(Number.isFinite(y)&&y<=year)items.push({year:y,label:"落雷の記録",kind:"lightning"});
   }
  }catch(_){}
+ // NPC abductions are actual captured/removed animals, not visual UFO sightings.
+ try{
+  const raw=JSON.parse(localStorage.getItem("wild-reclaim-ufo-abduction-history-v1")||"[]");
+  if(Array.isArray(raw))for(const e of raw){
+   const y=Number(e?.year);
+   if(!Number.isFinite(y)||y<0||y>year)continue;
+   const kind=typeof e.kind==="string"&&/^[a-zA-Z0-9_-]{1,40}$/.test(e.kind)?e.kind:"不明";
+   items.push({year:y,label:"UFOによる動物の誘拐（"+kind+"）",kind:"ufo-abduction"});
+  }
+ }catch(_){}
  return items.sort((a,b)=>b.year-a.year||a.label.localeCompare(b.label,"ja")).slice(0,120);
 }
 function render(){
