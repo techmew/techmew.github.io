@@ -2282,6 +2282,21 @@ function settleNewRegion(){
  if(mobs.length>=WILDLIFE.cap&&!retireFarCalmAnimal())return false;
  return spawnMob(false,zone==="cave",true,null,null,zone);
 }
+// Early-game sanctuary is anchored to the current squad's starting point, not the camera.
+// Predators already present are left untouched; only newly spawned animals are filtered.
+function earlySquadSanctuary(){
+ if(!P||elapsed>=360||Number(P.level||1)>3)return null;
+ const spawn=window.WildSquad?.load?.()?.startPosition;
+ return {x:Number.isFinite(spawn?.x)?spawn.x:(P.spawnX??P.x),
+         y:Number.isFinite(spawn?.y)?spawn.y:(P.spawnY??P.y),
+         radius:Math.max(300,520-Math.max(0,elapsed)*.42)};
+}
+function earlySquadSpawnType(type,x,y){
+ const safe=earlySquadSanctuary();
+ if(!safe||Math.hypot(x-safe.x,y-safe.y)>safe.radius)return type;
+ if(["rat","rabbit","pigeon","frog","crow","hedgehog"].includes(type))return type;
+ return (type==="deer"||type==="boar"||type==="armadillo")?"rabbit":"rat";
+}
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null,requestedMountainZone=null){
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
@@ -2317,6 +2332,8 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  const biome=regionAt(x,y);
  let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)?MOUNTAIN.choose(Math.random(),x,y,preyOnly,weather):window.WildFauna?.choose(biome,day,weather,preyOnly);
  if(!species[type])type="rat";
+ // Newly generated enemies cannot overwhelm a level-one party in its first minutes.
+ if(!forcedType||initial||nearbyOnly)type=earlySquadSpawnType(type,x,y);
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
@@ -4175,7 +4192,8 @@ function ensureLocalPredators(target=1){
   region===6?["dog","strayCat","raccoonDog"]:["strayCat","dog","wildFox"];
  const localAnimals=()=>mobs.filter(m=>m.hp>0&&dist(P,m)<WILDLIFE.localRadius);
  const predators=()=>localAnimals().filter(m=>!m.companion&&!m.strongBoss&&!species[m.type]?.prey).length;
- const want=clamp(Math.floor(target),0,2);
+ const sanctuary=earlySquadSanctuary();
+ const want=sanctuary?0:clamp(Math.floor(target),0,2);
  let placed=0;
  for(let slot=0;slot<want;slot++){
   if(predators()>=want)break;
