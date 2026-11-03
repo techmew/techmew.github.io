@@ -19,9 +19,12 @@ const species={
  zebra:{hp:126,r:26,speed:295,damage:13,prey:true,xp:5,food:71,color:"#dfdbca",belly:"#404245"},
  lion:{hp:245,r:37,speed:340,damage:27,prey:false,xp:9,food:108,color:"#bc8e56",belly:"#e7c89b"},
  elephant:{hp:560,r:55,speed:173,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
+ manul:{hp:64,r:18,speed:158,damage:12,prey:false,xp:4,food:32,color:"#8b8981",belly:"#c9c5ba"},
+ tibetanFox:{hp:73,r:19,speed:215,damage:12,prey:false,xp:4,food:38,color:"#b59a76",belly:"#e5d6bd"},
+ shoebill:{hp:96,r:24,speed:105,damage:18,prey:false,xp:5,food:43,color:"#777f83",belly:"#b7bdc0"},
  hippo:{hp:425,r:46,speed:192,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat","manul","tibetanFox","shoebill"];
 const weights=[
  [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
  [20,9,18,11,1,16,3,12,4,1,4,1,0,1,0,0,0,0,0,0],
@@ -42,6 +45,13 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(eraYear>=10&&["wildFox","snake","deer","boar"].includes(type))w*=1.45;
  if(eraYear>=30&&["deer","wildFox","raccoonDog"].includes(type))w*=1.25;
  if(eraYear>=100&&["deer","boar","wildFox"].includes(type))w*=1.2;
+ // Habitat-specific encounters: these rare specialists are not city-wide spawns.
+ if(type==="manul")w=region===3||region===5?2.1:0;
+ if(type==="tibetanFox")w=region===3||region===5?1.7:0;
+ if(type==="shoebill")w=region===7||region===4?1.4:0;
+ if(weather==="SNOW"&&["frog","snake","venomSnake"].includes(type))w*=.12;
+ if(weather==="SNOW"&&["deer","boar","rabbit"].includes(type))w*=.72;
+ if(weather==="HEAT"&&["frog","deer"].includes(type))w*=.65;
  if(weather==="RAIN"||weather==="THUNDER"){
   if(["cheetah","lion","giraffe","zebra"].includes(type))w*=.58;
   if(type==="hippo")w*=1.25;
