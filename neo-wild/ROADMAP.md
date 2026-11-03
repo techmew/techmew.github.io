@@ -1,3 +1,13 @@
+## 2026/11/03 14:08 JST｜4ボタン操作の位置統一・死亡画面文字修正｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **実装結果**：ゲーム内右下4ボタンとPS/Xboxパッドを同じ位置に統一。**上=△/Y 連続攻撃（保持で5段コンボ自動）・左=□/X 短押し飛びつき／450ms以上保持で移動ダッシュ（速度1.62倍、SP消費43/秒）・右=○/B 短押し食べる/備蓄・550ms保持でくわえる/置く/巣強化・下=×/A ジャンプ**。タッチ・パッド離す/取消/切断・一時停止時は保持入力を解除。メニュー×/A決定、○/B戻る維持。既存本能はPC Rキーで残す。チュートリアル・操作説明・開始カード・巣/運搬HUDと記号を統一。
+- **画像指摘の修正**：死亡画面「死んでしまった」の末尾1文字だけ折り返される現象に対応。#result-titleを25〜42px/nowrap、モーダル横幅、行間・文字間を調整。ハイスコア、SCORE、ランキング欄の文字サイズと上下余白を整理。横画面短辺では結果画面スクロール維持。
+- **差分**：開始HEAD 9ccf328a。neo-wild/gamepad.js commit d964fee9、game.js 79817273および表示文字 d748201a、index.html 表示6ed207ae／最終?rev d376a8e1、visual.css 90bcc51c。変更ディレクトリはneo-wild/のみ。index.html読み込みはgame.js?rev=d748201a、gamepad.js?rev=d964fee9、visual.css?rev=90bcc51c。
+- **試験**：現行JS全文構文、CSSグリッド位置、ボタン記号、HTML ?rev照合、ゲームパッド標準配列のモックで△押下/解除・×ジャンプ・□短押し/長押しダッシュ/解除・○短押し/長押し行動・切断時解除など**27/27 PASS**。Pages Actions run **41581816125**、コードHEAD d376a8e1のbuild=success/deploy=success/report-build-status=success。**Android実機、物理Pad、タッチ実機、PC/縦390×844/横800×360・844×390の実ブラウザ視認、旧SAVE2 E2Eは未検証**。
+- **V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4=74.0/100、差0。PHASE=A_FEATURES維持。
+- **次00分**：①game.js:update/attackの保持コンボをHP/SP・保存/死亡→リトライまで通し試験、②game.js:resetControlsで死亡/ダイアログ/Pad切断を確認、③旧SAVE2/3とPages最新版出荷。
+- **次20分**：①game.js:applyDirectionalInputと地続き段差・河川・建物衝突の保持ダッシュ試験、②game.js:updateSurvivalNeedsのスタミナ消耗バランス調整、③game.js:contextAction/putDownFood/carryFoodの○短押し/長押し操作を実景で統合。
+- **次40分**：①visual.cssの#touch-layer/#result-titleをスマホ縦横3画面＋PCで実測、②gamepad.js:pollの実機PS/Xbox位置と長押しを試験、③index.htmlの文言残差・ゲームUIの字詰め修正。未実装主要機能はPHASE Aで引き続き実装。
+
 ## 2026-11-03 14:00 JST｜00分枠｜災害目撃・実脱出トロフィー統合｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **新たに遊べる機能**：倒木・洪水・山火事それぞれの「現場目撃」「危険域から生還」6件と3種目撃制覇1件、計7種類の固有実績を追加（57→64）。災害の実位置・半径・発生年を検知し、危険域に入った後、存命で外へ出た場合だけ脱出実績を付与。死亡やリロードをまたいで遭遇・脱出の判定履歴を保存、同じ事件の二重判定を防止。既存トロフィー永久台帳と通知へ接続。旧SAVE_SCHEMA2と3CPは変更せず、他ゲーム変更なし。
 - **実変更コミット**：trophy-records.js b4cf0025 (blob 5a5ab7f2)、game.js 68c896bd (blob 5827bca2)、index.html e2f52bb9→e9c8d803 (blob 71d94b79)。index.htmlの余分な閉じタグ記号も除去。
