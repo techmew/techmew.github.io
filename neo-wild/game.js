@@ -4243,6 +4243,37 @@ function updateCompanion(m,dt){
   if(!m._killRegistered){m._killRegistered=true;carcasses.push(animalRemains(m));notify("仲間が倒れた。巣で新たな仲間を迎えられる");}
  }else if(atDen()&&dist(P,m)<120&&!denThreatNearby())m.hp=Math.min(m.maxHp,m.hp+dt*2.8);
 }
+// Persistent disaster encounter ledger, separate from legacy SAVE_SCHEMA2.
+const DISASTER_TROPHY_KEY="wild-reclaim-disaster-trophy-events-v1";
+let disasterTrophyLedger={};
+try{const v=JSON.parse(localStorage.getItem(DISASTER_TROPHY_KEY)||"{}");if(v&&typeof v==="object"&&!Array.isArray(v))disasterTrophyLedger=v;}catch(_){}
+function recordDisasterEncounters(){
+ if(!P||P.hp<=0)return;
+ const active=window.WildDisaster?.events?.()||[],year=elapsed/120;
+ let changed=false;
+ for(const e of active){
+  if(!["fallen_tree","flood","wildfire"].includes(e.kind)||year<e.year||year>=e.year+e.duration)continue;
+  const id=[e.kind,Math.round(e.year*100),Math.round(e.x),Math.round(e.y)].join(":");
+  const radius=Number(e.radius)||34,distance=Math.hypot(P.x-e.x,P.y-e.y);
+  const entry=disasterTrophyLedger[id]||{kind:e.kind,year:e.year,seen:false,exposed:false,escaped:false};
+  if(!entry.seen&&distance<=radius+250){
+   entry.seen=true;changed=true;
+   window.WildTrophies?.record?.("disaster-witness",{kind:e.kind,distance,radius},notify);
+  }
+  if(!entry.exposed&&distance<=radius){entry.exposed=true;changed=true;}
+  if(entry.exposed&&!entry.escaped&&distance>radius+35&&P.hp>0){
+   entry.escaped=true;changed=true;
+   window.WildTrophies?.record?.("disaster-escape",{kind:e.kind,exposed:true,alive:true},notify);
+  }
+  disasterTrophyLedger[id]=entry;
+ }
+ if(changed){
+  const all=new Set(Object.values(disasterTrophyLedger).filter(v=>v.seen).map(v=>v.kind));
+  if(["fallen_tree","flood","wildfire"].every(k=>all.has(k)))
+   window.WildTrophies?.record?.("disaster-triple",{all:true},notify);
+  try{localStorage.setItem(DISASTER_TROPHY_KEY,JSON.stringify(Object.fromEntries(Object.entries(disasterTrophyLedger).slice(-160))))}catch(_){}
+ }
+}
 function update(dt){
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
@@ -4262,6 +4293,7 @@ function update(dt){
  window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD,roadsX,roadsY,buildings,riverAxis,canalAxis,weather,
   isSheltered:insideShelter,
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
+ recordDisasterEncounters();
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
  window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked,onEvent:(event,data)=>window.WildTrophies?.record?.(event,data,notify)});
  if(P.hp<=0){beginDeath();return;}
