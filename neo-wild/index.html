@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=2f2066350401-rare-3-20261103">
+<link rel="stylesheet" href="./visual.css?rev=698155f7-gachahome2">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -112,8 +112,8 @@
 <button id="world-history-open" type="button" class="trophies-menu-btn" aria-controls="world-history-view" aria-expanded="false">世界年表を見る</button>
 <button id="trophies-open" type="button" class="trophies-menu-btn" aria-controls="trophy-view" aria-expanded="false">トロフィーを確認する　BRONZE / SILVER / GOLD</button>
 <section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
-<div class="pick-head"><span>01</span> 生き延びる個体を選択</div>
-<div class="animals">
+<div class="pick-head" hidden aria-hidden="true"><span>01</span> 生き延びる個体を選択（旧方式・非表示）</div>
+<div class="animals" id="legacy-animal-picker" hidden aria-hidden="true">
           <button class="animal-card selected" data-animal="fox"><span class="animal-icon">🦊</span><span><b>アカギツネ</b><small>爆速疾走 / □長押しでダッシュ / Rで疾風</small></span><em>01</em></button>
           <button class="animal-card" data-animal="cat"><span class="animal-icon">🐈</span><span><b>ノラネコ</b><small>壁の三角飛び / 空中×で再ジャンプ</small></span><em>02</em></button>
           <button class="animal-card" data-animal="wolf"><span class="animal-icon">🐺</span><span><b>オオカミ</b><small>重量突進 / □長押しでダッシュ / Rで咆哮</small></span><em>03</em></button>
@@ -124,7 +124,7 @@
           <button class="animal-card" data-animal="tibetanFox" type="button" aria-pressed="false"><span class="animal-icon">🦊</span><span><b>チベットスナギツネ</b><small>小動物を追い出し・飛びかかり / 腐肉活用</small></span><em>08</em></button>
           <button class="animal-card" data-animal="shoebill" type="button" aria-pressed="false"><span class="animal-icon">🐦</span><span><b>ハシビロコウ</b><small>静止後の高速嘴攻撃 / 湿地の待ち伏せ</small></span><em>09</em></button>
         </div>
-        <p id="new-game-animal-label" class="new-game-animal-status" aria-live="polite">新規ゲームの操作動物：アカギツネ</p>
+        <p id="new-game-animal-label" class="new-game-animal-status" aria-live="polite" hidden aria-hidden="true">新規ゲームの操作動物：アカギツネ</p>
 
 <div class="pick-head"><span>02</span> 画面の向きを選択</div>
 <div class="landscape-menu-choice">
@@ -209,7 +209,7 @@
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
 <script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=190a0d52" defer></script>
-<script src="./squad-gacha-ui.js?rev=aaa6f626" defer></script>
+<script src="./squad-gacha-ui.js?rev=45a05453-gachahome2" defer></script>
 <script src="./game.js?rev=f63e7b6cdf88-senior" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
