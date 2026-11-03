@@ -1,3 +1,10 @@
+## 2026-11-03 16:20 JST｜20分枠：季節の食料負荷と地区間野生個体群移動｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD｜PHASE=A_FEATURES
+- **新規実プレイ実装**：`game.js:simulateEcology`で120秒/年・30秒/季節の時計と地域5年変動を既存8地区の食料資源/獲物の増減へ接続。冬の積雪/雪天/雷雨/干ばつで採食資源が減り、春夏は回復。食料不足の地区から隣接地区の豊富な食料域へ1回最大3匹相当の獲物個体群を移動させる。移動は実NPCのワープではなく**地区集約個体群の移動**であり、既存の`ecology[].prey/food/pressure`を更新してSAVE_SCHEMA2に保存。現地の実NPC移動経路・群れリーダー移動は**未実装**、完了扱い禁止。
+- **実変更**：`game.js:simulateEcology` commit `a368fd99` blob `f6c517a7`、`index.html` rev commit `1c61454a` blob `dc38ab8e`。直前00分枠は年表 `world-history.js bd66ed2c` / `game.js 25909e14` / `index.html 3f2e540b`。20分枠は当該最新main上に追加し他ゲーム不変更。
+- **検証**：game.js全文JavaScript構文PASS、差分対象は既存8地区`ecology`配列のみで保存キー変更なし、地区上限prey=86、下限4、food=10..94、1回移住上限3。**未検証**：実ブラウザでの15秒×長時間変動・地域境界・SAVE2/3CPロード・スマホ/Pad/Pages deploy。PHASE A維持。
+- **V1.0機能台帳（新仕様優先）**：①世界年/四季=途中（120秒年、季節食料接続済、家系寿命未完成）／②年代進化=途中（地域抽選と個体群資源連動）／③地続き=途中（8地区と山岳/水域あり、全地形と水空操作未完成）／④通常/異常気象=途中（雪/落雷あり、全種類未実装）／⑤災害=途中（地震・洪水・火災等、一部のみ）／⑥異常存在=途中（UFO等の一部）／⑦初期10種/寿命/家系=途中／⑧200+トロフィー=途中（現64）／⑨追加12要素=途中（季節資源と地区間集約移住のみ今回追加）。全項目機能統合/検証完了ではない。進捗74/100据え置き。
+- **40分担当へ**：`ecology[i].food/prey`と`WildEraEcology.state(i,year)`を地区ごとの植生/動物密度の視覚表示と一致させ、実NPCの群れリーダー追従・地区間移動を地形/水路迂回とともに実装。**00分担当へ**：年表UIに`ecologyNews`を保存・表示、旧SAVE2/3CPの8地区生態データを検証し、移住履歴を永続化。**次20分枠**：群れNPCの実移動と遠隔地域の安全経路へ拡張。B_POLISHへ切替禁止。
+
 ## 2026-11-03 16:00 JST｜00分枠：世界年表UIを実装｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD｜PHASE=A_FEATURES
 - **実プレイ追加**：タイトル画面「世界年表を見る」から、世界120秒/年に沿う現在年・季節・災害（地震/倒木・洪水・山火事）・8地区の5年ごとの生態変動を時系列表示。実際の保存済み災害履歴 `WildDisaster.history()` と決定的地域史 `WildEraEcology.history(year)` を統合。世界時計はゲーム稼働中の `elapsed` を読み、停止中は保存済み通算秒を読むためオフライン加齢なし。過去約100年の地域史＋災害記録を表示、UIは日本語・Esc/閉じる対応。
 - **変更SHA**：`world-history.js` 新規 commit `bd66ed2c` blob `2ea37ce3`、`game.js` commit `25909e14` blob `b66ce3ec`（読み取り専用 `WildGameWorldTime`）、`index.html` commit `3f2e540b` blob `37de8684`（メニュー・ダイアログ・キャッシュ更新）。他ディレクトリ不変更。
