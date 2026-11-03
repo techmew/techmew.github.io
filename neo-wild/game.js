@@ -2965,7 +2965,9 @@ function kill(m){
  if(!m||m.hp>0||m._killRegistered)return;
  m._killRegistered=true;
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
- kills++;P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
+ kills++;window.WildTrophies?.record?.("hunt",{kills},notify);
+ window.WildTrophies?.record?.("kill",{type:m.type},notify);
+ P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);
  if(isAquaticStrong(m)){
   const bank=nearestDryBank(m.x,m.y,Math.min(m.r,30));
@@ -3422,6 +3424,7 @@ function getObjective(){
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
  P.hp=0;deathSequenceTime=0;mode="dying";
+ window.WildTrophies?.record?.("death",{reason:P.deathReason||"unknown"},notify);
  // Discard the dead run immediately, not after the shortened death fade; checkpoints stay intact.
  persistWorldChronicle();
  clearAutoSave();
@@ -4248,6 +4251,9 @@ function update(dt){
  worldChronicleSaveClock+=dt;
  if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
  const currentWorldYear=Math.floor(elapsed/120);
+ window.WildTrophies?.record?.("year",{year:currentWorldYear},notify);
+ window.WildTrophies?.record?.("weather",{weather},notify);
+ window.WildTrophies?.record?.("progress",{level:P.level},notify);
  if(currentWorldYear!==previousWorldYear&&[10,20,50,100,200,300].includes(currentWorldYear))notify('世界'+currentWorldYear+'年到達。生存は続く。');
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
@@ -4260,6 +4266,7 @@ function update(dt){
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
   awardDiscovery(site.id);
+  window.WildTrophies?.record?.("explore",{sites:discoveredSites.length},notify);
   ecologyNews=site.name+"で新しい知識を獲得";
   label(P.x,P.y-38,"探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length,"#d6e9b3");
   saveAuto();
