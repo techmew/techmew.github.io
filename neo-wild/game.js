@@ -13,9 +13,12 @@ const animals={
  wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"},
  dog:{name:"野犬",hp:125,speed:240,damage:19,rate:.42,r:22,color:"#9c785a",belly:"#e2c9a3",ear:"#72523c"},
  deer:{name:"ニホンジカ",hp:135,speed:275,damage:12,rate:.54,r:26,color:"#a77d53",belly:"#e4d1b3",ear:"#8e6745"},
- boar:{name:"イノシシ",hp:190,speed:205,damage:26,rate:.62,r:28,color:"#796358",belly:"#af9c87",ear:"#59453c"}
+ boar:{name:"イノシシ",hp:190,speed:205,damage:26,rate:.62,r:28,color:"#796358",belly:"#af9c87",ear:"#59453c"},
+ manul:{name:"マヌルネコ",hp:94,speed:215,damage:21,rate:.37,r:18,color:"#b1a89a",belly:"#dbd4c2",ear:"#8b847a"},
+ tibetanFox:{name:"チベットスナギツネ",hp:108,speed:257,damage:22,rate:.40,r:20,color:"#b8a18b",belly:"#f0deca",ear:"#8a7767"},
+ shoebill:{name:"ハシビロコウ",hp:148,speed:142,damage:32,rate:.72,r:27,color:"#7d8990",belly:"#acb7ba",ear:"#57646b"}
 };
-const LIFE_YEARS={cat:[12,18],dog:[10,15],fox:[4,8],wolf:[8,13],deer:[12,20],boar:[10,16]};
+const LIFE_YEARS={cat:[12,18],dog:[10,15],fox:[4,8],wolf:[8,13],deer:[12,20],boar:[10,16],manul:[8,12],tibetanFox:[6,12],shoebill:[25,35]};
 function initializeLife(player,seconds,restored=false){
  if(!player)return;
  const limits=LIFE_YEARS[player.type]||[10,16];
@@ -1067,6 +1070,7 @@ function start(newWorld=false){
  denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
+ P.stillTime=0;P.beakStrike=false;P.beakVisual=0;
  initializeLife(P,elapsed);
  // World geometry can change between releases. Never begin a run inside water or a wall.
  if(waterBlocksLand(P.x,P.y)){
@@ -1233,6 +1237,7 @@ function restoreSnapshot(snapshot){
  scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
+ P.stillTime=clamp(Number(P.stillTime)||0,0,2.5);P.beakStrike=false;P.beakVisual=0;
  Object.assign(P,normalizeSavedPlayerStats(p,animals[choice]));
  // Preserve saved birth year; older SAVE_SCHEMA2 runs migrate without resetting the world clock.
  initializeLife(P,Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed),true);
@@ -2649,7 +2654,7 @@ function detectsPlayer(m,sp,d){
  const lightFactor=clamp(.49+ambient*.49,.55,1.06);
  const nocturnalBonus=sp.prey?0:(m.type==="alpha"?.17:m.type==="dog"?.13:.08);
  const vision=clamp(lightFactor+nocturnalBonus*(1-clamp(ambient,0,1)),.55,1.06);
- const sightRange=(sp.prey?185:m.strongBoss?430:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*vision*(P.hidden?.29:1);
+ const sightRange=(sp.prey?185:m.strongBoss?430:265)*(weather==="FOG"?.62:weather==="RAIN"||weather==="THUNDER"?.78:weather==="CLOUDY"?.94:1)*vision*(P.hidden?.29:1)*(P.type==="manul"&&P.abilityTime>0?.72:1);
  const los=!lineBlocked(m,P);
  const facing=Math.atan2(P.y-m.y,P.x-m.x);
  const delta=Math.atan2(Math.sin(facing-m.dir),Math.cos(facing-m.dir));
@@ -2702,8 +2707,8 @@ function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,op
 function instinct(){
  if(mode!=="play"||!P||P.instinctCD>0||P.sp<18)return;
  const level=P.level||1;P.sp-=18;
- P.instinctCD=(P.type==="wolf"?13:P.type==="fox"?9:8.5)*(P.instinctBonus?.85:1);
- P.abilityTime=P.type==="cat"?3.4+Math.min(1.7,(level-1)*.18):P.type==="fox"?4.4+Math.min(1.8,(level-1)*.18):4+Math.min(1.2,(level-1)*.1);
+ P.instinctCD=(P.type==="wolf"?13:P.type==="fox"?9:P.type==="manul"?11:P.type==="tibetanFox"?9.5:P.type==="shoebill"?12:8.5)*(P.instinctBonus?.85:1);
+ P.abilityTime=P.type==="cat"?3.4+Math.min(1.7,(level-1)*.18):P.type==="fox"?4.4+Math.min(1.8,(level-1)*.18):P.type==="manul"?5:P.type==="tibetanFox"?4.5:P.type==="shoebill"?5:4+Math.min(1.2,(level-1)*.1);
  if(P.type==="fox"){
   P.noiseBurst=Math.max(P.noiseBurst,.85);
   notify("狐・疾風！ 爆速で駆け抜けろ");
@@ -2723,6 +2728,23 @@ function instinct(){
   blood(P.x,P.y,"#dce3db",19,145);
   notify("狼・咆哮！ 次の突進で敵を引き倒せ");
   playEffect("howl");
+ }else if(P.type==="manul"){
+  // A manul stays flat and cryptic: no unrealistic speed burst or roar.
+  P.noiseBurst=0;P.revealTimer=0;
+  notify("マヌルネコ：伏せて擬態。茂みと岩陰から獲物を奇襲");
+  playEffect("step",{volume:.1});
+ }else if(P.type==="tibetanFox"){
+  // Tibetan sand foxes specialize in pikas/rodents; flush nearby small prey.
+  const small=mobs.filter(m=>m.hp>0&&species[m.type]?.prey&&["rat","rabbit","frog","pigeon"].includes(m.type)&&dist(P,m)<420&&!lineBlocked(P,m))
+    .sort((a,b)=>dist(P,a)-dist(P,b))[0];
+  if(small){huntTarget=small;small.flee=Math.max(1.5,small.flee||0);small.dir=Math.atan2(small.y-P.y,small.x-P.x);small.alert=Math.max(.7,small.alert||0);label(small.x,small.y-25,"小動物を追い出した","#e6d5ae");}
+  notify(small?"チベットスナギツネ：小動物を追い出して追撃":"チベットスナギツネ：小動物の痕跡を探す");
+  playEffect("attack",{volume:.16});
+ }else if(P.type==="shoebill"){
+  // A shoebill wins with patient stillness followed by a very fast bill strike.
+  P.stillTime=Math.max(P.stillTime||0,1.0);
+  notify("ハシビロコウ：静止して照準、△で嘴の一撃");
+  playEffect("step",{volume:.12});
  }
 }
 function combatAim(maxTurn=.56,maxRange=105){
@@ -2947,20 +2969,24 @@ function attack(){
  if(mode!=="play"||!P)return;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
- const cost=RUSH_COST[step];
+ const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
  if(P.sp<cost){resetRush();P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
  P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;P.rushActiveStep=step;P.rushQueued=false;
   P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
  P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
+ // Shoebill's pre-aimed bill strike is fast only after waiting without moving.
+ P.beakStrike=P.type==="shoebill"&&(P.stillTime||0)>=1.15;
+ if(P.beakStrike){P.windup=.055;P.beakVisual=.32;}
+ P.stillTime=0;
   P.jumpDive=P.jumpTime>0;
   const concealed=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
- const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:.55);
+ const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:P.type==="shoebill"?.30:P.type==="tibetanFox"?.72:.55,P.type==="shoebill"?145:105);
   ambushTarget=concealed&&target&&unawareOfPlayer(target)?target:null;
   P.ambushStrike=!!ambushTarget;
- if(P.type==="fox"&&P.abilityTime>0&&target&&!P.jumpDive){
+ if((P.type==="fox"||P.type==="tibetanFox")&&P.abilityTime>0&&target&&!P.jumpDive){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
-  const travel=Math.min(53,Math.max(0,distance-(P.r+target.r+30)));
+  const travel=Math.min(P.type==="tibetanFox"?88:53,Math.max(0,distance-(P.r+target.r+30)));
   if(travel>4&&routeClear(P,{x:P.x+Math.cos(angle)*travel,y:P.y+Math.sin(angle)*travel},P.r)){
    P.pounceTime=.18;P.pounceDuration=.18;P.pounceRemaining=travel;P.pounceDir=angle;
    P.windup=Math.max(P.windup,.24);
@@ -2968,7 +2994,7 @@ function attack(){
   }
  }
  P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
- P.noiseBurst=Math.max(P.noiseBurst,1.05);playEffect("attack",{volume:.22});
+ P.noiseBurst=Math.max(P.noiseBurst,P.type==="manul"?.46:P.type==="shoebill"?.75:1.05);playEffect("attack",{volume:.22});
 }
 function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
@@ -2977,15 +3003,21 @@ function resolveAttack(){
   if(m.hp<=0||m.companion)return;
   const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
-   const reach=(P.type==="wolf"?55:P.type==="cat"?39:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
-  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:1.03;
+   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
+  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="manul"?.91:1.03;
   if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
      const downwindStrike=silentHit&&isDownwindStalk(m);
      const bonus=(foxBurst?1.4:1)*(silentHit?(downwindStrike?1.75:1.55)*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
-   const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));
+   // Species-specific attacks follow natural hunting behavior instead of cosmetic labels.
+   const small=!!species[m.type]?.prey&&["rat","rabbit","frog","pigeon","crow","snake"].includes(m.type);
+   const manulAmbush=P.type==="manul"&&silentHit;
+   const foxPreySnap=P.type==="tibetanFox"&&small&&P.abilityTime>0;
+   const billStrike=P.type==="shoebill"&&P.beakStrike;
+   const speciesPower=(manulAmbush?(small?2.05:1.55):1)*(foxPreySnap?1.58:1)*(billStrike?(small?2.24:1.85):1);
+   const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*speciesPower*rnd(.86,1.16)));
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
    const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
@@ -2996,7 +3028,7 @@ function resolveAttack(){
    m.flash=.16;m.alert=Math.max(3,m.alert||0);m.lastX=P.x;m.lastY=P.y;
    m.reactiveUntil=Math.max(m.reactiveUntil||0,elapsed+2.3);
    m.search=0;if(!species[m.type].prey)m.flee=0;
-   const heavy=silentHit||dive||wolfCharge||P.rushActiveStep===5;
+   const heavy=silentHit||dive||wolfCharge||P.beakStrike||P.rushActiveStep===5;
    const gap=COMBAT_LEVELS?.gap(m.type,P.level)||0;
    const bossBroken=m.strongBoss?bossPoiseBreak(m,damage,heavy):false;
    const disrupt=m.strongBoss?bossBroken:!armored&&(COMBAT_LEVELS?
@@ -3008,7 +3040,7 @@ function resolveAttack(){
       label(m.x,m.y-m.r-41,"固有技を阻止！","#befbd6");
      }
      m.windup=0;m.chargeTime=0;m.swing=0;
-     m.stun=traitEffect("giantGorilla",m.strongBoss?.54:silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
+     m.stun=traitEffect("giantGorilla",m.strongBoss?.54:P.beakStrike?.92:silentHit?.70:dive?.56:P.type==="wolf"?.40:P.type==="cat"?.16:.24);
      m.staggerGuard=species[m.type].prey?0:1.15;m.attack=Math.max(m.attack,m.strongBoss?.40:.22);
      if(m.strongBoss)label(m.x,m.y-m.r-42,"体勢を崩した！","#bee6cf");
     }else if(!m.strongBoss&&gap<3)m.stun=Math.max(m.stun,.035);
@@ -3029,11 +3061,14 @@ function resolveAttack(){
    const pushResistance=m.strongBoss?(bossBroken?.48:.07):(COMBAT_LEVELS?.knockback(m.type,P.level)||1);
    move(m,Math.cos(theta)*knock*pushResistance,Math.sin(theta)*knock*pushResistance);
    if(P.type==="wolf"&&m.hp>0)label(m.x,m.y-m.r-28,"よろめき","#ffe0a6");
+   if(P.type==="manul"&&manulAmbush)label(m.x,m.y-m.r-54,"低姿勢の伏撃！","#e7e1c6");
+   if(P.type==="tibetanFox"&&foxPreySnap)label(m.x,m.y-m.r-54,"小動物への急襲！","#f7daaf");
+   if(P.type==="shoebill"&&billStrike)label(m.x,m.y-m.r-54,"嘴の高速突き！","#c8eced");
    if(m.hp<=0)kill(m);
   }
  });
  if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
- P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;ambushTarget=null;
+ P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
@@ -3117,10 +3152,10 @@ function jump(){
  if(P.sp<cost){notify("持久力不足 / ジャンプできない");return false}
  const axis=getAxes(),moving=Math.hypot(axis.x,axis.y)>.18;
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
- const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:112)*traitEffect("whiteTiger",1);
- P.jumpDuration=cat?.44:wolf?.49:.45;
+ const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:P.type==="shoebill"?165:112)*traitEffect("whiteTiger",1);
+ P.jumpDuration=cat?.44:wolf?.49:P.type==="shoebill"?.71:.45;
  P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
- P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:58;
+ P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:P.type==="shoebill"?98:58;
  P.jumpRemaining=moving?distance:0;P.jumpSpeed=distance/P.jumpDuration;
  P.jumpDir=P.dir;P.jumpDive=false;P.jumpAmbush=P.hidden&&P.revealTimer<=0;
  P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
@@ -3156,7 +3191,7 @@ function dash(){
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
  const target=combatAim(.78,345);
  const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
- const maximum=P.type==="cat"?235+Math.min(75,(P.level-1)*5)
+ const maximum=P.type==="manul"?190+Math.min(35,(P.level-1)*3):P.type==="shoebill"?160+Math.min(35,(P.level-1)*3):P.type==="cat"?235+Math.min(75,(P.level-1)*5)
   :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
   :235+Math.min(65,(P.level-1)*5);
  const travel=(target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum)*.70*traitEffect("giantBoar",1);
@@ -3225,7 +3260,7 @@ function eat(){
  if(!c)for(const f of carcasses){const d=dist(P,f);if(foodAtActorLevel(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食草・肉が近くにない");return}
  const bite=Math.min(12,c.amount),balance=foodBalance(c);
- const gain=Math.round(bite*balance.satiety),heal=Math.round(bite*balance.healing);
+ const gain=Math.round(bite*balance.satiety*(P.type==="tibetanFox"&&c.type!=="berries"?1.18:1)),heal=Math.round(bite*balance.healing);
  P.hunger=clamp(P.hunger+gain,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);const woundRelief=sootheStrongWound(bite);meals++;
  if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null}
  else if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c)}
@@ -4650,18 +4685,20 @@ function update(dt){
    const speed=Math.hypot(P.vx,P.vy);
    if(speed>8){
     P.steps+=speed*dt*.052;
-    if(P.type==="fox"&&P.abilityTime>0&&speed>360&&Math.random()<dt*24)blood(P.x,P.y,"#d9c99d",2,18);
+    if((P.type==="fox"||P.type==="tibetanFox")&&P.abilityTime>0&&speed>360&&Math.random()<dt*24)blood(P.x,P.y,"#d9c99d",2,18);
    }
   }
   const speed=Math.hypot(P.vx,P.vy);
+  if(P.type==="shoebill"){P.stillTime=speed<12&&!P.pendingStrike&&!P.pounceTime?Math.min(2.5,(P.stillTime||0)+dt):0;}
+  P.beakVisual=Math.max(0,(P.beakVisual||0)-dt);
   footstepTimer=Math.max(0,footstepTimer-dt);
   if(speed>70&&!P.jumpTime&&!P.pounceTime&&!P.fallTime&&footstepTimer<=0){
    footstepTimer=P.type==="wolf"?.39:P.type==="cat"?.27:.34;
    playEffect(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78)?"stepHard":"step",{volume:.045});
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
-  P.noise=clamp(speed/P.speed*(sneaking?traitEffect("albinoWolf",.28):.94)+P.noiseBurst,0,1.8);
-  P.hidden=(P.jumpHeight||0)<(P.groundZ||0)+20&&P.revealTimer<=0&&inCover(P)&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=(mission===1?P.hidden&&inVisibleShrubCover(P):P.hidden)?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
+  P.noise=clamp(speed/P.speed*(sneaking?traitEffect("albinoWolf",.28):.94)*(P.type==="manul"?.48:1)+P.noiseBurst,0,1.8);
+  P.hidden=(P.jumpHeight||0)<(P.groundZ||0)+20&&P.revealTimer<=0&&(inCover(P)||(P.type==="manul"&&P.abilityTime>0&&speed<P.speed*.32))&&(sneaking||speed<P.speed*.45)&&P.dashTime<=0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;hiddenHold=(mission===1?P.hidden&&inVisibleShrubCover(P):P.hidden)?hiddenHold+dt:Math.max(0,hiddenHold-dt*.6);
   if((keys.has("j")||keys.has(" "))&&P.atk<=0)attack();
  
  if((P.strongWound||0)>0){
@@ -5056,6 +5093,14 @@ function syncHUD(hour){
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
  guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objectiveShortLabel()}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
+ const speciesSkill=$("species-skill-status");
+ if(speciesSkill){
+  const text=P.type==="manul"?"伏撃：しゃがみ・岩陰からの初撃が強力":
+   P.type==="tibetanFox"?"小動物を探して急襲｜肉・腐肉の回復効率＋18%":
+   P.type==="shoebill"?"静止照準 "+Math.round(Math.min(1,(P.stillTime||0)/1.15)*100)+"%｜構えて嘴の高速突き":"";
+  speciesSkill.textContent=text;
+  speciesSkill.classList.toggle("hidden",!text);
+ }
  const contextLabel=$("context-action-label");
  if(contextLabel){const home=atDen();
   contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
