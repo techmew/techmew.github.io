@@ -31,10 +31,25 @@ function level(type){return levels[type]||1;}
 function gap(type,playerLevel){return Math.max(0,level(type)-Math.max(1,Math.floor(Number(playerLevel)||1)));}
 function outgoing(type,playerLevel){return Math.max(.24,1/(1+gap(type,playerLevel)*.11));}
 function incoming(type,playerLevel){return 1+Math.min(1.03,gap(type,playerLevel)*.065);}
+// High-tier wildlife cannot be stagger-locked by light attack spam.
+// Stealth, aerial finishers, wolf charge and the fifth rush hit still reward timing.
+function canInterrupt(type,playerLevel,heavy,guardReady,prey=false){
+ const difference=gap(type,playerLevel);
+ if(difference>=3)return !!heavy&&!!guardReady;
+ if(difference>=1)return !!guardReady&&(!!heavy||!!prey);
+ return !!heavy||!!prey||!!guardReady;
+}
+function knockback(type,playerLevel){
+ const difference=gap(type,playerLevel);
+ return difference>=6?.16:difference>=3?.28:difference>=1?.65:1;
+}
+function retaliationWindow(type,playerLevel){
+ return gap(type,playerLevel)>=3?.16:gap(type,playerLevel)>=1?.31:null;
+}
 function nextAttack(m){
  if(!m||!variants[m.type])return null;
  m.styleCount=(Math.max(0,Math.floor(Number(m.styleCount)||0))+1)%2;
  return m.styleCount===0?{...variants[m.type]}:null;
 }
-window.WildCombatLevels=Object.freeze({levels,variants,level,gap,outgoing,incoming,nextAttack});
+window.WildCombatLevels=Object.freeze({levels,variants,level,gap,outgoing,incoming,canInterrupt,knockback,retaliationWindow,nextAttack});
 })();
