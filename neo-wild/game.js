@@ -4518,8 +4518,12 @@ function update(dt){
  worldChronicleSaveClock+=dt;
  if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
  const currentWorldYear=Math.floor(elapsed/120);
- if(currentWorldYear!==previousWorldYear&&currentWorldYear%5===0){
-  const region=regionAt(P.x,P.y),change=window.WildEraEcology?.state?.(region,currentWorldYear);
+ // Regional event epochs advance 3x faster, but world clock and animal age do not.
+ const ecologyPeriod=window.WildEraEcology?.periodYears||5;
+ const epochBefore=Math.floor(((elapsed-dt)/120+1e-9)/ecologyPeriod);
+ const epochAfter=Math.floor((elapsed/120+1e-9)/ecologyPeriod);
+ if(epochAfter!==epochBefore){
+  const region=regionAt(P.x,P.y),change=window.WildEraEcology?.state?.(region,elapsed/120);
   if(change&&change.kind!=="stable")notify("世界"+currentWorldYear+"年：この地域の生態が変化（"+change.name+"）");
  }
  window.WildTrophies?.record?.("year",{year:currentWorldYear},notify);
