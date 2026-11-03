@@ -158,8 +158,8 @@ const ready=()=>{
    roster.append(card);
   }
   hint.textContent=members.length?members.length+"体で生存中。既存個体を破棄するガチャはできません。":"まだ編成がありません。ガチャを引いて最大3体を選択。";
-  gacha.disabled=members.length>0;
-  gacha.textContent=members.length?"生存中の編成を維持":"ガチャを引く・編成する";
+  gacha.disabled=false;
+  gacha.textContent=members.length?"編成を確認・出発（補充ガチャは巣で）":"ガチャを引く・編成する";
  }
  function showSize(){
   info.textContent="編成数を選択してください。各枠、初回＋最大3回の引き直し。";
@@ -243,8 +243,30 @@ const ready=()=>{
   },"squad-adopt");
   actions.append(confirm);body.append(actions);
  }
+ function showLivingSquad(){
+  const current=core.load(),members=current?.members||[];
+  if(!members.length){showSize();return;}
+  info.textContent="現在の"+members.length+"体編成。生存個体は破棄できません。欠員補充は巣でガチャ権を使用します。";
+  body.replaceChildren();
+  for(const member of members){
+   const isLeader=current.leaderId===member.id;
+   const card=el("article","squad-final-member"+(isLeader?" selected":""));
+   card.append(preview(member,"squad-final-image"));
+   const field=el("div","squad-final-field");
+   field.append(el("strong",null,(isLeader?"▼ 操作中":"● 仲間")+"　"+(member.name||member.speciesName)));
+   field.append(el("p",null,"LV"+(member.level||1)+"・"+member.grade+"評価・"+(RARITY[member.rarity]||"基本")));
+   field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
+   field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round(member.iv.hp*100)+"・攻 "+Math.round(member.iv.attack*100)+"・速 "+Math.round(member.iv.speed*100)+"・持 "+Math.round(member.iv.stamina*100)));
+   card.append(field);body.append(card);
+  }
+  body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
+  const actions=el("footer","squad-gacha-actions");
+  actions.append(makeBtn("この編成で出発",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
+  actions.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome();},"squad-close"));
+  body.append(actions);
+ }
  function begin(){
-  if((core.load()?.members||[]).length){updateHome();return;}
+  if((core.load()?.members||[]).length){refill=false;root.hidden=false;showLivingSquad();root.scrollTop=0;return;}
   refill=false;size=0;slot=0;chosen=[];draw=null;selected=null;streak=0;leader=null;
   root.hidden=false;showSize();root.scrollTop=0;
  }
