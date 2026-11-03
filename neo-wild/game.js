@@ -930,6 +930,7 @@ function show(id){
 }
 function start(){
  if(!ensureWorldReady())return false;
+ window.WildPackTactics?.reset?.();
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
@@ -4267,7 +4268,10 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*.32;vy=Math.sin(m.dir)*s.speed*.32;
      }else{
       let targetX=m.lastX,targetY=m.lastY;
-      if((m.type==="dog"||m.type==="oneEyedWolf"||m.type==="albinoWolf")&&spotted&&d>120&&d<375){
+      // Hostile pack members take opposite reachable flanks; leader presses head-on.
+      const packGoal=spotted?window.WildPackTactics?.flankGoal?.(m,P,mobs,(x,y,r)=>!collides(x,y,r+5)&&routeClear(m,{x,y},r)):null;
+      if(packGoal){targetX=packGoal.x;targetY=packGoal.y;}
+      else if((m.type==="dog"||m.type==="oneEyedWolf"||m.type==="albinoWolf")&&spotted&&d>120&&d<375){
        const heading=Math.hypot(P.vx,P.vy)>50?Math.atan2(P.vy,P.vx):P.dir,side=m.flankSide||1;
        const flankBack=m.type==="oneEyedWolf"?76:m.type==="albinoWolf"?95:48,flankSide=m.type==="oneEyedWolf"?125:m.type==="albinoWolf"?150:82;
        const fx=P.x-Math.cos(heading)*flankBack-Math.sin(heading)*side*flankSide;
@@ -4411,6 +4415,12 @@ function update(dt){
     playEffect("snarl");
    }
  }
+ // Pack pressure is an avoidable combat event: leave the ring, hide, or break LOS.
+ window.WildPackTactics?.update?.(dt,P,mobs,(a,b)=>!lineBlocked(a,b),{
+  warn:()=>{label(P.x,P.y-57,"群れが包囲してくる！","#ffcd9c");playEffect("snarl",{volume:.12});},
+  hit:()=>{P.sp=Math.max(0,P.sp-14);P.revealTimer=Math.max(P.revealTimer||0,.9);P.noiseBurst=Math.max(P.noiseBurst||0,.8);label(P.x,P.y-54,"包囲の威圧！ 持久力 -14","#ffb68e");notify("群れに囲まれた！ 距離と遮蔽物で回避");},
+  escape:()=>{label(P.x,P.y-50,"包囲を回避！","#b8f1ce");}
+ });
  if(P.hp<=0){P.hp=0;beginDeath();return;}
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0)mobs.splice(i,1); // Only dead animals are removed.
  for(let i=carcasses.length-1;i>=0;i--)if((carcasses[i].ttl-=dt)<=0){if(carcasses[i].type==="corpse")toBones(carcasses[i]);else carcasses.splice(i,1)}
@@ -5765,6 +5775,7 @@ function drawScene(){
 
  if(mode!=="dying"){
   drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
+  if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
  // Let the dying animal remain visible briefly before the world closes in.
  drawDeathVignette();
