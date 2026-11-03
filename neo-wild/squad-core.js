@@ -39,7 +39,7 @@ function generate(year=0,explored=0,poorStreak=0){
  const id=globalThis.crypto?.randomUUID?.()||"wr-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);
  return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:names[species]+"-"+id.slice(-4),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
 }
-function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead();return {...v,members:(v.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3)}}
+function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:(Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,3)}}
 function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
 function newSquad(members,leaderId){
