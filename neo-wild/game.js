@@ -4541,24 +4541,24 @@ function update(dt){
     }
    }
    // Zebra and serow alternate distinct, telegraphed defensive moves.
-   if(m.type==="zebra"||m.type==="serow"){
+   if(m.type==="zebra"||m.type==="serow"||m.type==="deer"){
     m.defenseTell=Math.max(0,(m.defenseTell||0)-dt);
     if(m.defenseArmed&&m.defenseTell===0){
      m.defenseArmed=false;m.swing=.28;
-     const reach=(m.type==="zebra"?36:32)*(m.attackVariation?.reach||1);
+     const reach=(m.type==="zebra"?36:m.type==="deer"?34:32)*(m.attackVariation?.reach||1);
      if(d<P.r+m.r+reach&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
-      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*(m.type==="zebra"?.85:.90)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)*(m.attackVariation?.power||1)));
+      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*(m.type==="zebra"?.85:m.type==="deer"?.68:.90)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)*(m.attackVariation?.power||1)));
       P.hp=Math.max(0,P.hp-damage);P.inv=.46;P.lastCombatAt=elapsed;
       interruptRush();shake=Math.max(shake,5);applyOrdinaryStrikeEffect(m,angle);
-      label(P.x,P.y-38,(m.type==="zebra"?"蹴り":"角突き")+" -"+damage,"#ffd2a5");playEffect("damage");
+      label(P.x,P.y-38,(m.type==="zebra"?"後ろ蹴り":m.type==="deer"?(m.attackVariation?"角の突き上げ":"後脚の蹴り"):"角突き")+" -"+damage,"#ffd2a5");playEffect("damage");
      }else if(d<230)label(m.x,m.y-m.r-25,"反撃を回避！","#b4e6c2");
      m.flee=Math.max(m.flee,1.8);m.dir=angle+Math.PI;
     }
     if(!m.defenseArmed&&m.defenseTell===0&&spotted&&d<P.r+m.r+65&&m.attack<=0&&P.inv<=0){
      m.attackVariation=COMBAT_LEVELS?.nextAttack(m);
-     m.defenseTell=(m.type==="zebra"?.58:.62)*(m.attackVariation?.windup||1);
-     m.defenseArmed=true;m.attack=(m.type==="zebra"?2.55:3.20)*(m.attackVariation?.cooldown||1);
-     m.dir=angle;label(m.x,m.y-m.r-32,m.attackVariation?.name||(m.type==="zebra"?"後ろ蹴りの予兆！":"カモシカの角突き！"),"#ffc68c");
+     m.defenseTell=(m.type==="zebra"?.58:m.type==="deer"?.68:.62)*(m.attackVariation?.windup||1);
+     m.defenseArmed=true;m.attack=(m.type==="zebra"?2.55:m.type==="deer"?3:3.20)*(m.attackVariation?.cooldown||1);
+     m.dir=angle;label(m.x,m.y-m.r-32,m.attackVariation?.name||(m.type==="zebra"?"後ろ蹴りの予兆！":m.type==="deer"?"鹿の後ろ蹴り！":"カモシカの角突き！"),"#ffc68c");
     }
    }
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
@@ -4683,7 +4683,12 @@ function update(dt){
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);applyOrdinaryStrikeEffect(m,aim);
        if(m.type==="venomSnake")inflictVenom(m);
-       if(m.type==="elephant"||m.type==="hippo"){
+       if(m.type==="giraffe"&&m.attackVariation?.neckStrike){
+        // The ossicone/neck hit has longer reach and a different knockback from hoof kicks.
+        move(P,Math.cos(aim)*32,Math.sin(aim)*32);
+        P.sp=clamp(P.sp-18,0,100);
+        label(P.x,P.y-47,"首と頭の一撃！","#ffd9a5");
+       }else if(m.type==="elephant"||m.type==="hippo"){
         const shove=m.type==="elephant"?48:33;
         move(P,Math.cos(aim)*shove,Math.sin(aim)*shove);
         P.sp=clamp(P.sp-(m.type==="elephant"?12:8),0,100);
@@ -4705,7 +4710,7 @@ function update(dt){
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
-   if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow")&&m.defenseTell>0)){vx=0;vy=0;}
+   if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow"||m.type==="deer")&&m.defenseTell>0)){vx=0;vy=0;}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
