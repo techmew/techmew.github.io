@@ -3,6 +3,7 @@
 "use strict";
 const KEY="wild-reclaim-apparitions-v1", MAX=18;
 let ghost=null, nextYear=0, sightings=[], persistClock=0;
+let hallucinations=[], hallucinationCooldown=0;
 const finite=n=>Number.isFinite(Number(n))?Number(n):0;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(!s||typeof s!=="object")return;
@@ -18,6 +19,8 @@ function tick(dt,w){
  if(!w||!w.P||w.mode!=="play"||!Number.isFinite(dt)||dt<=0)return;
  const {P,mobs}=w,year=Math.max(0,finite(w.worldYear??w.elapsed/120));
  persistClock+=dt;if(persistClock>=3){persistClock=0;save()}
+ hallucinationCooldown=Math.max(0,hallucinationCooldown-dt);
+ hallucinations=hallucinations.filter(h=>(h.life-=dt)>0);
  if(!ghost){
   if(year<45||year<nextYear)return;
   // Rare, location-independent encounters; world years rather than frame count control eligibility.
@@ -42,8 +45,17 @@ function tick(dt,w){
    // Possession is a temporary movement penalty, not an unavoidable instant death.
    P.hauntedTime=Math.max(finite(P.hauntedTime),2.6);
    P.sp=Math.max(0,finite(P.sp)-dt*4);
-   if(g.fear<1.4+dt)w.notify("憑依された！ 離れて振り切れ");
+   if(g.fear<1.4+dt){w.notify("憑依された！ 離れて振り切れ");w.onEvent?.("ghost-possession",{year});}
   }}else g.fear=Math.max(0,g.fear-dt*1.7);
+  // Prolonged exposure produces phantom silhouettes, never real enemies.
+  // Cover and hiding halt new hallucinations, so evasion remains actionable.
+  if(exposed&&g.fear>.8&&hallucinationCooldown<=0){
+   hallucinationCooldown=2.8+Math.random()*3;
+   const a=Math.random()*Math.PI*2, radius=65+Math.random()*100;
+   hallucinations.push({x:P.x+Math.cos(a)*radius,y:P.y+Math.sin(a)*radius,life:2.8,maxLife:2.8,seed:Math.random()*6.28});
+   hallucinations=hallucinations.slice(-3);
+   w.notify("視界に幻影が現れた");w.onEvent?.("ghost-hallucination",{year});
+  }
   // Nearby animals react in their existing flee/navigation AI rather than visual-only effects.
   for(const m of mobs||[]){if(!m||m.hp<=0||m.companion||distance(m,g)>150)continue;
    const a=Math.atan2(m.y-g.y,m.x-g.x);
@@ -55,7 +67,15 @@ function tick(dt,w){
  }else if(g.t>2){record("亡霊遭遇",year,g.x,g.y);ghost=null;nextYear=year+8+Math.random()*15;save()}
 }
 function draw(ctx,project,w){
- if(!w||w.mode!=="play"||!ghost)return;
+ if(!w||w.mode!=="play")return;
+ ctx.save();
+ for(const h of hallucinations){const v=project(h.x,h.y);if(!v||!Number.isFinite(v.x)||!Number.isFinite(v.y))continue;
+  const alpha=Math.max(0,Math.min(.4,h.life/h.maxLife*.38));
+  ctx.globalAlpha=alpha;ctx.fillStyle="#9ad1e3";ctx.shadowColor="#b8dfff";ctx.shadowBlur=9;
+  ctx.beginPath();ctx.ellipse(v.x,v.y-26+Math.sin(h.life*6+h.seed)*4,10,23,0,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
+ if(!ghost)return;
  const g=ghost,q=project(g.x,g.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))return;
  const alpha=g.stage==="fade"?Math.max(0,1-g.t/2):g.stage==="wander"?.28:.62;
  ctx.save();ctx.globalAlpha=alpha;ctx.translate(q.x,q.y-18);
@@ -67,5 +87,5 @@ function draw(ctx,project,w){
  ctx.restore();
 }
 load();
-window.WildApparitions={tick,draw,summon,history:()=>sightings.slice(),saveState:()=>({ghost,nextYear,sightings:sightings.slice(-MAX)}),get active(){return ghost}};
+window.WildApparitions={tick,draw,summon,history:()=>sightings.slice(),saveState:()=>({ghost,nextYear,sightings:sightings.slice(-MAX)}),get active(){return ghost},get hallucinationCount(){return hallucinations.length}};
 })();
