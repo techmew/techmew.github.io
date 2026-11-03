@@ -3137,8 +3137,30 @@ function kill(m){
   const earnedDNA=species[m.type].xp+windDNA;
   P.xp+=earnedDNA;
   if(P.squadIndividualId&&window.WildSquad?.addXp){
-   // Award the same hunt XP to every living member; individual growth is resolved by squad-core.
-   window.WildSquad.addXp(earnedDNA);
+   // One hunt awards XP to all living individuals. Apply each individual's earned
+   // levels to real actors immediately, not just the saved roster or gacha screen.
+   const roster=window.WildSquad.addXp(earnedDNA);
+   for(const member of roster?.members||[]){
+    const actor=member.id===P.squadIndividualId?P:mobs.find(q=>q.squadIndividualId===member.id&&q.hp>0);
+    if(!actor)continue;
+    const previous=Math.max(1,Math.floor(actor.squadGrowthLevel||1));
+    const next=Math.max(previous,Math.floor(member.level||1));
+    const gained=next-previous;
+    if(gained>0){
+     const ratio=actor.hp/Math.max(1,actor.maxHp);
+     actor.maxHp=Math.round(actor.maxHp*(1+.045*gained));
+     actor.hp=Math.max(1,Math.min(actor.maxHp,Math.round(actor.maxHp*ratio)));
+     if(actor===P){
+      actor.damage=Math.round(actor.damage*(1+.025*gained)*100)/100;
+      actor.speed=Math.round(actor.speed*(1+.012*gained)*100)/100;
+     }else{
+      actor.squadAttackIV=(member.iv?.attack||1)*(1+.025*(next-1));
+      actor.squadSpeedIV=(member.iv?.speed||1)*(1+.012*(next-1));
+     }
+    }
+    actor.squadGrowthLevel=next;
+    actor.squadLevel=next;
+   }
   }
   label(m.x,m.y-50,"+"+earnedDNA+" DNA"+(windDNA?"（風下狩猟）":""),"#9aeac7");
  if(P.xp>=P.nextXp){P.xp-=P.nextXp;P.level++;P.nextXp=Math.round(P.nextXp*1.5+2);mode="upgrade";show("upgrade");playEffect("level")}
