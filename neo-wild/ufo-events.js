@@ -115,5 +115,6 @@ function draw(ctx,project,world){
  if(e.beam>0||e.npcBeam>0){ctx.fillStyle="#ffe0a0";ctx.fillRect(-38,24,76*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/2.4)),5)}}
  ctx.restore();
 }
-window.WildUFO={tick,draw,resetTransient,summon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12)}),get active(){return event}};
+function resetWorld(){event=null;cooldown=0;history=[];traces=[];persistTimer=0;try{localStorage.setItem(key,"[]")}catch(_){}persist();return true}
+window.WildUFO={tick,draw,resetTransient,resetWorld,summon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12)}),get active(){return event}};
 })();
