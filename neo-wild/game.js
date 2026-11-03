@@ -6867,11 +6867,11 @@ function makePartyMate(member,i,pos=null,hp=null){
  const a=animals[member.species];if(!a)return null;
  const spot=pos||partySpawnPosition(i);
  const template=window.WildCompanions?.create?.(P.type,spot.x,spot.y,species)||{};
- const maxHp=Math.max(1,Math.round(a.hp*(member.iv?.hp||1)));
+ const maxHp=Math.max(1,Math.round(a.hp*(member.iv?.hp||1)*Math.pow(1.045,Math.max(0,(member.level||1)-1))));
  return {...template,x:spot.x,y:spot.y,type:member.species,r:a.r,color:a.color,belly:a.belly,
   hp:hp==null?Math.max(1,Math.round(maxHp*(member.hpRatio??1))):Math.max(1,Math.min(maxHp,hp)),maxHp,
   companion:true,companionOwner:P.type,squadIndividualId:member.id,squadName:member.name,
-  squadOrder,squadSpeedIV:member.iv?.speed||1,squadAttackIV:member.iv?.attack||1,
+  squadOrder,squadSpeedIV:(member.iv?.speed||1)*(1+.012*Math.max(0,(member.level||1)-1)),squadAttackIV:(member.iv?.attack||1)*(1+.025*Math.max(0,(member.level||1)-1)),
   level:member.level||1,xp:member.xp||0,squadGrowthLevel:member.level||1,squadLevel:member.level||1,dir:P.dir||0,vx:0,vy:0,step:0,flash:0,swing:0,
   companionAttackCD:0,companionHurtCD:1};
 }
@@ -6928,8 +6928,8 @@ function switchSquadLeader(id,death=false){
  mobs.splice(mobs.indexOf(mate),1);
  const a=animals[member.species];choice=member.species;P.type=choice;P.base=a;P.r=a.r;
  P.x=mate.x;P.y=mate.y;P.dir=mate.dir;P.squadIndividualId=id;P.squadName=member.name;
- P.maxHp=mate.maxHp;P.hp=Math.max(1,mate.hp);P.damage=a.damage*(member.iv?.attack||1);
- P.speed=a.speed*(member.iv?.speed||1);P.maxSp=100*(member.iv?.stamina||1);P.sp=Math.min(P.maxSp,P.sp||100);
+ P.maxHp=mate.maxHp;P.hp=Math.max(1,mate.hp);P.damage=a.damage*(member.iv?.attack||1)*(1+.025*Math.max(0,(member.level||1)-1));
+ P.speed=a.speed*(member.iv?.speed||1)*(1+.012*Math.max(0,(member.level||1)-1));P.maxSp=100*(member.iv?.stamina||1);P.sp=Math.min(P.maxSp,P.sp||100);
  P.level=member.level||1;P.xp=member.xp||0;P.lastCombatAt=elapsed-100;
  P.deathPose=0;P.atk=0;P.dash=0;P.dashTime=0;P.pounceTime=0;P.jumpTime=0;P.fallTime=0;P.pendingStrike=false;
  P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.vx=0;P.vy=0;P.hidden=false;P.carry=null;
@@ -6977,8 +6977,8 @@ function applySquadLeader(){
  choice=member.species;const a=animals[choice];
  P.type=choice;P.base=a;P.r=a.r;P.squadIndividualId=member.id;
  P.squadName=member.name;P.squadGrowthRate=member.growthRate;
- P.maxHp=Math.max(1,Math.round(a.hp*member.iv.hp));P.hp=P.maxHp;
- P.damage=a.damage*member.iv.attack;P.speed=a.speed*member.iv.speed;
+ P.maxHp=Math.max(1,Math.round(a.hp*member.iv.hp*Math.pow(1.045,Math.max(0,(member.level||1)-1))));P.hp=Math.max(1,Math.round(P.maxHp*(member.hpRatio??1)));
+ P.damage=a.damage*member.iv.attack*(1+.025*Math.max(0,(member.level||1)-1));P.speed=a.speed*member.iv.speed*(1+.012*Math.max(0,(member.level||1)-1));
  P.maxSp=100*member.iv.stamina;P.sp=Math.min(P.maxSp,100);
  P.level=member.level||1;P.xp=member.xp||0;
  initializeLife(P,elapsed,false);
