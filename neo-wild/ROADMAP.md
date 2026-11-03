@@ -1,3 +1,10 @@
+# 2026-11-03｜00分枠：老齢期の実プレイ生存負荷を世界寿命に統合（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
+- 【機能統合済・実機未検証】game.js:updateSurvivalNeeds に9操作種共通の老齢期判定を追加。世界120秒/年に基づく ageYears/lifespanYears 比率が75%以上で食料消費+10%・巣回復-15%、90%以上で食料消費+22%・巣回復-35%。HP/速度/攻撃の基本値は書換えず、旧SAVE_SCHEMA2、NEW GAME 0年08:00、チェックポイント、3新種の寿命範囲、100年イベント圧縮を保全。ゲーム内で既存の食料・巣・HPループに実接続。
+- 【変更】game.js commit e9a7970ca63dcb184aaaae5753f7a5c531e2a032 / blob f63e7b6cdf88、index.html commit ddc1b3c013338aaa704b859a5abcd9566453e790（キャッシュ更新）。
+- 【QA】main最新game.jsをV8 new Functionで構文解析PASS、老齢係数と回復式のコード接続を確認。Android実機・WebGL/Canvas視覚・Pad・旧セーブ実ブラウザE2E・長時間プレイは未検証。9種の新規/継続実機検証は残課題。
+- 【次00分】家系・繁殖・生前交代・死亡後後継選択と旧セーブE2E、未実装のカラス/ハト/カワウソ/コイを含む13種達成。【20分】年齢に伴う採食・群れの生態影響。【40分】老齢動作の視覚差と3種の描画・Pad検証。PHASE A継続。
+
 # 2026-11-03｜追加操作キャラ3種を実コードへ統合：マヌルネコ／チベットスナギツネ／ハシビロコウ（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
 - 【機能統合済・実機未検証】新種manul/tibetanFox/shoebillの選択カード＋game.js:animalsのHP・速度・攻撃力・攻撃間隔・寿命を追加。SAVE_SCHEMA2の種族妥当性/保存/復旧/新規世界0年8:00・旧チェックポイント互換を維持。現プレイ選択9種（旧6+新3）、元仕様10種のうちカラス・ハト・カワウソ・コイは未実装で、総目標13種。
