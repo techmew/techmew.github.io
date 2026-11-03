@@ -2223,7 +2223,9 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
   }
   const candidate={x,y},near=P&&dist(candidate,P)<WILDLIFE.localRadius;
   const caveBirth=requestedMountainZone==="cave"&&P&&MOUNTAIN.zone(P.x)==="cave";
-  valid=!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(caveBirth?(preyOnly?128:105):(preyOnly?145:230)))
+  // Births in a fresh burn scar are suppressed; mature animals migrate out instead.
+  const burnQuality=window.WildDisaster?.habitatQuality?.(x,y,elapsed/120)??1;
+  valid=burnQuality>.35&&!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(caveBirth?(preyOnly?128:105):(preyOnly?145:230)))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap)
    &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
@@ -2254,6 +2256,8 @@ function spawnFood(){
   const x=ridge?ridge.x:local?clamp(P.x+Math.cos(angle)*radius,70,WORLD.w-70):rnd(70,WORLD.w-70);
   const y=ridge?ridge.y:local?clamp(P.y+Math.sin(angle)*radius,70,WORLD.h-70):rnd(70,WORLD.h-70);
   if(collides(x,y,34)||carcasses.some(c=>dist(c,{x,y})<65))continue;
+  // Burned vegetation cannot produce berries until the local ecosystem regrows.
+  if(Math.random()>(window.WildDisaster?.habitatQuality?.(x,y,elapsed/120)??1))continue;
   carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
   return true;
  }
