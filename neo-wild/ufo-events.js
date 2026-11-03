@@ -41,6 +41,7 @@ function tick(dt,world){
   const m=targets[0];
   if(m&&e.t>2.5){
    const id=m.id??m.uid??m;
+   const species=String(m.species??m.type??m.kind??m.name??"不明な動物");
    if(e.victim!==id){e.victim=id;e.npcBeam=0}
    e.npcBeam=(e.npcBeam||0)+dt;
    m.flee=Math.max(Number(m.flee)||0,2.8);
@@ -50,11 +51,14 @@ function tick(dt,world){
    m.dir=Math.atan2(m.y-e.y,m.x-e.x);
    m.vx=(m.x-e.x)/d*Math.max(105,Number(m.speed)||105);
    m.vy=(m.y-e.y)/d*Math.max(105,Number(m.speed)||105);
-   if(e.npcBeam>=2.4&&distance(m,e)<beamRange&&!world.lineBlocked?.(m,e)){
+   if(e.npcBeam>=2.4&&distance(m,e)<beamRange&&!safeBlocked(world,m,e)){
     m.hp=0;m._killRegistered=true;
     record("NPC誘拐:"+species,year,m.x,m.y);trace("NPC誘拐",year,m.x,m.y);
     // An abduction is removal, not a player kill: leave no edible carcass or hunt reward.
     m._ufoAbducted=true;m.dead=true;m.corpse=false;m.meat=0;m.food=0;
+    // Remove from active wildlife to prevent the ordinary death/carcass pipeline from processing it.
+    const abductedIndex=mobs.indexOf(m);
+    if(abductedIndex!==-1)mobs.splice(abductedIndex,1);
     for(const other of mobs){if(other===m||other.hp<=0||distance(other,m)>260)continue;other.flee=Math.max(Number(other.flee)||0,4.5);other.alert=Math.max(Number(other.alert)||0,4.5);other.lastX=e.x;other.lastY=e.y;}
     world.onEvent?.("ufo-npc-abduction",{year,x:m.x,y:m.y,species,removed:true});
     world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0;
