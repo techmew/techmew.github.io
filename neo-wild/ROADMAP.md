@@ -1,3 +1,6 @@
+## 20分枠・落雷麻痺の実操作連結追記｜2026/11/03 10:24 JST｜PHASE=A_FEATURE_COMPLETION｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- 初回落雷実装のプレイヤー麻痺が状態付与のみだったため、`game.js:update` で `P.stun` をdt減算し、麻痺中は`getAxes()`の入力を0へ抑制。1.1秒経過後は通常入力に復帰。実コードコミット `cf106665f6497aca5270a84b565a8fc0d4029a66`、HTML rev `8410fd1bf5d53a15e8fdbb2ee1d28e712fe8b669`。JS全文構文PASS。実Android操作は未検証。既存SAVE_SCHEMA2を維持。Pages build/deployは後続HEADの結果を確認する。
+
 ## V1.0超大型拡張｜2026/11/03 10:22 JST｜20分枠｜PHASE=A_FEATURE_COMPLETION｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **実装・遊べる変化**：雷雨が単なる閃光/音だけでなく、実座標を持つ落雷イベントへ。8〜16秒間隔の雷雨判定でプレイヤー周囲の地面/生きた野生動物/木から候補を選び、1.65秒の黄色い危険円・「逃げろ」予兆を2D HUDに表示。落雷半径65座標内の屋外プレイヤーは38HP/22SP減と1.1秒麻痺、NPCは45HP減/1.8秒麻痺/3.5秒逃走、死亡時は死骸生成。プレイヤーは予兆中に逃走/屋内避難で回避できる。発生位置・年・対象種別の直近24件を世界史のため保存、セーブ/復帰時に予兆残秒も復元。雷雨終了で未発生の危険を解除。既存世界時計120秒/年、SAVE_SCHEMA2/3CPと密度上限に手を触れない。
 - **実コード**：`neo-wild/game.js` の `scheduleLightning/updateLightning/drawLightning/updateWeather/update/drawScene/currentSnapshot/restoreSnapshot/start`。コミット `a3c0001706477105f972cafa11ea82c92847380a`（blob `a3d0df51c35be364d583c496c06b01390b5ddc55`）。`neo-wild/index.html` のgame.js rev更新 `ccadbdcf2682a4e223fa97c168bcc3e24aab59ae`（blob `8683eda3c8284b76435e9a2547f783a0fa018960`）。開始HEAD `378019fbe8ab21cd50dddf1b108ec53b1f4f649d`、台帳書込前HEAD `ccadbdcf2682a4e223fa97c168bcc3e24aab59ae`。他ゲーム/ブログ変更なし。
