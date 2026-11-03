@@ -15,6 +15,18 @@ const animals={
  deer:{name:"ニホンジカ",hp:135,speed:275,damage:12,rate:.54,r:26,color:"#a77d53",belly:"#e4d1b3",ear:"#8e6745"},
  boar:{name:"イノシシ",hp:190,speed:205,damage:26,rate:.62,r:28,color:"#796358",belly:"#af9c87",ear:"#59453c"}
 };
+const LIFE_YEARS={cat:[12,18],dog:[10,15],fox:[4,8],wolf:[8,13],deer:[12,20],boar:[10,16]};
+function initializeLife(player,seconds,restored=false){
+ if(!player)return;
+ const limits=LIFE_YEARS[player.type]||[10,16];
+ if(!Number.isFinite(player.bornAtWorldSeconds))player.bornAtWorldSeconds=restored?Math.max(0,seconds-120*2):seconds;
+ if(!Number.isFinite(player.lifespanYears)||player.lifespanYears<limits[0]||player.lifespanYears>limits[1]){
+  const seed=Math.abs(Math.sin(player.bornAtWorldSeconds*.017+player.x*.00071+player.y*.00019+limits[1]));
+  player.lifespanYears=limits[0]+Math.floor(seed*(limits[1]-limits[0]+1));
+ }
+ player.ageYears=Math.max(0,(seconds-player.bornAtWorldSeconds)/120);
+ player.ageWarningStage=Number.isInteger(player.ageWarningStage)?player.ageWarningStage:0;
+}
 const species={
  rat:{hp:22,r:12,speed:131,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
  rabbit:{hp:30,r:15,speed:204,damage:0,prey:true,xp:1,food:33,color:"#c8b899",belly:"#f0e5d5"},
@@ -1053,6 +1065,7 @@ function start(){
  denLevel=loadDenLevel(choice);denStores=loadDenStores(choice);syncDenStash();territoryClaims=loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
+ initializeLife(P,elapsed);
  // World geometry can change between releases. Never begin a run inside water or a wall.
  if(waterBlocksLand(P.x,P.y)){
   const bank=nearestDryBank(P.x,P.y,P.r);
@@ -1219,6 +1232,8 @@ function restoreSnapshot(snapshot){
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
  Object.assign(P,normalizeSavedPlayerStats(p,animals[choice]));
+ // Preserve saved birth year; older SAVE_SCHEMA2 runs migrate without resetting the world clock.
+ initializeLife(P,Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed),true);
  // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
  P.hunger=p.hunger==null||p.hunger===""?100:Number.isFinite(Number(p.hunger))?clamp(Number(p.hunger),0,100):100;
  if(choice==="cat"&&!p.catSpeedV2){
@@ -3571,7 +3586,7 @@ function finish(won=false){
  $("result-kicker").textContent=won?"生存の記録":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
- $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。リトライか、最初から始めるかを選んでください。";
+ $("result-reason").textContent=won?"生存記録を残しました。":P.deathReason==="old_age"?"寿命を迎えました。世界の時間は引き継がれます。":"命を落としました。リトライか、最初から始めるかを選んでください。";
  $("retry-btn").textContent=getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）";
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
@@ -4490,6 +4505,16 @@ function update(dt){
  for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
  const previousWorldYear=Math.floor(elapsed/120);
  elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
+ if(P){
+  initializeLife(P,elapsed,true);
+  const remaining=P.lifespanYears-P.ageYears;
+  const stage=remaining<=0?3:remaining<=1?2:remaining<=3?1:0;
+  if(stage>P.ageWarningStage){P.ageWarningStage=stage;
+   if(stage===1)notify("老齢期：残りの寿命は約3年",3.5);
+   else if(stage===2)notify("老衰が近づいている。残り約1年",3.5);
+  }
+  if(remaining<=0){P.deathReason="old_age";P.hp=0;beginDeath();return;}
+ }
  worldChronicleSaveClock+=dt;
  if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
  const currentWorldYear=Math.floor(elapsed/120);
@@ -4969,7 +4994,7 @@ function syncHUD(hour){
  if(!P)return;
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
- $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
+ $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?"｜"+P.ageYears.toFixed(1)+"歳 / 寿命"+P.lifespanYears+"年":"");
  $("poison-status").classList.toggle("hidden",!(P.poisonTime>0));
  if(P.poisonTime>0)$("poison-status").textContent="☠ 毒 "+Math.ceil(P.poisonTime)+"秒｜生命が減少";
  $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜空腹に注意":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
