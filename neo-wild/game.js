@@ -3975,6 +3975,20 @@ function easeOldOvercrowding(){
  }
 }
 // Replenish reachable predators near the player, including waterfront and old-save starts.
+// When an old save fills all nine nearby slots with prey, a calm off-camera animal
+// may migrate away to make room for a predator. Visible/engaged animals are never removed.
+function migrateUnseenLocalPreyForPredator(){
+ if(!P)return false;
+ const prey=mobs.filter(m=>m.hp>0&&!m.companion&&species[m.type]?.prey&&dist(P,m)<WILDLIFE.localRadius);
+ if(prey.length<3)return false;
+ const candidate=prey.filter(m=>dist(P,m)>340&&!visible(m.x,m.y,85)&&
+  (m.alert||0)<=0&&(m.flee||0)<=0&&(m.windup||0)<=0&&(m.stun||0)<=0)
+  .sort((a,b)=>dist(P,b)-dist(P,a))[0];
+ if(!candidate)return false;
+ mobs.splice(mobs.indexOf(candidate),1);
+ return true;
+}
+
 // Respect local/global caps, den safety, real collision, water and regional habitat.
 function ensureLocalPredators(target=1){
  if(!P||mountainHabitat(P.x,P.y))return 0;
@@ -3987,7 +4001,8 @@ function ensureLocalPredators(target=1){
  const want=clamp(Math.floor(target),0,2);
  let placed=0;
  for(let slot=0;slot<want;slot++){
-  if(predators()>=want||localAnimals().length>=WILDLIFE.localCap)break;
+  if(predators()>=want)break;
+  if(localAnimals().length>=WILDLIFE.localCap&&!migrateUnseenLocalPreyForPredator())break;
   if(mobs.length>=WILDLIFE.cap&&!retireFarCalmAnimal())break;
   const type=pool[(slot+region)%pool.length];
   let settled=false;
