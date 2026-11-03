@@ -3389,10 +3389,12 @@ function renderDenInventory(){
 }
 function openDenInventory(){
  if(mode!=="play"||!P)return false;
+ window.__wildSquadAtDen=!!atDen();
  saveAuto();resetControls();mode="inventory";$("den-inventory").classList.remove("hidden");
  renderDenInventory();$("den-inventory-close").focus({preventScroll:true});return true;
 }
 function closeDenInventory(){
+ window.__wildSquadAtDen=false;
  if(mode!=="inventory")return;
  $("den-inventory").classList.add("hidden");mode="play";resetControls();syncHUD();saveAuto();
  if(mission<=3&&!tutorialSeen.has(mission))announceObjective();
@@ -6956,6 +6958,10 @@ function applySquadLeader(){
  initializeLife(P,elapsed,false);
  syncSquadFollowers();syncSquadHud();saveAuto();return true;
 }
+window.addEventListener("wild-squad-refilled",()=>{
+ if(mode!=="inventory"||!P||!atDen())return;
+ syncSquadFollowers();syncSquadHud();saveAuto();
+});
 window.addEventListener("wild-squad-start",()=>{
  const r=window.WildSquad?.load?.();const m=r?.members?.find(x=>x.id===r.leaderId);
  if(!m||!animals[m.species]){notify("この種の操作は未実装です");return;}
