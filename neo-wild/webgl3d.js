@@ -647,6 +647,143 @@ function drawCommonAnimal3D(m,clock){
  return true;
 }
 
+
+/* Three species-specific player meshes: sculpted with shaded anatomical
+ * volumes, real muzzle/eye/feet ratios, fur/feather pattern and attack poses.
+ * No external image textures, borrowed models or sprite impostors. */
+function drawRarePlayable3D(m,clock){
+ const t=m.type;
+ if(t!=="manul"&&t!=="tibetanFox"&&t!=="shoebill")return false;
+ const r=m.r||18,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
+ const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
+ const orb=(dx,dy,z,rx,ry,rz,col,seg=8,ring=5)=>ellipsoid(fx(dx,dy),fy(dx,dy),z,rx,ry,rz,col,dir,seg,ring);
+ const spike=(dx,dy,z,rx,ry,height,col)=>pyramid(fx(dx,dy),fy(dx,dy),z,rx,ry,height,col);
+ const move=clamp(Math.hypot(m.vx||0,m.vy||0)/190,0,1);
+ const step=Math.sin((m.steps||0)*2.4)*move;
+ const conceal=!!m.hidden,attack=(m.pendingStrike||m.swing>0);
+ if(t==="manul"){
+  // Broad heavily furred torso, stubby limbs, low head with low-mounted ears.
+  const fur="#a8a69f",cream="#ddd8ca",under="#c9c4b7",shadow="#727872";
+  const belly=conceal?r*.38:r*.49;
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const dx=front*r*.55,dy=side*r*.52;
+   orb(dx,dy,r*.19+(front===side?step*r*.07:0),r*.21,r*.19,r*.17,shadow);
+   orb(dx-r*.06,dy,r*.29,r*.24,r*.24,r*.24,fur);
+  }
+  orb(-r*.24,0,belly+r*.12,r*1.35,r*.84,r*.61,fur,12,7);
+  orb(r*.18,0,belly+r*.06,r*.87,r*.78,r*.54,under,10,6);
+  orb(-r*.14,0,belly+r*.47,r*1.06,r*.72,r*.25,fur);
+  // Broad shoulder mantle: individual tufts and light frosted guard hairs.
+  for(let i=0;i<13;i++){
+   const dx=-r*1.02+i*r*.18,shade=i%3?"#c7c6bd":"#838a86";
+   for(const side of [-1,1]){
+    spike(dx,side*r*.67,belly+r*.25,r*.09,r*.10,r*.27,shade);
+   }
+  }
+  // Thick rounded tail with distinct dark rings, not a fox brush.
+  for(let k=0;k<7;k++){
+   const x=-r*(1.10+k*.28),tw=Math.sin(k*.54+clock*.85)*r*.09;
+   orb(x,tw,r*(.40+k*.018),r*(.29-k*.013),r*(.25-k*.011),r*(.24-k*.008),k%2?"#696d69":"#c9c8bd",7,4);
+  }
+  const faceDrive=attack?.12*r:0;
+  orb(r*.67+faceDrive,0,belly+r*.37,r*.70,r*.75,r*.47,"#c7c7bd",12,7);
+  orb(r*.88+faceDrive,0,belly+r*.18,r*.55,r*.66,r*.32,cream,12,6);
+  for(const side of [-1,1]){
+   // Rounded tiny ears, set LOW and spread widely.
+   orb(r*.44+faceDrive,side*r*.72,belly+r*.68,r*.21,r*.21,r*.16,"#858580");
+   orb(r*.51+faceDrive,side*r*.76,belly+r*.72,r*.12,r*.14,r*.10,"#b89f9b");
+   // Pale mask and deep cheek markings.
+   orb(r*.94+faceDrive,side*r*.38,belly+r*.34,r*.21,r*.24,r*.17,"#eee7ce",8,5);
+   orb(r*1.10+faceDrive,side*r*.35,belly+r*.42,r*.125,r*.12,r*.10,"#d4b780",9,5);
+   orb(r*1.20+faceDrive,side*r*.36,belly+r*.43,r*.062,r*.066,r*.066,"#171c1c",8,4); // round pupil
+   for(let i=0;i<3;i++)
+    orb(r*(.50-i*.13)+faceDrive,side*r*(.63+i*.05),belly+r*.36,r*.06,r*.10,r*.045,"#68716f",6,3);
+   for(let k=0;k<3;k++)
+    orb(r*(1.13+k*.14)+faceDrive,side*r*(.18+k*.12),belly+r*.21,r*.12,r*.008,r*.008,"#f4eee0",6,3);
+  }
+  orb(r*1.39+faceDrive,0,belly+r*.18,r*.115,r*.13,r*.09,"#896e6e",8,5);
+  orb(r*1.38+faceDrive,0,belly+r*.09,r*.23,r*.18,r*.085,"#e4dbca");
+ }else if(t==="tibetanFox"){
+  // Angular Tibetan sand fox face: extremely broad square cheeks and tiny eyes.
+  const fur="#bfa88e",sand="#e5cfb6",mask="#8f877e",light="#f1e2ce";
+  const bob=Math.abs(step)*r*.08;
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const x=front*r*.62,y=side*r*.48;
+   orb(x,y,r*.24+(front===side?step*r*.09:0),r*.18,r*.17,r*.25,"#817667");
+   orb(x+r*.10,y,r*.12,r*.22,r*.19,r*.12,"#64584f");
+  }
+  orb(-r*.20,0,r*.64+bob,r*1.23,r*.58,r*.48,fur,11,6);
+  orb(r*.19,0,r*.62+bob,r*.79,r*.43,r*.33,sand);
+  orb(-r*.16,0,r*.91+bob,r*.92,r*.50,r*.21,"#cab7a3");
+  for(let k=0;k<7;k++){
+   const x=-r*(1.11+k*.31),y=Math.sin(k*.5+clock*.9)*r*.09;
+   orb(x,y,r*(.39+k*.016),r*(.34-k*.016),r*(.26-k*.016),r*(.25-k*.01),k%3===0?"#e0d1b9":"#ad9b84",7,4);
+  }
+  // The flat mask is a wide face, not an ordinary pointed fox muzzle.
+  const headX=r*.79+(attack?r*.11:0);
+  orb(headX,0,r*.89+bob,r*.57,r*.79,r*.49,mask,12,7);
+  orb(headX+r*.09,0,r*.85+bob,r*.55,r*.78,r*.39,light,12,7);
+  for(const side of [-1,1]){
+   spike(r*.61,side*r*.55,r*1.08+bob,r*.15,r*.17,r*.49,"#8c7769");
+   spike(r*.69,side*r*.54,r*1.11+bob,r*.08,r*.09,r*.36,"#c49a8b");
+   orb(headX+r*.19,side*r*.51,r*.88+bob,r*.32,r*.25,r*.29,light,9,5);
+   orb(headX+r*.30,side*r*.41,r*1.09+bob,r*.18,r*.12,r*.057,"#6b6863",9,4);
+   orb(headX+r*.41,side*r*.42,r*1.10+bob,r*.10,r*.065,r*.042,"#202725",8,4); // narrow horizontal eye
+   orb(headX+r*.39,side*r*.42,r*1.14+bob,r*.10,r*.06,r*.025,"#d3be9d");
+  }
+  // Broad squared jowls taper into a small closed muzzle.
+  orb(headX+r*.46,0,r*.78+bob,r*.46,r*.35,r*.25,"#eee1cf",10,5);
+  orb(headX+r*.87,0,r*.76+bob,r*.12,r*.15,r*.11,"#46403b");
+  orb(headX+r*.71,0,r*.65+bob,r*.26,r*.19,r*.07,"#d0bda8");
+ }else{
+  // Shoebill anatomy: tall unfeathered shanks, rigid gray body, layered
+  // flight feathers and an oversized laterally wide, hooked shoe-shaped bill.
+  const grey="#798b94",dark="#52656d",feather="#9eabb0",bill="#c5bf9f";
+  const flap=m.jumpTime>0||m.pounceTime>0;
+  const focus=m.beakVisual>0||m.beakStrike;
+  const lean=focus?r*.29:0;
+  const bob=Math.abs(step)*r*.10;
+  // Thin, long tarso-metatarsal legs and splayed toes.
+  for(const side of [-1,1]){
+   const legX=side<0?-r*.12:r*.13,legY=side*r*.34;
+   orb(legX,legY,r*.48+Math.max(0,step*side)*r*.08,r*.12,r*.13,r*.45,"#8a9088",7,4);
+   orb(legX+r*.06,legY,r*.11,r*.18,r*.18,r*.13,"#7a877d",8,4);
+   for(let toe=-1;toe<=1;toe++)
+    orb(legX+r*(.19+(toe===0?.11:0)),legY+toe*r*.23,r*.055,r*.25,r*.063,r*.055,"#687b73",7,3);
+  }
+  orb(-r*.15,0,r*1.18+bob,r*.87,r*.66,r*.77,grey,12,8);
+  orb(r*.29,0,r*1.24+bob,r*.65,r*.53,r*.64,"#889aa2",11,7);
+  // Folded wings with visible primary/secondary feather separation.
+  for(const side of [-1,1]){
+   orb(-r*.33,side*r*(flap?.71:.55),r*(flap?1.43:1.24)+bob,r*(flap?.98:.72),r*.24,r*.30,dark,10,6);
+   for(let k=0;k<6;k++){
+    orb(-r*(.65+k*.095),side*r*(flap?.85:.67),r*(1.27-k*.022)+bob,
+     r*.21,r*.12,r*.10,k%2?"#8f9fa5":"#aab6b8",7,4);
+   }
+  }
+  // Uplifted neck and distinct blunt crown.
+  orb(r*.56+lean*.3,0,r*1.57+bob,r*.35,r*.32,r*.55,"#84949a",10,6);
+  orb(r*.85+lean*.5,0,r*1.98+bob-lean*.36,r*.41,r*.37,r*.36,feather,10,6);
+  for(let k=0;k<3;k++)
+   spike(r*.57+k*r*.12,-r*.05+k*r*.07,r*2.23+bob,r*.09,r*.08,r*(.20+k*.045),"#a5b1b5");
+  for(const side of [-1,1]){
+   orb(r*.99+lean*.5,side*r*.31,r*2.03+bob-lean*.35,r*.11,r*.080,r*.096,"#ebd392",8,5);
+   orb(r*1.055+lean*.5,side*r*.33,r*2.03+bob-lean*.35,r*.053,r*.045,r*.054,"#171b1b",8,4);
+  }
+  // Huge rigid shoe-like beak with an actual hooked apex; pose darts forward.
+  const beakX=r*1.46+lean,beakZ=r*1.80+bob-lean*.68;
+  orb(beakX,0,beakZ,r*.74,r*.53,r*.39,bill,12,7);
+  orb(beakX+r*.29,0,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
+  orb(beakX-r*.08,0,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
+  orb(beakX+r*.74,0,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
+  spike(beakX+r*.87,0,beakZ-r*.47,r*.14,r*.14,-r*.23,"#656454");
+  for(const side of [-1,1]){
+   orb(beakX-r*.05,side*r*.40,beakZ+r*.12,r*.07,r*.05,r*.025,"#6e7265",7,4);
+  }
+ }
+ return true;
+}
+
 function animal(m,player,clock){
  const type=m.type==="strayCat"?"cat":m.type==="wildFox"?"fox":m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,collapse=player?clamp(m.deathPose||0,0,1):0,dir=(m.dir||0)+collapse*.24,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
@@ -683,7 +820,8 @@ function animal(m,player,clock){
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
- if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if(player&&drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Deer uses the dedicated species model for both wildlife and the controlled player.
  if((!player||type==="deer")&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
 
