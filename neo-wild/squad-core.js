@@ -37,10 +37,23 @@ function generate(year=0,explored=0,poorStreak=0){
  return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:names[species]+"-"+id.slice(-4),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
 }
 function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead();return {...v,members:(v.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3)}}
-function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.max(0,roster.gachaTickets||0),updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
+function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.max(0,roster.gachaTickets||0),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
 function newSquad(members,leaderId){if(!Array.isArray(members)||members.length<1||members.length>3||new Set(members.map(x=>x.id)).size!==members.length)throw Error("編成は1〜3体、重複ID禁止");return save({members,leaderId,sharedXp:0,gachaTickets:0})}
-function addXp(amount){const r=load();if(!r)return null;r.sharedXp+=Math.max(0,amount);for(const m of r.members){m.xp+=Math.max(0,amount);while(m.xp>=m.level*100){m.xp-=m.level*100;m.level++;}}return save(r)}
+function addXp(amount){
+ const r=load();if(!r)return null;
+ const earned=Number.isFinite(amount)?Math.max(0,Math.min(1000000,amount)):0;
+ r.sharedXp+=earned;
+ for(const m of r.members){
+  const rate=Number.isFinite(m.growthRate)?Math.max(.5,Math.min(1.5,m.growthRate)):1;
+  const phase=m.growthType==="大器晩成"?(m.level<12?.72:1.28):m.growthType==="早熟"?(m.level<12?1.2:.85):1;
+  m.xp=Math.max(0,Number(m.xp)||0)+earned*rate*phase;
+  m.level=Math.max(1,Math.floor(Number(m.level)||1));
+  while(m.level<100&&m.xp>=m.level*100){m.xp-=m.level*100;m.level++;}
+  if(m.level>=100)m.xp=0;
+ }
+ return save(r);
+}
 function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
 window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,rarity,KEY,DEAD};
 })();
