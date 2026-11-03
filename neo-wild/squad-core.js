@@ -42,7 +42,17 @@ function generate(year=0,explored=0,poorStreak=0){
 function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead();return {...v,members:(v.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3)}}
 function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
-function newSquad(members,leaderId){if(!Array.isArray(members)||members.length<1||members.length>3||new Set(members.map(x=>x.id)).size!==members.length)throw Error("編成は1〜3体、重複ID禁止");return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0})}
+function newSquad(members,leaderId){
+ // The title UI is not a security boundary: never erase living animals via a stale dialog.
+ const existing=load();
+ if(existing?.members?.length)throw Error("生存中の編成は破棄できません。空き枠は巣で補充してください");
+ if(!Array.isArray(members)||members.length<1||members.length>3||
+    members.some(m=>!m?.id||!playable.has(m.species)||m.alive===false||dead().has(m.id))||
+    new Set(members.map(m=>m.id)).size!==members.length)
+   throw Error("編成は操作可能な1〜3体、重複・死亡個体は禁止");
+ if(!members.some(m=>m.id===leaderId))throw Error("操作するリーダーを選択してください");
+ return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0});
+}
 function addXp(amount){
  const r=load();if(!r)return null;
  const earned=Number.isFinite(amount)?Math.max(0,Math.min(1000000,amount)):0;
