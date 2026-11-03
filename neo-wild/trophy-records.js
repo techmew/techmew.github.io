@@ -16,6 +16,8 @@ for(const [w,name] of weather)add("weather-"+w,name,"この天候で生存する
 const species=[["strayCat","野良猫"],["wildFox","野生の狐"],["crow","カラス"],["snake","蛇"],["boar","イノシシ"],["deer","鹿"],["bear","熊"],["lion","ライオン"],["cheetah","チーター"],["elephant","ゾウ"],["hippo","カバ"],["gorilla","ゴリラ"]];
 for(const [s,name] of species)add("defeat-"+s,name+"との決着",name+"を初めて倒す",["lion","elephant","gorilla"].includes(s),(e,d)=>e==="kill"&&d.type===s);
 add("ufo-captured","空からの失踪","UFOに捕獲される",true,(e,d)=>e==="death"&&d.reason==="ufo");
+add("ghost-possession","影に触れられた者","亡霊に憑依される",true,(e)=>e==="ghost-possession");
+add("ghost-hallucination","幻影の目撃者","亡霊の幻覚を見る",true,(e)=>e==="ghost-hallucination");
 add("first-death","命の終わり","最初の死亡を経験する",false,(e)=>e==="death");
 add("lightning-survive","雷を生き延びた者","落雷の直撃から生還する",true,(e,d)=>e==="lightning"&&d.survived);
 add("lightning-fatal","落雷の犠牲","落雷によって死亡する",true,(e,d)=>e==="lightning"&&d.fatal);
