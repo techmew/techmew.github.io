@@ -701,6 +701,13 @@ function drawRarePlayable3D(m,clock){
    for(let k=0;k<3;k++)
     orb(r*(1.13+k*.14)+faceDrive,side*r*(.18+k*.12),belly+r*.21,r*.12,r*.008,r*.008,"#f4eee0",6,3);
   }
+  // Forehead's broken transverse bars and dense rounded cheek ruff.
+  for(let k=0;k<3;k++){
+   const x=r*(.69+k*.15)+faceDrive;
+   orb(x,0,belly+r*(.77-k*.035),r*.085,r*(.48-k*.075),r*.026,k===1?"#6c746e":"#898f87",9,4);
+  }
+  for(const side of [-1,1])for(let k=0;k<4;k++)
+   orb(r*(.48-k*.15)+faceDrive,side*r*(.70+k*.045),belly+r*(.25-k*.035),r*.15,r*.12,r*.085,k%2?"#b7b7ac":"#d4d0c3",7,4);
   orb(r*1.39+faceDrive,0,belly+r*.18,r*.115,r*.13,r*.09,"#896e6e",8,5);
   orb(r*1.38+faceDrive,0,belly+r*.09,r*.23,r*.18,r*.085,"#e4dbca");
  }else if(t==="tibetanFox"){
@@ -730,6 +737,13 @@ function drawRarePlayable3D(m,clock){
    orb(headX+r*.30,side*r*.41,r*1.09+bob,r*.18,r*.12,r*.057,"#6b6863",9,4);
    orb(headX+r*.41,side*r*.42,r*1.10+bob,r*.10,r*.065,r*.042,"#202725",8,4); // narrow horizontal eye
    orb(headX+r*.39,side*r*.42,r*1.14+bob,r*.10,r*.06,r*.025,"#d3be9d");
+  }
+  // Distinct straight brow ridge, broad flat cheek plane and darker
+  // vertical cheek boundary (the sand fox's characteristic boxy face).
+  for(const side of [-1,1]){
+   orb(headX+r*.16,side*r*.49,r*1.18+bob,r*.34,r*.16,r*.068,"#a79a87",9,4);
+   orb(headX-r*.11,side*r*.72,r*.80+bob,r*.12,r*.065,r*.30,"#918679",8,4);
+   orb(headX+r*.07,side*r*.67,r*.64+bob,r*.30,r*.09,r*.12,"#e7d5bf",8,4);
   }
   // Broad squared jowls taper into a small closed muzzle.
   orb(headX+r*.46,0,r*.78+bob,r*.46,r*.35,r*.25,"#eee1cf",10,5);
@@ -761,6 +775,9 @@ function drawRarePlayable3D(m,clock){
      r*.21,r*.12,r*.10,k%2?"#8f9fa5":"#aab6b8",7,4);
    }
   }
+  // Layered scapular feather edges keep the wings readable when folded.
+  for(const side of [-1,1])for(let k=0;k<5;k++)
+   orb(-r*(.23+k*.19),side*r*.71,r*(1.34-k*.07)+bob,r*.19,r*.075,r*.065,k%2?"#667983":"#a2afb3",8,4);
   // Uplifted neck and distinct blunt crown.
   orb(r*.56+lean*.3,0,r*1.57+bob,r*.35,r*.32,r*.55,"#84949a",10,6);
   orb(r*.85+lean*.5,0,r*1.98+bob-lean*.36,r*.41,r*.37,r*.36,feather,10,6);
@@ -776,6 +793,9 @@ function drawRarePlayable3D(m,clock){
   orb(beakX+r*.29,0,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
   orb(beakX-r*.08,0,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
   orb(beakX+r*.74,0,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
+  // Bill's median ridge and pronounced downward terminal hook.
+  orb(beakX+r*.05,0,beakZ+r*.36,r*.53,r*.105,r*.075,"#e5ddba",10,4);
+  orb(beakX+r*.81,0,beakZ-r*.37,r*.14,r*.14,r*.25,"#77735e",8,5);
   spike(beakX+r*.87,0,beakZ-r*.47,r*.14,r*.14,-r*.23,"#656454");
   for(const side of [-1,1]){
    orb(beakX-r*.05,side*r*.40,beakZ+r*.12,r*.07,r*.05,r*.025,"#6e7265",7,4);
