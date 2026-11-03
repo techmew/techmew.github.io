@@ -103,7 +103,7 @@ function strongDamageTaken(raw){
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
-let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
+let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,questReady=false,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 const WORLD_CHRONICLE_KEY="wild-reclaim-world-chronicle-v1";
 let worldChronicleSaveClock=0;
@@ -1008,7 +1008,7 @@ function start(){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -1117,7 +1117,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
+  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:1,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
@@ -1206,13 +1206,13 @@ function restoreSnapshot(snapshot){
  elapsed=Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed);day=1+Math.floor(elapsed/85);
  kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
  tutorialHuntBase=Number.isFinite(snapshot.tutorialHuntBase)?clamp(snapshot.tutorialHuntBase,0,kills):kills;
- expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
+ expedition=snapshot.expedition||1;freeStep=clamp(Math.floor(Number(snapshot.freeStep)||0),0,3);freeTarget=Number(snapshot.freeTarget)||0;questReady=snapshot.questVersion===1;
  mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete||mission>=7;
  tutorialSeen.clear();
  // Old saves skipped the current lesson (especially stage 4); completed earlier stages are not replayed.
  for(const stage of TUTORIAL_STAGES)if(stage<mission||(!debugTutorialSession&&tutorialLessonsSeenEver.has(stage)))tutorialSeen.add(stage);
  if(mission>=7)tutorialSeen.add(7);
- totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
+ totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND","SNOW"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
  lightningStrike=snapshot.lightningStrike&&Number.isFinite(snapshot.lightningStrike.x)&&Number.isFinite(snapshot.lightningStrike.y)&&Number.isFinite(snapshot.lightningStrike.countdown)?
  {x:clamp(snapshot.lightningStrike.x,24,WORLD.w-24),y:clamp(snapshot.lightningStrike.y,24,WORLD.h-24),kind:String(snapshot.lightningStrike.kind||"ground"),countdown:clamp(snapshot.lightningStrike.countdown,0,2),afterglow:clamp(snapshot.lightningStrike.afterglow||0,0,1)}:null;
  lightningHistory=Array.isArray(snapshot.lightningHistory)?snapshot.lightningHistory.filter(e=>e&&Number.isFinite(e.year)&&Number.isFinite(e.x)&&Number.isFinite(e.y)).slice(-24):[];
@@ -3280,7 +3280,47 @@ function stockpileStep(){
  if(P.carry)return {step:2,text:atDen()?"② ここで○を押して備蓄":"② 巣の中心へ戻り○で備蓄（短押し・長押し可）",label:"巣"};
  return {step:1,text:"① 食草・肉のそばで○長押しして運ぶ",label:"食草・肉"};
 }
+// Optional post-tutorial survival expeditions, not a forced story or ending.
+// Counters are saved in existing optional SAVE_SCHEMA2 fields; old saves start
+// at their current baseline so a restored LV4 animal cannot auto-complete.
+function fieldQuestCounter(step){
+ if(step===0)return kills;
+ if(step===1)return meals;
+ if(step===2)return discoveredSites.length<EXPLORE_SITES.length?discoveredSites.length:P.steps;
+ return elapsed;
+}
+function fieldQuestInfo(){
+ const step=clamp(freeStep|0,0,3),base=questReady?freeTarget:fieldQuestCounter(step);
+ const stepTravel=step===2&&discoveredSites.length>=EXPLORE_SITES.length;
+ const required=step===0?2:step===1?3:step===2?(stepTravel?32:1):90;
+ const progress=Math.max(0,fieldQuestCounter(step)-base);
+ const fraction=clamp(progress/required,0,1);
+ const name=step===0?"食物連鎖の狩人":step===1?"冬を越す食料確保":step===2?(stepTravel?"街道踏破":"未知の場所を発見"):"世界の時を生きる";
+ const detail=step===0?"野生動物を2匹狩る":step===1?"食草・肉を3回食べる":
+  step===2?(stepTravel?"世界を歩いて32歩分の距離を踏破":"まだ見つけていない探索地点へ行く"):
+  "現実時間90秒を生き抜く";
+ return {stage:"探索依頼 "+Math.max(1,expedition)+"｜"+(step+1)+"/4",
+  title:name,detail:detail+"　報酬：得点・体力・食料",next:"",
+  progress:fraction,summary:name+" "+Math.min(required,Math.floor(progress))+"/"+required};
+}
+function updateFieldQuest(){
+ if(mission<7||mode!=="play"||!P)return;
+ if(!questReady){freeStep=0;freeTarget=fieldQuestCounter(0);questReady=true;return;}
+ const goal=fieldQuestInfo();
+ if(goal.progress<1)return;
+ const reward=150+Math.min(350,expedition*22);
+ totalScore+=reward;
+ P.hp=Math.min(P.maxHp,P.hp+Math.max(5,Math.round(P.maxHp*.09)));
+ P.hunger=Math.min(100,P.hunger+12);
+ P.sp=Math.min(100,P.sp+24);
+ const done=goal.title;
+ expedition+=1;freeStep=(freeStep+1)%4;freeTarget=fieldQuestCounter(freeStep);
+ notify("探索達成："+done+"／"+reward+"点",3.0);
+ label(P.x,P.y-P.r-32,"探索報酬 +"+reward,"#d4f1c4");
+ saveAuto();
+}
 function missionInfo(){
+ if(mission>=7)return fieldQuestInfo();
  switch(mission){
   case 0:return {stage:"チュートリアル 1 / 4",title:"食草か肉を食べよう",detail:"近くの食草・肉を食べる / ○・E",next:"身を隠せ",progress:Math.min(1,meals)};
   case 1:return {stage:"チュートリアル 2 / 4",title:"緑の茂みで身を隠す",detail:"緑の葉がある茂みに入って約1秒止まる",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
@@ -3394,7 +3434,7 @@ function checkMission(){
  if(mission===4&&denStash>tutorialStashBase){advanceMission(7);return}
  if(mission===5&&territoryOwned()>=1){advanceMission(6);return}
  if(mission===6&&discoveredSites.length>=2){advanceMission(7);return}
- // No recurring missions after the final survival goal.
+ // Post-tutorial exploration missions are updated by updateFieldQuest().
 }
 function nearestGoal(list){
  if(!P||!list.length)return null;
@@ -3414,7 +3454,14 @@ function objectiveShortLabel(){
  return "目標";
 }
 function getObjective(){
- if(!P||mission>=7||mode==="menu"||mode==="over"||mode==="clear")return null;
+ if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
+ if(mission>=7){
+  if(freeStep===2&&discoveredSites.length<EXPLORE_SITES.length){
+   const destination=nearestGoal(EXPLORE_SITES.filter(q=>!discoveredSites.includes(q.id)));
+   return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
+  }
+  return null;
+ }
  if(mission===1){
   const p=nearestGoal(plants.filter(visibleShrub));
   return p?{x:p.x,y:p.y,label:"緑の茂みで約1秒止まる"}:null;
@@ -4545,6 +4592,7 @@ function update(dt){
   // A fatal bleed ends the frame before another region can roll/spawn a boss.
  if(P.hp<=0){P.hp=0;beginDeath();return}
  settleNewRegion();
+ updateFieldQuest();
  if(strongRegionCurrent!==strongHabitatKey(P.x,P.y))enterStrongStage();
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
@@ -4913,12 +4961,13 @@ function syncHUD(hour){
  if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（巣に1回預けたら完了）":lessonHint);
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
- $("survival-goal").classList.add("hidden");
+ $("survival-goal").classList.toggle("hidden",mission<7||mode!=="play");
+ if(mission>=7)$("survival-goal").textContent=fieldQuestInfo().summary;
  $("mission-sub").textContent=info.detail;
  $("mission-next").textContent=info.next?"次の目的："+info.next:"";
  $("mission-next").classList.toggle("hidden",mission>=7);
  $("mission-nav").classList.toggle("hidden",mission>=7);
- $("mission-bar").parentElement.classList.toggle("hidden",mission>=7);
+ $("mission-bar").parentElement.classList.toggle("hidden",false);
  setBar("mission-bar",info.progress*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
@@ -4928,7 +4977,7 @@ function syncHUD(hour){
  if(contextLabel){const home=atDen();
   contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
- $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110)).padStart(6,"0");
+ $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110+totalScore)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
  $("jump-touch").style.opacity=P.jumpCD>0||P.sp<(P.type==="cat"?14:P.type==="wolf"?22:17)?".45":"1";
  $("dash-touch").style.opacity=P.dash>0||P.sp<(P.type==="wolf"?27:P.type==="cat"?19:22)?".5":"1";
