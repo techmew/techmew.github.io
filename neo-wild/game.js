@@ -6321,10 +6321,18 @@ $("retry-btn").addEventListener("click",()=>{
  if(save){if(launchGame(save))notify("チェックポイントからリトライ");return;}
  if(launchGame())saveAuto();
 });
+function returnToTitleFromDeath(){
+ if(mode!=="over"&&mode!=="clear")return false;
+ deathSequenceTime=0;
+ window.WildAudio?.resetDeathFade?.();
+ $("hud").style.opacity="";
+ resetControls();mode="menu";show("menu");
+ return true;
+}
 $("menu-btn").addEventListener("click",()=>{
- if(mode!=="over"&&mode!=="clear")return;
- deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";mode="menu";show("menu");
+ if(returnToTitleFromDeath())$("new-game-options")?.scrollIntoView?.({block:"nearest",behavior:"smooth"});
 });
+$("death-title-btn").addEventListener("click",returnToTitleFromDeath);
 $("full-btn").addEventListener("click",fullScreen);
 $("rotate-btn").addEventListener("click",rotateScreen);
 function selectMenuOrientation(target){
