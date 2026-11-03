@@ -1,3 +1,10 @@
+# 2026-11-04｜03:20枠 野生動物の重み付き抽選を修正（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】fauna.js choose() で乱数関数を Number(random) と評価してNaN→0となる問題を修正。乱数関数を呼び出し、数値乱数も受け付ける。地域・年代・天候別の出現重みを野生動物抽選へ反映。密度上限・ガチャ30種・セーブ・世界時計は変更なし。
+- 【実装commit】59bfd2debc6dacf1c8ec1e335485738486d9ccd8 / fauna.js blob 41ef1bf74b5d8c4d5eaca97d368ee13e399cd049。
+- 【確認】mainの修正コードを再取得済み。ブラウザ/Android/Pad・長時間出現分布・Pages配信は未検証。
+- 【引継ぎ】00分: grantTickets()と狩猟/探索、巣のfillVacancy()統合。40分: ガチャ画面と仲間AI/専用3D。20分: 固有捕食AI・湿地/水生生態・出現密度の長時間検証。
+
 # 2026-11-04｜03:00枠 空き枠補充・ガチャ権コアAPI（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】squad-core.jsにgrantTickets(amount)、fillVacancy(member)、livingCount()を追加。ガチャ権を0〜999で永続保存し、1〜2体の生存編成の空き枠だけ補充可能。既存個体の上書き、重複ID、死亡済みID、未操作対応種、権利不足を拒否。ストックは追加しない。
