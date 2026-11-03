@@ -5,16 +5,19 @@ const KEY="wild-reclaim-apparitions-v1", MAX=18;
 let ghost=null, nextYear=0, sightings=[], persistClock=0;
 let hallucinations=[], hallucinationCooldown=0;
 const finite=n=>Number.isFinite(Number(n))?Number(n):0;
+ const eraYear=y=>window.WildWorldClock?.eventYear?.(y)??y*3;
+ const eventDelay=y=>window.WildWorldClock?.eventIntervalYears?.(y)??y/3;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(!s||typeof s!=="object")return;
  nextYear=Math.max(0,finite(s.nextYear));sightings=Array.isArray(s.sightings)?s.sightings.filter(x=>x&&Number.isFinite(x.x)&&Number.isFinite(x.y)).slice(-MAX):[];
- const e=s.ghost;if(e&&["wander","manifest","fade"].includes(e.stage)&&Number.isFinite(e.x)&&Number.isFinite(e.y))ghost={x:e.x,y:e.y,originX:finite(e.originX),originY:finite(e.originY),t:Math.max(0,finite(e.t)),stage:e.stage,seed:finite(e.seed),fear:Math.max(0,finite(e.fear))};
+ if(s.paceVersion!==3&&sightings.length){const last=Math.max(...sightings.map(h=>Math.max(0,finite(h.year))));nextYear=Math.max(last,last+Math.max(0,nextYear-last)/3);}
+  const e=s.ghost;if(e&&["wander","manifest","fade"].includes(e.stage)&&Number.isFinite(e.x)&&Number.isFinite(e.y))ghost={x:e.x,y:e.y,originX:finite(e.originX),originY:finite(e.originY),t:Math.max(0,finite(e.t)),stage:e.stage,seed:finite(e.seed),fear:Math.max(0,finite(e.fear))};
  }catch(_){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({ghost,nextYear,sightings:sightings.slice(-MAX)}))}catch(_){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:3,ghost,nextYear,sightings:sightings.slice(-MAX)}))}catch(_){}}
 function record(kind,year,x,y){sightings.push({kind,year,x:Math.round(x),y:Math.round(y)});sightings=sightings.slice(-MAX);save()}
-function summon(x,y,year=50){if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+function summon(x,y,year=50/3){if(!Number.isFinite(x)||!Number.isFinite(y))return false;
  ghost={x,y,originX:x,originY:y,t:0,stage:"wander",seed:Math.random()*6.28,fear:0};
- nextYear=Math.max(nextYear,year+6);save();return true}
+ nextYear=Math.max(nextYear,year+eventDelay(6));save();return true}
 function tick(dt,w){
  if(!w||!w.P||w.mode!=="play"||!Number.isFinite(dt)||dt<=0)return;
  const {P,mobs}=w,year=Math.max(0,finite(w.worldYear??w.elapsed/120));
@@ -22,9 +25,9 @@ function tick(dt,w){
  hallucinationCooldown=Math.max(0,hallucinationCooldown-dt);
  hallucinations=hallucinations.filter(h=>(h.life-=dt)>0);
  if(!ghost){
-  if(year<45||year<nextYear)return;
+  if(eraYear(year)<45||year<nextYear)return;
   // Rare, location-independent encounters; world years rather than frame count control eligibility.
-  if(Math.random()>=Math.min(.04,dt/1450))return;
+  if(Math.random()>=Math.min(.04,dt/(1450/3)))return;
   const angle=Math.random()*Math.PI*2,r=180+Math.random()*100;
   summon(P.x+Math.cos(angle)*r,P.y+Math.sin(angle)*r,year);
   w.notify("遠くで奇妙な人影が揺れた");return;
@@ -64,7 +67,7 @@ function tick(dt,w){
    if(!m.strongBoss){m.dir=a;m.vx=Math.cos(a)*Math.max(70,finite(m.vx));m.vy=Math.sin(a)*Math.max(70,finite(m.vy))}
   }
   if(g.t>14||distance(g,P)>650){g.stage="fade";g.t=0}
- }else if(g.t>2){record("亡霊遭遇",year,g.x,g.y);ghost=null;nextYear=year+8+Math.random()*15;save()}
+ }else if(g.t>2){record("亡霊遭遇",year,g.x,g.y);ghost=null;nextYear=year+eventDelay(8+Math.random()*15);save()}
 }
 function draw(ctx,project,w){
  if(!w||w.mode!=="play")return;
