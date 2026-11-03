@@ -2,7 +2,17 @@
 (()=>{"use strict";
 const KEY="wild-reclaim-trophies-v1";
 const defs=[];
-const add=(id,name,description,hidden,test)=>defs.push({id,name,description,hidden:!!hidden,test});
+function tierFor(id,hidden){
+ if(hidden)return "gold";
+ if(id.startsWith("year-"))return Number(id.slice(5))>=100?"gold":Number(id.slice(5))>=20?"silver":"bronze";
+ if(id.startsWith("hunt-"))return Number(id.slice(5))>=100?"gold":Number(id.slice(5))>=25?"silver":"bronze";
+ if(id.startsWith("level-"))return Number(id.slice(6))>=20?"gold":Number(id.slice(6))>=5?"silver":"bronze";
+ if(id.startsWith("site-"))return Number(id.slice(5))>=6?"gold":Number(id.slice(5))>=3?"silver":"bronze";
+ if(id.startsWith("defeat-"))return ["defeat-lion","defeat-elephant","defeat-gorilla"].includes(id)?"gold":"silver";
+ if(id.startsWith("disaster-"))return id.includes("escape")?"gold":"silver";
+ return id==="weather-THUNDER"?"silver":"bronze";
+}
+const add=(id,name,description,hidden,test)=>defs.push({id,name,description,hidden:!!hidden,tier:tierFor(id,hidden),test});
 const years=[1,5,10,20,30,50,75,100,150,200,300,500,1000];
 for(const y of years)add("year-"+y,"世界"+y+"年の目撃者","世界が"+y+"年を迎える",y>=150,(e,d)=>e==="year"&&d.year>=y);
 const hunt=[1,3,10,25,50,100,200,500];
@@ -42,6 +52,6 @@ function record(event,data={},announce){let newly=[];
  if(newly.length){persist();if(typeof announce==="function")for(const d of newly.slice(0,3))announce("トロフィー獲得："+d.name)}
  return newly.map(d=>d.id);
 }
-function catalog(){return defs.map(({id,name,description,hidden})=>({id,name: hidden&&!completed.has(id)?"？？？":name,description:hidden&&!completed.has(id)?"獲得まで秘密":description,hidden,earned:completed.has(id)}))}
+function catalog(){return defs.map(({id,name,description,hidden,tier})=>({id,name:hidden&&!completed.has(id)?"？？？":name,description:hidden&&!completed.has(id)?"獲得まで秘密":description,hidden,earned:completed.has(id),tier}))}
 window.WildTrophies=Object.freeze({record,catalog,count:()=>completed.size,total:defs.length,has:id=>completed.has(id)});
 })();
