@@ -2395,7 +2395,7 @@ function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
  if(MOUNTAIN?.blocked(x,y,r,mountainIgnore))return true;
  if(window.WildDisaster?.blocked(x,y,r,elapsed/120))return true;
- if(!ignoreWater&&waterBlocksLand(x,y))return true;
+ if(!ignoreWater&&waterBlocksLand(x,y)&&!(actor===P&&actor.type==="shoebill"&&waterDepth(x,y)<=.24))return true;
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
   if(Math.hypot(x-prop.x,y-prop.y)<prop.r+8+r*.40)return true;
