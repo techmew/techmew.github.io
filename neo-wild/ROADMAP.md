@@ -1,3 +1,10 @@
+## 2026-11-03 13:40｜40分枠｜亡霊幻覚と永久トロフィー実装｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **遊べる新機能**：世界45年以降の既存亡霊AIへ「一定時間近距離で露出すると幻影が周囲に最大3体現れる」を実装。遮蔽物・潜伏時は新規幻覚を停止。幻影は実敵ではなく被ダメージなし、2.8秒で消える。既存の憑依によるSP減少・速度低下とNPC逃走を維持。亡霊に憑依/幻影目撃の2種類のユニークな秘密トロフィーを永久保存台帳へ接続（ゲーム本編のWildApparitions.tick→onEvent→WildTrophies.record）。死亡・新規開始後も台帳維持。
+- **変更SHA**：apparitions.js commit 31149a34（blob 30cf8512）、trophy-records.js 39dbdf3d（blob 1d4aecb6）、game.js eddbb3cf（blob 98b9ab02）、index.html 0ce55328（blob 995534f1）。他ゲーム・ブログ未変更。
+- **試験**：V8隔離動的試験（亡霊召喚→幻覚/憑依→NPC逃走→トロフィー記録）＋4モジュール構文/HTML読込/SAVE_SCHEMA2/Pad維持、15/15 PASS。実ブラウザ/Android/GPU/実Pad/旧SAVE2 E2E未検証。GitHub Pages最終deploy確認待ち。
+- **V1.0機能台帳**：世界時計=途中、年代進化=途中、地続き地形=途中、通常気象=途中、災害=途中（地震/倒木/洪水/山火事は機能統合済）、異常存在=途中（UFO誘拐・亡霊追跡/憑依/幻覚は機能統合済・実機未検証）、初期10種/家系=途中、200+ユニークトロフィー=未実装（現在57件定義）、追加12要素=途中。PHASE A継続、進捗74/100据え置き。
+- **次00分**：trophy-records.jsの57件を200以上の水増しなし個別条件へ拡充、亡霊イベント/図鑑/世界史・死亡/後継継続との統合、旧セーブ実ブラウザ試験。次20分：亡霊・幻影と地形遮蔽・季節・異常霧・地域差の接続、群れ避難AIと競合検証。次40分：異星人の観察・基地設営・敵対/中立/友好AIを別モジュールで実装し本編の実行ループ・保存・描画に接続。
+
 ## 2026-11-03 13:20｜20分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - 実プレイ：山火事を7秒前に予告、実HP・SP被害、動物逃走・死亡後の死骸生成、年経過による鎮火、履歴保存、ミニ/全体マップ描画へ統合。洪水が既存河川の水深を減らす不具合も修正。
 - SHA：disaster-world.js 4e69265c（blob 4072b7a4）、game.js da4d41aa（blob b255c9fe）、index.html dbdeca88（blob 1e218c2c）。他ディレクトリ不変更。
