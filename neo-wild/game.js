@@ -7094,9 +7094,10 @@ function debugRunCase(id){
  }
  if(group==="mountain"){
   const xx={foothill:MOUNTAIN?.CITY_EDGE+650,slope:MOUNTAIN?.FOOTHILL_END+520,
-   summit:MOUNTAIN?.SUMMIT_START+350,cave:MOUNTAIN?.SUMMIT_START+650}[key];
-  if(!Number.isFinite(xx)||!MOUNTAIN?.zone)return no("山岳の座標を取得できません");
-  return debugTeleport(xx,WORLD.h/2,(x,y)=>MOUNTAIN.zone(x,y)===key)?ok("山岳："+key+"へ移動"):no("このエリアに安全な地点がありません");
+   summit:MOUNTAIN?.SUMMIT_START+350,cave:(MOUNTAIN?.cave?.start+MOUNTAIN?.cave?.end)/2}[key];
+  if(!Number.isFinite(xx)||!MOUNTAIN?.zone||!MOUNTAIN?.center)return no("山岳の座標を取得できません");
+  return debugTeleport(xx,MOUNTAIN.center(xx),(x,y)=>MOUNTAIN.zone(x,y)===key&&MOUNTAIN.active(x,y))?
+    ok("山岳："+key+"へ移動"):no("このエリアに安全な地点がありません");
  }
  return no("未実装の検証操作です");
 }
