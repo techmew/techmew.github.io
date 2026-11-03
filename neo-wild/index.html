@@ -121,7 +121,8 @@
           <button class="animal-card" data-animal="deer"><span class="animal-icon">🦌</span><span><b>ニホンジカ</b><small>高速移動 / 逃走重視 / 陸上</small></span><em>05</em></button>
           <button class="animal-card" data-animal="boar"><span class="animal-icon">🐗</span><span><b>イノシシ</b><small>高耐久 / 近距離攻撃 / 陸上</small></span><em>06</em></button>
         </div>
-        
+        <p id="new-game-animal-label" class="new-game-animal-status" aria-live="polite">新規ゲームの操作動物：アカギツネ</p>
+
 <div class="pick-head"><span>02</span> 画面の向きを選択</div>
 <div class="landscape-menu-choice">
       <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div><p id="menu-orientation-status" role="status" aria-live="polite">✓ 選択中：縦画面</p>
@@ -139,6 +140,11 @@
           </select>
         </label>
 <button id="start-btn" class="big-btn" type="button">新しいゲームを開始 <span>NEW GAME →</span></button>
+<div id="new-game-confirm" class="save-confirm hidden" role="group" aria-label="新規ゲーム開始の確認">
+ <p>現在の自動保存データを上書きし、<strong id="new-game-confirm-species">アカギツネ</strong>で新しく開始します。チェックポイントは残ります。</p>
+ <button id="confirm-new-game-btn" class="big-btn" type="button">選んだ動物で新しく開始</button>
+ <button id="cancel-new-game-btn" class="save-choice" type="button">キャンセル</button>
+</div>
 <div id="soundtrack-caption">BGM：廃都・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
 </div></section>
 <div class="menu-foot"><span>移動 / 狩り / 捕食 / 飛びつき / 視点回転 / 進化</span><span id="best-score">BEST SCORE —</span></div>
@@ -199,7 +205,7 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=20261103-den-ally-v1" defer></script> <script src="./ufo-events.js?rev=096d1d06-formation" defer></script> <script src="./disaster-world.js?rev=0e0a79aba394-era100" defer></script>
 <script src="./apparitions.js?rev=a607683eae39-era100" defer></script>
-<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./game.js?rev=e02a992e99b0-era100" defer></script>
+<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./game.js?rev=bb83c39e6c94-startfix" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=df730244-trophy-pad" defer></script>
