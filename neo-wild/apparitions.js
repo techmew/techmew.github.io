@@ -90,5 +90,5 @@ function draw(ctx,project,w){
  ctx.restore();
 }
 load();
-window.WildApparitions={tick,draw,summon,history:()=>sightings.slice(),saveState:()=>({ghost,nextYear,sightings:sightings.slice(-MAX)}),get active(){return ghost},debugClear(){ghost=null;hallucinations=[];hallucinationCooldown=0;save();return true;},get hallucinationCount(){return hallucinations.length}};
+window.WildApparitions={tick,draw,summon,history:()=>sightings.slice(),saveState:()=>({ghost,nextYear,sightings:sightings.slice(-MAX)}),get active(){return ghost},resetWorld(){ghost=null;nextYear=0;sightings=[];persistClock=0;hallucinations=[];hallucinationCooldown=0;save();return true;},debugClear(){ghost=null;hallucinations=[];hallucinationCooldown=0;save();return true;},get hallucinationCount(){return hallucinations.length}};
 })();
