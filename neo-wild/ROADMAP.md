@@ -1,3 +1,12 @@
+## 2026/11/03 13:00 JST｜00分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **実装した遊び**：世界年到達・狩猟回数・初討伐種・探索地点・成長LV・気象・死亡のイベントに連動する永続トロフィー55種類を追加。通常条件は公開、希少条件は獲得まで伏せる。トロフィー取得時にゲーム内通知。保存キー wild-reclaim-trophies-v1 は既存SAVE_SCHEMA=2から独立し、死亡・最初から・チェックポイント復帰でも獲得履歴を維持。能力強化報酬は付与しない。
+- **変更ファイル/コミット**：neo-wild/trophy-records.js 新規 c7e75d77（blob cff59ae2）、game.js 統合 6d73f51e（blob 8ee43fe2）、index.html 読込・rev ac50e96b（blob 070a04a3）。他ゲーム/ブログは変更なし。
+- **PASS**：2 JS全文構文、5イベントのゲーム内呼出箇所、世界100年トロフィー判定・保存後再ロード・秘密トロフィーの未獲得非公開をV8で確認。**未検証**：実ブラウザ/Android/Pad、55種類すべてのゲーム内E2E、Pages deploy、旧SAVE2実データ。
+- **V1.0状態**：トロフィー=途中（55/200+、UI一覧/タイトル/限定外見/追加イベント接続が未実装）。世界年・災害・UFO・家系・10種操作・地形等も引き続き途中/未実装。PHASE A維持。進捗74/100据置。
+- **次20分枠**：game.js:updateLightning と disaster-world.js:tick から WildTrophies.record("lightning",...) および災害生還を発火。disaster-world.js と fauna.js の動物・地域被災イベントを図鑑に接続。
+- **次40分枠**：ufo-events.js の捕獲死因を P.deathReason="ufo" として beginDeath に渡し、trophy-records.js のUFO捕獲実績と連結。bestiary.js にトロフィー一覧（通常公開/秘密隠蔽）の表示入口を実装。
+- **次00分枠**：種別寿命/子孫と後継選択を独立モジュール化し、game.js:start/restoreSnapshot/beginDeath へ統合。200種類以上の非重複イベント条件へ拡充。
+
 ## 2026/11/03 12:40枠｜40分・亡霊の実体験AIと憑依｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **新たな実プレイ機能**：世界45年以降の希少な亡霊出現。徘徊→実体化→プレイヤー追跡→消失。壁と隠れ状態で追跡を回避可能。接近したプレイヤーは恐怖が蓄積し、憑依でスタミナが減り移動速度が一時72%へ低下。NPC動物も近距離の亡霊を警戒し、既存の逃走・警戒AIで退避。Canvas画面上に亡霊を描画し、遭遇座標・世界年と次回出現年、進行中の亡霊を独立localStorageに保存。死亡/再ロード後も世界記録を維持。デバッグからWildApparitions.summon(x,y,year)で実遭遇を再現可能。既存UFO・倒木・年時計・旧SAVE2には干渉しない。
 - **コードSHA**：neo-wild/apparitions.js新規 commit 2aba255eac5f77cf30f23e6ec47860d8259dc88c、neo-wild/game.js 統合 commit 9f45c1a6bac1ce6f0c1c1955965bd73ca4f855ed と憑依移動処理 commit 66b06059bd535917cab1c5b5e1405129009e9ea7、neo-wild/index.html 読込/キャッシュ commit 0c7e6804ffd17f6e5cf14c129279060661a31e56。共通スプリント維持、他ゲーム/ブログは変更なし。
