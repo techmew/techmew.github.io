@@ -1,3 +1,14 @@
+## 2026/11/03 11:54 JST｜全動物推奨LVと戦闘多様化｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **今回遊べる新機能**：通常24＋強敵20＝計44種に個別「推奨LV1〜40」を設け、図鑑の討伐一覧/詳細と、プレイ中の接近敵名へ表示。敵の推奨LVが現在LVより高いほど、その敵へのプレイヤー攻撃を減衰し、敵がプレイヤーに与えるダメージを増やす。LVを満たさなくても討伐は可能（厳格なレベルロックなし）。例：LV2→通常ライオン推奨18、与ダメージ係数0.362・被ダメージ係数2.03。LV2→巨大ライオン推奨32、与ダメージ係数0.24・被ダメージ係数2.03。適正LV以上では係数1.0。
+- **攻撃の追加**：通常種15タイプの交互の固有攻撃情報（名・予兆・射程・攻撃威力・クールダウン・状態異常）を新設。野犬/イノシシ/猫/狐/イタチ/タヌキ/毒蛇/チーター/ライオン/キリン/ゾウ/カバなどの既存基本攻撃と固有追加技を交互に選択。シマウマ・ニホンカモシカ・ヤギの反撃も予兆表示と攻撃判定、交互の威力/射程・持久力/押し返しに接続（従来の予兆なしシマウマ即攻撃を撤去）。ボス20種×2技の既存モジュールは維持。ニホンザル・チンパンジーの投石等にも推奨LV倍率を適用。水辺・飛行・大鷲・ゴリラ投石・基本/突進/固有技の被ダメージにも倍率を接続。
+- **変更と証拠**：開始main 8a47e72e。neo-wild/combat-levels.js 新規 commit d0be6e9f、game.js 戦闘統合 commit 0a6b3fef と草食反撃 commit 8f866a31、bestiary.js commit 50adff71、index.html script順/?rev commit d63386bf と fef4f755。最終コード HEAD **fef4f75596f59e84c1dfe639f38cb4981fb02419**。上記4ソース以外は既存コードを維持し、他ゲーム・ブログの変更なし。
+- **試験**：V8で全44種のLV/倍率単調性/正規化、15種の基本→固有→基本ローテーション、HTML script順、JS全文構文、密度・SAVE_SCHEMA・アルファ速度を計 **219/219 PASS**。反撃3種の予兆・コード分岐・構文はPASS（実ブラウザでの衝突/操作の実測ではない）。ゲーム本編での全44種遭遇E2E、Android実機/GPU/物理Pad・長時間FPS/旧端末SAVE2実データは**未検証**。HTMLと最新game.jsの各blob照合済み。
+- **Pages証拠**：コードHEAD fef4f755 のGitHub Actions run **41568772595** が completed/success。job **build=success、deploy=success、report-build-status=success**。その後のROADMAP記録コミットについては別runとして確認要。進捗V2はA16/B12/C9/D4/E8/F9/G8/H4/I4＝**74.0/100、前回差0.0**（PHASE A継続、実機・E2E未達のため加点なし）。
+- **次00分（実装）**：①game.js:resolveAttack/kill で推奨LV差に応じた格上討伐報酬・初討伐トロフィー/永続図鑑の連結、②game.js:currentSnapshot/restoreSnapshot で草食反撃の一時状態と旧SAVE2の回帰、③実プレイの開始→狩猟→格上戦闘→死亡/リトライ/再開統合試験。
+- **次20分（実装）**：①game.js:update の種類別追跡/警戒/回避/反撃ループを未対応種（鹿・熊など）へ拡大、②game.js:spawnMob/syncEnemyLevel のエリア別推奨LVと地域分布をレベルロックなしで整合、③地形衝突と群れ上限13/76/9・6%/12%・9秒を回帰。
+- **次40分（実装）**：①game.js:update/drawThreatNames の全種予兆と見やすい推奨LV表示を3D/2Dで実操作確認、②fauna.js:draw2D/webgl3d.js の追加固有技の種別モーションを完成、③bestiary.js と gamepad.js で図鑑・推奨LV・縦横/Padの実操作と強敵20種固有技との共存を完成。
+- **重要**：今回は推奨LVの全種登録と戦闘係数統合、12種の通常交互攻撃と3種の反撃ループまで。すべての種に2種類の実戦技が完成したわけではない。PHASE=A_FEATURESを維持し、通常種の残り個体特有行動・戦闘/回避を次回のPHASE Aで広げる。旧密度・20強敵・UFO・世界時計・死亡演出・図鑑は削除していない。
+
 ## 2026/11/03 11:40 JST｜40分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - 新たに遊べる機能：UFOの照射中、見えているプレイヤーを最大72座標/秒で追跡。潜伏・遮蔽時は野生動物を優先して追跡。NPC誘拐・プレイヤー捕獲地点に2時間相当ではなく実時間7200秒残る発光痕跡を2D HUD表示。円盤進行状態・痕跡・クールダウンをlocalStorageへ定期永続化しリロード後も遭遇を再開可能。
 - 変更：neo-wild/ufo-events.js commit c29f0eb69da3661c529a9519eabb57465855900d、neo-wild/index.html rev commit 3111ef094fe67bf9bba102d8398b01bbc48c5d94。開始時ROADMAP blob f3be0681c948d6f9c2c849d98adcb33f1bfebde8。対象以外変更なし。
