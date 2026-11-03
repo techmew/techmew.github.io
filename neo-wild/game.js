@@ -4254,6 +4254,7 @@ function update(dt){
  updateLightning(dt);
  window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD});
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
+ window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked});
  if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
@@ -6004,6 +6005,7 @@ function drawScene(){
 
  if(mode!=="dying"){
   window.WildUFO?.draw?.(ctx,project,{mode});
+  window.WildApparitions?.draw?.(ctx,project,{mode});
   window.WildDisaster?.draw?.(ctx,project,elapsed/120);
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
