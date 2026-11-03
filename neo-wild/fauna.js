@@ -35,7 +35,7 @@ const weights=[
 function weight(type,region,day=1,weather="CLEAR"){
  const idx=types.indexOf(type);if(idx<0)return 0;
  let w=(weights[region]||weights[0])[idx]||0;
- const year=1+Math.floor(Math.max(0,day-1)/365);
+ const year=window.WildWorldClock?.fromDay?.(day)?.year+1 || 1+Math.floor(Math.max(0,day-1)*85/120);
  if(year>=3&&["raccoonDog","wildFox","weasel","boar"].includes(type))w*=1.25;
  if(year>=10&&["wildFox","snake","deer","boar"].includes(type))w*=1.45;
  if(year>=30&&["deer","wildFox","raccoonDog"].includes(type))w*=1.25;
