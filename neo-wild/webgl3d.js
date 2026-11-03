@@ -1265,6 +1265,29 @@ function render(o){
   const foliageSeason=seasonIndexFromElapsed(elapsed);
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,foliageSeason);
   for(const den of o.dens||[])if(isVisible(den.x,den.y,160))denBeddingMesh(den);
+  // Actual accumulating snow: terrain-facing surface patches stay at world XY,
+  // above ground and below animals. Patches avoid rivers and flooded zones.
+  // Density rises with world-year snowpack instead of only tinting the sky.
+  const snow=clamp(o.snowpack||0,0,1);
+  if(snow>.06){
+   const tile=132,margin=vh*.85+250;
+   const firstX=Math.max(0,Math.floor((cam.x-margin)/tile)*tile);
+   const firstY=Math.max(0,Math.floor((cam.y-margin)/tile)*tile);
+   const endX=Math.min(WORLD.w,cam.x+vw+margin),endY=Math.min(WORLD.h,cam.y+vh+margin);
+   for(let x=firstX;x<endX;x+=tile)for(let y=firstY;y<endY;y+=tile){
+    const cx=x+tile*.5,cy=y+tile*.5;
+    if(!isVisible(cx,cy,150)||detailNoise(x*.091+y*.137)>snow)continue;
+    if(typeof o.waterAt==="function"&&o.waterAt(cx,cy)>.005)continue;
+    const ground=(px,py)=>window.WildMountain?.height(px,py)||0;
+    const z=.95+(snow*.5);
+    // World-space patches have real terrain elevation; the player's feet
+    // remain visible and icy ground follows slopes instead of floating.
+    quad([x+9,y+8,ground(x+9,y+8)+z],
+         [x+tile-11,y+7,ground(x+tile-11,y+7)+z],
+         [x+tile-8,y+tile-9,ground(x+tile-8,y+tile-9)+z],
+         [x+7,y+tile-13,ground(x+7,y+tile-13)+z],color((Math.floor(x/tile)+Math.floor(y/tile))%3?"#d2e4e5":"#e6eef0"));
+   }
+  }
   // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
   if(typeof o.waterAt==="function"){
    animalLift=0;
