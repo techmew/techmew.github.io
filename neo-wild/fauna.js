@@ -142,7 +142,7 @@ function weight(type,region,day=1,weather="CLEAR"){
 }
 function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const pool=types.map(type=>({type,w:preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather)}));
- const sum=pool.reduce((v,e)=>v+e.w,0);if(!(sum>0))return "rat";let target=Math.max(0,Math.min(.999999999999,Number(random)||0))*sum;
+ const sum=pool.reduce((v,e)=>v+e.w,0);if(!(sum>0))return "rat";let target=Math.max(0,Math.min(.999999999999,Number(typeof random==="function"?random():random)||0))*sum;
  for(const entry of pool){target-=entry.w;if(target<0&&entry.w>0)return entry.type;}
  return "rat";
 }
