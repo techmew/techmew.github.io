@@ -1215,14 +1215,15 @@ function checkpointLabel(s){
 }
 function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
+ const aliveSquad=window.WildSquad?.load?.()?.members?.length||0;
  if(!automaticTutorialShown){migrateSeenTutorial(auto);for(const point of points)migrateSeenTutorial(point)}
- const hasSave=!!auto||points.length>0;
+ const hasSave=!!auto||points.length>0||aliveSquad>0;
  $("menu").classList.toggle("has-saved-game",hasSave);
  $("menu").classList.toggle("has-auto-save",!!auto);
- const primary=auto||points[0]||null;
+ const primary=auto||(aliveSquad?null:points[0])||null;
  $("continue-btn").classList.remove("hidden");
- $("resume-cta-label").textContent=hasSave?"続きからプレイ":"最初からプレイ";
- $("resume-cta-help").textContent=hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開（動物の変更は下の新規ゲームから）":"種族・画面・出発地点を選んで開始";
+ $("resume-cta-label").textContent=aliveSquad&&!auto?"編成から出発":hasSave?"続きからプレイ":"最初からプレイ";
+ $("resume-cta-help").textContent=aliveSquad&&!auto?aliveSquad+"体の生存編成で世界の続きへ":hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"ガチャで動物を選んで出発";
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
  if(!points.length){$("checkpoint-list").classList.add("hidden");$("checkpoint-menu-btn").setAttribute("aria-expanded","false");}
@@ -4651,7 +4652,7 @@ function update(dt){
   initializeLife(P,elapsed,true);
   const remaining=P.lifespanYears-P.ageYears;
   const stage=remaining<=0?3:remaining<=1?2:remaining<=3?1:0;
-  if(stage>P.ageWarningStage){P.ageWarningStage=stage;
+  if(stage>P.ageWarningStage&&!P.squadIndividualId){P.ageWarningStage=stage;
    if(stage===1)notify("老齢期：残りの寿命は約3年",3.5);
    else if(stage===2)notify("老衰が近づいている。残り約1年",3.5);
   }
@@ -4822,7 +4823,13 @@ function update(dt){
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
-  if(m.hp<=0)continue;
+  if(m.hp<=0){
+   if(m.squadIndividualId&&!m._killRegistered){
+    m._killRegistered=true;window.WildSquad?.kill?.(m.squadIndividualId);
+    carcasses.push(animalRemains(m));notify((m.squadName||"仲間")+"は死亡し永久離脱");saveAuto();syncSquadHud();
+   }
+   continue;
+  }
   if(m.companion){updateCompanion(m,dt);continue;}
   const s=species[m.type];m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0)-dt);m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0)-dt);if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
@@ -5156,7 +5163,7 @@ function syncHUD(hour){
  syncSquadHud();
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
- $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?"｜"+P.ageYears.toFixed(1)+"歳 / 寿命"+P.lifespanYears+"年":"");
+ $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?(P.squadIndividualId?"｜年齢 "+P.ageYears.toFixed(1)+"歳":"｜"+P.ageYears.toFixed(1)+"歳 / 寿命"+P.lifespanYears+"年"):"");
  $("poison-status").classList.toggle("hidden",!(P.poisonTime>0));
  if(P.poisonTime>0)$("poison-status").textContent="☠ 毒 "+Math.ceil(P.poisonTime)+"秒｜生命が減少";
  $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜空腹に注意":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
@@ -7025,8 +7032,17 @@ $("cancel-new-game-btn").addEventListener("click",hideNewGameConfirmation);
 selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
- const snapshot=getAutoSnapshot()||getCheckpoints()[0];
- if(window.WildSquad?.load?.()?.members?.length && !snapshot){window.WildSquadGachaUI?.open?.();return;}
+ const roster=window.WildSquad?.load?.();
+ const snapshot=getAutoSnapshot()||(roster?.members?.length?null:getCheckpoints()[0]);
+ if(roster?.members?.length&&!snapshot){
+  const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
+  if(!leader||!animals[leader.species]){notify("編成リーダーを復旧できません");return;}
+  choice=leader.species;
+  // Resume the persistent world clock; only explicit NEW GAME resets to YEAR 0.
+  if(launchGame(null,false)){applySquadLeader();saveAuto();}
+  return;
+ }
+ if(window.WildSquad&&!snapshot){window.WildSquadGachaUI?.open?.();return;}
  if(launchGame(snapshot||null,!snapshot)&&!snapshot)saveAuto();
 });
 $("checkpoint-menu-btn").addEventListener("click",()=>{
