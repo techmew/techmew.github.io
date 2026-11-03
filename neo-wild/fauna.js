@@ -22,9 +22,20 @@ const species={
  manul:{hp:64,r:18,speed:158,damage:12,prey:false,xp:4,food:32,color:"#8b8981",belly:"#c9c5ba"},
  tibetanFox:{hp:73,r:19,speed:215,damage:12,prey:false,xp:4,food:38,color:"#b59a76",belly:"#e5d6bd"},
  shoebill:{hp:96,r:24,speed:105,damage:18,prey:false,xp:5,food:43,color:"#777f83",belly:"#b7bdc0"},
- hippo:{hp:425,r:46,speed:192,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
+ hippo:{hp:425,r:46,speed:192,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"},
+ otter:{hp:65,r:16,speed:230,damage:11,prey:false,xp:4,food:32,color:"#705946",belly:"#d0b49a"},
+ carp:{hp:42,r:15,speed:150,damage:0,prey:true,xp:2,food:24,color:"#97805c",belly:"#d6c09a"},
+ tanuki:{hp:76,r:20,speed:169,damage:9,prey:false,xp:3,food:38,color:"#82735c",belly:"#c4b5a0"},
+ badger:{hp:105,r:21,speed:170,damage:15,prey:false,xp:4,food:46,color:"#77736a",belly:"#d4c7b2"},
+ blackBear:{hp:315,r:37,speed:206,damage:29,prey:false,xp:10,food:100,color:"#403b37",belly:"#9c9185"},
+ tiger:{hp:355,r:40,speed:283,damage:36,prey:false,xp:13,food:125,color:"#b9834e",belly:"#e7d4ac"},
+ gorilla:{hp:345,r:39,speed:168,damage:29,prey:false,xp:12,food:117,color:"#494746",belly:"#918781"},
+ hyena:{hp:160,r:26,speed:272,damage:22,prey:false,xp:7,food:69,color:"#9b8565",belly:"#d1b997"},
+ wildDog:{hp:104,r:21,speed:338,damage:18,prey:false,xp:6,food:52,color:"#8b785e",belly:"#d8c5a4"},
+ armadillo:{hp:65,r:17,speed:150,damage:5,prey:true,xp:4,food:28,color:"#8c7967",belly:"#b9a28a"},
+ hedgehog:{hp:28,r:12,speed:110,damage:3,prey:true,xp:2,food:13,color:"#6b6053",belly:"#c6b39a"}
 };
-const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat","manul","tibetanFox","shoebill"];
+const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat","manul","tibetanFox","shoebill","otter","carp","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"];
 const weights=[
  [24,8,20,9,0,18,2,12,3,0,3,1,0,1,0,0,0,0,0,0],
  [20,9,18,11,1,16,3,12,4,1,4,1,0,1,0,0,0,0,0,0],
@@ -49,6 +60,26 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(type==="manul")w=region===3||region===5?2.1:0;
  if(type==="tibetanFox")w=region===3||region===5?1.7:0;
  if(type==="shoebill")w=region===7||region===4?1.4:0;
+ // New wildlife enters gradually; no dangerous world-class predators beside a new LV1 squad.
+ // These are wild NPCs only. Gacha unlock/IV data remain owned by WildSquad.
+ const unlockedYear=Math.max(0,year-1);
+ const regional={
+  otter:{4:1.4,7:1.8},tanuki:{0:1.0,1:1.4,5:1.6,6:1.4},
+  badger:{2:1.1,5:1.5,6:1.2},blackBear:{2:.30,5:.55},
+  tiger:{3:.32,5:.22},gorilla:{3:.30,5:.20},hyena:{3:.55,5:.48},
+  wildDog:{3:.60,5:.44},armadillo:{3:.65,5:.48},hedgehog:{2:.85,5:.90,6:.55}
+ };
+ if(Object.prototype.hasOwnProperty.call(regional,type)){
+  w=regional[type][region]||0;
+  if(["blackBear","hyena","wildDog","armadillo","hedgehog"].includes(type)&&unlockedYear<7)w=0;
+  if(["tiger","gorilla"].includes(type)&&unlockedYear<17)w=0;
+  if(["tiger","gorilla","blackBear"].includes(type)&&unlockedYear<34)w*=.5;
+ }
+ // Carp requires a dedicated aquatic spawn path; never materialize fish on dry roads.
+ if(type==="carp")w=0;
+ if(type==="otter"&&weather==="SNOW")w*=.55;
+ if(type==="hedgehog"&&weather==="SNOW")w*=.15;
+ if(["tiger","gorilla","hyena","wildDog"].includes(type)&&(weather==="RAIN"||weather==="THUNDER"))w*=.65;
  if(weather==="SNOW"&&["frog","snake","venomSnake"].includes(type))w*=.12;
  if(weather==="SNOW"&&["deer","boar","rabbit"].includes(type))w*=.72;
  if(weather==="HEAT"&&["frog","deer"].includes(type))w*=.65;
