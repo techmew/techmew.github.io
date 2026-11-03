@@ -4199,6 +4199,7 @@ function update(dt){
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateLightning(dt);
+ window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
  if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
@@ -5924,6 +5925,7 @@ function drawScene(){
  }
 
  if(mode!=="dying"){
+  window.WildUFO?.draw?.(ctx,project,{mode});
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
