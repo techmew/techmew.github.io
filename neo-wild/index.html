@@ -109,6 +109,7 @@
     </div>
     
 <button id="bestiary-open" type="button" aria-controls="bestiary" aria-expanded="false">動物図鑑　0 / 41</button>
+<button id="world-history-open" type="button" class="trophies-menu-btn" aria-controls="world-history-view" aria-expanded="false">世界年表を見る</button>
 <button id="trophies-open" type="button" class="trophies-menu-btn" aria-controls="trophy-view" aria-expanded="false">トロフィーを確認する　BRONZE / SILVER / GOLD</button>
 <section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
 <div class="pick-head"><span>01</span> 生き延びる個体を選択</div>
@@ -142,6 +143,7 @@
 <div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
 <div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button><button id="death-title-btn" type="button" class="flat-btn">タイトルに戻る</button></div></div>
+<div id="world-history-view" class="trophy-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="world-history-title"><section class="trophy-shell"><header class="trophy-head"><div><h2 id="world-history-title">世界年表</h2><p id="world-history-summary" aria-live="polite">世界の記録</p></div><button id="world-history-close" type="button">閉じる</button></header><ol id="world-history-list" class="trophy-list" aria-label="年代・地域変動・災害の履歴"></ol></section></div>
 <div id="trophy-view" class="trophy-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="trophy-view-title">
  <section class="trophy-shell"><header class="trophy-head"><div><h2 id="trophy-view-title">トロフィー</h2><p id="trophy-count" aria-live="polite">獲得 0</p></div><button id="trophies-close" type="button">閉じる</button></header>
  <p class="trophy-legend"><span class="legend-bronze">ブロンズ</span><span class="legend-silver">シルバー</span><span class="legend-gold">ゴールド</span></p>
@@ -194,7 +196,8 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=20261103-den-ally-v1" defer></script> <script src="./ufo-events.js?rev=bfcda7c5-syntax" defer></script> <script src="./disaster-world.js?rev=8462e0bc-quakes" defer></script>
 <script src="./apparitions.js?rev=31149a34-hallucination" defer></script>
-<script src="./trophy-records.js?rev=73a6f390-tiers" defer></script> <script src="./game.js?rev=096f218c-year-snow-quest-savefix" defer></script>
+<script src="./trophy-records.js?rev=73a6f390-tiers" defer></script> <script src="./game.js?rev=b66ce3ec-world-history" defer></script>
+<script src="./world-history.js?rev=bd66ed2c-chronicle" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=df730244-trophy-pad" defer></script>
 <script src="./season-clouds.js?rev=20261103-year120-v1" defer></script>
