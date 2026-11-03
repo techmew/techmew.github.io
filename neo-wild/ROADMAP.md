@@ -1,3 +1,13 @@
+## 2026/11/03 12時台｜20分枠｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **新たな実プレイ機能**：5〜15世界年程度のランダム間隔で局所地震の前兆（4.5秒）→倒木→実移動衝突・迂回→近くのNPC動物が逃走→5〜14年後の自然回復。世界年120秒/年に同期。世界中のプレイヤー付近の合法地点から抽選し、障害物や世界境界・プレイヤー直近・行き止まりを避ける。Canvas HUDに危険予告と倒木を表示。死亡/再起動後も独立localStorageキーに最大12件の倒木と次の災害抽選年を保持。地形永久変化・洪水・隕石はまだ未実装。
+- **実変更**：開始HEAD 08bdc32edd3a4a3cbe1ea3111d93466c59f0e017。neo-wild/disaster-world.js 新規 commit ff6df1af6305b336c0275f2969ff8fc0974b0fff（blob 0dd08318b9748619f58814960c0b10c48433679d）。neo-wild/game.js 衝突/update/描画統合 commit 06c374aaf96f9991b3d025a7bc562d2083decfde（blob 085e1c3539e2af90cc5a3a43e787e36c80048448）。neo-wild/index.html 読込順とrev commit 4ba811a090cd211d899e9b883a5d6be8ab313f21（blob c0d0d74ea649c058e7a6cda8170179068a037a71）。記録直前HEAD 4ba811a090cd211d899e9b883a5d6be8ab313f21。他ゲーム・ブログ変更なし。
+- **検証**：V8実モジュール呼出による地震予兆/倒木実衝突/NPC逃走/プレイヤー周辺安全/独立保存再読込/期限切れ回復、game.js構文・HTML読込順・本体結線で **11/11 PASS**。実ブラウザの長時間発生・Android/実GPU/物理Pad/旧端末SAVE2/3CPは未検証。実GPUでの倒木3Dメッシュは未実装（Canvas HUD重畳のみ）。
+- **V1.0状態**：地震/倒木=**機能統合済・実機未検証**、洪水/地割れ/土砂崩れ/永久崩落/隕石/感染症/山火事=未実装〜途中。世界時計=途中、家系/10種陸空水/200トロフィー=未完成。PHASE A継続。V2 A16/B12/C9/D4/E8/F9/G8/H4/I4=74.0/100（差0.0、未検証による加点なし）。
+- **次00分**：game.js:currentSnapshot/restoreSnapshot と disaster-world.js:getState/restore を連結し旧SAVE2/3CPでも地形履歴を失わず世界年を維持。game.js:beginDeath/start の世代継承を実装。
+- **次20分**：game.js:waterBlocksLand/collides/routeClear と disaster-world.js:tick を連動し洪水・冠水・迂回、NPCの避難/移住を追加。安全経路を保証。
+- **次40分**：webgl3d.js:render と disaster-world.js:draw に倒木3D実メッシュ・地割れの予兆・避難導線を追加。bestiary.js に災害遭遇履歴・年表を接続。
+- **公開**：コードHEAD 4ba811a0 のPages build/deployを別途照合すること。ROADMAP更新後のHEADは別run。
+
 ## 2026/11/03 12:05 JST｜格上相手の攻撃連打ハメ修復｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **実際の改善**：推奨LV5や17の格上動物がプレイヤーLV1の軽い攻撃連打で攻撃準備をキャンセルされ続ける問題を修正。COMBAT_LEVELS.canInterrupt で格上（差3以上）は通常攻撃でひるまず、奇襲・ジャンプ・狼突進・コンボ5段目などの重攻撃でのみスタッガー耐性/ガードクールダウン付きでひるむ。格上は通常打撃ノックバックを大幅減、攻撃を受けた事実を約2.3秒保持し死角/薄暗さでも近距離反撃、ひるんでいない場合は通常攻撃の再試行までの残り待機時間を格上最大0.16秒に縮める。**反撃のwindup/攻撃予兆は省略しない**。ボス20種の固有技40、旧SAVE_SCHEMA=2、野生密度13/76/9・9秒・群れ110秒を維持。
 - **変更**：当初HEAD 25480a06f2ae0ec8bab587d761f43c7b88b77ccc、neo-wild/combat-levels.js commit **f616608cb59cb1063c433b50f9af31cb549eed0b**、neo-wild/game.js commit **1ee689859b63b6748bba7a35e122b2f95a80044a**、neo-wild/index.html ?rev commit **faa0225493f08048fb948bc2f150b4abd056bf23**。他枠が後続でゲーム本体/HTMLを **3c0652bfaf16459a2a3bd6bad800b3e62b54e7a0** まで更新。現行game.js blob 61e682fcee33d2c0b4fc5ee7005c31ebb552252a、index.html blob 922223927370cb14b354a469712f73678698e465 でスタッガー修正と新コード読込維持を再照合。他ゲームとブログには書き込まず。
