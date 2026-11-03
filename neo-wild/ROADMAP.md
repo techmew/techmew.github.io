@@ -1,3 +1,9 @@
+# 2026-11-03 18:40 JST｜40分枠 UFO誘拐NPC完全除去（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES
+- 機能統合済・要検証：ufo-events.js の未定義 species による捕獲時例外を修正。種別をNPC属性から取得し、誘拐個体を mobs から除去。死骸・肉・報酬生成経路への流入を防止。既存の逃走・遮蔽・光線蓄積・記録・通知を維持。
+- 変更 commit 013059db8474924f98b87f09ade7651d50d417a9 / blob 64711fc474dd3d2cbb3b0315e9e2e0e419ab1983。担当境界：40分 ufo-events.js、00分 game.js死亡/セーブ、20分 AI/地形。
+- 未検証：実ブラウザ起動・捕獲動線・旧セーブ・スマホ・Pad。次担当：00分は onEvent('ufo-npc-abduction') の図鑑/トロフィー/永続保存、20分は mobs 除去後の群れAI参照を検証。UFO集団・異星人AI等は未実装。PHASE B移行禁止。
+
 # V1.0 新仕様 機能管理（2026-11-03 20分枠）
 ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES / PHASE=A_FEATURES
 
