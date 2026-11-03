@@ -31,14 +31,14 @@
 </div>
 <div id="hunt-cinematic" role="status" aria-live="polite" aria-atomic="true"><div class="hunt-cinematic-core"><strong id="hunt-cinematic-title">SHADOW HUNT</strong><span id="hunt-cinematic-sub">UNDETECTED STRIKE</span></div></div>
 <div id="shelter-hint" class="hidden" aria-live="off">青い建物入口から歩いて入れます（ボタン不要）</div>
-<div id="stockpile-guide" class="hidden" aria-live="off">① 食草・肉のそばで△長押しして運ぶ</div>
+<div id="stockpile-guide" class="hidden" aria-live="off">① 食草・肉のそばで○長押しして運ぶ</div>
 <div id="objective-banner" class="objective-banner" role="status" aria-live="polite" aria-atomic="true"><span class="objective-banner-kicker" id="objective-banner-stage">チュートリアル 1 / 4</span><strong id="objective-banner-title">食料を確保せよ</strong><span class="objective-banner-next" id="objective-banner-next">次の目的：身を隠せ</span></div>
 <div id="mission-milestone" class="hidden" role="status" aria-live="polite" aria-atomic="true"><div class="mission-milestone-inner"><span id="mission-milestone-kicker">NICE WORK</span><strong id="mission-milestone-title">EXCELLENT!</strong></div></div>
 <div id="mission" class="hidden" role="region" aria-label="生存目標"><div class="mission-top"><span class="live-dot"></span><small>ミッション</small><span id="mission-progress">チュートリアル 1 / 4</span><button id="mission-close" type="button" aria-label="目標を閉じる">×</button></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><p id="mission-next">次の目的：身を隠せ</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="zoom-controls"><button id="zoom-out" aria-label="もっと広く見る">−</button><span id="zoom-level">80%</span><button id="zoom-in" aria-label="近くを見る">＋</button></div>
 <div id="toast" role="status"></div>
-<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ・猫は壁際でL再入力　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・巣で△短押し食料庫/備蓄・長押し巣強化、巣外で△短押し食事/長押し運搬　□飛びつき（長押し本能）　○ジャンプ（猫は空中で再入力）　×5段攻撃</span></div>
-<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="△ 巣では短押しで食料庫、運搬中は備蓄、長押しで巣強化。巣外では短押し食事・長押し運搬"><span>△</span><small id="context-action-label">行動</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 短押し飛びつき、長押しで固有能力"><span>□</span><small>飛びつく</small></button><button id="jump-touch" class="touch-btn jump" aria-label="○ ジャンプ"><span>○</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="× 5段ラッシュ攻撃"><span>×</span><small>攻撃</small></button></div></div>
+<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ・猫は壁際でL再入力　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる・くわえる（長押しで運搬）　×/A ジャンプ（猫は空中で再入力）</span></div>
+<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="○ 右：食べる・くわえる。短押し食事や備蓄、長押しで運搬・置く・巣強化"><span>○</span><small id="context-action-label">食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 左：短押しで飛びつき、長押し中はスタミナ消費でダッシュ"><span>□</span><small>飛びつき/走る</small></button><button id="jump-touch" class="touch-btn jump" aria-label="× 下：ジャンプ"><span>×</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="△ 上：連続攻撃、長押しで5段コンボを自動継続"><span>△</span><small>連続攻撃</small></button></div></div>
 <div id="world-map" class="hidden" role="dialog" aria-label="東京の地図" aria-modal="true">
  <div class="world-map-panel">
   <div class="world-map-top"><strong>東京の地図</strong><button id="map-close" aria-label="地図を閉じる">閉じる ×</button></div>
@@ -46,7 +46,7 @@
   <p id="map-perks" aria-live="off">探索で生存能力が解放されます</p>
   <canvas id="world-map-canvas" width="630" height="360" aria-label="現在地・休息地・駅・登れる屋上の地図"></canvas>
   <div class="map-key">白：現在地　水色：目標　青：巣　赤い菱形：強敵　橙の三角：敵　黄の四角：警戒　緑の丸：獲物（ミニマップ）</div>
-  <p class="map-help">巣LV2で縄張り標識が解放。地図の西・東・南の標識へ行き、敵を追い払って△長押しで確保。確保した縄張りは巣の休息力を上げ、野犬を牽制し、翌日以降に木の実を供給します。地図の点へ自動移動はしません。</p>
+  <p class="map-help">巣LV2で縄張り標識が解放。地図の西・東・南の標識へ行き、敵を追い払って○長押しで確保。確保した縄張りは巣の休息力を上げ、野犬を牽制し、翌日以降に木の実を供給します。地図の点へ自動移動はしません。</p>
  </div>
 </div>
 <div id="den-inventory" class="survival-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="den-inventory-title">
@@ -94,7 +94,7 @@
 <div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell">
 <h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
 <p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
-<div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>十字キー・左スティック：項目移動　｜　左右：動物・画面・場所を変更　｜　× / A：決定　｜　○ / B：戻る</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
+<div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
       <button id="continue-btn" type="button" class="save-choice resume-primary">
         <span class="resume-cta-title"><span id="resume-cta-label">最初からプレイ</span><small id="resume-cta-help">種族・画面・出発地点を選んで開始</small></span>
@@ -112,9 +112,9 @@
 <section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
 <div class="pick-head"><span>01</span> 生き延びる個体を選択</div>
 <div class="animals">
-          <button class="animal-card selected" data-animal="fox"><span class="animal-icon">🦊</span><span><b>アカギツネ</b><small>爆速疾走 / □長押しで疾風</small></span><em>01</em></button>
-          <button class="animal-card" data-animal="cat"><span class="animal-icon">🐈</span><span><b>ノラネコ</b><small>壁の三角飛び / 空中○で再ジャンプ</small></span><em>02</em></button>
-          <button class="animal-card" data-animal="wolf"><span class="animal-icon">🐺</span><span><b>オオカミ</b><small>重量突進 / □長押しで咆哮</small></span><em>03</em></button>
+          <button class="animal-card selected" data-animal="fox"><span class="animal-icon">🦊</span><span><b>アカギツネ</b><small>爆速疾走 / □長押しでダッシュ / Rで疾風</small></span><em>01</em></button>
+          <button class="animal-card" data-animal="cat"><span class="animal-icon">🐈</span><span><b>ノラネコ</b><small>壁の三角飛び / 空中×で再ジャンプ</small></span><em>02</em></button>
+          <button class="animal-card" data-animal="wolf"><span class="animal-icon">🐺</span><span><b>オオカミ</b><small>重量突進 / □長押しでダッシュ / Rで咆哮</small></span><em>03</em></button>
         </div>
         
 <div class="pick-head"><span>02</span> 画面の向きを選択</div>
