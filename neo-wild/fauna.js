@@ -36,10 +36,12 @@ function weight(type,region,day=1,weather="CLEAR"){
  const idx=types.indexOf(type);if(idx<0)return 0;
  let w=(weights[region]||weights[0])[idx]||0;
  const year=window.WildWorldClock?.fromDay?.(day)?.year+1 || 1+Math.floor(Math.max(0,day-1)*85/120);
- if(year>=3&&["raccoonDog","wildFox","weasel","boar"].includes(type))w*=1.25;
- if(year>=10&&["wildFox","snake","deer","boar"].includes(type))w*=1.45;
- if(year>=30&&["deer","wildFox","raccoonDog"].includes(type))w*=1.25;
- if(year>=100&&["deer","boar","wildFox"].includes(type))w*=1.2;
+  // Distribution shifts on the compressed event timeline; physical animal age does not.
+  const eraYear=window.WildWorldClock?.eventYear?.(year)??year*3;
+ if(eraYear>=3&&["raccoonDog","wildFox","weasel","boar"].includes(type))w*=1.25;
+ if(eraYear>=10&&["wildFox","snake","deer","boar"].includes(type))w*=1.45;
+ if(eraYear>=30&&["deer","wildFox","raccoonDog"].includes(type))w*=1.25;
+ if(eraYear>=100&&["deer","boar","wildFox"].includes(type))w*=1.2;
  if(weather==="RAIN"||weather==="THUNDER"){
   if(["cheetah","lion","giraffe","zebra"].includes(type))w*=.58;
   if(type==="hippo")w*=1.25;
