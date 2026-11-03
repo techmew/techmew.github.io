@@ -1,3 +1,11 @@
+## 2026-11-03 PHASE A｜20分枠 北東の空白地域を実地形へ拡張
+ACTIVE_SPRINT_ID: WILD_V1_20261103_PHASE_A
+- 機能統合済・要検証：北東森林 x=8400〜10800 / y=850〜2580。旧市街の東境界から歩行で進入可能。mountain.js northWood/northTrail/active/blocked/height/spawnCandidate/choose と樹木・岩・採食地点の座標を共有。WebGL mountainTerrain と Canvas2D draw2D で床・林道・木々を描画。
+- 途中：北東森林は現状森林・林道のみ。農地、廃村、地下施設、固有NPC行動、河川水路は未実装。東端は通行禁止、迂回路と次地区の地続き延長が必要。
+- 00分枠への引継ぎ：北東 x=8400〜10800,y=850〜2580 を既存8地区と別の生態集約区画として扱う場合は regionAt と保存形式の互換性を確認。現在の spawnCandidate は北東位置を返す。
+- 40分枠への引継ぎ：WebGL mountainTerrain 北東床を追加。樹木・岩は既存 m.trees/m.rocks、採食は m.ferns。遠景、樹種、廃村建物、地域の視覚識別を強化。
+- 変更SHA：mountain.js 76fb6bc3 / webgl3d.js 54d88ed3。実Android・GPU・Pages公開・旧セーブ再ロードのE2E未検証。PHASE=A_FEATURES継続。
+
 ## 2026-11-03 17:00 JST｜00分枠：初期陸上操作6種へ拡張｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD｜PHASE=A_FEATURES
 - **実プレイ追加**：タイトルの操作動物選択に野犬・ニホンジカ・イノシシを追加。既存の狐・猫・狼と合わせ6種類を選択でき、`game.js:animals` の個別HP/速度/攻撃/当たり半径を `start()` と `restoreSnapshot()` に供給する。既存の移動・攻撃・採食・巣・SAVE_SCHEMA2の経路を再利用。水生・飛行種の操作は**未実装**であり、10種完成とは報告しない。
 - **実変更SHA**：`game.js` commit `e35ca3e2` blob `7135f17e`、`index.html` commit `ebfd9432` blob `0d25b6ac`。他ディレクトリ変更なし。
