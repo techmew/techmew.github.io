@@ -4376,25 +4376,41 @@ function update(dt){
     if(m.headbuttTell>0&&d<P.r+m.r+120)m.dir=angle;
     if(m.headbuttTell===0&&m.headbuttArmed){
      m.headbuttArmed=false;m.swing=.28;
-     if(d<P.r+m.r+36&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
-      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.78*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+     if(d<P.r+m.r+36*(m.attackVariation?.reach||1)&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
+      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.78*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)*(m.attackVariation?.power||1)));
       P.hp=Math.max(0,P.hp-damage);P.inv=.48;P.lastCombatAt=elapsed;
-      interruptRush();shake=Math.max(shake,6);
+      interruptRush();shake=Math.max(shake,6);applyOrdinaryStrikeEffect(m,angle);
       label(P.x,P.y-35,"角突き -"+damage,"#ffd0a1");playEffect("damage");
      }else if(d<230)label(m.x,m.y-m.r-24,"角突きを回避！","#b4e6c2");
      m.flee=Math.max(m.flee,2.4);m.dir=angle+Math.PI;
     }
     if(!m.headbuttArmed&&m.headbuttTell===0&&spotted&&d<P.r+m.r+63&&m.attack<=0&&P.inv<=0){
-     m.headbuttTell=.54;m.headbuttArmed=true;m.attack=3.4;m.dir=angle;
-     label(m.x,m.y-m.r-32,"角突きの予兆！","#ffc68c");
+     m.attackVariation=COMBAT_LEVELS?.nextAttack(m);
+     m.headbuttTell=.54*(m.attackVariation?.windup||1);m.headbuttArmed=true;
+     m.attack=3.4*(m.attackVariation?.cooldown||1);m.dir=angle;
+     label(m.x,m.y-m.r-32,m.attackVariation?.name||"角突きの予兆！","#ffc68c");
     }
    }
-   // A zebra is usually fleeing, but its hind kick punishes close pursuit.
-   if(m.type==="zebra"&&spotted&&d<P.r+m.r+24&&m.attack<=0&&P.inv<=0){
-    const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.85*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
-    P.hp=Math.max(0,P.hp-damage);P.inv=.46;m.attack=2.55;m.swing=.23;
-    P.lastCombatAt=elapsed;interruptRush();shake=Math.max(shake,5);
-    label(P.x,P.y-38,"後ろ蹴り -"+damage,"#ffd2a5");playEffect("damage");
+   // Zebra and serow alternate distinct, telegraphed defensive moves.
+   if(m.type==="zebra"||m.type==="serow"){
+    m.defenseTell=Math.max(0,(m.defenseTell||0)-dt);
+    if(m.defenseArmed&&m.defenseTell===0){
+     m.defenseArmed=false;m.swing=.28;
+     const reach=(m.type==="zebra"?36:32)*(m.attackVariation?.reach||1);
+     if(d<P.r+m.r+reach&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
+      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*(m.type==="zebra"?.85:.90)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)*(m.attackVariation?.power||1)));
+      P.hp=Math.max(0,P.hp-damage);P.inv=.46;P.lastCombatAt=elapsed;
+      interruptRush();shake=Math.max(shake,5);applyOrdinaryStrikeEffect(m,angle);
+      label(P.x,P.y-38,(m.type==="zebra"?"蹴り":"角突き")+" -"+damage,"#ffd2a5");playEffect("damage");
+     }else if(d<230)label(m.x,m.y-m.r-25,"反撃を回避！","#b4e6c2");
+     m.flee=Math.max(m.flee,1.8);m.dir=angle+Math.PI;
+    }
+    if(!m.defenseArmed&&m.defenseTell===0&&spotted&&d<P.r+m.r+65&&m.attack<=0&&P.inv<=0){
+     m.attackVariation=COMBAT_LEVELS?.nextAttack(m);
+     m.defenseTell=(m.type==="zebra"?.58:.62)*(m.attackVariation?.windup||1);
+     m.defenseArmed=true;m.attack=(m.type==="zebra"?2.55:3.20)*(m.attackVariation?.cooldown||1);
+     m.dir=angle;label(m.x,m.y-m.r-32,m.attackVariation?.name||(m.type==="zebra"?"後ろ蹴りの予兆！":"カモシカの角突き！"),"#ffc68c");
+    }
    }
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
@@ -4540,7 +4556,7 @@ function update(dt){
     m.dir=m.chargeDir;vx=Math.cos(m.chargeDir)*s.speed*chargeSpeed;vy=Math.sin(m.chargeDir)*s.speed*chargeSpeed;
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
-   if(m.type==="mountainGoat"&&m.headbuttTell>0){vx=0;vy=0;}
+   if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow")&&m.defenseTell>0)){vx=0;vy=0;}
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
