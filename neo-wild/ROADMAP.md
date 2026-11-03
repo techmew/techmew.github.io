@@ -1,3 +1,30 @@
+# V1.0 新仕様 機能管理（2026-11-03 20分枠）
+ACTIVE_SPRINT_ID: V1_20261103_A_FEATURES / PHASE=A_FEATURES
+
+| 機能 | 状態 | 実証・残作業 |
+|---|---|---|
+| 120秒/年・四季・旧セーブ | 途中 | world-time.js と game.js に時計と永続履歴。実機旧セーブ回帰未了 |
+| 5年単位の地域遷移 | 途中 | era-ecology.js に8地域抽選。地形/AIへの完全反映未了 |
+| 地続き陸空水・既存8地区 | 途中 | mountain.js、game.js。飛行/水中操作と全地形衝突未了 |
+| 天候・落雷・雪・月齢 | 途中 | game.js、season-clouds.js。全気象と被害連鎖未了 |
+| 地震・倒木・洪水・火災・隕石 | 途中 | disaster-world.js に倒木/洪水/火災。隕石・恒久地形・完全復興未了 |
+| UFO・怪異・巨大生物 | 途中 | ufo-events.js、apparitions.js、boss-patterns.js。全AI統合未了 |
+| 初期10種・生涯・繁殖・後継 | 途中 | game.js に一部種と寿命。空水種/世代交代未了 |
+| 200以上の固有トロフィー・図鑑 | 途中 | trophy-records.js、bestiary.js。条件全件と永続回帰未了 |
+| 性格・群れ・大移動・救助 | 途中 | pack-tactics.js。全個体AIと移動経路未了 |
+| 巣争奪・移転・育児 | 途中 | companions.js、game.js。争奪と育児未了 |
+| 負傷・骨折・出血・感染 | 途中 | game.js。状態別回復とAI未了 |
+| 死骸腐敗・腐肉食 | 途中 | game.js。腐敗段階と腐肉食AI未了 |
+| 動物経験学習 | 未実装 | 個体ごとの経験永続化が必要 |
+| 赤月・異常霧・流星・発光 | 未実装 | 気象と行動・資源への結合が必要 |
+| 亡霊幻覚・憑依 | 途中 | apparitions.js。全効果検証未了 |
+| 大量死・巨大生物襲来・UFO集団 | 未実装 | 発生制御と保存が必要 |
+| 世界記録・秘境・研究施設 | 途中 | world-history.js と既存マップ。秘境の物理実装未了 |
+
+20分枠実変更: disaster-world.js 0388e14cad13f271ce2668023cef7e9735fb1f38、index.html 16641f0abf0ba0a50d443aafefa678158d69284d。倒木・洪水・火災の抽選間隔を旧約0.5〜4年から5〜15年へ変更。既存セーブの次回発生時刻は過去に戻さず最低5年先へ繰り延べる。イベント実体・被害・逃走・局所衝突は既存関数を維持。40分担当へ: disaster-world.js のイベント座標 x/y、kind=fallen_tree/flood/wildfire、year/duration/radius と draw() を使用。00分担当へ: 同モジュールの独立localStorageキー wild_reclaim_disasters_v1 と worldChronicle の年換算を統合検証。未検証: 実ブラウザ/スマホ/Pad、長時間頻度分布、Pages配信。全機能完成まで PHASE B 移行禁止。
+
+---
+
 ## 2026-11-03 18:00 JST｜00分枠：種別寿命と老衰死をゲームループへ接続｜ACTIVE_SPRINT_ID=WILD_V1_20261103_PHASE_A｜PHASE=A_FEATURES
 - **新規実プレイ機能（機能統合済・要検証）**：陸上操作6種に個別寿命を導入（猫12〜18年、犬10〜15年、狐4〜8年、狼8〜13年、鹿12〜20年、猪10〜16年）。世界120秒/年で加齢。HP HUDに現在年齢/寿命を表示。寿命3年前・1年前に警告、寿命到達で既存死亡処理に移行。世界時計は死亡しても保持。
 - **セーブ互換**：既存SAVE_SCHEMA2のplayerにbornAtWorldSeconds/lifespanYears/ageYears/ageWarningStageを任意追加。旧セーブの欠損値はロード時に補完し、寿命を無限にリロールしない。オフライン加齢なし。チェックポイント3件形式は不変。
