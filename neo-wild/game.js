@@ -4533,7 +4533,20 @@ function update(dt){
   isSheltered:insideShelter,
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  recordDisasterEncounters();
- window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
+ window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath,
+   onEvent:(event,data)=>{
+    window.WildTrophies?.record?.(event,data,notify);
+    if(event==="ufo-npc-abduction"){
+     const kind=data?.species||data?.type||"unknown";
+     const entry={year:Math.floor(elapsed/120),kind,at:Date.now()};
+     try{
+      const key="wild-reclaim-ufo-abduction-history-v1";
+      const old=JSON.parse(localStorage.getItem(key)||"[]");
+      const history=Array.isArray(old)?old.slice(-79):[];
+      history.push(entry);localStorage.setItem(key,JSON.stringify(history));
+     }catch(_){}
+    }
+   }});
  window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked,onEvent:(event,data)=>window.WildTrophies?.record?.(event,data,notify)});
  if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
