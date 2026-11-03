@@ -24,7 +24,22 @@ function restore(){
 }
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history}));}catch(_){}}
 function active(e,year){return e.permanent||year-e.year<e.duration;}
-function blocked(x,y,r,year){return events.some(e=>e.kind==="fallen_tree"&&active(e,year)&&Math.hypot(x-e.x,y-e.y)<e.radius+r);}
+function fallenAngle(e){
+ const seed=Math.sin(e.x*.031+e.y*.067)*43758.5453;
+ return Number.isFinite(e.angle)?e.angle:-.48+((seed-Math.floor(seed))-.5)*.74;
+}
+function blocked(x,y,r,year){
+ return events.some(e=>{
+  if(e.kind!=="fallen_tree"||!active(e,year))return false;
+  const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
+  const along=(x-e.x)*ca+(y-e.y)*sa;
+  const nearest=Math.max(-43,Math.min(56,along));
+  const dx=x-e.x-nearest*ca,dy=y-e.y-nearest*sa;
+  // Collision follows the trunk rather than a large invisible circular barrier.
+  const radius=10+(1-(nearest+43)/99)*3;
+  return dx*dx+dy*dy<Math.pow(Math.max(0,r)+radius,2);
+ });
+}
 function floodDepth(x,y,year){
  let depth=0;
  for(const e of events){
@@ -262,17 +277,48 @@ function draw(ctx,project,year,webglActive=false){
   ctx.font="bold 14px sans-serif";ctx.fillStyle="#dff7ff";ctx.textAlign="center";
   ctx.fillText("氾濫警戒・避難",p.x,p.y-58);ctx.restore();
  }}
- for(const e of events){if(e.kind!=="fallen_tree"||!active(e,year)||webglActive)continue;const p=project(e.x,e.y);if(!p)continue;
-  // Canvas fallback: tapered bark, roots, irregular boughs and layered leaves.
-  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(-.45);
-  ctx.fillStyle="rgba(9,17,12,.28)";ctx.beginPath();ctx.ellipse(0,9,65,18,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#5c4432";ctx.beginPath();ctx.moveTo(-48,-12);ctx.lineTo(43,-5);ctx.lineTo(43,5);ctx.lineTo(-48,13);ctx.closePath();ctx.fill();
-  ctx.strokeStyle="#967252";ctx.lineWidth=2;
-  for(let k=0;k<6;k++){const x=-34+k*13;ctx.beginPath();ctx.moveTo(x,-8+k*.45);ctx.lineTo(x+9,6-k*.3);ctx.stroke();}
-  ctx.fillStyle="#b18b65";ctx.beginPath();ctx.ellipse(-48,0,10,13,0,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle="#75563a";ctx.lineWidth=5;
-  for(let k=0;k<5;k++){const x=3+k*10,y=k%2?13:-13;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+9,y);ctx.stroke();}
-  for(let k=0;k<7;k++){const x=17+k*8,y=(k%3-1)*12;ctx.fillStyle=k%2?"#3c7145":"#56835a";ctx.beginPath();ctx.ellipse(x,y,15-k*.5,11,0,0,Math.PI*2);ctx.fill();}
+ for(const e of events){if(e.kind!=="fallen_tree"||!active(e,year)||webglActive)continue;
+  const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
+  const root=project(e.x-43*ca,e.y-43*sa),tip=project(e.x+56*ca,e.y+56*sa);
+  if(!root||!tip)continue;
+  const dx=tip.x-root.x,dy=tip.y-root.y,length=Math.hypot(dx,dy);
+  if(length<1)continue;
+  const seed=Math.sin(e.x*.029+e.y*.013)*19327.17;
+  const random=seed-Math.floor(seed),leafy=year-e.year<4;
+  ctx.save();ctx.translate(root.x,root.y);ctx.rotate(Math.atan2(dy,dx));
+  ctx.scale(Math.max(.32,length/99),Math.max(.42,Math.min(1.4,length/99)));
+  // Contact shadow and raised, tapered bark. The root end is not a yellow disc.
+  ctx.fillStyle="rgba(15,28,21,.3)";ctx.beginPath();ctx.ellipse(49,8,61,16,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#4b4136";ctx.beginPath();ctx.ellipse(0,0,16,12,0,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<4;i++){
+   ctx.strokeStyle=i%2?"#66513c":"#44382e";ctx.lineWidth=3.5;ctx.lineCap="round";
+   ctx.beginPath();ctx.moveTo(2,(i-1.5)*5);ctx.lineTo(-14-i*2,(i-1.5)*9);ctx.stroke();
+  }
+  ctx.fillStyle="#543c2c";ctx.beginPath();ctx.moveTo(0,-12);ctx.bezierCurveTo(27,-11,59,-7,99,-4);
+  ctx.lineTo(99,5);ctx.bezierCurveTo(63,7,27,11,0,12);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#9a7854";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(2,-7);
+  ctx.bezierCurveTo(35,-6,67,-3,95,-2);ctx.stroke();
+  for(let i=0;i<7;i++){
+   ctx.strokeStyle=i%3===0?"#3c3027":"#75563d";ctx.lineWidth=1.1;
+   ctx.beginPath();ctx.moveTo(7+i*12,-8+i*.45);ctx.lineTo(14+i*12,2+i*.2);ctx.stroke();
+  }
+  // Root-side end grain: dark concentric rings without the old solid marker.
+  ctx.fillStyle="#6d4e37";ctx.beginPath();ctx.ellipse(0,0,6,10,0,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<3;i++){
+   ctx.strokeStyle=i%2?"#9e7752":"#493526";ctx.lineWidth=1;
+   ctx.beginPath();ctx.ellipse(0,0,2+i*1.3,3+i*2.2,0,0,Math.PI*2);ctx.stroke();
+  }
+  for(let i=0;i<5;i++){
+   const bx=26+i*14,side=i%2?1:-1,by=side*(17+(i%3)*7);
+   ctx.strokeStyle="#684d38";ctx.lineWidth=4-i*.45;ctx.lineCap="round";
+   ctx.beginPath();ctx.moveTo(bx,0);ctx.quadraticCurveTo(bx+7,by*.5,bx+19,by);ctx.stroke();
+   ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx+12,by*.65);ctx.lineTo(bx+22,by*1.12);ctx.stroke();
+   if(leafy)for(let j=0;j<3;j++){
+    const xx=bx+13+j*5,yy=by+(j-1)*6;
+    ctx.fillStyle=["#345e3d","#507b4c","#416d44"][(i+j)%3];
+    ctx.beginPath();ctx.ellipse(xx,yy,10-j,6+j*.6,random*.5,0,Math.PI*2);ctx.fill();
+   }
+  }
   ctx.restore();
  }
  if(warning){const p=project(warning.x,warning.y);if(p){ctx.save();ctx.strokeStyle="#ffbd4b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,45,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#fff0bc";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText("地震・倒木に注意",p.x,p.y-52);ctx.restore();}}
