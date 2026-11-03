@@ -856,7 +856,8 @@ function drawNightVision2D(alpha){
 
 /* Same river/canal geometry in 2D, 3D and movement. Road crossings are dry bridges. */
 function waterDepth(x,y){
- let depth=0;
+ // Flooded shorelines share the normal physics, AI route checks and WebGL water surface.
+ let depth=window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0;
  if(y>=0&&y<2600&&x>=6300){
   const offset=Math.abs(x-riverAxis(y));
   if(offset<133&&!roadsY.some(ry=>Math.abs(y-ry)<80))depth=Math.min(1,(133-offset)/70);
@@ -4258,7 +4259,7 @@ function update(dt){
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateLightning(dt);
- window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD});
+ window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD,roadsX,roadsY,buildings,riverAxis,canalAxis,weather});
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
  window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked});
  if(P.hp<=0){beginDeath();return;}
