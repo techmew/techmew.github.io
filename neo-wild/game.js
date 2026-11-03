@@ -525,7 +525,7 @@ function markTerritory(){
  if(P.carry){notify("食料を巣に預けてから縄張りを確保");return true}
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.groundZ||0)>0){notify("地上に降りてから縄張りを確保");return true}
  if(P.sp<20){notify("縄張りを確保する持久力が不足");return true}
- if(mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(m,site)<190)){notify("敵を追い払ってから△長押し");return true}
+ if(mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(m,site)<190)){notify("敵を追い払ってから○長押し");return true}
  P.sp-=20;territoryClaims[site.index]=true;territoryLastSupply[site.index]=day;saveTerritoryClaims();
  notify(site.name+"を確保！ 巣の休息力が上昇・野犬を牽制");label(site.x,site.y-30,"縄張りを確保","#b5f4ba");syncHUD();return true;
 }
@@ -2835,7 +2835,7 @@ function putDownFood(){
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>20||(P.groundZ||0)>0){notify("着地してから置く");return false;}
  const c=P.carry;
  carcasses.push({x:P.x,y:P.y,r:11,amount:c.amount,type:c.type==="berries"?"berries":"meat",animalType:c.animalType||null,ttl:150,phase:P.dir||0});
- P.carry=null;notify("食料を置いた / △短押しで食べる・長押しで拾う");syncHUD();return true;
+ P.carry=null;notify("食料を置いた / ○短押しで食べる・長押しで拾う");syncHUD();return true;
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P)return;
@@ -2851,7 +2851,7 @@ function contextAction(longPress=false){
  }
  if(P.carry){if(P.eatCD<=0){P.eatCD=.34;eat()}return}
  if(nearbyFood()&&P.eatCD<=0){P.eatCD=.34;eat();return}
- notify("食草・肉の近くで△を押す");
+ notify("食草・肉の近くで○を押す");
 }
 const RUSH_COST=[0,5,5,8,10,14],RUSH_POWER=[0,.65,.75,1,.9,1.45];
 function nextRushStep(step,window){return step>=1&&step<5&&window>0?step+1:1}
@@ -3101,7 +3101,7 @@ function dash(){
 function upgradeDen(){
  if(mode!=="play")return false;
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0){notify("巣に着地してから強化");return false}
- if(!atDen()){notify("巣の中心に近づいて△長押しで強化");return false}
+ if(!atDen()){notify("巣の中心に近づいて○長押しで強化");return false}
  if(denLevel>=DEN_MAX_LEVEL){notify("巣は最大LV3まで成長済み");return false}
  const cost=DEN_COSTS[denLevel+1];
  if(denStash<cost){notify("巣の成長には備蓄 "+cost+"pt必要（あと"+(cost-denStash)+"pt）");return false}
@@ -3141,7 +3141,7 @@ function carryFood(){
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
  }
- notify(foodName(P.carry)+"をくわえた。巣の中で△を押すと備蓄");
+ notify(foodName(P.carry)+"をくわえた。巣の中で○を押すと備蓄");
  if(mission===4)announceObjective();
  syncHUD();return true;
 }
@@ -3259,12 +3259,12 @@ function eatFromDen(kind){
 }
 function stockpileStep(){
  if(!P||mission!==4)return null;
- if(P.carry)return {step:2,text:atDen()?"② ここで△を押して備蓄":"② 巣の中心へ戻り△で備蓄（短押し・長押し可）",label:"巣"};
- return {step:1,text:"① 食草・肉のそばで△長押しして運ぶ",label:"食草・肉"};
+ if(P.carry)return {step:2,text:atDen()?"② ここで○を押して備蓄":"② 巣の中心へ戻り○で備蓄（短押し・長押し可）",label:"巣"};
+ return {step:1,text:"① 食草・肉のそばで○長押しして運ぶ",label:"食草・肉"};
 }
 function missionInfo(){
  switch(mission){
-  case 0:return {stage:"チュートリアル 1 / 4",title:"食草か肉を食べよう",detail:"近くの食草・肉を食べる / △・E",next:"身を隠せ",progress:Math.min(1,meals)};
+  case 0:return {stage:"チュートリアル 1 / 4",title:"食草か肉を食べよう",detail:"近くの食草・肉を食べる / ○・E",next:"身を隠せ",progress:Math.min(1,meals)};
   case 1:return {stage:"チュートリアル 2 / 4",title:"緑の茂みで身を隠す",detail:"緑の葉がある茂みに入って約1秒止まる",next:"獲物を仕留めろ",progress:Math.min(1,hiddenHold/.75)};
   case 2:return {stage:"チュートリアル 3 / 4",title:"獲物を仕留めろ",detail:"獲物に近づいて攻撃 / ×・J",next:"巣に食料を備蓄しよう",progress:Math.min(1,kills)};
   case 3:return {stage:"チュートリアル 4 / 4",title:"巣に食料を備蓄しよう",detail:"食草か肉を運んで巣に備蓄し、巣を強化する",next:"巣をLV2に強化",progress:denLevel>=2?1:Math.min(1,denStash/DEN_COSTS[2])};
@@ -3273,22 +3273,22 @@ function missionInfo(){
    return {stage:"チュートリアル 4 / 4・巣に備蓄",
     title:step.step===1?"食料をくわえて巣へ持ち帰ろう":"食料を巣に預けよう",
     detail:step.text+(step.step===1?"（約0.6秒）":"")+"。1回備蓄すれば終了",
-    next:step.step===2?"巣で△短押し":"食料を運んで備蓄",
+    next:step.step===2?"巣で○短押し":"食料を運んで備蓄",
     progress:denStash>tutorialStashBase?1:0};
   }
-  case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で△長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
+  case 5:return {stage:"生存目標 2 / 3",title:"縄張りを1か所確保せよ",detail:"地図の縄張り標識で○長押し。周囲の敵に注意",next:"探索地点を2か所発見せよ",progress:Math.min(1,territoryOwned())};
   case 6:return {stage:"生存目標 3 / 3",title:"探索地点を2か所発見せよ",detail:"地図の未発見地点を訪れ、生存能力を得る",next:"生き残れ！",progress:Math.min(1,discoveredSites.length/2)};
   default:return {stage:"目標",title:"生き残れ！",detail:"",next:"",progress:0};
  }
 }
 // Two help pages only: the current mission, then an optional one-screen control reminder.
 const GUIDE_GOALS=[
- {title:"食事をする",what:"食べ物に近づき、△を押す。",how:"食べると空腹が回復する。"},
+ {title:"食事をする",what:"食べ物に近づき、○を押す。",how:"食べると空腹が回復する。"},
  {title:"茂みに隠れる",what:"緑の草むらに入り、少し止まる。",how:"隠れると体が薄くなる。"},
- {title:"獲物を狩る",what:"×で攻撃、□で飛びつく。",how:"獲物を仕留めて肉を得る。"},
- {title:"巣の作り方",what:"食草・肉で△長押しして運ぶ。",how:"巣の中心で△短押しして備蓄し、△長押しでLV2に強化。"},
- {title:"巣に備蓄する",what:"食料を△長押しで運ぶ。",how:"巣に戻り、△で預ける。"},
- {title:"縄張りを取る",what:"標識で△長押し。",how:"巣の安全性が上がる。"},
+ {title:"獲物を狩る",what:"△で攻撃、□で飛びつく。",how:"獲物を仕留めて肉を得る。"},
+ {title:"巣の作り方",what:"食草・肉で○長押しして運ぶ。",how:"巣の中心で○短押しして備蓄し、○長押しでLV2に強化。"},
+ {title:"巣に備蓄する",what:"食料を○長押しで運ぶ。",how:"巣に戻り、○で預ける。"},
+ {title:"縄張りを取る",what:"標識で○長押し。",how:"巣の安全性が上がる。"},
  {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"最後の目標へ進む。"},
  {title:"生き残れ！",what:"狩り・食事・休息を続け、生存日数を伸ばす。",how:"食料庫の備蓄も活用できる。"}
 ];
@@ -3364,7 +3364,7 @@ function advanceMission(next){
  const milestone=next===7&&showMissionMilestone(previous,next);
  if(!milestone&&next!==7){
   announceObjective();
-  if(next===4&&mode==="play")notify("巣へ食料を運び、△で備蓄",2.6);
+  if(next===4&&mode==="play")notify("巣へ食料を運び、○で備蓄",2.6);
  }
  syncHUD();saveAuto();
 }
@@ -3405,16 +3405,16 @@ function getObjective(){
  if(mission===4){
   if(P.carry){const site=denAtActor()||closestDen(P,true);return {x:site.x,y:site.y,label:"巣に備蓄する"};}
   const food=nearestGoal(carcasses.filter(c=>c.ttl>0&&edibleFood(c)));
-  if(food)return {x:food.x,y:food.y,label:foodName(food)+"を△長押しで運ぶ"};
+  if(food)return {x:food.x,y:food.y,label:foodName(food)+"を○長押しで運ぶ"};
   const prey=nearestGoal(mobs.filter(m=>m.hp>0&&species[m.type].prey));
   return prey?{x:prey.x,y:prey.y,label:"獲物を倒して食料を運ぶ"}:null;
  }
- if(mission===5){const post=nearestGoal(TERRITORY_POSTS.filter((site,i)=>!territoryClaims[i]));return post?{x:post.x,y:post.y,label:"縄張り標識で△長押し"}:null;}
+ if(mission===5){const post=nearestGoal(TERRITORY_POSTS.filter((site,i)=>!territoryClaims[i]));return post?{x:post.x,y:post.y,label:"縄張り標識で○長押し"}:null;}
  if(mission===6){const site=nearestGoal(EXPLORE_SITES.filter(site=>!discoveredSites.includes(site.id)));return site?{x:site.x,y:site.y,label:"未発見の探索地点"}:null;}
  const findFood=mission===0;
  if(findFood){
   const f=nearestGoal(carcasses.filter(q=>q.ttl>0&&edibleFood(q)));
-  return f?{x:f.x,y:f.y,label:foodName(f)+"を食べる / △・E"}:null;
+  return f?{x:f.x,y:f.y,label:foodName(f)+"を食べる / ○・E"}:null;
  }
  if(!huntTarget||huntTarget.hp<=0||!mobs.includes(huntTarget)||dist(P,huntTarget)>420)
   huntTarget=nearestGoal(mobs.filter(q=>q.hp>0&&species[q.type].prey));
@@ -3422,7 +3422,7 @@ function getObjective(){
  const lead=.22,px=clamp(huntTarget.x+(huntTarget.vx||0)*lead,35,WORLD.w-35);
  const py=clamp(huntTarget.y+(huntTarget.vy||0)*lead,35,WORLD.h-35);
  const safe=!collides(px,py,P.r+5);
- return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / ×・Jで攻撃"};
+ return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / △・Jで攻撃"};
 }
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
@@ -4747,8 +4747,8 @@ function syncHUD(hour){
  $("moon-label").textContent=moon.symbol+" 月齢 "+moon.age.toFixed(1)+" · "+moon.name;
  const info=missionInfo();
  const stock=stockpileStep();
- const carryGuide=P.carry?(atDen()?"巣の中：△で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：△短押し 食べる／長押し 置く／巣で備蓄"):null;
- const lessonHint=mission===1?"緑の茂みの中で約1秒止まろう":mission===2?"獲物を×で狩ろう。□で飛びつき":null;
+ const carryGuide=P.carry?(atDen()?"巣の中：○で"+foodName(P.carry)+"を備蓄":"運搬中 "+foodName(P.carry)+"：○短押し 食べる／長押し 置く／巣で備蓄"):null;
+ const lessonHint=mission===1?"緑の茂みの中で約1秒止まろう":mission===2?"獲物を△で狩ろう。□で飛びつき":null;
  $("stockpile-guide").classList.toggle("hidden",(!stock&&!carryGuide&&!lessonHint)||mode!=="play");
  if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（巣に1回預けたら完了）":lessonHint);
  $("mission-progress").textContent=info.stage;
