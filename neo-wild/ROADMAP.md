@@ -1,3 +1,13 @@
+## V1.0超大型拡張｜2026/11/03 10:22 JST｜20分枠｜PHASE=A_FEATURE_COMPLETION｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **実装・遊べる変化**：雷雨が単なる閃光/音だけでなく、実座標を持つ落雷イベントへ。8〜16秒間隔の雷雨判定でプレイヤー周囲の地面/生きた野生動物/木から候補を選び、1.65秒の黄色い危険円・「逃げろ」予兆を2D HUDに表示。落雷半径65座標内の屋外プレイヤーは38HP/22SP減と1.1秒麻痺、NPCは45HP減/1.8秒麻痺/3.5秒逃走、死亡時は死骸生成。プレイヤーは予兆中に逃走/屋内避難で回避できる。発生位置・年・対象種別の直近24件を世界史のため保存、セーブ/復帰時に予兆残秒も復元。雷雨終了で未発生の危険を解除。既存世界時計120秒/年、SAVE_SCHEMA2/3CPと密度上限に手を触れない。
+- **実コード**：`neo-wild/game.js` の `scheduleLightning/updateLightning/drawLightning/updateWeather/update/drawScene/currentSnapshot/restoreSnapshot/start`。コミット `a3c0001706477105f972cafa11ea82c92847380a`（blob `a3d0df51c35be364d583c496c06b01390b5ddc55`）。`neo-wild/index.html` のgame.js rev更新 `ccadbdcf2682a4e223fa97c168bcc3e24aab59ae`（blob `8683eda3c8284b76435e9a2547f783a0fa018960`）。開始HEAD `378019fbe8ab21cd50dddf1b108ec53b1f4f649d`、台帳書込前HEAD `ccadbdcf2682a4e223fa97c168bcc3e24aab59ae`。他ゲーム/ブログ変更なし。
+- **検証**：game.js全文構文PASS、抽出した実 `updateLightning` をV8で実行し予兆中無傷→着弾HP/動物死亡→死骸1回→履歴1件→重複なし→晴天解除をPASS。保存/復元フィールド結線PASS。**実ブラウザ/Android/実GPU/Pad/長時間雷雨/旧端末SAVE2 E2Eは未検証**。2D危険円の実画面表示は未検証、3Dは既存Canvas HUD重畳に依存。
+- **公開**：コミット直後のPages run `41559348018` はwaiting。後続index revと本ROADMAPのrunは要照合。build/deploy成功を未確認のまま宣言しない。
+- **V1.0状態一覧**：120秒/年と四季=途中（時計コードあり・新規開始でelapsedリセット残）。実落雷=統合済み・実機要検証。洪水/地震/火災/地割れ/隕石・永久世界/世代/陸空水10種/UFO・怪異・怪獣/200トロフィー/追加12生態=未実装〜途中。PHASE A維持、PHASE B禁止。進捗V2 **A16 B12 C9 D4 E8 F9 G8 H4 I4＝74/100（差0）**、実機統合条件未達につき据置。
+- **次40分枠**：①`game.js:drawLightning` と `webgl3d.js:render` の落雷警告・着弾・動物逃走3D/2D視認性、②`game.js:beginDeath/restoreSnapshot` とUFO吸引・後継交代の連結、③`game.js:syncHUD` と世界年表/災害履歴UI。
+- **次00分枠**：①`game.js:start/restoreSnapshot/currentSnapshot` の永久世界時計・家系セーブと年齢、②`game.js:updateLightning/updateSurvivalNeeds/beginDeath` の落雷死亡・再開E2E、③`world-time.js:at/weatherAt` と旧東京気象時計の一致検証。
+- **次20分枠**：①`game.js:collides/move/routeClear` で地震地割れ・冠水の実経路と迂回、②`game.js:spawnMob/maintainLocalWildlife` で被災動物の地域移動/密度、③`game.js:currentSnapshot/restoreSnapshot` で災害跡・世界年表の永続化。
+
 ## V1.0大幅拡張・引継ぎ｜2026/11/03 10:10 JST｜00分枠｜PHASE=A_FEATURE_COMPLETION
 - 【確定・最優先】2026-11-03話し合いの全仕様と追加12要素を正式採用。Google Drive正本 https://docs.google.com/document/d/1nThmsAhxtVt-Bs5_NzGLqxMghSBxN2unNalcwn9Z1_g/edit 末尾「2026-11-03 最新確定仕様 V1.0」を旧仕様より優先。00/20/40分の3タスクは全件V1.0へ更新・有効化済み。共通次スプリントID：EXPANSION-V1-YEAR-ERA-WORLD。既存スプリントの実コードとSHAは保存する。
 - 【今回の実装】新規 world-time.js は現実120秒/世界1年・季節30秒ずつ・85秒の昼夜とは独立した時刻APIと季節別抽選気象を提供。game.js にYEAR表示/10・20・50・100・200・300年節目通知、旧elapsed由来のworldYearsElapsed保存フィールド、気候同期を追加。season-clouds.js の季節ラベル/植生フィルターを新時計に接続。fauna.js の3/10/30/100年の出現重みを新時計へ接続。index.html はworld-time.js読込順とキャッシュを更新。コード最終コミット 186471be6e4ce91848f8505dbf5a8835696ee7e7。該当Pages workflow 41557790025 は成功。実Android・100年連続プレイ・旧セーブE2Eは未検証。
