@@ -3540,7 +3540,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   // Nearby cave hunters split live prey instead of crowding one target.
   // Last target coordinates already serialize safely in SAVE_SCHEMA2.
   let claimed=0;
-  if(caveScent&&scent)for(const h of mobs){
+  if(caveScent)for(const h of mobs){
    if(h===m||h.hp<=0||!isWildPredator(h)||(h.alert||0)>0||
       (h.feedAfterKill||0)>0||!Number.isFinite(h.wildTargetAt)||
       elapsed-h.wildTargetAt>1.2||dist(h,q)>235||
@@ -5770,6 +5770,7 @@ function drawScene(){
  drawDeathVignette();
 }
 function loop(t){
+ try {
  // Keep simulation capped, but let the 2.2s death animation track real time on slow phones.
  const frameSeconds=Math.max(0,(t-last)/1000||.016);
  let dt=Math.min(.035,frameSeconds);last=t;
@@ -5786,7 +5787,15 @@ function loop(t){
  else huntSlowUntil=0;
  // Freeze 2D/WebGL gameplay behind achievement and tutorial.
  if((mode!=="guide"&&mode!=="milestone")||guideNeedsFrame){drawScene();guideNeedsFrame=false}
- requestAnimationFrame(loop);
+ } catch(error) {
+  // An NPC or GPU exception must never permanently stop input and the animation loop.
+  console.error("WILD RECLAIM: frame failed",error);
+  if(mode==="play"||mode==="dying"){
+   resetControls();mode="pause";show("pause");
+  }
+  // After a renderer failure, retry on Canvas2D instead of keeping a blank WebGL surface.
+  if(window.Wild3D?.available){window.Wild3D.available=false;const gpu=document.getElementById("scene3d");if(gpu)gpu.style.display="none";}
+ } finally {requestAnimationFrame(loop);}
 }
 requestAnimationFrame(loop);
 const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
