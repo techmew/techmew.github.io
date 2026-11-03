@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#090d11">
-<meta name="description" content="人の消えた東京で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
+<meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
 <link rel="stylesheet" href="./visual.css?rev=71c38642-trophy-ui">
@@ -39,9 +39,9 @@
 <div id="toast" role="status"></div>
 <div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ・猫は壁際でL再入力　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる・くわえる（長押しで運搬）　×/A ジャンプ（猫は空中で再入力）</span></div>
 <div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="○ 右：食べる・くわえる。短押し食事や備蓄、長押しで運搬・置く・巣強化"><span>○</span><small id="context-action-label">食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 左：短押しで飛びつき、長押し中はスタミナ消費でダッシュ"><span>□</span><small>飛びつき/走る</small></button><button id="jump-touch" class="touch-btn jump" aria-label="× 下：ジャンプ"><span>×</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="△ 上：連続攻撃、長押しで5段コンボを自動継続"><span>△</span><small>連続攻撃</small></button></div></div>
-<div id="world-map" class="hidden" role="dialog" aria-label="東京の地図" aria-modal="true">
+<div id="world-map" class="hidden" role="dialog" aria-label="廃都の地図" aria-modal="true">
  <div class="world-map-panel">
-  <div class="world-map-top"><strong>東京の地図</strong><button id="map-close" aria-label="地図を閉じる">閉じる ×</button></div>
+  <div class="world-map-top"><strong>廃都の地図</strong><button id="map-close" aria-label="地図を閉じる">閉じる ×</button></div>
   <p id="map-place">今いる場所と立ち寄れる場所</p>
   <p id="map-perks" aria-live="off">探索で生存能力が解放されます</p>
   <canvas id="world-map-canvas" width="630" height="360" aria-label="現在地・休息地・駅・登れる屋上の地図"></canvas>
@@ -93,7 +93,7 @@
 </div>
 <div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell">
 <h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
-<p class="lead">人が消えた東京。<br>支配者になったのは、飢えた野生だった。</p>
+<p class="lead">人の消えた日本の町。<br>支配者になったのは、飢えた野生だった。</p>
 <div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
       <button id="continue-btn" type="button" class="save-choice resume-primary">
@@ -126,16 +126,16 @@
     
 <label id="spawn-picker" for="start-region">03　始める場所を選択（新規ゲーム）
           <select id="start-region" aria-label="出発地点">
-            <option value="home">東京・巣周辺（従来の開始地点）</option>
-            <option value="zoo">上野・廃動物園</option>
-            <option value="forest">代々木・深緑の森</option>
-            <option value="factory">湾岸・旧工業区</option>
-            <option value="canal">江東運河・水路跡</option>
-            <option value="river">荒川河川敷</option>
+            <option value="home">霞町・草陰の巣</option>
+            <option value="zoo">白鷺の獣舎跡</option>
+            <option value="forest">楠の森</option>
+            <option value="factory">汐浜の廃工場</option>
+            <option value="canal">潮見の水路</option>
+            <option value="river">朝霧川の土手</option>
           </select>
         </label>
 <button id="start-btn" class="big-btn" type="button">新しいゲームを開始 <span>NEW GAME →</span></button>
-<div id="soundtrack-caption">BGM：廃東京・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
+<div id="soundtrack-caption">BGM：廃都・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
 </div></section>
 <div class="menu-foot"><span>移動 / 狩り / 捕食 / 飛びつき / 視点回転 / 進化</span><span id="best-score">BEST SCORE —</span></div>
 </div></div>
@@ -193,7 +193,7 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=20261103-den-ally-v1" defer></script> <script src="./ufo-events.js?rev=c29f0eb6" defer></script> <script src="./disaster-world.js?rev=6a77924a-scar" defer></script>
 <script src="./apparitions.js?rev=31149a34-hallucination" defer></script>
-<script src="./trophy-records.js?rev=73a6f390-tiers" defer></script> <script src="./game.js?rev=dbc4ddb7-defense" defer></script>
+<script src="./trophy-records.js?rev=73a6f390-tiers" defer></script> <script src="./game.js?rev=cb4073a2-canal-mob-marker" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=df730244-trophy-pad" defer></script>
 <script src="./season-clouds.js?rev=20261103-year120-v1" defer></script>
