@@ -1117,7 +1117,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:1,mission,missionComplete,totalScore,
+  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
