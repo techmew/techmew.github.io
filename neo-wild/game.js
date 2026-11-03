@@ -1292,7 +1292,7 @@ function restoreSnapshot(snapshot){
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
  let restoredCompanion=false;
  for(const m of mobs)if(m.companion){
-  if(!restoredCompanion&&m.companionOwner===choice&&["wildFox","strayCat","dog"].includes(m.type)&&!m.strongBoss){
+  if(!restoredCompanion&&m.companionOwner===choice&&["wildFox","strayCat","dog","boar","crow"].includes(m.type)&&!m.strongBoss){
    restoredCompanion=true;m.companionAttackCD=0;m.companionHurtCD=1.2;
    m.windup=0;m.chargeTime=0;m.packId=null;m.packOrder=0;
   }else m.companion=false;
