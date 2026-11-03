@@ -32,8 +32,15 @@ function finish(){info.textContent="編成確定：リーダーと名前を設�
 let leader=chosen[0].id;
 for(const m of chosen){const row=document.createElement("div");row.className="card";const label=document.createElement("label");label.textContent=m.speciesName+"（"+m.grade+"） 名前 ";const input=document.createElement("input");input.value=m.name;input.maxLength=18;input.oninput=()=>{m.name=input.value.trim()||m.speciesName};label.append(input);row.append(label);
 const b=document.createElement("button");b.textContent="リーダーに指定";b.setAttribute("aria-pressed",String(leader===m.id));b.onclick=()=>{leader=m.id;finishWithLeader(leader)};row.append(b);body.append(row)}
-const confirm=document.createElement("button");confirm.textContent="編成を保存";confirm.onclick=()=>{core.newSquad(chosen,leader);info.textContent="編成を保存しました。ゲーム本体との操作連携は開発中です。";confirm.disabled=true};body.append(confirm)}
+const confirm=document.createElement("button");confirm.textContent="編成して出発";
+confirm.onclick=()=>{
+ const selected=chosen.find(m=>m.id===leader)||chosen[0];
+ const supported=["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill"];
+ if(!supported.includes(selected.species)){info.textContent=selected.speciesName+"の操作系は準備中です。対応済みの個体をリーダーに選んでください。";return}
+ core.newSquad(chosen,leader);root.hidden=true;
+ window.dispatchEvent(new CustomEvent("wild-squad-start"));
+};body.append(confirm)}
 function finishWithLeader(id){const m=chosen.find(x=>x.id===id);if(m){chosen.splice(chosen.indexOf(m),1);chosen.unshift(m)}finish()}
-open.onclick=()=>{root.hidden=false;begin()};root.querySelector("#squad-close").onclick=()=>root.hidden=true;
+open.onclick=()=>{root.hidden=false;begin()};window.WildSquadGachaUI={open:()=>{root.hidden=false;begin()}};root.querySelector("#squad-close").onclick=()=>root.hidden=true;
 };if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ready);else ready();
 })();
