@@ -2,10 +2,10 @@
 (function(){
 "use strict";
 const KEY="wild_reclaim_disasters_v1",MAX=12;
-let events=[],nextYear=.45+Math.random()*.60,warning=null,lastYear=0;
+let events=[],nextYear=5+Math.random()*10,warning=null,lastYear=0;
 let seismicSeconds=0,seismicPhase=0;
-let nextFloodYear=1.8+Math.random()*1.5,floodWarning=null,history=[];
-let nextFireYear=2.8+Math.random()*2.8,fireWarning=null;
+let nextFloodYear=6+Math.random()*9,floodWarning=null,history=[];
+let nextFireYear=7+Math.random()*8,fireWarning=null;
 const finite=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
 function restore(){
  try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return;
@@ -13,12 +13,12 @@ function restore(){
  nextYear=Math.max(0,finite(x.nextYear,.65));lastYear=Math.max(0,finite(x.lastYear,0));
  // Existing saves created with the old long odds should enter the denser
  // event cycle without erasing prior disasters or restarting world years.
- nextYear=Math.min(nextYear,lastYear+.85);
+ nextYear=Math.max(nextYear,lastYear+5);
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
- nextFloodYear=Math.min(Math.max(0,finite(x.nextFloodYear,2.4)),lastYear+2.5);
+ nextFloodYear=Math.min(Math.max(0,finite(x.nextFloodYear,2.4)),lastYear+5);
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
  history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","flood","wildfire"].includes(e.kind)).slice(-60):[];
- nextFireYear=Math.min(Math.max(0,finite(x.nextFireYear,3.5)),lastYear+3.8);
+ nextFireYear=Math.min(Math.max(0,finite(x.nextFireYear,3.5)),lastYear+5);
  fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
  }catch(_){}
 }
@@ -158,7 +158,7 @@ function schedule(api,year){
   const x=Math.round(P.x+Math.cos(angle)*distance),y=Math.round(P.y+Math.sin(angle)*distance);
   if(safeSite(x,y,api)){warning={x,y,year,seconds:4.5};api.notify("地鳴りがする。倒木に注意");persist();return true;}
  }
- nextYear=year+2;persist();return false;
+ nextYear=year+5;persist();return false;
 }
 function tick(dt,api){
  if(!api?.P||api.mode!=="play")return;
@@ -179,7 +179,7 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextYear){
-  nextYear=year+.48+Math.random()*.80;
+  nextYear=year+5+Math.random()*10;
   if(!floodWarning&&!fireWarning)schedule(api,year);
  }
  if(floodWarning){
@@ -195,7 +195,7 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFloodYear){
-  nextFloodYear=year+1.6+Math.random()*2.0;
+  nextFloodYear=year+5+Math.random()*10;
   if(!warning&&!fireWarning)scheduleFlood(api,year);persist();
  }
  // Animals already in the expanding water retreat; no teleport or damage without warning.
@@ -216,7 +216,7 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFireYear){
-  nextFireYear=year+2.6+Math.random()*3.8;
+  nextFireYear=year+5+Math.random()*10;
   if(!warning&&!floodWarning)scheduleFire(api,year);persist();
  }
  // Existing animals leave scorched habitat and return as vegetation recovers.
