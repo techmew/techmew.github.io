@@ -105,6 +105,25 @@ let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
+const WORLD_CHRONICLE_KEY="wild-reclaim-world-chronicle-v1";
+let worldChronicleSaveClock=0;
+function loadWorldChronicle(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(WORLD_CHRONICLE_KEY)||"null");
+  if(saved&&saved.version===1&&Number.isFinite(saved.elapsed)&&saved.elapsed>=0)
+   return {elapsed:Math.min(saved.elapsed,1e10),lightningHistory:Array.isArray(saved.lightningHistory)?saved.lightningHistory.slice(-24):[]};
+ }catch(_){}
+ return {elapsed:0,lightningHistory:[]};
+}
+function persistWorldChronicle(){
+ if(debugTutorialSession)return false;
+ const prior=loadWorldChronicle(),seconds=Math.max(prior.elapsed,Math.max(0,elapsed));
+ const history=lightningHistory.length?lightningHistory.slice(-24):prior.lightningHistory;
+ try{
+  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify({version:1,elapsed:seconds,worldYearsElapsed:Math.floor(seconds/120),lightningHistory:history,savedAt:Date.now()}));
+  return true;
+ }catch(_){return false}
+}
 const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1",TUTORIAL_LESSONS_KEY="wild-reclaim-tutorial-lessons-v2";
 const TUTORIAL_STAGES=[0,1,2,4];
 let automaticTutorialShown=false;const tutorialLessonsSeenEver=new Set();
@@ -986,7 +1005,7 @@ function start(){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=[];windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -1095,7 +1114,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
+  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
@@ -1106,6 +1125,7 @@ function saveAuto(){
  if(debugTutorialSession)return true;
  try{
   localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snapshot));
+  persistWorldChronicle();
   return true;
  }catch(_){return false}
 }
@@ -1180,7 +1200,7 @@ function restoreSnapshot(snapshot){
  P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
  P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
  P.vx=0;P.vy=0;P.jumpDive=false;P.jumpAmbush=false;P.wallKickTime=0;P.wallKicks=0;P.wallKickLast=-1;
- elapsed=snapshot.elapsed;day=Math.max(1,Math.floor(snapshot.day||1));
+ elapsed=Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed);day=1+Math.floor(elapsed/85);
  kills=snapshot.kills||0;meals=snapshot.meals||0;hiddenHold=snapshot.hiddenHold||0;
  tutorialHuntBase=Number.isFinite(snapshot.tutorialHuntBase)?clamp(snapshot.tutorialHuntBase,0,kills):kills;
  expedition=snapshot.expedition||1;freeStep=snapshot.freeStep||0;freeTarget=snapshot.freeTarget||0;
@@ -1193,6 +1213,7 @@ function restoreSnapshot(snapshot){
  lightningStrike=snapshot.lightningStrike&&Number.isFinite(snapshot.lightningStrike.x)&&Number.isFinite(snapshot.lightningStrike.y)&&Number.isFinite(snapshot.lightningStrike.countdown)?
  {x:clamp(snapshot.lightningStrike.x,24,WORLD.w-24),y:clamp(snapshot.lightningStrike.y,24,WORLD.h-24),kind:String(snapshot.lightningStrike.kind||"ground"),countdown:clamp(snapshot.lightningStrike.countdown,0,2),afterglow:clamp(snapshot.lightningStrike.afterglow||0,0,1)}:null;
  lightningHistory=Array.isArray(snapshot.lightningHistory)?snapshot.lightningHistory.filter(e=>e&&Number.isFinite(e.year)&&Number.isFinite(e.x)&&Number.isFinite(e.y)).slice(-24):[];
+  if(!lightningHistory.length)lightningHistory=loadWorldChronicle().lightningHistory;
  weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
@@ -3401,6 +3422,7 @@ function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
  P.hp=0;deathSequenceTime=0;mode="dying";
  // Discard the dead run immediately, not after the shortened death fade; checkpoints stay intact.
+ persistWorldChronicle();
  clearAutoSave();
  resetControls();P.deathPose=0;P.hidden=false;P.vx=0;P.vy=0;
  // A lethal hit cancels every attack/dash pose; the body must not keep striking or sprinting while falling.
@@ -4222,6 +4244,8 @@ function update(dt){
  for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
  const previousWorldYear=Math.floor(elapsed/120);
  elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
+ worldChronicleSaveClock+=dt;
+ if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
  const currentWorldYear=Math.floor(elapsed/120);
  if(currentWorldYear!==previousWorldYear&&[10,20,50,100,200,300].includes(currentWorldYear))notify('世界'+currentWorldYear+'年到達。生存は続く。');
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
