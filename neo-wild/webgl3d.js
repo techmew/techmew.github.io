@@ -489,6 +489,8 @@ function drawCommonAnimal3D(m,clock){
   for(const side of [-1,1]){orb(r*1.16,side*r*.23,r*.94,r*.09,r*.08,r*.09,"#292b27");}
   for(let k=0;k<6;k++)orb(-r*(1.05+k*.26),Math.sin(k*.75)*r*.14,r*(.7-k*.07),r*.17,r*.11,r*.12,k%2?"#3f403b":fur);
  }else if(t==="giraffe"){
+  const headStrike=!!m.attackVariation?.neckStrike&&((m.windup||0)>0||(m.swing||0)>0);
+  const headSway=headStrike?Math.sin(clock*13)*r*.42:0;
   for(const side of [-1,1])for(const front of [-1,1]){
    const x=front*r*.58,y=side*r*.37;
    orb(x,y,r*.64+gait*r*.05*front*side,r*.14,r*.14,r*.59,fur);
@@ -496,10 +498,10 @@ function drawCommonAnimal3D(m,clock){
   }
   orb(-r*.22,0,r*1.39,r*1.06,r*.44,r*.48,fur);
   for(let k=0;k<10;k++){const x=(-.95+k*.19)*r,side=k%2?-1:1;orb(x,side*r*.37,r*1.60,r*.13,r*.08,r*.14,"#a87948");}
-  orb(r*.72,0,r*2.10,r*.24,r*.24,r*1.07,fur);
-  for(let k=0;k<5;k++)orb(r*.72+(k%2)*r*.13,(k%3-1)*r*.12,r*(1.52+k*.35),r*.12,r*.10,r*.14,"#aa763e");
-  orb(r*1.08,0,r*3.10,r*.40,r*.31,r*.33,fur);orb(r*1.48,0,r*2.97,r*.27,r*.19,r*.18,belly);
-  for(const side of [-1,1]){orb(r*1.10,side*r*.20,r*3.35,r*.10,r*.12,r*.15,fur);pyramid(fx(r*1.03,side*r*.17),fy(r*1.03,side*r*.17),r*3.37,r*.10,r*.10,r*.31,"#876643");}
+  orb(r*.72,headSway*.18,r*2.10,r*.24,r*.24,r*1.07,fur);
+  for(let k=0;k<5;k++)orb(r*.72+(k%2)*r*.13,headSway*.18+(k%3-1)*r*.12,r*(1.52+k*.35),r*.12,r*.10,r*.14,"#aa763e");
+  orb(r*1.08,headSway,r*3.10,r*.40,r*.31,r*.33,fur);orb(r*1.48,headSway,r*2.97,r*.27,r*.19,r*.18,belly);
+  for(const side of [-1,1]){orb(r*1.10,headSway+side*r*.20,r*3.35,r*.10,r*.12,r*.15,fur);pyramid(fx(r*1.03,headSway+side*r*.17),fy(r*1.03,headSway+side*r*.17),r*3.37,r*.10,r*.10,r*.31,"#876643");}
   orb(-r*1.35,0,r*1.55,r*.23,r*.13,r*.14,"#6a533e");
  }else if(t==="zebra"){
   for(const side of [-1,1])for(const front of [-1,1])
