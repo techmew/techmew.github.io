@@ -2227,7 +2227,8 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
   const caveBirth=requestedMountainZone==="cave"&&P&&MOUNTAIN.zone(P.x)==="cave";
   // Births in a fresh burn scar are suppressed; mature animals migrate out instead.
   const burnQuality=window.WildDisaster?.habitatQuality?.(x,y,elapsed/120)??1;
-  valid=burnQuality>.35&&!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(caveBirth?(preyOnly?128:105):(preyOnly?145:230)))
+  const eraQuality=window.WildEraEcology?.state?.(regionAt(x,y),elapsed/120)?.animals??1;
+  valid=burnQuality>.35&&(forcedSpot||initial||Math.random()<Math.min(1,eraQuality))&&!collides(x,y,40)&&(!requestedMountainZone||mountainHabitat(x,y)&&MOUNTAIN.zone(x)===requestedMountainZone)&&(!forcedType||forcedType!=="macaque"&&forcedType!=="chimpanzee"||mountainHabitat(x,y)&&(forcedType!=="chimpanzee"||x>MOUNTAIN.FOOTHILL_END))&&(!P||dist(candidate,P)>(caveBirth?(preyOnly?128:105):(preyOnly?145:230)))
    &&!mobs.some(m=>dist(candidate,m)<WILDLIFE.separation)
    &&(!near||localCount<WILDLIFE.localCap)
    &&(!nearbyOnly||!P||regionAt(x,y)===regionAt(P.x,P.y))
@@ -2260,6 +2261,8 @@ function spawnFood(){
   if(collides(x,y,34)||carcasses.some(c=>dist(c,{x,y})<65))continue;
   // Burned vegetation cannot produce berries until the local ecosystem regrows.
   if(Math.random()>(window.WildDisaster?.habitatQuality?.(x,y,elapsed/120)??1))continue;
+  const eraFood=window.WildEraEcology?.state?.(regionAt(x,y),elapsed/120)?.food??1;
+  if(Math.random()>Math.min(1,eraFood))continue;
   carcasses.push({x,y,r:9,amount:19,type:"berries",ttl:220,phase:rnd(0,6)});
   return true;
  }
@@ -4391,6 +4394,10 @@ function update(dt){
  worldChronicleSaveClock+=dt;
  if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
  const currentWorldYear=Math.floor(elapsed/120);
+ if(currentWorldYear!==previousWorldYear&&currentWorldYear%5===0){
+  const region=regionAt(P.x,P.y),change=window.WildEraEcology?.state?.(region,currentWorldYear);
+  if(change&&change.kind!=="stable")notify("世界"+currentWorldYear+"年：この地域の生態が変化（"+change.name+"）");
+ }
  window.WildTrophies?.record?.("year",{year:currentWorldYear},notify);
  window.WildTrophies?.record?.("weather",{weather},notify);
  window.WildTrophies?.record?.("progress",{level:P.level},notify);
