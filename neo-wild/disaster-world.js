@@ -1,29 +1,37 @@
 /* WILD RECLAIM: persistent local earthquake and fallen-tree ecology. */
 (function(){
 "use strict";
-const KEY="wild_reclaim_disasters_v1",MAX=12;
-let events=[],nextYear=5+Math.random()*10,warning=null,lastYear=0;
+const KEY="wild_reclaim_disasters_v1",MAX=12,PACE=3,MAX_SIMULTANEOUS=2;
+// Only disaster events and recovery are compressed; the world year and animal lifespans remain unchanged.
+const eventDelay=years=>window.WildWorldClock?.eventIntervalYears?.(years)??years/PACE;
+const retryDelay=()=>eventDelay(1);
+let events=[],nextYear=eventDelay(5+Math.random()*10),warning=null,lastYear=0;
 let seismicSeconds=0,seismicPhase=0;
-let nextFloodYear=6+Math.random()*9,floodWarning=null,history=[];
-let nextFireYear=7+Math.random()*8,fireWarning=null;
+let nextFloodYear=eventDelay(6+Math.random()*9),floodWarning=null,history=[];
+let nextFireYear=eventDelay(7+Math.random()*8),fireWarning=null;
 const finite=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
 function restore(){
  try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return;
  events=Array.isArray(x.events)?x.events.filter(e=>e&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.year)).slice(-MAX):[];
- nextYear=Math.max(0,finite(x.nextYear,.65));lastYear=Math.max(0,finite(x.lastYear,0));
- // Existing saves created with the old long odds should enter the denser
- // event cycle without erasing prior disasters or restarting world years.
- nextYear=Math.max(nextYear,lastYear+5);
+ nextYear=Math.max(0,finite(x.nextYear,eventDelay(5)));lastYear=Math.max(0,finite(x.lastYear,0));
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
- nextFloodYear=Math.min(Math.max(0,finite(x.nextFloodYear,2.4)),lastYear+5);
+ nextFloodYear=Math.max(0,finite(x.nextFloodYear,eventDelay(6)));
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
  history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","flood","wildfire"].includes(e.kind)).slice(-60):[];
- nextFireYear=Math.min(Math.max(0,finite(x.nextFireYear,3.5)),lastYear+5);
+ nextFireYear=Math.max(0,finite(x.nextFireYear,eventDelay(7)));
  fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
+ // Legacy schedules are converted once; old disasters, world age and history are not rewritten.
+ if(x.paceVersion!==PACE){
+  const migrate=due=>lastYear+Math.max(retryDelay(),Math.max(0,due-lastYear)/PACE);
+  nextYear=migrate(nextYear);nextFloodYear=migrate(nextFloodYear);nextFireYear=migrate(nextFireYear);
+ }
  }catch(_){}
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history}));}catch(_){}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:PACE,events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history}));}catch(_){}}
 function active(e,year){return e.permanent||year-e.year<e.duration;}
+function canSchedule(year){return events.filter(e=>active(e,year)).length+(warning?1:0)+(floodWarning?1:0)+(fireWarning?1:0)<MAX_SIMULTANEOUS;}
+const recoveryYears=e=>e.paceVersion===PACE?eventDelay(7):7;
+const leafYears=e=>e.paceVersion===PACE?eventDelay(4):4;
 function fallenAngle(e){
  const seed=Math.sin(e.x*.031+e.y*.067)*43758.5453;
  return Number.isFinite(e.angle)?e.angle:-.48+((seed-Math.floor(seed))-.5)*.74;
@@ -48,7 +56,8 @@ function floodDepth(x,y,year){
   if(d>=e.radius)continue;
   // Shallow inundation grows and recedes; a dry way around remains outside the limited circle.
   const age=Math.max(0,year-e.year);
-  const scale=Math.min(1,(age+.10)/.28,Math.max(0,(e.duration-age)/.35));
+  const rate=e.paceVersion===PACE?1/PACE:1;
+   const scale=Math.min(1,(age+.10*rate)/(.28*rate),Math.max(0,(e.duration-age)/(.35*rate)));
   depth=Math.max(depth,Math.min(.85,(1-d/e.radius)*1.4*scale));
  }
  return depth;
@@ -58,7 +67,8 @@ function fireIntensity(x,y,year){
  for(const e of events)if(e.kind==="wildfire"&&active(e,year)){
   const d=Math.hypot(x-e.x,y-e.y),age=Math.max(0,year-e.year);
   if(d>=e.radius)continue;
-  const ramp=Math.min(1,(age+.04)/.16),cool=Math.min(1,Math.max(0,(e.duration-age)/.25));
+  const rate=e.paceVersion===PACE?1/PACE:1;
+   const ramp=Math.min(1,(age+.04*rate)/(.16*rate)),cool=Math.min(1,Math.max(0,(e.duration-age)/(.25*rate)));
   intensity=Math.max(intensity,(1-d/e.radius)*ramp*cool);
  }
  return intensity;
@@ -68,8 +78,9 @@ function habitatQuality(x,y,year){
  for(const e of events){
   if(e.kind!=="wildfire")continue;
   const distance=Math.hypot(x-e.x,y-e.y),age=year-e.year;
-  if(distance>=e.radius||age<0||age>e.duration+7)continue;
-  const recovery=Math.max(0,Math.min(1,(age-e.duration)/7));
+  const recoverIn=recoveryYears(e);
+   if(distance>=e.radius||age<0||age>e.duration+recoverIn)continue;
+  const recovery=Math.max(0,Math.min(1,(age-e.duration)/recoverIn));
   quality=Math.min(quality,1-.94*(1-recovery)*(1-distance/e.radius));
  }
  return Math.max(.06,Math.min(1,quality));
@@ -158,7 +169,7 @@ function schedule(api,year){
   const x=Math.round(P.x+Math.cos(angle)*distance),y=Math.round(P.y+Math.sin(angle)*distance);
   if(safeSite(x,y,api)){warning={x,y,year,seconds:4.5};api.notify("地鳴りがする。倒木に注意");persist();return true;}
  }
- nextYear=year+5;persist();return false;
+ nextYear=year+retryDelay();persist();return false;
 }
 function tick(dt,api){
  if(!api?.P||api.mode!=="play")return;
@@ -168,7 +179,7 @@ function tick(dt,api){
  if(warning){
   warning.seconds-=dt;
   if(warning.seconds<=0){
-   const e={x:warning.x,y:warning.y,year,kind:"fallen_tree",radius:34,duration:5+Math.random()*9,permanent:false};
+   const e={x:warning.x,y:warning.y,year,kind:"fallen_tree",radius:34,duration:eventDelay(5+Math.random()*9),paceVersion:PACE,permanent:false};
    events.push(e);events=events.slice(-MAX);warning=null;
    history.push({kind:e.kind,year:e.year,x:e.x,y:e.y});history=history.slice(-60);
    seismicSeconds=3.4;seismicPhase=Math.random()*Math.PI*2;
@@ -179,14 +190,15 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextYear){
-  nextYear=year+5+Math.random()*10;
-  if(!floodWarning&&!fireWarning)schedule(api,year);
+  if(canSchedule(year)&&!floodWarning&&!fireWarning){nextYear=year+eventDelay(5+Math.random()*10);schedule(api,year);}
+  else nextYear=year+retryDelay();
+  persist();
  }
  if(floodWarning){
   floodWarning.seconds-=dt;
   if(floodWarning.seconds<=0){
    const event={kind:"flood",x:floodWarning.x,y:floodWarning.y,radius:floodWarning.radius,
-     year,duration:1.4+Math.random()*2.1,permanent:false};
+     year,duration:eventDelay(1.4+Math.random()*2.1),paceVersion:PACE,permanent:false};
    events.push(event);events=events.slice(-MAX);
    history.push({kind:"flood",year,x:event.x,y:event.y});history=history.slice(-60);
    floodWarning=null;
@@ -195,8 +207,9 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFloodYear){
-  nextFloodYear=year+5+Math.random()*10;
-  if(!warning&&!fireWarning)scheduleFlood(api,year);persist();
+  if(canSchedule(year)&&!warning&&!fireWarning){nextFloodYear=year+eventDelay(5+Math.random()*10);
+   if(!scheduleFlood(api,year))nextFloodYear=year+retryDelay();}
+  else nextFloodYear=year+retryDelay();persist();
  }
  // Animals already in the expanding water retreat; no teleport or damage without warning.
  for(const e of events)if(e.kind==="flood"&&active(e,year)){
@@ -208,7 +221,7 @@ function tick(dt,api){
   fireWarning.seconds-=dt;
   if(fireWarning.seconds<=0){
    const e={kind:"wildfire",x:fireWarning.x,y:fireWarning.y,radius:fireWarning.radius,
-    year,duration:1.2+Math.random()*1.5,permanent:false};
+    year,duration:eventDelay(1.2+Math.random()*1.5),paceVersion:PACE,permanent:false};
    events.push(e);events=events.slice(-MAX);
    history.push({kind:e.kind,year,x:e.x,y:e.y});history=history.slice(-60);
    fireWarning=null;announceEscape(e,api.mobs);
@@ -216,13 +229,14 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFireYear){
-  nextFireYear=year+5+Math.random()*10;
-  if(!warning&&!floodWarning)scheduleFire(api,year);persist();
+  if(canSchedule(year)&&!warning&&!floodWarning){nextFireYear=year+eventDelay(5+Math.random()*10);
+   if(!scheduleFire(api,year))nextFireYear=year+retryDelay();}
+  else nextFireYear=year+retryDelay();persist();
  }
  // Existing animals leave scorched habitat and return as vegetation recovers.
  for(const m of api.mobs||[]){
   if(!m||m.hp<=0||habitatQuality(m.x,m.y,year)>=.78)continue;
-  const scar=events.find(e=>e.kind==="wildfire"&&year>=e.year&&year<e.year+e.duration+7&&Math.hypot(m.x-e.x,m.y-e.y)<e.radius);
+  const scar=events.find(e=>e.kind==="wildfire"&&year>=e.year&&year<e.year+e.duration+recoveryYears(e)&&Math.hypot(m.x-e.x,m.y-e.y)<e.radius);
   if(!scar)continue;
   m.flee=Math.max(m.flee||0,Math.min(2.8,1.2+dt*2));
   m.fleeThreatX=scar.x;m.fleeThreatY=scar.y;
@@ -284,7 +298,7 @@ function draw(ctx,project,year,webglActive=false){
   const dx=tip.x-root.x,dy=tip.y-root.y,length=Math.hypot(dx,dy);
   if(length<1)continue;
   const seed=Math.sin(e.x*.029+e.y*.013)*19327.17;
-  const random=seed-Math.floor(seed),leafy=year-e.year<4;
+  const random=seed-Math.floor(seed),leafy=year-e.year<leafYears(e);
   ctx.save();ctx.translate(root.x,root.y);ctx.rotate(Math.atan2(dy,dx));
   ctx.scale(Math.max(.32,length/99),Math.max(.42,Math.min(1.4,length/99)));
   // Contact shadow and raised, tapered bark. The root end is not a yellow disc.
@@ -333,7 +347,7 @@ function quakeShake(now=0){
   rotation:Math.sin(time*19+seismicPhase)*.010*intensity,strength:intensity};
 }
 window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),
- getState:()=>({events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
+ getState:()=>({paceVersion:PACE,events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
  debugClear(){events=[];warning=null;floodWarning=null;fireWarning=null;seismicSeconds=0;persist();return true;},
  force:(api)=>schedule(api,api.elapsed/120),
  forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
