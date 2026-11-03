@@ -1,3 +1,11 @@
+# 2026-11-04｜06:00枠 狩猟XPを3体共有成長へ接続（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】game.jsの狩猟成功時、WildSquad.addXp(earnedDNA)を呼び、生存中の編成全員へ個体別成長率・成長型を適用。600共有XPごとの空き枠用ガチャ権も実狩猟から獲得可能。
+- 【保存整合】persistSquadVitalsがプレイヤーの旧XP/レベル値でsquad-coreの個体成長を上書きしないよう変更。HP比率は従来どおり保存。
+- 【コミット】cec4d3a80068bbe6bcb991af2d644247c234168e / game.js blob 2a9956a3e832fb622528153f94060306bc7b35d0（更新前 00a05cef5b9caacf6cfd7591f53ce32486a48bc9）。
+- 【未検証】実ブラウザ・Android・Pad・旧SAVE_SCHEMA2 E2E、Pages反映。ゲーム内のレベル表示と攻撃/HPへの成長適用、死亡即時永続化は次00分枠の優先課題。
+- 【引継ぎ】20分：生態と水生操作。40分：3体表示/AI指示と描画。00分：個体成長を実ステータスへ反映し死亡/全滅の復帰試験。
+
 # 2026-11-04｜05:40枠 ガチャ低評価救済を実個体値に接続（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】squad-core.js generate() の低評価連続救済を、表示評価への加点方式から実際のHP/攻撃/速度/持久力の抽選下限改善へ変更。最大12連続で改善抽選率36%、抽選下限0.88、上限1.40を維持。S評価確定なし。ガチャで見た能力と採用個体の実能力が一致する。
