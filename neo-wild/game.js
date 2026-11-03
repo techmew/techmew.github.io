@@ -10,7 +10,10 @@ const TWO=Math.PI*2, WORLD={w:Math.max(10100,MOUNTAIN?.EAST||10100),h:6000}, CIT
 const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
  cat:{name:"ノラネコ",hp:85,speed:320,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
- wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"}
+ wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"},
+ dog:{name:"野犬",hp:125,speed:240,damage:19,rate:.42,r:22,color:"#9c785a",belly:"#e2c9a3",ear:"#72523c"},
+ deer:{name:"ニホンジカ",hp:135,speed:275,damage:12,rate:.54,r:26,color:"#a77d53",belly:"#e4d1b3",ear:"#8e6745"},
+ boar:{name:"イノシシ",hp:190,speed:205,damage:26,rate:.62,r:28,color:"#796358",belly:"#af9c87",ear:"#59453c"}
 };
 const species={
  rat:{hp:22,r:12,speed:131,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
