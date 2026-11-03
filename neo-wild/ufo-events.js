@@ -3,15 +3,17 @@
 "use strict";
 const key="wild-reclaim-ufo-events-v1";
 let event=null, cooldown=0, history=[], traces=[];
+const MAX_HISTORY=80;
+const safeBlocked=(world,a,b)=>typeof world.lineBlocked==="function"&&world.lineBlocked(a,b);
 const beamRange=95, playerBeamRange=105;
 const stateKey="wild-reclaim-ufo-state-v2";
 try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,Number(saved.cooldown)||0);traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
 let persistTimer=0;
 function persist(){try{localStorage.setItem(stateKey,JSON.stringify({event,cooldown,traces:traces.slice(-12)}))}catch(_){}}
 function trace(kind,year,x,y){traces.push({kind,year,x,y,age:0});traces=traces.slice(-12);persist()}
-try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))history=v.slice(-30)}catch(_){}
+try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))history=v.slice(-MAX_HISTORY)}catch(_){}
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-function record(kind,year,x,y){history.push({kind,year,x:Math.round(x),y:Math.round(y)});history=history.slice(-30);try{localStorage.setItem(key,JSON.stringify(history))}catch(_){}}
+function record(kind,year,x,y){history.push({kind,year,x:Math.round(x),y:Math.round(y)});history=history.slice(-MAX_HISTORY);try{localStorage.setItem(key,JSON.stringify(history))}catch(_){}}
 function resetTransient(){event=null;cooldown=80;persist()}
 function summon(x,y){event={x,y,t:0,stage:"approach",beam:0,victim:null,npcBeam:0,originX:x,originY:y};persist();return event}
 function tick(dt,world){
@@ -24,11 +26,11 @@ function tick(dt,world){
  if(e.stage==="approach"&&e.t>=3){e.stage="scan";e.t=0;world.notify("謎の光線！ 遮蔽物に隠れるか逃げろ")}
  if(e.stage==="scan"){
   // The saucer tracks a visible target, but cannot instantly teleport onto it.
-  const visible=!P.hidden&&!world.lineBlocked(P,e);
+  const visible=!P.hidden&&!safeBlocked(world,P,e);
   const target=visible?P:mobs.filter(m=>m.hp>0&&!m.companion).sort((a,b)=>distance(a,e)-distance(b,e))[0];
   if(target){const d=distance(e,target);if(d>12){const step=Math.min(d,Math.min(72,20+e.t*3)*dt);e.x+=(target.x-e.x)/d*step;e.y+=(target.y-e.y)/d*step}}
   // NPC can be abducted before the player: nearest living wildlife in beam.
-  const targets=mobs.filter(m=>m.hp>0&&!m.companion&&distance(m,e)<beamRange&&!world.lineBlocked?.(m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
+  const targets=mobs.filter(m=>m.hp>0&&!m.companion&&distance(m,e)<beamRange&&!safeBlocked(world,m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
   // All nearby animals react; only the locked victim is subject to capture.
   for(const animal of mobs){if(animal.hp<=0||animal.companion||distance(animal,e)>180)continue;
    animal.flee=Math.max(Number(animal.flee)||0,1.8);
@@ -50,12 +52,15 @@ function tick(dt,world){
    m.vy=(m.y-e.y)/d*Math.max(105,Number(m.speed)||105);
    if(e.npcBeam>=2.4&&distance(m,e)<beamRange&&!world.lineBlocked?.(m,e)){
     m.hp=0;m._killRegistered=true;
-    record("NPC誘拐",year,m.x,m.y);trace("NPC誘拐",year,m.x,m.y);
-    world.onEvent?.("ufo-npc-abduction",{year,x:m.x,y:m.y});
+    record("NPC誘拐:"+species,year,m.x,m.y);trace("NPC誘拐",year,m.x,m.y);
+    // An abduction is removal, not a player kill: leave no edible carcass or hunt reward.
+    m._ufoAbducted=true;m.dead=true;m.corpse=false;m.meat=0;m.food=0;
+    for(const other of mobs){if(other===m||other.hp<=0||distance(other,m)>260)continue;other.flee=Math.max(Number(other.flee)||0,4.5);other.alert=Math.max(Number(other.alert)||0,4.5);other.lastX=e.x;other.lastY=e.y;}
+    world.onEvent?.("ufo-npc-abduction",{year,x:m.x,y:m.y,species,removed:true});
     world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0;
    }
   }else{e.victim=null;e.npcBeam=Math.max(0,(e.npcBeam||0)-dt*2)}
-  if(distance(P,e)<playerBeamRange&&!P.hidden&&!world.lineBlocked(P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
+  if(distance(P,e)<playerBeamRange&&!P.hidden&&!safeBlocked(world,P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
@@ -75,5 +80,5 @@ function draw(ctx,project,world){
  if(e.beam>0||e.npcBeam>0){ctx.fillStyle="#ffe0a0";ctx.fillRect(-38,24,76*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/2.4)),5)}}
  ctx.restore();
 }
-window.WildUFO={tick,draw,resetTransient,summon,history:()=>history.slice(),traces:()=>traces.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12)}),get active(){return event}};
+window.WildUFO={tick,draw,resetTransient,summon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12)}),get active(){return event}};
 })();
