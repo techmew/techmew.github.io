@@ -1017,3 +1017,38 @@
  #boss-presence-sub{display:none}
  .boss-presence-kicker{font-size:8px}
 }
+
+/* 2026-11-03 POSITIONAL-INPUT & RESULT-TYPOGRAPHY-V1 */
+/* Exactly one face button in each PS/Xbox compass direction. Keep all hit
+   targets in the same grid positions on desktop, portrait and landscape. */
+#touch-layer .touch-actions #attack-touch{grid-column:2!important;grid-row:1!important;}
+#touch-layer .touch-actions #dash-touch{grid-column:1!important;grid-row:2!important;}
+#touch-layer .touch-actions #action-touch{grid-column:3!important;grid-row:2!important;}
+#touch-layer .touch-actions #jump-touch{position:static!important;grid-column:2!important;grid-row:3!important;right:auto!important;bottom:auto!important;z-index:1!important;}
+#touch-layer .touch-actions #attack-touch{background:radial-gradient(circle at 40% 20%,#f7af66,#9d422a)!important;border-color:#ffd5a4!important;box-shadow:0 0 18px #f07c4860!important;}
+#touch-layer .touch-actions #jump-touch{background:#345a51!important;box-shadow:0 5px 16px #0007!important;}
+#touch-layer .touch-actions .touch-btn small{font-size:clamp(8px,1.1dvh,10px)!important;letter-spacing:-.025em!important;line-height:1.12!important;max-width:100%;text-align:center;}
+#touch-layer .touch-actions #dash-touch small{font-size:clamp(7px,1dvh,9px)!important;letter-spacing:-.035em!important;}
+/* Game-over: never orphan the last Japanese character; responsive widths and
+   compact ranking preserve the retry action on a short landscape viewport. */
+#result .result-box{width:min(480px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important;padding:clamp(13px,2.7dvh,24px) clamp(12px,3vw,25px)!important;overflow-x:hidden!important;}
+#result #result-title{font:900 clamp(25px,3.9vw,42px)/1.12 "Noto Sans JP",sans-serif!important;letter-spacing:-.045em!important;white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important;margin:11px auto 8px!important;width:100%;text-align:center;}
+#result #result-reason{font-size:clamp(12px,1.65vw,14px)!important;line-height:1.5!important;margin:6px 0 12px!important;}
+#result .result-highscore{font-size:clamp(16px,2.4vw,20px)!important;line-height:1.25!important;padding:5px 10px!important;max-width:235px!important;margin:6px auto!important;}
+#result .result-score{padding:7px 5px!important;margin-bottom:7px!important;}
+#result .result-score label{font-size:11px;letter-spacing:2px;}
+#result .result-score strong{font-size:clamp(35px,6.5vw,49px)!important;line-height:1.04!important;}
+#result .result-stats{margin:5px 0 8px!important;}
+#result .result-top5{margin:7px 0 10px!important;}
+#result .result-top5 h3{font-size:14px!important;}
+#result .score-info b{font-size:12px!important;}
+#result .score-info small{font-size:10px!important;}
+#result #result-top5-status{font-size:11px!important;}
+@media(max-height:520px) and (orientation:landscape){
+ #result .result-box{padding:8px 14px!important;}
+ #result #result-title{font-size:clamp(23px,3.3vw,33px)!important;margin:6px auto!important;}
+ #result #result-reason{margin:3px 0 6px!important;}
+ #result .result-highscore{padding:3px 8px!important;margin:3px auto!important;}
+ #result .result-score{padding:4px 5px!important;margin-bottom:5px!important;}
+ #result .result-top5{margin:4px 0 6px!important;padding:6px 9px!important;}
+}
