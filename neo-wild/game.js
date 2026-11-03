@@ -2731,12 +2731,14 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
  m.forageCooldown=Math.max(0,(m.forageCooldown||0)-dt);
  m.forageNeed=Number.isFinite(m.forageNeed)?
   clamp(m.forageNeed+dt*.013,0,1):clamp(.56+noise(Math.floor(m.x),Math.floor(m.y))*.30,0,1);
+ const eraFood=window.WildEraEcology?.state?.(regionAt(m.x,m.y),elapsed/120)?.food??1;
+ const foodRadius=clamp(245*eraFood,.72*245,1.3*245);
  if(!WILD_FORAGERS.has(m.type)||m.forageNeed<.70||spotted||m.alert>0||m.flee>0||
     m.stun>0||(m.evadeTime||0)>0||playerDistance<115||
     ((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
  // Feeding stops near predators; no food is consumed through walls.
  if(WILD_FORAGERS.has(m.type)&&nearbyAwareWildPredator(m,175))return null;
- let target=null,best=245*245;
+ let target=null,best=foodRadius*foodRadius;
  for(const c of carcasses){
   if(c.type!=="berries"||!edibleFood(c))continue;
   const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
@@ -2770,7 +2772,7 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
    target.amount=Math.max(0,target.amount-bite);
    if(target.amount<=0)carcasses.splice(carcasses.indexOf(target),1);
   }
-  m.forageNeed=Math.max(0,m.forageNeed-(grazing?.32:.21));
+  m.forageNeed=Math.max(0,m.forageNeed-(grazing?.32:.21)*clamp(eraFood,.62,1.35));
   m.forageCooldown=1.9;m.foragePose=1.05;m.navPath=null;
   if(playerDistance<320)label(m.x,m.y-m.r-24,"食事","#d9f0b9");
  }
@@ -4044,7 +4046,9 @@ function maintainLocalWildlife(){
  const caveNeedsPrey=zone==="cave"&&cavePrey===0;
  const caveNeedsHunter=zone==="cave"&&caveHunter===0;
  const caveNeedsBalance=caveNeedsPrey||caveNeedsHunter;
- const target=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
+ const weatherTarget=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
+ const eraState=window.WildEraEcology?.state?.(regionAt(P.x,P.y),elapsed/120);
+ const target=Math.max(2,Math.min(WILDLIFE.localCap,Math.round(weatherTarget*(eraState?.animals??1))));
  // An old save with many distant creatures must not leave the current district empty.
  if(!zone)ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
  if(caveNeedsBalance&&local>=WILDLIFE.localCap)retireCalmCaveOverflow(caveNeedsPrey,caveAnimals);
