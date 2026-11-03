@@ -1,3 +1,15 @@
+## 共同スプリント・PHASE A｜2026/11/03 09:20 JST｜20分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜NPC風下狩り・嗅覚逃走・肉横取り後の摂食
+- **PHASE=A_FEATURE_COMPLETION**。開始main HEAD `4ccf7b28f4e7e64a03fa67a3bdec42589c49cf43`、開始blob game/index/ROADMAP `6fdbdadad000017957c8fc4f3169d08f51b09252 / b3d13416e52c3608affb76358779c537b7778565 / 2b8c1b09500da269fc9eabde17b4486089faada3`。前00分の風向奇襲・前40分の野犬肉横取り・前20分の山岳草原と2種を保持。Drive V0.9採用済みの「風下忍び寄り/狩りの駆け引き」のみ実装。PHASE Bには移行しない。
+- **今回新しく遊べるもの**：①野生捕食者が風上で発見しづらい獲物を匂いで追跡し、障害物越しでも風下の匂いが届けば探索を始める。攻撃は従来どおり実距離+LOSで判定し、壁越し命中なし。②落ち着いた獲物には風下から接近できる実通行可能な迂回目標を使い、獲物が逃げ出したら直追跡へ戻す。③ウサギ・ネズミ等は風上にいる捕食者の匂いで潜伏/採食/休息を中断して逃走、風下・雨・強風で距離が変化。④野犬に横取りされた肉は拾い直せるが、放置すると野犬が食べるよう摂食欲求を高める。世界76/近隣9、旧SAVE_SCHEMA2/3CP、既存8地区/6地点は不変。
+- **差分**：`neo-wild/game.js`（`nearbyAwareWildPredator`新規、`wildPreyInterceptPoint/huntWildPrey/updateFoodThief`、休息・採食・逃走の既存関数接続）、`neo-wild/index.html`（game.js cache rev）、`neo-wild/ROADMAP.md`（本引継ぎ）。コードと台帳は同一原子的コミットを試行。
+- **実関数/構文検査**：新game.js全文V8構文PASS。実`scentReachTo/nearbyAwareWildPredator/wildPreyInterceptPoint`のV8隔離実行で風上/風下・雨/強風・遮蔽・実通行可能迂回・逃走中直追跡などPASS。結線/保存不変/命中LOS/密度不変を含め**16/16 PASS**。実ブラウザE2E、Android実機、実GPU、物理Pad、FPS、旧端末保存復元は**未検証**。本試験は実機ではない。
+- **公開状況**：コミット直前HEAD/blob再照合PASS。mainコミット後のSHA/Pages run ID/build/deployは実結果を別途照合。未確認を成功と記載しない。
+- **機能別状態**：ワールド=途中／動物生態=途中（風下狩り・嗅覚逃走・横取り肉の摂食追加）／生存ループ=途中／強敵戦闘=途中／UI操作=途中。PHASE A継続。
+- **進捗V2**：A16/B12/C9/D4/E8/F9/G8/H4/I4=**74.0/100（前回差0.0）**。実機・統合試験の新しい採点条件を満たさず加点なし。
+- **次40分枠**：①`fauna.js:visualState/draw2D`と`webgl3d.js:drawCommonAnimal3D`に風下接近/匂い警戒の固有姿勢を接続。②`game.js:drawMini/syncHUD`で捕食者の風向・警戒を視認できる軽量表示を検討、縦横HUDを維持。③`gamepad.js:poll`と`game.js:resolveAttack`で風下狩り→肉回収→横取り回避の4ボタン経路を連結。
+- **次00分枠**：①`game.js:nearbyAwareWildPredator/updateIndoorRest/huntWildPrey`の実関数経時統合試験、風上/風下で警戒→逃走→追跡→討伐を確認。②`game.js:updateFoodThief/scavengeWildFood/putDownFood`の横取り→食べる/回収→巣備蓄を通す。③Pages runのbuild/deployを照合し失敗時復旧、保存/3CP/強敵/死亡ループを回帰。
+- **次20分枠**：①`game.js:generateWorld/regionAt`で山岳以外の農地・郊外を既存地区と地続きに拡張（道路/衝突/生態の完成単位）。②`fauna.js:choose/weight`と`game.js:spawnMob/maintainLocalWildlife`で農地の出現と食物連鎖・空白を実装。③`mountain.js:blocked/spawnCandidate`で既存山腹・洞窟経路との接続と旧保存位置を回帰。
+
 ## 共同スプリント・PHASE A｜2026/11/03 09:04:15 JST｜00分枠｜ACTIVE_SPRINT_ID=MOUNTAIN-CONTIGUOUS-FOOTHILL-V1｜風下接近→匂い回避→奇襲→DNA報酬の狩猟ループ
 - **PHASE=A_FEATURE_COMPLETION**。前40分の野犬肉横取りと前20分の山岳草原・カモシカ/ヤギの地続き生態を維持。開始HEAD `ead99cbf6af874553e9a6d115f4f64f410c56c05` → コード `c1463612c5f1b415e7c589703c8c815b6d6d5fec` → HTML rev `355f325f284e42ef0561dce29ea72f5833155de2`。変更は `neo-wild/game.js`・`neo-wild/index.html`、本記録 `neo-wild/ROADMAP.md` のみ。Google Drive「WILD RECLAIM｜完成仕様設計書」V0.9の2026-11-02採用済み「風下からの忍び寄り/奇襲報酬」を実装対象として確認。ユーザー未採用の夜事件・縄張り襲撃等は追加していない。
 - **新しく遊べる完成単位**：①従来 `detectsPlayer` の `Math.sin(elapsed*.022)` による独立した風時計を廃止し、天候変化・SAVE2で保持される `windDirection` と匂い伝播を一致させた。風上から獲物へ接近すると匂いが遠くまで届き、風下から忍ぶと届きにくい。雨は匂い距離が短く、強風は長い。視覚・聴覚・接触・遮蔽の既存判定は維持。② `isDownwindStalk` と `resolveAttack` を接続し、未発覚の風下奇襲は通常奇襲より攻撃倍率を1.55→1.75に強化。風下奇襲で仕留めた場合に限り、`kill` で基本DNAの25%（最低1）を追加付与。通常討伐の死骸1件・図鑑・成長・既存XP保存経路を維持。③HUDの時刻・天候欄に保存済み風向の矢印を表示し、狩りの方向を判断可能にした。新ボタン/セーブ形式/動物数変更なし。

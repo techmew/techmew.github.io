@@ -1727,6 +1727,9 @@ function updateFoodThief(m,dt,d){
    if(P.carry&&P.carry.type!=="berries"&&d<m.r+P.r+34&&!lineBlocked(m,P)&&
     (P.jumpHeight||0)<(P.groundZ||0)+22){
     const food=P.carry;P.carry=null;
+    // The stolen meat is recoverable, but leaving it behind lets the dog eat.
+    m.scavengeNeed=Math.max(.95,Number(m.scavengeNeed)||0);
+    m.feedAfterKill=Math.max(3,Number(m.feedAfterKill)||0);
     carcasses.push({x:m.x,y:m.y,r:11,amount:food.amount,
      type:food.type==="berries"?"berries":"meat",animalType:food.animalType||null,ttl:150,phase:m.dir||0});
     P.revealTimer=Math.max(P.revealTimer||0,.8);
@@ -2625,7 +2628,7 @@ function forageWildBerries(m,sp,dt,spotted,playerDistance){
     m.stun>0||(m.evadeTime||0)>0||playerDistance<115||
     ((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
  // Feeding stops near predators; no food is consumed through walls.
- if(WILD_FORAGERS.has(m.type)&&nearbyVisibleWildPredator(m,175))return null;
+ if(WILD_FORAGERS.has(m.type)&&nearbyAwareWildPredator(m,175))return null;
  let target=null,best=245*245;
  for(const c of carcasses){
   if(c.type!=="berries"||!edibleFood(c))continue;
@@ -2674,7 +2677,7 @@ function drinkWildWater(m,sp,dt,spotted,playerDistance){
  if(m.thirstNeed<.72||m.drinkCooldown>0||spotted||m.alert>0||m.flee>0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||
     playerDistance<105||((weather==="RAIN"||weather==="THUNDER")&&!insideShelter(m)))return null;
- if((sp.prey||m.type==="boar")&&nearbyVisibleWildPredator(m,170))return null;
+ if((sp.prey||m.type==="boar")&&nearbyAwareWildPredator(m,170))return null;
  // Approach the real dry river/canal bank, not an exploration marker.
  let goal=null,best=310*310;
  const banks=[];
@@ -3383,7 +3386,7 @@ function tryPreyFeint(m,sp,d,spotted,dt){
   return advancePreyFeint(m,dt);
  }
  if(m.feintCooldown>0||m.stun>0||m.hp<=0||m.flee<=0||(m.fleeEnergy||0)<.28)return false;
- const hunter=nearbyVisibleWildPredator(m,150);
+ const hunter=nearbyAwareWildPredator(m,150);
  const playerThreat=!!P&&spotted&&d<160&&!lineBlocked(m,P);
  if(!hunter&&!playerThreat)return false;
  const urgent=playerThreat&&(P.pendingStrike||P.pounceTime>0||P.jumpTime>0);
@@ -3447,6 +3450,18 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
  const direct={x:prey.x,y:prey.y};
  const cave=MOUNTAIN?.zone(m.x)==="cave"&&MOUNTAIN.zone(prey.x)==="cave";
  const caveHunter=cave&&["weasel","wildFox","raccoonDog"].includes(m.type);
+ // Calm prey can be approached from downwind. This is an actual walkable
+ // waypoint, not teleportation; pursuit reverts to direct chase on alarm.
+ if(!cave&&distance>125&&distance<255&&(prey.flee||0)<=0){
+  const current=Math.cos(Math.atan2(m.y-prey.y,m.x-prey.x)-windDirection);
+  if(current<.20){
+   const lead=clamp(distance*.40,64,102);
+   const x=clamp(prey.x+Math.cos(windDirection)*lead,35,WORLD.w-35);
+   const y=clamp(prey.y+Math.sin(windDirection)*lead,35,WORLD.h-35);
+   if(Math.hypot(x-m.x,y-m.y)>55&&!collides(x,y,m.r+5)&&routeClear(m,{x,y},m.r+5))
+    return {x,y};
+  }
+ }
  const flanker=["dog","alpha","blackPanther","oneEyedWolf","whiteTiger","albinoWolf"].includes(m.type);
  if((!flanker&&!caveHunter)||distance<(caveHunter?48:115)||distance>(caveHunter?325:235)||(prey.flee||0)<=0)return direct;
  const speed=Math.hypot(prey.vx||0,prey.vy||0);
@@ -3472,6 +3487,20 @@ function isWildPredator(m){return !!m&&m.hp>0&&WILD_PREDATOR_TYPES.has(m.type);}
 function nearbyVisibleWildPredator(m,range=165){
  let nearest=null,best=range;
  for(const q of mobs){if(q===m||!isWildPredator(q)||((m.type==="macaque"||m.type==="chimpanzee")&&q.type===m.type))continue;const d=dist(m,q);if(d<best&&!lineBlocked(m,q)){nearest=q;best=d;}}
+ return nearest;
+}
+// NPC scent uses the same saved wind and weather as player stealth.
+// Smell may pass a wall, but movement and every attack still use collision/LOS.
+function nearbyAwareWildPredator(m,range=165){
+ let nearest=null,best=range;
+ for(const q of mobs){
+  if(q===m||!isWildPredator(q)||((m.type==="macaque"||m.type==="chimpanzee")&&q.type===m.type))continue;
+  const d=dist(m,q);
+  if(d>=best)continue;
+  const visible=!lineBlocked(m,q);
+  const smelled=d<Math.min(range,scentReachTo(m,q)*1.5);
+  if(visible||smelled){nearest=q;best=d;}
+ }
  return nearest;
 }
 function defendBuffaloHerd(m){
@@ -3505,8 +3534,9 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   }
   const distance=dist(m,q);
   // Scent can cross a pillar; the existing bite check still needs clear LOS.
-  const scent=caveScent&&MOUNTAIN.zone(q.x)==="cave"&&distance<=325;
-  if(distance>=maxRange||!(scent||!lineBlocked(m,q)))continue;
+  const caveTrail=caveScent&&MOUNTAIN.zone(q.x)==="cave"&&distance<=325;
+  const windTrail=distance<=Math.min(maxRange,scentReachTo(m,q)*1.65);
+  if(distance>=maxRange||!(caveTrail||windTrail||!lineBlocked(m,q)))continue;
   // Nearby cave hunters split live prey instead of crowding one target.
   // Last target coordinates already serialize safely in SAVE_SCHEMA2.
   let claimed=0;
@@ -3901,7 +3931,7 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  const naturalNightCover=!rainy&&nightRestSeason()&&
   ["rabbit","pigeon","strayCat","wildFox","weasel","deer","raccoonDog"].includes(m.type)&&inCover(m);
  const safeRest=(indoors&&rainy)||naturalNightCover;
- const hunterAnimal=sp.prey?nearbyVisibleWildPredator(m,155):null;
+ const hunterAnimal=sp.prey?nearbyAwareWildPredator(m,155):null;
  const hunter=!!hunterAnimal;
  // Awake prey also reacts immediately to a nearby visible wild predator.
  if(sp.prey&&hunterAnimal&&m.restTime<=0&&m.flee<=0)startlePrey(m,hunterAnimal,"alarm");
@@ -4218,7 +4248,7 @@ function update(dt){
    if(m.flee>0){
     if((s.prey||m.type==="boar")&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
       m.evasionSide=-(m.evasionSide||1);
-      const hunter=nearbyVisibleWildPredator(m,175);
+      const hunter=nearbyAwareWildPredator(m,175);
       const threat=hunter||(Number.isFinite(m.fleeThreatX)&&Number.isFinite(m.fleeThreatY)?{x:m.fleeThreatX,y:m.fleeThreatY}:P);
       if(hunter){m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;}
       m.dir=chooseEscape(m,Math.atan2(m.y-threat.y,m.x-threat.x),threat);
@@ -4270,7 +4300,7 @@ function update(dt){
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
    m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
    if((s.prey||m.type==="boar")&&!spotted){
-    const hunter=nearbyVisibleWildPredator(m,140);
+    const hunter=nearbyAwareWildPredator(m,140);
     if(hunter){
      m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;
      m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
