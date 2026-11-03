@@ -40,6 +40,7 @@ const species={
  giantEagle:{hp:345,r:39,speed:248,damage:43,prey:false,xp:19,food:76,color:"#76583c",belly:"#d2b98a"}
 };
 Object.assign(species,window.WildFauna?.species||{});
+const COMBAT_LEVELS=window.WildCombatLevels;
 const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲"};
 // The encyclopedia is account-local and independent from SAVE_SCHEMA2 checkpoints.
 window.WildBestiary?.configure(species,STRONG_NAMES);
@@ -1365,6 +1366,14 @@ function sootheStrongWound(foodPoints,atHome=false){
  P.strongWound=Math.max(0,P.strongWound-relief);
  return relief;
 }
+function applyOrdinaryStrikeEffect(m,angle){
+ const alt=!m.strongBoss&&m.attackVariation;
+ if(!alt||!P)return;
+ if(alt.stamina)P.sp=clamp(P.sp-alt.stamina,0,100);
+ if(alt.slow)P.strongSlow=Math.max(P.strongSlow||0,alt.slow);
+ if(alt.knock)move(P,Math.cos(angle)*alt.knock,Math.sin(angle)*alt.knock);
+ label(P.x,P.y-57,alt.name,"#ffd9aa");
+}
 function applyStrongStrikeEffect(m,angle,charging=false){
  if(m.type==="giantLizard"){
   P.strongWound=Math.max(P.strongWound||0,5.5);label(P.x,P.y-48,"噛み傷で出血！","#f9b2a2");
@@ -1493,7 +1502,7 @@ function updateBossSignature(m,dt,d){
   const cover=insideShelter(P)||lineBlocked(m,P);
   const jumping=(P.jumpHeight||0)>Math.max(22,(P.groundZ||0)+17);
   if(!cover&&!jumping&&P.inv<=0&&BOSS_PATTERNS.hit(active,P.x,P.y,P.r*.55)){
-   const raw=Math.round(species[m.type].damage*active.power*bossStrikePower(m));
+   const raw=Math.round(species[m.type].damage*active.power*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1));
    const amount=strongDamageTaken(raw);
    P.hp=Math.max(0,P.hp-amount);P.lastCombatAt=elapsed;
    interruptRush();P.inv=.58;shake=Math.max(shake,10);flash=Math.max(flash,.22);
@@ -1608,7 +1617,7 @@ function updateAquaticStrong(m,s,dt){
   m.aquaticStrike=false;m.swing=.3;
   const facing=Math.atan2(Math.sin(angle-(m.strikeDir||0)),Math.cos(angle-(m.strikeDir||0)));
   if(d<profile.reach+P.r&&Math.abs(facing)<.92&&!lineBlocked(m,P)&&(P.jumpHeight||0)<22&&P.inv<=0){
-   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*bossStrikePower(m)));
+   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
    P.lastCombatAt=elapsed;P.hp-=damage;interruptRush();P.inv=.45;shake=10;flash=.25;
    label(P.x,P.y-35,"水辺 -"+damage,"#ff9890");blood(P.x,P.y,"#eb6356",12,110);
    playEffect("damage");applyStrongStrikeEffect(m,angle,false);
@@ -1649,7 +1658,7 @@ function updateGorillaRock(m,dt){
  if(collides(r.x,r.y,10,null)||lineBlocked({x:ox,y:oy},r)){m.rock=null;return;}
  const dx=r.x-ox,dy=r.y-oy,len=dx*dx+dy*dy,t=len>0?clamp(((P.x-ox)*dx+(P.y-oy)*dy)/len,0,1):0;
  if(P.inv<=0&&(P.jumpHeight||0)<25&&Math.hypot(P.x-ox-dx*t,P.y-oy-dy*t)<P.r+13){
-  const damage=strongDamageTaken(Math.round(species.giantGorilla.damage*.77*bossStrikePower(m)));
+  const damage=strongDamageTaken(Math.round(species.giantGorilla.damage*.77*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
   P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.42;interruptRush();shake=7;flash=.2;P.sp=clamp(P.sp-9,0,100);
   label(P.x,P.y-35,"投石 -"+damage,"#ffaaa0");blood(P.x,P.y,"#a79c8d",8,70);playEffect("damage");m.rock=null;return;
  }
@@ -1701,7 +1710,7 @@ function updateMacaque(m,dt,d){
   const stone=m.macaqueStone;
   const trace=traceMacaqueStone(stone,dt,P);
   if(trace.hit&&P.inv<=0&&P.hp>0&&!insideShelter(P)){
-   const damage=Math.max(3,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.8));
+   const damage=Math.max(3,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.8*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
    P.hp=Math.max(0,P.hp-damage);P.inv=.43;P.lastCombatAt=elapsed;
    interruptRush();shake=Math.max(shake,5);flash=Math.max(flash,.13);
    label(P.x,P.y-34,"投石 -"+damage,"#ffc1a4");playEffect("damage");
@@ -1832,7 +1841,7 @@ function updateChimpanzee(m,dt,d){
  if(m.chimpStone){
   const trace=traceMacaqueStone(m.chimpStone,dt,P);
   if(trace.hit&&P.inv<=0&&P.hp>0&&!insideShelter(P)){
-   const amount=Math.max(4,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.78));
+   const amount=Math.max(4,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*.78*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
    P.hp=Math.max(0,P.hp-amount);P.inv=.47;P.lastCombatAt=elapsed;
    interruptRush();shake=Math.max(shake,6);flash=Math.max(flash,.16);
    label(P.x,P.y-35,"道具の投石 -"+amount,"#ffd0aa");playEffect("damage");
@@ -1848,7 +1857,7 @@ function updateChimpanzee(m,dt,d){
    if(m.chimpAttackKind==="branch"){
     // A visible .52-second swing is avoidable by moving out of reach.
     if(d<m.r+P.r+48&&!lineBlocked(m,P)&&P.inv<=0&&P.hp>0&&m.treeHeight<8){
-     const amount=Math.max(5,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*1.20));
+     const amount=Math.max(5,Math.round(spec.damage*(m.damageScale||enemyDamageFactor())*1.20*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
      P.hp=Math.max(0,P.hp-amount);P.inv=.52;P.lastCombatAt=elapsed;
      interruptRush();shake=Math.max(shake,7);flash=Math.max(flash,.17);
      label(P.x,P.y-36,"枝の一撃 -"+amount,"#ffc8a1");playEffect("damage");
@@ -1963,7 +1972,7 @@ function updateFlyingEagle(m,dt){
   if(m.airHeight<=29&&!m.airHit){
    if(m.airTarget==="player"&&P.inv<=0&&P.hp>0&&(P.jumpHeight||0)<24&&
       !insideShelter(P)&&!lineBlocked(m,P)&&dist(P,m)<P.r+m.r+28){
-    const damage=strongDamageTaken(Math.round(s.damage*1.08*bossStrikePower(m)));
+    const damage=strongDamageTaken(Math.round(s.damage*1.08*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
     P.hp-=damage;P.lastCombatAt=elapsed;P.inv=.46;interruptRush();shake=8;flash=.22;
     label(P.x,P.y-37,"大鷲の爪 -"+damage,"#ffada0");blood(P.x,P.y,"#eaa17b",9,80);
     applyStrongStrikeEffect(m,angle,false);playEffect("damage");m.airHit=true;
@@ -2879,7 +2888,7 @@ function resolveAttack(){
    const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*rnd(.86,1.16)));
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
-   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide));
+   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
    m.hp-=damage;if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(foxBurst)P.abilityTime=0;
    m.flash=.16;m.alert=3;m.lastX=P.x;m.lastY=P.y;m.search=0;if(!species[m.type].prey)m.flee=0;
@@ -4368,7 +4377,7 @@ function update(dt){
     if(m.headbuttTell===0&&m.headbuttArmed){
      m.headbuttArmed=false;m.swing=.28;
      if(d<P.r+m.r+36&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
-      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.78));
+      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.78*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
       P.hp=Math.max(0,P.hp-damage);P.inv=.48;P.lastCombatAt=elapsed;
       interruptRush();shake=Math.max(shake,6);
       label(P.x,P.y-35,"角突き -"+damage,"#ffd0a1");playEffect("damage");
@@ -4382,7 +4391,7 @@ function update(dt){
    }
    // A zebra is usually fleeing, but its hind kick punishes close pursuit.
    if(m.type==="zebra"&&spotted&&d<P.r+m.r+24&&m.attack<=0&&P.inv<=0){
-    const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.85));
+    const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*.85*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
     P.hp=Math.max(0,P.hp-damage);P.inv=.46;m.attack=2.55;m.swing=.23;
     P.lastCombatAt=elapsed;interruptRush();shake=Math.max(shake,5);
     label(P.x,P.y-38,"後ろ蹴り -"+damage,"#ffd2a5");playEffect("damage");
@@ -4498,16 +4507,16 @@ function update(dt){
       m.chargeTime=m.type==="alpha"?.24:m.type==="strayCat"?.20:m.type==="wildFox"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:m.type==="rhino"?.57:m.type==="albinoWolf"?.33:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
       label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="strayCat"||m.type==="wildFox"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
      }else{
-      const reach=m.type==="giantElephant"?P.r+m.r+79:m.type==="venomSnake"?P.r+m.r+39:P.r+m.r+37,aim=Math.atan2(P.y-m.y,P.x-m.x);
+      const reach=(m.type==="giantElephant"?P.r+m.r+79:m.type==="venomSnake"?P.r+m.r+39:P.r+m.r+37)*(m.attackVariation?.reach||1),aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.type==="giantGorilla"&&m.stun<=0&&dist(P,m)>P.r+m.r+37){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
-      }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<.92&&!lineBlocked(m,P)){
-       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
+      }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<(m.attackVariation?.arc||.92)&&!lineBlocked(m,P)){
+       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
-       blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);
+       blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);applyOrdinaryStrikeEffect(m,aim);
        if(m.type==="venomSnake")inflictVenom(m);
        if(m.type==="elephant"||m.type==="hippo"){
         const shove=m.type==="elephant"?48:33;
@@ -4539,11 +4548,11 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1))));
+      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
-      blood(P.x,P.y,"#eb6356",15,150);playEffect("damage");applyStrongStrikeEffect(m,m.chargeDir,true);}
+      blood(P.x,P.y,"#eb6356",15,150);playEffect("damage");applyStrongStrikeEffect(m,m.chargeDir,true);applyOrdinaryStrikeEffect(m,m.chargeDir);}
      }else label(P.x,P.y-35,"無傷","#a6f5d8");
     }
     const forward=ddx*Math.cos(m.chargeDir)+ddy*Math.sin(m.chargeDir);
@@ -4557,9 +4566,12 @@ function update(dt){
    }
    if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
    if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(STRONG_ATTACK_PROFILES[m.type]?.reach??(m.type==="boar"?115:m.type==="alpha"?112:29))&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
-    m.windupTotal=STRONG_ATTACK_PROFILES[m.type]?.windup??(m.type==="boar"?.68:m.type==="alpha"?.60:.45);
-    m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;m.attack=STRONG_ATTACK_PROFILES[m.type]?.cooldown??(m.type==="boar"?1.32:m.type==="alpha"?1.42:.98);
-    m.dir=angle;label(m.x,m.y-m.r-24,STRONG_ATTACK_PROFILES[m.type]?.tell??(m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！"),"#ffb76d");
+    const variant=!m.strongBoss?COMBAT_LEVELS?.nextAttack(m):null;
+    m.attackVariation=variant;
+    m.windupTotal=(STRONG_ATTACK_PROFILES[m.type]?.windup??(m.type==="boar"?.68:m.type==="alpha"?.60:.45))*(variant?.windup||1);
+    m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;
+    m.attack=(STRONG_ATTACK_PROFILES[m.type]?.cooldown??(m.type==="boar"?1.32:m.type==="alpha"?1.42:.98))*(variant?.cooldown||1);
+    m.dir=angle;label(m.x,m.y-m.r-24,variant?.name||(STRONG_ATTACK_PROFILES[m.type]?.tell??(m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！")),"#ffb76d");
     playEffect("snarl");
    }
  }
@@ -5707,9 +5719,12 @@ function drawThreatNames(){
  for(const m of mobs){
   if(m.hp<=0||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55))continue;
   const pos=project(m.x,m.y),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
-  const threatName=(names[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
-  ctx.globalAlpha=m.windup>0||m.alert>0?.92:.74;ctx.fillStyle="#172321";ctx.fillRect(pos.x-53,y-11,106,16);
-  ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(threatName,pos.x,y+1);
+  const targetLevel=COMBAT_LEVELS?.level(m.type)||1,levelGap=Math.max(0,targetLevel-P.level);
+  const threatName=(names[m.type]||STRONG_NAMES[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
+  ctx.globalAlpha=m.windup>0||m.alert>0?.95:.78;ctx.fillStyle="#172321";ctx.fillRect(pos.x-69,y-14,138,31);
+  ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(threatName,pos.x,y-2);
+  ctx.fillStyle=levelGap>=5?"#ffad91":levelGap>0?"#ffe19b":"#b6e8c7";
+  ctx.fillText("推奨LV"+targetLevel+(levelGap>=5?"｜非常に危険":levelGap>0?"｜格上":"｜適正"),pos.x,y+10);
  }
  ctx.restore();
 }
