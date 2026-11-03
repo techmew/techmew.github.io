@@ -4263,7 +4263,7 @@ function update(dt){
   isSheltered:insideShelter,
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
- window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked});
+ window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked,onEvent:(event,data)=>window.WildTrophies?.record?.(event,data,notify)});
  if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
