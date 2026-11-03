@@ -6778,6 +6778,133 @@ function hideNewGameConfirmation(){
  if(panel)panel.classList.add("hidden");
 }
 
+
+let squadOrder="follow";
+const PARTY_COMMANDS={follow:"追従",attack:"攻撃",wait:"待機",flee:"逃走"};
+function persistSquadVitals(){
+ if(!P?.squadIndividualId)return;
+ const core=window.WildSquad,r=core?.load?.();if(!r)return;
+ for(const m of r.members){
+  const actor=m.id===P.squadIndividualId?P:mobs.find(q=>q.squadIndividualId===m.id&&q.hp>0);
+  if(actor){m.hpRatio=Math.max(0,Math.min(1,actor.hp/Math.max(1,actor.maxHp)));m.level=actor.level||m.level||1;m.xp=actor.xp||m.xp||0;}
+ }
+ core.save(r);
+}
+function partySpawnPosition(i){
+ for(const distance of [80,110,155,210,270])for(let k=0;k<12;k++){
+  const a=(P.dir||0)+Math.PI+(i?.65:-.65)+k*Math.PI/6;
+  const x=P.x+Math.cos(a)*distance,y=P.y+Math.sin(a)*distance;
+  if(x<40||y<40||x>WORLD.w-40||y>WORLD.h-40||collides(x,y,33)||waterBlocksLand(x,y))continue;
+  if(mobs.some(m=>m.hp>0&&Math.hypot(m.x-x,m.y-y)<(m.r||20)+35))continue;
+  return {x,y};
+ }
+ return {x:P.x,y:P.y};
+}
+function makePartyMate(member,i,pos=null,hp=null){
+ const a=animals[member.species];if(!a)return null;
+ const spot=pos||partySpawnPosition(i);
+ const template=window.WildCompanions?.create?.(P.type,spot.x,spot.y,species)||{};
+ const maxHp=Math.max(1,Math.round(a.hp*(member.iv?.hp||1)));
+ return {...template,x:spot.x,y:spot.y,type:member.species,r:a.r,color:a.color,belly:a.belly,
+  hp:hp==null?Math.max(1,Math.round(maxHp*(member.hpRatio??1))):Math.max(1,Math.min(maxHp,hp)),maxHp,
+  companion:true,companionOwner:P.type,squadIndividualId:member.id,squadName:member.name,
+  squadOrder,squadSpeedIV:member.iv?.speed||1,squadAttackIV:member.iv?.attack||1,
+  level:member.level||1,xp:member.xp||0,dir:P.dir||0,vx:0,vy:0,step:0,flash:0,swing:0,
+  companionAttackCD:0,companionHurtCD:1};
+}
+function syncSquadFollowers(){
+ if(!P?.squadIndividualId)return;
+ const r=window.WildSquad?.load?.();if(!r)return;
+ const mates=r.members.filter(m=>m.id!==P.squadIndividualId&&animals[m.species]);
+ const ids=new Set(mates.map(m=>m.id));
+ mobs=mobs.filter(m=>m.squadIndividualId?ids.has(m.squadIndividualId):!m.companion);
+ mates.forEach((m,i)=>{
+  const existing=mobs.find(q=>q.squadIndividualId===m.id);
+  if(existing){existing.companion=true;existing.companionOwner=P.type;existing.squadName=m.name;return;}
+  const ally=makePartyMate(m,i);if(ally)mobs.push(ally);
+ });
+ syncSquadHud();
+}
+function partyCombat(){
+ return !!P&&(elapsed-(P.lastCombatAt??-100)<4||mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type]?.prey&&(m.alert>0||m.windup>0)&&dist(P,m)<230));
+}
+function squadCommand(cmd){
+ if(!PARTY_COMMANDS[cmd]||!P?.squadIndividualId)return;
+ squadOrder=cmd;
+ for(const m of mobs)if(m.squadIndividualId&&m.hp>0){m.squadOrder=cmd;m.squadWait=cmd==="wait"?{x:m.x,y:m.y}:null;}
+ syncSquadHud();saveAuto();notify("仲間："+PARTY_COMMANDS[cmd]);
+}
+function syncSquadHud(){
+ const root=$("squad-party-hud"),slots=$("squad-party-members");if(!root||!slots)return;
+ const roster=P?.squadIndividualId?window.WildSquad?.load?.():null;
+ root.classList.toggle("hidden",!roster?.members?.length);
+ if(!roster?.members?.length)return;
+ const ids=roster.members.map(m=>m.id).join("|");
+ if(slots.dataset.ids!==ids){
+  slots.dataset.ids=ids;slots.replaceChildren();
+  for(const m of roster.members){const b=document.createElement("button");b.type="button";b.className="squad-member";b.dataset.squadId=m.id;slots.append(b);}
+ }
+ for(const b of slots.children){
+  const m=roster.members.find(q=>q.id===b.dataset.squadId);if(!m)continue;
+  const lead=m.id===P.squadIndividualId,a=lead?P:mobs.find(q=>q.squadIndividualId===m.id);
+  const pct=Math.round((a?a.hp/Math.max(1,a.maxHp):(m.hpRatio??1))*100);
+  b.classList.toggle("is-leader",lead);b.textContent=(lead?"▶ 操作中 ":"● 仲間 ")+(m.name||m.speciesName)+" "+pct+"%";
+  b.disabled=lead||!a||a.hp<=0||partyCombat();
+ }
+ for(const b of root.querySelectorAll("[data-squad-order]"))b.setAttribute("aria-pressed",String(b.dataset.squadOrder===squadOrder));
+}
+function switchSquadLeader(id,death=false){
+ const roster=window.WildSquad?.load?.(),member=roster?.members?.find(m=>m.id===id);
+ const mate=mobs.find(m=>m.squadIndividualId===id&&m.hp>0);
+ if(!member||!mate||!animals[member.species])return false;
+ if(!death&&(mode!=="play"||partyCombat())){notify("戦闘中は交代できません");return false;}
+ if(!death&&P.hp>0){
+  const former=roster.members.find(m=>m.id===P.squadIndividualId);
+  if(former){const ally=makePartyMate(former,0,{x:P.x,y:P.y},P.hp);if(ally)mobs.push(ally);}
+ }
+ mobs.splice(mobs.indexOf(mate),1);
+ const a=animals[member.species];choice=member.species;P.type=choice;P.base=a;P.r=a.r;
+ P.x=mate.x;P.y=mate.y;P.dir=mate.dir;P.squadIndividualId=id;P.squadName=member.name;
+ P.maxHp=mate.maxHp;P.hp=Math.max(1,mate.hp);P.damage=a.damage*(member.iv?.attack||1);
+ P.speed=a.speed*(member.iv?.speed||1);P.maxSp=100*(member.iv?.stamina||1);P.sp=Math.min(P.maxSp,P.sp||100);
+ P.level=member.level||1;P.xp=member.xp||0;P.lastCombatAt=elapsed-100;
+ P.deathPose=0;P.atk=0;P.dash=0;P.dashTime=0;P.pounceTime=0;P.jumpTime=0;P.fallTime=0;P.pendingStrike=false;
+ P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.vx=0;P.vy=0;P.hidden=false;P.carry=null;
+ initializeLife(P,elapsed,false);resetControls();
+ roster.leaderId=id;window.WildSquad.save(roster);
+ if(death){mode="play";show("");deathSequenceTime=0;$("hud").style.opacity="";window.WildAudio?.resetDeathFade?.();}
+ syncSquadFollowers();cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
+ syncSquadHud();syncHUD();saveAuto();notify((member.name||member.speciesName)+"を操作中");return true;
+}
+function showSquadDeathPicker(roster){
+ const panel=$("squad-death-choice");if(!panel)return;
+ panel.classList.remove("hidden");panel.replaceChildren();
+ const label=document.createElement("strong");label.textContent="残った仲間からリーダーを選択";panel.append(label);
+ for(const m of roster.members){const b=document.createElement("button");b.type="button";
+  b.textContent=(m.name||m.speciesName)+"　"+(m.grade||"")+"評価";
+  b.addEventListener("click",()=>switchSquadLeader(m.id,true));panel.append(b);
+ }
+}
+function drawSquadFieldMarkers(){
+ function mark(m,lead){
+  const p=project(m.x,m.y),z=(window.WildMountain?.height?.(m.x,m.y)||0)+Math.max(0,m.jumpHeight||m.groundZ||0);
+  const y=p.y-z*.93*cameraZoom;ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.strokeStyle=lead?"#ffe98e":"#66f3e7";ctx.lineWidth=3;
+  ctx.beginPath();ctx.ellipse(p.x,p.y+4,m.r*1.22,m.r*.56,0,0,TWO);ctx.stroke();
+  const name=(lead?"▼ 操作中 ":"● ")+(m.squadName||"仲間");
+  ctx.font=lead?"900 13px sans-serif":"800 11px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=4;
+  ctx.strokeText(name,p.x,y-m.r-42);ctx.fillStyle=lead?"#ffe98e":"#66f3e7";
+  ctx.fillText(name,p.x,y-m.r-42);ctx.restore();
+ }
+ mark(P,true);
+ for(const m of mobs)if(m.squadIndividualId&&m.hp>0&&visible(m.x,m.y,70))mark(m,false);
+}
+$("squad-party-hud")?.addEventListener("click",e=>{
+ const b=e.target.closest?.("button");if(!b)return;
+ if(b.dataset.squadOrder)squadCommand(b.dataset.squadOrder);
+ if(b.dataset.squadId)switchSquadLeader(b.dataset.squadId);
+});
+
 // ガチャ編成と既存の移動・戦闘・セーブ経路を結ぶ。
 // 未実装種の専用移動を陸上種に偽装しないため開始を保留する。
 function applySquadLeader(){
