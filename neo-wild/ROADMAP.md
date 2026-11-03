@@ -1,3 +1,10 @@
+# 2026-11-04｜03:00枠 空き枠補充・ガチャ権コアAPI（PHASE=A_FEATURES）
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】squad-core.jsにgrantTickets(amount)、fillVacancy(member)、livingCount()を追加。ガチャ権を0〜999で永続保存し、1〜2体の生存編成の空き枠だけ補充可能。既存個体の上書き、重複ID、死亡済みID、未操作対応種、権利不足を拒否。ストックは追加しない。
+- 【変更】squad-core.js commit 48722ec2f5356dc3a9faafe31fadf786d0c19d4a / blob 52b0332fd9ed2bcf431bfb168b2875d346e09065。更新前blob 7b5171ee25d6a88a84e17423c614531b93dd8f1b。
+- 【未完】探索・狩りでgrantTicketsを呼ぶ処理、巣でfillVacancyを呼ぶ画面、実ブラウザE2E/Android/Pad/旧SAVE_SCHEMA2実機試験、Pages反映確認。現状API追加であり、空き枠補充がゲーム画面から遊べる完成機能ではない。
+- 【次20分】探索/狩り/ミッションの権利獲得と巣判定を接続。【次40分】生存編成を破棄せず空き枠にだけ候補を選択するUIを接続。【次00分】死亡即時保存・旧チェックポイント復活防止と共有XPの実戦接続を優先。
+
 # 2026-11-04｜02:40枠 生存編成のガチャ上書き禁止・若年プレビュー（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実コード】squad-gacha-ui.jsで生存中の1〜3体編成がある場合、タイトルの新規ガチャボタンを無効化。既存編成を誤って破棄する経路を遮断し、確定直前にも再照合する。全滅時はガチャを再開できる。ストック追加なし。
