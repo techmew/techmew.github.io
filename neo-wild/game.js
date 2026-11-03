@@ -658,7 +658,7 @@ function renderTopScores(record){
   const info=document.createElement("span");info.className="score-info";
   const animal=document.createElement("b");
   animal.textContent=e.legacy?"以前の最高記録":(animals[e.animal]?.name||"生存記録")+(e.id===record.id?"（今回）":"");
-  const meta=document.createElement("small");meta.textContent=e.legacy?"旧データから引き継ぎ":"DAY "+e.day+"・狩り "+e.kills+"・LV "+e.level;
+  const meta=document.createElement("small");meta.textContent=e.legacy?"旧データから引き継ぎ":"YEAR "+Math.floor((Math.max(1,Number(e.day)||1)-1)*85/120)+"・狩り "+e.kills+"・LV "+e.level;
   info.append(animal,meta);
   const points=document.createElement("strong");points.className="score-points";points.textContent=e.score.toLocaleString("ja-JP");
   row.append(rank,info,points);list.appendChild(row);
@@ -3286,12 +3286,12 @@ function stockpileStep(){
 function fieldQuestCounter(step){
  if(step===0)return kills;
  if(step===1)return meals;
- if(step===2)return discoveredSites.length<EXPLORE_SITES.length?discoveredSites.length:P.steps;
+ if(step===2)return freeTarget>=EXPLORE_SITES.length?P.steps:discoveredSites.length;
  return elapsed;
 }
 function fieldQuestInfo(){
  const step=clamp(freeStep|0,0,3),base=questReady?freeTarget:fieldQuestCounter(step);
- const stepTravel=step===2&&discoveredSites.length>=EXPLORE_SITES.length;
+ const stepTravel=step===2&&freeTarget>=EXPLORE_SITES.length;
  const required=step===0?2:step===1?3:step===2?(stepTravel?32:1):90;
  const progress=Math.max(0,fieldQuestCounter(step)-base);
  const fraction=clamp(progress/required,0,1);
@@ -3314,7 +3314,8 @@ function updateFieldQuest(){
  P.hunger=Math.min(100,P.hunger+12);
  P.sp=Math.min(100,P.sp+24);
  const done=goal.title;
- expedition+=1;freeStep=(freeStep+1)%4;freeTarget=fieldQuestCounter(freeStep);
+ expedition+=1;freeStep=(freeStep+1)%4;
+ freeTarget=freeStep===2&&discoveredSites.length>=EXPLORE_SITES.length?P.steps:fieldQuestCounter(freeStep);
  notify("探索達成："+done+"／"+reward+"点",3.0);
  label(P.x,P.y-P.r-32,"探索報酬 +"+reward,"#d4f1c4");
  saveAuto();
@@ -3348,7 +3349,7 @@ const GUIDE_GOALS=[
  {title:"巣に備蓄する",what:"食料を○長押しで運ぶ。",how:"巣に戻り、○で預ける。"},
  {title:"縄張りを取る",what:"標識で○長押し。",how:"巣の安全性が上がる。"},
  {title:"探索地点を見つける",what:"未発見の地点を2か所訪れる。",how:"最後の目標へ進む。"},
- {title:"生き残れ！",what:"狩り・食事・休息を続け、生存日数を伸ばす。",how:"食料庫の備蓄も活用できる。"}
+ {title:"探索依頼に挑む",what:"狩りや食事、未発見の場所を巡り、報酬を獲得する。",how:"各依頼を達成して、巣と群れを守る。"}
 ];
 let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,milestoneUntil=0,previouslyOnboardedAtRunStart=false;
 function renderTutorial(){
@@ -3456,7 +3457,7 @@ function objectiveShortLabel(){
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
  if(mission>=7){
-  if(freeStep===2&&discoveredSites.length<EXPLORE_SITES.length){
+  if(freeStep===2&&freeTarget<EXPLORE_SITES.length&&discoveredSites.length<EXPLORE_SITES.length){
    const destination=nearestGoal(EXPLORE_SITES.filter(q=>!discoveredSites.includes(q.id)));
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
   }
@@ -3527,7 +3528,7 @@ function finish(won=false){
  const deathAlreadyPlayed=mode==="dying";
  // The autosave was cleared when death began, exactly once.
  resetControls();mode=won?"clear":"over";
- totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+(day-1)*170);
+ totalScore=Math.floor(elapsed*4+kills*88+(P.level-1)*110+totalScore);
  const scoreRecord=recordTopScore(totalScore);
  $("result-kicker").textContent=won?"生存の記録":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
@@ -3535,7 +3536,7 @@ function finish(won=false){
  $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。リトライか、最初から始めるかを選んでください。";
  $("retry-btn").textContent=getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）";
  $("result-score").textContent=String(totalScore).padStart(6,"0");
- $("result-stats").innerHTML="<span>DAY "+String(day).padStart(2,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
+ $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  renderTopScores(scoreRecord);
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
  show("result");if(!deathAlreadyPlayed)playEffect(won?"level":"death");
