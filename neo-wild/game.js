@@ -4333,7 +4333,8 @@ function update(dt){
    const foxTurbo=P.type==="fox"&&P.abilityTime>0&&!sneaking;
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1);
+   P.hauntedTime=Math.max(0,(P.hauntedTime||0)-dt);
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
