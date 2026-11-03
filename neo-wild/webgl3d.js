@@ -997,10 +997,27 @@ function mountainTerrain(isVisible){
   ellipsoid(r.x,r.y,r.z+r.r*.24,r.r,r.r*.76,r.r*.51,"#788078",.22,7,4);
  }
  for(const t of m.trees){
-  if(!isVisible(t.x,t.y,180))continue;
-  box(t.x-5,t.y-5,t.z,10,10,47,"#6d5c43","#827050");
-  pyramid(t.x,t.y,t.z+22,t.r*.94,t.r*.86,71,"#315f43");
-  pyramid(t.x,t.y,t.z+52,t.r*.76,t.r*.72,56,"#3f7651");
+  if(!isVisible(t.x,t.y,210))continue;
+  // Mature broadleaf trees: tapered trunk, asymmetric limbs and overlapping
+  // rounded foliage masses instead of the old two stacked pyramids.
+  const radius=Math.max(17,t.r||32),height=49+radius*.42;
+  const seed=Math.sin(t.x*.037+t.y*.071)*43758.5453;
+  const variance=seed-Math.floor(seed);
+  box(t.x-6,t.y-6,t.z,12,12,height,"#594638","#80634b");
+  box(t.x-4,t.y-4,t.z+height*.54,8,8,height*.42,"#67513d","#947052");
+  const limbDirs=[[1,.16],[-.78,.62],[-.42,-.85],[.68,-.68]];
+  for(let k=0;k<limbDirs.length;k++){
+   const [dx,dy]=limbDirs[k],reach=radius*(.38+(k%2)*.12);
+   const bx=t.x+dx*reach*.5,by=t.y+dy*reach*.5;
+   box(bx-3,by-3,t.z+height*.67+k*2,6+Math.abs(dx)*reach,6+Math.abs(dy)*reach,5,"#67503c","#84664b");
+  }
+  const clusters=[[0,0,.89],[.56,.08,.60],[-.48,.27,.64],[.12,-.55,.62],[-.24,-.39,.53],[.33,.47,.56]];
+  for(let k=0;k<clusters.length;k++){
+   const [dx,dy,scale]=clusters[k],r=radius*scale;
+   const drift=(variance-.5)*radius*.12;
+   const greens=["#315f3d","#42784b","#376c43","#4d8050","#2d603d","#558354"];
+   ellipsoid(t.x+dx*radius+drift,t.y+dy*radius-drift,t.z+height+radius*(.10+(k%3)*.14),r,r*.86,r*.66,greens[k],.12,8,5);
+  }
  }
 }
 function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
