@@ -1,3 +1,12 @@
+## 2026-11-03 15:20 JST｜自キャラ3D不可視・YOU位置・パッド案内右上被り修復｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **ユーザー画像**：潮見の水路AREA08/08、YEAR013、画面中央でYOUと接地円が見えるが、自キャラ3D本体が見えない。パッド操作説明が右上設定を覆っている。
+- **描画の実修正**：`webgl3d.js:render`で静的建物/地形とNPCの後に描く自キャラの直前のみ深度バッファをリセット。地形に隠れたまま文字/円しか表示されないケースを防ぎ、モデル内部はLEQUAL深度テストのまま描き、暗所の自キャラだけ最低輝度を設定しshader uniformを復元。`game.js:drawScene`のYOU/円に`WildMountain.height(P.x,P.y)`を反映して、3Dモデル足元・頭上とマーカーの標高を一致させた。物理/操作/保存座標は未変更。
+- **HUD実修正**：`visual.css:#gamepad-status`を右上から左上（横長デスクトップでは体力表示の右隣、x約300px）へ移動。横狭/縦/低背横画面でも左に留め、右上の地図/音/全画面を妨げない。パッド割り当ては変更なし。
+- **SHA**：`webgl3d.js` commit `22c3b395` blob `572e403e`、`game.js` commit `00b11462` blob `aab8ed8c`（20分枠による後続の生態更新を保持）、`visual.css` commit `70d01f18` blob `4d4c22f6`、`index.html` rev commit `cbb35240`。最新script参照は他枠の変更後のgame.jsを含み、`webgl3d.js?rev=22c3b395-player-visible`、`visual.css?rev=70d01f18-pad-left`。ROADMAP前HEAD `d7f9ee71035132643a4e841bfe6c0a9181895e6a`。`neo-wild/`以外は不変更。
+- **試験**：最新game.js/webgl3d.js構文、実`animal`で猫/犬/狐/狼の座標・標高+180・モデル部位25～29の生成、WebGL描画順通常/潜伏両形態・輝度復元、YOU/円標高、CSS横縦配置、HTML参照とSAVE_SCHEMA2維持＝**23/23 PASS（V8隔離/静的回帰）**。ユーザー環境の実WebGL・実ブラウザ/Pad/縦横表示のE2Eは**未検証**。74/100据え置き、PHASE A継続。
+- **次00分枠**：`game.js:restoreSnapshot/drawScene`で再開/死後リトライ・山地/運河のモデルとYOU位置を実ブラウザ確認。**次20分枠**：`game.js:maintainLocalWildlife` の生態新機能とモデル修正が競合していないか監査。**次40分枠**：`webgl3d.js:render/animal`と`visual.css:#gamepad-status`をPC 1840x820、横844x390、縦390x844、実パッドで視覚QA。深度リセットでプレイヤーが建物の前景に見えるデザイン上の影響も検討。
+- **Pages**：最新HEADのbuild・deployをActions run/jobで確認する。
+
 ## 2026/11/03 15:20 JST｜20分枠｜地域生態を実際の動物密度・採食へ接続｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **新たに実装された実プレイ機能**：5年ごとの地域別生態遷移（平穏/緑化/豊穣/乾燥/捕食圧）を、近隣野生動物の目標密度に接続。地域の `animals` 倍率を現在の気象別目標に掛け、上限 `WILDLIFE.localCap` を維持しながら補充数が変化する。採食動物は地域 `food` 倍率に応じて餌を探す距離と実際の食事による空腹回復が変化。既存の実ベリー/草/山の採食地点を使用し、架空の餌は作らない。旧セーブ形式や動物座標は変更しない。
 - **変更**：`game.js:maintainLocalWildlife/forageWildBerries` commit `a6b82c52`、`index.html` cache rev commit `05378379`。直前の致命的表示修復：`webgl3d.js` `22c3b395`、`game.js` `00b11462`、`visual.css` `70d01f18`、`index.html` `cbb35240`。3枠の同時作業は最新mainの対象blobを照合して続行。
