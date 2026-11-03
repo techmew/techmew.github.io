@@ -6177,7 +6177,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available)use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
@@ -6778,7 +6778,7 @@ window.WildDebugBridge={
   return saveAuto();
  },
  setWeather(name){
-  if(name!==null&&!["CLEAR","CLOUDY","RAIN","THUNDER","WIND","FOG"].includes(name))return false;
+  if(name!==null&&!["CLEAR","CLOUDY","RAIN","THUNDER","WIND","FOG","SNOW"].includes(name))return false;
   debugWeatherOverride=name;
   if(mode!=="play"||!P)return name===null;
   updateWeather(0);syncHUD(Math.floor(dayLightProfile(elapsed).hour));
@@ -6920,6 +6920,192 @@ window.WildDebugBridge={
  },
  save(){return saveAuto();}
 };
+
+
+/* QA registry: case list mirrors actual engine features. Missing V1 features
+ * remain explicitly unavailable, never represented by decorative fake events. */
+let debugRendererPreference="auto";
+const DEBUG_MISSING_FEATURES=["隕石衝突・クレーター","津波・地形変化","地割れ・崩落の地形変更",
+ "伝染病の群れ感染","異星基地と敵対AI","怪獣の建物破壊","突然変異種の操作",
+ "繁殖・遺伝・子孫交代","200種類の固有トロフィー","水生・飛行動物の操作"];
+function debugCaseList(){
+ const out=[],add=(group,id,label)=>out.push({group,id,label,available:true});
+ for(const y of [20,50,100,200,300])add("世界時計・季節","year:"+y,"世界"+y+"年へ");
+ for(const [m,label] of [[1,"冬"],[4,"春"],[7,"夏"],[10,"秋"]])add("世界時計・季節","season:"+m,label+"へ進める");
+ for(const [id,label] of Object.entries({CLEAR:"晴",CLOUDY:"曇",RAIN:"雨",THUNDER:"雷雨",WIND:"強風",FOG:"霧",SNOW:"雪・凍結",auto:"自動"}))add("天候・災害","weather:"+id,label);
+ for(const [id,label] of Object.entries({lightning:"落雷（予兆→着弾）",quake:"地震・倒木",flood:"洪水・冠水",fire:"山火事",clear:"進行中の災害を解除"}))add("天候・災害","disaster:"+id,label);
+ for(const [id,label] of Object.entries({ufo:"UFO接近と拉致",ghost:"亡霊・幻覚・憑依",resetUFO:"UFO退去",resetGhost:"亡霊消去"}))add("異常存在","anomaly:"+id,label);
+ for(const [id,label] of Object.entries({pack:"群れ生成",prey:"獲物生成",food:"食草生成",corpse:"死骸・腐敗・骨化",migration:"生態圧・地域移住",alert:"動物を警戒させる",flee:"動物を逃走させる",rest:"動物を休息させる",feed:"動物を採食させる",injure:"動物を負傷させる"}))add("動物・生態","ecology:"+id,label);
+ for(const id of window.WildFauna?.types||[])if(species[id])add("動物を個別生成","animal:"+id,id);
+ for(const [id,label] of Object.entries({poison:"毒",wound:"重傷",stun:"麻痺",exhaust:"持久力0",starve:"空腹0",heal:"全回復",hide:"茂みに潜伏",carry:"肉をくわえる",nearDeath:"HP1",death:"死亡・リトライ",level2:"LV2",level10:"LV10",level20:"LV20",oldAge:"寿命直前",invincible:"無敵6秒"}))add("自キャラ状態","player:"+id,label);
+ for(let i=0;i<8;i++)add("地域移動","area:"+i,districts[i]);
+ for(const [id,label] of Object.entries({foothill:"山麓",slope:"山腹",summit:"山頂",cave:"洞窟"}))add("地域移動","mountain:"+id,label);
+ for(const label of DEBUG_MISSING_FEATURES)out.push({group:"未実装",id:"missing:"+label,label,available:false});
+ return out;
+}
+function debugSafePosition(x,y,r=P?.r||20,accept=null){
+ for(let range=0;range<=840;range+=35)for(let k=0;k<(range?20:1);k++){
+  const a=k*Math.PI/10,xx=clamp(Math.round(x+range*Math.cos(a)),r+14,WORLD.w-r-14);
+  const yy=clamp(Math.round(y+range*Math.sin(a)),r+14,WORLD.h-r-14);
+  if((accept&&!accept(xx,yy))||collides(xx,yy,r,null,true)||waterBlocksLand(xx,yy))continue;
+  return {x:xx,y:yy};
+ }return null;
+}
+function debugTeleport(x,y,accept=null){
+ if(mode!=="play"||!P)return false;
+ const pos=debugSafePosition(x,y,P.r,accept);if(!pos)return false;
+ P.x=pos.x;P.y=pos.y;P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;
+ P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;P.fallTime=0;P.vx=0;P.vy=0;
+ resetControls();cam.x=P.x-vw/2;cam.y=P.y-vh/2;syncHUD();return true;
+}
+function debugDiagnostics(){
+ const clock=window.WildWorldClock?.at?.(elapsed),dis=window.WildDisaster?.getState?.()||{};
+ const alive=mobs.filter(m=>m.hp>0),types={};
+ for(const m of alive)types[m.type]=(types[m.type]||0)+1;
+ return {
+  state:mode,worldYear:clock?.year??Math.floor(elapsed/120),month:clock?.month,season:clock?.season,
+  day,elapsed:Math.round(elapsed),weather,weatherOverride:debugWeatherOverride,
+  actor:P?{type:P.type,level:P.level,hp:Math.round(P.hp),maxHp:Math.round(P.maxHp),
+   hunger:Math.round(P.hunger),stamina:Math.round(P.sp||0),age:Math.round((P.ageYears||0)*10)/10,
+   lifespan:P.lifespanYears,poison:P.poisonTime||0,wound:P.strongWound||0,stun:P.stun||0,
+   hidden:!!P.hidden,carrying:!!P.carry,x:Math.round(P.x),y:Math.round(P.y)}:null,
+  wildlife:{alive:alive.length,byType:types,packs:new Set(alive.map(m=>m.packId).filter(Boolean)).size,
+   corpses:carcasses.filter(c=>c.type==="corpse").length,bones:carcasses.filter(c=>c.type==="bones").length},
+  ecosystem:P?{district:districts[regionAt(P.x,P.y)],...ecology[regionAt(P.x,P.y)]}:null,
+  disasters:{active:(dis.events||[]).filter(e=>e.permanent||elapsed/120-e.year<e.duration).map(e=>e.kind),
+   quakeWarning:!!dis.warning,floodWarning:!!dis.floodWarning,fireWarning:!!dis.fireWarning},
+  lightning:lightningStrike?{kind:lightningStrike.kind,countdown:lightningStrike.countdown}:null,
+  ufo:window.WildUFO?.active?.stage||null,ghost:window.WildApparitions?.active?.stage||null,
+  renderer:debugRendererPreference,webglAvailable:!!window.Wild3D?.available,
+  saves:{schema:SAVE_SCHEMA,auto:!!getAutoSnapshot(),checkpoints:getCheckpoints().length},
+  missing:DEBUG_MISSING_FEATURES
+ };
+}
+function debugRunCase(id){
+ const ok=message=>{syncHUD();saveAuto();return {ok:true,message}};
+ const no=message=>({ok:false,message});
+ if(mode!=="play"||!P)return no("ゲーム開始後に実行してください");
+ if(typeof id!=="string"||id.startsWith("missing:"))return no("この機能は現在未実装です");
+ const part=id.split(":"),group=part[0],key=part.slice(1).join(":");
+ if(group==="year"||group==="season"){
+  const n=Number(key);if(!Number.isInteger(n))return no("値が不正");
+  let next;
+  if(group==="year"){if(n<0||n>1000)return no("範囲外");next=n*120+elapsed%120;if(next<elapsed)return no("時間の巻き戻しは不可。QAバックアップから復元してください");}
+  else{if(![1,4,7,10].includes(n))return no("季節が不正");next=Math.floor(elapsed/120)*120+(n-1)*10+1;if(next<elapsed)next+=120;}
+  const jump=next-elapsed;elapsed=next;day=1+Math.floor(elapsed/85);
+  if(Number.isFinite(P.bornAtWorldSeconds))P.bornAtWorldSeconds+=jump;
+  initializeLife(P,elapsed,true);debugWeatherOverride=null;updateWeather(0);
+  return ok("世界"+Math.floor(elapsed/120)+"年・"+(window.WildWorldClock?.at?.(elapsed)?.season||"")+"へ");
+ }
+ if(group==="weather"){
+  const target=key==="auto"?null:key;
+  return window.WildDebugBridge.setWeather(target)?ok("天候："+(target||"自動")):no("設定できない天候です");
+ }
+ if(group==="disaster"){
+  if(key==="clear")return window.WildDisaster?.debugClear?.()?ok("進行中の災害と予兆を解除（履歴は保持）"):no("災害を解除できません");
+  if(key==="lightning"){
+   debugWeatherOverride="THUNDER";updateWeather(0);
+   lightningStrike={x:clamp(P.x+Math.cos(P.dir)*110,25,WORLD.w-25),
+    y:clamp(P.y+Math.sin(P.dir)*110,25,WORLD.h-25),kind:"ground",countdown:2.8,afterglow:0};
+   return ok("2.8秒後に実着弾。予兆から避難可能");
+  }
+  const method={quake:"force",flood:"forceFlood",fire:"forceFire"}[key];
+  if(!method||!window.WildDisaster?.[method])return no("この災害は未実装");
+  if(key==="fire"&&["RAIN","THUNDER"].includes(weather)){debugWeatherOverride="CLEAR";updateWeather(0);}
+  const api={P,mobs,elapsed,mode,notify,collides,WORLD,roadsX,roadsY,buildings,riverAxis,canalAxis,weather,
+   isSheltered:insideShelter,onAnimalDeath:m=>{if(species[m.type])carcasses.push(animalRemains(m))}};
+  return window.WildDisaster[method](api)?ok("予兆を発生。避難後に実イベント開始"):no("同種災害が進行中か、安全な発生地点がありません");
+ }
+ if(group==="anomaly"){
+  if(key==="ufo"){
+   if(window.WildUFO?.active)return no("UFOは出現中");
+   return window.WildUFO?.summon?.(clamp(P.x+165,50,WORLD.w-50),P.y)?ok("UFO接近→追尾・誘拐イベント"):no("UFO生成不可");
+  }
+  if(key==="ghost"){
+   if(window.WildApparitions?.active)return no("亡霊は出現中");
+   return window.WildApparitions?.summon?.(clamp(P.x+130,50,WORLD.w-50),P.y,elapsed/120)?ok("亡霊発生→幻覚・憑依イベント"):no("亡霊生成不可");
+  }
+  if(key==="resetUFO"){window.WildUFO?.resetTransient?.();return ok("UFO退去");}
+  if(key==="resetGhost")return window.WildApparitions?.debugClear?.()?ok("亡霊を解除"):no("解除APIなし");
+  return no("未実装イベント");
+ }
+ if(group==="animal"){
+  if(!window.WildFauna?.types?.includes(key)||!species[key])return no("未登録の種類");
+  return spawnMob(false,false,true,null,key,mountainHabitat(P.x,P.y)?MOUNTAIN.zone(P.x):null)?
+   ok(key+"を出現させました"):no("地域の密度上限・地形などで出現不可");
+ }
+ if(group==="ecology"){
+  if(key==="prey")return spawnMob(false,true,true)?ok("獲物生成"):no("人口上限などで生成不可");
+  if(key==="pack"){
+   const level=P.level,old=lastPackSpawnAt;let success=false;
+   try{P.level=Math.max(P.level,2);lastPackSpawnAt=elapsed-WILDLIFE.packCooldown-1;success=spawnLocalPack();}
+   finally{P.level=level;if(!success)lastPackSpawnAt=old;}
+   return success?ok("群れを出現"):no("地形・密度上限、既存の群れにより生成不可");
+  }
+  if(key==="migration"){
+   const from=regionAt(P.x,P.y),to=from<5?(from===4?3:from+1):(from===7?6:from-1);
+   ecology[from].food=8;ecology[from].prey=Math.max(45,ecology[from].prey);
+   ecology[to].food=94;ecology[to].prey=20;ecologyClock=15;simulateEcology(0);
+   return ok("生態移動判定："+ecologyNews);
+  }
+  if(key==="food"||key==="corpse"){
+   const loc=debugSafePosition(P.x+95,P.y+45,16);if(!loc)return no("設置できる地形がありません");
+   if(key==="food")carcasses.push({x:loc.x,y:loc.y,r:9,amount:19,type:"berries",ttl:220,phase:0});
+   else carcasses.push(animalRemains({type:"rabbit",x:loc.x,y:loc.y,r:15}));
+   return ok(key==="food"?"食べられる草を配置":"死骸を配置。腐敗と骨化を観察");
+  }
+  const m=mobs.filter(a=>a.hp>0&&!a.strongBoss).sort((a,b)=>dist(P,a)-dist(P,b))[0];
+  if(!m)return no("状態を与える動物がいません");
+  if(key==="alert"){m.alert=8;m.search=4;m.lastX=P.x;m.lastY=P.y;}
+  else if(key==="flee"){m.flee=8;m.fleeThreatX=P.x;m.fleeThreatY=P.y;}
+  else if(key==="rest"){m.resting=true;m.restTime=5;m.alert=0;}
+  else if(key==="feed"){m.foragePose=4;m.resting=false;}
+  else if(key==="injure"){m.hp=Math.max(1,m.maxHp*.22);m.flash=.5;}
+  else return no("未実装の行動");
+  return ok(m.type+"： "+key+"を適用");
+ }
+ if(group==="player"){
+  if(key==="heal"){P.hp=P.maxHp;P.hunger=100;P.sp=100;P.poisonTime=0;P.strongWound=0;P.stun=0;}
+  else if(key==="poison")P.poisonTime=9;
+  else if(key==="wound")P.strongWound=15;
+  else if(key==="stun")P.stun=3;
+  else if(key==="exhaust")P.sp=0;
+  else if(key==="starve")P.hunger=0;
+  else if(key==="nearDeath")P.hp=1;
+  else if(key==="invincible")P.inv=6;
+  else if(key==="carry")P.carry={type:"meat",animalType:"rabbit",amount:22};
+  else if(key==="oldAge"){initializeLife(P,elapsed,true);P.bornAtWorldSeconds=elapsed-(P.lifespanYears-.6)*120;P.ageYears=P.lifespanYears-.6;}
+  else if(key==="hide"){
+   const cover=plants.filter(visibleShrub).sort((a,b)=>dist(P,a)-dist(P,b)).find(p=>dist(P,p)<1100&&!collides(p.x,p.y,P.r,P)&&!waterBlocksLand(p.x,p.y));
+   if(!cover||!debugTeleport(cover.x,cover.y))return no("潜伏できる茂みが見つかりません");
+   P.hidden=true;P.revealTimer=0;
+  }else if(["level2","level10","level20"].includes(key)){
+   P.level=Number(key.slice(5));P.xp=0;P.nextXp=Math.max(5,Math.round(5*Math.pow(1.5,P.level-1)));syncStrongBossChallenge();
+  }else if(key==="death"){P.hp=0;beginDeath();return {ok:true,message:"死亡演出からリトライを確認"};}
+  else return no("状態が未実装");
+  return ok("自キャラ状態："+key);
+ }
+ if(group==="area"){
+  const i=Number(key);if(!Number.isInteger(i)||i<0||i>7)return no("地区が不正");
+  const [x,y,w,h]=BIOME_AREAS[i];
+  return debugTeleport(x+w/2,y+h/2,(xx,yy)=>regionAt(xx,yy)===i)?ok(districts[i]+"へ移動"):no("安全な到達地点がありません");
+ }
+ if(group==="mountain"){
+  const xx={foothill:MOUNTAIN?.CITY_EDGE+650,slope:MOUNTAIN?.FOOTHILL_END+520,
+   summit:MOUNTAIN?.SUMMIT_START+350,cave:MOUNTAIN?.SUMMIT_START+650}[key];
+  if(!Number.isFinite(xx)||!MOUNTAIN?.zone)return no("山岳の座標を取得できません");
+  return debugTeleport(xx,WORLD.h/2,(x,y)=>MOUNTAIN.zone(x,y)===key)?ok("山岳："+key+"へ移動"):no("このエリアに安全な地点がありません");
+ }
+ return no("未実装の検証操作です");
+}
+Object.assign(window.WildDebugBridge,{
+ listCases:debugCaseList,diagnostics:debugDiagnostics,runCase:debugRunCase,
+ getRenderer:()=>debugRendererPreference,
+ setRenderer(value){if(!["auto","2d"].includes(value))return false;
+  debugRendererPreference=value;
+  const gpu=document.getElementById("scene3d");if(gpu)gpu.style.display=value==="2d"?"none":"";
+  return true;}
+});
 
 /* Gamepad adapter invokes the same gameplay and UI functions as touch/keyboard. */
 window.WildGamepadBridge={
