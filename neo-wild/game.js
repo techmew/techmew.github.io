@@ -34,6 +34,9 @@ const species={
  rat:{hp:22,r:12,speed:131,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
  rabbit:{hp:30,r:15,speed:204,damage:0,prey:true,xp:1,food:33,color:"#c8b899",belly:"#f0e5d5"},
  pigeon:{hp:18,r:12,speed:179,damage:0,prey:true,xp:1,food:19,color:"#738c92",belly:"#e5e4d5"},
+ manul:{hp:94,r:18,speed:215,damage:21,prey:false,xp:6,food:28,color:"#b1a89a",belly:"#dbd4c2"},
+ tibetanFox:{hp:108,r:20,speed:257,damage:22,prey:false,xp:6,food:32,color:"#b8a18b",belly:"#f0deca"},
+ shoebill:{hp:148,r:27,speed:142,damage:32,prey:false,xp:8,food:41,color:"#7d8990",belly:"#acb7ba"},
  dog:{hp:124,r:22,speed:224,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
  boar:{hp:190,r:28,speed:232,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
  alpha:{hp:335,r:29,speed:231.4,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"},
@@ -5929,7 +5932,7 @@ function drawCreature(o,isPlayer){
    else ctx.scale(1.13,.92);
   }
  }
- if(isPlayer&&drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
+ if(drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
   // Each playable species has its own body/face/special attack silhouette.
  }else if((!isPlayer||t==="deer")&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
   // Common wildlife has species-specific silhouettes.
