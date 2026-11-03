@@ -52,10 +52,10 @@ void main(){
   vec2 forward=vec2(cos(uNightVision.z),sin(uNightVision.z));
   float alignment=dot(delta,forward)/max(distanceToPlayer,1.0);
   float edge=smoothstep(0.30,0.70,alignment);
-  float reach=1.0-smoothstep(uNightVision.w*.62,uNightVision.w,distanceToPlayer);
-  float peripheral=(1.0-smoothstep(55.0,145.0,distanceToPlayer))*.30;
+  float reach=1.0-smoothstep(uNightVision.w*.48,uNightVision.w,distanceToPlayer);
+  float peripheral=(1.0-smoothstep(90.0,240.0,distanceToPlayer))*.53;
   float acuity=max(edge*reach,peripheral)*uNightVisionStrength;
-  shaded=shaded*(1.0+acuity*.72)+vec3(.026,.040,.034)*acuity;
+  shaded=shaded*(1.0+acuity*1.38)+vec3(.065,.085,.076)*acuity;
  }
  gl_FragColor=vec4(shaded,uAlpha);
 }
