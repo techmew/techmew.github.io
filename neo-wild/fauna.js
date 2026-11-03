@@ -215,12 +215,22 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const index=Number.isInteger(region)&&region>=0&&region<8?region:0;
  const history=encounterHistory[index];
  const recentApex=history.slice(-5).filter(type=>apexTypes.has(type)).length;
+ // A predator encounter is only plausible after prey has been present locally.
+ // The pressure is bounded and never adds a spawn or bypasses habitat/era locks.
+ const recentPrey=history.slice(-8).filter(type=>["rat","rabbit","pigeon","frog","deer","zebra","armadillo","hedgehog"].includes(type)).length;
+ const recentPredators=history.slice(-8).filter(type=>["wildFox","strayCat","snake","venomSnake","lion","tiger","cheetah","hyena","wildDog","blackBear"].includes(type)).length;
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
   if(w>0&&!preyOnly){
    const same=history.slice(-4).filter(previous=>previous===type).length;
    if(same)w*=Math.pow(.46,same);
    if(apexTypes.has(type)&&recentApex)w*=recentApex>=2?.04:.28;
+   // Predators trail prey rather than repeatedly appearing in empty habitats.
+   if(["wildFox","strayCat","snake","venomSnake","lion","tiger","cheetah","hyena","wildDog"].includes(type))
+    w*=recentPrey===0?.52:Math.min(1.20,.72+recentPrey*.12);
+   // After a predator-heavy run, herbivores and small prey re-establish the biome.
+   if(["rat","rabbit","pigeon","frog","deer","zebra","armadillo","hedgehog"].includes(type)&&recentPredators>=2)
+    w*=Math.min(1.42,1+recentPredators*.09);
   }
   return {type,w};
  });
