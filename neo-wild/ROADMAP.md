@@ -1,3 +1,10 @@
+## 2026-11-03 14:00 JST｜00分枠｜災害目撃・実脱出トロフィー統合｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
+- **新たに遊べる機能**：倒木・洪水・山火事それぞれの「現場目撃」「危険域から生還」6件と3種目撃制覇1件、計7種類の固有実績を追加（57→64）。災害の実位置・半径・発生年を検知し、危険域に入った後、存命で外へ出た場合だけ脱出実績を付与。死亡やリロードをまたいで遭遇・脱出の判定履歴を保存、同じ事件の二重判定を防止。既存トロフィー永久台帳と通知へ接続。旧SAVE_SCHEMA2と3CPは変更せず、他ゲーム変更なし。
+- **実変更コミット**：trophy-records.js b4cf0025 (blob 5a5ab7f2)、game.js 68c896bd (blob 5827bca2)、index.html e2f52bb9→e9c8d803 (blob 71d94b79)。index.htmlの余分な閉じタグ記号も除去。
+- **PASS**：2 JS全文V8構文、洪水目撃/脱出条件、未曝露での誤獲得防止、永続保存→再読込、HTML参照確認。**未検証**：実ブラウザ・Android・Pad・旧SAVE2 E2E・長時間・Pages最終deploy。
+- **V1.0機能台帳**：世界時計=途中、年代進化=途中、地続き地形=途中、通常気象=途中、災害=途中（倒木/洪水/山火事と実績接続）、異常存在=途中、初期10種/家系=途中、200+ユニーク実績=途中（64/200+）、追加12要素=途中。全機能の実機検証済判定なし。PHASE A・進捗74/100据え置き。
+- **次20分**：disaster-world.js:tick/history の疫病・隕石・地形永続変化を実プレイで追加し、game.js:recordDisasterEncounters とtrophy-records.jsへ新種災害を接続。**次40分**：UFO/亡霊/異星人の実遭遇・回避/生還イベントを本編実績と図鑑へ接続。**次00分**：game.js:beginDeath/launchGame と家系後継選択・死亡時世界継続、trophy-records.js の残136+ユニーク条件を実装。
+
 ## 2026-11-03 13:40｜40分枠｜亡霊幻覚と永久トロフィー実装｜PHASE=A_FEATURES｜ACTIVE_SPRINT_ID=EXPANSION-V1-YEAR-ERA-WORLD
 - **遊べる新機能**：世界45年以降の既存亡霊AIへ「一定時間近距離で露出すると幻影が周囲に最大3体現れる」を実装。遮蔽物・潜伏時は新規幻覚を停止。幻影は実敵ではなく被ダメージなし、2.8秒で消える。既存の憑依によるSP減少・速度低下とNPC逃走を維持。亡霊に憑依/幻影目撃の2種類のユニークな秘密トロフィーを永久保存台帳へ接続（ゲーム本編のWildApparitions.tick→onEvent→WildTrophies.record）。死亡・新規開始後も台帳維持。
 - **変更SHA**：apparitions.js commit 31149a34（blob 30cf8512）、trophy-records.js 39dbdf3d（blob 1d4aecb6）、game.js eddbb3cf（blob 98b9ab02）、index.html 0ce55328（blob 995534f1）。他ゲーム・ブログ未変更。
