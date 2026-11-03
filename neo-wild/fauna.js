@@ -146,6 +146,32 @@ function weight(type,region,day=1,weather="CLEAR"){
  }
  // Wetland amphibians remain active in rain, but should not flood urban districts.
  if(type==="frog"&&![2,4,5,7].includes(region))w*=.25;
+ // Habitat and seasonal migration affect actual NPC selection, not just the encyclopedia.
+ // City / station / residential districts (0,1,6) are never elephant or lion habitat.
+ // During cold seasons, deer and boar seek sheltered forest and agricultural fringes;
+ // in summer, amphibians concentrate near wetlands rather than paved streets.
+ const season=window.WildWorldClock?.season?.(year) ?? Math.floor(Math.max(0,year)*4)%4;
+ const cold=season===3,summer=season===1;
+ if(cold){
+  if(["deer","boar","serow"].includes(type))w*=([2,5].includes(region)?1.22:.72);
+  if(["frog","snake","venomSnake","hedgehog"].includes(type))w*=.30;
+  if(["manul","tibetanFox"].includes(type)&&[3,5].includes(region))w*=1.12;
+ }
+ if(summer){
+  if(type==="frog")w*=([4,7].includes(region)?1.35:.65);
+  if(type==="otter"&&[4,7].includes(region))w*=1.2;
+ }
+ // Heavy storms make exposed flying birds shelter and reduce open-country hunts.
+ if(["STORM","TYPHOON","HEAVY_RAIN","THUNDER"].includes(weather)){
+  if(["crow","pigeon","shoebill"].includes(type))w*=.22;
+  if(["cheetah","lion","zebra","giraffe"].includes(type))w*=.48;
+  if(["tanuki","badger","blackBear"].includes(type))w*=.72;
+ }
+ // Mountain specialists and scavengers have a natural habitat; keep urban NPC
+ // density from drifting upward as the world year increases.
+ if(type==="serow"&&![2,5].includes(region))w*=.12;
+ if(type==="macaque"&&![2,3,5].includes(region))w*=.18;
+ if(type==="hyena"&&[0,1,6].includes(region))w=0;
  // Carp requires a dedicated aquatic spawn path; never materialize fish on dry roads.
  if(type==="carp")w=0;
  if(type==="otter"&&weather==="SNOW")w*=.55;
