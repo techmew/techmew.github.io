@@ -4,6 +4,10 @@
 (()=>{"use strict";
 const WEST=8300,FOOTHILL_END=10100,SUMMIT_START=11800,EAST=13600,CITY_EDGE=8400;
 const CAVE_START=13040,CAVE_END=13450,CAVE_HALF=110;
+// Northern woodland is reachable directly from the city's north-east edge.
+// Its open western entrance preserves the original eight city districts.
+const northWood=(x,y)=>x>=CITY_EDGE&&x<=10800&&y>=850&&y<=2580;
+const northTrail=x=>1670+210*Math.sin((x-CITY_EDGE)/650);
 const zone=x=>x>=CAVE_START&&x<=CAVE_END?"cave":x>=SUMMIT_START?"summit":x>FOOTHILL_END?"slope":"foothill";
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const center=x=>3770+110*Math.sin((x-WEST)/355)+(x>FOOTHILL_END?95*smooth(clamp((x-FOOTHILL_END)/720,0,1))*Math.sin((x-FOOTHILL_END)/300):0);
@@ -12,8 +16,9 @@ const smooth=t=>t*t*(3-2*t);
 const southReach=x=>720+430*smooth(clamp((x-10220)/520,0,1))*(1-smooth(clamp((x-11450)/430,0,1)));
 const meadowTrail=x=>center(x)+clamp((x-10970)/380,0,1)*720;
 const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35&&Math.abs(x-(10950+28*Math.sin((y-3820)/190)))>65;
-const active=(x,y)=>x>=WEST&&x<=EAST&&y>=2600&&y<=5100;
+const active=(x,y)=>northWood(x,y)||(x>=WEST&&x<=EAST&&y>=2600&&y<=5100);
 function height(x,y){
+ if(northWood(x,y))return Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
  if(x<=WEST)return 0;
  const p=clamp((Math.min(x,FOOTHILL_END)-WEST)/(FOOTHILL_END-WEST),0,1);
  const lateral=clamp(Math.abs(y-center(x))/740,0,1);
@@ -43,6 +48,10 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
   const y=center(x)+clamp(730+(Math.floor(n/7)%5)*52,700,southReach(x)-75);
   return {x,y};
  }
+ if(northWood(player.x,player.y)){
+  const x=clamp(player.x+((n%7)-3)*91,CITY_EDGE+80,10730);
+  return {x,y:clamp(northTrail(x)+((Math.floor(n/7)%7)-3)*110,960,2460)};
+ }
  const direction=n%2?-1:1;
  const bounds=requestedZone==="cave"?[CAVE_START+50,CAVE_END-50]:
   requestedZone==="summit"?[SUMMIT_START+70,EAST-70]:
@@ -54,6 +63,17 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
  return {x,y:center(x)+((n%5)-2)*band/2};
 }
 const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],meadowGrass=[],caveStones=[],caveColumns=[];
+// Deterministic northern trees and food plants participate in existing
+// collision, 2D/3D rendering, and the wildlife population budget.
+for(let x=8530;x<10720;x+=148)for(let j=0;j<9;j++){
+ const y=980+j*166+Math.sin(x*.021+j*2.4)*42;
+ if(Math.abs(y-northTrail(x))<155)continue;
+ const n=Math.sin(x*.018+j*9.37)*128.7,frac=n-Math.floor(n);
+ const px=x+(frac-.5)*55;
+ if(frac>.24)trees.push({x:px,y,r:25+frac*16,z:height(px,y)});
+ else rocks.push({x:px,y,r:15+frac*11,z:height(px,y)});
+ if(j%2===0)ferns.push({x:px+45,y:y+38,r:14+frac*7,z:height(px+45,y+38)});
+}
 const cave=Object.freeze({start:CAVE_START,end:CAVE_END,halfWidth:CAVE_HALF});
 // Visual-only cave mineral seams and wall fragments, shared by 2D and 3D.
 const caveSeams=[],caveWallMarks=[];
@@ -142,6 +162,11 @@ for(const group of [pines,scree]){
 }
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
+ if(northWood(x,y)){
+  if(y<920+r||y>2510-r||x>10720-r)return true;
+  for(const p of [...trees,...rocks])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+  return false;
+ }
  if(y<center(x)-720+r||y>center(x)+southReach(x)-r)return true;
  if(x>=CAVE_START&&x<=CAVE_END&&Math.abs(y-center(x))>CAVE_HALF-r)return true;
   // Only the planked bridge is passable; the creek banks block land animals.
@@ -215,6 +240,11 @@ function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="
 }
 function draw2D(ctx,visible){
  ctx.fillStyle="#344f3b";ctx.fillRect(CITY_EDGE,0,EAST-CITY_EDGE,6000);
+ // Northern woodland: walkable trail, deciduous canopy and real obstacles.
+ ctx.fillStyle="#47694c";ctx.fillRect(CITY_EDGE,850,2400,1730);
+ ctx.strokeStyle="#8b8064";ctx.lineWidth=115;ctx.beginPath();
+ for(let x=CITY_EDGE;x<=10780;x+=60){const y=northTrail(x);if(x===CITY_EDGE)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+ ctx.strokeStyle="#c0b18b";ctx.lineWidth=4;ctx.stroke();
  // Continuous pass from the former city edge; rocky margins are impassable.
  for(let x=WEST;x<EAST;x+=95){
   const x2=Math.min(EAST,x+95),cy=center(x),cy2=center(x2),z=height(x,cy);
@@ -345,6 +375,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();
