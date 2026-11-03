@@ -129,6 +129,55 @@ function migrateSeenTutorial(snapshot){
  if(!debugTutorialSession)try{localStorage.setItem(TUTORIAL_LESSONS_KEY,JSON.stringify([...tutorialLessonsSeenEver]))}catch(_){}
 }
 let autosaveClock=0,weatherTimer=35,nextWeather=null,thunderFlash=0,thunderTimer=10,windDirection=0;
+// V1 storm hazard: the strike position and countdown survive SAVE_SCHEMA=2 snapshots.
+let lightningStrike=null,lightningHistory=[];
+function scheduleLightning(){
+ if(!P)return;
+ // Near misses dominate. Trees and wild animals are real strike targets.
+ const candidates=[{x:P.x+rnd(-235,235),y:P.y+rnd(-235,235),kind:"ground"}];
+ for(const m of mobs)if(m.hp>0&&dist(P,m)<480)candidates.push({x:m.x,y:m.y,kind:"animal"});
+ for(const tree of plants)if(dist(P,tree)<440)candidates.push({x:tree.x,y:tree.y,kind:"tree"});
+ const target=candidates[Math.floor(Math.random()*candidates.length)];
+ if(!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return;
+ lightningStrike={x:clamp(target.x,24,WORLD.w-24),y:clamp(target.y,24,WORLD.h-24),kind:target.kind,countdown:1.65,afterglow:0};
+ notify("落雷予兆！ 地面の光から離れろ",1.8);
+}
+function updateLightning(dt){
+ if(weather!=="THUNDER"){lightningStrike=null;return;}
+ const e=lightningStrike;if(!e)return;
+ if(e.countdown>0){
+  e.countdown-=dt;if(e.countdown>0)return;
+  e.afterglow=.7;thunderFlash=Math.max(thunderFlash,.9);shake=Math.max(shake,3.2);
+  playEffect("thunder",{volume:.8});
+  const radius=65;
+  if(P&&P.hp>0&&Math.hypot(P.x-e.x,P.y-e.y)<radius&&!insideShelter(P)){
+   P.hp=Math.max(0,P.hp-38);P.stun=Math.max(P.stun||0,1.1);
+   P.sp=Math.max(0,P.sp-22);notify("落雷！ ダメージと麻痺");
+  }
+  for(const m of mobs){
+   if(m.hp<=0||Math.hypot(m.x-e.x,m.y-e.y)>=radius)continue;
+   m.hp=Math.max(0,m.hp-45);m.stun=Math.max(m.stun||0,1.8);
+   m.flee=Math.max(m.flee||0,3.5);m.fleeThreatX=e.x;m.fleeThreatY=e.y;
+   if(m.hp===0&&species[m.type]&&!m.lightningCorpseMade){
+    carcasses.push(animalRemains(m));m.lightningCorpseMade=true;
+   }
+  }
+  lightningHistory.push({year:Math.floor(elapsed/120),x:Math.round(e.x),y:Math.round(e.y),kind:e.kind});
+  if(lightningHistory.length>24)lightningHistory.shift();
+  saveAuto();return;
+ }
+ e.afterglow=Math.max(0,e.afterglow-dt);
+ if(e.afterglow===0)lightningStrike=null;
+}
+function drawLightning(){
+ const e=lightningStrike;if(!e)return;
+ const p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
+ ctx.save();ctx.lineWidth=3;ctx.strokeStyle=e.countdown>0?"#ffe47a":"#e6f7ff";
+ ctx.fillStyle=e.countdown>0?"rgba(255,201,62,.24)":"rgba(230,247,255,.35)";
+ const radius=65*cameraZoom;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,TWO);ctx.fill();ctx.stroke();
+ ctx.textAlign="center";ctx.font="bold 13px sans-serif";ctx.fillStyle="#fff4c7";
+ ctx.fillText(e.countdown>0?"落雷予兆！ 逃げろ":"落雷！",p.x,p.y-radius-12);ctx.restore();
+}
 // Presentation-only state: never stored in SAVE_SCHEMA=2.
 const DEATH_SEQUENCE_SECONDS=2.2;
 let deathSequenceTime=0;
@@ -934,7 +983,7 @@ function start(){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=0;day=1;kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;mission=0;missionComplete=false;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(0);weatherTimer=85;nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=[];windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -1044,7 +1093,7 @@ function currentSnapshot(){
   version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,mission,missionComplete,totalScore,
-  weather,weatherTimer,nextWeather,thunderTimer,windDirection,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
+  weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
  };
 }
@@ -1138,6 +1187,9 @@ function restoreSnapshot(snapshot){
  for(const stage of TUTORIAL_STAGES)if(stage<mission||(!debugTutorialSession&&tutorialLessonsSeenEver.has(stage)))tutorialSeen.add(stage);
  if(mission>=7)tutorialSeen.add(7);
  totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
+ lightningStrike=snapshot.lightningStrike&&Number.isFinite(snapshot.lightningStrike.x)&&Number.isFinite(snapshot.lightningStrike.y)&&Number.isFinite(snapshot.lightningStrike.countdown)?
+ {x:clamp(snapshot.lightningStrike.x,24,WORLD.w-24),y:clamp(snapshot.lightningStrike.y,24,WORLD.h-24),kind:String(snapshot.lightningStrike.kind||"ground"),countdown:clamp(snapshot.lightningStrike.countdown,0,2),afterglow:clamp(snapshot.lightningStrike.afterglow||0,0,1)}:null;
+ lightningHistory=Array.isArray(snapshot.lightningHistory)?snapshot.lightningHistory.filter(e=>e&&Number.isFinite(e.year)&&Number.isFinite(e.x)&&Number.isFinite(e.y)).slice(-24):[];
  weatherTimer=Number.isFinite(snapshot.weatherTimer)&&snapshot.weatherTimer>0?snapshot.weatherTimer:rnd(24,45);
  nextWeather=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);
  thunderTimer=Number.isFinite(snapshot.thunderTimer)&&snapshot.thunderTimer>0?snapshot.thunderTimer:9;
@@ -3856,7 +3908,7 @@ function updateWeather(dt){
  const target=debugWeatherOverride||tokyoWeatherAt(elapsed);
  if(weather!==target){
   const previous=weather;weather=target;windDirection=rnd(0,TWO);
-  if(weather==="THUNDER")thunderTimer=rnd(5,11);
+  if(weather==="THUNDER")thunderTimer=rnd(5,11);else lightningStrike=null;
   if(weather==="THUNDER"&&previous!=="RAIN")notify("遠雷と雨雲が近づいている");
   else if(weather==="RAIN"&&previous!=="THUNDER")notify("天候変化：雨");
   else notify("天候変化："+WEATHER_NAMES[weather]);
@@ -3867,8 +3919,8 @@ function updateWeather(dt){
  if(weather==="THUNDER"){
   thunderTimer-=dt;
   if(thunderTimer<=0){
-   thunderFlash=.8+rnd(0,.2);thunderTimer=rnd(5,13);
-   shake=Math.max(shake,1.4);playEffect("thunder",{volume:.65});
+   thunderTimer=rnd(8,16);
+   if(!lightningStrike)scheduleLightning();
   }
  }
 }
@@ -4146,6 +4198,8 @@ function update(dt){
  if(currentWorldYear!==previousWorldYear&&[10,20,50,100,200,300].includes(currentWorldYear))notify('世界'+currentWorldYear+'年到達。生存は続く。');
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
+ updateLightning(dt);
+ if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
@@ -5869,7 +5923,7 @@ function drawScene(){
  }
 
  if(mode!=="dying"){
-  drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
+  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
  // Let the dying animal remain visible briefly before the world closes in.
