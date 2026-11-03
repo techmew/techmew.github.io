@@ -1134,3 +1134,26 @@
 #new-game-confirm strong{color:#ffcf80}
 #new-game-confirm #confirm-new-game-btn{min-height:48px;justify-content:center;text-align:center}
 #new-game-confirm #cancel-new-game-btn{width:100%;min-height:44px;background:#29443f;border:1px solid #77978a;color:#eef6e8;text-align:center;font-size:13px;font-weight:800}
+
+/* 2026-11-03: nine-species menu and native touch access to special hunting. */
+#menu .animal-card{min-width:0}
+#menu .animal-card>span:not(.animal-icon){min-width:0;overflow-wrap:anywhere}
+#menu .animal-card[data-animal="manul"],
+#menu .animal-card[data-animal="tibetanFox"],
+#menu .animal-card[data-animal="shoebill"]{background:linear-gradient(145deg,#28423d,#142522);border-color:#9cad94}
+#menu .animal-card.selected{background:#3e5848!important;border-color:#eac78a!important}
+#species-skill-status{color:#dceac4;font-size:clamp(9px,1.45dvh,11px);font-weight:800;line-height:1.4;margin:2px 0 5px;text-shadow:0 1px 3px #000c}
+#species-skill-status.hidden{display:none!important}
+#touch-layer .touch-actions #species-skill-touch{
+ position:static!important;grid-column:3!important;grid-row:1!important;
+ display:flex!important;align-items:center;justify-content:center;flex-direction:column;
+ background:radial-gradient(circle at 38% 20%,#648a88,#294d54)!important;
+ border:1.5px solid #b2e7d4!important;color:#ecfff4!important;
+ z-index:2!important;touch-action:none!important;user-select:none;
+}
+#touch-layer .touch-actions #species-skill-touch span{font-size:clamp(19px,3dvh,26px)!important}
+#touch-layer .touch-actions #species-skill-touch small{font-size:clamp(8px,1.12dvh,10px)!important}
+#touch-layer .touch-actions #species-skill-touch.down{filter:brightness(1.4)}
+@media (orientation:portrait) and (max-width:600px){
+ #menu .animal-card[data-animal="tibetanFox"] b{font-size:9.5px!important;line-height:1.22}
+}
