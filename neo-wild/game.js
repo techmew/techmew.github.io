@@ -1073,7 +1073,7 @@ function start(newWorld=false){
  P.stillTime=0;P.beakStrike=false;P.beakVisual=0;
  initializeLife(P,elapsed);
  // World geometry can change between releases. Never begin a run inside water or a wall.
- if(waterBlocksLand(P.x,P.y)){
+ if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
   const bank=nearestDryBank(P.x,P.y,P.r);
   if(bank){P.x=bank.x;P.y=bank.y;}
  }
@@ -1258,7 +1258,7 @@ function restoreSnapshot(snapshot){
  P.poisonTime=clamp(Number(P.poisonTime)||0,0,9);
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
- if(waterBlocksLand(P.x,P.y)){const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}}
+ if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}}
  const roof=roofAt(P.x,P.y);
  P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
  P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
@@ -2500,7 +2500,12 @@ function move(o,dx,dy){
  // A complete diagonal step is checked first to avoid axis-order corner jamming.
  // If blocked, slide on the unobstructed axis instead of cutting through walls or water.
  const previous=waterDepth(o.x,o.y),actor=o===P?o:null;
- const allowed=(x,y,d)=>!waterBlocksLand(x,y)||(d>.0001&&waterDepth(x,y)<d-.00001);
+ const allowed=(x,y,d)=>{
+   const water=waterDepth(x,y);
+   // Shoebills are wading birds: walk into shallows, not across deep channels.
+   if(o===P&&o.type==="shoebill"&&water<=.24)return true;
+   return water<=.0001||(d>.0001&&water<d-.00001);
+  };
  const canStep=(x,y,d)=>allowed(x,y,d)&&!collides(x,y,o.r,actor,true);
  if(dx&&dy&&canStep(o.x+dx,o.y+dy,previous)){
   o.x+=dx;o.y+=dy;
@@ -4678,7 +4683,7 @@ function update(dt){
     P.sp=Math.max(0,P.sp-43*dt);
     if(P.sp<=10)P.sprintExhausted=true;
    }
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
@@ -6624,7 +6629,7 @@ function resetControls(){
   for(const id of orbitPointers.keys()){try{gameSurface.releasePointerCapture?.(id)}catch(_){}}
   orbitPointers.clear();lastPinchDistance=0;
  if(knob)knob.style.transform="translate(0,0)";
- for(const id of ["attack-touch","dash-touch","jump-touch","action-touch"])$(id).classList.remove("down");
+ for(const id of ["attack-touch","dash-touch","jump-touch","action-touch","species-skill-touch"])$(id).classList.remove("down");
 }
 function togglePause(){
  if(mode==="play"){
@@ -6888,7 +6893,7 @@ stick.addEventListener("pointerdown",e=>{if(mode!=="play"||joy.id!==null)return;
 stick.addEventListener("pointermove",e=>{if(mode==="play"&&e.pointerId===joy.id)updateStick(e)});
 function clearStick(e){if(e.pointerId!==joy.id)return;joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}
 stick.addEventListener("pointerup",clearStick);stick.addEventListener("pointercancel",clearStick);stick.addEventListener("lostpointercapture",e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=0;joy.y=0;knob.style.transform="translate(0,0)"}});
-for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","attack"]]){
+for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jump-touch","jump"],["attack-touch","attack"],["species-skill-touch","instinct"]]){
  const b=$(id),pointers=new Set();activeTouchPointers.set(id,pointers);
  let longFired=false,pressStarted=0;
  b.addEventListener("pointerdown",e=>{
@@ -6899,6 +6904,7 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   pressStarted=performance.now();longFired=false;
   
   if(action==="jump"){act("jump");return}
+  if(action==="instinct"){act("instinct");return}
   if(action==="attack"){heldActions.touchAttack=true;act("attack");return}
   if(action==="dash"||action==="context"){
    const timer=setTimeout(()=>{
