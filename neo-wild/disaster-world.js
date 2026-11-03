@@ -237,7 +237,7 @@ function tick(dt,api){
  }
  lastYear=year;
 }
-function draw(ctx,project,year){
+function draw(ctx,project,year,webglActive=false){
  for(const e of events)if(e.kind==="wildfire"&&active(e,year)){
   const p=project(e.x,e.y);if(!p)continue;
   ctx.save();ctx.fillStyle="rgba(235,87,22,.23)";ctx.strokeStyle="#f9a044";ctx.lineWidth=2;
@@ -262,10 +262,18 @@ function draw(ctx,project,year){
   ctx.font="bold 14px sans-serif";ctx.fillStyle="#dff7ff";ctx.textAlign="center";
   ctx.fillText("氾濫警戒・避難",p.x,p.y-58);ctx.restore();
  }}
- for(const e of events){if(e.kind==="flood"||!active(e,year))continue;const p=project(e.x,e.y);if(!p)continue;
-  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(-.45);ctx.fillStyle="#52351e";ctx.strokeStyle="#281e14";ctx.lineWidth=3;
-  ctx.fillRect(-43,-9,86,18);ctx.strokeRect(-43,-9,86,18);
-  ctx.fillStyle="#60783e";ctx.beginPath();ctx.arc(-35,0,18,0,Math.PI*2);ctx.fill();ctx.restore();
+ for(const e of events){if(e.kind!=="fallen_tree"||!active(e,year)||webglActive)continue;const p=project(e.x,e.y);if(!p)continue;
+  // Canvas fallback: tapered bark, roots, irregular boughs and layered leaves.
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(-.45);
+  ctx.fillStyle="rgba(9,17,12,.28)";ctx.beginPath();ctx.ellipse(0,9,65,18,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#5c4432";ctx.beginPath();ctx.moveTo(-48,-12);ctx.lineTo(43,-5);ctx.lineTo(43,5);ctx.lineTo(-48,13);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#967252";ctx.lineWidth=2;
+  for(let k=0;k<6;k++){const x=-34+k*13;ctx.beginPath();ctx.moveTo(x,-8+k*.45);ctx.lineTo(x+9,6-k*.3);ctx.stroke();}
+  ctx.fillStyle="#b18b65";ctx.beginPath();ctx.ellipse(-48,0,10,13,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#75563a";ctx.lineWidth=5;
+  for(let k=0;k<5;k++){const x=3+k*10,y=k%2?13:-13;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+9,y);ctx.stroke();}
+  for(let k=0;k<7;k++){const x=17+k*8,y=(k%3-1)*12;ctx.fillStyle=k%2?"#3c7145":"#56835a";ctx.beginPath();ctx.ellipse(x,y,15-k*.5,11,0,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
  }
  if(warning){const p=project(warning.x,warning.y);if(p){ctx.save();ctx.strokeStyle="#ffbd4b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,45,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#fff0bc";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText("地震・倒木に注意",p.x,p.y-52);ctx.restore();}}
 }
