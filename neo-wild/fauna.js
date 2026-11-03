@@ -1,25 +1,25 @@
 /* Ordinary wildlife distribution: safe to load before game.js. */
 (()=>{"use strict";
 const species={
- serow:{hp:136,r:23,speed:244,damage:11,prey:true,xp:5,food:57,color:"#756b5c",belly:"#c1b6a0"},
- mountainGoat:{hp:154,r:25,speed:207,damage:18,prey:true,xp:5,food:64,color:"#c9bba0",belly:"#f2e7d5"},
- chimpanzee:{hp:154,r:26,speed:178,damage:19,prey:false,xp:6,food:66,color:"#3c3733",belly:"#887568"},
- macaque:{hp:88,r:19,speed:195,damage:12,prey:false,xp:4,food:38,color:"#867361",belly:"#c5b39c"},
- strayCat:{hp:58,r:17,speed:212,damage:10,prey:false,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
- snake:{hp:38,r:14,speed:122,damage:5,prey:true,xp:2,food:22,color:"#587b50",belly:"#abc68f"},
- venomSnake:{hp:52,r:15,speed:154,damage:8,prey:false,xp:3,food:26,color:"#4d5d28",belly:"#ead16c"},
+ serow:{hp:136,r:23,speed:265,damage:11,prey:true,xp:5,food:57,color:"#756b5c",belly:"#c1b6a0"},
+ mountainGoat:{hp:154,r:25,speed:231,damage:18,prey:true,xp:5,food:64,color:"#c9bba0",belly:"#f2e7d5"},
+ chimpanzee:{hp:154,r:26,speed:187,damage:19,prey:false,xp:6,food:66,color:"#3c3733",belly:"#887568"},
+ macaque:{hp:88,r:19,speed:210,damage:12,prey:false,xp:4,food:38,color:"#867361",belly:"#c5b39c"},
+ strayCat:{hp:58,r:17,speed:250,damage:10,prey:false,xp:2,food:28,color:"#9d9989",belly:"#ded9cb"},
+ snake:{hp:38,r:14,speed:104,damage:5,prey:true,xp:2,food:22,color:"#587b50",belly:"#abc68f"},
+ venomSnake:{hp:52,r:15,speed:124,damage:8,prey:false,xp:3,food:26,color:"#4d5d28",belly:"#ead16c"},
  crow:{hp:25,r:14,speed:174,damage:2,prey:true,xp:1,food:20,color:"#313b44",belly:"#777a83"},
- raccoonDog:{hp:78,r:20,speed:148,damage:8,prey:false,xp:2,food:41,color:"#89755b",belly:"#c5ad89"},
- wildFox:{hp:67,r:19,speed:215,damage:12,prey:false,xp:3,food:40,color:"#bc7752",belly:"#e8d6b5"},
- weasel:{hp:34,r:12,speed:220,damage:6,prey:false,xp:2,food:21,color:"#ae906a",belly:"#ddc7a7"},
+ raccoonDog:{hp:78,r:20,speed:160,damage:8,prey:false,xp:2,food:41,color:"#89755b",belly:"#c5ad89"},
+ wildFox:{hp:67,r:19,speed:274,damage:12,prey:false,xp:3,food:40,color:"#bc7752",belly:"#e8d6b5"},
+ weasel:{hp:34,r:12,speed:250,damage:6,prey:false,xp:2,food:21,color:"#ae906a",belly:"#ddc7a7"},
  frog:{hp:14,r:10,speed:125,damage:0,prey:true,xp:1,food:12,color:"#75a66a",belly:"#b6d6a0"},
- deer:{hp:142,r:27,speed:220,damage:6,prey:true,xp:4,food:69,color:"#aa8865",belly:"#e0cbaa"},
- cheetah:{hp:96,r:23,speed:345,damage:19,prey:false,xp:6,food:54,color:"#d4b174",belly:"#eedbb1"},
- giraffe:{hp:245,r:35,speed:177,damage:25,prey:false,xp:9,food:105,color:"#c99e65",belly:"#ead09f"},
- zebra:{hp:126,r:26,speed:237,damage:13,prey:true,xp:5,food:71,color:"#dfdbca",belly:"#404245"},
- lion:{hp:245,r:37,speed:203,damage:27,prey:false,xp:9,food:108,color:"#bc8e56",belly:"#e7c89b"},
- elephant:{hp:560,r:55,speed:124,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
- hippo:{hp:425,r:46,speed:140,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
+ deer:{hp:142,r:27,speed:286,damage:6,prey:true,xp:4,food:69,color:"#aa8865",belly:"#e0cbaa"},
+ cheetah:{hp:96,r:23,speed:414,damage:19,prey:false,xp:6,food:54,color:"#d4b174",belly:"#eedbb1"},
+ giraffe:{hp:245,r:35,speed:263,damage:25,prey:false,xp:9,food:105,color:"#c99e65",belly:"#ead09f"},
+ zebra:{hp:126,r:26,speed:295,damage:13,prey:true,xp:5,food:71,color:"#dfdbca",belly:"#404245"},
+ lion:{hp:245,r:37,speed:340,damage:27,prey:false,xp:9,food:108,color:"#bc8e56",belly:"#e7c89b"},
+ elephant:{hp:560,r:55,speed:173,damage:34,prey:false,xp:13,food:175,color:"#818c86",belly:"#b1bbb0"},
+ hippo:{hp:425,r:46,speed:192,damage:30,prey:false,xp:12,food:140,color:"#807875",belly:"#b7a4a1"}
 };
 const types=["rat","rabbit","pigeon","dog","boar","strayCat","snake","crow","raccoonDog","wildFox","weasel","frog","deer","venomSnake","cheetah","giraffe","zebra","lion","elephant","hippo","macaque","chimpanzee","serow","mountainGoat"];
 const weights=[
