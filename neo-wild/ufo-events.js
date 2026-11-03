@@ -16,13 +16,13 @@ try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))hist
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function record(kind,year,x,y){history.push({kind,year,x:Math.round(x),y:Math.round(y)});history=history.slice(-MAX_HISTORY);try{localStorage.setItem(key,JSON.stringify(history))}catch(_){}}
 function resetTransient(){event=null;cooldown=80/3;persist()}
-function summon(x,y){event={x,y,t:0,stage:"approach",beam:0,victim:null,npcBeam:0,originX:x,originY:y};persist();return event}
+function summon(x,y,formation=false){event={x,y,t:0,stage:"approach",beam:0,victim:null,npcBeam:0,originX:x,originY:y,formation:!!formation,wingmen:formation?[{dx:-155,dy:85,victim:null,beam:0},{dx:155,dy:-85,victim:null,beam:0}]:[]};persist();return event}
 function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
  traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
  persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
- if(!event){cooldown=Math.max(0,cooldown-dt);if(eraYear(year)>=50&&cooldown===0&&Math.random()<dt/(950/3)){summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420);cooldown=420/3;world.notify("空に正体不明の円盤が現れた！")};return}
+ if(!event){cooldown=Math.max(0,cooldown-dt);if(eraYear(year)>=50&&cooldown===0&&Math.random()<dt/(950/3)){const formation=eraYear(year)>=100&&Math.random()<0.085;summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420,formation);cooldown=formation?240:420/3;world.notify(formation?"複数の円盤が飛来！ 動物たちが逃げ始めた":"空に正体不明の円盤が現れた！")};return}
  const e=event;e.t+=dt;
  if(e.stage==="approach"&&e.t>=3){e.stage="scan";e.t=0;world.notify("謎の光線！ 遮蔽物に隠れるか逃げろ")}
  if(e.stage==="scan"){
@@ -30,6 +30,29 @@ function tick(dt,world){
   const visible=!P.hidden&&!safeBlocked(world,P,e);
   const target=visible?P:mobs.filter(m=>m.hp>0&&!m.companion).sort((a,b)=>distance(a,e)-distance(b,e))[0];
   if(target){const d=distance(e,target);if(d>12){const step=Math.min(d,Math.min(72,20+e.t*3)*dt);e.x+=(target.x-e.x)/d*step;e.y+=(target.y-e.y)/d*step}}
+  // Rare formation: escort saucers independently lock onto wildlife. They never bypass cover.
+  if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
+   const spot={x:e.x+wing.dx,y:e.y+wing.dy};
+   const nearby=mobs.filter(a=>a.hp>0&&!a.companion&&distance(a,spot)<beamRange&&!safeBlocked(world,a,spot)).sort((a,b)=>distance(a,spot)-distance(b,spot));
+   const prey=nearby[0],id=prey&&(prey.id??prey.uid??prey);
+   if(!prey){wing.victim=null;wing.beam=0;continue}
+   if(wing.victim!==id){wing.victim=id;wing.beam=0}
+   wing.beam+=dt;
+   prey.flee=Math.max(Number(prey.flee)||0,3.5);
+   prey.alert=Math.max(Number(prey.alert)||0,3.5);
+   prey.lastX=spot.x;prey.lastY=spot.y;
+   if(wing.beam<2.8)continue;
+   const species=String(prey.species??prey.type??prey.kind??prey.name??"不明な動物");
+   prey.hp=0;prey.dead=true;prey._killRegistered=true;prey._ufoAbducted=true;
+   prey.corpse=false;prey.meat=0;prey.food=0;
+   const idx=mobs.indexOf(prey);if(idx>=0)mobs.splice(idx,1);
+   record("NPC誘拐:"+species,year,prey.x,prey.y);
+   trace("NPC誘拐",year,prey.x,prey.y);
+   world.onEvent?.("ufo-npc-abduction",{year,x:prey.x,y:prey.y,species,removed:true,formation:true});
+   for(const other of mobs){if(other.hp>0&&distance(other,prey)<260){other.flee=Math.max(Number(other.flee)||0,4.5);other.alert=Math.max(Number(other.alert)||0,4.5)}}
+   world.notify("円盤群が動物を連れ去った！");
+   wing.victim=null;wing.beam=0;
+  }
   // NPC can be abducted before the player: nearest living wildlife in beam.
   const targets=mobs.filter(m=>m.hp>0&&!m.companion&&distance(m,e)<beamRange&&!safeBlocked(world,m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
   // All nearby animals react; only the locked victim is subject to capture.
@@ -76,6 +99,13 @@ function draw(ctx,project,world){
  for(const mark of traces){const q=project(mark.x,mark.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
  if(!event)return;
  const e=event,p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
+ if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
+  const w=project(e.x+wing.dx,e.y+wing.dy);if(!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
+  ctx.save();ctx.translate(w.x,w.y-95);ctx.fillStyle="#273d51";ctx.strokeStyle="#a5e9ff";ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(0,0,26,9,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  if(e.stage==="scan"){ctx.fillStyle="rgba(131,235,252,0.18)";ctx.beginPath();ctx.moveTo(-10,8);ctx.lineTo(-65,95);ctx.lineTo(65,95);ctx.lineTo(10,8);ctx.fill()}
+  ctx.restore();
+ }
  const radius=35+Math.sin(e.t*5)*3;
  ctx.save();ctx.translate(p.x,p.y-110);ctx.fillStyle="#1b2837";ctx.strokeStyle="#a5e9ff";ctx.lineWidth=3;
  ctx.beginPath();ctx.ellipse(0,0,radius,13,0,0,Math.PI*2);ctx.fill();ctx.stroke();
