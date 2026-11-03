@@ -3679,7 +3679,7 @@ function finish(won=false){
  $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  renderTopScores(scoreRecord);
  $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
- show("result");if(!won&&partySurvivors?.members?.length)showSquadDeathPicker(partySurvivors);
+ $("squad-party-hud")?.classList.add("hidden");show("result");if(!won&&partySurvivors?.members?.length)showSquadDeathPicker(partySurvivors);
  else $("squad-death-choice")?.classList.add("hidden");
  if(!deathAlreadyPlayed)playEffect(won?"level":"death");
 }
@@ -4540,6 +4540,11 @@ function updateCompanion(m,dt){
   }
  }
  const d=goal?dist(m,goal):0;
+ if(m.squadIndividualId&&order==="follow"&&dist(P,m)>850&&!partyCombat()){
+  const mates=mobs.filter(q=>q.squadIndividualId&&q.hp>0);
+  const spot=partySpawnPosition(Math.max(0,mates.findIndex(q=>q.squadIndividualId===m.squadIndividualId)));
+  m.x=spot.x;m.y=spot.y;
+ }
  const ox=m.x,oy=m.y;
  if(goal&&d>(enemy?m.r+enemy.r+21:m.squadIndividualId?28:70)&&d<1500){
   const a=routeClear(m,goal,m.r)?Math.atan2(goal.y-m.y,goal.x-m.x):steerPursuit(m,goal.x,goal.y);
@@ -6563,7 +6568,7 @@ function drawScene(){
   ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
   ctx.beginPath();ctx.ellipse(pos.x,ringY+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
   ctx.textAlign="center";ctx.font="900 11px sans-serif";ctx.lineWidth=3;
-  if(!P.hidden){
+  if(!P.hidden&&!P.squadIndividualId){
    ctx.strokeStyle="#102222";ctx.strokeText("YOU",pos.x,headY-52);
    ctx.fillStyle="#e7f7e4";ctx.fillText("YOU",pos.x,headY-52);
   }
@@ -6867,7 +6872,7 @@ function squadCommand(cmd){
 function syncSquadHud(){
  const root=$("squad-party-hud"),slots=$("squad-party-members");if(!root||!slots)return;
  const roster=P?.squadIndividualId?window.WildSquad?.load?.():null;
- root.classList.toggle("hidden",!roster?.members?.length);
+ root.classList.toggle("hidden",!roster?.members?.length||!["play","pause"].includes(mode));
  if(!roster?.members?.length)return;
  const ids=roster.members.map(m=>m.id).join("|");
  if(slots.dataset.ids!==ids){
@@ -7033,7 +7038,7 @@ function returnToTitleFromDeath(){
  deathSequenceTime=0;
  window.WildAudio?.resetDeathFade?.();
  $("hud").style.opacity="";
- resetControls();mode="menu";show("menu");
+ resetControls();mode="menu";$("squad-party-hud")?.classList.add("hidden");show("menu");
  return true;
 }
 $("menu-btn").addEventListener("click",()=>{
