@@ -2319,6 +2319,7 @@ function landOnSurface(){
 function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
  if(MOUNTAIN?.blocked(x,y,r,mountainIgnore))return true;
+ if(window.WildDisaster?.blocked(x,y,r,elapsed/120))return true;
  if(!ignoreWater&&waterBlocksLand(x,y))return true;
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
@@ -4251,6 +4252,7 @@ function update(dt){
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateLightning(dt);
+ window.WildDisaster?.tick?.(dt,{P,mobs,elapsed,mode,notify,collides,WORLD});
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath});
  if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
@@ -6002,6 +6004,7 @@ function drawScene(){
 
  if(mode!=="dying"){
   window.WildUFO?.draw?.(ctx,project,{mode});
+  window.WildDisaster?.draw?.(ctx,project,elapsed/120);
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
