@@ -3,7 +3,7 @@
  * A companion occupies a normal wildlife slot and uses normal collision.
  */
 (()=>{"use strict";
- const speciesFor={fox:"wildFox",cat:"strayCat",wolf:"dog"};
+ const speciesFor={fox:"wildFox",cat:"strayCat",wolf:"dog",dog:"dog",deer:"dog",boar:"boar",manul:"strayCat",tibetanFox:"wildFox",shoebill:"crow"};
  const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  function create(owner,x,y,species){
   const type=speciesFor[owner],s=species?.[type];
