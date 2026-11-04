@@ -87,7 +87,9 @@ function fillVacancy(member){
  const saved=save(r);
  return {ok:true,roster:saved};
 }
+function release(id){const r=load();if(!r||!r.members.some(m=>m.id===id))return {ok:false};const d=dead();d.add(id);saveDead(d);r.members=r.members.filter(m=>m.id!==id);if(r.leaderId===id)r.leaderId=r.members.find(m=>playable.has(m.species))?.id||r.members[0]?.id||null;return {ok:true,roster:save(r)};}
+function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);return true;}
 function livingCount(){return load()?.members?.length||0}
 function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
-window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,grantTickets,fillVacancy,livingCount,rarity,KEY,DEAD};
+window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,grantTickets,fillVacancy,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
 })();
