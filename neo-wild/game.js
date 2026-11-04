@@ -18,18 +18,16 @@ const animals={
  tibetanFox:{name:"チベットスナギツネ",hp:108,speed:257,damage:22,rate:.40,r:20,color:"#b8a18b",belly:"#f0deca",ear:"#8a7767"},
  shoebill:{name:"ハシビロコウ",hp:148,speed:142,damage:32,rate:.72,r:27,color:"#7d8990",belly:"#acb7ba",ear:"#57646b"}
 };
-const LIFE_YEARS={cat:[12,18],dog:[10,15],fox:[4,8],wolf:[8,13],deer:[12,20],boar:[10,16],manul:[8,12],tibetanFox:[6,12],shoebill:[25,35]};
+// SOLO5: no lifespan cap. Legacy fields remain readable for SAVE_SCHEMA2 migration.
 function initializeLife(player,seconds,restored=false){
  if(!player)return;
- const limits=LIFE_YEARS[player.type]||[10,16];
- if(!Number.isFinite(player.bornAtWorldSeconds))player.bornAtWorldSeconds=restored?Math.max(0,seconds-120*2):seconds;
- if(!Number.isFinite(player.lifespanYears)||player.lifespanYears<limits[0]||player.lifespanYears>limits[1]){
-  const seed=Math.abs(Math.sin(player.bornAtWorldSeconds*.017+player.x*.00071+player.y*.00019+limits[1]));
-  player.lifespanYears=limits[0]+Math.floor(seed*(limits[1]-limits[0]+1));
- }
+ if(!Number.isFinite(player.bornAtWorldSeconds))player.bornAtWorldSeconds=restored?Math.max(0,seconds-240):seconds;
  player.ageYears=Math.max(0,(seconds-player.bornAtWorldSeconds)/120);
- player.ageWarningStage=Number.isInteger(player.ageWarningStage)?player.ageWarningStage:0;
+ // Age is descriptive only. Never assign or enforce a lifespan.
+ delete player.lifespanYears;
+ delete player.ageWarningStage;
 }
+
 const species={
  rat:{hp:22,r:12,speed:131,damage:0,prey:true,xp:1,food:27,color:"#9b8b81",belly:"#d2bbb0"},
  rabbit:{hp:30,r:15,speed:204,damage:0,prey:true,xp:1,food:33,color:"#c8b899",belly:"#f0e5d5"},
@@ -5344,7 +5342,7 @@ function syncHUD(hour){
  syncSquadHud();
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
- $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?(P.squadIndividualId?"｜年齢 "+P.ageYears.toFixed(1)+"歳":"｜"+P.ageYears.toFixed(1)+"歳 / 寿命"+P.lifespanYears+"年"):"");
+ $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?(P.squadIndividualId?"｜年齢 "+P.ageYears.toFixed(1)+"歳":"｜年齢 "+P.ageYears.toFixed(1)+"歳"):"");
  $("poison-status").classList.toggle("hidden",!(P.poisonTime>0));
  if(P.poisonTime>0)$("poison-status").textContent="☠ 毒 "+Math.ceil(P.poisonTime)+"秒｜生命が減少";
  $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜空腹に注意":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
@@ -7731,7 +7729,7 @@ function debugRunCase(id){
   else if(key==="nearDeath")P.hp=1;
   else if(key==="invincible")P.inv=6;
   else if(key==="carry")P.carry={type:"meat",animalType:"rabbit",amount:22};
-  else if(key==="oldAge"){initializeLife(P,elapsed,true);P.bornAtWorldSeconds=elapsed-(P.lifespanYears-.6)*120;P.ageYears=P.lifespanYears-.6;}
+  else if(key==="oldAge")return no("寿命・老衰死は廃止されています");
   else if(key==="hide"){
    const cover=plants.filter(visibleShrub).sort((a,b)=>dist(P,a)-dist(P,b)).find(p=>dist(P,p)<1100&&!collides(p.x,p.y,P.r,P)&&!waterBlocksLand(p.x,p.y));
    if(!cover||!debugTeleport(cover.x,cover.y))return no("潜伏できる茂みが見つかりません");
