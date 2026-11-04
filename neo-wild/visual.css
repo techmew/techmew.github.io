@@ -1507,3 +1507,13 @@
 @media(max-height:520px){
  #tutorial-dialog #tutorial-permadeath{font-size:11px;padding:5px 7px;margin:2px 0 0;line-height:1.35;}
 }
+
+/* SOLO3_TOTAL_20261105: one directly controlled + two stored animals.
+   Additional grandfathered fourth/fifth cards remain visible, never deleted. */
+#menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;}
+@media(max-width:700px){
+ #menu #squad-roster{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
