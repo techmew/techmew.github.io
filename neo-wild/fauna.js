@@ -252,12 +252,29 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  // The pressure is bounded and never adds a spawn or bypasses habitat/era locks.
  const recentPrey=history.slice(-8).filter(type=>["rat","rabbit","pigeon","frog","deer","zebra","armadillo","hedgehog"].includes(type)).length;
  const recentPredators=history.slice(-8).filter(type=>["wildFox","strayCat","snake","venomSnake","lion","tiger","cheetah","hyena","wildDog","blackBear"].includes(type)).length;
+ // Existing encounter history drives a bounded food-chain cycle without spawning extra NPCs.
+ // A run of grazing animals attracts hunters; repeated hunting disperses grazers.
+ const recentGrazers=history.slice(-6).filter(type=>["deer","boar","serow","zebra","giraffe"].includes(type)).length;
+ const recentHunters=history.slice(-6).filter(type=>["lion","tiger","cheetah","hyena","wildDog","blackBear","wildFox"].includes(type)).length;
+ const herdWindow=recentGrazers>=2&&recentHunters===0;
+ const disturbedHerd=recentHunters>=2;
+
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
   if(w>0&&!preyOnly){
    const same=history.slice(-4).filter(previous=>previous===type).length;
    if(same)w*=Math.pow(.46,same);
    if(apexTypes.has(type)&&recentApex)w*=recentApex>=2?.04:.28;
+   // Grazers briefly gather in food-rich habitats, but predators break the herd.
+   // Do not override biome/year locks (zero weights remain zero).
+   if(["deer","boar","serow","zebra","giraffe"].includes(type)){
+    if(herdWindow)w*=1.22;
+    if(disturbedHerd)w*=.64;
+   }
+   if(["lion","tiger","cheetah","hyena","wildDog","blackBear","wildFox"].includes(type)){
+    if(herdWindow)w*=1.18;
+    if(recentGrazers===0)w*=.68;
+   }
    // Predators trail prey rather than repeatedly appearing in empty habitats.
    if(["wildFox","strayCat","snake","venomSnake","lion","tiger","cheetah","hyena","wildDog"].includes(type))
     w*=recentPrey===0?.52:Math.min(1.20,.72+recentPrey*.12);
