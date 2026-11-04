@@ -41,26 +41,26 @@ function generate(year=0,explored=0,poorStreak=0){
 }
 function assignSlots(members){
  const used=new Set();return members.map(m=>{
-  const slot=Number.isInteger(m.slotIndex)&&m.slotIndex>=0&&m.slotIndex<3&&!used.has(m.slotIndex)?m.slotIndex:[0,1,2].find(i=>!used.has(i));
+  const slot=Number.isInteger(m.slotIndex)&&m.slotIndex>=0&&m.slotIndex<5&&!used.has(m.slotIndex)?m.slotIndex:[0,1,2,3,4].find(i=>!used.has(i));
   used.add(slot);return {...m,slotIndex:slot};
  }).sort((a,b)=>a.slotIndex-b.slotIndex);
 }
 function targetSlot(member,members){
  const occupied=new Set(members.map(m=>m.slotIndex));
- const i=Number.isInteger(member?.slotIndex)?member.slotIndex:[0,1,2].find(n=>!occupied.has(n));
- return i>=0&&i<3&&!occupied.has(i)?i:null;
+ const i=Number.isInteger(member?.slotIndex)?member.slotIndex:[0,1,2,3,4].find(n=>!occupied.has(n));
+ return i>=0&&i<5&&!occupied.has(i)?i:null;
 }
-function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,3))}}
-function save(roster){const d=dead(),seen=new Set();const members=assignSlots((Array.isArray(roster?.members)?roster.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,3));const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
+function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5))}}
+function save(roster){const d=dead(),seen=new Set();const members=assignSlots((Array.isArray(roster?.members)?roster.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
 function newSquad(members,leaderId){
  // The title UI is not a security boundary: never erase living animals via a stale dialog.
  const existing=load();
  if(existing?.members?.length)throw Error("生存中の編成は破棄できません。空き枠は巣で補充してください");
- if(!Array.isArray(members)||members.length<1||members.length>3||
+ if(!Array.isArray(members)||members.length<1||members.length>5||
     members.some(m=>!m?.id||!playable.has(m.species)||m.alive===false||dead().has(m.id))||
     new Set(members.map(m=>m.id)).size!==members.length)
-   throw Error("編成は操作可能な1〜3体、重複・死亡個体は禁止");
+   throw Error("編成は操作可能な1〜5体、重複・死亡個体は禁止");
  if(!members.some(m=>m.id===leaderId))throw Error("操作するリーダーを選択してください");
  return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0,pendingStart:true,newWorldOnStart:localStorage.getItem(RESET_NEW_WORLD)==="1"||!read("wild-reclaim-world-chronicle-v1",null)});
 }
@@ -91,7 +91,7 @@ function grantTickets(amount=1){
  return save(r);
 }
 function fillVacancy(member){
- const r=load();if(!r||!Array.isArray(r.members)||r.members.length>=3)return {ok:false,reason:"空き枠がありません"};
+ const r=load();if(!r||!Array.isArray(r.members)||r.members.length>=5)return {ok:false,reason:"空き枠がありません"};
  if(!member||!member.id||!playable.has(member.species)||member.alive===false||dead().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
  if((r.gachaTickets||0)<1)return {ok:false,reason:"ガチャ権が不足しています"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
@@ -102,7 +102,7 @@ function fillVacancy(member){
 function release(){return {ok:false,reason:"生存個体の破棄は禁止です。死亡時のみ編成枠が空きます"};}
 function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);localStorage.setItem(RESET_NEW_WORLD,"1");return true;}
 function addInitialSlot(member){
- const r=load();if(!r?.pendingStart||r.members.length>=3)return {ok:false,reason:"新規編成中の空き枠ではありません"};
+ const r=load();if(!r?.pendingStart||r.members.length>=5)return {ok:false,reason:"新規編成中の空き枠ではありません"};
  if(!member?.id||!playable.has(member.species)||member.alive===false||dead().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
  r.members.push({...member,slotIndex:slot,alive:true});return {ok:true,roster:save(r)};
