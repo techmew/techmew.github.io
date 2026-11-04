@@ -6902,8 +6902,12 @@ function drawScene(){
  }
  if(use3D){
   for(const m of mobs){
-   if(!visible(m.x,m.y,80)||species[m.type].prey||m.hp>=m.maxHp)continue;
-   const pos=project(m.x,m.y),pct=clamp(m.hp/m.maxHp,0,1),barY=pos.y-m.r-39;
+   if(!visible(m.x,m.y,80)||species[m.type].prey||m.hp>=m.maxHp||lineBlocked(P,m))continue;
+   // HP bars must use the same lifted position as the WebGL animal.
+   const lift=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
+   const pos=projectGroundLabel(m.x,m.y,lift),pct=clamp(m.hp/m.maxHp,0,1);
+   const barY=pos.y-m.r*cameraZoom-16;
+   if(barY<22||barY>vh-18||pos.x<20||pos.x>vw-20)continue;
    ctx.fillStyle="#091517d9";ctx.fillRect(pos.x-22,barY,44,6);
    ctx.fillStyle="#ee9d79";ctx.fillRect(pos.x-22,barY,44*pct,6);
   }
