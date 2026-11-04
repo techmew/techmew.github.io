@@ -1402,3 +1402,16 @@
   font-size:clamp(12px,3.2vw,17px)!important;font-weight:900!important;
   border-radius:6px!important;box-shadow:0 0 0 2px #f8c65c!important;
 }
+
+/* SOLO5-ROSTER-DETAIL-20261104: distinguish animal identity and progression. */
+#menu #squad-roster .squad-roster-slot{position:relative;min-width:0;padding:7px 5px!important;gap:3px!important;touch-action:manipulation}
+#menu #squad-roster .squad-roster-slot[aria-current="true"]{outline:3px solid #f4d477!important;outline-offset:-3px;box-shadow:0 0 0 2px #173d35,0 0 14px #f1cb6855!important}
+#menu #squad-roster .squad-species-label{font-weight:800!important;color:#cce7d7!important;font-size:11px!important}
+#menu #squad-roster .squad-individual-name{font-size:clamp(12px,2.8vw,16px)!important;font-weight:900!important;line-height:1.18!important;overflow-wrap:anywhere;white-space:normal!important}
+#menu #squad-roster .squad-individual-rank{font-weight:800!important;color:#ffe4a4!important;font-size:10px!important}
+#menu #squad-roster .squad-individual-growth{font-size:9px!important;color:#dce6dc!important}
+#menu #squad-roster .squad-individual-iv{font-size:9px!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:anywhere}
+#menu #squad-roster .squad-active-badge{font-size:clamp(14px,3.3vw,19px)!important;font-weight:1000!important;line-height:1.2!important;color:#201e0e!important;background:#ffe28a!important;border:2px solid #fff1c2!important;border-radius:6px;padding:4px 7px!important;display:block!important;width:100%;box-sizing:border-box;text-align:center}
+#menu #squad-roster .squad-release-character{background:#55352b!important;color:#fff5e8!important;border:2px solid #d8aa8d!important;border-radius:6px!important;font-weight:800!important;min-height:35px!important;width:100%!important;opacity:1!important}
+#menu #squad-roster .squad-roster-slot:focus-visible{outline:3px solid #f8dc86!important;outline-offset:2px}
+@media(max-width:390px){#menu #squad-roster{gap:4px!important}#menu #squad-roster .squad-roster-slot{padding:5px 3px!important}#menu #squad-roster .squad-individual-growth{font-size:8px!important}}
