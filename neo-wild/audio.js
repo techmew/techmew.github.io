@@ -6,10 +6,10 @@
 const names={explore:"ECHOES OF THE LOST CITY",forest:"RECLAIMED GREEN",danger:"THE HUNT",rain:"RAIN OVER TOKYO"};
 const TRACKS=[
  {id:"default",name:"デフォルト｜環境連動"},
- {id:"rush",name:"廃都疾走｜疾走ビート"},
- {id:"wild",name:"野生の鼓動｜冒険"},
- {id:"night",name:"夜の追跡｜緊迫"},
- {id:"dawn",name:"再生の大地｜壮大"}
+ {id:"rush",name:"廃都の残響｜静かなピアノ"},
+ {id:"wild",name:"深緑の息吹｜自然と弦"},
+ {id:"night",name:"獣の足音｜緊迫の低音"},
+ {id:"dawn",name:"夜明けの地平｜広がる旋律"}
 ];
 const TRACK_STORAGE_KEY="wild-reclaim-bgm-choice-v1";
 function loadMusicChoice(){
@@ -19,6 +19,9 @@ function loadMusicChoice(){
  }catch(_){return "default"}
 }
 let musicChoice=loadMusicChoice();
+const MUSIC_LEVEL_KEY="wild-reclaim-bgm-volume-v1";
+function loadMusicVolume(){try{const n=Number(localStorage.getItem(MUSIC_LEVEL_KEY));return Number.isFinite(n)&&n>=0&&n<=100?n/100:.55}catch(_){return .55}}
+let musicVolume=loadMusicVolume();
 let context=null,master=null,musicBus=null,atmosBus=null,sfxBus=null,loopSources={},loopGains={},effectBuffers={};
 let enabled=true,started=false,scene={weather:"CLEAR",area:0,danger:false},lastAmbient=-1,deathFade=false;
 let rngState=1289431;
@@ -30,7 +33,7 @@ function ensure(){
  try{
   context=new C({latencyHint:"interactive"});
   master=context.createGain();master.gain.value=enabled?.82:0;master.connect(context.destination);
-  musicBus=context.createGain();musicBus.gain.value=.73;musicBus.connect(master);
+  musicBus=context.createGain();musicBus.gain.value=.73*musicVolume;musicBus.connect(master);
   atmosBus=context.createGain();atmosBus.gain.value=.50;atmosBus.connect(master);
   sfxBus=context.createGain();sfxBus.gain.value=.32;sfxBus.connect(master);
   return context;
@@ -81,125 +84,157 @@ function buildMusic(which){
 }
 // Four independent original songs, looped exactly on an integer number of beats.
 // Keep the previous explore/forest/danger adaptive score unchanged for "default".
+// Generative original score: no repeated 16-second buffers. Each theme has an
+// evolving 48-bar form (intro, two themes, rest, climax, reprise), plus varied
+// motifs and optional notes on subsequent cycles. Quiet passages are deliberate.
 const COMPOSITIONS={
- rush:{bpm:120,roots:[45,41,48,43],scale:[0,2,3,5,7,8,10,12],pattern:[0,-1,2,-1,4,2,3,-1,4,-1,5,4,2,-1,0,-1],bass:.22,lead:.29,drums:.29,pad:.15},
- wild:{bpm:105,roots:[48,43,45,41],scale:[0,2,4,5,7,9,11,12],pattern:[0,2,4,-1,3,2,1,-1,4,-1,5,-1,4,2,1,-1],bass:.24,lead:.23,drums:.24,pad:.23},
- night:{bpm:135,roots:[40,43,47,38],scale:[0,2,3,5,7,8,10,12],pattern:[0,-1,0,2,3,-1,2,-1,5,4,3,-1,2,-1,1,-1],bass:.27,lead:.24,drums:.34,pad:.12},
- dawn:{bpm:90,roots:[43,47,40,45],scale:[0,2,4,5,7,9,11,12],pattern:[0,-1,-1,2,4,-1,3,-1,5,-1,4,3,2,-1,0,-1],bass:.23,lead:.27,drums:.18,pad:.30}
+ rush:{
+  bpm:82,roots:[48,43,46,41,48,44,43,46],minor:true,
+  scale:[0,2,3,5,7,8,10,12],
+  motifs:[
+   [0,-1,-1,2,3,-1,2,-1,4,-1,3,-1,2,-1,-1,-1],
+   [-1,4,-1,3,2,-1,0,-1,-1,2,3,-1,4,-1,-1,-1],
+   [0,-1,2,-1,4,-1,5,-1,3,-1,-1,2,0,-1,-1,-1]
+  ],lead:"keys",bass:.14,leadLevel:.17,pad:.12,drum:.015
+ },
+ wild:{
+  bpm:92,roots:[53,48,50,46,53,55,50,48],minor:false,
+  scale:[0,2,4,5,7,9,11,12],
+  motifs:[
+   [0,-1,2,-1,4,-1,-1,3,2,-1,-1,-1,4,-1,2,-1],
+   [4,-1,3,-1,2,-1,0,-1,-1,-1,1,2,-1,3,-1,-1],
+   [-1,-1,4,-1,5,-1,3,-1,2,-1,-1,0,-1,-1,-1,-1]
+  ],lead:"wood",bass:.12,leadLevel:.16,pad:.13,drum:0
+ },
+ night:{
+  bpm:103,roots:[45,43,41,40,45,48,43,40],minor:true,
+  scale:[0,2,3,5,7,8,10,12],
+  motifs:[
+   [0,-1,-1,-1,2,-1,3,-1,-1,-1,2,-1,0,-1,-1,-1],
+   [-1,-1,4,-1,3,-1,-1,2,-1,-1,1,-1,2,-1,-1,-1],
+   [0,-1,2,-1,-1,-1,3,-1,4,-1,-1,2,-1,-1,-1,-1]
+  ],lead:"strings",bass:.17,leadLevel:.11,pad:.10,drum:.035
+ },
+ dawn:{
+  bpm:76,roots:[48,53,45,43,48,50,53,55],minor:false,
+  scale:[0,2,4,5,7,9,11,12],
+  motifs:[
+   [0,-1,-1,-1,2,-1,4,-1,-1,-1,3,-1,2,-1,-1,-1],
+   [-1,-1,4,-1,5,-1,-1,-1,3,-1,2,-1,-1,0,-1,-1],
+   [2,-1,-1,4,-1,-1,5,-1,-1,4,-1,3,2,-1,-1,-1]
+  ],lead:"keys",bass:.11,leadLevel:.15,pad:.18,drum:0
+ }
 };
 function pitch(midi){return 440*Math.pow(2,(midi-69)/12)}
-function buildExtraMusic(id){
- const p=COMPOSITIONS[id];if(!p)throw Error("Unknown original BGM: "+id);
- const beatSeconds=60/p.bpm,halfBeat=beatSeconds/2;
- return loopBuffer(16,(t,ch,low,hi,offset)=>{
-  const beats=t/beatSeconds,bar=Math.floor(beats/4),beatInBar=beats%4;
-  const beatIndex=Math.floor(beatInBar),step=Math.floor(beatInBar*4)%16;
-  const root=p.roots[bar%p.roots.length],degree=p.pattern[step];
-  const stepTime=(t%(beatSeconds/4)),noteEnvelope=Math.exp(-stepTime*(id==="dawn"?9:15));
-  let lead=0;
-  if(degree>=0){
-   const freq=pitch(root+24+p.scale[degree]);
-   lead=(note(freq,t+offset)+.26*note(freq*2,t+offset))*.73*noteEnvelope;
-  }
-  // Bass notes on the downbeat and offbeats; continuous phase avoids clicks.
-  const beatTime=t%beatSeconds,bassEnvelope=Math.exp(-beatTime*5);
-  const bassFreq=pitch(root-12);
-  const bass=(note(bassFreq,t+offset)+.20*note(bassFreq*2,t+offset))*bassEnvelope;
-  const chordFreq=pitch(root+12),swell=.55+.45*Math.sin(t*.55);
-  const chord=(note(chordFreq,t+offset)+.5*note(chordFreq*1.1892,t+offset)+.43*note(chordFreq*1.4983,t+offset))*swell*.31;
-  const kick=(beatIndex===0||beatIndex===2||id==="night")?
-   Math.exp(-beatTime*25)*Math.sin(Math.PI*2*(100-42*beatTime)*beatTime):0;
-  const snare=(beatIndex===1||beatIndex===3)?hi*Math.exp(-beatTime*24):0;
-  const hatTime=t%halfBeat,hat=hi*Math.exp(-hatTime*(id==="dawn"?48:85));
-  const energy=id==="night"?1.14:id==="rush"?1.07:1;
-  return (lead*p.lead+bass*p.bass+chord*p.pad+
-    (kick*.65+snare*.55+hat*.28)*p.drums+low*.024)*energy;
- });
+let composer=null;
+function composerVoice(bus,midi,when,duration,kind,volume){
+ if(!context||!bus||volume<=0)return;
+ const osc=context.createOscillator(),gain=context.createGain(),filter=context.createBiquadFilter();
+ const freq=pitch(midi),start=Math.max(when,context.currentTime),end=start+Math.max(.16,duration);
+ osc.type=kind==="strings"?"sawtooth":kind==="wood"?"triangle":kind==="bass"?"sine":"triangle";
+ osc.frequency.setValueAtTime(freq,start);
+ filter.type="lowpass";
+ filter.frequency.value=kind==="strings"?680:kind==="bass"?520:kind==="wood"?1650:1250;
+ filter.Q.value=.7;
+ const attack=kind==="strings"?.24:kind==="pad"?.40:kind==="bass"?.035:.022;
+ gain.gain.setValueAtTime(.00001,start);
+ gain.gain.linearRampToValueAtTime(Math.max(.0001,volume),start+Math.min(attack,duration*.35));
+ gain.gain.exponentialRampToValueAtTime(.0001,end);
+ osc.connect(filter);filter.connect(gain);gain.connect(bus);
+ osc.start(start);osc.stop(end+.03);
+ osc.onended=()=>{try{osc.disconnect();filter.disconnect();gain.disconnect()}catch(_){}};
 }
-function buildAtmos(name){
- const seconds=8;
- return loopBuffer(seconds,(t,ch,low,hi)=>{
-  if(name==="wind")return low*(.85+.15*Math.sin(t*.8+ch))*.45+hi*.013;
-  if(name==="rain")return hi*.15+low*.24+Math.max(0,Math.sin(t*67))*hi*.06;
-  // Flowing river/canal ambience: layered low-frequency current and soft ripples.
-  if(name==="water")return low*(.48+.18*Math.sin(t*1.3+ch*.27))+
-    hi*(.12+.03*Math.sin(t*13+ch))+.085*Math.sin(2*Math.PI*(86+3*Math.sin(t*.8))*t)*Math.max(0,Math.sin(t*5))*.38;
-  if(name==="forest")return low*.25+hi*.032+Math.sin(2*Math.PI*1650*t+Math.sin(t*4)*9)*.005*Math.pow(Math.max(0,Math.sin(t*2.3)),9);
-  return 0;
- });
+function composerPercussion(bus,when,kind,amount){
+ if(!context||!bus||amount<=0)return;
+ const osc=context.createOscillator(),gain=context.createGain(),start=Math.max(when,context.currentTime);
+ osc.type="sine";
+ osc.frequency.setValueAtTime(kind==="low"?90:185,start);
+ osc.frequency.exponentialRampToValueAtTime(kind==="low"?43:90,start+.15);
+ gain.gain.setValueAtTime(Math.max(.0001,amount),start);
+ gain.gain.exponentialRampToValueAtTime(.0001,start+.18);
+ osc.connect(gain);gain.connect(bus);osc.start(start);osc.stop(start+.20);
+ osc.onended=()=>{try{osc.disconnect();gain.disconnect()}catch(_){}};
 }
-function sample(name){
- const sr=22050;
- const lengths={step:.11,stepHard:.14,bite:.27,wing:.33,jump:.27,attack:.24,impact:.38,howl:1.35,thunder:2.6,collect:.18,menu:.13,damage:.38,snarl:.65,rustle:.36,land:.24,death:1.4,level:.70};
- const duration=lengths[name]||.22,len=Math.ceil(sr*duration),buf=context.createBuffer(1,len,sr),a=buf.getChannelData(0);
- let low=0,mid=0;
- for(let i=0;i<len;i++){
-  const t=i/sr,u=i/len,n=rand()*2-1;
-  low=.968*low+.032*n;mid=.62*mid+.38*n;
-  const env=Math.pow(Math.max(0,1-u),name==="thunder"?.9:2.5);
-  let v=0;
-  switch(name){
-   case "step":v=mid*.36+low*.38+Math.sin(2*Math.PI*(93-40*u)*t)*.13;break;
-   case "stepHard":v=mid*.55+low*.16+Math.sin(2*Math.PI*(130-70*u)*t)*.13;break;
-   case "bite":v=mid*.57+low*.19+Math.sin(2*Math.PI*(280-180*u)*t)*.18;break;
-   case "wing":v=mid*.26*Math.sin(u*Math.PI*4)**2+low*.3;break;
-   case "jump":v=low*.32+mid*.12+Math.sin(2*Math.PI*(122-64*u)*t)*.055;break;
-   case "attack":v=mid*.62+low*.23+Math.sin(2*Math.PI*(170-90*u)*t)*.1;break;
-   case "impact":v=low*.62+mid*.23+Math.sin(2*Math.PI*(110-75*u)*t)*.31;break;
-   case "howl":v=(Math.sin(2*Math.PI*(165+90*Math.sin(u*Math.PI))*t)+.33*Math.sin(2*Math.PI*(330+180*Math.sin(u*Math.PI))*t)+mid*.07)*Math.sin(u*Math.PI)*.65;break;
-   case "snarl":v=mid*.28+low*.30+Math.sin(2*Math.PI*(85+40*Math.sin(t*16))*t)*.3;break;
-   case "thunder":v=low*.82+mid*.25*Math.exp(-u*18)+Math.sin(2*Math.PI*(36+40*Math.exp(-u*7))*t)*.36;break;
-   case "collect":case "menu":v=Math.sin(2*Math.PI*(340+190*u)*t)*.19+mid*.09;break;
-   case "damage":v=low*.47+mid*.33+Math.sin(2*Math.PI*(130-75*u)*t)*.19;break;
-   case "land":v=mid*.45+low*.4;break;
-   case "rustle":v=mid*.25+low*.40;break;
-   case "level":v=Math.sin(2*Math.PI*(220+220*u)*t)*.18+Math.sin(2*Math.PI*(330+110*u)*t)*.09;break;
-   case "death":v=low*.28+Math.sin(2*Math.PI*(130-82*u)*t)*.22;break;
-   default:v=mid*.30+low*.20;
+function composerStep(c,when){
+ const p=COMPOSITIONS[c.id],step=c.step++,bar=Math.floor(step/8),
+  beat=step%8,section=Math.floor(bar/8)%6,phrase=Math.floor(bar/2);
+ const root=p.roots[bar%p.roots.length];
+ const main=section===1||section===2||section===4;
+ const subdued=section===0?.47:section===3?.30:section===5?.52:section===4?1.0:.76;
+ const variation=Math.floor(bar/48)%4;
+ const chord=[0,p.minor?3:4,7];
+ const beatSecs=60/p.bpm;
+ if(beat===0){
+  // Harmonic space between notes prevents the exhausting constant 8th-note loop.
+  if(bar%2===0||section===4){
+   const padVolume=p.pad*subdued*(section===4?1.1:.85);
+   chord.forEach((interval,index)=>{
+    composerVoice(c.bus,root+12+interval+((section===4&&index===2)?12:0),
+      when,beatSecs*(section===3?5.6:6.7),"strings",padVolume*(index===1?.75:1));
+   });
   }
-  a[i]=clamp(v*env,-1,1);
+  if(section!==3||bar%2===0)composerVoice(c.bus,root-12,when,beatSecs*2.25,"bass",p.bass*subdued);
  }
- return buf;
+ if(beat===4&&section!==0&&section!==3){
+  composerVoice(c.bus,root-5,when,beatSecs*1.3,"bass",p.bass*.47*subdued);
+ }
+ const motif=p.motifs[(phrase+Math.floor(bar/8)+variation)%p.motifs.length];
+ const degree=motif[step%16];
+ if(degree>=0&&section!==3&&(!(!main&&Math.random()<.40))&&
+    !(bar%16===15&&beat>=4)){
+  const drift=(Math.random()<.10&&main)?(Math.random()<.5?2:-2):0;
+  const melody=root+24+p.scale[Math.max(0,Math.min(7,degree))]+(section===4?12:0)+drift;
+  const accent=(beat===0||beat===4)?1:.75;
+  composerVoice(c.bus,melody,when,beatSecs*(p.lead==="strings"?1.8:1.25),
+    p.lead,p.leadLevel*subdued*accent*(.80+Math.random()*.33));
+ }
+ // Sparse restrained heartbeat on the hunting cue, not relentless dance drums.
+ if(p.drum&&section!==3&&section!==0&&(beat===0||beat===4)){
+  composerPercussion(c.bus,when,"low",p.drum*subdued);
+ }
 }
-function attachLoop(id,buffer,bus,volume){
- const source=context.createBufferSource(),gain=context.createGain();
- source.buffer=buffer;source.loop=true;gain.gain.value=volume;
- source.connect(gain);gain.connect(bus);source.start();
- loopSources[id]=source;loopGains[id]=gain;
+function composerTick(c){
+ if(!context||composer!==c)return;
+ const now=context.currentTime;
+ if(c.nextAt<now-.45)c.nextAt=now+.04; // Browser background throttling.
+ const eighth=30/COMPOSITIONS[c.id].bpm;
+ let scheduled=0;
+ while(c.nextAt<=now+.34&&scheduled++<5){
+  composerStep(c,c.nextAt);
+  c.nextAt+=eighth;
+ }
 }
-function unlock(){
- const ac=ensure();if(!ac||!enabled)return false;
- if(ac.state==="suspended")ac.resume().catch(()=>{});
- if(started)return true;
- try{
-  attachLoop("explore",buildMusic("explore"),musicBus,.30);
-  attachLoop("forest",buildMusic("forest"),musicBus,0);
-  attachLoop("danger",buildMusic("danger"),musicBus,0);
-  attachLoop("wind",buildAtmos("wind"),atmosBus,.22);
-  attachLoop("forestWind",buildAtmos("forest"),atmosBus,0);
-  attachLoop("rain",buildAtmos("rain"),atmosBus,0);
-   attachLoop("water",buildAtmos("water"),atmosBus,0);
-  started=true;
-  if(musicChoice!=="default")ensureExtraTrack(musicChoice);
-  return true;
- }catch(e){console.warn("WILD RECLAIM audio init:",e);return false}
-}
-function ensureExtraTrack(id){
- if(!COMPOSITIONS[id]||!context||!musicBus||!started)return false;
- const key="track-"+id;
- if(!loopSources[key])attachLoop(key,buildExtraMusic(id),musicBus,0);
- return !!loopSources[key];
+function stopComposer(){
+ if(!composer)return;
+ const old=composer;composer=null;
+ clearInterval(old.timer);
+ if(context){
+  const t=context.currentTime;
+  old.bus.gain.cancelScheduledValues(t);
+  old.bus.gain.setTargetAtTime(0,t,.11);
+  // Let the end of scheduled notes ring out before disconnecting the old bus.
+  setTimeout(()=>{try{old.bus.disconnect()}catch(_){}},1800);
+ }else try{old.bus.disconnect()}catch(_){}
 }
 function getMusicChoice(){return musicChoice}
 function setMusicChoice(id){
  if(!TRACKS.some(track=>track.id===id))return false;
  musicChoice=id;
  try{localStorage.setItem(TRACK_STORAGE_KEY,id)}catch(_){}
+ if(id==="default")stopComposer();
  if(enabled)unlock();
  if(started&&id!=="default")ensureExtraTrack(id);
  if(started&&enabled)update(scene);
  return true;
 }
+function setMusicVolume(value){
+ const n=Number(value);if(!Number.isFinite(n))return getMusicVolume();
+ musicVolume=clamp(n,0,100)/100;
+ try{localStorage.setItem(MUSIC_LEVEL_KEY,String(Math.round(musicVolume*100)))}catch(_){}
+ if(context&&musicBus&&!deathFade)musicBus.gain.setTargetAtTime(.73*musicVolume,context.currentTime,.12);
+ return getMusicVolume();
+}
+function getMusicVolume(){return Math.round(musicVolume*100)}
 function update(conditions){
  scene=conditions||scene;
  if(!started||!context||!enabled)return;
@@ -207,7 +242,6 @@ function update(conditions){
  const forest=area===5||area===2||area===4,clock=context.currentTime;
  const paused=scene.mode&&scene.mode!=="play",mix=scene.mode==="guide"?0:paused?.12:1;
  const defaultMix=musicChoice==="default"?1:0;
- const alternativeMix=scene.mode==="guide"?0:scene.mode==="pause"?.40:paused?.12:1;
  const targets={
   explore:(danger?.06:forest?.14:.60)*mix*defaultMix,
   forest:(danger?.06:forest?.65:.04)*mix*defaultMix,
@@ -217,10 +251,8 @@ function update(conditions){
   rain:(storm?.72:rain?.51:0)*mix,
    water:clamp(Number(scene.waterNear)||0,0,1)*.77*mix
  };
- for(const id of Object.keys(COMPOSITIONS)){
-  const gain=loopGains["track-"+id];
-  if(gain)gain.gain.setTargetAtTime(musicChoice===id?.73*alternativeMix:0,clock,.22);
- }
+ if(musicChoice!=="default"&&!composer)ensureExtraTrack(musicChoice);
+ composerMix(scene.mode||"play");
  if(loopSources.water?.playbackRate)loopSources.water.playbackRate.setTargetAtTime(scene.waterKind==="canal"?.88:1,clock,.9);
   for(const [name,value] of Object.entries(targets)){
   const gain=loopGains[name];
@@ -277,17 +309,17 @@ function resetDeathFade(){
  musicBus?.gain.cancelScheduledValues(t);
  atmosBus?.gain.cancelScheduledValues(t);
  sfxBus?.gain.cancelScheduledValues(t);
- musicBus?.gain.setTargetAtTime(.73,t,.14);
+ musicBus?.gain.setTargetAtTime(.73*musicVolume,t,.14);
  atmosBus?.gain.setTargetAtTime(.50,t,.14);
  sfxBus?.gain.setTargetAtTime(.32,t,.14);
 }
 function setEnabled(on){
  enabled=!!on;
  if(!enabled&&context&&master)master.gain.setTargetAtTime(0,context.currentTime,.1);
- if(enabled){unlock();if(context&&master)master.gain.setTargetAtTime(.82,context.currentTime,.18)}
+ if(enabled){unlock();if(context&&master)master.gain.setTargetAtTime(.82,context.currentTime,.18);update(scene)}
  return enabled;
 }
-window.WildAudio={unlock,update,play,setEnabled,setMusicChoice,getMusicChoice,
+window.WildAudio={unlock,update,play,setEnabled,setMusicChoice,getMusicChoice,setMusicVolume,getMusicVolume,
  tracks:TRACKS.map(t=>({...t})),fadeForDeath,resetDeathFade,get active(){return started},get enabled(){return enabled},
  get soundtrack(){return musicChoice==="default"?names[scene.danger?"danger":Number(scene.area)===5?"forest":"explore"]:TRACKS.find(t=>t.id===musicChoice)?.name||names.explore}};
 })();
