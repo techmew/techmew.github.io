@@ -7034,7 +7034,7 @@ $("continue-btn").addEventListener("click",()=>{
   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
   if(!leader||!animals[leader.species]){notify("操作できる動物を選んでください");return;}
   choice=leader.species;
-  if(launchGame(null,true)){applySquadLeader();window.WildSquad?.markStarted?.();saveAuto();}
+  if(launchGame(null,roster.newWorldOnStart!==false)){applySquadLeader();window.WildSquad?.markStarted?.();saveAuto();}
   return;
  }
  const snapshot=getAutoSnapshot(); // Checkpoints are retained for compatibility but not offered as a title resume path.
