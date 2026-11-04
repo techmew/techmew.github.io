@@ -301,8 +301,16 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const hostileTypes=new Set(["dog","strayCat","wildFox","venomSnake","cheetah","lion","tiger","blackBear","hyena","wildDog","gorilla"]);
  const recentHostiles=history.slice(-7).filter(type=>hostileTypes.has(type)).length;
  const refugePressure=Math.min(1,recentHostiles/4);
+ // A newly explored residential district first introduces local harmless wildlife.
+ // The safety window is regional, does not create extra spawns, and expires
+ // after two ordinary encounters. Wild predators resume their normal ecology.
+ const arrivalRefuge=[0,1,6].includes(index)&&history.length<2;
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
+  if(arrivalRefuge&&!preyOnly){
+   if(hostileTypes.has(type)||apexTypes.has(type))w=0;
+   else if(["rat","rabbit","pigeon","frog","deer","serow"].includes(type))w*=1.5;
+  }
   if(w>0&&!preyOnly&&refugePressure>0){
    if(hostileTypes.has(type))w*=Math.max(.18,1-refugePressure*.78);
    else if(["rat","rabbit","pigeon","frog","deer","serow","hedgehog"].includes(type))w*=1+refugePressure*.38;
