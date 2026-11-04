@@ -575,19 +575,35 @@ function drawCommonAnimal3D(m,clock){
   for(const side of [-1,1]){orb(r*1.16,side*r*.23,r*.94,r*.09,r*.08,r*.09,"#292b27");}
   for(let k=0;k<6;k++)orb(-r*(1.05+k*.26),Math.sin(k*.75)*r*.14,r*(.7-k*.07),r*.17,r*.11,r*.12,k%2?"#3f403b":fur);
  }else if(t==="giraffe"){
-  const headStrike=!!m.attackVariation?.neckStrike&&((m.windup||0)>0||(m.swing||0)>0);
-  const headSway=headStrike?Math.sin(clock*13)*r*.42:0;
+  // Four independent, alternating legs: knees flex, hooves travel forward and
+  // actually lift off the ground. Gait amplitude follows world-space speed.
+  const speed=Math.hypot(m.vx||0,m.vy||0),moving=Math.min(1,speed/135);
+  const stride=(m.step||0)*1.95;
   for(const side of [-1,1])for(const front of [-1,1]){
    const x=front*r*.58,y=side*r*.37;
-   orb(x,y,r*.64+gait*r*.05*front*side,r*.14,r*.14,r*.59,fur);
-   orb(x,y,r*.12,r*.19,r*.20,r*.11,"#69513b");
+   const beat=Math.sin(stride+(front===side?0:Math.PI));
+   const swing=beat*r*.34*moving,raise=Math.max(0,beat)*r*.27*moving;
+   orb(x+swing*.17,y,r*.90+raise*.25,r*.16,r*.15,r*.33,fur);
+   orb(x+swing*.58,y,r*.52+raise*.65,r*.135,r*.13,r*.30,fur);
+   orb(x+swing,y,r*.19+raise,r*.14,r*.14,r*.19,fur);
+   orb(x+swing*1.1,y,r*.10+raise,r*.20,r*.19,r*.105,"#69513b");
   }
-  orb(-r*.22,0,r*1.39,r*1.06,r*.44,r*.48,fur);
-  for(let k=0;k<10;k++){const x=(-.95+k*.19)*r,side=k%2?-1:1;orb(x,side*r*.37,r*1.60,r*.13,r*.08,r*.14,"#a87948");}
-  orb(r*.72,headSway*.18,r*2.10,r*.24,r*.24,r*1.07,fur);
-  for(let k=0;k<5;k++)orb(r*.72+(k%2)*r*.13,headSway*.18+(k%3-1)*r*.12,r*(1.52+k*.35),r*.12,r*.10,r*.14,"#aa763e");
-  orb(r*1.08,headSway,r*3.10,r*.40,r*.31,r*.33,fur);orb(r*1.48,headSway,r*2.97,r*.27,r*.19,r*.18,belly);
-  for(const side of [-1,1]){orb(r*1.10,headSway+side*r*.20,r*3.35,r*.10,r*.12,r*.15,fur);pyramid(fx(r*1.03,headSway+side*r*.17),fy(r*1.03,headSway+side*r*.17),r*3.37,r*.10,r*.10,r*.31,"#876643");}
+  const attacking=(m.windup||0)>0||(m.swing||0)>0;
+  const hit=(m.swing||0)>0;
+  const headDrive=hit?r*.62:attacking?-r*.16:0;
+  const headDip=hit?r*.49:0;
+  const headSway=attacking?Math.sin(clock*13)*r*.17:0;
+  const bob=moving*Math.abs(Math.sin(stride))*r*.042;
+  orb(-r*.22,0,r*1.39+bob,r*1.06,r*.44,r*.48,fur);
+  for(let k=0;k<10;k++){const x=(-.95+k*.19)*r,side=k%2?-1:1;orb(x,side*r*.37,r*1.60+bob,r*.13,r*.08,r*.14,"#a87948");}
+  orb(r*.72+headDrive*.28,headSway*.14,r*2.10-headDip*.25,r*.24,r*.24,r*1.07,fur);
+  for(let k=0;k<5;k++)orb(r*.72+headDrive*.30+(k%2)*r*.13,headSway*.14+(k%3-1)*r*.12,r*(1.52+k*.35)-headDip*.30,r*.12,r*.10,r*.14,"#aa763e");
+  orb(r*1.08+headDrive,headSway,r*3.10-headDip,r*.40,r*.31,r*.33,fur);
+  orb(r*1.48+headDrive,headSway,r*2.97-headDip,r*.27,r*.19,r*.18,belly);
+  for(const side of [-1,1]){
+   orb(r*1.10+headDrive,headSway+side*r*.20,r*3.35-headDip,r*.10,r*.12,r*.15,fur);
+   pyramid(fx(r*1.03+headDrive,headSway+side*r*.17),fy(r*1.03+headDrive,headSway+side*r*.17),r*3.37-headDip,r*.10,r*.10,r*.31,"#876643");
+  }
   orb(-r*1.35,0,r*1.55,r*.23,r*.13,r*.14,"#6a533e");
  }else if(t==="zebra"){
   for(const side of [-1,1])for(const front of [-1,1])
