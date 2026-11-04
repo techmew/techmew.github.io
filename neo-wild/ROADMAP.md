@@ -1,3 +1,11 @@
+# 2026-11-04 10:40｜40分枠：世界6種の年齢・性差3Dと待機モーション拡張
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+PHASE: A_FEATURES
+- 【新実装・機能統合済／実機未検証】webgl3d.js:drawWorldSquadSpecies3D でアルマジロ・ハリネズミ・ゴリラ・ハイエナ・リカオン・トラの既存固有メッシュを保全し、呼吸による体幹変化、成熟オスのアルマジロ頭甲/ゴリラの銀背・頭頂隆起/トラ肩部、ハイエナ幼若個体の短い背毛、リカオン成体の顔周辺模様、ハリネズミ警戒時の耳付近の造形差を追加。性別・若年フラグが実描画に反映される。
+- 【変更】webgl3d.js commit 52e0ea23db565494389c16286cc3b1f43d0b5907 / blob c3051b3a0e9aff1d9785f896c414aea975cc2eea。index.html commit 71525f1bbf936a88975c6379f3bff3b7d871e00e / blob 86a6c384db65e92f4d4877fd9a4338faa8f35dff（新3Dキャッシュ参照）。対象blob取得後更新、他枠ファイルの内容保持。
+- 【QA】main読み戻し、新FunctionによるWebGL描画JS構文 PASS、6種分岐・年齢/性差・index.htmlのrev一致 PASS。実ブラウザ/WebGL実描画/Android/Pad/FPS/旧セーブE2Eは未検証。ガチャ操作対象は依然9種。30種操作完成扱い禁止。
+- 【引継ぎ】00分：新ガチャ個体 age/ageStage/sex がレンダラ m へ確実に伝播するか実ロード検証、死亡永続化。20分：6種の生息域と実遭遇導線、過密湧き防止。次40分：未対応種の固有メッシュ、9種→30種の操作接続とスマホ3体HUD。ストック禁止、寿命死廃止、世界時計/イベント圧縮維持。
+
 # 2026-11-04｜20分担当：探索・ミッションのガチャ権を実プレイに統合／Lv1安全圏・敵密度改修
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A / PHASE=A_FEATURES
 - 【実プレイ】game.js の advanceMission(7) でチュートリアル完了時にガチャ権+1、探索地点を新規発見するたびに累計2/4/6地点で+1。既存の狩猟8匹ごと+1、squad-core.js の共有XP600ごと+1と併用。報酬は現在の編成があり通常プレイ中のみ、`wild-reclaim-gacha-rewards-v1` の独立localStorage台帳で各編成/達成段階を一度だけ付与し、ロード・チェックポイントによる重複を防止。既存SAVE_SCHEMA2は変更せず。squad-gacha-ui.js の権利0枚案内・編成ヒントに全獲得方法を表示。
