@@ -9,6 +9,11 @@ const playable=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanF
 // Never award a permanent party slot to an animal that cannot become the player.
 const rare=new Set(["manul","tibetanFox","shoebill","blackBear","serow","cheetah","hippo","gorilla","hyena","wildDog","armadillo","hedgehog"]);
 const legendary=new Set(["lion","tiger","elephant","giraffe"]);
+const nameHeads=["アオ","アカ","アキ","アサ","アズ","アメ","イチ","ウタ","ウメ","エン","オト","カイ","カゲ","カナ","キク","キナ","キリ","クウ","クマ","クロ","ケイ","ココ","コタ","コハ","サク","サチ","シオ","シズ","シロ","スイ","スズ","セナ","ソラ","タケ","タマ","チカ","チヨ","ツキ","トキ","ナギ","ナツ","ナナ","ニコ","ネネ","ノア","ハク","ハナ","ハル","ヒナ","フウ","フク","ホシ","マオ","マル","ミオ","ミケ","ミナ","ムギ","メイ","モカ","モモ","ヤマ","ユキ","ユズ","ヨル","ライ","ララ","リク","リン","ルナ","レオ","レン","ロク","ワカ","ワタ","ワビ","ワン","コウ","ゴン","シン","ジン","ダイ","テン","トラ","バク","ヒメ","ボン","ミツ","ユウ","リオ","ルイ","レイ","ロア","キヨ","サラ","タロ","ジロ","ポン","ペコ","ピノ","チビ","ミミ"];
+const nameTails=["マル","タロウ","スケ","ノスケ","ヒメ","コ","ミ","キチ","ゾウ","リン","ニャン"];
+const famousAnimalNames=["ポチ","タマ","ミケ","クロ","シロ","ハチ","ラッシー","レオ","シンバ","ムファサ","バルー","バンビ","ダンボ","トニー","ティガー","プー","スヌーピー","ガーフィールド","トム","ジェリー","ドラ","ジジ","ニャース","ピカ","ルドルフ","パトラッシュ","ジョリィ","ラスカル","ゴン","チロ","モモ","コロ","マロン","チャチャ","コタロー","ハナ","サクラ","ユキ","ソラ"];
+const NAME_POOL=[...new Set([...famousAnimalNames,...nameHeads,...nameHeads.flatMap(h=>nameTails.map(t=>h+t))])];
+function randomName(){return NAME_POOL[Math.floor(Math.random()*NAME_POOL.length)];}
 const traits=["俊足","粘り強い","急所狙い","警戒心","夜目","隠密","回復上手","強靭"];
 const personalities=["慎重","大胆","好奇心旺盛","温厚","気難しい","協調的"];
 const growth=["早熟","標準","大器晩成"];
@@ -37,7 +42,7 @@ function generate(year=0,explored=0,poorStreak=0){
  const score=avg;const grade=score>=1.22?"S":score>=1.10?"A":score>=.97?"B":score>=.84?"C":"D";
  const abilities=Array.from({length:Math.floor(rand(0,3))},()=>traits[Math.floor(rand(0,traits.length))]).filter((v,i,a)=>a.indexOf(v)===i);
  const id=globalThis.crypto?.randomUUID?.()||"wr-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);
- return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:names[species]+"-"+id.slice(-4),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
+ return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:randomName(),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
 }
 function assignSlots(members){
  const used=new Set();return members.map(m=>{
@@ -115,7 +120,7 @@ function fillVacancy(member){
  const saved=save(r);
  return {ok:true,roster:saved};
 }
-function release(){return {ok:false,reason:"生存個体の破棄は禁止です。死亡時のみ編成枠が空きます"};}
+function release(id){const r=load();const m=r?.members?.find(x=>x.id===id);if(!m)return {ok:false,reason:"個体が見つかりません"};if(r.members.length<=1)return {ok:false,reason:"最後の1体は野生に返せません"};r.members=r.members.filter(x=>x.id!==id);if(r.leaderId===id)r.leaderId=r.members[0].id;const saved=save(r);const released={...m,releasedAt:Date.now()};const history=read("wild-reclaim-released-v1",[]);history.push(released);localStorage.setItem("wild-reclaim-released-v1",JSON.stringify(history.slice(-100)));window.dispatchEvent(new CustomEvent("wild-animal-released",{detail:{member:released}}));return {ok:true,roster:saved,member:released};}
 function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);localStorage.setItem(RESET_NEW_WORLD,"1");return true;}
 function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=5)return {ok:false,reason:"新規編成中の空き枠ではありません"};
@@ -126,5 +131,5 @@ function addInitialSlot(member){
 function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;r.newWorldOnStart=false;localStorage.removeItem(RESET_NEW_WORLD);return save(r);}
 function livingCount(){return load()?.members?.length||0}
 function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
-window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,selectActive,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
+window.WildSquad={japan,world,names,NAME_POOL,randomName,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,selectActive,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
 })();
