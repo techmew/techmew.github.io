@@ -40,7 +40,7 @@ function generate(year=0,explored=0,poorStreak=0){
  return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:names[species]+"-"+id.slice(-4),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
 }
 function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:(Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,3)}}
-function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
+function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
 function newSquad(members,leaderId){
  // The title UI is not a security boundary: never erase living animals via a stale dialog.
@@ -51,7 +51,7 @@ function newSquad(members,leaderId){
     new Set(members.map(m=>m.id)).size!==members.length)
    throw Error("編成は操作可能な1〜3体、重複・死亡個体は禁止");
  if(!members.some(m=>m.id===leaderId))throw Error("操作するリーダーを選択してください");
- return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0});
+ return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0,pendingStart:true});
 }
 function addXp(amount){
  const r=load();if(!r)return null;
@@ -89,7 +89,13 @@ function fillVacancy(member){
 }
 function release(id){const r=load();if(!r||!r.members.some(m=>m.id===id))return {ok:false};const d=dead();d.add(id);saveDead(d);r.members=r.members.filter(m=>m.id!==id);if(r.leaderId===id)r.leaderId=r.members.find(m=>playable.has(m.species))?.id||r.members[0]?.id||null;return {ok:true,roster:save(r)};}
 function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);return true;}
+function addInitialSlot(member){
+ const r=load();if(!r?.pendingStart||r.members.length>=3)return {ok:false,reason:"新規編成中の空き枠ではありません"};
+ if(!member?.id||!playable.has(member.species)||member.alive===false||dead().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
+ r.members.push({...member,alive:true});return {ok:true,roster:save(r)};
+}
+function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;return save(r);}
 function livingCount(){return load()?.members?.length||0}
 function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
-window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,grantTickets,fillVacancy,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
+window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
 })();
