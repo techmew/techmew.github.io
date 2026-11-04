@@ -141,6 +141,28 @@ function addInitialSlot(member){
 }
 function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;r.newWorldOnStart=false;localStorage.removeItem(RESET_NEW_WORLD);return save(r);}
 function livingCount(){return load()?.members?.length||0}
-function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
+// Keep the low-grade pity counter across separate gacha sessions and reloads.
+// It advances only when the player adopts an individual, not when rerolling.
+const STREAK_KEY="wild-reclaim-gacha-poor-streak-v1";
+function drawSlot(year,explored,poorStreak=0){
+ const options=[];
+ let adopted=false;
+ const persistent=Math.max(0,Math.min(12,Math.floor(Number(read(STREAK_KEY,0))||0)));
+ const effectiveStreak=Math.max(persistent,Math.max(0,Math.min(12,Math.floor(Number(poorStreak)||0))));
+ return {
+  roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,effectiveStreak);options.push(candidate);return candidate},
+  choose(id){
+   const found=options.find(x=>x.id===id);
+   if(!found)throw Error("抽選外の個体");
+   if(!adopted){
+    const next=["C","D"].includes(found.grade)?Math.min(12,effectiveStreak+1):0;
+    localStorage.setItem(STREAK_KEY,JSON.stringify(next));
+    adopted=true;
+   }
+   return found;
+  },
+  get options(){return options.slice()}
+ };
+}
 window.WildSquad={japan,world,names,NAME_POOL,randomName,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,selectActive,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
 })();
