@@ -3097,7 +3097,12 @@ function resolveAttack(){
     }
     hit++;
    
-    if(species[m.type].prey&&m.hp>0)startlePrey(m,P,"hit");
+    if(species[m.type].prey&&m.hp>0){
+     // Every normally harmless animal may counter when the player actually hits it.
+     // It remains a fleeing prey animal; this never turns it into a pursuer.
+     m.counterFleeUntil=Math.max(m.counterFleeUntil||0,elapsed+6);
+     startlePrey(m,P,"hit");
+    }
      if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,downwindStrike?"風下からの奇襲！":"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90);if(downwindStrike&&m.hp<=0)m.windStalkReward=true;}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
@@ -3769,6 +3774,40 @@ function startlePrey(m,threat,reason="alarm"){
  m.restNeed=Math.min(Number.isFinite(m.restNeed)?m.restNeed:.6,.34);
  if(reason==="wake"&&P&&dist(P,m)<260)label(m.x,m.y-m.r-28,"目覚めた！","#ffe8ac");
  return true;
+}
+// Wounded prey can strike backward while escaping. Most choose flight and only
+// counter if the attacker stays close. No pursuit, teleport, or permanent aggro.
+const PREY_WITH_OWN_DEFENSE=new Set(["mountainGoat","rat","rabbit","pigeon","crow","frog","snake","zebra","serow","deer"]);
+function updateWoundedPreyDefense(m,sp,dt,d,spotted,angle){
+ if(!sp?.prey||PREY_WITH_OWN_DEFENSE.has(m.type)||m.hp<=0)return;
+ m.counterFleeCooldown=Math.max(0,(m.counterFleeCooldown||0)-dt);
+ if(m.counterFleeArmed){
+  m.counterFleeTell=Math.max(0,(m.counterFleeTell||0)-dt);
+  if(m.counterFleeTell<=0){
+   m.counterFleeArmed=false;
+   m.swing=Math.max(m.swing||0,.24);
+   const nearby=d<P.r+m.r+(m.type==="hedgehog"?24:38);
+   const inWater=m.type!=="carp"||waterDepth(P.x,P.y)>.035;
+   if(nearby&&inWater&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
+    const base=m.type==="hedgehog"?4:m.type==="armadillo"?3:m.type==="carp"?2:Math.max(2,Math.round((sp.damage||2)*.46));
+    const damage=Math.max(1,Math.round(base*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+    P.hp=Math.max(0,P.hp-damage);P.inv=.34;P.lastCombatAt=elapsed;
+    shake=Math.max(shake,3);playEffect("damage");
+    label(P.x,P.y-30,(m.type==="hedgehog"?"針の反撃":m.type==="armadillo"?"体当たり":m.type==="carp"?"尾びれの反撃":"逃走中の反撃")+" -"+damage,"#ffdbab");
+   }else if(d<190)label(m.x,m.y-m.r-22,"反撃をかわした","#c4edcc");
+   m.flee=Math.max(m.flee||0,1.6);
+   m.dir=chooseEscape(m,angle+Math.PI,P);
+  }
+  return;
+ }
+ const recentlyStruck=elapsed<(m.counterFleeUntil||0);
+ if(!recentlyStruck||!spotted||m.stun>0||m.counterFleeCooldown>0||m.flee<=0||
+    d>P.r+m.r+102||P.inv>0||(m.type==="carp"&&waterDepth(P.x,P.y)<=.035))return;
+ m.counterFleeArmed=true;
+ m.counterFleeTell=m.type==="hedgehog"?.23:m.type==="carp"?.24:.30;
+ m.counterFleeCooldown=m.type==="hedgehog"?3.0:3.8;
+ m.swing=Math.max(m.swing||0,.12);
+ label(m.x,m.y-m.r-23,m.type==="hedgehog"?"針を立てて反撃！":m.type==="armadillo"?"身を守りながら反撃！":"逃げながら反撃！","#ffdc9d");
 }
 // Prey lateral feints: real collision-checked movement, no teleport or invulnerability.
 function advancePreyFeint(m,dt){
@@ -4906,7 +4945,8 @@ function update(dt){
      }else if(d<230)label(m.x,m.y-m.r-24,"角突きを回避！","#b4e6c2");
      m.flee=Math.max(m.flee,2.4);m.dir=angle+Math.PI;
     }
-    if(!m.headbuttArmed&&m.headbuttTell===0&&spotted&&d<P.r+m.r+63&&m.attack<=0&&P.inv<=0){
+    if(!m.headbuttArmed&&m.headbuttTell===0&&spotted&&d<P.r+m.r+63&&m.attack<=0&&P.inv<=0&&
+       (elapsed<(m.counterFleeUntil||0)||(m.flee>0&&d<P.r+m.r+35))){
      m.attackVariation=COMBAT_LEVELS?.nextAttack(m);
      m.headbuttTell=.54*(m.attackVariation?.windup||1);m.headbuttArmed=true;
      m.attack=3.4*(m.attackVariation?.cooldown||1);m.dir=angle;
@@ -4956,13 +4996,15 @@ function update(dt){
      }else if(d<230)label(m.x,m.y-m.r-25,"反撃を回避！","#b4e6c2");
      m.flee=Math.max(m.flee,1.8);m.dir=angle+Math.PI;
     }
-    if(!m.defenseArmed&&m.defenseTell===0&&spotted&&d<P.r+m.r+65&&m.attack<=0&&P.inv<=0){
+    if(!m.defenseArmed&&m.defenseTell===0&&spotted&&d<P.r+m.r+65&&m.attack<=0&&P.inv<=0&&
+       (elapsed<(m.counterFleeUntil||0)||(m.flee>0&&d<P.r+m.r+40))){
      m.attackVariation=COMBAT_LEVELS?.nextAttack(m);
      m.defenseTell=(m.type==="zebra"?.58:m.type==="deer"?.68:.62)*(m.attackVariation?.windup||1);
      m.defenseArmed=true;m.attack=(m.type==="zebra"?2.55:m.type==="deer"?3:3.20)*(m.attackVariation?.cooldown||1);
      m.dir=angle;label(m.x,m.y-m.r-32,m.attackVariation?.name||(m.type==="zebra"?"後ろ蹴りの予兆！":m.type==="deer"?"鹿の後ろ蹴り！":"カモシカの角突き！"),"#ffc68c");
     }
    }
+   updateWoundedPreyDefense(m,s,dt,d,spotted,angle);
    if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
      if(m.escapeTimer<=0||!clearStep(m,m.dir,65)){
