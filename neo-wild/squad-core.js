@@ -148,8 +148,12 @@ function release(id){
   const blocked=dead();blocked.add(id);saveDead(blocked);
   const survivors=roster.members.filter(m=>m.id!==id);
   const leaderId=roster.leaderId===id?(survivors[0]?.id||null):roster.leaderId;
-  const saved=save({...roster,members:survivors,leaderId,pendingStart:survivors.length?roster.pendingStart:false});
-  return {ok:true,roster:saved,released:member,newLeaderId:saved.leaderId};
+  // The permanent exclusion ID is already committed. If the roster write fails,
+  // the old snapshot is filtered by load(); report the actual released state.
+  let saved;
+  try{saved=save({...roster,members:survivors,leaderId,pendingStart:survivors.length?roster.pendingStart:false});}
+  catch(_){saved=load();}
+  return {ok:true,roster:saved,released:member,newLeaderId:saved?.leaderId||null};
  }catch(_){
   return {ok:false,reason:"野生への放流を保存できません。端末の保存容量を確認してください"};
  }
