@@ -3120,6 +3120,11 @@ function kill(m){
  m._killRegistered=true;
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
  kills++;window.WildTrophies?.record?.("hunt",{kills},notify);
+ // Eight genuine hunts grant a gacha ticket for vacant party slots only.
+ if(!debugTutorialSession&&P?.squadIndividualId&&kills>0&&kills%8===0&&window.WildSquad?.grantTickets){
+  const roster=window.WildSquad.grantTickets(1);
+  if(roster)notify("狩猟達成：ガチャ権 +1（巣・タイトルで欠員補充）");
+ }
  window.WildTrophies?.record?.("kill",{type:m.type},notify);
  P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);
