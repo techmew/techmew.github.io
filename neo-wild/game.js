@@ -245,8 +245,8 @@ function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 // Population is a density budget, not an endless wave-spawner.
-const WILDLIFE={initial:13,cap:76,localRadius:700,localCap:9,separation:99,preyNeedRadius:440,farAI:1300,
- localTargetRain:5,localTargetClear:7,spawnInterval:9,packCooldown:110,packChanceEarly:.06,packChanceLate:.12};
+const WILDLIFE={initial:10,cap:64,localRadius:700,localCap:7,separation:116,preyNeedRadius:440,farAI:1300,
+ localTargetRain:4,localTargetClear:5,spawnInterval:11,packCooldown:130,packChanceEarly:.04,packChanceLate:.10};
 let lastPackSpawnAt=-WILDLIFE.packCooldown;
 /* Dynamic encounter difficulty. Scale relative to the player's LV, but cap each
  * damage and HP curve so an old long-lived save cannot become impossible. */
@@ -1099,9 +1099,9 @@ function start(newWorld=false){
  spawnMob(false,true); // Reserve nearby mission prey before filling the local wildlife slots.
  // A safe starting area contains ordinary wildlife, not only mission prey.
  const startRegion=regionAt(P.x,P.y);
- const starterTypes=startRegion===5?["wildFox","raccoonDog","snake","crow"]:
-  startRegion===4||startRegion===7?["snake","crow","frog","strayCat"]:
-  ["strayCat","strayCat","crow","snake"];
+ const starterTypes=startRegion===5?["rabbit","crow","frog"]:
+  startRegion===4||startRegion===7?["frog","crow","pigeon"]:
+  ["rabbit","pigeon","crow"];
  let starterCount=ensureLocalPredators(startRegion===7?2:1);
  for(const type of starterTypes)if(spawnMob(true,false,true,null,type))starterCount++;
  // Seed several other districts within the same original 13-animal budget.
@@ -2290,11 +2290,11 @@ function settleNewRegion(){
 // Early-game sanctuary is anchored to the current squad's starting point, not the camera.
 // Predators already present are left untouched; only newly spawned animals are filtered.
 function earlySquadSanctuary(){
- if(!P||elapsed>=360||Number(P.level||1)>3)return null;
+ if(!P||Number(P.level||1)>3)return null;
  const spawn=window.WildSquad?.load?.()?.startPosition;
  return {x:Number.isFinite(spawn?.x)?spawn.x:(P.spawnX??P.x),
          y:Number.isFinite(spawn?.y)?spawn.y:(P.spawnY??P.y),
-         radius:Math.max(300,520-Math.max(0,elapsed)*.42)};
+         radius:Math.max(300,560-(Math.max(1,Number(P.level)||1)-1)*110)};
 }
 function earlySquadSpawnType(type,x,y){
  const safe=earlySquadSanctuary();
@@ -3582,13 +3582,28 @@ function finishMissionMilestone(){
  $("mission-milestone").classList.remove("show");$("mission-milestone").classList.add("hidden");
  milestoneUntil=0;mode="play";announceObjective();syncHUD();return true;
 }
+// One-time gameplay gacha rights. Independent ledger preserves SAVE_SCHEMA2.
+const GACHA_REWARD_KEY="wild-reclaim-gacha-rewards-v1";
+function awardGameplayGachaTicket(kind,milestone){
+ const squad=window.WildSquad?.load?.();
+ if(debugTutorialSession||!P?.squadIndividualId||!squad?.members?.length||!window.WildSquad?.grantTickets)return false;
+ const token=String(squad.members.map(m=>m.id).sort().join("|"))+"::"+kind+":"+milestone;
+ let ledger={};
+ try{ledger=JSON.parse(localStorage.getItem(GACHA_REWARD_KEY)||"{}")||{}}catch(_){}
+ if(ledger[token])return false;
+ try{localStorage.setItem(GACHA_REWARD_KEY,JSON.stringify({...ledger,[token]:1}))}catch(_){return false}
+ const credited=window.WildSquad.grantTickets(1);
+ if(!credited){try{localStorage.setItem(GACHA_REWARD_KEY,JSON.stringify(ledger))}catch(_){}return false}
+ notify("達成報酬：ガチャ権 +1（巣・タイトルで空き枠補充）");
+ return true;
+}
 function advanceMission(next){
  const previous=mission;
  if(next===1)hiddenHold=0;
  if(next===2)tutorialHuntBase=kills;
  if(next===4)tutorialStashBase=denStash;
  mission=next;
- if(next===7){missionComplete=true;tutorialSeen.add(7)}
+ if(next===7){missionComplete=true;tutorialSeen.add(7);awardGameplayGachaTicket("mission","tutorial-complete")}
  const milestone=next===7&&showMissionMilestone(previous,next);
  if(!milestone&&next!==7){
   announceObjective();
@@ -4706,6 +4721,7 @@ function update(dt){
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
   awardDiscovery(site.id);
+  if(discoveredSites.length>0&&discoveredSites.length%2===0)awardGameplayGachaTicket("explore",Math.floor(discoveredSites.length/2));
   window.WildTrophies?.record?.("explore",{sites:discoveredSites.length},notify);
   ecologyNews=site.name+"で新しい知識を獲得";
   label(P.x,P.y-38,"探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length,"#d6e9b3");
