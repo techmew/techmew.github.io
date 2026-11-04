@@ -329,6 +329,7 @@ const ready=()=>{
    field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
    field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round((member.iv?.hp??1)*100)+"・攻 "+Math.round((member.iv?.attack??1)*100)+"・速 "+Math.round((member.iv?.speed??1)*100)+"・持 "+Math.round((member.iv?.stamina??1)*100)));
    card.append(field);
+   if(isLeader){const active=makeBtn("✓ 現在操作中",()=>{},"squad-select-character squad-current-character");active.disabled=true;active.setAttribute("aria-current","true");card.append(active);}
    if(!isLeader)card.append(makeBtn("この個体を操作",()=>{
     if(core.selectActive(member.id).ok){
      showLivingSquad();updateHome();
