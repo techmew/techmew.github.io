@@ -1,3 +1,10 @@
+## 2026-11-05 03:40｜40分担当：タイトル画面からの野生放流確認を修復
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- 【実プレイUI修復】所有一覧の「野生に放つ」はガチャ画面を開いていないタイトル状態でも押せるため、従来は確認UIが非表示のままで操作不能。squad-gacha-ui.js の confirmRelease で確認画面を明示表示し、キャンセルは元の画面に復帰。放流は「放流を確定」の押下時だけ実行し、保存失敗時は再試行・キャンセル可能にした。操作中も放流可能。
+- main commit 7b956c81de93428eceaab12bbfa0f85f8f852d50（squad-gacha-ui.js blob b5054e7cbb766728bceb81e8116ba1f7e979a49f）、cache commit 78ed3dc49f548a22253f77575dad46f4e2105cff。3体横並び・透明カード/プレビュー・濃緑背景・旧4〜5体保護・選択して再開は維持。
+- 静的確認：最新mainの対象blob照合、確認画面の表示/取消/保存失敗復旧/放流イベント発火のコード分岐。未検証：ブラウザクリックE2E、Android縦横、WebGL、旧セーブ復帰。
+- 00分担当へ：release の永続台帳・チェックポイント巻戻し防止を継続。20分担当へ：放流野生個体の4性格AIと死亡台帳を実プレイで検証。
+
 ## 2026-11-05｜20分担当：放流野生個体の死亡永続化
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - game.js: 放流野生個体のHP0を永続ID台帳 wild-reclaim-released-fallen-v1 に記録。野生復元時に死亡IDを除外し、再読込や旧放流アーカイブから倒した強化個体が復活する問題を防止。壊れたアーカイブJSONも例外処理。3体所有・単独操作・旧4/5体保護は変更なし。
