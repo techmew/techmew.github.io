@@ -507,9 +507,15 @@ function draw2D(ctx,o,r,fur,light,pace){
  if(goat)ellipse(r*1.30+lean,r*.16,r*.15,r*.29,"#c8bda8");
  ellipse(-r*1.10,0,r*.22,r*.18,light);
  }else if(type==="deer"){
-  for(const side of [-1,1]){
-   line(-r*.53,side*r*.50+pace*.16,-r*.80,side*r*1.50,r*.16,"#69543e");
-   line(r*.50,side*r*.49-pace*.16,r*.67,side*r*1.53,r*.15,"#69543e");
+  // The hooves move forward/back visibly instead of the body sliding.
+  const run=Math.min(1,Math.hypot(o.vx||0,o.vy||0)/105),phase=(o.step||0)*1.55;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const beat=Math.sin(phase+(front===side?0:Math.PI)),swing=beat*r*.58*run;
+   const kneeX=front*r*.54+swing*.46,hoofX=front*r*.54+swing;
+   const hipX=front*r*.54,hipY=side*r*.50,kneeY=side*r*1.02,hoofY=side*r*(1.46-Math.max(0,beat)*.15*run);
+   line(hipX,hipY,kneeX,kneeY,r*.15,"#795b40");
+   line(kneeX,kneeY,hoofX,hoofY,r*.11,"#69543e");
+   ellipse(hoofX,hoofY,r*.19,r*.12,"#403b32");
   }
   ellipse(-r*.22,0,r*1.16,r*.62,fur);
   ellipse(r*.68,0,r*.65,r*.40,fur);
@@ -566,19 +572,21 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(let k=0;k<13;k++){const x=(-1.1+(k*7%13)*.18)*r,y=(((k*5)%9)-4)*r*.105;ellipse(x,y,r*.045,r*.07,"#463c30");}
   for(const side of [-1,1]){ellipse(r*.96,side*r*.29,r*.12,r*.07,"#201e20");line(r*1.07,side*r*.18,r*1.20,side*r*.30,r*.05,"#39352c");}
  }else if(type==="giraffe"){
-  // Top-down fallback: visible diagonal four-beat running gait and head thrust.
-  const moving=Math.min(1,Math.hypot(o.vx||0,o.vy||0)/135);
-  const stride=(o.step||0)*1.95;
+  // Top-down fallback: faster distance-driven four-beat gait and head thrust.
+  const moving=Math.min(1,Math.hypot(o.vx||0,o.vy||0)/105);
+  const stride=(o.step||0)*1.64;
   const attacking=(o.windup||0)>0||(o.swing||0)>0;
   const strike=(o.swing||0)>0,headDrive=strike?r*.53:attacking?-r*.13:0;
   const headSway=attacking?Math.sin(((o.windup||0)+(o.swing||0))*16)*r*.13:0;
   for(const side of [-1,1])for(const front of [-1,1]){
    const x=front*r*.57;
    const beat=Math.sin(stride+(front===side?0:Math.PI));
-   const swing=beat*r*.35*moving,hoofLift=Math.max(0,beat)*r*.14*moving;
-   line(x,side*r*.36,x+swing*.48,side*r*(1.01+hoofLift/r),r*.145,fur);
-   line(x+swing*.48,side*r*(1.01+hoofLift/r),x+swing,side*r*1.38,r*.115,fur);
-   ellipse(x+swing*1.08,side*r*1.39,r*.21,r*.12,"#5e4934");
+   const swing=beat*r*.71*moving,hoofLift=Math.max(0,beat)*r*.27*moving;
+   const kneeX=x+swing*.53,kneeY=side*r*1.04;
+   const hoofX=x+swing*1.07,hoofY=side*r*(1.44-hoofLift/r);
+   line(x,side*r*.36,kneeX,kneeY,r*.16,fur);
+   line(kneeX,kneeY,hoofX,hoofY,r*.12,fur);
+   ellipse(hoofX,hoofY,r*.22,r*.13,"#5e4934");
   }
   ellipse(-r*.19,0,r*1.17,r*.45,fur);
   for(let k=0;k<9;k++){const x=(-1+(k*7%10)*.19)*r,y=(((k*3)%7)-3)*r*.10;ellipse(x,y,r*.15,r*.13,"#a9733f");}
