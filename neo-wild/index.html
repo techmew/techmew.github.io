@@ -29,16 +29,7 @@
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">YEAR 000</div><div class="subinfo" id="moon-label" aria-label="月齢">月齢 0.0 · 新月</div><div id="survival-goal" class="hidden" aria-live="off">探索依頼</div></div>
   <div class="hud-right"><div class="top-actions session-actions" aria-label="音楽・最大化・一時停止"><button id="sound-btn" type="button" title="音楽の切替" aria-label="音楽の切替">♪</button><button id="full-btn" type="button" title="最大化" aria-label="最大化">⛶</button><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="mini-map-stack" aria-label="周辺地図と生存記録"><div id="mini-map-control" class="map-frame" role="button" tabindex="0" aria-label="周辺地図：標準。タップで表示範囲切替、長押しで詳細地図"><canvas id="minimap" width="128" height="128" aria-label="常時表示の周辺地図"></canvas><span id="mini-map-scale">標準</span></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div></div></div>
 </div>
-<section id="squad-party-hud" class="hidden" role="region" aria-label="廃止された旧編成表示" aria-hidden="true" style="display:none!important">
- <div class="squad-party-caption">パーティ <small>黄色が操作中・仲間をタップで交代</small></div>
- <div id="squad-party-members" class="squad-party-members" aria-label="現在の編成"></div>
- <div class="squad-party-commands" role="group" aria-label="仲間への指示">
-  <button type="button" data-squad-order="follow" aria-pressed="true">追従</button>
-  <button type="button" data-squad-order="attack" aria-pressed="false">攻撃</button>
-  <button type="button" data-squad-order="wait" aria-pressed="false">待機</button>
-  <button type="button" data-squad-order="flee" aria-pressed="false">逃走</button>
- </div>
-</section>
+<section id="squad-party-hud" class="hidden" hidden aria-hidden="true" style="display:none!important"><div id="squad-party-members" hidden></div><div class="squad-party-commands" hidden><button type="button" data-squad-order="follow" hidden></button><button type="button" data-squad-order="attack" hidden></button><button type="button" data-squad-order="wait" hidden></button><button type="button" data-squad-order="flee" hidden></button></div></section>
 <div id="hunt-cinematic" role="status" aria-live="polite" aria-atomic="true"><div class="hunt-cinematic-core"><strong id="hunt-cinematic-title">SHADOW HUNT</strong><span id="hunt-cinematic-sub">UNDETECTED STRIKE</span></div></div>
 <div id="shelter-hint" class="hidden" aria-live="off">青い建物入口から歩いて入れます（ボタン不要）</div>
 <div id="stockpile-guide" class="hidden" aria-live="off">① 食草・肉のそばで○長押しして運ぶ</div>
@@ -66,8 +57,8 @@
  <div class="den-food-row" id="den-row-berries"><span><b>食草</b><small>満腹+7 / 生命+1（7pt）</small></span><strong id="den-qty-berries">0pt</strong><button id="den-eat-berries" type="button">食草を食べる</button></div>
  <div class="den-food-row hidden" id="den-row-legacy"><span><b>以前の備蓄</b><small>旧セーブから引き継いだ食料</small></span><strong id="den-qty-legacy">0pt</strong><button id="den-eat-legacy" type="button">旧備蓄を食べる</button></div>
  <p class="den-pantry-note">選んだ食料だけ減ります。巣の強化では備蓄を消費しません。</p>
- <div class="den-food-row" role="group" aria-label="巣の仲間">
-  <span><b>仲間と生き残る</b><small id="den-companion-status">巣LV2で肉24ptを使い、仲間を迎えられます。</small></span>
+ <div class="den-food-row" role="group" aria-label="旧セーブ互換" hidden aria-hidden="true" style="display:none!important">
+  <span><b>旧機能は廃止</b><small id="den-companion-status">動物はガチャで獲得し、最大5体まで所有できます。</small></span>
   <button id="den-companion-btn" type="button" disabled hidden style="display:none!important">仲間を迎える（肉24pt）</button>
  </div>
  <div id="strong-inheritance" class="strong-inheritance" role="group" aria-label="希少素材の能力継承">
