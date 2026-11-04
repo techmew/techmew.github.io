@@ -1517,3 +1517,52 @@
 @media(orientation:landscape) and (max-height:520px){
  #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
 }
+
+/* SOLO3_RELEASE_ROSTER_20261105: always show three animals side by side.
+   No dark tile backdrop; previews can be enlarged without clipping controls. */
+#menu #squad-roster{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:clamp(4px,1vw,12px)!important;align-items:stretch!important;
+}
+#menu #squad-roster .squad-roster-slot,
+#menu #squad-roster .squad-roster-slot.is-leader,
+#menu #squad-roster .squad-roster-slot[aria-current="true"]{
+ background:transparent!important;background-image:none!important;
+ box-shadow:none!important;text-shadow:none!important;
+ overflow:visible!important;justify-content:flex-start!important;
+ min-height:265px!important;padding:6px 3px!important;gap:3px!important;
+ border:2px solid #9cb9a1!important;border-radius:10px!important;
+}
+#menu #squad-roster .squad-roster-slot.is-leader{
+ border-color:#ffe08a!important;
+}
+#menu #squad-roster .squad-roster-preview{
+ width:100%!important;height:128px!important;max-height:none!important;
+ overflow:hidden!important;background:transparent!important;box-shadow:none!important;
+}
+#menu #squad-roster .squad-roster-preview canvas{
+ display:block!important;width:145%!important;max-width:none!important;
+ height:128px!important;margin-left:-22.5%!important;
+ object-fit:contain!important;background:transparent!important;
+}
+#menu #squad-roster .squad-roster-slot .squad-individual-name{
+ font-size:clamp(11px,2.5vw,16px)!important;line-height:1.2!important;
+ overflow-wrap:anywhere!important;white-space:normal!important;
+}
+#menu #squad-roster .squad-roster-slot .squad-active-badge{
+ width:100%!important;font-size:clamp(12px,3vw,17px)!important;
+ background:#ffe08a!important;box-shadow:none!important;
+}
+#menu #squad-roster .squad-roster-slot button.squad-release-character,
+#menu #squad-roster .squad-roster-slot button.squad-roster-select{
+ flex-shrink:0!important;display:block!important;min-height:44px!important;
+ margin:3px 0 0!important;white-space:normal!important;
+ font-size:clamp(10px,2.5vw,13px)!important;
+}
+@media(max-width:700px){
+ #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important;}
+ #menu #squad-roster .squad-roster-slot{min-height:274px!important;padding:5px 2px!important;}
+}
+@media(orientation:landscape) and (max-height:520px){
+ #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
