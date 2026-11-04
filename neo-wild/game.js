@@ -7346,6 +7346,23 @@ $("mission-close").addEventListener("click",()=>{
  $("objective-toggle").setAttribute("aria-expanded","false");
  $("objective-toggle").textContent="目標を見る";
 });
+// Pause BGM picker: works with touch, keyboard and gamepad-focused DOM controls.
+const bgmPicker=$("pause-bgm-select"),bgmStatus=$("pause-bgm-status");
+if(bgmPicker&&window.WildAudio){
+ const options=window.WildAudio.tracks||[];
+ if(options.length===5){
+  bgmPicker.replaceChildren(...options.map(track=>{
+   const option=document.createElement("option");
+   option.value=track.id;option.textContent=track.name;return option;
+  }));
+ }
+ bgmPicker.value=window.WildAudio.getMusicChoice?.()||"default";
+ bgmPicker.addEventListener("change",()=>{
+  const selected=window.WildAudio.setMusicChoice?.(bgmPicker.value);
+  if(!selected){bgmPicker.value=window.WildAudio.getMusicChoice?.()||"default";return;}
+  if(bgmStatus)bgmStatus.textContent=soundEnabled?"選択した曲を再生中・次回も保持します":"選択を保存しました。右上の♪で音楽をONにできます。";
+ });
+}
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
 $("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
