@@ -5144,7 +5144,7 @@ function update(dt){
    const mood=m.releasedMood;
    if(mood==="aggressive"&&d<410){m.alert=Math.max(m.alert||0,2.4);m.search=Math.max(m.search||0,2.4);m.reactiveUntil=elapsed+2.4;}
    else if(mood==="timid"&&d<420){m.flee=Math.max(m.flee||0,2.2);m.alert=0;const a=Math.atan2(m.y-P.y,m.x-P.x);const ox=m.x,oy=m.y;move(m,Math.cos(a)*s.speed*1.3*dt,Math.sin(a)*s.speed*1.3*dt);m.vx=(m.x-ox)/Math.max(dt,.001);m.vy=(m.y-oy)/Math.max(dt,.001);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;continue;}
-   else if(mood==="peaceful"&&!m.provokedUntil){m.alert=0;m.search=0;m.windup=0;m.chargeTime=0;if(d<300){m.vx=0;m.vy=0;continue;}}
+   else if(mood==="peaceful"&&!(m.provokedUntil>elapsed)){m.alert=0;m.search=0;m.windup=0;m.chargeTime=0;if(d<300){m.vx=0;m.vy=0;continue;}}
    else if(mood==="generous"&&!(m.provokedUntil>elapsed)&&d<440){
     // A generous released animal approaches without entering the ordinary predator attack loop.
     m.alert=0;m.search=0;m.windup=0;m.chargeTime=0;
@@ -5153,9 +5153,13 @@ function update(dt){
      if(elapsed>=(m.releasedGiftCooldown||0)){
       const a=Math.atan2(P.y-m.y,P.x-m.x),giftType=["deer","boar","giraffe","zebra"].includes(m.type)?"berries":(Math.random()<.5?"berries":"meat");
       // A gift must be physically reachable, not inside a wall or across a river.
-      for(const radius of [36,52,70]){const x=clamp(m.x+Math.cos(a)*radius,40,WORLD.w-40),y=clamp(m.y+Math.sin(a)*radius,40,WORLD.h-40);
-       if(!collides(x,y,16)&&!lineBlocked(m,{x,y})&&waterDepth(x,y)<.1){carcasses.push({x,y,r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);break;}}
-      m.releasedGiftCooldown=elapsed+45+Math.random()*25;
+      let delivered=false;
+      for(const radius of [36,52,70,92]){for(const offset of [0,.35,-.35,.7,-.7,1.1,-1.1]){
+       const x=clamp(m.x+Math.cos(a+offset)*radius,40,WORLD.w-40),y=clamp(m.y+Math.sin(a+offset)*radius,40,WORLD.h-40);
+       if(!collides(x,y,16)&&!lineBlocked(m,{x,y})&&waterDepth(x,y)<.1){carcasses.push({x,y,r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);delivered=true;break;}
+      }if(delivered)break;}
+      // A blocked gift is retried soon rather than silently consuming a full cooldown.
+      m.releasedGiftCooldown=elapsed+(delivered?45+Math.random()*25:3);
      }
     }continue;
    }
