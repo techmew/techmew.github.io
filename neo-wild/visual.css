@@ -1361,3 +1361,9 @@
 #menu #continue-btn{background:linear-gradient(105deg,#f4d28e,#e2dca9 55%,#b5d6ba)!important;color:#172c27!important;border:2px solid #ffe9ac!important;border-radius:13px!important;font-weight:900!important}
 #menu #squad-roster .squad-slot-add{min-height:72px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;width:100%!important;background:transparent!important;border:0!important;color:#f6df9e!important;font-size:48px!important;cursor:pointer!important}
 #menu #squad-roster .squad-release{display:block!important;font-size:10px!important;padding:5px 6px!important;min-height:28px!important;background:#49352e!important;border:1px solid #a38171!important;color:#ffe3ce!important}
+
+/* FIX_HIDDEN_NATIVE_CONTROLS_20261104 */
+#menu #start-region[hidden]{display:none!important;visibility:hidden!important;height:0!important;padding:0!important;margin:0!important;border:0!important}
+#menu #menu-landscape-note:not([data-error="true"]){display:none!important}
+#menu #squad-home .squad-home-hint{font-size:11px!important;line-height:1.6!important}
+#menu #start-btn{cursor:pointer!important;pointer-events:auto!important;touch-action:manipulation!important}
