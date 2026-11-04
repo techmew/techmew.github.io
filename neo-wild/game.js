@@ -1472,6 +1472,12 @@ function sootheStrongWound(foodPoints,atHome=false){
 // Single shared contact calculation: telegraph range and strike reach must agree.
 // A long-neck giraffe can strike from farther away, but the fixed strike
 // direction, line of sight and recovery frames still permit an honest dodge.
+// A fully overlapping animal must remain hittable regardless of where either
+// sprite is facing. Use the physical radii, not the displayed head/neck position.
+function hitboxesOverlap(a,b,distance){
+ const d=Number.isFinite(distance)?distance:Math.hypot((a?.x||0)-(b?.x||0),(a?.y||0)-(b?.y||0));
+ return d<=Math.max(3,(Number(a?.r)||12)+(Number(b?.r)||12));
+}
 function ordinaryMeleeReach(m){
  const advertised=STRONG_ATTACK_PROFILES[m.type]?.reach??(m.type==="boar"?115:m.type==="alpha"?112:37);
  const cap=m.type==="giraffe"?135:m.strongBoss?116:112;
@@ -3113,11 +3119,11 @@ function resolveAttack(){
  P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
  mobs.forEach(m=>{
   if(m.hp<=0||m.companion)return;
-  const d=dist(P,m),theta=Math.atan2(m.y-P.y,m.x-P.x),angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
+  const d=dist(P,m),overlap=hitboxesOverlap(P,m,d),theta=d>.001?Math.atan2(m.y-P.y,m.x-P.x):P.dir,angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
    const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="manul"?.91:1.03;
-  if(d<P.r+m.r+reach&&Math.abs(angle)<arc&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&!lineBlocked(P,m)){
+  if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&(overlap||!lineBlocked(P,m))){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
@@ -5268,12 +5274,12 @@ function update(dt){
       m.chargeTime=m.type==="alpha"?.24:m.type==="strayCat"?.20:m.type==="wildFox"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:m.type==="rhino"?.57:m.type==="albinoWolf"?.33:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
       label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="strayCat"||m.type==="wildFox"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
      }else{
-      const reach=ordinaryMeleeReach(m),aim=Math.atan2(P.y-m.y,P.x-m.x);
+      const reach=ordinaryMeleeReach(m),dStrike=dist(P,m),overlap=hitboxesOverlap(P,m,dStrike),aim=dStrike>.001?Math.atan2(P.y-m.y,P.x-m.x):(m.strikeDir||m.dir||0);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.type==="giantGorilla"&&m.stun<=0&&dist(P,m)>P.r+m.r+37){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
-      }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dist(P,m)<reach&&Math.abs(delta)<(m.attackVariation?.arc||.92)&&!lineBlocked(m,P)){
+      }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dStrike<reach&&(overlap||Math.abs(delta)<(m.attackVariation?.arc||.92))&&(overlap||!lineBlocked(m,P))){
        const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
