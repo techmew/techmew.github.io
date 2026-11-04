@@ -299,7 +299,7 @@ const ready=()=>{
    field.append(el("strong",null,(isLeader?"▼ 操作中　":"")+(member.name||member.speciesName)));
    field.append(el("p",null,"LV"+(member.level||1)+"・"+member.grade+"評価・"+(RARITY[member.rarity]||"基本")));
    field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
-   field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round(member.iv.hp*100)+"・攻 "+Math.round(member.iv.attack*100)+"・速 "+Math.round(member.iv.speed*100)+"・持 "+Math.round(member.iv.stamina*100)));
+   field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round((member.iv?.hp??1)*100)+"・攻 "+Math.round((member.iv?.attack??1)*100)+"・速 "+Math.round((member.iv?.speed??1)*100)+"・持 "+Math.round((member.iv?.stamina??1)*100)));
    card.append(field);
    if(!isLeader)card.append(makeBtn("この個体を操作",()=>{
     if(core.selectActive(member.id).ok){
@@ -313,7 +313,7 @@ const ready=()=>{
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
   if(members.length<MAX_OWNED){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
-  actions.append(makeBtn("選択中の個体で出発",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
+  actions.append(makeBtn("選択中の個体で出発",()=>{const current=core.load();if(!current?.members?.some(m=>m.id===current.leaderId)){message("操作する個体を所有一覧から選択してください。");return;}root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
   actions.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome();},"squad-close"));
   body.append(actions);
  }
@@ -344,7 +344,11 @@ const ready=()=>{
   body.replaceChildren();
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("野生に放つ",()=>{
-   const result=core.release(member.id);
+   const confirmButton=actions.querySelector(".squad-release");
+    if(confirmButton?.disabled)return;
+    if(confirmButton)confirmButton.disabled=true;
+    let result;
+    try{result=core.release(member.id)}catch(_){message("放流の保存に失敗しました。所有一覧を確認してください。");return;}
    if(!result.ok){message(result.reason||"編成が変更されています。もう一度確認してください。");return;}
    root.hidden=true;updateHome();
    window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:member.id,newLeaderId:result.newLeaderId}}));
