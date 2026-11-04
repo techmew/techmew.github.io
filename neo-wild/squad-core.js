@@ -2,8 +2,8 @@
 (function(){
 "use strict";
 const KEY="wild-reclaim-squad-v1",DEAD="wild-reclaim-dead-ids-v1",RESET_NEW_WORLD="wild-reclaim-explicit-new-world-v1";
-// One active animal + up to three reserves. Preserve all five pre-change animals until natural vacancies.
-const MAX_OWNED=4,LEGACY_OWNED=5;
+// Exactly one active animal + up to two reserves. Preserve all four/five pre-change animals until natural vacancies.
+const MAX_OWNED=3,LEGACY_OWNED=5;
 const japan=["cat","dog","fox","wolf","deer","boar","crow","pigeon","otter","carp","tanuki","badger","macaque","blackBear","serow"];
 const world=["manul","tibetanFox","shoebill","lion","tiger","cheetah","elephant","hippo","gorilla","giraffe","zebra","hyena","wildDog","armadillo","hedgehog"];
 const names={cat:"猫",dog:"犬",fox:"狐",wolf:"狼",deer:"鹿",boar:"猪",crow:"カラス",pigeon:"ハト",otter:"カワウソ",carp:"コイ",tanuki:"タヌキ",badger:"アナグマ",macaque:"ニホンザル",blackBear:"ツキノワグマ",serow:"ニホンカモシカ",manul:"マヌルネコ",tibetanFox:"チベットスナギツネ",shoebill:"ハシビロコウ",lion:"ライオン",tiger:"トラ",cheetah:"チーター",elephant:"ゾウ",hippo:"カバ",gorilla:"ゴリラ",giraffe:"キリン",zebra:"シマウマ",hyena:"ハイエナ",wildDog:"リカオン",armadillo:"アルマジロ",hedgehog:"ハリネズミ"};
@@ -47,8 +47,8 @@ function generate(year=0,explored=0,poorStreak=0){
  return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:randomName(),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
 }
 function assignSlots(members){
- // Existing five-animal rosters are grandfathered: no living animal is discarded.
- // Once a death leaves four or fewer, slot 4 is compacted into a standard slot.
+ // Existing four- or five-animal rosters are grandfathered: never delete a living individual.
+ // When deaths leave three or fewer, compact the survivors into normal three-slot ownership.
  const limit=members.length>MAX_OWNED?LEGACY_OWNED:MAX_OWNED;
  const slots=Array.from({length:limit},(_,i)=>i),used=new Set();
  return members.map(m=>{
@@ -96,7 +96,7 @@ function newSquad(members,leaderId){
  if(!Array.isArray(members)||members.length<1||members.length>MAX_OWNED||
     members.some(m=>!m?.id||!playable.has(m.species)||m.alive===false||dead().has(m.id))||
     new Set(members.map(m=>m.id)).size!==members.length)
-   throw Error("所有は操作中1体とストック3体の最大4体です。重複・死亡個体は禁止");
+   throw Error("所有は操作中1体＋ストック2体の合計最大3体です。重複・死亡個体は禁止");
  if(!members.some(m=>m.id===leaderId))throw Error("操作するリーダーを選択してください");
  return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0,pendingStart:true,newWorldOnStart:localStorage.getItem(RESET_NEW_WORLD)==="1"||!read("wild-reclaim-world-chronicle-v1",null)});
 }
