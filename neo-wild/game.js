@@ -5135,8 +5135,8 @@ function update(dt){
    m.provokedUntil=0;m.counterFleeUntil=0;
    startlePrey(m,P,"alarm"); // At the end of aggression it returns to normal flight.
   }
-  const provoked=isProvokedPrey(m,s,d);
-  const spotted=detectsPlayer(m,s,d)||
+  const provoked=(m.releasedIndividualId&&m.releasedMood==="aggressive"&&d<410&&!lineBlocked(m,P))||isProvokedPrey(m,s,d);
+  const spotted=(m.releasedIndividualId&&m.releasedMood==="aggressive"&&d<410&&!lineBlocked(m,P))||detectsPlayer(m,s,d)||
    (elapsed<(m.reactiveUntil||0)&&d<Math.max(190,P.r+m.r+125)&&!lineBlocked(m,P))||
    (provoked&&d<330&&!lineBlocked(m,P));
   if(m.type==="cheetah"){
