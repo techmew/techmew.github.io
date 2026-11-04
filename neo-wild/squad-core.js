@@ -150,8 +150,14 @@ function release(id){
  const queue=Array.isArray(pending)?pending.filter(m=>m?.id!==id):[];
  queue.push({...member,releasedAt:Date.now()});
  try{
+  // If the permanent exclusion fails, roll back the queued wild encounter.
   localStorage.setItem(key,JSON.stringify(queue));
-  const blocked=dead();blocked.add(id);saveDead(blocked);
+  try{
+   const blocked=dead();blocked.add(id);saveDead(blocked);
+  }catch(error){
+   try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){}
+   throw error;
+  }
   const survivors=roster.members.filter(m=>m.id!==id);
   const leaderId=roster.leaderId===id?(survivors[0]?.id||null):roster.leaderId;
   // The permanent exclusion ID is already committed. If the roster write fails,
