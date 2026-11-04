@@ -1331,3 +1331,16 @@
  background:transparent!important;
  border:0!important;
 }
+
+/* TITLE_SQUAD_TILES_20261104 */
+#menu #squad-open{display:none!important}
+#menu .squad-menu-extras{display:block!important;margin-top:16px}
+#menu .squad-menu-extras>summary{display:none!important}
+#menu .squad-collection-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 18px}
+#menu .squad-collection-tiles>button{aspect-ratio:1/1;min-width:0;width:100%;padding:8px 3px!important;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(12px,3.4vw,17px)!important;font-weight:800;border-radius:13px;white-space:normal}
+#menu .squad-roster-slot{position:relative}
+#menu .squad-roster-empty.squad-slot-add{display:flex;align-items:center;justify-content:center;width:100%;min-height:92px;background:transparent;border:0;color:#f8d68d;font-size:55px;cursor:pointer}
+#menu .squad-release{display:block;margin:7px auto 0;padding:5px 8px;font-size:11px;border:1px solid #9f8170;border-radius:7px;background:#342c29;color:#f7e1cf}
+#menu #spawn-picker,#menu .menu-foot,#menu #checkpoint-menu-btn,#menu #checkpoint-list{display:none!important}
+#menu #new-game-options{display:block!important}
+#menu #start-btn{font-size:clamp(13px,3.3vw,17px);white-space:normal}
