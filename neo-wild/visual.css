@@ -1469,3 +1469,22 @@
  #pause #pause-bgm-volume{height:17px;min-height:17px}
  #pause .pause-bgm-volume label{font-size:10px}
 }
+
+
+/* SOLO5_ROSTER_EXPLICIT_SELECTION_20261104: 5 slots, clear active badge and safe touch targets. */
+#menu #squad-roster{grid-template-columns:repeat(5,minmax(0,1fr))!important;align-items:stretch!important;}
+#menu .squad-roster-slot{position:relative;gap:5px!important;padding:8px 6px!important;min-height:158px;box-sizing:border-box;overflow:hidden;}
+#menu .squad-roster-slot.is-leader{border:3px solid #ffdb79!important;background:#234d42!important;box-shadow:0 0 0 2px #0b241e,0 0 17px #e6c45a66!important;}
+#menu .squad-roster-slot .squad-active-badge{display:block!important;position:relative!important;top:auto!important;left:auto!important;width:100%;box-sizing:border-box;padding:5px 3px!important;background:#ffe08a!important;color:#14251e!important;border-radius:6px;font:900 clamp(13px,2.8vw,18px)/1.25 sans-serif!important;text-align:center!important;letter-spacing:.03em;}
+#menu .squad-roster-slot .squad-roster-select{display:block!important;width:100%!important;min-height:44px!important;padding:8px 4px!important;border:1px solid #a8d3bd!important;border-radius:7px!important;background:#285b51!important;color:#fff!important;font:800 clamp(11px,2.4vw,14px)/1.25 sans-serif!important;white-space:normal!important;cursor:pointer;}
+#menu .squad-roster-slot .squad-roster-select:disabled{opacity:1!important;background:#f1d17c!important;color:#182b22!important;border-color:#f7e6a4!important;cursor:default;}
+#menu .squad-roster-slot .squad-roster-select:focus-visible{outline:3px solid #ffe08a!important;outline-offset:2px;}
+@media(max-width:700px){
+ #menu #squad-roster{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;}
+ #menu .squad-roster-slot{min-height:150px!important;padding:9px 7px!important;}
+ #menu .squad-roster-slot .squad-active-badge{font-size:17px!important;}
+ #menu .squad-roster-slot .squad-roster-select{font-size:13px!important;}
+}
+@media(min-width:701px) and (max-width:950px){
+ #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
