@@ -2436,6 +2436,11 @@ function restoreReleasedWildlife(){
  if(releasedSpawnBusy||restoringSavedWorld||mode!=="play"||!P||!Array.isArray(mobs))return;
  let pending=[];
  try{pending=JSON.parse(localStorage.getItem("wild-reclaim-released-v1")||"[]")}catch(_){return}
+ const archive=JSON.parse(localStorage.getItem("wild-reclaim-released-archive-v1")||"[]");
+ if(Array.isArray(archive)){
+  const seen=new Set(pending.map(a=>String(a?.id)));
+  for(const a of archive)if(a?.id&&!seen.has(String(a.id))){pending.push(a);seen.add(String(a.id));}
+ }
  if(!Array.isArray(pending)||!pending.length)return;
  releasedSpawnBusy=true;
  try{
@@ -2456,6 +2461,12 @@ function restoreReleasedWildlife(){
    }
    if(!created)remaining.push(animal);
   }
+  // Keep released identities in the world registry after first appearance.
+  // A reload must not erase an animal merely because its initial spawn succeeded.
+  const archived=JSON.parse(localStorage.getItem("wild-reclaim-released-archive-v1")||"[]");
+  const known=new Map((Array.isArray(archived)?archived:[]).filter(a=>a&&a.id).map(a=>[String(a.id),a]));
+  for(const animal of pending)if(animal?.id&&!remaining.some(a=>a.id===animal.id))known.set(String(animal.id),animal);
+  localStorage.setItem("wild-reclaim-released-archive-v1",JSON.stringify([...known.values()]));
   localStorage.setItem("wild-reclaim-released-v1",JSON.stringify(remaining));
  }finally{releasedSpawnBusy=false;}
 }
