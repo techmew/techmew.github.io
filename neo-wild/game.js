@@ -3134,6 +3134,56 @@ function attack(){
  P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
  P.noiseBurst=Math.max(P.noiseBurst,P.type==="manul"?.46:P.type==="shoebill"?.75:1.05);playEffect("attack",{volume:.22});
 }
+// BOAR_DASH_RAM_V1: physical collision makes the boar's run a real attack.
+// Both a short-tap dash and a held sprint use the same swept body hitbox.
+function resolveBoarDashImpact(x0,y0,x1,y1,isCharging){
+ if(!P||P.type!=="boar")return 0;
+ const dx=x1-x0,dy=y1-y0,travel2=dx*dx+dy*dy;
+ let count=0;
+ for(const m of mobs){
+  if(m.hp<=0||m.companion)continue;
+  const radius=P.r+m.r+3;
+  const distance=Math.hypot(P.x-m.x,P.y-m.y);
+  if(distance>radius+12)m.boarRamTouching=false;
+  if(!isCharging||travel2<Math.max(.75,P.speed*.006)**2||
+    m.boarRamTouching||elapsed<(m.boarRamNextAt||0)||
+    Math.abs((P.jumpHeight||0)-(m.groundZ||0))>=22)continue;
+  const t=clamp(((m.x-x0)*dx+(m.y-y0)*dy)/Math.max(1e-8,travel2),0,1);
+  const contactX=x0+t*dx,contactY=y0+t*dy;
+  if(Math.hypot(m.x-contactX,m.y-contactY)>radius)continue;
+  // The charge must actually approach/cross the body; standing still while
+  // holding the sprint input is not an attack.
+  const startDistance=Math.hypot(m.x-x0,m.y-y0);
+  if(startDistance<=radius&&distance>startDistance+2)continue;
+  if(!hitboxesOverlap(P,m,distance)&&lineBlocked({x:contactX,y:contactY},m))continue;
+  m.boarRamTouching=true;
+  m.boarRamNextAt=elapsed+1.1;
+  const levelFactor=COMBAT_LEVELS?.outgoing(m.type,P.level)||1;
+  const damage=Math.max(1,Math.round(P.damage*1.25*levelFactor*(m.strongBoss?.72:1)*rnd(.9,1.1)));
+  m.hp=Math.max(0,m.hp-damage);
+  m.flash=.24;m.alert=Math.max(m.alert||0,3);
+  m.lastX=P.x;m.lastY=P.y;m.search=0;
+  m.reactiveUntil=Math.max(m.reactiveUntil||0,elapsed+2.5);
+  const broken=m.strongBoss?bossPoiseBreak(m,damage,true):false;
+  if(!m.strongBoss||broken){
+   m.stun=Math.max(m.stun||0,m.strongBoss?.35:.44);
+   m.windup=0;m.chargeTime=0;
+  }
+  m.attack=Math.max(m.attack||0,m.strongBoss?.25:.38);
+  P.swing=Math.max(P.swing||0,.23);
+  const angle=Math.atan2(dy,dx),push=m.strongBoss?(broken?18:6):25;
+  move(m,Math.cos(angle)*push,Math.sin(angle)*push);
+  blood(m.x,m.y,"#db9d71",9,125);
+  label(m.x,m.y-m.r-27,"体当たり -"+damage,"#ffd49d");
+  shake=Math.max(shake,4);flash=Math.max(flash,.075);
+  P.noiseBurst=Math.max(P.noiseBurst,1.25);P.lastCombatAt=elapsed;
+  playEffect("impact",{volume:.25});
+  if(m.hp<=0)kill(m);
+  else if(species[m.type]?.prey)provokePreyAfterPlayerHit(m);
+  count++;
+ }
+ return count;
+}
 function resolveAttack(){
  if(mode!=="play"||!P.pendingStrike)return;
  P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
@@ -3369,8 +3419,10 @@ function dash(){
  P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.37:P.type==="cat"?.31:.30;
  P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
  P.vx=0;P.vy=0;P.atk=Math.max(P.atk,P.rate);
- P.windup=P.pounceDuration+.04;P.pendingStrike=true;P.jumpDive=true;
- P.ambushStrike=!!ambushTarget; // Concealment alone does not imply an unaware victim.
+ // Boar dash deals damage at physical contact instead of a delayed bite.
+ P.windup=P.type==="boar"?0:P.pounceDuration+.04;
+ P.pendingStrike=P.type!=="boar";P.jumpDive=P.type!=="boar";
+ P.ambushStrike=P.type!=="boar"&&!!ambushTarget; // No phantom follow-up hit after a boar ram.
  P.hidden=false;P.revealTimer=1.1;
  P.noiseBurst=Math.max(P.noiseBurst,1.2);playEffect(P.type==="wolf"?"impact":"attack");
  return true;
@@ -4934,6 +4986,8 @@ function update(dt){
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
  P.stun=Math.max(0,(P.stun||0)-dt);
  const a=P.stun>0?{x:0,y:0}:getAxes(),sneaking=keys.has("c")||keys.has("control");
+  const boarStartX=P.x,boarStartY=P.y;
+  let boarDashActive=false;
   if(P.jumpTime>0){
     const jumpLeft=Math.max(0,P.jumpTime-dt);
     const jumpProgress=clamp(1-jumpLeft/Math.max(.01,P.jumpDuration),0,1);
@@ -4955,6 +5009,7 @@ function update(dt){
      else P.jumpAmbush=false;
     }
    }else if(P.pounceTime>0){
+   boarDashActive=P.type==="boar";
    const step=Math.min(P.pounceRemaining,P.pounceRemaining/Math.max(P.pounceTime,dt)*dt);
    const ox=P.x,oy=P.y;
    move(P,Math.cos(P.pounceDir)*step,Math.sin(P.pounceDir)*step);
@@ -4978,6 +5033,7 @@ function update(dt){
    if(pounceStreaks.length>11)pounceStreaks.shift();
    if(P.pounceTime===0){landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
   }else if(P.dashTime>0){
+   boarDashActive=P.type==="boar";
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
    if(Math.random()<.7)blood(P.x,P.y,"#d5e4bb",1,25);
   }else{
@@ -4988,6 +5044,7 @@ function update(dt){
    const wantsSprint=heldActions.touchSprint||heldActions.padSprint;
    if(!wantsSprint)P.sprintExhausted=false;
    const sprinting=wantsSprint&&!P.sprintExhausted&&!sneaking&&Math.hypot(a.x,a.y)>.2&&P.sp>10;
+   boarDashActive=P.type==="boar"&&sprinting;
    if(sprinting){
     P.sp=Math.max(0,P.sp-43*dt);
     if(P.sp<=10)P.sprintExhausted=true;
@@ -5002,6 +5059,7 @@ function update(dt){
     if((P.type==="fox"||P.type==="tibetanFox")&&P.abilityTime>0&&speed>360&&Math.random()<dt*24)blood(P.x,P.y,"#d9c99d",2,18);
    }
   }
+  if(P.type==="boar")resolveBoarDashImpact(boarStartX,boarStartY,P.x,P.y,boarDashActive);
   const speed=Math.hypot(P.vx,P.vy);
   if(P.type==="shoebill"){P.stillTime=speed<12&&!P.pendingStrike&&!P.pounceTime?Math.min(2.5,(P.stillTime||0)+dt):0;}
   P.beakVisual=Math.max(0,(P.beakVisual||0)-dt);
