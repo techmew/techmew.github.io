@@ -1,3 +1,9 @@
+## 2026-11-05 05:00｜00分担当：空き枠ガチャ採用の保存失敗対策
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- 【実コード】squad-core.js fillVacancy() で、ガチャ権消費と個体追加の保存に失敗した場合は ok:false を返す。保存後に再読込し、個体IDと残ガチャ権を照合してから採用成功を返す。旧4〜5体保護、所有3体上限、放流永久離脱、死亡台帳は維持。
+- main commit 2393d93c885ab813f30f49c4ed782b33bc232b09 / squad-core.js blob 086ca0c06cb4afdd2c9921f38214365aa5d7c3bd（更新前 1030802781d2e305adba7c8eaa3760e2d248c8f6）。
+- 検査：対象blobの競合再確認、差分限定。未検証：ブラウザでの容量不足注入E2E、Android縦横、旧セーブ実機復元、Pages反映。次担当：ガチャ採用時にlocalStorage書込例外を注入し、成功表示・券数・所有IDを照合。
+
 ## 2026-11-05 04:40｜40分担当：旧セーブ個体の所有一覧欠落を修復
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - 【実コード】squad-gacha-ui.js の updateHome() で旧SAVE_SCHEMA2の slotIndex 欠落・重複・範囲外を検出し、空き表示枠に生存個体を補完。旧4〜5体も全個体表示を維持。操作個体選択・個体から続き・野生放流確認・透明カード・3体横一列を変更しない。
