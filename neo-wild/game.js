@@ -3838,6 +3838,36 @@ function startlePrey(m,threat,reason="alarm"){
  if(reason==="wake"&&P&&dist(P,m)<260)label(m.x,m.y-m.r-28,"目覚めた！","#ffe8ac");
  return true;
 }
+// A struck herd member warns nearby peaceful animals. Alarm spreads only one hop,
+// with a per-animal cooldown and a hard budget; it never provokes the entire herd
+// into attacking the player and never creates new wildlife.
+const HERD_ALARM_FAMILIES=Object.freeze({
+ deer:"grazer",serow:"grazer",zebra:"grazer",mountainGoat:"grazer",
+ rabbit:"small",rat:"small",hedgehog:"small",armadillo:"small",
+ pigeon:"bird",crow:"bird",frog:"wetland",carp:"wetland"
+});
+function alertNearbyPreyHerd(source,threat,reason="hit"){
+ if(!source||!threat||!Array.isArray(mobs)||!Number.isFinite(elapsed))return 0;
+ const family=HERD_ALARM_FAMILIES[source.type];
+ if(!family||elapsed<(source.herdAlarmCooldown||0))return 0;
+ source.herdAlarmCooldown=elapsed+3.5;
+ const radius=family==="grazer"?230:family==="bird"?175:family==="wetland"?135:145;
+ let warned=0;
+ for(const other of mobs){
+  if(warned>=5)break;
+  if(other===source||other.hp<=0||other.companion||!species[other.type]?.prey||
+     HERD_ALARM_FAMILIES[other.type]!==family||elapsed<(other.herdAlarmCooldown||0))continue;
+  if(Math.hypot(other.x-source.x,other.y-source.y)>radius)continue;
+  // Only alarm animals on the same side of walls; no impossible sound teleport.
+  if(lineBlocked(source,other))continue;
+  // Water animals must remain in their habitat; no land-based panic routing.
+  if(other.type==="carp"&&waterDepth(other.x,other.y)<.035)continue;
+  other.herdAlarmCooldown=elapsed+2.5;
+  startlePrey(other,threat,"alarm");
+  warned++;
+ }
+ return warned;
+}
 // Normally harmless wildlife becomes briefly defensive when the player hits it.
 // The timer is only set by actual player damage; sight/noise never starts a chase.
 const PREY_PROVOKE_SECONDS=Object.freeze({
@@ -3852,6 +3882,7 @@ function provokePreyAfterPlayerHit(m){
  m.counterFleeUntil=Math.max(m.counterFleeUntil||0,m.provokedUntil);
  m.provokedPauseUntil=Math.max(m.provokedPauseUntil||0,elapsed+.36);
  startlePrey(m,P,"hit"); // Initial flinch and evasive step before the charge.
+ alertNearbyPreyHerd(m,P,"hit"); // Bystanders flee; only the struck animal retaliates.
  if(!wasProvoked)label(m.x,m.y-m.r-36,"反撃してくる！","#ffd39e");
 }
 function isProvokedPrey(m,sp,d){
