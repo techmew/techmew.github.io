@@ -1441,7 +1441,7 @@ function recordCheckpoint(){
 const STRONG_ATTACK_PROFILES={
  cheetah:{windup:.30,reach:63,cooldown:1.35,damage:.94,tell:"チーターの高速接近！"},
  lion:{windup:.57,reach:79,cooldown:1.57,damage:1.06,tell:"ライオンが構えた！"},
- giraffe:{windup:.70,reach:102,cooldown:1.85,damage:1.04,tell:"キリンの蹴り！"},
+ giraffe:{windup:.63,reach:102,cooldown:1.78,damage:1.06,tell:"キリンが首を振りかぶる！"},
  elephant:{windup:1.07,reach:125,cooldown:2.3,damage:1.08,tell:"ゾウが鼻を振り上げた！"},
  hippo:{windup:.80,reach:112,cooldown:2.0,damage:1.04,tell:"カバの縄張り突進！"},
  strayCat:{windup:.29,reach:58,cooldown:1.24,damage:.90,tell:"猫が飛びかかる！"},
@@ -1475,6 +1475,14 @@ function sootheStrongWound(foodPoints,atHome=false){
  const relief=Math.min(P.strongWound,Math.max(0,Number(foodPoints)||0)*(atHome?.15:.08));
  P.strongWound=Math.max(0,P.strongWound-relief);
  return relief;
+}
+// Single shared contact calculation: telegraph range and strike reach must agree.
+// A long-neck giraffe can strike from farther away, but the fixed strike
+// direction, line of sight and recovery frames still permit an honest dodge.
+function ordinaryMeleeReach(m){
+ const advertised=STRONG_ATTACK_PROFILES[m.type]?.reach??(m.type==="boar"?115:m.type==="alpha"?112:37);
+ const cap=m.type==="giraffe"?135:m.strongBoss?116:112;
+ return P.r+m.r+Math.min(cap,Math.max(32,advertised)*Math.min(1.36,m.attackVariation?.reach||1));
 }
 function applyOrdinaryStrikeEffect(m,angle){
  const alt=!m.strongBoss&&m.attackVariation;
@@ -3836,14 +3844,14 @@ function tryPreyFeint(m,sp,d,spotted,dt){
   if(m.stun>0||m.hp<=0){m.feintTime=0;return false}
   return advancePreyFeint(m,dt);
  }
- if(m.feintCooldown>0||m.stun>0||m.hp<=0||m.flee<=0||(m.fleeEnergy||0)<.28)return false;
+ if(m.feintCooldown>0||m.stun>0||m.hp<=0||m.flee<=0||(m.fleeEnergy||0)<.28||m.defenseArmed||m.headbuttArmed||m.cornerArmed||m.counterFleeArmed)return false;
  const hunter=nearbyAwareWildPredator(m,150);
  const playerThreat=!!P&&spotted&&d<160&&!lineBlocked(m,P);
  if(!hunter&&!playerThreat)return false;
  const urgent=playerThreat&&(P.pendingStrike||P.pounceTime>0||P.jumpTime>0);
- const chance=urgent?.57:Math.min(1,dt*(m.type==="rabbit"?1.65:m.type==="pigeon"?1.2:1.4));
+ const chance=Math.min(.11,dt*(urgent?(m.type==="rabbit"?1.55:m.type==="pigeon"?1.1:.82):(m.type==="rabbit"?.82:m.type==="pigeon"?.70:.64)));
  if(Math.random()>=chance)return false;
- m.feintCooldown=3.1+rnd(0,1.4);
+ m.feintCooldown=4.1+rnd(0,1.8);
  const threat=playerThreat?P:hunter,away=Math.atan2(m.y-threat.y,m.x-threat.x);
  const side=m.evasionSide||1,travel=m.type==="rabbit"?62:m.type==="rat"?40:48;
  for(const offset of [side*1.23,-side*1.23,side*.77,-side*.77]){
@@ -3861,8 +3869,8 @@ function tryEnemyEmergencyEvade(m,sp,d,spotted){
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||(m.evadeCooldown||0)>0)return false;
  const range=P.pounceTime>0?210:Math.min(155,P.r+m.r+111);
  if(d>range||lineBlocked(m,P)||Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-P.dir)<.38)return false;
- m.evadeCooldown=1.1; // Even a failed reaction cannot retry every frame.
- if(Math.random()>=(m.type==="albinoWolf"?.79:m.type==="alpha"?.62:m.type==="dog"?.52:.38))return false;
+ m.evadeCooldown=m.type==="wildFox"?2.2:1.4; // Failed evasions also incur recovery.
+ if(Math.random()>=(m.type==="albinoWolf"?.67:m.type==="alpha"?.52:m.type==="dog"?.36:m.type==="wildFox"?.15:m.type==="strayCat"?.22:m.type==="raccoonDog"?.18:.27))return false;
  const away=Math.atan2(m.y-P.y,m.x-P.x),side=m.evasionSide||1;
  const travel=m.type==="boar"?58:m.type==="alpha"?74:m.type==="albinoWolf"?98:67;
  for(const offset of [side*1.26,-side*1.26,side*.75,-side*.75]){
@@ -3870,7 +3878,7 @@ function tryEnemyEmergencyEvade(m,sp,d,spotted){
   if(collides(goal.x,goal.y,m.r+3)||!routeClear(m,goal,m.r+3))continue;
   m.evadeAngle=angle;m.evadeTime=.29;m.evadeDuration=.29;
   m.evadeRemaining=travel;m.evadeSpeed=travel/.29;
-  m.evadeCooldown=(m.type==="albinoWolf"?2.6:3.5)+rnd(0,1.2);m.evasionSide=-side;
+  m.evadeCooldown=(m.type==="albinoWolf"?3.1:m.type==="wildFox"?5.2:4.0)+rnd(0,1.2);m.evasionSide=-side;
   m.windup=0;m.chargeTime=0;m.sheltered=false;m.shelterX=null;m.shelterY=null;m.shelterDoorX=null;m.shelterDoorY=null;m.shelterPhase=0;
   m.navPath=null;m.attack=Math.max(m.attack,.45);m.alert=Math.max(m.alert,2);
   m.dir=angle;label(m.x,m.y-m.r-29,"飛び逃げ！","#e4ffbc");
@@ -4989,9 +4997,9 @@ function update(dt){
     m.defenseTell=Math.max(0,(m.defenseTell||0)-dt);
     if(m.defenseArmed&&m.defenseTell===0){
      m.defenseArmed=false;m.swing=.28;
-     const reach=(m.type==="zebra"?36:m.type==="deer"?34:32)*(m.attackVariation?.reach||1);
+     const reach=(m.type==="zebra"?62:m.type==="deer"?57:54)*Math.min(1.32,m.attackVariation?.reach||1);
      if(d<P.r+m.r+reach&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
-      const damage=Math.max(3,Math.round(s.damage*enemyDamageFactor()*(m.type==="zebra"?.85:m.type==="deer"?.68:.90)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)*(m.attackVariation?.power||1)));
+      const damage=Math.max(4,Math.round(s.damage*enemyDamageFactor()*(m.type==="zebra"?.92:m.type==="deer"?.96:.96)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)*(m.attackVariation?.power||1)));
       P.hp=Math.max(0,P.hp-damage);P.inv=.46;P.lastCombatAt=elapsed;
       interruptRush();shake=Math.max(shake,5);applyOrdinaryStrikeEffect(m,angle);
       label(P.x,P.y-38,(m.type==="zebra"?"後ろ蹴り":m.type==="deer"?(m.attackVariation?"角の突き上げ":"後脚の蹴り"):"角突き")+" -"+damage,"#ffd2a5");playEffect("damage");
@@ -5118,7 +5126,7 @@ function update(dt){
       m.chargeTime=m.type==="alpha"?.24:m.type==="strayCat"?.20:m.type==="wildFox"?.24:m.type==="blackPanther"?.31:m.type==="oneEyedWolf"?.28:m.type==="whiteTiger"?.39:m.type==="giantBoar"?.45:m.type==="giantMoose"?.46:m.type==="giantBuffalo"?.53:m.type==="rhino"?.57:m.type==="albinoWolf"?.33:.36;m.chargeDir=m.strikeDir;m.chargeHit=false;
       label(m.x,m.y-m.r-24,(m.type==="alpha"||m.type==="strayCat"||m.type==="wildFox"||m.type==="blackPanther"||m.type==="whiteTiger"||m.type==="oneEyedWolf")?"飛びかかり！":"突進！","#ffbf81");
      }else{
-      const reach=(m.type==="giantElephant"?P.r+m.r+79:m.type==="venomSnake"?P.r+m.r+39:P.r+m.r+37)*(m.attackVariation?.reach||1),aim=Math.atan2(P.y-m.y,P.x-m.x);
+      const reach=ordinaryMeleeReach(m),aim=Math.atan2(P.y-m.y,P.x-m.x);
       const delta=Math.atan2(Math.sin(aim-m.strikeDir),Math.cos(aim-m.strikeDir));
       if(m.type==="giantGorilla"&&m.stun<=0&&dist(P,m)>P.r+m.r+37){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
