@@ -99,7 +99,7 @@ function fillVacancy(member){
  const saved=save(r);
  return {ok:true,roster:saved};
 }
-function release(id){const r=load();if(!r||!r.members.some(m=>m.id===id))return {ok:false};const d=dead();d.add(id);saveDead(d);r.members=r.members.filter(m=>m.id!==id);if(r.leaderId===id)r.leaderId=r.members.find(m=>playable.has(m.species))?.id||r.members[0]?.id||null;return {ok:true,roster:save(r)};}
+function release(){return {ok:false,reason:"生存個体の破棄は禁止です。死亡時のみ編成枠が空きます"};}
 function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);localStorage.setItem(RESET_NEW_WORLD,"1");return true;}
 function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=3)return {ok:false,reason:"新規編成中の空き枠ではありません"};
