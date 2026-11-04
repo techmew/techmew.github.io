@@ -318,6 +318,7 @@ const ready=()=>{
   if(!members.length){showSize();return;}
   info.textContent="所有動物 "+members.length+"/"+MAX_OWNED+"体。操作中1体、ほかはストックです。死亡すると永久に消えます。";
   body.replaceChildren();
+  const rosterGrid=el("div","squad-living-grid");
   for(const member of members){
    const isLeader=current.leaderId===member.id;
    const card=el("article","squad-final-member"+(isLeader?" selected":""));
@@ -335,8 +336,9 @@ const ready=()=>{
     }
    },"squad-select-character"));
    card.append(makeBtn("野生に放つ",()=>confirmRelease(member),"squad-release-character"));
-   body.append(card);
+   rosterGrid.append(card);
   }
+  body.append(rosterGrid);
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
   if(members.length<MAX_OWNED){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
