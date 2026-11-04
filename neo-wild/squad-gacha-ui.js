@@ -165,7 +165,8 @@ const ready=()=>{
    if(m){const release=makeBtn("野生に放つ",()=>confirmRelease(m),"squad-release");card.append(release);}
    roster.append(card);
   }
-  hint.textContent=members.length?members.length+"体で生存中。空き枠の＋でガチャを引けます。":"空き枠の＋を押して動物を選択してください。";
+  const tickets=data?.gachaTickets||0;
+  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"編成 "+members.length+"/3体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600で追加獲得。"+(members.length===3?"入替には先に「野生に放つ」で枠を空けてください。":"");
   gacha.hidden=true;
  }
  function showSize(){
@@ -283,7 +284,7 @@ const ready=()=>{
   const current=core.load(),members=current?.members||[];
   if(!Number.isInteger(index)||index<0||index>=3||members.some(m=>m.slotIndex===index))return;
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
-   message("ガチャ権がありません。狩りや探索で獲得できます。");return;
+   message("ガチャ権は0枚です。獲得方法：①「続きからプレイ」で狩りをする ②獲物8匹を狩る、または経験値600を貯める ③タイトルに戻って空き枠の＋を押す。最初の編成（全滅後の再編成も含む）は無料です。");return;
   }
   refill=members.length>0;slotTarget=index;size=1;chosen=[];draw=null;selected=null;streak=0;
   leader=null;root.hidden=false;nextSlot();root.scrollTop=0;
@@ -307,6 +308,7 @@ const ready=()=>{
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("リセットする",()=>{
    core.resetForNewGame();
+   try{localStorage.removeItem("wild-reclaim-autosave-v2")}catch(_){}
    root.hidden=true;updateHome();
    window.dispatchEvent(new Event("wild-squad-reset"));
   },"squad-adopt"),makeBtn("キャンセル",()=>{root.hidden=true;updateHome()},"squad-close"));
@@ -337,7 +339,7 @@ const ready=()=>{
   else focusGacha();
  }).observe(root,{attributes:true,attributeFilter:["hidden"]});
  gacha.addEventListener("click",begin);
- const resetButton=$("start-btn");if(resetButton)resetButton.textContent="ゲームをリセットして新規で開始する";
+ const resetButton=$("start-btn");if(resetButton){resetButton.textContent="ゲームをリセットして新規で開始する";resetButton.addEventListener("click",confirmReset);}
  $("checkpoint-menu-btn")?.classList.add("hidden");$("checkpoint-list")?.classList.add("hidden");
  $("spawn-picker")?.classList.add("hidden");
  menu.querySelector(".menu-foot")?.remove();
