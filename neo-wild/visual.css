@@ -1527,7 +1527,7 @@
 #menu #squad-roster .squad-roster-slot,
 #menu #squad-roster .squad-roster-slot.is-leader,
 #menu #squad-roster .squad-roster-slot[aria-current="true"]{
- background:transparent!important;background-image:none!important;
+ background:#214b3b!important;background-image:none!important;
  box-shadow:none!important;text-shadow:none!important;
  overflow:visible!important;justify-content:flex-start!important;
  min-height:265px!important;padding:6px 3px!important;gap:3px!important;
@@ -1584,4 +1584,32 @@
 }
 #menu #squad-roster .squad-roster-slot button{
  touch-action:manipulation!important;
+}
+
+/* SELECT_GREEN_ONLY_20261105: restore deep green selection surfaces; remove only black.
+   Keep larger animal portraits, transparent WebGL/Canvas portrait backgrounds and 3-across layout. */
+#menu #squad-roster .squad-roster-slot,
+#menu #squad-roster .squad-roster-slot.is-leader,
+#menu #squad-roster .squad-roster-slot[aria-current="true"]{
+ background:#214b3b!important;background-image:none!important;
+}
+#menu #squad-roster .squad-roster-slot.is-leader{
+ background:#2a5945!important;border-color:#ffe08a!important;
+}
+#squad-gacha{
+ background:linear-gradient(155deg,#173b30,#24523e 55%,#173b30)!important;
+}
+#squad-gacha .squad-gacha-head{
+ background:#1c4435!important;
+}
+#squad-gacha .squad-featured,
+#squad-gacha .squad-candidate,
+#squad-gacha .squad-final-member{
+ background:#214b3b!important;background-image:none!important;
+}
+#squad-gacha .squad-featured-image canvas,
+#squad-gacha .squad-animal-preview,
+#menu #squad-roster .squad-roster-preview,
+#menu #squad-roster .squad-roster-preview canvas{
+ background:transparent!important;background-image:none!important;
 }
