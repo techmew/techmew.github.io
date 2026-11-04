@@ -6686,13 +6686,24 @@ function drawShelterEntranceMarker(){
  ctx.strokeText(label,px,py-34);ctx.fillStyle="#affaff";ctx.fillText(label,px,py-34);
  ctx.restore();
 }
+// World-space labels need the SAME elevation as the visible WebGL/Canvas
+// objects. Flat project(x,y) puts mountain remains hundreds of pixels below
+// the model, and also makes labels appear through cliffs.
+function projectGroundLabel(x,y,above=0){
+ const p=project(x,y),z=window.WildMountain?.height?.(x,y)||0;
+ return {x:p.x,y:p.y-(z+Math.max(0,above))*.93*cameraZoom};
+}
 function drawRemainsLabels(){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 13px sans-serif";let shown=0;
  for(const c of carcasses){
   if((c.type!=="corpse"&&c.type!=="bones")||dist(P,c)>205||!visible(c.x,c.y,65))continue;
-  const p=project(c.x,c.y),y=p.y-Math.max(15,(c.r||9)*1.28)*cameraZoom-17;
-  if(p.x<25||p.x>vw-25||y<20||y>vh-20)continue;
+  // An object behind solid geometry should not have a floating, always-on
+  // screen label. The visual model and the UI must agree on visibility.
+  if(lineBlocked(P,c))continue;
+  const r=Math.max(15,Math.min(36,(c.r||9)*1.28));
+  const p=projectGroundLabel(c.x,c.y,r*.55),y=p.y-13;
+  if(p.x<27||p.x>vw-27||y<22||y>vh-24)continue;
   ctx.fillStyle=c.type==="bones"?"#263330e8":"#382c29e8";ctx.fillRect(p.x-24,y-11,48,22);
   ctx.strokeStyle=c.type==="bones"?"#f1ebd8":"#e8c2a1";ctx.lineWidth=1.5;ctx.strokeRect(p.x-24,y-11,48,22);
   ctx.fillStyle=c.type==="bones"?"#fff8e8":"#ffe1c3";ctx.fillText(c.type==="bones"?"骨":"死骸",p.x,y+1);
@@ -6703,8 +6714,9 @@ function drawThreatNames(){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
-  if(m.hp<=0||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55))continue;
-  const pos=project(m.x,m.y),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-(m.type==="giantEagle"?(m.airHeight||125)*.93*cameraZoom:0)-m.r*cameraZoom-35;
+  if(m.hp<=0||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
+  const rise=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
+  const pos=projectGroundLabel(m.x,m.y,rise),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-m.r*cameraZoom-20;
   const targetLevel=COMBAT_LEVELS?.level(m.type)||1,levelGap=Math.max(0,targetLevel-P.level);
   const threatName=(names[m.type]||STRONG_NAMES[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
   ctx.globalAlpha=m.windup>0||m.alert>0?.95:.78;ctx.fillStyle="#172321";ctx.fillRect(pos.x-69,y-14,138,31);
@@ -7254,15 +7266,21 @@ function drawSquadFieldMarkers(use3D=false){
  // Both the identification ellipse and the label must scale with zoom.
  // Otherwise the ellipse changes size relative to the animal in 3D.
  const screenRadius=Math.max(6,m.r*cameraZoom);
- const labelY=p.y-bodyHeight*.93*cameraZoom-screenRadius-42;
+ const jumpOffset=Math.max(0,bodyHeight-standingHeight)*.93*cameraZoom;
+ const labelY=ringY-Math.max(29,screenRadius*1.3+13)-Math.min(70,jumpOffset);
  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
  ctx.strokeStyle="#ffe98e";ctx.lineWidth=3;
  ctx.beginPath();ctx.ellipse(p.x,ringY,screenRadius*1.22,screenRadius*.56,0,0,TWO);ctx.stroke();
  const name="▼ 操作中 "+(m.squadName||animals[m.type]?.name||"動物");
  const fontSize=clamp(Math.round(15*cameraZoom),14,21);
  ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
- ctx.strokeText(name,p.x,labelY);ctx.fillStyle="#ffe98e";
- ctx.fillText(name,p.x,labelY);ctx.restore();
+ // Don't leave an off-screen/player-HUD label floating at the screen edge.
+ // The ground ring remains visible and anchored even when the title hides.
+ if(labelY>Math.min(315,vh*.36)&&labelY<vh-25){
+  ctx.strokeText(name,p.x,labelY);ctx.fillStyle="#ffe98e";
+  ctx.fillText(name,p.x,labelY);
+ }
+ ctx.restore();
 }
 $("squad-party-hud")?.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
