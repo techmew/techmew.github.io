@@ -4,6 +4,21 @@
  */
 (()=>{"use strict";
 const names={explore:"ECHOES OF THE LOST CITY",forest:"RECLAIMED GREEN",danger:"THE HUNT",rain:"RAIN OVER TOKYO"};
+const TRACKS=[
+ {id:"default",name:"デフォルト｜環境連動"},
+ {id:"rush",name:"廃都疾走｜疾走ビート"},
+ {id:"wild",name:"野生の鼓動｜冒険"},
+ {id:"night",name:"夜の追跡｜緊迫"},
+ {id:"dawn",name:"再生の大地｜壮大"}
+];
+const TRACK_STORAGE_KEY="wild-reclaim-bgm-choice-v1";
+function loadMusicChoice(){
+ try{
+  const id=localStorage.getItem(TRACK_STORAGE_KEY)||"default";
+  return TRACKS.some(track=>track.id===id)?id:"default";
+ }catch(_){return "default"}
+}
+let musicChoice=loadMusicChoice();
 let context=null,master=null,musicBus=null,atmosBus=null,sfxBus=null,loopSources={},loopGains={},effectBuffers={};
 let enabled=true,started=false,scene={weather:"CLEAR",area:0,danger:false},lastAmbient=-1,deathFade=false;
 let rngState=1289431;
@@ -62,6 +77,43 @@ function buildMusic(which){
          (dangerous?.19:green?.09:.13)*kick+
          (dangerous?.075:.028)*grit+
          .035*low*tremolo;
+ });
+}
+// Four independent original songs, looped exactly on an integer number of beats.
+// Keep the previous explore/forest/danger adaptive score unchanged for "default".
+const COMPOSITIONS={
+ rush:{bpm:120,roots:[45,41,48,43],scale:[0,2,3,5,7,8,10,12],pattern:[0,-1,2,-1,4,2,3,-1,4,-1,5,4,2,-1,0,-1],bass:.22,lead:.29,drums:.29,pad:.15},
+ wild:{bpm:105,roots:[48,43,45,41],scale:[0,2,4,5,7,9,11,12],pattern:[0,2,4,-1,3,2,1,-1,4,-1,5,-1,4,2,1,-1],bass:.24,lead:.23,drums:.24,pad:.23},
+ night:{bpm:135,roots:[40,43,47,38],scale:[0,2,3,5,7,8,10,12],pattern:[0,-1,0,2,3,-1,2,-1,5,4,3,-1,2,-1,1,-1],bass:.27,lead:.24,drums:.34,pad:.12},
+ dawn:{bpm:90,roots:[43,47,40,45],scale:[0,2,4,5,7,9,11,12],pattern:[0,-1,-1,2,4,-1,3,-1,5,-1,4,3,2,-1,0,-1],bass:.23,lead:.27,drums:.18,pad:.30}
+};
+function pitch(midi){return 440*Math.pow(2,(midi-69)/12)}
+function buildExtraMusic(id){
+ const p=COMPOSITIONS[id];if(!p)throw Error("Unknown original BGM: "+id);
+ const beatSeconds=60/p.bpm,halfBeat=beatSeconds/2;
+ return loopBuffer(16,(t,ch,low,hi,offset)=>{
+  const beats=t/beatSeconds,bar=Math.floor(beats/4),beatInBar=beats%4;
+  const beatIndex=Math.floor(beatInBar),step=Math.floor(beatInBar*4)%16;
+  const root=p.roots[bar%p.roots.length],degree=p.pattern[step];
+  const stepTime=(t%(beatSeconds/4)),noteEnvelope=Math.exp(-stepTime*(id==="dawn"?9:15));
+  let lead=0;
+  if(degree>=0){
+   const freq=pitch(root+24+p.scale[degree]);
+   lead=(note(freq,t+offset)+.26*note(freq*2,t+offset))*.73*noteEnvelope;
+  }
+  // Bass notes on the downbeat and offbeats; continuous phase avoids clicks.
+  const beatTime=t%beatSeconds,bassEnvelope=Math.exp(-beatTime*5);
+  const bassFreq=pitch(root-12);
+  const bass=(note(bassFreq,t+offset)+.20*note(bassFreq*2,t+offset))*bassEnvelope;
+  const chordFreq=pitch(root+12),swell=.55+.45*Math.sin(t*.55);
+  const chord=(note(chordFreq,t+offset)+.5*note(chordFreq*1.1892,t+offset)+.43*note(chordFreq*1.4983,t+offset))*swell*.31;
+  const kick=(beatIndex===0||beatIndex===2||id==="night")?
+   Math.exp(-beatTime*25)*Math.sin(Math.PI*2*(100-42*beatTime)*beatTime):0;
+  const snare=(beatIndex===1||beatIndex===3)?hi*Math.exp(-beatTime*24):0;
+  const hatTime=t%halfBeat,hat=hi*Math.exp(-hatTime*(id==="dawn"?48:85));
+  const energy=id==="night"?1.14:id==="rush"?1.07:1;
+  return (lead*p.lead+bass*p.bass+chord*p.pad+
+    (kick*.65+snare*.55+hat*.28)*p.drums+low*.024)*energy;
  });
 }
 function buildAtmos(name){
@@ -127,24 +179,48 @@ function unlock(){
   attachLoop("forestWind",buildAtmos("forest"),atmosBus,0);
   attachLoop("rain",buildAtmos("rain"),atmosBus,0);
    attachLoop("water",buildAtmos("water"),atmosBus,0);
-  started=true;return true;
+  started=true;
+  if(musicChoice!=="default")ensureExtraTrack(musicChoice);
+  return true;
  }catch(e){console.warn("WILD RECLAIM audio init:",e);return false}
 }
+function ensureExtraTrack(id){
+ if(!COMPOSITIONS[id]||!context||!musicBus||!started)return false;
+ const key="track-"+id;
+ if(!loopSources[key])attachLoop(key,buildExtraMusic(id),musicBus,0);
+ return !!loopSources[key];
+}
+function getMusicChoice(){return musicChoice}
+function setMusicChoice(id){
+ if(!TRACKS.some(track=>track.id===id))return false;
+ musicChoice=id;
+ try{localStorage.setItem(TRACK_STORAGE_KEY,id)}catch(_){}
+ if(enabled)unlock();
+ if(started&&id!=="default")ensureExtraTrack(id);
+ if(started&&enabled)update(scene);
+ return true;
+}
 function update(conditions){
- if(!started||!context||!enabled)return;
  scene=conditions||scene;
+ if(!started||!context||!enabled)return;
  const area=Number(scene.area||0),danger=!!scene.danger,storm=scene.weather==="THUNDER",rain=scene.weather==="RAIN"||storm;
  const forest=area===5||area===2||area===4,clock=context.currentTime;
  const paused=scene.mode&&scene.mode!=="play",mix=scene.mode==="guide"?0:paused?.12:1;
+ const defaultMix=musicChoice==="default"?1:0;
+ const alternativeMix=scene.mode==="guide"?0:scene.mode==="pause"?.40:paused?.12:1;
  const targets={
-  explore:(danger?.06:forest?.14:.60)*mix,
-  forest:(danger?.06:forest?.65:.04)*mix,
-  danger:(danger?.64:storm?.17:.012)*mix,
+  explore:(danger?.06:forest?.14:.60)*mix*defaultMix,
+  forest:(danger?.06:forest?.65:.04)*mix*defaultMix,
+  danger:(danger?.64:storm?.17:.012)*mix*defaultMix,
   wind:(scene.weather==="WIND"?.61:scene.weather==="FOG"?.28:.21)*mix,
   forestWind:(forest?.37:.04)*mix,
   rain:(storm?.72:rain?.51:0)*mix,
    water:clamp(Number(scene.waterNear)||0,0,1)*.77*mix
  };
+ for(const id of Object.keys(COMPOSITIONS)){
+  const gain=loopGains["track-"+id];
+  if(gain)gain.gain.setTargetAtTime(musicChoice===id?.73*alternativeMix:0,clock,.22);
+ }
  if(loopSources.water?.playbackRate)loopSources.water.playbackRate.setTargetAtTime(scene.waterKind==="canal"?.88:1,clock,.9);
   for(const [name,value] of Object.entries(targets)){
   const gain=loopGains[name];
@@ -211,6 +287,7 @@ function setEnabled(on){
  if(enabled){unlock();if(context&&master)master.gain.setTargetAtTime(.82,context.currentTime,.18)}
  return enabled;
 }
-window.WildAudio={unlock,update,play,setEnabled,fadeForDeath,resetDeathFade,get active(){return started},get enabled(){return enabled},
- get soundtrack(){return names[scene.danger?"danger":Number(scene.area)===5?"forest":"explore"]}};
+window.WildAudio={unlock,update,play,setEnabled,setMusicChoice,getMusicChoice,
+ tracks:TRACKS.map(t=>({...t})),fadeForDeath,resetDeathFade,get active(){return started},get enabled(){return enabled},
+ get soundtrack(){return musicChoice==="default"?names[scene.danger?"danger":Number(scene.area)===5?"forest":"explore"]:TRACKS.find(t=>t.id===musicChoice)?.name||names.explore}};
 })();
