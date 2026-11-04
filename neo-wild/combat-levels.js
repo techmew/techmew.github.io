@@ -59,6 +59,9 @@ function retaliationWindow(type,playerLevel){
 function nextAttack(m){
  if(!m||!variants[m.type])return null;
  m.styleCount=(Math.max(0,Math.floor(Number(m.styleCount)||0))+1)%2;
+ // Giraffes alternate a forward headbutt and a broad sideways neck sweep.
+ if(m.type==="giraffe")return m.styleCount===0?{...variants.giraffe}:
+  {...variants.giraffe,name:"キリンの頭突き",windup:.82,reach:1.20,power:1.10,cooldown:1.05,knock:22,arc:1.05,neckStrike:true};
  return m.styleCount===0?{...variants[m.type]}:null;
 }
 window.WildCombatLevels=Object.freeze({levels,variants,level,gap,outgoing,incoming,canInterrupt,knockback,retaliationWindow,nextAttack});
