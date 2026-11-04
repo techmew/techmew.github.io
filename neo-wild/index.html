@@ -29,7 +29,7 @@
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">YEAR 000</div><div class="subinfo" id="moon-label" aria-label="月齢">月齢 0.0 · 新月</div><div id="survival-goal" class="hidden" aria-live="off">探索依頼</div></div>
   <div class="hud-right"><div class="top-actions session-actions" aria-label="音楽・最大化・一時停止"><button id="sound-btn" type="button" title="音楽の切替" aria-label="音楽の切替">♪</button><button id="full-btn" type="button" title="最大化" aria-label="最大化">⛶</button><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="mini-map-stack" aria-label="周辺地図と生存記録"><div id="mini-map-control" class="map-frame" role="button" tabindex="0" aria-label="周辺地図：標準。タップで表示範囲切替、長押しで詳細地図"><canvas id="minimap" width="128" height="128" aria-label="常時表示の周辺地図"></canvas><span id="mini-map-scale">標準</span></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div></div></div>
 </div>
-<section id="squad-party-hud" class="hidden" role="region" aria-label="3体編成・操作キャラと仲間への指示">
+<section id="squad-party-hud" class="hidden" role="region" aria-label="廃止された旧編成表示" aria-hidden="true" style="display:none!important">
  <div class="squad-party-caption">パーティ <small>黄色が操作中・仲間をタップで交代</small></div>
  <div id="squad-party-members" class="squad-party-members" aria-label="現在の編成"></div>
  <div class="squad-party-commands" role="group" aria-label="仲間への指示">
@@ -68,7 +68,7 @@
  <p class="den-pantry-note">選んだ食料だけ減ります。巣の強化では備蓄を消費しません。</p>
  <div class="den-food-row" role="group" aria-label="巣の仲間">
   <span><b>仲間と生き残る</b><small id="den-companion-status">巣LV2で肉24ptを使い、仲間を迎えられます。</small></span>
-  <button id="den-companion-btn" type="button" disabled>仲間を迎える（肉24pt）</button>
+  <button id="den-companion-btn" type="button" disabled hidden style="display:none!important">仲間を迎える（肉24pt）</button>
  </div>
  <div id="strong-inheritance" class="strong-inheritance" role="group" aria-label="希少素材の能力継承">
  <h3>希少素材の能力継承</h3><p id="strong-inheritance-summary">巣LV2で解放。強敵を倒して素材を集める。</p>
