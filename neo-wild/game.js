@@ -1222,8 +1222,9 @@ function refreshSaveMenu(){
  $("menu").classList.toggle("has-auto-save",!!auto);
  const primary=auto||(aliveSquad?null:points[0])||null;
  $("continue-btn").classList.remove("hidden");
- $("resume-cta-label").textContent=aliveSquad&&!auto?"編成から出発":hasSave?"続きからプレイ":"最初からプレイ";
- $("resume-cta-help").textContent=aliveSquad&&!auto?aliveSquad+"体の生存編成で世界の続きへ":hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"ガチャで動物を選んで出発";
+ $("resume-cta-label").textContent="続きからプレイ";
+ $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"編成した"+aliveSquad+"体で新しい世界を開始":aliveSquad+"体の編成で再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"編成の＋から動物を選んでください";
+ $("continue-btn").disabled=!hasSave;
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
  if(!points.length){$("checkpoint-list").classList.add("hidden");$("checkpoint-menu-btn").setAttribute("aria-expanded","false");}
@@ -6996,6 +6997,8 @@ function applySquadLeader(){
  initializeLife(P,elapsed,false);
  syncSquadFollowers();syncSquadHud();saveAuto();return true;
 }
+window.addEventListener("wild-squad-updated",()=>{if(mode==="menu")refreshSaveMenu();});
+window.addEventListener("wild-squad-reset",()=>{clearAutoSave();if(mode==="menu")refreshSaveMenu();});
 window.addEventListener("wild-squad-refilled",()=>{
  if(mode!=="inventory"||!P||!atDen())return;
  syncSquadFollowers();syncSquadHud();saveAuto();
@@ -7019,18 +7022,7 @@ function startSelectedNewGame(){
  return true;
 }
 $("start-btn").addEventListener("click",()=>{
- if(mode!=="menu")return;
- // Existing auto-save/checkpoints never influence the newly selected species.
- // Ask in the page instead of relying on a browser-native blocking modal.
- if(getAutoSnapshot()){
-  const panel=$("new-game-confirm");
-  panel.classList.remove("hidden");
-  const label=$("new-game-confirm-species");
-  if(label)label.textContent=animals[choice].name;
-  panel.scrollIntoView?.({block:"nearest",behavior:"smooth"});
-  return;
- }
- startSelectedNewGame();
+ if(mode==="menu")window.WildSquadGachaUI?.confirmReset?.();
 });
 $("confirm-new-game-btn").addEventListener("click",startSelectedNewGame);
 $("cancel-new-game-btn").addEventListener("click",hideNewGameConfirmation);
@@ -7038,6 +7030,13 @@ selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
  const roster=window.WildSquad?.load?.();
+ if(roster?.pendingStart&&roster.members?.length){
+  const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
+  if(!leader||!animals[leader.species]){notify("操作できる動物を選んでください");return;}
+  choice=leader.species;
+  if(launchGame(null,true)){applySquadLeader();window.WildSquad?.markStarted?.();saveAuto();}
+  return;
+ }
  const snapshot=getAutoSnapshot()||(roster?.members?.length?null:getCheckpoints()[0]);
  if(roster?.members?.length&&!snapshot){
   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
