@@ -811,6 +811,122 @@ function drawRarePlayable3D(m,clock){
  return true;
 }
 
+
+/* SQUAD_WORLD_SPECIES_MESHES_V1 */
+/* Distinct procedural meshes for six global gacha species.
+   Uses the same vertex transform, terrain lift and shadow as the player renderer. */
+function drawWorldSquadSpecies3D(m,clock){
+ const t=m.type;
+ if(!["armadillo","hedgehog","gorilla","hyena","wildDog","tiger"].includes(t))return false;
+ const young=m.age==="若い"||m.age==="若年"||m.ageStage==="young";
+ const male=m.sex==="オス"||m.sex==="male";
+ const r=(m.r||20)*(young?.84:1),dir=m.dir||0,c=Math.cos(dir),s=Math.sin(dir);
+ const fx=(x,y)=>m.x+x*c-y*s,fy=(x,y)=>m.y+x*s+y*c;
+ const orb=(x,y,z,a,b,h,col)=>ellipsoid(fx(x,y),fy(x,y),z,a,b,h,col,dir,9,5);
+ const spike=(x,y,z,a,b,h,col)=>pyramid(fx(x,y),fy(x,y),z,a,b,h,col);
+ const motion=Math.sin((m.steps||m.step||0)*2.8+clock*.3)*Math.min(1,Math.hypot(m.vx||0,m.vy||0)/160);
+ const quadruped=(fur,belly,leg)=>{
+  for(const x of [-.68,.67])for(const y of [-.56,.56]){
+   orb(x*r,y*r,r*(.24+motion*(x*y>0?.07:-.07)),r*.19,r*.18,r*.27,leg);
+   orb((x+.12)*r,y*r,r*.12,r*.23,r*.20,r*.12,leg);
+  }
+  orb(-r*.16,0,r*.75,r*1.19,r*.64,r*.62,fur);
+  orb(r*.23,0,r*.53,r*.78,r*.48,r*.27,belly);
+ };
+ if(t==="armadillo"){
+  quadruped("#77776b","#c0b5a1","#746c5f");
+  orb(-r*.18,0,r*.96,r*1.16,r*.72,r*.48,"#6b7067");
+  // Segmented osteoderm bands and separate shoulder/pelvic shields.
+  for(let k=0;k<7;k++){
+   const x=r*(-.83+k*.235);
+   orb(x,0,r*1.28,r*.085,r*(.62-Math.abs(k-3)*.028),r*.12,k%2?"#a99c7e":"#827961");
+  }
+  orb(r*1.06,0,r*.62,r*.52,r*.31,r*.26,"#b9a78e");
+  orb(r*1.43,0,r*.51,r*.33,r*.19,r*.14,"#9a8670");
+  for(const y of [-1,1]){orb(r*1.14,y*r*.24,r*.76,r*.11,r*.10,r*.20,"#a9977d");orb(r*1.42,y*r*.20,r*.66,r*.06,r*.06,r*.06,"#1e2220");}
+  for(let k=0;k<8;k++)orb(-r*(1.12+k*.21),Math.sin(clock*.8+k*.35)*r*.06,r*(.53-k*.04),r*(.18-k*.014),r*.10,r*.10,"#8c826e");
+ }else if(t==="hedgehog"){
+  for(const x of [-.60,.48])for(const y of [-.48,.48])orb(x*r,y*r,r*.13,r*.14,r*.14,r*.17,"#75665a");
+  orb(-r*.18,0,r*.43,r*1.05,r*.75,r*.50,"#746655");
+  orb(r*.73,0,r*.42,r*.51,r*.41,r*.35,"#d1b79a");
+  orb(r*1.19,0,r*.29,r*.29,r*.22,r*.16,"#d1b79a");
+  for(let k=0;k<11;k++)for(let j=-3;j<=3;j++){
+   const x=r*(-1.02+k*.16),y=j*r*.17;
+   const height=r*(.65+.33*(1-Math.abs(j)/4));
+   spike(x,y,r*(.62+.10*Math.cos(j*.55)),r*.085,r*.065,height,k%3===0?"#e1d3b0":"#3f3c33");
+  }
+  for(const y of [-1,1]){orb(r*.94,y*r*.29,r*.57,r*.08,r*.075,r*.08,"#161a19");orb(r*.62,y*r*.39,r*.75,r*.16,r*.13,r*.20,"#bca48a");}
+  orb(r*1.42,0,r*.32,r*.11,r*.11,r*.10,"#3c3431");
+ }else if(t==="gorilla"){
+  const fur="#3f4242",skin="#74716a",swing=motion*r*.22;
+  for(const y of [-1,1]){
+   orb(-r*.54,y*r*.44,r*.42,r*.37,r*.33,r*.47,fur);
+   orb(-r*.72,y*r*.49,r*.14,r*.37,r*.32,r*.15,skin);
+  }
+  orb(-r*.20,0,r*1.15,r*.88,r*.82,r*.94,fur);
+  orb(r*.32,0,r*1.42,r*.87,r*.97,r*.79,male?"#383b3c":"#505354");
+  orb(r*.85,0,r*1.72,r*.68,r*.63,r*.63,fur);
+  orb(r*1.28,0,r*1.52,r*.43,r*.46,r*.41,skin);
+  orb(r*1.53,0,r*1.29,r*.30,r*.38,r*.19,"#5c5a54");
+  for(const y of [-1,1]){
+   orb(r*.99,y*r*.59,r*1.69,r*.22,r*.18,r*.23,fur);
+   orb(r*1.35,y*r*.29,r*1.70,r*.08,r*.075,r*.08,"#191b1b");
+   orb(r*.10,y*r*.91,r*1.25,r*.40,r*.35,r*.50,fur);
+   orb(r*.16+swing*(y>0?1:-1),y*r*1.03,r*.54,r*.32,r*.29,r*.68,fur);
+   orb(r*.28+swing*(y>0?1:-1),y*r*1.08,r*.17,r*.33,r*.32,r*.20,skin);
+  }
+  if(male)orb(-r*.20,0,r*1.82,r*.54,r*.64,r*.17,"#777b7a");
+ }else if(t==="hyena"){
+  quadruped("#a99a74","#c6b394","#514d42");
+  // Hyena sloped back and massive front shoulders, spotted coat.
+  orb(r*.29,0,r*1.04,r*.78,r*.68,r*.66,"#ae9a70");
+  orb(-r*.65,0,r*.69,r*.65,r*.49,r*.37,"#a49373");
+  for(let k=0;k<18;k++){
+   const x=r*(-.95+(k%6)*.33),y=r*((Math.floor(k/6)-1)*.43);
+   orb(x,y,r*(1.08+(k%3)*.10),r*.075,r*.075,r*.045,"#544b3d");
+  }
+  for(let k=0;k<7;k++)spike(r*(-.74+k*.24),0,r*1.36,r*.10,r*.12,r*.30,"#51473b");
+  orb(r*1.04,0,r*1.10,r*.53,r*.46,r*.42,"#8f7c5c");
+  orb(r*1.42,0,r*.88,r*.41,r*.29,r*.23,"#554a3d");
+  for(const y of [-1,1]){spike(r*.99,y*r*.34,r*1.35,r*.14,r*.14,r*.35,"#55483a");orb(r*1.23,y*r*.33,r*1.14,r*.07,r*.07,r*.07,"#1c1d1a");}
+  for(let k=0;k<5;k++)orb(-r*(1.14+k*.23),0,r*(.56-k*.05),r*.19,r*.17,r*.14,k%2?"#8d7759":"#493e34");
+ }else if(t==="wildDog"){
+  quadruped("#7a5e48","#e1c7a0","#4d443c");
+  // Painted dog: irregular three-tone patches, oversized round ears and white tail tip.
+  for(let k=0;k<11;k++){
+   const x=r*(-.99+(k%4)*.55),y=r*((Math.floor(k/4)-1)*.41);
+   orb(x,y,r*(.94+(k%3)*.12),r*.19,r*.16,r*.09,k%3===0?"#d5c3a0":k%3===1?"#282b2a":"#b17b51");
+  }
+  orb(r*.96,0,r*.94,r*.49,r*.44,r*.42,"#3e3630");
+  orb(r*1.39,0,r*.72,r*.41,r*.28,r*.23,"#b98c66");
+  for(const y of [-1,1]){
+   orb(r*.89,y*r*.51,r*1.32,r*.27,r*.27,r*.38,"#332d2b");
+   orb(r*1.23,y*r*.35,r*.98,r*.075,r*.08,r*.07,"#f3c48d");
+   orb(r*1.26,y*r*.36,r*.98,r*.04,r*.04,r*.04,"#161a1a");
+  }
+  for(let k=0;k<6;k++)orb(-r*(1.13+k*.22),Math.sin(clock+k*.3)*r*.09,r*(.68-k*.025),r*.21,r*.15,r*.15,k===5?"#f2e8d7":"#3d332e");
+ }else if(t==="tiger"){
+  quadruped("#d88740","#e8dfc6","#c27b3f");
+  orb(r*.75,0,r*.95,r*.58,r*.55,r*.54,"#d68b46");
+  orb(r*1.10,0,r*.81,r*.40,r*.43,r*.36,"#f4e6d1");
+  orb(r*1.49,0,r*.65,r*.33,r*.29,r*.21,"#e4d6be");
+  // Stripe bands across back and flanks, not leopard spots.
+  for(let k=0;k<9;k++){
+   const x=r*(-1.04+k*.26);
+   orb(x,0,r*1.28,r*.075,r*(.51+Math.sin(k)*.07),r*.10,"#252b29");
+   for(const y of [-1,1])orb(x,y*r*.55,r*.89,r*.075,r*.09,r*.28,"#2d2926");
+  }
+  for(const y of [-1,1]){
+   orb(r*.91,y*r*.40,r*1.29,r*.19,r*.18,r*.19,"#242b29");
+   orb(r*1.18,y*r*.32,r*.98,r*.095,r*.085,r*.08,"#f3d7a0");
+   orb(r*1.23,y*r*.32,r*.98,r*.055,r*.055,r*.055,"#161a1a");
+  }
+  orb(r*1.74,0,r*.66,r*.11,r*.15,r*.10,"#3d3532");
+  for(let k=0;k<9;k++)orb(-r*(1.10+k*.22),Math.sin(k*.5+clock*.8)*r*.12,r*(.69-k*.012),r*.18,r*.15,r*.15,k%2?"#e3c9a1":"#282b29");
+ }
+ return true;
+}
+
 function animal(m,player,clock){
  const type=m.type==="strayCat"?"cat":m.type==="wildFox"?"fox":m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,collapse=player?clamp(m.deathPose||0,0,1):0,dir=(m.dir||0)+collapse*.24,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
@@ -848,6 +964,7 @@ function animal(m,player,clock){
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+  if(drawWorldSquadSpecies3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Deer uses the dedicated species model for both wildlife and the controlled player.
  if((!player||type==="deer")&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
