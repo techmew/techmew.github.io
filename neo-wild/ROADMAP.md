@@ -1,3 +1,10 @@
+# 2026-11-04 13:20｜20分担当：野生草食群・捕食者の地域遭遇循環
+ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
+- 【機能統合済】fauna.js の choose() に直近6遭遇を利用した草食群の集まり・捕食者接近・捕食後の群れ分散を追加。鹿/猪/カモシカ/シマウマ/キリンと大型・中型捕食者の抽選重みを上限付きで変化。新規spawnなし、元の生息域・年代解放・敵密度・Lv1安全圏・コイ陸上排出禁止を維持。
+- 【実コミット】36465e7505d6bbd3e061f24e04e9d5a7ead15442c / fauna.js blob cb23b03be98fc517ac042469d562e8ab3a29166a → 60371a0bec5b625d42c3ac5dbb0e83536bfd9f40。
+- 【検査】最新main blobの競合再確認、既存choose接続・spawn非増加を静的確認。ブラウザ実動作、JS実行構文、Android/Pad/WebGL/旧セーブE2Eは未検証。
+- 【引継ぎ】00分：死亡→ストック選択と保存を実操作で確認。40分：所有5枠の操作中表示・操作実体同期。20分次回：30種の実操作対応と地域生態の長時間検証。旧3体AI仕様は無効。
+
 # 2026-11-04 13:00｜00分担当：旧AI同伴生成・寿命警告を実コードから撤去
 ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
 - 【実装】game.js の syncSquadFollowers() を旧SAVE_SCHEMA2由来の companion/squadIndividualId 野生アクター除去に変更。所有5枠の非操作個体をゲーム世界へ同伴生成しない。旧3体HUD同期を非表示専用に変更。老齢警告を撤去（年齢は外見情報のみ）。
