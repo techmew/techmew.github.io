@@ -188,6 +188,20 @@ const ready=()=>{
     const select=makeBtn(active?"現在操作中":"この個体を操作",choose,"squad-roster-select");
     select.disabled=active;select.setAttribute("aria-pressed",String(active));
     card.append(select);
+    // Explicit one-tap continuation: select the living ID first, then use the
+    // existing continue path so the saved world and exploration are retained.
+    const resume=makeBtn(active?"この個体で続きから":"選んで続きから",()=>{
+     const latest=core.load();
+     if(!latest?.members?.some(q=>q.id===m.id)){updateHome();return;}
+     if(latest.leaderId!==m.id&&!core.selectActive(m.id).ok){updateHome();return;}
+     window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));
+     updateHome();
+     const next=core.load();
+     if(next?.leaderId!==m.id||!next.members?.some(q=>q.id===m.id))return;
+     $("continue-btn")?.click();
+    },"squad-resume-character");
+    resume.setAttribute("aria-label",(m.name||m.speciesName||"動物")+"を操作して続きから");
+    card.append(resume);
     card.setAttribute("aria-label",(m.name||m.speciesName||"動物")+(active?"・現在操作中":"・ストック"));
     // Explicit selection prevents accidental character switching while scrolling.
     const releaseButton=makeBtn("野生に放つ",()=>confirmRelease(m),"squad-release-character");
