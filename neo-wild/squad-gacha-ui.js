@@ -24,7 +24,7 @@ const ready=()=>{
  gacha.id="squad-open";
  const title=home.querySelector(".squad-home-title")||el("h2","squad-home-title","所有動物（最大5体）");
  const roster=$("squad-roster")||el("div","squad-home-roster");roster.id="squad-roster";
- const hint=home.querySelector(".squad-home-hint")||el("p","squad-home-hint","操作する動物は1体。ほかの個体はストックに保存。");
+ const hint=home.querySelector(".squad-home-hint")||el("p","squad-home-hint","操作する動物は1体。ほかは所有一覧から選択できます。");
  if(!existingHome)home.append(gacha,title,roster,hint);
  const lead=menu.querySelector(".lead")||menu.querySelector(".hero-title");
  if(!existingHome){if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);}
@@ -160,11 +160,11 @@ const ready=()=>{
    if(!m){const add=makeBtn("＋",()=>openSlot(i),"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
-    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"操作中":"ストック")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
+    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価"),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
    if(m){
     const active=data.leaderId===m.id;
-    card.prepend(el("span",active?"squad-active-badge":"squad-stock-badge",active?"操作中":"ストック"));
+    if(active)card.prepend(el("span","squad-active-badge","操作中"));
     const choose=()=>{if(core.selectActive(m.id).ok){updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));}};
     card.setAttribute("role","button");card.tabIndex=0;card.setAttribute("aria-label",m.name+"を操作キャラに選択");
     card.addEventListener("click",e=>{if(e.target.closest("button"))return;choose()});
@@ -277,7 +277,7 @@ const ready=()=>{
    const card=el("article","squad-final-member"+(isLeader?" selected":""));
    card.append(preview(member,"squad-final-image"));
    const field=el("div","squad-final-field");
-   field.append(el("strong",null,(isLeader?"▼ 操作中":"● ストック")+"　"+(member.name||member.speciesName)));
+   field.append(el("strong",null,(isLeader?"▼ 操作中　":"")+(member.name||member.speciesName)));
    field.append(el("p",null,"LV"+(member.level||1)+"・"+member.grade+"評価・"+(RARITY[member.rarity]||"基本")));
    field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
    field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round(member.iv.hp*100)+"・攻 "+Math.round(member.iv.attack*100)+"・速 "+Math.round(member.iv.speed*100)+"・持 "+Math.round(member.iv.stamina*100)));
