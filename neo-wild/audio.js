@@ -182,8 +182,10 @@ function composerStep(c,when){
  const degree=motif[step%16];
  if(degree>=0&&section!==3&&(!(!main&&Math.random()<.40))&&
     !(bar%16===15&&beat>=4)){
-  const drift=(Math.random()<.10&&main)?(Math.random()<.5?2:-2):0;
-  const melody=root+24+p.scale[Math.max(0,Math.min(7,degree))]+(section===4?12:0)+drift;
+  // Variations stay in the song's scale, avoiding harsh chromatic surprises.
+  let noteIndex=Math.max(0,Math.min(7,degree));
+  if(Math.random()<.10&&main)noteIndex=clamp(noteIndex+(Math.random()<.5?1:-1),0,7);
+  const melody=root+24+p.scale[noteIndex]+(section===4?12:0);
   const accent=(beat===0||beat===4)?1:.75;
   composerVoice(c.bus,melody,when,beatSecs*(p.lead==="strings"?1.8:1.25),
     p.lead,p.leadLevel*subdued*accent*(.80+Math.random()*.33));
