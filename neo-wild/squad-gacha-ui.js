@@ -162,7 +162,8 @@ const ready=()=>{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
     card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"操作中":"ストック")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
-   // Living squad members cannot be discarded or exchanged.
+   if(m){const active=data.leaderId===m.id;card.prepend(el("span",active?"squad-active-badge":"squad-stock-badge",active?"操作中":"ストック"));if(!active)card.append(makeBtn("この個体を操作",()=>{const fresh=core.load();if(!fresh?.members?.some(q=>q.id===m.id))return;fresh.leaderId=m.id;core.save(fresh);updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));},"squad-select-character"));}
+   // Living individuals are retained; only death clears a slot.
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
@@ -170,11 +171,11 @@ const ready=()=>{
   gacha.hidden=true;
  }
  function showSize(){
-  info.textContent="編成数を選択してください。各枠、初回＋最大3回の引き直し。";
+  info.textContent="最初の動物をガチャで獲得。初回＋最大3回引き直せます。";
   body.replaceChildren();
   const pane=el("div","squad-count-choices");
-  for(let n=1;n<=3;n++){pane.append(makeBtn(n+"体で編成",()=>{size=n;nextSlot()},"squad-count-button"));}
-  body.append(pane,el("p","squad-small-note","個体は1匹ずつ採用。引き直した候補も選べます。所持枠・ストックはありません。"));
+  pane.append(makeBtn("ガチャを引く",()=>{size=1;nextSlot()},"squad-count-button"));
+  body.append(pane,el("p","squad-small-note","個体は1匹ずつ採用。引き直した候補も選べます。所有は最大5体。操作は常に1体。"));
  }
  function nextSlot(){
   if(chosen.length>=size){finish();return}
@@ -267,7 +268,7 @@ const ready=()=>{
    field.append(el("p",null,"LV"+(member.level||1)+"・"+member.grade+"評価・"+(RARITY[member.rarity]||"基本")));
    field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
    field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round(member.iv.hp*100)+"・攻 "+Math.round(member.iv.attack*100)+"・速 "+Math.round(member.iv.speed*100)+"・持 "+Math.round(member.iv.stamina*100)));
-   card.append(field);body.append(card);
+   card.append(field);if(!isLeader)card.append(makeBtn("この個体を操作",()=>{const fresh=core.load();if(!fresh?.members?.some(q=>q.id===member.id))return;fresh.leaderId=member.id;core.save(fresh);showLivingSquad();updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:member.id}}));},"squad-select-character"));body.append(card);
   }
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
