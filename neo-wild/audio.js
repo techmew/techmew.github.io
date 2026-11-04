@@ -218,6 +218,91 @@ function stopComposer(){
   setTimeout(()=>{try{old.bus.disconnect()}catch(_){}},1800);
  }else try{old.bus.disconnect()}catch(_){}
 }
+function ensureExtraTrack(id){
+ if(!COMPOSITIONS[id]||!started||!context||!musicBus)return false;
+ if(composer?.id===id)return true;
+ stopComposer();
+ const bus=context.createGain();bus.gain.value=0;bus.connect(musicBus);
+ const c={id,bus,step:0,nextAt:context.currentTime+.08,timer:null};
+ composer=c;
+ c.timer=setInterval(()=>composerTick(c),95);
+ composerTick(c);
+ return true;
+}
+function composerMix(mode){
+ if(!composer||!context)return;
+ const target=musicChoice===composer.id?
+   (mode==="guide"||mode==="dying"?0:mode==="pause"?.36:mode!=="play"?.12:.82):0;
+ composer.bus.gain.setTargetAtTime(target,context.currentTime,.19);
+}
+function buildAtmos(name){
+ const seconds=8;
+ return loopBuffer(seconds,(t,ch,low,hi)=>{
+  if(name==="wind")return low*(.85+.15*Math.sin(t*.8+ch))*.45+hi*.013;
+  if(name==="rain")return hi*.15+low*.24+Math.max(0,Math.sin(t*67))*hi*.06;
+  // Flowing river/canal ambience: layered low-frequency current and soft ripples.
+  if(name==="water")return low*(.48+.18*Math.sin(t*1.3+ch*.27))+
+    hi*(.12+.03*Math.sin(t*13+ch))+.085*Math.sin(2*Math.PI*(86+3*Math.sin(t*.8))*t)*Math.max(0,Math.sin(t*5))*.38;
+  if(name==="forest")return low*.25+hi*.032+Math.sin(2*Math.PI*1650*t+Math.sin(t*4)*9)*.005*Math.pow(Math.max(0,Math.sin(t*2.3)),9);
+  return 0;
+ });
+}
+function sample(name){
+ const sr=22050;
+ const lengths={step:.11,stepHard:.14,bite:.27,wing:.33,jump:.27,attack:.24,impact:.38,howl:1.35,thunder:2.6,collect:.18,menu:.13,damage:.38,snarl:.65,rustle:.36,land:.24,death:1.4,level:.70};
+ const duration=lengths[name]||.22,len=Math.ceil(sr*duration),buf=context.createBuffer(1,len,sr),a=buf.getChannelData(0);
+ let low=0,mid=0;
+ for(let i=0;i<len;i++){
+  const t=i/sr,u=i/len,n=rand()*2-1;
+  low=.968*low+.032*n;mid=.62*mid+.38*n;
+  const env=Math.pow(Math.max(0,1-u),name==="thunder"?.9:2.5);
+  let v=0;
+  switch(name){
+   case "step":v=mid*.36+low*.38+Math.sin(2*Math.PI*(93-40*u)*t)*.13;break;
+   case "stepHard":v=mid*.55+low*.16+Math.sin(2*Math.PI*(130-70*u)*t)*.13;break;
+   case "bite":v=mid*.57+low*.19+Math.sin(2*Math.PI*(280-180*u)*t)*.18;break;
+   case "wing":v=mid*.26*Math.sin(u*Math.PI*4)**2+low*.3;break;
+   case "jump":v=low*.32+mid*.12+Math.sin(2*Math.PI*(122-64*u)*t)*.055;break;
+   case "attack":v=mid*.62+low*.23+Math.sin(2*Math.PI*(170-90*u)*t)*.1;break;
+   case "impact":v=low*.62+mid*.23+Math.sin(2*Math.PI*(110-75*u)*t)*.31;break;
+   case "howl":v=(Math.sin(2*Math.PI*(165+90*Math.sin(u*Math.PI))*t)+.33*Math.sin(2*Math.PI*(330+180*Math.sin(u*Math.PI))*t)+mid*.07)*Math.sin(u*Math.PI)*.65;break;
+   case "snarl":v=mid*.28+low*.30+Math.sin(2*Math.PI*(85+40*Math.sin(t*16))*t)*.3;break;
+   case "thunder":v=low*.82+mid*.25*Math.exp(-u*18)+Math.sin(2*Math.PI*(36+40*Math.exp(-u*7))*t)*.36;break;
+   case "collect":case "menu":v=Math.sin(2*Math.PI*(340+190*u)*t)*.19+mid*.09;break;
+   case "damage":v=low*.47+mid*.33+Math.sin(2*Math.PI*(130-75*u)*t)*.19;break;
+   case "land":v=mid*.45+low*.4;break;
+   case "rustle":v=mid*.25+low*.40;break;
+   case "level":v=Math.sin(2*Math.PI*(220+220*u)*t)*.18+Math.sin(2*Math.PI*(330+110*u)*t)*.09;break;
+   case "death":v=low*.28+Math.sin(2*Math.PI*(130-82*u)*t)*.22;break;
+   default:v=mid*.30+low*.20;
+  }
+  a[i]=clamp(v*env,-1,1);
+ }
+ return buf;
+}
+function attachLoop(id,buffer,bus,volume){
+ const source=context.createBufferSource(),gain=context.createGain();
+ source.buffer=buffer;source.loop=true;gain.gain.value=volume;
+ source.connect(gain);gain.connect(bus);source.start();
+ loopSources[id]=source;loopGains[id]=gain;
+}
+function unlock(){
+ const ac=ensure();if(!ac||!enabled)return false;
+ if(ac.state==="suspended")ac.resume().catch(()=>{});
+ if(started)return true;
+ try{
+  attachLoop("explore",buildMusic("explore"),musicBus,.30);
+  attachLoop("forest",buildMusic("forest"),musicBus,0);
+  attachLoop("danger",buildMusic("danger"),musicBus,0);
+  attachLoop("wind",buildAtmos("wind"),atmosBus,.22);
+  attachLoop("forestWind",buildAtmos("forest"),atmosBus,0);
+  attachLoop("rain",buildAtmos("rain"),atmosBus,0);
+   attachLoop("water",buildAtmos("water"),atmosBus,0);
+  started=true;
+  if(musicChoice!=="default")ensureExtraTrack(musicChoice);
+  return true;
+ }catch(e){console.warn("WILD RECLAIM audio init:",e);return false}
+}
 function getMusicChoice(){return musicChoice}
 function setMusicChoice(id){
  if(!TRACKS.some(track=>track.id===id))return false;
