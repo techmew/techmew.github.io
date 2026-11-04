@@ -7242,13 +7242,15 @@ function drawSquadFieldMarkers(){
   const y=p.y-z*.93*cameraZoom;ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.strokeStyle=lead?"#ffe98e":"#66f3e7";ctx.lineWidth=3;
   ctx.beginPath();ctx.ellipse(p.x,p.y+4,m.r*1.22,m.r*.56,0,0,TWO);ctx.stroke();
-  const name=(lead?"▼ 操作中 ":"● ")+(m.squadName||"仲間");
-  ctx.font=lead?"900 13px sans-serif":"800 11px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=4;
-  ctx.strokeText(name,p.x,y-m.r-42);ctx.fillStyle=lead?"#ffe98e":"#66f3e7";
+  const name="▼ 操作中 "+(m.squadName||animals[m.type]?.name||"動物");
+  const fontSize=clamp(Math.round(15*cameraZoom),14,21);
+  ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
+  ctx.strokeText(name,p.x,y-m.r-42);ctx.fillStyle="#ffe98e";
   ctx.fillText(name,p.x,y-m.r-42);ctx.restore();
  }
- mark(P,true);
- for(const m of mobs)if(m.squadIndividualId&&m.hp>0&&visible(m.x,m.y,70))mark(m,false);
+ // SOLO5: Only the player exists on the field. Stored individuals never
+ // receive markers, draw calls or companion controls.
+ if(P&&P.hp>0)mark(P,true);
 }
 $("squad-party-hud")?.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
