@@ -58,7 +58,7 @@
  <div class="den-food-row hidden" id="den-row-legacy"><span><b>以前の備蓄</b><small>旧セーブから引き継いだ食料</small></span><strong id="den-qty-legacy">0pt</strong><button id="den-eat-legacy" type="button">旧備蓄を食べる</button></div>
  <p class="den-pantry-note">選んだ食料だけ減ります。巣の強化では備蓄を消費しません。</p>
  <div class="den-food-row" role="group" aria-label="旧セーブ互換" hidden aria-hidden="true" style="display:none!important">
-  <span><b>旧機能は廃止</b><small id="den-companion-status">動物はガチャで獲得。操作中1体＋ストック3体まで。</small></span>
+  <span><b>旧機能は廃止</b><small id="den-companion-status">動物はガチャで獲得。操作中1体＋ストック2体、合計3体まで。</small></span>
   <button id="den-companion-btn" type="button" disabled hidden style="display:none!important">仲間を迎える（肉24pt）</button>
  </div>
  <div id="strong-inheritance" class="strong-inheritance" role="group" aria-label="希少素材の能力継承">
@@ -109,11 +109,10 @@
     </div>
 <section id="squad-home" class="squad-home" aria-label="所有動物と操作キャラ">
  <button id="squad-open" type="button" hidden aria-hidden="true" tabindex="-1" style="display:none">ガチャ</button>
- <h2 class="squad-home-title">所有動物（操作1体＋ストック3体）</h2>
+ <h2 class="squad-home-title">所有動物（操作1体＋ストック2体）</h2>
  <div id="squad-roster" class="squad-home-roster" aria-live="polite"><article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="1枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(0)">＋</button><small>1枠目・空き</small></article>
 <article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="2枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(1)">＋</button><small>2枠目・空き</small></article>
 <article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="3枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(2)">＋</button><small>3枠目・空き</small></article>
-<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="4枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(3)">＋</button><small>4枠目・空き</small></article>
 </div>
  <p class="squad-home-hint">空き枠の＋で動物を選択</p>
 </section>
@@ -233,8 +232,8 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
-<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=active1-stock3-60054b" defer></script>
-<script src="./squad-gacha-ui.js?rev=active1-stock3-2af3e3" defer></script>
+<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=active1-stock2-65f201" defer></script>
+<script src="./squad-gacha-ui.js?rev=active1-stock2-d16f8a" defer></script>
 <script src="./game.js?rev=permadeath-tutorial-20261105" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
