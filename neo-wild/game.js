@@ -3864,13 +3864,24 @@ function tryPreyFeint(m,sp,d,spotted,dt){
  }
  return false;
 }
+// One dodge roll per cooldown, with species-specific agility. Huge herbivores
+// do not side-hop like cats; elite agile predators still retain dangerous moves.
+const WILD_EMERGENCY_EVASION=Object.freeze({
+ strayCat:.24,wildFox:.14,weasel:.27,raccoonDog:.12,venomSnake:.15,dog:.33,
+ cheetah:.31,lion:.20,tiger:.24,giraffe:.04,elephant:.02,hippo:.02,
+ macaque:.25,chimpanzee:.22,blackBear:.07,gorilla:.09,
+ hyena:.19,wildDog:.27,tanuki:.12,badger:.10,otter:.23,
+ alpha:.49,oneEyedWolf:.39,albinoWolf:.65,blackPanther:.32,
+ whiteTiger:.38,giantElephant:.02,giantGorilla:.06,rhino:.025,
+ giantMoose:.05,giantBuffalo:.04,giantBoar:.07,oldBear:.09
+});
 function tryEnemyEmergencyEvade(m,sp,d,spotted){
  if(sp.prey||!spotted||!P||!P.pendingStrike||P.ambushStrike||m.hp<=0||
     m.stun>0||m.windup>0||m.chargeTime>0||(m.evadeTime||0)>0||(m.evadeCooldown||0)>0)return false;
  const range=P.pounceTime>0?210:Math.min(155,P.r+m.r+111);
  if(d>range||lineBlocked(m,P)||Math.cos(Math.atan2(m.y-P.y,m.x-P.x)-P.dir)<.38)return false;
  m.evadeCooldown=m.type==="wildFox"?2.2:1.4; // Failed evasions also incur recovery.
- if(Math.random()>=(m.type==="albinoWolf"?.67:m.type==="alpha"?.52:m.type==="dog"?.36:m.type==="wildFox"?.15:m.type==="strayCat"?.22:m.type==="raccoonDog"?.18:.27))return false;
+ if(Math.random()>=(WILD_EMERGENCY_EVASION[m.type]??(m.strongBoss?.35:.20)))return false;
  const away=Math.atan2(m.y-P.y,m.x-P.x),side=m.evasionSide||1;
  const travel=m.type==="boar"?58:m.type==="alpha"?74:m.type==="albinoWolf"?98:67;
  for(const offset of [side*1.26,-side*1.26,side*.75,-side*.75]){
