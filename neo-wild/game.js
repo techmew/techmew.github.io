@@ -1423,7 +1423,7 @@ function restoreSnapshot(snapshot){
  const nearbyPredatorsRestored=ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
  syncSquadFollowers();
  // Reconcile the saved world with the animal explicitly selected on the title.
- if(P?.squadIndividualId&&window.WildSquad?.load?.()?.members?.length)applySquadLeader();
+ if(window.WildSquad?.load?.()?.members?.length)applySquadLeader();
  restoreReleasedWildlife();enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
@@ -7291,7 +7291,10 @@ function persistSquadVitals(){
  const core=window.WildSquad,r=core?.load?.();if(!r)return;
  for(const m of r.members){
   const actor=m.id===P.squadIndividualId?P:mobs.find(q=>q.squadIndividualId===m.id&&q.hp>0);
-  if(actor){m.hpRatio=Math.max(0,Math.min(1,actor.hp/Math.max(1,actor.maxHp)));if(!actor.squadIndividualId){m.level=actor.level||m.level||1;m.xp=actor.xp||m.xp||0;}}
+  if(actor){
+   m.hpRatio=Math.max(0,Math.min(1,actor.hp/Math.max(1,actor.maxHp)));
+   if(actor===P){m.level=Math.max(1,actor.level||m.level||1);m.xp=Math.max(0,Number(actor.xp)||0);}
+  }
  }
  core.save(r);
 }
@@ -7421,6 +7424,20 @@ function applySquadLeader(){
  syncSquadFollowers();syncSquadHud();saveAuto();return true;
 }
 window.addEventListener("wild-squad-updated",()=>{if(mode==="menu")refreshSaveMenu();});
+window.addEventListener("wild-squad-selected",event=>{
+ if(!P||!["play","pause","inventory"].includes(mode))return;
+ if(event.detail?.memberId===P.squadIndividualId)return;
+ persistSquadVitals();
+ if(applySquadLeader()){syncHUD();notify("選択した動物で操作を再開");}
+});
+window.addEventListener("wild-squad-released",event=>{
+ if(!P||event.detail?.memberId!==P.squadIndividualId)return;
+ if(["play","pause","inventory"].includes(mode)){
+  const r=window.WildSquad?.load?.();
+  if(r?.members?.length){applySquadLeader();syncHUD();}
+  else{persistWorldChronicle();clearAutoSave();resetControls();mode="menu";show("menu");refreshSaveMenu();}
+ }
+});
 window.addEventListener("wild-squad-reset",()=>{clearAutoSave();if(mode==="menu")refreshSaveMenu();});
 window.addEventListener("wild-squad-refilled",()=>{
  if(mode!=="inventory"||!P||!atDen())return;
