@@ -734,7 +734,7 @@ function renderTopScores(record){
   record.unchanged?"同じ挑戦の最高記録を維持（"+record.rank+"位）":
   record.rank?"今回の順位："+record.rank+"位（この端末に保存）":"今回の記録は6位以下（TOP5は維持）";
 }
-$("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
+if($("best-score"))$("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
 function noise(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)}
 function nearBuilding(x,y,r=0){return buildings.some(b=>x>b.x-r&&x<b.x+b.w+r&&y>b.y-r&&y<b.y+b.h+r)}
 
@@ -3713,7 +3713,7 @@ function finish(won=false){
  $("result-score").textContent=String(totalScore).padStart(6,"0");
  $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  renderTopScores(scoreRecord);
- $("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
+ if($("best-score"))$("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
  $("squad-party-hud")?.classList.add("hidden");show("result");if(!won&&partySurvivors?.members?.length)showSquadDeathPicker(partySurvivors);
  else $("squad-death-choice")?.classList.add("hidden");
  if(!deathAlreadyPlayed)playEffect(won?"level":"death");
