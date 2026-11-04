@@ -1185,7 +1185,7 @@ function squadSnapshotAlive(snapshot){
  const id=snapshot.player?.squadIndividualId;
  if(!id)return true; // Pre-gacha SAVE_SCHEMA2 remains readable.
  const roster=window.WildSquad?.load?.();
- return !!roster?.members?.some(m=>m.id===id&&m.alive!==false);
+ return !!roster?.members?.some(m=>m.alive!==false); // Living selected stock may replace the saved actor.
 }
 function getAutoSnapshot(){
  try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return squadSnapshotAlive(s)?s:null}catch(_){return null}
@@ -1264,7 +1264,10 @@ function restoreSnapshot(snapshot){
  migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
  selectNewGameAnimal(choice);
- if(!start())return false;
+ let started=false;
+ restoringSavedWorld=true;
+ try{started=start()}finally{restoringSavedWorld=false}
+ if(!started)return false;
  scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
@@ -1418,7 +1421,10 @@ function restoreSnapshot(snapshot){
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
  cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  const nearbyPredatorsRestored=ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
- syncSquadFollowers();enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
+ syncSquadFollowers();
+ // Reconcile the saved world with the animal explicitly selected on the title.
+ if(P?.squadIndividualId&&window.WildSquad?.load?.()?.members?.length)applySquadLeader();
+ restoreReleasedWildlife();enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
  return true;
@@ -2358,7 +2364,7 @@ function ecologicalSpawnAllowed(type,x,y,initial=false){
  return true;
 }
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null,requestedMountainZone=null){
- if(!releasedSpawnBusy&&P)restoreReleasedWildlife();
+ if(!releasedSpawnBusy&&!restoringSavedWorld&&mode==="play"&&P)restoreReleasedWildlife();
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
@@ -2391,16 +2397,16 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  }while(!valid&&!forcedSpot&&++tries<52);
  if(!valid)return false;
  const biome=regionAt(x,y);
- let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)?MOUNTAIN.choose(Math.random(),x,y,preyOnly,weather):window.WildFauna?.choose(biome,day,weather,preyOnly);
+ let type=forcedType&&(releasedSpawnBusy&&species[forcedType]||window.WildFauna?.types.includes(forcedType))?forcedType:mountainHabitat(x,y)?MOUNTAIN.choose(Math.random(),x,y,preyOnly,weather):window.WildFauna?.choose(biome,day,weather,preyOnly);
  if(!species[type])type="rat";
  // Forced/debug/regional births cannot bypass the fauna year and biome rules.
  // The wild pool's own weight is the single source of truth for 30-species unlocks.
- if((window.WildFauna?.weight?.(type,biome,day,weather)??1)<=0)return false;
+ if(!releasedSpawnBusy&&(window.WildFauna?.weight?.(type,biome,day,weather)??1)<=0)return false;
  // Newly generated enemies cannot overwhelm a level-one party in its first minutes.
  if(!forcedType||initial||nearbyOnly)type=earlySquadSpawnType(type,x,y);
  // A denied predator is not turned into free prey or spawned elsewhere:
  // future natural draws will select wildlife matching the local food chain.
- if(!ecologicalSpawnAllowed(type,x,y,initial))return false;
+ if(!releasedSpawnBusy&&!ecologicalSpawnAllowed(type,x,y,initial))return false;
  // Amphibious and waterside wildlife must appear at actual suitable
  // terrain coordinates, not just anywhere inside a nominal wetland district.
  if(type==="otter"&&(waterDepth(x,y)<=.025||waterDepth(x,y)>.60))return false;
@@ -2415,9 +2421,9 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
   if(mobs.some(m=>m.hp>0&&m.type===type&&Math.hypot(m.x-x,m.y-y)<210))return false;
  }
  // Prevent rare deer from dominating the world, even in a long-lived save.
- if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
+ if(!releasedSpawnBusy&&type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
- if(nearDenLocation(x,y,265)&&(!species[type].prey||WILD_PREDATOR_TYPES.has(type)))type=biome===4||biome===7?"pigeon":"rabbit";
+ if(!releasedSpawnBusy&&nearDenLocation(x,y,265)&&(!species[type].prey||WILD_PREDATOR_TYPES.has(type)))type=biome===4||biome===7?"pigeon":"rabbit";
  const s=species[type],scale=s.prey?1+Math.min(18,Math.max(0,day-1))*.055:enemyHealthFactor();
  mobs.push({x,y,type,r:s.r,color:s.color,belly:s.belly,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1),
   damageScale:s.prey?1:enemyDamageFactor(),speedScale:s.prey?1:1+Math.min(10,enemyChallengeTier())*.018});
@@ -2425,9 +2431,9 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
 }
 // Released owned animals rejoin the ecosystem under their original names.
 // Retry pending entries on subsequent wildlife spawns if terrain is unsuitable.
-let releasedSpawnBusy=false;
+let releasedSpawnBusy=false,restoringSavedWorld=false;
 function restoreReleasedWildlife(){
- if(releasedSpawnBusy||!P||!Array.isArray(mobs))return;
+ if(releasedSpawnBusy||restoringSavedWorld||mode!=="play"||!P||!Array.isArray(mobs))return;
  let pending=[];
  try{pending=JSON.parse(localStorage.getItem("wild-reclaim-released-v1")||"[]")}catch(_){return}
  if(!Array.isArray(pending)||!pending.length)return;
@@ -2444,7 +2450,7 @@ function restoreReleasedWildlife(){
     const before=mobs.length;
     if(spawnMob(false,false,false,pos,animal.species)&&mobs.length>before){
      const wild=mobs[mobs.length-1];
-     if(wild.type===animal.species){wild.name=animal.name||animal.speciesName;wild.releasedIndividualId=animal.id;const seed=[...String(animal.id)].reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,17);wild.releasedMood=["aggressive","timid","peaceful","generous"][seed%4];wild.releasedPower=2.5+((seed>>>4)%16)/10;wild.hp=Math.round(wild.hp*wild.releasedPower);wild.maxHp=wild.hp;wild.damageScale=Math.max(wild.damageScale||1,wild.releasedPower);wild.releasedGiftCooldown=elapsed+12+(seed%15);created=true;}
+     if(wild.type===animal.species){wild.name=animal.name||animal.speciesName;wild.releasedIndividualId=animal.id;const seed=[...String(animal.id)].reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,17);wild.releasedMood=["aggressive","timid","peaceful","generous"][seed%4];wild.releasedPower=2.5+((seed>>>4)%16)/10;wild.hp=Math.round(wild.hp*wild.releasedPower);wild.maxHp=wild.hp;wild.damageScale=Math.max(wild.damageScale||1,wild.releasedPower);wild.releasedGiftCooldown=elapsed+12+(seed%15);wild.speedScale=Math.max(wild.speedScale||1,1.12);created=true;}
      else mobs.pop();
     }
    }
@@ -6730,11 +6736,11 @@ function drawThreatNames(use3D=false){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
-  if(m.hp<=0||(use3D&&m.strongBoss)||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
+  if(m.hp<=0||(use3D&&m.strongBoss)||(species[m.type].prey&&m.type!=="zebra"&&!m.releasedIndividualId)||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
   const rise=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
   const pos=projectGroundLabel(m.x,m.y,rise),names=ENEMY_LABEL_NAMES,y=pos.y-m.r*cameraZoom-20;
   const targetLevel=COMBAT_LEVELS?.level(m.type)||1,levelGap=Math.max(0,targetLevel-P.level);
-  const threatName=(names[m.type]||STRONG_NAMES[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
+  const threatName=(m.releasedIndividualId&&m.name?m.name+"（野生に帰還）":names[m.type]||STRONG_NAMES[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
   ctx.globalAlpha=m.windup>0||m.alert>0?.95:.78;ctx.fillStyle="#172321";ctx.fillRect(pos.x-69,y-14,138,31);
   ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(threatName,pos.x,y-2);
   ctx.fillStyle=levelGap>=5?"#ffad91":levelGap>0?"#ffe19b":"#b6e8c7";
@@ -6781,7 +6787,7 @@ function drawAligned3DActorStatus(){
    ctx.strokeStyle="#ffc38e";ctx.lineWidth=3;ctx.setLineDash([8,5]);
    ctx.beginPath();ctx.ellipse(ground.x,ground.y+3,(m.r+P.r+34)*cameraZoom,(m.r+P.r+34)*cameraZoom*.48,0,0,TWO);ctx.stroke();ctx.setLineDash([]);
   }
-  const named=boss||(!prey||m.type==="zebra")&&distance<=280;
+  const named=boss||!!m.releasedIndividualId||(!prey||m.type==="zebra")&&distance<=280;
   const damaged=!prey&&(boss||m.hp<m.maxHp)&&distance<=550;
   if(damaged){
    const w=boss?76:48,y=cursor-8;
@@ -6796,7 +6802,7 @@ function drawAligned3DActorStatus(){
    const y=cursor-17,w=boss?142:138;
    if(reserve(feet.x,y,w,32)){
     const lv=COMBAT_LEVELS?.level(m.type)||1,gap=Math.max(0,lv-(P.level||1));
-    const name=boss?"強敵・"+(STRONG_NAMES[m.type]||"危険"):
+    const name=m.releasedIndividualId&&m.name?m.name+"（野生に帰還）":boss?"強敵・"+(STRONG_NAMES[m.type]||"危険"):
      (ENEMY_LABEL_NAMES[m.type]||STRONG_NAMES[m.type]||animals[m.type]?.name||"野生動物")+
      (m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
     ctx.globalAlpha=m.windup>0||m.alert>0?.95:.87;
