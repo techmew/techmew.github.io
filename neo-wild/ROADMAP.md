@@ -1,3 +1,9 @@
+## 2026-11-05 04:00｜00分担当：選択個体の保存失敗時に誤再開しない
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- 【実コード】squad-core.js selectActive() に保存例外の捕捉と再読込による leaderId 検証を追加。保存容量不足・書込失敗・選択ID不一致なら ok:false を返し、以前の操作個体で「選んで続きから」を成功扱いしない。3体所有・旧4〜5体保護・野生放流・死亡永久ID・世界記録を維持。
+- main commit ef46cda6f8c32c89f03b68362934b6fb773c15de / squad-core.js blob 1030802781d2e305adba7c8eaa3760e2d248c8f6（更新前 2b9bbc8e7709415174c5503723b2e736d81ad694）。
+- 静的確認：最新main対象blobを読み変更箇所を限定。未検証：localStorage容量不足注入のブラウザE2E、Android縦横、Pages実配信、旧SAVE_SCHEMA2復帰。次担当はUI側が ok:false を正しく表示するかと、放流後の野生出現・死亡復活禁止を実操作検証。
+
 ## 2026-11-05 03:40｜40分担当：タイトル画面からの野生放流確認を修復
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - 【実プレイUI修復】所有一覧の「野生に放つ」はガチャ画面を開いていないタイトル状態でも押せるため、従来は確認UIが非表示のままで操作不能。squad-gacha-ui.js の confirmRelease で確認画面を明示表示し、キャンセルは元の画面に復帰。放流は「放流を確定」の押下時だけ実行し、保存失敗時は再試行・キャンセル可能にした。操作中も放流可能。
