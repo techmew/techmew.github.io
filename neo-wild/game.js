@@ -2432,7 +2432,7 @@ function restoreReleasedWildlife(){
     const before=mobs.length;
     if(spawnMob(false,false,false,pos,animal.species)&&mobs.length>before){
      const wild=mobs[mobs.length-1];
-     if(wild.type===animal.species){wild.name=animal.name||animal.speciesName;wild.releasedIndividualId=animal.id;created=true;}
+     if(wild.type===animal.species){wild.name=animal.name||animal.speciesName;wild.releasedIndividualId=animal.id;const seed=[...String(animal.id)].reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,17);wild.releasedMood=["aggressive","timid","peaceful","generous"][seed%4];wild.releasedPower=2.5+((seed>>>4)%16)/10;wild.hp=Math.round(wild.hp*wild.releasedPower);wild.maxHp=wild.hp;wild.damageScale=Math.max(wild.damageScale||1,wild.releasedPower);wild.releasedGiftCooldown=elapsed+12+(seed%15);created=true;}
      else mobs.pop();
     }
    }
@@ -5041,6 +5041,13 @@ function update(dt){
   if(m.companion){updateCompanion(m,dt);continue;}
   const s=species[m.type];m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0)-dt);m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0)-dt);if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
+  if(m.releasedIndividualId){
+   const mood=m.releasedMood;
+   if(mood==="aggressive"&&d<410){m.alert=Math.max(m.alert||0,2.4);m.search=Math.max(m.search||0,2.4);m.reactiveUntil=elapsed+2.4;}
+   else if(mood==="timid"&&d<420){m.flee=Math.max(m.flee||0,2.2);m.alert=0;const a=Math.atan2(m.y-P.y,m.x-P.x);const ox=m.x,oy=m.y;move(m,Math.cos(a)*s.speed*1.3*dt,Math.sin(a)*s.speed*1.3*dt);m.vx=(m.x-ox)/Math.max(dt,.001);m.vy=(m.y-oy)/Math.max(dt,.001);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;continue;}
+   else if(mood==="peaceful"&&d<300&&!m.provokedUntil){m.alert=0;m.search=0;m.vx=0;m.vy=0;continue;}
+   else if(mood==="generous"&&d<145&&!m.provokedUntil){m.alert=0;m.search=0;if(elapsed>=m.releasedGiftCooldown){const giftType=(m.type==="deer"||m.type==="boar"||m.type==="giraffe"||m.type==="zebra")?"berries":(Math.random()<.5?"berries":"meat");carcasses.push({x:clamp(P.x+40,40,WORLD.w-40),y:clamp(P.y+30,40,WORLD.h-40),r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);m.releasedGiftCooldown=elapsed+45+Math.random()*25;}m.vx=0;m.vy=0;continue;}
+  }
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(m.type==="dog"&&updateFoodThief(m,dt,d))continue;
   if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);else{m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
