@@ -3683,6 +3683,8 @@ function renderTutorial(){
  const index=TUTORIAL_STAGES.indexOf(mission),info=GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)];
  $("tutorial-stage").textContent=index>=0?"チュートリアル "+(index+1)+" / 4":"生存ガイド";
  $("tutorial-title").textContent=info.title;$("tutorial-what").textContent=info.what;$("tutorial-how").textContent=info.how;
+ // Warn once, on the first onboarding screen, before the player risks a rare gacha animal.
+ $("tutorial-permadeath")?.classList.toggle("hidden",mission!==0);
  $("tutorial-progress-label").textContent="いまやること";$("tutorial-counter").textContent=index>=0?(index+1)+" / 4":"自由探索";
  $("tutorial-prev").disabled=true;$("tutorial-next").disabled=true;
 }
