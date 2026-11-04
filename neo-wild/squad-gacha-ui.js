@@ -175,14 +175,23 @@ const ready=()=>{
     const active=data.leaderId===m.id;
     if(active){card.prepend(el("span","squad-active-badge","操作中"));card.setAttribute("aria-current","true");}
     else card.setAttribute("aria-current","false");
-    const choose=()=>{if(core.selectActive(m.id).ok){updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));}};
-    card.setAttribute("role","button");card.tabIndex=0;card.setAttribute("aria-label",m.name+"を操作キャラに選択");
-    card.addEventListener("click",e=>{if(e.target.closest("button"))return;choose()});
-    card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();choose()}});
+    const choose=()=>{
+     const latest=core.load();
+     if(!latest?.members?.some(q=>q.id===m.id))return;
+     if(core.selectActive(m.id).ok){
+      updateHome();
+      window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));
+     }
+    };
+    const select=makeBtn(active?"現在操作中":"この個体を操作",choose,"squad-roster-select");
+    select.disabled=active;select.setAttribute("aria-pressed",String(active));
+    card.append(select);
+    card.setAttribute("aria-label",(m.name||m.speciesName||"動物")+(active?"・現在操作中":"・ストック"));
+    // Explicit selection prevents accidental character switching while scrolling.
     // Ownership is permanent until death. No manual discard or release UI.
 
    }
-   // Card tap selects the active individual; release is an explicit separate action.
+   // Stock slots only become active through their explicit button.
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
