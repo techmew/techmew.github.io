@@ -1,3 +1,9 @@
+## 2026-11-05 00分担当｜死亡時の保存容量不足による中断を防止
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- squad-core.js: 死亡IDの永久除外台帳を先に確定した後、所有スナップショットの書込が容量制限で失敗しても、除外済みのload()を返す。全滅時pendingStart解除の保存失敗も安全に扱う。死亡した個体を旧オートセーブから復活させない。
+- main commit f711650e8f4856a6f0424845d4d2f7771ec6d2d7 / 更新前blob 0c7c98528dcfbaa83d7f85df6b4a30d09e187bfc / 更新後blob 5af73910a864abb1ad6a9bdc1cad60377b66874b。
+- 未検証：ブラウザでの容量不足注入E2E、Android実機、死亡後ガチャ再出発、旧4〜5体保存互換。次担当は容量不足注入テストと放流野生個体の死亡永続化を優先。
+
 ## 2026-11-05 40分担当｜放流二重タップ防止・選択個体再開ガード
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - squad-gacha-ui.js: 野生放流の確定ボタンを押下直後に無効化し、同じ個体の二重放流を防止。保存例外時は安全なエラー表示へ移行。
