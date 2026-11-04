@@ -7357,6 +7357,17 @@ if(bgmPicker&&window.WildAudio){
   }));
  }
  bgmPicker.value=window.WildAudio.getMusicChoice?.()||"default";
+ const volumeSlider=$("pause-bgm-volume"),volumeLabel=$("pause-bgm-volume-value");
+ if(volumeSlider){
+  const current=window.WildAudio.getMusicVolume?.()??55;
+  volumeSlider.value=String(current);
+  if(volumeLabel)volumeLabel.textContent=current+"%";
+  volumeSlider.addEventListener("input",()=>{
+   const level=window.WildAudio.setMusicVolume?.(volumeSlider.value)??55;
+   if(volumeLabel)volumeLabel.textContent=level+"%";
+   if(bgmStatus)bgmStatus.textContent="BGM音量 "+level+"%（次回も保存）";
+  });
+ }
  bgmPicker.addEventListener("change",()=>{
   const selected=window.WildAudio.setMusicChoice?.(bgmPicker.value);
   if(!selected){bgmPicker.value=window.WildAudio.getMusicChoice?.()||"default";return;}
