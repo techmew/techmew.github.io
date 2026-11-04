@@ -73,8 +73,8 @@ const ready=()=>{
  function plot(canvas,type){
   const ctx=canvas.getContext("2d");if(!ctx)return;
   const w=canvas.width,h=canvas.height;
-  const ground=ctx.createLinearGradient(0,0,0,h);ground.addColorStop(0,"#1a3b40");ground.addColorStop(1,"#0b1c24");
-  ctx.fillStyle=ground;ctx.fillRect(0,0,w,h);
+  // Transparent collection preview; the animal itself is the focus, not a black panel.
+  ctx.clearRect(0,0,w,h);
   ctx.fillStyle="#567c7760";ctx.beginPath();ctx.ellipse(w*.5,h*.84,w*.3,h*.042,0,0,7);ctx.fill();
   const c=COLORS[type]||"#8a9b95",dark="#273735",light="#e4ddc4",s=Math.min(w/250,h/180);
   ctx.save();ctx.translate(w*.47,h*.72);const ageScale=canvas.dataset.ageStage==="young"?.78:1;ctx.scale(s*ageScale,s*ageScale);
@@ -126,7 +126,7 @@ const ready=()=>{
   const model={type,r:(RADII[type]||19)*(canvas.dataset.ageStage==="young"?.8:1),color,belly:"#c6c3b6",age:m.age,sex:m.sex,ageStage:canvas.dataset.ageStage};
   let drawn=false;
   if(window.Wild3D?.available&&window.Wild3D.previewAnimal){
-   try{drawn=!!window.Wild3D.previewAnimal(model,canvas,.6,1.45,.12)}catch(_){}
+   try{drawn=!!window.Wild3D.previewAnimal(model,canvas,.6,1.75,.12)}catch(_){}
   }
   if(!drawn)plot(canvas,type);
  }
