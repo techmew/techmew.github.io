@@ -136,9 +136,23 @@ function fillVacancy(member){
  return {ok:true,roster:saved};
 }
 function release(id){
- // 2026-11-04 solo-five contract: ownership cannot be discarded to reroll.
- // Preserve the API for legacy callers, but never mutate roster or tombstones.
- return {ok:false,reason:"所有個体は野生に返せません。死亡した場合のみ枠が空きます"};
+ const roster=load(),member=roster?.members?.find(m=>m.id===id);
+ if(!member)return {ok:false,reason:"その個体はすでに所有一覧にいません"};
+ // Queue the original individual for a strong, personality-driven wild encounter.
+ // Tombstones prevent old autosaves and checkpoints from re-owning released IDs.
+ const key="wild-reclaim-released-v1",pending=read(key,[]);
+ const queue=Array.isArray(pending)?pending.filter(m=>m?.id!==id):[];
+ queue.push({...member,releasedAt:Date.now()});
+ try{
+  localStorage.setItem(key,JSON.stringify(queue));
+  const blocked=dead();blocked.add(id);saveDead(blocked);
+  const survivors=roster.members.filter(m=>m.id!==id);
+  const leaderId=roster.leaderId===id?(survivors[0]?.id||null):roster.leaderId;
+  const saved=save({...roster,members:survivors,leaderId,pendingStart:survivors.length?roster.pendingStart:false});
+  return {ok:true,roster:saved,released:member,newLeaderId:saved.leaderId};
+ }catch(_){
+  return {ok:false,reason:"野生への放流を保存できません。端末の保存容量を確認してください"};
+ }
 }
 function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);localStorage.setItem(RESET_NEW_WORLD,"1");return true;}
 function addInitialSlot(member){
