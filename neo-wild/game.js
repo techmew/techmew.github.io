@@ -213,7 +213,7 @@ function updateLightning(dt){
 }
 function drawLightning(){
  const e=lightningStrike;if(!e)return;
- const p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
+ const p=projectGroundLabel(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
  ctx.save();ctx.lineWidth=3;ctx.strokeStyle=e.countdown>0?"#ffe47a":"#e6f7ff";
  ctx.fillStyle=e.countdown>0?"rgba(255,201,62,.24)":"rgba(230,247,255,.35)";
  const radius=65*cameraZoom;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,TWO);ctx.fill();ctx.stroke();
@@ -6638,7 +6638,7 @@ function drawMissionChevrons(){
  const goalDistance=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y);
  if(!Number.isFinite(waypointDistance)||!Number.isFinite(goalDistance)||waypointDistance<12||goalDistance<42)return;
  const ux=dx/waypointDistance,uy=dy/waypointDistance;
- const start=project(P.x,P.y),forward=project(P.x+ux*100,P.y+uy*100);
+ const start=projectGroundLabel(P.x,P.y),forward=projectGroundLabel(P.x+ux*100,P.y+uy*100);
  const bearing=Math.atan2(forward.y-start.y,forward.x-start.x);
  if(Math.hypot(forward.x-start.x,forward.y-start.y)<8)return;
  const count=waypointDistance>=155&&goalDistance>=190?2:1;
@@ -6662,7 +6662,7 @@ function drawShelterEntranceMarker(){
  if(mode!=="play")return;
  const entry=nearestShelterEntrance();
  if(!entry)return;
- const b=entry.building,door={x:entry.approach.x,y:b.y-10},raw=project(door.x,door.y);
+ const b=entry.building,door={x:entry.approach.x,y:b.y-10},raw=projectGroundLabel(door.x,door.y);
  const top=vh<=520?104:Math.min(190,vh*.23),bottom=vh<=520?90:Math.min(175,vh*.21);
  const px=clamp(raw.x,52,Math.max(53,vw-52));
  const py=clamp(raw.y,top,Math.max(top+1,vh-bottom));
@@ -6710,13 +6710,14 @@ function drawRemainsLabels(){
   if(++shown>=5)break;
  }ctx.restore();
 }
+const ENEMY_LABEL_NAMES={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"};
 function drawThreatNames(use3D=false){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
   if(m.hp<=0||(use3D&&m.strongBoss)||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
   const rise=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
-  const pos=projectGroundLabel(m.x,m.y,rise),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-m.r*cameraZoom-20;
+  const pos=projectGroundLabel(m.x,m.y,rise),names=ENEMY_LABEL_NAMES,y=pos.y-m.r*cameraZoom-20;
   const targetLevel=COMBAT_LEVELS?.level(m.type)||1,levelGap=Math.max(0,targetLevel-P.level);
   const threatName=(names[m.type]||STRONG_NAMES[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
   ctx.globalAlpha=m.windup>0||m.alert>0?.95:.78;ctx.fillStyle="#172321";ctx.fillRect(pos.x-69,y-14,138,31);
@@ -6728,41 +6729,105 @@ function drawThreatNames(use3D=false){
 }
 // Screen-space vignette works identically over WebGL and Canvas2D.
 
+const ACTOR_TOP_SCALE={giraffe:4.4,elephant:2.8,giantElephant:2.8,shoebill:3.05,hippo:2.15,giantHippo:2.15,giantEagle:2.1,deer:2.35,serow:2.35,mountainGoat:2.35,giantGorilla:2.4};
 function drawAligned3DActorStatus(){
- // Native WebGL and UI labels use the same camera, terrain height and actor rise.
+ // All 3D text and rings use the same model projected foot position, native zoom and terrain Z.
+ // Allocate status/name/HP independently but without overlapping within or between animals.
+ const upper=vh<=540?75:104,claimed=[];
  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
  ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
- if(P)for(const m of mobs){
-  if(m.hp<=0||!visible(m.x,m.y,90)||lineBlocked(P,m))continue;
-  const lift=m.type==="giantEagle"?Math.max(0,m.airHeight||125):Math.max(0,m.evadeHeight||0);
-  const p=projectGroundLabel(m.x,m.y,lift);
-  if(p.x<15||p.x>vw-15||p.y<12||p.y>vh+70)continue;
-  const r=Math.max(7,m.r*cameraZoom);
-  if(m.strongBoss){
-   const ground=projectGroundLabel(m.x,m.y),pulse=1+Math.sin(elapsed*3.8+m.r)*.10;
-   ctx.lineWidth=2.2;ctx.strokeStyle=m.hp<m.maxHp*.45?"#ff9c4bd9":"#ff5f4eb3";
-   ctx.beginPath();ctx.ellipse(ground.x,ground.y+4,(r+15)*pulse,(r*.53+6)*pulse,0,0,TWO);ctx.stroke();
-  }
+ const reserve=(x,y,w,h)=>{
+  if(!Number.isFinite(x)||!Number.isFinite(y)||x-w/2<8||x+w/2>vw-8||y-h/2<upper||y+h/2>vh-14)return false;
+  const r={l:x-w/2-3,t:y-h/2-3,r:x+w/2+3,b:y+h/2+3};
+  if(claimed.some(a=>a.l<r.r&&a.r>r.l&&a.t<r.b&&a.b>r.t))return false;
+  claimed.push(r);return true;
+ };
+ if(P&&P.squadIndividualId){
+  const p=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0,P.jumpHeight||0));
+  const y=p.y-Math.max(25,P.r*cameraZoom*1.3+9);
+  claimed.push({l:p.x-85,r:p.x+85,t:y-14,b:y+14});
+ }
+ const ordered=P?mobs.filter(m=>m.hp>0&&visible(m.x,m.y,130)&&!lineBlocked(P,m))
+  .sort((a,b)=>Number(!!b.strongBoss)-Number(!!a.strongBoss)||dist(P,a)-dist(P,b)):[];
+ for(const m of ordered){
+  const distance=dist(P,m);
+  if(distance>900)continue;
+  const rise=m.type==="giantEagle"?Math.max(0,m.airHeight||125):Math.max(0,m.evadeHeight||0);
+  const feet=projectGroundLabel(m.x,m.y,rise),ground=projectGroundLabel(m.x,m.y);
+  const radius=Math.max(7,Math.max(1,m.r)*cameraZoom);
+  if(feet.x<10||feet.x>vw-10||feet.y<15||feet.y>vh+100)continue;
+  const scale=ACTOR_TOP_SCALE[m.type]||1.85;
+  let cursor=feet.y-radius*scale-6;
   const prey=!!species[m.type]?.prey;
+  const boss=!!m.strongBoss;
+  if(boss){
+   const pulse=1+Math.sin(elapsed*3.8+m.r)*.10;
+   ctx.lineWidth=2.2;ctx.strokeStyle=m.hp<m.maxHp*.45?"#ff9c4bd9":"#ff5f4eb3";
+   ctx.beginPath();ctx.ellipse(ground.x,ground.y+4,(radius+15)*pulse,(radius*.53+6)*pulse,0,0,TWO);ctx.stroke();
+  }
+  if(m.type==="dog"&&(m.foodTheftTell||0)>0){
+   ctx.strokeStyle="#ffc38e";ctx.lineWidth=3;ctx.setLineDash([8,5]);
+   ctx.beginPath();ctx.ellipse(ground.x,ground.y+3,(m.r+P.r+34)*cameraZoom,(m.r+P.r+34)*cameraZoom*.48,0,0,TWO);ctx.stroke();ctx.setLineDash([]);
+  }
+  const named=boss||(!prey||m.type==="zebra")&&distance<=280;
+  const damaged=!prey&&(boss||m.hp<m.maxHp)&&distance<=550;
+  if(damaged){
+   const w=boss?76:48,y=cursor-8;
+   if(reserve(feet.x,y,w,8)){
+    ctx.fillStyle="#091517d9";ctx.fillRect(feet.x-w/2,y-3,w,6);
+    ctx.fillStyle=boss?"#ee7e71":"#ee9d79";
+    ctx.fillRect(feet.x-w/2,y-3,w*clamp(m.hp/Math.max(1,m.maxHp),0,1),6);
+   }
+   cursor-=18;
+  }
+  if(named){
+   const y=cursor-17,w=boss?142:138;
+   if(reserve(feet.x,y,w,32)){
+    const lv=COMBAT_LEVELS?.level(m.type)||1,gap=Math.max(0,lv-(P.level||1));
+    const name=boss?"強敵・"+(STRONG_NAMES[m.type]||"危険"):
+     (ENEMY_LABEL_NAMES[m.type]||STRONG_NAMES[m.type]||animals[m.type]?.name||"野生動物")+
+     (m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
+    ctx.globalAlpha=m.windup>0||m.alert>0?.95:.87;
+    ctx.fillStyle="#172321";ctx.fillRect(feet.x-w/2,y-16,w,32);
+    ctx.font="700 10px sans-serif";ctx.fillStyle=m.windup>0?"#ffad9a":"#ecdfca";
+    ctx.fillText(name,feet.x,y-7);
+    ctx.fillStyle=gap>=5?"#ffad91":gap>0?"#ffe19b":"#b6e8c7";
+    ctx.fillText("推奨LV"+lv+(gap>=5?"｜非常に危険":gap>0?"｜格上":"｜適正"),feet.x,y+7);
+    ctx.globalAlpha=1;
+   }
+   cursor-=40;
+  }
   const symbol=m.windup>0&&!prey?"!":m.resting?"Zz":(m.drinkPose||0)>0?"水":
    (m.scavengePose||0)>0||(m.foragePose||0)>0?"食":
    prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
-  if(symbol){
-   const y=p.y-r-31;
-   if(y>=16&&y<=vh-16){
+  if(symbol&&distance<=550){
+   const y=cursor-13;
+   if(reserve(feet.x,y,30,22)){
     ctx.font="900 15px sans-serif";ctx.lineWidth=3;ctx.strokeStyle="#13201a";
     ctx.fillStyle=m.windup>0?"#ffbc9c":m.resting?"#c8e7ff":
      (m.drinkPose||0)>0?"#b5e8f1":symbol==="食"?"#d9f0b9":
      prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
-    ctx.strokeText(symbol,p.x,y);ctx.fillText(symbol,p.x,y);
+    ctx.strokeText(symbol,feet.x,y);ctx.fillText(symbol,feet.x,y);
    }
   }
  }
+ if(P&&mode==="play"&&P.dashTime>0){
+  const f=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0));
+  ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=3;
+  ctx.beginPath();ctx.ellipse(f.x,f.y+3,(P.r+14)*cameraZoom,(P.r+14)*cameraZoom*.55,0,0,TWO);ctx.stroke();
+ }
+ for(const q of particles){
+  const p=projectGroundLabel(q.x,q.y),alpha=clamp(q.life/Math.max(.001,q.max),0,1);
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>vw||p.y<0||p.y>vh)continue;
+  ctx.globalAlpha=alpha;ctx.beginPath();
+  if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=3;ctx.arc(p.x,p.y,(1-alpha)*390*cameraZoom,0,TWO);ctx.stroke();}
+  else{ctx.fillStyle=q.color;ctx.arc(p.x,p.y,q.size*cameraZoom,0,TWO);ctx.fill();}
+ }
+ ctx.globalAlpha=1;
  for(const f of popups){
   const p=projectGroundLabel(f.x,f.y);
-  if(p.x<15||p.x>vw-15||p.y<15||p.y>vh-15)continue;
-  ctx.globalAlpha=clamp(f.life,0,1);
-  ctx.font="900 14px Barlow Condensed,sans-serif";
+  if(p.x<15||p.x>vw-15||p.y<upper||p.y>vh-15)continue;
+  ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";
   ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;
   ctx.fillText(f.t,p.x,p.y);ctx.shadowBlur=0;
  }
@@ -6883,17 +6948,17 @@ function drawScene(){
   ctx.lineWidth=3;ctx.strokeStyle="#123b37";ctx.strokeText("仲間",m.x,m.y-m.r-29);
   ctx.fillStyle="#9af5e9";ctx.fillText(m.squadIndividualId?(m.squadName||"仲間"):"仲間",m.x,m.y-m.r-29);ctx.restore();
  }
- for(const m of entities)if(m.type==="dog"&&m.hp>0&&(m.foodTheftTell||0)>0){
+ if(!use3D)for(const m of entities)if(m.type==="dog"&&m.hp>0&&(m.foodTheftTell||0)>0){
   ctx.save();ctx.strokeStyle="#ffc38e";ctx.lineWidth=4;ctx.setLineDash([12,8]);
   ctx.beginPath();ctx.arc(m.x,m.y,m.r+P.r+34,0,TWO);ctx.stroke();ctx.restore();
  }
- for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&m.hp>0&&((m.macaqueTell||0)>0||(m.chimpTell||0)>0)){
+ if(!use3D)for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&m.hp>0&&((m.macaqueTell||0)>0||(m.chimpTell||0)>0)){
   const a=Number.isFinite(m.chimpAim)&&m.type==="chimpanzee"?m.chimpAim:m.macaqueAim||0,reach=(m.type==="chimpanzee"?(m.chimpAttackKind==="branch"?m.r+P.r+48:350*1.02):395*.95);
   ctx.save();ctx.strokeStyle="#f0c486";ctx.lineWidth=4;ctx.setLineDash([15,11]);
   ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(m.x+Math.cos(a)*reach,m.y+Math.sin(a)*reach);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
  }
- for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&(m.macaqueStone||m.chimpStone)){
+ if(!use3D)for(const m of entities)if(["macaque","chimpanzee"].includes(m.type)&&(m.macaqueStone||m.chimpStone)){
   const stone=m.macaqueStone||m.chimpStone;
   ctx.save();ctx.fillStyle="#c1b7a0";ctx.strokeStyle="#574e44";ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(stone.x,stone.y,7,0,TWO);ctx.fill();ctx.stroke();ctx.restore();
@@ -6913,8 +6978,8 @@ function drawScene(){
    ctx.fillStyle=m.windup<.22?"#fff0b4":"#ffbc9c";
    ctx.fillText("!",m.x,m.y-m.r-24);ctx.restore();
   }
-  if(P&&mode==="play"&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
- for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
+  if(!use3D&&P&&mode==="play"&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
+ if(!use3D)for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
  if(!use3D)for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
@@ -6942,18 +7007,6 @@ function drawScene(){
    ctx.beginPath();ctx.moveTo(pa.x,pa.y-a.z*.93*cameraZoom);ctx.lineTo(pb.x,pb.y-b.z*.93*cameraZoom);ctx.stroke();
   }
   ctx.restore();
- }
- if(use3D){
-  for(const m of mobs){
-   if(!visible(m.x,m.y,80)||species[m.type].prey||m.strongBoss||m.hp>=m.maxHp||lineBlocked(P,m))continue;
-   // HP bars must use the same lifted position as the WebGL animal.
-   const lift=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
-   const pos=projectGroundLabel(m.x,m.y,lift),pct=clamp(m.hp/m.maxHp,0,1);
-   const barY=pos.y-m.r*cameraZoom-16;
-   if(barY<22||barY>vh-18||pos.x<20||pos.x>vw-20)continue;
-   ctx.fillStyle="#091517d9";ctx.fillRect(pos.x-22,barY,44,6);
-   ctx.fillStyle="#ee9d79";ctx.fillRect(pos.x-22,barY,44*pct,6);
-  }
  }
  if(P?.squadIndividualId&&mode!=="dying")drawSquadFieldMarkers(use3D);
   if(use3D&&P&&mode!=="dying"&&!P.squadIndividualId){
@@ -7022,7 +7075,7 @@ function drawScene(){
   window.WildUFO?.draw?.(ctx,project,{mode});
   window.WildApparitions?.draw?.(ctx,project,{mode});
   window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
-  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames(use3D);drawRemainsLabels();
+  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
  // Let the dying animal remain visible briefly before the world closes in.
@@ -7312,7 +7365,7 @@ function drawSquadFieldMarkers(use3D=false){
  // Otherwise the ellipse changes size relative to the animal in 3D.
  const screenRadius=Math.max(6,m.r*cameraZoom);
  const jumpOffset=Math.max(0,feet.y-head.y);
- const labelY=ringY-Math.max(29,screenRadius*1.3+13)-Math.min(70,jumpOffset);
+ const labelY=head.y-Math.max(25,screenRadius*1.3+9);
  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
  ctx.strokeStyle="#ffe98e";ctx.lineWidth=3;
  ctx.beginPath();ctx.ellipse(p.x,ringY,screenRadius*1.22,screenRadius*.56,0,0,TWO);ctx.stroke();
