@@ -190,14 +190,16 @@ const ready=()=>{
     card.append(select);
     card.setAttribute("aria-label",(m.name||m.speciesName||"動物")+(active?"・現在操作中":"・ストック"));
     // Explicit selection prevents accidental character switching while scrolling.
-    // Ownership is permanent until death. No manual discard or release UI.
+    const releaseButton=makeBtn("野生に放つ",()=>confirmRelease(m),"squad-release-character");
+    releaseButton.setAttribute("aria-label",(m.name||m.speciesName||"動物")+"を野生に放つ");
+    card.append(releaseButton);
 
    }
    // Stock slots only become active through their explicit button.
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
-  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/"+MAX_OWNED+"体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length>MAX_OWNED?"旧セーブの4〜5体は保護中。削除せず、3体未満になるまでガチャ補充できません。":members.length===MAX_OWNED?"上限に達しています。死亡で枠が空くまで追加できません。":"");
+  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/"+MAX_OWNED+"体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length>MAX_OWNED?"旧セーブの4〜5体は保護中。削除せず、3体未満になるまでガチャ補充できません。":members.length===MAX_OWNED?"上限に達しています。死亡・野生への放流で枠が空くまで追加できません。":"");
   gacha.hidden=true;
  }
  function showSize(){
@@ -298,7 +300,15 @@ const ready=()=>{
    field.append(el("p",null,"LV"+(member.level||1)+"・"+member.grade+"評価・"+(RARITY[member.rarity]||"基本")));
    field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
    field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round(member.iv.hp*100)+"・攻 "+Math.round(member.iv.attack*100)+"・速 "+Math.round(member.iv.speed*100)+"・持 "+Math.round(member.iv.stamina*100)));
-   card.append(field);if(!isLeader)card.append(makeBtn("この個体を操作",()=>{const fresh=core.load();if(!fresh?.members?.some(q=>q.id===member.id))return;fresh.leaderId=member.id;core.save(fresh);showLivingSquad();updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:member.id}}));},"squad-select-character"));body.append(card);
+   card.append(field);
+   if(!isLeader)card.append(makeBtn("この個体を操作",()=>{
+    if(core.selectActive(member.id).ok){
+     showLivingSquad();updateHome();
+     window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:member.id}}));
+    }
+   },"squad-select-character"));
+   card.append(makeBtn("野生に放つ",()=>confirmRelease(member),"squad-release-character"));
+   body.append(card);
   }
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
@@ -328,14 +338,17 @@ const ready=()=>{
   leader=null;root.hidden=false;nextSlot();root.scrollTop=0;
  }
  function confirmRelease(member){
-  message((member.name||member.speciesName)+"を野生に放ちますか？この個体は戻せません。");
+  const latest=core.load();if(!latest?.members?.some(m=>m.id===member.id)){message("個体が見つかりません。所有一覧を更新してください。");return;}
+  const last=latest.members.length===1;
+  message((member.name||member.speciesName)+"を野生に放ちますか？この個体は元に戻せません。野生では非常に強くなり、好戦的・臆病・のんびり・食べ物を届ける個体のいずれかになります。"+(last?"最後の個体なので次はガチャから再出発します。":""));
   body.replaceChildren();
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("野生に放つ",()=>{
    const result=core.release(member.id);
-   if(!result.ok){message("編成が変更されています。もう一度確認してください。");return;}
+   if(!result.ok){message(result.reason||"編成が変更されています。もう一度確認してください。");return;}
    root.hidden=true;updateHome();
-   window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:member.id}}));
+   window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:member.id,newLeaderId:result.newLeaderId}}));
+   window.dispatchEvent(new CustomEvent("wild-animal-released",{detail:{animal:result.released}}));
    window.dispatchEvent(new Event("wild-squad-updated"));
   },"squad-release"),makeBtn("キャンセル",()=>{root.hidden=true;updateHome()},"squad-close"));
   body.append(actions);
