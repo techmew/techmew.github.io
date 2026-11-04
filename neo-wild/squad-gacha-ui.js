@@ -160,11 +160,21 @@ const ready=()=>{
    if(!m){const add=makeBtn("＋",()=>openSlot(i),"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
-    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価"),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
+    // Show the identity and progression of each saved individual, not only its IV.
+    // Text nodes avoid inserting untrusted user-defined animal names as HTML.
+    const speciesLabel=el("small","squad-species-label",m.speciesName||m.species);
+    const identity=el("strong","squad-individual-name",m.name||m.speciesName||"名前なし");
+    const rarity=RARITY[m.rarity]||"基本";
+    const level=Math.max(1,Math.floor(Number(m.level)||1));
+    const rank=el("small","squad-individual-rank","Lv."+level+"｜"+rarity+"｜"+(m.grade||"D")+"評価");
+    const growth=el("small","squad-individual-growth",(m.growthType||"標準成長")+"｜成長率 "+(Number.isFinite(Number(m.growthRate))?Number(m.growthRate).toFixed(2):"1.00"));
+    const iv=el("small","squad-individual-iv","HP "+Math.round((m.iv?.hp||1)*100)+" / 攻 "+Math.round((m.iv?.attack||1)*100)+" / 速 "+Math.round((m.iv?.speed||1)*100)+" / 持 "+Math.round((m.iv?.stamina||1)*100));
+    card.append(speciesLabel,identity,rank,growth,iv);
    }
    if(m){
     const active=data.leaderId===m.id;
-    if(active)card.prepend(el("span","squad-active-badge","操作中"));
+    if(active){card.prepend(el("span","squad-active-badge","操作中"));card.setAttribute("aria-current","true");}
+    else card.setAttribute("aria-current","false");
     const choose=()=>{if(core.selectActive(m.id).ok){updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));}};
     card.setAttribute("role","button");card.tabIndex=0;card.setAttribute("aria-label",m.name+"を操作キャラに選択");
     card.addEventListener("click",e=>{if(e.target.closest("button"))return;choose()});
