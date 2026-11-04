@@ -29,12 +29,12 @@ const ready=()=>{
  const lead=menu.querySelector(".lead")||menu.querySelector(".hero-title");
  if(!existingHome){if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);}
  // Keep all settings visible, with three equal collection tiles.
- const extras=el("section","squad-menu-extras");extras.id="squad-menu-extras";
- const collections=el("div","squad-collection-tiles");
+ const extras=$("squad-menu-extras")||el("section","squad-menu-extras");extras.id="squad-menu-extras";
+ const collections=extras.querySelector(".squad-collection-tiles")||el("div","squad-collection-tiles");
  const moveIds=["bestiary-open","world-history-open","trophies-open","new-game-options"];
  for(const id of moveIds){const item=$(id);if(!item)continue;if(id==="new-game-options"){extras.append(item);continue;}item.textContent=({"bestiary-open":"図鑑","world-history-open":"年表","trophies-open":"トロフィー"})[id];collections.append(item);}
- extras.prepend(collections);
- home.insertAdjacentElement("afterend",extras);
+ if(!collections.isConnected)extras.prepend(collections);
+ if(!extras.isConnected)home.insertAdjacentElement("afterend",extras);
  const root=el("section","squad-gacha");root.id="squad-gacha";root.hidden=true;root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-label","編成ガチャ");
  const wrap=el("div","squad-gacha-wrap"),head=el("header","squad-gacha-head");
  const close=makeBtn("× 閉じる",()=>{root.hidden=true;updateHome()},"squad-close");
@@ -50,7 +50,7 @@ const ready=()=>{
   if(!r?.members?.length||r.members.length>=3){info.textContent="補充できる空き枠がありません。";return;}
   if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
   if(!fromTitle&&!window.__wildSquadAtDen){info.textContent="巣の近くで補充してください。";return;}
-  refill=true;size=1;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
+  refill=true;size=1;slotTarget=r.members.length;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
  };
  const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
   openRefill(false);
