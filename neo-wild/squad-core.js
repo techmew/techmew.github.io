@@ -39,8 +39,19 @@ function generate(year=0,explored=0,poorStreak=0){
  const id=globalThis.crypto?.randomUUID?.()||"wr-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);
  return {id,species,speciesName:names[species],rarity:rarity(species),sex:Math.random()<.5?"オス":"メス",age:Math.random()<.45?"若い":"成体",personality:personalities[Math.floor(rand(0,personalities.length))],name:names[species]+"-"+id.slice(-4),iv,growthType:growth[Math.floor(rand(0,3))],growthRate:Math.round(rand(.75,1.25)*100)/100,grade,abilities,level:1,xp:0,hpRatio:1,alive:true};
 }
-function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:(Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,3)}}
-function save(roster){const d=dead();const members=(roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3);const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
+function assignSlots(members){
+ const used=new Set();return members.map(m=>{
+  const slot=Number.isInteger(m.slotIndex)&&m.slotIndex>=0&&m.slotIndex<3&&!used.has(m.slotIndex)?m.slotIndex:[0,1,2].find(i=>!used.has(i));
+  used.add(slot);return {...m,slotIndex:slot};
+ }).sort((a,b)=>a.slotIndex-b.slotIndex);
+}
+function targetSlot(member,members){
+ const occupied=new Set(members.map(m=>m.slotIndex));
+ const i=Number.isInteger(member?.slotIndex)?member.slotIndex:[0,1,2].find(n=>!occupied.has(n));
+ return i>=0&&i<3&&!occupied.has(i)?i:null;
+}
+function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,3))}}
+function save(roster){const d=dead();const members=assignSlots((roster.members||[]).filter(x=>x?.id&&!d.has(x.id)&&x.alive!==false).slice(0,3));const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
 function newSquad(members,leaderId){
  // The title UI is not a security boundary: never erase living animals via a stale dialog.
@@ -83,7 +94,8 @@ function fillVacancy(member){
  const r=load();if(!r||!Array.isArray(r.members)||r.members.length>=3)return {ok:false,reason:"空き枠がありません"};
  if(!member||!member.id||!playable.has(member.species)||member.alive===false||dead().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
  if((r.gachaTickets||0)<1)return {ok:false,reason:"ガチャ権が不足しています"};
- r.members.push({...member,alive:true});r.gachaTickets-=1;
+ const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
+ r.members.push({...member,slotIndex:slot,alive:true});r.gachaTickets-=1;
  const saved=save(r);
  return {ok:true,roster:saved};
 }
@@ -92,7 +104,8 @@ function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach
 function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=3)return {ok:false,reason:"新規編成中の空き枠ではありません"};
  if(!member?.id||!playable.has(member.species)||member.alive===false||dead().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
- r.members.push({...member,alive:true});return {ok:true,roster:save(r)};
+ const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
+ r.members.push({...member,slotIndex:slot,alive:true});return {ok:true,roster:save(r)};
 }
 function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;return save(r);}
 function livingCount(){return load()?.members?.length||0}
