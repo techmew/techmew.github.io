@@ -162,7 +162,21 @@ const ready=()=>{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
     card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"操作中":"ストック")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
-   if(m){const active=data.leaderId===m.id;card.prepend(el("span",active?"squad-active-badge":"squad-stock-badge",active?"操作中":"ストック"));if(!active)card.append(makeBtn("この個体を操作",()=>{const fresh=core.load();if(!fresh?.members?.some(q=>q.id===m.id))return;fresh.leaderId=m.id;core.save(fresh);updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));},"squad-select-character"));}
+   if(m){
+    const active=data.leaderId===m.id;
+    card.prepend(el("span",active?"squad-active-badge":"squad-stock-badge",active?"操作中":"ストック"));
+    const choose=()=>{if(core.selectActive(m.id).ok){updateHome();window.dispatchEvent(new CustomEvent("wild-squad-selected",{detail:{memberId:m.id}}));}};
+    card.setAttribute("role","button");card.tabIndex=0;card.setAttribute("aria-label",m.name+"を操作キャラに選択");
+    card.addEventListener("click",e=>{if(e.target.closest("button"))return;choose()});
+    card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();choose()}});
+    if(!active)card.append(makeBtn("この個体を操作",choose,"squad-select-character"));
+    card.append(makeBtn("野生に返す",()=>{
+      if(!window.confirm(m.name+"を野生に返しますか？ 所有一覧から外れ、ゲーム世界に野生動物として登場します。"))return;
+      const result=core.release(m.id);
+      if(!result.ok){window.alert(result.reason);return;}
+      updateHome();
+    },"squad-release-character"));
+   }
    // Living individuals are retained; only death clears a slot.
    roster.append(card);
   }
