@@ -1223,7 +1223,7 @@ function refreshSaveMenu(){
  const primary=auto||null;
  $("continue-btn").classList.remove("hidden");
  $("resume-cta-label").textContent="続きからプレイ";
- $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"編成した"+aliveSquad+"体で新しい世界を開始":aliveSquad+"体の編成で再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"編成の＋から動物を選んでください";
+ $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"所有する"+aliveSquad+"体から操作個体を選んで開始":"所有する"+aliveSquad+"体から操作個体を選んで再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開" :"ガチャで動物を獲得してください";
  $("continue-btn").disabled=!hasSave;
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
@@ -1311,14 +1311,9 @@ function restoreSnapshot(snapshot){
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  const cleanWorld=sanitizeSavedWorld(snapshot);
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
- let restoredCompanion=false;
- for(const m of mobs)if(m.companion){
-  if(m.squadIndividualId){m.companion=true;m.companionAttackCD=0;m.companionHurtCD=1.2;continue;}
-   if(!restoredCompanion&&m.companionOwner===choice&&["wildFox","strayCat","dog","boar","crow"].includes(m.type)&&!m.strongBoss){
-   restoredCompanion=true;m.companionAttackCD=0;m.companionHurtCD=1.2;
-   m.windup=0;m.chargeTime=0;m.packId=null;m.packOrder=0;
-  }else m.companion=false;
- }
+ // 旧セーブの同行AIは敵・野生動物としても復活させず、操作個体だけ復元する。
+ mobs=mobs.filter(m=>!m.companion && !m.squadIndividualId);
+
   strongRolls=snapshot.strongRolls&&typeof snapshot.strongRolls==="object"&&!Array.isArray(snapshot.strongRolls)?JSON.parse(JSON.stringify(snapshot.strongRolls)):{};
   strongTrophies=snapshot.strongTrophies&&typeof snapshot.strongTrophies==="object"?{...snapshot.strongTrophies}:{};
   strongRegionCurrent=-1;normalizeStrongBossSave();
