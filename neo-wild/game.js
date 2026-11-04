@@ -6742,11 +6742,8 @@ function drawAligned3DActorStatus(){
   if(claimed.some(a=>a.l<r.r&&a.r>r.l&&a.t<r.b&&a.b>r.t))return false;
   claimed.push(r);return true;
  };
- if(P&&P.squadIndividualId){
-  const p=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0,P.jumpHeight||0));
-  const y=p.y-Math.max(25,P.r*cameraZoom*1.3+9);
-  claimed.push({l:p.x-85,r:p.x+85,t:y-14,b:y+14});
- }
+ // Preserve nearby enemy labels during melee. The player ownership label has
+ // its own fixed anchor and must not suppress enemy names or health bars.
  const ordered=P?mobs.filter(m=>m.hp>0&&visible(m.x,m.y,130)&&!lineBlocked(P,m))
   .sort((a,b)=>Number(!!b.strongBoss)-Number(!!a.strongBoss)||dist(P,a)-dist(P,b)):[];
  for(const m of ordered){
