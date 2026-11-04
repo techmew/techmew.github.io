@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=pause-bgm-picker-20261104">
+<link rel="stylesheet" href="./visual.css?rev=bgm-volume-20261104">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -162,11 +162,15 @@
  <label id="pause-bgm-label" for="pause-bgm-select">BGMを選択</label>
  <select id="pause-bgm-select" aria-label="BGMを選択">
   <option value="default">デフォルト｜環境連動</option>
-  <option value="rush">廃都疾走｜疾走ビート</option>
-  <option value="wild">野生の鼓動｜冒険</option>
-  <option value="night">夜の追跡｜緊迫</option>
-  <option value="dawn">再生の大地｜壮大</option>
+  <option value="rush">廃都の残響｜静かなピアノ</option>
+  <option value="wild">深緑の息吹｜自然と弦</option>
+  <option value="night">獣の足音｜緊迫の低音</option>
+  <option value="dawn">夜明けの地平｜広がる旋律</option>
  </select>
+ <div class="pause-bgm-volume">
+  <label for="pause-bgm-volume">BGM音量 <output id="pause-bgm-volume-value" for="pause-bgm-volume">55%</output></label>
+  <input id="pause-bgm-volume" type="range" min="0" max="100" step="5" value="55" aria-label="BGMの音量">
+ </div>
  <small id="pause-bgm-status" role="status" aria-live="polite">ポーズ中に試聴できます。選択は保存されます。</small>
 </div><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
@@ -218,7 +222,7 @@
  });
 })();
 </script>
-<script src="./audio.js?rev=five-soundtracks-20261104" defer></script>
+<script src="./audio.js?rev=organic-score-no-loop-20261104" defer></script>
 <script src="./mountain.js?rev=f75e6bdc" defer></script>
 <script src="./webgl3d.js?rev=rare3-gait-20261104-1842" defer></script>
 <script src="./combat-levels.js?rev=80aa7791-giraffe-headbutt-20261104" defer></script>
