@@ -166,7 +166,7 @@ const ready=()=>{
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
-  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"編成 "+members.length+"/3体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600で追加獲得。"+(members.length===3?"入替には先に「野生に放つ」で枠を空けてください。":"");
+  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"編成 "+members.length+"/3体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length===3?"入替には先に「野生に放つ」で枠を空けてください。":"");
   gacha.hidden=true;
  }
  function showSize(){
@@ -284,7 +284,7 @@ const ready=()=>{
   const current=core.load(),members=current?.members||[];
   if(!Number.isInteger(index)||index<0||index>=3||members.some(m=>m.slotIndex===index))return;
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
-   message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹を狩る、または経験値600を貯める → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
+   message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹・共有経験値600・探索地点2か所・チュートリアル完了で獲得する → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
    const play=makeBtn("続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
    body.prepend(play);return;
   }
