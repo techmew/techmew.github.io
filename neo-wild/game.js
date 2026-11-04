@@ -6457,10 +6457,14 @@ function drawCreature(o,isPlayer){
  sheen.addColorStop(0,"#eef7df");sheen.addColorStop(1,"#eef7df00");
  ctx.fillStyle=sheen;ctx.beginPath();ctx.ellipse(-r*.1,-r*.25,r*.73,r*.19,-.15,0,TWO);ctx.fill();ctx.restore();
  if(isPlayer&&mode!=="dying"){
-  ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
-  ctx.beginPath();ctx.arc(0,0,r+5,0,TWO);ctx.stroke();
-  ctx.font="900 10px sans-serif";ctx.textAlign="center";ctx.fillStyle="#f5fce8";
-  ctx.fillText(P.hidden?"潜伏中":"YOU",0,-r-21);
+  // For SOLO5, the gold ring/label is drawn once by drawSquadFieldMarkers.
+  // Keep the legacy 2D outline only for pre-gacha / SAVE_SCHEMA2 characters.
+  if(!P.squadIndividualId){
+   ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
+   ctx.beginPath();ctx.arc(0,0,r+5,0,TWO);ctx.stroke();
+   ctx.font="900 10px sans-serif";ctx.textAlign="center";ctx.fillStyle="#f5fce8";
+   ctx.fillText(P.hidden?"潜伏中":"YOU",0,-r-21);
+  }
   if(P.abilityTime>0){ctx.strokeStyle="#ffe0a0";ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(0,0,r+10,0,TWO);ctx.stroke();ctx.setLineDash([])}
  }
  ctx.restore();
@@ -6892,8 +6896,8 @@ function drawScene(){
    ctx.fillStyle="#ee9d79";ctx.fillRect(pos.x-22,barY,44*pct,6);
   }
  }
- if(P?.squadIndividualId&&mode!=="dying")drawSquadFieldMarkers();
-  if(use3D&&P&&mode!=="dying"){
+ if(P?.squadIndividualId&&mode!=="dying")drawSquadFieldMarkers(use3D);
+  if(use3D&&P&&mode!=="dying"&&!P.squadIndividualId){
   const pos=project(P.x,P.y);ctx.save();
   // The WebGL animal stands on the terrain elevation plus roof/jump height.
   // Keep the HUD ring and YOU anchored to the very same 3D surface.
@@ -7236,21 +7240,26 @@ function showSquadDeathPicker(roster){
   b.addEventListener("click",()=>switchSquadLeader(m.id,true));panel.append(b);
  }
 }
-function drawSquadFieldMarkers(){
- function mark(m,lead){
-  const p=project(m.x,m.y),z=(window.WildMountain?.height?.(m.x,m.y)||0)+Math.max(0,m.jumpHeight||m.groundZ||0);
-  const y=p.y-z*.93*cameraZoom;ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.strokeStyle=lead?"#ffe98e":"#66f3e7";ctx.lineWidth=3;
-  ctx.beginPath();ctx.ellipse(p.x,p.y+4,m.r*1.22,m.r*.56,0,0,TWO);ctx.stroke();
-  const name="▼ 操作中 "+(m.squadName||animals[m.type]?.name||"動物");
-  const fontSize=clamp(Math.round(15*cameraZoom),14,21);
-  ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
-  ctx.strokeText(name,p.x,y-m.r-42);ctx.fillStyle="#ffe98e";
-  ctx.fillText(name,p.x,y-m.r-42);ctx.restore();
- }
- // SOLO5: Only the player exists on the field. Stored individuals never
- // receive markers, draw calls or companion controls.
- if(P&&P.hp>0)mark(P,true);
+// The selected animal has exactly ONE identification ring. Previously the
+// yellow squad ring ignored terrain Z, while a second cyan 3D ring followed
+// the feet. On mountain slopes they visibly split into two circles.
+function drawSquadFieldMarkers(use3D=false){
+ if(!P||P.hp<=0)return;
+ const m=P,p=project(m.x,m.y);
+ const terrain=use3D?(window.WildMountain?.height?.(m.x,m.y)||0):0;
+ const ground=use3D?Math.max(0,m.groundZ||0):0;
+ const standingHeight=terrain+ground;
+ const bodyHeight=use3D?terrain+Math.max(ground,Math.max(0,m.jumpHeight||0)):0;
+ const ringY=p.y-standingHeight*.93*cameraZoom+4;
+ const labelY=p.y-bodyHeight*.93*cameraZoom-m.r-42;
+ ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.strokeStyle="#ffe98e";ctx.lineWidth=3;
+ ctx.beginPath();ctx.ellipse(p.x,ringY,m.r*1.22,m.r*.56,0,0,TWO);ctx.stroke();
+ const name="▼ 操作中 "+(m.squadName||animals[m.type]?.name||"動物");
+ const fontSize=clamp(Math.round(15*cameraZoom),14,21);
+ ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
+ ctx.strokeText(name,p.x,labelY);ctx.fillStyle="#ffe98e";
+ ctx.fillText(name,p.x,labelY);ctx.restore();
 }
 $("squad-party-hud")?.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
