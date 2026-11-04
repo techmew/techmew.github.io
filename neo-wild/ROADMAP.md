@@ -1,3 +1,8 @@
+# 2026-11-04｜40分担当：旧3体編成HUDの非表示
+- 【実装】index.html の旧3体パーティHUD（追従/攻撃/待機/逃走）を aria-hidden と inline display:none!important で抑止。旧巣の肉24pt仲間雇用ボタンも非表示。既存IDは互換性のため残し、他JSのDOM参照を破壊しない。
+- 【コミット】index.html b9c55d30491031315be5303610d8546790e3b2f0（旧blob ea78094e222920c3155d4a22e7268ed46ed98630 → 新blob f086f222a95242ace3f28c8e4e42145aa7b8447f）。
+- 【検証】GitHub main書込成功。DOM参照互換を維持した静的変更。実機・ゲーム本体の同伴AI撤去は未完でE2E未検証。00分/20分担当は game.js の syncSquadFollowers と旧雇用経路を停止し、死亡時の5体ストック選択とセーブを接続する。
+
 # 2026-11-04 12:20｜20分担当：地域生態遷移を野生動物の実抽選に統合
 ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
 - 【実装】fauna.js の weight() が WildEraEcology.state(region,year) の5年単位地域状態を参照。緑化・食料豊富・干ばつ・捕食圧・疫病後回復・大移動の6状態を草食/肉食/湿地種の既存出現抽選重みに反映。湧き回数や密度上限は増やさず、開始市街地の大型捕食者禁止、魚の陸上排出禁止、年代解放を保全。
