@@ -146,8 +146,15 @@ function fillVacancy(member){
  if((r.gachaTickets||0)<1)return {ok:false,reason:"ガチャ権が不足しています"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
  r.members.push({...member,slotIndex:slot,alive:true});r.gachaTickets-=1;
- const saved=save(r);
- return {ok:true,roster:saved};
+ // A ticket is spent only when the new owner and reduced ticket balance
+ // are durably stored together. Storage failures must not report adoption.
+ try{
+  const saved=save(r);
+  const verified=load();
+  if(!verified?.members?.some(m=>m.id===member.id)||verified.gachaTickets!==saved.gachaTickets)
+   return {ok:false,reason:"ガチャ結果を保存できません。空き容量を確認して再試行してください"};
+  return {ok:true,roster:verified};
+ }catch(_){return {ok:false,reason:"ガチャ結果を保存できません。空き容量を確認して再試行してください"};}
 }
 function release(id){
  const roster=load(),member=roster?.members?.find(m=>m.id===id);
