@@ -4671,13 +4671,7 @@ function update(dt){
  elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
  if(P){
   initializeLife(P,elapsed,true);
-  const remaining=P.lifespanYears-P.ageYears;
-  const stage=remaining<=0?3:remaining<=1?2:remaining<=3?1:0;
-  if(stage>P.ageWarningStage&&!P.squadIndividualId){P.ageWarningStage=stage;
-   if(stage===1)notify("老齢期：残りの寿命は約3年",3.5);
-   else if(stage===2)notify("老衰が近づいている。残り約1年",3.5);
-  }
-  // ガチャ個体は老衰で死亡しない。年齢は外見・成長傾向のみに利用する。
+  // SOLO5: age is cosmetic only; no lifespan countdown or old-age warning.
  }
  worldChronicleSaveClock+=dt;
  if(worldChronicleSaveClock>=12){worldChronicleSaveClock=0;persistWorldChronicle();}
@@ -6905,18 +6899,12 @@ function makePartyMate(member,i,pos=null,hp=null){
   companionAttackCD:0,companionHurtCD:1};
 }
 function syncSquadFollowers(){
- if(!P?.squadIndividualId)return;
- const r=window.WildSquad?.load?.();if(!r)return;
- const mates=r.members.filter(m=>m.id!==P.squadIndividualId&&animals[m.species]);
- const ids=new Set(mates.map(m=>m.id));
- mobs=mobs.filter(m=>m.squadIndividualId?ids.has(m.squadIndividualId):!m.companion);
- mates.forEach((m,i)=>{
-  const existing=mobs.find(q=>q.squadIndividualId===m.id);
-  if(existing){existing.companion=true;existing.companionOwner=P.type;existing.squadName=m.name;return;}
-  const ally=makePartyMate(m,i);if(ally)mobs.push(ally);
- });
+ // SOLO5: stored animals never spawn as AI actors. Remove legacy companion mobs
+ // restored from SAVE_SCHEMA2 before gameplay can update or render them.
+ mobs=mobs.filter(m=>!m.companion&&!m.squadIndividualId);
  syncSquadHud();
 }
+
 function partyCombat(){
  return !!P&&(elapsed-(P.lastCombatAt??-100)<4||mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type]?.prey&&(m.alert>0||m.windup>0)&&dist(P,m)<230));
 }
@@ -6927,24 +6915,10 @@ function squadCommand(cmd){
  syncSquadHud();saveAuto();notify("仲間："+PARTY_COMMANDS[cmd]);
 }
 function syncSquadHud(){
- const root=$("squad-party-hud"),slots=$("squad-party-members");if(!root||!slots)return;
- const roster=P?.squadIndividualId?window.WildSquad?.load?.():null;
- root.classList.toggle("hidden",!roster?.members?.length||!["play","pause"].includes(mode));
- if(!roster?.members?.length)return;
- const ids=roster.members.map(m=>m.id).join("|");
- if(slots.dataset.ids!==ids){
-  slots.dataset.ids=ids;slots.replaceChildren();
-  for(const m of roster.members){const b=document.createElement("button");b.type="button";b.className="squad-member";b.dataset.squadId=m.id;slots.append(b);}
- }
- for(const b of slots.children){
-  const m=roster.members.find(q=>q.id===b.dataset.squadId);if(!m)continue;
-  const lead=m.id===P.squadIndividualId,a=lead?P:mobs.find(q=>q.squadIndividualId===m.id);
-  const pct=Math.round((a?a.hp/Math.max(1,a.maxHp):(m.hpRatio??1))*100);
-  b.classList.toggle("is-leader",lead);b.textContent=(lead?"▶ 操作中 ":"● 仲間 ")+(m.name||m.speciesName)+" "+pct+"%";
-  b.disabled=lead||!a||a.hp<=0||partyCombat();
- }
- for(const b of root.querySelectorAll("[data-squad-order]"))b.setAttribute("aria-pressed",String(b.dataset.squadOrder===squadOrder));
+ // The old party/AI command HUD is retired. Ownership is shown in the title UI.
+ const root=$("squad-party-hud");if(root){root.classList.add("hidden");root.style.display="none";}
 }
+
 function switchSquadLeader(id,death=false){
  const roster=window.WildSquad?.load?.(),member=roster?.members?.find(m=>m.id===id);
  const mate=mobs.find(m=>m.squadIndividualId===id&&m.hp>0);
