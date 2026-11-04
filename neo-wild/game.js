@@ -5156,7 +5156,7 @@ function update(dt){
       let delivered=false;
       for(const radius of [36,52,70,92]){for(const offset of [0,.35,-.35,.7,-.7,1.1,-1.1]){
        const x=clamp(m.x+Math.cos(a+offset)*radius,40,WORLD.w-40),y=clamp(m.y+Math.sin(a+offset)*radius,40,WORLD.h-40);
-       if(!collides(x,y,16)&&!lineBlocked(m,{x,y})&&waterDepth(x,y)<.1){carcasses.push({x,y,r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);delivered=true;break;}
+       if(!collides(x,y,16)&&!lineBlocked(m,{x,y})&&!lineBlocked({x,y},P)&&Math.hypot(x-P.x,y-P.y)<155&&waterDepth(x,y)<.1){carcasses.push({x,y,r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);delivered=true;break;}
       }if(delivered)break;}
       // A blocked gift is retried soon rather than silently consuming a full cooldown.
       m.releasedGiftCooldown=elapsed+(delivered?45+Math.random()*25:3);
