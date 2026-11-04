@@ -1217,10 +1217,10 @@ function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
  const aliveSquad=window.WildSquad?.load?.()?.members?.length||0;
  if(!automaticTutorialShown){migrateSeenTutorial(auto);for(const point of points)migrateSeenTutorial(point)}
- const hasSave=!!auto||points.length>0||aliveSquad>0;
+ const hasSave=!!auto||aliveSquad>0; // Old checkpoints stay preserved but cannot bypass explicit reset from the title.
  $("menu").classList.toggle("has-saved-game",hasSave);
  $("menu").classList.toggle("has-auto-save",!!auto);
- const primary=auto||(aliveSquad?null:points[0])||null;
+ const primary=auto||null;
  $("continue-btn").classList.remove("hidden");
  $("resume-cta-label").textContent="続きからプレイ";
  $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"編成した"+aliveSquad+"体で新しい世界を開始":aliveSquad+"体の編成で再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"編成の＋から動物を選んでください";
@@ -7037,7 +7037,7 @@ $("continue-btn").addEventListener("click",()=>{
   if(launchGame(null,true)){applySquadLeader();window.WildSquad?.markStarted?.();saveAuto();}
   return;
  }
- const snapshot=getAutoSnapshot()||(roster?.members?.length?null:getCheckpoints()[0]);
+ const snapshot=getAutoSnapshot(); // Checkpoints are retained for compatibility but not offered as a title resume path.
  if(roster?.members?.length&&!snapshot){
   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
   if(!leader||!animals[leader.species]){notify("編成リーダーを復旧できません");return;}
