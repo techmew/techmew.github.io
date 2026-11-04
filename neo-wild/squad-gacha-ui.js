@@ -1,4 +1,4 @@
-/* Gacha-first title and readable, model-backed squad comparison. No stock. */
+/* Gacha-first title and readable, model-backed single-character collection. */
 (()=>{
 "use strict";
 const OPERABLE=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill"]);
@@ -18,13 +18,13 @@ const ready=()=>{
  if(oldPicker){oldPicker.id="legacy-animal-picker";oldPicker.hidden=true;oldPicker.setAttribute("aria-hidden","true");oldPicker.querySelectorAll("button").forEach(b=>b.tabIndex=-1);}
  if(legacyTitle&&legacyTitle.classList.contains("pick-head")){legacyTitle.hidden=true;legacyTitle.setAttribute("aria-hidden","true");}
  const oldLabel=$("new-game-animal-label");if(oldLabel){oldLabel.hidden=true;oldLabel.setAttribute("aria-hidden","true");}
- const existingHome=$("squad-home");const home=existingHome||el("section","squad-home");home.id="squad-home";home.setAttribute("aria-label","編成ガチャと現在の仲間");
+ const existingHome=$("squad-home");const home=existingHome||el("section","squad-home");home.id="squad-home";home.setAttribute("aria-label","所有動物と操作キャラの選択");
  const gacha=$("squad-open")||makeBtn("ガチャを引く・編成する",()=>{}, "squad-home-gacha");
  // Handler is assigned below after begin exists.
  gacha.id="squad-open";
- const title=home.querySelector(".squad-home-title")||el("h2","squad-home-title","現在の編成");
+ const title=home.querySelector(".squad-home-title")||el("h2","squad-home-title","所有動物（最大5体）");
  const roster=$("squad-roster")||el("div","squad-home-roster");roster.id="squad-roster";
- const hint=home.querySelector(".squad-home-hint")||el("p","squad-home-hint","ストックなし・最大3体。ガチャで編成して出発。");
+ const hint=home.querySelector(".squad-home-hint")||el("p","squad-home-hint","操作する動物は1体。ほかの個体はストックに保存。");
  if(!existingHome)home.append(gacha,title,roster,hint);
  const lead=menu.querySelector(".lead")||menu.querySelector(".hero-title");
  if(!existingHome){if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);}
@@ -44,13 +44,13 @@ const ready=()=>{
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
  let size=0,slot=0,slotTarget=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
  const denPanel=$("den-inventory");
- const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<3&&(r.gachaTickets||0)>0;};
+ const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<5&&(r.gachaTickets||0)>0;};
  const openRefill=(fromTitle=false)=>{
   const r=core.load();
-  if(!r?.members?.length||r.members.length>=3){info.textContent="補充できる空き枠がありません。";return;}
+  if(!r?.members?.length||r.members.length>=5){info.textContent="補充できる空き枠がありません。";return;}
   if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
   if(!fromTitle&&!window.__wildSquadAtDen){info.textContent="巣の近くで補充してください。";return;}
-  refill=true;size=1;slotTarget=[0,1,2].find(i=>!r.members.some(m=>m.slotIndex===i))??0;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
+  refill=true;size=1;slotTarget=[0,1,2,3,4].find(i=>!r.members.some(m=>m.slotIndex===i))??0;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
  };
  const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
   openRefill(false);
@@ -61,7 +61,7 @@ const ready=()=>{
   denPanel.append(refillButton);
   const refreshDen=()=>{
    const r=core.load(),n=r?.members?.length||0;
-   refillButton.hidden=!window.__wildSquadAtDen||n===0||n>=3;
+   refillButton.hidden=!window.__wildSquadAtDen||n===0||n>=5;
    refillButton.disabled=!(r?.gachaTickets>0);
    refillButton.textContent="空き枠ガチャ（残り"+(r?.gachaTickets||0)+"権）";
   };
@@ -155,18 +155,18 @@ const ready=()=>{
  }
  function updateHome(){
   roster.replaceChildren();const data=core.load();const members=data?.members||[];
-  for(let i=0;i<3;i++){
+  for(let i=0;i<5;i++){
    const m=members.find(q=>q.slotIndex===i),card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
    if(!m){const add=makeBtn("＋",()=>openSlot(i),"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
-    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"リーダー":"仲間")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
+    card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"操作中":"ストック")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
    // Living squad members cannot be discarded or exchanged.
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
-  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"編成 "+members.length+"/3体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length===3?"入替には先に「野生に放つ」で枠を空けてください。":"");
+  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/5体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length===5?"5体所有中。死亡による空き枠のみ補充できます。":"");
   gacha.hidden=true;
  }
  function showSize(){
@@ -256,14 +256,14 @@ const ready=()=>{
  function showLivingSquad(){
   const current=core.load(),members=current?.members||[];
   if(!members.length){showSize();return;}
-  info.textContent="現在の"+members.length+"体編成。空き枠は＋から補充できます。";
+  info.textContent="所有動物 "+members.length+"/5体。操作する1体を選択してください。";
   body.replaceChildren();
   for(const member of members){
    const isLeader=current.leaderId===member.id;
    const card=el("article","squad-final-member"+(isLeader?" selected":""));
    card.append(preview(member,"squad-final-image"));
    const field=el("div","squad-final-field");
-   field.append(el("strong",null,(isLeader?"▼ 操作中":"● 仲間")+"　"+(member.name||member.speciesName)));
+   field.append(el("strong",null,(isLeader?"▼ 操作中":"● ストック")+"　"+(member.name||member.speciesName)));
    field.append(el("p",null,"LV"+(member.level||1)+"・"+member.grade+"評価・"+(RARITY[member.rarity]||"基本")));
    field.append(el("p",null,member.sex+"・"+member.age+"・"+member.personality+"・"+member.growthType));
    field.append(el("p",null,"HP "+Math.round((member.hpRatio??1)*100)+"%／能力値 HP "+Math.round(member.iv.hp*100)+"・攻 "+Math.round(member.iv.attack*100)+"・速 "+Math.round(member.iv.speed*100)+"・持 "+Math.round(member.iv.stamina*100)));
@@ -271,8 +271,8 @@ const ready=()=>{
   }
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
-  if(members.length<3){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
-  actions.append(makeBtn("この編成で出発",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
+  if(members.length<5){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
+  actions.append(makeBtn("選択中の個体で出発",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
   actions.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome();},"squad-close"));
   body.append(actions);
  }
@@ -282,7 +282,7 @@ const ready=()=>{
  }
  function openSlot(index){
   const current=core.load(),members=current?.members||[];
-  if(!Number.isInteger(index)||index<0||index>=3||members.some(m=>m.slotIndex===index))return;
+  if(!Number.isInteger(index)||index<0||index>=5||members.some(m=>m.slotIndex===index))return;
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
    message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹・共有経験値600・探索地点2か所・チュートリアル完了で獲得する → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
    const play=makeBtn("続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
