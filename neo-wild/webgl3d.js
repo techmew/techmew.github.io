@@ -689,7 +689,11 @@ function drawRarePlayable3D(m,clock){
  const orb=(dx,dy,z,rx,ry,rz,col,seg=8,ring=5)=>ellipsoid(fx(dx,dy),fy(dx,dy),z,rx,ry,rz,col,dir,seg,ring);
  const spike=(dx,dy,z,rx,ry,height,col)=>pyramid(fx(dx,dy),fy(dx,dy),z,rx,ry,height,col);
  const move=clamp(Math.hypot(m.vx||0,m.vy||0)/190,0,1);
- const step=Math.sin((m.steps||0)*2.4)*move;
+ // One stride per distance travelled; no idle paddling. Both step field names
+ // are supported because wild NPCs and the controlled individual differ.
+ const phase=(m.steps||m.step||0)*2.4;
+ const step=Math.sin(phase)*move;
+ const legKick=(front,side)=>Math.sin(phase+(front===side?0:Math.PI))*move;
  const conceal=!!m.hidden,attack=(m.pendingStrike||m.swing>0);
  if(t==="manul"){
   // Broad heavily furred torso, stubby limbs, low head with low-mounted ears.
@@ -697,8 +701,9 @@ function drawRarePlayable3D(m,clock){
   const belly=conceal?r*.38:r*.49;
   for(const front of [-1,1])for(const side of [-1,1]){
    const dx=front*r*.55,dy=side*r*.52;
-   orb(dx,dy,r*.19+(front===side?step*r*.07:0),r*.21,r*.19,r*.17,shadow);
-   orb(dx-r*.06,dy,r*.29,r*.24,r*.24,r*.24,fur);
+   const kick=legKick(front,side),lift=Math.max(0,kick)*r*.16;
+   orb(dx+kick*r*.26,dy,r*.14+lift,r*.25,r*.20,r*.14,shadow);
+   orb(dx+kick*r*.13,dy,r*.30+lift*.45,r*.23,r*.22,r*.26,fur);
   }
   orb(-r*.24,0,belly+r*.12,r*1.35,r*.84,r*.61,fur,12,7);
   orb(r*.18,0,belly+r*.06,r*.87,r*.78,r*.54,under,10,6);
@@ -748,8 +753,9 @@ function drawRarePlayable3D(m,clock){
   const bob=Math.abs(step)*r*.08;
   for(const front of [-1,1])for(const side of [-1,1]){
    const x=front*r*.62,y=side*r*.48;
-   orb(x,y,r*.24+(front===side?step*r*.09:0),r*.18,r*.17,r*.25,"#817667");
-   orb(x+r*.10,y,r*.12,r*.22,r*.19,r*.12,"#64584f");
+   const kick=legKick(front,side),lift=Math.max(0,kick)*r*.17;
+   orb(x+kick*r*.34,y,r*.24+lift*.55,r*.18,r*.17,r*.25,"#817667");
+   orb(x+r*.10+kick*r*.50,y,r*.12+lift,r*.22,r*.19,r*.12,"#64584f");
   }
   orb(-r*.20,0,r*.64+bob,r*1.23,r*.58,r*.48,fur,11,6);
   orb(r*.19,0,r*.62+bob,r*.79,r*.43,r*.33,sand);
@@ -793,10 +799,12 @@ function drawRarePlayable3D(m,clock){
   // Thin, long tarso-metatarsal legs and splayed toes.
   for(const side of [-1,1]){
    const legX=side<0?-r*.12:r*.13,legY=side*r*.34;
-   orb(legX,legY,r*.48+Math.max(0,step*side)*r*.08,r*.12,r*.13,r*.45,"#8a9088",7,4);
-   orb(legX+r*.06,legY,r*.11,r*.18,r*.18,r*.13,"#7a877d",8,4);
+   const kick=Math.sin(phase+(side<0?0:Math.PI))*move;
+   const lift=Math.max(0,kick)*r*.26,ankleX=legX+kick*r*.45;
+   orb(legX+kick*r*.12,legY,r*.53+lift*.30,r*.12,r*.13,r*.42,"#8a9088",7,4);
+   orb(ankleX,legY,r*.14+lift,r*.18,r*.18,r*.13,"#7a877d",8,4);
    for(let toe=-1;toe<=1;toe++)
-    orb(legX+r*(.19+(toe===0?.11:0)),legY+toe*r*.23,r*.055,r*.25,r*.063,r*.055,"#687b73",7,3);
+    orb(ankleX+r*(.19+(toe===0?.11:0)),legY+toe*r*.23,r*.055+lift,r*.25,r*.063,r*.055,"#687b73",7,3);
   }
   orb(-r*.15,0,r*1.18+bob,r*.87,r*.66,r*.77,grey,12,8);
   orb(r*.29,0,r*1.24+bob,r*.65,r*.53,r*.64,"#889aa2",11,7);
