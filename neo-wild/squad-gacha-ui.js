@@ -43,10 +43,16 @@ const ready=()=>{
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
  let size=0,slot=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
  const denPanel=$("den-inventory");
- const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
-  const r=core.load();if(!window.__wildSquadAtDen||!r?.members?.length||r.members.length>=3)return;
+ const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<3&&(r.gachaTickets||0)>0;};
+ const openRefill=(fromTitle=false)=>{
+  const r=core.load();
+  if(!r?.members?.length||r.members.length>=3){info.textContent="補充できる空き枠がありません。";return;}
   if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
-  refill=true;size=1;chosen=[];streak=0;root.hidden=false;nextSlot();
+  if(!fromTitle&&!window.__wildSquadAtDen){info.textContent="巣の近くで補充してください。";return;}
+  refill=true;size=1;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
+ };
+ const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
+  openRefill(false);
  },"squad-refill-button");
  if(denPanel){
   refillButton.id="squad-refill-den";
@@ -54,7 +60,7 @@ const ready=()=>{
   denPanel.append(refillButton);
   const refreshDen=()=>{
    const r=core.load(),n=r?.members?.length||0;
-   refillButton.hidden=denPanel.classList.contains("hidden")||!window.__wildSquadAtDen||n===0||n>=3;
+   refillButton.hidden=!window.__wildSquadAtDen||n===0||n>=3;
    refillButton.disabled=!(r?.gachaTickets>0);
    refillButton.textContent="空き枠ガチャ（残り"+(r?.gachaTickets||0)+"権）";
   };
@@ -159,7 +165,7 @@ const ready=()=>{
   }
   hint.textContent=members.length?members.length+"体で生存中。既存個体を破棄するガチャはできません。":"まだ編成がありません。ガチャを引いて最大3体を選択。";
   gacha.disabled=false;
-  gacha.textContent=members.length?"編成を確認・出発（補充ガチャは巣で）":"ガチャを引く・編成する";
+  gacha.textContent=members.length?"編成を確認・補充する":"ガチャを引く・編成する";
  }
  function showSize(){
   info.textContent="編成数を選択してください。各枠、初回＋最大3回の引き直し。";
@@ -225,12 +231,12 @@ const ready=()=>{
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("最後のガチャに戻る",()=>{chosen.pop();nextSlot()},"squad-reroll"));
   const confirm=makeBtn(refill?"この個体を空き枠に採用":"この編成で出発",()=>{
-   if(!chosen.some(m=>OPERABLE.has(m.species))){info.textContent="操作可能な動物がいません。ガチャを引き直してください。";return}
+   if(!refill&&!chosen.some(m=>OPERABLE.has(m.species))){info.textContent="操作可能な動物がいません。最後のガチャに戻ってください。";return}
    const chosenLeader=chosen.find(m=>m.id===leader);
-   if(!chosenLeader||!OPERABLE.has(chosenLeader.species)){info.textContent="操作可能なリーダーを選んでください。";return}
+   if(!refill&&(!chosenLeader||!OPERABLE.has(chosenLeader.species))){info.textContent="操作可能なリーダーを選んでください。";return}
    if(refill){
     const current=core.load();
-    if(!window.__wildSquadAtDen||!current?.members?.length||current.members.length>=3){info.textContent="巣の近くで空き枠を確認してください。";return;}
+    if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=3){info.textContent="タイトル画面か巣で空き枠を確認してください。";return;}
     const result=core.fillVacancy(chosen[0]);
     if(!result.ok){info.textContent=result.reason;return;}
     root.hidden=true;updateHome();
@@ -246,7 +252,7 @@ const ready=()=>{
  function showLivingSquad(){
   const current=core.load(),members=current?.members||[];
   if(!members.length){showSize();return;}
-  info.textContent="現在の"+members.length+"体編成。生存個体は破棄できません。欠員補充は巣でガチャ権を使用します。";
+  info.textContent="現在の"+members.length+"体編成。生存個体は破棄できません。欠員はタイトル画面または巣で補充できます。";
   body.replaceChildren();
   for(const member of members){
    const isLeader=current.leaderId===member.id;
@@ -261,6 +267,7 @@ const ready=()=>{
   }
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
+  if(members.length<3){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
   actions.append(makeBtn("この編成で出発",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
   actions.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome();},"squad-close"));
   body.append(actions);
