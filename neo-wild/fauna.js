@@ -295,6 +295,10 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const recentHunters=history.slice(-6).filter(type=>["lion","tiger","cheetah","hyena","wildDog","blackBear","wildFox"].includes(type)).length;
  const herdWindow=recentGrazers>=2&&recentHunters===0;
  const disturbedHerd=recentHunters>=2;
+ // SOLO3: a lone controlled animal never gains combat support from stored animals.
+ // In remote habitats, a predator-heavy encounter cycle must yield a recovery
+ // encounter before another apex draw. This changes selection only, not NPC count.
+ const apexRecovery=recentApex>=2&&recentPrey<=1;
 
  // SOLO4: repeated hostile encounters create a temporary prey refuge.
  // Only reweights existing encounters; never increases spawn count.
@@ -323,6 +327,7 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
    const same=history.slice(-4).filter(previous=>previous===type).length;
    if(same)w*=Math.pow(.46,same);
    if(apexTypes.has(type)&&recentApex)w*=recentApex>=2?.04:.28;
+   if(apexRecovery&&apexTypes.has(type))w=0;
    // Grazers briefly gather in food-rich habitats, but predators break the herd.
    // Do not override biome/year locks (zero weights remain zero).
    if(["deer","boar","serow","zebra","giraffe"].includes(type)){
