@@ -1,3 +1,9 @@
+## 2026-11-05 04:20｜20分担当：放流後の温厚個体の敵対状態を抑制
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- 【実コード】game.js 放流個体の peaceful（のんびり）AIは非挑発時に警戒・探索・攻撃予備動作を解除し、近距離では静止する。旧所有3体・旧4〜5体保護、選択個体復帰、放流ID永続化、4性格と元名表示は既存コードを保持。
+- main commit d71ebfd3ed424dcd9b7836476fd0909e47755bae / game.js blob 71072f55c61007568d1496582cd1fa12dd46f2fd（更新前 5465ec218f037e1597ab84058591311cea7a4909）。
+- 静的検査：対象コードの完全一致置換・GitHub blob SHA競合検査済み。未検証：実ブラウザE2E、Android縦横、Pad、旧セーブ復元、放流個体の戦闘・贈与の長時間試験。次担当：温厚/贈与の遠距離警戒と通常敵AIとの相互作用を実機確認し、非挑発個体が誤攻撃しないことを検証。
+
 ## 2026-11-05 04:00｜00分担当：選択個体の保存失敗時に誤再開しない
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - 【実コード】squad-core.js selectActive() に保存例外の捕捉と再読込による leaderId 検証を追加。保存容量不足・書込失敗・選択ID不一致なら ok:false を返し、以前の操作個体で「選んで続きから」を成功扱いしない。3体所有・旧4〜5体保護・野生放流・死亡永久ID・世界記録を維持。
