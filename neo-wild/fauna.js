@@ -296,8 +296,17 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const herdWindow=recentGrazers>=2&&recentHunters===0;
  const disturbedHerd=recentHunters>=2;
 
+ // SOLO5: repeated hostile encounters create a temporary prey refuge.
+ // Only reweights existing encounters; never increases spawn count.
+ const hostileTypes=new Set(["dog","strayCat","wildFox","venomSnake","cheetah","lion","tiger","blackBear","hyena","wildDog","gorilla"]);
+ const recentHostiles=history.slice(-7).filter(type=>hostileTypes.has(type)).length;
+ const refugePressure=Math.min(1,recentHostiles/4);
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
+  if(w>0&&!preyOnly&&refugePressure>0){
+   if(hostileTypes.has(type))w*=Math.max(.18,1-refugePressure*.78);
+   else if(["rat","rabbit","pigeon","frog","deer","serow","hedgehog"].includes(type))w*=1+refugePressure*.38;
+  }
   if(w>0&&!preyOnly){
    const same=history.slice(-4).filter(previous=>previous===type).length;
    if(same)w*=Math.pow(.46,same);
