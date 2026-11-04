@@ -6647,7 +6647,7 @@ function drawMissionChevrons(){
  ctx.font="900 "+(vh<=520?18:21)+"px sans-serif";
  for(let i=0;i<count;i++){
   const step=Math.min(waypointDistance*.82,62+i*64);
-  const pos=project(P.x+ux*step,P.y+uy*step);
+  const pos=projectGroundLabel(P.x+ux*step,P.y+uy*step);
   if(!Number.isFinite(pos.x)||!Number.isFinite(pos.y)||pos.x<30||pos.x>vw-30||
      pos.y<Math.min(72,vh*.16)||pos.y>vh-42)continue;
   ctx.save();ctx.translate(pos.x,pos.y);ctx.rotate(bearing);
@@ -6727,6 +6727,47 @@ function drawThreatNames(){
  ctx.restore();
 }
 // Screen-space vignette works identically over WebGL and Canvas2D.
+
+function drawAligned3DActorStatus(){
+ // Native WebGL and UI labels use the same camera, terrain height and actor rise.
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
+ if(P)for(const m of mobs){
+  if(m.hp<=0||!visible(m.x,m.y,90)||lineBlocked(P,m))continue;
+  const lift=m.type==="giantEagle"?Math.max(0,m.airHeight||125):Math.max(0,m.evadeHeight||0);
+  const p=projectGroundLabel(m.x,m.y,lift);
+  if(p.x<15||p.x>vw-15||p.y<12||p.y>vh+70)continue;
+  const r=Math.max(7,m.r*cameraZoom);
+  if(m.strongBoss){
+   const ground=projectGroundLabel(m.x,m.y),pulse=1+Math.sin(elapsed*3.8+m.r)*.10;
+   ctx.lineWidth=2.2;ctx.strokeStyle=m.hp<m.maxHp*.45?"#ff9c4bd9":"#ff5f4eb3";
+   ctx.beginPath();ctx.ellipse(ground.x,ground.y+4,(r+15)*pulse,(r*.53+6)*pulse,0,0,TWO);ctx.stroke();
+  }
+  const prey=!!species[m.type]?.prey;
+  const symbol=m.windup>0&&!prey?"!":m.resting?"Zz":(m.drinkPose||0)>0?"水":
+   (m.scavengePose||0)>0||(m.foragePose||0)>0?"食":
+   prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
+  if(symbol){
+   const y=p.y-r-31;
+   if(y>=16&&y<=vh-16){
+    ctx.font="900 15px sans-serif";ctx.lineWidth=3;ctx.strokeStyle="#13201a";
+    ctx.fillStyle=m.windup>0?"#ffbc9c":m.resting?"#c8e7ff":
+     (m.drinkPose||0)>0?"#b5e8f1":symbol==="食"?"#d9f0b9":
+     prey?"#ffe4a3":symbol==="?"?"#d6e8af":"#ffad8c";
+    ctx.strokeText(symbol,p.x,y);ctx.fillText(symbol,p.x,y);
+   }
+  }
+ }
+ for(const f of popups){
+  const p=projectGroundLabel(f.x,f.y);
+  if(p.x<15||p.x>vw-15||p.y<15||p.y>vh-15)continue;
+  ctx.globalAlpha=clamp(f.life,0,1);
+  ctx.font="900 14px Barlow Condensed,sans-serif";
+  ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;
+  ctx.fillText(f.t,p.x,p.y);ctx.shadowBlur=0;
+ }
+ ctx.restore();
+}
 function drawDeathVignette(){
  if(mode!=="dying"&&mode!=="over")return;
  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -6835,8 +6876,9 @@ function drawScene(){
  for(const bird of birdFlocks)if(visible(bird.x,bird.y,90))drawFlyingBird(bird);
  drawOccludedSilhouettes(entities);
  }
- drawBossThreats(entities);
- for(const m of entities)if(m.companion&&m.hp>0){
+ if(!use3D)drawBossThreats(entities);
+ else if(BOSS_PATTERNS)for(const m of entities)if(m!==P&&m.strongBoss&&m.hp>0&&m.signature)BOSS_PATTERNS.draw(ctx,m.signature,elapsed,P?.r*.55||0);
+ if(!use3D)for(const m of entities)if(m.companion&&m.hp>0){
   ctx.save();ctx.textAlign="center";ctx.font="900 13px sans-serif";
   ctx.lineWidth=3;ctx.strokeStyle="#123b37";ctx.strokeText("仲間",m.x,m.y-m.r-29);
   ctx.fillStyle="#9af5e9";ctx.fillText(m.squadIndividualId?(m.squadName||"仲間"):"仲間",m.x,m.y-m.r-29);ctx.restore();
@@ -6856,7 +6898,7 @@ function drawScene(){
   ctx.save();ctx.fillStyle="#c1b7a0";ctx.strokeStyle="#574e44";ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(stone.x,stone.y,7,0,TWO);ctx.fill();ctx.stroke();ctx.restore();
  }
- for(const m of entities){
+ if(!use3D)for(const m of entities){
   if(m===P||m.hp<=0||m.windup>0)continue;
   const symbol=m.resting?"Zz":(m.drinkPose||0)>0?"水":(m.scavengePose||0)>0||(m.foragePose||0)>0?"食":species[m.type].prey?(m.flee>0?"!":m.alert>0?"?":null):(m.search>0?"?":m.alert>0?"!":null);
   if(!symbol)continue;
@@ -6865,7 +6907,7 @@ function drawScene(){
   ctx.strokeStyle="#13201a";ctx.lineWidth=3;ctx.font="900 15px sans-serif";
   const py=m.y-m.r-29;ctx.strokeText(symbol,m.x,py);ctx.fillText(symbol,m.x,py);ctx.restore();
  }
-  for(const m of entities){
+  if(!use3D)for(const m of entities){
    if(m===P||species[m.type].prey||m.windup<=0)continue;
    ctx.save();ctx.textAlign="center";ctx.font="900 15px sans-serif";
    ctx.fillStyle=m.windup<.22?"#fff0b4":"#ffbc9c";
@@ -6875,7 +6917,7 @@ function drawScene(){
  for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
- for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
+ if(!use3D)for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
  const light=dayLightProfile(elapsed),nightAlpha=clamp((1-light.brightness)*.80,0,.76);
  if(!use3D){
   // Darkness is composed in screen space after world drawing, then feathered by night vision.
@@ -6889,6 +6931,7 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
+ if(use3D)drawAligned3DActorStatus();
  if(!use3D)drawNightVision2D(nightAlpha);
  
  if(P&&pounceStreaks.length>=2){
@@ -6970,7 +7013,7 @@ function drawScene(){
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  
  if(P&&P.hidden&&mode==="play"){
-  const pos=project(P.x,P.y),labelY=pos.y-(P.jumpHeight||0)*.93*cameraZoom;ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
+  const pos=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0,P.jumpHeight||0)),labelY=pos.y;ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(pos.x-39,labelY-80,78,25,8);ctx.fill();ctx.stroke();
   ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
  }
