@@ -1,3 +1,9 @@
+# 2026-11-04 12:00｜00分担当：操作個体の永続選択APIと死亡台帳の整合
+- 【実装】squad-core.js に selectActive(id) を追加。所有5枠の生存IDだけを操作対象に選択し、選択を即保存。同伴AIは生成しないAPI。死亡IDは保存前に墓標台帳へ記録し、旧オートセーブからの再出現を防ぐ既存フィルタを維持。
+- 【コミット】d0a10652fe9e39095dcd68fa9a22a16ce7224c05（squad-core.js、新blob 86152d3e98f39f281bd908289e00be5a16ccc4a2）。更新直前blob ee19cdbb8b1edf12d72181264affae79f1d30d3a を再確認。
+- 【検証】コード上の選択ID存在判定・保存順序を確認。実ブラウザE2E・旧SAVE_SCHEMA2・Android・Pad・公開HTTPは未検証。
+- 【未完・次担当】game.js の旧AI同行生成と寿命死亡処理を撤去し、タイトル選択IDをプレイヤーに確実に反映。40分担当はUIの選択ボタンを selectActive(id) へ接続し、操作中表示とゲーム本体同期を確認。PHASE=A_FEATURES継続。
+
 # 2026-11-04 11:40｜40分担当：単独操作・5体所有UIへ移行（PHASE=A_FEATURES）
 - 【実装】タイトル所有動物5枠、選択中「操作中」強調、非選択「ストック」、個体選択ボタン。ガチャ初回入口を1体に変更、所有枠5のcore永続化・空き枠補充・旧3枠データ読み込みを維持。スマホ5列/狭幅3列CSS。HTML静的5枠、CSS/JSキャッシュ更新。
 - 【コミット】squad-gacha-ui.js 5bc8c1f,77ca0c8 / visual.css 05fe0b4 / index.html f62ba57 / squad-core.js ed49712。
