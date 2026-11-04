@@ -352,24 +352,39 @@ const ready=()=>{
   leader=null;root.hidden=false;nextSlot();root.scrollTop=0;
  }
  function confirmRelease(member){
-  const latest=core.load();if(!latest?.members?.some(m=>m.id===member.id)){message("個体が見つかりません。所有一覧を更新してください。");return;}
-  const last=latest.members.length===1;
-  message((member.name||member.speciesName)+"を野生に放ちますか？この個体は元に戻せません。野生では非常に強くなり、好戦的・臆病・のんびり・食べ物を届ける個体のいずれかになります。"+(last?"最後の個体なので次はガチャから再出発します。":""));
+  const latest=core.load();
+  if(!latest?.members?.some(m=>m.id===member.id)){
+   updateHome();return;
+  }
+  // This action also starts on a title-screen roster card while the gacha
+  // overlay is hidden. Show the confirmation before accepting any release.
+  const wasHidden=root.hidden;
+  root.hidden=false;
+  root.scrollTop=0;
+  const name=member.name||member.speciesName||"動物";
+  message(name+"を野生に放ちますか？ この個体は所有に戻せません。野生では強化個体として再登場します。"+(latest.members.length===1?" 最後の個体なので次はガチャから再出発します。":""));
   body.replaceChildren();
   const actions=el("footer","squad-gacha-actions");
-  actions.append(makeBtn("野生に放つ",()=>{
-   const confirmButton=actions.querySelector(".squad-release");
-    if(confirmButton?.disabled)return;
-    if(confirmButton)confirmButton.disabled=true;
-    let result;
-    try{result=core.release(member.id)}catch(_){message("放流の保存に失敗しました。所有一覧を確認してください。");return;}
-   if(!result.ok){message(result.reason||"編成が変更されています。もう一度確認してください。");return;}
+  const cancel=()=>{if(wasHidden){root.hidden=true;updateHome();}else{showLivingSquad();}};
+  const confirm=makeBtn("放流を確定",()=>{
+   if(confirm.disabled)return;
+   confirm.disabled=true;
+   let result;
+   try{result=core.release(member.id)}
+   catch(_){confirm.disabled=false;message("放流の保存に失敗しました。再試行するかキャンセルしてください。");return;}
+   if(!result?.ok){
+    confirm.disabled=false;
+    message(result?.reason||"所有情報が変更されました。キャンセルして一覧を更新してください。");
+    return;
+   }
    root.hidden=true;updateHome();
    window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:member.id,newLeaderId:result.newLeaderId}}));
    window.dispatchEvent(new CustomEvent("wild-animal-released",{detail:{animal:result.released}}));
    window.dispatchEvent(new Event("wild-squad-updated"));
-  },"squad-release"),makeBtn("キャンセル",()=>{root.hidden=true;updateHome()},"squad-close"));
+  },"squad-release");
+  actions.append(confirm,makeBtn("キャンセル",cancel,"squad-close"));
   body.append(actions);
+  requestAnimationFrame(()=>{if(!root.hidden)actions.querySelector("button.squad-close")?.focus();});
  }
  function confirmReset(){
   message("ゲームをリセットして新規で開始しますか？現在の編成と自動セーブは消えます。チュートリアルの完了記録は残ります。");
