@@ -657,6 +657,7 @@ function drawRarePlayable3D(m,clock){
  // Individual age and sex affect silhouette without changing gameplay collision radius.
  const young=m.age==="若い"||m.age==="若年"||m.ageStage==="young";
  const male=m.sex==="オス"||m.sex==="male";
+  const adult=!young, breath=1+.025*Math.sin(clock*2.1+(m.id||0)), alert=!!(m.target||m.alert||m.attackTarget);
  const sizeFactor=young?.84:1;
  const r=(m.r||18)*sizeFactor,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
@@ -835,7 +836,7 @@ function drawWorldSquadSpecies3D(m,clock){
  };
  if(t==="armadillo"){
   quadruped("#77776b","#c0b5a1","#746c5f");
-  orb(-r*.18,0,r*.96,r*1.16,r*.72,r*.48,"#6b7067");
+  orb(-r*.18,0,r*.96,r*1.16*breath,r*.72,r*.48,"#6b7067");
   // Segmented osteoderm bands and separate shoulder/pelvic shields.
   for(let k=0;k<7;k++){
    const x=r*(-.83+k*.235);
@@ -845,9 +846,11 @@ function drawWorldSquadSpecies3D(m,clock){
   orb(r*1.43,0,r*.51,r*.33,r*.19,r*.14,"#9a8670");
   for(const y of [-1,1]){orb(r*1.14,y*r*.24,r*.76,r*.11,r*.10,r*.20,"#a9977d");orb(r*1.42,y*r*.20,r*.66,r*.06,r*.06,r*.06,"#1e2220");}
   for(let k=0;k<8;k++)orb(-r*(1.12+k*.21),Math.sin(clock*.8+k*.35)*r*.06,r*(.53-k*.04),r*(.18-k*.014),r*.10,r*.10,"#8c826e");
+   // Adult males have a wider cranial shield; juveniles retain softer proportions.
+   if(male&&adult)orb(r*.92,0,r*.91,r*.48,r*.38,r*.15,"#817965");
  }else if(t==="hedgehog"){
   for(const x of [-.60,.48])for(const y of [-.48,.48])orb(x*r,y*r,r*.13,r*.14,r*.14,r*.17,"#75665a");
-  orb(-r*.18,0,r*.43,r*1.05,r*.75,r*.50,"#746655");
+  orb(-r*.18,0,r*.43,r*1.05*breath,r*.75,r*.50,"#746655");
   orb(r*.73,0,r*.42,r*.51,r*.41,r*.35,"#d1b79a");
   orb(r*1.19,0,r*.29,r*.29,r*.22,r*.16,"#d1b79a");
   for(let k=0;k<11;k++)for(let j=-3;j<=3;j++){
@@ -857,13 +860,14 @@ function drawWorldSquadSpecies3D(m,clock){
   }
   for(const y of [-1,1]){orb(r*.94,y*r*.29,r*.57,r*.08,r*.075,r*.08,"#161a19");orb(r*.62,y*r*.39,r*.75,r*.16,r*.13,r*.20,"#bca48a");}
   orb(r*1.42,0,r*.32,r*.11,r*.11,r*.10,"#3c3431");
+   if(alert)for(const side of [-1,1])orb(r*.83,side*r*.38,r*.73,r*.13,r*.10,r*.15,"#a58a70");
  }else if(t==="gorilla"){
   const fur="#3f4242",skin="#74716a",swing=motion*r*.22;
   for(const y of [-1,1]){
    orb(-r*.54,y*r*.44,r*.42,r*.37,r*.33,r*.47,fur);
    orb(-r*.72,y*r*.49,r*.14,r*.37,r*.32,r*.15,skin);
   }
-  orb(-r*.20,0,r*1.15,r*.88,r*.82,r*.94,fur);
+  orb(-r*.20,0,r*1.15,r*.88*breath,r*.82,r*.94,fur);
   orb(r*.32,0,r*1.42,r*.87,r*.97,r*.79,male?"#383b3c":"#505354");
   orb(r*.85,0,r*1.72,r*.68,r*.63,r*.63,fur);
   orb(r*1.28,0,r*1.52,r*.43,r*.46,r*.41,skin);
@@ -875,17 +879,22 @@ function drawWorldSquadSpecies3D(m,clock){
    orb(r*.16+swing*(y>0?1:-1),y*r*1.03,r*.54,r*.32,r*.29,r*.68,fur);
    orb(r*.28+swing*(y>0?1:-1),y*r*1.08,r*.17,r*.33,r*.32,r*.20,skin);
   }
-  if(male)orb(-r*.20,0,r*1.82,r*.54,r*.64,r*.17,"#777b7a");
+  if(male&&adult){
+    orb(-r*.20,0,r*1.82,r*.54,r*.64,r*.17,"#777b7a");
+    // Mature silverback has a pale dorsal saddle and pronounced sagittal crest.
+    orb(-r*.46,0,r*1.54,r*.58,r*.70,r*.18,"#8d9190");
+    orb(r*.88,0,r*2.24,r*.35,r*.24,r*.16,"#373a3b");
+   }
  }else if(t==="hyena"){
   quadruped("#a99a74","#c6b394","#514d42");
   // Hyena sloped back and massive front shoulders, spotted coat.
-  orb(r*.29,0,r*1.04,r*.78,r*.68,r*.66,"#ae9a70");
+  orb(r*.29,0,r*1.04,r*.78*breath,r*.68,r*.66,"#ae9a70");
   orb(-r*.65,0,r*.69,r*.65,r*.49,r*.37,"#a49373");
   for(let k=0;k<18;k++){
    const x=r*(-.95+(k%6)*.33),y=r*((Math.floor(k/6)-1)*.43);
    orb(x,y,r*(1.08+(k%3)*.10),r*.075,r*.075,r*.045,"#544b3d");
   }
-  for(let k=0;k<7;k++)spike(r*(-.74+k*.24),0,r*1.36,r*.10,r*.12,r*.30,"#51473b");
+  for(let k=0;k<7;k++)spike(r*(-.74+k*.24),0,r*1.36,r*.10,r*.12,r*(adult?.30:.18),"#51473b");
   orb(r*1.04,0,r*1.10,r*.53,r*.46,r*.42,"#8f7c5c");
   orb(r*1.42,0,r*.88,r*.41,r*.29,r*.23,"#554a3d");
   for(const y of [-1,1]){spike(r*.99,y*r*.34,r*1.35,r*.14,r*.14,r*.35,"#55483a");orb(r*1.23,y*r*.33,r*1.14,r*.07,r*.07,r*.07,"#1c1d1a");}
@@ -898,6 +907,7 @@ function drawWorldSquadSpecies3D(m,clock){
    orb(x,y,r*(.94+(k%3)*.12),r*.19,r*.16,r*.09,k%3===0?"#d5c3a0":k%3===1?"#282b2a":"#b17b51");
   }
   orb(r*.96,0,r*.94,r*.49,r*.44,r*.42,"#3e3630");
+   if(adult)for(const y of [-1,1])orb(r*.80,y*r*.48,r*1.20,r*.15,r*.12,r*.17,"#2b2825");
   orb(r*1.39,0,r*.72,r*.41,r*.28,r*.23,"#b98c66");
   for(const y of [-1,1]){
    orb(r*.89,y*r*.51,r*1.32,r*.27,r*.27,r*.38,"#332d2b");
@@ -907,7 +917,8 @@ function drawWorldSquadSpecies3D(m,clock){
   for(let k=0;k<6;k++)orb(-r*(1.13+k*.22),Math.sin(clock+k*.3)*r*.09,r*(.68-k*.025),r*.21,r*.15,r*.15,k===5?"#f2e8d7":"#3d332e");
  }else if(t==="tiger"){
   quadruped("#d88740","#e8dfc6","#c27b3f");
-  orb(r*.75,0,r*.95,r*.58,r*.55,r*.54,"#d68b46");
+  orb(r*.75,0,r*.95,r*.58*breath,r*.55,r*.54,"#d68b46");
+   if(male&&adult)orb(r*.63,0,r*1.30,r*.55,r*.56,r*.16,"#b96731");
   orb(r*1.10,0,r*.81,r*.40,r*.43,r*.36,"#f4e6d1");
   orb(r*1.49,0,r*.65,r*.33,r*.29,r*.21,"#e4d6be");
   // Stripe bands across back and flanks, not leopard spots.
