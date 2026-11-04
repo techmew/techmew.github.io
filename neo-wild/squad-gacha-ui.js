@@ -50,7 +50,7 @@ const ready=()=>{
   if(!r?.members?.length||r.members.length>=3){info.textContent="補充できる空き枠がありません。";return;}
   if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
   if(!fromTitle&&!window.__wildSquadAtDen){info.textContent="巣の近くで補充してください。";return;}
-  refill=true;size=1;slotTarget=r.members.length;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
+  refill=true;size=1;slotTarget=[0,1,2].find(i=>!r.members.some(m=>m.slotIndex===i))??0;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
  };
  const refillButton=makeBtn("空き枠に仲間を迎える",()=>{
   openRefill(false);
@@ -156,7 +156,7 @@ const ready=()=>{
  function updateHome(){
   roster.replaceChildren();const data=core.load();const members=data?.members||[];
   for(let i=0;i<3;i++){
-   const m=members[i],card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
+   const m=members.find(q=>q.slotIndex===i),card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
    if(!m){const add=makeBtn("＋",()=>openSlot(i),"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
@@ -212,7 +212,7 @@ const ready=()=>{
   const actions=el("footer","squad-gacha-actions");
   const reroll=makeBtn("もう一度引く（残り"+(4-draw.options.length)+"回）",()=>{draw.roll();showDraw()},"squad-reroll");
   reroll.disabled=draw.options.length>=4;
-  const choose=makeBtn("この個体を採用 →",()=>{const m=draw.choose(selected);streak=["C","D"].includes(m.grade)?streak+1:0;chosen.push(m);nextSlot()},"squad-adopt");
+  const choose=makeBtn("この個体を採用 →",()=>{const m=draw.choose(selected);streak=["C","D"].includes(m.grade)?streak+1:0;m.slotIndex=slotTarget;chosen.push(m);nextSlot()},"squad-adopt");
   actions.append(reroll,choose);body.append(actions);
  }
  function finish(){
@@ -280,8 +280,7 @@ const ready=()=>{
  }
  function openSlot(index){
   const current=core.load(),members=current?.members||[];
-  if(!Number.isInteger(index)||index<0||index>=3||members[index])return;
-  if(index!==members.length){message("前の空き枠から順番に動物を選んでください。");return;}
+  if(!Number.isInteger(index)||index<0||index>=3||members.some(m=>m.slotIndex===index))return;
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
    message("ガチャ権がありません。狩りや探索で獲得できます。");return;
   }
