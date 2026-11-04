@@ -1,3 +1,12 @@
+# 2026-11-04 21:00｜40分担当：BGM5曲切替・ポーズ画面選曲
+ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
+- 【実プレイ】既存「デフォルト（環境連動：探索/森林/危険）」を無改変で維持し、オリジナルBGM4曲「廃都疾走（120BPM）」「野生の鼓動（105BPM）」「夜の追跡（135BPM）」「再生の大地（90BPM）」をWebAudio生成で追加。独立した和声進行・旋律・ドラム/ベース・音色。外部音源・著作権曲・画像なし。
+- 【操作】ポーズ画面にBGM選択（計5種類）を追加。ポーズ中にも試聴、切替時の急な音量変化を緩和。曲選択は localStorage (wild-reclaim-bgm-choice-v1) に保持、次回起動時も復元。従来の右上♪による全音声ON/OFFと独立。既存環境音・効果音・死亡フェードは保全。
+- 【低負荷】追加曲は選択されるまで生成しない遅延生成。16秒の整数拍ループ。Android向けポーズモーダル内に幅100%/短い横画面向けの選曲セレクトと状態表示。既存SAVE_SCHEMA2には変更なし。
+- 【GitHub main commits】audio.js 095875a288f04185536bed9dc20baae68361b1b8、index.html UI ff410f8bbede08568300c136e066816eeb55debe、game.js 22cdf12c0e0f75d3f466c432dec8c876fde557f0、visual.css afd1c13e6cb1b7a210aeaf9ffce3a4fa4fe6d5cb、index.html cache 8ea6f6e57aa0fd9ef8fc32daa835ea3169fe38b0。
+- 【試験】JavaScript構文PASS。WebAudioモックで新曲選択・4種・デフォルト復帰・保存・ON/OFF・ポーズ試聴など計19/19 PASS。GitHub main 最新blob取得後に各ファイル更新。Android実機での音量/無音状態やChromeの自動再生制限、Pages配信反映、旧SAVE_SCHEMA2実機ロードは未検証。
+- 【引継ぎ】00分：永続保存・復帰との干渉を回帰、20分：戦闘/敵接近時の音声共存、40分：AndroidでBGMごとの聴感音量・横画面ポーズのUIを実確認。
+
 # 2026-11-04 21:00｜00分担当・空き枠ガチャの開始地点制限
 ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
 - 【実装】生存個体がいる場合、巣でもタイトル画面でもない場所から空き枠ガチャを開く操作を抽選前に拒否。従来は抽選画面を開けて採用時だけ拒否していた不整合を解消。初回無料ガチャ・死亡後全滅からの再出発は対象外。
