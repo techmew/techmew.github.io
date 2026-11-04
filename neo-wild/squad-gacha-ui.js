@@ -42,7 +42,7 @@ const ready=()=>{
  const info=el("p","squad-gacha-info","編成数を選択");info.id="squad-info";
  const body=el("div","squad-gacha-body");body.id="squad-body";
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
- let size=0,slot=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
+ let size=0,slot=0,slotTarget=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
  const denPanel=$("den-inventory");
  const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<3&&(r.gachaTickets||0)>0;};
  const openRefill=(fromTitle=false)=>{
@@ -157,12 +157,12 @@ const ready=()=>{
   roster.replaceChildren();const data=core.load();const members=data?.members||[];
   for(let i=0;i<3;i++){
    const m=members[i],card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
-   if(!m){const add=makeBtn("＋",()=>{if(members.length){openRefill(true)}else begin()},"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
+   if(!m){const add=makeBtn("＋",()=>openSlot(i),"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
     card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"リーダー":"仲間")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
-   if(m){const release=makeBtn("野生に放つ",()=>{if(!confirm((m.name||m.speciesName)+"を野生に放ちますか？元には戻せません。"))return;const result=core.release(m.id);if(result.ok){updateHome();window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:m.id}}));}},"squad-release");card.append(release);}
+   if(m){const release=makeBtn("野生に放つ",()=>confirmRelease(m),"squad-release");card.append(release);}
    roster.append(card);
   }
   hint.textContent=members.length?members.length+"体で生存中。空き枠の＋でガチャを引けます。":"空き枠の＋を押して動物を選択してください。";
@@ -190,7 +190,7 @@ const ready=()=>{
   draw=core.drawSlot(year,explored,streak);draw.roll();selected=draw.options[0].id;showDraw();
  }
  function showDraw(){
-  info.textContent="編成 "+slot+" / "+size+"　残り引き直し "+(4-draw.options.length)+"回";
+  info.textContent=(slotTarget+1)+"枠目のガチャ　残り引き直し "+(4-draw.options.length)+"回";
   body.replaceChildren();
   const option=draw.options.find(m=>m.id===selected)||draw.options[0];selected=option.id;
   const hero=el("article","squad-featured squad-rarity-"+(option.rarity||"basic"));
@@ -216,7 +216,7 @@ const ready=()=>{
   actions.append(reroll,choose);body.append(actions);
  }
  function finish(){
-  info.textContent=refill?"空き枠へ迎える個体を確認":"編成確認　リーダーと名前を決めて出発";
+  info.textContent=(slotTarget+1)+"枠目に採用する個体を確認";
   body.replaceChildren();leader=leader&&chosen.some(m=>m.id===leader)?leader:(chosen.find(m=>OPERABLE.has(m.species))?.id||chosen[0]?.id);
   for(const m of chosen){
    const card=el("article","squad-final-member"+(m.id===leader?" selected":""));
@@ -231,22 +231,23 @@ const ready=()=>{
   }
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("最後のガチャに戻る",()=>{chosen.pop();nextSlot()},"squad-reroll"));
-  const confirm=makeBtn(refill?"この個体を空き枠に採用":"この編成で出発",()=>{
+  const confirm=makeBtn("この個体を"+(slotTarget+1)+"枠目に採用",()=>{
    if(!refill&&!chosen.some(m=>OPERABLE.has(m.species))){info.textContent="操作可能な動物がいません。最後のガチャに戻ってください。";return}
    const chosenLeader=chosen.find(m=>m.id===leader);
    if(!refill&&(!chosenLeader||!OPERABLE.has(chosenLeader.species))){info.textContent="操作可能なリーダーを選んでください。";return}
    if(refill){
     const current=core.load();
     if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=3){info.textContent="タイトル画面か巣で空き枠を確認してください。";return;}
-    const result=core.fillVacancy(chosen[0]);
+    const result=current.pendingStart?core.addInitialSlot(chosen[0]):core.fillVacancy(chosen[0]);
     if(!result.ok){info.textContent=result.reason;return;}
     root.hidden=true;updateHome();
     window.dispatchEvent(new CustomEvent("wild-squad-refilled",{detail:{memberId:chosen[0].id}}));
+    window.dispatchEvent(new Event("wild-squad-updated"));
     return;
    }
    if((core.load()?.members||[]).length){info.textContent="生存中の個体は破棄できません。";return;}
    core.newSquad(chosen,leader);updateHome();root.hidden=true;
-   window.dispatchEvent(new CustomEvent("wild-squad-start"));
+   window.dispatchEvent(new Event("wild-squad-updated"));
   },"squad-adopt");
   actions.append(confirm);body.append(actions);
  }
@@ -271,6 +272,44 @@ const ready=()=>{
   if(members.length<3){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
   actions.append(makeBtn("この編成で出発",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
   actions.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome();},"squad-close"));
+  body.append(actions);
+ }
+ function message(text){
+  root.hidden=false;body.replaceChildren();info.textContent=text;
+  body.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome()},"squad-close"));
+ }
+ function openSlot(index){
+  const current=core.load(),members=current?.members||[];
+  if(!Number.isInteger(index)||index<0||index>=3||members[index])return;
+  if(index!==members.length){message("前の空き枠から順番に動物を選んでください。");return;}
+  if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
+   message("ガチャ権がありません。狩りや探索で獲得できます。");return;
+  }
+  refill=members.length>0;slotTarget=index;size=1;chosen=[];draw=null;selected=null;streak=0;
+  leader=null;root.hidden=false;nextSlot();root.scrollTop=0;
+ }
+ function confirmRelease(member){
+  message((member.name||member.speciesName)+"を野生に放ちますか？この個体は戻せません。");
+  body.replaceChildren();
+  const actions=el("footer","squad-gacha-actions");
+  actions.append(makeBtn("野生に放つ",()=>{
+   const result=core.release(member.id);
+   if(!result.ok){message("編成が変更されています。もう一度確認してください。");return;}
+   root.hidden=true;updateHome();
+   window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:member.id}}));
+   window.dispatchEvent(new Event("wild-squad-updated"));
+  },"squad-release"),makeBtn("キャンセル",()=>{root.hidden=true;updateHome()},"squad-close"));
+  body.append(actions);
+ }
+ function confirmReset(){
+  message("ゲームをリセットして新規で開始しますか？現在の編成と自動セーブは消えます。チュートリアルの完了記録は残ります。");
+  body.replaceChildren();
+  const actions=el("footer","squad-gacha-actions");
+  actions.append(makeBtn("リセットする",()=>{
+   core.resetForNewGame();
+   root.hidden=true;updateHome();
+   window.dispatchEvent(new Event("wild-squad-reset"));
+  },"squad-adopt"),makeBtn("キャンセル",()=>{root.hidden=true;updateHome()},"squad-close"));
   body.append(actions);
  }
  function begin(){
@@ -298,7 +337,7 @@ const ready=()=>{
   else focusGacha();
  }).observe(root,{attributes:true,attributeFilter:["hidden"]});
  gacha.addEventListener("click",begin);
- const resetButton=$("start-btn");if(resetButton){resetButton.textContent="ゲームをリセットして新規で開始する";resetButton.addEventListener("click",event=>{event.preventDefault();event.stopImmediatePropagation();if(!confirm("現在のゲームと編成をリセットします。3体の個体は失われ、ガチャから再編成します。続けますか？"))return;core.resetForNewGame();localStorage.removeItem("wild-reclaim-autosave-v2");updateHome();info.textContent="新しいゲーム：空き枠の＋を押してガチャを引いてください。";},true);}
+ const resetButton=$("start-btn");if(resetButton)resetButton.textContent="ゲームをリセットして新規で開始する";
  $("checkpoint-menu-btn")?.classList.add("hidden");$("checkpoint-list")?.classList.add("hidden");
  $("spawn-picker")?.classList.add("hidden");
  menu.querySelector(".menu-foot")?.remove();
@@ -308,7 +347,7 @@ const ready=()=>{
   const observer=new MutationObserver(()=>{if(!menu.classList.contains("hidden"))updateHome()});
   observer.observe(menu,{attributes:true,attributeFilter:["class"]});
  }
- window.WildSquadGachaUI={open:begin,refresh:updateHome};home.dataset.initialized="true";
+ window.WildSquadGachaUI={open:begin,openSlot,confirmReset,refresh:updateHome};home.dataset.initialized="true";
  updateHome();
 };
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ready);else ready();
