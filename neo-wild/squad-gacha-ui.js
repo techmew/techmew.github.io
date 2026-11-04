@@ -157,8 +157,21 @@ const ready=()=>{
  }
  function updateHome(){
   roster.replaceChildren();const data=core.load();const members=data?.members||[];
-  for(let i=0;i<Math.max(MAX_OWNED,members.length);i++){
-   const m=members.length>MAX_OWNED?members[i]:members.find(q=>q.slotIndex===i),card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
+  // Legacy saves can have missing or duplicate slotIndex values. Never hide living animals.
+  // Keep valid positions where possible, then place remaining members into free positions.
+  const displaySlots=Array(Math.max(MAX_OWNED,members.length)).fill(null);
+  const deferred=[];
+  for(const member of members){
+   const pos=Number(member.slotIndex);
+   if(Number.isInteger(pos)&&pos>=0&&pos<displaySlots.length&&!displaySlots[pos])displaySlots[pos]=member;
+   else deferred.push(member);
+  }
+  for(const member of deferred){
+   const free=displaySlots.indexOf(null);
+   if(free>=0)displaySlots[free]=member;
+  }
+  for(let i=0;i<displaySlots.length;i++){
+   const m=displaySlots[i],card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
    if(!m){if(i<MAX_OWNED&&members.length<MAX_OWNED){const add=makeBtn("＋",()=>openSlot(i),"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}else card.append(el("small",null,"追加不可"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
