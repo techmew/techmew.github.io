@@ -2394,6 +2394,14 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  if(type==="otter"&&(waterDepth(x,y)<=.025||waterDepth(x,y)>.60))return false;
  if(type==="shoebill"&&(waterDepth(x,y)<0||waterDepth(x,y)>.24))return false;
  if(type==="hippo"&&(waterDepth(x,y)<=.035||waterDepth(x,y)>.95))return false;
+ // Protect wetland food chains from monocultures. This cap is global and
+ // does not count dead animals; all other wildlife remains unaffected.
+ if(["otter","shoebill","hippo"].includes(type)){
+  const max=type==="otter"?4:type==="shoebill"?3:2;
+  if(mobs.filter(m=>m.hp>0&&m.type===type).length>=max)return false;
+  // Prevent water-edge animals from stacking at a single shoreline.
+  if(mobs.some(m=>m.hp>0&&m.type===type&&Math.hypot(m.x-x,m.y-y)<210))return false;
+ }
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
