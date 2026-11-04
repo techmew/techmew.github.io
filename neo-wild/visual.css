@@ -1427,3 +1427,34 @@
 #menu .squad-roster-slot .squad-individual-growth,#menu .squad-roster-slot .squad-individual-iv{font-size:clamp(8px,1.9vw,10px)!important;overflow-wrap:anywhere!important}
 #menu .squad-roster-slot:focus-visible{outline:3px solid #ffeb9e!important;outline-offset:2px!important}
 @media(max-width:390px){#menu #squad-roster{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:3px!important}#menu .squad-roster-slot{min-height:148px!important;padding:4px 2px!important}}
+
+/* 2026-11-04: soundtrack choice in pause; compact in landscape and readable on touch. */
+#pause .pause-bgm-settings{
+ display:flex;flex-direction:column;gap:5px;
+ margin:9px 0 12px;padding:10px 12px;
+ border:1px solid #668673;border-radius:9px;
+ background:#122821;color:#f2ebd6;text-align:left;
+}
+#pause .pause-bgm-settings label{
+ display:block;font-size:12px;font-weight:900;letter-spacing:.03em;color:#ffe0a4;
+}
+#pause #pause-bgm-select{
+ display:block;width:100%;max-width:100%;min-height:44px;
+ padding:8px 10px;border-radius:7px;
+ border:2px solid #9cb69b;background:#22382f;color:#fff8e6;
+ font:700 clamp(12px,2.5vw,15px) "Noto Sans JP",sans-serif;
+ -webkit-appearance:menulist;appearance:auto;touch-action:manipulation;
+}
+#pause #pause-bgm-select option{background:#22382f;color:#fff8e6}
+#pause #pause-bgm-select:focus-visible{
+ outline:3px solid #ffd985;outline-offset:2px;
+}
+#pause #pause-bgm-status{
+ display:block;min-height:1.1em;color:#b5d8c4;
+ font-size:clamp(10px,2vw,12px);line-height:1.35;
+}
+@media (max-height:520px) and (orientation:landscape){
+ #pause .pause-bgm-settings{margin:4px 0 6px;padding:5px 9px;gap:2px}
+ #pause #pause-bgm-select{min-height:32px;padding:3px 8px;font-size:11px}
+ #pause #pause-bgm-status{font-size:10px}
+}
