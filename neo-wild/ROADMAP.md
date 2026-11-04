@@ -1,3 +1,9 @@
+## 2026-11-05｜20分担当：放流野生個体の死亡永続化
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- game.js: 放流野生個体のHP0を永続ID台帳 wild-reclaim-released-fallen-v1 に記録。野生復元時に死亡IDを除外し、再読込や旧放流アーカイブから倒した強化個体が復活する問題を防止。壊れたアーカイブJSONも例外処理。3体所有・単独操作・旧4/5体保護は変更なし。
+- 実コミット f3b084f1e3faa6587c9082eca072589add36912f / game.js blob 5465ec218f037e1597ab84058591311cea7a4909。変更前 blob 1f5fc97fc5f8a213e70a7aa4f162be2983fa6773。
+- 未検証：実ブラウザE2E、保存容量不足、Android/WebGL、長時間の生態。死亡台帳の保存失敗時は再試行する。次担当：死亡済み放流個体のセーブ復元時除外・表示・描画確認。
+
 ## 2026-11-05 03:00｜00分担当：放流保存失敗時の野生キュー整合性
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - squad-core.js: 野生出現キュー書込成功後、永久離脱ID台帳の書込が失敗した場合は旧キューへロールバック。所有と野生に同一IDが同時存在する状態を防止する。既存の正常放流・旧4〜5体保護・3体上限・操作個体優先を維持。
