@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=44e3c5c-title-final-v2">
+<link rel="stylesheet" href="./visual.css?rev=13b750d-hide-region-note-v4">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -151,7 +151,7 @@
 <div class="pick-head">画面の向きを選択</div>
 <div class="landscape-menu-choice">
       <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div><p id="menu-orientation-status" role="status" aria-live="polite">✓ 選択中：縦画面</p>
-      <p id="menu-landscape-note" role="status" aria-live="polite">画面を選択して上の「プレイ」ボタンを押してください。</p>
+      <p id="menu-landscape-note" role="status" aria-live="polite"></p>
     </div>
     
 <select id="start-region" hidden aria-hidden="true"><option value="home" selected>霞町・草陰の巣</option></select>
@@ -209,11 +209,9 @@
   }
   if(window.WildGameReady)return;
   const note=get("menu-landscape-note");
-  note.textContent="ゲームデータの読み込みに失敗しました。再読み込みしてください。";
+  note.textContent="ゲームが起動できません。ページを再読み込みしてください。";
   note.setAttribute("data-error","true");
-  get("resume-cta-label").textContent="再読み込みしてプレイ";
-  get("resume-cta-help").textContent="タップするとページを更新します";
-  get("continue-btn").addEventListener("click",()=>window.location.reload(),{once:true,capture:true});
+  get("continue-btn").disabled=true;
  });
 })();
 </script>
@@ -221,7 +219,7 @@
 <script src="./mountain.js?rev=f75e6bdc" defer></script>
 <script src="./webgl3d.js?rev=f867f68d-six-species" defer></script>
 <script src="./combat-levels.js?rev=b0209989-species" defer></script>
-<script src="./bestiary.js?rev=50adff71-lv" defer></script>
+<script src="./bestiary.js?rev=9fad639b-title-label-v4" defer></script>
 <script src="./world-time.js?rev=5fb6f471655e-era100" defer></script>
 <script src="./era-ecology.js?rev=e53fe52aedac-era100" defer></script>
 <script src="./fauna.js?rev=dcb2a9229003-era100" defer></script>
@@ -229,8 +227,8 @@
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
 <script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=26e5bc98-slot-reset-world-v3" defer></script>
-<script src="./squad-gacha-ui.js?rev=4df98fb5-slot-release-v3" defer></script>
-<script src="./game.js?rev=9a4253a9-title-resume-v3" defer></script>
+<script src="./squad-gacha-ui.js?rev=f9763a3-reset-tickets-v4" defer></script>
+<script src="./game.js?rev=db02599d-initialization-fix-v4" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=ca9eb8ee-gacha-pad-20261104" defer></script>
