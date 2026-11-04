@@ -7251,10 +7251,13 @@ function drawSquadFieldMarkers(use3D=false){
  const standingHeight=terrain+ground;
  const bodyHeight=use3D?terrain+Math.max(ground,Math.max(0,m.jumpHeight||0)):0;
  const ringY=p.y-standingHeight*.93*cameraZoom+4;
- const labelY=p.y-bodyHeight*.93*cameraZoom-m.r-42;
+ // Both the identification ellipse and the label must scale with zoom.
+ // Otherwise the ellipse changes size relative to the animal in 3D.
+ const screenRadius=Math.max(6,m.r*cameraZoom);
+ const labelY=p.y-bodyHeight*.93*cameraZoom-screenRadius-42;
  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
  ctx.strokeStyle="#ffe98e";ctx.lineWidth=3;
- ctx.beginPath();ctx.ellipse(p.x,ringY,m.r*1.22,m.r*.56,0,0,TWO);ctx.stroke();
+ ctx.beginPath();ctx.ellipse(p.x,ringY,screenRadius*1.22,screenRadius*.56,0,0,TWO);ctx.stroke();
  const name="▼ 操作中 "+(m.squadName||animals[m.type]?.name||"動物");
  const fontSize=clamp(Math.round(15*cameraZoom),14,21);
  ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
