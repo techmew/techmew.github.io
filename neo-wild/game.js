@@ -2449,7 +2449,12 @@ function restoreReleasedWildlife(){
   const remaining=[];
   for(const animal of pending){
    if(!animal?.id||fallenIds.has(String(animal.id))||!species[animal.species])continue;
-   if(mobs.some(m=>m.releasedIndividualId===animal.id))continue;
+   if(mobs.some(m=>m.hp>0&&m.releasedIndividualId===animal.id))continue;
+   // Released veterans remain rare encounters: never crowd a solitary player
+   // with several 2.5–4x powered former companions in the same local habitat.
+   // Defer excess identities without deleting their persistent spawn queue.
+   const nearbyVeterans=mobs.filter(m=>m.hp>0&&m.releasedIndividualId&&dist(m,P)<WILDLIFE.localRadius).length;
+   if(nearbyVeterans>=2){remaining.push(animal);continue;}
    let created=false;
    for(let attempt=0;attempt<5&&!created;attempt++){
     const angle=Math.random()*Math.PI*2, radius=360+Math.random()*250;
