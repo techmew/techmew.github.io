@@ -6710,11 +6710,11 @@ function drawRemainsLabels(){
   if(++shown>=5)break;
  }ctx.restore();
 }
-function drawThreatNames(){
+function drawThreatNames(use3D=false){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
-  if(m.hp<=0||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
+  if(m.hp<=0||(use3D&&m.strongBoss)||(species[m.type].prey&&m.type!=="zebra")||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
   const rise=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
   const pos=projectGroundLabel(m.x,m.y,rise),names={strayCat:"野良猫",wildFox:"野生キツネ",weasel:"イタチ",raccoonDog:"タヌキ",venomSnake:"☠ 毒ヘビ",cheetah:"チーター",lion:"ライオン",giraffe:"キリン",zebra:"シマウマ",elephant:"ゾウ",hippo:"カバ",giantEagle:"強敵・大鷲",dog:"野犬",boar:"イノシシ",alpha:"強敵・アルファ",giantSnake:"強敵・大蛇",oldBear:"強敵・老熊",giantBoar:"強敵・巨大イノシシ",blackPanther:"強敵・黒豹",oneEyedWolf:"強敵・隻眼の狼",whiteTiger:"強敵・白虎",giantHyena:"強敵・巨大ハイエナ",giantCrocodile:"強敵・巨大ワニ",giantHippo:"強敵・巨大カバ",giantAnaconda:"強敵・巨大アナコンダ"},y=pos.y-m.r*cameraZoom-20;
   const targetLevel=COMBAT_LEVELS?.level(m.type)||1,levelGap=Math.max(0,targetLevel-P.level);
@@ -6945,7 +6945,7 @@ function drawScene(){
  }
  if(use3D){
   for(const m of mobs){
-   if(!visible(m.x,m.y,80)||species[m.type].prey||m.hp>=m.maxHp||lineBlocked(P,m))continue;
+   if(!visible(m.x,m.y,80)||species[m.type].prey||m.strongBoss||m.hp>=m.maxHp||lineBlocked(P,m))continue;
    // HP bars must use the same lifted position as the WebGL animal.
    const lift=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
    const pos=projectGroundLabel(m.x,m.y,lift),pct=clamp(m.hp/m.maxHp,0,1);
@@ -7022,7 +7022,7 @@ function drawScene(){
   window.WildUFO?.draw?.(ctx,project,{mode});
   window.WildApparitions?.draw?.(ctx,project,{mode});
   window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
-  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames();drawRemainsLabels();
+  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawThreatNames(use3D);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
  // Let the dying animal remain visible briefly before the world closes in.
@@ -7305,15 +7305,13 @@ function showSquadDeathPicker(roster){
 function drawSquadFieldMarkers(use3D=false){
  if(!P||P.hp<=0)return;
  const m=P,p=project(m.x,m.y);
- const terrain=use3D?(window.WildMountain?.height?.(m.x,m.y)||0):0;
- const ground=use3D?Math.max(0,m.groundZ||0):0;
- const standingHeight=terrain+ground;
- const bodyHeight=use3D?terrain+Math.max(ground,Math.max(0,m.jumpHeight||0)):0;
- const ringY=p.y-standingHeight*.93*cameraZoom+4;
+ const feet=projectGroundLabel(m.x,m.y,Math.max(0,m.groundZ||0));
+ const head=projectGroundLabel(m.x,m.y,Math.max(0,m.groundZ||0,m.jumpHeight||0));
+ const ringY=feet.y+4;
  // Both the identification ellipse and the label must scale with zoom.
  // Otherwise the ellipse changes size relative to the animal in 3D.
  const screenRadius=Math.max(6,m.r*cameraZoom);
- const jumpOffset=Math.max(0,bodyHeight-standingHeight)*.93*cameraZoom;
+ const jumpOffset=Math.max(0,feet.y-head.y);
  const labelY=ringY-Math.max(29,screenRadius*1.3+13)-Math.min(70,jumpOffset);
  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
  ctx.strokeStyle="#ffe98e";ctx.lineWidth=3;
@@ -7323,7 +7321,7 @@ function drawSquadFieldMarkers(use3D=false){
  ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
  // Don't leave an off-screen/player-HUD label floating at the screen edge.
  // The ground ring remains visible and anchored even when the title hides.
- if(labelY>Math.min(315,vh*.36)&&labelY<vh-25){
+ if(labelY>Math.min(130,vh*.18)&&labelY<vh-25){
   ctx.strokeText(name,p.x,labelY);ctx.fillStyle="#ffe98e";
   ctx.fillText(name,p.x,labelY);
  }
