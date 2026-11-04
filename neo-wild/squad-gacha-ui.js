@@ -384,10 +384,10 @@ const ready=()=>{
    confirm.disabled=true;
    let result;
    try{result=core.release(member.id)}
-   catch(_){confirm.disabled=false;message("放流の保存に失敗しました。再試行するかキャンセルしてください。");return;}
+   catch(_){confirm.disabled=false;info.textContent="放流の保存に失敗しました。再試行するかキャンセルしてください。";return;}
    if(!result?.ok){
     confirm.disabled=false;
-    message(result?.reason||"所有情報が変更されました。キャンセルして一覧を更新してください。");
+    info.textContent=result?.reason||"所有情報が変更されました。キャンセルして一覧を更新してください。";
     return;
    }
    root.hidden=true;updateHome();
