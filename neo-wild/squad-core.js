@@ -150,7 +150,7 @@ function drawSlot(year,explored,poorStreak=0){
  const persistent=Math.max(0,Math.min(12,Math.floor(Number(read(STREAK_KEY,0))||0)));
  const effectiveStreak=Math.max(persistent,Math.max(0,Math.min(12,Math.floor(Number(poorStreak)||0))));
  return {
-  roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,effectiveStreak);options.push(candidate);return candidate},
+  roll(){if(adoptedId!==null)throw Error("採用確定後は引き直しできません");if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,effectiveStreak);options.push(candidate);return candidate},
   choose(id){
    const found=options.find(x=>x.id===id);
    if(!found)throw Error("抽選外の個体");
