@@ -5144,8 +5144,8 @@ function update(dt){
    const mood=m.releasedMood;
    if(mood==="aggressive"&&d<410){m.alert=Math.max(m.alert||0,2.4);m.search=Math.max(m.search||0,2.4);m.reactiveUntil=elapsed+2.4;}
    else if(mood==="timid"&&d<420){m.flee=Math.max(m.flee||0,2.2);m.alert=0;const a=Math.atan2(m.y-P.y,m.x-P.x);const ox=m.x,oy=m.y;move(m,Math.cos(a)*s.speed*1.3*dt,Math.sin(a)*s.speed*1.3*dt);m.vx=(m.x-ox)/Math.max(dt,.001);m.vy=(m.y-oy)/Math.max(dt,.001);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;continue;}
-   else if(mood==="peaceful"&&d<300&&!m.provokedUntil){m.alert=0;m.search=0;m.vx=0;m.vy=0;continue;}
-   else if(mood==="generous"&&d<145&&!m.provokedUntil){m.alert=0;m.search=0;if(elapsed>=m.releasedGiftCooldown){const giftType=(m.type==="deer"||m.type==="boar"||m.type==="giraffe"||m.type==="zebra")?"berries":(Math.random()<.5?"berries":"meat");carcasses.push({x:clamp(P.x+40,40,WORLD.w-40),y:clamp(P.y+30,40,WORLD.h-40),r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);m.releasedGiftCooldown=elapsed+45+Math.random()*25;}m.vx=0;m.vy=0;continue;}
+   else if(mood==="peaceful"&&!m.provokedUntil){m.alert=0;m.search=0;m.windup=0;m.chargeTime=0;if(d<300){m.vx=0;m.vy=0;continue;}}
+   else if(mood==="generous"&&!m.provokedUntil&&d<145){m.alert=0;m.search=0;if(elapsed>=m.releasedGiftCooldown){const giftType=(m.type==="deer"||m.type==="boar"||m.type==="giraffe"||m.type==="zebra")?"berries":(Math.random()<.5?"berries":"meat");carcasses.push({x:clamp(P.x+40,40,WORLD.w-40),y:clamp(P.y+30,40,WORLD.h-40),r:9,amount:20,type:giftType,ttl:160,phase:0});notify((m.name||"野生の動物")+"が食べ物を持ってきた",2.5);m.releasedGiftCooldown=elapsed+45+Math.random()*25;}m.vx=0;m.vy=0;continue;}
   }
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(m.type==="dog"&&updateFoodThief(m,dt,d))continue;
