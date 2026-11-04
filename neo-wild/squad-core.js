@@ -83,10 +83,16 @@ function kill(id){
  const d=dead();d.add(id);saveDead(d);
  const roster=load();
  if(!roster)return null;
- const saved=save(roster);
- // If the active animal died, clear any pending start state only when
- // there are survivors; an empty roster must return to the gacha flow.
- if(!saved.members.length&&saved.pendingStart){saved.pendingStart=false;return save(saved);}
+ // The permanent death ID is already stored. A quota failure on the roster
+ // snapshot must not interrupt death handling or resurrect this animal.
+ let saved;
+ try{saved=save(roster);}catch(_){saved=load();}
+ if(!saved)return null;
+ // An empty roster returns to gacha even when the snapshot cannot be written.
+ if(!saved.members.length&&saved.pendingStart){
+  saved.pendingStart=false;
+  try{return save(saved);}catch(_){return saved;}
+ }
  return saved;
 }
 function newSquad(members,leaderId){
