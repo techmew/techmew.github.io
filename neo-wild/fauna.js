@@ -296,18 +296,18 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const herdWindow=recentGrazers>=2&&recentHunters===0;
  const disturbedHerd=recentHunters>=2;
 
- // SOLO5: repeated hostile encounters create a temporary prey refuge.
+ // SOLO4: repeated hostile encounters create a temporary prey refuge.
  // Only reweights existing encounters; never increases spawn count.
  const hostileTypes=new Set(["dog","strayCat","wildFox","venomSnake","cheetah","lion","tiger","blackBear","hyena","wildDog","gorilla"]);
  const recentHostiles=history.slice(-7).filter(type=>hostileTypes.has(type)).length;
  const refugePressure=Math.min(1,recentHostiles/4);
- // After four consecutive hostile encounters, guarantee one non-hostile encounter
+ // After three consecutive hostile encounters, guarantee one non-hostile encounter
  // from the existing biome pool. This does not spawn an extra animal.
- const hostileStreak=history.length>=4&&history.slice(-4).every(type=>hostileTypes.has(type));
+ const hostileStreak=history.length>=3&&history.slice(-3).every(type=>hostileTypes.has(type));
  // A newly explored residential district first introduces local harmless wildlife.
  // The safety window is regional, does not create extra spawns, and expires
- // after two ordinary encounters. Wild predators resume their normal ecology.
- const arrivalRefuge=[0,1,6].includes(index)&&history.length<2;
+ // after three ordinary encounters. Wild predators resume their normal ecology.
+ const arrivalRefuge=[0,1,6].includes(index)&&history.length<3;
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
   if(hostileStreak&&!preyOnly&&hostileTypes.has(type))w=0;
