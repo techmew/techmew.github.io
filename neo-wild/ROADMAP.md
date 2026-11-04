@@ -1,3 +1,10 @@
+# 2026-11-04｜40分担当：旧パーティと巣仲間勧誘の表示整理
+ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
+- 【実装】index.htmlから旧3体編成HUDの説明・旧同行指示ラベルを除去。JS互換IDと非表示の指示ボタンは残存。巣の旧「肉24ptで仲間を雇う」説明を撤去し、旧UIを非表示に固定。5体ストック・単独操作仕様と矛盾する案内を削除。
+- 【コミット】ab18a08ec0fe92caf7d32f19d357f81d44d2a6d2 / index.html blob f5a5c805ada516ca8a63d4acf909ee8102ab40b7
+- 【静的確認】旧表示文言なし、既存互換DOM ID保持。Android実機・WebGL・Pad・旧SAVE_SCHEMA2 E2E未検証。
+- 【次担当】00分：死亡→残存ストック選択と永続化を実機検証。20分：旧同伴AI分岐の残存確認。40分次回：操作中の表示と実P同期、5枠スマホ画面の実操作検証。
+
 # 2026-11-04｜20分担当：被攻撃時に草食・小動物が反撃しながら逃走
 ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
 - 【実装】game.js の resolveAttack() が通常非敵対の野生NPC（species.prey）への実ヒットを確認した時に counterFleeUntil を6秒設定し startlePrey(...,"hit") で逃走させる。野生NPCの近距離AIへ updateWoundedPreyDefense() を追加し、被弾後に追いつかれた場合だけ短い予兆→小ダメージ反撃→逃走を継続。クールダウン、射程、視界、無敵時間、立体差、水深、スタン回復を判定する。特にアルマジロ（体当たり）・ハリネズミ（針）・水中コイ（尾びれ）を補完。乾いた場所のコイは反撃不能。
