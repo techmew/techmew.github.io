@@ -1310,3 +1310,24 @@
 #squad-gacha .squad-rarity-reveal.squad-rarity-rare{color:#c2eaff;background:#18394e}
 @keyframes squadRarityPulse{50%{filter:brightness(1.55);transform:scale(1.015)}}
 @media(prefers-reduced-motion:reduce){#squad-gacha .squad-rarity-reveal{animation:none!important}}
+
+/* TITLE_SCROLLBAR_HIDDEN_20261104 */
+/* The white line on the right of the title panel was a native scrollbar.
+   Keep wheel/touch/keyboard scrolling, but draw no visible divider. */
+#menu .menu-shell{
+ scrollbar-width:none!important;
+ -ms-overflow-style:none!important;
+ scrollbar-gutter:auto!important;
+}
+#menu .menu-shell::-webkit-scrollbar{
+ display:none!important;
+ width:0!important;
+ height:0!important;
+ background:transparent!important;
+}
+#menu .menu-shell::-webkit-scrollbar-track,
+#menu .menu-shell::-webkit-scrollbar-thumb{
+ display:none!important;
+ background:transparent!important;
+ border:0!important;
+}
