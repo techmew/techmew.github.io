@@ -1,3 +1,10 @@
+# 2026-11-04 13:00｜00分担当：旧AI同伴生成・寿命警告を実コードから撤去
+ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
+- 【実装】game.js の syncSquadFollowers() を旧SAVE_SCHEMA2由来の companion/squadIndividualId 野生アクター除去に変更。所有5枠の非操作個体をゲーム世界へ同伴生成しない。旧3体HUD同期を非表示専用に変更。老齢警告を撤去（年齢は外見情報のみ）。
+- 【コミット】156c8a177dcaa37408861449402a81033a36629e / game.js blob 0585a2262b8ac9c479bb50208e3e15fb5c4f2f5e → e9d64510104399380686e7abea7b594749c99330。
+- 【静的検査】{"soloFollowerNoSpawn":true,"oldWarningGone":true,"partyHudHidden":true,"worldStart":true,"saveSchema2":true}。実ブラウザ/Android/Pad/WebGL/旧セーブ実ロードE2Eは未検証。
+- 【残課題】switchSquadLeader は旧同行アクター依存でストック切替に非対応。死亡時の選択・全滅ガチャ、旧AI更新分岐の全面整理が必要。次00分は保存個体から直接Pを再構築する選択APIへ変更。40分はタイトルの「操作中」と本体選択同期を検証。20分は野生生態と旧同行分岐を確認。
+
 # 2026-11-04｜40分担当：旧3体編成HUDの非表示
 - 【実装】index.html の旧3体パーティHUD（追従/攻撃/待機/逃走）を aria-hidden と inline display:none!important で抑止。旧巣の肉24pt仲間雇用ボタンも非表示。既存IDは互換性のため残し、他JSのDOM参照を破壊しない。
 - 【コミット】index.html b9c55d30491031315be5303610d8546790e3b2f0（旧blob ea78094e222920c3155d4a22e7268ed46ed98630 → 新blob f086f222a95242ace3f28c8e4e42145aa7b8447f）。
