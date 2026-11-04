@@ -71,8 +71,16 @@ function selectActive(id){
  if(!roster?.members?.some(m=>m.id===id))return {ok:false,reason:"操作できる生存個体がありません"};
  if(roster.leaderId===id)return {ok:true,roster};
  roster.leaderId=id;
- const saved=save(roster);
- return {ok:true,roster:saved};
+ // A failed or non-persistent write must never launch the previously selected animal.
+ try{
+  const saved=save(roster);
+  const verified=load();
+  if(!verified?.members?.some(m=>m.id===id)||verified.leaderId!==id)
+   return {ok:false,reason:"操作個体の選択を保存できません。空き容量を確認して再試行してください"};
+  return {ok:true,roster:verified};
+ }catch(_){
+  return {ok:false,reason:"操作個体の選択を保存できません。空き容量を確認して再試行してください"};
+ }
 }
 // Persist the death tombstone before modifying the roster. A stale autosave
 // cannot reintroduce the individual, even when the active character dies.
