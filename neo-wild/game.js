@@ -2299,9 +2299,11 @@ function settleNewRegion(){
 // Predators already present are left untouched; only newly spawned animals are filtered.
 function earlySquadSanctuary(){
  if(!P||Number(P.level||1)>3)return null;
- const spawn=window.WildSquad?.load?.()?.startPosition;
- return {x:Number.isFinite(spawn?.x)?spawn.x:(P.spawnX??P.x),
-         y:Number.isFinite(spawn?.y)?spawn.y:(P.spawnY??P.y),
+ // Sanctuary belongs to the sole directly controlled animal, never a removed
+ // three-member squad. Use the actual saved start point when available.
+ const start=window.WildSquad?.load?.()?.startPosition;
+ return {x:Number.isFinite(P.spawnX)?P.spawnX:Number.isFinite(start?.x)?start.x:P.x,
+         y:Number.isFinite(P.spawnY)?P.spawnY:Number.isFinite(start?.y)?start.y:P.y,
          radius:Math.max(300,560-(Math.max(1,Number(P.level)||1)-1)*110)};
 }
 function earlySquadSpawnType(type,x,y){
@@ -2309,6 +2311,36 @@ function earlySquadSpawnType(type,x,y){
  if(!safe||Math.hypot(x-safe.x,y-safe.y)>safe.radius)return type;
  if(["rat","rabbit","pigeon","frog","crow","hedgehog"].includes(type))return type;
  return (type==="deer"||type==="boar"||type==="armadillo")?"rabbit":"rat";
+}
+// Real-time ecological pressure: apex predators need food and hunting space.
+// A candidate is rejected rather than silently replaced with an unrelated animal.
+const ECO_APEX_TYPES=new Set(["lion","tiger","cheetah","elephant","hippo","gorilla","blackBear","hyena","wildDog","giantBoar","giantBuffalo","rhino"]);
+const ECO_HUNTER_TYPES=new Set(["dog","wildFox","strayCat","snake","venomSnake","macaque","chimpanzee","wolf","hyena","wildDog","lion","tiger","cheetah","blackBear","gorilla"]);
+function ecologicalSpawnAllowed(type,x,y,initial=false){
+ if(!P||initial)return true;
+ const radius=470,local=mobs.filter(m=>m.hp>0&&Math.hypot(m.x-x,m.y-y)<radius);
+ const predators=local.filter(m=>ECO_HUNTER_TYPES.has(m.type));
+ const prey=local.filter(m=>species[m.type]?.prey);
+ const apex=local.filter(m=>ECO_APEX_TYPES.has(m.type));
+ const lvl=Math.max(1,Number(P.level)||1),year=Math.max(0,elapsed/120);
+ // The starter corridor must remain playable even after loading an old save.
+ const safe=earlySquadSanctuary();
+ const insideSafe=!!safe&&Math.hypot(x-safe.x,y-safe.y)<safe.radius;
+ if(insideSafe&&lvl<=3&&(ECO_HUNTER_TYPES.has(type)||ECO_APEX_TYPES.has(type)))return false;
+ if(ECO_APEX_TYPES.has(type)){
+  if(apex.length>=1||predators.length>=3)return false;
+  if(lvl<=2&&Math.hypot(x-P.x,y-P.y)<850)return false;
+  if(year<7&&lvl<=3)return false;
+  if(prey.length<2&&local.length>=3)return false;
+ }
+ if(ECO_HUNTER_TYPES.has(type)){
+  const limit=lvl<=2?1:year<17?2:3;
+  if(predators.length>=limit)return false;
+  if(prey.length===0&&local.length>=3)return false;
+ }
+ // Crowding is rejected before it can create an unnatural dense pack.
+ if(local.length>=8)return false;
+ return true;
 }
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null,requestedMountainZone=null){
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
@@ -2347,6 +2379,9 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  if(!species[type])type="rat";
  // Newly generated enemies cannot overwhelm a level-one party in its first minutes.
  if(!forcedType||initial||nearbyOnly)type=earlySquadSpawnType(type,x,y);
+ // A denied predator is not turned into free prey or spawned elsewhere:
+ // future natural draws will select wildlife matching the local food chain.
+ if(!ecologicalSpawnAllowed(type,x,y,initial))return false;
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
