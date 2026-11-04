@@ -240,6 +240,18 @@ function updateCameraView(){
  VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
 }
 function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
+// Camera tracks the rendered feet, not the flat XY origin. On mountain ridges
+// and roofs the model rises in WebGL, otherwise it drifts into the top HUD.
+function playerVisualCameraTarget(){
+ if(!P)return {x:cam.x,y:cam.y};
+ const rise=Math.max(0,(window.WildMountain?.height?.(P.x,P.y)||0)+Math.max(0,P.groundZ||0));
+ const screenLift=rise*.93*cameraZoom;
+ const targetDX=-VIEW.c*screenLift/VIEW_DET,targetDY=VIEW.a*screenLift/VIEW_DET;
+ return {
+  x:clamp(P.x-vw/2-targetDX,0,Math.max(0,WORLD.w-vw)),
+  y:clamp(P.y-vh/2-targetDY,0,Math.max(0,WORLD.h-vh))
+ };
+}
 function unproject(x,y){const dx=x-vw/2,dy=y-vh/2;return {x:cam.x+vw/2+(VIEW.d*dx-VIEW.c*dy)/VIEW_DET,y:cam.y+vh/2+(-VIEW.b*dx+VIEW.a*dy)/VIEW_DET}}
 function screenDepth(x,y){return VIEW.b*x+VIEW.d*y}
 // Population is a density budget, not an endless wave-spawner.
@@ -5448,8 +5460,9 @@ function update(dt){
  territorySupply();checkMission();shake*=Math.max(0,1-dt*9);flash=Math.max(0,flash-dt);
  if(toastTime>0){toastTime-=dt;if(toastTime<=0)$("toast").classList.remove("show")}
 
- cam.x+=(clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw))-cam.x)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
- cam.y+=(clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh))-cam.y)*Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
+ const visualTarget=playerVisualCameraTarget(),cameraFollow=Math.min(1,dt*(P.type==="fox"&&P.abilityTime>0?11:6));
+ cam.x+=(visualTarget.x-cam.x)*cameraFollow;
+ cam.y+=(visualTarget.y-cam.y)*cameraFollow;
  audioTick+=dt;
  if(audioTick>.35){
   audioTick=0;
