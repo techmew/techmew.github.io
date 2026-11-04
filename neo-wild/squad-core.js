@@ -146,7 +146,7 @@ function livingCount(){return load()?.members?.length||0}
 const STREAK_KEY="wild-reclaim-gacha-poor-streak-v1";
 function drawSlot(year,explored,poorStreak=0){
  const options=[];
- let adopted=false;
+ let adoptedId=null;
  const persistent=Math.max(0,Math.min(12,Math.floor(Number(read(STREAK_KEY,0))||0)));
  const effectiveStreak=Math.max(persistent,Math.max(0,Math.min(12,Math.floor(Number(poorStreak)||0))));
  return {
@@ -154,11 +154,15 @@ function drawSlot(year,explored,poorStreak=0){
   choose(id){
    const found=options.find(x=>x.id===id);
    if(!found)throw Error("抽選外の個体");
-   if(!adopted){
-    const next=["C","D"].includes(found.grade)?Math.min(12,effectiveStreak+1):0;
-    localStorage.setItem(STREAK_KEY,JSON.stringify(next));
-    adopted=true;
+   // Adoption is final for this draw: repeated UI events must not swap the
+   // selected animal after its grade has already updated the pity counter.
+   if(adoptedId!==null){
+    if(adoptedId!==id)throw Error("採用済みの個体は変更できません");
+    return found;
    }
+   const next=["C","D"].includes(found.grade)?Math.min(12,effectiveStreak+1):0;
+   localStorage.setItem(STREAK_KEY,JSON.stringify(next));
+   adoptedId=id;
    return found;
   },
   get options(){return options.slice()}
