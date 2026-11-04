@@ -2338,6 +2338,7 @@ function ecologicalSpawnAllowed(type,x,y,initial=false){
  return true;
 }
 function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,forcedType=null,requestedMountainZone=null){
+ if(!releasedSpawnBusy&&P)restoreReleasedWildlife();
  if(mobs.length>=WILDLIFE.cap)return false; // Never evict living wildlife to spawn another.
  let tries=0,x=0,y=0,valid=false;
  const localCount=P?mobs.filter(m=>m.hp>0&&dist(m,P)<WILDLIFE.localRadius).length:0;
@@ -2386,6 +2387,37 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
   damageScale:s.prey?1:enemyDamageFactor(),speedScale:s.prey?1:1+Math.min(10,enemyChallengeTier())*.018});
  return true;
 }
+// Released owned animals rejoin the ecosystem under their original names.
+// Retry pending entries on subsequent wildlife spawns if terrain is unsuitable.
+let releasedSpawnBusy=false;
+function restoreReleasedWildlife(){
+ if(releasedSpawnBusy||!P||!Array.isArray(mobs))return;
+ let pending=[];
+ try{pending=JSON.parse(localStorage.getItem("wild-reclaim-released-v1")||"[]")}catch(_){return}
+ if(!Array.isArray(pending)||!pending.length)return;
+ releasedSpawnBusy=true;
+ try{
+  const remaining=[];
+  for(const animal of pending){
+   if(!animal?.id||!species[animal.species])continue;
+   if(mobs.some(m=>m.releasedIndividualId===animal.id))continue;
+   let created=false;
+   for(let attempt=0;attempt<5&&!created;attempt++){
+    const angle=Math.random()*Math.PI*2, radius=360+Math.random()*250;
+    const pos={x:clamp(P.x+Math.cos(angle)*radius,40,WORLD.w-40),y:clamp(P.y+Math.sin(angle)*radius,40,WORLD.h-40)};
+    const before=mobs.length;
+    if(spawnMob(false,false,false,pos,animal.species)&&mobs.length>before){
+     const wild=mobs[mobs.length-1];
+     if(wild.type===animal.species){wild.name=animal.name||animal.speciesName;wild.releasedIndividualId=animal.id;created=true;}
+     else mobs.pop();
+    }
+   }
+   if(!created)remaining.push(animal);
+  }
+  localStorage.setItem("wild-reclaim-released-v1",JSON.stringify(remaining));
+ }finally{releasedSpawnBusy=false;}
+}
+window.addEventListener("wild-animal-released",()=>{restoreReleasedWildlife()});
 function spawnFood(){
  for(let n=0;n<24;n++){
   const local=P&&Math.random()<.82;
