@@ -2436,17 +2436,19 @@ function restoreReleasedWildlife(){
  if(releasedSpawnBusy||restoringSavedWorld||mode!=="play"||!P||!Array.isArray(mobs))return;
  let pending=[];
  try{pending=JSON.parse(localStorage.getItem("wild-reclaim-released-v1")||"[]")}catch(_){return}
- const archive=JSON.parse(localStorage.getItem("wild-reclaim-released-archive-v1")||"[]");
+ let archive=[];try{archive=JSON.parse(localStorage.getItem("wild-reclaim-released-archive-v1")||"[]")}catch(_){}
+ let fallen=[];try{fallen=JSON.parse(localStorage.getItem("wild-reclaim-released-fallen-v1")||"[]")}catch(_){}
+ const fallenIds=new Set(Array.isArray(fallen)?fallen.map(String):[]);
  if(Array.isArray(archive)){
   const seen=new Set(pending.map(a=>String(a?.id)));
-  for(const a of archive)if(a?.id&&!seen.has(String(a.id))){pending.push(a);seen.add(String(a.id));}
+  for(const a of archive)if(a?.id&&!fallenIds.has(String(a.id))&&!seen.has(String(a.id))){pending.push(a);seen.add(String(a.id));}
  }
  if(!Array.isArray(pending)||!pending.length)return;
  releasedSpawnBusy=true;
  try{
   const remaining=[];
   for(const animal of pending){
-   if(!animal?.id||!species[animal.species])continue;
+   if(!animal?.id||fallenIds.has(String(animal.id))||!species[animal.species])continue;
    if(mobs.some(m=>m.releasedIndividualId===animal.id))continue;
    let created=false;
    for(let attempt=0;attempt<5&&!created;attempt++){
@@ -5121,6 +5123,14 @@ function update(dt){
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
   if(m.hp<=0){
+   if(m.releasedIndividualId&&!m._releasedDeathRecorded){
+    m._releasedDeathRecorded=true;
+    try{
+     const key="wild-reclaim-released-fallen-v1";
+     const ids=new Set(JSON.parse(localStorage.getItem(key)||"[]").map(String));
+     ids.add(String(m.releasedIndividualId));localStorage.setItem(key,JSON.stringify([...ids]));
+    }catch(_){m._releasedDeathRecorded=false;}
+   }
    if(m.squadIndividualId&&!m._killRegistered){
     m._killRegistered=true;window.WildSquad?.kill?.(m.squadIndividualId);
     carcasses.push(animalRemains(m));notify((m.squadName||"仲間")+"は死亡し永久離脱");saveAuto();syncSquadHud();
