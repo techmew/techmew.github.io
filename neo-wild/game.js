@@ -2212,7 +2212,11 @@ function spawnRegionalResident(region,kind=null){
  if(!P||mobs.length>=WILDLIFE.cap||!BIOME_AREAS[region])return false;
  const [zx,zy,zw,zh]=BIOME_AREAS[region];
  const choices=REGIONAL_WILDLIFE[region]||["rabbit","pigeon"];
- const speciesName=kind||choices[Math.floor(Math.random()*choices.length)];
+ // Forced residents must obey the same era and habitat locks as random fauna.
+ // Otherwise a new world can acquire giraffes, lions or hippos in year zero.
+ const eligible=choices.filter(type=>(window.WildFauna?.weight?.(type,region,day,weather)||0)>0);
+ const speciesName=kind||eligible[Math.floor(Math.random()*eligible.length)];
+ if(!speciesName||(window.WildFauna?.weight?.(speciesName,region,day,weather)||0)<=0)return false;
  for(let attempt=0;attempt<100;attempt++){
   const x=zx+Math.max(70,zw*.07)+Math.random()*Math.max(1,zw-Math.max(140,zw*.14));
   const y=zy+Math.max(70,zh*.07)+Math.random()*Math.max(1,zh-Math.max(140,zh*.14));
@@ -2377,11 +2381,19 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  const biome=regionAt(x,y);
  let type=forcedType&&window.WildFauna?.types.includes(forcedType)?forcedType:mountainHabitat(x,y)?MOUNTAIN.choose(Math.random(),x,y,preyOnly,weather):window.WildFauna?.choose(biome,day,weather,preyOnly);
  if(!species[type])type="rat";
+ // Forced/debug/regional births cannot bypass the fauna year and biome rules.
+ // The wild pool's own weight is the single source of truth for 30-species unlocks.
+ if((window.WildFauna?.weight?.(type,biome,day,weather)??1)<=0)return false;
  // Newly generated enemies cannot overwhelm a level-one party in its first minutes.
  if(!forcedType||initial||nearbyOnly)type=earlySquadSpawnType(type,x,y);
  // A denied predator is not turned into free prey or spawned elsewhere:
  // future natural draws will select wildlife matching the local food chain.
  if(!ecologicalSpawnAllowed(type,x,y,initial))return false;
+ // Amphibious and waterside wildlife must appear at actual suitable
+ // terrain coordinates, not just anywhere inside a nominal wetland district.
+ if(type==="otter"&&(waterDepth(x,y)<=.025||waterDepth(x,y)>.60))return false;
+ if(type==="shoebill"&&(waterDepth(x,y)<0||waterDepth(x,y)>.24))return false;
+ if(type==="hippo"&&(waterDepth(x,y)<=.035||waterDepth(x,y)>.95))return false;
  // Prevent rare deer from dominating the world, even in a long-lived save.
  if(type==="deer"&&mobs.filter(m=>m.hp>0&&m.type==="deer").length>=2)type="rabbit";
  // Safe nesting pockets can attract small prey, but never spawn a hostile pack.
