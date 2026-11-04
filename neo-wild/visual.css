@@ -1458,3 +1458,14 @@
  #pause #pause-bgm-select{min-height:32px;padding:3px 8px;font-size:11px}
  #pause #pause-bgm-status{font-size:10px}
 }
+
+/* 2026-11-04: BGM gain control, separately from weather and sound effects. */
+#pause .pause-bgm-volume{display:flex;flex-direction:column;gap:5px;margin:4px 0 2px;}
+#pause .pause-bgm-volume label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#e7eacf;font-size:12px;font-weight:700}
+#pause #pause-bgm-volume{width:100%;height:25px;min-height:25px;margin:0;accent-color:#e6c777;cursor:pointer;touch-action:pan-x}
+#pause #pause-bgm-volume-value{min-width:35px;text-align:right;color:#ffdf95;font-size:13px;font-weight:900}
+@media(max-height:520px) and (orientation:landscape){
+ #pause .pause-bgm-volume{gap:1px;margin:0}
+ #pause #pause-bgm-volume{height:17px;min-height:17px}
+ #pause .pause-bgm-volume label{font-size:10px}
+}
