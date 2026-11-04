@@ -28,11 +28,12 @@ const ready=()=>{
  if(!existingHome)home.append(gacha,title,roster,hint);
  const lead=menu.querySelector(".lead")||menu.querySelector(".hero-title");
  if(!existingHome){if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);}
- // Collapse rarely used information instead of stacking buttons in two columns.
- const extras=el("details","squad-menu-extras");extras.id="squad-menu-extras";
- extras.append(el("summary",null,"その他・画面設定・探索記録"));
+ // Keep all settings visible, with three equal collection tiles.
+ const extras=el("section","squad-menu-extras");extras.id="squad-menu-extras";
+ const collections=el("div","squad-collection-tiles");
  const moveIds=["bestiary-open","world-history-open","trophies-open","new-game-options"];
- for(const id of moveIds){const item=$(id);if(item)extras.append(item);}
+ for(const id of moveIds){const item=$(id);if(!item)continue;if(id==="new-game-options"){extras.append(item);continue;}item.textContent=({"bestiary-open":"図鑑","world-history-open":"年表","trophies-open":"トロフィー"})[id];collections.append(item);}
+ extras.prepend(collections);
  home.insertAdjacentElement("afterend",extras);
  const root=el("section","squad-gacha");root.id="squad-gacha";root.hidden=true;root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-label","編成ガチャ");
  const wrap=el("div","squad-gacha-wrap"),head=el("header","squad-gacha-head");
@@ -156,16 +157,16 @@ const ready=()=>{
   roster.replaceChildren();const data=core.load();const members=data?.members||[];
   for(let i=0;i<3;i++){
    const m=members[i],card=el("article","squad-roster-slot"+(data?.leaderId===m?.id?" is-leader":""));
-   if(!m){card.append(el("div","squad-roster-empty","＋"),el("small",null,(i+1)+"枠目・空き"));}
+   if(!m){const add=makeBtn("＋",()=>{if(members.length){openRefill(true)}else begin()},"squad-roster-empty squad-slot-add");add.setAttribute("aria-label",(i+1)+"枠目のガチャを引く");card.append(add,el("small",null,(i+1)+"枠目・空き"));}
    else{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
     card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"リーダー":"仲間")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
+   if(m){const release=makeBtn("野生に放つ",()=>{if(!confirm((m.name||m.speciesName)+"を野生に放ちますか？元には戻せません。"))return;const result=core.release(m.id);if(result.ok){updateHome();window.dispatchEvent(new CustomEvent("wild-squad-released",{detail:{memberId:m.id}}));}},"squad-release");card.append(release);}
    roster.append(card);
   }
-  hint.textContent=members.length?members.length+"体で生存中。既存個体を破棄するガチャはできません。":"まだ編成がありません。ガチャを引いて最大3体を選択。";
-  gacha.disabled=false;
-  gacha.textContent=members.length?"編成を確認・補充する":"ガチャを引く・編成する";
+  hint.textContent=members.length?members.length+"体で生存中。空き枠の＋でガチャを引けます。":"空き枠の＋を押して動物を選択してください。";
+  gacha.hidden=true;
  }
  function showSize(){
   info.textContent="編成数を選択してください。各枠、初回＋最大3回の引き直し。";
@@ -252,7 +253,7 @@ const ready=()=>{
  function showLivingSquad(){
   const current=core.load(),members=current?.members||[];
   if(!members.length){showSize();return;}
-  info.textContent="現在の"+members.length+"体編成。生存個体は破棄できません。欠員はタイトル画面または巣で補充できます。";
+  info.textContent="現在の"+members.length+"体編成。空き枠は＋から補充できます。";
   body.replaceChildren();
   for(const member of members){
    const isLeader=current.leaderId===member.id;
@@ -297,6 +298,11 @@ const ready=()=>{
   else focusGacha();
  }).observe(root,{attributes:true,attributeFilter:["hidden"]});
  gacha.addEventListener("click",begin);
+ const resetButton=$("start-btn");if(resetButton){resetButton.textContent="ゲームをリセットして新規で開始する";resetButton.addEventListener("click",event=>{event.preventDefault();event.stopImmediatePropagation();if(!confirm("現在のゲームと編成をリセットします。3体の個体は失われ、ガチャから再編成します。続けますか？"))return;core.resetForNewGame();localStorage.removeItem("wild-reclaim-autosave-v2");updateHome();info.textContent="新しいゲーム：空き枠の＋を押してガチャを引いてください。";},true);}
+ $("checkpoint-menu-btn")?.classList.add("hidden");$("checkpoint-list")?.classList.add("hidden");
+ $("spawn-picker")?.classList.add("hidden");
+ menu.querySelector(".menu-foot")?.remove();
+ menu.querySelector(".landscape-menu-choice .pick-head")?.remove();
  // Refresh the roster whenever the title is shown after a death or a pause.
  if(typeof MutationObserver==="function"){
   const observer=new MutationObserver(()=>{if(!menu.classList.contains("hidden"))updateHome()});
