@@ -1,3 +1,14 @@
+# 2026-11-04｜緊急起動復旧：タイトル「再読み込みしてプレイ」／ガチャ権案内／リセット無反応
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A / PHASE=A_FEATURES
+- 【原因確定】前回のタイトルUI整理で #best-score をHTMLから削除したのに game.js 737行付近のトップレベル実行で `$("best-score").textContent` を残し、TypeError（null参照）でIIFEが終了。結果として WildGameReady が true にならず、HTMLの load 障害案内が「続きからプレイ」を「再読み込みしてプレイ」へ置換し、新規ゲーム／続きからイベントも未登録。game.js の該当2箇所を要素存在確認後のみ更新するよう修復。
+- 【実修正】ガチャUI自体が初期化できる限り、リセット確認は game.js の起動に依存せず squad-gacha-ui.js が直接 click を受け取り、モーダルで「リセットする／キャンセル」を表示。確定すると編成をクリア・旧オートセーブを削除し、チュートリアルの完了履歴と旧チェックポイント元データは保持。game.js側の二重リスナーを削除。
+- 【ガチャ権】ガチャ権0枚の空き枠＋では「狩猟8匹または共有XP600→タイトル/巣で＋」を説明し、「続きからプレイ」ボタンを同じ案内内に表示。タイトル編成下にも権利枚数・獲得条件を常設。初回（開始前）の編成は無料、以降は権利消費。
+- 【表示】 start-region の select を type=hidden input に変更し出発地点選択を物理的に削除。通常時 menu-landscape-note を非表示、起動失敗時だけ短い明示案内。HTMLの旧「再読み込みしてプレイ」への自動書換えを撤去。図鑑タイル文言は常に「図鑑」（登録数はaria-labelに保存）。資産リビジョンを更新して古いJS/CSSキャッシュを回避。
+- 【チュートリアル】過去に完了（tutorialLessonsSeenEverに7記録）した人はリセット後の新世界でも mission=7/missionComplete=true で再チュートリアルを出さない。初回未完了者の既存フローは維持。
+- 【実コミット】game.js 57bf12706dd498f73f065de71aed96bf7ae0d68e・db02599d0634b3612f3812c83ea6aa93e890ee89・a0a673ecb2a650096ccb59be2e4bd7ab8e63c861、squad-gacha-ui.js ed4e8923fd5673efc3b0c80c7c9542444c4fd0ec・f9763a30f760657e6bffcae9766ec4c086ec3a4e、visual.css 13b750de00f56a5cb48c67a04b31fd425346b7be、bestiary.js 9fad639bdf46b9b98c84b17b8833efd097c31ecf、index.html bad5b0942c3023fe630095d44dc05b8c5be1746b・ce169aeeefac3a31ffb3579e4776e2145f8645d8。各ファイルの最新main blob SHAを取得して個別更新。
+- 【検証】対象JS構文・タイトルに必要なDOM ID・起動時best-score null参照回避・起動失敗時CTA上書き消去・直接リセット紐付け・隠しinput・ガチャ案内・既読チュートリアル分岐等14項目PASS。現行squad-coreの隔離localStorageシミュレーションで空き枠追加/使用権/野生放逐/リセット/既読記録保持12項目PASS。
+- 【限界】GitHub PagesへのHTTP接続は利用環境で失敗したためブラウザ/Android実画面での正常復旧はまだ未検証。PHASE=A_FEATURES続行。00分担当は新ゲーム→ロード→チュートリアル既読を実ブラウザで、20分担当は狩猟8回・XP600報酬と巣ガチャ、40分担当はタイトルCSSとスマホ縦横ガチャを実機優先。
+
 # 2026-11-04｜00分担当：保存時の個体ID重複防止を実装
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A / PHASE=A_FEATURES
 - 【実装】squad-core.js save() に個体IDの重複除去と members 配列検証を追加。従来のload()での重複除去に加え、ゲーム本体や他担当から保存時に重複IDが渡っても同じ動物が2枠に永続化されない。生存個体のスロット・リーダー自動選択・死亡ID台帳・旧セーブキーは維持。
