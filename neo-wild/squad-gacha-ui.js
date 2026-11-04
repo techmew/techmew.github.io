@@ -303,6 +303,11 @@ const ready=()=>{
  function openSlot(index){
   const current=core.load(),members=current?.members||[];
   if(!Number.isInteger(index)||index<0||index>=5||members.some(m=>m.slotIndex===index))return;
+  // Reject field gacha before drawing: only the title screen or an actual den may replenish stock.
+  if(members.length&&!current?.pendingStart&&$("menu")?.classList.contains("hidden")&&!window.__wildSquadAtDen){
+   message("追加ガチャはタイトル画面か巣でのみ利用できます。巣に戻るかタイトルへ移動してください。");
+   return;
+  }
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
    message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹・共有経験値600・探索地点2か所・チュートリアル完了で獲得する → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
    const play=makeBtn("続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
