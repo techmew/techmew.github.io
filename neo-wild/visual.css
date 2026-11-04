@@ -1613,3 +1613,32 @@
 #menu #squad-roster .squad-roster-preview canvas{
  background:transparent!important;background-image:none!important;
 }
+
+/* SOLO3_TRANSPARENT_CARDS_20261105: three large portraits in one row on phones.
+   The title screen retains its deep-green base; animal cards have no black fill. */
+#menu #squad-roster .squad-roster-slot,
+#menu #squad-roster .squad-roster-slot.is-leader,
+#menu #squad-roster .squad-roster-slot[aria-current="true"]{
+ background:transparent!important;background-image:none!important;
+}
+#menu #squad-roster .squad-roster-preview,
+#menu #squad-roster .squad-roster-preview canvas{
+ background:transparent!important;background-image:none!important;
+}
+#menu #squad-roster .squad-roster-slot button.squad-resume-character{
+ display:block!important;min-height:44px!important;width:100%!important;
+ padding:7px 2px!important;margin:3px 0!important;
+ border:2px solid #e4c77e!important;border-radius:7px!important;
+ background:#e4c77e!important;color:#16362c!important;
+ font:900 clamp(10px,2.6vw,14px)/1.25 "Noto Sans JP",sans-serif!important;
+ white-space:normal!important;touch-action:manipulation!important;
+}
+@media (max-width:700px){
+ #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important;}
+ #menu #squad-roster .squad-roster-slot{padding:5px 2px!important;min-height:330px!important;}
+ #menu #squad-roster .squad-roster-preview{height:142px!important;}
+ #menu #squad-roster .squad-roster-preview canvas{height:142px!important;}
+}
+@media (orientation:landscape) and (max-height:520px){
+ #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
