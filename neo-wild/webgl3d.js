@@ -1877,7 +1877,7 @@ function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
    bestiaryFrame={fb,tex,depth,w,h};
   }
   gl.bindFramebuffer(gl.FRAMEBUFFER,bestiaryFrame.fb);gl.viewport(0,0,w,h);
-  gl.clearColor(.055,.085,.095,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
+  gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT); // Transparent preview framebuffer.
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.STENCIL_TEST);
   data=[];animal({...m,x:0,y:0,dir:yaw,vx:0,vy:0,step:0,steps:0,deathPose:0},false,0);
   const vertices=new Float32Array(data);
