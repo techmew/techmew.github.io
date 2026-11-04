@@ -108,6 +108,14 @@ function kill(id){
  }
  return saved;
 }
+// Verify adoption survives a storage read; silent localStorage failures must not start a ghost roster.
+function saveVerified(roster,requiredIds){
+ const saved=save(roster),verified=load();
+ if(!verified||verified.leaderId!==saved.leaderId||verified.members.length!==saved.members.length||
+    requiredIds.some(id=>!verified.members.some(m=>m.id===id)))
+  throw Error("個体データを保存できません。端末の保存容量を確認して再試行してください");
+ return verified;
+}
 function newSquad(members,leaderId){
  // The title UI is not a security boundary: never erase living animals via a stale dialog.
  const existing=load();
@@ -117,7 +125,7 @@ function newSquad(members,leaderId){
     new Set(members.map(m=>m.id)).size!==members.length)
    throw Error("所有は操作中1体＋ストック2体の合計最大3体です。重複・死亡個体は禁止");
  if(!members.some(m=>m.id===leaderId))throw Error("操作するリーダーを選択してください");
- return save({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0,pendingStart:true,newWorldOnStart:localStorage.getItem(RESET_NEW_WORLD)==="1"||!read("wild-reclaim-world-chronicle-v1",null)});
+ return saveVerified({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0,pendingStart:true,newWorldOnStart:localStorage.getItem(RESET_NEW_WORLD)==="1"||!read("wild-reclaim-world-chronicle-v1",null)},members.map(m=>m.id));
 }
 function addXp(amount){
  const r=load();if(!r)return null;
@@ -202,7 +210,9 @@ function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=MAX_OWNED)return {ok:false,reason:"新規編成中の空き枠ではありません"};
  if(!member?.id||!playable.has(member.species)||member.alive===false||excluded().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
- r.members.push({...member,slotIndex:slot,alive:true});return {ok:true,roster:save(r)};
+ r.members.push({...member,slotIndex:slot,alive:true});
+ try{return {ok:true,roster:saveVerified(r,r.members.map(m=>m.id))};}
+ catch(_){return {ok:false,reason:"新規個体の保存に失敗しました。空き容量を確認して再試行してください"};}
 }
 function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;r.newWorldOnStart=false;localStorage.removeItem(RESET_NEW_WORLD);return save(r);}
 function livingCount(){return load()?.members?.length||0}
