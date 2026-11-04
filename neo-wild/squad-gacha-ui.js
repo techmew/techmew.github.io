@@ -162,7 +162,7 @@ const ready=()=>{
     const thumb=preview(m,"squad-roster-preview");card.append(thumb);
     card.append(el("strong",null,m.name||m.speciesName),el("small",null,m.grade+"評価 / "+(data.leaderId===m.id?"リーダー":"仲間")),el("small",null,"HP "+Math.round((m.iv?.hp||1)*100)+"% / 攻 "+Math.round((m.iv?.attack||1)*100)+"%"),el("small",null,"速 "+Math.round((m.iv?.speed||1)*100)+"% / 持 "+Math.round((m.iv?.stamina||1)*100)+"%"));
    }
-   if(m){const release=makeBtn("野生に放つ",()=>confirmRelease(m),"squad-release");card.append(release);}
+   // Living squad members cannot be discarded or exchanged.
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
