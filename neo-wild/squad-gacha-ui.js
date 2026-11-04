@@ -187,6 +187,7 @@ const ready=()=>{
   }catch(_){}
   const liveClock=window.WildWorldTime?.getState?.();
   if(Number.isFinite(liveClock?.year))year=Math.max(year,liveClock.year);
+  if(localStorage.getItem("wild-reclaim-explicit-new-world-v1")==="1"||core.load()?.newWorldOnStart)year=0;
   draw=core.drawSlot(year,explored,streak);draw.roll();selected=draw.options[0].id;showDraw();
  }
  function showDraw(){
