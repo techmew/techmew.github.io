@@ -70,9 +70,16 @@ function selectActive(id){
 // cannot reintroduce the individual, even when the active character dies.
 function kill(id){
  if(!id)return load();
+ // A death tombstone is committed first. Even if saving the roster fails,
+ // load() will filter the deceased ID from every older snapshot.
  const d=dead();d.add(id);saveDead(d);
  const roster=load();
- return roster?save(roster):null;
+ if(!roster)return null;
+ const saved=save(roster);
+ // If the active animal died, clear any pending start state only when
+ // there are survivors; an empty roster must return to the gacha flow.
+ if(!saved.members.length&&saved.pendingStart){saved.pendingStart=false;return save(saved);}
+ return saved;
 }
 function newSquad(members,leaderId){
  // The title UI is not a security boundary: never erase living animals via a stale dialog.
