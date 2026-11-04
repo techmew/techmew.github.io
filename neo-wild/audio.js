@@ -20,7 +20,7 @@ function loadMusicChoice(){
 }
 let musicChoice=loadMusicChoice();
 const MUSIC_LEVEL_KEY="wild-reclaim-bgm-volume-v1";
-function loadMusicVolume(){try{const n=Number(localStorage.getItem(MUSIC_LEVEL_KEY));return Number.isFinite(n)&&n>=0&&n<=100?n/100:.55}catch(_){return .55}}
+function loadMusicVolume(){try{const saved=localStorage.getItem(MUSIC_LEVEL_KEY);if(saved===null)return .55;const n=Number(saved);return Number.isFinite(n)&&n>=0&&n<=100?n/100:.55}catch(_){return .55}}
 let musicVolume=loadMusicVolume();
 let context=null,master=null,musicBus=null,atmosBus=null,sfxBus=null,loopSources={},loopGains={},effectBuffers={};
 let enabled=true,started=false,scene={weather:"CLEAR",area:0,danger:false},lastAmbient=-1,deathFade=false;
