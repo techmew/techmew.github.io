@@ -167,8 +167,15 @@ function release(id){
  try{
   // If the permanent exclusion fails, roll back the queued wild encounter.
   localStorage.setItem(key,JSON.stringify(queue));
+  // A storage shim may silently drop writes: never tombstone an individual
+  // unless its wild identity has actually been persisted first.
+  const queued=read(key,[]);
+  if(!Array.isArray(queued)||queued.filter(x=>x?.id===id).length!==1||
+     !queued.some(x=>x.id===id&&x.name===member.name&&x.species===member.species))
+   throw Error("野生出現キューの保存を確認できません");
   try{
    const blocked=dead();blocked.add(id);saveDead(blocked);
+   if(!dead().has(id))throw Error("永久離脱IDの保存を確認できません");
   }catch(error){
    try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){}
    throw error;
