@@ -1566,3 +1566,22 @@
 @media(orientation:landscape) and (max-height:520px){
  #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
 }
+
+/* LEGACY_ROSTER_COMPAT_20261105: preserve four/five living old-save animals.
+   New rosters remain a fixed, large, transparent three-column layout. */
+#menu #squad-roster:has(> .squad-roster-slot:nth-child(4)){
+ display:flex!important;flex-flow:row nowrap!important;gap:6px!important;
+ overflow-x:auto!important;overscroll-behavior-x:contain!important;
+ scroll-snap-type:x proximity!important;scroll-padding:6px!important;
+ padding:4px 2px 12px!important;-webkit-overflow-scrolling:touch!important;
+}
+#menu #squad-roster:has(> .squad-roster-slot:nth-child(4)) > .squad-roster-slot{
+ flex:0 0 clamp(126px,32%,192px)!important;min-width:126px!important;
+ scroll-snap-align:start!important;
+}
+#menu #squad-roster .squad-roster-slot:focus-within{
+ outline:3px solid #ffe08a!important;outline-offset:1px!important;
+}
+#menu #squad-roster .squad-roster-slot button{
+ touch-action:manipulation!important;
+}
