@@ -92,6 +92,8 @@ function kill(id){
  // A death tombstone is committed first. Even if saving the roster fails,
  // load() will filter the deceased ID from every older snapshot.
  const d=dead();d.add(id);saveDead(d);
+ // A silently ignored storage write must not be treated as permanent death.
+ if(!dead().has(id))throw Error("死亡個体の永久保存に失敗しました。端末の保存容量を確認してください");
  const roster=load();
  if(!roster)return null;
  // The permanent death ID is already stored. A quota failure on the roster
