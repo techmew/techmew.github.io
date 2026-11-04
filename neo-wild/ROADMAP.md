@@ -1,3 +1,10 @@
+## 2026-11-05 07:00｜00分担当：野生放流と死亡の永久台帳を分離
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- squad-core.js：新規放流の永久離脱IDを `wild-reclaim-released-ids-v1` に独立保存。死亡ID台帳とは分離し、所有復元・ガチャ採用・旧セーブ復元では両台帳の和集合を除外。旧実装で死亡台帳に記録された放流IDも引き続き復活禁止。
+- 放流時の野生キュー保存確認→放流ID台帳保存確認→所有一覧更新を維持。死亡は従来どおり死亡台帳にのみ記録。
+- main commit `342bc5a913e2a3cf1ad77a3ae68df2ca2f35fd74` / squad-core.js blob `3b11e13d9ee0f14d407d2180b5ed6f5347f73034`。
+- 静的検査：更新前blob一致と限定差分。ブラウザE2E、旧4〜5体実セーブ、Android縦横、Pages反映は未検証。次担当は放流・死亡の各台帳、旧放流IDの復元禁止、保存拒否注入を実ブラウザ検証。
+
 ## 2026-11-05 06:40｜40分担当：所有一覧モーダルの3体横並び・透明大型プレビュー
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - squad-gacha-ui.js：所有一覧モーダルの生存カードを専用squad-living-gridへ集約。縦横とも3体横並びで選択・放流ボタンを表示し、旧4〜5体の生存個体は横スクロールで全件保護。
