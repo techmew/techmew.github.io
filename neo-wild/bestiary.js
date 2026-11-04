@@ -51,7 +51,7 @@ function recordKill(type){
 }
 function updateSummary(){
  const total=catalog.filter(x=>count(x.type)).length;
- if($("bestiary-open"))$("bestiary-open").textContent="動物図鑑　"+total+" / "+catalog.length;
+ if($("bestiary-open")){ $("bestiary-open").textContent="図鑑"; $("bestiary-open").setAttribute("aria-label","動物図鑑　"+total+" / "+catalog.length); }
  if($("bestiary-progress"))$("bestiary-progress").textContent="登録 "+total+" / "+catalog.length+"種";
 }
 function drawFallback(canvas,item,angle=0){
