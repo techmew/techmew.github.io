@@ -127,11 +127,11 @@ function fillVacancy(member){
  const saved=save(r);
  return {ok:true,roster:saved};
 }
-function release(id){const r=load();const m=r?.members?.find(x=>x.id===id);if(!m)return {ok:false,reason:"個体が見つかりません"};if(r.members.length<=1)return {ok:false,reason:"最後の1体は野生に返せません"};
- // Releasing removes ownership permanently; older roster/autosave snapshots must not reclaim this ID.
- // The released NPC is stored separately and remains eligible to spawn in the world.
- const removed=dead();removed.add(id);saveDead(removed);
- r.members=r.members.filter(x=>x.id!==id);if(r.leaderId===id)r.leaderId=r.members[0].id;const saved=save(r);const released={...m,releasedAt:Date.now()};const history=read("wild-reclaim-released-v1",[]);history.push(released);localStorage.setItem("wild-reclaim-released-v1",JSON.stringify(history.slice(-100)));window.dispatchEvent(new CustomEvent("wild-animal-released",{detail:{member:released}}));return {ok:true,roster:saved,member:released};}
+function release(id){
+ // 2026-11-04 solo-five contract: ownership cannot be discarded to reroll.
+ // Preserve the API for legacy callers, but never mutate roster or tombstones.
+ return {ok:false,reason:"所有個体は野生に返せません。死亡した場合のみ枠が空きます"};
+}
 function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);localStorage.setItem(RESET_NEW_WORLD,"1");return true;}
 function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=5)return {ok:false,reason:"新規編成中の空き枠ではありません"};
