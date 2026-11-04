@@ -3796,7 +3796,7 @@ function provokePreyAfterPlayerHit(m){
 }
 function isProvokedPrey(m,sp,d){
  return !!sp?.prey&&m.hp>0&&elapsed<(m.provokedUntil||0)&&
-  d<340&&(m.type!=="carp"||waterDepth(P.x,P.y)>.035);
+  d<340&&(m.type!=="carp"||(waterDepth(P.x,P.y)>.035&&waterDepth(m.x,m.y)>.035));
 }
 // Wounded prey can strike backward while escaping. Most choose flight and only
 // counter if the attacker stays close. No pursuit, teleport, or permanent aggro.
@@ -3827,7 +3827,7 @@ function updateWoundedPreyDefense(m,sp,dt,d,spotted,angle){
  }
  const recentlyStruck=elapsed<(m.counterFleeUntil||0)||elapsed<(m.provokedUntil||0);
  if(!recentlyStruck||!spotted||m.stun>0||m.counterFleeCooldown>0||(m.flee<=0&&!isProvokedPrey(m,sp,d))||
-    d>P.r+m.r+102||P.inv>0||(m.type==="carp"&&waterDepth(P.x,P.y)<=.035))return;
+    d>P.r+m.r+(m.type==="hedgehog"?20:30)||P.inv>0||(m.type==="carp"&&waterDepth(P.x,P.y)<=.035))return;
  m.counterFleeArmed=true;
  m.counterFleeTell=m.type==="hedgehog"?.23:m.type==="carp"?.24:.30;
  m.counterFleeCooldown=m.type==="hedgehog"?3.0:3.8;
@@ -4987,7 +4987,7 @@ function update(dt){
      }else if(d<230)label(m.x,m.y-m.r-24,"角突きを回避！","#b4e6c2");
      m.flee=Math.max(m.flee,2.4);m.dir=angle+Math.PI;
     }
-    if(!m.headbuttArmed&&m.headbuttTell===0&&spotted&&d<P.r+m.r+63&&m.attack<=0&&P.inv<=0&&
+    if(!m.headbuttArmed&&m.headbuttTell===0&&spotted&&d<P.r+m.r+38&&m.attack<=0&&P.inv<=0&&
        (elapsed<(m.counterFleeUntil||0)||(m.flee>0&&d<P.r+m.r+35))){
      m.attackVariation=COMBAT_LEVELS?.nextAttack(m);
      m.headbuttTell=.54*(m.attackVariation?.windup||1);m.headbuttArmed=true;
@@ -5015,7 +5015,7 @@ function update(dt){
      m.flee=Math.max(m.flee||0,2.2);m.dir=angle+Math.PI;
     }
     if(!m.cornerArmed&&m.cornerTell===0&&spotted&&
-       d<P.r+m.r+38&&m.attack<=0&&P.inv<=0&&
+       d<P.r+m.r+24&&m.attack<=0&&P.inv<=0&&
        ((m.flee||0)>0||m.hp<m.maxHp*.85)){
      m.attackVariation=COMBAT_LEVELS?.nextAttack(m)||null;
      m.cornerTell=(m.type==="snake"?.43:.51)*(m.attackVariation?.windup||1);
@@ -5064,7 +5064,7 @@ function update(dt){
     else if(pause){
      m.dir=chooseEscape(m,angle+Math.PI,P);
      vx=Math.cos(m.dir)*s.speed*.72;vy=Math.sin(m.dir)*s.speed*.72;
-    }else if(d>P.r+m.r+24){
+    }else if(d>P.r+m.r+12){
      m.dir=steerPursuit(m,P.x,P.y);
      const pace=m.type==="deer"||m.type==="zebra"||m.type==="serow"?.83:
        m.type==="mountainGoat"?.80:m.type==="carp"?.76:.88;
