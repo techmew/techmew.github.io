@@ -179,12 +179,8 @@ const ready=()=>{
     card.setAttribute("role","button");card.tabIndex=0;card.setAttribute("aria-label",m.name+"を操作キャラに選択");
     card.addEventListener("click",e=>{if(e.target.closest("button"))return;choose()});
     card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();choose()}});
-    card.append(makeBtn("野生に返す",()=>{
-      if(!window.confirm(m.name+"を野生に返しますか？ 所有一覧から外れ、ゲーム世界に野生動物として登場します。"))return;
-      const result=core.release(m.id);
-      if(!result.ok){window.alert(result.reason);return;}
-      updateHome();
-    },"squad-release-character"));
+    // Ownership is permanent until death. No manual discard or release UI.
+
    }
    // Card tap selects the active individual; release is an explicit separate action.
    roster.append(card);
