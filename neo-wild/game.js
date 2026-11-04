@@ -3782,6 +3782,8 @@ function updateWoundedPreyDefense(m,sp,dt,d,spotted,angle){
  if(!sp?.prey||PREY_WITH_OWN_DEFENSE.has(m.type)||m.hp<=0)return;
  m.counterFleeCooldown=Math.max(0,(m.counterFleeCooldown||0)-dt);
  if(m.counterFleeArmed){
+  // A stunned animal cannot execute a counterattack until it recovers.
+  if(m.stun>0)return;
   m.counterFleeTell=Math.max(0,(m.counterFleeTell||0)-dt);
   if(m.counterFleeTell<=0){
    m.counterFleeArmed=false;
