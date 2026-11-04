@@ -1,3 +1,9 @@
+## 2026-11-05 04:40｜40分担当：旧セーブ個体の所有一覧欠落を修復
+ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
+- 【実コード】squad-gacha-ui.js の updateHome() で旧SAVE_SCHEMA2の slotIndex 欠落・重複・範囲外を検出し、空き表示枠に生存個体を補完。旧4〜5体も全個体表示を維持。操作個体選択・個体から続き・野生放流確認・透明カード・3体横一列を変更しない。
+- main commits: 6a62e8828eeb93a02274500873186c5e8244ce63（UI）, e4ab83fdb39b2b4a5c93fc952c75b4c9f87b7d07（キャッシュ）。UI blob 20f17f8a8a4940e69d787902da93c8162cab027d、index blob c8e3cb76bcb739edec1548c859621db81c149192。
+- 静的検査：対象ファイルを最新SHAで取得・完全一致置換・書込前SHA再検証。未検証：ブラウザE2E、Android縦横、旧セーブ復元、放流強化個体との再遭遇。次担当：旧セーブの重複slotIndex・欠落slotIndexを実ブラウザに投入して、全生存個体表示と選択再開を確認。
+
 ## 2026-11-05 04:20｜20分担当：放流後の温厚個体の敵対状態を抑制
 ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE / PHASE=A_FEATURES
 - 【実コード】game.js 放流個体の peaceful（のんびり）AIは非挑発時に警戒・探索・攻撃予備動作を解除し、近距離では静止する。旧所有3体・旧4〜5体保護、選択個体復帰、放流ID永続化、4性格と元名表示は既存コードを保持。
