@@ -7021,9 +7021,7 @@ function startSelectedNewGame(){
  saveAuto();
  return true;
 }
-$("start-btn").addEventListener("click",()=>{
- if(mode==="menu")window.WildSquadGachaUI?.confirmReset?.();
-});
+// The title gacha UI owns reset confirmation and the button event independently of the game engine.
 $("confirm-new-game-btn").addEventListener("click",startSelectedNewGame);
 $("cancel-new-game-btn").addEventListener("click",hideNewGameConfirmation);
 selectNewGameAnimal(choice);
