@@ -253,7 +253,7 @@ const ready=()=>{
    if(!refill&&(!chosenLeader||!OPERABLE.has(chosenLeader.species))){info.textContent="操作可能なリーダーを選んでください。";return}
    if(refill){
     const current=core.load();
-    if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=3){info.textContent="タイトル画面か巣で空き枠を確認してください。";return;}
+    if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=5){info.textContent="タイトル画面か巣で空き枠を確認してください。";return;}
     const result=current.pendingStart?core.addInitialSlot(chosen[0]):core.fillVacancy(chosen[0]);
     if(!result.ok){info.textContent=result.reason;return;}
     root.hidden=true;updateHome();
