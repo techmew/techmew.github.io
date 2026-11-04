@@ -116,8 +116,8 @@
         <span class="resume-cta-title"><span id="resume-cta-label">最初からプレイ</span><small id="resume-cta-help">種族・画面・出発地点を選んで開始</small></span>
         <span id="continue-detail" class="resume-detail"></span>
       </button>
-      <button id="checkpoint-menu-btn" type="button" class="save-choice hidden" aria-controls="checkpoint-list" aria-expanded="false">チェックポイントから再開</button>
-      <div id="checkpoint-list" class="hidden" role="group" aria-label="保存されたチェックポイント">
+      <button id="checkpoint-menu-btn" type="button" class="save-choice hidden" style="display:none" aria-controls="checkpoint-list" aria-expanded="false">チェックポイントから再開</button>
+      <div id="checkpoint-list" class="hidden" style="display:none" role="group" aria-label="保存されたチェックポイント">
         <button id="checkpoint-slot-0" type="button" class="checkpoint-choice hidden"></button>
         <button id="checkpoint-slot-1" type="button" class="checkpoint-choice hidden"></button>
         <button id="checkpoint-slot-2" type="button" class="checkpoint-choice hidden"></button>
@@ -142,13 +142,13 @@
         </div>
         <p id="new-game-animal-label" class="new-game-animal-status" aria-live="polite" hidden aria-hidden="true">新規ゲームの操作動物：アカギツネ</p>
 
-<div class="pick-head"><span>02</span> 画面の向きを選択</div>
+<div class="pick-head">画面の向きを選択</div>
 <div class="landscape-menu-choice">
       <div class="orientation-choices" role="group" aria-label="プレイ画面の向き"><button id="menu-portrait-btn" type="button" class="orientation-choice selected" aria-pressed="true"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device portrait-device" aria-hidden="true"></span><strong>縦画面</strong><small>縦に持って遊ぶ</small></button><button id="menu-landscape-btn" type="button" class="orientation-choice" aria-pressed="false"><span class="orientation-choice-indicator">✓ 選択中</span><span class="orientation-device landscape-device" aria-hidden="true"><span class="device-display">↔</span></span><strong>横画面</strong><small>横向き・全画面</small></button></div><p id="menu-orientation-status" role="status" aria-live="polite">✓ 選択中：縦画面</p>
       <p id="menu-landscape-note" role="status" aria-live="polite">画面を選択して上の「プレイ」ボタンを押してください。</p>
     </div>
     
-<label id="spawn-picker" for="start-region">03　始める場所を選択（新規ゲーム）
+<label id="spawn-picker" for="start-region">始める場所を選択（新規ゲーム）
           <select id="start-region" aria-label="出発地点">
             <option value="home">霞町・草陰の巣</option>
             <option value="zoo">白鷺の獣舎跡</option>
@@ -158,7 +158,7 @@
             <option value="river">朝霧川の土手</option>
           </select>
         </label>
-<button id="start-btn" class="big-btn" type="button">新しいゲームを開始 <span>NEW GAME →</span></button>
+<button id="start-btn" class="big-btn" type="button">ゲームをリセットして新規で開始する</button>
 <div id="new-game-confirm" class="save-confirm hidden" role="group" aria-label="新規ゲーム開始の確認">
  <p>現在の自動保存データを上書きし、<strong id="new-game-confirm-species">アカギツネ</strong>で新しく開始します。チェックポイントは残ります。</p>
  <button id="confirm-new-game-btn" class="big-btn" type="button">選んだ動物で新しく開始</button>
@@ -166,7 +166,7 @@
 </div>
 <div id="soundtrack-caption">BGM：廃都・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
 </div></section>
-<div class="menu-foot"><span>移動 / 狩り / 捕食 / 飛びつき / 視点回転 / 進化</span><span id="best-score">BEST SCORE —</span></div>
+
 </div></div>
 <div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
@@ -231,8 +231,8 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
-<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=bca986c3-squad-20261104" defer></script>
-<script src="./squad-gacha-ui.js?rev=f8257ed-title-den-refill-20261104" defer></script>
+<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=1bf0ff4-release-reset" defer></script>
+<script src="./squad-gacha-ui.js?rev=da3f8c0-title-slots-reset" defer></script>
 <script src="./game.js?rev=6c8d81c5-squad-resume-20261104" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
