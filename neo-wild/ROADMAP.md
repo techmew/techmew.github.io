@@ -1,3 +1,9 @@
+## 2026-11-05 09:00 JST｜00分担当・初期ガチャ採用の保存耐久性
+PHASE=A_FEATURES / ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE。
+- 【実装】squad-core.js の newSquad / addInitialSlot に保存後の再読込照合を導入。localStorage が例外なく書込を無視しても、採用・編成成立と誤報せずエラーを返す。採用個体ID全件・リーダーID・所有数を照合。既存の3体上限、旧4〜5体保護、放流ID・野生キュー、死亡台帳、選択リーダー再開には変更なし。
+- main commit f93019af3a75b329227bdb3169184f6d00cd3dbf / squad-core.js blob d43a5b72d14ae290c29d638a55817c8ecea13fcc（更新前 3e85e2632593e9205e0a366925bdd13cdcb2c1a7）。
+- 検証: main 最新blob照合と限定差分。ブラウザでの書込拒否注入・初期ガチャ画面・旧SAVE_SCHEMA2・Android縦横・Pages E2Eは未検証。次回は newSquad 失敗時の画面とガチャ候補保持、旧4/5体自然移行を実ブラウザで検証する。
+
 ## 2026-11-05 40分枠｜SOLO3_COMPACT_GREEN（PHASE=A_FEATURES）
 - 実装: 所有カードをタップ/キーボードで操作個体選択。個体別の「操作」「選んで続きから」ボタンを撤去。上部の大きな「続きからプレイ」からのみ開始。カードは深緑・横3列・コンパクト、プレビュー背景は透明、「操作中」「野生に放つ」を保持。
 - 変更: squad-gacha-ui.js 67205cc609773ada935d1eb9ed5633922a549f92 / visual.css 9364ef98cf23162dabc3a5a1935718d32ea124c1 / index.html 23cf4cfe29cd27667d5c02724cdefb0bdbb419a1。最新blob SHA確認済み、既存変更を保持。
