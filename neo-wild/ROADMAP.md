@@ -1,3 +1,11 @@
+# 2026-11-04 15時台｜00分担当：寿命生成・寿命表示・老衰デバッグを撤去
+ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
+- 【実装】game.js の initializeLife は経過年齢の記録だけに変更。旧セーブ由来の lifespanYears/ageWarningStage は操作個体のメモリ上で除去し、寿命値を新規生成しない。寿命による死亡は発生させない。
+- 【実装】HUDの「寿命N年」を撤去し「年齢N歳」に統一。旧老衰デバッグ操作は廃止案内へ変更。世界時計120秒/年と既存SAVE_SCHEMA2の保存キーは維持。
+- 【コミット】game.js 1d3ccbb92e7a41462332bdbeb12ec8e31f508de5 / blob 641454f760c7529360f078bb9d3b0de7db88d785。最新main blob取得後更新。
+- 【静的検査】旧寿命テーブルと寿命HUDの除去確認。Android・実ブラウザ・Pad・旧SAVE_SCHEMA2 E2E・Pages配信は未検証。
+- 【次回】死亡個体IDの即永続削除と旧チェックポイント復活防止、5枠選択→死亡→再開のE2E。20分/40分の変更は上書きしない。
+
 # 2026-11-04｜40分担当：日本語個体名・タップ選択・野生返却
 ACTIVE_SPRINT_ID: V1_20261104_SOLO5_A / PHASE=A_FEATURES
 - 【実装】squad-core.js に約1,100件以上の日本語・カタカナ名前候補を組み合わせ生成し、ガチャ個体名へ割当。旧個体の名前は維持。
