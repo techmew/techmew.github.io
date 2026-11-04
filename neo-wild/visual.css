@@ -1367,3 +1367,13 @@
 #menu #menu-landscape-note:not([data-error="true"]){display:none!important}
 #menu #squad-home .squad-home-hint{font-size:11px!important;line-height:1.6!important}
 #menu #start-btn{cursor:pointer!important;pointer-events:auto!important;touch-action:manipulation!important}
+
+/* SINGLE_CHARACTER_COLLECTION_20261104 */
+#menu #squad-roster{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px!important}
+#menu .squad-roster-slot{min-width:0!important;min-height:145px!important;padding:5px 3px!important}
+#menu .squad-active-badge,#menu .squad-stock-badge{display:block;width:100%;padding:4px 2px;border-radius:5px;font-size:clamp(10px,2.6vw,14px);font-weight:900;text-align:center;box-sizing:border-box}
+#menu .squad-active-badge{color:#142820;background:#ffe08a;box-shadow:0 0 0 2px #f8c65c}
+#menu .squad-stock-badge{color:#d7e7e2;background:#315052}
+#menu .squad-select-character,#squad-gacha .squad-select-character{display:block!important;width:100%;min-height:35px;margin-top:5px;padding:5px 3px!important;background:#d9ae5e!important;color:#142524!important;border-radius:6px;font-size:clamp(10px,2.4vw,13px)!important;font-weight:900}
+@media(max-width:430px){#menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(orientation:landscape) and (max-height:520px){#menu #squad-roster{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
