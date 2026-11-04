@@ -284,7 +284,9 @@ const ready=()=>{
   const current=core.load(),members=current?.members||[];
   if(!Number.isInteger(index)||index<0||index>=3||members.some(m=>m.slotIndex===index))return;
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
-   message("ガチャ権は0枚です。獲得方法：①「続きからプレイ」で狩りをする ②獲物8匹を狩る、または経験値600を貯める ③タイトルに戻って空き枠の＋を押す。最初の編成（全滅後の再編成も含む）は無料です。");return;
+   message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹を狩る、または経験値600を貯める → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
+   const play=makeBtn("続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
+   body.prepend(play);return;
   }
   refill=members.length>0;slotTarget=index;size=1;chosen=[];draw=null;selected=null;streak=0;
   leader=null;root.hidden=false;nextSlot();root.scrollTop=0;
