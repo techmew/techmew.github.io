@@ -3105,12 +3105,7 @@ function resolveAttack(){
     }
     hit++;
    
-    if(species[m.type].prey&&m.hp>0){
-     // Every normally harmless animal may counter when the player actually hits it.
-     // It remains a fleeing prey animal; this never turns it into a pursuer.
-     m.counterFleeUntil=Math.max(m.counterFleeUntil||0,elapsed+6);
-     startlePrey(m,P,"hit");
-    }
+    if(species[m.type].prey&&m.hp>0)provokePreyAfterPlayerHit(m);
      if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,downwindStrike?"風下からの奇襲！":"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90);if(downwindStrike&&m.hp<=0)m.windStalkReward=true;}
     if(dive){label(m.x,m.y-m.r-51,"飛びかかり！","#ffe1a3");blood(m.x,m.y,"#ffe1a3",9,84)}
    blood(m.x,m.y,m.hp>0?"#f7c77c":"#c65b4f",12,155);label(m.x,m.y-28,"-"+damage,"#ffe5b4");
@@ -3783,6 +3778,26 @@ function startlePrey(m,threat,reason="alarm"){
  if(reason==="wake"&&P&&dist(P,m)<260)label(m.x,m.y-m.r-28,"目覚めた！","#ffe8ac");
  return true;
 }
+// Normally harmless wildlife becomes briefly defensive when the player hits it.
+// The timer is only set by actual player damage; sight/noise never starts a chase.
+const PREY_PROVOKE_SECONDS=Object.freeze({
+ rat:4.5,rabbit:4.5,pigeon:4.2,crow:5.0,frog:3.5,snake:5.5,
+ carp:3.8,armadillo:5.8,hedgehog:5.4,
+ deer:7.2,serow:7.6,mountainGoat:7.8,zebra:7.5
+});
+function provokePreyAfterPlayerHit(m){
+ const duration=PREY_PROVOKE_SECONDS[m.type]||6.0;
+ const wasProvoked=elapsed<(m.provokedUntil||0);
+ m.provokedUntil=Math.max(m.provokedUntil||0,elapsed+duration);
+ m.counterFleeUntil=Math.max(m.counterFleeUntil||0,m.provokedUntil);
+ m.provokedPauseUntil=Math.max(m.provokedPauseUntil||0,elapsed+.36);
+ startlePrey(m,P,"hit"); // Initial flinch and evasive step before the charge.
+ if(!wasProvoked)label(m.x,m.y-m.r-36,"反撃してくる！","#ffd39e");
+}
+function isProvokedPrey(m,sp,d){
+ return !!sp?.prey&&m.hp>0&&elapsed<(m.provokedUntil||0)&&
+  d<340&&(m.type!=="carp"||waterDepth(P.x,P.y)>.035);
+}
 // Wounded prey can strike backward while escaping. Most choose flight and only
 // counter if the attacker stays close. No pursuit, teleport, or permanent aggro.
 const PREY_WITH_OWN_DEFENSE=new Set(["mountainGoat","rat","rabbit","pigeon","crow","frog","snake","zebra","serow","deer"]);
@@ -3810,8 +3825,8 @@ function updateWoundedPreyDefense(m,sp,dt,d,spotted,angle){
   }
   return;
  }
- const recentlyStruck=elapsed<(m.counterFleeUntil||0);
- if(!recentlyStruck||!spotted||m.stun>0||m.counterFleeCooldown>0||m.flee<=0||
+ const recentlyStruck=elapsed<(m.counterFleeUntil||0)||elapsed<(m.provokedUntil||0);
+ if(!recentlyStruck||!spotted||m.stun>0||m.counterFleeCooldown>0||(m.flee<=0&&!isProvokedPrey(m,sp,d))||
     d>P.r+m.r+102||P.inv>0||(m.type==="carp"&&waterDepth(P.x,P.y)<=.035))return;
  m.counterFleeArmed=true;
  m.counterFleeTell=m.type==="hedgehog"?.23:m.type==="carp"?.24:.30;
@@ -4934,8 +4949,14 @@ function update(dt){
   if(m.type==="giantEagle"){updateFlyingEagle(m,dt);continue;}
   if(isAquaticStrong(m)){updateAquaticStrong(m,s,dt);continue;}
   const angle=Math.atan2(P.y-m.y,P.x-m.x);
+  if(s.prey&&m.provokedUntil>0&&elapsed>=m.provokedUntil){
+   m.provokedUntil=0;m.counterFleeUntil=0;
+   startlePrey(m,P,"alarm"); // At the end of aggression it returns to normal flight.
+  }
+  const provoked=isProvokedPrey(m,s,d);
   const spotted=detectsPlayer(m,s,d)||
-   (elapsed<(m.reactiveUntil||0)&&d<Math.max(190,P.r+m.r+125)&&!lineBlocked(m,P));
+   (elapsed<(m.reactiveUntil||0)&&d<Math.max(190,P.r+m.r+125)&&!lineBlocked(m,P))||
+   (provoked&&d<330&&!lineBlocked(m,P));
   if(m.type==="cheetah"){
    m.sprintCooldown=Math.max(0,(m.sprintCooldown||0)-dt);
    if(spotted&&d>95&&d<420&&m.sprintCooldown<=0&&m.alert>0){
@@ -5026,14 +5047,33 @@ function update(dt){
     }
    }
    updateWoundedPreyDefense(m,s,dt,d,spotted,angle);
-   if(s.prey&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
+   if(s.prey&&!provoked&&spotted&&(d<135||P.noise>.65&&d<185||m.hp<m.maxHp)){
      m.flee=Math.max(m.flee,1.7);
      if(m.escapeTimer<=0||!clearStep(m,m.dir,65)){
        m.evasionSide=-(m.evasionSide||1);
        m.dir=chooseEscape(m,angle+Math.PI);m.escapeTimer=m.type==="rat"?.23:m.type==="pigeon"?.32:.64;
      }
     }
-   if(m.flee>0){
+   if(provoked){
+    // Counterattack for a few seconds, not endless pursuit. Stay on navigable
+    // terrain; close enough for each species' existing bite/kick/headbutt AI.
+    const preparing=m.cornerArmed||m.defenseArmed||m.headbuttArmed||m.counterFleeArmed;
+    const recovering=m.stun>0||(m.swing||0)>0;
+    const pause=elapsed<(m.provokedPauseUntil||0);
+    if(preparing||recovering){vx=0;vy=0;}
+    else if(pause){
+     m.dir=chooseEscape(m,angle+Math.PI,P);
+     vx=Math.cos(m.dir)*s.speed*.72;vy=Math.sin(m.dir)*s.speed*.72;
+    }else if(d>P.r+m.r+24){
+     m.dir=steerPursuit(m,P.x,P.y);
+     const pace=m.type==="deer"||m.type==="zebra"||m.type==="serow"?.83:
+       m.type==="mountainGoat"?.80:m.type==="carp"?.76:.88;
+     vx=Math.cos(m.dir)*s.speed*pace;vy=Math.sin(m.dir)*s.speed*pace;
+    }else{
+     m.dir=angle;vx=0;vy=0;
+    }
+    m.flee=Math.max(0,(m.flee||0)-dt);
+   }else if(m.flee>0){
     if((s.prey||m.type==="boar")&&!spotted&&(m.escapeTimer<=0||!clearStep(m,m.dir,56))){
       m.evasionSide=-(m.evasionSide||1);
       const hunter=nearbyAwareWildPredator(m,175);
@@ -5090,7 +5130,7 @@ function update(dt){
    }
    m.wildAttack=Math.max(0,(m.wildAttack||0)-dt);
    m.feedAfterKill=Math.max(0,(m.feedAfterKill||0)-dt);
-   if((s.prey||m.type==="boar")&&!spotted){
+   if((s.prey||m.type==="boar")&&!provoked&&!spotted){
     const hunter=nearbyAwareWildPredator(m,140);
     if(hunter){
      m.fleeThreatX=hunter.x;m.fleeThreatY=hunter.y;
@@ -5099,20 +5139,20 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
     }
    }
-   if(s.prey&&tryPreyFeint(m,s,d,spotted,dt))continue;
+   if(s.prey&&!provoked&&tryPreyFeint(m,s,d,spotted,dt))continue;
    defendBuffaloHerd(m);
    const wildHunt=huntWildPrey(m,s,spotted,d);
    if(wildHunt){vx=wildHunt.vx;vy=wildHunt.vy;}
    const scavenging=!wildHunt&&!s.prey&&m.type!=="boar"&&m.type!=="giantBoar"&&m.type!=="giantMoose"&&m.type!=="giantBuffalo"&&m.type!=="rhino"&&m.type!=="giantGorilla"&&m.type!=="giantElephant"?scavengeWildFood(m,s,dt,spotted,d):null;
-   const foraging=WILD_FORAGERS.has(m.type)?forageWildBerries(m,s,dt,spotted,d):null;
-   const drinking=!wildHunt&&!scavenging&&!foraging?drinkWildWater(m,s,dt,spotted,d):null;
+   const foraging=!provoked&&WILD_FORAGERS.has(m.type)?forageWildBerries(m,s,dt,spotted,d):null;
+   const drinking=!provoked&&!wildHunt&&!scavenging&&!foraging?drinkWildWater(m,s,dt,spotted,d):null;
    if(scavenging||foraging||drinking){
     const feeding=scavenging||foraging||drinking;
     vx=feeding.vx;vy=feeding.vy;
     m.wander=Math.max(m.wander,.25);
    }
    // Day-active prey travels to nearby real cover before sleeping at night.
-   if(!scavenging&&!foraging&&!drinking&&!spotted&&m.alert<=0&&m.flee<=0&&
+   if(!provoked&&!scavenging&&!foraging&&!drinking&&!spotted&&m.alert<=0&&m.flee<=0&&
       m.stun<=0&&m.windup<=0&&m.chargeTime<=0){
     const nightCover=followNightCover(m,s,dt);
     if(nightCover){vx=nightCover.vx;vy=nightCover.vy;m.wander=Math.max(m.wander,.25);}
