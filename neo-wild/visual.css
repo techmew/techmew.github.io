@@ -1656,3 +1656,28 @@
 #squad-gacha .squad-living-grid:has(>.squad-final-member:nth-child(4)){display:flex!important;overflow-x:auto!important;overscroll-behavior-x:contain!important;scroll-snap-type:x proximity!important;padding-bottom:12px!important;}
 #squad-gacha .squad-living-grid:has(>.squad-final-member:nth-child(4))>.squad-final-member{flex:0 0 clamp(126px,31%,220px)!important;scroll-snap-align:start!important;}
 @media(max-width:700px){#squad-gacha .squad-living-grid{gap:4px!important;}#squad-gacha .squad-living-grid>.squad-final-member{padding:4px 2px!important;}#squad-gacha .squad-living-grid .squad-final-image{height:138px!important;}#squad-gacha .squad-living-grid .squad-final-field p{font-size:10px!important;}}
+
+
+/* SOLO3_COMPACT_GREEN_20261105: compact selectable roster; one primary resume. */
+#menu #squad-roster{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;align-items:stretch!important}
+#menu #squad-roster .squad-roster-slot,
+#menu #squad-roster .squad-roster-slot.is-leader,
+#menu #squad-roster .squad-roster-slot[aria-current="true"]{
+ background:#103d30!important;background-image:none!important;
+ min-height:0!important;height:auto!important;padding:6px 4px 8px!important;
+ gap:3px!important;justify-content:flex-start!important;
+ border-radius:11px!important;cursor:pointer!important;
+}
+#menu #squad-roster .squad-roster-slot.is-leader{border:3px solid #f4d778!important}
+#menu #squad-roster .squad-roster-preview{height:94px!important;max-height:94px!important;background:transparent!important}
+#menu #squad-roster .squad-roster-preview canvas{height:94px!important;background:transparent!important}
+#menu #squad-roster .squad-individual-growth,
+#menu #squad-roster .squad-individual-iv{display:none!important}
+#menu #squad-roster .squad-active-badge{font-size:clamp(10px,2.5vw,14px)!important;padding:3px 2px!important}
+#menu #squad-roster .squad-tap-hint{display:block;text-align:center;color:#f9df9c;font-size:clamp(9px,2.3vw,12px);font-weight:900}
+#menu #squad-roster .squad-roster-slot button.squad-release-character{min-height:38px!important;margin-top:auto!important;font-size:clamp(10px,2.5vw,13px)!important;padding:5px 2px!important}
+#menu #squad-roster .squad-roster-slot button.squad-resume-character,
+#menu #squad-roster .squad-roster-slot button.squad-roster-select{display:none!important}
+#menu #save-menu-actions #continue-btn{display:flex!important;width:100%!important;min-height:72px!important;font-size:clamp(20px,5vw,30px)!important}
+@media(max-width:700px){#menu #squad-roster .squad-roster-slot{min-height:0!important;padding:5px 3px!important}#menu #squad-roster .squad-roster-preview,#menu #squad-roster .squad-roster-preview canvas{height:83px!important}}
+@media(orientation:landscape) and (max-height:520px){#menu #squad-roster .squad-roster-preview,#menu #squad-roster .squad-roster-preview canvas{height:62px!important}}
