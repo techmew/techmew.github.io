@@ -198,6 +198,14 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(weather==="SNOW"&&["frog","snake","venomSnake"].includes(type))w*=.12;
  if(weather==="SNOW"&&["deer","boar","rabbit"].includes(type))w*=.72;
  if(weather==="HEAT"&&["frog","deer"].includes(type))w*=.65;
+ // Climate-driven migration adjusts existing encounters without spawning NPCs.
+ if(weather==="HEAT"&&["deer","boar","serow","zebra"].includes(type))
+  w*=([4,5,7].includes(region)?1.32:.48);
+ if(weather==="SNOW"&&["deer","boar","serow","zebra"].includes(type))
+  w*=([0,1,4,6].includes(region)?1.25:.56);
+ // Storms suppress large roaming predators, protecting solitary players.
+ if(["TYPHOON","HEAVY_RAIN","THUNDER"].includes(weather)&&
+    ["tiger","lion","cheetah","blackBear","hyena","wildDog"].includes(type))w*=.48;
  if(weather==="RAIN"||weather==="THUNDER"){
   if(["cheetah","lion","giraffe","zebra"].includes(type))w*=.58;
   if(type==="hippo")w*=1.25;
