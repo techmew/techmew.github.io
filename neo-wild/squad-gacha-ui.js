@@ -169,7 +169,6 @@ const ready=()=>{
     card.setAttribute("role","button");card.tabIndex=0;card.setAttribute("aria-label",m.name+"を操作キャラに選択");
     card.addEventListener("click",e=>{if(e.target.closest("button"))return;choose()});
     card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();choose()}});
-    if(!active)card.append(makeBtn("この個体を操作",choose,"squad-select-character"));
     card.append(makeBtn("野生に返す",()=>{
       if(!window.confirm(m.name+"を野生に返しますか？ 所有一覧から外れ、ゲーム世界に野生動物として登場します。"))return;
       const result=core.release(m.id);
@@ -177,11 +176,11 @@ const ready=()=>{
       updateHome();
     },"squad-release-character"));
    }
-   // Living individuals are retained; only death clears a slot.
+   // Card tap selects the active individual; release is an explicit separate action.
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
-  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/5体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length===5?"5体所有中。死亡による空き枠のみ補充できます。":"");
+  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/5体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length===5?"5体所有中。野生に返すか死亡で空いた枠に補充できます。":"");
   gacha.hidden=true;
  }
  function showSize(){
