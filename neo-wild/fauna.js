@@ -198,6 +198,43 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(weather==="SNOW"&&["frog","snake","venomSnake"].includes(type))w*=.12;
  if(weather==="SNOW"&&["deer","boar","rabbit"].includes(type))w*=.72;
  if(weather==="HEAT"&&["frog","deer"].includes(type))w*=.65;
+ // Ecological niches for the 30-species world. These are encounter weights,
+ // not new spawns: no aquatic fish on streets and no high-tier predators in town.
+ // Low-level animals provide prey for the existing autonomous hunting AI.
+ const niche={
+  rat:{urban:[0,1,6],rural:[2,5],wet:[4,7]},
+  rabbit:{urban:[1,6],rural:[2,3,5],wet:[4,7]},
+  pigeon:{urban:[0,1,6],rural:[2],wet:[4,7]},
+  crow:{urban:[0,1,6],rural:[2,5],wet:[4,7]},
+  frog:{urban:[],rural:[2,5],wet:[4,7]},
+  deer:{urban:[],rural:[2,3,5],wet:[4,7]},
+  boar:{urban:[],rural:[2,3,5],wet:[4,7]},
+  tanuki:{urban:[1,6],rural:[2,5],wet:[4,7]},
+  badger:{urban:[],rural:[2,5],wet:[4,7]},
+  armadillo:{urban:[],rural:[3,5],wet:[]},
+  hedgehog:{urban:[6],rural:[2,5],wet:[]},
+  zebra:{urban:[],rural:[3,5],wet:[]},
+  giraffe:{urban:[],rural:[3,5],wet:[]},
+  otter:{urban:[],rural:[],wet:[4,7]},
+  shoebill:{urban:[],rural:[],wet:[4,7]},
+  hippo:{urban:[],rural:[],wet:[4,7]}
+ };
+ const habitat=niche[type];
+ if(habitat&&w>0){
+  const urban=[0,1,6].includes(region);
+  const wet=[4,7].includes(region);
+  const preferred=urban?habitat.urban:wet?habitat.wet:habitat.rural;
+  w*=preferred.includes(region)?1.24:.52;
+ }
+ // Species with dedicated terrain are never distributed as generic urban NPCs.
+ if([0,1,6].includes(region)&&
+    ["giraffe","zebra","serow","mountainGoat","armadillo","shoebill","hippo","otter"].includes(type))w=0;
+ // Predator/prey ratios should not be inflated by poor weather: sheltered
+ // scavengers remain possible while open-country hunters become scarce.
+ if(["HEAVY_RAIN","TYPHOON","STORM"].includes(weather)){
+  if(["rat","rabbit","hedgehog","armadillo"].includes(type))w*=.65;
+  if(["raccoonDog","tanuki","badger"].includes(type))w*=.92;
+ }
  // Five-year regional succession changes the existing encounter lottery, never spawn count.
  // Food-rich periods favor herbivores; drought drives prey toward wetlands and
  // discourages large hunters. Predator pressure cannot bypass safe-city exclusions.
