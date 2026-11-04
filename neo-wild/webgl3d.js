@@ -508,10 +508,18 @@ function drawCommonAnimal3D(m,clock){
   if(goat)orb(r*1.35+lean,0,r*.70,r*.13,r*.14,r*.31,"#c2b59f");
   orb(-r*1.13,0,r*.94,r*.21,r*.21,r*.20,belly);
  }else if(t==="deer"){
+  // Four-beat run: diagonal legs alternate, knees extend forward and hooves lift.
+  // Phase follows actual travelled distance, so idle deer no longer paddle.
+  const run=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/105),phase=(m.step||0)*1.55;
   for(const side of [-1,1])for(const front of [-1,1]){
-   const dx=front*r*.59,dy=side*r*.46;
-   orb(dx,dy,r*.34,r*.15,r*.15,r*.36,"#73583f");
-   orb(dx+gait*r*.07*front,dy,r*.10,r*.16,r*.19,r*.10,"#4b453b");
+   const x=front*r*.59,y=side*r*.46;
+   const beat=Math.sin(phase+(front===side?0:Math.PI));
+   const swing=beat*r*.55*run,lift=Math.max(0,beat)*r*.34*run;
+   const kneeX=x+swing*.48,hoofX=x+swing;
+   orb(x+swing*.17,y,r*.59+lift*.16,r*.17,r*.16,r*.33,fur);
+   orb(kneeX,y,r*.33+lift*.50,r*.14,r*.14,r*.24,"#73583f");
+   orb(hoofX,y,r*.13+lift,r*.13,r*.14,r*.17,fur);
+   orb(hoofX+swing*.15,y,r*.065+lift,r*.19,r*.18,r*.09,"#3d3931");
   }
   orb(-r*.14,0,r*.88,r*1.08,r*.49,r*.60,fur);
   orb(r*.69,0,r*.95,r*.44,r*.31,r*.53,fur);
@@ -575,18 +583,19 @@ function drawCommonAnimal3D(m,clock){
   for(const side of [-1,1]){orb(r*1.16,side*r*.23,r*.94,r*.09,r*.08,r*.09,"#292b27");}
   for(let k=0;k<6;k++)orb(-r*(1.05+k*.26),Math.sin(k*.75)*r*.14,r*(.7-k*.07),r*.17,r*.11,r*.12,k%2?"#3f403b":fur);
  }else if(t==="giraffe"){
-  // Four independent, alternating legs: knees flex, hooves travel forward and
-  // actually lift off the ground. Gait amplitude follows world-space speed.
-  const speed=Math.hypot(m.vx||0,m.vy||0),moving=Math.min(1,speed/135);
-  const stride=(m.step||0)*1.95;
+  // Strong visible diagonal gallop: hip, knee, ankle and dark hoof
+  // all move independently in world space instead of sliding as fixed pillars.
+  const speed=Math.hypot(m.vx||0,m.vy||0),moving=Math.min(1,speed/105);
+  const stride=(m.step||0)*1.64;
   for(const side of [-1,1])for(const front of [-1,1]){
    const x=front*r*.58,y=side*r*.37;
    const beat=Math.sin(stride+(front===side?0:Math.PI));
-   const swing=beat*r*.34*moving,raise=Math.max(0,beat)*r*.27*moving;
-   orb(x+swing*.17,y,r*.90+raise*.25,r*.16,r*.15,r*.33,fur);
-   orb(x+swing*.58,y,r*.52+raise*.65,r*.135,r*.13,r*.30,fur);
-   orb(x+swing,y,r*.19+raise,r*.14,r*.14,r*.19,fur);
-   orb(x+swing*1.1,y,r*.10+raise,r*.20,r*.19,r*.105,"#69513b");
+   const swing=beat*r*.67*moving,raise=Math.max(0,beat)*r*.45*moving;
+   const kneeX=x+swing*.56,ankleX=x+swing*.90;
+   orb(x+swing*.15,y,r*.96+raise*.12,r*.175,r*.16,r*.35,fur);
+   orb(kneeX,y,r*.64+raise*.43,r*.145,r*.14,r*.30,fur);
+   orb(ankleX,y,r*.33+raise*.80,r*.13,r*.13,r*.29,fur);
+   orb(x+swing*1.11,y,r*.11+raise,r*.21,r*.18,r*.12,"#574332");
   }
   const attacking=(m.windup||0)>0||(m.swing||0)>0;
   const hit=(m.swing||0)>0;
