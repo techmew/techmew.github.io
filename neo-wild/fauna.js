@@ -198,6 +198,31 @@ function weight(type,region,day=1,weather="CLEAR"){
  if(weather==="SNOW"&&["frog","snake","venomSnake"].includes(type))w*=.12;
  if(weather==="SNOW"&&["deer","boar","rabbit"].includes(type))w*=.72;
  if(weather==="HEAT"&&["frog","deer"].includes(type))w*=.65;
+ // Five-year regional succession changes the existing encounter lottery, never spawn count.
+ // Food-rich periods favor herbivores; drought drives prey toward wetlands and
+ // discourages large hunters. Predator pressure cannot bypass safe-city exclusions.
+ const eco=window.WildEraEcology?.state?.(region,Math.max(0,year-1));
+ if(eco){
+  const grazers=["rabbit","deer","boar","serow","zebra","giraffe","mountainGoat"];
+  const hunters=["wildFox","strayCat","dog","lion","tiger","cheetah","hyena","wildDog","blackBear"];
+  if(eco.kind==="greening"||eco.kind==="abundance"){
+   if(grazers.includes(type))w*=Math.min(1.30,eco.food);
+   if(hunters.includes(type))w*=.88;
+  }else if(eco.kind==="drought"){
+   if(["frog","otter","shoebill"].includes(type))w*=.70;
+   if(grazers.includes(type))w*=([4,7].includes(region)?1.12:.66);
+   if(hunters.includes(type))w*=.80;
+  }else if(eco.kind==="predators"){
+   if(hunters.includes(type))w*=1.08;
+   if(grazers.includes(type))w*=.76;
+  }else if(eco.kind==="recovery"){
+   if(hunters.includes(type))w*=.55;
+   if(grazers.includes(type))w*=.83;
+  }else if(eco.kind==="migration"){
+   if(grazers.includes(type))w*=([2,3,5].includes(region)?1.18:.73);
+   if(hunters.includes(type))w*=.84;
+  }
+ }
  // Climate-driven migration adjusts existing encounters without spawning NPCs.
  if(weather==="HEAT"&&["deer","boar","serow","zebra"].includes(type))
   w*=([4,5,7].includes(region)?1.32:.48);
