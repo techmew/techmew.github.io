@@ -1642,3 +1642,17 @@
 @media (orientation:landscape) and (max-height:520px){
  #menu #squad-roster{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
 }
+
+/* SOLO3_LIVING_GRID_20261105: the modal roster matches the title's three-across layout. */
+#squad-gacha .squad-living-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:clamp(4px,1vw,12px)!important;align-items:stretch!important;}
+#squad-gacha .squad-living-grid>.squad-final-member{display:flex!important;flex-direction:column!important;min-width:0!important;margin:0!important;padding:6px 4px!important;gap:5px!important;background:transparent!important;background-image:none!important;box-shadow:none!important;}
+#squad-gacha .squad-living-grid>.squad-final-member.selected{border-color:#ffe08a!important;}
+#squad-gacha .squad-living-grid .squad-final-image{width:100%!important;height:clamp(125px,20vw,210px)!important;background:transparent!important;overflow:hidden!important;}
+#squad-gacha .squad-living-grid .squad-final-image canvas{display:block!important;width:145%!important;max-width:none!important;height:100%!important;margin-left:-22.5%!important;background:transparent!important;}
+#squad-gacha .squad-living-grid .squad-final-field{min-width:0!important;overflow-wrap:anywhere!important;}
+#squad-gacha .squad-living-grid .squad-final-field strong{font-size:clamp(12px,2.6vw,18px)!important;line-height:1.3!important;}
+#squad-gacha .squad-living-grid .squad-final-member>button{display:block!important;width:100%!important;min-height:44px!important;margin-top:auto!important;white-space:normal!important;font-size:clamp(11px,2.3vw,14px)!important;touch-action:manipulation!important;}
+#squad-gacha .squad-living-grid .squad-final-member>button.squad-release-character{margin-top:4px!important;}
+#squad-gacha .squad-living-grid:has(>.squad-final-member:nth-child(4)){display:flex!important;overflow-x:auto!important;overscroll-behavior-x:contain!important;scroll-snap-type:x proximity!important;padding-bottom:12px!important;}
+#squad-gacha .squad-living-grid:has(>.squad-final-member:nth-child(4))>.squad-final-member{flex:0 0 clamp(126px,31%,220px)!important;scroll-snap-align:start!important;}
+@media(max-width:700px){#squad-gacha .squad-living-grid{gap:4px!important;}#squad-gacha .squad-living-grid>.squad-final-member{padding:4px 2px!important;}#squad-gacha .squad-living-grid .squad-final-image{height:138px!important;}#squad-gacha .squad-living-grid .squad-final-field p{font-size:10px!important;}}
