@@ -1,3 +1,9 @@
+# 2026-11-04｜タイトル画面の白い縦スクロールバーを非表示
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
+- 【実装】画像で指摘された画面右側の白い縦線は #menu .menu-shell のネイティブスクロールバー。Chrome/Safari/Firefox/Edge向けに描画だけ非表示。overflow-y:auto / タッチ・ホイールスクロールを保全し、下のメニュー項目へのアクセスは維持。
+- 【変更SHA】visual.css: 4648d117e80dd9d9e154b2093098b4e675a7a1c7（新blob 49fdf91af478909bca36ace98d47133fb4a2f4b4）。index.html: 8ef20cf13442bc5dd5011b68aea9f9f6c0dca83f（CSSキャッシュ更新）。
+- 【確認】最新main blob SHA取得→競合なしコミット。CSS非表示セレクタとHTMLのrev参照を読み戻して検証。実機スクリーンショット比較は未検証。ガチャ・セーブ・3体編成のJSは変更なし。
+
 # 2026-11-04｜00分担当：編成セーブの重複ID排除（PHASE=A_FEATURES）
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A
 - 【実装】squad-core.js の load() に保存済み個体IDの重複除去と members 配列型の検査を追加。破損・旧移行データに同一IDが複数ある場合、同一個体が複数枠に復元されない。死亡ID台帳、最大3枠、個体データと世界時計は変更しない。
