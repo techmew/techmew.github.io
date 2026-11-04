@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=5f7c291-title-tiles">
+<link rel="stylesheet" href="./visual.css?rev=44e3c5c-title-final-v2">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 </head>
 <body>
@@ -104,16 +104,9 @@
 <div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell">
 <h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
 <p class="lead">人の消えた日本の町。<br>支配者になったのは、飢えた野生だった。</p>
-<section id="squad-home" class="squad-home" aria-label="編成ガチャと現在の仲間">
- <button id="squad-open" type="button" class="squad-home-gacha">ガチャを引く・編成する</button>
- <h2 class="squad-home-title">現在の編成</h2>
- <div id="squad-roster" class="squad-home-roster" aria-live="polite">編成を読み込み中</div>
- <p class="squad-home-hint">1〜3体編成・ストックなし。初回ガチャから出発。</p>
-</section>
-<div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
       <button id="continue-btn" type="button" class="save-choice resume-primary">
-        <span class="resume-cta-title"><span id="resume-cta-label">最初からプレイ</span><small id="resume-cta-help">種族・画面・出発地点を選んで開始</small></span>
+        <span class="resume-cta-title"><span id="resume-cta-label">続きからプレイ</span><small id="resume-cta-help">編成の＋から動物を選択</small></span>
         <span id="continue-detail" class="resume-detail"></span>
       </button>
       <button id="checkpoint-menu-btn" type="button" class="save-choice hidden" style="display:none" aria-controls="checkpoint-list" aria-expanded="false">チェックポイントから再開</button>
@@ -123,10 +116,23 @@
         <button id="checkpoint-slot-2" type="button" class="checkpoint-choice hidden"></button>
       </div>
     </div>
+<section id="squad-home" class="squad-home" aria-label="編成ガチャと現在の仲間">
+ <button id="squad-open" type="button" hidden aria-hidden="true" tabindex="-1" style="display:none">ガチャ</button>
+ <h2 class="squad-home-title">現在の編成</h2>
+ <div id="squad-roster" class="squad-home-roster" aria-live="polite"><article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="1枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(0)">＋</button><small>1枠目・空き</small></article>
+<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="2枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(1)">＋</button><small>2枠目・空き</small></article>
+<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="3枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(2)">＋</button><small>3枠目・空き</small></article></div>
+ <p class="squad-home-hint">空き枠の＋で動物を選択</p>
+</section>
+<div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
+
     
-<button id="bestiary-open" type="button" aria-controls="bestiary" aria-expanded="false">動物図鑑　0 / 41</button>
-<button id="world-history-open" type="button" class="trophies-menu-btn" aria-controls="world-history-view" aria-expanded="false">世界年表を見る</button>
-<button id="trophies-open" type="button" class="trophies-menu-btn" aria-controls="trophy-view" aria-expanded="false">トロフィーを確認する　BRONZE / SILVER / GOLD</button>
+<section id="squad-menu-extras" class="squad-menu-extras" aria-label="画面設定と探索記録">
+<div class="squad-collection-tiles">
+<button id="bestiary-open" type="button" aria-controls="bestiary" aria-expanded="false">図鑑</button>
+<button id="world-history-open" type="button" class="trophies-menu-btn" aria-controls="world-history-view" aria-expanded="false">年表</button>
+<button id="trophies-open" type="button" class="trophies-menu-btn" aria-controls="trophy-view" aria-expanded="false">トロフィー</button>
+</div>
 <section id="new-game-options" aria-label="新規ゲームの設定"><div class="new-game-config">
 <div class="pick-head" hidden aria-hidden="true"><span>01</span> 生き延びる個体を選択（旧方式・非表示）</div>
 <div class="animals" id="legacy-animal-picker" hidden aria-hidden="true">
@@ -148,25 +154,16 @@
       <p id="menu-landscape-note" role="status" aria-live="polite">画面を選択して上の「プレイ」ボタンを押してください。</p>
     </div>
     
-<label id="spawn-picker" for="start-region">始める場所を選択（新規ゲーム）
-          <select id="start-region" aria-label="出発地点">
-            <option value="home">霞町・草陰の巣</option>
-            <option value="zoo">白鷺の獣舎跡</option>
-            <option value="forest">楠の森</option>
-            <option value="factory">汐浜の廃工場</option>
-            <option value="canal">潮見の水路</option>
-            <option value="river">朝霧川の土手</option>
-          </select>
-        </label>
+<select id="start-region" hidden aria-hidden="true"><option value="home" selected>霞町・草陰の巣</option></select>
 <button id="start-btn" class="big-btn" type="button">ゲームをリセットして新規で開始する</button>
 <div id="new-game-confirm" class="save-confirm hidden" role="group" aria-label="新規ゲーム開始の確認">
  <p>現在の自動保存データを上書きし、<strong id="new-game-confirm-species">アカギツネ</strong>で新しく開始します。チェックポイントは残ります。</p>
  <button id="confirm-new-game-btn" class="big-btn" type="button">選んだ動物で新しく開始</button>
  <button id="cancel-new-game-btn" class="save-choice" type="button">キャンセル</button>
 </div>
-<div id="soundtrack-caption">BGM：廃都・野生・追跡の3曲 / 雨と森の環境音 / 新効果音</div>
-</div></section>
 
+</div></section>
+</section>
 </div></div>
 <div id="pause" class="overlay hidden"><div class="modal"><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
@@ -231,9 +228,9 @@
 <script src="./boss-patterns.js?rev=20261102-strong40-padding-v3" defer></script>
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
-<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=1bf0ff4-release-reset" defer></script>
-<script src="./squad-gacha-ui.js?rev=da3f8c0-title-slots-reset" defer></script>
-<script src="./game.js?rev=6c8d81c5-squad-resume-20261104" defer></script>
+<script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=febc3b8-initial-slots-v2" defer></script>
+<script src="./squad-gacha-ui.js?rev=e7858d4-per-slot-v2" defer></script>
+<script src="./game.js?rev=6d442bb-staged-resume-v2" defer></script>
 <script src="./world-history.js?rev=62698d61-ufo" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=ca9eb8ee-gacha-pad-20261104" defer></script>
