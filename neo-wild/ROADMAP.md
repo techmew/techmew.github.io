@@ -1,3 +1,10 @@
+# 2026-11-04｜00分担当：保存時の個体ID重複防止を実装
+ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A / PHASE=A_FEATURES
+- 【実装】squad-core.js save() に個体IDの重複除去と members 配列検証を追加。従来のload()での重複除去に加え、ゲーム本体や他担当から保存時に重複IDが渡っても同じ動物が2枠に永続化されない。生存個体のスロット・リーダー自動選択・死亡ID台帳・旧セーブキーは維持。
+- 【実コミット】squad-core.js 7462b2e0707ba285770171be6d32ea2343d6fdfd、blob 3093712926a6196ccc54dfe8b5060b77ece380ff → 5484c327c716e39228f9c7a11d7ef1e3fe72ba75。
+- 【検証範囲】最新main blob SHAを取得し競合チェック付きで更新。実ブラウザE2E、旧SAVE_SCHEMA2実ロード、Android縦横、Pad、死亡と世界時計の連続再開、Pages HTTP配信は未検証。
+- 【次担当】00分：重複ID/死亡ID/破損membersの実ブラウザ保存試験とリーダー死亡永続化。20分：巣の補充と獲得権利。40分：3体の同時描画・操作マーカー・モデル検証。30種操作は未完成。
+
 # 2026-11-04｜タイトル画面の旧CSS競合を実修復・個別3枠ガチャ統合
 ACTIVE_SPRINT_ID: V1_20261103_GACHA_SQUAD_A / PHASE=A_FEATURES
 - 【根本原因】visual.css の #menu #squad-home #squad-open { display:block!important } が削除したはずの上部ガチャボタンを強制表示し、#squad-menu-extras:not([open]) > :not(summary) が details を section に変更した後も全設定を非表示にしていた。さらに flex order が「続きからプレイ」を編成欄より下に固定。旧CSSルールを削除・修正し、最後に強い明示セレクタを配置。
