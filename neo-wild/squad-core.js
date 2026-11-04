@@ -52,7 +52,23 @@ function targetSlot(member,members){
 }
 function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=dead(),seen=new Set();return {...v,members:assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5))}}
 function save(roster){const d=dead(),seen=new Set();const members=assignSlots((Array.isArray(roster?.members)?roster.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
-function kill(id){if(!id)return load();const d=dead();d.add(id);saveDead(d);const r=load();return r?save(r):null}
+// Selection is persisted before the renderer is notified; stock animals never spawn as AI.
+function selectActive(id){
+ const roster=load();
+ if(!roster?.members?.some(m=>m.id===id))return {ok:false,reason:"操作できる生存個体がありません"};
+ if(roster.leaderId===id)return {ok:true,roster};
+ roster.leaderId=id;
+ const saved=save(roster);
+ return {ok:true,roster:saved};
+}
+// Persist the death tombstone before modifying the roster. A stale autosave
+// cannot reintroduce the individual, even when the active character dies.
+function kill(id){
+ if(!id)return load();
+ const d=dead();d.add(id);saveDead(d);
+ const roster=load();
+ return roster?save(roster):null;
+}
 function newSquad(members,leaderId){
  // The title UI is not a security boundary: never erase living animals via a stale dialog.
  const existing=load();
@@ -110,5 +126,5 @@ function addInitialSlot(member){
 function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;r.newWorldOnStart=false;localStorage.removeItem(RESET_NEW_WORLD);return save(r);}
 function livingCount(){return load()?.members?.length||0}
 function drawSlot(year,explored,poorStreak=0){const options=[];return {roll(){if(options.length>=4)throw Error("引き直しは3回まで");const candidate=generate(year,explored,poorStreak);options.push(candidate);return candidate},choose(id){const found=options.find(x=>x.id===id);if(!found)throw Error("抽選外の個体");return found},get options(){return options.slice()}}}
-window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
+window.WildSquad={japan,world,names,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,selectActive,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,KEY,DEAD};
 })();
