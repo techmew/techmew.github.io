@@ -35,7 +35,7 @@ function actorSnapshot(m){
 }
 function beginLift(e,m,spot,player=false){
  if(!e||!m||e.lifts?.length||e.stage!=="scan")return false;
- const lift={actor:actorSnapshot(m),x:Number(m.x)||0,y:Number(m.y)||0,spotX:spot.x,spotY:spot.y,seconds:0,duration:2.4,player};
+ const lift={actor:actorSnapshot(m),x:Number(m.x)||0,y:Number(m.y)||0,spotX:spot.x,spotY:spot.y,seconds:0,duration:2.4,player,actorId:player?String(m.squadIndividualId||m.ownedId||m.id||""):""};
  e.lifts=[lift];e.beam=0;e.npcBeam=0;e.victim=null;
  if(player){m._ufoAbducting=true;m.hidden=false;m.vx=0;m.vy=0;}
  else{
@@ -154,8 +154,12 @@ function tick(dt,world){
  // The abductee is removed from ordinary AI, but remains visibly suspended.
  if(e.lifts.length){
   const lift=e.lifts[0];lift.seconds=Math.max(0,(Number(lift.seconds)||0)+dt);
-  if(lift.player){P._ufoAbducting=true;P.stun=Math.max(Number(P.stun)||0,.16);P.vx=0;P.vy=0;}
-  if(lift.seconds>=lift.duration){
+  // Never transfer an in-flight capture to a different selected individual after reload.
+  if(lift.player&&lift.actorId&&lift.actorId!==String(P.squadIndividualId||P.ownedId||P.id||"")){
+   e.lifts=[];e.playerCaptured=false;e.stage="depart";e.t=0;persist();
+  }
+  if(e.lifts.length&&lift.player){P._ufoAbducting=true;P.stun=Math.max(Number(P.stun)||0,.16);P.vx=0;P.vy=0;}
+  if(e.lifts.length&&lift.seconds>=lift.duration){
    const kind=String(lift.actor.species??lift.actor.type??"不明な動物");
    if(lift.player){
     e.playerCaptured=true;e.stage="depart";e.t=0;e.departRise=0;
@@ -163,9 +167,11 @@ function tick(dt,world){
     world.onEvent?.("ufo-player-abduction",{year,x:lift.x,y:lift.y});
     world.notify?.("UFOに吸い込まれた！ 円盤が飛び去っていく");
    }else{
+    if(!lift.synthetic){
     record("NPC誘拐:"+kind,year,lift.x,lift.y);
     trace("キャトルミューティレーション",year,lift.x,lift.y);
     world.onEvent?.("ufo-npc-abduction",{year,x:lift.x,y:lift.y,species:kind,removed:true});
+    }
     e.captured=(Number(e.captured)||0)+1;
     if(!Number.isFinite(e.firstCaptureAt))e.firstCaptureAt=e.t;
     if(distance(P,e)<360)world.notify?.("動物が光に吸われ、円盤へ消えた！");
@@ -188,7 +194,15 @@ function tick(dt,world){
    const wildlife=mobs.filter(m=>abductable(m)&&distance(m,e)<360).sort((a,b)=>distance(a,e)-distance(b,e));
    const subject=wildlife[0];
    e.debugCaptured=true;
-   if(subject){
+   if(!subject){
+    // No wildlife eligible (e.g. an empty debug region): a preview animal
+    // exercises the exact animation without awarding a real capture/trophy.
+    const preview={type:"rabbit",species:"rabbit",name:"デバッグ用",x:e.x,y:e.y,r:17,speed:0,hp:1};
+    if(beginLift(e,preview,{x:e.x,y:e.y},false)){
+     e.lifts[0].synthetic=true;
+     world.notify?.("デバッグ：野生動物なし。演出用モデルを吸引");
+    }
+   }else{
     e.x=subject.x;e.y=subject.y;
     if(beginLift(e,subject,{x:e.x,y:e.y},false)){
      const idx=mobs.indexOf(subject);if(idx>=0)mobs.splice(idx,1);
