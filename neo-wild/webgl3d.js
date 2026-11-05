@@ -387,7 +387,7 @@ function combatLimbPose(m,front,side,r){
   ["slam","lunge","roll"].includes(skill)?front>0:
   skill==="double"&&front>0?side===(m.specialVisual>.51?-1:1):
   skill==="fan"&&front>0&&["deer","serow"].includes(m.type);
- const force=Math.min(1.2,(normal?strike*.78:0)+(special?ultimate*.92:0));
+ const force=Math.min(.75,(normal?strike*.66:0)+(special?ultimate*.70:0));
  return {dx:r*force,dz:r*force*.52};
 }
 function drawCommonAnimal3D(m,clock){
@@ -824,10 +824,10 @@ function drawRarePlayable3D(m,clock){
    const x=-r*(1.10+k*.28),tw=Math.sin(k*.54+clock*.85)*r*.09;
    orb(x,tw,r*(.40+k*.018),r*(.29-k*.013),r*(.25-k*.011),r*(.24-k*.008),k%2?"#696d69":"#c9c8bd",7,4);
   }
-  const faceDrive=attack?r*(.12+specialMotion*.55+normalMotion*.29):0;
+  const faceDrive=attack?r*(.035+specialMotion*.13+normalMotion*.09):0;
   orb(r*.67+faceDrive,0,belly+r*.37,r*.70,r*.75,r*.47,"#c7c7bd",12,7);
   // Adult males have a visibly broader cheek ruff; younger animals a smaller one.
-  for(const side of [-1,1])orb(r*.48,side*r*(male?.76:.69),belly+r*.29,r*(male?.27:.19),r*(male?.29:.22),r*.21,male?"#b1b0a6":"#c7c6ba",9,5);
+  for(const side of [-1,1])orb(r*.48+faceDrive,side*r*(male?.76:.69),belly+r*.29,r*(male?.27:.19),r*(male?.29:.22),r*.21,male?"#b1b0a6":"#c7c6ba",9,5);
   orb(r*.88+faceDrive,0,belly+r*.18,r*.55,r*.66,r*.32,cream,12,6);
   for(const side of [-1,1]){
    // Rounded tiny ears, set LOW and spread widely.
@@ -869,13 +869,13 @@ function drawRarePlayable3D(m,clock){
    orb(x,y,r*(.39+k*.016),r*(.34-k*.016),r*(.26-k*.016),r*(.25-k*.01),k%3===0?"#e0d1b9":"#ad9b84",7,4);
   }
   // The flat mask is a wide face, not an ordinary pointed fox muzzle.
-  const headX=r*.79+(attack?r*(.11+specialMotion*.57+normalMotion*.31):0);
+  const headX=r*.79+(attack?r*(.035+specialMotion*.14+normalMotion*.10):0);
   orb(headX,0,r*.89+bob,r*.57,r*.79,r*.49,mask,12,7);
   if(male)for(const side of [-1,1])orb(headX-r*.12,side*r*.64,r*.78+bob,r*.22,r*.18,r*.27,"#a49786",9,5);
   orb(headX+r*.09,0,r*.85+bob,r*.55,r*.78,r*.39,light,12,7);
   for(const side of [-1,1]){
-   spike(r*.61,side*r*.55,r*1.08+bob,r*.15,r*.17,r*.49,"#8c7769");
-   spike(r*.69,side*r*.54,r*1.11+bob,r*.08,r*.09,r*.36,"#c49a8b");
+   spike(headX-r*.18,side*r*.55,r*1.08+bob,r*.15,r*.17,r*.49,"#8c7769");
+   spike(headX-r*.10,side*r*.54,r*1.11+bob,r*.08,r*.09,r*.36,"#c49a8b");
    orb(headX+r*.19,side*r*.51,r*.88+bob,r*.32,r*.25,r*.29,light,9,5);
    orb(headX+r*.30,side*r*.41,r*1.09+bob,r*.18,r*.12,r*.057,"#6b6863",9,4);
    orb(headX+r*.41,side*r*.42,r*1.10+bob,r*.10,r*.065,r*.042,"#202725",8,4); // narrow horizontal eye
@@ -900,8 +900,8 @@ function drawRarePlayable3D(m,clock){
   const focus=m.beakVisual>0||m.beakStrike;
   const swingNorm=clamp((m.shoebillSwingTime||0)/.35,0,1);
   const sweep=Math.sin(Math.PI*swingNorm);
-  const neckSweep=(m.shoebillSwingDir||1)*(sweep*.66+specialMotion*.74+normalMotion*.4)*r*.72;
-  const lean=focus?r*(.29+sweep*.24+specialMotion*.72+normalMotion*.36):(sweep+specialMotion)*r*.30;
+  const neckSweep=(m.shoebillSwingDir||1)*(sweep*.36+specialMotion*.30+normalMotion*.18)*r*.34;
+  const lean=focus?r*(.08+sweep*.10+specialMotion*.12+normalMotion*.06):(sweep+specialMotion)*r*.12;
   const bob=Math.abs(step)*r*.10;
   // Thin, long tarso-metatarsal legs and splayed toes.
   for(const side of [-1,1]){
@@ -928,25 +928,26 @@ function drawRarePlayable3D(m,clock){
    orb(-r*(.23+k*.19),side*r*.71,r*(1.34-k*.07)+bob,r*.19,r*.075,r*.065,k%2?"#667983":"#a2afb3",8,4);
   // Uplifted neck and distinct blunt crown.
   orb(r*.56+lean*.3,neckSweep*.35,r*1.57+bob,r*.35,r*.32,r*.55,"#84949a",10,6);
-  orb(r*.85+lean*.5,neckSweep*.75,r*1.98+bob-lean*.36,r*.41,r*.37,r*.36,feather,10,6);
+  const headY=neckSweep*.75;
+  orb(r*.85+lean*.5,headY,r*1.98+bob-lean*.36,r*.41,r*.37,r*.36,feather,10,6);
   for(let k=0;k<3;k++)
-   spike(r*.57+k*r*.12,-r*.05+k*r*.07,r*2.23+bob,r*.09,r*.08,r*(.20+k*.045),"#a5b1b5");
+   spike(r*.57+k*r*.12+lean*.5,-r*.05+k*r*.07+headY,r*2.23+bob-lean*.36,r*.09,r*.08,r*(.20+k*.045),"#a5b1b5");
   for(const side of [-1,1]){
-   orb(r*.99+lean*.5,side*r*.31+neckSweep,r*2.03+bob-lean*.35,r*.11,r*.080,r*.096,"#ebd392",8,5);
-   orb(r*1.055+lean*.5,side*r*.33+neckSweep,r*2.03+bob-lean*.35,r*.053,r*.045,r*.054,"#171b1b",8,4);
+   orb(r*.99+lean*.5,side*r*.31+headY,r*2.03+bob-lean*.35,r*.11,r*.080,r*.096,"#ebd392",8,5);
+   orb(r*1.055+lean*.5,side*r*.33+headY,r*2.03+bob-lean*.35,r*.053,r*.045,r*.054,"#171b1b",8,4);
   }
   // Huge rigid shoe-like beak with an actual hooked apex; pose darts forward.
-  const beakX=r*1.46+lean,beakZ=r*1.80+bob-lean*.68;
-  orb(beakX,neckSweep,beakZ,r*(male?.78:.72),r*(male?.55:.51),r*.39,bill,12,7);
-  orb(beakX+r*.29,neckSweep,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
-  orb(beakX-r*.08,neckSweep,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
-  orb(beakX+r*.74,neckSweep,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
+  const beakX=r*1.46+lean*.5,beakZ=r*1.80+bob-lean*.36;
+  orb(beakX,headY,beakZ,r*(male?.78:.72),r*(male?.55:.51),r*.39,bill,12,7);
+  orb(beakX+r*.29,headY,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
+  orb(beakX-r*.08,headY,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
+  orb(beakX+r*.74,headY,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
   // Bill's median ridge and pronounced downward terminal hook.
-  orb(beakX+r*.05,neckSweep,beakZ+r*.36,r*.53,r*.105,r*.075,"#e5ddba",10,4);
-  orb(beakX+r*.81,neckSweep,beakZ-r*.37,r*.14,r*.14,r*.25,"#77735e",8,5);
-  spike(beakX+r*.87,neckSweep,beakZ-r*.47,r*.14,r*.14,-r*.23,"#656454");
+  orb(beakX+r*.05,headY,beakZ+r*.36,r*.53,r*.105,r*.075,"#e5ddba",10,4);
+  orb(beakX+r*.81,headY,beakZ-r*.37,r*.14,r*.14,r*.25,"#77735e",8,5);
+  spike(beakX+r*.87,headY,beakZ-r*.47,r*.14,r*.14,-r*.23,"#656454");
   for(const side of [-1,1]){
-   orb(beakX-r*.05,side*r*.40+neckSweep,beakZ+r*.12,r*.07,r*.05,r*.025,"#6e7265",7,4);
+   orb(beakX-r*.05,side*r*.40+headY,beakZ+r*.12,r*.07,r*.05,r*.025,"#6e7265",7,4);
   }
  }
  return true;
@@ -1156,14 +1157,14 @@ function animal(m,player,clock){
  const chargePose=player&&type==="wolf"&&m.chargeStrike&&m.pounceTime>0?1:0;
  const specialPose=player&&m.specialVisual>0?Math.sin(Math.PI*clamp(m.specialVisual/1.02,0,1)):0;
  const swingPose=player&&m.attackAction>0?Math.sin(Math.PI*clamp(m.attackAction/.45,0,1)):0;
- const bodyBob=Math.abs(Math.sin(phase))*r*.13*moving+kickPose*r*.32+turboPose*r*.10+idleBreath+landingCompression+specialPose*r*.38+swingPose*r*.15;
- const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34+specialPose*r*.68+swingPose*r*.46;
+ const bodyBob=Math.abs(Math.sin(phase))*r*.13*moving+kickPose*r*.32+turboPose*r*.10+idleBreath+landingCompression+specialPose*r*.12+swingPose*r*.06;
+ const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34+specialPose*r*.27+swingPose*r*.16;
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
  const attackCharge=!player&&(type==="boar"||type==="alpha"||type==="oneEyedWolf"||type==="whiteTiger"||type==="giantMoose"||type==="giantBuffalo")?clamp((m.chargeTime||0)/(type==="alpha"?.24:type==="oneEyedWolf"?.28:type==="whiteTiger"?.39:type==="giantMoose"?.46:type==="giantBuffalo"?.53:.36),0,1)*.55:0;
- const attackReach=Math.max(attackSnap*1.45,attackCharge)+airStrike+swingPose*.68+specialPose*.90;
+ const attackReach=Math.min(1.05,Math.max(attackSnap*1.45,attackCharge)+airStrike+swingPose*.68+specialPose*.90);
  const rushPose=player&&(m.pendingStrike||m.swing>0)?(m.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.14:rushPose===4?attackReach*.05:rushPose===5?attackReach*.60:base;
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
@@ -1225,7 +1226,7 @@ function animal(m,player,clock){
  }
  // Fur belly visually breaks the silhouette.
  ellipsoid(fx(r*.22,0),fy(r*.22,0),h+r*.19,r*.62,r*.40,r*.40,belly,dir,9,5);
- const headDrive=r*(attackReach*((rushPose===1||rushPose===2)?.12:rushPose===4?.08:cat?.66:fox?.72:large?.48:.35)-attackPrep*.23);
+ const headDrive=clamp(r*(attackReach*((rushPose===1||rushPose===2)?.12:rushPose===4?.08:cat?.30:fox?.28:large?.25:.20)-attackPrep*.15),-r*.11,r*.23);
  const neck=(large?r*.70:fox?r*.76:r*.64)+headDrive+bodyDrive*.75+turboPose*r*.15,headR=cat?r*.47:fox?r*.43:rabbit?r*.43:large?r*.53:r*.49;
  ellipsoid(fx(neck,0),fy(neck,0),h+r*.49+headAttention*.15,headR,headR*.80,headR*.83,torso,dir,10,6);
  if(fox||cat||wolf||rabbit||rat||type==="dog"){
@@ -1238,12 +1239,12 @@ function animal(m,player,clock){
   }
  }
  if(type==="boar"){
-  ellipsoid(fx(r*1.15+headDrive,0),fy(r*1.15+headDrive,0),h+r*.32-attackReach*r*.12,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
-  for(const side of [-1,1])pyramid(fx(r*1.19+headDrive,side*r*.34),fy(r*1.19+headDrive,side*r*.34),h+r*.40-attackReach*r*.10,r*.12,r*.13,r*.36,"#e9d7ad");
+  ellipsoid(fx(neck+r*.48,0),fy(neck+r*.48,0),h+r*.32-attackReach*r*.08,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
+  for(const side of [-1,1])pyramid(fx(neck+r*.52,side*r*.34),fy(neck+r*.52,side*r*.34),h+r*.40-attackReach*r*.08,r*.12,r*.13,r*.36,"#e9d7ad");
  }else if(pigeon){
   for(const side of [-1,1])ellipsoid(fx(-r*.15,side*r*.55),fy(-r*.15,side*r*.55),h+r*.55,r*.60,r*.16,r*.25,"#aec3b8",dir,7,4);
  }else{
-  ellipsoid(fx(r*1.06+headDrive,0),fy(r*1.06+headDrive,0),h+r*.42-attackReach*r*.06,fox?r*.60:rat?r*.24:r*.31,fox?r*.15:r*.23,fox?r*.16:r*.19,belly,dir,8,4);
+  ellipsoid(fx(neck+r*.39,0),fy(neck+r*.39,0),h+r*.42-attackReach*r*.04,fox?r*.60:rat?r*.24:r*.31,fox?r*.15:r*.23,fox?r*.16:r*.19,belly,dir,8,4);
  }
  if(pigeon){
   pyramid(fx(r*.95,0),fy(r*.95,0),h+r*.46,r*.23,r*.17,r*.27,"#d6b46c");
@@ -1276,8 +1277,8 @@ function animal(m,player,clock){
  }
  if(attackReach>.01&&(fox||wolf||type==="dog")&&(!player||rushPose===3||rushPose===5)){
   // Cat uses its existing forepaw; canids open the jaw along the moving skull.
-  ellipsoid(fx(r*1.04+headDrive,0),fy(r*1.04+headDrive,0),h+r*(.22-attackReach*.13),r*.37,r*.25,r*.12,"#28302b",dir,8,4);
-  ellipsoid(fx(r*1.1+headDrive,0),fy(r*1.1+headDrive,0),h+r*(.14-attackReach*.12),r*.32,r*.24,r*.10,belly,dir,8,4);
+  ellipsoid(fx(neck+r*.37,0),fy(neck+r*.37,0),h+r*(.22-attackReach*.06),r*.37,r*.25,r*.12,"#28302b",dir,8,4);
+  ellipsoid(fx(neck+r*.43,0),fy(neck+r*.43,0),h+r*(.14-attackReach*.06),r*.32,r*.24,r*.10,belly,dir,8,4);
  }
  // Sparse coat patches follow torso articulation without per-hair GPU overload.
  if(cat||fox||wolf||type==="dog"){
