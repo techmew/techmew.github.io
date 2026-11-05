@@ -346,6 +346,13 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(successionState.kind==="drought"&&["frog","otter","shoebill","hippo"].includes(type))w*=.48;
   w*=Math.max(.5,Math.min(1.25,successionState.animals));
  }
+ // Seasonal trophic turnover changes actual encounters without adding NPCs.
+ const forageSeason20=Math.floor(Math.max(0,day-1)*85/30)%4;
+ const forageFactor20=[1.12,1.28,.96,.66][forageSeason20];
+ if(w>0&&["rat","rabbit","frog","pigeon","deer","boar","serow","zebra","giraffe","hedgehog"].includes(type))w*=forageFactor20;
+ if(w>0&&["wildFox","wolf","lion","tiger","cheetah","hyena","wildDog","manul","tibetanFox"].includes(type))w*=Math.max(.55,forageFactor20*.86);
+ if(w>0&&forageSeason20===3&&["badger","hedgehog","frog","snake","venomSnake"].includes(type))w*=.34;
+ if(w>0&&forageSeason20===1&&["otter","shoebill","carp"].includes(type)&&[4,7].includes(region))w*=1.24;
  return Math.max(0,w);
 }
 // Per-region encounter memory prevents repeat apex predators and same-species clusters.
