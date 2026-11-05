@@ -1907,49 +1907,57 @@ function render(o){
   const foliageSeason=seasonIndexFromElapsed(elapsed);
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,foliageSeason);
   for(const den of o.dens||[])if(isVisible(den.x,den.y,160))denBeddingMesh(den);
-  // Actual accumulating snow: terrain-facing surface patches stay at world XY,
-  // above ground and below animals. Patches avoid rivers and flooded zones.
-  // Density rises with world-year snowpack instead of only tinting the sky.
+  // Continuous snow coverage sampled in world coordinates. Adjacent mesh
+  // triangles share identical edge intersections; no square tile silhouettes.
   const snow=clamp(o.snowpack||0,0,1);
   if(snow>.06){
-   // Seamless, terrain-conforming snow: adjacent cells share the same exact
-   // corners (no inset cracks). Small deterministic edge lobes break up the
-   // square silhouettes; coordinates are stable while the camera moves.
-   const tile=88,margin=vh*.85+250;
-   const firstX=Math.max(0,Math.floor((cam.x-margin)/tile)*tile);
-   const firstY=Math.max(0,Math.floor((cam.y-margin)/tile)*tile);
+   const step=32,margin=vh*.85+250;
+   const firstX=Math.max(0,Math.floor((cam.x-margin)/step)*step);
+   const firstY=Math.max(0,Math.floor((cam.y-margin)/step)*step);
    const endX=Math.min(WORLD.w,cam.x+vw+margin),endY=Math.min(WORLD.h,cam.y+vh+margin);
    const ground=(px,py)=>window.WildMountain?.height(px,py)||0;
    const water=typeof o.waterAt==="function"?o.waterAt:null;
-   const snowZ=.95+snow*.5;
-   const point=(px,py)=>[px,py,ground(px,py)+snowZ];
-   const noise=(ix,iy)=>detailNoise(ix*.173+iy*.319);
-   const snowCell=(ix,iy)=>noise(ix,iy)<snow*.91;
-   for(let x=firstX;x<endX;x+=tile)for(let y=firstY;y<endY;y+=tile){
-    const ix=Math.floor(x/tile),iy=Math.floor(y/tile);
-    const cx=x+tile*.5,cy=y+tile*.5;
-    if(!isVisible(cx,cy,145)||!snowCell(ix,iy))continue;
-    if(water&&water(cx,cy)>.005)continue;
-    const shade=noise(ix+173,iy-47);
-    const tint=color(shade>.67?"#e6eef0":shade>.32?"#dce9e9":"#d2e4e5");
-    // No per-cell margin: neighboring snow meshes meet exactly at the edge.
-    quad(point(x,y),point(x+tile,y),point(x+tile,y+tile),point(x,y+tile),tint);
-    // Rounded, staggered snow tongues extend into unsnowed neighbors.
-    // Skip wet boundaries; do not place snow over rivers.
-    const lobes=[
-     [x+tile*.24,y,0,-1],[x+tile*.73,y,0,-1],
-     [x+tile*.27,y+tile,0,1],[x+tile*.78,y+tile,0,1],
-     [x,y+tile*.27,-1,0],[x,y+tile*.76,-1,0],
-     [x+tile,y+tile*.23,1,0],[x+tile,y+tile*.71,1,0]
-    ];
-    for(let k=0;k<lobes.length;k++){
-     const [ex,ey,dx,dy]=lobes[k];
-     if(snowCell(ix+dx,iy+dy))continue;
-     const spread=8+noise(ix*7+k,iy*5-k)*18;
-     const px=ex+dx*spread*.65,py=ey+dy*spread*.65;
-     if(px<0||py<0||px>WORLD.w||py>WORLD.h||(water&&water(px,py)>.005))continue;
-     ellipsoid(px,py,ground(px,py)+snowZ,spread+12,spread*.76,.30,
-      shade>.5?"#dce9e9":"#d2e4e5",0,8,2);
+   const snowZ=1.15+snow*.48;
+   // Smooth lattice noise is stable across cells and camera movement.
+   const hash=(ix,iy)=>detailNoise(ix*17.13+iy*43.71);
+   const smooth=(v)=>v*v*(3-2*v);
+   const field=(px,py)=>{
+    const u=px/170,v=py/170,ix=Math.floor(u),iy=Math.floor(v);
+    const fx=smooth(u-ix),fy=smooth(v-iy);
+    const a=hash(ix,iy)*(1-fx)+hash(ix+1,iy)*fx;
+    const b=hash(ix,iy+1)*(1-fx)+hash(ix+1,iy+1)*fx;
+    const broad=a*(1-fy)+b*fy;
+    const fine=detailNoise(Math.floor(px/48)*13.1+Math.floor(py/48)*23.7);
+    return snow*.97-(broad*.78+fine*.22);
+   };
+   const surface=(p)=>[p[0],p[1],ground(p[0],p[1])+snowZ];
+   // Clip each triangle against the same continuous snow threshold.
+   // Intersections are calculated from shared world-space vertex values.
+   const clip=(verts)=>{
+    let out=[];
+    for(let i=0;i<verts.length;i++){
+     const a=verts[i],b=verts[(i+1)%verts.length];
+     if(a[2]>=0)out.push(a);
+     if((a[2]>=0)!==(b[2]>=0)){
+      const t=a[2]/(a[2]-b[2]);
+      out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,0]);
+     }
+    }
+    return out;
+   };
+   for(let x=firstX;x<endX;x+=step)for(let y=firstY;y<endY;y+=step){
+    const x2=Math.min(WORLD.w,x+step),y2=Math.min(WORLD.h,y+step);
+    if(!isVisible((x+x2)*.5,(y+y2)*.5,120))continue;
+    const vertices=[[x,y],[x2,y],[x2,y2],[x,y2]];
+    const wet=water&&vertices.some(p=>water(p[0],p[1])>.005);
+    if(wet)continue;
+    const sampled=vertices.map(p=>[p[0],p[1],field(p[0],p[1])]);
+    const tint=color(detailNoise(Math.floor(x/170)*8.3+Math.floor(y/170)*12.7)>.5?"#dce9e9":"#e6eef0");
+    for(const ids of [[0,1,2],[0,2,3]]){
+     const poly=clip(ids.map(i=>sampled[i]));
+     if(poly.length<3)continue;
+     const base=surface(poly[0]);
+     for(let i=1;i<poly.length-1;i++)triangle(base,surface(poly[i]),surface(poly[i+1]),tint);
     }
    }
   }
