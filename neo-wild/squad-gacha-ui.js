@@ -39,8 +39,14 @@ const ready=()=>{
  if(!extras.isConnected)home.insertAdjacentElement("afterend",extras);
  const root=el("section","squad-gacha");root.id="squad-gacha";root.hidden=true;root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-label","編成ガチャ");
  const wrap=el("div","squad-gacha-wrap"),head=el("header","squad-gacha-head");
- const close=makeBtn("× 閉じる",()=>{root.hidden=true;updateHome()},"squad-close");
- head.append(el("h2",null,"編成ガチャ"),close);
+ const cancelGacha=()=>{draw=null;selected=null;chosen=[];refill=false;root.hidden=true;updateHome();};
+ const close=makeBtn("この個体で決定",()=>{
+  // Reuse the existing adoption/save handler; never commit an unselected draw.
+  const action=body.querySelector(".squad-gacha-actions .squad-adopt");
+  if(action&&!action.disabled)action.click();
+ },"squad-adopt");
+ const cancel=makeBtn("ガチャ結果をキャンセル",cancelGacha,"squad-close");
+ head.append(el("h2",null,"編成ガチャ"),close,cancel);
  const info=el("p","squad-gacha-info","編成数を選択");info.id="squad-info";
  const body=el("div","squad-gacha-body");body.id="squad-body";
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
@@ -420,7 +426,7 @@ const ready=()=>{
  const oldBegin=begin;
  root.addEventListener("keydown",event=>{
   if(root.hidden)return;
-  if(event.key==="Escape"){event.preventDefault();close.click();return;}
+  if(event.key==="Escape"){event.preventDefault();cancel.click();return;}
   if(event.key!=="Tab")return;
   const controls=[...root.querySelectorAll("button:not([disabled]),input:not([disabled])")].filter(node=>node.getClientRects().length);
   if(!controls.length)return;
