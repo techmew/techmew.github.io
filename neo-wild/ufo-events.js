@@ -154,7 +154,7 @@ function tick(dt,world){
  // The abductee is removed from ordinary AI, but remains visibly suspended.
  if(e.lifts.length){
   const lift=e.lifts[0];lift.seconds=Math.max(0,(Number(lift.seconds)||0)+dt);
-  if(lift.player){P._ufoAbducting=true;P.vx=0;P.vy=0;}
+  if(lift.player){P._ufoAbducting=true;P.stun=Math.max(Number(P.stun)||0,.16);P.vx=0;P.vy=0;}
   if(lift.seconds>=lift.duration){
    const kind=String(lift.actor.species??lift.actor.type??"不明な動物");
    if(lift.player){
@@ -180,6 +180,20 @@ function tick(dt,world){
   // Hiding or breaking line of sight makes it chase the last known position briefly,
   // then it returns to nearby wildlife. All travel is finite (never teleport).
   e.npcCooldown=Math.max(0,(Number(e.npcCooldown)||0)-dt);
+  // QA: capture a real nearby wild animal on the first simulation frame,
+  // without waiting for a wildlife encounter roll or the normal lock timer.
+  if(e.debugImmediate&&!e.debugCaptured&&!e.lifts.length){
+   const wildlife=mobs.filter(m=>abductable(m)&&distance(m,e)<360).sort((a,b)=>distance(a,e)-distance(b,e));
+   const subject=wildlife[0];
+   e.debugCaptured=true;
+   if(subject){
+    e.x=subject.x;e.y=subject.y;
+    if(beginLift(e,subject,{x:e.x,y:e.y},false)){
+     const idx=mobs.indexOf(subject);if(idx>=0)mobs.splice(idx,1);
+     world.notify?.("デバッグ：UFOが動物を即座に吸引開始");
+    }
+   }
+  }
   const playerSeen=!P._ufoAbducting&&!P.hidden&&distance(P,e)<UFO_DETECTION_RANGE&&!safeBlocked(world,P,e);
   if(playerSeen){
    e.lastSeen=1.35;e.lastPlayerX=P.x;e.lastPlayerY=P.y;
@@ -303,6 +317,7 @@ function tick(dt,world){
   if(!e.lifts.length&&distance(P,e)<playerBeamRange&&!P.hidden&&!safeBlocked(world,P,e)){
    e.beam+=dt;
    if(e.beam>=2.2&&beginLift(e,P,{x:e.x,y:e.y},true)){
+    world.onPlayerAbductionStart?.();
     world.notify?.("自キャラが光線に捕まった！ 上空へ引き寄せられる！");
    }
   }
