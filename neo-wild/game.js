@@ -3003,80 +3003,251 @@ function startAmbient(){window.WildAudio?.unlock();}
 function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
 
 
-/* ULTIMATE_ACTION_V2: combat-only, non-UI effects, shared by WebGL and Canvas fallback.
-   Bounded lifetime/count to keep Android performance stable. */
+/* ANATOMICAL_COMBAT_FX_V3
+   Draw only the limb, beak, jaw, hoof or body part that performs the actual attack.
+   No generic rays, triangles, arrowheads, rotating starbursts or omnidirectional flashes.
+   Project world-space anatomical coordinates, so it matches 2D AND WebGL camera. */
 const combatFX=[];
-const ULTIMATE_COLOR=Object.freeze({
- cat:"#8df5c9",dog:"#ffc187",fox:"#ffd681",wolf:"#90d9ff",
- deer:"#c8f6a6",boar:"#ff9f6a",crow:"#a8aaff",pigeon:"#d9f3ff",
- otter:"#7adcec",carp:"#70beff",tanuki:"#e7c796",badger:"#ffb074",
- macaque:"#dfb1f9",blackBear:"#ff8b75",serow:"#c1ecbe",
- manul:"#b9f1dd",tibetanFox:"#ffd4ae",shoebill:"#b7eaff",
- lion:"#ffb84b",tiger:"#ffb67e",cheetah:"#ffea9c",elephant:"#c5d4fd",
- hippo:"#df9ab7",gorilla:"#e5b9f4",giraffe:"#ffd796",zebra:"#f0f8ff",
- hyena:"#ffb968",wildDog:"#eec18b",armadillo:"#c4dcaf",hedgehog:"#a8dbd0"
+const ATTACK_MOTION=Object.freeze({
+ cat:["claw","claw","jaw","hind","claw","claw"],
+ dog:["paw","paw","jaw","hind","jaw","jaw"],
+ fox:["paw","paw","jaw","hind","jaw","jaw"],
+ wolf:["paw","paw","jaw","hind","jaw","voice"],
+ deer:["hoof","hoof","horn","hind","hoof","hoof"],
+ boar:["tusk","tusk","tusk","hoof","tusk","tusk"],
+ crow:["wing","wing","beak","foot","beak","beak"],
+ pigeon:["wing","wing","beak","foot","wing","wing"],
+ otter:["paw","paw","jaw","tail","jaw","jaw"],
+ carp:["tail","tail","splash","tail","splash","splash"],
+ tanuki:["paw","paw","jaw","hind","body","body"],
+ badger:["claw","claw","jaw","hind","claw","claw"],
+ macaque:["fist","fist","jaw","foot","fist","stone"],
+ blackBear:["claw","claw","jaw","hind","fist","fist"],
+ serow:["hoof","hoof","horn","hind","horn","horn"],
+ manul:["claw","claw","jaw","hind","claw","claw"],
+ tibetanFox:["paw","paw","jaw","hind","jaw","jaw"],
+ shoebill:["beak","beak","beak","foot","beak","beak"],
+ lion:["claw","claw","jaw","hind","claw","voice"],
+ tiger:["claw","claw","jaw","hind","claw","claw"],
+ cheetah:["paw","paw","jaw","hind","paw","paw"],
+ elephant:["trunk","trunk","trunk","foot","foot","foot"],
+ hippo:["jaw","jaw","jaw","foot","jaw","jaw"],
+ gorilla:["fist","fist","jaw","foot","fist","fist"],
+ giraffe:["neck","neck","neck","hind","neck","neck"],
+ zebra:["hoof","hoof","jaw","hind","hoof","hind"],
+ hyena:["paw","paw","jaw","hind","jaw","jaw"],
+ wildDog:["paw","paw","jaw","hind","jaw","jaw"],
+ armadillo:["body","body","jaw","foot","body","roll"],
+ hedgehog:["quill","quill","jaw","foot","quill","quill"]
 });
-function emitCombatFX(stage,type,kind,x,y,dir,power=1){
+// Physical contact tint only; no neon attack color unrelated to anatomy.
+const ATTACK_TRAIL_COLOR=Object.freeze({
+ claw:"#f1d9b4",paw:"#ddc6ab",jaw:"#f4ddbb",hind:"#d9bf91",
+ hoof:"#c5b99c",tusk:"#e7d6a8",horn:"#dedac6",beak:"#d6d9cb",
+ wing:"#b2cbd1",foot:"#c5bea1",tail:"#afd5c8",splash:"#a7dbeb",
+ fist:"#cbb9a9",body:"#bfb39d",stone:"#c7b59f",voice:"#c1d5ce",
+ trunk:"#c1bdb8",neck:"#d3bea6",roll:"#b7af94",quill:"#d5cbb4"
+});
+function combatMotion(type,step=1,ultimate=false){
+ const seq=ATTACK_MOTION[type]||ATTACK_MOTION.cat;
+ return ultimate?seq[5]:seq[Math.max(0,Math.min(4,(step|0)-1))];
+}
+function emitCombatFX(stage,type,kind,x,y,dir,power=1,step=0,bodyRadius=18){
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
- const color=ULTIMATE_COLOR[type]||"#b8f4eb",last=stage==="normal"?.36:stage==="charge"?.60:.75;
- combatFX.push({stage,type,kind,x,y,dir:dir||0,time:0,last,
-   radius:(stage==="normal"?64:stage==="charge"?105:kind==="slam"||kind==="roar"?190:145)*power,
-   power,color,seed:Math.random()*6.28318});
+ const motion=stage==="stomp"?"foot":stage==="hit"?"contact":
+   combatMotion(type,step||1,stage==="special"||stage==="charge");
+ const side=step===1?-1:step===2?1:step===4?-1:step===5?0:
+   type==="zebra"&&motion==="hind"?-1:0;
+ const life=stage==="charge"?.22:stage==="normal"?.25:stage==="hit"?.23:stage==="stomp"?.36:.49;
+ combatFX.push({stage,type,kind,motion,x,y,dir:Number.isFinite(dir)?dir:0,
+  power:Math.max(.45,Math.min(1.6,power)),bodyRadius:Math.max(8,bodyRadius),
+  side,step,time:0,last:life});
  if(combatFX.length>24)combatFX.splice(0,combatFX.length-24);
 }
 function tickCombatFX(dt){
- for(let i=combatFX.length-1;i>=0;i--){const e=combatFX[i];e.time+=dt;if(e.time>=e.last)combatFX.splice(i,1)}
+ for(let i=combatFX.length-1;i>=0;i--){
+  combatFX[i].time+=Math.max(0,dt);
+  if(combatFX[i].time>=combatFX[i].last)combatFX.splice(i,1);
+ }
 }
 function drawCombatFX(){
  if(!combatFX.length||mode==="dying"||mode==="over")return;
- ctx.save();ctx.globalCompositeOperation="lighter";ctx.lineCap="round";
+ ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
+ const zoom=Math.max(.5,Math.min(1.7,cameraZoom));
  for(const fx of combatFX){
-  const pos=project(fx.x,fx.y);if(!pos||!Number.isFinite(pos.x)||!Number.isFinite(pos.y))continue;
-  const u=Math.min(1,fx.time/fx.last),fade=Math.pow(1-u,.85),burst=Math.sin(Math.PI*Math.min(1,u*1.32));
-  const R=fx.radius*cameraZoom,scale=Math.min(1.45,Math.max(.63,cameraZoom));
-  const radial=["roar","slam","gust","splash","thorns"].includes(fx.kind);
-  ctx.save();ctx.translate(pos.x,pos.y-18*scale);ctx.rotate(fx.dir);
-  ctx.globalAlpha=Math.min(.88,(fx.stage==="normal"?.47:.78)*fade);
-  ctx.shadowColor=fx.color;ctx.shadowBlur=fx.stage==="normal"?9:22;
-  const size=Math.max(14,R*(.30+u*.73));
-  if(radial||fx.stage==="charge"){
-   ctx.strokeStyle=fx.color;ctx.lineWidth=(fx.stage==="normal"?2.5:6)*scale*fade+1;
-   for(let ring=0;ring<(radial?3:2);ring++){
-    ctx.globalAlpha=fade*(ring===0?.62:ring===1?.30:.18);
-    ctx.beginPath();ctx.ellipse(0,0,size*(.52+ring*.27),size*(.21+ring*.11),0,0,Math.PI*2);ctx.stroke();
-   }
+  const u=Math.max(0,Math.min(1,fx.time/fx.last)),fade=Math.pow(1-u,1.2);
+  if(fade<=.02)continue;
+  const r=fx.bodyRadius*Math.min(1.85,fx.power*(fx.stage==="special"?1.35:1));
+  const left=fx.side||1,front=fx.step===4?-.54:.65;
+  const cosine=Math.cos(fx.dir),sine=Math.sin(fx.dir);
+  function pt(forward,lateral,height=0){
+   const x=fx.x+forward*cosine-lateral*sine,y=fx.y+forward*sine+lateral*cosine;
+   const p=project(x,y);
+   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
+   return {x:p.x,y:p.y-height*zoom};
   }
-  ctx.globalAlpha=Math.min(.9,(fx.stage==="normal"?.42:.79)*fade);
-  if(fx.stage!=="charge"){
-   const wedge=fx.kind==="pierce"?.13:fx.kind==="lunge"?.55:fx.kind==="backkick"?.90:fx.kind==="double"?.96:fx.kind==="fan"?2.0:1.32;
-   const reach=R*(fx.kind==="pierce"?1.6:fx.stage==="normal"?.86:1.18);
-   if(!radial){
-    if(fx.kind==="backkick")ctx.rotate(Math.PI);
-    const start=-wedge*.58+u*.65,finish=wedge*.64+u*.36;
-    const arcR=reach*(.52+burst*.25);
-    ctx.strokeStyle=fx.color;ctx.lineWidth=(fx.stage==="normal"?9:17)*fade*scale+2;
-    ctx.beginPath();ctx.arc(0,0,arcR,start,finish);ctx.stroke();
-    ctx.strokeStyle="#fffde7";ctx.lineWidth=(fx.stage==="normal"?3.2:7)*fade*scale+1;
-    ctx.beginPath();ctx.arc(0,0,arcR+4*scale,start+.07,finish-.07);ctx.stroke();
-    if(fx.kind==="pierce"||fx.kind==="throw"){
-     ctx.strokeStyle="#eaffff";ctx.lineWidth=9*fade*scale+1;
-     ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(reach*(.8+u*.2),0);ctx.stroke();
-     ctx.fillStyle="#e7ffff";ctx.beginPath();ctx.moveTo(reach,0);ctx.lineTo(reach-27*scale,-11*scale);ctx.lineTo(reach-27*scale,11*scale);ctx.closePath();ctx.fill();
+  function trace(points,width,color,opacity=1){
+   if(points.length<2||points.some(p=>!p))return;
+   ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+   for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
+   ctx.globalAlpha=fade*opacity;ctx.strokeStyle=color;ctx.lineWidth=width*zoom;ctx.stroke();
+  }
+  function curve(a,b,c,width,color,opacity=1){
+   if(!a||!b||!c)return;
+   ctx.globalAlpha=fade*opacity;ctx.strokeStyle=color;ctx.lineWidth=width*zoom;
+   ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(b.x,b.y,c.x,c.y);ctx.stroke();
+  }
+  function oval(center,rx,ry,color,opacity=1){
+   if(!center)return;
+   ctx.globalAlpha=fade*opacity;ctx.strokeStyle=color;ctx.lineWidth=2.2*zoom;
+   ctx.beginPath();ctx.ellipse(center.x,center.y,Math.max(1,rx*zoom),Math.max(1,ry*zoom),0,0,Math.PI*2);ctx.stroke();
+  }
+  const color=ATTACK_TRAIL_COLOR[fx.motion]||"#ddd1b3";
+  const heavy=fx.stage==="special",normal=fx.stage==="normal";
+  const width=heavy?6:normal?3.5:2.5;
+  // Windup = brief limb recoil at the anatomical attachment point, NOT light rings.
+  if(fx.stage==="charge"){
+   const root=pt(r*.42,left*r*.34,r*.48),back=pt(r*.19,left*r*.46,r*.42);
+   trace([root,back],3,color,.45);
+   continue;
+  }
+  if(fx.stage==="hit"){
+   // Contact-only dust / claw impact on the actual enemy position.
+   const p=pt(0,0),a=pt(-r*.19,-r*.10),b=pt(r*.17,r*.11);
+   trace([a,p,b],2.7,color,.60);
+   oval(pt(0,0),r*.20,r*.09,"#b3a28a",.53);
+   continue;
+  }
+  if(fx.stage==="stomp"){
+   const center=pt(0,0),b=pt(-r*.13,left*r*.18);
+   oval(center,r*.55,r*.29,"#b9ae94",.72);
+   oval(b,r*.23,r*.13,"#877f6e",.75);
+   for(let k=0;k<4;k++)trace([pt(-r*.38,k*r*.17-r*.26),pt(-r*.58,k*r*.17-r*.29)],2,"#aea18a",.60);
+   continue;
+  }
+  const baseF=front*r,side=left*r*.43;
+  const reach=r*(heavy?1.9:1.15)*(u<.25?.67+u*1.1:1);
+  const tipF=baseF+reach,tipSide=side+left*r*(heavy?.21:.11);
+  const muzzleHeight=r*.82,footHeight=r*.08,pawHeight=r*.22;
+  switch(fx.motion){
+   case "claw":{
+    // Three scratches move from the SAME left/right forepaw. No central arrows.
+    for(let k=-1;k<=1;k++){
+     const shift=k*r*.105;
+     curve(pt(baseF,side+shift,pawHeight),
+       pt(baseF+reach*.63,side+shift+left*r*.22,r*.32),
+       pt(tipF,tipSide+shift,r*.16),width*(k===0?1:.74),color,.95);
     }
+    break;
    }
-   // Six outward shock streaks, arranged along the species attack axis.
-   for(let k=0;k<6;k++){
-    const angle=fx.seed+k*1.0472+u*.65;
-    const distance=R*(.20+u*.67),extension=R*(.16+u*.14);
-    ctx.strokeStyle=k%2?"#fdfdf0":fx.color;ctx.lineWidth=(k%2?2.5:5)*fade*scale+1;
-    ctx.beginPath();ctx.moveTo(Math.cos(angle)*distance,Math.sin(angle)*distance*.44);
-    ctx.lineTo(Math.cos(angle)*(distance+extension),Math.sin(angle)*(distance+extension)*.44);ctx.stroke();
+   case "paw":case "fist":case "hoof":case "foot":case "hind":{
+    const backwards=fx.motion==="hind"||fx.step===4;
+    const start=backwards?-r*.54:baseF;
+    const end=backwards?-r*.54-reach:tipF;
+    const height=fx.motion==="fist"?r*.48:footHeight;
+    curve(pt(start,side,height),pt((start+end)*.5,side+left*r*.08,r*.32),
+      pt(end,tipSide,height*.42),width*(fx.motion==="fist"?1.35:1),color);
+    const footprint=pt(end,tipSide,footHeight);
+    oval(footprint,r*(fx.motion==="fist"?.38:.24),r*.14,color,.84);
+    if(fx.motion==="hoof"||fx.motion==="hind"||fx.motion==="foot"){
+     // Split hoof/toes at the landing contact, no fake airborne shock rings.
+     for(let k=-1;k<=1;k++)trace([pt(end,tipSide+k*r*.12),pt(end+r*.13,tipSide+k*r*.13)],1.8,color,.67);
+    }
+    break;
+   }
+   case "jaw":{
+    // Open then close the UPPER and LOWER mouth in front of the head.
+    for(const jaw of [-1,1]){
+     curve(pt(r*.85,jaw*r*.17,muzzleHeight),
+       pt(r*1.23,jaw*r*(.29-u*.12),muzzleHeight+jaw*r*.06),
+       pt(r*1.55+reach*.25,jaw*r*.07,muzzleHeight),width*.82,color,.95);
+    }
+    break;
+   }
+   case "beak":{
+    // Long straight bill attached to the neck, lateral neck sweep alternates sides.
+    const sweep=left*r*(normal?.25:.43)*Math.sin(u*Math.PI);
+    for(const edge of [-1,1])
+     curve(pt(r*.70,edge*r*.13,muzzleHeight),
+       pt(r*1.23,edge*r*.14+sweep*.7,muzzleHeight+r*.08),
+       pt(r*1.60+reach*.38,edge*r*.07+sweep,muzzleHeight),width*.73,color);
+    break;
+   }
+   case "tusk":case "horn":{
+    for(const tine of [-1,1]){
+     const off=tine*r*.27;
+     curve(pt(r*.64,off,muzzleHeight*.75),pt(r*1.11,off*1.15,muzzleHeight),
+       pt(r*1.46+reach*.4,off*.64,muzzleHeight*.66),width*.63,color,.95);
+    }
+    break;
+   }
+   case "wing":{
+    // Separate sweeping primary feathers, originating on the actual left/right wing.
+    for(let feather=0;feather<4;feather++)
+     curve(pt(r*.02,left*r*(.50+feather*.10),r*.33),
+       pt(r*.42+reach*.28,left*r*(.95+feather*.16),r*.64),
+       pt(r*.56+reach*.62,left*r*(1.08+feather*.10),r*.24),width*.49,color,.85);
+    break;
+   }
+   case "tail":{
+    for(let i=0;i<3;i++)
+     curve(pt(-r*.74,0,r*.36),pt(-r*1.1-reach*.25,left*r*(.45+i*.1),r*.42),
+       pt(-r*.15,left*r*(1.03+i*.12),r*.12),width*.70,color,.85);
+    break;
+   }
+   case "trunk":case "neck":{
+    const long=fx.motion==="neck";
+    curve(pt(r*.38,0,long?r*1.4:r*.95),
+      pt(r*1.23,left*r*(long?.70:.25),long?r*1.33:r*.74),
+      pt(r*1.65+reach*.35,left*r*(long?1.1:.38),long?r*.72:r*.14),
+      width*(long?1.12:1.2),color);
+    break;
+   }
+   case "body":case "roll":{
+    // Ground-level scrapes produced by physical rolling/shoulder contact.
+    for(let k=-1;k<=1;k++)
+     curve(pt(-r*.60,k*r*.33,0),pt(-r*.16,k*r*.42,0),
+       pt(r*.62+reach*.48,k*r*.34,0),width*.59,"#b3a08a",.83);
+    if(fx.motion==="roll")oval(pt(0,0,r*.20),r*.72,r*.40,color,.65);
+    break;
+   }
+   case "quill":{
+    // Short individual quills leave the back, not starburst arrows in the sky.
+    for(let k=-3;k<=3;k++){
+     const sideK=k*r*.17;
+     trace([pt(-r*.35,sideK,r*.40),pt(-r*.66-reach*.44,sideK*1.55,r*.56)],
+       2.2,color,.84);
+    }
+    break;
+   }
+   case "stone":{
+    // A clearly round thrown object and short hand-to-stone motion.
+    const stone=pt(r*.75+reach*.8,side*.20,r*.85);
+    curve(pt(r*.4,side,r*.54),pt(r*.9,side*.65,r*1.2),stone,2.6,"#c8bba4",.74);
+    if(stone){ctx.globalAlpha=fade*.92;ctx.fillStyle="#9c927e";
+     ctx.beginPath();ctx.arc(stone.x,stone.y,Math.max(3,5*zoom),0,Math.PI*2);ctx.fill();}
+    break;
+   }
+   case "voice":{
+    // SOUND travels only forward from the mouth: curved acoustic wavefronts.
+    for(let k=0;k<3;k++){
+     const p=r*(1.4+k*.48)+reach*u*.65;
+     curve(pt(p,-r*(.20+k*.15),muzzleHeight),pt(p+r*.13,0,muzzleHeight),
+       pt(p,r*(.20+k*.15),muzzleHeight),2.5,color,.78-k*.12);
+    }
+    break;
+   }
+   case "splash":{
+    // Water droplets rise from the tail fin then fall to the water surface.
+    for(let k=-2;k<=2;k++){
+     const x=r*.45+reach*(.25+u*.54),y=k*r*.25;
+     const p=pt(x,y,r*(.14+Math.sin(Math.PI*u)*(.35+Math.abs(k)*.09)));
+     if(p){ctx.globalAlpha=fade*.75;ctx.fillStyle="#9bcbdd";ctx.beginPath();
+       ctx.ellipse(p.x,p.y,Math.max(1.5,3.4*zoom),Math.max(2.2,5*zoom),0,0,Math.PI*2);ctx.fill();}
+    }
+    break;
    }
   }
-  if(fx.stage==="impact"||fx.stage==="stomp"){
-   ctx.globalAlpha=fade*.48;ctx.fillStyle=fx.color;ctx.beginPath();ctx.ellipse(0,0,R*(.27+u*.34),R*(.12+u*.15),0,0,Math.PI*2);ctx.fill();
-  }
-  ctx.restore();
  }
  ctx.restore();
 }
@@ -3156,7 +3327,7 @@ function resolveSpeciesSpecial(){
  // Real movement remains collision-checked: lunge cannot cross barriers/water.
  const enemies=specialTargets(spec),primary=enemies[0];
  P.specialVisual=1.02;P.attackAction=.85;
- emitCombatFX("impact",type,spec.kind,P.x,P.y,P.dir,1.18);
+ emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.18,0,P.r);
  shake=Math.max(shake,spec.kind==="slam"||spec.kind==="roar"?11:7);flash=Math.max(flash,.09);
  playEffect(spec.kind==="slam"?"thunder":"impact",{volume:.30});
  if(primary&&["lunge","roll"].includes(spec.kind)){
@@ -3185,7 +3356,7 @@ function resolveSpeciesSpecial(){
   const stun=spec.kind==="pierce"?.85:spec.kind==="bite"?.66:spec.kind==="slam"?.48:spec.kind==="lunge"?.38:spec.kind==="thorns"?.32:.24;
   const knock=spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
   const sequence=spec.kind==="double"||spec.kind==="backkick";
-  emitCombatFX("impact",type,spec.kind,m.x,m.y,P.dir,.55);
+  emitCombatFX("hit",type,spec.kind,m.x,m.y,P.dir,.65,0,m.r);
   const damage=specialHit(m,power*(sequence?.78:more),stun,knock,spec.name);
   if(damage>0){
    hitCount++;
@@ -3220,7 +3391,7 @@ function instinct(){
  P.abilityTime=Math.max(P.abilityTime||0,3.4);
  P.specialAmbush=!!P.hidden&&P.revealTimer<=0;
  P.specialKind=spec.kind;P.attackAction=.9;
- emitCombatFX("charge",P.type,spec.kind,P.x,P.y,P.dir,1.15);
+ emitCombatFX("charge",P.type,spec.kind,P.x,P.y,P.dir,1.12,0,P.r);
  window.WildAudio?.playAnimal?.(P.type,{ultimate:true});
  P.specialPending=P.type;P.specialWindup=spec.kind==="pierce"?.28:spec.kind==="slam"?.34:.16;
  P.specialVisual=.50;
@@ -3465,7 +3636,7 @@ function attack(){
  if(P.sp<cost){resetRush();P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
  P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;
  P.attackAction=.45;P.attackActionStep=step;
- emitCombatFX("normal",P.type,step===3?"pierce":step===4?"backkick":step===5?"slam":"fan",P.x+Math.cos(P.dir)*P.r*.36,P.y+Math.sin(P.dir)*P.r*.36,P.dir,step===5?1.5:1.05);
+ emitCombatFX("normal",P.type,"melee",P.x,P.y,P.dir,step===5?1.3:1.0,step,P.r);
  window.WildAudio?.playAnimal?.(P.type,{ultimate:false});P.rushActiveStep=step;P.rushQueued=false;
   P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
  P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
@@ -3613,7 +3784,7 @@ function resolveAttack(){
    if(m.hp<=0)kill(m);
   }
  });
- if(hit){emitCombatFX("impact",P.type,"double",P.x+Math.cos(P.dir)*P.r*1.1,P.y+Math.sin(P.dir)*P.r*1.1,P.dir,.67);shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
+ if(hit){emitCombatFX("hit",P.type,"melee",P.x+Math.cos(P.dir)*P.r*1.35,P.y+Math.sin(P.dir)*P.r*1.35,P.dir,.68,P.rushActiveStep||1,P.r);shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
@@ -3730,7 +3901,7 @@ function resolveShoebillStomp(){
   // A stomp is a physical landing, not a ranged or homing strike.
   if(dist(P,m)>P.r+m.r+12||lineBlocked(P,m))continue;
   const damage=specialHit(m,1.22,m.strongBoss?.12:.50,20,"踏みつけ");
-  if(damage>0){count++;emitCombatFX("stomp","shoebill","slam",m.x,m.y,P.dir,.8);}
+  if(damage>0){count++;emitCombatFX("stomp","shoebill","slam",m.x,m.y,P.dir,.95,4,m.r);}
   if(count>=2)break;
  }
  if(count){P.swing=Math.max(P.swing||0,.25);P.shoebillSwingTime=.28;shake=Math.max(shake,4);playEffect("impact",{volume:.24});}
