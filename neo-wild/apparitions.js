@@ -46,7 +46,8 @@ function tick(dt,w){
   const near=distance(g,P),exposed=!P.hidden&&!w.lineBlocked?.(P,g)&&near<90;
   if(exposed){g.fear=Math.min(3,g.fear+dt);if(g.fear>=1.4){
    // Possession is a temporary movement penalty, not an unavoidable instant death.
-   P.hauntedTime=Math.max(finite(P.hauntedTime),g.kind==="wraith"?4:2.6);
+   P.hauntedTime=Math.max(finite(P.hauntedTime),g.kind==="wraith"?6:4.5);
+   if(!P.ghostPossessedUntil || P.ghostPossessedUntil<=0){P.ghostPossessedUntil=g.kind==="wraith"?6:4.5;P.ghostWanderAngle=Math.random()*Math.PI*2;P.ghostWanderClock=0;g.stage="fade";g.t=0;w.notify("霊に体を奪われた！ 操作できない");w.onEvent?.("ghost-control-lost",{year,kind:g.kind});}
    P.sp=Math.max(0,finite(P.sp)-dt*4);
    if(g.fear<1.4+dt){w.notify("憑依された！ 離れて振り切れ");w.onEvent?.("ghost-possession",{year});}
   }}else g.fear=Math.max(0,g.fear-dt*1.7);
@@ -111,6 +112,8 @@ function draw(ctx,project,w){
  ctx.save();ctx.globalAlpha=alpha;ctx.translate(q.x,q.y-18);
  const bob=Math.sin(g.t*3)*6;ctx.fillStyle="#a4c9df";ctx.shadowColor="#8dc9f2";ctx.shadowBlur=18;
  ctx.beginPath();ctx.ellipse(0,-26+bob,12,15,0,0,Math.PI*2);ctx.fill();
+ ctx.globalAlpha=alpha*.32;ctx.beginPath();ctx.ellipse(0,4+bob,26,39,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
+ ctx.strokeStyle="#d7f2ff";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-12,-18+bob);ctx.quadraticCurveTo(-35,0+bob,-23,20+bob);ctx.moveTo(12,-18+bob);ctx.quadraticCurveTo(35,0+bob,23,20+bob);ctx.stroke();
  ctx.beginPath();ctx.moveTo(-15,-16+bob);ctx.quadraticCurveTo(-25,20+bob,-5,15+bob);ctx.quadraticCurveTo(15,27+bob,19,8+bob);ctx.lineTo(14,-16+bob);ctx.closePath();ctx.fill();
  ctx.shadowBlur=0;ctx.fillStyle="#183048";ctx.fillRect(-7,-30+bob,4,3);ctx.fillRect(4,-30+bob,4,3);
  if(g.stage==="manifest"){ctx.font="bold 12px sans-serif";ctx.textAlign="center";ctx.fillStyle="#d7edff";ctx.fillText(g.kind==="wraith"?"憑依霊":g.kind==="mimic"?"幻惑霊":"亡霊",0,-56+bob)}
