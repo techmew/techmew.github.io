@@ -67,6 +67,34 @@ function tick(dt,world){
   const scoutDistance=distance(P,scout);
   const scoutVisible=!P.hidden&&!safeBlocked(world,P,scout);
   site.scoutX=scout.x;site.scoutY=scout.y;
+  // A real player counterattack: face the drone and time a strike. The
+  // 0.24s hit window and per-scout cooldown prevent passive aura farming.
+  // Ordinary blows disrupt briefly; a species ultimate can disable the
+  // drone long enough to escape its scanning beam.
+  site.playerCounterCooldown=Math.max(0,(Number(site.playerCounterCooldown)||0)-dt);
+  const attackActive=(Number(P.swing)||0)>.015||(Number(P.attackAction)||0)>.12;
+  const ultimateActive=(Number(P.specialVisual)||0)>.10||(Number(P.specialWindup)||0)>.02;
+  const playerAttacking=attackActive||ultimateActive;
+  const range=ultimateActive?112:Math.max(40,(Number(P.r)||20)*2.8);
+  const faceX=Math.cos(Number(P.dir)||0),faceY=Math.sin(Number(P.dir)||0);
+  const dx=scout.x-P.x,dy=scout.y-P.y,hitDistance=Math.hypot(dx,dy)||1;
+  const facing=(dx*faceX+dy*faceY)/hitDistance;
+  const counterPossible=disposition==="hostile"&&site.scoutDisrupted<=0&&
+    site.playerCounterCooldown<=0&&playerAttacking&&hitDistance<range&&
+    facing>(ultimateActive?.18:.48)&&!safeBlocked(world,P,scout);
+  if(counterPossible){
+   const disruption=ultimateActive?5.5:2.2;
+   site.scoutDisrupted=disruption;
+   site.playerCounterCooldown=ultimateActive?7:3.5;
+   site.retreatX=dx/hitDistance;site.retreatY=dy/hitDistance;
+   site.scoutCharge=0;site.wildlifePulse=0;
+   site.counterattacks=(Number(site.counterattacks)||0)+1;
+   site.counterFlash=.55;
+   world.notify?.(ultimateActive?"固有技が偵察機に直撃！ 長時間停止させた":"偵察機を撃退！ 今のうちに逃げろ");
+   world.onEvent?.("alien-scout-player-counterattack",{year,x:scout.x,y:scout.y,
+    species:P.type||"unknown",ultimate:ultimateActive,duration:disruption});
+  }
+  site.counterFlash=Math.max(0,(Number(site.counterFlash)||0)-dt);
   if(disposition==="hostile"&&(Number(site.scoutDisrupted)||0)<=0&&scoutDistance<62&&scoutVisible){
    site.scoutCharge=(Number(site.scoutCharge)||0)+dt;
    P.sp=Math.max(0,(Number(P.sp)||0)-dt*2.6);
@@ -436,6 +464,15 @@ function draw(ctx,project,world){
    const scout=project(site.scoutX,site.scoutY);
    if(scout&&Number.isFinite(scout.x)&&Number.isFinite(scout.y)){
     renderSaucer(ctx,scout.x,scout.y-33,14,site.age,site.disposition==="friendly"?"friendly":"scout");
+    if(site.counterFlash>0||site.scoutDisrupted>0){
+     const alpha=Math.min(.9,Math.max((Number(site.counterFlash)||0)*1.4,.15));
+     ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle="#9effd9";ctx.lineWidth=3;
+     ctx.beginPath();ctx.arc(scout.x,scout.y-33,18+Math.sin(site.age*11)*3,0,Math.PI*2);ctx.stroke();
+     for(let k=0;k<4;k++){const a=site.age*6+k*Math.PI/2;
+      ctx.beginPath();ctx.moveTo(scout.x+Math.cos(a)*21,scout.y-33+Math.sin(a)*13);
+      ctx.lineTo(scout.x+Math.cos(a)*29,scout.y-33+Math.sin(a)*19);ctx.stroke();}
+     ctx.restore();
+    }
     if(site.disposition==="hostile"&&site.scoutCharge>0){
      ctx.strokeStyle="#fcaf88";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(scout.x,scout.y-21);ctx.lineTo(scout.x,scout.y);ctx.stroke();
     }
