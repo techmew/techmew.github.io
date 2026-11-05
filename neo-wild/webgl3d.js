@@ -615,8 +615,16 @@ function drawCommonAnimal3D(m,clock){
   }
   orb(-r*1.35,0,r*1.55,r*.23,r*.13,r*.14,"#6a533e");
  }else if(t==="zebra"){
-  for(const side of [-1,1])for(const front of [-1,1])
-   orb(front*r*.59,side*r*.48,r*.49+gait*r*.06*front*side,r*.17,r*.18,r*.50,"#585854");
+  // Gallop: diagonal pairs flex independently, knees and hooves follow distinct arcs.
+  const run=clamp(Math.hypot(m.vx||0,m.vy||0)/110,0,1.35),cycle=(m.step||0)*1.9;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const beat=Math.sin(cycle+(front===side?0:Math.PI)+(front>0?.32:0));
+   const stride=beat*r*.58*run,up=Math.max(0,beat)*r*.37*run,hip=front*r*.59,lat=side*r*.48;
+   orb(hip+stride*.13,lat,r*.76+up*.13,r*.23,r*.20,r*.33,"#e0e0d7");
+   orb(hip+stride*.52,lat,r*.43+up*.47,r*.16,r*.16,r*.26,"#585854");
+   orb(hip+stride*.86,lat,r*.20+up*.83,r*.125,r*.14,r*.20,"#e6e4db");
+   orb(hip+stride,lat,r*.085+up,r*.20,r*.18,r*.11,"#282d2d");
+  }
   orb(-r*.18,0,r*.96,r*1.20,r*.56,r*.53,fur);
   for(let k=0;k<8;k++){const xx=(-1.0+k*.25)*r;orb(xx,0,r*1.38,r*.10,r*.53,r*.065,"#363c3c");}
   orb(r*.66,0,r*1.15,r*.44,r*.33,r*.66,fur);
@@ -625,8 +633,15 @@ function drawCommonAnimal3D(m,clock){
   for(const side of [-1,1])pyramid(fx(r*1.01,side*r*.23),fy(r*1.01,side*r*.23),r*1.86,r*.15,r*.14,r*.33,fur);
   for(let k=0;k<5;k++)orb(-r*(1.18+k*.26),0,r*(.93-k*.12),r*.11,r*.10,r*.13,k%2?"#343b3b":fur);
  }else if(t==="lion"){
-  for(const side of [-1,1])for(const front of [-1,1])
-   orb(front*r*.59,side*r*.49,r*.42+gait*r*.05*front*side,r*.25,r*.25,r*.43,fur);
+  // Feline pursuit: paired hind-leg thrust and flexible airborne forepaws.
+  const chase=clamp(Math.hypot(m.vx||0,m.vy||0)/125,0,1.3),cycle=(m.step||0)*2.4;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const beat=Math.sin(cycle+(front>0?0:Math.PI)+side*.36);
+   const stride=beat*r*.62*chase,up=Math.max(0,beat)*r*.34*chase,hip=front*r*.59,lat=side*r*.49;
+   orb(hip+stride*.13,lat,r*.60+up*.20,r*.30,r*.28,r*.30,fur);
+   orb(hip+stride*.53,lat,r*.32+up*.53,r*.22,r*.20,r*.24,fur);
+   orb(hip+stride,lat,r*.11+up,r*.29,r*.27,r*.15,"#c5a26c");
+  }
   orb(-r*.17,0,r*.89,r*1.28,r*.66,r*.67,fur);
   orb(r*.71,0,r*1.08,r*.77,r*.79,r*.90,"#8d663d");
   for(let k=0;k<11;k++){const a=k*TAU/11;orb(r*.70,Math.cos(a)*r*.68,r*1.08+Math.sin(a)*r*.66,r*.26,r*.19,r*.22,"#a67a47");}
@@ -634,8 +649,16 @@ function drawCommonAnimal3D(m,clock){
   for(const side of [-1,1])orb(r*1.20,side*r*.29,r*1.25,r*.09,r*.09,r*.09,"#352c24");
   for(let k=0;k<5;k++)orb(-r*(1.13+k*.26),0,r*(.82-k*.07),r*.14,r*.11,r*.11,k===4?"#584734":fur);
  }else if(t==="elephant"){
-  for(const side of [-1,1])for(const front of [-1,1])
-   orb(front*r*.60,side*r*.67,r*.49+gait*r*.04*side*front,r*.37,r*.38,r*.49,"#66746d");
+  // Heavy lateral walk: four independently planted pillar legs and broad toenails.
+  const walking=clamp(Math.hypot(m.vx||0,m.vy||0)/90,0,1),cycle=(m.step||0)*1.13;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const beat=Math.sin(cycle+(front===side?0:Math.PI)),step=beat*r*.28*walking;
+   const lift=Math.max(0,beat)*r*.15*walking,hip=front*r*.60,lat=side*r*.67;
+   orb(hip+step*.18,lat,r*.77+lift*.13,r*.41,r*.39,r*.37,"#798680");
+   orb(hip+step*.57,lat,r*.44+lift*.43,r*.35,r*.35,r*.34,"#66746d");
+   orb(hip+step,lat,r*.12+lift,r*.41,r*.39,r*.15,"#59665f");
+   for(let toe=-1;toe<=1;toe++)orb(hip+step+r*.24,lat+toe*r*.19,r*.08+lift,r*.10,r*.085,r*.055,"#a9a99a");
+  }
   orb(-r*.23,0,r*1.22,r*1.41,r*1.01,r*1.11,fur);orb(r*.80,0,r*1.28,r*.89,r*.81,r*.98,belly);
   for(const side of [-1,1]){
    orb(r*.84,side*r*.82,r*1.40,r*.55,r*.31,r*.75,"#798983");
