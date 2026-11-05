@@ -169,6 +169,8 @@ function tick(dt,world){
     e.captured=(Number(e.captured)||0)+1;
     if(!Number.isFinite(e.firstCaptureAt))e.firstCaptureAt=e.t;
     if(distance(P,e)<360)world.notify?.("動物が光に吸われ、円盤へ消えた！");
+    // Debug preview should show the complete NPC sequence without forcibly killing the tester.
+    if(e.debugImmediate){e.stage="depart";e.t=0;e.departRise=0;e.lastSeen=0;world.notify?.("デバッグ：捕獲完了。UFOが上昇して飛び去る");}
    }
    e.lifts=[];e.npcCooldown=.55;
    persist();
