@@ -456,6 +456,48 @@ function forageWildCarcasses(){
  }
  return meals;
 }
+// Actual wildlife migration: hungry herds travel across district borders.
+// This operates on existing living NPCs only, never on owned/released animals.
+function migrateLivingHerds(){
+ if(!P||!Array.isArray(mobs)||!Array.isArray(ecology))return 0;
+ let moved=0;
+ const targets=[];
+ for(let i=0;i<ecology.length;i++){
+  const home=ecology[i];
+  if(!home||home.food>=39||home.prey<=9)continue;
+  const neighbors=(i<5?[i-1,i+1,i+5]:[i-5,i-1,i+1]).filter(j=>j>=0&&j<ecology.length);
+  const dest=neighbors.sort((a,b)=>(ecology[b]?.food||0)-(ecology[a]?.food||0))[0];
+  if(dest==null||!ecology[dest]||ecology[dest].food-home.food<16)continue;
+  targets.push({from:i,to:dest});
+ }
+ for(const route of targets){
+  if(moved>=5)break;
+  const herd=mobs.filter(m=>m&&m.hp>0&&species[m.type]?.prey&&!m.releasedIndividualId&&!m.companion&&
+   !m.strongBoss&&regionAt(m.x,m.y)===route.from&&dist(m,P)>210).slice(0,3);
+  for(const m of herd){
+   if(moved>=5)break;
+   // Sample a reachable point within the destination district.
+   let best=null,bestD=Infinity;
+   for(let x=360;x<WORLD.w-300;x+=420)for(let y=350;y<WORLD.h-300;y+=420){
+    if(regionAt(x,y)!==route.to)continue;
+    const d=Math.hypot(x-m.x,y-m.y);
+    if(d<bestD){best={x,y};bestD=d;}
+   }
+   if(!best)continue;
+   const dx=best.x-m.x,dy=best.y-m.y,d=Math.hypot(dx,dy);
+   if(d<1)continue;
+   const stride=Math.min(65,d),nx=m.x+dx/d*stride,ny=m.y+dy/d*stride;
+   if(nx<40||ny<40||nx>WORLD.w-40||ny>WORLD.h-40||
+      collides(nx,ny,m.r)||waterBlocksLand(nx,ny))continue;
+   m.x=nx;m.y=ny;m.dir=Math.atan2(dy,dx);
+   m.flee=Math.max(m.flee||0,.45);
+   m.fleeThreatX=m.x-dx/d*160;m.fleeThreatY=m.y-dy/d*160;
+   m.migrationRegion=route.to;
+   moved++;
+  }
+ }
+ return moved;
+}
 function simulateEcology(dt){
  ecologyClock+=dt;if(ecologyClock<15)return;
  const tick=Math.min(6,Math.floor(ecologyClock/15));ecologyClock-=tick*15;
@@ -484,7 +526,7 @@ function simulateEcology(dt){
   }
   if(oldDominance!==e.dominance)ecologyNews=districts[i]+"：群れの勢力が交代";
  }
- // Actual scavenging consumes corpse food and restores injured predators.\n forageWildCarcasses();\n // Real inter-district migration: animals leave low-food regions for neighboring
+ // Actual scavenging and herd movement both affect living animals.\n forageWildCarcasses();\n migrateLivingHerds();\n // Real inter-district migration: animals leave low-food regions for neighboring
  // higher-food ones. This is population movement, not spawning/teleporting NPCs:
  // live local animals are retained; the destination's future birth pool rises.
  // Transfers are bounded and happen only once per 15-second ecology tick.
