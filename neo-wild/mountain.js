@@ -8,6 +8,8 @@ const CAVE_START=13040,CAVE_END=13450,CAVE_HALF=110;
 // Its open western entrance preserves the original eight city districts.
 const northWood=(x,y)=>x>=CITY_EDGE&&x<=10800&&y>=850&&y<=2580;
 const northTrail=x=>1670+210*Math.sin((x-CITY_EDGE)/650);
+// A continuous woodland-to-foothill saddle, not a separate map or teleport.
+const northPass=(x,y)=>x>=10500&&x<=10700&&y>=2390&&y<=center(x)-570;
 const zone=x=>x>=CAVE_START&&x<=CAVE_END?"cave":x>=SUMMIT_START?"summit":x>FOOTHILL_END?"slope":"foothill";
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const center=x=>3770+110*Math.sin((x-WEST)/355)+(x>FOOTHILL_END?95*smooth(clamp((x-FOOTHILL_END)/720,0,1))*Math.sin((x-FOOTHILL_END)/300):0);
@@ -16,8 +18,14 @@ const smooth=t=>t*t*(3-2*t);
 const southReach=x=>720+430*smooth(clamp((x-10220)/520,0,1))*(1-smooth(clamp((x-11450)/430,0,1)));
 const meadowTrail=x=>center(x)+clamp((x-10970)/380,0,1)*720;
 const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35&&Math.abs(x-(10950+28*Math.sin((y-3820)/190)))>65;
-const active=(x,y)=>northWood(x,y)||(x>=WEST&&x<=EAST&&y>=2600&&y<=5100);
+const active=(x,y)=>northWood(x,y)||northPass(x,y)||(x>=WEST&&x<=EAST&&y>=2600&&y<=5100);
 function height(x,y){
+ if(northPass(x,y)){
+  const t=smooth(clamp((y-2390)/(center(x)-570-2390),0,1));
+  const wood=Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
+  const foot=90*smooth(clamp((x-WEST)/(FOOTHILL_END-WEST),0,1));
+  return wood*(1-t)+foot*t;
+ }
  if(northWood(x,y))return Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
  if(x<=WEST)return 0;
  const p=clamp((Math.min(x,FOOTHILL_END)-WEST)/(FOOTHILL_END-WEST),0,1);
@@ -162,6 +170,11 @@ for(const group of [pines,scree]){
 }
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
+ if(northPass(x,y)){
+  if(x<10500+r||x>10700-r)return true;
+  for(const p of [...trees,...rocks,...pines,...scree])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+  return false;
+ }
  if(northWood(x,y)){
   if(y<920+r||y>2510-r||x>10720-r)return true;
   for(const p of [...trees,...rocks])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
@@ -241,6 +254,8 @@ function choose(random=Math.random(),x=9000,y=center(x),preyOnly=false,weather="
 function draw2D(ctx,visible){
  ctx.fillStyle="#344f3b";ctx.fillRect(CITY_EDGE,0,EAST-CITY_EDGE,6000);
  // Northern woodland: walkable trail, deciduous canopy and real obstacles.
+ ctx.fillStyle="#536e51";ctx.beginPath();ctx.moveTo(10500,2390);ctx.lineTo(10700,2390);ctx.lineTo(10700,center(10700)-570);ctx.lineTo(10500,center(10500)-570);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#958b6b";ctx.lineWidth=64;ctx.beginPath();ctx.moveTo(10600,2390);ctx.lineTo(10600,center(10600)-570);ctx.stroke();
  ctx.fillStyle="#47694c";ctx.fillRect(CITY_EDGE,850,2400,1730);
  ctx.strokeStyle="#8b8064";ctx.lineWidth=115;ctx.beginPath();
  for(let x=CITY_EDGE;x<=10780;x+=60){const y=northTrail(x);if(x===CITY_EDGE)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
