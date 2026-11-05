@@ -6873,7 +6873,8 @@ function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
   // Shoebill: rigid upright stance, elongated legs, giant hooked shoe-shaped bill.
   const strikeSwing=Math.sin(Math.PI*Math.min(1,Math.max(0,(o.shoebillSwingTime||0)/.35)));
   const neckSweep=(o.shoebillSwingDir||1)*strikeSwing*r*.35;
-  const thrust=o.beakVisual>0?.25+strikeSwing*.34:0,flap=o.jumpTime>0||o.pounceTime>0;
+  // Bill stays rigid, head and beak move as one unit instead of stretching apart.
+  const thrust=o.beakVisual>0?.06+strikeSwing*.10:0,flap=o.jumpTime>0||o.pounceTime>0;
   for(const side of [-1,1]){
    line([-r*.25,side*r*.12,-r*.56,side*r*(.94+Math.sin((o.steps||0)*.7)*.1)],"#8b8e83",r*.14);
    for(let toe=-1;toe<=1;toe++)
@@ -6885,7 +6886,8 @@ function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
    oval(-r*.36,side*r*(flap?.75:.36),r*(flap?.98:.72),r*(flap?.37:.21),"#687982",side*.14);
    for(let k=0;k<5;k++)line([-r*.80+k*r*.15,side*r*.40,-r*1.12+k*r*.13,side*r*(flap?1.01:.64)],"#9ba8aa",1.2);
   }
-  oval(r*.55,neckSweep*.35,r*.41,r*.44,"#87969b"); // full neck whip
+  ctx.save();ctx.translate(r*(o.beakVisual>0?.06+strikeSwing*.10:0),0);
+  oval(r*.55,neckSweep*.35,r*.41,r*.44,"#87969b"); // head-neck joint, one facial transform
   oval(r*.88+strikeSwing*r*.14,neckSweep,r*.35,r*.32,"#a0adb0");
   for(const side of [-1,1]){oval(r*.85+strikeSwing*r*.14,side*r*.26+neckSweep,r*.09,r*.085,"#efd396");oval(r*.88+strikeSwing*r*.14,side*r*.26+neckSweep,r*.043,r*.045,"#161c1d");}
   // Oversized shoe bill with thick upper ridge and a sharply hooked tip.
@@ -6895,6 +6897,7 @@ function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
   triangle([r*(2.02+thrust),-r*.11+neckSweep,r*(2.21+thrust),neckSweep,r*(2.02+thrust),r*.12+neckSweep],"#625e54");
   oval(r*(1.44+thrust),-r*.24+neckSweep,r*.045,r*.035,"#4a514b");
   for(let k=0;k<3;k++)triangle([r*.31,-r*.24+k*r*.12,r*.42,-r*.48+k*r*.12,r*.58,-r*.28+k*r*.12],"#bdc7bf");
+  ctx.restore();
  }
  return true;
 }
@@ -6954,13 +6957,13 @@ function drawCreature(o,isPlayer){
    else if(P.pounceTime>0)ctx.scale(t==="wolf"?1.34:1.16,t==="wolf"?0.73:0.86);
    else if(t==="fox"&&P.abilityTime>0&&Math.hypot(P.vx,P.vy)>325)ctx.scale(1.24,.79);
   else if(P.pendingStrike){
-   if(t==="cat"){ctx.translate(-r*.10,0);ctx.scale(.95,1.10)}
-   else if(t==="wolf"){ctx.translate(-r*.09,0);ctx.scale(.91,1.13)}
-   else{ctx.translate(-r*.13,0);ctx.scale(1.10,.87)}
+   // Keep skull shape fixed. Windup is expressed by translation, not stretching the face.
+   ctx.translate(-r*.10,0);
+   ctx.scale(.99,.99);
   }else if(P.swing>0){
-   if(t==="cat")ctx.scale(1.12,.88);
-   else if(t==="wolf")ctx.scale(1.20,1.12);
-   else ctx.scale(1.13,.92);
+   // Natural rigid-body follow-through; animation of paws/beak is handled separately.
+   ctx.translate(r*.12,0);
+   ctx.scale(1.02,1.02);
   }
  }
  if(drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
