@@ -778,13 +778,29 @@ function drawDistinctWildlife3D(m,clock){
  }
  return true;
 }
+
+/* Individual ID may be a persisted STRING (released animals, gacha roster).
+   Never feed it directly to Math.sin: NaN silently destroys 3D vertex positions. */
+const visualIdSeedCache=new Map();
+function visualIdSeed(id){
+ if(typeof id==="number")return Number.isFinite(id)?id:0;
+ if(typeof id!=="string"||!id.length)return 0;
+ if(visualIdSeedCache.has(id))return visualIdSeedCache.get(id);
+ let hash=0;
+ for(let i=0;i<id.length;i++)hash=(Math.imul(hash,31)+id.charCodeAt(i))>>>0;
+ const seed=(hash%6283)/1000;
+ if(visualIdSeedCache.size>=2048)visualIdSeedCache.clear();
+ visualIdSeedCache.set(id,seed);
+ return seed;
+}
+
 function drawRarePlayable3D(m,clock){
  const t=m.type;
  if(t!=="manul"&&t!=="tibetanFox"&&t!=="shoebill")return false;
  // Individual age and sex affect silhouette without changing gameplay collision radius.
  const young=m.age==="若い"||m.age==="若年"||m.ageStage==="young";
  const male=m.sex==="オス"||m.sex==="male";
-  const adult=!young, breath=1+.025*Math.sin(clock*2.1+(m.id||0)), alert=!!(m.target||m.alert||m.attackTarget);
+  const adult=!young, breath=1+.025*Math.sin(clock*2.1+visualIdSeed(m.id)), alert=!!(m.target||m.alert||m.attackTarget);
  const sizeFactor=young?.84:1;
  const r=(m.r||18)*sizeFactor,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const fx=(dx,dy)=>m.x+dx*c-dy*sn,fy=(dx,dy)=>m.y+dx*sn+dy*c;
@@ -1150,8 +1166,8 @@ function animal(m,player,clock){
  const moving=resting||collapse>0?0:clamp(speed/95,0,1);
  const phase=(m.steps||m.step||0)*(type==="cat"?3.4:type==="fox"?2.9:type==="wolf"?2.1:2.6);
  const gait=Math.sin(phase)*moving;
- const idleBreath=(.5+.5*Math.sin(clock*2.8+(m.id||0)*.7))*r*.048*(1-collapse);
- const headAttention=resting||collapse>0?0:Math.sin(clock*.83+(m.id||0))*r*(moving>.4?.016:.07);
+ const idleBreath=(.5+.5*Math.sin(clock*2.8+visualIdSeed(m.id)*.7))*r*.048*(1-collapse);
+ const headAttention=resting||collapse>0?0:Math.sin(clock*.83+visualIdSeed(m.id))*r*(moving>.4?.016:.07);
  const landingCompression=player&&m.fallTime>0?-r*.12:0;
  const kickPose=player&&type==="cat"?clamp((m.wallKickTime||0)/.43,0,1):0;
  const turboPose=player&&type==="fox"&&m.abilityTime>0?clamp(speed/660,0,1):0;
