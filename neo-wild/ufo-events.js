@@ -346,7 +346,11 @@ function tick(dt,world){
   e.departRise=Math.max(0,(Number(e.departRise)||0)+dt*160);
   if(!Number.isFinite(e.departHeading))e.departHeading=Math.atan2(e.y-P.y,e.x-P.x);
   const bearing=e.departHeading;
-  e.x+=Math.cos(bearing)*390*dt;e.y+=Math.sin(bearing)*390*dt;
+  // The saucer banks away and accelerates after the abductee docks.
+  // Preserve a smooth flight path in world space instead of teleporting off-screen.
+  const acceleration=Math.min(2.8,1+e.t*.68);
+  e.x+=Math.cos(bearing)*390*acceleration*dt;
+  e.y+=Math.sin(bearing)*390*acceleration*dt;
  }
  if(e.stage==="depart"&&e.t>2.7){
   if(e.playerCaptured){P.hp=0;P.deathReason="ufo";P._ufoAbducting=false;world.beginDeath?.();}
@@ -459,9 +463,11 @@ function draw(ctx,project,world){
   if(!start||!top||!Number.isFinite(start.x)||!Number.isFinite(top.x))continue;
   const progress=Math.max(0,Math.min(1,(Number(lift.seconds)||0)/(lift.duration||2.4)));
   const ease=progress*progress*(3-2*progress);
-  const sx=start.x+(top.x-start.x)*ease+Math.sin(e.t*13)*5*(1-ease);
+  // The victim visibly spirals inside the beam, then aligns with the hatch.
+  const orbit=Math.sin(progress*Math.PI)*Math.sin(progress*Math.PI*5)*Math.max(5,(Number(lift.actor.r)||16)*.65);
+  const sx=start.x+(top.x-start.x)*ease+orbit+Math.sin(e.t*13)*3*(1-ease);
   const sy=start.y+(top.y-102-start.y)*ease;
-  const scale=Math.max(.08,1-.92*ease);
+  const scale=Math.max(.045,1-.955*ease);
   if(world.drawAbductee){world.drawAbductee(ctx,lift.actor,sx,sy,scale,!!lift.player)}
   else{ctx.save();ctx.fillStyle="#cfeaf0";ctx.translate(sx,sy);ctx.scale(scale,scale);ctx.beginPath();ctx.ellipse(0,0,Math.max(6,lift.actor.r),Math.max(7,lift.actor.r*.55),0,0,Math.PI*2);ctx.fill();ctx.restore();}
  }
