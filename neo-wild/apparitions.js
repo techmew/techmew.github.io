@@ -68,6 +68,28 @@ function tick(dt,w){
    w.notify("視界に幻影が現れた");w.onEvent?.("ghost-hallucination",{year});
   }
 
+  // The stalker hunts by disappearing into the player's blind side. It cannot
+  // phase through a wall, enter the player's cover, or teleport on top of them.
+  if(g.kind==="stalker"&&g.pulse<=0&&!P.hidden&&near>125&&near<330){
+   const facing=Number.isFinite(P.dir)?P.dir:Math.atan2(P.y-g.y,P.x-g.x);
+   const side=Math.sin(g.seed+g.t*1.3)>0?1:-1;
+   const a=facing+Math.PI+side*.56;
+   const target={x:P.x+Math.cos(a)*112,y:P.y+Math.sin(a)*112};
+   if(!w.lineBlocked?.(P,target)&&!w.lineBlocked?.(g,target)){
+    hallucinations.push({x:g.x,y:g.y,life:2.5,maxLife:2.5,seed:g.seed});
+    hallucinations=hallucinations.slice(-3);
+    g.x=target.x;g.y=target.y;g.pulse=7.8;g.fear=0;
+    w.onEvent?.("ghost-shadow-step",{year,x:g.x,y:g.y});
+    w.notify?.("背後から冷たい視線を感じる…");
+   }
+  }
+  // Wraiths sap stamina before taking control. Hiding and solid walls
+  // prevent this; the drain has a strict rate and cannot kill the player.
+  if(g.kind==="wraith"&&exposed&&!(P.ghostPossessedUntil>0)){
+   const drain=Math.min(Math.max(0,finite(P.sp)),dt*4.5);
+   P.sp=Math.max(0,finite(P.sp)-drain);
+   P.hauntedTime=Math.max(finite(P.hauntedTime),1.2);
+  }
   // A wraith haunts one ordinary wild animal. Owned/released individuals are protected.
   if(g.kind==="wraith"&&g.pulse<=0){
    const candidates=(mobs||[]).filter(m=>m&&m.hp>0&&!m.dead&&!m.companion&&!m.ownedId&&!m.releasedId&&!m.wildReleaseId&&!m.strongBoss&&distance(m,g)<125);
