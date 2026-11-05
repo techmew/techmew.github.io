@@ -5098,7 +5098,7 @@ function update(dt){
   isSheltered:insideShelter,
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  recordDisasterEncounters();
- window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath,
+ window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath,WORLD,
    onEvent:(event,data)=>{
     window.WildTrophies?.record?.(event,data,notify);
     if(event==="ufo-npc-abduction"){
