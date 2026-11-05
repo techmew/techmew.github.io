@@ -3077,6 +3077,7 @@ function drawCombatFX(){
  ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
  const zoom=Math.max(.5,Math.min(1.7,cameraZoom));
  for(const fx of combatFX){
+  if(fx.time<0)continue; // Second strike is delayed: left then right, never simultaneous.
   const u=Math.max(0,Math.min(1,fx.time/fx.last)),fade=Math.pow(1-u,1.2);
   if(fade<=.02)continue;
   const r=fx.bodyRadius*Math.min(1.85,fx.power*(fx.stage==="special"?1.35:1));
@@ -3331,7 +3332,11 @@ function resolveSpeciesSpecial(){
  // Real movement remains collision-checked: lunge cannot cross barriers/water.
  const enemies=specialTargets(spec),primary=enemies[0];
  P.specialVisual=1.02;P.attackAction=.85;
- emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.18,0,P.r);
+ if(spec.kind==="double"||spec.kind==="backkick"){
+  emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.06,1,P.r);
+  emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.06,2,P.r);
+  combatFX[combatFX.length-1].time=-.14;
+ }else emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.18,0,P.r);
  shake=Math.max(shake,spec.kind==="slam"||spec.kind==="roar"?9:5);
  playEffect(spec.kind==="slam"?"thunder":"impact",{volume:.30});
  if(primary&&["lunge","roll"].includes(spec.kind)){
@@ -3647,7 +3652,7 @@ function attack(){
  // Shoebill's pre-aimed bill strike is fast only after waiting without moving.
  P.beakStrike=P.type==="shoebill"&&(P.stillTime||0)>=1.15;
  if(P.beakStrike){P.windup=.055;P.beakVisual=.32;}
- if(P.type==="shoebill"){P.shoebillSwingTime=.35;P.shoebillSwingDir=(P.rushActiveStep%2?1:-1);P.beakVisual=Math.max(P.beakVisual||0,.30);}
+ if(P.type==="shoebill"){P.shoebillSwingTime=.35;P.shoebillSwingDir=step===1?-1:step===2?1:step===4?-1:1;P.beakVisual=Math.max(P.beakVisual||0,.30);}
  P.stillTime=0;
   P.jumpDive=P.jumpTime>0;
   const concealed=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
