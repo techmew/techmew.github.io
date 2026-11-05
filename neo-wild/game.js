@@ -526,7 +526,10 @@ function simulateEcology(dt){
   }
   if(oldDominance!==e.dominance)ecologyNews=districts[i]+"：群れの勢力が交代";
  }
- // Actual scavenging and herd movement both affect living animals.\n forageWildCarcasses();\n migrateLivingHerds();\n // Real inter-district migration: animals leave low-food regions for neighboring
+ // Actual scavenging and herd movement both affect living animals.
+ forageWildCarcasses();
+ migrateLivingHerds();
+ // Real inter-district migration: animals leave low-food regions for neighboring
  // higher-food ones. This is population movement, not spawning/teleporting NPCs:
  // live local animals are retained; the destination's future birth pool rises.
  // Transfers are bounded and happen only once per 15-second ecology tick.
