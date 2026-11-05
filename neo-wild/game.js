@@ -456,6 +456,30 @@ function forageWildCarcasses(){
  }
  return meals;
 }
+// Grazing is performed by existing living herbivores, not by spawning food or NPCs.
+// Three grazers per ecology tick prevents a herd from consuming every berry at once.
+function forageWildPlants(){
+ if(!P||!Array.isArray(carcasses)||!Array.isArray(mobs))return 0;
+ let grazed=0;
+ for(const m of mobs){
+  if(grazed>=3)break;
+  if(!m||m.hp<=0||m.releasedIndividualId||m.companion||m.strongBoss)continue;
+  if(!species[m.type]?.prey&&!["deer","zebra","giraffe","boar","elephant","mountainGoat","rabbit","hedgehog"].includes(m.type))continue;
+  if(Math.hypot(m.x-P.x,m.y-P.y)<95||(m.alert||0)>0||(m.flee||0)>0)continue;
+  const food=carcasses.find(c=>c.type==="berries"&&c.amount>0&&c.ttl>0&&
+   Math.hypot(c.x-m.x,c.y-m.y)<Math.max(70,m.r+38)&&!lineBlocked(m,c));
+  if(!food)continue;
+  const bite=Math.min(food.amount,5+Math.round(m.r*.16));
+  food.amount-=bite;
+  m.hp=Math.min(m.maxHp,m.hp+Math.max(1,Math.round(bite*.4)));
+  m.feedAfterKill=Math.max(m.feedAfterKill||0,1.8);
+  if(food.amount<=0){const index=carcasses.indexOf(food);if(index>=0)carcasses.splice(index,1);}
+  const region=regionAt(m.x,m.y);
+  if(ecology[region])ecology[region].food=clamp(ecology[region].food-1,10,94);
+  grazed++;
+ }
+ return grazed;
+}
 // Actual wildlife migration: hungry herds travel across district borders.
 // This operates on existing living NPCs only, never on owned/released animals.
 function migrateLivingHerds(){
@@ -528,6 +552,7 @@ function simulateEcology(dt){
  }
  // Actual scavenging and herd movement both affect living animals.
  forageWildCarcasses();
+ forageWildPlants();
  migrateLivingHerds();
  // Real inter-district migration: animals leave low-food regions for neighboring
  // higher-food ones. This is population movement, not spawning/teleporting NPCs:
@@ -2332,7 +2357,7 @@ function retireFarCalmAnimal(){
  let index=-1,farthest=-1;
  for(let i=0;i<mobs.length;i++){
   const m=mobs[i],distance=dist(P,m);
-  if(m.hp<=0||m.companion||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
+  if(m.hp<=0||m.companion||m.releasedIndividualId||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
      distance<=Math.max(800,WILDLIFE.localRadius)||visible(m.x,m.y,75)||
      (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
      (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
@@ -2351,7 +2376,7 @@ function retireCalmCaveOverflow(needPrey,caveAnimals){
  const hunterCount=caveAnimals.filter(isWildPredator).length;
  const habitatCounts=wildlifeHabitatCounts();
  const candidates=mobs.filter(m=>{
-  if(m.hp<=0||m.companion||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
+  if(m.hp<=0||m.companion||m.releasedIndividualId||m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)||
      (m.alert||0)>0||(m.windup||0)>0||(m.chargeTime||0)>0||
      (m.flee||0)>0||(m.wildAttack||0)>0||(m.feedAfterKill||0)>0||
      dist(P,m)>=WILDLIFE.localRadius||visible(m.x,m.y,75)||
