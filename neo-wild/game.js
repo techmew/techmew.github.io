@@ -2435,8 +2435,8 @@ let releasedSpawnBusy=false,restoringSavedWorld=false;
 function restoreReleasedWildlife(){
  if(releasedSpawnBusy||restoringSavedWorld||mode!=="play"||!P||!Array.isArray(mobs))return;
  let pending=[];
- try{pending=JSON.parse(localStorage.getItem("wild-reclaim-released-v1")||"[]")}catch(_){return}
- let archive=[];try{archive=JSON.parse(localStorage.getItem("wild-reclaim-released-archive-v1")||"[]")}catch(_){}
+ try{const raw=JSON.parse(localStorage.getItem("wild-reclaim-released-v1")||"[]");pending=Array.isArray(raw)?raw:[]}catch(_){pending=[]}
+ let archive=[];try{const raw=JSON.parse(localStorage.getItem("wild-reclaim-released-archive-v1")||"[]");archive=Array.isArray(raw)?raw:[]}catch(_){}
  let fallen=[];try{fallen=JSON.parse(localStorage.getItem("wild-reclaim-released-fallen-v1")||"[]")}catch(_){}
  const fallenIds=new Set(Array.isArray(fallen)?fallen.map(String):[]);
  if(Array.isArray(archive)){
