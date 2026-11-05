@@ -21,7 +21,27 @@ function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
  // Alien observation sites are physical hazards: animals flee, the player can hide or leave.
- for(const site of alienSites){site.age+=dt;if(site.age>210)continue;const d=distance(P,site);if(d<125&&!P.hidden&&!safeBlocked(world,P,site)){P.sp=Math.max(0,(Number(P.sp)||0)-dt*1.8);if(!site.warned){world.notify?.("異星の観測基地だ！ 身を隠すか離れろ");site.warned=true}}for(const m of mobs){if(m.hp>0&&distance(m,site)<155){m.flee=Math.max(Number(m.flee)||0,1.4);m.alert=Math.max(Number(m.alert)||0,1.4);m.lastX=site.x;m.lastY=site.y}}}
+ for(const site of alienSites){
+  site.age+=dt;if(site.age>210)continue;
+  // Three distinct alien observation behaviours; old saves default to hostile.
+  const disposition=["hostile","neutral","friendly"].includes(site.disposition)?site.disposition:"hostile";
+  const d=distance(P,site),visible=!P.hidden&&!safeBlocked(world,P,site);
+  site.pulse=(Number(site.pulse)||0)+dt;
+  if(d<145&&visible){
+   if(disposition==="hostile"){
+    P.sp=Math.max(0,(Number(P.sp)||0)-dt*1.8);
+    if(d<75&&site.pulse>=2.5){site.pulse=0;P.hp=Math.max(0,(Number(P.hp)||0)-Math.max(1,Math.ceil((Number(P.maxHp)||30)*.045)));world.notify?.("異星の観測光線を浴びた！");if(P.hp<=0)world.beginDeath?.()}
+    if(!site.warned){world.notify?.("危険な異星基地だ！ 身を隠すか離れろ");site.warned=true}
+   }else if(disposition==="friendly"){
+    if(d<95&&site.pulse>=5){site.pulse=0;const cap=Math.max(Number(P.maxHp)||0,Number(P.hp)||0);P.hp=Math.min(cap,(Number(P.hp)||0)+Math.max(2,Math.round(cap*.06)));world.notify?.("友好的な異星基地が傷を癒した")}
+    if(!site.warned){world.notify?.("友好的な異星基地がこちらを観察している");site.warned=true}
+   }else if(!site.warned){world.notify?.("中立の異星基地が静かに観測している");site.warned=true}
+  }
+  for(const m of mobs){if(m.hp<=0||distance(m,site)>155)continue;
+   if(disposition==="hostile"){m.flee=Math.max(Number(m.flee)||0,1.4);m.alert=Math.max(Number(m.alert)||0,1.4);m.lastX=site.x;m.lastY=site.y}
+   else if(disposition==="friendly"&&site.pulse>=3&&m.hp<m.maxHp)m.hp=Math.min(m.maxHp,m.hp+dt*1.2);
+  }
+ }
  alienSites=alienSites.filter(site=>site.age<210);
  traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
  persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
@@ -95,7 +115,7 @@ function tick(dt,world){
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
  }
- if(e.stage==="depart"&&e.t>2){if(e.formation&&alienSites.length<4&&Math.random()<.42){alienSites.push({x:e.originX,y:e.originY,age:0,warned:false});record("異星観測基地",year,e.originX,e.originY);world.onEvent?.("alien-observation-site",{year,x:e.originX,y:e.originY});world.notify?.("円盤が去った跡に奇妙な観測装置が残った")}event=null;cooldown=Math.max(cooldown,300/3);persist()}
+ if(e.stage==="depart"&&e.t>2){if(e.formation&&alienSites.length<4&&Math.random()<.42){alienSites.push({x:e.originX,y:e.originY,age:0,warned:false,pulse:0,disposition:(Math.random()<.5?"hostile":Math.random()<.6?"neutral":"friendly")});record("異星観測基地",year,e.originX,e.originY);world.onEvent?.("alien-observation-site",{year,x:e.originX,y:e.originY});world.notify?.("円盤が去った跡に奇妙な観測装置が残った")}event=null;cooldown=Math.max(cooldown,300/3);persist()}
 }
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
