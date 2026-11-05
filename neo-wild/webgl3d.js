@@ -374,6 +374,22 @@ function drawStrongAnimal3D(m,clock){
 }
 
 // NORMAL-FAUNA-DISTRICTS-V1: real volumetric silhouettes in WebGL, no generic wolf fallback.
+// Attack timing shares the actual combo step with 2D limb-specific impact trails.
+// Rush 1=left front, 2=right front, 4=left rear, 5=both front.
+function combatLimbPose(m,front,side,r){
+ const step=m.attackActionStep||m.rushActiveStep||0;
+ const strike=Math.sin(Math.PI*clamp((m.attackAction||0)/.45,0,1));
+ const ultimate=Math.sin(Math.PI*clamp((m.specialVisual||0)/1.02,0,1));
+ const normal=(step===1&&front>0&&side<0)||(step===2&&front>0&&side>0)||
+  (step===4&&front<0&&side<0)||(step===5&&front>0);
+ const skill=m.specialKind||"";
+ const special=skill==="backkick"?front<0:
+  ["slam","lunge","roll"].includes(skill)?front>0:
+  skill==="double"&&front>0?side===(m.specialVisual>.51?-1:1):
+  skill==="fan"&&front>0&&["deer","serow"].includes(m.type);
+ const force=Math.min(1.2,(normal?strike*.78:0)+(special?ultimate*.92:0));
+ return {dx:r*force,dz:r*force*.52};
+}
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
  if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo"].includes(t))return false;
@@ -515,11 +531,12 @@ function drawCommonAnimal3D(m,clock){
    const x=front*r*.59,y=side*r*.46;
    const beat=Math.sin(phase+(front===side?0:Math.PI));
    const swing=beat*r*.55*run,lift=Math.max(0,beat)*r*.34*run;
-   const kneeX=x+swing*.48,hoofX=x+swing;
-   orb(x+swing*.17,y,r*.59+lift*.16,r*.17,r*.16,r*.33,fur);
+   const pose=combatLimbPose(m,front,side,r);
+   const kneeX=x+swing*.48+pose.dx*.32,hoofX=x+swing+pose.dx;
+   orb(x+swing*.17+pose.dx*.13,y,r*.59+lift*.16,r*.17,r*.16,r*.33,fur);
    orb(kneeX,y,r*.33+lift*.50,r*.14,r*.14,r*.24,"#73583f");
-   orb(hoofX,y,r*.13+lift,r*.13,r*.14,r*.17,fur);
-   orb(hoofX+swing*.15,y,r*.065+lift,r*.19,r*.18,r*.09,"#3d3931");
+   orb(hoofX,y,r*.13+lift+pose.dz,r*.13,r*.14,r*.17,fur);
+   orb(hoofX+swing*.15,y,r*.065+lift+pose.dz,r*.19,r*.18,r*.09,"#3d3931");
   }
   orb(-r*.14,0,r*.88,r*1.08,r*.49,r*.60,fur);
   orb(r*.69,0,r*.95,r*.44,r*.31,r*.53,fur);
@@ -619,7 +636,8 @@ function drawCommonAnimal3D(m,clock){
   const run=clamp(Math.hypot(m.vx||0,m.vy||0)/110,0,1.35),cycle=(m.step||0)*1.9;
   for(const side of [-1,1])for(const front of [-1,1]){
    const beat=Math.sin(cycle+(front===side?0:Math.PI)+(front>0?.32:0));
-   const stride=beat*r*.58*run,up=Math.max(0,beat)*r*.37*run,hip=front*r*.59,lat=side*r*.48;
+   const pose=combatLimbPose(m,front,side,r);
+   const stride=beat*r*.58*run+pose.dx,up=Math.max(0,beat)*r*.37*run+pose.dz,hip=front*r*.59,lat=side*r*.48;
    orb(hip+stride*.13,lat,r*.76+up*.13,r*.23,r*.20,r*.33,"#e0e0d7");
    orb(hip+stride*.52,lat,r*.43+up*.47,r*.16,r*.16,r*.26,"#585854");
    orb(hip+stride*.86,lat,r*.20+up*.83,r*.125,r*.14,r*.20,"#e6e4db");
@@ -637,7 +655,8 @@ function drawCommonAnimal3D(m,clock){
   const chase=clamp(Math.hypot(m.vx||0,m.vy||0)/125,0,1.3),cycle=(m.step||0)*2.4;
   for(const side of [-1,1])for(const front of [-1,1]){
    const beat=Math.sin(cycle+(front>0?0:Math.PI)+side*.36);
-   const stride=beat*r*.62*chase,up=Math.max(0,beat)*r*.34*chase,hip=front*r*.59,lat=side*r*.49;
+   const pose=combatLimbPose(m,front,side,r);
+   const stride=beat*r*.62*chase+pose.dx,up=Math.max(0,beat)*r*.34*chase+pose.dz,hip=front*r*.59,lat=side*r*.49;
    orb(hip+stride*.13,lat,r*.60+up*.20,r*.30,r*.28,r*.30,fur);
    orb(hip+stride*.53,lat,r*.32+up*.53,r*.22,r*.20,r*.24,fur);
    orb(hip+stride,lat,r*.11+up,r*.29,r*.27,r*.15,"#c5a26c");
@@ -652,8 +671,8 @@ function drawCommonAnimal3D(m,clock){
   // Heavy lateral walk: four independently planted pillar legs and broad toenails.
   const walking=clamp(Math.hypot(m.vx||0,m.vy||0)/90,0,1),cycle=(m.step||0)*1.13;
   for(const side of [-1,1])for(const front of [-1,1]){
-   const beat=Math.sin(cycle+(front===side?0:Math.PI)),step=beat*r*.28*walking;
-   const lift=Math.max(0,beat)*r*.15*walking,hip=front*r*.60,lat=side*r*.67;
+   const beat=Math.sin(cycle+(front===side?0:Math.PI)),pose=combatLimbPose(m,front,side,r),step=beat*r*.28*walking+pose.dx;
+   const lift=Math.max(0,beat)*r*.15*walking+pose.dz,hip=front*r*.60,lat=side*r*.67;
    orb(hip+step*.18,lat,r*.77+lift*.13,r*.41,r*.39,r*.37,"#798680");
    orb(hip+step*.57,lat,r*.44+lift*.43,r*.35,r*.35,r*.34,"#66746d");
    orb(hip+step,lat,r*.12+lift,r*.41,r*.39,r*.15,"#59665f");
@@ -713,7 +732,7 @@ function drawDistinctWildlife3D(m,clock){
  if(t==="armadillo"){
   // Armoured low-slung body: segmented transverse bands and long tapered tail.
   for(const front of [-1,1])for(const side of [-1,1]){
-   const g=gait(front,side);orb(front*r*.55+g*r*.15,side*r*.46,r*.22+Math.max(0,g)*r*.13,r*.17,r*.16,r*.25,"#706b57");
+   const g=gait(front,side),pose=combatLimbPose(m,front,side,r);orb(front*r*.55+g*r*.15+pose.dx,side*r*.46,r*.22+Math.max(0,g)*r*.13+pose.dz,r*.17,r*.16,r*.25,"#706b57");
   }
   orb(0,0,r*.47,r*.98,r*.59,r*.49,"#827964");
   for(let i=-3;i<=3;i++){
@@ -726,7 +745,7 @@ function drawDistinctWildlife3D(m,clock){
   for(let i=0;i<5;i++)orb(-r*(.94+i*.24),Math.sin(i*.3)*r*.07,r*(.40-i*.055),r*.20*(1-i*.14),r*.15*(1-i*.13),r*.15*(1-i*.13),"#746b5a");
  }else if(t==="hedgehog"){
   for(const front of [-1,1])for(const side of [-1,1]){
-   const g=gait(front,side);orb(front*r*.42+g*r*.12,side*r*.37,r*.19+Math.max(0,g)*r*.10,r*.15,r*.15,r*.20,"#746354");
+   const g=gait(front,side),pose=combatLimbPose(m,front,side,r);orb(front*r*.42+g*r*.12+pose.dx,side*r*.37,r*.19+Math.max(0,g)*r*.10+pose.dz,r*.15,r*.15,r*.20,"#746354");
   }
   orb(0,0,r*.42,r*.82,r*.64,r*.48,"#806d5a");
   orb(r*.65,0,r*.43,r*.43,r*.37,r*.34,"#b9a58a");
@@ -786,9 +805,9 @@ function drawRarePlayable3D(m,clock){
   const belly=conceal?r*.38:r*.49;
   for(const front of [-1,1])for(const side of [-1,1]){
    const dx=front*r*.55,dy=side*r*.52;
-   const kick=legKick(front,side),lift=Math.max(0,kick)*r*.16;
-   orb(dx+kick*r*.26,dy,r*.14+lift,r*.25,r*.20,r*.14,shadow);
-   orb(dx+kick*r*.13,dy,r*.30+lift*.45,r*.23,r*.22,r*.26,fur);
+   const kick=legKick(front,side),pose=combatLimbPose(m,front,side,r),lift=Math.max(0,kick)*r*.16+pose.dz;
+   orb(dx+kick*r*.26+pose.dx,dy,r*.14+lift,r*.25,r*.20,r*.14,shadow);
+   orb(dx+kick*r*.13+pose.dx*.52,dy,r*.30+lift*.45,r*.23,r*.22,r*.26,fur);
   }
   orb(-r*.24,0,belly+r*.12,r*1.35,r*.84,r*.61,fur,12,7);
   orb(r*.18,0,belly+r*.06,r*.87,r*.78,r*.54,under,10,6);
@@ -838,9 +857,9 @@ function drawRarePlayable3D(m,clock){
   const bob=Math.abs(step)*r*.08;
   for(const front of [-1,1])for(const side of [-1,1]){
    const x=front*r*.62,y=side*r*.48;
-   const kick=legKick(front,side),lift=Math.max(0,kick)*r*.17;
-   orb(x+kick*r*.34,y,r*.24+lift*.55,r*.18,r*.17,r*.25,"#817667");
-   orb(x+r*.10+kick*r*.50,y,r*.12+lift,r*.22,r*.19,r*.12,"#64584f");
+   const kick=legKick(front,side),pose=combatLimbPose(m,front,side,r),lift=Math.max(0,kick)*r*.17+pose.dz;
+   orb(x+kick*r*.34+pose.dx*.43,y,r*.24+lift*.55,r*.18,r*.17,r*.25,"#817667");
+   orb(x+r*.10+kick*r*.50+pose.dx,y,r*.12+lift,r*.22,r*.19,r*.12,"#64584f");
   }
   orb(-r*.20,0,r*.64+bob,r*1.23,r*.58,r*.48,fur,11,6);
   orb(r*.19,0,r*.62+bob,r*.79,r*.43,r*.33,sand);
@@ -949,8 +968,9 @@ function drawWorldSquadSpecies3D(m,clock){
  const motion=Math.sin((m.steps||m.step||0)*2.8+clock*.3)*Math.min(1,Math.hypot(m.vx||0,m.vy||0)/160);
  const quadruped=(fur,belly,leg)=>{
   for(const x of [-.68,.67])for(const y of [-.56,.56]){
-   orb(x*r,y*r,r*(.24+motion*(x*y>0?.07:-.07)),r*.19,r*.18,r*.27,leg);
-   orb((x+.12)*r,y*r,r*.12,r*.23,r*.20,r*.12,leg);
+   const pose=combatLimbPose(m,x>0?1:-1,y>0?1:-1,r);
+   orb(x*r+pose.dx*.40,y*r,r*(.24+motion*(x*y>0?.07:-.07))+pose.dz*.34,r*.19,r*.18,r*.27,leg);
+   orb((x+.12)*r+pose.dx,y*r,r*.12+pose.dz,r*.23,r*.20,r*.12,leg);
   }
   orb(-r*.16,0,r*.75,r*1.19,r*.64,r*.62,fur);
   orb(r*.23,0,r*.53,r*.78,r*.48,r*.27,belly);
@@ -1077,9 +1097,9 @@ function drawJapaneseForestMammals3D(m,clock){
  if(t==="raccoonDog"){
   // Short, stocky limbs and round fur-covered trunk. Diagonal steps alternate.
   for(const front of [-1,1])for(const side of [-1,1]){
-   const beat=Math.sin(cycle+(front===side?0:Math.PI))*motion;
-   orb(front*r*.53+beat*r*.21,side*r*.46,r*.23+Math.max(0,beat)*r*.13,r*.19,r*.18,r*.28,"#423b33");
-   orb(front*r*.56+beat*r*.32,side*r*.47,r*.09+Math.max(0,beat)*r*.18,r*.21,r*.17,r*.11,"#292927");
+   const beat=Math.sin(cycle+(front===side?0:Math.PI))*motion,pose=combatLimbPose(m,front,side,r);
+   orb(front*r*.53+beat*r*.21+pose.dx*.38,side*r*.46,r*.23+Math.max(0,beat)*r*.13+pose.dz*.34,r*.19,r*.18,r*.28,"#423b33");
+   orb(front*r*.56+beat*r*.32+pose.dx,side*r*.47,r*.09+Math.max(0,beat)*r*.18+pose.dz,r*.21,r*.17,r*.11,"#292927");
   }
   orb(-r*.15,0,r*.62,r*1.04*breathe,r*.69,r*.64,"#756b58");
   orb(r*.53,0,r*.75,r*.52,r*.59,r*.51,"#5a5549");
@@ -1099,7 +1119,7 @@ function drawJapaneseForestMammals3D(m,clock){
   // and two backwards swept permanent horns (both sexes).
   for(const front of [-1,1])for(const side of [-1,1]){
    const beat=Math.sin(cycle+(front===side?0:Math.PI))*motion;
-   const swing=beat*r*.34,up=Math.max(0,beat)*r*.29;
+   const pose=combatLimbPose(m,front,side,r),swing=beat*r*.34+pose.dx,up=Math.max(0,beat)*r*.29+pose.dz;
    orb(front*r*.55+swing*.20,side*r*.35,r*.69+up*.12,r*.19,r*.17,r*.37,"#6e6556");
    orb(front*r*.55+swing*.60,side*r*.35,r*.35+up*.53,r*.13,r*.13,r*.30,"#857768");
    orb(front*r*.55+swing,side*r*.35,r*.09+up,r*.17,r*.16,r*.11,"#302f2c");
