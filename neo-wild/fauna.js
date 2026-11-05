@@ -257,6 +257,15 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(["frog","otter"].includes(type))w*=([4,7].includes(region)?1.15:.62);
  }
  if(["STORM","TYPHOON","HEAVY_RAIN"].includes(weather)&&["cheetah","lion","wildDog"].includes(type))w*=.65;
+ // Trophic cascade adjusts real encounter draws without creating extra NPCs.
+ const foodWeb=window.WildEraEcology?.state?.(region,Math.max(0,year-1));
+ if(foodWeb&&w>0){
+  const forage=Math.max(.35,Math.min(1.4,Number(foodWeb.food)||1));
+  if(["rat","rabbit","frog","pigeon","hedgehog","deer","boar","serow","zebra","giraffe"].includes(type))w*=Math.max(.5,forage);
+  if(["lion","tiger","cheetah","wildDog","hyena","wildFox","strayCat","blackBear","manul","tibetanFox"].includes(type))w*=Math.max(.42,Math.min(1.16,forage*(foodWeb.kind==="predators"?.72:1)));
+  if(foodWeb.kind==="recovery"&&["raccoonDog","tanuki","crow","hyena"].includes(type))w*=1.16;
+  if(foodWeb.kind==="migration"&&["deer","boar","serow","zebra","giraffe"].includes(type))w*=([2,3,5].includes(region)?1.24:.64);
+ }
  // Five-year regional succession changes the existing encounter lottery, never spawn count.
  // Food-rich periods favor herbivores; drought drives prey toward wetlands and
  // discourages large hunters. Predator pressure cannot bypass safe-city exclusions.
@@ -319,16 +328,16 @@ function weight(type,region,day=1,weather="CLEAR"){
  }
  // Regional succession changes actual encounters, not just the world-history label.
  // No additional NPCs are created; biome exclusions and safe-city zeroes remain zero.
- const succession=window.WildEraEcology?.state?.(region,Math.max(0,year-1));
- if(succession&&w>0){
+ const successionState=window.WildEraEcology?.state?.(region,Math.max(0,year-1));
+ if(successionState&&w>0){
   const herbivore=["rabbit","deer","boar","serow","zebra","giraffe","elephant","frog","hedgehog"].includes(type);
   const hunter=["wildFox","strayCat","dog","lion","tiger","cheetah","hyena","wildDog","blackBear","manul","tibetanFox"].includes(type);
-  if(herbivore)w*=Math.max(.35,Math.min(1.5,succession.food));
-  if(succession.kind==="predators")w*=hunter?1.28:herbivore?.72:1;
-  if(succession.kind==="recovery")w*=hunter?.52:herbivore?.85:1;
-  if(succession.kind==="migration")w*=herbivore?1.18:hunter?1.10:1;
-  if(succession.kind==="drought"&&["frog","otter","shoebill","hippo"].includes(type))w*=.48;
-  w*=Math.max(.5,Math.min(1.25,succession.animals));
+  if(herbivore)w*=Math.max(.35,Math.min(1.5,successionState.food));
+  if(successionState.kind==="predators")w*=hunter?1.28:herbivore?.72:1;
+  if(successionState.kind==="recovery")w*=hunter?.52:herbivore?.85:1;
+  if(successionState.kind==="migration")w*=herbivore?1.18:hunter?1.10:1;
+  if(successionState.kind==="drought"&&["frog","otter","shoebill","hippo"].includes(type))w*=.48;
+  w*=Math.max(.5,Math.min(1.25,successionState.animals));
  }
  return Math.max(0,w);
 }
