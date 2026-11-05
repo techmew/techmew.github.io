@@ -1937,7 +1937,14 @@ function render(o){
     const waterMask=water?clamp((.015-water(px,py))/.015,0,1):1;
     return Math.min(snow*.97-(broad*.78+fine*.22),waterMask-.5);
    };
-   const surface=(p)=>[p[0],p[1],ground(p[0],p[1])+snowZ];
+   // The snow lip thins to the underlying collision terrain at its boundary.
+   // Evaluate the same world-space mask at clipped vertices so adjoining
+   // triangles have identical height and no raised square edge.
+   const surface=(p)=>{
+    const coverage=clamp(field(p[0],p[1])*4.5,0,1);
+    const depth=.36+snowZ*coverage;
+    return [p[0],p[1],ground(p[0],p[1])+depth];
+   };
    // Clip each triangle against the same continuous snow threshold.
    // Intersections are calculated from shared world-space vertex values.
    const clip=(verts)=>{
@@ -1958,7 +1965,9 @@ function render(o){
     const vertices=[[x,y],[x2,y],[x2,y2],[x,y2]];
     // Clip only the submerged portion, never discard an entire shoreline cell.
     const sampled=vertices.map(p=>[p[0],p[1],field(p[0],p[1])]);
-    const tint=color(detailNoise(Math.floor(x/170)*8.3+Math.floor(y/170)*12.7)>.5?"#dce9e9":"#e6eef0");
+    // Smooth tint variation rather than abrupt 170-unit square patches.
+    const shade=clamp(.91+.12*field((x+x2)*.5,(y+y2)*.5),.87,1.03);
+    const tint=tone("#e6eef0",shade);
     for(const ids of [[0,1,2],[0,2,3]]){
      const poly=clip(ids.map(i=>sampled[i]));
      if(poly.length<3)continue;
