@@ -376,8 +376,24 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  // The safety window is regional, does not create extra spawns, and expires
  // after three ordinary encounters. Wild predators resume their normal ecology.
  const arrivalRefuge=[0,1,6].includes(index)&&history.length<3;
+ // A temporary prey collapse follows repeated successful hunts. The next
+ // ordinary encounters favor surviving small prey and reduce predator pressure.
+ // The cycle is regional and never changes the number of NPC spawn attempts.
+ const preyCollapse=recentPredators>=3&&recentPrey<=1;
+ const migrationPulse=Math.sin(Math.floor(Math.max(0,day)/7)*1.31+index*1.79);
+ const migrationCorridor=[2,3,5].includes(index)&&migrationPulse>.45;
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
+  if(w>0&&!preyOnly){
+   if(preyCollapse){
+    if(["lion","tiger","cheetah","hyena","wildDog","blackBear","wildFox","strayCat"].includes(type))w*=.22;
+    if(["rat","rabbit","frog","pigeon","deer","boar"].includes(type))w*=1.65;
+   }
+   if(migrationCorridor){
+    if(["deer","boar","serow","zebra","giraffe"].includes(type))w*=1.32;
+    if(["lion","tiger","cheetah","wildDog","hyena"].includes(type))w*=1.12;
+   }
+  }
   if(hostileStreak&&!preyOnly&&hostileTypes.has(type))w=0;
   if(arrivalRefuge&&!preyOnly){
    if(hostileTypes.has(type)||apexTypes.has(type))w=0;
