@@ -699,6 +699,66 @@ function drawCommonAnimal3D(m,clock){
 /* Three species-specific player meshes: sculpted with shaded anatomical
  * volumes, real muzzle/eye/feet ratios, fur/feather pattern and attack poses.
  * No external image textures, borrowed models or sprite impostors. */
+function drawDistinctWildlife3D(m,clock){
+ const t=m.type;
+ if(t!=="armadillo"&&t!=="hedgehog"&&t!=="hyena")return false;
+ const r=m.r||17,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
+ const moving=clamp(speed/155,0,1),phase=(m.steps||m.step||0)*2.8;
+ const young=m.age==="若い"||m.ageStage==="young",size=young?.84:1;
+ const male=m.sex==="オス"||m.sex==="male";
+ const x=(a,b)=>m.x+a*c-b*sn,y=(a,b)=>m.y+a*sn+b*c;
+ const orb=(a,b,z,rx,ry,rz,col)=>ellipsoid(x(a,b),y(a,b),z,rx*size,ry*size,rz*size,col,dir,10,6);
+ const cone=(a,b,z,w,h,col)=>pyramid(x(a,b),y(a,b),z,w*size,w*size,h*size,col);
+ const gait=(front,side)=>Math.sin(phase+(front*side>0?0:Math.PI))*moving;
+ if(t==="armadillo"){
+  // Armoured low-slung body: segmented transverse bands and long tapered tail.
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const g=gait(front,side);orb(front*r*.55+g*r*.15,side*r*.46,r*.22+Math.max(0,g)*r*.13,r*.17,r*.16,r*.25,"#706b57");
+  }
+  orb(0,0,r*.47,r*.98,r*.59,r*.49,"#827964");
+  for(let i=-3;i<=3;i++){
+   const a=i*r*.205;
+   orb(a,0,r*.80,r*.095,r*.565,r*.12,i%2?"#a99a7c":"#655e50");
+  }
+  orb(r*.89,0,r*.42,r*.35,r*.28,r*.24,"#9a8971");
+  orb(r*1.16,0,r*.32,r*.18,r*.16,r*.15,"#ad9a7d");
+  for(const side of [-1,1])cone(r*.76,side*r*.20,r*.54,r*.10,r*.29,"#7d715d");
+  for(let i=0;i<5;i++)orb(-r*(.94+i*.24),Math.sin(i*.3)*r*.07,r*(.40-i*.055),r*.20*(1-i*.14),r*.15*(1-i*.13),r*.15*(1-i*.13),"#746b5a");
+ }else if(t==="hedgehog"){
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const g=gait(front,side);orb(front*r*.42+g*r*.12,side*r*.37,r*.19+Math.max(0,g)*r*.10,r*.15,r*.15,r*.20,"#746354");
+  }
+  orb(0,0,r*.42,r*.82,r*.64,r*.48,"#806d5a");
+  orb(r*.65,0,r*.43,r*.43,r*.37,r*.34,"#b9a58a");
+  orb(r*.99,0,r*.35,r*.14,r*.17,r*.12,"#40362e");
+  for(const side of [-1,1])orb(r*.76,side*r*.29,r*.55,r*.085,r*.08,r*.09,"#302c2a");
+  // Radial quill field follows the spine and flanks, leaving the face clear.
+  for(let i=0;i<11;i++)for(let j=-4;j<=4;j++){
+   const a=-r*.78+i*r*.135,b=j*r*.14;
+   const spread=Math.sqrt(Math.max(0,1-(b/(r*.79))**2));
+   const z=r*(.69+.40*spread);
+   cone(a,b,z,r*.055,r*(.31+.12*spread),((i+j)&1)?"#e5d6b5":"#433b34");
+  }
+ }else{
+  // Hyena: sloping back, raised shoulders, shorter hindquarters and spotted coat.
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const g=gait(front,side),h=front>0?r*.83:r*.56;
+   orb(front*r*.57+g*r*.27,side*r*.45,h*.46+Math.max(0,g)*r*.15,r*.19,r*.17,h*.52,"#9d8662");
+  }
+  orb(-r*.08,0,r*.94,r*1.08,r*.52,r*.57,"#9b8462");
+  orb(r*.39,0,r*1.14,r*.56,r*.60,r*.61,"#857258");
+  orb(r*.96,0,r*1.14,r*.43,r*.37,r*.37,"#ad9570");
+  orb(r*1.28,0,r*.98,r*.36,r*.25,r*.23,"#5d4d3e");
+  for(const side of [-1,1])cone(r*.92,side*r*.28,r*1.44,r*.17,r*.34,"#6b5946");
+  for(let i=0;i<16;i++){
+   const a=-r*.83+(i%8)*r*.22,b=(i<8?-1:1)*r*(.22+.12*(i%3)/3);
+   orb(a,b,r*(1.12+.10*Math.sin(i)),r*.072,r*.065,r*.065,"#53483a");
+  }
+  for(let i=0;i<4;i++)orb(-r*(1.02+i*.17),0,r*(.80-i*.12),r*.18,r*.14,r*.15,"#493e35");
+  if(male)orb(r*.27,0,r*1.60,r*.33,r*.38,r*.19,"#594d40");
+ }
+ return true;
+}
 function drawRarePlayable3D(m,clock){
  const t=m.type;
  if(t!=="manul"&&t!=="tibetanFox"&&t!=="shoebill")return false;
@@ -1030,6 +1090,7 @@ function animal(m,player,clock){
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
+ if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(drawWorldSquadSpecies3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
