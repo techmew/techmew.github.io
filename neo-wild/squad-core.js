@@ -174,11 +174,19 @@ function release(id){
  if(!member)return {ok:false,reason:"その個体はすでに所有一覧にいません"};
  // Queue the original individual for a strong, personality-driven wild encounter.
  // Tombstones prevent old autosaves and checkpoints from re-owning released IDs.
- const key="wild-reclaim-released-v1",pending=read(key,[]);
+ const key="wild-reclaim-released-v1",archiveKey="wild-reclaim-released-archive-v1",pending=read(key,[]);
+ const priorArchive=read(archiveKey,[]);
+ const archive=Array.isArray(priorArchive)?priorArchive.filter(m=>m?.id!==id):[];
  const queue=Array.isArray(pending)?pending.filter(m=>m?.id!==id):[];
  queue.push({...member,releasedAt:Date.now()});
  try{
-  // If the permanent exclusion fails, roll back the queued wild encounter.
+  // Keep the wild identity in both the encounter queue and the permanent
+  // archive before excluding it from ownership. Queue corruption or a stale
+  // autosave must not erase the released animal from the world.
+  archive.push({...member,releasedAt:Date.now()});
+  localStorage.setItem(archiveKey,JSON.stringify(archive));
+  if(!Array.isArray(read(archiveKey,null))||!read(archiveKey,[]).some(x=>x?.id===id&&x.name===member.name&&x.species===member.species))
+   throw Error("野生個体の永久記録を保存できません");
   localStorage.setItem(key,JSON.stringify(queue));
   // A storage shim may silently drop writes: never tombstone an individual
   // unless its wild identity has actually been persisted first.
@@ -190,7 +198,7 @@ function release(id){
    const blocked=released();blocked.add(id);saveReleased(blocked);
    if(!released().has(id))throw Error("永久離脱IDの保存を確認できません");
   }catch(error){
-   try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){}
+   try{localStorage.setItem(key,JSON.stringify(pending));localStorage.setItem(archiveKey,JSON.stringify(priorArchive));}catch(_){}
    throw error;
   }
   const survivors=roster.members.filter(m=>m.id!==id);
@@ -202,6 +210,9 @@ function release(id){
   catch(_){saved=load();}
   return {ok:true,roster:saved,released:member,newLeaderId:saved?.leaderId||null};
  }catch(_){
+  if(!released().has(id)){
+   try{localStorage.setItem(key,JSON.stringify(pending));localStorage.setItem(archiveKey,JSON.stringify(priorArchive));}catch(_){}
+  }
   return {ok:false,reason:"野生への放流を保存できません。端末の保存容量を確認してください"};
  }
 }
