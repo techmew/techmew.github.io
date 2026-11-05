@@ -145,11 +145,21 @@ function addXp(amount){
  r.ticketMilestone=Math.max(previousMilestone,nextMilestone);
  for(const m of r.members){
   const rate=Number.isFinite(m.growthRate)?Math.max(.5,Math.min(1.5,m.growthRate)):1;
-  const phase=m.growthType==="大器晩成"?(m.level<12?.72:1.28):m.growthType==="早熟"?(m.level<12?1.2:.85):1;
-  m.xp=Math.max(0,Number(m.xp)||0)+earned*rate*phase;
-  m.level=Math.max(1,Math.floor(Number(m.level)||1));
-  while(m.level<100&&m.xp>=m.level*100){m.xp-=m.level*100;m.level++;}
-  if(m.level>=100)m.xp=0;
+  // Split a large shared-XP reward at growth-phase boundaries. A late-bloomer
+  // crossing Lv12 must receive its faster mature growth for the remaining XP.
+  m.level=Math.max(1,Math.min(100,Math.floor(Number(m.level)||1)));
+  m.xp=Math.max(0,Number(m.xp)||0);
+  let remaining=earned;
+  while(remaining>0&&m.level<100){
+   const phase=m.growthType==="大器晩成"?(m.level<12?.72:1.28):m.growthType==="早熟"?(m.level<12?1.2:.85):1;
+   const multiplier=rate*phase,needed=Math.max(0,m.level*100-m.xp);
+   if(needed===0){m.level++;m.xp=0;continue;}
+   const spent=Math.min(remaining,needed/multiplier);
+   m.xp+=spent*multiplier;remaining-=spent;
+   if(m.xp>=m.level*100-1e-8){m.xp=0;m.level++;}
+   else break;
+  }
+  if(m.level>=100){m.level=100;m.xp=0;}
  }
  return save(r);
 }
