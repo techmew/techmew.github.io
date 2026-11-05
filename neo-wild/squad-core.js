@@ -239,8 +239,8 @@ function resetForNewGame(){
   if(localStorage.getItem(KEY)!==null)throw Error("旧編成を削除できません");
   return true;
  }catch(error){
-  // Keep the old roster usable if the reset flag or deletion failed.
-  // Do not remove verified death tombstones: they prevent rollback duplication.
+  // Never roll back verified tombstones: a partial reset must not resurrect IDs.
+  // A failed reset remains an explicit error rather than reporting success.
   throw Error("新世界の初期化を保存できません。空き容量を確認してください: "+error.message);
  }
 }
