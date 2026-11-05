@@ -24,7 +24,14 @@ const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch(_){re
 const dead=()=>new Set(read(DEAD,[]));
 const saveDead=s=>localStorage.setItem(DEAD,JSON.stringify([...s]));
 const released=()=>new Set(read(RELEASED,[]));
-const excluded=()=>new Set([...dead(),...released()]);
+// Wild archive is an independent permanent ownership exclusion journal. A stale
+// checkpoint or a missing release tombstone must not reclaim a wild veteran.
+const excluded=()=>{
+ const ids=new Set([...dead(),...released()]);
+ const archive=read("wild-reclaim-released-archive-v1",[]);
+ if(Array.isArray(archive))for(const animal of archive)if(typeof animal?.id==="string"&&animal.id)ids.add(animal.id);
+ return ids;
+};
 const saveReleased=s=>localStorage.setItem(RELEASED,JSON.stringify([...s]));
 const rarity=s=>legendary.has(s)?"legendary":rare.has(s)?"rare":"basic";
 const unlock=(s,year=0,explored=0)=>rarity(s)==="basic"||rarity(s)==="rare"&&(year>=7||explored>=8)||year>=34||explored>=35;
