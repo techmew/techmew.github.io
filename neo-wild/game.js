@@ -5101,6 +5101,13 @@ function update(dt){
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  recordDisasterEncounters();
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath,WORLD,
+  onPlayerAbductionStart:()=>{
+   // Cancel queued combat and airborne moves so the beam owns the full animation.
+   resetControls();interruptRush();P.atk=0;P.windup=0;
+   P.jumpTime=0;P.jumpRemaining=0;P.pounceTime=0;P.pounceRemaining=0;
+   P.dashTime=0;P.fallTime=0;P.jumpHeight=P.groundZ||0;
+   P.vx=0;P.vy=0;P.stun=.2;
+  },
    onEvent:(event,data)=>{
     window.WildTrophies?.record?.(event,data,notify);
     if(event==="ufo-npc-abduction"){
@@ -5159,7 +5166,7 @@ function update(dt){
   P.ghostPossessedUntil=Math.max(0,P.ghostPossessedUntil-dt);
   if(P.ghostPossessedUntil===0){resetControls();notify("霊が離れた。操作を取り戻した");}
  }
- const a=P.stun>0?{x:0,y:0}:getAxes(),sneaking=keys.has("c")||keys.has("control");
+ const a=P.stun>0||P._ufoAbducting?{x:0,y:0}:getAxes(),sneaking=keys.has("c")||keys.has("control");
   const boarStartX=P.x,boarStartY=P.y;
   let boarDashActive=false;
   if(P.jumpTime>0){
@@ -5215,7 +5222,7 @@ function update(dt){
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
    P.hauntedTime=Math.max(0,(P.hauntedTime||0)-dt);
-   const wantsSprint=!ghostSteering&&(heldActions.touchSprint||heldActions.padSprint);
+   const wantsSprint=!ghostSteering&&!P._ufoAbducting&&(heldActions.touchSprint||heldActions.padSprint);
    if(!wantsSprint)P.sprintExhausted=false;
    const sprinting=wantsSprint&&!P.sprintExhausted&&!sneaking&&Math.hypot(a.x,a.y)>.2&&P.sp>10;
    boarDashActive=P.type==="boar"&&sprinting;
