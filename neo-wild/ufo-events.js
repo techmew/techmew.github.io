@@ -23,6 +23,7 @@ function tick(dt,world){
  // Alien observation sites are physical hazards: animals flee, the player can hide or leave.
  for(const site of alienSites){
   site.age+=dt;if(site.age>210)continue;
+  site.rescueCooldown=Math.max(0,(Number(site.rescueCooldown)||0)-dt);
   // Three distinct alien observation behaviours; old saves default to hostile.
   const disposition=["hostile","neutral","friendly"].includes(site.disposition)?site.disposition:"hostile";
   const d=distance(P,site),visible=!P.hidden&&!safeBlocked(world,P,site);
@@ -186,6 +187,22 @@ function tick(dt,world){
     world.notify("動物が光に吸い込まれた！");e.stage="depart";e.t=0;
    }
   }else{e.victim=null;e.npcBeam=Math.max(0,(e.npcBeam||0)-dt*2)}
+  // Friendly alien scouts actively intercept a saucer's capture beam.
+  // Interception is range- and cover-limited, with a cooldown saved on the site.
+  // The rescue window lets the player escape, but does not make them invulnerable.
+  if(e.stage==="scan"&&e.beam>0&&distance(P,e)<playerBeamRange&&!P.hidden){
+   const protector=alienSites.find(site=>site.disposition==="friendly"&&site.age<210&&
+    (Number(site.rescueCooldown)||0)<=0&&distance(P,{x:Number(site.scoutX)||site.x,y:Number(site.scoutY)||site.y})<115&&
+    !safeBlocked(world,P,site)&&!safeBlocked(world,site,e));
+   if(protector){
+    e.beam=0;e.npcBeam=Math.max(0,(e.npcBeam||0)-1);
+    e.x+=(e.x-P.x)/(distance(e,P)||1)*52;
+    e.y+=(e.y-P.y)/(distance(e,P)||1)*52;
+    protector.rescueCooldown=24;
+    world.notify?.("友好的な偵察機が捕獲光線を妨害！ 今のうちに逃げろ");
+    world.onEvent?.("alien-scout-rescue",{year,x:protector.scoutX??protector.x,y:protector.scoutY??protector.y});
+   }
+  }
   if(distance(P,e)<playerBeamRange&&!P.hidden&&!safeBlocked(world,P,e)){e.beam+=dt;if(e.beam>=2.2){record("UFO捕獲",year,P.x,P.y);world.onEvent?.("ufo-player-abduction",{year,x:P.x,y:P.y});trace("UFO捕獲",year,P.x,P.y);world.notify("円盤に捕獲された！");P.hp=0;world.beginDeath();e.stage="depart";e.t=0}}
   else e.beam=Math.max(0,e.beam-dt*2);
   if(e.t>11){e.stage="depart";e.t=0}
