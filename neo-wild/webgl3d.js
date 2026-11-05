@@ -1942,7 +1942,9 @@ function render(o){
    // triangles have identical height and no raised square edge.
    const surface=(p)=>{
     const coverage=clamp(field(p[0],p[1])*4.5,0,1);
-    const depth=.36+snowZ*coverage;
+    // Zero lift exactly at the contour prevents a floating snow rim;
+    // use the same terrain height API as collision and neighbouring cells.
+    const depth=snowZ*coverage*coverage;
     return [p[0],p[1],ground(p[0],p[1])+depth];
    };
    // Clip each triangle against the same continuous snow threshold.
