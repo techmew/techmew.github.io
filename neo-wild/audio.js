@@ -3,6 +3,86 @@
  * Runs locally with Web Audio and works offline after the script is cached.
  */
 (()=>{"use strict";
+
+// Individual animal vocals for existing and future gacha species.
+// SFXMint files are AI-generated CC0 sound effects (NOT zoological field recordings),
+// immutable, browser hotlinkable, CORS-enabled, and usable in commercial games.
+// Unavailable species use unique locally synthesized cues rather than a wrong animal's call.
+const ANIMAL_VOCALS=Object.freeze({
+ cat:["animal-cat-meow-34",1.0],dog:["animal-dog-bark-25",1],fox:["fox-01",1],
+ wolf:["wolf-growl-01",1],deer:["deer-call-01",1],boar:["boar-grunt-02",1],
+ crow:["crow-caw-01",1],pigeon:["pigeon-coo-01",1],
+ macaque:["monkey-chatter-01",1],blackBear:["bear-growl-01",.97],
+ serow:["goat-bleat-01",.92],manul:["animal-cat-meow-34",.78],
+ tibetanFox:["fox-01",1.17],
+ lion:["lion-roar-02",1],tiger:["short-tiger-roar-01",1],
+ cheetah:["animal-cat-meow-34",1.25],elephant:["elephant-trumpet-01",1],
+ hippo:["hippo-04",1],gorilla:["monkey-chatter-01",.72],
+ zebra:["zebra-02",1],hyena:["hyena-laugh-10",1],
+ wildDog:["animal-dog-bark-25",1.22],hedgehog:["hedgehog-07",1],
+ armadillo:["hedgehog-07",.77]
+});
+const SYNTH_VOICE_SHAPES=Object.freeze({
+ otter:[580,.25,"squeak"],carp:[210,.18,"bubble"],tanuki:[290,.35,"yip"],
+ badger:[155,.28,"grumble"],shoebill:[740,.32,"clatter"],
+ giraffe:[84,.56,"hum"]
+});
+const VOCAL_SOURCE="https://sfxmint.com/dl/";
+const voiceBuffers=Object.create(null),voiceLoads=Object.create(null),voiceFailures=new Set();
+const voicePlayedAt=Object.create(null);
+function preloadAnimal(type){
+ if(!enabled||!ANIMAL_VOCALS[type]||voiceBuffers[type]||voiceLoads[type]||voiceFailures.has(type))return false;
+ const ac=ensure();if(!ac)return false;
+ const [file]=ANIMAL_VOCALS[type],url=VOCAL_SOURCE+file+".mp3";
+ // No remote fetch before the first user gesture; never block gameplay for audio.
+ if(!started)return false;
+ voiceLoads[type]=fetch(url,{mode:"cors",credentials:"omit"})
+  .then(response=>{if(!response.ok)throw Error("animal vocal HTTP "+response.status);return response.arrayBuffer()})
+  .then(bytes=>ac.decodeAudioData(bytes))
+  .then(buffer=>{voiceBuffers[type]=buffer;return buffer})
+  .catch(()=>{voiceFailures.add(type);return null})
+  .finally(()=>{delete voiceLoads[type]});
+ return true;
+}
+function synthAnimalVoice(type,intensity){
+ if(!context||!sfxBus)return;
+ const [base,length,style]=SYNTH_VOICE_SHAPES[type]||[165+(type.length*31)%260,.31,"grumble"];
+ const start=context.currentTime,osc=context.createOscillator(),gain=context.createGain();
+ const filter=context.createBiquadFilter();filter.type="lowpass";filter.frequency.value=style==="clatter"?1800:960;
+ osc.type=style==="hum"?"sine":style==="bubble"?"sine":style==="clatter"?"square":"sawtooth";
+ osc.frequency.setValueAtTime(base,start);
+ for(let i=1;i<=5;i++){
+  const t=start+length*i/5;
+  const mult=style==="clatter"?(i%2?.76:1.75):style==="bubble"?(1+i*.09):style==="squeak"?(1.15-.09*i):1+Math.sin(i*2.4)*.16;
+  osc.frequency.setValueAtTime(base*mult,t);
+ }
+ gain.gain.setValueAtTime(.0001,start);
+ gain.gain.linearRampToValueAtTime(.12*Math.min(1.4,intensity),start+.025);
+ gain.gain.exponentialRampToValueAtTime(.0001,start+length);
+ osc.connect(filter);filter.connect(gain);gain.connect(sfxBus);
+ osc.start(start);osc.stop(start+length+.015);
+ osc.onended=()=>{try{osc.disconnect();filter.disconnect();gain.disconnect()}catch(_){}};
+}
+function playAnimal(type,options={}){
+ if(!enabled||!type||!unlock()||!context||!sfxBus)return false;
+ const current=context.currentTime,isUltimate=!!options.ultimate;
+ if(current-(voicePlayedAt[type]??-100)<(isUltimate?.4:.9))return false;
+ voicePlayedAt[type]=current;
+ const buffer=voiceBuffers[type];
+ if(!buffer){preloadAnimal(type);synthAnimalVoice(type,isUltimate?1.0:.55);return false;}
+ try{
+  const src=context.createBufferSource(),gain=context.createGain();
+  src.buffer=buffer;
+  const rate=(ANIMAL_VOCALS[type]?.[1]||1)*(isUltimate?.97:1.03);
+  src.playbackRate.value=rate;
+  gain.gain.value=isUltimate?.32:.18;
+  src.connect(gain);gain.connect(sfxBus);
+  src.start(0,0,Math.min(buffer.duration,isUltimate?2.0:1.10));
+  src.onended=()=>{try{src.disconnect();gain.disconnect()}catch(_){}};
+  return true;
+ }catch(_){synthAnimalVoice(type,isUltimate?1:.55);return false;}
+}
+
 const names={explore:"ECHOES OF THE LOST CITY",forest:"RECLAIMED GREEN",danger:"THE HUNT",rain:"RAIN OVER TOKYO"};
 const TRACKS=[
  {id:"default",name:"デフォルト｜環境連動"},
@@ -406,7 +486,7 @@ function setEnabled(on){
  if(enabled){unlock();if(context&&master)master.gain.setTargetAtTime(.82,context.currentTime,.18);update(scene)}
  return enabled;
 }
-window.WildAudio={unlock,update,play,setEnabled,setMusicChoice,getMusicChoice,setMusicVolume,getMusicVolume,
+window.WildAudio={unlock,update,play,playAnimal,preloadAnimal,setEnabled,setMusicChoice,getMusicChoice,setMusicVolume,getMusicVolume,
  tracks:TRACKS.map(t=>({...t})),fadeForDeath,resetDeathFade,get active(){return started},get enabled(){return enabled},
  get soundtrack(){return musicChoice==="default"?names[scene.danger?"danger":Number(scene.area)===5?"forest":"explore"]:TRACKS.find(t=>t.id===musicChoice)?.name||names.explore}};
 })();
