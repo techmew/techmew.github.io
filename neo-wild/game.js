@@ -3101,8 +3101,17 @@ function resolveSpeciesSpecial(){
   const more=spec.kind==="double"?1.19:1;
   const stun=spec.kind==="pierce"?.85:spec.kind==="bite"?.66:spec.kind==="slam"?.48:spec.kind==="lunge"?.38:spec.kind==="thorns"?.32:.24;
   const knock=spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
-  const damage=specialHit(m,power*more,stun,knock,spec.name);
-  if(damage>0){hitCount++;if(type==="dog"||type==="wildDog"){m.flee=0;m.stun=Math.max(m.stun||0,.62)}}
+  const sequence=spec.kind==="double"||spec.kind==="backkick";
+  const damage=specialHit(m,power*(sequence?.78:more),stun,knock,spec.name);
+  if(damage>0){
+   hitCount++;
+   if(sequence&&m.hp>0){
+    // The second claw/bite/hind-hoof connects the same real target, not a distant extra victim.
+    specialHit(m,power*(type==="zebra"?.60:.54),.24,knock*.34,"追撃");
+    P.swing=Math.max(P.swing||0,.35);
+   }
+   if(type==="dog"||type==="wildDog"){m.flee=0;m.stun=Math.max(m.stun||0,.62)}
+  }
  }
  if(type==="wolf"||type==="lion"||type==="pigeon")for(const m of mobs){
   if(m.hp<=0||m.companion||dist(P,m)>spec.range+P.r||lineBlocked(P,m))continue;
