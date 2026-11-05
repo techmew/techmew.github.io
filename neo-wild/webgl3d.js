@@ -1054,6 +1054,68 @@ function drawWorldSquadSpecies3D(m,clock){
  return true;
 }
 
+
+// Native species silhouettes: raccoon dog and Japanese serow.
+// Each uses its own gait, face and terrain-facing anatomy; no UI assets.
+function drawJapaneseForestMammals3D(m,clock){
+ const t=m.type;
+ if(t!=="raccoonDog"&&t!=="serow")return false;
+ const r=m.r||17,dir=m.dir||0,cs=Math.cos(dir),sn=Math.sin(dir);
+ const young=m.age==="若い"||m.ageStage==="young",sz=young?.82:1;
+ const male=m.sex==="オス"||m.sex==="male";
+ const speed=Math.hypot(m.vx||0,m.vy||0),motion=clamp(speed/135,0,1);
+ const cycle=(m.steps||m.step||0)*(t==="serow"?2.1:3.0);
+ const px=(a,b)=>m.x+a*cs-b*sn,py=(a,b)=>m.y+a*sn+b*cs;
+ const orb=(a,b,z,rx,ry,rz,col)=>ellipsoid(px(a,b),py(a,b),z,rx*sz,ry*sz,rz*sz,col,dir,10,6);
+ const spike=(a,b,z,w,h,col)=>pyramid(px(a,b),py(a,b),z,w*sz,w*sz,h*sz,col);
+ const breathe=1+.018*Math.sin(clock*2.1);
+ if(t==="raccoonDog"){
+  // Short, stocky limbs and round fur-covered trunk. Diagonal steps alternate.
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const beat=Math.sin(cycle+(front===side?0:Math.PI))*motion;
+   orb(front*r*.53+beat*r*.21,side*r*.46,r*.23+Math.max(0,beat)*r*.13,r*.19,r*.18,r*.28,"#423b33");
+   orb(front*r*.56+beat*r*.32,side*r*.47,r*.09+Math.max(0,beat)*r*.18,r*.21,r*.17,r*.11,"#292927");
+  }
+  orb(-r*.15,0,r*.62,r*1.04*breathe,r*.69,r*.64,"#756b58");
+  orb(r*.53,0,r*.75,r*.52,r*.59,r*.51,"#5a5549");
+  orb(r*1.02,0,r*.70,r*.56,r*.48,r*.44,"#aa9a7e");
+  orb(r*1.34,0,r*.53,r*.32,r*.30,r*.23,"#b6a68b");
+  for(const side of [-1,1]){
+   orb(r*1.04,side*r*.36,r*.82,r*.26,r*.19,r*.25,"#292c2b");
+   orb(r*1.24,side*r*.40,r*.85,r*.085,r*.065,r*.065,"#d6c5a2");
+   orb(r*1.27,side*r*.41,r*.85,r*.045,r*.045,r*.045,"#171b1a");
+   orb(r*.73,side*r*.39,r*1.15,r*.20,r*.18,r*.25,"#4c453b");
+  }
+  orb(r*1.62,0,r*.49,r*.12,r*.14,r*.11,"#282928");
+  for(let k=0;k<7;k++)orb(-r*(1.06+k*.17),Math.sin(clock*1.7+k*.3)*r*.10,r*(.61-k*.027),r*.23,r*.21,r*.20,k%2?"#4b473d":"#887b66");
+  if(male&&!young)orb(r*.48,0,r*1.02,r*.43,r*.50,r*.17,"#6c6554");
+ }else{
+  // Japanese serow: deep chest, short muscular limbs, narrow muzzle,
+  // and two backwards swept permanent horns (both sexes).
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const beat=Math.sin(cycle+(front===side?0:Math.PI))*motion;
+   const swing=beat*r*.34,up=Math.max(0,beat)*r*.29;
+   orb(front*r*.55+swing*.20,side*r*.35,r*.69+up*.12,r*.19,r*.17,r*.37,"#6e6556");
+   orb(front*r*.55+swing*.60,side*r*.35,r*.35+up*.53,r*.13,r*.13,r*.30,"#857768");
+   orb(front*r*.55+swing,side*r*.35,r*.09+up,r*.17,r*.16,r*.11,"#302f2c");
+  }
+  orb(-r*.10,0,r*1.14,r*.93*breathe,r*.53,r*.60,"#827c6d");
+  orb(r*.54,0,r*1.24,r*.51,r*.56,r*.65,"#777164");
+  orb(r*.96,0,r*1.51,r*.37,r*.34,r*.43,"#999183");
+  orb(r*1.25,0,r*1.30,r*.41,r*.28,r*.24,"#b8b2a2");
+  orb(r*1.53,0,r*1.22,r*.21,r*.20,r*.13,"#343331");
+  for(const side of [-1,1]){
+   orb(r*.96,side*r*.26,r*1.80,r*.23,r*.14,r*.16,"#797163");
+   orb(r*1.19,side*r*.27,r*1.49,r*.065,r*.06,r*.06,"#242827");
+   spike(r*.91,side*r*.19,r*1.86,r*.10,r*(young?.32:male?.68:.55),"#383c38");
+   orb(r*.91-r*.10,side*r*.19,r*2.12,r*.095,r*.095,r*.13,"#3e413c");
+  }
+  for(let k=0;k<5;k++)orb(r*(.78+k*.11),0,r*(1.03-k*.13),r*.20,r*.24,r*.17,"#c3bcae");
+  orb(-r*1.13,0,r*1.08,r*.20,r*.18,r*.18,"#514c43");
+ }
+ return true;
+}
+
 function animal(m,player,clock){
  const type=m.type==="strayCat"?"cat":m.type==="wildFox"?"fox":m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,collapse=player?clamp(m.deathPose||0,0,1):0,dir=(m.dir||0)+collapse*.24,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
@@ -1091,6 +1153,7 @@ function animal(m,player,clock){
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if(drawJapaneseForestMammals3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(drawWorldSquadSpecies3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
