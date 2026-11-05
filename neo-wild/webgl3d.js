@@ -1777,7 +1777,7 @@ function render(o){
    }
   }
   const playerFirst=data.length/9;
-  if(P){animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);carriedFoodMesh(P);}
+  if(P&&!P._ufoAbducting){animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);carriedFoodMesh(P);}
   const playerEnd=data.length/9;
   const ghostEnd=playerEnd;
   const vertices=new Float32Array(data);
