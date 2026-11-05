@@ -275,7 +275,27 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(["pigeon","crow"].includes(type))w*=.65;
   if(type==="deer")w*=.75;
  }
- return w;
+ // Five-year roaming cycle: herds move between mountain foothills, woodland
+ // and wetland margins as forage recovers. Predators trail one phase behind.
+ // The lottery still selects ONE existing NPC and respects all zero-weight
+ // biome, era and safe-city restrictions established above.
+ const migrationYear=Math.max(0,year-1);
+ const migrationPhase=Math.floor(migrationYear/5)%3;
+ const migrationHabitats=[[2,5],[3,5],[4,7]];
+ const currentForage=migrationHabitats[migrationPhase].includes(region);
+ const previousForage=migrationHabitats[(migrationPhase+2)%3].includes(region);
+ if(w>0&&migrationYear>=5){
+  if(["deer","boar","serow","zebra","giraffe","rabbit"].includes(type))
+   w*=currentForage?1.38:previousForage?.77:.88;
+  if(["wildFox","wolf","lion","cheetah","hyena","wildDog","tiger"].includes(type))
+   w*=previousForage?1.22:currentForage?.82:.94;
+  // Small scavengers follow depleted herds, while storms break migration.
+  if(["tanuki","raccoonDog","badger","crow"].includes(type)&&previousForage)
+   w*=1.16;
+  if(["TYPHOON","STORM","HEAVY_RAIN"].includes(weather)&&
+     ["deer","boar","serow","zebra","giraffe"].includes(type))w*=.78;
+ }
+ return Math.max(0,w);
 }
 // Per-region encounter memory prevents repeat apex predators and same-species clusters.
 // Only modifies an existing spawn draw: never creates additional NPCs or save data.
