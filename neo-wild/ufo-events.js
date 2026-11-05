@@ -34,7 +34,7 @@ function tick(dt,world){
   const scoutDistance=distance(P,scout);
   const scoutVisible=!P.hidden&&!safeBlocked(world,P,scout);
   site.scoutX=scout.x;site.scoutY=scout.y;
-  if(disposition==="hostile"&&scoutDistance<62&&scoutVisible){
+  if(disposition==="hostile"&&(Number(site.scoutDisrupted)||0)<=0&&scoutDistance<62&&scoutVisible){
    site.scoutCharge=(Number(site.scoutCharge)||0)+dt;
    P.sp=Math.max(0,(Number(P.sp)||0)-dt*2.6);
    if(site.scoutCharge>=3){
@@ -51,7 +51,7 @@ function tick(dt,world){
   if(site.wildlifePulse>=2.8){
    site.wildlifePulse=0;
    const nearby=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m._ufoAbducted&&distance(m,scout)<78&&!safeBlocked(world,m,scout));
-   if(disposition==="hostile"){
+   if(disposition==="hostile"&&(Number(site.scoutDisrupted)||0)<=0){
     const victim=nearby.sort((a,b)=>distance(a,scout)-distance(b,scout))[0];
     if(victim){
      const damage=Math.max(1,Math.ceil((Number(victim.maxHp)||20)*.075));
@@ -66,6 +66,25 @@ function tick(dt,world){
    }else if(disposition==="friendly"){
     const injured=nearby.filter(m=>Number(m.maxHp)>0&&m.hp<m.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
     if(injured)injured.hp=Math.min(injured.maxHp,injured.hp+Math.max(2,Math.ceil(injured.maxHp*.08)));
+   }
+  }
+  // Nearby alerted wild animals can temporarily disrupt a hostile scout.
+  site.scoutDisrupted=Math.max(0,(Number(site.scoutDisrupted)||0)-dt);
+  site.herdCounterClock=(Number(site.herdCounterClock)||0)+dt;
+  if(disposition==="hostile"&&site.scoutDisrupted<=0&&site.herdCounterClock>=1.6){
+   site.herdCounterClock=0;
+   const defenders=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m._ufoAbducted&&
+    Number(m.attack??m.atk??m.damage)>0&&distance(m,scout)<68&&!safeBlocked(world,m,scout)&&
+    ((Number(m.alert)||0)>0||(Number(m.flee)||0)>0));
+   if(defenders.length>=2){
+    const strength=defenders.slice(0,5).reduce((sum,m)=>sum+Math.max(1,Number(m.attack??m.atk??m.damage)||1),0);
+    const disruption=Math.min(6,1.5+strength*.035);
+    site.scoutDisrupted=disruption;
+    site.scoutCharge=0;
+    site.wildlifePulse=0;
+    site.counterattacks=(Number(site.counterattacks)||0)+1;
+    world.onEvent?.("alien-scout-herd-counterattack",{year,x:scout.x,y:scout.y,defenders:defenders.length,duration:disruption});
+    if(distance(P,scout)<180)world.notify?.("野生動物の群れが偵察機を追い払った！");
    }
   }
   if(disposition==="friendly"&&scoutDistance<75&&scoutVisible&&site.pulse>=4){
