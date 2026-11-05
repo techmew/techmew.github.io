@@ -172,7 +172,7 @@ function tick(dt,world){
    prey.corpse=false;prey.meat=0;prey.food=0;
    const idx=mobs.indexOf(prey);if(idx>=0)mobs.splice(idx,1);
    record("NPC誘拐:"+species,year,prey.x,prey.y);
-   trace("NPC誘拐",year,prey.x,prey.y);
+   trace("キャトルミューティレーション",year,prey.x,prey.y);
    world.onEvent?.("ufo-npc-abduction",{year,x:prey.x,y:prey.y,species,removed:true,formation:true});
    for(const other of mobs){if(other.hp>0&&distance(other,prey)<260){other.flee=Math.max(Number(other.flee)||0,4.5);other.alert=Math.max(Number(other.alert)||0,4.5)}}
    if(distance(P,spot)<290)world.notify("円盤群が動物を連続捕獲！");
@@ -203,7 +203,7 @@ function tick(dt,world){
    m.vy=(m.y-e.y)/d*Math.max(105,Number(m.speed)||105);
    if(e.npcBeam>=UFO_NPC_LOCK_TIME&&distance(m,e)<beamRange&&!safeBlocked(world,m,e)){
     m.hp=0;m._killRegistered=true;
-    record("NPC誘拐:"+species,year,m.x,m.y);trace("NPC誘拐",year,m.x,m.y);
+    record("NPC誘拐:"+species,year,m.x,m.y);trace("キャトルミューティレーション",year,m.x,m.y);
     // An abduction is removal, not a player kill: leave no edible carcass or hunt reward.
     m._ufoAbducted=true;m.dead=true;m.corpse=false;m.meat=0;m.food=0;
     // Remove from active wildlife to prevent the ordinary death/carcass pipeline from processing it.
@@ -237,8 +237,9 @@ function tick(dt,world){
   if(e.t>Math.max(15,Number(e.scanSeconds)||27)){e.stage="depart";e.t=0;world.notify?.("UFOが急上昇して遠ざかっていく")}
  }
  if(e.stage==="depart"){
-  const bearing=Number.isFinite(e.heading)?e.heading:-Math.PI/3;
-  e.x+=Math.cos(bearing)*340*dt;e.y+=Math.sin(bearing)*340*dt-130*dt;
+  if(!Number.isFinite(e.departHeading))e.departHeading=Math.atan2(e.y-P.y,e.x-P.x);
+  const bearing=e.departHeading;
+  e.x+=Math.cos(bearing)*390*dt;e.y+=Math.sin(bearing)*390*dt;
  }
  if(e.stage==="depart"&&e.t>2.3){if(e.formation&&alienSites.length<4&&Math.random()<.42){alienSites.push({x:e.originX,y:e.originY,age:0,warned:false,pulse:0,disposition:(Math.random()<.5?"hostile":Math.random()<.6?"neutral":"friendly")});record("異星観測基地",year,e.originX,e.originY);world.onEvent?.("alien-observation-site",{year,x:e.originX,y:e.originY});world.notify?.("円盤が去った跡に奇妙な観測装置が残った")}event=null;cooldown=Math.max(cooldown,300/3);persist()}
 }
@@ -312,7 +313,7 @@ function renderTractor(ctx,x,y,roof,span,t){
 }
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
- for(const mark of traces){const q=project(mark.x,mark.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
+ for(const mark of traces){const q=project(mark.x,mark.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle=mark.kind==="キャトルミューティレーション"?"#ead0a2":"#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
  for(const site of alienSites){
   const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;
   ctx.save();ctx.globalAlpha=Math.max(0,Math.min(.9,(210-site.age)/30));
