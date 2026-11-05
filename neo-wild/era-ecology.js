@@ -30,10 +30,17 @@
   const active=CORRIDORS.filter(([a,b])=>state(a,y).kind==="migration"||state(b,y).kind==="migration");
   const pair=active.find(([a,b])=>a===r||b===r);
   if(!pair)return {active:false,source:r,destination:r,grazer:1,hunter:1};
-  const direction=hash(pair[0],epoch,9)<.5?pair:[pair[1],pair[0]];
+  // Herds seek food and avoid predator pressure; the route changes by epoch.
+  // Population multipliers stay bounded to avoid runaway spawn density.
+  const a=state(pair[0],y),b=state(pair[1],y);
+  const habitat=s=>s.food/(s.kind==="predators"?1.5:1);
+  const delta=habitat(a)-habitat(b);
+  const direction=Math.abs(delta)>.08?(delta>0?[pair[1],pair[0]]:pair):(hash(pair[0],epoch,9)<.5?pair:[pair[1],pair[0]]);
   const source=direction[0],destination=direction[1];
-  return {active:true,source,destination,
-   grazer:r===destination?1.42:.62,hunter:r===destination?1.18:.76};
+  const season=Math.floor((y%1)*4),winter=season===3;
+  const grazer=r===destination?(winter?1.25:1.36):.68;
+  const hunter=r===destination?Math.min(1.2,1+(grazer-1)*.45):.83;
+  return {active:true,source,destination,grazer,hunter,season};
  }
  function history(year){
   const y=Math.max(0,Number(year)||0),last=Math.floor((y+1e-9)/PERIOD),events=[];
