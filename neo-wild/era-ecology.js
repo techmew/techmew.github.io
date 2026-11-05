@@ -21,6 +21,20 @@
   const values={greening:[1.18,1.10],abundance:[1.35,1.16],drought:[.62,.78],predators:[.83,1.08],recovery:[.76,.68],migration:[.88,1.22]}[kind];
   return {region:r,era,kind,name:names[{greening:1,abundance:2,drought:3,predators:4,recovery:5,migration:6}[kind]],food:values[0],animals:values[1],year:Math.round(era*PERIOD*10)/10};
  }
+ // Region-to-region migration follows a deterministic seasonal corridor.
+ // No extra mobs are spawned; only existing encounter draws are redistributed.
+ const CORRIDORS=Object.freeze([[2,5],[5,3],[3,7],[7,4],[4,2],[1,6]]);
+ function migration(region,year){
+  const r=Math.max(0,Math.min(REGIONS-1,Math.floor(Number(region)||0)));
+  const y=Math.max(0,Number(year)||0),epoch=Math.floor((y+1e-9)/PERIOD);
+  const active=CORRIDORS.filter(([a,b])=>state(a,y).kind==="migration"||state(b,y).kind==="migration");
+  const pair=active.find(([a,b])=>a===r||b===r);
+  if(!pair)return {active:false,source:r,destination:r,grazer:1,hunter:1};
+  const direction=hash(pair[0],epoch,9)<.5?pair:[pair[1],pair[0]];
+  const source=direction[0],destination=direction[1];
+  return {active:true,source,destination,
+   grazer:r===destination?1.42:.62,hunter:r===destination?1.18:.76};
+ }
  function history(year){
   const y=Math.max(0,Number(year)||0),last=Math.floor((y+1e-9)/PERIOD),events=[];
   for(let e=Math.max(4,last-59);e<=last;e++)for(let r=0;r<REGIONS;r++){
@@ -29,5 +43,5 @@
   }
   return events.slice(-64);
  }
- window.WildEraEcology=Object.freeze({state,history,periodYears:PERIOD,regionCount:REGIONS});
+ window.WildEraEcology=Object.freeze({state,history,migration,periodYears:PERIOD,regionCount:REGIONS});
 })();
