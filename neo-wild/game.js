@@ -2983,6 +2983,7 @@ function applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo=false){
  }
 }
 
+function isGhostPossessed(){return !!(P&&P.ghostPossessedUntil>0)}
 function getAxes(){
  const keyboardX=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0);
  const keyboardY=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0);
@@ -3000,7 +3001,7 @@ function notify(t,duration=2.1){toastMessage=t;toastTime=duration;$("toast").tex
 function startAmbient(){window.WildAudio?.unlock();}
 function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
 function instinct(){
- if(mode!=="play"||!P||P.instinctCD>0||P.sp<18)return;
+ if(mode!=="play"||!P||isGhostPossessed()||P.instinctCD>0||P.sp<18)return;
  const level=P.level||1;P.sp-=18;
  P.instinctCD=(P.type==="wolf"?13:P.type==="fox"?9:P.type==="manul"?11:P.type==="tibetanFox"?9.5:P.type==="shoebill"?12:8.5)*(P.instinctBonus?.85:1);
  P.abilityTime=P.type==="cat"?3.4+Math.min(1.7,(level-1)*.18):P.type==="fox"?4.4+Math.min(1.8,(level-1)*.18):P.type==="manul"?5:P.type==="tibetanFox"?4.5:P.type==="shoebill"?5:4+Math.min(1.2,(level-1)*.1);
@@ -3228,7 +3229,7 @@ function putDownFood(){
  P.carry=null;notify("食料を置いた / ○短押しで食べる・長押しで拾う");syncHUD();return true;
 }
 function contextAction(longPress=false){
- if(mode!=="play"||!P)return;
+ if(mode!=="play"||!P||isGhostPossessed())return;
  if(atDen()){
   if(P.carry){carryFood();return}
   if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
@@ -3261,7 +3262,7 @@ function showHuntCinematic(finisher){
  playEffect("impact",{volume:.34});
 }
 function attack(){
- if(mode!=="play"||!P)return;
+ if(mode!=="play"||!P||isGhostPossessed())return;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
@@ -3521,7 +3522,7 @@ function catWallKick(){
  return true;
 }
 function jump(){
- if(mode!=="play"||!P)return false;
+ if(mode!=="play"||!P||isGhostPossessed())return false;
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
  if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
  const cat=P.type==="cat",wolf=P.type==="wolf",cost=traitEffect("giantMoose",cat?14:wolf?22:17);
@@ -3561,7 +3562,7 @@ function pounceImpactOnSegment(x0,y0,x1,y1){
  return nearest;
 }
 function dash(){
- if(mode!=="play"||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
+ if(mode!=="play"||isGhostPossessed()||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
  const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
  if(P.sp<cost){notify("持久力が足りない");return false}
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
@@ -5112,7 +5113,14 @@ function update(dt){
      }catch(_){}
     }
    }});
- window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked,onEvent:(event,data)=>window.WildTrophies?.record?.(event,data,notify)});
+ window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked,
+  onPossession:()=>{
+   // Abort in-progress attacks, jumps, and dashes without changing save ownership or UI.
+   resetControls();interruptRush();P.atk=0;P.windup=0;
+   P.jumpTime=0;P.jumpRemaining=0;P.pounceTime=0;P.pounceRemaining=0;P.dashTime=0;P.fallTime=0;
+   P.jumpHeight=P.groundZ||0;P.vx=0;P.vy=0;P.noiseBurst=0;
+  },
+  onEvent:(event,data)=>window.WildTrophies?.record?.(event,data,notify)});
  if(P.hp<=0){beginDeath();return;}
  updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
@@ -5144,6 +5152,12 @@ function update(dt){
  if((heldActions.touchAttack||heldActions.padAttack)&&P.atk<=0&&!P.pendingStrike&&P.sp>=5)attack();
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
  P.stun=Math.max(0,(P.stun||0)-dt);
+ // Tick the possession timer independently of the current locomotion state.
+ const ghostSteering=isGhostPossessed();
+ if(ghostSteering){
+  P.ghostPossessedUntil=Math.max(0,P.ghostPossessedUntil-dt);
+  if(P.ghostPossessedUntil===0){resetControls();notify("霊が離れた。操作を取り戻した");}
+ }
  const a=P.stun>0?{x:0,y:0}:getAxes(),sneaking=keys.has("c")||keys.has("control");
   const boarStartX=P.x,boarStartY=P.y;
   let boarDashActive=false;
@@ -5200,7 +5214,7 @@ function update(dt){
    const boost=foxTurbo?2.32+Math.min(.72,(P.level-1)*.09):P.type==="cat"&&P.abilityTime>0?1.52:1;
    const traction=(weather==="RAIN"||weather==="THUNDER")&&!insideShelter(P)?(P.rainGrip?.98:.89):weather==="WIND"?.96:1;
    P.hauntedTime=Math.max(0,(P.hauntedTime||0)-dt);
-   const wantsSprint=heldActions.touchSprint||heldActions.padSprint;
+   const wantsSprint=!ghostSteering&&(heldActions.touchSprint||heldActions.padSprint);
    if(!wantsSprint)P.sprintExhausted=false;
    const sprinting=wantsSprint&&!P.sprintExhausted&&!sneaking&&Math.hypot(a.x,a.y)>.2&&P.sp>10;
    boarDashActive=P.type==="boar"&&sprinting;
@@ -5209,15 +5223,21 @@ function update(dt){
     if(P.sp<=10)P.sprintExhausted=true;
    }
    const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
-   if(P.ghostPossessedUntil>0){
-    P.ghostPossessedUntil=Math.max(0,P.ghostPossessedUntil-dt);
+   if(ghostSteering){
+    // Steering belongs entirely to the ghost; physical collisions still apply.
     P.ghostWanderClock=(P.ghostWanderClock||0)-dt;
-    if(P.ghostWanderClock<=0){P.ghostWanderClock=.45+Math.random()*.85;P.ghostWanderAngle=(P.ghostWanderAngle||0)+(Math.random()-.5)*2.7;}
+    if(P.ghostWanderClock<=0){
+     P.ghostWanderClock=.65+Math.random()*1.15;
+     P.ghostWanderAngle=(P.ghostWanderAngle||0)+(Math.random()-.5)*3.2;
+    }
     const forced={x:Math.cos(P.ghostWanderAngle),y:Math.sin(P.ghostWanderAngle)};
-    applyDirectionalInput(P,forced,Math.min(target,Math.max(70,P.speed*.45)),dt,false);
-    if(P.ghostPossessedUntil===0){P.vx=0;P.vy=0;notify("霊が離れた。操作を取り戻した");}
+    applyDirectionalInput(P,forced,Math.min(152,Math.max(64,P.speed*.52)),dt,false);
    }else applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
+   if(ghostSteering&&Math.hypot(P.x-oldX,P.y-oldY)<.3){
+    P.ghostWanderAngle=(P.ghostWanderAngle||0)+Math.PI*(.65+Math.random()*.7);
+    P.ghostWanderClock=0;
+   }
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
    const speed=Math.hypot(P.vx,P.vy);
    if(speed>8){
@@ -7230,7 +7250,7 @@ function drawScene(){
 
  if(mode!=="dying"){
   window.WildUFO?.draw?.(ctx,project,{mode});
-  window.WildApparitions?.draw?.(ctx,project,{mode});
+  window.WildApparitions?.draw?.(ctx,project,{mode,P});
   window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
@@ -7269,9 +7289,14 @@ function loop(t){
  } finally {requestAnimationFrame(loop);}
 }
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play")return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play"||isGhostPossessed())return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
+ // Menus and pause remain accessible; possession blocks gameplay inputs.
+ if(mode==="play"&&isGhostPossessed()&&!["p","escape","f","m","-","_","=","+"].includes(k)){
+  if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
+  return;
+ }
  if(["arrowup","arrowdown","arrowleft","arrowright"," ","shift"].includes(k))e.preventDefault();
  if(e.repeat&&["shift","q","p","escape","f","l","m","g","h"].includes(k))return;
  const alreadyHeld=keys.has(k);
