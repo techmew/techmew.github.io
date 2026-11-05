@@ -161,6 +161,25 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(type==="frog")w*=([4,7].includes(region)?1.35:.65);
   if(type==="otter"&&[4,7].includes(region))w*=1.2;
  }
+ // Weather-driven food-chain migration changes the actual encounter pool.
+ // No extra mobs are spawned: the existing density cap and habitat routing remain authoritative.
+ // During drought grazers move toward river/wetland fringes, drawing predators after them.
+ // Flooding displaces burrowers and small prey toward elevated forest; aquatic hunters stay near water.
+ const drought=["DROUGHT","HEATWAVE","HEAT","DRY"].includes(weather);
+ const flood=["FLOOD","HIGH_WATER","STORM_SURGE"].includes(weather);
+ if(drought){
+  if(["deer","boar","zebra","giraffe","elephant"].includes(type))
+   w*=([4,7].includes(region)?1.65:[2,5].includes(region)?.62:.40);
+  if(["lion","cheetah","wildDog","hyena","tiger"].includes(type))
+   w*=([4,7].includes(region)?1.28:.68);
+  if(["frog","otter","carp","shoebill"].includes(type))w*=.48;
+ }
+ if(flood){
+  if(["badger","hedgehog","armadillo","rabbit","rat","tanuki"].includes(type))
+   w*=([2,5,6].includes(region)?1.45:.24);
+  if(["deer","boar","serow"].includes(type))w*=([2,5].includes(region)?1.3:.55);
+  if(["frog","otter","shoebill"].includes(type))w*=([4,7].includes(region)?1.2:.40);
+ }
  // Heavy storms make exposed flying birds shelter and reduce open-country hunts.
  if(["STORM","TYPHOON","HEAVY_RAIN","THUNDER"].includes(weather)){
   if(["crow","pigeon","shoebill"].includes(type))w*=.22;
