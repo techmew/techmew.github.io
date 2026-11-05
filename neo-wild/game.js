@@ -5282,7 +5282,11 @@ function recordDisasterEncounters(){
   try{localStorage.setItem(DISASTER_TROPHY_KEY,JSON.stringify(Object.fromEntries(Object.entries(disasterTrophyLedger).slice(-160))))}catch(_){}
  }
 }
+let voicePreloadedFor=null;
 function update(dt){
+ if(P&&window.WildAudio?.active&&voicePreloadedFor!==P.type){
+  voicePreloadedFor=P.type;window.WildAudio?.preloadAnimal?.(P.type);
+ }
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
  for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
