@@ -24,7 +24,9 @@ function height(x,y){
   const t=smooth(clamp((y-2390)/(center(x)-570-2390),0,1));
   const wood=Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
   const foot=90*smooth(clamp((x-WEST)/(FOOTHILL_END-WEST),0,1));
-  return wood*(1-t)+foot*t;
+  const base=90*smooth(clamp((x-WEST)/(FOOTHILL_END-WEST),0,1))+19*clamp((x-WEST)/(FOOTHILL_END-WEST),0,1)*clamp(Math.abs(y-center(x))/740,0,1)+4*clamp((x-WEST)/(FOOTHILL_END-WEST),0,1)*Math.sin(x/210)*Math.cos(y/245);
+  const edge=smooth(clamp((Math.abs(x-10600)-65)/35,0,1));
+  return (wood*(1-t)+foot*t)*(1-edge*t)+base*edge*t;
  }
  if(northWood(x,y))return Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
  if(x<=WEST)return 0;
