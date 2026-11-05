@@ -962,6 +962,7 @@ function drawWorldSquadSpecies3D(m,clock){
  if(!["armadillo","hedgehog","gorilla","hyena","wildDog","tiger"].includes(t))return false;
  const young=m.age==="若い"||m.age==="若年"||m.ageStage==="young";
  const male=m.sex==="オス"||m.sex==="male";
+ const adult=!young,breath=1+.025*Math.sin(clock*1.8);
  const r=(m.r||20)*(young?.84:1),dir=m.dir||0,c=Math.cos(dir),s=Math.sin(dir);
  const fx=(x,y)=>m.x+x*c-y*s,fy=(x,y)=>m.y+x*s+y*c;
  const orb=(x,y,z,a,b,h,col)=>ellipsoid(fx(x,y),fy(x,y),z,a,b,h,col,dir,9,5);
