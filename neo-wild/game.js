@@ -1212,7 +1212,7 @@ function start(newWorld=false){
  denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
- P.stillTime=0;P.beakStrike=false;P.beakVisual=0;
+ P.stillTime=0;P.beakStrike=false;P.beakVisual=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  initializeLife(P,elapsed);
  // World geometry can change between releases. Never begin a run inside water or a wall.
  if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
@@ -1392,7 +1392,7 @@ function restoreSnapshot(snapshot){
  scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
- P.stillTime=clamp(Number(P.stillTime)||0,0,2.5);P.beakStrike=false;P.beakVisual=0;
+ P.stillTime=clamp(Number(P.stillTime)||0,0,2.5);P.beakStrike=false;P.beakVisual=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  Object.assign(P,normalizeSavedPlayerStats(p,animals[choice]));
  // Preserve saved birth year; older SAVE_SCHEMA2 runs migrate without resetting the world clock.
  initializeLife(P,Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed),true);
@@ -3001,49 +3001,147 @@ function label(x,y,t,color="#ffffff"){popups.push({x,y,t,color,life:1.1})}
 function notify(t,duration=2.1){toastMessage=t;toastTime=duration;$("toast").textContent=t;$("toast").classList.add("show")}
 function startAmbient(){window.WildAudio?.unlock();}
 function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
-function instinct(){
- if(mode!=="play"||!P||isControlBlocked()||P.instinctCD>0||P.sp<18)return;
- const level=P.level||1;P.sp-=18;
- P.instinctCD=(P.type==="wolf"?13:P.type==="fox"?9:P.type==="manul"?11:P.type==="tibetanFox"?9.5:P.type==="shoebill"?12:8.5)*(P.instinctBonus?.85:1);
- P.abilityTime=P.type==="cat"?3.4+Math.min(1.7,(level-1)*.18):P.type==="fox"?4.4+Math.min(1.8,(level-1)*.18):P.type==="manul"?5:P.type==="tibetanFox"?4.5:P.type==="shoebill"?5:4+Math.min(1.2,(level-1)*.1);
- if(P.type==="fox"){
-  P.noiseBurst=Math.max(P.noiseBurst,.85);
-  notify("狐・疾風！ 爆速で駆け抜けろ");
-  blood(P.x,P.y,"#e7ddae",10,70);playEffect("attack");
- }else if(P.type==="cat"){
-  P.dash=Math.min(P.dash,.15);
-  notify("猫・壁際でジャンプを連打して三角飛び");
-  playEffect("jump");
- }else if(P.type==="wolf"){
-  P.noiseBurst=1.8;
-  for(const m of mobs){
-   if(m.hp<=0||dist(P,m)>Math.min(420,255+(level-1)*18)||lineBlocked(P,m))continue;
-   if(m.type==="alpha"||m.type==="boar"){m.alert=Math.max(m.alert,1.8);continue}
-   m.flee=2.7;m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;
-   if(m.type==="dog")m.stun=Math.max(m.stun,.35);
-  }
-  blood(P.x,P.y,"#dce3db",19,145);
-  notify("狼・咆哮！ 次の突進で敵を引き倒せ");
-  playEffect("howl");
- }else if(P.type==="manul"){
-  // A manul stays flat and cryptic: no unrealistic speed burst or roar.
-  P.noiseBurst=0;P.revealTimer=0;
-  notify("マヌルネコ：伏せて擬態。茂みと岩陰から獲物を奇襲");
-  playEffect("step",{volume:.1});
- }else if(P.type==="tibetanFox"){
-  // Tibetan sand foxes specialize in pikas/rodents; flush nearby small prey.
-  const small=mobs.filter(m=>m.hp>0&&species[m.type]?.prey&&["rat","rabbit","frog","pigeon"].includes(m.type)&&dist(P,m)<420&&!lineBlocked(P,m))
-    .sort((a,b)=>dist(P,a)-dist(P,b))[0];
-  if(small){huntTarget=small;small.flee=Math.max(1.5,small.flee||0);small.dir=Math.atan2(small.y-P.y,small.x-P.x);small.alert=Math.max(.7,small.alert||0);label(small.x,small.y-25,"小動物を追い出した","#e6d5ae");}
-  notify(small?"チベットスナギツネ：小動物を追い出して追撃":"チベットスナギツネ：小動物の痕跡を探す");
-  playEffect("attack",{volume:.16});
- }else if(P.type==="shoebill"){
-  // A shoebill wins with patient stillness followed by a very fast bill strike.
-  P.stillTime=Math.max(P.stillTime||0,1.0);
-  notify("ハシビロコウ：静止して照準、△で嘴の一撃");
-  playEffect("step",{volume:.12});
- }
+
+/* SPECIES_SPECIAL_ATTACKS_V1: one real attack path per gacha species.
+   Combat remains under the normal level-gap / wall / terrain / death rules. */
+const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
+ ["cat","二連爪撃","double",100,1.02,1.03,10],
+ ["dog","追跡の噛み止め","lunge",155,1.44,.87,11],
+ ["fox","疾風の急襲","lunge",175,1.38,.82,10],
+ ["wolf","威圧の咆哮","roar",230,.77,3.14,15],
+ ["deer","前脚の蹄撃","fan",135,1.31,1.35,11],
+ ["boar","猛進の牙突","lunge",160,1.76,.71,13],
+ ["crow","急降下の嘴撃","lunge",200,1.23,.75,10],
+ ["pigeon","羽ばたき衝撃","gust",155,.48,3.14,10],
+ ["otter","水際のひねり噛み","lunge",135,1.58,.80,11],
+ ["carp","尾びれの水撃","splash",145,.84,3.14,12],
+ ["tanuki","陽動の体当たり","feint",130,1.03,1.20,12],
+ ["badger","掘り起こしの突撃","lunge",142,1.58,.80,13],
+ ["macaque","狙い澄ました投石","throw",345,1.20,.63,11],
+ ["blackBear","熊掌の地響き","slam",180,1.76,3.14,16],
+ ["serow","岩角の突き上げ","lunge",155,1.55,.83,12],
+ ["manul","伏せ身の瞬間急襲","lunge",145,1.76,.80,12],
+ ["tibetanFox","小動物の追い出し狩り","lunge",175,1.66,.81,11],
+ ["shoebill","静寂の銛嘴","pierce",205,2.06,.32,13],
+ ["lion","獅子の威圧咆哮","roar",250,1.02,3.14,17],
+ ["tiger","虎の飛び掛かり","lunge",210,1.90,.93,16],
+ ["cheetah","高速の一撃","lunge",255,1.53,.55,12],
+ ["elephant","巨象の踏み潰し","slam",230,1.66,3.14,19],
+ ["hippo","大顎の咬み砕き","bite",155,2.10,.66,17],
+ ["gorilla","両腕の叩きつけ","slam",195,1.78,3.14,17],
+ ["giraffe","長首の横薙ぎ","fan",208,1.42,1.72,14],
+ ["zebra","後脚の二連蹴り","backkick",155,1.40,.92,13],
+ ["hyena","骨砕きの噛みつき","bite",145,1.86,.73,13],
+ ["wildDog","追い込みの連続噛み","double",145,1.23,.94,11],
+ ["armadillo","丸まり回転突撃","roll",155,1.26,.89,12],
+ ["hedgehog","針の迎撃","thorns",132,.77,3.14,11]
+].map(([id,name,kind,range,power,arc,cooldown])=>
+ [id,Object.freeze({name,kind,range,power,arc,cooldown})])));
+function specialTargets(spec){
+ const radial=["roar","gust","slam","splash","thorns"].includes(spec.kind);
+ const face=P.dir+(spec.kind==="backkick"?Math.PI:0);
+ return mobs.filter(m=>{
+  if(m.hp<=0||m.companion||!species[m.type])return false;
+  const d=dist(P,m);
+  if(d>P.r+m.r+spec.range||Math.abs((P.groundZ||0)-(m.groundZ||0))>26||lineBlocked(P,m))return false;
+  const angle=Math.atan2(m.y-P.y,m.x-P.x);
+  return radial||Math.abs(Math.atan2(Math.sin(angle-face),Math.cos(angle-face)))<=spec.arc;
+ }).sort((a,b)=>{
+  const aSmall=species[a.type]?.prey?0:1,bSmall=species[b.type]?.prey?0:1;
+  return P.type==="shoebill"&&aSmall!==bSmall?aSmall-bSmall:dist(P,a)-dist(P,b);
+ });
 }
+function specialHit(m,power,stun,knock,description){
+ if(!m||m.hp<=0||!species[m.type])return 0;
+ const gapScale=COMBAT_LEVELS?.outgoing?.(m.type,P.level)||1;
+ const hit=Math.max(1,Math.round(P.damage*power*gapScale*(m.strongBoss?.72:1)));
+ m.hp=Math.max(0,m.hp-hit);
+ m.flash=.26;m.alert=Math.max(m.alert||0,3.2);m.lastX=P.x;m.lastY=P.y;
+ m.reactiveUntil=Math.max(m.reactiveUntil||0,elapsed+2.6);m.search=0;
+ const broken=m.strongBoss?bossPoiseBreak(m,hit,true):false;
+ if(!m.strongBoss||broken){
+  m.stun=Math.max(m.stun||0,stun);m.windup=0;m.chargeTime=0;
+ }
+ if(knock>0){const a=Math.atan2(m.y-P.y,m.x-P.x);move(m,Math.cos(a)*knock*(m.strongBoss?(broken?.35:.05):1),Math.sin(a)*knock*(m.strongBoss?(broken?.35:.05):1))}
+ blood(m.x,m.y,"#f1d5a0",8,86);
+ label(m.x,m.y-m.r-30,description+" -"+hit,"#f9e1b1");
+ if(m.hp<=0)kill(m);else if(species[m.type].prey)provokePreyAfterPlayerHit(m);
+ return hit;
+}
+function resolveSpeciesSpecial(){
+ const type=P?.specialPending;
+ if(!type)return 0;
+ P.specialPending=null;P.specialWindup=0;
+ if(mode!=="play"||P.hp<=0||isControlBlocked())return 0;
+ const spec=SPECIES_SPECIALS[type];if(!spec||P.type!==type)return 0;
+ // Real movement remains collision-checked: lunge cannot cross barriers/water.
+ const enemies=specialTargets(spec),primary=enemies[0];
+ if(primary&&["lunge","roll"].includes(spec.kind)){
+  const d=dist(P,primary),a=Math.atan2(primary.y-P.y,primary.x-P.x);
+  const travel=Math.max(0,Math.min(type==="cheetah"?115:83,d-P.r-primary.r-14));
+  if(travel>0&&routeClear(P,{x:P.x+Math.cos(a)*travel,y:P.y+Math.sin(a)*travel},P.r)){
+   move(P,Math.cos(a)*travel,Math.sin(a)*travel);
+   P.dir=a;P.steps+=travel*.035;
+  }
+ }
+ if(type==="tanuki"){P.inv=Math.max(P.inv||0,.5);for(const m of enemies){m.search=0;m.alert=Math.min(m.alert||0,1.1);m.flee=Math.max(m.flee||0,1.5)}}
+ if(type==="armadillo")P.inv=Math.max(P.inv||0,.43);
+ if(type==="hedgehog")P.inv=Math.max(P.inv||0,.65);
+ let hitCount=0;
+ const radial=["roar","gust","slam","splash","thorns"].includes(spec.kind);
+ const limit=radial?(type==="elephant"?6:4):spec.kind==="fan"?3:spec.kind==="double"?2:1;
+ for(const m of specialTargets(spec).slice(0,limit)){
+  const small=!!species[m.type]?.prey&&["rat","rabbit","frog","pigeon","crow","snake","carp"].includes(m.type);
+  let power=spec.power;
+  if(type==="shoebill")power*=small?1.72:1;
+  if(type==="manul"&&P.specialAmbush)power*=1.45;
+  if(type==="tibetanFox"&&small)power*=1.36;
+  if(type==="hyena"&&m.hp<(m.maxHp||m.hp)*.55)power*=1.3;
+  if(type==="otter"&&waterDepth(P.x,P.y)>.04)power*=1.25;
+  const more=spec.kind==="double"?1.19:1;
+  const stun=spec.kind==="pierce"?.85:spec.kind==="bite"?.66:spec.kind==="slam"?.48:spec.kind==="lunge"?.38:spec.kind==="thorns"?.32:.24;
+  const knock=spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
+  const damage=specialHit(m,power*more,stun,knock,spec.name);
+  if(damage>0){hitCount++;if(type==="dog"||type==="wildDog"){m.flee=0;m.stun=Math.max(m.stun||0,.62)}}
+ }
+ if(type==="wolf"||type==="lion"||type==="pigeon")for(const m of mobs){
+  if(m.hp<=0||m.companion||dist(P,m)>spec.range+P.r||lineBlocked(P,m))continue;
+  if(type==="pigeon"){m.stun=Math.max(m.stun||0,.24);m.alert=Math.max(m.alert||0,1);}
+  else if(!m.strongBoss){m.flee=Math.max(m.flee||0,type==="lion"?3.4:2.7);m.search=0;m.alert=0;}
+ }
+ if(type==="shoebill"){P.beakVisual=Math.max(P.beakVisual||0,.46);P.shoebillSwingTime=.43;}
+ if(type==="blackBear"||type==="gorilla"||type==="elephant")shake=Math.max(shake,7);
+ P.swing=Math.max(P.swing||0,.26);
+ P.noiseBurst=Math.max(P.noiseBurst||0,1.0);P.lastCombatAt=elapsed;
+ blood(P.x,P.y,type==="shoebill"?"#b9f2ff":"#e7dcc2",12,type==="elephant"?120:85);
+ playEffect(hitCount?"impact":"attack",{volume:hitCount?.28:.17});
+ P.specialAmbush=false;
+ return hitCount;
+}
+function instinct(){
+ if(mode!=="play"||!P||isControlBlocked()||(P.specialWindup||0)>0)return;
+ const spec=SPECIES_SPECIALS[P.type];if(!spec||P.instinctCD>0)return;
+ const cost=spec.kind==="slam"||spec.kind==="roar"?25:spec.kind==="pierce"?23:18;
+ if(P.sp<cost){notify("持久力不足 / 固有技を出せない");return}
+ P.sp-=cost;P.instinctCD=spec.cooldown*(P.instinctBonus?.85:1);
+ P.abilityTime=Math.max(P.abilityTime||0,3.4);
+ P.specialAmbush=!!P.hidden&&P.revealTimer<=0;
+ P.specialPending=P.type;P.specialWindup=spec.kind==="pierce"?.28:spec.kind==="slam"?.34:.16;
+ P.specialVisual=.50;
+ if(P.type==="shoebill"){
+  P.stillTime=Math.max(P.stillTime||0,1.2);
+  P.beakVisual=.50;P.shoebillSwingTime=.45;
+ }else if(P.type==="manul"){P.revealTimer=0;}
+ else if(P.type==="tibetanFox"){
+  const prey=mobs.filter(m=>m.hp>0&&species[m.type]?.prey&&dist(P,m)<410&&!lineBlocked(P,m)).sort((a,b)=>dist(P,a)-dist(P,b))[0];
+  if(prey){huntTarget=prey;prey.flee=Math.max(prey.flee||0,1.7);}
+ }
+ P.noiseBurst=Math.max(P.noiseBurst||0,spec.kind==="roar"?1.8:.75);
+ // Keep all animations on the existing character model, without UI changes.
+ notify((animals[P.type]?.name||species[P.type]?.name||P.type)+"：" +spec.name+"！");
+ playEffect(spec.kind==="roar"?"howl":"attack",{volume:.2});
+}
+
 function combatAim(maxTurn=.56,maxRange=105){
  let best=null,bestScore=Infinity,aim=P.dir;
  for(const m of mobs){
@@ -3264,6 +3362,7 @@ function showHuntCinematic(finisher){
 }
 function attack(){
  if(mode!=="play"||!P||isControlBlocked())return;
+ if((P.specialWindup||0)>0)return;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
@@ -3274,6 +3373,7 @@ function attack(){
  // Shoebill's pre-aimed bill strike is fast only after waiting without moving.
  P.beakStrike=P.type==="shoebill"&&(P.stillTime||0)>=1.15;
  if(P.beakStrike){P.windup=.055;P.beakVisual=.32;}
+ if(P.type==="shoebill"){P.shoebillSwingTime=.35;P.shoebillSwingDir=(P.rushActiveStep%2?1:-1);P.beakVisual=Math.max(P.beakVisual||0,.30);}
  P.stillTime=0;
   P.jumpDive=P.jumpTime>0;
   const concealed=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
@@ -3521,6 +3621,21 @@ function catWallKick(){
  blood(P.x,P.y,"#e4edc1",9,70);playEffect("jump");
  if(P.wallKicks===1||P.wallKicks===limit)label(P.x,P.y-28,P.wallKicks===limit?"連続壁蹴り！":"三角飛び！","#dbf8c6");
  return true;
+}
+
+function resolveShoebillStomp(){
+ if(!P||P.type!=="shoebill"||mode!=="play"||isControlBlocked()||P.hp<=0)return 0;
+ let count=0;
+ for(const m of mobs){
+  if(m.hp<=0||m.companion||Math.abs((P.groundZ||0)-(m.groundZ||0))>23)continue;
+  // A stomp is a physical landing, not a ranged or homing strike.
+  if(dist(P,m)>P.r+m.r+12||lineBlocked(P,m))continue;
+  const damage=specialHit(m,1.22,m.strongBoss?.12:.50,20,"踏みつけ");
+  if(damage>0)count++;
+  if(count>=2)break;
+ }
+ if(count){P.swing=Math.max(P.swing||0,.25);P.shoebillSwingTime=.28;shake=Math.max(shake,4);playEffect("impact",{volume:.24});}
+ return count;
 }
 function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
@@ -5154,7 +5269,14 @@ function update(dt){
   if(P.fallTime===0&&P.pendingStrike&&P.jumpDive)resolveAttack();
  }
  
-  P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
+  P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);
+ P.specialVisual=Math.max(0,(P.specialVisual||0)-dt);
+ P.shoebillSwingTime=Math.max(0,(P.shoebillSwingTime||0)-dt);
+ if((P.specialWindup||0)>0){
+  P.specialWindup=Math.max(0,P.specialWindup-dt);
+  if(P.specialWindup===0)resolveSpeciesSpecial();
+ }
+ P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
  if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
  // Holding the upper face button automatically advances the five-hit chain.
  if((heldActions.touchAttack||heldActions.padAttack)&&P.atk<=0&&!P.pendingStrike&&P.sp>=5)attack();
@@ -5184,6 +5306,7 @@ function update(dt){
     P.steps+=covered*.052;
     if(P.jumpTime===0){
      const reachedRoof=landOnSurface();P.vx=0;P.vy=0;P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
+     if(P.type==="shoebill")resolveShoebillStomp();
      if(reachedRoof)notify("屋上に到着");
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
@@ -6463,7 +6586,9 @@ function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
   line([r*1.17,r*.20,r*1.4,r*.12],"#867a70",1.1);
  }else{
   // Shoebill: rigid upright stance, elongated legs, giant hooked shoe-shaped bill.
-  const thrust=o.beakVisual>0?.40:0,flap=o.jumpTime>0||o.pounceTime>0;
+  const strikeSwing=Math.sin(Math.PI*Math.min(1,Math.max(0,(o.shoebillSwingTime||0)/.35)));
+  const neckSweep=(o.shoebillSwingDir||1)*strikeSwing*r*.35;
+  const thrust=o.beakVisual>0?.25+strikeSwing*.34:0,flap=o.jumpTime>0||o.pounceTime>0;
   for(const side of [-1,1]){
    line([-r*.25,side*r*.12,-r*.56,side*r*(.94+Math.sin((o.steps||0)*.7)*.1)],"#8b8e83",r*.14);
    for(let toe=-1;toe<=1;toe++)
@@ -6475,15 +6600,15 @@ function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
    oval(-r*.36,side*r*(flap?.75:.36),r*(flap?.98:.72),r*(flap?.37:.21),"#687982",side*.14);
    for(let k=0;k<5;k++)line([-r*.80+k*r*.15,side*r*.40,-r*1.12+k*r*.13,side*r*(flap?1.01:.64)],"#9ba8aa",1.2);
   }
-  oval(r*.55,0,r*.41,r*.44,"#87969b"); // short thick neck
-  oval(r*.88,0,r*.35,r*.32,"#a0adb0");
-  for(const side of [-1,1]){oval(r*.85,side*r*.26,r*.09,r*.085,"#efd396");oval(r*.88,side*r*.26,r*.043,r*.045,"#161c1d");}
+  oval(r*.55,neckSweep*.35,r*.41,r*.44,"#87969b"); // full neck whip
+  oval(r*.88+strikeSwing*r*.14,neckSweep,r*.35,r*.32,"#a0adb0");
+  for(const side of [-1,1]){oval(r*.85+strikeSwing*r*.14,side*r*.26+neckSweep,r*.09,r*.085,"#efd396");oval(r*.88+strikeSwing*r*.14,side*r*.26+neckSweep,r*.043,r*.045,"#161c1d");}
   // Oversized shoe bill with thick upper ridge and a sharply hooked tip.
-  triangle([r*1.03,-r*.38,r*(1.92+thrust),-r*.35,r*(2.10+thrust),0,r*(1.90+thrust),r*.35,r*1.03,r*.38],"#c3bb98");
-  oval(r*(1.47+thrust),0,r*.49,r*.35,"#b7b299");
-  line([r*1.16,-r*.18,r*(1.96+thrust),-r*.15],"#827f6b",r*.042);
-  triangle([r*(2.02+thrust),-r*.11,r*(2.21+thrust),0,r*(2.02+thrust),r*.12],"#625e54");
-  oval(r*(1.44+thrust),-r*.24,r*.045,r*.035,"#4a514b");
+  triangle([r*1.03,-r*.38+neckSweep,r*(1.92+thrust),-r*.35+neckSweep,r*(2.10+thrust),neckSweep,r*(1.90+thrust),r*.35+neckSweep,r*1.03,r*.38+neckSweep],"#c3bb98");
+  oval(r*(1.47+thrust),neckSweep,r*.49,r*.35,"#b7b299");
+  line([r*1.16,-r*.18+neckSweep,r*(1.96+thrust),-r*.15+neckSweep],"#827f6b",r*.042);
+  triangle([r*(2.02+thrust),-r*.11+neckSweep,r*(2.21+thrust),neckSweep,r*(2.02+thrust),r*.12+neckSweep],"#625e54");
+  oval(r*(1.44+thrust),-r*.24+neckSweep,r*.045,r*.035,"#4a514b");
   for(let k=0;k<3;k++)triangle([r*.31,-r*.24+k*r*.12,r*.42,-r*.48+k*r*.12,r*.58,-r*.28+k*r*.12],"#bdc7bf");
  }
  return true;
