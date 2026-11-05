@@ -153,6 +153,36 @@ function tick(dt,world){
    e.heading=heading;
   }
   if(world.WORLD){e.x=Math.max(45,Math.min(world.WORLD.w-45,e.x));e.y=Math.max(45,Math.min(world.WORLD.h-45,e.y));}
+  // Periodic low-frequency gravitic sweep: distant wildlife hears the saucer
+  // before it arrives, turns away and stampedes toward safe ground. This is
+  // a gameplay response (AI flee/velocity), not a cosmetic pulse.
+  e.panicPulse=(Number(e.panicPulse)||0)+dt;
+  if(e.panicPulse>=2.4){
+   e.panicPulse%=2.4;
+   let scattered=0;
+   for(const animal of mobs){
+    if(!abductable(animal)||distance(animal,e)>440||safeBlocked(world,animal,e))continue;
+    const dx=animal.x-e.x,dy=animal.y-e.y,dist=Math.hypot(dx,dy)||1;
+    const fear=3.2+(440-dist)/440*2.2;
+    animal.flee=Math.max(Number(animal.flee)||0,fear);
+    animal.alert=Math.max(Number(animal.alert)||0,fear);
+    animal.lastX=e.x;animal.lastY=e.y;
+    animal.dir=Math.atan2(dy,dx);
+    // Set an escape impulse only when the animal is not already moving away.
+    // Existing fauna movement/obstacle handling takes over next frame.
+    const speed=Math.min(210,Math.max(95,Number(animal.speed)||125));
+    const vx=Number(animal.vx)||0,vy=Number(animal.vy)||0;
+    if(vx*dx+vy*dy<speed*dist*.3){
+     animal.vx=dx/dist*speed;
+     animal.vy=dy/dist*speed;
+    }
+    scattered++;
+   }
+   if(scattered>0){
+    e.lastStampedeCount=scattered;
+    world.onEvent?.("ufo-wildlife-stampede",{year,x:e.x,y:e.y,count:scattered});
+   }
+  }
   // Rare formation: escort saucers independently lock onto wildlife. They never bypass cover.
   if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
    const spot={x:e.x+wing.dx,y:e.y+wing.dy};
