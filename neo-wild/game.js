@@ -1212,7 +1212,7 @@ function start(newWorld=false){
  denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
- P.stillTime=0;P.beakStrike=false;P.beakVisual=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
+ P.stillTime=0;P.beakStrike=false;P.beakVisual=0;P.attackAction=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  initializeLife(P,elapsed);
  // World geometry can change between releases. Never begin a run inside water or a wall.
  if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
@@ -1392,7 +1392,7 @@ function restoreSnapshot(snapshot){
  scoreRunId=scoreRunIdFromSnapshot(snapshot);
  const p=snapshot.player;
  P={...P,...p,base:animals[choice],type:choice};
- P.stillTime=clamp(Number(P.stillTime)||0,0,2.5);P.beakStrike=false;P.beakVisual=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
+ P.stillTime=clamp(Number(P.stillTime)||0,0,2.5);P.beakStrike=false;P.beakVisual=0;P.attackAction=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  Object.assign(P,normalizeSavedPlayerStats(p,animals[choice]));
  // Preserve saved birth year; older SAVE_SCHEMA2 runs migrate without resetting the world clock.
  initializeLife(P,Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed),true);
@@ -3002,6 +3002,85 @@ function notify(t,duration=2.1){toastMessage=t;toastTime=duration;$("toast").tex
 function startAmbient(){window.WildAudio?.unlock();}
 function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
 
+
+/* ULTIMATE_ACTION_V2: combat-only, non-UI effects, shared by WebGL and Canvas fallback.
+   Bounded lifetime/count to keep Android performance stable. */
+const combatFX=[];
+const ULTIMATE_COLOR=Object.freeze({
+ cat:"#8df5c9",dog:"#ffc187",fox:"#ffd681",wolf:"#90d9ff",
+ deer:"#c8f6a6",boar:"#ff9f6a",crow:"#a8aaff",pigeon:"#d9f3ff",
+ otter:"#7adcec",carp:"#70beff",tanuki:"#e7c796",badger:"#ffb074",
+ macaque:"#dfb1f9",blackBear:"#ff8b75",serow:"#c1ecbe",
+ manul:"#b9f1dd",tibetanFox:"#ffd4ae",shoebill:"#b7eaff",
+ lion:"#ffb84b",tiger:"#ffb67e",cheetah:"#ffea9c",elephant:"#c5d4fd",
+ hippo:"#df9ab7",gorilla:"#e5b9f4",giraffe:"#ffd796",zebra:"#f0f8ff",
+ hyena:"#ffb968",wildDog:"#eec18b",armadillo:"#c4dcaf",hedgehog:"#a8dbd0"
+});
+function emitCombatFX(stage,type,kind,x,y,dir,power=1){
+ if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ const color=ULTIMATE_COLOR[type]||"#b8f4eb",last=stage==="normal"?.36:stage==="charge"?.60:.75;
+ combatFX.push({stage,type,kind,x,y,dir:dir||0,time:0,last,
+   radius:(stage==="normal"?64:stage==="charge"?105:kind==="slam"||kind==="roar"?190:145)*power,
+   power,color,seed:Math.random()*6.28318});
+ if(combatFX.length>24)combatFX.splice(0,combatFX.length-24);
+}
+function tickCombatFX(dt){
+ for(let i=combatFX.length-1;i>=0;i--){const e=combatFX[i];e.time+=dt;if(e.time>=e.last)combatFX.splice(i,1)}
+}
+function drawCombatFX(){
+ if(!combatFX.length||mode==="dying"||mode==="over")return;
+ ctx.save();ctx.globalCompositeOperation="lighter";ctx.lineCap="round";
+ for(const fx of combatFX){
+  const pos=project(fx.x,fx.y);if(!pos||!Number.isFinite(pos.x)||!Number.isFinite(pos.y))continue;
+  const u=Math.min(1,fx.time/fx.last),fade=Math.pow(1-u,.85),burst=Math.sin(Math.PI*Math.min(1,u*1.32));
+  const R=fx.radius*cameraZoom,scale=Math.min(1.45,Math.max(.63,cameraZoom));
+  const radial=["roar","slam","gust","splash","thorns"].includes(fx.kind);
+  ctx.save();ctx.translate(pos.x,pos.y-18*scale);ctx.rotate(fx.dir);
+  ctx.globalAlpha=Math.min(.88,(fx.stage==="normal"?.47:.78)*fade);
+  ctx.shadowColor=fx.color;ctx.shadowBlur=fx.stage==="normal"?9:22;
+  const size=Math.max(14,R*(.30+u*.73));
+  if(radial||fx.stage==="charge"){
+   ctx.strokeStyle=fx.color;ctx.lineWidth=(fx.stage==="normal"?2.5:6)*scale*fade+1;
+   for(let ring=0;ring<(radial?3:2);ring++){
+    ctx.globalAlpha=fade*(ring===0?.62:ring===1?.30:.18);
+    ctx.beginPath();ctx.ellipse(0,0,size*(.52+ring*.27),size*(.21+ring*.11),0,0,Math.PI*2);ctx.stroke();
+   }
+  }
+  ctx.globalAlpha=Math.min(.9,(fx.stage==="normal"?.42:.79)*fade);
+  if(fx.stage!=="charge"){
+   const wedge=fx.kind==="pierce"?.13:fx.kind==="lunge"?.55:fx.kind==="backkick"?.90:fx.kind==="double"?.96:fx.kind==="fan"?2.0:1.32;
+   const reach=R*(fx.kind==="pierce"?1.6:fx.stage==="normal"?.86:1.18);
+   if(!radial){
+    if(fx.kind==="backkick")ctx.rotate(Math.PI);
+    const start=-wedge*.58+u*.65,finish=wedge*.64+u*.36;
+    const arcR=reach*(.52+burst*.25);
+    ctx.strokeStyle=fx.color;ctx.lineWidth=(fx.stage==="normal"?9:17)*fade*scale+2;
+    ctx.beginPath();ctx.arc(0,0,arcR,start,finish);ctx.stroke();
+    ctx.strokeStyle="#fffde7";ctx.lineWidth=(fx.stage==="normal"?3.2:7)*fade*scale+1;
+    ctx.beginPath();ctx.arc(0,0,arcR+4*scale,start+.07,finish-.07);ctx.stroke();
+    if(fx.kind==="pierce"||fx.kind==="throw"){
+     ctx.strokeStyle="#eaffff";ctx.lineWidth=9*fade*scale+1;
+     ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(reach*(.8+u*.2),0);ctx.stroke();
+     ctx.fillStyle="#e7ffff";ctx.beginPath();ctx.moveTo(reach,0);ctx.lineTo(reach-27*scale,-11*scale);ctx.lineTo(reach-27*scale,11*scale);ctx.closePath();ctx.fill();
+    }
+   }
+   // Six outward shock streaks, arranged along the species attack axis.
+   for(let k=0;k<6;k++){
+    const angle=fx.seed+k*1.0472+u*.65;
+    const distance=R*(.20+u*.67),extension=R*(.16+u*.14);
+    ctx.strokeStyle=k%2?"#fdfdf0":fx.color;ctx.lineWidth=(k%2?2.5:5)*fade*scale+1;
+    ctx.beginPath();ctx.moveTo(Math.cos(angle)*distance,Math.sin(angle)*distance*.44);
+    ctx.lineTo(Math.cos(angle)*(distance+extension),Math.sin(angle)*(distance+extension)*.44);ctx.stroke();
+   }
+  }
+  if(fx.stage==="impact"||fx.stage==="stomp"){
+   ctx.globalAlpha=fade*.48;ctx.fillStyle=fx.color;ctx.beginPath();ctx.ellipse(0,0,R*(.27+u*.34),R*(.12+u*.15),0,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+ }
+ ctx.restore();
+}
+
 /* SPECIES_SPECIAL_ATTACKS_V1: one real attack path per gacha species.
    Combat remains under the normal level-gap / wall / terrain / death rules. */
 const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
@@ -3076,6 +3155,10 @@ function resolveSpeciesSpecial(){
  const spec=SPECIES_SPECIALS[type];if(!spec||P.type!==type)return 0;
  // Real movement remains collision-checked: lunge cannot cross barriers/water.
  const enemies=specialTargets(spec),primary=enemies[0];
+ P.specialVisual=1.02;P.attackAction=.85;
+ emitCombatFX("impact",type,spec.kind,P.x,P.y,P.dir,1.18);
+ shake=Math.max(shake,spec.kind==="slam"||spec.kind==="roar"?11:7);flash=Math.max(flash,.09);
+ playEffect(spec.kind==="slam"?"thunder":"impact",{volume:.30});
  if(primary&&["lunge","roll"].includes(spec.kind)){
   const d=dist(P,primary),a=Math.atan2(primary.y-P.y,primary.x-P.x);
   const travel=Math.max(0,Math.min(type==="cheetah"?115:83,d-P.r-primary.r-14));
@@ -3102,6 +3185,7 @@ function resolveSpeciesSpecial(){
   const stun=spec.kind==="pierce"?.85:spec.kind==="bite"?.66:spec.kind==="slam"?.48:spec.kind==="lunge"?.38:spec.kind==="thorns"?.32:.24;
   const knock=spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
   const sequence=spec.kind==="double"||spec.kind==="backkick";
+  emitCombatFX("impact",type,spec.kind,m.x,m.y,P.dir,.55);
   const damage=specialHit(m,power*(sequence?.78:more),stun,knock,spec.name);
   if(damage>0){
    hitCount++;
@@ -3135,6 +3219,9 @@ function instinct(){
  P.sp-=cost;P.instinctCD=spec.cooldown*(P.instinctBonus?.85:1);
  P.abilityTime=Math.max(P.abilityTime||0,3.4);
  P.specialAmbush=!!P.hidden&&P.revealTimer<=0;
+ P.specialKind=spec.kind;P.attackAction=.9;
+ emitCombatFX("charge",P.type,spec.kind,P.x,P.y,P.dir,1.15);
+ window.WildAudio?.playAnimal?.(P.type,{ultimate:true});
  P.specialPending=P.type;P.specialWindup=spec.kind==="pierce"?.28:spec.kind==="slam"?.34:.16;
  P.specialVisual=.50;
  if(P.type==="shoebill"){
@@ -3376,7 +3463,10 @@ function attack(){
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
  if(P.sp<cost){resetRush();P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
- P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;P.rushActiveStep=step;P.rushQueued=false;
+ P.lastCombatAt=elapsed;P.sp-=cost;P.rushStep=step;
+ P.attackAction=.45;P.attackActionStep=step;
+ emitCombatFX("normal",P.type,step===3?"pierce":step===4?"backkick":step===5?"slam":"fan",P.x+Math.cos(P.dir)*P.r*.36,P.y+Math.sin(P.dir)*P.r*.36,P.dir,step===5?1.5:1.05);
+ window.WildAudio?.playAnimal?.(P.type,{ultimate:false});P.rushActiveStep=step;P.rushQueued=false;
   P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
  P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
  // Shoebill's pre-aimed bill strike is fast only after waiting without moving.
@@ -3523,7 +3613,7 @@ function resolveAttack(){
    if(m.hp<=0)kill(m);
   }
  });
- if(hit){shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
+ if(hit){emitCombatFX("impact",P.type,"double",P.x+Math.cos(P.dir)*P.r*1.1,P.y+Math.sin(P.dir)*P.r*1.1,P.dir,.67);shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
@@ -3640,7 +3730,7 @@ function resolveShoebillStomp(){
   // A stomp is a physical landing, not a ranged or homing strike.
   if(dist(P,m)>P.r+m.r+12||lineBlocked(P,m))continue;
   const damage=specialHit(m,1.22,m.strongBoss?.12:.50,20,"踏みつけ");
-  if(damage>0)count++;
+  if(damage>0){count++;emitCombatFX("stomp","shoebill","slam",m.x,m.y,P.dir,.8);}
   if(count>=2)break;
  }
  if(count){P.swing=Math.max(P.swing||0,.25);P.shoebillSwingTime=.28;shake=Math.max(shake,4);playEffect("impact",{volume:.24});}
@@ -5280,6 +5370,8 @@ function update(dt){
  
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);
  P.specialVisual=Math.max(0,(P.specialVisual||0)-dt);
+ P.attackAction=Math.max(0,(P.attackAction||0)-dt);
+ tickCombatFX(dt);
  P.shoebillSwingTime=Math.max(0,(P.shoebillSwingTime||0)-dt);
  if((P.specialWindup||0)>0){
   P.specialWindup=Math.max(0,P.specialWindup-dt);
@@ -6634,7 +6726,9 @@ function drawCreature(o,isPlayer){
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
  const attackCharge=!isPlayer&&(t==="boar"||t==="alpha"||t==="oneEyedWolf"||t==="whiteTiger"||t==="giantMoose"||t==="giantBuffalo"||t==="rhino")?clamp((o.chargeTime||0)/(t==="alpha"?.24:t==="oneEyedWolf"?.28:t==="whiteTiger"?.39:t==="giantMoose"?.46:t==="giantBuffalo"?.53:t==="rhino"?.57:.36),0,1)*.55:0;
- const attackReach=Math.max(attackSnap,attackCharge)+attackLeap;
+ const attackAction=isPlayer?Math.max(0,o.attackAction||0):0;
+ const attackMotion=attackAction>0?Math.sin(Math.PI*Math.min(1,attackAction/.45))*.72:0;
+ const attackReach=Math.max(attackSnap*1.35,attackCharge)+attackLeap+attackMotion;
  const rushPose=isPlayer&&(o.pendingStrike||o.swing>0)?(o.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.15:rushPose===4?attackReach*.06:rushPose===5?attackReach*.62:base;
  const hindDrive=side=>rushPose===4?-attackReach*(side<0?.78:.22):0;
@@ -7332,6 +7426,7 @@ function drawScene(){
   else ctx.fillRect(0,0,WORLD.w,WORLD.h);
  }
  ctx.restore();
+ drawCombatFX(); // Canvas compositing after world view; equally visible on 2D and WebGL.
  if(use3D)drawAligned3DActorStatus();
  if(!use3D)drawNightVision2D(nightAlpha);
  
