@@ -400,6 +400,15 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  // suppresses apex encounters until prey recovers. Uses existing encounter slots.
  const preyBoom=history.slice(-7).filter(t=>["rat","rabbit","frog","pigeon","deer","zebra"].includes(t)).length>=4;
  const hunterSaturation=history.slice(-7).filter(t=>["wildFox","strayCat","snake","venomSnake","lion","tiger","cheetah","hyena","wildDog","blackBear"].includes(t)).length>=3;
+ // Severe weather drives a playable shelter-and-recovery cycle: existing
+ // encounter slots shift to sheltered scavengers, then grazing prey recover.
+ // This never bypasses habitat/year unlocks or increases spawn density.
+ const severeStorm=["THUNDER","TYPHOON","STORM","HEAVY_RAIN"].includes(weather);
+ const postStorm= !severeStorm && ["RAIN","CLOUDY","CLEAR"].includes(weather)
+   && history.slice(-5).filter(t=>["frog","otter","crow","tanuki","badger"].includes(t)).length>=3;
+ const sheltered=new Set(["tanuki","badger","raccoonDog","weasel","rat"]);
+ const exposed=new Set(["crow","pigeon","shoebill","cheetah","zebra","giraffe","deer"]);
+ const recoveryGrazers=new Set(["deer","boar","serow","rabbit","zebra"]);
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
   if(w>0&&!preyOnly){
@@ -415,6 +424,15 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
    if(migrationCorridor){
     if(["deer","boar","serow","zebra","giraffe"].includes(type))w*=1.32;
     if(["lion","tiger","cheetah","wildDog","hyena"].includes(type))w*=1.12;
+   }
+  }
+  if(w>0&&!preyOnly){
+   if(severeStorm){
+    if(sheltered.has(type))w*=1.48;
+    if(exposed.has(type))w*=.34;
+   }else if(postStorm){
+    if(recoveryGrazers.has(type))w*=1.26;
+    if(apexTypes.has(type))w*=.78;
    }
   }
   if(hostileStreak&&!preyOnly&&hostileTypes.has(type))w=0;
