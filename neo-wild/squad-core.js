@@ -223,7 +223,27 @@ function release(id){
   return {ok:false,reason:"野生への放流を保存できません。端末の保存容量を確認してください"};
  }
 }
-function resetForNewGame(){const r=load();if(r){const d=dead();r.members.forEach(m=>d.add(m.id));saveDead(d);}localStorage.removeItem(KEY);localStorage.setItem(RESET_NEW_WORLD,"1");return true;}
+function resetForNewGame(){
+ // A new world is explicit, but a failed storage operation must never erase
+ // the roster or permit its old identities to reappear from a checkpoint.
+ const r=load(),ids=r?.members?.map(m=>m.id)||[];
+ const d=dead();ids.forEach(id=>d.add(id));
+ try{
+  if(ids.length){
+   saveDead(d);
+   if(ids.some(id=>!dead().has(id)))throw Error("永久離脱IDの保存に失敗しました");
+  }
+  localStorage.setItem(RESET_NEW_WORLD,"1");
+  if(localStorage.getItem(RESET_NEW_WORLD)!=="1")throw Error("新世界開始状態を保存できません");
+  localStorage.removeItem(KEY);
+  if(localStorage.getItem(KEY)!==null)throw Error("旧編成を削除できません");
+  return true;
+ }catch(error){
+  // Keep the old roster usable if the reset flag or deletion failed.
+  // Do not remove verified death tombstones: they prevent rollback duplication.
+  throw Error("新世界の初期化を保存できません。空き容量を確認してください: "+error.message);
+ }
+}
 function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=MAX_OWNED)return {ok:false,reason:"新規編成中の空き枠ではありません"};
  if(!member?.id||!playable.has(member.species)||member.alive===false||excluded().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
@@ -232,7 +252,15 @@ function addInitialSlot(member){
  try{return {ok:true,roster:saveVerified(r,r.members.map(m=>m.id))};}
  catch(_){return {ok:false,reason:"新規個体の保存に失敗しました。空き容量を確認して再試行してください"};}
 }
-function markStarted(){const r=load();if(!r)return null;r.pendingStart=false;r.newWorldOnStart=false;localStorage.removeItem(RESET_NEW_WORLD);return save(r);}
+function markStarted(){
+ const r=load();if(!r)return null;
+ r.pendingStart=false;r.newWorldOnStart=false;
+ const saved=saveVerified(r,r.members.map(m=>m.id));
+ if(saved.pendingStart||saved.newWorldOnStart)throw Error("開始状態の保存に失敗しました");
+ // Only clear the reset marker after the new-world roster is durable.
+ localStorage.removeItem(RESET_NEW_WORLD);
+ return saved;
+}
 function livingCount(){return load()?.members?.length||0}
 // Keep the low-grade pity counter across separate gacha sessions and reloads.
 // It advances only when the player adopts an individual, not when rerolling.
