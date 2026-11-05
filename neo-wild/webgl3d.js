@@ -1927,8 +1927,15 @@ function render(o){
     const a=hash(ix,iy)*(1-fx)+hash(ix+1,iy)*fx;
     const b=hash(ix,iy+1)*(1-fx)+hash(ix+1,iy+1)*fx;
     const broad=a*(1-fy)+b*fy;
-    const fine=detailNoise(Math.floor(px/48)*13.1+Math.floor(py/48)*23.7);
-    return snow*.97-(broad*.78+fine*.22);
+    // Interpolate fine noise in world space too: quantized 48-unit cells
+    // otherwise produce visible rectangular snow bands.
+    const fu=px/48,fv=py/48,fi=Math.floor(fu),fj=Math.floor(fv);
+    const tx=smooth(fu-fi),ty=smooth(fv-fj);
+    const f00=hash(fi*3+71,fj*3-19),f10=hash((fi+1)*3+71,fj*3-19);
+    const f01=hash(fi*3+71,(fj+1)*3-19),f11=hash((fi+1)*3+71,(fj+1)*3-19);
+    const fine=(f00*(1-tx)+f10*tx)*(1-ty)+(f01*(1-tx)+f11*tx)*ty;
+    const waterMask=water?clamp((.015-water(px,py))/.015,0,1):1;
+    return Math.min(snow*.97-(broad*.78+fine*.22),waterMask-.5);
    };
    const surface=(p)=>[p[0],p[1],ground(p[0],p[1])+snowZ];
    // Clip each triangle against the same continuous snow threshold.
@@ -1949,8 +1956,7 @@ function render(o){
     const x2=Math.min(WORLD.w,x+step),y2=Math.min(WORLD.h,y+step);
     if(!isVisible((x+x2)*.5,(y+y2)*.5,120))continue;
     const vertices=[[x,y],[x2,y],[x2,y2],[x,y2]];
-    const wet=water&&vertices.some(p=>water(p[0],p[1])>.005);
-    if(wet)continue;
+    // Clip only the submerged portion, never discard an entire shoreline cell.
     const sampled=vertices.map(p=>[p[0],p[1],field(p[0],p[1])]);
     const tint=color(detailNoise(Math.floor(x/170)*8.3+Math.floor(y/170)*12.7)>.5?"#dce9e9":"#e6eef0");
     for(const ids of [[0,1,2],[0,2,3]]){
