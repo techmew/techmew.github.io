@@ -29,8 +29,13 @@ function tick(dt,world){
   site.pulse=(Number(site.pulse)||0)+dt;
   // An observation base deploys a moving scout. Its patrol is a real hazard, not decoration.
   // Patrol position is deterministic from saved age, so reloads cannot teleport it randomly.
-  const scout={x:site.x+Math.cos(site.age*.55)*Math.min(105,45+site.age*.35),
-               y:site.y+Math.sin(site.age*.55)*Math.min(105,45+site.age*.35)};
+  const patrolRadius=Math.min(105,45+site.age*.35);
+  // A defending herd physically drives a disrupted scout away, creating an escape window.
+  const retreat=Math.max(0,Number(site.scoutDisrupted)||0);
+  const retreatX=Number.isFinite(site.retreatX)?site.retreatX:Math.cos(site.age*.55);
+  const retreatY=Number.isFinite(site.retreatY)?site.retreatY:Math.sin(site.age*.55);
+  const scout={x:site.x+Math.cos(site.age*.55)*patrolRadius+retreatX*retreat*23,
+               y:site.y+Math.sin(site.age*.55)*patrolRadius+retreatY*retreat*23};
   const scoutDistance=distance(P,scout);
   const scoutVisible=!P.hidden&&!safeBlocked(world,P,scout);
   site.scoutX=scout.x;site.scoutY=scout.y;
@@ -70,6 +75,7 @@ function tick(dt,world){
   }
   // Nearby alerted wild animals can temporarily disrupt a hostile scout.
   site.scoutDisrupted=Math.max(0,(Number(site.scoutDisrupted)||0)-dt);
+  if(site.scoutDisrupted===0){site.retreatX=0;site.retreatY=0;}
   site.herdCounterClock=(Number(site.herdCounterClock)||0)+dt;
   if(disposition==="hostile"&&site.scoutDisrupted<=0&&site.herdCounterClock>=1.6){
    site.herdCounterClock=0;
@@ -80,6 +86,10 @@ function tick(dt,world){
     const strength=defenders.slice(0,5).reduce((sum,m)=>sum+Math.max(1,Number(m.attack??m.atk??m.damage)||1),0);
     const disruption=Math.min(6,1.5+strength*.035);
     site.scoutDisrupted=disruption;
+    const herdCenter=defenders.slice(0,5).reduce((p,m)=>({x:p.x+m.x,y:p.y+m.y}),{x:0,y:0});
+    const awayX=scout.x-herdCenter.x/Math.min(5,defenders.length),awayY=scout.y-herdCenter.y/Math.min(5,defenders.length);
+    const awayLength=Math.hypot(awayX,awayY)||1;
+    site.retreatX=awayX/awayLength;site.retreatY=awayY/awayLength;
     site.scoutCharge=0;
     site.wildlifePulse=0;
     site.counterattacks=(Number(site.counterattacks)||0)+1;
