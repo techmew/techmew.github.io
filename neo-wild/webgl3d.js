@@ -1912,22 +1912,45 @@ function render(o){
   // Density rises with world-year snowpack instead of only tinting the sky.
   const snow=clamp(o.snowpack||0,0,1);
   if(snow>.06){
-   const tile=132,margin=vh*.85+250;
+   // Seamless, terrain-conforming snow: adjacent cells share the same exact
+   // corners (no inset cracks). Small deterministic edge lobes break up the
+   // square silhouettes; coordinates are stable while the camera moves.
+   const tile=88,margin=vh*.85+250;
    const firstX=Math.max(0,Math.floor((cam.x-margin)/tile)*tile);
    const firstY=Math.max(0,Math.floor((cam.y-margin)/tile)*tile);
    const endX=Math.min(WORLD.w,cam.x+vw+margin),endY=Math.min(WORLD.h,cam.y+vh+margin);
+   const ground=(px,py)=>window.WildMountain?.height(px,py)||0;
+   const water=typeof o.waterAt==="function"?o.waterAt:null;
+   const snowZ=.95+snow*.5;
+   const point=(px,py)=>[px,py,ground(px,py)+snowZ];
+   const noise=(ix,iy)=>detailNoise(ix*.173+iy*.319);
+   const snowCell=(ix,iy)=>noise(ix,iy)<snow*.91;
    for(let x=firstX;x<endX;x+=tile)for(let y=firstY;y<endY;y+=tile){
+    const ix=Math.floor(x/tile),iy=Math.floor(y/tile);
     const cx=x+tile*.5,cy=y+tile*.5;
-    if(!isVisible(cx,cy,150)||detailNoise(x*.091+y*.137)>snow)continue;
-    if(typeof o.waterAt==="function"&&o.waterAt(cx,cy)>.005)continue;
-    const ground=(px,py)=>window.WildMountain?.height(px,py)||0;
-    const z=.95+(snow*.5);
-    // World-space patches have real terrain elevation; the player's feet
-    // remain visible and icy ground follows slopes instead of floating.
-    quad([x+9,y+8,ground(x+9,y+8)+z],
-         [x+tile-11,y+7,ground(x+tile-11,y+7)+z],
-         [x+tile-8,y+tile-9,ground(x+tile-8,y+tile-9)+z],
-         [x+7,y+tile-13,ground(x+7,y+tile-13)+z],color((Math.floor(x/tile)+Math.floor(y/tile))%3?"#d2e4e5":"#e6eef0"));
+    if(!isVisible(cx,cy,145)||!snowCell(ix,iy))continue;
+    if(water&&water(cx,cy)>.005)continue;
+    const shade=noise(ix+173,iy-47);
+    const tint=color(shade>.67?"#e6eef0":shade>.32?"#dce9e9":"#d2e4e5");
+    // No per-cell margin: neighboring snow meshes meet exactly at the edge.
+    quad(point(x,y),point(x+tile,y),point(x+tile,y+tile),point(x,y+tile),tint);
+    // Rounded, staggered snow tongues extend into unsnowed neighbors.
+    // Skip wet boundaries; do not place snow over rivers.
+    const lobes=[
+     [x+tile*.24,y,0,-1],[x+tile*.73,y,0,-1],
+     [x+tile*.27,y+tile,0,1],[x+tile*.78,y+tile,0,1],
+     [x,y+tile*.27,-1,0],[x,y+tile*.76,-1,0],
+     [x+tile,y+tile*.23,1,0],[x+tile,y+tile*.71,1,0]
+    ];
+    for(let k=0;k<lobes.length;k++){
+     const [ex,ey,dx,dy]=lobes[k];
+     if(snowCell(ix+dx,iy+dy))continue;
+     const spread=8+noise(ix*7+k,iy*5-k)*18;
+     const px=ex+dx*spread*.65,py=ey+dy*spread*.65;
+     if(px<0||py<0||px>WORLD.w||py>WORLD.h||(water&&water(px,py)>.005))continue;
+     ellipsoid(px,py,ground(px,py)+snowZ,spread+12,spread*.76,.30,
+      shade>.5?"#dce9e9":"#d2e4e5",0,8,2);
+    }
    }
   }
   // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
