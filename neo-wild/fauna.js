@@ -235,6 +235,28 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(["rat","rabbit","hedgehog","armadillo"].includes(type))w*=.65;
   if(["raccoonDog","tanuki","badger"].includes(type))w*=.92;
  }
+ // Regional food-web pulses: deterministic five-year succession drives migration without
+ // spawning extra NPCs. A region with scarce grazers cannot sustain dense predators.
+ // Keep the safe residential districts and aquatic-only restrictions above authoritative.
+ const succession=Math.floor(Math.max(0,year)/5);
+ const pulse=Math.sin(succession*1.73+region*2.19);
+ const grazing=["rabbit","deer","boar","zebra","serow","giraffe"];
+ const smallPrey=["rat","rabbit","frog","pigeon","hedgehog"];
+ const hunters=["lion","tiger","cheetah","wolf","wildDog","hyena","blackBear"];
+ if(grazing.includes(type))w*=Math.max(.52,Math.min(1.48,1+pulse*.32));
+ if(smallPrey.includes(type))w*=Math.max(.62,1+Math.sin(succession*1.73+region*2.19+1.2)*.24);
+ if(hunters.includes(type)){
+  const preyAvailability=Math.max(.4,Math.min(1.2,.85+pulse*.22));
+  w*=preyAvailability;
+  if([0,1,6].includes(region))w=0;
+ }
+ // Drought shifts grazers away from dry highlands toward wetland margins.
+ // During heavy rain, exposed raptors and plains hunters shelter instead.
+ if(["HEAT","DROUGHT"].includes(weather)){
+  if(grazing.includes(type))w*=([4,7].includes(region)?1.25:.70);
+  if(["frog","otter"].includes(type))w*=([4,7].includes(region)?1.15:.62);
+ }
+ if(["STORM","TYPHOON","HEAVY_RAIN"].includes(weather)&&["cheetah","lion","wildDog"].includes(type))w*=.65;
  // Five-year regional succession changes the existing encounter lottery, never spawn count.
  // Food-rich periods favor herbivores; drought drives prey toward wetlands and
  // discourages large hunters. Predator pressure cannot bypass safe-city exclusions.
