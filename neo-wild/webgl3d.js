@@ -778,6 +778,8 @@ function drawRarePlayable3D(m,clock){
  const step=Math.sin(phase)*move;
  const legKick=(front,side)=>Math.sin(phase+(front===side?0:Math.PI))*move;
  const conceal=!!m.hidden,attack=(m.pendingStrike||m.swing>0||(m.specialVisual||0)>0);
+ const specialMotion=Math.sin(Math.PI*clamp((m.specialVisual||0)/1.02,0,1));
+ const normalMotion=Math.sin(Math.PI*clamp((m.attackAction||0)/.45,0,1));
  if(t==="manul"){
   // Broad heavily furred torso, stubby limbs, low head with low-mounted ears.
   const fur="#a8a69f",cream="#ddd8ca",under="#c9c4b7",shadow="#727872";
@@ -803,7 +805,7 @@ function drawRarePlayable3D(m,clock){
    const x=-r*(1.10+k*.28),tw=Math.sin(k*.54+clock*.85)*r*.09;
    orb(x,tw,r*(.40+k*.018),r*(.29-k*.013),r*(.25-k*.011),r*(.24-k*.008),k%2?"#696d69":"#c9c8bd",7,4);
   }
-  const faceDrive=attack?.12*r:0;
+  const faceDrive=attack?r*(.12+specialMotion*.55+normalMotion*.29):0;
   orb(r*.67+faceDrive,0,belly+r*.37,r*.70,r*.75,r*.47,"#c7c7bd",12,7);
   // Adult males have a visibly broader cheek ruff; younger animals a smaller one.
   for(const side of [-1,1])orb(r*.48,side*r*(male?.76:.69),belly+r*.29,r*(male?.27:.19),r*(male?.29:.22),r*.21,male?"#b1b0a6":"#c7c6ba",9,5);
@@ -848,7 +850,7 @@ function drawRarePlayable3D(m,clock){
    orb(x,y,r*(.39+k*.016),r*(.34-k*.016),r*(.26-k*.016),r*(.25-k*.01),k%3===0?"#e0d1b9":"#ad9b84",7,4);
   }
   // The flat mask is a wide face, not an ordinary pointed fox muzzle.
-  const headX=r*.79+(attack?r*.11:0);
+  const headX=r*.79+(attack?r*(.11+specialMotion*.57+normalMotion*.31):0);
   orb(headX,0,r*.89+bob,r*.57,r*.79,r*.49,mask,12,7);
   if(male)for(const side of [-1,1])orb(headX-r*.12,side*r*.64,r*.78+bob,r*.22,r*.18,r*.27,"#a49786",9,5);
   orb(headX+r*.09,0,r*.85+bob,r*.55,r*.78,r*.39,light,12,7);
@@ -875,12 +877,12 @@ function drawRarePlayable3D(m,clock){
   // Shoebill anatomy: tall unfeathered shanks, rigid gray body, layered
   // flight feathers and an oversized laterally wide, hooked shoe-shaped bill.
   const grey="#798b94",dark="#52656d",feather="#9eabb0",bill="#c5bf9f";
-  const flap=m.jumpTime>0||m.pounceTime>0;
+  const flap=m.jumpTime>0||m.pounceTime>0||specialMotion>.12;
   const focus=m.beakVisual>0||m.beakStrike;
   const swingNorm=clamp((m.shoebillSwingTime||0)/.35,0,1);
   const sweep=Math.sin(Math.PI*swingNorm);
-  const neckSweep=(m.shoebillSwingDir||1)*sweep*r*.35;
-  const lean=focus?r*(.29+sweep*.20):sweep*r*.18;
+  const neckSweep=(m.shoebillSwingDir||1)*(sweep*.66+specialMotion*.74+normalMotion*.4)*r*.72;
+  const lean=focus?r*(.29+sweep*.24+specialMotion*.72+normalMotion*.36):(sweep+specialMotion)*r*.30;
   const bob=Math.abs(step)*r*.10;
   // Thin, long tarso-metatarsal legs and splayed toes.
   for(const side of [-1,1]){
@@ -1132,15 +1134,16 @@ function animal(m,player,clock){
  const kickPose=player&&type==="cat"?clamp((m.wallKickTime||0)/.43,0,1):0;
  const turboPose=player&&type==="fox"&&m.abilityTime>0?clamp(speed/660,0,1):0;
  const chargePose=player&&type==="wolf"&&m.chargeStrike&&m.pounceTime>0?1:0;
- const specialPose=player&&m.specialVisual>0?Math.sin(Math.PI*clamp(m.specialVisual/.50,0,1)):0;
- const bodyBob=Math.abs(Math.sin(phase))*r*.13*moving+kickPose*r*.32+turboPose*r*.10+idleBreath+landingCompression+specialPose*r*.07;
- const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34+specialPose*r*.36;
+ const specialPose=player&&m.specialVisual>0?Math.sin(Math.PI*clamp(m.specialVisual/1.02,0,1)):0;
+ const swingPose=player&&m.attackAction>0?Math.sin(Math.PI*clamp(m.attackAction/.45,0,1)):0;
+ const bodyBob=Math.abs(Math.sin(phase))*r*.13*moving+kickPose*r*.32+turboPose*r*.10+idleBreath+landingCompression+specialPose*r*.38+swingPose*r*.15;
+ const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34+specialPose*r*.68+swingPose*r*.46;
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
  const attackCharge=!player&&(type==="boar"||type==="alpha"||type==="oneEyedWolf"||type==="whiteTiger"||type==="giantMoose"||type==="giantBuffalo")?clamp((m.chargeTime||0)/(type==="alpha"?.24:type==="oneEyedWolf"?.28:type==="whiteTiger"?.39:type==="giantMoose"?.46:type==="giantBuffalo"?.53:.36),0,1)*.55:0;
- const attackReach=Math.max(attackSnap,attackCharge)+airStrike;
+ const attackReach=Math.max(attackSnap*1.45,attackCharge)+airStrike+swingPose*.68+specialPose*.90;
  const rushPose=player&&(m.pendingStrike||m.swing>0)?(m.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.14:rushPose===4?attackReach*.05:rushPose===5?attackReach*.60:base;
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
@@ -1154,6 +1157,9 @@ function animal(m,player,clock){
  const contactZ=(player?Math.max(0,m.groundZ||0):0)+terrainZ;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
+ // The entire individual now visibly surges or braces during attacks, even
+ // when its species uses a dedicated geometry branch below.
+ if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:.58)+swingPose*r*.19;
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
