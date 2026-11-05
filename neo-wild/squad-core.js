@@ -162,6 +162,9 @@ function grantTickets(amount=1){
 }
 function fillVacancy(member){
  const r=load();if(!r||!Array.isArray(r.members)||r.members.length>=MAX_OWNED)return {ok:false,reason:"空き枠がありません"};
+ // Legacy 4/5-member saves must shrink naturally; a stale vacancy dialog
+ // cannot bypass the three-owner cap or spend tickets on a protected roster.
+ if(r.members.some(m=>!m?.id||excluded().has(m.id)))return {ok:false,reason:"所有データを再読み込みしてください"};
  if(!member||!member.id||!playable.has(member.species)||member.alive===false||excluded().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
  if((r.gachaTickets||0)<1)return {ok:false,reason:"ガチャ権が不足しています"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
