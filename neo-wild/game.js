@@ -434,6 +434,28 @@ function initialEcology(){
  return prey.map((n,i)=>({prey:n,predators:predators[i],food:55+(i%3)*13,pressure:0,dominance:i%2,events:0}));
 }
 let ecology=initialEcology(),ecologyClock=0,ecologyNews="生態系は変化し続けている";
+// Wild scavengers consume actual carcasses, recover health, and deplete resources.
+// Released veterans retain their unique behavior; this never creates extra NPCs.
+function forageWildCarcasses(){
+ if(!Array.isArray(carcasses)||!Array.isArray(mobs)||!P)return 0;
+ let meals=0;
+ for(const m of mobs){
+  if(meals>=3)break;
+  if(m.hp<=0||m.releasedIndividualId||m.companion||m.strongBoss||species[m.type]?.prey)continue;
+  if(m.hp>=m.maxHp*.92||Math.hypot(m.x-P.x,m.y-P.y)<170)continue;
+  const food=carcasses.find(c=>c.type==="corpse"&&c.ttl>0&&c.amount>=5&&
+   Math.hypot(c.x-m.x,c.y-m.y)<Math.max(75,m.r+45)&&!lineBlocked(m,c));
+  if(!food)continue;
+  const bite=Math.min(food.amount,Math.max(5,Math.round(m.maxHp*.035)));
+  food.amount-=bite;m.hp=Math.min(m.maxHp,m.hp+Math.max(3,Math.round(bite*.65)));
+  m.feedAfterKill=Math.max(m.feedAfterKill||0,3);
+  if(food.amount<=0){const index=carcasses.indexOf(food);if(index>=0)carcasses.splice(index,1);}
+  const region=regionAt(m.x,m.y);
+  if(ecology[region])ecology[region].food=clamp(ecology[region].food-1,10,94);
+  meals++;
+ }
+ return meals;
+}
 function simulateEcology(dt){
  ecologyClock+=dt;if(ecologyClock<15)return;
  const tick=Math.min(6,Math.floor(ecologyClock/15));ecologyClock-=tick*15;
@@ -462,7 +484,7 @@ function simulateEcology(dt){
   }
   if(oldDominance!==e.dominance)ecologyNews=districts[i]+"：群れの勢力が交代";
  }
- // Real inter-district migration: animals leave low-food regions for neighboring
+ // Actual scavenging consumes corpse food and restores injured predators.\n forageWildCarcasses();\n // Real inter-district migration: animals leave low-food regions for neighboring
  // higher-food ones. This is population movement, not spawning/teleporting NPCs:
  // live local animals are retained; the destination's future birth pool rises.
  // Transfers are bounded and happen only once per 15-second ecology tick.
