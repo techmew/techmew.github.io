@@ -257,6 +257,13 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(["frog","otter"].includes(type))w*=([4,7].includes(region)?1.15:.62);
  }
  if(["STORM","TYPHOON","HEAVY_RAIN"].includes(weather)&&["cheetah","lion","wildDog"].includes(type))w*=.65;
+ // Migration corridors move herbivore herds and their pursuers between real regions.
+ // Urban safety and water-only habitat bans above remain in force.
+ const corridor=window.WildEraEcology?.migration?.(region,Math.max(0,year-1));
+ if(corridor?.active&&w>0){
+  if(["deer","boar","rabbit","serow","zebra","giraffe"].includes(type))w*=corridor.grazer;
+  if(["wildFox","wildDog","hyena","lion","cheetah","tiger"].includes(type))w*=corridor.hunter;
+ }
  // Trophic cascade adjusts real encounter draws without creating extra NPCs.
  const foodWeb=window.WildEraEcology?.state?.(region,Math.max(0,year-1));
  if(foodWeb&&w>0){
