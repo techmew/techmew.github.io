@@ -389,9 +389,18 @@ function choose(region,day,weather,preyOnly=false,random=Math.random()){
  const preyCollapse=recentPredators>=3&&recentPrey<=1;
  const migrationPulse=Math.sin(Math.floor(Math.max(0,day)/7)*1.31+index*1.79);
  const migrationCorridor=[2,3,5].includes(index)&&migrationPulse>.45;
+ // Prey abundance drives a delayed predator response; sustained hunting
+ // suppresses apex encounters until prey recovers. Uses existing encounter slots.
+ const preyBoom=history.slice(-7).filter(t=>["rat","rabbit","frog","pigeon","deer","zebra"].includes(t)).length>=4;
+ const hunterSaturation=history.slice(-7).filter(t=>["wildFox","strayCat","snake","venomSnake","lion","tiger","cheetah","hyena","wildDog","blackBear"].includes(t)).length>=3;
  const pool=types.map(type=>{
   let w=preyOnly&&!["rat","rabbit","pigeon","frog"].includes(type)?0:weight(type,region,day,weather);
   if(w>0&&!preyOnly){
+   if(preyBoom&&!hunterSaturation&&["wildFox","strayCat","snake","venomSnake","hyena","wildDog"].includes(type))w*=1.42;
+   if(hunterSaturation){
+    if(apexTypes.has(type))w*=.25;
+    if(["rat","rabbit","frog","pigeon","deer","zebra"].includes(type))w*=1.35;
+   }
    if(preyCollapse){
     if(["lion","tiger","cheetah","hyena","wildDog","blackBear","wildFox","strayCat"].includes(type))w*=.22;
     if(["rat","rabbit","frog","pigeon","deer","boar"].includes(type))w*=1.65;
