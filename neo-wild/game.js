@@ -3061,6 +3061,8 @@ function emitCombatFX(stage,type,kind,x,y,dir,power=1,step=0,bodyRadius=18){
  const life=stage==="charge"?.22:stage==="normal"?.25:stage==="hit"?.23:stage==="stomp"?.36:.49;
  combatFX.push({stage,type,kind,motion,x,y,dir:Number.isFinite(dir)?dir:0,
   power:Math.max(.45,Math.min(1.6,power)),bodyRadius:Math.max(8,bodyRadius),
+  // Keep the physical trail attached to the animal as it lunges or turns.
+  anchor:stage==="normal"||stage==="charge"||stage==="special"?P:null,
   side,step,time:0,last:life});
  if(combatFX.length>24)combatFX.splice(0,combatFX.length-24);
 }
@@ -3079,9 +3081,11 @@ function drawCombatFX(){
   if(fade<=.02)continue;
   const r=fx.bodyRadius*Math.min(1.85,fx.power*(fx.stage==="special"?1.35:1));
   const left=fx.side||1,front=fx.step===4?-.54:.65;
-  const cosine=Math.cos(fx.dir),sine=Math.sin(fx.dir);
+  const actor=fx.anchor&&fx.anchor.hp>0?fx.anchor:fx;
+  const angle=Number.isFinite(actor.dir)?actor.dir:fx.dir;
+  const cosine=Math.cos(angle),sine=Math.sin(angle);
   function pt(forward,lateral,height=0){
-   const x=fx.x+forward*cosine-lateral*sine,y=fx.y+forward*sine+lateral*cosine;
+   const x=actor.x+forward*cosine-lateral*sine,y=actor.y+forward*sine+lateral*cosine;
    const p=project(x,y);
    if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
    return {x:p.x,y:p.y-height*zoom};
@@ -3328,7 +3332,7 @@ function resolveSpeciesSpecial(){
  const enemies=specialTargets(spec),primary=enemies[0];
  P.specialVisual=1.02;P.attackAction=.85;
  emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.18,0,P.r);
- shake=Math.max(shake,spec.kind==="slam"||spec.kind==="roar"?11:7);flash=Math.max(flash,.09);
+ shake=Math.max(shake,spec.kind==="slam"||spec.kind==="roar"?9:5);
  playEffect(spec.kind==="slam"?"thunder":"impact",{volume:.30});
  if(primary&&["lunge","roll"].includes(spec.kind)){
   const d=dist(P,primary),a=Math.atan2(primary.y-P.y,primary.x-P.x);
@@ -3784,7 +3788,7 @@ function resolveAttack(){
    if(m.hp<=0)kill(m);
   }
  });
- if(hit){emitCombatFX("hit",P.type,"melee",P.x+Math.cos(P.dir)*P.r*1.35,P.y+Math.sin(P.dir)*P.r*1.35,P.dir,.68,P.rushActiveStep||1,P.r);shake=P.jumpDive?6:4;flash=.1;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
+ if(hit){emitCombatFX("hit",P.type,"melee",P.x+Math.cos(P.dir)*P.r*1.35,P.y+Math.sin(P.dir)*P.r*1.35,P.dir,.68,P.rushActiveStep||1,P.r);shake=P.jumpDive?6:4;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
