@@ -5781,17 +5781,13 @@ function drawWorldMap(){
   bm.beginPath();bm.ellipse(X(e.x),Y(e.y),X(e.radius),Y(e.radius),0,0,TWO);bm.fill();bm.stroke();bm.restore();
  }
  const obj=getObjective();if(obj&&mission!==3&&dist(P,obj)>85)mark(obj.x,obj.y,"#f1d885",4);
- // High-contrast directional marker in true world coordinates (including waterfront).
+ // Player position: one yellow directional triangle, no circle or label.
  bm.save();bm.translate(X(P.x),Y(P.y));
  const facing=Number.isFinite(P.dir)?P.dir:0;
  const mapHeading=Math.atan2(Math.sin(facing)*height/WORLD.h,Math.cos(facing)*width/WORLD.w);
  bm.rotate(mapHeading+Math.PI/2);
- bm.beginPath();bm.arc(0,0,12,0,TWO);bm.fillStyle="#0d342e";bm.fill();
- bm.strokeStyle="#eaffb2";bm.lineWidth=2.5;bm.stroke();
- bm.beginPath();bm.moveTo(0,-9);bm.lineTo(6,7);bm.lineTo(0,3);bm.lineTo(-6,7);bm.closePath();
- bm.fillStyle="#ffffff";bm.fill();bm.strokeStyle="#13382c";bm.lineWidth=1.8;bm.stroke();bm.restore();
- bm.fillStyle="#fff";bm.font="bold 13px sans-serif";
- bm.fillText("現在地",clamp(X(P.x)+11,8,width-64),clamp(Y(P.y)-10,35,height-5));
+ bm.beginPath();bm.moveTo(0,-11);bm.lineTo(8,8);bm.lineTo(-8,8);bm.closePath();
+ bm.fillStyle="#ffe032";bm.fill();bm.restore();
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
  const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?({foothill:"山麓の森",slope:"山腹・渓谷",summit:"山頂の岩場",cave:"山頂洞窟"}[MOUNTAIN.zone(P.x)]||"山地"):districts[zone],eco=ecology[zone];
  $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
@@ -5883,13 +5879,10 @@ function drawMini(){
   }else{mc.beginPath();mc.arc(0,0,4,0,TWO);}
   mc.fill();mc.stroke();mc.restore();
  }
- // Dedicated player marker: the canal starting landmark and other icons never cover it.
+ // Player position is only a yellow directional triangle.
  mc.save();mc.translate(w/2,h/2);mc.rotate((Number.isFinite(P.dir)?P.dir:0)+Math.PI/2);
- mc.beginPath();mc.arc(0,0,9,0,TWO);mc.fillStyle="rgba(9,43,38,.82)";mc.fill();
- mc.strokeStyle="#eaffb2";mc.lineWidth=2.1;mc.stroke();
- mc.fillStyle="#f6fce5";mc.strokeStyle="#102a25";mc.lineWidth=1.8;
- mc.beginPath();mc.moveTo(0,-7);mc.lineTo(5,5);mc.lineTo(0,2);mc.lineTo(-5,5);mc.closePath();
- mc.fill();mc.stroke();mc.restore();
+ mc.fillStyle="#ffe032";mc.beginPath();mc.moveTo(0,-8);mc.lineTo(6,6);mc.lineTo(-6,6);mc.closePath();
+ mc.fill();mc.restore();
  mc.strokeStyle="#b6e1c5";mc.lineWidth=1;mc.strokeRect(.5,.5,w-1,h-1);
 }
 function visible(x,y,r=50){const q=project(x,y),m=Math.max(100,r*1.9);return q.x>-m&&q.x<vw+m&&q.y>-m&&q.y<vh+m}
@@ -6642,14 +6635,6 @@ function drawCreature(o,isPlayer){
  sheen.addColorStop(0,"#eef7df");sheen.addColorStop(1,"#eef7df00");
  ctx.fillStyle=sheen;ctx.beginPath();ctx.ellipse(-r*.1,-r*.25,r*.73,r*.19,-.15,0,TWO);ctx.fill();ctx.restore();
  if(isPlayer&&mode!=="dying"){
-  // For SOLO5, the gold ring/label is drawn once by drawSquadFieldMarkers.
-  // Keep the legacy 2D outline only for pre-gacha / SAVE_SCHEMA2 characters.
-  if(!P.squadIndividualId){
-   ctx.strokeStyle=P.inv>0?"#f5b668a8":"#b5f1c8bd";ctx.lineWidth=1.3;
-   ctx.beginPath();ctx.arc(0,0,r+5,0,TWO);ctx.stroke();
-   ctx.font="900 10px sans-serif";ctx.textAlign="center";ctx.fillStyle="#f5fce8";
-   ctx.fillText(P.hidden?"潜伏中":"YOU",0,-r-21);
-  }
   if(P.abilityTime>0){ctx.strokeStyle="#ffe0a0";ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(0,0,r+10,0,TWO);ctx.stroke();ctx.setLineDash([])}
  }
  ctx.restore();
@@ -7190,24 +7175,7 @@ function drawScene(){
   }
   ctx.restore();
  }
- if(P?.squadIndividualId&&mode!=="dying")drawSquadFieldMarkers(use3D);
-  if(use3D&&P&&mode!=="dying"&&!P.squadIndividualId){
-  const pos=project(P.x,P.y);ctx.save();
-  // The WebGL animal stands on the terrain elevation plus roof/jump height.
-  // Keep the HUD ring and YOU anchored to the very same 3D surface.
-  const terrainHeight=window.WildMountain?.height?.(P.x,P.y)||0;
-  const renderFeet=terrainHeight+Math.max(0,P.groundZ||0);
-  const renderBody=terrainHeight+Math.max(0,P.jumpHeight||0);
-  const ringY=pos.y-renderFeet*.93*cameraZoom,headY=pos.y-renderBody*.93*cameraZoom;
-  ctx.strokeStyle=P.hidden?"#a9e2ac":"#cbefd5";ctx.lineWidth=2;
-  ctx.beginPath();ctx.ellipse(pos.x,ringY+4,P.r*1.18,P.r*.52,0,0,TWO);ctx.stroke();
-  ctx.textAlign="center";ctx.font="900 11px sans-serif";ctx.lineWidth=3;
-  if(!P.hidden&&!P.squadIndividualId){
-   ctx.strokeStyle="#102222";ctx.strokeText("YOU",pos.x,headY-52);
-   ctx.fillStyle="#e7f7e4";ctx.fillText("YOU",pos.x,headY-52);
-  }
-  ctx.restore();
- }
+ if(P&&mode!=="dying")drawSquadFieldMarkers(use3D);
  if(weather==="CLOUDY"||weather==="RAIN"||weather==="THUNDER"||weather==="WIND"){
   ctx.fillStyle=weather==="THUNDER"?"rgba(15,25,35,.22)":weather==="RAIN"?"rgba(26,38,47,.15)":weather==="CLOUDY"?"rgba(32,42,50,.12)":"rgba(44,48,43,.07)";
   ctx.fillRect(0,0,vw,vh);
@@ -7537,34 +7505,22 @@ function showSquadDeathPicker(roster){
   b.addEventListener("click",()=>switchSquadLeader(m.id,true));panel.append(b);
  }
 }
-// The selected animal has exactly ONE identification ring. Previously the
-// yellow squad ring ignored terrain Z, while a second cyan 3D ring followed
-// the feet. On mountain slopes they visibly split into two circles.
+// Terrain-aware yellow triangle above the directly controlled animal.
+// Identical for WebGL and Canvas, including legacy saves; no ring or text.
 function drawSquadFieldMarkers(use3D=false){
  if(!P||P.hp<=0)return;
- const m=P,p=project(m.x,m.y);
- const feet=projectGroundLabel(m.x,m.y,Math.max(0,m.groundZ||0));
- const head=projectGroundLabel(m.x,m.y,Math.max(0,m.groundZ||0,m.jumpHeight||0));
- const ringY=feet.y+4;
- // Both the identification ellipse and the label must scale with zoom.
- // Otherwise the ellipse changes size relative to the animal in 3D.
- const screenRadius=Math.max(6,m.r*cameraZoom);
- const jumpOffset=Math.max(0,feet.y-head.y);
- const labelY=head.y-Math.max(25,screenRadius*1.3+9);
- ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
- ctx.strokeStyle="#ffe98e";ctx.lineWidth=3;
- ctx.beginPath();ctx.ellipse(p.x,ringY,screenRadius*1.22,screenRadius*.56,0,0,TWO);ctx.stroke();
- const name="▼ 操作中 "+(m.squadName||animals[m.type]?.name||"動物");
- const fontSize=clamp(Math.round(15*cameraZoom),14,21);
- ctx.font="900 "+fontSize+"px sans-serif";ctx.strokeStyle="#071c1a";ctx.lineWidth=5;
- // Don't leave an off-screen/player-HUD label floating at the screen edge.
- // The ground ring remains visible and anchored even when the title hides.
- if(labelY>Math.min(130,vh*.18)&&labelY<vh-25){
-  ctx.strokeText(name,p.x,labelY);ctx.fillStyle="#ffe98e";
-  ctx.fillText(name,p.x,labelY);
- }
- ctx.restore();
+ const head=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0,P.jumpHeight||0));
+ if(!head||!Number.isFinite(head.x)||!Number.isFinite(head.y))return;
+ const height=Math.max(26,P.r*cameraZoom*1.4+12);
+ const y=head.y-height;
+ if(y<-15||y>vh+15)return;
+ const size=clamp(Math.round(11*cameraZoom),9,15);
+ ctx.save();ctx.fillStyle="#ffe032";
+ ctx.beginPath();ctx.moveTo(head.x-size*.8,y-size*.85);
+ ctx.lineTo(head.x+size*.8,y-size*.85);ctx.lineTo(head.x,y+size*.65);
+ ctx.closePath();ctx.fill();ctx.restore();
 }
+
 $("squad-party-hud")?.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
  if(b.dataset.squadOrder)squadCommand(b.dataset.squadOrder);
