@@ -777,7 +777,7 @@ function drawRarePlayable3D(m,clock){
  const phase=(m.steps||m.step||0)*2.4;
  const step=Math.sin(phase)*move;
  const legKick=(front,side)=>Math.sin(phase+(front===side?0:Math.PI))*move;
- const conceal=!!m.hidden,attack=(m.pendingStrike||m.swing>0);
+ const conceal=!!m.hidden,attack=(m.pendingStrike||m.swing>0||(m.specialVisual||0)>0);
  if(t==="manul"){
   // Broad heavily furred torso, stubby limbs, low head with low-mounted ears.
   const fur="#a8a69f",cream="#ddd8ca",under="#c9c4b7",shadow="#727872";
@@ -877,7 +877,10 @@ function drawRarePlayable3D(m,clock){
   const grey="#798b94",dark="#52656d",feather="#9eabb0",bill="#c5bf9f";
   const flap=m.jumpTime>0||m.pounceTime>0;
   const focus=m.beakVisual>0||m.beakStrike;
-  const lean=focus?r*.29:0;
+  const swingNorm=clamp((m.shoebillSwingTime||0)/.35,0,1);
+  const sweep=Math.sin(Math.PI*swingNorm);
+  const neckSweep=(m.shoebillSwingDir||1)*sweep*r*.35;
+  const lean=focus?r*(.29+sweep*.20):sweep*r*.18;
   const bob=Math.abs(step)*r*.10;
   // Thin, long tarso-metatarsal legs and splayed toes.
   for(const side of [-1,1]){
@@ -903,26 +906,26 @@ function drawRarePlayable3D(m,clock){
   for(const side of [-1,1])for(let k=0;k<5;k++)
    orb(-r*(.23+k*.19),side*r*.71,r*(1.34-k*.07)+bob,r*.19,r*.075,r*.065,k%2?"#667983":"#a2afb3",8,4);
   // Uplifted neck and distinct blunt crown.
-  orb(r*.56+lean*.3,0,r*1.57+bob,r*.35,r*.32,r*.55,"#84949a",10,6);
-  orb(r*.85+lean*.5,0,r*1.98+bob-lean*.36,r*.41,r*.37,r*.36,feather,10,6);
+  orb(r*.56+lean*.3,neckSweep*.35,r*1.57+bob,r*.35,r*.32,r*.55,"#84949a",10,6);
+  orb(r*.85+lean*.5,neckSweep*.75,r*1.98+bob-lean*.36,r*.41,r*.37,r*.36,feather,10,6);
   for(let k=0;k<3;k++)
    spike(r*.57+k*r*.12,-r*.05+k*r*.07,r*2.23+bob,r*.09,r*.08,r*(.20+k*.045),"#a5b1b5");
   for(const side of [-1,1]){
-   orb(r*.99+lean*.5,side*r*.31,r*2.03+bob-lean*.35,r*.11,r*.080,r*.096,"#ebd392",8,5);
-   orb(r*1.055+lean*.5,side*r*.33,r*2.03+bob-lean*.35,r*.053,r*.045,r*.054,"#171b1b",8,4);
+   orb(r*.99+lean*.5,side*r*.31+neckSweep,r*2.03+bob-lean*.35,r*.11,r*.080,r*.096,"#ebd392",8,5);
+   orb(r*1.055+lean*.5,side*r*.33+neckSweep,r*2.03+bob-lean*.35,r*.053,r*.045,r*.054,"#171b1b",8,4);
   }
   // Huge rigid shoe-like beak with an actual hooked apex; pose darts forward.
   const beakX=r*1.46+lean,beakZ=r*1.80+bob-lean*.68;
-  orb(beakX,0,beakZ,r*(male?.78:.72),r*(male?.55:.51),r*.39,bill,12,7);
-  orb(beakX+r*.29,0,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
-  orb(beakX-r*.08,0,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
-  orb(beakX+r*.74,0,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
+  orb(beakX,neckSweep,beakZ,r*(male?.78:.72),r*(male?.55:.51),r*.39,bill,12,7);
+  orb(beakX+r*.29,neckSweep,beakZ-r*.10,r*.48,r*.47,r*.21,"#afa88e",11,5);
+  orb(beakX-r*.08,neckSweep,beakZ+r*.29,r*.53,r*.36,r*.13,"#dfd6b5",10,4);
+  orb(beakX+r*.74,neckSweep,beakZ-r*.19,r*.18,r*.34,r*.18,"#797865",8,5);
   // Bill's median ridge and pronounced downward terminal hook.
-  orb(beakX+r*.05,0,beakZ+r*.36,r*.53,r*.105,r*.075,"#e5ddba",10,4);
-  orb(beakX+r*.81,0,beakZ-r*.37,r*.14,r*.14,r*.25,"#77735e",8,5);
-  spike(beakX+r*.87,0,beakZ-r*.47,r*.14,r*.14,-r*.23,"#656454");
+  orb(beakX+r*.05,neckSweep,beakZ+r*.36,r*.53,r*.105,r*.075,"#e5ddba",10,4);
+  orb(beakX+r*.81,neckSweep,beakZ-r*.37,r*.14,r*.14,r*.25,"#77735e",8,5);
+  spike(beakX+r*.87,neckSweep,beakZ-r*.47,r*.14,r*.14,-r*.23,"#656454");
   for(const side of [-1,1]){
-   orb(beakX-r*.05,side*r*.40,beakZ+r*.12,r*.07,r*.05,r*.025,"#6e7265",7,4);
+   orb(beakX-r*.05,side*r*.40+neckSweep,beakZ+r*.12,r*.07,r*.05,r*.025,"#6e7265",7,4);
   }
  }
  return true;
@@ -1129,8 +1132,9 @@ function animal(m,player,clock){
  const kickPose=player&&type==="cat"?clamp((m.wallKickTime||0)/.43,0,1):0;
  const turboPose=player&&type==="fox"&&m.abilityTime>0?clamp(speed/660,0,1):0;
  const chargePose=player&&type==="wolf"&&m.chargeStrike&&m.pounceTime>0?1:0;
- const bodyBob=Math.abs(Math.sin(phase))*r*.13*moving+kickPose*r*.32+turboPose*r*.10+idleBreath+landingCompression;
- const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34;
+ const specialPose=player&&m.specialVisual>0?Math.sin(Math.PI*clamp(m.specialVisual/.50,0,1)):0;
+ const bodyBob=Math.abs(Math.sin(phase))*r*.13*moving+kickPose*r*.32+turboPose*r*.10+idleBreath+landingCompression+specialPose*r*.07;
+ const bodyDrive=Math.sin(phase)*r*.10*moving+turboPose*r*.28+chargePose*r*.34+specialPose*r*.36;
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
