@@ -2984,6 +2984,7 @@ function applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo=false){
 }
 
 function isGhostPossessed(){return !!(P&&P.ghostPossessedUntil>0)}
+function isControlBlocked(){return isGhostPossessed()||!!P?._ufoAbducting}
 function getAxes(){
  const keyboardX=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0);
  const keyboardY=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0);
@@ -3001,7 +3002,7 @@ function notify(t,duration=2.1){toastMessage=t;toastTime=duration;$("toast").tex
 function startAmbient(){window.WildAudio?.unlock();}
 function playEffect(kind,options){if(soundEnabled)window.WildAudio?.play(kind,options||{});}
 function instinct(){
- if(mode!=="play"||!P||isGhostPossessed()||P.instinctCD>0||P.sp<18)return;
+ if(mode!=="play"||!P||isControlBlocked()||P.instinctCD>0||P.sp<18)return;
  const level=P.level||1;P.sp-=18;
  P.instinctCD=(P.type==="wolf"?13:P.type==="fox"?9:P.type==="manul"?11:P.type==="tibetanFox"?9.5:P.type==="shoebill"?12:8.5)*(P.instinctBonus?.85:1);
  P.abilityTime=P.type==="cat"?3.4+Math.min(1.7,(level-1)*.18):P.type==="fox"?4.4+Math.min(1.8,(level-1)*.18):P.type==="manul"?5:P.type==="tibetanFox"?4.5:P.type==="shoebill"?5:4+Math.min(1.2,(level-1)*.1);
@@ -3229,7 +3230,7 @@ function putDownFood(){
  P.carry=null;notify("食料を置いた / ○短押しで食べる・長押しで拾う");syncHUD();return true;
 }
 function contextAction(longPress=false){
- if(mode!=="play"||!P||isGhostPossessed())return;
+ if(mode!=="play"||!P||isControlBlocked())return;
  if(atDen()){
   if(P.carry){carryFood();return}
   if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
@@ -3262,7 +3263,7 @@ function showHuntCinematic(finisher){
  playEffect("impact",{volume:.34});
 }
 function attack(){
- if(mode!=="play"||!P||isGhostPossessed())return;
+ if(mode!=="play"||!P||isControlBlocked())return;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
@@ -3522,7 +3523,7 @@ function catWallKick(){
  return true;
 }
 function jump(){
- if(mode!=="play"||!P||isGhostPossessed())return false;
+ if(mode!=="play"||!P||isControlBlocked())return false;
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
  if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
  const cat=P.type==="cat",wolf=P.type==="wolf",cost=traitEffect("giantMoose",cat?14:wolf?22:17);
@@ -3562,7 +3563,7 @@ function pounceImpactOnSegment(x0,y0,x1,y1){
  return nearest;
 }
 function dash(){
- if(mode!=="play"||isGhostPossessed()||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
+ if(mode!=="play"||isControlBlocked()||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
  const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
  if(P.sp<cost){notify("持久力が足りない");return false}
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
@@ -7126,8 +7127,8 @@ function drawScene(){
    ctx.strokeStyle="#849587";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x,o.y+7);ctx.lineTo(o.x,o.y-15);ctx.stroke();
    ctx.fillStyle="#c8aa6f";ctx.fillRect(o.x-7,o.y-18,14,5);
   }else{
-   drawCreature(o,o===P);
-   if(o===P&&mode!=="dying"&&mode!=="over")drawCarriedFood2D();
+   if(o!==P||!P._ufoAbducting)drawCreature(o,o===P);
+   if(o===P&&!P._ufoAbducting&&mode!=="dying"&&mode!=="over")drawCarriedFood2D();
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
@@ -7249,7 +7250,16 @@ function drawScene(){
  }
 
  if(mode!=="dying"){
-  window.WildUFO?.draw?.(ctx,project,{mode});
+  window.WildUFO?.draw?.(ctx,project,{mode,
+   drawAbductee:(c,actor,sx,sy,scale,isPlayer)=>{
+    const drawable=isPlayer?P:actor;
+    if(!drawable||!Number.isFinite(sx)||!Number.isFinite(sy))return;
+    c.save();c.translate(sx,sy);c.scale(scale,scale);
+    c.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);
+    c.translate(-(drawable.x||0),-(drawable.y||0));
+    drawCreature(drawable,isPlayer);
+    c.restore();
+   }});
   window.WildApparitions?.draw?.(ctx,project,{mode,P});
   window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();if(!use3D)drawThreatNames(false);drawRemainsLabels();
@@ -7289,11 +7299,11 @@ function loop(t){
  } finally {requestAnimationFrame(loop);}
 }
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play"||isGhostPossessed())return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play"||isControlBlocked())return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  // Menus and pause remain accessible; possession blocks gameplay inputs.
- if(mode==="play"&&isGhostPossessed()&&!["p","escape","f","m","-","_","=","+"].includes(k)){
+ if(mode==="play"&&isControlBlocked()&&!["p","escape","f","m","-","_","=","+"].includes(k)){
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
   return;
  }
@@ -8140,12 +8150,25 @@ function debugRunCase(id){
  }
  if(group==="anomaly"){
   if(key==="ufo"){
-   if(window.WildUFO?.active)return no("UFOは出現中");
-   return window.WildUFO?.summon?.(clamp(P.x+165,50,WORLD.w-50),P.y)?ok("UFO接近→追尾・誘拐イベント"):no("UFO生成不可");
+   if(window.WildUFO?.active)window.WildUFO.resetTransient?.();
+   const nearby=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&!m.releasedIndividualId&&dist(m,P)<340&&!lineBlocked(P,m)).sort((a,b)=>dist(a,P)-dist(b,P));
+   let prey=nearby[0];
+   if(!prey){
+    const candidate=debugSafePosition(P.x+Math.cos(P.dir||0)*220,P.y+Math.sin(P.dir||0)*220,22,(x,y)=>dist(P,{x,y})>150&&dist(P,{x,y})<330);
+    if(candidate){
+     const count=mobs.length;
+     if(spawnMob(false,true,false,candidate,"rabbit")&&mobs.length>count)prey=mobs[mobs.length-1];
+    }
+   }
+   const spot=prey?{x:prey.x,y:prey.y}:{x:clamp(P.x+Math.cos(P.dir||0)*110,50,WORLD.w-50),y:clamp(P.y+Math.sin(P.dir||0)*110,50,WORLD.h-50)};
+   return window.WildUFO?.debugSummon?.(spot.x,spot.y)?ok(prey?"UFO即出現。動物の吸引→縮小→格納→飛び去りを開始":"UFO即出現。周囲に捕獲可能な動物がいません"):no("UFO生成不可");
   }
   if(key==="ghost"){
-   if(window.WildApparitions?.active)return no("亡霊は出現中");
-   return window.WildApparitions?.summon?.(clamp(P.x+130,50,WORLD.w-50),P.y,elapsed/120)?ok("亡霊発生→幻覚・憑依イベント"):no("亡霊生成不可");
+   if(window.WildApparitions?.active)window.WildApparitions.debugClear?.();
+   const angle=P.dir||0,x=clamp(P.x+Math.cos(angle)*85,40,WORLD.w-40),y=clamp(P.y+Math.sin(angle)*85,40,WORLD.h-40);
+   if(!window.WildApparitions?.summon?.(x,y,elapsed/120))return no("亡霊生成不可");
+   const ghost=window.WildApparitions.active;if(ghost){ghost.stage="manifest";ghost.t=0;ghost.fear=0;}
+   return ok("亡霊を近距離に即出現。追跡と憑依を開始");
   }
   if(key==="resetUFO"){window.WildUFO?.resetTransient?.();return ok("UFO退去");}
   if(key==="resetGhost")return window.WildApparitions?.debugClear?.()?ok("亡霊を解除"):no("解除APIなし");
