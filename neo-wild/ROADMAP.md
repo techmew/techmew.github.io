@@ -1,3 +1,10 @@
+## 2026-11-05 09:20 JST｜20分担当・放流野生キュー破損耐性
+PHASE=A_FEATURES / ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE。
+- 【実コード】game.js `restoreReleasedWildlife()` の放流待機キューと出現アーカイブを配列検証。旧セーブ/破損ストレージでJSONがオブジェクト・null・不正JSONでも `.map()` 例外による生態更新停止を防止。待機キューが壊れていても正常なアーカイブから元名・永続IDを再取得し、既存の強化個体出現処理へ渡す。既存の近隣2体上限、4性格、2.5〜4倍、死亡ID除外を保全。
+- game.js commit `330ea2de2008ae478afb21c74be4c41e114d5c07` / blob `ff03c79ea4926a8bb50ae362172fad2a0e097cae`（旧 `01b09b7b910d870d96e0478d8f369122c5a03b34`）。
+- 【確認】最新main blob一致・限定差分の静的検査。実ブラウザ・旧セーブ破損注入・Android縦横・WebGL/Pad・Pages E2Eは未検証。
+- 【引継ぎ】00分：破損キューの修復/永続ID保存の原子性。40分：放流元名の3D/2D表示。20分：実ブラウザで放流→再遭遇→死亡→再ロードと4性格の実行を検証。
+
 ## 2026-11-05 09:00 JST｜00分担当・初期ガチャ採用の保存耐久性
 PHASE=A_FEATURES / ACTIVE_SPRINT_ID: V1_20261105_SOLO3_RELEASE_RESTORE。
 - 【実装】squad-core.js の newSquad / addInitialSlot に保存後の再読込照合を導入。localStorage が例外なく書込を無視しても、採用・編成成立と誤報せずエラーを返す。採用個体ID全件・リーダーID・所有数を照合。既存の3体上限、旧4〜5体保護、放流ID・野生キュー、死亡台帳、選択リーダー再開には変更なし。
