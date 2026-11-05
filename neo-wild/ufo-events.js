@@ -242,35 +242,109 @@ function tick(dt,world){
  }
  if(e.stage==="depart"&&e.t>2.3){if(e.formation&&alienSites.length<4&&Math.random()<.42){alienSites.push({x:e.originX,y:e.originY,age:0,warned:false,pulse:0,disposition:(Math.random()<.5?"hostile":Math.random()<.6?"neutral":"friendly")});record("異星観測基地",year,e.originX,e.originY);world.onEvent?.("alien-observation-site",{year,x:e.originX,y:e.originY});world.notify?.("円盤が去った跡に奇妙な観測装置が残った")}event=null;cooldown=Math.max(cooldown,300/3);persist()}
 }
+// Layered procedural saucer: armoured plates, glowing portholes, glass dome,
+// rotating sensor ring and lower propulsion. Canvas overlay works in WebGL and 2D.
+function renderSaucer(ctx,x,y,r,t,variant="main"){
+ ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(t*3.6)*.035);
+ const isScout=variant==="scout",cold=variant==="friendly";
+ const accent=cold?"#8ff6be":isScout?"#b6d7ff":"#89e9ff";
+ const metal=ctx.createLinearGradient(-r,-r*.5,r,r*.55);
+ metal.addColorStop(0,"#a3bac7");metal.addColorStop(.22,"#516779");
+ metal.addColorStop(.47,"#d3e5e9");metal.addColorStop(.75,"#263c52");metal.addColorStop(1,"#182936");
+ ctx.shadowColor="rgba(82,225,255,.5)";ctx.shadowBlur=r*.26;
+ ctx.fillStyle="#071723";ctx.beginPath();ctx.ellipse(0,r*.12,r*.88,r*.25,0,0,Math.PI*2);ctx.fill();
+ ctx.shadowBlur=0;
+ const underside=ctx.createLinearGradient(0,-r*.05,0,r*.58);
+ underside.addColorStop(0,"#59748a");underside.addColorStop(.52,"#223748");underside.addColorStop(1,"#091820");
+ ctx.fillStyle=underside;ctx.beginPath();ctx.moveTo(-r*.93,0);
+ ctx.quadraticCurveTo(-r*.64,r*.42,0,r*.52);ctx.quadraticCurveTo(r*.64,r*.42,r*.93,0);
+ ctx.closePath();ctx.fill();
+ // Three concentric hull plates with visible bevels.
+ ctx.fillStyle=metal;ctx.strokeStyle="#a9bdc7";ctx.lineWidth=1.6;
+ ctx.beginPath();ctx.ellipse(0,-r*.08,r,r*.28,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+ ctx.strokeStyle="#233a4b";ctx.lineWidth=2;
+ ctx.beginPath();ctx.ellipse(0,-r*.035,r*.91,r*.19,0,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle=accent;ctx.globalAlpha=.7;ctx.lineWidth=1.6;
+ ctx.beginPath();ctx.ellipse(0,r*.11,r*.78,r*.125,0,0,Math.PI);ctx.stroke();ctx.globalAlpha=1;
+ // Illuminated windows chase clockwise around the rotating outer band.
+ for(let i=0;i<16;i++){
+  const a=i*Math.PI/8+t*1.7,px=Math.cos(a)*r*.83,py=Math.sin(a)*r*.17-r*.02;
+  if(py<-.02*r)continue;
+  ctx.fillStyle=i%4===0?"#ffcd86":accent;
+  ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=3;
+  ctx.beginPath();ctx.ellipse(px,py,Math.max(1.5,r*.045),Math.max(1,r*.032),0,0,Math.PI*2);ctx.fill();
+ }
+ ctx.shadowBlur=0;
+ // Armoured central dome and luminous translucent canopy.
+ const dome=ctx.createLinearGradient(-r*.38,-r*.65,r*.35,0);
+ dome.addColorStop(0,"#effeff");dome.addColorStop(.26,"#8daebd");dome.addColorStop(.57,"#2e6d7b");dome.addColorStop(1,"#102e42");
+ ctx.fillStyle=dome;ctx.strokeStyle="#bed7df";ctx.lineWidth=1.7;
+ ctx.beginPath();ctx.moveTo(-r*.46,-r*.14);
+ ctx.bezierCurveTo(-r*.39,-r*.74,r*.37,-r*.74,r*.46,-r*.14);
+ ctx.quadraticCurveTo(0,r*.04,-r*.46,-r*.14);ctx.fill();ctx.stroke();
+ ctx.strokeStyle="rgba(200,245,255,.5)";ctx.lineWidth=1.1;
+ for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(i*r*.15,-r*.48);ctx.lineTo(i*r*.25,-r*.15);ctx.stroke();}
+ ctx.fillStyle="rgba(251,255,255,.7)";ctx.beginPath();ctx.ellipse(-r*.16,-r*.44,r*.12,r*.06,-.4,0,Math.PI*2);ctx.fill();
+ // Active scanner + a central gravity projector.
+ ctx.fillStyle=accent;ctx.shadowColor=accent;ctx.shadowBlur=r*.38;
+ ctx.beginPath();ctx.ellipse(0,r*.31,r*.16,r*.07,0,0,Math.PI*2);ctx.fill();
+ ctx.shadowBlur=0;
+ ctx.strokeStyle="#d3e8ee";ctx.lineWidth=1.2;
+ ctx.beginPath();ctx.moveTo(-r*.44,-r*.10);ctx.lineTo(-r*.31,-r*.29);
+ ctx.moveTo(r*.44,-r*.1);ctx.lineTo(r*.31,-r*.29);ctx.stroke();
+ ctx.restore();
+}
+function renderTractor(ctx,x,y,roof,span,t){
+ const pulse=.52+.24*Math.sin(t*12),grad=ctx.createLinearGradient(x,roof,x,y);
+ grad.addColorStop(0,"rgba(181,246,255,.62)");grad.addColorStop(.43,"rgba(102,236,252,.21)");
+ grad.addColorStop(1,"rgba(108,242,226,.035)");
+ ctx.save();ctx.fillStyle=grad;ctx.globalAlpha=pulse;
+ ctx.beginPath();ctx.moveTo(x-span*.15,roof);ctx.lineTo(x-span,y);
+ ctx.lineTo(x+span,y);ctx.lineTo(x+span*.15,roof);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="rgba(174,246,255,.5)";ctx.lineWidth=1.5;
+ for(const edge of [-1,1]){ctx.beginPath();ctx.moveTo(x+edge*span*.15,roof);ctx.lineTo(x+edge*span,y);ctx.stroke();}
+ for(let i=0;i<5;i++){
+  const k=(i*.23+t*.32)%1,py=y-(y-roof)*k,spread=span*(1-k*.85);
+  ctx.fillStyle="rgba(202,253,255,"+(.55*(1-k))+")";
+  ctx.beginPath();ctx.arc(x+Math.sin(i*3.9+t*4)*spread*.6,py,1.5+2*k,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
+}
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
- for(const mark of traces){const q=project(mark.x,mark.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
- for(const site of alienSites){const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.min(.8,(210-site.age)/30);ctx.strokeStyle="#82f1cb";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,24,12,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x,q.y-38);ctx.lineTo(q.x-16,q.y);ctx.lineTo(q.x+16,q.y);ctx.closePath();ctx.stroke();
+ for(const mark of traces){const q=project(mark.x,mark.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
+ for(const site of alienSites){
+  const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;
+  ctx.save();ctx.globalAlpha=Math.max(0,Math.min(.9,(210-site.age)/30));
+  ctx.strokeStyle="#82f1cb";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,24,12,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(q.x,q.y-38);ctx.lineTo(q.x-16,q.y);ctx.lineTo(q.x+16,q.y);ctx.closePath();ctx.stroke();
   if(Number.isFinite(site.scoutX)&&Number.isFinite(site.scoutY)){
    const scout=project(site.scoutX,site.scoutY);
    if(scout&&Number.isFinite(scout.x)&&Number.isFinite(scout.y)){
-    ctx.strokeStyle=site.disposition==="friendly"?"#90efb1":site.disposition==="neutral"?"#c8d8e8":"#ff9d89";
-    ctx.beginPath();ctx.ellipse(scout.x,scout.y-29,12,5,0,0,Math.PI*2);ctx.stroke();
-    if(site.disposition==="hostile"&&site.scoutCharge>0){ctx.beginPath();ctx.moveTo(scout.x,scout.y-24);ctx.lineTo(scout.x,scout.y);ctx.stroke()}
+    renderSaucer(ctx,scout.x,scout.y-33,14,site.age,site.disposition==="friendly"?"friendly":"scout");
+    if(site.disposition==="hostile"&&site.scoutCharge>0){
+     ctx.strokeStyle="#fcaf88";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(scout.x,scout.y-21);ctx.lineTo(scout.x,scout.y);ctx.stroke();
+    }
    }
   }
-  ctx.restore()}
- if(!event)return;
- const e=event,p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
- if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
-  const w=project(e.x+wing.dx,e.y+wing.dy);if(!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
-  ctx.save();ctx.translate(w.x,w.y-95);ctx.fillStyle="#273d51";ctx.strokeStyle="#a5e9ff";ctx.lineWidth=2;
-  ctx.beginPath();ctx.ellipse(0,0,26,9,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-  if(e.stage==="scan"){ctx.fillStyle="rgba(131,235,252,0.18)";ctx.beginPath();ctx.moveTo(-10,8);ctx.lineTo(-65,95);ctx.lineTo(65,95);ctx.lineTo(10,8);ctx.fill()}
   ctx.restore();
  }
- const radius=35+Math.sin(e.t*5)*3;
- ctx.save();ctx.translate(p.x,p.y-110);ctx.fillStyle="#1b2837";ctx.strokeStyle="#a5e9ff";ctx.lineWidth=3;
- ctx.beginPath();ctx.ellipse(0,0,radius,13,0,0,Math.PI*2);ctx.fill();ctx.stroke();
- ctx.beginPath();ctx.ellipse(0,-8,19,12,0,Math.PI,Math.PI*2);ctx.fill();ctx.stroke();
- if(e.stage==="scan"){const alpha=.15+.16*Math.sin(e.t*9);ctx.fillStyle="rgba(131,235,252,"+alpha+")";ctx.beginPath();ctx.moveTo(-15,12);ctx.lineTo(-92,110);ctx.lineTo(92,110);ctx.lineTo(15,12);ctx.closePath();ctx.fill();
- ctx.fillStyle="#fff0b2";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText("光線から逃げろ！",0,-33);
- if(e.beam>0||e.npcBeam>0){ctx.fillStyle="#ffe0a0";ctx.fillRect(-38,24,76*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/2.4)),5)}}
+ if(!event)return;
+ const e=event,p=project(e.x,e.y);if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
+ const opacity=e.stage==="depart"?Math.max(0,1-e.t/2.3):Math.min(1,.5+e.t);
+ ctx.save();ctx.globalAlpha=opacity;
+ if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
+  const w=project(e.x+wing.dx,e.y+wing.dy);
+  if(!w||!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
+  if(e.stage==="scan"&&wing.beam>0)renderTractor(ctx,w.x,w.y,w.y-85,56,e.t);
+  renderSaucer(ctx,w.x,w.y-85,26,e.t+wing.dx*.02,"scout");
+ }
+ if(e.stage==="scan")renderTractor(ctx,p.x,p.y,p.y-104,Math.min(94,55+e.t*2),e.t);
+ // Layered saucer remains legible against night skies and mountain scenery.
+ renderSaucer(ctx,p.x,p.y-110,41,e.t,"main");
+ if(e.stage==="scan"&&(e.beam>0||e.npcBeam>0)){
+  ctx.fillStyle="#fce6aa";ctx.fillRect(p.x-37,p.y-150,74*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/UFO_NPC_LOCK_TIME)),4);
+ }
  ctx.restore();
 }
 function resetWorld(){event=null;cooldown=0;history=[];traces=[];alienSites=[];persistTimer=0;try{localStorage.setItem(key,"[]")}catch(_){}persist();return true}
