@@ -45,6 +45,27 @@ function tick(dt,world){
     if(P.hp<=0)world.beginDeath?.();
    }
   }else site.scoutCharge=Math.max(0,(Number(site.scoutCharge)||0)-dt*2);
+  // Scouts interact with actual wildlife as well as the player. Hostile patrols
+  // wound nearby animals; neutral patrols observe; friendly patrols aid them.
+  site.wildlifePulse=(Number(site.wildlifePulse)||0)+dt;
+  if(site.wildlifePulse>=2.8){
+   site.wildlifePulse=0;
+   const nearby=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m._ufoAbducted&&distance(m,scout)<78&&!safeBlocked(world,m,scout));
+   if(disposition==="hostile"){
+    const victim=nearby.sort((a,b)=>distance(a,scout)-distance(b,scout))[0];
+    if(victim){
+     const damage=Math.max(1,Math.ceil((Number(victim.maxHp)||20)*.075));
+     victim.hp=Math.max(0,victim.hp-damage);
+     victim.flee=Math.max(Number(victim.flee)||0,4);
+     victim.alert=Math.max(Number(victim.alert)||0,4);
+     victim.lastX=scout.x;victim.lastY=scout.y;
+     if(victim.hp===0){victim._alienScoutKilled=true;world.onEvent?.("alien-scout-wildlife-kill",{year,x:victim.x,y:victim.y,species:victim.species??victim.type??"wildlife"})}
+    }
+   }else if(disposition==="friendly"){
+    const injured=nearby.filter(m=>Number(m.maxHp)>0&&m.hp<m.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+    if(injured)injured.hp=Math.min(injured.maxHp,injured.hp+Math.max(2,Math.ceil(injured.maxHp*.08)));
+   }
+  }
   if(disposition==="friendly"&&scoutDistance<75&&scoutVisible&&site.pulse>=4){
    site.pulse=0;
    P.sp=Math.min(Number(P.maxSp)||100,(Number(P.sp)||0)+9);
