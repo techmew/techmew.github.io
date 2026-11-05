@@ -27,6 +27,29 @@ function tick(dt,world){
   const disposition=["hostile","neutral","friendly"].includes(site.disposition)?site.disposition:"hostile";
   const d=distance(P,site),visible=!P.hidden&&!safeBlocked(world,P,site);
   site.pulse=(Number(site.pulse)||0)+dt;
+  // An observation base deploys a moving scout. Its patrol is a real hazard, not decoration.
+  // Patrol position is deterministic from saved age, so reloads cannot teleport it randomly.
+  const scout={x:site.x+Math.cos(site.age*.55)*Math.min(105,45+site.age*.35),
+               y:site.y+Math.sin(site.age*.55)*Math.min(105,45+site.age*.35)};
+  const scoutDistance=distance(P,scout);
+  const scoutVisible=!P.hidden&&!safeBlocked(world,P,scout);
+  site.scoutX=scout.x;site.scoutY=scout.y;
+  if(disposition==="hostile"&&scoutDistance<62&&scoutVisible){
+   site.scoutCharge=(Number(site.scoutCharge)||0)+dt;
+   P.sp=Math.max(0,(Number(P.sp)||0)-dt*2.6);
+   if(site.scoutCharge>=3){
+    site.scoutCharge=0;
+    P.hp=Math.max(0,(Number(P.hp)||0)-Math.max(2,Math.ceil((Number(P.maxHp)||30)*.065)));
+    world.notify?.("異星の偵察機が攻撃！ 遮蔽物に隠れろ");
+    world.onEvent?.("alien-scout-attack",{year,x:scout.x,y:scout.y});
+    if(P.hp<=0)world.beginDeath?.();
+   }
+  }else site.scoutCharge=Math.max(0,(Number(site.scoutCharge)||0)-dt*2);
+  if(disposition==="friendly"&&scoutDistance<75&&scoutVisible&&site.pulse>=4){
+   site.pulse=0;
+   P.sp=Math.min(Number(P.maxSp)||100,(Number(P.sp)||0)+9);
+   world.notify?.("友好的な偵察機が持久力を回復した");
+  }
   if(d<145&&visible){
    if(disposition==="hostile"){
     P.sp=Math.max(0,(Number(P.sp)||0)-dt*1.8);
@@ -37,7 +60,7 @@ function tick(dt,world){
     if(!site.warned){world.notify?.("友好的な異星基地がこちらを観察している");site.warned=true}
    }else if(!site.warned){world.notify?.("中立の異星基地が静かに観測している");site.warned=true}
   }
-  for(const m of mobs){if(m.hp<=0||distance(m,site)>155)continue;
+  for(const m of mobs){if(m.hp<=0||Math.min(distance(m,site),distance(m,scout))>155)continue;
    if(disposition==="hostile"){m.flee=Math.max(Number(m.flee)||0,1.4);m.alert=Math.max(Number(m.alert)||0,1.4);m.lastX=site.x;m.lastY=site.y}
    else if(disposition==="friendly"&&site.pulse>=3&&m.hp<m.maxHp)m.hp=Math.min(m.maxHp,m.hp+dt*1.2);
   }
@@ -120,7 +143,16 @@ function tick(dt,world){
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
  for(const mark of traces){const q=project(mark.x,mark.y);if(!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle="#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
- for(const site of alienSites){const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.min(.8,(210-site.age)/30);ctx.strokeStyle="#82f1cb";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,24,12,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x,q.y-38);ctx.lineTo(q.x-16,q.y);ctx.lineTo(q.x+16,q.y);ctx.closePath();ctx.stroke();ctx.restore()}
+ for(const site of alienSites){const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.min(.8,(210-site.age)/30);ctx.strokeStyle="#82f1cb";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,24,12,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x,q.y-38);ctx.lineTo(q.x-16,q.y);ctx.lineTo(q.x+16,q.y);ctx.closePath();ctx.stroke();
+  if(Number.isFinite(site.scoutX)&&Number.isFinite(site.scoutY)){
+   const scout=project(site.scoutX,site.scoutY);
+   if(scout&&Number.isFinite(scout.x)&&Number.isFinite(scout.y)){
+    ctx.strokeStyle=site.disposition==="friendly"?"#90efb1":site.disposition==="neutral"?"#c8d8e8":"#ff9d89";
+    ctx.beginPath();ctx.ellipse(scout.x,scout.y-29,12,5,0,0,Math.PI*2);ctx.stroke();
+    if(site.disposition==="hostile"&&site.scoutCharge>0){ctx.beginPath();ctx.moveTo(scout.x,scout.y-24);ctx.lineTo(scout.x,scout.y);ctx.stroke()}
+   }
+  }
+  ctx.restore()}
  if(!event)return;
  const e=event,p=project(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
  if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
