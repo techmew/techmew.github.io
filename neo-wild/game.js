@@ -5209,7 +5209,14 @@ function update(dt){
     if(P.sp<=10)P.sprintExhausted=true;
    }
    const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
-   applyDirectionalInput(P,a,target,dt,foxTurbo);
+   if(P.ghostPossessedUntil>0){
+    P.ghostPossessedUntil=Math.max(0,P.ghostPossessedUntil-dt);
+    P.ghostWanderClock=(P.ghostWanderClock||0)-dt;
+    if(P.ghostWanderClock<=0){P.ghostWanderClock=.45+Math.random()*.85;P.ghostWanderAngle=(P.ghostWanderAngle||0)+(Math.random()-.5)*2.7;}
+    const forced={x:Math.cos(P.ghostWanderAngle),y:Math.sin(P.ghostWanderAngle)};
+    applyDirectionalInput(P,forced,Math.min(target,Math.max(70,P.speed*.45)),dt,false);
+    if(P.ghostPossessedUntil===0){P.vx=0;P.vy=0;notify("霊が離れた。操作を取り戻した");}
+   }else applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
    if(P.x===oldX)P.vx=0;if(P.y===oldY)P.vy=0;
    const speed=Math.hypot(P.vx,P.vy);
