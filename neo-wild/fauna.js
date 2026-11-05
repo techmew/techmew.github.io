@@ -295,6 +295,19 @@ function weight(type,region,day=1,weather="CLEAR"){
   if(["TYPHOON","STORM","HEAVY_RAIN"].includes(weather)&&
      ["deer","boar","serow","zebra","giraffe"].includes(type))w*=.78;
  }
+ // Regional succession changes actual encounters, not just the world-history label.
+ // No additional NPCs are created; biome exclusions and safe-city zeroes remain zero.
+ const succession=window.WildEraEcology?.state?.(region,Math.max(0,year-1));
+ if(succession&&w>0){
+  const herbivore=["rabbit","deer","boar","serow","zebra","giraffe","elephant","frog","hedgehog"].includes(type);
+  const hunter=["wildFox","strayCat","dog","lion","tiger","cheetah","hyena","wildDog","blackBear","manul","tibetanFox"].includes(type);
+  if(herbivore)w*=Math.max(.35,Math.min(1.5,succession.food));
+  if(succession.kind==="predators")w*=hunter?1.28:herbivore?.72:1;
+  if(succession.kind==="recovery")w*=hunter?.52:herbivore?.85:1;
+  if(succession.kind==="migration")w*=herbivore?1.18:hunter?1.10:1;
+  if(succession.kind==="drought"&&["frog","otter","shoebill","hippo"].includes(type))w*=.48;
+  w*=Math.max(.5,Math.min(1.25,succession.animals));
+ }
  return Math.max(0,w);
 }
 // Per-region encounter memory prevents repeat apex predators and same-species clusters.
