@@ -434,6 +434,34 @@ function initialEcology(){
  return prey.map((n,i)=>({prey:n,predators:predators[i],food:55+(i%3)*13,pressure:0,dominance:i%2,events:0}));
 }
 let ecology=initialEcology(),ecologyClock=0,ecologyNews="生態系は変化し続けている";
+// Hungry wild predators actively follow carcass scent across the existing terrain.
+// The existing scavenging routine performs the actual eating once they arrive.
+function seekWildCarcasses(){
+ if(!P||!Array.isArray(mobs)||!Array.isArray(carcasses))return 0;
+ let seekers=0;
+ for(const m of mobs){
+  if(seekers>=3)break;
+  if(!m||m.hp<=0||m.companion||m.releasedIndividualId||m.strongBoss||species[m.type]?.prey)continue;
+  if(m.hp>=m.maxHp*.78||(m.alert||0)>0||(m.flee||0)>0||(m.stun||0)>0)continue;
+  if(Math.hypot(m.x-P.x,m.y-P.y)<230)continue;
+  let target=null,best=500;
+  for(const c of carcasses){
+   if(c.type!=="corpse"||c.ttl<=0||c.amount<5)continue;
+   const d=Math.hypot(c.x-m.x,c.y-m.y);
+   if(d<best&&d>Math.max(55,m.r+32)&&!lineBlocked(m,c)){target=c;best=d;}
+  }
+  if(!target)continue;
+  const dx=(target.x-m.x)/best,dy=(target.y-m.y)/best;
+  const stride=Math.min(72,best-Math.max(40,m.r+24));
+  const nx=m.x+dx*stride,ny=m.y+dy*stride;
+  if(stride<=0||nx<40||ny<40||nx>WORLD.w-40||ny>WORLD.h-40)continue;
+  if(collides(nx,ny,m.r)||waterBlocksLand(nx,ny))continue;
+  m.x=nx;m.y=ny;m.dir=Math.atan2(dy,dx);
+  m.scavengeCooldown=Math.max(m.scavengeCooldown||0,1.5);
+  seekers++;
+ }
+ return seekers;
+}
 // Wild scavengers consume actual carcasses, recover health, and deplete resources.
 // Released veterans retain their unique behavior; this never creates extra NPCs.
 function forageWildCarcasses(){
@@ -550,7 +578,8 @@ function simulateEcology(dt){
   }
   if(oldDominance!==e.dominance)ecologyNews=districts[i]+"：群れの勢力が交代";
  }
- // Actual scavenging and herd movement both affect living animals.
+ // Hungry predators approach carcasses before the existing scavenging/eating pass.
+ seekWildCarcasses();
  forageWildCarcasses();
  forageWildPlants();
  migrateLivingHerds();
