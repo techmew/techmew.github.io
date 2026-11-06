@@ -1475,6 +1475,18 @@ function mountainTerrain(isVisible){
   quad([x,y,m.height(x,y)+.2],[x2,y,m.height(x2,y)+.2],
    [x2,y2,m.height(x2,y2)+.2],[x,y2,m.height(x,y2)+.2],c);
  }
+ // Fill the former 270-unit north-forest / mountain mesh gap with
+ // shared-height quads. Top and bottom sample the exact adjacent boundaries.
+ for(let x=m.CITY_EDGE;x<10800;x+=tile){
+  const x2=Math.min(10800,x+tile);
+  if(x2<9850)continue;
+  for(let y=2580;y<2850;y+=54){
+   const y2=Math.min(2850,y+54),cx=(x+x2)/2,cy=(y+y2)/2;
+   if(!isVisible(cx,cy,265))continue;
+   quad([x,y,m.height(x,y)+.23],[x2,y,m.height(x2,y)+.23],
+        [x2,y2,m.height(x2,y2)+.23],[x,y2,m.height(x,y2)+.23],color("#59705b"));
+  }
+ }
  for(let x=m.WEST;x<m.EAST;x+=tile){
   const x2=Math.min(m.EAST,x+tile);
   for(let y=2850;y<5150;y+=tile){
@@ -1501,8 +1513,16 @@ function mountainTerrain(isVisible){
  for(const g of m.meadowGrass||[]){if(!isVisible(g.x,g.y,65))continue;
   for(let k=-2;k<=2;k++)pyramid(g.x+k*3,g.y-k*2,g.z,3.2,2.8,16+Math.abs(k)*3,"#8aa96e");
  }
+ // Hydrology shares the same world coordinates and collision field as Canvas2D.
+ for(let x=m.headwater.mouthX;x<m.headwater.sourceX;x+=36){
+  const x2=Math.min(m.headwater.sourceX,x+36),y=m.headwater.yAt(x),y2=m.headwater.yAt(x2);
+  if(!isVisible((x+x2)/2,(y+y2)/2,120))continue;
+  const z=m.height(x,y)+1.4,z2=m.height(x2,y2)+1.4;
+  for(const [half,col] of [[28,"#66766b"],[17,"#315b61"],[13,"#438f91"]])
+   quad([x,y-half,z],[x2,y2-half,z2],[x2,y2+half,z2],[x,y+half,z],color(col));
+ }
  // Mountain creek: same coordinates and crossing as Canvas2D and physics.
-  for(let y=3000;y<4650;y+=70){
+  for(let y=2485;y<4650;y+=70){
    const y2=Math.min(4650,y+70),x1=m.creek.xAt(y),x2=m.creek.xAt(y2);
    if(!isVisible((x1+x2)/2,(y+y2)/2,190))continue;
    const z1=m.height(x1,y)+1.5,z2=m.height(x2,y2)+1.5;

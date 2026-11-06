@@ -6,7 +6,7 @@ const WEST=8300,FOOTHILL_END=10100,SUMMIT_START=11800,EAST=13600,CITY_EDGE=8400;
 const CAVE_START=13040,CAVE_END=13450,CAVE_HALF=110;
 // Northern woodland is reachable directly from the city's north-east edge.
 // Its open western entrance preserves the original eight city districts.
-const northWood=(x,y)=>x>=CITY_EDGE&&x<=10800&&y>=850&&y<=2580;
+const northWood=(x,y)=>x>=CITY_EDGE&&x<=10800&&y>=850&&y<=2600;
 const northTrail=x=>1670+210*Math.sin((x-CITY_EDGE)/650);
 // A continuous woodland-to-foothill saddle, not a separate map or teleport.
 const northPass=(x,y)=>x>=10500&&x<=10700&&y>=2390&&y<=center(x)-570;
@@ -19,31 +19,44 @@ const southReach=x=>720+430*smooth(clamp((x-10220)/520,0,1))*(1-smooth(clamp((x-
 const meadowTrail=x=>center(x)+clamp((x-10970)/380,0,1)*720;
 const meadowAt=(x,y)=>x>=10620&&x<=11530&&y>center(x)+590&&y<center(x)+southReach(x)-35&&Math.abs(x-(10950+28*Math.sin((y-3820)/190)))>65;
 const active=(x,y)=>northWood(x,y)||northPass(x,y)||(x>=WEST&&x<=EAST&&y>=2600&&y<=5100);
+// Shared, continuously graded slope between northern forest and mountains.
 function height(x,y){
- if(northPass(x,y)){
-  const t=smooth(clamp((y-2390)/(center(x)-570-2390),0,1));
-  const wood=Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
-  // Match the true mountain height at the pass exit, not foothill-only height.
-  const p=clamp((Math.min(x,FOOTHILL_END)-WEST)/(FOOTHILL_END-WEST),0,1);
-  const lateral=clamp(Math.abs(y-center(x))/740,0,1);
-  const foot=90*smooth(p)+19*p*lateral+4*p*Math.sin(x/210)*Math.cos(y/245);
-  const q=clamp((x-FOOTHILL_END)/(EAST-FOOTHILL_END),0,1);
-  const south=foot+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
-    +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
-  return wood*(1-t)+south*t;
- }
- if(northWood(x,y))return Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
  if(x<=WEST)return 0;
  const p=clamp((Math.min(x,FOOTHILL_END)-WEST)/(FOOTHILL_END-WEST),0,1);
  const lateral=clamp(Math.abs(y-center(x))/740,0,1);
- const old=90*smooth(p)+19*p*lateral+4*p*Math.sin(x/210)*Math.cos(y/245);
- if(x<=FOOTHILL_END)return old;
+ const foot=90*smooth(p)+19*p*lateral+4*p*Math.sin(x/210)*Math.cos(y/245);
  const q=clamp((x-FOOTHILL_END)/(EAST-FOOTHILL_END),0,1);
- const raw=old+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
-  +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
- const blend=smooth(clamp((x-10380)/450,0,1))*(1-smooth(clamp((x-11450)/440,0,1)))*smooth(clamp((y-center(x)-440)/290,0,1));
- return raw-18*blend;
+ const upper=foot+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
+    +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
+ const meadow=smooth(clamp((x-10380)/450,0,1))*(1-smooth(clamp((x-11450)/440,0,1)))*smooth(clamp((y-center(x)-440)/290,0,1));
+ let z=x<=FOOTHILL_END?foot:upper-18*meadow;
+ if(x>=CITY_EDGE&&x<10800&&y<3350){
+  const wood=Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
+  const northTransition=smooth(clamp((y-2200)/(center(x)-720-2200),0,1));
+  const eastFade=1-smooth(clamp((x-10510)/290,0,1));
+  const woodWeight=(1-northTransition)*eastFade;
+  z=wood*woodWeight+z*(1-woodWeight);
+ }
+ // Depress the upper streambed smoothly at both ends, without cliff steps.
+ if(x>=10500&&x<=12740){
+  const distance=Math.abs(y-headwaterY(x));
+  const inlet=smooth(clamp((x-10500)/180,0,1));
+  const outlet=1-smooth(clamp((x-12540)/200,0,1));
+  if(distance<54)z-=7*inlet*outlet*Math.pow(1-distance/54,2);
+ }
+ return z;
 }
+// Source in the eastern highland, ford through the north pass, confluence
+// with the pre-existing western creek; all coordinates are persistent world XY.
+const HEADWATER_MOUTH=9250+35*Math.sin((2485-3800)/180);
+function headwaterY(x){
+ if(x<=10500)return 2485+12*Math.sin((x-10500)/470);
+ if(x>=10700)return center(x)-650+8*Math.sin((x-10700)/350);
+ const t=smooth(clamp((x-10500)/200,0,1));
+ return 2485*(1-t)+(center(10700)-650)*t;
+}
+const headwaterAt=(x,y,r=0)=>x>=HEADWATER_MOUTH&&x<=12740&&Math.abs(y-headwaterY(x))<18+r;
+const headwater=Object.freeze({mouthX:HEADWATER_MOUTH,sourceX:12740,halfWidth:18,yAt:headwaterY,contains:headwaterAt,flowDirection:"west"});
 // World-coordinate snow field: adjacent chunks sample identical values at their edges.
 // Elevation and slope control accumulation; smooth noise avoids rectangular tiles.
 function snowCover(x,y,temperature=0){
@@ -187,7 +200,7 @@ for(const group of [pines,scree]){
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
  if(northPass(x,y)){
-  if(x<10500+r||x>10700-r)return true;
+  // Edges are terrain, not invisible side walls; the forest-pass route stays open.
   for(const p of [...trees,...rocks,...pines,...scree])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
   return false;
  }
@@ -202,6 +215,8 @@ for(const group of [pines,scree]){
   if(Math.abs(x-creek.xAt(y))<creek.halfWidth+r*.65&&
      Math.abs(y-creek.bridgeY)>creek.bridgeHalf-Math.min(26,r*.45))return true;
  if(Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
+ // Shallow forest ford is crossable; deep mountain source requires its bank.
+ if(x>11000&&headwaterAt(x,y,r*.35))return true;
  for(const hut of [...ruins,...ridgeHuts])if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
  for(const p of [...pines,...scree,...alpinePines,...alpineRocks,...caveStones,...caveColumns])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of trees)if(p!==sourceTree&&Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
@@ -298,9 +313,14 @@ function draw2D(ctx,visible){
   for(let k=-2;k<=2;k++){ctx.beginPath();ctx.moveTo(g.x,g.y);ctx.lineTo(g.x+k*3,g.y-13-Math.abs(k)*2);ctx.stroke();}
  }
  // Stream and bridge occupy exactly the world-space collision crossing.
+  // Tributary descending from the summit to the northern forest and creek.
+  for(const [width,col] of [[57,"#66776b"],[34,"#32595c"],[26,"#438b8b"]]){
+   ctx.beginPath();for(let x=HEADWATER_MOUTH;x<=12740;x+=35){const y=headwaterY(x);if(x===HEADWATER_MOUTH)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+   ctx.lineWidth=width;ctx.strokeStyle=col;ctx.stroke();
+  }
   for(const [width,col] of [[94,"#5a665d"],[68,"#294f57"],[55,"#377c83"]]){
    ctx.beginPath();
-   for(let y=3000;y<=4650;y+=45){const x=creek.xAt(y);if(y===3000)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+   for(let y=2485;y<=4650;y+=45){const x=creek.xAt(y);if(y===2485)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
    ctx.lineWidth=width;ctx.strokeStyle=col;ctx.stroke();
   }
   const bx=creek.xAt(creek.bridgeY),by=creek.bridgeY;
@@ -406,6 +426,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,headwater,draw2D});
 window.WildMountain=api;
 })();
