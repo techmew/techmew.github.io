@@ -9,6 +9,49 @@ let events=[],nextYear=eventDelay(5+Math.random()*10),warning=null,lastYear=0;
 let seismicSeconds=0,seismicPhase=0;
 let nextFloodYear=eventDelay(6+Math.random()*9),floodWarning=null,history=[];
 let nextFireYear=eventDelay(7+Math.random()*8),fireWarning=null;
+
+ // Stable giant tree landmarks: position is fixed; the quake victim is random.
+ const TREE_SITES=[];
+ for(const x of [810,1040,1660,1910,2580,2790,3620,3880,4820,5060,5870,6740,7780])
+  for(const y of [3220,3460,4210,4450,5210,5390])
+   TREE_SITES.push({id:"tree-"+x+"-"+y,x,y,scale:3});
+ const siteHash=t=>{const v=Math.sin(t.x*.02171+t.y*.03713)*41392.31;return v-Math.floor(v)};
+ let worldTrees=null;
+ function ensureTrees(api){
+  if(worldTrees)return worldTrees;
+  if(!api?.WORLD)return [];
+  const {WORLD,roadsX=[],roadsY=[],buildings=[]}=api;
+  const possible=TREE_SITES.filter(t=>t.x>230&&t.y>230&&t.x<WORLD.w-400&&t.y<WORLD.h-320&&
+   !roadsX.some(v=>Math.abs(t.x-v)<185)&&!roadsY.some(v=>Math.abs(t.y-v)<185)&&
+   !buildings.some(b=>t.x>b.x-150&&t.x<b.x+b.w+150&&t.y>b.y-150&&t.y<b.y+b.h+150))
+   .sort((a,b)=>siteHash(a)-siteHash(b));
+  worldTrees=[];
+  for(const site of possible){
+   if(worldTrees.length>=16)break;
+   if(worldTrees.some(t=>Math.hypot(t.x-site.x,t.y-site.y)<460))continue;
+   worldTrees.push(site);
+  }
+  return worldTrees;
+ }
+ function standingTrees(year=lastYear){
+  return (worldTrees||[]).filter(t=>!events.some(e=>e.kind==="fallen_tree"&&e.treeId===t.id&&active(e,year)));
+ }
+ function fallingAngle(site,api){
+  const roadX=api.roadsX||[],roadY=api.roadsY||[],buildings=api.buildings||[];
+  for(let i=0;i<12;i++){
+   const a=Math.random()*Math.PI*2,c=Math.cos(a),s=Math.sin(a);
+   let safe=true;
+   for(let j=1;j<=6;j++){
+    const x=site.x+c*j*50,y=site.y+s*j*50;
+    if(x<130||y<130||x>api.WORLD.w-130||y>api.WORLD.h-130||
+     roadX.some(v=>Math.abs(x-v)<96)||roadY.some(v=>Math.abs(y-v)<96)||
+     buildings.some(b=>x>b.x-45&&x<b.x+b.w+45&&y>b.y-45&&y<b.y+b.h+45)){safe=false;break;}
+   }
+   if(safe)return a;
+  }
+  return null;
+ }
+
 const finite=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
 function restore(){
  try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return;
@@ -37,14 +80,16 @@ function fallenAngle(e){
  return Number.isFinite(e.angle)?e.angle:-.48+((seed-Math.floor(seed))-.5)*.74;
 }
 function blocked(x,y,r,year){
+ if(standingTrees(year).some(t=>Math.hypot(x-t.x,y-t.y)<Math.max(0,r)+24))return true;
  return events.some(e=>{
   if(e.kind!=="fallen_tree"||!active(e,year))return false;
   const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
   const along=(x-e.x)*ca+(y-e.y)*sa;
-  const nearest=Math.max(-43,Math.min(56,along));
+  const size=e.scale===3?3:1;
+  const nearest=Math.max(-43*size,Math.min(56*size,along));
   const dx=x-e.x-nearest*ca,dy=y-e.y-nearest*sa;
   // Collision follows the trunk rather than a large invisible circular barrier.
-  const radius=10+(1-(nearest+43)/99)*3;
+  const radius=(10+(1-(nearest/size+43)/99)*3)*size;
   return dx*dx+dy*dy<Math.pow(Math.max(0,r)+radius,2);
  });
 }
@@ -164,22 +209,38 @@ function safeSite(x,y,api){const {P,collides,WORLD}=api;
  return [[0,110],[0,-110],[110,0],[-110,0]].filter(([dx,dy])=>!collides(x+dx,y+dy,24)).length>=3;
 }
 function schedule(api,year){
- const {P}=api;for(let k=0;k<22;k++){
-  const angle=Math.random()*Math.PI*2,distance=340+Math.random()*430;
-  const x=Math.round(P.x+Math.cos(angle)*distance),y=Math.round(P.y+Math.sin(angle)*distance);
-  if(safeSite(x,y,api)){warning={x,y,year,seconds:4.5};api.notify("地鳴りがする。倒木に注意");persist();return true;}
+ ensureTrees(api);
+ const available=standingTrees(year),near=available.filter(t=>{
+  const dist=Math.hypot(api.P.x-t.x,api.P.y-t.y);return dist>=330&&dist<=2200;
+ });
+ const choices=(near.length?near:available).slice();
+ for(let k=0;k<Math.min(24,choices.length);k++){
+  const index=Math.floor(Math.random()*choices.length),site=choices.splice(index,1)[0];
+  if(!site)break;
+  const angle=fallingAngle(site,api);
+  if(angle===null)continue;
+  warning={x:site.x,y:site.y,treeId:site.id,angle,year,seconds:4.5};
+  api.notify?.("大木が大きく揺れている！ 倒木に注意");
+  persist();return true;
  }
  nextYear=year+retryDelay();persist();return false;
 }
 function tick(dt,api){
  if(!api?.P||api.mode!=="play")return;
  const year=api.elapsed/120;
+ ensureTrees(api);
  seismicSeconds=Math.max(0,seismicSeconds-dt);
  if(year<lastYear)lastYear=year; // Old SAVE_SCHEMA2 resumes must not erase world history.
  if(warning){
   warning.seconds-=dt;
   if(warning.seconds<=0){
-   const e={x:warning.x,y:warning.y,year,kind:"fallen_tree",radius:34,duration:eventDelay(5+Math.random()*9),paceVersion:PACE,permanent:false};
+   const isGiant=!!warning.treeId,angle=Number(warning.angle)||0;
+    const e={x:warning.x+(isGiant?129*Math.cos(angle):0),
+     y:warning.y+(isGiant?129*Math.sin(angle):0),
+     treeId:warning.treeId||null,angle:isGiant?angle:undefined,
+     scale:isGiant?3:1,fallAtSeconds:isGiant?api.elapsed:undefined,
+     year,kind:"fallen_tree",radius:isGiant?102:34,duration:eventDelay(5+Math.random()*9),
+     paceVersion:PACE,permanent:false};
    events.push(e);events=events.slice(-MAX);warning=null;
    history.push({kind:e.kind,year:e.year,x:e.x,y:e.y});history=history.slice(-60);
    seismicSeconds=3.4;seismicPhase=Math.random()*Math.PI*2;
@@ -267,6 +328,18 @@ function tick(dt,api){
  lastYear=year;
 }
 function draw(ctx,project,year,webglActive=false){
+ if(!webglActive)for(const t of standingTrees(year)){
+  const p=project(t.x,t.y);if(!p)continue;
+  ctx.save();ctx.translate(p.x,p.y);
+  ctx.fillStyle="rgba(12,32,21,.28)";ctx.beginPath();ctx.ellipse(25,14,67,24,-.25,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#65503b";ctx.lineWidth=22;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(0,1);ctx.lineTo(-7,-105);ctx.stroke();
+  for(let i=0;i<5;i++){
+   const a=i*2.42,x=-7+Math.cos(a)*37,y=-111+Math.sin(a)*18-(i%3)*8;
+   ctx.fillStyle=["#2f5c3e","#416e45","#527b4a","#315e43","#4d754c"][i];
+   ctx.beginPath();ctx.ellipse(x,y,40+(i%2)*7,36+(i%3)*4,a*.15,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+ }
  for(const e of events)if(e.kind==="wildfire"&&active(e,year)){
   const p=project(e.x,e.y);if(!p)continue;
   ctx.save();ctx.fillStyle="rgba(235,87,22,.23)";ctx.strokeStyle="#f9a044";ctx.lineWidth=2;
@@ -293,14 +366,15 @@ function draw(ctx,project,year,webglActive=false){
  }}
  for(const e of events){if(e.kind!=="fallen_tree"||!active(e,year)||webglActive)continue;
   const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
-  const root=project(e.x-43*ca,e.y-43*sa),tip=project(e.x+56*ca,e.y+56*sa);
+  const size=e.scale===3?3:1;
+  const root=project(e.x-43*size*ca,e.y-43*size*sa),tip=project(e.x+56*size*ca,e.y+56*size*sa);
   if(!root||!tip)continue;
   const dx=tip.x-root.x,dy=tip.y-root.y,length=Math.hypot(dx,dy);
   if(length<1)continue;
   const seed=Math.sin(e.x*.029+e.y*.013)*19327.17;
   const random=seed-Math.floor(seed),leafy=year-e.year<leafYears(e);
-  ctx.save();ctx.translate(root.x,root.y);ctx.rotate(Math.atan2(dy,dx));
-  ctx.scale(Math.max(.32,length/99),Math.max(.42,Math.min(1.4,length/99)));
+  ctx.save();ctx.translate(root.x,root.y);ctx.rotate(Math.atan2(dy,dx)-(Number.isFinite(e.fallAtSeconds)?(1-Math.min(1,Math.max(0,(year*120-e.fallAtSeconds)/1.4)))*Math.PI/2:0));
+  ctx.scale(Math.max(.32,length/99),size===3?3:Math.max(.42,Math.min(1.4,length/99)));
   // Contact shadow and raised, tapered bark. The root end is not a yellow disc.
   ctx.fillStyle="rgba(15,28,21,.3)";ctx.beginPath();ctx.ellipse(49,8,61,16,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#4b4136";ctx.beginPath();ctx.ellipse(0,0,16,12,0,0,Math.PI*2);ctx.fill();
@@ -346,7 +420,7 @@ function quakeShake(now=0){
   y:(Math.cos(time*34+seismicPhase)*7+Math.sin(time*62)*3)*intensity,
   rotation:Math.sin(time*19+seismicPhase)*.010*intensity,strength:intensity};
 }
-window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),
+window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),standingTrees:()=>standingTrees(),fixedTrees:()=>worldTrees?.slice()||[],
  getState:()=>({paceVersion:PACE,events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
  resetWorld(){
   // Only an explicit NEW GAME resets the world. Continue/retry retain history.

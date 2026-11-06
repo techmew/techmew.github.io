@@ -1,0 +1,4 @@
+# 2026-11-06 巨大固定樹木と実倒木衝突
+PHASE=A_FEATURES. parent 902da14a902bd90d88bb1611438ddae548161864. Base blobs disaster-world.js 957ef37185cca906b0832d8d6e17dd95c5d22082; game.js f68e4248469f9ed335492b6cb416e687ad4fc20c.
+16 or fewer world-fixed giant tree positions chosen deterministically clear of major roads and buildings; visual standing trunks in Canvas2D, real trunk collision and stable position. Quake chooses a random living tree, warns 4.5s and converts it to triple-length/width fallen trunk with preserved root point. Old non-tree warning and old fallen-tree saves retain original scale. 1.4s toppling in Canvas2D; WebGL follows with separate 3D mesh commit.
+Isolated placement, random fixed selection, root consistency, collision, legacy guard, JS parse PASS. Real Android 3D performance and actual generated building geometry NOT VERIFIED. UI/ROADMAP untouched. Next: 3D standing/toppled tree mesh, browser verification, tree collides old saves.
