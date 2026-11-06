@@ -39,7 +39,7 @@ const ready=()=>{
  if(!extras.isConnected)home.insertAdjacentElement("afterend",extras);
  const root=el("section","squad-gacha");root.id="squad-gacha";root.hidden=true;root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-label","編成ガチャ");
  const wrap=el("div","squad-gacha-wrap"),head=el("header","squad-gacha-head");
- const cancelGacha=()=>{draw=null;selected=null;chosen=[];refill=false;root.hidden=true;updateHome();};
+ const cancelGacha=()=>{draw=null;selected=null;chosen=[];refill=false;size=0;slot=0;slotTarget=0;streak=0;leader=null;root.hidden=true;updateHome();};
  const close=makeBtn("この個体で決定",()=>{
   // Reuse the existing adoption/save handler; never commit an unselected draw.
   const action=body.querySelector(".squad-gacha-actions .squad-adopt");
