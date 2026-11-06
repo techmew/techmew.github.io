@@ -1,0 +1,7 @@
+/* Additive language controls: no existing UI dimensions modified. */
+.language-picker{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:28px;margin:5px 0 9px;font:700 11px/1.25 system-ui,sans-serif;color:#d8e6da}
+.language-picker label{white-space:nowrap}
+.language-picker select{appearance:auto;min-width:96px;min-height:30px;max-width:140px;padding:3px 7px;border:1px solid #6a8777;border-radius:7px;background:#1e3028;color:#f4f6ef;font:700 12px system-ui,sans-serif;cursor:pointer}
+.language-picker select:focus-visible{outline:2px solid #b6dcbc;outline-offset:2px}
+.language-picker-pause{justify-content:center;margin:0 0 9px}
+@media(max-height:520px){.language-picker{min-height:24px;margin:2px 0 5px}.language-picker select{min-height:26px}}
