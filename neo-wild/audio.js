@@ -25,7 +25,7 @@ const ANIMAL_VOCALS=Object.freeze({
 const SYNTH_VOICE_SHAPES=Object.freeze({
  otter:[580,.25,"squeak"],carp:[210,.18,"bubble"],tanuki:[290,.35,"yip"],
  badger:[155,.28,"grumble"],shoebill:[740,.32,"clatter"],
- giraffe:[84,.56,"hum"]
+ giraffe:[84,.56,"hum"],crocodile:[105,.40,"grumble"],penguin:[560,.24,"squeak"],rhino:[115,.56,"grumble"]
 });
 const VOCAL_SOURCE="https://sfxmint.com/dl/";
 const voiceBuffers=Object.create(null),voiceLoads=Object.create(null),voiceFailures=new Set();

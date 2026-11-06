@@ -30,6 +30,9 @@ const species={
  blackBear:{hp:315,r:37,speed:206,damage:29,prey:false,xp:10,food:100,color:"#403b37",belly:"#9c9185"},
  tiger:{hp:355,r:40,speed:283,damage:36,prey:false,xp:13,food:125,color:"#b9834e",belly:"#e7d4ac"},
  gorilla:{hp:345,r:39,speed:168,damage:29,prey:false,xp:12,food:117,color:"#494746",belly:"#918781"},
+ crocodile:{hp:270,r:38,speed:165,damage:34,prey:false,xp:10,food:118,color:"#47664f",belly:"#a2b49a"},
+ penguin:{hp:95,r:22,speed:128,damage:14,prey:false,xp:5,food:38,color:"#263b46",belly:"#edf2e9"},
+ rhino:{hp:540,r:46,speed:215,damage:42,prey:false,xp:18,food:158,color:"#88837c",belly:"#bbb3a9"},
  hyena:{hp:160,r:26,speed:272,damage:22,prey:false,xp:7,food:69,color:"#9b8565",belly:"#d1b997"},
  wildDog:{hp:104,r:21,speed:338,damage:18,prey:false,xp:6,food:52,color:"#8b785e",belly:"#d8c5a4"},
  armadillo:{hp:65,r:17,speed:150,damage:5,prey:true,xp:4,food:28,color:"#8c7967",belly:"#b9a28a"},
@@ -60,7 +63,10 @@ const playableRoster=Object.freeze([
  ["hyena","ハイエナ","世界","rare",17,"land","骨砕き"],
  ["wildDog","リカオン","世界","rare",17,"land","連携狩り"],
  ["armadillo","アルマジロ","世界","basic",7,"land","丸まり防御"],
- ["hedgehog","ハリネズミ","世界","basic",7,"land","棘防御"]
+ ["hedgehog","ハリネズミ","世界","basic",7,"land","棘防御"],
+ ["crocodile","ワニ","世界","rare",17,"amphibious","旋回咬み"],
+ ["penguin","ペンギン","世界","rare",7,"amphibious","腹ばい滑走"],
+ ["rhino","サイ","世界","legendary",34,"land","角の突撃"]
 ].map(([id,name,origin,rarity,unlockYear,movement,skill])=>
  Object.freeze({id,name,origin,rarity,unlockYear,movement,skill})));
 const playableById=Object.freeze(Object.fromEntries(playableRoster.map(e=>[e.id,e])));

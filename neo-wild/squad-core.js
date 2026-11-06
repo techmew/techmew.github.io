@@ -5,12 +5,12 @@ const KEY="wild-reclaim-squad-v1",DEAD="wild-reclaim-dead-ids-v1",RESET_NEW_WORL
 // Exactly one active animal + up to two reserves. Preserve all four/five pre-change animals until natural vacancies.
 const MAX_OWNED=3,LEGACY_OWNED=5;
 const japan=["cat","dog","fox","wolf","deer","boar","crow","pigeon","otter","carp","tanuki","badger","macaque","blackBear","serow"];
-const world=["manul","tibetanFox","shoebill","lion","tiger","cheetah","elephant","hippo","gorilla","giraffe","zebra","hyena","wildDog","armadillo","hedgehog"];
-const names={cat:"猫",dog:"犬",fox:"狐",wolf:"狼",deer:"鹿",boar:"猪",crow:"カラス",pigeon:"ハト",otter:"カワウソ",carp:"コイ",tanuki:"タヌキ",badger:"アナグマ",macaque:"ニホンザル",blackBear:"ツキノワグマ",serow:"ニホンカモシカ",manul:"マヌルネコ",tibetanFox:"チベットスナギツネ",shoebill:"ハシビロコウ",lion:"ライオン",tiger:"トラ",cheetah:"チーター",elephant:"ゾウ",hippo:"カバ",gorilla:"ゴリラ",giraffe:"キリン",zebra:"シマウマ",hyena:"ハイエナ",wildDog:"リカオン",armadillo:"アルマジロ",hedgehog:"ハリネズミ"};
-const playable=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill"]);
+const world=["manul","tibetanFox","shoebill","lion","tiger","cheetah","elephant","hippo","gorilla","giraffe","zebra","hyena","wildDog","armadillo","hedgehog","crocodile","penguin","rhino"];
+const names={cat:"猫",dog:"犬",fox:"狐",wolf:"狼",deer:"鹿",boar:"猪",crow:"カラス",pigeon:"ハト",otter:"カワウソ",carp:"コイ",tanuki:"タヌキ",badger:"アナグマ",macaque:"ニホンザル",blackBear:"ツキノワグマ",serow:"ニホンカモシカ",manul:"マヌルネコ",tibetanFox:"チベットスナギツネ",shoebill:"ハシビロコウ",lion:"ライオン",tiger:"トラ",cheetah:"チーター",elephant:"ゾウ",hippo:"カバ",gorilla:"ゴリラ",giraffe:"キリン",zebra:"シマウマ",hyena:"ハイエナ",wildDog:"リカオン",armadillo:"アルマジロ",hedgehog:"ハリネズミ",crocodile:"ワニ",penguin:"ペンギン",rhino:"サイ"};
+const playable=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","macaque","gorilla","crocodile","lion","elephant","penguin","rhino"]);
 // Never award a permanent party slot to an animal that cannot become the player.
-const rare=new Set(["manul","tibetanFox","shoebill","blackBear","serow","cheetah","hippo","gorilla","hyena","wildDog","armadillo","hedgehog"]);
-const legendary=new Set(["lion","tiger","elephant","giraffe"]);
+const rare=new Set(["manul","tibetanFox","shoebill","blackBear","serow","cheetah","hippo","gorilla","hyena","wildDog","armadillo","hedgehog","crocodile","penguin"]);
+const legendary=new Set(["lion","tiger","elephant","giraffe","rhino"]);
 const nameHeads=["アオ","アカ","アキ","アサ","アズ","アメ","イチ","ウタ","ウメ","エン","オト","カイ","カゲ","カナ","キク","キナ","キリ","クウ","クマ","クロ","ケイ","ココ","コタ","コハ","サク","サチ","シオ","シズ","シロ","スイ","スズ","セナ","ソラ","タケ","タマ","チカ","チヨ","ツキ","トキ","ナギ","ナツ","ナナ","ニコ","ネネ","ノア","ハク","ハナ","ハル","ヒナ","フウ","フク","ホシ","マオ","マル","ミオ","ミケ","ミナ","ムギ","メイ","モカ","モモ","ヤマ","ユキ","ユズ","ヨル","ライ","ララ","リク","リン","ルナ","レオ","レン","ロク","ワカ","ワタ","ワビ","ワン","コウ","ゴン","シン","ジン","ダイ","テン","トラ","バク","ヒメ","ボン","ミツ","ユウ","リオ","ルイ","レイ","ロア","キヨ","サラ","タロ","ジロ","ポン","ペコ","ピノ","チビ","ミミ"];
 const nameTails=["マル","タロウ","スケ","ノスケ","ヒメ","コ","ミ","キチ","ゾウ","リン","ニャン"];
 const famousAnimalNames=["ポチ","タマ","ミケ","クロ","シロ","ハチ","ラッシー","レオ","シンバ","ムファサ","バルー","バンビ","ダンボ","トニー","ティガー","プー","スヌーピー","ガーフィールド","トム","ジェリー","ドラ","ジジ","ニャース","ピカ","ルドルフ","パトラッシュ","ジョリィ","ラスカル","ゴン","チロ","モモ","コロ","マロン","チャチャ","コタロー","ハナ","サクラ","ユキ","ソラ"];

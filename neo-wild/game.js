@@ -16,7 +16,14 @@ const animals={
  boar:{name:"イノシシ",hp:190,speed:205,damage:26,rate:.62,r:28,color:"#796358",belly:"#af9c87",ear:"#59453c"},
  manul:{name:"マヌルネコ",hp:94,speed:215,damage:21,rate:.37,r:18,color:"#b1a89a",belly:"#dbd4c2",ear:"#8b847a"},
  tibetanFox:{name:"チベットスナギツネ",hp:108,speed:257,damage:22,rate:.40,r:20,color:"#b8a18b",belly:"#f0deca",ear:"#8a7767"},
- shoebill:{name:"ハシビロコウ",hp:148,speed:142,damage:32,rate:.72,r:27,color:"#7d8990",belly:"#acb7ba",ear:"#57646b"}
+ shoebill:{name:"ハシビロコウ",hp:148,speed:142,damage:32,rate:.72,r:27,color:"#7d8990",belly:"#acb7ba",ear:"#57646b"},
+ macaque:{name:"ニホンザル",hp:108,speed:246,damage:21,rate:.43,r:21,color:"#867361",belly:"#c5b39c",ear:"#b7847b"},
+ gorilla:{name:"ゴリラ",hp:345,speed:168,damage:34,rate:.77,r:39,color:"#494746",belly:"#918781",ear:"#74716a"},
+ crocodile:{name:"ワニ",hp:270,speed:174,damage:32,rate:.70,r:38,color:"#47664f",belly:"#a2b49a",ear:"#35523d"},
+ lion:{name:"ライオン",hp:245,speed:340,damage:28,rate:.49,r:37,color:"#bc8e56",belly:"#e7c89b",ear:"#95683e"},
+ elephant:{name:"ゾウ",hp:560,speed:173,damage:36,rate:.88,r:55,color:"#818c86",belly:"#b1bbb0",ear:"#66716c"},
+ penguin:{name:"ペンギン",hp:95,speed:155,damage:16,rate:.45,r:23,color:"#263b46",belly:"#edf2e9",ear:"#263b46"},
+ rhino:{name:"サイ",hp:540,speed:215,damage:43,rate:.81,r:46,color:"#88837c",belly:"#bbb3a9",ear:"#6a6560"}
 };
 // SOLO5: no lifespan cap. Legacy fields remain readable for SAVE_SCHEMA2 migration.
 function initializeLife(player,seconds,restored=false){
@@ -35,6 +42,9 @@ const species={
  manul:{hp:94,r:18,speed:215,damage:21,prey:false,xp:6,food:28,color:"#b1a89a",belly:"#dbd4c2"},
  tibetanFox:{hp:108,r:20,speed:257,damage:22,prey:false,xp:6,food:32,color:"#b8a18b",belly:"#f0deca"},
  shoebill:{hp:148,r:27,speed:142,damage:32,prey:false,xp:8,food:41,color:"#7d8990",belly:"#acb7ba"},
+ crocodile:{hp:270,r:38,speed:174,damage:32,prey:false,xp:11,food:118,color:"#47664f",belly:"#a2b49a"},
+ penguin:{hp:95,r:23,speed:155,damage:16,prey:false,xp:5,food:38,color:"#263b46",belly:"#edf2e9"},
+ rhino:{hp:540,r:46,speed:215,damage:43,prey:false,xp:18,food:158,color:"#88837c",belly:"#bbb3a9"},
  dog:{hp:124,r:22,speed:224,damage:16,prey:false,xp:3,food:29,color:"#9c785a",belly:"#e2c9a3"},
  boar:{hp:190,r:28,speed:232,damage:23,prey:false,xp:4,food:45,color:"#796358",belly:"#af9c87"},
  alpha:{hp:335,r:29,speed:231.4,damage:32,prey:false,xp:8,food:55,color:"#485b5c",belly:"#abc0b2"},
@@ -3039,6 +3049,9 @@ const ATTACK_MOTION=Object.freeze({
  tanuki:["paw","paw","jaw","hind","body","body"],
  badger:["claw","claw","jaw","hind","claw","claw"],
  macaque:["fist","fist","jaw","foot","fist","stone"],
+ crocodile:["jaw","jaw","tail","foot","jaw","jaw"],
+ penguin:["wing","wing","beak","foot","wing","body"],
+ rhino:["horn","horn","foot","body","horn","horn"],
  blackBear:["claw","claw","jaw","hind","fist","fist"],
  serow:["hoof","hoof","horn","hind","horn","horn"],
  manul:["claw","claw","jaw","hind","claw","claw"],
@@ -3301,6 +3314,9 @@ const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
  ["elephant","巨象の踏み潰し","slam",230,1.66,3.14,19],
  ["hippo","大顎の咬み砕き","bite",155,2.10,.66,17],
  ["gorilla","両腕の叩きつけ","slam",195,1.78,3.14,17],
+ ["crocodile","水際の回転咬み","bite",170,2.05,.80,16],
+ ["penguin","腹ばい氷上滑走","roll",180,1.35,.90,12],
+ ["rhino","鋼角の突撃","lunge",225,2.18,.65,18],
  ["giraffe","長首の横薙ぎ","fan",208,1.42,1.72,14],
  ["zebra","後脚の二連蹴り","backkick",155,1.40,.92,13],
  ["hyena","骨砕きの噛みつき","bite",145,1.86,.73,13],
@@ -3358,7 +3374,7 @@ function resolveSpeciesSpecial(){
  playEffect(spec.kind==="slam"?"thunder":"impact",{volume:.30});
  if(primary&&["lunge","roll"].includes(spec.kind)){
   const d=dist(P,primary),a=Math.atan2(primary.y-P.y,primary.x-P.x);
-  const travel=Math.max(0,Math.min(type==="cheetah"?115:83,d-P.r-primary.r-14));
+  const travel=Math.max(0,Math.min(type==="cheetah"?115:type==="rhino"?153:type==="penguin"?122:type==="lion"?105:83,d-P.r-primary.r-14));
   if(travel>0&&routeClear(P,{x:P.x+Math.cos(a)*travel,y:P.y+Math.sin(a)*travel},P.r)){
    move(P,Math.cos(a)*travel,Math.sin(a)*travel);
    P.dir=a;P.steps+=travel*.035;
@@ -3380,7 +3396,7 @@ function resolveSpeciesSpecial(){
   if(type==="otter"&&waterDepth(P.x,P.y)>.04)power*=1.25;
   const more=spec.kind==="double"?1.19:1;
   const stun=spec.kind==="pierce"?.85:spec.kind==="bite"?.66:spec.kind==="slam"?.48:spec.kind==="lunge"?.38:spec.kind==="thorns"?.32:.24;
-  const knock=spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
+  const knock=type==="rhino"?80:type==="elephant"?68:spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
   const sequence=spec.kind==="double"||spec.kind==="backkick";
   emitCombatFX("hit",type,spec.kind,m.x,m.y,P.dir,.65,0,m.r);
   const damage=specialHit(m,power*(sequence?.78:more),stun,knock,spec.name);
@@ -3400,6 +3416,9 @@ function resolveSpeciesSpecial(){
   else if(!m.strongBoss){m.flee=Math.max(m.flee||0,type==="lion"?3.4:2.7);m.search=0;m.alert=0;}
  }
  if(type==="shoebill"){P.beakVisual=Math.max(P.beakVisual||0,.46);P.shoebillSwingTime=.43;}
+  if(type==="crocodile")P.jawSnap=Math.max(P.jawSnap||0,.62);
+  if(type==="penguin")P.bellySlide=Math.max(P.bellySlide||0,.82);
+  if(type==="rhino")P.hornCharge=Math.max(P.hornCharge||0,.65);
  if(type==="blackBear"||type==="gorilla"||type==="elephant")shake=Math.max(shake,7);
  P.swing=Math.max(P.swing||0,.26);
  P.noiseBurst=Math.max(P.noiseBurst||0,1.0);P.lastCombatAt=elapsed;
@@ -5631,6 +5650,9 @@ function update(dt){
  
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);
  P.specialVisual=Math.max(0,(P.specialVisual||0)-dt);
+  P.jawSnap=Math.max(0,(P.jawSnap||0)-dt);
+  P.bellySlide=Math.max(0,(P.bellySlide||0)-dt);
+  P.hornCharge=Math.max(0,(P.hornCharge||0)-dt);
  P.attackAction=Math.max(0,(P.attackAction||0)-dt);
  tickCombatFX(dt);
  P.shoebillSwingTime=Math.max(0,(P.shoebillSwingTime||0)-dt);
@@ -6682,6 +6704,32 @@ function drawItem(c){
  ctx.restore();
 }
 
+
+function drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach){
+ const t=o.type;
+ if(t==="rhino"||t==="crocodile")
+  return drawStrongCreature2D({...o,type:t==="crocodile"?"giantCrocodile":"rhino"},r,fur,light,pace,oval,triangle,attackReach);
+ if(t!=="penguin")return false;
+ const step=Math.sin((o.steps||o.step||0)*2.5),slide=Math.max(0,Number(o.bellySlide)||0);
+ ctx.save();if(slide>0)ctx.scale(1.16,.72);
+ for(const side of [-1,1]){
+  oval(-r*.42,side*r*.39+step*side*r*.16,r*.40,r*.26,"#e5a45f",side*.24);
+  triangle([-r*.20,side*r*.42,-r*.78,side*r*.82,r*.12,side*r*.70],"#d79051");
+ }
+ oval(-r*.20,0,r*.88,r*.77,"#243742");
+ oval(r*.10,0,r*.75,r*.65,"#31454b");
+ oval(r*.48,0,r*.55,r*.48,"#f6f2e6");
+ for(const side of [-1,1]){
+  const flap=Math.sin((o.steps||o.step||0)*2.7+side*Math.PI)*r*.10;
+  oval(-r*.17,side*r*.77+flap,r*.55,r*.22,"#1e303a",side*.30);
+  oval(r*.78,side*r*.23,r*.09,r*.08,"#fafcf7");
+  oval(r*.81,side*r*.24,r*.045,r*.05,"#111b20");
+ }
+ oval(r*.65,0,r*.45,r*.43,"#293c45");
+ oval(r*.77,0,r*.24,r*.27,"#faf1d7");
+ triangle([r*.98,-r*.16,r*1.42,0,r*.98,r*.16],"#e2a156");
+ ctx.restore();return true;
+}
 /* Separate readable top-down anatomy for the first four strong enemies. */
 function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
  const t=o.type;
@@ -7044,9 +7092,9 @@ function drawCreature(o,isPlayer){
    ctx.scale(1.02,1.02);
   }
  }
- if(drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
+ if(drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach)||drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
   // Each playable species has its own body/face/special attack silhouette.
- }else if((!isPlayer||t==="deer")&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
+ }else if((!isPlayer||["deer","macaque","gorilla","lion","elephant"].includes(t))&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
   // Common wildlife has species-specific silhouettes.
  }else if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
   // Unique strong enemy silhouette.
