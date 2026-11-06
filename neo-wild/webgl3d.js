@@ -137,6 +137,23 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
 }
 
 
+
+function standingGiantTreeMesh(t){
+ const x=t.x,y=t.y,seed=Math.sin(x*.037+y*.021)*19.37;
+ ellipsoid(x+18,y+15,1,51,28,1.3,"#193324",.28,8,3);
+ ellipsoid(x,y,88,21,20,89,"#61503a",.15,11,6);
+ ellipsoid(x,y,176,16,16,81,"#72573b",-.16,10,6);
+ for(let k=0;k<5;k++){
+  const a=k*2.4+seed,dist=39+(k%3)*9,cx=x+Math.cos(a)*dist,cy=y+Math.sin(a)*dist;
+  ellipsoid((x+cx)*.5,(y+cy)*.5,206+k*5,13,14,37,"#594831",a,9,5);
+  ellipsoid(cx,cy,230+k*9,40+(k%2)*10,38+(k%3)*6,40,k%2?"#466d45":"#355f3d",a,9,5);
+ }
+ ellipsoid(x,y,282,63,58,48,"#386540",.24,11,6);
+ for(let k=0;k<5;k++){
+  const a=k*TAU/5+seed;
+  ellipsoid(x+Math.cos(a)*18,y+Math.sin(a)*18,311,31,28,26,k%2?"#537c51":"#3b6a45",a,8,4);
+ }
+}
 /* Earthquake debris: physically grounded fallen wood, with deterministic variation.
  * Unlike a flat rectangle or stacked oval, each trunk and bough is a tapered
  * multi-face cylinder. All positions are in the existing world coordinate system.
@@ -145,7 +162,14 @@ function fallenTreeMesh(e,worldYear){
  const fract=n=>n-Math.floor(n),seed=fract(Math.sin(e.x*.031+e.y*.067)*43758.5453);
  const angle=Number.isFinite(e.angle)?e.angle:-.48+(seed-.5)*.74;
  const ca=Math.cos(angle),sa=Math.sin(angle);
- const point=(forward,side,z)=>[e.x+ca*forward-sa*side,e.y+sa*forward+ca*side,z];
+ const size=e.scale===3?3:1;
+ const elapsed=Number.isFinite(e.fallAtSeconds)?Math.max(0,worldYear*120-e.fallAtSeconds):Infinity;
+ const fall=Math.min(1,elapsed/1.4),pitch=fall*Math.PI/2,along=Math.sin(pitch),up=Math.cos(pitch);
+ const rootX=e.x-ca*43*size,rootY=e.y-sa*43*size;
+ const point=(forward,side,z)=>{
+  const f=(forward+43)*size,l=side*size;
+  return [rootX+ca*f*along-sa*l,rootY+sa*f*along+ca*l,f*up+z*size];
+ };
  const tube=(a,b,ra,rb,shade,phase=0)=>{
   const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2];
   const flat=Math.max(.001,Math.hypot(dx,dy)),len=Math.max(.001,Math.hypot(flat,dz));
@@ -153,7 +177,7 @@ function fallenTreeMesh(e,worldYear){
   const count=12;
   const ring=(p,rad,t,k)=>{
    const theta=k*TAU/count,rough=1+.045*Math.sin(theta*5+phase+t*2.3);
-   const rx=Math.cos(theta)*rad*rough,ry=Math.sin(theta)*rad*rough;
+   const rx=Math.cos(theta)*rad*size*rough,ry=Math.sin(theta)*rad*size*rough;
    return [p[0]+side[0]*rx+up[0]*ry,p[1]+side[1]*rx+up[1]*ry,p[2]+side[2]*rx+up[2]*ry];
   };
   for(let k=0;k<count;k++){
@@ -163,10 +187,10 @@ function fallenTreeMesh(e,worldYear){
   }
  };
  // Continuous subtle ground shadow, buried roots and loose bark.
- ellipsoid(e.x,e.y,.38,66,19,.45,"#233329",angle,12,3);
+ ellipsoid(e.x,e.y,.38,66*size,19*size,.45,"#233329",angle,12,3);
  const root=point(-43,0,11);
- ellipsoid(root[0],root[1],5,16,13,8,"#4d4638",angle,10,5);
- ellipsoid(root[0]-sa*5,root[1]+ca*5,5,12,8,6,"#66543d",angle,9,4);
+ ellipsoid(root[0],root[1],5*size,16*size,13*size,8*size,"#4d4638",angle,10,5);
+ ellipsoid(root[0]-sa*5*size,root[1]+ca*5*size,5*size,12*size,8*size,6*size,"#66543d",angle,9,4);
  for(let k=0;k<4;k++){
   const offset=(k-1.5)*5;
   tube(point(-39,offset,7),point(-56-k*2,offset*1.85,2.5),3.8,1.2,"#594433",k);
@@ -183,7 +207,7 @@ function fallenTreeMesh(e,worldYear){
  // Root-facing wood: restrained concentric grain, not a solid yellow circle.
  const cap=nodes[0],side=[-sa,ca,0],height=[0,0,1],rings=[12.7,10.8,7.8,4.6,1.1];
  const cols=["#4b392c","#866348","#a17b55","#74553d","#614632"];
- const ringPoint=(rad,i)=>[cap[0]+side[0]*rad*Math.cos(i*TAU/16)+height[0]*rad*Math.sin(i*TAU/16),cap[1]+side[1]*rad*Math.cos(i*TAU/16),cap[2]+rad*Math.sin(i*TAU/16)];
+ const ringPoint=(rad,i)=>[cap[0]+side[0]*rad*size*Math.cos(i*TAU/16),cap[1]+side[1]*rad*size*Math.cos(i*TAU/16),cap[2]+rad*size*Math.sin(i*TAU/16)];
  for(let ri=0;ri<rings.length-1;ri++){
   for(let i=0;i<16;i++){
    quad(ringPoint(rings[ri],i),ringPoint(rings[ri],i+1),ringPoint(rings[ri+1],i+1),ringPoint(rings[ri+1],i),color(cols[ri]));
@@ -210,7 +234,7 @@ function fallenTreeMesh(e,worldYear){
     const at=point(branch.at+branch.len*(.45+j*.14),
      branch.side*branch.len*(.65+j*.11)+(j-1)*4,5+j*1.6);
     const crownColors=["#365e40","#476f46","#567b4e","#31593a"];
-    ellipsoid(at[0],at[1],at[2],8+(j%2)*3,5.6+j*.5,5.5,crownColors[(k+j)%4],angle+branch.side*.46,10,5);
+    ellipsoid(at[0],at[1],at[2],(8+(j%2)*3)*size,(5.6+j*.5)*size,5.5*size,crownColors[(k+j)%4],angle+branch.side*.46,10,5);
    }
   }
  }
@@ -1832,7 +1856,7 @@ function render(o){
   };
   // Rebuild the static room only when the roof changes to its playable cutaway.
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year)].join(",")).join(";"),WORLD.w,WORLD.h,interiorReveal].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year),Number.isFinite(e.fallAtSeconds)?Math.min(12,Math.floor(Math.max(0,((o.elapsed||0)-e.fallAtSeconds)/1.4)*12)):12].join(",")).join(";"),WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    mountainTerrain(isVisible);
@@ -1933,6 +1957,8 @@ function render(o){
     }
    }
    }
+   // Rooted trees occupy identical collision and 2D world positions.
+   for(const tree of o.standingFallTrees||[])if(isVisible(tree.x,tree.y,245))standingGiantTreeMesh(tree);
    // Persistent quake debris, same world positions as the collision geometry.
    for(const e of o.disasterEvents||[]){
     if(e.kind!=="fallen_tree"||!isVisible(e.x,e.y,210))continue;
