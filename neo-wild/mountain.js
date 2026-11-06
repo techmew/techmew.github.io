@@ -233,7 +233,11 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
  for(let i=group.length-1;i>=0;i--){
   const p=group[i];
   if((p.x>=10960&&p.x<=11410&&Math.abs(p.y-meadowTrail(p.x))<p.r+43)||
-      (p.x>=10450&&p.x<=11180&&Math.abs(p.y-passTrailY(p.x))<p.r+100))group.splice(i,1);
+      (p.x>=10450&&p.x<=11180&&Math.abs(p.y-passTrailY(p.x))<p.r+100)||
+      // Keep the actual streambed and its shallow forest ford free of
+      // solid scenery in both renderers and movement collision.
+      (p.x>=HEADWATER_MOUTH&&p.x<=12740&&
+       Math.abs(p.y-headwaterY(p.x))<p.r+headwater.halfWidth+12))group.splice(i,1);
  }
 }
  function blocked(x,y,r=0,sourceTree=null){
