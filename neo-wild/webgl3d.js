@@ -1935,7 +1935,11 @@ function render(o){
     const f01=hash(fi*3+71,(fj+1)*3-19),f11=hash((fi+1)*3+71,(fj+1)*3-19);
     const fine=(f00*(1-tx)+f10*tx)*(1-ty)+(f01*(1-tx)+f11*tx)*ty;
     const waterMask=water?clamp((.015-water(px,py))/.015,0,1):1;
-    return Math.min(snow*.97-(broad*.78+fine*.22),waterMask-.5);
+    // Align visible mountain snow with the continuous elevation/slope field used by terrain.
+    const alpine=typeof window.WildMountain?.snowCover==="function"?window.WildMountain.snowCover(px,py):0;
+    const weatherField=snow*.97-(broad*.78+fine*.22);
+    const alpineField=alpine>0?alpine*(.28+.45*snow)-.13:-1;
+    return Math.min(Math.max(weatherField,alpineField),waterMask-.5);
    };
    // The snow lip thins to the underlying collision terrain at its boundary.
    // Evaluate the same world-space mask at clipped vertices so adjoining
