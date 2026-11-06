@@ -80,7 +80,12 @@ function save(roster){const d=excluded(),seen=new Set();const requested=Array.is
  const prior=read(KEY,null),protectedLiving=prior?.version===1&&Array.isArray(prior.members)?prior.members.filter(m=>m?.id&&!d.has(m.id)&&m.alive!==false):[];
  const combined=requested.slice();
  for(const member of protectedLiving)if(!combined.some(m=>m?.id===member.id))combined.push(member);
- const members=assignSlots(combined.filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));const v={version:1,members,leaderId:members.some(x=>x.id===roster.leaderId)?roster.leaderId:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
+ const members=assignSlots(combined.filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));
+ // Older autosaves must not undo a newer, explicitly selected leader.
+ // A fresh selectActive() uses load() and therefore carries the current updatedAt.
+ const staleLeader=prior?.version===1&&Number.isFinite(prior.updatedAt)&&(!Number.isFinite(roster.updatedAt)||roster.updatedAt<prior.updatedAt);
+ const requestedLeader=staleLeader?prior.leaderId:roster.leaderId;
+ const v={version:1,members,leaderId:members.some(x=>x.id===requestedLeader)?requestedLeader:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
 // Selection is persisted before the renderer is notified; stock animals never spawn as AI.
 function selectActive(id){
  const roster=load();
