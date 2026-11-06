@@ -8,10 +8,19 @@ const reason=value=>causes[value]||String(value||"原因不明").slice(0,36);
 const lived=t=>{const s=Math.max(0,Math.floor(Number(t)||0));return s<60?s+"秒":s<3600?Math.floor(s/60)+"分":Math.floor(s/3600)+"時間"+Math.floor(s%3600/60)+"分"};
 function postText(d=info){
  if(!d)return "";
- const name=d.name===d.speciesName?d.name:d.name+"（"+d.speciesName+"）";
+ const en=window.WildI18n?.locale==="en";
+ const tr=x=>en?window.WildI18n.translate(String(x)):String(x);
+ const name=d.name===d.speciesName?tr(d.name):d.name+(en?" ("+tr(d.speciesName)+")":"（"+d.speciesName+"）");
+ if(en){
+  const seconds=Math.max(0,Math.floor(Number(d.livedSeconds)||0));
+  const duration=seconds<60?seconds+"s":seconds<3600?Math.floor(seconds/60)+"min":Math.floor(seconds/3600)+"h "+Math.floor(seconds%3600/60)+"min";
+  return "[WILD RECLAIM | SURVIVAL RECORD]\n\n"+name+" Lv."+d.level+
+   "\nReached YEAR "+d.year+" | Hunts: "+d.kills+"\nSurvived: "+duration+
+   "\n\nCause: "+tr(reason(d.cause))+"\nHow long could you survive?\n\n"+GAME_URL+"\n#WILDRECLAIM #BrowserGame";
+ }
  return "【WILD RECLAIM｜生存記録】\n\n"+name+" Lv."+d.level+
- "\n到達：YEAR "+d.year+"｜討伐："+d.kills+"体\n生存時間："+lived(d.livedSeconds)+
- "\n\n死因："+reason(d.cause)+"\nこの世界で、あなたは何年生き残れる？\n\n🎮 "+GAME_URL+"\n#WILDRECLAIM #ブラウザゲーム";
+  "\n到達：YEAR "+d.year+"｜討伐："+d.kills+"体\n生存時間："+lived(d.livedSeconds)+
+  "\n\n死因："+reason(d.cause)+"\nこの世界で、あなたは何年生き残れる？\n\n🎮 "+GAME_URL+"\n#WILDRECLAIM #ブラウザゲーム";
 }
 function status(s){if(el("death-share-status"))el("death-share-status").textContent=s}
 function reset(){
@@ -39,6 +48,7 @@ function cover(ctx,img,x,y,w,h){
 }
 function makeCard(sources){
  if(!info)return null;
+ const en=window.WildI18n?.locale==="en",tr=x=>en?window.WildI18n.translate(String(x)):String(x);
  const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=675;
  const c=canvas.getContext("2d");if(!c)return null;
  c.fillStyle="#101b17";c.fillRect(0,0,1200,675);
@@ -50,21 +60,21 @@ function makeCard(sources){
  c.fillStyle=grad;c.fillRect(0,0,1200,410);
  c.textBaseline="middle";c.font="bold 25px sans-serif";c.fillStyle="#e3ede3";c.fillText("WILD RECLAIM",44,52);
  c.textAlign="right";c.fillStyle="#f2ca93";c.fillText("SURVIVAL RECORD",1156,52);c.textAlign="left";
- c.font='900 65px "Noto Sans JP",sans-serif';c.fillStyle="#fff";c.fillText("生存終了",44,345);
+ c.font='900 65px "Noto Sans JP",sans-serif';c.fillStyle="#fff";c.fillText(en?"RUN ENDED":"生存終了",44,345);
  c.fillStyle="#111f1b";c.fillRect(0,402,1200,273);
  const fit=(text,max,limit=30)=>{let t=String(text).slice(0,limit);while(t.length>2&&c.measureText(t).width>max)t=t.slice(0,-2)+"…";return t};
  c.font='800 34px "Noto Sans JP",sans-serif';c.fillStyle="#fff";
- c.fillText(fit(info.name===info.speciesName?info.name:info.name+"｜"+info.speciesName,730),44,452);
- c.font='700 24px "Noto Sans JP",sans-serif';c.fillStyle="#bccdc0";c.fillText("評価 "+(info.grade||"—")+" ・ Lv."+info.level,44,495);
- c.font='600 20px "Noto Sans JP",sans-serif';c.textAlign="right";c.fillText("死因",1154,430);
- c.font='800 23px "Noto Sans JP",sans-serif';c.fillStyle="#edc58f";c.fillText(fit(reason(info.cause),360),1154,474);c.textAlign="left";
+ c.fillText(fit(info.name===info.speciesName?tr(info.name):info.name+(en?" | ":"｜")+tr(info.speciesName),730),44,452);
+ c.font='700 24px "Noto Sans JP",sans-serif';c.fillStyle="#bccdc0";c.fillText((en?"Grade ":"評価 ")+(info.grade||"—")+" · Lv."+info.level,44,495);
+ c.font='600 20px "Noto Sans JP",sans-serif';c.textAlign="right";c.fillText(en?"Cause":"死因",1154,430);
+ c.font='800 23px "Noto Sans JP",sans-serif';c.fillStyle="#edc58f";c.fillText(fit(tr(reason(info.cause)),360),1154,474);c.textAlign="left";
  c.strokeStyle="#395449";c.beginPath();c.moveTo(44,518);c.lineTo(1154,518);c.stroke();
- [["世界YEAR",info.year],["生存時間",lived(info.livedSeconds)],["討伐数",info.kills+"体"],["探索地域",info.area]].forEach(([k,v],i)=>{
+ [[en?"WORLD YEAR":"世界YEAR",info.year],[en?"SURVIVED":"生存時間",lived(info.livedSeconds)],[en?"HUNTS":"討伐数",info.kills+(en?"":"体")],[en?"AREA":"探索地域",tr(info.area)]].forEach(([k,v],i)=>{
   const x=44+i*291;c.font='600 17px "Noto Sans JP",sans-serif';c.fillStyle="#a8b7ae";c.fillText(k,x,549);
   c.font='800 24px "Noto Sans JP",sans-serif';c.fillStyle="#f4f6ef";c.fillText(fit(v,259),x,583);
  });
  c.fillStyle="#2a4138";c.fillRect(0,612,1200,63);
- c.fillStyle="#d9e9dc";c.font='700 19px "Noto Sans JP",sans-serif';c.fillText("この世界で、どこまで生き残れるか。",44,641);
+ c.fillStyle="#d9e9dc";c.font='700 19px "Noto Sans JP",sans-serif';c.fillText(en?"How long can you survive in this world?":"この世界で、どこまで生き残れるか。",44,641);
  c.fillStyle="#f3c992";c.textAlign="right";c.fillText("techmew.github.io/neo-wild/",1154,641);
  return canvas;
 }
