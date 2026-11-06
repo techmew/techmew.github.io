@@ -9,7 +9,12 @@ const CAVE_START=13040,CAVE_END=13450,CAVE_HALF=110;
 const northWood=(x,y)=>x>=CITY_EDGE&&x<=10800&&y>=850&&y<=2600;
 const northTrail=x=>1670+210*Math.sin((x-CITY_EDGE)/650);
 // A continuous woodland-to-foothill saddle, not a separate map or teleport.
-const northPass=(x,y)=>x>=10500&&x<=10700&&y>=2390&&y<=center(x)-570;
+// The old rectangular 200-unit saddle disconnected the northern woods.
+ const passTrailY=x=>{
+  const t=smooth(clamp((x-10450)/730,0,1));
+  return 2350*(1-t)+(center(11180)-435)*t;
+ };
+ const northPass=(x,y)=>x>=10450&&x<=11180&&Math.abs(y-passTrailY(x))<=195;
 const zone=x=>x>=CAVE_START&&x<=CAVE_END?"cave":x>=SUMMIT_START?"summit":x>FOOTHILL_END?"slope":"foothill";
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const center=x=>3770+110*Math.sin((x-WEST)/355)+(x>FOOTHILL_END?95*smooth(clamp((x-FOOTHILL_END)/720,0,1))*Math.sin((x-FOOTHILL_END)/300):0);
@@ -30,10 +35,10 @@ function height(x,y){
     +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
  const meadow=smooth(clamp((x-10380)/450,0,1))*(1-smooth(clamp((x-11450)/440,0,1)))*smooth(clamp((y-center(x)-440)/290,0,1));
  let z=x<=FOOTHILL_END?foot:upper-18*meadow;
- if(x>=CITY_EDGE&&x<10800&&y<3350){
+ if(x>=CITY_EDGE&&x<11180&&y<3350){
   const wood=Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
   const northTransition=smooth(clamp((y-2200)/(center(x)-720-2200),0,1));
-  const eastFade=1-smooth(clamp((x-10510)/290,0,1));
+  const eastFade=1-smooth(clamp((x-10510)/670,0,1));
   const woodWeight=(1-northTransition)*eastFade;
   z=wood*woodWeight+z*(1-woodWeight);
  }
@@ -191,10 +196,11 @@ for(const [x,side] of [[13105,-1],[13210,1],[13320,-1]]){
 }
 // The marked footpath crosses the ravine only on the existing bridge. Keep
 // its actual walking corridor clear of previously generated pine/stone props.
-for(const group of [pines,scree]){
+for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
  for(let i=group.length-1;i>=0;i--){
   const p=group[i];
-  if(p.x>=10960&&p.x<=11410&&Math.abs(p.y-meadowTrail(p.x))<p.r+43)group.splice(i,1);
+  if((p.x>=10960&&p.x<=11410&&Math.abs(p.y-meadowTrail(p.x))<p.r+43)||
+      (p.x>=10450&&p.x<=11180&&Math.abs(p.y-passTrailY(p.x))<p.r+100))group.splice(i,1);
  }
 }
  function blocked(x,y,r=0,sourceTree=null){
