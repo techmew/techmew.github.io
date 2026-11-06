@@ -56,7 +56,7 @@ function height(x,y){
   const mouthFade=smooth(clamp((x-HEADWATER_MOUTH)/180,0,1));
   const bank=(1-smooth(clamp(distance/360,0,1)))*mouthFade;
   const progress=clamp((x-HEADWATER_MOUTH)/(12740-HEADWATER_MOUTH),0,1);
-  const bed=22+310*smooth(progress);
+  const bed=headwaterBed(x);
   z+=(bed-z)*bank;
  }
  return z;
@@ -71,7 +71,17 @@ function headwaterY(x){
  return 2485*(1-t)+(center(10700)-650)*t;
 }
 const headwaterAt=(x,y,r=0)=>x>=HEADWATER_MOUTH&&x<=12740&&Math.abs(y-headwaterY(x))<18+r;
-const headwater=Object.freeze({mouthX:HEADWATER_MOUTH,sourceX:12740,halfWidth:18,yAt:headwaterY,contains:headwaterAt,flowDirection:"west"});
+// Hydrology shares the exact graded bed with terrain sampling and NPC routing.
+function headwaterBed(x){
+ const t=clamp((x-HEADWATER_MOUTH)/(12740-HEADWATER_MOUTH),0,1);
+ return 22+310*smooth(t);
+}
+function headwaterWaterLevel(x){return headwaterBed(x)+2;}
+function headwaterFord(x,y,r=0){
+ // The forest-side ford is deliberately shallow; the highland source is not.
+ return x>=10500&&x<=10980&&Math.abs(y-headwaterY(x))<=18+r;
+}
+const headwater=Object.freeze({mouthX:HEADWATER_MOUTH,sourceX:12740,halfWidth:18,yAt:headwaterY,contains:headwaterAt,bedAt:headwaterBed,waterLevelAt:headwaterWaterLevel,fordAt:headwaterFord,flowDirection:"west"});
 // World-coordinate snow field: adjacent chunks sample identical values at their edges.
 // Elevation and slope control accumulation; smooth noise avoids rectangular tiles.
 function snowCover(x,y,temperature=0){
@@ -245,7 +255,7 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
      Math.abs(y-creek.bridgeY)>creek.bridgeHalf-Math.min(26,r*.45))return true;
  if(Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
  // Shallow forest ford is crossable; deep mountain source requires its bank.
- if(x>11000&&headwaterAt(x,y,r*.35))return true;
+ if(x>10500&&headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
  for(const hut of [...ruins,...ridgeHuts])if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
  for(const p of [...pines,...scree,...alpinePines,...alpineRocks,...caveStones,...caveColumns])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of trees)if(p!==sourceTree&&Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
