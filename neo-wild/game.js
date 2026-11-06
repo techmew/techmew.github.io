@@ -3151,8 +3151,15 @@ function drawCombatFX(){
   if(fx.stage==="hit"){
    // Contact-only dust / claw impact on the actual enemy position.
    const p=pt(0,0),a=pt(-r*.19,-r*.10),b=pt(r*.17,r*.11);
-   trace([a,p,b],2.7,color,.60);
-   oval(pt(0,0),r*.20,r*.09,"#b3a28a",.53);
+   if(fx.type==="elephant"||fx.type==="gorilla"){
+     oval(p,r*.34,r*.15,"#a79e8f",.72);
+     for(let k=-2;k<=2;k++)trace([pt(-r*.15,k*r*.12),pt(-r*.30,k*r*.16)],2.0,"#b6a28e",.65);
+    }else if(fx.type==="crocodile"){
+     for(let k=-2;k<=2;k++)trace([pt(-r*.18,k*r*.11),pt(r*.18,k*r*.17)],2.0,"#a4bfbb",.68);
+    }else if(fx.type==="rhino")trace([a,p,b],3.4,"#c6b8a8",.78);
+    else if(fx.type==="penguin")for(let k=-1;k<=1;k++)trace([pt(-r*.20,k*r*.19),pt(r*.20,k*r*.19)],2,"#d5d8c9",.67);
+    else trace([a,p,b],2.7,color,.60);
+   if(!["macaque","gorilla","elephant","crocodile","rhino","penguin"].includes(fx.type))oval(p,r*.20,r*.09,"#b3a28a",.53);
    continue;
   }
   if(fx.stage==="stomp"){
@@ -3261,7 +3268,7 @@ function drawCombatFX(){
     // A clearly round thrown object and short hand-to-stone motion.
     const stone=pt(r*.75+reach*.8,side*.20,r*.85);
     curve(pt(r*.4,side,r*.54),pt(r*.9,side*.65,r*1.2),stone,2.6,"#c8bba4",.74);
-    if(stone){ctx.globalAlpha=fade*.92;ctx.fillStyle="#9c927e";
+    if(stone&&fx.type!=="macaque"){ctx.globalAlpha=fade*.92;ctx.fillStyle="#9c927e";
      ctx.beginPath();ctx.arc(stone.x,stone.y,Math.max(3,5*zoom),0,Math.PI*2);ctx.fill();}
     break;
    }
@@ -3460,6 +3467,7 @@ function resolveSpeciesSpecial(){
  // Real movement remains collision-checked: lunge cannot cross barriers/water.
  const enemies=specialTargets(spec),primary=enemies[0];
  if(type==="macaque"){
+  if(primary)P.dir=Math.atan2(primary.y-P.y,primary.x-P.x);
   P.specialVisual=.88;P.attackAction=.64;
   emitCombatFX("special",type,"throw",P.x,P.y,P.dir,1,0,P.r);
   launchStone(primary,spec);playEffect("attack",{volume:.20});return 0;
