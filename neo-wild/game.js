@@ -133,6 +133,7 @@ function strongDamageTaken(raw){
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
+let deathSharePending=false;
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,questReady=false,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
 const WORLD_CHRONICLE_KEY="wild-reclaim-world-chronicle-v1";
@@ -1220,6 +1221,7 @@ function show(id){
 }
 function start(newWorld=false){
  if(!ensureWorldReady())return false;
+ deathSharePending=false;window.WildDeathShare?.reset?.();
  resetAnimalMoves();
  window.WildPackTactics?.reset?.();
  scoreRunId=createScoreRunId();
@@ -1403,6 +1405,7 @@ function reconcileRestoredGoals(){
  return mission!==previous;
 }
 function restoreSnapshot(snapshot){
+ deathSharePending=false;window.WildDeathShare?.reset?.();
  if(!squadSnapshotAlive(snapshot))return false;
  migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
@@ -4604,8 +4607,35 @@ function getObjective(){
  const safe=!collides(px,py,P.r+5);
  return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / △・Jで攻撃"};
 }
+
+function createDeathShareRecord(){
+ if(!P)return;
+ const member=P.squadIndividualId?window.WildSquad?.load?.()?.members?.find(m=>m.id===P.squadIndividualId):null;
+ let cause=P.deathReason||"";
+ if(!cause){
+  if(P._ufoAbducting)cause="ufo";
+  else if(P.hunger<=0)cause="starvation";
+  else if((P.poisonTime||0)>0)cause="poison";
+  else if((P.fireBurnTime||0)>0)cause="fire";
+  else if((P.strongWound||0)>0)cause="bleeding";
+  else if(lightningStrike&&Math.hypot((lightningStrike.x||0)-P.x,(lightningStrike.y||0)-P.y)<125)cause="lightning";
+  else{
+   const threat=mobs.filter(m=>m.hp>0&&!m.companion&&!species[m.type]?.prey).sort((a,b)=>dist(P,a)-dist(P,b))[0];
+   cause=threat&&dist(P,threat)<Math.max(150,P.r+threat.r+65)?
+    (STRONG_NAMES[threat.type]||window.WildSquad?.names?.[threat.type]||threat.type)+"の攻撃":"原因不明";
+  }
+ }
+ try{deathSharePending=!!window.WildDeathShare?.prepare?.({
+  name:member?.name||P.squadName||animals[P.type]?.name||P.type,
+  speciesName:member?.speciesName||animals[P.type]?.name||P.type,grade:member?.grade||"",
+  level:P.level,year:Math.floor(elapsed/120),kills,
+  livedSeconds:Math.max(0,elapsed-(Number.isFinite(P.bornAtWorldSeconds)?P.bornAtWorldSeconds:elapsed)),
+  area:districts[regionAt(P.x,P.y)]||"未確認",cause
+ });}catch(err){deathSharePending=false;console.warn("Death share setup failed",err)}
+}
 function beginDeath(){
  if(!P||mode!=="play"||P.hp>0)return false;
+ createDeathShareRecord();
  persistSquadVitals();
  if(P.squadIndividualId&&window.WildSquad){
   const next=window.WildSquad.kill(P.squadIndividualId);
@@ -4659,7 +4689,7 @@ function finish(won=false){
  $("result-stats").innerHTML="<span>YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0")+"</span><span>HUNT "+String(kills).padStart(2,"0")+"</span><span>LEVEL "+String(P.level).padStart(2,"0")+"</span>";
  renderTopScores(scoreRecord);
  if($("best-score"))$("best-score").textContent="BEST SCORE "+String(best).padStart(6,"0");
- $("squad-party-hud")?.classList.add("hidden");show("result");if(!won&&partySurvivors?.members?.length)showSquadDeathPicker(partySurvivors);
+ $("squad-party-hud")?.classList.add("hidden");window.WildDeathShare?.finish?.(won);show("result");if(!won&&partySurvivors?.members?.length)showSquadDeathPicker(partySurvivors);
  else $("squad-death-choice")?.classList.add("hidden");
  if(!deathAlreadyPlayed)playEffect(won?"level":"death");
 }
@@ -7950,6 +7980,11 @@ function drawScene(){
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
+ if(mode==="dying"&&deathSharePending){
+  deathSharePending=false;
+  try{window.WildDeathShare?.capture?.({scene:canvas,gpu:use3D?window.Wild3D?.captureDeathFrame?.():null});}
+  catch(err){console.warn("Death screenshot failed",err)}
+ }
  // Let the dying animal remain visible briefly before the world closes in.
  drawDeathVignette();
 }

@@ -2262,6 +2262,21 @@ function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
   gl.activeTexture(oldState.activeTexture);gl.bindTexture(gl.TEXTURE_2D,oldState.texture2D);
  }
 }
-window.Wild3D={available:true,render,previewAnimal:bestiaryRender,get frames(){return frames},
+
+function captureDeathFrame(){
+ if(failed||!gl||!canvas.width||!canvas.height)return null;
+ const w=canvas.width,h=canvas.height,bytes=new Uint8Array(w*h*4);
+ try{
+  const previous=gl.getParameter(gl.FRAMEBUFFER_BINDING);
+  try{gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,bytes)}
+  finally{gl.bindFramebuffer(gl.FRAMEBUFFER,previous)}
+  const buffer=document.createElement("canvas");buffer.width=w;buffer.height=h;
+  const b=buffer.getContext("2d"),im=b.createImageData(w,h);im.data.set(bytes);b.putImageData(im,0,0);
+  const screen=document.createElement("canvas");screen.width=w;screen.height=h;
+  const c=screen.getContext("2d");c.translate(0,h);c.scale(1,-1);c.drawImage(buffer,0,0);
+  return screen;
+ }catch(err){console.warn("Death WebGL readback failed",err);return null}
+}
+window.Wild3D={available:true,render,captureDeathFrame,previewAnimal:bestiaryRender,get frames(){return frames},
  get stats(){return {staticRebuilds,staticTriangles:staticCount/3,dynamicTriangles:dynamicCount/3}}};
 })();
