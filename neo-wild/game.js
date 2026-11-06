@@ -447,12 +447,14 @@ function seekWildCarcasses(){
  let seekers=0;
  for(const m of mobs){
   if(seekers>=3)break;
-  if(!m||m.hp<=0||m.companion||m.releasedIndividualId||m.strongBoss||species[m.type]?.prey)continue;
+  if(!m||m.hp<=0||m.companion||m.releasedIndividualId||m.strongBoss||species[m.type]?.prey||
+    m.feedClaimToken&&m.feedClaimUntil>elapsed)continue;
   if(m.hp>=m.maxHp*.78||(m.alert||0)>0||(m.flee||0)>0||(m.stun||0)>0)continue;
   if(Math.hypot(m.x-P.x,m.y-P.y)<230)continue;
   let target=null,best=500;
   for(const c of carcasses){
-   if(c.type!=="corpse"||c.ttl<=0||c.amount<5)continue;
+   if(c.type!=="corpse"||c.ttl<=0||c.amount<5||
+    c.claimedBy&&c.claimUntil>elapsed&&c.claimedBy!==m.feedClaimToken)continue;
    const d=Math.hypot(c.x-m.x,c.y-m.y);
    if(d<best&&d>Math.max(55,m.r+32)&&!lineBlocked(m,c)){target=c;best=d;}
   }
@@ -478,6 +480,7 @@ function forageWildCarcasses(){
   if(m.hp<=0||m.releasedIndividualId||m.companion||m.strongBoss||species[m.type]?.prey)continue;
   if(m.hp>=m.maxHp*.92||Math.hypot(m.x-P.x,m.y-P.y)<170)continue;
   const food=carcasses.find(c=>c.type==="corpse"&&c.ttl>0&&c.amount>=5&&
+   !(c.claimedBy&&c.claimUntil>elapsed&&c.claimedBy!==m.feedClaimToken)&&
    Math.hypot(c.x-m.x,c.y-m.y)<Math.max(75,m.r+45)&&!lineBlocked(m,c));
   if(!food)continue;
   const bite=Math.min(food.amount,Math.max(5,Math.round(m.maxHp*.035)));
@@ -1499,6 +1502,9 @@ function restoreSnapshot(snapshot){
   m.forageCooldown=clamp(Number(m.forageCooldown)||0,0,8);
   m.foragePose=0;
   m.feedAfterKill=clamp(Number(m.feedAfterKill)||0,0,8);
+  m.feedClaimToken=typeof m.feedClaimToken==="string"&&m.feedClaimToken.length<80?m.feedClaimToken:null;
+  m.feedClaimUntil=Number.isFinite(m.feedClaimUntil)?Math.max(0,m.feedClaimUntil):0;
+  m.feedBitesRemaining=Number.isFinite(m.feedBitesRemaining)?clamp(Math.floor(m.feedBitesRemaining),0,6):0;
   m.scavengeNeed=Number.isFinite(m.scavengeNeed)?clamp(m.scavengeNeed,0,1):null;
   m.scavengeCooldown=clamp(Number(m.scavengeCooldown)||0,0,8);
   m.thirstNeed=Number.isFinite(m.thirstNeed)?clamp(m.thirstNeed,0,1):null;
@@ -1867,7 +1873,7 @@ function aquaticBankHunt(m,s,dt,playerDistance){
  if(prey.hp>0){
   if(!startlePrey(prey,m,"hit")){prey.flee=Math.max(prey.flee||0,1.8);prey.fleeThreatX=m.x;prey.fleeThreatY=m.y;}
  }else{
-  carcasses.push(animalRemains(prey));
+  claimPredatorKill(m,prey);
   if(species[prey.type]?.prey){const zone=regionAt(prey.x,prey.y);if(ecology[zone])ecology[zone].prey=Math.max(4,ecology[zone].prey-1);}
  }
  if(playerDistance<390)label(prey.x,prey.y-prey.r-20,prey.hp>0?"水辺の襲撃 -"+bite:"水辺の狩り","#f5c7a0");
@@ -2247,7 +2253,7 @@ function updateFlyingEagle(m,dt){
     const q=mobs.find(q=>q!==m&&q.hp>0&&species[q.type]?.prey&&dist(q,m)<q.r+m.r+22&&!insideShelter(q)&&!lineBlocked(m,q));
     if(q){
      q.hp=Math.max(0,q.hp-Math.round(s.damage*.75));q.flash=.2;m.airHit=true;
-     if(q.hp<=0){carcasses.push(animalRemains(q));m.feedAfterKill=8;
+     if(q.hp<=0){claimPredatorKill(m,q);
       const zone=regionAt(q.x,q.y);ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
      }else startlePrey(q,m,"hit");
      if(dist(P,m)<480)label(q.x,q.y-30,"大鷲の狩り","#ffd7a2");
@@ -3467,7 +3473,8 @@ function scavengeWildFood(m,sp,dt,spotted,playerDistance){
     Math.abs(q.x-m.x)<175&&Math.abs(q.y-m.y)<175&&dist(m,q)<175))return null;
  let target=null,best=290*290;
  for(const c of carcasses){
-  if(!edibleFood(c)||(c.type!=="corpse"&&c.type!=="meat"))continue;
+  if(!edibleFood(c)||(c.type!=="corpse"&&c.type!=="meat")||
+   (c.claimedBy&&c.claimUntil>elapsed&&c.claimedBy!==m.feedClaimToken))continue;
   const dx=c.x-m.x,dy=c.y-m.y,d2=dx*dx+dy*dy;
   if(d2<best&&(d2>Math.pow(m.r+(c.r||9)+18,2)||!lineBlocked(m,c))){best=d2;target=c}
  }
@@ -3592,10 +3599,69 @@ function drinkWildWater(m,sp,dt,spotted,playerDistance){
  return {vx:0,vy:0};
 }
 function animalRemains(m){const n=species[m.type].food;return {x:m.x,y:m.y,r:Math.max(9,m.r*.78),type:"corpse",animalType:m.type,amount:n,initialAmount:n,ttl:150,phase:rnd(0,6)};}
+
+function claimPredatorKill(killer,prey){
+ const corpse=animalRemains(prey);
+ const token="kill-"+Math.floor(elapsed*1000).toString(36)+"-"+Math.random().toString(36).slice(2,12);
+ corpse.claimedBy=token;corpse.claimUntil=elapsed+24;
+ killer.feedClaimToken=token;killer.feedClaimUntil=corpse.claimUntil;
+ killer.feedBitesRemaining=Math.min(6,Math.max(2,Math.ceil(corpse.amount/Math.max(8,(species[killer.type]?.damage||12)*.45+4))));
+ killer.feedAfterKill=8;killer.scavengeCooldown=0;
+ killer.scavengeNeed=Math.max(.95,Number(killer.scavengeNeed)||0);
+ killer.wildTargetX=null;killer.wildTargetY=null;killer.wildTargetAt=-1;
+ carcasses.push(corpse);return corpse;
+}
+function eatClaimedKill(m,sp,dt,playerDistance){
+ if(!m.feedClaimToken)return false;
+ const c=carcasses.find(f=>f.type==="corpse"&&f.amount>0&&f.ttl>0&&f.claimedBy===m.feedClaimToken&&f.claimUntil>elapsed);
+ if(!c){
+  m.feedClaimToken=null;m.feedClaimUntil=0;m.feedBitesRemaining=0;m.feedAfterKill=0;
+  if(m.type==="giantEagle"&&m.airPhase==="feeding"){m.airPhase="climb";m.airTimer=.9;}
+  return false;
+ }
+ if(m.stun>0||m.flee>0||m.windup>0||m.chargeTime>0||(playerDistance<135&&((m.alert||0)>0||(m.search||0)>0)))return false;
+ const range=(m.r||20)+(c.r||9)+18,distance=Math.hypot(c.x-m.x,c.y-m.y);
+ if(distance>450)return false;
+ const ox=m.x,oy=m.y;
+ if(m.type==="giantEagle"){m.airHeight=Math.max(10,(Number(m.airHeight)||125)-dt*150);m.airPhase="feeding";m.airTimer=1.1;}
+ if(distance>range){
+  m.dir=steerPursuit(m,c.x,c.y);
+  const stride=Math.min(distance-range*.65,(sp.speed||135)*.72*dt);
+  if(isAquaticStrong(m))aquaticMove(m,Math.cos(m.dir)*stride,Math.sin(m.dir)*stride);
+  else if(clearStep(m,m.dir,Math.min(35,stride))&&!lineBlocked(m,c))
+   move(m,Math.cos(m.dir)*stride,Math.sin(m.dir)*stride);
+  m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);
+  m.step=(m.step||0)+Math.hypot(m.x-ox,m.y-oy)*.05;return true;
+ }
+ m.vx=0;m.vy=0;m.dir=Math.atan2(c.y-m.y,c.x-m.x);
+ if(m.type==="giantEagle"&&m.airHeight>14)return true;
+ if(lineBlocked(m,c))return false;
+ m.scavengeCooldown=Math.max(0,(m.scavengeCooldown||0)-dt);
+ m.scavengePose=Math.max(.6,(m.scavengePose||0)-dt);m.wander=Math.max(m.wander||0,.35);
+ if(m.scavengeCooldown<=0){
+  const bite=Math.min(c.amount,Math.max(7,Math.round((sp.damage||12)*.44)+4));
+  c.amount-=bite;m.hp=Math.min(m.maxHp||m.hp,m.hp+Math.min(9,bite*.60));
+  m.feedBitesRemaining=Math.max(0,(m.feedBitesRemaining||1)-1);
+  m.scavengeCooldown=1.05;m.scavengePose=1.1;m.scavengeNeed=Math.max(0,(m.scavengeNeed||1)-.15);
+  m.swing=Math.max(m.swing||0,.19);
+  if(playerDistance<420)label(m.x,m.y-m.r-26,"獲物を食べる","#d9f0b9");
+  if(c.amount<=0||m.feedBitesRemaining===0){
+   c.claimUntil=elapsed;c.claimedBy=null;
+   if(c.amount<=0)toBones(c);
+   m.feedClaimToken=null;m.feedClaimUntil=0;m.feedAfterKill=0;
+   if(m.type==="giantEagle"){m.airPhase="climb";m.airTimer=.9;}
+  }
+ }
+ return true;
+}
+// Own-kill reservation prevents scavenger theft, but remaining meat is public
+// once the feeding session ends or its 24-second lease expires.
 const BONE_LIFETIME=45; // Seconds of actual unpaused game time.
 function toBones(c){c.type="bones";c.amount=0;c.ttl=BONE_LIFETIME;}
 function normalizeRemains(c){
  if(!c||typeof c!=="object")return;
+ c.claimedBy=typeof c.claimedBy==="string"&&c.claimedBy.length<80?c.claimedBy:null;
+ c.claimUntil=Number.isFinite(c.claimUntil)?Math.max(0,c.claimUntil):0;
  if(c.type==="bones")c.ttl=clamp(Number.isFinite(c.ttl)?c.ttl:BONE_LIFETIME,0,BONE_LIFETIME);
  if(c.type==="corpse"&&(!Number.isFinite(c.initialAmount)||c.initialAmount<=0))
   c.initialAmount=Math.max(1,Number(c.amount)||1);
@@ -4758,7 +4824,7 @@ function defendBuffaloHerd(m){
  return true;
 }
 function huntWildPrey(m,sp,spotted,playerDistance){
- if(!isWildPredator(m)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
+ if(!isWildPredator(m)||(m.feedClaimToken&&m.feedClaimUntil>elapsed)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0){
   m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;
@@ -4833,9 +4899,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   if(prey.hp>0){
    if(!startlePrey(prey,m,"hit")){prey.flee=1.8;prey.dir=Math.atan2(prey.y-m.y,prey.x-m.x);}
   }else{
-   carcasses.push(animalRemains(prey));
-   m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;
-   m.feedAfterKill=8;m.scavengeNeed=Math.max(.82,Number(m.scavengeNeed)||0);
+   claimPredatorKill(m,prey);
    if(species[prey.type].prey){
     const zone=regionAt(prey.x,prey.y);
     ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
@@ -5745,6 +5809,7 @@ function update(dt){
    }
   }
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
+  if(eatClaimedKill(m,s,dt,d))continue;
   if(m.type==="dog"&&updateFoodThief(m,dt,d))continue;
   if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);else{m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(m.type==="chimpanzee"){if(d<WILDLIFE.farAI)updateChimpanzee(m,dt,d);else{m.chimpStone=null;m.chimpTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
