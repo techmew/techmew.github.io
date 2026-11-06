@@ -49,15 +49,15 @@ function height(x,y){
   const outlet=1-smooth(clamp((x-12540)/200,0,1));
   if(distance<54)z-=7*inlet*outlet*Math.pow(1-distance/54,2);
  }
- // Keep the tributary bed downhill from the eastern source to the forest.
- // Broad continuous banks prevent the former 10500-10700 elevation step.
- if(x>=10460&&x<=12740){
+ // Grade the complete tributary from the forest confluence to its source.
+ // The bank blend is continuous across the mouth and former 10460 boundary.
+ if(x>=HEADWATER_MOUTH&&x<=12740){
   const riverY=headwaterY(x),distance=Math.abs(y-riverY);
-  const reach=smooth(clamp((x-10460)/110,0,1));
-  const bank=1-smooth(clamp(distance/360,0,1));
-  const progress=clamp((x-10500)/(12740-10500),0,1);
-  const bed=40+292*smooth(progress);
-  z+= (bed-z)*bank*reach;
+  const mouthFade=smooth(clamp((x-HEADWATER_MOUTH)/180,0,1));
+  const bank=(1-smooth(clamp(distance/360,0,1)))*mouthFade;
+  const progress=clamp((x-HEADWATER_MOUTH)/(12740-HEADWATER_MOUTH),0,1);
+  const bed=22+310*smooth(progress);
+  z+=(bed-z)*bank;
  }
  return z;
 }
