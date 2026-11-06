@@ -44,6 +44,16 @@ function height(x,y){
  const blend=smooth(clamp((x-10380)/450,0,1))*(1-smooth(clamp((x-11450)/440,0,1)))*smooth(clamp((y-center(x)-440)/290,0,1));
  return raw-18*blend;
 }
+// World-coordinate snow field: adjacent chunks sample identical values at their edges.
+// Elevation and slope control accumulation; smooth noise avoids rectangular tiles.
+function snowCover(x,y,temperature=0){
+ if(!active(x,y)||x<FOOTHILL_END)return 0;
+ const z=height(x,y),step=24;
+ const gradient=Math.hypot(height(x+step,y)-height(x-step,y),height(x,y+step)-height(x,y-step))/(2*step);
+ const noise=(Math.sin(x*.0037+y*.0021)+.5*Math.sin(x*.0103-y*.0087)+.25*Math.cos(x*.023+y*.017))/1.75;
+ const threshold=245+Math.max(-35,Math.min(35,Number(temperature)||0))*2+gradient*75+noise*62;
+ return smooth(clamp((z-threshold)/55,0,1));
+}
 function trail(x){return center(x);}
 // Spawn along the same traversable ridge and cave passage used by collision.
 // Never create extra wildlife slots: the caller enforces the global/local caps.
@@ -396,6 +406,6 @@ function draw2D(ctx,visible){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,draw2D});
 window.WildMountain=api;
 })();
