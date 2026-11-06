@@ -40,3 +40,52 @@
  #menu .flag-lang-button{min-width:69px;min-height:38px;padding:5px 9px;font-size:12px}
  #menu .flag-emoji{font-size:22px}
 }
+
+/* 2026-11-07: title flags are siblings of .menu-shell, not part of the
+   scrollable, landscape-grid content. Keep them pinned to the MENU top-right. */
+#menu > #language-title.flag-language-title{
+ position:absolute !important;
+ top:calc(9px + env(safe-area-inset-top, 0px)) !important;
+ right:calc(12px + env(safe-area-inset-right, 0px)) !important;
+ left:auto !important;
+ bottom:auto !important;
+ width:max-content !important;
+ max-width:calc(100% - 20px);
+ z-index:90 !important;
+ display:flex !important;
+ flex-direction:row;
+ justify-content:flex-end;
+ align-items:center;
+ grid-column:auto !important;
+ grid-row:auto !important;
+ margin:0 !important;
+ padding:5px 6px !important;
+ gap:7px;
+ min-height:0;
+ border:1px solid rgba(227,240,206,.65);
+ border-radius:14px;
+ background:rgba(5,23,18,.92);
+ box-shadow:0 3px 16px rgba(0,0,0,.64);
+ backdrop-filter:blur(6px);
+ pointer-events:auto;
+}
+#menu > #language-title .flag-lang-button{
+ min-height:42px;
+ min-width:75px;
+ padding:6px 11px 6px 8px;
+ flex-shrink:0;
+}
+@media(max-width:420px){
+ #menu > #language-title.flag-language-title{
+  top:calc(6px + env(safe-area-inset-top, 0px)) !important;
+  right:calc(7px + env(safe-area-inset-right, 0px)) !important;
+  padding:4px 5px !important;
+  gap:5px;
+ }
+ #menu > #language-title .flag-lang-button{min-height:36px;min-width:65px;padding:5px 8px;font-size:12px}
+ #menu > #language-title .flag-emoji{font-size:22px}
+}
+@media(orientation:landscape) and (max-height:570px){
+ #menu > #language-title.flag-language-title{top:calc(4px + env(safe-area-inset-top, 0px)) !important;right:calc(7px + env(safe-area-inset-right, 0px)) !important;padding:3px 5px !important}
+ #menu > #language-title .flag-lang-button{min-height:32px;min-width:64px}
+}
