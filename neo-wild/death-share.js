@@ -2,7 +2,7 @@
 "use strict";
 const GAME_URL="https://techmew.github.io/neo-wild/";
 const el=id=>document.getElementById(id);
-let info=null,png=null,preview=null;
+let info=null,png=null,preview=null,version=0;
 const causes={ufo:"UFOに捕獲",starvation:"餓死",poison:"毒による衰弱",fire:"火災",lightning:"落雷",bleeding:"出血"};
 const reason=value=>causes[value]||String(value||"原因不明").slice(0,36);
 const lived=t=>{const s=Math.max(0,Math.floor(Number(t)||0));return s<60?s+"秒":s<3600?Math.floor(s/60)+"分":Math.floor(s/3600)+"時間"+Math.floor(s%3600/60)+"分"};
@@ -15,6 +15,7 @@ function postText(d=info){
 }
 function status(s){if(el("death-share-status"))el("death-share-status").textContent=s}
 function reset(){
+ version++;
  if(preview)URL.revokeObjectURL(preview);
  preview=null;png=null;info=null;
  const img=el("death-share-preview");if(img)img.removeAttribute("src");
@@ -71,8 +72,9 @@ function capture(sources){
  if(!info||png)return false;
  let image=null;try{image=makeCard(sources||{})}catch(err){console.warn("Death card rendering failed",err)}
  if(!image){status("実際の死亡シーンを取得できませんでした。");return false}
+ const captureVersion=version;
  image.toBlob(blob=>{
-  if(!info)return;
+  if(!info||captureVersion!==version)return;
   if(!blob){status("PNGを生成できませんでした。");return}
   png=blob;preview=URL.createObjectURL(blob);
   const node=el("death-share-preview");if(node){node.src=preview;node.alt="死亡直前の3Dゲーム画面と生存記録";}
@@ -95,13 +97,14 @@ async function share(){
    const file=new File([png],"wild-reclaim-YEAR-"+info.year+".png",{type:"image/png"});
    if(navigator.canShare({files:[file]})){
     await navigator.share({files:[file],text,title:"WILD RECLAIM 生存記録"});
-    status("画像と文章を共有先へ渡しました。投稿前に内容を確認してください。");return;
+    status("共有先でXを選び、画像と本文を確認して投稿してください。");return;
    }
   }catch(err){if(err?.name==="AbortError"){status("共有をキャンセルしました。");return}console.warn("Image share failed",err)}
  }
  // X Web Intent has no local screenshot attachment. User must attach downloaded PNG.
  const intent="https://twitter.com/intent/tweet?text="+encodeURIComponent(text);
- const tab=window.open(intent,"_blank","noopener,noreferrer");if(!tab)window.location.href=intent;
+ const link=document.createElement("a");link.href=intent;link.target="_blank";link.rel="noopener noreferrer";
+ document.body.appendChild(link);link.click();link.remove();
  status("X投稿画面を開きました。画像を保存してXに添付してください。");
 }
 el("death-share-download")?.addEventListener("click",download);
