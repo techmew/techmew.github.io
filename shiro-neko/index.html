@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#e9e1d8"/>
+<title>しろねこ ふれあい 3D</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#3e352f}
+*{box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;margin:0;background:#d6c7ba;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+#view{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
+#view.pet{cursor:pointer}
+.hud{position:fixed;z-index:2;pointer-events:none}
+.top{top:max(14px,env(safe-area-inset-top));left:15px;right:15px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.logo{padding:12px 15px;border-radius:19px;background:rgba(255,253,248,.83);box-shadow:0 7px 35px #67584b26;backdrop-filter:blur(15px)}
+.logo h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.07em}.logo p{margin:4px 0 0;color:#867568;font-size:10px;letter-spacing:.08em}
+.stats{min-width:143px;max-width:174px;padding:10px 12px;border-radius:17px;background:rgba(255,253,248,.88);box-shadow:0 7px 35px #67584b26;backdrop-filter:blur(15px)}
+.stat{display:flex;align-items:center;justify-content:space-between;gap:7px;font-weight:700;font-size:11px;margin-bottom:5px}.stat~.stat{margin-top:8px}.stat strong{font-size:10px}
+.rail{height:6px;border-radius:9px;background:#dddad3;overflow:hidden}.fill{height:100%;border-radius:9px;width:50%;background:linear-gradient(90deg,#ffbf8c,#eb8f94);transition:width .35s}.fill.stress{background:linear-gradient(90deg,#e7c078,#d57c72)}
+.bottom{bottom:max(16px,env(safe-area-inset-bottom));left:12px;right:12px;display:flex;justify-content:center;align-items:flex-end;flex-direction:column;gap:9px;max-width:530px;margin:auto}
+.panel{pointer-events:auto;display:flex;align-items:center;gap:5px;padding:5px;border:1px solid #ffffffa3;border-radius:19px;background:#fffcf3ed;box-shadow:0 5px 30px #55483935;backdrop-filter:blur(10px);width:100%;justify-content:space-between}
+button{appearance:none;border:0;border-radius:15px;background:transparent;padding:11px 12px;color:#5d5146;font-weight:800;font-size:12px;white-space:nowrap;cursor:pointer}
+button[aria-pressed=true]{background:#e8bcad;color:#523c39;box-shadow:inset 0 1px 4px #c58d8233}button:focus-visible{outline:3px solid #c98974}
+#toast{min-height:45px;max-width:min(90vw,420px);padding:12px 17px;border-radius:20px;color:#574640;background:#fffaf4ec;box-shadow:0 8px 25px #7e594433;text-align:center;font-size:13px;line-height:1.55;align-self:center;backdrop-filter:blur(15px);opacity:0;transform:translateY(7px);transition:opacity .3s,transform .3s}
+#toast.show{opacity:1;transform:translateY(0)}
+.side{right:13px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.side button{width:52px;height:52px;white-space:normal;border-radius:50%;background:#fffaf1e8;box-shadow:0 5px 20px #5442382e;font-size:10px;line-height:1.3;padding:6px}
+.help{left:50%;transform:translateX(-50%);top:83px;background:#fffef8b5;border-radius:13px;padding:7px 12px;font-size:11px;color:#847367;text-align:center;max-width:80vw;white-space:nowrap}
+#heartFx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:4}.heart{position:absolute;font-size:23px;animation:float 1.4s ease-out forwards;text-shadow:0 3px 6px #7450462c}@keyframes float{from{opacity:0;transform:translate(-50%,10px) scale(.8)}25%{opacity:1}to{opacity:0;transform:translate(-50%,-105px) scale(1.2)}}
+#loading{position:fixed;inset:0;z-index:12;display:grid;place-items:center;background:#e7ded5;color:#55463d;font-size:13px;letter-spacing:.1em;transition:opacity .5s}
+#loading.done{opacity:0;pointer-events:none}
+@media(max-width:390px){.top{left:9px;right:9px}.logo{padding:10px 11px}.logo h1{font-size:13px}.stats{min-width:123px;padding:9px}.help{top:75px;font-size:10px}.panel button{font-size:11px;padding:10px 7px}}
+@media(min-width:700px){.bottom{max-width:480px}.logo h1{font-size:20px}.stats{max-width:185px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="view" class="pet" aria-label="白猫をなでたり回転させる3Dゲーム"></canvas>
+<div id="loading">白猫を呼んでいます……</div>
+<header class="hud top"><div class="logo"><h1>しろねこ ふれあい 3D</h1><p>WHITE CAT / LITTLE COMPANION</p></div><div class="stats"><div class="stat"><span>ごきげん</span><strong id="moodLabel">ふつう</strong></div><div class="rail"><div class="fill" id="moodFill"></div></div><div class="stat"><span>刺激</span><strong id="stressLabel">おだやか</strong></div><div class="rail"><div class="fill stress" id="stressFill"></div></div></div></header>
+<div id="help" class="hud help">なでる：白猫をゆっくりスワイプ / 回転：視点を動かす</div>
+<div class="hud side"><button id="bellyBtn" title="おなかを見せる">おなか<br>ごろん</button><button id="resetView" title="カメラを正面に戻す">正面<br>に戻す</button></div>
+<div class="hud bottom"><div id="toast" role="status" aria-live="polite"></div><div class="panel"><button id="petBtn" aria-pressed="true">手でなでる</button><button id="orbitBtn" aria-pressed="false">360° 回転</button><button id="soundBtn" aria-pressed="false">音 OFF</button><button id="resetBtn" title="猫の機嫌をリセット">休憩</button></div></div>
+<div id="heartFx"></div>
+<script type="module">
+import * as THREE from 'three';
+const $=id=>document.getElementById(id), canvas=$('view');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#d2c2b4');scene.fog=new THREE.Fog('#d2c2b4',8,14);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight,false);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.09,80);
+const target=new THREE.Vector3(0,.9,0);let yaw=.37,pitch=.16,distance=4.65;
+function placeCamera(){const c=Math.cos(pitch);camera.position.set(target.x+Math.sin(yaw)*c*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*c*distance);camera.lookAt(target)}placeCamera();
+scene.add(new THREE.HemisphereLight(0xfdf7ef,0x8d776a,1.38));
+function areaLight(color,power,x,y,z,size){const l=new THREE.DirectionalLight(color,power);l.position.set(x,y,z);l.castShadow=true;l.shadow.mapSize.set(1024,1024);l.shadow.camera.left=-5;l.shadow.camera.right=5;l.shadow.camera.top=5;l.shadow.camera.bottom=-5;l.shadow.bias=-.0003;l.shadow.radius=size;scene.add(l)}
+areaLight(0xffeee4,2.05,-2.5,5,4,4);const fillLight=new THREE.DirectionalLight(0xe9f4ff,.65);fillLight.position.set(4,2,-2);scene.add(fillLight);
+const pillowMat=new THREE.MeshStandardMaterial({color:'#ad9886',roughness:1});
+const pillow=new THREE.Mesh(new THREE.CylinderGeometry(1.92,1.85,.25,80),pillowMat);pillow.scale.z=.85;pillow.position.y=-.10;pillow.receiveShadow=true;scene.add(pillow);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#c4b09e',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.23;floor.receiveShadow=true;scene.add(floor);
+const mat=(color,roughness=.9)=>new THREE.MeshPhysicalMaterial({color,roughness,metalness:0,clearcoat:0});
+const white=mat('#fffaf1'),cream=mat('#e9e5dd'),pink=mat('#d99296'),pinkIn=mat('#c88489'),dark=mat('#393431'),eyeWhite=mat('#dddbcf',.4),iris=mat('#9da67b',.28),black=mat('#181a19',.15),mouthDark=mat('#624449');
+const bodyRig=new THREE.Group();scene.add(bodyRig);
+const model=new THREE.Group();model.position.y=-.9;bodyRig.position.y=.9;bodyRig.add(model);
+const ball=new THREE.SphereGeometry(1,32,24);
+function ell(parent,name,x,y,z,sx,sy,sz,material,rotZ=0){const m=new THREE.Mesh(ball,material);m.name=name;m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.z=rotZ;m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+// A slight dappled surface and scattered fine hairs give the white coat a soft appearance.
+const furCanvas=document.createElement('canvas');furCanvas.width=256;furCanvas.height=256;
+const fc=furCanvas.getContext('2d'),noise=fc.createImageData(256,256);
+for(let i=0;i<noise.data.length;i+=4){const n=220+Math.floor(Math.random()*36);noise.data[i]=n;noise.data[i+1]=n;noise.data[i+2]=n-2;noise.data[i+3]=255}fc.putImageData(noise,0,0);
+const furBump=new THREE.CanvasTexture(furCanvas);furBump.wrapS=furBump.wrapT=THREE.RepeatWrapping;furBump.repeat.set(3,3);
+for(const m of [white,cream]){m.roughness=.99;m.sheen=1;m.sheenColor=new THREE.Color('#fefbf4');m.sheenRoughness=.88;m.bumpMap=furBump;m.bumpScale=.022;m.needsUpdate=true}
+const torso=ell(model,'からだ',0,.94,-.27,.78,.55,.97,white);torso.rotation.x=-.08;
+ell(model,'胸',0,.98,.40,.64,.56,.5,white);
+const haunchL=ell(model,'左もも',-.61,.61,-.64,.36,.43,.53,white,.12),haunchR=ell(model,'右もも',.61,.61,-.64,.36,.43,.53,white,-.12);
+function paw(name,x,z,back=false){const g=new THREE.Group();g.position.set(x,0,z);model.add(g);ell(g,name+'足',0,.48,back?-.15:0,.21,back?.39:.49,.23,white,back?(x<0?-.2:.2):0);ell(g,name+'肉球の上',0,.15,.15,.23,.16,.29,white);for(let i=-1;i<=1;i++)ell(g,name+'指',i*.115,.095,.35,.076,.075,.145,white);return g}
+const pawFL=paw('左前',-.44,.61),pawFR=paw('右前',.44,.61),pawBL=paw('左後',-.6,-.86,true),pawBR=paw('右後',.6,-.86,true);
+// Curved tapered tail segments respond independently to mood.
+const tailRoot=new THREE.Group();tailRoot.position.set(.53,.87,-1.02);model.add(tailRoot);
+let tailSegmentParent=tailRoot;const tailBones=[];
+for(let i=0;i<10;i++){const seg=new THREE.Group();if(i)seg.position.z=-.18;tailSegmentParent.add(seg);ell(seg,'しっぽ',i===0?0:.015,i*.012,-.12,.16-i*.010,.15-i*.008,.23,white);tailBones.push(seg);tailSegmentParent=seg}
+const head=new THREE.Group();head.position.set(0,1.40,.70);model.add(head);
+ell(head,'頭',0,.07,.065,.57,.48,.47,white);
+ell(head,'左ほほ',-.32,-.11,.32,.27,.29,.25,white);ell(head,'右ほほ',.32,-.11,.32,.27,.29,.25,white);
+ell(head,'あご',0,-.26,.39,.30,.17,.26,white);
+ell(head,'左口元',-.125,-.23,.51,.18,.115,.135,white);ell(head,'右口元',.125,-.23,.51,.18,.115,.135,white);
+const biteMouth=ell(head,'口',0,-.298,.524,.165,.015,.018,mouthDark);
+const tongue=ell(head,'舌',0,-.32,.54,.092,.015,.02,pink);
+// Ears built with curved silhouettes, pale-pink inset.
+function earShape(inset=false){const s=new THREE.Shape();if(!inset){s.moveTo(-.205,0);s.bezierCurveTo(-.25,.12,-.18,.43,-.105,.57);s.quadraticCurveTo(-.076,.62,-.02,.54);s.quadraticCurveTo(.20,.26,.2,.005);s.quadraticCurveTo(.015,-.11,-.205,0)}else{s.moveTo(-.138,.045);s.quadraticCurveTo(-.15,.29,-.084,.46);s.quadraticCurveTo(-.046,.51,-.023,.45);s.quadraticCurveTo(.104,.24,.13,.035);s.quadraticCurveTo(-.007,-.03,-.138,.045)}return s}
+function makeEar(x){const root=new THREE.Group();root.position.set(x,.37,.075);root.rotation.z=x<0?.16:-.16;head.add(root);const outer=new THREE.Mesh(new THREE.ExtrudeGeometry(earShape(),{depth:.085,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:3,curveSegments:10}),white);outer.rotation.y=x<0?-.08:.08;outer.castShadow=true;root.add(outer);const inside=new THREE.Mesh(new THREE.ShapeGeometry(earShape(true),20),pinkIn);inside.position.z=.135;root.add(inside);return root}
+const ears=[makeEar(-.385),makeEar(.385)];
+const eyes=[];
+for(const s of [-1,1]){
+  const eg=new THREE.Group();eg.position.set(s*.25,.15,.412);eg.rotation.y=s*-.21;head.add(eg);
+  ell(eg,'目のふち',0,0,0,.162,.109,.05,cream);
+  ell(eg,'白目',0,0,.038,.136,.093,.045,eyeWhite);
+  ell(eg,'虹彩',0,-.005,.079,.073,.080,.017,iris);
+  ell(eg,'瞳孔',0,-.005,.095,.027,.073,.009,black);
+  ell(eg,'ハイライト',-.024,.035,.103,.014,.017,.006,eyeWhite);
+  const lid=ell(eg,'上まぶた',0,.105,.093,.159,.012,.022,white);eyes.push({eg,lid});
+}
+const nose=new THREE.Mesh(new THREE.ConeGeometry(.105,.12,3),pink);nose.rotation.x=Math.PI/2;nose.rotation.y=Math.PI; nose.position.set(0,-.165,.64);nose.scale.set(1,.8,.55);head.add(nose);
+function line(parent,pts,color=0x73615e,r=.006){let path=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));let mesh=new THREE.Mesh(new THREE.TubeGeometry(path,16,r,3,false),new THREE.MeshStandardMaterial({color,roughness:1}));parent.add(mesh);return mesh}
+line(head,[[0,-.22,.63],[0,-.29,.645],[-.053,-.33,.624]],0x806e6a,.006);line(head,[[0,-.29,.645],[.053,-.33,.624]],0x806e6a,.006);
+const whiskers=new THREE.Group();head.add(whiskers);
+for(const s of [-1,1])for(let i=0;i<6;i++){
+ const y=-.245+i*.03;
+ line(whiskers,[[s*.19,y,.60],[s*.47,y+(i-2)*.018,.70],[s*(.84+(i%3)*.07),y+(i-2)*.04,.58]],0xf6f0e8,.0028)
+}
+// Sparse fur in geometry, with random coherent root color and tapered-looking short strokes.
+function fuzz(group,center,radii,count,seed){let state=seed;const rnd=()=>{state=(state*1664525+1013904223)>>>0;return state/4294967296};const positions=[];const colors=[];for(let i=0;i<count;i++){
+ let u=rnd()*Math.PI*2,v=Math.acos(2*rnd()-1);let nx=Math.sin(v)*Math.cos(u),ny=Math.cos(v),nz=Math.sin(v)*Math.sin(u);
+ let x=center[0]+nx*radii[0],y=center[1]+ny*radii[1],z=center[2]+nz*radii[2];const len=.017+rnd()*.032;positions.push(x,y,z,x+nx*len,y+ny*len,z+nz*len);let c=.84+rnd()*.15;for(let k=0;k<2;k++)colors.push(c,c*.994,c*.975)
+ }const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));const fuzzMesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.53,depthWrite:false}));group.add(fuzzMesh)}
+const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent),budget=mobile?2600:6300;
+fuzz(model,[0,.94,-.27],[.782,.552,.975],budget,12);fuzz(head,[0,.07,.065],[.566,.485,.473],Math.floor(budget*.54),43);
+// Invisible but raycastable interaction volumes. Materials intentionally don't render.
+const zones=[];const hitmat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:THREE.DoubleSide});
+function hit(parent,name,x,y,z,sx,sy,sz){const obj=new THREE.Mesh(ball,hitmat);obj.scale.set(sx,sy,sz);obj.position.set(x,y,z);obj.userData.zone=name;parent.add(obj);zones.push(obj)}
+hit(head,'頭',0,.20,.22,.56,.35,.44);hit(head,'あご',0,-.30,.47,.32,.15,.17);
+hit(head,'ほほ',-.35,-.10,.40,.22,.26,.18);hit(head,'ほほ',.35,-.10,.40,.22,.26,.18);
+hit(head,'耳',-.40,.67,.1,.19,.26,.14);hit(head,'耳',.40,.67,.1,.19,.26,.14);
+hit(model,'背中',0,1.35,-.46,.70,.25,.85);hit(model,'おなか',0,.59,-.25,.69,.29,.84);
+hit(model,'足',-.45,.34,.69,.27,.39,.34);hit(model,'足',.45,.34,.69,.27,.39,.34);hit(tailRoot,'しっぽ',0,.08,-.48,.30,.28,.60);
+const ray=new THREE.Raycaster();const ndc=new THREE.Vector2();
+function pick(x,y){const r=canvas.getBoundingClientRect();ndc.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);const hits=ray.intersectObjects(zones,false);return hits.length?hits[0].object.userData.zone:null}
+const game={mood:54,stress:10,petMode:true,roll:false,biteTo:0,bite:0,express:0,lastTouch:0,lastMsg:0,blink:0,sound:false,lastTap:[],lastZone:'',purrCooldown:0};
+const descriptions={'頭':['目を細めて、気持ちよさそう。','頭をすり寄せてきた。'],'あご':['あごをぐいっと突き出した。','そこ、そこ。あごが好き。'],'おなか':['おなかを預けて、のんびり。','おなかをさすられてごろごろ。'],'ほほ':['ほっぺを押しつけてきた。'],'背中':['背中をそっとなでた。'],'耳':['耳がぴくっと動いた。'],'足':['前足をそっと引っ込めた。'],'しっぽ':['しっぽが揺れた。']};
+let toastTimer=0;function say(s,force=false){const t=performance.now();if(!force&&t-game.lastMsg<1000)return;game.lastMsg=t;$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500)}
+function sparkle(x,y){const sp=document.createElement('span');sp.className='heart';sp.textContent=['♡','♥','♡'][Math.floor(Math.random()*3)];sp.style.color=['#dc8d91','#e9a19b','#f3b2b2'][Math.floor(Math.random()*3)];sp.style.left=x+'px';sp.style.top=y+'px';$('heartFx').append(sp);setTimeout(()=>sp.remove(),1500)}
+const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
+function updateHud(){let m=game.mood,s=game.stress;$('moodFill').style.width=clamp(m,0,100)+'%';$('stressFill').style.width=clamp(s,0,100)+'%';$('moodLabel').textContent=m>=78?'ごろごろ':m>=55?'うれしい':m>=35?'ふつう':m>=17?'むすっ':'警戒中';$('stressLabel').textContent=s>=75?'もう限界':s>=48?'そわそわ':s>=25?'少し敏感':'おだやか'}updateHud();
+let soundCtx=null;function getAudio(){if(!game.sound)return null;try{soundCtx||=new (window.AudioContext||window.webkitAudioContext)();soundCtx.resume();return soundCtx}catch{return null}}
+function beep(kind){const a=getAudio();if(!a)return;const t=a.currentTime,g=a.createGain();g.connect(a.destination);let osc=a.createOscillator();osc.connect(g);let start=210,end=110,dur=.3;
+ if(kind==='purr'){start=42;end=51;dur=.33;osc.type='sawtooth'}else if(kind==='bite'){start=540;end=105;dur=.21;osc.type='sawtooth'}else if(kind==='meow'){start=410;end=240;dur=.42;osc.type='triangle'}else{start=190;end=145;dur=.18;osc.type='sine'}
+ osc.frequency.setValueAtTime(start,t);osc.frequency.exponentialRampToValueAtTime(end,t+dur);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(kind==='purr'?.022:.045,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+dur);osc.start(t);osc.stop(t+dur+.01)}
+function bite(){const now=performance.now();game.biteTo=now+1900;game.bite=1;game.mood=clamp(game.mood-23,0,100);game.stress=clamp(game.stress-30,0,100);beep('bite');say('カプッ！　しつこいのはイヤ！　少し休ませてね。',true);updateHud()}
+function touchCat(zone,x,y,delta,dt,isTap=false){const now=performance.now();if(now<game.biteTo)return;
+ const speed=dt?delta/dt:0;
+ const loved=['頭','あご','おなか'].includes(zone);
+ const dislike=['耳','しっぽ','足'].includes(zone);
+ const gentle=(!isTap&&speed<.72&&speed>.025);
+ if(isTap){game.lastTap.push(now);game.lastTap=game.lastTap.filter(v=>now-v<1800)}else game.lastTap=game.lastTap.filter(v=>now-v<1800);
+ let stressAdd=isTap?7:gentle?-.9:Math.min(8,2+speed*5);
+ if(dislike)stressAdd+=3;
+ if(loved&&gentle)stressAdd-=1.6;
+ game.stress=clamp(game.stress+stressAdd,0,100);
+ game.mood=clamp(game.mood+(gentle?(loved?1.2:dislike?-.7:.35):isTap?-.7:speed>1.4?-1.2:.05),0,100);
+ game.express=clamp(game.express+(gentle?.14:.04),0,1.0);
+ game.lastTouch=now;
+ if(game.lastTap.length>=4||game.stress>91||(game.stress>72&&speed>1.3)){game.lastTap=[];bite();return}
+ if(gentle&&loved&&Math.random()<.22){sparkle(x,y);if(now>game.purrCooldown&&game.mood>64){beep('purr');game.purrCooldown=now+1800}}
+ if(gentle&&now-game.lastMsg>1650)say(descriptions[zone]?.[Math.floor(Math.random()*descriptions[zone].length)]||'気持ちよさそう。');
+ if(isTap&&game.stress>40&&now-game.lastMsg>1500)say('ちょっと優しくしてほしいみたい。');
+ if(isTap&&Math.random()<.2)beep('meow');updateHud()
+}
+const pointers=new Map();let active=null,prevPinch=0;
+function pinchDist(){const p=[...pointers.values()];return p.length===2?Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y):0}
+function orbit(dx,dy){yaw-=dx*.007;pitch=clamp(pitch+dy*.006,-1.36,1.36)}
+canvas.addEventListener('pointerdown',e=>{e.preventDefault();canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){prevPinch=pinchDist();active=null;return}if(pointers.size>2){active=null;return}let zone=game.petMode?pick(e.clientX,e.clientY):null;active={id:e.pointerId,x:e.clientX,y:e.clientY,at:performance.now(),zone,dist:0,touched:0};});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const before=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const dx=e.clientX-before.x,dy=e.clientY-before.y;if(pointers.size>=2){const p=pinchDist();if(prevPinch&&p)distance=clamp(distance*prevPinch/p,1.45,8);prevPinch=p;return}
+if(!active||active.id!==e.pointerId)return;const delta=Math.hypot(dx,dy),now=performance.now();active.dist+=delta;
+if(!game.petMode||!active.zone){orbit(dx,dy);return}
+const current=pick(e.clientX,e.clientY)||active.zone;if(current&&delta>1.2&&now-active.touched>65){touchCat(current,e.clientX,e.clientY,delta,Math.max(8,now-active.at)/Math.max(1,Math.min(10,active.dist/.9)),false);active.touched=now}active.zone=current;
+});
+function endPointer(e){if(!pointers.has(e.pointerId))return;pointers.delete(e.pointerId);if(active&&active.id===e.pointerId&&game.petMode&&active.zone&&active.dist<14){touchCat(active.zone,e.clientX,e.clientY,0,1,true)}active=null;prevPinch=pinchDist()}
+canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',endPointer);
+canvas.addEventListener('wheel',e=>{e.preventDefault();distance=clamp(distance*Math.exp(e.deltaY*.0012),1.45,8)},{passive:false});
+function setPetMode(b){game.petMode=b;$('petBtn').setAttribute('aria-pressed',b);$('orbitBtn').setAttribute('aria-pressed',!b);canvas.classList.toggle('pet',b);$('help').textContent=b?'なでる：白猫をゆっくりスワイプ / 2本指で拡大縮小':'ドラッグで360°回転 / 2本指で拡大縮小'}
+$('petBtn').addEventListener('click',()=>setPetMode(true));$('orbitBtn').addEventListener('click',()=>setPetMode(false));
+$('resetView').addEventListener('click',()=>{yaw=.37;pitch=.16;distance=4.65;game.roll=false;$('bellyBtn').innerHTML='おなか<br>ごろん'});
+$('bellyBtn').addEventListener('click',()=>{game.roll=!game.roll;$('bellyBtn').innerHTML=game.roll?'元に<br>戻す':'おなか<br>ごろん';if(game.roll){yaw=.1;pitch=.68;distance=4.3;say('ころん。おなかを見せてくれた。',true)}else{yaw=.37;pitch=.16;say('むくっと起き上がった。',true)}});
+$('resetBtn').addEventListener('click',()=>{game.stress=0;game.mood=Math.max(40,game.mood);game.lastTap=[];game.biteTo=0;say('少し休憩。ゆっくり近づこう。',true);updateHud()});
+$('soundBtn').addEventListener('click',()=>{game.sound=!game.sound;$('soundBtn').setAttribute('aria-pressed',game.sound);$('soundBtn').textContent=game.sound?'音 ON':'音 OFF';if(game.sound)beep('meow')});
+let last=performance.now();const clock=new THREE.Clock();
+function tick(){requestAnimationFrame(tick);const now=performance.now(),dt=Math.min(.05,(now-last)/1000);last=now;const t=clock.getElapsedTime();
+ if(!pointers.size){game.stress=clamp(game.stress-dt*2.7,0,100);if(game.stress<18&&game.mood<54)game.mood+=dt*.9}
+ game.express=clamp(game.express-dt*.23,0,1);game.bite=Math.max(0,game.bite-dt*1.8);
+ const grumpy=game.stress>65,biting=now<game.biteTo;
+ let rollTarget=game.roll?-1.65:0;bodyRig.rotation.z=THREE.MathUtils.damp(bodyRig.rotation.z,rollTarget,3.7,dt);
+ bodyRig.position.y=THREE.MathUtils.damp(bodyRig.position.y,game.roll?1.12:.9,3.7,dt);
+ torso.scale.y=.55*(1+Math.sin(t*2)*.022);
+ head.rotation.x=THREE.MathUtils.damp(head.rotation.x,biting?-.30:game.express?-.055*game.express:.01,5,dt);
+ head.rotation.y=THREE.MathUtils.damp(head.rotation.y,(biting?-.11:Math.sin(t*.47)*.035)+game.express*.075,3,dt);
+ head.position.y=1.40+Math.sin(t*1.5)*.008;
+ const slowBlink=Math.sin(t*1.45)>.994?1:0;let eyeNarrow=biting?.42:grumpy?.35:game.express>.3?.30:0;let closure=slowBlink?1:eyeNarrow;
+ for(const o of eyes){o.eg.scale.y=THREE.MathUtils.damp(o.eg.scale.y,1-closure*.83,7,dt);o.lid.position.y=.104-(closure*.08);o.lid.scale.y=1+closure*5}
+ for(let i=0;i<ears.length;i++){ears[i].rotation.z=THREE.MathUtils.damp(ears[i].rotation.z,(i===0?.16:-.16)+Math.sin(t*1.7+i*2)*(grumpy?.12:.028)+(biting?i===0?.32:-.3:0),5,dt)}
+ for(let i=0;i<tailBones.length;i++){tailBones[i].rotation.y=Math.sin(t*1.3+i*.46)*(grumpy?.24:.09)*(i/10+.3);tailBones[i].rotation.x=.05+Math.sin(t*.68+i*.27)*.025}
+ biteMouth.scale.y=.015+(biting?.23*Math.abs(Math.sin(t*23)):.005);tongue.position.y=-.33-(biting?.08*Math.abs(Math.sin(t*23)):0);
+ const dpr=Math.min(devicePixelRatio||1,1.7);if(canvas.width!==Math.floor(innerWidth*dpr)||canvas.height!==Math.floor(innerHeight*dpr)){renderer.setPixelRatio(dpr);renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
+ placeCamera();renderer.render(scene,camera);if(Math.floor(t*3)%2===0)updateHud()
+}
+setTimeout(()=>$('loading').classList.add('done'),350);say('頭・あご・おなかは大好き。ゆっくりなでてね。',true);tick();
+</script>
+</body>
+</html>
