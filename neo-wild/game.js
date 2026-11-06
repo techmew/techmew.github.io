@@ -5574,6 +5574,8 @@ function update(dt){
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  recordDisasterEncounters();
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath,WORLD,
+   isPlayerConcealed:()=>!!(P.hidden||insideShelter(P)||
+     (inCover(P)&&Math.hypot(Number(P.vx)||0,Number(P.vy)||0)<(Number(P.speed)||150)*.50)),
   onPlayerAbductionStart:()=>{
    // Cancel queued combat and airborne moves so the beam owns the full animation.
    resetControls();interruptRush();P.atk=0;P.windup=0;

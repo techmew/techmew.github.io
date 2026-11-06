@@ -7,7 +7,7 @@ const MAX_HISTORY=80;
 const eraYear=y=>window.WildWorldClock?.eventYear?.(y)??y*3;
 const safeBlocked=(world,a,b)=>typeof world.lineBlocked==="function"&&world.lineBlocked(a,b);
 const beamRange=138, playerBeamRange=112;
-const UFO_PURSUE_SPEED=350, UFO_DETECTION_RANGE=650, UFO_NPC_LOCK_TIME=.95;
+const UFO_PURSUE_SPEED=930, UFO_PATROL_SPEED=760, UFO_DETECTION_RANGE=1250, UFO_NPC_LOCK_TIME=.82;
 const abductable=m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&!m.releasedIndividualId&&!m._ufoAbducted;
 const stateKey="wild-reclaim-ufo-state-v2";
 try{const saved=JSON.parse(localStorage.getItem(stateKey)||"null");if(saved&&typeof saved==="object"){cooldown=Math.max(0,(Number(saved.cooldown)||0)/(saved.paceVersion===3?1:3));traces=Array.isArray(saved.traces)?saved.traces.slice(-12):[];alienSites=Array.isArray(saved.alienSites)?saved.alienSites.slice(-4):[];if(saved.event&&["approach","scan","depart"].includes(saved.event.stage))event=saved.event}}catch(_){}
@@ -43,7 +43,7 @@ function beginLift(e,m,spot,player=false){
  }
  persist();return true;
 }
-function summon(x,y,formation=false){event={x,y,t:0,stage:"approach",beam:0,victim:null,npcBeam:0,lifts:[],originX:x,originY:y,formation:!!formation,scanSeconds:24+Math.random()*9,captured:0,npcCooldown:0,lastSeen:0,flightSeed:Math.random()*Math.PI*2,heading:0,wingmen:formation?[{dx:-155,dy:85,victim:null,beam:0,cooldown:0},{dx:155,dy:-85,victim:null,beam:0,cooldown:0}]:[]};persist();return event}
+function summon(x,y,formation=false){event={x,y,t:0,stage:"approach",beam:0,victim:null,npcBeam:0,lifts:[],originX:x,originY:y,formation:!!formation,scanSeconds:40+Math.random()*12,captured:0,npcCooldown:0,lastSeen:0,roamX:null,roamY:null,roamUntil:0,flightSeed:Math.random()*Math.PI*2,heading:0,wingmen:formation?[{dx:-155,dy:85,victim:null,beam:0,cooldown:0},{dx:155,dy:-85,victim:null,beam:0,cooldown:0}]:[]};persist();return event}
 function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120);
@@ -176,7 +176,22 @@ function tick(dt,world){
  alienSites=alienSites.filter(site=>site.age<210);
  traces.forEach(t=>t.age=Math.min(7200,(t.age||0)+dt));traces=traces.filter(t=>t.age<7200);
  persistTimer+=dt;if(persistTimer>2){persistTimer=0;persist()}
- if(!event){cooldown=Math.max(0,cooldown-dt);if(eraYear(year)>=50&&cooldown===0&&Math.random()<dt/(950/3)){const formation=eraYear(year)>=100&&Math.random()<0.085;summon(P.x+240+(Math.random()-.5)*350,P.y+(Math.random()-.5)*420,formation);cooldown=formation?240:420/3;world.notify(formation?"複数の円盤が飛来！ 動物たちが逃げ始めた":"空に正体不明の円盤が現れた！")};return}
+ if(!event){
+  cooldown=Math.max(0,cooldown-dt);
+  if(eraYear(year)>=50&&cooldown===0&&Math.random()<dt/(950/3)){
+   const formation=eraYear(year)>=100&&Math.random()<.085;
+   // Independent random descent across the whole world, not the player's location.
+   const w=Math.max(600,Number(world.WORLD?.w)||8400),h=Math.max(600,Number(world.WORLD?.h)||6000);
+   let sx=0,sy=0;
+   for(let tries=0;tries<6;tries++){
+    sx=160+Math.random()*(w-320);sy=160+Math.random()*(h-320);
+    if(Math.hypot(sx-P.x,sy-P.y)>650)break;
+   }
+   summon(sx,sy,formation);cooldown=formation?240:420/3;
+   world.notify?.(formation?"空からUFO編隊が急降下！ 動物たちが逃げ始めた":"空からUFOが急降下してきた！ 身を隠せ");
+  }
+  return;
+ }
  const e=event;e.t+=dt;
  if(!Array.isArray(e.lifts))e.lifts=[];
  // The abductee is removed from ordinary AI, but remains visibly suspended.
@@ -210,7 +225,7 @@ function tick(dt,world){
    persist();
   }
  }
- if(e.stage==="approach"&&e.t>=1.7){e.stage="scan";e.t=0;world.notify("UFOが高速で巡回中！ 見つかる前に隠れろ")}
+ if(e.stage==="approach"&&e.t>=1.45){e.stage="scan";e.t=0;world.notify?.("UFOが街を高速巡回！ 隠れれば追跡を振り切れる")}
  if(e.stage==="scan"){
   // Sustained high-speed hunt: visible players attract a relentless pursuit.
   // Hiding or breaking line of sight makes it chase the last known position briefly,
@@ -238,26 +253,43 @@ function tick(dt,world){
     }
    }
   }
-  const playerSeen=!P._ufoAbducting&&!P.hidden&&distance(P,e)<UFO_DETECTION_RANGE&&!safeBlocked(world,P,e);
+  // Vegetation and buildings immediately break scanner sight.
+  const concealed=!!(P.hidden||world.isPlayerConcealed?.());
+  const obstructed=safeBlocked(world,P,e);
+  const playerSeen=!P._ufoAbducting&&!concealed&&!obstructed&&distance(P,e)<UFO_DETECTION_RANGE;
   if(playerSeen){
-   e.lastSeen=1.35;e.lastPlayerX=P.x;e.lastPlayerY=P.y;
-   if(!e.playerSpotted){e.playerSpotted=true;world.notify?.("UFOに発見された！ 追跡を振り切れ")}
-  }else{e.lastSeen=Math.max(0,(Number(e.lastSeen)||0)-dt);if(e.lastSeen<=0)e.playerSpotted=false}
-  const prey=mobs.filter(m=>abductable(m)&&distance(m,e)<900&&!safeBlocked(world,m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
-  const target=e.lifts.length?{x:e.lifts[0].spotX,y:e.lifts[0].spotY}:playerSeen?P:e.lastSeen>0?{x:e.lastPlayerX??e.x,y:e.lastPlayerY??e.y}:prey[0];
+   e.lastSeen=.85;e.lastPlayerX=P.x;e.lastPlayerY=P.y;
+   if(!e.playerSpotted){e.playerSpotted=true;world.notify?.("UFOに発見された！ 建物か草陰に隠れろ")}
+  }else if(concealed||obstructed){
+   e.lastSeen=0;e.playerSpotted=false;e.beam=0;e.lastPlayerX=null;e.lastPlayerY=null;
+  }else{
+   e.lastSeen=Math.max(0,(Number(e.lastSeen)||0)-dt);
+   if(e.lastSeen<=0)e.playerSpotted=false;
+  }
+  const prey=mobs.filter(m=>abductable(m)&&distance(m,e)<1450&&!safeBlocked(world,m,e))
+    .sort((a,b)=>distance(a,e)-distance(b,e));
+  // Change patrol waypoint repeatedly, covering distant districts rather than idling.
+  const boundsW=Math.max(600,Number(world.WORLD?.w)||8400),boundsH=Math.max(600,Number(world.WORLD?.h)||6000);
+  if(!Number.isFinite(e.roamX)||!Number.isFinite(e.roamY)||e.t>=(Number(e.roamUntil)||0)||
+     Math.hypot(e.x-e.roamX,e.y-e.roamY)<130){
+   e.roamX=150+Math.random()*(boundsW-300);
+   e.roamY=150+Math.random()*(boundsH-300);
+   e.roamUntil=e.t+4+Math.random()*4;
+  }
+  const pursueLast=e.lastSeen>0&&!concealed&&!obstructed;
+  const target=e.lifts.length?{x:e.lifts[0].spotX,y:e.lifts[0].spotY}
+    :playerSeen?P:pursueLast?{x:e.lastPlayerX,y:e.lastPlayerY}
+    :prey[0]||{x:e.roamX,y:e.roamY};
   if(target&&!e.lifts.length){
    const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy);
-   const hover=playerSeen?32:12;
+   const chasingAnimal=!playerSeen&&!pursueLast&&target===prey[0];
+   const hover=playerSeen?35:chasingAnimal?14:100;
    if(d>hover){
-    const speed=Math.min(UFO_PURSUE_SPEED,160+e.t*60);
+    const speed=playerSeen||pursueLast?UFO_PURSUE_SPEED:chasingAnimal?UFO_PURSUE_SPEED*.92:UFO_PATROL_SPEED;
     const step=Math.min(Math.max(0,d-hover),speed*dt);
     e.x+=dx/d*step;e.y+=dy/d*step;
     e.heading=Math.atan2(dy,dx);
    }
-  }else if(!e.lifts.length){
-   const heading=(Number(e.flightSeed)||0)+e.t*.8;
-   e.x+=Math.cos(heading)*170*dt;e.y+=Math.sin(heading)*170*dt;
-   e.heading=heading;
   }
   if(world.WORLD){e.x=Math.max(45,Math.min(world.WORLD.w-45,e.x));e.y=Math.max(45,Math.min(world.WORLD.h-45,e.y));}
   // Periodic low-frequency gravitic sweep: distant wildlife hears the saucer
@@ -291,7 +323,7 @@ function tick(dt,world){
    }
   }
   // Rare formation: escort saucers independently lock onto wildlife. They never bypass cover.
-  if(!e.lifts.length&&Array.isArray(e.wingmen))for(const wing of e.wingmen){
+  if(!e.lifts.length&&!playerSeen&&Array.isArray(e.wingmen))for(const wing of e.wingmen){
    const spot={x:e.x+wing.dx,y:e.y+wing.dy};
    wing.cooldown=Math.max(0,(Number(wing.cooldown)||0)-dt);
    if(wing.cooldown>0)continue;
@@ -322,7 +354,7 @@ function tick(dt,world){
   }
   // NPCs receive a visible, escapable lock-on instead of instantaneous removal.
   const m=targets[0];
-  if(m&&e.t>.3&&e.npcCooldown<=0){
+  if(!playerSeen&&m&&e.t>.3&&e.npcCooldown<=0){
    const id=m.id??m.uid??m;
    const species=String(m.species??m.type??m.kind??m.name??"不明な動物");
    if(e.victim!==id){e.victim=id;e.npcBeam=0}
@@ -345,7 +377,7 @@ function tick(dt,world){
   // Friendly alien scouts actively intercept a saucer's capture beam.
   // Interception is range- and cover-limited, with a cooldown saved on the site.
   // The rescue window lets the player escape, but does not make them invulnerable.
-  if(e.stage==="scan"&&e.beam>0&&distance(P,e)<playerBeamRange&&!P.hidden){
+  if(e.stage==="scan"&&e.beam>0&&distance(P,e)<playerBeamRange&&!concealed){
    const protector=alienSites.find(site=>site.disposition==="friendly"&&site.age<210&&
     (Number(site.rescueCooldown)||0)<=0&&distance(P,{x:Number(site.scoutX)||site.x,y:Number(site.scoutY)||site.y})<115&&
     !safeBlocked(world,P,site)&&!safeBlocked(world,site,e));
@@ -358,7 +390,7 @@ function tick(dt,world){
     world.onEvent?.("alien-scout-rescue",{year,x:protector.scoutX??protector.x,y:protector.scoutY??protector.y});
    }
   }
-  if(!e.lifts.length&&distance(P,e)<playerBeamRange&&!P.hidden&&!safeBlocked(world,P,e)){
+  if(!e.lifts.length&&playerSeen&&!concealed&&distance(P,e)<playerBeamRange&&!safeBlocked(world,P,e)){
    e.beam+=dt;
    if(e.beam>=2.2&&beginLift(e,P,{x:e.x,y:e.y},true)){
     world.onPlayerAbductionStart?.();
@@ -366,7 +398,7 @@ function tick(dt,world){
    }
   }
   else e.beam=Math.max(0,e.beam-dt*2);
-  if(!e.lifts.length&&(e.t>Math.max(15,Number(e.scanSeconds)||27)||Number.isFinite(e.firstCaptureAt)&&e.t-e.firstCaptureAt>5.5)){
+  if(!e.lifts.length&&(e.t>Math.max(34,Number(e.scanSeconds)||44)||Number.isFinite(e.firstCaptureAt)&&e.t-e.firstCaptureAt>22)){
    e.stage="depart";e.t=0;e.departRise=0;world.notify?.("UFOが急上昇して遠ざかっていく");
   }
  }
@@ -454,7 +486,7 @@ function renderTractor(ctx,x,y,roof,span,t){
 }
 function draw(ctx,project,world){
  if(!world||world.mode!=="play")return;
- for(const mark of traces){const q=project(mark.x,mark.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;ctx.save();ctx.globalAlpha=Math.max(.08,.6-(mark.age||0)/14400);ctx.strokeStyle=mark.kind==="キャトルミューティレーション"?"#ead0a2":"#8ddbf2";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(q.x,q.y,19,8,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x-9,q.y-6);ctx.lineTo(q.x+9,q.y+6);ctx.moveTo(q.x+9,q.y-6);ctx.lineTo(q.x-9,q.y+6);ctx.stroke();ctx.restore()}
+ // Recorded abductions remain in history; do not render colored circled X street marks.
  for(const site of alienSites){
   const q=project(site.x,site.y);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))continue;
   ctx.save();ctx.globalAlpha=Math.max(0,Math.min(.9,(210-site.age)/30));
@@ -483,12 +515,13 @@ function draw(ctx,project,world){
  if(!event)return;
  const e=event,p=project(e.x,e.y);if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
  const opacity=e.stage==="depart"?Math.max(0,1-e.t/2.9):Math.min(1,.5+e.t);
+ const skyDrop=e.stage==="approach"?Math.max(0,1-e.t/1.45)*470:0;
  ctx.save();ctx.globalAlpha=opacity;
  if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
   const w=project(e.x+wing.dx,e.y+wing.dy);
   if(!w||!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
   if(e.stage==="scan"&&wing.beam>0)renderTractor(ctx,w.x,w.y,w.y-85,56,e.t);
-  renderSaucer(ctx,w.x,w.y-85,26,e.t+wing.dx*.02,"scout");
+  renderSaucer(ctx,w.x,w.y-85-skyDrop,26,e.t+wing.dx*.02,"scout");
  }
  if(e.stage==="scan"){
   if(e.lifts?.length){const lift=e.lifts[0],floor=project(lift.x,lift.y);if(floor&&Number.isFinite(floor.x)&&Number.isFinite(floor.y))renderTractor(ctx,p.x,floor.y,p.y-104,Math.max(60,Math.abs(floor.x-p.x)+45),e.t);}
@@ -510,7 +543,7 @@ function draw(ctx,project,world){
  }
 
  // Layered saucer remains legible against night skies and mountain scenery.
- renderSaucer(ctx,p.x,p.y-110-(e.stage==="depart"?(e.departRise||0):0),41*(e.stage==="depart"?Math.max(.18,1-e.t*.29):1),e.t,"main");
+ renderSaucer(ctx,p.x,p.y-110-skyDrop-(e.stage==="depart"?(e.departRise||0):0),41*(e.stage==="depart"?Math.max(.18,1-e.t*.29):1),e.t,"main");
  if(e.stage==="scan"&&(e.beam>0||e.npcBeam>0)){
   ctx.fillStyle="#fce6aa";ctx.fillRect(p.x-37,p.y-150,74*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/UFO_NPC_LOCK_TIME)),4);
  }
