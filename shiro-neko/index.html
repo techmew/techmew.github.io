@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#e9e1d8"/>
-<title>しろねこ ふれあい 3D</title>
+<title>しろねこ ふれあい 3D（修正版）</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#3e352f}
 *{box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;margin:0;background:#d6c7ba;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
@@ -59,21 +59,21 @@ const pillowMat=new THREE.MeshStandardMaterial({color:'#ad9886',roughness:1});
 const pillow=new THREE.Mesh(new THREE.CylinderGeometry(1.92,1.85,.25,80),pillowMat);pillow.scale.z=.85;pillow.position.y=-.10;pillow.receiveShadow=true;scene.add(pillow);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#c4b09e',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.23;floor.receiveShadow=true;scene.add(floor);
 const mat=(color,roughness=.9)=>new THREE.MeshPhysicalMaterial({color,roughness,metalness:0,clearcoat:0});
-const white=mat('#fffaf1'),cream=mat('#e9e5dd'),pink=mat('#d99296'),pinkIn=mat('#c88489'),dark=mat('#393431'),eyeWhite=mat('#dddbcf',.4),iris=mat('#9da67b',.28),black=mat('#181a19',.15),mouthDark=mat('#624449');
+const white=mat('#fcfaf7'),cream=mat('#e9e5dd'),pink=mat('#d99296'),pinkIn=mat('#c88489'),dark=mat('#393431'),eyeWhite=mat('#dddbcf',.4),iris=mat('#9da67b',.28),black=mat('#181a19',.15),mouthDark=mat('#624449');
 const bodyRig=new THREE.Group();scene.add(bodyRig);
 const model=new THREE.Group();model.position.y=-.9;bodyRig.position.y=.9;bodyRig.add(model);
-const ball=new THREE.SphereGeometry(1,32,24);
+const ball=new THREE.SphereGeometry(1,48,36);
 function ell(parent,name,x,y,z,sx,sy,sz,material,rotZ=0){const m=new THREE.Mesh(ball,material);m.name=name;m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.z=rotZ;m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 // A slight dappled surface and scattered fine hairs give the white coat a soft appearance.
 const furCanvas=document.createElement('canvas');furCanvas.width=256;furCanvas.height=256;
 const fc=furCanvas.getContext('2d'),noise=fc.createImageData(256,256);
 for(let i=0;i<noise.data.length;i+=4){const n=220+Math.floor(Math.random()*36);noise.data[i]=n;noise.data[i+1]=n;noise.data[i+2]=n-2;noise.data[i+3]=255}fc.putImageData(noise,0,0);
 const furBump=new THREE.CanvasTexture(furCanvas);furBump.wrapS=furBump.wrapT=THREE.RepeatWrapping;furBump.repeat.set(3,3);
-for(const m of [white,cream]){m.roughness=.99;m.sheen=1;m.sheenColor=new THREE.Color('#fefbf4');m.sheenRoughness=.88;m.bumpMap=furBump;m.bumpScale=.022;m.needsUpdate=true}
+for(const m of [white,cream]){m.roughness=.99;m.sheen=1;m.sheenColor=new THREE.Color('#fefbf4');m.sheenRoughness=.88;m.bumpMap=furBump;m.bumpScale=.009;m.needsUpdate=true}
 const torso=ell(model,'からだ',0,.94,-.27,.78,.55,.97,white);torso.rotation.x=-.08;
 ell(model,'胸',0,.98,.40,.64,.56,.5,white);
 const haunchL=ell(model,'左もも',-.61,.61,-.64,.36,.43,.53,white,.12),haunchR=ell(model,'右もも',.61,.61,-.64,.36,.43,.53,white,-.12);
-function paw(name,x,z,back=false){const g=new THREE.Group();g.position.set(x,0,z);model.add(g);ell(g,name+'足',0,.48,back?-.15:0,.21,back?.39:.49,.23,white,back?(x<0?-.2:.2):0);ell(g,name+'肉球の上',0,.15,.15,.23,.16,.29,white);for(let i=-1;i<=1;i++)ell(g,name+'指',i*.115,.095,.35,.076,.075,.145,white);return g}
+function paw(name,x,z,back=false){const g=new THREE.Group();g.position.set(x,0,z);model.add(g);ell(g,name+'足',0,.48,back?-.15:0,.21,back?.39:.49,.23,white,back?(x<0?-.2:.2):0);ell(g,name+'肉球の上',0,.15,.15,.23,.16,.29,white);for(let i=-1;i<=1;i++)ell(g,name+'指',i*.095,.092,.30,.073,.057,.125,white);return g}
 const pawFL=paw('左前',-.44,.61),pawFR=paw('右前',.44,.61),pawBL=paw('左後',-.6,-.86,true),pawBR=paw('右後',.6,-.86,true);
 // Curved tapered tail segments respond independently to mood.
 const tailRoot=new THREE.Group();tailRoot.position.set(.53,.87,-1.02);model.add(tailRoot);
@@ -113,8 +113,8 @@ function fuzz(group,center,radii,count,seed){let state=seed;const rnd=()=>{state
  let u=rnd()*Math.PI*2,v=Math.acos(2*rnd()-1);let nx=Math.sin(v)*Math.cos(u),ny=Math.cos(v),nz=Math.sin(v)*Math.sin(u);
  let x=center[0]+nx*radii[0],y=center[1]+ny*radii[1],z=center[2]+nz*radii[2];const len=.017+rnd()*.032;positions.push(x,y,z,x+nx*len,y+ny*len,z+nz*len);let c=.84+rnd()*.15;for(let k=0;k<2;k++)colors.push(c,c*.994,c*.975)
  }const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));const fuzzMesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.53,depthWrite:false}));group.add(fuzzMesh)}
-const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent),budget=mobile?2600:6300;
-fuzz(model,[0,.94,-.27],[.782,.552,.975],budget,12);fuzz(head,[0,.07,.065],[.566,.485,.473],Math.floor(budget*.54),43);
+// Disable free-floating line fur; its silhouette was rendering as sharp spikes on Android.
+// Fine coat texture remains in the bump-mapped surface instead.
 // Invisible but raycastable interaction volumes. Materials intentionally don't render.
 const zones=[];const hitmat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,side:THREE.DoubleSide});
 function hit(parent,name,x,y,z,sx,sy,sz){const obj=new THREE.Mesh(ball,hitmat);obj.scale.set(sx,sy,sz);obj.position.set(x,y,z);obj.userData.zone=name;parent.add(obj);zones.push(obj)}
@@ -185,8 +185,8 @@ function tick(){requestAnimationFrame(tick);const now=performance.now(),dt=Math.
  head.rotation.x=THREE.MathUtils.damp(head.rotation.x,biting?-.30:game.express?-.055*game.express:.01,5,dt);
  head.rotation.y=THREE.MathUtils.damp(head.rotation.y,(biting?-.11:Math.sin(t*.47)*.035)+game.express*.075,3,dt);
  head.position.y=1.40+Math.sin(t*1.5)*.008;
- const slowBlink=Math.sin(t*1.45)>.994?1:0;let eyeNarrow=biting?.42:grumpy?.35:game.express>.3?.30:0;let closure=slowBlink?1:eyeNarrow;
- for(const o of eyes){o.eg.scale.y=THREE.MathUtils.damp(o.eg.scale.y,1-closure*.83,7,dt);o.lid.position.y=.104-(closure*.08);o.lid.scale.y=1+closure*5}
+ const slowBlink=Math.sin(t*1.45)>.994?1:0;let eyeNarrow=biting?.58:grumpy?.48:game.express>.3?.42:.24;let closure=slowBlink?1:eyeNarrow;
+ for(const o of eyes){o.eg.scale.y=THREE.MathUtils.damp(o.eg.scale.y,1-closure*.83,7,dt);o.lid.position.y=.104-(closure*.08);o.lid.scale.y=.012*(1+closure*4)}
  for(let i=0;i<ears.length;i++){ears[i].rotation.z=THREE.MathUtils.damp(ears[i].rotation.z,(i===0?.16:-.16)+Math.sin(t*1.7+i*2)*(grumpy?.12:.028)+(biting?i===0?.32:-.3:0),5,dt)}
  for(let i=0;i<tailBones.length;i++){tailBones[i].rotation.y=Math.sin(t*1.3+i*.46)*(grumpy?.24:.09)*(i/10+.3);tailBones[i].rotation.x=.05+Math.sin(t*.68+i*.27)*.025}
  biteMouth.scale.y=.015+(biting?.23*Math.abs(Math.sin(t*23)):.005);tongue.position.y=-.33-(biting?.08*Math.abs(Math.sin(t*23)):0);
