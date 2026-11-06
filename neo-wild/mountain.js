@@ -65,12 +65,15 @@ const headwater=Object.freeze({mouthX:HEADWATER_MOUTH,sourceX:12740,halfWidth:18
 // World-coordinate snow field: adjacent chunks sample identical values at their edges.
 // Elevation and slope control accumulation; smooth noise avoids rectangular tiles.
 function snowCover(x,y,temperature=0){
- if(!active(x,y)||x<FOOTHILL_END)return 0;
+ if(!active(x,y))return 0;
+ // Feather snowline across world coordinates, avoiding a straight biome seam.
+ const edge=smooth(clamp((x-(FOOTHILL_END-420))/680,0,1));
+ if(edge<=0)return 0;
  const z=height(x,y),step=24;
  const gradient=Math.hypot(height(x+step,y)-height(x-step,y),height(x,y+step)-height(x,y-step))/(2*step);
  const noise=(Math.sin(x*.0037+y*.0021)+.5*Math.sin(x*.0103-y*.0087)+.25*Math.cos(x*.023+y*.017))/1.75;
  const threshold=245+Math.max(-35,Math.min(35,Number(temperature)||0))*2+gradient*75+noise*62;
- return smooth(clamp((z-threshold)/55,0,1));
+ return edge*smooth(clamp((z-threshold)/55,0,1));
 }
 function trail(x){return center(x);}
 // Spawn along the same traversable ridge and cave passage used by collision.
