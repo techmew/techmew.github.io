@@ -23,14 +23,14 @@ function height(x,y){
  if(northPass(x,y)){
   const t=smooth(clamp((y-2390)/(center(x)-570-2390),0,1));
   const wood=Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
-  const foot=90*smooth(clamp((x-WEST)/(FOOTHILL_END-WEST),0,1));
-  const base=90*smooth(clamp((x-WEST)/(FOOTHILL_END-WEST),0,1))+19*clamp((x-WEST)/(FOOTHILL_END-WEST),0,1)*clamp(Math.abs(y-center(x))/740,0,1)+4*clamp((x-WEST)/(FOOTHILL_END-WEST),0,1)*Math.sin(x/210)*Math.cos(y/245);
-  // Blend the woodland elevation into the mountain saddle in world space.
-  // Both sides of the pass now meet the same foothill elevation at its south edge.
-  const edge=smooth(clamp((Math.abs(x-10600)-65)/35,0,1));
-  const south=base;
-  const north=wood;
-  return north*(1-t)+south*t + edge*t*(1-t)*(foot-south)*0.12;
+  // Match the true mountain height at the pass exit, not foothill-only height.
+  const p=clamp((Math.min(x,FOOTHILL_END)-WEST)/(FOOTHILL_END-WEST),0,1);
+  const lateral=clamp(Math.abs(y-center(x))/740,0,1);
+  const foot=90*smooth(p)+19*p*lateral+4*p*Math.sin(x/210)*Math.cos(y/245);
+  const q=clamp((x-FOOTHILL_END)/(EAST-FOOTHILL_END),0,1);
+  const south=foot+160*smooth(q)+14*q*lateral+7*q*Math.sin((x-FOOTHILL_END)/175)*Math.cos(y/300)
+    +190*smooth(clamp((x-SUMMIT_START)/(EAST-SUMMIT_START),0,1));
+  return wood*(1-t)+south*t;
  }
  if(northWood(x,y))return Math.max(0,12*(x-CITY_EDGE)/(10800-CITY_EDGE)+5*Math.sin(x/180)*Math.cos(y/200));
  if(x<=WEST)return 0;
