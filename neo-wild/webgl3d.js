@@ -295,7 +295,7 @@ function drawStrongAnimal3D(m,clock){
     orb(front*r*.67+phase*force*r*.21,side*r*.62,r*.36+Math.max(0,phase)*force*r*.18,r*.38,r*.33,r*.42,"#635e58");
    }
   orb(-r*.24,0,r*.93,r*1.40,r*.93,r*.86,fur);orb(r*.59,0,r*1.18,r*1.00,r*.83,r*.94,"#6b6660");orb(r*1.35,0,r*.96,r*.70,r*.55,r*.56,belly);
-  spike(r*1.46+Math.max(0,m.hornCharge||0)*r*.26,0,r*1.34,r*.23,r*.24,r*1.05,"#e7ddc6");spike(r*.98,0,r*1.55,r*.16,r*.18,r*.52,"#c7bda8");
+  spike(r*1.46+Math.max(0,m.hornCharge||0)*r*.08,0,r*(1.34-Math.max(0,m.hornCharge||0)*.18),r*.23,r*.24,r*1.05,"#e7ddc6");spike(r*.98,0,r*1.55,r*.16,r*.18,r*.52,"#c7bda8");
   for(const side of [-1,1]){orb(r*1.08,side*r*.48,r*1.38,r*.21,r*.18,r*.29,fur);orb(r*1.38,side*r*.43,r*1.10,r*.10,r*.09,r*.10,"#252521");}
   orb(-r*1.58,0,r*.73,r*.37,r*.15,r*.17,"#68635d");
  }else if(t==="giantCrocodile"){
@@ -306,10 +306,13 @@ function drawStrongAnimal3D(m,clock){
     orb(front*r*.55+stroke*r*.23*motion,side*r*.71,r*.21+Math.max(0,stroke)*r*.14*motion,r*.37,r*.24,r*.25,"#405b48");
    }
   for(let i=0;i<8;i++)spike(-r*.97+i*r*.27,0,r*.87,r*.16,r*.17,r*.24,"#36513e");
-  orb(r*1.00,0,r*.36,r*.89,r*.45,r*.30,fur);orb(r*1.63,0,r*.25+Math.max(0,m.jawSnap||0)*r*.10,r*.48,r*.36,r*.20,belly);
-   if((m.jawSnap||0)>0){orb(r*1.68,0,r*.12,r*.47,r*.36,r*.10,"#3a2827");for(const y of [-1,1])for(let i=0;i<4;i++)spike(r*(1.38+i*.16),y*r*.28,r*.18,r*.055,r*.05,r*.12,"#ece1c3");}
+  orb(r*1.00,0,r*.36,r*.89,r*.45,r*.30,fur);orb(r*1.63,0,r*(.25-Math.min(.65,Math.max(0,m.jawSnap||0))*.13),r*.48,r*.36,r*.20,belly);
+   if((m.jawSnap||0)>0){orb(r*1.68,0,r*.17,r*.47,r*.36,r*.10,"#3a2827");for(const y of [-1,1])for(let i=0;i<4;i++)spike(r*(1.38+i*.16),y*r*.28,r*.18,r*.055,r*.05,r*.12,"#ece1c3");}
   for(const side of [-1,1]){orb(r*1.08,side*r*.34,r*.58,r*.14,r*.11,r*.12,"#e8d188");orb(r*1.11,side*r*.36,r*.64,r*.055,r*.05,r*.06,"#192b22");}
-  for(let i=0;i<6;i++)orb(-r*(1.2+i*.30),0,r*(.28-i*.028),r*.35,r*(.38-i*.045),r*(.22-i*.026),i%2?"#405c47":fur);
+  for(let i=0;i<6;i++){
+    const twist=Math.sin((m.deathRollPose||0)*8+i*.6)*Math.min(1,m.deathRollPose||0)*r*.25;
+    orb(-r*(1.2+i*.30),twist,r*(.28-i*.028),r*.35,r*(.38-i*.045),r*(.22-i*.026),i%2?"#405c47":fur);
+   }
  }else if(t==="giantHippo"){
   for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.65,side*r*.69,r*.34+pace,r*.35,r*.35,r*.43,"#62565b");
   orb(-r*.21,0,r*.92,r*1.33,r*.98,r*.87,fur);orb(r*.70,0,r*.94,r*.91,r*.84,r*.76,"#8b787d");
@@ -477,7 +480,7 @@ function drawCommonAnimal3D(m,clock){
   }else if(rock)orb(r*.42,-r*.99,r*2.56,r*.24,r*.23,r*.21,"#aaa398");
  }else if(t==="macaque"){
   // Dedicated macaque: expressive pink face, ears, four grasping limbs, short tail.
-  const climbing=Math.max(0,m.treeHeight||0),preparing=(m.macaqueTell||0)>0,throwing=(m.swing||0)>0&&!preparing;
+  const climbing=Math.max(0,m.treeHeight||0),preparing=(m.macaqueTell||0)>0||(m.macaqueThrowPose||0)>.28,throwing=(m.swing||0)>0&&!preparing;
   const motion=climbing>2?Math.sin(clock*8+(m.step||0))*.14:gait*.17;
   const pink="#b7847b",hand="#c8958b";
   orb(-r*.20,0,r*.89,r*.80,r*.62,r*.72,fur);
@@ -490,7 +493,7 @@ function drawCommonAnimal3D(m,clock){
    orb(r*.91,side*r*.58,r*1.43,r*.13,r*.10,r*.14,pink);
    orb(r*1.31,side*r*.26,r*1.34,r*.085,r*.075,r*.09,"#242a29");
    orb(r*.21,side*r*.57,r*.92,r*.28,r*.24,r*.31,fur);
-   const raised=side<0&&(preparing||throwing),foreZ=raised?r*(preparing?2.03:1.70):r*(.52+motion*side);
+   const raised=side<0&&(preparing||throwing),foreZ=raised?r*(preparing?2.15:1.85):r*(.52+motion*side);
    orb(r*.50,side*r*.69,(foreZ+r*.96)*.5,r*.18,r*.18,Math.abs(foreZ-r*.96)*.56+r*.16,fur);
    orb(r*.62,side*r*.76,foreZ,r*.19,r*.17,r*.15,hand);
    orb(-r*.67,side*r*.47,r*(.48-motion*side),r*.26,r*.24,r*.47,fur);
@@ -499,6 +502,7 @@ function drawCommonAnimal3D(m,clock){
   orb(-r*1.04,0,r*.77,r*.30,r*.17,r*.16,fur);
   orb(-r*1.28,r*.11,r*.72,r*.22,r*.14,r*.14,fur);
   if(preparing)orb(r*.62,-r*.76,r*2.22,r*.21,r*.19,r*.20,"#918b7c");
+   if(!preparing&&(m.macaqueThrowPose||0)>.05)orb(r*1.10,-r*.85,r*1.63,r*.12,r*.12,r*.12,"#a69c8c");
  }else if(t==="snake"){
   const ready=(m.windup||0)>0,striking=(m.swing||0)>0;
   const lift=ready?r*.48:striking?r*.24:0;
@@ -699,14 +703,18 @@ function drawCommonAnimal3D(m,clock){
   for(let k=0;k<11;k++){const a=k*TAU/11;orb(r*.70,Math.cos(a)*r*.68,r*1.08+Math.sin(a)*r*.66,r*.26,r*.19,r*.22,"#a67a47");}
   orb(r*1.13,0,r*1.10,r*.50,r*.38,r*.43,fur);orb(r*1.47,0,r*.87,r*.30,r*.27,r*.18,belly);
   for(const side of [-1,1])orb(r*1.20,side*r*.29,r*1.25,r*.09,r*.09,r*.09,"#352c24");
-   if((m.specialVisual||0)>0){orb(r*1.50,0,r*.66,r*.32,r*.29,r*.13,"#382b24");orb(r*1.48,0,r*.52,r*.26,r*.22,r*.11,belly);}
+   if((m.lionRoarPose||0)>0){const roar=Math.min(1,m.lionRoarPose);
+    orb(r*1.50,0,r*.66,r*.32,r*.29,r*.13,"#382b24");
+    orb(r*1.48,0,r*(.52-roar*.10),r*.26,r*.22,r*.11,belly);
+    for(const side of [-1,1])pyramid(fx(r*1.51,side*r*.18),fy(r*1.51,side*r*.18),r*.69,r*.06,r*.06,r*.14,"#efe2c9");}
   for(let k=0;k<5;k++)orb(-r*(1.13+k*.26),0,r*(.82-k*.07),r*.14,r*.11,r*.11,k===4?"#584734":fur);
  }else if(t==="elephant"){
   // Heavy lateral walk: four independently planted pillar legs and broad toenails.
   const walking=clamp(Math.hypot(m.vx||0,m.vy||0)/90,0,1),cycle=(m.step||0)*1.13;
   for(const side of [-1,1])for(const front of [-1,1]){
    const beat=Math.sin(cycle+(front===side?0:Math.PI)),pose=combatLimbPose(m,front,side,r),step=beat*r*.28*walking+pose.dx;
-   const lift=Math.max(0,beat)*r*.15*walking+pose.dz,hip=front*r*.60,lat=side*r*.67;
+   const stomp=front>0&&side<0?Math.sin(Math.PI*Math.min(1,m.elephantStompPose||0))*r*.25:0;
+    const lift=Math.max(0,beat)*r*.15*walking+pose.dz+stomp,hip=front*r*.60,lat=side*r*.67;
    orb(hip+step*.18,lat,r*.77+lift*.13,r*.41,r*.39,r*.37,"#798680");
    orb(hip+step*.57,lat,r*.44+lift*.43,r*.35,r*.35,r*.34,"#66746d");
    orb(hip+step,lat,r*.12+lift,r*.41,r*.39,r*.15,"#59665f");
@@ -718,7 +726,10 @@ function drawCommonAnimal3D(m,clock){
    pyramid(fx(r*1.49,side*r*.38),fy(r*1.49,side*r*.38),r*.55,r*.13,r*.11,r*1.05,"#e7dfc7");
    orb(r*1.25,side*r*.30,r*1.50,r*.10,r*.10,r*.10,"#313b37");
   }
-  for(let k=0;k<6;k++)orb(r*(1.42+k*.18),Math.sin(k*.58)*r*.14,r*(1.07-k*.17)+Math.max(0,m.specialVisual||0)*r*.28,r*(.28-k*.024),r*(.27-k*.023),r*(.27-k*.023),fur);
+  for(let k=0;k<6;k++){
+    const trunk=Math.sin(Math.PI*Math.min(1,m.elephantStompPose||0))*r*.25*(1-k/7);
+    orb(r*(1.42+k*.18),Math.sin(k*.58+(m.step||0)*.01)*r*.14,r*(1.07-k*.17)+trunk,r*(.28-k*.024),r*(.27-k*.023),r*(.27-k*.023),fur);
+   }
  }else if(t==="hippo"){
   for(const side of [-1,1])for(const front of [-1,1])
    orb(front*r*.57,side*r*.70,r*.42,r*.32,r*.37,r*.43,"#736969");
@@ -1018,7 +1029,7 @@ function drawPenguinPlayable3D(m,clock){
  const attack=Math.max(0,Number(m.specialVisual)||0,Number(m.swing)||0);
  const bodyZ=slide?r*.40:r*.96,bodyHeight=slide?r*.51:r*.81;
  for(const side of [-1,1]){
-  const motion=beat*side,forward=motion*r*.26,lift=Math.max(0,motion)*r*.20;
+  const motion=beat*side,forward=motion*r*(slide>0?.07:.26),lift=slide>0?0:Math.max(0,motion)*r*.20;
   orb(-r*.47+forward,side*r*.43,r*.14+lift,r*.29,r*.23,r*.14,"#d69b51");
   orb(-r*.35+forward*.5,side*r*.43,r*.32+lift*.48,r*.17,r*.18,r*.27,"#243942");
  }
@@ -1027,7 +1038,8 @@ function drawPenguinPlayable3D(m,clock){
  const headZ=slide?r*.70:r*1.80;
  orb(r*.66,0,headZ,r*.49,r*.44,r*.48,"#263943");
  for(const side of [-1,1]){
-  const flap=Math.sin((m.steps||m.step||0)*3.6+side*Math.PI)*r*.16+Math.sin(attack*12)*attack*r*.19;
+  const flap=Math.sin((m.steps||m.step||0)*3.6+side*Math.PI)*r*.16+
+    Math.sin(Math.PI*Math.min(1,m.flipperStrike||0))*r*.29+(slide>0?side*r*.08:Math.sin(attack*12)*attack*r*.11);
   orb(-r*.22,side*r*.74,bodyZ+r*.02+flap,r*.62,r*.18,r*.23,"#1b303a");
   orb(r*.85,side*r*.29,headZ+r*.09,r*.095,r*.085,r*.095,"#f3f9ee");
   orb(r*.88,side*r*.31,headZ+r*.10,r*.045,r*.052,r*.049,"#111d23");
@@ -1089,7 +1101,7 @@ function drawWorldSquadSpecies3D(m,clock){
    if(alert)for(const side of [-1,1])orb(r*.83,side*r*.38,r*.73,r*.13,r*.10,r*.15,"#a58a70");
  }else if(t==="gorilla"){
   const fur="#3f4242",skin="#74716a",swing=motion*r*.22;
-   const slam=Math.max(0,Number(m.specialVisual)||0,Number(m.attackAction)||0);
+   const slam=Math.min(1,Math.max(0,Number(m.gorillaSlamPose)||0,Number(m.attackAction)||0)),strike=Math.sin(Math.PI*(1-slam));
   for(const y of [-1,1]){
    orb(-r*.54,y*r*.44,r*.42,r*.37,r*.33,r*.47,fur);
    orb(-r*.72,y*r*.49,r*.14,r*.37,r*.32,r*.15,skin);
@@ -1103,8 +1115,9 @@ function drawWorldSquadSpecies3D(m,clock){
    orb(r*.99,y*r*.59,r*1.69,r*.22,r*.18,r*.23,fur);
    orb(r*1.35,y*r*.29,r*1.70,r*.08,r*.075,r*.08,"#191b1b");
    orb(r*.10,y*r*.91,r*1.25,r*.40,r*.35,r*.50,fur);
-   orb(r*.16+swing*(y>0?1:-1),y*r*1.03,r*.54,r*.32,r*.29,r*.68,fur);
-   orb(r*.28+swing*(y>0?1:-1)+slam*r*.31,y*r*1.08,r*.17+slam*r*.40,r*.33,r*.32,r*.20,skin);
+   orb(r*.16+swing*(y>0?1:-1)+strike*r*.20,y*r*1.03,r*.54+slam*r*.15,r*.32,r*.29,r*.68,fur);
+   orb(r*.28+swing*(y>0?1:-1)+strike*r*.40,y*r*1.08,r*.17+slam*r*.46,r*.33,r*.32,r*.20,skin);
+    if(slam>.1)for(let k=-1;k<=1;k++)orb(r*.48+strike*r*.37,y*r*1.08+k*r*.13,r*.20+slam*r*.42,r*.11,r*.07,r*.09,"#8f8b81");
   }
   if(male&&adult){
     orb(-r*.20,0,r*1.82,r*.54,r*.64,r*.17,"#777b7a");
