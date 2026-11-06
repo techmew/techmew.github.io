@@ -1,7 +1,42 @@
-/* Additive language controls: no existing UI dimensions modified. */
-.language-picker{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:28px;margin:5px 0 9px;font:700 11px/1.25 system-ui,sans-serif;color:#d8e6da}
-.language-picker label{white-space:nowrap}
-.language-picker select{appearance:auto;min-width:96px;min-height:30px;max-width:140px;padding:3px 7px;border:1px solid #6a8777;border-radius:7px;background:#1e3028;color:#f4f6ef;font:700 12px system-ui,sans-serif;cursor:pointer}
-.language-picker select:focus-visible{outline:2px solid #b6dcbc;outline-offset:2px}
-.language-picker-pause{justify-content:center;margin:0 0 9px}
-@media(max-height:520px){.language-picker{min-height:24px;margin:2px 0 5px}.language-picker select{min-height:26px}}
+/* User-requested flag illustration switches: only the title and pause language UI. */
+.flag-language-toggle{
+ display:flex;align-items:center;justify-content:flex-end;gap:6px;
+ margin:2px 0 10px;min-height:46px;width:100%;
+ pointer-events:auto;position:relative;z-index:4;
+}
+.flag-lang-button{
+ appearance:none;position:relative;display:flex;flex-direction:row;align-items:center;
+ justify-content:center;gap:6px;box-sizing:border-box;
+ min-width:78px;min-height:42px;padding:6px 12px 6px 8px;
+ background:rgba(9,25,25,.90);color:#d4ddd4;border:2px solid #75877e;
+ border-radius:11px;opacity:.67;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+ font:900 14px/1 "Noto Sans JP",system-ui,sans-serif;
+ text-shadow:none;cursor:pointer;touch-action:manipulation;
+ transition:background-color .12s,border-color .12s,opacity .12s,box-shadow .12s;
+}
+.flag-lang-button .flag-emoji{font:normal 25px/1 "Noto Color Emoji","Apple Color Emoji",system-ui,sans-serif;white-space:nowrap;filter:saturate(.7)}
+.flag-lang-button .flag-code{white-space:nowrap}
+.flag-lang-button .flag-check{display:none;position:absolute;top:-7px;right:-6px;
+ width:17px;height:17px;border-radius:50%;background:#f7d778;color:#142819;
+ border:1px solid #fff7d5;text-align:center;font:900 12px/16px system-ui,sans-serif}
+.flag-lang-button[aria-pressed="true"]{
+ opacity:1;background:linear-gradient(115deg,#dce9b6,#f7dea0);color:#19352b;
+ border-color:#ffe19b;box-shadow:0 0 0 2px rgba(255,224,150,.55),0 0 15px rgba(255,221,132,.42);
+}
+.flag-lang-button[aria-pressed="true"] .flag-emoji{filter:none}
+.flag-lang-button[aria-pressed="true"] .flag-check{display:block}
+.flag-lang-button[aria-pressed="false"] .flag-emoji{filter:saturate(.65)}
+.flag-lang-button:focus-visible{outline:3px solid #fff2ae;outline-offset:4px}
+#menu .flag-language-title{justify-content:flex-end;justify-self:end;width:100%;padding:2px 8px 0 0}
+#pause .flag-language-pause{justify-content:center;margin:0 0 11px}
+@media (orientation:landscape) and (max-height:570px){
+ #menu .flag-language-title{grid-column:1/-1;grid-row:1;justify-self:end;align-self:start;
+  margin:0;padding:1px 8px 0 0;min-height:37px}
+ #menu .flag-lang-button{min-height:34px;min-width:69px;padding:4px 10px 4px 7px;font-size:12px}
+ #menu .flag-emoji{font-size:21px}
+}
+@media(max-width:370px){
+ #menu .flag-lang-button{min-width:69px;min-height:38px;padding:5px 9px;font-size:12px}
+ #menu .flag-emoji{font-size:22px}
+}

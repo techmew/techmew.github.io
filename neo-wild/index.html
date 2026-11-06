@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
 <link rel="stylesheet" href="./visual.css?rev=solo3-compact-green-20261105b">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
-<link rel="stylesheet" href="./i18n.css?rev=20261107-ja-en">
+<link rel="stylesheet" href="./i18n.css?rev=flag-lang-20261107">
 </head>
 <body>
 <div id="app">
@@ -93,7 +93,10 @@
  <p class="tutorial-note">閉じるとゲーム再開</p>
  <footer class="tutorial-controls"><button id="tutorial-prev" type="button">← 戻る</button><button id="tutorial-next" type="button">次へ →</button></footer></section>
 </div>
-<div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell"><div class="language-picker" role="group" aria-label="言語 / Language"><label for="language-title">言語 / Language</label><select id="language-title" aria-label="Language / 言語"><option value="ja">日本語</option><option value="en">English</option></select></div>
+<div id="menu" class="overlay"><div class="menu-bg"><span class="sun"></span><span class="building-shape a"></span><span class="building-shape b"></span><span class="building-shape c"></span><span class="building-shape d"></span><span class="road-shape"></span></div><div class="menu-shell"><div id="language-title" class="flag-language-toggle flag-language-title" role="group" aria-label="言語選択 / Language">
+ <button type="button" class="flag-lang-button" data-lang="ja" aria-label="日本語に切り替え" aria-pressed="true"><span class="flag-emoji" aria-hidden="true">🇯🇵</span><span class="flag-code" aria-hidden="true">日</span><span class="flag-check" aria-hidden="true">✓</span></button>
+ <button type="button" class="flag-lang-button" data-lang="en" aria-label="Switch to English" aria-pressed="false"><span class="flag-emoji" aria-hidden="true">🇺🇸</span><span class="flag-code" aria-hidden="true">EN</span><span class="flag-check" aria-hidden="true">✓</span></button>
+</div>
 <h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
 <p class="lead">人の消えた日本の町。<br>支配者になったのは、飢えた野生だった。</p>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
@@ -158,7 +161,10 @@
 </div></section>
 </section>
 </div></div>
-<div id="pause" class="overlay hidden"><div class="modal"><div class="language-picker language-picker-pause" role="group" aria-label="言語 / Language"><label for="language-pause">言語 / Language</label><select id="language-pause" aria-label="Language / 言語"><option value="ja">日本語</option><option value="en">English</option></select></div><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><div class="pause-bgm-settings" role="group" aria-labelledby="pause-bgm-label">
+<div id="pause" class="overlay hidden"><div class="modal"><div id="language-pause" class="flag-language-toggle flag-language-pause" role="group" aria-label="言語選択 / Language">
+ <button type="button" class="flag-lang-button" data-lang="ja" aria-label="日本語に切り替え" aria-pressed="true"><span class="flag-emoji" aria-hidden="true">🇯🇵</span><span class="flag-code" aria-hidden="true">日</span><span class="flag-check" aria-hidden="true">✓</span></button>
+ <button type="button" class="flag-lang-button" data-lang="en" aria-label="Switch to English" aria-pressed="false"><span class="flag-emoji" aria-hidden="true">🇺🇸</span><span class="flag-code" aria-hidden="true">EN</span><span class="flag-check" aria-hidden="true">✓</span></button>
+</div><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><div class="pause-bgm-settings" role="group" aria-labelledby="pause-bgm-label">
  <label id="pause-bgm-label" for="pause-bgm-select">BGMを選択</label>
  <select id="pause-bgm-select" aria-label="BGMを選択">
   <option value="default">デフォルト｜環境連動</option>
@@ -234,7 +240,7 @@
 <script src="./pack-tactics.js?rev=20261103-pincer-v1" defer></script> <script src="./companions.js?rev=ce6ae1d6e652-rare-3-20261103" defer></script> <script src="./ufo-events.js?rev=19902051b5fd-newworld0800" defer></script> <script src="./disaster-world.js?rev=957ef37185cc-newworld0800" defer></script>
 <script src="./apparitions.js?rev=58064542fa33-newworld0800" defer></script>
 <script src="./trophy-records.js?rev=2c67a417-ufo" defer></script> <script src="./squad-core.js?rev=release-7fe4e1-20261105" defer></script>
-<script src="./i18n.js?rev=20261107-ja-en" defer></script>
+<script src="./i18n.js?rev=flag-lang-20261107" defer></script>
 <script src="./squad-gacha-ui.js?rev=solo3-tap-select-20261105b" defer></script>
 <script src="./death-share.js?rev=death-x-card-20261106" defer></script>
 <script src="./game.js?rev=death-x-card-20261106" defer></script>

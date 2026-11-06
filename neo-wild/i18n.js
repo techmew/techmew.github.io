@@ -45,7 +45,15 @@ function walk(root){
  for(let node=walker.nextNode();node;node=walker.nextNode()){if(node.nodeType===3)textNode(node);else attrs(node)}
 }
 function syncControls(){
- for(const id of ["language-title","language-pause"]){const select=document.getElementById(id);if(select)select.value=locale}
+ for(const id of ["language-title","language-pause"]){
+  const group=document.getElementById(id);
+  if(!group)continue;
+  for(const button of group.querySelectorAll("button[data-lang]")){
+   const selected=button.dataset.lang===locale;
+   button.setAttribute("aria-pressed",selected?"true":"false");
+   button.classList.toggle("is-selected",selected);
+  }
+ }
  document.documentElement.lang=locale;
  document.title=locale==="en"?"WILD RECLAIM | Survival in a Lost City":"WILD RECLAIM | 廃都生存記";
 }
@@ -57,7 +65,13 @@ function setLanguage(next){
  refresh();return true;
 }
 for(const id of ["language-title","language-pause"]){
- const select=document.getElementById(id);if(select){select.value=locale;select.addEventListener("change",()=>setLanguage(select.value))}
+ const group=document.getElementById(id);
+ if(!group)continue;
+ group.addEventListener("click",event=>{
+  const button=event.target.closest?.("button[data-lang]");
+  if(!button||!group.contains(button))return;
+  setLanguage(button.dataset.lang);
+ });
 }
 const pending=new Set();
 function flush(){timer=0;if(locale!=="en"){pending.clear();return}for(const node of pending)walk(node);pending.clear()}
