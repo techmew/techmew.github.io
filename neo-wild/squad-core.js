@@ -74,7 +74,7 @@ function targetSlot(member,members){
  return i>=0&&i<MAX_OWNED&&!occupied.has(i)?i:null;
 }
 function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=excluded(),seen=new Set();const members=assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));return {...v,members,leaderId:members.some(m=>m.id===v.leaderId)?v.leaderId:members[0]?.id||null}}
-function save(roster){const d=excluded(),seen=new Set();const requested=Array.isArray(roster?.members)?roster.members:[];
+function save(roster,explicitLeaderSelection=false){const d=excluded(),seen=new Set();const requested=Array.isArray(roster?.members)?roster.members:[];
  // Stale autosaves must not silently discard living legacy 4/5-member owners.
  // Death and release tombstones remain authoritative, so genuine departures stay permanent.
  const prior=read(KEY,null),protectedLiving=prior?.version===1&&Array.isArray(prior.members)?prior.members.filter(m=>m?.id&&!d.has(m.id)&&m.alive!==false):[];
@@ -83,9 +83,9 @@ function save(roster){const d=excluded(),seen=new Set();const requested=Array.is
  const members=assignSlots(combined.filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));
  // Older autosaves must not undo a newer, explicitly selected leader.
  // A fresh selectActive() uses load() and therefore carries the current updatedAt.
- const staleLeader=prior?.version===1&&Number.isFinite(prior.updatedAt)&&(!Number.isFinite(roster.updatedAt)||roster.updatedAt<prior.updatedAt);
+ const staleLeader=!explicitLeaderSelection&&prior?.version===1&&Number.isFinite(prior.updatedAt)&&(!Number.isFinite(roster.updatedAt)||roster.updatedAt<=prior.updatedAt);
  const requestedLeader=staleLeader?prior.leaderId:roster.leaderId;
- const v={version:1,members,leaderId:members.some(x=>x.id===requestedLeader)?requestedLeader:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Date.now()};localStorage.setItem(KEY,JSON.stringify(v));return v}
+ const v={version:1,members,leaderId:members.some(x=>x.id===requestedLeader)?requestedLeader:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Math.max(Date.now(),(Number.isFinite(prior?.updatedAt)?prior.updatedAt:0)+1)};localStorage.setItem(KEY,JSON.stringify(v));return v}
 // Selection is persisted before the renderer is notified; stock animals never spawn as AI.
 function selectActive(id){
  const roster=load();
@@ -94,7 +94,7 @@ function selectActive(id){
  roster.leaderId=id;
  // A failed or non-persistent write must never launch the previously selected animal.
  try{
-  const saved=save(roster);
+  const saved=save(roster,true);
   const verified=load();
   if(!verified?.members?.some(m=>m.id===id)||verified.leaderId!==id)
    return {ok:false,reason:"操作個体の選択を保存できません。空き容量を確認して再試行してください"};
