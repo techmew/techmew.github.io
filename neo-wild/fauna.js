@@ -547,7 +547,13 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(const side of [-1,1])ellipse(r*.79,side*r*.24,r*.075,r*.065,"#24201d");
   ellipse(r*1.12,0,r*.12,r*.10,"#292522");
  }else if(type==="gorilla"){
-  for(const side of [-1,1]){line(-r*.58,side*r*.55,-r*.75,side*r*1.25,r*.44,"#343638");line(r*.43,side*r*.65,r*.57,side*r*1.57+pace*.12,r*.46,fur);ellipse(r*.62,side*r*1.59,r*.38,r*.31,"#363331");}
+  for(const side of [-1,1]){
+   const slam=Math.min(1,Math.max(0,o.gorillaSlamPose||0));
+   line(-r*.58,side*r*.55,-r*.75,side*r*1.25,r*.44,"#343638");
+   line(r*.43,side*r*.65,r*(.57+slam*.43),side*r*1.57+pace*.12,r*.46,fur);
+   ellipse(r*(.62+slam*.43),side*r*1.59,r*.38,r*.31,"#363331");
+   if(slam>.1)for(let k=-1;k<=1;k++)ellipse(r*(.90+slam*.43),side*r*1.59+k*r*.11,r*.10,r*.09,"#929087");
+  }
   ellipse(-r*.18,0,r*1.25,r*.95,fur);ellipse(r*.74,0,r*.77,r*.70,"#444342");ellipse(r*1.12,0,r*.49,r*.42,"#77706b");
   for(const side of [-1,1])ellipse(r*1.25,side*r*.25,r*.09,r*.075,"#201d1c");
   ellipse(r*1.45,0,r*.31,r*.19,"#4d4440");
@@ -604,7 +610,7 @@ function draw2D(ctx,o,r,fur,light,pace){
   if(club){line(r*.42,-r*1.36,r*.96,-r*2.30,r*.18,"#91704a");ellipse(r*.97,-r*2.31,r*.22,r*.14,"#9c7951");}
   else if(ready)ellipse(r*.44,-r*1.43,r*.26,r*.23,"#b5a997");
  }else if(type==="macaque"){
-  const climbing=Math.max(0,o.treeHeight||0),preparing=(o.macaqueTell||0)>0;
+  const climbing=Math.max(0,o.treeHeight||0),preparing=(o.macaqueTell||0)>0||(o.macaqueThrowPose||0)>.25;
   for(const side of [-1,1]){
    line(-r*.54,side*r*.36,-r*.8,side*r*.91+pace*.35,r*.23,fur);
    line(r*.46,side*r*.43,r*.66,side*r*.92-pace*.3,r*.24,fur);
@@ -620,6 +626,7 @@ function draw2D(ctx,o,r,fur,light,pace){
   }
   line(-r*.99,0,-r*1.38,r*.22,r*.20,fur);
   if(preparing){ellipse(r*.55,-r*.99,r*.23,r*.22,"#91877a");line(r*.42,-r*.40,r*.55,-r*.98,r*.19,fur);}
+   else if((o.macaqueThrowPose||0)>0){line(r*.43,-r*.40,r*1.10,-r*.78,r*.18,fur);ellipse(r*1.13,-r*.80,r*.12,r*.11,"#a68f78");}
   if(climbing>8)ellipse(-r*.15,r*.86,r*.50,r*.12,"#a2bda0");
  }else if(type==="snake"){
   // Distinct long, curved, legless body; a raised head signals an actual attack windup.
@@ -783,17 +790,21 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(const side of [-1,1])for(const x of [-r*.59,r*.5])ellipse(x,side*r*.63+pace*side,r*.26,r*.33,fur);
   ellipse(-r*.21,0,r*1.26,r*.66,fur);ellipse(r*.69,0,r*.77,r*.80,"#926a3d");
   ellipse(r*1.12,0,r*.52,r*.42,fur);ellipse(r*1.48,0,r*.30,r*.18,light);
+   if((o.lionRoarPose||0)>0){ellipse(r*1.44,r*.14,r*.29,r*.13,"#3e2b25");ellipse(r*1.44,r*.22,r*.25,r*.09,"#e5c69b");}
   for(const side of [-1,1]){ellipse(r*1.2,side*r*.27,r*.12,r*.08,"#302923");ellipse(r*.80,side*r*.56,r*.20,r*.18,"#9c7549");}
   line(-r*1.18,0,-r*1.85,r*.28,r*.12,fur);ellipse(-r*1.84,r*.26,r*.16,r*.13,"#655037");
  }else if(type==="elephant"){
-  for(const side of [-1,1])for(const x of [-r*.60,r*.59])ellipse(x,side*r*.70+pace*side,r*.35,r*.41,"#68736d");
+  for(const side of [-1,1])for(const x of [-r*.60,r*.59]){
+    const stomp=x>0&&side<0?Math.sin(Math.PI*Math.min(1,o.elephantStompPose||0))*r*.19:0;
+    ellipse(x+stomp,side*r*.70+pace*side,r*.35,r*.41,"#68736d");
+   }
   ellipse(-r*.17,0,r*1.42,r*1.04,fur);ellipse(r*.86,0,r*.99,r*.85,light);
   for(const side of [-1,1]){
    ellipse(r*.90,side*r*.87,r*.46,r*.59,"#78847d");
    ellipse(r*1.25,side*r*.27,r*.10,r*.10,"#303835");
    line(r*1.4,side*r*.34,r*2.0,side*r*.35,r*.13,"#e9dec6");
   }
-  for(let k=0;k<5;k++)ellipse(r*(1.4+k*.19),Math.sin(k*.5)*r*.13,r*(.27-k*.025),r*(.27-k*.025),fur);
+  for(let k=0;k<5;k++)ellipse(r*(1.4+k*.19),Math.sin(k*.5)*r*.13+Math.sin(Math.PI*Math.min(1,o.elephantStompPose||0))*r*.12,r*(.27-k*.025),r*(.27-k*.025),fur);
  }else if(type==="hippo"){
   for(const side of [-1,1])for(const x of [-r*.6,r*.56])ellipse(x,side*r*.72+pace*side,r*.32,r*.37,"#716867");
   ellipse(-r*.18,0,r*1.34,r*1.04,fur);ellipse(r*.86,0,r*.82,r*.69,fur);
