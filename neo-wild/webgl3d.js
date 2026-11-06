@@ -265,16 +265,25 @@ function drawStrongAnimal3D(m,clock){
   for(let i=0;i<8;i++)orb(-r*(1.13+i*.25),Math.sin(clock*1.7+i*.7)*r*.18,r*(.36-i*.02),r*(.38-i*.03),r*(.28-i*.023),r*(.25-i*.02),i%2?"#566d50":"#8b946d");
   for(const side of [-1,1]){orb(r*1.40,side*r*.27,r*.57,r*.14,r*.10,r*.10,"#ddbf75");orb(r*1.44,side*r*.28,r*.60,r*.05,r*.05,r*.06,"#19291f");}
  }else if(t==="rhino"){
-  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.67,side*r*.62,r*.36+pace,r*.38,r*.33,r*.42,"#635e58");
+  for(const side of [-1,1])for(const front of [-1,1]){
+    const phase=Math.sin((m.steps||m.step||0)*2.0+(front===side?0:Math.PI));
+    const force=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/130);
+    orb(front*r*.67+phase*force*r*.21,side*r*.62,r*.36+Math.max(0,phase)*force*r*.18,r*.38,r*.33,r*.42,"#635e58");
+   }
   orb(-r*.24,0,r*.93,r*1.40,r*.93,r*.86,fur);orb(r*.59,0,r*1.18,r*1.00,r*.83,r*.94,"#6b6660");orb(r*1.35,0,r*.96,r*.70,r*.55,r*.56,belly);
-  spike(r*1.46,0,r*1.34,r*.23,r*.24,r*1.05,"#e7ddc6");spike(r*.98,0,r*1.55,r*.16,r*.18,r*.52,"#c7bda8");
+  spike(r*1.46+Math.max(0,m.hornCharge||0)*r*.26,0,r*1.34,r*.23,r*.24,r*1.05,"#e7ddc6");spike(r*.98,0,r*1.55,r*.16,r*.18,r*.52,"#c7bda8");
   for(const side of [-1,1]){orb(r*1.08,side*r*.48,r*1.38,r*.21,r*.18,r*.29,fur);orb(r*1.38,side*r*.43,r*1.10,r*.10,r*.09,r*.10,"#252521");}
   orb(-r*1.58,0,r*.73,r*.37,r*.15,r*.17,"#68635d");
  }else if(t==="giantCrocodile"){
   orb(-r*.15,0,r*.43,r*1.38,r*.72,r*.48,fur);
-  for(const side of [-1,1])for(const front of [-1,1]){orb(front*r*.55,side*r*.71,r*.21+pace,r*.37,r*.24,r*.25,"#405b48");}
+  for(const side of [-1,1])for(const front of [-1,1]){
+    const stroke=Math.sin((m.steps||m.step||0)*2.3+(front===side?0:Math.PI));
+    const motion=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/125);
+    orb(front*r*.55+stroke*r*.23*motion,side*r*.71,r*.21+Math.max(0,stroke)*r*.14*motion,r*.37,r*.24,r*.25,"#405b48");
+   }
   for(let i=0;i<8;i++)spike(-r*.97+i*r*.27,0,r*.87,r*.16,r*.17,r*.24,"#36513e");
-  orb(r*1.00,0,r*.36,r*.89,r*.45,r*.30,fur);orb(r*1.63,0,r*.25,r*.48,r*.36,r*.20,belly);
+  orb(r*1.00,0,r*.36,r*.89,r*.45,r*.30,fur);orb(r*1.63,0,r*.25+Math.max(0,m.jawSnap||0)*r*.10,r*.48,r*.36,r*.20,belly);
+   if((m.jawSnap||0)>0){orb(r*1.68,0,r*.12,r*.47,r*.36,r*.10,"#3a2827");for(const y of [-1,1])for(let i=0;i<4;i++)spike(r*(1.38+i*.16),y*r*.28,r*.18,r*.055,r*.05,r*.12,"#ece1c3");}
   for(const side of [-1,1]){orb(r*1.08,side*r*.34,r*.58,r*.14,r*.11,r*.12,"#e8d188");orb(r*1.11,side*r*.36,r*.64,r*.055,r*.05,r*.06,"#192b22");}
   for(let i=0;i<6;i++)orb(-r*(1.2+i*.30),0,r*(.28-i*.028),r*.35,r*(.38-i*.045),r*(.22-i*.026),i%2?"#405c47":fur);
  }else if(t==="giantHippo"){
@@ -666,6 +675,7 @@ function drawCommonAnimal3D(m,clock){
   for(let k=0;k<11;k++){const a=k*TAU/11;orb(r*.70,Math.cos(a)*r*.68,r*1.08+Math.sin(a)*r*.66,r*.26,r*.19,r*.22,"#a67a47");}
   orb(r*1.13,0,r*1.10,r*.50,r*.38,r*.43,fur);orb(r*1.47,0,r*.87,r*.30,r*.27,r*.18,belly);
   for(const side of [-1,1])orb(r*1.20,side*r*.29,r*1.25,r*.09,r*.09,r*.09,"#352c24");
+   if((m.specialVisual||0)>0){orb(r*1.50,0,r*.66,r*.32,r*.29,r*.13,"#382b24");orb(r*1.48,0,r*.52,r*.26,r*.22,r*.11,belly);}
   for(let k=0;k<5;k++)orb(-r*(1.13+k*.26),0,r*(.82-k*.07),r*.14,r*.11,r*.11,k===4?"#584734":fur);
  }else if(t==="elephant"){
   // Heavy lateral walk: four independently planted pillar legs and broad toenails.
@@ -684,7 +694,7 @@ function drawCommonAnimal3D(m,clock){
    pyramid(fx(r*1.49,side*r*.38),fy(r*1.49,side*r*.38),r*.55,r*.13,r*.11,r*1.05,"#e7dfc7");
    orb(r*1.25,side*r*.30,r*1.50,r*.10,r*.10,r*.10,"#313b37");
   }
-  for(let k=0;k<6;k++)orb(r*(1.42+k*.18),Math.sin(k*.58)*r*.14,r*(1.07-k*.17),r*(.28-k*.024),r*(.27-k*.023),r*(.27-k*.023),fur);
+  for(let k=0;k<6;k++)orb(r*(1.42+k*.18),Math.sin(k*.58)*r*.14,r*(1.07-k*.17)+Math.max(0,m.specialVisual||0)*r*.28,r*(.28-k*.024),r*(.27-k*.023),r*(.27-k*.023),fur);
  }else if(t==="hippo"){
   for(const side of [-1,1])for(const front of [-1,1])
    orb(front*r*.57,side*r*.70,r*.42,r*.32,r*.37,r*.43,"#736969");
@@ -970,6 +980,39 @@ function drawRarePlayable3D(m,clock){
 }
 
 
+
+/* Penguin control rig: anatomically distinct biped, responsive feet, flippers
+   and a flattened body during the player belly-slide special attack. */
+function drawPenguinPlayable3D(m,clock){
+ if(m.type!=="penguin")return false;
+ const r=m.r||23,dir=m.dir||0,c=Math.cos(dir),s=Math.sin(dir);
+ const X=(x,y)=>m.x+x*c-y*s,Y=(x,y)=>m.y+x*s+y*c;
+ const orb=(x,y,z,a,b,h,col)=>ellipsoid(X(x,y),Y(x,y),z,a,b,h,col,dir,11,6);
+ const speed=Math.hypot(Number(m.vx)||0,Number(m.vy)||0);
+ const beat=Math.sin((m.steps||m.step||0)*3.9)*Math.min(1,speed/130);
+ const slide=Math.max(0,Number(m.bellySlide)||0);
+ const attack=Math.max(0,Number(m.specialVisual)||0,Number(m.swing)||0);
+ const bodyZ=slide?r*.40:r*.96,bodyHeight=slide?r*.51:r*.81;
+ for(const side of [-1,1]){
+  const motion=beat*side,forward=motion*r*.26,lift=Math.max(0,motion)*r*.20;
+  orb(-r*.47+forward,side*r*.43,r*.14+lift,r*.29,r*.23,r*.14,"#d69b51");
+  orb(-r*.35+forward*.5,side*r*.43,r*.32+lift*.48,r*.17,r*.18,r*.27,"#243942");
+ }
+ orb(-r*.22,0,bodyZ,r*.90,r*.69,bodyHeight,"#243942");
+ orb(r*.11,0,bodyZ+r*.10,r*.69,r*.58,bodyHeight*.86,"#eaece4");
+ const headZ=slide?r*.70:r*1.80;
+ orb(r*.66,0,headZ,r*.49,r*.44,r*.48,"#263943");
+ for(const side of [-1,1]){
+  const flap=Math.sin((m.steps||m.step||0)*3.6+side*Math.PI)*r*.16+Math.sin(attack*12)*attack*r*.19;
+  orb(-r*.22,side*r*.74,bodyZ+r*.02+flap,r*.62,r*.18,r*.23,"#1b303a");
+  orb(r*.85,side*r*.29,headZ+r*.09,r*.095,r*.085,r*.095,"#f3f9ee");
+  orb(r*.88,side*r*.31,headZ+r*.10,r*.045,r*.052,r*.049,"#111d23");
+ }
+ pyramid(X(r*1.04,0),Y(r*1.04,0),headZ-r*.27,r*.24,r*.14,r*.24,"#dda458");
+ orb(-r*.94,0,bodyZ-r*.09,r*.34,r*.29,r*.23,"#21333b");
+ return true;
+}
+
 /* SQUAD_WORLD_SPECIES_MESHES_V1 */
 /* Distinct procedural meshes for six global gacha species.
    Uses the same vertex transform, terrain lift and shadow as the player renderer. */
@@ -1022,6 +1065,7 @@ function drawWorldSquadSpecies3D(m,clock){
    if(alert)for(const side of [-1,1])orb(r*.83,side*r*.38,r*.73,r*.13,r*.10,r*.15,"#a58a70");
  }else if(t==="gorilla"){
   const fur="#3f4242",skin="#74716a",swing=motion*r*.22;
+   const slam=Math.max(0,Number(m.specialVisual)||0,Number(m.attackAction)||0);
   for(const y of [-1,1]){
    orb(-r*.54,y*r*.44,r*.42,r*.37,r*.33,r*.47,fur);
    orb(-r*.72,y*r*.49,r*.14,r*.37,r*.32,r*.15,skin);
@@ -1036,7 +1080,7 @@ function drawWorldSquadSpecies3D(m,clock){
    orb(r*1.35,y*r*.29,r*1.70,r*.08,r*.075,r*.08,"#191b1b");
    orb(r*.10,y*r*.91,r*1.25,r*.40,r*.35,r*.50,fur);
    orb(r*.16+swing*(y>0?1:-1),y*r*1.03,r*.54,r*.32,r*.29,r*.68,fur);
-   orb(r*.28+swing*(y>0?1:-1),y*r*1.08,r*.17,r*.33,r*.32,r*.20,skin);
+   orb(r*.28+swing*(y>0?1:-1)+slam*r*.31,y*r*1.08,r*.17+slam*r*.40,r*.33,r*.32,r*.20,skin);
   }
   if(male&&adult){
     orb(-r*.20,0,r*1.82,r*.54,r*.64,r*.17,"#777b7a");
@@ -1197,16 +1241,18 @@ function animal(m,player,clock){
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
  // The entire individual now visibly surges or braces during attacks, even
  // when its species uses a dedicated geometry branch below.
- if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:.58)+swingPose*r*.19;
+ if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:["penguin","crocodile","rhino"].includes(type)?.04:.58)+swingPose*r*.19;
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawJapaneseForestMammals3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if(drawPenguinPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if((type==="crocodile"||type==="rhino")&&drawStrongAnimal3D({...m,type:type==="crocodile"?"giantCrocodile":"rhino",color:base,belly,step:m.steps||m.step||0},clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(drawWorldSquadSpecies3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Deer uses the dedicated species model for both wildlife and the controlled player.
- if((!player||type==="deer")&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if((!player||["deer","macaque","lion","elephant"].includes(type))&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
 
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
