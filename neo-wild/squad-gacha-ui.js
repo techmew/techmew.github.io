@@ -43,7 +43,11 @@ const ready=()=>{
  const close=makeBtn("この個体で決定",()=>{
   // Reuse the existing adoption/save handler; never commit an unselected draw.
   const action=body.querySelector(".squad-gacha-actions .squad-adopt");
-  if(action&&!action.disabled)action.click();
+  // Confirm only an explicitly selected draw or its final naming/save step.
+  // Other modal states (release/reset/living roster) must not be committed here.
+  const selecting=!!draw&&!!selected&&draw.options.some(m=>m.id===selected);
+  const finalizing=chosen.length>0&&body.querySelector(".squad-final-field input");
+  if((selecting||finalizing)&&action&&!action.disabled)action.click();
  },"squad-adopt");
  const cancel=makeBtn("ガチャ結果をキャンセル",cancelGacha,"squad-close");
  head.append(el("h2",null,"編成ガチャ"),close,cancel);
