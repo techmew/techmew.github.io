@@ -6847,7 +6847,7 @@ function drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach){
  oval(r*.10,0,r*.75,r*.65,"#31454b");
  oval(r*.48,0,r*.55,r*.48,"#f6f2e6");
  for(const side of [-1,1]){
-  const flap=Math.sin((o.steps||o.step||0)*2.7+side*Math.PI)*r*.10;
+  const flap=Math.sin((o.steps||o.step||0)*2.7+side*Math.PI)*r*.10+Math.sin(Math.PI*Math.min(1,o.flipperStrike||0))*r*.26;
   oval(-r*.17,side*r*.77+flap,r*.55,r*.22,"#1e303a",side*.30);
   oval(r*.78,side*r*.23,r*.09,r*.08,"#fafcf7");
   oval(r*.81,side*r*.24,r*.045,r*.05,"#111b20");
@@ -6899,7 +6899,7 @@ function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
   for(const side of [-1,1])for(const front of [-1,1])oval(front*r*.66,side*r*.62+pace*side,r*.36,r*.34,"#66615b");
   oval(-r*.21,0,r*1.36,r*.89,fur);oval(r*.66,0,r*.98,r*.79,"#68645f");oval(r*1.35,0,r*.66,r*.57,light);
   for(const side of [-1,1]){oval(r*.72,side*r*.64,r*.24,r*.21,fur);oval(r*1.23,side*r*.47,r*.10,r*.09,"#282723");}
-  triangle([r*1.35,-r*.21,r*2.13,-r*.10,r*1.50,r*.09],"#e7dbbf");
+  triangle([r*1.35,-r*.21,r*(2.13+Math.min(1,o.hornCharge||0)*.22),-r*.10,r*1.50,r*.09],"#e7dbbf");
   triangle([r*.95,-r*.23,r*1.36,-r*.10,r*1.06,r*.10],"#c9bda7");
   oval(-r*1.50,0,r*.37,r*.15,"#66615b");
  }else if(t==="giantCrocodile"){
@@ -6907,6 +6907,7 @@ function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
   for(const side of [-1,1])for(const x of [-.57,.48])oval(r*x,side*r*.75+pace*side,r*.31,r*.25,"#405849");
   oval(-r*.17,0,r*1.35,r*.73,fur);for(let k=-3;k<=3;k++)oval(r*k*.25,-r*.25,r*.11,r*.10,"#314d3b");
   oval(r*1.02,0,r*.88,r*.43,fur);oval(r*1.65,0,r*.46,r*.36,light);
+   if((o.jawSnap||0)>0||(o.deathRollPose||0)>0)oval(r*1.60,0,r*.42,r*.18,"#452d2a");
   for(const side of [-1,1]){oval(r*1.10,side*r*.31,r*.12,r*.10,"#f0cf87");oval(r*1.12,side*r*.31,r*.045,r*.07,"#14251d");}
   for(let k=-3;k<=3;k++)triangle([r*1.62,k*r*.09,r*1.90,k*r*.09+r*.04,r*1.68,k*r*.09+r*.08],"#e9dfc0");
  }else if(t==="giantHippo"){
