@@ -1016,6 +1016,83 @@ function drawRarePlayable3D(m,clock){
 
 
 
+/* Giant tree frog and Pacman frog: dedicated mesh anatomy and expressive movement.
+   World coordinates and solid/collision heights stay owned by the game engine. */
+function drawPlayableFrog3D(m,clock){
+ const tree=m.type==="giantTreeFrog",horned=m.type==="pacmanFrog";
+ if(!tree&&!horned)return false;
+ const young=m.age==="若い"||m.ageStage==="young",male=m.sex==="オス"||m.sex==="male";
+ const r=(m.r||29)*(young?.83:1),dir=Number(m.dir)||0,c=Math.cos(dir),sn=Math.sin(dir);
+ const fx=(x,y)=>m.x+x*c-y*sn,fy=(x,y)=>m.y+x*sn+y*c;
+ const orb=(x,y,z,rx,ry,rz,col,seg=10,ring=6)=>ellipsoid(fx(x,y),fy(x,y),z,rx,ry,rz,col,dir,seg,ring);
+ const spike=(x,y,z,w,h,col)=>pyramid(fx(x,y),fy(x,y),z,w,w,h,col);
+ const skin=tree?"#62bd65":"#879748",dark=tree?"#34915a":"#5c6535",belly=tree?"#d5e5ad":"#d4b777";
+ const speed=Math.hypot(Number(m.vx)||0,Number(m.vy)||0),motion=Math.min(1,speed/150);
+ const beat=Math.sin((m.frogHopPhase||0)*Math.PI*2)*motion;
+ const crouch=motion*(1-Math.max(0,Math.sin((m.frogHopPhase||0)*Math.PI)))*r*.11;
+ const squeeze=Math.min(1,Number(m.frogSlamPose)||0);
+ // Powerful folded hind legs have a femur, shank, splayed toes, and adhesive pads.
+ for(const side of [-1,1]){
+  orb(-r*.64,side*r*.70,r*.34-crouch,r*(tree?.55:.64),r*.38,r*.39,dark,10,6);
+  orb(-r*.85+beat*r*.15,side*r*.83,r*.20-crouch*.4,r*.46,r*.25,r*.17,skin);
+  for(let toe=-1;toe<=1;toe++){
+   const toeY=side*r*(1.00+.105*Math.abs(toe)),toeX=-r*(1.00+Math.abs(toe)*.13);
+   orb(toeX+beat*r*.10,toeY,r*.10,r*.22,r*.095,r*.07,skin,8,4);
+   orb(toeX-r*.20+beat*r*.10,toeY,r*.07,r*(tree?.16:.13),r*(tree?.155:.13),r*.065,tree?"#9ddb82":"#b7a66b",8,4);
+  }
+  orb(r*.53,side*r*.57,r*.28-crouch*.5,r*.22,r*.21,r*.31,skin);
+  orb(r*.85,side*r*.72,r*.12,r*.31,r*.22,r*.13,dark);
+  for(let toe=-1;toe<=1;toe++)
+   orb(r*1.09,side*r*.72+toe*r*.15,r*.08,r*.13,r*.11,r*.055,tree?"#a2d47c":"#b4a06b",7,4);
+ }
+ orb(-r*.19,0,r*(tree?.64:.68)-crouch,r*(tree?1.18:1.26),r*(tree?.83:1.02),r*(tree?.63:.76),skin,14,9);
+ orb(r*.31,0,r*.36-crouch*.40,r*(tree?.91:1.07),r*(tree?.70:.95),r*.34,belly,14,8);
+ // Inflatable chin and the slow breathing/buccal pump.
+ const breath=1+.025*Math.sin(clock*2.2+visualIdSeed(m.id));
+ orb(r*.61,0,r*.32-crouch*.4,r*.53*breath,r*.46,r*.24,tree?"#c4dbab":"#cbb17b");
+ // Stable, non-tiling dorsal skin glands and random-looking chromatophore patterns.
+ for(let k=0;k<(tree?19:31);k++){
+  const a=k*2.39996323,rad=Math.sqrt((k+.4)/(tree?19:31));
+  const px=-r*.21+Math.cos(a)*r*.95*rad,py=Math.sin(a)*r*(tree?.68:.91)*rad;
+  const rise=r*(tree?1.09:1.22)-crouch-r*.20*rad;
+  orb(px,py,rise,r*(tree?.087:.14)*(k%3===0?1.2:.8),r*(tree?.078:.12),r*(tree?.057:.075),
+   tree?(k%3===0?"#2d9460":"#91d179"):(k%4===0?"#c49a53":k%3===0?"#4d5031":"#6e7936"),7,4);
+ }
+ const headX=r*(tree?.69:.67),headZ=r*(tree?.79:.89)-crouch*.8;
+ orb(headX,0,headZ,r*(tree?.69:.89),r*(tree?.79:.98),r*(tree?.40:.54),skin,13,8);
+ orb(r*1.09,0,headZ-r*.27,r*(tree?.41:.60),r*(tree?.66:.86),r*.17,belly,12,6);
+ // The eyelid, sclera, iris, pupil and catchlight share a rigid head transform.
+ for(const side of [-1,1]){
+  const ey=side*r*(tree?.61:.79),ex=r*(tree?.67:.62);
+  orb(ex,ey,headZ+r*.27,r*(tree?.30:.32),r*.28,r*.30,dark,11,6);
+  orb(ex+r*.12,ey+side*r*.025,headZ+r*.33,r*.22,r*.21,r*.23,"#e6d39a",11,6);
+  orb(ex+r*.26,ey,headZ+r*.34,r*.083,r*.102,r*.136,"#151e1b",9,6);
+  orb(ex+r*.28,ey-side*r*.045,headZ+r*.42,r*.028,r*.025,r*.040,"#f7efd2",7,4);
+  if(horned){
+   spike(ex-r*.17,ey,headZ+r*.37,r*.20,r*.46,"#5c6636");
+   orb(ex-r*.13,ey,headZ+r*.45,r*.21,r*.23,r*.11,"#66713b");
+  }
+  orb(r*1.20,side*r*.21,headZ-r*.07,r*.065,r*.045,r*.040,tree?"#2b6851":"#4c4f2c");
+  for(let i=0;i<3;i++)orb(r*.95-i*r*.15,side*r*(tree?.71:.84),headZ-r*.19,r*.055,r*.075,r*.038,dark,7,4);
+ }
+ // Wide upper and lower jaws, a red tongue and retracting sticky tip.
+ orb(r*1.27,0,headZ-r*.31,r*(tree?.39:.54),r*(tree?.45:.65),r*.095,"#4a3631",12,5);
+ orb(r*1.20,0,headZ-r*.36,r*(tree?.38:.52),r*(tree?.44:.60),r*.065,"#d49391",11,5);
+ const tongue=Math.min(1,Math.max(0,Number(m.frogTonguePose)||0));
+ if(tongue>0){
+  const reach=r*tongue*(tree?6.3:4.6),rootX=r*1.20,rootZ=headZ-r*.32;
+  for(let k=0;k<7;k++){
+   const u=(k+.5)/7;
+   orb(rootX+reach*u,Math.sin(u*Math.PI)*r*.065,rootZ+Math.sin(u*Math.PI)*r*.095,
+    Math.max(r*.09,reach/13),r*(.085+(1-u)*.048),r*(.07+(1-u)*.038),k%2?"#b96573":"#d7838d",7,4);
+  }
+  orb(rootX+reach,0,rootZ,r*.24,r*.21,r*.16,"#e49fa0",9,5);
+ }
+ if(male)for(const side of [-1,1])orb(-r*.21,side*r*.68,r*.70-crouch,r*.24,r*.12,r*.19,tree?"#48a75f":"#6b7740");
+ if(squeeze>0)orb(0,0,r*.24,r*(.83+squeeze*.16),r*(.75+squeeze*.12),r*.15,"#c6ac77");
+ return true;
+}
+
 /* Penguin control rig: anatomically distinct biped, responsive feet, flippers
    and a flattened body during the player belly-slide special attack. */
 function drawPenguinPlayable3D(m,clock){
@@ -1276,6 +1353,7 @@ function animal(m,player,clock){
  const contactZ=(player?Math.max(0,m.groundZ||0):0)+terrainZ;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
+ if(player&&(type==="giantTreeFrog"||type==="pacmanFrog"))animalLift+=Math.max(0,Number(m.frogHopLift)||0);
  // The entire individual now visibly surges or braces during attacks, even
  // when its species uses a dedicated geometry branch below.
  if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:["penguin","crocodile","rhino"].includes(type)?.04:.58)+swingPose*r*.19;
@@ -1283,6 +1361,7 @@ function animal(m,player,clock){
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
  if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawJapaneseForestMammals3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if(drawPlayableFrog3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawRarePlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawPenguinPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if((type==="crocodile"||type==="rhino")&&drawStrongAnimal3D({...m,type:type==="crocodile"?"giantCrocodile":"rhino",color:base,belly,step:m.steps||m.step||0},clock)){animalLift=0;animalCollapseTransform=null;return;}

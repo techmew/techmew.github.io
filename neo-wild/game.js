@@ -38,7 +38,9 @@ const animals={
  lion:{name:"ライオン",hp:245,speed:340,damage:28,rate:.49,r:37,color:"#bc8e56",belly:"#e7c89b",ear:"#95683e"},
  elephant:{name:"ゾウ",hp:560,speed:173,damage:36,rate:.88,r:55,color:"#818c86",belly:"#b1bbb0",ear:"#66716c"},
  penguin:{name:"ペンギン",hp:95,speed:155,damage:16,rate:.45,r:23,color:"#263b46",belly:"#edf2e9",ear:"#263b46"},
- rhino:{name:"サイ",hp:540,speed:215,damage:43,rate:.81,r:46,color:"#88837c",belly:"#bbb3a9",ear:"#6a6560"}
+ rhino:{name:"サイ",hp:540,speed:215,damage:43,rate:.81,r:46,color:"#88837c",belly:"#bbb3a9",ear:"#6a6560"},
+ giantTreeFrog:{name:"巨大アマガエル",hp:160,speed:214,damage:25,rate:.42,r:28,color:"#63bb60",belly:"#d2e6a8",ear:"#489c51"},
+ pacmanFrog:{name:"ベルツノガエル",hp:310,speed:142,damage:38,rate:.64,r:37,color:"#8a984a",belly:"#d8ba75",ear:"#656d39"}
 };
 // SOLO5: no lifespan cap. Legacy fields remain readable for SAVE_SCHEMA2 migration.
 function initializeLife(player,seconds,restored=false){
@@ -57,6 +59,8 @@ const species={
  manul:{hp:94,r:18,speed:215,damage:21,prey:false,xp:6,food:28,color:"#b1a89a",belly:"#dbd4c2"},
  tibetanFox:{hp:108,r:20,speed:257,damage:22,prey:false,xp:6,food:32,color:"#b8a18b",belly:"#f0deca"},
  shoebill:{hp:148,r:27,speed:142,damage:32,prey:false,xp:8,food:41,color:"#7d8990",belly:"#acb7ba"},
+ giantTreeFrog:{hp:160,r:28,speed:214,damage:25,prey:false,xp:8,food:70,color:"#63bb60",belly:"#d2e6a8"},
+ pacmanFrog:{hp:310,r:37,speed:142,damage:38,prey:false,xp:11,food:108,color:"#8a984a",belly:"#d8ba75"},
  crocodile:{hp:270,r:38,speed:174,damage:32,prey:false,xp:11,food:118,color:"#47664f",belly:"#a2b49a"},
  penguin:{hp:95,r:23,speed:155,damage:16,prey:false,xp:5,food:38,color:"#263b46",belly:"#edf2e9"},
  rhino:{hp:540,r:46,speed:215,damage:43,prey:false,xp:18,food:158,color:"#88837c",belly:"#bbb3a9"},
@@ -3087,7 +3091,9 @@ const ATTACK_MOTION=Object.freeze({
  hyena:["paw","paw","jaw","hind","jaw","jaw"],
  wildDog:["paw","paw","jaw","hind","jaw","jaw"],
  armadillo:["body","body","jaw","foot","body","roll"],
- hedgehog:["quill","quill","jaw","foot","quill","quill"]
+ hedgehog:["quill","quill","jaw","foot","quill","quill"],
+ giantTreeFrog:["tongue","tongue","tongue","foot","tongue","tongue"],
+ pacmanFrog:["tongue","jaw","tongue","foot","jaw","foot"]
 });
 // Physical contact tint only; no neon attack color unrelated to anatomy.
 const ATTACK_TRAIL_COLOR=Object.freeze({
@@ -3095,7 +3101,7 @@ const ATTACK_TRAIL_COLOR=Object.freeze({
  hoof:"#c5b99c",tusk:"#e7d6a8",horn:"#dedac6",beak:"#d6d9cb",
  wing:"#b2cbd1",foot:"#c5bea1",tail:"#afd5c8",splash:"#a7dbeb",
  fist:"#cbb9a9",body:"#bfb39d",stone:"#c7b59f",voice:"#c1d5ce",
- trunk:"#c1bdb8",neck:"#d3bea6",roll:"#b7af94",quill:"#d5cbb4"
+ trunk:"#c1bdb8",neck:"#d3bea6",roll:"#b7af94",quill:"#d5cbb4",tongue:"#cb7e87"
 });
 function combatMotion(type,step=1,ultimate=false){
  const seq=ATTACK_MOTION[type]||ATTACK_MOTION.cat;
@@ -3216,6 +3222,12 @@ function drawCombatFX(){
      for(let k=-1;k<=1;k++)trace([pt(end,tipSide+k*r*.12),pt(end+r*.13,tipSide+k*r*.13)],1.8,color,.67);
     }
     break;
+   }
+   case "tongue":{
+    // Tongue is anchored to the mouth, without detached arrow/spark effects.
+    const start=pt(r*.78,0,muzzleHeight*.70),middle=pt(r*1.25+reach*.36,left*r*.08,muzzleHeight*.78);
+    const tip=pt(r*1.55+reach*.70,left*r*.025,muzzleHeight*.67);
+    curve(start,middle,tip,width*.9,"#cb7e87",.94);oval(tip,r*.13,r*.075,"#d89195",.82);break;
    }
    case "jaw":{
     // Open then close the UPPER and LOWER mouth in front of the head.
@@ -3350,7 +3362,9 @@ const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
  ["hyena","骨砕きの噛みつき","bite",145,1.86,.73,13],
  ["wildDog","追い込みの連続噛み","double",145,1.23,.94,11],
  ["armadillo","丸まり回転突撃","roll",155,1.26,.89,12],
- ["hedgehog","針の迎撃","thorns",132,.77,3.14,11]
+ ["hedgehog","針の迎撃","thorns",132,.77,3.14,11],
+ ["giantTreeFrog","捕食旋風・舌の嵐","tongue",245,1.62,.94,12],
+ ["pacmanFrog","巨口天墜・捕食震撃","slam",184,1.98,3.14,17]
 ].map(([id,name,kind,range,power,arc,cooldown])=>
  [id,Object.freeze({name,kind,range,power,arc,cooldown})])));
 
@@ -3491,6 +3505,8 @@ function resolveSpeciesSpecial(){
   launchStone(primary,spec);playEffect("attack",{volume:.20});return 0;
  }
  P.specialVisual=1.02;P.attackAction=.85;
+ if(type==="giantTreeFrog")P.frogTonguePose=Math.max(P.frogTonguePose||0,.85);
+ if(type==="pacmanFrog")P.frogSlamPose=Math.max(P.frogSlamPose||0,.66);
  if(type==="rhino"||type==="penguin"){
   startPhysicalRush(type,spec,primary);
   emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.15,0,P.r);
@@ -3520,7 +3536,7 @@ function resolveSpeciesSpecial(){
  if(type==="hedgehog")P.inv=Math.max(P.inv||0,.65);
  let hitCount=0;
  const radial=["roar","gust","slam","splash","thorns"].includes(spec.kind);
- const limit=radial?(type==="elephant"?6:4):spec.kind==="fan"?3:spec.kind==="double"?2:1;
+ const limit=type==="giantTreeFrog"?3:radial?(type==="elephant"?6:4):spec.kind==="fan"?3:spec.kind==="double"?2:1;
  for(const m of specialTargets(spec).slice(0,limit)){
   const small=!!species[m.type]?.prey&&["rat","rabbit","frog","pigeon","crow","snake","carp"].includes(m.type);
   let power=spec.power;
@@ -3528,13 +3544,14 @@ function resolveSpeciesSpecial(){
   if(type==="manul"&&P.specialAmbush)power*=1.45;
   if(type==="tibetanFox"&&small)power*=1.36;
   if(type==="hyena"&&m.hp<(m.maxHp||m.hp)*.55)power*=1.3;
+  if(type==="giantTreeFrog"&&species[m.type]?.prey)power*=1.2;
   if(type==="otter"&&waterDepth(P.x,P.y)>.04)power*=1.25;
   if(type==="gorilla"||type==="elephant")power*=.62+.38*(1-Math.min(1,dist(P,m)/(spec.range+P.r)));
   if(type==="lion")power*=.55;
   if(type==="crocodile"&&waterDepth(P.x,P.y)>.04)power*=1.20;
   const more=spec.kind==="double"?1.19:1;
   const stun=spec.kind==="pierce"?.85:spec.kind==="bite"?.66:spec.kind==="slam"?.48:spec.kind==="lunge"?.38:spec.kind==="thorns"?.32:.24;
-  const knock=type==="rhino"?80:type==="elephant"?68:spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
+  const knock=type==="giantTreeFrog"?0:type==="rhino"?80:type==="elephant"?68:spec.kind==="slam"?50:spec.kind==="gust"?72:spec.kind==="roar"?47:spec.kind==="fan"?38:spec.kind==="roll"?45:spec.kind==="pierce"?18:26;
   const sequence=spec.kind==="double"||spec.kind==="backkick";
   emitCombatFX("hit",type,spec.kind,m.x,m.y,P.dir,.65,0,m.r);
   const damage=specialHit(m,power*(sequence?.78:more),stun,knock,spec.name);
@@ -3544,6 +3561,13 @@ function resolveSpeciesSpecial(){
     // The second claw/bite/hind-hoof connects the same real target, not a distant extra victim.
     specialHit(m,power*(type==="zebra"?.60:.54),.24,knock*.34,"追撃");
     P.swing=Math.max(P.swing||0,.35);
+   }
+   if(type==="giantTreeFrog"&&m.hp>0){
+    const pull=Math.min(74,Math.max(0,dist(P,m)-P.r-m.r-12));
+    if(pull>3){
+     const a=Math.atan2(P.y-m.y,P.x-m.x),dest={x:m.x+Math.cos(a)*pull,y:m.y+Math.sin(a)*pull};
+     if(routeClear(m,dest,m.r)&&!collides(dest.x,dest.y,m.r,m))move(m,Math.cos(a)*pull,Math.sin(a)*pull);
+    }
    }
    if(type==="dog"||type==="wildDog"){m.flee=0;m.stun=Math.max(m.stun||0,.62)}
    if(type==="crocodile"&&!crocodileFollowup&&m.hp>0)crocodileFollowup={target:m,timer:.28,power:spec.power,owner:P.squadIndividualId};
@@ -3573,6 +3597,7 @@ function resolveSpeciesSpecial(){
 }
 function instinct(){
  if(mode!=="play"||!P||isControlBlocked()||(P.specialWindup||0)>0)return;
+ if(P.type==="pacmanFrog"&&(P.jumpTime>0||P.pounceTime>0||P.fallTime>0))return;
  const spec=SPECIES_SPECIALS[P.type];if(!spec||P.instinctCD>0)return;
  const cost=spec.kind==="slam"||spec.kind==="roar"?25:spec.kind==="pierce"?23:18;
  if(P.sp<cost){notify("持久力不足 / 固有技を出せない");return}
@@ -3584,7 +3609,14 @@ function instinct(){
  window.WildAudio?.playAnimal?.(P.type,{ultimate:true});
  P.specialPending=P.type;P.specialWindup=spec.kind==="pierce"?.28:P.type==="elephant"?.43:P.type==="gorilla"?.41:P.type==="lion"?.28:P.type==="crocodile"?.28:P.type==="macaque"?.25:P.type==="rhino"?.24:spec.kind==="slam"?.34:.16;
  P.specialVisual=.50;
- if(P.type==="shoebill"){
+ if(P.type==="pacmanFrog"){
+  const target=combatAim(.85,195);
+  if(target)P.dir=Math.atan2(target.y-P.y,target.x-P.x);
+  P.frogSlamPending=true;P.frogSlamPose=.84;
+  P.jumpDuration=.82;P.jumpTime=.82;P.jumpHeight=P.groundZ||0;P.jumpFromHeight=0;P.jumpPower=174;
+  P.jumpDir=P.dir;P.jumpRemaining=target?Math.min(119,Math.max(0,dist(P,target)-P.r-target.r-8)):0;
+  P.jumpSpeed=P.jumpRemaining/.82;P.vx=0;P.vy=0;P.jumpDive=false;P.specialWindup=0;
+ }else if(P.type==="shoebill"){
   P.stillTime=Math.max(P.stillTime||0,1.2);
   P.beakVisual=.50;P.shoebillSwingTime=.45;
  }else if(P.type==="manul"){P.revealTimer=0;}
@@ -3891,6 +3923,7 @@ function attack(){
  if(P.type==="lion")P.lionRoarPose=step===5?.52:.13;
  if(P.type==="elephant")P.elephantStompPose=step>=4?.46:.20;
  if(P.type==="penguin")P.flipperStrike=.45;
+ if(P.type==="giantTreeFrog"||P.type==="pacmanFrog")P.frogTonguePose=Math.max(P.frogTonguePose||0,step===5?.66:.48);
  if(P.type==="rhino")P.hornCharge=step===5?.47:.23;
  emitCombatFX("normal",P.type,"melee",P.x,P.y,P.dir,step===5?1.3:1.0,step,P.r);
  window.WildAudio?.playAnimal?.(P.type,{ultimate:false});P.rushActiveStep=step;P.rushQueued=false;
@@ -3976,8 +4009,8 @@ function resolveAttack(){
   if(m.hp<=0||m.companion)return;
   const d=dist(P,m),overlap=hitboxesOverlap(P,m,d),theta=d>.001?Math.atan2(m.y-P.y,m.x-P.x):P.dir,angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
-   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
-  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
+   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?164:P.type==="pacmanFrog"?122:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
+  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="giantTreeFrog"?.68:P.type==="pacmanFrog"?.80:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
   if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&(overlap||!lineBlocked(P,m))){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
@@ -4163,22 +4196,33 @@ function resolveShoebillStomp(){
  if(count){P.swing=Math.max(P.swing||0,.25);P.shoebillSwingTime=.28;shake=Math.max(shake,4);playEffect("impact",{volume:.24});}
  return count;
 }
+function resolveFrogLanding(){
+ if(!P||!["giantTreeFrog","pacmanFrog"].includes(P.type)||!P.pendingStrike||!P.jumpDive)return 0;
+ let count=0;const range=P.type==="pacmanFrog"?57:42;
+ for(const m of mobs){
+  if(m.hp<=0||m.companion||Math.abs((P.groundZ||0)-(m.groundZ||0))>24||dist(P,m)>P.r+m.r+range||lineBlocked(P,m))continue;
+  if(specialHit(m,P.type==="pacmanFrog"?.85:.71,.24,19,"跳躍踏みつけ")>0){count++;emitCombatFX("stomp",P.type,"foot",m.x,m.y,P.dir,.9,4,m.r);}
+  if(count>=3)break;
+ }
+ if(count){shake=Math.max(shake,5);playEffect("impact",{volume:.26});}
+ return count;
+}
 function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
  if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
- const cat=P.type==="cat",wolf=P.type==="wolf",cost=traitEffect("giantMoose",cat?14:wolf?22:17);
+ const cat=P.type==="cat",wolf=P.type==="wolf",frog=P.type==="giantTreeFrog"||P.type==="pacmanFrog",cost=traitEffect("giantMoose",cat?14:wolf?22:frog?19:17);
  if(P.sp<cost){notify("持久力不足 / ジャンプできない");return false}
  const axis=getAxes(),moving=Math.hypot(axis.x,axis.y)>.18;
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
- const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:P.type==="shoebill"?165:112)*traitEffect("whiteTiger",1);
- P.jumpDuration=cat?.44:wolf?.49:P.type==="shoebill"?.71:.45;
+ const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:P.type==="shoebill"?165:P.type==="giantTreeFrog"?185:P.type==="pacmanFrog"?135:112)*traitEffect("whiteTiger",1);
+ P.jumpDuration=cat?.44:wolf?.49:P.type==="shoebill"?.71:frog?.82:.45;
  P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
- P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:P.type==="shoebill"?98:58;
+ P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:P.type==="shoebill"?98:P.type==="giantTreeFrog"?171:P.type==="pacmanFrog"?146:58;
  P.jumpRemaining=moving?distance:0;P.jumpSpeed=distance/P.jumpDuration;
  P.jumpDir=P.dir;P.jumpDive=false;P.jumpAmbush=P.hidden&&P.revealTimer<=0;
  P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
- P.jumpCD=cat?.56:wolf?1.16:.81;P.sp-=cost;
+ P.jumpCD=cat?.56:wolf?1.16:frog?.94:.81;P.sp-=cost;
  P.vx=0;P.vy=0;
  P.hidden=false;P.revealTimer=.85;P.noiseBurst=Math.max(P.noiseBurst,.8);
  playEffect("jump");
@@ -5829,6 +5873,8 @@ function update(dt){
   P.atk=Math.max(0,P.atk-dt);P.dash=Math.max(0,P.dash-dt);P.dashTime=Math.max(0,P.dashTime-dt);P.inv=Math.max(0,P.inv-dt);P.revealTimer=Math.max(0,P.revealTimer-dt);P.instinctCD=Math.max(0,P.instinctCD-dt);P.abilityTime=Math.max(0,P.abilityTime-dt);
  P.specialVisual=Math.max(0,(P.specialVisual||0)-dt);
   P.jawSnap=Math.max(0,(P.jawSnap||0)-dt);
+  P.frogTonguePose=Math.max(0,(P.frogTonguePose||0)-dt);
+  P.frogSlamPose=Math.max(0,(P.frogSlamPose||0)-dt);
   P.bellySlide=Math.max(0,(P.bellySlide||0)-dt);
   P.hornCharge=Math.max(0,(P.hornCharge||0)-dt);
   for(const k of ["macaqueThrowPose","gorillaSlamPose","elephantStompPose","lionRoarPose","deathRollPose","flipperStrike"])P[k]=Math.max(0,(P[k]||0)-dt);
@@ -5871,6 +5917,8 @@ function update(dt){
     if(P.jumpTime===0){
      const reachedRoof=landOnSurface();P.vx=0;P.vy=0;P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
      if(P.type==="shoebill")resolveShoebillStomp();
+     if(P.frogSlamPending){P.frogSlamPending=false;resolveSpeciesSpecial();}
+     else resolveFrogLanding();
      if(reachedRoof)notify("屋上に到着");
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
@@ -5942,6 +5990,11 @@ function update(dt){
   }
   if(P.type==="boar")resolveBoarDashImpact(boarStartX,boarStartY,P.x,P.y,boarDashActive);
   const speed=Math.hypot(P.vx,P.vy);
+  if(P.type==="giantTreeFrog"||P.type==="pacmanFrog"){
+   const grounded=P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0;
+   P.frogHopPhase=grounded&&speed>12?(P.frogHopPhase||0)+dt*(3.1+speed/145):0;
+   P.frogHopLift=grounded&&speed>12?Math.pow(Math.max(0,Math.sin(P.frogHopPhase*Math.PI)),1.35)*Math.min(26,P.r*.70):0;
+  }else P.frogHopLift=0;
   if(P.type==="shoebill"){P.stillTime=speed<12&&!P.pendingStrike&&!P.pounceTime?Math.min(2.5,(P.stillTime||0)+dt):0;}
   P.beakVisual=Math.max(0,(P.beakVisual||0)-dt);
   footstepTimer=Math.max(0,footstepTimer-dt);
@@ -7209,6 +7262,39 @@ function drawRarePlayer2D(o,r,fur,light,pace,oval,triangle){
  return true;
 }
 
+function drawPlayableFrog2D(o,r,fur,light,pace,oval,triangle){
+ if(o.type!=="giantTreeFrog"&&o.type!=="pacmanFrog")return false;
+ const tree=o.type==="giantTreeFrog",motion=Math.min(1,Math.hypot(o.vx||0,o.vy||0)/145);
+ const hind=motion*Math.sin((o.frogHopPhase||0)*Math.PI*2),lunge=(o.frogSlamPose||0)*r*.14;
+ for(const side of [-1,1]){
+  oval(-r*.66,side*r*.59,r*.56,r*.38,tree?"#36985b":"#646b35",side*.24);
+  oval(-r*.88+hind*r*.16,side*r*.79,r*.46,r*.22,fur);
+  for(let toe=-1;toe<=1;toe++)oval(-r*1.20+toe*r*.13,side*r*(.79+.10*Math.abs(toe)),r*(tree?.17:.14),r*.10,tree?"#b6dc85":"#b4a16d");
+  oval(r*.62,side*r*.61,r*.33,r*.24,fur);
+ }
+ oval(-r*.06-lunge,0,r*(tree?1.15:1.18),r*(tree?.86:1.07),fur);
+ oval(r*.21,0,r*(tree?.80:1.02),r*(tree?.61:.74),light);
+ for(let i=0;i<(tree?15:22);i++){
+  const a=i*2.399,dx=Math.cos(a)*r*.78,dy=Math.sin(a)*r*(tree?.56:.74);
+  oval(dx-r*.10,dy,r*(tree?.075:.10),r*(tree?.052:.075),tree?"#338e64":i%3?"#5b6431":"#b78a47");
+ }
+ for(const side of [-1,1]){
+  oval(r*.55,side*r*(tree?.56:.69),r*(tree?.32:.33),r*.34,tree?"#53a75b":"#6e743e");
+  oval(r*.69,side*r*(tree?.56:.69),r*.19,r*.23,"#e5dba7");
+  oval(r*.80,side*r*(tree?.56:.69),r*.082,r*.13,"#18201c");
+  if(!tree)triangle([r*.37,side*r*.81,r*.58,side*r*1.16,r*.75,side*r*.79],"#62583b");
+ }
+ ctx.strokeStyle=tree?"#337b4f":"#544333";ctx.lineWidth=r*.065;ctx.beginPath();
+ ctx.moveTo(r*.40,-r*.38);ctx.quadraticCurveTo(r*1.30,0,r*.42,r*.38);ctx.stroke();
+ const tongue=Math.max(0,Math.min(1,Number(o.frogTonguePose)||0));
+ if(tongue>0){
+  const reach=r*tongue*(tree?5.8:4.2);
+  ctx.strokeStyle="#ca7780";ctx.lineWidth=Math.max(3,r*.13);ctx.lineCap="round";ctx.beginPath();
+  ctx.moveTo(r*.94,0);ctx.quadraticCurveTo(r*1.1+reach*.45,-r*.12,r*.95+reach,0);ctx.stroke();
+  oval(r*.95+reach,0,r*.18,r*.14,"#df9296");
+ }
+ return true;
+}
 function drawCreature(o,isPlayer){
  const s=isPlayer?P.base:species[o.type],r=o.r;
  const t=!isPlayer&&o.type==="strayCat"?"cat":!isPlayer&&o.type==="wildFox"?"fox":o.type;
@@ -7246,6 +7332,7 @@ function drawCreature(o,isPlayer){
  oval(r*.37,r*.66,r*1.32,r*.53,"#030c10a0");
  oval(r*.19,r*.32,r*.96,r*.4,"#0b1d2083");
  if(isPlayer&&P.jumpHeight>baseZ)lift2D(P.jumpHeight-baseZ);
+ if(isPlayer&&P.frogHopLift>0)lift2D(P.frogHopLift);
  if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight);
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  // Stealth alpha was already applied before shadow/body drawing.
@@ -7273,7 +7360,7 @@ function drawCreature(o,isPlayer){
    ctx.scale(1.02,1.02);
   }
  }
- if(drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach)||drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
+ if(drawPlayableFrog2D(o,r,fur,light,pace,oval,triangle)||drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach)||drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
   // Each playable species has its own body/face/special attack silhouette.
  }else if((!isPlayer||["deer","macaque","gorilla","lion","elephant"].includes(t))&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
   // Common wildlife has species-specific silhouettes.

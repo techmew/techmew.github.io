@@ -13,6 +13,8 @@ const species={
  wildFox:{hp:67,r:19,speed:274,damage:12,prey:false,xp:3,food:40,color:"#bc7752",belly:"#e8d6b5"},
  weasel:{hp:34,r:12,speed:250,damage:6,prey:false,xp:2,food:21,color:"#ae906a",belly:"#ddc7a7"},
  frog:{hp:14,r:10,speed:125,damage:0,prey:true,xp:1,food:12,color:"#75a66a",belly:"#b6d6a0"},
+ giantTreeFrog:{hp:160,r:28,speed:214,damage:25,prey:false,xp:8,food:70,color:"#63bb60",belly:"#d2e6a8"},
+ pacmanFrog:{hp:310,r:37,speed:142,damage:38,prey:false,xp:11,food:108,color:"#8a984a",belly:"#d8ba75"},
  deer:{hp:142,r:27,speed:286,damage:6,prey:true,xp:4,food:69,color:"#aa8865",belly:"#e0cbaa"},
  cheetah:{hp:96,r:23,speed:414,damage:19,prey:false,xp:6,food:54,color:"#d4b174",belly:"#eedbb1"},
  giraffe:{hp:245,r:35,speed:263,damage:25,prey:false,xp:9,food:105,color:"#c99e65",belly:"#ead09f"},
@@ -66,7 +68,9 @@ const playableRoster=Object.freeze([
  ["hedgehog","ハリネズミ","世界","basic",7,"land","棘防御"],
  ["crocodile","ワニ","世界","rare",17,"amphibious","旋回咬み"],
  ["penguin","ペンギン","世界","rare",7,"amphibious","腹ばい滑走"],
- ["rhino","サイ","世界","legendary",34,"land","角の突撃"]
+ ["rhino","サイ","世界","legendary",34,"land","角の突撃"],
+ ["giantTreeFrog","巨大アマガエル","日本","basic",0,"amphibious","長舌捕食・高跳躍"],
+ ["pacmanFrog","ベルツノガエル","世界","rare",7,"amphibious","大口捕食・高跳躍プレス"]
 ].map(([id,name,origin,rarity,unlockYear,movement,skill])=>
  Object.freeze({id,name,origin,rarity,unlockYear,movement,skill})));
 const playableById=Object.freeze(Object.fromEntries(playableRoster.map(e=>[e.id,e])));
