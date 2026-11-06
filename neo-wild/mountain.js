@@ -81,9 +81,19 @@ function snowCover(x,y,temperature=0){
  if(edge<=0)return 0;
  const z=height(x,y),step=24;
  const gradient=Math.hypot(height(x+step,y)-height(x-step,y),height(x,y+step)-height(x,y-step))/(2*step);
- const noise=(Math.sin(x*.0037+y*.0021)+.5*Math.sin(x*.0103-y*.0087)+.25*Math.cos(x*.023+y*.017))/1.75;
- const threshold=245+Math.max(-35,Math.min(35,Number(temperature)||0))*2+gradient*75+noise*62;
- return edge*smooth(clamp((z-threshold)/55,0,1));
+ // Smooth world-coordinate noise remains continuous across every chunk boundary.
+ const hash=(ix,iy)=>{const v=Math.sin(ix*127.1+iy*311.7)*43758.5453;return v-Math.floor(v);};
+ const noise2=(scale)=>{
+  const fx=x/scale,fy=y/scale,ix=Math.floor(fx),iy=Math.floor(fy);
+  const u=smooth(fx-ix),v=smooth(fy-iy);
+  const a=hash(ix,iy)*(1-u)+hash(ix+1,iy)*u;
+  const b=hash(ix,iy+1)*(1-u)+hash(ix+1,iy+1)*u;
+  return (a*(1-v)+b*v)*2-1;
+ };
+ const broad=noise2(530),medium=noise2(170),detail=noise2(48);
+ const warpedEdge=smooth(clamp((x-(FOOTHILL_END-420)-broad*125-medium*36)/680,0,1));
+ const threshold=245+Math.max(-35,Math.min(35,Number(temperature)||0))*2+gradient*75+broad*42+medium*22+detail*8;
+ return warpedEdge*smooth(clamp((z-threshold)/68,0,1));
 }
 function trail(x){return center(x);}
 // Spawn along the same traversable ridge and cave passage used by collision.
