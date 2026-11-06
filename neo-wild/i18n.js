@@ -178,5 +178,5 @@ if(typeof MutationObserver!=="undefined"){
  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["aria-label","title","placeholder"]});
 }
 refresh();
-window.WildI18n={setLanguage,translate,refresh,get locale(){return locale}};
+window.WildI18n={setLanguage,translate,displayAnimalName,refresh,get locale(){return locale}};
 })();

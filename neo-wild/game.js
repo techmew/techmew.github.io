@@ -5,6 +5,21 @@ const canvas=$("scene"),ctx=canvas.getContext("2d",{alpha:true});
 let warned3DFallback=false;
 const mini=$("minimap"),mc=mini.getContext("2d");
 const bigMap=$("world-map-canvas"),bm=bigMap.getContext("2d");
+// The main game and maps draw text on Canvas, outside the HTML translator.
+function localizedCanvasLabel(text){
+ if(typeof text!=="string"||window.WildI18n?.locale!=="en")return text;
+ if(!/[ぁ-んァ-ヶ一-龥]/.test(text))return text;
+ const output=window.WildI18n.translate(text);
+ if(output===text&&/^[ァ-ヶー]{2,24}$/.test(text))
+  return window.WildI18n.displayAnimalName?.(text)||text;
+ return output;
+}
+for(const context of [ctx,mc,bm]){
+ if(!context)continue;
+ const fill=context.fillText.bind(context),stroke=context.strokeText.bind(context);
+ context.fillText=function(text,...args){return fill(localizedCanvasLabel(text),...args)};
+ context.strokeText=function(text,...args){return stroke(localizedCanvasLabel(text),...args)};
+}
 const MOUNTAIN=window.WildMountain;
 const TWO=Math.PI*2, WORLD={w:Math.max(10100,MOUNTAIN?.EAST||10100),h:6000}, CITY_WIDTH=8400;
 const animals={
