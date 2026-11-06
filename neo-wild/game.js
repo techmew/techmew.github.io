@@ -133,16 +133,22 @@ function loadWorldChronicle(){
  try{
   const saved=JSON.parse(localStorage.getItem(WORLD_CHRONICLE_KEY)||"null");
   if(saved&&saved.version===1&&Number.isFinite(saved.elapsed)&&saved.elapsed>=0)
-   return {elapsed:Math.min(saved.elapsed,1e10),lightningHistory:Array.isArray(saved.lightningHistory)?saved.lightningHistory.slice(-24):[]};
+   return {elapsed:Math.min(saved.elapsed,1e10),lightningHistory:Array.isArray(saved.lightningHistory)?saved.lightningHistory.slice(-24):[],
+    discoveredSites:Array.isArray(saved.discoveredSites)?saved.discoveredSites.filter(id=>typeof id==="string").slice(0,32):[],
+    earnedDiscoveries:Array.isArray(saved.earnedDiscoveries)?saved.earnedDiscoveries.filter(id=>typeof id==="string").slice(0,32):[]};
  }catch(_){}
- return {elapsed:0,lightningHistory:[]};
+ return {elapsed:0,lightningHistory:[],discoveredSites:[],earnedDiscoveries:[]};
 }
 function persistWorldChronicle(){
  if(debugTutorialSession)return false;
  const prior=loadWorldChronicle(),seconds=Math.max(prior.elapsed,Math.max(0,elapsed));
  const history=lightningHistory.length?lightningHistory.slice(-24):prior.lightningHistory;
+ // Additive exploration journal survives a lost large autosave and older checkpoints.
+ const sites=[...new Set([...(prior.discoveredSites||[]),...discoveredSites])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));
+ const perks=[...new Set([...(prior.earnedDiscoveries||[]),...earnedDiscoveries])].filter(id=>!!DISCOVERY_PERKS[id]);
  try{
-  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify({version:1,elapsed:seconds,worldYearsElapsed:Math.floor(seconds/120),lightningHistory:history,savedAt:Date.now()}));
+  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify({version:1,elapsed:seconds,worldYearsElapsed:Math.floor(seconds/120),lightningHistory:history,
+   discoveredSites:sites,earnedDiscoveries:perks,savedAt:Date.now()}));
   return true;
  }catch(_){return false}
 }
@@ -1205,7 +1211,7 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=[];earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -1214,6 +1220,8 @@ function start(newWorld=false){
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  P.stillTime=0;P.beakStrike=false;P.beakVisual=0;P.attackAction=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  initializeLife(P,elapsed);
+ // Restore exploration abilities for roster-only Continue, without doubling saved stats.
+ if(!restoringSavedWorld)for(const id of discoveredSites)awardDiscovery(id,true);
  // World geometry can change between releases. Never begin a run inside water or a wall.
  if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
   const bank=nearestDryBank(P.x,P.y,P.r);
@@ -1333,11 +1341,11 @@ function saveAuto(){
  const snapshot=currentSnapshot();
  if(!snapshot)return false;
  if(debugTutorialSession)return true;
- try{
-  localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snapshot));
-  persistWorldChronicle();
-  return true;
- }catch(_){return false}
+ let snapshotSaved=false;
+ try{localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snapshot));snapshotSaved=true}catch(_){}
+ // The smaller world journal may still fit when a full autosave cannot.
+ persistWorldChronicle();
+ return snapshotSaved;
 }
 function checkpointLabel(s){
  const animal=animals[s.player.type]?.name||"動物",lv=Math.max(1,Math.floor(s.player.level||1));
@@ -1506,7 +1514,10 @@ function restoreSnapshot(snapshot){
  ensureDenCover();
  if(mission<=1)ensureTrainingCoverNear(P);
  debris=snapshot.worldVersion===2?cleanWorld.debris:cleanWorld.debris.concat(expandedDebris);
- discoveredSites=Array.isArray(snapshot.discoveredSites)?snapshot.discoveredSites.filter(id=>EXPLORE_SITES.some(s=>s.id===id)):[];
+ const chronicleSites=loadWorldChronicle();
+ const savedSites=Array.isArray(snapshot.discoveredSites)?snapshot.discoveredSites:[];
+ discoveredSites=[...new Set([...savedSites,...chronicleSites.discoveredSites,...chronicleSites.earnedDiscoveries])]
+  .filter(id=>EXPLORE_SITES.some(site=>site.id===id));
  ecology=Array.isArray(snapshot.ecology)&&snapshot.ecology.length===8?snapshot.ecology.map((e,i)=>({
   prey:clamp(Number(e?.prey)||initialEcology()[i].prey,4,86),
   predators:clamp(Number(e?.predators)||initialEcology()[i].predators,3,31),
@@ -7841,7 +7852,7 @@ document.querySelectorAll(".animal-card").forEach(b=>b.addEventListener("click",
 function resetWorldHistoryForNewGame(){
  // Distinct from Continue, checkpoint restore, and same-world retry.
  // Reset the persisted clock BEFORE the next saveAuto() reads its max elapsed.
- const fresh={version:1,elapsed,worldYearsElapsed:0,lightningHistory:[],savedAt:Date.now()};
+ const fresh={version:1,elapsed,worldYearsElapsed:0,lightningHistory:[],discoveredSites:[],earnedDiscoveries:[],savedAt:Date.now()};
  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify(fresh));
  localStorage.removeItem("wild-reclaim-ufo-abduction-history-v1");
  window.WildDisaster?.resetWorld?.();
@@ -8005,6 +8016,12 @@ function applySquadLeader(){
  P.damage=a.damage*member.iv.attack*(1+.025*Math.max(0,(member.level||1)-1));P.speed=a.speed*member.iv.speed*(1+.012*Math.max(0,(member.level||1)-1));
  P.maxSp=100*member.iv.stamina;P.sp=Math.min(P.maxSp,100);
  P.level=member.level||1;P.xp=member.xp||0;
+ // Exploration perks belong to the continuing world; rebuild after leader base stats.
+ const perks=new Set(earnedDiscoveries);
+ if(perks.has("zoo")){P.maxHp+=12;P.hp=Math.min(P.maxHp,P.hp+12);}
+ if(perks.has("factory"))P.speed=Math.round(P.speed*1.05);
+ P.riverPerk=perks.has("river");P.foragePerk=perks.has("forest");
+ P.rainGrip=perks.has("canal");P.instinctBonus=perks.has("ark");
  initializeLife(P,elapsed,false);
  syncSquadFollowers();syncSquadHud();saveAuto();return true;
 }
