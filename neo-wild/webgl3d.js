@@ -423,7 +423,10 @@ function combatLimbPose(m,front,side,r){
   ["slam","lunge","roll"].includes(skill)?front>0:
   skill==="double"&&front>0?side===(m.specialVisual>.51?-1:1):
   skill==="fan"&&front>0&&["deer","serow"].includes(m.type);
- const force=Math.min(.75,(normal?strike*.66:0)+(special?ultimate*.70:0));
+ const airborne=m.jumpDive&&m.jumpTime>0&&front>0&&
+  ["cat","manul","fox","tibetanFox","wolf","dog","wildDog","lion","tiger","cheetah","hyena"].includes(m.type)?
+  Math.max(0,Math.sin(Math.PI*clamp(1-m.jumpTime/Math.max(.1,m.jumpDuration||.45),0,1)))*.58:0;
+ const force=Math.min(.85,(normal?strike*.66:0)+(special?ultimate*.70:0)+airborne);
  return {dx:r*force,dz:r*force*.52};
 }
 function drawCommonAnimal3D(m,clock){
@@ -1337,7 +1340,9 @@ function animal(m,player,clock){
  const attackPrep=player&&m.pendingStrike?clamp(1-m.windup/Math.max(.001,Math.min(.15,m.rate*.38)),0,1):(!player&&m.windup>0?clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1):0);
  const swingDuration=player?.18:.22,swingLeft=clamp(m.swing||0,0,swingDuration);
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
- const airStrike=player&&m.jumpDive&&m.jumpTime>0?.32:0;
+ const airStrike=player&&m.jumpDive&&m.jumpTime>0?
+  (["cat","manul","lion","tiger"].includes(type)?.68:
+   ["fox","tibetanFox","wolf","dog","wildDog","cheetah","hyena"].includes(type)?.52:.32):0;
  const attackCharge=!player&&(type==="boar"||type==="alpha"||type==="oneEyedWolf"||type==="whiteTiger"||type==="giantMoose"||type==="giantBuffalo")?clamp((m.chargeTime||0)/(type==="alpha"?.24:type==="oneEyedWolf"?.28:type==="whiteTiger"?.39:type==="giantMoose"?.46:type==="giantBuffalo"?.53:.36),0,1)*.55:0;
  const attackReach=Math.min(1.05,Math.max(attackSnap*1.45,attackCharge)+airStrike+swingPose*.68+specialPose*.90);
  const rushPose=player&&(m.pendingStrike||m.swing>0)?(m.rushActiveStep||0):0;
