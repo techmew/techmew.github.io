@@ -101,6 +101,13 @@ function tick(dt,w){
     victim.flee=Math.max(finite(victim.flee),3.2);
     victim.alert=Math.max(finite(victim.alert),3.2);
     victim.lastX=g.x;victim.lastY=g.y;
+    // A possessed wild animal actively breaks away from the spirit; the existing
+    // navigation AI continues handling walls, water and later movement.
+    const fleeAngle=Math.atan2(victim.y-g.y,victim.x-g.x);
+    const fleeSpeed=Math.max(85,Math.hypot(finite(victim.vx),finite(victim.vy)));
+    victim.dir=fleeAngle;
+    victim.vx=Math.cos(fleeAngle)*fleeSpeed;
+    victim.vy=Math.sin(fleeAngle)*fleeSpeed;
     victim.hp=Math.max(1,victim.hp-Math.min(5,Math.max(1,victim.hp*.08)));
     w.onEvent?.("ghost-animal-haunt",{year,x:victim.x,y:victim.y,species:victim.type||victim.species||"unknown"});
     w.notify?.("亡霊が野生動物に取り憑いた！");
