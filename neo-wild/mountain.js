@@ -384,7 +384,10 @@ function draw2D(ctx,visible){
   // Lowland wildlife crossing: the visible gravel shallows match headwaterFord().
   ctx.strokeStyle="#9caa91";ctx.lineWidth=17;ctx.beginPath();
   for(let x=9630;x<=9780;x+=15){const y=headwaterY(x);if(x===9630)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
-  // Upper slope ford: same shallow interval as player/NPC collision.\n  ctx.strokeStyle="#a7ae98";ctx.lineWidth=17;ctx.beginPath();\n  for(let x=11380;x<=11500;x+=15){const y=headwaterY(x);if(x===11380)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();\n  for(const [width,col] of [[94,"#5a665d"],[68,"#294f57"],[55,"#377c83"]]){
+  // Upper slope ford: same shallow interval as player/NPC collision.
+  ctx.strokeStyle="#a7ae98";ctx.lineWidth=17;ctx.beginPath();
+  for(let x=11380;x<=11500;x+=15){const y=headwaterY(x);if(x===11380)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+  for(const [width,col] of [[94,"#5a665d"],[68,"#294f57"],[55,"#377c83"]]){
    ctx.beginPath();
    for(let y=2485;y<=4650;y+=45){const x=creek.xAt(y);if(y===2485)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
    ctx.lineWidth=width;ctx.strokeStyle=col;ctx.stroke();
