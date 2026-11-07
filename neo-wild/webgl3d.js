@@ -2163,7 +2163,14 @@ function render(o){
     const coverage=clamp(field(p[0],p[1])*4.5,0,1);
     // Zero lift exactly at the contour prevents a floating snow rim;
     // use the same terrain height API as collision and neighbouring cells.
-    const depth=snowZ*coverage*coverage;
+    // Snow accumulates less on steep slopes, while retaining the exact
+    // collision-height sample at the edge of every shared world-space cell.
+    const d=8;
+    const dx=(ground(p[0]+d,p[1])-ground(p[0]-d))/(2*d);
+    const dy=(ground(p[0],p[1]+d)-ground(p[0],p[1]-d))/(2*d);
+    const slope=Math.hypot(dx,dy);
+    const slopeRetention=1-.58*clamp((slope-.28)/1.25,0,1);
+    const depth=snowZ*coverage*coverage*slopeRetention;
     return [p[0],p[1],ground(p[0],p[1])+depth];
    };
    // Clip each triangle against the same continuous snow threshold.
