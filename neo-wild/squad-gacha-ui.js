@@ -370,7 +370,7 @@ const ready=()=>{
   body.append(el("p","squad-small-note","ガチャ権："+(current.gachaTickets||0)+"枚。生存中は編成を上書きしません。"));
   const actions=el("footer","squad-gacha-actions");
   if(members.length<MAX_OWNED){const b=makeBtn("空き枠ガチャ（残り"+(current.gachaTickets||0)+"権）",()=>openRefill(true),"squad-refill-button");b.disabled=!canRefill();actions.append(b);if(!canRefill())body.append(el("p","squad-small-note","補充にはガチャ権が必要です。探索・狩り・ミッションで獲得できます。"));}
-  actions.append(makeBtn("選択中の個体で出発",()=>{const current=core.load();if(!current?.members?.some(m=>m.id===current.leaderId)){message("操作する個体を所有一覧から選択してください。");return;}root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
+  actions.append(makeBtn(window.WildDebugSandbox?.active?"デバッグモードで開始":"選択中の個体で出発",()=>{const current=core.load();if(!current?.members?.some(m=>m.id===current.leaderId)){message("操作する個体を所有一覧から選択してください。");return;}root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt"));
   actions.append(makeBtn("閉じる",()=>{root.hidden=true;updateHome();},"squad-close"));
   body.append(actions);
  }
@@ -388,7 +388,7 @@ const ready=()=>{
   }
   if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
    message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹・共有経験値600・探索地点2か所・チュートリアル完了で獲得する → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
-   const play=makeBtn("続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
+   const play=makeBtn(window.WildDebugSandbox?.active?"デバッグモードで開始":"続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
    body.prepend(play);return;
   }
   refill=members.length>0;slotTarget=index;size=1;chosen=[];draw=null;selected=null;streak=0;
