@@ -7086,7 +7086,8 @@ function drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach){
   return drawStrongCreature2D({...o,type:t==="crocodile"?"giantCrocodile":"rhino"},r,fur,light,pace,oval,triangle,attackReach);
  if(t!=="penguin")return false;
  const step=Math.sin((o.steps||o.step||0)*2.5),slide=Math.max(0,Number(o.bellySlide)||0);
- ctx.save();if(slide>0)ctx.scale(1.16,.72);
+ const jab=Math.min(1,(Number(o.beakVisual)||0)/.18)*(.20+.80*Math.sin(elapsed*87)*Math.sin(elapsed*87));
+ ctx.save();if(slide>0)ctx.scale(1+.16*Math.min(1,slide/.19),1-.28*Math.min(1,slide/.19));
  for(const side of [-1,1]){
   oval(-r*.42,side*r*.39+step*side*r*.16,r*.40,r*.26,"#e5a45f",side*.24);
   triangle([-r*.20,side*r*.42,-r*.78,side*r*.82,r*.12,side*r*.70],"#d79051");
@@ -7097,12 +7098,12 @@ function drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach){
  for(const side of [-1,1]){
   const flap=Math.sin((o.steps||o.step||0)*2.7+side*Math.PI)*r*.10+Math.sin(Math.PI*Math.min(1,o.flipperStrike||0))*r*.26;
   oval(-r*.17,side*r*.77+flap,r*.55,r*.22,"#1e303a",side*.30);
-  oval(r*.78,side*r*.23,r*.09,r*.08,"#fafcf7");
-  oval(r*.81,side*r*.24,r*.045,r*.05,"#111b20");
+  oval(r*(.78+.14*jab),side*r*.23,r*.09,r*.08,"#fafcf7");
+  oval(r*(.81+.14*jab),side*r*.24,r*.045,r*.05,"#111b20");
  }
- oval(r*.65,0,r*.45,r*.43,"#293c45");
- oval(r*.77,0,r*.24,r*.27,"#faf1d7");
- triangle([r*.98,-r*.16,r*1.42,0,r*.98,r*.16],"#e2a156");
+ oval(r*(.65+.14*jab),0,r*.45,r*.43,"#293c45");
+ oval(r*(.77+.14*jab),0,r*.24,r*.27,"#faf1d7");
+ triangle([r*(.98+.14*jab),-r*.16,r*(1.42+.31*jab),0,r*(.98+.14*jab),r*.16],"#e2a156");
  ctx.restore();return true;
 }
 /* Separate readable top-down anatomy for the first four strong enemies. */
