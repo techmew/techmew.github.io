@@ -116,6 +116,17 @@ function tick(dt,w){
     w.onEvent?.("ghost-mimic",{year,x:g.x,y:g.y});
    }
   }
+  // The mimic projects a false predator call: nearby ordinary wildlife scatters,
+  // while strong bosses and owned/released animals remain unaffected.
+  if(g.kind==="mimic"&&g.stage==="manifest"&&g.pulse>0&&g.pulse<4.8){
+   for(const m of mobs||[]){
+    if(!m||!Number.isFinite(m.x)||!Number.isFinite(m.y)||!(m.hp>0)||m.dead||m.companion||m.ownedId||m.releasedId||m.wildReleaseId||m.strongBoss)continue;
+    const d=distance(m,g);if(d>230||w.lineBlocked?.(m,g))continue;
+    m.flee=Math.max(finite(m.flee),2.4);
+    m.alert=Math.max(finite(m.alert),2.4);
+    m.lastX=g.x;m.lastY=g.y;
+   }
+  }
   // Nearby animals react in their existing flee/navigation AI rather than visual-only effects.
   for(const m of mobs||[]){if(!m||m.hp<=0||m.companion||distance(m,g)>150)continue;
    const a=Math.atan2(m.y-g.y,m.x-g.x);
