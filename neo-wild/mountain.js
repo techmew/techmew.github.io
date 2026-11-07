@@ -257,6 +257,9 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
  function blocked(x,y,r=0,sourceTree=null){
  if(x<CITY_EDGE)return false;
  if(northPass(x,y)){
+  // The pass and the mountain share one hydrology collision rule. The old
+  // early return let land animals cross the deep headwater above its ford.
+  if(headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
   // Edges are terrain, not invisible side walls; the forest-pass route stays open.
   for(const p of [...trees,...rocks,...pines,...scree])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
   return false;
