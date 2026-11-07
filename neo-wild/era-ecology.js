@@ -28,15 +28,19 @@
   const r=Math.max(0,Math.min(REGIONS-1,Math.floor(Number(region)||0)));
   const y=Math.max(0,Number(year)||0),epoch=Math.floor((y+1e-9)/PERIOD);
   const active=CORRIDORS.filter(([a,b])=>{const left=state(a,y),right=state(b,y);return left.kind==="migration"||right.kind==="migration"||(left.kind==="drought"&&right.food>left.food)||(right.kind==="drought"&&left.food>right.food);});
-  const pair=active.find(([a,b])=>a===r||b===r);
-  if(!pair)return {active:false,source:r,destination:r,grazer:1,hunter:1};
-  // Herds seek food and avoid predator pressure; the route changes by epoch.
-  // Population multipliers stay bounded to avoid runaway spawn density.
-  const a=state(pair[0],y),b=state(pair[1],y);
+  // Choose the strongest active corridor, not the first array entry.
+  // In a drought animals leave the poorer habitat; winter reduces intake.
   const habitat=s=>s.food/(s.kind==="predators"?1.5:1);
-  const delta=habitat(a)-habitat(b);
-  const direction=Math.abs(delta)>.08?(delta>0?[pair[1],pair[0]]:pair):(hash(pair[0],epoch,9)<.5?pair:[pair[1],pair[0]]);
-  const source=direction[0],destination=direction[1];
+  const candidates=active.filter(([a,b])=>a===r||b===r).map(pair=>{
+   const a=state(pair[0],y),b=state(pair[1],y);
+   const delta=habitat(a)-habitat(b);
+   const direction=Math.abs(delta)>.08?(delta>0?[pair[1],pair[0]]:pair):
+    (hash(pair[0],epoch,9)<.5?pair:[pair[1],pair[0]]);
+   return {source:direction[0],destination:direction[1],strength:Math.abs(delta)+(a.kind==="migration"||b.kind==="migration"?.12:0),pair};
+  });
+  if(!candidates.length)return {active:false,source:r,destination:r,grazer:1,hunter:1};
+  candidates.sort((a,b)=>b.strength-a.strength||a.pair[0]-b.pair[0]);
+  const {source,destination}=candidates[0];
   const season=Math.floor((y%1)*4),winter=season===3;
   const grazer=r===destination?(winter?1.25:1.36):.68;
   const hunter=r===destination?Math.min(1.2,1+(grazer-1)*.45):.83;
