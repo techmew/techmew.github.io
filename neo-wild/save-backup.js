@@ -89,7 +89,8 @@ function validate(file){
 async function importBackup(file){
  try{
   if(!file||file.size<=0||file.size>MAX_BYTES)throw Error("ファイルが空、または16MBを超えています");
-  const data=validate(JSON.parse(await file.text()));
+  const jsonText=typeof file.text==="function"?await file.text():await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||""));reader.onerror=()=>reject(reader.error||Error("ファイルを読み取れません"));reader.readAsText(file,"UTF-8");});
+  const data=validate(JSON.parse(jsonText));
   if(!document.getElementById("menu")||document.getElementById("menu").classList.contains("hidden"))throw Error("読み込みはタイトル画面でのみ実行できます");
   const confirmed=window.confirm("バックアップを読み込むと現在のゲーム進行を置き換えます。\n現在のデータを先にバックアップしましたか？\n死亡・野生放流した個体の永久離脱は維持されます。");
   if(!confirmed){status("読み込みをキャンセルしました。");return}
