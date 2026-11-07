@@ -74,8 +74,9 @@ function validate(file){
   if(!Array.isArray(ids)||ids.some(id=>typeof id!=="string"||!id||id.length>240))
    throw Error("永久離脱IDの形式が不正です："+key);
  }
- if(data["wild-reclaim-released-archive-v1"]!=null){
-  let archive;try{archive=JSON.parse(data["wild-reclaim-released-archive-v1"]);}catch(_){throw Error("野生放流履歴のJSONが破損しています");}
+ for(const key of ["wild-reclaim-released-archive-v1","wild-reclaim-released-v1"]){
+  if(data[key]==null)continue;
+  let archive;try{archive=JSON.parse(data[key]);}catch(_){throw Error("野生放流履歴のJSONが破損しています");}
   if(!Array.isArray(archive)||archive.some(entry=>!entry||typeof entry.id!=="string"||!entry.id||entry.id.length>240))
    throw Error("野生放流履歴の形式が不正です");
  }
