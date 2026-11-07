@@ -2099,11 +2099,19 @@ function render(o){
   // Continuous snow coverage sampled in world coordinates. Adjacent mesh
   // triangles share identical edge intersections; no square tile silhouettes.
   const snow=clamp(o.snowpack||0,0,1);
-  if(snow>.06){
-   const step=32,margin=vh*.85+250;
-   const firstX=Math.max(0,Math.floor((cam.x-margin)/step)*step);
-   const firstY=Math.max(0,Math.floor((cam.y-margin)/step)*step);
-   const endX=Math.min(WORLD.w,cam.x+vw+margin),endY=Math.min(WORLD.h,cam.y+vh+margin);
+  // Permanent high-altitude snow remains visible in clear weather. Avoid
+  // tessellating the entire city when there is no falling/ground snow.
+  const snowMountain=window.WildMountain;
+  const snowViewMargin=vh*.85+250;
+  const alpineInView=typeof snowMountain?.snowCover==="function"
+   &&cam.x+vw+snowViewMargin>=10100&&cam.x-snowViewMargin<=13600
+   &&cam.y+vh+snowViewMargin>=2600&&cam.y-snowViewMargin<=5100;
+  if(snow>.06||alpineInView){
+   const step=32,margin=snowViewMargin;
+   const firstX=Math.max(snow>.06?0:8300,Math.floor((cam.x-margin)/step)*step);
+   const firstY=Math.max(snow>.06?0:2600,Math.floor((cam.y-margin)/step)*step);
+   const endX=Math.min(snow>.06?WORLD.w:13600,cam.x+vw+margin);
+   const endY=Math.min(snow>.06?WORLD.h:5100,cam.y+vh+margin);
    const ground=(px,py)=>window.WildMountain?.height(px,py)||0;
    const water=typeof o.waterAt==="function"?o.waterAt:null;
    const snowZ=1.15+snow*.48;
