@@ -1130,7 +1130,12 @@ function drawPenguinPlayable3D(m,clock){
   orb(r*.85+headDrive,side*r*.29,headZ+r*.09,r*.095,r*.085,r*.095,"#f3f9ee");
   orb(r*.88+headDrive,side*r*.31,headZ+r*.10,r*.045,r*.052,r*.049,"#111d23");
  }
- pyramid(X(r*1.04+headDrive,0),Y(r*1.04+headDrive,0),headZ-r*.27,r*(.24+.13*jab),r*.14,r*.24,"#dda458");
+ // Two-piece beak opens on each rapid strike; both parts follow the same head offset.
+ const billReach=r*(1.04+headDrive/r+.16*jab);
+ const billGap=r*.075*jab;
+ pyramid(X(billReach,0),Y(billReach,0),headZ-r*.25+billGap,r*(.24+.13*jab),r*.14,r*.19,"#dda458");
+ pyramid(X(billReach-r*.035,0),Y(billReach-r*.035,0),headZ-r*.35-billGap,r*(.20+.08*jab),r*.115,r*.105,"#bd793b");
+ orb(r*.83+headDrive,0,headZ-r*.30,r*.22,r*.29,r*.14,"#d7a26c");
  orb(-r*.94,0,bodyZ-r*.09,r*.34,r*.29,r*.23,"#21333b");
  return true;
 }
