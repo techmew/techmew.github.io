@@ -124,8 +124,15 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
   return {x,y};
  }
  if(northWood(player.x,player.y)){
-  const x=clamp(player.x+((n%7)-3)*91,CITY_EDGE+80,10730);
-  return {x,y:clamp(northTrail(x)+((Math.floor(n/7)%7)-3)*110,960,2460)};
+  // Northern-forest spawns must obey the same solid trees, rocks and pass
+  // collision as the player. Never spawn an NPC trapped inside scenery.
+  for(let k=0;k<21;k++){
+   const index=n+k;
+   const x=clamp(player.x+((index%7)-3)*91,CITY_EDGE+80,10700);
+   const y=clamp(northTrail(x)+((Math.floor(index/7)%7)-3)*110,960,2460);
+   if(northWood(x,y)&&!headwaterAt(x,y,22)&&!blocked(x,y,18))return {x,y};
+  }
+  return null;
  }
  const direction=n%2?-1:1;
  const bounds=requestedZone==="cave"?[CAVE_START+50,CAVE_END-50]:
