@@ -265,6 +265,7 @@ let soundEnabled=true,footstepTimer=0,audioTick=0,keys=new Set(),joy={id:null,x:
 const activeTouchPointers=new Map(),touchHoldTimers=new Map(),gamepadAxes={x:0,y:0};
 // Transient input flags, never serialized into old save data.
 const heldActions={touchAttack:false,padAttack:false,touchSprint:false,padSprint:false};
+let pounceTouchConsumed=false,keyboardDashToken=0;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const VIEW={a:.94,b:.20,c:-.28,d:.68};
 let VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
@@ -3401,9 +3402,15 @@ const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
  [id,Object.freeze({name,kind,range,power,arc,cooldown})])));
 
 /* Seven playables: animation-backed actual hit testing; no temporary mob references in saved P. */
-const macaqueStones=[];
+const macaqueStones=[],penguinBeakCombos=[];
 let physicalRush=null,crocodileFollowup=null;
-function resetAnimalMoves(){macaqueStones.length=0;physicalRush=null;crocodileFollowup=null;}
+function resetAnimalMoves(){macaqueStones.length=0;penguinBeakCombos.length=0;physicalRush=null;crocodileFollowup=null;}
+function queuePenguinBeak(target,power=.17,count=4){
+ if(P?.type!=="penguin"||!target||target.hp<=0||!species[target.type])return false;
+ if(penguinBeakCombos.length>=8)penguinBeakCombos.shift();
+ penguinBeakCombos.push({target,power,count:0,max:count,timer:.034,owner:P.squadIndividualId});
+ return true;
+}
 function launchStone(m,sp){
  const a=m?Math.atan2(m.y-P.y,m.x-P.x):P.dir,speed=610;
  macaqueStones.push({x:P.x+Math.cos(a)*P.r,y:P.y+Math.sin(a)*P.r,
@@ -3420,6 +3427,28 @@ function startPhysicalRush(type,sp,target){
 function tickAnimalMoves(dt){
  if(mode!=="play"||!P||P.hp<=0||isControlBlocked()){resetAnimalMoves();return;}
  const frame=Math.max(0,Math.min(dt,.05));
+ // The rapid bill combo remains active after a belly slide stops.
+ // Each strike requires real, unobstructed target contact on this frame.
+ for(let i=penguinBeakCombos.length-1;i>=0;i--){
+  const q=penguinBeakCombos[i];
+  if(P.type!=="penguin"||P.squadIndividualId!==q.owner||!q.target||q.target.hp<=0){
+   penguinBeakCombos.splice(i,1);continue;
+  }
+  q.timer-=frame;
+  while(q.timer<=0&&q.count<q.max){
+   q.timer+=.049;q.count++;
+   const m=q.target;
+   if(m.hp<=0||dist(P,m)>P.r+m.r+64||
+      Math.abs((P.groundZ||0)-(m.groundZ||0))>26||lineBlocked(P,m))continue;
+   P.beakVisual=Math.max(P.beakVisual||0,.18);
+   P.flipperStrike=Math.max(P.flipperStrike||0,.18);
+   P.attackAction=Math.max(P.attackAction||0,.19);
+   P.attackActionStep=q.count;
+   specialHit(m,q.power,.075,2,"くちばし高速連撃");
+   emitCombatFX("hit","penguin","beak",m.x,m.y,P.dir,.48,q.count,m.r);
+  }
+  if(q.count>=q.max||q.target.hp<=0)penguinBeakCombos.splice(i,1);
+ }
  for(let i=macaqueStones.length-1;i>=0;i--){
   const b=macaqueStones[i],d=Math.min(610*frame,b.max-b.travel);
   if(P.type!=="macaque"||P.squadIndividualId!==b.owner||d<=0){macaqueStones.splice(i,1);continue;}
@@ -3461,20 +3490,8 @@ function tickAnimalMoves(dt){
     r.hit.add(m);
     const rhino=r.type==="rhino";
     specialHit(m,r.power*(rhino?1:.92),rhino?.62:.35,rhino?84:39,rhino?"角の突進":"滑走頭突き");
-    if(!rhino)r.beakHits.push({target:m,timer:.055,count:0});
+    if(!rhino)queuePenguinBeak(m,.16,6);
     emitCombatFX("hit",r.type,rhino?"horn":"body",m.x,m.y,P.dir,1,0,m.r);
-   }
-   if(r.type==="penguin")for(const q of r.beakHits){
-    q.timer-=frame;
-    if(q.count<5&&q.timer<=0){
-     q.timer+=.065;q.count++;
-     const m=q.target;
-     if(m&&m.hp>0&&dist(P,m)<P.r+m.r+75&&Math.abs((P.groundZ||0)-(m.groundZ||0))<26&&!lineBlocked(P,m)){
-      P.flipperStrike=Math.max(P.flipperStrike||0,.18);
-      specialHit(m,r.power*.16,.10,5,"高速くちばし連打");
-      emitCombatFX("hit","penguin","beak",m.x,m.y,P.dir,.45,q.count,m.r);
-     }
-    }
    }
    if(covered<step*.34||r.distance>=r.max-1||r.left<=0)physicalRush=null;
   }
@@ -3999,7 +4016,7 @@ function attack(){
  if(P.type==="rhino")P.hornCharge=step===5?.47:.23;
  emitCombatFX("normal",P.type,"melee",P.x,P.y,P.dir,step===5?1.3:1.0,step,P.r);
  window.WildAudio?.playAnimal?.(P.type,{ultimate:false});P.rushActiveStep=step;P.rushQueued=false;
-  P.atk=P.rate*(step===5?1.32:step===4?1.15:1);P.rushWindow=P.atk+.45;
+  P.atk=(P.type==="penguin"?.26:P.rate)*(step===5?1.15:step===4?1.08:1);P.rushWindow=P.atk+.45;
  P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
  // Shoebill's pre-aimed bill strike is fast only after waiting without moving.
  P.beakStrike=P.type==="shoebill"&&(P.stillTime||0)>=1.15;
@@ -4103,7 +4120,8 @@ function resolveAttack(aerialContact=null){
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
    const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
-   m.hp-=damage;if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
+   m.hp-=damage;if(P.type==="penguin"&&m.hp>0)queuePenguinBeak(m,.17,4);
+   if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(foxBurst)P.abilityTime=0;
    // A creature that was physically hit remembers the attack even when it
    // could not see the player before the strike (behind, fog or night).
@@ -4285,6 +4303,13 @@ function resolveFrogLanding(){
  if(count){shake=Math.max(shake,5);playEffect("impact",{volume:.26});}
  return count;
 }
+function leapPounce(){
+ if(!P||mode!=="play"||P.jumpTime<=0||!AERIAL_POUNCE_PROFILES[P.type]||
+    aerialPounceState.get(P)?.spent||aerialPounceState.get(P)?.active)return false;
+ if(P.pendingStrike)return armAerialPounce();
+ attack();
+ return !!aerialPounceState.get(P)?.active;
+}
 function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
@@ -4309,6 +4334,12 @@ function jump(){
  if(P.pendingStrike)armAerialPounce();
  else if(AERIAL_POUNCE_PROFILES[P.type]&&
    (heldActions.touchAttack||heldActions.padAttack||keys.has("j")||keys.has(" ")))attack();
+ if(AERIAL_POUNCE_PROFILES[P.type]&&
+    (keys.has("shift")||keys.has("k")||activeTouchPointers.get("dash-touch")?.size)){
+  ++keyboardDashToken;
+  if(activeTouchPointers.get("dash-touch")?.size)pounceTouchConsumed=true;
+  leapPounce();
+ }
  return true;
 }
 function pounceImpactOnSegment(x0,y0,x1,y1){
@@ -4331,7 +4362,23 @@ function pounceImpactOnSegment(x0,y0,x1,y1){
  return nearest;
 }
 function dash(){
- if(mode!=="play"||isControlBlocked()||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
+ if(mode!=="play"||!P||isControlBlocked())return false;
+ if(P.jumpTime>0&&AERIAL_POUNCE_PROFILES[P.type])return leapPounce();
+ if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
+ if(P.type==="penguin"){
+  const cost=22;
+  if(P.sp<cost){notify("持久力不足 / 滑走できない");return false;}
+  const target=combatAim(.82,225);
+  P.sp-=cost;P.dash=.59;P.attackAction=.52;P.specialVisual=.63;
+  P.pendingStrike=false;P.rushQueued=false;
+  startPhysicalRush("penguin",{power:SPECIES_SPECIALS.penguin.power*.84},target);
+  P.bellySlide=.79;P.flipperStrike=.33;P.beakVisual=.14;
+  P.noiseBurst=Math.max(P.noiseBurst||0,.95);
+  emitCombatFX("special","penguin","body",P.x,P.y,P.dir,.72,0,P.r);
+  playEffect("impact",{volume:.21});
+  notify("滑走頭突き → くちばし高速連撃！");
+  return true;
+ }
  const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
  if(P.sp<cost){notify("持久力が足りない");return false}
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
