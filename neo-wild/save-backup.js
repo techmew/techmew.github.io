@@ -97,6 +97,14 @@ async function importBackup(file){
   mergeIds(merged,"wild-reclaim-dead-ids-v1",before);
   mergeIds(merged,"wild-reclaim-released-ids-v1",before);
   mergeArchive(merged,"wild-reclaim-released-archive-v1",before);
+  // Restoring an older backup must not discard wild animals still awaiting
+  // their first encounter. Preserve the current queue and de-duplicate by ID.
+  mergeArchive(merged,"wild-reclaim-released-v1",before);
+  // The archive is the permanent source of released identities; a queued
+  // encounter must never be treated as an owned character after restore.
+  mergeArchive(merged,"wild-reclaim-released-archive-v1",{
+   "wild-reclaim-released-archive-v1":merged["wild-reclaim-released-v1"]
+  });
   // Archive entries also prove permanent release even when an old save omitted the ID ledger.
   const releasedFromArchive=jsonArray(merged["wild-reclaim-released-archive-v1"])
    .map(entry=>entry?.id).filter(id=>typeof id==="string"&&id.length>0&&id.length<=240);
