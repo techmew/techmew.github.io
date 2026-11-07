@@ -30,6 +30,11 @@ const ready=()=>{
  if(!existingHome)home.append(gacha,title,roster,hint);
  const lead=menu.querySelector(".lead")||menu.querySelector(".hero-title");
  if(!existingHome){if(lead)lead.insertAdjacentElement("afterend",home);else menu.querySelector(".menu-shell")?.prepend(home);}
+ // Place the current gacha probability reference directly below the three title-screen slots.
+ const ratesLink=$("squad-gacha-rates-link")||el("a","squad-gacha-rates-link","ガチャ排出確率一覧");
+ ratesLink.id="squad-gacha-rates-link";ratesLink.href="./gacha-rates.html";
+ ratesLink.style.cssText="display:block;width:max-content;margin:7px auto;color:#b9ead0;font-size:13px;text-decoration:underline";
+ if(!ratesLink.isConnected)roster.insertAdjacentElement("afterend",ratesLink);
  // Keep all settings visible, with three equal collection tiles.
  const extras=$("squad-menu-extras")||el("section","squad-menu-extras");extras.id="squad-menu-extras";
  const collections=extras.querySelector(".squad-collection-tiles")||el("div","squad-collection-tiles");
