@@ -95,6 +95,22 @@ async function importBackup(file){
   const confirmed=window.confirm("バックアップを読み込むと現在のゲーム進行を置き換えます。\n現在のデータを先にバックアップしましたか？\n死亡・野生放流した個体の永久離脱は維持されます。");
   if(!confirmed){status("読み込みをキャンセルしました。");return}
   const before=snapshot(),merged=Object.assign(Object.create(null),data);
+  // Never treat a corrupt local permanent-ID journal as an empty list.
+  // An import must stop rather than silently resurrect a dead/released animal.
+  for(const key of ["wild-reclaim-dead-ids-v1","wild-reclaim-released-ids-v1"]){
+   if(before[key]==null)continue;
+   let ids;
+   try{ids=JSON.parse(before[key]);}catch(_){throw Error("端末の永久離脱IDが破損しています。復元前に現在のデータを保全してください："+key);}
+   if(!Array.isArray(ids)||ids.some(id=>typeof id!=="string"||!id||id.length>240))
+    throw Error("端末の永久離脱ID形式が不正です。読み込みを中止しました："+key);
+  }
+  for(const key of ["wild-reclaim-released-archive-v1","wild-reclaim-released-v1"]){
+   if(before[key]==null)continue;
+   let archive;
+   try{archive=JSON.parse(before[key]);}catch(_){throw Error("端末の放流履歴が破損しています："+key);}
+   if(!Array.isArray(archive)||archive.some(entry=>!entry||typeof entry.id!=="string"||!entry.id||entry.id.length>240))
+    throw Error("端末の放流履歴形式が不正です："+key);
+  }
   mergeIds(merged,"wild-reclaim-dead-ids-v1",before);
   mergeIds(merged,"wild-reclaim-released-ids-v1",before);
   mergeArchive(merged,"wild-reclaim-released-archive-v1",before);
