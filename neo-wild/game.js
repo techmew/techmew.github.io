@@ -3937,9 +3937,36 @@ function showHuntCinematic(finisher){
  huntSlowUntil=performance.now()+780;shake=Math.max(shake,7);
  playEffect("impact",{volume:.34});
 }
+// AERIAL_POUNCE_20261107: one jump+attack strike per leap; preserve save schema and UI.
+const AERIAL_POUNCE_PROFILES=Object.freeze({
+ cat:{reach:165,power:1.13,rise:83},manul:{reach:145,power:1.16,rise:78},
+ fox:{reach:177,power:1.10,rise:76},tibetanFox:{reach:177,power:1.12,rise:76},
+ wolf:{reach:203,power:1.19,rise:72},dog:{reach:175,power:1.10,rise:69},
+ wildDog:{reach:186,power:1.12,rise:74},lion:{reach:225,power:1.22,rise:90},
+ tiger:{reach:232,power:1.23,rise:94},cheetah:{reach:255,power:1.14,rise:85},
+ hyena:{reach:176,power:1.13,rise:75}
+});
+const aerialPounceState=new WeakMap(); // Runtime only, never written to legacy saves.
+function armAerialPounce(){
+ if(!P||mode!=="play"||isControlBlocked()||P.jumpTime<=0||P.fallTime>0||!P.pendingStrike)return false;
+ const profile=AERIAL_POUNCE_PROFILES[P.type],prev=aerialPounceState.get(P);
+ if(!profile||prev?.active||prev?.spent)return false;
+ const target=combatAim(.8,profile.reach);
+ const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.jumpDir;
+ const gap=target?Math.max(0,dist(P,target)-P.r-target.r+Math.min(15,P.r*.55)):null;
+ const travel=target?Math.min(profile.reach,gap):Math.min(profile.reach*.55,Math.max(48,P.jumpRemaining));
+ P.jumpDir=angle;P.pounceDir=angle;P.dir=angle;
+ P.jumpRemaining=travel;P.jumpSpeed=travel/Math.max(.08,P.jumpTime);
+ if(P.jumpTime>=P.jumpDuration*.85)P.jumpPower=Math.max(P.jumpPower,profile.rise);
+ P.jumpDive=true;P.windup=Math.max(P.windup,P.jumpTime);
+ aerialPounceState.set(P,{type:P.type,active:true,spent:false});
+ return true;
+}
 function attack(){
  if(mode!=="play"||!P||isControlBlocked())return;
  if((P.specialWindup||0)>0)return;
+ if(P.jumpTime>0&&P.pendingStrike&&AERIAL_POUNCE_PROFILES[P.type]){armAerialPounce();return;}
+ if(P.jumpTime>0&&aerialPounceState.get(P)?.spent)return;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
@@ -3980,6 +4007,7 @@ function attack(){
  }
  P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
  P.noiseBurst=Math.max(P.noiseBurst,P.type==="manul"?.46:P.type==="shoebill"?.75:1.05);playEffect("attack",{volume:.22});
+ if(P.jumpTime>0)armAerialPounce();
 }
 // BOAR_DASH_RAM_V1: physical collision makes the boar's run a real attack.
 // Both a short-tap dash and a held sprint use the same swept body hitbox.
@@ -4031,7 +4059,7 @@ function resolveBoarDashImpact(x0,y0,x1,y1,isCharging){
  }
  return count;
 }
-function resolveAttack(){
+function resolveAttack(aerialContact=null){
  if(mode!=="play"||!P.pendingStrike)return;
  P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
  mobs.forEach(m=>{
@@ -4040,12 +4068,15 @@ function resolveAttack(){
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
    const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?164:P.type==="pacmanFrog"?122:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="giantTreeFrog"?.68:P.type==="pacmanFrog"?.80:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
-  if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22&&(overlap||!lineBlocked(P,m))){
+  const diveContact=aerialContact===m&&P.jumpTime>0&&P.jumpDive&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
+  if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&
+   (diveContact||Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22)&&(overlap||!lineBlocked(P,m))){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
      const downwindStrike=silentHit&&isDownwindStalk(m);
-     const bonus=(foxBurst?1.4:1)*(silentHit?(downwindStrike?1.75:1.55)*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
+     const airProfile=dive&&aerialPounceState.get(P)?.active?AERIAL_POUNCE_PROFILES[P.type]:null;
+     const bonus=(foxBurst?1.4:1)*(silentHit?(downwindStrike?1.75:1.55)*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(airProfile?.power||1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
    // Species-specific attacks follow natural hunting behavior instead of cosmetic labels.
    const small=!!species[m.type]?.prey&&["rat","rabbit","frog","pigeon","crow","snake"].includes(m.type);
    const manulAmbush=P.type==="manul"&&silentHit;
@@ -4103,6 +4134,8 @@ function resolveAttack(){
   }
  });
  if(hit){emitCombatFX("hit",P.type,"melee",P.x+Math.cos(P.dir)*P.r*1.35,P.y+Math.sin(P.dir)*P.r*1.35,P.dir,.68,P.rushActiveStep||1,P.r);shake=P.jumpDive?6:4;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
+ const aerial=aerialPounceState.get(P);
+ if(aerial?.active){aerial.active=false;aerial.spent=true;}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
@@ -4239,13 +4272,15 @@ function resolveFrogLanding(){
 function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
- if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike)return false;
+ if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||
+    (P.pendingStrike&&!AERIAL_POUNCE_PROFILES[P.type]))return false;
  const cat=P.type==="cat",wolf=P.type==="wolf",frog=P.type==="giantTreeFrog"||P.type==="pacmanFrog",cost=traitEffect("giantMoose",cat?14:wolf?22:frog?19:17);
  if(P.sp<cost){notify("持久力不足 / ジャンプできない");return false}
  const axis=getAxes(),moving=Math.hypot(axis.x,axis.y)>.18;
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
  const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:P.type==="shoebill"?165:P.type==="giantTreeFrog"?185:P.type==="pacmanFrog"?135:112)*traitEffect("whiteTiger",1);
  P.jumpDuration=cat?.44:wolf?.49:P.type==="shoebill"?.71:frog?.82:.45;
+ aerialPounceState.delete(P); // New jump, not a save-data mutation.
  P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
  P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:P.type==="shoebill"?98:P.type==="giantTreeFrog"?171:P.type==="pacmanFrog"?146:58;
  P.jumpRemaining=moving?distance:0;P.jumpSpeed=distance/P.jumpDuration;
@@ -4255,6 +4290,9 @@ function jump(){
  P.vx=0;P.vy=0;
  P.hidden=false;P.revealTimer=.85;P.noiseBurst=Math.max(P.noiseBurst,.8);
  playEffect("jump");
+ if(P.pendingStrike)armAerialPounce();
+ else if(AERIAL_POUNCE_PROFILES[P.type]&&
+   (heldActions.touchAttack||heldActions.padAttack||keys.has("j")||keys.has(" ")))attack();
  return true;
 }
 function pounceImpactOnSegment(x0,y0,x1,y1){
@@ -5943,6 +5981,17 @@ function update(dt){
     P.jumpTime=touchesRoof?0:jumpLeft;
     P.jumpRemaining=touchesRoof?0:Math.max(0,P.jumpRemaining-covered);
     P.steps+=covered*.052;
+    // Swept ground-plane contact is valid only late in descent and on the same
+    // level; existing wall, level-gap, death and poise logic resolve the hit.
+    const aerial=aerialPounceState.get(P);
+    if(aerial?.active&&aerial.type===P.type&&P.pendingStrike&&P.jumpTime>0&&
+       P.jumpTime<=P.jumpDuration*.53){
+     const impact=pounceImpactOnSegment(ox,oy,P.x,P.y);
+     if(impact&&Math.abs((P.jumpHeight||0)-(impact.mob.groundZ||0))<=Math.max(48,P.r*2)){
+      P.x=impact.x;P.y=impact.y;P.jumpRemaining=0;P.windup=0;
+      resolveAttack(impact.mob);
+     }
+    }
     if(P.jumpTime===0){
      const reachedRoof=landOnSurface();P.vx=0;P.vy=0;P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
      if(P.type==="shoebill")resolveShoebillStomp();
@@ -5952,6 +6001,7 @@ function update(dt){
      blood(P.x,P.y,"#b7be9e",5,26);
      if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
      else P.jumpAmbush=false;
+     aerialPounceState.delete(P);
     }
    }else if(P.pounceTime>0){
    boarDashActive=P.type==="boar";
