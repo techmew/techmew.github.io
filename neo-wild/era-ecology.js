@@ -27,7 +27,7 @@
  function migration(region,year){
   const r=Math.max(0,Math.min(REGIONS-1,Math.floor(Number(region)||0)));
   const y=Math.max(0,Number(year)||0),epoch=Math.floor((y+1e-9)/PERIOD);
-  const active=CORRIDORS.filter(([a,b])=>state(a,y).kind==="migration"||state(b,y).kind==="migration");
+  const active=CORRIDORS.filter(([a,b])=>{const left=state(a,y),right=state(b,y);return left.kind==="migration"||right.kind==="migration"||(left.kind==="drought"&&right.food>left.food)||(right.kind==="drought"&&left.food>right.food);});
   const pair=active.find(([a,b])=>a===r||b===r);
   if(!pair)return {active:false,source:r,destination:r,grazer:1,hunter:1};
   // Herds seek food and avoid predator pressure; the route changes by epoch.
