@@ -1424,10 +1424,13 @@ function refreshSaveMenu(){
  $("menu").classList.toggle("has-saved-game",hasSave);
  $("menu").classList.toggle("has-auto-save",!!auto);
  const primary=auto||null;
+ const debugMode=window.WildDebugSandbox?.active===true;
  $("continue-btn").classList.remove("hidden");
- $("resume-cta-label").textContent="続きからプレイ";
+ $("resume-cta-label").textContent=debugMode?"デバッグモードで開始":"続きからプレイ";
+ const resetButton=$("start-btn");
+ if(resetButton)resetButton.textContent=debugMode?"デバッグモードで新規開始":"ゲームをリセットして新規で開始する";
  $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"動物をタップして操作個体を選び、開始":"動物をタップして操作個体を選び、再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"ガチャで動物を獲得してください";
- $("continue-btn").disabled=!hasSave;
+ $("continue-btn").disabled=!hasSave&&!debugMode;
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
  if(!points.length){$("checkpoint-list").classList.add("hidden");$("checkpoint-menu-btn").setAttribute("aria-expanded","false");}
@@ -8352,16 +8355,17 @@ function reportLaunchFailure(error){
  note.setAttribute("data-error","true");
 }
 function launchGame(snapshot=null,newWorld=false){
+ const debugLaunchCompleted=()=>{if(window.WildDebugSandbox?.active)window.WildDebugMode?.onGameLaunch?.();};
  const note=$("menu-landscape-note");
  note.removeAttribute("data-error");
  try{
   if(snapshot){
-   if(restoreSnapshot(snapshot))return true;
+   if(restoreSnapshot(snapshot)){debugLaunchCompleted();return true;}
    reportLaunchFailure(new Error("snapshot restore returned false"));
    note.textContent="保存データを再開できません。最初からプレイを選んでください。";
    note.setAttribute("data-error","true");return false;
   }
-  if(start(newWorld)){if(newWorld)resetWorldHistoryForNewGame();announceObjective();return true}
+  if(start(newWorld)){if(newWorld)resetWorldHistoryForNewGame();announceObjective();debugLaunchCompleted();return true}
   reportLaunchFailure(new Error("world initialization returned false"));return false;
  }catch(error){reportLaunchFailure(error);return false}
 }
