@@ -3102,7 +3102,7 @@ const ATTACK_MOTION=Object.freeze({
  badger:["claw","claw","jaw","hind","claw","claw"],
  macaque:["fist","fist","jaw","foot","fist","stone"],
  crocodile:["jaw","jaw","tail","foot","jaw","jaw"],
- penguin:["wing","wing","beak","foot","wing","body"],
+ penguin:["beak","beak","beak","beak","beak","body"],
  rhino:["horn","horn","foot","body","horn","horn"],
  blackBear:["claw","claw","jaw","hind","fist","fist"],
  serow:["hoof","hoof","horn","hind","horn","horn"],
@@ -3384,7 +3384,7 @@ const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
  ["hippo","大顎の咬み砕き","bite",155,2.10,.66,17],
  ["gorilla","両腕の叩きつけ","slam",195,1.78,3.14,17],
  ["crocodile","水際の回転咬み","bite",170,2.05,.80,16],
- ["penguin","腹ばい氷上滑走","roll",180,1.35,.90,12],
+ ["penguin","滑走頭突き・高速嘴連打","roll",180,1.35,.90,12],
  ["rhino","鋼角の突撃","lunge",225,2.18,.65,18],
  ["giraffe","長首の横薙ぎ","fan",208,1.42,1.72,14],
  ["zebra","後脚の二連蹴り","backkick",155,1.40,.92,13],
@@ -3410,8 +3410,8 @@ function launchStone(m,sp){
 }
 function startPhysicalRush(type,sp,target){
  const a=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;P.dir=a;
- physicalRush={type,a,speed:type==="rhino"?390:320,left:type==="rhino"?.69:.65,
-  max:type==="rhino"?242:206,distance:0,power:sp.power,hit:new Set(),owner:P.squadIndividualId};
+ physicalRush={type,a,speed:type==="rhino"?390:410,left:type==="rhino"?.69:.65,
+  max:type==="rhino"?242:206,distance:0,power:sp.power,hit:new Set(),beakHits:[],owner:P.squadIndividualId};
  if(type==="rhino")P.hornCharge=.8;else P.bellySlide=.8;
 }
 function tickAnimalMoves(dt){
@@ -3457,8 +3457,21 @@ function tickAnimalMoves(dt){
     if(covered<.5||Math.hypot(m.x-cx,m.y-cy)>P.r+m.r+4||lineBlocked({x:cx,y:cy},m))continue;
     r.hit.add(m);
     const rhino=r.type==="rhino";
-    specialHit(m,r.power*(rhino?1:.92),rhino?.62:.35,rhino?84:39,rhino?"角の突進":"腹ばい滑走");
+    specialHit(m,r.power*(rhino?1:.92),rhino?.62:.35,rhino?84:39,rhino?"角の突進":"滑走頭突き");
+    if(!rhino)r.beakHits.push({target:m,timer:.055,count:0});
     emitCombatFX("hit",r.type,rhino?"horn":"body",m.x,m.y,P.dir,1,0,m.r);
+   }
+   if(r.type==="penguin")for(const q of r.beakHits){
+    q.timer-=frame;
+    if(q.count<5&&q.timer<=0){
+     q.timer+=.065;q.count++;
+     const m=q.target;
+     if(m&&m.hp>0&&dist(P,m)<P.r+m.r+75&&Math.abs((P.groundZ||0)-(m.groundZ||0))<26&&!lineBlocked(P,m)){
+      P.flipperStrike=Math.max(P.flipperStrike||0,.18);
+      specialHit(m,r.power*.16,.10,5,"高速くちばし連打");
+      emitCombatFX("hit","penguin","beak",m.x,m.y,P.dir,.45,q.count,m.r);
+     }
+    }
    }
    if(covered<step*.34||r.distance>=r.max-1||r.left<=0)physicalRush=null;
   }
