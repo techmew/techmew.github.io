@@ -132,6 +132,16 @@ async function importBackup(file){
    const released=new Set([...jsonArray(merged["wild-reclaim-released-ids-v1"]),...releasedFromArchive]);
    merged["wild-reclaim-released-ids-v1"]=JSON.stringify([...released]);
   }
+  // A stale tab may have saved new death/release markers while the file picker
+  // was open. Refuse to overwrite those markers with an older snapshot.
+  const liveBeforeWrite=snapshot();
+  for(const key of ["wild-reclaim-dead-ids-v1","wild-reclaim-released-ids-v1","wild-reclaim-released-archive-v1","wild-reclaim-released-v1"]){
+   if(liveBeforeWrite[key]!==before[key])throw Error("別タブで永久離脱情報が更新されました。再読み込み後に復元してください："+key);
+  }
+  // Preserve unrelated new game keys rather than deleting another tab's work.
+  for(const [key,value] of Object.entries(liveBeforeWrite)){
+   if(!Object.prototype.hasOwnProperty.call(before,key)&&!Object.prototype.hasOwnProperty.call(merged,key))merged[key]=value;
+  }
   // Old backups are allowed to restore progression, never to resurrect excluded IDs.
   const keysBefore=Object.keys(before),keysNext=Object.keys(merged);
   try{
