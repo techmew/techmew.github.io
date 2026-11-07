@@ -43,6 +43,25 @@ function tick(dt,w){
    const speed=g.kind==="wraith"?86:g.kind==="mimic"?72:(d<85?58:76),step=Math.min(d,speed*dt);
    if(d>1){g.x+=(P.x-g.x)/d*step;g.y+=(P.y-g.y)/d*step}
   }
+  // Timed counterplay: a directed species attack can repel a manifested spirit.
+  // No new UI is needed; the existing attack and special-action inputs apply.
+  g.repulseCooldown=Math.max(0,finite(g.repulseCooldown)-dt);
+  const striking=(finite(P.swing)>.015||finite(P.attackAction)>.12||finite(P.specialVisual)>.10);
+  const special=(finite(P.specialVisual)>.10||finite(P.specialWindup)>.02);
+  const strikeRange=special?135:Math.max(55,finite(P.r)*2.9);
+  const towardX=g.x-P.x,towardY=g.y-P.y,reach=Math.hypot(towardX,towardY)||1;
+  const facing=(towardX*Math.cos(finite(P.dir))+towardY*Math.sin(finite(P.dir)))/reach;
+  if(g.repulseCooldown<=0&&striking&&reach<strikeRange&&facing>(special?.12:.55)&&!w.lineBlocked?.(P,g)){
+   g.repulseCooldown=special?7:4;
+   g.fear=0;
+   const shove=special?145:85;
+   const tx=g.x+towardX/reach*shove,ty=g.y+towardY/reach*shove;
+   if(!w.lineBlocked?.(g,{x:tx,y:ty})){g.x=tx;g.y=ty;}
+   g.t+=special?8:3;
+   if(special){g.stage="fade";g.t=0;}
+   w.notify?.(special?"固有技で亡霊を退散させた！":"攻撃で亡霊を押し返した！");
+   w.onEvent?.("ghost-repelled",{year,kind:g.kind,special,x:g.x,y:g.y});
+  }
   const near=distance(g,P),exposed=!P.hidden&&!w.lineBlocked?.(P,g)&&near<66;
   if(exposed){
    g.fear=Math.min(3,g.fear+dt);
