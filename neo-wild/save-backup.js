@@ -28,6 +28,9 @@ function buildBackup(){
 function exportBackup(){
  try{
   const data=JSON.stringify(buildBackup());
+  // Never offer a backup that this same importer would reject as oversized.
+  const bytes=new Blob([data],{type:"application/json;charset=utf-8"}).size;
+  if(bytes>MAX_BYTES)throw Error("バックアップが16MBを超えています。保存データの容量を確認してください");
   const blob=new Blob([data],{type:"application/json;charset=utf-8"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a"),when=new Date();
