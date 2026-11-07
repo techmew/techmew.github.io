@@ -8278,7 +8278,14 @@ function keyDown(e){
  
  if(mode==="inventory"){if(k==="escape")closeDenInventory();return}
  if(mode==="guide"){if(k==="enter"||k===" "||k==="escape")closeTutorial();return}
- if(k==="shift"||k==="k")act("dash");if(k==="l")act("jump");
+ if(k==="shift"||k==="k"){
+  // Either key order works: SHIFT+L leaps instead of a ground dash.
+  if(P&&AERIAL_POUNCE_PROFILES[P.type]&&mode==="play"&&P.jumpTime<=0){
+   const token=++keyboardDashToken;
+   setTimeout(()=>{if(token===keyboardDashToken&&mode==="play")act("dash");},105);
+  }else act("dash");
+ }
+ if(k==="l")act("jump");
  if(k==="r")act("instinct");
  if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
@@ -8301,6 +8308,7 @@ document.addEventListener("visibilitychange",()=>{
 window.addEventListener("pagehide",saveAuto);
 window.addEventListener("beforeunload",saveAuto);
 function resetControls(){
+ ++keyboardDashToken;pounceTouchConsumed=false;
  keys.clear();if(P){resetRush();P.sprintExhausted=false;}joy.id=null;joy.x=0;joy.y=0;gamepadAxes.x=0;gamepadAxes.y=0;
  heldActions.touchAttack=false;heldActions.padAttack=false;heldActions.touchSprint=false;heldActions.padSprint=false;
  for(const timer of touchHoldTimers.values())clearTimeout(timer);touchHoldTimers.clear();
@@ -8800,12 +8808,15 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   if(action==="jump"){act("jump");return}
   if(action==="instinct"){act("instinct");return}
   if(action==="attack"){heldActions.touchAttack=true;act("attack");return}
+  if(action==="dash"&&P&&P.jumpTime>0&&AERIAL_POUNCE_PROFILES[P.type]){
+   if(leapPounce()){longFired=true;pounceTouchConsumed=true;return;}
+  }
   if(action==="dash"||action==="context"){
    const timer=setTimeout(()=>{
     touchHoldTimers.delete(id);
     if(mode!=="play"||pointers.size===0)return;
     longFired=true;
-    if(action==="dash")heldActions.touchSprint=true;
+    if(action==="dash"){if(!pounceTouchConsumed)heldActions.touchSprint=true;}
     else contextAction(true);
    },action==="dash"?450:550);
    touchHoldTimers.set(id,timer);
@@ -8819,7 +8830,10 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
   
   if(action==="attack")heldActions.touchAttack=false;
-  if(action==="dash")heldActions.touchSprint=false;
+  if(action==="dash"){
+   heldActions.touchSprint=false;
+   if(pounceTouchConsumed){pounceTouchConsumed=false;return;}
+  }
   if(mode!=="play"||longFired)return;
   const duration=performance.now()-pressStarted;
   if(action==="dash"&&duration<450)act("dash");
@@ -8829,7 +8843,7 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
   b.classList.remove("down");
   if(action==="attack")heldActions.touchAttack=false;
-  if(action==="dash")heldActions.touchSprint=false;
+  if(action==="dash"){heldActions.touchSprint=false;pounceTouchConsumed=false;}
   const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
   
  });
@@ -8837,7 +8851,7 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   if(!pointers.delete(e.pointerId)||pointers.size!==0)return;
   b.classList.remove("down");
   if(action==="attack")heldActions.touchAttack=false;
-  if(action==="dash")heldActions.touchSprint=false;
+  if(action==="dash"){heldActions.touchSprint=false;pounceTouchConsumed=false;}
   const timer=touchHoldTimers.get(id);if(timer!==undefined){clearTimeout(timer);touchHoldTimers.delete(id)}
   
  });
