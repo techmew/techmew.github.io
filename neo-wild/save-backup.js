@@ -50,7 +50,10 @@ function mergeIds(records,key,older){
 function mergeArchive(records,key,older){
  const map=new Map();
  for(const entry of [...jsonArray(older[key]),...jsonArray(records[key])]){
-  if(entry&&typeof entry.id==="string"&&entry.id&&entry.id.length<=240&&!map.has(entry.id))map.set(entry.id,entry);
+  if(entry&&typeof entry.id==="string"&&entry.id&&entry.id.length<=240){
+   const prior=map.get(entry.id);
+   map.set(entry.id,prior?{...entry,...prior}:entry);
+  }
  }
  if(map.size)records[key]=JSON.stringify([...map.values()]);
 }
