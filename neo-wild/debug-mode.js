@@ -43,14 +43,14 @@ css.textContent=[
 "#wr-debug-panel .wr-note{display:block;font-size:12px;line-height:1.55;color:#c0d7cd;margin:6px 0;}",
 "#wr-debug-panel pre{background:#091416;padding:11px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 ui-monospace,monospace;}",
 "#wr-debug-panel .wr-stage{padding:8px;border-left:3px solid #9bd7c0;background:#243a38;margin:8px 0;font-size:13px;}",
-"#wr-debug-panel .wr-launch{padding:12px;margin:10px 0;border:2px solid #a1d9ba;border-radius:11px;background:#1a3435;}",
+"#wr-debug-panel .wr-launch{padding:12px;margin:10px 0;border:2px solid #7ce7ae;border-radius:11px;background:#12362d;}",
 "#wr-debug-panel .wr-launch strong{display:block;font-size:15px;margin-bottom:5px;}",
 "#wr-debug-panel .wr-launch button{font-size:15px;min-height:52px;margin-top:9px;background:#126c54;border:2px solid #beffdb;}",
 "#wr-debug-panel .wr-choice{margin:5px 0 3px;padding:6px;border-radius:7px;background:#354346;border:1px solid #688079;color:#e2ebe4;font-size:12px;min-height:34px;}",
 "#wr-debug-panel .wr-choice[aria-pressed=true]{background:#15583e;border:2px solid #bcffcf;color:#fff;}",
 "#wr-debug-panel .wr-chosen{outline:2px solid #aafac7;outline-offset:1px;border-radius:5px;}",
 "#wr-debug-panel .wr-selection{font-size:12px;line-height:1.5;min-height:25px;white-space:pre-wrap;color:#caffdb;}",
-"#wr-debug-panel .wr-mode-banner{background:#493528;border:1px solid #efba7e;padding:9px;border-radius:8px;font-size:12px;font-weight:800;margin:8px 0;}",
+"#wr-debug-panel .wr-mode-banner{background:#104b36;border:2px solid #adffd3;color:#fff;text-align:center;padding:9px;border-radius:8px;font-size:14px;font-weight:800;margin:8px 0;}",
 "@media(max-height:430px){#wr-debug-panel{max-height:calc(100dvh - 8px);}}"
 ].join("");
 document.head.appendChild(css);
