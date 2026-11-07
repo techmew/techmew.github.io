@@ -2159,7 +2159,12 @@ function render(o){
    // The snow lip thins to the underlying collision terrain at its boundary.
    // Evaluate the same world-space mask at clipped vertices so adjoining
    // triangles have identical height and no raised square edge.
+   // Shared surface samples avoid repeated slope gradients for fan vertices.
+   // A world-space key also keeps adjoining snow cells at identical heights.
+   const surfaceCache=new Map();
    const surface=(p)=>{
+    const key=sampleKey(p[0],p[1]);
+    if(surfaceCache.has(key))return surfaceCache.get(key);
     const coverage=clamp(field(p[0],p[1])*4.5,0,1);
     // Zero lift exactly at the contour prevents a floating snow rim;
     // use the same terrain height API as collision and neighbouring cells.
@@ -2171,7 +2176,9 @@ function render(o){
     const slope=Math.hypot(dx,dy);
     const slopeRetention=1-.58*clamp((slope-.28)/1.25,0,1);
     const depth=snowZ*coverage*coverage*slopeRetention;
-    return [p[0],p[1],ground(p[0],p[1])+depth];
+    const vertex=[p[0],p[1],ground(p[0],p[1])+depth];
+    surfaceCache.set(key,vertex);
+    return vertex;
    };
    // Clip each triangle against the same continuous snow threshold.
    // Intersections are calculated from shared world-space vertex values.
