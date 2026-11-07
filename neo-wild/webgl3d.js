@@ -970,7 +970,8 @@ function drawRarePlayable3D(m,clock){
   // Thin, long tarso-metatarsal legs and splayed toes.
   for(const side of [-1,1]){
    const legX=side<0?-r*.12:r*.13,legY=side*r*.34;
-   const kick=Math.sin(phase+(side<0?0:Math.PI))*move;
+   const strikeBrace=clamp(sweep+specialMotion+normalMotion,0,1);
+   const kick=Math.sin(phase+(side<0?0:Math.PI))*move*(1-strikeBrace*.92);
    const lift=Math.max(0,kick)*r*.26,ankleX=legX+kick*r*.45;
    orb(legX+kick*r*.12,legY,r*.53+lift*.30,r*.12,r*.13,r*.42,"#8a9088",7,4);
    orb(ankleX,legY,r*.14+lift,r*.18,r*.18,r*.13,"#7a877d",8,4);
