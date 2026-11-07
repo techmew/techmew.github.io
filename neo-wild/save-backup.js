@@ -100,7 +100,11 @@ async function importBackup(file){
     localStorage.setItem(key,merged[key]);
     if(localStorage.getItem(key)!==merged[key])throw Error("ブラウザ保存の検証に失敗："+key);
    }
+   // Detect quota/eviction or concurrent-tab writes before removing obsolete keys.
+   for(const key of keysNext)if(localStorage.getItem(key)!==merged[key])throw Error("保存内容が途中で変更されました："+key);
    for(const key of keysBefore)if(!Object.prototype.hasOwnProperty.call(merged,key))localStorage.removeItem(key);
+   // A restore is successful only when the final durable snapshot matches the target.
+   for(const key of keysNext)if(localStorage.getItem(key)!==merged[key])throw Error("最終保存検証に失敗："+key);
   }catch(error){
    // Best-effort transaction rollback: never knowingly report a partial restore as success.
    try{
