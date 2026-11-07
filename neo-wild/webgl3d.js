@@ -2157,14 +2157,17 @@ function render(o){
    for(let x=firstX;x<endX;x+=step)for(let y=firstY;y<endY;y+=step){
     const x2=Math.min(WORLD.w,x+step),y2=Math.min(WORLD.h,y+step);
     if(!isVisible((x+x2)*.5,(y+y2)*.5,120))continue;
-    const vertices=[[x,y],[x2,y],[x2,y2],[x,y2]];
-    // Clip only the submerged portion, never discard an entire shoreline cell.
+    // Center-fan tessellation samples shared world-space edge midpoints.
+    // Neighboring cells reuse the exact same coordinates and terrain heights,
+    // while the center resolves narrow snow contours on curved mountain slopes.
+    const mx=(x+x2)*.5,my=(y+y2)*.5;
+    const vertices=[[x,y],[mx,y],[x2,y],[x2,my],[x2,y2],
+                    [mx,y2],[x,y2],[x,my],[mx,my]];
     const sampled=vertices.map(p=>[p[0],p[1],field(p[0],p[1])]);
-    // Smooth tint variation rather than abrupt 170-unit square patches.
-    const shade=clamp(.91+.12*field((x+x2)*.5,(y+y2)*.5),.87,1.03);
+    const shade=clamp(.91+.12*sampled[8][2],.87,1.03);
     const tint=tone("#e6eef0",shade);
-    for(const ids of [[0,1,2],[0,2,3]]){
-     const poly=clip(ids.map(i=>sampled[i]));
+    for(let edge=0;edge<8;edge++){
+     const poly=clip([sampled[8],sampled[edge],sampled[(edge+1)%8]]);
      if(poly.length<3)continue;
      const base=surface(poly[0]);
      for(let i=1;i<poly.length-1;i++)triangle(base,surface(poly[i]),surface(poly[i+1]),tint);
