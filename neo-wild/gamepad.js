@@ -201,11 +201,20 @@ function poll(dt=.016){
    // PS/Xbox position mapping: top △/Y, left □/X, right ○/B, bottom ×/A.
    if(down(3))b.action("attack",true);
    if(up(3))b.action("attack",false);
-   if(down(0))b.action("jump",false);
+   if(down(0)){
+    b.action("jump",false);
+    // Holding □/X while tapping ×/A launches an airborne pounce immediately.
+    if(now[2]){b.action("pounce",false);fired.add(2);}
+   }
    if(down(4))b.zoom(-.12);
    if(down(5))b.zoom(.12);
    for(const i of [2,1]){
-    if(down(i)){began.set(i,t);fired.delete(i)}
+    if(down(i)){
+     began.set(i,t);
+     if(!fired.has(i))fired.delete(i);
+     // Reverse order, ×/A held first then □/X: same aerial action.
+     if(i===2&&now[0]){b.action("pounce",false);fired.add(i);}
+    }
     if(now[i]&&began.has(i)&&!fired.has(i)&&t-began.get(i)>=hold[i]){
      b.action(i===2?"sprint":"context",true);fired.add(i);
     }
