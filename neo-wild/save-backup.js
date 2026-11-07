@@ -138,6 +138,12 @@ async function importBackup(file){
   for(const key of ["wild-reclaim-dead-ids-v1","wild-reclaim-released-ids-v1","wild-reclaim-released-archive-v1","wild-reclaim-released-v1"]){
    if(liveBeforeWrite[key]!==before[key])throw Error("別タブで永久離脱情報が更新されました。再読み込み後に復元してください："+key);
   }
+  // An older browser tab can update progression while the file picker is open.
+  // Do not overwrite ANY changed existing key, not only permanent-ID journals.
+  // This also protects world clock, exploration and roster from stale restores.
+  for(const [key,value] of Object.entries(before)){
+   if(liveBeforeWrite[key]!==value)throw Error("別タブでゲームデータが更新されました。最新画面で読み込みをやり直してください："+key);
+  }
   // Preserve unrelated new game keys rather than deleting another tab's work.
   for(const [key,value] of Object.entries(liveBeforeWrite)){
    if(!Object.prototype.hasOwnProperty.call(before,key)&&!Object.prototype.hasOwnProperty.call(merged,key))merged[key]=value;
