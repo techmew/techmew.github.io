@@ -1681,3 +1681,28 @@
 #menu #save-menu-actions #continue-btn{display:flex!important;width:100%!important;min-height:72px!important;font-size:clamp(20px,5vw,30px)!important}
 @media(max-width:700px){#menu #squad-roster .squad-roster-slot{min-height:0!important;padding:5px 3px!important}#menu #squad-roster .squad-roster-preview,#menu #squad-roster .squad-roster-preview canvas{height:83px!important}}
 @media(orientation:landscape) and (max-height:520px){#menu #squad-roster .squad-roster-preview,#menu #squad-roster .squad-roster-preview canvas{height:62px!important}}
+
+
+/* 2026-11-07 explicit title request: roster first, continue immediately below it.
+   Keep the established card geometry and collection grid unchanged. */
+#menu .squad-home-title,#menu .squad-home-hint{display:none!important}
+#menu #squad-home #save-menu-actions{order:20!important;width:100%!important;margin:7px 0 2px!important}
+#menu #squad-home #continue-btn{width:100%!important;min-height:70px!important;touch-action:manipulation}
+#menu .menu-shell>#save-backup-tools{
+ order:4!important;display:block!important;width:100%;padding:13px 12px 12px;
+ margin:14px 0 10px;border:1px solid rgba(154,192,173,.55);
+ border-radius:12px;background:rgba(9,24,23,.89);box-sizing:border-box;
+}
+#menu .save-backup-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#menu .save-backup-actions button{
+ width:100%;min-height:50px;padding:9px 7px;white-space:normal;
+ font:800 clamp(11px,2.7vw,14px)/1.4 "Noto Sans JP",sans-serif;color:#f4f5e7;
+ border-radius:9px;border:1px solid #a0c5ae;background:#2d574e;
+ touch-action:manipulation;box-sizing:border-box;
+}
+#menu #save-backup-import{background:#3a463e;border-color:#c4b993}
+#menu #save-backup-warning{color:#dce6d8;font:500 clamp(10px,2.6vw,12px)/1.7 "Noto Sans JP",sans-serif;margin:10px 1px 0}
+#menu #save-backup-status{font:700 11px/1.6 "Noto Sans JP",sans-serif;color:#bbf4d6;margin:6px 1px 0}
+#menu #save-backup-status:empty{display:none}
+#menu #save-backup-status[data-error="true"]{color:#ffcfb8}
+@media(max-width:370px){#menu .save-backup-actions{grid-template-columns:1fr}#menu .save-backup-actions button{min-height:46px}}

@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=20261101-nav3">
-<link rel="stylesheet" href="./visual.css?rev=solo3-compact-green-20261105b">
+<link rel="stylesheet" href="./visual.css?rev=backup-title-20261107-a">
 <link rel="stylesheet" href="./bestiary.css?rev=20261102-bestiary-v1">
 <link rel="stylesheet" href="./i18n.css?rev=flag-topright-fixed-20261107-2">
 </head>
@@ -99,6 +99,14 @@
 </div>
 <div class="menu-shell"><h1 class="hero-title">WILD<span class="slash">//</span><br>RECLAIM</h1>
 <p class="lead">人の消えた日本の町。<br>支配者になったのは、飢えた野生だった。</p>
+<section id="squad-home" class="squad-home" aria-label="所有動物と操作キャラ">
+ <button id="squad-open" type="button" hidden aria-hidden="true" tabindex="-1" style="display:none">ガチャ</button>
+ <h2 class="squad-home-title">所有動物（操作1体＋ストック2体）</h2>
+ <div id="squad-roster" class="squad-home-roster" aria-live="polite"><article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="1枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(0)">＋</button><small>1枠目・空き</small></article>
+<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="2枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(1)">＋</button><small>2枠目・空き</small></article>
+<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="3枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(2)">＋</button><small>3枠目・空き</small></article>
+</div>
+ <p class="squad-home-hint">空き枠の＋で動物を選択</p>
 <div id="save-menu-actions" aria-label="保存したゲームから再開">
       <button id="continue-btn" type="button" class="save-choice resume-primary">
         <span class="resume-cta-title"><span id="resume-cta-label">続きからプレイ</span><small id="resume-cta-help">下の動物をタップして選択</small></span>
@@ -111,14 +119,6 @@
         <button id="checkpoint-slot-2" type="button" class="checkpoint-choice hidden"></button>
       </div>
     </div>
-<section id="squad-home" class="squad-home" aria-label="所有動物と操作キャラ">
- <button id="squad-open" type="button" hidden aria-hidden="true" tabindex="-1" style="display:none">ガチャ</button>
- <h2 class="squad-home-title">所有動物（操作1体＋ストック2体）</h2>
- <div id="squad-roster" class="squad-home-roster" aria-live="polite"><article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="1枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(0)">＋</button><small>1枠目・空き</small></article>
-<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="2枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(1)">＋</button><small>2枠目・空き</small></article>
-<article class="squad-roster-slot"><button type="button" class="squad-roster-empty squad-slot-add" aria-label="3枠目のガチャ" onclick="window.WildSquadGachaUI?.openSlot?.(2)">＋</button><small>3枠目・空き</small></article>
-</div>
- <p class="squad-home-hint">空き枠の＋で動物を選択</p>
 </section>
 <div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
 
@@ -159,6 +159,15 @@
 </div>
 
 </div></section>
+</section>
+<section id="save-backup-tools" aria-label="ゲームデータのバックアップ">
+ <div class="save-backup-actions" role="group" aria-label="データを保存・復元">
+  <button id="save-backup-export" type="button">現在のデータをバックアップ</button>
+  <button id="save-backup-import" type="button">バックアップを読み込む</button>
+ </div>
+ <input id="save-backup-file" type="file" accept=".json,application/json" hidden aria-label="WILD RECLAIMのバックアップJSONファイル">
+ <p id="save-backup-warning">セーブはこの端末・このブラウザの保存領域（localStorage）に記録されます。通常のゲーム更新だけでは消えませんが、サイトデータや閲覧データの削除、シークレットモード、ブラウザ・端末の変更、保存容量不足、または「ゲームをリセットして新規で開始する」の実行で、以前のデータが使えなくなることがあります。定期的にバックアップファイルを端末の外にも保存してください。</p>
+ <p id="save-backup-status" role="status" aria-live="polite"></p>
 </section>
 </div></div>
 <div id="pause" class="overlay hidden"><div class="modal"><div id="language-pause" class="flag-language-toggle flag-language-pause" role="group" aria-label="言語選択 / Language">
@@ -243,8 +252,9 @@
 <script src="./i18n.js?rev=en-audit-20261107-e" defer></script>
 <script src="./squad-gacha-ui.js?rev=frogs-20261107-v1" defer></script>
 <script src="./death-share.js?rev=death-x-card-20261106" defer></script>
-<script src="./game.js?rev=frogs-20261107-v1" defer></script>
-<script src="./world-history.js?rev=62698d61-ufo" defer></script>
+<script src="./game.js?rev=save-guard-20261107-a" defer></script>
+<script src="./world-history.js?rev=chronicle-20261107-a" defer></script>
+<script src="./save-backup.js?rev=local-json-20261107-a" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
 <script src="./gamepad.js?rev=ca9eb8ee-gacha-pad-20261104" defer></script>
 <script src="./season-clouds.js?rev=20261103-year120-v1" defer></script>

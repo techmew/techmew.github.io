@@ -1372,12 +1372,41 @@ function currentSnapshot(){
  };
 }
 function saveAuto(){
- persistSquadVitals();
+ // A menu reload or backup import must never persist a stale actor over restored roster data.
  const snapshot=currentSnapshot();
  if(!snapshot)return false;
  if(debugTutorialSession)return true;
+ // Never replace a good save with a malformed/partial snapshot after a game update.
+ if(!isValidSnapshot(snapshot)){
+  console.warn("WILD RECLAIM: autosave rejected invalid state; previous save preserved");
+  persistWorldChronicle();
+  return false;
+ }
+ try{
+  const raw=localStorage.getItem(AUTOSAVE_KEY);
+  if(raw){
+   let previous;
+   try{previous=JSON.parse(raw)}catch(_){
+    console.warn("WILD RECLAIM: existing autosave unreadable; refusing overwrite");return false;
+   }
+   // Cross-tab / stale-version protection. Only a user-authorized NEW GAME resets the clock.
+   const explicitReset=localStorage.getItem("wild-reclaim-explicit-new-world-v1")==="1";
+   if(previous&&!isValidSnapshot(previous)&&!explicitReset){
+    console.warn("WILD RECLAIM: existing autosave invalid; preserve raw data for backup");return false;
+   }
+   if(previous&&isValidSnapshot(previous)&&snapshot.elapsed+1<previous.elapsed&&!explicitReset){
+    console.warn("WILD RECLAIM: refusing older tab to overwrite newer world");return false;
+   }
+  }
+ }catch(error){console.warn("WILD RECLAIM: cannot verify current autosave",error);return false;}
+ // The roster is updated only after the snapshot is safe to write.
+ persistSquadVitals();
  let snapshotSaved=false;
- try{localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(snapshot));snapshotSaved=true}catch(_){}
+ try{
+  const encoded=JSON.stringify(snapshot);
+  localStorage.setItem(AUTOSAVE_KEY,encoded);
+  snapshotSaved=localStorage.getItem(AUTOSAVE_KEY)===encoded;
+ }catch(error){console.warn("WILD RECLAIM: autosave storage quota or permissions",error);}
  // The smaller world journal may still fit when a full autosave cannot.
  persistWorldChronicle();
  return snapshotSaved;
@@ -1397,7 +1426,7 @@ function refreshSaveMenu(){
  const primary=auto||null;
  $("continue-btn").classList.remove("hidden");
  $("resume-cta-label").textContent="続きからプレイ";
- $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"所有する"+aliveSquad+"体から操作個体を選んで開始":"所有する"+aliveSquad+"体から操作個体を選んで再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開" :"ガチャで動物を獲得してください";
+ $("resume-cta-help").textContent=aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"動物をタップして操作個体を選び、開始":"動物をタップして操作個体を選び、再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"ガチャで動物を獲得してください";
  $("continue-btn").disabled=!hasSave;
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
@@ -8467,6 +8496,16 @@ $("continue-btn").addEventListener("click",()=>{
  }
  const snapshot=getAutoSnapshot(); // Checkpoints are retained for compatibility but not offered as a title resume path.
  if(roster?.members?.length&&!snapshot){
+  // Do not silently start a new world over an unreadable autosave.
+  // Keep the raw bytes available for exporting and forensic recovery.
+  let unreadable=false;
+  try{unreadable=localStorage.getItem(AUTOSAVE_KEY)!==null}catch(_){unreadable=true}
+  if(unreadable){
+   const note=$("menu-landscape-note");
+   note.textContent="セーブデータを読み込めないため、新しいデータでの上書きを停止しました。画面下から現在のデータをバックアップして保護してください。";
+   note.setAttribute("data-error","true");
+   return;
+  }
   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
   if(!leader||!animals[leader.species]){notify("編成リーダーを復旧できません");return;}
   choice=leader.species;
