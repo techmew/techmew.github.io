@@ -87,8 +87,9 @@ const headwater=Object.freeze({mouthX:HEADWATER_MOUTH,sourceX:12740,halfWidth:18
 function snowCover(x,y,temperature=0){
  if(!active(x,y))return 0;
  // Feather snowline across world coordinates, avoiding a straight biome seam.
- const edge=smooth(clamp((x-(FOOTHILL_END-420))/680,0,1));
- if(edge<=0)return 0;
+ // Do not hard-cut at the unwarped snowline: the warped boundary can extend west of it.
+ // Sampling only world coordinates keeps the same cover on both sides of a chunk seam.
+ if(x<FOOTHILL_END-420-125-36)return 0;
  const z=height(x,y),step=24;
  const gradient=Math.hypot(height(x+step,y)-height(x-step,y),height(x,y+step)-height(x,y-step))/(2*step);
  // Smooth world-coordinate noise remains continuous across every chunk boundary.
