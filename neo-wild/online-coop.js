@@ -16,29 +16,32 @@ class CoopParty{
  constructor({url,token,level,onPeer=()=>{},onLeave=()=>{},onStatus=()=>{},onEvent=()=>{}}={}){
   if(typeof url!=='string'||!/^wss:\/\//.test(url))throw Error('Trusted WSS endpoint required');
   if(!Number.isInteger(level)||level<1||level>100)throw Error('Invalid level');
-  Object.assign(this,{url,token:token||null,level,onPeer,onLeave,onStatus,onEvent,peers:new Map(),ws:null,closed:false,lastSend:0,session:null});
+  Object.assign(this,{url,token:token||null,level,onPeer,onLeave,onStatus,onEvent,peers:new Map(),seenEvents:new Map(),ws:null,closed:false,lastSend:0,session:null});
  }
  connect(){if(this.ws||this.closed)return;const ws=new WebSocket(this.url);this.ws=ws;
   ws.onopen=()=>{this.send({type:'coop_join',v:V,token:this.token,level:this.level,range:5,maxPlayers:MAX_PARTY});this.onStatus('matching');};
   ws.onmessage=e=>{if(typeof e.data!=='string'||e.data.length>MAX_PACKET)return;let m;try{m=JSON.parse(e.data);}catch{return;}
    if(!m||m.v!==V)return;
-   if(m.type==='coop_ready'&&id(m.session)){this.session=m.session;this.onStatus('matched');}
+   if(m.type==='coop_ready'&&id(m.session)){this.session=m.session;this.seenEvents.clear();this.onStatus('matched');}
    else if(m.type==='coop_peer'&&this.session&&m.session===this.session){
     const p=snapshot(m.player);if(!p||Math.abs(p.level-this.level)>5||(!this.peers.has(p.id)&&this.peers.size>=MAX_PARTY-1))return;
     const old=this.peers.get(p.id);if(old)p.previous={x:old.x,y:old.y,z:old.z,dir:old.dir};
     this.peers.set(p.id,p);this.onPeer(p);
    }else if(m.type==='coop_leave'&&id(m.id)){if(this.peers.delete(m.id))this.onLeave(m.id);}
    else if(m.type==='coop_event'&&this.session&&m.session===this.session&&m.authoritative===true&&id(m.eventId)&&['revive','assist','objective'].includes(m.kind)){
+    if(this.seenEvents.has(m.eventId))return;
+    const now=Date.now();this.seenEvents.set(m.eventId,now);
+    for(const [eventId,at] of this.seenEvents)if(now-at>300000||this.seenEvents.size>256)this.seenEvents.delete(eventId);
     this.onEvent({eventId:m.eventId,kind:m.kind,actorId:id(m.actorId)?m.actorId:null,targetId:id(m.targetId)?m.targetId:null});
    }else if(m.type==='coop_status'&&['matching','matched','reconnecting','error'].includes(m.status))this.onStatus(m.status);
   };
-  ws.onclose=()=>{this.ws=null;this.session=null;for(const key of this.peers.keys())this.onLeave(key);this.peers.clear();if(!this.closed)this.onStatus('disconnected');};
+  ws.onclose=()=>{this.ws=null;this.session=null;this.seenEvents.clear();for(const key of this.peers.keys())this.onLeave(key);this.peers.clear();if(!this.closed)this.onStatus('disconnected');};
   ws.onerror=()=>this.onStatus('error');
  }
  send(m){if(this.ws?.readyState===WebSocket.OPEN)this.ws.send(JSON.stringify(m));}
  update(player){const now=Date.now();if(!this.session||now-this.lastSend<100)return false;const p=snapshot(player);if(!p||p.level!==this.level)return false;this.lastSend=now;this.send({type:'coop_state',v:V,session:this.session,player:p});return true;}
  requestAssist(kind,targetId){if(!this.session||!['revive','assist','objective'].includes(kind)||!id(targetId))return false;this.send({type:'coop_request',v:V,session:this.session,kind,targetId});return true;}
  rendered(now=Date.now()){const out=[];for(const [key,p] of this.peers){if(now-p.time>5000){this.peers.delete(key);this.onLeave(key);continue;}const old=p.previous,t=old?clamp((now-p.time)/120,0,1):1;const lerp=k=>old?old[k]+(p[k]-old[k])*t:p[k];const d=old?Math.atan2(Math.sin(p.dir-old.dir),Math.cos(p.dir-old.dir)):0;out.push({...p,x:lerp('x'),y:lerp('y'),z:lerp('z'),dir:old?old.dir+d*t:p.dir});}return out;}
- close(){this.closed=true;this.ws?.close();this.ws=null;this.session=null;this.peers.clear();}
+ close(){this.closed=true;this.ws?.close();this.ws=null;this.session=null;this.seenEvents.clear();this.peers.clear();}
 }
 global.WildCoop={CoopParty,snapshot,VERSION:V,MAX_PARTY};})(typeof window!=='undefined'?window:globalThis);
