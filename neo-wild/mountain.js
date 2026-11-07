@@ -135,7 +135,14 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
   [CITY_EDGE+70,EAST-70];
  const x=clamp(player.x+direction*distance,bounds[0],bounds[1]);
  const band=x>=CAVE_START&&x<=CAVE_END?32:90;
- return {x,y:center(x)+((n%5)-2)*band/2};
+ // Keep encounter spawns off the physical riverbed, steep obstacles and
+ // cave walls. Probe nearby slots deterministically; never add population.
+ for(let k=0;k<9;k++){
+  const px=clamp(x+((k%3)-1)*46,bounds[0],bounds[1]);
+  const py=center(px)+(((n+k)%5)-2)*band/2;
+  if(active(px,py)&&!headwaterAt(px,py,20)&&!blocked(px,py,18))return {x:px,y:py};
+ }
+ return null;
 }
 const trees=[],rocks=[],ferns=[],pines=[],scree=[],heather=[],alpinePines=[],alpineRocks=[],alpineGrass=[],meadowGrass=[],caveStones=[],caveColumns=[];
 // Deterministic northern trees and food plants participate in existing
