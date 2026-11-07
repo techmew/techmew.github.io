@@ -35,6 +35,14 @@ css.textContent=[
 "#wr-debug-panel .wr-note{display:block;font-size:12px;line-height:1.55;color:#c0d7cd;margin:6px 0;}",
 "#wr-debug-panel pre{background:#091416;padding:11px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 ui-monospace,monospace;}",
 "#wr-debug-panel .wr-stage{padding:8px;border-left:3px solid #9bd7c0;background:#243a38;margin:8px 0;font-size:13px;}",
+"#wr-debug-panel .wr-launch{padding:12px;margin:10px 0;border:2px solid #a1d9ba;border-radius:11px;background:#1a3435;}",
+"#wr-debug-panel .wr-launch strong{display:block;font-size:15px;margin-bottom:5px;}",
+"#wr-debug-panel .wr-launch button{font-size:15px;min-height:52px;margin-top:9px;background:#126c54;border:2px solid #beffdb;}",
+"#wr-debug-panel .wr-choice{margin:5px 0 3px;padding:6px;border-radius:7px;background:#354346;border:1px solid #688079;color:#e2ebe4;font-size:12px;min-height:34px;}",
+"#wr-debug-panel .wr-choice[aria-pressed=true]{background:#15583e;border:2px solid #bcffcf;color:#fff;}",
+"#wr-debug-panel .wr-chosen{outline:2px solid #aafac7;outline-offset:1px;border-radius:5px;}",
+"#wr-debug-panel .wr-selection{font-size:12px;line-height:1.5;min-height:25px;white-space:pre-wrap;color:#caffdb;}",
+"#wr-debug-panel .wr-mode-banner{background:#493528;border:1px solid #efba7e;padding:9px;border-radius:8px;font-size:12px;font-weight:800;margin:8px 0;}",
 "@media(max-height:430px){#wr-debug-panel{max-height:calc(100dvh - 8px);}}"
 ].join("");
 document.head.appendChild(css);
@@ -45,6 +53,14 @@ panel.id="wr-debug-panel";panel.setAttribute("aria-label","デバッグ操作");
 panel.innerHTML=[
 '<header><strong>デバッグ操作</strong><button class="wr-close" type="button" data-action="close">閉じる ×</button></header>',
 '<div class="wr-state" id="wr-debug-summary">ゲーム開始前</div>',
+'<div id="wr-debug-mode-banner" class="wr-mode-banner">通常プレイ：設定はまだ有効ではありません</div>',
+'<section class="wr-launch" aria-label="デバッグモード開始">',
+'<strong>設定を選んでデバッグモードをプレイ</strong>',
+'<p class="wr-mini">各設定の「開始時に適用」をONにすると緑色になります。OFFなら変更せず開始します。通常のセーブとは別の保存領域を使います。</p>',
+'<div id="wr-debug-selection" class="wr-selection" role="status">開始時に適用する設定：なし</div>',
+'<button type="button" data-action="debug-play" class="wr-primary">デバッグモードでプレイ</button>',
+'<p class="wr-mini">プレイ中はこの画面を閉じて操作します。通常プレイに戻るには下の「デバッグモードを解除」を押してください。</p>',
+'</section>',
 '<div id="wr-debug-message" role="status" aria-live="polite"></div>',
 '<details class="wr-section" open><summary>1. チュートリアル通しテスト</summary><div class="wr-inside">',
 '<p class="wr-mini">最初の食事から「生き残れ！」まで実際に遊んで検証。前・次で段階を飛ばせます。終了時は元のセーブに戻ります。</p>',
@@ -98,7 +114,7 @@ panel.innerHTML=[
 '<div class="wr-row"><label>世界X座標<input id="wr-debug-x" type="number" min="20" max="13600" value="9000" inputmode="numeric"></label><label>世界Y座標<input id="wr-debug-y" type="number" min="20" max="6000" value="3800" inputmode="numeric"></label></div>',
 '<button type="button" data-action="custom-position">指定座標へ移動（安全な近傍を探索）</button>',
 '</details>',
-'<p class="wr-mini">QAバックアップにはゲームの保存・災害・怪異の保存状態を含めます。デバッグ操作中の変更は保存される場合があります。</p>',
+'<p class="wr-mini">QAバックアップにはゲームの保存・災害・怪異の保存状態を含めます。デバッグ中の操作は隔離されたテストセーブにのみ書き込みます。</p>',
 '</div></details>',
 '<details class="wr-section"><summary>6. 状態・保存・診断</summary><div class="wr-inside">',
 '<pre id="wr-debug-stats" aria-live="off">診断を取得中</pre>',
@@ -106,12 +122,100 @@ panel.innerHTML=[
 '<pre id="wr-debug-errors">JavaScript例外：記録なし</pre>',
 '<div class="wr-row"><button type="button" data-action="save">現在状態を保存</button><button type="button" data-action="copy">診断内容をコピー</button></div>',
 '<button type="button" data-action="disable" class="wr-danger">デバッグモードを解除</button>',
-'<p class="wr-mini">通しテスト中の変更は通常の自動保存・チェックポイントに書き込みません。</p>',
+'<p class="wr-mini">デバッグ専用セーブは通常プレイと完全に分離します。</p>',
 '</div></details>'
 ].join("");
 document.body.appendChild(panel);
 const $=id=>panel.querySelector("#"+id),bridge=()=>window.WildDebugBridge;
 const qaBackupKey="wild-reclaim-qa-session-backup-v1",recentErrors=[];
+const sandbox=()=>window.WildDebugSandbox?.active===true;
+const launchKey="wr-debug-launch-v2";
+const options=[
+ ["year","wr-debug-year","世界年"],["level","wr-debug-level","レベル"],
+ ["hour","wr-debug-hour","時刻"],["weather","wr-debug-weather","天候"],
+ ["location","wr-debug-location","場所"],["hp","wr-debug-hp","HP"],
+ ["hunger","wr-debug-hunger","空腹"],["den","wr-debug-den","巣"],
+ ["denLevel","wr-debug-denlevel","巣LV"],["food","wr-debug-food","備蓄"],
+ ["boss","wr-debug-boss","強敵"],["case","wr-debug-case","イベント"],
+ ["renderer","wr-debug-renderer","描画方式"],["position","wr-debug-x","座標"]
+];
+const enabled=new Set();
+function updateSelected(){
+ const selected=[];
+ for(const [key,id,name] of options){
+  const input=$(id),toggle=panel.querySelector('[data-qa-choice="'+key+'"]'),active=enabled.has(key);
+  if(toggle){toggle.setAttribute("aria-pressed",String(active));toggle.textContent=active?"✓ 開始時に適用：ON":"開始時に適用：OFF";}
+  input?.closest("label")?.classList.toggle("wr-chosen",active);
+  if(active){
+   const value=key==="position"?"X"+$("wr-debug-x").value+" Y"+$("wr-debug-y").value:
+    input?.tagName==="SELECT"?(input.selectedOptions?.[0]?.textContent||input.value):input?.value;
+   selected.push(name+"："+value);
+  }
+ }
+ $("wr-debug-selection").textContent=selected.length?"開始時の設定（"+selected.length+"件）\n"+selected.join(" / "):"開始時に適用する設定：なし";
+}
+function installChoices(){
+ for(const [key,id,name] of options){
+  const field=$(id),label=field?.closest("label");if(!label)continue;
+  const toggle=document.createElement("button");toggle.type="button";toggle.className="wr-choice";
+  toggle.dataset.qaChoice=key;toggle.setAttribute("aria-label",name+"を開始時に適用するか切り替え");
+  toggle.addEventListener("click",e=>{
+   e.preventDefault();e.stopPropagation();
+   if(enabled.has(key))enabled.delete(key);else enabled.add(key);
+   updateSelected();
+  });
+  label.appendChild(toggle);
+  field.addEventListener("change",()=>{enabled.add(key);updateSelected();});
+  if(field.tagName==="INPUT")field.addEventListener("input",()=>{enabled.add(key);updateSelected();});
+ }
+ $("wr-debug-y").addEventListener("input",()=>{enabled.add("position");updateSelected();});
+ updateSelected();
+}
+function collectLaunch(){
+ const values={};for(const [,id] of options)values[id]=$(id)?.value;
+ values["wr-debug-y"]=$("wr-debug-y").value;
+ return {enabled:[...enabled],values};
+}
+function restoreLaunch(config){
+ if(!config||!Array.isArray(config.enabled)||!config.values)return;
+ fillOptions();enabled.clear();
+ for(const key of config.enabled)if(options.some(([id])=>id===key))enabled.add(key);
+ for(const [id,value] of Object.entries(config.values)){
+  const field=$(id);if(!field)continue;
+  if(field.tagName==="INPUT"||field.tagName==="SELECT"&&[...field.options].some(o=>o.value===String(value)))field.value=String(value);
+ }
+ updateSelected();
+}
+function applyLaunch(){
+ const api=bridge();
+ if(!api?.startDebugPlay?.())return {ok:false,message:"デバッグを開始できません。旧セーブと隔離保存領域を確認してください"};
+ const results=[],steps=[
+  ["year",()=>api.runCase("year:"+$("wr-debug-year").value)],
+  ["level",()=>api.runCase("player:level"+$("wr-debug-level").value)],
+  ["hour",()=>api.setHour(Number($("wr-debug-hour").value))],
+  ["weather",()=>api.setWeather($("wr-debug-weather").value==="auto"?null:$("wr-debug-weather").value)],
+  ["location",()=>api.warp($("wr-debug-location").value)],
+  ["den",()=>api.warpDen($("wr-debug-den").value)],
+  ["denLevel",()=>api.setDenLevel(Number($("wr-debug-denlevel").value))],
+  ["food",()=>api.setDenFood(Number($("wr-debug-food").value))],
+  ["renderer",()=>api.setRenderer($("wr-debug-renderer").value)],
+  ["position",()=>api.teleportTo(Number($("wr-debug-x").value),Number($("wr-debug-y").value))],
+  ["boss",()=>api.spawnBoss($("wr-debug-boss").value)],
+  ["case",()=>api.runCase($("wr-debug-case").value)],
+  ["hunger",()=>api.setHunger(Number($("wr-debug-hunger").value))],
+  ["hp",()=>api.setHp(Number($("wr-debug-hp").value))]
+ ];
+ let failures=0;
+ for(const [key,fn] of steps)if(enabled.has(key)){
+  try{
+   const result=fn(),ok=result===true||result?.ok===true;
+   if(!ok)failures++;
+   results.push((ok?"✓ ":"× ")+options.find(o=>o[0]===key)[2]+(result?.message?"："+result.message:""));
+  }catch(error){failures++;trackError(error.message);results.push("× "+key+"："+error.message);}
+ }
+ return {ok:true,message:results.length?results.join(" / "):"隔離されたデバッグゲームを開始（初期設定は変更なし）",failures};
+}
+installChoices();
 function trackError(message){
  recentErrors.push({time:new Date().toISOString(),message:String(message).slice(0,360)});
  if(recentErrors.length>12)recentErrors.shift();
@@ -198,7 +302,8 @@ function render(){
  fillOptions();
  const b=bridge(),state=b?.getState?.(),inTest=!!state?.debugTutorialActive;
  const m=stages.indexOf(state?.mission),boss=b?.bossState?.();
- $("wr-debug-summary").textContent=state?(state.mode==="menu"?"タイトル画面":state.animal+"｜"+state.region+"｜DAY "+state.day+"｜HP "+state.hp+" / 空腹 "+state.hunger+"%"):"ゲーム起動待ち";
+ $("wr-debug-summary").textContent=state?(state.mode==="menu"?"タイトル画面":state.animal+"｜"+state.region+"｜YEAR "+Math.floor((b?.diagnostics?.()?.elapsed||0)/120)+"｜HP "+state.hp+" / 空腹 "+state.hunger+"%"):"ゲーム起動待ち";
+ $("wr-debug-mode-banner").textContent=sandbox()?"デバッグ専用プレイ：通常セーブとは完全分離":"通常プレイ：下のボタンからデバッグ専用ゲームを開始してください";
  $("wr-debug-tutorial-status").textContent=inTest?"通しテスト中："+(m>=0?(m+1)+"/7 "+stageNames[m]:"段階確認中"):"通常プレイ中（通しテスト未開始）";
  $("wr-debug-boss-status").textContent="現在の強敵："+(boss?boss.name+"（HP "+boss.hp+"）":"なし");
  if(inTest&&m>=0)$("wr-debug-stage").value=String(stages[m]);
@@ -213,7 +318,7 @@ function render(){
   const meta=snap?JSON.parse(snap):null;
   $("wr-debug-backup-status").textContent=meta?"QAバックアップあり："+new Date(meta.createdAt).toLocaleString("ja-JP")+"（保存キー "+Object.keys(meta.entries||{}).length+"件）":"QAバックアップなし";
  }catch(_){$("wr-debug-backup-status").textContent="バックアップ確認失敗";}
- $("wr-debug-renderer").value=b?.getRenderer?.()||"auto";
+ if(!enabled.has("renderer"))$("wr-debug-renderer").value=b?.getRenderer?.()||"auto";
  $("wr-debug-qa-report").textContent=JSON.stringify(b?.diagnostics?.()||{status:"ゲーム起動待ち"},null,2).slice(0,16000);
  $("wr-debug-errors").textContent=recentErrors.length?"JavaScript例外（直近）:\\n"+recentErrors.map(e=>e.time+" "+e.message).join("\\n"):"JavaScript例外：記録なし";
  $("wr-debug-stats").textContent=[
@@ -239,10 +344,9 @@ function runFps(){
  requestAnimationFrame(tick);
 }
 function toggle(){
- if(unlocked&&bridge()?.getState?.()?.debugTutorialActive)bridge()?.tutorialStop?.();
+ if(sandbox()){setOpen(panel.hidden);return;}
  unlocked=!unlocked;taps=0;pill.hidden=!unlocked;panel.hidden=!unlocked;
- if(!unlocked)bridge()?.setWeather?.(null);
- if(unlocked){qaCapture(false);runFps();render();}
+ if(unlocked){runFps();render();}
 }
 title.style.touchAction="manipulation";title.style.userSelect="none";
 title.setAttribute("tabindex","0");
@@ -255,7 +359,33 @@ panel.addEventListener("click",async event=>{
  const btn=event.target.closest("button[data-action]");if(!btn||!panel.contains(btn))return;
  const action=btn.dataset.action,api=bridge();
  if(action==="close"){setOpen(false);return;}
- if(action==="disable"){toggle();return;}
+ if(action==="disable"){
+   if(sandbox()){
+    sessionStorage.removeItem(launchKey);
+    window.WildDebugSandbox?.reset?.();
+    const clean=new URL(location.href);clean.searchParams.delete("wr_debug_sandbox");
+    location.replace(clean.toString());
+   }else toggle();
+   return;
+  }
+  if(action==="debug-play"){
+   fillOptions();
+   if(!sandbox()){
+    try{
+     sessionStorage.setItem(launchKey,JSON.stringify(collectLaunch()));
+     sessionStorage.removeItem("wr-debug-storage-v1");
+     const url=new URL(location.href);url.searchParams.set("wr_debug_sandbox","1");
+     location.assign(url.toString());
+    }catch(error){trackError(error.message);say("隔離保存領域を準備できません。開始を中止しました");}
+   }else{
+    if(api?.getState?.()?.mode!=="menu"){say("ゲーム開始済みです。プレイ中は各設定の適用ボタンを使用してください");return;}
+    const result=applyLaunch();say(result.message);if(result.ok)setOpen(false);
+   }
+   return;
+  }
+  if(!sandbox()&&action!=="copy"){
+   say("通常セーブへの影響を防ぐため無効です。先に「デバッグモードでプレイ」を押してください");return;
+  }
  if(action==="copy"){
   try{await navigator.clipboard.writeText($("wr-debug-stats").textContent);say("診断をコピーしました");}catch(_){say("コピーできませんでした");}return;
  }
@@ -324,5 +454,15 @@ panel.addEventListener("click",async event=>{
  if(ok&&["tutorial-start","tutorial-prev","tutorial-next","tutorial-stage","boss","boss-area","den-warp","hp"].includes(action))setOpen(false);
 });
 setInterval(render,700);
+if(sandbox()){
+ unlocked=true;pill.hidden=false;pill.textContent="デバッグ中";panel.hidden=false;
+ runFps();fillOptions();
+ let config=null;try{config=JSON.parse(sessionStorage.getItem(launchKey)||"null")}catch(_){}
+ restoreLaunch(config);
+ if(window.WildGameReady&&bridge()?.getState?.()?.mode==="menu"){
+  const result=applyLaunch();say(result.message);
+  if(result.ok&&result.failures===0)setOpen(false);
+ }else say("デバッグゲームとの接続を確認してください");
+}
 window.WildDebugMode={get unlocked(){return unlocked;},get open(){return unlocked&&!panel.hidden;},get taps(){return taps;},toggle};
 })();
