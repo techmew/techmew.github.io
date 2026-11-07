@@ -8,7 +8,7 @@ const finite=n=>Number.isFinite(Number(n))&&Number(n)>=0?Number(n):0;
 function worldState(){
  const chronicle=read("wild-reclaim-world-chronicle-v1",null),auto=read("wild-reclaim-autosave-v2",null),squad=read("wild-reclaim-squad-v1",null);
  const explicitNew=localStorage.getItem("wild-reclaim-explicit-new-world-v1")==="1";
- const launched=!!chronicle||!!auto||!!(squad?.members?.length&&!squad.pendingStart);
+ const launched=explicitNew||!!chronicle||!!auto||!!(squad?.members?.length&&!squad.pendingStart);
  // A new game intentionally starts at YEAR 0; prior checkpoint years must not leak in.
  const saved=explicitNew?0:Math.max(finite(chronicle?.elapsed),finite(auto?.elapsed));
  const live=finite(window.WildGameWorldTime?.());
