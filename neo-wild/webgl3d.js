@@ -2112,13 +2112,25 @@ function render(o){
    const firstY=Math.max(snow>.06?0:2600,Math.floor((cam.y-margin)/step)*step);
    const endX=Math.min(snow>.06?WORLD.w:13600,cam.x+vw+margin);
    const endY=Math.min(snow>.06?WORLD.h:5100,cam.y+vh+margin);
-   const ground=(px,py)=>window.WildMountain?.height(px,py)||0;
+   // Per-frame world-coordinate caches share exact edge heights and snow masks
+   // across neighbouring cells. Recreated every render to follow terrain/weather.
+   const heightCache=new Map(),maskCache=new Map();
+   const sampleKey=(px,py)=>px+","+py;
+   const ground=(px,py)=>{
+    const k=sampleKey(px,py);
+    if(heightCache.has(k))return heightCache.get(k);
+    const h=Number(window.WildMountain?.height(px,py))||0;
+    const safe=Number.isFinite(h)?h:0;
+    heightCache.set(k,safe);return safe;
+   };
    const water=typeof o.waterAt==="function"?o.waterAt:null;
    const snowZ=1.15+snow*.48;
    // Smooth lattice noise is stable across cells and camera movement.
    const hash=(ix,iy)=>detailNoise(ix*17.13+iy*43.71);
    const smooth=(v)=>v*v*(3-2*v);
    const field=(px,py)=>{
+    const key=sampleKey(px,py);
+    if(maskCache.has(key))return maskCache.get(key);
     const u=px/170,v=py/170,ix=Math.floor(u),iy=Math.floor(v);
     const fx=smooth(u-ix),fy=smooth(v-iy);
     const a=hash(ix,iy)*(1-fx)+hash(ix+1,iy)*fx;
@@ -2136,7 +2148,9 @@ function render(o){
     const alpine=typeof window.WildMountain?.snowCover==="function"?window.WildMountain.snowCover(px,py):0;
     const weatherField=snow*.97-(broad*.78+fine*.22);
     const alpineField=alpine>0?alpine*(.28+.45*snow)-.13:-1;
-    return Math.min(Math.max(weatherField,alpineField),waterMask-.5);
+    const result=Math.min(Math.max(weatherField,alpineField),waterMask-.5);
+    maskCache.set(key,result);
+    return result;
    };
    // The snow lip thins to the underlying collision terrain at its boundary.
    // Evaluate the same world-space mask at clipped vertices so adjoining
