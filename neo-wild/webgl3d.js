@@ -1114,7 +1114,8 @@ function drawPenguinPlayable3D(m,clock){
  const headDrive=r*.24*jab;
  const bodyZ=r*(.96-.56*slidePose),bodyHeight=r*(.81-.30*slidePose);
  for(const side of [-1,1]){
-  const motion=beat*side,forward=motion*r*(slidePose>.1?.07:.26),lift=slidePose>.1?0:Math.max(0,motion)*r*.20;
+  const slideKick=Math.sin(clock*24+side*Math.PI)*slidePose*Math.min(1,speed/90);
+  const motion=beat*side,forward=motion*r*(slidePose>.1?.07:.26)-slideKick*r*.22,lift=slidePose>.1?Math.max(0,slideKick)*r*.055:Math.max(0,motion)*r*.20;
   orb(-r*.47+forward,side*r*.43,r*.14+lift,r*.29,r*.23,r*.14,"#d69b51");
   orb(-r*.35+forward*.5,side*r*.43,r*.32+lift*.48,r*.17,r*.18,r*.27,"#243942");
  }
