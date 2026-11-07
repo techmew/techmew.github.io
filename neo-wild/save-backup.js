@@ -49,7 +49,7 @@ function mergeIds(records,key,older){
 }
 function mergeArchive(records,key,older){
  const map=new Map();
- for(const entry of [...jsonArray(older[key]),...jsonArray(records[key])]){
+ for(const entry of [...jsonArray(records[key]),...jsonArray(older[key])]){
   if(entry&&typeof entry.id==="string"&&entry.id&&entry.id.length<=240&&!map.has(entry.id))map.set(entry.id,entry);
  }
  if(map.size)records[key]=JSON.stringify([...map.values()]);
@@ -82,6 +82,13 @@ async function importBackup(file){
   mergeIds(merged,"wild-reclaim-dead-ids-v1",before);
   mergeIds(merged,"wild-reclaim-released-ids-v1",before);
   mergeArchive(merged,"wild-reclaim-released-archive-v1",before);
+  // Archive entries also prove permanent release even when an old save omitted the ID ledger.
+  const releasedFromArchive=jsonArray(merged["wild-reclaim-released-archive-v1"])
+   .map(entry=>entry?.id).filter(id=>typeof id==="string"&&id.length>0&&id.length<=240);
+  if(releasedFromArchive.length){
+   const released=new Set([...jsonArray(merged["wild-reclaim-released-ids-v1"]),...releasedFromArchive]);
+   merged["wild-reclaim-released-ids-v1"]=JSON.stringify([...released]);
+  }
   // Old backups are allowed to restore progression, never to resurrect excluded IDs.
   const keysBefore=Object.keys(before),keysNext=Object.keys(merged);
   try{
