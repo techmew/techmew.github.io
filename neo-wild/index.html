@@ -40,8 +40,8 @@
 <div id="mission" class="hidden" role="region" aria-label="生存目標"><div class="mission-top"><span class="live-dot"></span><small>ミッション</small><span id="mission-progress">チュートリアル 1 / 4</span><button id="mission-close" type="button" aria-label="目標を閉じる">×</button></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><p id="mission-next">次の目的：身を隠せ</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="zoom-controls"><button id="zoom-out" aria-label="もっと広く見る">−</button><span id="zoom-level">80%</span><button id="zoom-in" aria-label="近くを見る">＋</button></div>
 <div id="toast" role="status"></div>
-<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ・猫は壁際でL再入力　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる・くわえる（長押しで運搬）　×/A ジャンプ（猫は空中で再入力）</span></div>
-<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="○ 右：食べる・くわえる。短押し食事や備蓄、長押しで運搬・置く・巣強化"><span>○</span><small id="context-action-label">食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 左：短押しで飛びつき、長押し中はスタミナ消費でダッシュ"><span>□</span><small>飛びつき/走る</small></button><button id="jump-touch" class="touch-btn jump" aria-label="× 下：ジャンプ"><span>×</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="△ 上：連続攻撃、長押しで5段コンボを自動継続"><span>△</span><small>連続攻撃</small></button><button id="species-skill-touch" class="touch-btn skill" aria-label="固有技・本能を使用。種族ごとの狩り方を発動"><span>◎</span><small>固有技</small></button></div></div>
+<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ　L＋SHIFT 空中飛びつき（猫・狐・狼など11種）　ペンギンSHIFT 滑走頭突き＋嘴連撃　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　×/A ジャンプ　×＋□ 同時押しで空中飛びつき（猫・狐・狼など11種）　ペンギン□で滑走頭突き＋高速くちばし連撃　○/B 食べる・くわえる（長押しで運搬）</span></div>
+<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="○ 右：食べる・くわえる。短押し食事や備蓄、長押しで運搬・置く・巣強化"><span>○</span><small id="context-action-label">食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 左：飛びつき。ジャンプ×と同時に押すと11種は空中飛びつき。ペンギンは滑走頭突きと高速くちばし連撃。長押しでダッシュ"><span>□</span><small>飛びつき/走る</small></button><button id="jump-touch" class="touch-btn jump" aria-label="× 下：ジャンプ。猫・マヌルネコ・狐・狼など11種は飛びつき□と同時押しで空中急襲"><span>×</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="△ 上：連続攻撃、長押しで5段コンボを自動継続"><span>△</span><small>連続攻撃</small></button><button id="species-skill-touch" class="touch-btn skill" aria-label="固有技・本能を使用。種族ごとの狩り方を発動"><span>◎</span><small>固有技</small></button></div></div>
 <div id="world-map" class="hidden" role="dialog" aria-label="廃都の地図" aria-modal="true">
  <div class="world-map-panel">
   <div class="world-map-top"><strong>廃都の地図</strong><button id="map-close" aria-label="地図を閉じる">閉じる ×</button></div>
@@ -240,7 +240,7 @@
 </script>
 <script src="./audio.js?rev=organic-score-no-loop-20261104" defer></script>
 <script src="./mountain.js?rev=f75e6bdc" defer></script>
-<script src="./webgl3d.js?rev=snow-shared-cache-20261107-2340" defer></script>
+<script src="./webgl3d.js?rev=penguin-beak-20261108-a" defer></script>
 <script src="./combat-levels.js?rev=80aa7791-giraffe-headbutt-20261104" defer></script>
 <script src="./bestiary.js?rev=9fad639b-title-label-v4" defer></script>
 <script src="./world-time.js?rev=5fb6f471655e-era100" defer></script>
@@ -253,11 +253,11 @@
 <script src="./i18n.js?rev=en-audit-20261107-e" defer></script>
 <script src="./squad-gacha-ui.js?rev=debug-play-title-20261107-b" defer></script>
 <script src="./death-share.js?rev=death-x-card-20261106" defer></script>
-<script src="./game.js?rev=debug-toggle-title-20261107-b" defer></script>
+<script src="./game.js?rev=jump-pounce-penguin-20261108-a" defer></script>
 <script src="./world-history.js?rev=chronicle-20261107-a" defer></script>
 <script src="./save-backup.js?rev=local-json-20261107-a" defer></script>
 <script src="./trophy-view.js?rev=68a3bf65-gallery" defer></script>
-<script src="./gamepad.js?rev=ca9eb8ee-gacha-pad-20261104" defer></script>
+<script src="./gamepad.js?rev=jump-pounce-combo-20261108-a" defer></script>
 <script src="./season-clouds.js?rev=20261103-year120-v1" defer></script>
 <script src="./debug-mode.js?rev=debug-window-onoff-20261107-b" defer></script>
 </body></html>
