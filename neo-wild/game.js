@@ -1394,7 +1394,7 @@ function saveAuto(){
    if(previous&&!isValidSnapshot(previous)&&!explicitReset){
     console.warn("WILD RECLAIM: existing autosave invalid; preserve raw data for backup");return false;
    }
-   if(previous&&isValidSnapshot(previous)&&snapshot.elapsed+1<previous.elapsed&&!explicitReset){
+   if(previous&&isValidSnapshot(previous)&&snapshot.elapsed+1<previous.elapsed&&!explicitReset&&!window.WildDebugSandbox?.active){
     console.warn("WILD RECLAIM: refusing older tab to overwrite newer world");return false;
    }
   }
@@ -8820,6 +8820,24 @@ window.WildGameReady=true;
 /* Opt-in debugging interface. Display UI is unlocked by seven title taps.
  * No debug flag is serialized; normal save schema, input and autosave remain intact. */
 window.WildDebugBridge={
+ startDebugPlay(){
+  if(!window.WildDebugSandbox?.active||mode!=="menu")return false;
+  const roster=window.WildSquad?.load?.(),snapshot=getAutoSnapshot();
+  if(snapshot){
+   if(!launchGame(snapshot,false))return false;
+   applySquadLeader();
+   return true;
+  }
+  if(roster?.members?.length){
+   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
+   if(!leader||!animals[leader.species])return false;
+   choice=leader.species;
+   if(!launchGame(null,roster.newWorldOnStart===true))return false;
+   applySquadLeader();
+   return true;
+  }
+  return selectNewGameAnimal(choice)&&launchGame(null,true);
+ },
  getState(){
   const active=!!P&&mode!=="menu"&&mode!=="result";
   const loc=active?{x:P.x,y:P.y}:null;
