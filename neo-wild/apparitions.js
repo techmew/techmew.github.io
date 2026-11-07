@@ -128,11 +128,16 @@ function tick(dt,w){
    }
   }
   // Nearby animals react in their existing flee/navigation AI rather than visual-only effects.
-  for(const m of mobs||[]){if(!m||m.hp<=0||m.companion||distance(m,g)>150)continue;
+  for(const m of mobs||[]){
+   // Never override the movement of owned, permanently released, or boss animals.
+   // Walls also block the panic stimulus, consistent with the possession rules.
+   if(!m||!Number.isFinite(m.x)||!Number.isFinite(m.y)||!(m.hp>0)||m.dead||m.companion||m.ownedId||m.releasedId||m.wildReleaseId||m.strongBoss||distance(m,g)>150||w.lineBlocked?.(m,g))continue;
    const a=Math.atan2(m.y-g.y,m.x-g.x);
    m.flee=Math.max(finite(m.flee),1.6);m.alert=Math.max(finite(m.alert),1.5);
    m.lastX=g.x;m.lastY=g.y;m.wander=0;
-   if(!m.strongBoss){m.dir=a;m.vx=Math.cos(a)*Math.max(70,finite(m.vx));m.vy=Math.sin(a)*Math.max(70,finite(m.vy))}
+   m.dir=a;
+   const escapeSpeed=Math.max(70,Math.hypot(finite(m.vx),finite(m.vy)));
+   m.vx=Math.cos(a)*escapeSpeed;m.vy=Math.sin(a)*escapeSpeed;
   }
   if(g.t>22||distance(g,P)>650){g.stage="fade";g.t=0}
  }else if(g.t>2){record("亡霊遭遇",year,g.x,g.y);ghost=null;nextYear=year+eventDelay(8+Math.random()*15);save()}
