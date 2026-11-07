@@ -1105,26 +1105,30 @@ function drawPenguinPlayable3D(m,clock){
  const orb=(x,y,z,a,b,h,col)=>ellipsoid(X(x,y),Y(x,y),z,a,b,h,col,dir,11,6);
  const speed=Math.hypot(Number(m.vx)||0,Number(m.vy)||0);
  const beat=Math.sin((m.steps||m.step||0)*3.9)*Math.min(1,speed/130);
- const slide=Math.max(0,Number(m.bellySlide)||0);
+ const slide=Math.max(0,Number(m.bellySlide)||0),slidePose=clamp(slide/.19,0,1);
  const attack=Math.max(0,Number(m.specialVisual)||0,Number(m.swing)||0);
- const bodyZ=slide?r*.40:r*.96,bodyHeight=slide?r*.51:r*.81;
+ // Rapid separate bill jabs; the entire face remains a rigid assembly.
+ const rapid=clamp((Number(m.beakVisual)||0)/.18,0,1);
+ const jab=rapid*(.22+.78*Math.sin(clock*83)*Math.sin(clock*83));
+ const headDrive=r*.24*jab;
+ const bodyZ=r*(.96-.56*slidePose),bodyHeight=r*(.81-.30*slidePose);
  for(const side of [-1,1]){
-  const motion=beat*side,forward=motion*r*(slide>0?.07:.26),lift=slide>0?0:Math.max(0,motion)*r*.20;
+  const motion=beat*side,forward=motion*r*(slidePose>.1?.07:.26),lift=slidePose>.1?0:Math.max(0,motion)*r*.20;
   orb(-r*.47+forward,side*r*.43,r*.14+lift,r*.29,r*.23,r*.14,"#d69b51");
   orb(-r*.35+forward*.5,side*r*.43,r*.32+lift*.48,r*.17,r*.18,r*.27,"#243942");
  }
  orb(-r*.22,0,bodyZ,r*.90,r*.69,bodyHeight,"#243942");
  orb(r*.11,0,bodyZ+r*.10,r*.69,r*.58,bodyHeight*.86,"#eaece4");
- const headZ=slide?r*.70:r*1.80;
- orb(r*.66,0,headZ,r*.49,r*.44,r*.48,"#263943");
+ const headZ=r*(1.80-1.10*slidePose);
+ orb(r*.66+headDrive,0,headZ,r*.49,r*.44,r*.48,"#263943");
  for(const side of [-1,1]){
   const flap=Math.sin((m.steps||m.step||0)*3.6+side*Math.PI)*r*.16+
-    Math.sin(Math.PI*Math.min(1,m.flipperStrike||0))*r*.29+(slide>0?side*r*.08:Math.sin(attack*12)*attack*r*.11);
+    Math.sin(Math.PI*Math.min(1,m.flipperStrike||0))*r*.29+(slidePose>.1?side*r*.08:Math.sin(attack*12)*attack*r*.11);
   orb(-r*.22,side*r*.74,bodyZ+r*.02+flap,r*.62,r*.18,r*.23,"#1b303a");
-  orb(r*.85,side*r*.29,headZ+r*.09,r*.095,r*.085,r*.095,"#f3f9ee");
-  orb(r*.88,side*r*.31,headZ+r*.10,r*.045,r*.052,r*.049,"#111d23");
+  orb(r*.85+headDrive,side*r*.29,headZ+r*.09,r*.095,r*.085,r*.095,"#f3f9ee");
+  orb(r*.88+headDrive,side*r*.31,headZ+r*.10,r*.045,r*.052,r*.049,"#111d23");
  }
- pyramid(X(r*1.04,0),Y(r*1.04,0),headZ-r*.27,r*.24,r*.14,r*.24,"#dda458");
+ pyramid(X(r*1.04+headDrive,0),Y(r*1.04+headDrive,0),headZ-r*.27,r*(.24+.13*jab),r*.14,r*.24,"#dda458");
  orb(-r*.94,0,bodyZ-r*.09,r*.34,r*.29,r*.23,"#21333b");
  return true;
 }
