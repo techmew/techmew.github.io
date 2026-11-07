@@ -265,6 +265,9 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
   return false;
  }
  if(northWood(x,y)){
+  // The tributary continues through the northern forest: use the same
+  // deep-water restriction as the mountain pass, including NPC collision.
+  if(headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
   if(y<920+r||y>2510-r||x>10720-r)return true;
   for(const p of [...trees,...rocks])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
   return false;
