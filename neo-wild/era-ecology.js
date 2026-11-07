@@ -23,7 +23,7 @@
  }
  // Region-to-region migration follows a deterministic seasonal corridor.
  // No extra mobs are spawned; only existing encounter draws are redistributed.
- const CORRIDORS=Object.freeze([[2,5],[5,3],[3,7],[7,4],[4,2],[1,6]]);
+ const CORRIDORS=Object.freeze([[0,1],[0,2],[1,6],[2,5],[5,3],[3,7],[7,4],[4,2],[6,7]]);
  function migration(region,year){
   const r=Math.max(0,Math.min(REGIONS-1,Math.floor(Number(region)||0)));
   const y=Math.max(0,Number(year)||0),epoch=Math.floor((y+1e-9)/PERIOD);
@@ -41,7 +41,7 @@
   if(!candidates.length)return {active:false,source:r,destination:r,grazer:1,hunter:1};
   candidates.sort((a,b)=>b.strength-a.strength||a.pair[0]-b.pair[0]);
   const {source,destination}=candidates[0];
-  const season=Math.floor((y%1)*4),winter=season===3;
+  const season=Math.min(3,Math.floor(((y%1)+1)%1*4)),winter=season===3;
   // Winter reduces forage at the destination, while drought increases departures.
   // Population is redistributed within the existing spawn budget, never duplicated.
   const departure=state(source,y),arrival=state(destination,y);
