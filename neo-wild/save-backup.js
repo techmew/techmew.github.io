@@ -64,6 +64,18 @@ function validate(file){
  const entries=Object.entries(data);
  if(!entries.length||entries.length>500||entries.some(([k,v])=>!keyOk(k)||typeof v!=="string"))throw Error("保存キーの形式が不正です");
  if(digest(data)!==file.checksum)throw Error("ファイルの整合性チェックに失敗しました");
+ // Never silently interpret a corrupted permanent exclusion journal as empty.
+ for(const key of ["wild-reclaim-dead-ids-v1","wild-reclaim-released-ids-v1"]){
+  if(data[key]==null)continue;
+  let ids;try{ids=JSON.parse(data[key]);}catch(_){throw Error("永久離脱IDのJSONが破損しています："+key);}
+  if(!Array.isArray(ids)||ids.some(id=>typeof id!=="string"||!id||id.length>240))
+   throw Error("永久離脱IDの形式が不正です："+key);
+ }
+ if(data["wild-reclaim-released-archive-v1"]!=null){
+  let archive;try{archive=JSON.parse(data["wild-reclaim-released-archive-v1"]);}catch(_){throw Error("野生放流履歴のJSONが破損しています");}
+  if(!Array.isArray(archive)||archive.some(entry=>!entry||typeof entry.id!=="string"||!entry.id||entry.id.length>240))
+   throw Error("野生放流履歴の形式が不正です");
+ }
  if(data["wild-reclaim-squad-v1"]!=null){
   const roster=JSON.parse(data["wild-reclaim-squad-v1"]);
   if(!roster||roster.version!==1||!Array.isArray(roster.members)||roster.members.length>5)throw Error("編成データが不正です");
