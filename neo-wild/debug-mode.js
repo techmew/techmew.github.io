@@ -7,6 +7,14 @@ const css=document.createElement("style");
 css.id="wr-debug-style";
 css.textContent=[
 "#wr-debug-pill,#wr-debug-panel{font-family:system-ui,'Noto Sans JP',sans-serif;box-sizing:border-box;color:#f4f8f6;}",
+"#wr-debug-panel{border:3px solid #7dffba!important;}",
+"#wr-debug-panel header{border-bottom:2px solid #6fdca5;}",
+"#wr-debug-panel .wr-mode-banner{background:#104b36;border:2px solid #adffd3;color:white;text-align:center;font-size:14px;}",
+"#wr-debug-panel .wr-launch{background:#12362d;border-color:#7ce7ae;}",
+"#wr-debug-panel .wr-mode-actions{padding:6px 0;}",
+"#wr-debug-panel .wr-choice{display:block;text-align:center;border-width:2px;}",
+"#wr-debug-panel .wr-choice[role=switch][aria-checked=true]{background:#16874c;border-color:#b6ffd0;color:#fff;}",
+"#wr-debug-panel .wr-choice[role=switch][aria-checked=false]{background:#42474b;border-color:#929a9e;color:#fff;}",
 "#wr-debug-pill[hidden],#wr-debug-panel[hidden]{display:none!important;}",
 "#wr-debug-pill{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4999;padding:9px 18px;border:1px solid #9de0c0;border-radius:22px;background:#152a2f;color:#fff;font-size:12px;font-weight:800;box-shadow:0 4px 18px #000a;touch-action:manipulation;}",
 "#wr-debug-panel{position:fixed;z-index:5000;top:calc(6px + env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));width:min(420px,calc(100vw - 12px));max-height:calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;background:#111e22f8;border:1px solid #61776e;border-radius:14px;padding:13px;box-shadow:0 10px 40px #000c;}",
@@ -47,19 +55,19 @@ css.textContent=[
 ].join("");
 document.head.appendChild(css);
 const pill=document.createElement("button");
-pill.id="wr-debug-pill";pill.type="button";pill.hidden=true;pill.textContent="デバッグ";document.body.appendChild(pill);
+pill.id="wr-debug-pill";pill.type="button";pill.hidden=true;pill.textContent="デバッグ ON｜設定";document.body.appendChild(pill);
 const panel=document.createElement("section");
 panel.id="wr-debug-panel";panel.setAttribute("aria-label","デバッグ操作");panel.hidden=true;
 panel.innerHTML=[
-'<header><strong>デバッグ操作</strong><button class="wr-close" type="button" data-action="close">閉じる ×</button></header>',
+'<header><strong>デバッグモード｜ON</strong><button class="wr-close" type="button" data-action="close">設定を閉じる ×</button></header>',
+'<div class="wr-mode-actions"><button type="button" class="wr-danger" data-action="disable">デバッグOFF・通常プレイへ戻る</button></div>',
 '<div class="wr-state" id="wr-debug-summary">ゲーム開始前</div>',
-'<div id="wr-debug-mode-banner" class="wr-mode-banner">通常プレイ：設定はまだ有効ではありません</div>',
-'<section class="wr-launch" aria-label="デバッグモード開始">',
-'<strong>設定を選んでデバッグモードをプレイ</strong>',
-'<p class="wr-mini">各設定の「開始時に適用」をONにすると緑色になります。OFFなら変更せず開始します。通常のセーブとは別の保存領域を使います。</p>',
+'<div id="wr-debug-mode-banner" class="wr-mode-banner">デバッグ ON｜通常プレイのセーブとは分離中</div>',
+'<section class="wr-launch" aria-label="デバッグ設定">',
+'<strong>テスト設定（各項目をON / OFF）</strong>',
+'<p class="wr-mini">各項目のONで開始時に適用、OFFで適用しません。ONは緑色で表示されます。</p>',
 '<div id="wr-debug-selection" class="wr-selection" role="status">開始時に適用する設定：なし</div>',
-'<button type="button" data-action="debug-play" class="wr-primary">デバッグモードでプレイ</button>',
-'<p class="wr-mini">プレイ中はこの画面を閉じて操作します。通常プレイに戻るには下の「デバッグモードを解除」を押してください。</p>',
+'<p class="wr-mini">設定を閉じ、タイトル画面の「デバッグモードで開始」を押してプレイします。現在の通常セーブを複製したテストデータだけが変更されます。</p>',
 '</section>',
 '<div id="wr-debug-message" role="status" aria-live="polite"></div>',
 '<details class="wr-section" open><summary>1. チュートリアル通しテスト</summary><div class="wr-inside">',
@@ -128,6 +136,15 @@ panel.innerHTML=[
 document.body.appendChild(panel);
 const $=id=>panel.querySelector("#"+id),bridge=()=>window.WildDebugBridge;
 const qaBackupKey="wild-reclaim-qa-session-backup-v1",recentErrors=[];
+let pendingInitialSettings=false;
+function onGameLaunch(){if(sandbox())pendingInitialSettings=true;}
+function applyWhenReady(){
+ if(!pendingInitialSettings||!sandbox()||bridge()?.getState?.()?.mode!=="play")return;
+ pendingInitialSettings=false;
+ const result=applySelectedSettings();
+ $("wr-debug-message").textContent=result.message;
+ if(result.failures){setOpen(true);}
+}
 const sandbox=()=>window.WildDebugSandbox?.active===true;
 const launchKey="wr-debug-launch-v2";
 const options=[
@@ -144,7 +161,7 @@ function updateSelected(){
  const selected=[];
  for(const [key,id,name] of options){
   const input=$(id),toggle=panel.querySelector('[data-qa-choice="'+key+'"]'),active=enabled.has(key);
-  if(toggle){toggle.setAttribute("aria-pressed",String(active));toggle.textContent=active?"✓ 開始時に適用：ON":"開始時に適用：OFF";}
+  if(toggle){toggle.setAttribute("aria-checked",String(active));toggle.textContent=active?"ON｜開始時に適用する":"OFF｜開始時に適用しない";}
   input?.closest("label")?.classList.toggle("wr-chosen",active);
   if(active){
    const value=key==="position"?"X"+$("wr-debug-x").value+" Y"+$("wr-debug-y").value:
@@ -157,24 +174,29 @@ function updateSelected(){
 function installChoices(){
  for(const [key,id,name] of options){
   const field=$(id),label=field?.closest("label");if(!label)continue;
-  const toggle=document.createElement("button");toggle.type="button";toggle.className="wr-choice";
+  const toggle=document.createElement("button");toggle.type="button";toggle.className="wr-choice";toggle.setAttribute("role","switch");toggle.setAttribute("aria-checked","false");
   toggle.dataset.qaChoice=key;toggle.setAttribute("aria-label",name+"を開始時に適用するか切り替え");
   toggle.addEventListener("click",e=>{
    e.preventDefault();e.stopPropagation();
    if(enabled.has(key))enabled.delete(key);else enabled.add(key);
-   updateSelected();
+   updateSelected();saveSelected();
   });
   label.appendChild(toggle);
-  field.addEventListener("change",()=>{enabled.add(key);updateSelected();});
-  if(field.tagName==="INPUT")field.addEventListener("input",()=>{enabled.add(key);updateSelected();});
+  field.addEventListener("change",()=>{enabled.add(key);updateSelected();saveSelected();});
+  if(field.tagName==="INPUT")field.addEventListener("input",()=>{enabled.add(key);updateSelected();saveSelected();});
  }
- $("wr-debug-y").addEventListener("input",()=>{enabled.add("position");updateSelected();});
+ $("wr-debug-y").addEventListener("input",()=>{enabled.add("position");updateSelected();saveSelected();});
  updateSelected();
 }
 function collectLaunch(){
  const values={};for(const [,id] of options)values[id]=$(id)?.value;
  values["wr-debug-y"]=$("wr-debug-y").value;
  return {enabled:[...enabled],values};
+}
+function saveSelected(){
+ if(!sandbox())return;
+ try{sessionStorage.setItem(launchKey,JSON.stringify(collectLaunch()));}
+ catch(error){trackError("デバッグ設定を記録できません: "+error.message);}
 }
 function restoreLaunch(config){
  if(!config||!Array.isArray(config.enabled)||!config.values)return;
@@ -186,9 +208,9 @@ function restoreLaunch(config){
  }
  updateSelected();
 }
-function applyLaunch(){
+function applySelectedSettings(){
  const api=bridge();
- if(!api?.startDebugPlay?.())return {ok:false,message:"デバッグを開始できません。旧セーブと隔離保存領域を確認してください"};
+ if(!sandbox()||!api||api.getState?.()?.mode!=="play")return {ok:false,message:"デバッグゲーム起動後に設定を反映します",failures:1};
  const results=[],steps=[
   ["year",()=>api.runCase("year:"+$("wr-debug-year").value)],
   ["level",()=>api.runCase("player:level"+$("wr-debug-level").value)],
@@ -213,7 +235,7 @@ function applyLaunch(){
    results.push((ok?"✓ ":"× ")+options.find(o=>o[0]===key)[2]+(result?.message?"："+result.message:""));
   }catch(error){failures++;trackError(error.message);results.push("× "+key+"："+error.message);}
  }
- return {ok:true,message:results.length?results.join(" / "):"隔離されたデバッグゲームを開始（初期設定は変更なし）",failures};
+ return {ok:true,message:results.length?results.join(" / "):"デバッグ開始：設定変更なし",failures};
 }
 installChoices();
 function trackError(message){
@@ -303,7 +325,7 @@ function render(){
  const b=bridge(),state=b?.getState?.(),inTest=!!state?.debugTutorialActive;
  const m=stages.indexOf(state?.mission),boss=b?.bossState?.();
  $("wr-debug-summary").textContent=state?(state.mode==="menu"?"タイトル画面":state.animal+"｜"+state.region+"｜YEAR "+Math.floor((b?.diagnostics?.()?.elapsed||0)/120)+"｜HP "+state.hp+" / 空腹 "+state.hunger+"%"):"ゲーム起動待ち";
- $("wr-debug-mode-banner").textContent=sandbox()?"デバッグ専用プレイ：通常セーブとは完全分離":"通常プレイ：下のボタンからデバッグ専用ゲームを開始してください";
+ $("wr-debug-mode-banner").textContent=sandbox()?"デバッグ ON｜通常セーブとは分離中":"通常プレイ";
  $("wr-debug-tutorial-status").textContent=inTest?"通しテスト中："+(m>=0?(m+1)+"/7 "+stageNames[m]:"段階確認中"):"通常プレイ中（通しテスト未開始）";
  $("wr-debug-boss-status").textContent="現在の強敵："+(boss?boss.name+"（HP "+boss.hp+"）":"なし");
  if(inTest&&m>=0)$("wr-debug-stage").value=String(stages[m]);
@@ -327,7 +349,7 @@ function render(){
   "日時: "+(state?.day||0)+"日 "+String(state?.hour||0).padStart(2,"0")+":00",
   "天気: "+(state?.weather||"-"),"敵/死骸: "+(state?.mobCount||0)+" / "+(state?.carcassCount||0),
   "巣LV/備蓄: "+(state?.denLevel||0)+" / "+(state?.denStash||0),
-  "チュートリアル: "+(inTest?"通しテスト中":"通常"),
+  "チュートリアル: "+(inTest?"QA通しテスト":"通常の進行"),
   "保存: "+saveText
  ].join("\n");
 }
@@ -343,10 +365,21 @@ function runFps(){
  }
  requestAnimationFrame(tick);
 }
+function leaveDebug(){
+ if(!sandbox())return;
+ try{sessionStorage.removeItem(launchKey);window.WildDebugSandbox?.reset?.();}
+ catch(error){trackError("デバッグ終了: "+error.message);}
+ const clean=new URL(location.href);clean.searchParams.delete("wr_debug_sandbox");
+ location.replace(clean.toString());
+}
 function toggle(){
- if(sandbox()){setOpen(panel.hidden);return;}
- unlocked=!unlocked;taps=0;pill.hidden=!unlocked;panel.hidden=!unlocked;
- if(unlocked){runFps();render();}
+ if(sandbox()){leaveDebug();return;}
+ try{
+  sessionStorage.removeItem(launchKey);
+  sessionStorage.removeItem("wr-debug-storage-v1");
+  const url=new URL(location.href);url.searchParams.set("wr_debug_sandbox","1");
+  location.assign(url.toString());
+ }catch(error){trackError("デバッグ開始: "+error.message);}
 }
 title.style.touchAction="manipulation";title.style.userSelect="none";
 title.setAttribute("tabindex","0");
@@ -359,32 +392,9 @@ panel.addEventListener("click",async event=>{
  const btn=event.target.closest("button[data-action]");if(!btn||!panel.contains(btn))return;
  const action=btn.dataset.action,api=bridge();
  if(action==="close"){setOpen(false);return;}
- if(action==="disable"){
-   if(sandbox()){
-    sessionStorage.removeItem(launchKey);
-    window.WildDebugSandbox?.reset?.();
-    const clean=new URL(location.href);clean.searchParams.delete("wr_debug_sandbox");
-    location.replace(clean.toString());
-   }else toggle();
-   return;
-  }
-  if(action==="debug-play"){
-   fillOptions();
-   if(!sandbox()){
-    try{
-     sessionStorage.setItem(launchKey,JSON.stringify(collectLaunch()));
-     sessionStorage.removeItem("wr-debug-storage-v1");
-     const url=new URL(location.href);url.searchParams.set("wr_debug_sandbox","1");
-     location.assign(url.toString());
-    }catch(error){trackError(error.message);say("隔離保存領域を準備できません。開始を中止しました");}
-   }else{
-    if(api?.getState?.()?.mode!=="menu"){say("ゲーム開始済みです。プレイ中は各設定の適用ボタンを使用してください");return;}
-    const result=applyLaunch();say(result.message);if(result.ok)setOpen(false);
-   }
-   return;
-  }
+ if(action==="disable"){leaveDebug();return;}
   if(!sandbox()&&action!=="copy"){
-   say("通常セーブへの影響を防ぐため無効です。先に「デバッグモードでプレイ」を押してください");return;
+   say("通常セーブへの影響を防ぐためデバッグ操作は利用できません");return;
   }
  if(action==="copy"){
   try{await navigator.clipboard.writeText($("wr-debug-stats").textContent);say("診断をコピーしました");}catch(_){say("コピーできませんでした");}return;
@@ -453,16 +463,13 @@ panel.addEventListener("click",async event=>{
  say(ok?messages[action]||"適用しました":"適用できません。ゲーム開始・現在の状態・場所や強敵の有無を確認してください");
  if(ok&&["tutorial-start","tutorial-prev","tutorial-next","tutorial-stage","boss","boss-area","den-warp","hp"].includes(action))setOpen(false);
 });
-setInterval(render,700);
+setInterval(()=>{applyWhenReady();render();},350);
 if(sandbox()){
- unlocked=true;pill.hidden=false;pill.textContent="デバッグ中";panel.hidden=false;
+ unlocked=true;pill.hidden=false;pill.textContent="デバッグ ON｜設定";panel.hidden=false;
  runFps();fillOptions();
  let config=null;try{config=JSON.parse(sessionStorage.getItem(launchKey)||"null")}catch(_){}
  restoreLaunch(config);
- if(window.WildGameReady&&bridge()?.getState?.()?.mode==="menu"){
-  const result=applyLaunch();say(result.message);
-  if(result.ok&&result.failures===0)setOpen(false);
- }else say("デバッグゲームとの接続を確認してください");
+ say("デバッグはONです。項目をON/OFFして設定を閉じ、タイトルの開始ボタンでプレイしてください");
 }
-window.WildDebugMode={get unlocked(){return unlocked;},get open(){return unlocked&&!panel.hidden;},get taps(){return taps;},toggle};
+window.WildDebugMode={get unlocked(){return unlocked;},get open(){return unlocked&&!panel.hidden;},get taps(){return taps;},toggle,onGameLaunch};
 })();
