@@ -42,8 +42,13 @@
   candidates.sort((a,b)=>b.strength-a.strength||a.pair[0]-b.pair[0]);
   const {source,destination}=candidates[0];
   const season=Math.floor((y%1)*4),winter=season===3;
-  const grazer=r===destination?(winter?1.25:1.36):.68;
-  const hunter=r===destination?Math.min(1.2,1+(grazer-1)*.45):.83;
+  // Winter reduces forage at the destination, while drought increases departures.
+  // Population is redistributed within the existing spawn budget, never duplicated.
+  const departure=state(source,y),arrival=state(destination,y);
+  const scarcity=departure.kind==="drought"?Math.min(1.35,1/Math.max(.4,departure.food)):1;
+  const shelter=arrival.kind==="abundance"||arrival.kind==="greening"?1.08:1;
+  const grazer=r===destination?Math.min(1.48,(winter?1.16:1.29)*scarcity*shelter):Math.max(.54,.77/scarcity);
+  const hunter=r===destination?Math.min(1.20,1+(grazer-1)*.42):Math.max(.72,.88/scarcity);
   return {active:true,source,destination,grazer,hunter,season};
  }
  function history(year){
