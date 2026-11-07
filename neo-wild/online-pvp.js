@@ -27,7 +27,7 @@ getRenderedPeers(now=Date.now(),delayMs=120){
  for(const [id,p] of this.peers){
   if(now-p.time>5000){this.peers.delete(id);this.onLeave(id);continue;}
   const prev=p.previous;
-  const alpha=prev?clamp((now-p.time+delayMs)/Math.max(50,p.time-prev.time),0,1):1;
+  const alpha=prev?clamp((now-p.time)/Math.max(50,delayMs),0,1):1;
   const blend=(key)=>prev?prev[key]+(p[key]-prev[key])*alpha:p[key];
   const delta=prev?Math.atan2(Math.sin(p.dir-prev.dir),Math.cos(p.dir-prev.dir)):0;
   result.push({...p,x:blend('x'),y:blend('y'),z:blend('z'),dir:prev?prev.dir+delta*alpha:p.dir});
