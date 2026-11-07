@@ -144,7 +144,12 @@ async function importBackup(file){
   for(const [key,value] of Object.entries(before)){
    if(liveBeforeWrite[key]!==value)throw Error("別タブでゲームデータが更新されました。最新画面で読み込みをやり直してください："+key);
   }
-  // A key created by another tab during the file-picker interval must not be overwritten by an older backup.\n  for(const [key,value] of Object.entries(liveBeforeWrite)){\n   if(!Object.prototype.hasOwnProperty.call(before,key)&&Object.prototype.hasOwnProperty.call(merged,key)&&merged[key]!==value)\n    throw Error("別タブで新しいゲームデータが作成されました。読み込みをやり直してください："+key);\n  }\n  // Preserve unrelated new game keys rather than deleting another tab's work.
+  // A key created by another tab during the file-picker interval must not be overwritten by an older backup.
+  for(const [key,value] of Object.entries(liveBeforeWrite)){
+   if(!Object.prototype.hasOwnProperty.call(before,key)&&Object.prototype.hasOwnProperty.call(merged,key)&&merged[key]!==value)
+    throw Error("別タブで新しいゲームデータが作成されました。読み込みをやり直してください："+key);
+  }
+  // Preserve unrelated new game keys rather than deleting another tab's work.
   for(const [key,value] of Object.entries(liveBeforeWrite)){
    if(!Object.prototype.hasOwnProperty.call(before,key)&&!Object.prototype.hasOwnProperty.call(merged,key))merged[key]=value;
   }
