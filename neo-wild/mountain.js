@@ -79,7 +79,7 @@ function headwaterBed(x){
 function headwaterWaterLevel(x){return headwaterBed(x)+2;}
 function headwaterFord(x,y,r=0){
  // The forest-side ford is deliberately shallow; the highland source is not.
- return x>=10500&&x<=10980&&Math.abs(y-headwaterY(x))<=18+r;
+ return ((x>=10500&&x<=10980)||(x>=9630&&x<=9780))&&Math.abs(y-headwaterY(x))<=18+r;
 }
 const headwater=Object.freeze({mouthX:HEADWATER_MOUTH,sourceX:12740,halfWidth:18,yAt:headwaterY,contains:headwaterAt,bedAt:headwaterBed,waterLevelAt:headwaterWaterLevel,fordAt:headwaterFord,flowDirection:"west"});
 // World-coordinate snow field: adjacent chunks sample identical values at their edges.
@@ -381,6 +381,9 @@ function draw2D(ctx,visible){
    ctx.beginPath();for(let x=HEADWATER_MOUTH;x<=12740;x+=35){const y=headwaterY(x);if(x===HEADWATER_MOUTH)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
    ctx.lineWidth=width;ctx.strokeStyle=col;ctx.stroke();
   }
+  // Lowland wildlife crossing: the visible gravel shallows match headwaterFord().
+  ctx.strokeStyle="#9caa91";ctx.lineWidth=17;ctx.beginPath();
+  for(let x=9630;x<=9780;x+=15){const y=headwaterY(x);if(x===9630)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
   for(const [width,col] of [[94,"#5a665d"],[68,"#294f57"],[55,"#377c83"]]){
    ctx.beginPath();
    for(let y=2485;y<=4650;y+=45){const x=creek.xAt(y);if(y===2485)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
