@@ -26,6 +26,8 @@ const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
  cat:{name:"ノラネコ",hp:85,speed:320,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
  wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"},
+ crow:{name:"カラス",hp:64,speed:220,damage:10,rate:.39,r:14,color:"#313b44",belly:"#777a83",ear:"#252a34"},
+ pigeon:{name:"ハト",hp:57,speed:202,damage:8,rate:.41,r:12,color:"#738c92",belly:"#e5e4d5",ear:"#4b6b73"},
  tiger:{name:"トラ",hp:355,speed:284,damage:36,rate:.52,r:40,color:"#bc834a",belly:"#e7d2ab",ear:"#966a3c"},
  cheetah:{name:"チーター",hp:106,speed:412,damage:20,rate:.34,r:23,color:"#d4b174",belly:"#eedbb1",ear:"#b18c59"},
  hyena:{name:"ハイエナ",hp:162,speed:272,damage:24,rate:.49,r:26,color:"#9b8565",belly:"#d1b997",ear:"#77654b"},
@@ -1129,6 +1131,7 @@ function waterBlocksLand(x,y){return waterDepth(x,y)>.0001;}
 // All water travel shares the existing river/canal/flood collision field.
 // Fish must remain in navigable water; otters/hippos can swim and walk on banks.
 const WATER_PLAYABLES=new Set(["otter","hippo","carp"]);
+const FLYING_PLAYABLES=new Set(["crow","pigeon"]);
 const fishWaterAt=(x,y)=>waterDepth(x,y)>.035;
 function buildingOverlapsWater(x,y,w,h){
  const l=x-18,r=x+w+18,t=y-18,b=y+h+18;
@@ -1283,6 +1286,7 @@ function start(newWorld=false){
   P.x=water.x;P.y=water.y;
  }
  P.swimVisual=waterDepth(P.x,P.y)>.035?1:0;
+ P.flying=false;P.flightAltitude=0;P.flightLanding=false;P.flightLandingWarned=false;
  initializeLife(P,elapsed);
  // Restore exploration abilities for roster-only Continue, without doubling saved stats.
  if(!restoringSavedWorld)for(const id of discoveredSites)awardDiscovery(id,true);
@@ -1536,8 +1540,11 @@ function restoreSnapshot(snapshot){
   const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}
  }
  P.swimVisual=waterDepth(P.x,P.y)>.035?1:0;
+ P.flying=FLYING_PLAYABLES.has(P.type)&&p.flying===true;
+ P.flightAltitude=P.flying?clamp(Number(p.flightAltitude)||42,42,160):0;
+ P.flightLanding=P.flying&&p.flightLanding===true;P.flightLandingWarned=false;
  const roof=roofAt(P.x,P.y);
- P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
+ P.groundZ=roof;P.jumpHeight=roof+(P.flightAltitude||0);P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
  P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
  P.vx=0;P.vy=0;P.jumpDive=false;P.jumpAmbush=false;P.wallKickTime=0;P.wallKicks=0;P.wallKickLast=-1;
  elapsed=Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed);day=1+Math.floor(elapsed/85);
@@ -2827,19 +2834,22 @@ function landOnSurface(){
 }
 function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
- if(MOUNTAIN?.blocked(x,y,r,mountainIgnore))return true;
- if(window.WildDisaster?.blocked(x,y,r,elapsed/120))return true;
+ const aerial=actor===P&&actor.flying&&actor.flightAltitude>=42;
+ if(MOUNTAIN?.blocked(x,y,r,mountainIgnore)&&!aerial)return true;
+ if(window.WildDisaster?.blocked(x,y,r,elapsed/120)&&!aerial)return true;
  if(!ignoreWater){
   const depth=waterDepth(x,y);
   if(actor===P&&actor.type==="carp"&&depth<=.035)return true;
-  if(depth>.0001&&!(actor===P&&(WATER_PLAYABLES.has(actor.type)||
+  if(depth>.0001&&!aerial&&!(actor===P&&(WATER_PLAYABLES.has(actor.type)||
      (actor.type==="shoebill"&&depth<=.24))))return true;
  }
  for(const prop of streetProps){
+  if(aerial)break;
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
   if(Math.hypot(x-prop.x,y-prop.y)<prop.r+8+r*.40)return true;
  }
  for(const b of buildings){
+  if(aerial&&actor.flightAltitude>Math.max(48,Number(b.roofZ)||0)+24)continue;
   if(b.interior){
    if(x<b.x-r||x>b.x+b.w+r||y<b.y-r||y>b.y+b.h+r)continue;
    if(shelterWalls(b).some(w=>circleRect(x,y,r,w))||shelterFurniture(b).some(w=>circleRect(x,y,r,w)))return true;
@@ -2850,7 +2860,7 @@ function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
    return true;
   }
  }
- if(actor&&actor===P&&(actor.jumpHeight||0)<18&&narrowBuildingPassage(x,y,r))return true;
+ if(actor&&actor===P&&!aerial&&(actor.jumpHeight||0)<18&&narrowBuildingPassage(x,y,r))return true;
  return false;
 }
 
@@ -2945,6 +2955,7 @@ function move(o,dx,dy){
  const allowed=(x,y,d)=>{
    const water=waterDepth(x,y);
    // Shoebills are wading birds: walk into shallows, not across deep channels.
+   if(o===P&&o.flying&&o.flightAltitude>=42)return true;
    if(o===P&&o.type==="carp")return water>.035;
    if(o===P&&(o.type==="otter"||o.type==="hippo"))return true;
    if(o===P&&o.type==="shoebill"&&water<=.24)return true;
@@ -2958,7 +2969,7 @@ function move(o,dx,dy){
   const afterX=waterDepth(o.x,o.y);
   if(canStep(o.x,o.y+dy,afterX))o.y+=dy;
  }
- if(o===P&&o.jumpTime<=0&&o.pounceTime<=0){
+ if(o===P&&!o.flying&&o.jumpTime<=0&&o.pounceTime<=0){
   const roof=roofAt(o.x,o.y),previous=o.groundZ||0;
   if(roof!==previous){
    if(roof<previous){
@@ -4398,6 +4409,13 @@ function leapPounce(){
 }
 function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
+ if(FLYING_PLAYABLES.has(P.type)){
+  if(P.flying){P.flightLanding=true;return true;}
+  if(P.sp<14){notify("飛び立つ持久力が足りない");return false;}
+  P.sp-=14;P.flying=true;P.flightLanding=false;P.flightLandingWarned=false;
+  P.flightAltitude=42;P.jumpTime=0;P.jumpHeight=(P.groundZ||0)+42;
+  P.hidden=false;P.noiseBurst=Math.max(P.noiseBurst||0,.9);playEffect("wing");return true;
+ }
  if(P.type==="cat"&&P.jumpTime>0)return catWallKick();
  if(P.jumpTime>0||P.jumpCD>0||P.dashTime>0||P.pounceTime>0||P.fallTime>0||
     (P.pendingStrike&&!AERIAL_POUNCE_PROFILES[P.type]))return false;
@@ -6137,6 +6155,23 @@ function update(dt){
  if((heldActions.touchAttack||heldActions.padAttack)&&P.atk<=0&&!P.pendingStrike&&P.sp>=5)attack();
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
  P.stun=Math.max(0,(P.stun||0)-dt);
+ if(FLYING_PLAYABLES.has(P.type)&&P.flying){
+  if(P.sp<=3)P.flightLanding=true;
+  const descending=P.flightLanding;
+  const height=clamp((Number(P.flightAltitude)||42)+(descending?-74:78)*dt,0,160);
+  if(!descending)P.sp=Math.max(0,P.sp-30*dt);
+  if(height<=42){
+   P.flying=false;const safe=!collides(P.x,P.y,P.r,P);P.flying=true;
+   if(safe){
+    P.flying=false;P.flightLanding=false;P.flightAltitude=0;P.flightLandingWarned=false;
+    P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ||0;
+   }else{
+    P.flightLanding=true;P.flightAltitude=42;
+    if(!P.flightLandingWarned){notify("着地できる地面を探してください");P.flightLandingWarned=true;}
+   }
+  }else P.flightAltitude=height;
+  if(P.flying)P.jumpHeight=(P.groundZ||0)+P.flightAltitude;
+ }
  // Tick the possession timer independently of the current locomotion state.
  const ghostSteering=isGhostPossessed();
  if(ghostSteering){
@@ -6222,7 +6257,7 @@ function update(dt){
     P.sp=Math.max(0,P.sp-43*dt);
     if(P.sp<=10)P.sprintExhausted=true;
    }
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
+   const target=P.speed*(P.flying?1.35:1)*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    if(ghostSteering){
     // Steering belongs entirely to the ghost; physical collisions still apply.
     P.ghostWanderClock=(P.ghostWanderClock||0)-dt;
@@ -7621,7 +7656,7 @@ function drawCreature(o,isPlayer){
  }
  if(drawPlayableFrog2D(o,r,fur,light,pace,oval,triangle)||drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach)||drawRarePlayer2D(o,r,fur,light,pace,oval,triangle)){
   // Each playable species has its own body/face/special attack silhouette.
- }else if((!isPlayer||["deer","macaque","gorilla","lion","elephant"].includes(t))&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
+ }else if((!isPlayer||["deer","macaque","gorilla","lion","elephant","crow"].includes(t))&&window.WildFauna?.draw2D?.(ctx,o,r,fur,light,pace)){
   // Common wildlife has species-specific silhouettes.
  }else if(drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach)){
   // Unique strong enemy silhouette.
@@ -8665,6 +8700,7 @@ function applySquadLeader(){
  const roster=window.WildSquad?.load?.();if(!P||!roster?.members?.length)return false;
  const member=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
  if(!animals[member.species]){notify(member.speciesName+"の操作は準備中");return false;}
+ const previousOwnerId=P.squadIndividualId;
  choice=member.species;const a=animals[choice];
  P.type=choice;P.base=a;P.r=a.r;P.squadIndividualId=member.id;
  P.squadName=member.name;P.squadGrowthRate=member.growthRate;
@@ -8679,6 +8715,10 @@ function applySquadLeader(){
  P.riverPerk=perks.has("river");P.foragePerk=perks.has("forest");
  P.rainGrip=perks.has("canal");P.instinctBonus=perks.has("ark");
  initializeLife(P,elapsed,false);
+ if(!FLYING_PLAYABLES.has(choice)||previousOwnerId!==member.id){
+  P.flying=false;P.flightAltitude=0;P.flightLanding=false;P.flightLandingWarned=false;
+  P.jumpHeight=P.groundZ||0;recoverPlayerFromGap(P);
+ }
  syncSquadFollowers();syncSquadHud();saveAuto();
  if(!debugTutorialSession)window.WildTrophies?.record?.("species-lead",{type:choice},notify);
  return true;
