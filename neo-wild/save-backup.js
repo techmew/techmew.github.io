@@ -23,6 +23,10 @@ function digest(records){
 function buildBackup(){
  const records=snapshot();
  if(!Object.keys(records).length)throw Error("このブラウザにバックアップ対象のゲームデータがありません");
+ // A second read catches concurrent tab writes while collecting a multi-key backup.
+ const verified=snapshot();
+ if(Object.keys(records).length!==Object.keys(verified).length||Object.keys(records).some(key=>verified[key]!==records[key]))
+  throw Error("別タブで保存内容が更新されました。最新の画面でバックアップをやり直してください");
  return {format:FORMAT,version:1,createdAt:new Date().toISOString(),game:"WILD RECLAIM",origin:location.origin,records,checksum:digest(records)};
 }
 function exportBackup(){
