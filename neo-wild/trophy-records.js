@@ -44,11 +44,54 @@ for(const [kind,label] of disasterKinds){
 }
 add("disaster-triple","三つの災厄を知る者","倒木・洪水・山火事をすべて目撃する",true,
  (e,d)=>e==="disaster-triple"&&d.all===true);
+
+// Additional achievements require an actual gameplay event, not a scripted
+// progress counter. Preserve the original 65 historical awards and IDs.
+const LEGACY_COUNT=defs.length, extraByEvent=new Map();
+function addEvent(event,id,name,description,hidden,test){
+ if(defs.some(d=>d.id===id))return;
+ add(id,name,description,hidden,test);
+ const group=extraByEvent.get(event)||[];group.push(defs[defs.length-1]);extraByEvent.set(event,group);
+}
+const wildAnimals=[["rat","ネズミ"],["rabbit","ウサギ"],["pigeon","ハト"],["dog","野犬"],["boar","イノシシ"],["strayCat","野良猫"],["snake","ヘビ"],["crow","カラス"],["raccoonDog","ホンドタヌキ"],["wildFox","野生の狐"],["weasel","イタチ"],["frog","カエル"],["deer","シカ"],["venomSnake","毒ヘビ"],["cheetah","チーター"],["giraffe","キリン"],["zebra","シマウマ"],["lion","ライオン"],["elephant","ゾウ"],["hippo","カバ"],["macaque","ニホンザル"],["chimpanzee","チンパンジー"],["serow","ニホンカモシカ"],["mountainGoat","山ヤギ"],["manul","マヌルネコ"],["tibetanFox","チベットスナギツネ"],["shoebill","ハシビロコウ"],["otter","カワウソ"],["carp","コイ"],["tanuki","タヌキの仲間"],["badger","アナグマ"],["blackBear","ツキノワグマ"],["tiger","トラ"],["gorilla","ゴリラ"],["hyena","ハイエナ"],["wildDog","リカオン"],["armadillo","アルマジロ"],["hedgehog","ハリネズミ"],["giantTreeFrog","巨大アマガエル"],["pacmanFrog","ベルツノガエル"]];
+for(const [id,name] of wildAnimals){
+ addEvent("sighting","spot-"+id,name+"の生息記録",name+"を目の届く距離で遮蔽物なしに見つける",false,
+  (event,data)=>event==="sighting"&&data.type===id);
+ addEvent("kill","defeat-"+id,name+"との決着",name+"との狩猟に勝利する",false,
+  (event,data)=>event==="kill"&&data.type===id);
+}
+const uniqueBosses=[["alpha","アルファウルフ"],["giantSnake","大蛇"],["oldBear","老熊"],["giantBoar","巨大イノシシ"],["blackPanther","黒豹"],["oneEyedWolf","隻眼の狼"],["whiteTiger","白虎"],["giantHyena","巨大ハイエナ"],["giantLion","巨大ライオン"],["giantMoose","巨大ヘラジカ"],["giantBuffalo","巨大バッファロー"],["giantCrocodile","巨大ワニ"],["giantHippo","巨大カバ"],["giantAnaconda","巨大アナコンダ"],["giantLizard","巨大オオトカゲ"],["rhino","サイの強敵"],["giantGorilla","巨大ゴリラ"],["giantElephant","巨象"],["albinoWolf","アルビノの狼"],["giantEagle","大鷲"]];
+for(const [id,name] of uniqueBosses)addEvent("kill","boss-"+id,name+"の討伐者",name+"を強敵として実際に撃破する",true,
+ (event,data)=>event==="kill"&&data.type===id&&data.boss===true);
+const eligiblePlayables=[["cat","猫"],["dog","犬"],["fox","狐"],["wolf","狼"],["deer","シカ"],["boar","イノシシ"],["manul","マヌルネコ"],["tibetanFox","チベットスナギツネ"],["shoebill","ハシビロコウ"],["macaque","ニホンザル"],["gorilla","ゴリラ"],["crocodile","ワニ"],["lion","ライオン"],["tiger","トラ"],["cheetah","チーター"],["hyena","ハイエナ"],["elephant","ゾウ"],["penguin","ペンギン"],["rhino","サイ"],["giantTreeFrog","巨大アマガエル"],["pacmanFrog","ベルツノガエル"]];
+for(const [id,name] of eligiblePlayables){
+ addEvent("species-lead","lead-"+id,name+"の操作記録",name+"を所有して実際に操作する",false,
+  (event,data)=>event==="species-lead"&&data.type===id);
+ addEvent("species-special","instinct-"+id,name+"の固有技",name+"の固有技を持久力を使って発動する",false,
+  (event,data)=>event==="species-special"&&data.type===id);
+}
+const regionNames=["霞町の廃庁街","桜坂駅跡","蔦ヶ丘の古町","白鷺の獣舎跡","朝霧川の土手","楠の森","汐浜の廃工場","潮見の水路"];
+for(let area=0;area<regionNames.length;area++){
+ addEvent("region-visit","region-visit-"+area,regionNames[area]+"の探検記録",
+  regionNames[area]+"へ実際に踏み入る",false,(event,data)=>event==="region-visit"&&data.region===area);
+ addEvent("kill","region-hunter-"+area,regionNames[area]+"の狩猟記録",
+  regionNames[area]+"で実際に野生動物を仕留める",false,(event,data)=>event==="kill"&&data.region===area);
+}
+for(const [id,name] of [["zoo","獣舎跡の調査"],["river","川辺の発見"],["forest","森林の踏破"],["factory","廃工場の手掛かり"],["canal","水路の観察"],["ark","地下道の発見"]])addEvent("explore-site","discovery-"+id,name,
+ "探索地点を見つけて記録を獲得する",false,(event,data)=>event==="explore-site"&&data.site===id);
+for(const [id,name,description] of [["alien-scout-player-counterattack","異星偵察機の撃退","攻撃を命中させて異星偵察機を停止させる"],["alien-scout-herd-counterattack","獣群の共同防衛","野生動物の群れが異星偵察機を追い払う"],["alien-scout-wildlife-kill","異星の犠牲者","異星偵察機が野生動物を倒す事件を経験する"],["alien-scout-rescue","異星の救助","友好的な偵察機がUFOの捕獲を妨害する"],["alien-observation-site","異星基地の発見","UFOが去った跡に観測基地が残る"],["ufo-player-abduction","光に奪われた者","操作個体がUFOに吸い込まれる"],["ghost-repelled","亡霊の撃退","実体化した亡霊を攻撃で追い払う"],["ghost-animal-haunt","野生動物と亡霊","亡霊が野生動物の行動を狂わせる"],["ghost-shadow-step","影の跳躍","亡霊の瞬間移動を目撃する"],["ghost-mimic","影の分身","亡霊が幻惑の分身を生む"],["ghost-hallucination","幻影の体験","亡霊によって視界に幻影が現れる"]])addEvent(id,"anomaly-"+id,name,description,true,
+ event=>event===id);
+
 const completed=new Set();
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&saved.version===1&&Array.isArray(saved.ids))for(const id of saved.ids)if(defs.some(x=>x.id===id))completed.add(id)}catch(_){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({version:1,ids:[...completed],updatedAt:Date.now()}))}catch(_){}}
 function record(event,data={},announce){let newly=[];
- for(const d of defs){if(completed.has(d.id))continue;
+ // Efficient dispatch: only historic definitions plus the exact event's additions.
+ // Weather/XP/year update each frame; don't iterate 200+ definitions per frame.
+ const extra=extraByEvent.get(event)||[];
+ for(let i=0;i<LEGACY_COUNT+extra.length;i++){
+  const d=i<LEGACY_COUNT?defs[i]:extra[i-LEGACY_COUNT];
+  if(completed.has(d.id))continue;
   try{if(!d.test(event,data))continue;}catch(_){continue}
   completed.add(d.id);newly.push(d);
  }
