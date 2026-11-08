@@ -60,10 +60,22 @@ function entries(atSeconds=seconds()){
  // Only actual stored incidents appear here; offline change never advances YEAR
  // and must not be confused with a guaranteed disaster or UFO encounter.
  const snapshot=worldState().auto;
- if(Array.isArray(snapshot?.worldEventJournal))for(const e of snapshot.worldEventJournal.slice(-40)){
+ // Actual incidents are also saved in the compact world chronicle, so dying
+ // (which deletes the large autosave) does not erase historical consequences.
+ const freshWorld=localStorage.getItem("wild-reclaim-explicit-new-world-v1")==="1";
+ const savedEvents=read("wild-reclaim-world-chronicle-v1",{})?.worldEventJournal;
+ const sourceEvents=freshWorld?[]:[
+  ...(Array.isArray(savedEvents)?savedEvents:[]),
+  ...(Array.isArray(snapshot?.worldEventJournal)?snapshot.worldEventJournal:[])
+ ];
+ const recorded=new Set();
+ for(const e of sourceEvents.slice(-160)){
   const y=Number(e?.year);
   if(!Number.isFinite(y)||y<0||y>year||typeof e?.label!=="string"||e.label.length>110||
      !["offline-ecology","alien-scout"].includes(e.kind))continue;
+  const key=e.kind+"|"+e.at+"|"+e.label;
+  if(recorded.has(key))continue;
+  recorded.add(key);
   items.push({year:y,label:e.label,kind:e.kind});
  }
  // Preserve all era markers and the earliest beginning event alongside recent incidents.
