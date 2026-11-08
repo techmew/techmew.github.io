@@ -69,7 +69,7 @@
  // Simulate bounded regional ecology while the browser is closed, without moving the
  // player, killing owned animals, advancing YEAR, spawning NPCs or modifying old saves.
  // Two real hours correspond to one coarse ecological change, capped at 24h.
- function offlineAdvance(areas,savedAt,now,year){
+ function offlineAdvance(areas,savedAt,now,year,caveSealStage="sealed"){
   if(!Array.isArray(areas)||areas.length!==REGIONS)return {steps:0,regions:areas,events:[]};
   const regions=areas.map(e=>({...e}));
   const ms=Number(now)-Number(savedAt);
@@ -80,6 +80,9 @@
   const origin=regions.map(r=>({...r}));
   const safe=(r,key,fallback)=>Number.isFinite(Number(r[key]))?Number(r[key]):fallback;
   const seasonStates=regions.map((_,i)=>state(i,Math.max(0,Number(year)||0)));
+  // The cave guardian has a persistent ecological footprint even while no one
+  // plays. No offline world-year advance, animal deaths or extra NPC spawns.
+  const guardianRoaming=caveSealStage==="released";
   for(let step=0;step<steps;step++){
    for(let i=0;i<REGIONS;i++){
     const r=regions[i],s=seasonStates[i];
@@ -94,6 +97,15 @@
     const hunger=r.prey<hunters*1.65;
     r.predators=clamp(hunters+(hunger?-1:step%3===0&&r.prey>hunters*2.3?1:0),3,31);
     r.pressure=clamp(Math.floor(safe(r,"pressure",0))+(r.prey<prey?1:-1),0,5);
+    if(guardianRoaming&&i===7){
+     // The existing east-highland/canal population zone scatters while the
+     // awakened giant controls the mountain. Adjacent herd corridors then
+     // migrate existing wildlife toward safer forage; no population duplication.
+     r.prey=clamp(r.prey-2,4,86);
+     r.food=clamp(r.food-2,10,94);
+     if(step%3===0)r.predators=clamp(r.predators+1,3,31);
+     r.pressure=clamp(r.pressure+1,0,5);
+    }
     if(r.pressure>=5&&hash(i,Math.floor(Number(savedAt)/7200000)+step,11)<.36){
      r.dominance=(Math.floor(safe(r,"dominance",0))+1)%3;
      r.events=Math.max(0,Math.floor(safe(r,"events",0)))+1;r.pressure=0;
@@ -112,9 +124,12 @@
   for(let i=0;i<REGIONS;i++){
    const old=origin[i],r=regions[i],preyDelta=r.prey-safe(old,"prey",r.prey),foodDelta=r.food-safe(old,"food",r.food);
    const powerChange=r.dominance!==old.dominance;
-   if(powerChange||Math.abs(preyDelta)>=3||Math.abs(foodDelta)>=4){
-    const message=powerChange?"群れの勢力交代":Math.abs(preyDelta)>=3?(preyDelta>0?"野生動物の増加":"野生動物の減少"):(foodDelta>0?"食料の回復":"食料の減少");
-    events.push({region:i,kind:"offline-ecology",label:message});
+   const guardianEffect=guardianRoaming&&i===7&&
+     (Math.abs(preyDelta)>=2||Math.abs(foodDelta)>=2||r.predators!==old.predators);
+   if(guardianEffect||powerChange||Math.abs(preyDelta)>=3||Math.abs(foodDelta)>=4){
+    const message=guardianEffect?"封印の巨獣の影響で山岳の動物が移動":
+     powerChange?"群れの勢力交代":Math.abs(preyDelta)>=3?(preyDelta>0?"野生動物の増加":"野生動物の減少"):(foodDelta>0?"食料の回復":"食料の減少");
+    events.push({region:i,kind:"offline-ecology",label:message,source:guardianEffect?"cave-seal":null});
    }
   }
   return {steps,regions,events:events.slice(0,REGIONS)};
