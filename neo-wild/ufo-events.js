@@ -122,7 +122,11 @@ function tick(dt,world){
      victim.lastX=scout.x;victim.lastY=scout.y;
      // The strike also scatters the surrounding herd; cover blocks the panic signal.
      for(const other of mobs){if(other===victim||!other||other.hp<=0||other.companion||distance(other,victim)>155||safeBlocked(world,other,scout))continue;other.flee=Math.max(Number(other.flee)||0,2.5);other.alert=Math.max(Number(other.alert)||0,2.5);other.lastX=scout.x;other.lastY=scout.y;}
-     if(victim.hp===0){victim._alienScoutKilled=true;world.onEvent?.("alien-scout-wildlife-kill",{year,x:victim.x,y:victim.y,species:victim.species??victim.type??"wildlife"})}
+     if(victim.hp===0){
+      victim._alienScoutKilled=true;victim._killRegistered=true;
+      world.onAnimalDeath?.(victim,"alien-scout");
+      world.onEvent?.("alien-scout-wildlife-kill",{year,x:victim.x,y:victim.y,species:victim.species??victim.type??"wildlife"});
+     }
     }
    }else if(disposition==="friendly"){
     const injured=nearby.filter(m=>Number(m.maxHp)>0&&m.hp<m.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
