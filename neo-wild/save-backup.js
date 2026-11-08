@@ -72,6 +72,26 @@ function mergeArchive(records,key,older){
  }
  if(map.size)records[key]=JSON.stringify([...map.values()]);
 }
+function readCaveSeal(raw){
+ if(raw==null)return null;
+ let state;
+ try{state=JSON.parse(raw);}catch(_){throw Error("洞窟の封印記録が破損しています");}
+ if(!state||state.version!==1||!["sealed","released","defeated"].includes(state.stage)||
+    (state.stage!=="sealed"&&(!Number.isFinite(state.openedYear)||state.openedYear<0))||
+    (state.stage==="defeated"&&(!Number.isFinite(state.defeatedYear)||state.defeatedYear<state.openedYear)))
+  throw Error("洞窟の封印記録の形式が不正です");
+ return state;
+}
+function mergeCaveSeal(records,older){
+ const key="wild-reclaim-cave-seal-v1";
+ // This is an irreversible world event like death/release: an earlier JSON
+ // backup must not relock a seal or resurrect a defeated guardian.
+ const imported=readCaveSeal(records[key]),current=readCaveSeal(older[key]);
+ if(!imported&&!current)return;
+ const rank={sealed:0,released:1,defeated:2};
+ const chosen=imported&&(!current||rank[imported.stage]>rank[current.stage])?imported:current;
+ if(chosen)records[key]=JSON.stringify(chosen);
+}
 function validate(file){
  if(!file||typeof file!=="object"||file.format!==FORMAT||file.version!==1)throw Error("WILD RECLAIMのバックアップファイルではありません");
  const data=file.records;
@@ -92,6 +112,8 @@ function validate(file){
   if(!Array.isArray(archive)||archive.some(entry=>!entry||typeof entry.id!=="string"||!entry.id||entry.id.length>240))
    throw Error("野生放流履歴の形式が不正です");
  }
+ // Reject broken seal records before changing any local game keys.
+ readCaveSeal(data["wild-reclaim-cave-seal-v1"]);
  if(data["wild-reclaim-squad-v1"]!=null){
   const roster=JSON.parse(data["wild-reclaim-squad-v1"]);
   if(!roster||roster.version!==1||!Array.isArray(roster.members)||roster.members.length>5)throw Error("編成データが不正です");
@@ -130,6 +152,7 @@ async function importBackup(file,baseline=null){
    if(!Array.isArray(archive)||archive.some(entry=>!entry||typeof entry.id!=="string"||!entry.id||entry.id.length>240))
     throw Error("端末の放流履歴形式が不正です："+key);
   }
+  mergeCaveSeal(merged,before);
   mergeIds(merged,"wild-reclaim-dead-ids-v1",before);
   mergeIds(merged,"wild-reclaim-released-ids-v1",before);
   mergeArchive(merged,"wild-reclaim-released-archive-v1",before);
