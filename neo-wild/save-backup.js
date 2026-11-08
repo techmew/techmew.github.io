@@ -145,7 +145,7 @@ async function importBackup(file){
   for(const key of ["wild-reclaim-dead-ids-v1","wild-reclaim-released-ids-v1","wild-reclaim-released-archive-v1","wild-reclaim-released-v1"]){
    if(liveBeforeWrite[key]!==before[key])throw Error("別タブで永久離脱情報が更新されました。再読み込み後に復元してください："+key);
   }
-  // An older browser tab can update progression while the file picker is open.
+  // A newly created key is also a concurrent edit, even if it was absent at picker open.\n  for(const key of Object.keys(liveBeforeWrite)){\n   if(!Object.prototype.hasOwnProperty.call(before,key))\n    throw Error("別タブで新しいゲームデータが作成されました。読み込みをやり直してください："+key);\n  }\n  // An older browser tab can update progression while the file picker is open.
   // Do not overwrite ANY changed existing key, not only permanent-ID journals.
   // This also protects world clock, exploration and roster from stale restores.
   for(const [key,value] of Object.entries(before)){
