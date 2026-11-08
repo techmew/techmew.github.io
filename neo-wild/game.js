@@ -8640,28 +8640,55 @@ function syncSquadHud(){
  const root=$("squad-party-hud");if(root){root.classList.add("hidden");root.style.display="none";}
 }
 
+// SOLO5: reserve animals have no companion mob. Always switch by the durable
+// selected roster ID; do not revive the retired three-AI-party behavior.
 function switchSquadLeader(id,death=false){
- const roster=window.WildSquad?.load?.(),member=roster?.members?.find(m=>m.id===id);
- const mate=mobs.find(m=>m.squadIndividualId===id&&m.hp>0);
- if(!member||!mate||!animals[member.species])return false;
+ const roster=window.WildSquad?.load?.();
+ const member=roster?.members?.find(m=>m.id===id&&m.alive!==false);
+ if(!member||!animals[member.species]||!P)return false;
  if(!death&&(mode!=="play"||partyCombat())){notify("戦闘中は交代できません");return false;}
- if(!death&&P.hp>0){
-  const former=roster.members.find(m=>m.id===P.squadIndividualId);
-  if(former){const ally=makePartyMate(former,0,{x:P.x,y:P.y},P.hp);if(ally)mobs.push(ally);}
+ if(death&&mode!=="over")return false;
+ // Selection must be stored before the controlled actor is changed.
+ const choiceResult=window.WildSquad?.selectActive?.(id);
+ if(!choiceResult?.ok){notify(choiceResult?.reason||"操作個体を保存できません");return false;}
+ if(!death){
+  persistSquadVitals();
+  if(!applySquadLeader()){notify("選択した動物で再開できません");return false;}
+  syncHUD();notify((member.name||member.speciesName)+"を操作中");
+  return true;
  }
- mobs.splice(mobs.indexOf(mate),1);
- const a=animals[member.species];choice=member.species;P.type=choice;P.base=a;P.r=a.r;
- P.x=mate.x;P.y=mate.y;P.dir=mate.dir;P.squadIndividualId=id;P.squadName=member.name;
- P.maxHp=mate.maxHp;P.hp=Math.max(1,mate.hp);P.damage=a.damage*(member.iv?.attack||1)*(1+.025*Math.max(0,(member.level||1)-1));
- P.speed=a.speed*(member.iv?.speed||1)*(1+.012*Math.max(0,(member.level||1)-1));P.maxSp=100*(member.iv?.stamina||1);P.sp=Math.min(P.maxSp,P.sp||100);
- P.level=member.level||1;P.xp=member.xp||0;P.lastCombatAt=elapsed-100;
- P.deathPose=0;P.atk=0;P.dash=0;P.dashTime=0;P.pounceTime=0;P.jumpTime=0;P.fallTime=0;P.pendingStrike=false;
- P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.vx=0;P.vy=0;P.hidden=false;P.carry=null;
- initializeLife(P,elapsed,false);resetControls();
- roster.leaderId=id;window.WildSquad.save(roster);
- if(death){mode="play";show("");deathSequenceTime=0;$("hud").style.opacity="";window.WildAudio?.resetDeathFade?.();}
- syncSquadFollowers();cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- syncSquadHud();syncHUD();saveAuto();notify((member.name||member.speciesName)+"を操作中");return true;
+ // The dead animal is already tombstoned. Begin the living successor at
+ // a real safe den (or water habitat for fish) in the SAME world and year.
+ const oldMode=mode;mode="play";
+ if(!applySquadLeader(false)){
+  mode=oldMode;show("result");notify("後継個体を復旧できません");return false;
+ }
+ const spawn=P.type==="carp"?START_LOCATIONS.river:START_LOCATIONS.home;
+ P.x=spawn.x;P.y=spawn.y;
+ P.groundZ=0;P.jumpHeight=0;P.flying=false;P.flightAltitude=0;
+ P.flightLanding=false;P.flightLandingWarned=false;
+ P.jumpTime=0;P.pounceTime=0;P.dashTime=0;P.fallTime=0;
+ P.pendingStrike=false;P.windup=0;P.stun=0;P.poisonTime=0;
+ P.strongWound=0;P.deathPose=0;P.deathReason=null;
+ P.vx=0;P.vy=0;P.hidden=false;P.carry=null;
+ P.hunger=Math.max(70,Number.isFinite(P.hunger)?P.hunger:0);
+ P.sp=Math.min(P.maxSp||100,Math.max(50,P.sp||0));
+ P.lastCombatAt=elapsed-100;
+ if(!ensureOwnedAnimalHabitat()){
+  mode=oldMode;show("result");notify("後継個体の安全な開始地点がありません");return false;
+ }
+ resetControls();syncSquadFollowers();
+ // Do not advance the year, wipe wildlife, reset trophies or change the
+ // three-slot ownership ledger when selecting a successor.
+ if(!saveAuto()){
+  mode=oldMode;show("result");notify("後継個体のセーブに失敗しました。データを保護してください");return false;
+ }
+ deathSequenceTime=0;$("hud").style.opacity="";show("");
+ window.WildAudio?.resetDeathFade?.();
+ cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));
+ cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
+ $("squad-death-choice")?.classList.add("hidden");
+ syncHUD();notify((member.name||member.speciesName)+"で同じ世界を継続");return true;
 }
 function showSquadDeathPicker(roster){
  const panel=$("squad-death-choice");if(!panel)return;
@@ -8694,9 +8721,37 @@ $("squad-party-hud")?.addEventListener("click",e=>{
  if(b.dataset.squadId)switchSquadLeader(b.dataset.squadId);
 });
 
-// ガチャ編成と既存の移動・戦闘・セーブ経路を結ぶ。
-// 未実装種の専用移動を陸上種に偽装しないため開始を保留する。
-function applySquadLeader(){
+// The selected owner must be able to move at its actual habitat.
+// A fish selected from an inland save cannot be left stranded on pavement.
+function ensureOwnedAnimalHabitat(){
+ if(!P)return false;
+ const ox=P.x,oy=P.y;
+ if(P.type==="carp"){
+  if(!fishWaterAt(P.x,P.y)||collides(P.x,P.y,P.r,P)){
+   const nearby=nearestAquaticWater(P.x,P.y,P.r,regionAt(P.x,P.y));
+   const river=START_LOCATIONS.river;
+   const fallback=nearby||nearestAquaticWater(river.x,river.y,P.r,regionAt(river.x,river.y));
+   if(!fallback)return false;
+   P.x=fallback.x;P.y=fallback.y;
+  }
+ }else if(!WATER_PLAYABLES.has(P.type)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)&&waterBlocksLand(P.x,P.y)){
+  const bank=nearestDryBank(P.x,P.y,P.r);
+  if(!bank)return false;
+  P.x=bank.x;P.y=bank.y;
+ }
+ // New radii must not put a larger animal inside a wall or cliff.
+ recoverPlayerFromGap(P);
+ if(collides(P.x,P.y,P.r,P))return false;
+ if(P.x!==ox||P.y!==oy){
+  P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ||0;
+  P.jumpTime=0;P.pounceTime=0;P.dashTime=0;P.fallTime=0;
+  P.vx=0;P.vy=0;
+ }
+ P.swimVisual=fishWaterAt(P.x,P.y)?1:0;
+ return true;
+}
+// ガチャの所有個体を実際の移動・戦闘・セーブへ接続する。
+function applySquadLeader(writeSnapshot=true){
  const roster=window.WildSquad?.load?.();if(!P||!roster?.members?.length)return false;
  const member=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
  if(!animals[member.species]){notify(member.speciesName+"の操作は準備中");return false;}
@@ -8704,9 +8759,9 @@ function applySquadLeader(){
  choice=member.species;const a=animals[choice];
  P.type=choice;P.base=a;P.r=a.r;P.squadIndividualId=member.id;
  P.squadName=member.name;P.squadGrowthRate=member.growthRate;
- P.maxHp=Math.max(1,Math.round(a.hp*member.iv.hp*Math.pow(1.045,Math.max(0,(member.level||1)-1))));P.hp=Math.max(1,Math.round(P.maxHp*(member.hpRatio??1)));
- P.damage=a.damage*member.iv.attack*(1+.025*Math.max(0,(member.level||1)-1));P.speed=a.speed*member.iv.speed*(1+.012*Math.max(0,(member.level||1)-1));
- P.maxSp=100*member.iv.stamina;P.sp=Math.min(P.maxSp,100);
+ P.maxHp=Math.max(1,Math.round(a.hp*(member.iv?.hp||1)*Math.pow(1.045,Math.max(0,(member.level||1)-1))));P.hp=Math.max(1,Math.round(P.maxHp*(member.hpRatio??1)));
+ P.damage=a.damage*(member.iv?.attack||1)*(1+.025*Math.max(0,(member.level||1)-1));P.speed=a.speed*(member.iv?.speed||1)*(1+.012*Math.max(0,(member.level||1)-1));
+ P.maxSp=100*(member.iv?.stamina||1);P.sp=Math.min(P.maxSp,100);
  P.level=member.level||1;P.xp=member.xp||0;
  // Exploration perks belong to the continuing world; rebuild after leader base stats.
  const perks=new Set(earnedDiscoveries);
@@ -8717,9 +8772,10 @@ function applySquadLeader(){
  initializeLife(P,elapsed,false);
  if(!FLYING_PLAYABLES.has(choice)||previousOwnerId!==member.id){
   P.flying=false;P.flightAltitude=0;P.flightLanding=false;P.flightLandingWarned=false;
-  P.jumpHeight=P.groundZ||0;recoverPlayerFromGap(P);
+  P.jumpHeight=P.groundZ||0;
  }
- syncSquadFollowers();syncSquadHud();saveAuto();
+ if(!ensureOwnedAnimalHabitat()){notify("操作個体の移動可能地点が見つかりません");return false;}
+ syncSquadFollowers();syncSquadHud();if(writeSnapshot)saveAuto();
  if(!debugTutorialSession)window.WildTrophies?.record?.("species-lead",{type:choice},notify);
  return true;
 }
