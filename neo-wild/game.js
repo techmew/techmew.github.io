@@ -179,15 +179,23 @@ const WORLD_CHRONICLE_KEY="wild-reclaim-world-chronicle-v1";
 // The 85-second daylight loop starts at 06:00. New worlds begin at 08:00.
 const NEW_WORLD_START_ELAPSED=85*(8-6)/24;
 let worldChronicleSaveClock=0;
+function cleanWorldEventJournal(records,limit=80){
+ if(!Array.isArray(records))return [];
+ return records.filter(e=>e&&Number.isFinite(e.year)&&e.year>=0&&Number.isFinite(e.at)&&e.at>=0&&
+   typeof e.label==="string"&&e.label.length<=110&&
+   ["offline-ecology","alien-scout"].includes(e.kind))
+  .slice(-limit).map(e=>({year:e.year,at:e.at,kind:e.kind,label:e.label}));
+}
 function loadWorldChronicle(){
  try{
   const saved=JSON.parse(localStorage.getItem(WORLD_CHRONICLE_KEY)||"null");
   if(saved&&saved.version===1&&Number.isFinite(saved.elapsed)&&saved.elapsed>=0)
    return {elapsed:Math.min(saved.elapsed,1e10),lightningHistory:Array.isArray(saved.lightningHistory)?saved.lightningHistory.slice(-24):[],
     discoveredSites:Array.isArray(saved.discoveredSites)?saved.discoveredSites.filter(id=>typeof id==="string").slice(0,32):[],
-    earnedDiscoveries:Array.isArray(saved.earnedDiscoveries)?saved.earnedDiscoveries.filter(id=>typeof id==="string").slice(0,32):[]};
+    earnedDiscoveries:Array.isArray(saved.earnedDiscoveries)?saved.earnedDiscoveries.filter(id=>typeof id==="string").slice(0,32):[],
+    worldEventJournal:cleanWorldEventJournal(saved.worldEventJournal)};
  }catch(_){}
- return {elapsed:0,lightningHistory:[],discoveredSites:[],earnedDiscoveries:[]};
+ return {elapsed:0,lightningHistory:[],discoveredSites:[],earnedDiscoveries:[],worldEventJournal:[]};
 }
 function persistWorldChronicle(){
  if(debugTutorialSession)return false;
@@ -196,9 +204,16 @@ function persistWorldChronicle(){
  // Additive exploration journal survives a lost large autosave and older checkpoints.
  const sites=[...new Set([...(prior.discoveredSites||[]),...discoveredSites])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));
  const perks=[...new Set([...(prior.earnedDiscoveries||[]),...earnedDiscoveries])].filter(id=>!!DISCOVERY_PERKS[id]);
+ // Incidents outlive an animal's death (which clears the large autosave),
+ // and old tabs may not erase prior records when they save an empty journal.
+ const uniqueEvents=new Map();
+ for(const e of [...cleanWorldEventJournal(prior.worldEventJournal),...cleanWorldEventJournal(worldEventJournal)]){
+  uniqueEvents.set(e.kind+"|"+e.at+"|"+e.label,e);
+ }
+ const events=[...uniqueEvents.values()].sort((a,b)=>a.at-b.at).slice(-80);
  try{
   localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify({version:1,elapsed:seconds,worldYearsElapsed:Math.floor(seconds/120),lightningHistory:history,
-   discoveredSites:sites,earnedDiscoveries:perks,savedAt:Date.now()}));
+   discoveredSites:sites,earnedDiscoveries:perks,worldEventJournal:events,savedAt:Date.now()}));
   return true;
  }catch(_){return false}
 }
@@ -1274,7 +1289,7 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=[];trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home);
  ensureDenCover();
@@ -1670,9 +1685,12 @@ function restoreSnapshot(snapshot){
  })):initialEcology();
  ecologyClock=clamp(Number(snapshot.ecologyClock)||0,0,14.99);
  ecologyNews=typeof snapshot.ecologyNews==="string"?snapshot.ecologyNews.slice(0,100):"生態系は変化し続けている";
- worldEventJournal=Array.isArray(snapshot.worldEventJournal)?snapshot.worldEventJournal
-  .filter(e=>e&&Number.isFinite(e.year)&&e.year>=0&&typeof e.label==="string"&&e.label.length<=110&&
-   ["offline-ecology","alien-scout"].includes(e.kind)).slice(-40):[];
+ const incidentMap=new Map();
+ for(const e of [...cleanWorldEventJournal(loadWorldChronicle().worldEventJournal),
+                 ...cleanWorldEventJournal(snapshot.worldEventJournal)]){
+  incidentMap.set(e.kind+"|"+e.at+"|"+e.label,e);
+ }
+ worldEventJournal=[...incidentMap.values()].sort((a,b)=>a.at-b.at).slice(-40);
  // Only advance the current, valid autosave after a real absence. Old checkpoints,
  // stale tabs, debug sessions, future timestamps and the world clock are untouched.
  const freshest=getAutoSnapshot(),now=Date.now();
