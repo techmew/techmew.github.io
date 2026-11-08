@@ -31,7 +31,13 @@ function buildBackup(){
 }
 function exportBackup(){
  try{
-  const data=JSON.stringify(buildBackup());
+  const backup=buildBackup();
+  const data=JSON.stringify(backup);
+  // Recheck after JSON serialization: another tab may have saved while the
+  // potentially large backup string was being assembled.
+  const latest=snapshot();
+  if(digest(latest)!==backup.checksum||Object.keys(latest).length!==Object.keys(backup.records).length)
+   throw Error("バックアップ作成中に別タブで保存内容が変わりました。もう一度実行してください");
   // Never offer a backup that this same importer would reject as oversized.
   const bytes=new Blob([data],{type:"application/json;charset=utf-8"}).size;
   if(bytes>MAX_BYTES)throw Error("バックアップが16MBを超えています。保存データの容量を確認してください");
