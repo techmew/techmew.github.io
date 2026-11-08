@@ -8179,6 +8179,60 @@ function drawDeathVignette(){
  }
  ctx.restore();
 }
+// Continuous world-coordinate snow in Canvas2D fallback; never square tiles.
+function drawWorldSnow2D(snow,viewX,viewY){
+ const mountain=MOUNTAIN,step=64,margin=Math.max(vw,vh)*.92+125;
+ const alpineInView=!!mountain?.snowCover&&viewX+vw+margin>=10100&&viewX-margin<=mountain.EAST&&viewY+vh+margin>=2600&&viewY-margin<=5100;
+ if(snow<=.06&&!alpineInView)return;
+ const sx=Math.max(0,Math.floor((viewX-margin)/step)*step),sy=Math.max(0,Math.floor((viewY-margin)/step)*step);
+ const ex=Math.min(WORLD.w,viewX+vw+margin),ey=Math.min(WORLD.h,viewY+vh+margin);
+ const cache=new Map(),smooth=v=>v*v*(3-2*v);
+ const blended=(px,py,scale)=>{
+  const u=px/scale,v=py/scale,ix=Math.floor(u),iy=Math.floor(v),a=smooth(u-ix),b=smooth(v-iy);
+  return ((1-a)*noise(ix,iy)+a*noise(ix+1,iy))*(1-b)+((1-a)*noise(ix,iy+1)+a*noise(ix+1,iy+1))*b;
+ };
+ const mask=(px,py)=>{
+  const key=px+","+py;if(cache.has(key))return cache.get(key);
+  const depth=Math.max(0,Number(waterDepth(px,py))||0);
+  if(depth>.015){cache.set(key,-1);return -1;}
+  const broad=blended(px,py,170),detail=blended(px+1453,py-1091,48);
+  const weatherField=snow*.97-(broad*.78+detail*.22);
+  const alpine=px>=8300&&px<=13600&&py>=850&&py<=5100&&mountain?.snowCover?mountain.snowCover(px,py):0;
+  const alpineField=alpine>0?alpine*(.28+.45*snow)-.13:-1;
+  const result=Math.min(Math.max(weatherField,alpineField),Math.min(1,(.015-depth)/.015)-.5);
+  cache.set(key,result);return result;
+ };
+ const clip=verts=>{
+  const out=[];
+  for(let i=0;i<verts.length;i++){
+   const a=verts[i],b=verts[(i+1)%verts.length];
+   if(a[2]>=0)out.push(a);
+   if((a[2]>=0)!==(b[2]>=0)){
+    let lo=0,hi=1;
+    for(let k=0;k<5;k++){
+     const t=(lo+hi)*.5,v=mask(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t);
+     if((v>=0)===(a[2]>=0))lo=t;else hi=t;
+    }
+    const t=(lo+hi)*.5;out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,0]);
+   }
+  }
+  return out;
+ };
+ ctx.save();ctx.fillStyle="#f4f6f3";ctx.globalAlpha=.88;
+ for(let x=sx;x<ex;x+=step)for(let y=sy;y<ey;y+=step){
+  const x2=Math.min(x+step,WORLD.w),y2=Math.min(y+step,WORLD.h);
+  if(!visible((x+x2)*.5,(y+y2)*.5,96))continue;
+  const points=[[x,y],[x2,y],[x2,y2],[x,y2]].map(([px,py])=>[px,py,mask(px,py)]);
+  for(const indices of [[0,1,2],[0,2,3]]){
+   const poly=clip(indices.map(i=>points[i]));
+   if(poly.length<3)continue;
+   ctx.beginPath();ctx.moveTo(poly[0][0],poly[0][1]);
+   for(let i=1;i<poly.length;i++)ctx.lineTo(poly[i][0],poly[i][1]);
+   ctx.closePath();ctx.fill();
+  }
+ }
+ ctx.restore();
+}
 function drawScene(){
  // Earthquakes affect the world view only; never transform the app or HUD.
  // Keep motion under two pixels to avoid motion sickness on mobile.
@@ -8208,16 +8262,7 @@ function drawScene(){
  }
  drawWater2D();
   roadDraw();
-  // Canvas2D fallback receives the same world-year snow cover as native 3D.
-  const snowCover=currentSnowpack();
-  if(snowCover>.06){
-   for(let xx=farLeft;xx<x+vw*1.8+180;xx+=90)
-    for(let yy=farTop;yy<y+vh*2.3+180;yy+=90){
-     if(noise(xx*.073,yy*.091)>snowCover||waterDepth(xx+44,yy+41)>.005)continue;
-     ctx.fillStyle=(Math.floor(xx/90)+Math.floor(yy/90))%3?"#dceaf0dd":"#f1f4f6db";
-     ctx.fillRect(xx+5,yy+8,81,78);
-    }
-  }
+  drawWorldSnow2D(currentSnowpack(),x,y);
   drawScenery2D();
  drawDenBedding2D(false);
  // Foot-level water wake, visible only while an animal is actually moving.
