@@ -2452,15 +2452,22 @@ function strongStageCandidate(region){
  for(let i=0;i<options.length;i++){roll-=weights[i];if(roll<=0)return options[i];}
  return options[options.length-1];
 }
-function spawnStrongBoss(type,region){
+function spawnStrongBoss(type,region,spawnOrigin=null){
  if(!P||!species[type]||activeStrongBosses().length>=strongBossLimit()||mobs.length>=WILDLIFE.cap)return false;
  const sp=species[type],aquatic=AQUATIC_STRONG_TYPES.has(type),waterSpots=aquatic?aquaticStagePoints(region):null;
  if(aquatic&&!waterSpots.length)return false;
+ // Only the seal guardian uses deterministic cave-floor candidates; ordinary
+ // regional bosses retain the original randomized location policy.
+ const caveSpawn=spawnOrigin?.kind==="seal-cave"&&MOUNTAIN?.spawnCandidate;
  for(let i=0;i<100;i++){
   const angle=rnd(0,TWO),radius=rnd(370,Math.min(930,WILDLIFE.farAI-90));
   const spot=aquatic?waterSpots[Math.floor(Math.random()*waterSpots.length)]:null;
-  const x=spot?spot.x:clamp(P.x+Math.cos(angle)*radius,60,WORLD.w-60);
-  const y=spot?spot.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
+  const cave=caveSpawn?MOUNTAIN.spawnCandidate(spawnOrigin,i,false,"cave"):null;
+  if(caveSpawn&&!cave)continue;
+  const x=spot?spot.x:cave?cave.x:clamp(P.x+Math.cos(angle)*radius,60,WORLD.w-60);
+  const y=spot?spot.y:cave?cave.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
+  if(caveSpawn&&(Math.hypot(x-P.x,y-P.y)<Math.max(145,sp.r*3.5)||
+     Math.hypot(x-spawnOrigin.x,y-spawnOrigin.y)>380))continue;
   if(regionAt(x,y)!==region||mountainHabitat(x,y)!==mountainHabitat(P.x,P.y)||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
   // Boss health stays near 7-12 ordinary hits at high LV, not a day-based infinity.
   const hp=bossHealthTarget(sp);
@@ -2501,6 +2508,25 @@ function saveCaveSeal(state){
   return localStorage.getItem(CAVE_SEAL_KEY)===encoded;
  }catch(_){return false;}
 }
+// Nearby prey respond through the existing real movement/flight AI.
+ // Enemies, released individuals and player-owned animals are not retargeted.
+function startleCaveWildlife(threat,radius=480,budget=8){
+ if(!threat||!Array.isArray(mobs))return 0;
+ let count=0;
+ for(const m of mobs){
+  if(count>=budget)break;
+  if(!m||m.hp<=0||m===threat||m.companion||m.releasedIndividualId||m.sealGuardian||
+     !species[m.type]?.prey||Math.hypot(m.x-threat.x,m.y-threat.y)>radius)continue;
+  m.flee=Math.max(Number(m.flee)||0,2.2);
+  m.fleeThreatX=threat.x;m.fleeThreatY=threat.y;
+  m.dir=chooseEscape(m,Math.atan2(m.y-threat.y,m.x-threat.x),threat);
+  m.escapeTimer=.55;m.wander=0;m.navPath=null;
+  m.restTime=0;m.resting=false;
+  m.fleeEnergy=Math.max(.55,Number(m.fleeEnergy)||0);
+  count++;
+ }
+ return count;
+}
 function caveSealIncident(stage,year){
  worldEventJournal.push({year,at:Date.now(),kind:"cave-seal",
   label:stage==="released"?"山岳洞窟：古代の封印が解かれ、巨獣が目覚めた":"山岳洞窟：封印の巨獣が討伐され、野生の勢力が変化した"});
@@ -2526,6 +2552,7 @@ function tryReleaseCaveSeal(){
   area.events=(area.events||0)+1;
  }
  ecologyNews="洞窟の封印が解かれ、周囲の動物が逃げ始めた";
+ startleCaveWildlife(site,640,18);
  caveSealIncident("released",year);
  shake=Math.max(shake,5);playEffect("impact",{volume:.4});
  notify("封印が解かれた！ 洞窟周辺に強大な獣が現れる",4);
@@ -2544,15 +2571,18 @@ function tickCaveSeal(dt){
   caveSealNoticeAt=elapsed;
   notify("洞窟に封印の気配。近づいて○を長押しすると解放",3);
  }
- if(state.stage!=="released"||distance>820||mobs.length>=WILDLIFE.cap||
-    mobs.some(m=>m.hp>0&&m.sealGuardian))return;
+ if(state.stage!=="released")return;
+ const existing=mobs.find(m=>m.hp>0&&m.sealGuardian);
+ if(existing){startleCaveWildlife(existing,380,4);return;}
+ if(distance>820||mobs.length>=WILDLIFE.cap)return;
  const before=mobs.length;
- if(!spawnStrongBoss("oldBear",regionAt(P.x,P.y))||mobs.length!==before+1)return;
+ if(!spawnStrongBoss("oldBear",regionAt(P.x,P.y),{...site,kind:"seal-cave"})||mobs.length!==before+1)return;
  const guardian=mobs[mobs.length-1];
  guardian.sealGuardian=true;
  guardian.maxHp=Math.max(guardian.maxHp,Math.round(guardian.maxHp*1.55));
  guardian.hp=guardian.maxHp;guardian.sealAwakenedYear=state.openedYear;
  ecologyNews="封印の巨獣が動き出し、この地域の捕食圧が上昇";
+ startleCaveWildlife(guardian,540,18);
  notify("封印の巨獣が現れた。周囲の野生動物が逃走する",3);
  saveAuto();
 }
