@@ -2257,7 +2257,9 @@ function render(o){
    &&cam.x+vw+snowViewMargin>=10100&&cam.x-snowViewMargin<=13600
    &&cam.y+vh+snowViewMargin>=2600&&cam.y-snowViewMargin<=5100;
   if(snow>.06||alpineInView){
-   const step=32,margin=snowViewMargin;
+   // Fewer, larger shared-world cells lower per-frame snow mesh cost on mobile.
+   // Midpoint/center fan retains clipped contours at 24-world-unit resolution.
+   const step=48,margin=snowViewMargin;
    const firstX=Math.max(snow>.06?0:8300,Math.floor((cam.x-margin)/step)*step);
    const firstY=Math.max(snow>.06?0:2600,Math.floor((cam.y-margin)/step)*step);
    const endX=Math.min(snow>.06?WORLD.w:13600,cam.x+vw+margin);
@@ -2362,7 +2364,7 @@ function render(o){
     const sampled=vertices.map(p=>[p[0],p[1],field(p[0],p[1])]);
     // Constant snow albedo across cells: center-based tint caused visible
     // 32-unit square seams even where the clipped surface was continuous.
-    const tint="#e6eef0";
+    const tint="#f4f6f3";
     for(let edge=0;edge<8;edge++){
      const poly=clip([sampled[8],sampled[edge],sampled[(edge+1)%8]]);
      if(poly.length<3)continue;
