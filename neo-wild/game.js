@@ -39,8 +39,8 @@ const animals={
  elephant:{name:"ゾウ",hp:560,speed:173,damage:36,rate:.88,r:55,color:"#818c86",belly:"#b1bbb0",ear:"#66716c"},
  penguin:{name:"ペンギン",hp:95,speed:155,damage:16,rate:.45,r:23,color:"#263b46",belly:"#edf2e9",ear:"#263b46"},
  rhino:{name:"サイ",hp:540,speed:215,damage:43,rate:.81,r:46,color:"#88837c",belly:"#bbb3a9",ear:"#6a6560"},
- giantTreeFrog:{name:"巨大アマガエル",hp:160,speed:214,damage:25,rate:.42,r:28,color:"#63bb60",belly:"#d2e6a8",ear:"#489c51"},
- pacmanFrog:{name:"ベルツノガエル",hp:310,speed:142,damage:38,rate:.64,r:37,color:"#8a984a",belly:"#d8ba75",ear:"#656d39"}
+ giantTreeFrog:{name:"巨大アマガエル",hp:132,speed:205,damage:19,rate:.50,r:28,color:"#63bb60",belly:"#d2e6a8",ear:"#489c51"},
+ pacmanFrog:{name:"ベルツノガエル",hp:250,speed:138,damage:29,rate:.77,r:37,color:"#8a984a",belly:"#d8ba75",ear:"#656d39"}
 };
 // SOLO5: no lifespan cap. Legacy fields remain readable for SAVE_SCHEMA2 migration.
 function initializeLife(player,seconds,restored=false){
@@ -59,8 +59,8 @@ const species={
  manul:{hp:94,r:18,speed:215,damage:21,prey:false,xp:6,food:28,color:"#b1a89a",belly:"#dbd4c2"},
  tibetanFox:{hp:108,r:20,speed:257,damage:22,prey:false,xp:6,food:32,color:"#b8a18b",belly:"#f0deca"},
  shoebill:{hp:148,r:27,speed:142,damage:32,prey:false,xp:8,food:41,color:"#7d8990",belly:"#acb7ba"},
- giantTreeFrog:{hp:160,r:28,speed:214,damage:25,prey:false,xp:8,food:70,color:"#63bb60",belly:"#d2e6a8"},
- pacmanFrog:{hp:310,r:37,speed:142,damage:38,prey:false,xp:11,food:108,color:"#8a984a",belly:"#d8ba75"},
+ giantTreeFrog:{hp:132,r:28,speed:205,damage:19,prey:false,xp:8,food:70,color:"#63bb60",belly:"#d2e6a8"},
+ pacmanFrog:{hp:250,r:37,speed:138,damage:29,prey:false,xp:11,food:108,color:"#8a984a",belly:"#d8ba75"},
  crocodile:{hp:270,r:38,speed:174,damage:32,prey:false,xp:11,food:118,color:"#47664f",belly:"#a2b49a"},
  penguin:{hp:95,r:23,speed:155,damage:16,prey:false,xp:5,food:38,color:"#263b46",belly:"#edf2e9"},
  rhino:{hp:540,r:46,speed:215,damage:43,prey:false,xp:18,food:158,color:"#88837c",belly:"#bbb3a9"},
@@ -147,7 +147,7 @@ function strongNearWater(){
 function strongDamageTaken(raw){
  const reduced=traitEffect("giantHippo",traitEffect("rhino",raw),strongNearWater());
  // Rare blows hurt, but a single hit still leaves a recovery window.
- return Math.max(1,Math.min(Math.round(reduced),Math.ceil((P?.maxHp||110)*(strongBossLimit()>1?.27:.32))));
+ return Math.max(1,Math.min(Math.round(reduced),Math.ceil((P?.maxHp||110)*(strongBossLimit()>1?.27:.24))));
 }
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
@@ -299,8 +299,8 @@ let lastPackSpawnAt=-WILDLIFE.packCooldown;
  * damage and HP curve so an old long-lived save cannot become impossible. */
 const PACK_TYPES=["dog","strayCat","wildFox","raccoonDog","weasel","venomSnake","lion","macaque","chimpanzee"];
 function enemyChallengeTier(){return Math.max(0,Math.min(12,(P?.level||1)-1));}
-function enemyHealthFactor(){return 1+enemyChallengeTier()*.105+Math.min(16,Math.max(0,day-1))*.035;}
-function enemyDamageFactor(){return 1+enemyChallengeTier()*.055;}
+function enemyHealthFactor(){return 1+enemyChallengeTier()*.085+Math.min(16,Math.max(0,day-1))*.025;}
+function enemyDamageFactor(){return 1+enemyChallengeTier()*.045;}
 /* BOSS-BALANCE-V2: bosses survive multiple full attack chains.
  * Damage-level based budget, not a runaway day counter. */
 const BOSS_BALANCE_VERSION=2;
@@ -312,11 +312,11 @@ function bossHealthTarget(sp){
  // Preserve each animal's weight class: a giant elephant should outlast a
  // wolf even at high player level, while both scale with player attack upgrades.
  const weight=clamp(Math.pow(sp.hp/420,.34),.92,1.34);
- const budget=Math.max(sp.hp*.85,(P.damage||20)*27*weight*(1+enemyChallengeTier()*.021));
+ const budget=Math.max(sp.hp*.76,(P.damage||20)*(P.level<6?19:23)*weight*(1+enemyChallengeTier()*.018));
  return Math.round(Math.min(200000,budget));
 }
 function bossStrikePower(m){
- return (m?.strongBoss?1.44+enemyChallengeTier()*.025:1)*
+ return (m?.strongBoss?1.28+enemyChallengeTier()*.018:1)*
   (m?.strongBoss&&m.hp<m.maxHp*.45?1.16:1);
 }
 function bossPoiseBreak(m,damage,heavy=false){
@@ -1254,6 +1254,7 @@ function start(newWorld=false){
  denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
+ if(choice==="giantTreeFrog"||choice==="pacmanFrog")P.frogBalanceV1=true; // New saves use revised frog baselines.
  P.stillTime=0;P.beakStrike=false;P.beakVisual=0;P.attackAction=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  initializeLife(P,elapsed);
  // Restore exploration abilities for roster-only Continue, without doubling saved stats.
@@ -1471,6 +1472,16 @@ function restoreSnapshot(snapshot){
  P={...P,...p,base:animals[choice],type:choice};
  P.stillTime=clamp(Number(P.stillTime)||0,0,2.5);P.beakStrike=false;P.beakVisual=0;P.attackAction=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
  Object.assign(P,normalizeSavedPlayerStats(p,animals[choice]));
+ // Apply revised frog balance exactly once to legacy saves; preserve earned upgrades and HP ratio.
+ if((choice==="giantTreeFrog"||choice==="pacmanFrog")&&!p.frogBalanceV1){
+  const old=choice==="giantTreeFrog"?{hp:160,damage:25,rate:.42}:{hp:310,damage:38,rate:.64};
+  const revised=animals[choice],ratio=P.maxHp>0?clamp(P.hp/P.maxHp,0,1):1;
+  P.maxHp=Math.max(1,Math.round(P.maxHp*revised.hp/old.hp));
+  P.hp=Math.max(0,Math.round(P.maxHp*ratio));
+  P.damage=Math.max(1,Math.round(P.damage*revised.damage/old.damage));
+  P.rate=Math.max(.12,P.rate*revised.rate/old.rate);
+ }
+ if(choice==="giantTreeFrog"||choice==="pacmanFrog")P.frogBalanceV1=true;
  // Preserve saved birth year; older SAVE_SCHEMA2 runs migrate without resetting the world clock.
  initializeLife(P,Math.max(Number(snapshot.elapsed)||0,Number(snapshot.worldChronicleElapsed)||0,loadWorldChronicle().elapsed),true);
  // SAVE_SCHEMA=2 predates some survival fields: never resume with NaN hunger.
@@ -1702,8 +1713,8 @@ function hitboxesOverlap(a,b,distance){
 }
 function ordinaryMeleeReach(m){
  const advertised=STRONG_ATTACK_PROFILES[m.type]?.reach??(m.type==="boar"?115:m.type==="alpha"?112:37);
- const cap=m.type==="giraffe"?135:m.strongBoss?116:112;
- return P.r+m.r+Math.min(cap,Math.max(32,advertised)*Math.min(1.36,m.attackVariation?.reach||1));
+ const cap=m.type==="giraffe"?95:["elephant","giantElephant"].includes(m.type)?84:m.strongBoss?65:50;
+ return P.r+m.r+Math.min(cap,Math.max(18,advertised)*Math.min(1.25,m.attackVariation?.reach||1));
 }
 function applyOrdinaryStrikeEffect(m,angle){
  const alt=!m.strongBoss&&m.attackVariation;
@@ -3396,8 +3407,8 @@ const SPECIES_SPECIALS=Object.freeze(Object.fromEntries([
  ["wildDog","追い込みの連続噛み","double",145,1.23,.94,11],
  ["armadillo","丸まり回転突撃","roll",155,1.26,.89,12],
  ["hedgehog","針の迎撃","thorns",132,.77,3.14,11],
- ["giantTreeFrog","捕食旋風・舌の嵐","tongue",245,1.62,.94,12],
- ["pacmanFrog","巨口天墜・捕食震撃","slam",184,1.98,3.14,17]
+ ["giantTreeFrog","捕食旋風・舌の嵐","tongue",108,1.32,.94,14],
+ ["pacmanFrog","巨口天墜・捕食震撃","slam",46,1.50,3.14,18]
 ].map(([id,name,kind,range,power,arc,cooldown])=>
  [id,Object.freeze({name,kind,range,power,arc,cooldown})])));
 
@@ -3521,13 +3532,24 @@ function drawMacaqueStones(){
  ctx.restore();
 }
 
-function specialTargets(spec){
+function specialTargets(spec,contactStart=null){
  const radial=["roar","gust","slam","splash","thorns"].includes(spec.kind);
+ const physical=["lunge","roll","bite"].includes(spec.kind);
  const face=P.dir+(spec.kind==="backkick"?Math.PI:0);
  return mobs.filter(m=>{
   if(m.hp<=0||m.companion||!species[m.type])return false;
   const d=dist(P,m);
   if(d>P.r+m.r+spec.range||(P.type==="crocodile"&&d>P.r+m.r+68)||Math.abs((P.groundZ||0)-(m.groundZ||0))>26||lineBlocked(P,m))return false;
+  // A lunge must cross the victim's physical body. Acquisition range is not damage range.
+  // A stationary bite can only connect at the mouth, never across an empty field.
+  if(contactStart&&physical){
+   const dx=P.x-contactStart.x,dy=P.y-contactStart.y,travel2=dx*dx+dy*dy;
+   const t=travel2>1e-6?clamp(((m.x-contactStart.x)*dx+(m.y-contactStart.y)*dy)/travel2,0,1):1;
+   const cx=contactStart.x+dx*t,cy=contactStart.y+dy*t;
+   const extra=spec.kind==="bite"?24:10;
+   if((spec.kind==="bite"?d:Math.hypot(m.x-cx,m.y-cy))>P.r+m.r+extra||
+      lineBlocked({x:cx,y:cy},m))return false;
+  }
   const angle=Math.atan2(m.y-P.y,m.x-P.x);
   return radial||Math.abs(Math.atan2(Math.sin(angle-face),Math.cos(angle-face)))<=spec.arc;
  }).sort((a,b)=>{
@@ -3559,6 +3581,7 @@ function resolveSpeciesSpecial(){
  if(mode!=="play"||P.hp<=0||isControlBlocked())return 0;
  const spec=SPECIES_SPECIALS[type];if(!spec||P.type!==type)return 0;
  // Real movement remains collision-checked: lunge cannot cross barriers/water.
+ const specialStart={x:P.x,y:P.y};
  const enemies=specialTargets(spec),primary=enemies[0];
  if(type==="macaque"){
   if(primary)P.dir=Math.atan2(primary.y-P.y,primary.x-P.x);
@@ -3598,8 +3621,8 @@ function resolveSpeciesSpecial(){
  if(type==="hedgehog")P.inv=Math.max(P.inv||0,.65);
  let hitCount=0;
  const radial=["roar","gust","slam","splash","thorns"].includes(spec.kind);
- const limit=type==="giantTreeFrog"?3:radial?(type==="elephant"?6:4):spec.kind==="fan"?3:spec.kind==="double"?2:1;
- for(const m of specialTargets(spec).slice(0,limit)){
+ const limit=type==="giantTreeFrog"||type==="pacmanFrog"?2:radial?(type==="elephant"?6:4):spec.kind==="fan"?3:spec.kind==="double"?2:1;
+ for(const m of specialTargets(spec,specialStart).slice(0,limit)){
   const small=!!species[m.type]?.prey&&["rat","rabbit","frog","pigeon","crow","snake","carp"].includes(m.type);
   let power=spec.power;
   if(type==="shoebill")power*=small?1.72:1;
@@ -4099,7 +4122,7 @@ function resolveAttack(aerialContact=null){
   if(m.hp<=0||m.companion)return;
   const d=dist(P,m),overlap=hitboxesOverlap(P,m,d),theta=d>.001?Math.atan2(m.y-P.y,m.x-P.x):P.dir,angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
-   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?164:P.type==="pacmanFrog"?122:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
+   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?89:P.type==="pacmanFrog"?50:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="giantTreeFrog"?.68:P.type==="pacmanFrog"?.80:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
   const diveContact=aerialContact===m&&P.jumpTime>0&&P.jumpDive&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
   if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&
@@ -4294,10 +4317,12 @@ function resolveShoebillStomp(){
 }
 function resolveFrogLanding(){
  if(!P||!["giantTreeFrog","pacmanFrog"].includes(P.type)||!P.pendingStrike||!P.jumpDive)return 0;
- let count=0;const range=P.type==="pacmanFrog"?57:42;
+ let count=0;const range=P.type==="pacmanFrog"?24:18;
+ // Landing is one committed strike, not a stomp plus a second invisible normal hit.
+ P.pendingStrike=false;P.jumpDive=false;
  for(const m of mobs){
   if(m.hp<=0||m.companion||Math.abs((P.groundZ||0)-(m.groundZ||0))>24||dist(P,m)>P.r+m.r+range||lineBlocked(P,m))continue;
-  if(specialHit(m,P.type==="pacmanFrog"?.85:.71,.24,19,"跳躍踏みつけ")>0){count++;emitCombatFX("stomp",P.type,"foot",m.x,m.y,P.dir,.9,4,m.r);}
+  if(specialHit(m,P.type==="pacmanFrog"?.65:.58,.24,16,"跳躍踏みつけ")>0){count++;emitCombatFX("stomp",P.type,"foot",m.x,m.y,P.dir,.9,4,m.r);}
   if(count>=3)break;
  }
  if(count){shake=Math.max(shake,5);playEffect("impact",{volume:.26});}
