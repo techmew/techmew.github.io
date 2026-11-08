@@ -43,6 +43,9 @@ const animals={
  hedgehog:{name:"ハリネズミ",hp:54,speed:125,damage:7,rate:0.45,r:12,color:"#6b6053",belly:"#c6b39a",ear:"#655548"},
  manul:{name:"マヌルネコ",hp:94,speed:215,damage:21,rate:.37,r:18,color:"#b1a89a",belly:"#dbd4c2",ear:"#8b847a"},
  tibetanFox:{name:"チベットスナギツネ",hp:108,speed:257,damage:22,rate:.40,r:20,color:"#b8a18b",belly:"#f0deca",ear:"#8a7767"},
+ otter:{name:"カワウソ",hp:72,speed:230,damage:12,rate:.43,r:16,color:"#705946",belly:"#d0b49a",ear:"#4d3d30"},
+ carp:{name:"コイ",hp:62,speed:185,damage:8,rate:.55,r:15,color:"#97805c",belly:"#d6c09a",ear:"#725f49"},
+ hippo:{name:"カバ",hp:420,speed:198,damage:33,rate:.77,r:46,color:"#807875",belly:"#b7a4a1",ear:"#655958"},
  shoebill:{name:"ハシビロコウ",hp:148,speed:142,damage:32,rate:.72,r:27,color:"#7d8990",belly:"#acb7ba",ear:"#57646b"},
  macaque:{name:"ニホンザル",hp:108,speed:246,damage:21,rate:.43,r:21,color:"#867361",belly:"#c5b39c",ear:"#b7847b"},
  gorilla:{name:"ゴリラ",hp:345,speed:168,damage:34,rate:.77,r:39,color:"#494746",belly:"#918781",ear:"#74716a"},
@@ -1123,6 +1126,10 @@ function waterDepth(x,y){
 }
 function shallowWater(x,y){return waterDepth(x,y)>0;}
 function waterBlocksLand(x,y){return waterDepth(x,y)>.0001;}
+// All water travel shares the existing river/canal/flood collision field.
+// Fish must remain in navigable water; otters/hippos can swim and walk on banks.
+const WATER_PLAYABLES=new Set(["otter","hippo","carp"]);
+const fishWaterAt=(x,y)=>waterDepth(x,y)>.035;
 function buildingOverlapsWater(x,y,w,h){
  const l=x-18,r=x+w+18,t=y-18,b=y+h+18;
  if(r>6300&&t<2600&&b>0)for(let yy=Math.max(0,t);yy<=Math.min(2600,b)+32;yy+=32){
@@ -1263,18 +1270,24 @@ function start(newWorld=false){
  previouslyOnboardedAtRunStart=automaticTutorialShown;
  bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=[];trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
- const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
+ const origin=choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home);
  ensureDenCover();
  denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
  if(choice==="cat")P.catSpeedV2=true; // Faster base speed is applied to new cats.
  if(choice==="giantTreeFrog"||choice==="pacmanFrog")P.frogBalanceV1=true; // New saves use revised frog baselines.
  P.stillTime=0;P.beakStrike=false;P.beakVisual=0;P.attackAction=0;P.specialPending=null;P.specialWindup=0;P.specialVisual=0;P.shoebillSwingTime=0;
+ if(P.type==="carp"){
+  const water=nearestAquaticWater(P.x,P.y,P.r,regionAt(P.x,P.y));
+  if(!water)return false;
+  P.x=water.x;P.y=water.y;
+ }
+ P.swimVisual=waterDepth(P.x,P.y)>.035?1:0;
  initializeLife(P,elapsed);
  // Restore exploration abilities for roster-only Continue, without doubling saved stats.
  if(!restoringSavedWorld)for(const id of discoveredSites)awardDiscovery(id,true);
  // World geometry can change between releases. Never begin a run inside water or a wall.
- if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
+ if(waterBlocksLand(P.x,P.y)&&!WATER_PLAYABLES.has(P.type)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
   const bank=nearestDryBank(P.x,P.y,P.r);
   if(bank){P.x=bank.x;P.y=bank.y;}
  }
@@ -1515,7 +1528,14 @@ function restoreSnapshot(snapshot){
  P.poisonTime=clamp(Number(P.poisonTime)||0,0,9);
  P.x=clamp(p.x,P.r+12,WORLD.w-P.r-12);
  P.y=clamp(p.y,P.r+12,WORLD.h-P.r-12);
- if(waterBlocksLand(P.x,P.y)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}}
+ if(P.type==="carp"&&!fishWaterAt(P.x,P.y)){
+  const safe=nearestAquaticWater(P.x,P.y,P.r,regionAt(P.x,P.y))||
+   nearestAquaticWater(START_LOCATIONS.river.x,START_LOCATIONS.river.y,P.r,4);
+  if(!safe)return false;P.x=safe.x;P.y=safe.y;
+ }else if(waterBlocksLand(P.x,P.y)&&!WATER_PLAYABLES.has(P.type)&&!(P.type==="shoebill"&&waterDepth(P.x,P.y)<=.24)){
+  const safe=nearestDryBank(P.x,P.y,P.r);if(safe){P.x=safe.x;P.y=safe.y;}
+ }
+ P.swimVisual=waterDepth(P.x,P.y)>.035?1:0;
  const roof=roofAt(P.x,P.y);
  P.groundZ=roof;P.jumpHeight=roof;P.jumpTime=0;P.pounceTime=0;P.pounceRemaining=0;
  P.fallTime=0;P.dashTime=0;P.pendingStrike=false;P.chargeStrike=false;P.windup=0;
@@ -2809,7 +2829,12 @@ function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
  if(MOUNTAIN?.blocked(x,y,r,mountainIgnore))return true;
  if(window.WildDisaster?.blocked(x,y,r,elapsed/120))return true;
- if(!ignoreWater&&waterBlocksLand(x,y)&&!(actor===P&&actor.type==="shoebill"&&waterDepth(x,y)<=.24))return true;
+ if(!ignoreWater){
+  const depth=waterDepth(x,y);
+  if(actor===P&&actor.type==="carp"&&depth<=.035)return true;
+  if(depth>.0001&&!(actor===P&&(WATER_PLAYABLES.has(actor.type)||
+     (actor.type==="shoebill"&&depth<=.24))))return true;
+ }
  for(const prop of streetProps){
   if(prop.type!=="car"&&prop.type!=="vending"&&prop.type!=="barrier")continue;
   if(Math.hypot(x-prop.x,y-prop.y)<prop.r+8+r*.40)return true;
@@ -2920,6 +2945,8 @@ function move(o,dx,dy){
  const allowed=(x,y,d)=>{
    const water=waterDepth(x,y);
    // Shoebills are wading birds: walk into shallows, not across deep channels.
+   if(o===P&&o.type==="carp")return water>.035;
+   if(o===P&&(o.type==="otter"||o.type==="hippo"))return true;
    if(o===P&&o.type==="shoebill"&&water<=.24)return true;
    return water<=.0001||(d>.0001&&water<d-.00001);
   };
@@ -4378,11 +4405,11 @@ function jump(){
  if(P.sp<cost){notify("持久力不足 / ジャンプできない");return false}
  const axis=getAxes(),moving=Math.hypot(axis.x,axis.y)>.18;
  if(moving)P.dir=Math.atan2(axis.y,axis.x);
- const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:P.type==="shoebill"?165:P.type==="giantTreeFrog"?185:P.type==="pacmanFrog"?135:112)*traitEffect("whiteTiger",1);
- P.jumpDuration=cat?.44:wolf?.49:P.type==="shoebill"?.71:frog?.82:.45;
+ const distance=(cat?109+Math.min(46,(P.level-1)*5):wolf?70:P.type==="shoebill"?165:P.type==="carp"?54:P.type==="giantTreeFrog"?185:P.type==="pacmanFrog"?135:112)*traitEffect("whiteTiger",1);
+ P.jumpDuration=cat?.44:wolf?.49:P.type==="carp"?.32:P.type==="shoebill"?.71:frog?.82:.45;
  aerialPounceState.delete(P); // New jump, not a save-data mutation.
  P.jumpTime=P.jumpDuration;P.jumpHeight=P.groundZ||0;
- P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:P.type==="shoebill"?98:P.type==="giantTreeFrog"?171:P.type==="pacmanFrog"?146:58;
+ P.jumpFromHeight=0;P.jumpPower=cat?83+Math.min(20,(P.level-1)*3):wolf?43:P.type==="carp"?37:P.type==="shoebill"?98:P.type==="giantTreeFrog"?171:P.type==="pacmanFrog"?146:58;
  P.jumpRemaining=moving?distance:0;P.jumpSpeed=distance/P.jumpDuration;
  P.jumpDir=P.dir;P.jumpDive=false;P.jumpAmbush=P.hidden&&P.revealTimer<=0;
  P.wallKicks=0;P.wallKickLast=-1;P.wallKickTime=0;
@@ -6195,7 +6222,7 @@ function update(dt){
     P.sp=Math.max(0,P.sp-43*dt);
     if(P.sp<=10)P.sprintExhausted=true;
    }
-   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
+   const target=P.speed*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    if(ghostSteering){
     // Steering belongs entirely to the ghost; physical collisions still apply.
     P.ghostWanderClock=(P.ghostWanderClock||0)-dt;
@@ -6207,6 +6234,7 @@ function update(dt){
     applyDirectionalInput(P,forced,Math.min(152,Math.max(64,P.speed*.52)),dt,false);
    }else applyDirectionalInput(P,a,target,dt,foxTurbo);
    const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
+   if(WATER_PLAYABLES.has(P.type))P.swimVisual=fishWaterAt(P.x,P.y)?1:0;
    if(ghostSteering&&Math.hypot(P.x-oldX,P.y-oldY)<.3){
     P.ghostWanderAngle=(P.ghostWanderAngle||0)+Math.PI*(.65+Math.random()*.7);
     P.ghostWanderClock=0;
@@ -7722,7 +7750,7 @@ function routeClear(a,b,radius=P.r){
  if(a.x<border||a.y<border||b.x<border||b.y<border||
     a.x>WORLD.w-border||b.x>WORLD.w-border||a.y>WORLD.h-border||b.y>WORLD.h-border)return false;
  const dx=b.x-a.x,dy=b.y-a.y;
- if(Math.max(a.x,b.x)>5500){
+ if(Math.max(a.x,b.x)>5500&&!(a===P&&WATER_PLAYABLES.has(P.type))){
   const n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/32));
   for(let k=0;k<=n;k++){const t=k/n;if(waterBlocksLand(a.x+dx*t,a.y+dy*t))return false;}
  }
