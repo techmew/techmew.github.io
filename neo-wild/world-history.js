@@ -57,6 +57,15 @@ function entries(atSeconds=seconds()){
   const kind=typeof e.kind==="string"&&/^[a-zA-Z0-9_-]{1,40}$/.test(e.kind)?e.kind:"不明";
   items.push({year:y,label:"UFOによる動物の誘拐（"+kind+"）",kind:"ufo-abduction"});
  }
+ // Only actual stored incidents appear here; offline change never advances YEAR
+ // and must not be confused with a guaranteed disaster or UFO encounter.
+ const snapshot=worldState().auto;
+ if(Array.isArray(snapshot?.worldEventJournal))for(const e of snapshot.worldEventJournal.slice(-40)){
+  const y=Number(e?.year);
+  if(!Number.isFinite(y)||y<0||y>year||typeof e?.label!=="string"||e.label.length>110||
+     !["offline-ecology","alien-scout"].includes(e.kind))continue;
+  items.push({year:y,label:e.label,kind:e.kind});
+ }
  // Preserve all era markers and the earliest beginning event alongside recent incidents.
  const highlights=items.filter(e=>e.kind==="origin"||e.kind==="era-milestone");
  const incidents=items.filter(e=>e.kind!=="origin"&&e.kind!=="era-milestone").sort((a,b)=>b.year-a.year).slice(0,114);
