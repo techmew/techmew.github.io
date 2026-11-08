@@ -8660,11 +8660,14 @@ function switchSquadLeader(id,death=false){
  // The dead animal is already tombstoned. Begin the living successor at
  // a real safe den (or water habitat for fish) in the SAME world and year.
  const oldMode=mode;mode="play";
+ // Determine the successor's real habitat BEFORE applying the selected
+ // species: the dead player may have fallen in a remote cliff/wall or water.
+ const spawn=member.species==="carp"?START_LOCATIONS.river:START_LOCATIONS.home;
+ P.x=spawn.x;P.y=spawn.y;
+ P.groundZ=0;P.jumpHeight=0;P.flying=false;P.flightAltitude=0;
  if(!applySquadLeader(false)){
   mode=oldMode;show("result");notify("後継個体を復旧できません");return false;
  }
- const spawn=P.type==="carp"?START_LOCATIONS.river:START_LOCATIONS.home;
- P.x=spawn.x;P.y=spawn.y;
  P.groundZ=0;P.jumpHeight=0;P.flying=false;P.flightAltitude=0;
  P.flightLanding=false;P.flightLandingWarned=false;
  P.jumpTime=0;P.pounceTime=0;P.dashTime=0;P.fallTime=0;
