@@ -1331,6 +1331,64 @@ function drawJapaneseForestMammals3D(m,clock){
  return true;
 }
 
+
+/* Native forest playable anatomy: stable world coordinates shared by all body parts.
+ * No terrain, UI, save or species hitbox changes. */
+function drawForestPlayable3D(m,clock){
+ const type=m.type;
+ if(type==="tanuki")return drawJapaneseForestMammals3D({...m,type:"raccoonDog"},clock);
+ if(type!=="badger"&&type!=="blackBear")return false;
+ const r=m.r||20,dir=Number(m.dir)||0,c=Math.cos(dir),s=Math.sin(dir);
+ const fx=(a,b)=>m.x+a*c-b*s,fy=(a,b)=>m.y+a*s+b*c;
+ const orb=(a,b,z,rx,ry,rz,col)=>ellipsoid(fx(a,b),fy(a,b),z,rx,ry,rz,col,dir,10,6);
+ const sp=(a,b,z,rx,ry,h,col)=>pyramid(fx(a,b),fy(a,b),z,rx,ry,h,col);
+ const running=Math.min(1,Math.hypot(Number(m.vx)||0,Number(m.vy)||0)/(type==="badger"?165:135));
+ const stride=(m.steps||m.step||0)*2.5;
+ const fur=type==="badger"?"#77736a":"#343332",belly=type==="badger"?"#a49a88":"#554b49";
+ const attack=Math.min(1,Math.max(0,Number(m.attackAction)||0,Number(m.swing)||0));
+ if(type==="badger"){
+  // Badger: low, wedge-shaped body, digging forearms, striped face and heavy paws.
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const k=Math.sin(stride+(front===side?0:Math.PI))*running;
+   const reach=front>0?attack*r*.19:0;
+   orb(front*r*.59+k*r*.10+reach,side*r*.48,r*.24+Math.max(0,k)*r*.13,r*.26,r*.22,r*.25,"#514d46");
+   orb(front*r*.78+k*r*.11+reach,side*r*.53,r*.12,r*.29,r*.21,r*.12,"#383532");
+   if(front>0)for(let n=-1;n<=1;n++)sp(r*(1.01+k*.11)+reach,side*r*.53+n*r*.09,r*.10,r*.07,r*.045,r*.24,"#e1d5bd");
+  }
+  orb(-r*.18,0,r*.52,r*1.20,r*.67,r*.54,fur);
+  orb(r*.64,0,r*.53,r*.66,r*.52,r*.44,"#9f998f");
+  orb(r*1.08,0,r*.48,r*.67,r*.46,r*.32,"#d5d0c2");
+  for(const side of [-1,1]){
+   orb(r*1.08,side*r*.26,r*.57,r*.57,r*.13,r*.22,"#383838");
+   orb(r*1.30,side*r*.25,r*.64,r*.085,r*.06,r*.075,"#111517");
+   orb(r*.85,side*r*.43,r*.78,r*.17,r*.15,r*.18,fur);
+  }
+  orb(r*1.65,0,r*.36,r*.18,r*.21,r*.12,"#302b2a");
+  for(let i=0;i<5;i++)orb(-r*(1.25+i*.24),Math.sin(clock*.8+i*.3)*r*.08,r*(.46-i*.05),r*.27,r*(.19-i*.01),r*.20,fur);
+ }else{
+  // Japanese black bear: high shoulder mass, rounded ears, visible chest crescent.
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const k=Math.sin(stride+(front===side?0:Math.PI))*running;
+   orb(front*r*.59+k*r*.12,side*r*.60,r*.43+Math.max(0,k)*r*.12,r*.34,r*.31,r*.48,fur);
+   orb(front*r*.74+k*r*.13,side*r*.61,r*.10,r*.33,r*.31,r*.14,"#302e2c");
+   if(front>0)for(let n=-1;n<=1;n++)sp(r*(1.02+k*.13),side*r*.60+n*r*.13,r*.10,r*.055,r*.042,r*.21,"#ddd6c2");
+  }
+  orb(-r*.20,0,r*.95,r*1.26,r*.91,r*.85,fur);
+  orb(r*.48,0,r*1.22,r*.91,r*.85,r*.90,"#302e2d");
+  orb(r*.91,0,r*1.21,r*.69,r*.62,r*.62,fur);
+  for(const side of [-1,1]){
+   orb(r*.78,side*r*.49,r*1.64,r*.25,r*.21,r*.25,"#272625");
+   orb(r*1.17,side*r*.35,r*1.37,r*.09,r*.07,r*.08,"#e1c5aa");
+   orb(r*1.22,side*r*.35,r*1.38,r*.043,r*.04,r*.05,"#151819");
+   orb(r*.74,side*r*.20,r*.99,r*.27,r*.11,r*.30,"#d4cbbd");
+  }
+  orb(r*1.42,0,r*.92,r*.37,r*.31,r*.24,"#837971");
+  orb(r*1.65,0,r*.91,r*.15,r*.16,r*.12,"#292422");
+  orb(-r*1.32,0,r*.66,r*.28,r*.25,r*.28,fur);
+ }
+ return true;
+}
+
 function animal(m,player,clock){
  const type=m.type==="strayCat"?"cat":m.type==="wildFox"?"fox":m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,collapse=player?clamp(m.deathPose||0,0,1):0,dir=(m.dir||0)+collapse*.24,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
@@ -1375,6 +1433,7 @@ function animal(m,player,clock){
  if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:["penguin","crocodile","rhino"].includes(type)?.04:.58)+swingPose*r*.19;
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
+ if(drawForestPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawJapaneseForestMammals3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawPlayableFrog3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
@@ -1384,7 +1443,7 @@ function animal(m,player,clock){
   if(drawWorldSquadSpecies3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Deer uses the dedicated species model for both wildlife and the controlled player.
- if((!player||["deer","macaque","lion","elephant","cheetah"].includes(type))&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+ if((!player||["deer","macaque","lion","elephant","cheetah","giraffe","zebra"].includes(type))&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
 
  // Feet and real joints are below the torso, and each species has its own proportions.
  for(const s of [-1,1])for(const k of [-1,1]){
