@@ -2994,13 +2994,13 @@ function landOnSurface(){
 }
 function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
- const aerial=actor===P&&actor.flying&&actor.flightAltitude>=42;
+ const aerial=!!actor&&actor===P&&actor.flying&&actor.flightAltitude>=42;
  if(MOUNTAIN?.blocked(x,y,r,mountainIgnore)&&!aerial)return true;
  if(window.WildDisaster?.blocked(x,y,r,elapsed/120)&&!aerial)return true;
  if(!ignoreWater){
   const depth=waterDepth(x,y);
-  if(actor===P&&actor.type==="carp"&&depth<=.035)return true;
-  if(depth>.0001&&!aerial&&!(actor===P&&(WATER_PLAYABLES.has(actor.type)||
+  if(actor&&actor===P&&actor.type==="carp"&&depth<=.035)return true;
+  if(depth>.0001&&!aerial&&!(actor&&actor===P&&(WATER_PLAYABLES.has(actor.type)||
      (actor.type==="shoebill"&&depth<=.24))))return true;
  }
  for(const prop of streetProps){
