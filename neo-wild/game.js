@@ -471,6 +471,7 @@ function initialEcology(){
  return prey.map((n,i)=>({prey:n,predators:predators[i],food:55+(i%3)*13,pressure:0,dominance:i%2,events:0}));
 }
 let ecology=initialEcology(),ecologyClock=0,ecologyNews="生態系は変化し続けている";
+let worldEventJournal=[]; // Factual, bounded events stored inside SAVE_SCHEMA2 snapshots.
 // Hungry wild predators actively follow carcass scent across the existing terrain.
 // The existing scavenging routine performs the actual eating once they arrive.
 function seekWildCarcasses(){
@@ -1247,7 +1248,7 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=[];discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -1370,7 +1371,7 @@ function currentSnapshot(){
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
-  tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,strongRolls,strongTrophies
+  tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
  };
 }
 function saveAuto(){
@@ -1611,6 +1612,25 @@ function restoreSnapshot(snapshot){
  })):initialEcology();
  ecologyClock=clamp(Number(snapshot.ecologyClock)||0,0,14.99);
  ecologyNews=typeof snapshot.ecologyNews==="string"?snapshot.ecologyNews.slice(0,100):"生態系は変化し続けている";
+ worldEventJournal=Array.isArray(snapshot.worldEventJournal)?snapshot.worldEventJournal
+  .filter(e=>e&&Number.isFinite(e.year)&&e.year>=0&&typeof e.label==="string"&&e.label.length<=110&&
+   ["offline-ecology","alien-scout"].includes(e.kind)).slice(-40):[];
+ // Only advance the current, valid autosave after a real absence. Old checkpoints,
+ // stale tabs, debug sessions, future timestamps and the world clock are untouched.
+ const freshest=getAutoSnapshot(),now=Date.now();
+ const offlineEligible=!debugTutorialSession&&!window.WildDebugSandbox?.active&&
+  Number.isFinite(snapshot.savedAt)&&snapshot.savedAt===freshest?.savedAt&&
+  snapshot.elapsed+1>=loadWorldChronicle().elapsed;
+ if(offlineEligible){
+  const offline=window.WildEraEcology?.offlineAdvance?.(ecology,snapshot.savedAt,now,elapsed/120);
+  if(offline?.steps>0){
+   ecology=offline.regions;
+   for(const e of offline.events||[])worldEventJournal.push({year:Math.floor(elapsed/120),at:now,
+    kind:"offline-ecology",label:districts[e.region]+"："+e.label+"（不在中の生態変化）"});
+   worldEventJournal=worldEventJournal.slice(-40);
+   ecologyNews="不在中に"+offline.steps+"回の地域生態変化が起きた";
+  }
+ }
  earnedDiscoveries=Array.isArray(snapshot.earnedDiscoveries)?
  snapshot.earnedDiscoveries.filter(id=>typeof id==="string"&&DISCOVERY_PERKS[id]):[];
  for(const id of discoveredSites)awardDiscovery(id,true);
@@ -5567,7 +5587,9 @@ function maintainLocalWildlife(){
  const caveNeedsBalance=caveNeedsPrey||caveNeedsHunter;
  const weatherTarget=(weather==="RAIN"||weather==="THUNDER")?WILDLIFE.localTargetRain:WILDLIFE.localTargetClear;
  const eraState=window.WildEraEcology?.state?.(regionAt(P.x,P.y),elapsed/120);
- const target=Math.max(2,Math.min(WILDLIFE.localCap,Math.round(weatherTarget*(eraState?.animals??1))));
+ const localEco=ecology[regionAt(P.x,P.y)];
+ const carrying=localEco?clamp(.78+(localEco.prey-32)*.006-(localEco.predators-12)*.008,.65,1.16):1;
+ const target=Math.max(2,Math.min(WILDLIFE.localCap,Math.round(weatherTarget*(eraState?.animals??1)*carrying)));
  // An old save with many distant creatures must not leave the current district empty.
  if(!zone)ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
  if(caveNeedsBalance&&local>=WILDLIFE.localCap)retireCalmCaveOverflow(caveNeedsPrey,caveAnimals);
@@ -5970,6 +5992,16 @@ function update(dt){
   onAnimalDeath:(m,cause)=>{if(species[m.type])carcasses.push(animalRemains(m));}});
  recordDisasterEncounters();
  window.WildUFO?.tick?.(dt,{P,mobs,elapsed,mode,notify,lineBlocked,beginDeath,WORLD,
+  onAnimalDeath:(m,cause)=>{
+   if(!m||!species[m.type]||m._ufoDeathProcessed)return;
+   m._ufoDeathProcessed=true;m._killRegistered=true;
+   if(carcasses.length<280)carcasses.push(animalRemains(m));
+   const region=regionAt(m.x,m.y),zone=ecology[region];
+   if(zone){zone.prey=Math.max(4,zone.prey-1);zone.pressure=Math.min(5,zone.pressure+1);}
+   worldEventJournal.push({year:Math.floor(elapsed/120),at:Date.now(),kind:"alien-scout",
+    label:districts[region]+"：異星偵察機の攻撃で"+(animals[m.type]?.name||m.type)+"が死亡"});
+   worldEventJournal=worldEventJournal.slice(-40);
+  },
    isPlayerConcealed:()=>!!(P.hidden||insideShelter(P)||
      (inCover(P)&&Math.hypot(Number(P.vx)||0,Number(P.vy)||0)<(Number(P.speed)||150)*.50)),
   onPlayerAbductionStart:()=>{
