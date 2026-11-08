@@ -26,6 +26,9 @@ const animals={
  fox:{name:"アカギツネ",hp:110,speed:285,damage:22,rate:.39,r:19,color:"#d97947",belly:"#f4d3a0",ear:"#c06e42"},
  cat:{name:"ノラネコ",hp:85,speed:320,damage:16,rate:.28,r:16,color:"#abaf9d",belly:"#e7e7da",ear:"#8e998a"},
  wolf:{name:"オオカミ",hp:155,speed:175,damage:34,rate:.56,r:24,color:"#718991",belly:"#cad2c9",ear:"#546973"},
+ tiger:{name:"トラ",hp:355,speed:284,damage:36,rate:.52,r:40,color:"#bc834a",belly:"#e7d2ab",ear:"#966a3c"},
+ cheetah:{name:"チーター",hp:106,speed:412,damage:20,rate:.34,r:23,color:"#d4b174",belly:"#eedbb1",ear:"#b18c59"},
+ hyena:{name:"ハイエナ",hp:162,speed:272,damage:24,rate:.49,r:26,color:"#9b8565",belly:"#d1b997",ear:"#77654b"},
  dog:{name:"野犬",hp:125,speed:240,damage:19,rate:.42,r:22,color:"#9c785a",belly:"#e2c9a3",ear:"#72523c"},
  deer:{name:"ニホンジカ",hp:135,speed:275,damage:12,rate:.54,r:26,color:"#a77d53",belly:"#e4d1b3",ear:"#8e6745"},
  boar:{name:"イノシシ",hp:190,speed:205,damage:26,rate:.62,r:28,color:"#796358",belly:"#af9c87",ear:"#59453c"},
@@ -472,6 +475,7 @@ function initialEcology(){
 }
 let ecology=initialEcology(),ecologyClock=0,ecologyNews="生態系は変化し続けている";
 let worldEventJournal=[]; // Factual, bounded events stored inside SAVE_SCHEMA2 snapshots.
+let trophySurveyClock=0; // Runtime-only, no SAVE_SCHEMA2 or ownership changes.
 // Hungry wild predators actively follow carcass scent across the existing terrain.
 // The existing scavenging routine performs the actual eating once they arrive.
 function seekWildCarcasses(){
@@ -1248,7 +1252,7 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=[];discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=[];trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home;
  ensureDenCover();
@@ -3707,6 +3711,7 @@ function instinct(){
  const cost=spec.kind==="slam"||spec.kind==="roar"?25:spec.kind==="pierce"?23:18;
  if(P.sp<cost){notify("持久力不足 / 固有技を出せない");return}
  P.sp-=cost;P.instinctCD=spec.cooldown*(P.instinctBonus?.85:1);
+ if(!debugTutorialSession)window.WildTrophies?.record?.("species-special",{type:P.type},notify);
  P.abilityTime=Math.max(P.abilityTime||0,3.4);
  P.specialAmbush=!!P.hidden&&P.revealTimer<=0;
  P.specialKind=spec.kind;P.attackAction=.9;
@@ -4227,7 +4232,7 @@ function kill(m){
   const roster=window.WildSquad.grantTickets(1);
   if(roster)notify("狩猟達成：ガチャ権 +1（巣・タイトルで欠員補充）");
  }
- window.WildTrophies?.record?.("kill",{type:m.type},notify);
+ window.WildTrophies?.record?.("kill",{type:m.type,region:regionAt(m.x,m.y),boss:!!m.strongBoss},notify);
  P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);
  if(isAquaticStrong(m)){
@@ -6033,12 +6038,29 @@ function update(dt){
   },
   onEvent:(event,data)=>window.WildTrophies?.record?.(event,data,notify)});
  if(P.hp<=0){beginDeath();return;}
+ // A nearby living animal counts as sighted only with clear line-of-sight.
+ // Two-second throttle keeps dense worlds and low-end phones responsive.
+ trophySurveyClock+=dt;
+ if(trophySurveyClock>=2&&!debugTutorialSession){
+  trophySurveyClock=0;
+  const trophies=window.WildTrophies;
+  if(trophies){
+   const region=regionAt(P.x,P.y);
+   if(!trophies.has?.("region-visit-"+region))trophies.record?.("region-visit",{region},notify);
+   for(const m of mobs){
+    if(!m||m.hp<=0||m.companion||m.releasedIndividualId||
+       trophies.has?.("spot-"+m.type)||dist(P,m)>280||lineBlocked(P,m))continue;
+    trophies.record?.("sighting",{type:m.type},notify);
+   }
+  }
+ }
  updateBirdFlocks(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
   awardDiscovery(site.id);
   if(discoveredSites.length>0&&discoveredSites.length%2===0)awardGameplayGachaTicket("explore",Math.floor(discoveredSites.length/2));
   window.WildTrophies?.record?.("explore",{sites:discoveredSites.length},notify);
+  if(!debugTutorialSession)window.WildTrophies?.record?.("explore-site",{site:site.id},notify);
   ecologyNews=site.name+"で新しい知識を獲得";
   label(P.x,P.y-38,"探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length,"#d6e9b3");
   saveAuto();
@@ -8620,7 +8642,9 @@ function applySquadLeader(){
  P.riverPerk=perks.has("river");P.foragePerk=perks.has("forest");
  P.rainGrip=perks.has("canal");P.instinctBonus=perks.has("ark");
  initializeLife(P,elapsed,false);
- syncSquadFollowers();syncSquadHud();saveAuto();return true;
+ syncSquadFollowers();syncSquadHud();saveAuto();
+ if(!debugTutorialSession)window.WildTrophies?.record?.("species-lead",{type:choice},notify);
+ return true;
 }
 window.addEventListener("wild-squad-updated",()=>{if(mode==="menu")refreshSaveMenu();});
 window.addEventListener("wild-squad-selected",event=>{
