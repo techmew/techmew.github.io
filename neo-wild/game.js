@@ -6529,7 +6529,7 @@ function update(dt){
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
     const t=denom>0?clamp(((P.x-ox)*ddx+(P.y-oy)*ddy)/denom,0,1):0;
-    if(!m.chargeHit&&(P.jumpHeight||0)<22&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<P.r+m.r+4&&!lineBlocked(m,P)){
+    if(!m.chargeHit&&(P.jumpHeight||0)<22&&denom>1&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<Math.max(12,P.r*.72+m.r*.68)&&((P.x-ox)*Math.cos(m.chargeDir)+(P.y-oy)*Math.sin(m.chargeDir))>=-Math.min(P.r,m.r)*.35&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
