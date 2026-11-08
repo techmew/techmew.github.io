@@ -124,6 +124,16 @@ function spawnCandidate(player,attempt=0,preyOnly=false,requestedZone=null){
   const y=center(x)+clamp(730+(Math.floor(n/7)%5)*52,700,southReach(x)-75);
   return {x,y};
  }
+ // Spawn wildlife on the actual north-forest-to-mountain pass, rather than
+ // relocating it to the southern ridge. Every slot uses shared collision.
+ if(northPass(player.x,player.y)){
+  for(let k=0;k<24;k++){
+   const index=n+k,px=clamp(player.x+((index%9)-4)*43,10475,11155);
+   const py=passTrailY(px)+((Math.floor(index/9)%7)-3)*45;
+   if(northPass(px,py)&&active(px,py)&&!headwaterAt(px,py,22)&&!blocked(px,py,18))return {x:px,y:py};
+  }
+  return null;
+ }
  if(northWood(player.x,player.y)){
   // Northern-forest spawns must obey the same solid trees, rocks and pass
   // collision as the player. Never spawn an NPC trapped inside scenery.
