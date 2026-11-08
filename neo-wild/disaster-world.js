@@ -274,8 +274,14 @@ function tick(dt,api){
  }
  // Animals already in the expanding water retreat; no teleport or damage without warning.
  for(const e of events)if(e.kind==="flood"&&active(e,year)){
-  for(const m of api.mobs||[])if(m?.hp>0&&floodDepth(m.x,m.y,year)>.1){
-   m.flee=Math.max(m.flee||0,2.0);m.fleeThreatX=e.x;m.fleeThreatY=e.y;
+  for(const m of api.mobs||[])if(m?.hp>0){
+   const depth=floodDepth(m.x,m.y,year);
+   if(depth<=.1)continue;
+   m.flee=Math.max(m.flee||0,2.0+depth*2);
+   m.fleeThreatX=e.x;m.fleeThreatY=e.y;
+   m.resting=false;m.restTime=0;m.foragePose=0;
+   // Floodwater interrupts feeding and resting until the animal reaches dry ground.
+   // Avoid arbitrary HP loss: aquatic species and legacy saves share this path.
   }
  }
  if(fireWarning){
