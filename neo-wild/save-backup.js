@@ -41,7 +41,9 @@ function exportBackup(){
   const timestamp=[when.getFullYear(),String(when.getMonth()+1).padStart(2,"0"),String(when.getDate()).padStart(2,"0")].join("")+"-"+[when.getHours(),when.getMinutes()].map(v=>String(v).padStart(2,"0")).join("");
   a.href=url;a.download="WILD_RECLAIM_BACKUP_"+timestamp+".json";a.style.display="none";
   document.body.append(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),15000);
+  // Android download managers may consume the blob URL after the click handler returns.
+  // Keep it alive long enough for the browser to begin copying the JSON file.
+  setTimeout(()=>URL.revokeObjectURL(url),120000);
   status("バックアップのダウンロードを開始しました。端末の「ダウンロード」にJSONファイルが保存されたことを確認してください。");
  }catch(error){status("バックアップ作成失敗："+(error?.message||"ブラウザの保存設定を確認してください"),true);}
 }
