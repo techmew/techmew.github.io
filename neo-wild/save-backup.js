@@ -102,7 +102,10 @@ function validate(file){
  }
  return Object.assign(Object.create(null),data);
 }
-async function importBackup(file){
+// Capture local storage BEFORE opening the Android file picker, not after.
+// Concurrent additions, edits and deaths must be detected on import.
+let importBaseline=null;
+async function importBackup(file,baseline=null){
  try{
   if(!file||file.size<=0||file.size>MAX_BYTES)throw Error("ファイルが空、または16MBを超えています");
   const jsonText=typeof file.text==="function"?await file.text():await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||""));reader.onerror=()=>reject(reader.error||Error("ファイルを読み取れません"));reader.readAsText(file,"UTF-8");});
@@ -110,7 +113,7 @@ async function importBackup(file){
   if(!document.getElementById("menu")||document.getElementById("menu").classList.contains("hidden"))throw Error("読み込みはタイトル画面でのみ実行できます");
   const confirmed=window.confirm("バックアップを読み込むと現在のゲーム進行を置き換えます。\n現在のデータを先にバックアップしましたか？\n死亡・野生放流した個体の永久離脱は維持されます。");
   if(!confirmed){status("読み込みをキャンセルしました。");return}
-  const before=snapshot(),merged=Object.assign(Object.create(null),data);
+  const before=baseline||snapshot(),merged=Object.assign(Object.create(null),data);
   // Never treat a corrupt local permanent-ID journal as an empty list.
   // An import must stop rather than silently resurrect a dead/released animal.
   for(const key of ["wild-reclaim-dead-ids-v1","wild-reclaim-released-ids-v1"]){
@@ -200,8 +203,14 @@ function setup(){
  const save=$("save-backup-export"),load=$("save-backup-import"),file=$("save-backup-file");
  if(!save||!load||!file)return;
  save.addEventListener("click",exportBackup);
- load.addEventListener("click",()=>file.click());
- file.addEventListener("change",()=>{const picked=file.files?.[0];file.value="";if(picked)void importBackup(picked);});
+ load.addEventListener("click",()=>{
+  try{importBaseline=snapshot();file.click();}
+  catch(error){importBaseline=null;status("現在の保存状態を確認できません："+(error?.message||""),true);}
+ });
+ file.addEventListener("change",()=>{
+  const picked=file.files?.[0],baseline=importBaseline;importBaseline=null;file.value="";
+  if(picked)void importBackup(picked,baseline);
+ });
  try{localStorage.length}catch(_){status("このブラウザでは保存領域にアクセスできません。通常モードで開いてください。",true);}
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup,{once:true});else setup();
