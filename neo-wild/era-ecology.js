@@ -11,15 +11,19 @@
   const r=Math.max(0,Math.min(REGIONS-1,Math.floor(Number(region)||0)));
   const y=Math.max(0,Number(year)||0);
   const era=Math.floor((y+1e-9)/PERIOD),stage=progressionYear(y);
-  if(stage<20)return {region:r,era,kind:"stable",name:names[0],food:1,animals:1,year:Math.round(era*PERIOD*10)/10};
+  // Seasonal forage shifts encounter pressure without spawning extra animals.
+  const season=Math.min(3,Math.floor(((y%1)+1)%1*4));
+  const foodSeason=[1.10,1.24,.91,.62][season],animalSeason=[1.02,1.08,.97,.82][season];
+  const seasonal=(kind,food,animals)=>({region:r,era,kind,name:names[{stable:0,greening:1,abundance:2,drought:3,predators:4,recovery:5,migration:6}[kind]],food:Math.round(food*foodSeason*1000)/1000,animals:Math.round(animals*animalSeason*1000)/1000,year:Math.round(era*PERIOD*10)/10});
+  if(stage<20)return seasonal("stable",1,1);
   // An unlock never forces an event. Every region draws independently per five-year epoch.
   const chance=stage<50?.20:stage<100?.27:stage<200?.34:.39;
   const roll=hash(r,era,0);
-  if(roll>=chance)return {region:r,era,kind:"stable",name:names[0],food:1,animals:1,year:Math.round(era*PERIOD*10)/10};
+  if(roll>=chance)return seasonal("stable",1,1);
   const selector=hash(r,era,1);
   const kind=selector<.28?"greening":selector<.50?"abundance":selector<.68?"drought":selector<.82?"predators":selector<.92?"recovery":"migration";
   const values={greening:[1.18,1.10],abundance:[1.35,1.16],drought:[.62,.78],predators:[.83,1.08],recovery:[.76,.68],migration:[.88,1.22]}[kind];
-  return {region:r,era,kind,name:names[{greening:1,abundance:2,drought:3,predators:4,recovery:5,migration:6}[kind]],food:values[0],animals:values[1],year:Math.round(era*PERIOD*10)/10};
+  return seasonal(kind,values[0],values[1]);
  }
  // Region-to-region migration follows a deterministic seasonal corridor.
  // No extra mobs are spawned; only existing encounter draws are redistributed.
