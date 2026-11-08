@@ -2364,7 +2364,7 @@ function render(o){
     const sampled=vertices.map(p=>[p[0],p[1],field(p[0],p[1])]);
     // Constant snow albedo across cells: center-based tint caused visible
     // 32-unit square seams even where the clipped surface was continuous.
-    const tint="#f4f6f3";
+    const tint=color("#f4f6f3");
     for(let edge=0;edge<8;edge++){
      const poly=clip([sampled[8],sampled[edge],sampled[(edge+1)%8]]);
      if(poly.length<3)continue;
