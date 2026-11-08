@@ -2195,7 +2195,17 @@ function render(o){
      const a=verts[i],b=verts[(i+1)%verts.length];
      if(a[2]>=0)out.push(a);
      if((a[2]>=0)!==(b[2]>=0)){
-      const t=a[2]/(a[2]-b[2]);
+      // The snow mask is nonlinear between vertices. Refine the contour in
+      // world space so adjoining triangles meet at the same physical edge,
+      // rather than drawing straight threshold estimates across steep slopes.
+      let lo=0,hi=1;
+      const positive=a[2]>=0;
+      for(let k=0;k<6;k++){
+       const mid=(lo+hi)*.5;
+       const value=field(a[0]+(b[0]-a[0])*mid,a[1]+(b[1]-a[1])*mid);
+       if((value>=0)===positive)lo=mid;else hi=mid;
+      }
+      const t=(lo+hi)*.5;
       out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,0]);
      }
     }
