@@ -172,6 +172,9 @@ let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcas
 let deathSharePending=false;
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,questReady=false,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
 const AUTOSAVE_KEY="wild-reclaim-autosave-v2",CHECKPOINTS_KEY="wild-reclaim-checkpoints-v2",SAVE_SCHEMA=2;
+// Per-page session ID; legacy SAVE_SCHEMA2 data remains readable unchanged.
+const SAVE_TAB_ID=globalThis.crypto?.randomUUID?.()||"tab-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);
+let approvedForeignSaveAt=null;
 const WORLD_CHRONICLE_KEY="wild-reclaim-world-chronicle-v1";
 // The 85-second daylight loop starts at 06:00. New worlds begin at 08:00.
 const NEW_WORLD_START_ELAPSED=85*(8-6)/24;
@@ -1397,7 +1400,7 @@ function clearAutoSave(){
 function currentSnapshot(){
  if(!P||P.hp<=0||!(mode==="play"||mode==="pause"||mode==="upgrade"||mode==="inventory"||mode==="guide"||mode==="milestone"))return null;
  return {
-  version:SAVE_SCHEMA,worldVersion:2,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
+  version:SAVE_SCHEMA,worldVersion:2,saveSessionId:SAVE_TAB_ID,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
@@ -1424,6 +1427,13 @@ function saveAuto(){
    }
    // Cross-tab / stale-version protection. Only a user-authorized NEW GAME resets the clock.
    const explicitReset=localStorage.getItem("wild-reclaim-explicit-new-world-v1")==="1";
+   // A new Continue may claim precisely the autosave it loaded, once.
+   // An older tab is blocked even when its local world clock has advanced.
+   if(previous?.saveSessionId&&previous.saveSessionId!==SAVE_TAB_ID&&!explicitReset&&
+      (approvedForeignSaveAt===null||previous.savedAt!==approvedForeignSaveAt)){
+    console.warn("WILD RECLAIM: another tab owns this autosave; stale write refused");
+    return false;
+   }
    if(previous&&!isValidSnapshot(previous)&&!explicitReset){
     console.warn("WILD RECLAIM: existing autosave invalid; preserve raw data for backup");return false;
    }
@@ -1439,6 +1449,7 @@ function saveAuto(){
   const encoded=JSON.stringify(snapshot);
   localStorage.setItem(AUTOSAVE_KEY,encoded);
   snapshotSaved=localStorage.getItem(AUTOSAVE_KEY)===encoded;
+  if(snapshotSaved)approvedForeignSaveAt=null;
  }catch(error){console.warn("WILD RECLAIM: autosave storage quota or permissions",error);}
  // The smaller world journal may still fit when a full autosave cannot.
  persistWorldChronicle();
@@ -1490,7 +1501,14 @@ function reconcileRestoredGoals(){
 }
 function restoreSnapshot(snapshot){
  deathSharePending=false;window.WildDeathShare?.reset?.();
+ approvedForeignSaveAt=null;
  if(!squadSnapshotAlive(snapshot))return false;
+ // Checkpoints may not take ownership from a newer autosave in another tab.
+ const activeSave=getAutoSnapshot();
+ if(activeSave&&Number.isFinite(snapshot.savedAt)&&activeSave.savedAt===snapshot.savedAt&&
+    activeSave.elapsed===snapshot.elapsed&&activeSave.scoreRunId===snapshot.scoreRunId&&
+    activeSave.player?.squadIndividualId===snapshot.player?.squadIndividualId)
+  approvedForeignSaveAt=activeSave.savedAt;
  migrateSeenTutorial(snapshot);
  choice=snapshot.player.type;
  selectNewGameAnimal(choice);
