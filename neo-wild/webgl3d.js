@@ -1440,6 +1440,33 @@ function drawAquaticPlayable3D(m,clock){
  return true;
 }
 
+
+/* Anatomical bird models retain head and beak alignment while actual flight
+ * altitude controls wing articulation. */
+function drawPlayableBird3D(m,clock){
+ if(m.type!=="crow"&&m.type!=="pigeon")return false;
+ const crow=m.type==="crow",r=m.r||13,dir=Number(m.dir)||0,c=Math.cos(dir),s=Math.sin(dir);
+ const x=(a,b)=>m.x+a*c-b*s,y=(a,b)=>m.y+a*s+b*c;
+ const orb=(a,b,z,rx,ry,rz,color)=>ellipsoid(x(a,b),y(a,b),z,rx,ry,rz,color,dir,10,5);
+ const main=crow?"#303943":"#879e9f",wing=crow?"#24303b":"#617987",belly=crow?"#586571":"#d5dad6";
+ const flap=Math.sin(clock*(m.flying?17:3)+(m.steps||m.step||0)*.5);
+ orb(-r*.17,0,r*.45,r*(crow?1.04:.89),r*.53,r*.44,main);
+ orb(r*.30,0,r*.33,r*.65,r*.42,r*.33,belly);
+ orb(r*.67,0,r*.64,r*.47,r*.43,r*.40,main);
+ orb(r*1.1,0,r*.55,r*(crow?.40:.29),r*.20,r*.15,crow?"#697174":"#d8b88f");
+ orb(r*1.40,0,r*.51,r*.11,r*.075,r*.06,crow?"#272b2f":"#af835b");
+ for(const side of [-1,1]){
+  const height=r*(.57+(m.flying?.55+.47*flap:.04));
+  for(let k=0;k<6;k++)orb(-r*(.21+k*.13),side*r*(.57+k*.18),
+   height-r*k*.04,r*(.63-k*.045),r*.19,r*.12,k%2?wing:main);
+  orb(r*.79,side*r*.29,r*.76,r*.095,r*.07,r*.08,"#1c2326");
+  orb(r*.82,side*r*.31,r*.78,r*.035,r*.027,r*.035,"#e9e7d8");
+  if(!m.flying){orb(-r*.20,side*r*.30,r*.15,r*.10,r*.10,r*.24,"#7c7774");orb(-r*.15,side*r*.37,r*.055,r*.19,r*.10,r*.07,"#a38b7b");}
+ }
+ for(let n=-2;n<=2;n++)orb(-r*1.06,n*r*.13,r*.42,r*(crow?.66:.50),r*.12,r*.08,wing);
+ return true;
+}
+
 function animal(m,player,clock){
  const type=m.type==="strayCat"?"cat":m.type==="wildFox"?"fox":m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,collapse=player?clamp(m.deathPose||0,0,1):0,dir=(m.dir||0)+collapse*.24,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
@@ -1484,6 +1511,7 @@ function animal(m,player,clock){
  if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:["penguin","crocodile","rhino"].includes(type)?.04:.58)+swingPose*r*.19;
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
+ if(drawPlayableBird3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawAquaticPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawForestPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawDistinctWildlife3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
