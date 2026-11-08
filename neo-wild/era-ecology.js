@@ -34,7 +34,9 @@
   const active=CORRIDORS.filter(([a,b])=>{const left=state(a,y),right=state(b,y);return left.kind==="migration"||right.kind==="migration"||(left.kind==="drought"&&right.food>left.food)||(right.kind==="drought"&&left.food>right.food);});
   // Choose the strongest active corridor, not the first array entry.
   // In a drought animals leave the poorer habitat; winter reduces intake.
-  const habitat=s=>s.food/(s.kind==="predators"?1.5:1);
+  // Winter amplifies scarcity in drought and predator-heavy regions, steering herds toward shelter.
+  const winter=Math.min(3,Math.floor(((y%1)+1)%1*4))===3;
+  const habitat=s=>s.food/(s.kind==="predators"?(winter?1.85:1.5):1)/(winter&&s.kind==="drought"?1.3:1);
   const candidates=active.filter(([a,b])=>a===r||b===r).map(pair=>{
    const a=state(pair[0],y),b=state(pair[1],y);
    const delta=habitat(a)-habitat(b);
@@ -45,7 +47,7 @@
   if(!candidates.length)return {active:false,source:r,destination:r,grazer:1,hunter:1};
   candidates.sort((a,b)=>b.strength-a.strength||a.pair[0]-b.pair[0]);
   const {source,destination}=candidates[0];
-  const season=Math.min(3,Math.floor(((y%1)+1)%1*4)),winter=season===3;
+  const season=Math.min(3,Math.floor(((y%1)+1)%1*4));
   // Winter reduces forage at the destination, while drought increases departures.
   // Population is redistributed within the existing spawn budget, never duplicated.
   const departure=state(source,y),arrival=state(destination,y);
