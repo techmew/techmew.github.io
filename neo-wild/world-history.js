@@ -72,7 +72,7 @@ function entries(atSeconds=seconds()){
  for(const e of sourceEvents.slice(-160)){
   const y=Number(e?.year);
   if(!Number.isFinite(y)||y<0||y>year||typeof e?.label!=="string"||e.label.length>110||
-     !["offline-ecology","alien-scout"].includes(e.kind))continue;
+     !["offline-ecology","alien-scout","cave-seal"].includes(e.kind))continue;
   const key=e.kind+"|"+e.at+"|"+e.label;
   if(recorded.has(key))continue;
   recorded.add(key);
