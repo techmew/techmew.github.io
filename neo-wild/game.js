@@ -1698,11 +1698,11 @@ function restoreSnapshot(snapshot){
   Number.isFinite(snapshot.savedAt)&&snapshot.savedAt===freshest?.savedAt&&
   snapshot.elapsed+1>=loadWorldChronicle().elapsed;
  if(offlineEligible){
-  const offline=window.WildEraEcology?.offlineAdvance?.(ecology,snapshot.savedAt,now,elapsed/120);
+  const offline=window.WildEraEcology?.offlineAdvance?.(ecology,snapshot.savedAt,now,elapsed/120,loadCaveSeal().stage);
   if(offline?.steps>0){
    ecology=offline.regions;
    for(const e of offline.events||[])worldEventJournal.push({year:Math.floor(elapsed/120),at:now,
-    kind:"offline-ecology",label:districts[e.region]+"："+e.label+"（不在中の生態変化）"});
+    kind:"offline-ecology",label:(e.source==="cave-seal"?"東部山岳":districts[e.region])+"："+e.label+"（不在中の生態変化）"});
    worldEventJournal=worldEventJournal.slice(-40);
    ecologyNews="不在中に"+offline.steps+"回の地域生態変化が起きた";
   }
