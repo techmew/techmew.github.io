@@ -183,7 +183,7 @@ function cleanWorldEventJournal(records,limit=80){
  if(!Array.isArray(records))return [];
  return records.filter(e=>e&&Number.isFinite(e.year)&&e.year>=0&&Number.isFinite(e.at)&&e.at>=0&&
    typeof e.label==="string"&&e.label.length<=110&&
-   ["offline-ecology","alien-scout"].includes(e.kind))
+   ["offline-ecology","alien-scout","cave-seal"].includes(e.kind))
   .slice(-limit).map(e=>({year:e.year,at:e.at,kind:e.kind,label:e.label}));
 }
 function loadWorldChronicle(){
@@ -2476,6 +2476,100 @@ function spawnStrongBoss(type,region){
  }
  return false;
 }
+// An optional player-triggered world incident; uses the EXISTING cave, boss
+// AI, collision, history and local SAVE_SCHEMA2 without adding UI or an online server.
+// Persisted separately so this world consequence survives the player's death.
+const CAVE_SEAL_KEY="wild-reclaim-cave-seal-v1",CAVE_SEAL_X=13265;
+let caveSealTickClock=0,caveSealNoticeAt=-100;
+function caveSealLocation(){return {x:CAVE_SEAL_X,y:MOUNTAIN.center(CAVE_SEAL_X)};}
+function loadCaveSeal(){
+ try{
+  const raw=localStorage.getItem(CAVE_SEAL_KEY);
+  if(!raw)return {version:1,stage:"sealed"};
+  const value=JSON.parse(raw);
+  if(value?.version===1&&["released","defeated"].includes(value.stage)&&
+     Number.isFinite(value.openedYear)&&value.openedYear>=0)return value;
+ }catch(_){}
+ // Invalid persistent data must never be interpreted as an unopened seal.
+ return {version:1,stage:"corrupt"};
+}
+function saveCaveSeal(state){
+ if(debugTutorialSession)return false;
+ try{
+  const encoded=JSON.stringify(state);
+  localStorage.setItem(CAVE_SEAL_KEY,encoded);
+  return localStorage.getItem(CAVE_SEAL_KEY)===encoded;
+ }catch(_){return false;}
+}
+function caveSealIncident(stage,year){
+ worldEventJournal.push({year,at:Date.now(),kind:"cave-seal",
+  label:stage==="released"?"山岳洞窟：古代の封印が解かれ、巨獣が目覚めた":"山岳洞窟：封印の巨獣が討伐され、野生の勢力が変化した"});
+ worldEventJournal=worldEventJournal.slice(-40);
+ persistWorldChronicle();
+}
+function tryReleaseCaveSeal(){
+ if(!P||mode!=="play"||!MOUNTAIN||P.carry||P.flying||P.jumpTime>0||P.pounceTime>0)return false;
+ const site=caveSealLocation();
+ if(Math.hypot(P.x-site.x,P.y-site.y)>92)return false;
+ const record=loadCaveSeal(),year=Math.floor(elapsed/120);
+ if(record.stage==="corrupt"){notify("封印記録に異常があります。セーブを保全してください");return true;}
+ if(record.stage==="released"){notify("封印はすでに解かれている。巨獣の気配を探せ");return true;}
+ if(record.stage==="defeated"){notify("封印の巨獣はすでに討伐された");return true;}
+ if(year<34){notify("封印はまだ強固だ。世界が変化する時を待て");return true;}
+ const next={version:1,stage:"released",openedYear:year};
+ if(!saveCaveSeal(next)){notify("封印の状態を保存できず、解放を中止した");return true;}
+ const region=regionAt(site.x,site.y),area=ecology?.[region];
+ if(area){
+  area.prey=Math.max(4,area.prey-5);
+  area.predators=Math.min(31,area.predators+3);
+  area.pressure=Math.min(5,area.pressure+2);
+  area.events=(area.events||0)+1;
+ }
+ ecologyNews="洞窟の封印が解かれ、周囲の動物が逃げ始めた";
+ caveSealIncident("released",year);
+ shake=Math.max(shake,5);playEffect("impact",{volume:.4});
+ notify("封印が解かれた！ 洞窟周辺に強大な獣が現れる",4);
+ caveSealTickClock=.6;
+ saveAuto();
+ return true;
+}
+function tickCaveSeal(dt){
+ caveSealTickClock+=Math.max(0,Number(dt)||0);
+ if(caveSealTickClock<.5||!P||mode!=="play"||!MOUNTAIN)return;
+ caveSealTickClock=0;
+ const site=caveSealLocation(),distance=Math.hypot(P.x-site.x,P.y-site.y),year=Math.floor(elapsed/120);
+ if(distance>1000)return;
+ const state=loadCaveSeal();
+ if(state.stage==="sealed"&&year>=34&&distance<145&&elapsed-caveSealNoticeAt>20){
+  caveSealNoticeAt=elapsed;
+  notify("洞窟に封印の気配。近づいて○を長押しすると解放",3);
+ }
+ if(state.stage!=="released"||distance>820||mobs.length>=WILDLIFE.cap||
+    mobs.some(m=>m.hp>0&&m.sealGuardian))return;
+ const before=mobs.length;
+ if(!spawnStrongBoss("oldBear",regionAt(P.x,P.y))||mobs.length!==before+1)return;
+ const guardian=mobs[mobs.length-1];
+ guardian.sealGuardian=true;
+ guardian.maxHp=Math.max(guardian.maxHp,Math.round(guardian.maxHp*1.55));
+ guardian.hp=guardian.maxHp;guardian.sealAwakenedYear=state.openedYear;
+ ecologyNews="封印の巨獣が動き出し、この地域の捕食圧が上昇";
+ notify("封印の巨獣が現れた。周囲の野生動物が逃走する",3);
+ saveAuto();
+}
+function recordSealGuardianDefeat(m){
+ if(!m?.sealGuardian)return;
+ const state=loadCaveSeal();
+ if(state.stage!=="released")return;
+ const year=Math.floor(elapsed/120);
+ if(!saveCaveSeal({...state,stage:"defeated",defeatedYear:year})){
+  notify("封印の討伐記録を保存できませんでした。バックアップを作成してください");return;
+ }
+ const area=ecology?.[regionAt(m.x,m.y)];
+ if(area){area.predators=Math.max(3,area.predators-2);area.pressure=Math.max(0,area.pressure-2);area.events=(area.events||0)+1;}
+ ecologyNews="封印の巨獣が倒れ、地域の群れが再び動き始めた";
+ caveSealIncident("defeated",year);
+ notify("封印の巨獣を討伐。世界年表に記録された",4);
+}
 function enterStrongStage(){
  if(!P)return;
  const region=regionAt(P.x,P.y),habitat=strongHabitatKey(P.x,P.y);strongRegionCurrent=habitat;
@@ -4070,6 +4164,7 @@ function putDownFood(){
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P||isControlBlocked())return;
+ if(longPress&&tryReleaseCaveSeal())return;
  if(atDen()){
   if(P.carry){carryFood();return}
   if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
@@ -4323,6 +4418,7 @@ function kill(m){
   if(bank){remains.x=bank.x;remains.y=bank.y;}
  }
  carcasses.push(remains);
+ recordSealGuardianDefeat(m);
  if(m.strongBoss){
   strongTrophies[m.type]=(Number(strongTrophies[m.type])||0)+1;
   const material=STRONG_NAMES[m.type]||m.type;
@@ -6152,6 +6248,7 @@ function update(dt){
   }
  }
  updateBirdFlocks(dt);
+ tickCaveSeal(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
   awardDiscovery(site.id);
@@ -8641,6 +8738,8 @@ function resetWorldHistoryForNewGame(){
  const fresh={version:1,elapsed,worldYearsElapsed:0,lightningHistory:[],discoveredSites:[],earnedDiscoveries:[],savedAt:Date.now()};
  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify(fresh));
  localStorage.removeItem("wild-reclaim-ufo-abduction-history-v1");
+ localStorage.removeItem(CAVE_SEAL_KEY);
+ caveSealTickClock=0;caveSealNoticeAt=-100;
  window.WildDisaster?.resetWorld?.();
  window.WildApparitions?.resetWorld?.();
  window.WildUFO?.resetWorld?.();
