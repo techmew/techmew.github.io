@@ -374,7 +374,7 @@ function syncStrongBossChallenge(){
  if(!P)return;
  for(const m of activeStrongBosses()){
   const sp=species[m.type];if(!sp)continue;
-  const target=bossHealthTarget(sp),old=Math.max(1,Number(m.maxHp)||sp.hp);
+  const target=Math.round(bossHealthTarget(sp)*(m.sealGuardian?1.55:1)),old=Math.max(1,Number(m.maxHp)||sp.hp);
   if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||target>old*1.08){
    const ratio=clamp(m.hp/old,0,1);
    m.maxHp=target;m.hp=Math.max(1,Math.round(target*ratio));
@@ -2614,7 +2614,7 @@ function normalizeStrongBossSave(){
  // A legacy SAVE_SCHEMA2 monster may have had only 10-14 basic-hit HP.
  // Upgrade it once while retaining the same injury percentage and checkpoints.
  if(P)for(const m of activeStrongBosses()){
-  const safe=bossHealthTarget(species[m.type]);
+  const safe=Math.round(bossHealthTarget(species[m.type])*(m.sealGuardian?1.55:1));
   const ratio=clamp(m.hp/Math.max(1,Number(m.maxHp)||species[m.type].hp),0,1);
   if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||m.maxHp>safe*1.04){
    m.maxHp=safe;m.hp=Math.max(1,Math.round(safe*ratio));
