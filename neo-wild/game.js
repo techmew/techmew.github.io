@@ -4428,7 +4428,14 @@ function leapPounce(){
 function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
  if(FLYING_PLAYABLES.has(P.type)){
-  if(P.flying){P.flightLanding=true;return true;}
+  if(P.flying){
+   // Pressing jump during descent permits a fresh climb when the landing
+   // zone is blocked and the bird has regained enough stamina.
+   if(P.flightLanding&&P.sp>=18){
+    P.sp-=10;P.flightLanding=false;P.flightLandingWarned=false;return true;
+   }
+   P.flightLanding=true;return true;
+  }
   if(P.sp<14){notify("飛び立つ持久力が足りない");return false;}
   P.sp-=14;P.flying=true;P.flightLanding=false;P.flightLandingWarned=false;
   P.flightAltitude=42;P.jumpTime=0;P.jumpHeight=(P.groundZ||0)+42;
@@ -6178,13 +6185,21 @@ function update(dt){
   const descending=P.flightLanding;
   const height=clamp((Number(P.flightAltitude)||42)+(descending?-74:78)*dt,0,160);
   if(!descending)P.sp=Math.max(0,P.sp-30*dt);
-  if(height<=42){
-   P.flying=false;const safe=!collides(P.x,P.y,P.r,P);P.flying=true;
+  // Match a bird's landing collision to the actual building rooftop, not
+  // the solid walls below it. Other terrain/water collision still applies.
+  const roof=roofAt(P.x,P.y),ground=P.groundZ||0;
+  const threshold=Math.max(42,roof-ground+8);
+  if(descending&&height<=threshold){
+   const priorJump=P.jumpHeight||0;
+   P.flying=false;P.groundZ=roof;P.jumpHeight=roof;
+   const safe=!collides(P.x,P.y,P.r,P);
+   P.flying=true;
    if(safe){
     P.flying=false;P.flightLanding=false;P.flightAltitude=0;P.flightLandingWarned=false;
-    P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ||0;
+    P.groundZ=roof;P.jumpHeight=roof;
    }else{
-    P.flightLanding=true;P.flightAltitude=42;
+    P.groundZ=ground;P.jumpHeight=priorJump;
+    P.flightLanding=true;P.flightAltitude=threshold;
     if(!P.flightLandingWarned){notify("着地できる地面を探してください");P.flightLandingWarned=true;}
    }
   }else P.flightAltitude=height;
