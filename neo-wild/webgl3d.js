@@ -2440,7 +2440,11 @@ function render(o){
   const ghostEnd=playerEnd;
   const vertices=new Float32Array(data);
   gl.useProgram(program);
-  gl.uniform2f(ucenter,cam.x+vw/2,cam.y+vh/2);
+  // Screen-only quake offset: move the rendered world, not the camera used by
+  // cached terrain and snow geometry. HUD and saved world positions stay fixed.
+  const quakeX=Number.isFinite(o.quakeOffset?.x)?o.quakeOffset.x:0;
+  const quakeY=Number.isFinite(o.quakeOffset?.y)?o.quakeOffset.y:0;
+  gl.uniform2f(ucenter,cam.x+vw/2+quakeX,cam.y+vh/2+quakeY);
   gl.uniform2f(usize,vw,vh);
   gl.uniform4f(uview,VIEW.a,VIEW.b,VIEW.c,VIEW.d);
    gl.uniform1f(uzoom,clamp(o.cameraZoom||1,.47,1.6));
