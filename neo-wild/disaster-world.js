@@ -11,6 +11,7 @@ let nextFloodYear=eventDelay(6+Math.random()*9),floodWarning=null,history=[];
 let nextFireYear=eventDelay(7+Math.random()*8),fireWarning=null;
 // Meteor impacts become permanent terrain scars, kept outside temporary disaster slots.
 let nextMeteorYear=Math.max(17,eventDelay(60+Math.random()*70)),meteorWarning=null,craters=[];
+let nextSlideYear=eventDelay(12+Math.random()*16),slideWarning=null;
 const MAX_CRATERS=96;
 
  // Stable giant tree landmarks: position is fixed; the quake victim is random.
@@ -63,24 +64,27 @@ function restore(){
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
  nextFloodYear=Math.max(0,finite(x.nextFloodYear,eventDelay(6)));
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
- history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","fissure","flood","wildfire","meteor"].includes(e.kind)).slice(-60):[];
+ history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","fissure","flood","wildfire","meteor","landslide"].includes(e.kind)).slice(-60):[];
  nextFireYear=Math.max(0,finite(x.nextFireYear,eventDelay(7)));
  fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
  nextMeteorYear=Math.max(17,finite(x.nextMeteorYear,Math.max(17,eventDelay(65))));
  meteorWarning=x.meteorWarning&&Number.isFinite(x.meteorWarning.x)&&Number.isFinite(x.meteorWarning.y)&&Number.isFinite(x.meteorWarning.seconds)?x.meteorWarning:null;
  craters=Array.isArray(x.craters)?x.craters.filter(e=>e?.kind==="meteor"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.year)&&e.year>=0&&Number.isFinite(e.radius)&&e.radius>=24&&e.radius<=140).slice(0,MAX_CRATERS):[];
+ nextSlideYear=Math.max(0,finite(x.nextSlideYear,lastYear+eventDelay(10)));
+ slideWarning=x.slideWarning&&Number.isFinite(x.slideWarning.x)&&Number.isFinite(x.slideWarning.y)&&Number.isFinite(x.slideWarning.seconds)&&x.slideWarning.seconds>0?x.slideWarning:null;
  // Legacy schedules are converted once; old disasters, world age and history are not rewritten.
  if(x.paceVersion!==PACE){
   const migrate=due=>lastYear+Math.max(retryDelay(),Math.max(0,due-lastYear)/PACE);
   nextYear=migrate(nextYear);nextFloodYear=migrate(nextFloodYear);nextFireYear=migrate(nextFireYear);
   // Meteor scheduling is a new optional field; its modern default is already compressed.
   if(x.nextMeteorYear!=null)nextMeteorYear=Math.max(17,migrate(nextMeteorYear));
+  if(x.nextSlideYear!=null)nextSlideYear=migrate(nextSlideYear);
  }
  }catch(_){}
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:PACE,events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,craters,history}));}catch(_){}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:PACE,events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,craters,nextSlideYear,slideWarning,history}));}catch(_){}}
 function active(e,year){return year>=e.year&&(e.permanent||year-e.year<e.duration);}
-function canSchedule(year){return events.filter(e=>active(e,year)).length+(warning?1:0)+(floodWarning?1:0)+(fireWarning?1:0)+(meteorWarning?1:0)<MAX_SIMULTANEOUS;}
+function canSchedule(year){return events.filter(e=>active(e,year)).length+(warning?1:0)+(floodWarning?1:0)+(fireWarning?1:0)+(meteorWarning?1:0)+(slideWarning?1:0)<MAX_SIMULTANEOUS;}
 const recoveryYears=e=>e.paceVersion===PACE?eventDelay(7):7;
 const leafYears=e=>e.paceVersion===PACE?eventDelay(4):4;
 function fallenAngle(e){
@@ -94,11 +98,16 @@ function fissureGap(e,x,y){
  const along=Math.max(-half,Math.min(half,dx*ca+dy*sa));
  return Math.hypot(dx-along*ca,dy-along*sa);
 }
+function slideGap(e,x,y,r=0){
+ return Math.hypot((x-e.x)/(Math.max(24,e.rx||70)+Math.max(0,r)),
+                   (y-e.y)/(Math.max(18,e.ry||42)+Math.max(0,r)));
+}
 function blocked(x,y,r,year){
  // The inner basin is impassable, while the outer rim stays traversable.
  if(craters.some(e=>year>=e.year&&Math.hypot(x-e.x,y-e.y)<Math.max(0,r)+Math.min(65,e.radius*.56)))return true;
  if(standingTrees(year).some(t=>Math.hypot(x-t.x,y-t.y)<Math.max(0,r)+24))return true;
  return events.some(e=>{
+  if(e.kind==="landslide")return active(e,year)&&slideGap(e,x,y,r)<1;
   if(e.kind==="fissure")return active(e,year)&&fissureGap(e,x,y)<Math.max(0,r)+Math.min(28,Math.max(8,Number(e.width)||14));
   if(e.kind!=="fallen_tree"||!active(e,year))return false;
   const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
@@ -150,6 +159,13 @@ function habitatQuality(x,y,year){
  for(const e of craters)if(year>=e.year){
   const d=Math.hypot(x-e.x,y-e.y),range=e.radius+85;
   if(d<range)quality=Math.min(quality,.25+.75*d/range);
+ }
+ for(const e of events)if(e.kind==="landslide"&&active(e,year)){
+  const gap=slideGap(e,x,y);
+  if(gap<1.8){
+   const recovered=Math.min(1,Math.max(0,(year-e.year)/Math.max(.1,e.duration)));
+   quality=Math.min(quality,1-.75*(1-recovered)*(1-gap/1.8));
+  }
  }
  return Math.max(.06,Math.min(1,quality));
 }
@@ -262,6 +278,85 @@ function schedule(api,year){
   persist();return true;
  }
  nextYear=year+retryDelay();persist();return false;
+}
+// Rainfall loosens only the actual mountain slopes; main paths and bridges stay open.
+function slideSpot(x,y,api,year){
+ const mountain=window.WildMountain;
+ if(!mountain?.active?.(x,y)||typeof mountain.center!=="function"||
+    typeof mountain.height!=="function"||x<11070||x>12550)return null;
+ const side=Math.sign(y-mountain.center(x)),dy=Math.abs(y-mountain.center(x));
+ if(!side||dy<195||dy>460)return null;
+ const fromY=y+side*150,rx=68,ry=41;
+ if(!mountain.active(x,fromY)||mountain.height(x,fromY)<mountain.height(x,y)+1.5)return null;
+ const {WORLD,P,collides,roadsX=[],roadsY=[],buildings=[]}=api;
+ if(!P||x<220||y<220||x>WORLD.w-220||y>WORLD.h-220||
+    Math.hypot(x-P.x,y-P.y)<220)return null;
+ if(roadsX.some(v=>Math.abs(x-v)<rx+100)||roadsY.some(v=>Math.abs(y-v)<ry+100))return null;
+ if(buildings.some(b=>x>b.x-rx-75&&x<b.x+b.w+rx+75&&y>b.y-ry-75&&y<b.y+b.h+ry+75))return null;
+ if(events.some(e=>active(e,year)&&Math.hypot(x-e.x,y-e.y)<220)||
+    craters.some(e=>Math.hypot(x-e.x,y-e.y)<e.radius+rx+90))return null;
+ if(collides(x,y,20)||collides(x,fromY,14))return null;
+ if([[rx+65,0],[-rx-65,0],[0,ry+75],[0,-ry-75]]
+    .filter(([dx,dy])=>mountain.active(x+dx,y+dy)&&!collides(x+dx,y+dy,20)).length<3)return null;
+ return {x,y,fromX:x,fromY,rx,ry};
+}
+function scheduleSlide(api,year,forced=null){
+ if(slideWarning||!canSchedule(year)||!["RAIN","THUNDER"].includes(api.weather))return false;
+ const mountain=window.WildMountain;
+ if(!mountain)return false;
+ let site=forced?slideSpot(forced.x,forced.y,api,year):null;
+ for(let i=0;!site&&i<72;i++){
+  const x=11070+Math.random()*1480,side=Math.random()<.5?-1:1;
+  site=slideSpot(x,mountain.center(x)+side*(225+Math.random()*165),api,year);
+ }
+ if(!site)return false;
+ slideWarning={kind:"landslide-warning",...site,year,seconds:7};
+ announceEscape({...site,radius:160},api.mobs);
+ if(Math.hypot(api.P.x-site.x,api.P.y-site.y)<1400)
+  api.notify?.("山肌から異音！土砂崩れに警戒、斜面を離れろ");
+ persist();return true;
+}
+function settleSlide(api,year){
+ if(!slideWarning)return;
+ const {x,y,fromX,fromY,rx,ry}=slideWarning;
+ slideWarning=null;
+ const deposit={kind:"landslide",x,y,fromX,fromY,rx,ry,year,
+  duration:eventDelay(6+Math.random()*7),paceVersion:PACE,permanent:false};
+ events.push(deposit);events=events.slice(-MAX);
+ history.push({kind:"landslide",year,x,y});history=history.slice(-60);
+ announceEscape({...deposit,radius:160},api.mobs);
+ const hit=actor=>{
+  if(!actor||actor.hp<=0||!Number.isFinite(actor.x)||!Number.isFinite(actor.y))return;
+  const exposure=slideGap(deposit,actor.x,actor.y);
+  if(exposure>1.35)return;
+  const severity=Math.max(0,1-exposure/1.35);
+  actor.hp=Math.max(0,actor.hp-(8+Math.max(15,actor.maxHp||actor.hp)*.32)*severity);
+  if(Number.isFinite(actor.sp))actor.sp=Math.max(0,actor.sp-severity*12);
+  if(actor.hp<=0)return;
+  actor.stun=Math.max(actor.stun||0,.5*severity);
+  if(slideGap(deposit,actor.x,actor.y,actor.r||18)>=1)return;
+  const angle=Math.atan2(actor.y-y,actor.x-x),radius=Math.max(12,actor.r||18);
+  for(let k=0;k<12;k++){
+   const a=angle+(k%2===0?-1:1)*Math.floor((k+1)/2)*Math.PI/6;
+   const xx=x+Math.cos(a)*(rx+radius+42),yy=y+Math.sin(a)*(ry+radius+42);
+   if(xx<75||yy<75||xx>api.WORLD.w-75||yy>api.WORLD.h-75||
+      api.collides(xx,yy,radius,actor))continue;
+   actor.x=xx;actor.y=yy;
+   if(Number.isFinite(actor.vx))actor.vx=0;
+   if(Number.isFinite(actor.vy))actor.vy=0;
+   break;
+  }
+ };
+ hit(api.P);
+ for(const m of api.mobs||[])if(m?.hp>0&&slideGap(deposit,m.x,m.y)<1.6){
+  hit(m);
+  if(m.hp<=0&&!m._landslideDeathProcessed){
+   m._landslideDeathProcessed=true;api.onAnimalDeath?.(m,"landslide");
+  }
+ }
+ if(Math.hypot(api.P.x-x,api.P.y-y)<1400)
+  api.notify?.("土砂崩れ発生！岩と泥の堆積を迂回");
+ persist();
 }
 // Meteor sites keep roads, buildings, water, existing craters and den approach paths clear.
 function meteorSite(x,y,r,api,year){
@@ -418,6 +513,23 @@ function tick(dt,api){
    if(!scheduleFire(api,year))nextFireYear=year+retryDelay();}
   else nextFireYear=year+retryDelay();persist();
  }
+ // Rain-soaked slope can collapse after seven seconds of warning.
+ if(slideWarning){
+  slideWarning.seconds-=dt;
+  if(slideWarning.seconds<=0)settleSlide(api,year);
+ }else if(year>=nextSlideYear){
+  if(canSchedule(year)&&!warning&&!floodWarning&&!fireWarning&&!meteorWarning){
+   if(scheduleSlide(api,year))nextSlideYear=year+eventDelay(12+Math.random()*18);
+   else nextSlideYear=year+eventDelay(1.5);
+  }else nextSlideYear=year+retryDelay();
+  persist();
+ }
+ for(const e of events)if(e.kind==="landslide"&&active(e,year)){
+  for(const m of api.mobs||[])if(m?.hp>0&&slideGap(e,m.x,m.y)<2){
+   m.flee=Math.max(m.flee||0,2.4);m.fleeThreatX=e.x;m.fleeThreatY=e.y;
+   m.resting=false;m.restTime=0;m.foragePose=0;
+  }
+ }
  // Meteor warnings are intentionally short; after impact only the small
  // crater collision and a modest local food penalty remain in the saved world.
  if(meteorWarning){
@@ -484,6 +596,34 @@ function tick(dt,api){
  lastYear=year;
 }
 function draw(ctx,project,year,webglActive=false){
+ // Weather-driven rubble is a real world-space obstacle, shared by WebGL and 2D.
+ for(const e of events)if(e.kind==="landslide"&&active(e,year)){
+  const p=project(e.x,e.y);if(!p)continue;
+  const dust=Math.max(0,1-(year-e.year)*120/7);
+  ctx.save();ctx.fillStyle="#665a4a";ctx.strokeStyle="#a79680";ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(p.x,p.y,e.rx,e.ry,-.18,0,Math.PI*2);ctx.fill();ctx.stroke();
+  for(let j=0;j<9;j++){
+   const a=j*2.39996+e.x*.018,t=.24+.62*((j*7%11)/11);
+   const px=p.x+Math.cos(a)*e.rx*t,py=p.y+Math.sin(a)*e.ry*t;
+   ctx.fillStyle=j%3===0?"#aba498":j%3===1?"#45423c":"#82796e";
+   ctx.beginPath();ctx.moveTo(px-7,py+4);ctx.lineTo(px-1,py-7);
+   ctx.lineTo(px+7,py+2);ctx.closePath();ctx.fill();
+  }
+  if(dust>0){ctx.fillStyle="rgba(186,171,143,"+(dust*.23)+")";
+   ctx.beginPath();ctx.ellipse(p.x,p.y-13,e.rx+24,e.ry+19,0,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle="#f6e6c8";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+  ctx.fillText("土砂崩れ・迂回",p.x,p.y-e.ry-16);ctx.restore();
+ }
+ if(slideWarning){
+  const p=project(slideWarning.x,slideWarning.y),from=project(slideWarning.fromX,slideWarning.fromY);
+  if(p&&from){ctx.save();ctx.strokeStyle="#ffb57a";ctx.lineWidth=3;
+   ctx.setLineDash([9,6]);ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+   ctx.setLineDash([]);ctx.strokeStyle="#e78f53";ctx.beginPath();
+   ctx.ellipse(p.x,p.y,slideWarning.rx,slideWarning.ry,0,0,Math.PI*2);ctx.stroke();
+   ctx.fillStyle="#ffe6c9";ctx.font="bold 13px sans-serif";ctx.textAlign="center";
+   ctx.fillText("斜面崩落予兆・避難",p.x,p.y-60);ctx.restore();}
+ }
+
  // Surface markers share the existing world-overlay canvas in 2D and WebGL.
  for(const e of craters)if(year>=e.year){
   const p=project(e.x,e.y);if(!p)continue;
@@ -615,20 +755,22 @@ function quakeShake(now=0){
 }
 window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),
  events:()=>[...events,...craters],standingTrees:()=>standingTrees(),fixedTrees:()=>worldTrees?.slice()||[],
- getState:()=>({paceVersion:PACE,events:events.slice(),craters:craters.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,history:history.slice()}),
+ getState:()=>({paceVersion:PACE,events:events.slice(),craters:craters.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,nextSlideYear,slideWarning,history:history.slice()}),
  resetWorld(){
   // Only an explicit NEW GAME resets the world. Continue/retry retain history.
-  events=[];craters=[];history=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;
+  events=[];craters=[];history=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;slideWarning=null;
   lastYear=0;seismicSeconds=0;seismicPhase=0;
   nextYear=eventDelay(5+Math.random()*10);
   nextFloodYear=eventDelay(6+Math.random()*9);
   nextFireYear=eventDelay(7+Math.random()*8);
   nextMeteorYear=Math.max(17,eventDelay(60+Math.random()*70));
+  nextSlideYear=eventDelay(12+Math.random()*16);
   persist();return true;
  },
- debugClear(){events=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;seismicSeconds=0;persist();return true;},
+ debugClear(){events=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;slideWarning=null;seismicSeconds=0;persist();return true;},
  force:(api)=>schedule(api,api.elapsed/120),
  forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
  forceFire:(api,x,y)=>scheduleFire(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
- forceMeteor:(api,x,y)=>scheduleMeteor(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null)};
+ forceMeteor:(api,x,y)=>scheduleMeteor(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
+ forceSlide:(api,x,y)=>scheduleSlide(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null)};
 })();
