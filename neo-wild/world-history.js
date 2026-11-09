@@ -78,6 +78,14 @@ function entries(atSeconds=seconds()){
   recorded.add(key);
   items.push({year:y,label:e.label,kind:e.kind});
  }
+ // The final boss's durable state is factual world history. Old backups and
+ // deleted autosaves cannot hide a confirmed defeat or invent a second spawn.
+ const apex=read("wild-reclaim-world-end-v1",null);
+ if(apex?.version===1&&["active","defeated"].includes(apex.stage)&&year>=100){
+  items.push({year:100,label:"100年到達：この世の終わりが出現",kind:"world-end"});
+  if(apex.stage==="defeated"&&Number.isFinite(apex.defeatedYear)&&apex.defeatedYear<=year)
+   items.push({year:apex.defeatedYear,label:"この世の終わりを討伐：最終目標達成",kind:"world-end-defeated"});
+ }
  // Preserve all era markers and the earliest beginning event alongside recent incidents.
  const highlights=items.filter(e=>e.kind==="origin"||e.kind==="era-milestone");
  const incidents=items.filter(e=>e.kind!=="origin"&&e.kind!=="era-milestone").sort((a,b)=>b.year-a.year).slice(0,114);
