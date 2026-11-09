@@ -836,7 +836,15 @@ function takeMeatFromDen(){
  if(item.points<=0)denMeatLots.splice(idx,1);
  syncDenStash();
  P.carry={type:"meat",animalType:item.animalType,amount:Math.max(.01,Number((points/FOOD_BALANCE.meat.stash).toFixed(2)))};
- saveDenStash();saveAuto();renderDenInventory();syncHUD();
+ if(!saveDenStash()){
+  P.carry=null;
+  denStores.meat+=points;
+  denMeatLots=normalizeMeatLots([...denMeatLots,item],denStores.meat);
+  syncDenStash();
+  notify("食料庫の保存に失敗したため、肉は取り出していません");
+  return false;
+ }
+ saveAuto();renderDenInventory();syncHUD();
  notify("共通食料庫から"+meatSizeName(points)+"の肉 "+points+"ptを取り出した");
  return true;
 }
@@ -941,12 +949,16 @@ function loadDenStash(animal){
 }
 function saveDenStash(){
  syncDenStash();
- if(debugTutorialSession)return;
+ if(debugTutorialSession)return true;
+ // The world-wide pantry is authoritative. Persist and verify it BEFORE the
+ // optional per-species legacy mirror, so a quota error cannot silently lose food.
+ const secured=saveSharedDen();
+ if(!secured)return false;
  try{
   localStorage.setItem("wild-reclaim-den-v1-"+P.type,String(denStash));
   localStorage.setItem("wild-reclaim-den-stores-v1-"+P.type,JSON.stringify(denStores));
-  saveSharedDen();
- }catch(_){}
+ }catch(_){/* Global verified copy remains authoritative. */}
+ return true;
 }
 const STATION={x:2460,y:1170};
 const TOP_SCORES_KEY="wild-reclaim-top5-v1";
