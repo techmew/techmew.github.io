@@ -116,6 +116,10 @@ for(const [type,name] of Object.entries(STRONG_NAMES)){
 }
 // The encyclopedia is account-local and independent from SAVE_SCHEMA2 checkpoints.
 window.WildBestiary?.configure(species,STRONG_NAMES);
+function safeBossRoster(){
+ try{return window.WildBossRoster?.load?.()||null}
+ catch(error){console.warn("Boss ownership requires recovery",error);return null}
+}
 const STRONG_REGIONS={0:["alpha","blackPanther","oneEyedWolf","albinoWolf"],1:["alpha","oldBear","blackPanther","oneEyedWolf","albinoWolf"],2:["giantEagle","giantSnake","oldBear","giantBoar","whiteTiger","giantMoose","giantBuffalo","giantLizard","giantGorilla"],3:["giantEagle","oldBear","blackPanther","alpha","giantSnake","whiteTiger","giantLion","giantLizard","rhino","giantElephant"],4:["giantEagle","giantSnake","giantBoar","giantHyena","giantBuffalo","giantCrocodile","giantHippo","giantAnaconda"],5:["giantEagle","giantSnake","oldBear","giantBoar","blackPanther","whiteTiger","giantLion","giantMoose","giantBuffalo","giantLizard","rhino","giantGorilla","giantElephant"],6:["giantBoar","alpha","blackPanther","giantHyena","giantLion"],7:["giantEagle","giantSnake","blackPanther","giantHyena","giantMoose","giantCrocodile","giantHippo","giantAnaconda","albinoWolf"]};
 // Each trophy is earned through an actual boss kill; the first five can be inherited at an LV2 den.
 const STRONG_TRAITS={
@@ -1494,7 +1498,7 @@ function squadSnapshotAlive(snapshot){
  if(bossId){
   // Never revive an excluded boss from an old checkpoint. Only surviving
   // owners in either independent collection may continue the saved world.
-  try{return !!window.WildBossRoster?.load?.()?.members?.length||!!window.WildSquad?.load?.()?.members?.length}
+  try{return !!safeBossRoster()?.members?.length||!!window.WildSquad?.load?.()?.members?.length}
   catch(_){return false}
  }
  const id=snapshot.player?.squadIndividualId;
@@ -1578,7 +1582,7 @@ function checkpointLabel(s){
 function refreshSaveMenu(){
  const auto=getAutoSnapshot(),points=getCheckpoints();
  const aliveSquad=window.WildSquad?.load?.()?.members?.length||0;
- const aliveBosses=window.WildBossRoster?.load?.()?.members?.length||0;
+ const aliveBosses=safeBossRoster()?.members?.length||0;
  if(!automaticTutorialShown){migrateSeenTutorial(auto);for(const point of points)migrateSeenTutorial(point)}
  const hasSave=!!auto||aliveSquad>0||aliveBosses>0; // Old checkpoints stay preserved but cannot bypass explicit reset from the title.
  $("menu").classList.toggle("has-saved-game",hasSave);
@@ -1589,7 +1593,7 @@ function refreshSaveMenu(){
  $("resume-cta-label").textContent=debugMode?"デバッグモードで開始":"続きからプレイ";
  const resetButton=$("start-btn");
  if(resetButton)resetButton.textContent=debugMode?"デバッグモードで新規開始":"ゲームをリセットして新規で開始する";
- $("resume-cta-help").textContent=window.WildBossRoster?.load?.()?.activeId?"ボス専用枠の選択個体で再開":aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"動物をタップして操作個体を選び、開始":"動物をタップして操作個体を選び、再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"ガチャで動物を獲得してください";
+ $("resume-cta-help").textContent=safeBossRoster()?.activeId?"ボス専用枠の選択個体で再開":aliveSquad?(window.WildSquad?.load?.()?.pendingStart?"動物をタップして操作個体を選び、開始":"動物をタップして操作個体を選び、再開"):hasSave?"保存した"+(animals[primary?.player?.type]?.name||"動物")+"で再開":"ガチャで動物を獲得してください";
  $("continue-btn").disabled=!hasSave&&!debugMode;
  $("continue-detail").textContent=primary?checkpointLabel(primary):"";
  $("checkpoint-menu-btn").classList.toggle("hidden",!points.length);
@@ -1836,7 +1840,7 @@ function restoreSnapshot(snapshot){
  syncSquadFollowers();
  // Reconcile the saved world with the animal explicitly selected on the title.
  if(window.WildSquad?.load?.()?.members?.length)applySquadLeader();
- if(window.WildBossRoster?.load?.()?.activeId)applyBossLeader(false);
+ if(safeBossRoster()?.activeId)applyBossLeader(false);
  restoreReleasedWildlife();enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
@@ -4591,10 +4595,12 @@ function kill(m){
  if(kills===3||kills===9)notify("狩猟成功 / 食物連鎖が変化する");
  checkMission();
  if(m.strongBoss&&!debugTutorialSession&&window.WildBossRoster?.LABELS?.[m.type]){
-  // Offer only after a real kill. A level-up takes priority until it closes.
+  // Persist a real defeat and its pending choice, including while leveling up.
   const sourceId=[m.type,Math.round(m.x),Math.round(m.y),Math.round(elapsed*1000),
    Math.round((m.maxHp||0)*100)].join(":");
   pendingBossRecruit={type:m.type,sourceId};
+  saveAuto();
+  window.WildBossRoster?.queueOffer?.(pendingBossRecruit);
  }
 }
 let pendingBossRecruit=null;
@@ -8936,6 +8942,8 @@ function resetWorldHistoryForNewGame(){
  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify(fresh));
  localStorage.removeItem("wild-reclaim-ufo-abduction-history-v1");
  localStorage.removeItem(CAVE_SEAL_KEY);
+ // An explicitly new world cannot retain an unresolved kill from the previous world.
+ localStorage.removeItem(window.WildBossRoster?.PENDING||"wild-reclaim-boss-pending-v1");
  caveSealTickClock=0;caveSealNoticeAt=-100;
  window.WildDisaster?.resetWorld?.();
  window.WildApparitions?.resetWorld?.();
@@ -8959,13 +8967,17 @@ function launchGame(snapshot=null,newWorld=false){
  note.removeAttribute("data-error");
  try{
   if(snapshot){
-   if(restoreSnapshot(snapshot)){debugLaunchCompleted();return true;}
+   if(restoreSnapshot(snapshot)){
+    pendingBossRecruit=window.WildBossRoster?.pendingOffer?.()||null;
+    debugLaunchCompleted();return true;
+   }
    reportLaunchFailure(new Error("snapshot restore returned false"));
    note.textContent="保存データを再開できません。最初からプレイを選んでください。";
    note.setAttribute("data-error","true");return false;
   }
   if(start(newWorld)){if(newWorld)resetWorldHistoryForNewGame();
-   if(window.WildBossRoster?.load?.()?.activeId)applyBossLeader(false);
+   if(safeBossRoster()?.activeId)applyBossLeader(false);
+   pendingBossRecruit=newWorld?null:window.WildBossRoster?.pendingOffer?.()||null;
    announceObjective();debugLaunchCompleted();return true}
   reportLaunchFailure(new Error("world initialization returned false"));return false;
  }catch(error){reportLaunchFailure(error);return false}
@@ -9120,10 +9132,12 @@ $("squad-party-hud")?.addEventListener("click",e=>{
 
 // Dedicated bosses never take a normal gacha slot or spawn reserve AI companions.
 function applyBossLeader(writeSnapshot=true){
- const r=window.WildBossRoster?.load?.(),boss=r?.members?.find(m=>m.id===r.activeId);
+ const r=safeBossRoster(),boss=r?.members?.find(m=>m.id===r.activeId);
  if(!P||!boss||!animals[boss.type])return false;
  if(P.bossIndividualId===boss.id&&P.type===boss.type)return true;
  persistSquadVitals();
+ if(P.bossIndividualId)
+  window.WildBossRoster?.updateVitals?.(P.bossIndividualId,P.hp/Math.max(1,P.maxHp),P.level);
  const old={...P},oldChoice=choice,base=animals[boss.type];
  choice=boss.type;P.type=boss.type;P.base=base;P.r=base.r;
  P.squadIndividualId=null;P.bossIndividualId=boss.id;P.squadName=boss.name;
@@ -9241,7 +9255,7 @@ function startSelectedNewGame(){
  // Use the CURRENT selection, never the species from the continue/checkpoint slot.
  if(!selectNewGameAnimal(choice))return false;
  if(!launchGame(null,true))return false; // Only explicit NEW GAME resets the world; old checkpoints remain.
- if(!window.WildBossRoster?.load?.()?.activeId)applySquadLeader();
+ if(!safeBossRoster()?.activeId)applySquadLeader();
  saveAuto();
  return true;
 }
@@ -9257,7 +9271,7 @@ $("continue-btn").addEventListener("click",()=>{
   if(!leader||!animals[leader.species]){notify("操作できる動物を選んでください");return;}
   choice=leader.species;
   if(launchGame(null,roster.newWorldOnStart!==false)){
-   if(!window.WildBossRoster?.load?.()?.activeId)applySquadLeader();
+   if(!safeBossRoster()?.activeId)applySquadLeader();
    window.WildSquad?.markStarted?.();saveAuto();
   }
   return;
@@ -9279,13 +9293,17 @@ $("continue-btn").addEventListener("click",()=>{
   choice=leader.species;
   // Resume the persistent world clock; only explicit NEW GAME resets to YEAR 0.
   if(launchGame(null,false)){
-   if(!window.WildBossRoster?.load?.()?.activeId)applySquadLeader();
+   if(!safeBossRoster()?.activeId)applySquadLeader();
    saveAuto();
   }
   return;
  }
- if(!snapshot&&window.WildBossRoster?.load?.()?.members?.length){
-  const boss=window.WildBossRoster.load().members[0];
+ if(!snapshot&&safeBossRoster()?.members?.length){
+  const boss=safeBossRoster()?.members?.[0];
+  if(!boss)return;
+  if(!safeBossRoster()?.activeId){
+   if(!window.WildBossRoster?.select?.(boss.id)?.ok)return;
+  }
   choice=boss.type;
   if(launchGame(null,false)){applyBossLeader();saveAuto()}
   return;
@@ -9345,7 +9363,9 @@ if(bgmPicker&&window.WildAudio){
 }
 $("resume-btn").addEventListener("click",togglePause);
 $("pause-btn").addEventListener("click",togglePause);
-$("quit-btn").addEventListener("click",()=>{saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
+$("quit-btn").addEventListener("click",()=>{if(P?.bossIndividualId)
+  window.WildBossRoster?.updateVitals?.(P.bossIndividualId,P.hp/Math.max(1,P.maxHp),P.level);
+ saveAuto();resetControls();mode="menu";$("world-map").classList.add("hidden");show("menu")});
 $("retry-btn").addEventListener("click",()=>{
  if(mode!=="over"&&mode!=="clear")return; // Ignore queued double taps after resuming.
  if(P?.bossIndividualId){returnToTitleFromDeath();return}
