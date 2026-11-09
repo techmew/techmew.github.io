@@ -9,6 +9,9 @@ let events=[],nextYear=eventDelay(5+Math.random()*10),warning=null,lastYear=0;
 let seismicSeconds=0,seismicPhase=0;
 let nextFloodYear=eventDelay(6+Math.random()*9),floodWarning=null,history=[];
 let nextFireYear=eventDelay(7+Math.random()*8),fireWarning=null;
+// Meteor impacts become permanent terrain scars, kept outside temporary disaster slots.
+let nextMeteorYear=Math.max(17,eventDelay(60+Math.random()*70)),meteorWarning=null,craters=[];
+const MAX_CRATERS=96;
 
  // Stable giant tree landmarks: position is fixed; the quake victim is random.
  const TREE_SITES=[];
@@ -60,19 +63,24 @@ function restore(){
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
  nextFloodYear=Math.max(0,finite(x.nextFloodYear,eventDelay(6)));
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
- history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","fissure","flood","wildfire"].includes(e.kind)).slice(-60):[];
+ history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","fissure","flood","wildfire","meteor"].includes(e.kind)).slice(-60):[];
  nextFireYear=Math.max(0,finite(x.nextFireYear,eventDelay(7)));
  fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
+ nextMeteorYear=Math.max(17,finite(x.nextMeteorYear,Math.max(17,eventDelay(65))));
+ meteorWarning=x.meteorWarning&&Number.isFinite(x.meteorWarning.x)&&Number.isFinite(x.meteorWarning.y)&&Number.isFinite(x.meteorWarning.seconds)?x.meteorWarning:null;
+ craters=Array.isArray(x.craters)?x.craters.filter(e=>e?.kind==="meteor"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.year)&&e.year>=0&&Number.isFinite(e.radius)&&e.radius>=24&&e.radius<=140).slice(0,MAX_CRATERS):[];
  // Legacy schedules are converted once; old disasters, world age and history are not rewritten.
  if(x.paceVersion!==PACE){
   const migrate=due=>lastYear+Math.max(retryDelay(),Math.max(0,due-lastYear)/PACE);
   nextYear=migrate(nextYear);nextFloodYear=migrate(nextFloodYear);nextFireYear=migrate(nextFireYear);
+  // Meteor scheduling is a new optional field; its modern default is already compressed.
+  if(x.nextMeteorYear!=null)nextMeteorYear=Math.max(17,migrate(nextMeteorYear));
  }
  }catch(_){}
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:PACE,events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history}));}catch(_){}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:PACE,events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,craters,history}));}catch(_){}}
 function active(e,year){return year>=e.year&&(e.permanent||year-e.year<e.duration);}
-function canSchedule(year){return events.filter(e=>active(e,year)).length+(warning?1:0)+(floodWarning?1:0)+(fireWarning?1:0)<MAX_SIMULTANEOUS;}
+function canSchedule(year){return events.filter(e=>active(e,year)).length+(warning?1:0)+(floodWarning?1:0)+(fireWarning?1:0)+(meteorWarning?1:0)<MAX_SIMULTANEOUS;}
 const recoveryYears=e=>e.paceVersion===PACE?eventDelay(7):7;
 const leafYears=e=>e.paceVersion===PACE?eventDelay(4):4;
 function fallenAngle(e){
@@ -87,6 +95,8 @@ function fissureGap(e,x,y){
  return Math.hypot(dx-along*ca,dy-along*sa);
 }
 function blocked(x,y,r,year){
+ // The inner basin is impassable, while the outer rim stays traversable.
+ if(craters.some(e=>year>=e.year&&Math.hypot(x-e.x,y-e.y)<Math.max(0,r)+Math.min(65,e.radius*.56)))return true;
  if(standingTrees(year).some(t=>Math.hypot(x-t.x,y-t.y)<Math.max(0,r)+24))return true;
  return events.some(e=>{
   if(e.kind==="fissure")return active(e,year)&&fissureGap(e,x,y)<Math.max(0,r)+Math.min(28,Math.max(8,Number(e.width)||14));
@@ -135,6 +145,11 @@ function habitatQuality(x,y,year){
    if(distance>=e.radius||age<0||age>e.duration+recoverIn)continue;
   const recovery=Math.max(0,Math.min(1,(age-e.duration)/recoverIn));
   quality=Math.min(quality,1-.94*(1-recovery)*(1-distance/e.radius));
+ }
+ // Meteor-struck soil remains scarce but does not stop the world recovering elsewhere.
+ for(const e of craters)if(year>=e.year){
+  const d=Math.hypot(x-e.x,y-e.y),range=e.radius+85;
+  if(d<range)quality=Math.min(quality,.25+.75*d/range);
  }
  return Math.max(.06,Math.min(1,quality));
 }
@@ -248,6 +263,62 @@ function schedule(api,year){
  }
  nextYear=year+retryDelay();persist();return false;
 }
+// Meteor sites keep roads, buildings, water, existing craters and den approach paths clear.
+function meteorSite(x,y,r,api,year){
+ const {WORLD,P,collides,roadsX=[],roadsY=[],buildings=[]}=api;
+ if(!Number.isFinite(x)||!Number.isFinite(y)||x<r+170||y<r+170||x>WORLD.w-r-170||y>WORLD.h-r-170)return false;
+ if(Math.hypot(x-P.x,y-P.y)<r+370)return false;
+ if(roadsX.some(v=>Math.abs(x-v)<r+100)||roadsY.some(v=>Math.abs(y-v)<r+100))return false;
+ if(buildings.some(b=>x>b.x-r-80&&x<b.x+b.w+r+80&&y>b.y-r-80&&y<b.y+b.h+r+80))return false;
+ if(craters.some(e=>Math.hypot(x-e.x,y-e.y)<r+e.radius+200))return false;
+ if(events.some(e=>active(e,year)&&Math.hypot(x-e.x,y-e.y)<r+150))return false;
+ if(collides(x,y,20,null,true))return false;
+ return [[r+65,0],[-r-65,0],[0,r+65],[0,-r-65]]
+   .filter(([dx,dy])=>!collides(x+dx,y+dy,24)).length>=3;
+}
+function scheduleMeteor(api,year,forcedPosition=null){
+ if(meteorWarning||craters.length>=MAX_CRATERS)return false;
+ const radius=96;let spot=null;
+ if(forcedPosition&&meteorSite(forcedPosition.x,forcedPosition.y,radius,api,year))spot=forcedPosition;
+ if(!spot)for(let attempt=0;attempt<65;attempt++){
+  const a=Math.random()*Math.PI*2,d=radius+400+Math.random()*1750;
+  const x=api.P.x+Math.cos(a)*d,y=api.P.y+Math.sin(a)*d;
+  if(meteorSite(x,y,radius,api,year)){spot={x,y};break;}
+ }
+ if(!spot)return false;
+ meteorWarning={kind:"meteor-warning",x:spot.x,y:spot.y,radius,year,seconds:9};
+ announceEscape(meteorWarning,api.mobs);
+ api.notify?.("夜空に赤い流星！落下地点から離れろ");
+ persist();return true;
+}
+function strikeMeteor(api,year){
+ if(!meteorWarning)return;
+ const {x,y,radius}=meteorWarning;
+ meteorWarning=null;
+ const crater={kind:"meteor",x,y,radius,year,permanent:true,paceVersion:PACE};
+ craters.push(crater);
+ history.push({kind:"meteor",year,x,y});history=history.slice(-60);
+ seismicSeconds=Math.max(seismicSeconds,1.8);seismicPhase=Math.random()*Math.PI*2;
+ announceEscape({...crater,radius:radius+90},api.mobs);
+ const p=api.P,d=Math.hypot(p.x-x,p.y-y);
+ if(d<radius+45&&p.hp>0&&!api.isSheltered?.(p)){
+  const factor=1-d/(radius+45);
+  p.hp=Math.max(0,p.hp-(22+Math.max(15,p.maxHp||p.hp)*.66)*factor);
+  p.sp=Math.max(0,(p.sp||0)-25*factor);
+ }
+ for(const m of api.mobs||[]){
+  if(!m||m.hp<=0)continue;
+  const distance=Math.hypot(m.x-x,m.y-y);if(distance>radius+100)continue;
+  const factor=Math.max(0,1-distance/(radius+100));
+  m.hp=Math.max(0,m.hp-(25+(m.maxHp||m.hp)*.70)*factor);
+  if(m.hp<=0&&!m._meteorDeathProcessed){m._meteorDeathProcessed=true;api.onAnimalDeath?.(m,"meteor");}
+ }
+ if(d<1000){
+  api.notify?.("隕石落下！クレーターが残った。迂回して探索");
+  window.WildTrophies?.record?.("disaster-witness",{kind:"meteor",distance:d,radius},api.notify);
+ }
+ persist();
+}
 function tick(dt,api){
  if(!api?.P||api.mode!=="play")return;
  const year=api.elapsed/120;
@@ -327,6 +398,19 @@ function tick(dt,api){
    if(!scheduleFire(api,year))nextFireYear=year+retryDelay();}
   else nextFireYear=year+retryDelay();persist();
  }
+ // Meteor warnings are intentionally short; after impact only the small
+ // crater collision and a modest local food penalty remain in the saved world.
+ if(meteorWarning){
+  meteorWarning.seconds-=dt;
+  if(meteorWarning.seconds<=0)strikeMeteor(api,year);
+  else if(Math.floor(meteorWarning.seconds*2)!==Math.floor((meteorWarning.seconds+dt)*2))persist();
+ }else if(year>=nextMeteorYear){
+  if(canSchedule(year)&&!warning&&!floodWarning&&!fireWarning){
+   nextMeteorYear=year+eventDelay(65+Math.random()*85);
+   if(!scheduleMeteor(api,year))nextMeteorYear=year+retryDelay();
+  }else nextMeteorYear=year+retryDelay();
+  persist();
+ }
  // Existing animals leave scorched habitat and return as vegetation recovers.
  for(const m of api.mobs||[]){
   if(!m||m.hp<=0||habitatQuality(m.x,m.y,year)>=.78)continue;
@@ -344,6 +428,15 @@ function tick(dt,api){
    m.flee=Math.max(m.flee||0,1.8);
    m.fleeThreatX=e.x;m.fleeThreatY=e.y;
    m.resting=false;m.restTime=0;m.foragePose=0;
+  }
+ }
+ // NPCs avoid the permanent crater without flooding the world with new actors.
+ for(const e of craters)if(year>=e.year){
+  for(const m of api.mobs||[]){
+   if(!m||m.hp<=0||Math.hypot(m.x-e.x,m.y-e.y)>e.radius+90)continue;
+   m.flee=Math.max(m.flee||0,1.6);
+   m.fleeThreatX=e.x;m.fleeThreatY=e.y;
+   m.resting=false;m.foragePose=0;
   }
  }
  // Wildfire is an actual lethal hazard. Keep corpses in the main game's normal remains system.
@@ -371,6 +464,27 @@ function tick(dt,api){
  lastYear=year;
 }
 function draw(ctx,project,year,webglActive=false){
+ // Surface markers share the existing world-overlay canvas in 2D and WebGL.
+ for(const e of craters)if(year>=e.year){
+  const p=project(e.x,e.y);if(!p)continue;
+  ctx.save();ctx.fillStyle="rgba(32,29,28,.86)";ctx.strokeStyle="#80614b";ctx.lineWidth=5;
+  ctx.beginPath();ctx.ellipse(p.x,p.y,e.radius*.92,e.radius*.52,-.16,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle="rgba(196,130,76,.65)";ctx.lineWidth=2;
+  for(let k=0;k<6;k++){
+   const a=k*Math.PI/3;ctx.beginPath();ctx.moveTo(p.x+Math.cos(a)*e.radius*.43,p.y+Math.sin(a)*e.radius*.23);
+   ctx.lineTo(p.x+Math.cos(a)*e.radius*.8,p.y+Math.sin(a)*e.radius*.39);ctx.stroke();
+  }
+  ctx.fillStyle="#f5d2a7";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+  ctx.fillText("隕石跡・通行注意",p.x,p.y-e.radius*.55);ctx.restore();
+ }
+ if(meteorWarning){
+  const p=project(meteorWarning.x,meteorWarning.y);if(p){
+   ctx.save();ctx.strokeStyle="rgba(255,107,52,.96)";ctx.fillStyle="rgba(242,79,32,.16)";ctx.lineWidth=3;
+   ctx.beginPath();ctx.ellipse(p.x,p.y,meteorWarning.radius*.96,meteorWarning.radius*.53,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+   ctx.fillStyle="#ffdbb5";ctx.font="bold 14px sans-serif";ctx.textAlign="center";
+   ctx.fillText("隕石落下予兆・避難",p.x,p.y-65);ctx.restore();
+  }
+ }
  if(!webglActive)for(const t of standingTrees(year)){
   const p=project(t.x,t.y);if(!p)continue;
   ctx.save();ctx.translate(p.x,p.y);
@@ -479,19 +593,22 @@ function quakeShake(now=0){
   y:(Math.cos(time*34+seismicPhase)*7+Math.sin(time*62)*3)*intensity,
   rotation:Math.sin(time*19+seismicPhase)*.010*intensity,strength:intensity};
 }
-window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),events:()=>events.slice(),standingTrees:()=>standingTrees(),fixedTrees:()=>worldTrees?.slice()||[],
- getState:()=>({paceVersion:PACE,events:events.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history:history.slice()}),
+window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),
+ events:()=>[...events,...craters],standingTrees:()=>standingTrees(),fixedTrees:()=>worldTrees?.slice()||[],
+ getState:()=>({paceVersion:PACE,events:events.slice(),craters:craters.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,history:history.slice()}),
  resetWorld(){
   // Only an explicit NEW GAME resets the world. Continue/retry retain history.
-  events=[];history=[];warning=null;floodWarning=null;fireWarning=null;
+  events=[];craters=[];history=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;
   lastYear=0;seismicSeconds=0;seismicPhase=0;
   nextYear=eventDelay(5+Math.random()*10);
   nextFloodYear=eventDelay(6+Math.random()*9);
   nextFireYear=eventDelay(7+Math.random()*8);
+  nextMeteorYear=Math.max(17,eventDelay(60+Math.random()*70));
   persist();return true;
  },
- debugClear(){events=[];warning=null;floodWarning=null;fireWarning=null;seismicSeconds=0;persist();return true;},
+ debugClear(){events=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;seismicSeconds=0;persist();return true;},
  force:(api)=>schedule(api,api.elapsed/120),
  forceFlood:(api,x,y)=>scheduleFlood(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
- forceFire:(api,x,y)=>scheduleFire(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null)};
+ forceFire:(api,x,y)=>scheduleFire(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null),
+ forceMeteor:(api,x,y)=>scheduleMeteor(api,api.elapsed/120,Number.isFinite(x)&&Number.isFinite(y)?{x,y}:null)};
 })();
