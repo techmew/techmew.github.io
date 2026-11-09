@@ -2105,7 +2105,12 @@ function render(o){
   };
   // Rebuild the static room only when the roof changes to its playable cutaway.
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year),Number.isFinite(e.fallAtSeconds)?Math.min(12,Math.floor(Math.max(0,((o.elapsed||0)-e.fallAtSeconds)/1.4)*12)):12].join(",")).join(";"),WORLD.w,WORLD.h,interiorReveal].join(":");
+  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year),Number.isFinite(e.fallAtSeconds)?Math.min(12,Math.floor(Math.max(0,((o.elapsed||0)-e.fallAtSeconds)/1.4)*12)):12].join(",")).join(";"),
+   // The static mesh is refreshed exactly when a slope deposit appears or fades.
+   (o.disasterEvents||[]).filter(e=>e.kind==="landslide"&&((o.elapsed||0)/120)>=e.year&&
+    (e.permanent||((o.elapsed||0)/120)<e.year+e.duration))
+     .map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year*100),Math.round(e.rx||68),Math.round(e.ry||41)].join(",")).join(";"),
+   WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
    data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    mountainTerrain(isVisible);
@@ -2208,12 +2213,25 @@ function render(o){
    }
    // Rooted trees occupy identical collision and 2D world positions.
    for(const tree of o.standingFallTrees||[])if(isVisible(tree.x,tree.y,245))standingGiantTreeMesh(tree);
-   // Persistent quake debris, same world positions as the collision geometry.
+   // Real rocky deposits are cached in the static GPU mesh, not rebuilt
+   // each frame. Their footprint and life span use the physics events.
    for(const e of o.disasterEvents||[]){
-    if(e.kind!=="fallen_tree"||!isVisible(e.x,e.y,210))continue;
     const year=(o.elapsed||0)/120;
-    if(!e.permanent&&year-e.year>=e.duration)continue;
-    fallenTreeMesh(e,year);
+    if(year<e.year||(!e.permanent&&year-e.year>=e.duration)||
+       !isVisible(e.x,e.y,210))continue;
+    if(e.kind==="landslide"){
+     const rx=Math.max(24,Number(e.rx)||68),ry=Math.max(18,Number(e.ry)||41);
+     const mountain=window.WildMountain;
+     const h=mountain?.height?.(e.x,e.y)||0;
+     ellipsoid(e.x,e.y,h+2,rx,ry,5,"#796653",-.13,14,3);
+     for(let k=0;k<10;k++){
+      const angle=k*2.39996+e.x*.018,rad=.2+.66*((k*7%11)/11);
+      const px=e.x+Math.cos(angle)*rx*rad,py=e.y+Math.sin(angle)*ry*rad;
+      const z=mountain?.height?.(px,py)||h;
+      pyramid(px,py,z+3,6+k%3*2,5+k%2*2,5+k%4*2,
+       k%3===0?"#b1a89a":k%3===1?"#514b43":"#8d8072");
+     }
+    }else if(e.kind==="fallen_tree")fallenTreeMesh(e,year);
    }
    // Abandoned traffic has real 3D depth and matches the fallback drawings.
    for(const prop of o.streetProps||[]){
