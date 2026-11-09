@@ -272,7 +272,8 @@ function meteorSite(x,y,r,api,year){
  if(buildings.some(b=>x>b.x-r-80&&x<b.x+b.w+r+80&&y>b.y-r-80&&y<b.y+b.h+r+80))return false;
  if(craters.some(e=>Math.hypot(x-e.x,y-e.y)<r+e.radius+200))return false;
  if(events.some(e=>active(e,year)&&Math.hypot(x-e.x,y-e.y)<r+150))return false;
- if(collides(x,y,20,null,true))return false;
+ // Never place a dry-land crater inside a river, canal, deep pool or sea.
+ if(collides(x,y,20))return false;
  return [[r+65,0],[-r-65,0],[0,r+65],[0,-r-65]]
    .filter(([dx,dy])=>!collides(x+dx,y+dy,24)).length>=3;
 }
