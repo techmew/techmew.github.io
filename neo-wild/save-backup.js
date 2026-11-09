@@ -92,6 +92,44 @@ function mergeCaveSeal(records,older){
  const chosen=imported&&(!current||rank[imported.stage]>rank[current.stage])?imported:current;
  if(chosen)records[key]=JSON.stringify(chosen);
 }
+function readBossIds(raw,key){
+ if(raw==null)return [];
+ let ids;try{ids=JSON.parse(raw)}catch(_){throw Error("ボス永久IDの記録が破損: "+key)}
+ if(!Array.isArray(ids)||ids.some(x=>typeof x!=="string"||!x||x.length>240))
+  throw Error("ボス永久IDの形式が不正: "+key);
+ return ids;
+}
+function readBossRoster(raw){
+ if(raw==null)return null;
+ let r;try{r=JSON.parse(raw)}catch(_){throw Error("ボス編成のJSONが破損しています")}
+ if(!r||r.version!==1||!Array.isArray(r.members)||r.members.length>3||
+  r.members.some(m=>!m||typeof m.id!=="string"||!m.id||m.id.length>240||
+   typeof m.type!=="string"||!m.type||m.type.length>64)||
+  (r.activeId!=null&&typeof r.activeId!=="string"))
+  throw Error("ボスの専用3枠データが不正です");
+ return r;
+}
+function mergeBossRoster(records,older){
+ const deadKey="wild-reclaim-boss-dead-v1",retiredKey="wild-reclaim-boss-retired-v1",
+ claimedKey="wild-reclaim-boss-claimed-v1",key="wild-reclaim-boss-roster-v1";
+ for(const idKey of [deadKey,retiredKey,claimedKey]){
+  const union=[...new Set([...readBossIds(records[idKey],idKey),...readBossIds(older[idKey],idKey)])];
+  if(union.length||records[idKey]!=null||older[idKey]!=null)records[idKey]=JSON.stringify(union);
+ }
+ const incoming=readBossRoster(records[key]),current=readBossRoster(older[key]);
+ if(!incoming&&!current)return;
+ const forbidden=new Set([...readBossIds(records[deadKey],deadKey),...readBossIds(records[retiredKey],retiredKey)]);
+ const members=[],used=new Set();
+ // Current-owned live bosses have priority; importing an old backup must not
+ // remove newly recruited bosses or resurrect dead/replaced boss IDs.
+ for(const state of [current,incoming])for(const m of state?.members||[]){
+  if(forbidden.has(m.id)||used.has(m.id)||members.length>=3)continue;
+  members.push(m);used.add(m.id);
+ }
+ const activeId=[current?.activeId,incoming?.activeId].find(id=>members.some(m=>m.id===id))||null;
+ const updatedAt=Math.max(Number(current?.updatedAt)||0,Number(incoming?.updatedAt)||0)+1;
+ records[key]=JSON.stringify({version:1,members,activeId,updatedAt});
+}
 function validate(file){
  if(!file||typeof file!=="object"||file.format!==FORMAT||file.version!==1)throw Error("WILD RECLAIMのバックアップファイルではありません");
  const data=file.records;
@@ -114,6 +152,9 @@ function validate(file){
  }
  // Reject broken seal records before changing any local game keys.
  readCaveSeal(data["wild-reclaim-cave-seal-v1"]);
+ // Never accept corrupt dedicated boss death/replacement journals or roster.
+ for(const key of ["wild-reclaim-boss-dead-v1","wild-reclaim-boss-retired-v1","wild-reclaim-boss-claimed-v1"])readBossIds(data[key],key);
+ readBossRoster(data["wild-reclaim-boss-roster-v1"]);
  if(data["wild-reclaim-squad-v1"]!=null){
   const roster=JSON.parse(data["wild-reclaim-squad-v1"]);
   if(!roster||roster.version!==1||!Array.isArray(roster.members)||roster.members.length>5)throw Error("編成データが不正です");
@@ -153,6 +194,7 @@ async function importBackup(file,baseline=null){
     throw Error("端末の放流履歴形式が不正です："+key);
   }
   mergeCaveSeal(merged,before);
+  mergeBossRoster(merged,before);
   // Older JSON backups omitted the existing underscore-prefixed disaster
   // record. Retain its current data rather than deleting it on import.
   if(merged[DISASTER_KEY]==null&&before[DISASTER_KEY]!=null)merged[DISASTER_KEY]=before[DISASTER_KEY];
