@@ -832,14 +832,15 @@ function takeMeatFromDen(){
  const idx=denMeatLots.reduce((best,p,i,a)=>p.points>(a[best]?.points||0)?i:best,0);
  const item=denMeatLots[idx],points=Math.min(item.points,60);
  if(!points)return false;
+ const beforeLots=denMeatLots.map(p=>({...p})),beforeMeat=denStores.meat;
  denStores.meat-=points;item.points-=points;
  if(item.points<=0)denMeatLots.splice(idx,1);
  syncDenStash();
  P.carry={type:"meat",animalType:item.animalType,amount:Math.max(.01,Number((points/FOOD_BALANCE.meat.stash).toFixed(2)))};
  if(!saveDenStash()){
   P.carry=null;
-  denStores.meat+=points;
-  denMeatLots=normalizeMeatLots([...denMeatLots,item],denStores.meat);
+  denStores.meat=beforeMeat;
+  denMeatLots=beforeLots;
   syncDenStash();
   notify("食料庫の保存に失敗したため、肉は取り出していません");
   return false;
@@ -4781,12 +4782,17 @@ function carryFood(){
    const kind=foodName(P.carry),value=Math.max(1,Math.round(P.carry.amount*foodBalance(P.carry).stash));
    const added=Math.min(value,denCapacity()-denStash);
    if(added<=0){notify("巣の備蓄が満杯");return false}
+   const beforeStores={...denStores},beforeLots=denMeatLots.map(p=>({...p})),beforeCarry={...P.carry};
    denStores[P.carry.type==="berries"?"berries":"meat"]+=added;
    if(P.carry.type!=="berries")denMeatLots.push({animalType:P.carry.animalType||null,points:added});
    syncDenStash();
    if(added>=value)P.carry=null;
    else P.carry.amount=Math.max(.01,Number((P.carry.amount*(1-added/value)).toFixed(2)));
-   saveDenStash();saveAuto();checkMission();syncHUD();
+   if(!saveDenStash()){
+    denStores=beforeStores;denMeatLots=beforeLots;P.carry=beforeCarry;syncDenStash();
+    notify("食料庫を保存できず、持っている食料は維持した");return false;
+   }
+   saveAuto();checkMission();syncHUD();
    notify(kind+"を備蓄 +"+added+"pt（合計 "+denStash+"pt）");
    if(mission===4)announceObjective();
    return true;
