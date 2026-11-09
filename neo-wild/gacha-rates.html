@@ -37,18 +37,18 @@ td:has(.unavailable){color:#899f94}
 </table>
 <h2>抽選の仕組み</h2>
 <p>基本65%・希少30%・伝説級5%が標準配分です。未解放のグループは抽選から外れ、残るグループの割合が合計100%になるよう再配分されます。同一グループ内の動物は等確率です。</p>
-<p>希少はYEAR 7から、伝説級はYEAR 34から解放されます。抽選コードには探索による早期解放条件もありますが、現行ガチャ画面は探索数を抽選に渡していません。</p>
+<p>希少はYEAR 7から解放されます。伝説級は現在操作できる対象がないため、ガチャから除外しています。探索によって希少が早期解放される場合があります。</p>
 <p class="note">この表は1回ごとの動物種の確率です。個体評価S〜Dや個体値の確率とは別です。初回を含め最大4候補から選べます。ガチャで出ない動物は表に含めていません。</p>
 <a class="back" href="./">ゲームのトップページに戻る</a>
 </main>
-<script src="./squad-core.js"></script>
+<script src="./squad-core.js?rev=b519f48f74b9"></script>
 <script>
 (function(){
 "use strict";
 const tbody=document.getElementById("rates-body");
 const core=window.WildSquad;
 if(!core){tbody.textContent="排出確率を取得できません。";return;}
-const all=[...core.japan,...core.world].filter(species=>core.playable.has(species));
+const all=[...core.japan,...core.world].filter(species=>core.gachaReady?.has(species));
 const stages=[0,7,34];
 const baseWeights={basic:.65,rare:.30,legendary:.05};
 const order=["basic","rare","legendary"];
