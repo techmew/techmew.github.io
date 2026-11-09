@@ -1716,6 +1716,10 @@ function restoreSnapshot(snapshot){
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  const cleanWorld=sanitizeSavedWorld(snapshot);
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
+ // Durable endgame victory wins over older checkpoints, including older
+ // SAVE_SCHEMA2 mobs that still contain the alive final monster.
+ if(window.WildWorldEnd?.read?.()?.stage==="defeated")
+  mobs=mobs.filter(m=>m.type!=="worldEnd"&&!m.worldEndBoss);
  // 旧セーブの同行AIは敵・野生動物としても復活させず、操作個体だけ復元する。
  mobs=mobs.filter(m=>!m.companion && !m.squadIndividualId);
 
