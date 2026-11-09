@@ -8,6 +8,9 @@ const japan=["cat","dog","fox","wolf","deer","boar","crow","pigeon","otter","car
 const world=["manul","tibetanFox","shoebill","lion","tiger","cheetah","elephant","hippo","gorilla","giraffe","zebra","hyena","wildDog","armadillo","hedgehog","crocodile","penguin","rhino","pacmanFrog"];
 const names={cat:"猫",dog:"犬",fox:"狐",wolf:"狼",deer:"鹿",boar:"猪",crow:"カラス",pigeon:"ハト",otter:"カワウソ",carp:"コイ",tanuki:"タヌキ",badger:"アナグマ",macaque:"ニホンザル",blackBear:"ツキノワグマ",serow:"ニホンカモシカ",manul:"マヌルネコ",tibetanFox:"チベットスナギツネ",shoebill:"ハシビロコウ",lion:"ライオン",tiger:"トラ",cheetah:"チーター",elephant:"ゾウ",hippo:"カバ",gorilla:"ゴリラ",giraffe:"キリン",zebra:"シマウマ",hyena:"ハイエナ",wildDog:"リカオン",armadillo:"アルマジロ",hedgehog:"ハリネズミ",crocodile:"ワニ",penguin:"ペンギン",rhino:"サイ",giantTreeFrog:"巨大アマガエル",pacmanFrog:"ベルツノガエル"};
 const playable=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","macaque","gorilla","crocodile","lion","tiger","cheetah","hyena","elephant","penguin","rhino","giantTreeFrog","pacmanFrog","tanuki","badger","blackBear","serow","giraffe","zebra","wildDog","armadillo","hedgehog","otter","carp","hippo","crow","pigeon"]);
+// Only animals confirmed as operable in the current gacha UI can be newly drawn.
+// This gate does NOT delete or alter existing/legacy owned individual records.
+const gachaReady=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","giantTreeFrog","pacmanFrog"]);
 // Never award a permanent party slot to an animal that cannot become the player.
 const rare=new Set(["manul","tibetanFox","shoebill","blackBear","serow","cheetah","hippo","gorilla","hyena","wildDog","armadillo","hedgehog","crocodile","penguin","pacmanFrog"]);
 const legendary=new Set(["lion","tiger","elephant","giraffe","rhino"]);
@@ -36,7 +39,7 @@ const saveReleased=s=>localStorage.setItem(RELEASED,JSON.stringify([...s]));
 const rarity=s=>legendary.has(s)?"legendary":rare.has(s)?"rare":"basic";
 const unlock=(s,year=0,explored=0)=>rarity(s)==="basic"||rarity(s)==="rare"&&(year>=7||explored>=8)||year>=34||explored>=35;
 function rollSpecies(year=0,explored=0){
- const pool=[...japan,...world].filter(s=>playable.has(s)&&unlock(s,year,explored));
+ const pool=[...japan,...world].filter(s=>gachaReady.has(s)&&playable.has(s)&&unlock(s,year,explored));
  const groups={basic:[],rare:[],legendary:[]};pool.forEach(s=>groups[rarity(s)].push(s));
  const weights=[["basic",.65],["rare",.30],["legendary",.05]].filter(([k])=>groups[k].length);
  const total=weights.reduce((n,[,v])=>n+v,0);let n=Math.random()*total;
@@ -322,5 +325,5 @@ function drawSlot(year,explored,poorStreak=0){
   get options(){return options.slice()}
  };
 }
-window.WildSquad={japan,world,names,NAME_POOL,randomName,playable,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,selectActive,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,MAX_OWNED,LEGACY_OWNED,KEY,DEAD,RELEASED};
+window.WildSquad={japan,world,names,NAME_POOL,randomName,playable,gachaReady,canLead:s=>playable.has(s),rollSpecies,generate,drawSlot,load,save,kill,selectActive,newSquad,addXp,grantTickets,fillVacancy,addInitialSlot,markStarted,release,resetForNewGame,livingCount,rarity,MAX_OWNED,LEGACY_OWNED,KEY,DEAD,RELEASED};
 })();
