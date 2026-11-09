@@ -378,6 +378,9 @@
 .den-food-row span{display:flex;flex-direction:column;gap:3px}
 .den-food-row b{font-size:17px}.den-food-row small{font-size:11px;color:#b9d2c2}
 .den-food-row strong{font-size:15px;white-space:nowrap;color:#e7eebd}
+/* New shared food inventory: readable meat source list and clear take action. */
+#den-meat-lots{grid-column:1/-1;display:block;min-width:0;overflow-wrap:anywhere;line-height:1.65;color:#e6bca9}
+#den-take-meat{grid-column:1/-1;width:100%;max-width:100%;background:#544034;border-color:#cb9882}
 .den-pantry-note{margin:15px 0 0}
 /* Earned boss materials become persistent abilities only inside an upgraded den. */
 .strong-inheritance{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px;padding-top:12px;border-top:1px solid #688577}
