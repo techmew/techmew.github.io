@@ -7973,7 +7973,35 @@ function drawPlayableFrog2D(o,r,fur,light,pace,oval,triangle){
  }
  return true;
 }
+// Canvas2D fallback for the same colossal one-eyed 3D original; no UI changes.
+function drawWorldEnd2D(o){
+ const r=Math.max(80,Math.min(345,Number(o.r)||345)),dir=Number(o.dir)||0,x=o.x,y=o.y;
+ if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ const t=elapsed,cz=MOUNTAIN?.height(x,y)||0;
+ ctx.save();ctx.translate(x,y);
+ if(cz>0)ctx.translate(VIEW.c*cz*.93*cameraZoom/VIEW_DET,-VIEW.a*cz*.93*cameraZoom/VIEW_DET);
+ ctx.fillStyle="#071011aa";ctx.beginPath();ctx.ellipse(0,r*.35,r*1.21,r*.73,0,0,TWO);ctx.fill();
+ for(let i=0;i<8;i++){
+  const a=dir+i*Math.PI/4,ca=Math.cos(a),sa=Math.sin(a);
+  const wave=Math.sin(t*.45+i*1.31),length=r*(1.36+wave*.15);
+  ctx.strokeStyle=i%2?"#1a1421":"#0d1019";ctx.lineWidth=r*.19;
+  ctx.lineCap="round";ctx.beginPath();ctx.moveTo(ca*r*.63,sa*r*.57);
+  ctx.bezierCurveTo(ca*r*.91-sa*wave*r*.19,sa*r*.86+ca*wave*r*.19,
+   ca*r*1.36+sa*wave*r*.23,sa*r*1.35-ca*wave*r*.23,
+   ca*(r*.66+length),sa*(r*.66+length));ctx.stroke();
+  const tx=ca*(r*.66+length),ty=sa*(r*.66+length);
+  ctx.fillStyle="#362634";ctx.beginPath();ctx.ellipse(tx,ty,r*.058,r*.063,a,0,TWO);ctx.fill();
+ }
+ ctx.fillStyle="#030307";ctx.beginPath();ctx.ellipse(0,0,r*.99,r*.85,dir,0,TWO);ctx.fill();
+ ctx.fillStyle="#100e16";ctx.beginPath();ctx.ellipse(-r*.15,r*.03,r*.7,r*.68,dir,0,TWO);ctx.fill();
+ const eyeX=Math.cos(dir)*r*.66,eyeY=Math.sin(dir)*r*.66;
+ ctx.fillStyle="#f1e7dc";ctx.beginPath();ctx.ellipse(eyeX,eyeY,r*.23,r*.20,dir,0,TWO);ctx.fill();
+ ctx.fillStyle="#453342";ctx.beginPath();ctx.arc(eyeX+Math.cos(dir)*r*.05,eyeY+Math.sin(dir)*r*.05,r*.103,0,TWO);ctx.fill();
+ ctx.fillStyle="#080710";ctx.beginPath();ctx.arc(eyeX+Math.cos(dir)*r*.075,eyeY+Math.sin(dir)*r*.075,r*.05,0,TWO);ctx.fill();
+ ctx.restore();
+}
 function drawCreature(o,isPlayer){
+ if(o.type==="worldEnd"){drawWorldEnd2D(o);return;}
  const s=isPlayer?P.base:species[o.type],r=o.r;
  const t=!isPlayer&&o.type==="strayCat"?"cat":!isPlayer&&o.type==="wildFox"?"fox":o.type;
  const hit=!isPlayer&&o.flash>0,fur=hit?"#ffe4bc":s.color,light=s.belly;
