@@ -300,18 +300,37 @@ function strikeMeteor(api,year){
  history.push({kind:"meteor",year,x,y});history=history.slice(-60);
  seismicSeconds=Math.max(seismicSeconds,1.8);seismicPhase=Math.random()*Math.PI*2;
  announceEscape({...crater,radius:radius+90},api.mobs);
+ // Avoid trapping a surviving actor inside a permanent collision crater.
+ // The site was selected with clear bypass routes; this short knockback uses
+ // the game's existing collision/water rules and never moves a dead character.
+ const pushToRim=actor=>{
+  if(!actor||actor.hp<=0||Math.hypot(actor.x-x,actor.y-y)>=radius*.56+Math.max(10,actor.r||18))return;
+  const base=Math.atan2(actor.y-y,actor.x-x);
+  for(let i=0;i<12;i++){
+   const a=base+(i%2===0?1:-1)*Math.ceil(i/2)*Math.PI/6;
+   const nx=x+Math.cos(a)*(radius+110),ny=y+Math.sin(a)*(radius+110);
+   if(nx<60||ny<60||nx>api.WORLD.w-60||ny>api.WORLD.h-60||
+      api.collides(nx,ny,Math.max(10,actor.r||18),actor))continue;
+   actor.x=nx;actor.y=ny;
+   if(Number.isFinite(actor.vx))actor.vx=0;
+   if(Number.isFinite(actor.vy))actor.vy=0;
+   return;
+  }
+ };
  const p=api.P,d=Math.hypot(p.x-x,p.y-y);
  if(d<radius+45&&p.hp>0&&!api.isSheltered?.(p)){
   const factor=1-d/(radius+45);
   p.hp=Math.max(0,p.hp-(22+Math.max(15,p.maxHp||p.hp)*.66)*factor);
   p.sp=Math.max(0,(p.sp||0)-25*factor);
  }
+ pushToRim(p);
  for(const m of api.mobs||[]){
   if(!m||m.hp<=0)continue;
   const distance=Math.hypot(m.x-x,m.y-y);if(distance>radius+100)continue;
   const factor=Math.max(0,1-distance/(radius+100));
   m.hp=Math.max(0,m.hp-(25+(m.maxHp||m.hp)*.70)*factor);
   if(m.hp<=0&&!m._meteorDeathProcessed){m._meteorDeathProcessed=true;api.onAnimalDeath?.(m,"meteor");}
+  else pushToRim(m);
  }
  if(d<1000){
   api.notify?.("隕石落下！クレーターが残った。迂回して探索");
