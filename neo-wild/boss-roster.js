@@ -3,7 +3,8 @@
  */
 (()=>{"use strict";
 const KEY="wild-reclaim-boss-roster-v1",DEAD="wild-reclaim-boss-dead-v1",
- RETIRED="wild-reclaim-boss-retired-v1",CLAIMED="wild-reclaim-boss-claimed-v1",MAX=3;
+ RETIRED="wild-reclaim-boss-retired-v1",CLAIMED="wild-reclaim-boss-claimed-v1",
+ PENDING="wild-reclaim-boss-pending-v1",MAX=3;
 const LABELS=Object.freeze({
  alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",
  blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",
@@ -54,6 +55,21 @@ function save(roster){
  const next={version:1,members,activeId,updatedAt:Math.max(Date.now(),before.updatedAt+1)};
  write(KEY,next);return load();
 }
+function pendingOffer(){
+ try{
+  const p=read(PENDING,null);
+  return p&&LABELS[p.type]&&typeof p.sourceId==="string"&&p.sourceId.length<=180&&
+   !readIds(CLAIMED).has(p.sourceId)?{type:p.type,sourceId:p.sourceId}:null;
+ }catch(_){return null}
+}
+function queueOffer(info){
+ if(!LABELS[info?.type]||typeof info.sourceId!=="string"||!info.sourceId||info.sourceId.length>180)return false;
+ try{
+  if(readIds(CLAIMED).has(info.sourceId))return false;
+  write(PENDING,{type:info.type,sourceId:info.sourceId});
+  return true;
+ }catch(_){return false}
+}
 function recruit(info,replaceId=null){
  if(!LABELS[info?.type]||!info?.sourceId||typeof info.sourceId!=="string"||info.sourceId.length>180)
   return {ok:false,reason:"ボスの討伐情報が不正です"};
@@ -62,18 +78,27 @@ function recruit(info,replaceId=null){
   const r=load(),id="boss:"+info.sourceId;
   if(r.members.some(m=>m.id===id)||readIds(DEAD).has(id)||readIds(RETIRED).has(id))
    return {ok:false,reason:"このボスは登録済みです"};
-  let members=r.members.slice();
+  let members=r.members.slice(),previousRetired=null;
   if(members.length>=MAX){
    if(!replaceId||!members.some(m=>m.id===replaceId))
     return {ok:false,reason:"ボス3枠が満員です。交代対象を選んでください"};
    // Permanent retirement happens before replacement; old save cannot restore it.
-   const retired=readIds(RETIRED);retired.add(replaceId);write(RETIRED,[...retired]);
+   const retired=readIds(RETIRED);previousRetired=[...retired];
+   retired.add(replaceId);write(RETIRED,[...retired]);
    members=members.filter(m=>m.id!==replaceId);
   }
   members.push({id,type:info.type,name:LABELS[info.type],hpRatio:1,level:1});
   // Keep ordinary selection unchanged. Acquired bosses are selected by the user.
-  const next=save({...r,members,activeId:r.activeId===replaceId?null:r.activeId});
-  claims.add(info.sourceId);write(CLAIMED,[...claims]);
+  let next;
+  try{next=save({...r,members,activeId:r.activeId===replaceId?null:r.activeId})}
+  catch(error){
+   // An unsuccessful replacement must not permanently erase the previous owner.
+   if(previousRetired)try{write(RETIRED,previousRetired)}catch(_){}
+   throw error;
+  }
+  claims.add(info.sourceId);
+  try{write(CLAIMED,[...claims])}
+  catch(_){return {ok:true,roster:next,warning:"ボス取得済み。討伐履歴の保存確認が必要です"}}
   return {ok:true,roster:next};
  }catch(error){return {ok:false,reason:error?.message||"保存エラー"}}
 }
@@ -136,6 +161,8 @@ function renderTitle(){
 let offer=null;
 function showOffer(info){
  if(!LABELS[info?.type]||!info?.sourceId)return false;
+ if(readIds(CLAIMED).has(info.sourceId))return false;
+ queueOffer(info); // The choice survives a reload of the saved world.
  offer=info;
  let root=document.getElementById("boss-recruit-offer");
  if(!root){root=document.createElement("div");root.id="boss-recruit-offer";root.setAttribute("role","dialog");
@@ -160,7 +187,8 @@ function showOffer(info){
  const accept=document.createElement("button");accept.type="button";accept.textContent="仲間にする";
  const declineBtn=document.createElement("button");declineBtn.type="button";declineBtn.textContent="見送る";
  for(const b of [accept,declineBtn])b.style.cssText="min-height:44px;padding:10px 17px;border:1px solid #c0ab90;border-radius:8px;background:#476151;color:white;font-size:14px";
- const close=()=>{root.remove();offer=null;renderTitle();window.dispatchEvent(new CustomEvent("wild-boss-offer-closed"));};
+ const close=()=>{try{localStorage.removeItem(PENDING)}catch(_){}
+  root.remove();offer=null;renderTitle();window.dispatchEvent(new CustomEvent("wild-boss-offer-closed"));};
  accept.addEventListener("click",()=>{
   const result=recruit(info,swap);
   if(!result.ok){message.textContent=result.reason;return;}
@@ -173,6 +201,6 @@ function showOffer(info){
 window.addEventListener("wild-squad-selected",()=>{try{const r=load();if(r.activeId)select(null)}catch(_){}});
 window.addEventListener("wild-squad-updated",renderTitle);
 window.addEventListener("wild-boss-selected",renderTitle);
-window.WildBossRoster=Object.freeze({KEY,DEAD,RETIRED,CLAIMED,LABELS,load,recruit,select,kill,updateVitals,decline,renderTitle,showOffer});
+window.WildBossRoster=Object.freeze({KEY,DEAD,RETIRED,CLAIMED,PENDING,LABELS,load,recruit,select,kill,updateVitals,decline,renderTitle,showOffer,pendingOffer,queueOffer});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderTitle,{once:true});else renderTitle();
 })();
