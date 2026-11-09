@@ -12,7 +12,7 @@ const LABELS=Object.freeze({
  giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",
  giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",
  rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",
- albinoWolf:"アルビノの狼",giantEagle:"大鷲"
+ albinoWolf:"アルビノの狼",giantEagle:"大鷲",worldEnd:"この世の終わり"
 });
 const read=(key,fallback)=>{
  const raw=localStorage.getItem(key);if(raw===null)return fallback;
