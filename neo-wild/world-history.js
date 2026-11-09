@@ -34,7 +34,7 @@ function entries(atSeconds=seconds()){
  try{
   for(const e of window.WildDisaster?.history?.()||[]){
    if(!e||!Number.isFinite(Number(e.year))||Number(e.year)<0||Number(e.year)>year)continue;
-   const names={fallen_tree:"地震・倒木",flood:"河川氾濫",wildfire:"山火事"};
+   const names={fallen_tree:"地震・倒木",fissure:"地震による地割れ",flood:"河川氾濫",wildfire:"山火事"};
    items.push({year:Number(e.year),label:names[e.kind]||"災害",kind:"disaster"});
   }
  }catch(_){}
