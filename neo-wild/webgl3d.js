@@ -87,8 +87,9 @@ function tone(hex,s){const c=color(hex);return c.map(v=>Math.min(1,v*s));}
 let data=[];
  // Static district geometry is rebuilt only when the camera enters a new region.
  // Animal and vegetation animation still update every frame.
- let staticBuffer=gl.createBuffer();
+ let staticBuffer=gl.createBuffer(),snowBuffer=gl.createBuffer();
  let staticKey="",staticCount=0,staticRebuilds=0,dynamicCount=0;
+ let snowCacheKey="",snowCount=0,snowRebuilds=0;
 function triangle(a,b,c,t){
  const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
  let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
@@ -2071,7 +2072,8 @@ canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();failed=true;wi
 canvas.addEventListener("webglcontextrestored",()=>{
  try{
   // A restored WebGL context invalidates shaders, programs and GPU buffers.
-  initializeGPU();staticBuffer=gl.createBuffer();staticKey="";staticCount=0;dynamicCount=0;
+  initializeGPU();staticBuffer=gl.createBuffer();snowBuffer=gl.createBuffer();
+  staticKey="";staticCount=0;dynamicCount=0;snowCacheKey="";snowCount=0;
   failed=false;canvas.style.display="block";window.Wild3D.available=true;
  }catch(err){
   failed=true;window.Wild3D.available=false;canvas.style.display="none";
@@ -2252,18 +2254,26 @@ function render(o){
   // Permanent high-altitude snow remains visible in clear weather. Avoid
   // tessellating the entire city when there is no falling/ground snow.
   const snowMountain=window.WildMountain;
-  const snowViewMargin=vh*.85+250;
+  // Snow is world-space geometry, not an animation. Reuse a GPU buffer while
+  // the camera stays in a 256-unit sector and the snow/weather field is stable.
+  // Overscan preserves continuous edges when the camera moves within a sector.
+  const snowSector=256,snowCellX=Math.floor(cam.x/snowSector),snowCellY=Math.floor(cam.y/snowSector);
+  const snowAnchorX=snowCellX*snowSector,snowAnchorY=snowCellY*snowSector;
+  const snowViewMargin=vh*.85+250+snowSector;
   const alpineInView=typeof snowMountain?.snowCover==="function"
-   &&cam.x+vw+snowViewMargin>=10100&&cam.x-snowViewMargin<=13600
-   &&cam.y+vh+snowViewMargin>=2600&&cam.y-snowViewMargin<=5100;
-  if(snow>.06||alpineInView){
-   // Fewer, larger shared-world cells lower per-frame snow mesh cost on mobile.
-   // Midpoint/center fan retains clipped contours at 24-world-unit resolution.
+   &&snowAnchorX+vw+snowViewMargin>=10100&&snowAnchorX-snowViewMargin<=13600
+   &&snowAnchorY+vh+snowViewMargin>=2600&&snowAnchorY-snowViewMargin<=5100;
+  // Recheck water and disaster state every five seconds without recomputing per frame.
+  const snowKey=[snowCellX,snowCellY,vw,vh,VIEW.a,VIEW.b,VIEW.c,VIEW.d,
+   WORLD.w,WORLD.h,snow.toFixed(3),alpineInView?1:0,Math.floor(elapsed/5)].join(":");
+  if(snowKey!==snowCacheKey){
+   const snowDataStart=data.length;
+   if(snow>.06||alpineInView){
    const step=48,margin=snowViewMargin;
-   const firstX=Math.max(snow>.06?0:8300,Math.floor((cam.x-margin)/step)*step);
-   const firstY=Math.max(snow>.06?0:2600,Math.floor((cam.y-margin)/step)*step);
-   const endX=Math.min(snow>.06?WORLD.w:13600,cam.x+vw+margin);
-   const endY=Math.min(snow>.06?WORLD.h:5100,cam.y+vh+margin);
+   const firstX=Math.max(snow>.06?0:8300,Math.floor((snowAnchorX-margin)/step)*step);
+   const firstY=Math.max(snow>.06?0:2600,Math.floor((snowAnchorY-margin)/step)*step);
+   const endX=Math.min(snow>.06?WORLD.w:13600,snowAnchorX+vw+margin);
+   const endY=Math.min(snow>.06?WORLD.h:5100,snowAnchorY+vh+margin);
    // Per-frame world-coordinate caches share exact edge heights and snow masks
    // across neighbouring cells. Recreated every render to follow terrain/weather.
    const heightCache=new Map(),maskCache=new Map();
@@ -2354,7 +2364,7 @@ function render(o){
    };
    for(let x=firstX;x<endX;x+=step)for(let y=firstY;y<endY;y+=step){
     const x2=Math.min(WORLD.w,x+step),y2=Math.min(WORLD.h,y+step);
-    if(!isVisible((x+x2)*.5,(y+y2)*.5,120))continue;
+    if(!isVisible((x+x2)*.5,(y+y2)*.5,120+snowSector*2))continue;
     // Center-fan tessellation samples shared world-space edge midpoints.
     // Neighboring cells reuse the exact same coordinates and terrain heights,
     // while the center resolves narrow snow contours on curved mountain slopes.
@@ -2372,6 +2382,16 @@ function render(o){
      for(let i=1;i<poly.length-1;i++)triangle(base,surface(poly[i]),surface(poly[i+1]),tint);
     }
    }
+   }
+   // Preserve animated animals, vegetation, and FX in their existing dynamic buffer.
+   // Upload the snow only when its cache key changes; never mix stale geometry
+   // into the next frame's dynamic mesh.
+   const snowVertices=new Float32Array(data.slice(snowDataStart));
+   data.length=snowDataStart;
+   gl.bindBuffer(gl.ARRAY_BUFFER,snowBuffer);
+   gl.bufferData(gl.ARRAY_BUFFER,snowVertices,gl.STATIC_DRAW);
+   snowCount=snowVertices.length/9;
+   snowCacheKey=snowKey;snowRebuilds++;
   }
   // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
   if(typeof o.waterAt==="function"){
@@ -2437,6 +2457,8 @@ function render(o){
   };
   bindAttributes(staticBuffer);
   if(staticCount)gl.drawArrays(gl.TRIANGLES,0,staticCount);
+  bindAttributes(snowBuffer);
+  if(snowCount)gl.drawArrays(gl.TRIANGLES,0,snowCount);
   bindAttributes(buffer);
   gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
   dynamicCount=vertices.length/9;
@@ -2564,5 +2586,6 @@ function captureDeathFrame(){
  }catch(err){console.warn("Death WebGL readback failed",err);return null}
 }
 window.Wild3D={available:true,render,captureDeathFrame,previewAnimal:bestiaryRender,get frames(){return frames},
- get stats(){return {staticRebuilds,staticTriangles:staticCount/3,dynamicTriangles:dynamicCount/3}}};
+ get stats(){return {staticRebuilds,staticTriangles:staticCount/3,
+  snowRebuilds,snowTriangles:snowCount/3,dynamicTriangles:dynamicCount/3}}};
 })();
