@@ -600,14 +600,19 @@ function draw(ctx,project,year,webglActive=false){
  for(const e of events)if(e.kind==="landslide"&&active(e,year)){
   const p=project(e.x,e.y);if(!p)continue;
   const dust=Math.max(0,1-(year-e.year)*120/7);
-  ctx.save();ctx.fillStyle="#665a4a";ctx.strokeStyle="#a79680";ctx.lineWidth=2;
-  ctx.beginPath();ctx.ellipse(p.x,p.y,e.rx,e.ry,-.18,0,Math.PI*2);ctx.fill();ctx.stroke();
-  for(let j=0;j<9;j++){
-   const a=j*2.39996+e.x*.018,t=.24+.62*((j*7%11)/11);
-   const px=p.x+Math.cos(a)*e.rx*t,py=p.y+Math.sin(a)*e.ry*t;
-   ctx.fillStyle=j%3===0?"#aba498":j%3===1?"#45423c":"#82796e";
-   ctx.beginPath();ctx.moveTo(px-7,py+4);ctx.lineTo(px-1,py-7);
-   ctx.lineTo(px+7,py+2);ctx.closePath();ctx.fill();
+  ctx.save();
+  // WebGL already has cached raised rock meshes; avoid painting a flat opaque
+  // copy over the 3D world. Canvas2D retains the identical hazard footprint.
+  if(!webglActive){
+   ctx.fillStyle="#665a4a";ctx.strokeStyle="#a79680";ctx.lineWidth=2;
+   ctx.beginPath();ctx.ellipse(p.x,p.y,e.rx,e.ry,-.18,0,Math.PI*2);ctx.fill();ctx.stroke();
+   for(let j=0;j<9;j++){
+    const a=j*2.39996+e.x*.018,t=.24+.62*((j*7%11)/11);
+    const px=p.x+Math.cos(a)*e.rx*t,py=p.y+Math.sin(a)*e.ry*t;
+    ctx.fillStyle=j%3===0?"#aba498":j%3===1?"#45423c":"#82796e";
+    ctx.beginPath();ctx.moveTo(px-7,py+4);ctx.lineTo(px-1,py-7);
+    ctx.lineTo(px+7,py+2);ctx.closePath();ctx.fill();
+   }
   }
   if(dust>0){ctx.fillStyle="rgba(186,171,143,"+(dust*.23)+")";
    ctx.beginPath();ctx.ellipse(p.x,p.y-13,e.rx+24,e.ry+19,0,0,Math.PI*2);ctx.fill();}
