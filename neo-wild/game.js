@@ -114,8 +114,12 @@ const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"�
 // Dedicated boss forms are operable only after a real boss defeat; never enter gacha.
 for(const [type,name] of Object.entries(STRONG_NAMES)){
  const base=species[type];
- if(!animals[type]&&base)animals[type]={name,hp:Math.round(base.hp),speed:Math.round(base.speed),
-  damage:Math.round(base.damage),rate:.68,r:base.r,color:base.color,belly:base.belly,ear:base.color};
+ if(!animals[type]&&base)animals[type]={name,hp:Math.round(base.hp),
+  speed:type==="worldEnd"?85:Math.round(base.speed),
+  damage:Math.round(base.damage),rate:.68,
+  // Enemy keeps its full elephant x5 collision radius; controlled form has
+  // separate navigable collision size and can pass doorways/legacy coordinates.
+  r:type==="worldEnd"?96:base.r,color:base.color,belly:base.belly,ear:base.color};
 }
 // The encyclopedia is account-local and independent from SAVE_SCHEMA2 checkpoints.
 window.WildBestiary?.configure(species,STRONG_NAMES);
