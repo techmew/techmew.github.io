@@ -60,7 +60,7 @@ function restore(){
  warning=x.warning&&Number.isFinite(x.warning.x)?x.warning:null;
  nextFloodYear=Math.max(0,finite(x.nextFloodYear,eventDelay(6)));
  floodWarning=x.floodWarning&&Number.isFinite(x.floodWarning.x)&&Number.isFinite(x.floodWarning.y)?x.floodWarning:null;
- history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","flood","wildfire"].includes(e.kind)).slice(-60):[];
+ history=Array.isArray(x.history)?x.history.filter(e=>e&&Number.isFinite(e.year)&&["fallen_tree","fissure","flood","wildfire"].includes(e.kind)).slice(-60):[];
  nextFireYear=Math.max(0,finite(x.nextFireYear,eventDelay(7)));
  fireWarning=x.fireWarning&&Number.isFinite(x.fireWarning.x)&&Number.isFinite(x.fireWarning.y)?x.fireWarning:null;
  // Legacy schedules are converted once; old disasters, world age and history are not rewritten.
@@ -79,9 +79,17 @@ function fallenAngle(e){
  const seed=Math.sin(e.x*.031+e.y*.067)*43758.5453;
  return Number.isFinite(e.angle)?e.angle:-.48+((seed-Math.floor(seed))-.5)*.74;
 }
+// Physical fissure edges are capsule segments; their narrow width leaves detours open.
+function fissureGap(e,x,y){
+ const a=Number.isFinite(e.angle)?e.angle:0,ca=Math.cos(a),sa=Math.sin(a);
+ const dx=x-e.x,dy=y-e.y,half=Math.min(85,Math.max(28,(Number(e.length)||110)*.5));
+ const along=Math.max(-half,Math.min(half,dx*ca+dy*sa));
+ return Math.hypot(dx-along*ca,dy-along*sa);
+}
 function blocked(x,y,r,year){
  if(standingTrees(year).some(t=>Math.hypot(x-t.x,y-t.y)<Math.max(0,r)+24))return true;
  return events.some(e=>{
+  if(e.kind==="fissure")return active(e,year)&&fissureGap(e,x,y)<Math.max(0,r)+Math.min(28,Math.max(8,Number(e.width)||14));
   if(e.kind!=="fallen_tree"||!active(e,year))return false;
   const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
   const along=(x-e.x)*ca+(y-e.y)*sa;
@@ -208,6 +216,21 @@ function safeSite(x,y,api){const {P,collides,WORLD}=api;
  // Reserve a wide clear bypass on every side; never create a complete barrier.
  return [[0,110],[0,-110],[110,0],[-110,0]].filter(([dx,dy])=>!collides(x+dx,y+dy,24)).length>=3;
 }
+// One optional rupture per earthquake. Check the playable terrain and keep at
+// least three clear escape directions; never block a road, den or the player.
+function quakeFissure(api,year,site,fallAngle){
+ if(Math.random()>.76)return null;
+ const turns=[Math.PI/2,-Math.PI/2,Math.PI*.78,-Math.PI*.78,0,Math.PI];
+ for(const offset of turns){
+  const a=fallAngle+offset,dist=180+(Math.abs(offset)<.01?65:0);
+  const x=site.x+Math.cos(a)*dist,y=site.y+Math.sin(a)*dist;
+  if(!safeSite(x,y,api))continue;
+  if(events.some(e=>active(e,year)&&Math.hypot(x-e.x,y-e.y)<210))continue;
+  return {kind:"fissure",x,y,angle:fallAngle+Math.PI/2,length:110,width:14,
+   year,duration:eventDelay(8+Math.random()*6),paceVersion:PACE,permanent:false};
+ }
+ return null;
+}
 function schedule(api,year){
  ensureTrees(api);
  const available=standingTrees(year),near=available.filter(t=>{
@@ -241,10 +264,14 @@ function tick(dt,api){
      scale:isGiant?3:1,fallAtSeconds:isGiant?api.elapsed:undefined,
      year,kind:"fallen_tree",radius:isGiant?102:34,duration:eventDelay(5+Math.random()*9),
      paceVersion:PACE,permanent:false};
-   events.push(e);events=events.slice(-MAX);warning=null;
-   history.push({kind:e.kind,year:e.year,x:e.x,y:e.y});history=history.slice(-60);
+   const fissure=quakeFissure(api,year,warning,angle);
+   events.push(e);if(fissure)events.push(fissure);events=events.slice(-MAX);warning=null;
+   history.push({kind:e.kind,year:e.year,x:e.x,y:e.y});
+   if(fissure)history.push({kind:"fissure",year,x:fissure.x,y:fissure.y});
+   history=history.slice(-60);
    seismicSeconds=3.4;seismicPhase=Math.random()*Math.PI*2;
-   api.notify("地震発生！倒木と地割れに警戒");
+   api.notify(fissure?"地震発生！地割れが開いた。足元と迂回路に注意":"地震発生！倒木と地割れに警戒");
+   if(fissure)announceEscape({...fissure,radius:100},api.mobs);
    for(const m of api.mobs||[])if(m.hp>0&&Math.hypot(m.x-e.x,m.y-e.y)<210){
     const a=Math.atan2(m.y-e.y,m.x-e.x);m.flee=Math.max(m.flee||0,3.6);m.fleeThreatX=e.x;m.fleeThreatY=e.y;m.dir=a;m.resting=false;m.restTime=0;
    }
@@ -309,6 +336,16 @@ function tick(dt,api){
   m.fleeThreatX=scar.x;m.fleeThreatY=scar.y;
   m.resting=false;m.foragePose=0;m.habitatDisplaced=true;
  }
+ // Existing wildlife remembers the ruptured ground as a navigational obstacle.
+ // Only nearby NPCs flee; never teleport the player or modify owned companions.
+ for(const e of events)if(e.kind==="fissure"&&active(e,year)){
+  for(const m of api.mobs||[]){
+   if(!m||m.hp<=0||fissureGap(e,m.x,m.y)>95)continue;
+   m.flee=Math.max(m.flee||0,1.8);
+   m.fleeThreatX=e.x;m.fleeThreatY=e.y;
+   m.resting=false;m.restTime=0;m.foragePose=0;
+  }
+ }
  // Wildfire is an actual lethal hazard. Keep corpses in the main game's normal remains system.
  const playerHeat=fireIntensity(api.P.x,api.P.y,year);
  if(playerHeat>.12&&api.P.hp>0&&!api.isSheltered?.(api.P)){
@@ -370,6 +407,22 @@ function draw(ctx,project,year,webglActive=false){
   ctx.font="bold 14px sans-serif";ctx.fillStyle="#dff7ff";ctx.textAlign="center";
   ctx.fillText("氾濫警戒・避難",p.x,p.y-58);ctx.restore();
  }}
+ // Draw the actual collision segment on the ground in both WebGL and 2D mode.
+ // This is a world overlay, not a change to the established HUD layout.
+ for(const e of events)if(e.kind==="fissure"&&active(e,year)){
+  const mid=project(e.x,e.y);if(!mid)continue;
+  const ca=Math.cos(e.angle||0),sa=Math.sin(e.angle||0),half=(e.length||110)*.5;
+  ctx.save();ctx.lineJoin="round";ctx.lineCap="round";
+  const trace=()=>{ctx.beginPath();for(let i=0;i<=8;i++){
+   const t=(i/8*2-1)*half,jitter=i===0||i===8?0:Math.sin(i*5.37+e.x)*4;
+   const p=project(e.x+t*ca-jitter*sa,e.y+t*sa+jitter*ca);if(!p)continue;
+   if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+  }};
+  trace();ctx.strokeStyle="rgba(119,91,72,.88)";ctx.lineWidth=13;ctx.stroke();
+  trace();ctx.strokeStyle="rgba(16,17,20,.96)";ctx.lineWidth=7;ctx.stroke();
+  ctx.fillStyle="#f5ddba";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+  ctx.fillText("地割れ・迂回",mid.x,mid.y-28);ctx.restore();
+ }
  for(const e of events){if(e.kind!=="fallen_tree"||!active(e,year)||webglActive)continue;
   const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
   const size=e.scale===3?3:1;
