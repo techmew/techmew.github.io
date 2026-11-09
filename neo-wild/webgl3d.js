@@ -1468,7 +1468,46 @@ function drawPlayableBird3D(m,clock){
  return true;
 }
 
+// ORIGINAL 100-year apex model: a single charcoal giant with exactly one eye.
+// Twelve low-poly lobes and eight slow tentacles, no textures or GPU allocations
+// beyond the existing dynamic buffer. Rendered at elephant radius x5.
+function worldEndMesh(m,clock){
+ animalLift=0;
+ const x=m.x,y=m.y,r=Math.max(80,Math.min(345,Number(m.r)||345));
+ const dir=m.dir||0,cz=window.WildMountain?.height(x,y)||0;
+ const bodyZ=cz+r*.68,attack=Number(m.worldEndCharge)||0;
+ ellipsoid(x,y,cz+2,r*1.16,r*.95,2.2,"#04060b",dir,12,3);
+ ellipsoid(x,y,bodyZ,r*.95,r*.79,r*.64,"#09090e",dir,14,8);
+ ellipsoid(x-r*.13,y+r*.02,bodyZ+r*.18,r*.70,r*.66,r*.49,"#11101a",dir,12,7);
+ // A single enormous pale eye on the facing side. No mouth or second eye.
+ const fx=Math.cos(dir),fy=Math.sin(dir);
+ const eyeX=x+fx*r*.70,eyeY=y+fy*r*.70,eyeZ=bodyZ+r*.42;
+ ellipsoid(eyeX,eyeY,eyeZ,r*.21,r*.17,r*.20,"#f2eadf",dir,10,6);
+ ellipsoid(eyeX+fx*r*.065,eyeY+fy*r*.065,eyeZ-r*.005,r*.105,r*.09,r*.105,"#39303d",dir,9,6);
+ ellipsoid(eyeX+fx*r*.106,eyeY+fy*r*.106,eyeZ+r*.015,r*.053,r*.049,r*.056,"#080710",dir,8,5);
+ // Eight separate segmented whips; only one real attack uses the world-space
+ // warning ring. Other tentacles move slowly to avoid seizure-like animation.
+ for(let i=0;i<8;i++){
+  const a=dir+i*Math.PI/4,ca=Math.cos(a),sa=Math.sin(a);
+  const wave=Math.sin(clock*.45+i*1.31),reach=r*(1.18+.17*wave);
+  for(let j=0;j<3;j++){
+   const f=(j+.55)/3,z=cz+r*(.53+.16*Math.sin(i*.93+j*.86+clock*.31));
+   const px=x+ca*(r*.63+reach*f)+-sa*r*.075*wave*f;
+   const py=y+sa*(r*.63+reach*f)+ca*r*.075*wave*f;
+   const size=r*(.135-j*.031);
+   ellipsoid(px,py,z,size*1.44,size*.92,size,
+    j%2?"#15141f":"#0b0b15",a,7,4);
+  }
+  const tipX=x+ca*(r*.63+reach),tipY=y+sa*(r*.63+reach);
+  ellipsoid(tipX,tipY,cz+r*.44,r*.055,r*.056,r*.066,"#342431",a,6,4);
+ }
+ if(attack>0){
+  // The actual telegraph target is drawn by WildWorldEnd over both renderers.
+  ellipsoid(x,y,cz+r*1.22,r*.13,r*.12,r*.13,"#c86d63",dir,8,5);
+ }
+}
 function animal(m,player,clock){
+ if(m.type==="worldEnd"){worldEndMesh(m,clock);return;}
  const type=m.type==="strayCat"?"cat":m.type==="wildFox"?"fox":m.type,c=m.base||m.species||null,base=m.color||(c&&c.color)||"#86928d",belly=m.belly||(c&&c.belly)||"#c5ccbd";
  const r=m.r||16,collapse=player?clamp(m.deathPose||0,0,1):0,dir=(m.dir||0)+collapse*.24,cos=Math.cos(dir),sin=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
  const resting=!player&&!!m.resting;
@@ -2434,7 +2473,9 @@ function render(o){
   }
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
-  for(const m of mobs)if(isVisible(m.x,m.y,110)){animal({...m,...species[m.type]},false,elapsed);}
+  for(const m of mobs)if(isVisible(m.x,m.y,m.type==="worldEnd"?640:110)){
+   animal({...m,...species[m.type]},false,elapsed);
+  }
   for(const bird of o.birdFlocks||[]){
    if(!isVisible(bird.x,bird.y,170))continue;
    const x=bird.x,y=bird.y,z=bird.z||55,c=Math.cos(bird.dir),s=Math.sin(bird.dir);
