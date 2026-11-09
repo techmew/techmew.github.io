@@ -1736,6 +1736,16 @@ function denBeddingMesh(d){
   box(x-48,y+27,z+1,96,5,7,"#615b42");
  }
  if(d.stash>0)ellipsoid(x+32,y+16,z+4,Math.min(20,8+d.stash*.06),8,5,"#a8906b",0,8,3);
+ // Stored meat is visible on every shelter's bedding, independent of species.
+ // Part geometry changes with each real stored portion; no extra actors/physics.
+ const portions=Array.isArray(d.meatLots)?d.meatLots.slice(0,6):[];
+ for(const [j,part] of portions.entries()){
+  const points=Math.max(0,Math.min(150,Number(part?.points)||0));if(points<=0)continue;
+  const angle=j*2.39996,rx=6+Math.sqrt(points)*1.15;
+  const xx=x-9+Math.cos(angle)*27,yy=y+7+Math.sin(angle)*18;
+  ellipsoid(xx,yy,z+6,rx,rx*.65,Math.max(3,rx*.36),"#682d30",angle,9,4);
+  ellipsoid(xx-2,yy-2,z+8,rx*.74,rx*.43,Math.max(2,rx*.18),"#c76863",angle,8,4);
+ }
  // Small permanent site details distinguish each den without extra UI markers.
  if(d.kind==="roof"){
   for(let j=0;j<3;j++)box(x-45+j*29,y+27,z+.5,21,4,3,"#8b9a9e");
