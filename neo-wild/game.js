@@ -6161,9 +6161,9 @@ function recordDisasterEncounters(){
  const active=window.WildDisaster?.events?.()||[],year=elapsed/120;
  let changed=false;
  for(const e of active){
-  if(!["fallen_tree","flood","wildfire"].includes(e.kind)||year<e.year||year>=e.year+e.duration)continue;
+  if(!["fallen_tree","flood","wildfire","landslide"].includes(e.kind)||year<e.year||year>=e.year+e.duration)continue;
   const id=[e.kind,Math.round(e.year*100),Math.round(e.x),Math.round(e.y)].join(":");
-  const radius=Number(e.radius)||34,distance=Math.hypot(P.x-e.x,P.y-e.y);
+  const radius=Math.max(34,Number(e.radius)||0,Number(e.rx)||0),distance=Math.hypot(P.x-e.x,P.y-e.y);
   const entry=disasterTrophyLedger[id]||{kind:e.kind,year:e.year,seen:false,exposed:false,escaped:false};
   if(!entry.seen&&distance<=radius+250){
    entry.seen=true;changed=true;
