@@ -1,7 +1,7 @@
 /* WILD RECLAIM: portable, local-only game save backup and guarded restore. */
 (()=>{"use strict";
-const PREFIX="wild-reclaim-", FORMAT="WILD_RECLAIM_BACKUP_V1",MAX_BYTES=16*1024*1024;
-const $=id=>document.getElementById(id), keyOk=k=>typeof k==="string"&&k.startsWith(PREFIX)&&k.length<200;
+const PREFIX="wild-reclaim-", DISASTER_KEY="wild_reclaim_disasters_v1",FORMAT="WILD_RECLAIM_BACKUP_V1",MAX_BYTES=16*1024*1024;
+const $=id=>document.getElementById(id), keyOk=k=>typeof k==="string"&&k.length<200&&(k.startsWith(PREFIX)||k===DISASTER_KEY);
 const status=(message,error=false)=>{const el=$("save-backup-status");if(el){el.textContent=message;el.dataset.error=error?"true":"false";}};
 function snapshot(){
  const records=Object.create(null);
@@ -153,6 +153,9 @@ async function importBackup(file,baseline=null){
     throw Error("端末の放流履歴形式が不正です："+key);
   }
   mergeCaveSeal(merged,before);
+  // Older JSON backups omitted the existing underscore-prefixed disaster
+  // record. Retain its current data rather than deleting it on import.
+  if(merged[DISASTER_KEY]==null&&before[DISASTER_KEY]!=null)merged[DISASTER_KEY]=before[DISASTER_KEY];
   mergeIds(merged,"wild-reclaim-dead-ids-v1",before);
   mergeIds(merged,"wild-reclaim-released-ids-v1",before);
   mergeArchive(merged,"wild-reclaim-released-archive-v1",before);
