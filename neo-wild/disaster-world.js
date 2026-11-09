@@ -71,7 +71,7 @@ function restore(){
  }catch(_){}
 }
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({paceVersion:PACE,events,nextYear,lastYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,history}));}catch(_){}}
-function active(e,year){return e.permanent||year-e.year<e.duration;}
+function active(e,year){return year>=e.year&&(e.permanent||year-e.year<e.duration);}
 function canSchedule(year){return events.filter(e=>active(e,year)).length+(warning?1:0)+(floodWarning?1:0)+(fireWarning?1:0)<MAX_SIMULTANEOUS;}
 const recoveryYears=e=>e.paceVersion===PACE?eventDelay(7):7;
 const leafYears=e=>e.paceVersion===PACE?eventDelay(4):4;
