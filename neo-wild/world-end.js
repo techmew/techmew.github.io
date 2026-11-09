@@ -43,7 +43,7 @@ function makeMob(state){
   worldEndTargetX:null,worldEndTargetY:null,worldEndStrikeCount:0,
   bossBalanceVersion:2,poise:0,poiseLastAt:0,guardBreakUntil:0};
 }
-function tick({P,mobs,year,elapsed,WORLD,collides,notify,onSpawn,onImpact,paused=false}){
+function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,paused=false}){
  if(paused||!P||year<SPAWN_YEAR)return false;
  let state=read();
  if(state.stage==="corrupt"){
@@ -71,24 +71,25 @@ function tick({P,mobs,year,elapsed,WORLD,collides,notify,onSpawn,onImpact,paused
  mob.worldEndCooldown=Math.max(0,Number(mob.worldEndCooldown)||0);
  mob.worldEndCharge=Math.max(0,Number(mob.worldEndCharge)||0);
  mob.worldEndStrikeCount=Math.max(0,Math.floor(Number(mob.worldEndStrikeCount)||0));
+ const delta=Math.max(0,Math.min(.05,Number(dt)||0));
  const distance=Math.hypot(P.x-mob.x,P.y-mob.y),dir=Math.atan2(P.y-mob.y,P.x-mob.x);
  mob.dir=dir;
  // Terrifyingly slow; never teleport into the player's den or chase through walls.
  if(distance>RADIUS+120&&distance<1900){
-  const step=Math.min(12,19*Math.max(0,Number(elapsed)||0)*0+19*.035);
+  const step=19*delta;
   const x=mob.x+Math.cos(dir)*step,y=mob.y+Math.sin(dir)*step;
   if(validPos(x,y,WORLD)&&!collides?.(x,y,75)){
-   mob.vx=(x-mob.x)/.035;mob.vy=(y-mob.y)/.035;mob.x=x;mob.y=y;
+   mob.vx=delta>0?(x-mob.x)/delta:0;mob.vy=delta>0?(y-mob.y)/delta:0;mob.x=x;mob.y=y;
   }else{mob.vx=0;mob.vy=0}
  }else{mob.vx=0;mob.vy=0}
  if(mob.worldEndCharge>0){
-  mob.worldEndCharge=Math.max(0,mob.worldEndCharge-.035);
+  mob.worldEndCharge=Math.max(0,mob.worldEndCharge-delta);
   if(mob.worldEndCharge===0){
    const impact={x:mob.worldEndTargetX,y:mob.worldEndTargetY,radius:190,damage:Math.max(28,Math.min(64,32+mob.worldEndStrikeCount*2))};
    onImpact?.(mob,impact);
    mob.worldEndCooldown=4.7;mob.worldEndStrikeCount++;
   }
- }else if(mob.worldEndCooldown>0)mob.worldEndCooldown=Math.max(0,mob.worldEndCooldown-.035);
+ }else if(mob.worldEndCooldown>0)mob.worldEndCooldown=Math.max(0,mob.worldEndCooldown-delta);
  else if(distance<1080){
   mob.worldEndCharge=2.2;
   mob.worldEndTargetX=P.x+(P.vx||0)*.18;
