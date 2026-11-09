@@ -8395,9 +8395,9 @@ function drawWorldSnow2D(snow,viewX,viewY){
 }
 function drawScene(){
  // Earthquakes affect the world view only; never transform the app or HUD.
- // Keep motion under two pixels to avoid motion sickness on mobile.
+ // Visible but restrained movement: at most about three CSS pixels, world only.
  const quake=mode==="play"?window.WildDisaster?.quakeShake?.(elapsed):null;
- const quakeOffset=quake?{x:Math.max(-1.5,Math.min(1.5,quake.x*.12)),y:Math.max(-1.2,Math.min(1.2,quake.y*.12))}:{x:0,y:0};
+ const quakeOffset=quake?{x:Math.max(-3.2,Math.min(3.2,quake.x*.26)),y:Math.max(-2.5,Math.min(2.5,quake.y*.25))}:{x:0,y:0};
  const appSurface=$("app");
  if(appSurface&&appSurface.style.transform)appSurface.style.transform="";
  const presence=$("boss-presence");
@@ -8405,7 +8405,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,type:choice}))});
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
