@@ -1,7 +1,7 @@
 /* Gacha-first title and readable, model-backed single-character collection. */
 (()=>{
 "use strict";
-const OPERABLE=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","giantTreeFrog","pacmanFrog"]);
+const OPERABLE=window.WildSquad?.gachaReady||new Set();
 const RARITY={basic:"基本",rare:"希少",legendary:"伝説級"};
 const METRICS=[["hp","HP"],["attack","攻撃"],["speed","速度"],["stamina","持久力"]];
 const COLORS={cat:"#96a6a1",dog:"#ad8063",fox:"#cd7843",wolf:"#72848a",deer:"#ad8c6a",boar:"#8b786a",crow:"#313d4a",pigeon:"#a3a9a8",otter:"#6c5747",carp:"#ba8e63",tanuki:"#797364",badger:"#868079",macaque:"#9a795b",blackBear:"#353b36",serow:"#807b6b",manul:"#9b9c99",tibetanFox:"#b8a17f",shoebill:"#86989f",lion:"#c69c58",tiger:"#c98946",cheetah:"#c9a765",elephant:"#83878b",hippo:"#78767b",gorilla:"#4d4c4c",giraffe:"#c9a56a",zebra:"#bcbab1",hyena:"#a99a71",wildDog:"#9f846a",armadillo:"#7a7e70",hedgehog:"#877b6b",giantTreeFrog:"#63bb60",pacmanFrog:"#8a984a"};
