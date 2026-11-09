@@ -105,9 +105,12 @@ const species={
  giantEagle:{hp:345,r:39,speed:248,damage:43,prey:false,xp:19,food:76,color:"#76583c",belly:"#d2b98a"}
 };
 Object.assign(species,window.WildFauna?.species||{});
+// Mandatory YEAR 100 apex: a single unique colossal creature, no mass NPC spawns.
+species.worldEnd={hp:3600,r:345,speed:19,damage:58,prey:false,xp:150,food:220,
+ color:"#09090c",belly:"#14111a"};
 for(const type of ['cat','fox','wolf'])if(!species[type])species[type]={...animals[type],prey:false,xp:4,food:35};
 const COMBAT_LEVELS=window.WildCombatLevels;
-const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲"};
+const STRONG_NAMES={alpha:"アルファウルフ",giantSnake:"大蛇",oldBear:"老熊",giantBoar:"巨大イノシシ",blackPanther:"黒豹",oneEyedWolf:"隻眼の狼",whiteTiger:"白虎",giantHyena:"巨大ハイエナ",giantLion:"巨大ライオン",giantMoose:"巨大ヘラジカ",giantBuffalo:"巨大バッファロー",giantCrocodile:"巨大ワニ",giantHippo:"巨大カバ",giantAnaconda:"巨大アナコンダ",giantLizard:"巨大オオトカゲ",rhino:"サイ",giantGorilla:"巨大ゴリラ",giantElephant:"巨大ゾウ",albinoWolf:"アルビノの狼",giantEagle:"大鷲",worldEnd:"この世の終わり"};
 // Dedicated boss forms are operable only after a real boss defeat; never enter gacha.
 for(const [type,name] of Object.entries(STRONG_NAMES)){
  const base=species[type];
@@ -383,6 +386,7 @@ function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||Objec
 function syncStrongBossChallenge(){
  if(!P)return;
  for(const m of activeStrongBosses()){
+  if(m.worldEndBoss)continue; // Never rescale final boss by ordinary boss balance.
   const sp=species[m.type];if(!sp)continue;
   const target=Math.round(bossHealthTarget(sp)*(m.sealGuardian?1.55:1)),old=Math.max(1,Number(m.maxHp)||sp.hp);
   if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||target>old*1.08){
@@ -2741,6 +2745,9 @@ function normalizeStrongBossSave(){
  let first=null,kept=0;
  for(const m of mobs){
   if(!species[m.type]){m.type="dog";m.r=species.dog.r;}
+  if(m.worldEndBoss||m.type==="worldEnd"){
+   m.strongBoss=true;m.worldEndBoss=true;m.r=species.worldEnd.r;continue;
+  }
   if(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)){
    if(kept<strongBossLimit()){if(!first)first=m;kept++;m.strongBoss=true;m.color=species[m.type].color;m.belly=species[m.type].belly;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
    else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
@@ -4555,6 +4562,15 @@ function kill(m){
  }
  carcasses.push(remains);
  recordSealGuardianDefeat(m);
+ if(m.worldEndBoss&&m.type==="worldEnd"){
+  if(window.WildWorldEnd?.defeat?.(m,Math.floor(elapsed/120))){
+   worldEventJournal.push({year:Math.floor(elapsed/120),at:Date.now(),kind:"world-end-defeated",
+    label:"この世の終わりを討伐。100年間の生存世界を守り抜いた"});
+   worldEventJournal=worldEventJournal.slice(-40);persistWorldChronicle();
+   window.WildTrophies?.record?.("world-end-defeated",{year:Math.floor(elapsed/120)},notify);
+   notify("最終目標達成！ この世の終わりを討伐した",6);
+  }else notify("最終ボスの討伐記録を保存できません。バックアップを確認してください");
+ }
  if(m.strongBoss){
   strongTrophies[m.type]=(Number(strongTrophies[m.type])||0)+1;
   const material=STRONG_NAMES[m.type]||m.type;
@@ -6376,6 +6392,23 @@ function update(dt){
  window.WildTrophies?.record?.("weather",{weather},notify);
  window.WildTrophies?.record?.("progress",{level:P.level},notify);
  if(currentWorldYear!==previousWorldYear)notify(currentWorldYear+"年目",2.6);
+ if(currentWorldYear>=100&&!debugTutorialSession){
+  window.WildWorldEnd?.tick?.({P,mobs,year:currentWorldYear,elapsed,dt,WORLD,collides,notify,
+   onSpawn:()=>{
+    worldEventJournal.push({year:currentWorldYear,at:Date.now(),kind:"world-end",
+     label:"世界100年：この世の終わりが現れた"});
+    worldEventJournal=worldEventJournal.slice(-40);persistWorldChronicle();saveAuto();
+   },
+   onImpact:(boss,impact)=>{
+    if(P.hp<=0||P.inv>0||Math.hypot(P.x-impact.x,P.y-impact.y)>impact.radius+P.r)return;
+    const damage=strongDamageTaken(impact.damage);
+    P.hp=Math.max(0,P.hp-damage);P.inv=Math.max(P.inv,1.25);
+    P.stun=Math.max(P.stun||0,.36);shake=Math.max(shake,3);
+    label(P.x,P.y-P.r-24,"巨大触手 -"+damage,"#ffb0a0");playEffect("impact",{volume:.48});
+   }
+  });
+  if(P.hp<=0){beginDeath();return;}
+ }
  const phase=elapsed%85;const hr=(6+Math.floor(phase/85*24))%24;
  updateWeather(dt);
  updateLightning(dt);
@@ -6674,6 +6707,7 @@ function update(dt){
    continue;
   }
   if(m.companion){updateCompanion(m,dt);continue;}
+  if(m.worldEndBoss||m.type==="worldEnd")continue; // Single custom apex AI, no pack behavior.
   const s=species[m.type];m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0)-dt);m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0)-dt);if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.releasedIndividualId){
@@ -8641,6 +8675,7 @@ function drawScene(){
  for(const bird of birdFlocks)if(visible(bird.x,bird.y,90))drawFlyingBird(bird);
  drawOccludedSilhouettes(entities);
  }
+ window.WildWorldEnd?.drawWarnings?.(ctx,mobs,elapsed);
  if(!use3D)drawBossThreats(entities);
  else if(BOSS_PATTERNS)for(const m of entities)if(m!==P&&m.strongBoss&&m.hp>0&&m.signature)BOSS_PATTERNS.draw(ctx,m.signature,elapsed,P?.r*.55||0);
  if(!use3D)for(const m of entities)if(m.companion&&m.hp>0){
@@ -8946,6 +8981,7 @@ function resetWorldHistoryForNewGame(){
  localStorage.removeItem(window.WildBossRoster?.PENDING||"wild-reclaim-boss-pending-v1");
  caveSealTickClock=0;caveSealNoticeAt=-100;
  window.WildDisaster?.resetWorld?.();
+ window.WildWorldEnd?.reset?.();
  window.WildApparitions?.resetWorld?.();
  window.WildUFO?.resetWorld?.();
  lightningHistory=[];worldChronicleSaveClock=0;
