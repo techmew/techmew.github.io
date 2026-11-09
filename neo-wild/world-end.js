@@ -100,7 +100,9 @@ function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,p
  if(!mob.worldEndSaveAt||elapsed-mob.worldEndSaveAt>=4){
   mob.worldEndSaveAt=elapsed;
   const ratio=Math.max(0,Math.min(1,mob.hp/mob.maxHp));
-  if(Math.abs((state.hp||3600)-mob.hp)>=1)persist({...state,hp:mob.hp,updatedAt:Date.now()});
+  if(Math.abs((state.hp||3600)-mob.hp)>=1||
+     Math.hypot(state.x-mob.x,state.y-mob.y)>=8)
+   persist({...state,x:mob.x,y:mob.y,hp:mob.hp,updatedAt:Date.now()});
  }
  return true;
 }
