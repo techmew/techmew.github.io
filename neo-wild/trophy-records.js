@@ -35,7 +35,7 @@ add("first-death","命の終わり","最初の死亡を経験する",false,(e)=>
 add("lightning-survive","雷を生き延びた者","落雷の直撃から生還する",true,(e,d)=>e==="lightning"&&d.survived);
 add("lightning-fatal","落雷の犠牲","落雷によって死亡する",true,(e,d)=>e==="lightning"&&d.fatal);
 // Disaster achievements are event-specific: location, warning and survival matter.
-const disasterKinds=[["fallen_tree","倒木"],["flood","河川氾濫"],["wildfire","山火事"]];
+const disasterKinds=[["fallen_tree","倒木"],["flood","河川氾濫"],["wildfire","山火事"],["landslide","土砂崩れ"]];
 for(const [kind,label] of disasterKinds){
  add("disaster-witness-"+kind,label+"の目撃者",label+"の発生現場を目撃する",false,
   (e,d)=>e==="disaster-witness"&&d.kind===kind&&d.distance<=d.radius+250);
