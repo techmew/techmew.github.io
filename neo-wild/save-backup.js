@@ -130,6 +130,29 @@ function mergeBossRoster(records,older){
  const updatedAt=Math.max(Number(current?.updatedAt)||0,Number(incoming?.updatedAt)||0)+1;
  records[key]=JSON.stringify({version:1,members,activeId,updatedAt});
 }
+function readWorldEnd(raw){
+ if(raw==null)return null;
+ let value;try{value=JSON.parse(raw)}catch(_){throw Error("この世の終わりの保存記録が破損しています")}
+ if(!value||value.version!==1||!["dormant","active","defeated"].includes(value.stage)||
+   (value.stage!=="dormant"&&(!Number.isFinite(value.year)||value.year<100||
+    !Number.isFinite(value.x)||!Number.isFinite(value.y)))||
+   (value.stage==="defeated"&&(!Number.isFinite(value.defeatedYear)||value.defeatedYear<100)))
+  throw Error("この世の終わりの保存形式が不正です");
+ return value;
+}
+function mergeWorldEnd(records,current){
+ const key="wild-reclaim-world-end-v1";
+ const incoming=readWorldEnd(records[key]),prior=readWorldEnd(current[key]);
+ if(!incoming&&!prior)return;
+ const rank={dormant:0,active:1,defeated:2};
+ const choose=incoming&&(!prior||rank[incoming.stage]>rank[prior.stage])?incoming:prior;
+ if(!choose)return;
+ const next={...choose};
+ // Old-world reloads cannot heal an already wounded active 100-year boss.
+ if(incoming?.stage==="active"&&prior?.stage==="active")
+  next.hp=Math.min(Number(incoming.hp)||3600,Number(prior.hp)||3600);
+ records[key]=JSON.stringify(next);
+}
 function validate(file){
  if(!file||typeof file!=="object"||file.format!==FORMAT||file.version!==1)throw Error("WILD RECLAIMのバックアップファイルではありません");
  const data=file.records;
@@ -155,6 +178,7 @@ function validate(file){
  // Never accept corrupt dedicated boss death/replacement journals or roster.
  for(const key of ["wild-reclaim-boss-dead-v1","wild-reclaim-boss-retired-v1","wild-reclaim-boss-claimed-v1"])readBossIds(data[key],key);
  readBossRoster(data["wild-reclaim-boss-roster-v1"]);
+ readWorldEnd(data["wild-reclaim-world-end-v1"]);
  if(data["wild-reclaim-squad-v1"]!=null){
   const roster=JSON.parse(data["wild-reclaim-squad-v1"]);
   if(!roster||roster.version!==1||!Array.isArray(roster.members)||roster.members.length>5)throw Error("編成データが不正です");
@@ -195,6 +219,7 @@ async function importBackup(file,baseline=null){
   }
   mergeCaveSeal(merged,before);
   mergeBossRoster(merged,before);
+  mergeWorldEnd(merged,before);
   // Older JSON backups omitted the existing underscore-prefixed disaster
   // record. Retain its current data rather than deleting it on import.
   if(merged[DISASTER_KEY]==null&&before[DISASTER_KEY]!=null)merged[DISASTER_KEY]=before[DISASTER_KEY];
