@@ -256,7 +256,12 @@ function drawStrongAnimal3D(m,clock){
  const fur=m.color||"#6c675d",belly=m.belly||"#b4a38e";
  const orb=(dx,dy,z,rx,ry,rz,col)=>ellipsoid(x(dx,dy),y(dx,dy),z,rx,ry,rz,col,dir,9,5);
  const spike=(dx,dy,z,rx,ry,h,col)=>pyramid(x(dx,dy),y(dx,dy),z,rx,ry,h,col);
- const pace=Math.sin((m.step||0)*2.1)*Math.min(1,Math.hypot(m.vx||0,m.vy||0)/110)*r*.11;
+ // Player-owned bosses advance `steps`; wild bosses advance `step`.
+ // The old mesh only read `step`, freezing the owned boss walking animation.
+ const bossStride=Number.isFinite(m.steps)&&m.steps>0?m.steps:(m.step||0);
+ const bossMotion=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/110);
+ const bossStrike=Math.max(0,Math.min(1,(m.attackAction||0)/.45));
+ const pace=Math.sin(bossStride*2.1)*bossMotion*r*.11+Math.sin(Math.PI*bossStrike)*r*.12;
  if(t==="giantEagle"){
   const flap=Math.sin((m.step||0)*2.4),spread=1+.22*flap;
   orb(-r*.17,0,r*.42,r*.89,r*.42,r*.31,fur);orb(r*.65,0,r*.46,r*.44,r*.33,r*.32,belly);
