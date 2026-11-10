@@ -4999,6 +4999,7 @@ function closeDenInventory(){
 function eatFromDen(kind){
  if(mode!=="inventory"||!P||!atDen()||!["meat","berries","legacy"].includes(kind))return false;
  if(P.hunger>=100&&P.hp>=P.maxHp&&!(P.strongWound>0)){notify("満腹で体力も最大です");return false}
+ const previousStores={...denStores},previousMeatLots=denMeatLots.map(part=>({...part}));
  let points=Math.min(kind==="meat"?18:kind==="berries"?7:12,denStores[kind]);
  let quality=1;
  if(kind==="meat"&&denStores.meat>0){
@@ -5015,11 +5016,16 @@ function eatFromDen(kind){
  }
  if(points<=0){notify("その食料はありません");return false}
  denStores[kind]-=points;syncDenStash();
+ if(!saveDenStash()){
+  denStores=previousStores;denMeatLots=previousMeatLots;syncDenStash();
+  notify("食料庫を保存できなかったため、食料も体力も変更していません");
+  renderDenInventory();return false;
+ }
  const recovery=Math.max(1,Math.round(points*(kind==="meat"?quality/3:kind==="berries"?1/7:1/4)));
  const satiety=Math.round(points*quality);
  P.hunger=clamp(P.hunger+satiety,0,100);P.hp=clamp(P.hp+recovery,0,P.maxHp);
  const woundRelief=sootheStrongWound(points,true);meals++;
- saveDenStash();checkMission();saveAuto();syncHUD();renderDenInventory();
+ checkMission();saveAuto();syncHUD();renderDenInventory();
  notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+satiety+"・生命+"+recovery+(woundRelief>0?"・出血緩和":""));
  return true;
 }
