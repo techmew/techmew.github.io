@@ -354,10 +354,12 @@ function drawStrongAnimal3D(m,clock){
   orb(r*.61,0,r*.85,r*.63,r*.51,r*.50,"#7e8181");
   for(const side of [-1,1])spike(r*.58,side*r*.39,r*1.13,r*.20,r*.16,r*.47,"#5d6468");
   orb(r*1.10,0,r*.69,r*.42,r*.25,r*.23,"#b8b5a8");
-  orb(r*.91,-r*.29,r*1.01,r*.12,r*.08,r*.10,"#e5d1a6");
-  orb(r*.91,r*.29,r*1.01,r*.12,r*.08,r*.10,"#c7b4a0");
-  orb(r*.95,-r*.32,r*1.05,r*.055,r*.04,r*.06,"#212b2d");
-  spike(r*.81,r*.32,r*1.13,r*.06,r*.09,r*.32,"#b08c86");
+  // The one-eyed wolf has one unmistakable frontal eye, not two side eyes.
+  orb(r*1.17,0,r*1.14,r*.22,r*.24,r*.19,"#d6b276");
+  orb(r*1.34,0,r*1.15,r*.11,r*.12,r*.11,"#171d1e");
+  orb(r*1.41,-r*.035,r*1.19,r*.034,r*.034,r*.035,"#f4e8b8");
+  // Closed scarred socket on the left, preserving its asymmetric silhouette.
+  spike(r*.82,r*.34,r*1.10,r*.07,r*.09,r*.32,"#b08c86");
   for(let i=0;i<4;i++)orb(-r*(1.04+i*.27),Math.sin(clock*1.2+i*.5)*r*.08,r*.55,r*.21,r*.14,r*.12,"#53575b");
  }else if(t==="whiteTiger"){
   for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.64,side*r*.53,r*.34+pace*(front===side?1:-1),r*.25,r*.24,r*.35,"#dedbd0");
