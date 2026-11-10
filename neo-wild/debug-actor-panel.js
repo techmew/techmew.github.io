@@ -52,12 +52,13 @@
  const $=id=>section.querySelector("#"+id),pick=$("wr-actor-species"),lv=$("wr-actor-level");
  for(const entry of species){
   const option=document.createElement("option");option.value=entry.id;
-  option.textContent=entry.name+(entry.boss?"｜ボス・QA専用":entry.gachaReady?"｜ガチャ対象":"｜未解放・QA専用");
+  option.textContent=entry.name+(entry.id==="carp"?"｜水中ステージ完成まで使用不可":entry.boss?"｜ボス・QA専用":entry.gachaReady?"｜ガチャ対象":"｜未解放・QA専用");
+   if(entry.id==="carp")option.disabled=true;
   pick.appendChild(option);
  }
  const current=bridge()?.getPlayerTestState?.();
- pick.value=species.some(s=>s.id===settings.species)?settings.species:
-  species.some(s=>s.id===current?.type)?current.type:(species[0]?.id||"");
+ pick.value=species.some(s=>s.id===settings.species&&s.id!=="carp")?settings.species:
+  species.some(s=>s.id===current?.type&&s.id!=="carp")?current.type:(species.find(s=>s.id!=="carp")?.id||"");
  if(Number.isInteger(settings.level)&&settings.level>=1&&settings.level<=1000)lv.value=String(settings.level);
  const report=message=>{$("wr-actor-feedback").textContent=message;render();};
  const saveSettings=()=>{
