@@ -4379,6 +4379,11 @@ function armAerialPounce(){
 function attack(){
  if(mode!=="play"||!P||isControlBlocked())return;
  if((P.specialWindup||0)>0)return;
+ // A crow must descend near the prey before a beak strike can connect.
+ if(P.type==="crow"&&P.flying&&P.flightAltitude>48){
+  const nearby=mobs.some(m=>m.hp>0&&["rat","rabbit"].includes(m.type)&&dist(P,m)<P.r+m.r+65);
+  if(nearby){P.flightLanding=true;notify("小動物へ降下中。低空で攻撃！");return;}
+ }
  if(P.jumpTime>0&&P.pendingStrike&&AERIAL_POUNCE_PROFILES[P.type]){armAerialPounce();return;}
  if(P.jumpTime>0&&aerialPounceState.get(P)?.spent)return;
  if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
@@ -4482,9 +4487,10 @@ function resolveAttack(aerialContact=null){
   const wolfCharge=P.type==="wolf"&&P.chargeStrike;
    const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?89:P.type==="pacmanFrog"?50:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
   const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="giantTreeFrog"?.68:P.type==="pacmanFrog"?.80:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
+  const crowPreyDive=P.type==="crow"&&P.flying&&P.flightAltitude<=48&&["rat","rabbit"].includes(m.type)&&!m.strongBoss&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
   const diveContact=aerialContact===m&&P.jumpTime>0&&P.jumpDive&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
   if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&
-   (diveContact||Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22)&&(overlap||!lineBlocked(P,m))){
+   (diveContact||crowPreyDive||Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22)&&(overlap||!lineBlocked(P,m))){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
@@ -4545,7 +4551,15 @@ function resolveAttack(aerialContact=null){
    if(P.type==="manul"&&manulAmbush)label(m.x,m.y-m.r-54,"低姿勢の伏撃！","#e7e1c6");
    if(P.type==="tibetanFox"&&foxPreySnap)label(m.x,m.y-m.r-54,"小動物への急襲！","#f7daaf");
    if(P.type==="shoebill"&&billStrike)label(m.x,m.y-m.r-54,"嘴の高速突き！","#c8eced");
-   if(m.hp<=0)kill(m);
+   if(m.hp<=0){
+    kill(m);
+    if(crowPreyDive){
+     P.hunger=clamp(P.hunger+Math.min(22,m.type==="rabbit"?22:13),0,100);
+     P.hp=clamp(P.hp+Math.min(9,m.type==="rabbit"?9:5),0,P.maxHp);
+     label(P.x,P.y-44,"空中捕食！ 満腹・生命回復","#c6f4b1");
+     syncHUD();saveAuto();
+    }
+   }
   }
  });
  if(hit){emitCombatFX("hit",P.type,"melee",P.x+Math.cos(P.dir)*P.r*1.35,P.y+Math.sin(P.dir)*P.r*1.35,P.dir,.68,P.rushActiveStep||1,P.r);shake=P.jumpDive?6:4;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
