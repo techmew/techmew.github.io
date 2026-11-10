@@ -4829,8 +4829,17 @@ function upgradeDen(){
  if(denLevel>=DEN_MAX_LEVEL){notify("巣は最大LV3まで成長済み");return false}
  const cost=DEN_COSTS[denLevel+1];
  if(denStash<cost){notify("巣の成長には備蓄 "+cost+"pt必要（あと"+(cost-denStash)+"pt）");return false}
- denLevel++; // The stockpile is an unlock requirement, not a consumable upgrade currency.
- saveDenLevel();saveDenStash();
+ // The stockpile is an unlock requirement, not a consumable upgrade currency.
+ // Commit the shared shelter level first: a failed write must not unlock a
+ // temporary LV3 or leave the legacy level ahead of the authoritative pantry.
+ const previousLevel=denLevel;
+ denLevel++;
+ if(!saveDenStash()){
+  denLevel=previousLevel;
+  notify("巣の強化を保存できません。備蓄と巣のレベルは維持しました");
+  syncHUD();return false;
+ }
+ saveDenLevel();
  notify("巣 LV"+denLevel+"！ 食料は消費せず残ります。上限 "+denCapacity()+"pt");
  checkMission();saveAuto();syncHUD();return true;
 }
