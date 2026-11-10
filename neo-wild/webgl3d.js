@@ -250,7 +250,7 @@ function fallenTreeMesh(e,worldYear){
 /* STRONG-MODELS-3D-V2: species-specific anatomy, proportions and silhouettes. */
 function drawStrongAnimal3D(m,clock){
  const t=m.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf"&&t!=="giantEagle")return false;
+ if(t!=="alpha"&&t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf"&&t!=="giantEagle")return false;
  const r=m.r||30,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir);
  const x=(dx,dy)=>m.x+dx*c-dy*sn,y=(dx,dy)=>m.y+dx*sn+dy*c;
  const fur=m.color||"#6c675d",belly=m.belly||"#b4a38e";
@@ -262,7 +262,38 @@ function drawStrongAnimal3D(m,clock){
  const bossMotion=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/110);
  const bossStrike=Math.max(0,Math.min(1,(m.attackAction||0)/.45));
  const pace=Math.sin(bossStride*2.1)*bossMotion*r*.11+Math.sin(Math.PI*bossStrike)*r*.12;
- if(t==="giantEagle"){
+ if(t==="alpha"){
+  // Alpha wolf: distinct bristling mane, forward-charging jaw and articulated paws.
+  const motion=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/130);
+  const charge=Math.max(bossStrike,Math.min(1,Math.max(0,Number(m.chargeTime)||0)/.45));
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const beat=Math.sin(bossStride*2.6+(front===side?0:Math.PI))*motion;
+   const fx=front*r*.62+beat*r*.28+(front>0?charge*r*.20:0),fy=side*r*.49;
+   orb(fx,fy,r*(.34+Math.max(0,beat)*.12),r*.27,r*.24,r*.40,"#253737");
+   orb(fx+r*.18,fy,r*.12,r*.30,r*.23,r*.15,"#1b292a");
+   for(let claw=-1;claw<=1;claw++)spike(fx+r*.36,fy+claw*r*.14,r*.10,r*.055,r*.035,r*.12,"#d3cbb3");
+  }
+  orb(-r*.17,0,r*.80,r*1.36,r*.70,r*.66,"#344a4a");
+  orb(r*.57,0,r*1.03,r*.85,r*.79,r*.84,"#435a57");
+  orb(r*.82,0,r*.75,r*.55,r*.50,r*.59,"#83918a");
+  for(let k=0;k<9;k++){
+   const dx=-r*.92+k*r*.25;
+   for(const side of [-1,1])spike(dx,side*r*.35,r*(1.25+Math.sin(k*.6)*.13),r*.13,r*.12,r*(.42+(k%3)*.10),"#202e31");
+  }
+  orb(r*1.20+charge*r*.18,0,r*.90,r*.57,r*.48,r*.45,"#354b4c");
+  for(const side of [-1,1]){
+   spike(r*.99,side*r*.39,r*1.18,r*.24,r*.17,r*.62,"#1e2d30");
+   orb(r*1.40+charge*r*.18,side*r*.30,r*1.04,r*.14,r*.12,r*.12,"#ebbb61");
+   orb(r*1.48+charge*r*.18,side*r*.31,r*1.05,r*.07,r*.07,r*.08,"#10191b");
+   spike(r*1.62+charge*r*.22,side*r*.18,r*.48,r*.095,r*.065,r*.23,"#e3dcc9");
+  }
+  orb(r*1.55+charge*r*.20,0,r*.62,r*.40,r*.31,r*.27,"#77817a");
+  orb(r*1.79+charge*r*.21,0,r*.69,r*.19,r*.21,r*.16,"#171f22");
+  for(let i=0;i<7;i++){
+   const swish=Math.sin(clock*1.8+i*.50)*r*.13;
+   orb(-r*(1.25+i*.29),swish,r*(.73+i*.055),r*.32,r*(.23-i*.015),r*.20,i%2?"#314547":"#263637");
+  }
+ }else if(t==="giantEagle"){
   // Owned eagles accumulate `steps`, while wild eagles accumulate `step`.
    // Use the shared stride and attack pose so both forms flap visibly.
    const flap=Math.sin(bossStride*2.4+clock*.8)+bossStrike*.45,spread=1+.22*flap;
