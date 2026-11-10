@@ -9835,6 +9835,91 @@ window.WildDebugBridge={
 };
 
 
+/* Playable-species diagnostics: isolated test actors never replace owned IDs. */
+let debugActorOrigin=null;
+function debugPlayableAnimals(){
+ const core=window.WildSquad;
+ return [...(core?.playable||[])].filter(id=>Object.prototype.hasOwnProperty.call(animals,id))
+  .map(id=>({id,name:core?.names?.[id]||animals[id].name,gachaReady:!!core?.gachaReady?.has(id)}));
+}
+function debugActorLevelFactors(level){
+ const n=Math.min(100,level)-1;
+ return {hp:Math.pow(1.045,n),attack:1+.025*n,speed:1+.012*n};
+}
+function debugSetActorLevel(level){
+ if(window.WildDebugSandbox?.active!==true||mode!=="play"||!P)return {ok:false,message:"デバッグプレイ中のみレベル設定できます"};
+ if(!Number.isInteger(level)||level<1||level>1000)return {ok:false,message:"レベルは1～1000です"};
+ const prior={...P},priorOrigin=debugActorOrigin,old=debugActorLevelFactors(Math.max(1,Math.min(1000,Math.floor(P.level||1))));
+ const base=P.debugLevelBase||{hp:P.maxHp/old.hp,attack:P.damage/old.attack,speed:P.speed/old.speed};
+ if(!Object.values(base).every(n=>Number.isFinite(n)&&n>0))return {ok:false,message:"基礎ステータスが不正です"};
+ if(!debugActorOrigin)debugActorOrigin={choice,player:{...P}};
+ const next=debugActorLevelFactors(level),ratio=Math.max(0,Math.min(1,P.hp/Math.max(1,P.maxHp)));
+ P.debugLevelBase=base;P.squadIndividualId=null;P.bossIndividualId=null;P.squadName=null;
+ P.maxHp=Math.max(1,Math.round(base.hp*next.hp));P.hp=Math.max(1,Math.round(P.maxHp*ratio));
+ P.damage=Math.round(base.attack*next.attack*100)/100;P.speed=Math.round(base.speed*next.speed*100)/100;
+ P.level=level;P.xp=0;let xp=5;for(let n=1;n<level;n++)xp=Math.min(1e9,Math.round(xp*1.5+2));P.nextXp=xp;
+ syncStrongBossChallenge();syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+ if(!saveAuto()){P=prior;debugActorOrigin=priorOrigin;syncHUD();return {ok:false,message:"テスト保存失敗。レベルを戻しました"};}
+ return {ok:true,message:"LV"+level+"へ設定。HP・攻撃力・移動速度も反映"};
+}
+function debugSetPlayableAnimal(type){
+ if(window.WildDebugSandbox?.active!==true||mode!=="play"||!P)return {ok:false,message:"デバッグプレイ中のみ切替可能です"};
+ if(!debugPlayableAnimals().some(a=>a.id===type))return {ok:false,message:"登録された操作動物ではありません"};
+ const prior={...P},oldChoice=choice,priorOrigin=debugActorOrigin,a=animals[type];
+ if(!debugActorOrigin)debugActorOrigin={choice,player:{...P}};
+ choice=type;
+ P={...P,type,base:a,r:a.r,maxHp:a.hp,hp:a.hp,speed:a.speed,damage:a.damage,rate:a.rate,
+  level:1,xp:0,nextXp:5,maxSp:100,sp:100,hunger:100,inv:2,
+  squadIndividualId:null,bossIndividualId:null,squadName:null,squadGrowthRate:1,
+  debugLevelBase:{hp:a.hp,attack:a.damage,speed:a.speed},carry:null,
+  flying:false,flightAltitude:0,flightLanding:false,flightLandingWarned:false,
+  swimVisual:0,jumpTime:0,jumpDuration:0,jumpRemaining:0,jumpHeight:0,groundZ:0,
+  pounceTime:0,pounceRemaining:0,pounceDir:0,dash:0,dashTime:0,fallTime:0,
+  pendingStrike:false,chargeStrike:false,beakStrike:false,beakVisual:0,
+  attackAction:0,specialPending:null,specialWindup:0,specialVisual:0,shoebillSwingTime:0,
+  windup:0,atk:0,stun:0,poisonTime:0,strongWound:0,hidden:false,
+  vx:0,vy:0,combo:0,comboTimer:0,instinctCD:0,inheritedTraits:{},
+  catSpeedV2:type==="cat",frogBalanceV1:type==="giantTreeFrog"||type==="pacmanFrog"};
+ if(!ensureOwnedAnimalHabitat()){
+  P=prior;choice=oldChoice;debugActorOrigin=priorOrigin;
+  return {ok:false,message:"移動できる地形がありません。別の場所で試してください"};
+ }
+ P.groundZ=roofAt(P.x,P.y);P.jumpHeight=P.groundZ;P.swimVisual=waterDepth(P.x,P.y)>.035?1:0;
+ resetControls();syncSquadHud();syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+ if(!saveAuto()){
+  P=prior;choice=oldChoice;debugActorOrigin=priorOrigin;syncHUD();
+  return {ok:false,message:"保存失敗。切り替えを取り消しました"};
+ }
+ return {ok:true,message:animals[type].name+"を操作中。移動・攻撃・特殊技を実操作で確認できます"};
+}
+function debugRestoreOriginalActor(){
+ if(window.WildDebugSandbox?.active!==true||mode!=="play"||!P)return {ok:false,message:"デバッグプレイ中のみ復元できます"};
+ if(!debugActorOrigin)return {ok:false,message:"復元対象がありません"};
+ const prior=P,oldChoice=choice,origin=debugActorOrigin;P={...origin.player};choice=origin.choice;
+ if(!ensureOwnedAnimalHabitat()){P=prior;choice=oldChoice;return {ok:false,message:"元の動物が復元可能な地点を見つけられません"};}
+ syncSquadHud();syncHUD(Math.floor(dayLightProfile(elapsed).hour));
+ if(!saveAuto()){P=prior;choice=oldChoice;syncHUD();return {ok:false,message:"元キャラの保存失敗"};}
+ debugActorOrigin=null;resetControls();
+ return {ok:true,message:"元の自キャラ "+animals[P.type].name+" を復元"};
+}
+function debugActorAction(kind){
+ if(window.WildDebugSandbox?.active!==true||mode!=="play"||!P)return {ok:false,message:"デバッグプレイ中のみ検証できます"};
+ if(kind==="target"){
+  const spot=debugSafePosition(P.x+Math.cos(P.dir||0)*150,P.y+Math.sin(P.dir||0)*150,20,
+   (x,y)=>dist(P,{x,y})>95&&dist(P,{x,y})<275);
+  if(!spot)return {ok:false,message:"標的を置ける場所がありません"};
+  const count=mobs.length;
+  if(!spawnMob(false,true,false,spot,"rabbit")||mobs.length<=count)
+   return {ok:false,message:"動物の密度上限などで標的を配置できません"};
+  return {ok:true,message:"前方にウサギを出現させました。近づいて攻撃を確認してください"};
+ }
+ if(!["attack","jump","dash","instinct"].includes(kind))return {ok:false,message:"未対応の動作"};
+ if(isControlBlocked())return {ok:false,message:"操作制限中。演出や憑依の終了後に実行してください"};
+ act(kind);
+ const actions={attack:"攻撃",jump:"ジャンプ",dash:"飛びつき・ダッシュ",instinct:"固有アクション"};
+ return {ok:true,message:actions[kind]+"を実ゲームに入力しました。表示・当たり判定は実際に確認してください"};
+}
+
 /* QA registry: case list mirrors actual engine features. Missing V1 features
  * remain explicitly unavailable, never represented by decorative fake events. */
 let debugRendererPreference="auto";
@@ -10006,11 +10091,8 @@ function debugRunCase(id){
    if(!cover||!debugTeleport(cover.x,cover.y))return no("潜伏できる茂みが見つかりません");
    P.hidden=true;P.revealTimer=0;
   }else if(/^level[1-9][0-9]*$/.test(key)){
-   const level=Number(key.slice(5));if(level>1000)return no("レベル上限は1000です");
-   P.level=level;P.xp=0;
-   let threshold=5;for(let n=1;n<level&&threshold<1e9;n++)threshold=Math.min(1e9,Math.round(threshold*1.5+2));
-   P.nextXp=threshold;syncStrongBossChallenge();
-  }else if(key==="death"){P.hp=0;beginDeath();return {ok:true,message:"死亡演出からリトライを確認"};}
+    return debugSetActorLevel(Number(key.slice(5)));
+   }else if(key==="death"){P.hp=0;beginDeath();return {ok:true,message:"死亡演出からリトライを確認"};}
   else return no("状態が未実装");
   return ok("自キャラ状態："+key);
  }
@@ -10030,6 +10112,12 @@ function debugRunCase(id){
 }
 Object.assign(window.WildDebugBridge,{
  listCases:debugCaseList,diagnostics:debugDiagnostics,runCase:debugRunCase,
+ listPlayerSpecies:debugPlayableAnimals,setPlayerSpecies:debugSetPlayableAnimal,
+ setPlayerLevel:debugSetActorLevel,restorePlayer:debugRestoreOriginalActor,playerAction:debugActorAction,
+ getPlayerTestState(){return P?{type:P.type,name:animals[P.type]?.name||P.type,level:P.level,
+  hp:Math.round(P.hp),maxHp:Math.round(P.maxHp),stamina:Math.round(P.sp||0),
+  attack:Math.round(P.damage*100)/100,speed:Math.round(P.speed*100)/100,
+  x:Math.round(P.x),y:Math.round(P.y),temporary:!!debugActorOrigin}:null;},
  teleportTo(x,y){
   if(mode!=="play"||!P||!Number.isFinite(x)||!Number.isFinite(y)||x<20||y<20||x>WORLD.w-20||y>WORLD.h-20)
    return {ok:false,message:"ゲーム中にマップ内の座標を指定してください"};
