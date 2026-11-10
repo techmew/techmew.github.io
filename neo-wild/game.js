@@ -9839,8 +9839,12 @@ window.WildDebugBridge={
 let debugActorOrigin=null;
 function debugPlayableAnimals(){
  const core=window.WildSquad;
- return [...(core?.playable||[])].filter(id=>Object.prototype.hasOwnProperty.call(animals,id))
-  .map(id=>({id,name:core?.names?.[id]||animals[id].name,gachaReady:!!core?.gachaReady?.has(id)}));
+ const normal=[...(core?.playable||[])].filter(id=>Object.prototype.hasOwnProperty.call(animals,id))
+  .map(id=>({id,name:core?.names?.[id]||animals[id].name,gachaReady:!!core?.gachaReady?.has(id),boss:false}));
+ const boss=Object.entries(window.WildBossRoster?.LABELS||{})
+  .filter(([id])=>Object.prototype.hasOwnProperty.call(animals,id))
+  .map(([id,name])=>({id:"boss:"+id,name:"ボス・"+name,gachaReady:false,boss:true}));
+ return [...normal,...boss];
 }
 function debugActorLevelFactors(level){
  const n=Math.min(100,level)-1;
@@ -9865,10 +9869,17 @@ function debugSetActorLevel(level){
 function debugSetPlayableAnimal(type){
  if(window.WildDebugSandbox?.active!==true||mode!=="play"||!P)return {ok:false,message:"デバッグプレイ中のみ切替可能です"};
  if(!debugPlayableAnimals().some(a=>a.id===type))return {ok:false,message:"登録された操作動物ではありません"};
- const prior={...P},oldChoice=choice,priorOrigin=debugActorOrigin,a=animals[type];
+ const prior={...P},oldChoice=choice,priorOrigin=debugActorOrigin;
+ const bossType=type.startsWith("boss:")?type.slice(5):null,actualType=bossType||type;
+ const standard=animals[actualType];
+ // Rhino shares an ID with its ordinary form; retain the stronger boss stats in QA.
+ const a=bossType==="rhino"?{...standard,hp:species.rhino.hp,r:species.rhino.r,
+  speed:species.rhino.speed,damage:species.rhino.damage,rate:.68}:standard;
+ if(!a)return {ok:false,message:"この形態のプレイヤー設定がありません"};
  if(!debugActorOrigin)debugActorOrigin={choice,player:{...P}};
- choice=type;
- P={...P,type,base:a,r:a.r,maxHp:a.hp,hp:a.hp,speed:a.speed,damage:a.damage,rate:a.rate,
+ choice=actualType;
+ P={...P,type:actualType,base:a,r:a.r,maxHp:a.hp,hp:a.hp,speed:a.speed,damage:a.damage,rate:a.rate,
+  debugActorSelectionId:type,debugActorName:debugPlayableAnimals().find(item=>item.id===type)?.name,
   level:1,xp:0,nextXp:5,maxSp:100,sp:100,hunger:100,inv:2,
   squadIndividualId:null,bossIndividualId:null,squadName:null,squadGrowthRate:1,
   debugLevelBase:{hp:a.hp,attack:a.damage,speed:a.speed},carry:null,
@@ -9879,7 +9890,7 @@ function debugSetPlayableAnimal(type){
   attackAction:0,specialPending:null,specialWindup:0,specialVisual:0,shoebillSwingTime:0,
   windup:0,atk:0,stun:0,poisonTime:0,strongWound:0,hidden:false,
   vx:0,vy:0,combo:0,comboTimer:0,instinctCD:0,inheritedTraits:{},
-  catSpeedV2:type==="cat",frogBalanceV1:type==="giantTreeFrog"||type==="pacmanFrog"};
+  catSpeedV2:actualType==="cat",frogBalanceV1:actualType==="giantTreeFrog"||actualType==="pacmanFrog"};
  if(!ensureOwnedAnimalHabitat()){
   P=prior;choice=oldChoice;debugActorOrigin=priorOrigin;
   return {ok:false,message:"移動できる地形がありません。別の場所で試してください"};
@@ -9890,7 +9901,7 @@ function debugSetPlayableAnimal(type){
   P=prior;choice=oldChoice;debugActorOrigin=priorOrigin;syncHUD();
   return {ok:false,message:"保存失敗。切り替えを取り消しました"};
  }
- return {ok:true,message:animals[type].name+"を操作中。移動・攻撃・特殊技を実操作で確認できます"};
+ return {ok:true,message:(P.debugActorName||animals[actualType].name)+"を操作中。移動・攻撃・特殊技を実操作で確認できます"};
 }
 function debugRestoreOriginalActor(){
  if(window.WildDebugSandbox?.active!==true||mode!=="play"||!P)return {ok:false,message:"デバッグプレイ中のみ復元できます"};
@@ -10114,7 +10125,8 @@ Object.assign(window.WildDebugBridge,{
  listCases:debugCaseList,diagnostics:debugDiagnostics,runCase:debugRunCase,
  listPlayerSpecies:debugPlayableAnimals,setPlayerSpecies:debugSetPlayableAnimal,
  setPlayerLevel:debugSetActorLevel,restorePlayer:debugRestoreOriginalActor,playerAction:debugActorAction,
- getPlayerTestState(){return P?{type:P.type,name:animals[P.type]?.name||P.type,level:P.level,
+ getPlayerTestState(){return P?{type:P.debugActorSelectionId||P.type,
+  name:P.debugActorName||animals[P.type]?.name||P.type,level:P.level,
   hp:Math.round(P.hp),maxHp:Math.round(P.maxHp),stamina:Math.round(P.sp||0),
   attack:Math.round(P.damage*100)/100,speed:Math.round(P.speed*100)/100,
   x:Math.round(P.x),y:Math.round(P.y),temporary:!!debugActorOrigin}:null;},
