@@ -4875,8 +4875,13 @@ function carryFood(){
  if(!selected){notify("運べる食草・肉が近くにない");return false}
  if(selected.type==="corpse"){
   const preySize=Number(species[selected.animalType]?.food)||Number(selected.initialAmount)||24;
-  const portion=Math.min(78,Math.max(12,Math.round(preySize*.43)),Math.max(0,selected.amount-1));
+  // Small animals make more trips; larger bodies and higher levels haul more.
+  const carryingLimit=Math.min(78,Math.max(12,Math.round((P.r||14)*1.65+Math.min(16,Math.max(0,(P.level||1)-1)*1.5))));
+  const portion=Math.min(carryingLimit,Math.max(12,Math.round(preySize*.43)),Math.max(0,selected.amount-1));
   if(portion<1){notify("死骸に運べる肉が残っていない");return false}
+  const effort=Math.max(2,Math.ceil(portion/12));
+  if(P.sp<effort){notify("持久力が足りない。少し休んでから肉を運ぶ");return false}
+  P.sp-=effort;
   selected.amount-=portion;P.carry={type:"meat",animalType:selected.animalType||null,amount:portion};
  }else{
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
