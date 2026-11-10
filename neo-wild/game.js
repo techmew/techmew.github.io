@@ -7681,8 +7681,25 @@ function drawExtendedPlayable2D(o,r,fur,light,pace,oval,triangle,attackReach){
 /* Separate readable top-down anatomy for the first four strong enemies. */
 function drawStrongCreature2D(o,r,fur,light,pace,oval,triangle,attackReach){
  const t=o.type;
- if(t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf"&&t!=="giantEagle")return false;
- if(t==="giantEagle"){
+ if(t!=="alpha"&&t!=="giantSnake"&&t!=="oldBear"&&t!=="giantBoar"&&t!=="blackPanther"&&t!=="oneEyedWolf"&&t!=="whiteTiger"&&t!=="giantHyena"&&t!=="giantLion"&&t!=="giantMoose"&&t!=="giantBuffalo"&&t!=="giantCrocodile"&&t!=="giantHippo"&&t!=="giantAnaconda"&&t!=="giantLizard"&&t!=="rhino"&&t!=="giantGorilla"&&t!=="giantElephant"&&t!=="albinoWolf"&&t!=="giantEagle")return false;
+ if(t==="alpha"){
+  // Alpha wolf: oversized dark wolf, raised hackles, heavy paws and amber eyes.
+  for(const side of [-1,1]){
+   oval(-r*.62,side*r*.67+pace*side,r*.33,r*.30,"#222a32");
+   oval(r*.57,side*r*.69-pace*side,r*.35,r*.31,"#28313a");
+  }
+  triangle([-r*.72,-r*.15,-r*1.80,-r*.43,-r*1.42,r*.22],"#20262e");
+  oval(-r*.13,0,r*1.19,r*.72,"#303943");
+  for(let i=0;i<7;i++)triangle([-r*.83+i*r*.25,-r*.57,-r*.72+i*r*.25,-r*(.92+(i%2)*.13),-r*.54+i*r*.25,-r*.56],"#1b222b");
+  oval(r*.68,0,r*.68,r*.53,"#404a54");
+  for(const side of [-1,1]){
+   triangle([r*.41,side*r*.33,r*.31,side*r*.91,r*.92,side*r*.51],"#222a33");
+   oval(r*.86,side*r*.24,r*.12,r*.10,"#e5aa42");
+   oval(r*.89,side*r*.24,r*.045,r*.065,"#10151b");
+  }
+  oval(r*1.10,0,r*.34,r*.26,"#6d7476");
+  oval(r*1.38,0,r*.14,r*.13,"#171b20");
+ }else if(t==="giantEagle"){
   const flap=Math.sin((o.step||0)*2.4),spread=.9+.16*flap;
   oval(-r*.20,0,r*.88,r*.38,fur);oval(r*.65,0,r*.45,r*.36,light);
   for(const side of [-1,1]){
