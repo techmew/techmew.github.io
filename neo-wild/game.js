@@ -9911,6 +9911,7 @@ function debugSetPlayableAnimal(type){
  if(!debugPlayableAnimals().some(a=>a.id===type))return {ok:false,message:"登録された操作動物ではありません"};
  const prior={...P},oldChoice=choice,priorOrigin=debugActorOrigin;
  const bossType=type.startsWith("boss:")?type.slice(5):null,actualType=bossType||type;
+ if(actualType==="carp")return {ok:false,message:"コイは水中ステージ完成まで使用できません。既存のコイのセーブは保護されています"};
  const standard=animals[actualType];
  // Rhino shares an ID with its ordinary form; retain the stronger boss stats in QA.
  const a=bossType==="rhino"?{...standard,hp:species.rhino.hp,r:species.rhino.r,
