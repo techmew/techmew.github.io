@@ -281,7 +281,7 @@ function drawStrongAnimal3D(m,clock){
   orb(r*1.17,0,r*1.31,r*.45,r*.39,r*.40,"#8d8076");orb(r*1.4,0,r*1.17,r*.26,r*.21,r*.20,"#35332f");
   if(m.rock)ellipsoid(m.rock.x,m.rock.y,20,12,12,12,"#b5aa9b",0,8,5);
  }else if(t==="giantElephant"){
-  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.68,side*r*.7,r*.59+pace,r*.42,r*.41,r*.65,"#6b716d");
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.68,side*r*.7,r*.59+pace*(front===side?1:-1),r*.42,r*.41,r*.65,"#6b716d");
   orb(-r*.21,0,r*1.35,r*1.46,r*1.04,r*1.28,fur);orb(r*.77,0,r*1.44,r*.97,r*.87,r*.99,belly);
   for(const side of [-1,1]){orb(r*.85,side*r*.89,r*1.62,r*.54,r*.22,r*.69,"#777d79");spike(r*1.44,side*r*.34,r*.98,r*.21,r*.18,r*.86,"#e9e0cc");orb(r*1.1,side*r*.43,r*1.79,r*.13,r*.13,r*.13,"#323936");}
   for(let k=0;k<6;k++)orb(r*(1.35+k*.18),Math.sin(k*.5)*r*.10,r*(1.15-k*.13),r*(.30-k*.028),r*(.27-k*.025),r*(.31-k*.02),fur);
@@ -322,7 +322,7 @@ function drawStrongAnimal3D(m,clock){
     orb(-r*(1.2+i*.30),twist,r*(.28-i*.028),r*.35,r*(.38-i*.045),r*(.22-i*.026),i%2?"#405c47":fur);
    }
  }else if(t==="giantHippo"){
-  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.65,side*r*.69,r*.34+pace,r*.35,r*.35,r*.43,"#62565b");
+  for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.65,side*r*.69,r*.34+pace*(front===side?1:-1),r*.35,r*.35,r*.43,"#62565b");
   orb(-r*.21,0,r*.92,r*1.33,r*.98,r*.87,fur);orb(r*.70,0,r*.94,r*.91,r*.84,r*.76,"#8b787d");
   orb(r*1.40,0,r*.72,r*.79,r*.64,r*.53,belly);orb(r*1.91,0,r*.58,r*.40,r*.43,r*.33,"#8c7a7d");
   for(const side of [-1,1]){orb(r*.81,side*r*.67,r*1.43,r*.23,r*.21,r*.27,fur);orb(r*1.28,side*r*.53,r*1.13,r*.14,r*.13,r*.13,"#2a2528");orb(r*1.93,side*r*.25,r*.76,r*.13,r*.11,r*.10,"#4b383b");}
