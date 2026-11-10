@@ -847,7 +847,11 @@ function takeMeatFromDen(){
  if(mode!=="inventory"||!P||!atDen()||P.carry)return false;
  if(denStores.meat<=0){notify("巣に肉がありません");return false}
  denMeatLots=normalizeMeatLots(denMeatLots,denStores.meat);
- const idx=denMeatLots.reduce((best,p,i,a)=>p.points>(a[best]?.points||0)?i:best,0);
+ // Prefer a complete portable cut (up to 60pt) before splitting a larger carcass.
+ // This makes stored prey sizes meaningful and avoids fragmenting large trophies.
+ const portable=denMeatLots.map((p,i)=>({i,points:p.points})).filter(p=>p.points>0&&p.points<=60);
+ const idx=portable.length?portable.reduce((best,p)=>p.points>best.points?p:best).i
+  :denMeatLots.reduce((best,p,i,a)=>p.points>(a[best]?.points||0)?i:best,0);
  const item=denMeatLots[idx],points=Math.min(item.points,60);
  if(!points)return false;
  const beforeLots=denMeatLots.map(p=>({...p})),beforeMeat=denStores.meat;
