@@ -63,9 +63,27 @@ function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,p
  }
  let mob=mobs.find(m=>m?.type===TYPE&&m.hp>0);
  if(!mob){
-  if(mobs.length>=119)return false;
+  // Reserve a live slot at YEAR 100 even if ordinary wildlife hit the cap.
+  // Never evict owned, released, companion or existing boss individuals.
+  if(mobs.length>=119){
+   const expendable=mobs.filter(m=>m&&m.hp>0&&m.type!==TYPE&&
+    !m.strongBoss&&!m.worldEndBoss&&!m.companion&&!m.squadIndividualId&&
+    !m.bossIndividualId&&!m.releasedIndividualId)
+    .sort((a,b)=>Math.hypot(b.x-P.x,b.y-P.y)-Math.hypot(a.x-P.x,a.y-P.y));
+   while(mobs.length>=119&&expendable.length){
+    const old=expendable.shift(),index=mobs.indexOf(old);
+    if(index>=0)mobs.splice(index,1);
+   }
+  }
+  if(mobs.length>=119){
+   if(elapsed-warningAt>35){warningAt=elapsed;notify?.("最終ボスの出現枠を確保できません。近くの野生動物を減らしてください")}
+   return false;
+  }
   mob=makeMob(state);mobs.push(mob);
  }
+ // A newer, separately persisted boss HP wins over an old autosave snapshot.
+ // The final boss never heals when a stale checkpoint is loaded.
+ if(state.stage==="active"&&Number.isFinite(state.hp)&&state.hp>0&&mob.hp>state.hp)mob.hp=state.hp;
  if(mob.hp<=0)return false;
  mob.worldEndBoss=true;mob.strongBoss=true;mob.r=RADIUS;
  mob.worldEndCooldown=Math.max(0,Number(mob.worldEndCooldown)||0);
