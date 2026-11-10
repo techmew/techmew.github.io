@@ -24,9 +24,9 @@
  const section=document.createElement("details");
  section.className="wr-section";section.id="wr-actor-lab";section.open=true;
  section.innerHTML=[
- '<summary>自キャラ検証｜全動物・レベル・操作</summary>',
+ '<summary>自キャラ検証｜通常35種＋ボス21形態</summary>',
  '<div class="wr-inside">',
- '<p class="wr-actor-help">デバッグ専用データで35種を直接操作できます。未解放24種はQA専用で、通常のガチャと所有枠には追加されません。</p>',
+ '<p class="wr-actor-help">デバッグ中は通常動物35種（未解放24種を含む）とボス21形態を直接操作できます。通常ガチャ・所有枠・通常セーブは変更しません。</p>',
  '<label>操作する動物<select id="wr-actor-species"></select></label>',
  '<div id="wr-actor-selected" class="wr-note">動物を選択してください</div>',
  '<div class="wr-row"><button type="button" data-actor-action="prev">前の動物</button><button type="button" data-actor-action="next">次の動物</button></div>',
@@ -40,8 +40,8 @@
  '<div class="wr-row"><button type="button" data-actor-action="jump">ジャンプ</button><button type="button" data-actor-action="dash">飛びつき・ダッシュ</button></div>',
  '<p class="wr-actor-help">上のボタンはゲーム本体の実動作を発行します。画面で成功を目視した項目だけ下で記録してください。</p>',
  '<div class="wr-row"><button type="button" data-actor-check="move">移動：未確認</button><button type="button" data-actor-check="attack">攻撃：未確認</button><button type="button" data-actor-check="special">固有技：未確認</button><button type="button" data-actor-check="appearance">外見：未確認</button></div>',
- '<div class="wr-actor-progress" id="wr-actor-progress">確認済み：0 / 35種</div>',
- '<details><summary>全35種の確認記録</summary><div id="wr-actor-list" class="wr-actor-list"></div></details>',
+ '<div class="wr-actor-progress" id="wr-actor-progress">確認済み：0 / 56形態</div>',
+ '<details><summary>全56形態の確認記録</summary><div id="wr-actor-list" class="wr-actor-list"></div></details>',
  '<button type="button" class="wr-danger" data-actor-action="restore">元の自キャラを復元</button>',
  '<div id="wr-actor-feedback" role="status" aria-live="polite" class="wr-note"></div>',
  '</div>'
@@ -52,7 +52,7 @@
  const $=id=>section.querySelector("#"+id),pick=$("wr-actor-species"),lv=$("wr-actor-level");
  for(const entry of species){
   const option=document.createElement("option");option.value=entry.id;
-  option.textContent=entry.name+(entry.gachaReady?"｜ガチャ対象":"｜未解放・QA専用");
+  option.textContent=entry.name+(entry.boss?"｜ボス・QA専用":entry.gachaReady?"｜ガチャ対象":"｜未解放・QA専用");
   pick.appendChild(option);
  }
  const current=bridge()?.getPlayerTestState?.();
@@ -67,7 +67,7 @@
  function render(){
   const a=species.find(s=>s.id===pick.value),player=bridge()?.getPlayerTestState?.();
   $("wr-actor-selected").textContent=a?
-   a.name+"｜"+(a.gachaReady?"通常ガチャ対象":"QA限定（通常は未解放）"):
+   a.name+"｜"+(a.boss?"ボス形態・QA専用":a.gachaReady?"通常ガチャ対象":"QA限定（通常は未解放）"):
    "操作できる動物がありません";
   $("wr-actor-state").textContent=player?
    "操作中："+player.name+"／LV"+player.level+"／HP "+player.hp+"/"+player.maxHp+
@@ -81,7 +81,7 @@
    el.setAttribute("aria-pressed",String(!!record[type]));
   }
   const complete=species.filter(s=>tests.every(t=>checks[s.id]?.[t])).length;
-  $("wr-actor-progress").textContent="確認済み："+complete+" / "+species.length+"種｜選択中 "+tests.filter(t=>record[t]).length+"/4項目";
+  $("wr-actor-progress").textContent="確認済み："+complete+" / "+species.length+"形態｜選択中 "+tests.filter(t=>record[t]).length+"/4項目";
   const list=$("wr-actor-list");
   if(list.parentElement?.open)list.textContent=species.map(s=>{
    const r=checks[s.id]||{};
