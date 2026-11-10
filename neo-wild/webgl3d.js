@@ -378,6 +378,29 @@ function drawStrongAnimal3D(m,clock){
   for(const side of [-1,1]){orb(r*.87,side*r*.44,r*1.17,r*.20,r*.20,r*.24,"#f6f3e8");orb(r*1.27,side*r*.28,r*.98,r*.10,r*.08,r*.09,"#d9ae70");}
   orb(r*1.53,0,r*.72,r*.33,r*.31,r*.23,"#f6f3e8");
   for(let i=0;i<6;i++)orb(-r*(1.00+i*.27),Math.sin(clock*1.6+i*.5)*r*.21,r*(.62+i*.06),r*.21,r*.14,r*.13,i%2?"#434b4d":"#e4e1d7");
+ }else if(t==="blackPanther"){
+  // Distinct low-slung feline boss: broad shoulders, articulated paws and long tail.
+  const motion=Math.min(1,Math.hypot(m.vx||0,m.vy||0)/125);
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const stride=Math.sin(bossStride*2.5+(front===side?0:Math.PI))*motion;
+   orb(front*r*.68+stride*r*.24,side*r*.48,r*(.27+Math.max(0,stride)*.14),r*.26,r*.23,r*.32,"#161b24");
+   for(let claw=-1;claw<=1;claw++)spike(front*r*.68+stride*r*.24+r*.21,side*r*.48+claw*r*.11,r*.09,r*.045,r*.035,r*.10,"#b9bec5");
+  }
+  orb(-r*.18,0,r*.72,r*1.32,r*.65,r*.53,"#202632");
+  orb(r*.57,0,r*.79,r*.82,r*.68,r*.66,"#2a3040");
+  orb(r*1.14,0,r*.75,r*.57,r*.47,r*.42,"#1b2230");
+  orb(r*1.49,0,r*.56,r*.39,r*.30,r*.25,"#343846");
+  for(const side of [-1,1]){
+   spike(r*.95,side*r*.35,r*1.12,r*.19,r*.14,r*.33,"#151a25");
+   orb(r*1.30,side*r*.32,r*.87,r*.12,r*.09,r*.09,"#e8b85e");
+   orb(r*1.36,side*r*.34,r*.87,r*.047,r*.042,r*.055,"#12151b");
+   for(let whisker=0;whisker<3;whisker++)spike(r*1.58,side*r*(.18+whisker*.08),r*(.48+whisker*.05),r*.035,r*.025,r*.08,"#9ca3aa");
+  }
+  for(let k=0;k<9;k++){
+   const q=k/8,swish=Math.sin(clock*1.5+q*1.8)*r*.26;
+   orb(-r*(1.20+q*1.6),swish,r*(.70+q*.18),r*.23,r*.13,r*.13,k%2?"#1a202c":"#303646");
+  }
+  if(bossStrike>.05)orb(r*1.52,0,r*.41,r*.34,r*.25,r*.12,"#a65a65");
  }else if(t==="giantLion"){
   for(const side of [-1,1])for(const front of [-1,1])orb(front*r*.63,side*r*.54,r*.32+pace*(front===side?1:-1),r*.26,r*.26,r*.36,"#a9824b");
   orb(-r*.21,0,r*.79,r*1.18,r*.69,r*.65,"#cba56a");orb(r*.53,0,r*1.05,r*.83,r*.88,r*.90,"#966438");
