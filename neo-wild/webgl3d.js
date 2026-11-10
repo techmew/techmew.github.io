@@ -263,7 +263,9 @@ function drawStrongAnimal3D(m,clock){
  const bossStrike=Math.max(0,Math.min(1,(m.attackAction||0)/.45));
  const pace=Math.sin(bossStride*2.1)*bossMotion*r*.11+Math.sin(Math.PI*bossStrike)*r*.12;
  if(t==="giantEagle"){
-  const flap=Math.sin((m.step||0)*2.4),spread=1+.22*flap;
+  // Owned eagles accumulate `steps`, while wild eagles accumulate `step`.
+   // Use the shared stride and attack pose so both forms flap visibly.
+   const flap=Math.sin(bossStride*2.4+clock*.8)+bossStrike*.45,spread=1+.22*flap;
   orb(-r*.17,0,r*.42,r*.89,r*.42,r*.31,fur);orb(r*.65,0,r*.46,r*.44,r*.33,r*.32,belly);
   for(const side of [-1,1]){
    for(let k=0;k<7;k++){const along=-.67+k*.22;orb(r*along,side*r*(.79+k*.10)*spread,r*(.44+flap*.13),r*.39,r*.36,r*.10,k%2?"#493a2c":"#8e6c46");}
