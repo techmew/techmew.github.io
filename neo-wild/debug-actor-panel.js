@@ -114,9 +114,10 @@
   }
   if(!action)return;
   if(action==="prev"||action==="next"){
-   if(!species.length)return;
-   const index=Math.max(0,species.findIndex(s=>s.id===pick.value));
-   pick.value=species[(index+(action==="next"?1:species.length-1))%species.length].id;
+   const available=species.filter(s=>s.id!=="carp");
+   if(!available.length)return;
+   const index=Math.max(0,available.findIndex(s=>s.id===pick.value));
+   pick.value=available[(index+(action==="next"?1:available.length-1))%available.length].id;
    settings.species=pick.value;saveSettings();
    if(bridge()?.getState?.()?.mode!=="play"){report("動物を選択。ゲーム開始時に適用します");return;}
    const res=bridge()?.setPlayerSpecies?.(pick.value);
@@ -155,7 +156,7 @@
  if(typeof oldLaunch==="function"){
   window.WildDebugMode.onGameLaunch=()=>{
    oldLaunch();
-   const picked=settings.species,level=settings.level;
+   const picked=settings.species==="carp"?null:settings.species,level=settings.level;
    if(!picked&&!level)return;
    setTimeout(()=>{
     if(window.WildDebugSandbox?.active!==true||bridge()?.getState?.()?.mode!=="play")return;
