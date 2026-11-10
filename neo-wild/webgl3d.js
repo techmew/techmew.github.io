@@ -1561,7 +1561,9 @@ function animal(m,player,clock){
  if(drawPenguinPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if((type==="crocodile"||type==="rhino")&&drawStrongAnimal3D({...m,type:type==="crocodile"?"giantCrocodile":"rhino",color:base,belly,step:m.steps||m.step||0},clock)){animalLift=0;animalCollapseTransform=null;return;}
   if(drawWorldSquadSpecies3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
-  if(!player&&drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
+  // Owned boss actors must use the same species-specific 3D mesh as wild bosses.
+  // Previously the player flag skipped this path and drew a generic quadruped.
+  if(drawStrongAnimal3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  // Deer uses the dedicated species model for both wildlife and the controlled player.
  if((!player||["deer","macaque","lion","elephant","cheetah","giraffe","zebra","hippo"].includes(type))&&drawCommonAnimal3D(player?{...m,color:base,belly,step:m.steps||0}:m,clock)){animalLift=0;animalCollapseTransform=null;return;}
 
