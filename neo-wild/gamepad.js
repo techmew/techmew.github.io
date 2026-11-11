@@ -59,9 +59,9 @@ function focus(mode,step=0){
   const priorities={menu:["squad-open","continue-btn","start-btn"],pause:["resume-btn"],guide:["tutorial-close"],result:["retry-btn"]}[mode]||[];
    if(mode==="gacha"){
     n=list.findIndex(el=>["squad-count-button","squad-adopt","squad-candidate","squad-leader-button"].some(c=>el.classList?.contains(c)));
-    if(n<0)n=0;
-   }
-  n=list.findIndex(el=>priorities.includes(el.id));
+  }else{
+    n=list.findIndex(el=>priorities.includes(el.id));
+  }
   if(n<0)n=0;
  }else if(step)n=(n+step+list.length)%list.length;
  focusElement(list[n]);
