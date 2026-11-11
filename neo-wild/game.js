@@ -9420,28 +9420,34 @@ window.addEventListener("wild-boss-selected",event=>{
  if(bossSelectionRollback||!P||!["play","pause","inventory"].includes(mode))return;
  const selectedId=event.detail?.id??null,previousId=P.bossIndividualId||null;
  if(selectedId===previousId)return;
- // Selection was persisted by boss-roster.js before this event. Commit the
- // in-world switch only if the destination has a safe playable habitat.
- if(selectedId){
-  if(applyBossLeader(false)){
-   if(!saveAuto())notify("ボス切替後の世界セーブに失敗。バックアップを確認してください");
-   else notify("選択したボスで操作を再開");
-   return;
+ // The roster selection was persisted before this event. Keep a copy of
+ // the live actor until BOTH habitat placement and world autosave succeed.
+ const previousActor={...P},previousChoice=choice;
+ let switched=false,saved=false;
+ try{
+  if(selectedId)switched=applyBossLeader(false);
+  else{
+   persistSquadVitals();
+   switched=applySquadLeader(false);
   }
- }else{
-  persistSquadVitals();
-  if(applySquadLeader(false)){
-   if(!saveAuto())notify("通常動物への切替後の世界セーブに失敗。バックアップを確認してください");
-   else notify("通常動物で操作を再開");
-   return;
-  }
+  if(switched)saved=saveAuto()===true;
+ }catch(error){
+  console.error("Boss/ordinary leader switch could not be committed",error);
  }
- // Revert the durable roster selection to the still-controllable actor.
+ if(switched&&saved){
+  notify(selectedId?"選択したボスで操作を再開":"通常動物で操作を再開");
+  return;
+ }
+ // Do not leave an unsaved character active while the previous world save
+ // still points to its former owner. No death/release ledger is modified.
+ P=previousActor;choice=previousChoice;
+ syncSquadFollowers();syncSquadHud();syncHUD();
  bossSelectionRollback=true;
  try{
   const rollback=window.WildBossRoster?.select?.(previousId);
   if(!rollback?.ok)notify("ボス選択の復元に失敗。再読み込み前にデータをバックアップしてください");
  }finally{bossSelectionRollback=false;}
+ notify(switched?"世界セーブに失敗。元の動物に戻しました":"移動可能地点がなく元の動物に戻しました");
 });
 
 window.addEventListener("wild-squad-selected",event=>{
