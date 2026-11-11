@@ -2599,7 +2599,7 @@ window.WildI18nPhrases = [
  ],
  [
   "ガチャ排出確率一覧",
-  "Gacha rates"
+  "Gacha drop rates"
  ],
  [
   "動物別ガチャ排出確率",
