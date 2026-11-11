@@ -1854,9 +1854,13 @@ function restoreSnapshot(snapshot){
  cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
  const nearbyPredatorsRestored=ensureLocalPredators(regionAt(P.x,P.y)===7?2:1);
  syncSquadFollowers();
- // Reconcile the saved world with the animal explicitly selected on the title.
- if(window.WildSquad?.load?.()?.members?.length)applySquadLeader();
- if(safeBossRoster()?.activeId)applyBossLeader(false);
+ // One actor only: do not temporarily activate and save an ordinary leader
+ // when the boss roster has an explicitly selected playable boss.
+ if(safeBossRoster()?.activeId){
+  if(!applyBossLeader(false))return false;
+ }else if(window.WildSquad?.load?.()?.members?.length){
+  if(!applySquadLeader(false))return false;
+ }
  restoreReleasedWildlife();enterStrongStage();syncHUD(Math.floor((elapsed%85)/85*24));drawMini();
  if(playerRepositioned||wildlifeRepositioned)notify("地形変更に合わせて安全な位置へ復元");
  saveAuto();if(mission>6)announceObjective();notify("保存した場所から再開");
@@ -9154,8 +9158,14 @@ function launchGame(snapshot=null,newWorld=false){
    note.textContent="保存データを再開できません。最初からプレイを選んでください。";
    note.setAttribute("data-error","true");return false;
   }
+  // Build the boss as the first actor instead of briefly spawning a normal animal.
+  const titleBossRoster=safeBossRoster();
+  const startingBoss=titleBossRoster?.members?.find(m=>m.id===titleBossRoster.activeId);
+  if(startingBoss&&animals[startingBoss.type])choice=startingBoss.type;
   if(start(newWorld)){if(newWorld)resetWorldHistoryForNewGame();
-   if(safeBossRoster()?.activeId)applyBossLeader(false);
+   if(startingBoss&&!applyBossLeader(false)){
+    reportLaunchFailure(new Error("selected boss placement failed"));return false;
+   }
    pendingBossRecruit=newWorld?null:window.WildBossRoster?.pendingOffer?.()||null;
    announceObjective();debugLaunchCompleted();return true}
   reportLaunchFailure(new Error("world initialization returned false"));return false;
@@ -9528,7 +9538,15 @@ window.addEventListener("wild-squad-released",event=>{
  if(["play","pause","inventory"].includes(mode)){
   const r=window.WildSquad?.load?.();
   if(r?.members?.length){applySquadLeader();syncHUD();}
-  else{persistWorldChronicle();clearAutoSave();resetControls();mode="menu";show("menu");refreshSaveMenu();}
+  else{
+   const boss=safeBossRoster()?.members?.[0];
+   // Losing the last ordinary animal never forces a new gacha if a boss survives.
+   if(boss){
+    const selected=safeBossRoster()?.activeId===boss.id||window.WildBossRoster?.select?.(boss.id)?.ok===true;
+    if(selected&&applyBossLeader()){syncHUD();return;}
+   }
+   persistWorldChronicle();clearAutoSave();resetControls();mode="menu";show("menu");refreshSaveMenu();
+  }
  }
 });
 window.addEventListener("wild-squad-reset",()=>{clearAutoSave();if(mode==="menu")refreshSaveMenu();});
@@ -9544,11 +9562,11 @@ window.addEventListener("wild-squad-start",()=>{
 });
 
 function startSelectedNewGame(){
- if(window.WildSquad && !window.__wildSquadStartAuthorized){window.WildSquadGachaUI?.open?.();return false;}
+ if(window.WildSquad && !window.__wildSquadStartAuthorized&&!safeBossRoster()?.activeId){window.WildSquadGachaUI?.open?.();return false;}
  if(mode!=="menu")return false;
  hideNewGameConfirmation();
  // Use the CURRENT selection, never the species from the continue/checkpoint slot.
- if(!selectNewGameAnimal(choice))return false;
+ if(!safeBossRoster()?.activeId&&!selectNewGameAnimal(choice))return false;
  if(!launchGame(null,true))return false; // Only explicit NEW GAME resets the world; old checkpoints remain.
  if(!safeBossRoster()?.activeId)applySquadLeader();
  saveAuto();
@@ -9561,7 +9579,8 @@ selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
  const roster=window.WildSquad?.load?.();
- if(roster?.pendingStart&&roster.members?.length){
+ const bossRoster=safeBossRoster(),selectedBoss=bossRoster?.members?.find(m=>m.id===bossRoster.activeId);
+ if(roster?.pendingStart&&roster.members?.length&&!selectedBoss){
   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
   if(!leader||!animals[leader.species]){notify("操作できる動物を選んでください");return;}
   choice=leader.species;
@@ -9572,7 +9591,7 @@ $("continue-btn").addEventListener("click",()=>{
   return;
  }
  const snapshot=getAutoSnapshot(); // Checkpoints are retained for compatibility but not offered as a title resume path.
- if(roster?.members?.length&&!snapshot){
+ if(roster?.members?.length&&!snapshot&&!selectedBoss){
   // Do not silently start a new world over an unreadable autosave.
   // Keep the raw bytes available for exporting and forensic recovery.
   let unreadable=false;
@@ -9593,14 +9612,20 @@ $("continue-btn").addEventListener("click",()=>{
   }
   return;
  }
- if(!snapshot&&safeBossRoster()?.members?.length){
-  const boss=safeBossRoster()?.members?.[0];
-  if(!boss)return;
-  if(!safeBossRoster()?.activeId){
-   if(!window.WildBossRoster?.select?.(boss.id)?.ok)return;
+ if(!snapshot&&bossRoster?.members?.length){
+  // The absence of ordinary animals is not a gacha requirement. A corrupt
+  // autosave is still protected from any boss-only restart overwriting it.
+  let rawSave=null;
+  try{rawSave=localStorage.getItem(AUTOSAVE_KEY)}catch(_){rawSave="unreadable"}
+  if(rawSave!==null){
+   const note=$("menu-landscape-note");
+   note.textContent="セーブデータを読めません。JSONバックアップで保護してから復旧してください。";
+   note.setAttribute("data-error","true");return;
   }
+  const boss=selectedBoss||bossRoster.members[0];
+  if(!selectedBoss&&!window.WildBossRoster?.select?.(boss.id)?.ok)return;
   choice=boss.type;
-  if(launchGame(null,false)){applyBossLeader();saveAuto()}
+  if(launchGame(null,false))saveAuto();
   return;
  }
  if(window.WildSquad&&!snapshot){window.WildSquadGachaUI?.open?.();return;}
