@@ -9351,9 +9351,13 @@ function applyBossLeader(writeSnapshot=true){
  const r=safeBossRoster(),boss=r?.members?.find(m=>m.id===r.activeId);
  if(!P||!boss||!animals[boss.type])return false;
  if(P.bossIndividualId===boss.id&&P.type===boss.type)return true;
- persistSquadVitals();
- if(P.bossIndividualId)
-  window.WildBossRoster?.updateVitals?.(P.bossIndividualId,P.hp/Math.max(1,P.maxHp),P.level);
+ // A boss-to-boss swap must not discard unsaved HP or level.
+ if(P.bossIndividualId&&
+  window.WildBossRoster?.updateVitals?.(P.bossIndividualId,P.hp/Math.max(1,P.maxHp),P.level)!==true){
+  notify("元のボスのHP・レベルを保存できません。切替を中止しました");
+  return false;
+ }
+ if(P.squadIndividualId)persistSquadVitals();
  const old={...P},oldChoice=choice,base=animals[boss.type];
  choice=boss.type;P.type=boss.type;P.base=base;P.r=base.r;
  P.squadIndividualId=null;P.bossIndividualId=boss.id;P.squadName=boss.name;
