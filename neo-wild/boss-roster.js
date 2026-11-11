@@ -186,7 +186,9 @@ let offer=null;
 function showOffer(info){
  if(!LABELS[info?.type]||!info?.sourceId)return false;
  if(readIds(CLAIMED).has(info.sourceId))return false;
- queueOffer(info); // The choice survives a reload of the saved world.
+ // Never show a recruit decision that cannot survive a reload: a full or
+ // blocked storage quota would otherwise silently erase a defeated boss.
+ if(!queueOffer(info))return false;
  offer=info;
  let root=document.getElementById("boss-recruit-offer");
  if(!root){root=document.createElement("div");root.id="boss-recruit-offer";root.setAttribute("role","dialog");
