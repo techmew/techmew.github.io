@@ -9396,7 +9396,9 @@ function applyBossLeader(writeSnapshot=true){
  if(!P||!boss||!animals[boss.type])return false;
  if(P.bossIndividualId===boss.id&&P.type===boss.type)return true;
  // A boss-to-boss swap must not discard unsaved HP or level.
- if(P.bossIndividualId&&
+ // A tombstoned boss in a legacy autosave cannot be persisted again.
+ // Do not block switching to another genuinely owned surviving boss.
+ if(P.bossIndividualId&&r.members.some(m=>m.id===P.bossIndividualId)&&
   window.WildBossRoster?.updateVitals?.(P.bossIndividualId,P.hp/Math.max(1,P.maxHp),P.level)!==true){
   notify("元のボスのHP・レベルを保存できません。切替を中止しました");
   return false;
@@ -9461,8 +9463,8 @@ function applySquadLeader(writeSnapshot=true){
  const previousActor={...P},previousChoice=choice,outgoingBoss=P.bossIndividualId;
  // Persist the departing boss BEFORE replacing the actor. A failed write
  // must not switch to an ordinary animal with stale boss HP/level on disk.
- if(outgoingBoss&&window.WildBossRoster?.updateVitals?.(
-  outgoingBoss,P.hp/Math.max(1,P.maxHp),P.level)!==true){
+ if(outgoingBoss&&safeBossRoster()?.members?.some(m=>m.id===outgoingBoss)&&
+  window.WildBossRoster?.updateVitals?.(outgoingBoss,P.hp/Math.max(1,P.maxHp),P.level)!==true){
   notify("元のボスのHP・レベルを保存できません。切替を中止しました");
   return false;
  }
