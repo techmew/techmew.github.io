@@ -158,13 +158,18 @@ function translate(text){
  const raw=String(text),value=raw.trim();
  if(!/[\u3040-\u30ff\u3400-\u9fff]/.test(raw))return raw;
  // Complete formatted text wins over an exact short string or glossary term.
- for(const [regex,format] of [...formatters,...moreFormats,...additionalFormats,...extendedFormats]){
+ for(const [regex,format] of [...formatters,...moreFormats,...additionalFormats]){
   const match=value.match(regex);
   if(match)return raw.replace(value,format(match));
  }
+ // Exact authored phrases take precedence over generic dynamic patterns.
  if(dict.has(value)){
   const index=raw.indexOf(value);
   return raw.slice(0,index)+dict.get(value)+raw.slice(index+value.length);
+ }
+ for(const [regex,format] of extendedFormats){
+  const match=value.match(regex);
+  if(match)return raw.replace(value,format(match));
  }
  let translated=raw;
  for(const [regex,replacement] of dynamic)translated=translated.replace(regex,replacement);
