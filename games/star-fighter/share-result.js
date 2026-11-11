@@ -20,12 +20,21 @@ function normalized(value){
 }
 function postText(d=current){
  if(!d)return '';
- const status=d.mode==='win'?'全8ステージ突破！':'SECTOR '+pad(d.stage)+' / 08 まで到達';
- return '【STAR FIGHTER｜'+titleMode(d.mode)+'】\n'+status+
-  '\nスコア '+d.score.toLocaleString('ja-JP')+'｜'+d.difficulty+
-  '\n撃破 '+d.kills+'体・最大連続 '+d.combo+'・SHIP Lv.'+d.level+
-  '\n'+(d.mode==='win'?'この記録を超えられる？':'次はどこまで進める？')+
-  '\n\n🎮 '+GAME_URL+'\n#STARFIGHTER #ブラウザゲーム';
+ const score=d.score.toLocaleString('ja-JP');
+ if(d.mode==='win'){
+  return '🚀🌌【STAR FIGHTER｜銀河突破！】\n'+
+   '💥 最終ボス撃破！全8ステージ制覇！\n'+
+   '🏆 SCORE '+score+'｜'+d.difficulty+'\n'+
+   '🔥 '+d.kills+'機撃破 / 最大'+d.combo+'連鎖 / SHIP Lv.'+d.level+'\n'+
+   '😈 この記録、超えられる猛者いる？\n'+
+   '🎮 無料で挑戦👇\n'+GAME_URL+'\n#STARFIGHTER #シューティング';
+ }
+ return '💀💥【STAR FIGHTER｜撃墜！】\n'+
+  '🚨 SECTOR '+pad(d.stage)+'/08 で機体が大破…！\n'+
+  '🏆 SCORE '+score+'｜'+d.difficulty+'\n'+
+  '🔥 '+d.kills+'機撃破 / 最大'+d.combo+'連鎖 / SHIP Lv.'+d.level+'\n'+
+  '👾 この弾幕、突破できるなら見せてくれ！\n'+
+  '🎮 無料で出撃👇\n'+GAME_URL+'\n#STARFIGHTER #弾幕シューティング';
 }
 function status(value){const el=$('sfShareStatus');if(el)el.textContent=value}
 function revoke(){if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null}}
@@ -34,7 +43,7 @@ function reset(){
  const img=$('sfSharePreview');if(img)img.removeAttribute('src');
  const panel=$('sfSharePanel');if(panel)panel.hidden=true;
  const demo=$('sfShareSampleBtn');if(demo)demo.hidden=false;
- for(const id of ['sfShareDownload','sfShareX','sfShareCopy']){const b=$(id);if(b)b.disabled=true}
+ for(const id of ['sfShareDownload','sfShareX','sfShareCopy','sfShareImageCopy']){const b=$(id);if(b)b.disabled=true}
  status('');
 }
 function fit(ctx,t,maxWidth){
@@ -112,6 +121,8 @@ function renderShare(value,gameCanvas){
   const preview=$('sfSharePreview');if(preview){preview.src=previewUrl;preview.alt=d.demo?'X共有カードの見本':'実際の戦闘画面と戦績を合成した16対9の画像'}
   if($('sfShareDownload'))$('sfShareDownload').disabled=false;
   if($('sfShareCopy'))$('sfShareCopy').disabled=false;
+  if($('sfShareImageCopy'))$('sfShareImageCopy').disabled=d.demo;
+  if($('sfShareX'))$('sfShareX').textContent=canNativeShareFile()?'📸 画像＋文章をXで共有':'📸 画像コピーしてXを開く';
   if($('sfShareX'))$('sfShareX').disabled=d.demo;
   status(d.demo?'サンプル表示です。実際の結果ではありません。':'プレイ画面のPNGが完成しました。Xで共有できます。');
  },'image/png');
@@ -141,32 +152,67 @@ async function copyText(){
  try{if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');await navigator.clipboard.writeText(t);status('投稿文をコピーしました。');return true}
  catch(err){status('コピーできませんでした。表示中の投稿文を選択してコピーしてください。');return false}
 }
-async function share(){
- if(!current||!imageBlob||current.demo)return false;
- const text=postText();
- // Android/iOS native share sheet can carry both the real PNG and the post text.
- if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&typeof File==='function'){
-  try{
-   const file=new File([imageBlob],filename(),{type:'image/png'});
-   if(navigator.canShare({files:[file]})){
-    await navigator.share({files:[file],text,title:'STAR FIGHTER 戦績'});
-    status('共有先で画像と文章を確認して投稿してください。');return true;
-   }
-  }catch(e){
-   if(e?.name==='AbortError'){status('共有をキャンセルしました。');return false}
-   console.warn('STAR FIGHTER native share unavailable',e)
-  }
- }
- // X Web Intent cannot attach a local PNG. Never misrepresent it as uploaded.
+function makeShareFile(){
+ if(!imageBlob||!current||typeof File!=='function')return null;
+ try{return new File([imageBlob],filename(),{type:'image/png'})}
+ catch(err){return null}
+}
+function canNativeShareFile(){
+ if(typeof navigator.share!=='function'||typeof navigator.canShare!=='function')return false;
+ const file=makeShareFile();if(!file)return false;
+ try{return !!navigator.canShare({files:[file]})}catch(err){return false}
+}
+function clipboardImageAvailable(){
+ return typeof ClipboardItem==='function'&&typeof navigator.clipboard?.write==='function';
+}
+function writeImageClipboard(){
+ if(!imageBlob||!current||!clipboardImageAvailable())return Promise.resolve(false);
+ // Call Clipboard.write synchronously from the user's gesture to preserve activation.
+ try{
+  return navigator.clipboard.write([new ClipboardItem({'image/png':imageBlob})])
+   .then(()=>true,error=>{console.warn('STAR FIGHTER image copy failed',error);return false});
+ }catch(error){console.warn('STAR FIGHTER image clipboard unavailable',error);return Promise.resolve(false)}
+}
+async function copyImage(){
+ if(!imageBlob||!current||current.demo)return false;
+ const success=await writeImageClipboard();
+ status(success?'📸 画像をコピーしました。Xの投稿欄で貼り付けてください。':'画像コピーには非対応です。「画像を保存」してXに添付してください。');
+ return success;
+}
+function openXComposer(text){
  const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(text);
  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
  document.body.appendChild(a);a.click();a.remove();
- status('X投稿画面を開きました。画像は「画像を保存」から別途添付してください。');
+}
+async function share(){
+ if(!current||!imageBlob||current.demo)return false;
+ const text=postText();
+ // Most convenient supported path: pass the actual PNG plus text to Android/iOS native share.
+ // The user chooses X as destination, confirms attachment and taps Post. No auto-post.
+ if(canNativeShareFile()){
+  try{
+   await navigator.share({files:[makeShareFile()],text,title:'STAR FIGHTER 撃墜／クリア記録'});
+   status('📸 共有先でXを選択し、画像と文章が付いているか確認して投稿してください。');
+   return true;
+  }catch(error){
+   if(error?.name==='AbortError'){status('共有をキャンセルしました。');return false}
+   console.warn('STAR FIGHTER file share failed',error);
+  }
+ }
+ // X Web Intent only accepts text. Attempt to copy the actual PNG on the same
+ // user gesture, then immediately open the X composer; the player pastes the PNG.
+ const pending=writeImageClipboard();
+ openXComposer(text); // Synchronous while the click still has transient activation.
+ const copied=await pending;
+ status(copied?
+  '📸 X投稿画面を開き、画像をコピーしました。投稿欄でCtrl+V（スマホは貼り付け）して画像を追加してください。':
+  'X投稿画面を開きました。画像の自動添付はできない環境です。「画像を保存」からXに添付してください。');
  return true;
 }
 $('sfShareX')?.addEventListener('click',share);
 $('sfShareDownload')?.addEventListener('click',download);
 $('sfShareCopy')?.addEventListener('click',copyText);
+$('sfShareImageCopy')?.addEventListener('click',copyImage);
 $('sfShareSampleBtn')?.addEventListener('click',()=>sample($('game')));
-window.StarFighterResultShare={prepare,reset,sample,postText,normalized,card};
+window.StarFighterResultShare={prepare,reset,sample,postText,normalized,card,copyImage,share,canNativeShareFile};
 })();
