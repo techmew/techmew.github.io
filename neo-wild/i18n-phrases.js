@@ -1912,5 +1912,753 @@ window.WildI18nPhrases = [
  [
   "円盤が去った跡に奇妙な観測装置が残った",
   "A strange observation device remains after the UFO leaves"
+ ],
+ [
+  "このブラウザにバックアップ対象のゲームデータがありません",
+  "No game data available to back up in this browser"
+ ],
+ [
+  "別タブで保存内容が更新されました。最新の画面でバックアップをやり直してください",
+  "Save data changed in another tab. Back up again from the latest page."
+ ],
+ [
+  "バックアップ作成中に別タブで保存内容が変わりました。もう一度実行してください",
+  "Save data changed in another tab during backup. Please try again."
+ ],
+ [
+  "バックアップが16MBを超えています。保存データの容量を確認してください",
+  "Backup exceeds 16 MB. Check the saved data size."
+ ],
+ [
+  "バックアップのダウンロードを開始しました。端末の「ダウンロード」にJSONファイルが保存されたことを確認してください。",
+  "Backup download started. Verify that the JSON file is in your device's Downloads folder."
+ ],
+ [
+  "バックアップ作成失敗：",
+  "Backup creation failed:"
+ ],
+ [
+  "ブラウザの保存設定を確認してください",
+  "Check your browser storage settings"
+ ],
+ [
+  "洞窟の封印記録が破損しています",
+  "Cave seal record is corrupted"
+ ],
+ [
+  "洞窟の封印記録の形式が不正です",
+  "Invalid cave seal record format"
+ ],
+ [
+  "ボス永久IDの記録が破損:",
+  "Corrupted boss permanent-ID record:"
+ ],
+ [
+  "ボス永久IDの形式が不正:",
+  "Invalid boss permanent-ID format:"
+ ],
+ [
+  "ボス編成のJSONが破損しています",
+  "Boss roster JSON is corrupted"
+ ],
+ [
+  "ボスの専用3枠データが不正です",
+  "Invalid three-slot boss roster data"
+ ],
+ [
+  "この世の終わりの保存記録が破損しています",
+  "End-of-the-World boss save is corrupted"
+ ],
+ [
+  "この世の終わりの保存形式が不正です",
+  "Invalid End-of-the-World boss save format"
+ ],
+ [
+  "WILD RECLAIMのバックアップファイルではありません",
+  "This is not a WILD RECLAIM backup file"
+ ],
+ [
+  "保存データの形式が不正です",
+  "Invalid save data format"
+ ],
+ [
+  "保存キーの形式が不正です",
+  "Invalid save key format"
+ ],
+ [
+  "ファイルの整合性チェックに失敗しました",
+  "File integrity check failed"
+ ],
+ [
+  "永久離脱IDのJSONが破損しています：",
+  "Permanent-loss ID JSON is corrupted:"
+ ],
+ [
+  "永久離脱IDの形式が不正です：",
+  "Invalid permanent-loss ID format:"
+ ],
+ [
+  "野生放流履歴のJSONが破損しています",
+  "Release history JSON is corrupted"
+ ],
+ [
+  "野生放流履歴の形式が不正です",
+  "Invalid release history format"
+ ],
+ [
+  "編成データが不正です",
+  "Invalid roster data"
+ ],
+ [
+  "セーブデータが不正です",
+  "Invalid save data"
+ ],
+ [
+  "ファイルが空、または16MBを超えています",
+  "File is empty or exceeds 16 MB"
+ ],
+ [
+  "端末の永久離脱IDが破損しています。復元前に現在のデータを保全してください：",
+  "Device permanent-loss IDs are corrupted. Back up existing data before restoring:"
+ ],
+ [
+  "端末の永久離脱ID形式が不正です。読み込みを中止しました：",
+  "Invalid device permanent-loss ID format. Import cancelled:"
+ ],
+ [
+  "端末の放流履歴が破損しています：",
+  "Device release history is corrupted:"
+ ],
+ [
+  "端末の放流履歴形式が不正です：",
+  "Invalid device release history format:"
+ ],
+ [
+  "別タブで永久離脱情報が更新されました。再読み込み後に復元してください：",
+  "Permanent-loss information changed in another tab. Reload before restoring:"
+ ],
+ [
+  "別タブで新しいゲームデータが作成されました。読み込みをやり直してください：",
+  "Another tab created newer game data. Retry importing:"
+ ],
+ [
+  "別タブでゲームデータが更新されました。最新画面で読み込みをやり直してください：",
+  "Game data changed in another tab. Retry importing from the latest page:"
+ ],
+ [
+  "ブラウザ保存の検証に失敗：",
+  "Browser save verification failed:"
+ ],
+ [
+  "保存内容が途中で変更されました：",
+  "Save data changed during the operation:"
+ ],
+ [
+  "最終保存検証に失敗：",
+  "Final save verification failed:"
+ ],
+ [
+  "読み込み時に保存容量不足・書込失敗が発生しました。復元を中止しました：",
+  "Storage was full or a write failed during import. Restoration cancelled:"
+ ],
+ [
+  "ゲームデータのバックアップ",
+  "Back up game data"
+ ],
+ [
+  "データを保存・復元",
+  "Save / restore data"
+ ],
+ [
+  "WILD RECLAIMのバックアップJSONファイル",
+  "WILD RECLAIM backup JSON file"
+ ],
+ [
+  "世界の始まり",
+  "Beginning of the World"
+ ],
+ [
+  "年代段階：森林の拡大・生態変化が進む時代",
+  "Era milestone: Forests spread and ecosystems evolve"
+ ],
+ [
+  "怪異が発生し得る年代へ到達",
+  "Entered an era of paranormal encounters"
+ ],
+ [
+  "UFOが出現し得る年代へ到達",
+  "Entered an era when UFOs may appear"
+ ],
+ [
+  "年代段階：巨大生物と異常現象が増える時代",
+  "Era milestone: Giant animals and anomalies become more common"
+ ],
+ [
+  "年代段階：広域変動の時代",
+  "Era milestone: Widespread environmental change"
+ ],
+ [
+  "年代段階：100年経過（世界は継続）",
+  "Era milestone: 100 years have passed (the world continues)"
+ ],
+ [
+  "地震による地割れ",
+  "Earthquake fissure"
+ ],
+ [
+  "隕石落下・クレーター形成",
+  "Meteor impact / crater formation"
+ ],
+ [
+  "山岳の土砂崩れ",
+  "Mountain landslide"
+ ],
+ [
+  "100年到達：この世の終わりが出現",
+  "Year 100 reached: The End of the World appeared"
+ ],
+ [
+  "この世の終わりを討伐：最終目標達成",
+  "The End of the World defeated: Final objective complete"
+ ],
+ [
+  "世界を開始すると年表に記録されます",
+  "Events will appear here when you begin the world"
+ ],
+ [
+  "世界はまだ始まっていません。動物を選んで出発してください。",
+  "The world has not begun. Select an animal and depart."
+ ],
+ [
+  "年（災害・生態変動は記録がある場合のみ表示）",
+  "years (disasters and ecosystem changes appear only if recorded)"
+ ],
+ [
+  "未知の地区",
+  "Unknown district"
+ ],
+ [
+  "UFOによる動物の誘拐（",
+  "UFO abducted an animal ("
+ ],
+ [
+  "年の目撃者",
+  "Witness to the year"
+ ],
+ [
+  "回の狩猟",
+  "hunts"
+ ],
+ [
+  "進化の足跡 LV",
+  "Evolution milestone Lv."
+ ],
+ [
+  "探索地点の踏破",
+  "Exploration master"
+ ],
+ [
+  "晴天の旅人",
+  "Fair-weather traveler"
+ ],
+ [
+  "雨を越えて",
+  "Through the rain"
+ ],
+ [
+  "雷鳴の下",
+  "Under the thunder"
+ ],
+ [
+  "霧の迷い人",
+  "Wanderer in the fog"
+ ],
+ [
+  "強風の足跡",
+  "Footsteps in the gale"
+ ],
+ [
+  "曇天の旅人",
+  "Traveler under cloudy skies"
+ ],
+ [
+  "この天候で生存する",
+  "Survive in this weather"
+ ],
+ [
+  "蛇",
+  "Snake"
+ ],
+ [
+  "熊",
+  "Bear"
+ ],
+ [
+  "空の狩人を目撃",
+  "Witness the sky hunter"
+ ],
+ [
+  "UFOが動物を連れ去る場面を目撃する",
+  "Witness a UFO abducting an animal"
+ ],
+ [
+  "空からの失踪",
+  "Vanished into the sky"
+ ],
+ [
+  "UFOに捕獲される",
+  "Get abducted by a UFO"
+ ],
+ [
+  "影に触れられた者",
+  "Touched by shadow"
+ ],
+ [
+  "亡霊に憑依される",
+  "Be possessed by a ghost"
+ ],
+ [
+  "幻影の目撃者",
+  "Witness to an apparition"
+ ],
+ [
+  "亡霊の幻覚を見る",
+  "Experience a ghostly hallucination"
+ ],
+ [
+  "命の終わり",
+  "The end of life"
+ ],
+ [
+  "最初の死亡を経験する",
+  "Die for the first time"
+ ],
+ [
+  "雷を生き延びた者",
+  "Lightning survivor"
+ ],
+ [
+  "落雷の直撃から生還する",
+  "Survive a direct lightning strike"
+ ],
+ [
+  "落雷の犠牲",
+  "Lightning victim"
+ ],
+ [
+  "落雷によって死亡する",
+  "Die from a lightning strike"
+ ],
+ [
+  "倒木",
+  "Fallen tree"
+ ],
+ [
+  "土砂崩れ",
+  "Landslide"
+ ],
+ [
+  "三つの災厄を知る者",
+  "Witness to three disasters"
+ ],
+ [
+  "倒木・洪水・山火事をすべて目撃する",
+  "Witness a falling tree, flood and wildfire"
+ ],
+ [
+  "ホンドタヌキ",
+  "Japanese raccoon dog"
+ ],
+ [
+  "山ヤギ",
+  "Mountain goat"
+ ],
+ [
+  "タヌキの仲間",
+  "Raccoon dog family"
+ ],
+ [
+  "の討伐者",
+  "Slayer of"
+ ],
+ [
+  "この世の終わりを退けた者",
+  "Savior from the End of the World"
+ ],
+ [
+  "世界100年以降に現れる巨大単眼の終末獣を実際に討伐する",
+  "Defeat the giant one-eyed final beast after year 100"
+ ],
+ [
+  "獣舎跡の調査",
+  "Investigate the animal enclosures"
+ ],
+ [
+  "川辺の発見",
+  "Discover the riverside"
+ ],
+ [
+  "森林の踏破",
+  "Explore the forest"
+ ],
+ [
+  "廃工場の手掛かり",
+  "Clues in the abandoned factory"
+ ],
+ [
+  "水路の観察",
+  "Explore the canal"
+ ],
+ [
+  "地下道の発見",
+  "Discover the underpass"
+ ],
+ [
+  "探索地点を見つけて記録を獲得する",
+  "Discover a location and earn its record"
+ ],
+ [
+  "異星偵察機の撃退",
+  "Repel an alien scout"
+ ],
+ [
+  "攻撃を命中させて異星偵察機を停止させる",
+  "Hit and disable an alien scout"
+ ],
+ [
+  "獣群の共同防衛",
+  "Wildlife defends together"
+ ],
+ [
+  "野生動物の群れが異星偵察機を追い払う",
+  "A pack of wild animals drives away an alien scout"
+ ],
+ [
+  "異星の犠牲者",
+  "Alien attack victim"
+ ],
+ [
+  "異星偵察機が野生動物を倒す事件を経験する",
+  "Witness an alien scout killing wildlife"
+ ],
+ [
+  "異星の救助",
+  "Alien rescue"
+ ],
+ [
+  "友好的な偵察機がUFOの捕獲を妨害する",
+  "A friendly scout stops a UFO abduction"
+ ],
+ [
+  "異星基地の発見",
+  "Discover the alien base"
+ ],
+ [
+  "UFOが去った跡に観測基地が残る",
+  "Find an observation base left by a UFO"
+ ],
+ [
+  "光に奪われた者",
+  "Taken by the light"
+ ],
+ [
+  "操作個体がUFOに吸い込まれる",
+  "Your active animal is abducted by a UFO"
+ ],
+ [
+  "亡霊の撃退",
+  "Repel a ghost"
+ ],
+ [
+  "実体化した亡霊を攻撃で追い払う",
+  "Drive away a materialized ghost with an attack"
+ ],
+ [
+  "野生動物と亡霊",
+  "Wildlife and ghosts"
+ ],
+ [
+  "亡霊が野生動物の行動を狂わせる",
+  "A ghost disrupts a wild animal's behavior"
+ ],
+ [
+  "影の跳躍",
+  "Shadow leap"
+ ],
+ [
+  "亡霊の瞬間移動を目撃する",
+  "Witness a ghost teleport"
+ ],
+ [
+  "影の分身",
+  "Shadow doubles"
+ ],
+ [
+  "亡霊が幻惑の分身を生む",
+  "Witness a ghost create illusory doubles"
+ ],
+ [
+  "幻影の体験",
+  "Hallucination experience"
+ ],
+ [
+  "亡霊によって視界に幻影が現れる",
+  "Witness an apparition caused by a ghost"
+ ],
+ [
+  "トロフィー獲得：",
+  "Trophy unlocked:"
+ ],
+ [
+  "獲得まで秘密",
+  "Secret until unlocked"
+ ],
+ [
+  "俊足",
+  "Swift feet"
+ ],
+ [
+  "追跡",
+  "Tracking"
+ ],
+ [
+  "伏撃",
+  "Ambush"
+ ],
+ [
+  "遠吠え",
+  "Howl"
+ ],
+ [
+  "跳躍",
+  "Leap"
+ ],
+ [
+  "突進",
+  "Charge"
+ ],
+ [
+  "滑空",
+  "Glide"
+ ],
+ [
+  "飛翔",
+  "Flight"
+ ],
+ [
+  "潜水",
+  "Dive"
+ ],
+ [
+  "水中突進",
+  "Underwater charge"
+ ],
+ [
+  "雑食",
+  "Omnivore"
+ ],
+ [
+  "掘削",
+  "Digging"
+ ],
+ [
+  "登攀",
+  "Climbing"
+ ],
+ [
+  "剛腕",
+  "Mighty arms"
+ ],
+ [
+  "登坂",
+  "Hill climbing"
+ ],
+ [
+  "隠密伏撃",
+  "Stealth ambush"
+ ],
+ [
+  "追い出し急襲",
+  "Flush-out ambush"
+ ],
+ [
+  "静止嘴突き",
+  "Precision beak thrust"
+ ],
+ [
+  "咆哮",
+  "Roar"
+ ],
+ [
+  "奇襲",
+  "Surprise attack"
+ ],
+ [
+  "高速疾走",
+  "High-speed sprint"
+ ],
+ [
+  "大顎",
+  "Giant jaws"
+ ],
+ [
+  "強打",
+  "Heavy blow"
+ ],
+ [
+  "首打ち",
+  "Neck strike"
+ ],
+ [
+  "骨砕き",
+  "Bone crusher"
+ ],
+ [
+  "連携狩り",
+  "Coordinated hunt"
+ ],
+ [
+  "丸まり防御",
+  "Curl defense"
+ ],
+ [
+  "棘防御",
+  "Quill defense"
+ ],
+ [
+  "旋回咬み",
+  "Spinning bite"
+ ],
+ [
+  "腹ばい滑走",
+  "Belly slide"
+ ],
+ [
+  "角の突撃",
+  "Horn charge"
+ ],
+ [
+  "長舌捕食・高跳躍",
+  "Long-tongue feeding / high jump"
+ ],
+ [
+  "大口捕食・高跳躍プレス",
+  "Giant-mouth feeding / leaping slam"
+ ],
+ [
+  "風",
+  "Wind"
+ ],
+ [
+  "図鑑3Dバッファ生成失敗",
+  "Could not create 3D bestiary buffer"
+ ],
+ [
+  "若年",
+  "Juvenile"
+ ],
+ [
+  "100年のボス記録が破損しています。JSONバックアップを保護してください",
+  "Century boss record is corrupted. Protect your JSON backup."
+ ],
+ [
+  "100年ボスの出現記録を保存できません。ブラウザの容量を確認してください",
+  "Could not save the century boss appearance. Check browser storage capacity."
+ ],
+ [
+  "世界100年。この世の終わりが目覚めた。討伐が最終目標",
+  "World year 100. The End of the World awakens. Defeat it to reach the final objective."
+ ],
+ [
+  "最終ボスの出現枠を確保できません。近くの野生動物を減らしてください",
+  "No free space to spawn the final boss. Reduce nearby wildlife."
+ ],
+ [
+  "巨大な触手が振り下ろされる！ 範囲から逃げろ",
+  "A gigantic tentacle is swinging down! Escape the impact area!"
+ ],
+ [
+  "周辺地図：標準。タップで表示範囲切替、長押しで詳細地図",
+  "Minimap: standard. Tap to change range, long-press for the full map."
+ ],
+ [
+  "常時表示の周辺地図",
+  "Always-visible minimap"
+ ],
+ [
+  "□ 左：飛びつき。ジャンプ×と同時に押すと11種は空中飛びつき。ペンギンは滑走頭突きと高速くちばし連撃。長押しでダッシュ",
+  "□ Left: pounce. Press with jump × for an aerial pounce (11 species). Penguins slide-headbutt and unleash rapid beak strikes. Hold to sprint."
+ ],
+ [
+  "× 下：ジャンプ。猫・マヌルネコ・狐・狼など11種は飛びつき□と同時押しで空中急襲",
+  "× Bottom: jump. Cats, Pallas's cats, foxes, wolves and seven other species can aerial-pounce by pressing □ together."
+ ],
+ [
+  "BGMの音量",
+  "BGM volume"
+ ],
+ [
+  "ガチャ排出確率一覧",
+  "Gacha drop rates"
+ ],
+ [
+  "動物別ガチャ排出確率",
+  "Gacha drop rates by animal"
+ ],
+ [
+  "排出確率を取得できません。",
+  "Could not load the gacha rates."
+ ],
+ [
+  "未解放",
+  "Locked"
+ ],
+ [
+  "キャラガチャ 排出確率一覧",
+  "Character gacha drop rates"
+ ],
+ [
+  "ゲームのトップページに戻る",
+  "Return to game home"
+ ],
+ [
+  "出現する動物と1回の抽選確率です。現在のゲームコードに登録された抽選対象だけを表示しています。",
+  "The animals and their drop rates for a single draw. Only eligible species registered in the current game are shown."
+ ],
+ [
+  "抽選の仕組み",
+  "How gacha draws work"
+ ],
+ [
+  "基本65%・希少30%・伝説級5%が標準配分です。未解放のグループは抽選から外れ、残るグループの割合が合計100%になるよう再配分されます。同一グループ内の動物は等確率です。",
+  "Base rates are 65% common, 30% rare and 5% legendary. Locked groups are excluded, and remaining groups are normalized to 100%. Species within a group have equal odds."
+ ],
+ [
+  "希少はYEAR 7から解放されます。伝説級は現在操作できる対象がないため、ガチャから除外しています。探索によって希少が早期解放される場合があります。",
+  "Rare species unlock from year 7. Legendary species are currently excluded because none are playable. Exploration may unlock rare species earlier."
+ ],
+ [
+  "この表は1回ごとの動物種の確率です。個体評価S〜Dや個体値の確率とは別です。初回を含め最大4候補から選べます。ガチャで出ない動物は表に含めていません。",
+  "These odds apply to animal species per draw, not grade S–D or individual stats. Choose from up to four candidates, including the first draw. Non-gacha animals are excluded."
+ ],
+ [
+  "排出確率を読み込み中…",
+  "Loading drop rates…"
+ ],
+ [
+  "動物",
+  "Animal"
+ ],
+ [
+  "基本",
+  "Common"
+ ],
+ [
+  "希少",
+  "Rare"
+ ],
+ [
+  "伝説級",
+  "Legendary"
  ]
 ];
