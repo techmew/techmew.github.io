@@ -275,7 +275,7 @@ window.WildI18nPhrases = [
  ],
  [
   "世界100年：この世の終わりが現れた",
-  "Year 100: The End of the World has appeared"
+  "World year 100: The End of the World appeared"
  ],
  [
   "着地できる地面を探してください",
@@ -2131,7 +2131,7 @@ window.WildI18nPhrases = [
  ],
  [
   "年（災害・生態変動は記録がある場合のみ表示）",
-  "years (disasters and ecosystem changes appear only if recorded)"
+  "years (only recorded disasters and ecology changes are shown)"
  ],
  [
   "未知の地区",
@@ -2599,7 +2599,7 @@ window.WildI18nPhrases = [
  ],
  [
   "ガチャ排出確率一覧",
-  "Gacha drop rates"
+  "Gacha rates"
  ],
  [
   "動物別ガチャ排出確率",
@@ -2660,5 +2660,401 @@ window.WildI18nPhrases = [
  [
   "伝説級",
   "Legendary"
+ ],
+ [
+  "開く ＋",
+  "Open +"
+ ],
+ [
+  "閉じる −",
+  "Close −"
+ ],
+ [
+  "デバッグゲーム起動後に設定を反映します",
+  "Settings apply after starting the debug game"
+ ],
+ [
+  "QA復元:",
+  "QA restore:"
+ ],
+ [
+  "タイトル画面",
+  "Title screen"
+ ],
+ [
+  "ゲーム起動待ち",
+  "Waiting for game to start"
+ ],
+ [
+  "デバッグ ON｜通常セーブとは分離中",
+  "Debug ON | Isolated from normal save"
+ ],
+ [
+  "通常プレイ",
+  "Normal play"
+ ],
+ [
+  "通しテスト中：",
+  "Full test in progress:"
+ ],
+ [
+  "段階確認中",
+  "Step validation in progress"
+ ],
+ [
+  "通常プレイ中（通しテスト未開始）",
+  "Normal play (full test not started)"
+ ],
+ [
+  "現在の強敵：",
+  "Current boss:"
+ ],
+ [
+  "読み取り不可",
+  "Unavailable"
+ ],
+ [
+  "QAバックアップあり：",
+  "QA backup available:"
+ ],
+ [
+  "QAバックアップなし",
+  "No QA backup"
+ ],
+ [
+  "バックアップ確認失敗",
+  "Backup check failed"
+ ],
+ [
+  "JavaScript例外：記録なし",
+  "JavaScript exceptions: none recorded"
+ ],
+ [
+  "FPS（画面更新）:",
+  "FPS (screen refresh):"
+ ],
+ [
+  "描画:",
+  "Rendering:"
+ ],
+ [
+  "状態:",
+  "State:"
+ ],
+ [
+  "場所:",
+  "Location:"
+ ],
+ [
+  "開始前",
+  "Not started"
+ ],
+ [
+  "日時:",
+  "Date/time:"
+ ],
+ [
+  "天気:",
+  "Weather:"
+ ],
+ [
+  "敵/死骸:",
+  "Enemies / carcasses:"
+ ],
+ [
+  "巣LV/備蓄:",
+  "Den level / supplies:"
+ ],
+ [
+  "QA通しテスト",
+  "Full QA playthrough"
+ ],
+ [
+  "通常の進行",
+  "Normal progression"
+ ],
+ [
+  "保存:",
+  "Save:"
+ ],
+ [
+  "デバッグ終了:",
+  "Debug ended:"
+ ],
+ [
+  "デバッグ開始:",
+  "Debug started:"
+ ],
+ [
+  "タイトル。7回タップでデバッグモードを切り替え",
+  "Title screen. Tap seven times to toggle debug mode."
+ ],
+ [
+  "通常セーブへの影響を防ぐためデバッグ操作は利用できません",
+  "Debug controls are disabled to protect normal save data"
+ ],
+ [
+  "診断をコピーしました",
+  "Diagnostics copied"
+ ],
+ [
+  "コピーできませんでした",
+  "Could not copy diagnostics"
+ ],
+ [
+  "現在のセーブをQAバックアップに記録",
+  "Save current game to QA backup"
+ ],
+ [
+  "QAバックアップに失敗",
+  "QA backup failed"
+ ],
+ [
+  "QAバックアップがありません。復元できません",
+  "No QA backup available to restore"
+ ],
+ [
+  "描画方式を切り替えました",
+  "Rendering mode changed"
+ ],
+ [
+  "描画方式変更不可",
+  "Cannot change rendering mode"
+ ],
+ [
+  "バックアップ作成失敗。検証を中止",
+  "Backup creation failed. Test cancelled."
+ ],
+ [
+  "検証時エラー：",
+  "Validation error:"
+ ],
+ [
+  "指定値を実行できません",
+  "Cannot apply the specified value"
+ ],
+ [
+  "QAバックアップの作成に失敗。実行を中止",
+  "Could not create QA backup. Operation cancelled."
+ ],
+ [
+  "実行時エラー：",
+  "Runtime error:"
+ ],
+ [
+  "実行できません",
+  "Cannot execute"
+ ],
+ [
+  "雲影の切り替えは使用できません",
+  "Cloud shadows cannot be toggled"
+ ],
+ [
+  "雲影：表示",
+  "Cloud shadows: on"
+ ],
+ [
+  "雲影：非表示",
+  "Cloud shadows: off"
+ ],
+ [
+  "ゲーム操作との接続がありません",
+  "Game controls are not connected"
+ ],
+ [
+  "チュートリアル通しテストを開始",
+  "Started full tutorial test"
+ ],
+ [
+  "元のゲーム・保存内容に戻しました",
+  "Original game and save restored"
+ ],
+ [
+  "前の段階へ移動",
+  "Previous step"
+ ],
+ [
+  "次の段階へ移動",
+  "Next step"
+ ],
+ [
+  "指定段階に移動",
+  "Jump to selected step"
+ ],
+ [
+  "強敵を出現させました",
+  "Boss spawned"
+ ],
+ [
+  "強敵を消しました（報酬なし）",
+  "Boss removed (no rewards)"
+ ],
+ [
+  "強敵のHPを1に変更",
+  "Boss HP set to 1"
+ ],
+ [
+  "希少素材を1個追加",
+  "Added one rare material"
+ ],
+ [
+  "強敵の出現地域に移動",
+  "Travel to boss spawn area"
+ ],
+ [
+  "HPを適用",
+  "Applied HP"
+ ],
+ [
+  "空腹を適用",
+  "Applied hunger"
+ ],
+ [
+  "選んだ巣に移動",
+  "Travel to selected den"
+ ],
+ [
+  "巣レベルを適用",
+  "Applied den level"
+ ],
+ [
+  "備蓄を適用",
+  "Applied stored supplies"
+ ],
+ [
+  "時刻を変更",
+  "Changed time"
+ ],
+ [
+  "天気を変更",
+  "Changed weather"
+ ],
+ [
+  "移動しました",
+  "Moved"
+ ],
+ [
+  "現在状態を保存",
+  "Save current state"
+ ],
+ [
+  "適用しました",
+  "Applied"
+ ],
+ [
+  "適用できません。ゲーム開始・現在の状態・場所や強敵の有無を確認してください",
+  "Could not apply. Check whether the game is running, your current position and boss availability."
+ ],
+ [
+  "デバッグ ON｜設定",
+  "Debug ON | Settings"
+ ],
+ [
+  "デバッグはONです。項目をON/OFFして設定を閉じ、タイトルの開始ボタンでプレイしてください",
+  "Debug is ON. Configure options, close settings, then press Start on the title screen."
+ ],
+ [
+  "選択した動物を実際に操作してから確認記録を付けてください",
+  "Control the selected animal before recording verification"
+ ],
+ [
+  "の目視確認を更新",
+  "Visual verification updated for"
+ ],
+ [
+  "確認記録の保存失敗：",
+  "Could not save verification record:"
+ ],
+ [
+  "動物を選択。ゲーム開始時に適用します",
+  "Select an animal. Applied when the game starts."
+ ],
+ [
+  "操作動物を変更できません",
+  "Cannot change the playable animal"
+ ],
+ [
+  "を指定。下の設定ボタンで適用してください",
+  "Selected. Apply with the button below."
+ ],
+ [
+  "レベルは1～1000の整数を指定してください",
+  "Enter a whole-number level from 1 to 1000"
+ ],
+ [
+  "HP・空腹・持久力を回復",
+  "Restore HP, hunger and stamina"
+ ],
+ [
+  "回復不可",
+  "Cannot restore"
+ ],
+ [
+  "検証中のエラー：",
+  "Test error:"
+ ],
+ [
+  "ゲーム開始後にデバッグ操作してください",
+  "Start the game before using debug controls"
+ ],
+ [
+  "通常動物がゼロでも、下のボス専用枠から選んで出撃できます。",
+  "You can deploy directly from the boss slots below even with no normal animals."
+ ],
+ [
+  "のゲーム内動物プレビュー",
+  "in-game animal preview"
+ ],
+ [
+  "空き枠ガチャ（残り",
+  "Empty-slot gacha (remaining"
+ ],
+ [
+  "権）",
+  "tickets)"
+ ],
+ [
+  "所有",
+  "Owned"
+ ],
+ [
+  "枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。",
+  "tickets. Earn more through 8 hunts, 600 shared XP, 2 discoveries or a completed mission."
+ ],
+ [
+  "体。操作中1体、ほかはストックです。死亡すると永久に消えます。",
+  "animals. One active, others in reserve. Death is permanent."
+ ],
+ [
+  "の抽選個体",
+  "drawn animal"
+ ],
+ [
+  "現在｜世界",
+  "Now | World year"
+ ],
+ [
+  "探索達成：",
+  "Exploration complete:"
+ ],
+ [
+  "探索報酬 +",
+  "Exploration reward +"
+ ],
+ [
+  "希少素材",
+  "Rare materials"
+ ],
+ [
+  "水辺",
+  "Waterside"
+ ],
+ [
+  "巨大触手",
+  "Giant tentacle"
+ ],
+ [
+  "風下狩猟",
+  "Downwind hunting"
  ]
 ];
