@@ -9233,12 +9233,21 @@ function switchSquadLeader(id,death=false){
  if(!member||!animals[member.species]||!P)return false;
  if(!death&&(mode!=="play"||partyCombat())){notify("戦闘中は交代できません");return false;}
  if(death&&mode!=="over")return false;
+ // Keep the previous durable selection so a failed habitat switch cannot
+ // leave a saved leader different from the animal still being controlled.
+ const priorLeaderId=roster?.leaderId||P.squadIndividualId||null;
  // Selection must be stored before the controlled actor is changed.
  const choiceResult=window.WildSquad?.selectActive?.(id);
  if(!choiceResult?.ok){notify(choiceResult?.reason||"操作個体を保存できません");return false;}
  if(!death){
   persistSquadVitals();
-  if(!applySquadLeader()){notify("選択した動物で再開できません");return false;}
+  if(!applySquadLeader()){
+   if(priorLeaderId&&priorLeaderId!==id){
+    const rollback=window.WildSquad?.selectActive?.(priorLeaderId);
+    if(!rollback?.ok)notify("操作個体の選択を復元できません。セーブを保護し、再読み込みしてください");
+   }
+   notify("選択した動物で再開できません");return false;
+  }
   syncHUD();notify((member.name||member.speciesName)+"を操作中");
   return true;
  }
@@ -9410,8 +9419,13 @@ window.addEventListener("wild-boss-selected",()=>{if(mode==="menu"){refreshSaveM
 window.addEventListener("wild-squad-selected",event=>{
  if(!P||!["play","pause","inventory"].includes(mode))return;
  if(event.detail?.memberId===P.squadIndividualId)return;
+ const previousId=P.squadIndividualId;
  persistSquadVitals();
  if(applySquadLeader()){syncHUD();notify("選択した動物で操作を再開");}
+ else if(previousId&&previousId!==event.detail?.memberId){
+  const rollback=window.WildSquad?.selectActive?.(previousId);
+  if(!rollback?.ok)notify("操作個体の選択復元に失敗。再読み込みして保存データを確認してください");
+ }
 });
 window.addEventListener("wild-squad-released",event=>{
  if(!P||event.detail?.memberId!==P.squadIndividualId)return;
