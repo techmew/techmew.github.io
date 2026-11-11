@@ -4918,6 +4918,13 @@ function upgradeDen(){
  notify("巣 LV"+denLevel+"！ 食料は消費せず残ります。上限 "+denCapacity()+"pt");
  checkMission();saveAuto();syncHUD();return true;
 }
+// Heavy meat slows travel and raises sprint fatigue until deposited or eaten.
+function carriedFoodBurden(carry,actor){
+ if(!carry||!Number.isFinite(Number(carry.amount))||Number(carry.amount)<=0)return 0;
+ const mass=Math.max(0,Number(carry.amount));
+ const capacity=Math.max(12,(Number(actor?.r)||14)*1.65+Math.min(16,Math.max(0,(Number(actor?.level)||1)-1)*1.5));
+ return Math.min(1,Math.max(0,(mass-8)/Math.max(18,capacity)));
+}
 function carryFood(){
  if(mode!=="play")return false;
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||(P.jumpHeight||0)>(P.groundZ||0)+20){notify("着地してから運ぶ");return false}
@@ -4962,7 +4969,7 @@ function carryFood(){
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
  }
- notify(foodName(P.carry)+"（"+meatSizeName(P.carry.amount)+"・"+Math.ceil(P.carry.amount)+"）をくわえた。どの巣でも備蓄可能");
+  notify(foodName(P.carry)+"（"+meatSizeName(P.carry.amount)+"・"+Math.ceil(P.carry.amount)+"）をくわえた。"+(carriedFoodBurden(P.carry,P)>.55?"重い食料で移動が遅くなる。野犬を避けて巣へ":"どの巣でも備蓄可能"));
  if(mission===4)announceObjective();
  syncHUD();return true;
 }
@@ -6763,11 +6770,12 @@ function update(dt){
    if(!wantsSprint)P.sprintExhausted=false;
    const sprinting=wantsSprint&&!P.sprintExhausted&&!sneaking&&Math.hypot(a.x,a.y)>.2&&P.sp>10;
    boarDashActive=P.type==="boar"&&sprinting;
+   const carryBurden=carriedFoodBurden(P.carry,P);
    if(sprinting){
-    P.sp=Math.max(0,P.sp-43*dt);
+    P.sp=Math.max(0,P.sp-(43+16*carryBurden)*dt);
     if(P.sp<=10)P.sprintExhausted=true;
    }
-   const target=P.speed*(P.flying?1.35:1)*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
+   const target=P.speed*(1-.24*carryBurden)*(P.flying?1.35:1)*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    if(ghostSteering){
     // Steering belongs entirely to the ghost; physical collisions still apply.
     P.ghostWanderClock=(P.ghostWanderClock||0)-dt;
