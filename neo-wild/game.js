@@ -9453,13 +9453,27 @@ window.addEventListener("wild-boss-selected",event=>{
 window.addEventListener("wild-squad-selected",event=>{
  if(!P||!["play","pause","inventory"].includes(mode))return;
  if(event.detail?.memberId===P.squadIndividualId)return;
- const previousId=P.squadIndividualId;
- persistSquadVitals();
- if(applySquadLeader()){syncHUD();notify("選択した動物で操作を再開");}
- else if(previousId&&previousId!==event.detail?.memberId){
-  const rollback=window.WildSquad?.selectActive?.(previousId);
-  if(!rollback?.ok)notify("操作個体の選択復元に失敗。再読み込みして保存データを確認してください");
+ // A leader selection has already been saved. The live actor only changes
+ // permanently when the world snapshot can also be committed.
+ const previousActor={...P},previousChoice=choice;
+ const previousId=P.squadIndividualId||null,previousBossId=P.bossIndividualId||null;
+ let switched=false,saved=false;
+ try{
+  persistSquadVitals();
+  switched=applySquadLeader(false);
+  if(switched)saved=saveAuto()===true;
+ }catch(error){console.error("Squad leader switch could not be committed",error);}
+ if(switched&&saved){syncHUD();notify("選択した動物で操作を再開");return;}
+ P=previousActor;choice=previousChoice;
+ syncSquadFollowers();syncSquadHud();syncHUD();
+ let restored=false;
+ if(previousId){
+  try{restored=window.WildSquad?.selectActive?.(previousId)?.ok===true;}catch(_){}
+ }else if(previousBossId){
+  try{restored=window.WildBossRoster?.select?.(previousBossId)?.ok===true;}catch(_){}
  }
+ if(!restored)notify("操作個体の選択復元に失敗。再読み込み前にデータをバックアップしてください");
+ notify(switched?"世界セーブに失敗。元の動物に戻しました":"移動可能地点がなく元の動物に戻しました");
 });
 window.addEventListener("wild-squad-released",event=>{
  if(!P||event.detail?.memberId!==P.squadIndividualId)return;
