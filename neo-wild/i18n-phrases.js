@@ -3856,5 +3856,61 @@ window.WildI18nPhrases = [
  [
   "食草・肉が近くにない",
   "No edible plants or meat nearby"
+ ],
+ [
+  "晴れ",
+  "Clear"
+ ],
+ [
+  "曇り",
+  "Cloudy"
+ ],
+ [
+  "雨",
+  "Rain"
+ ],
+ [
+  "雷雨",
+  "Thunderstorm"
+ ],
+ [
+  "雪",
+  "Snow"
+ ],
+ [
+  "春",
+  "Spring"
+ ],
+ [
+  "夏",
+  "Summer"
+ ],
+ [
+  "秋",
+  "Autumn"
+ ],
+ [
+  "冬",
+  "Winter"
+ ],
+ [
+  "月",
+  "month"
+ ],
+ [
+  "なし",
+  "None"
+ ],
+ [
+  "食料庫",
+  "Pantry"
+ ],
+ [
+  "滞在中",
+  "Inside shelter"
+ ],
+ [
+  "屋内",
+  "Indoors"
  ]
 ];
