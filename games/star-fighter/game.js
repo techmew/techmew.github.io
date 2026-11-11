@@ -721,6 +721,8 @@ function updateRunResult(kind){
  set('resultRewards',G.rewardHistory.map(r=>'S'+String(r.stage+1).padStart(2,'0')+' '+r.name).join(' / ')||'獲得なし');
 }
 function showOverlay(kind){
+ if(kind!=='win'&&kind!=='over')window.StarFighterResultShare?.reset();
+ $('sfShareSampleBtn').hidden=kind!=='title';
  updateRunResult(kind);
  // Reset old scroll offsets when reopening title, pause and results.
  ui.overlay.scrollTop=0;
@@ -832,7 +834,17 @@ function pause(){
  $('sidePauseBtn').innerHTML=G.mode==='paused'?'▶ <span>再開</span>':'Ⅱ <span>一時停止</span>';
  updateHud();
 }
-function endGame(victory=false){TROPHIES.finish(victory,{score:G.score,grazes:G.grazes,maxCombo:G.maxCombo});cancelCombatPresses();if(victory&&!G.debugMode)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';G.pulses=0;G.pulseRecharge=0;screenPulse=0;G.rings=[];if(!G.debugMode)clearCheckpoint();if(!G.debugMode&&G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
+function endGame(victory=false){
+ // Freeze the real game canvas before changing the game mode or clearing the field.
+ try{
+  window.StarFighterResultShare?.prepare({
+   mode:victory?'win':'over',score:G.score,best:Math.max(G.best,G.score),
+   stage:G.stage+1,difficulty:G.difficulty,kills:G.killCount,
+   combo:G.maxCombo,grazes:G.grazes,level:G.shipLevel,
+   seconds:G.total,seed:seedHex(G.runSeed),debug:G.debugMode
+  },C)
+ }catch(error){console.warn('STAR FIGHTER share preview failed',error)}
+ TROPHIES.finish(victory,{score:G.score,grazes:G.grazes,maxCombo:G.maxCombo});cancelCombatPresses();if(victory&&!G.debugMode)unlockMedal('clear');G.terrain=null;bgm?.stop();G.mode=victory?'win':'over';G.pulses=0;G.pulseRecharge=0;screenPulse=0;G.rings=[];if(!G.debugMode)clearCheckpoint();if(!G.debugMode&&G.score>G.best){G.best=G.score;try{localStorage.setItem('star_fighter_best',String(G.best))}catch(e){}}tone(victory?520:140,.55,'sawtooth',.08,victory?380:-110);showOverlay(G.mode);updateHud()}
 ui.start.addEventListener('click',()=>{if(G.mode==='paused')pause();else if(G.mode==='over'||G.mode==='win')startFreshRun();else if(G.mode==='title')startGame()});
 $('landscapeStartBtn').addEventListener('click',()=>{if(G.mode==='title')startGame()});
 ui.pause.addEventListener('click',pause);
