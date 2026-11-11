@@ -1,0 +1,7 @@
+# PHASE A | 2026-11-11 18:14 JST | Boss outgoing-vitals persistence guard
+Read main HEAD fe92ceaf4a76e97130d8179006212c5401d6b159, latest neo-wild commits, roadmap-history recent handoffs, ROADMAP-RECOVERY.md, and fresh game.js / boss-roster.js / index.html blob SHAs.
+Player issue: boss-to-boss switch previously ignored a failed outgoing-boss updateVitals() and could replace the live actor with stale HP/level persisted for the outgoing boss. New guard aborts before changing the live actor if the outgoing boss vitals write returns false. Ordinary-to-boss switch still persists squad vitals. Existing world autosave failure rollback remains intact.
+Code commit b63d4389272bc205e2dd68afcdbaacd4c91c0959; game.js blob 90f58e9128cc94bc2530718ced841f94ae97b14e.
+HTML commit b7ff005c641e7b4f5545d66bb6b1fbb2bba003cc; game.js?rev=90f58e9128cc.
+Validation: new Function(full game.js) parses. Extracted actual applyBossLeader function tested in three mocked cases: outgoing boss save failure leaves boss and HP unchanged and shows notice; successful boss-to-boss switch; ordinary-to-boss switch still saves squad vitals. Re-fetched game.js and index.html matching new blob and rev. No real browser/Android or real storage failure E2E.
+Next: investigate persistent roster activeId on failed switch and end-to-end save/load of boss→ordinary→boss, including a deliberately failing localStorage. No user action required. UI, 3+3 slots, death/release ledgers, old saves and game timing untouched.
