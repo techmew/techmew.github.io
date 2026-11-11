@@ -3031,7 +3031,7 @@ window.WildI18nPhrases = [
  ],
  [
   "現在｜世界",
-  "Now | World year"
+  "Current | World"
  ],
  [
   "探索達成：",
@@ -3043,7 +3043,7 @@ window.WildI18nPhrases = [
  ],
  [
   "希少素材",
-  "Rare materials"
+  "Rare material"
  ],
  [
   "水辺",
@@ -3056,5 +3056,261 @@ window.WildI18nPhrases = [
  [
   "風下狩猟",
   "Downwind hunting"
+ ],
+ [
+  "白狼の残像二閃",
+  "White wolf double afterimage slash"
+ ],
+ [
+  "忍び寄る死角の爪",
+  "Stealthy blind-side claw"
+ ],
+ [
+  "大鷲の落下衝撃",
+  "Giant eagle diving impact"
+ ],
+ [
+  "羽ばたきの暴風",
+  "Wingbeat gale"
+ ],
+ [
+  "粘り強い",
+  "Tenacious"
+ ],
+ [
+  "急所狙い",
+  "Precision striker"
+ ],
+ [
+  "警戒心",
+  "Vigilance"
+ ],
+ [
+  "夜目",
+  "Night vision"
+ ],
+ [
+  "隠密",
+  "Stealth"
+ ],
+ [
+  "回復上手",
+  "Efficient recovery"
+ ],
+ [
+  "強靭",
+  "Toughness"
+ ],
+ [
+  "慎重",
+  "Cautious"
+ ],
+ [
+  "大胆",
+  "Bold"
+ ],
+ [
+  "好奇心旺盛",
+  "Curious"
+ ],
+ [
+  "気難しい",
+  "Temperamental"
+ ],
+ [
+  "協調的",
+  "Cooperative"
+ ],
+ [
+  "標準",
+  "Standard"
+ ],
+ [
+  "操作できる生存個体がありません",
+  "No surviving playable animal available"
+ ],
+ [
+  "操作個体の選択を保存できません。空き容量を確認して再試行してください",
+  "Could not save character selection. Check free storage and retry."
+ ],
+ [
+  "死亡個体の永久保存に失敗しました。端末の保存容量を確認してください",
+  "Could not permanently record the death. Check device storage."
+ ],
+ [
+  "個体データを保存できません。端末の保存容量を確認して再試行してください",
+  "Could not save animal data. Check device storage and retry."
+ ],
+ [
+  "生存中の編成は破棄できません。空き枠は巣で補充してください",
+  "A living roster cannot be discarded. Fill empty slots at a den."
+ ],
+ [
+  "所有は操作中1体＋ストック2体の合計最大3体です。重複・死亡個体は禁止",
+  "You may own one active animal and two reserves (3 total). Duplicate and dead animals are forbidden."
+ ],
+ [
+  "空き枠がありません",
+  "No empty slots available"
+ ],
+ [
+  "所有データを再読み込みしてください",
+  "Reload your roster data"
+ ],
+ [
+  "無効な個体です",
+  "Invalid animal"
+ ],
+ [
+  "ガチャ権が不足しています",
+  "Not enough gacha tickets"
+ ],
+ [
+  "指定枠にはすでに動物がいます",
+  "That slot is already occupied"
+ ],
+ [
+  "ガチャ結果を保存できません。空き容量を確認して再試行してください",
+  "Could not save gacha results. Check free storage and retry."
+ ],
+ [
+  "その個体はすでに所有一覧にいません",
+  "This animal is no longer in the roster"
+ ],
+ [
+  "野生個体の永久記録を保存できません",
+  "Could not save the permanent record of the released animal"
+ ],
+ [
+  "野生出現キューの保存を確認できません",
+  "Could not verify the wild spawn queue save"
+ ],
+ [
+  "永久離脱IDの保存を確認できません",
+  "Could not verify permanent-loss ID storage"
+ ],
+ [
+  "野生への放流を保存できません。端末の保存容量を確認してください",
+  "Could not save the release into the wild. Check device storage."
+ ],
+ [
+  "永久離脱IDの保存に失敗しました",
+  "Could not save permanent-loss IDs"
+ ],
+ [
+  "新世界開始状態を保存できません",
+  "Could not save new-world start state"
+ ],
+ [
+  "旧編成を削除できません",
+  "Could not clear the old roster"
+ ],
+ [
+  "新世界の初期化を保存できません。空き容量を確認してください:",
+  "Could not save new-world initialization. Check free storage:"
+ ],
+ [
+  "新規編成中の空き枠ではありません",
+  "Not an empty slot in the new roster"
+ ],
+ [
+  "新規個体の保存に失敗しました。空き容量を確認して再試行してください",
+  "Could not save the new animal. Check free storage and retry."
+ ],
+ [
+  "開始状態の保存に失敗しました",
+  "Could not save start state"
+ ],
+ [
+  "採用確定後は引き直しできません",
+  "You cannot reroll after confirming recruitment"
+ ],
+ [
+  "引き直しは3回まで",
+  "Up to three rerolls allowed"
+ ],
+ [
+  "抽選外の個体",
+  "This animal is not from the current draw"
+ ],
+ [
+  "採用済みの個体は変更できません",
+  "An already recruited animal cannot be changed"
+ ],
+ [
+  "不正なリーダー指定です",
+  "Invalid leader selection"
+ ],
+ [
+  "もう一度ガチャから選び直してください",
+  "Select again from the gacha"
+ ],
+ [
+  "発見報酬",
+  "Discovery reward"
+ ],
+ [
+  "塊",
+  "portions"
+ ],
+ [
+  "ボス所有枠",
+  "boss roster slot"
+ ],
+ [
+  "（不在中の生態変化）",
+  "(ecosystem changes while away)"
+ ],
+ [
+  "小動物を探して急襲｜肉・腐肉の回復効率＋18%",
+  "Seek out and ambush small animals | +18% healing from meat and carrion"
+ ],
+ [
+  "持久力 -16",
+  "Stamina -16"
+ ],
+ [
+  "動物のプレビュー",
+  "Animal preview"
+ ],
+ [
+  "日本",
+  "Japan"
+ ],
+ [
+  "移動",
+  "Movement"
+ ],
+ [
+  "外見",
+  "Appearance"
+ ],
+ [
+  "　｜　ブロンズ・シルバー・ゴールド",
+  "| Bronze / Silver / Gold"
+ ],
+ [
+  "NPC誘拐:",
+  "NPC abduction:"
+ ],
+ [
+  "ムファサ",
+  "Mufasa"
+ ],
+ [
+  "ティガー",
+  "Tigger"
+ ],
+ [
+  "ガーフィールド",
+  "Garfield"
+ ],
+ [
+  "ジェリー",
+  "Jerry"
+ ],
+ [
+  "ジョリィ",
+  "Jolly"
  ]
 ];
