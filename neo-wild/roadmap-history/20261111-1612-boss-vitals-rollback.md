@@ -1,0 +1,6 @@
+# 2026-11-11 16:12 JST | PHASE A | boss switch rollback
+Baseline main f0fae93499e0e17841186cfc74d332dc9c303fd5; read latest commits, roadmap-history, ROADMAP-RECOVERY.md and blobs before editing.
+Change: rejected live boss selection world autosave now restores outgoing boss HP ratio and level, and outgoing squad HP/level/XP when applicable, without overwriting the boss death/replacement ledger or unrelated roster entries. Existing selection rollback remains. No layout, slot counts or SAVE_SCHEMA2 changes.
+Code commit a4111e39a8bf226eff65898aeb44df3f0b731e59 (game.js blob 85ee5054aa8a9d03f7858a11c82bc35efb8067e0). HTML cache commit 35b05b16acf6bd9cc02a6d4fa510e9e4f6978cd1 (game.js rev 85ee5054aa8a).
+Checks: JavaScript new Function parses; 4 isolated regression mocks pass: outgoing boss HP/level restored; unrelated boss untouched; dead boss not revived; replaced boss not overwritten; storage rejection reported. Actual browser, Android, SAVE_SCHEMA2 E2E unverified. GitHub Pages workflow was still in progress when checked.
+Next: verify Pages success and exercise boss-to-squad-to-boss save-failure E2E; investigate transactional rollback if restoring boss vitals itself fails. No user intervention required.
