@@ -9415,6 +9415,13 @@ function applySquadLeader(writeSnapshot=true){
  if(!animals[member.species]){notify(member.speciesName+"の操作は準備中");return false;}
  // A failed habitat placement must not overwrite the live actor.
  const previousActor={...P},previousChoice=choice,outgoingBoss=P.bossIndividualId;
+ // Persist the departing boss BEFORE replacing the actor. A failed write
+ // must not switch to an ordinary animal with stale boss HP/level on disk.
+ if(outgoingBoss&&window.WildBossRoster?.updateVitals?.(
+  outgoingBoss,P.hp/Math.max(1,P.maxHp),P.level)!==true){
+  notify("元のボスのHP・レベルを保存できません。切替を中止しました");
+  return false;
+ }
  P.bossIndividualId=null;
  const previousOwnerId=P.squadIndividualId;
  choice=member.species;const a=animals[choice];
@@ -9440,7 +9447,7 @@ function applySquadLeader(writeSnapshot=true){
   notify("操作個体の移動可能地点が見つかりません。元の動物で続行");
   return false;
  }
- if(outgoingBoss)window.WildBossRoster?.updateVitals?.(outgoingBoss,previousActor.hp/Math.max(1,previousActor.maxHp),previousActor.level);
+ // Outgoing boss vitals were committed before mutating the player actor.
  syncSquadFollowers();syncSquadHud();if(writeSnapshot)saveAuto();
  if(!debugTutorialSession)window.WildTrophies?.record?.("species-lead",{type:choice},notify);
  return true;
