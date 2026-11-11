@@ -369,7 +369,7 @@ function bossHealthTarget(sp){
 }
 function bossStrikePower(m){
  return (m?.strongBoss?1.28+enemyChallengeTier()*.018:1)*
-  (m?.strongBoss&&m.hp<m.maxHp*.45?1.16:1);
+  (m?.strongBoss&&m.hp<m.maxHp*.45?1.16:1)*(m?.apexHunter?1.35:1);
 }
 function bossPoiseBreak(m,damage,heavy=false){
  if(!m?.strongBoss||m.hp<=0)return false;
@@ -390,7 +390,7 @@ function activeStrongBosses(){return mobs.filter(m=>m.hp>0&&(m.strongBoss||Objec
 function syncStrongBossChallenge(){
  if(!P)return;
  for(const m of activeStrongBosses()){
-  if(m.worldEndBoss)continue; // Never rescale final boss by ordinary boss balance.
+  if(m.worldEndBoss||m.apexHunter)continue; // Preserve final and boss-hunter unique health.
   const sp=species[m.type];if(!sp)continue;
   const target=Math.round(bossHealthTarget(sp)*(m.sealGuardian?1.55:1)),old=Math.max(1,Number(m.maxHp)||sp.hp);
   if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||target>old*1.08){
@@ -2578,9 +2578,10 @@ function strongStageCandidate(region){
  for(let i=0;i<options.length;i++){roll-=weights[i];if(roll<=0)return options[i];}
  return options[options.length-1];
 }
-function spawnStrongBoss(type,region,spawnOrigin=null){
- if(!P||!species[type]||activeStrongBosses().length>=strongBossLimit()||mobs.length>=WILDLIFE.cap)return false;
+function spawnStrongBoss(type,region,spawnOrigin=null,apex=false){
+ if(!P||!species[type]||(!apex&&activeStrongBosses().filter(m=>!m.apexHunter).length>=strongBossLimit())||mobs.length>=WILDLIFE.cap)return false;
  const sp=species[type],aquatic=AQUATIC_STRONG_TYPES.has(type),waterSpots=aquatic?aquaticStagePoints(region):null;
+ const bossRadius=apex?Math.round(sp.r*1.65):sp.r;
  if(aquatic&&!waterSpots.length)return false;
  // Only the seal guardian uses deterministic cave-floor candidates; ordinary
  // regional bosses retain the original randomized location policy.
@@ -2594,17 +2595,17 @@ function spawnStrongBoss(type,region,spawnOrigin=null){
   const y=spot?spot.y:cave?cave.y:clamp(P.y+Math.sin(angle)*radius,60,WORLD.h-60);
   if(caveSpawn&&(Math.hypot(x-P.x,y-P.y)<Math.max(145,sp.r*3.5)||
      Math.hypot(x-spawnOrigin.x,y-spawnOrigin.y)>380))continue;
-  if(regionAt(x,y)!==region||mountainHabitat(x,y)!==mountainHabitat(P.x,P.y)||collides(x,y,sp.r+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
+  if(regionAt(x,y)!==region||mountainHabitat(x,y)!==mountainHabitat(P.x,P.y)||collides(x,y,bossRadius+6,null,aquatic)||nearDenLocation(x,y,420)||mobs.some(q=>q.hp>0&&Math.hypot(q.x-x,q.y-y)<(q.strongBoss?360:135)))continue;
   // Boss health stays near 7-12 ordinary hits at high LV, not a day-based infinity.
-  const hp=bossHealthTarget(sp);
-  mobs.push({x,y,type,r:sp.r,color:sp.color,belly:sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
+  const hp=Math.round(bossHealthTarget(sp)*(apex?2.8:1));
+  mobs.push({x,y,type,r:bossRadius,color:apex?"#392523":sp.color,belly:apex?"#917253":sp.belly,hp,maxHp:hp,attack:0,vx:0,vy:0,dir:angle+Math.PI,wander:0,
    alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,
    strikeDir:0,stun:0,evadeTime:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,
    chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintCooldown:2,
    thirstNeed:.4,drinkCooldown:3,flankSide:Math.random()<.5?-1:1,
-   strongBoss:true,strongRegion:region,strongBirthDay:day,bossBalanceVersion:BOSS_BALANCE_VERSION,signature:null,signatureUse:0,signatureCooldown:0,bossPresenceShown:false,poise:0,poiseLastAt:0,guardBreakUntil:0,
+   strongBoss:true,apexHunter:apex,strongRegion:region,strongBirthDay:day,bossBalanceVersion:BOSS_BALANCE_VERSION,signature:null,signatureUse:0,signatureCooldown:0,bossPresenceShown:false,poise:0,poiseLastAt:0,guardBreakUntil:0,
    ...(type==="giantEagle"?{airHeight:125,airPhase:"circle",airTimer:1.7,airOrbit:angle,airAnchorX:x,airAnchorY:y,airTarget:null,airHit:false}: {})});
-  notify("この地区に"+STRONG_NAMES[type]+"の気配がある");
+  notify(apex?"暴食の覇王が出現！ 野生動物も狙う危険な大ボス":"この地区に"+STRONG_NAMES[type]+"の気配がある");
   return true;
  }
  return false;
@@ -2726,6 +2727,18 @@ function recordSealGuardianDefeat(m){
  caveSealIncident("defeated",year);
  notify("封印の巨獣を討伐。世界年表に記録された",4);
 }
+let apexHunterNextAt=0;
+function maintainBossHunter(){
+ if(!P?.bossIndividualId||mode!=="play"||elapsed>=100*120||debugTutorialSession)return;
+ if(mobs.some(m=>m.apexHunter&&m.hp>0))return;
+ if(apexHunterNextAt===0)apexHunterNextAt=elapsed+65;
+ if(elapsed<apexHunterNextAt)return;
+ if(spawnStrongBoss("giantLion",regionAt(P.x,P.y),null,true)){
+  apexHunterNextAt=elapsed+Math.max(240,rnd(270,330));
+  label(P.x,P.y-P.r-55,"暴食の覇王が接近！","#ffb98c");
+  saveAuto();
+ }else apexHunterNextAt=elapsed+15;
+}
 function enterStrongStage(){
  if(!P)return;
  const region=regionAt(P.x,P.y),habitat=strongHabitatKey(P.x,P.y);strongRegionCurrent=habitat;
@@ -2733,7 +2746,7 @@ function enterStrongStage(){
  // global cap with long-abandoned bosses. Retire only unseen, very distant ones.
  if(P.level>=6)for(let i=mobs.length-1;i>=0;i--){
   const m=mobs[i];
-  if(m.strongBoss&&m.hp>0&&strongHabitatKey(m.x,m.y)!==habitat&&dist(P,m)>WILDLIFE.farAI)
+  if(m.strongBoss&&!m.apexHunter&&m.hp>0&&strongHabitatKey(m.x,m.y)!==habitat&&dist(P,m)>WILDLIFE.farAI)
    mobs.splice(i,1);
  }
  if(!Object.prototype.hasOwnProperty.call(strongRolls,habitat))
@@ -2764,6 +2777,12 @@ function normalizeStrongBossSave(){
   if(m.worldEndBoss||m.type==="worldEnd"){
    m.strongBoss=true;m.worldEndBoss=true;m.r=species.worldEnd.r;continue;
   }
+  if(m.apexHunter&&m.type==="giantLion"){
+   // This once-per-boss-run predator is separate from regional strong quotas.
+   m.strongBoss=true;m.r=Math.max(species.giantLion.r,Math.round(Number(m.r)||species.giantLion.r*1.65));
+   m.maxHp=Math.max(1,Number(m.maxHp)||bossHealthTarget(species.giantLion)*2.8);
+   m.hp=clamp(Number(m.hp)||1,1,m.maxHp);continue;
+  }
   if(m.strongBoss||Object.prototype.hasOwnProperty.call(STRONG_NAMES,m.type)){
    if(kept<strongBossLimit()){if(!first)first=m;kept++;m.strongBoss=true;m.color=species[m.type].color;m.belly=species[m.type].belly;m.strongRegion=Number.isInteger(m.strongRegion)?m.strongRegion:regionAt(m.x,m.y);}
    else{m.type="dog";m.strongBoss=false;m.r=species.dog.r;m.maxHp=Math.min(m.maxHp||species.dog.hp,species.dog.hp*2);m.hp=Math.min(m.hp||species.dog.hp,m.maxHp);}
@@ -2773,6 +2792,7 @@ function normalizeStrongBossSave(){
  // A legacy SAVE_SCHEMA2 monster may have had only 10-14 basic-hit HP.
  // Upgrade it once while retaining the same injury percentage and checkpoints.
  if(P)for(const m of activeStrongBosses()){
+  if(m.apexHunter)continue;
   const safe=Math.round(bossHealthTarget(species[m.type])*(m.sealGuardian?1.55:1));
   const ratio=clamp(m.hp/Math.max(1,Number(m.maxHp)||species[m.type].hp),0,1);
   if(m.bossBalanceVersion!==BOSS_BALANCE_VERSION||m.maxHp>safe*1.04){
@@ -5730,19 +5750,25 @@ function defendBuffaloHerd(m){
  return true;
 }
 function huntWildPrey(m,sp,spotted,playerDistance){
- if(!isWildPredator(m)||(m.feedClaimToken&&m.feedClaimUntil>elapsed)||(m.feedAfterKill||0)>0||spotted||(m.alert||0)>0||(m.flee||0)>0||
+ if(!isWildPredator(m)||(m.feedClaimToken&&m.feedClaimUntil>elapsed)||(m.feedAfterKill||0)>0||(spotted&&!m.apexHunter)||((m.alert||0)>0&&!m.apexHunter)||(m.flee||0)>0||
     (m.windup||0)>0||(m.chargeTime||0)>0||(m.stun||0)>0||
     (m.evadeTime||0)>0){
   m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;
   return null;
  } // Inactive hunters must not reserve stale prey.
  const caveScent=MOUNTAIN?.zone(m.x)==="cave";
- const diet=WILD_DIETS[m.type]||null;
+ const diet=m.apexHunter?null:(WILD_DIETS[m.type]||null);
  const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
- const maxRange=caveScent?Math.max(330,maxRangeBase):maxRangeBase;
+ const maxRange=m.apexHunter?640:caveScent?Math.max(330,maxRangeBase):maxRangeBase;
  let prey=null,best=maxRange,bestScore=Infinity;
  for(const q of mobs){
-  if(q===m||q.hp<=0||!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake"))||(diet&&!diet.includes(q.type)))continue;
+  if(q===m||q.hp<=0||q.companion||q.squadIndividualId||q.bossIndividualId||
+     q.releasedIndividualId||q.strongBoss||q.worldEndBoss)continue;
+  if(m.apexHunter){
+   // An apex can prey on predators and even elephants, but never on owned,
+   // released or boss identities. Ground predators do not hunt in deep water.
+   if(isAquaticStrong(q)||waterDepth(q.x,q.y)>.25)continue;
+  }else if(!(species[q.type]?.prey||(q.type==="boar"&&m.type!=="giantSnake"))||(diet&&!diet.includes(q.type)))continue;
   if(!diet&&["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","macaque","chimpanzee"].includes(m.type)){
    const smallPrey=["rat","frog","pigeon","crow","weasel"];
    if(["wildFox","weasel","raccoonDog"].includes(m.type))smallPrey.push("rabbit"); // Cave mammal predators can hunt cave rabbits.
@@ -5787,11 +5813,13 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;m.wildTargetAt=elapsed;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=["strayCat","weasel","snake","venomSnake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
+  m.wildAttack=m.apexHunter?.85:["strayCat","weasel","snake","venomSnake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
   const bite=["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog"].includes(m.type)?Math.max(2,Math.round(sp.damage*.70)):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="albinoWolf"?.42:m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
-  prey.hp=Math.max(0,prey.hp-bite);
+  const swallow=m.apexHunter&&prey.r<=Math.min(35,m.r*.45);
+  const strike=m.apexHunter?(swallow?prey.hp:Math.max(5,Math.ceil((prey.maxHp||prey.hp)/3))):bite;
+  prey.hp=Math.max(0,prey.hp-strike);
   // A cornered larger grazer can counter a predator. Damage is real and cooldown-limited.
   if(prey.hp>0&&["boar","deer","zebra","serow","mountainGoat"].includes(prey.type)&&
      (prey.attack||0)<=0&&!lineBlocked(prey,m)){
@@ -5805,17 +5833,21 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   if(prey.hp>0){
    if(!startlePrey(prey,m,"hit")){prey.flee=1.8;prey.dir=Math.atan2(prey.y-m.y,prey.x-m.x);}
   }else{
-   claimPredatorKill(m,prey);
+   if(swallow){
+    // A small animal is swallowed immediately; there is no corpse to collect.
+    prey._killRegistered=true;m.feedAfterKill=2.3;
+    m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;
+   }else claimPredatorKill(m,prey);
    if(species[prey.type].prey){
     const zone=regionAt(prey.x,prey.y);
     ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
    }
   }
-  if(P&&dist(P,m)<380)label(prey.x,prey.y-prey.r-20,prey.hp>0?"野生の狩り -"+bite:"野生の狩り","#eac6a1");
+  if(P&&dist(P,m)<520)label(prey.x,prey.y-prey.r-20,swallow&&prey.hp<=0?"丸のみ！":prey.hp>0?"野生の狩り -"+strike:"大型獲物を捕食","#eac6a1");
  }
  if(m.hp<=0)return null;
  const sprint=(m.huntSprintLeft||0)>0?(m.type==="lion"?1.36:m.type==="cheetah"?1.42:1.14):1;
- const pace=m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
+ const pace=m.apexHunter?1.1:m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
  return {vx:Math.cos(m.dir)*sp.speed*pace*sprint,vy:Math.sin(m.dir)*sp.speed*pace*sprint};
 }
 // Choose a real road bridge before generic A* when wildlife crosses open water.
@@ -6790,6 +6822,7 @@ function update(dt){
  settleNewRegion();
  updateFieldQuest();
  if(strongRegionCurrent!==strongHabitatKey(P.x,P.y))enterStrongStage();
+ maintainBossHunter();
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
