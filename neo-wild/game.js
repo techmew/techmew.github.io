@@ -4983,6 +4983,7 @@ function carryFood(){
  let selected=null,nearest=65;
  for(const f of carcasses){const d=dist(P,f);if(foodAtActorLevel(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}}
  if(!selected){notify("運べる食草・肉が近くにない");return false}
+ const beforePickup={carry:P.carry,sp:P.sp,amount:selected.amount,index:carcasses.indexOf(selected)};
  if(selected.type==="corpse"){
   const preySize=Number(species[selected.animalType]?.food)||Number(selected.initialAmount)||24;
   // Small animals make more trips; larger bodies and higher levels haul more.
@@ -4996,6 +4997,15 @@ function carryFood(){
  }else{
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
+ }
+ // Pickup changes both the live prey and the actor's carried item. A failed
+ // autosave must not allow a reload to duplicate or erase that meat.
+ if(saveAuto()!==true){
+  P.carry=beforePickup.carry;P.sp=beforePickup.sp;selected.amount=beforePickup.amount;
+  if(beforePickup.index>=0&&!carcasses.includes(selected))
+   carcasses.splice(Math.min(beforePickup.index,carcasses.length),0,selected);
+  notify("保存に失敗したため、肉・食草の持ち上げを取り消しました");
+  syncHUD();return false;
  }
   notify(foodName(P.carry)+"（"+meatSizeName(P.carry.amount)+"・"+Math.ceil(P.carry.amount)+"）をくわえた。"+(carriedFoodBurden(P.carry,P)>.55?"重い食料で移動が遅くなる。野犬を避けて巣へ":"どの巣でも備蓄可能"));
  if(mission===4)announceObjective();
