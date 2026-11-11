@@ -826,6 +826,17 @@ function saveSharedDen(){
  const lots=normalizeMeatLots(denMeatLots,denStores.meat);
  const next=JSON.stringify({version:1,level:denLevel,stores:denStores,meatLots:lots,updatedAt:Date.now()});
  try{
+  // A corrupted or inaccessible authoritative pantry must never be silently
+  // replaced with a reconstructed/empty one during eating or withdrawal.
+  const previousRaw=localStorage.getItem(SHARED_DEN_KEY);
+  if(previousRaw!==null){
+   let previous;
+   try{previous=JSON.parse(previousRaw)}catch(_){throw Error("pantry JSON damaged")}
+   if(!previous||previous.version!==1||!previous.stores||
+      typeof previous.stores!=="object"||Array.isArray(previous.stores)||
+      !["meat","berries","legacy"].every(k=>Number.isSafeInteger(previous.stores[k])&&previous.stores[k]>=0)||
+      !Array.isArray(previous.meatLots))throw Error("pantry data damaged");
+  }
   localStorage.setItem(SHARED_DEN_KEY,next);
   if(localStorage.getItem(SHARED_DEN_KEY)!==next)throw Error("pantry readback mismatch");
   denMeatLots=lots;return true;
