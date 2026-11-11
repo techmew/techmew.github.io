@@ -9372,7 +9372,8 @@ function applySquadLeader(writeSnapshot=true){
  const roster=window.WildSquad?.load?.();if(!P||!roster?.members?.length)return false;
  const member=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
  if(!animals[member.species]){notify(member.speciesName+"の操作は準備中");return false;}
- if(P.bossIndividualId)window.WildBossRoster?.updateVitals?.(P.bossIndividualId,P.hp/Math.max(1,P.maxHp),P.level);
+ // A failed habitat placement must not overwrite the live actor.
+ const previousActor={...P},previousChoice=choice,outgoingBoss=P.bossIndividualId;
  P.bossIndividualId=null;
  const previousOwnerId=P.squadIndividualId;
  choice=member.species;const a=animals[choice];
@@ -9393,7 +9394,12 @@ function applySquadLeader(writeSnapshot=true){
   P.flying=false;P.flightAltitude=0;P.flightLanding=false;P.flightLandingWarned=false;
   P.jumpHeight=P.groundZ||0;
  }
- if(!ensureOwnedAnimalHabitat()){notify("操作個体の移動可能地点が見つかりません");return false;}
+ if(!ensureOwnedAnimalHabitat()){
+  P=previousActor;choice=previousChoice;
+  notify("操作個体の移動可能地点が見つかりません。元の動物で続行");
+  return false;
+ }
+ if(outgoingBoss)window.WildBossRoster?.updateVitals?.(outgoingBoss,previousActor.hp/Math.max(1,previousActor.maxHp),previousActor.level);
  syncSquadFollowers();syncSquadHud();if(writeSnapshot)saveAuto();
  if(!debugTutorialSession)window.WildTrophies?.record?.("species-lead",{type:choice},notify);
  return true;
