@@ -5018,13 +5018,23 @@ function eat(){
  if(!c)for(const f of carcasses){const d=dist(P,f);if(foodAtActorLevel(f)&&d<near&&!lineBlocked(P,f)){near=d;c=f}}
  if(!c){notify("食草・肉が近くにない");return}
  const bite=Math.min(12,c.amount),balance=foodBalance(c);
+ if(!(bite>0))return false;
+ const before={hunger:P.hunger,hp:P.hp,strongWound:P.strongWound,meals,carry:P.carry,amount:c.amount};
  const gain=Math.round(bite*balance.satiety*(P.type==="tibetanFox"&&c.type!=="berries"?1.18:1)),heal=Math.round(bite*balance.healing);
  P.hunger=clamp(P.hunger+gain,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);const woundRelief=sootheStrongWound(bite);meals++;
  if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null}
- else if(c.type==="corpse"){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)toBones(c)}
- else{c.amount=Math.max(0,c.amount-bite);if(c.amount===0)carcasses.splice(carcasses.indexOf(c),1)}
+ else c.amount=Math.max(0,c.amount-bite);
+ if(saveAuto()!==true){
+  P.hunger=before.hunger;P.hp=before.hp;P.strongWound=before.strongWound;meals=before.meals;
+  c.amount=before.amount;P.carry=before.carry;
+  notify("世界セーブ失敗のため食事を取り消しました。食料と体力を維持しました");syncHUD();return false;
+ }
+ if(!carried&&c.amount===0){
+  if(c.type==="corpse")toBones(c);
+  else{const index=carcasses.indexOf(c);if(index>=0)carcasses.splice(index,1)}
+ }
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
- blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();saveAuto();
+ blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();return true;
 }
 function inheritStrongTrait(type){
  if(mode!=="inventory"||!P||!atDen()||!STRONG_TRAITS[type])return false;
