@@ -802,3 +802,18 @@ html,body{overscroll-behavior:none}
  #shell .difficulty-choice>span{display:none}
  #shell .difficulty-choice select{min-height:24px;min-width:76px;font-size:10px}
 }
+
+/* Real-result share: show screenshot and text inside the same game-over/clear overlay. */
+#shell .sf-result-share[hidden],#shell .sf-share-sample[hidden]{display:none!important}
+#shell .sf-share-sample{display:block;margin:8px auto;padding:10px 16px;border:1px solid #60b7d9;border-radius:9px;background:#123952;color:#d6f6ff;font:800 12px system-ui,sans-serif;cursor:pointer}
+#shell .sf-result-share{width:min(100%,530px);margin:9px auto 15px;padding:11px;background:#071929f5;border:1px solid #4388a9;border-radius:12px;color:#effaff;box-shadow:0 12px 25px #0004;text-align:left}
+#shell .sf-result-share img{display:block;width:100%;max-height:220px;aspect-ratio:16/9;object-fit:contain;background:#0b2134;border:1px solid #326784;border-radius:8px}
+#shell .sf-share-heading{font-size:11px;font-weight:900;letter-spacing:.06em;color:#9ed9fa;margin:9px 0 3px}
+#shell .sf-share-text{margin:0;padding:8px 10px;background:#102c42;border-radius:7px;color:#effbff;font-size:11px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}
+#shell .sf-share-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:11px 0 7px}
+#shell .sf-share-actions button{min-width:0;padding:10px 5px;background:#144c70;border:1px solid #4bb8e0;border-radius:8px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}
+#shell .sf-share-actions button:first-child{background:#087cbe}
+#shell .sf-share-actions button:disabled{opacity:.48;cursor:not-allowed}
+#shell .sf-share-status{color:#b9f0e9;font-size:11px;line-height:1.6;margin:8px 0 4px}
+#shell .sf-share-help{font-size:10px;line-height:1.5;color:#a4c2d5;margin:5px 0 0}
+@media (max-width:460px){#shell .sf-result-share{padding:8px}#shell .sf-result-share img{max-height:160px}#shell .sf-share-actions button{font-size:10px;padding:9px 2px}}
