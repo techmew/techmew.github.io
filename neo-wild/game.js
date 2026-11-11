@@ -1516,7 +1516,8 @@ function squadSnapshotAlive(snapshot){
  const id=snapshot.player?.squadIndividualId;
  if(!id)return true; // Pre-gacha SAVE_SCHEMA2 remains readable.
  const roster=window.WildSquad?.load?.();
- return !!roster?.members?.some(m=>m.alive!==false); // Living selected stock may replace the saved actor.
+ return !!roster?.members?.some(m=>m.alive!==false)||
+  !!safeBossRoster()?.members?.length; // An owned boss can replace a vanished ordinary actor.
 }
 function getAutoSnapshot(){
  try{const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||"null");return squadSnapshotAlive(s)?s:null}catch(_){return null}
@@ -9612,7 +9613,14 @@ selectNewGameAnimal(choice);
 $("continue-btn").addEventListener("click",()=>{
  if(mode!=="menu")return;
  const roster=window.WildSquad?.load?.();
- const bossRoster=safeBossRoster(),selectedBoss=bossRoster?.members?.find(m=>m.id===bossRoster.activeId);
+ const bossRoster=safeBossRoster();
+ let selectedBoss=bossRoster?.members?.find(m=>m.id===bossRoster.activeId);
+ // A survivor in the separate boss collection is enough to keep playing;
+ // no fresh ordinary gacha is required when the old squad has died.
+ if(!selectedBoss&&!roster?.members?.length&&bossRoster?.members?.length){
+  const firstBoss=bossRoster.members[0];
+  if(window.WildBossRoster?.select?.(firstBoss.id)?.ok)selectedBoss=firstBoss;
+ }
  if(roster?.pendingStart&&roster.members?.length&&!selectedBoss){
   const leader=roster.members.find(m=>m.id===roster.leaderId)||roster.members[0];
   if(!leader||!animals[leader.species]){notify("操作できる動物を選んでください");return;}
