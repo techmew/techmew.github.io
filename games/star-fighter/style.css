@@ -817,3 +817,9 @@ html,body{overscroll-behavior:none}
 #shell .sf-share-status{color:#b9f0e9;font-size:11px;line-height:1.6;margin:8px 0 4px}
 #shell .sf-share-help{font-size:10px;line-height:1.5;color:#a4c2d5;margin:5px 0 0}
 @media (max-width:460px){#shell .sf-result-share{padding:8px}#shell .sf-result-share img{max-height:160px}#shell .sf-share-actions button{font-size:10px;padding:9px 2px}}
+
+/* X screenshot sharing: readable four actions, touch-friendly on small screens. */
+#shell .sf-share-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#shell .sf-share-actions button{min-height:42px;font-size:clamp(10px,1.15vw,13px);line-height:1.35;overflow-wrap:anywhere}
+#shell .sf-share-actions button:first-child{background:linear-gradient(135deg,#0877bc,#0e9ac2);border-color:#68dbf2}
+#shell .sf-share-text{font-size:clamp(10px,1.15vw,13px);line-height:1.65}
