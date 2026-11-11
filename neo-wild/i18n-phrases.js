@@ -1091,7 +1091,7 @@ window.WildI18nPhrases = [
  ],
  [
   "獅子の威圧咆哮",
-  "Lion's intimidating roar"
+  "Intimidating lion roar"
  ],
  [
   "虎の飛び掛かり",
@@ -1184,5 +1184,733 @@ window.WildI18nPhrases = [
  [
   "群れの包囲！ 逃げろ",
   "Surrounded by a pack! Run!"
+ ],
+ [
+  "ボス永久IDの保存データが破損しています:",
+  "Boss permanent-ID save is corrupted:"
+ ],
+ [
+  "ボスの保存を検証できません:",
+  "Boss save verification failed:"
+ ],
+ [
+  "ボスの所有データが破損しています",
+  "Boss roster data is corrupted"
+ ],
+ [
+  "ボスの枠は3体まで",
+  "Boss roster is limited to three slots"
+ ],
+ [
+  "永久離脱したボスは復活できません",
+  "Permanently lost bosses cannot return"
+ ],
+ [
+  "ボスIDが重複しています",
+  "Duplicate boss IDs detected"
+ ],
+ [
+  "別タブに新しいボス編成があります。画面を更新してください",
+  "A newer boss roster exists in another tab. Reload this page."
+ ],
+ [
+  "ボスの討伐情報が不正です",
+  "Invalid boss defeat record"
+ ],
+ [
+  "この討伐は判定済みです",
+  "This boss defeat was already resolved"
+ ],
+ [
+  "このボスは登録済みです",
+  "This boss has already been recruited"
+ ],
+ [
+  "ボス3枠が満員です。交代対象を選んでください",
+  "All three boss slots are full. Choose a boss to replace."
+ ],
+ [
+  "ボス取得済み。討伐履歴の保存確認が必要です",
+  "Boss recruited. Confirm that defeat history was saved."
+ ],
+ [
+  "保存エラー",
+  "Save error"
+ ],
+ [
+  "所有していないボスです",
+  "You do not own this boss"
+ ],
+ [
+  "切替を確定できませんでした。元の個体を維持します",
+  "Could not confirm the boss switch. Keeping the previous animal."
+ ],
+ [
+  "ボス専用の所有3枠",
+  "Three dedicated boss slots"
+ ],
+ [
+  "討伐したボス｜専用3枠",
+  "Recruited bosses | 3 slots"
+ ],
+ [
+  "討伐したボスの仲間選択",
+  "Defeated boss recruitment"
+ ],
+ [
+  "未獲得のボス枠",
+  "Unoccupied boss slot"
+ ],
+ [
+  "未獲得",
+  "Not recruited"
+ ],
+ [
+  "このボスを選択",
+  "Select this boss"
+ ],
+ [
+  "選択中のボスで出撃",
+  "Deploy as selected boss"
+ ],
+ [
+  "通常動物に戻す",
+  "Return to normal animal"
+ ],
+ [
+  "強ボスを討伐！",
+  "Boss defeated!"
+ ],
+ [
+  "ボス枠が満員です。入れ替える1体を選択",
+  "Boss roster full. Select one to replace."
+ ],
+ [
+  "仲間にする",
+  "Recruit"
+ ],
+ [
+  "見送る",
+  "Decline"
+ ],
+ [
+  "辞退の保存に失敗しました",
+  "Could not save your decision to decline"
+ ],
+ [
+  "アルファウルフ",
+  "Alpha Wolf"
+ ],
+ [
+  "大蛇",
+  "Giant Snake"
+ ],
+ [
+  "老熊",
+  "Old Bear"
+ ],
+ [
+  "巨大イノシシ",
+  "Giant Wild Boar"
+ ],
+ [
+  "黒豹",
+  "Black Panther"
+ ],
+ [
+  "隻眼の狼",
+  "One-Eyed Wolf"
+ ],
+ [
+  "白虎",
+  "White Tiger"
+ ],
+ [
+  "巨大ハイエナ",
+  "Giant Hyena"
+ ],
+ [
+  "巨大ライオン",
+  "Giant Lion"
+ ],
+ [
+  "巨大ヘラジカ",
+  "Giant Moose"
+ ],
+ [
+  "巨大バッファロー",
+  "Giant Buffalo"
+ ],
+ [
+  "巨大ワニ",
+  "Giant Crocodile"
+ ],
+ [
+  "巨大カバ",
+  "Giant Hippo"
+ ],
+ [
+  "巨大アナコンダ",
+  "Giant Anaconda"
+ ],
+ [
+  "巨大オオトカゲ",
+  "Giant Monitor Lizard"
+ ],
+ [
+  "サイ",
+  "Rhino"
+ ],
+ [
+  "巨大ゴリラ",
+  "Giant Gorilla"
+ ],
+ [
+  "巨大ゾウ",
+  "Giant Elephant"
+ ],
+ [
+  "アルビノの狼",
+  "Albino Wolf"
+ ],
+ [
+  "大鷲",
+  "Giant Eagle"
+ ],
+ [
+  "戦慄の遠吠え",
+  "Terrifying howl"
+ ],
+ [
+  "追い込みの二連走り",
+  "Double pursuit rush"
+ ],
+ [
+  "大蛇の締め縄",
+  "Giant serpent constriction"
+ ],
+ [
+  "毒牙の扇撃",
+  "Venom fang sweep"
+ ],
+ [
+  "老熊の地割れ叩き",
+  "Elder bear ground slam"
+ ],
+ [
+  "十字の大爪",
+  "Crossing giant claws"
+ ],
+ [
+  "暴走の土煙",
+  "Frenzied dust charge"
+ ],
+ [
+  "牙の二方向突き",
+  "Two-way tusk thrust"
+ ],
+ [
+  "影走りの急襲",
+  "Shadow-run ambush"
+ ],
+ [
+  "影落ちの奇襲",
+  "Shadowfall strike"
+ ],
+ [
+  "隻眼の挟み討ち",
+  "One-eyed flanking attack"
+ ],
+ [
+  "逃げ道を切る十字爪",
+  "Cross-claw cut-off"
+ ],
+ [
+  "白虎の天井落とし",
+  "White tiger aerial slam"
+ ],
+ [
+  "白虎の旋回斬り",
+  "White tiger spinning slash"
+ ],
+ [
+  "骨砕きの飛び噛み",
+  "Bone-crushing leap bite"
+ ],
+ [
+  "群れを惑わす甲高い笑い",
+  "Disorienting hyena cackle"
+ ],
+ [
+  "三連鉤爪の裂傷",
+  "Triple hooked-claw rend"
+ ],
+ [
+  "巨大角の横薙ぎ",
+  "Sweeping giant antlers"
+ ],
+ [
+  "背後を蹴り払う",
+  "Backward kick"
+ ],
+ [
+  "地響きの踏み鳴らし",
+  "Earth-shaking stomp"
+ ],
+ [
+  "野牛の二列突進",
+  "Double buffalo charge"
+ ],
+ [
+  "大ワニの死の回転",
+  "Crocodile death roll"
+ ],
+ [
+  "水面を裂く斜め突進",
+  "Diagonal water charge"
+ ],
+ [
+  "河馬の水圧波",
+  "Hippo water shockwave"
+ ],
+ [
+  "大顎による範囲噛み",
+  "Sweeping giant bite"
+ ],
+ [
+  "渦巻く水面の罠",
+  "Swirling water trap"
+ ],
+ [
+  "大蛇の拘束円",
+  "Serpent constriction ring"
+ ],
+ [
+  "巨尾の後方払い",
+  "Giant tail sweep"
+ ],
+ [
+  "裂傷を残す飛沫",
+  "Wounding splash"
+ ],
+ [
+  "サイの貫通一直線",
+  "Rhino piercing charge"
+ ],
+ [
+  "角による横振り払い",
+  "Sweeping horn strike"
+ ],
+ [
+  "二列の岩石衝撃",
+  "Twin rock shockwaves"
+ ],
+ [
+  "胸打ちの衝撃波",
+  "Chest-beat shockwave"
+ ],
+ [
+  "巨象の鼻薙ぎ",
+  "Giant elephant trunk sweep"
+ ],
+ [
+  "巨脚の環状地震",
+  "Circular giant-foot quake"
+ ],
+ [
+  "噛みつき二連撃",
+  "Double bite"
+ ],
+ [
+  "牙の横薙ぎ",
+  "Sweeping fang strike"
+ ],
+ [
+  "すばやい二連爪",
+  "Rapid double claw"
+ ],
+ [
+  "側面からの噛みつき",
+  "Flanking bite"
+ ],
+ [
+  "脚への噛みつき",
+  "Leg bite"
+ ],
+ [
+  "頭突きで押し返す",
+  "Headbutt knockback"
+ ],
+ [
+  "二段毒牙",
+  "Double venom fang"
+ ],
+ [
+  "高速飛びかかり",
+  "Rapid pounce"
+ ],
+ [
+  "前脚の薙ぎ払い",
+  "Foreleg sweep"
+ ],
+ [
+  "首と頭の横薙ぎ",
+  "Neck and head sweep"
+ ],
+ [
+  "長い鼻の横薙ぎ",
+  "Long trunk sweep"
+ ],
+ [
+  "大口の噛みつき",
+  "Big-mouth bite"
+ ],
+ [
+  "急斜面の頭突き",
+  "Steep-slope headbutt"
+ ],
+ [
+  "連続頭突き",
+  "Repeated headbutts"
+ ],
+ [
+  "角を振り上げる",
+  "Horn uppercut"
+ ],
+ [
+  "翼で威嚇",
+  "Wing threat"
+ ],
+ [
+  "くちばしの突き",
+  "Beak thrust"
+ ],
+ [
+  "跳び退き",
+  "Evasive hop"
+ ],
+ [
+  "窮鼠の反撃",
+  "Desperate counterattack"
+ ],
+ [
+  "飛びかかる噛みつき",
+  "Leaping bite"
+ ],
+ [
+  "石を投げる",
+  "Rock throw"
+ ],
+ [
+  "枝の振り下ろし",
+  "Branch smash"
+ ],
+ [
+  "キリンの頭突き",
+  "Giraffe headbutt"
+ ],
+ [
+  "遠くで奇妙な人影が揺れた",
+  "A strange silhouette flickers in the distance"
+ ],
+ [
+  "冷たい気配が近づいてくる…",
+  "An icy presence is drawing near…"
+ ],
+ [
+  "固有技で亡霊を退散させた！",
+  "Your special move drove the ghost away!"
+ ],
+ [
+  "攻撃で亡霊を押し返した！",
+  "Your attack pushed the ghost back!"
+ ],
+ [
+  "霊に乗り移られた！ 操作不能",
+  "Possessed by a ghost! Controls disabled."
+ ],
+ [
+  "視界に幻影が現れた",
+  "An apparition appears before your eyes"
+ ],
+ [
+  "背後から冷たい視線を感じる…",
+  "You feel an icy gaze from behind…"
+ ],
+ [
+  "亡霊が野生動物に取り憑いた！",
+  "A ghost possessed a wild animal!"
+ ],
+ [
+  "亡霊遭遇",
+  "Ghost encounter"
+ ],
+ [
+  "憑依霊",
+  "Possessing ghost"
+ ],
+ [
+  "幻惑霊",
+  "Illusion ghost"
+ ],
+ [
+  "亡霊",
+  "Ghost"
+ ],
+ [
+  "焦げた臭いがする。山火事に警戒",
+  "You smell smoke. Watch for wildfires."
+ ],
+ [
+  "川の水位が急上昇！高台へ避難",
+  "Water levels are rising rapidly! Reach high ground!"
+ ],
+ [
+  "大木が大きく揺れている！ 倒木に注意",
+  "A large tree is swaying! Beware of falling trees."
+ ],
+ [
+  "山肌から異音！土砂崩れに警戒、斜面を離れろ",
+  "Strange sounds from the mountain! Move away from the landslide zone."
+ ],
+ [
+  "土砂崩れ発生！岩と泥の堆積を迂回",
+  "Landslide! Go around fallen rocks and mud."
+ ],
+ [
+  "夜空に赤い流星！落下地点から離れろ",
+  "Red meteor overhead! Leave the impact zone!"
+ ],
+ [
+  "隕石落下！クレーターが残った。迂回して探索",
+  "Meteor impact! A crater remains. Find another route."
+ ],
+ [
+  "地震発生！地割れが開いた。足元と迂回路に注意",
+  "Earthquake! Ground fissures have opened. Watch your footing."
+ ],
+ [
+  "地震発生！倒木と地割れに警戒",
+  "Earthquake! Beware of fallen trees and fissures."
+ ],
+ [
+  "河川が氾濫。冠水した道を迂回",
+  "River flooding. Avoid submerged roads."
+ ],
+ [
+  "山火事発生！煙と炎から離れろ",
+  "Wildfire! Stay clear of smoke and flames."
+ ],
+ [
+  "土砂崩れ・迂回",
+  "Landslide: detour"
+ ],
+ [
+  "斜面崩落予兆・避難",
+  "Slope collapse warning: evacuate"
+ ],
+ [
+  "隕石跡・通行注意",
+  "Meteor crater: caution"
+ ],
+ [
+  "隕石落下予兆・避難",
+  "Meteor warning: evacuate"
+ ],
+ [
+  "山火事・危険",
+  "Wildfire: danger"
+ ],
+ [
+  "煙の予兆・避難",
+  "Smoke warning: evacuate"
+ ],
+ [
+  "冠水・迂回",
+  "Flooded area: detour"
+ ],
+ [
+  "氾濫警戒・避難",
+  "Flood warning: evacuate"
+ ],
+ [
+  "地割れ・迂回",
+  "Fissure: detour"
+ ],
+ [
+  "地震・倒木に注意",
+  "Earthquake: falling trees"
+ ],
+ [
+  "平穏",
+  "Calm"
+ ],
+ [
+  "緑化",
+  "Greening"
+ ],
+ [
+  "食料豊富",
+  "Abundant food"
+ ],
+ [
+  "乾燥",
+  "Drought"
+ ],
+ [
+  "捕食圧",
+  "Predator pressure"
+ ],
+ [
+  "疫病後の回復",
+  "Disease recovery"
+ ],
+ [
+  "群れの大移動",
+  "Mass pack migration"
+ ],
+ [
+  "封印の巨獣の影響で山岳の動物が移動",
+  "The sealed giant beast drove mountain wildlife to migrate"
+ ],
+ [
+  "群れの勢力交代",
+  "Pack dominance shifted"
+ ],
+ [
+  "野生動物の増加",
+  "Wildlife population increased"
+ ],
+ [
+  "野生動物の減少",
+  "Wildlife population decreased"
+ ],
+ [
+  "食料の回復",
+  "Food supply recovered"
+ ],
+ [
+  "食料の減少",
+  "Food supply declined"
+ ],
+ [
+  "固有技が偵察機に直撃！ 長時間停止させた",
+  "Special move struck the scout craft! It is disabled for longer."
+ ],
+ [
+  "偵察機を撃退！ 今のうちに逃げろ",
+  "Scout craft repelled! Escape now!"
+ ],
+ [
+  "異星の偵察機が攻撃！ 遮蔽物に隠れろ",
+  "Alien scout attacking! Take cover!"
+ ],
+ [
+  "野生動物の群れが偵察機を追い払った！",
+  "A wild animal pack drove away the scout craft!"
+ ],
+ [
+  "友好的な偵察機が持久力を回復した",
+  "A friendly scout restored your stamina"
+ ],
+ [
+  "異星の観測光線を浴びた！",
+  "Hit by an alien observation beam!"
+ ],
+ [
+  "危険な異星基地だ！ 身を隠すか離れろ",
+  "Dangerous alien base! Hide or leave."
+ ],
+ [
+  "友好的な異星基地が傷を癒した",
+  "A friendly alien base healed your injuries"
+ ],
+ [
+  "友好的な異星基地がこちらを観察している",
+  "A friendly alien base is observing you"
+ ],
+ [
+  "中立の異星基地が静かに観測している",
+  "A neutral alien base is observing quietly"
+ ],
+ [
+  "空からUFO編隊が急降下！ 動物たちが逃げ始めた",
+  "A UFO formation dives from above! Wildlife starts fleeing."
+ ],
+ [
+  "空からUFOが急降下してきた！ 身を隠せ",
+  "A UFO is diving from above! Hide!"
+ ],
+ [
+  "不明な動物",
+  "Unknown animal"
+ ],
+ [
+  "UFO捕獲",
+  "UFO abduction"
+ ],
+ [
+  "UFOに吸い込まれた！ 円盤が飛び去っていく",
+  "Abducted by UFO! The saucer flies away."
+ ],
+ [
+  "キャトルミューティレーション",
+  "Cattle mutilation"
+ ],
+ [
+  "動物が光に吸われ、円盤へ消えた！",
+  "An animal vanishes into the UFO's beam!"
+ ],
+ [
+  "デバッグ：捕獲完了。UFOが上昇して飛び去る",
+  "Debug: Abduction complete. The UFO ascends and flies away."
+ ],
+ [
+  "UFOが街を高速巡回！ 隠れれば追跡を振り切れる",
+  "A UFO patrols the city at high speed! Hide to lose it."
+ ],
+ [
+  "デバッグ用",
+  "Debug only"
+ ],
+ [
+  "デバッグ：野生動物なし。演出用モデルを吸引",
+  "Debug: No wild animals. Abducting a demonstration model."
+ ],
+ [
+  "デバッグ：UFOが動物を即座に吸引開始",
+  "Debug: UFO starts abducting an animal immediately."
+ ],
+ [
+  "UFOに発見された！ 建物か草陰に隠れろ",
+  "Spotted by UFO! Hide behind a building or in bushes."
+ ],
+ [
+  "編隊の円盤が動物を吸い上げ始めた！",
+  "A UFO formation has begun lifting animals!"
+ ],
+ [
+  "UFOが動物を光で吸い上げている！",
+  "A UFO is lifting an animal with a beam!"
+ ],
+ [
+  "友好的な偵察機が捕獲光線を妨害！ 今のうちに逃げろ",
+  "A friendly scout disrupts the abduction beam! Escape!"
+ ],
+ [
+  "自キャラが光線に捕まった！ 上空へ引き寄せられる！",
+  "Caught in the beam! Being pulled into the sky!"
+ ],
+ [
+  "UFOが急上昇して遠ざかっていく",
+  "The UFO ascends rapidly and flies away"
+ ],
+ [
+  "異星観測基地",
+  "Alien observation base"
+ ],
+ [
+  "円盤が去った跡に奇妙な観測装置が残った",
+  "A strange observation device remains after the UFO leaves"
  ]
 ];
