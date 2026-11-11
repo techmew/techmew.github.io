@@ -59,7 +59,7 @@ window.WildI18nPhrases = [
  ],
  [
   "食料庫を保存できず、持っている食料は維持した",
-  "Could not save the pantry. Your carried food was kept."
+  "Pantry save failed. Carried food was kept."
  ],
  [
   "食料庫を保存できなかったため、食料も体力も変更していません",
@@ -3612,5 +3612,249 @@ window.WildI18nPhrases = [
  [
   "野生の狐",
   "Wild fox"
+ ],
+ [
+  "追跡の脚力",
+  "Pursuit speed"
+ ],
+ [
+  "熊の生命力",
+  "Bear vitality"
+ ],
+ [
+  "黒豹の爪",
+  "Panther claws"
+ ],
+ [
+  "大鷲の夜目",
+  "Eagle night vision"
+ ],
+ [
+  "鱗の止血",
+  "Scaled clotting"
+ ],
+ [
+  "大蛇の脱皮",
+  "Serpent shedding"
+ ],
+ [
+  "猪の突進力",
+  "Boar charge power"
+ ],
+ [
+  "隻眼の奇襲",
+  "One-eyed ambush"
+ ],
+ [
+  "白虎の跳躍",
+  "White tiger leap"
+ ],
+ [
+  "ハイエナの持久食",
+  "Hyena endurance feeding"
+ ],
+ [
+  "獅子の連撃",
+  "Lion combo strikes"
+ ],
+ [
+  "大角の足腰",
+  "Giant antler strength"
+ ],
+ [
+  "野牛の押し",
+  "Buffalo shove"
+ ],
+ [
+  "水辺の活力",
+  "Waterside vitality"
+ ],
+ [
+  "河馬の皮膚",
+  "Hippo hide"
+ ],
+ [
+  "水蛇の柔軟さ",
+  "Water-serpent flexibility"
+ ],
+ [
+  "サイの装甲",
+  "Rhino armor"
+ ],
+ [
+  "剛腕の威圧",
+  "Mighty-arm intimidation"
+ ],
+ [
+  "巨象の休息",
+  "Giant elephant rest"
+ ],
+ [
+  "白狼の忍び足",
+  "White wolf stealth steps"
+ ],
+ [
+  "移動速度 +8%",
+  "Movement speed +8%"
+ ],
+ [
+  "最大生命 +28",
+  "Max HP +28"
+ ],
+ [
+  "攻撃力 +12%",
+  "Attack +12%"
+ ],
+ [
+  "夜間の前方視認距離 +22%",
+  "Nighttime forward sight range +22%"
+ ],
+ [
+  "強敵の出血ダメージ -35%",
+  "Bleeding damage from bosses -35%"
+ ],
+ [
+  "拘束による減速の回復 +50%",
+  "Recover 50% faster from restraint slow"
+ ],
+ [
+  "飛びつき距離 +14%",
+  "Pounce distance +14%"
+ ],
+ [
+  "未発見からの攻撃 +20%",
+  "Undetected strike damage +20%"
+ ],
+ [
+  "ジャンプ移動距離 +16%",
+  "Jump distance +16%"
+ ],
+ [
+  "空腹の減少 -18%",
+  "Hunger decay -18%"
+ ],
+ [
+  "5段目の攻撃力 +22%",
+  "Fifth combo hit damage +22%"
+ ],
+ [
+  "ジャンプ持久力消費 -25%",
+  "Jump stamina cost -25%"
+ ],
+ [
+  "攻撃の吹き飛ばし距離 +35%",
+  "Attack knockback distance +35%"
+ ],
+ [
+  "水辺で持久力回復 +4/秒",
+  "Recover stamina +4/s near water"
+ ],
+ [
+  "水辺で受ける物理ダメージ -14%",
+  "Physical damage near water -14%"
+ ],
+ [
+  "拘束中の移動速度低下を軽減",
+  "Reduced movement slow while restrained"
+ ],
+ [
+  "受ける物理ダメージ -10%",
+  "Physical damage received -10%"
+ ],
+ [
+  "攻撃で敵をひるませる時間 +0.15秒",
+  "Enemy stagger duration +0.15s"
+ ],
+ [
+  "安全な巣で生命回復 +1.7/秒",
+  "Recover HP +1.7/s in a safe den"
+ ],
+ [
+  "潜伏移動時の足音 -25%",
+  "Footstep noise while sneaking -25%"
+ ],
+ [
+  "仲間が同行中",
+  "Companion following"
+ ],
+ [
+  "生命",
+  "HP"
+ ],
+ [
+  "巣LV2で肉24ptを使い、同行する仲間を1匹迎えられます。",
+  "At den Lv.2, recruit a companion for 24 pt of meat."
+ ],
+ [
+  "素材",
+  "Materials"
+ ],
+ [
+  "必要素材1個、所持",
+  "Requires 1 material, owned"
+ ],
+ [
+  "個",
+  "items"
+ ],
+ [
+  "継承済み",
+  "Inherited"
+ ],
+ [
+  "希少素材1個で1能力を継承（各能力1回）。",
+  "Spend one rare material to inherit an ability (once per ability)."
+ ],
+ [
+  "巣LV2で解放。強敵の希少素材を1個消費して能力を継承。",
+  "Unlock at den Lv.2. Spend one boss material to inherit an ability."
+ ],
+ [
+  "満腹で体力も最大です",
+  "Hunger and HP are already full"
+ ],
+ [
+  "その食料はありません",
+  "That food is unavailable"
+ ],
+ [
+  "巣に着地してから強化",
+  "Land at your den before upgrading"
+ ],
+ [
+  "巣の中心に近づいて○長押しで強化",
+  "Approach the center of the den and hold ○ to upgrade"
+ ],
+ [
+  "巣は最大LV3まで成長済み",
+  "Den is already at maximum level 3"
+ ],
+ [
+  "仲間を迎える",
+  "Recruit a companion"
+ ],
+ [
+  "巣の外では閲覧のみ。食べるには巣へ戻ってください。",
+  "View only outside dens. Return to a den to eat."
+ ],
+ [
+  "食べたい種類を選んでください。選択しなければ減りません。",
+  "Select the food to eat. Nothing is consumed until selected."
+ ],
+ [
+  "運べる食草・肉が近くにない",
+  "No plants or meat nearby to carry"
+ ],
+ [
+  "死骸に運べる肉が残っていない",
+  "No meat left on the carcass to carry"
+ ],
+ [
+  "着地してから食べる",
+  "Land before eating"
+ ],
+ [
+  "食草・肉が近くにない",
+  "No edible plants or meat nearby"
  ]
 ];
