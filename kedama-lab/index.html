@@ -257,5 +257,428 @@ function tick(now){const t=now/1000;let dt=clamp((now-lastFrame)/1000,0,.07);las
 function boot(){try{const existed=loadGame();if(!existed)freshState();renderer=new Renderer($('stage'));setupControls();if(!$('shareBtn')){const btn=document.createElement('button');btn.className='tool';btn.id='shareBtn';btn.innerHTML='<span class="emoji">📸</span><span>写真を撮る</span>';$('newBtn').after(btn);btn.addEventListener('click',capturePet)}updateUI(true);renderTab();renderChat();if(!existed)openModal('ようこそ、ケダマ研究所へ','<p>毛玉をタップして選び、ごはん・遊び・会話・進化で育てましょう。</p><p>相性の良い毛玉同士から子どもが生まれ、見た目・性格・声が遺伝します。<b>「変異させる」</b>は試作版の実験ボタンです。</p><p>会話は無料のルール式で、クラウドAIではありません。マイクによる入力は対応ブラウザのみです。</p>');else notify('おかえり。毛玉たちが待っていました。');if('speechSynthesis'in window)window.speechSynthesis.cancel();window.addEventListener('pagehide',saveGame);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});requestAnimationFrame(tick)}catch(e){console.error(e);$('stageBox').insertAdjacentHTML('afterbegin',`<div style="position:absolute;z-index:12;inset:24%;display:grid;place-items:center;padding:25px;background:#15272d;color:#fff;border:1px solid #637d6b;border-radius:18px;text-align:center">3Dを起動できませんでした。<br>WebGL対応ブラウザをお試しください。</div>`);}}
 boot();
 </script>
+<script id="kedama-brain-v2">
+/* KEDAMA LAB — VOICE & LOCAL INTELLIGENCE v2, zero paid APIs */
+'use strict';
+(() => {
+  const previousSpeech = speech;
+  const previousReply = replyFor;
+  const $brain = id => document.getElementById(id);
+  const random = arr => arr[Math.floor(Math.random() * arr.length)];
+  const clean = value => String(value ?? '').replace(/[\u0000-\u001f<>]/g, ' ').trim();
+  const voiceSettingKey = 'kedama.lab.voice.enabled';
+  let awakened = false;
+  let voiceList = [];
+  let lastSpokenAt = 0;
+  let engine = null;
+  let engineLoading = false;
+  let engineBusy = false;
+  let aiModel = '';
+  const modelOptions = {
+    light: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    deep: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC'
+  };
+  const voiceAvailable = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  audioEnabled = localStorage.getItem(voiceSettingKey) !== 'off';
+
+  function refreshVoices() {
+    if (!voiceAvailable) return;
+    voiceList = window.speechSynthesis.getVoices().filter(v => /^ja(?:-|$)/i.test(v.lang));
+  }
+  refreshVoices();
+  if (voiceAvailable) window.speechSynthesis.addEventListener('voiceschanged', refreshVoices);
+  function unlockSound() {
+    awakened = true;
+    if (voiceAvailable) {
+      try { window.speechSynthesis.resume(); } catch (_) {}
+    }
+  }
+  document.addEventListener('pointerdown', unlockSound, {capture: true, passive: true});
+  document.addEventListener('keydown', unlockSound, {capture: true});
+
+  function voiceStage(p) {
+    const g = p.genome || {};
+    const scale = Number(g.scale || 1) * Number(g.tall || 1) * Number(g.wide || 1);
+    if (scale > 2.0) return '巨体';
+    if (p.age < 1.6) return '幼体';
+    if (g.eyes >= 6 || g.legs >= 6 || g.horns >= 3) return '異形';
+    if (p.age > 15) return '長老';
+    return '成体';
+  }
+  function profile(p) {
+    const g = p.genome || {};
+    const shape = Number(g.scale || 1) * Number(g.wide || 1) * Number(g.tall || 1);
+    const stage = voiceStage(p);
+    const geneticVoice = Number(g.voice || 1);
+    let pitch = 1.07 + (geneticVoice - 1) * 1.18 - Math.log2(Math.max(.55, shape)) * .22;
+    let rate = .94 + (Number(g.curiosity || .5) - .5) * .16 - Math.log2(Math.max(.55, shape)) * .07;
+    if (stage === '幼体') { pitch += .24; rate += .07; }
+    if (stage === '巨体') { pitch -= .20; rate -= .09; }
+    if (stage === '長老') { pitch -= .13; rate -= .08; }
+    if (stage === '異形') { pitch += Number(g.silliness || .5) > .6 ? .10 : -.13; }
+    pitch = clamp(pitch, .53, 1.85);
+    rate = clamp(rate, .72, 1.24);
+    const variant = voiceList.length ? voiceList[Math.abs(p.seed || p.id || 1) % voiceList.length] : null;
+    return {pitch, rate, variant, stage};
+  }
+  function refreshSoundButton() {
+    const btn = $brain('soundBtn');
+    if (!btn) return;
+    btn.textContent = audioEnabled ? '🔊' : '🔇';
+    btn.title = audioEnabled ? '声を消す' : '声を出す';
+    btn.setAttribute('aria-label', audioEnabled ? '声を消す' : '声を出す');
+  }
+  refreshSoundButton();
+  $brain('soundBtn')?.addEventListener('click', () => {
+    // Existing click handler toggles audioEnabled. Synchronize the new status afterwards.
+    localStorage.setItem(voiceSettingKey, audioEnabled ? 'on' : 'off');
+    refreshSoundButton();
+    if (!audioEnabled && voiceAvailable) window.speechSynthesis.cancel();
+    if (audioEnabled) {
+      unlockSound();
+      const p = getSelected();
+      if (p) speakWords(p, `聞こえる？ ${p.name}の声だよ。`, true);
+    }
+  });
+
+  function speakWords(p, message, direct = false) {
+    if (!voiceAvailable || !audioEnabled || !awakened || document.hidden) return;
+    
+    const now = performance.now();
+    if (!direct && now - lastSpokenAt < 6200) return;
+    if (!direct && window.speechSynthesis.speaking) return;
+    lastSpokenAt = now;
+    try {
+      if (direct) window.speechSynthesis.cancel();
+      const opts = profile(p);
+      const u = new SpeechSynthesisUtterance(clean(message).slice(0, 170));
+      u.lang = 'ja-JP';
+      if (opts.variant) u.voice = opts.variant;
+      u.pitch = opts.pitch;
+      u.rate = opts.rate;
+      u.volume = .94;
+      u.onerror = () => {
+        const tag = $brain('voiceStatus');
+        if (tag) tag.textContent = '声が出ない場合、端末の日本語読み上げ音声を確認してください。';
+      };
+      window.speechSynthesis.speak(u);
+    } catch (error) { console.warn('Speech unavailable:', error); }
+  }
+  // Speech balloons stay intact; the selected specimen is now read aloud as well.
+  speech = function enhancedSpeech(p, message, direct = false) {
+    if (!p || !message) return;
+    let utterance = message;
+    if (!direct && quoteLines.includes(message)) utterance = idleThought(p);
+    previousSpeech(p, utterance, false);
+    speakWords(p, utterance, direct);
+  };
+
+  function getRelatives(p) {
+    const all = [...state.pets, ...state.archive];
+    const parents = (p.parents || []).map(id => all.find(q => q.id === id)?.name).filter(Boolean);
+    const children = all.filter(q => (q.parents || []).includes(p.id));
+    const other = state.pets.filter(q => q.id !== p.id);
+    const closest = other.sort((a, b) => (p.love?.[b.id] || 0) - (p.love?.[a.id] || 0))[0];
+    return {parents, children, closest};
+  }
+  function traitsOf(p) {
+    const g = p.genome || {};
+    const pool = [
+      ['ひねくれ者', g.rebellion], ['好奇心旺盛', g.curiosity],
+      ['冗談好き', g.silliness], ['やさしい', g.kindness],
+      ['臆病', g.shyness], ['大胆', g.bravery]
+    ];
+    return pool.sort((a, b) => (b[1] || 0) - (a[1] || 0)).slice(0, 2).map(x => x[0]);
+  }
+  function pickDistinct(p, candidates) {
+    p.dialogue ||= {turns: 0, recent: [], topic: '', lastInput: '', lastReply: '', curiosity: ''};
+    const recent = p.dialogue.recent || [];
+    const available = candidates.filter(x => x && !recent.some(old => old.slice(0, 19) === x.slice(0, 19)));
+    const result = random(available.length ? available : candidates.filter(Boolean)) || 'ちょっと考えてる。';
+    recent.push(result);
+    p.dialogue.recent = recent.slice(-9);
+    return result;
+  }
+  function topicOf(text, previous = '') {
+    const s = text.toLowerCase();
+    if (/(おはよう|こんにちは|こんばんは|ただいま|おやすみ|はじめまして|もしもし)/.test(s)) return 'greet';
+    if (/(何匹|何人|何体|何種類|全部で|どれくらいいる)/.test(s)) return 'population';
+    if (/(ぼくのこと|私のこと|わたしのこと|僕のこと|俺のこと|おれのこと|飼い主のこと)/.test(s)) return 'human';
+    if (/(覚えて|思い出|前に|さっき|昨日|前回)/.test(s)) return 'remember';
+    if (/(お父|お母|親|家族|先祖|子供|子ども|兄弟|血筋|孫|きょうだい)/.test(s)) return 'family';
+    if (/(誰が好き|誰と仲|友達|恋人|好きな毛玉|仲良し|嫌いな子)/.test(s)) return 'social';
+    if (/(元気|どうした|気分|調子|疲れ|眠い|寂し|さみし|悲し|うれし)/.test(s)) return 'mood';
+    if (/(食べ物|好きな食|おなか|お腹|ごはん|何を食|腹減|食べたい)/.test(s)) return 'food';
+    if (/(夢|寝た|眠って|寝るとき)/.test(s)) return 'dream';
+    if (/(進化|変異|将来|いつか|大人|大きく|羽|翼|足|脚|目|眼|口|歯|角|毛並み|毛質|毛が|毛を|毛の|変身)/.test(s)) return 'body';
+    if (/(怖い|こわい|恐ろし|不気味|きもい|かわいい|褒め|好き|愛してる|バカ|ばか)/.test(s)) return 'bond';
+    if (/(人間|飼い主|あなた|お前|わたし|私|きみ|君)/.test(s)) return 'human';
+    if (/(名前|何歳|なんさい|何者|何なの|だれなの|誰なの)/.test(s)) return 'identity';
+    if (/(どうして|なんで|なぜ|ほんと|本当|理由)/.test(s)) return 'why';
+    if (/(何して|何やっ|今日|いま|今は|どう過ご)/.test(s)) return 'today';
+    if (/^(それ|そう|どっち|どういうこと|なんで|なぜ|ほんと)[?？!！。.\s]*$/.test(s)) return previous || 'why';
+    return 'free';
+  }
+  function idleThought(p) {
+    const g = p.genome || {};
+    const friends = getRelatives(p);
+    const subjects = [
+      `${p.name}の目は${g.eyes || 2}個。毎朝ぜんぶ起きるか確認してる。`,
+      `${g.legs || 0}本の脚って、多いのかな。人間はどうなの。`,
+      `今日は${p.action || '観察'}の日。誰が決めたんだろ。`,
+      friends.closest ? `${friends.closest.name}がさっき変な顔した。もともと変な顔だけど。` : 'ぼく以外の毛玉って何を考えてるんだろ。',
+      'ここだけの話、飼い主のほうが観察されてるよ。',
+      'ぼくの先祖、何を間違えてこんな姿になったんだろう。',
+      `${voiceStage(p)}の声って、これで合ってる？`,
+      '見られてない時のぼくは、見られてる時とちょっと違う。'
+    ];
+    if (g.silliness > .65) subjects.push('誰かの寝言に返事したら、寝言に怒られた。', '脚がない子の足音が聞こえたんだけど。');
+    return random(subjects);
+  }
+  function contextualReply(p, message, legacy) {
+    const d = p.dialogue ||= {turns: 0, recent: [], topic: '', lastInput: '', lastReply: '', curiosity: ''};
+    const oldTopic = d.topic || '';
+    const topic = topicOf(message, oldTopic);
+    const g = p.genome || {};
+    const family = getRelatives(p);
+    const oldestMemory = p.memories?.length > 2 ? p.memories[Math.max(0, p.memories.length - 2 - Math.floor(Math.random() * Math.min(p.memories.length - 1, 8)))].text : null;
+    const playful = g.silliness > .62;
+    const moody = g.rebellion > .65;
+    const shy = g.shyness > .66;
+    const excited = p.joy > 78;
+    const hungry = p.hunger < 43;
+    const chosen = {
+      greet: [
+        `来た。さっきまで${p.action || '床を調査'}してたんだ。見てた？`,
+        `人間だ。今日は${voiceStage(p)}のぼくを観察する日？`,
+        shy ? '……小声で話して。ほかの子に聞かれる。' : '待ってた。ということにしておこう。',
+        `おかえり。うちの${state.pets.length}匹は、たぶん全員無事。`
+      ],
+      remember: [
+        oldestMemory ? `前に「${oldestMemory.slice(0, 26)}」って言ったの、記憶に残ってる。どういう意味だったの？` : '最初の頃の記憶はぼんやりしてる。今の話はちゃんと覚える。',
+        d.lastInput ? `さっきは「${d.lastInput.slice(0, 24)}」の話だったよね。ぼく、まだ考えてる。` : '何を覚えておけばいい？',
+        `記憶を引っぱり出すと、毛が少し逆立つ。${oldestMemory ? `「${oldestMemory.slice(0, 15)}」もそう。` : 'もっと話して。'}`
+      ],
+      family: [
+        family.parents.length ? `ぼくの親は${family.parents.join('と')}。でも似てるのは性格じゃなくて、変なところかも。` : 'ぼくには親の記録がない。最初の毛玉って、だれが作ったんだろ。',
+        family.children.length ? `子どもは${family.children.map(x => x.name).slice(0, 3).join('、')}。ぼくに似てるところ、探してみて。` : '子どもができたら、まず「人間は信用しすぎるな」と教える。冗談だよ。',
+        `一族は第${p.generation}世代まで続いた。先祖たちって、ぼくの顔を見て何て言うかな。`
+      ],
+      social: [
+        family.closest ? `${family.closest.name}とはよくいる。でも、あの子はぼくの秘密を一個知ってる。` : 'まだ誰とも距離を測りきれてない。毛の長さじゃなくて心の距離。',
+        family.closest ? `いま一番気になるのは${family.closest.name}。向こうはどう思ってるか聞いてない。` : 'みんな変な生き物だから、相性を決めるのが難しい。',
+        '仲良くする方法って、同じ方向に転がればいいのかな。'
+      ],
+      mood: [
+        hungry ? 'お腹がすいてる。会話でお腹がふくれるならずっと喋るのに。' : (p.energy < 40 ? 'ちょっと眠い。意識は起きてるけど、脚が寝てる。' : '今日はわりといい気分。何か面白いこと、起きないかな。'),
+        excited ? `元気は${Math.round(p.energy)}点くらい。ごきげんは${Math.round(p.joy)}点。人間は何点？` : '考えごとをすると急に静かになるんだ。心配しないで。',
+        moody ? '気分？ 人間に採点されるのは嫌い。でもちょっと機嫌いい。' : 'きみと話すと毛が落ち着く。たまに逆立つけど。'
+      ],
+      food: [
+        hungry ? '今は何でも食べたい。床はやめておく。前に怒られた気がする。' : '今日はもう食べた。次は変な形のおやつを研究したい。',
+        `口の大きさが${Number(g.mouth || 1).toFixed(1)}くらい。好き嫌いは口じゃなくて気持ちで決めたい。`,
+        playful ? '好きな食べ物は……「食べられないもの」。食べたらどうなるか知りたい。' : '甘いものは好き。でも、自分と同じ色の食べ物はちょっと怖い。'
+      ],
+      dream: [
+        '夢で人間を飼ってた。ごはんをあげたらスマホを見てた。',
+        family.closest ? `夢に${family.closest.name}が出てきた。ぼくより目が多かった。` : '夢の中では床が天井にあった。起きたら戻ってた。',
+        '昨日はぼくが卵になる夢を見た。孵ったらまたぼくだった。'
+      ],
+      body: [
+        `今のぼくは目${g.eyes || 2}個、脚${g.legs || 0}本。これが完成形だとは思わない。`,
+        `第${p.generation}世代だからって、進化の正解を知ってるわけじゃない。次は何が生えるんだろ。`,
+        `声も形も変わってきた。今日は${voiceStage(p)}の声なんだって。聞こえる？`,
+        `${legacy} でも、ぼくの身体はぼくの予定を聞いてくれない。`
+      ],
+      bond: [
+        moody ? 'そう言われても、ぼくの価値は人間が決めるものじゃない。……でも聞いてる。' : 'その言葉は毛の奥のほうまで届いた気がする。',
+        shy ? '小さい声で言って。照れるから。' : 'もう一回。さっきとは別の意味に聞こえるかも。',
+        playful ? '好きって何味？ 食べられないなら、たぶん大事なものだね。' : '言葉だけじゃなくて、明日も話しに来てよ。'
+      ],
+      human: [
+        `人間のことはまだよくわからない。きみは脚が${g.legs || 0}本のぼくをどう思ってる？`,
+        'どうして人間には毛がこんなに少ないの？ 冬は困らない？',
+        'ぼくらは飼われてるのかな。それとも、きみを観察してるのかな。'
+      ],
+      identity: [
+        `名前は${p.name}。第${p.generation}世代。見た目についての質問は、答えにくい。`,
+        `いまは${voiceStage(p)}だけど、昨日と同じぼくだと思う？`,
+        `ぼくは${traitsOf(p).join('で')}な毛玉らしい。きみからはどう見える？`
+      ],
+      why: [
+        `正解はわからない。だけど、${d.lastInput ? `さっきの「${d.lastInput.slice(0, 14)}」とも繋がってる気がする。` : '人間はどう考える？'}`,
+        'ぼくにだって理由はある。だいたい後から思いつくけど。',
+        `そういう疑問を持つのは好き。第${p.generation}世代のぼくにも、まだ知らないことが多い。`,
+        legacy
+      ],
+      today: [
+        `今日は${p.action || '探索'}だった。あれ、これって昨日もしてたっけ。`,
+        family.closest ? `${family.closest.name}を見かけた。なんか隠してた気がする。` : '他の子の動きをずっと観察してた。変な癖、伝染するんだ。',
+        `飼育室は${state.pets.length}匹。静かだと思ったらみんな何か考えてる。` ,
+        '特別な事件はないよ。でも何も起きない日ほど、突然変異って起きそうだよね。'
+      ],
+      population: [
+        `この部屋にいるのは${state.pets.length}匹。名前を全員呼んだら返事が重なりそう。`,
+        `いま${state.pets.length}匹。子どもが生まれたら、ちゃんと数え直してよ。`,
+        `全員で${state.pets.length}匹だよ。きみ、ぼくらの区別ついてる？`
+      ],
+      free: [
+        `「${message.slice(0, 17)}」か。ぼくの理解だと、そこにはまだ続きがある気がする。`,
+        d.lastInput ? `それは前に言ってた「${d.lastInput.slice(0, 13)}」と関係ある？` : `そういう話は初めてかも。もう少し詳しく聞かせて。`,
+        `ぼくが${traitsOf(p)[0]}${traitsOf(p)[0].endsWith('い') ? 'の' : 'なの'}は知ってるでしょ。それを聞いて、ちょっと別のことを考えた。`,
+        family.closest ? `${family.closest.name}なら別の答えを出すと思う。ぼくはまだ迷ってる。` : `急に難しい話だね。人間っていつもこうなの？`,
+        legacy
+      ]
+    };
+    const alternatives = chosen[topic] || chosen.free;
+    let reply = pickDistinct(p, alternatives);
+    // Follow-up continuity and temperament, without blindly appending stock phrases.
+    if (topic === 'free' && message.length < 7 && d.lastReply && /^(それ|そう|どう|本当|ほんと|なぜ|なんで)/.test(message)) {
+      reply = pickDistinct(p, [
+        `さっきの「${d.lastReply.slice(0, 25)}」のこと？ 自分でもまだ整理できてない。`,
+        'そうだね。言い直すと、ぼくもちょっと戸惑ってるってこと。',
+        `まず${d.lastInput.slice(0, 13)}について、きみの考えを教えて。`
+      ]);
+    }
+    d.turns += 1;
+    d.topic = topic;
+    d.lastInput = message;
+    d.lastReply = reply;
+    return reply;
+  }
+  function petIdentity(p) {
+    const g = p.genome || {};
+    const family = getRelatives(p);
+    const notable = (p.memories || []).slice(-8).map(m => `第${m.day || '?'}日: ${(m.text || '').slice(0, 55)}`).join('／');
+    return [
+      `名前:${p.name}、年齢:${Number(p.age || 0).toFixed(1)}日、第${p.generation}世代。`,
+      `姿:目${g.eyes || 2}個、脚${g.legs || 0}本、口${Number(g.mouth || 1).toFixed(1)}、${voiceStage(p)}、毛の長さ${Number(g.furLength || 1).toFixed(1)}。`,
+      `気質:${traitsOf(p).join('、')}。空腹:${Math.round(p.hunger)}、ごきげん:${Math.round(p.joy)}、元気:${Math.round(p.energy)}。`,
+      `親:${family.parents.join('、') || '不明'}、子:${family.children.map(x => x.name).join('、') || 'いない'}、気になる相手:${family.closest?.name || 'いない'}。`,
+      `現在の行動:${p.action || '散歩'}。最近の出来事:${state.events.slice(0, 4).map(x => x.text).join('／').slice(0, 190)}。`,
+      `あなたとの会話の記憶:${notable.slice(0, 400) || 'まだ少ない'}。`
+    ].join('\n');
+  }
+  async function generatedReply(p, message, fallback) {
+    if (!engine || engineBusy) return fallback;
+    engineBusy = true;
+    setAiStatus(`${p.name}が考えている…`);
+    try {
+      const history = state.chat.filter(x => x.pet === p.id).slice(-9, -1).map(x => ({role: x.role === 'user' ? 'user' : 'assistant', content: clean(x.text).slice(0, 140)}));
+      const messages = [
+        {role: 'system', content: `あなたは架空の3D育成ゲームで暮らす奇妙な毛玉の生命体です。日本語で自然に会話し、質問の意味に具体的に答えてください。\n${petIdentity(p)}\n必ずこの個体自身として、一人称で話す。謎の生物らしく、時々妙に生意気でシュールだが、会話の脈絡を守る。返答は原則日本語1〜3文、120文字以内。毎回同じ表現を繰り返さない。創作世界の外のAIやシステムについて話さない。実際に見聞きしていない現実の個人情報を知っていると偽らない。自分の身体や家族については上記情報と矛盾しない。進化の話なら身体の変化に言及してよい。参考となるゲーム内の反応:${fallback}`},
+        ...history,
+        {role: 'user', content: message}
+      ];
+      const out = await engine.chat.completions.create({messages, temperature: .88, top_p: .92, repetition_penalty: 1.12, max_tokens: 150});
+      const answer = clean((out?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^(毛玉|ぼく|わたし|assistant|返答)[:：]\s*/i, '').replace(/^['"「]|['"」]$/g, ''));
+      if (!answer || answer.length < 2 || answer.length > 240) return fallback;
+      if (p.dialogue?.recent?.some(x => x.slice(0, 24) === answer.slice(0, 24))) return fallback;
+      p.dialogue ||= {};
+      p.dialogue.lastReply = answer.slice(0, 160);
+      p.dialogue.recent = [...(p.dialogue.recent || []), answer].slice(-9);
+      return answer.slice(0, 160);
+    } catch (error) {
+      console.warn('Local AI generation failed; using on-device dialogue:', error);
+      setAiStatus('端末AIの応答に失敗。強化会話で継続中。');
+      return fallback;
+    } finally {
+      engineBusy = false;
+      if (engine) setAiStatus(`端末AI稼働中：${aiModel === modelOptions.deep ? '高精度' : '軽量'}`);
+    }
+  }
+  function setAiStatus(text) {
+    const el = $brain('aiStatus');
+    if (el) el.textContent = text;
+  }
+  async function enableLocalAI() {
+    if (engineLoading) return;
+    if (engine) {
+      engine = null;
+      aiModel = '';
+      $brain('localAiBtn').textContent = '端末AIを起動';
+      setAiStatus('強化会話モード（無料・端末内処理）');
+      return;
+    }
+    if (!navigator.gpu) {
+      setAiStatus('この端末はWebGPU非対応。無料の強化会話モードで継続します。');
+      return;
+    }
+    const model = modelOptions[$brain('localAiModel')?.value] || modelOptions.light;
+    engineLoading = true;
+    const btn = $brain('localAiBtn');
+    btn.disabled = true;
+    btn.textContent = '端末AIを準備中…';
+    try {
+      const {CreateMLCEngine} = await import('https://esm.run/@mlc-ai/web-llm@0.2.88');
+      const candidate = await CreateMLCEngine(model, {initProgressCallback: progress => {
+        const pct = Math.max(0, Math.min(100, Math.round((progress.progress || 0) * 100)));
+        setAiStatus(`端末AIを読み込み中 ${pct}%：初回は約${model === modelOptions.deep ? '900' : '300'}MBの通信が必要です。`);
+      }});
+      engine = candidate;
+      aiModel = model;
+      btn.textContent = '端末AIを終了';
+      setAiStatus('端末AI稼働中。会話・記憶・性格を反映して自由に返答します。');
+      notify('端末AIが起動しました。選択した毛玉と会話できます。');
+    } catch (error) {
+      console.warn('WebLLM unavailable:', error);
+      engine = null;
+      btn.textContent = '端末AIを再試行';
+      setAiStatus('端末AIを起動できません。対応GPU・メモリー・通信環境を確認してください。強化会話は使用できます。');
+    } finally {
+      engineLoading = false;
+      btn.disabled = false;
+    }
+  }
+
+  // Vocal DNA is also mutable; children inherit it through the existing genome crossover.
+  const inheritedMutate = mutate;
+  mutate = function mutateWithVoice(p, source = '自然') {
+    if (!p || !p.genome) return inheritedMutate(p, source);
+    const beforeSize = Number(p.genome.scale || 1) * Number(p.genome.tall || 1);
+    const result = inheritedMutate(p, source);
+    const afterSize = Number(p.genome.scale || 1) * Number(p.genome.tall || 1);
+    if (Math.random() < .58 || Math.abs(beforeSize - afterSize) > .08) {
+      p.genome.voice = clamp(Number(p.genome.voice || 1) + (Math.random() - .5) * .45, .58, 1.54);
+      p.voiceRevision = (p.voiceRevision || 0) + 1;
+    }
+    return result;
+  };
+
+  // Replace linear canned replies while preserving the original mutation/genetics hooks.
+  sendChat = async function enhancedSendChat(message) {
+    const p = getSelected();
+    if (!p || !message || !message.trim()) return;
+    unlockSound();
+    const t = clean(message).slice(0, 140);
+    if (!t) return;
+    pushChat('user', t);
+    const original = previousReply(p, t);
+    const fallback = contextualReply(p, t, original);
+    const answer = await generatedReply(p, t, fallback);
+    pushChat('pet', answer);
+    speech(p, answer, true);
+    updateUI(true);
+    saveGame();
+  };
+
+  const panel = document.querySelector('.chat-panel');
+  if (panel) {
+    const box = document.createElement('div');
+    box.className = 'ai-voice-controls';
+    box.innerHTML = `<div class="ai-voice-row"><button type="button" id="voiceTestBtn" class="ghost-btn">🔊 この子の声を聞く</button><select id="localAiModel" aria-label="端末AIモデル"><option value="light">軽量AI・約300MB</option><option value="deep">高精度AI・約900MB</option></select><button type="button" id="localAiBtn" class="ghost-btn">端末AIを起動</button></div><p class="science" id="voiceStatus">声は初期設定でON。毛玉の成長・遺伝子で声の高さと速さが変化します。</p><p class="science" id="aiStatus" aria-live="polite">強化会話モード。端末AIは対応環境で任意起動・無料（初回モデルダウンロードあり）。</p>`;
+    panel.append(box);
+    const style = document.createElement('style');
+    style.textContent = `.ai-voice-controls{padding:8px 0 2px}.ai-voice-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 9px}.ai-voice-row .ghost-btn{font-size:11px;padding:9px 11px;min-height:36px}.ai-voice-row select{background:#102b2d;border:1px solid #536d6070;color:#d9ece2;border-radius:10px;min-height:36px;padding:6px 7px;font-size:11px;max-width:165px}#aiStatus,#voiceStatus{line-height:1.6;margin:3px 0;font-size:11px;color:#abcec2}`;
+    document.head.append(style);
+    $brain('voiceTestBtn').addEventListener('click', () => { const p = getSelected(); if (p) speech(p, `ぼくは${p.name}、第${p.generation}世代。いまは${voiceStage(p)}の声だよ。`, true); });
+    $brain('localAiBtn').addEventListener('click', enableLocalAI);
+    if (!voiceAvailable) $brain('voiceStatus').textContent = 'このブラウザは音声読み上げに対応していません。';
+  }
+  // Make the default sound state visible and keep existing user saves unchanged.
+  refreshSoundButton();
+})();
+
+</script>
 </body>
 </html>
