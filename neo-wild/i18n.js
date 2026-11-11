@@ -8,7 +8,7 @@ for(const [ja,en] of [["食草か肉を食べよう","Eat plants or meat"],["近
 // Supplement the original translation dictionary without changing Japanese gameplay data.
 for(const [ja,en] of window.WildI18nPhrases||[])dict.set(ja,en);
 const terms=[...dict].sort((a,b)=>b[0].length-a[0].length),storedText=new WeakMap(),storedAttrs=new WeakMap();
-let locale="ja",timer=0;
+let locale="ja";
 try{if(localStorage.getItem(KEY)==="en")locale="en"}catch(_){}
 const dynamic=[
  [/^チュートリアル\s*(\d+)\s*\/\s*(\d+)$/,"Tutorial $1 / $2"],
@@ -100,6 +100,9 @@ const additionalFormats=[
 
 
 const extendedFormats=[
+ [/^天候変化：(.+)$/,m=>`Weather changed: ${translate(m[1])}`],
+ [/^([春夏秋冬])\s*(\d{1,2})月$/,m=>`${translate(m[1])} · Month ${m[2]}`],
+
  [/^(.+)（(.+)）｜素材 (\d+)個$/,m=>`${translate(m[1])} (${translate(m[2])}) | Materials: ${m[3]}`],
  [/^(.+)｜素材 (\d+)個$/,m=>`${translate(m[1])} | Materials: ${m[2]}`],
  [/^仲間が同行中｜生命 (\d+)\/(\d+)$/,m=>`Companion following | HP ${m[1]}/${m[2]}`],
@@ -225,13 +228,34 @@ function displayAnimalName(v){
  return result[0]?.toUpperCase()+result.slice(1);
 }
 
+// Gameplay rewrites these fields on every HUD tick. Use short English copy
+// immediately so the portrait HUD does not inflate and overlap other widgets.
+function hudEnglish(id,raw){
+ if(id==="hp-text"){
+  const m=raw.match(/^(\d+)\s*\/\s*(\d+)(?:｜出血\s*(\d+)秒)?(?:｜年齢\s*([\d.]+)歳)?$/);
+  if(m)return `${m[1]}/${m[2]}${m[3]?" · Bleed "+m[3]+"s":""}${m[4]?" · Age "+m[4]+"y":""}`;
+ }
+ if(id==="den-status"){
+  const m=raw.match(/^巣\s*LV(\d+)｜運搬\s*(.+)｜縄張り\s*(\d+)\/(\d+)(.*)$/);
+  if(m)return `Den ${m[1]} · Carry ${translate(m[2])} · Turf ${m[3]}/${m[4]}${m[5]? " · "+translate(m[5].replace(/^｜/,"")):""}`;
+ }
+ if(id==="den-stash-count"){
+  const m=raw.match(/^備蓄\s*(\d+)\s*\/\s*(\d+)pt(?:（LV(\d+)まで・消費なし）|（容量）)?$/);
+  if(m)return `Food ${m[1]}/${m[2]}pt${m[3]?" · Lv"+m[3]+" target":""}`;
+ }
+ if(id==="species-skill-status"){
+  const m=raw.match(/^静止照準\s*(\d+)%｜構えて嘴の高速突き$/);
+  if(m)return `Aim ${m[1]}% · Rapid beak`;
+ }
+ return translate(raw);
+}
 function textNode(n){
  if(n.nodeType!==3||!n.parentElement||/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentElement.tagName)||n.parentElement.closest("[contenteditable=true]"))return;
  const old=storedText.get(n),raw=n.nodeValue;
  if(locale==="ja"){if(old&&raw===old.en)n.nodeValue=old.ja;return}
  if(old&&raw===old.en)return;
  const nameLabel=n.parentElement.classList?.contains("squad-individual-name");
- const en=nameLabel&&/^[ァ-ヶー]{2,24}$/.test(raw)?displayAnimalName(raw):translate(raw);
+ const en=nameLabel&&/^[ァ-ヶー]{2,24}$/.test(raw)?displayAnimalName(raw):hudEnglish(n.parentElement.id,raw);
  if(raw!==en){storedText.set(n,{ja:raw,en});n.nodeValue=en}
 }
 function attrs(n){
@@ -286,7 +310,11 @@ for(const id of ["language-title","language-pause"]){
  });
 }
 const pending=new Set();
-function flush(){timer=0;if(locale!=="en"){pending.clear();return}for(const node of pending)walk(node);pending.clear()}
+function flush(){
+ if(locale!=="en"){pending.clear();return}
+ const nodes=[...pending];pending.clear();
+ for(const node of nodes)walk(node);
+}
 if(typeof MutationObserver!=="undefined"){
  const observer=new MutationObserver(changes=>{
   if(locale!=="en")return;
@@ -294,7 +322,9 @@ if(typeof MutationObserver!=="undefined"){
    if(m.type==="characterData"||m.type==="attributes")pending.add(m.target);
    else for(const node of m.addedNodes)pending.add(node);
   }
-  if(pending.size&&!timer)timer=setTimeout(flush,55);
+  // MutationObserver runs before browser paint. Never show a Japanese frame
+  // during the 55ms timer used by the previous implementation.
+  if(pending.size)flush();
  });
  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["aria-label","title","placeholder"]});
 }
