@@ -105,9 +105,13 @@ function recruit(info,replaceId=null){
 function select(id){
  try{
   const r=load();if(id!==null&&!r.members.some(m=>m.id===id))return {ok:false,reason:"所有していないボスです"};
-  const next=save({...r,activeId:id});
+  save({...r,activeId:id});
   window.dispatchEvent(new CustomEvent("wild-boss-selected",{detail:{id}}));
-  return {ok:true,roster:next};
+  // Live game can reject habitat placement or world autosave and synchronously
+  // roll the selected boss back. Report the actual committed selection.
+  const confirmed=load();
+  if(confirmed.activeId!==id)return {ok:false,reason:"切替を確定できませんでした。元の個体を維持します",roster:confirmed};
+  return {ok:true,roster:confirmed};
  }catch(error){return {ok:false,reason:error.message}}
 }
 function kill(id){
