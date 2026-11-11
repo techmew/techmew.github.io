@@ -98,11 +98,67 @@ const additionalFormats=[
  [/^(.+)が食べ物を持ってきた$/,m=>`${translate(m[1])} brought food`]
 ];
 
+
+const extendedFormats=[
+ [/^世界(\d+)年の目撃者$/,m=>`Witness to world year ${m[1]}`],
+ [/^世界が(\d+)年を迎える$/,m=>`Reach world year ${m[1]}`],
+ [/^(\d+)回の狩猟$/,m=>`${m[1]} successful hunts`],
+ [/^狩猟を(\d+)回成功させる$/,m=>`Successfully hunt ${m[1]} times`],
+ [/^進化の足跡 LV(\d+)$/,m=>`Evolution milestone Lv.${m[1]}`],
+ [/^LV(\d+)に到達する$/,m=>`Reach level ${m[1]}`],
+ [/^探索地点(\d+)か所$/,m=>`Discover ${m[1]} locations`],
+ [/^異なる探索地点を(\d+)か所発見する$/,m=>`Discover ${m[1]} distinct locations`],
+ [/^(.+)との決着$/,m=>`Showdown with ${translate(m[1])}`],
+ [/^(.+)を初めて倒す$/,m=>`Defeat ${translate(m[1])} for the first time`],
+ [/^(.+)の目撃者$/,m=>`Witness to ${translate(m[1])}`],
+ [/^(.+)の発生現場を目撃する$/,m=>`Witness a ${translate(m[1])} event`],
+ [/^(.+)からの生還$/,m=>`Survive ${translate(m[1])}`],
+ [/^(.+)の危険範囲から生きて脱出する$/,m=>`Escape the ${translate(m[1])} hazard alive`],
+ [/^(.+)の生息記録$/,m=>`${translate(m[1])} sighting`],
+ [/^(.+)を目の届く距離で遮蔽物なしに見つける$/,m=>`Spot ${translate(m[1])} at close range without obstacles`],
+ [/^(.+)との狩猟に勝利する$/,m=>`Defeat ${translate(m[1])} in a hunt`],
+ [/^(.+)の討伐者$/,m=>`${translate(m[1])} slayer`],
+ [/^(.+)を強敵として実際に撃破する$/,m=>`Defeat ${translate(m[1])} as a boss`],
+ [/^(.+)の操作記録$/,m=>`Played as ${translate(m[1])}`],
+ [/^(.+)を所有して実際に操作する$/,m=>`Own and play as ${translate(m[1])}`],
+ [/^(.+)の固有技$/,m=>`${translate(m[1])} special ability`],
+ [/^(.+)の固有技を持久力を使って発動する$/,m=>`Use ${translate(m[1])}'s special ability with stamina`],
+ [/^(.+)の探検記録$/,m=>`Explored ${translate(m[1])}`],
+ [/^(.+)へ実際に踏み入る$/,m=>`Enter ${translate(m[1])}`],
+ [/^(.+)の狩猟記録$/,m=>`Hunted in ${translate(m[1])}`],
+ [/^(.+)で実際に野生動物を仕留める$/,m=>`Hunt a wild animal in ${translate(m[1])}`],
+ [/^(.+)を仲間にしますか？$/,m=>`Recruit ${translate(m[1])}?`],
+ [/^(.+)：群れの勢力が交代$/,m=>`${translate(m[1])}: pack dominance changed`],
+ [/^(.+)から(.+)へ獣群が移動$/,m=>`Wildlife migrated from ${translate(m[1])} to ${translate(m[2])}`],
+ [/^(.+) (\d+)pt（(\d+)塊）$/,m=>`${translate(m[1])}: ${m[2]} pt in ${m[3]} portions`],
+ [/^共通食料庫から(.+)の肉 (\d+)ptを取り出した$/,m=>`Withdrew ${m[2]} pt of ${translate(m[1])} meat from shared storage`],
+ [/^(.+) \/ 生存開始$/,m=>`Survival started at ${translate(m[1])}`],
+ [/^不在中に(\d+)回の地域生態変化が起きた$/,m=>`${m[1]} regional ecosystem changes occurred while you were away`],
+ [/^この地区に(.+)の気配がある$/,m=>`Signs of ${translate(m[1])} in this district`],
+ [/^(.+)は確保済み$/,m=>`${translate(m[1])} is already secured`],
+ [/^(.+)を確保！ 巣の休息力が上昇・野犬を牽制$/,m=>`Secured ${translate(m[1])}! Improved den rest and deterred feral dogs.`],
+ [/^強敵を討伐：(.+)の希少素材を獲得$/,m=>`Boss defeated! Earned rare material from ${translate(m[1])}`],
+ [/^巣の成長には備蓄 (\d+)pt必要（あと(\d+)pt）$/,m=>`Den upgrade requires ${m[1]} pt of supplies (${m[2]} pt short)`],
+ [/^巣 LV(\d+)！ 食料は消費せず残ります。上限 (\d+)pt$/,m=>`Den upgraded to Lv.${m[1]}! Food remains untouched. Capacity: ${m[2]} pt.`],
+ [/^(.+)を備蓄 \+(\d+)pt（合計 (\d+)pt）$/,m=>`Stored ${translate(m[1])}: +${m[2]} pt (${m[3]} total)`],
+ [/^(.+)（(.+)・(\d+)）をくわえた。どの巣でも備蓄可能$/,m=>`Carrying ${translate(m[1])} (${translate(m[2])}, ${m[3]}). Store it at any den.`],
+ [/^(.+)を食べた：満腹\+(\d+)・生命\+(\d+)(・出血緩和)?$/,m=>`Ate ${translate(m[1])}: hunger +${m[2]}, HP +${m[3]}${m[4]?", bleeding reduced":""}`],
+ [/^(.+)を○長押しで運ぶ$/,m=>`Hold ○ to carry ${translate(m[1])}`],
+ [/^(.+)を食べる \/ ○・E$/,m=>`Eat ${translate(m[1])} with ○ / E`],
+ [/^獲物を追う \/ △・Jで攻撃$/,m=>`Chase prey and attack with △ / J`],
+ [/^(\d+)年：この地域の生態が変化（(.+)）$/,m=>`Year ${m[1]}: ecosystem changed here (${translate(m[2])})`],
+ [/^(.+)：異星偵察機の攻撃で(.+)が死亡$/,m=>`${translate(m[2])} died in an alien scout attack at ${translate(m[1])}`],
+ [/^(.+)を操作中。移動・攻撃・特殊技を実操作で確認できます$/,m=>`Playing as ${translate(m[1])}. Test movement, attacks and special moves directly.`],
+ [/^(.+)のゲーム内動物プレビュー$/,m=>`In-game preview of ${translate(m[1])}`],
+ [/^(.+)の抽選個体$/,m=>`Drawn ${translate(m[1])}`],
+ [/^(.+)｜(.+)$/,m=>`${translate(m[1])} | ${translate(m[2])}`]
+];
+
 function translate(text){
  const raw=String(text),value=raw.trim();
  if(!/[\u3040-\u30ff\u3400-\u9fff]/.test(raw))return raw;
  // Complete formatted text wins over an exact short string or glossary term.
- for(const [regex,format] of [...formatters,...moreFormats,...additionalFormats]){
+ for(const [regex,format] of [...formatters,...moreFormats,...additionalFormats,...extendedFormats]){
   const match=value.match(regex);
   if(match)return raw.replace(value,format(match));
  }
@@ -190,7 +246,7 @@ function syncControls(){
   }
  }
  document.documentElement.lang=locale;
- document.title=locale==="en"?"WILD RECLAIM | Survival in a Lost City":"WILD RECLAIM | 廃都生存記";
+ document.title=document.body?.dataset?.page==="gacha-rates"?(locale==="en"?"Gacha Drop Rates | WILD RECLAIM":"ガチャ排出確率一覧｜WILD RECLAIM"):(locale==="en"?"WILD RECLAIM | Survival in a Lost City":"WILD RECLAIM | 廃都生存記");
 }
 function refresh(){walk(document.body);syncControls()}
 function setLanguage(next){
