@@ -813,6 +813,24 @@ function readSharedDen(){
 function restoreSharedDen(){
  const shared=readSharedDen();
  if(shared){
+  // The shared pantry is a separate durable key. After a crash between its
+  // write and the world autosave, the last verified world snapshot wins.
+  const world=getAutoSnapshot();
+  const worldStores=world?.denStores;
+  const validWorld=worldStores&&["meat","berries","legacy"].every(
+   k=>Number.isSafeInteger(worldStores[k])&&worldStores[k]>=0);
+  const mismatch=validWorld&&["meat","berries","legacy"].some(
+   k=>worldStores[k]!==shared.stores[k]);
+  if(mismatch){
+   // Do not destroy either copy. Keep the durable pantry and surface the
+   // disagreement rather than silently changing food during Continue.
+   denLevel=clamp(Math.max(1,Math.round(Number(shared.level)||1)),1,DEN_MAX_LEVEL);
+   denStores=normalizeDenStores(shared.stores,0);
+   denMeatLots=normalizeMeatLots(shared.meatLots,denStores.meat);
+   syncDenStash();
+   notify("世界セーブと食料庫の数量が一致しません。JSONバックアップを保存して確認してください");
+   return true;
+  }
   denLevel=clamp(Math.max(1,Math.round(Number(shared.level)||1)),1,DEN_MAX_LEVEL);
   denStores=normalizeDenStores(shared.stores,0);
   denMeatLots=normalizeMeatLots(shared.meatLots,denStores.meat);
