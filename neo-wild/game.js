@@ -9182,6 +9182,20 @@ function persistSquadVitals(){
  }
  core.save(r);
 }
+// Restore outgoing HP/level/XP after a rejected switch without replacing
+// the ownership ledger (including permanently dead/released IDs).
+function rollbackOutgoingSquadVitals(actor,baseline){
+ if(!actor?.squadIndividualId||!baseline)return true;
+ const core=window.WildSquad,roster=core?.load?.();
+ if(!roster?.members)return false;
+ const old=baseline.members?.find(m=>m.id===actor.squadIndividualId);
+ const live=roster.members.find(m=>m.id===actor.squadIndividualId);
+ if(!old||!live||live.alive===false)return false;
+ live.hpRatio=old.hpRatio;live.level=old.level;live.xp=old.xp;
+ try{return core.save(roster)!==false;}catch(error){
+  console.error("Outgoing squad vitals rollback failed",error);return false;
+ }
+}
 function partySpawnPosition(i){
  for(const distance of [80,110,155,210,270])for(let k=0;k<12;k++){
   const a=(P.dir||0)+Math.PI+(i?.65:-.65)+k*Math.PI/6;
@@ -9456,6 +9470,7 @@ window.addEventListener("wild-squad-selected",event=>{
  // A leader selection has already been saved. The live actor only changes
  // permanently when the world snapshot can also be committed.
  const previousActor={...P},previousChoice=choice;
+ const outgoingVitalsBaseline=window.WildSquad?.load?.();
  const previousId=P.squadIndividualId||null,previousBossId=P.bossIndividualId||null;
  let switched=false,saved=false;
  try{
@@ -9465,6 +9480,8 @@ window.addEventListener("wild-squad-selected",event=>{
  }catch(error){console.error("Squad leader switch could not be committed",error);}
  if(switched&&saved){syncHUD();notify("選択した動物で操作を再開");return;}
  P=previousActor;choice=previousChoice;
+ const vitalsRestored=rollbackOutgoingSquadVitals(previousActor,outgoingVitalsBaseline);
+ if(!vitalsRestored)notify("個体HP・レベルの復元に失敗。再読み込み前にバックアップしてください");
  syncSquadFollowers();syncSquadHud();syncHUD();
  let restored=false;
  if(previousId){
