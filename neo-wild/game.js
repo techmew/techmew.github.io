@@ -4361,6 +4361,26 @@ const AERIAL_POUNCE_PROFILES=Object.freeze({
  hyena:{reach:176,power:1.13,rise:75}
 });
 const aerialPounceState=new WeakMap(); // Runtime only, never written to legacy saves.
+// A crow's targeted swoop is session-only, never stored in SAVE_SCHEMA2/legacy data.
+const crowSwoopState=new WeakMap();
+function crowSwoopTarget(){
+ if(!P||P.type!=="crow"||!P.flying)return null;
+ let nearest=null,shortest=Infinity;
+ for(const prey of mobs){
+  if(prey.hp<=0||prey.companion||prey.strongBoss||!["rat","rabbit"].includes(prey.type)||
+   Math.abs((P.groundZ||0)-(prey.groundZ||0))>=22)continue;
+  const d=dist(P,prey);
+  if(d>=P.r+prey.r+145||d>=shortest||lineBlocked(P,prey))continue;
+  nearest=prey;shortest=d;
+ }
+ return nearest;
+}
+function crowSwoopContact(prey){
+ return !!P&&!!prey&&prey.hp>0&&P.flying&&P.flightAltitude<=48&&
+  ["rat","rabbit"].includes(prey.type)&&!prey.strongBoss&&
+  Math.abs((P.groundZ||0)-(prey.groundZ||0))<22&&
+  dist(P,prey)<P.r+prey.r+47&&!lineBlocked(P,prey);
+}
 function armAerialPounce(){
  if(!P||mode!=="play"||isControlBlocked()||P.jumpTime<=0||P.fallTime>0||!P.pendingStrike)return false;
  const profile=AERIAL_POUNCE_PROFILES[P.type],prev=aerialPounceState.get(P);
@@ -4379,10 +4399,17 @@ function armAerialPounce(){
 function attack(){
  if(mode!=="play"||!P||isControlBlocked())return;
  if((P.specialWindup||0)>0)return;
- // A crow must descend near the prey before a beak strike can connect.
+ // One press starts a crow's controlled swoop. The beak strike fires
+ // at low altitude without demanding a second tap on a touch screen.
  if(P.type==="crow"&&P.flying&&P.flightAltitude>48){
-  const nearby=mobs.some(m=>m.hp>0&&["rat","rabbit"].includes(m.type)&&dist(P,m)<P.r+m.r+65);
-  if(nearby){P.flightLanding=true;notify("小動物へ降下中。低空で攻撃！");return;}
+  if(crowSwoopState.has(P))return;
+  const prey=crowSwoopTarget();
+  if(prey){
+   crowSwoopState.set(P,{prey,expires:elapsed+3.3,struck:false});
+   P.flightLanding=true;P.flightLandingWarned=false;
+   notify("獲物へ急降下！ 進路を合わせて捕食");
+   return;
+  }
  }
  if(P.jumpTime>0&&P.pendingStrike&&AERIAL_POUNCE_PROFILES[P.type]){armAerialPounce();return;}
  if(P.jumpTime>0&&aerialPounceState.get(P)?.spent)return;
@@ -4566,6 +4593,10 @@ function resolveAttack(aerialContact=null){
  const aerial=aerialPounceState.get(P);
  if(aerial?.active){aerial.active=false;aerial.spent=true;}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
+ if(P.type==="crow"&&crowSwoopState.get(P)?.struck){
+  // Climb back into glide rather than forcing a ground landing after one hit.
+  crowSwoopState.delete(P);P.flightLanding=false;P.flightLandingWarned=false;
+ }
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
 function kill(m){
@@ -4739,6 +4770,7 @@ function jump(){
  if(mode!=="play"||!P||isControlBlocked())return false;
  if(FLYING_PLAYABLES.has(P.type)){
   if(P.flying){
+   if(P.type==="crow")crowSwoopState.delete(P); // Explicit landing/climb overrides the hunt.
    // Pressing jump during descent permits a fresh climb when the landing
    // zone is blocked and the bird has regained enough stamina.
    if(P.flightLanding&&P.sp>=18){
@@ -6570,9 +6602,18 @@ function update(dt){
  P.stun=Math.max(0,(P.stun||0)-dt);
  if(FLYING_PLAYABLES.has(P.type)&&P.flying){
   if(P.sp<=3)P.flightLanding=true;
+   let swoop=crowSwoopState.get(P);
+  if(swoop&&(swoop.prey.hp<=0||elapsed>swoop.expires||
+   dist(P,swoop.prey)>P.r+swoop.prey.r+250)){
+   crowSwoopState.delete(P);swoop=null;
+   P.flightLanding=false;
+  }
   const descending=P.flightLanding;
   const crowCruise=P.type==="crow"&&!descending&&(P.flightAltitude||0)>=112;
-  const height=clamp((Number(P.flightAltitude)||42)+(descending?-74:crowCruise?0:78)*dt,0,160);
+  // Keep the bird off the ground while its beak strike winds up.
+  const height=swoop&&descending?
+   Math.max(47,clamp((Number(P.flightAltitude)||42)-74*dt,0,160)):
+   clamp((Number(P.flightAltitude)||42)+(descending?-74:crowCruise?0:78)*dt,0,160);
   if(!descending){
    // Crows can glide at cruising altitude: slower stamina drain, no forced climb.
    const crowGliding=P.type==="crow"&&P.flightAltitude>=112;
@@ -6597,6 +6638,12 @@ function update(dt){
    }
   }else P.flightAltitude=height;
   if(P.flying)P.jumpHeight=(P.groundZ||0)+P.flightAltitude;
+  if(swoop&&P.flying&&!swoop.struck&&crowSwoopContact(swoop.prey)){
+   P.dir=Math.atan2(swoop.prey.y-P.y,swoop.prey.x-P.x);
+   attack();
+   // A stamina-blocked strike can retry while the swoop lasts.
+   if(P.pendingStrike)swoop.struck=true;
+  }
  }
  // Tick the possession timer independently of the current locomotion state.
  const ghostSteering=isGhostPossessed();
