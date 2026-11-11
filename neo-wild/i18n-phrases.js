@@ -3312,5 +3312,305 @@ window.WildI18nPhrases = [
  [
   "ジョリィ",
   "Jolly"
+ ],
+ [
+  "WILD RECLAIM | 廃都生存記",
+  "WILD RECLAIM | Survival in a Lost City"
+ ],
+ [
+  "巣 LV1｜運搬 なし",
+  "Den Lv.1 | Carrying: none"
+ ],
+ [
+  "ガイドを見る",
+  "View controls"
+ ],
+ [
+  "月齢 0.0 · 新月",
+  "Moon age 0.0 · New moon"
+ ],
+ [
+  "青い建物入口から歩いて入れます（ボタン不要）",
+  "Walk through the blue building entrance (no button needed)"
+ ],
+ [
+  "WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ　L＋SHIFT 空中飛びつき（猫・狐・狼など11種）　ペンギンSHIFT 滑走頭突き＋嘴連撃　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止",
+  "WASD: move · Drag mouse: rotate camera · -/+: zoom · J / SPACE: attack · SHIFT: pounce · L: jump · L+SHIFT: aerial pounce (11 species) · Penguin SHIFT: slide headbutt and beak combo · E: eat · G: carry/drop · H: upgrade den · C: hide · R: special ability · P: pause"
+ ],
+ [
+  "左で移動・△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　×/A ジャンプ　×＋□ 同時押しで空中飛びつき（猫・狐・狼など11種）　ペンギン□で滑走頭突き＋高速くちばし連撃　○/B 食べる・くわえる（長押しで運搬）",
+  "Left stick: move · △/Y: combo attack · □/X: pounce (hold to sprint) · ×/A: jump · ×+□: aerial pounce (11 species) · Penguin □: sliding headbutt and rapid beak combo · ○/B: eat or pick up food (hold to carry)"
+ ],
+ [
+  "飛びつき/走る",
+  "Pounce / run"
+ ],
+ [
+  "連続攻撃",
+  "Combo attack"
+ ],
+ [
+  "閉じる ×",
+  "Close ×"
+ ],
+ [
+  "白：現在地　水色：目標　青：巣　赤い菱形：強敵　橙の三角：敵　黄の四角：警戒　緑の丸：獲物（ミニマップ）",
+  "White: you · Cyan: objective · Blue: den · Red diamond: boss · Orange triangle: enemy · Yellow square: alert · Green circle: prey (minimap)"
+ ],
+ [
+  "巣LV2で縄張り標識が解放。地図の西・東・南の標識へ行き、敵を追い払って○長押しで確保。確保した縄張りは巣の休息力を上げ、野犬を牽制し、翌日以降に木の実を供給します。地図の点へ自動移動はしません。",
+  "Territory markers unlock at den Lv.2. Visit markers west, east and south, drive enemies away, then hold ○ to claim them. Claimed territory improves den recovery, discourages feral dogs and provides berries in future days. Map pins do not enable automatic travel."
+ ],
+ [
+  "合計 0 / 200pt",
+  "Total 0 / 200 pt"
+ ],
+ [
+  "満腹+18 / 生命+6（18pt）",
+  "Hunger +18 / HP +6 (18 pt)"
+ ],
+ [
+  "肉を食べる",
+  "Eat meat"
+ ],
+ [
+  "満腹+7 / 生命+1（7pt）",
+  "Hunger +7 / HP +1 (7 pt)"
+ ],
+ [
+  "食草を食べる",
+  "Eat plants"
+ ],
+ [
+  "旧セーブから引き継いだ食料",
+  "Supplies carried over from an older save"
+ ],
+ [
+  "旧備蓄を食べる",
+  "Eat legacy supplies"
+ ],
+ [
+  "選んだ食料だけ減ります。巣の強化では備蓄を消費しません。",
+  "Only selected food is consumed. Upgrading the den does not consume supplies."
+ ],
+ [
+  "旧機能は廃止",
+  "Legacy feature discontinued"
+ ],
+ [
+  "動物はガチャで獲得。操作中1体＋ストック2体、合計3体まで。",
+  "Recruit animals through the gacha. You can own one active animal and two reserves, three in total."
+ ],
+ [
+  "仲間を迎える（肉24pt）",
+  "Recruit a companion (24 pt meat)"
+ ],
+ [
+  "巣LV2で解放。強敵を倒して素材を集める。",
+  "Unlock at den Lv.2. Defeat bosses to collect rare materials."
+ ],
+ [
+  "大鷲の夜目（夜間視認距離 +22%）",
+  "Eagle night vision (night sight range +22%)"
+ ],
+ [
+  "鱗の止血（出血ダメージ -35%）",
+  "Scaled clotting (bleeding damage -35%)"
+ ],
+ [
+  "大蛇の脱皮（希少素材1個で継承）",
+  "Serpent shedding (1 rare material)"
+ ],
+ [
+  "猪の突進力（希少素材1個で継承）",
+  "Boar charge power (1 rare material)"
+ ],
+ [
+  "隻眼の奇襲（希少素材1個で継承）",
+  "One-eyed ambush (1 rare material)"
+ ],
+ [
+  "白虎の跳躍（希少素材1個で継承）",
+  "White tiger leap (1 rare material)"
+ ],
+ [
+  "ハイエナの持久食（希少素材1個で継承）",
+  "Hyena endurance feeding (1 rare material)"
+ ],
+ [
+  "獅子の連撃（希少素材1個で継承）",
+  "Lion combo strikes (1 rare material)"
+ ],
+ [
+  "大角の足腰（希少素材1個で継承）",
+  "Giant antler strength (1 rare material)"
+ ],
+ [
+  "野牛の押し（希少素材1個で継承）",
+  "Buffalo shove (1 rare material)"
+ ],
+ [
+  "水辺の活力（希少素材1個で継承）",
+  "Waterside vitality (1 rare material)"
+ ],
+ [
+  "河馬の皮膚（希少素材1個で継承）",
+  "Hippo hide (1 rare material)"
+ ],
+ [
+  "水蛇の柔軟さ（希少素材1個で継承）",
+  "Water-serpent flexibility (1 rare material)"
+ ],
+ [
+  "サイの装甲（希少素材1個で継承）",
+  "Rhino armor (1 rare material)"
+ ],
+ [
+  "剛腕の威圧（希少素材1個で継承）",
+  "Mighty-arm intimidation (1 rare material)"
+ ],
+ [
+  "巨象の休息（希少素材1個で継承）",
+  "Giant elephant rest (1 rare material)"
+ ],
+ [
+  "白狼の忍び足（希少素材1個で継承）",
+  "White wolf stealth steps (1 rare material)"
+ ],
+ [
+  "生き残るために",
+  "How to survive"
+ ],
+ [
+  "現在の目標",
+  "Current objective"
+ ],
+ [
+  "重要：動物が死亡すると、その個体は永久に消えます。復活・セーブの巻き戻しはできません。生き残ったストックから操作する動物を選べます。",
+  "Important: A dead animal is permanently lost. It cannot be revived, and its save cannot be rolled back. You may continue with a surviving reserve."
+ ],
+ [
+  "わかった",
+  "Got it"
+ ],
+ [
+  "閉じるとゲーム再開",
+  "Close to resume"
+ ],
+ [
+  "← 戻る",
+  "← Back"
+ ],
+ [
+  "次へ →",
+  "Next →"
+ ],
+ [
+  "チェックポイントから再開",
+  "Resume from checkpoint"
+ ],
+ [
+  "メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ",
+  "Menu: D-pad / left stick to select, ×/A to confirm, ○/B to go back | Play: △/Y combo attack, □/X pounce (hold to sprint), ○/B eat or carry, ×/A jump"
+ ],
+ [
+  "生き延びる個体を選択（旧方式・非表示）",
+  "Select a survivor (legacy UI, hidden)"
+ ],
+ [
+  "爆速疾走 / □長押しでダッシュ / Rで疾風",
+  "Extreme sprint / Hold □ to dash / R for gale burst"
+ ],
+ [
+  "壁の三角飛び / 空中×で再ジャンプ",
+  "Wall triangle jump / Press × again in midair"
+ ],
+ [
+  "重量突進 / □長押しでダッシュ / Rで咆哮",
+  "Heavy charge / Hold □ to dash / R to roar"
+ ],
+ [
+  "持久力のある追跡型 / 陸上",
+  "Endurance tracker / Land"
+ ],
+ [
+  "高速移動 / 逃走重視 / 陸上",
+  "Fast runner / Escape-focused / Land"
+ ],
+ [
+  "高耐久 / 近距離攻撃 / 陸上",
+  "High durability / Melee / Land"
+ ],
+ [
+  "岩陰で伏せる・静かな待ち伏せ / 固有技で擬態",
+  "Hide behind rocks for quiet ambushes / Special camouflage skill"
+ ],
+ [
+  "小動物を追い出し・飛びかかり / 腐肉活用",
+  "Flush out small prey and pounce / Use carrion"
+ ],
+ [
+  "静止後の高速嘴攻撃 / 湿地の待ち伏せ",
+  "Rapid beak strike after standing still / Wetland ambush"
+ ],
+ [
+  "横向き・全画面",
+  "Landscape / full screen"
+ ],
+ [
+  "✓ 選択中：縦画面",
+  "✓ Selected: portrait"
+ ],
+ [
+  "現在のデータをバックアップ",
+  "Export current data backup"
+ ],
+ [
+  "バックアップを読み込む",
+  "Import backup"
+ ],
+ [
+  "セーブはこの端末・このブラウザの保存領域（localStorage）に記録されます。通常のゲーム更新だけでは消えませんが、サイトデータや閲覧データの削除、シークレットモード、ブラウザ・端末の変更、保存容量不足、または「ゲームをリセットして新規で開始する」の実行で、以前のデータが使えなくなることがあります。定期的にバックアップファイルを端末の外にも保存してください。",
+  "Saves are stored in this device and browser (localStorage). Normal game updates do not erase them, but deleting site data, private browsing, switching browsers or devices, storage limits, or starting a new game with a reset can make old saves unavailable. Regularly keep backup files outside this device."
+ ],
+ [
+  "最初から（動物を選ぶ）",
+  "New game (select animal)"
+ ],
+ [
+  "世界の記録",
+  "World records"
+ ],
+ [
+  "獲得 0",
+  "Unlocked 0"
+ ],
+ [
+  "動物図鑑",
+  "Animal bestiary"
+ ],
+ [
+  "一覧に戻る",
+  "Back to list"
+ ],
+ [
+  "指で360度回転・ピンチで拡大縮小",
+  "Drag to rotate 360°; pinch to zoom"
+ ],
+ [
+  "YEAR 34以降",
+  "Year 34 onward"
+ ],
+ [
+  "サイの強敵",
+  "Rhino boss"
+ ],
+ [
+  "巨象",
+  "Giant elephant"
+ ],
+ [
+  "野生の狐",
+  "Wild fox"
  ]
 ];
