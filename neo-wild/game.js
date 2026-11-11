@@ -9414,7 +9414,35 @@ function applySquadLeader(writeSnapshot=true){
  return true;
 }
 window.addEventListener("wild-squad-updated",()=>{if(mode==="menu")refreshSaveMenu();});
-window.addEventListener("wild-boss-selected",()=>{if(mode==="menu"){refreshSaveMenu();window.WildBossRoster?.renderTitle?.()}});
+let bossSelectionRollback=false;
+window.addEventListener("wild-boss-selected",event=>{
+ if(mode==="menu"){refreshSaveMenu();window.WildBossRoster?.renderTitle?.();return;}
+ if(bossSelectionRollback||!P||!["play","pause","inventory"].includes(mode))return;
+ const selectedId=event.detail?.id??null,previousId=P.bossIndividualId||null;
+ if(selectedId===previousId)return;
+ // Selection was persisted by boss-roster.js before this event. Commit the
+ // in-world switch only if the destination has a safe playable habitat.
+ if(selectedId){
+  if(applyBossLeader(false)){
+   if(!saveAuto())notify("ボス切替後の世界セーブに失敗。バックアップを確認してください");
+   else notify("選択したボスで操作を再開");
+   return;
+  }
+ }else{
+  persistSquadVitals();
+  if(applySquadLeader(false)){
+   if(!saveAuto())notify("通常動物への切替後の世界セーブに失敗。バックアップを確認してください");
+   else notify("通常動物で操作を再開");
+   return;
+  }
+ }
+ // Revert the durable roster selection to the still-controllable actor.
+ bossSelectionRollback=true;
+ try{
+  const rollback=window.WildBossRoster?.select?.(previousId);
+  if(!rollback?.ok)notify("ボス選択の復元に失敗。再読み込み前にデータをバックアップしてください");
+ }finally{bossSelectionRollback=false;}
+});
 
 window.addEventListener("wild-squad-selected",event=>{
  if(!P||!["play","pause","inventory"].includes(mode))return;
