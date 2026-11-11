@@ -100,6 +100,14 @@ const additionalFormats=[
 
 
 const extendedFormats=[
+ [/^(.+) ボス所有枠$/,m=>`${translate(m[1])} boss roster slot`],
+ [/^(.+)（交代(\d+)）$/,m=>`${translate(m[1])} (dominance change ${m[2]})`],
+ [/^世界\s*(\d+)年｜(.+)｜探索\s*(\d+)地点｜年表\s*(\d+)件$/,m=>`World year ${m[1]} | ${translate(m[2])} | Discovered ${m[3]} locations | ${m[4]} historical events`],
+ [/^現在｜世界\s*(\d+)年（災害・生態変動は記録がある場合のみ表示）$/,m=>`Now | World year ${m[1]} (only recorded disasters and ecosystem changes appear)`],
+ [/^(基本|希少|伝説級)（(\d+)種）$/,m=>`${translate(m[1])} (${m[2]} species)`],
+ [/^([\u30a0-\u30ff\u3400-\u9fff]+)を野生に放つ$/,m=>`Release ${translate(m[1])} into the wild`],
+ [/^([\u30a0-\u30ff\u3400-\u9fff]+)を仲間にしますか？$/,m=>`Recruit ${translate(m[1])}?`],
+
  [/^世界(\d+)年の目撃者$/,m=>`Witness to world year ${m[1]}`],
  [/^世界が(\d+)年を迎える$/,m=>`Reach world year ${m[1]}`],
  [/^(\d+)回の狩猟$/,m=>`${m[1]} successful hunts`],
@@ -283,5 +291,20 @@ if(typeof MutationObserver!=="undefined"){
  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["aria-label","title","placeholder"]});
 }
 refresh();
-window.WildI18n={setLanguage,translate,displayAnimalName,refresh,get locale(){return locale}};
+// On-demand visible-string audit for translators and regression tests.
+ function auditVisible(){
+  const remaining=new Set();
+  const addText=value=>{const text=String(value||"").trim();if(text&&/[\u3040-\u30ff\u3400-\u9fff]/.test(text))remaining.add(text.slice(0,180));};
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT);
+  for(let node=walker.nextNode();node;node=walker.nextNode()){
+   if(node.nodeType===3){
+    const parent=node.parentElement;
+    if(parent&&!/^(SCRIPT|STYLE|TEXTAREA)$/.test(parent.tagName)&&!parent.closest(".hidden,[hidden]"))addText(node.nodeValue);
+   }else if(node.nodeType===1&&!node.closest(".hidden,[hidden]")){
+    for(const key of ["aria-label","title","placeholder"])if(node.hasAttribute(key))addText(node.getAttribute(key));
+   }
+  }
+  return [...remaining];
+ }
+ window.WildI18n={setLanguage,translate,displayAnimalName,refresh,auditVisible,get locale(){return locale}};
 })();
