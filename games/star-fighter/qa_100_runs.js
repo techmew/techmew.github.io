@@ -73,8 +73,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   ok(htmlSource.includes('game.js?v=x-results-screenshot-20261111-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
   // Result screenshot and X sharing: mode-dependent UI, native file-share and X fallback.
-  ok(htmlSource.includes('share-result.js?v=x-results-screenshot-20261111-1'),'result share module before game');
-  for(const id of ['sfSharePanel','sfSharePreview','sfShareX','sfShareDownload','sfShareCopy','sfShareSampleBtn'])
+  ok(htmlSource.includes('share-result.js?v=x-image-share-hype-20261111-2'),'result share module before game');
+  for(const id of ['sfSharePanel','sfSharePreview','sfShareX','sfShareDownload','sfShareCopy','sfShareImageCopy','sfShareSampleBtn'])
    ok(htmlSource.includes('id="'+id+'"'),'share interface '+id);
   ok(gameSource.includes('StarFighterResultShare?.prepare')&&gameSource.includes('StarFighterResultShare?.reset'),
     'result capture and mode resets wired');
@@ -82,6 +82,8 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   if(shareSource){
    ok(shareSource.includes("ctx.drawImage(gameCanvas"),'real game screenshot');
    ok(shareSource.includes('navigator.canShare({files:[file]})'),'native PNG share');
+   ok(shareSource.includes('new ClipboardItem')&&shareSource.includes('navigator.clipboard.write'),'PNG clipboard fallback');
+   ok(shareSource.includes('銀河突破')&&shareSource.includes('撃墜！'),'result-specific X copy');
    ok(shareSource.includes('twitter.com/intent/tweet?text='),'X text intent fallback');
    ok(shareSource.includes("current.demo)return false"),'sample cannot be posted');
   }
