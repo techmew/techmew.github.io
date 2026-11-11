@@ -6576,7 +6576,7 @@ function update(dt){
   if(!descending){
    // Crows can glide at cruising altitude: slower stamina drain, no forced climb.
    const crowGliding=P.type==="crow"&&P.flightAltitude>=112;
-   P.sp=Math.max(0,P.sp-(crowGliding?7: P.type==="crow"?15:30)*dt);
+   P.sp=Math.max(0,P.sp-(crowGliding?4: P.type==="crow"?15:30)*dt);
   }
   // Match a bird's landing collision to the actual building rooftop, not
   // the solid walls below it. Other terrain/water collision still applies.
