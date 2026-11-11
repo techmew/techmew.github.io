@@ -2,7 +2,7 @@
  * Run from games/star-fighter/: node qa_100_runs.js
  * Deterministic headless tests; not a replacement for physical-device QA. */
 'use strict';
-function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,readmeSource,trophySource){
+function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,readmeSource,trophySource,shareSource){
  const assert=(condition,message)=>{if(!condition)throw Error(message)};
  const elements=new Map();
  function el(id){
@@ -70,8 +70,21 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
   types:new Set(),minUnits:Infinity,maxUnits:0,maxBullets:0,checks:0};
  const ok=(x,message)=>{stats.checks++;assert(x,message)};
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('game.js?v=stage-difficulty-easy-normal-hard-20261031-3'),'cache-bust game JS');
+  ok(htmlSource.includes('game.js?v=x-results-screenshot-20261111-1'),'cache-bust game JS');
   ok(htmlSource.includes('trophies.js?v=trophies-20261030-1'),'trophies loaded before game');
+  // Result screenshot and X sharing: mode-dependent UI, native file-share and X fallback.
+  ok(htmlSource.includes('share-result.js?v=x-results-screenshot-20261111-1'),'result share module before game');
+  for(const id of ['sfSharePanel','sfSharePreview','sfShareX','sfShareDownload','sfShareCopy','sfShareSampleBtn'])
+   ok(htmlSource.includes('id="'+id+'"'),'share interface '+id);
+  ok(gameSource.includes('StarFighterResultShare?.prepare')&&gameSource.includes('StarFighterResultShare?.reset'),
+    'result capture and mode resets wired');
+  ok(cssSource.includes('#shell .sf-result-share'),'share panel responsive styling');
+  if(shareSource){
+   ok(shareSource.includes("ctx.drawImage(gameCanvas"),'real game screenshot');
+   ok(shareSource.includes('navigator.canShare({files:[file]})'),'native PNG share');
+   ok(shareSource.includes('twitter.com/intent/tweet?text='),'X text intent fallback');
+   ok(shareSource.includes("current.demo)return false"),'sample cannot be posted');
+  }
   ok(cssSource.includes('grid-template-rows:auto 38px'),'portrait meter below full canvas');
   ok(cssSource.includes('#shell .game-frame>#game')&&cssSource.includes('height:auto!important'),'portrait canvas correct ratio');
   ok(cssSource.includes('position:relative!important;grid-column:1;grid-row:2'),'power meter separate grid row');
@@ -91,7 +104,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
  ok(!el('announce').classList.contains('show'),'no initial centre notice');
  // 30/36: static responsive contracts and viewport budgets (not physical device QA).
  if(htmlSource&&cssSource){
-  ok(htmlSource.includes('style.css?v=difficulty-select-20261031-1'),'mobile CSS cache refreshed');
+  ok(htmlSource.includes('style.css?v=x-results-screenshot-20261111-1'),'mobile CSS cache refreshed');
   ok(cssSource.includes('/* 30/36: mobile viewport ergonomics.'),'mobile layout override present');
   ok(cssSource.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'header controls in one row');
   ok(cssSource.includes('padding-left:max(5px,env(safe-area-inset-left))')&&cssSource.includes('padding-right:max(5px,env(safe-area-inset-right))'),'landscape notch safe areas');
@@ -2208,7 +2221,7 @@ function runHarness(gameSource,musicSource,extrasSource,htmlSource,cssSource,rea
 if(typeof module!=='undefined'&&require.main===module){
  const fs=require('node:fs');
  try{
-  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'),fs.readFileSync(__dirname+'/README.md','utf8'),fs.readFileSync(__dirname+'/trophies.js','utf8'));
+  const result=runHarness(fs.readFileSync(__dirname+'/game.js','utf8'),fs.readFileSync(__dirname+'/music.js','utf8'),fs.readFileSync(__dirname+'/enemies_plus.js','utf8'),fs.readFileSync(__dirname+'/index.html','utf8'),fs.readFileSync(__dirname+'/style.css','utf8'),fs.readFileSync(__dirname+'/README.md','utf8'),fs.readFileSync(__dirname+'/trophies.js','utf8'),fs.readFileSync(__dirname+'/share-result.js','utf8'));
   process.stdout.write(JSON.stringify(result,null,2)+'\n');
  }catch(e){process.stderr.write('FAIL '+(e.stack||e)+'\n');process.exitCode=1}
 }
