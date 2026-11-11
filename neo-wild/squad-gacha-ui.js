@@ -253,7 +253,7 @@ const ready=()=>{
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
-  hint.textContent=!members.length?"＋を押して最初の動物を選択（無料）":data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/"+MAX_OWNED+"体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length>MAX_OWNED?"旧セーブの4〜5体は保護中。削除せず、3体未満になるまでガチャ補充できません。":members.length===MAX_OWNED?"上限に達しています。死亡・野生への放流で枠が空くまで追加できません。":"");
+  hint.textContent=!members.length?(window.WildBossRoster?.load?.()?.members?.length?"通常動物がゼロでも、下のボス専用枠から選んで出撃できます。":"＋を押して最初の動物を選択（無料）"):data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/"+MAX_OWNED+"体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length>MAX_OWNED?"旧セーブの4〜5体は保護中。削除せず、3体未満になるまでガチャ補充できません。":members.length===MAX_OWNED?"上限に達しています。死亡・野生への放流で枠が空くまで追加できません。":"");
   gacha.hidden=true;
  }
  function showSize(){
