@@ -185,10 +185,12 @@ function renderTitle(){
 let offer=null;
 function showOffer(info){
  if(!LABELS[info?.type]||!info?.sourceId)return false;
- if(readIds(CLAIMED).has(info.sourceId))return false;
- // Never show a recruit decision that cannot survive a reload: a full or
- // blocked storage quota would otherwise silently erase a defeated boss.
- if(!queueOffer(info))return false;
+ // Even when storage is temporarily blocked, keep the defeated boss's
+ // choice on screen so the player can retry without losing the offer.
+ let claimed=false;
+ try{claimed=readIds(CLAIMED).has(info.sourceId)}catch(error){console.warn("Boss offer claim read failed",error)}
+ if(claimed)return false;
+ const stored=queueOffer(info);
  offer=info;
  let root=document.getElementById("boss-recruit-offer");
  if(!root){root=document.createElement("div");root.id="boss-recruit-offer";root.setAttribute("role","dialog");
@@ -199,7 +201,8 @@ function showOffer(info){
  const box=document.createElement("div");box.style.cssText="max-width:430px;width:100%;background:#1a2c28;color:#f7f6ee;border:2px solid #bb9871;border-radius:14px;padding:22px;text-align:center";
  const h=document.createElement("h2");h.textContent="強ボスを討伐！";h.style.cssText="margin:0 0 8px;font-size:21px";box.append(h);
  const name=document.createElement("p");name.textContent=LABELS[info.type]+"を仲間にしますか？";box.append(name);
- let roster;try{roster=load()}catch(error){name.textContent=error.message;roster=null}
+ let roster,rosterError=null;
+ try{roster=load()}catch(error){rosterError=error.message||"所有情報の読込エラー";roster=null}
  let swap=null;
  if(roster?.members.length===MAX){
   const label=document.createElement("label");label.textContent="ボス枠が満員です。入れ替える1体を選択";
@@ -208,11 +211,22 @@ function showOffer(info){
   swap=selectBox.value;selectBox.addEventListener("change",()=>{swap=selectBox.value;});
   label.append(selectBox);box.append(label);
  }
- const message=document.createElement("p");message.style.cssText="min-height:1.3em;font-size:12px;color:#f8c1aa";
- const actions=document.createElement("div");actions.style.cssText="display:flex;gap:10px;justify-content:center";
+ const message=document.createElement("p");message.style.cssText="min-height:1.3em;font-size:12px;color:#f8c1aa";message.setAttribute("role","alert");
+ const actions=document.createElement("div");actions.style.cssText="display:flex;gap:10px;justify-content:center;flex-wrap:wrap";
  const accept=document.createElement("button");accept.type="button";accept.textContent="仲間にする";
  const declineBtn=document.createElement("button");declineBtn.type="button";declineBtn.textContent="見送る";
  for(const b of [accept,declineBtn])b.style.cssText="min-height:44px;padding:10px 17px;border:1px solid #c0ab90;border-radius:8px;background:#476151;color:white;font-size:14px";
+ const ready=stored&&!!roster;
+ if(!ready){
+  // Do not offer irreversible recruit/decline actions until both the pending
+  // defeat and the roster can be read back from durable storage.
+  accept.disabled=true;declineBtn.disabled=true;
+  message.textContent=(rosterError?"ボス所有データ: "+rosterError+"。":"討伐結果の保存に失敗しました。")+
+   "ブラウザの保存領域を確認し、この画面を閉じずに再試行してください。";
+  const retry=document.createElement("button");retry.type="button";retry.textContent="保存を再試行";
+  retry.style.cssText="min-height:44px;padding:10px 17px;border:1px solid #c0ab90;border-radius:8px;background:#805d38;color:white;font-size:14px";
+  retry.addEventListener("click",()=>showOffer(info));actions.append(retry);
+ }
  const close=()=>{try{localStorage.removeItem(PENDING)}catch(_){}
   root.remove();offer=null;renderTitle();window.dispatchEvent(new CustomEvent("wild-boss-offer-closed"));};
  accept.addEventListener("click",()=>{
@@ -222,7 +236,7 @@ function showOffer(info){
  });
  declineBtn.addEventListener("click",()=>{if(!decline(info.sourceId)){message.textContent="辞退の保存に失敗しました";return}close();});
  actions.append(accept,declineBtn);box.append(actions,message);root.append(box);
- accept.focus({preventScroll:true});return true;
+ (ready?accept:actions.firstChild).focus({preventScroll:true});return true;
 }
 window.addEventListener("wild-squad-selected",()=>{try{const r=load();if(r.activeId)select(null)}catch(_){}});
 window.addEventListener("wild-squad-updated",renderTitle);
