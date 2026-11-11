@@ -9196,6 +9196,20 @@ function rollbackOutgoingSquadVitals(actor,baseline){
   console.error("Outgoing squad vitals rollback failed",error);return false;
  }
 }
+function rollbackOutgoingBossVitals(actor,baseline){
+ if(!actor?.bossIndividualId||!baseline)return true;
+ const core=window.WildBossRoster;
+ let roster;
+ try{roster=core?.load?.();}catch(_){return false;}
+ const old=baseline.members?.find(m=>m.id===actor.bossIndividualId);
+ const live=roster?.members?.find(m=>m.id===actor.bossIndividualId);
+ if(!old||!live||live.type!==old.type)return false;
+ if(!core?.updateVitals?.(actor.bossIndividualId,old.hpRatio,old.level))return false;
+ try{
+  const check=core.load().members.find(m=>m.id===actor.bossIndividualId);
+  return !!check&&Math.abs(check.hpRatio-old.hpRatio)<.000001&&check.level===old.level;
+ }catch(_){return false;}
+}
 function partySpawnPosition(i){
  for(const distance of [80,110,155,210,270])for(let k=0;k<12;k++){
   const a=(P.dir||0)+Math.PI+(i?.65:-.65)+k*Math.PI/6;
@@ -9437,6 +9451,8 @@ window.addEventListener("wild-boss-selected",event=>{
  // The roster selection was persisted before this event. Keep a copy of
  // the live actor until BOTH habitat placement and world autosave succeed.
  const previousActor={...P},previousChoice=choice;
+ const outgoingBossBaseline=window.WildBossRoster?.load?.();
+ const outgoingSquadBaseline=window.WildSquad?.load?.();
  let switched=false,saved=false;
  try{
   if(selectedId)switched=applyBossLeader(false);
@@ -9455,6 +9471,10 @@ window.addEventListener("wild-boss-selected",event=>{
  // Do not leave an unsaved character active while the previous world save
  // still points to its former owner. No death/release ledger is modified.
  P=previousActor;choice=previousChoice;
+ const bossVitalsRestored=rollbackOutgoingBossVitals(previousActor,outgoingBossBaseline);
+ const squadVitalsRestored=rollbackOutgoingSquadVitals(previousActor,outgoingSquadBaseline);
+ if(!bossVitalsRestored||!squadVitalsRestored)
+  notify("切替前のHP・レベル復元に失敗。再読み込み前にバックアップしてください");
  syncSquadFollowers();syncSquadHud();syncHUD();
  bossSelectionRollback=true;
  try{
