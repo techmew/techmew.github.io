@@ -89,3 +89,23 @@
  #menu > #language-title.flag-language-title{top:calc(4px + env(safe-area-inset-top, 0px)) !important;right:calc(7px + env(safe-area-inset-right, 0px)) !important;padding:3px 5px !important}
  #menu > #language-title .flag-lang-button{min-height:32px;min-width:64px}
 }
+
+/* English portrait gameplay: keep long notices clear of the compact top HUD.
+   No title, menu, roster or controller positioning is changed. */
+@media (orientation:portrait) and (max-width:520px){
+ html[lang="en"] #toast{
+  top:42%;max-width:calc(100vw - 32px);width:max-content;
+  box-sizing:border-box;padding:7px 10px;white-space:normal;
+  overflow-wrap:break-word;line-height:1.3;
+  font-size:clamp(12px,3.35vw,14px);letter-spacing:.015em;
+  border-radius:8px;background:rgba(6,16,20,.83);
+  box-shadow:0 2px 12px rgba(0,0,0,.5);
+ }
+ html[lang="en"] #hud #hp-text,
+ html[lang="en"] #hud #den-status,
+ html[lang="en"] #hud #den-stash-count,
+ html[lang="en"] #hud #species-skill-status{
+  letter-spacing:0;overflow-wrap:break-word;line-height:1.2;
+ }
+ html[lang="en"] #hud .hud-left{min-width:0;}
+}
