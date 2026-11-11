@@ -4964,7 +4964,15 @@ function carryFood(){
     denStores=beforeStores;denMeatLots=beforeLots;P.carry=beforeCarry;syncDenStash();
     notify("食料庫を保存できず、持っている食料は維持した");return false;
    }
-   saveAuto();checkMission();syncHUD();
+   // A pantry write alone must not consume carried meat if the world
+   // snapshot cannot persist. Restore both sides before another action.
+   if(saveAuto()!==true){
+    denStores=beforeStores;denMeatLots=beforeLots;P.carry=beforeCarry;syncDenStash();
+    if(!saveDenStash())notify("世界セーブ失敗。肉の備蓄を取り消しましたが食料庫の復元保存にも失敗。JSONバックアップを確認してください");
+    else notify("世界セーブに失敗したため、肉の備蓄を取り消しました");
+    syncHUD();return false;
+   }
+   checkMission();syncHUD();
    notify(kind+"を備蓄 +"+added+"pt（合計 "+denStash+"pt）");
    if(mission===4)announceObjective();
    return true;
