@@ -100,6 +100,11 @@ const additionalFormats=[
 
 
 const extendedFormats=[
+ [/^(.+)（(.+)）｜素材 (\d+)個$/,m=>`${translate(m[1])} (${translate(m[2])}) | Materials: ${m[3]}`],
+ [/^(.+)｜素材 (\d+)個$/,m=>`${translate(m[1])} | Materials: ${m[2]}`],
+ [/^仲間が同行中｜生命 (\d+)\/(\d+)$/,m=>`Companion following | HP ${m[1]}/${m[2]}`],
+ [/^(.+) (.+) 必要素材1個、所持(\d+)個$/,m=>`${translate(m[1])}: ${translate(m[2])}. Requires 1 material; owned ${m[3]}`],
+
  [/^(.+) ボス所有枠$/,m=>`${translate(m[1])} boss roster slot`],
  [/^(.+)（交代(\d+)）$/,m=>`${translate(m[1])} (dominance change ${m[2]})`],
  [/^世界\s*(\d+)年｜(.+)｜探索\s*(\d+)地点｜年表\s*(\d+)件$/,m=>`World year ${m[1]} | ${translate(m[2])} | Discovered ${m[3]} locations | ${m[4]} historical events`],
@@ -254,6 +259,9 @@ function syncControls(){
   if(!group)continue;
   for(const button of group.querySelectorAll("button[data-lang]")){
    const selected=button.dataset.lang===locale;
+   // Keep the Japanese selector legible in English without altering its layout.
+   const languageCode=button.querySelector(".flag-code");
+   if(languageCode&&button.dataset.lang==="ja")languageCode.textContent=locale==="en"?"JP":"日";
    button.setAttribute("aria-pressed",selected?"true":"false");
    button.classList.toggle("is-selected",selected);
   }
