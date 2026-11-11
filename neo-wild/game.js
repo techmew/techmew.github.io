@@ -5153,9 +5153,19 @@ function eatFromDen(kind){
  }
  const recovery=Math.max(1,Math.round(points*(kind==="meat"?quality/3:kind==="berries"?1/7:1/4)));
  const satiety=Math.round(points*quality);
+ // Eating is a two-store transaction: do not award HP, satiety or meal credit
+ // unless the same world snapshot also commits the pantry deduction.
+ const beforeVitals={hunger:P.hunger,hp:P.hp,strongWound:P.strongWound},beforeMeals=meals;
  P.hunger=clamp(P.hunger+satiety,0,100);P.hp=clamp(P.hp+recovery,0,P.maxHp);
  const woundRelief=sootheStrongWound(points,true);meals++;
- checkMission();saveAuto();syncHUD();renderDenInventory();
+ if(saveAuto()!==true){
+  P.hunger=beforeVitals.hunger;P.hp=beforeVitals.hp;P.strongWound=beforeVitals.strongWound;
+  meals=beforeMeals;denStores=previousStores;denMeatLots=previousMeatLots;syncDenStash();
+  if(!saveDenStash())notify("食事を取り消しましたが食料庫の復元保存に失敗。JSONバックアップを確認してください");
+  else notify("世界セーブに失敗したため食事を取り消しました。肉・満腹度・体力は維持しました");
+  syncHUD();renderDenInventory();return false;
+ }
+ checkMission();syncHUD();renderDenInventory();
  notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+satiety+"・生命+"+recovery+(woundRelief>0?"・出血緩和":""));
  return true;
 }
