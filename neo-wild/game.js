@@ -5032,7 +5032,32 @@ function recruitCompanion(){
  if(!spot){notify("巣の周囲に仲間が立てる場所がない");return false;}
  const ally=helper.create(P.type,spot.x,spot.y,species);
  if(!ally)return false;
- mobs.push(ally);denStores.meat-=helper.cost;syncDenStash();saveDenStash();saveAuto();
+ // Commit the meat payment before spawning the ally. A failed pantry write
+ // must never produce a free companion or silently destroy stored food.
+ const beforeStores={...denStores},beforeLots=denMeatLots.map(p=>({...p}));
+ denStores.meat-=helper.cost;
+ // Meat lot detail must track the paid points, not only the total.
+ denMeatLots=normalizeMeatLots(denMeatLots,beforeStores.meat);
+ let spent=helper.cost;
+ for(let i=denMeatLots.length-1;i>=0&&spent>0;i--){
+  const part=denMeatLots[i],used=Math.min(part.points,spent);
+  part.points-=used;spent-=used;
+  if(part.points<=0)denMeatLots.splice(i,1);
+ }
+ syncDenStash();
+ if(!saveDenStash()){
+  denStores=beforeStores;denMeatLots=beforeLots;syncDenStash();
+  notify("食料庫を保存できず、仲間の募集を中止しました");
+  renderDenInventory();syncHUD();return false;
+ }
+ mobs.push(ally);
+ if(!saveAuto()){
+  mobs.splice(mobs.indexOf(ally),1);
+  denStores=beforeStores;denMeatLots=beforeLots;syncDenStash();
+  if(!saveDenStash())notify("食料庫の復元に失敗しました。JSONバックアップを確認してください");
+  else notify("世界セーブに失敗したため、仲間と肉の消費を取り消しました");
+  renderDenInventory();syncHUD();return false;
+ }
  renderDenInventory();syncHUD();drawMini();
  notify("仲間が加わった！ 一緒に移動し、戦闘を援護する");
  label(ally.x,ally.y-ally.r-26,"仲間になった！","#9eeadf");playEffect("collect");
