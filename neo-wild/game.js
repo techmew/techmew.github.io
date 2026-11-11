@@ -867,7 +867,16 @@ function takeMeatFromDen(){
   notify("食料庫の保存に失敗したため、肉は取り出していません");
   return false;
  }
- saveAuto();renderDenInventory();syncHUD();
+ // The pantry and carried item must agree with the durable world snapshot.
+ // On autosave failure, restore the pantry before allowing another withdrawal.
+ if(saveAuto()!==true){
+  P.carry=null;
+  denStores.meat=beforeMeat;denMeatLots=beforeLots;syncDenStash();
+  if(!saveDenStash())notify("肉の取り出しを取り消しましたが食料庫の復元保存に失敗。JSONバックアップを確認してください");
+  else notify("世界セーブに失敗したため、肉の取り出しを取り消しました");
+  renderDenInventory();syncHUD();return false;
+ }
+ renderDenInventory();syncHUD();
  notify("共通食料庫から"+meatSizeName(points)+"の肉 "+points+"ptを取り出した");
  return true;
 }
