@@ -137,30 +137,50 @@ function renderTitle(){
  const home=document.getElementById("squad-home"),after=document.getElementById("save-menu-actions");
  if(!home||!after)return;
  let root=document.getElementById("boss-owned-slots");
- if(!root){root=document.createElement("section");root.id="boss-owned-slots";root.setAttribute("aria-label","ボス専用の所有3枠");
-  root.style.cssText="max-width:680px;margin:12px auto;padding:10px;border:1px solid #81654c;border-radius:10px;background:#14221e;color:#e5eddf";
-  after.insertAdjacentElement("afterend",root);
- }
- root.replaceChildren();
- const heading=document.createElement("strong");heading.textContent="討伐したボス｜専用3枠";heading.style.cssText="display:block;text-align:center;margin-bottom:8px";root.append(heading);
+ if(!root){root=document.createElement("section");root.id="boss-owned-slots";
+  root.setAttribute("aria-label","ボス専用の所有3枠");after.insertAdjacentElement("afterend",root);}
+ // Restore a previously rendered root to stylesheet-managed sizing.
+ root.style.cssText="";root.className="boss-owned-root";root.replaceChildren();
+ const heading=document.createElement("h2");heading.className="boss-owned-heading";
+ heading.textContent="討伐したボス｜専用3枠";root.append(heading);
  let r;try{r=load()}catch(error){root.append(document.createTextNode(error.message));return;}
- const slots=document.createElement("div");slots.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px";
+ const slots=document.createElement("div");slots.className="boss-owned-grid";
  for(let i=0;i<MAX;i++){
-  const m=r.members[i],slot=document.createElement("div");
-  slot.style.cssText="min-width:0;padding:7px 3px;text-align:center;border:1px solid #716b5e;border-radius:7px;background:#24332d;font-size:11px";
-  const name=document.createElement("div");name.style.cssText="overflow-wrap:anywhere";name.textContent=m?(m.name+" Lv"+m.level):"空き枠";slot.append(name);
-  if(m){const btn=document.createElement("button");btn.type="button";btn.textContent=r.activeId===m.id?"操作対象":"操作する";
-   btn.style.cssText="width:100%;margin-top:6px;padding:6px 2px;border-radius:5px;background:#745a43;color:white;border:1px solid #b8a38a;font-size:11px";
-   btn.disabled=r.activeId===m.id;
+  const m=r.members[i],active=!!m&&r.activeId===m.id;
+  const slot=document.createElement("article");
+  slot.className="boss-owned-card"+(active?" is-active":"")+(m?"":" is-empty");
+  slot.setAttribute("aria-label",m?m.name+" ボス所有枠":"未獲得のボス枠");
+  const crest=document.createElement("span");crest.className="boss-owned-crest";
+  crest.setAttribute("aria-hidden","true");crest.textContent=m?"✦":"◇";slot.append(crest);
+  const name=document.createElement("strong");name.className="boss-owned-name";
+  name.textContent=m?m.name:"未獲得";slot.append(name);
+  const detail=document.createElement("small");detail.className="boss-owned-meta";
+  detail.textContent=m?"LV "+m.level+"｜HP "+Math.round(m.hpRatio*100)+"%":(i+1)+"枠目・空き";
+  slot.append(detail);
+  if(m){
+   const gauge=document.createElement("span");gauge.className="boss-owned-hp";
+   gauge.setAttribute("aria-label","残りHP "+Math.round(m.hpRatio*100)+"%");
+   const fill=document.createElement("span");fill.style.width=Math.round(m.hpRatio*100)+"%";
+   gauge.append(fill);slot.append(gauge);
+   const btn=document.createElement("button");btn.type="button";btn.className="boss-owned-action";
+   btn.textContent=active?"✓ 操作対象":"このボスを選択";btn.disabled=active;
    btn.addEventListener("click",()=>{const changed=select(m.id);if(!changed.ok)alert(changed.reason);renderTitle();});
    slot.append(btn);
   }
   slots.append(slot);
  }
  root.append(slots);
- if(r.activeId){const reset=document.createElement("button");reset.type="button";reset.textContent="通常動物に戻す";
-  reset.style.cssText="display:block;margin:8px auto 0;padding:7px 12px;border-radius:6px;background:#35594d;color:#fff";
-  reset.addEventListener("click",()=>{select(null);renderTitle();});root.append(reset);}
+ if(r.activeId){
+  const ready=document.createElement("button");ready.type="button";ready.className="boss-owned-deploy";
+  ready.textContent="選択中のボスで出撃";ready.addEventListener("click",()=>document.getElementById("continue-btn")?.click());
+  root.append(ready);
+  if(window.WildSquad?.load?.()?.members?.length){
+   const reset=document.createElement("button");reset.type="button";reset.className="boss-owned-reset";
+   reset.textContent="通常動物に戻す";
+   reset.addEventListener("click",()=>{const changed=select(null);if(!changed.ok)alert(changed.reason);renderTitle();});
+   root.append(reset);
+  }
+ }
 }
 let offer=null;
 function showOffer(info){
