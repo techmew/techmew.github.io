@@ -1072,7 +1072,11 @@ function updateSurvivalNeeds(dt){
  const seniorRecovery=1;
  // Transporting meat has a modest survival cost; berries remain unaffected.
  const carryingMeat=!!(P.carry&&P.carry.type==="meat");
- const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed*(carryingMeat?1.18:1);
+ // Larger carcasses cost more energy to haul. Clamp old/corrupt save amounts
+ // so a malformed item cannot cause instant starvation or NaN vitals.
+ const meatLoad=carryingMeat?clamp(Number(P.carry.amount)||0,0,8):0;
+ const meatLoadDrain=carryingMeat?1.10+Math.min(.25,meatLoad*.04):1;
+ const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed*meatLoadDrain;
  if(carryingMeat&&before>20&&before-drain<=20&&P.hp>0)
   notify("肉を運搬中：空腹が危険域です。巣に運ぶか食事を優先");
  P.hunger=clamp(before-drain,0,100);
