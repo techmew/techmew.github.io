@@ -1707,12 +1707,34 @@ function saveAuto(){
  // The roster is updated only after the snapshot is safe to write.
  persistSquadVitals();
  let snapshotSaved=false;
+ let previousAutoRaw=null,previousAutoRead=false,encodedAuto=null;
  try{
-  const encoded=JSON.stringify(snapshot);
-  localStorage.setItem(AUTOSAVE_KEY,encoded);
-  snapshotSaved=localStorage.getItem(AUTOSAVE_KEY)===encoded;
-  if(snapshotSaved)approvedForeignSaveAt=null;
- }catch(error){console.warn("WILD RECLAIM: autosave storage quota or permissions",error);}
+  // Preserve exact previous bytes so a failed readback cannot destroy the last valid run.
+  previousAutoRaw=localStorage.getItem(AUTOSAVE_KEY);
+  previousAutoRead=true;
+  encodedAuto=JSON.stringify(snapshot);
+  localStorage.setItem(AUTOSAVE_KEY,encodedAuto);
+  if(localStorage.getItem(AUTOSAVE_KEY)!==encodedAuto)throw Error("autosave readback mismatch");
+  snapshotSaved=true;
+  approvedForeignSaveAt=null;
+ }catch(error){
+  // Only undo our own unverified write. Never overwrite a newer save from another tab.
+  if(previousAutoRead)try{
+   const current=localStorage.getItem(AUTOSAVE_KEY);
+   if(current===encodedAuto&&current!==previousAutoRaw){
+    if(previousAutoRaw===null)localStorage.removeItem(AUTOSAVE_KEY);
+    else localStorage.setItem(AUTOSAVE_KEY,previousAutoRaw);
+    if(localStorage.getItem(AUTOSAVE_KEY)!==previousAutoRaw)throw Error("autosave rollback mismatch");
+   }else if(current!==previousAutoRaw){
+    pantrySaveConflict=true;
+    console.warn("WILD RECLAIM: concurrent autosave changed; further writes frozen");
+   }
+  }catch(rollbackError){
+   pantrySaveConflict=true;
+   console.warn("WILD RECLAIM: autosave rollback failed; further writes frozen",rollbackError);
+  }
+  console.warn("WILD RECLAIM: autosave storage quota, permissions, or readback",error);
+ }
  // The smaller world journal may still fit when a full autosave cannot.
  persistWorldChronicle();
  return snapshotSaved;
