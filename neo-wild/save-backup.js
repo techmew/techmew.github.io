@@ -289,8 +289,19 @@ async function importBackup(file,baseline=null){
    try{
     for(const [key,value] of Object.entries(before))localStorage.setItem(key,value);
     for(const key of keysNext)if(!Object.prototype.hasOwnProperty.call(before,key))localStorage.removeItem(key);
-   }catch(_){}
-   throw Error("読み込み時に保存容量不足・書込失敗が発生しました。復元を中止しました："+(error?.message||""));
+   }catch(rollbackError){
+    throw Error("重大：復元失敗後の元データへの書き戻しにも失敗しました。ページを閉じず、端末の保存データを削除しないでください："+(rollbackError?.message||""));
+   }
+   // A successful setItem call is not proof of durable rollback: verify every
+   // original key and absence of imported-only keys before allowing a retry.
+   let restored;
+   try{restored=snapshot()}catch(readError){
+    throw Error("重大：復元失敗後の保存状態を確認できません。ページを閉じずデータを保全してください："+(readError?.message||""));
+   }
+   if(Object.keys(restored).length!==keysBefore.length||
+      keysBefore.some(key=>restored[key]!==before[key]))
+    throw Error("重大：復元失敗後に元データとの不一致を検出しました。ページを閉じずデータを保全してください");
+   throw Error("読み込み時に書込失敗が発生しました。元の保存データへの復帰を検証しました："+(error?.message||""));
   }
   status("バックアップを読み込みました。ページを再起動します。");
   location.reload();
