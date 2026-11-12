@@ -788,6 +788,7 @@ function normalizeDenStores(raw,legacy=0){
 // Every shelter in the current world accesses one shared pantry. The legacy
 // per-species and SAVE_SCHEMA2 stores remain readable, never overwritten on load.
 const SHARED_DEN_KEY="wild-reclaim-shared-den-v1";
+const SHARED_DEN_BACKUP_KEY="wild-reclaim-shared-den-last-good-v1";
 let denMeatLots=[];
 function normalizeMeatLots(raw,meatPoints){
  const lots=[],target=Math.max(0,Math.round(Number(meatPoints)||0));let remaining=target;
@@ -869,6 +870,14 @@ function saveSharedDen(){
       typeof previous.stores!=="object"||Array.isArray(previous.stores)||
       !["meat","berries","legacy"].every(k=>Number.isSafeInteger(previous.stores[k])&&previous.stores[k]>=0)||
       !Array.isArray(previous.meatLots))throw Error("pantry data damaged");
+  }
+  // Keep the last verified pantry bytes before replacing the authoritative key.
+  // If the device stops during a write, this independent copy remains available.
+  if(previousRaw!==null){
+   const verified=readSharedDen();
+   if(!verified)throw Error("pantry validation failed");
+   localStorage.setItem(SHARED_DEN_BACKUP_KEY,previousRaw);
+   if(localStorage.getItem(SHARED_DEN_BACKUP_KEY)!==previousRaw)throw Error("pantry backup mismatch");
   }
   localStorage.setItem(SHARED_DEN_KEY,next);
   if(localStorage.getItem(SHARED_DEN_KEY)!==next)throw Error("pantry readback mismatch");
