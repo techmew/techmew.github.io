@@ -807,6 +807,12 @@ function readSharedDen(){
   if(!raw)return null;
   const v=JSON.parse(raw);
   if(v?.version!==1||!v.stores||typeof v.stores!=="object"||Array.isArray(v.stores))return null;
+  // Reject damaged quantities before they can be normalized into free or lost food.
+  if(!["meat","berries","legacy"].every(k=>Number.isSafeInteger(v.stores[k])&&v.stores[k]>=0))return null;
+  if(!Array.isArray(v.meatLots)||v.meatLots.length>80||!v.meatLots.every(part=>
+   part&&typeof part==="object"&&Number.isSafeInteger(part.points)&&part.points>0&&
+   (part.animalType==null||(typeof part.animalType==="string"&&part.animalType.length<64))))return null;
+  if(v.meatLots.reduce((sum,part)=>sum+part.points,0)!==v.stores.meat)return null;
   return v;
  }catch(_){return null}
 }
