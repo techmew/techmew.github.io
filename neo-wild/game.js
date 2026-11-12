@@ -1069,7 +1069,11 @@ function updateSurvivalNeeds(dt){
   ?clamp(P.ageYears/P.lifespanYears,0,1):0;
  const seniorNeed=1;
  const seniorRecovery=1;
- const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed;
+ // Transporting meat has a modest survival cost; berries remain unaffected.
+ const carryingMeat=!!(P.carry&&P.carry.type==="meat");
+ const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed*(carryingMeat?1.18:1);
+ if(carryingMeat&&before>20&&before-drain<=20&&P.hp>0)
+  notify("肉を運搬中：空腹が危険域です。巣に運ぶか食事を優先");
  P.hunger=clamp(before-drain,0,100);
  // Integrate the exact time at zero hunger even when a frame crosses the threshold.
  const emptySeconds=before<=0?dt:drain>0?dt*clamp((drain-before)/drain,0,1):0;
