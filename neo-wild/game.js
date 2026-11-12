@@ -1704,8 +1704,8 @@ function saveAuto(){
    }
   }
  }catch(error){console.warn("WILD RECLAIM: cannot verify current autosave",error);return false;}
- // The roster is updated only after the snapshot is safe to write.
- persistSquadVitals();
+ // Persist roster vitals only after the world snapshot is durably verified.
+ // A quota/readback failure must not advance roster HP/XP ahead of Continue.
  let snapshotSaved=false;
  let previousAutoRaw=null,previousAutoRead=false,encodedAuto=null;
  try{
@@ -1735,6 +1735,8 @@ function saveAuto(){
   }
   console.warn("WILD RECLAIM: autosave storage quota, permissions, or readback",error);
  }
+ // Keep roster vitals in step with a verified world save, never a rejected write.
+ if(snapshotSaved)persistSquadVitals();
  // The smaller world journal may still fit when a full autosave cannot.
  persistWorldChronicle();
  return snapshotSaved;
