@@ -790,6 +790,8 @@ function normalizeDenStores(raw,legacy=0){
 const SHARED_DEN_KEY="wild-reclaim-shared-den-v1";
 const SHARED_DEN_BACKUP_KEY="wild-reclaim-shared-den-last-good-v1";
 let denMeatLots=[];
+// Freeze durable world/pantry writes after an unresolved cross-key mismatch.
+let pantrySaveConflict=false;
 function normalizeMeatLots(raw,meatPoints){
  const lots=[],target=Math.max(0,Math.round(Number(meatPoints)||0));let remaining=target;
  if(Array.isArray(raw))for(const part of raw.slice(0,80)){
@@ -818,6 +820,7 @@ function readSharedDen(){
  }catch(_){return null}
 }
 function restoreSharedDen(){
+ pantrySaveConflict=false;
  // A damaged durable pantry is not an empty pantry. Preserve its raw bytes
  // and stop the session from silently treating older world food as authoritative.
  let rawPantry;
@@ -868,6 +871,7 @@ function restoreSharedDen(){
   const mismatch=validWorld&&["meat","berries","legacy"].some(
    k=>worldStores[k]!==shared.stores[k]);
   if(mismatch){
+   pantrySaveConflict=true;
    // Do not destroy either copy. Keep the durable pantry and surface the
    // disagreement rather than silently changing food during Continue.
    denLevel=clamp(Math.max(1,Math.round(Number(shared.level)||1)),1,DEN_MAX_LEVEL);
@@ -887,6 +891,7 @@ function restoreSharedDen(){
  return false;
 }
 function saveSharedDen(){
+ if(pantrySaveConflict){notify("世界セーブと食料庫が不一致です。保存せずJSONバックアップを確認してください");return false;}
  const lots=normalizeMeatLots(denMeatLots,denStores.meat);
  // Refuse to persist an inconsistent in-memory pantry; normalization must not mint or erase food.
  if(!denStores||!["meat","berries","legacy"].every(k=>Number.isSafeInteger(denStores[k])&&denStores[k]>=0)||
@@ -1647,6 +1652,8 @@ function currentSnapshot(){
  };
 }
 function saveAuto(){
+ // A conflicting pantry must not be made authoritative by a later autosave.
+ if(pantrySaveConflict){console.warn("WILD RECLAIM: autosave withheld after pantry/world conflict");return false;}
  // A menu reload or backup import must never persist a stale actor over restored roster data.
  const snapshot=currentSnapshot();
  if(!snapshot)return false;
