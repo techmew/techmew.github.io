@@ -271,6 +271,13 @@ async function importBackup(file,baseline=null){
   for(const [key,value] of Object.entries(liveBeforeWrite)){
    if(!Object.prototype.hasOwnProperty.call(before,key)&&!Object.prototype.hasOwnProperty.call(merged,key))merged[key]=value;
   }
+  // Validate the final merged state before touching any durable key. An older
+  // backup may be valid by itself but become inconsistent after irreversible
+  // death/release, boss and world-event records are merged with this device.
+  // In particular, never partially replace the player's live save with a
+  // merged state that the backup exporter itself would reject.
+  const mergedFile={format:FORMAT,version:1,records:merged,checksum:digest(merged)};
+  validate(mergedFile);
   // Old backups are allowed to restore progression, never to resurrect excluded IDs.
   const keysBefore=Object.keys(before),keysNext=Object.keys(merged);
   try{
