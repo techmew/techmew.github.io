@@ -27,7 +27,11 @@ function buildBackup(){
  const verified=snapshot();
  if(Object.keys(records).length!==Object.keys(verified).length||Object.keys(records).some(key=>verified[key]!==records[key]))
   throw Error("別タブで保存内容が更新されました。最新の画面でバックアップをやり直してください");
- return {format:FORMAT,version:1,createdAt:new Date().toISOString(),game:"WILD RECLAIM",origin:location.origin,records,checksum:digest(records)};
+ const backup={format:FORMAT,version:1,createdAt:new Date().toISOString(),game:"WILD RECLAIM",origin:location.origin,records,checksum:digest(records)};
+ // Do not download a backup that the restore path would reject (broken death IDs,
+ // boss roster, world save, etc.). This avoids giving players false safety.
+ validate(backup);
+ return backup;
 }
 function exportBackup(){
  try{
