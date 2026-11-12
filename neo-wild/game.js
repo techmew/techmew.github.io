@@ -888,6 +888,14 @@ function restoreSharedDen(){
 }
 function saveSharedDen(){
  const lots=normalizeMeatLots(denMeatLots,denStores.meat);
+ // Refuse to persist an inconsistent in-memory pantry; normalization must not mint or erase food.
+ if(!denStores||!["meat","berries","legacy"].every(k=>Number.isSafeInteger(denStores[k])&&denStores[k]>=0)||
+    !Array.isArray(denMeatLots)||denMeatLots.length>80||
+    !denMeatLots.every(part=>part&&Number.isSafeInteger(part.points)&&part.points>0&&
+      (part.animalType==null||(typeof part.animalType==="string"&&part.animalType.length<64)))||
+    denMeatLots.reduce((sum,part)=>sum+part.points,0)!==denStores.meat){
+  notify("食料庫の数量が不正です。保存せずJSONバックアップを確認してください");return false;
+ }
  const next=JSON.stringify({version:1,level:denLevel,stores:denStores,meatLots:lots,updatedAt:Date.now()});
  try{
   // A corrupted or inaccessible authoritative pantry must never be silently
