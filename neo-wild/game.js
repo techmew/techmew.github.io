@@ -893,7 +893,8 @@ function saveSharedDen(){
     !Array.isArray(denMeatLots)||denMeatLots.length>80||
     !denMeatLots.every(part=>part&&Number.isSafeInteger(part.points)&&part.points>0&&
       (part.animalType==null||(typeof part.animalType==="string"&&part.animalType.length<64)))||
-    denMeatLots.reduce((sum,part)=>sum+part.points,0)!==denStores.meat){
+    denMeatLots.reduce((sum,part)=>sum+part.points,0)!==denStores.meat||
+    ["meat","berries","legacy"].reduce((sum,k)=>sum+denStores[k],0)>denCapacity()){
   notify("食料庫の数量が不正です。保存せずJSONバックアップを確認してください");return false;
  }
  const next=JSON.stringify({version:1,level:denLevel,stores:denStores,meatLots:lots,updatedAt:Date.now()});
@@ -917,10 +918,16 @@ function saveSharedDen(){
    localStorage.setItem(SHARED_DEN_BACKUP_KEY,previousRaw);
    if(localStorage.getItem(SHARED_DEN_BACKUP_KEY)!==previousRaw)throw Error("pantry backup mismatch");
   }
+  // A write can succeed but its readback can fail (quota, storage eviction,
+  // browser interruption). Keep the last verified bytes available for recovery.
   localStorage.setItem(SHARED_DEN_KEY,next);
   if(localStorage.getItem(SHARED_DEN_KEY)!==next)throw Error("pantry readback mismatch");
   denMeatLots=lots;return true;
- }catch(_){notify("共通食料庫を保存できません。JSONバックアップを確認してください");return false;}
+ }catch(error){
+  console.warn("WILD RECLAIM: pantry write rejected; previous durable copy retained",error);
+  notify("共通食料庫を保存できません。JSONバックアップを確認してください");
+  return false;
+ }
 }
 function meatSizeName(points){
  return points>=55?"特大":points>=32?"大":points>=16?"中":"小";
