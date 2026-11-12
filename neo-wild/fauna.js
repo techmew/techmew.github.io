@@ -515,7 +515,7 @@ function visualState(o){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["rat","chimpanzee","macaque","snake","frog","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","giantTreeFrog","pacmanFrog","shoebill","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -528,7 +528,63 @@ function draw2D(ctx,o,r,fur,light,pace){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
  };
- if(type==="otter"){
+ if(type==="giantTreeFrog"||type==="pacmanFrog"){
+  // Spring-legged tree frog vs heavy horned ambush frog; combat pose drives tongue.
+  const tree=type==="giantTreeFrog",jump=Math.max(0,Math.min(1,Number(o.frogJumpPose??o.jumpPose??0)||0));
+  const strike=(o.swing||0)>0||(o.frogTonguePose||0)>0;
+  const ready=(o.windup||0)>0,bodyY=-jump*r*.35;
+  for(const side of [-1,1]){
+   const hipX=-r*.62,hipY=side*r*.63+bodyY;
+   const kneeX=-r*(tree?1.15:1.03),kneeY=side*r*(tree?1.18:.91)+bodyY;
+   const toeX=-r*(tree?1.52:1.20)-jump*r*.28,toeY=side*r*(tree?1.35:.92)+bodyY;
+   line(hipX,hipY,kneeX,kneeY,r*(tree?.29:.38),fur);
+   line(kneeX,kneeY,toeX,toeY,r*(tree?.18:.25),light);
+   for(let digit=-1;digit<=1;digit++)ellipse(toeX-r*.12,toeY+digit*r*.15,r*.13,r*.095,light);
+   ellipse(r*.69,side*r*.64+bodyY,r*.34,r*.26,fur);
+  }
+  ellipse(-r*.13,bodyY,r*(tree?1.03:1.19),r*(tree?.83:1.02),fur);
+  ellipse(r*.59,bodyY,r*(tree?.65:.82),r*(tree?.63:.78),light);
+  if(!tree){
+   for(const side of [-1,1]){
+    poly([r*.58,side*r*.47+bodyY,r*.78,side*r*1.06+bodyY,r*1.12,side*r*.45+bodyY],fur);
+    ellipse(r*.79,side*r*.48+bodyY,r*.23,r*.22,"#e4bd79");
+    ellipse(r*.86,side*r*.50+bodyY,r*.11,r*.12,"#201d19");
+   }
+   for(let k=-2;k<=2;k++)ellipse(-r*.34+k*r*.27,bodyY+(k%2)*r*.23,r*.17,r*.13,"#617441");
+  }else{
+   for(const side of [-1,1]){
+    ellipse(r*.86,side*r*.50+bodyY,r*.29,r*.30,fur);
+    ellipse(r*.91,side*r*.54+bodyY,r*.17,r*.18,"#e7c67d");
+    ellipse(r*.98,side*r*.54+bodyY,r*.075,r*.09,"#202522");
+   }
+   for(let k=0;k<5;k++)ellipse(-r*.76+k*r*.36,bodyY+Math.sin(k*2)*r*.35,r*.11,r*.08,"#387b3d");
+  }
+  const mouthX=r*(tree?1.29:1.42),mouthY=bodyY+r*.15;
+  ellipse(mouthX,mouthY,r*(tree?.22:.33),r*(strike?.18:.09),strike?"#522d30":"#466b3f");
+  if(strike){
+   const length=r*(tree?2.45:1.55);
+   line(mouthX,mouthY,mouthX+length,mouthY+(ready?-.2:.12)*r,r*.12,"#ef8e96");
+   ellipse(mouthX+length,mouthY+(ready?-.2:.12)*r,r*.16,r*.14,"#f3b0ae");
+  }
+ }else if(type==="shoebill"){
+  // Long legs, broad wings, enormous thrusting beak.
+  const attack=(o.swing||0)>0,ready=(o.windup||0)>0;
+  const thrust=attack?r*.58:ready?-r*.15:0;
+  const stride=Math.min(1,Math.hypot(o.vx||0,o.vy||0)/95);
+  for(const side of [-1,1]){
+   const footX=-r*.46+Math.sin((o.step||0)*1.6+side*1.5)*r*.33*stride;
+   line(-r*.35,side*r*.35,footX,side*r*1.22,r*.13,"#817c72");
+   for(let digit=-1;digit<=1;digit++)line(footX,side*r*1.22,footX+r*.40,side*r*1.22+digit*r*.14,r*.055,"#817c72");
+  }
+  ellipse(-r*.23,0,r*.86,r*.61,fur);
+  for(const side of [-1,1])ellipse(-r*.23,side*r*.43,r*.62,r*.27,side<0?"#657177":"#929b9c");
+  ellipse(r*.46,0,r*.46,r*.39,light);
+  ellipse(r*.87+thrust*.40,0,r*.43,r*.40,fur);
+  for(const side of [-1,1])ellipse(r*.98+thrust*.40,side*r*.25,r*.065,r*.07,"#f0e4bd");
+  poly([r*1.03+thrust,-r*.23,r*1.92+thrust,-r*.13,r*2.10+thrust,0,r*1.91+thrust,r*.22,r*1.03+thrust,r*.25],"#b5a28a");
+  line(r*1.21+thrust,r*.10,r*1.96+thrust,r*.08,r*.045,"#665c50");
+  ellipse(r*2.02+thrust,0,r*.09,r*.12,"#726352");
+ }else if(type==="otter"){
   // Streamlined swimming mustelid: long tail, webbed feet and low-set ears.
   for(let k=0;k<5;k++)ellipse(-r*(1.15+k*.28),Math.sin(k*.4)*r*.08,r*(.40-k*.065),r*(.29-k*.045),fur);
   for(const side of [-1,1])for(const x of [-r*.65,r*.55])ellipse(x,side*r*.51+pace*.15,r*.29,r*.19,light);
