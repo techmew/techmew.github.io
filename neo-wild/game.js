@@ -825,6 +825,36 @@ function restoreSharedDen(){
  catch(_){notify("食料庫を読み込めません。保存データを保護するため食料操作を控えてください");return false}
  const shared=readSharedDen();
  if(rawPantry!==null&&!shared){
+  // Recover only when an independently verified backup agrees exactly with
+  // the last valid world snapshot. Never guess which divergent copy is newer.
+  try{
+   const backupRaw=localStorage.getItem(SHARED_DEN_BACKUP_KEY);
+   const backup=backupRaw?JSON.parse(backupRaw):null;
+   const world=getAutoSnapshot();
+   const stores=world?.denStores;
+   const validBackup=backup?.version===1&&backup.stores&&
+    ["meat","berries","legacy"].every(k=>Number.isSafeInteger(backup.stores[k])&&backup.stores[k]>=0)&&
+    Array.isArray(backup.meatLots)&&backup.meatLots.length<=80&&
+    backup.meatLots.every(part=>part&&Number.isSafeInteger(part.points)&&part.points>0&&
+      (part.animalType==null||(typeof part.animalType==="string"&&part.animalType.length<64)))&&
+    backup.meatLots.reduce((sum,part)=>sum+part.points,0)===backup.stores.meat;
+   const worldMatches=stores&&["meat","berries","legacy"].every(k=>
+    Number.isSafeInteger(stores[k])&&stores[k]===backup?.stores?.[k]);
+   if(validBackup&&worldMatches){
+    // Keep corrupt bytes for JSON export; a failed write must not lose evidence.
+    const damagedKey="wild-reclaim-shared-den-damaged-v1";
+    localStorage.setItem(damagedKey,rawPantry);
+    if(localStorage.getItem(damagedKey)!==rawPantry)throw Error("damaged pantry archive failed");
+    localStorage.setItem(SHARED_DEN_KEY,backupRaw);
+    if(localStorage.getItem(SHARED_DEN_KEY)!==backupRaw)throw Error("pantry restore failed");
+    denLevel=clamp(Math.max(1,Math.round(Number(backup.level)||1)),1,DEN_MAX_LEVEL);
+    denStores=normalizeDenStores(backup.stores,0);
+    denMeatLots=normalizeMeatLots(backup.meatLots,denStores.meat);
+    syncDenStash();
+    notify("食料庫を検証済みバックアップから復旧しました");
+    return true;
+   }
+  }catch(error){console.warn("WILD RECLAIM: pantry recovery withheld",error)}
   notify("食料庫データが破損しています。上書きせずJSONバックアップを確認してください");
   return false;
  }
