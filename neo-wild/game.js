@@ -903,10 +903,12 @@ function saveSharedDen(){
   notify("食料庫の数量が不正です。保存せずJSONバックアップを確認してください");return false;
  }
  const next=JSON.stringify({version:1,level:denLevel,stores:denStores,meatLots:lots,updatedAt:Date.now()});
+ let previousRaw=null,previousRead=false;
  try{
   // A corrupted or inaccessible authoritative pantry must never be silently
   // replaced with a reconstructed/empty one during eating or withdrawal.
-  const previousRaw=localStorage.getItem(SHARED_DEN_KEY);
+  previousRaw=localStorage.getItem(SHARED_DEN_KEY);
+  previousRead=true;
   if(previousRaw!==null){
    let previous;
    try{previous=JSON.parse(previousRaw)}catch(_){throw Error("pantry JSON damaged")}
@@ -929,7 +931,21 @@ function saveSharedDen(){
   if(localStorage.getItem(SHARED_DEN_KEY)!==next)throw Error("pantry readback mismatch");
   denMeatLots=lots;return true;
  }catch(error){
-  console.warn("WILD RECLAIM: pantry write rejected; previous durable copy retained",error);
+  // Restore only a failed write we can identify. Never overwrite a newer unrelated save.
+  if(previousRead)try{
+   const current=localStorage.getItem(SHARED_DEN_KEY);
+   if(current===next){
+    if(previousRaw===null)localStorage.removeItem(SHARED_DEN_KEY);
+    else localStorage.setItem(SHARED_DEN_KEY,previousRaw);
+    if(localStorage.getItem(SHARED_DEN_KEY)!==previousRaw)throw Error("pantry rollback readback failed");
+   }else if(current!==previousRaw){
+    pantrySaveConflict=true;
+   }
+  }catch(rollbackError){
+   pantrySaveConflict=true;
+   console.warn("WILD RECLAIM: pantry rollback failed",rollbackError);
+  }
+  console.warn("WILD RECLAIM: pantry write rejected; previous durable copy retained when possible",error);
   notify("共通食料庫を保存できません。JSONバックアップを確認してください");
   return false;
  }
