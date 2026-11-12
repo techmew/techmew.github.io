@@ -33,6 +33,22 @@ function findSpawn(P,WORLD,blocked){
  }
  return {x:Math.max(RADIUS+40,Math.min(WORLD.w-RADIUS-40,P.x+800)),y:Math.max(RADIUS+40,Math.min(WORLD.h-RADIUS-40,P.y+480))};
 }
+// Three readable, avoidable attack layouts. Pure runtime state: no save schema changes.
+function planStrikes(mob,player,WORLD){
+ const phase=Math.max(0,Math.floor(Number(mob.worldEndStrikeCount)||0))%3;
+ const baseX=player.x+(Number(player.vx)||0)*.18;
+ const baseY=player.y+(Number(player.vy)||0)*.18;
+ const angle=Math.atan2(player.y-mob.y,player.x-mob.x);
+ const sideX=-Math.sin(angle),sideY=Math.cos(angle);
+ const point=(offset,radius)=>{
+  const margin=radius+12;
+  return {x:Math.max(margin,Math.min(WORLD.w-margin,baseX+sideX*offset)),
+   y:Math.max(margin,Math.min(WORLD.h-margin,baseY+sideY*offset)),radius};
+ };
+ const offsets=phase===0?[[0,190]]:phase===1?[[0,148],[320,148]]:[[0,122],[-270,122],[270,122]];
+ const baseDamage=Math.max(28,Math.min(64,32+Math.floor(Number(mob.worldEndStrikeCount)||0)*2));
+ return {phase,threats:offsets.map(([offset,radius])=>({...point(offset,radius),damage:phase===0?baseDamage:Math.round(baseDamage*.9)}))};
+}
 function makeMob(state){
  const hp=Math.max(1,Math.min(5000,Math.round(Number(state.hp)||3600)));
  return {type:TYPE,x:state.x,y:state.y,r:RADIUS, hp,maxHp:3600,
@@ -41,6 +57,7 @@ function makeMob(state){
   flee:0,fleeEnergy:1,evadeTime:0,evadeCooldown:0,escapeTimer:0,
   strongBoss:true,worldEndBoss:true,worldEndCooldown:3.5,worldEndCharge:0,
   worldEndTargetX:null,worldEndTargetY:null,worldEndStrikeCount:0,
+  worldEndAttackPhase:0,worldEndThreats:[],
   bossBalanceVersion:2,poise:0,poiseLastAt:0,guardBreakUntil:0};
 }
 function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,paused=false}){
@@ -103,16 +120,25 @@ function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,p
  if(mob.worldEndCharge>0){
   mob.worldEndCharge=Math.max(0,mob.worldEndCharge-delta);
   if(mob.worldEndCharge===0){
-   const impact={x:mob.worldEndTargetX,y:mob.worldEndTargetY,radius:190,damage:Math.max(28,Math.min(64,32+mob.worldEndStrikeCount*2))};
-   onImpact?.(mob,impact);
+   // Every drawn warning is also a real collision target; overlapping hits
+   // cannot stack because game.js applies its existing invulnerability window.
+   const attacks=Array.isArray(mob.worldEndThreats)&&mob.worldEndThreats.length?
+    mob.worldEndThreats:[{x:mob.worldEndTargetX,y:mob.worldEndTargetY,radius:190,damage:32}];
+   for(const impact of attacks)onImpact?.(mob,impact);
+   mob.worldEndThreats=[];
    mob.worldEndCooldown=4.7;mob.worldEndStrikeCount++;
   }
  }else if(mob.worldEndCooldown>0)mob.worldEndCooldown=Math.max(0,mob.worldEndCooldown-delta);
  else if(distance<1080){
   mob.worldEndCharge=2.2;
-  mob.worldEndTargetX=P.x+(P.vx||0)*.18;
-  mob.worldEndTargetY=P.y+(P.vy||0)*.18;
-  notify?.("巨大な触手が振り下ろされる！ 範囲から逃げろ",2.2);
+  const attack=planStrikes(mob,P,WORLD);
+  mob.worldEndAttackPhase=attack.phase;
+  mob.worldEndThreats=attack.threats;
+  mob.worldEndTargetX=attack.threats[0].x;
+  mob.worldEndTargetY=attack.threats[0].y;
+  notify?.(["巨大触手の叩きつけ！ 円から離れろ",
+   "二本の触手が落ちる！ 二つの円を避けろ",
+   "八触手の三連衝撃！ 着弾地点から逃げろ"][attack.phase],2.2);
  }
  // Throttled independent HP persistence supports death/reload without a full autosave.
  if(!mob.worldEndSaveAt||elapsed-mob.worldEndSaveAt>=4){
@@ -134,12 +160,34 @@ function defeat(m,year){
 function reset(){try{localStorage.removeItem(KEY);return localStorage.getItem(KEY)===null}catch(_){return false}}
 function drawWarnings(ctx,mobs,elapsed){
  const mob=mobs.find(m=>m?.worldEndBoss&&m.hp>0&&m.worldEndCharge>0);
- if(!mob||!Number.isFinite(mob.worldEndTargetX)||!Number.isFinite(mob.worldEndTargetY))return;
- const x=mob.worldEndTargetX,y=mob.worldEndTargetY,pulse=.5+.5*Math.sin(elapsed*7);
- ctx.save();ctx.strokeStyle=pulse>.5?"#f6a77c":"#db675c";ctx.lineWidth=3.8;
- ctx.setLineDash([20,11]);ctx.beginPath();ctx.arc(x,y,190,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
- ctx.strokeStyle="#efc1a2";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(mob.x,mob.y);
- ctx.quadraticCurveTo((mob.x+x)*.5,(mob.y+y)*.5-100,x,y);ctx.stroke();ctx.restore();
+ if(!mob)return;
+ const threats=Array.isArray(mob.worldEndThreats)&&mob.worldEndThreats.length?
+  mob.worldEndThreats:[{x:mob.worldEndTargetX,y:mob.worldEndTargetY,radius:190}];
+ if(!threats.every(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)&&Number.isFinite(t.radius)))return;
+ const progress=Math.max(0,Math.min(1,1-mob.worldEndCharge/2.2));
+ const pulse=.5+.5*Math.sin(elapsed*9);
+ ctx.save();
+ // Eight living tentacles reach from the original one-eyed colossus to the
+ // marked impact zones, but actual damage remains constrained to those zones.
+ for(let arm=0;arm<8;arm++){
+  const a=arm*Math.PI/4+elapsed*.11,mark=threats[arm%threats.length];
+  const sx=mob.x+Math.cos(a)*mob.r*.65,sy=mob.y+Math.sin(a)*mob.r*.65;
+  ctx.beginPath();ctx.moveTo(sx,sy);
+  ctx.bezierCurveTo(sx+Math.cos(a)*160,sy+Math.sin(a)*160,
+   (sx+mark.x)*.5+Math.sin(elapsed*2+arm)*48,
+   (sy+mark.y)*.5-Math.cos(elapsed*2+arm)*48,mark.x,mark.y);
+  ctx.strokeStyle="rgba(36,12,45,"+(.38+.2*pulse).toFixed(3)+")";
+  ctx.lineWidth=7-arm%3;ctx.stroke();
+ }
+ for(const mark of threats){
+  ctx.beginPath();ctx.arc(mark.x,mark.y,mark.radius,0,Math.PI*2);
+  ctx.fillStyle="rgba(160,27,35,"+(.07+progress*.15).toFixed(3)+")";ctx.fill();
+  ctx.setLineDash([18,9]);ctx.strokeStyle="#ffad80";ctx.lineWidth=3.6;ctx.stroke();
+  ctx.setLineDash([]);ctx.beginPath();
+  ctx.arc(mark.x,mark.y,mark.radius+7,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);
+  ctx.strokeStyle="#ffe2b3";ctx.lineWidth=5;ctx.stroke();
+ }
+ ctx.restore();
 }
-window.WildWorldEnd=Object.freeze({KEY,TYPE,SPAWN_YEAR,RADIUS,read,persist,tick,defeat,reset,drawWarnings,makeMob});
+window.WildWorldEnd=Object.freeze({KEY,TYPE,SPAWN_YEAR,RADIUS,read,persist,tick,defeat,reset,drawWarnings,makeMob,planStrikes});
 })();
