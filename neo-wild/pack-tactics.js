@@ -31,7 +31,9 @@
   for(let i=0;i<group.length;i++)for(let j=i+1;j<group.length;j++){
    const a=Math.atan2(group[i].y-p.y,group[i].x-p.x);
    const b=Math.atan2(group[j].y-p.y,group[j].x-p.x);
-   if(Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))>.62)return true;
+   // A pair on the same side is a pursuit, not an encirclement.
+   // Require genuinely opposed attack angles before warning or dealing damage.
+   if(Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))>=2.1)return true;
   }
   return false;
  }
