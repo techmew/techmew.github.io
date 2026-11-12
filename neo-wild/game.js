@@ -3601,6 +3601,11 @@ function detectsPlayer(m,sp,d){
 // Scripted jump, pounce and dash trajectories are handled by separate update branches.
 function applyDirectionalInput(actor,axis,targetSpeed,dt,foxTurbo=false){
  const inputLength=Math.hypot(axis.x,axis.y);
+ // Heavy carcasses slow normal steering, but never alter permanent animal stats.
+ // Clamp legacy/corrupt amounts; non-meat cargo and companion movement stay unchanged.
+ const haulWeight=actor===P&&P.carry?.type==="meat"?Math.min(8,Math.max(0,Number(P.carry.amount)||0)):0;
+ const haulFactor=haulWeight>0?Math.max(.76,1-haulWeight*.03):1;
+ targetSpeed*=haulFactor;
  const snow=actor===P&&!insideShelter(P)?currentSnowpack():0;
  if(inputLength>.08&&snow>.08){
   // The head faces input immediately; ice delays actual body velocity.
