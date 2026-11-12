@@ -811,7 +811,16 @@ function readSharedDen(){
  }catch(_){return null}
 }
 function restoreSharedDen(){
+ // A damaged durable pantry is not an empty pantry. Preserve its raw bytes
+ // and stop the session from silently treating older world food as authoritative.
+ let rawPantry;
+ try{rawPantry=localStorage.getItem(SHARED_DEN_KEY)}
+ catch(_){notify("食料庫を読み込めません。保存データを保護するため食料操作を控えてください");return false}
  const shared=readSharedDen();
+ if(rawPantry!==null&&!shared){
+  notify("食料庫データが破損しています。上書きせずJSONバックアップを確認してください");
+  return false;
+ }
  if(shared){
   // The shared pantry is a separate durable key. After a crash between its
   // write and the world autosave, the last verified world snapshot wins.
