@@ -825,7 +825,7 @@ function restoreSharedDen(){
  // and stop the session from silently treating older world food as authoritative.
  let rawPantry;
  try{rawPantry=localStorage.getItem(SHARED_DEN_KEY)}
- catch(_){notify("食料庫を読み込めません。保存データを保護するため食料操作を控えてください");return false}
+ catch(_){pantrySaveConflict=true;notify("食料庫を読み込めません。保存データを保護するため食料操作を控えてください");return false}
  const shared=readSharedDen();
  if(rawPantry!==null&&!shared){
   // Recover only when an independently verified backup agrees exactly with
@@ -858,6 +858,7 @@ function restoreSharedDen(){
     return true;
    }
   }catch(error){console.warn("WILD RECLAIM: pantry recovery withheld",error)}
+  pantrySaveConflict=true; // Keep the damaged pantry and world save untouched until verified recovery.
   notify("食料庫データが破損しています。上書きせずJSONバックアップを確認してください");
   return false;
  }
