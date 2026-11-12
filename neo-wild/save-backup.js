@@ -289,8 +289,14 @@ async function importBackup(file,baseline=null){
    // Detect quota/eviction or concurrent-tab writes before removing obsolete keys.
    for(const key of keysNext)if(localStorage.getItem(key)!==merged[key])throw Error("保存内容が途中で変更されました："+key);
    for(const key of keysBefore)if(!Object.prototype.hasOwnProperty.call(merged,key))localStorage.removeItem(key);
-   // A restore is successful only when the final durable snapshot matches the target.
-   for(const key of keysNext)if(localStorage.getItem(key)!==merged[key])throw Error("最終保存検証に失敗："+key);
+   // A restore is successful only when every target key is present AND every
+   // obsolete game key is absent. Some browsers/extensions silently refuse
+   // removeItem; otherwise a removed old roster can reappear on next launch.
+   const finalState=snapshot();
+   if(Object.keys(finalState).length!==keysNext.length||
+      keysNext.some(key=>finalState[key]!==merged[key])||
+      keysBefore.some(key=>!Object.prototype.hasOwnProperty.call(merged,key)&&Object.prototype.hasOwnProperty.call(finalState,key)))
+    throw Error("最終保存検証に失敗：古いデータの残存または保存内容の不一致");
   }catch(error){
    // Best-effort transaction rollback: never knowingly report a partial restore as success.
    try{
