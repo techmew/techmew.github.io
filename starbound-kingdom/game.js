@@ -43,7 +43,7 @@ function setOverlay(kicker,title,desc,buttons,grid=false){
 function hideOverlay(){$("overlay").hidden=true}
 function menu(){
  mode="menu";setOverlay("CLASSIC RUN · JUMP · TRANSFORM","STARBOUND KINGDOM ∞","8 WORLDS × 4 COURSES = 32面。クリア後に裏面32面。9種類の敵、7系統の変身、城のボス、秘密の土管、操作に応じて動く歩行・攻撃アニメーション。",[
- {text:"つづきから",fn:()=>startStage(save.current||1,save.shadow&&save.unlocked===32&&save.current===1)},
+ {text:"つづきから",fn:()=>startStage(save.current||1,!!save.shadow&&!!save.mapShadow)},
  {text:"ステージ選択",fn:showMap,alt:true},
  {text:"はじめから",fn:()=>{save.lives=5;save.coins=0;save.score=0;save.suit="normal";save.inventory=[];startStage(1,false)},alt:true}
  ]);
@@ -62,10 +62,10 @@ function showMap(){
 function newGamePlayer(){
  return {x:90,y:GR-46,w:32,h:46,vx:0,vy:0,dir:1,grounded:false,age:0,air:0,coyote:0,buffer:0,invuln:1.2,starT:0,attackT:0,attackCooldown:0,suit:save.suit||"normal",run:false,duck:false,swimT:0,tailT:0,glide:0,dead:false,anim:"idle"};
 }
-function startStage(n,shadow=false){
+function startStage(n,shadow=false,respawnX=0){
  n=clamp(n,1,32);save.current=n;save.mapShadow=shadow;const w=Math.ceil(n/4),s=(n-1)%4+1;
  level=generate(w,s,shadow);mobs=level.enemies;coins=level.coins;drops=level.drops;hazards=level.hazards;shots=[];particles=[];effects=[];
- p=newGamePlayer();p.suit=save.suit||"normal";p.h=p.suit==="normal"?46:60;p.y=GR-p.h;cam=0;checkpoint=0;transition=0;mode="playing";hideOverlay();announce(stageName(w,s),2.3);saveNow();
+ p=newGamePlayer();p.suit=save.suit||"normal";p.h=p.suit==="normal"?46:60;p.y=GR-p.h;p.x=respawnX||90;cam=Math.max(0,p.x-260);checkpoint=respawnX;transition=0;mode="playing";hideOverlay();announce(stageName(w,s),2.3);saveNow();
 }
 function generate(w,s,sh){
  const rng=randGen(9321+w*1597+s*11319+(sh?91811:0)),len=112+w*9+s*13+(sh?20:0),type=s===4?"fort":s===2?"depth":s===3?"sky":"field";
@@ -160,9 +160,10 @@ function hurt(){if(p.invuln>0||p.starT>0||p.dead||mode!=="playing")return;shake=
  else die();
 }
 function die(){if(p.dead)return;p.dead=true;p.vy=-610;p.vx=0;p.invuln=3;save.lives--;sound.hurt();announce("TRY AGAIN!",1.3);
- if(save.lives<=0){save.lives=5;save.suit="normal";save.current=level.n;saveNow()}
- setTimeout(()=>{if(p&&p.dead){if(save.lives===5&&p.suit==="normal"&&checkpoint===0&&save.score>=0){mode="dead";setOverlay("RETRY THE JOURNEY","CONTINUE?","残機を回復して同じコースから再挑戦。スコア・クリア状況は保存されています。",[{text:"RETRY",fn:()=>startStage(level.n,level.shadow)},{text:"MAP",alt:true,fn:showMap}])}
- else startStage(level.n,level.shadow)}},920);
+ const gameOver=save.lives<=0,respawnX=checkpoint;
+ if(gameOver){save.lives=5;save.suit="normal";save.current=level.n;saveNow()}
+ setTimeout(()=>{if(p&&p.dead){if(gameOver){mode="dead";setOverlay("RETRY THE JOURNEY","CONTINUE?","残機を回復して同じコースから再挑戦。スコア・クリア状況は保存されています。",[{text:"RETRY",fn:()=>startStage(level.n,level.shadow)},{text:"MAP",alt:true,fn:showMap}])}
+ else startStage(level.n,level.shadow,respawnX)}},920);
 }
 function fireAttack(){
  if(p.attackCooldown>0||p.dead)return;
@@ -326,7 +327,7 @@ function update(dt){
  if(!p||!level)return;
  level.time-=dt;shake=Math.max(0,shake-30*dt);screenFlash=Math.max(0,screenFlash-2*dt);toastT=Math.max(0,toastT-dt);
  if(level.time<=0){die();level.time=120;return}
- updatePlayer(dt);for(const m of mobs){if(Math.abs(m.x-p.x)<1300||m.kind==="boss")updateMob(m,dt)}
+ updatePlayer(dt);for(const m of mobs){if(Math.abs(m.x-p.x)<1300)updateMob(m,dt)}
  updateShots(dt);updateLoose(dt);
  cam=mix(cam,clamp(p.x-315,0,Math.max(0,level.len*T-W)),Math.min(1,dt*5.7));
  if(Math.abs(p.x-checkpoint)>1800&&p.x>level.goalX*.48){checkpoint=p.x;announce("CHECKPOINT SAVED")}
