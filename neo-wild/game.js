@@ -6209,6 +6209,41 @@ function rainStrength(type,sky=weather){
  return frog?(sky==="THUNDER"?1.34:1.29):(sky==="THUNDER"?1.28:1.22);
 }
 
+
+ // Water-seeking is an actual wildlife navigation choice, not just a rain stat.
+ // Sample at most once per 1.8 seconds per NPC; reuse the cached refuge.
+ const WETLAND_REFUGE_TYPES=new Set(["frog","giantTreeFrog","pacmanFrog","otter","hippo","crocodile","giantCrocodile","giantHippo","giantAnaconda"]);
+ function wetlandRefuge(m,dt,threat=null){
+  if(!m||!WETLAND_REFUGE_TYPES.has(m.type))return null;
+  const raining=weather==="RAIN"||weather==="THUNDER";
+  const floodNearby=window.WildDisaster?.floodDepth?.(m.x,m.y,elapsed/120)>.04;
+  if(!raining&&!floodNearby)return null;
+  const currentDepth=waterDepth(m.x,m.y);
+  if(currentDepth>.14)return {vx:0,vy:0,inWater:true};
+  m.wetlandSearch=(m.wetlandSearch||0)-dt;
+  if(m.wetlandSearch<=0){
+   m.wetlandSearch=1.8;
+   let best=null,bestScore=-Infinity;
+   const origin=Math.atan2((threat?m.y-threat.y:Math.sin(elapsed+m.x)),(threat?m.x-threat.x:Math.cos(elapsed+m.y)));
+   for(let ring=1;ring<=3;ring++)for(let i=0;i<8;i++){
+    const a=origin+i*Math.PI/4,range=ring*75;
+    const x=m.x+Math.cos(a)*range,y=m.y+Math.sin(a)*range;
+    if(x<45||y<45||x>WORLD.w-45||y>WORLD.h-45||collides(x,y,m.r,null,true))continue;
+    const depth=waterDepth(x,y);
+    if(depth<.06)continue;
+    const score=depth*2.1-ring*.24+(threat?Math.min(1,Math.hypot(x-threat.x,y-threat.y)/280):0);
+    if(score>bestScore){bestScore=score;best={x,y};}
+   }
+   m.wetlandGoal=best;
+  }
+  const goal=m.wetlandGoal;
+  if(!goal||waterDepth(goal.x,goal.y)<.03||Math.hypot(goal.x-m.x,goal.y-m.y)<Math.max(18,m.r))return null;
+  const direction=steerPursuit(m,goal.x,goal.y);
+  m.dir=direction;
+  const speed=(species[m.type]?.speed||75)*.68;
+  return {vx:Math.cos(direction)*speed,vy:Math.sin(direction)*speed,inWater:false};
+ }
+
 function currentSnowpack(){return window.WildWorldClock?.snowpackAt?.(elapsed)||0;}
 /* JMA Tokyo monthly normal days with >=1.0 mm precipitation (1991-2020).
  * A game DAY samples a stable Tokyo-style climate day; rainfall occupies a
@@ -7378,13 +7413,28 @@ function update(dt){
     const calm=!spotted&&m.alert<=0&&m.flee<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0;
     const hunting=!!wildHunt||!!scavenging||!!foraging||(!s.prey&&mobs.some(q=>q!==m&&q.hp>0&&species[q.type].prey&&dist(m,q)<170));
     m.sheltered=insideShelter(m);
-    if(calm&&!hunting){
+    if(calm&&!hunting&&!WETLAND_REFUGE_TYPES.has(m.type)){
      const retreat=followRainShelter(m,s,dt);
      if(retreat){vx=retreat.vx;vy=retreat.vy;}
     }
    }else{
     m.sheltered=false;m.shelterX=null;m.shelterY=null;m.shelterRefresh=0;
     m.shelterDoorX=null;m.shelterDoorY=null;m.shelterPhase=0;
+   }
+   // Aquatic prey escapes towards real water; aquatic predators patrol the
+   // shoreline in wet weather instead of hiding indoors. Active hunting and
+   // combat windups always take precedence over seeking refuge.
+   if(!wildHunt&&!provoked&&!spotted&&m.alert<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0&&
+      (weather==="RAIN"||weather==="THUNDER")){
+    const refuge=wetlandRefuge(m,dt);
+    if(refuge){vx=refuge.vx;vy=refuge.vy;m.sheltered=false;
+     if(refuge.inWater)m.wander=Math.max(m.wander,.6);
+    }
+   }else if(s.prey&&m.flee>0&&WETLAND_REFUGE_TYPES.has(m.type)){
+    const threat=Number.isFinite(m.fleeThreatX)&&Number.isFinite(m.fleeThreatY)?
+     {x:m.fleeThreatX,y:m.fleeThreatY}:P;
+    const refuge=wetlandRefuge(m,dt,threat);
+    if(refuge&&!refuge.inWater){vx=refuge.vx*1.4;vy=refuge.vy*1.4;}
    }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
