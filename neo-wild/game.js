@@ -7398,10 +7398,29 @@ function update(dt){
      vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
     }
    }
+   if(m.type==="frog")m.wetLandingRipple=Math.max(0,(m.wetLandingRipple||0)-dt);
    if(m.type==="frog"&&!provoked&&(weather==="RAIN"||weather==="THUNDER")&&m.flee>0){
     const hunter=nearbyAwareWildPredator(m,150);
     m.wetLeapCooldown=Math.max(0,(m.wetLeapCooldown||0)-dt);
+    const airborneBefore=(m.wetLeapTime||0)>0;
     m.wetLeapTime=Math.max(0,(m.wetLeapTime||0)-dt);
+    if(airborneBefore&&m.wetLeapTime===0){
+     // A wet landing creates a short, real escape window. Predators must
+     // reacquire the frog rather than hitting its pre-leap coordinates.
+     const depth=waterDepth(m.x,m.y);
+     m.wetLandingRipple=depth>.035?.65:.28;
+     m.wetLandingWater=depth>.035;
+     if(depth>.035){
+      for(const q of mobs)if(q!==m&&q.hp>0&&isWildPredator(q)&&dist(q,m)<180&&!lineBlocked(q,m)){
+       if(!["otter","crocodile","giantCrocodile","giantHippo","giantAnaconda"].includes(q.type)){
+        q.wildTarget=null;q.wildTargetId=null;q.search=Math.max(0,(q.search||0)-1.2);
+        q.alert=Math.min(q.alert||0,.45);
+        q.wander=Math.max(q.wander||0,.65);
+       }
+      }
+      if(dist(P,m)<450)label(m.x,m.y-m.r-30,"水面に着地・追跡を振り切る","#a6ebef");
+     }
+    }
     if(hunter&&m.wetLeapCooldown<=0){
      m.wetLeapCooldown=4.1;m.wetLeapTime=.38;m.wetLeapDuration=.38;
      m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
@@ -8537,6 +8556,14 @@ function drawCreature(o,isPlayer){
  if(isPlayer&&P.frogHopLift>0)lift2D(P.frogHopLift);
  if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight);
  if(!isPlayer&&o.type==="frog"&&(o.wetLeapLift||0)>0)lift2D(o.wetLeapLift);
+ // A grounded ring shows where the frog actually landed; fade independent of
+ // body pose so the water escape has readable feedback in Canvas2D.
+ if(!isPlayer&&o.type==="frog"&&(o.wetLandingRipple||0)>0){
+  const phase=1-Math.min(1,o.wetLandingRipple/.65),size=r*(1.05+phase*1.3);
+  ctx.save();ctx.globalAlpha=Math.min(.7,o.wetLandingRipple*1.1);
+  ctx.strokeStyle=o.wetLandingWater?"#9ceaf4":"#b6d5a4";ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(0,r*.38,size,size*.36,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+ }
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  // Stealth alpha was already applied before shadow/body drawing.
  ctx.rotate(o.dir||0);
