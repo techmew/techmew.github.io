@@ -2596,8 +2596,24 @@ function render(o){
      Math.max(.6,radius*.08*pulse),1.3,"#e7aa70",a,5,2);
    }
   }
+  // A landed hit produces brief visible recoil without changing the actual
+  // NPC position, collision body, AI path, or persistent world coordinates.
+  function impactRecoil(m,player){
+   const remaining=Number(m.flash)||0;
+   if(!(remaining>0)||!(Number(m.hp)>0)||m.worldEndBoss)return {x:m.x,y:m.y,dir:m.dir};
+   const phase=clamp(remaining/.24,0,1),impulse=Math.sin(Math.PI*phase);
+   const radius=clamp(Number(m.r)||16,8,90);
+   const angle=Number.isFinite(m.dir)?m.dir:0;
+   const dx=(Number(m.x)||0)-(Number(player?.x)||0),dy=(Number(m.y)||0)-(Number(player?.y)||0);
+   const length=Math.hypot(dx,dy);
+   const nx=length>1?dx/length:Math.cos(angle),ny=length>1?dy/length:Math.sin(angle);
+   const offset=radius*(m.strongBoss?.065:.18)*impulse;
+   return {x:m.x+nx*offset,y:m.y+ny*offset,
+    dir:angle+Math.sin(Math.PI*2*phase)*(m.strongBoss?.035:.11)};
+  }
   for(const m of mobs)if(isVisible(m.x,m.y,m.type==="worldEnd"?640:110)){
-   animal({...m,...species[m.type]},false,elapsed);
+   const recoil=impactRecoil(m,P);
+   animal({...m,...species[m.type],...recoil},false,elapsed);
    drawImpactFlare(m);
   }
   for(const bird of o.birdFlocks||[]){
