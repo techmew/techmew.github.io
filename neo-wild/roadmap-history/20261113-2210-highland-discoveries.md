@@ -1,0 +1,11 @@
+# PHASE A — Highland exploration landmarks and survival rewards (2026-11-13 22:10 JST)
+
+Baseline latest main 624286fedd4e0b6322dce615cba44f3b013c8e22; read last eight commits, newest 21:10 handoff, roadmap-history listing, ROADMAP-RECOVERY.md, game.js original blob 134c3f7a2f74f5cca5c398403e0c0f8cc8a51ca0, mountain.js blob 135ca0ebb62827e5811c33cdef2aab4941dc20e3 and index.html original blob 3562ab212ef40095c11f7b2f6082440fa9902bcf. Original 1 MB ROADMAP preserved.
+
+Gameplay implementation: added four new, physically walkable and discoverable highland locations: northwood (9000,1740), headwater (12520,3100), summit (12220,3850), deepcave (13220,3800). Each is connected to the existing live proximity discovery loop, trophy event, map sites, one-time rewards, and exploration gacha tickets (every second discovery). Rewards: northwood 10% less hunger drain; headwater +2 stamina/second; summit +4% movement speed; deepcave +14 max HP. Hunger/stamina effects wired to live survival tick, speed/HP to live actor and leader transfer. Existing earnedDiscoveries/discoveredSites SAVE_SCHEMA2 and durable world chronicle preserve progression without new save fields. UI placement unchanged. No images.
+
+Code commit 5bc53ed4a7d507882c87756867e9dc5368124045; game.js blob 545a1bf7059f309c56c98b01fd2ac768992c20ca. HTML game.js rev changed from 134c3f7a2f74 to 545a1bf7059f, commit a85a9e7ee40f4b7ebb87357e3332127c9becb7c7; index.html re-fetched and verified.
+
+Tests: full game.js JS syntax compiled; 24 assertions for all four landmark coordinates against actual mountain active and collision code, matching perk definitions, live hunger/stamina loop, leader restoration, discovery/save/gacha integration. These are static integration checks plus mountain geometry mock, not full browser play. Browser/Android physical device and performance untested.
+
+Remaining: verify reachable traversal end-to-end and real rewards on Android; 35-animal quality, richer mountain/forest 2D+3D scenery, hunting/pantry and boss experience, 260 trophies and long-run FPS. Next priority: add substantive mountain exploration visuals and habitat encounters (actual renderer and wildlife interactions), not another small perk patch.
