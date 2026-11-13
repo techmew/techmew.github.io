@@ -922,7 +922,13 @@ function draw2D(ctx,o,r,fur,light,pace){
   poly([hx+r*.32,-r*.20,hx+r*.88,0,hx+r*.32,r*.20],"#dca15c");
   if(hit)line(hx+r*.45,-r*.10,hx+r*.69,r*.14,Math.max(1,r*.07),"#6c492d");
  }else if(type==="badger"){
-  const hit=(o.swing||0)>0||(o.attackAction||0)>0,lean=hit?r*.30:0;
+  const hit=(o.swing||0)>0||(o.attackAction||0)>0;
+  const dig=Math.max(0,Math.min(1,(o.badgerDigPose||0)/.65));
+  const lean=hit?r*(.30+dig*.40):0;
+  if(dig>0)for(const side of [-1,1]){
+   line(r*.50,side*r*.73,r*(1.9+dig*.3),side*r*(.85+dig*.20),Math.max(1,r*.09),"#b8a48b");
+   ellipse(r*(1.7+dig*.3),side*r*.84,r*.15,r*.12,"#b39a76");
+  }
   for(const side of [-1,1])for(const front of [-1,1]){
    const x=front*r*.62+(front>0?lean:0),y=side*r*.57+pace*side*.4;
    ellipse(x,y,r*.29,r*.25,"#554b43");
