@@ -7403,12 +7403,15 @@ function update(dt){
     m.wetLeapCooldown=Math.max(0,(m.wetLeapCooldown||0)-dt);
     m.wetLeapTime=Math.max(0,(m.wetLeapTime||0)-dt);
     if(hunter&&m.wetLeapCooldown<=0){
-     m.wetLeapCooldown=4.1;m.wetLeapTime=.38;
+     m.wetLeapCooldown=4.1;m.wetLeapTime=.38;m.wetLeapDuration=.38;
      m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
      m.swing=Math.max(m.swing||0,.35);
      if(dist(P,m)<480)label(m.x,m.y-m.r-26,"雨の跳躍！","#b7f2d3");
     }
     if(m.wetLeapTime>0){vx=Math.cos(m.dir)*s.speed*2.15;vy=Math.sin(m.dir)*s.speed*2.15;m.flee=Math.max(m.flee,.42);}
+    // Real escape impulse drives the rendered jump in both engines.
+    const phase=1-m.wetLeapTime/Math.max(.001,m.wetLeapDuration||.38);
+    m.wetLeapLift=m.wetLeapTime>0?Math.sin(Math.PI*Math.max(0,Math.min(1,phase)))*Math.min(27,m.r*.95):0;
    }
    if(s.prey&&!provoked&&tryPreyFeint(m,s,d,spotted,dt))continue;
    defendBuffaloHerd(m);
@@ -8533,6 +8536,7 @@ function drawCreature(o,isPlayer){
  if(isPlayer&&P.jumpHeight>baseZ)lift2D(P.jumpHeight-baseZ);
  if(isPlayer&&P.frogHopLift>0)lift2D(P.frogHopLift);
  if(!isPlayer&&(o.evadeHeight||0)>0)lift2D(o.evadeHeight);
+ if(!isPlayer&&o.type==="frog"&&(o.wetLeapLift||0)>0)lift2D(o.wetLeapLift);
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  // Stealth alpha was already applied before shadow/body drawing.
  ctx.rotate(o.dir||0);
