@@ -5,6 +5,11 @@ const KEY="wild_reclaim_disasters_v1",MAX=12,PACE=3,MAX_SIMULTANEOUS=2;
 // Only disaster events and recovery are compressed; the world year and animal lifespans remain unchanged.
 const eventDelay=years=>window.WildWorldClock?.eventIntervalYears?.(years)??years/PACE;
 const retryDelay=()=>eventDelay(1);
+ // A progressively less stable world: schedule attempts get closer with age,
+ // but two simultaneous warnings/events is still the global safety limit.
+ // World year is P.elapsed/120, not the accelerated disaster event year.
+ const hazardIntensity=year=>year>=100?2.75:year>=75?2.25:year>=50?1.8:year>=25?1.35:1;
+ const evolvingDelay=(years,year)=>Math.max(eventDelay(2.3),eventDelay(years)/hazardIntensity(year));
 let events=[],nextYear=eventDelay(5+Math.random()*10),warning=null,lastYear=0;
 let seismicSeconds=0,seismicPhase=0;
 let nextFloodYear=eventDelay(6+Math.random()*9),floodWarning=null,history=[];
@@ -464,7 +469,7 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextYear){
-  if(canSchedule(year)&&!floodWarning&&!fireWarning){nextYear=year+eventDelay(5+Math.random()*10);schedule(api,year);}
+  if(canSchedule(year)&&!floodWarning&&!fireWarning){nextYear=year+evolvingDelay(5+Math.random()*10,year);schedule(api,year);}
   else nextYear=year+retryDelay();
   persist();
  }
@@ -481,7 +486,7 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFloodYear){
-  if(canSchedule(year)&&!warning&&!fireWarning){nextFloodYear=year+eventDelay(5+Math.random()*10);
+  if(canSchedule(year)&&!warning&&!fireWarning){nextFloodYear=year+evolvingDelay(5+Math.random()*10,year);
    if(!scheduleFlood(api,year))nextFloodYear=year+retryDelay();}
   else nextFloodYear=year+retryDelay();persist();
  }
@@ -509,7 +514,7 @@ function tick(dt,api){
    persist();
   }
  }else if(year>=nextFireYear){
-  if(canSchedule(year)&&!warning&&!floodWarning){nextFireYear=year+eventDelay(5+Math.random()*10);
+  if(canSchedule(year)&&!warning&&!floodWarning){nextFireYear=year+evolvingDelay(5+Math.random()*10,year);
    if(!scheduleFire(api,year))nextFireYear=year+retryDelay();}
   else nextFireYear=year+retryDelay();persist();
  }
@@ -519,7 +524,7 @@ function tick(dt,api){
   if(slideWarning.seconds<=0)settleSlide(api,year);
  }else if(year>=nextSlideYear){
   if(canSchedule(year)&&!warning&&!floodWarning&&!fireWarning&&!meteorWarning){
-   if(scheduleSlide(api,year))nextSlideYear=year+eventDelay(12+Math.random()*18);
+   if(scheduleSlide(api,year))nextSlideYear=year+evolvingDelay(12+Math.random()*18,year);
    else nextSlideYear=year+eventDelay(1.5);
   }else nextSlideYear=year+retryDelay();
   persist();
@@ -538,7 +543,7 @@ function tick(dt,api){
   else if(Math.floor(meteorWarning.seconds*2)!==Math.floor((meteorWarning.seconds+dt)*2))persist();
  }else if(year>=nextMeteorYear){
   if(canSchedule(year)&&!warning&&!floodWarning&&!fireWarning){
-   nextMeteorYear=year+eventDelay(65+Math.random()*85);
+   nextMeteorYear=year+evolvingDelay(65+Math.random()*85,year);
    if(!scheduleMeteor(api,year))nextMeteorYear=year+retryDelay();
   }else nextMeteorYear=year+retryDelay();
   persist();
@@ -760,7 +765,7 @@ function quakeShake(now=0){
 }
 window.WildDisaster={tick,draw,quakeShake,blocked,floodDepth,fireIntensity,habitatQuality,history:()=>history.slice(),
  events:()=>[...events,...craters],standingTrees:()=>standingTrees(),fixedTrees:()=>worldTrees?.slice()||[],
- getState:()=>({paceVersion:PACE,events:events.slice(),craters:craters.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,nextSlideYear,slideWarning,history:history.slice()}),
+ getState:()=>({paceVersion:PACE,hazardIntensity:hazardIntensity(lastYear),events:events.slice(),craters:craters.slice(),nextYear,warning,nextFloodYear,floodWarning,nextFireYear,fireWarning,nextMeteorYear,meteorWarning,nextSlideYear,slideWarning,history:history.slice()}),
  resetWorld(){
   // Only an explicit NEW GAME resets the world. Continue/retry retain history.
   events=[];craters=[];history=[];warning=null;floodWarning=null;fireWarning=null;meteorWarning=null;slideWarning=null;
