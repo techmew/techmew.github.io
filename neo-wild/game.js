@@ -5950,8 +5950,9 @@ function wildPreyInterceptPoint(m,prey,sp,distance){
 }
 /* WILD-PREDATOR-CHAIN-V1: Strong predators share real prey, escape, collision and corpse ecology.
  * Giant boars remain grazers. A wild kill never grants player DNA or trophies. */
-const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque","chimpanzee"]);
+const WILD_PREDATOR_TYPES=new Set(["strayCat","wildFox","weasel","raccoonDog","cheetah","lion","venomSnake","snake","giantLizard","dog","alpha","giantSnake","oldBear","blackPanther","oneEyedWolf","whiteTiger","giantHyena","giantLion","giantCrocodile","giantHippo","giantAnaconda","albinoWolf","giantEagle","macaque","chimpanzee","otter"]);
 const WILD_DIETS={
+ otter:["frog","carp","rat"],
  lion:["deer","zebra","boar","serow","mountainGoat"],
  cheetah:["rabbit","deer","serow","mountainGoat"],
  dog:["rabbit","rat","deer","boar"],
@@ -6015,7 +6016,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  } // Inactive hunters must not reserve stale prey.
  const caveScent=MOUNTAIN?.zone(m.x)==="cave";
  const diet=m.apexHunter?null:(WILD_DIETS[m.type]||null);
- const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
+ const maxRangeBase=["strayCat","weasel","snake","venomSnake","macaque","chimpanzee"].includes(m.type)?165:m.type==="otter"?240:m.type==="cheetah"?360:m.type==="lion"?320:m.type==="wildFox"?215:m.type==="albinoWolf"?335:m.type==="giantLizard"?285:m.type==="giantLion"?345:m.type==="blackPanther"?320:m.type==="oneEyedWolf"?315:m.type==="whiteTiger"?335:m.type==="giantHyena"?355:m.type==="giantSnake"?215:m.type==="oldBear"?255:250;
  const maxRange=m.apexHunter?640:caveScent?Math.max(330,maxRangeBase):maxRangeBase;
  let prey=null,best=maxRange,bestScore=Infinity;
  for(const q of mobs){
@@ -6036,6 +6037,12 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   const caveTrail=caveScent&&MOUNTAIN.zone(q.x)==="cave"&&distance<=325;
   const windTrail=distance<=Math.min(maxRange,scentReachTo(m,q)*1.65);
   if(distance>=maxRange||!(caveTrail||windTrail||!lineBlocked(m,q)))continue;
+  if(m.type==="otter"){
+   const wet=weather==="RAIN"||weather==="THUNDER";
+   const waterHunter=waterDepth(m.x,m.y)>.04,waterPrey=waterDepth(q.x,q.y)>.04;
+   if(q.type==="carp"&&(!waterHunter||!waterPrey))continue;
+   if(!wet&&!waterHunter&&!waterPrey)continue;
+  }
   // Nearby cave hunters split live prey instead of crowding one target.
   // Last target coordinates already serialize safely in SAVE_SCHEMA2.
   let claimed=0;
@@ -6053,7 +6060,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
    Number.isFinite(m.wildTargetX)&&Number.isFinite(m.wildTargetY)&&
    Math.hypot(m.wildTargetX-q.x,m.wildTargetY-q.y)<Math.max(36,q.r+sp.speed*.30);
   const chosenDiet=diet?Math.max(0,diet.indexOf(q.type)):0;
-  const score=distance+chosenDiet*17+claimed*68-(tracked?Math.min(65,38+distance*.07):0);
+  const score=distance+chosenDiet*17+claimed*68-(tracked?Math.min(65,38+distance*.07):0)-(m.type==="otter"&&waterDepth(q.x,q.y)>.07?Math.min(65,25+waterDepth(q.x,q.y)*48):0);
   if(score<bestScore){bestScore=score;best=distance;prey=q;}
  }
  if(!prey){m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;return null;}
@@ -6070,8 +6077,8 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  m.dir=steerPursuit(m,intercept.x,intercept.y);
  m.wildTargetX=prey.x;m.wildTargetY=prey.y;m.wildTargetAt=elapsed;
  if(best<m.r+prey.r+20&&(m.wildAttack||0)<=0&&!lineBlocked(m,prey)){
-  m.wildAttack=m.apexHunter?.85:["strayCat","weasel","snake","venomSnake"].includes(m.type)?2.1:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
-  const bite=["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog"].includes(m.type)?Math.max(2,Math.round(sp.damage*.70)):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
+  m.wildAttack=m.apexHunter?.85:["strayCat","weasel","snake","venomSnake"].includes(m.type)?2.1:m.type==="otter"?1.55:m.type==="wildFox"?1.7:m.type==="albinoWolf"?1.38:m.type==="blackPanther"?1.35:m.type==="whiteTiger"?1.4:m.type==="giantLion"?1.55:m.type==="giantHyena"?1.2:m.type==="oneEyedWolf"?1.65:m.type==="giantSnake"?2.1:m.type==="oldBear"?2.0:m.type==="giantLizard"?1.45:m.type==="dog"?1.6:1.8;
+  const bite=["strayCat","wildFox","weasel","snake","venomSnake","raccoonDog","otter"].includes(m.type)?Math.max(2,Math.round(sp.damage*(m.type==="otter"?.88:.70))):m.type==="dog"?Math.max(2,Math.round(sp.damage*.22)):
    m.type==="alpha"?Math.max(5,Math.round(sp.damage*.45)):
    Math.max(6,Math.round(sp.damage*(m.type==="albinoWolf"?.42:m.type==="oldBear"?.32:m.type==="giantSnake"?.35:.38)));
   const swallow=m.apexHunter&&prey.r<=Math.min(35,m.r*.45);
@@ -6104,7 +6111,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  }
  if(m.hp<=0)return null;
  const sprint=(m.huntSprintLeft||0)>0?(m.type==="lion"?1.36:m.type==="cheetah"?1.42:1.14):1;
- const pace=m.apexHunter?1.1:m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
+ const pace=m.apexHunter?1.1:m.type==="otter"?(waterDepth(m.x,m.y)>.04?1.05:.85):m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
  return {vx:Math.cos(m.dir)*sp.speed*pace*sprint,vy:Math.sin(m.dir)*sp.speed*pace*sprint};
 }
 // Choose a real road bridge before generic A* when wildlife crosses open water.
@@ -7390,6 +7397,18 @@ function update(dt){
      m.flee=Math.max(m.flee,1);
      vx=Math.cos(m.dir)*s.speed*1.15;vy=Math.sin(m.dir)*s.speed*1.15;
     }
+   }
+   if(m.type==="frog"&&!provoked&&(weather==="RAIN"||weather==="THUNDER")&&m.flee>0){
+    const hunter=nearbyAwareWildPredator(m,150);
+    m.wetLeapCooldown=Math.max(0,(m.wetLeapCooldown||0)-dt);
+    m.wetLeapTime=Math.max(0,(m.wetLeapTime||0)-dt);
+    if(hunter&&m.wetLeapCooldown<=0){
+     m.wetLeapCooldown=4.1;m.wetLeapTime=.38;
+     m.dir=chooseEscape(m,Math.atan2(m.y-hunter.y,m.x-hunter.x),hunter);
+     m.swing=Math.max(m.swing||0,.35);
+     if(dist(P,m)<480)label(m.x,m.y-m.r-26,"雨の跳躍！","#b7f2d3");
+    }
+    if(m.wetLeapTime>0){vx=Math.cos(m.dir)*s.speed*2.15;vy=Math.sin(m.dir)*s.speed*2.15;m.flee=Math.max(m.flee,.42);}
    }
    if(s.prey&&!provoked&&tryPreyFeint(m,s,d,spotted,dt))continue;
    defendBuffaloHerd(m);
