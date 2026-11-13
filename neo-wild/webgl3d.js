@@ -942,6 +942,7 @@ function drawDistinctWildlife3D(m,clock){
   for(const side of [-1,1])cone(r*.76,side*r*.20,r*.54,r*.10,r*.29,"#7d715d");
   for(let i=0;i<5;i++)orb(-r*(.94+i*.24),Math.sin(i*.3)*r*.07,r*(.40-i*.055),r*.20*(1-i*.14),r*.15*(1-i*.13),r*.15*(1-i*.13),"#746b5a");
  }else if(t==="hedgehog"){
+  const quill=clamp(Number(m.quillPose)||0,0,1);
   for(const front of [-1,1])for(const side of [-1,1]){
    const g=gait(front,side),pose=combatLimbPose(m,front,side,r);orb(front*r*.42+g*r*.12+pose.dx,side*r*.37,r*.19+Math.max(0,g)*r*.10+pose.dz,r*.15,r*.15,r*.20,"#746354");
   }
@@ -953,8 +954,8 @@ function drawDistinctWildlife3D(m,clock){
   for(let i=0;i<11;i++)for(let j=-4;j<=4;j++){
    const a=-r*.78+i*r*.135,b=j*r*.14;
    const spread=Math.sqrt(Math.max(0,1-(b/(r*.79))**2));
-   const z=r*(.69+.40*spread);
-   cone(a,b,z,r*.055,r*(.31+.12*spread),((i+j)&1)?"#e5d6b5":"#433b34");
+   const z=r*(.69+.40*spread+quill*.10);
+   cone(a,b,z,r*.055,r*(.31+.12*spread+quill*.36),((i+j)&1)?"#e5d6b5":"#433b34");
   }
  }else{
   // Hyena: sloping back, raised shoulders, shorter hindquarters and spotted coat.
