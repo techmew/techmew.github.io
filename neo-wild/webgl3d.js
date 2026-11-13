@@ -1717,6 +1717,19 @@ function animal(m,player,clock){
  const terrainZ=window.WildMountain?.height(m.x,m.y)||0;
  const contactZ=(player?Math.max(0,m.groundZ||0):0)+terrainZ;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
+ // Landing marker uses the real AI wetLandingRipple timer and water depth.
+ // Two low-poly concentric rings make the escape landing legible in WebGL.
+ if(!player&&type==="frog"&&(m.wetLandingRipple||0)>0){
+  const t=clamp(1-m.wetLandingRipple/.65,0,1),radius=r*(1.05+t*1.3);
+  const ringColor=m.wetLandingWater?"#82dce7":"#a6cda4";
+  for(let k=0;k<2;k++){
+   const spread=radius*(1-k*.32);
+   for(let a=0;a<8;a++){
+    const angle=a*Math.PI/4;
+    ellipsoid(x+Math.cos(angle)*spread,y+Math.sin(angle)*spread*.43,contactZ+.8,Math.max(1.4,r*.085),Math.max(1.2,r*.065),.6,ringColor,angle,5,2);
+   }
+  }
+ }
  animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0));
  if(!player&&type==="frog")animalLift+=Math.max(0,Number(m.wetLeapLift)||0); // NPC feet and body rise during a real emergency leap.
  if(player&&(type==="giantTreeFrog"||type==="pacmanFrog"))animalLift+=Math.max(0,Number(m.frogHopLift)||0);
