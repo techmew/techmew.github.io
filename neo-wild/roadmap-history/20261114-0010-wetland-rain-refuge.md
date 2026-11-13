@@ -1,0 +1,13 @@
+# PHASE A — wetland ecology under rain and flood (2026-11-14 00:10 JST)
+
+Baseline main HEAD 7881f19a2a6a0e9a98ebf9833ded51da959c6b8d. Retrieved ROADMAP-RECOVERY.md, roadmap-history, recent commits, game.js, disaster-world.js, index.html. Previous run already committed yearly disaster escalation, rain damage/movement modifiers, and multi-UFO tractor fleets; this run extends gameplay rather than redoing them.
+
+Player experience: rain-adapted wild NPCs (frogs, tree frogs, pacman frogs, otters, hippos, crocodiles, aquatic bosses) seek nearby actual water instead of following ordinary rain shelter AI. They choose valid navigable water positions using waterDepth and collides, keep a cached destination for 1.8 seconds to avoid FPS regression, and move with existing steerPursuit + game-loop movement/collision. Threatened amphibian prey preferentially flees toward water. Active combat and predator hunting have priority. Aquatic animals inside actual flood zones no longer panic and run toward dry ground; terrestrial animals still flee, with unchanged flood warning and escape behavior. Neither saves nor player ownership IDs were changed.
+
+Commits: game.js 90d85017994b2c8a059778f28628a0a364e873ec (blob 32e21d1c894351ee7ee405004638e4866c09278c); disaster-world.js 2e30905a406c9ba9bffcc78f6849ea93a90c0eec (blob 5a2ba57c88df39e3cf12e862de1702c0ae988948); index.html cb7720cb2c9b587d9ed83dfed82e72fd448fa664 (blob 47da14a757c71353515656c336716671c9198691). HTML revs: game.js 32e21d1c8943, disaster-world.js 5a2ba57c88df.
+
+Validation: full JS syntax passed for game.js and disaster-world.js. Nine isolated helper/flow checks including frog water-seeking, dry land cat unaffected, amphibian holding water, bounded search sampling, and live NPC game-loop integration. Flood refuge static checks passed. HTML revision readback confirmed in subsequent fresh fetch; initial immediate readback raced GitHub visibility. Browser, WebGL, Android and full-game simulation not performed. Pages deployment should be verified independently.
+
+Remaining: test rain refuge AI with actual wet terrain and moving wildlife in a real browser; tune pathfinding around narrow bridges and floodwater; validate aquatic wild predators against prey and flock behavior. Other high-priority unfinished: 35 species visual/behavior quality, food pantry, boss combat, trophies, performance, multiplayer.
+
+Next: integrated flood-season wildlife hunting/escape test and upgrade actual amphibian predator-versus-prey tactics near water. No user action needed.
