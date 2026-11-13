@@ -461,6 +461,29 @@ function draw2D(ctx,visible){
   ctx.strokeStyle="#b0a68a";ctx.lineWidth=8;ctx.strokeRect(hut.x+4,hut.y+4,hut.w-8,hut.h-8);
   ctx.fillStyle="#426d4a";ctx.beginPath();ctx.ellipse(hut.x+hut.w*.78,hut.y+7,23,11,0,0,Math.PI*2);ctx.fill();
  }
+
+ // Habitat forage is physical food for wildlife, not purely decorative foliage.
+ for(const g of habitatGroves){
+  if(!visible(g.x,g.y,70))continue;
+  if(g.kind==="berry"){
+   ctx.fillStyle="#31583c";for(const [dx,dy] of [[-10,0],[10,-4],[0,-11]]){
+    ctx.beginPath();ctx.ellipse(g.x+dx,g.y+dy,g.r*.63,g.r*.49,0,0,Math.PI*2);ctx.fill();
+   }
+   ctx.fillStyle="#bc5865";for(let i=0;i<5;i++){
+    ctx.beginPath();ctx.arc(g.x+Math.sin(i*2.4)*g.r*.65,g.y+Math.cos(i*2.4)*g.r*.40,2.9,0,Math.PI*2);ctx.fill();
+   }
+  }else if(g.kind==="reeds"){
+   ctx.strokeStyle="#789a70";ctx.lineWidth=3;
+   for(let i=-3;i<=3;i++){ctx.beginPath();ctx.moveTo(g.x+i*3,g.y+7);
+    ctx.lineTo(g.x+i*5,g.y-18-Math.abs(i)*2);ctx.stroke();}
+   ctx.fillStyle="#927c54";for(let i=-2;i<=2;i+=2)ctx.fillRect(g.x+i*5-2,g.y-25-Math.abs(i)*2,4,11);
+  }else{
+   ctx.fillStyle="#9b9c6a";for(let i=-3;i<=3;i++){ctx.beginPath();
+    ctx.ellipse(g.x+i*4,g.y+Math.sin(i)*5,g.r*.37,g.r*.26,0,0,Math.PI*2);ctx.fill();}
+   ctx.fillStyle="#d6c5a0";for(let i=-2;i<=2;i+=2){ctx.beginPath();
+    ctx.arc(g.x+i*5,g.y-4,2.5,0,Math.PI*2);ctx.fill();}
+  }
+ }
  for(const f of ferns){
    if(!visible(f.x,f.y,35))continue;
    ctx.strokeStyle="#42764c";ctx.lineCap="round";ctx.lineWidth=2.8;
@@ -504,8 +527,22 @@ function draw2D(ctx,visible){
   ctx.fillStyle="#315f40";for(const [dx,dy] of [[-15,-16],[16,-16],[0,-30]]){ctx.beginPath();ctx.ellipse(t.x+dx,t.y+dy,t.r*.84,t.r*.7,0,0,Math.PI*2);ctx.fill();}
  }
 }
+
+/* Ecological feeding pockets: accessible world-space forage shared by AI, Canvas and WebGL.
+ * No new NPC population budget, collision blockers or save schema changes. */
+const habitatGroves=[];
+for(let i=0;i<24;i++){
+ const forest=i<10,source=i>=10&&i<17;
+ const x=forest?8650+i*202:source?11000+(i-10)*210:11900+(i-17)*175;
+ const y=forest?northTrail(x)+(i%2?-1:1)*(220+(i%3)*65):
+   source?headwaterY(x)+(i%2?-1:1)*(125+(i%3)*45):
+   center(x)+(i%2?-1:1)*(235+(i%3)*75);
+ if(!active(x,y)||blocked(x,y,12)||headwaterAt(x,y,45))continue;
+ habitatGroves.push(Object.freeze({x,y,z:height(x,y),r:forest?20:source?17:13,
+   kind:forest?"berry":source?"reeds":"alpine",food:forest?1.3:source?1.1:.9}));
+}
 // Renewable food sites are the same visible ferns/heather in both renderers.
-const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,headwater,draw2D});
+const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass,...habitatGroves]);
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,habitatGroves,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,headwater,draw2D});
 window.WildMountain=api;
 })();
