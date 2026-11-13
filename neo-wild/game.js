@@ -7443,13 +7443,13 @@ function update(dt){
    // Aquatic prey escapes towards real water; aquatic predators patrol the
    // shoreline in wet weather instead of hiding indoors. Active hunting and
    // combat windups always take precedence over seeking refuge.
-   if(!wildHunt&&!provoked&&!spotted&&m.alert<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0&&
+   if(!wildHunt&&!provoked&&!spotted&&m.alert<=0&&m.windup<=0&&m.stun<=0&&m.chargeTime<=0&&(m.wetLeapTime||0)<=0&&
       (weather==="RAIN"||weather==="THUNDER")){
     const refuge=wetlandRefuge(m,dt);
     if(refuge){vx=refuge.vx;vy=refuge.vy;m.sheltered=false;
      if(refuge.inWater)m.wander=Math.max(m.wander,.6);
     }
-   }else if(s.prey&&m.flee>0&&WETLAND_REFUGE_TYPES.has(m.type)){
+   }else if(s.prey&&m.flee>0&&(m.wetLeapTime||0)<=0&&WETLAND_REFUGE_TYPES.has(m.type)){
     const threat=Number.isFinite(m.fleeThreatX)&&Number.isFinite(m.fleeThreatY)?
      {x:m.fleeThreatX,y:m.fleeThreatY}:P;
     const refuge=wetlandRefuge(m,dt,threat);
