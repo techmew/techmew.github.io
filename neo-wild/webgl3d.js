@@ -850,7 +850,7 @@ function drawHabitatSpecies3D(m,clock){
  const pos=(x,y)=>[m.x+x*c-y*s,m.y+x*s+y*c];
  const orb=(x,y,z,rx,ry,rz,col)=>{const p=pos(x,y);ellipsoid(p[0],p[1],z,rx,ry,rz,col,a,9,5)};
  const cone=(x,y,z,rad,h,col)=>{const p=pos(x,y);pyramid(p[0],p[1],z,rad,rad,h,col)};
- const motion=clamp(Math.hypot(m.vx||0,m.vy||0)/125,0,1);
+ const motion=clamp(Math.hypot(m.vx||0,m.vy||0)/125,0,1);const dig=clamp((m.badgerDigPose||0)/.65,0,1);
  const beat=(m.step||m.steps||0)*1.6,hit=(m.swing||0)>0||(m.attackAction||0)>0;
  if(t==="otter"){
   const swim=!!m.swimVisual,tail=Math.sin(beat+clock*.42)*r*.16;
@@ -884,7 +884,10 @@ function drawHabitatSpecies3D(m,clock){
   cone(x+r*.49,0,z-r*.21,r*.19,r*.33,"#daa15b");
   if(attack)orb(x+r*.39,0,z-r*.36,r*.25,r*.20,r*.09,"#ae6946");
  }else{
-  const lunge=hit?r*.29:0;
+  const lunge=hit?r*(.29+dig*.32):0;
+  if(dig>0)for(const side of [-1,1]){
+   for(let k=0;k<4;k++)orb(r*(1.20+k*.27),side*r*(.78+k*.06),r*.10,r*.15,r*.11,r*.07,k%2?"#8e745a":"#b29a7d");
+  }
   for(const side of [-1,1])for(const front of [-1,1]){
    const phase=Math.sin(beat+(front===side?0:Math.PI))*motion;
    const foot=front*r*.61+(front>0?lunge:0)+phase*r*.20;
