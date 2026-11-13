@@ -8,6 +8,7 @@ const retryDelay=()=>eventDelay(1);
  // A progressively less stable world: schedule attempts get closer with age,
  // but two simultaneous warnings/events is still the global safety limit.
  // World year is P.elapsed/120, not the accelerated disaster event year.
+ const FLOOD_ADAPTED=new Set(["frog","giantTreeFrog","pacmanFrog","otter","hippo","crocodile","carp","penguin","giantCrocodile","giantHippo","giantAnaconda"]);
  const hazardIntensity=year=>year>=100?2.75:year>=75?2.25:year>=50?1.8:year>=25?1.35:1;
  const evolvingDelay=(years,year)=>Math.max(eventDelay(2.3),eventDelay(years)/hazardIntensity(year));
 let events=[],nextYear=eventDelay(5+Math.random()*10),warning=null,lastYear=0;
@@ -495,6 +496,14 @@ function tick(dt,api){
   for(const m of api.mobs||[])if(m?.hp>0){
    const depth=floodDepth(m.x,m.y,year);
    if(depth<=.1)continue;
+   // Amphibians and aquatic animals exploit flooding instead of fleeing it.
+   // Land species still retreat; no new death or save schema side effects.
+   if(FLOOD_ADAPTED.has(m.type)){
+    m.flee=Math.max(0,(m.flee||0)-dt*.8);
+    m.fleeThreatX=null;m.fleeThreatY=null;
+    m.resting=false;m.restTime=0;
+    continue;
+   }
    m.flee=Math.max(m.flee||0,2.0+depth*2);
    m.fleeThreatX=e.x;m.fleeThreatY=e.y;
    m.resting=false;m.restTime=0;m.foragePose=0;
