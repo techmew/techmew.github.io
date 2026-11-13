@@ -2920,6 +2920,63 @@ function recordSealGuardianDefeat(m){
  notify("封印の巨獣を討伐：食料"+delivered+"個・生命回復・ガチャ報酬",4);
  saveAuto();
 }
+// Three actual cave traversal caches. Persistent ledger is committed before
+// granting supplies, preventing repeated collection after reload or death.
+const CAVE_ROUTE_KEY="wild-reclaim-cave-route-v1";
+const CAVE_ROUTE_STOPS=[
+ {id:"entrance",x:13098,name:"洞窟入口の物資",food:"berries",amount:32},
+ {id:"narrows",x:13194,name:"落石の狭道",food:"meat",amount:42},
+ {id:"depths",x:13375,name:"洞窟最奥の備蓄",food:"meat",amount:64}
+];
+let caveRouteClock=0;
+function caveRouteProgress(){
+ try{
+  const parsed=JSON.parse(localStorage.getItem(CAVE_ROUTE_KEY)||"null");
+  if(parsed===null)return [];
+  if(parsed?.version!==1||!Array.isArray(parsed.found))return null;
+  return parsed.found.filter(id=>CAVE_ROUTE_STOPS.some(stop=>stop.id===id));
+ }catch(_){return null;}
+}
+function caveRouteTick(dt){
+ caveRouteClock+=Math.max(0,Number(dt)||0);
+ if(caveRouteClock<.35||!P||mode!=="play"||!MOUNTAIN||P.hp<=0||
+    MOUNTAIN.zone(P.x)!=="cave")return;
+ caveRouteClock=0;
+ const found=caveRouteProgress();
+ if(!found)return; // Preserve unreadable records; never reset them.
+ for(const stop of CAVE_ROUTE_STOPS){
+  if(found.includes(stop.id))continue;
+  const y=MOUNTAIN.center(stop.x);
+  if(Math.hypot(P.x-stop.x,P.y-y)>75)continue;
+  if(found.length!==CAVE_ROUTE_STOPS.indexOf(stop))continue;
+  if(collides(stop.x,y,12)||waterBlocksLand(stop.x,y))continue;
+  const next={version:1,found:[...found,stop.id]};
+  try{
+   const encoded=JSON.stringify(next);
+   localStorage.setItem(CAVE_ROUTE_KEY,encoded);
+   if(localStorage.getItem(CAVE_ROUTE_KEY)!==encoded)throw Error("cave route readback");
+  }catch(_){notify("洞窟の探索記録を保存できず、報酬を保留");return;}
+  // Hazardous middle section causes a real stamina penalty and startles prey.
+  if(stop.id==="narrows"){
+   P.sp=Math.max(0,P.sp-22);
+   shake=Math.max(shake,3);
+   startleCaveWildlife(P,260,6);
+   notify("落石の狭道を突破！ スタミナを消耗した",3);
+  }
+  if(carcasses.length<280){
+   carcasses.push({x:stop.x,y,r:12,amount:stop.amount,type:stop.food,
+    animalType:stop.food==="meat"?"oldBear":null,ttl:420,phase:0});
+  }
+  totalScore+=100+next.found.length*80;
+  label(P.x,P.y-P.r-36,stop.name+" 発見","#d8f3bf");
+  if(next.found.length===3){
+   awardGameplayGachaTicket("cave","route-complete");
+   notify("洞窟探検達成：食料・得点・ガチャ権を獲得",4);
+  }else notify(stop.name+"を発見。食料を回収し奥へ進め",3);
+  saveAuto();
+  return;
+ }
+}
 let apexHunterNextAt=0;
 function maintainBossHunter(){
  if(!P?.bossIndividualId||mode!=="play"||elapsed>=100*120||debugTutorialSession)return;
@@ -6945,6 +7002,7 @@ function update(dt){
  }
  updateBirdFlocks(dt);
  tickCaveSeal(dt);
+ caveRouteTick(dt);
  for(const site of EXPLORE_SITES)if(!discoveredSites.includes(site.id)&&dist(P,site)<125){
   discoveredSites.push(site.id);
   awardDiscovery(site.id);
@@ -9588,6 +9646,7 @@ function resetWorldHistoryForNewGame(){
  localStorage.setItem(WORLD_CHRONICLE_KEY,JSON.stringify(fresh));
  localStorage.removeItem("wild-reclaim-ufo-abduction-history-v1");
  localStorage.removeItem(CAVE_SEAL_KEY);
+ localStorage.removeItem(CAVE_ROUTE_KEY);caveRouteClock=0;
  // An explicitly new world cannot retain an unresolved kill from the previous world.
  localStorage.removeItem(window.WildBossRoster?.PENDING||"wild-reclaim-boss-pending-v1");
  caveSealTickClock=0;caveSealNoticeAt=-100;
