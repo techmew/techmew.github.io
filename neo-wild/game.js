@@ -486,7 +486,11 @@ const EXPLORE_SITES=[
  {id:"forest",x:1550,y:4380,name:"楠の森",note:"食料は豊富だが足元が見えにくい"},
  {id:"factory",x:4380,y:4260,name:"汐浜の廃工場",note:"高い足場と廃機械の残骸"},
  {id:"canal",x:7000,y:4850,name:"潮見の水路",note:"水路沿いの獣道"},
- {id:"ark",x:5520,y:2170,name:"山影の地下道入口",note:"都市の旧設備から異音が聞こえる"}
+ {id:"ark",x:5520,y:2170,name:"山影の地下道入口",note:"都市の旧設備から異音が聞こえる"},
+ {id:"northwood",x:9000,y:1740,name:"北の原生林",note:"獣道を越えて食料を見つける"},
+ {id:"headwater",x:12520,y:3100,name:"高地の水源",note:"川を上流までたどった者だけが知る水場"},
+ {id:"summit",x:12220,y:3850,name:"白峰の展望台",note:"雪の山頂で世界の広がりを見渡す"},
+ {id:"deepcave",x:13220,y:3800,name:"奥山の洞窟",note:"危険な暗闇の奥に残る生存の知恵"}
 ];
 const START_LOCATIONS={
  home:{x:1860,y:1170,name:"霞町・草陰の巣"},
@@ -503,7 +507,11 @@ const DISCOVERY_PERKS={
  forest:{name:"草地への適応",description:"空腹の進行 -20%"},
  factory:{name:"廃都の脚力",description:"走力 +5%"},
  canal:{name:"悪天候への適応",description:"雨の移動減速を軽減"},
- ark:{name:"研ぎ澄まされた本能",description:"固有能力の再使用 -15%"}
+ ark:{name:"研ぎ澄まされた本能",description:"固有能力の再使用 -15%"},
+ northwood:{name:"森の採食術",description:"空腹の進行をさらに10%軽減"},
+ headwater:{name:"源流の持久力",description:"スタミナ回復 +2/秒"},
+ summit:{name:"山稜の脚力",description:"移動速度 +4%"},
+ deepcave:{name:"洞窟の生存力",description:"最大生命 +14"}
 };
 function awardDiscovery(id,quiet=false){
  if(!P||earnedDiscoveries.includes(id)||!DISCOVERY_PERKS[id])return false;
@@ -514,6 +522,10 @@ function awardDiscovery(id,quiet=false){
  if(id==="factory")P.speed=Math.round(P.speed*1.05);
  if(id==="canal")P.rainGrip=true;
  if(id==="ark")P.instinctBonus=true;
+ if(id==="northwood")P.northwoodPerk=true;
+ if(id==="headwater")P.headwaterPerk=true;
+ if(id==="summit")P.speed=Math.round(P.speed*1.04);
+ if(id==="deepcave"){P.maxHp+=14;P.hp=Math.min(P.maxHp,P.hp+14)}
  if(!quiet)notify("発見報酬："+DISCOVERY_PERKS[id].name+"（"+DISCOVERY_PERKS[id].description+"）");
  return true;
 }
@@ -1076,7 +1088,7 @@ function updateSurvivalNeeds(dt){
  // so a malformed item cannot cause instant starvation or NaN vitals.
  const meatLoad=carryingMeat?clamp(Number(P.carry.amount)||0,0,8):0;
  const meatLoadDrain=carryingMeat?1.10+Math.min(.25,meatLoad*.04):1;
- const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*traitEffect("giantHyena",1)*seniorNeed*meatLoadDrain;
+ const drain=(.38+Math.min(Math.max(0,day-1),24)*.035)*dt*(P.foragePerk?.80:1)*(P.northwoodPerk?.90:1)*traitEffect("giantHyena",1)*seniorNeed*meatLoadDrain;
  if(carryingMeat&&before>20&&before-drain<=20&&P.hp>0)
   notify("肉を運搬中：空腹が危険域です。巣に運ぶか食事を優先");
  P.hunger=clamp(before-drain,0,100);
@@ -6885,7 +6897,7 @@ function update(dt){
  }
  // Holding the upper face button automatically advances the five-hit chain.
  if((heldActions.touchAttack||heldActions.padAttack)&&P.atk<=0&&!P.pendingStrike&&P.sp>=5)attack();
- P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
+ P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+(P.headwaterPerk?2:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
  P.stun=Math.max(0,(P.stun||0)-dt);
  if(FLYING_PLAYABLES.has(P.type)&&P.flying){
   if(P.sp<=3)P.flightLanding=true;
@@ -9732,6 +9744,9 @@ function applySquadLeader(writeSnapshot=true){
  const perks=new Set(earnedDiscoveries);
  if(perks.has("zoo")){P.maxHp+=12;P.hp=Math.min(P.maxHp,P.hp+12);}
  if(perks.has("factory"))P.speed=Math.round(P.speed*1.05);
+ if(perks.has("summit"))P.speed=Math.round(P.speed*1.04);
+ if(perks.has("deepcave")){P.maxHp+=14;P.hp=Math.min(P.maxHp,P.hp+14)}
+ P.northwoodPerk=perks.has("northwood");P.headwaterPerk=perks.has("headwater");
  P.riverPerk=perks.has("river");P.foragePerk=perks.has("forest");
  P.rainGrip=perks.has("canal");P.instinctBonus=perks.has("ark");
  initializeLife(P,elapsed,false);
