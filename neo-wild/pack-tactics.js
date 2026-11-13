@@ -22,7 +22,8 @@
  }
  function membersNear(p,mobs,packId,canSee){
   return mobs.filter(m=>m&&m.hp>0&&m.packId===packId&&
-   (m.alert||0)>0&&distance(m,p)<195&&canSee(m,p));
+   (m.alert||0)>0&&(m.stun||0)<=0&&(m.evadeTime||0)<=0&&
+   distance(m,p)<195&&canSee(m,p));
  }
  function surrounded(p,mobs,packId,canSee){
   if(!p||p.hidden||!packId)return false;
@@ -44,6 +45,8 @@
   if(state.tell>0){
    if(!surrounded(p,mobs,state.packId,canSee)){
     state.tell=0;state.packId=null;state.cooldown=Math.max(state.cooldown,4.5);
+    // A successful counterattack that stuns a flanker breaks the trap,
+    // exactly like leaving the ring or escaping behind cover.
     events.escape?.();return "escaped";
    }
    state.tell=Math.max(0,state.tell-step);
