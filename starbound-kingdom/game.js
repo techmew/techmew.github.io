@@ -68,39 +68,39 @@ function startStage(n,shadow=false,respawnX=0){
  p=newGamePlayer();p.suit=save.suit||"normal";p.h=p.suit==="normal"?46:60;p.y=GR-p.h;p.x=respawnX||90;cam=Math.max(0,p.x-260);checkpoint=respawnX;transition=0;mode="playing";hideOverlay();announce(stageName(w,s),2.3);saveNow();
 }
 function generate(w,s,sh){
- const rng=randGen(9321+w*1597+s*11319+(sh?91811:0)),len=112+w*9+s*13+(sh?20:0),type=s===4?"fort":s===2?"depth":s===3?"sky":"field";
+ const rng=randGen(9321+w*1597+s*11319+(sh?91811:0)),mainLen=112+w*9+s*13+(sh?20:0),len=mainLen+38,type=s===4?"fort":s===2?"depth":s===3?"sky":"field";
  const map=Array.from({length:12},()=>new Uint8Array(len)),gaps=[],pipes=[],enemies=[],levelCoins=[],levelDrops=[],levelHazards=[];
  const pitAt=x=>gaps.some(q=>x>=q.x&&x<q.x+q.w);
  if(type!=="fort"){
-  for(let x=15;x<len-22;){x+=8+Math.floor(rng()*8);
-   if(x>len-22)break;const width=1+Math.floor(rng()*(sh?4:3));gaps.push({x,w:Math.min(width,3)})}
+  for(let x=15;x<mainLen-22;){x+=8+Math.floor(rng()*8);
+   if(x>mainLen-22)break;const width=1+Math.floor(rng()*(sh?4:3));gaps.push({x,w:Math.min(width,3)})}
  }
- if(w===6||w===8)for(let x=30;x<len-25;x+=32+Math.floor(rng()*12))if(!pitAt(x))gaps.push({x,w:2+(sh?1:0)});
- for(let x=0;x<len;x++){if(pitAt(x))continue;map[10][x]=1;map[11][x]=1}
+ if(w===6||w===8)for(let x=30;x<mainLen-25;x+=32+Math.floor(rng()*12))if(!pitAt(x))gaps.push({x,w:2+(sh?1:0)});
+ for(let x=0;x<mainLen;x++){if(pitAt(x))continue;map[10][x]=1;map[11][x]=1}
  if(type==="fort"){
-  for(let x=0;x<len;x++){map[0][x]=4;if(x%9<7){map[1][x]=4;map[2][x]=0}}
-  for(let x=9;x<len-11;x+=17){for(let q=0;q<3;q++)map[8][x+q]=4}
+  for(let x=0;x<mainLen;x++){map[0][x]=4;if(x%9<7){map[1][x]=4;map[2][x]=0}}
+  for(let x=9;x<mainLen-11;x+=17){for(let q=0;q<3;q++)map[8][x+q]=4}
  }
- for(let x=10;x<len-15;x+=8+Math.floor(rng()*9)){
+ for(let x=10;x<mainLen-15;x+=8+Math.floor(rng()*9)){
    if(pitAt(x)||pitAt(x+1))continue;
    const y=type==="sky"?(6+Math.floor(rng()*3)):(6+Math.floor(rng()*3));
    const width=2+Math.floor(rng()*5);
-   for(let i=0;i<width;i++){const tx=x+i;if(tx<len-10&&!pitAt(tx)){map[y][tx]=rng()<.23?3:(type==="fort"?4:2)}}
+   for(let i=0;i<width;i++){const tx=x+i;if(tx<mainLen-10&&!pitAt(tx)){map[y][tx]=rng()<.23?3:(type==="fort"?4:2)}}
    if(rng()<.42){for(let j=0;j<4;j++)levelCoins.push({x:(x+j)*T+24,y:(y-1)*T-4,w:20,h:23,t:0,dead:false})}
  }
- for(let x=19;x<len-23;x+=13+Math.floor(rng()*12)){
+ for(let x=19;x<mainLen-23;x+=13+Math.floor(rng()*12)){
   if(type==="fort"||pitAt(x)||pitAt(x+1)||pitAt(x+2))continue;
   if(rng()<.56){pipes.push({x:x*T,y:GR-(rng()<.55?96:144),w:96,h:rng()<.55?96:144,bonus:rng()<.23,entered:false});
    const last=pipes[pipes.length-1];last.h=GR-last.y;
   }
  }
  // Short stairs create spatial rhythm; all required jumps remain within the available jump arc.
- for(let x=28;x<len-25;x+=37+Math.floor(rng()*13)){if(pitAt(x+1)||pitAt(x+2))continue;
+ for(let x=28;x<mainLen-25;x+=37+Math.floor(rng()*13)){if(pitAt(x+1)||pitAt(x+2))continue;
   for(let z=0;z<3;z++){for(let j=0;j<=z;j++){const ty=9-j,tx=x+z;if(!map[ty][tx])map[ty][tx]=4}}
  }
  const kinds=w===1?["walker","beetle","walker","flyer"]:w===2?["walker","spike","thrower","beetle"]:w===3?["beetle","flyer","walker","thrower"]:w===4?["fish","flyer","walker","beetle"]:w===5?["spike","beetle","flyer","thrower"]:w===6?["flyer","thrower","beetle","walker"]:w===7?["ghost","thrower","spike","flyer"]:["thrower","spike","launcher","flyer"];
- for(let x=12;x<len-14;x+=5+Math.floor(rng()*4)-(sh?1:0)){
-  if(pitAt(x)||x>len-16&&s===4)continue;
+ for(let x=12;x<mainLen-14;x+=5+Math.floor(rng()*4)-(sh?1:0)){
+  if(pitAt(x)||x>mainLen-16&&s===4)continue;
   const kind=choose(kinds,rng);
   const fly=kind==="flyer"||kind==="ghost"||kind==="fish";
   const ew=kind==="thrower"?42:kind==="launcher"?48:kind==="spike"?40:36;
@@ -108,13 +108,24 @@ function generate(w,s,sh){
    vx:0,vy:0,dir:rng()<.5?-1:1,age:rng()*TAU,phase:0,shot:1+rng()*2,hp:kind==="thrower"?2:1,grounded:false,dead:false,home:x*T,stun:0,shell:false,alert:0});
  }
  for(const pipe of pipes){if(rng()<.45)enemies.push({kind:"plant",x:pipe.x+29,y:pipe.y-45,w:38,h:43,vx:0,vy:0,dir:1,age:0,phase:rng()*TAU,shot:2,dead:false,hp:1,home:pipe.y-45,alert:0})}
- if(s===4)enemies.push({kind:"boss",x:(len-16)*T,y:GR-94,w:84,h:94,vx:0,vy:0,dir:-1,age:0,phase:0,shot:2.2,hp:w===8?(sh?12:9):(sh?7:5),grounded:false,dead:false,home:(len-16)*T,stun:0,alert:0});
- for(let x=9;x<len-6;x+=3+Math.floor(rng()*5)){if(!pitAt(x)&&rng()<.72)levelCoins.push({x:x*T+16,y:GR-118-Math.floor(rng()*3)*34,w:22,h:24,t:rng()*TAU,dead:false})}
- for(let x=24;x<len-18;x+=26+Math.floor(rng()*9)){if(!pitAt(x)){const kinds=["grow","fire","leaf","frog","hammer","cloak","star"];
+ if(s===4)enemies.push({kind:"boss",x:(mainLen-16)*T,y:GR-94,w:84,h:94,vx:0,vy:0,dir:-1,age:0,phase:0,shot:2.2,hp:w===8?(sh?12:9):(sh?7:5),grounded:false,dead:false,home:(mainLen-16)*T,stun:0,alert:0});
+ for(let x=9;x<mainLen-6;x+=3+Math.floor(rng()*5)){if(!pitAt(x)&&rng()<.72)levelCoins.push({x:x*T+16,y:GR-118-Math.floor(rng()*3)*34,w:22,h:24,t:rng()*TAU,dead:false})}
+ for(let x=24;x<mainLen-18;x+=26+Math.floor(rng()*9)){if(!pitAt(x)){const kinds=["grow","fire","leaf","frog","hammer","cloak","star"];
   levelDrops.push({x:x*T,y:GR-145,w:33,h:34,kind:kinds[(w+s+Math.floor(rng()*4))%kinds.length],age:rng()*6,vy:0,dead:false,float:true})}}
- for(let x=19;x<len-18;x+=17+Math.floor(rng()*13)){if(pitAt(x))continue;if(rng()<.6)levelHazards.push({kind:w===8||type==="fort"?"flame":"spike",x:x*T,y:GR-(w===8?32:22),w:48,h:w===8?32:22,age:rng()*TAU,cycle:rng()*TAU})}
+ for(let x=19;x<mainLen-18;x+=17+Math.floor(rng()*13)){if(pitAt(x))continue;if(rng()<.6)levelHazards.push({kind:w===8||type==="fort"?"flame":"spike",x:x*T,y:GR-(w===8?32:22),w:48,h:w===8?32:22,age:rng()*TAU,cycle:rng()*TAU})}
+ // Hidden vault exists outside the public goal. Every secret pipe visits this sealed bonus chamber.
+ const roomStart=(mainLen+7)*T,roomExit=(mainLen+32)*T;
+ for(let x=mainLen+5;x<=mainLen+34;x++){
+  map[10][x]=4;map[11][x]=4;
+  if(x===mainLen+5||x===mainLen+34)for(let y=3;y<10;y++)map[y][x]=4;
+  if(x!==mainLen+6&&x!==mainLen+33)map[3][x]=4;
+ }
+ for(let i=0;i<21;i++){
+  levelCoins.push({x:roomStart+60+i*44,y:GR-110-Math.sin(i*.8)*40,w:22,h:24,t:i*.22,dead:false,secretOnly:true});
+ }
+ levelDrops.push({x:roomStart+800,y:GR-160,w:33,h:34,kind:"star",age:0,vy:0,dead:false,float:true,secretOnly:true});
  const bg=palette[w-1];
- return {w,s,n:(w-1)*4+s,shadow:sh,type,len,map,gaps,pipes,enemies,coins:levelCoins,drops:levelDrops,hazards:levelHazards,theme:bg,goalX:(len-6)*T,time:Math.max(280,390-w*9),bossCleared:s!==4,secret:false,secretT:0,secretBack:0,rng};
+ return {w,s,n:(w-1)*4+s,shadow:sh,type,len,map,gaps,pipes,enemies,coins:levelCoins,drops:levelDrops,hazards:levelHazards,theme:bg,goalX:(mainLen-6)*T,roomStart,roomExit,mainLen,time:Math.max(280,390-w*9),bossCleared:s!==4,secret:false,secretT:0,secretBack:0,rng};
 }
 function solidRects(x,y,w,h){
  const a=[],left=clamp(Math.floor(x/T)-1,0,level.len-1),right=clamp(Math.floor((x+w)/T)+1,0,level.len-1),top=clamp(Math.floor(y/T)-1,0,11),bottom=clamp(Math.floor((y+h)/T)+1,0,11);
@@ -178,9 +189,8 @@ function fireAttack(){
 }
 function useInventory(){if(!save.inventory||!save.inventory.length)return;const k=save.inventory.shift();spawnDrop(p.x+8,p.y-65,k);saveNow();announce("ITEM: "+labelSuit(k))}
 function beginBonus(pipe){
- if(level.secret)return;level.secret=true;level.secretT=18;level.secretBack=p.x;p.x=Math.min(level.goalX-500,p.x+450);p.y=GR-p.h-50;p.vy=-180;cam=Math.max(0,p.x-220);
- for(let i=0;i<12;i++)coins.push({x:p.x+60+i*36,y:GR-130-Math.sin(i*.7)*40,w:22,h:23,t:i*.2,dead:false});
- announce("SECRET COIN VAULT · 18 SEC",2.3);sound.power();
+ if(level.secret)return;level.secret=true;level.secretT=21;level.secretBack=p.x;p.x=level.roomStart+18;p.y=GR-p.h-22;p.vy=0;p.vx=0;cam=Math.max(0,p.x-220);
+ announce("SECRET COIN VAULT · 21 SEC",2.3);sound.power();
 }
 function endBonus(){level.secret=false;level.secretT=0;p.x=level.secretBack;p.y=GR-p.h-20;p.vx=0;p.vy=0;cam=Math.max(0,p.x-300);announce("SECRET COMPLETE!");}
 function updatePlayer(dt){
@@ -208,19 +218,19 @@ function updatePlayer(dt){
  if((p.suit==="leaf"||p.suit==="cloak")&&jump&&p.vy>0){grav=270;p.vy=Math.min(p.vy,150);p.glide+=dt}else p.glide=0;
  p.vy=clamp(p.vy+grav*dt,-920,underwater?470:1100);
  moveBody(p,dt,true);
- if(level.secret){level.secretT-=dt;if(level.secretT<=0)endBonus()}
+ if(level.secret){level.secretT-=dt;if(level.secretT<=0||p.x>level.roomExit-65)endBonus()}
  if(down){const pipe=level.pipes.find(q=>Math.abs(p.x+p.w/2-q.x-q.w/2)<33&&Math.abs(p.y+p.h-q.y)<10&&q.bonus&&!q.entered);
   if(pipe){pipe.entered=true;beginBonus(pipe)}}
  if(p.y>H+220)die();
- if(p.x>=level.goalX&&(!level.bossCleared?mobs.every(e=>e.kind!=="boss"||e.dead):true)){clearStage()}
+ if(!level.secret&&p.x>=level.goalX&&(!level.bossCleared?mobs.every(e=>e.kind!=="boss"||e.dead):true)){clearStage()}
  if(p.tailT>0)for(const m of mobs){if(m.dead)continue;const area={x:p.dir>0?p.x+p.w-3:p.x-80,y:p.y+5,w:83,h:p.h+12};if(hit(area,m)){damageMob(m,1,p.dir*400)}}
  for(const m of mobs){if(m.dead||m.stun>0)continue;if(!hit({x:p.x+4,y:p.y+5,w:p.w-8,h:p.h-5},m))continue;
   if(p.starT>0){damageMob(m,10,p.dir*350);continue}
   if(p.vy>80&&p.y+p.h-m.y<29&&m.kind!=="spike"&&m.kind!=="plant"&&m.kind!=="ghost"){
    damageMob(m,m.kind==="boss"?1:1,p.dir*40);p.vy=-455;p.grounded=false;sound.stomp();burst(m.x+m.w/2,m.y,7,"#f5e9b2",160);
   }else hurt()}
- for(const c of coins){if(!c.dead&&hit(p,c))getCoin(c)}
- for(const d of drops){if(!d.dead&&hit(p,d))pick(d)}
+ for(const c of coins){if(!c.dead&&(!c.secretOnly||level.secret)&&hit(p,c))getCoin(c)}
+ for(const d of drops){if(!d.dead&&(!d.secretOnly||level.secret)&&hit(p,d))pick(d)}
  for(const h of hazards){const active=h.kind==="spike"||Math.sin(h.age*3.2+h.cycle)>.12;
   if(active&&hit(p,{x:h.x+8,y:h.y+3,w:h.w-16,h:h.h-5}))hurt()}
 }
@@ -348,6 +358,11 @@ function cloud(x,y,k=1,alpha=1){
 }
 function drawBackground(){
  const a=level.theme,t=clock,sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,a.sky[0]);sky.addColorStop(1,a.sky[1]);rect(0,0,W,H,sky);
+ if(level.secret){
+  const cave=g.createLinearGradient(0,0,0,H);cave.addColorStop(0,"#0b1934");cave.addColorStop(1,"#364979");rect(0,0,W,H,cave);
+  for(let i=0;i<14;i++){const x=(i*150-cam*.17)%1100;poly([[x,-5],[x+55,0],[x+30,95+i%3*33]],"#5879a85f");circ(x+52,200+i%5*40,3+i%4,"#a9f5e3")}
+  return;
+ }
  if(level.shadow){rect(0,0,W,H,"#17122a54");for(let i=0;i<33;i++)circ((i*173+67)%W,(i*71)%290,1.4+i%3*.5,"#edddff")}
  const day=level.w===7||level.w===8;
  circ(760-(cam*.012)%60,105,day?48:56,day?"#ffc399":"#fff6d1");
@@ -386,14 +401,15 @@ function drawPipes(){
  rect(x,y,q.w,28,"#143e54");rect(x+4,y+3,q.w-8,20,c);rect(x+9,y+5,13,14,"#b7ffd093");rect(x+q.w-16,y+5,10,15,"#00000033");
  if(q.bonus){g.font="bold 15px system-ui";g.textAlign="center";g.fillStyle="#fff5bc";g.fillText("▼",x+q.w/2,y-13)}
  }
+ if(level.secret){const x=level.roomExit-cam;rect(x,GR-96,80,96,"#163c60");rect(x+4,GR-96,72,18,"#75d6b0");g.fillStyle="#fff0c4";g.textAlign="center";g.font="bold 21px system-ui";g.fillText("EXIT ▶",x+38,GR-116)}
 }
 function drawCoins(){
- for(const c of coins){const x=c.x-cam+10,y=c.y+10+Math.sin(c.t*4)*3;if(x<-30||x>W+30)continue;
+ for(const c of coins){if(c.secretOnly&&!level.secret)continue;const x=c.x-cam+10,y=c.y+10+Math.sin(c.t*4)*3;if(x<-30||x>W+30)continue;
  g.save();g.translate(x,y);g.scale(Math.max(.16,Math.abs(Math.cos(c.t*2.2))),1);circ(0,0,12,"#b77728");circ(-1,-2,10,"#ffdb68");rect(-2,-8,4,14,"#fff6bf");g.restore();
  }
 }
 function drawDrops(){
- for(const d of drops){const x=d.x-cam,y=d.y+Math.sin(d.age*3)*3;if(x<-70||x>W+70)continue;
+ for(const d of drops){if(d.secretOnly&&!level.secret)continue;const x=d.x-cam,y=d.y+Math.sin(d.age*3)*3;if(x<-70||x>W+70)continue;
  g.save();g.translate(x+17,y+17);
  const col={grow:"#ff866f",fire:"#ffca68",leaf:"#74d19a",frog:"#58d1bf",hammer:"#a9c0ec",cloak:"#bd9fe6",star:"#fff073"}[d.kind]||"#ffd572";
  circ(0,0,18,"#24405e");circ(0,0,15,col);circ(-5,-5,4,"#ffffff9c");
