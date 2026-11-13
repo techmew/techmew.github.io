@@ -2161,6 +2161,25 @@ function mountainTerrain(isVisible){
     pyramid(f.x+k*f.r*.35,f.y-k*2,f.z,4.5,3.5,17+Math.abs(k)*2,
       k%2?"#477a4e":"#639264");
   }
+
+ // Identical living forage pockets in the GPU scene and the ecology food index.
+ for(const g of m.habitatGroves||[]){
+  if(!isVisible(g.x,g.y,95))continue;
+  if(g.kind==="berry"){
+   for(const [dx,dy] of [[-10,0],[9,-5],[0,-11]])
+    ellipsoid(g.x+dx,g.y+dy,g.z+9,g.r*.66,g.r*.57,12,"#356746",0,8,5);
+   for(let i=0;i<5;i++)ellipsoid(g.x+Math.sin(i*2.4)*g.r*.65,g.y+Math.cos(i*2.4)*g.r*.4,
+    g.z+13,3.1,3.1,3.1,"#b95063",0,6,4);
+  }else if(g.kind==="reeds"){
+   for(let i=-3;i<=3;i++){
+    pyramid(g.x+i*4,g.y+i*2,g.z,3.1,2.7,24+Math.abs(i)*3,"#78966a");
+    if(i%2===0)ellipsoid(g.x+i*4,g.y+i*2,g.z+23,3.5,3.5,8,"#9b825c",0,6,4);
+   }
+  }else{
+   for(let i=-3;i<=3;i++)ellipsoid(g.x+i*4,g.y+Math.sin(i)*5,g.z+4,6,5,6,"#87956b",0,7,4);
+   for(let i=-2;i<=2;i+=2)ellipsoid(g.x+i*5,g.y-4,g.z+10,3,3,3,"#d5c7a0",0,6,4);
+  }
+ }
   for(const h of m.heather){if(!isVisible(h.x,h.y,75))continue;
    for(let k=-3;k<=3;k++)pyramid(h.x+k*3,h.y-k*2,h.z,2.7,2.3,12+Math.abs(k)*2,k%2?"#729b75":"#557e64");
   }
