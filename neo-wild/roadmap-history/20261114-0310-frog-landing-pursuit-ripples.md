@@ -1,0 +1,9 @@
+# 2026-11-14 03:10 JST — amphibian water landing and counterplay
+Baseline main HEAD 2e3fa44b1bbd23c4c87d714bd60264decce41eb7. Reviewed recent commits, roadmap-history, ROADMAP-RECOVERY.md, current game.js, webgl3d.js and index.html blob SHAs.
+Player experience: real wild frog rainy escape leap now lands on the actual terrain and creates a short water-dependent pursuit break: nearby terrestrial predators lose stale tracking and search intensity; aquatic hunters retain pursuit. Dry landing does not break tracking. Canvas2D and WebGL draw grounded expanding ripple rings driven by actual landing timer. Existing rain, flood, predator escape and AI update loop remain in use; not a decorative-only addition.
+Commits: game.js f15ea4052c60cb1c7dbe7cabea6b814342af6400 (blob 180b3f53458bfefc8728f514c902419fa6ab90d7), webgl3d.js f33de0a74c7b9f57f11e665710205c90ad047d45 (blob 00e9300749c0d958506a664397d27e01194048fe), HTML rev 2aca5e611d58ef6141f50653bd82d9edc515220b. Readback confirmed HTML and script revs.
+Tests: complete JavaScript parse for game.js and webgl3d.js PASS, 8 integration assertions PASS, 7 isolated live landing fragment mock tests PASS (water/dry/terrestrial/aquatic/single-shot). No real browser, Android, or FPS test performed.
+Preserved: main UI layout, SAVE_SCHEMA2, permanent dead/released IDs, 3 normal + 3 boss roster slots, old 4/5 record, 100-year event, no image generation.
+Known limitations: aquatic hunter categories and target reacquisition need live browser evaluation; 3D ring performance with many simultaneous frogs not measured. Broad incomplete features: 35 animals, den food store, terrain, final boss, 260 trophies, four-player.
+Next specific item: move to a different large category; improve 35-species distinct combat/animation, starting with an unfinished terrestrial species after reviewing latest quality history.
+User action: none.
