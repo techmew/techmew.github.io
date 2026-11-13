@@ -2572,8 +2572,33 @@ function render(o){
   }
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
+  // The combat loop sets flash only on a real hit; missed attacks have no flare.
+  // Capped low-poly shapes preserve mobile GPU budgets.
+  function drawImpactFlare(m){
+   const remaining=Number(m.flash)||0;
+   if(remaining<=0||m.hp<=0)return;
+   const progress=clamp(1-remaining/.24,0,1);
+   const radius=clamp(Number(m.r)||16,10,100);
+   const ground=Number(m.groundZ)||0;
+   const x=m.x,y=m.y,z=ground+Math.max(8,radius*.6);
+   const spread=radius*(.68+progress*.75),pulse=1-progress;
+   const tint=m.strongBoss?"#ffc986":"#ffdf9b";
+   ellipsoid(x,y,z,Math.max(.6,radius*.24*pulse),Math.max(.6,radius*.24*pulse),Math.max(.6,radius*.24*pulse),"#fff5ce",0,7,3);
+   for(let k=0;k<6;k++){
+    const a=k*Math.PI/3+progress*.25,px=x+Math.cos(a)*spread,py=y+Math.sin(a)*spread;
+    ellipsoid(px,py,z+Math.sin(a*2)*radius*.12,
+     Math.max(.6,radius*.12*pulse),Math.max(.6,radius*.09*pulse),
+     Math.max(.7,radius*.20*pulse),tint,a,5,3);
+   }
+   for(let k=0;k<8;k++){
+    const a=k*Math.PI/4,px=x+Math.cos(a)*spread,py=y+Math.sin(a)*spread;
+    ellipsoid(px,py,ground+2,Math.max(.6,radius*.08*pulse),
+     Math.max(.6,radius*.08*pulse),1.3,"#e7aa70",a,5,2);
+   }
+  }
   for(const m of mobs)if(isVisible(m.x,m.y,m.type==="worldEnd"?640:110)){
    animal({...m,...species[m.type]},false,elapsed);
+   drawImpactFlare(m);
   }
   for(const bird of o.birdFlocks||[]){
    if(!isVisible(bird.x,bird.y,170))continue;
