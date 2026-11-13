@@ -16,7 +16,11 @@
   for(const [back,lateral] of [[38,138],[75,95],[30,65]]){
    const x=p.x-Math.cos(heading)*back-Math.sin(heading)*side*lateral;
    const y=p.y-Math.sin(heading)*back+Math.cos(heading)*side*lateral;
-   if(canStand(x,y,m.r||18))return {x,y};
+   // Spread flankers across usable lanes instead of stacking on one point.
+   // Ignore the leader: it is expected to pressure the player from the front.
+   const crowded=mobs.some(q=>q&&q!==m&&q.hp>0&&q.packId===m.packId&&q.packOrder>0&&
+    Math.hypot((q.x||0)-x,(q.y||0)-y)<Math.max(38,(m.r||18)+(q.r||18)+10));
+   if(!crowded&&canStand(x,y,m.r||18))return {x,y};
   }
   return null;
  }
