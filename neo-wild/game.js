@@ -2901,7 +2901,24 @@ function recordSealGuardianDefeat(m){
  if(area){area.predators=Math.max(3,area.predators-2);area.pressure=Math.max(0,area.pressure-2);area.events=(area.events||0)+1;}
  ecologyNews="封印の巨獣が倒れ、地域の群れが再び動き始めた";
  caveSealIncident("defeated",year);
- notify("封印の巨獣を討伐。世界年表に記録された",4);
+ // A real survival reward: recoverable cave provisions, not a cosmetic score.
+ // The seal ledger is committed before any reward; failed persistence grants nothing.
+ const caveLoot=[{dx:-58,dy:48,amount:42,type:"meat"},{dx:0,dy:66,amount:36,type:"meat"},{dx:58,dy:48,amount:28,type:"berries"}];
+ let delivered=0;
+ for(const loot of caveLoot){
+  const x=clamp(m.x+loot.dx,35,WORLD.w-35),y=clamp(m.y+loot.dy,35,WORLD.h-35);
+  if(carcasses.length>=280||collides(x,y,13)||waterBlocksLand(x,y))continue;
+  carcasses.push({x,y,r:12,amount:loot.amount,type:loot.type,
+   animalType:loot.type==="meat"?m.type:null,ttl:420,phase:0});
+  delivered++;
+ }
+ totalScore+=600;
+ P.hp=Math.min(P.maxHp,P.hp+Math.max(10,Math.round(P.maxHp*.18)));
+ P.sp=Math.min(100,P.sp+30);
+ awardGameplayGachaTicket("cave","seal-guardian-defeated");
+ label(m.x,m.y-70,"洞窟制覇 +600","#e6d6a6");
+ notify("封印の巨獣を討伐：食料"+delivered+"個・生命回復・ガチャ報酬",4);
+ saveAuto();
 }
 let apexHunterNextAt=0;
 function maintainBossHunter(){
