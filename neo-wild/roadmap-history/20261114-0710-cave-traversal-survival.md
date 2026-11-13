@@ -1,0 +1,11 @@
+# 2026-11-14 07:10 JST — cave traversal survival expedition
+
+Baseline HEAD 6d963688c924d7303d47946247421fbe6d9c80f5. Read ROADMAP-RECOVERY.md, current history directory, 06:10 handoff, recent commits, game.js blob ea2aadf0ee51f3861ba5860cae35f4f2e1e1d7a2 and mountain.js blob addb3bdfff8493685c8cb94cfad237a312022cb2. Previous work already supplied guardian defeat loot; this run adds a separate exploration loop.
+
+Game commit 6c3118f996bba364e18a9a88947d649456ad1377 (blob 84bcf3e16de205aca098441cc5c75016d34950aa): three sequential real cave traversal locations (entrance, rockfall narrows, depths) use the actual MOUNTAIN cave coordinates and player position. A real food pickup spawns at each visited site using the existing carcass pickup/eat/den pipeline; a narrow passage reduces stamina by 22 and startles up to six prey through their existing flee AI. The last stop grants one existing gacha ticket and score. Each step has a separate persistent v1 discovery ledger, with readback required before rewards; corrupt ledger remains untouched and no reward is granted. Explicit NEW GAME resets only this new route ledger; no changes to death/release ownership, UI, SAVE_SCHEMA2 or 100-year boss.
+
+HTML revision commit 0348aab3305e7234eba6a34bd44e254ad29a1aae; index.html re-read confirms game.js?rev=84bcf3e16de2.
+
+Verification: full game.js syntax parse succeeded; 11 structural integration assertions; 10 live cave module mock checks including sequential progress, one-time reward, hazard stamina, no duplicate pickup, quota failure, corrupt record. No real browser, Android, 2D/WebGL or long-run FPS verification. New route food uses existing world rendering, not a new art asset. Cave loot placement is guarded by actual collision and food cap; real terrain placement should be play-tested.
+
+Remaining: verify cave traversal and loot pickup on device, examine save consistency if autosave fails after separate ledger commit, add more meaningful cave environmental obstacles and enemy behaviors; broader animal quality, pantry, final boss and co-op remain. Next priority: 35-animal unfinished roster quality or cave hazard visual/physical gameplay based on newest history. User action: none.
