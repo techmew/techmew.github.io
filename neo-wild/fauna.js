@@ -604,7 +604,7 @@ function draw2D(ctx,o,r,fur,light,pace){
    ellipse(r*.58,0,r*(.32-shell*.16),r*.20,"#76604c");
    for(const side of [-1,1])ellipse(-r*.58,side*r*.52,r*.19,r*.15,"#5b4b3c");
    ctx.restore();
-   return;
+   return true;
   }
   // Domed segmented armor and tapered head.
   for(const side of [-1,1])for(const x of [-r*.57,r*.50])ellipse(x,side*r*.62+pace*.1,r*.24,r*.18,"#67594c");
