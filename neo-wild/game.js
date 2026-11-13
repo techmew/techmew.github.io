@@ -4712,6 +4712,7 @@ function attack(){
  if(P.type==="penguin")P.flipperStrike=.45;
  if(P.type==="giantTreeFrog"||P.type==="pacmanFrog")P.frogTonguePose=Math.max(P.frogTonguePose||0,step===5?.66:.48);
  if(P.type==="rhino")P.hornCharge=step===5?.47:.23;
+ if(P.type==="badger"&&step===5)P.badgerDigPose=.65;
  emitCombatFX("normal",P.type,"melee",P.x,P.y,P.dir,step===5?1.3:1.0,step,P.r);
  window.WildAudio?.playAnimal?.(P.type,{ultimate:false});P.rushActiveStep=step;P.rushQueued=false;
   P.atk=(P.type==="penguin"?.26:P.rate)*(step===5?1.15:step===4?1.08:1);P.rushWindow=P.atk+.45;
@@ -4814,7 +4815,7 @@ function resolveAttack(aerialContact=null){
    const manulAmbush=P.type==="manul"&&silentHit;
    const foxPreySnap=P.type==="tibetanFox"&&small&&P.abilityTime>0;
    const billStrike=P.type==="shoebill"&&P.beakStrike;
-   const speciesPower=(manulAmbush?(small?2.05:1.55):1)*(foxPreySnap?1.58:1)*(billStrike?(small?2.24:1.85):1)*(P.type==="crocodile"&&[3,5].includes(P.rushActiveStep)?1.21:1)*(P.type==="rhino"&&P.rushActiveStep===5?1.28:1)*(P.type==="gorilla"&&P.rushActiveStep===5?1.17:1);
+   const speciesPower=(manulAmbush?(small?2.05:1.55):1)*(foxPreySnap?1.58:1)*(billStrike?(small?2.24:1.85):1)*(P.type==="crocodile"&&[3,5].includes(P.rushActiveStep)?1.21:1)*(P.type==="rhino"&&P.rushActiveStep===5?1.28:1)*(P.type==="gorilla"&&P.rushActiveStep===5?1.17:1)*(P.type==="badger"&&P.rushActiveStep===5&&!dive?1.58:1);
    const rawDamage=Math.max(1,Math.round(P.damage*rainStrength(P.type)*RUSH_POWER[P.rushActiveStep||1]*bonus*speciesPower*rnd(.86,1.16)));
    // Armadillos react to the first strike by curling into a timed defensive shell.
    // A committed aerial ambush can crack the shell; ordinary rush hits cannot.
@@ -4847,6 +4848,13 @@ function resolveAttack(aerialContact=null){
    m.flash=.16;m.alert=Math.max(3,m.alert||0);m.lastX=P.x;m.lastY=P.y;
    m.reactiveUntil=Math.max(m.reactiveUntil||0,elapsed+2.3);
    m.search=0;if(!species[m.type].prey)m.flee=0;
+   const badgerRake=P.type==="badger"&&P.rushActiveStep===5&&!dive;
+   if(badgerRake&&m.hp>0&&!m.strongBoss&&!lineBlocked(P,m)){
+    m.stun=Math.max(m.stun||0,species[m.type]?.prey?.68:.43);
+    m.staggerGuard=Math.max(m.staggerGuard||0,.65);
+    label(m.x,m.y-m.r-35,"地面を掻く爪撃！","#f1d4a3");
+    blood(m.x,m.y,"#bd9a6a",5,48);
+   }
    const heavy=silentHit||dive||wolfCharge||P.beakStrike||P.rushActiveStep===5;
    const gap=COMBAT_LEVELS?.gap(m.type,P.level)||0;
    const bossBroken=m.strongBoss?bossPoiseBreak(m,damage,heavy):false;
@@ -7035,7 +7043,7 @@ function update(dt){
   P.bellySlide=Math.max(0,(P.bellySlide||0)-dt);
   P.hornCharge=Math.max(0,(P.hornCharge||0)-dt);
   for(const k of ["macaqueThrowPose","gorillaSlamPose","elephantStompPose","lionRoarPose","deathRollPose","flipperStrike"])P[k]=Math.max(0,(P[k]||0)-dt);
- P.attackAction=Math.max(0,(P.attackAction||0)-dt);
+ P.attackAction=Math.max(0,(P.attackAction||0)-dt);P.badgerDigPose=Math.max(0,(P.badgerDigPose||0)-dt);
  tickCombatFX(dt);
  P.shoebillSwingTime=Math.max(0,(P.shoebillSwingTime||0)-dt);
  if((P.specialWindup||0)>0){
