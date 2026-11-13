@@ -478,7 +478,8 @@ function drawStrongAnimal3D(m,clock){
 // Rush 1=left front, 2=right front, 4=left rear, 5=both front.
 function combatLimbPose(m,front,side,r){
  const step=m.attackActionStep||m.rushActiveStep||0;
- const strike=Math.sin(Math.PI*clamp((m.attackAction||0)/.45,0,1));
+ const action=clamp(Number(m.attackAction)||0,0,.45),progress=1-action/.45;
+ const strike=Math.sin(Math.PI*progress);
  const ultimate=Math.sin(Math.PI*clamp((m.specialVisual||0)/1.02,0,1));
  const normal=(step===1&&front>0&&side<0)||(step===2&&front>0&&side>0)||
   (step===4&&front<0&&side<0)||(step===5&&front>0);
@@ -490,8 +491,16 @@ function combatLimbPose(m,front,side,r){
  const airborne=m.jumpDive&&m.jumpTime>0&&front>0&&
   ["cat","manul","fox","tibetanFox","wolf","dog","wildDog","lion","tiger","cheetah","hyena"].includes(m.type)?
   Math.max(0,Math.sin(Math.PI*clamp(1-m.jumpTime/Math.max(.1,m.jumpDuration||.45),0,1)))*.58:0;
+ // Species-specific attack follow-through: claw swipe, hoof snap, heavy strike.
+ // Geometry only: collision, attack timing and save data are unchanged.
+ const hooved=["deer","serow","boar","mountainGoat","zebra","giraffe"].includes(m.type);
+ const heavy=!!m.strongBoss||["bear","blackBear","elephant","hippo","gorilla"].includes(m.type);
+ const style=hooved?.76:heavy?.58:1;
+ const recovery=normal&&action>0&&progress>.65?
+  Math.sin(Math.PI*clamp((progress-.65)/.35,0,1))*style:0;
  const force=Math.min(.85,(normal?strike*.66:0)+(special?ultimate*.70:0)+airborne);
- return {dx:r*force,dz:r*force*.52};
+ const retract=normal?recovery*(heavy?.17:hooved?.26:.34):0;
+ return {dx:r*(force-retract),dz:r*(force*.52+recovery*(hooved?.18:.11))};
 }
 function drawCommonAnimal3D(m,clock){
  const t=m.type==="venomSnake"?"snake":m.type;
