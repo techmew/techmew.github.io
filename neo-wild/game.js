@@ -2365,7 +2365,7 @@ function updateAquaticStrong(m,s,dt){
   m.aquaticStrike=false;m.swing=.3;
   const facing=Math.atan2(Math.sin(angle-(m.strikeDir||0)),Math.cos(angle-(m.strikeDir||0)));
   if(d<profile.reach+P.r&&Math.abs(facing)<.92&&!lineBlocked(m,P)&&(P.jumpHeight||0)<22&&P.inv<=0){
-   const damage=strongDamageTaken(Math.round(s.damage*profile.damage*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+   const damage=strongDamageTaken(Math.round(s.damage*rainStrength(m.type)*profile.damage*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
    P.lastCombatAt=elapsed;P.hp-=damage;interruptRush();P.inv=.45;shake=10;flash=.25;
    label(P.x,P.y-35,"水辺 -"+damage,"#ff9890");blood(P.x,P.y,"#eb6356",12,110);
    playEffect("damage");applyStrongStrikeEffect(m,angle,false);
@@ -2383,11 +2383,11 @@ function updateAquaticStrong(m,s,dt){
   const lateral=m.type==="giantAnaconda"?Math.sin(elapsed*2.8)*.65:0;
   const approach=m.type==="giantCrocodile"&&d>230?.28:m.type==="giantHippo"?1.65:1;
   m.dir=angle+lateral;
-  aquaticMove(m,Math.cos(m.dir)*s.speed*approach*dt,Math.sin(m.dir)*s.speed*approach*dt);
+  aquaticMove(m,Math.cos(m.dir)*s.speed*approach*rainStrength(m.type)*dt,Math.sin(m.dir)*s.speed*approach*rainStrength(m.type)*dt);
  }else{
   m.wander=(m.wander||0)-dt;
   if(m.wander<=0){m.dir+=rnd(-1.6,1.6);m.wander=rnd(.8,2.4);}
-  aquaticMove(m,Math.cos(m.dir)*s.speed*.22*dt,Math.sin(m.dir)*s.speed*.22*dt);
+  aquaticMove(m,Math.cos(m.dir)*s.speed*.22*rainStrength(m.type)*dt,Math.sin(m.dir)*s.speed*.22*rainStrength(m.type)*dt);
  }
  m.vx=(m.x-previousX)/Math.max(.001,dt);m.vy=(m.y-previousY)/Math.max(.001,dt);
  m.step=(m.step||0)+Math.hypot(m.vx,m.vy)*dt*.05;
@@ -4741,7 +4741,7 @@ function resolveAttack(aerialContact=null){
    const foxPreySnap=P.type==="tibetanFox"&&small&&P.abilityTime>0;
    const billStrike=P.type==="shoebill"&&P.beakStrike;
    const speciesPower=(manulAmbush?(small?2.05:1.55):1)*(foxPreySnap?1.58:1)*(billStrike?(small?2.24:1.85):1)*(P.type==="crocodile"&&[3,5].includes(P.rushActiveStep)?1.21:1)*(P.type==="rhino"&&P.rushActiveStep===5?1.28:1)*(P.type==="gorilla"&&P.rushActiveStep===5?1.17:1);
-   const rawDamage=Math.max(1,Math.round(P.damage*RUSH_POWER[P.rushActiveStep||1]*bonus*speciesPower*rnd(.86,1.16)));
+   const rawDamage=Math.max(1,Math.round(P.damage*rainStrength(P.type)*RUSH_POWER[P.rushActiveStep||1]*bonus*speciesPower*rnd(.86,1.16)));
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
    const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
@@ -6202,6 +6202,13 @@ function steerPursuit(m,tx,ty){
  return desired+Math.PI*.65*m.avoidSide;
 }
 const WEATHER_NAMES={CLEAR:"晴れ",CLOUDY:"曇り",RAIN:"雨",THUNDER:"雷雨",FOG:"霧",WIND:"強風",SNOW:"雪"};
+const RAIN_ADAPTED_TYPES=new Set(["frog","giantTreeFrog","pacmanFrog","otter","hippo","crocodile","carp","penguin","shoebill","giantCrocodile","giantHippo","giantAnaconda"]);
+function rainStrength(type,sky=weather){
+ if((sky!=="RAIN"&&sky!=="THUNDER")||!RAIN_ADAPTED_TYPES.has(type))return 1;
+ const frog=type==="frog"||type==="giantTreeFrog"||type==="pacmanFrog";
+ return frog?(sky==="THUNDER"?1.34:1.29):(sky==="THUNDER"?1.28:1.22);
+}
+
 function currentSnowpack(){return window.WildWorldClock?.snowpackAt?.(elapsed)||0;}
 /* JMA Tokyo monthly normal days with >=1.0 mm precipitation (1991-2020).
  * A game DAY samples a stable Tokyo-style climate day; rainfall occupies a
@@ -7030,7 +7037,7 @@ function update(dt){
     P.sp=Math.max(0,P.sp-(43+16*carryBurden)*dt);
     if(P.sp<=10)P.sprintExhausted=true;
    }
-   const target=P.speed*(1-.24*carryBurden)*(P.flying?1.35:1)*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
+   const target=P.speed*(1-.24*carryBurden)*(P.flying?1.35:1)*(sneaking?.34:1)*(P.pendingStrike?.7:1)*boost*(sprinting?1.62:1)*(P.type==="shoebill"&&waterDepth(P.x,P.y)>.0001?.79:1)*(P.type==="otter"&&fishWaterAt(P.x,P.y)?1.20:P.type==="hippo"&&fishWaterAt(P.x,P.y)?.77:1)*rainStrength(P.type)*traction*(P.strongSlow>0?traitEffect("giantAnaconda",.54):1)*(P.hauntedTime>0?.72:1);
    if(ghostSteering){
     // Steering belongs entirely to the ghost; physical collisions still apply.
     P.ghostWanderClock=(P.ghostWanderClock||0)-dt;
@@ -7215,7 +7222,7 @@ function update(dt){
      const aimDelta=Math.atan2(Math.sin(angle-(m.cornerDir||0)),Math.cos(angle-(m.cornerDir||0)));
      if(d<biteRange&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)&&Math.abs(aimDelta)<1.2){
       const base=m.type==="rat"?2:m.type==="rabbit"?4:m.type==="pigeon"?2:m.type==="crow"?4:m.type==="frog"?1:4;
-      const damage=Math.max(1,Math.round(base*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+      const damage=Math.max(1,Math.round(base*rainStrength(m.type)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
       P.hp=Math.max(0,P.hp-damage);P.inv=.28;P.lastCombatAt=elapsed;
       if(m.type==="crow")P.strongWound=Math.max(P.strongWound||0,.45);
       if(m.type==="rabbit")move(P,Math.cos(angle)*9,Math.sin(angle)*9);
@@ -7393,7 +7400,7 @@ function update(dt){
        const dir=m.strikeDir,rx=m.x+Math.cos(dir)*m.r*.9,ry=m.y+Math.sin(dir)*m.r*.9;
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
       }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dStrike<reach&&(overlap||Math.abs(delta)<(m.attackVariation?.arc||.92))&&(overlap||!lineBlocked(m,P))){
-       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
+       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*rainStrength(m.type)*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
        {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);applyOrdinaryStrikeEffect(m,aim);
@@ -7426,6 +7433,7 @@ function update(dt){
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
    if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow"||m.type==="deer")&&m.defenseTell>0)||m.cornerTell>0){vx=0;vy=0;}
+   const wetSpeed=rainStrength(m.type);vx*=wetSpeed;vy*=wetSpeed;
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
    if(charging){
     const ddx=m.x-ox,ddy=m.y-oy,denom=ddx*ddx+ddy*ddy;
@@ -7433,7 +7441,7 @@ function update(dt){
     if(!m.chargeHit&&(P.jumpHeight||0)<22&&denom>1&&Math.hypot(P.x-ox-t*ddx,P.y-oy-t*ddy)<Math.max(12,P.r*.72+m.r*.68)&&((P.x-ox)*Math.cos(m.chargeDir)+(P.y-oy)*Math.sin(m.chargeDir))>=-Math.min(P.r,m.r)*.35&&!lineBlocked(m,P)){
      m.chargeHit=true;m.chargeTime=0;
      if(P.inv<=0){
-      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
+      const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*rainStrength(m.type)*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
        else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
