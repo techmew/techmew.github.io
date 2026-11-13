@@ -918,6 +918,16 @@ function drawDistinctWildlife3D(m,clock){
  const cone=(a,b,z,w,h,col)=>pyramid(x(a,b),y(a,b),z,w*size,w*size,h*size,col);
  const gait=(front,side)=>Math.sin(phase+(front*side>0?0:Math.PI))*moving;
  if(t==="armadillo"){
+  const shell=clamp(Number(m.shellPose)||0,0,1);
+  if(shell>0){
+   // Curl into a rounded high shell, retract the legs and snout.
+   // No new meshes are retained; geometry uses the existing batched primitives.
+   const roll=(m.swing||0)>0?Math.sin(clock*19)*r*.12:0;
+   orb(0,0,r*(.55+shell*.18),r*(.98+shell*.13),r*(.60+shell*.11),r*(.48+shell*.18),"#6b6253");
+   for(let i=-3;i<=3;i++)orb(i*r*.22,roll,r*(.93+shell*.16),r*.10,r*.58,r*.12,i%2?"#a99a7c":"#544d42");
+   orb(r*.65,0,r*.37,r*.18,r*.19,r*.16,"#887760");
+   return true;
+  }
   // Armoured low-slung body: segmented transverse bands and long tapered tail.
   for(const front of [-1,1])for(const side of [-1,1]){
    const g=gait(front,side),pose=combatLimbPose(m,front,side,r);orb(front*r*.55+g*r*.15+pose.dx,side*r*.46,r*.22+Math.max(0,g)*r*.13+pose.dz,r*.17,r*.16,r*.25,"#706b57");
