@@ -24,10 +24,10 @@
   }
   return null;
  }
- function membersNear(p,mobs,packId,canSee){
+ // Flankers must close into threatening range before an encirclement can hit.\n function membersNear(p,mobs,packId,canSee){
   return mobs.filter(m=>m&&m.hp>0&&m.packId===packId&&
    (m.alert||0)>0&&(m.stun||0)<=0&&(m.evadeTime||0)<=0&&
-   distance(m,p)<195&&canSee(m,p));
+   distance(m,p)<Math.min(195,Math.max(92,(m.r||18)+(p.r||18)+88))&&canSee(m,p));
  }
  function surrounded(p,mobs,packId,canSee){
   if(!p||p.hidden||!packId)return false;
