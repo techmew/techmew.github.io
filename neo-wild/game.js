@@ -4742,11 +4742,19 @@ function resolveAttack(aerialContact=null){
    const billStrike=P.type==="shoebill"&&P.beakStrike;
    const speciesPower=(manulAmbush?(small?2.05:1.55):1)*(foxPreySnap?1.58:1)*(billStrike?(small?2.24:1.85):1)*(P.type==="crocodile"&&[3,5].includes(P.rushActiveStep)?1.21:1)*(P.type==="rhino"&&P.rushActiveStep===5?1.28:1)*(P.type==="gorilla"&&P.rushActiveStep===5?1.17:1);
    const rawDamage=Math.max(1,Math.round(P.damage*rainStrength(P.type)*RUSH_POWER[P.rushActiveStep||1]*bonus*speciesPower*rnd(.86,1.16)));
+   // Armadillos react to the first strike by curling into a timed defensive shell.
+   // A committed aerial ambush can crack the shell; ordinary rush hits cannot.
+   const shellGuard=m.type==="armadillo"&&(m.shellUntil||0)>elapsed&&!dive&&!silentHit;
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
-   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
+   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*(shellGuard?.36:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
    m.hp-=damage;if(P.type==="penguin"&&m.hp>0)queuePenguinBeak(m,.17,4);
    if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
+   if(shellGuard)label(m.x,m.y-m.r-40,"丸まって防御！","#d9c7a5");
+   if(m.type==="armadillo"&&m.hp>0){
+    m.shellUntil=Math.max(m.shellUntil||0,elapsed+2.1);
+    m.shellPose=1;m.shellCounterReady=true;
+   }
    if(foxBurst)P.abilityTime=0;
    // A creature that was physically hit remembers the attack even when it
    // could not see the player before the strike (behind, fog or night).
@@ -4756,7 +4764,7 @@ function resolveAttack(aerialContact=null){
    const heavy=silentHit||dive||wolfCharge||P.beakStrike||P.rushActiveStep===5;
    const gap=COMBAT_LEVELS?.gap(m.type,P.level)||0;
    const bossBroken=m.strongBoss?bossPoiseBreak(m,damage,heavy):false;
-   const disrupt=m.strongBoss?bossBroken:!armored&&(COMBAT_LEVELS?
+   const disrupt=m.strongBoss?bossBroken:!armored&&!shellGuard&&(COMBAT_LEVELS?
     COMBAT_LEVELS.canInterrupt(m.type,P.level,heavy,m.staggerGuard<=0,species[m.type].prey):
     (species[m.type].prey||m.staggerGuard<=0||silentHit||dive));
     if(disrupt){
@@ -5788,6 +5796,17 @@ const PREY_WITH_OWN_DEFENSE=new Set(["mountainGoat","rat","rabbit","pigeon","cro
 function updateWoundedPreyDefense(m,sp,dt,d,spotted,angle){
  if(!sp?.prey||PREY_WITH_OWN_DEFENSE.has(m.type)||m.hp<=0)return;
  m.counterFleeCooldown=Math.max(0,(m.counterFleeCooldown||0)-dt);
+ if(m.type==="armadillo"){
+  m.shellPose=Math.max(0,Math.min(1,((m.shellUntil||0)-elapsed)/.4));
+  // The roll is a physical, close-range counter with one hit per shell.
+  if(m.shellCounterReady&&(m.shellUntil||0)>elapsed&&d<P.r+m.r+18&&
+     P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(m,P)){
+   const damage=Math.max(2,Math.round(5*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+   P.hp=Math.max(0,P.hp-damage);P.inv=.45;P.lastCombatAt=elapsed;
+   m.shellCounterReady=false;m.swing=Math.max(m.swing||0,.3);
+   label(P.x,P.y-35,"甲羅の回転反撃 -"+damage,"#ffdbab");playEffect("damage");
+  }
+ }
  if(m.counterFleeArmed){
   // A stunned animal cannot execute a counterattack until it recovers.
   if(m.stun>0)return;
