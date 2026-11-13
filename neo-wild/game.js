@@ -4745,12 +4745,24 @@ function resolveAttack(aerialContact=null){
    // Armadillos react to the first strike by curling into a timed defensive shell.
    // A committed aerial ambush can crack the shell; ordinary rush hits cannot.
    const shellGuard=m.type==="armadillo"&&(m.shellUntil||0)>elapsed&&!dive&&!silentHit;
+   const quillGuard=m.type==="hedgehog"&&(m.quillUntil||0)>elapsed&&!dive&&!silentHit;
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
-   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*(shellGuard?.36:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
+   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*(shellGuard?.36:1)*(quillGuard?.52:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
    m.hp-=damage;if(P.type==="penguin"&&m.hp>0)queuePenguinBeak(m,.17,4);
    if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(shellGuard)label(m.x,m.y-m.r-40,"丸まって防御！","#d9c7a5");
+   if(quillGuard)label(m.x,m.y-m.r-40,"針で防御！","#f5e3ad");
+   if(m.type==="hedgehog"&&m.hp>0){
+    m.quillUntil=Math.max(m.quillUntil||0,elapsed+1.8);
+    m.quillPose=1;
+    if(!silentHit&&!dive&&dist(P,m)<P.r+m.r+25&&P.inv<=0&&(P.jumpHeight||0)<22&&!lineBlocked(P,m)){
+     const thorns=Math.max(2,Math.round(4*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
+     P.hp=Math.max(0,P.hp-thorns);P.inv=.38;P.lastCombatAt=elapsed;
+     m.swing=Math.max(m.swing||0,.27);
+     label(P.x,P.y-30,"接触した針の反撃 -"+thorns,"#ffdbab");playEffect("damage");
+    }
+   }
    if(m.type==="armadillo"&&m.hp>0){
     m.shellUntil=Math.max(m.shellUntil||0,elapsed+2.1);
     m.shellPose=1;m.shellCounterReady=true;
@@ -5796,6 +5808,7 @@ const PREY_WITH_OWN_DEFENSE=new Set(["mountainGoat","rat","rabbit","pigeon","cro
 function updateWoundedPreyDefense(m,sp,dt,d,spotted,angle){
  if(!sp?.prey||PREY_WITH_OWN_DEFENSE.has(m.type)||m.hp<=0)return;
  m.counterFleeCooldown=Math.max(0,(m.counterFleeCooldown||0)-dt);
+ if(m.type==="hedgehog")m.quillPose=Math.max(0,Math.min(1,((m.quillUntil||0)-elapsed)/.36));
  if(m.type==="armadillo"){
   m.shellPose=Math.max(0,Math.min(1,((m.shellUntil||0)-elapsed)/.4));
   // The roll is a physical, close-range counter with one hit per shell.
@@ -8582,6 +8595,16 @@ function drawCreature(o,isPlayer){
   ctx.save();ctx.globalAlpha=Math.min(.7,o.wetLandingRipple*1.1);
   ctx.strokeStyle=o.wetLandingWater?"#9ceaf4":"#b6d5a4";ctx.lineWidth=2;
   ctx.beginPath();ctx.ellipse(0,r*.38,size,size*.36,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+ }
+ if(!isPlayer&&o.type==="hedgehog"&&(o.quillPose||0)>0){
+  const spike=Math.min(1,o.quillPose),count=12;
+  ctx.save();ctx.translate(0,-r*.22);ctx.rotate(o.dir||0);
+  ctx.strokeStyle="#f6e6bb";ctx.lineWidth=Math.max(1,r*.12);
+  for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2;
+   const start=r*.54,end=r*(.78+spike*.55);
+   ctx.beginPath();ctx.moveTo(Math.cos(a)*start,Math.sin(a)*start);
+   ctx.lineTo(Math.cos(a)*end,Math.sin(a)*end);ctx.stroke();
+  }ctx.restore();
  }
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  // Stealth alpha was already applied before shadow/body drawing.
