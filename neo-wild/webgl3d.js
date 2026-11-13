@@ -1555,6 +1555,11 @@ function worldEndMesh(m,clock){
  const x=m.x,y=m.y,r=Math.max(80,Math.min(345,Number(m.r)||345));
  const dir=m.dir||0,cz=window.WildMountain?.height(x,y)||0;
  const bodyZ=cz+r*.68,attack=Number(m.worldEndCharge)||0;
+ const strikeProgress=attack>0?clamp(1-attack/2.2,0,1):0;
+ const strikePulse=attack>0?Math.sin(Math.PI*strikeProgress):0;
+ const attackPhase=Math.max(0,Math.floor(Number(m.worldEndAttackPhase)||0))%3;
+ const warningTargets=Array.isArray(m.worldEndThreats)?m.worldEndThreats.filter(t=>
+  Number.isFinite(t?.x)&&Number.isFinite(t?.y)&&Number.isFinite(t?.radius)&&t.radius>0):[];
  ellipsoid(x,y,cz+2,r*1.16,r*.95,2.2,"#04060b",dir,12,3);
  ellipsoid(x,y,bodyZ,r*.95,r*.79,r*.64,"#09090e",dir,14,8);
  ellipsoid(x-r*.13,y+r*.02,bodyZ+r*.18,r*.70,r*.66,r*.49,"#11101a",dir,12,7);
@@ -1564,25 +1569,38 @@ function worldEndMesh(m,clock){
  ellipsoid(eyeX,eyeY,eyeZ,r*.21,r*.17,r*.20,"#f2eadf",dir,10,6);
  ellipsoid(eyeX+fx*r*.065,eyeY+fy*r*.065,eyeZ-r*.005,r*.105,r*.09,r*.105,"#39303d",dir,9,6);
  ellipsoid(eyeX+fx*r*.106,eyeY+fy*r*.106,eyeZ+r*.015,r*.053,r*.049,r*.056,"#080710",dir,8,5);
- // Eight separate segmented whips; only one real attack uses the world-space
- // warning ring. Other tentacles move slowly to avoid seizure-like animation.
+ // Eight tentacles now aim and wind up toward the actual warned impact zones.
  for(let i=0;i<8;i++){
   const a=dir+i*Math.PI/4,ca=Math.cos(a),sa=Math.sin(a);
   const wave=Math.sin(clock*.45+i*1.31),reach=r*(1.18+.17*wave);
+  const target=attack>0&&warningTargets.length?warningTargets[i%warningTargets.length]:null;
+  const aim=target?Math.atan2(target.y-y,target.x-x):a;
+  const direction=a+Math.atan2(Math.sin(aim-a),Math.cos(aim-a))*(target?strikeProgress*.88:0);
+  const dx=Math.cos(direction),dy=Math.sin(direction);
+  const reachBoost=target?strikePulse*r*(attackPhase===2?.48:.33):0;
   for(let j=0;j<3;j++){
    const f=(j+.55)/3,z=cz+r*(.53+.16*Math.sin(i*.93+j*.86+clock*.31));
-   const px=x+ca*(r*.63+reach*f)+-sa*r*.075*wave*f;
-   const py=y+sa*(r*.63+reach*f)+ca*r*.075*wave*f;
+   const px=x+dx*(r*.63+(reach+reachBoost)*f)-dy*r*.075*wave*f;
+   const py=y+dy*(r*.63+(reach+reachBoost)*f)+dx*r*.075*wave*f;
    const size=r*(.135-j*.031);
    ellipsoid(px,py,z,size*1.44,size*.92,size,
     j%2?"#15141f":"#0b0b15",a,7,4);
   }
-  const tipX=x+ca*(r*.63+reach),tipY=y+sa*(r*.63+reach);
-  ellipsoid(tipX,tipY,cz+r*.44,r*.055,r*.056,r*.066,"#342431",a,6,4);
+  const tipX=x+dx*(r*.63+reach+reachBoost),tipY=y+dy*(r*.63+reach+reachBoost);
+  ellipsoid(tipX,tipY,cz+r*(.44+.16*strikePulse),r*.055,r*.056,r*.066,
+   target?"#a35358":"#342431",direction,6,4);
  }
  if(attack>0){
-  // The actual telegraph target is drawn by WildWorldEnd over both renderers.
-  ellipsoid(x,y,cz+r*1.22,r*.13,r*.12,r*.13,"#c86d63",dir,8,5);
+  // Eye and crown signal the last quarter of the existing 2.2s windup.
+  ellipsoid(eyeX+fx*r*.13,eyeY+fy*r*.13,eyeZ+r*.015,
+   r*(.07+.035*strikePulse),r*(.06+.03*strikePulse),r*.07,
+   strikeProgress>.73?"#ffb78d":"#c86d63",dir,8,5);
+  for(let i=0;i<3;i++){
+   const a=clock*.6+i*Math.PI*2/3;
+   ellipsoid(x+Math.cos(a)*r*.34,y+Math.sin(a)*r*.34,
+    cz+r*(1.16+.13*strikePulse),r*.095,r*.085,r*.11,
+    attackPhase===2?"#c85c74":"#b16b69",dir,7,4);
+  }
  }
 }
 function animal(m,player,clock){
