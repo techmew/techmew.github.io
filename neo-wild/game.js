@@ -4606,7 +4606,13 @@ function attack(){
  }
  if(P.jumpTime>0&&P.pendingStrike&&AERIAL_POUNCE_PROFILES[P.type]){armAerialPounce();return;}
  if(P.jumpTime>0&&aerialPounceState.get(P)?.spent)return;
- if(P.atk>0||P.pendingStrike){if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0)P.rushQueued=true;return}
+ if(P.atk>0||P.pendingStrike){
+  // Buffer a deliberate next hit near the end of recovery, not an early accidental mash.
+  // This also accepts the last windup frames so touch/gamepad taps are not lost.
+  const recovery=Math.max(0,Number(P.atk)||0),windup=Math.max(0,Number(P.windup)||0);
+  if(P.rushStep>0&&P.rushStep<5&&P.rushWindow>0&&recovery<=.18&&windup<=.18)P.rushQueued=true;
+  return;
+ }
  const step=nextRushStep(P.rushStep,P.rushWindow);
  const cost=RUSH_COST[step]+(P.type==="shoebill"?3:0);
  if(P.sp<cost){resetRush();P.atk=.18;if((P.tiredNotice||0)<=0){P.tiredNotice=1.5;notify("息切れ / 少し間合いを取れ")}return}
@@ -6870,7 +6876,13 @@ function update(dt){
  }
  tickAnimalMoves(dt);
  P.swing=Math.max(0,(P.swing||0)-dt);P.comboTimer=Math.max(0,P.comboTimer-dt);P.rushWindow=Math.max(0,P.rushWindow-dt);if(P.pendingStrike){P.windup=Math.max(0,P.windup-dt);if(P.windup===0&&P.jumpTime<=0&&P.pounceTime<=0&&P.fallTime<=0)resolveAttack()}
- if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){if(P.rushWindow>0&&P.rushStep<5)attack();else P.rushQueued=false;}
+ if(P.rushQueued&&P.atk<=0&&!P.pendingStrike){
+  // Clear the buffer before invoking attack: an interrupted or exhausted strike
+  // must never become an infinite automatic retry.
+  const queued=P.rushWindow>0&&P.rushStep<5;
+  P.rushQueued=false;
+  if(queued)attack();
+ }
  // Holding the upper face button automatically advances the five-hit chain.
  if((heldActions.touchAttack||heldActions.padAttack)&&P.atk<=0&&!P.pendingStrike&&P.sp>=5)attack();
  P.sp=clamp(P.sp+((weather==="THUNDER"&&!insideShelter(P)?10:weather==="WIND"?13:17)+(P.riverPerk?3:0)+traitEffect("giantCrocodile",0,strongNearWater()))*dt,0,100);P.tiredNotice=Math.max(0,(P.tiredNotice||0)-dt);if(!updateSurvivalNeeds(dt)){beginDeath();return;}
