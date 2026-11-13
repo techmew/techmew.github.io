@@ -841,7 +841,72 @@ function drawCommonAnimal3D(m,clock){
 /* Three species-specific player meshes: sculpted with shaded anatomical
  * volumes, real muzzle/eye/feet ratios, fur/feather pattern and attack poses.
  * No external image textures, borrowed models or sprite impostors. */
+
+/* Habitat-exclusive 3D meshes, driven by real swim/slide/attack/locomotion states. */
+function drawHabitatSpecies3D(m,clock){
+ const t=m?.type;
+ if(t!=="otter"&&t!=="penguin"&&t!=="badger")return false;
+ const r=m.r||19,a=m.dir||0,c=Math.cos(a),s=Math.sin(a);
+ const pos=(x,y)=>[m.x+x*c-y*s,m.y+x*s+y*c];
+ const orb=(x,y,z,rx,ry,rz,col)=>{const p=pos(x,y);ellipsoid(p[0],p[1],z,rx,ry,rz,col,a,9,5)};
+ const cone=(x,y,z,rad,h,col)=>{const p=pos(x,y);pyramid(p[0],p[1],z,rad,rad,h,col)};
+ const motion=clamp(Math.hypot(m.vx||0,m.vy||0)/125,0,1);
+ const beat=(m.step||m.steps||0)*1.6,hit=(m.swing||0)>0||(m.attackAction||0)>0;
+ if(t==="otter"){
+  const swim=!!m.swimVisual,tail=Math.sin(beat+clock*.42)*r*.16;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   orb(front*r*.60,side*r*.47,r*.23+Math.max(0,Math.sin(beat+side))*r*.10*motion,r*.25,r*.23,r*.20,"#745b49");
+   orb(front*r*.75,side*r*.49,r*.12,r*.19,r*.19,r*.10,"#d0b49a");
+  }
+  orb(-r*.14,0,r*(swim?.36:.59),r*(swim?1.43:1.16),r*.61,r*.47,"#705946");
+  orb(r*.43,0,r*.56,r*.77,r*.51,r*.40,"#98795e");
+  for(let k=0;k<6;k++)orb(-r*(1.04+k*.28),Math.sin(k*.7)*tail,r*(.49-k*.05),r*(.29-k*.031),r*(.26-k*.029),r*(.24-k*.026),"#705946");
+  const head=r*(hit?1.42:1.14);
+  orb(head,0,r*.71,r*.52,r*.42,r*.36,"#705946");
+  orb(head+r*.40,0,r*.55,r*.32,r*.30,r*.22,"#d0b49a");
+  for(const side of [-1,1]){
+   orb(head-r*.16,side*r*.36,r*.80,r*.16,r*.15,r*.17,"#705946");
+   orb(head+r*.21,side*r*.30,r*.80,r*.09,r*.07,r*.08,"#262620");
+  }
+  orb(head+r*.64,0,r*.49,r*.13,r*.13,r*.11,"#332923");
+  if(hit)orb(head+r*.38,0,r*.36,r*.23,r*.19,r*.085,"#56302b");
+ }else if(t==="penguin"){
+  const slide=clamp(Number(m.bellySlide)||0,0,1),attack=hit||(m.flipperStrike||0)>0;
+  for(const side of [-1,1]){
+   orb(-r*.54,side*r*.45,r*.12+Math.max(0,Math.sin(beat+side))*r*.08*motion,r*.40,r*.27,r*.13,"#d9a15a");
+   orb(-r*.15,side*r*.83,r*(slide?.44:1.02)+(attack?r*.32:0),r*.52,r*.22,r*(slide?.12:.38),"#334956");
+  }
+  orb(-r*.15,0,r*(slide?.45:1.12),r*(slide?1.34:.83),r*.65,r*(slide?.41:1.05),"#263b46");
+  orb(r*.23,0,r*(slide?.49:1.08),r*(slide?1.04:.66),r*.56,r*(slide?.25:.88),"#edf2e9");
+  const x=r*(attack?1.13:.87),z=r*(slide?.70:1.82);
+  orb(x,0,z,r*.48,r*.43,r*.45,"#263b46");
+  for(const side of [-1,1])orb(x+r*.21,side*r*.29,z+r*.045,r*.08,r*.075,r*.075,"#f7f2e5");
+  cone(x+r*.49,0,z-r*.21,r*.19,r*.33,"#daa15b");
+  if(attack)orb(x+r*.39,0,z-r*.36,r*.25,r*.20,r*.09,"#ae6946");
+ }else{
+  const lunge=hit?r*.29:0;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const phase=Math.sin(beat+(front===side?0:Math.PI))*motion;
+   const foot=front*r*.61+(front>0?lunge:0)+phase*r*.20;
+   orb(foot,side*r*.60,r*.23+Math.max(0,phase)*r*.09,r*.29,r*.26,r*.27,"#554e45");
+   for(let k=-1;k<=1;k++)cone(foot+r*.22,side*r*(.60+k*.11),r*.16,r*.06,r*.18,"#ddd2bb");
+  }
+  orb(-r*.20,0,r*.54,r*1.24,r*.77,r*.55,"#77736a");
+  orb(r*.55+lunge*.32,0,r*.61,r*.75,r*.65,r*.53,"#46413c");
+  const head=r*1.03+lunge;
+  orb(head,0,r*.54,r*.58,r*.48,r*.41,"#d4c7b2");
+  for(const side of [-1,1]){
+   orb(head-r*.16,side*r*.42,r*.66,r*.36,r*.17,r*.22,"#363530");
+   orb(head+r*.18,side*r*.33,r*.64,r*.12,r*.09,r*.09,"#252520");
+   orb(head-r*.39,side*r*.48,r*.82,r*.17,r*.14,r*.16,"#554e45");
+  }
+  orb(head+r*.49,0,r*.39,r*.20,r*.19,r*.17,"#2a2522");
+  orb(-r*1.31,0,r*.53,r*.35,r*.28,r*.27,"#77736a");
+ }
+ return true;
+}
 function drawDistinctWildlife3D(m,clock){
+ if(drawHabitatSpecies3D(m,clock))return true;
  const t=m.type;
  if(t!=="armadillo"&&t!=="hedgehog"&&t!=="hyena")return false;
  const r=m.r||17,dir=m.dir||0,c=Math.cos(dir),sn=Math.sin(dir),speed=Math.hypot(m.vx||0,m.vy||0);
