@@ -479,7 +479,9 @@ function drawStrongAnimal3D(m,clock){
 function combatLimbPose(m,front,side,r){
  const step=m.attackActionStep||m.rushActiveStep||0;
  const action=clamp(Number(m.attackAction)||0,0,.45),progress=1-action/.45;
- const strike=Math.sin(Math.PI*progress);
+ // Snap early, recover visibly; geometry only, not damage timing.
+ const snap=clamp((progress-.08)/.25,0,1);
+ const strike=Math.sin(Math.PI*clamp(snap*.72+Math.max(0,progress-.33)*.28/.67,0,1));
  const ultimate=Math.sin(Math.PI*clamp((m.specialVisual||0)/1.02,0,1));
  const normal=(step===1&&front>0&&side<0)||(step===2&&front>0&&side>0)||
   (step===4&&front<0&&side<0)||(step===5&&front>0);
@@ -496,10 +498,10 @@ function combatLimbPose(m,front,side,r){
  const hooved=["deer","serow","boar","mountainGoat","zebra","giraffe"].includes(m.type);
  const heavy=!!m.strongBoss||["bear","blackBear","elephant","hippo","gorilla"].includes(m.type);
  const style=hooved?.76:heavy?.58:1;
- const recovery=normal&&action>0&&progress>.65?
-  Math.sin(Math.PI*clamp((progress-.65)/.35,0,1))*style:0;
+ const recovery=normal&&action>0&&progress>.48?
+  Math.sin(Math.PI*clamp((progress-.48)/.52,0,1))*style:0;
  const force=Math.min(.85,(normal?strike*.66:0)+(special?ultimate*.70:0)+airborne);
- const retract=normal?recovery*(heavy?.17:hooved?.26:.34):0;
+ const retract=normal?recovery*(heavy?.18:hooved?.30:.38):0;
  return {dx:r*(force-retract),dz:r*(force*.52+recovery*(hooved?.18:.11))};
 }
 function drawCommonAnimal3D(m,clock){
