@@ -1,0 +1,8 @@
+# 2026-11-14 01:10 JST — Wetland hunting and frog escape
+Baseline HEAD ee41cb673fe75451dc1df293d4dd8eb941869764; inspected latest main, last commits, roadmap-history and ROADMAP-RECOVERY.md; existing wetland refuge already completed in 90d85017 / 2e30905a, so not duplicated.
+
+Gameplay: wild otter added to existing predator ecology with live diet frog/carp/rat, 240-range hunting, rain/water habitat eligibility, strict carp in-water gating, aquatic target preference, pursuit, real NPC damage, cooldown and corpse/feeding claim. Rainy frogs fleeing an actual nearby predator now get a visible 0.38-second escape hop with 4.1-second cooldown and 2.15x speed, using existing movement/collision; water refuge steering yields to the hop. No changes to menu/squad, SAVE_SCHEMA2, individual IDs, death/release protection, or century event.
+
+Code commit b83e66cce519b3eae2814621338420fbf9db90d8; priority fix commit 51e8364d9261b38a5f7bfbc840c57368fd2acd9f; final game.js blob afb345f91f21b9ca80e25a2cc2cc9829beaa91a8. HTML cache rev updated to afb345f91f21 and read back; commit 8289b73329db020cabef231a1e8e4732af580770.
+
+Tests: full game.js JS parse pass, 27 isolated ecological behavior and static integration checks pass. Real browser/WebGL/Android and actual continuous predator-prey scene NOT verified. Check deployment workflow separately. Need test otter aquatic path and wild NPC kills under actual terrain and whether frogs' feint overrides escape hop. Next: improve visual frog hopping and amphibian predator counterplay in 2D/WebGL, or prioritize other major unfinished 35-species 3D work after integrated QA.
