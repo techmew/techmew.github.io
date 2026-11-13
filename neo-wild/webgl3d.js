@@ -1097,23 +1097,34 @@ function drawPlayableFrog3D(m,clock){
  const skin=tree?"#62bd65":"#879748",dark=tree?"#34915a":"#5c6535",belly=tree?"#d5e5ad":"#d4b777";
  const speed=Math.hypot(Number(m.vx)||0,Number(m.vy)||0),motion=Math.min(1,speed/150);
  const beat=Math.sin((m.frogHopPhase||0)*Math.PI*2)*motion;
- const crouch=motion*(1-Math.max(0,Math.sin((m.frogHopPhase||0)*Math.PI)))*r*.11;
- const squeeze=Math.min(1,Number(m.frogSlamPose)||0);
+ const hopLift=Math.max(0,Number(m.frogHopLift)||0);
+ const airborne=clamp(hopLift/Math.max(1,r*2.8),0,1);
+ const slam=clamp(Number(m.frogSlamPose)||0,0,1);
+ const crouch=motion*(1-Math.max(0,Math.sin((m.frogHopPhase||0)*Math.PI)))*r*.11+slam*r*.16;
+ const squeeze=slam;
+ // Jump physics stays in game.js; pose-only leg extension and landing brace.
+ const extension=airborne*r*(tree?.40:.25),kick=airborne*r*(tree?.34:.18);
+ if(hopLift>0||slam>0){
+  const lift=animalLift;animalLift=Math.max(0,lift-hopLift);
+  ellipsoid(m.x,m.y,1.5,r*(1.10+slam*.26),r*(.77+slam*.20),1.3,
+   slam>.15?"#8b6e43":"#273b31",dir,12,3);
+  animalLift=lift;
+ }
  // Powerful folded hind legs have a femur, shank, splayed toes, and adhesive pads.
  for(const side of [-1,1]){
-  orb(-r*.64,side*r*.70,r*.34-crouch,r*(tree?.55:.64),r*.38,r*.39,dark,10,6);
-  orb(-r*.85+beat*r*.15,side*r*.83,r*.20-crouch*.4,r*.46,r*.25,r*.17,skin);
+  orb(-r*.64-kick*.26,side*r*.70,r*.34-crouch+extension*.35,r*(tree?.55:.64),r*.38,r*.39,dark,10,6);
+  orb(-r*.85+beat*r*.15-kick,side*r*.83,r*.20-crouch*.4-extension*.35,r*.46,r*.25,r*.17,skin);
   for(let toe=-1;toe<=1;toe++){
    const toeY=side*r*(1.00+.105*Math.abs(toe)),toeX=-r*(1.00+Math.abs(toe)*.13);
-   orb(toeX+beat*r*.10,toeY,r*.10,r*.22,r*.095,r*.07,skin,8,4);
-   orb(toeX-r*.20+beat*r*.10,toeY,r*.07,r*(tree?.16:.13),r*(tree?.155:.13),r*.065,tree?"#9ddb82":"#b7a66b",8,4);
+   orb(toeX+beat*r*.10-kick,toeY,r*.10-extension*.35,r*.22,r*.095,r*.07,skin,8,4);
+   orb(toeX-r*.20+beat*r*.10-kick,toeY,r*.07-extension*.35,r*(tree?.16:.13),r*(tree?.155:.13),r*.065,tree?"#9ddb82":"#b7a66b",8,4);
   }
   orb(r*.53,side*r*.57,r*.28-crouch*.5,r*.22,r*.21,r*.31,skin);
   orb(r*.85,side*r*.72,r*.12,r*.31,r*.22,r*.13,dark);
   for(let toe=-1;toe<=1;toe++)
    orb(r*1.09,side*r*.72+toe*r*.15,r*.08,r*.13,r*.11,r*.055,tree?"#a2d47c":"#b4a06b",7,4);
  }
- orb(-r*.19,0,r*(tree?.64:.68)-crouch,r*(tree?1.18:1.26),r*(tree?.83:1.02),r*(tree?.63:.76),skin,14,9);
+ orb(-r*.19,0,r*(tree?.64:.68)-crouch+extension*.12,r*(tree?1.18:1.26)*(1+slam*.08),r*(tree?.83:1.02)*(1+slam*.10),r*(tree?.63:.76)*(1-slam*.17),skin,14,9);
  orb(r*.31,0,r*.36-crouch*.40,r*(tree?.91:1.07),r*(tree?.70:.95),r*.34,belly,14,8);
  // Inflatable chin and the slow breathing/buccal pump.
  const breath=1+.025*Math.sin(clock*2.2+visualIdSeed(m.id));
@@ -1144,9 +1155,10 @@ function drawPlayableFrog3D(m,clock){
   for(let i=0;i<3;i++)orb(r*.95-i*r*.15,side*r*(tree?.71:.84),headZ-r*.19,r*.055,r*.075,r*.038,dark,7,4);
  }
  // Wide upper and lower jaws, a red tongue and retracting sticky tip.
- orb(r*1.27,0,headZ-r*.31,r*(tree?.39:.54),r*(tree?.45:.65),r*.095,"#4a3631",12,5);
- orb(r*1.20,0,headZ-r*.36,r*(tree?.38:.52),r*(tree?.44:.60),r*.065,"#d49391",11,5);
  const tongue=Math.min(1,Math.max(0,Number(m.frogTonguePose)||0));
+ const mouthOpen=clamp(Math.max(tongue,Number(m.swing)||0,Number(m.specialVisual)||0),0,1);
+ orb(r*1.27,0,headZ-r*.31-r*.07*mouthOpen,r*(tree?.39:.54),r*(tree?.45:.65),r*(.095+.12*mouthOpen),"#4a3631",12,5);
+ orb(r*1.20,0,headZ-r*.36-r*.12*mouthOpen,r*(tree?.38:.52),r*(tree?.44:.60),r*(.065+.06*mouthOpen),"#d49391",11,5);
  if(tongue>0){
   const reach=r*tongue*(tree?6.3:4.6),rootX=r*1.20,rootZ=headZ-r*.32;
   for(let k=0;k<7;k++){
