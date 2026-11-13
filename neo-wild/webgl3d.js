@@ -1717,7 +1717,8 @@ function animal(m,player,clock){
  const terrainZ=window.WildMountain?.height(m.x,m.y)||0;
  const contactZ=(player?Math.max(0,m.groundZ||0):0)+terrainZ;
  ellipsoid(x+r*.16,y+r*.22,contactZ+1.1,r*1.46,r*.72,1.4,"#1c302b",dir,9,3);
- animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0)); // NPC feet and body rise during a real emergency leap.
+ animalLift=terrainZ+(player?Math.max(0,m.jumpHeight||0):Math.max(0,m.type==="giantEagle"?m.airHeight||125:m.evadeHeight||0));
+ if(!player&&type==="frog")animalLift+=Math.max(0,Number(m.wetLeapLift)||0); // NPC feet and body rise during a real emergency leap.
  if(player&&(type==="giantTreeFrog"||type==="pacmanFrog"))animalLift+=Math.max(0,Number(m.frogHopLift)||0);
  // The entire individual now visibly surges or braces during attacks, even
  // when its species uses a dedicated geometry branch below.
