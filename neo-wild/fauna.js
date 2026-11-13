@@ -515,7 +515,7 @@ function visualState(o){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["rat","chimpanzee","macaque","snake","frog","giantTreeFrog","pacmanFrog","shoebill","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
+ if(!["rat","chimpanzee","macaque","snake","frog","giantTreeFrog","pacmanFrog","shoebill","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","penguin","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -622,7 +622,7 @@ function draw2D(ctx,o,r,fur,light,pace){
   ellipse(-r*.14,0,r*1.20,r*.87,fur);ellipse(r*.85,0,r*.75,r*.63,fur);
   for(const side of [-1,1]){ellipse(r*.80,side*r*.54,r*.23,r*.22,fur);ellipse(r*1.18,side*r*.30,r*.09,r*.08,"#d9c6a7");}
   ellipse(r*1.32,0,r*.35,r*.26,light);ellipse(r*1.57,0,r*.15,r*.12,"#242222");
- }else if(type==="tiger"||type==="hyena"||type==="wildDog"||type==="tanuki"||type==="badger"){
+ }else if(type==="tiger"||type==="hyena"||type==="wildDog"||type==="tanuki"){
   const large=type==="tiger",short=type==="tanuki"||type==="badger",pack=type==="wildDog";
   for(const side of [-1,1])for(const x of [-r*.65,r*.53])ellipse(x,side*r*.65+pace*.18,r*(short?.23:.28),r*.29,fur);
   ellipse(-r*.18,0,r*(short?1.04:1.23),r*(short?.66:.64),fur);
@@ -874,6 +874,56 @@ function draw2D(ctx,o,r,fur,light,pace){
    ellipse(r*1.37,side*r*.36,r*.15,r*.12,"#342e2e");
    ellipse(r*1.52,side*r*.17,r*.12,r*.10,"#554c4b");
   }
+ 
+ }else if(type==="otter"){
+  const swim=!!o.swimVisual,bite=(o.swing||0)>0||(o.attackAction||0)>0;
+  const hx=r*(bite?1.42:1.13),wave=Math.sin((o.step||0)*.8)*r*.18;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   ellipse(front*r*.64,side*r*.47+pace*side*.3,r*.25,r*.25,fur);
+   ellipse(front*r*.79,side*r*.49,r*.18,r*.14,light);
+  }
+  for(let k=0;k<6;k++)ellipse(-r*(1.08+k*.27),Math.sin(k*.7)*wave,r*(.30-k*.034),r*(.25-k*.027),fur);
+  ellipse(-r*.14,0,r*(swim?1.42:1.14),r*(swim?.47:.60),fur);
+  ellipse(r*.42,0,r*.75,r*.46,light);ellipse(hx,0,r*.53,r*.43,fur);
+  for(const side of [-1,1]){
+   ellipse(hx-r*.16,side*r*.33,r*.17,r*.17,fur);
+   ellipse(hx+r*.20,side*r*.27,r*.08,r*.08,"#252521");
+   line(hx+r*.27,side*r*.15,hx+r*.55,side*r*.25,Math.max(1,r*.045),"#e8dcc9");
+  }
+  ellipse(hx+r*.40,0,r*.31,r*.22,light);
+  ellipse(hx+r*.63,0,r*.13,r*.12,"#302923");
+  if(bite)ellipse(hx+r*.38,r*.22,r*.27,r*.09,"#502c28");
+ }else if(type==="penguin"){
+  const slide=Math.max(0,Math.min(1,Number(o.bellySlide)||0));
+  const hit=(o.swing||0)>0||(o.attackAction||0)>0||(o.flipperStrike||0)>0;
+  for(const side of [-1,1]){
+   ellipse(-r*.54,side*r*.45,r*.37,r*.22,"#d8a15b");
+   ellipse(-r*.05,side*r*(.83+(hit?.35:0)),r*(slide?.56:.40),r*.23,fur,side*.23);
+  }
+  ellipse(-r*.14,0,r*(1+slide*.47),r*(.81-slide*.22),fur);
+  ellipse(r*.25,0,r*(.80+slide*.26),r*(.62-slide*.16),light);
+  const hx=r*(hit?1.15:.87);
+  ellipse(hx,0,r*.49,r*.42,fur);
+  for(const side of [-1,1])ellipse(hx+r*.21,side*r*.28,r*.08,r*.08,"#f7f2e8");
+  poly([hx+r*.32,-r*.20,hx+r*.88,0,hx+r*.32,r*.20],"#dca15c");
+  if(hit)line(hx+r*.45,-r*.10,hx+r*.69,r*.14,Math.max(1,r*.07),"#6c492d");
+ }else if(type==="badger"){
+  const hit=(o.swing||0)>0||(o.attackAction||0)>0,lean=hit?r*.30:0;
+  for(const side of [-1,1])for(const front of [-1,1]){
+   const x=front*r*.62+(front>0?lean:0),y=side*r*.57+pace*side*.4;
+   ellipse(x,y,r*.29,r*.25,"#554b43");
+   for(let k=-1;k<=1;k++)line(x+r*.15,y+k*r*.09,x+r*.42,y+k*r*.11,Math.max(1,r*.045),"#e4d7c0");
+  }
+  ellipse(-r*.19,0,r*1.23,r*.72,fur);
+  ellipse(r*.60+lean*.3,0,r*.77,r*.64,"#43413b");
+  ellipse(r*1.10+lean,0,r*.57,r*.47,light);
+  for(const side of [-1,1]){
+   ellipse(r*.91+lean,side*r*.35,r*.38,r*.20,"#383631",side*.18);
+   ellipse(r*1.17+lean,side*r*.22,r*.09,r*.08,"#252520");
+   ellipse(r*.52,side*r*.55,r*.17,r*.17,fur);
+  }
+  ellipse(r*1.53+lean,0,r*.14,r*.12,"#2c2722");
+  ellipse(-r*1.31,0,r*.35,r*.26,fur);
  }else if(type==="raccoonDog"){
   for(const side of [-1,1])for(const x of [-r*.5,r*.46]){
    ellipse(x,side*r*.63+pace*side,r*.25,r*.32,"#554a40");
