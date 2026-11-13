@@ -593,6 +593,19 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(const side of [-1,1]){ellipse(r*.86,side*r*.34,r*.14,r*.13,fur);ellipse(r*1.12,side*r*.19,r*.075,r*.065,"#161c1a");}
   ellipse(r*1.46,0,r*.10,r*.08,"#252421");
  }else if(type==="armadillo"){
+  // Shell curls up after a hit, then rolls into a collision-based counterattack.
+  const shell=Math.max(0,Math.min(1,Number(o.shellPose)||0));
+  const counter=(o.swing||0)>0&&shell>0;
+  ctx.save();
+  if(counter)ctx.rotate(Math.sin((o.step||0)*3)*.24);
+  if(shell>0){
+   ellipse(-r*.15,0,r*(1.10+shell*.18),r*(.74+shell*.16),"#574b3e");
+   for(let j=-3;j<=3;j++)ellipse(-r*.15+j*r*.30,0,r*.14,r*(.67+shell*.13),j%2?"#746250":"#a48b6c");
+   ellipse(r*.58,0,r*(.32-shell*.16),r*.20,"#76604c");
+   for(const side of [-1,1])ellipse(-r*.58,side*r*.52,r*.19,r*.15,"#5b4b3c");
+   ctx.restore();
+   return;
+  }
   // Domed segmented armor and tapered head.
   for(const side of [-1,1])for(const x of [-r*.57,r*.50])ellipse(x,side*r*.62+pace*.1,r*.24,r*.18,"#67594c");
   line(-r*1.1,0,-r*1.95,r*.11,r*.15,"#8a7661");
@@ -600,6 +613,7 @@ function draw2D(ctx,o,r,fur,light,pace){
   for(let j=-2;j<=2;j++)ellipse(-r*.20+j*r*.30,0,r*.14,r*.69,j%2?"#786753":"#8e7b65");
   ellipse(r*.87,0,r*.52,r*.31,fur);ellipse(r*1.28,0,r*.26,r*.18,light);
   for(const side of [-1,1])ellipse(r*.99,side*r*.20,r*.06,r*.055,"#292720");
+  ctx.restore();
  }else if(type==="hedgehog"){
   // Spines are visible in both zoom levels, distinct from an ordinary rodent.
   for(let j=0;j<22;j++){const a=j*Math.PI*2/22;line(-r*.18+Math.cos(a)*r*.67,Math.sin(a)*r*.64,-r*.18+Math.cos(a)*r*1.25,Math.sin(a)*r*1.12,r*.12,j%3?"#4d4037":"#e3d3b3");}
