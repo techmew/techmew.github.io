@@ -515,7 +515,7 @@ function visualState(o){
 // Called after the host renderer has translated and rotated to the animal's position.
 function draw2D(ctx,o,r,fur,light,pace){
  const type=o.type==="venomSnake"?"snake":o.type;
- if(!["rat","chimpanzee","macaque","snake","frog","giantTreeFrog","pacmanFrog","shoebill","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","penguin","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
+ if(!["manul","tibetanFox","rat","chimpanzee","macaque","snake","frog","giantTreeFrog","pacmanFrog","shoebill","crow","deer","serow","mountainGoat","weasel","raccoonDog","wildFox","cheetah","giraffe","zebra","lion","elephant","hippo","otter","penguin","tanuki","badger","blackBear","tiger","gorilla","hyena","wildDog","armadillo","hedgehog"].includes(type))return false;
  const ellipse=(x,y,rx,ry,color,rot=0)=>{
   ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,Math.PI*2);ctx.fill();
  };
@@ -528,6 +528,41 @@ function draw2D(ctx,o,r,fur,light,pace){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
  };
+ if(type==="manul"||type==="tibetanFox"){
+  // Independent anatomy, walking gait and real attack-state body movement.
+  const cat=type==="manul",hit=(o.swing||0)>0||(o.attackAction||0)>0||(o.specialVisual||0)>0;
+  const prep=(o.windup||0)>0||!!o.pendingStrike;
+  const phase=Number(o.step||o.steps||0)*2.2,run=Math.min(1,Math.hypot(o.vx||0,o.vy||0)/180);
+  const thrust=hit?r*(cat?.48:.65):prep?-r*.17:0;
+  const tailX=-r*(cat?2.35:2.7),tailY=Math.sin(phase)*r*.14;
+  line(-r,0,tailX,tailY,r*(cat?.48:.39),cat?"#92948c":"#c6ae8c");
+  ellipse(tailX,tailY,r*.27,r*.24,cat?"#5d6460":"#e8d9c2");
+  for(const front of [-1,1])for(const side of [-1,1]){
+   const gait=Math.sin(phase+(front===side?0:Math.PI))*run*r*.27;
+   const drive=front>0&&hit?thrust*(side<0?1:.45):0;
+   const x=front*r*.64+gait+drive,y=side*r*(cat?.69:.49);
+   line(front*r*.48,y*.78,x,y,r*(cat?.34:.21),cat?"#747c76":"#a88b6d");
+   ellipse(x,y,r*(cat?.26:.20),r*(cat?.20:.16),cat?"#a4a69d":"#7f7062");
+   if(front>0&&hit)for(let k=-1;k<=1;k++)line(x+r*.15,y+k*r*.10,x+r*.33,y+k*r*.13,r*.035,"#eee7d7");
+  }
+  ellipse(-r*.15,0,r*(cat?1.29:1.23),r*(cat?.83:.59),cat?"#9fa39a":"#c2a889");
+  ellipse(r*.11,0,r*.76,r*(cat?.64:.45),cat?"#d5d0c1":"#e9d5b7");
+  const hx=r*(cat?.79:.84)+thrust*.38;
+  ellipse(hx,0,r*(cat?.73:.60),r*(cat?.70:.77),cat?"#b9bcb1":"#a28f7b");
+  for(const side of [-1,1]){
+   if(cat){
+    ellipse(hx-r*.25,side*r*.66,r*.19,r*.19,"#7b8079");
+    ellipse(hx+r*.12,side*r*.36,r*.19,r*.18,"#e8dfc5");
+   }else{
+    poly([hx-r*.31,side*r*.53,hx-r*.17,side*r*.98,hx+r*.03,side*r*.56],"#8f7965");
+    ellipse(hx+r*.14,side*r*.51,r*.29,r*.25,"#e9d9c3");
+   }
+   ellipse(hx+r*.33,side*r*(cat?.37:.43),r*.10,r*(cat?.10:.075),"#252b2a");
+  }
+  ellipse(hx+r*.56,0,r*(cat?.21:.28),r*.18,cat?"#d9d2c3":"#e8d9c6");
+  ellipse(hx+r*.73,0,r*.10,r*.09,"#383632");
+  return true;
+ }
  if(type==="giantTreeFrog"||type==="pacmanFrog"){
   // Spring-legged tree frog vs heavy horned ambush frog; combat pose drives tongue.
   const tree=type==="giantTreeFrog",jump=Math.max(0,Math.min(1,Number(o.frogJumpPose??o.jumpPose??0)||0));
