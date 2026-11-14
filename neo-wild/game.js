@@ -4618,6 +4618,12 @@ function putDownFood(){
 }
 function contextAction(longPress=false){
  if(mode!=="play"||!P||isControlBlocked())return;
+ // The existing action button doubles as rescue without changing its UI position.
+ if(!longPress&&window.WildFloodRescue?.tryBegin?.({
+  P,mobs,elapsed,mode,notify,lineBlocked,
+  floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
+  isPrey:m=>!!species[m.type]?.prey
+ }))return;
  if(longPress&&tryReleaseCaveSeal())return;
  if(atDen()){
   if(P.carry){carryFood();return}
@@ -7728,6 +7734,27 @@ function update(dt){
     playEffect("snarl");
    }
  }
+ // Flood rescue is resolved AFTER wildlife AI, so the escorted animal really follows
+ // its rescuer instead of being overridden by the next NPC movement decision.
+ window.WildFloodRescue?.tick?.(dt,{P,mobs,elapsed,mode,weather,move,waterDepth,notify,lineBlocked,
+  floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
+  isPrey:m=>!!species[m.type]?.prey,
+  onRescue:m=>{
+   const beforeXp=P.xp,beforeSp=P.sp,beforeJournal=worldEventJournal.length;
+   P.xp+=8;P.sp=Math.min(P.maxSp,P.sp+12);
+   worldEventJournal.push({year:Math.floor(elapsed/120),at:Date.now(),
+    kind:"flood-rescue",label:"洪水から"+(animals[m.type]?.name||m.type)+"を救助"});
+   worldEventJournal=worldEventJournal.slice(-40);
+   if(saveAuto()!==true){
+    P.xp=beforeXp;P.sp=beforeSp;
+    worldEventJournal.splice(Math.min(beforeJournal,worldEventJournal.length));
+    return false;
+   }
+   persistWorldChronicle();
+   label(m.x,m.y-m.r-32,"救助成功 DNA +8 / 持久力 +12","#b9f4dc");
+   playEffect("collect");return true;
+  }
+ });
  // Pack pressure is an avoidable combat event: leave the ring, hide, or break LOS.
  window.WildPackTactics?.update?.(dt,P,mobs,(a,b)=>!lineBlocked(a,b),{
   warn:()=>{label(P.x,P.y-57,"群れが包囲してくる！","#ffcd9c");playEffect("snarl",{volume:.12});},
@@ -7813,8 +7840,11 @@ function syncHUD(hour){
   speciesSkill.classList.toggle("hidden",!text);
  }
  const contextLabel=$("context-action-label");
- if(contextLabel){const home=atDen();
-  contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+ if(contextLabel){const home=atDen(),rescuePossible=!!window.WildFloodRescue?.canBegin?.({
+   P,mobs,elapsed,mode,lineBlocked,
+   floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
+   isPrey:m=>!!species[m.type]?.prey});
+  contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110+totalScore)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -9534,6 +9564,9 @@ function drawScene(){
    }});
   window.WildApparitions?.draw?.(ctx,project,{mode,P});
   window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
+  window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode,lineBlocked,
+   floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
+   isPrey:m=>!!species[m.type]?.prey});
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
