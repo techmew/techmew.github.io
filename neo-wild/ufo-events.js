@@ -301,7 +301,7 @@ function tick(dt,world){
   // Vegetation and buildings immediately break scanner sight.
   const concealed=!!(P.hidden||world.isPlayerConcealed?.());
   const obstructed=safeBlocked(world,P,e);
-  const playerSeen=!P._ufoAbducting&&!concealed&&!obstructed&&distance(P,e)<UFO_DETECTION_RANGE;
+  const playerSeen=P.hp>0&&!P._ufoAbducting&&!concealed&&!obstructed&&distance(P,e)<UFO_DETECTION_RANGE;
   if(playerSeen){
    e.lastSeen=.85;e.lastPlayerX=P.x;e.lastPlayerY=P.y;
    if(!e.playerSpotted){e.playerSpotted=true;world.notify?.("UFOに発見された！ 建物か草陰に隠れろ")}
