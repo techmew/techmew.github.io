@@ -479,6 +479,12 @@ function drawStrongAnimal3D(m,clock){
 function combatLimbPose(m,front,side,r){
  const step=m.attackActionStep||m.rushActiveStep||0;
  const action=clamp(Number(m.attackAction)||0,0,.45),progress=1-action/.45;
+ // P2: wild and controlled animals use the same attack-pose path.
+ // Wild combat emits windup/swing while player combat emits attackAction.
+ const wildWindup=clamp(1-(Number(m.windup)||0)/Math.max(.01,Number(m.windupTotal)||.53),0,1);
+ const wildSnap=clamp((Number(m.swing)||0)/.24,0,1);
+ const wildStrike=Math.sin(Math.PI*clamp(wildSnap,0,1))*Number((m.swing||0)>0);
+ const wildPrep=(m.windup||0)>0?Math.sin(Math.PI*wildWindup)*.24:0;
  // Snap early, recover visibly; geometry only, not damage timing.
  const snap=clamp((progress-.08)/.25,0,1);
  const strike=Math.sin(Math.PI*clamp(snap*.72+Math.max(0,progress-.33)*.28/.67,0,1));
@@ -500,7 +506,9 @@ function combatLimbPose(m,front,side,r){
  const style=hooved?.76:heavy?.58:1;
  const recovery=normal&&action>0&&progress>.48?
   Math.sin(Math.PI*clamp((progress-.48)/.52,0,1))*style:0;
- const force=Math.min(.85,(normal?strike*.66:0)+(special?ultimate*.70:0)+airborne);
+ const specialist=["manul","tibetanFox","shoebill","penguin"].includes(m.type);
+ const wildAttack=specialist&&front>0?(wildStrike*.68+wildPrep)* (m.type==="tibetanFox"?1.12:m.type==="shoebill"?1.32:1):0;
+ const force=Math.min(.95,(normal?strike*.66:0)+(special?ultimate*.70:0)+airborne+wildAttack);
  const retract=normal?recovery*(heavy?.18:hooved?.30:.38):0;
  return {dx:r*(force-retract),dz:r*(force*.52+recovery*(hooved?.18:.11))};
 }
@@ -1277,7 +1285,10 @@ function drawPenguinPlayable3D(m,clock){
  const speed=Math.hypot(Number(m.vx)||0,Number(m.vy)||0);
  const beat=Math.sin((m.steps||m.step||0)*3.9)*Math.min(1,speed/130);
  const slide=Math.max(0,Number(m.bellySlide)||0),slidePose=clamp(slide/.19,0,1);
- const attack=Math.max(0,Number(m.specialVisual)||0,Number(m.swing)||0);
+ const attack=Math.max(0,Number(m.specialVisual)||0,Number(m.swing)||0,Number(m.attackAction)||0);
+ const strikePose=Math.sin(Math.PI*clamp((Number(m.swing)||0)/.24,0,1));
+ const windupPose=(m.windup||0)>0?Math.sin(Math.PI*clamp(1-m.windup/Math.max(.01,m.windupTotal||.53),0,1))*.20:0;
+ const wingDrive=Math.max(strikePose,windupPose,Math.sin(Math.PI*clamp((m.attackAction||0)/.45,0,1)));
  // Rapid separate bill jabs; the entire face remains a rigid assembly.
  const rapid=clamp((Number(m.beakVisual)||0)/.18,0,1);
  const jab=rapid*(.22+.78*Math.sin(clock*83)*Math.sin(clock*83));
@@ -1295,7 +1306,7 @@ function drawPenguinPlayable3D(m,clock){
  orb(r*.66+headDrive,0,headZ,r*.49,r*.44,r*.48,"#263943");
  for(const side of [-1,1]){
   const flap=Math.sin((m.steps||m.step||0)*3.6+side*Math.PI)*r*.16+
-    Math.sin(Math.PI*Math.min(1,m.flipperStrike||0))*r*.29+(slidePose>.1?side*r*.08:Math.sin(attack*12)*attack*r*.11);
+    Math.sin(Math.PI*Math.min(1,m.flipperStrike||0))*r*.29+wingDrive*r*.43+(slidePose>.1?side*r*.08:Math.sin(attack*12)*attack*r*.11);
   orb(-r*.22,side*r*.74,bodyZ+r*.02+flap,r*.62,r*.18,r*.23,"#1b303a");
   orb(r*.85+headDrive,side*r*.29,headZ+r*.09,r*.095,r*.085,r*.095,"#f3f9ee");
   orb(r*.88+headDrive,side*r*.31,headZ+r*.10,r*.045,r*.052,r*.049,"#111d23");
