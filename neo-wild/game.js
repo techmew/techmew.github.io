@@ -3518,7 +3518,10 @@ function move(o,dx,dy){
    // Shoebills are wading birds: walk into shallows, not across deep channels.
    if(o===P&&o.flying&&o.flightAltitude>=42)return true;
    if(o===P&&o.type==="carp")return water>.035;
-   if(o===P&&(o.type==="otter"||o.type==="hippo"))return true;
+   // This is the physical movement gate: water roster must affect real collision.
+   if(o===P&&WATER_PLAYABLES.has(o.type))return true;
+   // Wild wetland swimmers use the same collision engine; cap depth for small NPCs.
+   if(o!==P&&["frog","giantTreeFrog","pacmanFrog","otter"].includes(o.type)&&water<=.65)return true;
    if(o===P&&o.type==="shoebill"&&water<=.24)return true;
    return water<=.0001||(d>.0001&&water<d-.00001);
   };
