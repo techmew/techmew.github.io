@@ -9,7 +9,7 @@ let save={unlocked:1,shadow:false,shadowUnlocked:1,coins:0,lives:5,score:0,best:
 try{const v=JSON.parse(localStorage.getItem(KEY)||"null");if(v&&typeof v==="object")save=Object.assign(save,v)}catch(e){}
 save.unlocked=clamp(+save.unlocked||1,1,32);save.shadowUnlocked=clamp(+save.shadowUnlocked||1,1,32);
 const held=new Set(),touchHeld=new Set(),pad={left:false,right:false,down:false,jump:false,attack:false,dash:false,extra:false};
-let prevJump=false,prevAttack=false,prevExtra=false,prevEnter=false;
+let prevJump=false,prevAttack=false,prevExtra=false,prevDash=false,prevEnter=false;
 const input=k=>held.has(k)||touchHeld.has(k)||!!pad[k];
 const palette=[
 {sky:["#68c8fa","#c4f2ff"],hill:"#77b987",far:"#9fe0c0",ground:"#704b32",edge:"#57c777",stone:"#bd9065",brick:"#dc8a5b"},
@@ -79,7 +79,7 @@ function showMap(){
  ],true);
 }
 function newGamePlayer(){
- return {x:90,y:GR-46,w:32,h:46,vx:0,vy:0,dir:1,grounded:false,age:0,air:0,coyote:0,buffer:0,invuln:1.2,starT:0,attackT:0,attackCooldown:0,flightMeter:0,flightT:0,suit:save.suit||"normal",run:false,duck:false,swimT:0,tailT:0,glide:0,dead:false,anim:"idle"};
+ return {x:90,y:GR-46,w:32,h:46,vx:0,vy:0,dir:1,grounded:false,age:0,air:0,coyote:0,buffer:0,invuln:1.2,starT:0,attackT:0,attackCooldown:0,flightMeter:0,flightT:0,suit:save.suit||"normal",run:false,duck:false,swimT:0,tailT:0,glide:0,dashBurst:0,punchId:0,dead:false,anim:"idle"};
 }
 function startStage(n,shadow=false,respawnX=0){
  n=clamp(n,1,32);save.current=n;save.mapShadow=shadow;const w=Math.ceil(n/4),s=(n-1)%4+1;
@@ -197,7 +197,7 @@ function die(){if(p.dead)return;p.dead=true;p.vy=-610;p.vx=0;p.invuln=3;save.liv
 }
 function fireAttack(){
  if(p.attackCooldown>0||p.dead)return;
- p.attackCooldown=p.suit==="hammer"?.31:.22;p.attackT=.24;
+ p.attackCooldown=p.suit==="hammer"?.31:.22;p.attackT=.24;p.punchId++;
  const x=p.x+(p.dir>0?p.w+4:-13),y=p.y+(p.suit==="normal"?16:23);
  if(p.suit==="fire"||p.suit==="hammer"||p.starT>0){
  shots.push({kind:p.suit==="hammer"?"hammer":"fire",x,y,w:15,h:15,vx:p.dir*(p.suit==="hammer"?460:640),vy:p.suit==="hammer"?-410:0,t:0,life:1.35,enemy:false,dead:false});
@@ -221,12 +221,14 @@ function updatePlayer(dt){
  if(jump&&!prevJump)p.buffer=.13;else p.buffer=Math.max(0,p.buffer-dt);prevJump=jump;
  if(attack&&!prevAttack)fireAttack();prevAttack=attack;
  if(extra&&!prevExtra)useInventory();prevExtra=extra;
+ if(dash&&!prevDash&&p.grounded){p.dashBurst=.18;p.vx=p.dir*440;burst(p.x+16,p.y+p.h,5,"#d6f4ff",105)}prevDash=dash;
+ p.dashBurst=Math.max(0,p.dashBurst-dt);
  if(attack&&p.suit==="fire"&&p.attackCooldown<=0)fireAttack();
  if(attack&&p.suit==="hammer"&&p.attackCooldown<=0)fireAttack();
  const accel=underwater?(p.suit==="frog"?2200:1100):p.grounded?2650:1600,run=(dash||attack)?430:320,max=underwater?(p.suit==="frog"?360:250):run;
  if(left!==right){p.vx+= (left?-1:1)*accel*dt;p.dir=left?-1:1}
  else p.vx*=Math.pow(p.grounded?(level.w===5?.96:.74):.985,dt*60);
- p.vx=clamp(p.vx,-max,max);if(Math.abs(p.vx)<2)p.vx=0;
+ p.vx=clamp(p.vx,-(p.dashBurst>0?490:max),(p.dashBurst>0?490:max));if(Math.abs(p.vx)<2)p.vx=0;
  p.duck=down&&p.grounded&&p.suit!=="normal";p.run=Math.abs(p.vx)>230;
  if(p.grounded)p.coyote=.11;else p.coyote=Math.max(0,p.coyote-dt);
  if(p.buffer>0&&(p.coyote>0||underwater)&&!p.duck){
@@ -247,6 +249,11 @@ function updatePlayer(dt){
   if(pipe){pipe.entered=true;beginBonus(pipe)}}
  if(p.y>H+220)die();
  if(!level.secret&&p.x>=level.goalX&&(!level.bossCleared?mobs.every(e=>e.kind!=="boss"||e.dead):true)){clearStage()}
+ if(p.attackT>0&&["normal","grow","frog"].includes(p.suit)){
+  const fist={x:p.dir>0?p.x+p.w-2:p.x-43,y:p.y+8,w:44,h:p.h-12};
+  for(const m of mobs)if(!m.dead&&m.lastPunch!==p.punchId&&hit(fist,m)){
+   m.lastPunch=p.punchId;damageMob(m,1,p.dir*450);burst(m.x+m.w/2,m.y+m.h/2,8,"#ffdd8f",180)}
+ }
  if(p.tailT>0)for(const m of mobs){if(m.dead)continue;const area={x:p.dir>0?p.x+p.w-3:p.x-80,y:p.y+5,w:83,h:p.h+12};if(hit(area,m)){damageMob(m,1,p.dir*400)}}
  for(const m of mobs){if(m.dead||m.stun>0)continue;if(!hit({x:p.x+4,y:p.y+5,w:p.w-8,h:p.h-5},m))continue;
   if(p.starT>0){damageMob(m,10,p.dir*350);continue}
