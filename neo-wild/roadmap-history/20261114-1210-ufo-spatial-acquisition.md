@@ -1,0 +1,8 @@
+# 2026-11-14 12:10 JST — UFO formation wildlife targeting performance
+Starting main HEAD 9654bba6b1e2fea43ed91ece566a9ad53af1403a; UFO blob 591f1ba1757524cc023e18ee249140823078144c; index blob 5344e0d574ae68b85634822441398f7b689e2468. Reviewed ROADMAP-RECOVERY and 1110 UFO handoff.
+Gameplay: Added a per-tick spatial grid for eligible living wild animals. Mother saucer and 2–3 independent escorts acquire nearest line-of-sight targets from local cells, with existing beam target retention (10% distance advantage) to prevent moving herds resetting the beam lock. Escort pursuits retain independent positions, beams, actual abduction, cover/hidden protections and stage timings. Avoided serializing live NPC objects as pursuit IDs. No title UI, save schema, ownership, boss, climate or world timing changes.
+Commits: f329e5fa8b5de5511c15c10e602e66139a6af6c9 (spatial index), 6e9b303b8fd674c2dbc8d951440544837b13baaa (serializable pursuit IDs), 95881c5ad42f61bb33e7ace5d52bdf0c2f0f5939 (HTML cache).
+Final UFO blob ce18712eb7f035426b01c96f26e52b44200c7f28; HTML blob 3dd40f7f426906a7e01992172891b323e4411f4f; rev ce18712eb7f0.
+Tests: JavaScript new Function parse pass; isolated runtime module mock with 800 wildlife, 3 physical escorts, hidden player unaffected, serializable state, and no unexpected death passed. This is not a measured FPS benchmark. Android and real-browser visual tests not run.
+Remaining: actual Android/browser FPS and 2D/WebGL beam rendering; long-session save compatibility; animal 35 species quality, biome progression, trophies, multiplayer.
+Next: implement frame-budgeted LOS raycast caching or interval-based acquisition while preserving stable lock, then measure real browser frame timing. Do not change title UI.
