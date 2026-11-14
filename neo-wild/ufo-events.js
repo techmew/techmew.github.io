@@ -74,7 +74,7 @@ function moveEscorts(e,world,near,dt){
     !world.isPlayerConcealed?.()&&distance(player,pos)<610&&!safeBlocked(world,player,pos);
   const prey=closestVisible(near,pos,720,world,wing.pursuitId);
   const nearest=prey?distance(prey,pos):720;
-  wing.pursuitId=prey?(prey.id??prey.uid??prey):null;
+  wing.pursuitId=prey?(prey.id??prey.uid??null):null; // Never persist a live mob object in UFO saves.
   const target=canHuntPlayer&&(!prey||distance(player,pos)<nearest*.85)?player:
     prey||{x:e.x+(Number(wing.dx)||0),y:e.y+(Number(wing.dy)||0)};
   const dx=target.x-wing.x,dy=target.y-wing.y,d=Math.hypot(dx,dy),hover=prey?45:12;
