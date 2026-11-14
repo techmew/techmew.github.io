@@ -10,7 +10,7 @@ const fleetEscorts=era=>era>=180?3:era>=100?2:0;
 const fleetPace=era=>era>=260?2.5:era>=180?2:era>=100?1.5:1;
 const wingmenForEra=era=>Array.from({length:fleetEscorts(era)},(_,i)=>{
  const n=fleetEscorts(era),angle=i*Math.PI*2/n+Math.PI/4;
- return {dx:Math.round(Math.cos(angle)*155),dy:Math.round(Math.sin(angle)*137),victim:null,beam:0,cooldown:0};
+ return {dx:Math.round(Math.cos(angle)*155),dy:Math.round(Math.sin(angle)*137),victim:null,beam:0,playerBeam:0,cooldown:0};
 });
 // Multiple craft actually cooperate when near the same animal.
 // Each extra beam is line-of-sight gated; concealment is handled by scan AI.
@@ -31,8 +31,17 @@ function moveEscorts(e,world,mobs,dt){
  const width=Math.max(600,Number(world.WORLD?.w)||8400),height=Math.max(600,Number(world.WORLD?.h)||6000);
  for(const wing of e.wingmen){
   const pos=escortPosition(e,wing);wing.x=pos.x;wing.y=pos.y;
-  const prey=mobs.filter(m=>abductable(m)&&distance(m,pos)<720&&!safeBlocked(world,m,pos)).sort((a,b)=>distance(a,pos)-distance(b,pos))[0];
-  const target=prey||{x:e.x+(Number(wing.dx)||0),y:e.y+(Number(wing.dy)||0)};
+  const player=world.P;
+  const canHuntPlayer=player&&player.hp>0&&!player._ufoAbducting&&!player.hidden&&
+    !world.isPlayerConcealed?.()&&distance(player,pos)<610&&!safeBlocked(world,player,pos);
+  let prey=null,nearest=720;
+  for(const mob of mobs){
+   if(!abductable(mob))continue;
+   const d=distance(mob,pos);
+   if(d<nearest&&!safeBlocked(world,mob,pos)){prey=mob;nearest=d;}
+  }
+  const target=canHuntPlayer&&(!prey||distance(player,pos)<nearest*.85)?player:
+    prey||{x:e.x+(Number(wing.dx)||0),y:e.y+(Number(wing.dy)||0)};
   const dx=target.x-wing.x,dy=target.y-wing.y,d=Math.hypot(dx,dy),hover=prey?45:12;
   if(d>hover){const step=Math.min(d-hover,Math.max(0,dt)*580);wing.x+=dx/d*step;wing.y+=dy/d*step;}
   wing.x=Math.max(45,Math.min(width-45,wing.x));wing.y=Math.max(45,Math.min(height-45,wing.y));
@@ -360,6 +369,22 @@ function tick(dt,world){
   }
   // Escort craft move and seek prey independently; each beam uses its own physical origin.
   if(!e.lifts.length)moveEscorts(e,world,mobs,dt);
+   // Every physical escort has an independent, cover-gated player tractor beam.
+   // Capture is serialized by beginLift to protect the permanent-death flow.
+   if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
+    const spot=escortPosition(e,wing);
+    const inRange=!e.lifts.length&&P.hp>0&&!P._ufoAbducting&&!concealed&&
+      distance(P,spot)<playerBeamRange&&!safeBlocked(world,P,spot);
+    if(inRange){
+     wing.playerBeam=Math.min(2.3,(Number(wing.playerBeam)||0)+dt*tractorStrength(e,P,world));
+     wing.beam=0;wing.victim=null;
+     if(wing.playerBeam>=2.2&&beginLift(e,P,spot,true)){
+      wing.playerBeam=0;
+      world.onPlayerAbductionStart?.();
+      world.notify?.("UFO子機の吸引光線に捕まった！ 遮蔽物へ逃げろ");
+     }
+    }else wing.playerBeam=Math.max(0,(Number(wing.playerBeam)||0)-dt*3.5);
+   }
   // Rare formation: escort saucers independently lock onto wildlife. They never bypass cover.
   if(!e.lifts.length&&!playerSeen&&Array.isArray(e.wingmen))for(const wing of e.wingmen){
    const spot=escortPosition(e,wing);
@@ -559,11 +584,14 @@ function draw(ctx,project,world){
   const wingPos=escortPosition(e,wing);
   const w=project(wingPos.x,wingPos.y);
   if(!w||!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
-  if(e.stage==="scan"&&wing.beam>0)renderTractor(ctx,w.x,w.y,w.y-85,56,e.t);
+  if(e.stage==="scan"&&(wing.beam>0||wing.playerBeam>0))renderTractor(ctx,w.x,w.y,w.y-85,56+Math.min(26,(Number(wing.playerBeam)||0)*10),e.t);
   renderSaucer(ctx,w.x,w.y-85-skyDrop,26,e.t+wing.dx*.02,"scout");
  }
  if(e.stage==="scan"){
-  if(e.lifts?.length){const lift=e.lifts[0],floor=project(lift.x,lift.y);if(floor&&Number.isFinite(floor.x)&&Number.isFinite(floor.y))renderTractor(ctx,p.x,floor.y,p.y-104,Math.max(60,Math.abs(floor.x-p.x)+45),e.t);}
+  if(e.lifts?.length){const lift=e.lifts[0],floor=project(lift.x,lift.y);if(floor&&Number.isFinite(floor.x)&&Number.isFinite(floor.y)){
+    const origin=project(lift.spotX,lift.spotY);
+    if(origin&&Number.isFinite(origin.x)&&Number.isFinite(origin.y))renderTractor(ctx,origin.x,floor.y,origin.y-104,Math.max(55,Math.abs(floor.x-origin.x)+38),e.t);
+   }}
   else renderTractor(ctx,p.x,p.y,p.y-104,Math.min(94,55+e.t*2),e.t);
  }
  // Actual captured actor geometry ascends, shrinks and docks beneath the saucer.
