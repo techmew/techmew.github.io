@@ -1406,7 +1406,9 @@ function shallowWater(x,y){return waterDepth(x,y)>0;}
 function waterBlocksLand(x,y){return waterDepth(x,y)>.0001;}
 // All water travel shares the existing river/canal/flood collision field.
 // Fish must remain in navigable water; otters/hippos can swim and walk on banks.
-const WATER_PLAYABLES=new Set(["otter","hippo","carp"]);
+// Amphibian roster members can enter flooded wetlands and rivers rather than being blocked at the shore.
+// The same collision, swim animation, continue/save restoration and navigation checks use this shared set.
+const WATER_PLAYABLES=new Set(["otter","hippo","carp","frog","giantTreeFrog","pacmanFrog"]);
 const FLYING_PLAYABLES=new Set(["crow","pigeon"]);
 const fishWaterAt=(x,y)=>waterDepth(x,y)>.035;
 function buildingOverlapsWater(x,y,w,h){
