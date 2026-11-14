@@ -74,6 +74,7 @@ function moveEscorts(e,world,near,dt){
   // interrupts its beam. This never harms a saved or owned animal.
   wing.disabled=Math.max(0,(Number(wing.disabled)||0)-dt);
   wing.counterCooldown=Math.max(0,(Number(wing.counterCooldown)||0)-dt);
+  wing.counterFlash=Math.max(0,(Number(wing.counterFlash)||0)-dt);
   const strike=player&&player.hp>0&&!player._ufoAbducting&&
     ((Number(player.swing)||0)>.015||(Number(player.attackAction)||0)>.12||
      (Number(player.specialVisual)||0)>.10);
@@ -86,7 +87,18 @@ function moveEscorts(e,world,near,dt){
     wing.disabled=ultimate?6:3.2;wing.counterCooldown=ultimate?8:4.5;
     wing.beam=0;wing.playerBeam=0;wing.victim=null;wing.pursuitId=null;
     wing.acquireDelay=wing.disabled;
-    world.notify?.(ultimate?"固有技でUFO子機を長時間停止！":"UFO子機を撃退！ 今のうちに逃げろ");
+    // A timed special disrupts nearby escorts too, only with clear sight lines.
+    let chain=0;
+    if(ultimate)for(const other of e.wingmen){
+     if(other===wing||(Number(other.disabled)||0)>0)continue;
+     const nearby=escortPosition(e,other);
+     if(distance(wing,nearby)>185||safeBlocked(world,wing,nearby)||safeBlocked(world,player,nearby))continue;
+     other.disabled=3.4;other.counterCooldown=5.2;
+     other.beam=0;other.playerBeam=0;other.victim=null;other.pursuitId=null;
+     other.acquireDelay=other.disabled;chain++;
+    }
+    wing.counterFlash=1.1;
+    world.notify?.(ultimate?(chain?"固有技でUFO編隊"+(chain+1)+"機を停止！":"固有技でUFO子機を長時間停止！"):"UFO子機を撃退！ 今のうちに逃げろ");
     world.onEvent?.("ufo-escort-counterattack",{year:Math.floor((Number(world.elapsed)||0)/120),
      x:wing.x,y:wing.y,ultimate,duration:wing.disabled});
    }
@@ -654,7 +666,27 @@ function draw(ctx,project,world){
   const w=project(wingPos.x,wingPos.y);
   if(!w||!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
   if(e.stage==="scan"&&(Number(wing.disabled)||0)<=0&&(wing.beam>0||wing.playerBeam>0))renderTractor(ctx,w.x,w.y,w.y-85,56+Math.min(26,(Number(wing.playerBeam)||0)*10),e.t);
-  renderSaucer(ctx,w.x,w.y-85-skyDrop,26,e.t+wing.dx*.02,"scout");
+  const disabled=(Number(wing.disabled)||0)>0;
+  const craftY=w.y-85-skyDrop+(disabled?Math.sin(e.t*5+wing.dx)*5+13:0);
+  renderSaucer(ctx,w.x,craftY,26,e.t+wing.dx*.02,"scout");
+  if(disabled){
+   // Canvas overlay is shared by 2D and WebGL: readable disabled state.
+   ctx.save();ctx.translate(w.x,craftY);ctx.strokeStyle="#ffb56f";
+   ctx.lineWidth=2.6;ctx.globalAlpha=opacity*(.65+.25*Math.sin(e.t*13));
+   ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(0,0,32,13,-.15,0,Math.PI*2);ctx.stroke();
+   ctx.setLineDash([]);
+   for(let i=0;i<3;i++){
+    const a=e.t*7+i*Math.PI*2/3;
+    ctx.beginPath();ctx.moveTo(Math.cos(a)*19,Math.sin(a)*11);
+    ctx.lineTo(Math.cos(a+.4)*33,Math.sin(a+.4)*19);
+    ctx.lineTo(Math.cos(a-.15)*27,Math.sin(a-.15)*23);ctx.stroke();
+   }
+   ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+   ctx.fillStyle="#ffe6b6";ctx.strokeStyle="#251c20";ctx.lineWidth=3;
+   const remaining=Math.ceil(Number(wing.disabled)||0)+"秒停止";
+   ctx.strokeText(remaining,0,-38);ctx.fillText(remaining,0,-38);
+   ctx.restore();
+  }
  }
  if(e.stage==="scan"){
   if(e.lifts?.length){const lift=e.lifts[0],floor=project(lift.x,lift.y);if(floor&&Number.isFinite(floor.x)&&Number.isFinite(floor.y)){
