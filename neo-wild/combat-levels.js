@@ -11,6 +11,11 @@ const levels=Object.freeze({
  giantGorilla:37,giantElephant:40,albinoWolf:30,giantEagle:31
 });
 const variants=Object.freeze({
+  // P2 specialist batch: attack timing, body part, and tactical range are distinct.
+ manul:{name:"低姿勢からの前脚連撃",windup:.67,reach:1.14,power:1.06,cooldown:1.26,stamina:7,arc:1.12},
+ tibetanFox:{name:"側面への跳躍噛みつき",windup:.78,reach:1.32,power:1.12,cooldown:1.35,stamina:9,knock:12},
+ shoebill:{name:"全身を踏み込む嘴突き",windup:1.28,reach:1.58,power:1.38,cooldown:1.58,stamina:12,knock:18,arc:.72},
+ penguin:{name:"滑走からの翼打ち",windup:.86,reach:1.24,power:1.02,cooldown:1.24,stamina:8,knock:10},
  dog:{name:"噛みつき二連撃",windup:.83,reach:1.12,power:.94,cooldown:1.14,stamina:7},
  boar:{name:"牙の横薙ぎ",windup:1.13,reach:1.20,power:1.18,cooldown:1.15,knock:24,arc:1.35},
  strayCat:{name:"すばやい二連爪",windup:.71,reach:1.12,power:.88,cooldown:1.12,stamina:5},
