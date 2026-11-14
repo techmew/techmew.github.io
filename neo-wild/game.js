@@ -4251,7 +4251,22 @@ function resolveSpeciesSpecial(){
    P.dir=a;P.steps+=travel*.035;
   }
  }
- if(type==="tanuki"){P.inv=Math.max(P.inv||0,.5);for(const m of enemies){m.search=0;m.alert=Math.min(m.alert||0,1.1);m.flee=Math.max(m.flee||0,1.5)}}
+ if(type==="tanuki"){
+  // A feint leaves a false scent behind the player. Hostile wildlife follows
+  // the old position rather than instantly reacquiring the player.
+  P.inv=Math.max(P.inv||0,.5);
+  const baitX=specialStart.x,baitY=specialStart.y;
+  for(const m of enemies){
+   if(!m||m.hp<=0||m.strongBoss||species[m.type]?.prey||lineBlocked(m,{x:baitX,y:baitY}))continue;
+   m.decoyUntil=elapsed+3.2;
+   m.decoyX=baitX;m.decoyY=baitY;
+   m.lastX=baitX;m.lastY=baitY;
+   m.search=0;m.alert=Math.max(m.alert||0,3.2);
+   m.flee=0;
+  }
+  label(baitX,baitY-30,"偽の足跡！","#e9d2a4");
+  emitCombatFX("special","tanuki","feint",baitX,baitY,P.dir,1.2,0,P.r);
+ }
  if(type==="armadillo")P.inv=Math.max(P.inv||0,.43);
  if(type==="hedgehog")P.inv=Math.max(P.inv||0,.65);
  let hitCount=0;
@@ -7328,9 +7343,12 @@ function update(dt){
    startlePrey(m,P,"alarm"); // At the end of aggression it returns to normal flight.
   }
   const provoked=(m.releasedIndividualId&&m.releasedMood==="aggressive"&&d<410&&!lineBlocked(m,P))||isProvokedPrey(m,s,d);
-  const spotted=(m.releasedIndividualId&&m.releasedMood==="aggressive"&&d<410&&!lineBlocked(m,P))||detectsPlayer(m,s,d)||
+  const decoyActive=!s.prey&&!m.strongBoss&&elapsed<(m.decoyUntil||0)&&
+   Math.hypot(m.x-(m.decoyX||0),m.y-(m.decoyY||0))>36&&
+   d>P.r+m.r+70&&!lineBlocked(m,{x:m.decoyX,y:m.decoyY});
+  const spotted=!decoyActive&&((m.releasedIndividualId&&m.releasedMood==="aggressive"&&d<410&&!lineBlocked(m,P))||detectsPlayer(m,s,d)||
    (elapsed<(m.reactiveUntil||0)&&d<Math.max(190,P.r+m.r+125)&&!lineBlocked(m,P))||
-   (provoked&&d<330&&!lineBlocked(m,P));
+   (provoked&&d<330&&!lineBlocked(m,P)));
   if(m.type==="cheetah"){
    m.sprintCooldown=Math.max(0,(m.sprintCooldown||0)-dt);
    if(spotted&&d>95&&d<420&&m.sprintCooldown<=0&&m.alert>0){
@@ -7341,7 +7359,8 @@ function update(dt){
   signalPack(m,spotted);
   // A pack member can now be alerted by another member on the same frame.
     if(territoryDetersDog(m)){m.flee=Math.max(m.flee,1.25);m.dir=Math.atan2(m.y-P.y,m.x-P.x);m.alert=0;m.search=0;}
-   if(spotted){m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
+   if(decoyActive){m.lastX=m.decoyX;m.lastY=m.decoyY;m.alert=Math.max(m.alert||0,1.2);m.search=0}
+   if(spotted){m.decoyUntil=0;m.lastX=P.x;m.lastY=P.y;m.alert=s.prey?1.8:5.5;m.search=0}
    if(updateIndoorRest(m,s,dt,spotted,d))continue;
    let vx=0,vy=0;
    if(!s.prey)tryEnemyEmergencyEvade(m,s,d,spotted);
