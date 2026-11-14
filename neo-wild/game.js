@@ -6339,6 +6339,16 @@ function steerPursuit(m,tx,ty){
 }
 const WEATHER_NAMES={CLEAR:"晴れ",CLOUDY:"曇り",RAIN:"雨",THUNDER:"雷雨",FOG:"霧",WIND:"強風",SNOW:"雪"};
 const RAIN_ADAPTED_TYPES=new Set(["frog","giantTreeFrog","pacmanFrog","otter","hippo","crocodile","carp","penguin","shoebill","giantCrocodile","giantHippo","giantAnaconda"]);
+
+// Wetland recovery is a live survival advantage, not a permanent stat upgrade.
+// Rain or thunder and accessible water are both required; no resurrection and no save schema changes.
+const WETLAND_RECOVERY_TYPES=new Set(["frog","giantTreeFrog","pacmanFrog","otter"]);
+function wetlandRecovery(type,x,y,sky=weather){
+ if(!WETLAND_RECOVERY_TYPES.has(type)||(sky!=="RAIN"&&sky!=="THUNDER"))return 0;
+ const depth=waterDepth(x,y);
+ if(depth<=.025||depth>.75)return 0;
+ return sky==="THUNDER"?1.25:1;
+}
 function rainStrength(type,sky=weather){
  if((sky!=="RAIN"&&sky!=="THUNDER")||!RAIN_ADAPTED_TYPES.has(type))return 1;
  const frog=type==="frog"||type==="giantTreeFrog"||type==="pacmanFrog";
@@ -7036,6 +7046,14 @@ function update(dt){
   label(P.x,P.y-38,"探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length,"#d6e9b3");
   saveAuto();
  }
+ // Amphibious player recovers while sheltering in wetland rain; starvation and death block healing.
+ if(P.hp>0&&P.hunger>0){
+  const wet=wetlandRecovery(P.type,P.x,P.y);
+  if(wet){
+   P.hp=Math.min(P.maxHp,P.hp+dt*.48*wet);
+   P.sp=Math.min(P.maxSp||100,P.sp+dt*3.6*wet);
+  }
+ }
  const oldDay=day; // accounted above
  if(Math.floor((elapsed-dt)/85)<Math.floor(elapsed/85)){
   // DAY is used only for the independent 85-second light cycle.
@@ -7658,6 +7676,11 @@ function update(dt){
    }
    if(m.stun>0){vx=0;vy=0;m.chargeTime=0}
    if((m.type==="mountainGoat"&&m.headbuttTell>0)||((m.type==="zebra"||m.type==="serow"||m.type==="deer")&&m.defenseTell>0)||m.cornerTell>0){vx=0;vy=0;}
+   // Wild frogs and otters gain the same wetland advantage, without reviving dead NPCs.
+   if(m.hp>0){
+    const wet=wetlandRecovery(m.type,m.x,m.y);
+    if(wet)m.hp=Math.min(m.maxHp||m.hp,m.hp+dt*.42*wet);
+   }
    const wetSpeed=rainStrength(m.type);vx*=wetSpeed;vy*=wetSpeed;
    const ox=m.x,oy=m.y;move(m,vx*dt,vy*dt);m.vx=(m.x-ox)/Math.max(.001,dt);m.vy=(m.y-oy)/Math.max(.001,dt);m.step+=Math.hypot(m.x-ox,m.y-oy)*.05;
    if(charging){
