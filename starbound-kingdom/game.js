@@ -8,7 +8,7 @@ let clock=0,cam=0,mode="menu",level=null,p=null,particles=[],shots=[],mobs=[],dr
 let save={unlocked:1,shadow:false,shadowUnlocked:1,coins:0,lives:5,score:0,best:0,suit:"normal",inventory:[],current:1};
 try{const v=JSON.parse(localStorage.getItem(KEY)||"null");if(v&&typeof v==="object")save=Object.assign(save,v)}catch(e){}
 save.unlocked=clamp(+save.unlocked||1,1,32);save.shadowUnlocked=clamp(+save.shadowUnlocked||1,1,32);
-const held=new Set(),touchHeld=new Set(),pad={left:false,right:false,down:false,jump:false,attack:false,extra:false};
+const held=new Set(),touchHeld=new Set(),pad={left:false,right:false,down:false,jump:false,attack:false,dash:false,extra:false};
 let prevJump=false,prevAttack=false,prevExtra=false,prevEnter=false;
 const input=k=>held.has(k)||touchHeld.has(k)||!!pad[k];
 const palette=[
@@ -215,7 +215,7 @@ function endBonus(){level.secret=false;level.secretT=0;p.x=level.secretBack;p.y=
 function updatePlayer(dt){
  if(p.dead){p.age+=dt;p.vy+=1850*dt;p.y+=p.vy*dt;return}
  p.age+=dt;p.attackCooldown=Math.max(0,p.attackCooldown-dt);p.attackT=Math.max(0,p.attackT-dt);p.tailT=Math.max(0,p.tailT-dt);p.invuln=Math.max(0,p.invuln-dt);p.starT=Math.max(0,p.starT-dt);
- const left=input("left"),right=input("right"),down=input("down"),jump=input("jump"),attack=input("attack"),extra=input("extra");
+ const left=input("left"),right=input("right"),down=input("down"),jump=input("jump"),attack=input("attack"),dash=input("dash"),extra=input("extra");
  const underwater=level.w===4&&p.y>270;
  p.swimT=Math.max(0,p.swimT-dt);
  if(jump&&!prevJump)p.buffer=.13;else p.buffer=Math.max(0,p.buffer-dt);prevJump=jump;
@@ -223,7 +223,7 @@ function updatePlayer(dt){
  if(extra&&!prevExtra)useInventory();prevExtra=extra;
  if(attack&&p.suit==="fire"&&p.attackCooldown<=0)fireAttack();
  if(attack&&p.suit==="hammer"&&p.attackCooldown<=0)fireAttack();
- const accel=underwater?(p.suit==="frog"?2200:1100):p.grounded?2650:1600,run=attack?430:320,max=underwater?(p.suit==="frog"?360:250):run;
+ const accel=underwater?(p.suit==="frog"?2200:1100):p.grounded?2650:1600,run=(dash||attack)?430:320,max=underwater?(p.suit==="frog"?360:250):run;
  if(left!==right){p.vx+= (left?-1:1)*accel*dt;p.dir=left?-1:1}
  else p.vx*=Math.pow(p.grounded?(level.w===5?.96:.74):.985,dt*60);
  p.vx=clamp(p.vx,-max,max);if(Math.abs(p.vx)<2)p.vx=0;
@@ -235,7 +235,7 @@ function updatePlayer(dt){
   p.grounded=false;p.coyote=0;p.buffer=0;p.swimT=underwater?.3:0;sound.jump();burst(p.x+17,p.y+p.h,underwater?9:5,underwater?"#b1efff":"#d5e3d9",110);
  }
  if(!jump&&p.vy< -140)p.vy+=2250*dt;
- if(p.suit==="cloak"&&p.grounded&&Math.abs(p.vx)>385&&attack)p.flightMeter=Math.min(2,p.flightMeter+dt);else p.flightMeter=Math.max(0,p.flightMeter-dt*.45);
+ if(p.suit==="cloak"&&p.grounded&&Math.abs(p.vx)>385&&(dash||attack))p.flightMeter=Math.min(2,p.flightMeter+dt);else p.flightMeter=Math.max(0,p.flightMeter-dt*.45);
  p.flightT=Math.max(0,p.flightT-dt);
  if(p.suit==="cloak"&&p.flightT>0&&jump&&!p.grounded)p.vy=Math.min(p.vy,-125);
  let grav=underwater?(p.suit==="frog"?360:590):1820;
@@ -356,7 +356,7 @@ function pollPad(){
  for(let k of Object.keys(pad))pad[k]=false;
  try{const gp=navigator.getGamepads&&Array.from(navigator.getGamepads()).find(Boolean);if(!gp)return;
  const b=i=>!!gp.buttons[i]?.pressed;pad.left=gp.axes[0]<-.27||b(14);pad.right=gp.axes[0]>.27||b(15);
- pad.down=gp.axes[1]>.35||b(13);pad.jump=b(0)||b(3);pad.attack=b(1)||b(2)||b(5);pad.extra=b(4);
+ pad.down=gp.axes[1]>.35||b(13);pad.jump=b(0)||b(3);pad.attack=b(1)||b(2);pad.dash=b(5);pad.extra=b(4);
  if(b(9)&&!prevEnter){prevEnter=true;togglePause()}else if(!b(9))prevEnter=false;
  }catch(e){}
 }
@@ -630,7 +630,7 @@ function togglePause(){
  else if(mode==="paused"){mode="playing";hideOverlay()}
 }
 function onKey(e,down){
- const k=e.code,action=k==="ArrowLeft"||k==="KeyA"?"left":k==="ArrowRight"||k==="KeyD"?"right":k==="ArrowDown"||k==="KeyS"?"down":k==="KeyZ"||k==="Space"||k==="ArrowUp"||k==="KeyW"?"jump":k==="KeyX"||k==="ShiftLeft"||k==="ShiftRight"?"attack":k==="KeyC"?"extra":null;
+ const k=e.code,action=k==="ArrowLeft"||k==="KeyA"?"left":k==="ArrowRight"||k==="KeyD"?"right":k==="ArrowDown"||k==="KeyS"?"down":k==="KeyZ"||k==="Space"||k==="ArrowUp"||k==="KeyW"?"jump":k==="KeyX"?"attack":k==="ShiftLeft"||k==="ShiftRight"?"dash":k==="KeyC"?"extra":null;
  if(action){e.preventDefault();if(down)held.add(action);else held.delete(action)}
  if(!down||e.repeat)return;
  if(k==="Escape"||k==="KeyP")togglePause();
@@ -638,6 +638,23 @@ function onKey(e,down){
 }
 window.addEventListener("keydown",e=>onKey(e,true),{passive:false});window.addEventListener("keyup",e=>onKey(e,false),{passive:false});
 window.addEventListener("blur",()=>{held.clear();touchHeld.clear();if(mode==="playing")togglePause()});
+// Analog joystick: pointer capture prevents a moving thumb from losing directional control.
+const joy=$("joystick"),thumb=$("joystickThumb");let joyPointer=-1;
+const centerStick=()=>{thumb.style.transform="translate(-50%,-50%)";for(const k of ["left","right","down"])touchHeld.delete(k)};
+function moveStick(e){
+ if(joyPointer!==e.pointerId)return;
+ e.preventDefault();const rect=joy.getBoundingClientRect();
+ const dx=e.clientX-(rect.left+rect.width/2),dy=e.clientY-(rect.top+rect.height/2),dist=Math.max(1,Math.hypot(dx,dy));
+ const rad=Math.min(36,dist),x=dx/dist*rad,y=dy/dist*rad;
+ thumb.style.transform="translate(calc(-50% + "+x.toFixed(1)+"px),calc(-50% + "+y.toFixed(1)+"px))";
+ const threshold=12;for(const k of ["left","right","down"])touchHeld.delete(k);
+ if(x< -threshold)touchHeld.add("left");if(x>threshold)touchHeld.add("right");if(y>18)touchHeld.add("down");
+}
+joy.addEventListener("pointerdown",e=>{e.preventDefault();joyPointer=e.pointerId;joy.setPointerCapture(e.pointerId);moveStick(e)},{passive:false});
+joy.addEventListener("pointermove",moveStick,{passive:false});
+for(const ev of ["pointerup","pointercancel","lostpointercapture"])joy.addEventListener(ev,e=>{if(e.pointerId===joyPointer){joyPointer=-1;centerStick()}});
+joy.addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight","ArrowDown"].includes(e.code))return;e.preventDefault();touchHeld.add(e.code==="ArrowLeft"?"left":e.code==="ArrowRight"?"right":"down")});
+joy.addEventListener("keyup",e=>{if(["ArrowLeft","ArrowRight","ArrowDown"].includes(e.code)){e.preventDefault();centerStick()}});
 document.querySelectorAll("[data-key]").forEach(b=>{
  const action=b.dataset.key;
  const start=e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);touchHeld.add(action);b.classList.add("down")};
@@ -648,7 +665,7 @@ document.querySelectorAll("[data-key]").forEach(b=>{
 $("menuBtn").onclick=()=>{if(mode==="playing")showMap();else menu()};
 $("pauseBtn").onclick=togglePause;
 $("soundBtn").onclick=()=>{sfx=!sfx;$("soundBtn").textContent=sfx?"♫ ON":"♫ OFF";$("soundBtn").classList.toggle("active",sfx);if(sfx)playsound(600,.1)};
-$("fullBtn").onclick=()=>{const v=$("view");if(document.fullscreenElement)document.exitFullscreen?.();else v.requestFullscreen?.().catch(()=>{})};
+$("fullBtn").onclick=()=>{const v=$("shell");if(document.fullscreenElement)document.exitFullscreen?.();else v.requestFullscreen?.().catch(()=>{})};
 $("startBtn")?.addEventListener("click",()=>startStage(save.current||1,false));$("mapBtn")?.addEventListener("click",showMap);
 const dtTarget=1/60;let last=performance.now(),acc=0;
 function loop(now){const delta=Math.min(.05,(now-last)/1000);last=now;acc+=delta;
