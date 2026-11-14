@@ -261,7 +261,7 @@ function updatePlayer(dt){
 function damageMob(m,n,force=0){
  if(m.dead||m.stun>0)return;
  if(m.kind==="beetle"&&!m.shell){m.shell=true;m.vx=0;m.stun=.28;m.y=GR-30;m.h=30;score(100);sound.stomp();return}
- if(m.kind==="beetle"&&m.shell&&Math.abs(m.vx)<80){m.vx=force||p.dir*580;m.stun=.15;score(120);sound.stomp();return}
+ if(m.kind==="beetle"&&m.shell&&Math.abs(m.vx)<80){m.vx=Math.sign(force||p.dir)*580;m.stun=.15;score(120);sound.stomp();return}
  m.hp-=n;m.stun=.28;m.alert=.4;shake=m.kind==="boss"?8:1;
  if(m.hp<=0){m.dead=true;score(m.kind==="boss"?6000:220);burst(m.x+m.w/2,m.y+m.h/2,m.kind==="boss"?35:15,m.kind==="boss"?"#ffc781":"#b9edff",m.kind==="boss"?360:190);
   if(m.kind==="boss"){level.bossCleared=true;announce("BOSS DEFEATED! · EXIT OPEN",3);sound.win();screenFlash=.45;spawnDrop(m.x,m.y-25,"star")}
