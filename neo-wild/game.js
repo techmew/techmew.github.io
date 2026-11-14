@@ -7740,14 +7740,14 @@ function update(dt){
   floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
   isPrey:m=>!!species[m.type]?.prey,
   onRescue:m=>{
-   const beforeXp=P.xp,beforeSp=P.sp,beforeJournal=worldEventJournal.length;
+   const beforeXp=P.xp,beforeSp=P.sp,beforeJournal=worldEventJournal.slice();
    P.xp+=8;P.sp=Math.min(P.maxSp,P.sp+12);
    worldEventJournal.push({year:Math.floor(elapsed/120),at:Date.now(),
     kind:"flood-rescue",label:"洪水から"+(animals[m.type]?.name||m.type)+"を救助"});
    worldEventJournal=worldEventJournal.slice(-40);
    if(saveAuto()!==true){
     P.xp=beforeXp;P.sp=beforeSp;
-    worldEventJournal.splice(Math.min(beforeJournal,worldEventJournal.length));
+    worldEventJournal=beforeJournal;
     return false;
    }
    persistWorldChronicle();
