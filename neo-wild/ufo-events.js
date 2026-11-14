@@ -72,7 +72,19 @@ function moveEscorts(e,world,near,dt){
   const player=world.P;
   const canHuntPlayer=player&&player.hp>0&&!player._ufoAbducting&&!player.hidden&&
     !world.isPlayerConcealed?.()&&distance(player,pos)<610&&!safeBlocked(world,player,pos);
-  const prey=closestVisible(near,pos,720,world,wing.pursuitId);
+  // Budget expensive wide-area LOS acquisition across frames. An existing
+  // pursuit is revalidated every frame (including cover and death), so hiding
+  // remains immediate while 3 escorts no longer raycast the entire herd at 60 FPS.
+  const nearby=near(pos,720);
+  let prey=wing.pursuitId==null?null:nearby.find(m=>(m.id??m.uid)===wing.pursuitId);
+  if(prey&&safeBlocked(world,prey,pos))prey=null;
+  wing.acquireDelay=Math.max(0,(Number(wing.acquireDelay)||0)-dt);
+  if(wing.acquireDelay<=0||!prey){
+   // Stagger escorts to avoid synchronized expensive scan frames.
+   wing.acquireDelay=.18+(Math.abs(Number(wing.dx)||0)%5)*.014;
+   const candidate=closestVisible(near,pos,720,world,wing.pursuitId);
+   prey=candidate||null;
+  }
   const nearest=prey?distance(prey,pos):720;
   wing.pursuitId=prey?(prey.id??prey.uid??null):null; // Never persist a live mob object in UFO saves.
   const target=canHuntPlayer&&(!prey||distance(player,pos)<nearest*.85)?player:
