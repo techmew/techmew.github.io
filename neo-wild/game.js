@@ -6219,11 +6219,18 @@ function huntWildPrey(m,sp,spotted,playerDistance){
   const strike=m.apexHunter?(swallow?prey.hp:Math.max(5,Math.ceil((prey.maxHp||prey.hp)/3))):bite;
   prey.hp=Math.max(0,prey.hp-strike);
   // A cornered larger grazer can counter a predator. Damage is real and cooldown-limited.
-  if(prey.hp>0&&["boar","deer","zebra","serow","mountainGoat"].includes(prey.type)&&
+  if(prey.hp>0&&(["boar","deer","zebra","serow","mountainGoat"].includes(prey.type)||
+     (["frog","giantTreeFrog","pacmanFrog"].includes(prey.type)&&waterDepth(prey.x,prey.y)>.04))&&
      (prey.attack||0)<=0&&!lineBlocked(prey,m)){
-   const guard=prey.type==="boar"?18:prey.type==="zebra"?15:prey.type==="mountainGoat"?13:prey.type==="serow"?11:8;
-   m.hp=Math.max(0,m.hp-guard);prey.attack=2.8;prey.swing=.26;
-   m.stun=Math.max(m.stun||0,.21);m.flee=Math.max(m.flee||0,.24);
+   const aquaticFrog=["frog","giantTreeFrog","pacmanFrog"].includes(prey.type);
+   const guard=aquaticFrog?Math.max(2,Math.round((species[prey.type]?.damage||5)*.42)):prey.type==="boar"?18:prey.type==="zebra"?15:prey.type==="mountainGoat"?13:prey.type==="serow"?11:8;
+   m.hp=Math.max(0,m.hp-guard);prey.attack=aquaticFrog?3.6:2.8;prey.swing=aquaticFrog?.38:.26;
+   m.stun=Math.max(m.stun||0,aquaticFrog?.48:.21);m.flee=Math.max(m.flee||0,aquaticFrog?.52:.24);
+   if(aquaticFrog){
+    const angle=Math.atan2(m.y-prey.y,m.x-prey.x);
+    move(m,Math.cos(angle)*Math.min(24,prey.r+12),Math.sin(angle)*Math.min(24,prey.r+12));
+    prey.wetLandingRipple=.5;prey.wetLandingWater=true;
+   }
    if(P&&dist(P,prey)<380)label(prey.x,prey.y-prey.r-24,"反撃！ -"+guard,"#f6d8a7");
    if(m.hp<=0){carcasses.push(animalRemains(m));m.wildTargetX=null;m.wildTargetY=null;m.wildTargetAt=-1;}
   }
@@ -6245,7 +6252,7 @@ function huntWildPrey(m,sp,spotted,playerDistance){
  }
  if(m.hp<=0)return null;
  const sprint=(m.huntSprintLeft||0)>0?(m.type==="lion"?1.36:m.type==="cheetah"?1.42:1.14):1;
- const pace=m.apexHunter?1.1:m.type==="otter"?(waterDepth(m.x,m.y)>.04?1.05:.85):m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
+ const pace=m.apexHunter?1.1:m.type==="otter"?(waterDepth(m.x,m.y)>.04?(weather==="RAIN"||weather==="THUNDER"?1.45:1.22):.85):m.type==="lion"?.91:m.type==="cheetah"?.90:m.type==="albinoWolf"?.99:m.type==="blackPanther"?.92:m.type==="whiteTiger"?.95:m.type==="giantLion"?.90:m.type==="giantHyena"?.98:m.type==="oneEyedWolf"?.91:m.type==="giantSnake"?.76:.75;
  return {vx:Math.cos(m.dir)*sp.speed*pace*sprint,vy:Math.sin(m.dir)*sp.speed*pace*sprint};
 }
 // Choose a real road bridge before generic A* when wildlife crosses open water.
