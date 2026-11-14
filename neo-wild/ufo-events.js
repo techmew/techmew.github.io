@@ -24,9 +24,47 @@ function tractorStrength(e,actor,world){
  return Math.min(2.05,1+assistants*.34);
 }
 const safeBlocked=(world,a,b)=>typeof world.lineBlocked==="function"&&world.lineBlocked(a,b);
+// Shared per-frame wildlife index: avoid repeated full-array scans and wall raycasts
+// for each escort while retaining exact final range and LOS checks.
+const UFO_CELL=240;
+function wildlifeIndex(mobs){
+ const cells=new Map();
+ for(const mob of mobs){
+  if(!abductable(mob)||!Number.isFinite(mob.x)||!Number.isFinite(mob.y))continue;
+  const x=Math.floor(mob.x/UFO_CELL),y=Math.floor(mob.y/UFO_CELL),key=x+","+y;
+  if(!cells.has(key))cells.set(key,[]);
+  cells.get(key).push(mob);
+ }
+ return function near(spot,radius){
+  const list=[],minX=Math.floor((spot.x-radius)/UFO_CELL),maxX=Math.floor((spot.x+radius)/UFO_CELL);
+  const minY=Math.floor((spot.y-radius)/UFO_CELL),maxY=Math.floor((spot.y+radius)/UFO_CELL);
+  const r2=radius*radius;
+  for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){
+   const cell=cells.get(x+","+y);if(!cell)continue;
+   for(const m of cell){const dx=m.x-spot.x,dy=m.y-spot.y;if(dx*dx+dy*dy<r2&&abductable(m))list.push(m);}
+  }
+  return list;
+ };
+}
+function closestVisible(near,spot,radius,world,preferred=null){
+ const candidates=near(spot,radius);
+ let best=null,bestSq=radius*radius;
+ // Retain an existing beam lock when it remains competitive, preventing
+ // jitter and repeatedly resetting the capture timer in a moving herd.
+ if(preferred){
+  const m=candidates.find(a=>(a.id??a.uid??a)===preferred);
+  if(m&&!safeBlocked(world,m,spot)){best=m;const dx=m.x-spot.x,dy=m.y-spot.y;bestSq=(dx*dx+dy*dy)*.81;}
+ }
+ for(const m of candidates){
+  if(m===best)continue;
+  const dx=m.x-spot.x,dy=m.y-spot.y,sq=dx*dx+dy*dy;
+  if(sq<bestSq&&!safeBlocked(world,m,spot)){best=m;bestSq=sq;}
+ }
+ return best;
+}
 const escortPosition=(e,wing)=>({x:Number.isFinite(wing.x)?wing.x:e.x+(Number(wing.dx)||0),y:Number.isFinite(wing.y)?wing.y:e.y+(Number(wing.dy)||0)});
 // Physical escort positions migrate lazily from older formation saves.
-function moveEscorts(e,world,mobs,dt){
+function moveEscorts(e,world,near,dt){
  if(!Array.isArray(e.wingmen))return;
  const width=Math.max(600,Number(world.WORLD?.w)||8400),height=Math.max(600,Number(world.WORLD?.h)||6000);
  for(const wing of e.wingmen){
@@ -34,12 +72,9 @@ function moveEscorts(e,world,mobs,dt){
   const player=world.P;
   const canHuntPlayer=player&&player.hp>0&&!player._ufoAbducting&&!player.hidden&&
     !world.isPlayerConcealed?.()&&distance(player,pos)<610&&!safeBlocked(world,player,pos);
-  let prey=null,nearest=720;
-  for(const mob of mobs){
-   if(!abductable(mob))continue;
-   const d=distance(mob,pos);
-   if(d<nearest&&!safeBlocked(world,mob,pos)){prey=mob;nearest=d;}
-  }
+  const prey=closestVisible(near,pos,720,world,wing.pursuitId);
+  const nearest=prey?distance(prey,pos):720;
+  wing.pursuitId=prey?(prey.id??prey.uid??prey):null;
   const target=canHuntPlayer&&(!prey||distance(player,pos)<nearest*.85)?player:
     prey||{x:e.x+(Number(wing.dx)||0),y:e.y+(Number(wing.dy)||0)};
   const dx=target.x-wing.x,dy=target.y-wing.y,d=Math.hypot(dx,dy),hover=prey?45:12;
@@ -311,8 +346,8 @@ function tick(dt,world){
    e.lastSeen=Math.max(0,(Number(e.lastSeen)||0)-dt);
    if(e.lastSeen<=0)e.playerSpotted=false;
   }
-  const prey=mobs.filter(m=>abductable(m)&&distance(m,e)<1450&&!safeBlocked(world,m,e))
-    .sort((a,b)=>distance(a,e)-distance(b,e));
+  const nearWildlife=wildlifeIndex(mobs);
+  const nearestPrey=closestVisible(nearWildlife,e,1450,world,e.victim);
   // Change patrol waypoint repeatedly, covering distant districts rather than idling.
   const boundsW=Math.max(600,Number(world.WORLD?.w)||8400),boundsH=Math.max(600,Number(world.WORLD?.h)||6000);
   if(!Number.isFinite(e.roamX)||!Number.isFinite(e.roamY)||e.t>=(Number(e.roamUntil)||0)||
@@ -324,10 +359,10 @@ function tick(dt,world){
   const pursueLast=e.lastSeen>0&&!concealed&&!obstructed;
   const target=e.lifts.length?{x:e.lifts[0].spotX,y:e.lifts[0].spotY}
     :playerSeen?P:pursueLast?{x:e.lastPlayerX,y:e.lastPlayerY}
-    :prey[0]||{x:e.roamX,y:e.roamY};
+    :nearestPrey||{x:e.roamX,y:e.roamY};
   if(target&&!e.lifts.length){
    const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy);
-   const chasingAnimal=!playerSeen&&!pursueLast&&target===prey[0];
+   const chasingAnimal=!playerSeen&&!pursueLast&&target===nearestPrey;
    const hover=playerSeen?35:chasingAnimal?14:100;
    if(d>hover){
     const speed=playerSeen||pursueLast?UFO_PURSUE_SPEED:chasingAnimal?UFO_PURSUE_SPEED*.92:UFO_PATROL_SPEED;
@@ -368,7 +403,7 @@ function tick(dt,world){
    }
   }
   // Escort craft move and seek prey independently; each beam uses its own physical origin.
-  if(!e.lifts.length)moveEscorts(e,world,mobs,dt);
+  if(!e.lifts.length)moveEscorts(e,world,nearWildlife,dt);
    // Every physical escort has an independent, cover-gated player tractor beam.
    // Capture is serialized by beginLift to protect the permanent-death flow.
    if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
@@ -390,8 +425,8 @@ function tick(dt,world){
    const spot=escortPosition(e,wing);
    wing.cooldown=Math.max(0,(Number(wing.cooldown)||0)-dt);
    if(wing.cooldown>0)continue;
-   const nearby=mobs.filter(a=>abductable(a)&&distance(a,spot)<beamRange&&!safeBlocked(world,a,spot)).sort((a,b)=>distance(a,spot)-distance(b,spot));
-   const prey=nearby[0],id=prey&&(prey.id??prey.uid??prey);
+   const prey=closestVisible(nearWildlife,spot,beamRange,world,wing.victim);
+   const id=prey&&(prey.id??prey.uid??prey);
    if(!prey){wing.victim=null;wing.beam=0;continue}
    if(wing.victim!==id){wing.victim=id;wing.beam=0}
    wing.beam+=dt*tractorStrength(e,prey,world);
@@ -408,7 +443,7 @@ function tick(dt,world){
    }
   }
   // NPC can be abducted before the player: nearest living wildlife in beam.
-  const targets=mobs.filter(m=>abductable(m)&&distance(m,e)<beamRange&&!safeBlocked(world,m,e)).sort((a,b)=>distance(a,e)-distance(b,e));
+  const nearestBeamTarget=closestVisible(nearWildlife,e,beamRange,world,e.victim);
   // All nearby animals react; only the locked victim is subject to capture.
   for(const animal of mobs){if(animal.hp<=0||animal.companion||distance(animal,e)>180)continue;
    animal.flee=Math.max(Number(animal.flee)||0,1.8);
@@ -416,7 +451,7 @@ function tick(dt,world){
    animal.lastX=e.x;animal.lastY=e.y;
   }
   // NPCs receive a visible, escapable lock-on instead of instantaneous removal.
-  const m=targets[0];
+  const m=nearestBeamTarget;
   if(!playerSeen&&m&&e.t>.3&&e.npcCooldown<=0){
    const id=m.id??m.uid??m;
    const species=String(m.species??m.type??m.kind??m.name??"不明な動物");
