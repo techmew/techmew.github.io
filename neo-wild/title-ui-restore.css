@@ -1,0 +1,91 @@
+/* WILD RECLAIM title UI restoration.
+   Scope: title overlay only. Keep gameplay, save, gacha and boss ownership unchanged.
+   Restore the intended ordering: animal slots -> resume -> boss slots. */
+#menu #squad-home #save-menu-actions{
+  order:1!important;
+  width:100%!important;
+  margin:5px 0 3px!important;
+}
+#menu #squad-home #boss-owned-slots{
+  order:2!important;
+  margin:4px 0 2px!important;
+}
+/* Bring back the compact three-card roster without hiding any stored animal. */
+#menu #squad-home{gap:5px!important;margin:3px 0!important;}
+#menu #squad-roster{gap:5px!important;align-items:stretch!important;}
+#menu #squad-roster .squad-roster-slot,
+#menu #squad-roster .squad-roster-slot.is-leader,
+#menu #squad-roster .squad-roster-slot[aria-current="true"]{
+  min-height:0!important;height:auto!important;
+  padding:5px 3px 6px!important;gap:2px!important;
+  background:#103d30!important;background-image:none!important;
+  overflow:hidden!important;
+}
+#menu #squad-roster .squad-roster-slot.is-leader{
+  border:3px solid #f4d778!important;
+}
+#menu #squad-roster .squad-roster-preview{
+  height:70px!important;max-height:70px!important;overflow:hidden!important;
+}
+#menu #squad-roster .squad-roster-preview canvas{
+  height:70px!important;max-height:70px!important;
+}
+#menu #squad-roster .squad-roster-slot .squad-active-badge{
+  padding:3px 2px!important;font-size:11px!important;line-height:1.1!important;
+}
+#menu #squad-roster .squad-roster-slot .squad-species-label{
+  font-size:10px!important;line-height:1.2!important;
+  white-space:normal!important;word-break:keep-all!important;overflow-wrap:normal!important;
+}
+#menu #squad-roster .squad-roster-slot .squad-individual-name{
+  font-size:11px!important;line-height:1.2!important;
+  white-space:normal!important;word-break:keep-all!important;overflow-wrap:normal!important;
+}
+#menu #squad-roster .squad-roster-slot .squad-individual-rank{
+  font-size:10px!important;line-height:1.2!important;
+}
+#menu #squad-roster .squad-roster-empty.squad-slot-add{
+  min-height:64px!important;font-size:43px!important;
+}
+#menu #squad-roster .squad-roster-slot button.squad-release-character{
+  min-height:32px!important;padding:4px 2px!important;
+  font-size:11px!important;line-height:1.2!important;
+}
+#menu #squad-home #continue-btn{
+  min-height:62px!important;padding:9px 12px!important;
+}
+#menu .boss-owned-heading{margin:5px 0 6px!important;}
+#menu .boss-owned-card.is-empty{
+  min-height:83px!important;padding:5px 3px!important;
+}
+#menu .menu-shell{gap:6px!important;}
+#menu .hero-title{margin:4px 0 2px!important;}
+#menu .lead{margin:3px 0 5px!important;}
+/* The language switch belongs at the title's upper-right, never in the roster flow. */
+#menu #language-title.flag-language-title{
+  position:fixed!important;top:calc(7px + env(safe-area-inset-top, 0px))!important;
+  right:calc(7px + env(safe-area-inset-right, 0px))!important;
+  left:auto!important;bottom:auto!important;
+  z-index:999!important;width:max-content!important;max-width:calc(100% - 14px)!important;
+  margin:0!important;
+}
+@media (orientation:portrait) and (max-width:600px){
+  #menu .hero-title{font-size:clamp(49px,12vw,73px)!important;}
+  #menu #squad-roster .squad-roster-preview,
+  #menu #squad-roster .squad-roster-preview canvas{
+    height:60px!important;max-height:60px!important;
+  }
+  #menu #squad-roster .squad-roster-slot{padding:4px 3px 5px!important;}
+  #menu #squad-roster .squad-roster-slot .squad-species-label,
+  #menu #squad-roster .squad-roster-slot .squad-individual-name{
+    font-size:10px!important;
+  }
+  #menu .boss-owned-card.is-empty{min-height:76px!important;}
+}
+@media (orientation:landscape) and (max-height:520px){
+  #menu #squad-roster .squad-roster-preview,
+  #menu #squad-roster .squad-roster-preview canvas{
+    height:51px!important;max-height:51px!important;
+  }
+  #menu #squad-home #continue-btn{min-height:49px!important;}
+}
