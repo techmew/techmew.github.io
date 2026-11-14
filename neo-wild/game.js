@@ -7647,6 +7647,47 @@ function update(dt){
     const refuge=wetlandRefuge(m,dt,threat);
     if(refuge&&!refuge.inWater){vx=refuge.vx*1.4;vy=refuge.vy*1.4;}
    }
+   // P2 specialist terrain decisions: real NPC movement, not a decorative pose.
+   // Existing combat, hunting, refuge and saved ownership take precedence.
+   if(["manul","tibetanFox","shoebill","penguin"].includes(m.type)&&
+      !wildHunt&&!scavenging&&!foraging&&!drinking&&!provoked&&
+      !spotted&&m.alert<=0&&m.flee<=0&&m.stun<=0&&m.windup<=0&&
+      m.chargeTime<=0&&(m.wetLeapTime||0)<=0){
+    const targetDepth=m.type==="shoebill"?.12:m.type==="penguin"?.30:0;
+    const here=waterDepth(m.x,m.y);
+    const targetTerrain=m.type==="manul"?(mountainHabitat(m.x,m.y)?1:0):
+      m.type==="tibetanFox"?(mountainHabitat(m.x,m.y)?1:0):0;
+    m.specialistTerrainClock=(m.specialistTerrainClock||0)-dt;
+    if(m.specialistTerrainClock<=0){
+     m.specialistTerrainClock=1.3+Math.random()*.8;
+     let best=null,bestScore=-Infinity;
+     for(let k=0;k<12;k++){
+      const a=k*Math.PI/6,step=Math.max(35,m.r*2.8);
+      const x=m.x+Math.cos(a)*step,y=m.y+Math.sin(a)*step;
+      if(x<40||y<40||x>WORLD.w-40||y>WORLD.h-40||
+         collides(x,y,m.r,null,true)||!routeClear(m,{x,y},m.r))continue;
+      const depth=waterDepth(x,y);
+      if((m.type==="shoebill"&&depth>.24)||
+         (m.type==="penguin"&&depth>.65)||
+         (m.type==="manul"||m.type==="tibetanFox")&&depth>.0001)continue;
+      let score=-Math.abs(depth-targetDepth)*5;
+      if(m.type==="manul")score+=mountainHabitat(x,y)?1.4:targetTerrain*.3;
+      if(m.type==="tibetanFox")score+=mountainHabitat(x,y)?.8:.2;
+      if(m.type==="penguin")score+=depth>.035?1.3:0;
+      if(m.type==="shoebill")score+=depth>.025&&depth<.24?1.6:0;
+      score+=Math.random()*.35;
+      if(score>bestScore){bestScore=score;best={x,y};}
+     }
+     m.specialistTerrainGoal=best;
+    }
+    const goal=m.specialistTerrainGoal;
+    if(goal&&Math.hypot(goal.x-m.x,goal.y-m.y)>m.r*.65){
+     m.dir=steerPursuit(m,goal.x,goal.y);
+     vx=Math.cos(m.dir)*s.speed*.42;
+     vy=Math.sin(m.dir)*s.speed*.42;
+     m.wander=Math.max(m.wander,.25);
+    }
+   }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
