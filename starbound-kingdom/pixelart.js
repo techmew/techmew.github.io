@@ -79,8 +79,8 @@ function heroArt(suit="normal",pose="idle",frame=0){
  b(14,32,3,2,"#ffcaa1");b(21,28,3,2,hi);
  });
 }
-function enemyArt(kind,phase=0,world=1,shadow=false){
- const key="enemy:"+kind+":"+phase+":"+world+":"+(shadow?1:0);
+function enemyArt(kind,phase=0,world=1,shadow=false,attacking=false){
+ const key="enemy:"+kind+":"+phase+":"+world+":"+(shadow?1:0)+":"+(attacking?1:0);
  const isBoss=kind==="boss",w=isBoss?58:36,h=isBoss?60:43;
  return cached(key,w,h,P=>{
  const {b,e,l}=P,wig=[-2,-1,2,1][phase%4],ink=shadow?"#1a1738":C.ink,
@@ -102,7 +102,7 @@ function enemyArt(kind,phase=0,world=1,shadow=false){
  for(let z=0;z<3;z++){const xx=12+z*15;for(let t=0;t<11+z%2*5;t++)b(xx+t/5,11-t,10-t/4,2,world===8?"#ffdca0":world===5?"#e9faff":"#ffdbb0")}
  e(17,28,8,8,ink);e(40,28,8,8,ink);e(19,28,5,6,"#fff6cf");e(41,28,5,6,"#fff6cf");
  b(21,26,4,7,ink);b(42,26,4,7,ink);b(23,42,19,5,ink);b(26,44,3,5,"#fcf4d5");b(35,44,3,5,"#fcf4d5");
- l(11,31,3,41+wig,ink,10);l(49,30,55,43-wig,ink,10);l(11,31,6,38+wig,main,7);l(49,30,52,38-wig,main,7);
+ l(11,31,3,41+wig,ink,10);l(49,30,attacking?56:55,attacking?16:43-wig,ink,10);l(11,31,6,38+wig,main,7);l(49,30,attacking?55:52,attacking?19:38-wig,main,7);if(attacking){e(54,15,3,4,"#ffe7b5");e(48,14,2,2,"#fff8d2")};
  if(world===4){for(let j=0;j<5;j++)l(11+j*9,40,4+j*12,57+(j%2?-wig:wig),"#7bd2ce",4)}
  if(world===8)for(let i=0;i<5;i++)b(i*9+5,12-i%2*6,6,5,"#fbc070");
  b(18,17,20,2,"#ffffff48");b(10,37,5,2,"#ffffff2a");
@@ -132,7 +132,7 @@ function enemyArt(kind,phase=0,world=1,shadow=false){
  }else if(kind==="plant"){
  b(14,23,8,18,ink);b(15,24,6,17,"#389b75");l(17,33,5,29,ink,6);l(17,33,5,29,"#72c28c",3);
  e(18,17+wig,15,13,ink);e(18,16+wig,13,11,cl[0]);b(23,15+wig,5,5,cl[2]);b(25,16+wig,3,3,ink);
- b(9,22+wig,19,3,ink);for(let i=0;i<4;i++)b(11+i*5,21+wig,2,3,"#fff5d8");
+ b(9,22+wig,19,attacking?6:3,ink);for(let i=0;i<4;i++)b(11+i*5,21+wig,2,attacking?6:3,"#fff5d8");if(attacking){b(28,18+wig,6,5,"#f7deaf");b(31,19+wig,4,3,"#d88767")};
  }else if(kind==="ghost"){
  for(let y=16;y<40;y++)b(5+Math.floor(y/6),y,24-y%5,1,ink);
  e(18,18,15,16,cl[1]);e(18,17,13,14,cl[2]);b(9,27,18,11,cl[0]);
@@ -140,7 +140,7 @@ function enemyArt(kind,phase=0,world=1,shadow=false){
  }else if(kind==="thrower"){
  b(7,34+wig,10,8,ink);b(23,34-wig,10,8,ink);e(18,26,15,14,ink);e(18,27,12,11,cl[1]);
  e(18,12,12,11,ink);e(19,12,10,9,cl[2]);b(23,12,5,5,ink);b(24,13,3,3,"#fff2e1");b(26,14,1,2,ink);
- b(7,4,24,6,ink);b(9,6,20,4,cl[1]);b(10,23,4,12,cl[0]);b(29,25+wig,6,5,cl[2]);
+ b(7,4,24,6,ink);b(9,6,20,4,cl[1]);b(10,23,4,12,cl[0]);l(27,27,attacking?35:30,attacking?10:28,"#283f5d",6);l(27,27,attacking?34:30,attacking?12:28,cl[0],4);b(attacking?31:29,attacking?8:25+wig,6,5,cl[2]);if(attacking){b(28,3,7,4,"#f1c97e")};
  }else if(kind==="launcher"){
  b(5,19,27,21,ink);b(7,21,24,15,cl[1]);b(8,24,18,3,cl[0]);
  b(12,7,19,14,ink);b(13,9,18,11,cl[0]);e(28,14,7,8,ink);e(28,14,4,5,"#171e32");b(6,36,7,4,ink);b(26,36,7,4,ink);
@@ -288,7 +288,7 @@ function player(g,p,cam,t){
 function mob(g,m,L,cam,t){
  if(m.dead)return;const x=Math.round(m.x+m.w/2-cam),y=Math.round(m.y+m.h);
  if(x< -150||x>1110)return;
- const f=Math.floor(m.age*(m.kind==="boss"?5:11))%4,im=enemyArt(m.kind,f,L.w,L.shadow);
+ const f=Math.floor(m.age*(m.kind==="boss"?5:11))%4,im=enemyArt(m.kind,f,L.w,L.shadow,m.alert>0);
  const scale=m.kind==="boss"?1.78:(m.kind==="launcher"?1.44:1.30);
  if(m.kind!=="flyer"&&m.kind!=="fish"&&m.kind!=="ghost"&&m.grounded)rect(g,x-19,y-2,38,3,"#1d25394d");
  g.save();g.translate(x,y);g.scale(m.dir*scale,scale);g.drawImage(im,-im.width/2,-im.height);g.restore();
