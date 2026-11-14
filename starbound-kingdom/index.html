@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#101624">
-<title>STARBOUND KINGDOM ∞ — 64 STAGES</title>
+<title>STARBOUND KINGDOM ∞ — PIXEL ART EDITION</title>
 <meta name="description" content="8ワールド全32ステージと裏面32ステージ。変身、泳ぎ、飛行、ブロック破壊、ボス戦を備えたオリジナル横スクロールアクション。">
 <style>
 :root{font-family:ui-rounded,"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;background:#0b101c;color:#e8f6ff;--cyan:#81e9ff;--gold:#ffd06b;--red:#ff7893}
@@ -63,7 +63,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
 </head>
 <body>
 <div class="shell" id="shell">
-<header class="header"><div class="brand"><span class="emblem">★</span><div><b>STARBOUND KINGDOM ∞</b><small>TRILOGY ACTION · 64 STAGES</small></div></div><div class="toolbar"><button id="menuBtn">MAP / MENU</button><button id="pauseBtn">PAUSE</button><button id="soundBtn">♫ ON</button><button id="fullBtn">FULL</button></div></header>
+<header class="header"><div class="brand"><span class="emblem">★</span><div><b>STARBOUND KINGDOM ∞</b><small>PIXEL ART EDITION · 64 STAGES</small></div></div><div class="toolbar"><button id="menuBtn">MAP / MENU</button><button id="pauseBtn">PAUSE</button><button id="soundBtn">♫ ON</button><button id="fullBtn">FULL</button></div></header>
 <div class="machine"><div class="view" id="view"><canvas id="screen" width="960" height="540" aria-label="64ステージ横スクロールアクションゲーム"></canvas><div class="overlay" id="overlay"><div class="dialog"><div class="kicker" id="kicker">32 MAIN + 32 SHADOW STAGES</div><h1 id="title">STARBOUND KINGDOM ∞</h1><p id="description">8つの世界、各4コースと城のボス。走る・跳ぶ・泳ぐ・飛ぶ・変身する。クリア後には全32面の裏面が待つ。</p><div id="stageGrid" class="stage-grid" hidden></div><div class="actions" id="actions"><button class="primary" id="startBtn">GAME START</button><button class="secondary" id="mapBtn">STAGE MAP</button></div><div class="note" id="hint">ENTER: 決定 / ←→: 移動 / Z: ジャンプ / X: 攻撃・ダッシュ</div></div></div></div></div>
 <div class="stats"><span>WORLD <b id="worldLabel">1-1</b></span><span>MODE <b id="modeLabel">NORMAL</b></span><span>COIN <b class="accent" id="coinLabel">00</b></span><span>LIFE <b id="lifeLabel">05</b></span><span>SCORE <b id="scoreLabel">000000</b></span><span>TIME <b id="timeLabel">300</b></span><span>SUIT <b id="suitLabel">NORMAL</b></span></div>
 <div class="touch" id="touch" aria-label="ゲーム操作">
@@ -77,6 +77,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
 </div>
 <div class="legend"><span><b>操作</b> ←→ / A D 移動　Z / SPACE ジャンプ　X 攻撃　SHIFT ダッシュ　↓ しゃがむ・土管　C アイテム使用</span><span><b>対応</b> キーボード・ゲームパッド・スマホ・自動保存</span></div><div class="footer">オリジナルキャラクター・オリジナルステージ・オリジナル音響によるクラシック横アクション作品</div>
 </div>
-<script src="game.js"></script>
+<script src="pixelart.js?v=2"></script>
+<script src="game.js?v=2"></script>
 </body>
 </html>
