@@ -19,7 +19,7 @@ function tractorStrength(e,actor,world){
  let assistants=0;
  for(const wing of e.wingmen){
   const craft=escortPosition(e,wing);
-  if(distance(actor,craft)<=195&&distance(e,craft)<=245&&!safeBlocked(world,actor,craft))assistants++;
+  if((Number(wing.disabled)||0)<=0&&distance(actor,craft)<=195&&distance(e,craft)<=245&&!safeBlocked(world,actor,craft))assistants++;
  }
  return Math.min(2.05,1+assistants*.34);
 }
@@ -70,6 +70,28 @@ function moveEscorts(e,world,near,dt){
  for(const wing of e.wingmen){
   const pos=escortPosition(e,wing);wing.x=pos.x;wing.y=pos.y;
   const player=world.P;
+  // Physical counterplay: a timed, facing attack disables one escort and
+  // interrupts its beam. This never harms a saved or owned animal.
+  wing.disabled=Math.max(0,(Number(wing.disabled)||0)-dt);
+  wing.counterCooldown=Math.max(0,(Number(wing.counterCooldown)||0)-dt);
+  const strike=player&&player.hp>0&&!player._ufoAbducting&&
+    ((Number(player.swing)||0)>.015||(Number(player.attackAction)||0)>.12||
+     (Number(player.specialVisual)||0)>.10);
+  if(strike&&wing.disabled<=0&&wing.counterCooldown<=0){
+   const dx=wing.x-player.x,dy=wing.y-player.y,d=Math.hypot(dx,dy)||1;
+   const ultimate=(Number(player.specialVisual)||0)>.10;
+   const range=ultimate?145:Math.max(58,(Number(player.r)||20)*3.2);
+   const facing=(dx*Math.cos(Number(player.dir)||0)+dy*Math.sin(Number(player.dir)||0))/d;
+   if(d<range&&facing>(ultimate?.1:.45)&&!safeBlocked(world,player,wing)){
+    wing.disabled=ultimate?6:3.2;wing.counterCooldown=ultimate?8:4.5;
+    wing.beam=0;wing.playerBeam=0;wing.victim=null;wing.pursuitId=null;
+    wing.acquireDelay=wing.disabled;
+    world.notify?.(ultimate?"固有技でUFO子機を長時間停止！":"UFO子機を撃退！ 今のうちに逃げろ");
+    world.onEvent?.("ufo-escort-counterattack",{year:Math.floor((Number(world.elapsed)||0)/120),
+     x:wing.x,y:wing.y,ultimate,duration:wing.disabled});
+   }
+  }
+  if(wing.disabled>0){wing.beam=0;wing.playerBeam=0;wing.victim=null;continue;}
   const canHuntPlayer=player&&player.hp>0&&!player._ufoAbducting&&!player.hidden&&
     !world.isPlayerConcealed?.()&&distance(player,pos)<610&&!safeBlocked(world,player,pos);
   // Budget expensive wide-area LOS acquisition across frames. An existing
@@ -420,7 +442,7 @@ function tick(dt,world){
    // Capture is serialized by beginLift to protect the permanent-death flow.
    if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
     const spot=escortPosition(e,wing);
-    const inRange=!e.lifts.length&&P.hp>0&&!P._ufoAbducting&&!concealed&&
+    const inRange=(Number(wing.disabled)||0)<=0&&!e.lifts.length&&P.hp>0&&!P._ufoAbducting&&!concealed&&
       distance(P,spot)<playerBeamRange&&!safeBlocked(world,P,spot);
     if(inRange){
      wing.playerBeam=Math.min(2.3,(Number(wing.playerBeam)||0)+dt*tractorStrength(e,P,world));
@@ -436,7 +458,7 @@ function tick(dt,world){
   if(!e.lifts.length&&!playerSeen&&Array.isArray(e.wingmen))for(const wing of e.wingmen){
    const spot=escortPosition(e,wing);
    wing.cooldown=Math.max(0,(Number(wing.cooldown)||0)-dt);
-   if(wing.cooldown>0)continue;
+   if(wing.cooldown>0||(Number(wing.disabled)||0)>0)continue;
    const prey=closestVisible(nearWildlife,spot,beamRange,world,wing.victim);
    const id=prey&&(prey.id??prey.uid??prey);
    if(!prey){wing.victim=null;wing.beam=0;continue}
@@ -631,7 +653,7 @@ function draw(ctx,project,world){
   const wingPos=escortPosition(e,wing);
   const w=project(wingPos.x,wingPos.y);
   if(!w||!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
-  if(e.stage==="scan"&&(wing.beam>0||wing.playerBeam>0))renderTractor(ctx,w.x,w.y,w.y-85,56+Math.min(26,(Number(wing.playerBeam)||0)*10),e.t);
+  if(e.stage==="scan"&&(Number(wing.disabled)||0)<=0&&(wing.beam>0||wing.playerBeam>0))renderTractor(ctx,w.x,w.y,w.y-85,56+Math.min(26,(Number(wing.playerBeam)||0)*10),e.t);
   renderSaucer(ctx,w.x,w.y-85-skyDrop,26,e.t+wing.dx*.02,"scout");
  }
  if(e.stage==="scan"){
