@@ -7688,6 +7688,38 @@ function update(dt){
      m.wander=Math.max(m.wander,.25);
     }
    }
+   // P2 four-species tactical movement: use the same collision/LOS and strike loop as other wildlife.
+   // This does not modify ownership or saved squad records.
+   if(["manul","tibetanFox","shoebill","penguin"].includes(m.type)&&m.hp>0&&
+      !scavenging&&!foraging&&!drinking&&!wildHunt&&!provoked&&m.stun<=0&&
+      m.windup<=0&&m.chargeTime<=0&&m.flee<=0){
+    const prey=mobs.filter(q=>q!==m&&q.hp>0&&species[q.type]?.prey&&
+      Math.hypot(q.x-m.x,q.y-m.y)<(m.type==="shoebill"?260:340)&&
+      !lineBlocked(m,q)&&
+      (m.type==="shoebill"?waterDepth(q.x,q.y)<=.24:
+       m.type==="penguin"?waterDepth(q.x,q.y)<=.65:true))
+      .sort((a,b)=>Math.hypot(a.x-m.x,a.y-m.y)-Math.hypot(b.x-m.x,b.y-m.y))[0];
+    if(prey&&!spotted&&m.alert<=0){
+     // Species-specific ambush/flank routes; keep all displacement in move() below.
+     const dx=prey.x-m.x,dy=prey.y-m.y,distPrey=Math.hypot(dx,dy)||1;
+     const nx=dx/distPrey,ny=dy/distPrey;
+     const side=m.type==="tibetanFox"?1:m.type==="manul"?-.65:0;
+     const flank=m.type==="shoebill"?0:m.type==="penguin"?.25:side;
+     const approach={x:prey.x-nx*(m.r+prey.r+17)-ny*flank*35,
+                     y:prey.y-ny*(m.r+prey.r+17)+nx*flank*35};
+     const depth=waterDepth(approach.x,approach.y);
+     const waterOK=m.type==="shoebill"?depth<=.24:
+       m.type==="penguin"?depth<=.65:depth<=.0001;
+     if(waterOK&&routeClear(m,approach,m.r)&&
+        !collides(approach.x,approach.y,m.r,null,true)){
+      m.dir=steerPursuit(m,approach.x,approach.y);
+      const pace=m.type==="shoebill"?.30:m.type==="manul"?.43:.62;
+      vx=Math.cos(m.dir)*s.speed*pace;
+      vy=Math.sin(m.dir)*s.speed*pace;
+      m.wander=Math.max(m.wander,.35);
+     }
+    }
+   }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
