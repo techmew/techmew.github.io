@@ -18,12 +18,26 @@ function tractorStrength(e,actor,world){
  if(!e||!actor||!Array.isArray(e.wingmen))return 1;
  let assistants=0;
  for(const wing of e.wingmen){
-  const craft={x:e.x+(Number(wing.dx)||0),y:e.y+(Number(wing.dy)||0)};
+  const craft=escortPosition(e,wing);
   if(distance(actor,craft)<=195&&distance(e,craft)<=245&&!safeBlocked(world,actor,craft))assistants++;
  }
  return Math.min(2.05,1+assistants*.34);
 }
 const safeBlocked=(world,a,b)=>typeof world.lineBlocked==="function"&&world.lineBlocked(a,b);
+const escortPosition=(e,wing)=>({x:Number.isFinite(wing.x)?wing.x:e.x+(Number(wing.dx)||0),y:Number.isFinite(wing.y)?wing.y:e.y+(Number(wing.dy)||0)});
+// Physical escort positions migrate lazily from older formation saves.
+function moveEscorts(e,world,mobs,dt){
+ if(!Array.isArray(e.wingmen))return;
+ const width=Math.max(600,Number(world.WORLD?.w)||8400),height=Math.max(600,Number(world.WORLD?.h)||6000);
+ for(const wing of e.wingmen){
+  const pos=escortPosition(e,wing);wing.x=pos.x;wing.y=pos.y;
+  const prey=mobs.filter(m=>abductable(m)&&distance(m,pos)<720&&!safeBlocked(world,m,pos)).sort((a,b)=>distance(a,pos)-distance(b,pos))[0];
+  const target=prey||{x:e.x+(Number(wing.dx)||0),y:e.y+(Number(wing.dy)||0)};
+  const dx=target.x-wing.x,dy=target.y-wing.y,d=Math.hypot(dx,dy),hover=prey?45:12;
+  if(d>hover){const step=Math.min(d-hover,Math.max(0,dt)*580);wing.x+=dx/d*step;wing.y+=dy/d*step;}
+  wing.x=Math.max(45,Math.min(width-45,wing.x));wing.y=Math.max(45,Math.min(height-45,wing.y));
+ }
+}
 const beamRange=138, playerBeamRange=112;
 const UFO_PURSUE_SPEED=930, UFO_PATROL_SPEED=760, UFO_DETECTION_RANGE=1250, UFO_NPC_LOCK_TIME=.82;
 const abductable=m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&!m.releasedIndividualId&&!m._ufoAbducted;
@@ -344,9 +358,11 @@ function tick(dt,world){
     world.onEvent?.("ufo-wildlife-stampede",{year,x:e.x,y:e.y,count:scattered});
    }
   }
+  // Escort craft move and seek prey independently; each beam uses its own physical origin.
+  if(!e.lifts.length)moveEscorts(e,world,mobs,dt);
   // Rare formation: escort saucers independently lock onto wildlife. They never bypass cover.
   if(!e.lifts.length&&!playerSeen&&Array.isArray(e.wingmen))for(const wing of e.wingmen){
-   const spot={x:e.x+wing.dx,y:e.y+wing.dy};
+   const spot=escortPosition(e,wing);
    wing.cooldown=Math.max(0,(Number(wing.cooldown)||0)-dt);
    if(wing.cooldown>0)continue;
    const nearby=mobs.filter(a=>abductable(a)&&distance(a,spot)<beamRange&&!safeBlocked(world,a,spot)).sort((a,b)=>distance(a,spot)-distance(b,spot));
@@ -540,7 +556,8 @@ function draw(ctx,project,world){
  const skyDrop=e.stage==="approach"?Math.max(0,1-e.t/1.45)*470:0;
  ctx.save();ctx.globalAlpha=opacity;
  if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
-  const w=project(e.x+wing.dx,e.y+wing.dy);
+  const wingPos=escortPosition(e,wing);
+  const w=project(wingPos.x,wingPos.y);
   if(!w||!Number.isFinite(w.x)||!Number.isFinite(w.y))continue;
   if(e.stage==="scan"&&wing.beam>0)renderTractor(ctx,w.x,w.y,w.y-85,56,e.t);
   renderSaucer(ctx,w.x,w.y-85-skyDrop,26,e.t+wing.dx*.02,"scout");
