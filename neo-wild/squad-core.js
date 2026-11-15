@@ -10,7 +10,7 @@ const names={cat:"猫",dog:"犬",fox:"狐",wolf:"狼",deer:"鹿",boar:"猪",crow
 const playable=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","macaque","gorilla","crocodile","lion","tiger","cheetah","hyena","elephant","penguin","rhino","giantTreeFrog","pacmanFrog","tanuki","badger","blackBear","serow","giraffe","zebra","wildDog","armadillo","hedgehog","otter","carp","hippo","crow","pigeon"]);
 // Only animals confirmed as operable in the current gacha UI can be newly drawn.
 // This gate does NOT delete or alter existing/legacy owned individual records.
-const gachaReady=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","giantTreeFrog","pacmanFrog"]);
+const gachaReady=new Set(["cat","dog","fox","wolf","deer","boar","manul","tibetanFox","shoebill","penguin","giantTreeFrog","pacmanFrog"]);
 // Never award a permanent party slot to an animal that cannot become the player.
 const rare=new Set(["manul","tibetanFox","shoebill","blackBear","serow","cheetah","hippo","gorilla","hyena","wildDog","armadillo","hedgehog","crocodile","penguin","pacmanFrog"]);
 const legendary=new Set(["lion","tiger","elephant","giraffe","rhino"]);
