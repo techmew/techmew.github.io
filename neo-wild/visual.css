@@ -1730,3 +1730,31 @@
 #menu #save-backup-status:empty{display:none}
 #menu #save-backup-status[data-error="true"]{color:#ffcfb8}
 @media(max-width:370px){#menu .save-backup-actions{grid-template-columns:1fr}#menu .save-backup-actions button{min-height:46px}}
+
+
+/* Mobile pantry modal containment: keep game UI behind the dialog and controls reachable. */
+#den-inventory.hidden{display:none!important}
+#den-inventory.survival-dialog:not(.hidden){
+  position:fixed!important;inset:0!important;z-index:9999!important;
+  display:flex!important;align-items:center;justify-content:center;
+  box-sizing:border-box;overflow:hidden;
+  padding:calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
+  background:rgba(3,12,16,.96);
+}
+#den-inventory .survival-card{
+  box-sizing:border-box;width:min(100%,560px);min-width:0;
+  max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+}
+#den-inventory .survival-head{align-items:center}
+#den-inventory .survival-head button{white-space:nowrap;min-height:40px;padding:7px 10px}
+@media(max-width:520px){
+ #den-inventory .survival-card{padding:12px;max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+ #den-inventory .survival-head h2{font-size:20px}
+ #den-inventory #den-inventory-help{margin:6px 0;font-size:12px}
+ #den-inventory #den-inventory-total{margin:7px 0 9px;font-size:15px}
+ #den-inventory .den-food-row{padding:8px 0;gap:5px}
+ #den-inventory .den-food-row button{min-height:38px;padding:6px 9px}
+ #den-inventory .den-pantry-note{margin:8px 0;font-size:12px}
+ #den-inventory .strong-inheritance{margin-top:9px;padding-top:9px}
+}
