@@ -20,7 +20,7 @@ const record=new Map(),env={
  TUTORIAL_STAGES:[0,1,2,4],tutorialLessonsSeenEver:new Set(),rememberTutorialStage:()=>{throw Error("forced lesson")},
  clamp:(n,a,b)=>Math.min(b,Math.max(a,n)),resetControls:()=>{},syncHUD:()=>{},saveAuto:()=>true,
  objectiveBannerTime:0,GAME_INTRO_SEEN_KEY:"wild-reclaim-purpose-briefing-v1",
- gameIntroSeen:false,gameIntroPending:false,
+ gameIntroSeen:false,gameIntroPending:false,missionComplete:false,
  localStorage:{getItem:k=>record.get(k)||null,setItem:(k,v)=>record.set(k,String(v))}
 };
 const goal=part("const GUIDE_GOALS=[","function announceObjective(){");
