@@ -5135,7 +5135,7 @@ function contextAction(longPress=false){
  if(atDen()){
   if(P.carry){carryFood();return}
   if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
-  openDenInventory();return;
+  if(openDenInventory())window.WildFirstSteps?.event?.("interact");return;
  }
  if(longPress){
   if(P.carry){putDownFood();return}
@@ -6114,7 +6114,14 @@ function renderTutorial(){
   $("tutorial-close").textContent="冒険を始める";
   $("tutorial-progress-label").textContent="自由に探索できます";
   $("tutorial-counter").textContent="目的";
-  $("tutorial-prev").disabled=true;$("tutorial-next").disabled=true;
+  $("tutorial-prev").disabled=true;
+  // The initial purpose briefing leads straight into training. From a
+  // later manual "Guide" open, allow a voluntary hands-on replay.
+  const replay=$("tutorial-next");if(replay){
+   replay.textContent="操作を練習";
+   replay.disabled=!!firstStepsPending;
+   replay.classList.toggle("hidden",!!firstStepsPending);
+  }
   return;
  }
  const index=TUTORIAL_STAGES.indexOf(mission),info=GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)];
@@ -11045,6 +11052,11 @@ for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener(
 $("objective-toggle").addEventListener("click",()=>openTutorial());
 $("tutorial-close").addEventListener("click",closeTutorial);
 $("first-steps-skip")?.addEventListener("click",()=>window.WildFirstSteps?.skip?.());
+$("tutorial-next")?.addEventListener("click",()=>{
+ if(mode!=="guide"||debugTutorialSession)return;
+ closeTutorial();
+ window.WildFirstSteps?.begin?.(P,true);
+});
 $("mission-close").addEventListener("click",()=>{
  $("mission").classList.add("hidden");
  $("objective-toggle").setAttribute("aria-expanded","false");
