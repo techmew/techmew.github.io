@@ -2,16 +2,18 @@
 (()=>{"use strict";
 const KEY="wild-reclaim-bestiary-v1";
 const OWNED_KEY="wild-reclaim-bestiary-owned-v1";
+const SEEN_KEY="wild-reclaim-bestiary-sightings-v1";
 const NORMAL_NAMES={serow:"ニホンカモシカ",mountainGoat:"ヤギ",chimpanzee:"チンパンジー",macaque:"ニホンザル",rat:"ネズミ",rabbit:"ウサギ",pigeon:"ハト",dog:"野犬",boar:"イノシシ",strayCat:"野良猫",snake:"ヘビ",venomSnake:"毒ヘビ",cheetah:"チーター",giraffe:"キリン",zebra:"シマウマ",lion:"ライオン",elephant:"ゾウ",hippo:"カバ",crow:"カラス",raccoonDog:"タヌキ",wildFox:"野生のキツネ",weasel:"イタチ",frog:"カエル",deer:"シカ"};
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-let catalog=[],registry={},counts={},owned={},selected=null,yaw=.65,tilt=.1,zoom=1.15,open=false,lastPadNavigation=0;
+let catalog=[],registry={},counts={},owned={},sightings={},selected=null,yaw=.65,tilt=.1,zoom=1.15,open=false,lastPadNavigation=0;
 const points=new Map();
 function load(){
  try{const value=JSON.parse(localStorage.getItem(KEY)||"{}");if(value&&typeof value==="object"&&!Array.isArray(value))counts=value;}catch(_){counts={};}
  try{const value=JSON.parse(localStorage.getItem(OWNED_KEY)||"{}");if(value&&typeof value==="object"&&!Array.isArray(value))owned=value;}catch(_){owned={};}
+ try{const value=JSON.parse(localStorage.getItem(SEEN_KEY)||"{}");if(value&&typeof value==="object"&&!Array.isArray(value))sightings=value;}catch(_){sightings={};}
 }
-function known(type){return count(type)>0||owned[type]===true;}
+function known(type){return count(type)>0||owned[type]===true||sightings[type]===true;}
 function count(type){const n=Number(counts[type]);return Number.isSafeInteger(n)&&n>0?Math.min(n,999999):0;}
 function persist(){
  try{const safe={};for(const item of catalog)if(count(item.type))safe[item.type]=count(item.type);localStorage.setItem(KEY,JSON.stringify(safe));return true;}catch(_){return false;}
@@ -63,6 +65,16 @@ function recordAcquired(type){
  if(!registry[type]||owned[type]===true)return false;
  owned[type]=true;persistOwned();if(open)renderList();else updateSummary();return true;
 }
+// A living animal is discoverable by watching it; this never grants ownership,
+// kill rewards or a gacha ticket, and cannot modify the SAVE_SCHEMA2 world.
+function recordSighting(type){
+ if(!registry[type]||sightings[type]===true)return false;
+ const next={...sightings,[type]:true};
+ try{localStorage.setItem(SEEN_KEY,JSON.stringify(Object.fromEntries(
+  Object.keys(next).filter(k=>next[k]===true&&registry[k]).map(k=>[k,true])
+ )));sightings=next;}catch(_){return false;}
+ if(open)renderList();else updateSummary();return true;
+}
 function recordKill(type){
  if(!registry[type])return;
  counts[type]=Math.min(999999,count(type)+1);
@@ -113,7 +125,7 @@ function renderList(){
    else{const c=thumb.getContext("2d");c.fillStyle="#132027";c.fillRect(0,0,104,82);c.fillStyle="#738083";c.font="24px sans-serif";c.textAlign="center";c.fillText("？",52,51);}
    const name=document.createElement("strong");name.textContent=discovered?item.name:"？？？";
    const countTag=document.createElement("small");const recommended=window.WildCombatLevels?.level(item.type)||1;
-   countTag.textContent=(discovered?(count(item.type)?"討伐 "+count(item.type)+"体":"所有済み・討伐0体"):"未発見")+"｜推奨LV"+recommended;
+   countTag.textContent=(discovered?(count(item.type)?"討伐 "+count(item.type)+"体":owned[item.type]===true?"所有済み・討伐0体":"野生で発見・討伐0体"):"未発見")+"｜推奨LV"+recommended;
    button.append(thumb,name,countTag);
    button.disabled=!discovered;button.addEventListener("click",()=>select(item.type));
    grid.appendChild(button);
@@ -198,5 +210,5 @@ function handlePad(p,down,dt){
  if(down(0)){const el=document.activeElement;if(el?.dataset?.type&&known(el.dataset.type))select(el.dataset.type);else select(unlocked[0].type);}
 }
 install();load();
-window.WildBestiary={configure,recordKill,recordAcquired,isKnown:known,isOpen:()=>open,handlePad};
+window.WildBestiary={configure,recordKill,recordAcquired,recordSighting,isKnown:known,isOpen:()=>open,handlePad};
 })();
