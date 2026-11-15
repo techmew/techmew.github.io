@@ -42,6 +42,14 @@ const actor={type:found.item.owner,squadIndividualId:"unit-1"};
 ok(a.equip(actor,found.item.id).ok,"equip matching character");
 eq(a.equippedFor(actor).id,found.item.id,"individual equipment");
 eq(a.equippedFor({...actor,squadIndividualId:"unit-2"}),null,"other individual not equipped");
+const otherActor={...actor,squadIndividualId:"unit-2"};
+ok(a.equip(otherActor,found.item.id).ok,"weapon transfers between individual IDs");
+eq(a.equippedFor(actor),null,"old individual loses transferred weapon");
+eq(a.equippedFor(otherActor)?.id,found.item.id,"new individual owns weapon");
+eq(a.read().vault.items.length,1,"transfer never duplicates physical weapon");
+ok(a.equip(actor,found.item.id).ok,"weapon can transfer back");
+eq(a.equippedFor(otherActor),null,"transfer back clears previous individual");
+
 ok(!a.equip({...actor,type:"NON_MATCH"},found.item.id).ok,"wrong owner");
 ok(a.damage(actor,{strongBoss:true},100)>a.damage(actor,{strongBoss:false},100),"boss-specific edge");
 eq(a.damage({...actor,squadIndividualId:"unit-2"},{strongBoss:true},100),100,"other individual not powered");
