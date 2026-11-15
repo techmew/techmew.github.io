@@ -688,16 +688,53 @@ function tickEastTrail(dt){
  if(!route)return;
  const arrival=route.arrival(P,eastTrailMask);
  if(arrival)eastTrailClaim(arrival,false);
- // Local traversal risks use actual weather and real terrain, not decorative tint.
- const gorge=MOUNTAIN?.gorge&&P.x>10950&&P.x<11600&&
-  Math.abs(P.y-MOUNTAIN.center(P.x))<380;
- const snowy=MOUNTAIN?.snowCover?.(P.x,P.y)>.54&&P.x>=MOUNTAIN.SUMMIT_START;
- const drenched=gorge&&(weather==="RAIN"||weather==="THUNDER");
- if((drenched||snowy)&&P.hunger>0){
-  P.sp=Math.max(0,P.sp-tick*(drenched?1.55:1.0));
-  if(elapsed-eastTrailHazardNoticeAt>28){
+ // P3 eastern survival circuit: risk and NPC pressure use the same world XY
+ // as the 2D/3D route posts. No new ownership, death or save-schema fields.
+ const gorge=!!(MOUNTAIN?.gorge&&P.x>10950&&P.x<11600&&
+  Math.abs(P.y-MOUNTAIN.center(P.x))<380);
+ const snowDepth=Number(MOUNTAIN?.snowCover?.(P.x,P.y))||0;
+ const snowy=snowDepth>.54&&P.x>=MOUNTAIN.SUMMIT_START;
+ const wet=weather==="RAIN"||weather==="THUNDER";
+ const headwater=P.x>12030&&P.x<12600&&P.y>2950&&P.y<3500;
+ const cave=P.x>12920&&P.y>3510&&P.y<4160;
+ const waterRisk=headwater&&wet;
+ const caveRisk=cave&&(weather==="THUNDER"||Math.floor(elapsed/120)>=25);
+ const drenched=gorge&&wet;
+ const hazard=drenched||snowy||waterRisk||caveRisk;
+ if(hazard&&P.hunger>0){
+  const drain=drenched?1.55:snowy?1+snowDepth*.85:waterRisk?1.3:1.05;
+  P.sp=Math.max(0,P.sp-tick*drain);
+ }
+ // In rain the headwater attracts wildlife; in the late cave, predators
+ // investigate a live player using existing pursuit/search AI, not fake spawns.
+ if((waterRisk||caveRisk)&&P.hp>0){
+  const radius=caveRisk?390:280;
+  let pressured=0;
+  for(const m of mobs){
+   if(pressured>=3)break;
+   if(!m||m.hp<=0||m.companion||m.strongBoss||
+      species[m.type]?.prey||Math.hypot(m.x-P.x,m.y-P.y)>radius||
+      lineBlocked(m,P))continue;
+   m.alert=Math.max(Number(m.alert)||0,caveRisk?2.6:1.4);
+   m.lastX=P.x;m.lastY=P.y;
+   m.search=Math.max(Number(m.search)||0,caveRisk?2.3:1.2);
+   pressured++;
+  }
+ }
+ if(elapsed-eastTrailHazardNoticeAt>28){
+  if(hazard){
    eastTrailHazardNoticeAt=elapsed;
-   notify(drenched?"渓谷の雨で足場が滑り、スタミナを消耗":"雪山の冷気でスタミナを消耗。食料と休憩を確保",3);
+   notify(drenched?"渓谷の雨で足場が滑る。橋を越えて水源へ":
+    snowy?"雪山の冷気でスタミナ消耗。洞窟前に補給":
+    waterRisk?"水源の増水で持久力を消耗。周辺の獣にも注意":
+    "洞窟の強敵が接近。遮蔽物を使い、補給地点へ戻れる",3);
+  }else if(P.x>=7600&&P.x<13380){
+   const target=route.next(P,eastTrailMask);
+   if(target){
+    eastTrailHazardNoticeAt=elapsed;
+    const meters=Math.round(Math.hypot(P.x-target.x,P.y-target.y));
+    notify("東部探索："+target.name+"まで約"+meters+"m｜"+target.danger+"｜地図に経路表示",3);
+   }
   }
  }
 }
