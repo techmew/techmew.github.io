@@ -692,6 +692,9 @@ function tickEastTrail(dt){
   notify("探索経路："+nav.stop.name+"｜次の道標まで"+nav.distance+"m｜"+nav.section.label+
    (nav.water?"｜コイは水路から陸地に上がれない。水域を探索":"｜補給・危険は地図で確認"),3);
  }
+ // P3: connected eastern habitat encounters run in the live update loop.
+ const field=route.fieldStatus?.(P,eastTrailMask,weather,Math.floor(elapsed/120));
+ if(field?.biome&&P.hp>0)route.wildlifeResponse?.(P,mobs,species,weather,Math.floor(elapsed/120),lineBlocked);
  const arrival=route.arrival(P,eastTrailMask);
  if(arrival)eastTrailClaim(arrival,false);
  // P3 eastern survival circuit: risk and NPC pressure use the same world XY
