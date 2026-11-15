@@ -7056,12 +7056,27 @@ function recordDisasterEncounters(){
  }
 }
 let voicePreloadedFor=null;
+let specialistSightingClock=0;
 function update(dt){
  if(P&&window.WildAudio?.active&&voicePreloadedFor!==P.type){
   voicePreloadedFor=P.type;window.WildAudio?.preloadAnimal?.(P.type);
  }
  if(objectiveBannerTime<0)announceObjective();
  navPlansThisFrame=0;
+ // P2 field discovery: watch a live rare specialist at close range with clear
+ // line-of-sight to unlock its bestiary model, without granting kills/ownership.
+ specialistSightingClock+=dt;
+ if(specialistSightingClock>=.9&&P?.hp>0){
+  specialistSightingClock=0;
+  for(const animal of mobs){
+   if(animal.hp<=0||!SPECIALIST_HUNTERS.has(animal.type)||
+      animal._ufoAbducted||animal.companion||animal.squadIndividualId||
+      animal.bossIndividualId||animal.releasedIndividualId||
+      Math.hypot(animal.x-P.x,animal.y-P.y)>245||lineBlocked(P,animal))continue;
+   if(window.WildBestiary?.recordSighting?.(animal.type))
+    label(animal.x,animal.y-animal.r-32,"動物図鑑：野生で発見","#c6e6d6");
+  }
+ }
  for(let i=pounceStreaks.length-1;i>=0;i--){pounceStreaks[i].life-=dt;if(pounceStreaks[i].life<=0)pounceStreaks.splice(i,1)}
  const previousWorldYear=Math.floor(elapsed/120);
  elapsed+=dt;day=1+Math.floor(elapsed/85);simulateEcology(dt);
