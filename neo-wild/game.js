@@ -185,6 +185,9 @@ function strongDamageTaken(raw){
 }
 
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
+// New-world scrap positions are in SAVE_SCHEMA2's optional world fields;
+// identified weapons stay durably in an independent, all-species vault.
+let weaponScraps=[],weaponScrapSerial=0,weaponScrapClock=0;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let deathSharePending=false;
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,questReady=false,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -1791,7 +1794,7 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -1839,6 +1842,8 @@ function start(newWorld=false){
  for(let i=0;i<WILDLIFE.initial-roomPrey-starterCount-residentBudget;i++)spawnMob(true);
  for(const region of districtOrder.slice(0,residentBudget))spawnRegionalResident(region);
  for(let i=0;i<17;i++)spawnFood();
+ // All undiscovered gear spawns strictly east of the old city boundary.
+ if(!restoringSavedWorld)for(let i=0;i<7;i++)spawnWeaponScrap(i<3&&P.x>=8400);
  const starterFood=starterFoodSpot(P);
   carcasses.push({x:starterFood.x,y:starterFood.y,r:9,amount:22,type:"berries",ttl:240,phase:0});
  ensureTrainingCoverNear(P);
@@ -1931,7 +1936,7 @@ function currentSnapshot(){
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,eastTrailMask,eastTrailSupplyYears:[...eastTrailSupplyYears],
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
-  tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
+  tutorialSeen:[...tutorialSeen],mobs,carcasses,weaponScraps:weaponScraps.slice(0,18),weaponScrapSerial,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
  };
 }
 function saveAuto(){
@@ -2150,6 +2155,17 @@ function restoreSnapshot(snapshot){
  territoryLastSupply=Array.isArray(snapshot.territoryLastSupply)&&snapshot.territoryLastSupply.length===3?snapshot.territoryLastSupply:[day,day,day];
  const cleanWorld=sanitizeSavedWorld(snapshot);
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
+ weaponScrapSerial=Math.max(0,Math.min(1000000,Math.floor(Number(snapshot.weaponScrapSerial)||0)));
+ weaponScrapClock=0;
+ const seenScraps=new Set();
+ weaponScraps=(Array.isArray(snapshot.weaponScraps)?snapshot.weaponScraps:[]).slice(0,18).filter(d=>
+  d&&typeof d.id==="string"&&/^scrap:[a-zA-Z0-9._:-]{1,132}$/.test(d.id)&&
+  Number.isSafeInteger(d.seed)&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&
+  d.x>=8400&&d.x<=WORLD.w&&d.y>=0&&d.y<=WORLD.h&&
+  !seenScraps.has(d.id)&&!window.WildArsenal?.alreadyClaimed?.(d.id)&&!collides(d.x,d.y,20)
+ ).map(d=>{seenScraps.add(d.id);return {id:d.id,x:d.x,y:d.y,seed:d.seed,foundAt:Number(d.foundAt)||0,pulse:Number(d.pulse)||0}});
+ // Old checkpoints may predate the optional serial field; never reuse a
+ // claimed vault id from this or an older checkpoint lineage.
  // Durable endgame victory wins over older checkpoints, including older
  // SAVE_SCHEMA2 mobs that still contain the alive final monster.
  if(window.WildWorldEnd?.read?.()?.stage==="defeated")
@@ -3536,6 +3552,8 @@ function spawnMob(initial=false,preyOnly=false,nearbyOnly=false,forcedSpot=null,
  const s=species[type],scale=s.prey?1+Math.min(18,Math.max(0,day-1))*.055:enemyHealthFactor();
  mobs.push({x,y,type,r:s.r,color:s.color,belly:s.belly,hp:s.hp*scale,maxHp:s.hp*scale,attack:0,vx:0,vy:0,dir:rnd(-3,3),wander:rnd(.5,3),alert:0,search:0,lastX:x,lastY:y,step:rnd(0,8),flee:0,flash:0,windup:0,windupTotal:0,swing:0,strikeDir:0,stun:0,evadeTime:0,evadeDuration:0,evadeRemaining:0,evadeSpeed:0,evadeHeight:0,evadeAngle:0,evadeCooldown:0,escapeTimer:0,fleeEnergy:1,evasionSide:Math.random()<.5?-1:1,chargeTime:0,chargeDir:0,chargeHit:false,staggerGuard:0,feintTime:0,feintRemaining:0,feintSpeed:0,feintAngle:0,feintCooldown:rnd(.8,2),thirstNeed:rnd(.25,.68),drinkCooldown:rnd(0,2),drinkPose:0,flankSide:(mobs.filter(q=>q.type==='dog').length%2?1:-1),
   damageScale:s.prey?1:enemyDamageFactor(),speedScale:s.prey?1:1+Math.min(10,enemyChallengeTier())*.018});
+ // Actual eastern NPCs have stronger HP, attacks and pursuit, not just red markers.
+ window.WildArsenal?.enemyBuff?.(mobs[mobs.length-1],s);
  return true;
 }
 // Released owned animals rejoin the ecosystem under their original names.
@@ -4475,7 +4493,7 @@ function specialTargets(spec,contactStart=null){
 function specialHit(m,power,stun,knock,description){
  if(!m||m.hp<=0||!species[m.type])return 0;
  const gapScale=COMBAT_LEVELS?.outgoing?.(m.type,P.level)||1;
- const hit=Math.max(1,Math.round(P.damage*power*gapScale*(m.strongBoss?.72:1)));
+ const hit=weaponHitDamage(m,Math.max(1,Math.round(P.damage*power*gapScale*(m.strongBoss?.72:1))));
  m.hp=Math.max(0,m.hp-hit);
  m.flash=.26;m.alert=Math.max(m.alert||0,3.2);m.lastX=P.x;m.lastY=P.y;
  m.reactiveUntil=Math.max(m.reactiveUntil||0,elapsed+2.6);m.search=0;
@@ -4939,8 +4957,130 @@ function putDownFood(){
  carcasses.push({x:P.x,y:P.y,r:11,amount:c.amount,type:c.type==="berries"?"berries":"meat",animalType:c.animalType||null,ttl:150,phase:P.dir||0});
  P.carry=null;notify("食料を置いた / ○短押しで食べる・長押しで拾う");syncHUD();return true;
 }
+// Right side only: dynamically scavenged, unidentified equipment. The vault
+// commits the result BEFORE world scrap removal, so failed autosaves cannot
+// duplicate a drop on reload or erase a weapon already collected.
+function equippedWeapon(){return window.WildArsenal?.equippedFor?.(P)||null}
+function weaponHitDamage(enemy,amount){
+ return window.WildArsenal?.damage?.(P,enemy,amount)??amount;
+}
+function nearestWeaponScrap(range=95){
+ if(!P||P.hp<=0||P.x<8340||!window.WildArsenal)return null;
+ return weaponScraps.filter(q=>q.x>=8400&&Math.hypot(q.x-P.x,q.y-P.y)<=range&&
+  !lineBlocked(P,q)&&Math.abs((MOUNTAIN?.height?.(q.x,q.y)||0)-(MOUNTAIN?.height?.(P.x,P.y)||0))<78)
+  .sort((a,b)=>dist(P,a)-dist(P,b))[0]||null;
+}
+function spawnWeaponScrap(nearPlayer=false){
+ const armory=window.WildArsenal,stops=window.WildEastExpedition?.stops;
+ if(!armory||!Array.isArray(stops)||!stops.length||weaponScraps.length>=18)return false;
+ for(let n=0;n<55;n++){
+  const base=nearPlayer&&P?.x>=8400&&Math.random()<.8?P:stops[Math.floor(Math.random()*stops.length)];
+  const distance=rnd(75,nearPlayer?300:240),angle=rnd(0,TWO);
+  const x=Math.round(base.x+Math.cos(angle)*distance),y=Math.round(base.y+Math.sin(angle)*distance);
+  if(x<8400||x>WORLD.w-45||y<50||y>WORLD.h-50||
+   !mountainHabitat(x,y)||collides(x,y,25)||waterDepth(x,y)>.005||
+   weaponScraps.some(q=>Math.hypot(q.x-x,q.y-y)<155)||
+   carcasses.some(q=>Math.hypot(q.x-x,q.y-y)<32))continue;
+  const lineage=String(scoreRunId||"world").replace(/[^a-zA-Z0-9._:-]/g,"").slice(0,90);
+  let id;
+  do{id="scrap:"+lineage+":"+(++weaponScrapSerial)}
+   while(weaponScraps.some(q=>q.id===id)||armory.alreadyClaimed(id));
+  weaponScraps.push({id,x,y,seed:Math.floor(Math.random()*4294967296),
+   foundAt:Math.floor(elapsed/120),pulse:Math.random()*TWO});
+  return true;
+ }
+ return false;
+}
+function tickWeaponScraps(dt){
+ if(!P||mode!=="play"||debugTutorialSession||!window.WildArsenal)return;
+ weaponScrapClock+=dt;
+ if(weaponScrapClock<18)return;
+ weaponScrapClock=0;
+ spawnWeaponScrap(P.x>=8400);
+}
+function pickWeaponScrap(){
+ const drop=nearestWeaponScrap(95),armory=window.WildArsenal;
+ if(!drop||!armory)return false;
+ const outcome=armory.open(drop); // Verified localStorage write or no item granted.
+ if(!outcome.ok){
+  notify(outcome.error==="vault_full"?"武器保管庫が満杯です（240本）":
+   "武器保管庫への保存に失敗しました。ガラクタはそのまま残します",3);
+  return true;
+ }
+ weaponScraps=weaponScraps.filter(q=>q.id!==drop.id);
+ const grade=armory.gradeOf(outcome.item),owned=outcome.item.owner===P.type;
+ // A failed world autosave never rolls back the independently verified vault:
+ // old snapshots filter claimed scrap IDs when reloaded.
+ const worldSaved=saveAuto();
+ if(!outcome.duplicate){
+  label(drop.x,drop.y-37,grade.name+" "+outcome.item.name,"#ffe2a7");
+  notify("ガラクタ鑑定："+outcome.item.name+"｜"+grade.name+"｜ボス攻撃 "+Math.round((grade.boss-1)*100)+
+   "%強化。"+(owned?"巣の武器保管庫で装備可能":"別の動物専用。全巣共通の保管庫へ格納"),5);
+ }else notify("このガラクタは鑑定済みです。武器保管庫に保存されています",3);
+ if(!worldSaved)notify("武器は保管庫に保存済み。ワールド保存に失敗したため、再開時は重複を除去します",4);
+ syncHUD();return true;
+}
+function equipWeaponAtDen(id){
+ if(mode!=="inventory"||!P||!atDen())return false;
+ const result=window.WildArsenal?.equip?.(P,id);
+ if(!result?.ok){notify("武器の装備状態を保存できませんでした");return false;}
+ notify(result.item?"武器装備："+result.item.name:"武器を外して保管庫に戻しました",3);
+ renderWeaponVault();syncHUD();return true;
+}
+function renderWeaponVault(){
+ const slot=$("weapon-vault-list"),status=$("weapon-vault-status"),armory=window.WildArsenal;
+ if(!slot||!status||!armory||!P)return;
+ const stored=armory.read();slot.replaceChildren();
+ if(!stored.ok){status.textContent="保管庫を読み込めません。既存データは上書きしません";return;}
+ const all=stored.vault.items,active=armory.equippedFor(P),eligible=all.filter(i=>i.owner===P.type);
+ status.textContent="全巣共通 "+all.length+"/"+armory.MAX+"本｜現在の動物："+P.base?.name+
+  "｜使用可能 "+eligible.length+"本｜装備 "+(active?.name||"なし")+
+  "。別の動物用も保管。武器は失われません。";
+ const rank=Object.fromEntries(armory.grades.map((g,i)=>[g.id,i]));
+ const sorted=[...all].sort((a,b)=>Number(b.owner===P.type)-Number(a.owner===P.type)||
+  (rank[b.rarity]||0)-(rank[a.rarity]||0));
+ if(!sorted.length){const note=document.createElement("p");note.textContent="右側のエリアでガラクタを探し、○で拾うと武器が鑑定されます。";slot.append(note);}
+ for(const item of sorted){
+  const grade=armory.gradeOf(item),row=document.createElement("div");
+  row.className="weapon-vault-row";
+  const text=document.createElement("span");
+  text.textContent=item.name+"｜"+(grade?.name||"")+
+   "｜通常+"+Math.round(((grade?.attack||1)-1)*100)+"%・ボス+"+
+   Math.round(((grade?.boss||1)-1)*100)+"%";
+  const btn=document.createElement("button");
+  btn.type="button";btn.textContent=active?.id===item.id?"装備中":item.owner!==P.type?"別キャラ専用":"装備する";
+  btn.disabled=!atDen()||item.owner!==P.type||active?.id===item.id;
+  btn.addEventListener("click",()=>equipWeaponAtDen(item.id));
+  row.append(text,btn);slot.append(row);
+ }
+ const clear=$("weapon-unequip");if(clear){clear.disabled=!active||!atDen();}
+}
+function drawWeaponScrap2D(scrap){
+ ctx.save();ctx.translate(scrap.x,scrap.y);
+ const z=MOUNTAIN?.height(scrap.x,scrap.y)||0;
+ if(z>0)ctx.translate(VIEW.c*z*.93*cameraZoom/VIEW_DET,-VIEW.a*z*.93*cameraZoom/VIEW_DET);
+ const pulse=1+.10*Math.sin(elapsed*2.5+(scrap.pulse||0));
+ ctx.fillStyle="#14251fc9";ctx.beginPath();ctx.ellipse(0,7,21,11,0,0,TWO);ctx.fill();
+ ctx.rotate(.18);ctx.fillStyle="#67665c";ctx.fillRect(-14,-8,28*pulse,17);
+ ctx.strokeStyle="#d0bd9a";ctx.lineWidth=3;ctx.strokeRect(-14,-8,28*pulse,17);
+ ctx.strokeStyle="#9cbba6";ctx.beginPath();ctx.moveTo(-7,-8);ctx.lineTo(7,9);ctx.stroke();
+ ctx.fillStyle="#e7d8aa";ctx.fillRect(-4,-5,8,8);ctx.restore();
+}
+function drawEquippedWeapon2D(actor){
+ const item=equippedWeapon(),color=window.WildArsenal?.gradeOf?.(item)?.color;
+ if(!item||!color||!actor)return;
+ // Called inside the actor's own world transform; never offset in UI space.
+ ctx.save();ctx.translate(actor.r*.39,-actor.r*.50);
+ const swing=actor.swing>0||actor.attackAction>0?actor.r*.23:0;
+ ctx.fillStyle="#263a35";ctx.strokeStyle=color;ctx.lineWidth=Math.max(2,actor.r*.13);
+ ctx.beginPath();ctx.ellipse(swing,0,actor.r*.44,actor.r*.17,-.28,0,TWO);ctx.fill();ctx.stroke();
+ ctx.fillStyle=color;ctx.fillRect(swing+actor.r*.33,-actor.r*.17,actor.r*.23,actor.r*.23);
+ ctx.restore();
+}
+
 function contextAction(longPress=false){
  if(mode!=="play"||!P||isControlBlocked())return;
+ if(!longPress&&pickWeaponScrap())return;
  // The existing action button doubles as rescue without changing its UI position.
  if(!longPress&&window.WildFloodRescue?.tryBegin?.({
   P,mobs,elapsed,mode,notify,lineBlocked,
@@ -5117,7 +5257,7 @@ function resolveBoarDashImpact(x0,y0,x1,y1,isCharging){
   m.boarRamTouching=true;
   m.boarRamNextAt=elapsed+1.1;
   const levelFactor=COMBAT_LEVELS?.outgoing(m.type,P.level)||1;
-  const damage=Math.max(1,Math.round(P.damage*1.25*levelFactor*(m.strongBoss?.72:1)*rnd(.9,1.1)));
+  const damage=weaponHitDamage(m,Math.max(1,Math.round(P.damage*1.25*levelFactor*(m.strongBoss?.72:1)*rnd(.9,1.1))));
   m.hp=Math.max(0,m.hp-damage);
   m.flash=.24;m.alert=Math.max(m.alert||0,3);
   m.lastX=P.x;m.lastY=P.y;m.search=0;
@@ -5174,7 +5314,7 @@ function resolveAttack(aerialContact=null){
    const quillGuard=m.type==="hedgehog"&&(m.quillUntil||0)>elapsed&&!dive&&!silentHit;
    const armored=m.type==="rhino"&&!silentHit&&!dive&&!wolfCharge&&Math.cos(theta-(m.dir||0))<-.2;
    const bossHide=(m.strongBoss&&!silentHit&&!dive&&!wolfCharge)?0.84:1;
-   const damage=Math.max(1,Math.round(rawDamage*(armored?.48:1)*(shellGuard?.36:1)*(quillGuard?.52:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1)));
+   const damage=weaponHitDamage(m,Math.max(1,Math.round(rawDamage*(armored?.48:1)*(shellGuard?.36:1)*(quillGuard?.52:1)*bossHide*(COMBAT_LEVELS?.outgoing(m.type,P.level)||1))));
    m.hp-=damage;if(P.type==="penguin"&&m.hp>0)queuePenguinBeak(m,.17,4);
    if(armored)label(m.x,m.y-m.r-44,"正面の厚い皮で軽減","#dfd6c5");
    if(shellGuard)label(m.x,m.y-m.r-40,"丸まって防御！","#d9c7a5");
@@ -5784,6 +5924,7 @@ function renderDenInventory(){
   $("den-qty-"+key).textContent=denStores[key]+"pt";
   $("den-eat-"+key).disabled=!canEat||denStores[key]<=0;
  }
+ renderWeaponVault();
 }
 function openDenInventory(){
  if(mode!=="play"||!P)return false;
@@ -7318,6 +7459,7 @@ function update(dt){
   voicePreloadedFor=P.type;window.WildAudio?.preloadAnimal?.(P.type);
  }
  if(objectiveBannerTime<0)announceObjective();
+ tickWeaponScraps(dt);
  navPlansThisFrame=0;
  // P2 field discovery: watch a live rare specialist at close range with clear
  // line-of-sight to unlock its bestiary model, without granting kills/ownership.
@@ -8312,6 +8454,10 @@ function syncHUD(hour){
  setBar("den-stash-bar",denStash/target*100);
  $("den-stash-bar").parentElement.setAttribute("aria-valuenow",String(Math.round(denStash)));
  $("den-stash-bar").parentElement.setAttribute("aria-valuemax",String(target));
+ const equipped=equippedWeapon();
+ const gearDisplay=$("weapon-equipped-hud");
+ if(gearDisplay)gearDisplay.textContent=equipped?"装備："+equipped.name+" / ボス攻撃+"+
+  Math.round(((window.WildArsenal?.gradeOf?.(equipped)?.boss||1)-1)*100)+"%":"装備武器なし";
  const entrance=nearestShelterEntrance();
  const nearDoor=!!entrance&&entrance.distance<112;
  $("shelter-hint").classList.toggle("hidden",!nearDoor);
@@ -8364,7 +8510,7 @@ function syncHUD(hour){
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
   const eastSupply=window.WildEastExpedition?.replenishable?.(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
-  contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":eastSupply?"長押し補給":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+  contextLabel.textContent=nearestWeaponScrap(95)?"ガラクタを拾う":home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":eastSupply?"長押し補給":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110+totalScore)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -9448,6 +9594,7 @@ function drawCreature(o,isPlayer){
  const sheen=ctx.createLinearGradient(-r*.8,-r*.8,r*.6,r*.2);
  sheen.addColorStop(0,"#eef7df");sheen.addColorStop(1,"#eef7df00");
  ctx.fillStyle=sheen;ctx.beginPath();ctx.ellipse(-r*.1,-r*.25,r*.73,r*.19,-.15,0,TWO);ctx.fill();ctx.restore();
+ if(isPlayer&&mode!=="dying")drawEquippedWeapon2D(o);
  if(isPlayer&&mode!=="dying"){
   if(P.abilityTime>0){ctx.strokeStyle="#ffe0a0";ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(0,0,r+10,0,TWO);ctx.stroke();ctx.setLineDash([])}
  }
@@ -9903,7 +10050,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])],waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])],waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
  // All screen overlays and effects now use the very same world-camera offset as the renderer.
  renderedSceneCamera=use3D?{x:cam.x+quakeOffset.x,y:cam.y+quakeOffset.y}:{x,y};
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
@@ -9931,6 +10078,7 @@ function drawScene(){
   ctx.ellipse(e.x,e.y,Math.max(11,e.r*1.35),Math.max(5,e.r*.64),0,0,TWO);ctx.stroke();ctx.restore();
  }
  for(const site of [...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])])if(visible(site.x,site.y,500))drawLandmark2D(site);
+ for(const scrap of weaponScraps)if(visible(scrap.x,scrap.y,90))drawWeaponScrap2D(scrap);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  const layers=[],covers=new Map();
  for(const e of entities)covers.set(e,[]);
