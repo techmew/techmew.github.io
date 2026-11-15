@@ -1,21 +1,25 @@
 /* WILD RECLAIM: persistent defeated-animal encyclopedia, independent of SAVE_SCHEMA2. */
 (()=>{"use strict";
 const KEY="wild-reclaim-bestiary-v1";
+const OWNED_KEY="wild-reclaim-bestiary-owned-v1";
 const NORMAL_NAMES={serow:"ニホンカモシカ",mountainGoat:"ヤギ",chimpanzee:"チンパンジー",macaque:"ニホンザル",rat:"ネズミ",rabbit:"ウサギ",pigeon:"ハト",dog:"野犬",boar:"イノシシ",strayCat:"野良猫",snake:"ヘビ",venomSnake:"毒ヘビ",cheetah:"チーター",giraffe:"キリン",zebra:"シマウマ",lion:"ライオン",elephant:"ゾウ",hippo:"カバ",crow:"カラス",raccoonDog:"タヌキ",wildFox:"野生のキツネ",weasel:"イタチ",frog:"カエル",deer:"シカ"};
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-let catalog=[],registry={},counts={},selected=null,yaw=.65,tilt=.1,zoom=1.15,open=false,lastPadNavigation=0;
+let catalog=[],registry={},counts={},owned={},selected=null,yaw=.65,tilt=.1,zoom=1.15,open=false,lastPadNavigation=0;
 const points=new Map();
 function load(){
  try{const value=JSON.parse(localStorage.getItem(KEY)||"{}");if(value&&typeof value==="object"&&!Array.isArray(value))counts=value;}catch(_){counts={};}
+ try{const value=JSON.parse(localStorage.getItem(OWNED_KEY)||"{}");if(value&&typeof value==="object"&&!Array.isArray(value))owned=value;}catch(_){owned={};}
 }
+function known(type){return count(type)>0||owned[type]===true;}
 function count(type){const n=Number(counts[type]);return Number.isSafeInteger(n)&&n>0?Math.min(n,999999):0;}
 function persist(){
  try{const safe={};for(const item of catalog)if(count(item.type))safe[item.type]=count(item.type);localStorage.setItem(KEY,JSON.stringify(safe));return true;}catch(_){return false;}
 }
 function configure(species,strongNames){
  registry={};catalog=[];
- for(const [type,name] of Object.entries(NORMAL_NAMES)){
+ const playableNames={manul:"マヌルネコ",tibetanFox:"チベットスナギツネ",shoebill:"ハシビロコウ",penguin:"ペンギン"};
+ for(const [type,name] of Object.entries({...NORMAL_NAMES,...playableNames})){
   if(!species[type])continue;
   const item={type,name,boss:false,model:species[type]};catalog.push(item);registry[type]=item;
  }
@@ -42,7 +46,22 @@ function configure(species,strongNames){
    if(Number.isSafeInteger(n)&&n>count(type))counts[type]=Math.min(n,999999);
   }
  }
- persist();updateSummary();
+ // Read-only reconciliation: animals already acquired before this update
+ // become visible in the encyclopedia without modifying their squad record.
+ try{
+  const squad=window.WildSquad?.load?.();
+  for(const member of squad?.members||[])if(registry[member.species])owned[member.species]=true;
+ }catch(_){}
+ persistOwned();persist();updateSummary();
+}
+function persistOwned(){
+ try{localStorage.setItem(OWNED_KEY,JSON.stringify(Object.fromEntries(
+  Object.keys(owned).filter(type=>owned[type]===true&&registry[type]).map(type=>[type,true])
+ )));return true;}catch(_){return false;}
+}
+function recordAcquired(type){
+ if(!registry[type]||owned[type]===true)return false;
+ owned[type]=true;persistOwned();if(open)renderList();else updateSummary();return true;
 }
 function recordKill(type){
  if(!registry[type])return;
@@ -50,7 +69,7 @@ function recordKill(type){
  persist();if(open)renderList();else updateSummary();
 }
 function updateSummary(){
- const total=catalog.filter(x=>count(x.type)).length;
+ const total=catalog.filter(x=>known(x.type)).length;
  if($("bestiary-open")){ $("bestiary-open").textContent="図鑑"; $("bestiary-open").setAttribute("aria-label","動物図鑑　"+total+" / "+catalog.length); }
  if($("bestiary-progress"))$("bestiary-progress").textContent="登録 "+total+" / "+catalog.length+"種";
 }
@@ -75,7 +94,7 @@ function drawFallback(canvas,item,angle=0){
  c.restore();
 }
 function drawModel(canvas,item,angle=yaw,magnification=zoom,pitch=tilt){
- if(!item||!count(item.type))return false;
+ if(!item||!known(item.type))return false;
  if(window.Wild3D?.available&&window.Wild3D.previewAnimal?.({...item.model,type:item.type},canvas,angle,magnification,pitch))return true;
  drawFallback(canvas,item,angle);return false;
 }
@@ -86,24 +105,24 @@ function renderList(){
   const title=document.createElement("h3");title.textContent=group?"強敵":"通常動物";parent.appendChild(title);
   const grid=document.createElement("div");grid.className="bestiary-grid";parent.appendChild(grid);
   for(const item of catalog.filter(x=>x.boss===group)){
-   const known=count(item.type)>0,button=document.createElement("button");
-   button.type="button";button.className="bestiary-entry"+(known?" unlocked":" locked")+(selected===item.type?" chosen":"");
-   button.dataset.type=item.type;button.setAttribute("aria-label",known?item.name+"　討伐"+count(item.type)+"体":"未発見の動物");
+   const discovered=known(item.type),button=document.createElement("button");
+   button.type="button";button.className="bestiary-entry"+(discovered?" unlocked":" locked")+(selected===item.type?" chosen":"");
+   button.dataset.type=item.type;button.setAttribute("aria-label",discovered?item.name+"　討伐"+count(item.type)+"体":"未発見の動物");
    const thumb=document.createElement("canvas");thumb.width=104;thumb.height=82;thumb.className="bestiary-thumb";
-   if(known)drawModel(thumb,item,.65,1.18,.12);
+   if(discovered)drawModel(thumb,item,.65,1.18,.12);
    else{const c=thumb.getContext("2d");c.fillStyle="#132027";c.fillRect(0,0,104,82);c.fillStyle="#738083";c.font="24px sans-serif";c.textAlign="center";c.fillText("？",52,51);}
-   const name=document.createElement("strong");name.textContent=known?item.name:"？？？";
+   const name=document.createElement("strong");name.textContent=discovered?item.name:"？？？";
    const countTag=document.createElement("small");const recommended=window.WildCombatLevels?.level(item.type)||1;
-   countTag.textContent=(known?"討伐 "+count(item.type)+"体":"未討伐")+"｜推奨LV"+recommended;
+   countTag.textContent=(discovered?(count(item.type)?"討伐 "+count(item.type)+"体":"所有済み・討伐0体"):"未発見")+"｜推奨LV"+recommended;
    button.append(thumb,name,countTag);
-   button.disabled=!known;button.addEventListener("click",()=>select(item.type));
+   button.disabled=!discovered;button.addEventListener("click",()=>select(item.type));
    grid.appendChild(button);
   }
  }
  updateSummary();
 }
 function select(type){
- const item=registry[type];if(!item||!count(type))return;
+ const item=registry[type];if(!item||!known(type))return;
  selected=type;yaw=.65;tilt=.1;zoom=1.15;
  $("bestiary-list").classList.add("hidden");
  $("bestiary-detail").classList.remove("hidden");
@@ -135,6 +154,7 @@ function install(){
  $("bestiary-plus")?.addEventListener("click",()=>adjustZoom(.16));
  $("bestiary-minus")?.addEventListener("click",()=>adjustZoom(-.16));
  const canvas=$("bestiary-preview");
+ if(!canvas)return;
  canvas.addEventListener("pointerdown",e=>{if(!selected)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});});
  canvas.addEventListener("pointermove",e=>{
   if(!points.has(e.pointerId)||!selected)return;e.preventDefault();
@@ -166,7 +186,7 @@ function handlePad(p,down,dt){
   if(down(4))adjustZoom(-.15);if(down(5))adjustZoom(.15);
   return;
  }
- const unlocked=catalog.filter(i=>count(i.type));
+ const unlocked=catalog.filter(i=>known(i.type));
  if(!unlocked.length)return;
  const now=performance.now(),b=p.buttons||[],vy=(b[13]?.pressed?1:0)-(b[12]?.pressed?1:0),vx=(b[15]?.pressed?1:0)-(b[14]?.pressed?1:0),ay=Number(p.axes?.[1])||0;
  const step=vy||vx||(Math.abs(ay)>.6?Math.sign(ay):0);
@@ -175,8 +195,8 @@ function handlePad(p,down,dt){
   const i=(focused+step+unlocked.length)%unlocked.length,el=$("bestiary-list").querySelector('[data-type="'+unlocked[i].type+'"]');
   el?.focus();el?.scrollIntoView({block:"nearest"});lastPadNavigation=now;
  }
- if(down(0)){const el=document.activeElement;if(el?.dataset?.type&&count(el.dataset.type))select(el.dataset.type);else select(unlocked[0].type);}
+ if(down(0)){const el=document.activeElement;if(el?.dataset?.type&&known(el.dataset.type))select(el.dataset.type);else select(unlocked[0].type);}
 }
 install();load();
-window.WildBestiary={configure,recordKill,isOpen:()=>open,handlePad};
+window.WildBestiary={configure,recordKill,recordAcquired,isKnown:known,isOpen:()=>open,handlePad};
 })();
