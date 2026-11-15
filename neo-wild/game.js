@@ -500,6 +500,69 @@ const START_LOCATIONS={
  canal:{x:7000,y:4850,name:"潮見の水路・水路跡"},
  river:{x:7270,y:1700,name:"朝霧川の土手"}
 };
+// A fresh run begins in a different real biome, not a fixed hidden title setting.
+// The existing saved actor position always wins on Continue/checkpoint restore.
+const RANDOM_START_LAND=[
+ {id:"town",name:"桜坂駅周辺",x:1860,y:1170,region:1},
+ {id:"station",name:"桜坂駅跡",x:2460,y:1170,region:1},
+ {id:"ivy",name:"蔦ヶ丘の古町",x:3550,y:1670,region:2},
+ {id:"zoo",name:"白鷺の獣舎跡",x:5250,y:1460,region:3},
+ {id:"riverbank",name:"朝霧川の土手",x:7200,y:1680,region:4},
+ {id:"forest",name:"楠の森",x:1550,y:4380,region:5},
+ {id:"factory",name:"汐浜の廃工場",x:4440,y:4240,region:6},
+ {id:"canalbank",name:"潮見の水路",x:6960,y:4550,region:7},
+ {id:"northwood",name:"北の原生林",x:9240,y:0,zone:"northwood"},
+ {id:"foothill",name:"山麓の森",x:9760,y:0,zone:"foothill"},
+ {id:"slope",name:"山道",x:10530,y:0,zone:"slope"},
+ {id:"ravine",name:"渓谷",x:11330,y:0,zone:"slope"},
+ {id:"source",name:"高地の水源",x:12380,y:0,zone:"summit",source:true},
+ {id:"snow",name:"雪山",x:12600,y:0,zone:"summit"},
+ {id:"cave",name:"山頂洞窟",x:13220,y:0,zone:"cave"}
+];
+const RANDOM_START_WATER=[
+ {id:"river",name:"朝霧川の水中",x:0,y:1640,waterway:"river"},
+ {id:"canal",name:"潮見の水路",x:6880,y:0,waterway:"canal"}
+];
+function randomizedStart(type,random=Math.random){
+ const fish=type==="carp",radius=Math.max(10,Number(animals[type]?.r)||18);
+ const sites=(fish?RANDOM_START_WATER:RANDOM_START_LAND).map(site=>{
+  const x=site.waterway==="river"?riverAxis(site.y):site.x;
+  const y=site.waterway==="canal"?canalAxis(site.x):site.zone==="northwood"?MOUNTAIN?.northTrail?.(x):
+   site.source?MOUNTAIN?.headwater?.yAt?.(x)+155:site.zone?MOUNTAIN?.center?.(x):site.y;
+  return {...site,x,y};
+ }).filter(site=>Number.isFinite(site.x)&&Number.isFinite(site.y));
+ // Fisher-Yates makes areas equally likely. Retries stay within their own biome.
+ for(let i=sites.length-1;i>0;i--){const j=Math.min(i,Math.floor(Math.max(0,Number(random())||0)*(i+1)));[sites[i],sites[j]]=[sites[j],sites[i]];}
+ for(const site of sites)for(const reach of [64,110,0,164,215,265]){
+  const angle=Math.max(0,Number(random())||0)*TWO;
+  for(let k=0;k<16;k++){
+   const a=angle+k*TWO/16,x=site.x+Math.cos(a)*reach,y=site.y+Math.sin(a)*reach;
+   if(x<radius+25||y<radius+25||x>WORLD.w-radius-25||y>WORLD.h-radius-25)continue;
+   if(site.region!==undefined&&regionAt(x,y)!==site.region)continue;
+   if(site.zone==="northwood"&&!MOUNTAIN?.northWood?.(x,y))continue;
+   if(site.zone&&site.zone!=="northwood"&&(!mountainHabitat(x,y)||MOUNTAIN.zone(x)!==site.zone))continue;
+   const depth=waterDepth(x,y);
+   if(fish?(depth<=.09||collides(x,y,radius+5,null,true)):
+      (depth>.0001||collides(x,y,radius+6)))continue;
+   return {id:site.id,name:site.name,x,y};
+  }
+ }
+ // Even extreme collision configurations must not delete a save or strand carp on land.
+ return fish?{...START_LOCATIONS.river,id:"river-fallback"}:{...START_LOCATIONS.home,id:"town-fallback"};
+}
+function starterFoodSpot(actor){
+ // Reachable on the first tutorial step; river fish receive food in actual water.
+ const fish=actor.type==="carp",r=Math.max(10,actor.r||16);
+ for(const distance of [68,95,38,125,0])for(let k=0;k<16;k++){
+  const angle=k*TWO/16,x=actor.x+Math.cos(angle)*distance,y=actor.y+Math.sin(angle)*distance;
+  if(x<28||y<28||x>WORLD.w-28||y>WORLD.h-28)continue;
+  if(fish?!fishWaterAt(x,y):waterBlocksLand(x,y))continue;
+  if(collides(x,y,Math.min(12,r),null,fish)||lineBlocked(actor,{x,y}))continue;
+  return {x,y};
+ }
+ return {x:actor.x,y:actor.y};
+}
+
 let discoveredSites=[],earnedDiscoveries=[];
 const DISCOVERY_PERKS={
  zoo:{name:"強靭な生存力",description:"最大生命 +12"},
@@ -724,7 +787,12 @@ const DEN_PATTERNS=[
  {id:"ruin",name:"崩れた塀の陰",x:5460,y:1650,kind:"ruin"},
  {id:"factory",name:"廃工場の裏庭",x:4690,y:4320,kind:"yard"},
  {id:"reeds",name:"水路脇の葦原",x:6920,y:4550,kind:"reeds"},
- {id:"roof",name:"高台の屋上",x:3460,y:1350,kind:"roof"}
+ {id:"roof",name:"高台の屋上",x:3460,y:1350,kind:"roof"},
+ // Shared pantry access also exists for players born in the eastern wilderness.
+ {id:"northwood",name:"原生林のねぐら",x:9510,y:2020,kind:"forest"},
+ {id:"foothill",name:"山麓の岩陰",x:9870,y:3940,kind:"grass"},
+ {id:"ravine",name:"渓谷の避難場所",x:11390,y:3510,kind:"grass"},
+ {id:"alpine",name:"雪山の岩陰",x:12230,y:3950,kind:"grass"}
 ];
 let denSites=[];
 function nearDenLocation(x,y,r=255){return denSites.some(q=>Math.hypot(x-q.x,y-q.y)<r);}
@@ -1551,7 +1619,8 @@ function start(newWorld=false){
  previouslyOnboardedAtRunStart=automaticTutorialShown;
  bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
- const origin=choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home);
+ const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
+  randomizedStart(choice);
  ensureDenCover();
  denLevel=newWorld?1:loadDenLevel(choice);denStores=newWorld?normalizeDenStores(null,0):loadDenStores(choice);syncDenStash();if(!newWorld)restoreSharedDen();else denMeatLots=[];territoryClaims=newWorld?[false,false,false]:loadTerritoryClaims(choice);territoryLastSupply=[day,day,day];
   const a=animals[choice];P={x:origin.x,y:origin.y,dir:0,type:choice,base:a,r:a.r,hp:a.hp,maxHp:a.hp,hunger:100,sp:100,speed:a.speed,damage:a.damage,rate:a.rate,atk:0,dash:0,dashTime:0,dx:1,dy:0,inv:0,level:1,xp:0,nextXp:5,combo:0,comboTimer:0,steps:0,blood:0,eatCD:0,vx:0,vy:0,noise:0,noiseBurst:0,hidden:false,windup:0,pendingStrike:false,ambushStrike:false,revealTimer:0,abilityTime:0,instinctCD:0,pounceTime:0,pounceRemaining:0,pounceDir:0,jumpTime:0,jumpDuration:0,jumpHeight:0,jumpRemaining:0,jumpSpeed:0,jumpDir:0,jumpCD:0,jumpDive:false,jumpAmbush:false,groundZ:0,pounceDuration:0,fallTime:0,fallFromZ:0,carry:null,lastCombatAt:-100,rushStep:0,rushActiveStep:0,rushWindow:0,rushQueued:false,wallKicks:0,wallKickLast:-1,wallKickLock:0,wallKickTime:0,wallKickDir:0,jumpFromHeight:0,jumpPower:0,chargeStrike:false,strongWound:0,poisonTime:0,inheritedTraits:{}};
@@ -1596,10 +1665,11 @@ function start(newWorld=false){
  for(let i=0;i<WILDLIFE.initial-roomPrey-starterCount-residentBudget;i++)spawnMob(true);
  for(const region of districtOrder.slice(0,residentBudget))spawnRegionalResident(region);
  for(let i=0;i<17;i++)spawnFood();
- carcasses.push({x:P.x+105,y:P.y+40,r:9,amount:22,type:"berries",ttl:240,phase:0});
+ const starterFood=starterFoodSpot(P);
+  carcasses.push({x:starterFood.x,y:starterFood.y,r:9,amount:22,type:"berries",ttl:240,phase:0});
  ensureTrainingCoverNear(P);
  cam.x=clamp(P.x-vw/2,0,Math.max(0,WORLD.w-vw));cam.y=clamp(P.y-vh/2,0,Math.max(0,WORLD.h-vh));
- enterStrongStage();syncHUD();drawMini();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify(origin.name+" / 生存開始");
+ enterStrongStage();syncHUD();drawMini();window.WildAudio?.update({weather,area:regionAt(P.x,P.y),danger:false,mode:"play",...waterSoundAt(P.x,P.y)});notify((restoringSavedWorld?"生存開始":"ランダム開始地点：")+origin.name+"。地図で巣と探索場所を確認",4);
  playEffect("collect");startAmbient();
  return true;
 }
