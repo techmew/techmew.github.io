@@ -1,0 +1,6 @@
+# 2026-11-15 21:10 JST — P3 east corridor waypoint navigation
+Starting main cd5c5801. ROADMAP-RECOVERY and latest P3 histories read. P1/P2 untouched.
+Implemented east-expedition.js navigation(player,mask,water) with existing 18 physical corridor waypoints, nearest undiscovered stop and four terrain habitat segments. Wired into production tickEastTrail in game.js to explain next physical marker, target, region and carp water-only restriction. Existing eight rewards, SAVE_SCHEMA2, roster, title, collision, 100-year boss unchanged. This is guidance integration, not completed P3 terrain/water collision or 2D/WebGL E2E.
+Commits: module d55f26c; game b126bdb; initial cache 3a07423; segment correction ef88b47; final cache f9cefdaf.
+Tests executed: V8 new Function syntax for changed game.js and module PASS; three module navigation mocks PASS before segment correction; corrected module V8 parse PASS. Browser/Android/FPS/legacy save E2E NOT RUN. Pages workflow status must be separately verified.
+Status: P3 IN PROGRESS, route/habitat guidance IMPLEMENTED / browser UNVERIFIED. Next: multi-biome terrain/water collision and patrol encounters with 2D/WebGL actor/FX alignment and durable reward+save, including carp spawn. Do not redo route or notices.
