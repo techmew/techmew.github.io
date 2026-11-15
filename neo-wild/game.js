@@ -4606,6 +4606,34 @@ function normalizeCarry(c){
  if(!c||typeof c!=="object"||!Number.isFinite(Number(c.amount))||Number(c.amount)<=0)return null;
  return {type:c.type==="berries"?"berries":"meat",animalType:typeof c.animalType==="string"?c.animalType:null,amount:clamp(Number(c.amount),0,500)};
 }
+// P2 specialist food-web: a wild hunter visibly defends its own fresh kill.
+// The player may still steal the meat, but the predator notices and pursues
+// the thief through the existing alert/search AI. Owned/retired identities
+// are never enlisted as hostile defenders.
+const SPECIALIST_HUNTERS=new Set(["manul","tibetanFox","shoebill","penguin"]);
+function contestSpecialistKill(food){
+ if(!P||!food||!food.claimedBy||!(food.claimUntil>elapsed))return false;
+ const owner=mobs.find(m=>m.hp>0&&!m.companion&&!m.squadIndividualId&&
+   !m.bossIndividualId&&!m.releasedIndividualId&&SPECIALIST_HUNTERS.has(m.type)&&
+   m.feedClaimToken===food.claimedBy&&dist(m,food)<300);
+ if(!owner)return false;
+ // A hunter can only defend meat it can physically see; hiding behind
+ // buildings or escaping beyond the scent radius prevents retaliation.
+ if(dist(owner,P)>235||lineBlocked(owner,P)||P.hidden||isPlayerConcealed())return false;
+ owner.alert=Math.max(Number(owner.alert)||0,5.5);
+ owner.search=Math.max(Number(owner.search)||0,5.5);
+ owner.lastX=P.x;owner.lastY=P.y;
+ owner.feedAfterKill=0;owner.feedClaimToken=null;owner.feedClaimUntil=0;
+ owner.feedBitesRemaining=0;
+ owner.scavengePose=0;owner.scavengeCooldown=1.4;
+ owner.dir=Math.atan2(P.y-owner.y,P.x-owner.x);
+ owner.attackAction=Math.max(Number(owner.attackAction)||0,.35);
+ owner.swing=Math.max(Number(owner.swing)||0,.18);
+ // A contested carcass becomes public; never duplicate or destroy its meat.
+ food.claimedBy=null;food.claimUntil=elapsed;
+ notify("野生の"+(species[owner.type]?.name||owner.type)+"が獲物を奪われて追いかけてきた！");
+ return true;
+}
 function nearbyFood(){
  return carcasses.some(f=>foodAtActorLevel(f)&&dist(P,f)<65&&!lineBlocked(P,f));
 }
@@ -5277,6 +5305,7 @@ function carryFood(){
  let selected=null,nearest=65;
  for(const f of carcasses){const d=dist(P,f);if(foodAtActorLevel(f)&&d<nearest&&!lineBlocked(P,f)){selected=f;nearest=d}}
  if(!selected){notify("運べる食草・肉が近くにない");return false}
+ // Defenders react to the actual pickup, not a nearby button press.
  const beforePickup={carry:P.carry,sp:P.sp,amount:selected.amount,index:carcasses.indexOf(selected)};
  if(selected.type==="corpse"){
   const preySize=Number(species[selected.animalType]?.food)||Number(selected.initialAmount)||24;
@@ -5301,6 +5330,7 @@ function carryFood(){
   notify("保存に失敗したため、肉・食草の持ち上げを取り消しました");
   syncHUD();return false;
  }
+  contestSpecialistKill(selected);
   notify(foodName(P.carry)+"（"+meatSizeName(P.carry.amount)+"・"+Math.ceil(P.carry.amount)+"）をくわえた。"+(carriedFoodBurden(P.carry,P)>.55?"重い食料で移動が遅くなる。野犬を避けて巣へ":"どの巣でも備蓄可能"));
  if(mission===4)announceObjective();
  syncHUD();return true;
@@ -5323,6 +5353,7 @@ function eat(){
   c.amount=before.amount;P.carry=before.carry;
   notify("世界セーブ失敗のため食事を取り消しました。食料と体力を維持しました");syncHUD();return false;
  }
+ if(!carried)contestSpecialistKill(c);
  if(!carried&&c.amount===0){
   if(c.type==="corpse")toBones(c);
   else{const index=carcasses.indexOf(c);if(index>=0)carcasses.splice(index,1)}
