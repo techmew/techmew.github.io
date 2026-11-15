@@ -1735,14 +1735,14 @@
 /* Mobile pantry modal containment: keep game UI behind the dialog and controls reachable. */
 #den-inventory.hidden{display:none!important}
 #den-inventory.survival-dialog:not(.hidden){
-  position:fixed!important;inset:0!important;z-index:9999!important;
+  position:fixed!important;inset:0!important;z-index:22000!important;
   display:flex!important;align-items:center;justify-content:center;
   box-sizing:border-box;overflow:hidden;
   padding:calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
   background:rgba(3,12,16,.96);
 }
 #den-inventory .survival-card{
-  box-sizing:border-box;width:min(100%,560px);min-width:0;
+  box-sizing:border-box;width:min(100%,560px);max-width:100%;min-width:0;
   max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
 }
