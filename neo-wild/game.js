@@ -1843,7 +1843,12 @@ function start(newWorld=false){
  for(const region of districtOrder.slice(0,residentBudget))spawnRegionalResident(region);
  for(let i=0;i<17;i++)spawnFood();
  // All undiscovered gear spawns strictly east of the old city boundary.
- if(!restoringSavedWorld)for(let i=0;i<7;i++)spawnWeaponScrap(i<3&&P.x>=8400);
+ if(!restoringSavedWorld){
+   // One reachable unidentified find per eastern biome, plus a local find for east starts.
+   const eastStops=window.WildEastExpedition?.stops||[];
+   for(let i=0;i<eastStops.length;i++)spawnWeaponScrap(false,i);
+   if(P.x>=8400)spawnWeaponScrap(true);
+  }
  const starterFood=starterFoodSpot(P);
   carcasses.push({x:starterFood.x,y:starterFood.y,r:9,amount:22,type:"berries",ttl:240,phase:0});
  ensureTrainingCoverNear(P);
@@ -4970,11 +4975,21 @@ function nearestWeaponScrap(range=95){
   !lineBlocked(P,q)&&Math.abs((MOUNTAIN?.height?.(q.x,q.y)||0)-(MOUNTAIN?.height?.(P.x,P.y)||0))<78)
   .sort((a,b)=>dist(P,a)-dist(P,b))[0]||null;
 }
-function spawnWeaponScrap(nearPlayer=false){
+function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
  const armory=window.WildArsenal,stops=window.WildEastExpedition?.stops;
  if(!armory||!Array.isArray(stops)||!stops.length||weaponScraps.length>=18)return false;
- for(let n=0;n<55;n++){
-  const base=nearPlayer&&P?.x>=8400&&Math.random()<.8?P:stops[Math.floor(Math.random()*stops.length)];
+ const vault=armory.read();
+ // Never create an uncollectable supply if the durable vault is unavailable/full.
+ if(!vault.ok||vault.vault.items.length>=armory.MAX)return false;
+ const active=stops.filter(s=>s.x>=8400);
+ if(!active.length)return false;
+ const countNear=s=>weaponScraps.filter(q=>Math.hypot(q.x-s.x,q.y-s.y)<350).length;
+ const sparse=[...active].sort((a,b)=>countNear(a)-countNear(b)||a.index-b.index);
+ const selected=Number.isInteger(preferredStop)&&preferredStop>=0?stops[preferredStop]:sparse[0];
+ for(let n=0;n<65;n++){
+  const base=nearPlayer&&P?.x>=8400&&n<35?P:
+   n<45?selected:sparse[Math.floor(Math.random()*Math.min(3,sparse.length))];
+  if(!base)continue;
   const distance=rnd(75,nearPlayer?300:240),angle=rnd(0,TWO);
   const x=Math.round(base.x+Math.cos(angle)*distance),y=Math.round(base.y+Math.sin(angle)*distance);
   if(x<8400||x>WORLD.w-45||y<50||y>WORLD.h-50||
