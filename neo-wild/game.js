@@ -239,6 +239,11 @@ function persistWorldChronicle(){
 }
 const TUTORIAL_ONCE_KEY="wild-reclaim-auto-tutorial-shown-v1",TUTORIAL_LESSONS_KEY="wild-reclaim-tutorial-lessons-v2";
 const TUTORIAL_STAGES=[0,1,2,4];
+// One lightweight purpose briefing replaces automatic four-step instruction
+// windows. Existing quest/debug stages remain for older SAVE_SCHEMA2 saves.
+const GAME_INTRO_SEEN_KEY="wild-reclaim-purpose-briefing-v1";
+let gameIntroSeen=false,gameIntroPending=false;
+try{gameIntroSeen=localStorage.getItem(GAME_INTRO_SEEN_KEY)==="1"}catch(_){}
 let automaticTutorialShown=false;const tutorialLessonsSeenEver=new Set();
 try{
  automaticTutorialShown=localStorage.getItem(TUTORIAL_ONCE_KEY)==="1";
@@ -1794,7 +1799,9 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=debugTutorialSession?0:7;missionComplete=!debugTutorialSession;
+ // New games start in free survival, never require 4 popup quests to unlock exploration.
+ gameIntroPending=!!newWorld&&!gameIntroSeen&&!debugTutorialSession;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -6091,6 +6098,20 @@ const GUIDE_GOALS=[
 ];
 let tutorialPage=0;const tutorialSeen=new Set();let guideNeedsFrame=false,milestoneUntil=0,previouslyOnboardedAtRunStart=false;
 function renderTutorial(){
+ if(!debugTutorialSession){
+  // The existing compact popup is repurposed into an actual game overview.
+  $("tutorial-stage").textContent="ゲームの目的";
+  $("tutorial-title").textContent="100年後の終末に備えて生き残れ";
+  $("tutorial-what").textContent="狩り・食事・探索で動物を育て、100年後に現れる最終ボス「この世の終わり」に挑もう。";
+  $("tutorial-how").textContent="右側の危険地帯には武器入りガラクタがある。拾って鑑定し、巣の保管庫で装備。食料も備蓄しよう。";
+  $("tutorial-permadeath").textContent="操作：○で食事・拾う、○長押しで運搬。死亡した動物は永久に失われます。";
+  $("tutorial-permadeath")?.classList.remove("hidden");
+  $("tutorial-close").textContent="ゲームを始める";
+  $("tutorial-progress-label").textContent="自由に探索できます";
+  $("tutorial-counter").textContent="目的";
+  $("tutorial-prev").disabled=true;$("tutorial-next").disabled=true;
+  return;
+ }
  const index=TUTORIAL_STAGES.indexOf(mission),info=GUIDE_GOALS[clamp(mission,0,GUIDE_GOALS.length-1)];
  $("tutorial-stage").textContent=index>=0?"チュートリアル "+(index+1)+" / 4":"生存ガイド";
  $("tutorial-title").textContent=info.title;$("tutorial-what").textContent=info.what;$("tutorial-how").textContent=info.how;
@@ -6101,7 +6122,8 @@ function renderTutorial(){
 }
 function openTutorial(page=0,automatic=false){
  if(!P||!(mode==="play"||mode==="guide"))return false;
- if(automatic&&(!TUTORIAL_STAGES.includes(mission)||tutorialSeen.has(mission)||(!debugTutorialSession&&tutorialLessonsSeenEver.has(mission))))return false;
+ if(automatic&&!debugTutorialSession)return false; // No more forced stage-by-stage popup interruptions.
+ if(automatic&&(!TUTORIAL_STAGES.includes(mission)||tutorialSeen.has(mission)||tutorialLessonsSeenEver.has(mission)))return false;
  tutorialPage=0;
  if(automatic)rememberTutorialStage(mission);
  if(mode==="play"){saveAuto();resetControls();mode="guide"}
@@ -6113,7 +6135,12 @@ function openTutorial(page=0,automatic=false){
 function closeTutorial(){
  if(mode!=="guide")return;
  $("tutorial-dialog").classList.add("hidden");$("app").classList.remove("tutorial-paused");
- guideNeedsFrame=false;mode="play";objectiveBannerTime=0;resetControls();syncHUD();saveAuto();
+ guideNeedsFrame=false;mode="play";objectiveBannerTime=0;resetControls();
+ if(!debugTutorialSession&&!gameIntroSeen){
+  gameIntroSeen=true;
+  try{localStorage.setItem(GAME_INTRO_SEEN_KEY,"1")}catch(_){}
+ }
+ syncHUD();saveAuto();
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"play"});
 }
 function tutorialMove(delta){if(mode==="guide"&&delta>0)closeTutorial()}
@@ -8470,6 +8497,12 @@ function update(dt){
  }
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
  autosaveClock+=dt;if(autosaveClock>=1){autosaveClock=0;saveAuto();}
+ // First rendered game frame, after squad/boss leader placement, with all
+ // original saves untouched. No popups on Continue/checkpoint restore.
+ if(gameIntroPending&&mode==="play"&&P?.hp>0){
+  gameIntroPending=false;
+  openTutorial(0,false);
+ }
 }
 function syncHUD(hour){
  if(!P)return;
