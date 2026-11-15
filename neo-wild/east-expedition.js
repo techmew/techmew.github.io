@@ -14,6 +14,9 @@
   {id:"snowfield",name:"白峰の雪原",area:"雪山",x:12720,y:3818,food:"meat",amount:50,score:340,info:"凍った稜線の先が山頂洞窟",danger:"高：雪で体力・スタミナを消耗"},
   {id:"deepcave",name:"山頂洞窟",area:"洞窟",x:13220,y:3797,food:"meat",amount:70,score:500,info:"洞窟奥の物資・強敵・封印を探索",danger:"高：洞窟の強敵は年を経て目覚める"}
  ].map((item,index)=>Object.freeze({...item,index,eastRoute:true,z:Math.max(0,Number(M?.height?.(item.x,item.y))||0)})));
+ // Route polyline follows a collision-checked 21-radius passable corridor;
+ // straight lines across the cliffs and deep streams are deliberately omitted.
+ const WALKWAY=Object.freeze([[8360,1680],[8700,1764],[9320,1877],[9920,1960],[10160,2200],[10320,2280],[10440,2360],[10740,2590],[10960,3280],[11280,3600],[11350,3550],[11760,3440],[11960,3320],[12120,3240],[12350,3250],[12440,3560],[12720,3818],[13220,3797]].map(p=>Object.freeze(p)));
  const ALL=(1<<STOPS.length)-1,dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const cleanMask=m=>Number.isSafeInteger(m)?m&ALL:0;
  const visited=(mask,i)=>(cleanMask(mask)&(1<<i))!==0;
@@ -28,7 +31,7 @@
  function drawMap(ctx,X,Y,mask,detail=true){
   ctx.save();ctx.lineWidth=detail?2:1.5;ctx.strokeStyle=detail?"#e0d3a1":"#d5c28c";
   ctx.setLineDash(detail?[5,3]:[4,5]);ctx.beginPath();
-  STOPS.forEach((s,i)=>i?ctx.lineTo(X(s.x),Y(s.y)):ctx.moveTo(X(s.x),Y(s.y)));ctx.stroke();ctx.setLineDash([]);
+  WALKWAY.forEach(([x,y],i)=>i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)));ctx.stroke();ctx.setLineDash([]);
   for(const s of STOPS){
    const x=X(s.x),y=Y(s.y),done=visited(mask,s.index);
    ctx.fillStyle=done?"#8ee2ad":"#f2c97a";ctx.strokeStyle="#122525";ctx.lineWidth=1.3;
@@ -52,5 +55,5 @@
   ctx.fillText((s.index+1)+"/"+STOPS.length,0,-47);
   ctx.restore();
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,drawMap,drawPost2D});
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,drawMap,drawPost2D});
 })(window);
