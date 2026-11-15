@@ -27,7 +27,7 @@
     <div class="vitals"><div class="vital health"><label>生命 <b id="hp-text">100 / 100</b></label><div class="track"><i id="hp-bar"></i></div></div>
     <div id="poison-status" class="hidden" role="status" aria-live="polite">☠ 毒 0秒｜生命が減少</div><div class="vital food"><label>空腹 <b id="food-text">100%</b></label><div class="track"><i id="food-bar"></i></div></div>
     <div class="vital stamina"><label>持久 <b id="sp-text">100%</b></label><div class="track"><i id="sp-bar"></i></div></div></div>
-    <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1｜運搬 なし</div><div id="species-skill-status" class="hidden" aria-live="off"></div><div id="den-stash-panel"><div id="den-stash-count">備蓄 0 / 60pt（LV2まで・消費なし）</div><div class="den-stash-track" role="progressbar" aria-label="巣の備蓄" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="den-stash-bar"></i></div></div><button id="den-inventory-btn" type="button" aria-controls="den-inventory">食料庫</button><button id="objective-toggle" type="button" aria-controls="tutorial-dialog">ガイドを見る</button>
+    <div class="level"><b id="level">LV 01</b><div class="xp"><i id="xp-bar"></i></div><small id="level-help">獲物を狩って進化</small></div><div id="den-status" aria-live="off">巣 LV1｜運搬 なし</div><div id="weapon-equipped-hud" aria-live="off">装備武器なし</div><div id="species-skill-status" class="hidden" aria-live="off"></div><div id="den-stash-panel"><div id="den-stash-count">備蓄 0 / 60pt（LV2まで・消費なし）</div><div class="den-stash-track" role="progressbar" aria-label="巣の備蓄" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="den-stash-bar"></i></div></div><button id="den-inventory-btn" type="button" aria-controls="den-inventory">食料庫</button><button id="objective-toggle" type="button" aria-controls="tutorial-dialog">ガイドを見る</button>
   </div>
   <div class="hud-center"><div class="eyebrow" id="district-tag">AREA 02 / 04</div><strong id="district">首都高廃線跡</strong><div class="subinfo" id="day-label">YEAR 000</div><div class="subinfo" id="moon-label" aria-label="月齢">月齢 0.0 · 新月</div><div id="survival-goal" class="hidden" aria-live="off">探索依頼</div></div>
   <div class="hud-right"><div class="top-actions session-actions" aria-label="音楽・最大化・一時停止"><button id="sound-btn" type="button" title="音楽の切替" aria-label="音楽の切替">♪</button><button id="full-btn" type="button" title="最大化" aria-label="最大化">⛶</button><button id="pause-btn" type="button" title="ゲームを一時停止" aria-label="ゲームを一時停止">ポーズ</button></div><div class="mini-map-stack" aria-label="周辺地図と生存記録"><div id="mini-map-control" class="map-frame" role="button" tabindex="0" aria-label="周辺地図：標準。タップで表示範囲切替、長押しで詳細地図"><canvas id="minimap" width="128" height="128" aria-label="常時表示の周辺地図"></canvas><span id="mini-map-scale">標準</span></div><div id="status"><span id="score-line">SCORE 000000</span><span id="kill-line">HUNT 00</span><span id="combo-line">COMBO ×1</span></div></div></div>
@@ -86,6 +86,13 @@
  <button type="button" data-strong-trait="giantGorilla" disabled>剛腕の威圧（希少素材1個で継承）</button>
  <button type="button" data-strong-trait="giantElephant" disabled>巨象の休息（希少素材1個で継承）</button>
  <button type="button" data-strong-trait="albinoWolf" disabled>白狼の忍び足（希少素材1個で継承）</button>
+ </div>
+ <div id="weapon-vault" class="weapon-vault" role="group" aria-label="全巣共通の武器保管庫">
+  <h3>武器保管庫</h3>
+  <p>右側のエリア限定。落ちているガラクタは拾うまで中身が不明。強い武器ほど低確率。別の動物用も保管できます。</p>
+  <p id="weapon-vault-status" aria-live="polite">全巣共通の武器を確認中</p>
+  <div id="weapon-vault-list" class="weapon-vault-list" role="list" aria-label="武器一覧"></div>
+  <button id="weapon-unequip" type="button">装備を外す</button>
  </div></section>
 </div>
 <div id="tutorial-dialog" class="survival-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
@@ -242,7 +249,7 @@
 <script src="./audio.js?rev=d8f07fe63d7d" defer></script>
 <script src="./mountain.js?rev=421140106a8d" defer></script>
 <script src="./east-expedition.js?rev=3e1ea2416be3" defer></script>
-<script src="./webgl3d.js?rev=5243ffd06ac0" defer></script>
+<script src="./webgl3d.js?rev=d8b3bc19e57c" defer></script>
 <script src="./combat-levels.js?rev=0d86a1c903d7" defer></script>
 <script src="./bestiary.js?rev=eef7374f1e76" defer></script>
 <script src="./world-time.js?rev=5fb6f471655e" defer></script>
@@ -259,7 +266,8 @@
 <script src="./squad-gacha-ui.js?rev=c6e2fd6df75e" defer></script>
 <script src="./death-share.js?rev=7fee7d9e7afc" defer></script>
 <script src="./flood-rescue.js?rev=2d01afce7161" defer></script>
-<script src="./game.js?rev=30f7202a8101" defer></script>
+<script src="./wild-arsenal.js?rev=40df30e3caf1" defer></script>
+<script src="./game.js?rev=567e37df9e77" defer></script>
 <script src="./world-history.js?rev=3c285da9bcd8" defer></script>
 <script src="./save-backup.js?rev=badd9a93a9d9" defer></script>
 <script src="./trophy-view.js?rev=d6fa96931ff5" defer></script>
