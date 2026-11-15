@@ -60,6 +60,29 @@ function exportBackup(){
 function jsonArray(raw){
  try{const v=JSON.parse(raw||"[]");return Array.isArray(v)?v:[]}catch(_){return []}
 }
+// The JSON exporter already includes wild-reclaim-* keys. Merge old and new
+// weapon collections on import: no older backup can delete a newer discovery.
+const WEAPON_VAULT_KEY="wild-reclaim-weapon-vault-v1";
+function parsedWeaponVault(raw){
+ if(raw==null)return null;
+ let data;try{data=JSON.parse(raw)}catch(_){throw Error("武器保管庫のJSONが破損しています")}
+ if(!window.WildArsenal?.valid?.(data))throw Error("武器保管庫の形式が不正です。武器を保護するため復元を中止");
+ return data;
+}
+function mergeWeaponVault(merged,older){
+ const incoming=parsedWeaponVault(merged[WEAPON_VAULT_KEY]),current=parsedWeaponVault(older[WEAPON_VAULT_KEY]);
+ if(!incoming&&!current)return;
+ const items=new Map();
+ for(const item of incoming?.items||[])items.set(item.id,item);
+ for(const item of current?.items||[])items.set(item.id,item);
+ if(items.size>(window.WildArsenal?.MAX||240))
+  throw Error("武器保管庫の上限超過。武器を削除せずインポートを中止しました");
+ const equipped={...(incoming?.equipped||{}),...(current?.equipped||{})},ids=new Set(items.keys());
+ for(const k of Object.keys(equipped))if(!ids.has(equipped[k]))delete equipped[k];
+ const state={version:1,items:[...items.values()],equipped};
+ if(!window.WildArsenal?.valid?.(state))throw Error("武器保管庫の統合に失敗しました");
+ merged[WEAPON_VAULT_KEY]=JSON.stringify(state);
+}
 function mergeIds(records,key,older){
  const incoming=jsonArray(records[key]);
  const values=[...new Set([...incoming,...jsonArray(older[key])].filter(id=>typeof id==="string"&&id.length>0&&id.length<=240))];
@@ -183,6 +206,7 @@ function validate(file){
  for(const key of ["wild-reclaim-boss-dead-v1","wild-reclaim-boss-retired-v1","wild-reclaim-boss-claimed-v1"])readBossIds(data[key],key);
  readBossRoster(data["wild-reclaim-boss-roster-v1"]);
  readWorldEnd(data["wild-reclaim-world-end-v1"]);
+ parsedWeaponVault(data[WEAPON_VAULT_KEY]);
  if(data["wild-reclaim-squad-v1"]!=null){
   const roster=JSON.parse(data["wild-reclaim-squad-v1"]);
   if(!roster||roster.version!==1||!Array.isArray(roster.members)||roster.members.length>5)throw Error("編成データが不正です");
@@ -224,6 +248,7 @@ async function importBackup(file,baseline=null){
   mergeCaveSeal(merged,before);
   mergeBossRoster(merged,before);
   mergeWorldEnd(merged,before);
+  mergeWeaponVault(merged,before);
   // Older JSON backups omitted the existing underscore-prefixed disaster
   // record. Retain its current data rather than deleting it on import.
   if(merged[DISASTER_KEY]==null&&before[DISASTER_KEY]!=null)merged[DISASTER_KEY]=before[DISASTER_KEY];
