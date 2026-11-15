@@ -7873,9 +7873,17 @@ function update(dt){
       prey.fleeThreatX=m.x;prey.fleeThreatY=m.y;
       m.specialistHuntCooldown=m.type==="shoebill"?1.15:m.type==="penguin"?.78:.92;
       if(prey.hp===0){
-       // Existing corpse/food handling owns final cleanup; no player XP,
-       // trophy or squad death event is fabricated by a wild predator.
-       prey.killedByWildlife=true;
+       // The alternate ambush branch must create the same edible corpse
+       // as huntWildPrey; dead mobs are removed at the end of this frame.
+       if(!prey._killRegistered){
+        prey._killRegistered=true;prey.killedByWildlife=true;
+        claimPredatorKill(m,prey);
+        const zone=regionAt(prey.x,prey.y);
+        if(species[prey.type]?.prey&&ecology[zone])
+         ecology[zone].prey=Math.max(4,ecology[zone].prey-1);
+        if(P&&dist(P,m)<520)
+         label(prey.x,prey.y-prey.r-20,"野生の狩り：肉を回収できる","#eac6a1");
+       }
        m.specialistHuntCooldown+=.7;
       }
      }
