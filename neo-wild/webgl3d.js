@@ -2084,9 +2084,25 @@ function mountainTerrain(isVisible){
   const x2=Math.min(10800,x+tile),y2=Math.min(2580,y+tile);
   if(!isVisible((x+x2)/2,(y+y2)/2,280))continue;
   const centerY=m.northTrail((x+x2)/2),path=Math.abs((y+y2)/2-centerY)<82;
-  const c=color(path?"#8d8467":((Math.floor(x/tile)+Math.floor(y/tile))%3?"#456b4a":"#50764f"));
+  // Eastern suburb's rewilding gradually becomes deep woods, matching
+  // mountain.draw2D and all saved world positions (no new blocking meshes).
+  const suburb=(x+x2)*.5<9030;
+  const progress=clamp(((x+x2)*.5-m.CITY_EDGE)/630,0,1);
+  const c=color(path?"#8d8467":suburb?
+    progress<.3?"#5d6254":progress<.67?"#536956":"#486c50":
+    ((Math.floor(x/tile)+Math.floor(y/tile))%3?"#456b4a":"#50764f"));
   quad([x,y,m.height(x,y)+.2],[x2,y,m.height(x2,y)+.2],
    [x2,y2,m.height(x2,y2)+.2],[x,y2,m.height(x,y2)+.2],c);
+ }
+ // Collapsed suburb ruins stay off the real dirt trail; purely visual and
+ // placed at the same world height as their 2D counterparts.
+ for(let x=8450;x<8990;x+=110)for(const side of [-1,1]){
+  const y=m.northTrail(x)+side*(233+(x%3)*21);
+  if(!isVisible(x,y,180))continue;
+  const z=m.height(x,y);
+  box(x-32,y-19,z+.5,64,35,10,"#646b63");
+  box(x-29,y-16,z+11,59,16,5,"#3e574a");
+  for(let i=0;i<5;i++)pyramid(x-29+i*13,y+14,z+.7,3,3,21+i%3*6,"#718d5c");
  }
  // Fill the former 270-unit north-forest / mountain mesh gap with
  // shared-height quads. Top and bottom sample the exact adjacent boundaries.
