@@ -476,6 +476,21 @@ const districts=["霞町の廃庁街","桜坂駅跡","蔦ヶ丘の古町","白�
 function mountainHabitat(x,y){return !!MOUNTAIN&&x>=MOUNTAIN.CITY_EDGE&&MOUNTAIN.active(x,y);}
 function strongHabitatKey(x,y){return mountainHabitat(x,y)?"7:foothill":regionAt(x,y);}
 const FOOTHILL_STRONG=["oldBear","giantBoar","blackPanther","giantEagle"];
+// Location labels describe actual traversable landscape rather than the old
+// 8-slot ecology index or mountain.zone()'s broad legacy categories.
+function eastLocationName(x,y){
+ if(!mountainHabitat(x,y))return districts[regionAt(x,y)];
+ if(y<2600){
+  if(x<9000)return "草に沈む郊外";
+  if(x<10450)return "北の原生林";
+  return "峠の山道";
+ }
+ if(MOUNTAIN.zone(x)==="cave")return "山頂洞窟";
+ if(x<10100)return "山麓の森";
+ if(x<11750)return "山道・渓谷";
+ if(x<12460)return "高地の水源";
+ return "白峰の雪原";
+}
 function regionAt(x,y){
  if(y<2600){
   if(x<1400)return 0;if(x<2800)return 1;if(x<4200)return 2;if(x<6300)return 3;return 4;
@@ -8392,12 +8407,13 @@ function drawWorldMap(){
  bm.beginPath();bm.moveTo(0,-11);bm.lineTo(8,8);bm.lineTo(-8,8);bm.closePath();
  bm.fillStyle="#ffe032";bm.fill();bm.restore();
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
- const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?({foothill:"山麓の森",slope:"山腹・渓谷",summit:"山頂の岩場",cave:"山頂洞窟"}[MOUNTAIN.zone(P.x)]||"山地"):districts[zone],eco=ecology[zone];
+ const zone=regionAt(P.x,P.y),area=eastLocationName(P.x,P.y),eco=ecology[zone];
  $("map-place").textContent="現在地："+area+"｜東部踏破 "+(window.WildEastExpedition?.count?.(eastTrailMask)||0)+"/8｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
  "｜"+ecologyNews;
- $("map-perks").textContent="探索能力 "+earnedDiscoveries.length+"/6：" +
- (earnedDiscoveries.length?earnedDiscoveries.map(id=>DISCOVERY_PERKS[id].name).join("・"):"未解放。未踏地点を訪れると成長します");
+ $("map-perks").textContent="探索能力 "+earnedDiscoveries.length+"/"+Object.keys(DISCOVERY_PERKS).length+"：" +
+ (earnedDiscoveries.length?earnedDiscoveries.map(id=>DISCOVERY_PERKS[id]?.name||id).join("・"):"未解放。未踏地点を訪れると成長します")+
+ "｜東部地図の1〜8を踏破：得点・食料、2か所ごとにガチャ権。各地点は3年後に○長押しで再補給";
 }
 function toggleWorldMap(){
  if(mode==="play"){
