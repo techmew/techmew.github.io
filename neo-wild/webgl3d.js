@@ -2014,6 +2014,38 @@ function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math
 // Lightweight location-specific 3D detail, decorative only.
 function landmarkMesh(site){
  const x=site.x,y=site.y;animalLift=0;
+ if(site.eastRoute){
+  // The physical 3D post is at exactly the same world XY and mountain Z as
+  // the 2D sign, map pin, interaction radius, player and enemy collision.
+  const z=window.WildMountain?.height?.(x,y)||0;
+  const c=site.index>=6?"#b6c6b7":site.index>=3?"#b7aa83":"#c6b28b";
+  ellipsoid(x,y,z+1,23,18,2,"#3d4b42",0,10,3);
+  box(x-4,y-4,z+1,8,8,57,"#6a5a40");
+  box(x-31,y-5,z+56,62,10,23,c);
+  for(const dx of [-23,23])box(x+dx-2,y-6,z+60,4,12,12,"#455344");
+  if(site.id==="citygate"||site.id==="outskirts"){
+   // Cracked old road markers and rewilded masonry, not a new obstacle.
+   for(let n=0;n<4;n++){const a=n*1.57;box(x+Math.cos(a)*78-17,y+Math.sin(a)*65-10,z+1,34,20,9,n%2?"#58645d":"#69776e");}
+   for(let n=0;n<9;n++)pyramid(x-64+n*16,y+58,z+1,5,7,24+n%3*8,"#62814d");
+  }else if(site.id==="northwood"){
+   for(let n=0;n<5;n++){const a=n*Math.PI*2/5,tx=x+Math.cos(a)*110,ty=y+Math.sin(a)*95;
+    box(tx-7,ty-7,z+1,14,14,58,"#675640");pyramid(tx,ty,z+50,47,39,105,"#426c45");}
+  }else if(site.id==="pass"||site.id==="ravine"){
+   for(let n=0;n<6;n++){const a=n*1.1,tx=x+Math.cos(a)*(72+n%2*17),ty=y+Math.sin(a)*65;
+    pyramid(tx,ty,z+1,21+n%2*12,22,20+n%3*18,"#7b8072");}
+  }else if(site.id==="headwater"){
+   for(let n=0;n<6;n++){const a=n*Math.PI/3;
+    ellipsoid(x+Math.cos(a)*79,y+Math.sin(a)*59,z+2,18,15,7,"#7d8c83",0,7,3);}
+   for(let n=0;n<6;n++)pyramid(x-65+n*23,y+73,z+1,5,5,27,"#87a280");
+  }else if(site.id==="snowfield"){
+   for(let n=0;n<6;n++){const a=n*Math.PI/3;
+    pyramid(x+Math.cos(a)*100,y+Math.sin(a)*88,z+1,26,26,58,"#9ba6a0");}
+  }else if(site.id==="deepcave"){
+   for(let n=0;n<5;n++){const a=n*Math.PI*2/5;
+    pyramid(x+Math.cos(a)*63,y+Math.sin(a)*45,z+1,17,15,48,"#5b6c67");}
+  }
+  return;
+ }
  if(site.id==="zoo"){
   for(const s of [-1,1])for(let i=0;i<7;i++)box(x-130+i*42,y+s*105,0,5,7,68,"#84938a");
   box(x-130,y-105,63,265,7,10,"#9d9d87");
