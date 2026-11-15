@@ -5055,6 +5055,23 @@ function renderWeaponVault(){
  }
  const clear=$("weapon-unequip");if(clear){clear.disabled=!active||!atDen();}
 }
+// Close-range world-space label: reveals only "ガラクタ", NEVER rarity or species.
+function drawWeaponScrapLabels(){
+ if(!P||mode!=="play")return;
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign="center";
+ ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";let count=0;
+ for(const drop of weaponScraps){
+  if(Math.hypot(drop.x-P.x,drop.y-P.y)>230||lineBlocked(P,drop))continue;
+  const pos=projectGroundLabel(drop.x,drop.y,28);
+  if(pos.x<42||pos.x>vw-42||pos.y<60||pos.y>vh-35)continue;
+  ctx.fillStyle="#25302ce8";ctx.fillRect(pos.x-46,pos.y-24,92,27);
+  ctx.strokeStyle="#d9c6a0";ctx.lineWidth=1.3;ctx.strokeRect(pos.x-46,pos.y-24,92,27);
+  ctx.fillStyle="#f1dfb2";ctx.fillText("？ ガラクタ",pos.x,pos.y-11);
+  if(++count>=5)break;
+ }
+ ctx.restore();
+}
+$("weapon-unequip")?.addEventListener("click",()=>equipWeaponAtDen(null));
 function drawWeaponScrap2D(scrap){
  ctx.save();ctx.translate(scrap.x,scrap.y);
  const z=MOUNTAIN?.height(scrap.x,scrap.y)||0;
@@ -8557,6 +8574,8 @@ function drawWorldMap(){
   bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
  };
+ for(const drop of weaponScraps)if(Math.hypot(drop.x-P.x,drop.y-P.y)<1200)
+  mark(drop.x,drop.y,"#dacaa5",4);
  for(const site of EXPLORE_SITES){
   const found=discoveredSites.includes(site.id);
   // The departure location can coincide exactly with a discovery point.
@@ -8651,6 +8670,11 @@ function drawMini(){
   mc.beginPath();mc.arc(X(e.x),Y(e.y),e.radius*w/span,0,TWO);mc.fill();mc.stroke();mc.restore();
  }
  if(P.x>7600)window.WildEastExpedition?.drawMap?.(mc,X,Y,eastTrailMask,false);
+ // Loot blips only appear within actual surveying distance, not across the city.
+ for(const drop of weaponScraps)if(Math.abs(drop.x-P.x)<span/2&&Math.abs(drop.y-P.y)<span/2){
+  mc.fillStyle="#dfc89f";mc.strokeStyle="#243b34";mc.lineWidth=1.2;
+  mc.beginPath();mc.arc(X(drop.x),Y(drop.y),3.8,0,TWO);mc.fill();mc.stroke();
+ }
  // Classify live wildlife by actual species, alert state and strength relative to the player.
  const visibleMobs=mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<span/2&&Math.abs(m.y-P.y)<span/2)
   .sort((a,b)=>dist(P,a)-dist(P,b)).slice(0,30);
@@ -10248,7 +10272,7 @@ function drawScene(){
   window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode,lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
-  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawEastTrailScreenMarkers();if(!use3D)drawThreatNames(false);drawRemainsLabels();
+  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawEastTrailScreenMarkers();drawWeaponScrapLabels();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
  if(mode==="dying"&&deathSharePending){
