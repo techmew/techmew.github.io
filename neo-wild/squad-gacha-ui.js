@@ -351,13 +351,14 @@ const ready=()=>{
     if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=MAX_OWNED){info.textContent="タイトル画面か巣で空き枠を確認してください。";return;}
     const result=current.pendingStart?core.addInitialSlot(chosen[0]):core.fillVacancy(chosen[0]);
     if(!result.ok){info.textContent=result.reason;return;}
+    if(result?.ok!==false)window.WildBestiary?.recordAcquired?.(chosen[0].species);
     root.hidden=true;updateHome();
     window.dispatchEvent(new CustomEvent("wild-squad-refilled",{detail:{memberId:chosen[0].id}}));
     window.dispatchEvent(new Event("wild-squad-updated"));
     return;
    }
    if((core.load()?.members||[]).length){info.textContent="生存中の個体は破棄できません。";return;}
-   core.newSquad(chosen,leader);updateHome();root.hidden=true;
+   core.newSquad(chosen,leader);for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species);updateHome();root.hidden=true;
    window.dispatchEvent(new Event("wild-squad-updated"));
   },"squad-adopt");
   actions.append(confirm);body.append(actions);
