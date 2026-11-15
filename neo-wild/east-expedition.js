@@ -77,7 +77,7 @@
   }
   const step=best.index===goal?goal:best.index+(goal>best.index?1:-1);
   const [x,y]=WALKWAY[step];
-  const section=habitat.find(h=>best.index>=h.start*2&&best.index<h.end*2)||habitat[3];
+  const section=habitat.find(h=>best.index>=(h.start===0?0:h.start===2?4:h.start===4?8:15)&&best.index<(h.end===2?4:h.end===4?8:h.end===6?15:18))||habitat[3];
   return {x,y,stop,section,water:!!water,distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step};
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,habitat,drawMap,drawPost2D});
