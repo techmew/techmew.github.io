@@ -4636,7 +4636,16 @@ function normalizeCarry(c){
 // the thief through the existing alert/search AI. Owned/retired identities
 // are never enlisted as hostile defenders.
 const SPECIALIST_HUNTERS=new Set(["manul","tibetanFox","shoebill","penguin"]);
-function contestSpecialistKill(food){
+const SPECIALIST_CONTEST_FIELDS=["alert","search","lastX","lastY","feedAfterKill","feedClaimToken","feedClaimUntil","feedBitesRemaining","scavengePose","scavengeCooldown","dir","attackAction","swing"];
+// Commit predator reaction together with carried food, and roll back failed saves.
+function finishSpecialistContests(staged,accepted){
+ for(const entry of staged){
+  if(accepted){notify(entry.message);continue;}
+  for(const key of SPECIALIST_CONTEST_FIELDS)entry.owner[key]=entry.previous[key];
+  entry.food.claimedBy=entry.claimedBy;entry.food.claimUntil=entry.claimUntil;
+ }
+}
+function contestSpecialistKill(food,staged=null){
  if(!P||!food||!food.claimedBy||!(food.claimUntil>elapsed))return false;
  const owner=mobs.find(m=>m.hp>0&&!m.companion&&!m.squadIndividualId&&
    !m.bossIndividualId&&!m.releasedIndividualId&&SPECIALIST_HUNTERS.has(m.type)&&
@@ -4645,6 +4654,10 @@ function contestSpecialistKill(food){
  // A hunter can only defend meat it can physically see; hiding behind
  // buildings or escaping beyond the scent radius prevents retaliation.
  if(dist(owner,P)>235||lineBlocked(owner,P)||P.hidden||isPlayerConcealed())return false;
+ if(Array.isArray(staged))staged.push({owner,food,
+  previous:Object.fromEntries(SPECIALIST_CONTEST_FIELDS.map(key=>[key,owner[key]])),
+  claimedBy:food.claimedBy,claimUntil:food.claimUntil,
+  message:"野生の"+(species[owner.type]?.name||owner.type)+"が獲物を奪われて追いかけてきた！"});
  owner.alert=Math.max(Number(owner.alert)||0,5.5);
  owner.search=Math.max(Number(owner.search)||0,5.5);
  owner.lastX=P.x;owner.lastY=P.y;
@@ -4656,7 +4669,7 @@ function contestSpecialistKill(food){
  owner.swing=Math.max(Number(owner.swing)||0,.18);
  // A contested carcass becomes public; never duplicate or destroy its meat.
  food.claimedBy=null;food.claimUntil=elapsed;
- notify("野生の"+(species[owner.type]?.name||owner.type)+"が獲物を奪われて追いかけてきた！");
+ if(!Array.isArray(staged))notify("野生の"+(species[owner.type]?.name||owner.type)+"が獲物を奪われて追いかけてきた！");
  return true;
 }
 function nearbyFood(){
@@ -5346,16 +5359,17 @@ function carryFood(){
   P.carry={type:selected.type==="berries"?"berries":"meat",animalType:selected.animalType||null,amount:selected.amount};
   carcasses.splice(carcasses.indexOf(selected),1);
  }
- // Pickup changes both the live prey and the actor's carried item. A failed
- // autosave must not allow a reload to duplicate or erase that meat.
+ // Predator claim release and meat pickup must be durable in the same snapshot.
+ const contests=[];contestSpecialistKill(selected,contests);
  if(saveAuto()!==true){
+  finishSpecialistContests(contests,false);
   P.carry=beforePickup.carry;P.sp=beforePickup.sp;selected.amount=beforePickup.amount;
   if(beforePickup.index>=0&&!carcasses.includes(selected))
    carcasses.splice(Math.min(beforePickup.index,carcasses.length),0,selected);
   notify("保存に失敗したため、肉・食草の持ち上げを取り消しました");
   syncHUD();return false;
  }
-  contestSpecialistKill(selected);
+  finishSpecialistContests(contests,true);
   notify(foodName(P.carry)+"（"+meatSizeName(P.carry.amount)+"・"+Math.ceil(P.carry.amount)+"）をくわえた。"+(carriedFoodBurden(P.carry,P)>.55?"重い食料で移動が遅くなる。野犬を避けて巣へ":"どの巣でも備蓄可能"));
  if(mission===4)announceObjective();
  syncHUD();return true;
@@ -5369,20 +5383,29 @@ function eat(){
  const bite=Math.min(12,c.amount),balance=foodBalance(c);
  if(!(bite>0))return false;
  const before={hunger:P.hunger,hp:P.hp,strongWound:P.strongWound,meals,carry:P.carry,amount:c.amount};
+ const beforeWorldFood=carried?null:{...c},beforeWorldFoodIndex=carried?-1:carcasses.indexOf(c);
  const gain=Math.round(bite*balance.satiety*(P.type==="tibetanFox"&&c.type!=="berries"?1.18:1)),heal=Math.round(bite*balance.healing);
  P.hunger=clamp(P.hunger+gain,0,100);P.hp=clamp(P.hp+heal,0,P.maxHp);const woundRelief=sootheStrongWound(bite);meals++;
  if(carried){c.amount=Math.max(0,c.amount-bite);if(c.amount===0)P.carry=null}
  else c.amount=Math.max(0,c.amount-bite);
- if(saveAuto()!==true){
-  P.hunger=before.hunger;P.hp=before.hp;P.strongWound=before.strongWound;meals=before.meals;
-  c.amount=before.amount;P.carry=before.carry;
-  notify("世界セーブ失敗のため食事を取り消しました。食料と体力を維持しました");syncHUD();return false;
- }
- if(!carried)contestSpecialistKill(c);
+ // Commit the final corpse/bones and defender AI with the bite, not after autosave.
+ const contests=[];
+ if(!carried)contestSpecialistKill(c,contests);
  if(!carried&&c.amount===0){
   if(c.type==="corpse")toBones(c);
   else{const index=carcasses.indexOf(c);if(index>=0)carcasses.splice(index,1)}
  }
+ if(saveAuto()!==true){
+  finishSpecialistContests(contests,false);
+  if(beforeWorldFood){
+   Object.assign(c,beforeWorldFood);
+   if(beforeWorldFoodIndex>=0&&!carcasses.includes(c))carcasses.splice(Math.min(beforeWorldFoodIndex,carcasses.length),0,c);
+  }
+  P.hunger=before.hunger;P.hp=before.hp;P.strongWound=before.strongWound;meals=before.meals;
+  c.amount=before.amount;P.carry=before.carry;
+  notify("世界セーブ失敗のため食事を取り消しました。食料と体力を維持しました");syncHUD();return false;
+ }
+ finishSpecialistContests(contests,true);
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();return true;
 }
