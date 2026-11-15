@@ -4,8 +4,8 @@
 const OPERABLE=window.WildSquad?.gachaReady||new Set();
 const RARITY={basic:"基本",rare:"希少",legendary:"伝説級"};
 const METRICS=[["hp","HP"],["attack","攻撃"],["speed","速度"],["stamina","持久力"]];
-const COLORS={cat:"#96a6a1",dog:"#ad8063",fox:"#cd7843",wolf:"#72848a",deer:"#ad8c6a",boar:"#8b786a",crow:"#313d4a",pigeon:"#a3a9a8",otter:"#6c5747",carp:"#ba8e63",tanuki:"#797364",badger:"#868079",macaque:"#9a795b",blackBear:"#353b36",serow:"#807b6b",manul:"#9b9c99",tibetanFox:"#b8a17f",shoebill:"#86989f",lion:"#c69c58",tiger:"#c98946",cheetah:"#c9a765",elephant:"#83878b",hippo:"#78767b",gorilla:"#4d4c4c",giraffe:"#c9a56a",zebra:"#bcbab1",hyena:"#a99a71",wildDog:"#9f846a",armadillo:"#7a7e70",hedgehog:"#877b6b",giantTreeFrog:"#63bb60",pacmanFrog:"#8a984a"};
-const RADII={shoebill:25,elephant:35,hippo:33,carp:24,hedgehog:13,armadillo:15,manul:17,tibetanFox:17,gorilla:29,giraffe:29,lion:28,tiger:28,giantTreeFrog:28,pacmanFrog:37};
+const COLORS={cat:"#96a6a1",dog:"#ad8063",fox:"#cd7843",wolf:"#72848a",deer:"#ad8c6a",boar:"#8b786a",crow:"#313d4a",pigeon:"#a3a9a8",otter:"#6c5747",carp:"#ba8e63",tanuki:"#797364",badger:"#868079",macaque:"#9a795b",blackBear:"#353b36",serow:"#807b6b",manul:"#9b9c99",tibetanFox:"#b8a17f",shoebill:"#86989f",lion:"#c69c58",tiger:"#c98946",cheetah:"#c9a765",elephant:"#83878b",hippo:"#78767b",gorilla:"#4d4c4c",giraffe:"#c9a56a",zebra:"#bcbab1",hyena:"#a99a71",wildDog:"#9f846a",armadillo:"#7a7e70",hedgehog:"#877b6b",penguin:"#263b46",giantTreeFrog:"#63bb60",pacmanFrog:"#8a984a"};
+const RADII={shoebill:25,elephant:35,hippo:33,carp:24,hedgehog:13,armadillo:15,manul:17,tibetanFox:17,penguin:23,gorilla:29,giraffe:29,lion:28,tiger:28,giantTreeFrog:28,pacmanFrog:37};
 const $=id=>document.getElementById(id);
 const el=(tag,cl,text)=>{const node=document.createElement(tag);if(cl)node.className=cl;if(text!==undefined)node.textContent=text;return node};
 const makeBtn=(label,fn,cl)=>{const node=el("button",cl,label);node.type="button";node.addEventListener("click",fn);return node};
@@ -114,6 +114,28 @@ const ready=()=>{
     if(horned){ctx.fillStyle="#645334";ctx.beginPath();ctx.moveTo(28,side*39-98);ctx.lineTo(42,side*39-126);ctx.lineTo(53,side*39-96);ctx.fill()}
    }
    line(38,-32,85,-28,horned?"#5d4435":"#4b8950",4);oval(71,-28,7,3,horned?"#a65c58":"#d17e86");
+  }
+  else if(type==="penguin"){
+   // Distinct upright penguin: white chest, articulated flippers, webbed feet
+   // and orange bill. The live 3D preview remains the preferred renderer.
+   for(const side of [-1,1]){
+    oval(side*23,-13,19,10,"#d6a05b");
+    line(side*22,-16,side*36,-4,"#d6a05b",6);
+   }
+   oval(0,-80,49,70,c);
+   oval(7,-77,32,51,"#f1f2e9");
+   for(const side of [-1,1]){
+    ctx.save();ctx.translate(side*43,-94);ctx.rotate(side*.30);
+    oval(0,25,17,48,c);oval(side*4,30,8,32,"#43525a");
+    ctx.restore();
+   }
+   oval(0,-148,38,37,c);
+   for(const side of [-1,1]){
+    oval(side*18,-155,8,10,"#f7f2e8");
+    oval(side*19,-156,4,6,"#1b2930");
+   }
+   ctx.fillStyle="#dca15c";ctx.beginPath();ctx.moveTo(9,-138);
+   ctx.lineTo(42,-128);ctx.lineTo(8,-124);ctx.closePath();ctx.fill();
   }
   else if(fish){oval(0,-37,80,39,c);ctx.fillStyle="#bfbd9f";ctx.beginPath();ctx.moveTo(-70,-37);ctx.lineTo(-112,-70);ctx.lineTo(-112,-4);ctx.closePath();ctx.fill();ear(0,-70,1);oval(58,-49,5,5,dark);line(15,-31,64,-31,"#5e4437",3);}
   else if(bird){
