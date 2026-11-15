@@ -242,18 +242,64 @@ const cost=(id)=>{const level=save.stats[id]||1;return Math.floor(45*Math.pow(1.
 const unlocked=(i)=>i===0||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.sub;$('nextSpeed').textContent=x.kph+' km/h';$('nextBar').style.width=(x.kph/110*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent=win?'勝利済み — 記録の更新に挑戦':'勝利すると次の生物が解放される';$('startBtn').textContent='▶ '+x.name+'と100m走'}
 function renderTraining(){const el=$('trainList');el.innerHTML='';const cards=training.map(item=>{const level=save.stats[item.id]||1,need=cost(item.id),max=level>=50;return `<div class="trainitem"><header><div><div class="label">${item.name.toUpperCase()}</div><h3>${item.name} <span class="mini">Lv.${level}</span></h3></div><button data-train="${item.id}" ${max||save.money<need?'disabled':''}>${max?'MAX':need+' G'}</button></header><p>${item.desc} ・ ${item.gain}</p><div class="trainLine"><i style="width:${Math.min(100,level*2)}%"></i></div></div>`}).join('');el.innerHTML=cards;el.querySelectorAll('[data-train]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.train,n=cost(id);if(save.money<n||save.stats[id]>=50)return;save.money-=n;save.stats[id]++;store();beep(670,.09,'triangle',.055);renderTraining();refreshMenu()}))}
-function renderBeasts(){const el=$('animalList');el.innerHTML='';el.innerHTML=animals.map((a,i)=>`<div class="animalitem ${i===save.chosen?'selected':''} ${unlocked(i)?'':'locked'}"><header><div><div class="label">STAGE ${String(i+1).padStart(2,'0')} / ${a.kph}km/h</div><h3>${a.name} ${save.won.includes(a.id)?'<span class="mini">★ 勝利済</span>':''}</h3></div><button data-beast="${i}" ${unlocked(i)?'':'disabled'}>${i===save.chosen?'選択中':unlocked(i)?'挑戦する':'未解放'}</button></header><p>${a.sub}。${!unlocked(i)?'前の動物に勝つと解放されます。':''}</p></div>`).join('');el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.beast;if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}))}
-function renderCustom(){const el=$('customList');el.innerHTML='';const name=document.createElement('div');name.className='formrow';name.innerHTML='<span>ランナー名</span><input id="runnerName" type="text" maxlength="16" placeholder="ランナー" autocomplete="off">';el.appendChild(name);$('runnerName').value=save.runnerName;$('runnerName').addEventListener('change',e=>{save.runnerName=e.target.value.trim().slice(0,16)||'ランナー';store()});
+function renderBeasts(){const el=$('animalList');el.innerHTML='';el.innerHTML=animals.map((a,i)=>`<div class="animalitem ${i===save.chosen?'selected':''} ${unlocked(i)?'':'locked'}"><header><div><div class="label">第${i+1}戦 / ${a.kph} km/h</div><h3>${a.name} ${save.won.includes(a.id)?'<span class="mini">★ 勝利済</span>':''}</h3></div><button data-beast="${i}" ${unlocked(i)?'':'disabled'}>${i===save.chosen?'選択中':unlocked(i)?'挑戦する':'未解放'}</button></header><p>${a.sub}。${!unlocked(i)?'前の動物に勝つと解放されます。':''}</p></div>`).join('');el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.beast;if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}))}
+function renderCustom(){const el=$('customList');el.innerHTML='';const name=document.createElement('div');name.className='formrow';name.innerHTML='<span>ランナー名</span><input id="runnerName" type="text" maxlength="16" placeholder="ランナー" autocomplete="off">';el.appendChild(name);$('runnerName').value=save.runnerName;$('runnerName').addEventListener('input',e=>{save.runnerName=e.target.value.slice(0,16)||'ランナー';store()});
  categories.forEach((c,i)=>{const [label,key,kind,min,max]=c;const row=document.createElement('div');row.className='formrow';const l=document.createElement('span');l.textContent=label;row.appendChild(l);let input,display;
  if(kind==='range'){input=document.createElement('input');input.type='range';input.min=min;input.max=max;input.step=1;input.value=clamp(Number(save.avatar[key])||0,min,max);display=document.createElement('span');display.className='val';display.textContent=input.value;row.appendChild(input);row.appendChild(display);input.addEventListener('input',()=>{save.avatar[key]=+input.value;display.textContent=input.value;refreshHuman();store()})}
- else{input=document.createElement('select');palettes[min].forEach((x,j)=>{const o=document.createElement('option');o.value=j;o.textContent=(j+1).toString().padStart(2,'0')+'  '+x;input.appendChild(o)});input.value=save.avatar[key];input.addEventListener('change',()=>{save.avatar[key]=+input.value;refreshHuman();store()});row.appendChild(input)}el.appendChild(row)
+ else{input=document.createElement('select');palettes[min].forEach((x,j)=>{const o=document.createElement('option');o.value=j;o.textContent=(j+1).toString().padStart(2,'0')+'  '+x;input.appendChild(o)});input.value=save.avatar[key];const sw=document.createElement('span');sw.className='colorPreview';sw.style.backgroundColor=palettes[min][save.avatar[key]%palettes[min].length];input.addEventListener('change',()=>{save.avatar[key]=+input.value;sw.style.backgroundColor=palettes[min][save.avatar[key]];refreshHuman();store()});row.appendChild(input);row.appendChild(sw)}el.appendChild(row)
  });const note=document.createElement('p');note.className='hint';note.textContent='16か所を個別調整。顔・体型・服装は3Dモデルに反映されます。';el.appendChild(note)}
+$('randomAvatar')?.addEventListener('click',()=>{for(const [label,key,kind,min,max] of categories){save.avatar[key]=kind==='range'?min+Math.floor(Math.random()*(max-min+1)):Math.floor(Math.random()*palettes[min].length)}refreshHuman();renderCustom();store()});
+$('resetAvatar')?.addEventListener('click',()=>{save.avatar={...defaultAvatar};refreshHuman();renderCustom();store()});
 // Tap race physics — speed is in metres per second, distances in metres.
 function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
 function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;beep(800,.35,'sawtooth',.075);showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
-function finishRace(){const r=race;if(!r)return;r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';$('resultOverlay').style.display='flex';const won=r.hFinish<r.eFinish;save.races=(save.races||0)+1;save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);save.bestByBeast[animals[save.chosen].id]=Math.min(save.bestByBeast[animals[save.chosen].id]||999,r.hFinish);const reward=Math.round((won?130:56)+animals[save.chosen].tier*(won?34:11)+Math.max(0,18-r.hFinish)*3);save.money+=reward;if(won&&!save.won.includes(animals[save.chosen].id)){save.won.push(animals[save.chosen].id);if(save.chosen<animals.length-1)save.chosen++}store();$('resultEyebrow').textContent='100 METERS / OFFICIAL RESULT';$('resultTitle').textContent=won?'VICTORY!':'TRY AGAIN';$('resultTitle').style.color=won?'#dfff62':'#ffbb71';$('resultTime').textContent=r.hFinish.toFixed(2)+'s';$('resultEnemy').textContent=r.eFinish.toFixed(2)+'s';$('resultMoney').textContent='+'+reward+' G';$('resultMsg').textContent=won?'人間の勝利！ '+(save.chosen<animals.length?'次の生物に挑戦できます。':''):'敗北しても育成資金を獲得しました。鍛え直して再挑戦。';refreshMenu();beep(won?890:200,.34,won?'triangle':'sine',.075)}
+let racePicture=null,resultText='';
+function makeRacePhoto(){
+ try{
+  renderer.render(scene,camera);
+  const source=renderer.domElement,cnv=document.createElement('canvas');
+  const w=innerWidth<innerHeight?900:1280, h=Math.round(w*innerHeight/Math.max(1,innerWidth));
+  cnv.width=w;cnv.height=clamp(h,530,1900);const cx=cnv.getContext('2d');
+  cx.drawImage(source,0,0,w,cnv.height);
+  const strip=Math.max(185,Math.round(cnv.height*.24)),top=cnv.height-strip;
+  const grad=cx.createLinearGradient(0,top,0,cnv.height);
+  grad.addColorStop(0,'rgba(9,18,23,0)');grad.addColorStop(.25,'rgba(9,18,23,.85)');grad.addColorStop(1,'rgba(8,16,21,.97)');
+  cx.fillStyle=grad;cx.fillRect(0,top,w,strip);
+  const font='system-ui,-apple-system,"Noto Sans JP",sans-serif';
+  const pad=Math.round(w*.055);
+  cx.textAlign='left';cx.fillStyle='#e9f0ed';cx.font='600 '+Math.round(w*.026)+'px '+font;
+  cx.fillText('動物と100m走   /   '+raceName,pad,top+strip*.48);
+  cx.fillStyle='#ffffff';cx.font='900 '+Math.round(w*.062)+'px '+font;
+  cx.fillText(resultText,pad,top+strip*.73,w-pad*2);
+  cx.fillStyle='#c8d5d3';cx.font='500 '+Math.round(w*.024)+'px '+font;
+  cx.fillText('techmew.github.io/human-vs-beasts/',pad,top+strip*.9);
+  racePicture=cnv;const img=$('resultPhoto');img.src=cnv.toDataURL('image/png');img.hidden=false;
+ }catch(err){console.warn('Race screenshot failed',err);racePicture=null;$('resultPhoto').hidden=true;$('shareHelp').textContent='この端末では3D画面の写真を生成できませんでした。';}
+}
+function finishRace(){
+ const r=race;if(!r||r.phase==='results')return;
+ r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
+ const completed=Number.isFinite(r.hFinish),won=completed&&r.hFinish<r.eFinish,record=completed?r.hFinish:r.time;
+ save.races=(save.races||0)+1;
+ if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=animals[save.chosen].id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
+ const reward=Math.max(15,Math.round((won?130:completed?56:15)+animals[save.chosen].tier*(won?34:completed?11:0)+(completed?Math.max(0,18-r.hFinish)*3:0)));
+ save.money+=reward;
+ const atLast=save.chosen>=animals.length-1;
+ if(won&&!save.won.includes(animals[save.chosen].id)){save.won.push(animals[save.chosen].id);if(!atLast)save.chosen++}
+ store();
+ $('resultEyebrow').textContent='100m走の結果';
+ $('resultTitle').textContent=won?'勝ち':completed?'負け':'未完走';
+ $('resultTitle').style.color=won?'#d7e4d2':'#e5c2aa';
+ $('resultTime').textContent=completed?r.hFinish.toFixed(2)+'秒':'未完走';
+ $('resultEnemy').textContent=r.eFinish.toFixed(2)+'秒';
+ $('resultMoney').textContent='+'+reward+' G';
+ $('resultMsg').textContent=won?'勝ちました。'+(atLast?'全ての動物との対戦を終えました。':'次の動物に挑戦できます。'):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
+ resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
+ $('resultOverlay').style.display='flex';
+ makeRacePhoto();refreshMenu();beep(won?790:270,.24,'sine',.045);
+}
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){beep(480+n*100,.12);r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);beep(1150,.38,'triangle',.08);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.045,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
  const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.38;const tempo=clamp(r.drive*.98,.08,1.15);const fatigued=(.55+.45*r.stamina);const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued:0;const accel=7.8+(save.stats.power-1)*.55;
@@ -266,12 +312,42 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(r.humanV>2){const step=Math.floor(r.time*clamp(r.humanV,3,20)*1.15);if(step!==r.lastStep){r.lastStep=step;kickDust(humanX,r.humanD,r.humanV);if(step%3===0)beep(110,.026,'sine',.008)}}
  if(r.eFinish===null&&r.enemyV>7&&Math.random()<dtSafe*10)kickDust(animalX,r.enemyD,r.enemyV);
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
- if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
+ if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
 function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent='連続 '+r.combo;$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
 $('startBtn').addEventListener('click',startRace);$('goCustom').addEventListener('click',()=>showScreen('custom'));
 document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showScreen('menu')));
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();tap(side)});el.addEventListener('contextmenu',e=>e.preventDefault())}
 $('burstBtn').addEventListener('pointerdown',e=>{e.preventDefault();activateBurst()});$('resultHome').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent()});$('retryBtn').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent();startRace()});
+const raceUrl='https://techmew.github.io/human-vs-beasts/';
+const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
+async function raceImageBlob(){
+ if(!racePicture)makeRacePhoto();
+ if(!racePicture)return null;
+ return await new Promise(resolve=>racePicture.toBlob(resolve,'image/png'));
+}
+async function saveRacePhoto(){
+ const blob=await raceImageBlob();if(!blob){$('shareHelp').textContent='画像を生成できませんでした。';return false}
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='100m走_'+new Date().toISOString().slice(0,10)+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);return true
+}
+$('downloadRace')?.addEventListener('click',()=>{saveRacePhoto()});
+$('shareRace')?.addEventListener('click',async()=>{
+ const blob=await raceImageBlob();
+ const msg=raceCaption();
+ if(blob&&navigator.share&&typeof File==='function'){
+  const file=new File([blob],'100m-race-result.png',{type:'image/png'});
+  try{
+   if(!navigator.canShare||navigator.canShare({files:[file]})){
+     await navigator.share({files:[file],title:'動物と100m走',text:msg+' '+raceUrl});
+     return;
+   }
+  }catch(err){if(err?.name==='AbortError')return;console.warn('Native image share unavailable',err)}
+ }
+ if(blob){await saveRacePhoto();$('shareHelp').textContent='画像を保存しました。Xの投稿画面で写真を添付してください。'}
+ else $('shareHelp').textContent='写真を作成できませんでした。Xには文章のみ共有します。';
+ const link='https://twitter.com/intent/tweet?text='+encodeURIComponent(msg+' '+raceUrl);
+ window.location.assign(link);
+});
 $('audioBtn').addEventListener('click',()=>{sfx=!sfx;$('audioBtn').textContent=sfx?'♪':'×'});$('fullBtn').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})});
 addEventListener('keydown',e=>{if(e.target?.tagName==='INPUT')return;if(['Space','ArrowLeft','ArrowRight','KeyA','KeyD'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyA'||e.code==='ArrowLeft')tap('L');if(e.code==='KeyD'||e.code==='ArrowRight')tap('R');if(e.code==='Space')activateBurst();if(e.code==='Escape'&&mode!=='race')showScreen('menu')});
 // Drag the 3D model in studio, with direct pointer interaction.
