@@ -2530,12 +2530,21 @@ function updateMacaque(m,dt,d){
 }
 // CHIMP-TOOL-FOREST-V1: tree retreat, shared alarm, a dodgeable thrown stone,
 // and a short-range branch strike. All phases use existing mob save fields.
-// FOOD-THEFT-HUNT-V1: dogs contest meat during the trip back to a den.
-// The warning is avoidable; stolen meat remains in the world and can be reclaimed.
+// FOOD-THEFT-HUNT-V2: dogs and four specialist hunters intercept meat on
+// the return trip. A timed physical lunge can be evaded or blocked by terrain.
+// Dropped meat is conserved and a rejected autosave rolls the theft back.
 function updateFoodThief(m,dt,d){
+ const specialist=SPECIALIST_HUNTERS.has(m.type);
+ // Never turn released/owned individuals into unprovoked food thieves.
+ if(m.companion||m.squadIndividualId||m.bossIndividualId||m.releasedIndividualId||m.strongBoss)return false;
  m.foodTheftCooldown=Math.max(0,(Number(m.foodTheftCooldown)||0)-dt);
- const carrying=!!P?.carry&&P.carry.type!=="berries"&&P.carry.amount>0;
- const eligible=carrying&&!atDen()&&!insideShelter(P)&&!P.hidden&&d<325&&!lineBlocked(m,P);
+ const carrying=!!P?.carry&&P.carry.type==="meat"&&P.carry.amount>0;
+ const terrainOK=!specialist||
+  (m.type==="shoebill"?waterDepth(m.x,m.y)<=.24&&waterDepth(P.x,P.y)<=.24:
+   m.type==="penguin"?waterDepth(m.x,m.y)<=.65&&waterDepth(P.x,P.y)<=.65:
+   mountainHabitat(P.x,P.y));
+ const eligible=carrying&&terrainOK&&!atDen()&&!insideShelter(P)&&!P.hidden&&
+  d<(specialist?245:325)&&!lineBlocked(m,P);
  if(!eligible||m.stun>0||m.hp<=0){
   m.foodTheftTell=0;m.foodTheftArmed=false;return false;
  }
@@ -2547,15 +2556,22 @@ function updateFoodThief(m,dt,d){
    m.foodTheftArmed=false;m.foodTheftCooldown=9.5;m.swing=.27;
    if(P.carry&&P.carry.type!=="berries"&&d<m.r+P.r+34&&!lineBlocked(m,P)&&
     (P.jumpHeight||0)<(P.groundZ||0)+22){
-    const food=P.carry;P.carry=null;
-    // The stolen meat is recoverable, but leaving it behind lets the dog eat.
+    const food=P.carry,drop={x:m.x,y:m.y,r:11,amount:food.amount,
+     type:"meat",animalType:food.animalType||null,ttl:150,phase:m.dir||0};
+    // One atomic world snapshot: never duplicate meat after a reload or
+    // destroy a carried item when the storage quota is exhausted.
+    P.carry=null;carcasses.push(drop);
+    if(saveAuto()!==true){
+     P.carry=food;const idx=carcasses.indexOf(drop);if(idx>=0)carcasses.splice(idx,1);
+     m.foodTheftCooldown=Math.max(m.foodTheftCooldown,2);
+     notify("保存できなかったため肉の横取りを取り消した");
+     syncHUD();return true;
+    }
     m.scavengeNeed=Math.max(.95,Number(m.scavengeNeed)||0);
     m.feedAfterKill=Math.max(3,Number(m.feedAfterKill)||0);
-    carcasses.push({x:m.x,y:m.y,r:11,amount:food.amount,
-     type:food.type==="berries"?"berries":"meat",animalType:food.animalType||null,ttl:150,phase:m.dir||0});
     P.revealTimer=Math.max(P.revealTimer||0,.8);
     label(P.x,P.y-42,"肉を奪われた！","#ffc0a2");
-    notify("野犬に肉を奪われた！ 地面の肉は拾い直せる");
+    notify((specialist?"野生の"+(species[m.type]?.name||m.type):"野犬")+"に肉を奪われた！ 地面の肉は拾い直せる");
     syncHUD();playEffect("damage");
    }else label(m.x,m.y-m.r-30,"横取りを回避！","#b4e6c2");
   }
@@ -2563,14 +2579,23 @@ function updateFoodThief(m,dt,d){
  }
  if(m.foodTheftCooldown>0)return false;
  if(d<m.r+P.r+78){
-  m.foodTheftTell=.68;m.foodTheftArmed=true;
+  m.foodTheftTell=specialist?(m.type==="shoebill"?.95:m.type==="penguin"?.82:.72):.68;m.foodTheftArmed=true;
+  if(specialist){
+   m.attackAction=Math.max(Number(m.attackAction)||0,m.foodTheftTell);
+   m.swing=Math.max(Number(m.swing)||0,.25);
+   if(m.type==="penguin")m.flipperStrike=Math.max(Number(m.flipperStrike)||0,.48);
+   if(m.type==="shoebill")m.beakVisual=Math.max(Number(m.beakVisual)||0,.45);
+  }
   m.dir=Math.atan2(P.y-m.y,P.x-m.x);
   label(m.x,m.y-m.r-35,"肉を狙って飛びかかる！","#ffd0a0");
   return true;
  }
  const a=steerPursuit(m,P.x,P.y);m.dir=a;
  const s=species[m.type],nx=m.x+Math.cos(a)*s.speed*.92*dt,ny=m.y+Math.sin(a)*s.speed*.92*dt;
- move(m,nx-m.x,ny-m.y);m.step=(m.step||0)+dt*3;
+ // Existing collision/terrain path is authoritative for both 2D and WebGL.
+ if(terrainOK&&clearStep(m,a,Math.min(35,s.speed*.92*dt))&&!lineBlocked(m,{x:nx,y:ny}))
+  move(m,nx-m.x,ny-m.y);
+ m.step=(m.step||0)+dt*3;
  return true;
 }
 function updateChimpanzee(m,dt,d){
@@ -7410,7 +7435,7 @@ function update(dt){
   }
   if(m.type==="giantGorilla")updateGorillaRock(m,dt);
   if(eatClaimedKill(m,s,dt,d))continue;
-  if(m.type==="dog"&&updateFoodThief(m,dt,d))continue;
+  if((m.type==="dog"||SPECIALIST_HUNTERS.has(m.type))&&updateFoodThief(m,dt,d))continue;
   if(m.type==="macaque"){if(d<WILDLIFE.farAI)updateMacaque(m,dt,d);else{m.macaqueStone=null;m.macaqueTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(m.type==="chimpanzee"){if(d<WILDLIFE.farAI)updateChimpanzee(m,dt,d);else{m.chimpStone=null;m.chimpTell=0;m.treeHeight=0;m.groundZ=0;m.evadeHeight=0;}continue;}
   if(d>WILDLIFE.farAI){m.signature=null;m.signatureCooldown=Math.max(m.signatureCooldown||0,1.2);m.vx=0;m.vy=0;m.evadeHeight=0;continue;}
