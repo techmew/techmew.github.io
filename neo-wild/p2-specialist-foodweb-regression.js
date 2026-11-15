@@ -24,7 +24,7 @@ for(const type of types){
   scentReachTo:()=>200,startlePrey:()=>false,steerPursuit:(a,x,y)=>Math.atan2(y-a.y,x-a.x),
   wildPreyInterceptPoint:(a,b)=>({x:b.x,y:b.y}),clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),
   carcasses,regionAt:()=>0,ecology:[{prey:10}],rnd:()=>0,label:()=>{},move:()=>{},
-  claimPredatorKill:(a,b)=>{carcasses.push({type:"corpse",animalType:b.type,amount:18});a.feedClaimToken="mock";},
+  claimPredatorKill:(a,b)=>{carcasses.push({type:"corpse",animalType:b.type,amount:18});a.feedClaimToken="mock";a.feedClaimUntil=124;},
   animalRemains:b=>({type:"corpse",animalType:b.type})
  };
  const api=factory(env);
