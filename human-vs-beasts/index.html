@@ -34,6 +34,12 @@
 #shareHelp{margin:5px 0 0;text-align:center;font-size:10px}
 @media(max-width:680px) and (orientation:portrait){.panel{height:min(53vh,470px)}#customPreviewHint{bottom:60vh}.resultCard{max-height:90dvh;overflow:auto;padding:16px}.resultPhoto{height:120px}.resultCard h2{font-size:31px}.resultShare{margin-top:5px}}
 @media(orientation:landscape) and (max-height:540px){.resultCard{max-height:95dvh;overflow-y:auto}.resultPhoto{height:75px}.resButtons{margin-top:7px}}
+
+.customHeaderActions{display:flex;gap:5px}.customHeaderActions button{padding:9px 11px;font-size:11px}.customGroup{padding:11px 0 5px;color:#e9eeeb;font-size:12px;font-weight:900;border-bottom:1px solid #9ca9a740}
+#customScreen.previewOnly .panel{height:auto;bottom:calc(env(safe-area-inset-bottom) + 78px);min-height:0;padding:12px}
+#customScreen.previewOnly .panel .scroll,#customScreen.previewOnly .customTools{display:none}
+#customScreen.previewOnly #customPreviewHint{bottom:calc(env(safe-area-inset-bottom) + 160px)}
+@media(orientation:landscape) and (max-height:540px){#customScreen.previewOnly .panel{top:auto;bottom:14px;right:14px;height:auto;left:auto;width:290px}}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
@@ -42,7 +48,7 @@
   <div id="menuCopy"><div class="eyebrow">100m かけっこゲーム</div><h1 class="bigtitle">動物と<br><span>100m走</span></h1><div class="sub">人間を育成して、速い動物と100m走で対決。<br>左と右のボタンを交互に押した分だけ走ります。</div><div class="menuActions"><button class="btn" id="startBtn">▶ 100m走に挑戦</button><button class="btn secondary" id="goCustom">キャラメイク</button></div></div>
   <div class="versus glass"><div class="label">次の対戦相手</div><h3 id="nextName">イヌ</h3><div class="beastMeta"><span id="nextSub">初めての対戦相手</span><span id="nextSpeed">35 km/h</span></div><div class="statbar"><i id="nextBar" style="width:33%"></i></div><p class="hint" id="nextDescription" style="margin:8px 0 0">勝つと次の生物が解放される</p></div>
  </section>
- <section class="screen" id="customScreen"><div id="customPreviewHint"><div class="eyebrow">キャラクターの見た目</div><div style="font-size:12px;margin-top:5px">顔や服装を変更できます。<br>画面をなぞると向きを変えられます。</div></div><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">見た目の設定</div><h2>キャラメイク</h2></div><button class="btn secondary" data-back="1">完了</button></div><div class="customTools"><button class="btn secondary" id="randomAvatar" type="button">ランダム生成</button><button class="btn secondary" id="resetAvatar" type="button">初期化</button></div><div class="scroll" id="customList"></div></div></section>
+ <section class="screen" id="customScreen"><div id="customPreviewHint"><div class="eyebrow">キャラクターの見た目</div><div style="font-size:12px;margin-top:5px">顔や服装を変更できます。<br>画面をなぞると向きを変えられます。</div></div><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">見た目の設定</div><h2>キャラメイク</h2></div><div class="customHeaderActions"><button class="btn secondary" id="previewAvatar" type="button">全身を見る</button><button class="btn secondary" data-back="1">完了</button></div></div><div class="customTools"><button class="btn secondary" id="randomAvatar" type="button">ランダム生成</button><button class="btn secondary" id="resetAvatar" type="button">初期化</button></div><div class="scroll" id="customList"></div></div></section>
  <section class="screen" id="trainScreen"><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">能力の育成</div><h2>人間を鍛える</h2></div><button class="btn secondary" data-back="1">完了</button></div><div class="hint">勝てなくても報酬を獲得。鍛えるほど最高速度と爆発力が上がります。</div><div class="scroll" id="trainList"></div></div></section>
  <section class="screen" id="beastsScreen"><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">対戦できる動物</div><h2>対戦相手</h2></div><button class="btn secondary" data-back="1">完了</button></div><div class="hint">13種の速い生物が登場。走行速度は参考値で、100mの結果はゲーム用に調整しています。</div><div class="scroll" id="animalList"></div></div></section>
  <nav class="menuNav" id="bottomNav"><button class="navbtn active" data-screen="menu">ホーム</button><button class="navbtn" data-screen="train">育成</button><button class="navbtn" data-screen="custom">キャラメイク</button><button class="navbtn" data-screen="beasts">動物図鑑</button></nav>
