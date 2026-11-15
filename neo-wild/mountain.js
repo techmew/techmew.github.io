@@ -362,6 +362,22 @@ function draw2D(ctx,visible){
  ctx.fillStyle="#536e51";ctx.beginPath();ctx.moveTo(10500,2390);ctx.lineTo(10700,2390);ctx.lineTo(10700,center(10700)-570);ctx.lineTo(10500,center(10500)-570);ctx.closePath();ctx.fill();
  ctx.strokeStyle="#958b6b";ctx.lineWidth=64;ctx.beginPath();ctx.moveTo(10600,2390);ctx.lineTo(10600,center(10600)-570);ctx.stroke();
  ctx.fillStyle="#47694c";ctx.fillRect(CITY_EDGE,850,2400,1730);
+ // True visual transition: buildings -> abandoned suburb -> regrown fringe ->
+ // deep woodland. Keep the original passable north trail and collision intact.
+ for(let x=CITY_EDGE;x<9030;x+=70){
+  const t=clamp((x-CITY_EDGE)/630,0,1);
+  const red=Math.round(93-22*t),green=Math.round(98+7*t),blue=Math.round(84-8*t);
+  ctx.fillStyle="rgb("+red+","+green+","+blue+")";
+  ctx.fillRect(x,850,Math.min(71,9030-x),1730);
+ }
+ for(let x=8450;x<8990;x+=110)for(const side of [-1,1]){
+  const y=northTrail(x)+side*(233+(x%3)*21);
+  if(!visible(x,y,170))continue;
+  ctx.fillStyle="#636961";ctx.fillRect(x-32,y-19,64,35);
+  ctx.fillStyle="#364c40";ctx.fillRect(x-28,y-14,57,12);
+  for(let i=0;i<5;i++){ctx.strokeStyle="#688558";ctx.lineWidth=2;ctx.beginPath();
+   ctx.moveTo(x-29+i*13,y+12);ctx.lineTo(x-28+i*13,y-6-(i%3)*8);ctx.stroke();}
+ }
  ctx.strokeStyle="#8b8064";ctx.lineWidth=115;ctx.beginPath();
  for(let x=CITY_EDGE;x<=10780;x+=60){const y=northTrail(x);if(x===CITY_EDGE)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
  ctx.strokeStyle="#c0b18b";ctx.lineWidth=4;ctx.stroke();
