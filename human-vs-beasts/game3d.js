@@ -31,14 +31,14 @@ let save=(()=>{try{const v=JSON.parse(localStorage.getItem('animal100m_v4'));if(
 const store=()=>{try{localStorage.setItem('animal100m_v4',JSON.stringify(save))}catch(e){}};
 const training=[{id:'speed',name:'脚力・最高速度',desc:'最高速度とトップスピード維持を強化',gain:'+4.2km/h'}, {id:'power',name:'爆発力・加速',desc:'スタートからの加速、踏み込み効率を強化',gain:'加速 +8%'},{id:'stamina',name:'心肺・持久力',desc:'連打で消費する体力を軽減',gain:'持久力 +8%'},{id:'technique',name:'走法・フォーム',desc:'連打効率とコンボ蓄積を強化',gain:'効率 +7%'}];
 const mat=(color,roughness=.86,metalness=.01)=>new T.MeshStandardMaterial({color,roughness,metalness});
-const m={track:mat(0xb84d37),trackDark:mat(0x96382a),line:mat(0xf8ead7),grass:mat(0x3f8a53),grass2:mat(0x315d43),dark:mat(0x122336),wall:mat(0x243748),seat:mat(0x24436a),seat2:mat(0x1b304e),steel:mat(0xbccad5,.4,.7),gold:mat(0xffd36a,.35,.4),white:mat(0xf4f5eb),black:mat(0x191e25),eye:mat(0xf9faf7),lens:mat(0x263449),nose:mat(0x332c29),paint:mat(0x8baec1),shoe:mat(0x252c3b),red:mat(0xd94d4e)};
-const scene=new T.Scene();scene.background=new T.Color(0x81b3df);scene.fog=new T.FogExp2(0x99b8cd,.0065);
+const m={track:mat(0x944b42),trackDark:mat(0x894039),line:mat(0xf8ead7),grass:mat(0x38594c),grass2:mat(0x29473d),dark:mat(0x122336),wall:mat(0x243748),seat:mat(0x304554),seat2:mat(0x253843),steel:mat(0xbccad5,.4,.7),gold:mat(0xffd36a,.35,.4),white:mat(0xf4f5eb),black:mat(0x191e25),eye:mat(0xf9faf7),lens:mat(0x263449),nose:mat(0x332c29),paint:mat(0x8baec1),shoe:mat(0x252c3b),red:mat(0xd94d4e)};
+const scene=new T.Scene();scene.background=new T.Color(0x516577);scene.fog=new T.FogExp2(0x677789,.0048);
 const camera=new T.PerspectiveCamera(52,1,.1,420);
 let renderer;
-try {renderer=new T.WebGLRenderer({canvas:$('world'),antialias:!mobile,powerPreference:'high-performance',alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.35:1.85));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.38;}catch(err){fail('WebGL 3Dの起動に失敗しました。WebGL対応ブラウザで開いてください。');return}
-const hemi=new T.HemisphereLight(0xe3f6ff,0x7c6045,2.05);scene.add(hemi);
-const sun=new T.DirectionalLight(0xfff1d6,2.5);sun.position.set(-26,60,24);sun.castShadow=true;sun.shadow.mapSize.set(mobile?1024:2048,mobile?1024:2048);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=32;sun.shadow.camera.bottom=-32;sun.shadow.camera.near=5;sun.shadow.camera.far=150;sun.shadow.bias=-.00026;sun.target.position.set(0,0,14);scene.add(sun,sun.target);
-const fill=new T.DirectionalLight(0xa3c9fb,.65);fill.position.set(20,15,65);scene.add(fill);
+try {renderer=new T.WebGLRenderer({canvas:$('world'),antialias:!mobile,powerPreference:'high-performance',alpha:false,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.35:1.85));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.78;}catch(err){fail('WebGL 3Dの起動に失敗しました。WebGL対応ブラウザで開いてください。');return}
+const hemi=new T.HemisphereLight(0xb8c9cf,0x42362e,1.02);scene.add(hemi);
+const sun=new T.DirectionalLight(0xe9d6bd,1.45);sun.position.set(-26,60,24);sun.castShadow=true;sun.shadow.mapSize.set(mobile?1024:2048,mobile?1024:2048);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=32;sun.shadow.camera.bottom=-32;sun.shadow.camera.near=5;sun.shadow.camera.far=150;sun.shadow.bias=-.00026;sun.target.position.set(0,0,14);scene.add(sun,sun.target);
+const fill=new T.DirectionalLight(0x8eabba,.27);fill.position.set(20,15,65);scene.add(fill);
 const ground=new T.Mesh(new T.PlaneGeometry(480,540),m.grass);ground.rotation.x=-Math.PI/2;ground.position.set(0,-.075,55);ground.receiveShadow=true;scene.add(ground);
 const box=(parent,w,h,d,mt,x=0,y=0,z=0,cast=false)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),mt);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o};
 const ball=(parent,mt,x,y,z,sx,sy,sz,detail=16)=>{const o=new T.Mesh(new T.SphereGeometry(1,detail,Math.max(10,Math.floor(detail*.7))),mt);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
@@ -57,7 +57,7 @@ function buildStadium(){
  for(let z=0;z<=100;z+=10){for(let side of [-1,1]){box(scene,.8,.12,1.5,m.white,side*11.6,.1,z);const p=conical(scene,m.steel,side*11.6,.45,z,.05,.08,.8);p.castShadow=false;placard(scene,String(z)+'m',side*11.6,.98,z,1.7,.47,side===1?Math.PI/2:-Math.PI/2,'#15263a','#faffb5')}}
  // finish arch and mid-track details
  for(let side of [-1,1]){box(scene,.53,6.6,.55,m.steel,side*10.1,3.35,100,true);box(scene,1.2,.35,1.3,m.dark,side*10.1,5.96,100)}
- box(scene,21,1.15,.7,m.dark,0,6.45,100,true);placard(scene,'FINISH  /  100m',0,6.47,99.59,14,1,0,'#112133','#f6ffb7');
+ box(scene,21,1.15,.7,m.dark,0,6.45,100,true);placard(scene,'GOAL  /  100m',0,6.47,99.59,14,1,0,'#112133','#f6ffb7');
  for(let side of [-1,1]){
   // tiered modern grandstand
   box(scene,24,1.5,163,m.dark,side*28,.15,44);
@@ -67,7 +67,7 @@ function buildStadium(){
    box(scene,.2,.7,156,m.steel,side*(16.3+row*2.85),y+.35,44);
   }
   for(let z=-25;z<=111;z+=24){const p=side*13.2;box(scene,.45,7,.5,m.steel,p,3.5,z,true);box(scene,3,.15,.25,m.steel,p,7,z);for(let xx=-1;xx<=1;xx++)ball(scene,mat(0xffefbb,.3),p+xx*.85,6.93,z,.2,.2,.16,8)}
-  for(let z=-15;z<=110;z+=30){const ps=side*12.7;placard(scene,'HUMAN × BEAST',ps,2.7,z,5.5,1,side===1?Math.PI/2:-Math.PI/2,'#13263c','#d5ff5a')}
+  for(let z=-15;z<=110;z+=30){const ps=side*12.7;placard(scene,'100m RACE',ps,2.7,z,5.5,1,side===1?Math.PI/2:-Math.PI/2,'#13263c','#dbe5df')}
  }
  // multi-colour 3D crowd (instancing for performance)
  const count=mobile?340:930;const geo=new T.SphereGeometry(.21,7,5);const inst=new T.InstancedMesh(geo,mat(0xe3d5c8,.9),count);const dummy=new T.Object3D();const col=new T.Color();const colors=[0xe9b9a0,0xeadeda,0x98b9ce,0xdbda62,0xe28a6b,0x9fb66f,0x5e779c,0xdeb786,0xc1a9cb];
@@ -85,7 +85,7 @@ function makeHuman(a){
  const root=new T.Group(),skeleton=new T.Group();root.add(skeleton);
  const skin=mat(palettes.skin[a.skin%palettes.skin.length]),hair=mat(palettes.hair[a.hair%palettes.hair.length]),shirt=mat(palettes.shirt[a.shirt%palettes.shirt.length],.72),pants=mat(palettes.pants[a.pants%palettes.pants.length]),shoes=mat(palettes.shoes[a.shoes%palettes.shoes.length],.6),white=mat(0xecf1ea), iris=mat(0x30291e,.32),dark=mat(0x312721);
  const bulky=.83+(a.build/10)*.45,wide=.89+(a.body/10)*.29;const height=.88+(a.height/10)*.26;
- skeleton.scale.set(wide,height,wide);const torso=new T.Group();torso.position.set(0,1.05,0);skeleton.add(torso);
+ skeleton.scale.set(wide*.94,height*.92,wide*.94);const torso=new T.Group();torso.position.set(0,1.05,0);skeleton.add(torso);
  ball(torso,pants,0,-.01,-.04,.36*bulky,.27,.25);
  const chest=ball(torso,shirt,0,.38,-.02,.41*bulky,.53,.26);chest.scale.x*=wide;
  ball(torso,skin,0,.89,.06,.13,.16,.13); // neck
@@ -102,7 +102,7 @@ function makeHuman(a){
   const elbow=new T.Group();elbow.position.y=-.58;sh.add(elbow);
   ball(elbow,skin,0,-.23,.035,.12,.28,.11);
   ball(elbow,skin,0,-.5,.06,.135,.15,.12);arms.push({sh,elbow,side});
-  const hip=new T.Group();hip.position.set(side*.2*wide,-.04,0);skeleton.add(hip);
+  const hip=new T.Group();hip.position.set(side*.2*wide,1.06,0);skeleton.add(hip);
   ball(hip,pants,0,-.28,0,.185*bulky,.36,.20);
   const knee=new T.Group();knee.position.y=-.52;hip.add(knee);
   ball(knee,pants,0,-.22,0,.155,.28,.17);
@@ -141,7 +141,27 @@ function makeHuman(a){
  if(a.accessory===4){ball(head,mat(0xd9b769,.3,.8),-.31,.12,0,.04,.07,.034);ball(head,mat(0xd9b769,.3,.8),.31,.12,0,.04,.07,.034)}
  if(a.accessory===5||a.accessory===9){ball(torso,m.gold,0,.46,.268,.08,.08,.023)}
  lineShadow(root,.5);
- return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1){const factor=clamp(speed/8,0,1.9);const stride=Math.sin(t*(2.0+factor*5.9)),op=Math.cos(t*(2.0+factor*5.9));torso.rotation.x=clamp(-speed*.025,-.26,0);torso.rotation.z=.027*stride*factor;torso.position.y=1.05+Math.max(0,op)*.046*factor;head.rotation.x=-torso.rotation.x*.55;head.rotation.z=stride*.026*factor;arms.forEach((v,i)=>{v.sh.rotation.x=stride*factor*.91*(i===0?-1:1)+.09;v.sh.rotation.z=v.side*(.06+factor*.03);v.elbow.rotation.x=-.48-Math.max(0,stride*(i===0?1:-1))*factor*.25});legs.forEach((v,i)=>{const phase=stride*(i===0?1:-1);v.hip.rotation.x=phase*.85*factor;v.knee.rotation.x=Math.max(0,-phase)*factor*.92+.05});}}
+ return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1){
+ const moving=speed>.13, factor=moving?clamp(speed/8.5,.14,1.6):0;
+ const phase=t*(6.0+factor*5.2),step=Math.sin(phase),op=Math.cos(phase);
+ // Rest pose has zero limb movement. While running, hips swing opposite shoulders.
+ torso.rotation.x=moving?-(.07+factor*.105):0;
+ torso.rotation.z=step*.036*factor;
+ torso.position.y=1.05+(moving?Math.abs(op)*.065*factor:0);
+ head.rotation.x=-torso.rotation.x*.6;
+ head.rotation.z=-step*.019*factor;
+ arms.forEach((v,i)=>{
+   const s=i===0?1:-1;
+   v.sh.rotation.x=moving?(-step*s)*(.43+.42*factor):0;
+   v.sh.rotation.z=v.side*(.08+factor*.018);
+   v.elbow.rotation.x=moving?-.50-Math.max(0,step*s)*factor*.32:-.28;
+ });
+ legs.forEach((v,i)=>{
+   const stride=Math.sin(phase+(i===0?0:Math.PI));
+   v.hip.rotation.x=moving?stride*(.40+.44*factor):0;
+   v.knee.rotation.x=moving?Math.max(0,-stride)*(.62+.33*factor):0;
+ });
+ }};
 }
 function makeBeast(data){
  const k=data.kind;const root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);const coat=mat(data.coat),highlight=mat(new T.Color(data.coat).multiplyScalar(1.15)),shade=mat(new T.Color(data.coat).multiplyScalar(.72)),nose=mat(0x2c2727),pale=mat(k==='zebra'?0xece8e2:0xf0dac3),white=mat(0xffffff),eyes=mat(0x18191c,.28);let legs=[],tail;
@@ -204,7 +224,7 @@ function makeBeast(data){
  }
  bodyGroup.scale.setScalar((['cat','rabbit'].includes(k))?.87:1);
  lineShadow(root,large?.8:.6);
- return {root,bodyGroup,legs,tail,animate(t,speed){const speedF=clamp(speed/13,.05,1.5),phase=t*(2.8+speedF*6),s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
+ return {root,bodyGroup,legs,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t*(2.8+speedF*6),s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
 }
 // 3D player and opponent are rebuilt on customization / opponent changes.
 let human=makeHuman(save.avatar);human.root.position.set(humanX,.13,0);scene.add(human.root);
@@ -217,7 +237,7 @@ function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.le
 const clock=new T.Clock();let mode='menu',race=null,camSpin=0,cameraTarget=new T.Vector3(0,1.5,3),camPos=new T.Vector3(-5.8,3.1,9.2),sceneTime=0,sfx=true,lastHUD=0,raceName='';
 const initResize=()=>{const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.fov=w<h?59:52;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};addEventListener('resize',initResize);initResize();
 let audioCtx;function beep(freq=450,dur=.1,type='sine',gain=.04){if(!sfx)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const osc=audioCtx.createOscillator(),g=audioCtx.createGain();osc.type=type;osc.frequency.value=freq;g.gain.setValueAtTime(gain,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);osc.connect(g).connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+dur+.01)}catch(e){}}
-function showScreen(mo){mode=mo;['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m CHALLENGE'}if(mo==='train')renderTraining();if(mo==='custom')renderCustom();if(mo==='beasts')renderBeasts();refreshMenu()}
+function showScreen(mo){mode=mo;['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom')renderCustom();if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.floor(45*Math.pow(1.34,level-1)+(level-1)*7)};
 const unlocked=(i)=>i===0||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.sub;$('nextSpeed').textContent=x.kph+' km/h';$('nextBar').style.width=(x.kph/110*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent=win?'勝利済み — 記録の更新に挑戦':'勝利すると次の生物が解放される';$('startBtn').textContent='▶ '+x.name+'と100m走'}
@@ -229,15 +249,15 @@ function renderCustom(){const el=$('customList');el.innerHTML='';const name=docu
  else{input=document.createElement('select');palettes[min].forEach((x,j)=>{const o=document.createElement('option');o.value=j;o.textContent=(j+1).toString().padStart(2,'0')+'  '+x;input.appendChild(o)});input.value=save.avatar[key];input.addEventListener('change',()=>{save.avatar[key]=+input.value;refreshHuman();store()});row.appendChild(input)}el.appendChild(row)
  });const note=document.createElement('p');note.className='hint';note.textContent='16か所を個別調整。顔・体型・服装は3Dモデルに反映されます。';el.appendChild(note)}
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:.02,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='STAGE '+(save.chosen+1)+' / '+raceName;$('enemyLabel').textContent='BEAST / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
-function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
-function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;beep(800,.35,'sawtooth',.075);showNotice('限界突破！',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
+function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
+function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
+function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;beep(800,.35,'sawtooth',.075);showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 function finishRace(){const r=race;if(!r)return;r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';$('resultOverlay').style.display='flex';const won=r.hFinish<r.eFinish;save.races=(save.races||0)+1;save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);save.bestByBeast[animals[save.chosen].id]=Math.min(save.bestByBeast[animals[save.chosen].id]||999,r.hFinish);const reward=Math.round((won?130:56)+animals[save.chosen].tier*(won?34:11)+Math.max(0,18-r.hFinish)*3);save.money+=reward;if(won&&!save.won.includes(animals[save.chosen].id)){save.won.push(animals[save.chosen].id);if(save.chosen<animals.length-1)save.chosen++}store();$('resultEyebrow').textContent='100 METERS / OFFICIAL RESULT';$('resultTitle').textContent=won?'VICTORY!':'TRY AGAIN';$('resultTitle').style.color=won?'#dfff62':'#ffbb71';$('resultTime').textContent=r.hFinish.toFixed(2)+'s';$('resultEnemy').textContent=r.eFinish.toFixed(2)+'s';$('resultMoney').textContent='+'+reward+' G';$('resultMsg').textContent=won?'人間の勝利！ '+(save.chosen<animals.length?'次の生物に挑戦できます。':''):'敗北しても育成資金を獲得しました。鍛え直して再挑戦。';refreshMenu();beep(won?890:200,.34,won?'triangle':'sine',.075)}
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){beep(480+n*100,.12);r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);beep(1150,.38,'triangle',.08);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.045,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
- const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const tempo=clamp(.28+r.drive*.92,.25,1.25);const fatigued=(.55+.45*r.stamina);const targetHuman=maxSpeed*Math.min(1.07,tempo)*fatigued;const accel=4.3+(save.stats.power-1)*.34;
- if(r.hFinish===null){if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-(2.5+(r.drive<.1?1.9:0))*dtSafe);r.humanD+=r.humanV*dtSafe;
+ const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.38;const tempo=clamp(r.drive*.98,.08,1.15);const fatigued=(.55+.45*r.stamina);const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued:0;const accel=7.8+(save.stats.power-1)*.55;
+ if(r.hFinish===null){if(!hasInput){r.humanV=0;r.combo=0}else if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-5.8*dtSafe);r.humanD+=r.humanV*dtSafe;
  r.stamina=clamp(r.stamina-((r.drive>.50?.012:.001)*(1/(1+save.stats.stamina*.09))+(r.burstLeft>0?.028:0))*dtSafe+(r.drive<.4?.014:0)*dtSafe,.32,1);if(r.humanD>=100){const before=r.humanD-r.humanV*dtSafe;r.hFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.humanV);r.humanD=100;beep(930,.16,'sine',.05)}}
  const a=animals[Math.max(0,Math.min(animals.length-1,save.chosen))],maxB=a.kph/3.6;
  if(r.eFinish===null){const phaseBonus=r.enemyD<22?1:(r.enemyD>81?.95:1);const enemyTarget=maxB*phaseBonus;r.enemyV=Math.min(enemyTarget,r.enemyV+a.acc*dtSafe);r.enemyD+=r.enemyV*dtSafe;if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100}}
@@ -247,7 +267,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(r.eFinish===null&&r.enemyV>7&&Math.random()<dtSafe*10)kickDust(animalX,r.enemyD,r.enemyV);
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
  if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
-function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent='COMBO ×'+r.combo;$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'限界突破中!':r.burstCharge>=99?'準備完了!':'チャージ中'}
+function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent='連続 '+r.combo;$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
 $('startBtn').addEventListener('click',startRace);$('goCustom').addEventListener('click',()=>showScreen('custom'));
 document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showScreen('menu')));
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();tap(side)});el.addEventListener('contextmenu',e=>e.preventDefault())}
@@ -257,14 +277,14 @@ addEventListener('keydown',e=>{if(e.target?.tagName==='INPUT')return;if(['Space'
 // Drag the 3D model in studio, with direct pointer interaction.
 let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{if(mode==='custom'||mode==='beasts'){dragging=true;pointerStart=e.clientX;$('world').setPointerCapture?.(e.pointerId)}});$('world').addEventListener('pointermove',e=>{if(dragging){camSpin+=(e.clientX-pointerStart)*.012;pointerStart=e.clientX}});$('world').addEventListener('pointerup',()=>dragging=false);$('world').addEventListener('pointercancel',()=>dragging=false);
 function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
- if(mode==='race'){wantedPos=new T.Vector3(-.4+(race?.burstLeft>0?Math.sin(sceneTime*44)*.10:0),4.1,d-11.5);wantedTarget=new T.Vector3(0,1.4,d+17);camera.fov=mix(camera.fov,((innerWidth<innerHeight)?62:52)+(race?.burstLeft>0?6:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
- else if(mode==='custom'){wantedPos=new T.Vector3(humanX+Math.sin(camSpin+sceneTime*.07)*4.3,1.85,Math.cos(camSpin+sceneTime*.07)*4.3);wantedTarget=new T.Vector3(humanX,1.45,0);if(Math.abs(camSpin)<.0001){wantedPos.x=humanX+1.9;wantedPos.z=4.6}}
+ if(mode==='race'){const run=race?.humanV||0;const shake=run>2?Math.min(.09,run*.004):0;wantedPos=new T.Vector3(-.35+Math.sin(sceneTime*13)*shake,2.48+Math.cos(sceneTime*23)*shake*.28,d-6.7);wantedTarget=new T.Vector3(-.20,1.27,d+12);camera.fov=mix(camera.fov,((innerWidth<innerHeight)?56:48)+(race?.burstLeft>0&&run>0?3:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
+ else if(mode==='custom'){wantedPos=new T.Vector3(humanX+Math.sin(camSpin)*3.3,1.7,Math.cos(camSpin)*3.3);wantedTarget=new T.Vector3(humanX,1.45,0);if(Math.abs(camSpin)<.0001){wantedPos.x=humanX+1.65;wantedPos.z=3.6}}
  else if(mode==='beasts'){wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*5,2.2,Math.cos(camSpin+sceneTime*.12)*5);wantedTarget=new T.Vector3(animalX,1.35,0)}
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else{wantedPos=new T.Vector3(-5.4,3.08,9.9);wantedTarget=new T.Vector3(0,1.1,0)}
  const t=Math.min(1,dt*(mode==='race'?3.8:2.9));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
 function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
- const hspeed=mode==='race'?(race?.humanV||0):1.8,espeed=mode==='race'?(race?.enemyV||0):2.2;
+ const hspeed=mode==='race'?(race?.humanV||0):0,espeed=mode==='race'?(race?.enemyV||0):0;
  human.animate(sceneTime,hspeed,mode==='race'?race.stamina:1);opponent.animate(sceneTime,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.9);x.mesh.position.y+=dt*.24;x.mesh.material.opacity=Math.max(0,.25*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
