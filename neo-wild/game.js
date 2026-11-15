@@ -242,7 +242,7 @@ const TUTORIAL_STAGES=[0,1,2,4];
 // One lightweight purpose briefing replaces automatic four-step instruction
 // windows. Existing quest/debug stages remain for older SAVE_SCHEMA2 saves.
 const GAME_INTRO_SEEN_KEY="wild-reclaim-purpose-briefing-v1";
-let gameIntroSeen=false,gameIntroPending=false;
+let gameIntroSeen=false,gameIntroPending=false,firstStepsPending=false;
 try{gameIntroSeen=localStorage.getItem(GAME_INTRO_SEEN_KEY)==="1"}catch(_){}
 let automaticTutorialShown=false;const tutorialLessonsSeenEver=new Set();
 try{
@@ -1801,7 +1801,9 @@ function start(newWorld=false){
  previouslyOnboardedAtRunStart=automaticTutorialShown;
  bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=debugTutorialSession?0:7;missionComplete=!debugTutorialSession;
  // New games start in free survival, never require 4 popup quests to unlock exploration.
- gameIntroPending=!!newWorld&&!gameIntroSeen&&!debugTutorialSession;scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ gameIntroPending=!!newWorld&&!gameIntroSeen&&!debugTutorialSession;
+ firstStepsPending=!!newWorld&&!debugTutorialSession&&!window.WildFirstSteps?.done?.();
+ window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -5030,6 +5032,7 @@ function pickWeaponScrap(){
   return true;
  }
  weaponScraps=weaponScraps.filter(q=>q.id!==drop.id);
+ window.WildFirstSteps?.event?.("interact");
  const grade=armory.gradeOf(outcome.item),owned=outcome.item.owner===P.type;
  // A failed world autosave never rolls back the independently verified vault:
  // old snapshots filter claimed scrap IDs when reloaded.
@@ -5268,6 +5271,7 @@ function attack(){
   }
  }
  P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
+ window.WildFirstSteps?.event?.("attack");
  P.noiseBurst=Math.max(P.noiseBurst,P.type==="manul"?.46:P.type==="shoebill"?.75:1.05);playEffect("attack",{volume:.22});
  if(P.jumpTime>0)armAerialPounce();
 }
@@ -5845,7 +5849,8 @@ function eat(){
  }
  finishSpecialistContests(contests,true);
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
- blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();return true;
+ blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
+ window.WildFirstSteps?.event?.("interact");return true;
 }
 function inheritStrongTrait(type){
  if(mode!=="inventory"||!P||!atDen()||!STRONG_TRAITS[type])return false;
@@ -6102,11 +6107,11 @@ function renderTutorial(){
   // The existing compact popup is repurposed into an actual game overview.
   $("tutorial-stage").textContent="ゲームの目的";
   $("tutorial-title").textContent="100年後の終末に備えて生き残れ";
-  $("tutorial-what").textContent="狩り・食事・探索で動物を育て、100年後に現れる最終ボス「この世の終わり」に挑もう。";
-  $("tutorial-how").textContent="右側の危険地帯には武器入りガラクタがある。拾って鑑定し、巣の保管庫で装備。食料も備蓄しよう。";
+  $("tutorial-what").textContent="人間が消えた世界で動物として生き延び、100年後に現れる巨大ボス「この世の終わり」を倒そう。";
+  $("tutorial-how").textContent="食事・狩猟・探索で成長。右側の危険地帯でガラクタを拾い、巣で武器を装備してボス戦に備えよう。";
   $("tutorial-permadeath").textContent="操作：○で食事・拾う、○長押しで運搬。死亡した動物は永久に失われます。";
   $("tutorial-permadeath")?.classList.remove("hidden");
-  $("tutorial-close").textContent="ゲームを始める";
+  $("tutorial-close").textContent="冒険を始める";
   $("tutorial-progress-label").textContent="自由に探索できます";
   $("tutorial-counter").textContent="目的";
   $("tutorial-prev").disabled=true;$("tutorial-next").disabled=true;
@@ -6142,6 +6147,8 @@ function closeTutorial(){
  }
  syncHUD();saveAuto();
  window.WildAudio?.update({weather,area:P?regionAt(P.x,P.y):0,danger:false,mode:"play"});
+ // The purpose overview is paused; practical controls run in the live world.
+ if(firstStepsPending&&P?.hp>0){firstStepsPending=false;window.WildFirstSteps?.begin?.(P);}
 }
 function tutorialMove(delta){if(mode==="guide"&&delta>0)closeTutorial()}
 function announceObjective(){
@@ -8495,6 +8502,7 @@ function update(dt){
   window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",...waterSoundAt(P.x,P.y),
    danger:mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(P,m)<(m.strongBoss?515:290))});
  }
+ window.WildFirstSteps?.tick?.(P,dt);
  uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
  autosaveClock+=dt;if(autosaveClock>=1){autosaveClock=0;saveAuto();}
  // First rendered game frame, after squad/boss leader placement, with all
@@ -8502,6 +8510,10 @@ function update(dt){
  if(gameIntroPending&&mode==="play"&&P?.hp>0){
   gameIntroPending=false;
   openTutorial(0,false);
+ }else if(firstStepsPending&&mode==="play"&&P?.hp>0){
+  // A player who saw the introductory briefing but has not practiced can
+  // try controls on a later NEW GAME without seeing the modal again.
+  firstStepsPending=false;window.WildFirstSteps?.begin?.(P);
  }
 }
 function syncHUD(hour){
@@ -8677,6 +8689,7 @@ function drawWorldMap(){
 function toggleWorldMap(){
  if(mode==="play"){
   resetControls();mode="map";$("world-map").classList.remove("hidden");drawWorldMap();
+  window.WildFirstSteps?.event?.("map");
  }else if(mode==="map"){mode="play";$("world-map").classList.add("hidden")}
 }
 const MINI_SPANS=[1270,1905,2800],MINI_SCALE_NAMES=["標準","遠目","広域"];
@@ -10363,7 +10376,7 @@ function loop(t){
  } finally {requestAnimationFrame(loop);}
 }
 requestAnimationFrame(loop);
-const act=code=>{if(mode!=="play"||isControlBlocked())return;if(code==="jump")jump();if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
+const act=code=>{if(mode!=="play"||isControlBlocked())return;if(code==="jump"&&jump())window.WildFirstSteps?.event?.("jump");if(code==="dash")dash();if(code==="instinct")instinct();if(code==="carry"){if(P.carry)putDownFood();else carryFood();}if(code==="den")upgradeDen();if(code==="eat"&&P.eatCD<=0){P.eatCD=.34;eat()}if(code==="attack")attack()};
 function keyDown(e){
  const k=e.key.toLowerCase();
  // Menus and pause remain accessible; possession blocks gameplay inputs.
@@ -11031,6 +11044,7 @@ $("den-companion-btn").addEventListener("click",recruitCompanion);
 for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
 $("objective-toggle").addEventListener("click",()=>openTutorial());
 $("tutorial-close").addEventListener("click",closeTutorial);
+$("first-steps-skip")?.addEventListener("click",()=>window.WildFirstSteps?.skip?.());
 $("mission-close").addEventListener("click",()=>{
  $("mission").classList.add("hidden");
  $("objective-toggle").setAttribute("aria-expanded","false");
