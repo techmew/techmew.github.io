@@ -55,5 +55,30 @@
   ctx.fillText((s.index+1)+"/"+STOPS.length,0,-47);
   ctx.restore();
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,drawMap,drawPost2D});
+ // P3: route-aware guidance uses the same physical waypoint coordinates in both renderers.
+ const habitat=Object.freeze([
+  {start:0,end:2,prey:true,threat:0,label:"郊外・森の入口"},
+  {start:2,end:4,prey:true,threat:1,label:"原生林・峠"},
+  {start:4,end:6,prey:false,threat:2,label:"渓谷・水源"},
+  {start:6,end:7,prey:false,threat:3,label:"雪山・洞窟"}
+ ]);
+ function navigation(player,mask,water=false){
+  if(!player)return null;
+  let best=null;
+  for(let i=0;i<WALKWAY.length;i++){
+   const [x,y]=WALKWAY[i],d=Math.hypot(player.x-x,player.y-y);
+   if(!best||d<best.distance)best={index:i,distance:d};
+  }
+  const stop=next(player,mask)||STOPS.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
+  let goal=0,score=Infinity;
+  for(let i=0;i<WALKWAY.length;i++){
+   const [x,y]=WALKWAY[i],d=Math.hypot(stop.x-x,stop.y-y);
+   if(d<score){score=d;goal=i;}
+  }
+  const step=best.index===goal?goal:best.index+(goal>best.index?1:-1);
+  const [x,y]=WALKWAY[step];
+  const section=habitat.find(h=>best.index>=h.start*2&&best.index<h.end*2)||habitat[3];
+  return {x,y,stop,section,water:!!water,distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step};
+ }
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,habitat,drawMap,drawPost2D});
 })(window);
