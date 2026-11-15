@@ -1773,3 +1773,41 @@
 .weapon-vault-row button:disabled,#weapon-unequip:disabled{opacity:.46}
 @media(max-width:520px){.weapon-vault-list{max-height:200px}.weapon-vault-row{gap:6px;padding:7px}.weapon-vault-row span{font-size:10px}.weapon-vault-row button{min-width:69px;font-size:10px}}
 @media(max-height:520px) and (orientation:landscape){.weapon-vault-list{max-height:140px}}
+
+
+/* Optional live controls practice: does not consume touch joystick/attack areas.
+   One small anchored HUD; the button alone receives pointer events. */
+#first-steps{
+ position:absolute;left:50%;bottom:calc(174px + env(safe-area-inset-bottom));
+ transform:translateX(-50%);z-index:10;display:grid;gap:5px;
+ width:min(344px,76vw);max-height:30dvh;padding:10px 12px;
+ background:linear-gradient(125deg,rgba(14,36,31,.94),rgba(18,40,36,.92));
+ border:1px solid #8db3a0;border-radius:12px;
+ box-shadow:0 5px 20px #0014109e;color:#f4f4dd;
+ font-family:"Noto Sans JP",sans-serif;pointer-events:none;
+}
+#first-steps .first-steps-heading,#first-steps .first-steps-footer{
+ display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+#first-steps .first-steps-heading{
+ color:#c7e2ca;font-size:11px;font-weight:800;
+}
+#first-steps-title{font-size:15px;font-weight:900;line-height:1.35}
+#first-steps-detail{margin:0;font-size:11px;line-height:1.5;color:#e5ecd9}
+#first-steps-progress{flex:1;min-width:0;height:7px;accent-color:#9ecf9f}
+#first-steps-skip{
+ pointer-events:auto;touch-action:manipulation;
+ min-height:31px;border-radius:7px;border:1px solid #8cac9f;
+ background:#304e44;color:#eaf2e4;padding:4px 10px;
+ font:700 11px "Noto Sans JP",sans-serif;
+}
+@media(max-width:520px) and (orientation:portrait){
+ #first-steps{width:min(306px,74vw);bottom:calc(180px + env(safe-area-inset-bottom));padding:9px 11px}
+ #first-steps-title{font-size:14px}
+ #first-steps-detail{font-size:10px}
+}
+@media(max-height:520px) and (orientation:landscape){
+ #first-steps{top:calc(12px + env(safe-area-inset-top));bottom:auto;left:52%;width:min(320px,42vw);padding:7px 10px;gap:3px}
+ #first-steps-title{font-size:13px}
+ #first-steps-detail{font-size:10px}
+}
