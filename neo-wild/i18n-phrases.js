@@ -3931,4 +3931,8 @@ window.WildI18nPhrases = [
  ["冒険を始める","Begin adventure"],
  ["人間が消えた世界で動物として生き延び、100年後に現れる巨大ボス「この世の終わり」を倒そう。","Survive as an animal in a world without people. Defeat the giant final boss after 100 years."],
  ["食事・狩猟・探索で成長。右側の危険地帯でガラクタを拾い、巣で武器を装備してボス戦に備えよう。","Eat, hunt and explore to grow stronger. Collect scrap in the dangerous eastern area and equip weapons at your den."]
+,
+["操作を練習","Practice controls"],
+["○で食べる・調べる","Eat or interact"],
+["食料・ガラクタの近くで○／E。巣では食料庫を開く","Press Action or E near food and scrap; at a den, open the pantry"]
 ];
