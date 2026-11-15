@@ -83,7 +83,16 @@ function equip(actor,id){
  const key=actorKey(actor),state=read();if(!key||!state.ok)return {ok:false,error:"unavailable"};
  const weapon=id===null?null:state.vault.items.find(i=>i.id===id);
  if(id!==null&&(!weapon||weapon.owner!==actor.type))return {ok:false,error:"wrong_species"};
- const bindings={...state.vault.equipped};if(id===null)delete bindings[key];else bindings[key]=id;
+ // A physical weapon belongs to one living individual at a time. Moving it to
+ // another character transfers the binding atomically without deleting the item.
+ const bindings={...state.vault.equipped};
+ if(id===null)delete bindings[key];
+ else{
+  for(const [other,weaponId] of Object.entries(bindings)){
+   if(other!==key&&weaponId===id)delete bindings[other];
+  }
+  bindings[key]=id;
+ }
  if(!write({version:1,items:state.vault.items,equipped:bindings}))return {ok:false,error:"save_failed"};
  return {ok:true,item:weapon};
 }
