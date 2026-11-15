@@ -80,5 +80,56 @@
   const section=habitat.find(h=>best.index>=(h.start===0?0:h.start===2?4:h.start===4?8:15)&&best.index<(h.end===2?4:h.end===4?8:h.end===6?15:18))||habitat[3];
   return {x,y,stop,section,water:!!water,distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step};
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,habitat,drawMap,drawPost2D});
+ // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
+ const BIOMES=Object.freeze([
+  {id:"wood",x:9500,y:1950,r:740,prey:["deer","boar","fox"],hunters:["wolf","bear"],wet:false},
+  {id:"pass",x:10660,y:2600,r:650,prey:["deer","goat"],hunters:["wolf","eagle"],wet:false},
+  {id:"ravine",x:11370,y:3520,r:550,prey:["otter","frog","deer"],hunters:["wolf","bear"],wet:true},
+  {id:"spring",x:12300,y:3280,r:520,prey:["otter","frog","carp"],hunters:["crocodile","bear"],wet:true},
+  {id:"snow",x:12720,y:3818,r:530,prey:["deer","fox"],hunters:["wolf","bear"],wet:false},
+  {id:"cave",x:13220,y:3797,r:460,prey:["bat"],hunters:["bear","wolf"],wet:false}
+ ]);
+ const biomeAt=(x,y)=>BIOMES.filter(b=>Math.hypot(x-b.x,y-b.y)<=b.r)
+  .sort((a,b)=>Math.hypot(x-a.x,y-a.y)/a.r-Math.hypot(x-b.x,y-b.y)/b.r)[0]||null;
+ function fieldStatus(player,mask,weather,year){
+  if(!player)return null;
+  const biome=biomeAt(player.x,player.y),wet=weather==="RAIN"||weather==="THUNDER";
+  const nearest=STOPS.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
+  const target=next(player,mask)||nearest;
+  const water=player.type==="carp",inWater=!!biome?.wet;
+  const dangerous=biome?.id==="cave"?(year>=25||weather==="THUNDER"):
+   biome?.id==="snow"||biome?.id==="ravine"&&wet||biome?.id==="spring"&&wet;
+  return {biome,target,water,dangerous,
+   message:water?(inWater?"水域の補給地点を探索。陸地へは上がれない":"水路から水源へ。陸地の道標は到達不可"):
+    (dangerous?"危険地帯。遮蔽物と補給を確保":"次の探索地点へ進み、食料と報酬を回収"),
+   distance:Math.round(dist(player,target))};
+ }
+ // Modifies only live wild NPC awareness; never creates/revives roster individuals.
+ function wildlifeResponse(player,mobs,species,weather,year,blocked){
+  if(!player||player.hp<=0)return {alerted:0,fleeing:0};
+  const biome=biomeAt(player.x,player.y);if(!biome)return {alerted:0,fleeing:0};
+  const wet=weather==="RAIN"||weather==="THUNDER";
+  const radius=biome.id==="cave"&&year>=25?370:biome.wet&&wet?260:190;
+  let alerted=0,fleeing=0;
+  for(const mob of mobs||[]){
+   if(!mob||mob.hp<=0||mob.companion||mob.strongBoss||
+      Math.hypot(mob.x-player.x,mob.y-player.y)>radius||
+      (blocked&&blocked(mob,player)))continue;
+   const kind=species?.[mob.type],prey=!!kind?.prey;
+   if(prey){
+    if(fleeing>=4)continue;
+    mob.alert=Math.max(Number(mob.alert)||0,1.2);
+    mob.lastX=player.x;mob.lastY=player.y;
+    fleeing++;
+   }else{
+    if(alerted>=3)continue;
+    mob.alert=Math.max(Number(mob.alert)||0,biome.id==="cave"?2.7:1.6);
+    mob.lastX=player.x;mob.lastY=player.y;
+    mob.search=Math.max(Number(mob.search)||0,biome.id==="cave"?2.4:1.3);
+    alerted++;
+   }
+  }
+  return {alerted,fleeing};
+ }
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
 })(window);
