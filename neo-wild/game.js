@@ -7435,10 +7435,10 @@ function update(dt){
    }
    continue;
   }
+  // Advance visual strikes before feeding, interception or far-AI early returns.
+  tickSpecialistCombatPose(m,dt);
   if(m.companion){updateCompanion(m,dt);continue;}
   if(m.worldEndBoss||m.type==="worldEnd")continue; // Single custom apex AI, no pack behavior.
-  // Drive NPC attack anatomy back to rest; previously pose fields never expired.
-  tickSpecialistCombatPose(m,dt);
   const s=species[m.type];m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0)-dt);m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0)-dt);if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.releasedIndividualId){
