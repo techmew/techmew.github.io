@@ -1,0 +1,6 @@
+# 2026-11-15 20:10 JST P3 eastern survival encounters
+Prior main ce8c355; preserved all prior eight stages, waypoint coordinates, renderer meshes and SAVE_SCHEMA2.
+Implemented game.js ba3dbf95: rainy headwater and year>=25/thunder cave stamina risk, live wild predator search/alert at the same world coordinates, contextual danger guidance for eastern random land starts; original gorge/snow effects remain. No roster/save schema/title/menu changes. Existing 2D/WebGL route posts reused; no new meshes.
+Cache index c41da976 uses updated game.js blob revision.
+Checks: actual V8 new Function full game.js parse PASS; extracted production tickEastTrail 3 scenario mocks PASS (headwater rain, cave year30, city dry). No real browser, Android, FPS, legacy save E2E or visual 2D/WebGL acceptance. Pages for c41da976 in_progress/queued at check; not claim deployed.
+Status: P3 implemented but NOT complete. P1/P2 deferred, P2 accepted 0 batches/24 remaining. Next P3: real terrain collision, 2D/WebGL actor/FX marker alignment and random water spawn navigation including carp; integrate playable multi-region challenge with reward and durable save. Do not redo previous route or these hazards.
