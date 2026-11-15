@@ -11051,6 +11051,7 @@ $("den-companion-btn").addEventListener("click",recruitCompanion);
 for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener("click",()=>eatFromDen(key));
 $("objective-toggle").addEventListener("click",()=>openTutorial());
 $("tutorial-close").addEventListener("click",closeTutorial);
+window.WildFirstStepsOnDone=()=>{if(P&&(mode==="play"||mode==="map"))notify("操作練習完了。世界を探索しよう",2.8);};
 $("first-steps-skip")?.addEventListener("click",()=>window.WildFirstSteps?.skip?.());
 $("tutorial-next")?.addEventListener("click",()=>{
  if(mode!=="guide"||debugTutorialSession)return;
