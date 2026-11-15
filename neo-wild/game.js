@@ -4636,6 +4636,13 @@ function normalizeCarry(c){
 // the thief through the existing alert/search AI. Owned/retired identities
 // are never enlisted as hostile defenders.
 const SPECIALIST_HUNTERS=new Set(["manul","tibetanFox","shoebill","penguin"]);
+const SPECIALIST_POSE_FIELDS=["attackAction","flipperStrike","beakVisual","shoebillSwingTime","pounceTime"];
+function tickSpecialistCombatPose(m,dt){
+ if(!SPECIALIST_HUNTERS.has(m.type)||!(dt>0))return;
+ for(const key of SPECIALIST_POSE_FIELDS)
+  if(Number.isFinite(m[key])&&m[key]>0)m[key]=Math.max(0,m[key]-dt);
+ if((m.attackAction||0)===0)m.attackActionStep=0;
+}
 const SPECIALIST_CONTEST_FIELDS=["alert","search","lastX","lastY","feedAfterKill","feedClaimToken","feedClaimUntil","feedBitesRemaining","scavengePose","scavengeCooldown","dir","attackAction","swing"];
 // Commit predator reaction together with carried food, and roll back failed saves.
 function finishSpecialistContests(staged,accepted){
@@ -7430,6 +7437,8 @@ function update(dt){
   }
   if(m.companion){updateCompanion(m,dt);continue;}
   if(m.worldEndBoss||m.type==="worldEnd")continue; // Single custom apex AI, no pack behavior.
+  // Drive NPC attack anatomy back to rest; previously pose fields never expired.
+  tickSpecialistCombatPose(m,dt);
   const s=species[m.type];m.huntSprintLeft=Math.max(0,(m.huntSprintLeft||0)-dt);m.huntSprintCooldown=Math.max(0,(m.huntSprintCooldown||0)-dt);if(m.type==="cheetah")m.sprintTime=Math.max(0,(m.sprintTime||0)-dt);m.staggerGuard=Math.max(0,(m.staggerGuard||0)-dt);m.wander-=dt;m.attack=Math.max(0,m.attack-dt);m.swing=Math.max(0,(m.swing||0)-dt);m.flash=Math.max(0,m.flash-dt);m.stun=Math.max(0,m.stun-dt);m.escapeTimer=Math.max(0,m.escapeTimer-dt);m.evadeCooldown=Math.max(0,(m.evadeCooldown||0)-dt);if(s.prey)m.fleeEnergy=clamp(m.fleeEnergy+(m.flee>0?-dt*.32:dt*.2),0,1);
   const d=dist(P,m);
   if(m.releasedIndividualId){
@@ -8951,8 +8960,11 @@ function drawCreature(o,isPlayer){
  const attackSnap=swingLeft>0?clamp((swingDuration-swingLeft)/.033,0,1)*clamp(swingLeft/.12,0,1):0;
  const attackLeap=isPlayer&&o.jumpDive&&o.jumpTime>0?.35:0;
  const attackCharge=!isPlayer&&(t==="boar"||t==="alpha"||t==="oneEyedWolf"||t==="whiteTiger"||t==="giantMoose"||t==="giantBuffalo"||t==="rhino")?clamp((o.chargeTime||0)/(t==="alpha"?.24:t==="oneEyedWolf"?.28:t==="whiteTiger"?.39:t==="giantMoose"?.46:t==="giantBuffalo"?.53:t==="rhino"?.57:.36),0,1)*.55:0;
- const attackAction=isPlayer?Math.max(0,o.attackAction||0):0;
+ // A real wild strike moves the body in Canvas as well as WebGL.
+ const attackAction=(isPlayer||SPECIALIST_HUNTERS.has(t))?Math.max(0,o.attackAction||0):0;
  const attackMotion=attackAction>0?Math.sin(Math.PI*Math.min(1,attackAction/.45))*.72:0;
+ const specialistBodyDrive=!isPlayer&&SPECIALIST_HUNTERS.has(t)?attackMotion*
+  (t==="shoebill"?.60:t==="penguin"?.48:t==="tibetanFox"?.84:.72):0;
  const attackReach=Math.max(attackSnap*1.35,attackCharge)+attackLeap+attackMotion;
  const rushPose=isPlayer&&(o.pendingStrike||o.swing>0)?(o.rushActiveStep||0):0;
  const foreDrive=(side,base)=>rushPose===1||rushPose===2?attackReach*(side===(rushPose===1?-1:1)?1:.08):rushPose===3?attackReach*.15:rushPose===4?attackReach*.06:rushPose===5?attackReach*.62:base;
@@ -9003,7 +9015,10 @@ function drawCreature(o,isPlayer){
  ctx.rotate(o.dir||0);
  if(!isPlayer&&o.resting){ctx.scale(1.07,.68);ctx.translate(0,r*.15);}
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.19:t==="cat"?Math.abs(Math.sin(gait*1.46))*.13:t==="wolf"?Math.abs(Math.sin(gait*.62))*.105:Math.abs(Math.sin(gait*.9))*.09;
- ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12),bound*motion*r+attackPrep*r*.09);
+ ctx.translate(r*(attackReach*(t==="wolf"?.25:t==="cat"?.19:.29)-attackPrep*.12)+r*specialistBodyDrive*.16,bound*motion*r+attackPrep*r*.09);
+ if(!isPlayer&&SPECIALIST_HUNTERS.has(t)&&specialistBodyDrive>0)
+  ctx.rotate(Math.sin(Math.PI*Math.min(1,(o.attackAction||0)/.45))*
+   (t==="shoebill"?-.10:t==="penguin"?.08:t==="tibetanFox"?.06:-.05));
  if(isPlayer){
   ctx.scale(1.14,1.14);
   if(P.deathPose>0){const fall=clamp(P.deathPose,0,1),ease=fall*fall*(3-2*fall);ctx.rotate(ease*1.08);ctx.scale(1+ease*.10,1-ease*.43);ctx.translate(-r*.14*ease,r*.42*ease);}
