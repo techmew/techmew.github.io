@@ -7720,6 +7720,50 @@ function update(dt){
      }
     }
    }
+   // P2 specialist predator loop: wildlife must actually catch, hit and
+   // finish wild prey, not merely follow a decorative pursuit waypoint.
+   // Reuse the host's move/collision, LOS and water rules; never attack
+   // companions, owned animals, released individuals or strong bosses.
+   if(["manul","tibetanFox","shoebill","penguin"].includes(m.type)&&m.hp>0&&
+      !s.prey&&!provoked&&!spotted&&!wildHunt&&!scavenging&&!foraging&&!drinking&&
+      m.stun<=0&&m.flee<=0&&m.windup<=0&&m.chargeTime<=0){
+    m.specialistHuntCooldown=Math.max(0,(Number(m.specialistHuntCooldown)||0)-dt);
+    let prey=null,nearest=Infinity;
+    for(const candidate of mobs){
+     if(candidate===m||candidate.hp<=0||!species[candidate.type]?.prey||
+        candidate.companion||candidate.ownedId||candidate.squadIndividualId||
+        candidate.releasedIndividualId||candidate.strongBoss||candidate._ufoAbducted)continue;
+     const d=Math.hypot(candidate.x-m.x,candidate.y-m.y);
+     if(d>310||d>=nearest||lineBlocked(m,candidate))continue;
+     const depth=waterDepth(candidate.x,candidate.y);
+     if(m.type==="shoebill"&&depth>.24||m.type==="penguin"&&depth>.65||
+        (m.type==="manul"||m.type==="tibetanFox")&&depth>.0001)continue;
+     prey=candidate;nearest=d;
+    }
+    if(prey){
+     const reach=m.r+prey.r+(m.type==="shoebill"?19:9);
+     if(nearest<=reach&&m.specialistHuntCooldown<=0){
+      const strikeAngle=Math.atan2(prey.y-m.y,prey.x-m.x);
+      m.dir=strikeAngle;m.strikeDir=strikeAngle;
+      m.swing=.30;m.attackAction=.38;
+      if(m.type==="penguin")m.flipperStrike=.42;
+      if(m.type==="shoebill"){m.beakVisual=.34;m.shoebillSwingTime=.36;}
+      const hit=Math.max(1,Math.round(s.damage*(m.type==="shoebill"?1.15:1)));
+      prey.hp=Math.max(0,prey.hp-hit);
+      prey.flee=Math.max(Number(prey.flee)||0,2.8);
+      prey.alert=Math.max(Number(prey.alert)||0,2.8);
+      prey.lastX=m.x;prey.lastY=m.y;
+      prey.fleeThreatX=m.x;prey.fleeThreatY=m.y;
+      m.specialistHuntCooldown=m.type==="shoebill"?1.15:m.type==="penguin"?.78:.92;
+      if(prey.hp===0){
+       // Existing corpse/food handling owns final cleanup; no player XP,
+       // trophy or squad death event is fabricated by a wild predator.
+       prey.killedByWildlife=true;
+       m.specialistHuntCooldown+=.7;
+      }
+     }
+    }
+   }
    if(!s.prey&&m.windup>0){
     vx=0;vy=0;m.windup=Math.max(0,m.windup-dt);
     if(m.windup===0){
