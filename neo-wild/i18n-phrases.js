@@ -3913,4 +3913,22 @@ window.WildI18nPhrases = [
   "屋内",
   "Indoors"
  ]
+,
+ ["操作練習","Controls practice"],
+ ["操作を試そう","Try the controls"],
+ ["操作練習の進捗","Practice progress"],
+ ["スキップ","Skip"],
+ ["移動する","Move"],
+ ["左スティック／WASD・矢印キーで少し歩く","Move with the left stick, WASD or arrow keys"],
+ ["ジャンプする","Jump"],
+ ["右のジャンプ／Lで跳ぶ（鳥は飛び立つ）","Use Jump or L (birds take flight)"],
+ ["攻撃する","Attack"],
+ ["攻撃ボタン／Jで攻撃を1回出す","Press Attack or J once"],
+ ["食料を食べる・拾う","Eat or pick up"],
+ ["近くの食草・肉・ガラクタで○／Eを押す","Press the Action button or E beside food or scrap"],
+ ["地図を開く","Open the map"],
+ ["地図ボタン／Mで探索ルートを表示する","Press Map or M to see your route"],
+ ["冒険を始める","Begin adventure"],
+ ["人間が消えた世界で動物として生き延び、100年後に現れる巨大ボス「この世の終わり」を倒そう。","Survive as an animal in a world without people. Defeat the giant final boss after 100 years."],
+ ["食事・狩猟・探索で成長。右側の危険地帯でガラクタを拾い、巣で武器を装備してボス戦に備えよう。","Eat, hunt and explore to grow stronger. Collect scrap in the dangerous eastern area and equip weapons at your den."]
 ];
