@@ -2754,6 +2754,17 @@ function render(o){
   }
   const ghostStart=data.length/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
+  // Unknown right-side scrap: deliberately uncoloured by rarity until pickup.
+  // All mesh positions use the same actual Mountain world Z as the 2D marker.
+  for(const scrap of o.weaponScraps||[]){
+   if(!scrap||scrap.x<8400||!isVisible(scrap.x,scrap.y,95))continue;
+   animalLift=window.WildMountain?.height?.(scrap.x,scrap.y)||0;
+   const theta=Number(scrap.pulse)||0,cs=Math.cos(theta),sn=Math.sin(theta);
+   ellipsoid(scrap.x,scrap.y,1.4,20,13,2.1,"#29382f",0,9,3);
+   box(scrap.x-13+cs*2,scrap.y-10+sn*2,3.2,25,20,11,"#786f5e");
+   box(scrap.x-9,scrap.y-7,14.3,17,14,2.2,"#b6b29a");
+   for(let i=0;i<3;i++)box(scrap.x-11+i*9,scrap.y+6,6.5,3,4,3.3,"#4b524d");
+  }
   // The combat loop sets flash only on a real hit; missed attacks have no flare.
   // Capped low-poly shapes preserve mobile GPU budgets.
   function drawImpactFlare(m){
@@ -2826,7 +2837,26 @@ function render(o){
    }
   }
   const playerFirst=data.length/9;
-  if(P&&!P._ufoAbducting){animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);carriedFoodMesh(P);}
+  if(P&&!P._ufoAbducting){
+   animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
+   carriedFoodMesh(P);
+   const weapon=o.equippedWeapon,grade=window.WildArsenal?.gradeOf?.(weapon);
+   if(weapon?.owner===P.type&&grade){
+    const r=Math.max(10,Number(P.r)||16),a=Number(P.dir)||0,dx=Math.cos(a),dy=Math.sin(a);
+    animalLift=(window.WildMountain?.height?.(P.x,P.y)||0);
+    const air=Math.max(0,(Number(P.jumpHeight)||0)-(Number(P.groundZ)||0));
+    const z=Math.max(0,Number(P.groundZ)||0)+air+r*.72;
+    const extension=(P.swing>0||P.attackAction>0)?r*.23:0;
+    const px=P.x+dx*(r*.47+extension),py=P.y+dy*(r*.47+extension);
+    // Real wearable body plate + front blades, not free-floating world effects.
+    ellipsoid(px,py,z,Math.max(3,r*.4),Math.max(2,r*.28),Math.max(2,r*.10),
+     "#233d3a",a,10,4);
+    ellipsoid(px+dx*r*.10,py+dy*r*.10,z+2,Math.max(2,r*.33),Math.max(2,r*.18),2.3,
+     grade.color,a,9,3);
+    for(const side of [-1,1])box(px+dx*r*.23-side*dy*r*.17-2,
+     py+dy*r*.23+side*dx*r*.17-2,z+3,4,4,7,grade.color);
+   }
+  }
   const playerEnd=data.length/9;
   const ghostEnd=playerEnd;
   const vertices=new Float32Array(data);
