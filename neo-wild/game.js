@@ -686,6 +686,12 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
+ const nav=route.navigation?.(P,eastTrailMask,P.type==="carp");
+ if(nav&&elapsed-eastTrailHazardNoticeAt>28&&P.x>=7600){
+  eastTrailHazardNoticeAt=elapsed;
+  notify("探索経路："+nav.stop.name+"｜次の道標まで"+nav.distance+"m｜"+nav.section.label+
+   (nav.water?"｜コイは水路から陸地に上がれない。水域を探索":"｜補給・危険は地図で確認"),3);
+ }
  const arrival=route.arrival(P,eastTrailMask);
  if(arrival)eastTrailClaim(arrival,false);
  // P3 eastern survival circuit: risk and NPC pressure use the same world XY
