@@ -328,7 +328,9 @@ function updateCameraView(){
  VIEW.b=(.20*cs+.68*sn)*z;VIEW.d=(-.20*sn+.68*cs)*z;
  VIEW_DET=VIEW.a*VIEW.d-VIEW.b*VIEW.c;
 }
-function project(x,y){const dx=x-cam.x-vw/2,dy=y-cam.y-vh/2;return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
+let renderedSceneCamera=null; // Last actual camera used for world rendering, including quake/shake.
+function project(x,y){const c=renderedSceneCamera||cam,dx=x-c.x-vw/2,dy=y-c.y-vh/2;
+ return {x:vw/2+VIEW.a*dx+VIEW.c*dy,y:vh/2+VIEW.b*dx+VIEW.d*dy}}
 // Camera tracks the rendered feet, not the flat XY origin. On mountain ridges
 // and roofs the model rises in WebGL, otherwise it drifts into the top HUD.
 function playerVisualCameraTarget(){
@@ -591,6 +593,117 @@ function awardDiscovery(id,quiet=false){
  if(id==="deepcave"){P.maxHp+=14;P.hp=Math.min(P.maxHp,P.hp+14)}
  if(!quiet)notify("発見報酬："+DISCOVERY_PERKS[id].name+"（"+DISCOVERY_PERKS[id].description+"）");
  return true;
+}
+
+// P3 eastward expedition: all eight posts use genuine collision-backed world XY.
+// Optional fields are preserved in SAVE_SCHEMA2; legacy saves default to undiscovered.
+let eastTrailMask=0,eastTrailSupplyYears=Array(8).fill(-99),eastTrailClock=0,eastTrailHazardNoticeAt=-100;
+function eastTrailFoodDrop(site,amount){
+ if(carcasses.length>=270)return false;
+ const edible=site.food==="meat"?"meat":"berries";
+ for(const radius of [34,56,82,105,0])for(let n=0;n<12;n++){
+  const angle=n*TWO/12,x=site.x+radius*Math.cos(angle),y=site.y+radius*Math.sin(angle);
+  if(x<30||y<30||x>WORLD.w-30||y>WORLD.h-30||collides(x,y,12)||waterBlocksLand(x,y)||
+     carcasses.some(c=>c.ttl>0&&Math.hypot(c.x-x,c.y-y)<30))continue;
+  carcasses.push({x,y,r:10,amount,type:edible,
+   animalType:edible==="meat"?"boar":null,ttl:420,phase:0});
+  return true;
+ }
+ return false;
+}
+function eastTrailClaim(site,revisit=false){
+ const route=window.WildEastExpedition;
+ if(!route||!site||!P||mode!=="play"||P.hp<=0||debugTutorialSession)return false;
+ const year=Math.floor(elapsed/120),known=route.visited(eastTrailMask,site.index);
+ if(revisit?(!known||year-eastTrailSupplyYears[site.index]<3):known)return false;
+ if(Math.hypot(P.x-site.x,P.y-site.y)>145)return false;
+ const before={mask:eastTrailMask,years:[...eastTrailSupplyYears],score:totalScore,hp:P.hp,sp:P.sp,
+  journal:worldEventJournal.slice(),carcasses:carcasses.length};
+ const first=!known;
+ eastTrailMask|=1<<site.index;
+ eastTrailSupplyYears[site.index]=year;
+ const points=first?site.score:Math.max(20,Math.round(site.score*.16));
+ totalScore+=points;
+ P.hp=Math.min(P.maxHp,P.hp+(first?Math.min(24,10+site.index*2):6));
+ P.sp=Math.min(P.maxSp||100,P.sp+(first?Math.min(40,18+site.index*3):12));
+ const amount=first?site.amount:Math.max(15,Math.floor(site.amount*.45));
+ const food=eastTrailFoodDrop(site,amount);
+ worldEventJournal.push({year,at:Date.now(),kind:"east-expedition",
+  label:(first?"東部踏破：":"補給再訪：")+site.name+"（"+site.area+"）"});
+ worldEventJournal=worldEventJournal.slice(-40);
+ if(saveAuto()!==true){
+  eastTrailMask=before.mask;eastTrailSupplyYears=before.years;totalScore=before.score;
+  P.hp=before.hp;P.sp=before.sp;carcasses.length=before.carcasses;
+  worldEventJournal=before.journal;
+  notify("東部探索の保存に失敗。報酬を付与せず記録を維持しました");
+  return false;
+ }
+ persistWorldChronicle();
+ if(first){
+  const cleared=route.count(eastTrailMask);
+  // Exactly one earned draw per two distinct stops; roster ledger is idempotent.
+  if(cleared%2===0)awardGameplayGachaTicket("east-expedition",cleared/2);
+  if(["northwood","ravine","deepcave"].includes(site.id)){
+   startleCaveWildlife(P,310,5); // Real nearby wild prey flee through existing collision/AI.
+   for(const m of mobs.filter(m=>m.hp>0&&!m.companion&&!m.strongBoss&&!species[m.type]?.prey&&
+    Math.hypot(m.x-P.x,m.y-P.y)<320&&!lineBlocked(m,P)).slice(0,2)){
+    m.alert=Math.max(Number(m.alert)||0,2.2);m.lastX=P.x;m.lastY=P.y;m.search=Math.max(Number(m.search)||0,1.8);
+   }
+  }
+  window.WildTrophies?.record?.("explore-site",{site:site.id},notify);
+ }
+ label(P.x,P.y-P.r-42,(first?"踏破 ":"補給 ")+site.name+" +"+points,"#d9ebbd");
+ notify((first?"東部探索 ":"物資回収 ")+site.name+"｜"+site.info+
+  "｜得点+"+points+(food?"・食料"+amount:"・食料配置上限")+"｜進捗"+route.count(eastTrailMask)+"/8",4);
+ syncHUD();
+ return true;
+}
+function tryEastTrailSupplies(){
+ const route=window.WildEastExpedition;
+ if(!route||!P||P.carry||mode!=="play")return false;
+ const site=route.replenishable(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
+ return site?eastTrailClaim(site,true):false;
+}
+function tickEastTrail(dt){
+ if(!P||P.hp<=0||mode!=="play")return;
+ eastTrailClock+=dt;
+ if(eastTrailClock<.42)return;
+ const tick=eastTrailClock;eastTrailClock=0;
+ const route=window.WildEastExpedition;
+ if(!route)return;
+ const arrival=route.arrival(P,eastTrailMask);
+ if(arrival)eastTrailClaim(arrival,false);
+ // Local traversal risks use actual weather and real terrain, not decorative tint.
+ const gorge=MOUNTAIN?.gorge&&P.x>10950&&P.x<11600&&
+  Math.abs(P.y-MOUNTAIN.center(P.x))<380;
+ const snowy=MOUNTAIN?.snowCover?.(P.x,P.y)>.54&&P.x>=MOUNTAIN.SUMMIT_START;
+ const drenched=gorge&&(weather==="RAIN"||weather==="THUNDER");
+ if((drenched||snowy)&&P.hunger>0){
+  P.sp=Math.max(0,P.sp-tick*(drenched?1.55:1.0));
+  if(elapsed-eastTrailHazardNoticeAt>28){
+   eastTrailHazardNoticeAt=elapsed;
+   notify(drenched?"渓谷の雨で足場が滑り、スタミナを消耗":"雪山の冷気でスタミナを消耗。食料と休憩を確保",3);
+  }
+ }
+}
+function drawEastTrailScreenMarkers(){
+ const route=window.WildEastExpedition;
+ if(!route||!P||mode!=="play"||P.x<7600)return;
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.font="bold 12px sans-serif";let shown=0;
+ for(const site of route.stops){
+  if(Math.hypot(site.x-P.x,site.y-P.y)>370||lineBlocked(P,site))continue;
+  const p=projectGroundLabel(site.x,site.y,65);
+  if(p.x<74||p.x>vw-74||p.y<95||p.y>vh-40)continue;
+  const known=route.visited(eastTrailMask,site.index);
+  ctx.fillStyle=known?"#163b35e8":"#403521e8";
+  ctx.fillRect(p.x-68,p.y-22,136,29);
+  ctx.strokeStyle=known?"#8eddb5":"#f1d08a";ctx.lineWidth=1.2;
+  ctx.strokeRect(p.x-68,p.y-22,136,29);
+  ctx.fillStyle="#fff3d6";ctx.fillText((site.index+1)+"/8 "+site.name,p.x,p.y-8);
+  if(++shown>=2)break;
+ }
+ ctx.restore();
 }
 
 const CLAN_NAMES=["霞町の野犬","桜坂の群れ","蔦ヶ丘のイノシシ","白鷺の獣群","朝霧川のカラス","楠の森の群れ","汐浜の野犬","潮見の水鳥"];
@@ -1617,7 +1730,7 @@ function start(newWorld=false){
  scoreRunId=createScoreRunId();
  // Only the first ever playthrough displays tutorial milestones; retry never repeats them.
  previouslyOnboardedAtRunStart=automaticTutorialShown;
- bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ bossPresenceUntil=0;lastBossPresenceAt=-1e9;deathSequenceTime=0;window.WildAudio?.resetDeathFade?.();$("hud").style.opacity="";autosaveClock=0;audioTick=0;mode="play";show("");cameraYaw=0;cameraZoom=.8;guideWisp=null;guideGoal=null;updateCameraView();$('zoom-level').textContent='80%';$("world-map").classList.add("hidden");elapsed=newWorld?NEW_WORLD_START_ELAPSED:loadWorldChronicle().elapsed;day=1+Math.floor(elapsed/85);kills=0;meals=0;hiddenHold=0;tutorialHuntBase=0;tutorialStashBase=0;expedition=1;freeStep=0;freeTarget=0;questReady=false;mission=tutorialLessonsSeenEver.has(7)?7:0;missionComplete=tutorialLessonsSeenEver.has(7);scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -1755,7 +1868,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,saveSessionId:SAVE_TAB_ID,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,
+  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,eastTrailMask,eastTrailSupplyYears:[...eastTrailSupplyYears],
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
  };
@@ -1950,6 +2063,10 @@ function restoreSnapshot(snapshot){
  tutorialHuntBase=Number.isFinite(snapshot.tutorialHuntBase)?clamp(snapshot.tutorialHuntBase,0,kills):kills;
  expedition=snapshot.expedition||1;freeStep=clamp(Math.floor(Number(snapshot.freeStep)||0),0,3);freeTarget=Number(snapshot.freeTarget)||0;questReady=snapshot.questVersion===1;
  mission=snapshot.mission||0;missionComplete=!!snapshot.missionComplete||mission>=7;
+ eastTrailMask=window.WildEastExpedition?.cleanMask?.(snapshot.eastTrailMask)||0;
+ eastTrailSupplyYears=Array.from({length:8},(_,i)=>{
+  const value=Number(snapshot.eastTrailSupplyYears?.[i]);return Number.isFinite(value)&&value>=-99&&value<=1000000?Math.floor(value):-99;
+ });eastTrailClock=0;eastTrailHazardNoticeAt=-100;
  tutorialSeen.clear();
  // Old saves skipped the current lesson (especially stage 4); completed earlier stages are not replayed.
  for(const stage of TUTORIAL_STAGES)if(stage<mission||(!debugTutorialSession&&tutorialLessonsSeenEver.has(stage)))tutorialSeen.add(stage);
@@ -3924,7 +4041,9 @@ function drawCombatFX(){
    const x=actor.x+forward*cosine-lateral*sine,y=actor.y+forward*sine+lateral*cosine;
    const p=project(x,y);
    if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
-   return {x:p.x,y:p.y-height*zoom};
+   // Same terrain elevation + animation offset as the actual actor model.
+   const elevation=(window.WildMountain?.height?.(x,y)||0)+Math.max(0,Number(actor.groundZ)||0)+height;
+   return {x:p.x,y:p.y-elevation*.93*zoom};
   }
   function trace(points,width,color,opacity=1){
    if(points.length<2||points.some(p=>!p))return;
@@ -4768,6 +4887,8 @@ function contextAction(longPress=false){
   isPrey:m=>!!species[m.type]?.prey
  }))return;
  if(longPress&&tryReleaseCaveSeal())return;
+ // Repeatable terrain-specific supplies: hold Action at a visited east trail post.
+ if(longPress&&!P.carry&&tryEastTrailSupplies())return;
  if(atDen()){
   if(P.carry){carryFood();return}
   if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
@@ -5860,6 +5981,10 @@ function getObjective(){
   if(freeStep===2&&freeTarget<EXPLORE_SITES.length&&discoveredSites.length<EXPLORE_SITES.length){
    const destination=nearestGoal(EXPLORE_SITES.filter(q=>!discoveredSites.includes(q.id)));
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
+  }
+  if(P.x>7650){
+   const next=window.WildEastExpedition?.next?.(P,eastTrailMask);
+   if(next)return {x:next.x,y:next.y,label:"東部探索 "+next.name,eastTrail:true};
   }
   return null;
  }
@@ -7264,6 +7389,7 @@ function update(dt){
   label(P.x,P.y-38,"探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length,"#d6e9b3");
   saveAuto();
  }
+ tickEastTrail(dt);
  // Amphibious player recovers while sheltering in wetland rain; starvation and death block healing.
  if(P.hp>0&&P.hunger>0){
   const wet=wetlandRecovery(P.type,P.x,P.y);
@@ -8147,7 +8273,12 @@ function syncHUD(hour){
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
  $("survival-goal").classList.toggle("hidden",mission<7||mode!=="play");
- if(mission>=7)$("survival-goal").textContent=fieldQuestInfo().summary;
+ if(mission>=7){
+  const east=window.WildEastExpedition;
+  const next=P.x>7600?east?.next?.(P,eastTrailMask):null;
+  $("survival-goal").textContent=fieldQuestInfo().summary+(next?
+   "｜東部踏破 "+east.count(eastTrailMask)+"/8 次:"+next.name+"（"+next.danger+"）":P.x>7600?"｜東部踏破 8/8 達成":"");
+ }
  $("mission-sub").textContent=info.detail;
  $("mission-next").textContent=info.next?"次の目的："+info.next:"";
  $("mission-next").classList.toggle("hidden",mission>=7);
@@ -8156,7 +8287,7 @@ function syncHUD(hour){
  setBar("mission-bar",info.progress*100);
  const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
- guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objectiveShortLabel()}:null;
+ guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objective.label||objectiveShortLabel(),eastTrail:!!objective.eastTrail}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
  const speciesSkill=$("species-skill-status");
  if(speciesSkill){
@@ -8171,7 +8302,8 @@ function syncHUD(hour){
    P,mobs,elapsed,mode,lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
-  contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+  const eastSupply=window.WildEastExpedition?.replenishable?.(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
+  contextLabel.textContent=home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":eastSupply?"長押し補給":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110+totalScore)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
@@ -8212,6 +8344,8 @@ function drawWorldMap(){
   bm.fillStyle=b.roofZ?"#8277a4":"#394b4e";
   bm.fillRect(X(b.x),Y(b.y),Math.max(2,X(b.w)),Math.max(2,Y(b.h)));
  }
+ // Connected east route (8 physically passable checkpoints), unlike unrelated discovery points.
+ window.WildEastExpedition?.drawMap?.(bm,X,Y,eastTrailMask,true);
  const mark=(x,y,color,r=6)=>{
   bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
@@ -8259,7 +8393,7 @@ function drawWorldMap(){
  bm.fillStyle="#ffe032";bm.fill();bm.restore();
  bm.lineWidth=1;bm.strokeStyle="#839d8f";bm.strokeRect(.5,.5,width-1,height-1);
  const zone=regionAt(P.x,P.y),area=mountainHabitat(P.x,P.y)?({foothill:"山麓の森",slope:"山腹・渓谷",summit:"山頂の岩場",cave:"山頂洞窟"}[MOUNTAIN.zone(P.x)]||"山地"):districts[zone],eco=ecology[zone];
- $("map-place").textContent="現在地："+area+"｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
+ $("map-place").textContent="現在地："+area+"｜東部踏破 "+(window.WildEastExpedition?.count?.(eastTrailMask)||0)+"/8｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
  "｜"+ecologyNews;
  $("map-perks").textContent="探索能力 "+earnedDiscoveries.length+"/6：" +
@@ -8308,6 +8442,7 @@ function drawMini(){
   mc.save();mc.strokeStyle=isFire?"#ffad62":"#7bdcf6";mc.fillStyle=isFire?"rgba(229,91,24,.30)":"rgba(35,143,190,.30)";mc.lineWidth=1.6;
   mc.beginPath();mc.arc(X(e.x),Y(e.y),e.radius*w/span,0,TWO);mc.fill();mc.stroke();mc.restore();
  }
+ if(P.x>7600)window.WildEastExpedition?.drawMap?.(mc,X,Y,eastTrailMask,false);
  // Classify live wildlife by actual species, alert state and strength relative to the player.
  const visibleMobs=mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<span/2&&Math.abs(m.y-P.y)<span/2)
   .sort((a,b)=>dist(P,a)-dist(P,b)).slice(0,30);
@@ -8473,6 +8608,7 @@ function drawBuilding(b){
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
 function drawLandmark2D(site){
+ if(site.eastRoute){window.WildEastExpedition?.drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,eastTrailMask);return;}
  const x=site.x,y=site.y;
  ctx.save();ctx.translate(x,y);
  if(site.id==="zoo"){
@@ -9419,7 +9555,7 @@ function drawOccludedSilhouettes(entities){
 }
 // Route-aware mission navigation: two discreet direction chevrons, never a large floating HUD.
 function drawMissionChevrons(){
- if(!P||mode!=="play"||mission>=7||!guideWisp||!guideGoal)return;
+ if(!P||mode!=="play"||(mission>=7&&!guideGoal?.eastTrail)||!guideWisp||!guideGoal)return;
  const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y,waypointDistance=Math.hypot(dx,dy);
  const goalDistance=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y);
  if(!Number.isFinite(waypointDistance)||!Number.isFinite(goalDistance)||waypointDistance<12||goalDistance<42)return;
@@ -9705,7 +9841,9 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:EXPLORE_SITES,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])],waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
+ // All screen overlays and effects now use the very same world-camera offset as the renderer.
+ renderedSceneCamera=use3D?{x:cam.x+quakeOffset.x,y:cam.y+quakeOffset.y}:{x,y};
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
  if(!use3D)window.WildSeasonClouds?.capture2D?.({vw,vh,cam:{x,y},VIEW:{a:VIEW.a,b:VIEW.b,c:VIEW.c,d:VIEW.d},cameraZoom,plants,elapsed,weather,lightProfile:dayLightProfile(elapsed)});
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
@@ -9730,7 +9868,7 @@ function drawScene(){
   ctx.save();ctx.strokeStyle="#b4dedaaf";ctx.lineWidth=2;ctx.beginPath();
   ctx.ellipse(e.x,e.y,Math.max(11,e.r*1.35),Math.max(5,e.r*.64),0,0,TWO);ctx.stroke();ctx.restore();
  }
- for(const site of EXPLORE_SITES)if(visible(site.x,site.y,500))drawLandmark2D(site);
+ for(const site of [...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])])if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  const layers=[],covers=new Map();
  for(const e of entities)covers.set(e,[]);
@@ -9900,7 +10038,7 @@ function drawScene(){
   window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode,lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
-  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();if(!use3D)drawThreatNames(false);drawRemainsLabels();
+  drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawEastTrailScreenMarkers();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  } // Keep mission and enemy labels off the dying animal.
  if(mode==="dying"&&deathSharePending){
