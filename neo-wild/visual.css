@@ -1758,3 +1758,18 @@
  #den-inventory .den-pantry-note{margin:8px 0;font-size:12px}
  #den-inventory .strong-inheritance{margin-top:9px;padding-top:9px}
 }
+
+
+/* All-den weapon vault; contained INSIDE the existing scrollable pantry modal. */
+#weapon-equipped-hud{margin:3px 0 0;color:#f0dca9;font:700 10px/1.35 "Noto Sans JP",sans-serif;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.weapon-vault{margin-top:17px;padding-top:14px;border-top:2px solid #6b857b;display:grid;gap:9px;min-width:0}
+.weapon-vault h3{margin:0;color:#f2dfa8;font:800 17px/1.4 "Noto Sans JP",sans-serif}
+.weapon-vault p{margin:0;color:#d2e0d2;font:500 12px/1.55 "Noto Sans JP",sans-serif}
+#weapon-vault-status{font-weight:700;color:#d7e8cb}
+.weapon-vault-list{display:grid;gap:7px;max-height:240px;min-height:46px;overflow:auto;overscroll-behavior:contain;padding:3px;touch-action:pan-y}
+.weapon-vault-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px;border:1px solid #52695f;border-radius:9px;background:#22382f}
+.weapon-vault-row span{font:600 11px/1.55 "Noto Sans JP",sans-serif;overflow-wrap:anywhere;color:#e4e9d4}
+.weapon-vault-row button,#weapon-unequip{min-height:40px;min-width:72px;padding:7px 10px;border:1px solid #9bb49f;border-radius:8px;background:#355d4f;color:#fff2d2;font:700 11px "Noto Sans JP",sans-serif;touch-action:manipulation}
+.weapon-vault-row button:disabled,#weapon-unequip:disabled{opacity:.46}
+@media(max-width:520px){.weapon-vault-list{max-height:200px}.weapon-vault-row{gap:6px;padding:7px}.weapon-vault-row span{font-size:10px}.weapon-vault-row button{min-width:69px;font-size:10px}}
+@media(max-height:520px) and (orientation:landscape){.weapon-vault-list{max-height:140px}}
