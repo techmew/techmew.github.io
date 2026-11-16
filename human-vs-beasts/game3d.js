@@ -21,11 +21,58 @@ const animals=[
  {id:'pronghorn',name:'プロングホーン',sub:'長距離にも強い速足',kph:88,acc:8.7,kind:'pronghorn',coat:0xbc9b75,tier:6},
  {id:'cheetah',name:'チーター',sub:'地上最速への最終挑戦',kph:103.5,acc:11.0,kind:'cheetah',coat:0xe3ae65,tier:7}
 ];
-const palettes={skin:['#ffe0c7','#eec09b','#c88d62','#975f45','#633c2d','#f3c99c','#c49574','#ab7858','#dfac7d','#6b4936'],hair:['#202029','#432c23','#9f6337','#d8bd75','#8a484b','#bebdc2','#1e5581','#a649a7','#74371d','#d4d3cb'],shirt:['#a9b5ae','#ffffff','#1a2c47','#ef645a','#3a9ede','#9c69e2','#e5aa49','#1f7d72','#dc88a9','#b6bdc4','#343038','#f3ca77'],pants:['#14283e','#f1f3ee','#193b4f','#3f454d','#953d4e','#41553f','#8e735a','#253364','#74748b'],shoes:['#f7f8f0','#e9b14e','#252a2f','#63d7e6','#ef6a66','#a77beb','#9bb59f','#cfd3d7']};
-const categories=[
- ['顔・輪郭','face','range',1,10],['眉毛','brow','range',1,10],['目の大きさ','eyes','range',1,10],['鼻の形','nose','range',1,10],['口・表情','mouth','range',1,10],['髪型','hairStyle','range',0,9],['肌の色','skin','palette','skin'],['髪の色','hair','palette','hair'],['筋肉量','build','range',1,10],['体型','body','range',1,10],['身長','height','range',1,10],['トップス','shirt','palette','shirt'],['服の形','shirtStyle','range',0,9],['ボトムス','pants','palette','pants'],['シューズ','shoes','palette','shoes'],['アクセサリー','accessory','range',0,9]
+const palettes={skin:['#ffe0c7','#eec09b','#c88d62','#975f45','#633c2d','#f3c99c','#c49574','#ab7858','#dfac7d','#6b4936'],hair:['#202029','#432c23','#9f6337','#d8bd75','#8a484b','#bebdc2','#1e5581','#a649a7','#74371d','#d4d3cb'],shirt:['#a9b5ae','#ffffff','#1a2c47','#ef645a','#3a9ede','#9c69e2','#e5aa49','#1f7d72','#dc88a9','#b6bdc4','#343038','#f3ca77'],pants:['#14283e','#f1f3ee','#193b4f','#3f454d','#953d4e','#41553f','#8e735a','#253364','#74748b'],shoes:['#f7f8f0','#e9b14e','#252a2f','#63d7e6','#ef6a66','#a77beb','#9bb59f','#cfd3d7'],irisTone:['#443020','#67513a','#2a4d62','#477164','#8f897d','#282b30','#8b6b4e','#627e94','#a5ab97','#425d56'],sole:['#e6e4dd','#282f32','#808a8e','#d4c1a4','#c38e72','#546973','#a3a69d','#a36956']};
+
+const avatarGroups=[
+ {id:'face',label:'輪郭・肌',items:[
+ ['顔の幅','face','range',1,10],['顔の長さ','faceLength','range',0,100],['顔の奥行き','faceDepth','range',0,100],
+ ['頭の大きさ','headSize','range',0,100],['あごの幅','chinWidth','range',0,100],['あごの長さ','chinLength','range',0,100],
+ ['頬骨の幅','cheekbone','range',0,100],['頬の丸み','cheekFull','range',0,100],['額の高さ','forehead','range',0,100],
+ ['耳の大きさ','earSize','range',0,100],['耳の角度','earAngle','range',0,100],['肌の色','skin','palette','skin'],
+ ['そばかす','freckles','range',0,100]]},
+ {id:'brows',label:'眉',items:[
+ ['眉の形','brow','range',1,10],['眉の太さ','browThick','range',0,100],['眉の長さ','browLength','range',0,100],
+ ['眉の間隔','browGap','range',0,100],['眉の高さ','browHeight','range',0,100],['眉尻の角度','browAngle','range',0,100],['眉のカーブ','browCurve','range',0,100]]},
+ {id:'eyes',label:'目',items:[
+ ['目の大きさ','eyes','range',1,10],['目の横幅','eyeWidth','range',0,100],['目の縦幅','eyeHeight','range',0,100],
+ ['目の間隔','eyeGap','range',0,100],['目尻の角度','eyeTilt','range',0,100],['瞳の大きさ','irisSize','range',0,100],
+ ['瞳の色','irisTone','palette','irisTone'],['まぶた','eyelid','range',0,100],['まつげ','lash','range',0,100]]},
+ {id:'nose',label:'鼻',items:[
+ ['鼻の大きさ','nose','range',1,10],['鼻筋の高さ','noseBridge','range',0,100],['鼻の横幅','noseWidth','range',0,100],
+ ['鼻の長さ','noseLength','range',0,100],['鼻先の形','noseTip','range',0,100],['小鼻の幅','nostril','range',0,100]]},
+ {id:'mouth',label:'口',items:[
+ ['口の大きさ','mouth','range',1,10],['口の横幅','mouthWidth','range',0,100],['上唇の厚み','upperLip','range',0,100],
+ ['下唇の厚み','lowerLip','range',0,100],['口角の上がり','smile','range',0,100],['口の高さ','mouthHeight','range',0,100]]},
+ {id:'hair',label:'髪',items:[
+ ['髪型','hairStyle','range',0,9],['髪の長さ','hairLength','range',0,100],['髪のボリューム','hairVolume','range',0,100],
+ ['前髪の長さ','bangs','range',0,100],['分け目','part','range',0,100],['髪の色','hair','palette','hair']]},
+ {id:'body',label:'体格',items:[
+ ['筋肉量','build','range',1,10],['全体の体型','body','range',1,10],['身長','height','range',1,10],
+ ['肩幅','shoulderWidth','range',0,100],['胴の幅','waistWidth','range',0,100],['胸の厚み','chestDepth','range',0,100],
+ ['お腹周り','belly','range',0,100],['腰幅','hipWidth','range',0,100],['腕の太さ','armBulk','range',0,100],
+ ['腕の長さ','armLength','range',0,100],['脚の長さ','legLength','range',0,100],
+ ['太ももの太さ','legBulk','range',0,100],['ふくらはぎ','calfBulk','range',0,100],['姿勢','posture','range',0,100]]},
+ {id:'clothes',label:'服装',items:[
+ ['トップスの色','shirt','palette','shirt'],['服の形','shirtStyle','range',0,9],
+ ['袖の長さ','sleeveLength','range',0,100],['襟の開き','neckline','range',0,100],['服の柄','topPattern','range',0,9],
+ ['ボトムスの色','pants','palette','pants'],['ズボンの丈','pantsLength','range',0,100],
+ ['靴の色','shoes','palette','shoes'],['靴底の色','sole','palette','sole'],
+ ['靴の大きさ','shoeSize','range',0,100],['アクセサリー','accessory','range',0,9],
+ ['リストバンド','wristband','range',0,100]]}
 ];
-const defaultAvatar={face:5,brow:3,eyes:4,nose:3,mouth:3,hairStyle:3,skin:2,hair:0,build:4,body:5,height:5,shirt:0,shirtStyle:0,pants:0,shoes:1,accessory:0};
+const categories=avatarGroups.flatMap(group=>group.items.map(item=>[...item,group.id]));
+const defaultAvatar={
+ face:5,brow:3,eyes:4,nose:3,mouth:3,hairStyle:3,skin:2,hair:0,
+ build:4,body:5,height:5,shirt:0,shirtStyle:0,pants:0,shoes:1,accessory:0,
+ faceLength:50,faceDepth:50,headSize:50,chinWidth:50,chinLength:50,cheekbone:50,cheekFull:50,forehead:50,earSize:50,earAngle:50,freckles:0,
+ browThick:50,browLength:50,browGap:50,browHeight:50,browAngle:50,browCurve:50,
+ eyeWidth:50,eyeHeight:50,eyeGap:50,eyeTilt:50,irisSize:50,irisTone:0,eyelid:50,lash:15,
+ noseBridge:50,noseWidth:50,noseLength:50,noseTip:50,nostril:50,
+ mouthWidth:50,upperLip:50,lowerLip:50,smile:50,mouthHeight:50,
+ hairLength:40,hairVolume:50,bangs:50,part:50,
+ shoulderWidth:50,waistWidth:50,chestDepth:50,belly:50,hipWidth:50,armBulk:50,armLength:50,legLength:50,legBulk:50,calfBulk:50,posture:50,
+ sleeveLength:45,neckline:50,topPattern:0,pantsLength:65,sole:0,shoeSize:50,wristband:0
+};
 const defaultSave={money:170,stats:{speed:2,power:1,stamina:1,technique:1},best:null,won:[],chosen:0,avatar:defaultAvatar,races:0,runnerName:'ランナー',bestByBeast:{}};
 let save=(()=>{try{const v=JSON.parse(localStorage.getItem('animal100m_v4'));if(v&&typeof v==='object')return {...defaultSave,...v,stats:{...defaultSave.stats,...v.stats},avatar:{...defaultAvatar,...v.avatar},won:Array.isArray(v.won)?v.won:[],bestByBeast:v.bestByBeast||{}}}catch(e){}return JSON.parse(JSON.stringify(defaultSave))})();
 const store=()=>{try{localStorage.setItem('animal100m_v4',JSON.stringify(save))}catch(e){}};
