@@ -352,9 +352,303 @@ function makeBeast(data){
  lineShadow(root,large?.8:.6);
  return {root,bodyGroup,legs,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
 }
+
+function makeExtendedBeast(data){
+ // The original thirteen racers retain their existing models; the other thirty-seven use specialized anatomy.
+ if(originalBeastIds.includes(data.id))return makeBeast(data);
+ const k=data.kind,root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);
+ const inorganic=['golem','giantrobot'].includes(k);
+ const coat=mat(data.coat,inorganic?.64:.96,inorganic?.13:0);
+ const shade=mat(new T.Color(data.coat).multiplyScalar(.68),inorganic?.7:.97);
+ const light=mat(new T.Color(data.coat).multiplyScalar(1.28),.91);
+ const eye=mat(inorganic?0xa5eff1:0x191b20,.35),white=mat(0xe2e2d9,.85);
+ const tusk=mat(0xe7d8b4,.53),horn=mat(0x625b4b,.79),mouth=mat(0x302b29,.9);
+ const armor=mat(new T.Color(data.coat).multiplyScalar(.86),.74,.04);
+ const gold=mat(0xbca164,.55,.15);
+ const wingmat=mat(new T.Color(data.coat).multiplyScalar(.91),.85);
+ const legs=[],arms=[];let tail=null,wings=[],decor=[];
+ const dinoArmored=['triceratops','stegosaurus','ankylosaurus'].includes(k);
+ const theropod=['parasaurolophus','gallimimus','velociraptor','deinonychus','carnotaurus','trex','spinosaurus'].includes(k);
+ const bird=['dodo','moa','terrorbird'].includes(k);
+ const humanoid=['gorilla','giantsloth','minotaur','golem','giantrobot','alien','kaiju'].includes(k);
+ const quad=!theropod&&!bird&&!humanoid;
+ const supersize=['mammoth','elephant','triceratops','stegosaurus','ankylosaurus','dragon','kaiju','giantrobot','golem','spinosaurus','trex'].includes(k);
+ const sizeScale=({dodo:.86,moa:1.12,terrorbird:1.14,boar:1.04,wolf:.99,direwolf:1.16,deer:1.08,tiger:1.16,smilodon:1.12,gorilla:1.18,giantsloth:1.18,elephant:1.48,hippo:1.18,rhino:1.24,mammoth:1.58,woollyrhino:1.40,cavebear:1.38,triceratops:1.44,stegosaurus:1.44,ankylosaurus:1.35,parasaurolophus:1.45,gallimimus:1.08,velociraptor:.85,deinonychus:1.05,carnotaurus:1.42,trex:1.70,spinosaurus:1.72,unicorn:1.05,pegasus:1.16,cerberus:1.18,griffin:1.20,minotaur:1.32,dragon:1.68,golem:1.44,giantrobot:1.52,alien:1.24,kaiju:1.78})[k]||1;
+ root.scale.setScalar(sizeScale);
+ const b=(parent,mt,x,y,z,sx,sy,sz,n=16)=>ball(parent,mt,x,y,z,sx,sy,sz,n);
+ const t=(parent,p1,p2,r,mt,r2)=>tube(parent,p1,p2,r,mt,r2??r*.75);
+ const cone=(parent,mt,x,y,z,r1,r2,h)=>conical(parent,mt,x,y,z,r1,r2,h,10);
+ function spike(parent,mt,x,y,z,h,angle=0,r=.12){
+  const s=new T.Mesh(new T.ConeGeometry(r,h,8),mt);
+  s.position.set(x,y+h*.34,z);s.rotation.x=angle;s.castShadow=true;parent.add(s);return s;
+ }
+ function leafWing(parent,side,x,y,z,large=false){
+  const wing=new T.Group();wing.position.set(side*x,y,z);parent.add(wing);
+  for(let i=0;i<5;i++){
+   const feather=b(wing,wingmat,side*(.18+i*.19),-.02+i*.02,-.07-i*.065,
+        .15+(large?.05:0),.043,.48+i*.10,12);
+   feather.rotation.y=side*(.13+i*.055);feather.rotation.z=side*(.23+i*.09);
+  }
+  t(wing,[0,0,0],[side*(large?1.20:.95),.27,-.42],.09,shade,.045);
+  wings.push({wing,side});return wing;
+ }
+ function eyesPair(parent,xx,yy,zz,width=.05){
+  for(const side of [-1,1]){
+   b(parent,eye,side*xx,yy,zz,width,width*.92,.031,12);
+   if(inorganic)b(parent,white,side*xx,yy,zz+.034,width*.25,width*.25,.008,10);
+  }
+ }
+ function horns(parent,x,y,z,h,r=.065){
+  for(const side of [-1,1]){
+   const sp=spike(parent,horn,side*x,y,z,h,side*.38,r);
+   sp.rotation.z=-side*.35;
+  }
+ }
+ function animalHead(parent,z,y,w=.27,h=.28,front=.35){
+  b(parent,coat,0,y,z,w,h,front);
+  b(parent,light,0,y-.12,z+front*.62,w*.70,h*.46,front*.48);
+  eyesPair(parent,w*.78,y+.06,z+front*.66,Math.max(.034,w*.18));
+  b(parent,mouth,0,y-.19,z+front*.96,w*.29,.041,.045);
+ }
+ function limb(upper,lower,z,side,x,thin=.16,heel=.16,hipY=1.03){
+  const joint=new T.Group();joint.position.set(side*x,hipY,z);bodyGroup.add(joint);
+  if(inorganic){
+    box(joint,thin*2.1,upper*1.05,thin*2.2,armor,0,-upper*.48,0,true);
+  }else b(joint,coat,0,-upper*.40,0,thin,upper*.54,thin*.97,15);
+  const knee=new T.Group();knee.position.y=-upper*.83;joint.add(knee);
+  if(inorganic)box(knee,thin*1.55,lower*.93,thin*1.8,shade,0,-lower*.45,0,true);
+  else b(knee,coat,0,-lower*.38,.025,thin*.74,lower*.48,thin*.75,15);
+  b(knee,inorganic?armor:shade,0,-lower*.81,.16,thin*1.01,.095,heel,12);
+  legs.push({hip:joint,knee,side,front:z>0?1:-1});
+ }
+ if(quad){
+  const massive=['elephant','hippo','rhino','mammoth','woollyrhino','cavebear','dragon','triceratops','stegosaurus','ankylosaurus'].includes(k);
+  const runnerHorse=['deer','unicorn','pegasus'].includes(k);
+  const broad=massive?.68:runnerHorse?.40:.46;
+  const length=massive?1.18:runnerHorse?1.04:.87;
+  const hipY=massive?1.34:runnerHorse?1.20:1.06;
+  const bh=massive?.57:runnerHorse?.42:.37;
+  b(bodyGroup,coat,0,hipY,0,broad,bh,length,24);
+  b(bodyGroup,light,0,hipY+.11,length*.37,broad*.72,bh*.74,.38,19);
+  if(['hippo','rhino','woollyrhino','boar','mammoth','elephant'].includes(k)){
+   b(bodyGroup,coat,0,hipY+.02,length*.48,broad*.91,bh*.89,.48,20);
+  }
+  const neckY=massive?1.57:runnerHorse?1.60:1.31;
+  b(bodyGroup,coat,0,neckY-.19,length*.72,broad*.58,.36,.34,18);
+  const headY=massive?1.58:runnerHorse?1.79:1.42;
+  const faceW=['mammoth','elephant','hippo'].includes(k)?broad*.60:runnerHorse?.23:.30;
+  animalHead(bodyGroup,length+.38,headY,faceW,massive?.35:.28,runnerHorse?.47:.34);
+  for(let side of [-1,1]){
+   const ear=b(bodyGroup,coat,side*(faceW+.12),headY+.23,length+.22,massive?.19:.105,massive?.20:.17,.085);
+   ear.rotation.z=side*.35;
+  }
+  if(runnerHorse||['rhino','woollyrhino','triceratops'].includes(k)){
+   for(let side of [-1,1]){const legGap=runnerHorse?.78:.82;limb(.69,.55,side*length*.74,1, broad*.63,runnerHorse?.115:.20,.24,hipY-.17);limb(.69,.55,side*length*.74,-1,broad*.63,runnerHorse?.115:.20,.24,hipY-.17)}
+  }else{
+   for(let front of [-1,1])for(let side of [-1,1]){
+    const thick=massive?.225:.16,top=massive?.65:.51,low=massive?.58:.49;
+    limb(top,low,front*length*.72,side,broad*.70,thick,massive?.26:.21,hipY-.10);
+   }
+  }
+  if(['elephant','mammoth'].includes(k)){
+   // Curved trunk and paired tusks distinguish the elephant and mammoth in silhouette.
+   const z=length+.72,y=headY-.12;
+   t(bodyGroup,[0,y,z],[0,y-.34,z+.24],.13,coat,.105);
+   t(bodyGroup,[0,y-.34,z+.24],[0,y-.77,z+.39],.105,coat,.077);
+   t(bodyGroup,[0,y-.77,z+.39],[0,y-.98,z+.54],.074,coat,.066);
+   for(let side of [-1,1]){
+    t(bodyGroup,[side*.20,headY-.18,length+.64],[side*.38,headY-.30,length+1.04],.095,tusk,.066);
+    t(bodyGroup,[side*.38,headY-.30,length+1.04],[side*.43,headY+.04,length+1.23],.066,tusk,.012);
+   }
+   if(k==='mammoth'){
+    for(let i=0;i<20;i++){const angle=i*2.39996,z=-.9+(i*.18)%2;
+      b(bodyGroup,shade,Math.cos(angle)*broad*.88,hipY+Math.sin(angle)*bh*.86,z,.13,.18,.17,9)}
+    b(bodyGroup,shade,0,headY+.29,length+.35,.38,.20,.21);
+   }
+  }
+  if(['rhino','woollyrhino'].includes(k)){
+   spike(bodyGroup,tusk,0,headY+.11,length+.78,.55,-.55,.16);
+   spike(bodyGroup,tusk,0,headY+.28,length+.60,.28,-.45,.10);
+   if(k==='woollyrhino')for(let i=0;i<22;i++){
+    b(bodyGroup,shade,Math.cos(i*2.4)*broad*.84,hipY+Math.sin(i*2.4)*bh*.7,-.85+i*.083,.125,.13,.12,8)}
+  }
+  if(k==='hippo'){b(bodyGroup,light,0,headY-.20,length+.80,.39,.24,.37,18);b(bodyGroup,mouth,0,headY-.37,length+1.01,.31,.065,.16)}
+  if(k==='boar'){for(let side of [-1,1]){spike(bodyGroup,tusk,side*.21,headY-.28,length+.74,.25,-.28,.08);spike(bodyGroup,shade,side*.23,headY+.27,length+.25,.28,0,.11)}}
+  if(k==='smilodon'){for(let side of [-1,1]){const tooth=cone(bodyGroup,tusk,side*.145,headY-.30,length+.70,.015,.075,.36);tooth.rotation.z=Math.PI}}
+  if(k==='wolf'||k==='direwolf'||k==='cerberus'){for(let side of [-1,1])spike(bodyGroup,shade,side*.17,headY+.29,length+.31,.27,0,.09)}
+  if(k==='tiger'){for(let i=0;i<16;i++){const z=-.70+i*.095;const s=i%2?1:-1;const stripe=b(bodyGroup,shade,s*broad*.82,hipY+.11+(i%3)*.11,z,.073,.15,.085,9);stripe.rotation.z=s*.3}}
+  if(k==='deer'){for(let side of [-1,1]){const x=side*.20,z=length+.32;
+   t(bodyGroup,[x,headY+.26,z],[side*.39,headY+.73,z-.06],.05,horn,.03);
+   for(let h=0;h<3;h++)t(bodyGroup,[side*(.29+h*.04),headY+.40+h*.12,z-.05],[side*(.43+h*.09),headY+.55+h*.18,z-.18],.028,horn,.014);
+  }}
+  if(k==='unicorn')spike(bodyGroup,tusk,0,headY+.32,length+.46,.60,-.16,.065);
+  if(k==='cerberus')for(let side of [-1,1]){
+   const group=new T.Group();group.position.set(side*.45,.12,length-.05);bodyGroup.add(group);
+   animalHead(group,.72,headY,.27,.23,.35);spike(group,shade,side*.12,headY+.25,.76,.23,0,.09);
+  }
+  if(k==='pegasus'||k==='griffin'||k==='dragon'){
+   for(let side of [-1,1])leafWing(bodyGroup,side,broad*.86,hipY+.32,-.22,k==='dragon');
+  }
+  if(k==='griffin'){
+   b(bodyGroup,light,0,headY+.28,length+.28,.31,.26,.27);
+   spike(bodyGroup,gold,0,headY-.12,length+.85,.26,-1.3,.12);
+   for(let side of [-1,1])spike(bodyGroup,light,side*.17,headY+.45,length+.24,.18,0,.07);
+  }
+  if(k==='dragon'){
+   horns(bodyGroup,.20,headY+.35,length+.35,.38);
+   for(let i=0;i<8;i++)spike(bodyGroup,shade,0,hipY+bh*.80,-length+i*.27,.24,0,.15);
+  }
+  if(dinoArmored){
+   if(k==='triceratops'){
+    b(bodyGroup,armor,0,headY+.12,length+.15,.48,.45,.20);
+    for(let side of [-1,1])spike(bodyGroup,tusk,side*.26,headY+.31,length+.57,.62,-.38,.12);
+    spike(bodyGroup,tusk,0,headY-.10,length+.85,.25,-.55,.11);
+   }
+   if(k==='stegosaurus')for(let i=0;i<8;i++){
+    const zz=-length+i*length*.29;spike(bodyGroup,i%2?shade:armor,i%2?.13:-.13,hipY+bh*.64,zz,.42+Math.sin(i*.44)*.28,0,.22);
+   }
+   if(k==='ankylosaurus'){
+    for(let i=0;i<24;i++)spike(bodyGroup,armor,(i%2?1:-1)*(broad*.62),hipY+bh*.75,-length+(i%12)*(length/5.5),.14,0,.12);
+    b(bodyGroup,armor,0,hipY+bh*.75,0,broad*.87,bh*.55,length*.84);
+   }
+  }
+  if(['cavebear','boar','direwolf','smilodon','dragon','ankylosaurus','stegosaurus'].includes(k)){
+   const tg=new T.Group();tg.position.set(0,hipY,-length*.85);bodyGroup.add(tg);
+   t(tg,[0,0,0],[0,-.15,-.58],.10,coat,.08);
+   t(tg,[0,-.15,-.58],[0,-.32,-1.04],.075,shade,.033);
+   if(k==='ankylosaurus')b(tg,armor,0,-.35,-1.08,.34,.22,.30,12);
+   if(k==='stegosaurus'||k==='dragon')for(let i=0;i<4;i++)spike(tg,horn,0,-.13,-.35-i*.2,.22,.8,.075);
+   tail=tg;
+  }
+ }else if(theropod||bird){
+  const small=['dodo','velociraptor','deinonychus'].includes(k);
+  const longNeck=['moa','gallimimus','parasaurolophus','terrorbird'].includes(k);
+  const big=['carnotaurus','trex','spinosaurus'].includes(k);
+  const bodyY=bird?.99:(big?1.70:1.32),bodyW=bird?(k==='dodo'?.46:.38):(big?.56:.35);
+  const bodyL=bird?(k==='dodo'?.63:.69):(big?1.10:.78);
+  b(bodyGroup,coat,0,bodyY,-.02,bodyW,bird?(k==='dodo'?.57:.40):(big?.51:.36),bodyL,22);
+  const neckTop=longNeck?bodyY+.72:bodyY+.40;
+  if(longNeck){
+   t(bodyGroup,[0,bodyY+.10,bodyL*.55],[0,neckTop,bodyL*.82],.16,coat,.095);
+   b(bodyGroup,coat,0,neckTop,bodyL*.95,.20,.24,.26);
+  }else{
+   b(bodyGroup,coat,0,bodyY+.30,bodyL*.68,bodyW*.63,.33,.43);
+  }
+  const hy=longNeck?neckTop+.10:bodyY+.37;
+  const hz=longNeck?bodyL+0.53:bodyL+.66;
+  b(bodyGroup,coat,0,hy,hz,big?.36:bird?.23:.24,.24,big?.50:.32);
+  b(bodyGroup,light,0,hy-.14,hz+.24,.20,.11,.24);
+  eyesPair(bodyGroup,big?.28:.20,hy+.07,hz+.18,big?.055:.044);
+  if(bird){
+   const beak=b(bodyGroup,k==='terrorbird'?horn:gold,0,hy-.07,hz+.40,k==='terrorbird'?.20:.15,.095,k==='terrorbird'?.46:.31);
+   beak.rotation.x=.11;
+   for(let side of [-1,1])b(bodyGroup,shade,side*bodyW,bodyY+.14,.13,.20,.24,.29,12);
+  }else{
+   b(bodyGroup,mouth,0,hy-.21,hz+.40,big?.25:.17,.06,big?.23:.16);
+   if(['trex','carnotaurus','spinosaurus','velociraptor','deinonychus'].includes(k))
+    for(let side of [-1,1])for(let i=0;i<3;i++)spike(bodyGroup,tusk,side*(.08+i*.045),hy-.23,hz+.44,.10,Math.PI,.027);
+  }
+  for(let side of [-1,1]){
+   const legY=bird?bodyY-.29:bodyY-.35;
+   limb(bird?.53:big?.84:.67,bird?.51:big?.77:.64,-bodyL*.26,side,bodyW*.68,big?.22:.15,.24,legY);
+  }
+  if(!bird){
+   for(let side of [-1,1]){const arm=new T.Group();arm.position.set(side*bodyW*.65,hy-.22,bodyL*.62);bodyGroup.add(arm);
+    b(arm,coat,0,-.12,.12,.085,.22,.10);
+    b(arm,shade,0,-.36,.23,.075,.18,.085);
+    for(let i=0;i<2;i++)spike(arm,horn,side*(i?.06:-.06),-.55,.27,.12,-.7,.025);
+    arms.push({sh:arm,side});
+   }
+   const tg=new T.Group();tg.position.set(0,bodyY-.05,-bodyL*.64);bodyGroup.add(tg);
+   t(tg,[0,0,0],[0,-.10,-.65],bodyW*.47,coat,bodyW*.28);
+   t(tg,[0,-.10,-.65],[0,-.27,-1.3],bodyW*.28,coat,.08);
+   t(tg,[0,-.27,-1.3],[0,-.36,-1.75],.08,shade,.015);
+   tail=tg;
+  }
+  if(k==='parasaurolophus')t(bodyGroup,[0,hy+.1,hz-.05],[0,hy+.72,hz-.47],.09,shade,.025);
+  if(k==='carnotaurus')horns(bodyGroup,.22,hy+.23,hz+.12,.28);
+  if(k==='spinosaurus')for(let i=0;i<11;i++){
+   spike(bodyGroup,shade,0,bodyY+.23,-bodyL+(i*.2),.39+Math.sin(i/10*Math.PI)*.68,0,.16);
+  }
+  if(k==='gallimimus'||k==='velociraptor'||k==='deinonychus')for(let side of [-1,1]){
+   b(bodyGroup,shade,side*bodyW*.85,bodyY+.24,-.15,.13,.10,.32);
+   if(k!=='gallimimus')for(let j=0;j<5;j++)b(bodyGroup,light,side*(bodyW*.78),bodyY+.13,-.45+j*.15,.03,.06,.08,10);
+  }
+ }else if(humanoid){
+  const stone=k==='golem',robot=k==='giantrobot',slender=k==='alien',beastlike=k==='kaiju';
+  const shoulder=slender?.34:beastlike?.70:.53;
+  const bodyY=1.65;
+  if(stone||robot)box(bodyGroup,shoulder*2.0,1.0,.56,coat,0,bodyY+.02,0,true);
+  else b(bodyGroup,coat,0,bodyY,0,shoulder,.73,.38,22);
+  b(bodyGroup,shade,0,1.10,.06,shoulder*.82,.35,.31);
+  if(k==='gorilla'||k==='giantsloth')b(bodyGroup,light,0,1.76,.33,.36,.37,.12);
+  for(let side of [-1,1]){
+   limb(.63,.56,.05,side,shoulder*.56,stone?.25:slender?.10:.20,.25,1.05);
+   const arm=new T.Group();arm.position.set(side*shoulder,2.11,.05);bodyGroup.add(arm);
+   if(stone||robot)box(arm,.30,.65,.32,shade,0,-.37,.04,true);
+   else b(arm,coat,0,-.40,0,stone?.24:.18,humanoid?.49:.45,.19);
+   const hand=b(arm,stone||robot?armor:shade,0,-.90,.16,stone?.25:.21,.23,.19);
+   arms.push({sh:arm,side});
+  }
+  const headY=slender?2.75:2.64,headW=slender?.40:k==='kaiju'?.40:.32;
+  if(robot||stone)box(bodyGroup,.58,.55,.50,shade,0,headY,.13,true);
+  else b(bodyGroup,coat,0,headY,.12,headW,slender?.38:.30,slender?.27:.32);
+  if(slender){
+   for(let side of [-1,1])b(bodyGroup,eye,side*.175,headY+.02,.38,.125,.20,.06,18);
+   for(let side of [-1,1])t(bodyGroup,[side*.13,headY+.34,.03],[side*.27,headY+.58,.04],.027,shade,.012);
+  }else{
+   eyesPair(bodyGroup,headW*.62,headY+.065,.40,stone?.053:.047);
+   b(bodyGroup,light,0,headY-.14,.38,headW*.63,.115,.11);
+  }
+  if(k==='minotaur'){horns(bodyGroup,.28,headY+.18,.09,.43);b(bodyGroup,mouth,0,headY-.23,.48,.20,.11,.13)}
+  if(k==='giantsloth')for(let side of [-1,1])for(let i=0;i<3;i++){
+   spike(bodyGroup,tusk,side*(shoulder+.07*i),1.20,.45,.22,-.70,.045);
+  }
+  if(stone)for(let i=0;i<10;i++){
+   const x=(i%2?1:-1)*(shoulder*.65),y=1.05+(i%5)*.31;
+   box(bodyGroup,.23,.28,.21,armor,x,y,.24,true);
+  }
+  if(robot){
+   box(bodyGroup,.47,.26,.08,mtRobotLight(),0,1.80,.335);
+   for(let i=-1;i<=1;i++)b(bodyGroup,eye,i*.11,1.8,.38,.036,.045,.020,12);
+   for(let side of [-1,1])box(bodyGroup,.13,.32,.13,armor,side*.51,2.29,.02,true);
+  }
+  if(k==='kaiju'){
+   for(let i=0;i<8;i++)spike(bodyGroup,shade,0,1.04+i*.25,-.30,.31+i*.025,-.18,.14);
+   const tg=new T.Group();tg.position.set(0,1.04,-.25);bodyGroup.add(tg);
+   t(tg,[0,0,0],[0,-.35,-.9],.27,coat,.18);
+   t(tg,[0,-.35,-.9],[0,-.54,-1.65],.18,shade,.04);
+   tail=tg;
+  }
+ }
+ // Distinct run cycles: heavy creatures swing slowly; nimble creatures gallop or hop.
+ lineShadow(root,supersize?1.15:.65);
+ function animate(time,speed){
+  const effort=clamp(speed/15,0,1.9);
+  const hop=bird||theropod||k==='deer'||k==='pegasus';
+  bodyGroup.position.y=effort*(hop?Math.abs(Math.sin(time))*.10:Math.sin(time*2)*.035);
+  bodyGroup.rotation.z=effort*Math.sin(time)*.019;
+  for(const [i,part] of legs.entries()){
+   const alternate=i%2===0?0:Math.PI;
+   const front=part.front<0?Math.PI*.53:0;
+   const phase=time+(quad?alternate+front:alternate);
+   const swing=Math.sin(phase);
+   part.hip.rotation.x=swing*effort*(quad?.54:.68);
+   part.knee.rotation.x=Math.max(0,-swing)*effort*.76;
+  }
+  for(const [i,part] of arms.entries()){
+   part.sh.rotation.x=Math.sin(time+i*Math.PI)*effort*.50;
+  }
+  if(tail){tail.rotation.y=Math.sin(time*.67)*.11*effort;tail.rotation.x=Math.sin(time*.55)*.07*effort}
+  for(const wing of wings)wing.wing.rotation.z=-wing.side*(.08+.15*Math.sin(time*.76)*effort);
+ }
+ function mtRobotLight(){return mat(0x80bdb4,.25,.3)}
+ return {root,bodyGroup,legs,tail,animate};
+}
+
 // 3D player and opponent are rebuilt on customization / opponent changes.
 let human=makeHuman(save.avatar);human.root.position.set(humanX,.13,0);scene.add(human.root);
-let opponent=makeBeast(animals[clamp(save.chosen,0,animals.length-1)]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);
+let opponent=makeExtendedBeast(animals[clamp(save.chosen,0,animals.length-1)]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);
 const sharedMaterials=new Set(Object.values(m));
 function disposeModel(root){
  root.traverse(o=>{if(!o.isMesh)return;if(o.geometry?.dispose)o.geometry.dispose();
@@ -372,7 +666,7 @@ function refreshHuman(){
   human=makeHuman(save.avatar);human.root.position.set(humanX,.13,mode==='race'?(race?.humanD||0):0);scene.add(human.root);
  }),45);
 }
-function refreshOpponent(){const old=opponent.root;scene.remove(old);disposeModel(old);opponent=makeBeast(animals[save.chosen]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);refreshMenu()}
+function refreshOpponent(){const old=opponent.root;scene.remove(old);disposeModel(old);opponent=makeExtendedBeast(animals[save.chosen]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);refreshMenu()}
 // Subtle footstep puffs, with pooled 3D meshes.
 const dust=[],dustMat=new T.MeshBasicMaterial({color:0xd4b6a1,transparent:true,opacity:.3,depthWrite:false});for(let i=0;i<38;i++){const p=new T.Mesh(new T.SphereGeometry(1,7,5),dustMat.clone());p.visible=false;scene.add(p);dust.push({mesh:p,life:0,max:1})}let dustCursor=0;
 function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.length];p.life=.4+Math.random()*.2;p.max=p.life;p.mesh.visible=true;p.mesh.position.set(x+Math.random()*.4-.2,.13,z-0.5);p.mesh.scale.set(.2,.09,.33);p.mesh.material.opacity=.23}
@@ -528,7 +822,7 @@ function buildPodiumPhoto(){
  placard(sc,'2',-2.48,.34,1.035,.72,.46,0,'#60717b','#ffffff');
  placard(sc,'3',2.48,.21,1.035,.72,.32,0,'#60717b','#ffffff');
  const beast=animals.find(a=>a.name===raceName)||animals[0];
- const athlete=makeHuman(save.avatar),rival=makeBeast(beast);
+ const athlete=makeHuman(save.avatar),rival=makeExtendedBeast(beast);
  const characterScale=1.08;
  const heightFactor=['horse','zebra','ostrich','kangaroo'].includes(beast.kind)?.70:
                     ['lion','pronghorn','gazelle'].includes(beast.kind)?.82:
