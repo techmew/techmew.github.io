@@ -187,7 +187,7 @@ function strongDamageTaken(raw){
 let strongRolls={},strongTrophies={},strongRegionCurrent=-1;
 // New-world scrap positions are in SAVE_SCHEMA2's optional world fields;
 // identified weapons stay durably in an independent, all-species vault.
-let weaponScraps=[],weaponScrapSerial=0,weaponScrapClock=0;
+let weaponScraps=[],weaponScrapSerial=0,weaponScrapClock=0,weaponGuardianClock=0;
 let vw=1,vh=1,dpr=1,cam={x:0,y:0},mode="menu",choice="fox",P=null,mobs=[],carcasses=[],plants=[],debris=[],buildings=[],lamps=[],particles=[],popups=[],birdFlocks=[],streetProps=[];
 let deathSharePending=false;
 let elapsed=0,day=1,kills=0,meals=0,hiddenHold=0,tutorialHuntBase=0,tutorialStashBase=0,expedition=1,freeStep=0,freeTarget=0,questReady=false,mission=0,missionComplete=false,totalScore=0,best=0,weather="CLEAR",scoreTimer=0,spawnTimer=0,uiTimer=0,shake=0,flash=0,toastTime=0,toastMessage="",last=performance.now(),rain=[],worldMade=false;
@@ -1805,7 +1805,7 @@ function start(newWorld=false){
  // New games start in free survival, never require 4 popup quests to unlock exploration.
  gameIntroPending=!!newWorld&&!gameIntroSeen&&!debugTutorialSession;
  firstStepsPending=!!newWorld&&!debugTutorialSession&&!window.WildFirstSteps?.done?.();
- window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;weaponGuardianClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -2172,14 +2172,14 @@ function restoreSnapshot(snapshot){
  const cleanWorld=sanitizeSavedWorld(snapshot);
  mobs=cleanWorld.mobs;carcasses=cleanWorld.carcasses;
  weaponScrapSerial=Math.max(0,Math.min(1000000,Math.floor(Number(snapshot.weaponScrapSerial)||0)));
- weaponScrapClock=0;
+ weaponScrapClock=0;weaponGuardianClock=0;
  const seenScraps=new Set();
  weaponScraps=(Array.isArray(snapshot.weaponScraps)?snapshot.weaponScraps:[]).slice(0,18).filter(d=>
   d&&typeof d.id==="string"&&/^scrap:[a-zA-Z0-9._:-]{1,132}$/.test(d.id)&&
   Number.isSafeInteger(d.seed)&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&
   d.x>=8400&&d.x<=WORLD.w&&d.y>=0&&d.y<=WORLD.h&&
   !seenScraps.has(d.id)&&!window.WildArsenal?.alreadyClaimed?.(d.id)&&!collides(d.x,d.y,20)
- ).map(d=>{seenScraps.add(d.id);return {id:d.id,x:d.x,y:d.y,seed:d.seed,foundAt:Number(d.foundAt)||0,pulse:Number(d.pulse)||0}});
+ ).map(d=>{seenScraps.add(d.id);return {id:d.id,x:d.x,y:d.y,seed:d.seed,foundAt:Number(d.foundAt)||0,pulse:Number(d.pulse)||0,guardianAwake:d.guardianAwake===true}});
  // Old checkpoints may predate the optional serial field; never reuse a
  // claimed vault id from this or an older checkpoint lineage.
  // Durable endgame victory wins over older checkpoints, including older
@@ -5034,12 +5034,65 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
  }
  return false;
 }
+// A contested cache generates actual hostile encounters on APPROACH, not
+// only after claiming the prize. Existing ecological restrictions and caps apply.
+function wakeWeaponScrapGuardian(drop){
+ const armory=window.WildArsenal;
+ if(!drop||drop.guardianAwake||!P||P.hp<=0||mode!=="play"||
+  (armory?.dangerTier?.(drop.x)||0)<2||P.x<8400||
+  Math.hypot(P.x-drop.x,P.y-drop.y)>430||
+  (Number(drop.guardRetryAt)||0)>elapsed)return false;
+ const predators=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
+  !species[m.type]?.prey&&!m.releasedIndividualId&&Math.hypot(m.x-drop.x,m.y-drop.y)<480);
+ if(predators.length){
+  for(const m of predators){
+   m.alert=Math.max(Number(m.alert)||0,7);m.search=Math.max(Number(m.search)||0,7);
+   m.lastX=P.x;m.lastY=P.y;m.wander=0;
+  }
+  drop.guardianAwake=true;notify("ガラクタ付近の野生の敵がこちらに気づいた！",3);
+  saveAuto();return true;
+ }
+ if(atDen()||mobs.filter(m=>m.hp>0&&Math.hypot(m.x-P.x,m.y-P.y)<650).length>=5){
+  drop.guardRetryAt=elapsed+10;return false;
+ }
+ const hostileTypes=["wolf","fox","boar","wildDog","blackBear","hyena","lion","tibetanFox"];
+ for(let k=0;k<12;k++){
+  const angle=(k*.61803398875+(Number(drop.seed)||0)/4294967296)*TWO;
+  const radius=270+k%3*42;
+  const spot={x:Math.round(drop.x+Math.cos(angle)*radius),y:Math.round(drop.y+Math.sin(angle)*radius)};
+  if(spot.x<8400||spot.x>WORLD.w-50||spot.y<50||spot.y>WORLD.h-50||
+   collides(spot.x,spot.y,40)||waterDepth(spot.x,spot.y)>.04||
+   Math.hypot(spot.x-P.x,spot.y-P.y)<230)continue;
+  const biome=regionAt(spot.x,spot.y);
+  const allowed=hostileTypes.filter(id=>species[id]&&!species[id].prey&&
+   (!window.WildFauna?.weight||window.WildFauna.weight(id,biome,day,weather)>0));
+  if(!allowed.length)continue;
+  const type=allowed[(k+Math.abs(Number(drop.seed)||0))%allowed.length];
+  const before=mobs.length;
+  if(!spawnMob(false,false,false,spot,type)||mobs.length<=before)continue;
+  const guard=mobs[mobs.length-1];
+  if(species[guard.type]?.prey){drop.guardRetryAt=elapsed+22;return false;}
+  guard.alert=Math.max(Number(guard.alert)||0,7);
+  guard.search=Math.max(Number(guard.search)||0,7);
+  guard.lastX=P.x;guard.lastY=P.y;guard.wander=0;
+  drop.guardianAwake=true;
+  notify("ガラクタを守る敵が現れた！ 戦うか逃げろ",3);
+  saveAuto();return true;
+ }
+ drop.guardRetryAt=elapsed+14;return false;
+}
 function tickWeaponScraps(dt){
  if(!P||mode!=="play"||debugTutorialSession||!window.WildArsenal)return;
  weaponScrapClock+=dt;
- if(weaponScrapClock<18)return;
- weaponScrapClock=0;
- spawnWeaponScrap(P.x>=8400);
+ if(weaponScrapClock>=18){weaponScrapClock=0;spawnWeaponScrap(P.x>=8400);}
+ if(P.x<8400||!weaponScraps.length)return;
+ weaponGuardianClock+=dt;
+ if(weaponGuardianClock<1.5)return;
+ weaponGuardianClock=0;
+ const near=weaponScraps.filter(q=>!q.guardianAwake&&
+  (window.WildArsenal.dangerTier?.(q.x)||0)>=2&&
+  Math.hypot(P.x-q.x,P.y-q.y)<430).sort((a,b)=>dist(P,a)-dist(P,b));
+ if(near.length)wakeWeaponScrapGuardian(near[0]);
 }
 function pickWeaponScrap(){
  const drop=nearestWeaponScrap(95),armory=window.WildArsenal;
@@ -5051,36 +5104,9 @@ function pickWeaponScrap(){
   return true;
  }
  weaponScraps=weaponScraps.filter(q=>q.id!==drop.id);
- // Eastern salvage is a contested encounter: when no predator is already
- // present, mountain/forest caches can attract ONE real wild NPC. Use the
- // existing fauna, ecology, collision and eastern HP/attack scaling pipeline.
- // Do not create extra attackers near a new player, a den, or a crowded area.
- const easternTier=armory.dangerTier?.(drop.x)||0;
- const nearbyHostiles=mobs.filter(enemy=>enemy&&enemy.hp>0&&!enemy.companion&&!enemy.strongBoss&&
-  !species[enemy.type]?.prey&&!enemy.releasedIndividualId&&
-  Math.hypot(enemy.x-drop.x,enemy.y-drop.y)<480);
- if(easternTier>=2&&nearbyHostiles.length===0&&
-  mobs.filter(enemy=>enemy.hp>0&&Math.hypot(enemy.x-P.x,enemy.y-P.y)<650).length<5){
-  for(let attempt=0;attempt<12;attempt++){
-   const angle=(attempt*.61803398875+drop.seed/4294967296)*TWO;
-   const radius=270+(attempt%3)*42;
-   const point={x:Math.round(drop.x+Math.cos(angle)*radius),y:Math.round(drop.y+Math.sin(angle)*radius)};
-   if(point.x<8400||point.x>WORLD.w-50||point.y<50||point.y>WORLD.h-50||
-    collides(point.x,point.y,40)||waterDepth(point.x,point.y)>.04||
-    Math.hypot(point.x-P.x,point.y-P.y)<230||atDen())continue;
-   const before=mobs.length;
-   if(spawnMob(false,false,false,point)&&mobs.length>before){
-    const guard=mobs[mobs.length-1];
-    if(!species[guard.type]?.prey){
-     guard.alert=Math.max(Number(guard.alert)||0,7);
-     guard.search=Math.max(Number(guard.search)||0,7);
-     guard.lastX=drop.x;guard.lastY=drop.y;guard.wander=0;
-     notify("ガラクタの音を聞いた野生の敵が接近している！",3);
-    }
-    break;
-   }
-  }
- }
+ // A guard defeated before pickup must not respawn during the pickup.
+ // Unseen caches can still trigger the same one-off ecological encounter.
+ if(!drop.guardianAwake)wakeWeaponScrapGuardian(drop);
  // Nearby eastern predators investigate the pickup noise, using existing
  // AI line-of-sight, attacks and boss damage; never turn prey aggressive.
  let alerted=0;
@@ -5153,7 +5179,10 @@ function drawWeaponScrapLabels(){
   if(pos.x<42||pos.x>vw-42||pos.y<60||pos.y>vh-35)continue;
   ctx.fillStyle="#25302ce8";ctx.fillRect(pos.x-46,pos.y-24,92,27);
   ctx.strokeStyle="#d9c6a0";ctx.lineWidth=1.3;ctx.strokeRect(pos.x-46,pos.y-24,92,27);
-  ctx.fillStyle="#f1dfb2";ctx.fillText("？ ガラクタ",pos.x,pos.y-11);
+  const guarded=mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type]?.prey&&
+   Math.hypot(m.x-drop.x,m.y-drop.y)<280);
+  ctx.fillStyle=guarded?"#ffcf9c":"#f1dfb2";
+  ctx.fillText(guarded?"！敵が近い":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
  ctx.restore();
