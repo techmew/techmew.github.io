@@ -99,6 +99,16 @@ for(const stop of window.WildEastExpedition.stops.filter(s=>s.x>=8400)){
   ok(!M.blocked(q.x,q.y,25),"preferred stop has collision-free salvage: "+stop.id);
  }
 }
+// All eight expedition stops must physically place eastern salvage, including
+// the city gate at x=8360. Do not accept vacuous conditional assertions.
+for(const stop of window.WildEastExpedition.stops){
+ ({env,api}=fixture("scrap:qa:full:"+stop.id));env.weaponScraps=[];
+ const success=api.spawnWeaponScrap(false,stop.index);
+ ok(success,"all eight stations must physically spawn: "+stop.id);
+ const q=env.weaponScraps[0];
+ ok(q.x>=8400&&Math.hypot(q.x-stop.x,q.y-stop.y)<=260,"east-only and station-local: "+stop.id);
+ ok(!M.blocked(q.x,q.y,25),"terrain-safe physical cache: "+stop.id);
+}
 ok(game.includes('label:"未鑑定ガラクタを拾う（○）"'),"nearby loot becomes an actionable objective");
 const backupMethods=part(backup,'const WEAPON_VAULT_KEY=',"function mergeIds(records,key,older){");
 const merge=new Function("window",backupMethods+";return mergeWeaponVault;")(window);
