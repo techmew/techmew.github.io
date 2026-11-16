@@ -241,8 +241,24 @@ function makeBeast(data){
 // 3D player and opponent are rebuilt on customization / opponent changes.
 let human=makeHuman(save.avatar);human.root.position.set(humanX,.13,0);scene.add(human.root);
 let opponent=makeBeast(animals[clamp(save.chosen,0,animals.length-1)]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);
-function refreshHuman(){scene.remove(human.root);human=makeHuman(save.avatar);human.root.position.set(humanX,.13,0);scene.add(human.root)}
-function refreshOpponent(){scene.remove(opponent.root);opponent=makeBeast(animals[save.chosen]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);refreshMenu()}
+const sharedMaterials=new Set(Object.values(m));
+function disposeModel(root){
+ root.traverse(o=>{if(!o.isMesh)return;if(o.geometry?.dispose)o.geometry.dispose();
+ const ms=Array.isArray(o.material)?o.material:[o.material];
+ for(const material of ms){if(material&&!sharedMaterials.has(material)&&material.dispose)material.dispose()}
+ });
+}
+let humanRebuildScheduled=false;
+function refreshHuman(){
+ if(humanRebuildScheduled)return;
+ humanRebuildScheduled=true;
+ requestAnimationFrame(()=>{
+  humanRebuildScheduled=false;
+  const old=human.root;scene.remove(old);disposeModel(old);
+  human=makeHuman(save.avatar);human.root.position.set(humanX,.13,mode==='race'?(race?.humanD||0):0);scene.add(human.root);
+ });
+}
+function refreshOpponent(){const old=opponent.root;scene.remove(old);disposeModel(old);opponent=makeBeast(animals[save.chosen]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);refreshMenu()}
 // Subtle footstep puffs, with pooled 3D meshes.
 const dust=[],dustMat=new T.MeshBasicMaterial({color:0xd4b6a1,transparent:true,opacity:.3,depthWrite:false});for(let i=0;i<38;i++){const p=new T.Mesh(new T.SphereGeometry(1,7,5),dustMat.clone());p.visible=false;scene.add(p);dust.push({mesh:p,life:0,max:1})}let dustCursor=0;
 function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.length];p.life=.4+Math.random()*.2;p.max=p.life;p.mesh.visible=true;p.mesh.position.set(x+Math.random()*.4-.2,.13,z-0.5);p.mesh.scale.set(.2,.09,.33);p.mesh.material.opacity=.23}
