@@ -929,10 +929,24 @@ function withSpeciesLocomotion(data,rig){
     leg.knee.rotation.x=.42*Math.max(0,-wave)*effort;
    }
    if(tail)tail.rotation.y=.07*s*effort;
+  }else if(gait==='knuckleRun'){
+   // Gorillas travel with bent knees and long weight-bearing forearms.
+   body.position.y=.012*Math.abs(s)*effort;
+   body.rotation.x=-.24*Math.min(1,effort);
+   body.rotation.z=.045*s*effort;
+   for(const [i,leg] of legs.entries()){
+    const w=Math.sin(phase+i*Math.PI);
+    leg.hip.rotation.x=w*.46*effort;
+    leg.knee.rotation.x=Math.max(0,-w)*.55*effort;
+   }
+   for(const [i,arm] of arms.entries()){
+    const w=Math.sin(phase+i*Math.PI);
+    if(arm.sh)arm.sh.rotation.x=(.28+w*.58)*effort;
+   }
   }else if(biped){
    const heavy=gait==='heavyBiped'||gait==='mechanicalRun';
    const stride=heavy?.40:.66;
-   body.position.y=(heavy?.013:.028)*Math.abs(Math.cos(phase))*effort;
+   body.position.y=gait==='springRun'?.16*lift*effort:(heavy?.013:.028)*Math.abs(Math.cos(phase))*effort;
    body.rotation.x=(gait==='springRun'?.10:.040)*cos*effort;
    body.rotation.z=.035*s*effort;
    for(const [i,leg] of legs.entries()){
