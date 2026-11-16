@@ -29,10 +29,10 @@
 #menuCopy .sub{max-width:350px;color:#edf0ee}.logo em{color:#f1f1ea}.resultCard h2{font-size:clamp(27px,5vw,41px);font-weight:900}
 .customTools{display:flex;gap:8px;padding:6px 0 9px}.customTools button{flex:1;padding:9px 10px;font-size:12px}
 .formrow{min-height:47px}.formrow select{font-size:12px}.formrow .colorPreview{display:inline-flex;align-items:center;justify-content:center;border:1px solid #ffffff55;border-radius:20px;width:20px;height:20px;flex:0 0 20px}
-.resultPhoto{display:block;width:100%;height:clamp(100px,18vh,170px);object-fit:cover;object-position:center 45%;border-radius:11px;margin-top:10px;border:1px solid #ffffff29}
+.resultPhoto{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;object-position:center;border-radius:11px;margin-top:10px;border:1px solid #ffffff29;background:#263d46}
 .resultPhoto[hidden]{display:none}.resultShare{margin-top:9px}.resultShare #shareRace{flex:1.6}.resultShare #downloadRace{flex:1}.resultShare .btn{font-size:12px;white-space:normal;padding:11px 6px}
 #shareHelp{margin:5px 0 0;text-align:center;font-size:10px}
-@media(max-width:680px) and (orientation:portrait){.panel{height:min(53vh,470px)}#customPreviewHint{bottom:60vh}.resultCard{max-height:90dvh;overflow:auto;padding:16px}.resultPhoto{height:120px}.resultCard h2{font-size:31px}.resultShare{margin-top:5px}}
+@media(max-width:680px) and (orientation:portrait){.panel{height:min(53vh,470px)}#customPreviewHint{bottom:60vh}.resultCard{max-height:90dvh;overflow:auto;padding:16px}.resultPhoto{height:auto;aspect-ratio:16/9;object-fit:contain}.resultCard h2{font-size:31px}.resultShare{margin-top:5px}}
 @media(orientation:landscape) and (max-height:540px){.resultCard{max-height:95dvh;overflow-y:auto}.resultPhoto{height:75px}.resButtons{margin-top:7px}}
 
 .customHeaderActions{display:flex;gap:5px}.customHeaderActions button{padding:9px 11px;font-size:11px}.customGroup{padding:11px 0 5px;color:#e9eeeb;font-size:12px;font-weight:900;border-bottom:1px solid #9ca9a740}
@@ -297,5 +297,5 @@ body.race-mode #countdown{
  <div id="resultOverlay"><div class="resultCard glass"><div class="eyebrow" id="resultEyebrow">レース結果</div><h2 id="resultTitle">結果</h2><div class="resGrid"><div><small>あなた</small><b id="resultTime">--</b></div><div><small>対戦相手</small><b id="resultEnemy">--</b></div><div><small>獲得資金</small><b class="accent" id="resultMoney">+0 G</b></div></div><p class="hint" id="resultMsg"></p><div id="result3DWindow" class="result3DWindow" hidden aria-label="勝者と対戦相手の3D表彰台"></div><img id="resultPhoto" class="resultPhoto" alt="レースで使用した3Dキャラクターと対戦相手の表彰台写真" hidden><div class="resButtons resultShare"><button class="btn" id="shareRace">写真と結果をXで共有</button><button class="btn secondary" id="downloadRace">写真を保存</button></div><p class="hint" id="shareHelp">X投稿時は共有画面からXを選択してください。</p><div class="resButtons"><button class="btn secondary" id="retryBtn">もう一度</button><button class="btn" id="resultHome">ホームへ</button></div></div></div>
 </div>
 <div id="loader"><div class="loadingCard"><div class="spinner"></div><div style="font-weight:1000;font-size:22px;letter-spacing:-.05em">3D画面を読み込み中</div><p class="hint" id="loadStatus">競技場を準備しています…</p></div></div>
-<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261117-photo-memory-v10"></script>
+<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261117-result-fullframe-v11"></script>
 </body></html>
