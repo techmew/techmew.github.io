@@ -5097,6 +5097,22 @@ function tickWeaponScraps(dt){
 function pickWeaponScrap(){
  const drop=nearestWeaponScrap(95),armory=window.WildArsenal;
  if(!drop||!armory)return false;
+ // A contested cache must be earned through actual combat. Do not grant
+ // the durable vault item while its alerted territorial guardian survives.
+ // Nearby wild predators remain ordinary combat actors with normal HP,
+ // movement, collision, attack, death and loot behavior.
+ if(drop.guardianAwake){
+  const guards=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
+   !species[m.type]?.prey&&!m.releasedIndividualId&&
+   Math.hypot(m.x-drop.x,m.y-drop.y)<300&&
+   (Number(m.alert)>0||Number(m.search)>0));
+  if(guards.length){
+   notify("ガラクタは敵の縄張り！ 周囲の敵"+guards.length+"体を倒してから回収",3);
+   guards.forEach(m=>{m.alert=Math.max(Number(m.alert)||0,4);
+    m.search=Math.max(Number(m.search)||0,4);m.lastX=P.x;m.lastY=P.y;});
+   return true;
+  }
+ }
  const outcome=armory.open(drop); // Verified localStorage write or no item granted.
  if(!outcome.ok){
   notify(outcome.error==="vault_full"?"武器保管庫が満杯です（240本）":
