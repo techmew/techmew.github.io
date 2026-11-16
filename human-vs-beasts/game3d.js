@@ -1301,7 +1301,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time;r.taps+=1;r.legTaps[side]=now;
@@ -1683,7 +1683,7 @@ $('burstBtn').addEventListener('pointerdown',e=>{e.preventDefault();activateBurs
 let swipeStart=null;
 $('raceControls').addEventListener('pointerdown',e=>{if(e.target.id==='burstBtn'){swipeStart={x:e.clientX,y:e.clientY,id:e.pointerId}}});
 $('raceControls').addEventListener('pointerup',e=>{if(!swipeStart||e.pointerId!==swipeStart.id)return;if(swipeStart.y-e.clientY>38)activateBurst();swipeStart=null});
-$('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resultHome').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent()});$('retryBtn').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent();startRace()});
+$('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resultHome').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent()});$('retryBtn').addEventListener('click',()=>{const replayIndex=race?.opponentIndex;race=null;if(Number.isInteger(replayIndex)&&replayIndex>=0&&replayIndex<animals.length)save.chosen=replayIndex;showScreen('menu');refreshOpponent();startRace()});
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
 const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
 async function raceImageBlob(){
