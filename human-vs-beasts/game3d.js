@@ -152,7 +152,7 @@ function makeHuman(a){
  // decorative shirt panels / collar
  if(a.shirtStyle%3===0){ball(torso,white,0,.62,.22,.14,.10,.04)}
  if(a.shirtStyle%3===1){box(torso,.06,.65,.022,white,0,.35,.245)}
- if(a.shirtStyle%3===2){box(torso,.48,.095,.04,white,0,.3,.244)}
+ if(a.shirtStyle%3===2){box(torso,.48,.095,.04,white,0,.3,.244)}if(a.shirtStyle>=4){for(let s of [-1,1])box(torso,.035,.46,.024,white,s*.25,.34,.20,true)}
  if(a.topPattern>0){for(let i=0;i<Math.min(5,a.topPattern);i++)box(torso,.23,.025,.025,a.topPattern%2?white:dark,0,.15+i*.10,.255,true)}
  // shoulder joints and articulated arms
  const arms=[],legs=[];
@@ -185,19 +185,21 @@ function makeHuman(a){
  }
  ball(head,skin,0,.09,faceZ*.91+.008*morph('noseBridge'),(.042+a.nose*.003)*(1+.28*morph('noseWidth')),.07+.029*morph('noseLength'),.048+a.nose*.003+.025*morph('noseBridge'),20);ball(head,skin,0,.022,faceZ+.045+.023*morph('noseTip'),.058+.025*morph('noseTip'),.036,.042,20);for(let s of [-1,1])ball(head,dark,s*(.040+.014*morph('nostril')),.004,faceZ+.062,.013+.008*morph('nostril'),.008,.006,12);
  const mouthY=-.048+.036*morph('mouthHeight'),mouthW=(.055+a.mouth*.003)*(1+.28*morph('mouthWidth'));ball(head,lipMat,0,mouthY+.009,faceZ*.94,mouthW,.011+.010*morph('upperLip'),.012,20);ball(head,lipMat,0,mouthY-.010,faceZ*.95,mouthW*.96,.013+.010*morph('lowerLip'),.012,20);for(let s of [-1,1])ball(head,dark,s*mouthW,mouthY+.015*morph('smile'),faceZ*.93,.006,.005,.007,12);
- const style=a.hairStyle%10;
- const hairCap=ball(head,hair,0,.37,-.036,.3,.13,.295);
+ const style=a.hairStyle%10;const hairGroup=new T.Group();head.add(hairGroup);hairGroup.position.set(.055*morph('part'),-.023*morph('bangs'),0);hairGroup.scale.set(1+.22*morph('hairVolume'),1+.26*morph('hairLength'),1+.16*morph('hairVolume'));
+ const hairCap=ball(hairGroup,hair,0,.37,-.036,.3,.13,.295);
  if(style===0)hairCap.scale.y=.42;
- else if(style===1){for(let i=0;i<8;i++){const ang=i*Math.PI*2/8;ball(head,hair,Math.cos(ang)*.22,.44,Math.sin(ang)*.20,.09,.10,.11,10)}}
- else if(style===2){for(let i=0;i<9;i++){ball(head,hair,Math.sin(i*2.3)*.22,.38+(i%3)*.055,Math.cos(i*2.3)*.2,.095,.105,.10,9)}}
- else if(style===3){for(let i=0;i<6;i++){ball(head,hair,(i-2.5)*.085,.47+Math.sin(i)*.04,.11,.096,.15,.16,11)}}
- else if(style===4){ball(head,hair,0,.48,-.27,.15,.21,.2);ball(head,hair,0,.26,-.33,.12,.26,.16)}
- else if(style===5){for(let i=0;i<11;i++){const ang=i*2.399;ball(head,hair,Math.cos(ang)*.22,.46+Math.sin(i)*.05,Math.sin(ang)*.21,.11,.14,.12,9)}}
- else if(style===6){for(let i=0;i<5;i++)ball(head,hair,0,.52+i*.085,-.05,.07*(1-i*.10),.12,.11,9)}
- else if(style===7){ball(head,hair,-.13,.41,.13,.18,.13,.14);ball(head,hair,.18,.49,.04,.19,.16,.19)}
- else if(style===8){for(let i=0;i<7;i++)ball(head,hair,(i-3)*.09,.46,.07,.07,.19,.10,9)}
- else {ball(head,hair,0,.29,-.22,.30,.37,.12);ball(head,hair,-.17,.23,.19,.09,.26,.10);ball(head,hair,.17,.23,.19,.09,.26,.10)}
- if(a.accessory===1||a.accessory===6){const glassMat=mat(0x202c3a,.2,.5);for(const side of [-1,1])ball(head,glassMat,side*.115,.22,.30,.095,.055,.014)}
+ else if(style===1){for(let i=0;i<8;i++){const ang=i*Math.PI*2/8;ball(hairGroup,hair,Math.cos(ang)*.22,.44,Math.sin(ang)*.20,.09,.10,.11,10)}}
+ else if(style===2){for(let i=0;i<9;i++){ball(hairGroup,hair,Math.sin(i*2.3)*.22,.38+(i%3)*.055,Math.cos(i*2.3)*.2,.095,.105,.10,9)}}
+ else if(style===3){for(let i=0;i<6;i++){ball(hairGroup,hair,(i-2.5)*.085,.47+Math.sin(i)*.04,.11,.096,.15,.16,11)}}
+ else if(style===4){ball(hairGroup,hair,0,.48,-.27,.15,.21,.2);ball(hairGroup,hair,0,.26,-.33,.12,.26,.16)}
+ else if(style===5){for(let i=0;i<11;i++){const ang=i*2.399;ball(hairGroup,hair,Math.cos(ang)*.22,.46+Math.sin(i)*.05,Math.sin(ang)*.21,.11,.14,.12,9)}}
+ else if(style===6){for(let i=0;i<5;i++)ball(hairGroup,hair,0,.52+i*.085,-.05,.07*(1-i*.10),.12,.11,9)}
+ else if(style===7){ball(hairGroup,hair,-.13,.41,.13,.18,.13,.14);ball(hairGroup,hair,.18,.49,.04,.19,.16,.19)}
+ else if(style===8){for(let i=0;i<7;i++)ball(hairGroup,hair,(i-3)*.09,.46,.07,.07,.19,.10,9)}
+ else {ball(hairGroup,hair,0,.29,-.22,.30,.37,.12);ball(hairGroup,hair,-.17,.23,.19,.09,.26,.10);ball(hairGroup,hair,.17,.23,.19,.09,.26,.10)}
+ if(a.hairLength>30){for(let side of [-1,1]){const lock=ball(hairGroup,hair,side*.245,.11-(a.hairLength-30)*.0035,-.035,.067,.12+a.hairLength*.0022,.094,18);lock.rotation.z=side*.05}}
+ if(a.bangs>15){for(let j=0;j<6;j++){const x=(j-2.5)*.086+.045*morph('part');const fringe=ball(hairGroup,hair,x,.33-.075*morph('bangs'),.20,.062,.082+.075*morph('bangs'),.085,16);fringe.rotation.z=.06*morph('part')}}
+  if(a.accessory===1||a.accessory===6){const glassMat=mat(0x202c3a,.2,.5);for(const side of [-1,1])ball(head,glassMat,side*.115,.22,.30,.095,.055,.014)}
  if(a.accessory===2||a.accessory===7){const cap=ball(head,mat(0x142739),0,.47,0,.32,.105,.31);ball(head,mat(0x1a3453),0,.45,.25,.28,.026,.17)}
  if(a.accessory===3||a.accessory===8){box(torso,.075,.30,.03,m.gold,0,.22,.275)}
  if(a.accessory===4){ball(head,mat(0xd9b769,.3,.8),-.31,.12,0,.04,.07,.034);ball(head,mat(0xd9b769,.3,.8),.31,.12,0,.04,.07,.034)}
@@ -205,7 +207,7 @@ function makeHuman(a){
  lineShadow(root,.5);
  return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1){
  const moving=speed>.13, factor=moving?clamp(speed/8.5,.14,1.6):0;
- const phase=t*(6.0+factor*5.2),step=Math.sin(phase),op=Math.cos(phase);
+ const phase=t,step=Math.sin(phase),op=Math.cos(phase);
  // Rest pose has zero limb movement. While running, hips swing opposite shoulders.
  torso.rotation.x=moving?-(.07+factor*.105)+morph('posture')*.06:morph('posture')*.06;
  torso.rotation.z=step*.036*factor;
@@ -497,9 +499,9 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else{wantedPos=new T.Vector3(-5.4,3.08,9.9);wantedTarget=new T.Vector3(0,1.1,0)}
  const t=Math.min(1,dt*(mode==='race'?3.8:2.9));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
-function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
+let humanGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'?(race?.humanV||0):0,espeed=mode==='race'?(race?.enemyV||0):0;
- human.animate(sceneTime,hspeed,mode==='race'?race.stamina:1);opponent.animate(sceneTime,espeed);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1);opponent.animate(sceneTime,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.9);x.mesh.position.y+=dt*.24;x.mesh.material.opacity=Math.max(0,.25*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
