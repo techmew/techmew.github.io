@@ -899,7 +899,7 @@ function playRecordedVoice(kind){
   if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}
   player.pause();player.currentTime=Math.min(data.begin,Math.max(0,(player.duration||9)-1));
   player.volume=.90;
-  const promise=player.play();if(promise?.catch)promise.catch(e=>console.warn('Animal recording playback',e));
+  const promise=player.play();if(promise?.catch)promise.catch(e=>{console.warn('Animal recording playback',e);synthesizeCreatureCall(kind)});
   voiceStopTimer=setTimeout(()=>{player.pause();voiceStopTimer=null},data.length*1000);
   return true;
  }catch(err){console.warn('Recorded voice',err);return false}
@@ -908,6 +908,10 @@ function playRecordedVoice(kind){
 function animalCall(kind){
  if(!sfx)return;
  if(playRecordedVoice(kind))return;
+ synthesizeCreatureCall(kind);
+}
+function synthesizeCreatureCall(kind){
+ if(!sfx)return;
  const bird=['ostrich','dodo','moa','terrorbird','griffin'].includes(kind);
  const roar=['lion','tiger','dragon','trex','spinosaurus','kaiju','smilodon','cavebear','gorilla'].includes(kind);
  const giant=['mammoth','elephant','rhino','hippo','triceratops','golem','giantrobot'].includes(kind);
@@ -1390,7 +1394,7 @@ function finishRace(){
  $('resultMsg').textContent=won?'勝ちました。'+(atLast?'全ての動物との対戦を終えました。':'次の動物に挑戦できます。'):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
  lastResultWon=won;resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
  $('resultOverlay').style.display='flex';
- stopAmbience();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
+ stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
 }
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.045,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.jumpCooldown=Math.max(0,r.jumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;if(r.jumpY>0||r.jumpVelocity>0){r.jumpVelocity-=11.6*dtSafe;r.jumpY=Math.max(0,r.jumpY+r.jumpVelocity*dtSafe);if(r.jumpY===0)r.jumpVelocity=0}
