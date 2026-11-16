@@ -878,6 +878,14 @@ function prefetchVoice(kind){
   const media=new Audio(url);
   media.preload='auto';media.volume=.72;
   loadedCalls[entry.file]=media;
+  media.addEventListener('canplay',()=>{
+   // Asynchronously loaded animal audio should still be heard even on a slow connection.
+   const current=animals[save.chosen]?.kind;
+   if(sfx&&mode==='race'&&race?.phase==='running'&&race.time<2.5&&
+      recordedVoices[current]?.file===entry.file&&!race.voiceLatePlayed){
+    race.voiceLatePlayed=true;playRecordedVoice(current);
+   }
+  },{once:true});
   media.load();
  }catch(err){console.warn('Voice preload',err)}
 }
@@ -925,7 +933,7 @@ function animalCall(kind){
 function effect(name){
  if(!sfx)return;
  if(name==='start'){
-  // Original 3-2-1-GO cue: the three short countdown pips resolve into one long higher chime.
+  // Clean, original 3-2-1-GO cue: three short countdown pips resolve into one long higher chime.
   soundTone(1046.5,.68,'triangle',.080,0,1318.5);
   soundTone(1568,.57,'sine',.028,.035,1568);
  }else if(name==='burst'){
@@ -1423,8 +1431,8 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(offCourse&&!r.offTrack){r.offTrack=true;showNotice('コース外：失速します',.85)}
  else if(!offCourse)r.offTrack=false;
  if(r.bumpCooldown===0&&r.jumpY<.14&&r.hFinish===null&&r.eFinish===null
-  &&Math.abs(r.lateral-r.enemyLateral)<.85
-  &&Math.abs(r.humanD-r.enemyD)<2.25){
+  &&Math.abs(r.lateral-r.enemyLateral)<1.05
+  &&Math.abs(r.humanD-r.enemyD)<4.8){
    r.bumpCooldown=1.4;r.enemyStumble=.82;r.enemyV*=.73;
    r.humanV*=.92;
    r.enemyLateral=clamp(r.enemyLateral+.29,animalX-.4,animalX+1.35);
@@ -1455,7 +1463,7 @@ for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
   footPointers[side].set(e.pointerId,now);
   const other=side==='L'?'R':'L';
   const otherTimes=[...footPointers[other].values()];
-  const together=otherTimes.some(t=>Math.abs(now-t)<145);
+  const together=otherTimes.length>0;
   if(together){if(race&&!race.jumpChord)smallJump()}
   else tap(side);
  });
@@ -1509,7 +1517,7 @@ addEventListener('keydown',e=>{
  if(side){
   keyboardFoot[side]=performance.now();
   const other=side==='L'?'R':'L';
-  if(keyboardFoot[other]&&Math.abs(keyboardFoot[side]-keyboardFoot[other])<145)smallJump();
+  if(keyboardFoot[other])smallJump();
   else tap(side);
  }
  if(e.code==='Space')activateBurst();
