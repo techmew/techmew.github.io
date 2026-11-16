@@ -1332,6 +1332,7 @@ function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 
 let racePicture=null,resultText='',lastResultWon=false;
+let podiumRetryFrame=0,podiumRetryAttempts=0;
 function buildPodiumPhoto(){
  const sc=new T.Scene();
  sc.background=new T.Color(0x657783);
@@ -1480,7 +1481,7 @@ function endCeremonyStage(){
   disposeModel(old.scene);
  }catch(e){console.warn('3D podium release',e)}
  $('result3DWindow').hidden=true;$('resultPhoto').hidden=true;
- racePicture=null;initResize();
+ racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;initResize();
 }
 function capturePodiumFromGPU(ctx,w,h){
  const target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
@@ -1556,7 +1557,7 @@ function captureCeremonyPhoto(){
   console.warn('3D image capture blocked; show live 3D podium instead',err);
   $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
   ceremonyStage.photoCaptured=false;
-  $('shareHelp').textContent='3D表彰台を表示中。写真保存は再試行できます。';
+  $('shareHelp').textContent='3D表彰台を表示中。写真を再取得しています。';
  }finally{
   if(ceremonyStage){
    // The result photo and the live podium share a renderer; always restore
@@ -1572,7 +1573,7 @@ function captureCeremonyPhoto(){
  return success;
 }
 function makeRacePhoto(){
- racePicture=null;
+ racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;
  const preview=$('result3DWindow');preview.hidden=false;
  $('resultPhoto').hidden=true;
  try{
@@ -1659,12 +1660,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
    kickDust(r.lateral,r.humanD,12);
    effect('bump');showNotice('接触！相手が失速',.65);
   }
- /* Human steps occur only after a real tap. */
- if(r.eFinish===null&&r.enemyV>4){
-  const big=['mammoth','elephant','triceratops','trex','spinosaurus','dragon','golem','giantrobot','kaiju'].includes(a.kind);
-  const dustRate=big?25:10;
-  if(Math.random()<dtSafe*dustRate){kickDust(animalX,r.enemyD,r.enemyV);if(big)kickDust(animalX+.55,r.enemyD-.30,r.enemyV)}
- }
+ /* Rival dust is generated only by actual animated foot contact in frame(). */
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
  if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
 function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent=r.combo>=2?'交互 '+r.combo+'連続':r.taps===0?'左・右で走る':r.time-r.lastTap>.5?'タップして前進':r.lastFoot==='L'?'左に移動':'右に移動';$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
@@ -1747,11 +1743,32 @@ function adaptQuality(dt){
 }
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
  if(mode==='race'&&race?.phase==='results'){
-  if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  if(ceremonyStage&&!ceremonyStage.photoCaptured){
+   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   // Some Android browsers return an empty framebuffer immediately after a
+   // WebGL scene switch. Retry on later rendered frames, with a strict limit.
+   podiumRetryFrame++;
+   if(podiumRetryAttempts<3&&podiumRetryFrame>=24){
+    podiumRetryFrame=0;podiumRetryAttempts++;
+    if(!captureCeremonyPhoto()&&podiumRetryAttempts===3)
+     $('shareHelp').textContent='3D表彰台を表示中。写真保存ボタンから再試行できます。';
+   }
+  }
   return;
  }
  if(mode==='race')updateRace(dt);
- if(mode==='race'&&race?.phase==='results'){if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);return}
+ if(mode==='race'&&race?.phase==='results'){
+  if(ceremonyStage&&!ceremonyStage.photoCaptured){
+   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   podiumRetryFrame++;
+   if(podiumRetryAttempts<3&&podiumRetryFrame>=24){
+    podiumRetryFrame=0;podiumRetryAttempts++;
+    if(!captureCeremonyPhoto()&&podiumRetryAttempts===3)
+     $('shareHelp').textContent='3D表彰台を表示中。写真保存ボタンから再試行できます。';
+   }
+  }
+  return;
+ }
  // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
@@ -1762,7 +1779,10 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
   if(race.time-race.lastRivalImpact>gap){
    race.lastRivalImpact=race.time;animalFootstep(kind,espeed);
-   if(['kangarooHop','bound','pronk'].includes(gait))kickDust(race.enemyLateral,race.enemyD,espeed);
+   // Emit impact dust on the actual animation landing, not on random frames.
+   kickDust(race.enemyLateral,race.enemyD,espeed);
+   if(['heavyTrot','heavyBiped','mechanicalRun'].includes(gait))
+    kickDust(race.enemyLateral+.36,race.enemyD-.30,espeed);
   }
  }
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
