@@ -1515,10 +1515,11 @@ function podiumPixelsValid(ctx,w,h){
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
- let success=false;const w=mobile?768:960,h=mobile?432:540;
+ let success=false;const w=mobile?640:960,h=mobile?360:540;
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
   const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true});
+  if(!ctx)throw Error('Canvas 2D context unavailable');
   // Prefer the explicit GPU framebuffer: mobile WebGL canvases may clear
   // their default drawing buffer before drawImage reads it.
   ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
@@ -1546,8 +1547,8 @@ function captureCeremonyPhoto(){
   ctx.font='800 30px system-ui,sans-serif';ctx.fillText(resultText,24,start+63);
   ctx.textAlign='right';ctx.fillStyle='#ccd7d4';ctx.font='500 13px sans-serif';
   ctx.fillText('techmew.github.io/human-vs-beasts/',w-20,h-8);
-  const src=photo.toDataURL('image/jpeg',.93);
-  if(!src.startsWith('data:image/'))throw Error('Image export unavailable');
+  const src=photo.toDataURL('image/jpeg',.88);
+  if(!src.startsWith('data:image/jpeg;base64,')||src.length<2000)throw Error('Image export unavailable');
   racePicture=photo;
   $('resultPhoto').src=src;$('resultPhoto').hidden=false;
   $('result3DWindow').hidden=true;ceremonyStage.photoCaptured=true;
@@ -1578,6 +1579,8 @@ function makeRacePhoto(){
  $('resultPhoto').hidden=true;
  try{
   if(ceremonyStage)endCeremonyStage();
+  // Build the podium before transferring the live WebGL canvas; a failed
+  // model construction must never leave the gameplay canvas detached.
   ceremonyStage=buildPodiumPhoto();ceremonyStage.photoCaptured=false;
   const canvas=renderer.domElement;preview.appendChild(canvas);
   canvas.style.position='relative';canvas.style.inset='auto';canvas.style.width='100%';canvas.style.height='100%';
@@ -1590,6 +1593,10 @@ function makeRacePhoto(){
   console.warn('Could not create 3D podium',err);
   $('shareHelp').textContent='3D表彰台の描画に失敗しました。再試行してください。';
   if(ceremonyStage)endCeremonyStage();
+  const canvas=renderer.domElement,shade=$('shade');
+  if(shade?.parentNode&&canvas.parentNode!==shade.parentNode)shade.parentNode.insertBefore(canvas,shade);
+  canvas.removeAttribute('style');
+  initResize();
  }
 }
 
