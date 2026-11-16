@@ -61,10 +61,10 @@ const handler=part(game,"function equippedWeapon(){","function contextAction(lon
  part(game,"function contextAction(longPress=false){","const RUSH_COST=");
 function fixture(id,failWorld=false){
  const env={window,weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0}],
- weaponScrapSerial:44,weaponScrapClock:0,scoreRunId:"attempt-qa-run",
+ weaponScrapSerial:44,weaponScrapClock:0,weaponGuardianClock:0,day:2,weather:"CLEAR",scoreRunId:"attempt-qa-run",
  P:{x:9320,y:1877,type:"cat",hp:100,r:16},mode:"play",elapsed:170,
  TWO:Math.PI*2,MOUNTAIN:M,WORLD:{w:13600,h:6000},carcasses:[],mobs:[],species:{wolf:{prey:false},rabbit:{prey:true}},debugTutorialSession:null,
- dist:(x,y)=>Math.hypot(x.x-y.x,x.y-y.y),lineBlocked:()=>false,
+ dist:(x,y)=>Math.hypot(x.x-y.x,x.y-y.y),regionAt:()=>2,lineBlocked:()=>false,
  mountainHabitat:(x,y)=>x>=M.CITY_EDGE&&M.active(x,y),
  waterDepth:()=>0,collides:(x,y,r)=>M.blocked(x,y,r),rnd:(lo,hi)=>lo+Math.random()*(hi-lo),
  $:()=>null,notify:()=>{},label:()=>{},syncHUD:()=>{},saveAuto:()=>!failWorld,
@@ -76,7 +76,7 @@ function fixture(id,failWorld=false){
   const npc={type:"wolf",x:spot.x,y:spot.y,hp:100,maxHp:100,alert:0,search:0,wander:3};
   env.mobs.push(npc);a.enemyBuff(npc,{prey:false});return true;
  }};
- const api=new Function("env","with(env){"+handler+"return {contextAction,pickWeaponScrap,spawnWeaponScrap};}")(env);
+ const api=new Function("env","with(env){"+handler+"return {contextAction,pickWeaponScrap,spawnWeaponScrap,tickWeaponScraps,wakeWeaponScrapGuardian};}")(env);
  return {env,api};
 }
 let {env,api}=fixture("scrap:qa:pickup");
@@ -85,6 +85,25 @@ env.mobs.push({type:"rabbit",x:9350,y:1880,hp:10,alert:0});
 api.contextAction(false);
 ok(env.mobs[0].alert>=5.5&&env.mobs[0].lastX===9320,"salvage noise activates nearby hostile NPC AI");
 eq(env.mobs[1].alert,0,"salvage does not force prey aggression");
+// Contested caches must be guarded BEFORE the interaction, not after.
+({env,api}=fixture("scrap:qa:before"));
+env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
+env.P.x=10800;env.P.y=2590;
+api.tickWeaponScraps(1.6);
+ok(env.weaponScraps[0].guardianAwake===true,"cache wakes a real patrol before pickup");
+eq(env.mobs.length,1,"patrol creates exactly one animal");
+ok(env.mobs[0].hp>100&&env.mobs[0].alert>=7&&env.mobs[0].search>=7,
+ "pre-pickup patrol is dangerous, chases player and inherits eastern scaling");
+ok(Math.hypot(env.mobs[0].x-env.P.x,env.mobs[0].y-env.P.y)>=230,"pre-pickup guard physically separated from player");
+api.tickWeaponScraps(1.6);
+eq(env.mobs.length,1,"already awake cache cannot spawn another patrol");
+env.mobs[0].hp=0; // Player defeats the enemy using the live combat system.
+api.contextAction(false);
+eq(env.weaponScraps.length,0,"after defeating guard, loot can be collected");
+eq(env.mobs.length,1,"defeated guardian does not respawn at pickup");
+ok(a.alreadyClaimed("scrap:qa:before"),"guarded loot is safely recorded in the vault");
+ok(game.includes("guardianAwake:d.guardianAwake===true"),"guardian state is restored in older-schema world snapshots");
+ok(game.includes("if(!drop.guardianAwake)wakeWeaponScrapGuardian(drop)"),"pickup never re-creates an already defeated guard");
 // A lone remote mountain cache must be defended by a physically spawned NPC,
 // not merely a visual danger marker. The NPC inherits actual eastern scaling.
 ({env,api}=fixture("scrap:qa:guard"));
