@@ -1133,59 +1133,146 @@ function buildPodiumPhoto(){
  cam.position.set(0,3.1,8.15);cam.lookAt(0,2.04,.16);
  return {scene:sc,camera:cam};
 }
-function makeRacePhoto(){
- let target=null,stage=null;
- try{
-  const w=1200,h=675;
-  const cnv=document.createElement('canvas');cnv.width=w;cnv.height=h;
-  const cx=cnv.getContext('2d',{alpha:false});
-  if(!cx)throw new Error('Canvas unavailable');
-  stage=buildPodiumPhoto();
-  target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
-  const pixels=new Uint8Array(w*h*4),image=cx.createImageData(w,h);
-  renderer.setRenderTarget(target);
-  renderer.render(stage.scene,stage.camera);
-  renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
-  renderer.setRenderTarget(null);
-  // WebGL framebuffer pixels are bottom-up.
-  for(let y=0;y<h;y++){
-   image.data.set(pixels.subarray((h-1-y)*w*4,(h-y)*w*4),y*w*4);
+
+// Guaranteed result image: attempt live Three.js podium capture first.
+// If WebGL capture is blocked on Android, draw a local podium scene on 2D canvas.
+function fallbackPodiumPhoto(ctx,w,h){
+ const sky=ctx.createLinearGradient(0,0,0,h);
+ sky.addColorStop(0,'#405b70');sky.addColorStop(.67,'#a7bbc1');sky.addColorStop(1,'#546457');
+ ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='#3b5262';for(let row=0;row<5;row++){
+  ctx.fillRect(0,180+row*38,w,29);
+  for(let j=0;j<34;j++){
+   const x=(j+0.5)*w/34,y=196+row*38;
+   ctx.fillStyle=['#b5b8ae','#d2cab6','#84989b','#71869a'][(j*11+row)%4];
+   ctx.beginPath();ctx.ellipse(x,y,8,9,0,0,Math.PI*2);ctx.fill();
   }
-  cx.putImageData(image,0,0);
-  const strip=142,top=h-strip;
-  const grad=cx.createLinearGradient(0,top,0,h);
-  grad.addColorStop(0,'rgba(14,25,31,0)');
-  grad.addColorStop(.23,'rgba(14,25,31,.85)');
-  grad.addColorStop(1,'rgba(10,19,23,.95)');
-  cx.fillStyle=grad;cx.fillRect(0,top,w,strip);
-  cx.textAlign='left';
-  cx.fillStyle='#f1f1eb';
-  cx.font='600 25px system-ui,"Noto Sans JP",sans-serif';
-  cx.fillText('動物と100m走  /  '+raceName,34,top+49);
-  cx.font='800 44px system-ui,"Noto Sans JP",sans-serif';
-  cx.fillText(resultText,34,top+98,w-60);
-  cx.textAlign='right';
-  cx.font='500 19px system-ui,sans-serif';
-  cx.fillStyle='#d0dbd5';
-  cx.fillText('techmew.github.io/human-vs-beasts/',w-34,top+125);
-  racePicture=cnv;
-  const img=$('resultPhoto');img.src=cnv.toDataURL('image/png');img.hidden=false;
-  $('shareHelp').textContent='写真を保存・共有できます。Xへ投稿する際は共有先から選択してください。';
- }catch(err){
-  console.warn('Podium screenshot failed',err);
-  // Never expose the old rear-facing track capture as a result photograph.
-  racePicture=null;
-  $('resultPhoto').hidden=true;
-  $('shareHelp').textContent='この端末では表彰台の写真を生成できませんでした。';
+  ctx.fillStyle='#3b5262';
+ }
+ ctx.fillStyle='#465d57';ctx.fillRect(0,h*.60,w,h*.4);
+ const podium=(cx,baseY,wd,ht,num)=>{
+  ctx.fillStyle='#9dacb2';ctx.fillRect(cx-wd/2,baseY-ht,wd,ht);
+  ctx.fillStyle='#d0bb82';ctx.fillRect(cx-wd/2,baseY-ht,wd,12);
+  ctx.fillStyle='#f0eee3';ctx.font='bold '+Math.round(wd*.36)+'px sans-serif';
+  ctx.textAlign='center';ctx.fillText(String(num),cx,baseY-ht*.3);
+ };
+ podium(w*.50,h*.89,w*.255,h*.27,1);
+ podium(w*.21,h*.89,w*.23,h*.17,2);
+ podium(w*.79,h*.89,w*.23,h*.11,3);
+ const skin=palettes.skin[save.avatar.skin%palettes.skin.length]||'#d4b097';
+ const hair=palettes.hair[save.avatar.hair%palettes.hair.length]||'#514139';
+ const shirt=palettes.shirt[save.avatar.shirt%palettes.shirt.length]||'#e3ece4';
+ const pants=palettes.pants[save.avatar.pants%palettes.pants.length]||'#344a57';
+ function ellipse(x,y,rx,ry,col){
+  ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
+ }
+ function human(cx,footY,scale,medal){
+  ctx.save();ctx.translate(cx,footY);ctx.scale(scale,scale);
+  ctx.lineCap='round';
+  ctx.lineWidth=24;ctx.strokeStyle=pants;
+  ctx.beginPath();ctx.moveTo(-16,-80);ctx.lineTo(-18,-19);ctx.moveTo(16,-80);ctx.lineTo(18,-19);ctx.stroke();
+  ellipse(-18,-12,19,11,'#333e45');ellipse(18,-12,19,11,'#333e45');
+  ellipse(0,-126,48,60,shirt);
+  ctx.lineWidth=18;ctx.strokeStyle=shirt;
+  ctx.beginPath();ctx.moveTo(-38,-152);ctx.lineTo(-63,-95);ctx.moveTo(38,-152);ctx.lineTo(63,-95);ctx.stroke();
+  ellipse(-63,-96,12,12,skin);ellipse(63,-96,12,12,skin);
+  ellipse(0,-232,43,49,skin);
+  ellipse(0,-269,43,20,hair);
+  ellipse(-15,-234,4,5,'#262526');ellipse(15,-234,4,5,'#262526');
+  ctx.strokeStyle='#663f36';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-218,13,.17,Math.PI-.17);ctx.stroke();
+  if(medal){
+   ctx.strokeStyle='#d5ba78';ctx.lineWidth=6;
+   ctx.beginPath();ctx.moveTo(-23,-174);ctx.lineTo(0,-143);ctx.lineTo(23,-174);ctx.stroke();
+   ellipse(0,-139,17,19,'#e3be59');ellipse(0,-139,9,11,'#fff0ae');
+  }
+  ctx.restore();
+ }
+ function animal(cx,footY,scale,medal){
+  ctx.save();ctx.translate(cx,footY);ctx.scale(scale,scale);
+  const col='#8e755d';
+  for(const side of [-1,1]){
+   ellipse(side*36,-35,17,49,col);ellipse(side*42,0,22,10,'#423a33');
+  }
+  ellipse(0,-107,76,68,col);ellipse(0,-167,49,51,col);
+  ellipse(-37,-201,15,27,col);ellipse(37,-201,15,27,col);
+  ellipse(0,-159,38,27,'#9d8977');
+  ellipse(-21,-176,5,6,'#211d1a');ellipse(21,-176,5,6,'#211d1a');
+  ellipse(0,-148,17,12,'#c2a48c');
+  if(medal){ellipse(0,-106,18,18,'#e3bd67');ellipse(0,-106,9,9,'#fbe5a2')}
+  ctx.restore();
+ }
+ if(lastResultWon){
+  human(w*.50,h*.635,1.06,true);
+  animal(w*.21,h*.73,.54,false);
+ }else{
+  animal(w*.50,h*.62,.90,true);
+  human(w*.21,h*.73,.58,false);
+ }
+}
+function makeRacePhoto(){
+ const w=960,h=540;
+ let canvas=null,stage=null,previousRatio=null,previousSize=null;
+ try{
+  canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const cx=canvas.getContext('2d',{alpha:false});
+  if(!cx)throw Error('2D canvas unavailable');
+  let captured=false;
+  try{
+   stage=buildPodiumPhoto();
+   previousRatio=renderer.getPixelRatio();
+   previousSize=renderer.getSize(new T.Vector2());
+   renderer.setRenderTarget(null);
+   renderer.setPixelRatio(1);
+   renderer.setSize(w,h,false);
+   renderer.render(stage.scene,stage.camera);
+   cx.drawImage(renderer.domElement,0,0,w,h);
+   const pixels=cx.getImageData(w*.5|0,h*.45|0,1,1).data;
+   captured=pixels[3]>0;
+  }catch(error){console.warn('Podium 3D capture failed; using fallback',error)}
+  finally{
+   try{
+    renderer.setRenderTarget(null);
+    if(previousRatio!==null)renderer.setPixelRatio(previousRatio);
+    if(previousSize)renderer.setSize(previousSize.x,previousSize.y,false);
+   }catch(error){console.warn('Renderer restore',error)}
+  }
+  if(!captured)fallbackPodiumPhoto(cx,w,h);
+  const top=h-111,grad=cx.createLinearGradient(0,top,0,h);
+  grad.addColorStop(0,'rgba(8,18,23,0)');
+  grad.addColorStop(.25,'rgba(8,18,23,.84)');
+  grad.addColorStop(1,'rgba(8,18,23,.97)');
+  cx.fillStyle=grad;cx.fillRect(0,top,w,111);
+  cx.textAlign='left';cx.fillStyle='#f4f2e9';
+  cx.font='600 21px system-ui,"Noto Sans JP",sans-serif';
+  cx.fillText('動物と100m走 / '+raceName,24,top+37);
+  cx.font='800 32px system-ui,"Noto Sans JP",sans-serif';
+  cx.fillText(resultText,24,top+77,w-40);
+  cx.font='500 13px system-ui,sans-serif';cx.fillStyle='#c8d7d1';
+  cx.textAlign='right';cx.fillText('techmew.github.io/human-vs-beasts/',w-24,h-12);
+  racePicture=canvas;
+  const img=$('resultPhoto');
+  try{img.src=canvas.toDataURL('image/jpeg',.9)}
+  catch(error){
+   canvas.toBlob(blob=>{if(blob){if(img.dataset.tempUrl)URL.revokeObjectURL(img.dataset.tempUrl);img.dataset.tempUrl=URL.createObjectURL(blob);img.src=img.dataset.tempUrl}},'image/jpeg',.9);
+  }
+  img.hidden=false;
+  $('shareHelp').textContent='表彰台の写真を保存・共有できます。';
+ }catch(error){
+  console.warn('Result photo fallback',error);
+  try{
+   canvas=canvas||document.createElement('canvas');canvas.width=w;canvas.height=h;
+   const cx=canvas.getContext('2d');fallbackPodiumPhoto(cx,w,h);
+   racePicture=canvas;const img=$('resultPhoto');img.src=canvas.toDataURL('image/jpeg',.83);img.hidden=false;
+  }catch(e){console.warn('Could not create even fallback image',e);$('shareHelp').textContent='写真の生成に失敗しました。'}
  }finally{
   try{renderer.setRenderTarget(null)}catch(e){}
-  if(target)target.dispose();
   if(stage){
-   stage.scene.traverse(o=>{if(o.isMesh&&o.material?.map&&o.material.map.isCanvasTexture&&o.material.map!==furMaterialTexture)o.material.map.dispose()});
-   disposeModel(stage.scene);
+   try{stage.scene.traverse(o=>{if(o.isMesh&&o.material?.map&&o.material.map.isCanvasTexture&&o.material.map!==furMaterialTexture)o.material.map.dispose()})}catch(e){}
+   try{disposeModel(stage.scene)}catch(e){}
   }
  }
 }
+
 function finishRace(){
  const r=race;if(!r||r.phase==='results')return;
  r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
