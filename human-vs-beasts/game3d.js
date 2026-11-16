@@ -141,32 +141,34 @@ buildStadium();
 function lineShadow(parent,scale=1){const shadow=new T.Mesh(new T.CircleGeometry(1,20),new T.MeshBasicMaterial({color:0x09141b,transparent:true,opacity:.22,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.scale.set(scale,.5*scale,1);shadow.position.y=.115;parent.add(shadow);return shadow}
 const humanX=-1.6,animalX=1.6;
 function makeHuman(a){
+ const morph=k=>clamp((Number(a[k]??defaultAvatar[k]??50)-50)/50,-1,1);
  const root=new T.Group(),skeleton=new T.Group();root.add(skeleton);
- const skin=mat(palettes.skin[a.skin%palettes.skin.length]),hair=mat(palettes.hair[a.hair%palettes.hair.length]),shirt=mat(palettes.shirt[a.shirt%palettes.shirt.length],.72),pants=mat(palettes.pants[a.pants%palettes.pants.length]),shoes=mat(palettes.shoes[a.shoes%palettes.shoes.length],.6),white=mat(0xecf1ea), iris=mat(0x30291e,.32),dark=mat(0x312721);
- const bulky=.83+(a.build/10)*.45,wide=.89+(a.body/10)*.29;const height=.88+(a.height/10)*.26;
- skeleton.scale.set(wide*.94,height*.92,wide*.94);const torso=new T.Group();torso.position.set(0,1.05,0);skeleton.add(torso);
- ball(torso,pants,0,-.01,-.04,.36*bulky,.27,.25);
- const chest=ball(torso,shirt,0,.38,-.02,.41*bulky,.53,.26);chest.scale.x*=wide;
- ball(torso,skin,0,.89,.06,.13,.16,.13); // neck
+ const skin=mat(palettes.skin[a.skin%palettes.skin.length]),hair=mat(palettes.hair[a.hair%palettes.hair.length]),shirt=mat(palettes.shirt[a.shirt%palettes.shirt.length],.72),pants=mat(palettes.pants[a.pants%palettes.pants.length]),shoes=mat(palettes.shoes[a.shoes%palettes.shoes.length],.6),white=mat(0xecf1ea), iris=mat(palettes.irisTone[a.irisTone??0]||palettes.irisTone[0],.32),dark=mat(0x312721),lipMat=mat(new T.Color(palettes.skin[a.skin%palettes.skin.length]).multiplyScalar(.70),.92),soleMat=mat(palettes.sole[a.sole??0]||palettes.sole[0],.9);
+ const bulky=.83+(a.build/10)*.45,wide=.89+(a.body/10)*.29;const height=.88+(a.height/10)*.26;const legRatio=1+.15*morph('legLength'),baseTorsoY=1.05*legRatio,shoulderWidth=1+.28*morph('shoulderWidth'),hipWidth=1+.25*morph('hipWidth'),armLength=1+.16*morph('armLength'),armBulk=1+.29*morph('armBulk'),thighBulk=1+.30*morph('legBulk'),calfBulk=1+.25*morph('calfBulk');
+ skeleton.scale.set(wide*.94,height*.92,wide*.94);const torso=new T.Group();torso.position.set(0,baseTorsoY,0);skeleton.add(torso);
+ ball(torso,pants,0,-.01,-.04,.36*bulky*hipWidth,.27,.25);
+ const chest=ball(torso,shirt,0,.39,-.02,.41*bulky*shoulderWidth,.48,.26*(1+.25*morph('chestDepth')));chest.scale.x*=wide;ball(torso,shirt,0,.15,0,.30*(1+.33*morph('waistWidth')),.28,.23*(1+.25*morph('belly')));
+ ball(torso,skin,0,.89,.06,.13,.16,.13);ball(torso,shirt,0,.77,.06,.17+.04*morph('neckline'),.055,.17); // neck
  // decorative shirt panels / collar
  if(a.shirtStyle%3===0){ball(torso,white,0,.62,.22,.14,.10,.04)}
  if(a.shirtStyle%3===1){box(torso,.06,.65,.022,white,0,.35,.245)}
  if(a.shirtStyle%3===2){box(torso,.48,.095,.04,white,0,.3,.244)}
+ if(a.topPattern>0){for(let i=0;i<Math.min(5,a.topPattern);i++)box(torso,.23,.025,.025,a.topPattern%2?white:dark,0,.15+i*.10,.255,true)}
  // shoulder joints and articulated arms
  const arms=[],legs=[];
  for(const side of [-1,1]){
-  const sh=new T.Group();sh.position.set(side*.42*bulky,.72,-.01);torso.add(sh);
+  const sh=new T.Group();sh.position.set(side*.42*bulky*shoulderWidth,.72,-.01);sh.scale.set(armBulk,armLength,armBulk);torso.add(sh);
   ball(sh,shirt,0,-.1,0,.19,.24,.20);
-  ball(sh,a.shirtStyle>5?shirt:skin,0,-.34,.01,.135,.32,.135);
+  ball(sh,a.shirtStyle>5||a.sleeveLength>65?shirt:skin,0,-.34,.01,.135,.32,.135);if(a.sleeveLength>20)ball(sh,shirt,0,-.18-a.sleeveLength*.0015,0,.155,.08+a.sleeveLength*.0015,.155);
   const elbow=new T.Group();elbow.position.y=-.58;sh.add(elbow);
   ball(elbow,skin,0,-.23,.035,.12,.28,.11);
-  ball(elbow,skin,0,-.5,.06,.135,.15,.12);arms.push({sh,elbow,side});
-  const hip=new T.Group();hip.position.set(side*.2*wide,1.06,0);skeleton.add(hip);
-  ball(hip,pants,0,-.28,0,.185*bulky,.36,.20);
+  ball(elbow,skin,0,-.5,.06,.135,.15,.12);if(a.wristband>20)ball(elbow,shirt,0,-.39,.03,.14,.02+a.wristband*.00035,.12);arms.push({sh,elbow,side});
+  const hip=new T.Group();hip.position.set(side*.2*wide*hipWidth,1.06*legRatio,0);hip.scale.y=legRatio;skeleton.add(hip);
+  ball(hip,a.pantsLength>30?pants:skin,0,-.28,0,.185*bulky*thighBulk,.36,.20);
   const knee=new T.Group();knee.position.y=-.52;hip.add(knee);
-  ball(knee,pants,0,-.22,0,.155,.28,.17);
-  ball(knee,shoes,0,-.49,.14,.175,.12,.31);
-  box(knee,.28,.045,.29,m.white,0,-.57,.22);
+  ball(knee,a.pantsLength>65?pants:skin,0,-.22,0,.155*calfBulk,.28,.17);
+  ball(knee,shoes,0,-.49,.14,.175*(1+.20*morph('shoeSize')),.12,.31*(1+.20*morph('shoeSize')));
+  box(knee,.28,.045,.29,soleMat,0,-.57,.22);
   legs.push({hip,knee,side});
  }
  const head=new T.Group();head.position.set(0,1.08,.065);torso.add(head);
@@ -204,9 +206,9 @@ function makeHuman(a){
  const moving=speed>.13, factor=moving?clamp(speed/8.5,.14,1.6):0;
  const phase=t*(6.0+factor*5.2),step=Math.sin(phase),op=Math.cos(phase);
  // Rest pose has zero limb movement. While running, hips swing opposite shoulders.
- torso.rotation.x=moving?-(.07+factor*.105):0;
+ torso.rotation.x=moving?-(.07+factor*.105)+morph('posture')*.06:morph('posture')*.06;
  torso.rotation.z=step*.036*factor;
- torso.position.y=1.05+(moving?Math.abs(op)*.065*factor:0);
+ torso.position.y=baseTorsoY+(moving?Math.abs(op)*.070*factor:0);
  head.rotation.x=-torso.rotation.x*.6;
  head.rotation.z=-step*.019*factor;
  arms.forEach((v,i)=>{
