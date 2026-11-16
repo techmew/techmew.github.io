@@ -161,11 +161,11 @@ function makeHuman(a){
  const root=new T.Group(),skeleton=new T.Group();root.add(skeleton);
  const skin=mat(palettes.skin[a.skin%palettes.skin.length]),hair=mat(palettes.hair[a.hair%palettes.hair.length]),shirt=mat(palettes.shirt[a.shirt%palettes.shirt.length],.72),pants=mat(palettes.pants[a.pants%palettes.pants.length]),shoes=mat(palettes.shoes[a.shoes%palettes.shoes.length],.6),white=mat(0xecf1ea), iris=mat(palettes.irisTone[a.irisTone??0]||palettes.irisTone[0],.32),dark=mat(0x312721),lipMat=mat(new T.Color(palettes.skin[a.skin%palettes.skin.length]).multiplyScalar(.70),.92),soleMat=mat(palettes.sole[a.sole??0]||palettes.sole[0],.9);
  const bulky=.83+(a.build/10)*.45,wide=.89+(a.body/10)*.29;const height=.88+(a.height/10)*.26;const legRatio=1+.15*morph('legLength'),baseTorsoY=1.05*legRatio,shoulderWidth=1+.28*morph('shoulderWidth'),hipWidth=1+.25*morph('hipWidth'),armLength=1+.16*morph('armLength'),armBulk=1+.29*morph('armBulk'),thighBulk=1+.30*morph('legBulk'),calfBulk=1+.25*morph('calfBulk');
- skeleton.scale.set(wide*.94,height*.92,wide*.94);const torso=new T.Group();torso.position.set(0,baseTorsoY,0);skeleton.add(torso);
- ball(torso,pants,0,-.01,-.04,.36*bulky*hipWidth,.27,.25);
- const chest=ball(torso,shirt,0,.39,-.02,.41*bulky*shoulderWidth,.48,.26*(1+.25*morph('chestDepth')));chest.scale.x*=wide;
- const jerseyOutline=[new T.Vector2(.29,.03),new T.Vector2(.31,.15),new T.Vector2(.335,.33),new T.Vector2(.36*shoulderWidth,.52),new T.Vector2(.35*shoulderWidth,.72),new T.Vector2(.18,.82)];
- const jersey=new T.Mesh(new T.LatheGeometry(jerseyOutline,24),shirt);jersey.scale.x=bulky*wide;jersey.scale.z=1+.20*morph('chestDepth');jersey.receiveShadow=true;jersey.castShadow=true;torso.add(jersey);ball(torso,shirt,0,.15,0,.30*(1+.33*morph('waistWidth')),.28,.23*(1+.25*morph('belly')));
+ skeleton.scale.set(wide*.91,height*1.03,wide*.91);const torso=new T.Group();torso.position.set(0,baseTorsoY,0);skeleton.add(torso);
+ ball(torso,pants,0,-.01,-.04,.30*bulky*hipWidth,.235,.225);
+ const chest=ball(torso,shirt,0,.39,-.02,.345*bulky*shoulderWidth,.40,.235*(1+.25*morph('chestDepth')));chest.scale.x*=wide;
+ const jerseyOutline=[new T.Vector2(.245,.03),new T.Vector2(.264,.15),new T.Vector2(.275,.33),new T.Vector2(.31*shoulderWidth,.52),new T.Vector2(.30*shoulderWidth,.72),new T.Vector2(.16,.82)];
+ const jersey=new T.Mesh(new T.LatheGeometry(jerseyOutline,24),shirt);jersey.scale.x=bulky*wide;jersey.scale.z=1+.20*morph('chestDepth');jersey.receiveShadow=true;jersey.castShadow=true;torso.add(jersey);ball(torso,shirt,0,.15,0,.255*(1+.33*morph('waistWidth')),.25,.20*(1+.25*morph('belly')));
  ball(torso,skin,0,.89,.06,.13,.16,.13);ball(torso,shirt,0,.77,.06,.17+.04*morph('neckline'),.055,.17); // neck
  // decorative shirt panels / collar
  if(a.shirtStyle%3===0){ball(torso,white,0,.62,.22,.14,.10,.04)}
@@ -182,14 +182,14 @@ function makeHuman(a){
   ball(elbow,skin,0,-.23,.035,.12,.28,.11);
   ball(elbow,skin,0,-.5,.06,.135,.15,.12);if(a.wristband>20)ball(elbow,shirt,0,-.39,.03,.14,.02+a.wristband*.00035,.12);arms.push({sh,elbow,side});
   const hip=new T.Group();hip.position.set(side*.2*wide*hipWidth,1.06*legRatio,0);hip.scale.y=legRatio;skeleton.add(hip);
-  ball(hip,a.pantsLength>30?pants:skin,0,-.28,0,.185*bulky*thighBulk,.36,.20);
+  ball(hip,a.pantsLength>30?pants:skin,0,-.28,0,.153*bulky*thighBulk,.35,.17);
   const knee=new T.Group();knee.position.y=-.52;hip.add(knee);
-  ball(knee,a.pantsLength>65?pants:skin,0,-.22,0,.155*calfBulk,.28,.17);
-  ball(knee,shoes,0,-.49,.14,.175*(1+.20*morph('shoeSize')),.12,.31*(1+.20*morph('shoeSize')));
-  box(knee,.28,.045,.29,soleMat,0,-.57,.22);
+  ball(knee,a.pantsLength>65?pants:skin,0,-.22,0,.125*calfBulk,.29,.14);
+  ball(knee,shoes,0,-.49,.13,.145*(1+.20*morph('shoeSize')),.105,.27*(1+.20*morph('shoeSize')));
+  box(knee,.25,.035,.27,soleMat,0,-.56,.21);
   legs.push({hip,knee,side});
  }
- const head=new T.Group();head.position.set(0,1.08+.025*morph('forehead'),.065);head.scale.setScalar(1+.17*morph('headSize'));torso.add(head);
+ const head=new T.Group();head.position.set(0,1.08+.025*morph('forehead'),.065);head.scale.setScalar(.88*(1+.20*morph('headSize')));torso.add(head);
  const hscale=.95+a.face*.013,faceW=.295*hscale,faceH=.34*(1+.20*morph('faceLength')),faceZ=.29*(1+.20*morph('faceDepth'));const headProfile=[[-.34,.042],[-.27,.17],[-.20,.235],[-.11,.282],[.02,faceW],[.15,faceW*.97],[.26,faceW*.88],[.32,faceW*.60],[.345,.018]].map(([y,r])=>new T.Vector2(r,y*faceH/.34));
  const headShape=new T.Mesh(new T.LatheGeometry(headProfile,32),skin);headShape.position.y=.13;headShape.scale.z=faceZ/faceW;headShape.castShadow=true;headShape.receiveShadow=true;head.add(headShape);ball(head,skin,0,.345+.03*morph('forehead'),-.015,faceW*.92,.095+.038*morph('forehead'),faceZ*.91,24);
  for(let s of [-1,1]){const ear=ball(head,skin,s*(faceW*1.04),.13,0,.06+.021*morph('earSize'),.094+.029*morph('earSize'),.058,20);ear.rotation.z=s*(.1+.35*morph('earAngle'));}
@@ -224,26 +224,15 @@ function makeHuman(a){
  if(a.accessory===4){ball(head,mat(0xd9b769,.3,.8),-.31,.12,0,.04,.07,.034);ball(head,mat(0xd9b769,.3,.8),.31,.12,0,.04,.07,.034)}
  if(a.accessory===5||a.accessory===9){ball(torso,m.gold,0,.46,.268,.08,.08,.023)}
  lineShadow(root,.5);
- return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1){
- const moving=speed>.13, factor=moving?clamp(speed/8.5,.14,1.6):0;
- const phase=t,step=Math.sin(phase),op=Math.cos(phase);
- // Rest pose has zero limb movement. While running, hips swing opposite shoulders.
- torso.rotation.x=moving?-(.07+factor*.105)+morph('posture')*.06:morph('posture')*.06;
- torso.rotation.z=step*.036*factor;
- torso.position.y=baseTorsoY+(moving?Math.abs(op)*.070*factor:0);
- head.rotation.x=-torso.rotation.x*.6;
- head.rotation.z=-step*.019*factor;
- arms.forEach((v,i)=>{
-   const s=i===0?1:-1;
-   v.sh.rotation.x=moving?(-step*s)*(.43+.42*factor):0;
-   v.sh.rotation.z=v.side*(.08+factor*.018);
-   v.elbow.rotation.x=moving?-.50-Math.max(0,step*s)*factor*.32:-.28;
- });
- legs.forEach((v,i)=>{
-   const stride=Math.sin(phase+(i===0?0:Math.PI));
-   v.hip.rotation.x=moving?stride*(.40+.44*factor):0;
-   v.knee.rotation.x=moving?Math.max(0,-stride)*(.62+.33*factor):0;
- });
+ return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1,legTaps=null,raceTime=0){
+ const moving=speed>.13,intensity=moving?clamp(speed/9,.15,1.25):0;
+ const pulse=side=>{if(!moving||!legTaps)return 0;const age=raceTime-legTaps[side];return age>=0&&age<.28?Math.sin(Math.PI*age/.28):0};
+ const left=pulse('L'),right=pulse('R'),total=Math.max(left,right);
+ torso.rotation.x=moving?-(.10+.075*intensity)+morph('posture')*.06:morph('posture')*.06;
+ torso.rotation.z=(left-right)*.035;torso.position.y=baseTorsoY+total*.045*intensity;
+ head.rotation.x=-torso.rotation.x*.55;head.rotation.z=-torso.rotation.z*.4;
+ legs.forEach((v,i)=>{const foot=i===0?left:right;v.hip.rotation.x=foot*(.51+.31*intensity);v.knee.rotation.x=foot*(.54+.32*intensity)});
+ arms.forEach((v,i)=>{const opposite=i===0?right:left;v.sh.rotation.x=opposite*(-.30-.38*intensity);v.sh.rotation.z=v.side*.10;v.elbow.rotation.x=-.28-opposite*.35});
  }};
 }
 function makeBeast(data){
@@ -427,8 +416,8 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
-function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
+function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
+function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;if(r.humanV>2){footstep(r.humanV);kickDust(humanX,r.humanD,r.humanV)}const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;beep(800,.35,'sawtooth',.075);showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 let racePicture=null,resultText='';
@@ -485,7 +474,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(r.eFinish===null){const phaseBonus=r.enemyD<22?1:(r.enemyD>81?.95:1);const enemyTarget=maxB*phaseBonus;r.enemyV=Math.min(enemyTarget,r.enemyV+a.acc*dtSafe);r.enemyD+=r.enemyV*dtSafe;if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100}}
  r.burstLeft=Math.max(0,r.burstLeft-dtSafe);const ready=r.burstCharge>=99&&r.burstLeft<=0;const button=$('burstBtn');if(button.disabled===ready){button.disabled=!ready;button.classList.toggle('ready',ready)}
  human.root.position.z=r.humanD;opponent.root.position.z=r.enemyD;
- if(r.humanV>2){const step=Math.floor(r.time*clamp(r.humanV,3,20)*1.15);if(step!==r.lastStep){r.lastStep=step;kickDust(humanX,r.humanD,r.humanV);if(step%3===0)footstep(r.humanV)}}
+ /* Human steps occur only after a real tap. */
  if(r.eFinish===null&&r.enemyV>7&&Math.random()<dtSafe*10)kickDust(animalX,r.enemyD,r.enemyV);
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
  if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
@@ -551,7 +540,7 @@ function adaptQuality(dt){
 }
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'?(race?.humanV||0):0,espeed=mode==='race'?(race?.enemyV||0):0;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1);opponent.animate(beastGait,espeed);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0);opponent.animate(beastGait,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.9);x.mesh.position.y+=dt*.24;x.mesh.material.opacity=Math.max(0,.25*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
