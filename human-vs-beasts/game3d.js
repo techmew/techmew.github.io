@@ -288,7 +288,7 @@ function makeBeast(data){
  }
  bodyGroup.scale.setScalar((['cat','rabbit'].includes(k))?.87:1);
  lineShadow(root,large?.8:.6);
- return {root,bodyGroup,legs,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t*(2.8+speedF*6),s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
+ return {root,bodyGroup,legs,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
 }
 // 3D player and opponent are rebuilt on customization / opponent changes.
 let human=makeHuman(save.avatar);human.root.position.set(humanX,.13,0);scene.add(human.root);
@@ -494,14 +494,14 @@ addEventListener('keydown',e=>{if(e.target?.tagName==='INPUT')return;if(['Space'
 let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{if(mode==='custom'||mode==='beasts'){dragging=true;pointerStart=e.clientX;$('world').setPointerCapture?.(e.pointerId)}});$('world').addEventListener('pointermove',e=>{if(dragging){camSpin+=(e.clientX-pointerStart)*.012;pointerStart=e.clientX}});$('world').addEventListener('pointerup',()=>dragging=false);$('world').addEventListener('pointercancel',()=>dragging=false);
 function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  if(mode==='race'){const run=race?.humanV||0;const shake=run>2?Math.min(.09,run*.004):0;wantedPos=new T.Vector3(-.35+Math.sin(sceneTime*13)*shake,2.48+Math.cos(sceneTime*23)*shake*.28,d-6.7);wantedTarget=new T.Vector3(-.20,1.27,d+12);camera.fov=mix(camera.fov,((innerWidth<innerHeight)?56:48)+(race?.burstLeft>0&&run>0?3:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
- else if(mode==='custom'){wantedPos=new T.Vector3(humanX+Math.sin(camSpin)*3.3,1.7,Math.cos(camSpin)*3.3);wantedTarget=new T.Vector3(humanX,1.45,0);if(Math.abs(camSpin)<.0001){wantedPos.x=humanX+1.65;wantedPos.z=3.6}}
+ else if(mode==='custom'){const close=['face','brows','eyes','nose','mouth','hair'].includes(customTab)&&!$('customScreen').classList.contains('previewOnly');const radius=close?2.15:4.0;wantedPos=new T.Vector3(humanX+Math.sin(camSpin+.18)*radius,close?2.28:2.16,Math.cos(camSpin+.18)*radius);wantedTarget=new T.Vector3(humanX,close?2.18:1.18,0);camera.fov=mix(camera.fov,close?44:50,Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else if(mode==='beasts'){wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*5,2.2,Math.cos(camSpin+sceneTime*.12)*5);wantedTarget=new T.Vector3(animalX,1.35,0)}
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else{wantedPos=new T.Vector3(-5.4,3.08,9.9);wantedTarget=new T.Vector3(0,1.1,0)}
  const t=Math.min(1,dt*(mode==='race'?3.8:2.9));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
-let humanGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
+let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'?(race?.humanV||0):0,espeed=mode==='race'?(race?.enemyV||0):0;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1);opponent.animate(sceneTime,espeed);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1);opponent.animate(beastGait,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.9);x.mesh.position.y+=dt*.24;x.mesh.material.opacity=Math.max(0,.25*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
