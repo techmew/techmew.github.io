@@ -1389,10 +1389,16 @@ function buildPodiumPhoto(){
  const naturalBox=new T.Box3().setFromObject(rival.root);
  const naturalHeight=Math.max(.5,naturalBox.max.y-naturalBox.min.y);
  rival.root.scale.multiplyScalar(clamp((winningHuman?2.35:2.95)/naturalHeight,.30,1.6));
- function seatOnStep(model,x,platformHeight,z){
+ function seatOnStep(rig,x,platformHeight,z){
+  // makeHuman/makeExtendedBeast return rigs; only rig.root is a THREE.Object3D.
+  // Reading rig.position used to throw and abort every podium render.
+  const model=rig.root;
   model.position.set(x,0,z);
+  model.updateMatrixWorld(true);
   const bounds=new T.Box3().setFromObject(model);
+  if(!Number.isFinite(bounds.min.y))throw Error('Podium model bounds unavailable');
   model.position.y=platformHeight-bounds.min.y+.035;
+  model.updateMatrixWorld(true);
  }
  seatOnStep(athlete,winningHuman?0:-2.48,winningHuman?1.27:.75,.28);
  seatOnStep(rival,winningHuman?-2.48:0,winningHuman?.75:1.27,.10);
@@ -1559,7 +1565,7 @@ function makeRacePhoto(){
   captureCeremonyPhoto();
  }catch(err){
   console.warn('Could not create 3D podium',err);
-  $('shareHelp').textContent='3D表彰台を読み込めませんでした。';
+  $('shareHelp').textContent='3D表彰台の描画に失敗しました。再試行してください。';
   if(ceremonyStage)endCeremonyStage();
  }
 }
