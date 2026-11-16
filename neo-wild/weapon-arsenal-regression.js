@@ -118,6 +118,33 @@ merge(merged,{"wild-reclaim-weapon-vault-v1":db.get(a.KEY)});
 const restored=JSON.parse(merged[a.KEY]);
 ok(restored.items.some(i=>i.id==="scrap:qa:old"),"imported older finds kept");
 ok(restored.items.some(i=>i.id==="scrap:qa:pickup"),"newer local finds kept");
+const sharedId=found.item.id;
+const oldBound={version:1,items:[found.item],equipped:{"individual:old-holder":sharedId}};
+const liveBound={version:1,items:[found.item],equipped:{"individual:live-holder":sharedId}};
+const conflicting={"wild-reclaim-weapon-vault-v1":JSON.stringify(oldBound)};
+merge(conflicting,{"wild-reclaim-weapon-vault-v1":JSON.stringify(liveBound)});
+const resolved=JSON.parse(conflicting[a.KEY]);
+ok(a.valid(resolved),"merged bindings satisfy unique physical ownership");
+eq(resolved.equipped["individual:live-holder"],sharedId,"live individual retains gear on import");
+eq(resolved.equipped["individual:old-holder"],undefined,"old duplicate binding removed");
+ok(!a.valid({version:1,items:[found.item],equipped:{"individual:one":sharedId,"individual:two":sharedId}}),
+ "vault rejects duplicate physical equipment bindings");
+const transferSeed=a.derive({id:"scrap:qa:species-transfer",seed:431});
+const crossSpecies={version:1,items:[transferSeed],equipped:{"species:NOT_A_SPECIES":transferSeed.id}};
+ok(!a.valid(crossSpecies),"invalid cross-species binding rejected");
+const replay={version:1,items:[found.item],equipped:{"individual:qa-hero":sharedId}};
+const savedRecord=JSON.stringify(replay);
+localStorage.setItem(a.KEY,savedRecord);
+eq(a.equippedFor({type:found.item.owner,squadIndividualId:"qa-hero"})?.id,sharedId,
+ "equipment survives title/continue-style reload of durable vault");
+const exportRecords={[a.KEY]:savedRecord};
+const restoredRecords={[a.KEY]:JSON.stringify({version:1,items:[],equipped:{}})};
+merge(restoredRecords,exportRecords);
+ok(a.valid(JSON.parse(restoredRecords[a.KEY])),"backup round-trip validates weapon data");
+eq(JSON.parse(restoredRecords[a.KEY]).items.length,1,"backup restores found weapon without duplication");
+eq(a.damage({type:found.item.owner,squadIndividualId:"qa-hero"},{strongBoss:true},100)>100,true,
+ "equipped restored actor still applies real boss damage multiplier");
+
 ok(game.includes("weaponScraps:weaponScraps.slice(0,18),weaponScrapSerial"),"drop world snapshot");
 ok(game.includes("!window.WildArsenal?.alreadyClaimed?.(d.id)"),"claimed drop omitted after resume");
 ok(game.includes("window.WildArsenal?.enemyBuff?.(mobs[mobs.length-1],s)"),"enemy spawn AI linked");
