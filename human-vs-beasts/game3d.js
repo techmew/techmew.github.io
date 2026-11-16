@@ -884,7 +884,7 @@ function prefetchVoice(kind){
  const url='https://commons.wikimedia.org/wiki/Special:Redirect/file/'+encodeURIComponent(entry.file);
  try{
   const media=new Audio(url);
-  media.preload='auto';media.volume=.72;
+  media.preload='auto';media.volume=.12;
   loadedCalls[entry.file]=media;
   media.addEventListener('canplay',()=>{
    // Asynchronously loaded animal audio should still be heard even on a slow connection.
@@ -906,7 +906,7 @@ function playRecordedVoice(kind){
  try{
   if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}
   player.pause();player.currentTime=Math.min(data.begin,Math.max(0,(player.duration||9)-1));
-  player.volume=.90;
+  player.volume=.14;
   const promise=player.play();if(promise?.catch)promise.catch(e=>{console.warn('Animal recording playback',e);synthesizeCreatureCall(kind)});
   voiceStopTimer=setTimeout(()=>{player.pause();voiceStopTimer=null},data.length*1000);
   return true;
@@ -920,26 +920,28 @@ function animalCall(kind){
 }
 function synthesizeCreatureCall(kind){
  if(!sfx)return;
+ const quietTone=(frequency,length,type,volume,delay=0,toFreq=0)=>soundTone(frequency,length,type,Math.min(.018,volume*.22),delay,toFreq);
+ const quietNoise=(duration,volume,low,high,delay=0,pan=0)=>soundNoise(duration,Math.min(.019,volume*.22),low,high,delay,pan);
  const bird=['ostrich','dodo','moa','terrorbird','griffin'].includes(kind);
  const roar=['lion','tiger','dragon','trex','spinosaurus','kaiju','smilodon','cavebear','gorilla'].includes(kind);
  const giant=['mammoth','elephant','rhino','hippo','triceratops','golem','giantrobot'].includes(kind);
  if(kind==='boar'){
-  soundNoise(.26,.083,55,680);
-  soundTone(128,.24,'sawtooth',.033,0,80);
-  soundTone(82,.20,'triangle',.030,.065,52);
+  quietNoise(.26,.083,55,680);
+  quietTone(128,.24,'sawtooth',.033,0,80);
+  quietTone(82,.20,'triangle',.030,.065,52);
  }else if(bird){
-  soundTone(520,.18,'triangle',.045,0,350);
-  soundTone(635,.25,'sine',.038,.065,420);
+  quietTone(520,.18,'triangle',.045,0,350);
+  quietTone(635,.25,'sine',.038,.065,420);
  }else if(roar){
-  soundNoise(.42,.080,85,630);
-  soundTone(102,.45,'sawtooth',.033,0,67);
-  soundTone(151,.32,'triangle',.027,.09,92);
+  quietNoise(.42,.080,85,630);
+  quietTone(102,.45,'sawtooth',.033,0,67);
+  quietTone(151,.32,'triangle',.027,.09,92);
  }else if(giant){
-  soundNoise(.35,.061,42,440);
-  soundTone(77,.46,'sawtooth',.032,0,47);
+  quietNoise(.35,.061,42,440);
+  quietTone(77,.46,'sawtooth',.032,0,47);
  }else{
-  soundNoise(.19,.041,165,1100);
-  soundTone(195,.23,'triangle',.023,0,124);
+  quietNoise(.19,.041,165,1100);
+  quietTone(195,.23,'triangle',.023,0,124);
  }
 }
 function effect(name){
@@ -1474,7 +1476,9 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
   if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   return;
  }
- if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
+ if(mode==='race')updateRace(dt);
+ if(mode==='race'&&race?.phase==='results'){if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);return}
+ // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0);
  
