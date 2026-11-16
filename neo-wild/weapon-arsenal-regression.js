@@ -69,7 +69,13 @@ function fixture(id,failWorld=false){
  waterDepth:()=>0,collides:(x,y,r)=>M.blocked(x,y,r),rnd:(lo,hi)=>lo+Math.random()*(hi-lo),
  $:()=>null,notify:()=>{},label:()=>{},syncHUD:()=>{},saveAuto:()=>!failWorld,
  isControlBlocked:()=>false,tryReleaseCaveSeal:()=>false,tryEastTrailSupplies:()=>false,
- atDen:()=>false,nearbyFood:()=>null,markTerritory:()=>false};
+ atDen:()=>false,nearbyFood:()=>null,markTerritory:()=>false,
+ // Real spawnMob uses ecology/collision/fauna and eastern scaling. In this
+ // isolated action harness, emulate only its successful physical NPC creation.
+ spawnMob:(_initial,_preyOnly,_nearbyOnly,spot)=>{
+  const npc={type:"wolf",x:spot.x,y:spot.y,hp:100,maxHp:100,alert:0,search:0,wander:3};
+  env.mobs.push(npc);a.enemyBuff(npc,{prey:false});return true;
+ }};
  const api=new Function("env","with(env){"+handler+"return {contextAction,pickWeaponScrap,spawnWeaponScrap};}")(env);
  return {env,api};
 }
@@ -79,6 +85,17 @@ env.mobs.push({type:"rabbit",x:9350,y:1880,hp:10,alert:0});
 api.contextAction(false);
 ok(env.mobs[0].alert>=5.5&&env.mobs[0].lastX===9320,"salvage noise activates nearby hostile NPC AI");
 eq(env.mobs[1].alert,0,"salvage does not force prey aggression");
+// A lone remote mountain cache must be defended by a physically spawned NPC,
+// not merely a visual danger marker. The NPC inherits actual eastern scaling.
+({env,api}=fixture("scrap:qa:guard"));
+env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
+env.P.x=10800;env.P.y=2590;
+api.contextAction(false);
+ok(env.mobs.length===1,"remote cache attracts a physical NPC when no hostile is nearby");
+ok(env.mobs[0].alert>=7&&env.mobs[0].search>=7,"guard enters actual pursuit AI");
+ok(env.mobs[0].eastThreatTier>=2&&env.mobs[0].hp>100,"guardian receives eastern combat HP buff");
+ok(Math.hypot(env.mobs[0].x-env.P.x,env.mobs[0].y-env.P.y)>=230,"guardian does not spawn on player");
+
 eq(env.weaponScraps.length,0,"action picks scrap");ok(a.alreadyClaimed("scrap:qa:pickup"),"vault claims pickup");
 ({env,api}=fixture("scrap:qa:write-fail"));
 const originalSet=localStorage.setItem;
