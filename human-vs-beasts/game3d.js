@@ -278,15 +278,28 @@ function makeHuman(a){
  if(a.accessory===4){ball(head,mat(0xd9b769,.3,.8),-.31,.12,0,.04,.07,.034);ball(head,mat(0xd9b769,.3,.8),.31,.12,0,.04,.07,.034)}
  if(a.accessory===5||a.accessory===9){ball(torso,m.gold,0,.46,.268,.08,.08,.023)}
  lineShadow(root,.5);
- return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1,legTaps=null,raceTime=0){
+ return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1,legTaps=null,raceTime=0,dt=.016){
  const moving=speed>.13,intensity=moving?clamp(speed/9,.15,1.25):0;
  const pulse=side=>{if(!moving||!legTaps)return 0;const age=raceTime-legTaps[side];return age>=0&&age<.28?Math.sin(Math.PI*age/.28):0};
  const left=pulse('L'),right=pulse('R'),total=Math.max(left,right);
- torso.rotation.x=moving?-(.10+.075*intensity)+morph('posture')*.06:morph('posture')*.06;
- torso.rotation.z=(left-right)*.035;torso.position.y=baseTorsoY+total*.045*intensity;
- head.rotation.x=-torso.rotation.x*.55;head.rotation.z=-torso.rotation.z*.4;
- legs.forEach((v,i)=>{const foot=i===0?left:right;v.hip.rotation.x=foot*(.51+.31*intensity);v.knee.rotation.x=foot*(.54+.32*intensity)});
- arms.forEach((v,i)=>{const opposite=i===0?right:left;v.sh.rotation.x=opposite*(-.30-.38*intensity);v.sh.rotation.z=v.side*.10;v.elbow.rotation.x=-.28-opposite*.35});
+ const blend=1-Math.exp(-Math.max(.001,dt)*18);
+ const smooth=(current,target)=>current+(target-current)*blend;
+ torso.rotation.x=smooth(torso.rotation.x,moving?-(.10+.075*intensity)+morph('posture')*.06:morph('posture')*.06);
+ torso.rotation.z=smooth(torso.rotation.z,(left-right)*.035);
+ torso.position.y=smooth(torso.position.y,baseTorsoY+total*.045*intensity);
+ head.rotation.x=smooth(head.rotation.x,-torso.rotation.x*.55);
+ head.rotation.z=smooth(head.rotation.z,-torso.rotation.z*.4);
+ legs.forEach((v,i)=>{
+  const foot=i===0?left:right;
+  v.hip.rotation.x=smooth(v.hip.rotation.x,foot*(.51+.31*intensity));
+  v.knee.rotation.x=smooth(v.knee.rotation.x,foot*(.54+.32*intensity));
+ });
+ arms.forEach((v,i)=>{
+  const opposite=i===0?right:left;
+  v.sh.rotation.x=smooth(v.sh.rotation.x,opposite*(-.30-.38*intensity));
+  v.sh.rotation.z=smooth(v.sh.rotation.z,v.side*.10);
+  v.elbow.rotation.x=smooth(v.elbow.rotation.x,-.28-opposite*.35);
+ });
  }};
 }
 function makeBeast(data){
@@ -1337,7 +1350,7 @@ function finishRace(){
  stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
 }
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
- if(r.phase!=='running')return;const dtSafe=Math.min(.045,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
+ if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
  const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*5.5);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
  r.lateralVelocity=(r.lateral-prevLateral)/Math.max(.005,dtSafe);
@@ -1471,7 +1484,7 @@ function adaptQuality(dt){
  else if(fps>54)target=Math.min(max,renderQuality+.06);
  if(Math.abs(target-renderQuality)>.015){renderQuality=target;renderer.setPixelRatio(renderQuality);renderer.setSize(innerWidth,innerHeight,false)}
 }
-let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;
+let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
  if(mode==='race'&&race?.phase==='results'){
   if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   return;
@@ -1480,7 +1493,7 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
  if(mode==='race'&&race?.phase==='results'){if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);return}
  // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
  opponent.animate(beastGait,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
