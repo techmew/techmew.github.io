@@ -149,7 +149,21 @@ const sun=new T.DirectionalLight(0xe9d6bd,1.45);sun.position.set(-26,60,24);sun.
 const fill=new T.DirectionalLight(0x8eabba,.27);fill.position.set(20,15,65);scene.add(fill);
 const ground=new T.Mesh(new T.PlaneGeometry(480,540),m.grass);ground.rotation.x=-Math.PI/2;ground.position.set(0,-.075,55);ground.receiveShadow=true;scene.add(ground);
 const box=(parent,w,h,d,mt,x=0,y=0,z=0,cast=false)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),mt);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o};
-const ball=(parent,mt,x,y,z,sx,sy,sz,detail=22)=>{const o=new T.Mesh(new T.SphereGeometry(1,detail,Math.max(10,Math.floor(detail*.7))),mt);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
+const sphereCache=new Map(),sharedModelGeometries=new Set();
+function sphereGeometry(detail){
+ const n=Math.max(7,Math.min(40,Math.round(detail)));
+ let geometry=sphereCache.get(n);
+ if(!geometry){
+  geometry=new T.SphereGeometry(1,n,Math.max(7,Math.floor(n*.7)));
+  sphereCache.set(n,geometry);sharedModelGeometries.add(geometry);
+ }
+ return geometry;
+}
+const ball=(parent,mt,x,y,z,sx,sy,sz,detail=22)=>{
+ const o=new T.Mesh(sphereGeometry(detail),mt);
+ o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;
+ parent.add(o);return o;
+};
 const conical=(parent,mt,x,y,z,r1,r2,h,segments=10)=>{const o=new T.Mesh(new T.CylinderGeometry(r1,r2,h,segments),mt);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o};
 const tube=(parent,from,to,r,mt,r2)=>{const a=new T.Vector3(...from),b=new T.Vector3(...to);const d=new T.Vector3().subVectors(b,a);const o=new T.Mesh(new T.CylinderGeometry(r2??r,r,d.length(),9),mt);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());o.castShadow=true;parent.add(o);return o};
 function textTexture(text,background='#152a3b',foreground='#ffffff',wide=512,high=128){const cv=document.createElement('canvas');cv.width=wide;cv.height=high;const c=cv.getContext('2d');c.fillStyle=background;c.fillRect(0,0,wide,high);c.strokeStyle='#d9e3df40';c.lineWidth=8;c.strokeRect(4,4,wide-8,high-8);c.fillStyle=foreground;c.font='900 '+Math.floor(high*.42)+'px system-ui, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,wide/2,high/2,wide-22);const tx=new T.CanvasTexture(cv);tx.anisotropy=renderer.capabilities.getMaxAnisotropy?Math.min(4,renderer.capabilities.getMaxAnisotropy()):1;return tx}
@@ -783,7 +797,7 @@ let human=makeHuman(save.avatar);human.root.position.set(humanX,.13,0);scene.add
 let opponent=makeExtendedBeast(animals[clamp(save.chosen,0,animals.length-1)]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);
 const sharedMaterials=new Set(Object.values(m));
 function disposeModel(root){
- root.traverse(o=>{if(!o.isMesh)return;if(o.geometry?.dispose)o.geometry.dispose();
+ root.traverse(o=>{if(!o.isMesh)return;if(o.geometry?.dispose&&!sharedModelGeometries.has(o.geometry))o.geometry.dispose();
  const ms=Array.isArray(o.material)?o.material:[o.material];
  for(const material of ms){if(material&&!sharedMaterials.has(material)&&material.dispose)material.dispose()}
  });
@@ -1500,7 +1514,7 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  else if(mode==='beasts'){wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*5,2.2,Math.cos(camSpin+sceneTime*.12)*5);wantedTarget=new T.Vector3(animalX,1.35,0)}
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else{const portrait=innerWidth<innerHeight;wantedPos=portrait?new T.Vector3(-4.1,2.95,12.8):new T.Vector3(-5.4,3.08,10.9);wantedTarget=portrait?new T.Vector3(0,1.15,0):new T.Vector3(-2.0,1.12,0);camera.fov=mix(camera.fov,portrait?55:50,Math.min(1,dt*2.5));camera.updateProjectionMatrix()}
- const t=Math.min(1,dt*(mode==='race'?3.8:2.9));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
+ const t=1-Math.exp(-Math.max(.0001,dt)*(mode==='race'?4.0:3.0));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
 
 let renderQuality=renderer.getPixelRatio(),perfFrames=0,perfSeconds=0,perfGate=0;
 function adaptQuality(dt){
@@ -1512,7 +1526,8 @@ function adaptQuality(dt){
  const min=mobile?.85:1.15,max=Math.min(devicePixelRatio||1,mobile?1.35:1.85);
  let target=renderQuality;
  if(fps<29)target=Math.max(min,renderQuality-.12);
- else if(fps>54)target=Math.min(max,renderQuality+.06);
+ else if(fps>54)target=Math.min(max,renderQuality+.045);
+ // Avoid pixel-ratio oscillation on devices hovering around 30-50 fps.
  if(Math.abs(target-renderQuality)>.015){renderQuality=target;renderer.setPixelRatio(renderQuality);renderer.setSize(innerWidth,innerHeight,false)}
 }
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
