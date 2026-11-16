@@ -1268,18 +1268,43 @@ function endCeremonyStage(){
  $('result3DWindow').hidden=true;$('resultPhoto').hidden=true;
  racePicture=null;initResize();
 }
+function capturePodiumFromGPU(ctx,w,h){
+ const target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
+ try{
+  renderer.setRenderTarget(target);
+  renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  const pixels=new Uint8Array(w*h*4);
+  renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
+  const image=ctx.createImageData(w,h);
+  const width=w*4;
+  for(let y=0;y<h;y++){
+   const sourceStart=(h-1-y)*width;
+   image.data.set(pixels.subarray(sourceStart,sourceStart+width),y*width);
+  }
+  ctx.putImageData(image,0,0);
+ }finally{
+  renderer.setRenderTarget(null);target.dispose();
+ }
+}
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
- let success=false;const w=960,h=540;
+ let success=false;const w=mobile?768:960,h=mobile?432:540;
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
   const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true});
   renderer.setRenderTarget(null);renderer.setPixelRatio(1);renderer.setSize(w,h,false);
   ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-  ctx.drawImage(renderer.domElement,0,0,w,h);
-  const a=ctx.getImageData(245,175,1,1).data,b=ctx.getImageData(500,275,1,1).data;
-  if(a[3]===0||b[3]===0)throw Error('Empty WebGL image');
+  let canvasCaptured=false;
+  try{
+   ctx.drawImage(renderer.domElement,0,0,w,h);
+   const a=ctx.getImageData(Math.round(w*.25),Math.round(h*.30),1,1).data;
+   const b=ctx.getImageData(Math.round(w*.51),Math.round(h*.55),1,1).data;
+   const d=ctx.getImageData(Math.round(w*.75),Math.round(h*.72),1,1).data;
+   const difference=Math.abs(a[0]-b[0])+Math.abs(b[1]-d[1])+Math.abs(a[2]-d[2]);
+   canvasCaptured=a[3]>0&&b[3]>0&&d[3]>0&&difference>10;
+  }catch(e){canvasCaptured=false}
+  if(!canvasCaptured)capturePodiumFromGPU(ctx,w,h);
   // Only a snapshot of the actual game models is used. No illustrated substitute.
   const start=h-104,gradient=ctx.createLinearGradient(0,start,0,h);
   gradient.addColorStop(0,'rgba(8,20,25,0)');gradient.addColorStop(.22,'rgba(8,20,25,.82)');gradient.addColorStop(1,'rgba(8,20,25,.96)');
