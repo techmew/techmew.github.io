@@ -1500,25 +1500,42 @@ function capturePodiumFromGPU(ctx,w,h){
   renderer.setRenderTarget(null);target.dispose();
  }
 }
+// Reject cleared/blank frames before applying result text: otherwise a
+// screenshot with only the footer appears to have captured successfully.
+function podiumPixelsValid(ctx,w,h){
+ const points=[[.10,.12],[.35,.20],[.52,.45],[.25,.66],[.73,.58],[.88,.28]];
+ const rgba=points.map(([x,y])=>ctx.getImageData(Math.floor(w*x),Math.floor(h*y),1,1).data);
+ if(rgba.some(p=>p[3]<245))return false;
+ let variation=0;
+ for(let i=1;i<rgba.length;i++)
+  for(let channel=0;channel<3;channel++)
+   variation+=Math.abs(rgba[i][channel]-rgba[0][channel]);
+ return variation>85;
+}
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
  let success=false;const w=mobile?768:960,h=mobile?432:540;
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
   const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true});
-  renderer.setRenderTarget(null);renderer.setPixelRatio(1);renderer.setSize(w,h,false);
+  // Prefer the explicit GPU framebuffer: mobile WebGL canvases may clear
+  // their default drawing buffer before drawImage reads it.
   ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
-  renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-  let canvasCaptured=false;
+  let captured=false;
   try{
+   capturePodiumFromGPU(ctx,w,h);
+   captured=podiumPixelsValid(ctx,w,h);
+  }catch(e){console.warn('Offscreen podium capture unavailable',e)}
+  if(!captured){
+   // Fallback to the onscreen canvas only after drawing a fresh frame.
+   // Restore preview size after the capture so the live 3D remains usable.
+   renderer.setRenderTarget(null);
+   renderer.setPixelRatio(1);renderer.setSize(w,h,false);
+   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
    ctx.drawImage(renderer.domElement,0,0,w,h);
-   const a=ctx.getImageData(Math.round(w*.25),Math.round(h*.30),1,1).data;
-   const b=ctx.getImageData(Math.round(w*.51),Math.round(h*.55),1,1).data;
-   const d=ctx.getImageData(Math.round(w*.75),Math.round(h*.72),1,1).data;
-   const difference=Math.abs(a[0]-b[0])+Math.abs(b[1]-d[1])+Math.abs(a[2]-d[2]);
-   canvasCaptured=a[3]>0&&b[3]>0&&d[3]>0&&difference>10;
-  }catch(e){canvasCaptured=false}
-  if(!canvasCaptured)capturePodiumFromGPU(ctx,w,h);
+   captured=podiumPixelsValid(ctx,w,h);
+  }
+  if(!captured)throw Error('Podium framebuffer is empty or uniform');
   // Only a snapshot of the actual game models is used. No illustrated substitute.
   const start=h-84,gradient=ctx.createLinearGradient(0,start,0,h);
   gradient.addColorStop(0,'rgba(8,20,25,0)');gradient.addColorStop(.22,'rgba(8,20,25,.82)');gradient.addColorStop(1,'rgba(8,20,25,.96)');
@@ -1541,12 +1558,15 @@ function captureCeremonyPhoto(){
   ceremonyStage.photoCaptured=false;
   $('shareHelp').textContent='3D表彰台を表示中。写真保存は再試行できます。';
  }finally{
-  if(ceremonyStage&&!success){
-   const view=$('result3DWindow'),w=Math.max(320,view.clientWidth||340),h=Math.max(180,view.clientHeight||192);
+  if(ceremonyStage){
+   // The result photo and the live podium share a renderer; always restore
+   // preview dimensions, even after a successful offscreen capture.
+   const view=$('result3DWindow'),pw=Math.max(320,view.clientWidth||340),ph=Math.max(180,view.clientHeight||192);
+   renderer.setRenderTarget(null);
    renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
-   renderer.setSize(w,h,false);
-   ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
-   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   renderer.setSize(pw,ph,false);
+   ceremonyStage.camera.aspect=pw/ph;ceremonyStage.camera.updateProjectionMatrix();
+   if(!success)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   }
  }
  return success;
