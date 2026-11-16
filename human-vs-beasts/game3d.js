@@ -163,7 +163,9 @@ function makeHuman(a){
  const bulky=.83+(a.build/10)*.45,wide=.89+(a.body/10)*.29;const height=.88+(a.height/10)*.26;const legRatio=1+.15*morph('legLength'),baseTorsoY=1.05*legRatio,shoulderWidth=1+.28*morph('shoulderWidth'),hipWidth=1+.25*morph('hipWidth'),armLength=1+.16*morph('armLength'),armBulk=1+.29*morph('armBulk'),thighBulk=1+.30*morph('legBulk'),calfBulk=1+.25*morph('calfBulk');
  skeleton.scale.set(wide*.94,height*.92,wide*.94);const torso=new T.Group();torso.position.set(0,baseTorsoY,0);skeleton.add(torso);
  ball(torso,pants,0,-.01,-.04,.36*bulky*hipWidth,.27,.25);
- const chest=ball(torso,shirt,0,.39,-.02,.41*bulky*shoulderWidth,.48,.26*(1+.25*morph('chestDepth')));chest.scale.x*=wide;ball(torso,shirt,0,.15,0,.30*(1+.33*morph('waistWidth')),.28,.23*(1+.25*morph('belly')));
+ const chest=ball(torso,shirt,0,.39,-.02,.41*bulky*shoulderWidth,.48,.26*(1+.25*morph('chestDepth')));chest.scale.x*=wide;
+ const jerseyOutline=[new T.Vector2(.29,.03),new T.Vector2(.31,.15),new T.Vector2(.335,.33),new T.Vector2(.36*shoulderWidth,.52),new T.Vector2(.35*shoulderWidth,.72),new T.Vector2(.18,.82)];
+ const jersey=new T.Mesh(new T.LatheGeometry(jerseyOutline,24),shirt);jersey.scale.x=bulky*wide;jersey.scale.z=1+.20*morph('chestDepth');jersey.receiveShadow=true;jersey.castShadow=true;torso.add(jersey);ball(torso,shirt,0,.15,0,.30*(1+.33*morph('waistWidth')),.28,.23*(1+.25*morph('belly')));
  ball(torso,skin,0,.89,.06,.13,.16,.13);ball(torso,shirt,0,.77,.06,.17+.04*morph('neckline'),.055,.17); // neck
  // decorative shirt panels / collar
  if(a.shirtStyle%3===0){ball(torso,white,0,.62,.22,.14,.10,.04)}
@@ -188,7 +190,8 @@ function makeHuman(a){
   legs.push({hip,knee,side});
  }
  const head=new T.Group();head.position.set(0,1.08+.025*morph('forehead'),.065);head.scale.setScalar(1+.17*morph('headSize'));torso.add(head);
- const hscale=.95+a.face*.013,faceW=.295*hscale,faceH=.34*(1+.20*morph('faceLength')),faceZ=.29*(1+.20*morph('faceDepth'));ball(head,skin,0,.13,0,faceW,faceH,faceZ,28);ball(head,skin,0,.345+.03*morph('forehead'),-.015,faceW*.92,.095+.038*morph('forehead'),faceZ*.91,24);
+ const hscale=.95+a.face*.013,faceW=.295*hscale,faceH=.34*(1+.20*morph('faceLength')),faceZ=.29*(1+.20*morph('faceDepth'));const headProfile=[[-.34,.042],[-.27,.17],[-.20,.235],[-.11,.282],[.02,faceW],[.15,faceW*.97],[.26,faceW*.88],[.32,faceW*.60],[.345,.018]].map(([y,r])=>new T.Vector2(r,y*faceH/.34));
+ const headShape=new T.Mesh(new T.LatheGeometry(headProfile,32),skin);headShape.position.y=.13;headShape.scale.z=faceZ/faceW;headShape.castShadow=true;headShape.receiveShadow=true;head.add(headShape);ball(head,skin,0,.345+.03*morph('forehead'),-.015,faceW*.92,.095+.038*morph('forehead'),faceZ*.91,24);
  for(let s of [-1,1]){const ear=ball(head,skin,s*(faceW*1.04),.13,0,.06+.021*morph('earSize'),.094+.029*morph('earSize'),.058,20);ear.rotation.z=s*(.1+.35*morph('earAngle'));}
  // chin, cheekbones, eyes in +Z facing direction
  ball(head,skin,0,-.045-.038*morph('chinLength'),.12,.17+.055*morph('chinWidth'),.12+.025*morph('chinLength'),.18);for(let s of [-1,1])ball(head,skin,s*(faceW*.63),.050,faceZ*.5,.085+.04*morph('cheekbone'),.065+.028*morph('cheekFull'),.13,20);
@@ -320,11 +323,11 @@ let humanRebuildScheduled=false;
 function refreshHuman(){
  if(humanRebuildScheduled)return;
  humanRebuildScheduled=true;
- requestAnimationFrame(()=>{
+ setTimeout(()=>requestAnimationFrame(()=>{
   humanRebuildScheduled=false;
   const old=human.root;scene.remove(old);disposeModel(old);
   human=makeHuman(save.avatar);human.root.position.set(humanX,.13,mode==='race'?(race?.humanD||0):0);scene.add(human.root);
- });
+ }),45);
 }
 function refreshOpponent(){const old=opponent.root;scene.remove(old);disposeModel(old);opponent=makeBeast(animals[save.chosen]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);refreshMenu()}
 // Subtle footstep puffs, with pooled 3D meshes.
