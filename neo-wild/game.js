@@ -4994,15 +4994,19 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
  if(!active.length)return false;
  const countNear=s=>weaponScraps.filter(q=>Math.hypot(q.x-s.x,q.y-s.y)<350).length;
  const sparse=[...active].sort((a,b)=>countNear(a)-countNear(b)||a.index-b.index);
+ // A requested biome must not silently fall back to a different biome.
+ // This used to leave some of the eight stations with no local loot.
  const selected=Number.isInteger(preferredStop)&&preferredStop>=0?stops[preferredStop]:sparse[0];
- for(let n=0;n<65;n++){
-  const base=nearPlayer&&P?.x>=8400&&n<35?P:
-   n<45?selected:sparse[Math.floor(Math.random()*Math.min(3,sparse.length))];
+ const anchors=nearPlayer&&P?.x>=8400?[P,selected,...sparse]:
+  preferredStop>=0?[selected]:[selected,...sparse];
+ for(let n=0;n<105;n++){
+  const base=anchors[Math.min(anchors.length-1,Math.floor(n/Math.max(1,Math.ceil(105/anchors.length))))];
   if(!base)continue;
-  const distance=rnd(75,nearPlayer?300:240),angle=rnd(0,TWO);
+  const distance=rnd(48,nearPlayer?290:235),angle=rnd(0,TWO);
   const x=Math.round(base.x+Math.cos(angle)*distance),y=Math.round(base.y+Math.sin(angle)*distance);
   if(x<8400||x>WORLD.w-45||y<50||y>WORLD.h-50||
-   !mountainHabitat(x,y)||collides(x,y,25)||waterDepth(x,y)>.005||
+   (preferredStop>=0&&Math.hypot(x-selected.x,y-selected.y)>250)||
+   collides(x,y,25)||waterDepth(x,y)>.005||
    weaponScraps.some(q=>Math.hypot(q.x-x,q.y-y)<155)||
    carcasses.some(q=>Math.hypot(q.x-x,q.y-y)<32))continue;
   const lineage=String(scoreRunId||"world").replace(/[^a-zA-Z0-9._:-]/g,"").slice(0,90);
@@ -5032,6 +5036,20 @@ function pickWeaponScrap(){
   return true;
  }
  weaponScraps=weaponScraps.filter(q=>q.id!==drop.id);
+ // Salvage is a live contested encounter, not an inert inventory pickup.
+ // Nearby eastern predators investigate the noise and attack the scavenger;
+ // existing AI handles pursuit, line-of-sight, attacks and boss damage.
+ let alerted=0;
+ for(const enemy of mobs){
+  if(!enemy||enemy.hp<=0||enemy.companion||enemy.strongBoss||
+   species[enemy.type]?.prey||enemy.releasedIndividualId||
+   Math.hypot(enemy.x-drop.x,enemy.y-drop.y)>Math.min(440,255+Math.max(0,drop.x-8400)*.035))continue;
+  enemy.alert=Math.max(Number(enemy.alert)||0,5.5);
+  enemy.search=Math.max(Number(enemy.search)||0,5.5);
+  enemy.lastX=drop.x;enemy.lastY=drop.y;
+  enemy.wander=0;alerted++;
+ }
+ if(alerted>0)notify("ガラクタの物音で野生の敵"+alerted+"体が接近！",3);
  window.WildFirstSteps?.event?.("interact");
  const grade=armory.gradeOf(outcome.item),owned=outcome.item.owner===P.type;
  // A failed world autosave never rolls back the independently verified vault:
@@ -6258,6 +6276,10 @@ function getObjective(){
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
   }
   if(P.x>7650){
+   // Nearby unidentified loot is a second actionable eastern objective,
+   // using the exact world XY shared by map, pickup, 2D and WebGL.
+   const salvage=nearestWeaponScrap(270);
+   if(salvage)return {x:salvage.x,y:salvage.y,label:"未鑑定ガラクタを拾う（○）",eastTrail:true};
    const next=window.WildEastExpedition?.next?.(P,eastTrailMask);
    if(next)return {x:next.x,y:next.y,label:"東部探索 "+next.name,eastTrail:true};
   }
