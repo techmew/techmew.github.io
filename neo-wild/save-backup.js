@@ -77,8 +77,19 @@ function mergeWeaponVault(merged,older){
  for(const item of current?.items||[])items.set(item.id,item);
  if(items.size>(window.WildArsenal?.MAX||240))
   throw Error("武器保管庫の上限超過。武器を削除せずインポートを中止しました");
- const equipped={...(incoming?.equipped||{}),...(current?.equipped||{})},ids=new Set(items.keys());
- for(const k of Object.keys(equipped))if(!ids.has(equipped[k]))delete equipped[k];
+ // Imported and local saves can bind the same physical item to different
+ // characters. Prefer the current device, then imported bindings; never
+ // duplicate ownership or silently change the weapon's species.
+ const equipped=Object.create(null),bound=new Set();
+ const ids=new Set(items.keys());
+ for(const source of [current?.equipped||{},incoming?.equipped||{}]){
+  for(const [key,id] of Object.entries(source)){
+   if(Object.prototype.hasOwnProperty.call(equipped,key)||!ids.has(id)||bound.has(id))continue;
+   const item=items.get(id);
+   if(key.startsWith("species:")&&item?.owner!==key.slice(8))continue;
+   equipped[key]=id;bound.add(id);
+  }
+ }
  const state={version:1,items:[...items.values()],equipped};
  if(!window.WildArsenal?.valid?.(state))throw Error("武器保管庫の統合に失敗しました");
  merged[WEAPON_VAULT_KEY]=JSON.stringify(state);
