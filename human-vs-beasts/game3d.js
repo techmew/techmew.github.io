@@ -946,8 +946,8 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;stopAmbience();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
-function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;if(r.humanV>2){footstep(Math.max(2.5,r.humanV),side);kickDust(humanX,r.humanD,r.humanV)}const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
+function startRace(){if(mode==='race')return;stopAmbience();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
+function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;footstep(Math.max(2.5,r.humanV),side);if(r.humanV>2)kickDust(humanX,r.humanD,r.humanV);const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;effect('burst');showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 
@@ -1170,10 +1170,19 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
   else if(a.profile==='hopper'){pace=(progress<18?.88:1.02)+Math.max(0,Math.sin(r.time*8))*.095;accMult=1.04}
   else if(a.profile==='late'){pace=progress<35?.83:progress<70?1.04:1.23;accMult=1.04}
   else{pace=progress<20?.95:progress>82?1.04:1}
-  const enemyTarget=maxB*pace,acc=a.acc*accMult;
+  const stage=save.chosen;
+  const challenge=stage<3?1.15:stage<7?1.58:stage<14?2.25:stage<22?1.95:stage<37?2.10:2.18;
+  const enemyTarget=maxB*pace,acc=a.acc*accMult*challenge;
   if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
   else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
   r.enemyD+=r.enemyV*dtSafe;
+  const giant=['boar','mammoth','elephant','hippo','rhino','woollyrhino','triceratops','trex','spinosaurus','dragon','golem','giantrobot','kaiju'].includes(a.kind);
+  const stepDistance=giant?3.0:2.35;
+  const index=Math.floor(r.enemyD/stepDistance);
+  if(r.enemyV>4&&index>r.lastRivalStep&&r.time-r.lastRivalImpact>(giant?.27:.21)){
+   r.lastRivalStep=index;r.lastRivalImpact=r.time;animalFootstep(a.kind,r.enemyV);
+  }
+  if(r.enemyD>60&&r.lastRivalCall<0){r.lastRivalCall=r.time;animalCall(a.kind)}
   if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100}
  }
  r.burstLeft=Math.max(0,r.burstLeft-dtSafe);const ready=r.burstCharge>=99&&r.burstLeft<=0;const button=$('burstBtn');if(button.disabled===ready){button.disabled=!ready;button.classList.toggle('ready',ready)}
