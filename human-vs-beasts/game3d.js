@@ -355,6 +355,7 @@ function makeBeast(data){
 
 function makeExtendedBeast(data){
  // The original thirteen racers retain their existing models; the other thirty-seven use specialized anatomy.
+ if(data.kind==='boar')return makeWildBoar(data);
  if(originalBeastIds.includes(data.id))return makeBeast(data);
  const k=data.kind,root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);
  const inorganic=['golem','giantrobot'].includes(k);
@@ -644,6 +645,68 @@ function makeExtendedBeast(data){
  }
  function mtRobotLight(){return mat(0x80bdb4,.25,.3)}
  return {root,bodyGroup,legs,tail,animate};
+}
+
+
+function makeWildBoar(data){
+ const root=new T.Group(),body=new T.Group();root.add(body);root.scale.setScalar(1.16);
+ const coat=mat(0x73543f,.98),dark=mat(0x41352f,.99),muzzle=mat(0x967a67,.97),nose=mat(0xaf9382,.94),
+ eyeMat=mat(0x211d1a,.25),tusk=mat(0xefe2c2,.5),hoof=mat(0x2c2925,.95),pink=mat(0x996f5e,.93);
+ coat.map=furMaterialTexture;coat.needsUpdate=true;
+ const B=(p,m,x,y,z,sx,sy,sz,d=18)=>ball(p,m,x,y,z,sx,sy,sz,d);
+ const curved=(points,r,material)=>{
+  const path=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p)));
+  const o=new T.Mesh(new T.TubeGeometry(path,12,r,7,false),material);o.castShadow=true;body.add(o);return o;
+ };
+ const legs=[];
+ // Deep shoulders, wedge-shaped head, narrow rear.
+ B(body,coat,0,1.08,-.11,.48,.45,.93,24);
+ B(body,coat,0,1.26,.42,.52,.53,.57,24);
+ B(body,coat,0,1.06,.77,.39,.36,.38,22);
+ B(body,coat,0,1.08,1.03,.35,.33,.43,24);
+ const bridge=B(body,muzzle,0,.94,1.35,.278,.21,.34,22);bridge.rotation.x=-.16;
+ B(body,nose,0,.86,1.64,.29,.20,.085,24);
+ for(let side of [-1,1]){
+  B(body,eyeMat,side*.31,1.26,1.20,.039,.038,.023,12);
+  B(body,pink,side*.31,1.27,1.23,.012,.012,.009,8);
+  B(body,eyeMat,side*.138,.885,1.727,.070,.057,.021,12);
+  // Boar ears are flat triangles; there are no horns.
+  const ear=new T.Mesh(new T.ConeGeometry(.156,.30,3),coat);
+  ear.position.set(side*.35,1.55,.80);ear.rotation.z=side*.51;ear.rotation.x=-.22;ear.castShadow=true;body.add(ear);
+  const inset=B(body,pink,side*.36,1.55,.9,.045,.115,.025,10);inset.rotation.z=side*.44;
+  // The characteristic curved UPWARD lower tusks on the outside of the cheeks.
+  curved([[side*.26,.80,1.38],[side*.38,.86,1.54],[side*.42,1.045,1.67]],.059,tusk);
+  B(body,tusk,side*.42,1.045,1.67,.026,.050,.025,10);
+ }
+ // Short thick legs with black split hooves.
+ for(let front of [-1,1])for(let side of [-1,1]){
+  const hip=new T.Group();hip.position.set(side*.335,1.05,front*.65);body.add(hip);
+  B(hip,coat,0,-.18,0,.20,.27,.21);
+  const knee=new T.Group();knee.position.y=-.39;hip.add(knee);
+  B(knee,coat,0,-.16,.03,.14,.23,.15);
+  B(knee,hoof,0,-.37,.09,.153,.09,.22);
+  for(let toe of [-1,1])B(knee,hoof,toe*.071,-.428,.23,.060,.063,.10,10);
+  legs.push({hip,knee,front,side});
+ }
+ // Dark rigid bristles follow the back instead of cartoon horns.
+ for(let i=0;i<52;i++){
+  const z=.51-(i%13)*.114,x=(Math.floor(i/13)-1.5)*.107;
+  const y=1.68-.14*Math.max(0,Math.abs(z+.15));
+  const mesh=new T.Mesh(new T.ConeGeometry(.013,.13+(i%4)*.020,5),i%4===0?coat:dark);
+  mesh.position.set(x,y,z);mesh.rotation.x=-.34;mesh.rotation.z=x*.5;body.add(mesh);
+ }
+ curved([[0,1.09,-.97],[0,1.07,-1.19],[.10,1.13,-1.35],[.18,1.23,-1.43]],.033,coat);
+ B(body,dark,.18,1.23,-1.44,.06,.09,.08,10);
+ lineShadow(root,.8);
+ return {root,bodyGroup:body,legs,tail:null,animate(time,speed){
+  const eff=clamp(speed/13,0,1.8);
+  body.position.y=eff*Math.sin(time*2)*.026;
+  body.rotation.x=Math.sin(time)*.011*eff;
+  for(let i=0;i<legs.length;i++){
+   const l=legs[i],phase=time+(i<2?0:Math.PI)+(i%2?Math.PI*.45:0),w=Math.sin(phase);
+   l.hip.rotation.x=w*.54*eff;l.knee.rotation.x=Math.max(0,-w)*.55*eff;
+  }
+ }};
 }
 
 // 3D player and opponent are rebuilt on customization / opponent changes.
