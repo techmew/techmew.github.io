@@ -6,20 +6,58 @@ const fail=msg=>{loadStatus.textContent=msg;loader.querySelector('.spinner').sty
 if(!window.THREE){fail('3Dエンジンを読み込めませんでした。通信とブラウザのWebGL対応を確認してください。');return}
 const T=THREE, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), mix=(a,b,t)=>a+(b-a)*t;
 const mobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||innerWidth<800;
+const racer=(id,name,sub,kph,acc,kind,coat,tier,profile='steady',group='現生動物')=>({id,name,sub,kph,acc,kind,coat,tier,profile,group});
 const animals=[
- {id:'dog',name:'イヌ',sub:'加速の基本を学ぶ',kph:35,acc:4.5,kind:'dog',coat:0xc28a58,tier:1},
- {id:'cat',name:'ネコ',sub:'軽い身体と瞬発力',kph:48,acc:5.8,kind:'cat',coat:0xc7a47b,tier:1},
- {id:'fox',name:'アカギツネ',sub:'細身のスプリンター',kph:50,acc:6.0,kind:'fox',coat:0xc76e37,tier:2},
- {id:'rabbit',name:'ノウサギ',sub:'猛烈な跳躍',kph:65,acc:7.0,kind:'rabbit',coat:0xb99d76,tier:2},
- {id:'zebra',name:'シマウマ',sub:'脚の長い大型獣',kph:60,acc:5.8,kind:'zebra',coat:0xe8e6df,tier:3},
- {id:'greyhound',name:'グレイハウンド',sub:'競走のための流線型',kph:70,acc:7.3,kind:'greyhound',coat:0xa69588,tier:3},
- {id:'ostrich',name:'ダチョウ',sub:'二本脚で疾走',kph:70,acc:6.2,kind:'ostrich',coat:0x272931,tier:4},
- {id:'kangaroo',name:'アカカンガルー',sub:'巨大な後脚で跳ねる',kph:70,acc:6.2,kind:'kangaroo',coat:0xb77651,tier:4},
- {id:'horse',name:'クォーターホース',sub:'圧倒的な馬力',kph:71,acc:7.0,kind:'horse',coat:0x9e6240,tier:5},
- {id:'lion',name:'ライオン',sub:'強靱な四肢と筋肉',kph:80,acc:7.7,kind:'lion',coat:0xd49c54,tier:5},
- {id:'gazelle',name:'スプリングボック',sub:'軽快な高速アンテロープ',kph:88,acc:8.4,kind:'gazelle',coat:0xbf956d,tier:6},
- {id:'pronghorn',name:'プロングホーン',sub:'長距離にも強い速足',kph:88,acc:8.7,kind:'pronghorn',coat:0xbc9b75,tier:6},
- {id:'cheetah',name:'チーター',sub:'地上最速への最終挑戦',kph:103.5,acc:11.0,kind:'cheetah',coat:0xe3ae65,tier:7}
+ racer('dog','イヌ','走りの基本を学ぶ',35,4.5,'dog',0xc28a58,1),
+ racer('cat','ネコ','軽い体で素早く加速',48,5.8,'cat',0xc7a47b,1),
+ racer('fox','アカギツネ','鋭い加速と小さな体',50,6,'fox',0xc76e37,2),
+ racer('dodo','ドードー','太い脚で駆ける絶滅鳥',41,5.2,'dodo',0x817f77,2,'heavy','絶滅動物'),
+ racer('rabbit','ノウサギ','跳躍を繰り返す',65,7,'rabbit',0xb99d76,2,'hopper'),
+ racer('greyhound','グレイハウンド','流線型の競走犬',70,7.3,'greyhound',0xa69588,3,'sprinter'),
+ racer('zebra','シマウマ','長い脚と力強い加速',60,5.8,'zebra',0xe8e6df,3),
+ racer('wildboar','巨大イノシシ','低い姿勢から突進する',73,6.5,'boar',0x75563c,4,'heavy','現生動物'),
+ racer('ostrich','ダチョウ','二本脚の高速走行',70,6.2,'ostrich',0x272931,4,'sprinter'),
+ racer('kangaroo','アカカンガルー','大きな跳躍で進む',70,6.2,'kangaroo',0xb77651,4,'hopper'),
+ racer('moa','ジャイアントモア','巨大な絶滅鳥',78,6.5,'moa',0x706a58,5,'hopper','絶滅動物'),
+ racer('horse','クォーターホース','強い加速と長いストライド',71,7,'horse',0x9e6240,5,'sprinter'),
+ racer('wolf','オオカミ','群れを離れた長距離走者',79,7.2,'wolf',0x797977,6),
+ racer('giantsloth','巨大ナマケモノ','長い前脚で力強く駆ける',83,5.1,'giantsloth',0x80705c,6,'heavy','絶滅動物'),
+ racer('lion','ライオン','大型肉食獣の猛ダッシュ',80,7.7,'lion',0xd49c54,7,'sprinter'),
+ racer('deer','アカシカ','跳ねるような軽い走り',86,7.6,'deer',0xaa8055,7,'hopper'),
+ racer('smilodon','スミロドン','鋭い牙を持つ絶滅肉食獣',87,8.4,'smilodon',0xb69c75,8,'sprinter','絶滅動物'),
+ racer('gazelle','スプリングボック','加速と跳躍を両立',88,8.4,'gazelle',0xbf956d,8,'hopper'),
+ racer('pronghorn','プロングホーン','長い距離を高速で走る',88,8.7,'pronghorn',0xbc9b75,8,'sprinter'),
+ racer('tiger','トラ','大きな体と高い瞬発力',91,8.4,'tiger',0xc68d52,9,'sprinter'),
+ racer('unicorn','ユニコーン','角を持つ伝説の馬',96,8.5,'unicorn',0xe1dbd3,9,'sprinter','架空生物'),
+ racer('cheetah','チーター','最高速度に優れた現生動物',103.5,11,'cheetah',0xe3ae65,10,'sprinter'),
+ racer('gorilla','ゴリラ','大きな腕で地面を蹴る',99,5.8,'gorilla',0x393a36,11,'heavy'),
+ racer('elephant','アフリカゾウ','巨体から生まれる力強い加速',101,5.4,'elephant',0x777e7b,11,'heavy'),
+ racer('hippo','カバ','重い体で突進する',105,6,'hippo',0x71655f,12,'heavy'),
+ racer('rhino','サイ','一直線の突進力',109,6.3,'rhino',0x777975,12,'heavy'),
+ racer('mammoth','マンモス','長い牙と巨体を持つ絶滅動物',112,5.6,'mammoth',0x7d5d45,13,'heavy','絶滅動物'),
+ racer('woollyrhino','ケナガサイ','毛皮に覆われた巨大なサイ',115,6.2,'woollyrhino',0x726153,13,'heavy','絶滅動物'),
+ racer('direwolf','ダイアウルフ','大きな体の絶滅したイヌ科',120,8.5,'direwolf',0x66635d,14,'sprinter','絶滅動物'),
+ racer('terrorbird','フォルスラコス','巨大なくちばしの恐鳥',121,8.2,'terrorbird',0x8e8070,14,'hopper','絶滅動物'),
+ racer('cavebear','ホラアナグマ','重量級の絶滅したクマ',123,6.7,'cavebear',0x5b493f,15,'heavy','絶滅動物'),
+ racer('triceratops','トリケラトプス','三本の角を持つ恐竜',127,6.6,'triceratops',0x6b7b60,15,'heavy','恐竜'),
+ racer('stegosaurus','ステゴサウルス','背中に大きな骨板を持つ恐竜',129,6.4,'stegosaurus',0x627b66,16,'heavy','恐竜'),
+ racer('ankylosaurus','アンキロサウルス','全身を鎧で覆われた恐竜',131,6.4,'ankylosaurus',0x667767,16,'heavy','恐竜'),
+ racer('parasaurolophus','パラサウロロフス','長い頭の突起を持つ恐竜',136,8.1,'parasaurolophus',0x728d79,17,'steady','恐竜'),
+ racer('gallimimus','ガリミムス','細い脚で高速疾走する恐竜',140,10.4,'gallimimus',0xa69c79,18,'sprinter','恐竜'),
+ racer('velociraptor','ヴェロキラプトル','小型の素早い肉食恐竜',144,11,'velociraptor',0x8a8b73,18,'sprinter','恐竜'),
+ racer('deinonychus','デイノニクス','長い尾でバランスを取る恐竜',148,11.2,'deinonychus',0x647e72,19,'sprinter','恐竜'),
+ racer('carnotaurus','カルノタウルス','頭に角を持つ大型肉食恐竜',152,9.8,'carnotaurus',0x986e5b,19,'sprinter','恐竜'),
+ racer('trex','ティラノサウルス','巨体で加速する肉食恐竜',158,9.4,'trex',0x77826d,20,'heavy','恐竜'),
+ racer('spinosaurus','スピノサウルス','背中の帆が特徴の大型恐竜',162,9.6,'spinosaurus',0x597780,20,'heavy','恐竜'),
+ racer('pegasus','ペガサス','翼を持つ伝説の馬',167,11.5,'pegasus',0xe0d9cd,21,'sprinter','架空生物'),
+ racer('cerberus','ケルベロス','三つの頭を持つ魔獣',173,11.4,'cerberus',0x39323d,21,'sprinter','架空生物'),
+ racer('griffin','グリフォン','ワシの翼と獣の体を持つ',179,11.6,'griffin',0xa88754,22,'sprinter','架空生物'),
+ racer('minotaur','ミノタウロス','牛の頭を持つ二足歩行の怪物',186,10.5,'minotaur',0x5e524d,22,'heavy','架空生物'),
+ racer('dragon','ドラゴン','巨大な翼と角を持つ生物',192,12.0,'dragon',0x7c4b50,23,'late','架空生物'),
+ racer('golem','ゴーレム','岩の体で地面を踏み鳴らす',198,9.2,'golem',0x777e80,24,'heavy','架空生物'),
+ racer('giantrobot','巨大ロボット','機械の脚で加速する',208,12.4,'giantrobot',0x7b9aaa,24,'late','架空生物'),
+ racer('alien','宇宙生物','地球とは違う走り方をする',216,15.2,'alien',0x70a79b,25,'late','架空生物'),
+ racer('kaiju','巨大怪獣','全ての相手を超える最後の一戦',224,11.8,'kaiju',0x656377,26,'late','架空生物')
 ];
 const palettes={skin:['#ffe0c7','#eec09b','#c88d62','#975f45','#633c2d','#f3c99c','#c49574','#ab7858','#dfac7d','#6b4936'],hair:['#202029','#432c23','#9f6337','#d8bd75','#8a484b','#bebdc2','#1e5581','#a649a7','#74371d','#d4d3cb'],shirt:['#a9b5ae','#ffffff','#1a2c47','#ef645a','#3a9ede','#9c69e2','#e5aa49','#1f7d72','#dc88a9','#b6bdc4','#343038','#f3ca77'],pants:['#14283e','#f1f3ee','#193b4f','#3f454d','#953d4e','#41553f','#8e735a','#253364','#74748b'],shoes:['#f7f8f0','#e9b14e','#252a2f','#63d7e6','#ef6a66','#a77beb','#9bb59f','#cfd3d7'],irisTone:['#443020','#67513a','#2a4d62','#477164','#8f897d','#282b30','#8b6b4e','#627e94','#a5ab97','#425d56'],sole:['#e6e4dd','#282f32','#808a8e','#d4c1a4','#c38e72','#546973','#a3a69d','#a36956']};
 
@@ -76,6 +114,22 @@ const defaultAvatar={
 const defaultSave={money:170,stats:{speed:2,power:1,stamina:1,technique:1},best:null,won:[],chosen:0,avatar:defaultAvatar,races:0,runnerName:'ランナー',bestByBeast:{}};
 let save=(()=>{try{const v=JSON.parse(localStorage.getItem('animal100m_v4'));if(v&&typeof v==='object')return {...defaultSave,...v,stats:{...defaultSave.stats,...v.stats},avatar:{...defaultAvatar,...v.avatar},won:Array.isArray(v.won)?v.won:[],bestByBeast:v.bestByBeast||{}}}catch(e){}return JSON.parse(JSON.stringify(defaultSave))})();
 const store=()=>{try{localStorage.setItem('animal100m_v4',JSON.stringify(save))}catch(e){}};
+
+const originalBeastIds=['dog','cat','fox','rabbit','zebra','greyhound','ostrich','kangaroo','horse','lion','gazelle','pronghorn','cheetah'];
+if(save.rosterVersion!==2){
+ const originalStage=Math.max(0,Math.min(originalBeastIds.length-1,Math.floor(Number(save.chosen)||0)));
+ const oldChoice=originalBeastIds[originalStage];
+ const chosenNew=animals.findIndex(a=>a.id===oldChoice);
+ const reachedOld=originalBeastIds.reduce((furthest,id,i)=>save.won.includes(id)?Math.max(furthest,i+1):furthest,0);
+ const reachedNew=animals.findIndex(a=>a.id===originalBeastIds[Math.min(reachedOld,originalBeastIds.length-1)]);
+ save.chosen=Math.max(0,chosenNew);
+ save.unlockedStage=Math.max(0,chosenNew,reachedNew);
+ save.rosterVersion=2;store();
+}else{
+ save.chosen=Math.max(0,Math.min(animals.length-1,Math.floor(Number(save.chosen)||0)));
+ save.unlockedStage=Math.max(0,Math.min(animals.length-1,Math.floor(Number(save.unlockedStage)||0)));
+}
+
 const training=[{id:'speed',name:'脚力・最高速度',desc:'最高速度とトップスピード維持を強化',gain:'+4.2km/h'}, {id:'power',name:'爆発力・加速',desc:'スタートからの加速、踏み込み効率を強化',gain:'加速 +8%'},{id:'stamina',name:'心肺・持久力',desc:'連打で消費する体力を軽減',gain:'持久力 +8%'},{id:'technique',name:'走法・フォーム',desc:'連打効率とコンボ蓄積を強化',gain:'効率 +7%'}];
 const mat=(color,roughness=.86,metalness=.01)=>new T.MeshStandardMaterial({color,roughness,metalness});
 const m={track:mat(0x944b42),trackDark:mat(0x894039),line:mat(0xf8ead7),grass:mat(0x38594c),grass2:mat(0x29473d),dark:mat(0x122336),wall:mat(0x243748),seat:mat(0x304554),seat2:mat(0x253843),steel:mat(0xbccad5,.4,.7),gold:mat(0xffd36a,.35,.4),white:mat(0xf4f5eb),black:mat(0x191e25),eye:mat(0xf9faf7),lens:mat(0x263449),nose:mat(0x332c29),paint:mat(0x8baec1),shoe:mat(0x252c3b),red:mat(0xd94d4e)};
@@ -344,7 +398,7 @@ function footstep(speed){
 }
 function showScreen(mo){mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
-const unlocked=(i)=>i===0||save.won.includes(animals[i-1].id);
+const unlocked=(i)=>i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.sub;$('nextSpeed').textContent=x.kph+' km/h';$('nextBar').style.width=(x.kph/110*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent=win?'勝利済み — 記録の更新に挑戦':'勝利すると次の生物が解放される';$('startBtn').textContent='▶ '+x.name+'と100m走'}
 function renderTraining(){const el=$('trainList');el.innerHTML='';const cards=training.map(item=>{const level=save.stats[item.id]||1,need=cost(item.id),max=level>=50;return `<div class="trainitem"><header><div><div class="label">${item.name}</div><h3>${item.name} <span class="mini">Lv.${level}</span></h3></div><button data-train="${item.id}" ${max||save.money<need?'disabled':''}>${max?'MAX':need+' G'}</button></header><p>${item.desc} ・ ${item.gain}</p><div class="trainLine"><i style="width:${Math.min(100,level*2)}%"></i></div></div>`}).join('');el.innerHTML=cards;el.querySelectorAll('[data-train]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.train,n=cost(id);if(save.money<n||save.stats[id]>=50)return;save.money-=n;save.stats[id]++;store();beep(670,.09,'triangle',.055);renderTraining();refreshMenu()}))}
 function renderBeasts(){const el=$('animalList');el.innerHTML='';el.innerHTML=animals.map((a,i)=>`<div class="animalitem ${i===save.chosen?'selected':''} ${unlocked(i)?'':'locked'}"><header><div><div class="label">第${i+1}戦 / ${a.kph} km/h</div><h3>${a.name} ${save.won.includes(a.id)?'<span class="mini">★ 勝利済</span>':''}</h3></div><button data-beast="${i}" ${unlocked(i)?'':'disabled'}>${i===save.chosen?'選択中':unlocked(i)?'挑戦する':'未解放'}</button></header><p>${a.sub}。${!unlocked(i)?'前の動物に勝つと解放されます。':''}</p></div>`).join('');el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.beast;if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}))}
@@ -607,7 +661,7 @@ function finishRace(){
  const reward=Math.max(15,Math.round((won?190:completed?65:30)+animals[save.chosen].tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
  save.money+=reward;
  const atLast=save.chosen>=animals.length-1;
- if(won&&!save.won.includes(animals[save.chosen].id)){save.won.push(animals[save.chosen].id);if(!atLast)save.chosen++}
+ if(won){if(!save.won.includes(animals[save.chosen].id))save.won.push(animals[save.chosen].id);save.unlockedStage=Math.max(save.unlockedStage,Math.min(animals.length-1,save.chosen+1));if(!atLast)save.chosen++}
  store();
  $('resultEyebrow').textContent='100m走の結果';
  $('resultTitle').textContent=won?'勝ち':completed?'負け':'未完走';
