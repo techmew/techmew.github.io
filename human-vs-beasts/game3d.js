@@ -230,17 +230,23 @@ function makeHuman(a){
  const arms=[],legs=[];
  for(const side of [-1,1]){
   const sh=new T.Group();sh.position.set(side*.42*bulky*shoulderWidth,.72,-.01);sh.scale.set(armBulk,armLength,armBulk);torso.add(sh);
-  ball(sh,shirt,0,-.1,0,.19,.24,.20);
-  ball(sh,a.shirtStyle>5||a.sleeveLength>65?shirt:skin,0,-.34,.01,.135,.32,.135);if(a.sleeveLength>20)ball(sh,shirt,0,-.18-a.sleeveLength*.0015,0,.155,.08+a.sleeveLength*.0015,.155);
+  ball(sh,shirt,0,-.1,0,.158,.185,.165);
+  conical(sh,a.shirtStyle>5||a.sleeveLength>65?shirt:skin,0,-.34,.01,.145,.105,.50,18);if(a.sleeveLength>20)ball(sh,shirt,0,-.18-a.sleeveLength*.0015,0,.155,.08+a.sleeveLength*.0015,.155);
   const elbow=new T.Group();elbow.position.y=-.58;sh.add(elbow);
-  ball(elbow,skin,0,-.23,.035,.12,.28,.11);
-  ball(elbow,skin,0,-.5,.06,.135,.15,.12);if(a.wristband>20)ball(elbow,shirt,0,-.39,.03,.14,.02+a.wristband*.00035,.12);arms.push({sh,elbow,side});
+  conical(elbow,skin,0,-.23,.035,.120,.078,.47,16);
+  ball(elbow,skin,0,-.5,.06,.097,.126,.092);ball(elbow,skin,side*.08,-.45,.127,.039,.068,.052,12);if(a.wristband>20)ball(elbow,shirt,0,-.39,.03,.14,.02+a.wristband*.00035,.12);arms.push({sh,elbow,side});
   const hip=new T.Group();hip.position.set(side*.2*wide*hipWidth,1.06*legRatio,0);hip.scale.y=legRatio;skeleton.add(hip);
-  ball(hip,a.pantsLength>30?pants:skin,0,-.28,0,.153*bulky*thighBulk,.35,.17);
-  const knee=new T.Group();knee.position.y=-.52;hip.add(knee);
-  ball(knee,a.pantsLength>65?pants:skin,0,-.22,0,.125*calfBulk,.29,.14);
-  ball(knee,shoes,0,-.49,.13,.145*(1+.20*morph('shoeSize')),.105,.27*(1+.20*morph('shoeSize')));
-  box(knee,.25,.035,.27,soleMat,0,-.56,.21);
+  conical(hip,a.pantsLength>30?pants:skin,0,-.27,0,.169*bulky*thighBulk,.117*bulky*thighBulk,.57,20);
+  const knee=new T.Group();knee.position.y=-.52;hip.add(knee);ball(knee,a.pantsLength>65?pants:skin,0,-.015,.012,.126*calfBulk,.112,.126,18);
+  conical(knee,a.pantsLength>65?pants:skin,0,-.235,.015,.139*calfBulk,.075*calfBulk,.46,20);
+  ball(knee,shoes,0,-.49,.115,.136*(1+.20*morph('shoeSize')),.104,.235*(1+.20*morph('shoeSize')));ball(knee,shoes,0,-.525,.31,.132*(1+.20*morph('shoeSize')),.071,.143*(1+.20*morph('shoeSize')));
+  box(knee,.265,.043,.35,soleMat,0,-.566,.193);
+   const lace=mat(0xd6d8cf,.87);
+   for(let k=0;k<3;k++){
+    const z=.16+k*.067;
+    tube(knee,[-.061,-.417,z],[.061,-.417,z+.013],.007,lace,.007);
+   }
+   ball(knee,soleMat,0,-.58,.39,.123,.022,.042,14);
   legs.push({hip,knee,side});
  }
  const head=new T.Group();head.position.set(0,1.08+.025*morph('forehead'),.065);head.scale.setScalar(.88*(1+.20*morph('headSize')));torso.add(head);
