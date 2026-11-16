@@ -837,15 +837,19 @@ function buildPodiumPhoto(){
  placard(sc,'3',2.48,.21,1.035,.72,.32,0,'#60717b','#ffffff');
  const beast=animals.find(a=>a.name===raceName)||animals[0];
  const athlete=makeHuman(save.avatar),rival=makeExtendedBeast(beast);
- const characterScale=1.08;
- const heightFactor=['horse','zebra','ostrich','kangaroo'].includes(beast.kind)?.70:
-                    ['lion','pronghorn','gazelle'].includes(beast.kind)?.82:
-                    ['rabbit','cat'].includes(beast.kind)?1.10:.95;
- athlete.root.scale.setScalar(characterScale);
- rival.root.scale.setScalar(heightFactor);
  const winningHuman=lastResultWon;
- athlete.root.position.set(winningHuman?0:-2.48,winningHuman?1.255:.76,.30);
- rival.root.position.set(winningHuman?-2.48:0,winningHuman?.75:1.255,.20);
+ athlete.root.scale.setScalar(winningHuman?1.16:.90);
+ // Fit a giant dinosaur or mammoth onto its podium without replacing its individual model.
+ const naturalBox=new T.Box3().setFromObject(rival.root);
+ const naturalHeight=Math.max(.5,naturalBox.max.y-naturalBox.min.y);
+ rival.root.scale.multiplyScalar(clamp((winningHuman?2.35:2.95)/naturalHeight,.30,1.6));
+ function seatOnStep(model,x,platformHeight,z){
+  model.position.set(x,0,z);
+  const bounds=new T.Box3().setFromObject(model);
+  model.position.y=platformHeight-bounds.min.y+.035;
+ }
+ seatOnStep(athlete,winningHuman?0:-2.48,winningHuman?1.27:.75,.28);
+ seatOnStep(rival,winningHuman?-2.48:0,winningHuman?.75:1.27,.10);
  athlete.root.rotation.y=0;
  rival.root.rotation.y=0;
  athlete.animate(0,0);
@@ -886,13 +890,13 @@ function buildPodiumPhoto(){
   winnerNecklace(athlete.torso,.95,.78,.36);
  }else{
   // Animal winner receives the same decoration, scaled and positioned by body size.
-  const bounds=new T.Box3().setFromObject(rival.root);
-  const wHeight=Math.max(.8,bounds.max.y-bounds.min.y);
+  const bounds=new T.Box3().setFromObject(rival.root),size=new T.Vector3();
+  bounds.getSize(size);
+  const scale=Math.max(.32,rival.root.scale.x);
   const neckMount=new T.Group();
-  const localScale=Math.max(.48,Math.min(.98,heightFactor));
-  neckMount.position.set(0,wHeight*.50/heightFactor,beast.kind==='ostrich'?.70:.75);
+  neckMount.position.set(0,size.y*.58/scale,size.z*.28/scale);
   rival.root.add(neckMount);
-  winnerNecklace(neckMount,localScale,.35,.27);
+  winnerNecklace(neckMount,.77,.30,.25);
  }
  // Restrained celebratory confetti, always behind the central character.
  const confettiMaterials=[mat(0xe4c485,.6,.22),mat(0xe5e9e2,.72,.1),mat(0x8faeb3,.7,.2)];
