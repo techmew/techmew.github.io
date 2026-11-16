@@ -80,6 +80,13 @@ const training=[{id:'speed',name:'脚力・最高速度',desc:'最高速度と�
 const mat=(color,roughness=.86,metalness=.01)=>new T.MeshStandardMaterial({color,roughness,metalness});
 const m={track:mat(0x944b42),trackDark:mat(0x894039),line:mat(0xf8ead7),grass:mat(0x38594c),grass2:mat(0x29473d),dark:mat(0x122336),wall:mat(0x243748),seat:mat(0x304554),seat2:mat(0x253843),steel:mat(0xbccad5,.4,.7),gold:mat(0xffd36a,.35,.4),white:mat(0xf4f5eb),black:mat(0x191e25),eye:mat(0xf9faf7),lens:mat(0x263449),nose:mat(0x332c29),paint:mat(0x8baec1),shoe:mat(0x252c3b),red:mat(0xd94d4e)};
 const scene=new T.Scene();scene.background=new T.Color(0x516577);scene.fog=new T.FogExp2(0x677789,.0048);
+
+const skyGradient=new T.ShaderMaterial({
+ depthWrite:false,side:T.BackSide,
+ vertexShader:'varying vec3 p; void main(){p=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+ fragmentShader:'varying vec3 p; void main(){float y=clamp(normalize(p).y*0.5+0.5,0.0,1.0); vec3 low=vec3(0.34,0.42,0.48); vec3 high=vec3(0.17,0.25,0.33); vec3 col=mix(low,high,smoothstep(0.26,0.89,y));gl_FragColor=vec4(col,1.0);}'
+});
+const skyDome=new T.Mesh(new T.SphereGeometry(270,32,20),skyGradient);skyDome.position.set(0,0,45);skyDome.frustumCulled=false;scene.add(skyDome);
 const camera=new T.PerspectiveCamera(52,1,.1,420);
 let renderer;
 try {renderer=new T.WebGLRenderer({canvas:$('world'),antialias:!mobile,powerPreference:'high-performance',alpha:false,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.35:1.85));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.78;}catch(err){fail('WebGL 3Dの起動に失敗しました。WebGL対応ブラウザで開いてください。');return}
@@ -88,10 +95,10 @@ const sun=new T.DirectionalLight(0xe9d6bd,1.45);sun.position.set(-26,60,24);sun.
 const fill=new T.DirectionalLight(0x8eabba,.27);fill.position.set(20,15,65);scene.add(fill);
 const ground=new T.Mesh(new T.PlaneGeometry(480,540),m.grass);ground.rotation.x=-Math.PI/2;ground.position.set(0,-.075,55);ground.receiveShadow=true;scene.add(ground);
 const box=(parent,w,h,d,mt,x=0,y=0,z=0,cast=false)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),mt);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o};
-const ball=(parent,mt,x,y,z,sx,sy,sz,detail=16)=>{const o=new T.Mesh(new T.SphereGeometry(1,detail,Math.max(10,Math.floor(detail*.7))),mt);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
+const ball=(parent,mt,x,y,z,sx,sy,sz,detail=22)=>{const o=new T.Mesh(new T.SphereGeometry(1,detail,Math.max(10,Math.floor(detail*.7))),mt);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
 const conical=(parent,mt,x,y,z,r1,r2,h,segments=10)=>{const o=new T.Mesh(new T.CylinderGeometry(r1,r2,h,segments),mt);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o};
 const tube=(parent,from,to,r,mt,r2)=>{const a=new T.Vector3(...from),b=new T.Vector3(...to);const d=new T.Vector3().subVectors(b,a);const o=new T.Mesh(new T.CylinderGeometry(r2??r,r,d.length(),9),mt);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());o.castShadow=true;parent.add(o);return o};
-function textTexture(text,background='#152a3b',foreground='#ffffff',wide=512,high=128){const cv=document.createElement('canvas');cv.width=wide;cv.height=high;const c=cv.getContext('2d');c.fillStyle=background;c.fillRect(0,0,wide,high);c.strokeStyle='#e4fc7470';c.lineWidth=8;c.strokeRect(4,4,wide-8,high-8);c.fillStyle=foreground;c.font='900 '+Math.floor(high*.42)+'px system-ui, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,wide/2,high/2,wide-22);const tx=new T.CanvasTexture(cv);tx.anisotropy=renderer.capabilities.getMaxAnisotropy?Math.min(4,renderer.capabilities.getMaxAnisotropy()):1;return tx}
+function textTexture(text,background='#152a3b',foreground='#ffffff',wide=512,high=128){const cv=document.createElement('canvas');cv.width=wide;cv.height=high;const c=cv.getContext('2d');c.fillStyle=background;c.fillRect(0,0,wide,high);c.strokeStyle='#d9e3df40';c.lineWidth=8;c.strokeRect(4,4,wide-8,high-8);c.fillStyle=foreground;c.font='900 '+Math.floor(high*.42)+'px system-ui, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,wide/2,high/2,wide-22);const tx=new T.CanvasTexture(cv);tx.anisotropy=renderer.capabilities.getMaxAnisotropy?Math.min(4,renderer.capabilities.getMaxAnisotropy()):1;return tx}
 function placard(parent,text,x,y,z,w=5,h=1.1,rot=0,bg='#152a3b',fg='#ffffff'){const t=textTexture(text,bg,fg,512,128);const me=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:t,side:T.DoubleSide}));me.position.set(x,y,z);me.rotation.y=rot;parent.add(me);return me}
 function makeMaterialGrain(material,repeatX,repeatY,contrast=12){
  const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
@@ -111,12 +118,18 @@ function buildStadium(){
  for(let i=0;i<=6;i++){const x=-9.6+i*3.2;box(scene,.085,.055,122,m.line,x,.1,44);}
  for(let z=0;z<=100;z+=5){for(let x of [-8,-4.8,-1.6,1.6,4.8,8]){if(z>0&&z<100&&z%10===0)box(scene,.11,.028,.7,m.white,x,.115,z)} }
  box(scene,19.2,.075,.5,m.white,0,.125,0);box(scene,19.2,.075,.7,m.white,0,.13,100);
- // large chequered finish mark
+ // Start-line lane numbers painted into the surface
+  for(let lane=0;lane<6;lane++){
+   const numberTexture=textTexture(String(lane+1),'#8b463c','#f5e8da',128,128);
+   const number=new T.Mesh(new T.PlaneGeometry(1.55,1.55),new T.MeshBasicMaterial({map:numberTexture,transparent:false,depthWrite:true,side:T.DoubleSide}));
+   number.rotation.x=-Math.PI/2;number.position.set(-8+lane*3.2,.153,-3.2);scene.add(number);
+  }
+  // large chequered finish mark
  for(let k=0;k<12;k++){box(scene,1.6,.081,.5,k%2===0?m.black:m.white,-8.8+k*1.6,.16,100)}
- for(let z=0;z<=100;z+=10){for(let side of [-1,1]){box(scene,.8,.12,1.5,m.white,side*11.6,.1,z);const p=conical(scene,m.steel,side*11.6,.45,z,.05,.08,.8);p.castShadow=false;placard(scene,String(z)+'m',side*11.6,.98,z,1.7,.47,side===1?Math.PI/2:-Math.PI/2,'#15263a','#faffb5')}}
+ for(let z=0;z<=100;z+=10){for(let side of [-1,1]){box(scene,.8,.12,1.5,m.white,side*11.6,.1,z);const p=conical(scene,m.steel,side*11.6,.45,z,.05,.08,.8);p.castShadow=false;placard(scene,String(z)+'m',side*11.6,.98,z,1.7,.47,side===1?Math.PI/2:-Math.PI/2,'#21343b','#e1e6e3')}}
  // finish arch and mid-track details
  for(let side of [-1,1]){box(scene,.53,6.6,.55,m.steel,side*10.1,3.35,100,true);box(scene,1.2,.35,1.3,m.dark,side*10.1,5.96,100)}
- box(scene,21,1.15,.7,m.dark,0,6.45,100,true);placard(scene,'GOAL  /  100m',0,6.47,99.59,14,1,0,'#112133','#f6ffb7');
+ box(scene,21,1.15,.7,m.dark,0,6.45,100,true);placard(scene,'GOAL  /  100m',0,6.47,99.59,14,1,0,'#23363f','#e9efe7');
  for(let side of [-1,1]){
   // tiered modern grandstand
   box(scene,24,1.5,163,m.dark,side*28,.15,44);
@@ -131,6 +144,9 @@ function buildStadium(){
  // multi-colour 3D crowd (instancing for performance)
  const count=mobile?340:930;const geo=new T.SphereGeometry(.21,7,5);const inst=new T.InstancedMesh(geo,mat(0xe3d5c8,.9),count);const dummy=new T.Object3D();const col=new T.Color();const colors=[0xe9b9a0,0xeadeda,0x98b9ce,0xdbda62,0xe28a6b,0x9fb66f,0x5e779c,0xdeb786,0xc1a9cb];
  for(let i=0;i<count;i++){const side=i%2?1:-1,row=(Math.floor(i/2)%7),z=-27+((i*19.13)%148),x=side*(15+row*2.85);dummy.position.set(x,.92+row*.61,z);dummy.scale.set(1,1,1);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);col.setHex(colors[(i*37)%colors.length]);inst.setColorAt(i,col)}inst.instanceMatrix.needsUpdate=true;scene.add(inst);
+  const bodyGeo=new T.CylinderGeometry(.18,.27,.44,7),people=new T.InstancedMesh(bodyGeo,mat(0xb9b6ae,.96),count);
+  for(let i=0;i<count;i++){const side=i%2?1:-1,row=(Math.floor(i/2)%7),z=-27+((i*19.13)%148),x=side*(15+row*2.85);dummy.position.set(x,.59+row*.61,z);dummy.scale.set(1,1,1);dummy.updateMatrix();people.setMatrixAt(i,dummy.matrix);col.setHex(colors[(i*31+3)%colors.length]);people.setColorAt(i,col)}
+  people.instanceMatrix.needsUpdate=true;scene.add(people);
  for(let z=-36;z<=126;z+=26){for(let x of [-53,53]){conical(scene,m.steel,x,8,z,.16,.23,16);box(scene,4.5,.34,1.6,m.steel,x,16,z);for(let k=-1;k<=1;k++)ball(scene,m.white,x+k*1.3,15.8,z+.65,.5,.15,.1,9)}}
  // background skyline, scenery, and flagpoles
  const building=[0x54728a,0x3e657d,0x7894a5,0x567c90];for(let i=0;i<34;i++){const z=-100+i*11,x=(i%2?1:-1)*(67+(i*7%25)),h=6+(i*23%23);box(scene,6+(i%5)*2,h,6,mat(building[i%4]),x,h/2-.05,z)}
@@ -499,12 +515,26 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else{wantedPos=new T.Vector3(-5.4,3.08,9.9);wantedTarget=new T.Vector3(0,1.1,0)}
  const t=Math.min(1,dt*(mode==='race'?3.8:2.9));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
+
+let renderQuality=renderer.getPixelRatio(),perfFrames=0,perfSeconds=0,perfGate=0;
+function adaptQuality(dt){
+ perfFrames++;perfSeconds+=dt;
+ if(perfSeconds<3)return;
+ const fps=perfFrames/Math.max(.01,perfSeconds);
+ perfFrames=0;perfSeconds=0;perfGate++;
+ if(perfGate<2)return;
+ const min=mobile?.85:1.15,max=Math.min(devicePixelRatio||1,mobile?1.35:1.85);
+ let target=renderQuality;
+ if(fps<29)target=Math.max(min,renderQuality-.12);
+ else if(fps>54)target=Math.min(max,renderQuality+.06);
+ if(Math.abs(target-renderQuality)>.015){renderQuality=target;renderer.setPixelRatio(renderQuality);renderer.setSize(innerWidth,innerHeight,false)}
+}
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'?(race?.humanV||0):0,espeed=mode==='race'?(race?.enemyV||0):0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1);opponent.animate(beastGait,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.9);x.mesh.position.y+=dt*.24;x.mesh.material.opacity=Math.max(0,.25*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
- updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
+ adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
 // Replace synthetic expression typo guard for minifier-safe runtime.
 renderCustom();renderTraining();renderBeasts();refreshMenu();showScreen('menu');requestAnimationFrame(frame);loader.style.display='none';
 })();
