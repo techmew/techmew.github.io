@@ -730,7 +730,7 @@ function makeWildBoar(data){
  }
  // Short thick legs with black split hooves.
  for(let front of [-1,1])for(let side of [-1,1]){
-  const hip=new T.Group();hip.position.set(side*.335,1.05,front*.65);body.add(hip);
+  const hip=new T.Group();hip.position.set(side*.335,.82,front*.65);body.add(hip);
   B(hip,coat,0,-.18,0,.20,.27,.21);
   const knee=new T.Group();knee.position.y=-.39;hip.add(knee);
   B(knee,coat,0,-.16,.03,.14,.23,.15);
@@ -856,7 +856,11 @@ function animalCall(kind){
  const bird=['ostrich','dodo','moa','terrorbird','griffin'].includes(kind);
  const roar=['lion','tiger','dragon','trex','spinosaurus','kaiju','smilodon','cavebear','gorilla'].includes(kind);
  const giant=['mammoth','elephant','rhino','hippo','triceratops','golem','giantrobot'].includes(kind);
- if(bird){
+ if(kind==='boar'){
+  soundNoise(.26,.083,55,680);
+  soundTone(128,.24,'sawtooth',.033,0,80);
+  soundTone(82,.20,'triangle',.030,.065,52);
+ }else if(bird){
   soundTone(520,.18,'triangle',.045,0,350);
   soundTone(635,.25,'sine',.038,.065,420);
  }else if(roar){
@@ -996,8 +1000,8 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;stopAmbience();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
-function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;footstep(Math.max(2.5,r.humanV),side);if(r.humanV>2)kickDust(humanX,r.humanD,r.humanV);const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
+function startRace(){if(mode==='race')return;stopAmbience();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);effect('count');}
+function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;footstep(Math.max(2.5,r.humanV),side);if(r.humanV>2)kickDust(humanX,r.humanD,r.humanV);const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo>0&&r.combo%12===0)effect('ready');if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;effect('burst');showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 
