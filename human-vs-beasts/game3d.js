@@ -318,14 +318,73 @@ const unlocked=(i)=>i===0||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.sub;$('nextSpeed').textContent=x.kph+' km/h';$('nextBar').style.width=(x.kph/110*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent=win?'勝利済み — 記録の更新に挑戦':'勝利すると次の生物が解放される';$('startBtn').textContent='▶ '+x.name+'と100m走'}
 function renderTraining(){const el=$('trainList');el.innerHTML='';const cards=training.map(item=>{const level=save.stats[item.id]||1,need=cost(item.id),max=level>=50;return `<div class="trainitem"><header><div><div class="label">${item.name}</div><h3>${item.name} <span class="mini">Lv.${level}</span></h3></div><button data-train="${item.id}" ${max||save.money<need?'disabled':''}>${max?'MAX':need+' G'}</button></header><p>${item.desc} ・ ${item.gain}</p><div class="trainLine"><i style="width:${Math.min(100,level*2)}%"></i></div></div>`}).join('');el.innerHTML=cards;el.querySelectorAll('[data-train]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.train,n=cost(id);if(save.money<n||save.stats[id]>=50)return;save.money-=n;save.stats[id]++;store();beep(670,.09,'triangle',.055);renderTraining();refreshMenu()}))}
 function renderBeasts(){const el=$('animalList');el.innerHTML='';el.innerHTML=animals.map((a,i)=>`<div class="animalitem ${i===save.chosen?'selected':''} ${unlocked(i)?'':'locked'}"><header><div><div class="label">第${i+1}戦 / ${a.kph} km/h</div><h3>${a.name} ${save.won.includes(a.id)?'<span class="mini">★ 勝利済</span>':''}</h3></div><button data-beast="${i}" ${unlocked(i)?'':'disabled'}>${i===save.chosen?'選択中':unlocked(i)?'挑戦する':'未解放'}</button></header><p>${a.sub}。${!unlocked(i)?'前の動物に勝つと解放されます。':''}</p></div>`).join('');el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.beast;if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}))}
-function renderCustom(){const el=$('customList');el.innerHTML='';const name=document.createElement('div');name.className='formrow';name.innerHTML='<span>ランナー名</span><input id="runnerName" type="text" maxlength="16" placeholder="ランナー" autocomplete="off">';el.appendChild(name);$('runnerName').value=save.runnerName;$('runnerName').addEventListener('input',e=>{save.runnerName=e.target.value.slice(0,16)||'ランナー';store()});
- categories.forEach((c,i)=>{if(i===0||i===5||i===8||i===11){const heading=document.createElement('div');heading.className='customGroup';heading.textContent=({0:'顔',5:'髪型・髪色',8:'身長・体型',11:'服装・アクセサリー'})[i];el.appendChild(heading)}const [label,key,kind,min,max]=c;const row=document.createElement('div');row.className='formrow';const l=document.createElement('span');l.textContent=label;row.appendChild(l);let input,display;
- if(kind==='range'){input=document.createElement('input');input.type='range';input.min=min;input.max=max;input.step=1;input.value=clamp(Number(save.avatar[key])||0,min,max);display=document.createElement('span');display.className='val';display.textContent=input.value;row.appendChild(input);row.appendChild(display);input.addEventListener('input',()=>{save.avatar[key]=+input.value;display.textContent=input.value;refreshHuman();store()})}
- else{input=document.createElement('select');palettes[min].forEach((x,j)=>{const o=document.createElement('option');o.value=j;o.textContent=(j+1).toString().padStart(2,'0')+'  '+x;input.appendChild(o)});input.value=save.avatar[key];const sw=document.createElement('span');sw.className='colorPreview';sw.style.backgroundColor=palettes[min][save.avatar[key]%palettes[min].length];input.addEventListener('change',()=>{save.avatar[key]=+input.value;sw.style.backgroundColor=palettes[min][save.avatar[key]];refreshHuman();store()});row.appendChild(input);row.appendChild(sw)}el.appendChild(row)
- });const note=document.createElement('p');note.className='hint';note.textContent='16か所を個別調整。顔・体型・服装は3Dモデルに反映されます。';el.appendChild(note)}
+
+let customTab='face';
+function renderCustom(){
+ const el=$('customList'),tabs=$('avatarTabs');
+ el.replaceChildren();tabs.replaceChildren();
+ for(const group of avatarGroups){
+  const b=document.createElement('button');b.type='button';b.textContent=group.label;b.classList.toggle('active',customTab===group.id);
+  b.setAttribute('role','tab');b.setAttribute('aria-selected',customTab===group.id?'true':'false');
+  b.addEventListener('click',()=>{if(customTab===group.id)return;customTab=group.id;renderCustom();el.scrollTop=0;});
+  tabs.appendChild(b);
+ }
+ const selected=avatarGroups.find(g=>g.id===customTab)||avatarGroups[0];
+ if(customTab==='face'){
+  const name=document.createElement('label');name.className='formrow';
+  const label=document.createElement('span');label.textContent='ランナー名';
+  const input=document.createElement('input');input.type='text';input.id='runnerName';input.maxLength=16;
+  input.value=save.runnerName||'ランナー';input.autocomplete='off';
+  input.addEventListener('input',()=>{save.runnerName=input.value.slice(0,16)||'ランナー';store()});
+  name.append(label,input);el.appendChild(name);
+ }
+ for(const [label,key,kind,min,max] of selected.items){
+  const row=document.createElement('label');row.className='formrow';
+  const caption=document.createElement('span');caption.textContent=label;row.appendChild(caption);
+  if(kind==='range'){
+   const slider=document.createElement('input');slider.type='range';slider.min=min;slider.max=max;slider.step=1;
+   slider.value=clamp(Number(save.avatar[key]??defaultAvatar[key]??50),min,max);
+   slider.setAttribute('aria-label',label);
+   const val=document.createElement('span');val.className='val';val.textContent=slider.value;
+   slider.addEventListener('input',()=>{save.avatar[key]=Number(slider.value);val.textContent=slider.value;refreshHuman();store()});
+   row.append(slider,val);
+  }else{
+   const select=document.createElement('select');select.setAttribute('aria-label',label);
+   const colors=palettes[min];
+   for(let j=0;j<colors.length;j++){
+    const option=document.createElement('option');option.value=j;option.textContent='色 '+(j+1);select.appendChild(option);
+   }
+   select.value=clamp(Number(save.avatar[key]??defaultAvatar[key]??0),0,colors.length-1);
+   const sample=document.createElement('span');sample.className='colorPreview';
+   sample.style.backgroundColor=colors[Number(select.value)];
+   select.addEventListener('change',()=>{save.avatar[key]=Number(select.value);sample.style.backgroundColor=colors[Number(select.value)];refreshHuman();store()});
+   row.append(select,sample);
+  }
+  el.appendChild(row);
+ }
+ const help=document.createElement('p');help.className='hint';help.textContent='スライダーを動かすと3Dモデルに反映されます。画面上の人物をなぞると向きを変えられます。';el.appendChild(help);
+ $('avatarCount').textContent='編集項目 '+categories.length+'個 / '+selected.label+' '+selected.items.length+'個';
+}
 $('previewAvatar')?.addEventListener('click',()=>{const screen=$('customScreen'),open=screen.classList.toggle('previewOnly');$('previewAvatar').textContent=open?'編集へ戻る':'全身を見る';});
-$('randomAvatar')?.addEventListener('click',()=>{for(const [label,key,kind,min,max] of categories){save.avatar[key]=kind==='range'?min+Math.floor(Math.random()*(max-min+1)):Math.floor(Math.random()*palettes[min].length)}refreshHuman();renderCustom();store()});
+$('randomAvatar')?.addEventListener('click',()=>{
+ for(const [label,key,kind,min,max] of categories){
+  save.avatar[key]=kind==='range'?min+Math.floor(Math.random()*(max-min+1)):Math.floor(Math.random()*palettes[min].length);
+ }
+ refreshHuman();renderCustom();store();
+});
 $('resetAvatar')?.addEventListener('click',()=>{save.avatar={...defaultAvatar};refreshHuman();renderCustom();store()});
+$('saveAvatarSlot')?.addEventListener('click',()=>{
+ const slot=Number($('avatarSlot').value);
+ save.avatarPresets=save.avatarPresets||[null,null,null];
+ save.avatarPresets[slot]={name:save.runnerName,avatar:{...save.avatar}};
+ store();$('avatarCount').textContent='キャラ'+(slot+1)+'に保存しました';
+});
+$('loadAvatarSlot')?.addEventListener('click',()=>{
+ const slot=Number($('avatarSlot').value),preset=save.avatarPresets?.[slot];
+ if(!preset){$('avatarCount').textContent='キャラ'+(slot+1)+'には保存データがありません';return}
+ save.avatar={...defaultAvatar,...preset.avatar};save.runnerName=preset.name||'ランナー';
+ refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
+});
 // Tap race physics — speed is in metres per second, distances in metres.
 function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
 function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
