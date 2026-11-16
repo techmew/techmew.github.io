@@ -70,12 +70,20 @@
  .avatarTabs button{padding:6px 10px;font-size:11px}
  .avatarSave select,.avatarSave button{padding:5px}
 }
+
+.careerStats{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px;max-width:460px}
+.careerStats span{background:rgba(15,27,34,.78);border:1px solid #c8d2cf31;padding:8px 10px;border-radius:9px;font-size:11px;white-space:nowrap;color:#c2d0ce}
+.careerStats strong{font-variant-numeric:tabular-nums;color:#eef1eb;font-size:13px;padding-left:4px}
+#customScreen .avatarTabs{pointer-events:auto}
+#customScreen .avatarSave{pointer-events:auto}
+#customScreen .avatarSave button{pointer-events:auto}
+@media(max-width:680px) and (orientation:portrait){.careerStats{margin-top:8px;gap:4px}.careerStats span{padding:5px 6px;font-size:10px}.careerStats strong{font-size:11px}}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
  <div id="header"><div class="logo">100m RACE<b>動物と100m走</b></div><div class="topright"><div class="pill">育成資金 <strong id="coinDisplay">0</strong> G</div><button id="audioBtn" class="sq" aria-label="サウンド">♪</button><button id="fullBtn" class="sq" aria-label="全画面">⛶</button></div></div>
  <section class="screen active" id="menuScreen">
-  <div id="menuCopy"><div class="eyebrow">100m かけっこゲーム</div><h1 class="bigtitle">動物と<br><span>100m走</span></h1><div class="sub">人間を育成して、速い動物と100m走で対決。<br>左と右のボタンを交互に押した分だけ走ります。</div><div class="menuActions"><button class="btn" id="startBtn">▶ 100m走に挑戦</button><button class="btn secondary" id="goCustom">キャラメイク</button></div></div>
+  <div id="menuCopy"><div class="eyebrow">100m かけっこゲーム</div><h1 class="bigtitle">動物と<br><span>100m走</span></h1><div class="sub">人間を育成して、速い動物と100m走で対決。<br>左と右のボタンを交互に押した分だけ走ります。</div><div class="careerStats"><span>自己ベスト <strong id="bestDisplay">--</strong></span><span>勝利 <strong id="winDisplay">0 / 13</strong></span><span>挑戦 <strong id="raceCount">0</strong>回</span></div><div class="menuActions"><button class="btn" id="startBtn">▶ 100m走に挑戦</button><button class="btn secondary" id="goCustom">キャラメイク</button></div></div>
   <div class="versus glass"><div class="label">次の対戦相手</div><h3 id="nextName">イヌ</h3><div class="beastMeta"><span id="nextSub">初めての対戦相手</span><span id="nextSpeed">35 km/h</span></div><div class="statbar"><i id="nextBar" style="width:33%"></i></div><p class="hint" id="nextDescription" style="margin:8px 0 0">勝つと次の生物が解放される</p></div>
  </section>
  <section class="screen" id="customScreen"><div id="customPreviewHint"><div class="eyebrow">キャラクターの見た目</div><div style="font-size:12px;margin-top:5px">顔・体型・衣服の細部まで調整できます。<br>画面をなぞると向きを変えられます。</div></div><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">見た目の設定</div><h2>キャラメイク</h2></div><div class="customHeaderActions"><button class="btn secondary" id="previewAvatar" type="button">全身を見る</button><button class="btn secondary" data-back="1">完了</button></div></div><div class="customTools"><button class="btn secondary" id="randomAvatar" type="button">ランダム生成</button><button class="btn secondary" id="resetAvatar" type="button">初期化</button></div><div class="avatarTabs" id="avatarTabs" role="tablist" aria-label="編集する部位"></div>
@@ -90,5 +98,5 @@
  <div id="resultOverlay"><div class="resultCard glass"><div class="eyebrow" id="resultEyebrow">レース結果</div><h2 id="resultTitle">結果</h2><div class="resGrid"><div><small>あなた</small><b id="resultTime">--</b></div><div><small>対戦相手</small><b id="resultEnemy">--</b></div><div><small>獲得資金</small><b class="accent" id="resultMoney">+0 G</b></div></div><p class="hint" id="resultMsg"></p><img id="resultPhoto" class="resultPhoto" alt="100m走の結果画像" hidden><div class="resButtons resultShare"><button class="btn" id="shareRace">写真と結果をXで共有</button><button class="btn secondary" id="downloadRace">写真を保存</button></div><p class="hint" id="shareHelp">X投稿時は共有画面からXを選択してください。</p><div class="resButtons"><button class="btn secondary" id="retryBtn">もう一度</button><button class="btn" id="resultHome">ホームへ</button></div></div></div>
 </div>
 <div id="loader"><div class="loadingCard"><div class="spinner"></div><div style="font-weight:1000;font-size:22px;letter-spacing:-.05em">3D画面を読み込み中</div><p class="hint" id="loadStatus">競技場を準備しています…</p></div></div>
-<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261116d"></script>
+<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261116e"></script>
 </body></html>
