@@ -735,25 +735,130 @@ const dust=[],dustMat=new T.MeshBasicMaterial({color:0xd4b6a1,transparent:true,o
 function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.length];p.life=.4+Math.random()*.2;p.max=p.life;p.mesh.visible=true;p.mesh.position.set(x+Math.random()*.4-.2,.13,z-0.5);p.mesh.scale.set(.2,.09,.33);p.mesh.material.opacity=.23}
 const clock=new T.Clock();let mode='menu',race=null,camSpin=0,cameraTarget=new T.Vector3(0,1.5,3),camPos=new T.Vector3(-5.8,3.1,9.2),sceneTime=0,sfx=true,lastHUD=0,raceName='';
 const initResize=()=>{const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.fov=w<h?59:52;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};addEventListener('resize',initResize);initResize();
-let audioCtx;function beep(freq=450,dur=.1,type='sine',gain=.04){if(!sfx)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const osc=audioCtx.createOscillator(),g=audioCtx.createGain();osc.type=type;osc.frequency.value=freq;g.gain.setValueAtTime(gain,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);osc.connect(g).connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+dur+.01)}catch(e){}}
-let footBuffer=null;
-function footstep(speed){
- if(!sfx||speed<=2)return;
+
+let audioCtx,noiseBuffer,ambient=null,lastRivalImpact=-1;
+function audioSystem(){
+ if(!sfx)return null;
  try{
   audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
-  if(!footBuffer){
-   footBuffer=audioCtx.createBuffer(1,1500,audioCtx.sampleRate);
-   const samples=footBuffer.getChannelData(0);
-   let seed=17891;for(let i=0;i<samples.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;samples[i]=((seed/4294967296)*2-1)*Math.exp(-i/260)}
+  if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  if(!noiseBuffer){
+   const rate=audioCtx.sampleRate;
+   noiseBuffer=audioCtx.createBuffer(1,Math.max(1,rate*2),rate);
+   const samples=noiseBuffer.getChannelData(0);let seed=615031;
+   for(let i=0;i<samples.length;i++){
+    seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+    samples[i]=(seed/2147483648-1)*.82;
+   }
   }
-  const src=audioCtx.createBufferSource();src.buffer=footBuffer;
-  const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=180+speed*18;
-  const gain=audioCtx.createGain();const now=audioCtx.currentTime;
-  gain.gain.setValueAtTime(.017+Math.min(.025,speed*.001),now);gain.gain.exponentialRampToValueAtTime(.0001,now+.04);
-  src.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);src.start(now);
- }catch(err){}
+  return audioCtx;
+ }catch(err){return null}
 }
-function showScreen(mo){mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
+function soundTone(frequency,length=.12,type='sine',volume=.04,delay=0,toFreq=0){
+ const ctx=audioSystem();if(!ctx)return;
+ const start=ctx.currentTime+delay,osc=ctx.createOscillator(),gain=ctx.createGain();
+ osc.type=type;osc.frequency.setValueAtTime(Math.max(20,frequency),start);
+ if(toFreq>0)osc.frequency.exponentialRampToValueAtTime(Math.max(20,toFreq),start+length);
+ gain.gain.setValueAtTime(.0001,start);
+ gain.gain.exponentialRampToValueAtTime(Math.max(.0003,volume),start+.008);
+ gain.gain.exponentialRampToValueAtTime(.0001,start+length);
+ osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+length+.025);
+}
+function soundNoise(duration=.13,volume=.07,low=140,high=1600,delay=0,pan=0){
+ const ctx=audioSystem();if(!ctx)return;
+ const start=ctx.currentTime+delay;
+ const source=ctx.createBufferSource();source.buffer=noiseBuffer;source.loop=false;
+ const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=Math.max(20,low);
+ const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.max(low+20,high);
+ const gain=ctx.createGain();
+ gain.gain.setValueAtTime(.0001,start);
+ gain.gain.exponentialRampToValueAtTime(Math.max(.0003,volume),start+.012);
+ gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+ source.connect(hp);hp.connect(lp);lp.connect(gain);
+ if(typeof ctx.createStereoPanner==='function'){
+  const stereo=ctx.createStereoPanner();stereo.pan.value=clamp(pan,-1,1);
+  gain.connect(stereo);stereo.connect(ctx.destination);
+ }else gain.connect(ctx.destination);
+ source.start(start,Math.random()*1.2,duration+.018);
+ source.stop(start+duration+.020);
+}
+function beep(freq=450,dur=.1,type='sine',gain=.04){
+ soundTone(freq,dur,type,Math.min(.065,gain*.68));
+}
+function footstep(speed=5,side='L'){
+ if(!sfx)return;
+ const power=clamp(speed/15,.22,1),pan=side==='L'?-0.18:.18;
+ soundNoise(.09,.047+.025*power,155,1200,0,pan);
+ soundTone(112+power*31,.105,'sine',.033+.018*power,0,51+power*15);
+}
+function animalFootstep(kind,speed){
+ if(!sfx)return;
+ const giant=['boar','elephant','mammoth','rhino','woollyrhino','hippo','trex','spinosaurus','triceratops','dragon','golem','giantrobot','kaiju'].includes(kind);
+ const heavy=['lion','tiger','gorilla','horse','carnotaurus','cavebear','minotaur'].includes(kind);
+ const power=clamp(speed/24,.34,1);
+ const vol=giant?.14:heavy?.085:.055;
+ soundNoise(giant?.24:heavy?.16:.105,vol*(.60+.4*power),giant?45:110,giant?620:1300,0,.18);
+ soundTone(giant?48:heavy?68:104,giant?.28:.13,'sine',giant?.082:heavy?.052:.032,0,giant?32:heavy?44:70);
+ if(giant&&navigator.vibrate&&mode==='race'&&race?.enemyD-race?.humanD<15)navigator.vibrate(6);
+}
+function animalCall(kind){
+ if(!sfx)return;
+ const bird=['ostrich','dodo','moa','terrorbird','griffin'].includes(kind);
+ const roar=['lion','tiger','dragon','trex','spinosaurus','kaiju','smilodon','cavebear','gorilla'].includes(kind);
+ const giant=['mammoth','elephant','rhino','hippo','triceratops','golem','giantrobot'].includes(kind);
+ if(bird){
+  soundTone(520,.18,'triangle',.045,0,350);
+  soundTone(635,.25,'sine',.038,.065,420);
+ }else if(roar){
+  soundNoise(.42,.080,85,630);
+  soundTone(102,.45,'sawtooth',.033,0,67);
+  soundTone(151,.32,'triangle',.027,.09,92);
+ }else if(giant){
+  soundNoise(.35,.061,42,440);
+  soundTone(77,.46,'sawtooth',.032,0,47);
+ }else{
+  soundNoise(.19,.041,165,1100);
+  soundTone(195,.23,'triangle',.023,0,124);
+ }
+}
+function effect(name){
+ if(!sfx)return;
+ if(name==='start'){
+  soundNoise(.29,.20,320,4900);
+  soundTone(205,.15,'triangle',.047,0,73);
+  soundNoise(.50,.018,600,2400,.10);
+ }else if(name==='burst'){
+  soundNoise(.83,.078,420,5500);
+  soundTone(170,.61,'sawtooth',.052,0,410);
+  soundTone(95,.42,'sine',.058,0,56);
+  navigator.vibrate?.([22,15,34]);
+ }else if(name==='victory'){
+  [392,493.88,587.33,783.99].forEach((f,i)=>soundTone(f,.25+(i===3?.26:0),'triangle',.041,i*.13));
+  soundNoise(.48,.028,1700,6800,.20);
+ }else if(name==='defeat'){
+  soundTone(294,.32,'triangle',.041,0,234);
+  soundTone(196,.47,'sine',.041,.19,144);
+ }else if(name==='count'){
+  soundTone(490,.14,'sine',.055,0,460);
+ }else if(name==='ready'){
+  soundTone(740,.10,'triangle',.026,0,950);
+ }
+}
+function startAmbience(){
+ if(!sfx||ambient)return;const ctx=audioSystem();if(!ctx)return;
+ const src=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
+ src.buffer=noiseBuffer;src.loop=true;filter.type='bandpass';filter.frequency.value=570;filter.Q.value=.38;
+ gain.gain.setValueAtTime(.0001,ctx.currentTime);
+ gain.gain.linearRampToValueAtTime(.013,ctx.currentTime+.6);
+ src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start();
+ ambient={src,gain}; 
+}
+function stopAmbience(){
+ if(!ambient)return;
+ const {src,gain}=ambient;ambient=null;
+ try{const ctx=audioCtx;gain.gain.cancelScheduledValues(ctx.currentTime);gain.gain.setTargetAtTime(.0001,ctx.currentTime,.10);src.stop(ctx.currentTime+.42)}catch(e){}
+}
+function showScreen(mo){if(mo!=='race')stopAmbience();mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
 const unlocked=(i)=>i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.group+' / '+x.sub;$('nextSpeed').textContent='ゲーム内 '+x.kph+' km/h';$('nextBar').style.width=Math.min(100,x.kph/230*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent='第'+(save.chosen+1)+' / '+animals.length+'戦 ・ '+(win?'勝利済み。自己記録に挑戦':'勝つと次の対戦相手を解放');$('startBtn').textContent='▶ '+x.name+'と100m走'}
@@ -841,9 +946,9 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
-function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;if(r.humanV>2){footstep(r.humanV);kickDust(humanX,r.humanD,r.humanV)}const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
-function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;beep(800,.35,'sawtooth',.075);showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
+function startRace(){if(mode==='race')return;stopAmbience();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);beep(480,.11);}
+function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;if(r.humanV>2){footstep(Math.max(2.5,r.humanV),side);kickDust(humanX,r.humanD,r.humanV)}const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
+function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;effect('burst');showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 
 let racePicture=null,resultText='',lastResultWon=false;
@@ -1047,9 +1152,9 @@ function finishRace(){
  $('resultMsg').textContent=won?'勝ちました。'+(atLast?'全ての動物との対戦を終えました。':'次の動物に挑戦できます。'):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
  lastResultWon=won;resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
  $('resultOverlay').style.display='flex';
- makeRacePhoto();refreshMenu();beep(won?790:270,.24,'sine',.045);
+ stopAmbience();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
 }
-function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){beep(480+n*100,.12);r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);beep(1150,.38,'triangle',.08);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
+function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.045,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
  const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.38;const tempo=clamp(r.drive*.98,.08,1.15);const fatigued=(.55+.45*r.stamina);const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued:0;const accel=7.8+(save.stats.power-1)*.55;
  if(r.hFinish===null){if(!hasInput){r.humanV=0;r.combo=0}else if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-5.8*dtSafe);r.humanD+=r.humanV*dtSafe;
@@ -1121,7 +1226,7 @@ $('shareRace')?.addEventListener('click',async()=>{
  const link='https://twitter.com/intent/tweet?text='+encodeURIComponent(msg+' '+raceUrl);
  window.location.assign(link);
 });
-$('audioBtn').addEventListener('click',()=>{sfx=!sfx;$('audioBtn').textContent=sfx?'♪':'×'});$('fullBtn').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})});
+$('audioBtn').addEventListener('click',()=>{sfx=!sfx;$('audioBtn').textContent=sfx?'♪':'×';if(!sfx)stopAmbience();else if(mode==='race'&&race?.phase==='running')startAmbience()});$('fullBtn').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})});
 addEventListener('keydown',e=>{if(e.target?.tagName==='INPUT')return;if(['Space','ArrowLeft','ArrowRight','KeyA','KeyD'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyA'||e.code==='ArrowLeft')tap('L');if(e.code==='KeyD'||e.code==='ArrowRight')tap('R');if(e.code==='Space')activateBurst();if(e.code==='Escape'&&mode!=='race')showScreen('menu')});
 // Drag the 3D model in studio, with direct pointer interaction.
 let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{if(mode==='custom'||mode==='beasts'){dragging=true;pointerStart=e.clientX;$('world').setPointerCapture?.(e.pointerId)}});$('world').addEventListener('pointermove',e=>{if(dragging){camSpin+=(e.clientX-pointerStart)*.012;pointerStart=e.clientX}});$('world').addEventListener('pointerup',()=>dragging=false);$('world').addEventListener('pointercancel',()=>dragging=false);
