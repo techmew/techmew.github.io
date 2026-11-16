@@ -4986,26 +4986,39 @@ function nearestWeaponScrap(range=95){
 }
 function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
  const armory=window.WildArsenal,stops=window.WildEastExpedition?.stops;
- if(!armory||!Array.isArray(stops)||!stops.length||weaponScraps.length>=18)return false;
+ if(!armory||!Array.isArray(stops)||stops.length!==8||weaponScraps.length>=18)return false;
  const vault=armory.read();
- // Never create an uncollectable supply if the durable vault is unavailable/full.
  if(!vault.ok||vault.vault.items.length>=armory.MAX)return false;
- const active=stops.filter(s=>s.x>=8400);
- if(!active.length)return false;
- const countNear=s=>weaponScraps.filter(q=>Math.hypot(q.x-s.x,q.y-s.y)<350).length;
- const sparse=[...active].sort((a,b)=>countNear(a)-countNear(b)||a.index-b.index);
- // A requested biome must not silently fall back to a different biome.
- // This used to leave some of the eight stations with no local loot.
- const selected=Number.isInteger(preferredStop)&&preferredStop>=0?stops[preferredStop]:sparse[0];
- const anchors=nearPlayer&&P?.x>=8400?[P,selected,...sparse]:
-  preferredStop>=0?[selected]:[selected,...sparse];
- for(let n=0;n<105;n++){
-  const base=anchors[Math.min(anchors.length-1,Math.floor(n/Math.max(1,Math.ceil(105/anchors.length))))];
+ // The first eastern gate is at x=8360, just WEST of the x=8400
+ // equipment boundary. Excluding that stop silently made 8/8 impossible.
+ // The gate's cache must be placed on its eastern side, never in the city.
+ const selected=Number.isInteger(preferredStop)&&preferredStop>=0?stops[preferredStop]:null;
+ if(preferredStop>=0&&!selected)return false;
+ const countNear=site=>weaponScraps.filter(q=>Math.hypot(q.x-site.x,q.y-site.y)<300).length;
+ const sparse=[...stops].sort((a,b)=>countNear(a)-countNear(b)||a.index-b.index);
+ const anchors=selected?[selected]:
+  nearPlayer&&P?.x>=8400?[P,...sparse]:sparse;
+ const candidates=[];
+ // Randomized positions followed by an evenly distributed deterministic
+ // fallback ring: no station is excluded by an unlucky random sequence.
+ // The exact same collision, water and vault checks apply to both.
+ for(let n=0;n<Math.max(112,anchors.length*16);n++){
+  const base=anchors[Math.floor(n/16)%anchors.length];
   if(!base)continue;
-  const distance=rnd(48,nearPlayer?290:235),angle=rnd(0,TWO);
-  const x=Math.round(base.x+Math.cos(angle)*distance),y=Math.round(base.y+Math.sin(angle)*distance);
+  const ring=n%16,angle=rnd(0,TWO);
+  const distance=55+ring%4*52+rnd(0,18);
+  candidates.push([base,Math.round(base.x+Math.cos(angle)*distance),Math.round(base.y+Math.sin(angle)*distance)]);
+ }
+ for(const base of anchors){
+  if(!base)continue;
+  for(let n=0;n<64;n++){
+   const ring=55+Math.floor(n/16)*49,angle=(n%16)*TWO/16+((base.index||0)*.19);
+   candidates.push([base,Math.round(base.x+Math.cos(angle)*ring),Math.round(base.y+Math.sin(angle)*ring)]);
+  }
+ }
+ for(const [base,x,y] of candidates){
   if(x<8400||x>WORLD.w-45||y<50||y>WORLD.h-50||
-   (preferredStop>=0&&Math.hypot(x-selected.x,y-selected.y)>250)||
+   (selected&&Math.hypot(x-selected.x,y-selected.y)>260)||
    collides(x,y,25)||waterDepth(x,y)>.005||
    weaponScraps.some(q=>Math.hypot(q.x-x,q.y-y)<155)||
    carcasses.some(q=>Math.hypot(q.x-x,q.y-y)<32))continue;
