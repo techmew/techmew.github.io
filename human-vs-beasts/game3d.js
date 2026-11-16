@@ -851,8 +851,55 @@ function animalFootstep(kind,speed){
  soundTone(giant?48:heavy?68:104,giant?.28:.13,'sine',giant?.082:heavy?.052:.032,0,giant?32:heavy?44:70);
  if(giant&&navigator.vibrate&&mode==='race'&&race?.enemyD-race?.humanD<15)navigator.vibrate(6);
 }
+
+/* Recorded wildlife calls; Wikimedia Commons source files are credited in the game.
+   Fictional and extinct creatures continue to use original synthesized voices. */
+const recordedVoices={
+ boar:{file:'Boar.Grwls(1).ogg',begin:.15,length:2.4},
+ cat:{file:'Meow.ogg',begin:0,length:.9},
+ dog:{file:'Dog.ogg',begin:1.0,length:2.2},
+ greyhound:{file:'Dog.ogg',begin:1.0,length:2.2},
+ lion:{file:'Lion_raring-sound1TamilNadu178.ogg',begin:0,length:2.5},
+ tiger:{file:'Lion_raring-sound1TamilNadu178.ogg',begin:0,length:2.5},
+ wolf:{file:'Wolf_howls.ogg',begin:.3,length:2.8},
+ horse:{file:'Wiehern.ogg',begin:0,length:2.3},
+ zebra:{file:'Wiehern.ogg',begin:0,length:2.3},
+ unicorn:{file:'Wiehern.ogg',begin:0,length:2.3},
+ pegasus:{file:'Wiehern.ogg',begin:0,length:2.3},
+ elephant:{file:'Elephant_voice_-_trumpeting.ogg',begin:0,length:1.4},
+ mammoth:{file:'Elephant_voice_-_trumpeting.ogg',begin:0,length:1.4}
+};
+const loadedCalls={};
+function prefetchVoice(kind){
+ const entry=recordedVoices[kind];
+ if(!entry||loadedCalls[entry.file])return;
+ const url='https://commons.wikimedia.org/wiki/Special:Redirect/file/'+encodeURIComponent(entry.file);
+ try{
+  const media=new Audio(url);
+  media.preload='auto';media.volume=.72;
+  loadedCalls[entry.file]=media;
+  media.load();
+ }catch(err){console.warn('Voice preload',err)}
+}
+let voiceStopTimer=null;
+function playRecordedVoice(kind){
+ const data=recordedVoices[kind];if(!data)return false;
+ prefetchVoice(kind);
+ const player=loadedCalls[data.file];
+ if(!player||player.readyState<2)return false;
+ try{
+  if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}
+  player.pause();player.currentTime=Math.min(data.begin,Math.max(0,(player.duration||9)-1));
+  player.volume=.90;
+  const promise=player.play();if(promise?.catch)promise.catch(e=>console.warn('Animal recording playback',e));
+  voiceStopTimer=setTimeout(()=>{player.pause();voiceStopTimer=null},data.length*1000);
+  return true;
+ }catch(err){console.warn('Recorded voice',err);return false}
+}
+
 function animalCall(kind){
  if(!sfx)return;
+ if(playRecordedVoice(kind))return;
  const bird=['ostrich','dodo','moa','terrorbird','griffin'].includes(kind);
  const roar=['lion','tiger','dragon','trex','spinosaurus','kaiju','smilodon','cavebear','gorilla'].includes(kind);
  const giant=['mammoth','elephant','rhino','hippo','triceratops','golem','giantrobot'].includes(kind);
@@ -878,9 +925,9 @@ function animalCall(kind){
 function effect(name){
  if(!sfx)return;
  if(name==='start'){
-  soundNoise(.29,.20,320,4900);
-  soundTone(205,.15,'triangle',.047,0,73);
-  soundNoise(.50,.018,600,2400,.10);
+  // Original 3-2-1-GO cue: the three short countdown pips resolve into one long higher chime.
+  soundTone(1046.5,.68,'triangle',.080,0,1318.5);
+  soundTone(1568,.57,'sine',.028,.035,1568);
  }else if(name==='burst'){
   soundNoise(.83,.078,420,5500);
   soundTone(170,.61,'sawtooth',.052,0,410);
@@ -893,7 +940,8 @@ function effect(name){
   soundTone(294,.32,'triangle',.041,0,234);
   soundTone(196,.47,'sine',.041,.19,144);
  }else if(name==='count'){
-  soundTone(490,.14,'sine',.055,0,460);
+  soundTone(740,.115,'triangle',.072,0,740);
+  soundTone(1110,.100,'sine',.017,0,1110);
  }else if(name==='ready'){
   soundTone(740,.10,'triangle',.026,0,950);
  }
@@ -903,7 +951,7 @@ function startAmbience(){
  const src=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
  src.buffer=noiseBuffer;src.loop=true;filter.type='bandpass';filter.frequency.value=570;filter.Q.value=.38;
  gain.gain.setValueAtTime(.0001,ctx.currentTime);
- gain.gain.linearRampToValueAtTime(.013,ctx.currentTime+.6);
+ gain.gain.linearRampToValueAtTime(.005,ctx.currentTime+.6);
  src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start();
  ambient={src,gain}; 
 }
@@ -912,7 +960,7 @@ function stopAmbience(){
  const {src,gain}=ambient;ambient=null;
  try{const ctx=audioCtx;gain.gain.cancelScheduledValues(ctx.currentTime);gain.gain.setTargetAtTime(.0001,ctx.currentTime,.10);src.stop(ctx.currentTime+.42)}catch(e){}
 }
-function showScreen(mo){if(mo!=='race')stopAmbience();mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
+function showScreen(mo){if(mo!=='race'){stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
 const unlocked=(i)=>i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.group+' / '+x.sub;$('nextSpeed').textContent='ゲーム内 '+x.kph+' km/h';$('nextBar').style.width=Math.min(100,x.kph/230*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent='第'+(save.chosen+1)+' / '+animals.length+'戦 ・ '+(win?'勝利済み。自己記録に挑戦':'勝つと次の対戦相手を解放');$('startBtn').textContent='▶ '+x.name+'と100m走'}
@@ -1000,7 +1048,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;stopAmbience();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);effect('count');}
+function startRace(){if(mode==='race')return;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;footstep(Math.max(2.5,r.humanV),side);if(r.humanV>2)kickDust(humanX,r.humanD,r.humanV);const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo>0&&r.combo%12===0)effect('ready');if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;effect('burst');showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
@@ -1376,7 +1424,7 @@ $('shareRace')?.addEventListener('click',async()=>{
  const link='https://twitter.com/intent/tweet?text='+encodeURIComponent(msg+' '+raceUrl);
  window.location.assign(link);
 });
-$('audioBtn').addEventListener('click',()=>{sfx=!sfx;$('audioBtn').textContent=sfx?'♪':'×';if(!sfx)stopAmbience();else if(mode==='race'&&race?.phase==='running')startAmbience()});$('fullBtn').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})});
+$('audioBtn').addEventListener('click',()=>{sfx=!sfx;$('audioBtn').textContent=sfx?'♪':'×';if(!sfx){stopAmbience();for(const player of Object.values(loadedCalls))player.pause()}else if(mode==='race'&&race?.phase==='running')startAmbience()});$('fullBtn').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})});
 addEventListener('keydown',e=>{if(e.target?.tagName==='INPUT')return;if(['Space','ArrowLeft','ArrowRight','KeyA','KeyD'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyA'||e.code==='ArrowLeft')tap('L');if(e.code==='KeyD'||e.code==='ArrowRight')tap('R');if(e.code==='Space')activateBurst();if(e.code==='Escape'&&mode!=='race')showScreen('menu')});
 // Drag the 3D model in studio, with direct pointer interaction.
 let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{if(mode==='custom'||mode==='beasts'){dragging=true;pointerStart=e.clientX;$('world').setPointerCapture?.(e.pointerId)}});$('world').addEventListener('pointermove',e=>{if(dragging){camSpin+=(e.clientX-pointerStart)*.012;pointerStart=e.clientX}});$('world').addEventListener('pointerup',()=>dragging=false);$('world').addEventListener('pointercancel',()=>dragging=false);
