@@ -420,28 +420,183 @@ function startRace(){if(mode==='race')return;raceName=animals[save.chosen].name;
 function tap(side){if(!race||race.phase!=='running'||race.hFinish!==null)return;const r=race;const now=r.time;r.taps=(r.taps||0)+1;r.legTaps[side]=now;const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;if(alternating){r.combo=quick?Math.min(99,r.combo+1):1;r.drive=clamp(r.drive+(.08+save.stats.technique*.004)*(quick?1.15:1),0,1.3);r.burstCharge=clamp(r.burstCharge+2.8+Math.min(4,r.combo*.12)+save.stats.technique*.10,0,100)}else{r.combo=0;r.drive=clamp(r.drive+.025,0,1.3)}r.lastFoot=side;r.lastTap=now;if(r.humanV>2){footstep(r.humanV);kickDust(humanX,r.humanD,r.humanV)}const b=$(side==='L'?'leftTap':'rightTap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),70);if(r.combo%6===0)beep(230+r.combo*5,.045,'triangle',.012);if(navigator.vibrate&&r.combo%3===0)navigator.vibrate(10)}
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;beep(800,.35,'sawtooth',.075);showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
-let racePicture=null,resultText='';
+
+let racePicture=null,resultText='',lastResultWon=false;
+function buildPodiumPhoto(){
+ const sc=new T.Scene();
+ sc.background=new T.Color(0x657783);
+ sc.fog=new T.Fog(0x8997a0,18,50);
+ sc.add(new T.HemisphereLight(0xe7eced,0x50605c,1.75));
+ const sunlight=new T.DirectionalLight(0xffebd5,2.0);
+ sunlight.position.set(-5,11,8);sunlight.castShadow=true;
+ sunlight.shadow.mapSize.set(1024,1024);
+ sunlight.shadow.camera.left=-10;sunlight.shadow.camera.right=10;
+ sunlight.shadow.camera.top=10;sunlight.shadow.camera.bottom=-10;
+ sunlight.shadow.camera.near=1;sunlight.shadow.camera.far=27;
+ sc.add(sunlight,sunlight.target);
+ const fill=new T.DirectionalLight(0xa9c9dd,.65);fill.position.set(7,4,5);sc.add(fill);
+ const mtBase=mat(0x34454f,.83),mtSilver=mat(0xa9b6bd,.47,.42),mtGold=mat(0xd8b46c,.34,.56);
+ const mtDark=mat(0x263d46,.9),mtGrass=mat(0x4d6959,.99);
+ const ground=new T.Mesh(new T.PlaneGeometry(130,100),mtGrass);
+ ground.rotation.x=-Math.PI/2;ground.position.y=-.095;ground.receiveShadow=true;sc.add(ground);
+ box(sc,12,.16,7,mtBase,0,-.025,0);
+ // Subtle stadium seating in the background, behind the winner.
+ for(let level=0;level<5;level++){
+  box(sc,35,.48,1.4,level%2?mat(0x3b505f):mat(0x485e6a),
+      0,.30+level*.47,-7.5-level*.56);
+ }
+ const seatRows=mobile?110:200;
+ const spectatorMat=mat(0xb7b7ac,.96);
+ const spectators=new T.InstancedMesh(new T.SphereGeometry(.13,7,5),spectatorMat,seatRows);
+ const dummy=new T.Object3D(),col=new T.Color();
+ const shirtColors=[0xaabbc1,0x727f85,0xc3aa87,0x6a8a82,0x9c9da1,0xb68d7b];
+ for(let i=0;i<seatRows;i++){
+  const row=i%5,slot=Math.floor(i/5);
+  dummy.position.set(-11+slot*.57,.79+row*.47,-6.67-row*.56);
+  dummy.scale.set(1,1,1);dummy.updateMatrix();
+  spectators.setMatrixAt(i,dummy.matrix);
+  spectators.setColorAt(i,col.setHex(shirtColors[(i*19)%shirtColors.length]));
+ }
+ spectators.instanceMatrix.needsUpdate=true;sc.add(spectators);
+ for(const x of [-5.5,5.5]){
+  box(sc,.10,5,.10,mtSilver,x,2.5,-2);
+  box(sc,1.7,.10,.08,mtGold,x,4.9,-2);
+  placard(sc,'100m',x,4.35,-1.96,1.5,.55,0,'#2e4651','#e7e6d9');
+ }
+ // Solid elevated awards podium with clearly readable 1st/2nd place markings.
+ box(sc,2.28,1.17,1.68,mtSilver,0,.59,.30,true);
+ box(sc,2.28,.095,1.71,mtGold,0,1.20,.30,true);
+ box(sc,1.84,.68,1.50,mtSilver,-2.48,.34,.25,true);
+ box(sc,1.84,.07,1.54,mtGold,-2.48,.705,.25,true);
+ box(sc,1.84,.39,1.50,mtSilver,2.48,.195,.25,true);
+ box(sc,1.84,.07,1.54,mtGold,2.48,.415,.25,true);
+ placard(sc,'1',0,.65,1.158,1.08,.75,0,'#657987','#fff2d0');
+ placard(sc,'2',-2.48,.34,1.035,.72,.46,0,'#60717b','#ffffff');
+ placard(sc,'3',2.48,.21,1.035,.72,.32,0,'#60717b','#ffffff');
+ const beast=animals.find(a=>a.name===raceName)||animals[0];
+ const athlete=makeHuman(save.avatar),rival=makeBeast(beast);
+ const characterScale=1.08;
+ const heightFactor=['horse','zebra','ostrich','kangaroo'].includes(beast.kind)?.70:
+                    ['lion','pronghorn','gazelle'].includes(beast.kind)?.82:
+                    ['rabbit','cat'].includes(beast.kind)?1.10:.95;
+ athlete.root.scale.setScalar(characterScale);
+ rival.root.scale.setScalar(heightFactor);
+ const winningHuman=lastResultWon;
+ athlete.root.position.set(winningHuman?0:-2.48,winningHuman?1.255:.76,.30);
+ rival.root.position.set(winningHuman?-2.48:0,winningHuman?.75:1.255,.20);
+ athlete.root.rotation.y=0;
+ rival.root.rotation.y=0;
+ athlete.animate(0,0);
+ rival.animate(0,0);
+ if(winningHuman){
+  athlete.arms.forEach(part=>{
+   part.sh.rotation.x=-.28;
+   part.sh.rotation.z=part.side*2.05;
+   part.elbow.rotation.x=-.56;
+  });
+  athlete.torso.rotation.z=0;
+  athlete.head.rotation.x=0;
+ }else{
+  athlete.arms.forEach(part=>{part.sh.rotation.x=0;part.sh.rotation.z=part.side*.10;part.elbow.rotation.x=-.3;});
+ }
+ sc.add(athlete.root,rival.root);
+ const chain=mat(0xdcc683,.42,.56),gold=mat(0xe4bc5d,.25,.75);
+ const green=mat(0x668368,.94),bright=mat(0xf6e8bb,.62);
+ function winnerNecklace(attach,scale=1,neckY=.75,frontZ=.37){
+  const grp=new T.Group();grp.scale.setScalar(scale);attach.add(grp);
+  tube(grp,[-.19,neckY,frontZ-.055],[0,neckY-.28,frontZ+.02],.023,chain,.021);
+  tube(grp,[.19,neckY,frontZ-.055],[0,neckY-.28,frontZ+.02],.023,chain,.021);
+  for(let i=0;i<12;i++){
+   const side=i<6?-1:1,k=i%6,t=k/5;
+   const x=side*(.19*(1-t));
+   const y=neckY-.28*t;
+   const leaf=ball(grp,green,x,y,frontZ-.038+t*.07,.036,.020,.023,10);
+   leaf.rotation.z=side*(.5+t*.45);
+  }
+  const medal=new T.Mesh(new T.CylinderGeometry(.13,.13,.034,36),gold);
+  medal.rotation.x=Math.PI/2;medal.position.set(0,neckY-.32,frontZ+.08);
+  medal.castShadow=true;grp.add(medal);
+  const ring=new T.Mesh(new T.TorusGeometry(.107,.012,8,30),chain);
+  ring.position.set(0,neckY-.32,frontZ+.101);grp.add(ring);
+  ball(grp,bright,0,neckY-.32,frontZ+.103,.036,.036,.014,16);
+ }
+ if(winningHuman){
+  winnerNecklace(athlete.torso,.95,.78,.36);
+ }else{
+  // Animal winner receives the same decoration, scaled and positioned by body size.
+  const bounds=new T.Box3().setFromObject(rival.root);
+  const wHeight=Math.max(.8,bounds.max.y-bounds.min.y);
+  const neckMount=new T.Group();
+  const localScale=Math.max(.48,Math.min(.98,heightFactor));
+  neckMount.position.set(0,wHeight*.50/heightFactor,beast.kind==='ostrich'?.70:.75);
+  rival.root.add(neckMount);
+  winnerNecklace(neckMount,localScale,.35,.27);
+ }
+ // Restrained celebratory confetti, always behind the central character.
+ const confettiMaterials=[mat(0xe4c485,.6,.22),mat(0xe5e9e2,.72,.1),mat(0x8faeb3,.7,.2)];
+ for(let i=0;i<48;i++){
+  const x=-5.5+(i*2.39996323%1+1)%1*11;
+  const y=1.7+(i*1.61803399%1)*3.0;
+  const z=-1.6-(i%5)*.45;
+  const mesh=box(sc,.052,.13,.012,confettiMaterials[i%3],x,y,z);
+  mesh.rotation.z=i*.68;
+ }
+ const cam=new T.PerspectiveCamera(39,16/9,.1,100);
+ cam.position.set(0,3.1,8.15);cam.lookAt(0,2.04,.16);
+ return {scene:sc,camera:cam};
+}
 function makeRacePhoto(){
+ let target=null,stage=null;
  try{
-  renderer.render(scene,camera);
-  const source=renderer.domElement,cnv=document.createElement('canvas');
-  const w=innerWidth<innerHeight?900:1280, h=Math.round(w*innerHeight/Math.max(1,innerWidth));
-  cnv.width=w;cnv.height=clamp(h,530,1900);const cx=cnv.getContext('2d');
-  cx.drawImage(source,0,0,w,cnv.height);
-  const strip=Math.max(185,Math.round(cnv.height*.24)),top=cnv.height-strip;
-  const grad=cx.createLinearGradient(0,top,0,cnv.height);
-  grad.addColorStop(0,'rgba(9,18,23,0)');grad.addColorStop(.25,'rgba(9,18,23,.85)');grad.addColorStop(1,'rgba(8,16,21,.97)');
+  const w=1200,h=675;
+  const cnv=document.createElement('canvas');cnv.width=w;cnv.height=h;
+  const cx=cnv.getContext('2d',{alpha:false});
+  if(!cx)throw new Error('Canvas unavailable');
+  stage=buildPodiumPhoto();
+  target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
+  const pixels=new Uint8Array(w*h*4),image=cx.createImageData(w,h);
+  renderer.setRenderTarget(target);
+  renderer.render(stage.scene,stage.camera);
+  renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
+  renderer.setRenderTarget(null);
+  // WebGL framebuffer pixels are bottom-up.
+  for(let y=0;y<h;y++){
+   image.data.set(pixels.subarray((h-1-y)*w*4,(h-y)*w*4),y*w*4);
+  }
+  cx.putImageData(image,0,0);
+  const strip=142,top=h-strip;
+  const grad=cx.createLinearGradient(0,top,0,h);
+  grad.addColorStop(0,'rgba(14,25,31,0)');
+  grad.addColorStop(.23,'rgba(14,25,31,.85)');
+  grad.addColorStop(1,'rgba(10,19,23,.95)');
   cx.fillStyle=grad;cx.fillRect(0,top,w,strip);
-  const font='system-ui,-apple-system,"Noto Sans JP",sans-serif';
-  const pad=Math.round(w*.055);
-  cx.textAlign='left';cx.fillStyle='#e9f0ed';cx.font='600 '+Math.round(w*.026)+'px '+font;
-  cx.fillText('動物と100m走   /   '+raceName,pad,top+strip*.48);
-  cx.fillStyle='#ffffff';cx.font='900 '+Math.round(w*.062)+'px '+font;
-  cx.fillText(resultText,pad,top+strip*.73,w-pad*2);
-  cx.fillStyle='#c8d5d3';cx.font='500 '+Math.round(w*.024)+'px '+font;
-  cx.fillText('techmew.github.io/human-vs-beasts/',pad,top+strip*.9);
-  racePicture=cnv;const img=$('resultPhoto');img.src=cnv.toDataURL('image/png');img.hidden=false;
- }catch(err){console.warn('Race screenshot failed',err);racePicture=null;$('resultPhoto').hidden=true;$('shareHelp').textContent='この端末では3D画面の写真を生成できませんでした。';}
+  cx.textAlign='left';
+  cx.fillStyle='#f1f1eb';
+  cx.font='600 25px system-ui,"Noto Sans JP",sans-serif';
+  cx.fillText('動物と100m走  /  '+raceName,34,top+49);
+  cx.font='800 44px system-ui,"Noto Sans JP",sans-serif';
+  cx.fillText(resultText,34,top+98,w-60);
+  cx.textAlign='right';
+  cx.font='500 19px system-ui,sans-serif';
+  cx.fillStyle='#d0dbd5';
+  cx.fillText('techmew.github.io/human-vs-beasts/',w-34,top+125);
+  racePicture=cnv;
+  const img=$('resultPhoto');img.src=cnv.toDataURL('image/png');img.hidden=false;
+  $('shareHelp').textContent='写真を保存・共有できます。Xへ投稿する際は共有先から選択してください。';
+ }catch(err){
+  console.warn('Podium screenshot failed',err);
+  // Never expose the old rear-facing track capture as a result photograph.
+  racePicture=null;
+  $('resultPhoto').hidden=true;
+  $('shareHelp').textContent='この端末では表彰台の写真を生成できませんでした。';
+ }finally{
+  try{renderer.setRenderTarget(null)}catch(e){}
+  if(target)target.dispose();
+  if(stage){
+   stage.scene.traverse(o=>{if(o.isMesh&&o.material?.map&&o.material.map.isCanvasTexture)o.material.map.dispose()});
+   disposeModel(stage.scene);
+  }
+ }
 }
 function finishRace(){
  const r=race;if(!r||r.phase==='results')return;
@@ -461,7 +616,7 @@ function finishRace(){
  $('resultEnemy').textContent=r.eFinish.toFixed(2)+'秒';
  $('resultMoney').textContent='+'+reward+' G';
  $('resultMsg').textContent=won?'勝ちました。'+(atLast?'全ての動物との対戦を終えました。':'次の動物に挑戦できます。'):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
- resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
+ lastResultWon=won;resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
  $('resultOverlay').style.display='flex';
  makeRacePhoto();refreshMenu();beep(won?790:270,.24,'sine',.045);
 }
