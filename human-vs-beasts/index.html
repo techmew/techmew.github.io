@@ -78,6 +78,117 @@
 #customScreen .avatarSave{pointer-events:auto}
 #customScreen .avatarSave button{pointer-events:auto}
 @media(max-width:680px) and (orientation:portrait){.careerStats{margin-top:8px;gap:4px}.careerStats span{padding:5px 6px;font-size:10px}.careerStats strong{font-size:11px}}
+
+/* Layout correction: keep the athlete and opponent clear of titles and controls. */
+body.menu-mode #header .logo,
+body.train-mode #header .logo,
+body.beasts-mode #header .logo{display:none}
+body.menu-mode #header,
+body.train-mode #header,
+body.beasts-mode #header{justify-content:flex-end}
+body.race-mode #header,body.custom-mode #header{display:none!important}
+body.race-mode #raceBanner{display:none!important}
+body.race-mode #raceHUD{
+ top:calc(env(safe-area-inset-top) + 8px);
+ left:clamp(7px,2vw,20px);right:clamp(7px,2vw,20px);
+ gap:5px
+}
+body.race-mode #raceHUD .hrow{gap:6px}
+body.race-mode #raceHUD .hudbox{
+ padding:6px 9px;
+ border-radius:10px;
+ background:rgba(11,25,31,.76);
+ border:1px solid rgba(228,238,229,.16);
+ box-shadow:0 3px 12px #0004
+}
+body.race-mode #raceHUD .hudVal{font-size:clamp(17px,3.2vw,28px)}
+body.race-mode #raceHUD .rank{font-size:10px;margin-bottom:1px}
+body.race-mode #raceHUD .hudbar{height:4px;margin-top:4px}
+body.race-mode #raceHUD .raceCenter{min-width:80px}
+body.race-mode #raceHUD .hrow:nth-child(2) .hudbox{padding:4px 9px}
+body.race-mode #raceHUD .hrow:nth-child(2) .rank{font-size:9px}
+body.race-mode .raceControls{
+ left:clamp(8px,2vw,20px);right:clamp(8px,2vw,20px);
+ bottom:calc(env(safe-area-inset-bottom) + 9px);
+ pointer-events:auto;
+}
+body.race-mode .controlsLabel{margin-bottom:6px;font-size:11px;letter-spacing:0;color:#dce7e6}
+body.race-mode .tapPair{justify-content:space-between;gap:8px;align-items:end}
+body.race-mode .touchbtn{
+ width:min(31%,220px);
+ height:clamp(104px,19vh,135px);
+ border-radius:18px;touch-action:manipulation;
+ border-width:1px;box-shadow:0 6px 16px #0009;
+ font-size:clamp(24px,5vw,40px)
+}
+body.race-mode .burstBox{
+ left:50%;bottom:2px;transform:translateX(-50%);
+ width:min(31%,205px);max-width:205px;z-index:1;
+ pointer-events:auto;
+}
+body.race-mode .burstLabel{font-size:11px;line-height:1.25;margin-bottom:5px}
+body.race-mode .burstBtn{
+ display:block;width:100%;
+ height:clamp(76px,14vh,94px);min-height:76px;
+ padding:10px 5px;margin:0;
+ font-size:clamp(13px,2.7vw,18px);
+ border-radius:16px;touch-action:manipulation;
+ border-width:2px;box-shadow:0 5px 16px #0008;
+}
+body.race-mode .burstBtn.ready{box-shadow:0 0 0 2px #ead7b38a,0 5px 16px #000b}
+body.menu-mode #menuCopy{z-index:6}
+body.menu-mode #menuCopy .bigtitle{line-height:1.05}
+body.menu-mode .versus{z-index:6}
+#customPreviewHint{display:none}
+@media (max-width:680px) and (orientation:portrait){
+ body.menu-mode #menuCopy{
+  left:10px;right:10px;top:calc(env(safe-area-inset-top) + 48px);
+  max-width:unset;padding:10px 13px;
+  border-radius:13px;background:rgba(12,28,35,.78);
+  border:1px solid rgba(229,239,234,.14);
+ }
+ body.menu-mode #menuCopy .eyebrow{font-size:9px}
+ body.menu-mode #menuCopy .bigtitle{font-size:26px;margin:3px 0 5px}
+ body.menu-mode #menuCopy .sub{font-size:10px;line-height:1.4;max-width:none}
+ body.menu-mode #menuCopy .menuActions{margin-top:7px}
+ body.menu-mode #menuCopy .btn{font-size:11px;padding:9px 12px}
+ body.menu-mode .versus{
+  left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 61px);
+  width:auto;padding:9px 13px;border-radius:11px
+ }
+ body.menu-mode .versus h3{font-size:17px;margin:1px 0}
+ body.menu-mode .versus .beastMeta{margin:3px 0}
+ body.menu-mode .versus .statbar{height:4px}
+ body.race-mode #raceHUD{top:calc(env(safe-area-inset-top) + 6px);gap:3px}
+ body.race-mode #raceHUD .hudbox{padding:5px 6px;border-radius:8px}
+ body.race-mode #raceHUD .hudVal{font-size:clamp(15px,4.5vw,21px)}
+ body.race-mode #raceHUD .rank{font-size:9px}
+ body.race-mode #raceHUD .hrow:nth-child(2) .hudbox{padding:3px 7px}
+ body.race-mode #raceHUD .raceCenter{min-width:68px}
+ body.race-mode .touchbtn{width:32%;height:110px}
+ body.race-mode .burstBox{width:30%;max-width:152px;bottom:2px}
+ body.race-mode .burstBtn{height:80px;min-height:80px;font-size:13px;padding:6px 2px}
+ body.race-mode .burstLabel{font-size:10px}
+ body.race-mode .controlsLabel{font-size:10px}
+ #customScreen .panel{top:auto;bottom:calc(env(safe-area-inset-bottom) + 65px);height:min(55vh,500px)}
+}
+@media (orientation:landscape) and (max-height:540px){
+ body.menu-mode #menuCopy{left:2vw;top:18%;max-width:31vw}
+ body.menu-mode #menuCopy .bigtitle{font-size:clamp(26px,4vw,40px)}
+ body.menu-mode #menuCopy .sub{font-size:11px}
+ body.menu-mode .versus{right:2%;bottom:11%;width:215px;padding:10px}
+ body.race-mode #raceHUD{top:calc(env(safe-area-inset-top) + 4px)}
+ body.race-mode #raceHUD .hudbox{padding:4px 7px}
+ body.race-mode #raceHUD .hudVal{font-size:19px}
+ body.race-mode #raceHUD .rank{font-size:9px}
+ body.race-mode #raceHUD .hrow:nth-child(2) .hudbox{padding:3px 7px}
+ body.race-mode .raceControls{bottom:calc(env(safe-area-inset-bottom) + 5px)}
+ body.race-mode .touchbtn{width:min(22%,175px);height:94px}
+ body.race-mode .burstBox{width:min(24%,196px);bottom:0}
+ body.race-mode .burstBtn{height:80px;min-height:80px;font-size:15px}
+ body.race-mode .burstLabel{font-size:10px}
+ #customScreen .panel{width:min(350px,39vw)}
+}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
@@ -98,5 +209,5 @@
  <div id="resultOverlay"><div class="resultCard glass"><div class="eyebrow" id="resultEyebrow">レース結果</div><h2 id="resultTitle">結果</h2><div class="resGrid"><div><small>あなた</small><b id="resultTime">--</b></div><div><small>対戦相手</small><b id="resultEnemy">--</b></div><div><small>獲得資金</small><b class="accent" id="resultMoney">+0 G</b></div></div><p class="hint" id="resultMsg"></p><img id="resultPhoto" class="resultPhoto" alt="100m走の結果画像" hidden><div class="resButtons resultShare"><button class="btn" id="shareRace">写真と結果をXで共有</button><button class="btn secondary" id="downloadRace">写真を保存</button></div><p class="hint" id="shareHelp">X投稿時は共有画面からXを選択してください。</p><div class="resButtons"><button class="btn secondary" id="retryBtn">もう一度</button><button class="btn" id="resultHome">ホームへ</button></div></div></div>
 </div>
 <div id="loader"><div class="loadingCard"><div class="spinner"></div><div style="font-weight:1000;font-size:22px;letter-spacing:-.05em">3D画面を読み込み中</div><p class="hint" id="loadStatus">競技場を準備しています…</p></div></div>
-<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261116e"></script>
+<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261116f"></script>
 </body></html>
