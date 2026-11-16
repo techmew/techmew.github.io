@@ -372,7 +372,7 @@ function tick(dt,world){
   if(e.t>=1.05){
    e.stage="scan";e.t=0;e.lastSeen=0;e.playerSpotted=false;
    world.notify?.(presentEra<100?
-    "UFOは周辺の野生動物を探している。捕獲光線に注意":
+    "UFOが動物を探している！ 見つかると自キャラも吸い上げられる":
     "UFOがこちらを狙って追ってくる！ 隠れて視線を切れ");
    persist();
   }
@@ -440,9 +440,9 @@ function tick(dt,world){
   // Vegetation and buildings immediately break scanner sight.
   const concealed=!!(P.hidden||world.isPlayerConcealed?.());
   const obstructed=safeBlocked(world,P,e);
-  // Early UFOs mainly hunt wildlife, but repeatedly sweep for exposed
-  // players; later eras pursue continuously and may permanently abduct.
-  const earlyThreat=presentEra>=1&&e.t>=7&&Math.floor((e.t-7)/13)%2===0;
+  // Early sightings still hunt wildlife, but a player who stays exposed
+  // can be abducted in year zero. A sustained lock is never just a stun.
+  const earlyThreat=e.t>=4&&Math.floor((e.t-4)/27)%2===0;
   const playerSeen=(presentEra>=100||earlyThreat)&&P.hp>0&&!P._ufoAbducting&&!concealed&&!obstructed&&
    distance(P,e)<(presentEra>=180?Math.max(1800,UFO_DETECTION_RANGE):UFO_DETECTION_RANGE);
   if(playerSeen){
@@ -600,18 +600,23 @@ function tick(dt,world){
   e.harassCooldown=Math.max(0,(Number(e.harassCooldown)||0)-dt);
   if(!e.lifts.length&&playerSeen&&!concealed&&distance(P,e)<playerBeamRange&&!safeBlocked(world,P,e)){
    e.groupBeamStrength=tractorStrength(e,P,world);e.beam+=dt*e.groupBeamStrength;
-   if(presentEra<100&&e.beam>=1.3&&e.harassCooldown<=0){
-    // Early attacks stun and weaken but never permanently kill via this pulse.
+   if(presentEra<100&&e.beam>=1.15&&e.harassCooldown<=0){
+    // Warning burst does not discard the lock. Previous e.beam=0 made
+    // early player abduction impossible, even with uninterrupted exposure.
     const vitality=Math.max(1,Number(P.hp)||1);
     P.hp=Math.max(1,vitality-Math.max(1,Math.min(4,Math.ceil((Number(P.maxHp)||vitality)*.035))));
     P.sp=Math.max(0,(Number(P.sp)||0)-13);
-    P.stun=Math.max(Number(P.stun)||0,.38);
-    e.harassCooldown=5.5;e.beam=0;
-    world.notify?.("UFOの重力光線が直撃！ 隠れて追跡を切れ");
+    P.stun=Math.max(Number(P.stun)||0,.20);
+    e.harassCooldown=5.5;
+    world.notify?.("UFOの重力光線！ 逃げないと吸い上げられる！");
     world.onEvent?.("ufo-player-harass",{year,x:P.x,y:P.y});
-   }else if(presentEra>=100&&e.beam>=2.2&&beginLift(e,P,{x:e.x,y:e.y},true)){
+   }
+   const fullLock=presentEra>=100?2.2:2.85;
+   if(e.beam>=fullLock&&beginLift(e,P,{x:e.x,y:e.y},true)){
+    e.beam=0;
     world.onPlayerAbductionStart?.();
-    world.notify?.("自キャラが光線に捕まった！ 上空へ引き寄せられる！");
+    world.notify?.("UFOに捕獲された！ 光に吸い上げられている！");
+    world.onEvent?.("ufo-player-lift-start",{year,x:P.x,y:P.y});
    }
   }else{e.beam=Math.max(0,e.beam-dt*2);e.groupBeamStrength=1;}
   if(!e.lifts.length&&(e.t>Math.max(34,Number(e.scanSeconds)||44)||Number.isFinite(e.firstCaptureAt)&&e.t-e.firstCaptureAt>22)){
@@ -793,11 +798,17 @@ function draw(ctx,project,world){
   }
  }
  if(e.stage==="scan"){
-  if(e.lifts?.length){const lift=e.lifts[0],floor=project(lift.x,lift.y);if(floor&&Number.isFinite(floor.x)&&Number.isFinite(floor.y)){
+  if(e.lifts?.length){
+   const lift=e.lifts[0],floor=project(lift.x,lift.y);
+   if(floor&&Number.isFinite(floor.x)&&Number.isFinite(floor.y)){
     const origin=project(lift.spotX,lift.spotY);
-    if(origin&&Number.isFinite(origin.x)&&Number.isFinite(origin.y))renderTractor(ctx,origin.x,floor.y,origin.y-104,Math.max(55,Math.abs(floor.x-origin.x)+38),e.t);
-   }}
-  else renderTractor(ctx,p.x,p.y,p.y-104,Math.min(94,55+e.t*2),e.t);
+    if(origin&&Number.isFinite(origin.x)&&Number.isFinite(origin.y))
+     renderTractor(ctx,origin.x,floor.y,origin.y-104,Math.max(55,Math.abs(floor.x-origin.x)+38),e.t);
+   }
+  }else if(e.beam>0||e.npcBeam>0){
+   // The beam now appears only with a real target, in both 2D and WebGL overlay.
+   renderTractor(ctx,p.x,p.y,p.y-104,Math.min(94,55+Math.max(e.beam,e.npcBeam)*12),e.t);
+  }
  }
  // Actual captured actor geometry ascends, shrinks and docks beneath the saucer.
  for(const lift of e.lifts||[]){
@@ -818,7 +829,7 @@ function draw(ctx,project,world){
  renderSaucer(ctx,p.x,p.y-110-skyDrop-(e.stage==="depart"?(e.departRise||0):0),41*(e.stage==="depart"?Math.max(.18,1-e.t*.29):1),e.t,"main");
  if(e.stage==="scan"&&(e.beam>0||e.npcBeam>0)){
   ctx.fillStyle=e.groupBeamStrength>1?"#ffbcee":"#fce6aa";
-   ctx.fillRect(p.x-37,p.y-150,74*Math.min(1,Math.max(e.beam/2.2,(e.npcBeam||0)/UFO_NPC_LOCK_TIME)),4);
+   ctx.fillRect(p.x-37,p.y-150,74*Math.min(1,Math.max(e.beam/(Number(e.era)>=100?2.2:2.85),(e.npcBeam||0)/UFO_NPC_LOCK_TIME)),4);
    if(e.groupBeamStrength>1){ctx.font="bold 12px sans-serif";ctx.textAlign="center";
     ctx.fillText("編隊吸引 ×"+e.groupBeamStrength.toFixed(1),p.x,p.y-156);}
  }
