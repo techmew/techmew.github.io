@@ -102,6 +102,26 @@ api.contextAction(false);
 eq(env.weaponScraps.length,0,"after defeating guard, loot can be collected");
 eq(env.mobs.length,1,"defeated guardian does not respawn at pickup");
 ok(a.alreadyClaimed("scrap:qa:before"),"guarded loot is safely recorded in the vault");
+// A complete owner-change/boss damage/restart/portable backup chain continues
+// from the exact cache that was guarded and physically collected above.
+const frontItem=a.read().vault.items.find(q=>q.id==="scrap:qa:before");
+ok(frontItem&&frontItem.owner,"guarded find resolves to a specific species");
+const frontActor={type:frontItem.owner,squadIndividualId:"p3-discovery-owner"};
+const wrongType=frontItem.owner==="cat"?"wolf":"cat";
+ok(!a.equip({type:wrongType,squadIndividualId:"p3-other"},frontItem.id).ok,
+ "another species cannot use a found weapon");
+ok(a.equip(frontActor,frontItem.id).ok,"matching species equips this guarded loot");
+const actualBoss={strongBoss:true,hp:2000,maxHp:2000};
+const hit=a.damage(frontActor,actualBoss,100);
+actualBoss.hp=Math.max(0,actualBoss.hp-hit);
+ok(actualBoss.hp<1900&&actualBoss.hp>0,"actual strong boss HP falls by geared player hit");
+const frontSerialized=localStorage.getItem(a.KEY);
+const reloadWindow={localStorage};
+new Function("window",arsenal)(reloadWindow);
+eq(reloadWindow.WildArsenal.equippedFor(frontActor)?.id,frontItem.id,
+ "the same individual remains equipped after module/title reload");
+eq(reloadWindow.WildArsenal.damage(frontActor,{strongBoss:true},100),hit,
+ "boss damage remains identical after Continue reload");
 ok(game.includes("guardianAwake:d.guardianAwake===true"),"guardian state is restored in older-schema world snapshots");
 ok(game.includes("if(!drop.guardianAwake)wakeWeaponScrapGuardian(drop)"),"pickup never re-creates an already defeated guard");
 // A lone remote mountain cache must be defended by a physically spawned NPC,
@@ -165,6 +185,26 @@ eq(resolved.equipped["individual:live-holder"],sharedId,"live individual retains
 eq(resolved.equipped["individual:old-holder"],undefined,"old duplicate binding removed");
 ok(!a.valid({version:1,items:[found.item],equipped:{"individual:one":sharedId,"individual:two":sharedId}}),
  "vault rejects duplicate physical equipment bindings");
+// A portable backup can restore the guarded find and matching individual
+// without duplicating weapons or claiming another user's permanent ID.
+const portableInput={[a.KEY]:frontSerialized};
+const emptyBackup={[a.KEY]:JSON.stringify({version:1,items:[],equipped:{}})};
+merge(emptyBackup,portableInput);
+const portableVault=JSON.parse(emptyBackup[a.KEY]);
+ok(a.valid(portableVault),"guarded find backup survives guarded restore");
+eq(portableVault.equipped["individual:p3-discovery-owner"],frontItem.id,
+ "JSON backup preserves the specific wielder");
+const restoredStorage=new Map([[a.KEY,emptyBackup[a.KEY]]]);
+const restoredWindow={localStorage:{
+ getItem:key=>restoredStorage.has(key)?restoredStorage.get(key):null,
+ setItem:(key,val)=>restoredStorage.set(key,String(val)),
+ removeItem:key=>restoredStorage.delete(key)
+}};
+new Function("window",arsenal)(restoredWindow);
+eq(restoredWindow.WildArsenal.equippedFor(frontActor)?.id,frontItem.id,
+ "fresh device backup import restores usable gear");
+ok(restoredWindow.WildArsenal.damage(frontActor,{strongBoss:true},100)>100,
+ "restored guarded-find weapon causes actual boss HP damage");
 const transferSeed=a.derive({id:"scrap:qa:species-transfer",seed:431});
 const crossSpecies={version:1,items:[transferSeed],equipped:{"species:NOT_A_SPECIES":transferSeed.id}};
 ok(!a.valid(crossSpecies),"invalid cross-species binding rejected");
