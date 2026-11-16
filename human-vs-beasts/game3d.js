@@ -171,19 +171,20 @@ function makeHuman(a){
   box(knee,.28,.045,.29,soleMat,0,-.57,.22);
   legs.push({hip,knee,side});
  }
- const head=new T.Group();head.position.set(0,1.08,.065);torso.add(head);
- const hscale=.95+a.face*.013;ball(head,skin,0,.13,0,.295*hscale,.34,.29);
+ const head=new T.Group();head.position.set(0,1.08+.025*morph('forehead'),.065);head.scale.setScalar(1+.17*morph('headSize'));torso.add(head);
+ const hscale=.95+a.face*.013,faceW=.295*hscale,faceH=.34*(1+.20*morph('faceLength')),faceZ=.29*(1+.20*morph('faceDepth'));ball(head,skin,0,.13,0,faceW,faceH,faceZ,28);ball(head,skin,0,.345+.03*morph('forehead'),-.015,faceW*.92,.095+.038*morph('forehead'),faceZ*.91,24);
+ for(let s of [-1,1]){const ear=ball(head,skin,s*(faceW*1.04),.13,0,.06+.021*morph('earSize'),.094+.029*morph('earSize'),.058,20);ear.rotation.z=s*(.1+.35*morph('earAngle'));}
  // chin, cheekbones, eyes in +Z facing direction
- ball(head,skin,0,-.02,.13,.19,.12,.19);
+ ball(head,skin,0,-.045-.038*morph('chinLength'),.12,.17+.055*morph('chinWidth'),.12+.025*morph('chinLength'),.18);for(let s of [-1,1])ball(head,skin,s*(faceW*.63),.050,faceZ*.5,.085+.04*morph('cheekbone'),.065+.028*morph('cheekFull'),.13,20);
  for(const side of [-1,1]){
-  const eyeX=side*(.115+a.eyes*.002),eyeY=.22;
-  ball(head,white,eyeX,eyeY,.265,.045+a.eyes*.002,.035+a.eyes*.0015,.026,12);
-  ball(head,iris,eyeX,eyeY,.293,.018+a.eyes*.001,.027,.01,12);
-  const brow=ball(head,hair,eyeX,.296+(a.brow-5)*.006,.257,.08,.014+a.brow*.001,.018,10);brow.rotation.z=side*(a.brow-5)*-.03;
-  ball(head,skin,side*.16,.09,.19,.084,.06,.06);
+  const eyeX=side*(.115+a.eyes*.002+.03*morph('eyeGap')),eyeY=.22+.020*morph('eyeHeight'),eyeZ=faceZ*.91;
+  const ew=(.045+a.eyes*.002)*(1+.29*morph('eyeWidth')),eh=(.025+a.eyes*.001)*(1+.29*morph('eyeHeight'));const e=ball(head,white,eyeX,eyeY,eyeZ,ew,eh,.017,24);e.rotation.z=side*morph('eyeTilt')*.20;ball(head,skin,eyeX,eyeY+eh*.95+.007*morph('eyelid'),eyeZ+.008,ew*1.12,.012+.007*morph('eyelid'),.014,20);
+  ball(head,iris,eyeX,eyeY,eyeZ+.017,.015+.009*morph('irisSize'),.021+.009*morph('irisSize'),.009,20);ball(head,dark,eyeX,eyeY,eyeZ+.027,.008,.013,.007,16);
+  const brow=ball(head,hair,eyeX+side*.016*morph('browGap'),.296+(a.brow-5)*.006+.026*morph('browHeight'),faceZ*.95,.08*(1+.30*morph('browLength')),.014+a.brow*.001+.008*morph('browThick'),.018,20);brow.rotation.z=side*((a.brow-5)*-.03+.30*morph('browAngle')+.15*morph('browCurve'));
+  ball(head,skin,side*.16,.09,faceZ*.62,.084,.06,.06);if(a.lash>20)for(let j=0;j<3;j++)ball(head,hair,eyeX+(j-1)*.025,eyeY+.035,eyeZ+.020,.005,.010+a.lash*.0002,.006,12);if(a.freckles>10)for(let j=0;j<Math.floor(a.freckles/12);j++)ball(head,dark,side*(.14+j*.011),.04+(j%3)*.018,faceZ*.83,.004,.004,.006,10);
  }
- ball(head,skin,0,.09,.295,.042+a.nose*.003,.065,.055+a.nose*.003);
- const mouth=ball(head,dark,0,-.048,.280,.055+a.mouth*.003,.008+a.mouth*.0015,.012);
+ ball(head,skin,0,.09,faceZ*.91+.008*morph('noseBridge'),(.042+a.nose*.003)*(1+.28*morph('noseWidth')),.07+.029*morph('noseLength'),.048+a.nose*.003+.025*morph('noseBridge'),20);ball(head,skin,0,.022,faceZ+.045+.023*morph('noseTip'),.058+.025*morph('noseTip'),.036,.042,20);for(let s of [-1,1])ball(head,dark,s*(.040+.014*morph('nostril')),.004,faceZ+.062,.013+.008*morph('nostril'),.008,.006,12);
+ const mouthY=-.048+.036*morph('mouthHeight'),mouthW=(.055+a.mouth*.003)*(1+.28*morph('mouthWidth'));ball(head,lipMat,0,mouthY+.009,faceZ*.94,mouthW,.011+.010*morph('upperLip'),.012,20);ball(head,lipMat,0,mouthY-.010,faceZ*.95,mouthW*.96,.013+.010*morph('lowerLip'),.012,20);for(let s of [-1,1])ball(head,dark,s*mouthW,mouthY+.015*morph('smile'),faceZ*.93,.006,.005,.007,12);
  const style=a.hairStyle%10;
  const hairCap=ball(head,hair,0,.37,-.036,.3,.13,.295);
  if(style===0)hairCap.scale.y=.42;
