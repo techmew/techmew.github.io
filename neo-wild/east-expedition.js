@@ -62,23 +62,45 @@
   {start:4,end:6,prey:false,threat:2,label:"渓谷・水源"},
   {start:6,end:7,prey:false,threat:3,label:"雪山・洞窟"}
  ]);
- function navigation(player,mask,water=false){
+ // Project the actor onto the navigable polyline, not just the nearest post.
+ // The old nearest-waypoint method sent animals backwards at bends and cliffs.
+ function routePosition(player){
   if(!player)return null;
   let best=null;
-  for(let i=0;i<WALKWAY.length;i++){
-   const [x,y]=WALKWAY[i],d=Math.hypot(player.x-x,player.y-y);
-   if(!best||d<best.distance)best={index:i,distance:d};
+  for(let i=0;i<WALKWAY.length-1;i++){
+   const [ax,ay]=WALKWAY[i],[bx,by]=WALKWAY[i+1];
+   const dx=bx-ax,dy=by-ay,den=dx*dx+dy*dy;
+   const t=Math.max(0,Math.min(1,((player.x-ax)*dx+(player.y-ay)*dy)/den));
+   const x=ax+t*dx,y=ay+t*dy,d=Math.hypot(player.x-x,player.y-y);
+   if(!best||d<best.distance)best={segment:i,t,x,y,distance:d,progress:i+t};
   }
+  return best;
+ }
+ function navigation(player,mask,water=false){
+  if(!player)return null;
+  const location=routePosition(player);
   const stop=next(player,mask)||STOPS.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
   let goal=0,score=Infinity;
   for(let i=0;i<WALKWAY.length;i++){
    const [x,y]=WALKWAY[i],d=Math.hypot(stop.x-x,stop.y-y);
    if(d<score){score=d;goal=i;}
   }
-  const step=best.index===goal?goal:best.index+(goal>best.index?1:-1);
-  const [x,y]=WALKWAY[step];
-  const section=habitat.find(h=>best.index>=(h.start===0?0:h.start===2?4:h.start===4?8:15)&&best.index<(h.end===2?4:h.end===4?8:h.end===6?15:18))||habitat[3];
-  return {x,y,stop,section,water:!!water,distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step};
+  // Aim at the next navigable vertex along the path. When the player is
+  // outside the corridor, first rejoin its nearest safe projected position.
+  const offPath=location.distance>105;
+  let step=goal;
+  if(!offPath){
+   if(goal>location.progress+.12)step=Math.min(WALKWAY.length-1,Math.floor(location.progress)+1);
+   else if(goal<location.progress-.12)step=Math.max(0,Math.ceil(location.progress)-1);
+  }
+  const [wx,wy]=WALKWAY[step];
+  const x=offPath?location.x:wx,y=offPath?location.y:wy;
+  const sectionIndex=location.progress<4?0:location.progress<8?1:location.progress<15?2:3;
+  const section=habitat[sectionIndex];
+  return {x,y,stop,section,water:!!water,
+   distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step,
+   offPath,routeDistance:Math.round(location.distance),routeProgress:location.progress,
+   targetDistance:Math.round(dist(player,stop))};
  }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
  const BIOMES=Object.freeze([
@@ -131,5 +153,5 @@
   }
   return {alerted,fleeing};
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,routePosition,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
 })(window);
