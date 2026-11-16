@@ -5051,9 +5051,38 @@ function pickWeaponScrap(){
   return true;
  }
  weaponScraps=weaponScraps.filter(q=>q.id!==drop.id);
- // Salvage is a live contested encounter, not an inert inventory pickup.
- // Nearby eastern predators investigate the noise and attack the scavenger;
- // existing AI handles pursuit, line-of-sight, attacks and boss damage.
+ // Eastern salvage is a contested encounter: when no predator is already
+ // present, mountain/forest caches can attract ONE real wild NPC. Use the
+ // existing fauna, ecology, collision and eastern HP/attack scaling pipeline.
+ // Do not create extra attackers near a new player, a den, or a crowded area.
+ const easternTier=armory.dangerTier?.(drop.x)||0;
+ const nearbyHostiles=mobs.filter(enemy=>enemy&&enemy.hp>0&&!enemy.companion&&!enemy.strongBoss&&
+  !species[enemy.type]?.prey&&!enemy.releasedIndividualId&&
+  Math.hypot(enemy.x-drop.x,enemy.y-drop.y)<480);
+ if(easternTier>=2&&nearbyHostiles.length===0&&
+  mobs.filter(enemy=>enemy.hp>0&&Math.hypot(enemy.x-P.x,enemy.y-P.y)<650).length<5){
+  for(let attempt=0;attempt<12;attempt++){
+   const angle=(attempt*.61803398875+drop.seed/4294967296)*TWO;
+   const radius=270+(attempt%3)*42;
+   const point={x:Math.round(drop.x+Math.cos(angle)*radius),y:Math.round(drop.y+Math.sin(angle)*radius)};
+   if(point.x<8400||point.x>WORLD.w-50||point.y<50||point.y>WORLD.h-50||
+    collides(point.x,point.y,40)||waterDepth(point.x,point.y)>.04||
+    Math.hypot(point.x-P.x,point.y-P.y)<230||atDen())continue;
+   const before=mobs.length;
+   if(spawnMob(false,false,false,point)&&mobs.length>before){
+    const guard=mobs[mobs.length-1];
+    if(!species[guard.type]?.prey){
+     guard.alert=Math.max(Number(guard.alert)||0,7);
+     guard.search=Math.max(Number(guard.search)||0,7);
+     guard.lastX=drop.x;guard.lastY=drop.y;guard.wander=0;
+     notify("ガラクタの音を聞いた野生の敵が接近している！",3);
+    }
+    break;
+   }
+  }
+ }
+ // Nearby eastern predators investigate the pickup noise, using existing
+ // AI line-of-sight, attacks and boss damage; never turn prey aggressive.
  let alerted=0;
  for(const enemy of mobs){
   if(!enemy||enemy.hp<=0||enemy.companion||enemy.strongBoss||
