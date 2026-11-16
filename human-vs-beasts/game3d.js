@@ -814,7 +814,23 @@ function refreshHuman(){
 }
 function refreshOpponent(){const old=opponent.root;scene.remove(old);disposeModel(old);opponent=makeExtendedBeast(animals[save.chosen]);opponent.root.position.set(animalX,.13,0);scene.add(opponent.root);refreshMenu()}
 // Subtle footstep puffs, with pooled 3D meshes.
-const dust=[],dustMat=new T.MeshBasicMaterial({color:0xd4b6a1,transparent:true,opacity:.3,depthWrite:false});for(let i=0;i<38;i++){const p=new T.Mesh(new T.SphereGeometry(1,7,5),dustMat.clone());p.visible=false;scene.add(p);dust.push({mesh:p,life:0,max:1})}let dustCursor=0;
+const dust=[],dustMat=new T.MeshBasicMaterial({color:0xcdb8a3,transparent:true,opacity:.22,depthWrite:false});for(let i=0;i<38;i++){const p=new T.Mesh(sphereGeometry(8),dustMat.clone());p.visible=false;scene.add(p);dust.push({mesh:p,life:0,max:1})}let dustCursor=0;
+ // Race scuffs are faint track-level motion marks; unlike neon speed lines they remain grounded.
+ const scuffs=[],scuffGeo=new T.PlaneGeometry(.07,.48);
+ for(let i=0;i<18;i++){
+  const mesh=new T.Mesh(scuffGeo,new T.MeshBasicMaterial({color:0xe3d5c1,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}));
+  mesh.rotation.x=-Math.PI/2;mesh.visible=false;scene.add(mesh);scuffs.push({mesh,life:0,max:.30});
+ }
+ let scuffCursor=0;
+ function markFootfall(x,z,speed,side){
+  if(speed<2)return;
+  const puff=scuffs[scuffCursor++%scuffs.length];
+  puff.life=puff.max=.19+Math.random()*.11;
+  puff.mesh.visible=true;
+  puff.mesh.position.set(x+(side==='L'?.19:-.19),.166,z-.40);
+  puff.mesh.scale.set(.72+Math.random()*.3,.6+Math.min(.9,speed/15),1);
+  puff.mesh.material.opacity=.13;
+ }
 function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.length];p.life=.4+Math.random()*.2;p.max=p.life;p.mesh.visible=true;p.mesh.position.set(x+Math.random()*.4-.2,.13,z-0.5);p.mesh.scale.set(.2,.09,.33);p.mesh.material.opacity=.23}
 const clock=new T.Clock();let mode='menu',race=null,camSpin=0,cameraTarget=new T.Vector3(0,1.5,3),camPos=new T.Vector3(-5.8,3.1,9.2),sceneTime=0,sfx=true,lastHUD=0,raceName='';
 let ceremonyStage=null;
@@ -1128,7 +1144,7 @@ function tap(side){
  }
  r.lastFoot=side;r.lastTap=now;
  footstep(Math.max(2.5,r.humanV),side);
- if(r.humanV>2)kickDust(r.lateral,r.humanD,r.humanV);
+ if(r.humanV>2){kickDust(r.lateral+(side==='L'?.18:-.18),r.humanD,r.humanV);markFootfall(r.lateral,r.humanD,r.humanV,side)}
  const btn=$(side==='L'?'leftTap':'rightTap');btn.classList.add('hit');
  setTimeout(()=>btn.classList.remove('hit'),75);
  if(r.combo>0&&r.combo%12===0)effect('ready');
@@ -1262,7 +1278,7 @@ function buildPodiumPhoto(){
   mesh.rotation.z=i*.68;
  }
  const cam=new T.PerspectiveCamera(39,16/9,.1,100);
- cam.position.set(0,3.1,8.15);cam.lookAt(0,2.04,.16);
+ cam.position.set(0,3.05,7.05);cam.lookAt(0,2.03,.25);
  return {scene:sc,camera:cam};
 }
 
@@ -1320,14 +1336,14 @@ function captureCeremonyPhoto(){
   }catch(e){canvasCaptured=false}
   if(!canvasCaptured)capturePodiumFromGPU(ctx,w,h);
   // Only a snapshot of the actual game models is used. No illustrated substitute.
-  const start=h-104,gradient=ctx.createLinearGradient(0,start,0,h);
+  const start=h-84,gradient=ctx.createLinearGradient(0,start,0,h);
   gradient.addColorStop(0,'rgba(8,20,25,0)');gradient.addColorStop(.22,'rgba(8,20,25,.82)');gradient.addColorStop(1,'rgba(8,20,25,.96)');
   ctx.fillStyle=gradient;ctx.fillRect(0,start,w,104);
   ctx.fillStyle='#fff9ee';ctx.textAlign='left';
-  ctx.font='600 21px system-ui,sans-serif';ctx.fillText('動物と100m走 / '+raceName,24,start+36);
-  ctx.font='800 32px system-ui,sans-serif';ctx.fillText(resultText,24,start+78);
+  ctx.font='600 19px system-ui,sans-serif';ctx.fillText('動物と100m走 / '+raceName,24,start+29);
+  ctx.font='800 30px system-ui,sans-serif';ctx.fillText(resultText,24,start+63);
   ctx.textAlign='right';ctx.fillStyle='#ccd7d4';ctx.font='500 13px sans-serif';
-  ctx.fillText('techmew.github.io/human-vs-beasts/',w-20,h-9);
+  ctx.fillText('techmew.github.io/human-vs-beasts/',w-20,h-8);
   const src=photo.toDataURL('image/jpeg',.93);
   if(!src.startsWith('data:image/'))throw Error('Image export unavailable');
   racePicture=photo;
@@ -1543,7 +1559,8 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
  
  opponent.animate(beastGait,espeed);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
- dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.9);x.mesh.position.y+=dt*.24;x.mesh.material.opacity=Math.max(0,.25*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
+ dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.55);x.mesh.position.y+=dt*.16;x.mesh.material.opacity=Math.max(0,.20*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
+ scuffs.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.material.opacity=Math.max(0,.13*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
 // Replace synthetic expression typo guard for minifier-safe runtime.
 renderCustom();renderTraining();renderBeasts();refreshMenu();showScreen('menu');requestAnimationFrame(frame);loader.style.display='none';
