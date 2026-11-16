@@ -1072,7 +1072,7 @@ function tap(side){
  const r=race,now=r.time;r.taps++;
  r.legTaps[side]=now;
  const alternating=side!==r.lastFoot,quick=now-r.lastTap<.54;
- const move=side==='L'?.24:-.24;
+ const move=side==='L'?.31:-.31;
  r.lateral=clamp(r.lateral+move,-10.5,8.5);r.lastDrift=move;
  if(alternating){
   r.combo=quick?Math.min(99,r.combo+1):1;
@@ -1436,7 +1436,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  else if(!offCourse)r.offTrack=false;
  if(r.bumpCooldown===0&&r.jumpY<.14&&r.hFinish===null&&r.eFinish===null
   &&Math.abs(r.lateral-r.enemyLateral)<1.05
-  &&Math.abs(r.humanD-r.enemyD)<4.8){
+  &&Math.abs(r.humanD-r.enemyD)<6.5){
    r.bumpCooldown=1.4;r.enemyStumble=.82;r.enemyV*=.73;
    r.humanV*=.92;
    r.enemyLateral=clamp(r.enemyLateral+.29,animalX-.4,animalX+1.35);
