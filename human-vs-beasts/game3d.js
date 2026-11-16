@@ -356,7 +356,7 @@ function makeBeast(data){
 function makeExtendedBeast(data){
  // The original thirteen racers retain their existing models; the other thirty-seven use specialized anatomy.
  if(data.kind==='boar')return makeWildBoar(data);
- if(originalBeastIds.includes(data.id))return makeBeast(data);
+ if(originalBeastIds.includes(data.id))return finishAnimalModel(data,makeBeast(data));
  const k=data.kind,root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);
  const inorganic=['golem','giantrobot'].includes(k);
  const coat=mat(data.coat,inorganic?.64:.96,inorganic?.13:0);
@@ -644,9 +644,59 @@ function makeExtendedBeast(data){
   for(const wing of wings)wing.wing.rotation.z=-wing.side*(.08+.15*Math.sin(time*.76)*effort);
  }
  function mtRobotLight(){return mat(0x80bdb4,.25,.3)}
- return {root,bodyGroup,legs,tail,animate};
+ return finishAnimalModel(data,{root,bodyGroup,legs,tail,animate});
 }
 
+
+
+function finishAnimalModel(data,rig){
+ const g=rig.bodyGroup,k=data.kind;if(!g)return rig;
+ const ink=mat(0x272724,.93);
+ const dark=mat(new T.Color(data.coat).multiplyScalar(.65),.97);
+ const light=mat(new T.Color(data.coat).lerp(new T.Color(0xf1e8d8),.38),.94);
+ const dot=(m,x,y,z,w,h,d)=>ball(g,m,x,y,z,w,h,d,12);
+ const line=(a,b,m,r=.006)=>tube(g,a,b,r,m,r*.72);
+ if(['cat','dog','fox','greyhound','wolf','direwolf','lion','cheetah','tiger','smilodon'].includes(k)){
+  const native=originalBeastIds.includes(data.id),yy=native?(k==='cat'?.95:1.19):1.42,zz=native?(k==='cat'?1.04:1.35):1.40;
+  dot(light,0,yy-.17,zz+.20,.20,.11,.16);dot(ink,0,yy-.13,zz+.34,.065,.037,.040);
+  for(const side of [-1,1]){
+   dot(ink,side*.22,yy+.065,zz+.15,.021,.015,.012);
+   for(let i=0;i<3;i++)line([side*.13,yy-.11+i*.044,zz+.29],[side*(.34+i*.02),yy-.13+i*.044,zz+.13],light,.0045);
+  }
+ }
+ if(['horse','zebra','gazelle','pronghorn','deer','unicorn','pegasus'].includes(k)){
+  const yy=originalBeastIds.includes(data.id)?1.72:1.75,zz=originalBeastIds.includes(data.id)?1.06:1.45;
+  dot(light,0,yy+.08,zz+.20,.07,.20,.034);
+  for(let i=0;i<7;i++)dot(dark,0,yy+.09+i*.080,zz-.28-i*.041,.062,.081,.071);
+ }
+ if(['ostrich','dodo','moa','terrorbird','griffin'].includes(k)){
+  const yy=k==='ostrich'?1.35:k==='dodo'?.98:1.15;
+  for(const side of [-1,1])for(let i=0;i<7;i++){
+   const f=dot(i%3===0?light:dark,side*(.32+i*.025),yy+.16-i*.035,(i-3)*.086,.072,.065,.14);
+   f.rotation.y=side*.20;
+  }
+ }
+ if(['elephant','mammoth','rhino','woollyrhino','hippo','giantsloth','cavebear'].includes(k)){
+  for(let i=0;i<14;i++)dot(i%5===0?light:dark,i%2?.54:-.54,1.25+((i*3)%5)*.077,-.85+i*.125,.034,.09,.05);
+ }
+ if(['trex','spinosaurus','carnotaurus','velociraptor','deinonychus','gallimimus','triceratops','stegosaurus','ankylosaurus','parasaurolophus'].includes(k)){
+  const yy=['trex','spinosaurus','carnotaurus'].includes(k)?1.76:1.34;
+  for(let i=0;i<22;i++)dot(i%5===0?light:dark,(i%2?.35:-.35),yy+.16+(i%5)*.04,-.73+i*.073,.042,.027,.067);
+ }
+ if(['golem','giantrobot','alien','minotaur','gorilla','kaiju'].includes(k)){
+  if(['golem','giantrobot'].includes(k))for(let i=0;i<5;i++)dot(i%2?light:dark,0,1.2+i*.22,.40,.29,.02,.035);
+  else dot(light,0,1.70,.39,.28,.22,.055);
+ }
+ if(['dragon','pegasus','griffin'].includes(k)){
+  for(let side of [-1,1]){
+   const shape=new T.Shape();shape.moveTo(0,0);shape.lineTo(side*.90,.27);shape.lineTo(side*1.34,-.15);shape.lineTo(side*.67,-.34);shape.lineTo(0,-.07);shape.closePath();
+   const membrane=new T.Mesh(new T.ShapeGeometry(shape),new T.MeshStandardMaterial({color:new T.Color(data.coat).multiplyScalar(.87),roughness:.96,side:T.DoubleSide}));
+   membrane.position.set(side*.49,k==='dragon'?1.8:1.6,-.42);membrane.rotation.y=side*.2;membrane.castShadow=true;g.add(membrane);
+  }
+ }
+ for(const leg of rig.legs||[])if(leg.knee)for(const side of [-1,1])ball(leg.knee,ink,side*.077,-.54,.24,.029,.036,.060,10);
+ return rig;
+}
 
 function makeWildBoar(data){
  const root=new T.Group(),body=new T.Group();root.add(body);root.scale.setScalar(1.16);
