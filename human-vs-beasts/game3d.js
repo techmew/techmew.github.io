@@ -323,7 +323,7 @@ function makeHuman(a){
  }};
 }
 function makeBeast(data){
- const k=data.kind;const root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);const coat=mat(data.coat,.98),highlight=mat(new T.Color(data.coat).multiplyScalar(1.10),.94),shade=mat(new T.Color(data.coat).multiplyScalar(.72),.96),nose=mat(0x2c2727),pale=mat(k==='zebra'?0xece8e2:0xf0dac3),white=mat(0xffffff),eyes=mat(0x18191c,.28);coat.map=furMaterialTexture;coat.needsUpdate=true;let legs=[],tail;
+ const k=data.kind;const root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);const coat=mat(data.coat,.98),highlight=mat(new T.Color(data.coat).multiplyScalar(1.10),.94),shade=mat(new T.Color(data.coat).multiplyScalar(.72),.96),nose=mat(0x2c2727),pale=mat(k==='zebra'?0xece8e2:0xf0dac3),white=mat(0xffffff),eyes=mat(0x18191c,.28);coat.map=furMaterialTexture;coat.needsUpdate=true;let legs=[],tail,arms=[];
  const isHorse=['horse','zebra','gazelle','pronghorn'].includes(k),large=['horse','zebra','lion'].includes(k),catlike=['lion','cheetah','cat'].includes(k),biped=['ostrich','kangaroo'].includes(k);
  let sizes={bodyW:.4,bodyH:.35,bodyL:.78,hipY:.89,headY:1.17,leg:.42,scale:1};
  if(k==='greyhound'){sizes={bodyW:.31,bodyH:.30,bodyL:.89,hipY:1.02,headY:1.32,leg:.54,scale:1}}
@@ -346,7 +346,18 @@ function makeBeast(data){
   const headZ=k==='ostrich'?.69:.57,headY=k==='ostrich'?2.39:2.18;
   for(let side of [-1,1])ball(bodyGroup,eyes,side*.14,headY+.04,headZ+.15,.045,.052,.04);
   for(let side of [-1,1]){const hip=new T.Group();hip.position.set(side*.27,k==='kangaroo'?1.24:.93,k==='kangaroo'?-.05:0);bodyGroup.add(hip);ball(hip,coat,0,-.30,0,.22,.41,.22);const knee=new T.Group();knee.position.y=-.54;hip.add(knee);ball(knee,k==='ostrich'?shade:coat,0,-.28,.04,.105,.37,.105);ball(knee,nose,0,-.58,.22,.16,.09,.42);legs.push({hip,knee,side})}
-  if(k==='kangaroo'){tube(bodyGroup,[0,.96,-.42],[0,.43,-1.34],.17,shade,.25);tube(bodyGroup,[0,.43,-1.34],[0,.15,-1.89],.11,shade,.16);for(let side of [-1,1]){tube(bodyGroup,[side*.31,1.59,.22],[side*.44,1.21,.57],.11,coat,.09);ball(bodyGroup,coat,side*.47,1.18,.65,.1,.16,.09)}}
+  if(k==='kangaroo'){
+    const tailPivot=new T.Group();tailPivot.position.set(0,.96,-.42);bodyGroup.add(tailPivot);
+    tube(tailPivot,[0,0,0],[0,-.53,-.92],.17,shade,.24);
+    tube(tailPivot,[0,-.53,-.92],[0,-.81,-1.47],.11,shade,.15);
+    tail=tailPivot;
+    for(const side of [-1,1]){
+     const arm=new T.Group();arm.position.set(side*.31,1.59,.22);bodyGroup.add(arm);
+     tube(arm,[0,0,0],[side*.13,-.38,.35],.11,coat,.085);
+     ball(arm,coat,side*.16,-.41,.44,.095,.14,.085);
+     arms.push({sh:arm,side});
+    }
+   }
  }else{
   const neck=ball(bodyGroup,coat,0,S.headY-.16,S.bodyL*.79,S.bodyW*.57,isHorse?.47:.28,isHorse?.37:.35);
   const head=ball(bodyGroup,coat,0,S.headY,S.bodyL+.42,isHorse?.25:.30,isHorse?.34:.28,isHorse?.40:.36);
@@ -383,13 +394,13 @@ function makeBeast(data){
  }
  bodyGroup.scale.setScalar((['cat','rabbit'].includes(k))?.87:1);
  lineShadow(root,large?.8:.6);
- return {root,bodyGroup,legs,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
+ return {root,bodyGroup,legs,arms,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
 }
 
 function makeExtendedBeast(data){
  // The original thirteen racers retain their existing models; the other thirty-seven use specialized anatomy.
- if(data.kind==='boar')return makeWildBoar(data);
- if(originalBeastIds.includes(data.id))return finishAnimalModel(data,makeBeast(data));
+ if(data.kind==='boar')return withSpeciesLocomotion(data,makeWildBoar(data));
+ if(originalBeastIds.includes(data.id))return withSpeciesLocomotion(data,finishAnimalModel(data,makeBeast(data)));
  const k=data.kind,root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);
  const inorganic=['golem','giantrobot'].includes(k);
  const coat=mat(data.coat,inorganic?.64:.96,inorganic?.13:0);
@@ -677,7 +688,7 @@ function makeExtendedBeast(data){
   for(const wing of wings)wing.wing.rotation.z=-wing.side*(.08+.15*Math.sin(time*.76)*effort);
  }
  function mtRobotLight(){return mat(0x80bdb4,.25,.3)}
- return finishAnimalModel(data,{root,bodyGroup,legs,tail,animate});
+ return withSpeciesLocomotion(data,finishAnimalModel(data,{root,bodyGroup,legs,arms,tail,wings,animate}));
 }
 
 
@@ -790,6 +801,157 @@ function makeWildBoar(data){
    l.hip.rotation.x=w*.54*eff;l.knee.rotation.x=Math.max(0,-w)*.55*eff;
   }
  }};
+}
+
+
+// Individual biomechanical gaits for every race competitor.
+// Contemporary animals use observed locomotor families; prehistoric/fantasy gaits are stylized hypotheses.
+const GAIT_MAP={
+ dog:'canter',cat:'flexGallop',fox:'canter',dodo:'birdRun',rabbit:'bound',greyhound:'flexGallop',
+ zebra:'horseGallop',boar:'heavyTrot',ostrich:'birdRun',kangaroo:'kangarooHop',moa:'birdRun',
+ horse:'horseGallop',wolf:'canter',giantsloth:'heavyBiped',lion:'flexGallop',
+ deer:'pronk',smilodon:'flexGallop',gazelle:'pronk',pronghorn:'horseGallop',tiger:'flexGallop',
+ unicorn:'horseGallop',cheetah:'flexGallop',gorilla:'knuckleRun',elephant:'heavyTrot',
+ hippo:'heavyTrot',rhino:'heavyTrot',mammoth:'heavyTrot',woollyrhino:'heavyTrot',
+ direwolf:'canter',terrorbird:'birdRun',cavebear:'heavyTrot',
+ triceratops:'heavyTrot',stegosaurus:'heavyTrot',ankylosaurus:'heavyTrot',
+ parasaurolophus:'birdRun',gallimimus:'birdRun',velociraptor:'birdRun',
+ deinonychus:'birdRun',carnotaurus:'birdRun',trex:'birdRun',spinosaurus:'birdRun',
+ pegasus:'horseGallop',cerberus:'canter',griffin:'canter',
+ minotaur:'heavyBiped',dragon:'heavyTrot',golem:'heavyBiped',
+ giantrobot:'mechanicalRun',alien:'springRun',kaiju:'heavyBiped'
+};
+const GAIT_LABELS={
+ kangarooHop:'両後脚で跳躍',bound:'前後の脚をそろえて跳躍',pronk:'4本脚で跳ねる',
+ birdRun:'二足で交互に疾走',horseGallop:'四足のギャロップ',flexGallop:'背中をしならせた疾走',
+ canter:'四足で駆ける',heavyTrot:'重量級の踏み込み',heavyBiped:'重い二足歩行',
+ knuckleRun:'腕で体を支える走り',mechanicalRun:'機械の脚で走る',springRun:'軽い跳躍走'
+};
+function animalGaitRate(kind,speed){
+ const gait=GAIT_MAP[kind]||'canter';
+ const clamped=clamp(speed,0,45);
+ const stride={
+  kangarooHop:1.58,bound:1.75,pronk:1.6,birdRun:2.7,
+  horseGallop:2.04,flexGallop:2.18,canter:2.10,
+  heavyTrot:1.38,heavyBiped:1.28,knuckleRun:1.58,
+  mechanicalRun:1.61,springRun:2.23
+ }[gait]||2.0;
+ return (1.65+clamped*0.28)*stride;
+}
+function withSpeciesLocomotion(data,rig){
+ const kind=data.kind,gait=GAIT_MAP[kind]||'canter';
+ const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail;
+ const original=rig.animate,scaleY=body.scale.y,scaleZ=body.scale.z;
+ let lastImpact=null;
+ rig.gait=gait;rig.gaitLabel=GAIT_LABELS[gait]||'走行';
+ rig.animate=function(phase,speed){
+  // Preserve native wing articulation and accessories before overriding the common leg cycle.
+  if(original)original(phase,speed);
+  const moving=speed>.18,effort=moving?clamp(speed/11,.18,1.50):0;
+  if(!moving){
+   body.position.y=0;body.rotation.x=0;body.rotation.z=0;
+   body.scale.y=scaleY;body.scale.z=scaleZ;
+   for(const leg of legs){leg.hip.rotation.x=0;leg.knee.rotation.x=0}
+   for(const arm of arms)if(arm.sh)arm.sh.rotation.x=0;
+   if(tail){tail.rotation.x=0;tail.rotation.y=0}
+   lastImpact=null;
+   return false;
+  }
+  const s=Math.sin(phase),cos=Math.cos(phase);
+  const lift=Math.pow(Math.max(0,s),1.20);
+  const brace=Math.pow(Math.max(0,-s),1.35);
+  const isKangaroo=gait==='kangarooHop';
+  const isBound=gait==='bound';
+  const isPronk=gait==='pronk';
+  const biped=['birdRun','heavyBiped','knuckleRun','mechanicalRun','springRun'].includes(gait);
+  body.position.y=0;body.rotation.x=0;body.rotation.z=0;body.scale.y=scaleY;body.scale.z=scaleZ;
+  if(isKangaroo){
+   // Both rear feet launch together. A distinct airborne phase and opposing tail swing.
+   body.position.y=.43*lift*effort-.046*brace*effort;
+   body.rotation.x=(.125*cos-.055*lift)*effort;
+   body.scale.z=scaleZ*(1+.035*cos*effort);
+   for(const leg of legs){
+    leg.hip.rotation.x=(-.26-.57*lift+.32*brace)*effort;
+    leg.knee.rotation.x=(.17+.89*lift-.11*brace)*effort;
+   }
+   for(const arm of arms)if(arm.sh)arm.sh.rotation.x=(-.09-.23*lift)*effort;
+   if(tail){tail.rotation.x=(-.19*cos+.09*lift)*effort;tail.rotation.y=.045*Math.sin(phase*.50)*effort}
+  }else if(isBound){
+   // Hares/rabbits take a paired hind-leg jump then reach with both forefeet.
+   body.position.y=.25*lift*effort-.022*brace*effort;
+   body.rotation.x=(-.12*cos+.045*s)*effort;
+   for(const leg of legs){
+    const hind=leg.front<0||legs.length===2;
+    leg.hip.rotation.x=(hind?(-.38-.53*lift):(.35+.39*cos))*effort;
+    leg.knee.rotation.x=(hind?(.33+.55*lift):(.13+.37*lift))*effort;
+   }
+   if(tail)tail.rotation.x=.10*cos*effort;
+  }else if(isPronk){
+   // Springbok and deer visibly suspend the whole body with synchronized four-leg tucks.
+   body.position.y=.26*lift*effort;
+   body.rotation.x=.052*cos*effort;
+   for(const leg of legs){leg.hip.rotation.x=(-.15-.37*lift)*effort;leg.knee.rotation.x=(.12+.55*lift)*effort}
+   if(tail)tail.rotation.y=.12*s*effort;
+  }else if(gait==='flexGallop'){
+   // Cheetahs/felines and racing greyhounds stretch and gather the spine at speed.
+   body.position.y=(.075*Math.max(0,Math.sin(phase*2))-.016*brace)*effort;
+   body.scale.z=scaleZ*(1+.060*Math.sin(phase)*effort);
+   body.rotation.x=.085*cos*effort;
+   for(const leg of legs){
+    const hind=leg.front<0||legs.length===2;
+    const wave=Math.sin(phase+(hind?0:Math.PI*.78)+(leg.side===1?.28:0));
+    leg.hip.rotation.x=(.63*wave+(hind?.14:-.05))*effort;
+    leg.knee.rotation.x=(Math.max(0,-wave)*.83)*effort;
+   }
+   if(tail)tail.rotation.y=.17*Math.sin(phase*.55)*effort;
+  }else if(gait==='horseGallop'||gait==='canter'){
+   const gallop=gait==='horseGallop';
+   body.position.y=.036*Math.max(0,Math.sin(phase*2))*effort;
+   body.rotation.x=.038*cos*effort;
+   for(const leg of legs){
+    const front=leg.front>0,side=leg.side||1;
+    const offset=front?(side===1?1.82:2.35):(side===1?.36:0);
+    const step=Math.sin(phase+offset);
+    leg.hip.rotation.x=(gallop?.66:.57)*step*effort;
+    leg.knee.rotation.x=Math.max(0,-step)*(.66+.12*(gallop?1:0))*effort;
+   }
+   if(tail){tail.rotation.y=.14*Math.sin(phase*.7)*effort;tail.rotation.x=.035*cos*effort}
+  }else if(gait==='heavyTrot'){
+   // Mammoths/elephants and other massive animals stay grounded, with deliberate weight transfer.
+   body.position.y=.012*Math.abs(Math.sin(phase*2))*Math.min(1,effort);
+   body.rotation.z=.031*Math.sin(phase)*Math.min(1,effort);
+   body.rotation.x=.015*cos*effort;
+   for(const leg of legs){
+    const right=leg.side===1,front=leg.front>0;
+    const diag=(right!==front)?Math.PI:0;
+    const wave=Math.sin(phase+diag);
+    leg.hip.rotation.x=.37*wave*effort;
+    leg.knee.rotation.x=.42*Math.max(0,-wave)*effort;
+   }
+   if(tail)tail.rotation.y=.07*s*effort;
+  }else if(biped){
+   const heavy=gait==='heavyBiped'||gait==='mechanicalRun';
+   const stride=heavy?.40:.66;
+   body.position.y=(heavy?.013:.028)*Math.abs(Math.cos(phase))*effort;
+   body.rotation.x=(gait==='springRun'?.10:.040)*cos*effort;
+   body.rotation.z=.035*s*effort;
+   for(const [i,leg] of legs.entries()){
+    const w=Math.sin(phase+i*Math.PI);
+    leg.hip.rotation.x=w*stride*effort;
+    leg.knee.rotation.x=Math.max(0,-w)*(heavy?.49:.73)*effort;
+   }
+   for(const [i,arm] of arms.entries())if(arm.sh)arm.sh.rotation.x=-.46*Math.sin(phase+i*Math.PI)*effort;
+   if(tail){tail.rotation.y=.13*s*effort;tail.rotation.x=-.045*cos*effort}
+  }
+  // A landing event is generated from foot/ground contact, not from arbitrary distance.
+  const beats=isKangaroo||isBound||isPronk?1:gait==='heavyTrot'?2:biped?2:4;
+  const shift=isKangaroo||isBound||isPronk?Math.PI:0;
+  const impactIndex=Math.floor((phase+shift)*beats/(Math.PI*2));
+  if(lastImpact===null){lastImpact=impactIndex;return false}
+  const landed=impactIndex>lastImpact;lastImpact=impactIndex;
+  return landed;
+ };
+ return rig;
 }
 
 // 3D player and opponent are rebuilt on customization / opponent changes.
