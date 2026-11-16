@@ -697,7 +697,9 @@ function tickEastTrail(dt){
  const nav=route.navigation?.(P,eastTrailMask,P.type==="carp");
  if(nav&&elapsed-eastTrailHazardNoticeAt>28&&P.x>=7600){
   eastTrailHazardNoticeAt=elapsed;
-  notify("探索経路："+nav.stop.name+"｜次の道標まで"+nav.distance+"m｜"+nav.section.label+
+  const routeHint=nav.offPath?"｜街道から"+nav.routeDistance+"m離脱・合流地点へ案内":
+   "｜次の道標まで"+nav.distance+"m";
+  notify("探索経路："+nav.stop.name+routeHint+"｜"+nav.section.label+
    (nav.water?"｜コイは水路から陸地に上がれない。水域を探索":"｜補給・危険は地図で確認"),3);
  }
  // P3: connected eastern habitat encounters run in the live update loop.
