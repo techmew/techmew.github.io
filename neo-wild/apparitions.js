@@ -3,7 +3,7 @@
 "use strict";
 const KEY="wild-reclaim-apparitions-v1", MAX=18;
 let ghost=null, nextYear=0, sightings=[], persistClock=0;
-let hallucinations=[], hallucinationCooldown=0;
+let hallucinations=[], hallucinationCooldown=0, encounterClock=0;
 const finite=n=>Number.isFinite(Number(n))?Number(n):0;
  const eraYear=y=>window.WildWorldClock?.eventYear?.(y)??y*3;
  const eventDelay=y=>window.WildWorldClock?.eventIntervalYears?.(y)??y/3;
@@ -25,12 +25,20 @@ function tick(dt,w){
  hallucinationCooldown=Math.max(0,hallucinationCooldown-dt);
  hallucinations=hallucinations.filter(h=>(h.life-=dt)>0);
  if(!ghost){
-  if(eraYear(year)<45||year<nextYear)return;
-  // Rare, location-independent encounters; world years rather than frame count control eligibility.
-  if(Math.random()>=Math.min(.04,dt/(1450/3)))return;
-  const angle=Math.random()*Math.PI*2,r=180+Math.random()*100;
-  summon(P.x+Math.cos(angle)*r,P.y+Math.sin(angle)*r,year);
-  w.notify("遠くで奇妙な人影が揺れた");return;
+  // Schedule a nearby encounter by active-play seconds, not a rare
+  // lottery locked behind 45 event-era years.
+  encounterClock+=dt;
+  if((Number(w.elapsed)||0)<25||encounterClock<70||(year<nextYear&&encounterClock<115))return;
+  const phase=Math.random()*Math.PI*2;
+  let spot=null;
+  for(let i=0;i<16;i++){
+   const a=phase+i*Math.PI/8,r=125+(i%3)*24;
+   const test={x:Math.max(45,P.x+Math.cos(a)*r),y:Math.max(45,P.y+Math.sin(a)*r)};
+   if(!w.lineBlocked?.(P,test)){spot=test;break}
+  }
+  if(!spot)return;
+  summon(spot.x,spot.y,year);encounterClock=0;
+  w.notify?.("近くに亡霊が現れた！ 隠れるか反撃しろ");return;
  }
  const g=ghost;g.t+=dt;g.pulse=Math.max(0,finite(g.pulse)-dt);
  if(g.stage==="wander"){
@@ -38,11 +46,31 @@ function tick(dt,w){
   if(g.t>4){g.stage="manifest";g.t=0;w.notify("冷たい気配が近づいてくる…")}
  }else if(g.stage==="manifest"){
   const d=distance(g,P),blocked=!!w.lineBlocked?.(P,g);
-  // Apparitions cannot attack through walls; hiding breaks their pursuit.
-  if(!P.hidden&&!blocked&&d<390){
-   const speed=g.kind==="wraith"?86:g.kind==="mimic"?72:(d<85?58:76),step=Math.min(d,speed*dt);
-   if(d>1){g.x+=(P.x-g.x)/d*step;g.y+=(P.y-g.y)/d*step}
-  }
+  // Blocked pursuit rematerializes in an open lane. Possession still
+  // requires direct visibility and never passes through solid cover.
+  if(!P.hidden&&d<520){
+   const speed=g.kind==="wraith"?96:g.kind==="mimic"?86:(d<85?66:92);
+   if(!blocked){
+    g.blockedFor=0;
+    const step=Math.min(Math.max(0,d-28),speed*dt);
+    if(d>1){g.x+=(P.x-g.x)/d*step;g.y+=(P.y-g.y)/d*step}
+   }else{
+    g.blockedFor=Math.max(0,finite(g.blockedFor))+dt;
+    if(g.blockedFor>2.1&&g.pulse<=0){
+     const phase=g.seed+g.t*.65;
+     for(let i=0;i<12;i++){
+      const angle=phase+i*Math.PI/6;
+      const target={x:Math.max(45,P.x+Math.cos(angle)*92),y:Math.max(45,P.y+Math.sin(angle)*92)};
+      if(w.lineBlocked?.(P,target))continue;
+      hallucinations.push({x:g.x,y:g.y,life:1.6,maxLife:1.6,seed:g.seed});
+      hallucinations=hallucinations.slice(-3);
+      g.x=target.x;g.y=target.y;g.blockedFor=0;g.pulse=5;
+      w.notify?.("亡霊が影から近くに現れた！");
+      w.onEvent?.("ghost-shadow-approach",{year,x:g.x,y:g.y});break;
+     }
+    }
+   }
+  }else g.blockedFor=0;
   // Timed counterplay: a directed species attack can repel a manifested spirit.
   // No new UI is needed; the existing attack and special-action inputs apply.
   g.repulseCooldown=Math.max(0,finite(g.repulseCooldown)-dt);
@@ -165,7 +193,7 @@ function tick(dt,w){
    const escapeSpeed=Math.max(70,Math.hypot(finite(m.vx),finite(m.vy)));
    m.vx=Math.cos(a)*escapeSpeed;m.vy=Math.sin(a)*escapeSpeed;
   }
-  if(g.t>22||distance(g,P)>650){g.stage="fade";g.t=0}
+  if(g.t>34||distance(g,P)>850){g.stage="fade";g.t=0}
  }else if(g.t>2){record("亡霊遭遇",year,g.x,g.y);ghost=null;nextYear=year+eventDelay(8+Math.random()*15);save()}
 }
 function draw(ctx,project,w){
@@ -240,5 +268,5 @@ function draw(ctx,project,w){
  ctx.restore();
 }
 load();
-window.WildApparitions={tick,draw,summon,history:()=>sightings.slice(),saveState:()=>({ghost,nextYear,sightings:sightings.slice(-MAX)}),get active(){return ghost},resetWorld(){ghost=null;nextYear=0;sightings=[];persistClock=0;hallucinations=[];hallucinationCooldown=0;save();return true;},debugClear(){ghost=null;hallucinations=[];hallucinationCooldown=0;save();return true;},get hallucinationCount(){return hallucinations.length}};
+window.WildApparitions={tick,draw,summon,history:()=>sightings.slice(),saveState:()=>({ghost,nextYear,sightings:sightings.slice(-MAX)}),get active(){return ghost},resetWorld(){ghost=null;nextYear=0;sightings=[];persistClock=0;hallucinations=[];hallucinationCooldown=0;encounterClock=0;save();return true;},debugClear(){ghost=null;hallucinations=[];hallucinationCooldown=0;save();return true;},get hallucinationCount(){return hallucinations.length}};
 })();
