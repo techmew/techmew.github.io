@@ -974,11 +974,30 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(r.hFinish===null){if(!hasInput){r.humanV=0;r.combo=0}else if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-5.8*dtSafe);r.humanD+=r.humanV*dtSafe;
  r.stamina=clamp(r.stamina-((r.drive>.50?.012:.001)*(1/(1+save.stats.stamina*.09))+(r.burstLeft>0?.028:0))*dtSafe+(r.drive<.4?.014:0)*dtSafe,.32,1);if(r.humanD>=100){const before=r.humanD-r.humanV*dtSafe;r.hFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.humanV);r.humanD=100;beep(930,.16,'sine',.05)}}
  const a=animals[Math.max(0,Math.min(animals.length-1,save.chosen))],maxB=a.kph/3.6;
- if(r.eFinish===null){const phaseBonus=r.enemyD<22?1:(r.enemyD>81?.95:1);const enemyTarget=maxB*phaseBonus;r.enemyV=Math.min(enemyTarget,r.enemyV+a.acc*dtSafe);r.enemyD+=r.enemyV*dtSafe;if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100}}
+ if(r.eFinish===null){
+  // Every profile remains a normal 100m race: heavy starters gather momentum,
+  // hoppers pulse, sprinters accelerate quickly, and special opponents finish fast.
+  const progress=r.enemyD;
+  let pace=1,accMult=1;
+  if(a.profile==='heavy'){pace=progress<18?.72:progress<52?.94:1.12;accMult=.82}
+  else if(a.profile==='sprinter'){pace=progress<16?1.06:progress<76?1.035:.96;accMult=1.13}
+  else if(a.profile==='hopper'){pace=(progress<18?.88:1.02)+Math.max(0,Math.sin(r.time*8))*.095;accMult=1.04}
+  else if(a.profile==='late'){pace=progress<35?.83:progress<70?1.04:1.23;accMult=1.04}
+  else{pace=progress<20?.95:progress>82?1.04:1}
+  const enemyTarget=maxB*pace,acc=a.acc*accMult;
+  if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
+  else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
+  r.enemyD+=r.enemyV*dtSafe;
+  if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100}
+ }
  r.burstLeft=Math.max(0,r.burstLeft-dtSafe);const ready=r.burstCharge>=99&&r.burstLeft<=0;const button=$('burstBtn');if(button.disabled===ready){button.disabled=!ready;button.classList.toggle('ready',ready)}
  human.root.position.z=r.humanD;opponent.root.position.z=r.enemyD;
  /* Human steps occur only after a real tap. */
- if(r.eFinish===null&&r.enemyV>7&&Math.random()<dtSafe*10)kickDust(animalX,r.enemyD,r.enemyV);
+ if(r.eFinish===null&&r.enemyV>4){
+  const big=['mammoth','elephant','triceratops','trex','spinosaurus','dragon','golem','giantrobot','kaiju'].includes(a.kind);
+  const dustRate=big?25:10;
+  if(Math.random()<dtSafe*dustRate){kickDust(animalX,r.enemyD,r.enemyV);if(big)kickDust(animalX+.55,r.enemyD-.30,r.enemyV)}
+ }
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
  if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
 function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent='連続 '+r.combo;$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
