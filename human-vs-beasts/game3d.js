@@ -784,7 +784,15 @@ function refreshOpponent(){const old=opponent.root;scene.remove(old);disposeMode
 const dust=[],dustMat=new T.MeshBasicMaterial({color:0xd4b6a1,transparent:true,opacity:.3,depthWrite:false});for(let i=0;i<38;i++){const p=new T.Mesh(new T.SphereGeometry(1,7,5),dustMat.clone());p.visible=false;scene.add(p);dust.push({mesh:p,life:0,max:1})}let dustCursor=0;
 function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.length];p.life=.4+Math.random()*.2;p.max=p.life;p.mesh.visible=true;p.mesh.position.set(x+Math.random()*.4-.2,.13,z-0.5);p.mesh.scale.set(.2,.09,.33);p.mesh.material.opacity=.23}
 const clock=new T.Clock();let mode='menu',race=null,camSpin=0,cameraTarget=new T.Vector3(0,1.5,3),camPos=new T.Vector3(-5.8,3.1,9.2),sceneTime=0,sfx=true,lastHUD=0,raceName='';
-const initResize=()=>{const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.fov=w<h?59:52;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};addEventListener('resize',initResize);initResize();
+let ceremonyStage=null;
+const initResize=()=>{
+ const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.fov=w<h?59:52;camera.updateProjectionMatrix();
+ if(ceremonyStage){
+  const slot=$('result3DWindow'),cw=Math.max(300,slot.clientWidth||340),ch=Math.max(169,slot.clientHeight||192);
+  ceremonyStage.camera.aspect=cw/ch;ceremonyStage.camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));renderer.setSize(cw,ch,false);
+ }else renderer.setSize(w,h,false);
+};addEventListener('resize',initResize);initResize();
 
 let audioCtx,noiseBuffer,ambient=null,lastRivalImpact=-1;
 function audioSystem(){
@@ -978,7 +986,7 @@ function stopAmbience(){
  const {src,gain}=ambient;ambient=null;
  try{const ctx=audioCtx;gain.gain.cancelScheduledValues(ctx.currentTime);gain.gain.setTargetAtTime(.0001,ctx.currentTime,.10);src.stop(ctx.currentTime+.42)}catch(e){}
 }
-function showScreen(mo){if(mo!=='race'){stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
+function showScreen(mo){if(mo!=='race'){if(ceremonyStage)endCeremonyStage();stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
 const unlocked=(i)=>i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];if(mode!=='race')prefetchVoice(x.kind);$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.group+' / '+x.sub;$('nextSpeed').textContent='ゲーム内 '+x.kph+' km/h';$('nextBar').style.width=Math.min(100,x.kph/230*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent='第'+(save.chosen+1)+' / '+animals.length+'戦 ・ '+(win?'勝利済み。自己記録に挑戦':'勝つと次の対戦相手を解放');$('startBtn').textContent='▶ '+x.name+'と100m走'}
@@ -1225,140 +1233,82 @@ function buildPodiumPhoto(){
 
 // Guaranteed result image: attempt live Three.js podium capture first.
 // If WebGL capture is blocked on Android, draw a local podium scene on 2D canvas.
-function fallbackPodiumPhoto(ctx,w,h){
- const sky=ctx.createLinearGradient(0,0,0,h);
- sky.addColorStop(0,'#405b70');sky.addColorStop(.67,'#a7bbc1');sky.addColorStop(1,'#546457');
- ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
- ctx.fillStyle='#3b5262';for(let row=0;row<5;row++){
-  ctx.fillRect(0,180+row*38,w,29);
-  for(let j=0;j<34;j++){
-   const x=(j+0.5)*w/34,y=196+row*38;
-   ctx.fillStyle=['#b5b8ae','#d2cab6','#84989b','#71869a'][(j*11+row)%4];
-   ctx.beginPath();ctx.ellipse(x,y,8,9,0,0,Math.PI*2);ctx.fill();
+
+function endCeremonyStage(){
+ if(!ceremonyStage)return;
+ const old=ceremonyStage;ceremonyStage=null;
+ try{
+  const canvas=renderer.domElement,shade=$('shade');
+  shade.parentNode.insertBefore(canvas,shade);
+  canvas.removeAttribute('style');
+  old.scene.traverse(o=>{if(o.isMesh&&o.material?.map?.isCanvasTexture&&o.material.map!==furMaterialTexture)o.material.map.dispose()});
+  disposeModel(old.scene);
+ }catch(e){console.warn('3D podium release',e)}
+ $('result3DWindow').hidden=true;$('resultPhoto').hidden=true;
+ racePicture=null;initResize();
+}
+function captureCeremonyPhoto(){
+ if(!ceremonyStage)return false;
+ let success=false;const w=960,h=540;
+ const photo=document.createElement('canvas');photo.width=w;photo.height=h;
+ try{
+  const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true});
+  renderer.setRenderTarget(null);renderer.setPixelRatio(1);renderer.setSize(w,h,false);
+  ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
+  renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  ctx.drawImage(renderer.domElement,0,0,w,h);
+  const a=ctx.getImageData(245,175,1,1).data,b=ctx.getImageData(500,275,1,1).data;
+  if(a[3]===0||b[3]===0)throw Error('Empty WebGL image');
+  // Only a snapshot of the actual game models is used. No illustrated substitute.
+  const start=h-104,gradient=ctx.createLinearGradient(0,start,0,h);
+  gradient.addColorStop(0,'rgba(8,20,25,0)');gradient.addColorStop(.22,'rgba(8,20,25,.82)');gradient.addColorStop(1,'rgba(8,20,25,.96)');
+  ctx.fillStyle=gradient;ctx.fillRect(0,start,w,104);
+  ctx.fillStyle='#fff9ee';ctx.textAlign='left';
+  ctx.font='600 21px system-ui,sans-serif';ctx.fillText('動物と100m走 / '+raceName,24,start+36);
+  ctx.font='800 32px system-ui,sans-serif';ctx.fillText(resultText,24,start+78);
+  ctx.textAlign='right';ctx.fillStyle='#ccd7d4';ctx.font='500 13px sans-serif';
+  ctx.fillText('techmew.github.io/human-vs-beasts/',w-20,h-9);
+  const src=photo.toDataURL('image/jpeg',.93);
+  if(!src.startsWith('data:image/'))throw Error('Image export unavailable');
+  racePicture=photo;
+  $('resultPhoto').src=src;$('resultPhoto').hidden=false;
+  $('result3DWindow').hidden=true;ceremonyStage.photoCaptured=true;
+  $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
+  success=true;
+ }catch(err){
+  console.warn('3D image capture blocked; show live 3D podium instead',err);
+  $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
+  ceremonyStage.photoCaptured=false;
+  $('shareHelp').textContent='3D表彰台を表示中。写真保存は再試行できます。';
+ }finally{
+  if(ceremonyStage&&!success){
+   const view=$('result3DWindow'),w=Math.max(320,view.clientWidth||340),h=Math.max(180,view.clientHeight||192);
+   renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
+   renderer.setSize(w,h,false);
+   ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
+   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   }
-  ctx.fillStyle='#3b5262';
  }
- ctx.fillStyle='#465d57';ctx.fillRect(0,h*.60,w,h*.4);
- const podium=(cx,baseY,wd,ht,num)=>{
-  ctx.fillStyle='#9dacb2';ctx.fillRect(cx-wd/2,baseY-ht,wd,ht);
-  ctx.fillStyle='#d0bb82';ctx.fillRect(cx-wd/2,baseY-ht,wd,12);
-  ctx.fillStyle='#f0eee3';ctx.font='bold '+Math.round(wd*.36)+'px sans-serif';
-  ctx.textAlign='center';ctx.fillText(String(num),cx,baseY-ht*.3);
- };
- podium(w*.50,h*.89,w*.255,h*.27,1);
- podium(w*.21,h*.89,w*.23,h*.17,2);
- podium(w*.79,h*.89,w*.23,h*.11,3);
- const skin=palettes.skin[save.avatar.skin%palettes.skin.length]||'#d4b097';
- const hair=palettes.hair[save.avatar.hair%palettes.hair.length]||'#514139';
- const shirt=palettes.shirt[save.avatar.shirt%palettes.shirt.length]||'#e3ece4';
- const pants=palettes.pants[save.avatar.pants%palettes.pants.length]||'#344a57';
- function ellipse(x,y,rx,ry,col){
-  ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
- }
- function human(cx,footY,scale,medal){
-  ctx.save();ctx.translate(cx,footY);ctx.scale(scale,scale);
-  ctx.lineCap='round';
-  ctx.lineWidth=24;ctx.strokeStyle=pants;
-  ctx.beginPath();ctx.moveTo(-16,-80);ctx.lineTo(-18,-19);ctx.moveTo(16,-80);ctx.lineTo(18,-19);ctx.stroke();
-  ellipse(-18,-12,19,11,'#333e45');ellipse(18,-12,19,11,'#333e45');
-  ellipse(0,-126,48,60,shirt);
-  ctx.lineWidth=18;ctx.strokeStyle=shirt;
-  ctx.beginPath();ctx.moveTo(-38,-152);ctx.lineTo(-63,-95);ctx.moveTo(38,-152);ctx.lineTo(63,-95);ctx.stroke();
-  ellipse(-63,-96,12,12,skin);ellipse(63,-96,12,12,skin);
-  ellipse(0,-232,43,49,skin);
-  ellipse(0,-269,43,20,hair);
-  ellipse(-15,-234,4,5,'#262526');ellipse(15,-234,4,5,'#262526');
-  ctx.strokeStyle='#663f36';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-218,13,.17,Math.PI-.17);ctx.stroke();
-  if(medal){
-   ctx.strokeStyle='#d5ba78';ctx.lineWidth=6;
-   ctx.beginPath();ctx.moveTo(-23,-174);ctx.lineTo(0,-143);ctx.lineTo(23,-174);ctx.stroke();
-   ellipse(0,-139,17,19,'#e3be59');ellipse(0,-139,9,11,'#fff0ae');
-  }
-  ctx.restore();
- }
- function animal(cx,footY,scale,medal){
-  ctx.save();ctx.translate(cx,footY);ctx.scale(scale,scale);
-  const col='#8e755d';
-  for(const side of [-1,1]){
-   ellipse(side*36,-35,17,49,col);ellipse(side*42,0,22,10,'#423a33');
-  }
-  ellipse(0,-107,76,68,col);ellipse(0,-167,49,51,col);
-  ellipse(-37,-201,15,27,col);ellipse(37,-201,15,27,col);
-  ellipse(0,-159,38,27,'#9d8977');
-  ellipse(-21,-176,5,6,'#211d1a');ellipse(21,-176,5,6,'#211d1a');
-  ellipse(0,-148,17,12,'#c2a48c');
-  if(medal){ellipse(0,-106,18,18,'#e3bd67');ellipse(0,-106,9,9,'#fbe5a2')}
-  ctx.restore();
- }
- if(lastResultWon){
-  human(w*.50,h*.635,1.06,true);
-  animal(w*.21,h*.73,.54,false);
- }else{
-  animal(w*.50,h*.62,.90,true);
-  human(w*.21,h*.73,.58,false);
- }
+ return success;
 }
 function makeRacePhoto(){
- const w=960,h=540;
- let canvas=null,stage=null,previousRatio=null,previousSize=null;
+ racePicture=null;
+ const preview=$('result3DWindow');preview.hidden=false;
+ $('resultPhoto').hidden=true;
  try{
-  canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-  const cx=canvas.getContext('2d',{alpha:false});
-  if(!cx)throw Error('2D canvas unavailable');
-  let captured=false;
-  try{
-   stage=buildPodiumPhoto();
-   previousRatio=renderer.getPixelRatio();
-   previousSize=renderer.getSize(new T.Vector2());
-   renderer.setRenderTarget(null);
-   renderer.setPixelRatio(1);
-   renderer.setSize(w,h,false);
-   renderer.render(stage.scene,stage.camera);
-   cx.drawImage(renderer.domElement,0,0,w,h);
-   const pixels=cx.getImageData(w*.5|0,h*.45|0,1,1).data;
-   captured=pixels[3]>0;
-  }catch(error){console.warn('Podium 3D capture failed; using fallback',error)}
-  finally{
-   try{
-    renderer.setRenderTarget(null);
-    if(previousRatio!==null)renderer.setPixelRatio(previousRatio);
-    if(previousSize)renderer.setSize(previousSize.x,previousSize.y,false);
-   }catch(error){console.warn('Renderer restore',error)}
-  }
-  if(!captured)fallbackPodiumPhoto(cx,w,h);
-  const top=h-111,grad=cx.createLinearGradient(0,top,0,h);
-  grad.addColorStop(0,'rgba(8,18,23,0)');
-  grad.addColorStop(.25,'rgba(8,18,23,.84)');
-  grad.addColorStop(1,'rgba(8,18,23,.97)');
-  cx.fillStyle=grad;cx.fillRect(0,top,w,111);
-  cx.textAlign='left';cx.fillStyle='#f4f2e9';
-  cx.font='600 21px system-ui,"Noto Sans JP",sans-serif';
-  cx.fillText('動物と100m走 / '+raceName,24,top+37);
-  cx.font='800 32px system-ui,"Noto Sans JP",sans-serif';
-  cx.fillText(resultText,24,top+77,w-40);
-  cx.font='500 13px system-ui,sans-serif';cx.fillStyle='#c8d7d1';
-  cx.textAlign='right';cx.fillText('techmew.github.io/human-vs-beasts/',w-24,h-12);
-  racePicture=canvas;
-  const img=$('resultPhoto');
-  try{img.src=canvas.toDataURL('image/jpeg',.9)}
-  catch(error){
-   canvas.toBlob(blob=>{if(blob){if(img.dataset.tempUrl)URL.revokeObjectURL(img.dataset.tempUrl);img.dataset.tempUrl=URL.createObjectURL(blob);img.src=img.dataset.tempUrl}},'image/jpeg',.9);
-  }
-  img.hidden=false;
-  $('shareHelp').textContent='表彰台の写真を保存・共有できます。';
- }catch(error){
-  console.warn('Result photo fallback',error);
-  try{
-   canvas=canvas||document.createElement('canvas');canvas.width=w;canvas.height=h;
-   const cx=canvas.getContext('2d');fallbackPodiumPhoto(cx,w,h);
-   racePicture=canvas;const img=$('resultPhoto');img.src=canvas.toDataURL('image/jpeg',.83);img.hidden=false;
-  }catch(e){console.warn('Could not create even fallback image',e);$('shareHelp').textContent='写真の生成に失敗しました。'}
- }finally{
-  try{renderer.setRenderTarget(null)}catch(e){}
-  if(stage){
-   try{stage.scene.traverse(o=>{if(o.isMesh&&o.material?.map&&o.material.map.isCanvasTexture&&o.material.map!==furMaterialTexture)o.material.map.dispose()})}catch(e){}
-   try{disposeModel(stage.scene)}catch(e){}
-  }
+  if(ceremonyStage)endCeremonyStage();
+  ceremonyStage=buildPodiumPhoto();ceremonyStage.photoCaptured=false;
+  const canvas=renderer.domElement;preview.appendChild(canvas);
+  canvas.style.position='relative';canvas.style.inset='auto';canvas.style.width='100%';canvas.style.height='100%';
+  const w=Math.max(320,preview.clientWidth||340),h=Math.max(180,preview.clientHeight||192);
+  ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));renderer.setSize(w,h,false);
+  renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  captureCeremonyPhoto();
+ }catch(err){
+  console.warn('Could not create 3D podium',err);
+  $('shareHelp').textContent='3D表彰台を読み込めませんでした。';
+  if(ceremonyStage)endCeremonyStage();
  }
 }
 
@@ -1459,7 +1409,7 @@ $('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resul
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
 const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
 async function raceImageBlob(){
- if(!racePicture)makeRacePhoto();
+ if(!racePicture)captureCeremonyPhoto();
  if(!racePicture)return null;
  return await new Promise(resolve=>racePicture.toBlob(resolve,'image/png'));
 }
@@ -1519,7 +1469,12 @@ function adaptQuality(dt){
  else if(fps>54)target=Math.min(max,renderQuality+.06);
  if(Math.abs(target-renderQuality)>.015){renderQuality=target;renderer.setPixelRatio(renderQuality);renderer.setSize(innerWidth,innerHeight,false)}
 }
-let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
+let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.046,clock.getDelta());sceneTime+=dt;
+ if(mode==='race'&&race?.phase==='results'){
+  if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  return;
+ }
+ if(mode==='race')updateRace(dt);// Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0);
  
