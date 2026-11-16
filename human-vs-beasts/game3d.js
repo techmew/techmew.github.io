@@ -1202,7 +1202,7 @@ function stopAmbience(){
 function showScreen(mo){if(mo!=='race'){if(ceremonyStage)endCeremonyStage();stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
 const unlocked=(i)=>i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id);
-function refreshMenu(){let x=animals[save.chosen]||animals[0];if(mode!=='race')prefetchVoice(x.kind);$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.group+' / '+x.sub;$('nextSpeed').textContent='ゲーム内 '+x.kph+' km/h';$('nextBar').style.width=Math.min(100,x.kph/230*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent='第'+(save.chosen+1)+' / '+animals.length+'戦 ・ '+(win?'勝利済み。自己記録に挑戦':'勝つと次の対戦相手を解放');$('startBtn').textContent='▶ '+x.name+'と100m走'}
+function refreshMenu(){let x=animals[save.chosen]||animals[0];if(mode!=='race')prefetchVoice(x.kind);$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.group+' / '+(GAIT_LABELS[GAIT_MAP[x.kind]]||'走行')+' / '+x.sub;$('nextSpeed').textContent='ゲーム内 '+x.kph+' km/h';$('nextBar').style.width=Math.min(100,x.kph/230*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent='第'+(save.chosen+1)+' / '+animals.length+'戦 ・ '+(win?'勝利済み。自己記録に挑戦':'勝つと次の対戦相手を解放');$('startBtn').textContent='▶ '+x.name+'と100m走'}
 function renderTraining(){const el=$('trainList');el.innerHTML='';const cards=training.map(item=>{const level=save.stats[item.id]||1,need=cost(item.id),max=level>=50;return `<div class="trainitem"><header><div><div class="label">${item.name}</div><h3>${item.name} <span class="mini">Lv.${level}</span></h3></div><button data-train="${item.id}" ${max||save.money<need?'disabled':''}>${max?'MAX':need+' G'}</button></header><p>${item.desc} ・ ${item.gain}</p><div class="trainLine"><i style="width:${Math.min(100,level*2)}%"></i></div></div>`}).join('');el.innerHTML=cards;el.querySelectorAll('[data-train]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.train,n=cost(id);if(save.money<n||save.stats[id]>=50)return;save.money-=n;save.stats[id]++;store();beep(670,.09,'triangle',.055);renderTraining();refreshMenu()}))}
 function renderBeasts(){
  const el=$('animalList'),filter=$('beastTypeFilter')?.value||'all';
@@ -1214,7 +1214,7 @@ function renderBeasts(){
    <header><div><div class="label">第${i+1}/${animals.length}戦 <span class="kind">${a.group}</span></div>
    <h3>${a.name} ${won?'<span class="mini">勝利済</span>':''}</h3></div>
    <button data-beast="${i}" ${available?'':'disabled'}>${i===save.chosen?'選択中':available?'挑戦する':'未解放'}</button></header>
-   <p>${a.sub} / ゲーム内最高速度 ${a.kph} km/h${Number.isFinite(pb)?' / 自己記録 '+pb.toFixed(2)+'秒':''}${available?'':' / 前の対戦に勝利すると解放'}</p>
+   <p>${a.sub} / ${GAIT_LABELS[GAIT_MAP[a.kind]]||'走行'} / ゲーム内最高速度 ${a.kph} km/h${Number.isFinite(pb)?' / 自己記録 '+pb.toFixed(2)+'秒':''}${available?'':' / 前の対戦に勝利すると解放'}</p>
    </div>`}).join('');
  if(!filtered.length)el.textContent='該当する対戦相手はありません。';
  el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.dataset.beast);if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}));
@@ -1287,7 +1287,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time;r.taps+=1;r.legTaps[side]=now;
@@ -1588,7 +1588,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
   let pace=1,accMult=1;
   if(a.profile==='heavy'){pace=progress<18?.72:progress<52?.94:1.12;accMult=.82}
   else if(a.profile==='sprinter'){pace=progress<16?1.06:progress<76?1.035:.96;accMult=1.13}
-  else if(a.profile==='hopper'){pace=(progress<18?.88:1.02)+Math.max(0,Math.sin(r.time*8))*.095;accMult=1.04}
+  else if(a.profile==='hopper'){pace=(progress<18?.88:1.02)+Math.pow(Math.max(0,Math.sin(beastGait)),2)*.12;accMult=1.04}
   else if(a.profile==='late'){pace=progress<35?.83:progress<70?1.04:1.23;accMult=1.04}
   else{pace=progress<20?.95:progress>82?1.04:1}
   const stage=save.chosen;
@@ -1597,12 +1597,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
   if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
   else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
   r.enemyD+=r.enemyV*dtSafe;
-  const giant=['boar','mammoth','elephant','hippo','rhino','woollyrhino','triceratops','trex','spinosaurus','dragon','golem','giantrobot','kaiju'].includes(a.kind);
-  const stepDistance=giant?3.0:2.35;
-  const index=Math.floor(r.enemyD/stepDistance);
-  if(r.enemyV>4&&index>r.lastRivalStep&&r.time-r.lastRivalImpact>(giant?.27:.21)){
-   r.lastRivalStep=index;r.lastRivalImpact=r.time;animalFootstep(a.kind,r.enemyV);
-  }
+  // Impact effects follow the 3D rig's foot contacts, not distance-only timers.
   if(r.enemyD>60&&r.lastRivalCall<0){r.lastRivalCall=r.time;animalCall(a.kind)}
   if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100;r.enemyV=0}
  }
@@ -1717,9 +1712,17 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
  if(mode==='race'&&race?.phase==='results'){if(ceremonyStage&&!ceremonyStage.photoCaptured)renderer.render(ceremonyStage.scene,ceremonyStage.camera);return}
  // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*(4.2+clamp(espeed/10,0,2.5)*5.4);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
- opponent.animate(beastGait,espeed);
+ const hasLanded=opponent.animate(beastGait,espeed);
+ if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
+  const kind=animals[save.chosen].kind,gait=GAIT_MAP[kind];
+  const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
+  if(race.time-race.lastRivalImpact>gap){
+   race.lastRivalImpact=race.time;animalFootstep(kind,espeed);
+   if(['kangarooHop','bound','pronk'].includes(gait))kickDust(race.enemyLateral,race.enemyD,espeed);
+  }
+ }
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.55);x.mesh.position.y+=dt*.16;x.mesh.material.opacity=Math.max(0,.20*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  scuffs.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.material.opacity=Math.max(0,.13*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
