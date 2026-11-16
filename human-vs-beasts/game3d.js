@@ -336,8 +336,25 @@ function kickDust(x,z,speed){if(speed<2)return;const p=dust[dustCursor++%dust.le
 const clock=new T.Clock();let mode='menu',race=null,camSpin=0,cameraTarget=new T.Vector3(0,1.5,3),camPos=new T.Vector3(-5.8,3.1,9.2),sceneTime=0,sfx=true,lastHUD=0,raceName='';
 const initResize=()=>{const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.fov=w<h?59:52;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};addEventListener('resize',initResize);initResize();
 let audioCtx;function beep(freq=450,dur=.1,type='sine',gain=.04){if(!sfx)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const osc=audioCtx.createOscillator(),g=audioCtx.createGain();osc.type=type;osc.frequency.value=freq;g.gain.setValueAtTime(gain,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);osc.connect(g).connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+dur+.01)}catch(e){}}
+let footBuffer=null;
+function footstep(speed){
+ if(!sfx||speed<=2)return;
+ try{
+  audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+  if(!footBuffer){
+   footBuffer=audioCtx.createBuffer(1,1500,audioCtx.sampleRate);
+   const samples=footBuffer.getChannelData(0);
+   let seed=17891;for(let i=0;i<samples.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;samples[i]=((seed/4294967296)*2-1)*Math.exp(-i/260)}
+  }
+  const src=audioCtx.createBufferSource();src.buffer=footBuffer;
+  const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=180+speed*18;
+  const gain=audioCtx.createGain();const now=audioCtx.currentTime;
+  gain.gain.setValueAtTime(.017+Math.min(.025,speed*.001),now);gain.gain.exponentialRampToValueAtTime(.0001,now+.04);
+  src.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);src.start(now);
+ }catch(err){}
+}
 function showScreen(mo){mode=mo;['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
-const cost=(id)=>{const level=save.stats[id]||1;return Math.floor(45*Math.pow(1.34,level-1)+(level-1)*7)};
+const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
 const unlocked=(i)=>i===0||save.won.includes(animals[i-1].id);
 function refreshMenu(){let x=animals[save.chosen]||animals[0];$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.sub;$('nextSpeed').textContent=x.kph+' km/h';$('nextBar').style.width=(x.kph/110*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent=win?'勝利済み — 記録の更新に挑戦':'勝利すると次の生物が解放される';$('startBtn').textContent='▶ '+x.name+'と100m走'}
 function renderTraining(){const el=$('trainList');el.innerHTML='';const cards=training.map(item=>{const level=save.stats[item.id]||1,need=cost(item.id),max=level>=50;return `<div class="trainitem"><header><div><div class="label">${item.name}</div><h3>${item.name} <span class="mini">Lv.${level}</span></h3></div><button data-train="${item.id}" ${max||save.money<need?'disabled':''}>${max?'MAX':need+' G'}</button></header><p>${item.desc} ・ ${item.gain}</p><div class="trainLine"><i style="width:${Math.min(100,level*2)}%"></i></div></div>`}).join('');el.innerHTML=cards;el.querySelectorAll('[data-train]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.train,n=cost(id);if(save.money<n||save.stats[id]>=50)return;save.money-=n;save.stats[id]++;store();beep(670,.09,'triangle',.055);renderTraining();refreshMenu()}))}
@@ -443,7 +460,7 @@ function finishRace(){
  const completed=Number.isFinite(r.hFinish),won=completed&&r.hFinish<r.eFinish,record=completed?r.hFinish:r.time;
  save.races=(save.races||0)+1;
  if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=animals[save.chosen].id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
- const reward=Math.max(15,Math.round((won?130:completed?56:15)+animals[save.chosen].tier*(won?34:completed?11:0)+(completed?Math.max(0,18-r.hFinish)*3:0)));
+ const reward=Math.max(15,Math.round((won?190:completed?65:30)+animals[save.chosen].tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
  save.money+=reward;
  const atLast=save.chosen>=animals.length-1;
  if(won&&!save.won.includes(animals[save.chosen].id)){save.won.push(animals[save.chosen].id);if(!atLast)save.chosen++}
@@ -468,7 +485,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(r.eFinish===null){const phaseBonus=r.enemyD<22?1:(r.enemyD>81?.95:1);const enemyTarget=maxB*phaseBonus;r.enemyV=Math.min(enemyTarget,r.enemyV+a.acc*dtSafe);r.enemyD+=r.enemyV*dtSafe;if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100}}
  r.burstLeft=Math.max(0,r.burstLeft-dtSafe);const ready=r.burstCharge>=99&&r.burstLeft<=0;const button=$('burstBtn');if(button.disabled===ready){button.disabled=!ready;button.classList.toggle('ready',ready)}
  human.root.position.z=r.humanD;opponent.root.position.z=r.enemyD;
- if(r.humanV>2){const step=Math.floor(r.time*clamp(r.humanV,3,20)*1.15);if(step!==r.lastStep){r.lastStep=step;kickDust(humanX,r.humanD,r.humanV);if(step%3===0)beep(110,.026,'sine',.008)}}
+ if(r.humanV>2){const step=Math.floor(r.time*clamp(r.humanV,3,20)*1.15);if(step!==r.lastStep){r.lastStep=step;kickDust(humanX,r.humanD,r.humanV);if(step%3===0)footstep(r.humanV)}}
  if(r.eFinish===null&&r.enemyV>7&&Math.random()<dtSafe*10)kickDust(animalX,r.enemyD,r.enemyV);
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
  if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}if(r.hFinish!==null&&r.eFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
