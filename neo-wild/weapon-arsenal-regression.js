@@ -63,7 +63,7 @@ function fixture(id,failWorld=false){
  const env={window,weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0}],
  weaponScrapSerial:44,weaponScrapClock:0,scoreRunId:"attempt-qa-run",
  P:{x:9320,y:1877,type:"cat",hp:100,r:16},mode:"play",elapsed:170,
- TWO:Math.PI*2,MOUNTAIN:M,WORLD:{w:13600,h:6000},carcasses:[],mobs:[],debugTutorialSession:null,
+ TWO:Math.PI*2,MOUNTAIN:M,WORLD:{w:13600,h:6000},carcasses:[],mobs:[],species:{wolf:{prey:false},rabbit:{prey:true}},debugTutorialSession:null,
  dist:(x,y)=>Math.hypot(x.x-y.x,x.y-y.y),lineBlocked:()=>false,
  mountainHabitat:(x,y)=>x>=M.CITY_EDGE&&M.active(x,y),
  waterDepth:()=>0,collides:(x,y,r)=>M.blocked(x,y,r),rnd:(lo,hi)=>lo+Math.random()*(hi-lo),
@@ -74,7 +74,11 @@ function fixture(id,failWorld=false){
  return {env,api};
 }
 let {env,api}=fixture("scrap:qa:pickup");
+env.mobs.push({type:"wolf",x:9360,y:1890,hp:100,alert:0,search:0,wander:3});
+env.mobs.push({type:"rabbit",x:9350,y:1880,hp:10,alert:0});
 api.contextAction(false);
+ok(env.mobs[0].alert>=5.5&&env.mobs[0].lastX===9320,"salvage noise activates nearby hostile NPC AI");
+eq(env.mobs[1].alert,0,"salvage does not force prey aggression");
 eq(env.weaponScraps.length,0,"action picks scrap");ok(a.alreadyClaimed("scrap:qa:pickup"),"vault claims pickup");
 ({env,api}=fixture("scrap:qa:write-fail"));
 const originalSet=localStorage.setItem;
@@ -87,6 +91,15 @@ ok(a.alreadyClaimed("scrap:qa:world-fail"),"world save error retains verified va
 ({env,api}=fixture("scrap:qa:spawn"));env.weaponScraps=[];
 ok(api.spawnWeaponScrap(true),"dynamic east loot spawn");
 for(const q of env.weaponScraps){ok(q.x>=8400,"only east spawn");ok(!M.blocked(q.x,q.y,25),"physical collision");}
+for(const stop of window.WildEastExpedition.stops.filter(s=>s.x>=8400)){
+ ({env,api}=fixture("scrap:qa:zone:"+stop.id));env.weaponScraps=[];
+ if(api.spawnWeaponScrap(false,stop.index)){
+  const q=env.weaponScraps[0];
+  ok(Math.hypot(q.x-stop.x,q.y-stop.y)<=250,"preferred stop has physically local salvage: "+stop.id);
+  ok(!M.blocked(q.x,q.y,25),"preferred stop has collision-free salvage: "+stop.id);
+ }
+}
+ok(game.includes('label:"未鑑定ガラクタを拾う（○）"'),"nearby loot becomes an actionable objective");
 const backupMethods=part(backup,'const WEAPON_VAULT_KEY=',"function mergeIds(records,key,older){");
 const merge=new Function("window",backupMethods+";return mergeWeaponVault;")(window);
 const oldVault={version:1,items:[a.derive({id:"scrap:qa:old",seed:123})],equipped:{}};
