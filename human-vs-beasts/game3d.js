@@ -593,7 +593,7 @@ function makeRacePhoto(){
   try{renderer.setRenderTarget(null)}catch(e){}
   if(target)target.dispose();
   if(stage){
-   stage.scene.traverse(o=>{if(o.isMesh&&o.material?.map&&o.material.map.isCanvasTexture)o.material.map.dispose()});
+   stage.scene.traverse(o=>{if(o.isMesh&&o.material?.map&&o.material.map.isCanvasTexture&&o.material.map!==furMaterialTexture)o.material.map.dispose()});
    disposeModel(stage.scene);
   }
  }
