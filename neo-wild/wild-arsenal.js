@@ -36,7 +36,17 @@ function valid(v){
      typeof i.name!=="string"||i.name.length>110)return false;
   ids.add(i.id);
  }
- return Object.entries(v.equipped).length<=160&&Object.entries(v.equipped).every(([k,id])=>k.length<=160&&ids.has(id));
+ const bindings=Object.entries(v.equipped);
+ if(bindings.length>160)return false;
+ const bound=new Set();
+ for(const [key,id] of bindings){
+  if(key.length>160||!ids.has(id)||bound.has(id))return false;
+  // An imported item must never silently become another species' weapon.
+  const item=v.items.find(i=>i.id===id);
+  if(key.startsWith("species:")&&item?.owner!==key.slice(8))return false;
+  bound.add(id);
+ }
+ return true;
 }
 let cacheRaw,cacheVault;
 function read(){
