@@ -1384,7 +1384,9 @@ function buildPodiumPhoto(){
  placard(sc,'1',0,.65,1.158,1.08,.75,0,'#657987','#fff2d0');
  placard(sc,'2',-2.48,.34,1.035,.72,.46,0,'#60717b','#ffffff');
  placard(sc,'3',2.48,.21,1.035,.72,.32,0,'#60717b','#ffffff');
- const beast=animals.find(a=>a.name===raceName)||animals[0];
+ // Bind the podium to the completed race, not the next unlocked selection.
+ const finishedOpponent=race&&Number.isInteger(race.opponentIndex)?race.opponentIndex:save.chosen;
+ const beast=animals[Math.max(0,Math.min(animals.length-1,finishedOpponent))];
  const athlete=makeHuman(save.avatar),rival=makeExtendedBeast(beast);
  const winningHuman=lastResultWon;
  athlete.root.scale.setScalar(winningHuman?1.16:.90);
