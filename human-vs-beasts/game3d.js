@@ -1745,7 +1745,15 @@ async function raceImageBlob(){
  // Android WebViews may return null from toBlob without throwing.
  if(typeof canvas.toBlob==='function'){
   try{
-   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+   // Some Android WebViews never invoke toBlob's callback. Never leave
+   // Save/Share permanently pending: fall back to JPEG after 1800 ms.
+   const blob=await new Promise(resolve=>{
+    let settled=false;
+    const complete=value=>{if(settled)return;settled=true;clearTimeout(timeout);resolve(value)};
+    const timeout=setTimeout(()=>complete(null),1800);
+    try{canvas.toBlob(complete,'image/png')}
+    catch(err){complete(null)}
+   });
    if(blob&&blob.size>0)return blob;
   }catch(err){console.warn('Canvas PNG export unavailable',err)}
  }
