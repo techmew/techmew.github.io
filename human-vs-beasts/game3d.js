@@ -1469,16 +1469,24 @@ function buildPodiumPhoto(){
  const subjects=new T.Box3().setFromObject(athlete.root);
  subjects.union(new T.Box3().setFromObject(rival.root));
  const subjectSize=new T.Vector3();subjects.getSize(subjectSize);
- const targetY=Math.max(1.65,(subjects.max.y+0.10)*.50);
- const verticalSpan=Math.max(3.65,subjects.max.y+.55);
- const horizontalSpan=Math.max(7.4,subjects.max.x-subjects.min.x+1.15);
- const fov=39*Math.PI/180;
- const fitVertical=(verticalSpan*.5)/Math.tan(fov*.5);
- const fitHorizontal=(horizontalSpan*.5)/Math.tan(fov*.5)*(9/16);
- const distance=clamp(Math.max(fitVertical,fitHorizontal)+1.2,7.05,32);
- const cam=new T.PerspectiveCamera(39,16/9,.1,100);
- cam.position.set(0,targetY+Math.min(1.0,distance*.12),distance);
- cam.lookAt(0,targetY,.25);
+ // Fit the actual world-space 3D subject bounds, not a fixed podium width.
+ // Oversized dinosaurs and wide horns previously extended beyond the frame.
+ const targetX=(subjects.min.x+subjects.max.x)*.5;
+ const targetY=(subjects.min.y+subjects.max.y)*.5;
+ const targetZ=(subjects.min.z+subjects.max.z)*.5;
+ const cam=new T.PerspectiveCamera(39,16/9,.1,160);
+ const halfFov=cam.fov*Math.PI/360;
+ const margin=1.18;
+ const halfHeight=Math.max(1.9,(subjects.max.y-subjects.min.y)*.5*margin);
+ const halfWidth=Math.max(3.5,(subjects.max.x-subjects.min.x)*.5*margin);
+ // Perspective depth matters: forward-facing limbs can be closer than the
+ // torso, so reserve the full subject depth in addition to the fitted span.
+ const depth=(subjects.max.z-subjects.min.z)*.5;
+ const distance=Math.max(7.05,halfHeight/Math.tan(halfFov),
+   halfWidth/(Math.tan(halfFov)*cam.aspect))+depth+1.0;
+ cam.position.set(targetX,targetY+Math.min(.65,distance*.035),targetZ+distance);
+ cam.lookAt(targetX,targetY,targetZ);
+ cam.updateProjectionMatrix();
  return {scene:sc,camera:cam};
 }
 
