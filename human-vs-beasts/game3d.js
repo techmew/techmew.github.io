@@ -1625,6 +1625,9 @@ function makeRacePhoto(){
   console.warn('Could not create 3D podium',err);
   $('shareHelp').textContent='3D表彰台の描画に失敗しました。再試行してください。';
   if(ceremonyStage)endCeremonyStage();
+  // A failed model build must not leave an empty grey result window visible.
+  $('result3DWindow').hidden=true;
+  $('resultPhoto').hidden=true;
   const canvas=renderer.domElement,shade=$('shade');
   if(shade?.parentNode&&canvas.parentNode!==shade.parentNode)shade.parentNode.insertBefore(canvas,shade);
   canvas.removeAttribute('style');
