@@ -1742,6 +1742,20 @@ $('raceControls').addEventListener('pointerup',e=>{if(!swipeStart||e.pointerId!=
 $('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resultHome').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent()});$('retryBtn').addEventListener('click',()=>{const replayIndex=race?.opponentIndex;race=null;if(Number.isInteger(replayIndex)&&replayIndex>=0&&replayIndex<animals.length)save.chosen=replayIndex;showScreen('menu');refreshOpponent();startRace()});
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
 const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
+// Timeout-protected frame wait for Android WebViews and background tabs.
+function waitForPodiumFrames(count=2,timeoutMs=900){
+ return new Promise(resolve=>{
+  let settled=false,frames=0;
+  const complete=ok=>{if(settled)return;settled=true;clearTimeout(timer);resolve(ok)};
+  const timer=setTimeout(()=>complete(false),timeoutMs);
+  const tick=()=>{
+   if(settled)return;
+   if(++frames>=count)complete(true);
+   else requestAnimationFrame(tick);
+  };
+  try{requestAnimationFrame(tick)}catch(err){complete(false)}
+ });
+}
 async function raceImageBlob(){
  // Avoid GPU readback while Android has lost the WebGL context.
  if(webglUnavailable){
@@ -1752,8 +1766,13 @@ async function raceImageBlob(){
  if(!racePicture&&ceremonyStage){
   podiumRetryAttempts=0;podiumRetryFrame=0;
   for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
-   // Allow two presentation frames before each manual screenshot.
-   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   // Android WebView may suspend animation frames during app switching.
+   // Keep the save/share action bounded rather than waiting indefinitely.
+   const framesReady=await waitForPodiumFrames(2,900);
+   if(!framesReady){
+    $('shareHelp').textContent='画面復帰後に写真保存・共有を再試行してください。';
+    return null;
+   }
    if(webglUnavailable||!ceremonyStage)break;
    podiumRetryAttempts=attempt;
    try{
