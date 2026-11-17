@@ -2760,6 +2760,10 @@ function render(o){
    if(!scrap||scrap.x<8400||!isVisible(scrap.x,scrap.y,95))continue;
    animalLift=window.WildMountain?.height?.(scrap.x,scrap.y)||0;
    const theta=Number(scrap.pulse)||0,cs=Math.cos(theta),sn=Math.sin(theta);
+   // World-height matched encounter signal; ownership and rarity stay secret.
+   const signal=scrap.guardState==="engaged"?"#ed786e":
+    scrap.guardState==="pending"?"#e4bd73":"#9ad6a8";
+   ellipsoid(scrap.x,scrap.y,1.1,27,18,1.1,signal,0,11,3);
    ellipsoid(scrap.x,scrap.y,1.4,20,13,2.1,"#29382f",0,9,3);
    box(scrap.x-13+cs*2,scrap.y-10+sn*2,3.2,25,20,11,"#786f5e");
    box(scrap.x-9,scrap.y-7,14.3,17,14,2.2,"#b6b29a");
