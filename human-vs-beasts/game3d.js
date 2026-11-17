@@ -1588,13 +1588,29 @@ function captureCeremonyPhoto(){
   ctx.font='800 30px system-ui,sans-serif';ctx.fillText(resultText,24,start+63);
   ctx.textAlign='right';ctx.fillStyle='#ccd7d4';ctx.font='500 13px sans-serif';
   ctx.fillText('techmew.github.io/human-vs-beasts/',w-20,h-8);
-  const src=photo.toDataURL('image/jpeg',.88);
-  if(!src.startsWith('data:image/jpeg;base64,')||src.length<2000)throw Error('Image export unavailable');
+  // A valid WebGL readback is already held in the canvas. Android WebView
+  // may block synchronous toDataURL even though asynchronous toBlob works.
+  // Keep the captured pixels for Save/Share instead of discarding them.
   racePicture=photo;
-  $('resultPhoto').src=src;$('resultPhoto').hidden=false;
-  $('result3DWindow').hidden=true;ceremonyStage.photoCaptured=true;
-  $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
+  ceremonyStage.photoCaptured=true;
   success=true;
+  let src='';
+  for(const format of ['image/jpeg','image/png']){
+   try{
+    const candidate=format==='image/jpeg'?photo.toDataURL(format,.88):photo.toDataURL(format);
+    if(candidate.startsWith('data:'+format+';base64,')&&candidate.length>2000){src=candidate;break}
+   }catch(exportErr){console.warn('Podium preview encoding unavailable',format,exportErr)}
+  }
+  if(src){
+   $('resultPhoto').src=src;$('resultPhoto').hidden=false;
+   $('result3DWindow').hidden=true;
+   $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
+  }else{
+   // Preserve the actual 3D podium as the preview; never substitute 2D art.
+   // The valid photo canvas remains available to the async save/share path.
+   $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
+   $('shareHelp').textContent='3D表彰台を表示中。写真の保存・共有をお試しください。';
+  }
  }catch(err){
   console.warn('3D image capture blocked; show live 3D podium instead',err);
   $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
