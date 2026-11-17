@@ -1602,11 +1602,14 @@ function captureCeremonyPhoto(){
  return success;
 }
 function makeRacePhoto(){
+ // Release the previous ceremony before showing the new preview. Releasing
+ // it hides both result surfaces; doing that after unhiding the preview left
+ // Android with an invisible live 3D fallback whenever capture failed.
+ if(ceremonyStage)endCeremonyStage();
  racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;
  const preview=$('result3DWindow');preview.hidden=false;
  $('resultPhoto').hidden=true;
  try{
-  if(ceremonyStage)endCeremonyStage();
   // Build the podium before transferring the live WebGL canvas; a failed
   // model construction must never leave the gameplay canvas detached.
   ceremonyStage=buildPodiumPhoto();ceremonyStage.photoCaptured=false;
