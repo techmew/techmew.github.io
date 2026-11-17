@@ -1499,21 +1499,38 @@ function endCeremonyStage(){
  racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;initResize();
 }
 function capturePodiumFromGPU(ctx,w,h){
+ // A fresh offscreen framebuffer is essential on Android: the visible WebGL
+ // drawing buffer may already have been discarded by the compositor.
  const target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
+ const previousTarget=renderer.getRenderTarget();
+ const previousClearColor=new T.Color();
+ renderer.getClearColor(previousClearColor);
+ const previousClearAlpha=renderer.getClearAlpha();
+ const previousAutoClear=renderer.autoClear;
  try{
   renderer.setRenderTarget(target);
+  renderer.autoClear=true;
+  renderer.setClearColor(0x657783,1);
+  renderer.clear(true,true,true);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   const pixels=new Uint8Array(w*h*4);
   renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
+  // An all-zero/transparent GPU readback must not be accepted as a photograph.
+  let opaque=0;
+  for(let i=3;i<pixels.length;i+=4)if(pixels[i]>=245)opaque++;
+  if(opaque<w*h*.95)throw Error('Incomplete podium GPU readback');
   const image=ctx.createImageData(w,h);
-  const width=w*4;
+  const stride=w*4;
   for(let y=0;y<h;y++){
-   const sourceStart=(h-1-y)*width;
-   image.data.set(pixels.subarray(sourceStart,sourceStart+width),y*width);
+   const sourceStart=(h-1-y)*stride;
+   image.data.set(pixels.subarray(sourceStart,sourceStart+stride),y*stride);
   }
   ctx.putImageData(image,0,0);
  }finally{
-  renderer.setRenderTarget(null);target.dispose();
+  renderer.setRenderTarget(previousTarget);
+  renderer.setClearColor(previousClearColor,previousClearAlpha);
+  renderer.autoClear=previousAutoClear;
+  target.dispose();
  }
 }
 // Reject cleared/blank frames before applying result text: otherwise a
