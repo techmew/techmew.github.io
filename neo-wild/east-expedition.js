@@ -79,7 +79,12 @@
  function navigation(player,mask,water=false){
   if(!player)return null;
   const location=routePosition(player);
-  const stop=next(player,mask)||STOPS.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
+  // Water-only carp must never be routed toward an inaccessible dry mountain stop.
+  // Choose the same reachable aquatic objectives used by the field status panel.
+  const aquatic=water?STOPS.filter(s=>s.id==="ravine"||s.id==="headwater"):null;
+  const candidates=aquatic||STOPS;
+  const stop=candidates.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b))[0]||
+   candidates.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
   let goal=0,score=Infinity;
   for(let i=0;i<WALKWAY.length;i++){
    const [x,y]=WALKWAY[i],d=Math.hypot(stop.x-x,stop.y-y);
@@ -94,12 +99,14 @@
    else if(goal<location.progress-.12)step=Math.max(0,Math.ceil(location.progress)-1);
   }
   const [wx,wy]=WALKWAY[step];
-  const x=offPath?location.x:wx,y=offPath?location.y:wy;
+  // Aquatic movement is constrained to water: do not send carp through the dry
+  // walkway vertices even when a water stop happens to be the destination.
+  const x=water?stop.x:(offPath?location.x:wx),y=water?stop.y:(offPath?location.y:wy);
   const sectionIndex=location.progress<4?0:location.progress<8?1:location.progress<15?2:3;
   const section=habitat[sectionIndex];
   return {x,y,stop,section,water:!!water,
    distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step,
-   offPath,routeDistance:Math.round(location.distance),routeProgress:location.progress,
+   offPath:water?false:offPath,routeDistance:water?0:Math.round(location.distance),routeProgress:location.progress,
    targetDistance:Math.round(dist(player,stop))};
  }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
