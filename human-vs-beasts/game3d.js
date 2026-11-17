@@ -1853,6 +1853,10 @@ function renderCeremonyFrame(){
     $('shareHelp').textContent='3D表彰台は表示中です。写真保存から再撮影できます。';
   }
  }catch(err){
+  // A lost WebGL context or repeated renderer exception must not trigger
+  // an unbounded render/exception loop on every animation frame.
+  podiumRetryAttempts=4;
+  podiumRetryFrame=0;
   console.warn('3D podium frame unavailable',err);
   $('shareHelp').textContent='3D表彰台の描画に失敗しました。写真保存から再試行できます。';
  }
