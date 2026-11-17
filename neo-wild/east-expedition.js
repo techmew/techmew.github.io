@@ -119,12 +119,15 @@
   const nearest=STOPS.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
   const target=next(player,mask)||nearest;
   const water=player.type==="carp",inWater=!!biome?.wet;
+  // Aquatic starts must receive reachable water objectives, never a dry mountain post.
+  const aquaticStops=STOPS.filter(s=>s.id==="ravine"||s.id==="headwater");
+  const aquaticTarget=water?aquaticStops.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b))[0]||aquaticStops.sort((a,b)=>dist(player,a)-dist(player,b))[0]:null;
   const dangerous=biome?.id==="cave"?(year>=25||weather==="THUNDER"):
    biome?.id==="snow"||biome?.id==="ravine"&&wet||biome?.id==="spring"&&wet;
-  return {biome,target,water,dangerous,
+  return {biome,target:aquaticTarget||target,water,dangerous,
    message:water?(inWater?"水域の補給地点を探索。陸地へは上がれない":"水路から水源へ。陸地の道標は到達不可"):
     (dangerous?"危険地帯。遮蔽物と補給を確保":"次の探索地点へ進み、食料と報酬を回収"),
-   distance:Math.round(dist(player,target))};
+   distance:Math.round(dist(player,aquaticTarget||target))};
  }
  // Modifies only live wild NPC awareness; never creates/revives roster individuals.
  function wildlifeResponse(player,mobs,species,weather,year,blocked){
