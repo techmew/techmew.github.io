@@ -1504,14 +1504,23 @@ function capturePodiumFromGPU(ctx,w,h){
 // Reject cleared/blank frames before applying result text: otherwise a
 // screenshot with only the footer appears to have captured successfully.
 function podiumPixelsValid(ctx,w,h){
- const points=[[.10,.12],[.35,.20],[.52,.45],[.25,.66],[.73,.58],[.88,.28]];
- const rgba=points.map(([x,y])=>ctx.getImageData(Math.floor(w*x),Math.floor(h*y),1,1).data);
- if(rgba.some(p=>p[3]<245))return false;
- let variation=0;
- for(let i=1;i<rgba.length;i++)
-  for(let channel=0;channel<3;channel++)
-   variation+=Math.abs(rgba[i][channel]-rgba[0][channel]);
- return variation>85;
+ // Sample the whole frame, including both podium positions. Six isolated
+ // pixels could accept a cleared frame with only a sky/background gradient.
+ const sample=ctx.getImageData(0,0,w,h).data;
+ let min=255,max=0,bright=0,dark=0,opaque=0;
+ const step=Math.max(1,Math.floor(Math.min(w,h)/45));
+ for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
+  const p=(y*w+x)*4,r=sample[p],g=sample[p+1],b=sample[p+2],a=sample[p+3];
+  if(a<245)continue;
+  opaque++;
+  const l=(r*3+g*6+b)/10;
+  min=Math.min(min,l);max=Math.max(max,l);
+  if(l>160)bright++;
+  if(l<85)dark++;
+ }
+ // A real podium has both illuminated subjects and dark stage details.
+ // Do not export a blank WebGL buffer as a successful race photograph.
+ return opaque>100 && max-min>75 && bright>opaque*.008 && dark>opaque*.008;
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
