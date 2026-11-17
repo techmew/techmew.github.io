@@ -2179,7 +2179,11 @@ function restoreSnapshot(snapshot){
   Number.isSafeInteger(d.seed)&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&
   d.x>=8400&&d.x<=WORLD.w&&d.y>=0&&d.y<=WORLD.h&&
   !seenScraps.has(d.id)&&!window.WildArsenal?.alreadyClaimed?.(d.id)&&!collides(d.x,d.y,20)
- ).map(d=>{seenScraps.add(d.id);return {id:d.id,x:d.x,y:d.y,seed:d.seed,foundAt:Number(d.foundAt)||0,pulse:Number(d.pulse)||0,guardianAwake:d.guardianAwake===true}});
+ ).map(d=>{seenScraps.add(d.id);return {id:d.id,x:d.x,y:d.y,seed:d.seed,foundAt:Number(d.foundAt)||0,pulse:Number(d.pulse)||0,guardianAwake:d.guardianAwake===true,
+  // Legacy caches retain their original rules; newly generated contested caches
+  // cannot be claimed until their named guardian is actually defeated.
+  guardState:["pending","engaged","cleared"].includes(d.guardState)?d.guardState:
+   d.guardianAwake===true?"legacy":"pending"}});
  // Old checkpoints may predate the optional serial field; never reuse a
  // claimed vault id from this or an older checkpoint lineage.
  // Durable endgame victory wins over older checkpoints, including older
@@ -5029,7 +5033,8 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
   do{id="scrap:"+lineage+":"+(++weaponScrapSerial)}
    while(weaponScraps.some(q=>q.id===id)||armory.alreadyClaimed(id));
   weaponScraps.push({id,x,y,seed:Math.floor(Math.random()*4294967296),
-   foundAt:Math.floor(elapsed/120),pulse:Math.random()*TWO});
+   foundAt:Math.floor(elapsed/120),pulse:Math.random()*TWO,
+   guardianAwake:false,guardState:armory.dangerTier(x)>=2?"pending":"cleared"});
   return true;
  }
  return false;
@@ -5038,18 +5043,24 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
 // only after claiming the prize. Existing ecological restrictions and caps apply.
 function wakeWeaponScrapGuardian(drop){
  const armory=window.WildArsenal;
- if(!drop||drop.guardianAwake||!P||P.hp<=0||mode!=="play"||
+ if(!drop||drop.guardianAwake||drop.guardState==="cleared"||!P||P.hp<=0||mode!=="play"||
   (armory?.dangerTier?.(drop.x)||0)<2||P.x<8400||
   Math.hypot(P.x-drop.x,P.y-drop.y)>430||
   (Number(drop.guardRetryAt)||0)>elapsed)return false;
  const predators=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
-  !species[m.type]?.prey&&!m.releasedIndividualId&&Math.hypot(m.x-drop.x,m.y-drop.y)<480);
+  !species[m.type]?.prey&&!m.releasedIndividualId&&!m.salvageCacheId&&
+  Math.hypot(m.x-drop.x,m.y-drop.y)<480);
  if(predators.length){
+  // Only the actual territorial animal can unlock the cache on defeat.
+  // Other nearby predators stay dangerous, but cannot forge kill credit.
+  const guard=predators.sort((a,b)=>dist(a,drop)-dist(b,drop))[0];
+  guard.salvageCacheId=drop.id;
   for(const m of predators){
    m.alert=Math.max(Number(m.alert)||0,7);m.search=Math.max(Number(m.search)||0,7);
    m.lastX=P.x;m.lastY=P.y;m.wander=0;
   }
-  drop.guardianAwake=true;notify("ガラクタ付近の野生の敵がこちらに気づいた！",3);
+  drop.guardianAwake=true;drop.guardState="engaged";
+  notify("ガラクタの番人がこちらに気づいた。倒すまで回収できない",3);
   saveAuto();return true;
  }
  if(atDen()||mobs.filter(m=>m.hp>0&&Math.hypot(m.x-P.x,m.y-P.y)<650).length>=5){
@@ -5075,14 +5086,23 @@ function wakeWeaponScrapGuardian(drop){
   guard.alert=Math.max(Number(guard.alert)||0,7);
   guard.search=Math.max(Number(guard.search)||0,7);
   guard.lastX=P.x;guard.lastY=P.y;guard.wander=0;
-  drop.guardianAwake=true;
-  notify("ガラクタを守る敵が現れた！ 戦うか逃げろ",3);
+  guard.salvageCacheId=drop.id;
+  drop.guardianAwake=true;drop.guardState="engaged";
+  notify("ガラクタの番人が出現。討伐してから回収",3);
   saveAuto();return true;
  }
  drop.guardRetryAt=elapsed+14;return false;
 }
 function tickWeaponScraps(dt){
  if(!P||mode!=="play"||debugTutorialSession||!window.WildArsenal)return;
+ // World wildlife may migrate offscreen; losing a live guardian must NEVER
+ // count as a defeat. Reset its encounter so the loot remains earnable.
+ for(const drop of weaponScraps){
+  if(drop.guardState!=="engaged")continue;
+  if(mobs.some(m=>m.hp>0&&m.salvageCacheId===drop.id))continue;
+  drop.guardState="pending";drop.guardianAwake=false;
+  drop.guardRetryAt=elapsed+2;
+ }
  weaponScrapClock+=dt;
  if(weaponScrapClock>=18){weaponScrapClock=0;spawnWeaponScrap(P.x>=8400);}
  if(P.x<8400||!weaponScraps.length)return;
@@ -5097,6 +5117,20 @@ function tickWeaponScraps(dt){
 function pickWeaponScrap(){
  const drop=nearestWeaponScrap(95),armory=window.WildArsenal;
  if(!drop||!armory)return false;
+ // Dangerous eastern caches require an actual named animal defeat. The
+ // guardian cannot be bypassed by reaching the crate before its AI tick,
+ // luring it away, crossing a mountain, reloading or waiting for despawn.
+ if(armory.dangerTier(drop.x)>=2&&drop.guardState!=="cleared"&&drop.guardState!=="legacy"){
+  if(drop.guardState!=="engaged")wakeWeaponScrapGuardian(drop);
+  const guardian=mobs.find(m=>m.hp>0&&m.salvageCacheId===drop.id);
+  if(guardian){
+   guardian.alert=Math.max(Number(guardian.alert)||0,6);
+   guardian.search=Math.max(Number(guardian.search)||0,6);
+   guardian.lastX=P.x;guardian.lastY=P.y;
+   notify("番人「"+(species[guardian.type]?.name||guardian.type)+"」を倒してから回収",3);
+  }else notify("危険区域のガラクタ。番人の出現を待って討伐してから回収",3);
+  return true;
+ }
  // A contested cache must be earned through actual combat. Do not grant
  // the durable vault item while its alerted territorial guardian survives.
  // Nearby wild predators remain ordinary combat actors with normal HP,
@@ -5195,10 +5229,9 @@ function drawWeaponScrapLabels(){
   if(pos.x<42||pos.x>vw-42||pos.y<60||pos.y>vh-35)continue;
   ctx.fillStyle="#25302ce8";ctx.fillRect(pos.x-46,pos.y-24,92,27);
   ctx.strokeStyle="#d9c6a0";ctx.lineWidth=1.3;ctx.strokeRect(pos.x-46,pos.y-24,92,27);
-  const guarded=mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type]?.prey&&
-   Math.hypot(m.x-drop.x,m.y-drop.y)<280);
-  ctx.fillStyle=guarded?"#ffcf9c":"#f1dfb2";
-  ctx.fillText(guarded?"！敵が近い":"？ ガラクタ",pos.x,pos.y-11);
+  const guarded=drop.guardState==="engaged",locked=drop.guardState==="pending";
+  ctx.fillStyle=guarded?"#ffaaa0":locked?"#ffcf9c":"#bde9be";
+  ctx.fillText(guarded?"！番人と戦闘":locked?"！番人未討伐":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
  ctx.restore();
@@ -5557,6 +5590,19 @@ function kill(m){
  // A defeated entity grants exactly one carcass, trophy, XP reward and bestiary entry.
  if(!m||m.hp>0||m._killRegistered)return;
  m._killRegistered=true;
+ // Give kill credit only to the tagged live cache guardian, before its corpse
+ // is removed. Persist the unlock in SAVE_SCHEMA2; never alter roster IDs.
+ if(m.salvageCacheId){
+  const cache=weaponScraps.find(q=>q.id===m.salvageCacheId&&q.guardState==="engaged");
+  if(cache){
+   cache.guardState="cleared";cache.guardianAwake=true;
+   if(saveAuto())notify("ガラクタの番人を討伐！ ガラクタを回収できる",3);
+   else{
+    cache.guardState="engaged";
+    notify("番人討伐の保存に失敗。ガラクタは保護し、再挑戦可能にします",3);
+   }
+  }
+ }
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
  kills++;window.WildTrophies?.record?.("hunt",{kills},notify);
  // Eight genuine hunts grant a gacha ticket for vacant party slots only.
@@ -8753,7 +8799,8 @@ function drawWorldMap(){
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
  };
  for(const drop of weaponScraps)if(Math.hypot(drop.x-P.x,drop.y-P.y)<1200)
-  mark(drop.x,drop.y,"#dacaa5",4);
+  mark(drop.x,drop.y,drop.guardState==="engaged"?"#f07870":
+   drop.guardState==="pending"?"#ebc16c":"#a6dfa5",4);
  for(const site of EXPLORE_SITES){
   const found=discoveredSites.includes(site.id);
   // The departure location can coincide exactly with a discovery point.
@@ -8851,7 +8898,9 @@ function drawMini(){
  if(P.x>7600)window.WildEastExpedition?.drawMap?.(mc,X,Y,eastTrailMask,false);
  // Loot blips only appear within actual surveying distance, not across the city.
  for(const drop of weaponScraps)if(Math.abs(drop.x-P.x)<span/2&&Math.abs(drop.y-P.y)<span/2){
-  mc.fillStyle="#dfc89f";mc.strokeStyle="#243b34";mc.lineWidth=1.2;
+  mc.fillStyle=drop.guardState==="engaged"?"#f07870":
+   drop.guardState==="pending"?"#ebc16c":"#b9dcac";
+  mc.strokeStyle="#243b34";mc.lineWidth=1.2;
   mc.beginPath();mc.arc(X(drop.x),Y(drop.y),3.8,0,TWO);mc.fill();mc.stroke();
  }
  // Classify live wildlife by actual species, alert state and strength relative to the player.
