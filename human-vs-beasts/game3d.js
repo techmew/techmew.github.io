@@ -1565,15 +1565,22 @@ function podiumPixelsValid(ctx,w,h){
  // Compare local contrast in the two expected character positions.
  // Large 3D models and podiums must create edges across these regions.
  // The left and center crops exclude the decorative stadium stands.
- let contrast=0,comparisons=0;
- const xs=[.22,.32,.42,.50,.58,.67,.76],ys=[.23,.34,.45,.56,.67,.76];
- for(const fx of xs)for(const fy of ys){
-  const x=Math.floor(w*fx),y=Math.floor(h*fy);
-  const delta=Math.abs(luminance(x,y)-luminance(x+step*2,y))
-             +Math.abs(luminance(x,y)-luminance(x,y+step*2));
-  contrast+=delta;comparisons++;
+ // Scan the complete foreground region at a resolution-independent grid.
+ // The previous seven fixed columns could miss thin runners, tall dinosaurs,
+ // and off-centre rivals even when both 3D models were clearly rendered.
+ // Ignore the lower caption strip and upper spectator stands.
+ let strongEdges=0,edgeSum=0,samples=0;
+ const dx=Math.max(3,Math.round(w*.014)),dy=Math.max(3,Math.round(h*.025));
+ for(let y=Math.round(h*.25);y<Math.round(h*.72);y+=dy){
+  for(let x=Math.round(w*.14);x<Math.round(w*.86);x+=dx){
+   const l=luminance(x,y);
+   const edge=Math.max(Math.abs(l-luminance(x+dx,y)),
+                       Math.abs(l-luminance(x,y+dy)));
+   if(edge>24)strongEdges++;
+   edgeSum+=edge;samples++;
+  }
  }
- return contrast/comparisons>13;
+ return samples>80&&strongEdges>=Math.max(9,samples*.025)&&edgeSum/samples>5;
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
