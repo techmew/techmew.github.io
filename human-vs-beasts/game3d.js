@@ -1630,6 +1630,8 @@ function makeRacePhoto(){
 
 function finishRace(){
  const r=race;if(!r||r.phase==='results')return;
+ const opponentIndex=Number.isInteger(r.opponentIndex)&&r.opponentIndex>=0&&r.opponentIndex<animals.length?r.opponentIndex:save.chosen;
+ const opponent=animals[opponentIndex];
  r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
  const completed=Number.isFinite(r.hFinish);
  // An opponent still running has eFinish=null; numeric comparison with null
@@ -1637,11 +1639,11 @@ function finishRace(){
  const won=completed&&(!Number.isFinite(r.eFinish)||r.hFinish<r.eFinish);
  const record=completed?r.hFinish:r.time;
  save.races=(save.races||0)+1;
- if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=animals[save.chosen].id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
- const reward=Math.max(15,Math.round((won?190:completed?65:30)+animals[save.chosen].tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
+ if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=opponent.id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
+ const reward=Math.max(15,Math.round((won?190:completed?65:30)+opponent.tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
  save.money+=reward;
- const atLast=save.chosen>=animals.length-1;
- if(won){if(!save.won.includes(animals[save.chosen].id))save.won.push(animals[save.chosen].id);save.unlockedStage=Math.max(save.unlockedStage,Math.min(animals.length-1,save.chosen+1));if(!atLast)save.chosen++}
+ const atLast=opponentIndex>=animals.length-1;
+ if(won){if(!save.won.includes(opponent.id))save.won.push(opponent.id);save.unlockedStage=Math.max(save.unlockedStage,Math.min(animals.length-1,opponentIndex+1));if(!atLast)save.chosen=Math.max(save.chosen,opponentIndex+1)}
  store();
  $('resultEyebrow').textContent='100m走の結果';
  $('resultTitle').textContent=won?'勝ち':completed?'負け':'未完走';
