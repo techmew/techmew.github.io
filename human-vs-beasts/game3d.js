@@ -1518,24 +1518,37 @@ function capturePodiumFromGPU(ctx,w,h){
 }
 // Reject cleared/blank frames before applying result text: otherwise a
 // screenshot with only the footer appears to have captured successfully.
+// Validate actual subjects, not merely a varied stadium background.
+// A bright sky and dark stands alone must never count as a successful portrait.
 function podiumPixelsValid(ctx,w,h){
- // Sample the whole frame, including both podium positions. Six isolated
- // pixels could accept a cleared frame with only a sky/background gradient.
- const sample=ctx.getImageData(0,0,w,h).data;
- let min=255,max=0,bright=0,dark=0,opaque=0;
- const step=Math.max(1,Math.floor(Math.min(w,h)/45));
+ const data=ctx.getImageData(0,0,w,h).data;
+ const luminance=(x,y)=>{
+  const p=(Math.min(h-1,Math.max(0,y))*w+Math.min(w-1,Math.max(0,x)))*4;
+  return (data[p]*3+data[p+1]*6+data[p+2])/10;
+ };
+ let total=0,bright=0,dark=0,min=255,max=0;
+ const step=Math.max(2,Math.floor(Math.min(w,h)/45));
  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
-  const p=(y*w+x)*4,r=sample[p],g=sample[p+1],b=sample[p+2],a=sample[p+3];
-  if(a<245)continue;
-  opaque++;
-  const l=(r*3+g*6+b)/10;
+  const p=(y*w+x)*4;
+  if(data[p+3]<245)continue;
+  const l=luminance(x,y);total++;
   min=Math.min(min,l);max=Math.max(max,l);
   if(l>160)bright++;
   if(l<85)dark++;
  }
- // A real podium has both illuminated subjects and dark stage details.
- // Do not export a blank WebGL buffer as a successful race photograph.
- return opaque>100 && max-min>75 && bright>opaque*.008 && dark>opaque*.008;
+ if(!(total>100&&max-min>75&&bright>total*.008&&dark>total*.008))return false;
+ // Compare local contrast in the two expected character positions.
+ // Large 3D models and podiums must create edges across these regions.
+ // The left and center crops exclude the decorative stadium stands.
+ let contrast=0,comparisons=0;
+ const xs=[.22,.32,.42,.50,.58,.67,.76],ys=[.23,.34,.45,.56,.67,.76];
+ for(const fx of xs)for(const fy of ys){
+  const x=Math.floor(w*fx),y=Math.floor(h*fy);
+  const delta=Math.abs(luminance(x,y)-luminance(x+step*2,y))
+             +Math.abs(luminance(x,y)-luminance(x,y+step*2));
+  contrast+=delta;comparisons++;
+ }
+ return contrast/comparisons>13;
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
