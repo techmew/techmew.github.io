@@ -5242,6 +5242,12 @@ function drawWeaponScrap2D(scrap){
  const z=MOUNTAIN?.height(scrap.x,scrap.y)||0;
  if(z>0)ctx.translate(VIEW.c*z*.93*cameraZoom/VIEW_DET,-VIEW.a*z*.93*cameraZoom/VIEW_DET);
  const pulse=1+.10*Math.sin(elapsed*2.5+(scrap.pulse||0));
+ // The pre-fight, fighting and cleared signals use the same world XY as WebGL.
+ // Never reveal the random weapon owner or its rarity before pickup.
+ const signal=scrap.guardState==="engaged"?"#ed786e":
+   scrap.guardState==="pending"?"#e4bd73":"#9ad6a8";
+ ctx.strokeStyle=signal;ctx.lineWidth=2;
+ ctx.beginPath();ctx.ellipse(0,5,27,17,0,0,TWO);ctx.stroke();
  ctx.fillStyle="#14251fc9";ctx.beginPath();ctx.ellipse(0,7,21,11,0,0,TWO);ctx.fill();
  ctx.rotate(.18);ctx.fillStyle="#67665c";ctx.fillRect(-14,-8,28*pulse,17);
  ctx.strokeStyle="#d0bd9a";ctx.lineWidth=3;ctx.strokeRect(-14,-8,28*pulse,17);
