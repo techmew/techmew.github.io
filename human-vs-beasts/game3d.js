@@ -1750,7 +1750,15 @@ async function raceImageBlob(){
   for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
    await new Promise(resolve=>requestAnimationFrame(resolve));
    podiumRetryAttempts=attempt;
-   captureCeremonyPhoto();
+   // Render a fresh 3D frame before reading GPU pixels on manual retry.
+   // The default framebuffer can be cleared between animation frames.
+   try{
+    renderer.setRenderTarget(null);
+    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+    captureCeremonyPhoto();
+   }catch(err){
+    console.warn('Manual 3D podium capture failed',err);
+   }
   }
  }
  if(!racePicture)return null;
