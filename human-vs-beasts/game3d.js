@@ -1830,6 +1830,40 @@ async function saveRacePhoto(){
  a.href=url;a.download='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);return true
 }
 $('downloadRace')?.addEventListener('click',()=>{saveRacePhoto()});
+// Recover from a blank WebGL result without replaying the entire race.
+// Rebuilds the customized human and the opponent from the finished race.
+let recaptureBusy=false;
+async function recaptureRacePhoto(){
+ if(recaptureBusy||mode!=='race'||race?.phase!=='results')return false;
+ if(webglUnavailable){$('shareHelp').textContent='3D描画の復旧待ちです。復旧後に再撮影してください。';return false}
+ recaptureBusy=true;
+ const button=$('recaptureRace');
+ button.disabled=true;button.textContent='3D写真を撮影中…';
+ try{
+  makeRacePhoto();
+  if(!ceremonyStage){$('shareHelp').textContent='3Dモデルの作成に失敗しました。';return false}
+  const ready=await waitForPodiumFrames(2,900);
+  if(!ready||webglUnavailable||!ceremonyStage){
+   $('shareHelp').textContent='描画が停止しています。画面復帰後に再撮影してください。';return false;
+  }
+  for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
+   podiumRetryAttempts=attempt;
+   renderer.setRenderTarget(null);
+   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   if(captureCeremonyPhoto())break;
+   if(attempt<3&&!await waitForPodiumFrames(2,900))break;
+  }
+  if(!racePicture){$('shareHelp').textContent='3D表彰台の撮影に失敗しました。再撮影できます。';return false}
+  return true;
+ }catch(err){
+  console.warn('Manual podium rebuild failed',err);
+  $('shareHelp').textContent='再撮影に失敗しました。画面復帰後にお試しください。';
+  return false;
+ }finally{
+  recaptureBusy=false;button.disabled=false;button.textContent='3D写真を再撮影';
+ }
+}
+$('recaptureRace')?.addEventListener('click',recaptureRacePhoto);
 $('shareRace')?.addEventListener('click',async()=>{
  const blob=await raceImageBlob();
  const msg=raceCaption();
