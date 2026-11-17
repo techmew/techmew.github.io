@@ -5586,23 +5586,26 @@ function resolveAttack(aerialContact=null){
  }
  if(P.rushActiveStep===5){P.rushWindow=0;P.rushQueued=false;}
 }
+// A full combat kill is the ONLY authoritative unlock for a highland cache.
+// The original dead/released roster and meat systems remain independent.
+function recordWeaponScrapGuardianDefeat(m){
+ if(!m?.salvageCacheId||m.hp>0)return false;
+ const cache=weaponScraps.find(q=>q.id===m.salvageCacheId&&q.guardState==="engaged");
+ if(!cache)return false;
+ cache.guardState="cleared";cache.guardianAwake=true;
+ if(saveAuto()){
+  notify("ガラクタの番人を討伐！ ガラクタを回収できる",3);
+  return true;
+ }
+ cache.guardState="engaged";
+ notify("番人討伐の保存に失敗。ガラクタは保護し、再挑戦可能にします",3);
+ return false;
+}
 function kill(m){
  // A defeated entity grants exactly one carcass, trophy, XP reward and bestiary entry.
  if(!m||m.hp>0||m._killRegistered)return;
  m._killRegistered=true;
- // Give kill credit only to the tagged live cache guardian, before its corpse
- // is removed. Persist the unlock in SAVE_SCHEMA2; never alter roster IDs.
- if(m.salvageCacheId){
-  const cache=weaponScraps.find(q=>q.id===m.salvageCacheId&&q.guardState==="engaged");
-  if(cache){
-   cache.guardState="cleared";cache.guardianAwake=true;
-   if(saveAuto())notify("ガラクタの番人を討伐！ ガラクタを回収できる",3);
-   else{
-    cache.guardState="engaged";
-    notify("番人討伐の保存に失敗。ガラクタは保護し、再挑戦可能にします",3);
-   }
-  }
- }
+ recordWeaponScrapGuardianDefeat(m);
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
  kills++;window.WildTrophies?.record?.("hunt",{kills},notify);
  // Eight genuine hunts grant a gacha ticket for vacant party slots only.
