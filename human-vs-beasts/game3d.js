@@ -1462,8 +1462,21 @@ function buildPodiumPhoto(){
   const mesh=box(sc,.052,.13,.012,confettiMaterials[i%3],x,y,z);
   mesh.rotation.z=i*.68;
  }
+ // Frame the actual customized runner and opponent, including tall or wide beasts.
+ // Fixed-distance framing cropped large dinosaurs and made small rivals hard to see.
+ const subjects=new T.Box3().setFromObject(athlete.root);
+ subjects.union(new T.Box3().setFromObject(rival.root));
+ const subjectSize=new T.Vector3();subjects.getSize(subjectSize);
+ const targetY=Math.max(1.65,(subjects.max.y+0.10)*.50);
+ const verticalSpan=Math.max(3.65,subjects.max.y+.55);
+ const horizontalSpan=Math.max(7.4,subjects.max.x-subjects.min.x+1.15);
+ const fov=39*Math.PI/180;
+ const fitVertical=(verticalSpan*.5)/Math.tan(fov*.5);
+ const fitHorizontal=(horizontalSpan*.5)/Math.tan(fov*.5)*(9/16);
+ const distance=clamp(Math.max(fitVertical,fitHorizontal)+1.2,7.05,32);
  const cam=new T.PerspectiveCamera(39,16/9,.1,100);
- cam.position.set(0,3.05,7.05);cam.lookAt(0,2.03,.25);
+ cam.position.set(0,targetY+Math.min(1.0,distance*.12),distance);
+ cam.lookAt(0,targetY,.25);
  return {scene:sc,camera:cam};
 }
 
