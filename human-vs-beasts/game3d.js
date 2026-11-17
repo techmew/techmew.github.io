@@ -1869,7 +1869,23 @@ function renderCeremonyFrame(){
   $('shareHelp').textContent='3D表彰台の描画に失敗しました。写真保存から再試行できます。';
  }
 }
+// Android may discard the GPU context when sharing or switching apps.
+// Suspend GPU work until restored and reconstruct the real 3D podium.
+let webglUnavailable=false;
+renderer.domElement.addEventListener('webglcontextlost',event=>{
+ event.preventDefault();
+ webglUnavailable=true;
+ if(mode==='race'&&race?.phase==='results')
+  $('shareHelp').textContent='3D描画を復旧しています。復旧後に写真を再撮影できます。';
+},false);
+renderer.domElement.addEventListener('webglcontextrestored',()=>{
+ webglUnavailable=false;
+ clock.getDelta();
+ if(mode==='race'&&race?.phase==='results')makeRacePhoto();
+ else initResize();
+},false);
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
+ if(webglUnavailable)return;
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  if(mode==='race')updateRace(dt);
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
