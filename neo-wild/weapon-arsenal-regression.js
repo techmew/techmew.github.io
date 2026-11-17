@@ -58,7 +58,8 @@ a.enemyBuff(enemy,{prey:false});eq(enemy.hp,194,"strong eastern cave NPC");
 a.enemyBuff(enemy,{prey:false});eq(enemy.hp,194,"no double scaling");
 const animal={x:13000,hp:100,maxHp:100};a.enemyBuff(animal,{prey:true});eq(animal.hp,100,"prey excluded");
 const handler=part(game,"function equippedWeapon(){","function contextAction(longPress=false){")+
- part(game,"function contextAction(longPress=false){","const RUSH_COST=");
+ part(game,"function contextAction(longPress=false){","const RUSH_COST=")+
+ part(game,"function recordWeaponScrapGuardianDefeat(m){","function kill(m){");
 function fixture(id,failWorld=false){
  const env={window,weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0}],
  weaponScrapSerial:44,weaponScrapClock:0,weaponGuardianClock:0,day:2,weather:"CLEAR",scoreRunId:"attempt-qa-run",
@@ -76,7 +77,7 @@ function fixture(id,failWorld=false){
   const npc={type:"wolf",x:spot.x,y:spot.y,hp:100,maxHp:100,alert:0,search:0,wander:3};
   env.mobs.push(npc);a.enemyBuff(npc,{prey:false});return true;
  }};
- const api=new Function("env","with(env){"+handler+"return {contextAction,pickWeaponScrap,spawnWeaponScrap,tickWeaponScraps,wakeWeaponScrapGuardian};}")(env);
+ const api=new Function("env","with(env){"+handler+"return {contextAction,pickWeaponScrap,spawnWeaponScrap,tickWeaponScraps,wakeWeaponScrapGuardian,recordWeaponScrapGuardianDefeat};}")(env);
  return {env,api};
 }
 let {env,api}=fixture("scrap:qa:pickup");
@@ -97,7 +98,19 @@ ok(env.mobs[0].hp>100&&env.mobs[0].alert>=7&&env.mobs[0].search>=7,
 ok(Math.hypot(env.mobs[0].x-env.P.x,env.mobs[0].y-env.P.y)>=230,"pre-pickup guard physically separated from player");
 api.tickWeaponScraps(1.6);
 eq(env.mobs.length,1,"already awake cache cannot spawn another patrol");
-env.mobs[0].hp=0; // Player defeats the enemy using the live combat system.
+// The instant Action path must not bypass combat even if the AI has not ticked.
+api.contextAction(false);
+eq(env.weaponScraps.length,1,"alive guardian prevents early pickup");
+eq(env.weaponScraps[0].guardState,"engaged","cache is actively contested");
+// Leaving the 300-unit warning ring does not count as killing the guardian.
+const prevX=env.mobs[0].x;
+env.mobs[0].x=env.P.x+460;
+api.contextAction(false);
+eq(env.weaponScraps.length,1,"luring guardian outside old 300 radius cannot bypass loot");
+env.mobs[0].x=prevX;
+env.mobs[0].hp=0; // The combat system invokes this exact kill-credit helper.
+ok(api.recordWeaponScrapGuardianDefeat(env.mobs[0]),"combat kill is durably credited");
+eq(env.weaponScraps[0].guardState,"cleared","save-backed guardian defeat");
 api.contextAction(false);
 eq(env.weaponScraps.length,0,"after defeating guard, loot can be collected");
 eq(env.mobs.length,1,"defeated guardian does not respawn at pickup");
@@ -123,6 +136,8 @@ eq(reloadWindow.WildArsenal.equippedFor(frontActor)?.id,frontItem.id,
 eq(reloadWindow.WildArsenal.damage(frontActor,{strongBoss:true},100),hit,
  "boss damage remains identical after Continue reload");
 ok(game.includes("guardianAwake:d.guardianAwake===true"),"guardian state is restored in older-schema world snapshots");
+ok(game.includes('guardState:["pending","engaged","cleared"].includes(d.guardState)'),"SAVE_SCHEMA2 restores new guard state safely");
+ok(game.includes("recordWeaponScrapGuardianDefeat(m);"),"live kill hook awards the guarded cache");
 ok(game.includes("if(!drop.guardianAwake)wakeWeaponScrapGuardian(drop)"),"pickup never re-creates an already defeated guard");
 // A lone remote mountain cache must be defended by a physically spawned NPC,
 // not merely a visual danger marker. The NPC inherits actual eastern scaling.
@@ -135,7 +150,9 @@ ok(env.mobs[0].alert>=7&&env.mobs[0].search>=7,"guard enters actual pursuit AI")
 ok(env.mobs[0].eastThreatTier>=2&&env.mobs[0].hp>100,"guardian receives eastern combat HP buff");
 ok(Math.hypot(env.mobs[0].x-env.P.x,env.mobs[0].y-env.P.y)>=230,"guardian does not spawn on player");
 
-eq(env.weaponScraps.length,0,"action picks scrap");ok(a.alreadyClaimed("scrap:qa:pickup"),"vault claims pickup");
+eq(env.weaponScraps.length,1,"highland action does not bypass alive guardian");
+ok(!a.alreadyClaimed("scrap:qa:guard"),"highland cannot credit weapon before fight");
+ok(a.alreadyClaimed("scrap:qa:pickup"),"lowland vault claims pickup");
 ({env,api}=fixture("scrap:qa:write-fail"));
 const originalSet=localStorage.setItem;
 localStorage.setItem=()=>{throw Error("quota exceeded")};
