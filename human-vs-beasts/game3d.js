@@ -1515,7 +1515,11 @@ function podiumPixelsValid(ctx,w,h){
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
- let success=false;const w=mobile?640:960,h=mobile?360:540;
+ // Retry at progressively smaller 16:9 resolutions on memory-constrained GPUs.
+// A failed full-size framebuffer should not cause three identical failed attempts.
+ let success=false;
+ const widths=mobile?[640,512,384,320]:[960,768,576,384];
+ const w=widths[Math.min(podiumRetryAttempts,widths.length-1)],h=Math.round(w*9/16);
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
   const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true});
