@@ -150,6 +150,27 @@ ok(env.mobs[0].alert>=7&&env.mobs[0].search>=7,"guard enters actual pursuit AI")
 ok(env.mobs[0].eastThreatTier>=2&&env.mobs[0].hp>100,"guardian receives eastern combat HP buff");
 ok(Math.hypot(env.mobs[0].x-env.P.x,env.mobs[0].y-env.P.y)>=230,"guardian does not spawn on player");
 
+// A dead/removed guardian is NOT automatically a completed combat challenge.
+({env,api}=fixture("scrap:qa:despawn"));
+env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
+env.P.x=10800;env.P.y=2590;
+api.contextAction(false);
+eq(env.weaponScraps[0].guardState,"engaged","encounter started");
+env.mobs.length=0; // Wildlife migration or stale-world cleanup, NOT player victory.
+api.tickWeaponScraps(1.6);
+eq(env.weaponScraps[0].guardState,"pending","despawn resets guardian duel, not free loot");
+api.contextAction(false);
+eq(env.weaponScraps.length,1,"despawn cannot unlock eastern cache");
+({env,api}=fixture("scrap:qa:kill-save-fail",true));
+env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
+env.P.x=10800;env.P.y=2590;
+api.contextAction(false);env.mobs[0].hp=0;
+ok(!api.recordWeaponScrapGuardianDefeat(env.mobs[0]),"failed autosave refuses victory credit");
+eq(env.weaponScraps[0].guardState,"engaged","failed combat save preserves contested cache");
+api.contextAction(false);
+eq(env.weaponScraps.length,1,"cannot claim defeated enemy when victory save fails");
+ok(game.includes('const signal=scrap.guardState==="engaged"'),"Canvas2D threat ring follows real cache state");
+ok(webgl.includes('const signal=scrap.guardState==="engaged"'),"WebGL threat ring matches Canvas2D state");
 eq(env.weaponScraps.length,1,"highland action does not bypass alive guardian");
 ok(!a.alreadyClaimed("scrap:qa:guard"),"highland cannot credit weapon before fight");
 ok(a.alreadyClaimed("scrap:qa:pickup"),"lowland vault claims pickup");
