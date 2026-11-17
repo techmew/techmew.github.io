@@ -1743,22 +1743,24 @@ $('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resul
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
 const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
 async function raceImageBlob(){
- // Retry the actual 3D scene even after automatic capture attempts are exhausted.
+ // Avoid GPU readback while Android has lost the WebGL context.
+ if(webglUnavailable){
+  $('shareHelp').textContent='3D描画の復旧待ちです。復旧後に保存・共有を再試行してください。';
+  return null;
+ }
  if(!racePicture&&!ceremonyStage)makeRacePhoto();
  if(!racePicture&&ceremonyStage){
   podiumRetryAttempts=0;podiumRetryFrame=0;
   for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
-   await new Promise(resolve=>requestAnimationFrame(resolve));
+   // Allow two presentation frames before each manual screenshot.
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   if(webglUnavailable||!ceremonyStage)break;
    podiumRetryAttempts=attempt;
-   // Render a fresh 3D frame before reading GPU pixels on manual retry.
-   // The default framebuffer can be cleared between animation frames.
    try{
     renderer.setRenderTarget(null);
     renderer.render(ceremonyStage.scene,ceremonyStage.camera);
     captureCeremonyPhoto();
-   }catch(err){
-    console.warn('Manual 3D podium capture failed',err);
-   }
+   }catch(err){console.warn('Manual 3D podium capture failed',err)}
   }
  }
  if(!racePicture)return null;
