@@ -1619,7 +1619,8 @@ function makeRacePhoto(){
   ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));renderer.setSize(w,h,false);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-  captureCeremonyPhoto();
+  // Show the live 3D podium before GPU capture on Android.
+  // frame() captures after two rendered frames.
  }catch(err){
   console.warn('Could not create 3D podium',err);
   $('shareHelp').textContent='3D表彰台の描画に失敗しました。再試行してください。';
@@ -1726,9 +1727,14 @@ $('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resul
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
 const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
 async function raceImageBlob(){
- if(!racePicture)captureCeremonyPhoto();
+ if(!racePicture&&!ceremonyStage)makeRacePhoto();
+ for(let attempt=0;attempt<3&&!racePicture&&ceremonyStage;attempt++){
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+  if(!racePicture&&ceremonyStage)captureCeremonyPhoto();
+ }
  if(!racePicture)return null;
- return await new Promise(resolve=>racePicture.toBlob(resolve,'image/png'));
+ try{return await new Promise(resolve=>racePicture.toBlob(resolve,'image/png'))}
+ catch(err){console.warn('Result photo export unavailable',err);return null}
 }
 async function saveRacePhoto(){
  const blob=await raceImageBlob();if(!blob){$('shareHelp').textContent='画像を生成できませんでした。';return false}
@@ -1787,34 +1793,31 @@ function adaptQuality(dt){
  // Avoid pixel-ratio oscillation on devices hovering around 30-50 fps.
  if(Math.abs(target-renderQuality)>.015){renderQuality=target;renderer.setPixelRatio(renderQuality);renderer.setSize(innerWidth,innerHeight,false)}
 }
+// Four bounded screenshot attempts. Wait for genuine render frames before
+// readback and reduce output resolution if the first attempt fails.
+function renderCeremonyFrame(){
+ if(!ceremonyStage)return;
+ try{
+  renderer.setRenderTarget(null);
+  renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  if(ceremonyStage.photoCaptured||podiumRetryAttempts>=4)return;
+  podiumRetryFrame++;
+  if(podiumRetryFrame<(podiumRetryAttempts===0?2:20))return;
+  podiumRetryFrame=0;
+  if(!captureCeremonyPhoto()){
+   podiumRetryAttempts++;
+   if(podiumRetryAttempts>=4)
+    $('shareHelp').textContent='3D表彰台は表示中です。写真保存から再撮影できます。';
+  }
+ }catch(err){
+  console.warn('3D podium frame unavailable',err);
+  $('shareHelp').textContent='3D表彰台の描画に失敗しました。写真保存から再試行できます。';
+ }
+}
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
- if(mode==='race'&&race?.phase==='results'){
-  if(ceremonyStage&&!ceremonyStage.photoCaptured){
-   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-   // Some Android browsers return an empty framebuffer immediately after a
-   // WebGL scene switch. Retry on later rendered frames, with a strict limit.
-   podiumRetryFrame++;
-   if(podiumRetryAttempts<3&&podiumRetryFrame>=24){
-    podiumRetryFrame=0;podiumRetryAttempts++;
-    if(!captureCeremonyPhoto()&&podiumRetryAttempts===3)
-     $('shareHelp').textContent='3D表彰台を表示中。写真保存ボタンから再試行できます。';
-   }
-  }
-  return;
- }
+ if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  if(mode==='race')updateRace(dt);
- if(mode==='race'&&race?.phase==='results'){
-  if(ceremonyStage&&!ceremonyStage.photoCaptured){
-   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-   podiumRetryFrame++;
-   if(podiumRetryAttempts<3&&podiumRetryFrame>=24){
-    podiumRetryFrame=0;podiumRetryAttempts++;
-    if(!captureCeremonyPhoto()&&podiumRetryAttempts===3)
-     $('shareHelp').textContent='3D表彰台を表示中。写真保存ボタンから再試行できます。';
-   }
-  }
-  return;
- }
+ if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
