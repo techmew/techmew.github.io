@@ -1730,26 +1730,45 @@ $('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resul
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
 const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
 async function raceImageBlob(){
+ // Retry the actual 3D scene even after automatic capture attempts are exhausted.
  if(!racePicture&&!ceremonyStage)makeRacePhoto();
- for(let attempt=0;attempt<3&&!racePicture&&ceremonyStage;attempt++){
-  await new Promise(resolve=>requestAnimationFrame(resolve));
-  if(!racePicture&&ceremonyStage)captureCeremonyPhoto();
+ if(!racePicture&&ceremonyStage){
+  podiumRetryAttempts=0;podiumRetryFrame=0;
+  for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
+   await new Promise(resolve=>requestAnimationFrame(resolve));
+   podiumRetryAttempts=attempt;
+   captureCeremonyPhoto();
+  }
  }
  if(!racePicture)return null;
- try{return await new Promise(resolve=>racePicture.toBlob(resolve,'image/png'))}
- catch(err){console.warn('Result photo export unavailable',err);return null}
+ const canvas=racePicture;
+ // Android WebViews may return null from toBlob without throwing.
+ if(typeof canvas.toBlob==='function'){
+  try{
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+   if(blob&&blob.size>0)return blob;
+  }catch(err){console.warn('Canvas PNG export unavailable',err)}
+ }
+ try{
+  const data=canvas.toDataURL('image/jpeg',.88);
+  const match=/^data:image\/jpeg;base64,(.+)$/.exec(data);
+  if(!match)return null;
+  const bytes=atob(match[1]),array=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
+  return new Blob([array],{type:'image/jpeg'});
+ }catch(err){console.warn('3D result photo export failed',err);return null}
 }
 async function saveRacePhoto(){
  const blob=await raceImageBlob();if(!blob){$('shareHelp').textContent='画像を生成できませんでした。';return false}
  const url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='100m走_'+new Date().toISOString().slice(0,10)+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);return true
+ a.href=url;a.download='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);return true
 }
 $('downloadRace')?.addEventListener('click',()=>{saveRacePhoto()});
 $('shareRace')?.addEventListener('click',async()=>{
  const blob=await raceImageBlob();
  const msg=raceCaption();
  if(blob&&navigator.share&&typeof File==='function'){
-  const file=new File([blob],'100m-race-result.png',{type:'image/png'});
+  const file=new File([blob],'100m-race-result.'+(blob.type==='image/jpeg'?'jpg':'png'),{type:blob.type});
   try{
    if(!navigator.canShare||navigator.canShare({files:[file]})){
      await navigator.share({files:[file],title:'動物と100m走',text:msg+' '+raceUrl});
