@@ -1629,7 +1629,11 @@ function makeRacePhoto(){
 function finishRace(){
  const r=race;if(!r||r.phase==='results')return;
  r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
- const completed=Number.isFinite(r.hFinish),won=completed&&r.hFinish<r.eFinish,record=completed?r.hFinish:r.time;
+ const completed=Number.isFinite(r.hFinish);
+ // An opponent still running has eFinish=null; numeric comparison with null
+ // incorrectly treated it as zero and marked a first-place human as defeated.
+ const won=completed&&(r.eFinish===null||r.hFinish<r.eFinish);
+ const record=completed?r.hFinish:r.time;
  save.races=(save.races||0)+1;
  if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=animals[save.chosen].id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
  const reward=Math.max(15,Math.round((won?190:completed?65:30)+animals[save.chosen].tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
