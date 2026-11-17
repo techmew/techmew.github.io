@@ -297,5 +297,19 @@ body.race-mode #countdown{
  <div id="resultOverlay"><div class="resultCard glass"><div class="eyebrow" id="resultEyebrow">レース結果</div><h2 id="resultTitle">結果</h2><div class="resGrid"><div><small>あなた</small><b id="resultTime">--</b></div><div><small>対戦相手</small><b id="resultEnemy">--</b></div><div><small>獲得資金</small><b class="accent" id="resultMoney">+0 G</b></div></div><p class="hint" id="resultMsg"></p><div id="result3DWindow" class="result3DWindow" hidden aria-label="勝者と対戦相手の3D表彰台"></div><img id="resultPhoto" class="resultPhoto" alt="レースで使用した3Dキャラクターと対戦相手の表彰台写真" hidden><div class="resButtons resultShare"><button class="btn" id="shareRace">写真と結果をXで共有</button><button class="btn secondary" id="downloadRace">写真を保存</button></div><p class="hint" id="shareHelp">X投稿時は共有画面からXを選択してください。</p><div class="resButtons"><button class="btn secondary" id="retryBtn">もう一度</button><button class="btn" id="resultHome">ホームへ</button></div></div></div>
 </div>
 <div id="loader"><div class="loadingCard"><div class="spinner"></div><div style="font-weight:1000;font-size:22px;letter-spacing:-.05em">3D画面を読み込み中</div><p class="hint" id="loadStatus">競技場を準備しています…</p></div></div>
-<script src="./vendor/three.min.js"></script><script src="./game3d.js?v=20261117-result-fullframe-v11"></script>
+<script src="./vendor/three.min.js"></script><script>
+/* Refresh script on each visit even if Android WebView caches the HTML. */
+(function(){
+ const game=document.createElement('script');
+ game.src='./game3d.js?fresh='+Date.now();
+ game.async=false;
+ game.onerror=function(){
+  const status=document.getElementById('loadStatus');
+  if(status)status.textContent='ゲームの読み込みに失敗しました。通信状態を確認して再読込してください。';
+  const spinner=document.querySelector('#loader .spinner');
+  if(spinner)spinner.style.display='none';
+ };
+ document.body.appendChild(game);
+})();
+</script>
 </body></html>
