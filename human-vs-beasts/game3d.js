@@ -1632,7 +1632,7 @@ function finishRace(){
  const completed=Number.isFinite(r.hFinish);
  // An opponent still running has eFinish=null; numeric comparison with null
  // incorrectly treated it as zero and marked a first-place human as defeated.
- const won=completed&&(r.eFinish===null||r.hFinish<r.eFinish);
+ const won=completed&&(!Number.isFinite(r.eFinish)||r.hFinish<r.eFinish);
  const record=completed?r.hFinish:r.time;
  save.races=(save.races||0)+1;
  if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=animals[save.chosen].id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
@@ -1645,7 +1645,7 @@ function finishRace(){
  $('resultTitle').textContent=won?'勝ち':completed?'負け':'未完走';
  $('resultTitle').style.color=won?'#d7e4d2':'#e5c2aa';
  $('resultTime').textContent=completed?r.hFinish.toFixed(2)+'秒':'未完走';
- $('resultEnemy').textContent=r.eFinish.toFixed(2)+'秒';
+ $('resultEnemy').textContent=Number.isFinite(r.eFinish)?r.eFinish.toFixed(2)+'秒':'未ゴール';
  $('resultMoney').textContent='+'+reward+' G';
  $('resultMsg').textContent=won?'勝ちました。'+(atLast?'全ての動物との対戦を終えました。':'次の動物に挑戦できます。'):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
  lastResultWon=won;resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
