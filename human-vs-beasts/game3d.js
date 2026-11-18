@@ -1933,12 +1933,23 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   renderer.setClearColor(0x657783,1);
   renderer.clear(true,true,true);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  // Check framebuffer completeness before reading: on Android WebView an
+  // incomplete framebuffer can silently return opaque black/grey pixels.
+  const gl=renderer.getContext();
+  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)
+   throw Error('Podium render target framebuffer incomplete');
   const pixels=new Uint8Array(w*h*4);
   renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
-  // An all-zero/transparent GPU readback must not be accepted as a photograph.
-  let opaque=0;
-  for(let i=3;i<pixels.length;i+=4)if(pixels[i]>=245)opaque++;
-  if(opaque<w*h*.95)throw Error('Incomplete podium GPU readback');
+  const readError=gl.getError();
+  if(readError!==gl.NO_ERROR)throw Error('Podium GPU readback error '+readError);
+  // Reject cleared / partial readback before copying or encoding it.
+  let opaque=0,low=255,high=0;
+  for(let i=0;i<pixels.length;i+=4){
+   if(pixels[i+3]>=245)opaque++;
+   const light=(pixels[i]*3+pixels[i+1]*6+pixels[i+2])/10;
+   low=Math.min(low,light);high=Math.max(high,light);
+  }
+  if(opaque<w*h*.95||high-low<45)throw Error('Incomplete or uniform podium GPU readback');
   const image=ctx.createImageData(w,h);
   const stride=w*4;
   for(let y=0;y<h;y++){
