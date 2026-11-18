@@ -520,9 +520,9 @@ function tick(dt,world){
     const inRange=presentEra>=100&&(Number(wing.disabled)||0)<=0&&!e.lifts.length&&P.hp>0&&!P._ufoAbducting&&!concealed&&
       distance(P,spot)<playerBeamRange&&!safeBlocked(world,P,spot);
     if(inRange){
-     wing.playerBeam=Math.min(2.3,(Number(wing.playerBeam)||0)+dt*tractorStrength(e,P,world));
+     wing.playerBeam=Math.min(5,(Number(wing.playerBeam)||0)+dt);
      wing.beam=0;wing.victim=null;
-     if(wing.playerBeam>=2.2&&beginLift(e,P,spot,true)){
+     if(wing.playerBeam>=Math.max(1,3-Math.max(0,(e.wingmen?.length||0))*.5)&&beginLift(e,P,spot,true)){
       wing.playerBeam=0;
       world.onPlayerAbductionStart?.();
       world.notify?.("UFO子機の吸引光線に捕まった！ 遮蔽物へ逃げろ");
@@ -599,7 +599,7 @@ function tick(dt,world){
   }
   e.harassCooldown=Math.max(0,(Number(e.harassCooldown)||0)-dt);
   if(!e.lifts.length&&playerSeen&&!concealed&&distance(P,e)<playerBeamRange&&!safeBlocked(world,P,e)){
-   e.groupBeamStrength=tractorStrength(e,P,world);e.beam+=dt*e.groupBeamStrength;
+   e.groupBeamStrength=1;e.beam+=dt;
    if(presentEra<100&&e.beam>=1.15&&e.harassCooldown<=0){
     // Warning burst does not discard the lock. Previous e.beam=0 made
     // early player abduction impossible, even with uninterrupted exposure.
@@ -611,7 +611,8 @@ function tick(dt,world){
     world.notify?.("UFOの重力光線！ 逃げないと吸い上げられる！");
     world.onEvent?.("ufo-player-harass",{year,x:P.x,y:P.y});
    }
-   const fullLock=presentEra>=100?2.2:2.85;
+   const activeCraft=1+(Array.isArray(e.wingmen)?e.wingmen.filter(w=>(Number(w.disabled)||0)<=0).length:0);
+   const fullLock=activeCraft>=5?1:activeCraft>=3?2:3;
    if(e.beam>=fullLock&&beginLift(e,P,{x:e.x,y:e.y},true)){
     e.beam=0;
     world.onPlayerAbductionStart?.();
