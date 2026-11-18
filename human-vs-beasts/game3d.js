@@ -1681,11 +1681,41 @@ async function showAsyncPodiumPreview(canvas){
  const url=URL.createObjectURL(blob);
  const image=$('resultPhoto');
  try{
+  // Decode into a detached image first. A timed-out DOM image must not
+  // retain event handlers that can fire during a later race's photo preview.
   await new Promise((resolve,reject)=>{
-   const timeout=setTimeout(()=>reject(Error('Podium preview image timed out')),1800);
-   image.onload=()=>{clearTimeout(timeout);resolve()};
-   image.onerror=()=>{clearTimeout(timeout);reject(Error('Podium preview decode failed'))};
+   const probe=new Image();
+   let settled=false;
+   const finish=(error)=>{
+    if(settled)return;
+    settled=true;clearTimeout(timeout);
+    probe.onload=null;probe.onerror=null;
+    if(error)reject(error);else resolve();
+   };
+   const timeout=setTimeout(()=>finish(Error('Podium preview image timed out')),1800);
+   probe.onload=()=>finish(probe.naturalWidth&&probe.naturalHeight?null:Error('Empty podium preview'));
+   probe.onerror=()=>finish(Error('Podium preview decode failed'));
+   probe.src=url;
+   if(probe.complete&&probe.naturalWidth&&probe.naturalHeight)finish(null);
+  });
+  if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas){
+   URL.revokeObjectURL(url);return false;
+  }
+  // The visible image also needs its own successful decode. Keep the live 3D
+  // and captured canvas visible until the actual DOM image is ready.
+  await new Promise((resolve,reject)=>{
+   let settled=false;
+   const finish=(error)=>{
+    if(settled)return;
+    settled=true;clearTimeout(timeout);
+    image.onload=null;image.onerror=null;
+    if(error)reject(error);else resolve();
+   };
+   const timeout=setTimeout(()=>finish(Error('Visible podium image timed out')),1800);
+   image.onload=()=>finish(image.naturalWidth&&image.naturalHeight?null:Error('Empty visible podium image'));
+   image.onerror=()=>finish(Error('Visible podium image failed'));
    image.src=url;
+   if(image.complete&&image.naturalWidth&&image.naturalHeight)finish(null);
   });
   if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas){URL.revokeObjectURL(url);return false}
   if(podiumPreviewURL)URL.revokeObjectURL(podiumPreviewURL);
@@ -1695,7 +1725,11 @@ async function showAsyncPodiumPreview(canvas){
   $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
   return true;
  }catch(e){URL.revokeObjectURL(url);if(token===podiumPreviewToken)image.removeAttribute('src');return false}
- finally{image.onload=null;image.onerror=null}
+ finally{
+  // An older asynchronous preview must not erase the callbacks of a newer
+  // capture, otherwise Android can remain stuck on a blank result surface.
+  if(token===podiumPreviewToken){image.onload=null;image.onerror=null}
+ }
 }
 
 let podiumRetryFrame=0,podiumRetryAttempts=0;
