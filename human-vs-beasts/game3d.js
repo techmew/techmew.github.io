@@ -1665,11 +1665,14 @@ function buildPodiumPhoto(){
  const beast=animals[Math.max(0,Math.min(animals.length-1,finishedOpponent))];
  const athlete=makeHuman(save.avatar),rival=makeExtendedBeast(beast);
  const winningHuman=lastResultWon;
- athlete.root.scale.setScalar(winningHuman?1.16:.90);
+ // Preserve the customized avatar's normalized height. setScalar() erased the
+ // height slider and shrank the actual player to 0.90–1.16 world metres.
+ athlete.root.scale.multiplyScalar(winningHuman?1.16:.90);
  // Presentation-only scale: the live race retains true world dimensions.
  // A minimum multiplier of .30 left a 27m kaiju over 8m tall, hiding the
  // customized human and cropping the actual 3D podium photograph.
  // Always fit the real opponent rig to the podium's available height.
+ rival.root.updateMatrixWorld(true);
  const naturalBox=new T.Box3().setFromObject(rival.root);
  const naturalHeight=naturalBox.max.y-naturalBox.min.y;
  if(!Number.isFinite(naturalHeight)||naturalHeight<=.01)throw Error('Invalid 3D podium opponent height');
