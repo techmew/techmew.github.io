@@ -402,6 +402,8 @@ function normalizeSubjectHeight(rig,model,heightM){
  holder.position.y=-bbox.min.y/Math.max(.0001,rootScale);
  holder.add(model);
  rig.root.scale.multiplyScalar(heightM/measured);
+ // Make the new world-space bounds immediately valid for camera and podium setup.
+ rig.root.updateMatrixWorld(true);
  rig.root.userData.worldHeightM=heightM;
  return rig;
 }
@@ -850,8 +852,7 @@ function buildUnscaledBeast(data){
 
 function makeExtendedBeast(data){
  const rig=buildUnscaledBeast(data);
- // Original three kaiju already have metre-based geometry and world height.
- if(KAIJU_SPECS[data.kind])return rig;
+ // Also reseat the metre-sized kaiju: their original meshes extended below ground.
  const heightM=SPECIES_HEIGHT_M[data.kind];
  return normalizeSubjectHeight(rig,rig.bodyGroup,heightM);
 }
