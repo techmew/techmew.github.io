@@ -49,7 +49,7 @@ const animals=[
  racer('carnotaurus','カルノタウルス','頭に角を持つ大型肉食恐竜',152,9.8,'carnotaurus',0x986e5b,19,'sprinter','恐竜'),
  racer('trex','ティラノサウルス','巨体で加速する肉食恐竜',158,9.4,'trex',0x77826d,20,'heavy','恐竜'),
  racer('spinosaurus','スピノサウルス','背中の帆が特徴の大型恐竜',162,9.6,'spinosaurus',0x597780,20,'heavy','恐竜'),
- racer('pegasus','ペガサス','翼を持つ伝説の馬',167,11.5,'pegasus',0xe0d9cd,21,'sprinter','架空生物'),
+ racer('pegasus','ペガサス','助走から翼を広げて滑空する天馬',167,11.5,'pegasus',0xe0d9cd,21,'sprinter','架空生物'),
  racer('cerberus','ケルベロス','三つの頭を持つ魔獣',173,11.4,'cerberus',0x39323d,21,'sprinter','架空生物'),
  racer('griffin','グリフォン','ワシの翼と獣の体を持つ',179,11.6,'griffin',0xa88754,22,'sprinter','架空生物'),
  racer('minotaur','ミノタウロス','牛の頭を持つ二足歩行の怪物',186,10.5,'minotaur',0x5e524d,22,'heavy','架空生物'),
@@ -685,7 +685,10 @@ function buildUnscaledBeast(data){
    animalHead(group,.72,headY,.27,.23,.35);spike(group,shade,side*.12,headY+.25,.76,.23,0,.09);
   }
   if(k==='pegasus'||k==='griffin'||k==='dragon'){
-   for(let side of [-1,1])leafWing(bodyGroup,side,broad*.86,hipY+.32,-.22,k==='dragon');
+   for(let side of [-1,1]){
+    const wing=leafWing(bodyGroup,side,broad*.86,hipY+.32,-.22,k==='dragon');
+    if(k==='pegasus')wing.scale.set(1.75,1.4,1.35);
+   }
   }
   if(k==='griffin'){
    b(bodyGroup,light,0,headY+.28,length+.28,.31,.26,.27);
@@ -978,7 +981,7 @@ const GAIT_MAP={
  parasaurolophus:'birdRun',gallimimus:'birdRun',velociraptor:'birdRun',
  deinonychus:'birdRun',carnotaurus:'birdRun',trex:'birdRun',spinosaurus:'birdRun',
  spinetitan:'giantBiped',velka:'giantBiped',dorogan:'giantQuad',
- pegasus:'horseGallop',cerberus:'canter',griffin:'canter',
+ pegasus:'wingFlight',cerberus:'canter',griffin:'canter',
  minotaur:'heavyBiped',dragon:'heavyTrot',golem:'heavyBiped',
  giantrobot:'mechanicalRun',alien:'springRun',kaiju:'heavyBiped'
 };
@@ -987,11 +990,12 @@ const GAIT_LABELS={
  birdRun:'二足で交互に疾走',horseGallop:'四足のギャロップ',flexGallop:'背中をしならせた疾走',
  canter:'四足で駆ける',heavyTrot:'重量級の踏み込み',heavyBiped:'重い二足歩行',
  knuckleRun:'腕で体を支える走り',mechanicalRun:'機械の脚で走る',springRun:'軽い跳躍走',
- giantBiped:'巨体の二足踏み込み',giantQuad:'巨体の四足踏み込み'
+ giantBiped:'巨体の二足踏み込み',giantQuad:'巨体の四足踏み込み',wingFlight:'助走・羽ばたき飛行・着地'
 };
 function animalGaitRate(kind,speed){
  // Contact phase advances by ground distance / species stride length.
  if(KAIJU_SPECS[kind]){const spec=KAIJU_SPECS[kind];return (spec.form==='quad'?Math.PI/2:Math.PI)*Math.max(0,speed)/spec.strideM;}
+ if(kind==='pegasus')return 2.7+clamp(speed,0,38)*.10;
  const gait=GAIT_MAP[kind]||'canter';
  const clamped=clamp(speed,0,45);
  const stride={
@@ -1004,11 +1008,11 @@ function animalGaitRate(kind,speed){
 }
 function withSpeciesLocomotion(data,rig){
  const kind=data.kind,gait=GAIT_MAP[kind]||'canter';
- const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail;
+ const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail,wings=rig.wings||[];
  const original=rig.animate,scaleY=body.scale.y,scaleZ=body.scale.z;
  let lastImpact=null;
  rig.gait=gait;rig.gaitLabel=GAIT_LABELS[gait]||'走行';
- rig.animate=function(phase,speed){
+ rig.animate=function(phase,speed,distance=0){
   // Preserve native wing articulation and accessories before overriding the common leg cycle.
   if(original)original(phase,speed);
   const moving=speed>.18,effort=moving?clamp(speed/11,.18,1.50):0;
@@ -1056,6 +1060,29 @@ function withSpeciesLocomotion(data,rig){
    body.rotation.x=.052*cos*effort;
    for(const leg of legs){leg.hip.rotation.x=(-.15-.37*lift)*effort;leg.knee.rotation.x=(.12+.55*lift)*effort}
    if(tail)tail.rotation.y=.12*s*effort;
+  }else if(gait==='wingFlight'){
+   // Pegasus runs to build speed, lifts off after 7m and touches down by 97m.
+   // Smoothstep prevents popping on takeoff/landing. Every movement stays true 3D.
+   const up=clamp((distance-7)/14,0,1),down=clamp((97-distance)/15,0,1);
+   const flight=up*up*(3-2*up)*down*down*(3-2*down);
+   rig.flight=flight;
+   const heightScale=Math.max(.0001,rig.root.scale.y);
+   const bob=.10*Math.sin(phase*1.2)*flight;
+   body.position.y=(1.65*flight+bob)/heightScale;
+   body.rotation.x=(-.10*flight+.025*cos)*effort;
+   body.rotation.z=.025*Math.sin(phase*.6)*flight;
+   for(const [i,leg] of legs.entries()){
+    const beat=Math.sin(phase+(leg.front>0?Math.PI*.72:0)+(leg.side>0?.34:0));
+    leg.hip.rotation.x=mix(beat*.61,-.31+(leg.front>0?.24:0),flight)*effort;
+    leg.knee.rotation.x=mix(Math.max(0,-beat)*.7,.68,flight)*effort;
+   }
+   for(const wing of wings){
+    const flap=Math.sin(phase*.92);
+    wing.wing.rotation.z=-wing.side*(.17+flight*(.30+.78*flap));
+    wing.wing.rotation.x=flight*.12*Math.sin(phase*.92-.9);
+    wing.wing.rotation.y=wing.side*(.08+.09*Math.cos(phase*.92))*flight;
+   }
+   if(tail){tail.rotation.x=.08*Math.sin(phase*.5);tail.rotation.y=.14*Math.sin(phase*.48)}
   }else if(gait==='flexGallop'){
    // Cheetahs/felines and racing greyhounds stretch and gather the spine at speed.
    body.position.y=(.075*Math.max(0,Math.sin(phase*2))-.016*brace)*effort;
@@ -1139,7 +1166,7 @@ function withSpeciesLocomotion(data,rig){
   const impactIndex=Math.floor((phase+shift)*beats/(Math.PI*2));
   if(lastImpact===null){lastImpact=impactIndex;return false}
   const landed=impactIndex>lastImpact;lastImpact=impactIndex;
-  return landed;
+  return gait==='wingFlight'&&rig.flight>.35?false:landed;
  };
  return rig;
 }
@@ -1404,7 +1431,7 @@ function renderBeasts(){
    <header><div><div class="label">第${i+1}/${animals.length}戦 <span class="kind">${a.group}</span></div>
    <h3>${a.name} ${won?'<span class="mini">勝利済</span>':''}</h3></div>
    <button data-beast="${i}" ${available?'':'disabled'}>${i===save.chosen?'選択中':available?'挑戦する':'未解放'}</button></header>
-   <p>${a.sub}${KAIJU_SPECS[a.kind]?' / 全高 '+KAIJU_SPECS[a.kind].heightM+'m / 歩幅 '+KAIJU_SPECS[a.kind].strideM+'m':''} / ${GAIT_LABELS[GAIT_MAP[a.kind]]||'走行'} / ゲーム内最高速度 ${a.kph} km/h${Number.isFinite(pb)?' / 自己記録 '+pb.toFixed(2)+'秒':''}${available?'':' / 前の対戦に勝利すると解放'}</p>
+   <p>${a.sub} / モデル全高目安 ${SPECIES_HEIGHT_M[a.kind]}m${KAIJU_SPECS[a.kind]?' / 歩幅 '+KAIJU_SPECS[a.kind].strideM+'m':''} / ${GAIT_LABELS[GAIT_MAP[a.kind]]||'走行'} / ゲーム内最高速度 ${a.kph} km/h${Number.isFinite(pb)?' / 自己記録 '+pb.toFixed(2)+'秒':''}${available?'':' / 前の対戦に勝利すると解放'}</p>
    </div>`}).join('');
  if(!filtered.length)el.textContent='該当する対戦相手はありません。';
  el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.dataset.beast);if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}));
@@ -2220,6 +2247,7 @@ addEventListener('keydown',e=>{
 let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{if(mode==='custom'||mode==='beasts'){dragging=true;pointerStart=e.clientX;$('world').setPointerCapture?.(e.pointerId)}});$('world').addEventListener('pointermove',e=>{if(dragging){camSpin+=(e.clientX-pointerStart)*.012;pointerStart=e.clientX}});$('world').addEventListener('pointerup',()=>dragging=false);$('world').addEventListener('pointercancel',()=>dragging=false);
 function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  const monster=KAIJU_SPECS[animals[save.chosen]?.kind];
+ const speciesHeight=SPECIES_HEIGHT_M[animals[save.chosen]?.kind]||1.7;
  if(mode==='race'&&monster){
   const portrait=innerWidth<innerHeight,side=clamp((race?.lateral??humanX)-humanX,-4,4);
   const back=monster.heightM*(portrait?1.6:1.3);
@@ -2227,9 +2255,17 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
   wantedTarget=new T.Vector3(animalX*.5,monster.heightM*.4,d+12);
   camera.fov=mix(camera.fov,portrait?65:58,Math.min(1,dt*2.5));camera.updateProjectionMatrix();
  }
+ else if(mode==='race'&&speciesHeight>3.3){
+  // Retain a real-size human and a multi-metre animal in view simultaneously.
+  const portrait=innerWidth<innerHeight,side=clamp((race?.lateral??humanX)-humanX,-4,4);
+  const back=Math.max(portrait?12:10,speciesHeight*(portrait?2.7:2.1));
+  wantedPos=new T.Vector3(-.7+side*.6,Math.max(3.1,speciesHeight*.70),d-back);
+  wantedTarget=new T.Vector3(.1+side*.3,Math.max(1.45,speciesHeight*.39),d+12);
+  camera.fov=mix(camera.fov,portrait?61:54,Math.min(1,dt*2.2));camera.updateProjectionMatrix();
+ }
  else if(mode==='race'){const run=race?.humanV||0;const portrait=innerWidth<innerHeight;const shake=run>2?Math.min(.052,run*.003):0;const side=clamp((race?.lateral??humanX)-humanX,-4,4);wantedPos=new T.Vector3(-.50+side*.68+Math.sin(sceneTime*12)*shake,portrait?3.55:2.85,d-(portrait?9.2:7.8));wantedTarget=new T.Vector3(-.45+side*.68,portrait?1.05:1.3,d+12);camera.fov=mix(camera.fov,(portrait?57:49)+(race?.burstLeft>0&&run>0?2:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
  else if(mode==='custom'){const portrait=innerWidth<innerHeight,close=['face','brows','eyes','nose','mouth','hair'].includes(customTab)&&!$('customScreen').classList.contains('previewOnly');const radius=close?(portrait?2.8:2.15):(portrait?4.7:4.0);wantedPos=new T.Vector3(humanX+Math.sin(camSpin+.18)*radius,portrait?2.48:(close?2.28:2.16),Math.cos(camSpin+.18)*radius);wantedTarget=new T.Vector3(humanX+(portrait?0:.85),portrait?(close?1.25:.75):(close?2.18:1.18),0);camera.fov=mix(camera.fov,portrait?47:(close?44:50),Math.min(1,dt*3));camera.updateProjectionMatrix()}
- else if(mode==='beasts'){const r=monster?monster.heightM*1.55:5;wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*r,monster?monster.heightM*.62:2.2,Math.cos(camSpin+sceneTime*.12)*r);wantedTarget=new T.Vector3(animalX,monster?monster.heightM*.42:1.35,0)}
+ else if(mode==='beasts'){const h=speciesHeight,r=monster?monster.heightM*1.55:clamp(h*2.4,3.2,18);wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*r,Math.max(.85,h*.65),Math.cos(camSpin+sceneTime*.12)*r);wantedTarget=new T.Vector3(animalX,h*.44,0);camera.fov=mix(camera.fov,innerWidth<innerHeight?55:48,Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else if(mode==='menu'&&monster){const b=monster.heightM*1.6;wantedPos=new T.Vector3(-b*.34,monster.heightM*.65,b);wantedTarget=new T.Vector3(animalX,monster.heightM*.42,0);camera.fov=mix(camera.fov,innerWidth<innerHeight?60:53,Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else{const portrait=innerWidth<innerHeight;wantedPos=portrait?new T.Vector3(-4.1,2.95,12.8):new T.Vector3(-5.4,3.08,10.9);wantedTarget=portrait?new T.Vector3(0,1.15,0):new T.Vector3(-2.0,1.12,0);camera.fov=mix(camera.fov,portrait?55:50,Math.min(1,dt*2.5));camera.updateProjectionMatrix()}
@@ -2300,10 +2336,10 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
  if(mode==='race')updateRace(dt);
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  // Visual animations use actual runner and opponent speeds
- const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):0;
+ const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&animals[save.chosen]?.kind==='pegasus'?6:0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
- const hasLanded=opponent.animate(beastGait,espeed);
+ const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?40:race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[save.chosen].kind,gait=GAIT_MAP[kind];
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
