@@ -1914,7 +1914,7 @@ function endCeremonyStage(){
  $('result3DWindow').hidden=true;$('resultPhoto').hidden=true;
  racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;initResize();
 }
-function capturePodiumFromGPU(ctx,w,h){
+function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  // A fresh offscreen framebuffer is essential on Android: the visible WebGL
  // drawing buffer may already have been discarded by the compositor.
  const target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
@@ -1923,7 +1923,11 @@ function capturePodiumFromGPU(ctx,w,h){
  renderer.getClearColor(previousClearColor);
  const previousClearAlpha=renderer.getClearAlpha();
  const previousAutoClear=renderer.autoClear;
+ const previousShadows=renderer.shadowMap.enabled;
  try{
+  // Android GPUs can fail allocating a depth texture plus a shadow atlas
+  // simultaneously. Retry with a flat-lit REAL 3D scene before giving up.
+  if(lowMemory)renderer.shadowMap.enabled=false;
   renderer.setRenderTarget(target);
   renderer.autoClear=true;
   renderer.setClearColor(0x657783,1);
@@ -1946,6 +1950,7 @@ function capturePodiumFromGPU(ctx,w,h){
   renderer.setRenderTarget(previousTarget);
   renderer.setClearColor(previousClearColor,previousClearAlpha);
   renderer.autoClear=previousAutoClear;
+  renderer.shadowMap.enabled=previousShadows;
   target.dispose();
  }
 }
@@ -2009,6 +2014,24 @@ function captureCeremonyPhoto(){
    capturePodiumFromGPU(ctx,w,h);
    captured=podiumPixelsValid(ctx,w,h);
   }catch(e){console.warn('Offscreen podium capture unavailable',e)}
+  // Independent second GPU path: no shadow atlas, half-resolution framebuffer.
+  // The models, materials, lights and medal remain real 3D geometry.
+  if(!captured){
+   const reducedW=Math.min(w,384),reducedH=Math.round(reducedW*9/16);
+   const reduced=document.createElement('canvas');
+   reduced.width=reducedW;reduced.height=reducedH;
+   const reducedCtx=reduced.getContext('2d',{alpha:false,willReadFrequently:true});
+   if(reducedCtx){
+    try{
+     capturePodiumFromGPU(reducedCtx,reducedW,reducedH,true);
+     if(podiumPixelsValid(reducedCtx,reducedW,reducedH)){
+      ctx.clearRect(0,0,w,h);
+      ctx.drawImage(reduced,0,0,w,h);
+      captured=podiumPixelsValid(ctx,w,h);
+     }
+    }catch(e){console.warn('Low-memory 3D podium capture unavailable',e)}
+   }
+  }
   if(!captured){
    // A failed readback may have left partial pixels in the output canvas.
    // Clear them before trying the live framebuffer, so a failed fallback
