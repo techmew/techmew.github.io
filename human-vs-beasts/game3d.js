@@ -2359,8 +2359,10 @@ function waitForPodiumFrames(count=2,timeoutMs=900){
  });
 }
 async function raceImageBlob(){
- // Avoid GPU readback while Android has lost the WebGL context.
- if(webglUnavailable){
+ // A successfully captured 3D photo lives in a 2D canvas and does NOT
+ // require a functioning WebGL context for encoding, download or sharing.
+ // Android often loses WebGL when the system share sheet opens.
+ if(!racePicture&&webglUnavailable){
   $('shareHelp').textContent='3D描画の復旧待ちです。復旧後に保存・共有を再試行してください。';
   return null;
  }
@@ -2600,8 +2602,20 @@ renderer.domElement.addEventListener('webglcontextlost',event=>{
 renderer.domElement.addEventListener('webglcontextrestored',()=>{
  webglUnavailable=false;
  clock.getDelta();
- if(mode==='race'&&race?.phase==='results')makeRacePhoto();
- else initResize();
+ if(mode==='race'&&race?.phase==='results'){
+  // Preserve a validated photo and its image/canvas preview. Rebuilding
+  // the podium here destroyed the photo just as Android returned from Share.
+  if(!racePicture)makeRacePhoto();
+  else if(ceremonyStage&&!$('result3DWindow').hidden){
+   const view=$('result3DWindow');
+   const w=Math.max(320,view.clientWidth||340),h=Math.max(180,view.clientHeight||192);
+   renderer.setRenderTarget(null);
+   renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
+   renderer.setSize(w,h,false);
+   fitPodiumCamera(ceremonyStage,w/h);
+   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  }
+ }else initResize();
 },false);
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
  if(webglUnavailable)return;
