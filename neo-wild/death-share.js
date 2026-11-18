@@ -43,8 +43,9 @@ function prepare(value){
 }
 function cover(ctx,img,x,y,w,h){
  if(!img?.width||!img?.height)return false;
- const f=Math.max(w/img.width,h/img.height),sw=w/f,sh=h/f;
- ctx.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,y,w,h);return true;
+ // Preserve the entire fatal frame: centered cover crops off high UFOs, flood edges and fissures.
+ const f=Math.min(w/img.width,h/img.height),dw=img.width*f,dh=img.height*f;
+ ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);return true;
 }
 function makeCard(sources){
  if(!info)return null;
