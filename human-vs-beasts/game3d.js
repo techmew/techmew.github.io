@@ -1812,14 +1812,18 @@ function captureCeremonyPhoto(){
   $('shareHelp').textContent='3D表彰台を表示中。写真を再取得しています。';
  }finally{
   if(ceremonyStage){
-   // The result photo and the live podium share a renderer; always restore
-   // preview dimensions, even after a successful offscreen capture.
-   const view=$('result3DWindow'),pw=Math.max(320,view.clientWidth||340),ph=Math.max(180,view.clientHeight||192);
-   renderer.setRenderTarget(null);
-   renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
-   renderer.setSize(pw,ph,false);
-   fitPodiumCamera(ceremonyStage,pw/ph);
-   if(!success)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   // Restore the live 3D preview only while it is visible. After an encoded
+   // photo is displayed, reallocating a hidden WebGL buffer on Android is
+   // unnecessary and may lose the context before the next race.
+   const view=$('result3DWindow');
+   if(!view.hidden){
+    const pw=Math.max(320,view.clientWidth||340),ph=Math.max(180,view.clientHeight||192);
+    renderer.setRenderTarget(null);
+    renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
+    renderer.setSize(pw,ph,false);
+    fitPodiumCamera(ceremonyStage,pw/ph);
+    if(!success)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   }
   }
  }
  return success;
@@ -2158,6 +2162,11 @@ function adaptQuality(dt){
 // readback and reduce output resolution if the first attempt fails.
 function renderCeremonyFrame(){
  if(!ceremonyStage)return;
+ // The final image is a validated snapshot of the real 3D models. Rendering
+ // the hidden WebGL canvas at 60 fps after its image loads wastes GPU time,
+ // drains mobile batteries and can trigger Android context loss.
+ // Keep rendering while the async image encoder is still preparing the preview.
+ if(ceremonyStage.photoCaptured&&!$('resultPhoto').hidden)return;
  try{
   renderer.setRenderTarget(null);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
