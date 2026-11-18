@@ -1475,10 +1475,17 @@ function buildPodiumPhoto(){
  const athlete=makeHuman(save.avatar),rival=makeExtendedBeast(beast);
  const winningHuman=lastResultWon;
  athlete.root.scale.setScalar(winningHuman?1.16:.90);
- // Fit a giant dinosaur or mammoth onto its podium without replacing its individual model.
+ // Presentation-only scale: the live race retains true world dimensions.
+ // A minimum multiplier of .30 left a 27m kaiju over 8m tall, hiding the
+ // customized human and cropping the actual 3D podium photograph.
+ // Always fit the real opponent rig to the podium's available height.
  const naturalBox=new T.Box3().setFromObject(rival.root);
- const naturalHeight=Math.max(.5,naturalBox.max.y-naturalBox.min.y);
- rival.root.scale.multiplyScalar(clamp((winningHuman?2.35:2.95)/naturalHeight,.30,1.6));
+ const naturalHeight=naturalBox.max.y-naturalBox.min.y;
+ if(!Number.isFinite(naturalHeight)||naturalHeight<=.01)throw Error('Invalid 3D podium opponent height');
+ const podiumTargetHeight=winningHuman?2.35:2.95;
+ const podiumScale=podiumTargetHeight/naturalHeight;
+ if(!Number.isFinite(podiumScale)||podiumScale<=0)throw Error('Invalid 3D podium scale');
+ rival.root.scale.multiplyScalar(podiumScale);
  function seatOnStep(rig,x,platformHeight,z){
   // makeHuman/makeExtendedBeast return rigs; only rig.root is a THREE.Object3D.
   // Reading rig.position used to throw and abort every podium render.
