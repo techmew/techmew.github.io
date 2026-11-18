@@ -1919,10 +1919,29 @@ function captureCeremonyPhoto(){
    }catch(exportErr){console.warn('Podium preview encoding unavailable',format,exportErr)}
   }
   if(src){
-   releasePodiumPreview();
-   $('resultPhoto').src=src;$('resultPhoto').hidden=false;
-   $('result3DWindow').hidden=true;
-   $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
+   // Data URL encoding can succeed while Android WebView fails to decode the
+   // resulting image. Keep live 3D visible until the image actually loads.
+   const token=++podiumPreviewToken;
+   const image=$('resultPhoto');
+   const probe=new Image();
+   probe.onload=()=>{
+    if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo)return;
+    image.src=src;
+    image.hidden=false;
+    $('result3DWindow').hidden=true;
+    $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
+   };
+   probe.onerror=()=>{
+    if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo)return;
+    image.hidden=true;
+    $('result3DWindow').hidden=false;
+    $('shareHelp').textContent='写真の表示に失敗しました。3D表彰台を表示しています。保存・共有は利用できます。';
+    void showAsyncPodiumPreview(photo);
+   };
+   probe.src=src;
+   image.hidden=true;
+   $('result3DWindow').hidden=false;
+   $('shareHelp').textContent='3D表彰台写真を確認中。保存・共有は利用できます。';
   }else{
    // Preserve the actual 3D podium as the preview; never substitute 2D art.
    // The valid photo canvas remains available to the async save/share path.
