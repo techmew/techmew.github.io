@@ -566,6 +566,17 @@ function tick(dt,api){
   m.fleeThreatX=scar.x;m.fleeThreatY=scar.y;
   m.resting=false;m.foragePose=0;m.habitatDisplaced=true;
  }
+ // Falling into a live fissure is fatal. Check the player separately from
+ // terrain blocking so collision resolution cannot turn a lethal gap into a wall.
+ for(const e of events)if(e.kind==="fissure"&&active(e,year)&&api.P?.hp>0){
+  const radius=Math.min(28,Math.max(8,Number(e.width)||14));
+  if(fissureGap(e,api.P.x,api.P.y)<=radius+Math.min(12,Math.max(0,Number(api.P.r)||0))){
+   api.P.hp=0;api.P.deathReason="fissure";
+   api.onEvent?.("fissure-fall",{year,x:api.P.x,y:api.P.y});
+   api.notify?.("地割れに落下した！");
+   api.beginDeath?.();break;
+  }
+ }
  // Existing wildlife remembers the ruptured ground as a navigational obstacle.
  // Only nearby NPCs flee; never teleport the player or modify owned companions.
  for(const e of events)if(e.kind==="fissure"&&active(e,year)){
@@ -711,10 +722,12 @@ function draw(ctx,project,year,webglActive=false){
    const p=project(e.x+t*ca-jitter*sa,e.y+t*sa+jitter*ca);if(!p)continue;
    if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
   }};
-  trace();ctx.strokeStyle="rgba(119,91,72,.88)";ctx.lineWidth=13;ctx.stroke();
-  trace();ctx.strokeStyle="rgba(16,17,20,.96)";ctx.lineWidth=7;ctx.stroke();
+  trace();ctx.strokeStyle="rgba(158,109,75,.92)";ctx.lineWidth=29;ctx.stroke();
+  trace();ctx.strokeStyle="rgba(71,42,36,.96)";ctx.lineWidth=23;ctx.stroke();
+  trace();ctx.strokeStyle="rgba(4,7,12,.99)";ctx.lineWidth=17;ctx.stroke();
+  trace();ctx.strokeStyle="rgba(37,25,33,.96)";ctx.lineWidth=7;ctx.stroke();
   ctx.fillStyle="#f5ddba";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
-  ctx.fillText("地割れ・迂回",mid.x,mid.y-28);ctx.restore();
+  ctx.fillText("地割れ・落下即死",mid.x,mid.y-38);ctx.restore();
  }
  for(const e of events){if(e.kind!=="fallen_tree"||!active(e,year)||webglActive)continue;
   const angle=fallenAngle(e),ca=Math.cos(angle),sa=Math.sin(angle);
