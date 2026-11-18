@@ -2277,6 +2277,29 @@ function finishRace(){
  $('resultOverlay').style.display='flex';
  stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
 }
+
+// Each opponent gets a repeatable, species-specific pace rhythm rather than
+// sharing one generic acceleration curve. Variation averages to zero so
+// progression, records and the official 100m distance remain comparable.
+function rivalStridePace(kind,phase,distance){
+ const gait=GAIT_MAP[kind]||'canter';
+ const rhythm={
+  kangarooHop:[.095,1.30],bound:[.075,1.75],pronk:[.068,1.50],
+  birdRun:[.042,2.10],horseGallop:[.048,1.38],
+  flexGallop:[.055,1.62],canter:[.035,1.44],
+  heavyTrot:[.028,.85],heavyBiped:[.043,.94],
+  giantBiped:[.038,.68],giantQuad:[.022,.62],
+  knuckleRun:[.047,1.22],mechanicalRun:[.050,1.05],
+  springRun:[.10,1.92],wingFlight:[.068,1.08]
+ }[gait]||[.035,1.2];
+ // Stable species-specific offset: no random per-frame acceleration.
+ let hash=0;for(let i=0;i<kind.length;i++)hash=(hash*31+kind.charCodeAt(i))%997;
+ const offset=hash/997*Math.PI*2;
+ const wave=Math.sin(phase*rhythm[1]+offset);
+ const fatigue=distance>75?.82:1;
+ return clamp(1+wave*rhythm[0]*fatigue,.88,1.12);
+}
+
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
  const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*7.6);
@@ -2298,7 +2321,8 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
   else{pace=progress<20?.95:progress>82?1.04:1}
   const stage=save.chosen;
   const challenge=stage<3?1.15:stage<7?1.58:stage<14?2.25:stage<22?1.95:stage<37?2.10:2.18;
-  const enemyTarget=maxB*pace*(r.enemyStumble>0?.62:1),acc=a.acc*accMult*challenge;
+  const stridePace=rivalStridePace(a.kind,beastGait,progress);
+  const enemyTarget=maxB*pace*stridePace*(r.enemyStumble>0?.62:1),acc=a.acc*accMult*challenge;
   if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
   else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
   r.enemyD+=r.enemyV*dtSafe;
