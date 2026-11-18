@@ -900,7 +900,7 @@ const GAIT_LABELS={
 };
 function animalGaitRate(kind,speed){
  // Contact phase advances by ground distance / species stride length.
- if(KAIJU_SPECS[kind])return Math.PI*Math.max(0,speed)/KAIJU_SPECS[kind].strideM;
+ if(KAIJU_SPECS[kind]){const spec=KAIJU_SPECS[kind];return (spec.form==='quad'?Math.PI/2:Math.PI)*Math.max(0,speed)/spec.strideM;}
  const gait=GAIT_MAP[kind]||'canter';
  const clamped=clamp(speed,0,45);
  const stride={
