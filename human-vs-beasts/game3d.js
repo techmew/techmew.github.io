@@ -1916,8 +1916,22 @@ $('shareRace')?.addEventListener('click',async()=>{
    }
   }catch(err){if(err?.name==='AbortError')return;console.warn('Native image share unavailable',err)}
  }
- if(blob){await saveRacePhoto();$('shareHelp').textContent='画像を保存しました。Xの投稿画面で写真を添付してください。'}
- else $('shareHelp').textContent='写真を作成できませんでした。Xには文章のみ共有します。';
+ if(blob){
+  // Use the exact validated snapshot from this share action. Re-running
+  // raceImageBlob() here could capture a different frame or fail after
+  // the first successful capture on memory-constrained Android WebViews.
+  const url=URL.createObjectURL(blob);
+  try{
+   const a=document.createElement('a');
+   a.href=url;
+   a.download='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');
+   document.body.appendChild(a);a.click();a.remove();
+   $('shareHelp').textContent='写真を保存しました。Xの投稿画面で写真を添付してください。';
+  }catch(err){
+   console.warn('Podium photo download blocked',err);
+   $('shareHelp').textContent='写真の保存が制限されました。3D写真を再撮影して保存してください。';
+  }finally{setTimeout(()=>URL.revokeObjectURL(url),45000)}
+ }else $('shareHelp').textContent='写真を作成できませんでした。Xには文章のみ共有します。';
  const link='https://twitter.com/intent/tweet?text='+encodeURIComponent(msg+' '+raceUrl);
  window.location.assign(link);
 });
