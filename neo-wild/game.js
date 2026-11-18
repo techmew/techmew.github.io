@@ -10568,6 +10568,21 @@ function drawScene(){
    isPrey:m=>!!species[m.type]?.prey});
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawEastTrailScreenMarkers();drawWeaponScrapLabels();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
+ }else if(deathSharePending){
+  // Freeze the fatal scene with the real cause still visible, not a clean background frame.
+  // UFO saucers are drawn on the shared 2D overlay even when WebGL renders the terrain.
+  window.WildUFO?.draw?.(ctx,project,{mode:"play",drawAbductee:(c,actor,sx,sy,scale,isPlayer)=>{
+   const drawable=isPlayer?P:actor;if(!drawable)return;
+   c.save();c.translate(sx,sy);c.scale(scale,scale);
+   c.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);
+   c.translate(-(drawable.x||0),-(drawable.y||0));drawCreature(drawable,isPlayer);c.restore();
+  }});
+  window.WildApparitions?.draw?.(ctx,project,{mode:"play",P});
+  window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
+  window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode:"play",lineBlocked,
+   floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
+   isPrey:m=>!!species[m.type]?.prey});
+  drawLightning();
  } // Keep mission and enemy labels off the dying animal.
  if(mode==="dying"&&deathSharePending){
   deathSharePending=false;
