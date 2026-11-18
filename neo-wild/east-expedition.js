@@ -76,7 +76,39 @@
   }
   return best;
  }
- function navigation(player,mask,water=false){
+ // Local water-only A* uses the same live collision predicate as player movement.
+ // It never advertises a dry straight-line waypoint as reachable.
+ function aquaticStep(player,target,passable){
+  if(typeof passable!=="function")return {x:player.x,y:player.y,reachable:false};
+  const size=80,limit=1400,origin={x:player.x,y:player.y};
+  const key=(x,y)=>x+","+y,open=[{x:0,y:0,g:0,f:0}],seen=new Map([[key(0,0),0]]);
+  const cells=new Map([[key(0,0),open[0]]]);
+  let best=open[0],bestDist=dist(origin,target),expanded=0;
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+  while(open.length&&expanded++<limit){
+   open.sort((a,b)=>a.f-b.f);const node=open.shift(),nk=key(node.x,node.y);
+   if(node.g!==seen.get(nk))continue;
+   const px=origin.x+node.x*size,py=origin.y+node.y*size,d=Math.hypot(px-target.x,py-target.y);
+   if(d<bestDist){best=node;bestDist=d;}
+   if(d<size*1.5)break;
+   for(const [dx,dy] of dirs){
+    const nx=node.x+dx,ny=node.y+dy,x=origin.x+nx*size,y=origin.y+ny*size;
+    if(Math.abs(nx)>65||Math.abs(ny)>65||!passable(x,y))continue;
+    if(dx&&dy&&(!passable(origin.x+nx*size,origin.y+node.y*size)||
+       !passable(origin.x+node.x*size,origin.y+ny*size)))continue;
+    const g=node.g+Math.hypot(dx,dy),k=key(nx,ny);
+    if(g>=(seen.get(k)??Infinity))continue;
+    const next={x:nx,y:ny,g,f:g+Math.hypot(x-target.x,y-target.y)/size,parent:nk};
+    seen.set(k,g);cells.set(k,next);open.push(next);
+   }
+  }
+  if(best===cells.get(key(0,0)))return {x:player.x,y:player.y,reachable:false};
+  let cursor=best;
+  while(cursor.parent&&cursor.parent!==key(0,0))cursor=cells.get(cursor.parent);
+  const x=origin.x+cursor.x*size,y=origin.y+cursor.y*size;
+  return {x,y,reachable:passable(x,y),targetReached:bestDist<size*1.5};
+ }
+ function navigation(player,mask,water=false,passable=null){
   if(!player)return null;
   const location=routePosition(player);
   // Water-only carp must never be routed toward an inaccessible dry mountain stop.
@@ -101,12 +133,14 @@
   const [wx,wy]=WALKWAY[step];
   // Aquatic movement is constrained to water: do not send carp through the dry
   // walkway vertices even when a water stop happens to be the destination.
-  const x=water?stop.x:(offPath?location.x:wx),y=water?stop.y:(offPath?location.y:wy);
+  const swim=water?aquaticStep(player,stop,passable):null;
+  const x=water?swim.x:(offPath?location.x:wx),y=water?swim.y:(offPath?location.y:wy);
   const sectionIndex=location.progress<4?0:location.progress<8?1:location.progress<15?2:3;
   const section=habitat[sectionIndex];
   return {x,y,stop,section,water:!!water,
    distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step,
-   offPath:water?false:offPath,routeDistance:water?0:Math.round(location.distance),routeProgress:location.progress,
+   offPath:water?!swim.reachable:offPath,routeDistance:water?0:Math.round(location.distance),routeProgress:location.progress,
+   waterReachable:water?swim.reachable:null,
    targetDistance:Math.round(dist(player,stop))};
  }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
@@ -163,5 +197,5 @@
   }
   return {alerted,fleeing};
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,routePosition,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
 })(window);
