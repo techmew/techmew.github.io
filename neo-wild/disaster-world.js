@@ -701,10 +701,32 @@ function draw(ctx,project,year,webglActive=false){
  }}
  for(const e of events){if(e.kind!=="flood"||!active(e,year))continue;
   const p=project(e.x,e.y);if(!p)continue;
-  ctx.save();ctx.fillStyle="rgba(36,135,190,.24)";ctx.strokeStyle="rgba(93,208,241,.72)";ctx.lineWidth=2;
-  ctx.beginPath();ctx.ellipse(p.x,p.y,e.radius*.88,e.radius*.51,-.26,0,Math.PI*2);ctx.fill();ctx.stroke();
-  ctx.fillStyle="#bceefa";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
-  ctx.fillText("冠水・迂回",p.x,p.y-e.radius*.57);ctx.restore();
+  // Flood is a world-space inundation, not a single screen-space blue oval.
+  // Sample the same radial footprint as floodDepth so water follows the camera
+  // projection (including mountain height) in Canvas and WebGL overlay modes.
+  const radius=Math.max(24,Number(e.radius)||100),phase=year*120;
+  ctx.save();ctx.lineJoin="round";
+  for(const scale of [1,.73,.43]){
+   const ring=[];for(let i=0;i<=48;i++){
+    const a=i*Math.PI/24,rr=radius*scale;
+    const q=project(e.x+Math.cos(a)*rr,e.y+Math.sin(a)*rr);
+    if(q&&Number.isFinite(q.x)&&Number.isFinite(q.y))ring.push(q);
+   }
+   if(ring.length<24)continue;
+   ctx.beginPath();ring.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.closePath();
+   ctx.fillStyle=scale===1?"rgba(29,119,169,.30)":scale===.73?"rgba(38,148,193,.17)":"rgba(56,172,211,.13)";
+   ctx.strokeStyle=scale===1?"rgba(130,225,244,.86)":"rgba(128,211,235,.44)";
+   ctx.lineWidth=scale===1?2.5:1.2;ctx.fill();ctx.stroke();
+  }
+  for(let i=0;i<9;i++){
+   const a=i*2.39996+phase*.13,rr=radius*(.18+.065*(i%6));
+   const q=project(e.x+Math.cos(a)*rr,e.y+Math.sin(a)*rr);
+   if(!q)continue;
+   ctx.strokeStyle="rgba(196,243,251,.64)";ctx.lineWidth=1.5;
+   ctx.beginPath();ctx.arc(q.x,q.y,3+(phase*.8+i*3)%8,Math.PI*.12,Math.PI*.82);ctx.stroke();
+  }
+  ctx.fillStyle="#d5f6ff";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+  ctx.fillText("冠水・迂回",p.x,p.y-32);ctx.restore();
  }
  if(floodWarning){const p=project(floodWarning.x,floodWarning.y);if(p){
   ctx.save();ctx.strokeStyle="#7adaff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,42,0,Math.PI*2);ctx.stroke();
