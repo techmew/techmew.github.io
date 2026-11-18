@@ -1673,6 +1673,9 @@ let podiumRetryFrame=0,podiumRetryAttempts=0;
 function fitPodiumCamera(stage,aspect){
  if(!stage?.fitBounds||!stage.camera)return;
  const b=stage.fitBounds,cam=stage.camera;
+ // Fit the ACTUAL 3D character bounds, not the decorative stadium. Validate
+ // every bounding-box corner in camera space so portrait WebViews never crop
+ // the runner, the animal, or a winner's medal.
  const a=Math.max(.35,Math.min(3.5,Number(aspect)||16/9));
  cam.aspect=a;
  const halfFov=cam.fov*Math.PI/360;
@@ -1685,12 +1688,34 @@ function fitPodiumCamera(stage,aspect){
  cam.position.set(x,y+Math.min(.65,distance*.035),z+distance);
  cam.lookAt(x,y,z);
  cam.updateProjectionMatrix();
+ // Perspective camera bounds differ in portrait, and the subjects may extend
+ // toward the camera. Iteratively increase distance until all 8 corners fit.
+ const corners=[];
+ for(const px of [b.min.x,b.max.x])for(const py of [b.min.y,b.max.y])for(const pz of [b.min.z,b.max.z])
+  corners.push(new T.Vector3(px,py,pz));
+ for(let iteration=0;iteration<9;iteration++){
+  cam.updateMatrixWorld(true);
+  let overshoot=1;
+  for(const point of corners){
+   const projected=point.clone().project(cam);
+   if(!Number.isFinite(projected.x)||!Number.isFinite(projected.y)||projected.z>1){
+    overshoot=Math.max(overshoot,1.5);continue;
+   }
+   overshoot=Math.max(overshoot,Math.abs(projected.x)/.89,Math.abs(projected.y)/.82);
+  }
+  if(overshoot<=1.001)break;
+  cam.position.z=z+(cam.position.z-z)*Math.min(2,Math.max(1.12,overshoot*1.08));
+  cam.lookAt(x,y,z);
+ }
+ cam.updateMatrixWorld(true);
 }
 
 function buildPodiumPhoto(){
  const sc=new T.Scene();
  sc.background=new T.Color(0x657783);
- sc.fog=new T.Fog(0x8997a0,18,50);
+ // No distance fog on the awards portrait: it previously washed out the
+ // real 3D models when the camera moved back to fit larger opponents.
+ sc.fog=null;
  sc.add(new T.HemisphereLight(0xe7eced,0x50605c,1.75));
  const sunlight=new T.DirectionalLight(0xffebd5,2.0);
  sunlight.position.set(-5,11,8);sunlight.castShadow=true;
@@ -1835,6 +1860,9 @@ function buildPodiumPhoto(){
  const cam=new T.PerspectiveCamera(39,16/9,.1,160);
  // Portrait Android previews must refit after changing the camera aspect.
  const stage={scene:sc,camera:cam,fitBounds:{min:subjects.min.clone(),max:subjects.max.clone()}};
+ // A genuinely broken model must not turn the entire result screen grey.
+ if(!subjects.min.toArray().every(Number.isFinite)||!subjects.max.toArray().every(Number.is))
+  throw Error('Invalid podium subject bounds');
  fitPodiumCamera(stage,16/9);
  return stage;
 }
