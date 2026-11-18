@@ -65,6 +65,64 @@ const animals=[
 ];
 // Fictional kaiju heights and per-foot strides (metres); not zoological measurements.
 const KAIJU_SPECS={spinetitan:{heightM:27,strideM:9,form:'biped'},velka:{heightM:13,strideM:5.2,form:'biped'},dorogan:{heightM:20,strideM:7,form:'quad'}};
+// Full standing-model heights in metres. Living species are representative adults;
+// extinct sizes are approximate reconstructions; fantasy heights are game design.
+// Measurement is the entire modeled silhouette (including horns/crest), not shoulder height.
+const SPECIES_HEIGHT_M={
+ dog:0.78,
+ cat:0.37,
+ fox:0.55,
+ dodo:1,
+ rabbit:0.5,
+ greyhound:0.98,
+ zebra:2.25,
+ boar:1.35,
+ ostrich:2.6,
+ kangaroo:1.8,
+ moa:3,
+ horse:2.28,
+ wolf:1.05,
+ giantsloth:4,
+ lion:1.38,
+ deer:2.22,
+ smilodon:1.42,
+ gazelle:1.26,
+ pronghorn:1.5,
+ tiger:1.34,
+ unicorn:2.37,
+ cheetah:1.06,
+ gorilla:1.76,
+ elephant:3.7,
+ hippo:1.75,
+ rhino:2.12,
+ mammoth:3.95,
+ woollyrhino:2.32,
+ direwolf:1.15,
+ terrorbird:2.65,
+ cavebear:2.1,
+ triceratops:3.02,
+ stegosaurus:4.05,
+ ankylosaurus:1.95,
+ parasaurolophus:4.4,
+ gallimimus:2.45,
+ velociraptor:0.65,
+ deinonychus:1.4,
+ carnotaurus:3.38,
+ trex:4.65,
+ spinosaurus:4.75,
+ pegasus:2.38,
+ cerberus:1.95,
+ griffin:2.52,
+ minotaur:3.2,
+ dragon:6.4,
+ golem:4.3,
+ giantrobot:7.8,
+ alien:2.35,
+ kaiju:10,
+ spinetitan:27,
+ velka:13,
+ dorogan:20
+};
 const palettes={skin:['#ffe0c7','#eec09b','#c88d62','#975f45','#633c2d','#f3c99c','#c49574','#ab7858','#dfac7d','#6b4936'],hair:['#202029','#432c23','#9f6337','#d8bd75','#8a484b','#bebdc2','#1e5581','#a649a7','#74371d','#d4d3cb'],shirt:['#a9b5ae','#ffffff','#1a2c47','#ef645a','#3a9ede','#9c69e2','#e5aa49','#1f7d72','#dc88a9','#b6bdc4','#343038','#f3ca77'],pants:['#14283e','#f1f3ee','#193b4f','#3f454d','#953d4e','#41553f','#8e735a','#253364','#74748b'],shoes:['#f7f8f0','#e9b14e','#252a2f','#63d7e6','#ef6a66','#a77beb','#9bb59f','#cfd3d7'],irisTone:['#443020','#67513a','#2a4d62','#477164','#8f897d','#282b30','#8b6b4e','#627e94','#a5ab97','#425d56'],sole:['#e6e4dd','#282f32','#808a8e','#d4c1a4','#c38e72','#546973','#a3a69d','#a36956']};
 
 const avatarGroups=[
@@ -230,7 +288,7 @@ function buildStadium(){
 buildStadium();
 function lineShadow(parent,scale=1){const shadow=new T.Mesh(new T.CircleGeometry(1,20),new T.MeshBasicMaterial({color:0x09141b,transparent:true,opacity:.22,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.scale.set(scale,.5*scale,1);shadow.position.y=.115;parent.add(shadow);return shadow}
 const humanX=-1.6,animalX=1.6;
-function makeHuman(a){
+function makeRawHuman(a){
  const morph=k=>clamp((Number(a[k]??defaultAvatar[k]??50)-50)/50,-1,1);
  const root=new T.Group(),skeleton=new T.Group();root.add(skeleton);
  const skin=mat(palettes.skin[a.skin%palettes.skin.length]),hair=mat(palettes.hair[a.hair%palettes.hair.length]),shirt=mat(palettes.shirt[a.shirt%palettes.shirt.length],.72),pants=mat(palettes.pants[a.pants%palettes.pants.length]),shoes=mat(palettes.shoes[a.shoes%palettes.shoes.length],.6),white=mat(0xecf1ea), iris=mat(palettes.irisTone[a.irisTone??0]||palettes.irisTone[0],.32),dark=mat(0x312721),lipMat=mat(new T.Color(palettes.skin[a.skin%palettes.skin.length]).multiplyScalar(.70),.92),soleMat=mat(palettes.sole[a.sole??0]||palettes.sole[0],.9);
@@ -327,6 +385,32 @@ function makeHuman(a){
   v.elbow.rotation.x=smooth(v.elbow.rotation.x,-.28-opposite*.35);
  });
  }};
+}
+
+// Normalize geometry to a shared world scale, then seat feet on the track.
+// The holder is separate from the animated body: animation can reset body.position.y
+// without losing the calibrated ground offset. Track shadows remain in the root.
+function normalizeSubjectHeight(rig,model,heightM){
+ if(!(heightM>0)&&heightM!==0)throw Error('Missing physical height');
+ rig.root.updateMatrixWorld(true);
+ const bbox=new T.Box3().setFromObject(model);
+ const measured=bbox.max.y-bbox.min.y;
+ if(!(measured>.04)||!Number.isFinite(measured))throw Error('Invalid 3D model bounds');
+ const rootScale=rig.root.scale.y;
+ const holder=new T.Group();
+ rig.root.add(holder);
+ holder.position.y=-bbox.min.y/Math.max(.0001,rootScale);
+ holder.add(model);
+ rig.root.scale.multiplyScalar(heightM/measured);
+ rig.root.userData.worldHeightM=heightM;
+ return rig;
+}
+
+function makeHuman(a){
+ const rig=makeRawHuman(a);
+ // Avatar height (1..10) maps to an adult stature while retaining all 73 sliders.
+ const value=clamp(Number(a.height)||5,1,10);
+ return normalizeSubjectHeight(rig,rig.skeleton,1.70+(value-5)*.045);
 }
 function makeBeast(data){
  const k=data.kind;const root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);const coat=mat(data.coat,.98),highlight=mat(new T.Color(data.coat).multiplyScalar(1.10),.94),shade=mat(new T.Color(data.coat).multiplyScalar(.72),.96),nose=mat(0x2c2727),pale=mat(k==='zebra'?0xece8e2:0xf0dac3),white=mat(0xffffff),eyes=mat(0x18191c,.28);coat.map=furMaterialTexture;coat.needsUpdate=true;let legs=[],tail,arms=[];
@@ -465,7 +549,7 @@ function makeOriginalKaiju(data){
  return withSpeciesLocomotion(data,{root,bodyGroup,legs,arms,tail,animate:()=>{}});
 }
 
-function makeExtendedBeast(data){
+function buildUnscaledBeast(data){
  if(KAIJU_SPECS[data.kind])return makeOriginalKaiju(data);
  // The original thirteen racers retain their existing models; the other thirty-seven use specialized anatomy.
  if(data.kind==='boar')return withSpeciesLocomotion(data,makeWildBoar(data));
@@ -761,6 +845,13 @@ function makeExtendedBeast(data){
 }
 
 
+function makeExtendedBeast(data){
+ const rig=buildUnscaledBeast(data);
+ // Original three kaiju already have metre-based geometry and world height.
+ if(KAIJU_SPECS[data.kind])return rig;
+ const heightM=SPECIES_HEIGHT_M[data.kind];
+ return normalizeSubjectHeight(rig,rig.bodyGroup,heightM);
+}
 
 function finishAnimalModel(data,rig){
  const g=rig.bodyGroup,k=data.kind;if(!g)return rig;
