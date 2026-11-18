@@ -2005,23 +2005,37 @@ function captureCeremonyPhoto(){
    const token=++podiumPreviewToken;
    const image=$('resultPhoto');
    const probe=new Image();
-   probe.onload=()=>{
-    if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo)return;
-    image.src=src;
-    image.hidden=false;
-    $('result3DWindow').hidden=true;
-    $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
-   };
-   probe.onerror=()=>{
-    if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo)return;
-    image.hidden=true;
-    $('result3DWindow').hidden=false;
-    $('shareHelp').textContent='写真の表示に失敗しました。3D表彰台を表示しています。保存・共有は利用できます。';
+   // A successful detached Image decode does not prove the visible DOM
+   // <img> decoded: Android WebView can evict the data URL between the two.
+   // Keep the actual 3D WebGL scene visible until the displayed image loads.
+   let settled=false;
+   const fallback=()=>{
+    if(settled||token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo)return;
+    settled=true;clearTimeout(previewTimer);
+    image.onload=null;image.onerror=null;image.removeAttribute('src');
+    image.hidden=true;$('result3DWindow').hidden=false;
+    $('shareHelp').textContent='3D表彰台を表示中です。写真は保存・共有できます。';
     void showAsyncPodiumPreview(photo);
    };
+   const previewTimer=setTimeout(fallback,2400);
+   probe.onload=()=>{
+    if(settled||token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo){clearTimeout(previewTimer);return}
+    image.onload=()=>{
+     if(settled||token!==podiumPreviewToken||!ceremonyStage||racePicture!==photo)return;
+     if(!image.naturalWidth||!image.naturalHeight){fallback();return}
+     settled=true;clearTimeout(previewTimer);
+     image.onload=null;image.onerror=null;
+     image.hidden=false;$('result3DWindow').hidden=true;
+     $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
+    };
+    image.onerror=fallback;
+    image.src=src;
+    // Cached data URLs may complete synchronously without firing onload.
+    if(image.complete&&image.naturalWidth&&image.naturalHeight)image.onload();
+   };
+   probe.onerror=fallback;
    probe.src=src;
-   image.hidden=true;
-   $('result3DWindow').hidden=false;
+   image.hidden=true;$('result3DWindow').hidden=false;
    $('shareHelp').textContent='3D表彰台写真を確認中。保存・共有は利用できます。';
   }else{
    // Preserve the actual 3D podium as the preview; never substitute 2D art.
