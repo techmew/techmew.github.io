@@ -1462,6 +1462,24 @@ async function showAsyncPodiumPreview(canvas){
 }
 
 let podiumRetryFrame=0,podiumRetryAttempts=0;
+
+function fitPodiumCamera(stage,aspect){
+ if(!stage?.fitBounds||!stage.camera)return;
+ const b=stage.fitBounds,cam=stage.camera;
+ const a=Math.max(.35,Math.min(3.5,Number(aspect)||16/9));
+ cam.aspect=a;
+ const halfFov=cam.fov*Math.PI/360;
+ const halfHeight=Math.max(1.9,(b.max.y-b.min.y)*.5*1.22);
+ const halfWidth=Math.max(3.5,(b.max.x-b.min.x)*.5*1.22);
+ const depth=(b.max.z-b.min.z)*.5;
+ const distance=Math.max(7.05,halfHeight/Math.tan(halfFov),
+  halfWidth/(Math.tan(halfFov)*a))+depth+1.0;
+ const x=(b.min.x+b.max.x)*.5,y=(b.min.y+b.max.y)*.5,z=(b.min.z+b.max.z)*.5;
+ cam.position.set(x,y+Math.min(.65,distance*.035),z+distance);
+ cam.lookAt(x,y,z);
+ cam.updateProjectionMatrix();
+}
+
 function buildPodiumPhoto(){
  const sc=new T.Scene();
  sc.background=new T.Color(0x657783);
@@ -1604,26 +1622,11 @@ function buildPodiumPhoto(){
  // Fixed-distance framing cropped large dinosaurs and made small rivals hard to see.
  const subjects=new T.Box3().setFromObject(athlete.root);
  subjects.union(new T.Box3().setFromObject(rival.root));
- const subjectSize=new T.Vector3();subjects.getSize(subjectSize);
- // Fit the actual world-space 3D subject bounds, not a fixed podium width.
- // Oversized dinosaurs and wide horns previously extended beyond the frame.
- const targetX=(subjects.min.x+subjects.max.x)*.5;
- const targetY=(subjects.min.y+subjects.max.y)*.5;
- const targetZ=(subjects.min.z+subjects.max.z)*.5;
  const cam=new T.PerspectiveCamera(39,16/9,.1,160);
- const halfFov=cam.fov*Math.PI/360;
- const margin=1.18;
- const halfHeight=Math.max(1.9,(subjects.max.y-subjects.min.y)*.5*margin);
- const halfWidth=Math.max(3.5,(subjects.max.x-subjects.min.x)*.5*margin);
- // Perspective depth matters: forward-facing limbs can be closer than the
- // torso, so reserve the full subject depth in addition to the fitted span.
- const depth=(subjects.max.z-subjects.min.z)*.5;
- const distance=Math.max(7.05,halfHeight/Math.tan(halfFov),
-   halfWidth/(Math.tan(halfFov)*cam.aspect))+depth+1.0;
- cam.position.set(targetX,targetY+Math.min(.65,distance*.035),targetZ+distance);
- cam.lookAt(targetX,targetY,targetZ);
- cam.updateProjectionMatrix();
- return {scene:sc,camera:cam};
+ // Portrait Android previews must refit after changing the camera aspect.
+ const stage={scene:sc,camera:cam,fitBounds:{min:subjects.min.clone(),max:subjects.max.clone()}};
+ fitPodiumCamera(stage,16/9);
+ return stage;
 }
 
 // Guaranteed result image: attempt live Three.js podium capture first.
@@ -1732,7 +1735,7 @@ function captureCeremonyPhoto(){
   if(!ctx)throw Error('Canvas 2D context unavailable');
   // Prefer the explicit GPU framebuffer: mobile WebGL canvases may clear
   // their default drawing buffer before drawImage reads it.
-  ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
+  fitPodiumCamera(ceremonyStage,w/h);
   let captured=false;
   try{
    capturePodiumFromGPU(ctx,w,h);
@@ -1755,8 +1758,7 @@ function captureCeremonyPhoto(){
    const photoAspect=w/h;
    // Fit the camera to the actual drawing buffer before taking the frame;
    // the offscreen target may have used a different aspect ratio.
-   ceremonyStage.camera.aspect=liveAspect;
-   ceremonyStage.camera.updateProjectionMatrix();
+   fitPodiumCamera(ceremonyStage,liveAspect);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
    const cropW=liveAspect>photoAspect?live.height*photoAspect:live.width;
    const cropH=liveAspect<photoAspect?live.width/photoAspect:live.height;
@@ -1816,7 +1818,7 @@ function captureCeremonyPhoto(){
    renderer.setRenderTarget(null);
    renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
    renderer.setSize(pw,ph,false);
-   ceremonyStage.camera.aspect=pw/ph;ceremonyStage.camera.updateProjectionMatrix();
+   fitPodiumCamera(ceremonyStage,pw/ph);
    if(!success)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   }
  }
@@ -1837,7 +1839,7 @@ function makeRacePhoto(){
   const canvas=renderer.domElement;preview.appendChild(canvas);
   canvas.style.position='relative';canvas.style.inset='auto';canvas.style.width='100%';canvas.style.height='100%';
   const w=Math.max(320,preview.clientWidth||340),h=Math.max(180,preview.clientHeight||192);
-  ceremonyStage.camera.aspect=w/h;ceremonyStage.camera.updateProjectionMatrix();
+  fitPodiumCamera(ceremonyStage,w/h);
   renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));renderer.setSize(w,h,false);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   // Show the live 3D podium before GPU capture on Android.
