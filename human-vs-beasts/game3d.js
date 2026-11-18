@@ -2000,25 +2000,29 @@ async function raceImageBlob(){
  }
  if(!racePicture)return null;
  const canvas=racePicture;
- // Android WebViews may return null from toBlob without throwing.
+ // Android WebViews may implement JPEG toBlob while PNG toBlob fails.
+ // Export the already validated 3D frame; never recapture or substitute artwork.
+ // Keep the async operation bounded and reject callbacks from an obsolete race.
  if(typeof canvas.toBlob==='function'){
-  try{
-   // Some Android WebViews never invoke toBlob's callback. Never leave
-   // Save/Share permanently pending: fall back to JPEG after 1800 ms.
-   const blob=await new Promise(resolve=>{
-    let settled=false;
-    const complete=value=>{if(settled)return;settled=true;clearTimeout(timeout);resolve(value)};
-    const timeout=setTimeout(()=>complete(null),1800);
-    try{canvas.toBlob(complete,'image/png')}
-    catch(err){complete(null)}
-   });
-   if(blob&&blob.size>0)return blob;
-  }catch(err){console.warn('Canvas PNG export unavailable',err)}
+  for(const format of ['image/png','image/jpeg']){
+   if(canvas!==racePicture||!ceremonyStage)return null;
+   try{
+    const blob=await new Promise(resolve=>{
+     let settled=false;
+     const complete=value=>{if(settled)return;settled=true;clearTimeout(timeout);resolve(value)};
+     const timeout=setTimeout(()=>complete(null),1400);
+     try{canvas.toBlob(complete,format,format==='image/jpeg'?.88:undefined)}
+     catch(err){complete(null)}
+    });
+    if(canvas!==racePicture||!ceremonyStage)return null;
+    if(blob&&blob.size>=2048&&blob.type===format)return blob;
+   }catch(err){console.warn('Canvas '+format+' export unavailable',err)}
+  }
  }
- // Android WebViews vary in their supported encoders. If toBlob fails or
- // never calls back, try both synchronous formats without discarding the
- // already validated 3D canvas. Do not return an empty/invalid image.
+ // Both asynchronous encoders can be missing or time out. Try synchronous
+ // formats against the same validated 3D pixels, with a minimum file size.
  for(const format of ['image/png','image/jpeg']){
+  if(canvas!==racePicture||!ceremonyStage)return null;
   try{
    const data=format==='image/jpeg'?canvas.toDataURL(format,.88):canvas.toDataURL(format);
    const match=/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(data);
