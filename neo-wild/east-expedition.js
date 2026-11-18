@@ -80,6 +80,7 @@
  // It never advertises a dry straight-line waypoint as reachable.
  function aquaticStep(player,target,passable){
   if(!player||!target||typeof passable!=="function")return {x:player?.x||0,y:player?.y||0,reachable:false,targetReached:false};
+  if(dist(player,target)<=60&&passable(player.x,player.y))return {x:player.x,y:player.y,reachable:true,targetReached:true,remaining:0,expanded:0};
   const size=40,limit=3200,origin={x:player.x,y:player.y},start="0,0";
   const key=(x,y)=>x+","+y,open=[{x:0,y:0,g:0,f:0}],seen=new Map([[start,0]]),cells=new Map([[start,open[0]]]);
   const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
