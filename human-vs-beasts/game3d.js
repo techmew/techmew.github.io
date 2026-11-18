@@ -1855,14 +1855,24 @@ async function raceImageBlob(){
    if(blob&&blob.size>0)return blob;
   }catch(err){console.warn('Canvas PNG export unavailable',err)}
  }
- try{
-  const data=canvas.toDataURL('image/jpeg',.88);
-  const match=/^data:image\/jpeg;base64,(.+)$/.exec(data);
-  if(!match)return null;
-  const bytes=atob(match[1]),array=new Uint8Array(bytes.length);
-  for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
-  return new Blob([array],{type:'image/jpeg'});
- }catch(err){console.warn('3D result photo export failed',err);return null}
+ // Android WebViews vary in their supported encoders. If toBlob fails or
+ // never calls back, try both synchronous formats without discarding the
+ // already validated 3D canvas. Do not return an empty/invalid image.
+ for(const format of ['image/png','image/jpeg']){
+  try{
+   const data=format==='image/jpeg'?canvas.toDataURL(format,.88):canvas.toDataURL(format);
+   const match=/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(data);
+   if(!match||match[1]!==format)continue;
+   const bytes=atob(match[2]);
+   if(bytes.length<2048)continue;
+   const array=new Uint8Array(bytes.length);
+   for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
+   const blob=new Blob([array],{type:format});
+   if(blob.size>=2048)return blob;
+  }catch(err){console.warn('3D result photo '+format+' export failed',err)}
+ }
+ $('shareHelp').textContent='3D写真の書き出しに失敗しました。再撮影してから保存・共有してください。';
+ return null;
 }
 async function saveRacePhoto(){
  const blob=await raceImageBlob();if(!blob){$('shareHelp').textContent='画像を生成できませんでした。';return false}
