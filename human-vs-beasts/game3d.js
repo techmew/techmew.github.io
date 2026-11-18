@@ -1602,6 +1602,10 @@ function captureCeremonyPhoto(){
    captured=podiumPixelsValid(ctx,w,h);
   }catch(e){console.warn('Offscreen podium capture unavailable',e)}
   if(!captured){
+   // A failed readback may have left partial pixels in the output canvas.
+   // Clear them before trying the live framebuffer, so a failed fallback
+   // cannot accidentally pass validation with remnants of the GPU attempt.
+   ctx.clearRect(0,0,w,h);
    // Fallback to the onscreen canvas only after drawing a fresh frame.
    // Restore preview size after the capture so the live 3D remains usable.
    renderer.setRenderTarget(null);
@@ -1645,6 +1649,10 @@ function captureCeremonyPhoto(){
   }
  }catch(err){
   console.warn('3D image capture blocked; show live 3D podium instead',err);
+  // Never allow Save/Share to reuse a stale or partially rendered image.
+  // Android may fail midway through a GPU readback after an earlier attempt.
+  racePicture=null;
+  $('resultPhoto').removeAttribute('src');
   $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
   ceremonyStage.photoCaptured=false;
   $('shareHelp').textContent='3D表彰台を表示中。写真を再取得しています。';
