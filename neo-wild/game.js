@@ -5234,6 +5234,18 @@ function drawWeaponScrapLabels(){
   ctx.fillText(guarded?"！番人と戦闘":locked?"！番人未討伐":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
+ // A living guardian, not an arbitrary nearby predator, carries the combat
+ // marker; screen projection is shared by Canvas2D and WebGL overlay modes.
+ for(const guard of mobs){
+  if(guard.hp<=0||!guard.salvageCacheId||
+   !weaponScraps.some(q=>q.id===guard.salvageCacheId&&q.guardState==="engaged")||
+   Math.hypot(guard.x-P.x,guard.y-P.y)>330||lineBlocked(P,guard))continue;
+  const pos=projectGroundLabel(guard.x,guard.y,Math.max(30,guard.r||18));
+  if(pos.x<63||pos.x>vw-63||pos.y<54||pos.y>vh-36)continue;
+  ctx.fillStyle="#69282ce8";ctx.fillRect(pos.x-60,pos.y-25,120,26);
+  ctx.strokeStyle="#ff998c";ctx.lineWidth=1.4;ctx.strokeRect(pos.x-60,pos.y-25,120,26);
+  ctx.fillStyle="#fff3de";ctx.fillText("番人｜討伐対象",pos.x,pos.y-12);
+ }
  ctx.restore();
 }
 $("weapon-unequip")?.addEventListener("click",()=>equipWeaponAtDen(null));
@@ -6412,6 +6424,47 @@ function objectiveShortLabel(){
  if(mission===6)return "探索地点";
  return "目標";
 }
+// P3 salvage sortie: one continuous player objective built from live actors,
+// world-space caches, actual individual equipment and the shared den. No
+// parallel mission ledger or new SAVE_SCHEMA2 field is introduced.
+function eastSalvageObjective(){
+ if(!P||P.hp<=0||P.type==="carp"||P.x<7600)return null;
+ const armory=window.WildArsenal;
+ if(!armory)return null;
+ const live=weaponScraps.filter(q=>q.x>=8400&&Math.hypot(q.x-P.x,q.y-P.y)<1150)
+  .sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y))[0];
+ if(live){
+  const guardian=mobs.find(m=>m.hp>0&&m.salvageCacheId===live.id);
+  if(live.guardState==="engaged"&&guardian)return {
+   x:guardian.x,y:guardian.y,label:"ガラクタの番人を倒す："+(species[guardian.type]?.name||guardian.type),
+   eastTrail:true,salvagePhase:"fight",scrapId:live.id
+  };
+  if(live.guardState==="pending"||live.guardState==="engaged")return {
+   x:live.x,y:live.y,label:"未鑑定ガラクタ：番人を誘い出して討伐",
+   eastTrail:true,salvagePhase:"guard",scrapId:live.id
+  };
+  return {x:live.x,y:live.y,label:"番人撃破済み：ガラクタを回収（○）",
+   eastTrail:true,salvagePhase:"pickup",scrapId:live.id};
+ }
+ const record=armory.read?.();
+ if(!record?.ok)return null;
+ const eligible=record.vault.items.some(item=>item.owner===P.type);
+ const equipped=armory.equippedFor?.(P);
+ if(eligible&&!equipped&&Array.isArray(denSites)&&denSites.length){
+  const den=denSites.filter(d=>Number.isFinite(d.x)&&Number.isFinite(d.y))
+   .sort((a,b)=>dist(a,P)-dist(b,P))[0];
+  if(den)return {x:den.x,y:den.y,label:"巣の武器保管庫で"+(species[P.type]?.name||P.type)+"用武器を装備",
+   eastTrail:true,salvagePhase:"equip"};
+ }
+ if(equipped){
+  const boss=mobs.filter(m=>m.hp>0&&m.strongBoss&&dist(m,P)<1600)
+   .sort((a,b)=>dist(a,P)-dist(b,P))[0];
+  if(boss)return {x:boss.x,y:boss.y,
+   label:"装備武器で強敵に挑む（ボス追加ダメージ）",
+   eastTrail:true,salvagePhase:"boss"};
+ }
+ return null;
+}
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
  if(mission>=7){
@@ -6420,12 +6473,13 @@ function getObjective(){
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
   }
   if(P.x>7650){
-   // Nearby unidentified loot is a second actionable eastern objective,
-   // using the exact world XY shared by map, pickup, 2D and WebGL.
-   const salvage=nearestWeaponScrap(270);
-   if(salvage)return {x:salvage.x,y:salvage.y,label:"未鑑定ガラクタを拾う（○）",eastTrail:true};
-   const next=window.WildEastExpedition?.next?.(P,eastTrailMask);
-   if(next)return {x:next.x,y:next.y,label:"東部探索 "+next.name,eastTrail:true};
+   // A moving, living guardian is targeted ahead of its locked cache. The
+   // same objective guides pickup, species-correct den equipment and bosses.
+   // Carp never receive a dry-land scrap objective.
+   const sortie=eastSalvageObjective();
+   if(sortie)return sortie;
+   const nav=window.WildEastExpedition?.navigation?.(P,eastTrailMask,P.type==="carp");
+   if(nav)return {x:nav.x,y:nav.y,label:"東部探索 "+nav.stop.name,eastTrail:true};
   }
   return null;
  }
@@ -8760,7 +8814,10 @@ function syncHUD(hour){
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
   const eastSupply=window.WildEastExpedition?.replenishable?.(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
-  contextLabel.textContent=nearestWeaponScrap(95)?"ガラクタを拾う":home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":eastSupply?"長押し補給":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
+  const cache=nearestWeaponScrap(95);
+  const cacheAction=cache?.guardState==="engaged"?"番人を倒す":
+   cache?.guardState==="pending"?"番人を誘い出す":cache?"ガラクタを拾う":null;
+  contextLabel.textContent=cacheAction?cacheAction:home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":eastSupply?"長押し補給":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
  $("score-line").textContent="SCORE "+String(Math.floor(elapsed*4+kills*88+(P.level-1)*110+totalScore)).padStart(6,"0");
  $("combo-line").textContent=P.comboTimer>0&&P.combo>1?"COMBO ×"+P.combo:"";
