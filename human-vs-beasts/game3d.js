@@ -1035,16 +1035,25 @@ function withSpeciesLocomotion(data,rig){
   const biped=['birdRun','heavyBiped','knuckleRun','mechanicalRun','springRun'].includes(gait);
   body.position.y=0;body.rotation.x=0;body.rotation.z=0;body.scale.y=scaleY;body.scale.z=scaleZ;
   if(isKangaroo){
-   // Both rear feet launch together. A distinct airborne phase and opposing tail swing.
-   body.position.y=.43*lift*effort-.046*brace*effort;
-   body.rotation.x=(.125*cos-.055*lift)*effort;
-   body.scale.z=scaleZ*(1+.035*cos*effort);
+   // True macropod cycle: paired hind-leg push, ballistic aerial tuck, and
+   // two-foot landing. Vertical travel is measured in world metres, not rig units.
+   const jump=Math.pow(Math.max(0,Math.sin(phase*.5)),1.45);
+   const stance=1-jump,worldScale=Math.max(.0001,rig.root.scale.y);
+   const clearance=(.62*jump*Math.min(1.3,effort)+.015*stance)/worldScale;
+   body.position.y=clearance;
+   body.rotation.x=(.11*Math.cos(phase*.5)-.065*jump)*effort;
+   body.scale.z=scaleZ*(1+.055*Math.cos(phase)*effort);
    for(const leg of legs){
-    leg.hip.rotation.x=(-.26-.57*lift+.32*brace)*effort;
-    leg.knee.rotation.x=(.17+.89*lift-.11*brace)*effort;
+    // Both rear feet are synchronized, unlike a generic alternating run.
+    const hind=leg.front<0||legs.length<=2;
+    leg.hip.rotation.x=(hind?-.24-.65*jump+.20*stance:-.15-.22*jump)*effort;
+    leg.knee.rotation.x=(hind?.13+.98*jump:.14+.24*jump)*effort;
    }
-   for(const arm of arms)if(arm.sh)arm.sh.rotation.x=(-.09-.23*lift)*effort;
-   if(tail){tail.rotation.x=(-.19*cos+.09*lift)*effort;tail.rotation.y=.045*Math.sin(phase*.50)*effort}
+   for(const arm of arms)if(arm.sh)arm.sh.rotation.x=(-.18-.28*jump)*effort;
+   if(tail){
+    tail.rotation.x=(.22*stance-.28*jump+.07*Math.cos(phase*.5))*effort;
+    tail.rotation.y=.075*Math.sin(phase*.25)*effort;
+   }
   }else if(isBound){
    // Hares/rabbits take a paired hind-leg jump then reach with both forefeet.
    body.position.y=.25*lift*effort-.022*brace*effort;
@@ -1163,10 +1172,11 @@ function withSpeciesLocomotion(data,rig){
   }
   // A landing event is generated from foot/ground contact, not from arbitrary distance.
   const beats=isKangaroo||isBound||isPronk?1:gait==='heavyTrot'||gait==='giantBiped'?2:gait==='giantQuad'?4:biped?2:4;
-  const shift=isKangaroo||isBound||isPronk?Math.PI:0;
+  const shift=isKangaroo?0:isBound||isPronk?Math.PI:0;
   const impactIndex=Math.floor((phase+shift)*beats/(Math.PI*2));
   if(lastImpact===null){lastImpact=impactIndex;return false}
   const landed=impactIndex>lastImpact;lastImpact=impactIndex;
+  if(isKangaroo)return landed&&body.position.y<.04;
   return gait==='wingFlight'&&rig.flight>.35?false:landed;
  };
  return rig;
