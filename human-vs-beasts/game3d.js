@@ -1007,10 +1007,85 @@ function animalGaitRate(kind,speed){
  }[gait]||2.0;
  return (1.65+clamped*0.28)*stride;
 }
+
+// Species-specific performance accents run ON TOP of anatomically distinct gaits.
+// Every one of the 53 models gets its own 3D action, not a shared randomized wobble.
+// These are stylized character performances, not claims about real animal biology.
+function speciesMotion(kind,rig,phase,effort){
+ const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail,wings=rig.wings||[];
+ const a=Math.min(1.35,effort),s=Math.sin(phase),c=Math.cos(phase);
+ const f=Math.sin(phase*2.3),g=Math.cos(phase*1.3),q=Math.sin(phase*.43);
+ const yaw=(n)=>{body.rotation.y+=n*a};
+ const roll=(n)=>{body.rotation.z+=n*a};
+ const pitch=(n)=>{body.rotation.x+=n*a};
+ const bounce=(n)=>{body.position.y+=Math.max(0,n)*a};
+ const tailWag=(n)=>{if(tail)tail.rotation.y+=n*a};
+ const tailPitch=(n)=>{if(tail)tail.rotation.x+=n*a};
+ const armSwing=(n)=>{for(const [i,p] of arms.entries())if(p.sh)p.sh.rotation.x+=(i%2?-1:1)*n*a};
+ const wingFlap=(n)=>{for(const p of wings)p.wing.rotation.z+=p.side*n*a};
+ switch(kind){
+  case 'dog':          roll(.10*f);tailWag(.36*Math.sin(phase*2.6));break; // happy tail & excited zig
+  case 'cat':          pitch(-.13*c);body.scale.z*=1+.085*s;tailWag(.25*Math.sin(phase*1.9));break; // springy arched back
+  case 'fox':          yaw(.095*s);tailWag(.40*g);bounce(.04*(1+c));break; // tail-led sidestep
+  case 'dodo':         roll(.23*s);pitch(.09*f);bounce(.05*(1+f));break; // drunken waddling
+  case 'rabbit':       pitch(.12*c);legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.31*a*Math.max(0,s)});break; // double rear tuck
+  case 'greyhound':    pitch(-.085*s);body.scale.z*=1+.14*c;tailWag(.10*g);break; // overextended sprint
+  case 'zebra':        yaw(.07*f);roll(.065*c);tailWag(.26*f);break; // energetic stamping
+  case 'boar':         pitch(-.14*Math.abs(s));roll(.12*f);tailWag(.18*s);break; // head-first shuffle
+  case 'ostrich':      roll(.12*g);pitch(.12*s);bounce(.06*(1+c));break; // high-neck sway
+  case 'kangaroo':     pitch(.10*s);tailPitch(-.31*c);tailWag(.12*g);break; // tail as a rudder
+  case 'moa':          roll(.16*Math.sin(phase*.8));pitch(.14*f);break; // towering wobbly strides
+  case 'horse':        pitch(.09*s);body.scale.z*=1+.048*c;tailWag(.25*f);break; // exaggerated thoroughbred
+  case 'wolf':         pitch(-.105*(1+c));tailWag(.16*q);roll(.044*f);break; // low pack-leader prowl
+  case 'giantsloth':   roll(.15*g);pitch(.17*s);armSwing(.23*f);break; // enormous slow lurch
+  case 'lion':         pitch(-.13*s);roll(.07*Math.sin(phase*1.5));tailWag(.23*q);break; // chest-out charge
+  case 'deer':         bounce(.09*(1+s));roll(.075*f);yaw(.05*c);break; // sideways spring
+  case 'smilodon':     pitch(-.20*Math.max(0,c));armSwing(.12*f);tailPitch(.12*s);break; // teeth-first pounce
+  case 'gazelle':      roll(.10*Math.sin(phase*.7));yaw(.105*f);bounce(.10*(1+s));break; // corkscrew pronk
+  case 'pronghorn':    yaw(.16*Math.sin(phase*.93));roll(.045*f);tailWag(.09*s);break; // slalom dash
+  case 'tiger':        roll(.115*Math.sin(phase*1.7));pitch(-.10*s);tailWag(.31*Math.sin(phase*.72));break; // stalking shoulder rolls
+  case 'unicorn':      pitch(.19*Math.max(0,s));roll(.065*f);tailWag(.20*Math.sin(phase*1.1));break; // proud head toss
+  case 'cheetah':      body.scale.z*=1+.19*s;pitch(.095*c);tailWag(.24*g);break; // extreme spinal extension
+  case 'gorilla':      roll(.16*s);pitch(.18*Math.max(0,c));armSwing(.30*f);break; // alternating knuckle smash
+  case 'elephant':     roll(.060*Math.sin(phase*.68));pitch(.035*c);tailWag(.21*Math.sin(phase*.64));break; // lumbering trunk-like sway
+  case 'hippo':        roll(.16*Math.sin(phase*1.37));bounce(.035*(1+f));pitch(.075*s);break; // barrel wobble
+  case 'rhino':        pitch(-.18*Math.max(0,s));yaw(.06*f);roll(.035*c);break; // horn-first bulldozer
+  case 'mammoth':      roll(.055*g);pitch(.065*s);tailWag(.13*Math.sin(phase*.55));break; // swinging tusk silhouette
+  case 'woollyrhino':  pitch(-.10*Math.abs(c));roll(.090*f);tailWag(.075*g);break; // woolly shoulder shake
+  case 'direwolf':     pitch(-.065*c);body.scale.z*=1+.074*s;tailWag(.28*Math.sin(phase*1.32));break; // enormous canine stride
+  case 'terrorbird':   pitch(.22*Math.sin(phase*1.12));roll(.09*f);bounce(.048*(1+c));break; // fast pecking gait
+  case 'cavebear':     roll(.13*Math.sin(phase*.77));pitch(.17*Math.max(0,s));armSwing(.14*c);break; // staggering bear bulk
+  case 'triceratops':  pitch(-.18*Math.max(0,s));roll(.065*Math.sin(phase*.84));tailWag(.11*q);break; // horn feint
+  case 'stegosaurus':  roll(.075*g);tailWag(.46*Math.sin(phase*.83));pitch(.04*f);break; // dramatic tail sweep
+  case 'ankylosaurus': tailWag(.68*Math.sin(phase*.63));roll(.075*Math.sin(phase*.63));break; // club-tail windup
+  case 'parasaurolophus':yaw(.14*Math.sin(phase*.95));pitch(.125*s);tailWag(.11*c);break; // crest-like head dance
+  case 'gallimimus':   roll(.13*f);pitch(.10*c);armSwing(.21*Math.sin(phase*2.1));break; // nervous bird-arm paddles
+  case 'velociraptor':yaw(.19*Math.sin(phase*1.1));roll(.115*f);tailWag(-.25*s);break; // evasive raptor jig
+  case 'deinonychus':  pitch(.13*c);armSwing(.33*Math.sin(phase*1.7));tailWag(.20*Math.sin(phase*.98));break; // sickle-claw reach
+  case 'carnotaurus':  roll(.10*Math.sin(phase*2.0));pitch(-.145*Math.max(0,s));armSwing(.40*f);break; // tiny furious arms
+  case 'trex':         pitch(-.135*Math.max(0,c));armSwing(.42*Math.sin(phase*2.1));tailWag(.115*g);break; // ridiculous micro-arm sprint
+  case 'spinosaurus':  roll(.083*Math.sin(phase*.62));pitch(.13*s);tailWag(.29*Math.sin(phase*.57));break; // sailboat-like rocking
+  case 'pegasus':      wingFlap(-.29*Math.sin(phase*.58));pitch(-.06*Math.max(0,s));tailWag(.10*q);break; // broad wing strokes
+  case 'cerberus':     yaw(.20*Math.sin(phase*.84));roll(.090*Math.cos(phase*2.2));tailWag(.31*f);break; // three-head scan
+  case 'griffin':      wingFlap(-.37*Math.sin(phase*.90));roll(.17*Math.sin(phase*.71));pitch(-.07*c);break; // banking wing-beast
+  case 'minotaur':     yaw(.095*f);pitch(-.20*Math.max(0,s));armSwing(.28*Math.sin(phase*1.61));break; // bull-like shoulder feint
+  case 'dragon':       wingFlap(-.45*Math.sin(phase*.68));roll(.14*Math.sin(phase*.42));tailWag(.29*Math.sin(phase*.42));break; // broad-winged sway
+  case 'golem':        roll(.10*Math.sign(s)*Math.abs(s));bounce(.035*(1+f));armSwing(.12*c);break; // loose masonry stomp
+  case 'giantrobot':   pitch(.095*Math.sin(phase*1.15));roll(.062*Math.sign(f));armSwing(.28*Math.sign(s));break; // angular mechanical joints
+  case 'alien':        body.scale.x*=1+.12*Math.sin(phase*1.7);body.scale.y*=1+.078*Math.sin(phase*.81);yaw(.15*f);break; // elastic extraterrestrial shuffle
+  case 'kaiju':        roll(.09*Math.sin(phase*.42));pitch(-.10*Math.max(0,s));tailWag(.20*Math.sin(phase*.41));break; // geological wobble
+  case 'spinetitan':   roll(.10*Math.sin(phase*.34));pitch(.09*Math.sin(phase*.49));tailWag(.08*f);break; // drifting giant dorsal plates
+  case 'velka':        yaw(.145*Math.sin(phase*1.47));pitch(-.09*s);tailWag(.32*Math.sin(phase*1.34));break; // agile titan switchback
+  case 'dorogan':      roll(.06*Math.sin(phase*.36));pitch(.035*c);tailWag(.095*Math.sin(phase*.42));break; // slow four-foot quake
+  default:throw Error('Missing 3D signature motion for '+kind);
+ }
+ rig.signatureMotion=kind;
+}
+
 function withSpeciesLocomotion(data,rig){
  const kind=data.kind,gait=GAIT_MAP[kind]||'canter';
  const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail,wings=rig.wings||[];
- const original=rig.animate,scaleY=body.scale.y,scaleZ=body.scale.z;
+ const original=rig.animate,scaleX=body.scale.x,scaleY=body.scale.y,scaleZ=body.scale.z;
  let lastImpact=null;
  rig.gait=gait;rig.gaitLabel=GAIT_LABELS[gait]||'走行';
  rig.animate=function(phase,speed,distance=0){
@@ -1018,8 +1093,8 @@ function withSpeciesLocomotion(data,rig){
   if(original)original(phase,speed);
   const moving=speed>.18,effort=moving?clamp(speed/11,.18,1.50):0;
   if(!moving){
-   body.position.y=0;body.rotation.x=0;body.rotation.z=0;
-   body.scale.y=scaleY;body.scale.z=scaleZ;
+   body.position.y=0;body.rotation.x=0;body.rotation.y=0;body.rotation.z=0;
+   body.scale.x=scaleX;body.scale.y=scaleY;body.scale.z=scaleZ;
    for(const leg of legs){leg.hip.rotation.x=0;leg.knee.rotation.x=0}
    for(const arm of arms)if(arm.sh)arm.sh.rotation.x=0;
    if(tail){tail.rotation.x=0;tail.rotation.y=0}
@@ -1033,7 +1108,7 @@ function withSpeciesLocomotion(data,rig){
   const isBound=gait==='bound';
   const isPronk=gait==='pronk';
   const biped=['birdRun','heavyBiped','knuckleRun','mechanicalRun','springRun'].includes(gait);
-  body.position.y=0;body.rotation.x=0;body.rotation.z=0;body.scale.y=scaleY;body.scale.z=scaleZ;
+  body.position.y=0;body.rotation.x=0;body.rotation.y=0;body.rotation.z=0;body.scale.x=scaleX;body.scale.y=scaleY;body.scale.z=scaleZ;
   if(isKangaroo){
    // True macropod cycle: paired hind-leg push, ballistic aerial tuck, and
    // two-foot landing. Vertical travel is measured in world metres, not rig units.
@@ -1077,8 +1152,10 @@ function withSpeciesLocomotion(data,rig){
    const flight=up*up*(3-2*up);
    rig.flight=flight;
    const heightScale=Math.max(.0001,rig.root.scale.y);
-   const bob=.10*Math.sin(phase*1.2)*flight;
-   body.position.y=(1.65*flight+bob)/heightScale;
+   const bob=.35*Math.sin(phase*1.2)*flight;
+   // Steady climb from takeoff to 100m, rather than skimming a metre above the track.
+   const climb=(6.5+Math.max(0,Math.min(100,distance)-21)*.11)*flight;
+   body.position.y=(climb+bob)/heightScale;
    body.rotation.x=(-.10*flight+.025*cos)*effort;
    body.rotation.z=.025*Math.sin(phase*.6)*flight;
    for(const [i,leg] of legs.entries()){
@@ -1170,6 +1247,7 @@ function withSpeciesLocomotion(data,rig){
    for(const [i,arm] of arms.entries())if(arm.sh)arm.sh.rotation.x=-.46*Math.sin(phase+i*Math.PI)*effort;
    if(tail){tail.rotation.y=.13*s*effort;tail.rotation.x=-.045*cos*effort}
   }
+  speciesMotion(kind,rig,phase,effort);
   // A landing event is generated from foot/ground contact, not from arbitrary distance.
   const beats=isKangaroo||isBound||isPronk?1:gait==='heavyTrot'||gait==='giantBiped'?2:gait==='giantQuad'?4:biped?2:4;
   const shift=isKangaroo?0:isBound||isPronk?Math.PI:0;
@@ -2026,12 +2104,13 @@ function advancePegasusFlight(dt){
  const speed=Math.min(108,Math.max(22,r.pegasusCruiseSpeed||22)+r.pegasusCruiseTime*17);
  r.pegasusFlightSpeed=speed;
  r.pegasusBeyond+=speed*step;
- const height=Math.min(35,r.pegasusCruiseTime*6.4);
+ // Accelerating vertical ascent: ~65m after 3s, over 140m by 5.5s.
+ const height=Math.min(165,9*r.pegasusCruiseTime+4.4*r.pegasusCruiseTime*r.pegasusCruiseTime);
  opponent.root.position.set(r.enemyLateral,.13+height,r.pegasusBeyond);
- opponent.root.visible=r.pegasusBeyond<365;
+ opponent.root.visible=r.pegasusBeyond<520;
  if(r.phase==='pegasusExit'){
   r.pegasusExitWait=(r.pegasusExitWait||0)+step;
-  if(!opponent.root.visible||r.pegasusExitWait>=6){
+  if(!opponent.root.visible||r.pegasusExitWait>=8.5){
    // A missing render frame cannot trap the player in the farewell sequence.
    opponent.root.visible=false;
    r.pegasusExitDone=true;
@@ -2046,13 +2125,13 @@ function finishRace(){
  const opponent=animals[opponentIndex];
  // Pegasus must visibly continue flying beyond the finish before the result UI
  // switches WebGL over to the podium. The official race time is already fixed.
- if(opponent.kind==='pegasus'&&!r.pegasusExitDone&&(r.pegasusBeyond??r.enemyD)<365){
+ if(opponent.kind==='pegasus'&&!r.pegasusExitDone&&(r.pegasusBeyond??r.enemyD)<520){
   if(r.phase!=='pegasusExit'){
    r.phase='pegasusExit';r.pegasusExitWait=0;r.pegasusBeyond=r.pegasusBeyond??r.enemyD;
    r.pegasusCruiseTime=r.pegasusCruiseTime||0;r.pegasusCruiseSpeed=Math.max(22,r.pegasusCruiseSpeed||r.enemyV||22);
    r.humanV=0;r.drive=0;
    $('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
-   showNotice('ペガサスが空の向こうへ飛び去っていきます',6.5);
+   $('raceMsg').style.display='none';noticeTime=0;
   }
   return;
  }
@@ -2325,7 +2404,8 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
   // previously kept it almost the same apparent size, defeating the flyaway.
   const finishLine=100;
   wantedPos=new T.Vector3(.2,5.8,finishLine-22);
-  wantedTarget=new T.Vector3(animalX,Math.min(18,7+(race.pegasusCruiseTime||0)*1.8),finishLine+145);
+  // Fixed upward view, rather than chasing the flying subject as it recedes.
+  wantedTarget=new T.Vector3(animalX,48,finishLine+180);
   camera.fov=mix(camera.fov,innerWidth<innerHeight?60:51,Math.min(1,dt*2.8));camera.updateProjectionMatrix();
  }else{
  const monster=KAIJU_SPECS[animals[save.chosen]?.kind];
