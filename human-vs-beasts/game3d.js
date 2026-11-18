@@ -1071,10 +1071,10 @@ function withSpeciesLocomotion(data,rig){
    for(const leg of legs){leg.hip.rotation.x=(-.15-.37*lift)*effort;leg.knee.rotation.x=(.12+.55*lift)*effort}
    if(tail)tail.rotation.y=.12*s*effort;
   }else if(gait==='wingFlight'){
-   // Pegasus runs to build speed, lifts off after 7m and touches down by 97m.
-   // Smoothstep prevents popping on takeoff/landing. Every movement stays true 3D.
-   const up=clamp((distance-7)/14,0,1),down=clamp((97-distance)/15,0,1);
-   const flight=up*up*(3-2*up)*down*down*(3-2*down);
+   // Pegasus takes off after the approach and NEVER lands within the race.
+   // Keep flapping beyond 100m while the animal recedes over the horizon.
+   const up=clamp((distance-7)/14,0,1);
+   const flight=up*up*(3-2*up);
    rig.flight=flight;
    const heightScale=Math.max(.0001,rig.root.scale.y);
    const bob=.10*Math.sin(phase*1.2)*flight;
@@ -1515,7 +1515,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time;r.taps+=1;r.legTaps[side]=now;
@@ -2010,10 +2010,49 @@ function makeRacePhoto(){
  }
 }
 
+
+// Race distance and finish time remain locked at 100m. The visual Pegasus
+// travels farther, climbs and vanishes without changing awards or save state.
+function advancePegasusFlight(dt){
+ const r=race;
+ if(!r||animals[r.opponentIndex]?.kind!=='pegasus'||(r.phase!=='pegasusExit'&&r.eFinish===null))return;
+ const step=Math.min(.065,Math.max(0,dt));
+ if(r.pegasusBeyond==null)r.pegasusBeyond=r.enemyD;
+ if(r.pegasusCruiseTime==null)r.pegasusCruiseTime=0;
+ r.pegasusCruiseTime+=step;
+ const speed=Math.min(108,Math.max(22,r.pegasusCruiseSpeed||22)+r.pegasusCruiseTime*17);
+ r.pegasusFlightSpeed=speed;
+ r.pegasusBeyond+=speed*step;
+ const height=Math.min(35,r.pegasusCruiseTime*6.4);
+ opponent.root.position.set(r.enemyLateral,.13+height,r.pegasusBeyond);
+ opponent.root.visible=r.pegasusBeyond<365;
+ if(r.phase==='pegasusExit'){
+  r.pegasusExitWait+=step;
+  if(!opponent.root.visible||r.pegasusExitWait>=6){
+   // A missing render frame cannot trap the player in the farewell sequence.
+   opponent.root.visible=false;
+   r.pegasusExitDone=true;
+   finishRace();
+  }
+ }
+}
+
 function finishRace(){
  const r=race;if(!r||r.phase==='results')return;
  const opponentIndex=Number.isInteger(r.opponentIndex)&&r.opponentIndex>=0&&r.opponentIndex<animals.length?r.opponentIndex:save.chosen;
  const opponent=animals[opponentIndex];
+ // Pegasus must visibly continue flying beyond the finish before the result UI
+ // switches WebGL over to the podium. The official race time is already fixed.
+ if(opponent.kind==='pegasus'&&!r.pegasusExitDone&&(r.pegasusBeyond??r.enemyD)<365){
+  if(r.phase!=='pegasusExit'){
+   r.phase='pegasusExit';r.pegasusExitWait=0;r.pegasusBeyond=r.pegasusBeyond??r.enemyD;
+   r.pegasusCruiseTime=r.pegasusCruiseTime||0;r.pegasusCruiseSpeed=Math.max(22,r.pegasusCruiseSpeed||r.enemyV||22);
+   r.humanV=0;r.drive=0;
+   $('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
+   showNotice('ペガサスが空の向こうへ飛び去っていきます',6.5);
+  }
+  return;
+ }
  r.phase='results';$('countdown').style.display='none';$('raceControls').style.display='none';$('raceHUD').style.display='none';
  const completed=Number.isFinite(r.hFinish);
  // An opponent still running has eFinish=null; numeric comparison with null
@@ -2079,7 +2118,8 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  // Repeated right input moves toward the outside of the rightmost lane (negative world X).
  // Repeated left input moves toward the rival (positive X) and can shoulder-bump it.
  human.root.position.set(r.lateral,.13,r.humanD);human.root.rotation.y=clamp(-r.lateralVelocity*.045,-.13,.13);
- opponent.root.position.set(r.enemyLateral,.13,r.enemyD);
+ // Official opponent distance stops at 100m; the post-finish flight is visual only.
+ if(a.kind!=='pegasus'||r.eFinish===null)opponent.root.position.set(r.enemyLateral,.13,r.enemyD);
  if(offCourse&&!r.offTrack){r.offTrack=true;showNotice('コース外：失速します',.85)}
  else if(!offCourse)r.offTrack=false;
  if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null
@@ -2276,6 +2316,13 @@ addEventListener('keydown',e=>{
 // Drag the 3D model in studio, with direct pointer interaction.
 let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{if(mode==='custom'||mode==='beasts'){dragging=true;pointerStart=e.clientX;$('world').setPointerCapture?.(e.pointerId)}});$('world').addEventListener('pointermove',e=>{if(dragging){camSpin+=(e.clientX-pointerStart)*.012;pointerStart=e.clientX}});$('world').addEventListener('pointerup',()=>dragging=false);$('world').addEventListener('pointercancel',()=>dragging=false);
 function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
+ if(mode==='race'&&race?.phase==='pegasusExit'){
+  // Stationary viewpoint behind the finish line; Pegasus shrinks into the sky.
+  const base=Math.min(d,race.pegasusBeyond??d)-24;
+  wantedPos=new T.Vector3(.2,6,base);
+  wantedTarget=new T.Vector3(animalX,Math.min(28,9+(race.pegasusCruiseTime||0)*4),race.pegasusBeyond+14);
+  camera.fov=mix(camera.fov,innerWidth<innerHeight?60:51,Math.min(1,dt*2.8));camera.updateProjectionMatrix();
+ }else{
  const monster=KAIJU_SPECS[animals[save.chosen]?.kind];
  const speciesHeight=SPECIES_HEIGHT_M[animals[save.chosen]?.kind]||1.7;
  if(mode==='race'&&monster){
@@ -2299,6 +2346,7 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else if(mode==='menu'&&monster){const b=monster.heightM*1.6;wantedPos=new T.Vector3(-b*.34,monster.heightM*.65,b);wantedTarget=new T.Vector3(animalX,monster.heightM*.42,0);camera.fov=mix(camera.fov,innerWidth<innerHeight?60:53,Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else{const portrait=innerWidth<innerHeight;wantedPos=portrait?new T.Vector3(-4.1,2.95,12.8):new T.Vector3(-5.4,3.08,10.9);wantedTarget=portrait?new T.Vector3(0,1.15,0):new T.Vector3(-2.0,1.12,0);camera.fov=mix(camera.fov,portrait?55:50,Math.min(1,dt*2.5));camera.updateProjectionMatrix()}
+ }
  const t=1-Math.exp(-Math.max(.0001,dt)*(mode==='race'?4.0:3.0));camPos.lerp(wantedPos,t);cameraTarget.lerp(wantedTarget,t);camera.position.copy(camPos);camera.lookAt(cameraTarget)}
 
 let renderQuality=renderer.getPixelRatio(),perfFrames=0,perfSeconds=0,perfGate=0;
@@ -2363,13 +2411,18 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
 let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
  if(webglUnavailable)return;
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
- if(mode==='race')updateRace(dt);
+ if(mode==='race'&&race?.phase==='pegasusExit')advancePegasusFlight(dt);
+ else if(mode==='race')updateRace(dt);
+ if(mode==='race'&&race?.phase==='pegasusExit'&&race.pegasusExitWait===0)advancePegasusFlight(dt);
+ if(mode==='race'&&race?.phase==='running'&&race.eFinish!==null&&animals[race.opponentIndex]?.kind==='pegasus')advancePegasusFlight(dt);
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  // Visual animations use actual runner and opponent speeds
- const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0,espeed=mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&animals[save.chosen]?.kind==='pegasus'?6:0;
+ const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0;
+ const visualPegasus=mode==='race'&&animals[race?.opponentIndex]?.kind==='pegasus'&&(race?.phase==='pegasusExit'||race?.eFinish!==null);
+ const espeed=visualPegasus?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&animals[save.chosen]?.kind==='pegasus'?6:0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
- const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?40:race?.enemyD||0);
+ const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?40:visualPegasus?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[save.chosen].kind,gait=GAIT_MAP[kind];
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
@@ -2381,7 +2434,7 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
     kickDust(race.enemyLateral+.36,race.enemyD-.30,espeed);
   }
  }
- if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
+ if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;opponent.root.position.y=.13;opponent.root.visible=true;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.55);x.mesh.position.y+=dt*.16;x.mesh.material.opacity=Math.max(0,.20*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  scuffs.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.material.opacity=Math.max(0,.13*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
