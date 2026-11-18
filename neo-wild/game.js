@@ -694,7 +694,7 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
- const nav=route.navigation?.(P,eastTrailMask,P.type==="carp");
+ const nav=route.navigation?.(P,eastTrailMask,P.type==="carp",(x,y)=>waterDepth(x,y)>.09&&!collides(x,y,15,P,true));
  if(nav&&elapsed-eastTrailHazardNoticeAt>28&&P.x>=7600){
   eastTrailHazardNoticeAt=elapsed;
   const routeHint=nav.offPath?"｜街道から"+nav.routeDistance+"m離脱・合流地点へ案内":
