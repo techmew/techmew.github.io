@@ -2809,6 +2809,14 @@ function render(o){
     dir:angle+Math.sin(Math.PI*2*phase)*(m.strongBoss?.035:.11)};
   }
   for(const m of mobs)if(isVisible(m.x,m.y,m.type==="worldEnd"?640:110)){
+   // A real assigned, living cache guardian is outlined in the same mountain
+   // world coordinates as its AI hitbox and Canvas label. No sprite assets.
+   if(m.hp>0&&m.salvageCacheId&&
+      (o.weaponScraps||[]).some(q=>q.id===m.salvageCacheId&&q.guardState==="engaged")){
+    const ground=(window.WildMountain?.height?.(m.x,m.y)||0)+1.5;
+    ellipsoid(m.x,m.y,ground,Math.max(24,(m.r||16)*1.6),
+     Math.max(20,(m.r||16)*1.4),1.7,"#f08375",0,12,3);
+   }
    const recoil=impactRecoil(m,P);
    animal({...m,...species[m.type],...recoil},false,elapsed);
    drawImpactFlare(m);
