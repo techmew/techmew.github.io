@@ -1743,12 +1743,25 @@ function captureCeremonyPhoto(){
    // Clear them before trying the live framebuffer, so a failed fallback
    // cannot accidentally pass validation with remnants of the GPU attempt.
    ctx.clearRect(0,0,w,h);
-   // Fallback to the onscreen canvas only after drawing a fresh frame.
-   // Restore preview size after the capture so the live 3D remains usable.
+   // Preserve the active WebGL drawing buffer on Android. Resizing the
+   // renderer here reallocates the default framebuffer and can leave a
+   // permanently grey podium or lose the WebGL context on memory-limited
+   // devices. Draw a fresh frame at the existing preview resolution and
+   // downsample its pixels into the photo canvas instead.
    renderer.setRenderTarget(null);
-   renderer.setPixelRatio(1);renderer.setSize(w,h,false);
+   const live=renderer.domElement;
+   if(!live.width||!live.height)throw Error('Podium preview framebuffer unavailable');
+   const liveAspect=live.width/live.height;
+   const photoAspect=w/h;
+   // Fit the camera to the actual drawing buffer before taking the frame;
+   // the offscreen target may have used a different aspect ratio.
+   ceremonyStage.camera.aspect=liveAspect;
+   ceremonyStage.camera.updateProjectionMatrix();
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-   ctx.drawImage(renderer.domElement,0,0,w,h);
+   const cropW=liveAspect>photoAspect?live.height*photoAspect:live.width;
+   const cropH=liveAspect<photoAspect?live.width/photoAspect:live.height;
+   const sx=(live.width-cropW)*.5,sy=(live.height-cropH)*.5;
+   ctx.drawImage(live,sx,sy,cropW,cropH,0,0,w,h);
    captured=podiumPixelsValid(ctx,w,h);
   }
   if(!captured)throw Error('Podium framebuffer is empty or uniform');
