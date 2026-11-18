@@ -79,51 +79,59 @@
  // Local water-only A* uses the same live collision predicate as player movement.
  // It never advertises a dry straight-line waypoint as reachable.
  function aquaticStep(player,target,passable){
-  if(typeof passable!=="function")return {x:player.x,y:player.y,reachable:false};
-  const size=80,limit=1400,origin={x:player.x,y:player.y};
-  const key=(x,y)=>x+","+y,open=[{x:0,y:0,g:0,f:0}],seen=new Map([[key(0,0),0]]);
-  const cells=new Map([[key(0,0),open[0]]]);
-  let best=open[0],bestDist=dist(origin,target),expanded=0;
+  if(!player||!target||typeof passable!=="function")return {x:player?.x||0,y:player?.y||0,reachable:false,targetReached:false};
+  const size=40,limit=3200,origin={x:player.x,y:player.y},start="0,0";
+  const key=(x,y)=>x+","+y,open=[{x:0,y:0,g:0,f:0}],seen=new Map([[start,0]]),cells=new Map([[start,open[0]]]);
   const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+  let best=open[0],bestDist=dist(origin,target),expanded=0,found=false;
   while(open.length&&expanded++<limit){
    open.sort((a,b)=>a.f-b.f);const node=open.shift(),nk=key(node.x,node.y);
    if(node.g!==seen.get(nk))continue;
    const px=origin.x+node.x*size,py=origin.y+node.y*size,d=Math.hypot(px-target.x,py-target.y);
    if(d<bestDist){best=node;bestDist=d;}
-   if(d<size*1.5)break;
+   if(d<=size*1.5){best=node;found=true;break;}
    for(const [dx,dy] of dirs){
     const nx=node.x+dx,ny=node.y+dy,x=origin.x+nx*size,y=origin.y+ny*size;
-    if(Math.abs(nx)>65||Math.abs(ny)>65||!passable(x,y))continue;
+    if(Math.abs(nx)>90||Math.abs(ny)>90||!passable(x,y))continue;
     if(dx&&dy&&(!passable(origin.x+nx*size,origin.y+node.y*size)||
-       !passable(origin.x+node.x*size,origin.y+ny*size)))continue;
+      !passable(origin.x+node.x*size,origin.y+ny*size)))continue;
+    // Prevent stepping across narrow dry banks between two water samples.
+    if(!passable((px+x)/2,(py+y)/2))continue;
     const g=node.g+Math.hypot(dx,dy),k=key(nx,ny);
     if(g>=(seen.get(k)??Infinity))continue;
     const next={x:nx,y:ny,g,f:g+Math.hypot(x-target.x,y-target.y)/size,parent:nk};
     seen.set(k,g);cells.set(k,next);open.push(next);
    }
   }
-  if(best===cells.get(key(0,0)))return {x:player.x,y:player.y,reachable:false};
+  if(best===cells.get(start))return {x:player.x,y:player.y,reachable:false,targetReached:false};
   let cursor=best;
-  while(cursor.parent&&cursor.parent!==key(0,0))cursor=cells.get(cursor.parent);
+  while(cursor.parent&&cursor.parent!==start)cursor=cells.get(cursor.parent);
   const x=origin.x+cursor.x*size,y=origin.y+cursor.y*size;
-  return {x,y,reachable:passable(x,y),targetReached:bestDist<size*1.5};
+  return {x,y,reachable:found&&passable(x,y),targetReached:found,partial:!found,
+   remaining:Math.round(bestDist),expanded};
  }
  function navigation(player,mask,water=false,passable=null){
   if(!player)return null;
   const location=routePosition(player);
-  // Water-only carp must never be routed toward an inaccessible dry mountain stop.
-  // Choose the same reachable aquatic objectives used by the field status panel.
   const aquatic=water?STOPS.filter(s=>s.id==="ravine"||s.id==="headwater"):null;
   const candidates=aquatic||STOPS;
-  const stop=candidates.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b))[0]||
-   candidates.reduce((a,b)=>dist(player,a)<dist(player,b)?a:b);
+  const ranked=candidates.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b));
+  const ordered=ranked.length?ranked:candidates.slice().sort((a,b)=>dist(player,a)-dist(player,b));
+  let stop=ordered[0],swim=null;
+  if(water){
+   // Only label a stop reachable after the actual water/collision search succeeds.
+   // Do not replace a failed route with a dry-land arrow.
+   for(const candidate of ordered){
+    const attempt=aquaticStep(player,candidate,passable);
+    if(attempt.reachable){stop=candidate;swim=attempt;break;}
+    if(!swim||attempt.remaining<swim.remaining){swim=attempt;stop=candidate;}
+   }
+  }
   let goal=0,score=Infinity;
   for(let i=0;i<WALKWAY.length;i++){
    const [x,y]=WALKWAY[i],d=Math.hypot(stop.x-x,stop.y-y);
    if(d<score){score=d;goal=i;}
   }
-  // Aim at the next navigable vertex along the path. When the player is
-  // outside the corridor, first rejoin its nearest safe projected position.
   const offPath=location.distance>105;
   let step=goal;
   if(!offPath){
@@ -131,16 +139,13 @@
    else if(goal<location.progress-.12)step=Math.max(0,Math.ceil(location.progress)-1);
   }
   const [wx,wy]=WALKWAY[step];
-  // Aquatic movement is constrained to water: do not send carp through the dry
-  // walkway vertices even when a water stop happens to be the destination.
-  const swim=water?aquaticStep(player,stop,passable):null;
-  const x=water?swim.x:(offPath?location.x:wx),y=water?swim.y:(offPath?location.y:wy);
+  const x=water?(swim.reachable?swim.x:player.x):(offPath?location.x:wx);
+  const y=water?(swim.reachable?swim.y:player.y):(offPath?location.y:wy);
   const sectionIndex=location.progress<4?0:location.progress<8?1:location.progress<15?2:3;
-  const section=habitat[sectionIndex];
-  return {x,y,stop,section,water:!!water,
+  return {x,y,stop,section:habitat[sectionIndex],water:!!water,
    distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step,
-   offPath:water?!swim.reachable:offPath,routeDistance:water?0:Math.round(location.distance),routeProgress:location.progress,
-   waterReachable:water?swim.reachable:null,
+   offPath:water?!swim.reachable:offPath,routeDistance:water?0:Math.round(location.distance),
+   routeProgress:location.progress,waterReachable:water?swim.reachable:null,
    targetDistance:Math.round(dist(player,stop))};
  }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
