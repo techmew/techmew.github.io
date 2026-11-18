@@ -1803,8 +1803,16 @@ function finishRace(){
  if(completed){save.best=save.best==null?r.hFinish:Math.min(save.best,r.hFinish);const key=opponent.id;save.bestByBeast[key]=Math.min(save.bestByBeast[key]||999,r.hFinish)}
  const reward=Math.max(15,Math.round((won?190:completed?65:30)+opponent.tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
  save.money+=reward;
- const atLast=opponentIndex>=animals.length-1;
- if(won){if(!save.won.includes(opponent.id))save.won.push(opponent.id);save.unlockedStage=Math.max(save.unlockedStage,Math.min(animals.length-1,opponentIndex+1));if(!atLast)save.chosen=Math.max(save.chosen,opponentIndex+1)}
+ // Bonus monster wins must not unlock all 50 regular rivals.
+ const bonusChallenge=opponent.group==='怪獣';
+ const atLast=!bonusChallenge&&opponentIndex>=49;
+ if(won){
+  if(!save.won.includes(opponent.id))save.won.push(opponent.id);
+  if(!bonusChallenge){
+   save.unlockedStage=Math.max(save.unlockedStage,Math.min(49,opponentIndex+1));
+   if(!atLast)save.chosen=Math.max(save.chosen,opponentIndex+1);
+  }
+ }
  store();
  $('resultEyebrow').textContent='100m走の結果';
  $('resultTitle').textContent=won?'勝ち':completed?'負け':'未完走';
@@ -1812,7 +1820,7 @@ function finishRace(){
  $('resultTime').textContent=completed?r.hFinish.toFixed(2)+'秒':'未完走';
  $('resultEnemy').textContent=Number.isFinite(r.eFinish)?r.eFinish.toFixed(2)+'秒':'ゴール前に終了';
  $('resultMoney').textContent='+'+reward+' G';
- $('resultMsg').textContent=won?'勝ちました。'+(atLast?'全ての動物との対戦を終えました。':'次の動物に挑戦できます。'):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
+ $('resultMsg').textContent=won?(bonusChallenge?'怪獣に勝利しました。通常50種の進行は変わりません。':'勝ちました。'+(atLast?'通常50種との対戦を終えました。':'次の動物に挑戦できます。')):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
  lastResultWon=won;resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
  $('resultOverlay').style.display='flex';
  stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
