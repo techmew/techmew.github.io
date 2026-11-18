@@ -2030,7 +2030,7 @@ function advancePegasusFlight(dt){
  opponent.root.position.set(r.enemyLateral,.13+height,r.pegasusBeyond);
  opponent.root.visible=r.pegasusBeyond<365;
  if(r.phase==='pegasusExit'){
-  r.pegasusExitWait+=step;
+  r.pegasusExitWait=(r.pegasusExitWait||0)+step;
   if(!opponent.root.visible||r.pegasusExitWait>=6){
    // A missing render frame cannot trap the player in the farewell sequence.
    opponent.root.visible=false;
@@ -2321,9 +2321,11 @@ let dragging=false,pointerStart=0;$('world').addEventListener('pointerdown',e=>{
 function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
  if(mode==='race'&&race?.phase==='pegasusExit'){
   // Stationary viewpoint behind the finish line; Pegasus shrinks into the sky.
-  const base=Math.min(d,race.pegasusBeyond??d)-24;
-  wantedPos=new T.Vector3(.2,6,base);
-  wantedTarget=new T.Vector3(animalX,Math.min(28,9+(race.pegasusCruiseTime||0)*4),race.pegasusBeyond+14);
+  // Lock the viewpoint at the finish line. Tracking the animal's distance
+  // previously kept it almost the same apparent size, defeating the flyaway.
+  const finishLine=100;
+  wantedPos=new T.Vector3(.2,5.8,finishLine-22);
+  wantedTarget=new T.Vector3(animalX,Math.min(18,7+(race.pegasusCruiseTime||0)*1.8),finishLine+145);
   camera.fov=mix(camera.fov,innerWidth<innerHeight?60:51,Math.min(1,dt*2.8));camera.updateProjectionMatrix();
  }else{
  const monster=KAIJU_SPECS[animals[save.chosen]?.kind];
