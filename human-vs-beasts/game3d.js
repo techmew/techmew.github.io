@@ -1625,8 +1625,37 @@ function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.dis
 
 let racePicture=null,resultText='',lastResultWon=false;
 let podiumPreviewURL=null,podiumPreviewToken=0;
+// Display the validated real-3D framebuffer directly when Android cannot decode
+// a data URL or Blob URL. This is a canvas copy of the actual 3D photograph,
+// never a synthetic 2D illustration, and does not require GPU work to remain visible.
+function showCapturedPodiumCanvas(source){
+ const view=$('result3DWindow');
+ if(!view||!source||!source.width||!source.height)return false;
+ let snapshot=view.querySelector('canvas[data-podium-snapshot]');
+ if(!snapshot){
+  snapshot=document.createElement('canvas');
+  snapshot.dataset.podiumSnapshot='1';
+  snapshot.setAttribute('aria-label','3D表彰台の撮影画像');
+  snapshot.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;pointer-events:none';
+  view.appendChild(snapshot);
+ }
+ if(snapshot.width!==source.width)snapshot.width=source.width;
+ if(snapshot.height!==source.height)snapshot.height=source.height;
+ const ctx=snapshot.getContext('2d',{alpha:false});
+ if(!ctx)return false;
+ ctx.drawImage(source,0,0);
+ snapshot.hidden=false;
+ $('resultPhoto').hidden=true;
+ view.hidden=false;
+ return true;
+}
+function clearCapturedPodiumCanvas(){
+ const view=$('result3DWindow');
+ view?.querySelector('canvas[data-podium-snapshot]')?.remove();
+}
 function releasePodiumPreview(){
  podiumPreviewToken++;
+ clearCapturedPodiumCanvas();
  if(podiumPreviewURL){URL.revokeObjectURL(podiumPreviewURL);podiumPreviewURL=null}
  $('resultPhoto').removeAttribute('src');
 }
@@ -1662,6 +1691,7 @@ async function showAsyncPodiumPreview(canvas){
   if(podiumPreviewURL)URL.revokeObjectURL(podiumPreviewURL);
   podiumPreviewURL=url;
   image.hidden=false;$('result3DWindow').hidden=true;
+  clearCapturedPodiumCanvas();
   $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
   return true;
  }catch(e){URL.revokeObjectURL(url);if(token===podiumPreviewToken)image.removeAttribute('src');return false}
@@ -2019,6 +2049,9 @@ function captureCeremonyPhoto(){
   // Keep the captured pixels for Save/Share instead of discarding them.
   racePicture=photo;
   ceremonyStage.photoCaptured=true;
+  // Show the validated pixels immediately, without waiting for Android's
+  // potentially unreliable image decoder. Keep the real WebGL scene underneath.
+  try{showCapturedPodiumCanvas(photo)}catch(err){console.warn('Canvas podium preview unavailable',err)}
   success=true;
   let src='';
   for(const format of ['image/jpeg','image/png']){
@@ -2054,6 +2087,7 @@ function captureCeremonyPhoto(){
      settled=true;clearTimeout(previewTimer);
      image.onload=null;image.onerror=null;
      image.hidden=false;$('result3DWindow').hidden=true;
+     clearCapturedPodiumCanvas();
      $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
     };
     image.onerror=fallback;
