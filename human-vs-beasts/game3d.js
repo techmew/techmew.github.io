@@ -1417,6 +1417,50 @@ function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 
 let racePicture=null,resultText='',lastResultWon=false;
+let podiumPreviewURL=null,podiumPreviewToken=0;
+function releasePodiumPreview(){
+ podiumPreviewToken++;
+ if(podiumPreviewURL){URL.revokeObjectURL(podiumPreviewURL);podiumPreviewURL=null}
+ $('resultPhoto').removeAttribute('src');
+}
+// Android WebView may support asynchronous canvas encoding but reject toDataURL.
+// Keep the live 3D stage visible until an actual encoded photo is ready.
+async function showAsyncPodiumPreview(canvas){
+ const token=++podiumPreviewToken;
+ if(typeof canvas.toBlob!=='function')return false;
+ let blob=null;
+ for(const format of ['image/jpeg','image/png']){
+  try{
+   blob=await new Promise(resolve=>{
+    let settled=false;
+    const done=b=>{if(settled)return;settled=true;clearTimeout(timer);resolve(b)};
+    const timer=setTimeout(()=>done(null),1600);
+    try{canvas.toBlob(done,format,format==='image/jpeg'?.88:undefined)}catch(e){done(null)}
+   });
+  }catch(e){blob=null}
+  if(blob&&blob.size>2048&&blob.type.startsWith('image/'))break;
+  blob=null;
+ }
+ if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas||!blob)return false;
+ const url=URL.createObjectURL(blob);
+ const image=$('resultPhoto');
+ try{
+  await new Promise((resolve,reject)=>{
+   const timeout=setTimeout(()=>reject(Error('Podium preview image timed out')),1800);
+   image.onload=()=>{clearTimeout(timeout);resolve()};
+   image.onerror=()=>{clearTimeout(timeout);reject(Error('Podium preview decode failed'))};
+   image.src=url;
+  });
+  if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas){URL.revokeObjectURL(url);return false}
+  if(podiumPreviewURL)URL.revokeObjectURL(podiumPreviewURL);
+  podiumPreviewURL=url;
+  image.hidden=false;$('result3DWindow').hidden=true;
+  $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
+  return true;
+ }catch(e){URL.revokeObjectURL(url);if(token===podiumPreviewToken)image.removeAttribute('src');return false}
+ finally{image.onload=null;image.onerror=null}
+}
+
 let podiumRetryFrame=0,podiumRetryAttempts=0;
 function buildPodiumPhoto(){
  const sc=new T.Scene();
@@ -1586,6 +1630,7 @@ function buildPodiumPhoto(){
 // If WebGL capture is blocked on Android, draw a local podium scene on 2D canvas.
 
 function endCeremonyStage(){
+ releasePodiumPreview();
  if(!ceremonyStage)return;
  const old=ceremonyStage;ceremonyStage=null;
  try{
@@ -1730,6 +1775,7 @@ function captureCeremonyPhoto(){
    }catch(exportErr){console.warn('Podium preview encoding unavailable',format,exportErr)}
   }
   if(src){
+   releasePodiumPreview();
    $('resultPhoto').src=src;$('resultPhoto').hidden=false;
    $('result3DWindow').hidden=true;
    $('shareHelp').textContent='3Dキャラと対戦相手を撮影した表彰台写真です。';
@@ -1737,14 +1783,15 @@ function captureCeremonyPhoto(){
    // Preserve the actual 3D podium as the preview; never substitute 2D art.
    // The valid photo canvas remains available to the async save/share path.
    $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
-   $('shareHelp').textContent='3D表彰台を表示中。写真の保存・共有をお試しください。';
+   $('shareHelp').textContent='3D表彰台写真を準備中。保存・共有も利用できます。';
+   void showAsyncPodiumPreview(photo);
   }
  }catch(err){
   console.warn('3D image capture blocked; show live 3D podium instead',err);
   // Never allow Save/Share to reuse a stale or partially rendered image.
   // Android may fail midway through a GPU readback after an earlier attempt.
   racePicture=null;
-  $('resultPhoto').removeAttribute('src');
+  releasePodiumPreview();
   $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
   ceremonyStage.photoCaptured=false;
   $('shareHelp').textContent='3D表彰台を表示中。写真を再取得しています。';
@@ -1767,7 +1814,7 @@ function makeRacePhoto(){
  // it hides both result surfaces; doing that after unhiding the preview left
  // Android with an invisible live 3D fallback whenever capture failed.
  if(ceremonyStage)endCeremonyStage();
- racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;
+ racePicture=null;releasePodiumPreview();podiumRetryAttempts=0;podiumRetryFrame=0;
  const preview=$('result3DWindow');preview.hidden=false;
  $('resultPhoto').hidden=true;
  try{
