@@ -1720,8 +1720,18 @@ async function showAsyncPodiumPreview(canvas){
   if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas){URL.revokeObjectURL(url);return false}
   if(podiumPreviewURL)URL.revokeObjectURL(podiumPreviewURL);
   podiumPreviewURL=url;
-  image.hidden=false;$('result3DWindow').hidden=true;
-  clearCapturedPodiumCanvas();
+  // Android WebView may decode an image successfully but paint a blank
+  // composited layer after the WebGL canvas is hidden. Keep the verified
+  // pixel snapshot on screen instead of switching to the decoded <img>.
+  // Save/share still use the original 3D canvas (racePicture).
+  if(mobile){
+   image.hidden=true;
+   $('result3DWindow').hidden=false;
+   showCapturedPodiumCanvas(canvas);
+  }else{
+   image.hidden=false;$('result3DWindow').hidden=true;
+   clearCapturedPodiumCanvas();
+  }
   $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
   return true;
  }catch(e){URL.revokeObjectURL(url);if(token===podiumPreviewToken)image.removeAttribute('src');return false}
