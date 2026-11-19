@@ -1707,7 +1707,7 @@ function tap(side,overlapping=false){
  }else{
   // Single-side mashing still runs, but is capped below alternating strides.
   r.combo=0;
-  r.drive=clamp(r.drive*.995+.047/(1+.16*r.sideStreak),0,.80);
+  r.drive=clamp(r.drive*.997+.088/(1+.11*r.sideStreak),0,.84);
  }
  r.lastFoot=side;r.lastTap=now;
  if(!overlapping)showTapRating(r,side,alternate&&elapsed<=.45?'JUST!':'GOOD!');
