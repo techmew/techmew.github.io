@@ -2665,13 +2665,23 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(a.kind!=='pegasus'||r.eFinish===null)opponent.root.position.set(r.enemyLateral,.13,r.enemyD);
  if(offCourse&&!r.offTrack){r.offTrack=true}
  else if(!offCourse)r.offTrack=false;
- if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null
-  &&Math.abs(r.lateral-r.enemyLateral)<1.05
-  &&Math.abs(r.humanD-r.enemyD)<6.5){
-   r.bumpCooldown=1.4;r.enemyStumble=.82;r.enemyV*=.73;
-   r.humanV*=.92;
-   r.enemyLateral=clamp(r.enemyLateral+.29,animalX-.4,animalX+1.35);
-   kickDust(r.lateral,r.humanD,12);
+ // Shoulder contact depends on rival size and mass, not a universal hitbox.
+ const rivalHeight=SPECIES_HEIGHT_M[a.kind]||1.5;
+ const massive=rivalHeight>=3.1||['elephant','hippo','rhino','mammoth','woollyrhino','gorilla','giantsloth','boar'].includes(a.kind);
+ const collisionWidth=clamp(.65+rivalHeight*.12,.75,1.52);
+ const collisionDepth=clamp(1.8+rivalHeight*.54,2.1,5.4);
+ const airborne=a.profile==='hopper'&&Math.sin(beastGait)>.55;
+ const flying=['pegasus','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
+ if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying
+  &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
+  &&Math.abs(r.humanD-r.enemyD)<collisionDepth){
+   r.bumpCooldown=massive?1.65:1.2;
+   r.enemyStumble=massive?.18:.95;
+   r.enemyV*=massive?.97:.69;
+   r.humanV*=massive?.72:.94;
+   if(massive)r.drive*=.80;
+   r.enemyLateral=clamp(r.enemyLateral+(massive?.08:.34),animalX-.4,animalX+1.35);
+   kickDust(r.lateral,r.humanD,massive?16:10);
    effect('bump');
   }
  /* Rival dust is generated only by actual animated foot contact in frame(). */
