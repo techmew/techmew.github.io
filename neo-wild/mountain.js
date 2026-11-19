@@ -267,6 +267,15 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
 }
  function blocked(x,y,r=0,sourceTree=null,swimmer=false){
  if(x<CITY_EDGE)return false;
+ // The actual lowland-to-headwater river is a navigable water trench for carp.
+ // Land creatures still obey every slope, bank, rock and forest boundary.
+ if(swimmer&&(window.WildEastExpedition?.channelDepth?.(x,y)||0)>.09){
+  for(const p of [...trees,...rocks,...pines,...scree,...alpinePines,...alpineRocks,...caveStones,...caveColumns])
+   if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
+  for(const hut of [...ruins,...ridgeHuts])
+   if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
+  return false;
+ }
  if(northPass(x,y)){
   // The pass and the mountain share one hydrology collision rule. The old
   // early return let land animals cross the deep headwater above its ford.
