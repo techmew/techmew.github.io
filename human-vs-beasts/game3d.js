@@ -2498,6 +2498,9 @@ async function recaptureRacePhoto(){
  if(recaptureBusy||mode!=='race'||race?.phase!=='results')return false;
  if(webglUnavailable){$('shareHelp').textContent='3D描画の復旧待ちです。復旧後に再撮影してください。';return false}
  recaptureBusy=true;
+ // A failed recapture must never destroy the previously validated 3D photograph.
+ // Keep its actual canvas pixels available for download and X sharing.
+ const previousPhoto=racePicture;
  const button=$('recaptureRace');
  button.disabled=true;button.textContent='3D写真を撮影中…';
  try{
@@ -2521,6 +2524,12 @@ async function recaptureRacePhoto(){
   $('shareHelp').textContent='再撮影に失敗しました。画面復帰後にお試しください。';
   return false;
  }finally{
+  if(!racePicture&&previousPhoto){
+   racePicture=previousPhoto;
+   if(ceremonyStage)ceremonyStage.photoCaptured=true;
+   try{showCapturedPodiumCanvas(previousPhoto)}catch(err){console.warn('Previous 3D photo preview unavailable',err)}
+   $('shareHelp').textContent='再撮影できませんでした。前の3D写真は保存・共有できます。';
+  }
   recaptureBusy=false;button.disabled=false;button.textContent='3D写真を再撮影';
  }
 }
