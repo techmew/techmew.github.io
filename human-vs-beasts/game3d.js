@@ -1697,18 +1697,21 @@ function tap(side,overlapping=false){
   r.combo=fresh?1:Math.min(99,r.combo+1);
   const tempoBonus=clamp((.55-elapsed)/.55,0,1);
   r.drive=clamp(r.drive+.095+save.stats.technique*.003+tempoBonus*.022,0,1.3);
-  r.burstCharge=clamp(r.burstCharge+2.9+Math.min(3.3,r.combo*.105)+save.stats.technique*.09,0,100);
+  r.burstCharge=clamp(r.burstCharge+5.4+Math.min(3.5,r.combo*.26)+tempoBonus*1.0+save.stats.technique*.12,0,100);
   r.lastAlternate=now;
  }else if(overlapping){
   // Overlapping fingers are suboptimal, but never invalidate otherwise rapid tapping.
   r.combo=0;r.drive=clamp(r.drive*.965+.006,0,1.1);r.humanV*=.985;
+  r.burstCharge=clamp(r.burstCharge+.45,0,100);
  }else if(fresh){
   r.combo=0;r.drive=clamp(r.drive+.070,0,1.1);
+  r.burstCharge=clamp(r.burstCharge+1.8,0,100);
  }else{
   // Single-side mashing still runs, but is capped below alternating strides.
   r.combo=0;
   r.drive=clamp(r.drive*.997+.088/(1+.11*r.sideStreak),0,.84);
   r.humanV*=.988; // Small but noticeable stumble; rapid tapping still works.
+  r.burstCharge=clamp(r.burstCharge+1.25,0,100);
  }
  r.lastFoot=side;r.lastTap=now;
  if(!overlapping)showTapRating(r,side,alternate&&elapsed<=.45?'JUST!':'GOOD!');
