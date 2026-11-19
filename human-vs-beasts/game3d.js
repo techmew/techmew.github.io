@@ -1091,7 +1091,7 @@ function speciesMotion(kind,rig,phase,effort){
   case 'cat':          pitch(-.13*c);body.scale.z*=1+.085*s;tailWag(.25*Math.sin(phase*1.9));break; // springy arched back
   case 'fox':          yaw(.095*s);tailWag(.40*g);bounce(.04*(1+c));break; // tail-led sidestep
   case 'dodo':         roll(.23*s);pitch(.09*f);bounce(.05*(1+f));break; // drunken waddling
-  case 'rabbit':       pitch(.12*c);legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.31*a*Math.max(0,s)});break; // double rear tuck
+  case 'rabbit':       pitch(.12*c);legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.22*a*Math.max(0,s)});body.rotation.z+=.025*f*a;break; // double hind tuck and airborne balance
   case 'greyhound':    pitch(-.085*s);body.scale.z*=1+.14*c;tailWag(.10*g);break; // overextended sprint
   case 'zebra':        yaw(.07*f);roll(.065*c);tailWag(.26*f);break; // energetic stamping
   case 'boar':         pitch(-.14*Math.abs(s));roll(.12*f);tailWag(.18*s);break; // head-first shuffle
@@ -1193,20 +1193,27 @@ function withSpeciesLocomotion(data,rig){
     tail.rotation.y=.075*Math.sin(phase*.25)*effort;
    }
   }else if(isBound){
-   // Hares/rabbits take a paired hind-leg jump then reach with both forefeet.
-   body.position.y=.25*lift*effort-.022*brace*effort;
-   body.rotation.x=(-.12*cos+.045*s)*effort;
+   // Rabbit: physically visible airborne phase, paired hind-foot push and
+   // forward-reaching forefeet, then crouched ground contact.
+   const jump=Math.pow(Math.max(0,Math.sin(phase)),1.06);
+   const compression=Math.pow(Math.max(0,-Math.sin(phase)),.85);
+   const worldScale=Math.max(.0001,rig.root.scale.y);
+   body.position.y=(.49*jump*Math.min(1.22,effort)-.024*compression)/worldScale;
+   body.rotation.x=(-.17*Math.cos(phase)+.045*compression)*Math.min(1.1,effort);
+   body.scale.z=scaleZ*(1+.105*jump-.065*compression);
+   body.scale.y=scaleY*(1-.055*compression);
    for(const leg of legs){
     const hind=leg.front<0||legs.length===2;
-    leg.hip.rotation.x=(hind?(-.38-.53*lift):(.35+.39*cos))*effort;
-    leg.knee.rotation.x=(hind?(.33+.55*lift):(.13+.37*lift))*effort;
+    leg.hip.rotation.x=(hind?(-.35-.78*jump+.30*compression):(.21+.56*jump-.19*compression))*effort;
+    leg.knee.rotation.x=(hind?(.27+.86*jump):(.08+.45*jump))*effort;
    }
-   if(tail)tail.rotation.x=.10*cos*effort;
+   if(tail)tail.rotation.x=(.12*Math.cos(phase)-.11*jump)*effort;
   }else if(isPronk){
-   // Springbok and deer visibly suspend the whole body with synchronized four-leg tucks.
-   body.position.y=.26*lift*effort;
-   body.rotation.x=.052*cos*effort;
-   for(const leg of legs){leg.hip.rotation.x=(-.15-.37*lift)*effort;leg.knee.rotation.x=(.12+.55*lift)*effort}
+   // Deer and gazelles move with synchronized suspended leaps, not a flat trot.
+   const worldScale=Math.max(.0001,rig.root.scale.y);
+   body.position.y=.31*lift*Math.min(1.2,effort)/worldScale;
+   body.rotation.x=.068*cos*effort;
+   for(const leg of legs){leg.hip.rotation.x=(-.20-.49*lift)*effort;leg.knee.rotation.x=(.16+.64*lift)*effort}
    if(tail)tail.rotation.y=.12*s*effort;
   }else if(gait==='wingFlight'){
    // Pegasus takes off after the approach and NEVER lands within the race.
@@ -1235,8 +1242,8 @@ function withSpeciesLocomotion(data,rig){
    if(tail){tail.rotation.x=.08*Math.sin(phase*.5);tail.rotation.y=.14*Math.sin(phase*.48)}
   }else if(gait==='flexGallop'){
    // Cheetahs/felines and racing greyhounds stretch and gather the spine at speed.
-   body.position.y=(.075*Math.max(0,Math.sin(phase*2))-.016*brace)*effort;
-   body.scale.z=scaleZ*(1+.060*Math.sin(phase)*effort);
+   body.position.y=(.13*Math.max(0,Math.sin(phase*2))-.015*brace)*effort/Math.max(.0001,rig.root.scale.y);
+   body.scale.z=scaleZ*(1+.10*Math.sin(phase)*effort);
    body.rotation.x=.085*cos*effort;
    for(const leg of legs){
     const hind=leg.front<0||legs.length===2;
@@ -1247,8 +1254,8 @@ function withSpeciesLocomotion(data,rig){
    if(tail)tail.rotation.y=.17*Math.sin(phase*.55)*effort;
   }else if(gait==='horseGallop'||gait==='canter'){
    const gallop=gait==='horseGallop';
-   body.position.y=.036*Math.max(0,Math.sin(phase*2))*effort;
-   body.rotation.x=.038*cos*effort;
+   body.position.y=(gallop?.11:.055)*Math.max(0,Math.sin(phase*2))*Math.min(1.15,effort)/Math.max(.0001,rig.root.scale.y);
+   body.rotation.x=(gallop?.048:.038)*cos*effort;
    for(const leg of legs){
     const front=leg.front>0,side=leg.side||1;
     const offset=front?(side===1?1.82:2.35):(side===1?.36:0);
@@ -1299,7 +1306,7 @@ function withSpeciesLocomotion(data,rig){
   }else if(biped){
    const heavy=gait==='heavyBiped'||gait==='mechanicalRun';
    const stride=heavy?.40:.66;
-   body.position.y=gait==='springRun'?.16*lift*effort:(heavy?.013:.028)*Math.abs(Math.cos(phase))*effort;
+   body.position.y=(gait==='springRun'?.24*lift*effort:(heavy?.013:.035)*Math.abs(Math.cos(phase))*effort)/Math.max(.0001,rig.root.scale.y);
    body.rotation.x=(gait==='springRun'?.10:.040)*cos*effort;
    body.rotation.z=.035*s*effort;
    for(const [i,leg] of legs.entries()){
@@ -1318,6 +1325,7 @@ function withSpeciesLocomotion(data,rig){
   if(lastImpact===null){lastImpact=impactIndex;return false}
   const landed=impactIndex>lastImpact;lastImpact=impactIndex;
   if(isKangaroo)return landed&&body.position.y<.04;
+  if(isBound||isPronk)return landed&&Math.sin(phase)<=0;
   return gait==='wingFlight'&&rig.flight>.35?false:landed;
  };
  return rig;
@@ -1666,44 +1674,65 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side,overlapping=false){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
- const r=race,now=r.time;
- const elapsed=now-r.lastTap,hadFoot=!!r.lastFoot;
- // Accept a wider alternating cadence; overlapping fingers count as a missed stride.
- const alternating=hadFoot&&side!==r.lastFoot&&elapsed>=.075&&elapsed<=.82&&!overlapping;
- const firstStep=!hadFoot||elapsed>.82;
- const missed=!firstStep&&!alternating;
- r.taps+=1;r.legTaps[side]=now;
- // Consecutive same-side presses carry more lateral momentum.
- r.sideStreak=alternating?0:Math.min(12,(r.sideStreak||0)+1);
+ const r=race,now=r.time,elapsed=now-r.lastTap;
+ const hadFoot=!!r.lastFoot;
+ // Alternation is always valid, even for very fast taps. Timing only adjusts a bonus.
+ const alternate=hadFoot&&side!==r.lastFoot&&!overlapping;
+ const fresh=!hadFoot||elapsed>1.15;
+ r.taps++;r.legTaps[side]=now;
+ r.sideStreak=alternate?0:Math.min(12,(r.sideStreak||0)+1);
  const direction=side==='L'?1:-1;
- const sideways=alternating?.072:.32+Math.min(.34,r.sideStreak*.052);
+ const sideways=alternate?.072:.32+Math.min(.34,r.sideStreak*.052);
  r.lateralTarget=clamp(r.lateralTarget+direction*sideways,-6.25,3.10);
- if(alternating){
-  r.combo=Math.min(99,r.combo+1);
-  const rhythm=clamp((.88-elapsed)/.64,.48,1.16);
-  r.drive=clamp(r.drive+(.115+save.stats.technique*.005)*rhythm,0,1.3);
-  r.burstCharge=clamp(r.burstCharge+3.2+Math.min(4,r.combo*.13)+save.stats.technique*.10,0,100);
+ if(alternate){
+  r.combo=fresh?1:Math.min(99,r.combo+1);
+  const tempoBonus=clamp((.55-elapsed)/.55,0,1);
+  r.drive=clamp(r.drive+.095+save.stats.technique*.003+tempoBonus*.022,0,1.3);
+  r.burstCharge=clamp(r.burstCharge+2.9+Math.min(3.3,r.combo*.105)+save.stats.technique*.09,0,100);
   r.lastAlternate=now;
- }else if(firstStep&&!overlapping){
-  r.combo=0;
-  r.drive=clamp(r.drive+.078+save.stats.technique*.002,0,1.2);
+ }else if(overlapping){
+  // Overlapping fingers are suboptimal, but never invalidate otherwise rapid tapping.
+  r.combo=0;r.drive=clamp(r.drive*.965+.006,0,1.1);r.humanV*=.985;
+ }else if(fresh){
+  r.combo=0;r.drive=clamp(r.drive+.070,0,1.1);
  }else{
-  // L-L-R or near-simultaneous inputs lose a little speed rather than rewarding mash.
+  // Single-side mashing still runs, but is capped below alternating strides.
   r.combo=0;
-  const penalty=overlapping?.72:.85;
-  r.drive=clamp(r.drive*penalty+.020,0,1.2);
-  r.humanV*=overlapping?.84:.92;
+  r.drive=clamp(r.drive*.995+.047/(1+.16*r.sideStreak),0,.80);
  }
  r.lastFoot=side;r.lastTap=now;
+ if(!overlapping)showTapRating(r,side,alternate&&elapsed<=.45?'JUST!':'GOOD!');
  footstep(Math.max(2.5,r.humanV),side);
  if(r.humanV>2){kickDust(r.lateral+(side==='L'?.18:-.18),r.humanD,r.humanV);markFootfall(r.lateral,r.humanD,r.humanV,side)}
  const btn=$(side==='L'?'leftTap':'rightTap');btn.classList.add('hit');
  setTimeout(()=>btn.classList.remove('hit'),75);
  if(r.combo>0&&r.combo%12===0)effect('ready');
  if(navigator.vibrate&&r.combo>0&&r.combo%4===0)navigator.vibrate(9);
+}
+// Brief feedback follows the runner's projected feet, not the HUD or touch buttons.
+function showTapRating(r,side,label){
+ const layer=$('footFeedback');
+ if(!layer||r.time-(r.lastRatingAt??-999)<.105)return;
+ r.lastRatingAt=r.time;
+ const target=new T.Vector3(r.lateral+(side==='L'?-0.16:.16),.17,r.humanD+.06);
+ camera.updateMatrixWorld();
+ target.project(camera);
+ const controlY=$('raceControls').getBoundingClientRect().top;
+ const rawX=(target.x+1)*.5*innerWidth;
+ const rawY=(1-target.y)*.5*innerHeight;
+ const hop=(r.taps%5)-2;
+ const x=clamp(rawX+hop*16+(side==='L'?-13:13),innerWidth*.12,innerWidth*.88);
+ const y=clamp(rawY-24+(r.taps%3-1)*19,innerHeight*.36,Math.max(innerHeight*.37,Math.min(innerHeight*.78,controlY-34)));
+ const mark=document.createElement('span');
+ mark.className='stepRating '+(label==='JUST!'?'just':'good');
+ mark.textContent=label;mark.style.left=x+'px';mark.style.top=y+'px';
+ mark.style.setProperty('--twist',(-18+(r.taps%4)*7)+'deg');
+ layer.append(mark);
+ while(layer.childElementCount>4)layer.firstElementChild.remove();
+ setTimeout(()=>mark.remove(),620);
 }
 function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||race.burstLeft>0||race.hFinish!==null)return;race.burstCharge=0;race.burstLeft=2.8;race.burstUsed=true;effect('burst');showNotice('スパート中',1.2);$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready')}
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
@@ -2549,11 +2578,11 @@ function rivalStridePace(kind,phase,distance){
 }
 
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
- if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.86)r.combo=0;
+ if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>1.15)r.combo=0;
  const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
  r.lateralVelocity=(r.lateral-prevLateral)/Math.max(.005,dtSafe);
- const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.67;const tempo=clamp(.18+r.drive*.79,.18,1.10);const fatigued=(.55+.45*r.stamina);const offCourse=r.lateral < -4.85 || r.lateral > 2.1;const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued*(offCourse?.76:1):0;const accel=7.8+(save.stats.power-1)*.55;
+ const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.85;const tempo=clamp(.18+r.drive*.79,.18,1.10);const fatigued=(.55+.45*r.stamina);const offCourse=r.lateral < -4.85 || r.lateral > 2.1;const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued*(offCourse?.76:1):0;const accel=7.8+(save.stats.power-1)*.55;
  if(r.hFinish===null){if(!hasInput){r.humanV=0;r.combo=0;r.lateralTarget=r.lateral;r.sideStreak=0}else if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-5.8*dtSafe);r.humanD+=r.humanV*dtSafe;
  r.stamina=clamp(r.stamina-((r.drive>.50?.012:.001)*(1/(1+save.stats.stamina*.09))+(r.burstLeft>0?.028:0))*dtSafe+(r.drive<.4?.014:0)*dtSafe,.32,1);if(r.humanD>=100){const before=r.humanD-r.humanV*dtSafe;r.hFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.humanV);r.humanD=100;r.humanV=0;r.combo=0;beep(930,.16,'sine',.05)}}
  const a=animals[Math.max(0,Math.min(animals.length-1,save.chosen))],maxB=a.kph/3.6;
