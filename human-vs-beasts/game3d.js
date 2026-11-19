@@ -1624,6 +1624,19 @@ function activateBurst(){if(!race||race.phase!=='running'||race.burstCharge<99||
 function showNotice(s,seconds){$('raceMsg').textContent=s;$('raceMsg').style.display='block';noticeTime=seconds}let noticeTime=0;
 
 let racePicture=null,resultText='',lastResultWon=false;
+let raceShareBlob=null,raceShareCanvas=null,manualXSharePrepared=false;
+function cacheRaceSharePhoto(canvas){
+ raceShareCanvas=canvas;raceShareBlob=null;manualXSharePrepared=false;
+ const button=$('shareRace');if(button)button.textContent='写真と結果をXで共有';
+ if(!canvas||typeof canvas.toBlob!=='function')return;
+ try{
+  canvas.toBlob(blob=>{
+   // Encode before the tap: awaiting toBlob can expire Android share activation.
+   if(racePicture===canvas&&raceShareCanvas===canvas&&blob&&blob.size>=2048&&blob.type.startsWith('image/'))
+    raceShareBlob=blob;
+  },'image/png');
+ }catch(err){console.warn('Podium photo share cache unavailable',err)}
+}
 let podiumPreviewURL=null,podiumPreviewToken=0;
 // Display the validated real-3D framebuffer directly when Android cannot decode
 // a data URL or Blob URL. This is a canvas copy of the actual 3D photograph,
@@ -1952,7 +1965,7 @@ function buildPodiumPhoto(){
  // Portrait Android previews must refit after changing the camera aspect.
  const stage={scene:sc,camera:cam,fitBounds:{min:subjects.min.clone(),max:subjects.max.clone()}};
  // A genuinely broken model must not turn the entire result screen grey.
- if(!subjects.min.toArray().every(Number.isFinite)||!subjects.max.toArray().every(Number.is))
+ if(!subjects.min.toArray().every(Number.isFinite)||!subjects.max.toArray().every(Number.isFinite))
   throw Error('Invalid podium subject bounds');
  fitPodiumCamera(stage,16/9);
  return stage;
@@ -1973,7 +1986,7 @@ function endCeremonyStage(){
   disposeModel(old.scene);
  }catch(e){console.warn('3D podium release',e)}
  $('result3DWindow').hidden=true;$('resultPhoto').hidden=true;
- racePicture=null;podiumRetryAttempts=0;podiumRetryFrame=0;initResize();
+ racePicture=null;raceShareBlob=null;raceShareCanvas=null;manualXSharePrepared=false;podiumRetryAttempts=0;podiumRetryFrame=0;initResize();
 }
 function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  // A fresh offscreen framebuffer is essential on Android: the visible WebGL
@@ -2165,6 +2178,7 @@ function captureCeremonyPhoto(){
   // may block synchronous toDataURL even though asynchronous toBlob works.
   // Keep the captured pixels for Save/Share instead of discarding them.
   racePicture=photo;
+  cacheRaceSharePhoto(photo);
   ceremonyStage.photoCaptured=true;
   // Show the validated pixels immediately, without waiting for Android's
   // potentially unreliable image decoder. Keep the real WebGL scene underneath.
@@ -2203,8 +2217,14 @@ function captureCeremonyPhoto(){
      if(!image.naturalWidth||!image.naturalHeight){fallback();return}
      settled=true;clearTimeout(previewTimer);
      image.onload=null;image.onerror=null;
-     image.hidden=false;$('result3DWindow').hidden=true;
-     clearCapturedPodiumCanvas();
+     if(mobile){
+      // Android may decode an IMG but composite it as grey. Keep verified 3D pixels.
+      image.hidden=true;$('result3DWindow').hidden=false;
+      showCapturedPodiumCanvas(photo);
+     }else{
+      image.hidden=false;$('result3DWindow').hidden=true;
+      clearCapturedPodiumCanvas();
+     }
      $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
     };
     image.onerror=fallback;
@@ -2478,7 +2498,18 @@ $('raceControls').addEventListener('pointerdown',e=>{if(e.target.id==='burstBtn'
 $('raceControls').addEventListener('pointerup',e=>{if(!swipeStart||e.pointerId!==swipeStart.id)return;if(swipeStart.y-e.clientY>38)activateBurst();swipeStart=null});
 $('raceControls').addEventListener('pointercancel',()=>swipeStart=null);$('resultHome').addEventListener('click',()=>{race=null;showScreen('menu');refreshOpponent()});$('retryBtn').addEventListener('click',()=>{const replayIndex=race?.opponentIndex;race=null;if(Number.isInteger(replayIndex)&&replayIndex>=0&&replayIndex<animals.length)save.chosen=replayIndex;showScreen('menu');refreshOpponent();startRace()});
 const raceUrl='https://techmew.github.io/human-vs-beasts/';
-const raceCaption=()=>('動物と100m走で'+raceName+'と対戦。結果：'+resultText+'。 #動物と100m走');
+const raceCaption=()=>{
+ const me=Number.isFinite(race?.hFinish)?race.hFinish.toFixed(2):null;
+ const rival=Number.isFinite(race?.eFinish)?race.eFinish.toFixed(2):null;
+ const gap=me!==null&&rival!==null?Math.abs(Number(me)-Number(rival)).toFixed(2):null;
+ const tag='#'+raceName.replace(/[^ぁ-んァ-ヶー一-龯A-Za-z0-9]/g,'');
+ const hook=lastResultWon
+  ?'【'+raceName+'に勝利！】人間、まさかの大金星。'
+  :gap?'【あと'+gap+'秒】'+raceName+'に負けた。悔しすぎる。'
+  :'【'+raceName+'との100m決戦】まだ勝てない。';
+ const times=me!==null?'自分'+me+'秒'+(rival!==null?'、相手'+rival+'秒。':'。'):'人間は未完走。';
+ return hook+'\n'+times+'育成して次こそ逆転できる？\n#動物と100m走 '+tag;
+};
 // Timeout-protected frame wait for Android WebViews and background tabs.
 function waitForPodiumFrames(count=2,timeoutMs=900){
  return new Promise(resolve=>{
@@ -2522,6 +2553,7 @@ async function raceImageBlob(){
   }
  }
  if(!racePicture)return null;
+ if(raceShareCanvas===racePicture&&raceShareBlob)return raceShareBlob;
  const canvas=racePicture;
  // A captured photo remains exportable after WebGL context loss or stage disposal.
  // Android WebViews may implement JPEG toBlob while PNG toBlob fails.
@@ -2539,7 +2571,7 @@ async function raceImageBlob(){
      catch(err){complete(null)}
     });
     if(canvas!==racePicture)return null;
-    if(blob&&blob.size>=2048&&blob.type===format)return blob;
+    if(blob&&blob.size>=2048&&blob.type===format){raceShareCanvas=canvas;raceShareBlob=blob;return blob}
    }catch(err){console.warn('Canvas '+format+' export unavailable',err)}
   }
  }
@@ -2556,7 +2588,7 @@ async function raceImageBlob(){
    const array=new Uint8Array(bytes.length);
    for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
    const blob=new Blob([array],{type:format});
-   if(blob.size>=2048)return blob;
+   if(blob.size>=2048){raceShareCanvas=canvas;raceShareBlob=blob;return blob}
   }catch(err){console.warn('3D result photo '+format+' export failed',err)}
  }
  $('shareHelp').textContent='3D写真の書き出しに失敗しました。再撮影してから保存・共有してください。';
@@ -2603,6 +2635,7 @@ async function recaptureRacePhoto(){
  }finally{
   if(!racePicture&&previousPhoto){
    racePicture=previousPhoto;
+   cacheRaceSharePhoto(previousPhoto);
    if(ceremonyStage)ceremonyStage.photoCaptured=true;
    try{showCapturedPodiumCanvas(previousPhoto)}catch(err){console.warn('Previous 3D photo preview unavailable',err)}
    $('shareHelp').textContent='再撮影できませんでした。前の3D写真は保存・共有できます。';
@@ -2612,35 +2645,50 @@ async function recaptureRacePhoto(){
 }
 $('recaptureRace')?.addEventListener('click',recaptureRacePhoto);
 $('shareRace')?.addEventListener('click',async()=>{
- const blob=await raceImageBlob();
- const msg=raceCaption();
- if(blob&&navigator.share&&typeof File==='function'){
-  const file=new File([blob],'100m-race-result.'+(blob.type==='image/jpeg'?'jpg':'png'),{type:blob.type});
-  try{
-   if(!navigator.canShare||navigator.canShare({files:[file]})){
-     await navigator.share({files:[file],title:'動物と100m走',text:msg+' '+raceUrl});
-     return;
-   }
-  }catch(err){if(err?.name==='AbortError')return;console.warn('Native image share unavailable',err)}
+ const button=$('shareRace'),msg=raceCaption()+' '+raceUrl;
+ // An X web-intent cannot attach files. Never silently post text-only.
+ if(manualXSharePrepared){
+  window.location.assign('https://twitter.com/intent/tweet?text='+encodeURIComponent(msg));
+  return;
  }
- if(blob){
-  // Use the exact validated snapshot from this share action. Re-running
-  // raceImageBlob() here could capture a different frame or fail after
-  // the first successful capture on memory-constrained Android WebViews.
-  const url=URL.createObjectURL(blob);
+ button.disabled=true;
+ try{
+  // Already-encoded image allows native share within the original tap gesture.
+  const cached=raceShareCanvas===racePicture?raceShareBlob:null;
+  if(cached&&typeof File==='function'&&navigator.share){
+   const type=cached.type==='image/jpeg'?'image/jpeg':'image/png';
+   const file=new File([cached],'100m-race-result.'+(type==='image/jpeg'?'jpg':'png'),{type});
+   try{
+    if(!navigator.canShare||navigator.canShare({files:[file]})){
+     await navigator.share({files:[file],title:'動物と100m走',text:msg});
+     $('shareHelp').textContent='写真付きで共有できます。Xを選択してください。';
+     return;
+    }
+   }catch(err){
+    if(err?.name==='AbortError')return;
+    console.warn('Native photo sharing unavailable',err);
+   }
+  }
+  const blob=cached||await raceImageBlob();
+  if(!blob){
+   $('shareHelp').textContent='3D写真がありません。「3D写真を再撮影」で写真を作成してください。画像なしのX投稿画面には移動しません。';
+   return;
+  }
+  // Two-step browser fallback. Save the real 3D image first, then require
+  // explicit photo attachment in X before posting; do NOT open text-only X.
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
   try{
-   const a=document.createElement('a');
-   a.href=url;
-   a.download='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');
-   document.body.appendChild(a);a.click();a.remove();
-   $('shareHelp').textContent='写真を保存しました。Xの投稿画面で写真を添付してください。';
+   link.href=url;
+   link.download='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');
+   document.body.appendChild(link);link.click();link.remove();
   }catch(err){
-   console.warn('Podium photo download blocked',err);
-   $('shareHelp').textContent='写真の保存が制限されました。3D写真を再撮影して保存してください。';
+   $('shareHelp').textContent='このブラウザは写真保存を制限しています。標準ブラウザで再試行してください。';
+   return;
   }finally{setTimeout(()=>URL.revokeObjectURL(url),45000)}
- }else $('shareHelp').textContent='写真を作成できませんでした。Xには文章のみ共有します。';
- const link='https://twitter.com/intent/tweet?text='+encodeURIComponent(msg+' '+raceUrl);
- window.location.assign(link);
+  manualXSharePrepared=true;
+  button.textContent='Xを開く（写真を添付）';
+  $('shareHelp').textContent='写真を保存しました。次にXを開き、画像アイコンから保存した3D写真を添付してください。';
+ }finally{button.disabled=false}
 });
 $('audioBtn').addEventListener('click',()=>{sfx=!sfx;$('audioBtn').textContent=sfx?'♪':'×';if(!sfx){stopAmbience();for(const player of Object.values(loadedCalls))player.pause()}else if(mode==='race'&&race?.phase==='running')startAmbience()});$('fullBtn').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})});
 function keyFoot(code){return code==='KeyA'||code==='ArrowLeft'?'L':code==='KeyD'||code==='ArrowRight'?'R':null}
