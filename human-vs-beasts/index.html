@@ -343,6 +343,49 @@ body.race-mode #resultOverlay{z-index:15}
  #customScreen:not(.previewOnly) #customPreviewHint{display:none}
  #customScreen.previewOnly .panel{left:9px;right:9px;width:auto}
 }
+
+/* Dedicated 3D character editor: left controls and independent right-hand viewport. */
+body.custom-mode #quickActions{display:none!important}
+#customScreen .panel{
+ left:clamp(10px,2.8vw,40px);right:auto;
+ width:min(41vw,465px);max-width:none;
+ background:rgba(18,29,35,.96);
+ border:1px solid rgba(200,222,221,.28);
+ box-shadow:0 12px 36px rgba(0,0,0,.29);
+}
+#customScreen .scroll{overscroll-behavior:contain;min-height:0}
+#customPreviewHint{
+ left:auto!important;right:clamp(8px,1.5vw,26px)!important;
+ top:calc(env(safe-area-inset-top) + 20px)!important;bottom:auto!important;
+ width:min(47%,230px);padding:9px 11px;max-width:none;
+ background:rgba(15,29,34,.70);border:1px solid #d7e6e142;
+ border-radius:11px;text-align:center;pointer-events:none;
+ z-index:2;font-size:11px;color:#eef3f1;
+}
+#customPreviewHint .eyebrow{font-weight:850;color:#f4f7f3}
+#customPreviewHint .studioHintText{font-size:10px;opacity:.85;margin-top:3px}
+#customScreen #previewAvatar:disabled{opacity:.68}
+@media (max-width:680px) and (orientation:portrait){
+ #customScreen:not(.previewOnly) .panel{
+  left:6px!important;right:auto!important;
+  top:calc(env(safe-area-inset-top) + 24px)!important;
+  bottom:calc(env(safe-area-inset-bottom) + 70px)!important;
+  width:calc(53vw - 8px)!important;
+  min-height:0!important;max-height:none!important;
+  height:auto!important;padding:10px 7px!important;
+ }
+ #customScreen:not(.previewOnly) .panelHead{gap:4px}
+ #customScreen:not(.previewOnly) .panelHead h2{font-size:19px}
+ #customScreen:not(.previewOnly) .scroll{scrollbar-width:thin}
+ #customScreen:not(.previewOnly) .formrow .val{font-size:11px;flex:0 0 28px}
+ #customScreen:not(.previewOnly) .avatarCount{font-size:9px;line-height:1.3}
+ #customPreviewHint{right:5px!important;top:calc(env(safe-area-inset-top) + 16px)!important;width:calc(47vw - 10px);padding:7px 5px}
+ #customPreviewHint .studioHintText{font-size:9px}
+}
+@media (orientation:landscape) and (max-height:540px){
+ #customScreen .panel{left:8px!important;right:auto!important;width:calc(44vw - 18px)!important;top:8px;bottom:8px}
+ #customPreviewHint{right:10px!important;top:10px!important;width:32vw}
+}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
@@ -380,7 +423,7 @@ body.race-mode #resultOverlay{z-index:15}
   <div id="menuCopy"><div class="eyebrow">100m かけっこゲーム</div><h1 class="bigtitle">動物と<br><span>100m走</span></h1><div class="sub">人間を育成して、速い動物と100m走で対決。<br>左と右のボタンを交互に押した分だけ走ります。</div><div class="careerStats"><span>自己ベスト <strong id="bestDisplay">--</strong></span><span>勝利 <strong id="winDisplay">0 / 13</strong></span><span>挑戦 <strong id="raceCount">0</strong>回</span></div><div class="menuActions"><button class="btn" id="startBtn">▶ 100m走に挑戦</button><button class="btn secondary" id="goCustom">キャラメイク</button></div></div>
   <div class="versus glass"><div class="label">次の対戦相手</div><h3 id="nextName">イヌ</h3><div class="beastMeta"><span id="nextSub">初めての対戦相手</span><span id="nextSpeed">35 km/h</span></div><div class="statbar"><i id="nextBar" style="width:33%"></i></div><p class="hint" id="nextDescription" style="margin:8px 0 0">勝つと次の生物が解放される</p></div>
  </section>
- <section class="screen" id="customScreen"><div id="customPreviewHint"><div class="eyebrow">キャラクターの見た目</div><div style="font-size:12px;margin-top:5px">顔・体型・衣服の細部まで調整できます。<br>画面をなぞると向きを変えられます。</div></div><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">見た目の設定</div><h2>キャラメイク</h2></div><div class="customHeaderActions"><button class="btn secondary" id="previewAvatar" type="button">全身を見る</button><button class="btn secondary" data-back="1">完了</button></div></div><div class="customTools"><button class="btn secondary" id="randomAvatar" type="button">ランダム生成</button><button class="btn secondary" id="resetAvatar" type="button">初期化</button></div><div class="avatarTabs" id="avatarTabs" role="tablist" aria-label="編集する部位"></div>
+ <section class="screen" id="customScreen"><div id="customPreviewHint" role="status"><div class="eyebrow" id="studioFocusLabel">顔・アップ</div><div class="studioHintText">ドラッグで向きを変える</div></div><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">見た目の設定</div><h2>キャラメイク</h2></div><div class="customHeaderActions"><button class="btn secondary" id="previewAvatar" type="button">全身を見る</button><button class="btn secondary" data-back="1">完了</button></div></div><div class="customTools"><button class="btn secondary" id="randomAvatar" type="button">ランダム生成</button><button class="btn secondary" id="resetAvatar" type="button">初期化</button></div><div class="avatarTabs" id="avatarTabs" role="tablist" aria-label="編集する部位"></div>
 <div class="avatarSave"><label for="avatarSlot">保存先</label><select id="avatarSlot" aria-label="キャラクターの保存先"><option value="0">キャラ1</option><option value="1">キャラ2</option><option value="2">キャラ3</option></select><button id="saveAvatarSlot" type="button">保存</button><button id="loadAvatarSlot" type="button">呼び出し</button></div>
 <div class="scroll" id="customList"></div><div class="avatarCount" id="avatarCount">部位を選んで調整</div></div></section>
  <section class="screen" id="trainScreen"><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">能力の育成</div><h2>人間を鍛える</h2></div><button class="btn secondary" data-back="1">完了</button></div><div class="hint">勝てなくても報酬を獲得。鍛えるほど最高速度と爆発力が上がります。</div><div class="scroll" id="trainList"></div></div></section>
