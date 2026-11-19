@@ -391,6 +391,26 @@ body.custom-mode #quickActions{display:none!important}
 /* Slightly forgiving touch target, without covering the central sprint control. */
 body.race-mode .touchbtn{touch-action:none;position:relative}
 body.race-mode .touchbtn::before{content:"";position:absolute;inset:-6px;pointer-events:auto}
+
+/* Tiny timing hints appear around the runner's feet, never over the controls. */
+#footFeedback{position:absolute;inset:0;z-index:9;pointer-events:none;overflow:hidden}
+#footFeedback .stepRating{
+ position:absolute;display:inline-block;pointer-events:none;user-select:none;
+ transform:translate(-50%,-50%) rotate(var(--twist,-12deg));
+ font:900 clamp(10px,2.4vw,13px)/1 system-ui,sans-serif;
+ letter-spacing:.005em;white-space:nowrap;
+ color:#f4f6e8;text-shadow:0 1px 2px #1b222b,0 0 5px #111c2380;
+ opacity:.93;animation:tapCaptionFloat .62s ease-out both;
+}
+#footFeedback .stepRating.good{color:#dce9df;font-size:clamp(9px,2.1vw,11px)}
+#footFeedback .stepRating.just{color:#f9efd1}
+@keyframes tapCaptionFloat{
+ 0%{opacity:0;transform:translate(-50%,-43%) rotate(var(--twist,-12deg)) scale(.88)}
+ 16%{opacity:.96}
+ 72%{opacity:.84}
+ 100%{opacity:0;transform:translate(-50%,-145%) rotate(var(--twist,-12deg)) scale(1)}
+}
+body:not(.race-mode) #footFeedback{display:none}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
@@ -438,7 +458,7 @@ body.race-mode .touchbtn::before{content:"";position:absolute;inset:-6px;pointer
 </details><div class="beastTools"><select id="beastTypeFilter" aria-label="動物の種類で絞り込み"><option value="all">すべて（53種類）</option><option value="現生動物">現生動物</option><option value="絶滅動物">絶滅動物</option><option value="恐竜">恐竜</option><option value="架空生物">架空生物</option><option value="怪獣">怪獣（特別挑戦・解放済み）</option></select><input type="search" id="beastSearch" placeholder="名前で検索" aria-label="対戦相手を検索"></div><div class="scroll" id="animalList"></div></div></section>
  <nav class="menuNav" id="bottomNav"><button class="navbtn active" data-screen="menu">ホーム</button><button class="navbtn" data-screen="train">育成</button><button class="navbtn" data-screen="custom">キャラメイク</button><button class="navbtn" data-screen="beasts">動物図鑑</button></nav>
  <div id="raceHUD"><div class="hrow"><div class="hudbox raceSide"><div class="rank">あなた</div><div class="hudVal"><span id="dist">0.0</span><small> / 100m</small></div><div class="hudbar"><i id="humanProgress" style="width:0%"></i></div></div><div class="hudbox raceCenter"><div class="rank">タイム</div><div class="hudVal" id="timer">0.00</div><div class="rank" id="diffLabel">START</div></div><div class="hudbox raceSide"><div class="rank" id="enemyLabel">対戦相手</div><div class="hudVal"><span id="enemyDist">0.0</span><small> m</small></div><div class="hudbar opp"><i id="enemyProgress" style="width:0%"></i></div></div></div><div class="hrow"><div class="hudbox" style="flex:1"><div class="rank">速度 / 体力</div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:19px;font-weight:1000" id="speedDisplay">0.0 <small style="font-size:10px">km/h</small></span><span class="mini" id="comboDisplay">COMBO ×0</span></div><div class="hudbar stam"><i id="staminaBar" style="width:100%"></i></div></div><div class="hudbox" style="min-width:115px;flex:0 0 27%"><div class="rank">スパート</div><div class="hudVal" style="font-size:20px"><span id="burstPercent">0</span><small>%</small></div><div class="hudbar"><i id="burstBar" style="width:0%"></i></div></div></div></div>
- <div id="raceBanner"></div><div id="countdown">3</div><div id="raceMsg"></div>
+ <div id="raceBanner"></div><div id="countdown">3</div><div id="raceMsg"></div><div id="footFeedback" aria-hidden="true"></div>
  <div class="raceControls" id="raceControls"><div class="controlsLabel">交互タップで加速</div><div class="tapPair"><button class="touchbtn left" id="leftTap">L<br><span style="font-size:12px">左足</span></button><div class="burstBox"><div class="burstLabel" id="burstTxt">チャージ中</div><button class="burstBtn" id="burstBtn" disabled>スパート</button></div><button class="touchbtn right" id="rightTap">R<br><span style="font-size:12px">右足</span></button></div></div>
  <div id="resultOverlay"><div class="resultCard glass"><div class="eyebrow" id="resultEyebrow">レース結果</div><h2 id="resultTitle">結果</h2><div class="resGrid"><div><small>あなた</small><b id="resultTime">--</b></div><div><small>対戦相手</small><b id="resultEnemy">--</b></div><div><small>獲得資金</small><b class="accent" id="resultMoney">+0 G</b></div></div><p class="hint" id="resultMsg"></p><div id="result3DWindow" class="result3DWindow" hidden aria-label="勝者と対戦相手の3D表彰台"></div><img id="resultPhoto" class="resultPhoto" alt="レースで使用した3Dキャラクターと対戦相手の表彰台写真" hidden><div class="resButtons resultShare"><button class="btn" id="shareRace">写真と結果をXで共有</button><button class="btn secondary" id="downloadRace">写真を保存</button><button class="btn secondary" id="recaptureRace" type="button">3D写真を再撮影</button></div><p class="hint" id="shareHelp">X投稿時は共有画面からXを選択してください。</p><div class="resButtons"><button class="btn secondary" id="retryBtn">もう一度</button><button class="btn" id="resultHome">ホームへ</button></div></div></div>
 </div>
