@@ -280,7 +280,22 @@ body.race-mode #countdown{
 #quickActions button{padding:8px 10px;min-height:36px;font-size:11px;font-weight:800;border-radius:10px;border:1px solid #b6c8c65b;background:rgba(9,23,30,.90);color:#edf2ed;white-space:nowrap}
 #quickActions #resetProgress{border-color:#d3a9a064;color:#f3d9cd}
 #quickActions button:focus-visible,.toolModal button:focus-visible{outline:2px solid #e8ecdd;outline-offset:2px}
-body.race-mode #quickActions{display:none}
+/* Keep restart/debug controls visible in every game state, including
+   countdown, race, Pegasus exit and the result-overlay. */
+body.race-mode #quickActions{
+ display:flex!important;
+ top:calc(env(safe-area-inset-top) + 6px);
+ left:auto;
+ right:10px;
+ z-index:35;
+}
+body.race-mode #raceHUD{top:calc(env(safe-area-inset-top) + 52px)!important}
+@media(orientation:landscape) and (max-height:540px){
+ body.race-mode #raceHUD{top:calc(env(safe-area-inset-top) + 45px)!important}
+}
+body.race-mode #resultOverlay{z-index:15}
+#quickActions{z-index:35!important}
+#ui>.toolModal{z-index:45!important}
 #ui>.toolModal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 15px) 12px calc(env(safe-area-inset-bottom) + 15px);z-index:40;pointer-events:auto;background:rgba(4,12,17,.85);overscroll-behavior:contain}
 #ui>.toolModal[hidden]{display:none!important}
 .toolCard{width:min(100%,440px);max-height:94%;overflow:auto;touch-action:pan-y;overscroll-behavior:contain;border:1px solid #aabeb654;border-radius:16px;background:#14272d;padding:18px;color:#f2f2e8;box-shadow:0 16px 48px #000b}
@@ -294,13 +309,19 @@ body.race-mode #quickActions{display:none}
 #debugReadout{font-size:11px;white-space:pre-wrap;line-height:1.55;background:#091d24;padding:10px;border-radius:8px;color:#b9ded7}
 @media(max-width:360px){#quickActions{top:calc(env(safe-area-inset-top) + 42px)}body.menu-mode #menuCopy{top:calc(env(safe-area-inset-top) + 89px)}}
 @media(orientation:landscape) and (max-height:540px){#ui>.toolModal{align-items:flex-start}.toolCard{max-height:100%}}
+@media(max-width:680px) and (orientation:portrait){
+ body.race-mode #quickActions{right:8px;top:calc(env(safe-area-inset-top) + 6px)}
+ body.race-mode #quickActions button{min-height:35px;padding:7px 8px;font-size:10px}
+ body.race-mode #raceHUD{top:calc(env(safe-area-inset-top) + 47px)!important}
+ body.race-mode #resultOverlay{padding-top:calc(env(safe-area-inset-top) + 40px)}
+}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
  <div id="header"><div class="logo">100m RACE<b>動物と100m走</b></div><div class="topright"><div class="pill">育成資金 <strong id="coinDisplay">0</strong> G</div><button id="audioBtn" class="sq" aria-label="サウンド">♪</button><button id="fullBtn" class="sq" aria-label="全画面">⛶</button></div></div>
 
- <div id="quickActions" aria-label="ゲーム操作">
-  <button id="resetProgress" type="button" aria-label="はじめからやり直す">最初から</button>
+ <div id="quickActions" aria-label="ゲーム操作" data-build="20261119-controls-visible">
+  <button id="resetProgress" type="button" aria-label="はじめからやり直す">はじめからやり直す</button>
   <button id="debugOpen" type="button" aria-label="デバッグモードを開く">デバッグ</button>
  </div>
  <div id="resetDialog" class="toolModal" hidden role="dialog" aria-modal="true" aria-labelledby="resetTitle">
