@@ -1972,13 +1972,12 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   renderer.setClearColor(0x657783,1);
   renderer.clear(true,true,true);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-  // Check framebuffer completeness before reading: on Android WebView an
-  // incomplete framebuffer can silently return opaque black/grey pixels.
+  // Three.js may restore or switch framebuffer bindings during render.
+  // Checking the *current* GL framebuffer here can inspect the default
+  // framebuffer instead of this render target, rejecting a valid 3D frame.
+  // readRenderTargetPixels explicitly binds the target before reading it.
   const gl=renderer.getContext();
-  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)
-   throw Error('Podium render target framebuffer incomplete');
-  // Drop stale GL errors from earlier preview frames; only errors produced
-  // by this readback should invalidate a real 3D photograph.
+  // Clear errors left by the preview pass before this independent readback.
   for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
   const pixels=new Uint8Array(w*h*4);
   renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
