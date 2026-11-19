@@ -566,7 +566,7 @@ function randomizedStart(type,random=Math.random){
    if(site.region!==undefined&&regionAt(x,y)!==site.region)continue;
    if(site.zone==="northwood"&&!MOUNTAIN?.northWood?.(x,y))continue;
    if(site.zone&&site.zone!=="northwood"&&(!mountainHabitat(x,y)||MOUNTAIN.zone(x)!==site.zone))continue;
-   const depth=waterDepth(x,y);
+   const depth=fish?swimWaterDepth(x,y):waterDepth(x,y);
    if(fish?(depth<=.09||collides(x,y,radius+5,null,true)):
       (depth>.0001||collides(x,y,radius+6)))continue;
    return {id:site.id,name:site.name,x,y};
@@ -582,7 +582,7 @@ function starterFoodSpot(actor){
   const angle=k*TWO/16,x=actor.x+Math.cos(angle)*distance,y=actor.y+Math.sin(angle)*distance;
   if(x<28||y<28||x>WORLD.w-28||y>WORLD.h-28)continue;
   if(fish?!fishWaterAt(x,y):waterBlocksLand(x,y))continue;
-  if(collides(x,y,Math.min(12,r),null,fish)||lineBlocked(actor,{x,y}))continue;
+  if(collides(x,y,Math.min(12,r),fish?actor:null,fish)||lineBlocked(actor,{x,y}))continue;
   return {x,y};
  }
  return {x:actor.x,y:actor.y};
@@ -694,8 +694,9 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
- const nav=route.navigation?.(P,eastTrailMask,P.type==="carp",(x,y)=>waterDepth(x,y)>.09&&!collides(x,y,15,P,true));
- if(nav&&elapsed-eastTrailHazardNoticeAt>28&&P.x>=7600){
+ const nav=route.navigation?.(P,P.type==="carp"?0:eastTrailMask,
+  P.type==="carp",(x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
+ if(nav&&elapsed-eastTrailHazardNoticeAt>28&&(P.x>=7600||P.type==="carp")){
   eastTrailHazardNoticeAt=elapsed;
   const routeHint=nav.offPath?"｜街道から"+nav.routeDistance+"m離脱・合流地点へ案内":
    "｜次の道標まで"+nav.distance+"m";
@@ -1470,6 +1471,7 @@ const WATER_RIBBONS=(()=>{
   out.push({kind:"river",cx:(a+b)/2,cy:(y+y2)/2,pts:[[a-133,y],[a+133,y],[b+133,y2],[b-133,y2]]});}
  for(let x=5600;x<8400;x+=125){const x2=Math.min(8400,x+125),a=canalAxis(x),b=canalAxis(x2);
   out.push({kind:"canal",cx:(x+x2)/2,cy:(a+b)/2,pts:[[x,a-100],[x2,b-100],[x2,b+100],[x,a+100]]});}
+ out.push(...(window.WildEastExpedition?.waterRibbons||[]));
  return out;
 })();
 let scenicProps=[];
@@ -1652,8 +1654,9 @@ function waterDepth(x,y){
   const offset=Math.abs(y-canalAxis(x));
   if(offset<100&&!roadsX.some(rx=>Math.abs(x-rx)<80))depth=Math.max(depth,Math.min(1,(100-offset)/55));
  }
- return depth;
+ return Math.max(depth,window.WildEastExpedition?.channelDepth?.(x,y)||0);
 }
+function swimWaterDepth(x,y){return Math.max(waterDepth(x,y),window.WildEastExpedition?.aquaticDepth?.(x,y)||0);}
 function shallowWater(x,y){return waterDepth(x,y)>0;}
 function waterBlocksLand(x,y){return waterDepth(x,y)>.0001;}
 // All water travel shares the existing river/canal/flood collision field.
@@ -1662,7 +1665,7 @@ function waterBlocksLand(x,y){return waterDepth(x,y)>.0001;}
 // The same collision, swim animation, continue/save restoration and navigation checks use this shared set.
 const WATER_PLAYABLES=new Set(["otter","hippo","carp","frog","giantTreeFrog","pacmanFrog"]);
 const FLYING_PLAYABLES=new Set(["crow","pigeon"]);
-const fishWaterAt=(x,y)=>waterDepth(x,y)>.035;
+const fishWaterAt=(x,y)=>swimWaterDepth(x,y)>.035;
 function buildingOverlapsWater(x,y,w,h){
  const l=x-18,r=x+w+18,t=y-18,b=y+h+18;
  if(r>6300&&t<2600&&b>0)for(let yy=Math.max(0,t);yy<=Math.min(2600,b)+32;yy+=32){
@@ -2600,17 +2603,17 @@ function aquaticStagePoints(region){
 }
 // Restore a water boss at its saved water position, or a nearby valid water tile.
 function nearestAquaticWater(x,y,r,region){
- if(waterDepth(x,y)>.035&&!collides(x,y,r,null,true))return {x,y};
+ if(swimWaterDepth(x,y)>.035&&!collides(x,y,r,P?.type==="carp"?P:null,true))return {x,y};
  const zone=Number.isInteger(region)?region:regionAt(x,y);
  for(let distance=32;distance<=1800;distance+=32)for(let k=0;k<24;k++){
   const angle=k*Math.PI/12,px=clamp(x+distance*Math.cos(angle),r+13,WORLD.w-r-13);
   const py=clamp(y+distance*Math.sin(angle),r+13,WORLD.h-r-13);
-  if(regionAt(px,py)===zone&&waterDepth(px,py)>.09&&!collides(px,py,r,null,true))return {x:px,y:py};
+  if(regionAt(px,py)===zone&&swimWaterDepth(px,py)>.09&&!collides(px,py,r,P?.type==="carp"?P:null,true))return {x:px,y:py};
  }
  return null;
 }
 function aquaticMove(m,dx,dy){
- const allowed=(x,y)=>waterDepth(x,y)>.035&&!collides(x,y,m.r,null,true);
+ const allowed=(x,y)=>swimWaterDepth(x,y)>.035&&!collides(x,y,m.r,m,true);
  if(allowed(m.x+dx,m.y+dy)){m.x+=dx;m.y+=dy;return;}
  if(allowed(m.x+dx,m.y))m.x+=dx;
  if(allowed(m.x,m.y+dy))m.y+=dy;
@@ -3707,11 +3710,12 @@ function landOnSurface(){
 function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
  const aerial=!!actor&&actor===P&&actor.flying&&actor.flightAltitude>=42;
- if(MOUNTAIN?.blocked(x,y,r,mountainIgnore)&&!aerial)return true;
+ if(MOUNTAIN?.blocked(x,y,r,mountainIgnore,
+  !!actor&&actor.type==="carp"&&swimWaterDepth(x,y)>.035)&&!aerial)return true;
  if(window.WildDisaster?.blocked(x,y,r,elapsed/120)&&!aerial)return true;
  if(!ignoreWater){
   const depth=waterDepth(x,y);
-  if(actor&&actor===P&&actor.type==="carp"&&depth<=.035)return true;
+  if(actor&&actor===P&&actor.type==="carp"&&swimWaterDepth(x,y)<=.035)return true;
   if(depth>.0001&&!aerial&&!(actor&&actor===P&&(WATER_PLAYABLES.has(actor.type)||
      (actor.type==="shoebill"&&depth<=.24))))return true;
  }
@@ -6468,6 +6472,12 @@ function eastSalvageObjective(){
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
  if(mission>=7){
+  if(P.type==="carp"){
+   const nav=window.WildEastExpedition?.navigation?.(P,0,true,
+    (x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
+   return nav?{x:nav.x,y:nav.y,label:nav.waterReachable?
+    "水中探索 "+nav.stop.name:"水路の安全な経路を探索",eastTrail:true}:null;
+  }
   if(freeStep===2&&freeTarget<EXPLORE_SITES.length&&discoveredSites.length<EXPLORE_SITES.length){
    const destination=nearestGoal(EXPLORE_SITES.filter(q=>!discoveredSites.includes(q.id)));
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
@@ -8859,7 +8869,7 @@ function drawWorldMap(){
   bm.fillRect(X(b.x),Y(b.y),Math.max(2,X(b.w)),Math.max(2,Y(b.h)));
  }
  // Connected east route (8 physically passable checkpoints), unlike unrelated discovery points.
- window.WildEastExpedition?.drawMap?.(bm,X,Y,eastTrailMask,true);
+ window.WildEastExpedition?.drawMap?.(bm,X,Y,eastTrailMask,true,0);
  const mark=(x,y,color,r=6)=>{
   bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
@@ -9134,6 +9144,7 @@ function drawBuilding(b){
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
 function drawLandmark2D(site){
+ if(site.waterRoute){window.WildEastExpedition?.drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,0);return;}
  if(site.eastRoute){window.WildEastExpedition?.drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,eastTrailMask);return;}
  const x=site.x,y=site.y;
  ctx.save();ctx.translate(x,y);
@@ -10368,7 +10379,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])],waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])],waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
  // All screen overlays and effects now use the very same world-camera offset as the renderer.
  renderedSceneCamera=use3D?{x:cam.x+quakeOffset.x,y:cam.y+quakeOffset.y}:{x,y};
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
@@ -10395,7 +10406,7 @@ function drawScene(){
   ctx.save();ctx.strokeStyle="#b4dedaaf";ctx.lineWidth=2;ctx.beginPath();
   ctx.ellipse(e.x,e.y,Math.max(11,e.r*1.35),Math.max(5,e.r*.64),0,0,TWO);ctx.stroke();ctx.restore();
  }
- for(const site of [...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])])if(visible(site.x,site.y,500))drawLandmark2D(site);
+ for(const site of [...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])])if(visible(site.x,site.y,500))drawLandmark2D(site);
  for(const scrap of weaponScraps)if(visible(scrap.x,scrap.y,90))drawWeaponScrap2D(scrap);
  for(const d of debris){if(!visible(d.x,d.y,16))continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle=d.kind===0?"#b5a47a45":d.kind===1?"#314945":"#66756b75";ctx.fillRect(-d.r*.5,-d.r*.2,d.r*1.8,d.r*.7);ctx.restore()}
  const layers=[],covers=new Map();
