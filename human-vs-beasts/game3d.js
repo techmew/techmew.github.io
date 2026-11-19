@@ -2184,13 +2184,20 @@ function captureCeremonyPhoto(){
   }
  }catch(err){
   console.warn('3D image capture blocked; show live 3D podium instead',err);
-  // Never allow Save/Share to reuse a stale or partially rendered image.
-  // Android may fail midway through a GPU readback after an earlier attempt.
-  racePicture=null;
-  releasePodiumPreview();
-  $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
-  ceremonyStage.photoCaptured=false;
-  $('shareHelp').textContent='3D表彰台を表示中。写真を再取得しています。';
+  // A failed retry must not erase a previously validated photograph.
+  // This is especially important after Android restores a lost GPU context.
+  if(racePicture&&racePicture.width>0&&racePicture.height>0){
+   ceremonyStage.photoCaptured=true;
+   try{showCapturedPodiumCanvas(racePicture)}
+   catch(previewError){console.warn('Saved 3D podium preview unavailable',previewError)}
+   $('shareHelp').textContent='撮影済みの3D写真を保存・共有できます。';
+  }else{
+   racePicture=null;
+   releasePodiumPreview();
+   $('resultPhoto').hidden=true;$('result3DWindow').hidden=false;
+   ceremonyStage.photoCaptured=false;
+   $('shareHelp').textContent='3D表彰台を表示中。写真を再取得しています。';
+  }
  }finally{
   if(ceremonyStage){
    // Restore the live 3D preview only while it is visible. After an encoded
