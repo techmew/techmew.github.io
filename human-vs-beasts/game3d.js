@@ -2664,7 +2664,7 @@ function updateRace(dt){
   if(!race||race.phase==='finished'||race.phase==='results'||race.phase==='pegasusExit')break;
  }
 }
-function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
+function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[Number.isInteger(r.opponentIndex)?r.opponentIndex:save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>1.15)r.combo=0;
  const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
@@ -3197,11 +3197,11 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0;
  const visualPegasus=mode==='race'&&animals[race?.opponentIndex]?.kind==='pegasus'&&(race?.phase==='pegasusExit'||race?.eFinish!==null);
  const espeed=visualPegasus?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&animals[save.chosen]?.kind==='pegasus'?6:0;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
  const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?40:visualPegasus?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
-  const kind=animals[save.chosen].kind,gait=GAIT_MAP[kind];
+  const kind=animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,gait=GAIT_MAP[kind];
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
   if(race.time-race.lastRivalImpact>gap){
    race.lastRivalImpact=race.time;animalFootstep(kind,espeed);
