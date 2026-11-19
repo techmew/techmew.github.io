@@ -80,15 +80,23 @@
  // It never advertises a dry straight-line waypoint as reachable.
  function aquaticStep(player,target,passable){
   if(!player||!target||typeof passable!=="function")return {x:player?.x||0,y:player?.y||0,reachable:false,targetReached:false};
-  if(dist(player,target)<=60&&passable(player.x,player.y))return {x:player.x,y:player.y,reachable:true,targetReached:true,remaining:0,expanded:0};
+  // Reject dry destinations; otherwise the A* can falsely accept water 60m from a dry post.
+  // Find a physical water approach to the landmark without moving the actual landmark/reward.
+  const offsets=[[0,0],[0,40],[40,0],[-40,0],[0,-40],[40,40],[-40,40],[40,-40],[-40,-40],
+   [0,80],[80,0],[-80,0],[0,-80],[80,80],[-80,80],[80,-80],[-80,-80]];
+  const wetGoals=offsets.map(([dx,dy])=>({x:target.x+dx,y:target.y+dy}))
+   .filter(p=>Math.hypot(p.x-target.x,p.y-target.y)<=115&&passable(p.x,p.y));
+  if(!wetGoals.length||!passable(player.x,player.y))return {x:player.x,y:player.y,reachable:false,targetReached:false,remaining:Infinity,expanded:0};
+  const goal=wetGoals.sort((a,b)=>dist(player,a)-dist(player,b))[0];
+  if(dist(player,goal)<=40)return {x:player.x,y:player.y,reachable:true,targetReached:dist(player,target)<=125,remaining:0,expanded:0};
   const size=40,limit=3200,origin={x:player.x,y:player.y},start="0,0";
   const key=(x,y)=>x+","+y,open=[{x:0,y:0,g:0,f:0}],seen=new Map([[start,0]]),cells=new Map([[start,open[0]]]);
   const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-  let best=open[0],bestDist=dist(origin,target),expanded=0,found=false;
+  let best=open[0],bestDist=dist(origin,goal),expanded=0,found=false;
   while(open.length&&expanded++<limit){
    open.sort((a,b)=>a.f-b.f);const node=open.shift(),nk=key(node.x,node.y);
    if(node.g!==seen.get(nk))continue;
-   const px=origin.x+node.x*size,py=origin.y+node.y*size,d=Math.hypot(px-target.x,py-target.y);
+   const px=origin.x+node.x*size,py=origin.y+node.y*size,d=Math.hypot(px-goal.x,py-goal.y);
    if(d<bestDist){best=node;bestDist=d;}
    if(d<=size*1.5){best=node;found=true;break;}
    for(const [dx,dy] of dirs){
@@ -100,7 +108,7 @@
     if(!passable((px+x)/2,(py+y)/2))continue;
     const g=node.g+Math.hypot(dx,dy),k=key(nx,ny);
     if(g>=(seen.get(k)??Infinity))continue;
-    const next={x:nx,y:ny,g,f:g+Math.hypot(x-target.x,y-target.y)/size,parent:nk};
+    const next={x:nx,y:ny,g,f:g+Math.hypot(x-goal.x,y-goal.y)/size,parent:nk};
     seen.set(k,g);cells.set(k,next);open.push(next);
    }
   }
