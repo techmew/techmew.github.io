@@ -2661,7 +2661,7 @@ function updateRace(dt){
   const step=Math.min(remaining,.05);
   updateRaceStep(step);
   remaining-=step;
-  if(!race||race.phase==='finished'||race.phase==='result')break;
+  if(!race||race.phase==='finished'||race.phase==='results'||race.phase==='pegasusExit')break;
  }
 }
 function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
@@ -2672,7 +2672,9 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.85;const tempo=clamp(.18+r.drive*.79,.18,1.10);const fatigued=(.55+.45*r.stamina);const offCourse=r.lateral < -4.85 || r.lateral > 2.1;const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued*(offCourse?.76:1):0;const accel=7.8+(save.stats.power-1)*.55;
  if(r.hFinish===null){if(!hasInput){r.humanV=0;r.combo=0;r.lateralTarget=r.lateral;r.sideStreak=0}else if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-5.8*dtSafe);r.humanD+=r.humanV*dtSafe;
  r.stamina=clamp(r.stamina-((r.drive>.50?.012:.001)*(1/(1+save.stats.stamina*.09))+(r.burstLeft>0?.028:0))*dtSafe+(r.drive<.4?.014:0)*dtSafe,.32,1);if(r.humanD>=100){const before=r.humanD-r.humanV*dtSafe;r.hFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.humanV);r.humanD=100;r.humanV=0;r.combo=0;beep(930,.16,'sine',.05)}}
- const a=animals[Math.max(0,Math.min(animals.length-1,save.chosen))],maxB=a.kph/3.6;
+ // Lock rival physics to the opponent selected at race start; menu/async updates must not swap opponents mid-race.
+ const rivalIndex=Number.isInteger(r.opponentIndex)?r.opponentIndex:save.chosen;
+ const a=animals[Math.max(0,Math.min(animals.length-1,rivalIndex))],maxB=a.kph/3.6;
  if(r.eFinish===null){
   // Every profile remains a normal 100m race: heavy starters gather momentum,
   // hoppers pulse, sprinters accelerate quickly, and special opponents finish fast.
@@ -2683,7 +2685,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   else if(a.profile==='hopper'){pace=(progress<18?.88:1.02)+Math.pow(Math.max(0,Math.sin(beastGait)),2)*.12;accMult=1.04}
   else if(a.profile==='late'){pace=progress<35?.83:progress<70?1.04:1.23;accMult=1.04}
   else{pace=progress<20?.95:progress>82?1.04:1}
-  const stage=save.chosen;
+  const stage=rivalIndex;
   const challenge=stage<3?1.15:stage<7?1.58:stage<14?2.25:stage<22?1.95:stage<37?2.10:2.18;
   const stridePace=rivalStridePace(a.kind,beastGait,progress);
   const enemyTarget=maxB*pace*stridePace*(r.enemyStumble>0?.62:1),acc=a.acc*accMult*challenge;
