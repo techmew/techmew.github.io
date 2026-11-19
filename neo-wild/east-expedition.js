@@ -99,7 +99,7 @@
   if(!player||!target||typeof passable!=="function"||!passable(player.x,player.y))return fail;
   // Validate the actual final water target, rather than accepting a nearby dry landmark.
   if(!passable(target.x,target.y))return fail;
-  if(dist(player,target)<=48)return {...fail,reachable:true,targetReached:true};
+  if(dist(player,target)<=100)return {...fail,reachable:true,targetReached:true};
   const starts=waterNodes.map((p,i)=>({i,d:dist(p,player)})).filter(p=>p.d<=105).sort((a,b)=>a.d-b.d).slice(0,6);
   const goals=new Set(waterNodes.map((p,i)=>({i,d:dist(p,target)})).filter(p=>p.d<=72&&passable(waterNodes[p.i].x,waterNodes[p.i].y)).map(p=>p.i));
   if(!starts.length||!goals.size)return fail;
@@ -125,15 +125,14 @@
    }
   }
   if(end<0)return fail;
-  let cur=end,prev=from.get(cur);
-  while(prev!==-1&&prev!==undefined){cur=prev;prev=from.get(cur);}
-  // Advance one accepted graph edge, not directly through a cliff to the final post.
-  let next=waterNodes[cur];
-  if(dist(player,next)<26){
-   const neighbors=waterEdges[cur].filter(i=>from.get(i)===cur);
-   const reachable=neighbors.find(i=>from.has(i)&&edgeOK(cur,i));
-   if(reachable!==undefined)next=waterNodes[reachable];
-  }
+  // Reconstruct the exact graph path to the selected destination. Choosing any
+  // previously visited neighbor can send fish backward at a river fork.
+  const chain=[end];
+  while(from.get(chain.at(-1))!==-1&&from.get(chain.at(-1))!==undefined)
+   chain.push(from.get(chain.at(-1)));
+  chain.reverse();
+  let next=waterNodes[chain[0]];
+  if(dist(player,next)<26&&chain.length>1)next=waterNodes[chain[1]];
   return {x:next.x,y:next.y,reachable:true,targetReached:false,remaining:dist(player,target)};
  }
 
@@ -245,8 +244,13 @@
   return {x,y,reachable:found&&passable(x,y),targetReached:found,partial:!found,
    remaining:Math.round(bestDist),expanded};
  }
+ const waterNavMemo={time:0,origin:null,mask:null,result:null};
  function navigation(player,mask,water=false,passable=null){
   if(!player)return null;
+  if(water&&waterNavMemo.result&&waterNavMemo.mask===mask&&
+     Date.now()-waterNavMemo.time<700&&
+     dist(player,waterNavMemo.origin)<26&&
+     passable?.(waterNavMemo.result.x,waterNavMemo.result.y))return waterNavMemo.result;
   const location=routePosition(player);
   const aquatic=water?waterStations:null;
   const candidates=aquatic||STOPS;
@@ -277,11 +281,16 @@
   const x=water?(swim.reachable?swim.x:player.x):(offPath?location.x:wx);
   const y=water?(swim.reachable?swim.y:player.y):(offPath?location.y:wy);
   const sectionIndex=location.progress<4?0:location.progress<8?1:location.progress<15?2:3;
-  return {x,y,stop,section:habitat[sectionIndex],water:!!water,
+  const result={x,y,stop,section:habitat[sectionIndex],water:!!water,
    distance:Math.round(Math.hypot(player.x-x,player.y-y)),waypoint:step,
    offPath:water?!swim.reachable:offPath,routeDistance:water?0:Math.round(location.distance),
    routeProgress:location.progress,waterReachable:water?swim.reachable:null,
    targetDistance:Math.round(dist(player,stop))};
+  if(water){
+   waterNavMemo.time=Date.now();waterNavMemo.origin={x:player.x,y:player.y};
+   waterNavMemo.mask=mask;waterNavMemo.result=result;
+  }
+  return result;
  }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
  const BIOMES=Object.freeze([
