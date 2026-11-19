@@ -17,6 +17,126 @@
  // Route polyline follows a collision-checked 21-radius passable corridor;
  // straight lines across the cliffs and deep streams are deliberately omitted.
  const WALKWAY=Object.freeze([[8360,1680],[8700,1764],[9320,1877],[9920,1960],[10160,2200],[10320,2280],[10440,2360],[10740,2590],[10960,3280],[11280,3600],[11350,3550],[11760,3440],[11960,3320],[12120,3240],[12350,3250],[12440,3560],[12720,3818],[13220,3797]].map(p=>Object.freeze(p)));
+
+ // P3: one continuous, source-coordinate aquatic network. Drawings, swim collision,
+ // spawn recovery and navigation refer to the same channels; no teleport or save reset.
+ const riverX=y=>7505+68*Math.sin(y/390),canalY=x=>5025+35*Math.sin(x/390);
+ const inletX=riverX(2485),mouthX=M?.headwater?.mouthX||9230,sourceX=M?.headwater?.sourceX||12740;
+ const upperY=x=>M?.headwater?.yAt?.(x)??(2485+12*Math.sin((x-10500)/470));
+ const creekX=y=>M?.creek?.xAt?.(y)??(9250+35*Math.sin((y-3800)/180));
+ const depthBand=(offset,half)=>Math.max(0,Math.min(1,(half-Math.abs(offset))/(half*.48)));
+ function channelDepth(x,y){
+  let d=0;
+  if(y>=2480&&y<=canalY(inletX)+45)d=Math.max(d,depthBand(x-inletX,85));
+  if(x>=inletX-35&&x<=mouthX+30)d=Math.max(d,depthBand(y-upperY(x),76));
+  if(x>=mouthX-25&&x<=sourceX+18)d=Math.max(d,depthBand(y-upperY(x),35));
+  if(y>=2485&&y<=4650)d=Math.max(d,depthBand(x-creekX(y),53));
+  return d;
+ }
+ // Physical water below a road bridge remains swimmable for fish, while surface
+ // waterDepth can keep the old dry road crossing for land creatures.
+ function aquaticDepth(x,y){
+  let d=channelDepth(x,y);
+  if(y>=0&&y<=2600)d=Math.max(d,depthBand(x-riverX(y),133));
+  if(x>=5600&&x<=8400)d=Math.max(d,depthBand(y-canalY(x),100));
+  return d;
+ }
+ const waterRibbons=[];
+ function drawRibbon(a,b,half,kind){
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len*half,ny=dx/len*half;
+  return Object.freeze({kind,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,
+   pts:[[a.x+nx,a.y+ny],[a.x-nx,a.y-ny],[b.x-nx,b.y-ny],[b.x+nx,b.y+ny]]});
+ }
+ const waterNodes=[],waterEdges=[];
+ function lane(points,half,kind,draw){
+  let previous=-1;
+  for(const p of points){
+   const index=waterNodes.length;
+   waterNodes.push(Object.freeze({x:p.x,y:p.y}));
+   waterEdges.push([]);
+   if(previous>=0){
+    waterEdges[previous].push(index);waterEdges[index].push(previous);
+    if(draw)waterRibbons.push(drawRibbon(waterNodes[previous],p,half,kind));
+   }
+   previous=index;
+  }
+ }
+ function samples(a,b,step,at){
+  const count=Math.max(1,Math.ceil(Math.abs(b-a)/step));
+  return Array.from({length:count+1},(_,i)=>at(a+(b-a)*i/count));
+ }
+ lane(samples(0,2600,35,y=>({x:riverX(y),y})),133,"river",false);
+ lane(samples(5600,8400,35,x=>({x,y:canalY(x)})),100,"canal",false);
+ lane(samples(canalY(inletX),2485,35,y=>({x:inletX,y})),85,"waterlink",true);
+ lane(samples(inletX,mouthX,35,x=>({x,y:upperY(x)})),76,"waterlink",true);
+ lane(samples(mouthX,sourceX,24,x=>({x,y:upperY(x)})),35,"spring",false);
+ lane(samples(2485,4650,30,y=>({x:creekX(y),y})),53,"creek",false);
+ // Join only physically coincident centerlines; diagonal bank-cutting is tested
+ // against the same passable predicate before any route is advertised.
+ for(let i=0;i<waterNodes.length;i++)for(let j=i+1;j<waterNodes.length;j++){
+  if(waterEdges[i].includes(j)||Math.hypot(waterNodes[i].x-waterNodes[j].x,waterNodes[i].y-waterNodes[j].y)>31)continue;
+  waterEdges[i].push(j);waterEdges[j].push(i);
+ }
+ Object.freeze(waterRibbons);
+ const waterStations=Object.freeze([
+  {id:"fish-river",name:"朝霧川の水中補給",area:"川",x:riverX(1640),y:1640,amount:28,score:110},
+  {id:"fish-canal",name:"潮見水路の補給",area:"水路",x:6880,y:canalY(6880),amount:32,score:125},
+  {id:"fish-inlet",name:"東部の合流水域",area:"合流",x:8550,y:upperY(8550),amount:40,score:200},
+  {id:"fish-source",name:"高地の源流水域",area:"水源",x:12350,y:upperY(12350),amount:52,score:350}
+ ].map((site,index)=>Object.freeze({...site,index,waterRoute:true,food:"berries",
+  z:Math.max(0,Number(M?.height?.(site.x,site.y))||0)})));
+ const cleanWaterMask=m=>Number.isSafeInteger(m)?m&15:0;
+ const waterVisited=(mask,i)=>(cleanWaterMask(mask)&(1<<i))!==0;
+ const waterArrival=(player,mask)=>player&&player.type==="carp"&&player.hp>0?
+  waterStations.find(s=>!waterVisited(mask,s.index)&&dist(s,player)<105)||null:null;
+ const waterReplenishable=(player,mask,years,year)=>{
+  if(!player||player.type!=="carp")return null;
+  const s=waterStations.find(s=>dist(s,player)<105&&waterVisited(mask,s.index));
+  return s&&year-(Number(years?.[s.index])||0)>=3?s:null;
+ };
+ function aquaticNetworkStep(player,target,passable){
+  const fail={x:player?.x||0,y:player?.y||0,reachable:false,targetReached:false};
+  if(!player||!target||typeof passable!=="function"||!passable(player.x,player.y))return fail;
+  // Validate the actual final water target, rather than accepting a nearby dry landmark.
+  if(!passable(target.x,target.y))return fail;
+  if(dist(player,target)<=48)return {...fail,reachable:true,targetReached:true};
+  const starts=waterNodes.map((p,i)=>({i,d:dist(p,player)})).filter(p=>p.d<=105).sort((a,b)=>a.d-b.d).slice(0,6);
+  const goals=new Set(waterNodes.map((p,i)=>({i,d:dist(p,target)})).filter(p=>p.d<=72&&passable(waterNodes[p.i].x,waterNodes[p.i].y)).map(p=>p.i));
+  if(!starts.length||!goals.size)return fail;
+  const edgeOK=(a,b)=>{
+   const p=waterNodes[a],q=waterNodes[b];
+   if(!passable(q.x,q.y))return false;
+   for(let t=.25;t<1;t+=.25)if(!passable(p.x+(q.x-p.x)*t,p.y+(q.y-p.y)*t))return false;
+   return true;
+  };
+  const queue=[],from=new Map();
+  for(const a of starts){
+   const p=waterNodes[a.i];
+   if(!passable(p.x,p.y)||!passable((p.x+player.x)/2,(p.y+player.y)/2))continue;
+   from.set(a.i,-1);queue.push(a.i);
+  }
+  let end=-1;
+  for(let h=0;h<queue.length&&h<waterNodes.length;h++){
+   const u=queue[h];
+   if(goals.has(u)){end=u;break;}
+   for(const v of waterEdges[u]){
+    if(from.has(v)||!edgeOK(u,v))continue;
+    from.set(v,u);queue.push(v);
+   }
+  }
+  if(end<0)return fail;
+  let cur=end,prev=from.get(cur);
+  while(prev!==-1&&prev!==undefined){cur=prev;prev=from.get(cur);}
+  // Advance one accepted graph edge, not directly through a cliff to the final post.
+  let next=waterNodes[cur];
+  if(dist(player,next)<26){
+   const neighbors=waterEdges[cur].filter(i=>from.get(i)===cur);
+   const reachable=neighbors.find(i=>from.has(i)&&edgeOK(cur,i));
+   if(reachable!==undefined)next=waterNodes[reachable];
+  }
+  return {x:next.x,y:next.y,reachable:true,targetReached:false,remaining:dist(player,target)};
+ }
+
  const ALL=(1<<STOPS.length)-1,dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const cleanMask=m=>Number.isSafeInteger(m)?m&ALL:0;
  const visited=(mask,i)=>(cleanMask(mask)&(1<<i))!==0;
@@ -28,7 +148,7 @@
   const s=near(player,115);if(!s||!visited(mask,s.index))return null;
   const last=Number(years?.[s.index]);return (Number.isFinite(last)?year-last:99)>=3?s:null;
  };
- function drawMap(ctx,X,Y,mask,detail=true){
+ function drawMap(ctx,X,Y,mask,detail=true,waterMask=0){
   ctx.save();ctx.lineWidth=detail?2:1.5;ctx.strokeStyle=detail?"#e0d3a1":"#d5c28c";
   ctx.setLineDash(detail?[5,3]:[4,5]);ctx.beginPath();
   WALKWAY.forEach(([x,y],i)=>i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)));ctx.stroke();ctx.setLineDash([]);
@@ -39,20 +159,25 @@
    if(detail){ctx.fillStyle="#1b302e";ctx.font="bold 9px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText(String(s.index+1),x,y+.4);}
   }
+  for(const site of waterStations){
+   const x=X(site.x),y=Y(site.y),done=waterVisited(waterMask,site.index);
+   ctx.fillStyle=done?"#7be8db":"#5ec7e1";ctx.strokeStyle="#17333d";ctx.lineWidth=1.6;
+   ctx.beginPath();ctx.arc(x,y,detail?4.5:2.8,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
   ctx.restore();
  }
  function drawPost2D(ctx,s,view,zoom,det,mask){
-  const z=s.z,offset=z*.93*zoom,done=visited(mask,s.index);
+  const z=s.z,offset=z*.93*zoom,done=s.waterRoute?waterVisited(mask,s.index):visited(mask,s.index);
   ctx.save();ctx.translate(s.x,s.y);
   if(z>0)ctx.translate(view.c*offset/det,-view.a*offset/det);
   ctx.fillStyle="#1a302ca8";ctx.beginPath();ctx.ellipse(0,5,26,13,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=done?"#8ddcb0":"#d8ba7e";ctx.lineWidth=3.5;ctx.beginPath();
   ctx.arc(0,0,17,0,Math.PI*2);ctx.stroke();
   ctx.fillStyle="#5e5843";ctx.fillRect(-4,-46,8,46);
-  ctx.fillStyle=done?"#49745e":"#8d6747";ctx.fillRect(-30,-57,60,20);
+  ctx.fillStyle=s.waterRoute?(done?"#407c80":"#327899"):(done?"#49745e":"#8d6747");ctx.fillRect(-30,-57,60,20);
   ctx.strokeStyle="#ebd8a7";ctx.lineWidth=1.4;ctx.strokeRect(-30,-57,60,20);
   ctx.fillStyle="#fff3d0";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillText((s.index+1)+"/"+STOPS.length,0,-47);
+  ctx.fillText(s.waterRoute?"水"+(s.index+1):(s.index+1)+"/"+STOPS.length,0,-47);
   ctx.restore();
  }
  // P3: route-aware guidance uses the same physical waypoint coordinates in both renderers.
@@ -123,7 +248,7 @@
  function navigation(player,mask,water=false,passable=null){
   if(!player)return null;
   const location=routePosition(player);
-  const aquatic=water?STOPS.filter(s=>s.id==="ravine"||s.id==="headwater"):null;
+  const aquatic=water?waterStations:null;
   const candidates=aquatic||STOPS;
   const ranked=candidates.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b));
   const ordered=ranked.length?ranked:candidates.slice().sort((a,b)=>dist(player,a)-dist(player,b));
@@ -132,7 +257,7 @@
    // Only label a stop reachable after the actual water/collision search succeeds.
    // Do not replace a failed route with a dry-land arrow.
    for(const candidate of ordered){
-    const attempt=aquaticStep(player,candidate,passable);
+    const attempt=aquaticNetworkStep(player,candidate,passable);
     if(attempt.reachable){stop=candidate;swim=attempt;break;}
     if(!swim||attempt.remaining<swim.remaining){swim=attempt;stop=candidate;}
    }
@@ -176,7 +301,7 @@
   const target=next(player,mask)||nearest;
   const water=player.type==="carp",inWater=!!biome?.wet;
   // Aquatic starts must receive reachable water objectives, never a dry mountain post.
-  const aquaticStops=STOPS.filter(s=>s.id==="ravine"||s.id==="headwater");
+  const aquaticStops=waterStations;
   const aquaticTarget=water?aquaticStops.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b))[0]||aquaticStops.sort((a,b)=>dist(player,a)-dist(player,b))[0]:null;
   const dangerous=biome?.id==="cave"?(year>=25||weather==="THUNDER"):
    biome?.id==="snow"||biome?.id==="ravine"&&wet||biome?.id==="spring"&&wet;
@@ -212,5 +337,7 @@
   }
   return {alerted,fleeing};
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,
+  waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
+  cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
 })(window);
