@@ -1692,7 +1692,17 @@ function tap(side,overlapping=false){
  r.sideStreak=alternate?0:Math.min(12,(r.sideStreak||0)+1);
  const direction=side==='L'?1:-1;
  const sideways=alternate?.072:.32+Math.min(.34,r.sideStreak*.052);
- r.lateralTarget=clamp(r.lateralTarget+direction*sideways,-6.25,3.10);
+ // Same-side mashing steers strongly. Alternating feet gently straighten the
+ // runner toward their own lane, so a single mistake does not strand them off
+ // track for the remainder of the race.
+ if(alternate){
+  const laneCenter=humanX;
+  const recovery=clamp(.095+Math.abs(r.lateralTarget-laneCenter)*.085,.095,.40);
+  const centered=r.lateralTarget+(laneCenter-r.lateralTarget)*recovery;
+  r.lateralTarget=clamp(centered+direction*.026,-6.25,3.10);
+ }else{
+  r.lateralTarget=clamp(r.lateralTarget+direction*sideways,-6.25,3.10);
+ }
  if(alternate){
   r.combo=fresh?1:Math.min(99,r.combo+1);
   const tempoBonus=clamp((.55-elapsed)/.55,0,1);
