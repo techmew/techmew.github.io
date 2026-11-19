@@ -300,7 +300,13 @@ function makeRawHuman(a){
  const chest=ball(torso,shirt,0,.39,-.02,.345*bulky*shoulderWidth,.40,.235*(1+.25*morph('chestDepth')));chest.scale.x*=wide;
  const jerseyOutline=[new T.Vector2(.245,.03),new T.Vector2(.264,.15),new T.Vector2(.275,.33),new T.Vector2(.31*shoulderWidth,.52),new T.Vector2(.30*shoulderWidth,.72),new T.Vector2(.16,.82)];
  const jersey=new T.Mesh(new T.LatheGeometry(jerseyOutline,24),shirt);jersey.scale.x=bulky*wide;jersey.scale.z=1+.20*morph('chestDepth');jersey.receiveShadow=true;jersey.castShadow=true;torso.add(jersey);ball(torso,shirt,0,.15,0,.255*(1+.33*morph('waistWidth')),.25,.20*(1+.25*morph('belly')));
- ball(torso,skin,0,.89,.06,.13,.16,.13);ball(torso,shirt,0,.77,.06,.17+.04*morph('neckline'),.055,.17); // neck
+ ball(torso,skin,0,.89,.06,.118,.155,.112);ball(torso,shirt,0,.77,.06,.15+.035*morph('neckline'),.043,.15); // neck
+ // Narrow contrasting shoulder and side seams make the jersey read as technical sportswear.
+ const jerseyTrim=mat(new T.Color(palettes.shirt[a.shirt%palettes.shirt.length]).multiplyScalar(.70),.92);
+ for(const side of [-1,1]){
+  tube(torso,[side*.237,.72,.103],[side*.287,.45,.193],.009,jerseyTrim,.009);
+  tube(torso,[side*.278,.39,.180],[side*.222,.06,.137],.008,jerseyTrim,.008);
+ }
  // decorative shirt panels / collar
  if(a.shirtStyle%3===0){ball(torso,white,0,.62,.22,.14,.10,.04)}
  if(a.shirtStyle%3===1){box(torso,.06,.65,.022,white,0,.35,.245)}
@@ -314,7 +320,9 @@ function makeRawHuman(a){
   conical(sh,a.shirtStyle>5||a.sleeveLength>65?shirt:skin,0,-.34,.01,.145,.105,.50,18);if(a.sleeveLength>20)ball(sh,shirt,0,-.18-a.sleeveLength*.0015,0,.155,.08+a.sleeveLength*.0015,.155);
   const elbow=new T.Group();elbow.position.y=-.58;sh.add(elbow);
   conical(elbow,skin,0,-.23,.035,.120,.078,.47,16);
-  ball(elbow,skin,0,-.5,.06,.097,.126,.092);ball(elbow,skin,side*.08,-.45,.127,.039,.068,.052,12);if(a.wristband>20)ball(elbow,shirt,0,-.39,.03,.14,.02+a.wristband*.00035,.12);arms.push({sh,elbow,side});
+  ball(elbow,skin,0,-.5,.06,.083,.113,.078);
+  for(let finger=0;finger<3;finger++)ball(elbow,skin,(finger-1)*.040,-.594+(finger===1?-.014:0),.111,.020,.052,.028,14);
+  ball(elbow,skin,side*.076,-.46,.116,.032,.059,.041,16);if(a.wristband>20)ball(elbow,shirt,0,-.39,.03,.14,.02+a.wristband*.00035,.12);arms.push({sh,elbow,side});
   const hip=new T.Group();hip.position.set(side*.2*wide*hipWidth,1.06*legRatio,0);hip.scale.y=legRatio;skeleton.add(hip);
   conical(hip,a.pantsLength>30?pants:skin,0,-.27,0,.169*bulky*thighBulk,.117*bulky*thighBulk,.57,20);
   const knee=new T.Group();knee.position.y=-.52;hip.add(knee);ball(knee,a.pantsLength>65?pants:skin,0,-.015,.012,.126*calfBulk,.112,.126,18);
@@ -330,34 +338,46 @@ function makeRawHuman(a){
   legs.push({hip,knee,side});
  }
  const head=new T.Group();head.position.set(0,1.08+.025*morph('forehead'),.065);head.scale.setScalar(.88*(1+.20*morph('headSize')));torso.add(head);
- const hscale=.95+a.face*.013,faceW=.295*hscale,faceH=.34*(1+.20*morph('faceLength')),faceZ=.29*(1+.20*morph('faceDepth'));const headProfile=[[-.34,.042],[-.27,.17],[-.20,.235],[-.11,.282],[.02,faceW],[.15,faceW*.97],[.26,faceW*.88],[.32,faceW*.60],[.345,.018]].map(([y,r])=>new T.Vector2(r,y*faceH/.34));
+ const hscale=.95+a.face*.013,faceW=.268*hscale,faceH=.352*(1+.17*morph('faceLength')),faceZ=.275*(1+.17*morph('faceDepth'));const headProfile=[[-.34,.042],[-.27,.17],[-.20,.235],[-.11,.282],[.02,faceW],[.15,faceW*.97],[.26,faceW*.88],[.32,faceW*.60],[.345,.018]].map(([y,r])=>new T.Vector2(r,y*faceH/.34));
  const headShape=new T.Mesh(new T.LatheGeometry(headProfile,32),skin);headShape.position.y=.13;headShape.scale.z=faceZ/faceW;headShape.castShadow=true;headShape.receiveShadow=true;head.add(headShape);ball(head,skin,0,.345+.03*morph('forehead'),-.015,faceW*.92,.095+.038*morph('forehead'),faceZ*.91,24);
  for(let s of [-1,1]){const ear=ball(head,skin,s*(faceW*1.04),.13,0,.06+.021*morph('earSize'),.094+.029*morph('earSize'),.058,20);ear.rotation.z=s*(.1+.35*morph('earAngle'));}
  // chin, cheekbones, eyes in +Z facing direction
- ball(head,skin,0,-.045-.038*morph('chinLength'),.12,.17+.055*morph('chinWidth'),.12+.025*morph('chinLength'),.18);for(let s of [-1,1])ball(head,skin,s*(faceW*.63),.050,faceZ*.5,.085+.04*morph('cheekbone'),.065+.028*morph('cheekFull'),.13,20);
+ ball(head,skin,0,-.074-.030*morph('chinLength'),.103,.142+.034*morph('chinWidth'),.084+.019*morph('chinLength'),.138);for(let s of [-1,1])ball(head,skin,s*(faceW*.64),.042,faceZ*.43,.061+.016*morph('cheekbone'),.067+.015*morph('cheekFull'),.079,22);
  for(const side of [-1,1]){
   const eyeX=side*(.115+a.eyes*.002+.03*morph('eyeGap')),eyeY=.22+.020*morph('eyeHeight'),eyeZ=faceZ*.91;
-  const ew=(.045+a.eyes*.002)*(1+.29*morph('eyeWidth')),eh=(.025+a.eyes*.001)*(1+.29*morph('eyeHeight'));const e=ball(head,white,eyeX,eyeY,eyeZ,ew,eh,.017,24);e.rotation.z=side*morph('eyeTilt')*.20;ball(head,skin,eyeX,eyeY+eh*.95+.007*morph('eyelid'),eyeZ+.008,ew*1.12,.012+.007*morph('eyelid'),.014,20);
-  ball(head,iris,eyeX,eyeY,eyeZ+.017,.015+.009*morph('irisSize'),.021+.009*morph('irisSize'),.009,20);ball(head,dark,eyeX,eyeY,eyeZ+.027,.008,.013,.007,16);
+  const ew=(.037+a.eyes*.0017)*(1+.25*morph('eyeWidth')),eh=(.018+a.eyes*.00085)*(1+.25*morph('eyeHeight'));const e=ball(head,white,eyeX,eyeY,eyeZ,ew,eh,.011,24);e.rotation.z=side*morph('eyeTilt')*.20;ball(head,skin,eyeX,eyeY+eh*.95+.007*morph('eyelid'),eyeZ+.008,ew*1.12,.012+.007*morph('eyelid'),.014,20);
+  ball(head,iris,eyeX,eyeY,eyeZ+.012,.014+.004*morph('irisSize'),.016+.006*morph('irisSize'),.006,24);ball(head,dark,eyeX,eyeY,eyeZ+.018,.006,.009,.004,16);ball(head,white,eyeX-.005,eyeY+.006,eyeZ+.023,.003,.003,.002,12);
   const brow=ball(head,hair,eyeX+side*.016*morph('browGap'),.296+(a.brow-5)*.006+.026*morph('browHeight'),faceZ*.95,.08*(1+.30*morph('browLength')),.014+a.brow*.001+.008*morph('browThick'),.018,20);brow.rotation.z=side*((a.brow-5)*-.03+.30*morph('browAngle')+.15*morph('browCurve'));
-  ball(head,skin,side*.16,.09,faceZ*.62,.084,.06,.06);if(a.lash>20)for(let j=0;j<3;j++)ball(head,hair,eyeX+(j-1)*.025,eyeY+.035,eyeZ+.020,.005,.010+a.lash*.0002,.006,12);if(a.freckles>10)for(let j=0;j<Math.floor(a.freckles/12);j++)ball(head,dark,side*(.14+j*.011),.04+(j%3)*.018,faceZ*.83,.004,.004,.006,10);
+  ball(head,skin,side*.145,.086,faceZ*.47,.057,.052,.046);if(a.lash>20)for(let j=0;j<3;j++)ball(head,hair,eyeX+(j-1)*.025,eyeY+.035,eyeZ+.020,.005,.010+a.lash*.0002,.006,12);if(a.freckles>10)for(let j=0;j<Math.floor(a.freckles/12);j++)ball(head,dark,side*(.14+j*.011),.04+(j%3)*.018,faceZ*.83,.004,.004,.006,10);
  }
- ball(head,skin,0,.09,faceZ*.91+.008*morph('noseBridge'),(.042+a.nose*.003)*(1+.28*morph('noseWidth')),.07+.029*morph('noseLength'),.048+a.nose*.003+.025*morph('noseBridge'),20);ball(head,skin,0,.022,faceZ+.045+.023*morph('noseTip'),.058+.025*morph('noseTip'),.036,.042,20);for(let s of [-1,1])ball(head,dark,s*(.040+.014*morph('nostril')),.004,faceZ+.062,.013+.008*morph('nostril'),.008,.006,12);
- const mouthY=-.048+.036*morph('mouthHeight'),mouthW=(.055+a.mouth*.003)*(1+.28*morph('mouthWidth'));ball(head,lipMat,0,mouthY+.009,faceZ*.94,mouthW,.011+.010*morph('upperLip'),.012,20);ball(head,lipMat,0,mouthY-.010,faceZ*.95,mouthW*.96,.013+.010*morph('lowerLip'),.012,20);for(let s of [-1,1])ball(head,dark,s*mouthW,mouthY+.015*morph('smile'),faceZ*.93,.006,.005,.007,12);
+ ball(head,skin,0,.09,faceZ*.91+.006*morph('noseBridge'),(.030+a.nose*.002)*(1+.23*morph('noseWidth')),.067+.018*morph('noseLength'),.042+.011*morph('noseBridge'),24);ball(head,skin,0,.018,faceZ+.028+.012*morph('noseTip'),.044+.014*morph('noseTip'),.029,.035,22);for(let s of [-1,1])ball(head,lipMat,s*(.035+.008*morph('nostril')),.000,faceZ+.041,.009+.004*morph('nostril'),.005,.004,14);
+ const mouthY=-.049+.026*morph('mouthHeight'),mouthW=(.051+a.mouth*.0027)*(1+.25*morph('mouthWidth'));ball(head,lipMat,0,mouthY+.009,faceZ*.94,mouthW,.011+.010*morph('upperLip'),.012,20);ball(head,lipMat,0,mouthY-.010,faceZ*.95,mouthW*.96,.013+.010*morph('lowerLip'),.012,20);for(let s of [-1,1])ball(head,dark,s*mouthW,mouthY+.015*morph('smile'),faceZ*.93,.006,.005,.007,12);
  const style=a.hairStyle%10;const hairGroup=new T.Group();head.add(hairGroup);hairGroup.position.set(.055*morph('part'),-.023*morph('bangs'),0);hairGroup.scale.set(1+.22*morph('hairVolume'),1+.26*morph('hairLength'),1+.16*morph('hairVolume'));
- const hairCap=ball(hairGroup,hair,0,.37,-.036,.3,.13,.295);
- if(style===0)hairCap.scale.y=.42;
+ const hairCap=ball(hairGroup,hair,0,.365,-.034,.282,.11,.273);
+ // Continuous temple/occipital volume avoids the isolated clump-like helmet look.
+ for(const side of [-1,1]){
+  const temple=ball(hairGroup,hair,side*.226,.29,-.055,.066,.14,.15,22);
+  temple.rotation.z=side*.15;
+ }
+ const sideSweep=style=>style===0||style===3||style===7||style===8;
+ if(sideSweep(a.hairStyle%10)){
+  for(let i=0;i<5;i++){
+   const strand=ball(hairGroup,hair,-.19+i*.085,.435-(i%2)*.02,.11,.077,.073,.13,18);
+   strand.rotation.z=-.28;strand.rotation.y=.22;
+  }
+ }
+ if(style===0)hairCap.scale.y=.62;
  else if(style===1){for(let i=0;i<8;i++){const ang=i*Math.PI*2/8;ball(hairGroup,hair,Math.cos(ang)*.22,.44,Math.sin(ang)*.20,.09,.10,.11,10)}}
  else if(style===2){for(let i=0;i<9;i++){ball(hairGroup,hair,Math.sin(i*2.3)*.22,.38+(i%3)*.055,Math.cos(i*2.3)*.2,.095,.105,.10,9)}}
- else if(style===3){for(let i=0;i<6;i++){ball(hairGroup,hair,(i-2.5)*.085,.47+Math.sin(i)*.04,.11,.096,.15,.16,11)}}
+ else if(style===3){for(let i=0;i<7;i++){const lock=ball(hairGroup,hair,(i-3)*.072,.433+Math.sin(i)*.025,.12,.056,.10,.105,20);lock.rotation.z=-.15+Math.sin(i)*.1}}
  else if(style===4){ball(hairGroup,hair,0,.48,-.27,.15,.21,.2);ball(hairGroup,hair,0,.26,-.33,.12,.26,.16)}
  else if(style===5){for(let i=0;i<11;i++){const ang=i*2.399;ball(hairGroup,hair,Math.cos(ang)*.22,.46+Math.sin(i)*.05,Math.sin(ang)*.21,.11,.14,.12,9)}}
  else if(style===6){for(let i=0;i<5;i++)ball(hairGroup,hair,0,.52+i*.085,-.05,.07*(1-i*.10),.12,.11,9)}
  else if(style===7){ball(hairGroup,hair,-.13,.41,.13,.18,.13,.14);ball(hairGroup,hair,.18,.49,.04,.19,.16,.19)}
- else if(style===8){for(let i=0;i<7;i++)ball(hairGroup,hair,(i-3)*.09,.46,.07,.07,.19,.10,9)}
+ else if(style===8){for(let i=0;i<7;i++){const lock=ball(hairGroup,hair,(i-3)*.072,.46,.075,.062,.125,.092,18);lock.rotation.z=(i-3)*-.06}}
  else {ball(hairGroup,hair,0,.29,-.22,.30,.37,.12);ball(hairGroup,hair,-.17,.23,.19,.09,.26,.10);ball(hairGroup,hair,.17,.23,.19,.09,.26,.10)}
  if(a.hairLength>30){for(let side of [-1,1]){const lock=ball(hairGroup,hair,side*.245,.11-(a.hairLength-30)*.0035,-.035,.067,.12+a.hairLength*.0022,.094,18);lock.rotation.z=side*.05}}
- if(a.bangs>15){for(let j=0;j<6;j++){const x=(j-2.5)*.086+.045*morph('part');const fringe=ball(hairGroup,hair,x,.33-.075*morph('bangs'),.20,.062,.082+.075*morph('bangs'),.085,16);fringe.rotation.z=.06*morph('part')}}
+ if(a.bangs>15){for(let j=0;j<6;j++){const x=(j-2.5)*.071+.035*morph('part');const fringe=ball(hairGroup,hair,x,.342-.053*morph('bangs'),.208,.045,.061+.060*morph('bangs'),.067,20);fringe.rotation.z=.18*morph('part')-.10}}
   if(a.accessory===1||a.accessory===6){const glassMat=mat(0x202c3a,.2,.5);for(const side of [-1,1])ball(head,glassMat,side*.115,.22,.30,.095,.055,.014)}
  if(a.accessory===2||a.accessory===7){const cap=ball(head,mat(0x142739),0,.47,0,.32,.105,.31);ball(head,mat(0x1a3453),0,.45,.25,.28,.026,.17)}
  if(a.accessory===3||a.accessory===8){box(torso,.075,.30,.03,m.gold,0,.22,.275)}
@@ -1548,7 +1568,7 @@ function stopAmbience(){
  const {src,gain}=ambient;ambient=null;
  try{const ctx=audioCtx;gain.gain.cancelScheduledValues(ctx.currentTime);gain.gain.setTargetAtTime(.0001,ctx.currentTime,.10);src.stop(ctx.currentTime+.42)}catch(e){}
 }
-function showScreen(mo){if(mo!=='race'){if(ceremonyStage)endCeremonyStage();stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');$('previewAvatar').textContent='全身を見る';renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
+function showScreen(mo){if(mo!=='race'){if(ceremonyStage)endCeremonyStage();stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');studioShowFull=false;camSpin=0;renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
 const unlocked=(i)=>!!animals[i]&&(animals[i].group==='怪獣'||i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id));
 function refreshMenu(){let x=animals[save.chosen]||animals[0];if(mode!=='race')prefetchVoice(x.kind);$('bestDisplay').textContent=save.best==null?'--':save.best.toFixed(2)+'秒';$('winDisplay').textContent=save.won.length+' / '+animals.length;$('raceCount').textContent=save.races||0;$('coinDisplay').textContent=Math.floor(save.money).toLocaleString();$('nextName').textContent=x.name;$('nextSub').textContent=x.group+' / '+(GAIT_LABELS[GAIT_MAP[x.kind]]||'走行')+' / '+x.sub;$('nextSpeed').textContent='ゲーム内 '+x.kph+' km/h';$('nextBar').style.width=Math.min(100,x.kph/230*100).toFixed(1)+'%';const win=save.won.includes(x.id);$('nextDescription').textContent='第'+(save.chosen+1)+' / '+animals.length+'戦 ・ '+(win?'勝利済み。自己記録に挑戦':'勝つと次の対戦相手を解放');$('startBtn').textContent='▶ '+x.name+'と100m走'}
@@ -1569,14 +1589,23 @@ function renderBeasts(){
  el.querySelectorAll('[data-beast]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.dataset.beast);if(!unlocked(i))return;save.chosen=i;store();refreshOpponent();renderBeasts();beep(540,.1)}));
 }
 
-let customTab='face';
+const studioFaceTabs=new Set(['face','brows','eyes','nose','mouth','hair']);
+let customTab='face',studioShowFull=false;
+function syncStudioZoomButton(){
+ const focused=studioFaceTabs.has(customTab),full=studioShowFull||!focused;
+ const button=$('previewAvatar');
+ button.textContent=focused?(full?'部位を拡大':'全身を見る'):'全身表示中';
+ button.disabled=!focused;
+ const label=$('studioFocusLabel');
+ if(label)label.textContent=full?'全身プレビュー':(avatarGroups.find(g=>g.id===customTab)?.label||'顔')+'・アップ';
+}
 function renderCustom(){
  const el=$('customList'),tabs=$('avatarTabs');
  el.replaceChildren();tabs.replaceChildren();
  for(const group of avatarGroups){
   const b=document.createElement('button');b.type='button';b.textContent=group.label;b.classList.toggle('active',customTab===group.id);
   b.setAttribute('role','tab');b.setAttribute('aria-selected',customTab===group.id?'true':'false');
-  b.addEventListener('click',()=>{if(customTab===group.id)return;customTab=group.id;renderCustom();el.scrollTop=0;});
+  b.addEventListener('click',()=>{if(customTab===group.id)return;customTab=group.id;studioShowFull=false;renderCustom();el.scrollTop=0;});
   tabs.appendChild(b);
  }
  const selected=avatarGroups.find(g=>g.id===customTab)||avatarGroups[0];
@@ -1614,8 +1643,9 @@ function renderCustom(){
  }
  const help=document.createElement('p');help.className='hint';help.textContent='スライダーを動かすと3Dモデルに反映されます。画面上の人物をなぞると向きを変えられます。';el.appendChild(help);
  $('avatarCount').textContent='編集項目 '+categories.length+'個 / '+selected.label+' '+selected.items.length+'個';
+ syncStudioZoomButton();
 }
-$('previewAvatar')?.addEventListener('click',()=>{const screen=$('customScreen'),open=screen.classList.toggle('previewOnly');$('previewAvatar').textContent=open?'編集へ戻る':'全身を見る';});
+$('previewAvatar')?.addEventListener('click',()=>{if(!studioFaceTabs.has(customTab))return;studioShowFull=!studioShowFull;syncStudioZoomButton();});
 $('randomAvatar')?.addEventListener('click',()=>{
  for(const [label,key,kind,min,max] of categories){
   save.avatar[key]=kind==='range'?min+Math.floor(Math.random()*(max-min+1)):Math.floor(Math.random()*palettes[min].length);
@@ -2901,7 +2931,20 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
   camera.fov=mix(camera.fov,portrait?61:54,Math.min(1,dt*2.2));camera.updateProjectionMatrix();
  }
  else if(mode==='race'){const run=race?.humanV||0,portrait=innerWidth<innerHeight;const shake=run>2?Math.min(.052,run*.003):0;const side=clamp((race?.lateral??humanX)-humanX,-4,4);const small=speciesHeight<1.10;const back=portrait?(small?7.4:9.2):(small?6.3:7.8);wantedPos=new T.Vector3(-.50+side*.68+Math.sin(sceneTime*12)*shake,portrait?(small?2.65:3.55):2.85,d-back);wantedTarget=new T.Vector3(-.45+side*.68,portrait?1.03:1.30,d+(small?8:12));camera.fov=mix(camera.fov,(portrait?(small?51:57):(small?46:49))+(race?.burstLeft>0&&run>0?2:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
- else if(mode==='custom'){const portrait=innerWidth<innerHeight,close=['face','brows','eyes','nose','mouth','hair'].includes(customTab)&&!$('customScreen').classList.contains('previewOnly');const radius=close?(portrait?1.65:2.15):(portrait?3.55:4.0);wantedPos=new T.Vector3(humanX+Math.sin(camSpin+.18)*radius,portrait?2.48:(close?2.28:2.16),Math.cos(camSpin+.18)*radius);wantedTarget=new T.Vector3(humanX+(portrait?-.95:.85),portrait?(close?2.12:1.16):(close?2.18:1.18),0);camera.fov=mix(camera.fov,portrait?47:(close?44:50),Math.min(1,dt*3));camera.updateProjectionMatrix()}
+ else if(mode==='custom'){
+  const portrait=innerWidth<innerHeight;
+  const close=studioFaceTabs.has(customTab)&&!studioShowFull;
+  const height=human.root.userData.worldHeightM||1.7;
+  const focus={face:.85,brows:.93,eyes:.91,nose:.86,mouth:.81,hair:.96};
+  // The body is normalized to 1.7m; the old hard-coded Y=2.12 looked above the head.
+  const level=height*(close?(focus[customTab]||.85):.52);
+  const radius=close?(portrait?1.73:1.35):(portrait?2.7:3.05);
+  const angle=camSpin;
+  wantedPos=new T.Vector3(humanX+Math.sin(angle)*radius,level+(close?.035:.17),Math.cos(angle)*radius);
+  wantedTarget=new T.Vector3(humanX,level,0);
+  camera.fov=mix(camera.fov,close?(portrait?65:49):(portrait?67:51),Math.min(1,dt*6));
+  camera.updateProjectionMatrix();
+ }
  else if(mode==='beasts'){const h=speciesHeight,r=monster?monster.heightM*1.55:clamp(h*2.4,3.2,18);wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*r,Math.max(.85,h*.65),Math.cos(camSpin+sceneTime*.12)*r);wantedTarget=new T.Vector3(animalX,h*.44,0);camera.fov=mix(camera.fov,innerWidth<innerHeight?55:48,Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
  else if(mode==='menu'&&monster){const b=monster.heightM*1.6;wantedPos=new T.Vector3(-b*.34,monster.heightM*.65,b);wantedTarget=new T.Vector3(animalX,monster.heightM*.42,0);camera.fov=mix(camera.fov,innerWidth<innerHeight?60:53,Math.min(1,dt*3));camera.updateProjectionMatrix()}
@@ -3019,7 +3062,24 @@ let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const 
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;opponent.root.position.y=.13;opponent.root.visible=true;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.55);x.mesh.position.y+=dt*.16;x.mesh.material.opacity=Math.max(0,.20*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  scuffs.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.material.opacity=Math.max(0,.13*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
- adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();renderer.render(scene,camera)}
+ adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();
+ // A dedicated right-hand WebGL viewport ensures the editor never obscures the avatar.
+ // Reset full viewport on every non-studio frame for race, results and screenshots.
+ if(mode==='custom'){
+  const x=Math.floor(innerWidth*(innerWidth<innerHeight?.53:.44));
+  const w=Math.max(1,innerWidth-x);
+  renderer.setViewport(x,0,w,innerHeight);
+  renderer.setScissor(x,0,w,innerHeight);
+  renderer.setScissorTest(true);
+  camera.aspect=w/innerHeight;
+ }else{
+  renderer.setScissorTest(false);
+  renderer.setViewport(0,0,innerWidth,innerHeight);
+  camera.aspect=innerWidth/innerHeight;
+ }
+ camera.updateProjectionMatrix();
+ renderer.render(scene,camera)
+}
 // Replace synthetic expression typo guard for minifier-safe runtime.
 renderCustom();renderTraining();renderBeasts();refreshMenu();showScreen('menu');requestAnimationFrame(frame);loader.style.display='none';
 })();
