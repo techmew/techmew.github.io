@@ -2363,6 +2363,14 @@ function captureCeremonyPhoto(){
   // potentially unreliable image decoder. Keep the real WebGL scene underneath.
   try{showCapturedPodiumCanvas(photo)}catch(err){console.warn('Canvas podium preview unavailable',err)}
   success=true;
+  // Android WebView can freeze or lose the GPU context when encoding the
+  // full photograph synchronously. The real 3D snapshot is already visible
+  // in a canvas and pre-encoding for Share runs independently. Use toBlob
+  // for the preview on mobile; never block the race result screen on toDataURL.
+  if(mobile){
+   void showAsyncPodiumPreview(photo);
+   return true;
+  }
   let src='';
   for(const format of ['image/jpeg','image/png']){
    try{
