@@ -2308,8 +2308,14 @@ function captureCeremonyPhoto(){
      const aspect=w/h;
      const cropW=Math.max(1,Math.floor(Math.min(pw,ph*aspect)));
      const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
-     const readW=Math.min(cropW,1024),readH=Math.min(cropH,576);
-     const rx=Math.floor((pw-readW)/2),ry=Math.floor((ph-readH)/2);
+     // Read a complete centered crop before reducing resolution. Capping
+     // width and height independently turns tall phone screens into a narrow
+     // strip and can cut the runners and medal out of the saved picture.
+     const readW=cropW,readH=cropH;
+     const rx=Math.floor((pw-cropW)/2),ry=Math.floor((ph-cropH)/2);
+     // A full-size framebuffer can exceed the Android memory budget; reject
+     // that path and let the bounded drawImage fallback handle the photo.
+     if(readW*readH>1024*576)throw Error('Default framebuffer readback exceeds mobile budget');
      const raw=new Uint8Array(readW*readH*4);
      gl.finish();
      for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
