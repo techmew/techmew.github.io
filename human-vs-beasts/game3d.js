@@ -2660,7 +2660,9 @@ function adaptQuality(dt){
 // Four bounded screenshot attempts. Wait for genuine render frames before
 // readback and reduce output resolution if the first attempt fails.
 function renderCeremonyFrame(){
- if(!ceremonyStage)return;
+ if(!ceremonyStage||webglUnavailable)return;
+ // A temporary context loss is not a failed photograph. The restored
+ // event resumes capture without consuming the bounded retry budget.
  // The final image is a validated snapshot of the real 3D models. Rendering
  // the hidden WebGL canvas at 60 fps after its image loads wastes GPU time,
  // drains mobile batteries and can trigger Android context loss.
@@ -2681,6 +2683,11 @@ function renderCeremonyFrame(){
  }catch(err){
   // A lost WebGL context or repeated renderer exception must not trigger
   // an unbounded render/exception loop on every animation frame.
+  if(renderer.getContext().isContextLost?.()){
+   webglUnavailable=true;
+   podiumRetryFrame=0;
+   return;
+  }
   podiumRetryAttempts=4;
   podiumRetryFrame=0;
   console.warn('3D podium frame unavailable',err);
@@ -2698,6 +2705,9 @@ renderer.domElement.addEventListener('webglcontextlost',event=>{
 },false);
 renderer.domElement.addEventListener('webglcontextrestored',()=>{
  webglUnavailable=false;
+ // Restore a fresh capture budget after GPU resources have been rebuilt.
+ // Do not discard an already validated 3D photograph.
+ if(!racePicture){podiumRetryAttempts=0;podiumRetryFrame=0;}
  clock.getDelta();
  if(mode==='race'&&race?.phase==='results'){
   // Preserve a validated photo and its image/canvas preview. Rebuilding
