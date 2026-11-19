@@ -1978,8 +1978,12 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // readRenderTargetPixels explicitly binds the target before reading it.
   const gl=renderer.getContext();
   // Clear errors left by the preview pass before this independent readback.
+  // A stale GL error is not proof that the newly rendered podium failed.
   for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
   const pixels=new Uint8Array(w*h*4);
+  // WebGL readPixels is synchronous. Check the target framebuffer after
+  // Three.js binds it, rather than sampling the default Android framebuffer.
+  // A partial/unsupported target must not be accepted as a saved photograph.
   renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
   const readError=gl.getError();
   if(readError!==gl.NO_ERROR)throw Error('Podium GPU readback error '+readError);
@@ -1991,13 +1995,24 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
    low=Math.min(low,light);high=Math.max(high,light);
   }
   if(opaque<w*h*.95||high-low<45)throw Error('Incomplete or uniform podium GPU readback');
-  const image=ctx.createImageData(w,h);
+  // A stadium-only frame can pass whole-frame contrast checks even when the
+  // actual runner and opponent are outside the camera. Validate the portrait
+  // before committing the pixels to the final result canvas.
+  const probe=document.createElement('canvas');
+  probe.width=w;probe.height=h;
+  const probeCtx=probe.getContext('2d',{willReadFrequently:true});
+  if(!probeCtx)throw Error('Podium validation canvas unavailable');
+  const probeImage=probeCtx.createImageData(w,h);
   const stride=w*4;
   for(let y=0;y<h;y++){
    const sourceStart=(h-1-y)*stride;
-   image.data.set(pixels.subarray(sourceStart,sourceStart+stride),y*stride);
+   probeImage.data.set(pixels.subarray(sourceStart,sourceStart+stride),y*stride);
   }
-  ctx.putImageData(image,0,0);
+  probeCtx.putImageData(probeImage,0,0);
+  if(!podiumPixelsValid(probeCtx,w,h))throw Error('Podium subjects not visible in GPU readback');
+  ctx.putImageData(probeImage,0,0);
+  return;
+
  }finally{
   renderer.setRenderTarget(previousTarget);
   renderer.setClearColor(previousClearColor,previousClearAlpha);
