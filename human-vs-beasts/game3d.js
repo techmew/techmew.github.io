@@ -2302,22 +2302,29 @@ function captureCeremonyPhoto(){
     const gl=renderer.getContext();
     if(gl.isContextLost?.())throw Error('WebGL context lost');
     const pw=gl.drawingBufferWidth,ph=gl.drawingBufferHeight;
-    if(pw>0&&ph>0&&pw*ph<=4096*4096){
-     const raw=new Uint8Array(pw*ph*4);
+    if(pw>0&&ph>0){
+     // Read only the centered 16:9 portrait region, bounded to a mobile-safe
+     // framebuffer allocation. WebGL readPixels uses bottom-left coordinates.
+     const aspect=w/h;
+     const cropW=Math.max(1,Math.floor(Math.min(pw,ph*aspect)));
+     const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
+     const readW=Math.min(cropW,1024),readH=Math.min(cropH,576);
+     const rx=Math.floor((pw-readW)/2),ry=Math.floor((ph-readH)/2);
+     const raw=new Uint8Array(readW*readH*4);
      gl.finish();
      for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
-     gl.readPixels(0,0,pw,ph,gl.RGBA,gl.UNSIGNED_BYTE,raw);
+     gl.readPixels(rx,ry,readW,readH,gl.RGBA,gl.UNSIGNED_BYTE,raw);
      if(gl.getError()!==gl.NO_ERROR)throw Error('Default framebuffer readback failed');
-     const scan=document.createElement('canvas');scan.width=pw;scan.height=ph;
+     const scan=document.createElement('canvas');scan.width=readW;scan.height=readH;
      const scanCtx=scan.getContext('2d',{alpha:false,willReadFrequently:true});
      if(!scanCtx)throw Error('Readback canvas unavailable');
-     const frame=scanCtx.createImageData(pw,ph),stride=pw*4;
-     for(let y=0;y<ph;y++)frame.data.set(raw.subarray((ph-1-y)*stride,(ph-y)*stride),y*stride);
+     const frame=scanCtx.createImageData(readW,readH),stride=readW*4;
+     for(let y=0;y<readH;y++)frame.data.set(raw.subarray((readH-1-y)*stride,(readH-y)*stride),y*stride);
      scanCtx.putImageData(frame,0,0);
-     const sourceAspect=pw/ph;
-     const sw=sourceAspect>photoAspect?ph*photoAspect:pw;
-     const sh=sourceAspect<photoAspect?pw/photoAspect:ph;
-     ctx.drawImage(scan,(pw-sw)*.5,(ph-sh)*.5,sw,sh,0,0,w,h);
+     const sourceAspect=readW/readH;
+     const sw=sourceAspect>aspect?readH*aspect:readW;
+     const sh=sourceAspect<aspect?readW/aspect:readH;
+     ctx.drawImage(scan,(readW-sw)*.5,(readH-sh)*.5,sw,sh,0,0,w,h);
      captured=podiumPixelsValid(ctx,w,h);
     }
    }catch(readErr){console.warn('Default WebGL readback unavailable',readErr)}
