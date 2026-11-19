@@ -2504,11 +2504,11 @@ const raceCaption=()=>{
  const gap=me!==null&&rival!==null?Math.abs(Number(me)-Number(rival)).toFixed(2):null;
  const tag='#'+raceName.replace(/[^ぁ-んァ-ヶー一-龯A-Za-z0-9]/g,'');
  const hook=lastResultWon
-  ?'【'+raceName+'に勝利！】人間、まさかの大金星。'
-  :gap?'【あと'+gap+'秒】'+raceName+'に負けた。悔しすぎる。'
+  ?'【'+raceName+'を撃破】人間が100mで勝った！？'
+  :gap?'【'+gap+'秒差で敗北】'+raceName+'にあと一歩届かない。'
   :'【'+raceName+'との100m決戦】まだ勝てない。';
  const times=me!==null?'自分'+me+'秒'+(rival!==null?'、相手'+rival+'秒。':'。'):'人間は未完走。';
- return hook+'\n'+times+'育成して次こそ逆転できる？\n#動物と100m走 '+tag;
+ return hook+'\n'+times+(lastResultWon?'次は誰に勝てる？':'育成でこの差、ひっくり返せる？')+'\n#ブラウザゲーム '+tag;
 };
 // Timeout-protected frame wait for Android WebViews and background tabs.
 function waitForPodiumFrames(count=2,timeoutMs=900){
