@@ -87,16 +87,17 @@
   const wetGoals=offsets.map(([dx,dy])=>({x:target.x+dx,y:target.y+dy}))
    .filter(p=>Math.hypot(p.x-target.x,p.y-target.y)<=115&&passable(p.x,p.y));
   if(!wetGoals.length||!passable(player.x,player.y))return {x:player.x,y:player.y,reachable:false,targetReached:false,remaining:Infinity,expanded:0};
-  const goal=wetGoals.sort((a,b)=>dist(player,a)-dist(player,b))[0];
-  if(dist(player,goal)<=40)return {x:player.x,y:player.y,reachable:true,targetReached:dist(player,target)<=125,remaining:0,expanded:0};
+  // Search every wet approach, not just the nearest: the nearest can be across a dry bank.
+  const goalDistance=(x,y)=>Math.min(...wetGoals.map(g=>Math.hypot(x-g.x,y-g.y)));
+  if(goalDistance(player.x,player.y)<=40)return {x:player.x,y:player.y,reachable:true,targetReached:dist(player,target)<=125,remaining:0,expanded:0};
   const size=40,limit=3200,origin={x:player.x,y:player.y},start="0,0";
   const key=(x,y)=>x+","+y,open=[{x:0,y:0,g:0,f:0}],seen=new Map([[start,0]]),cells=new Map([[start,open[0]]]);
   const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-  let best=open[0],bestDist=dist(origin,goal),expanded=0,found=false;
+  let best=open[0],bestDist=goalDistance(origin.x,origin.y),expanded=0,found=false;
   while(open.length&&expanded++<limit){
    open.sort((a,b)=>a.f-b.f);const node=open.shift(),nk=key(node.x,node.y);
    if(node.g!==seen.get(nk))continue;
-   const px=origin.x+node.x*size,py=origin.y+node.y*size,d=Math.hypot(px-goal.x,py-goal.y);
+   const px=origin.x+node.x*size,py=origin.y+node.y*size,d=goalDistance(px,py);
    if(d<bestDist){best=node;bestDist=d;}
    if(d<=size*1.5){best=node;found=true;break;}
    for(const [dx,dy] of dirs){
@@ -108,7 +109,7 @@
     if(!passable((px+x)/2,(py+y)/2))continue;
     const g=node.g+Math.hypot(dx,dy),k=key(nx,ny);
     if(g>=(seen.get(k)??Infinity))continue;
-    const next={x:nx,y:ny,g,f:g+Math.hypot(x-goal.x,y-goal.y)/size,parent:nk};
+    const next={x:nx,y:ny,g,f:g+goalDistance(x,y)/size,parent:nk};
     seen.set(k,g);cells.set(k,next);open.push(next);
    }
   }
