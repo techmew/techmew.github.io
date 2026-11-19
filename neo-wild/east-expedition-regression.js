@@ -54,7 +54,7 @@ ok(game.includes("tickEastTrail(dt);"),"actual game update loop");
 ok(game.includes("if(longPress&&!P.carry&&tryEastTrailSupplies())return;"),"real action input");
 ok(game.includes("renderedSceneCamera=use3D?"),"shared world camera after 2D/WebGL");
 ok(game.includes("const elevation=(window.WildMountain?.height?.(x,y)||0)"),"FX terrain altitude");
-ok(game.includes("landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[])]"),"WebGL post pipeline");
+ok(game.includes("landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])]"),"WebGL pipeline preserves eight terrestrial posts and adds four wet beacons");
 ok(game.includes("drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,eastTrailMask)"),"2D post pipeline");
 ok(gl.includes("if(site.eastRoute)"),"3D route geometry");
 ok(index.includes("east-expedition.js?rev="),"index boots route");
