@@ -1771,7 +1771,24 @@ function fitPodiumCamera(stage,aspect){
   cam.position.z=z+(cam.position.z-z)*Math.min(2,Math.max(1.12,overshoot*1.08));
   cam.lookAt(x,y,z);
  }
+ // The old fixed far plane clipped enormous fantasy creatures after the
+ // camera backed away to fit them. Compute clipping planes from the actual
+ // projected depth of both 3D subjects, preserving the medal and anatomy.
  cam.updateMatrixWorld(true);
+ let nearDepth=Infinity,farDepth=0;
+ for(const point of corners){
+  const view=point.clone().applyMatrix4(cam.matrixWorldInverse);
+  const depth=-view.z;
+  if(Number.isFinite(depth)&&depth>0){
+   nearDepth=Math.min(nearDepth,depth);
+   farDepth=Math.max(farDepth,depth);
+  }
+ }
+ if(Number.isFinite(nearDepth)&&farDepth>0){
+  cam.near=Math.max(.03,Math.min(.5,nearDepth*.45));
+  cam.far=Math.max(160,farDepth*1.6+15);
+  cam.updateProjectionMatrix();
+ }
 }
 
 function buildPodiumPhoto(){
