@@ -2014,6 +2014,15 @@ function detailNoise(n){const x=Math.sin(n*127.1+37.19)*43758.5453;return x-Math
 // Lightweight location-specific 3D detail, decorative only.
 function landmarkMesh(site){
  const x=site.x,y=site.y;animalLift=0;
+ if(site.waterRoute){
+  const z=window.WildMountain?.height?.(x,y)||0;
+  ellipsoid(x,y,z+1,27,25,2,"#315c66",0,10,3);
+  box(x-4,y-4,z+2,8,8,48,"#497e85");
+  box(x-26,y-7,z+48,52,14,22,"#6cbbca");
+  for(const dx of [-16,16])pyramid(x+dx,y,z+73,4,5,12,"#c5edf1");
+  return;
+ }
+
  if(site.eastRoute){
   // The physical 3D post is at exactly the same world XY and mountain Z as
   // the 2D sign, map pin, interaction radius, player and enemy collision.
@@ -2334,6 +2343,15 @@ function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
   box((x+x2)/2,(a+b)/2-28,.2,52,2,.10,"#64a0b0","#afc7c4");
  }
 
+ // Confluence vertices are shared with the 2D renderer and swim collision.
+ for(const seg of window.WildEastExpedition?.waterRibbons||[]){
+  if(!isVisible(seg.cx,seg.cy,250))continue;
+  const p=seg.pts,h=(x,y)=>(window.WildMountain?.height?.(x,y)||0)+.8;
+  quad([p[0][0],p[0][1],h(...p[0])],
+   [p[1][0],p[1][1],h(...p[1])],
+   [p[2][0],p[2][1],h(...p[2])],
+   [p[3][0],p[3][1],h(...p[3])],color("#337e8c"));
+ }
  for(const y of roadsY){
   box(0,y-80,0,8400,160,1,"#323d3e","#344145");
   box(0,y-86,0,8400,6,2,"#565d54","#717e68");
