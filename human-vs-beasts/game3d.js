@@ -2651,7 +2651,20 @@ function rivalStridePace(kind,phase,distance){
  return clamp(1+wave*rhythm[0]*fatigue,.88,1.12);
 }
 
-function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
+// Advance race physics in bounded steps on low-FPS phones. Previously frames
+// longer than 65ms lost elapsed time, slowing both runners and the countdown.
+// Clamp background-tab stalls to 250ms to avoid sudden unseen race progress.
+function updateRace(dt){
+ if(!race||!Number.isFinite(dt)||dt<=0)return;
+ let remaining=Math.min(dt,.25);
+ while(remaining>0.000001){
+  const step=Math.min(remaining,.05);
+  updateRaceStep(step);
+  remaining-=step;
+  if(!race||race.phase==='finished'||race.phase==='result')break;
+ }
+}
+function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>1.15)r.combo=0;
  const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
