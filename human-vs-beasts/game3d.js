@@ -2268,7 +2268,26 @@ function makeRacePhoto(){
  try{
   // Build the podium before transferring the live WebGL canvas; a failed
   // model construction must never leave the gameplay canvas detached.
-  ceremonyStage=buildPodiumPhoto();ceremonyStage.photoCaptured=false;
+  try{
+   ceremonyStage=buildPodiumPhoto();
+  }catch(primaryError){
+   // Keep a genuine 3D portrait even if decorative podium construction fails.
+   // Clone the live customized runner and selected opponent, never use 2D art.
+   console.warn('Full podium unavailable; using minimal 3D portrait',primaryError);
+   const sc=new T.Scene();sc.background=new T.Color(0x657783);
+   sc.add(new T.HemisphereLight(0xffffff,0x556677,2.0));
+   const light=new T.DirectionalLight(0xffe8ce,2.1);light.position.set(-4,9,8);sc.add(light);
+   const runner=human.root.clone(true),beast=opponent.root.clone(true);
+   runner.position.set(-1.8,0,0);beast.position.set(1.8,0,0);
+   runner.rotation.set(0,Math.PI,0);beast.rotation.set(0,Math.PI,0);
+   runner.visible=true;beast.visible=true;sc.add(runner,beast);
+   const bounds=new T.Box3().setFromObject(runner);
+   bounds.union(new T.Box3().setFromObject(beast));
+   if(bounds.isEmpty())throw primaryError;
+   const camera=new T.PerspectiveCamera(39,16/9,.1,400);
+   ceremonyStage={scene:sc,camera,fitBounds:{min:bounds.min.clone(),max:bounds.max.clone()}};
+  }
+  ceremonyStage.photoCaptured=false;
   const canvas=renderer.domElement;preview.appendChild(canvas);
   canvas.style.position='relative';canvas.style.inset='auto';canvas.style.width='100%';canvas.style.height='100%';
   const w=Math.max(320,preview.clientWidth||340),h=Math.max(180,preview.clientHeight||192);
@@ -2304,8 +2323,10 @@ function advancePegasusFlight(dt){
  const speed=Math.min(108,Math.max(22,r.pegasusCruiseSpeed||22)+r.pegasusCruiseTime*17);
  r.pegasusFlightSpeed=speed;
  r.pegasusBeyond+=speed*step;
- // Accelerating vertical ascent: ~65m after 3s, over 140m by 5.5s.
- const height=Math.min(165,9*r.pegasusCruiseTime+4.4*r.pegasusCruiseTime*r.pegasusCruiseTime);
+ // Hold a low, visible departure first; then rise progressively after
+ // the finish. Avoid the previous immediate 65m climb in three seconds.
+ const t=Math.max(0,r.pegasusCruiseTime-1.6);
+ const height=Math.min(165,1.4*Math.min(r.pegasusCruiseTime,1.6)+2.2*t*t+0.65*t*t*t);
  opponent.root.position.set(r.enemyLateral,.13+height,r.pegasusBeyond);
  opponent.root.visible=r.pegasusBeyond<520;
  if(r.phase==='pegasusExit'){
