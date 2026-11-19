@@ -2204,11 +2204,40 @@ function captureCeremonyPhoto(){
    // the offscreen target may have used a different aspect ratio.
    fitPodiumCamera(ceremonyStage,liveAspect);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
-   const cropW=liveAspect>photoAspect?live.height*photoAspect:live.width;
-   const cropH=liveAspect<photoAspect?live.width/photoAspect:live.height;
-   const sx=(live.width-cropW)*.5,sy=(live.height-cropH)*.5;
-   ctx.drawImage(live,sx,sy,cropW,cropH,0,0,w,h);
-   captured=podiumPixelsValid(ctx,w,h);
+   // Read the live WebGL framebuffer synchronously before Android WebView's
+   // compositor can discard it. This is a third independent real-3D capture
+   // path when both offscreen GPU render targets are unavailable.
+   try{
+    const gl=renderer.getContext();
+    if(gl.isContextLost?.())throw Error('WebGL context lost');
+    const pw=gl.drawingBufferWidth,ph=gl.drawingBufferHeight;
+    if(pw>0&&ph>0&&pw*ph<=4096*4096){
+     const raw=new Uint8Array(pw*ph*4);
+     gl.finish();
+     for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
+     gl.readPixels(0,0,pw,ph,gl.RGBA,gl.UNSIGNED_BYTE,raw);
+     if(gl.getError()!==gl.NO_ERROR)throw Error('Default framebuffer readback failed');
+     const scan=document.createElement('canvas');scan.width=pw;scan.height=ph;
+     const scanCtx=scan.getContext('2d',{alpha:false,willReadFrequently:true});
+     if(!scanCtx)throw Error('Readback canvas unavailable');
+     const frame=scanCtx.createImageData(pw,ph),stride=pw*4;
+     for(let y=0;y<ph;y++)frame.data.set(raw.subarray((ph-1-y)*stride,(ph-y)*stride),y*stride);
+     scanCtx.putImageData(frame,0,0);
+     const sourceAspect=pw/ph;
+     const sw=sourceAspect>photoAspect?ph*photoAspect:pw;
+     const sh=sourceAspect<photoAspect?pw/photoAspect:ph;
+     ctx.drawImage(scan,(pw-sw)*.5,(ph-sh)*.5,sw,sh,0,0,w,h);
+     captured=podiumPixelsValid(ctx,w,h);
+    }
+   }catch(readErr){console.warn('Default WebGL readback unavailable',readErr)}
+   if(!captured){
+    ctx.clearRect(0,0,w,h);
+    const cropW=liveAspect>photoAspect?live.height*photoAspect:live.width;
+    const cropH=liveAspect<photoAspect?live.width/photoAspect:live.height;
+    const sx=(live.width-cropW)*.5,sy=(live.height-cropH)*.5;
+    ctx.drawImage(live,sx,sy,cropW,cropH,0,0,w,h);
+    captured=podiumPixelsValid(ctx,w,h);
+   }
   }
   if(!captured)throw Error('Podium framebuffer is empty or uniform');
   // Only a snapshot of the actual game models is used. No illustrated substitute.
