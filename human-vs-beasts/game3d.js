@@ -2450,12 +2450,52 @@ function makeRacePhoto(){
    const sc=new T.Scene();sc.background=new T.Color(0x657783);
    sc.add(new T.HemisphereLight(0xffffff,0x556677,2.0));
    const light=new T.DirectionalLight(0xffe8ce,2.1);light.position.set(-4,9,8);sc.add(light);
+   // A failed decorative stage must still produce a genuine, recognizable
+   // 3D podium portrait, with both real race rigs and a winner's medal.
    const runner=human.root.clone(true),beast=opponent.root.clone(true);
-   runner.position.set(-1.8,0,0);beast.position.set(1.8,0,0);
-   runner.rotation.set(0,Math.PI,0);beast.rotation.set(0,Math.PI,0);
-   runner.visible=true;beast.visible=true;sc.add(runner,beast);
+   const winner=lastResultWon?runner:beast;
+   const floorMat=new T.MeshStandardMaterial({color:0x34454f,roughness:.82});
+   const goldMat=new T.MeshStandardMaterial({color:0xd9b46b,metalness:.52,roughness:.34});
+   const ground=new T.Mesh(new T.PlaneGeometry(40,32),floorMat);
+   ground.rotation.x=-Math.PI/2;ground.position.y=-.06;sc.add(ground);
+   const steps=[{x:0,y:1.12,width:2.15},{x:-2.4,y:.67,width:1.9}];
+   for(const step of steps){
+    const block=new T.Mesh(new T.BoxGeometry(step.width,step.y,1.65),floorMat);
+    block.position.set(step.x,step.y/2,.1);sc.add(block);
+    const cap=new T.Mesh(new T.BoxGeometry(step.width,.08,1.7),goldMat);
+    cap.position.set(step.x,step.y+.04,.1);sc.add(cap);
+   }
+   function placeFallbackModel(model,x,top){
+    model.position.set(x,0,.1);model.rotation.set(0,0,0);
+    model.visible=true;model.updateMatrixWorld(true);
+    const box=new T.Box3().setFromObject(model);
+    if(box.isEmpty()||!Number.isFinite(box.min.y))throw primaryError;
+    model.position.y=top+.08-box.min.y;
+    model.updateMatrixWorld(true);
+   }
+   placeFallbackModel(runner,lastResultWon?0:-2.4,lastResultWon?1.12:.67);
+   placeFallbackModel(beast,lastResultWon?-2.4:0,lastResultWon?.67:1.12);
+   sc.add(runner,beast);
+   // Position the 3D medal in world coordinates, scaled to the actual
+   // winner's anatomy; never replace the character with flat artwork.
+   const winnerBounds=new T.Box3().setFromObject(winner);
+   const size=new T.Vector3();winnerBounds.getSize(size);
+   const medalSize=Math.max(.065,Math.min(.28,size.y*.14));
+   const medal=new T.Mesh(new T.CylinderGeometry(medalSize,medalSize,.035,28),goldMat);
+   medal.rotation.x=Math.PI/2;
+   medal.position.set((winnerBounds.min.x+winnerBounds.max.x)/2,
+     winnerBounds.min.y+size.y*.70,winnerBounds.max.z+.045);
+   sc.add(medal);
+   const ribbonMat=new T.MeshStandardMaterial({color:0x4d846f,roughness:.8});
+   for(const side of [-1,1]){
+    const ribbon=new T.Mesh(new T.BoxGeometry(medalSize*.15,medalSize*1.7,.018),ribbonMat);
+    ribbon.position.set(medal.position.x+side*medalSize*.34,
+      medal.position.y+medalSize*.8,medal.position.z-.025);
+    ribbon.rotation.z=side*.33;sc.add(ribbon);
+   }
    const bounds=new T.Box3().setFromObject(runner);
    bounds.union(new T.Box3().setFromObject(beast));
+   bounds.union(new T.Box3().setFromObject(medal));
    if(bounds.isEmpty())throw primaryError;
    const camera=new T.PerspectiveCamera(39,16/9,.1,400);
    ceremonyStage={scene:sc,camera,fitBounds:{min:bounds.min.clone(),max:bounds.max.clone()}};
