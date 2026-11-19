@@ -1708,6 +1708,7 @@ function tap(side,overlapping=false){
   // Single-side mashing still runs, but is capped below alternating strides.
   r.combo=0;
   r.drive=clamp(r.drive*.997+.088/(1+.11*r.sideStreak),0,.84);
+  r.humanV*=.988; // Small but noticeable stumble; rapid tapping still works.
  }
  r.lastFoot=side;r.lastTap=now;
  if(!overlapping)showTapRating(r,side,alternate&&elapsed<=.45?'JUST!':'GOOD!');
