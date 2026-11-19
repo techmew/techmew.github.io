@@ -1962,6 +1962,11 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // Android GPUs can fail allocating a depth texture plus a shadow atlas
   // simultaneously. Retry with a flat-lit REAL 3D scene before giving up.
   if(lowMemory)renderer.shadowMap.enabled=false;
+  // Force current world transforms before the offscreen pass. On some
+  // Android WebViews the awards stage was rebuilt between animation frames,
+  // leaving stale matrices and a background-only photograph.
+  ceremonyStage.scene.updateMatrixWorld(true);
+  ceremonyStage.camera.updateMatrixWorld(true);
   renderer.setRenderTarget(target);
   renderer.autoClear=true;
   renderer.setClearColor(0x657783,1);
@@ -1972,6 +1977,9 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   const gl=renderer.getContext();
   if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)
    throw Error('Podium render target framebuffer incomplete');
+  // Drop stale GL errors from earlier preview frames; only errors produced
+  // by this readback should invalidate a real 3D photograph.
+  for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
   const pixels=new Uint8Array(w*h*4);
   renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
   const readError=gl.getError();
