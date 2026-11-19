@@ -904,6 +904,47 @@ function finishAnimalModel(data,rig){
    membrane.position.set(side*.49,k==='dragon'?1.8:1.6,-.42);membrane.rotation.y=side*.2;membrane.castShadow=true;g.add(membrane);
   }
  }
+ // Species-specific anatomy remains in the same rig for races and photos.
+ // Add key silhouette cues to the original mammals where the shared
+ // quadruped body used to make a cat look like a small dog.
+ if(k==='cat'){
+  const earInside=mat(0x9e716d,.90),nosePink=mat(0x8b6661,.87);
+  for(const side of [-1,1]){
+   const ear=new T.Mesh(new T.ConeGeometry(.135,.30,4),light);
+   ear.position.set(side*.22,1.30,.91);ear.rotation.z=-side*.20;ear.rotation.y=Math.PI/4;g.add(ear);
+   dot(earInside,side*.22,1.29,1.00,.052,.103,.025);
+   for(let i=0;i<3;i++)line([side*.10,.83+i*.045,1.51],
+    [side*(.46+i*.07),.82+i*.065,1.41],i===1?light:dark,.006);
+  }
+  dot(nosePink,0,.80,1.55,.066,.044,.037);
+  dot(light,-.12,.77,1.47,.13,.09,.07);dot(light,.12,.77,1.47,.13,.09,.07);
+ }
+ if(k==='dog'){
+  const earDark=mat(new T.Color(data.coat).multiplyScalar(.62),.98);
+  for(const side of [-1,1]){
+   const flap=dot(earDark,side*.33,1.32,.98,.155,.27,.13);
+   flap.rotation.z=side*.40;
+   dot(light,side*.15,1.08,1.51,.12,.09,.18);
+   for(let toe=-1;toe<=1;toe++)dot(ink,side*.25+toe*.07,.27,1.02,.031,.026,.042);
+  }
+  dot(ink,0,1.00,1.70,.112,.09,.075);
+  dot(light,0,.92,1.56,.25,.15,.22);
+ }
+ if(k==='rabbit'){
+  const inner=mat(0xba918f,.93);
+  for(const side of [-1,1])dot(inner,side*.15,1.66,.99,.042,.30,.035);
+  dot(light,0,.67,-.58,.16,.15,.13);
+ }
+ if(['horse','zebra','unicorn','pegasus'].includes(k)){
+  const hoof=mat(0x423d39,.91);
+  for(const leg of rig.legs||[])if(leg.knee)
+   dot(hoof,0,-.57,.24,.17,.105,.17);
+  for(let side of [-1,1])dot(light,side*.18,2.16,1.93,.085,.045,.045);
+ }
+ if(k==='cheetah'){
+  for(const side of [-1,1])line([side*.21,1.40,1.62],
+   [side*.20,1.07,1.80],ink,.022);
+ }
  for(const leg of rig.legs||[])if(leg.knee)for(const side of [-1,1])ball(leg.knee,ink,side*.077,-.54,.24,.029,.036,.060,10);
  return rig;
 }
@@ -1768,11 +1809,11 @@ function fitPodiumCamera(stage,aspect){
  const a=Math.max(.35,Math.min(3.5,Number(aspect)||16/9));
  cam.aspect=a;
  const halfFov=cam.fov*Math.PI/360;
- const halfHeight=Math.max(1.9,(b.max.y-b.min.y)*.5*1.22);
- const halfWidth=Math.max(3.5,(b.max.x-b.min.x)*.5*1.22);
+ const halfHeight=Math.max(1.16,(b.max.y-b.min.y)*.5*1.18);
+ const halfWidth=Math.max(2.62,(b.max.x-b.min.x)*.5*1.16);
  const depth=(b.max.z-b.min.z)*.5;
- const distance=Math.max(7.05,halfHeight/Math.tan(halfFov),
-  halfWidth/(Math.tan(halfFov)*a))+depth+1.0;
+ const distance=Math.max(4.75,halfHeight/Math.tan(halfFov),
+  halfWidth/(Math.tan(halfFov)*a))+depth+.75;
  const x=(b.min.x+b.max.x)*.5,y=(b.min.y+b.max.y)*.5,z=(b.min.z+b.max.z)*.5;
  cam.position.set(x,y+Math.min(.65,distance*.035),z+distance);
  cam.lookAt(x,y,z);
@@ -1876,19 +1917,18 @@ function buildPodiumPhoto(){
  const winningHuman=lastResultWon;
  // Preserve the customized avatar's normalized height. setScalar() erased the
  // height slider and shrank the actual player to 0.90–1.16 world metres.
- athlete.root.scale.multiplyScalar(winningHuman?1.16:.90);
- // Presentation-only scale: the live race retains true world dimensions.
- // A minimum multiplier of .30 left a 27m kaiju over 8m tall, hiding the
- // customized human and cropping the actual 3D podium photograph.
- // Always fit the real opponent rig to the podium's available height.
+ // KEEP the exact rigs and dimensions from the playable race. The previous
+ // fixed 2.35/2.95m podium target enlarged cats to 3m and shrank 27m kaiju
+ // to 3m, destroying every species' physical identity.
+ // Athlete customization and real animal scale are preserved at 1:1.
+ athlete.root.updateMatrixWorld(true);
  rival.root.updateMatrixWorld(true);
- const naturalBox=new T.Box3().setFromObject(rival.root);
+ const naturalBox=new T.Box3().setFromObject(rival.bodyGroup);
  const naturalHeight=naturalBox.max.y-naturalBox.min.y;
  if(!Number.isFinite(naturalHeight)||naturalHeight<=.01)throw Error('Invalid 3D podium opponent height');
- const podiumTargetHeight=winningHuman?2.35:2.95;
- const podiumScale=podiumTargetHeight/naturalHeight;
- if(!Number.isFinite(podiumScale)||podiumScale<=0)throw Error('Invalid 3D podium scale');
- rival.root.scale.multiplyScalar(podiumScale);
+ const expectedHeight=SPECIES_HEIGHT_M[beast.kind];
+ if(Math.abs(naturalHeight-expectedHeight)>.15)
+  throw Error('Podium species height differs from race: '+beast.kind);
  function seatOnStep(rig,x,platformHeight,z){
   // makeHuman/makeExtendedBeast return rigs; only rig.root is a THREE.Object3D.
   // Reading rig.position used to throw and abort every podium render.
@@ -1941,14 +1981,18 @@ function buildPodiumPhoto(){
  if(winningHuman){
   winnerNecklace(athlete.torso,.95,.78,.36);
  }else{
-  // Animal winner receives the same decoration, scaled and positioned by body size.
-  const bounds=new T.Box3().setFromObject(rival.root),size=new T.Vector3();
+  // The medal remains proportional to each species rather than growing
+  // three metres high on a 37cm cat or vanishing on a giant creature.
+  rival.root.updateMatrixWorld(true);
+  const bounds=new T.Box3().setFromObject(rival.bodyGroup),size=new T.Vector3();
   bounds.getSize(size);
-  const scale=Math.max(.32,rival.root.scale.x);
+  const rootScale=Math.max(.0001,rival.root.scale.x);
+  const pendantWorld=Math.min(.62,Math.max(.075,naturalHeight*.23));
   const neckMount=new T.Group();
-  neckMount.position.set(0,size.y*.58/scale,size.z*.28/scale);
+  neckMount.position.set(0,(bounds.min.y+size.y*.74-rival.root.position.y)/rootScale,
+   (bounds.max.z-size.z*.18-rival.root.position.z)/rootScale);
   rival.root.add(neckMount);
-  winnerNecklace(neckMount,.77,.30,.25);
+  winnerNecklace(neckMount,pendantWorld/rootScale,.32,.16);
  }
  // Restrained celebratory confetti, always behind the central character.
  const confettiMaterials=[mat(0xe4c485,.6,.22),mat(0xe5e9e2,.72,.1),mat(0x8faeb3,.7,.2)];
@@ -2827,7 +2871,7 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
   wantedTarget=new T.Vector3(.1+side*.3,Math.max(1.45,speciesHeight*.39),d+12);
   camera.fov=mix(camera.fov,portrait?61:54,Math.min(1,dt*2.2));camera.updateProjectionMatrix();
  }
- else if(mode==='race'){const run=race?.humanV||0;const portrait=innerWidth<innerHeight;const shake=run>2?Math.min(.052,run*.003):0;const side=clamp((race?.lateral??humanX)-humanX,-4,4);wantedPos=new T.Vector3(-.50+side*.68+Math.sin(sceneTime*12)*shake,portrait?3.55:2.85,d-(portrait?9.2:7.8));wantedTarget=new T.Vector3(-.45+side*.68,portrait?1.05:1.3,d+12);camera.fov=mix(camera.fov,(portrait?57:49)+(race?.burstLeft>0&&run>0?2:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
+ else if(mode==='race'){const run=race?.humanV||0,portrait=innerWidth<innerHeight;const shake=run>2?Math.min(.052,run*.003):0;const side=clamp((race?.lateral??humanX)-humanX,-4,4);const small=speciesHeight<1.10;const back=portrait?(small?7.4:9.2):(small?6.3:7.8);wantedPos=new T.Vector3(-.50+side*.68+Math.sin(sceneTime*12)*shake,portrait?(small?2.65:3.55):2.85,d-back);wantedTarget=new T.Vector3(-.45+side*.68,portrait?1.03:1.30,d+(small?8:12));camera.fov=mix(camera.fov,(portrait?(small?51:57):(small?46:49))+(race?.burstLeft>0&&run>0?2:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
  else if(mode==='custom'){const portrait=innerWidth<innerHeight,close=['face','brows','eyes','nose','mouth','hair'].includes(customTab)&&!$('customScreen').classList.contains('previewOnly');const radius=close?(portrait?2.8:2.15):(portrait?4.7:4.0);wantedPos=new T.Vector3(humanX+Math.sin(camSpin+.18)*radius,portrait?2.48:(close?2.28:2.16),Math.cos(camSpin+.18)*radius);wantedTarget=new T.Vector3(humanX+(portrait?0:.85),portrait?(close?1.25:.75):(close?2.18:1.18),0);camera.fov=mix(camera.fov,portrait?47:(close?44:50),Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else if(mode==='beasts'){const h=speciesHeight,r=monster?monster.heightM*1.55:clamp(h*2.4,3.2,18);wantedPos=new T.Vector3(animalX+Math.sin(camSpin+sceneTime*.12)*r,Math.max(.85,h*.65),Math.cos(camSpin+sceneTime*.12)*r);wantedTarget=new T.Vector3(animalX,h*.44,0);camera.fov=mix(camera.fov,innerWidth<innerHeight?55:48,Math.min(1,dt*3));camera.updateProjectionMatrix()}
  else if(mode==='train'){wantedPos=new T.Vector3(-2.7,2.45,7);wantedTarget=new T.Vector3(humanX,1.25,0)}
