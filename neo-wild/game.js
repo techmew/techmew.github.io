@@ -620,13 +620,14 @@ function awardDiscovery(id,quiet=false){
 
 // P3 eastward expedition: all eight posts use genuine collision-backed world XY.
 // Optional fields are preserved in SAVE_SCHEMA2; legacy saves default to undiscovered.
-let eastTrailMask=0,eastTrailSupplyYears=Array(8).fill(-99),eastTrailClock=0,eastTrailHazardNoticeAt=-100;
-function eastTrailFoodDrop(site,amount){
+let eastTrailMask=0,eastTrailSupplyYears=Array(8).fill(-99),eastWaterMask=0,eastWaterSupplyYears=Array(4).fill(-99),eastTrailClock=0,eastTrailHazardNoticeAt=-100;
+function eastTrailFoodDrop(site,amount,wet=false){
  if(carcasses.length>=270)return false;
  const edible=site.food==="meat"?"meat":"berries";
  for(const radius of [34,56,82,105,0])for(let n=0;n<12;n++){
   const angle=n*TWO/12,x=site.x+radius*Math.cos(angle),y=site.y+radius*Math.sin(angle);
-  if(x<30||y<30||x>WORLD.w-30||y>WORLD.h-30||collides(x,y,12)||waterBlocksLand(x,y)||
+  if(x<30||y<30||x>WORLD.w-30||y>WORLD.h-30||
+     (wet?(swimWaterDepth(x,y)<=.09||collides(x,y,12,P,true)):(collides(x,y,12)||waterBlocksLand(x,y)))||
      carcasses.some(c=>c.ttl>0&&Math.hypot(c.x-x,c.y-y)<30))continue;
   carcasses.push({x,y,r:10,amount,type:edible,
    animalType:edible==="meat"?"boar":null,ttl:420,phase:0});
@@ -681,9 +682,47 @@ function eastTrailClaim(site,revisit=false){
  syncHUD();
  return true;
 }
+
+function eastAquaticClaim(site,revisit=false){
+ const route=window.WildEastExpedition;
+ if(!route||!site?.waterRoute||!P||P.type!=="carp"||P.hp<=0||mode!=="play"||debugTutorialSession)return false;
+ if(swimWaterDepth(P.x,P.y)<=.09||Math.hypot(P.x-site.x,P.y-site.y)>105)return false;
+ const year=Math.floor(elapsed/120),known=route.waterVisited(eastWaterMask,site.index);
+ if(revisit?(!known||year-eastWaterSupplyYears[site.index]<3):known)return false;
+ const before={mask:eastWaterMask,years:[...eastWaterSupplyYears],score:totalScore,
+  hp:P.hp,sp:P.sp,journal:worldEventJournal.slice(),food:carcasses.length};
+ eastWaterMask|=1<<site.index;eastWaterSupplyYears[site.index]=year;
+ const points=known?Math.max(20,Math.round(site.score*.16)):site.score;
+ totalScore+=points;P.hp=Math.min(P.maxHp,P.hp+(known?6:18));
+ P.sp=Math.min(P.maxSp||100,P.sp+(known?12:30));
+ const amount=known?Math.max(15,Math.floor(site.amount*.45)):site.amount;
+ const food=eastTrailFoodDrop(site,amount,true);
+ worldEventJournal.push({year,at:Date.now(),kind:"east-aquatic",label:(known?"水中補給再訪：":"水域発見：")+site.name});
+ worldEventJournal=worldEventJournal.slice(-40);
+ if(saveAuto()!==true){
+  eastWaterMask=before.mask;eastWaterSupplyYears=before.years;totalScore=before.score;
+  P.hp=before.hp;P.sp=before.sp;carcasses.length=before.food;worldEventJournal=before.journal;
+  notify("水中探索の保存に失敗。報酬を付与しません");return false;
+ }
+ persistWorldChronicle();
+ if(!known){
+  const cleared=route.waterStations.filter(s=>route.waterVisited(eastWaterMask,s.index)).length;
+  if(cleared%2===0)awardGameplayGachaTicket("east-aquatic",cleared/2);
+  window.WildTrophies?.record?.("explore-site",{site:site.id},notify);
+ }
+ label(P.x,P.y-P.r-40,site.name+" +"+points,"#8de9e1");
+ notify(site.name+"｜得点+"+points+(food?"・水中食料"+amount:"・食料配置上限")+
+  "｜水域探索"+route.waterStations.filter(s=>route.waterVisited(eastWaterMask,s.index)).length+"/4",4);
+ syncHUD();return true;
+}
+
 function tryEastTrailSupplies(){
  const route=window.WildEastExpedition;
  if(!route||!P||P.carry||mode!=="play")return false;
+ if(P.type==="carp"){
+  const site=route.waterReplenishable?.(P,eastWaterMask,eastWaterSupplyYears,Math.floor(elapsed/120));
+  return site?eastAquaticClaim(site,true):false;
+ }
  const site=route.replenishable(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
  return site?eastTrailClaim(site,true):false;
 }
@@ -694,7 +733,7 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
- const nav=route.navigation?.(P,P.type==="carp"?0:eastTrailMask,
+ const nav=route.navigation?.(P,P.type==="carp"?eastWaterMask:eastTrailMask,
   P.type==="carp",(x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
  if(nav&&elapsed-eastTrailHazardNoticeAt>28&&(P.x>=7600||P.type==="carp")){
   eastTrailHazardNoticeAt=elapsed;
@@ -706,8 +745,13 @@ function tickEastTrail(dt){
  // P3: connected eastern habitat encounters run in the live update loop.
  const field=route.fieldStatus?.(P,eastTrailMask,weather,Math.floor(elapsed/120));
  if(field?.biome&&P.hp>0)route.wildlifeResponse?.(P,mobs,species,weather,Math.floor(elapsed/120),lineBlocked);
- const arrival=route.arrival(P,eastTrailMask);
- if(arrival)eastTrailClaim(arrival,false);
+ if(P.type==="carp"){
+  const arrived=route.waterArrival?.(P,eastWaterMask);
+  if(arrived)eastAquaticClaim(arrived,false);
+ }else{
+  const arrival=route.arrival(P,eastTrailMask);
+  if(arrival)eastTrailClaim(arrival,false);
+ }
  // P3 eastern survival circuit: risk and NPC pressure use the same world XY
  // as the 2D/3D route posts. No new ownership, death or save-schema fields.
  const gorge=!!(MOUNTAIN?.gorge&&P.x>10950&&P.x<11600&&
@@ -1808,7 +1852,7 @@ function start(newWorld=false){
  // New games start in free survival, never require 4 popup quests to unlock exploration.
  gameIntroPending=!!newWorld&&!gameIntroSeen&&!debugTutorialSession;
  firstStepsPending=!!newWorld&&!debugTutorialSession&&!window.WildFirstSteps?.done?.();
- window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;weaponGuardianClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastWaterMask=0;eastWaterSupplyYears=Array(4).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;weaponGuardianClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -1953,7 +1997,7 @@ function currentSnapshot(){
  return {
   version:SAVE_SCHEMA,worldVersion:2,saveSessionId:SAVE_TAB_ID,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
-  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,eastTrailMask,eastTrailSupplyYears:[...eastTrailSupplyYears],
+  elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,eastTrailMask,eastTrailSupplyYears:[...eastTrailSupplyYears],eastWaterMask,eastWaterSupplyYears:[...eastWaterSupplyYears],
   weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,weaponScraps:weaponScraps.slice(0,18),weaponScrapSerial,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
  };
@@ -2151,6 +2195,11 @@ function restoreSnapshot(snapshot){
  eastTrailMask=window.WildEastExpedition?.cleanMask?.(snapshot.eastTrailMask)||0;
  eastTrailSupplyYears=Array.from({length:8},(_,i)=>{
   const value=Number(snapshot.eastTrailSupplyYears?.[i]);return Number.isFinite(value)&&value>=-99&&value<=1000000?Math.floor(value):-99;
+ });
+ eastWaterMask=window.WildEastExpedition?.cleanWaterMask?.(snapshot.eastWaterMask)||0;
+ eastWaterSupplyYears=Array.from({length:4},(_,i)=>{
+  const v=Number(snapshot.eastWaterSupplyYears?.[i]);
+  return Number.isFinite(v)&&v>=-99&&v<=1000000?Math.floor(v):-99;
  });eastTrailClock=0;eastTrailHazardNoticeAt=-100;
  tutorialSeen.clear();
  // Old saves skipped the current lesson (especially stage 4); completed earlier stages are not replayed.
@@ -6473,7 +6522,7 @@ function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
  if(mission>=7){
   if(P.type==="carp"){
-   const nav=window.WildEastExpedition?.navigation?.(P,0,true,
+   const nav=window.WildEastExpedition?.navigation?.(P,eastWaterMask,true,
     (x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
    return nav?{x:nav.x,y:nav.y,label:nav.waterReachable?
     "水中探索 "+nav.stop.name:"水路の安全な経路を探索",eastTrail:true}:null;
@@ -8823,7 +8872,9 @@ function syncHUD(hour){
    P,mobs,elapsed,mode,lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
-  const eastSupply=window.WildEastExpedition?.replenishable?.(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
+  const eastSupply=P?.type==="carp"?
+   window.WildEastExpedition?.waterReplenishable?.(P,eastWaterMask,eastWaterSupplyYears,Math.floor(elapsed/120)):
+   window.WildEastExpedition?.replenishable?.(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
   const cache=nearestWeaponScrap(95);
   const cacheAction=cache?.guardState==="engaged"?"番人を倒す":
    cache?.guardState==="pending"?"番人を誘い出す":cache?"ガラクタを拾う":null;
@@ -8869,7 +8920,7 @@ function drawWorldMap(){
   bm.fillRect(X(b.x),Y(b.y),Math.max(2,X(b.w)),Math.max(2,Y(b.h)));
  }
  // Connected east route (8 physically passable checkpoints), unlike unrelated discovery points.
- window.WildEastExpedition?.drawMap?.(bm,X,Y,eastTrailMask,true,0);
+ window.WildEastExpedition?.drawMap?.(bm,X,Y,eastTrailMask,true,eastWaterMask);
  const mark=(x,y,color,r=6)=>{
   bm.fillStyle=color;bm.strokeStyle="#0c1515";bm.lineWidth=2;
   bm.beginPath();bm.arc(X(x),Y(y),r,0,TWO);bm.fill();bm.stroke();
@@ -9144,7 +9195,7 @@ function drawBuilding(b){
  for(let i=0;i<3;i++){ctx.strokeStyle="#5a6657";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+18+i*31,y+h-1);ctx.lineTo(x+15+i*29,y+h+17);ctx.stroke()}
 }
 function drawLandmark2D(site){
- if(site.waterRoute){window.WildEastExpedition?.drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,0);return;}
+ if(site.waterRoute){window.WildEastExpedition?.drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,eastWaterMask);return;}
  if(site.eastRoute){window.WildEastExpedition?.drawPost2D?.(ctx,site,VIEW,cameraZoom,VIEW_DET,eastTrailMask);return;}
  const x=site.x,y=site.y;
  ctx.save();ctx.translate(x,y);
