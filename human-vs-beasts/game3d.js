@@ -1666,24 +1666,36 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:0,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
-function tap(side){
+function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function tap(side,overlapping=false){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
- const r=race,now=r.time;r.taps+=1;r.legTaps[side]=now;
- const alternating=side!==r.lastFoot,quick=now-r.lastTap<.55;
- // One-sided tapping adds lateral momentum; alternating taps stabilizes the runner.
+ const r=race,now=r.time;
+ const elapsed=now-r.lastTap,hadFoot=!!r.lastFoot;
+ // Accept a wider alternating cadence; overlapping fingers count as a missed stride.
+ const alternating=hadFoot&&side!==r.lastFoot&&elapsed>=.075&&elapsed<=.82&&!overlapping;
+ const firstStep=!hadFoot||elapsed>.82;
+ const missed=!firstStep&&!alternating;
+ r.taps+=1;r.legTaps[side]=now;
+ // Consecutive same-side presses carry more lateral momentum.
  r.sideStreak=alternating?0:Math.min(12,(r.sideStreak||0)+1);
  const direction=side==='L'?1:-1;
- const sideways=alternating?.075:.23+Math.min(.24,r.sideStreak*.035);
+ const sideways=alternating?.072:.32+Math.min(.34,r.sideStreak*.052);
  r.lateralTarget=clamp(r.lateralTarget+direction*sideways,-6.25,3.10);
  if(alternating){
-  r.combo=quick?Math.min(99,r.combo+1):1;
-  r.drive=clamp(r.drive+(.09+save.stats.technique*.004)*(quick?1.15:1),0,1.3);
+  r.combo=Math.min(99,r.combo+1);
+  const rhythm=clamp((.88-elapsed)/.64,.48,1.16);
+  r.drive=clamp(r.drive+(.115+save.stats.technique*.005)*rhythm,0,1.3);
   r.burstCharge=clamp(r.burstCharge+3.2+Math.min(4,r.combo*.13)+save.stats.technique*.10,0,100);
   r.lastAlternate=now;
- }else{
+ }else if(firstStep&&!overlapping){
   r.combo=0;
-  r.drive=clamp(r.drive+.030+save.stats.technique*.0012,0,1.10);
+  r.drive=clamp(r.drive+.078+save.stats.technique*.002,0,1.2);
+ }else{
+  // L-L-R or near-simultaneous inputs lose a little speed rather than rewarding mash.
+  r.combo=0;
+  const penalty=overlapping?.72:.85;
+  r.drive=clamp(r.drive*penalty+.020,0,1.2);
+  r.humanV*=overlapping?.84:.92;
  }
  r.lastFoot=side;r.lastTap=now;
  footstep(Math.max(2.5,r.humanV),side);
@@ -2537,11 +2549,11 @@ function rivalStridePace(kind,phase,distance){
 }
 
 function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[save.chosen].kind);setTimeout(()=>{$('countdown').style.display='none'},450)}return}
- if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.65)r.combo=0;
- const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*7.6);
+ if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>.86)r.combo=0;
+ const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
  r.lateralVelocity=(r.lateral-prevLateral)/Math.max(.005,dtSafe);
- const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.43;const tempo=clamp(.18+r.drive*.79,.18,1.10);const fatigued=(.55+.45*r.stamina);const offCourse=r.lateral < -4.85 || r.lateral > 2.1;const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued*(offCourse?.76:1):0;const accel=7.8+(save.stats.power-1)*.55;
+ const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const hasInput=(r.taps||0)>0&&(r.time-r.lastTap)<.67;const tempo=clamp(.18+r.drive*.79,.18,1.10);const fatigued=(.55+.45*r.stamina);const offCourse=r.lateral < -4.85 || r.lateral > 2.1;const targetHuman=hasInput?maxSpeed*Math.min(1.07,tempo)*fatigued*(offCourse?.76:1):0;const accel=7.8+(save.stats.power-1)*.55;
  if(r.hFinish===null){if(!hasInput){r.humanV=0;r.combo=0;r.lateralTarget=r.lateral;r.sideStreak=0}else if(r.humanV<targetHuman)r.humanV=Math.min(targetHuman,r.humanV+accel*dtSafe);else r.humanV=Math.max(targetHuman,r.humanV-5.8*dtSafe);r.humanD+=r.humanV*dtSafe;
  r.stamina=clamp(r.stamina-((r.drive>.50?.012:.001)*(1/(1+save.stats.stamina*.09))+(r.burstLeft>0?.028:0))*dtSafe+(r.drive<.4?.014:0)*dtSafe,.32,1);if(r.humanD>=100){const before=r.humanD-r.humanV*dtSafe;r.hFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.humanV);r.humanD=100;r.humanV=0;r.combo=0;beep(930,.16,'sine',.05)}}
  const a=animals[Math.max(0,Math.min(animals.length-1,save.chosen))],maxB=a.kph/3.6;
@@ -2572,7 +2584,7 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  human.root.position.set(r.lateral,.13,r.humanD);human.root.rotation.y=clamp(-r.lateralVelocity*.045,-.13,.13);
  // Official opponent distance stops at 100m; the post-finish flight is visual only.
  if(a.kind!=='pegasus'||r.eFinish===null)opponent.root.position.set(r.enemyLateral,.13,r.enemyD);
- if(offCourse&&!r.offTrack){r.offTrack=true;showNotice('コース外：失速します',.85)}
+ if(offCourse&&!r.offTrack){r.offTrack=true}
  else if(!offCourse)r.offTrack=false;
  if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null
   &&Math.abs(r.lateral-r.enemyLateral)<1.05
@@ -2581,14 +2593,14 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
    r.humanV*=.92;
    r.enemyLateral=clamp(r.enemyLateral+.29,animalX-.4,animalX+1.35);
    kickDust(r.lateral,r.humanD,12);
-   effect('bump');showNotice('接触！相手が失速',.65);
+   effect('bump');
   }
  /* Rival dust is generated only by actual animated foot contact in frame(). */
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
  if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}// The player's finish is decisive: do not keep the race running while the rival completes 100m.
  // If the rival finished first, the player can continue until finishing or the 35s limit.
  if(r.hFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
-function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent=r.combo>=2?'交互 '+r.combo+'連続':r.taps===0?'左・右で走る':r.time-r.lastTap>.5?'タップして前進':r.lastFoot==='L'?'左に移動':'右に移動';$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
+function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent=r.combo>=2?'交互 '+r.combo+'連続':r.taps===0?'READY':r.time-r.lastTap>.7?'—':r.lastFoot==='L'?'L':'R';$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
 $('beastTypeFilter')?.addEventListener('change',renderBeasts);$('beastSearch')?.addEventListener('input',renderBeasts);
 
 // Developer tools: destructive reset is always confirmed; tests never alter the saved career.
@@ -2687,9 +2699,21 @@ setInterval(()=>{if(!$('debugDialog').hidden)refreshDebugStatus()},1000);
 
 $('startBtn').addEventListener('click',startRace);$('goCustom').addEventListener('click',()=>showScreen('custom'));
 document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showScreen('menu')));
+const heldFootPointers=new Map();
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
  const el=$(id);
- el.addEventListener('pointerdown',e=>{e.preventDefault();tap(side)});
+ el.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(heldFootPointers.has(e.pointerId))return;
+  const overlap=Array.from(heldFootPointers.values()).some(v=>v!==side);
+  heldFootPointers.set(e.pointerId,side);
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  tap(side,overlap);
+ });
+ const release=e=>heldFootPointers.delete(e.pointerId);
+ el.addEventListener('pointerup',release);
+ el.addEventListener('pointercancel',release);
+ el.addEventListener('lostpointercapture',release);
  el.addEventListener('contextmenu',e=>e.preventDefault());
 }
 $('burstBtn').addEventListener('pointerdown',e=>{e.preventDefault();activateBurst()});
@@ -2930,7 +2954,7 @@ function updateCam(dt){const d=race?.humanD||0;let wantedPos,wantedTarget;
   wantedTarget=new T.Vector3(.1+side*.3,Math.max(1.45,speciesHeight*.39),d+12);
   camera.fov=mix(camera.fov,portrait?61:54,Math.min(1,dt*2.2));camera.updateProjectionMatrix();
  }
- else if(mode==='race'){const run=race?.humanV||0,portrait=innerWidth<innerHeight;const shake=run>2?Math.min(.052,run*.003):0;const side=clamp((race?.lateral??humanX)-humanX,-4,4);const small=speciesHeight<1.10;const back=portrait?(small?7.4:9.2):(small?6.3:7.8);wantedPos=new T.Vector3(-.50+side*.68+Math.sin(sceneTime*12)*shake,portrait?(small?2.65:3.55):2.85,d-back);wantedTarget=new T.Vector3(-.45+side*.68,portrait?1.03:1.30,d+(small?8:12));camera.fov=mix(camera.fov,(portrait?(small?51:57):(small?46:49))+(race?.burstLeft>0&&run>0?2:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
+ else if(mode==='race'){const run=race?.humanV||0,portrait=innerWidth<innerHeight;const shake=run>2?Math.min(.052,run*.003):0;const side=clamp((race?.lateral??humanX)-humanX,-4,4);const small=speciesHeight<1.10;const back=portrait?(small?10.7:11.8):(small?7.7:9.2);wantedPos=new T.Vector3(.05+side*.60+Math.sin(sceneTime*12)*shake,portrait?(small?3.15:3.80):3.15,d-back);wantedTarget=new T.Vector3(.04+side*.60,portrait?1.0:1.30,d+(small?8:12));camera.fov=mix(camera.fov,(portrait?(small?60:62):(small?51:53))+(race?.burstLeft>0&&run>0?2:0),Math.min(1,dt*2.2));camera.updateProjectionMatrix()}
  else if(mode==='custom'){
   const portrait=innerWidth<innerHeight;
   const close=studioFaceTabs.has(customTab)&&!studioShowFull;
