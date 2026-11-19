@@ -437,7 +437,7 @@ function makeHuman(a){
  return normalizeSubjectHeight(rig,rig.skeleton,1.70+(value-5)*.045);
 }
 function makeBeast(data){
- const k=data.kind;const root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);const coat=mat(data.coat,.98),highlight=mat(new T.Color(data.coat).multiplyScalar(1.10),.94),shade=mat(new T.Color(data.coat).multiplyScalar(.72),.96),nose=mat(0x2c2727),pale=mat(k==='zebra'?0xece8e2:0xf0dac3),white=mat(0xffffff),eyes=mat(0x18191c,.28);coat.map=furMaterialTexture;coat.needsUpdate=true;let legs=[],tail,arms=[];
+ const k=data.kind;const root=new T.Group(),bodyGroup=new T.Group();root.add(bodyGroup);const coat=mat(data.coat,.98),highlight=mat(new T.Color(data.coat).multiplyScalar(1.10),.94),shade=mat(new T.Color(data.coat).multiplyScalar(.72),.96),nose=mat(0x2c2727),pale=mat(k==='zebra'?0xece8e2:0xf0dac3),white=mat(0xffffff),eyes=mat(0x18191c,.28);coat.map=furMaterialTexture;coat.needsUpdate=true;let legs=[],tail,arms=[],rabbitEars=[];
  const isHorse=['horse','zebra','gazelle','pronghorn'].includes(k),large=['horse','zebra','lion'].includes(k),catlike=['lion','cheetah','cat'].includes(k),biped=['ostrich','kangaroo'].includes(k);
  let sizes={bodyW:.4,bodyH:.35,bodyL:.78,hipY:.89,headY:1.17,leg:.42,scale:1};
  if(k==='greyhound'){sizes={bodyW:.31,bodyH:.30,bodyL:.89,hipY:1.02,headY:1.32,leg:.54,scale:1}}
@@ -483,10 +483,11 @@ function makeBeast(data){
    ball(bodyGroup,white,side*(isHorse?.214:.254),S.headY+.105,S.bodyL+.637,.015,.018,.013,7);
    const ear=ball(bodyGroup,coat,side*(isHorse?.19:.21),S.headY+.28,S.bodyL+.2, isHorse?.10:.13, k==='rabbit'?.52:isHorse?.25:.23,.115);
    ear.rotation.z=side*.20;
+   if(k==='rabbit')rabbitEars.push(ear);
    if(k==='fox'){ear.scale.y*=1.7;ear.scale.x*=.75}
    if(k==='cat'){ear.scale.y*=1.32;ear.scale.x*=.8}
   }
-  if(k==='rabbit'){for(let s of [-1,1]){const ear=ball(bodyGroup,highlight,s*.15,S.headY+.67,S.bodyL+.22,.10,.49,.10);ear.rotation.z=s*.14}}
+  if(k==='rabbit'){for(let s of [-1,1]){const ear=ball(bodyGroup,highlight,s*.15,S.headY+.67,S.bodyL+.22,.10,.49,.10);ear.rotation.z=s*.14;rabbitEars.push(ear)}}
   if(k==='gazelle'||k==='pronghorn'){for(let s of [-1,1]){tube(bodyGroup,[s*.17,S.headY+.34,S.bodyL+.2],[s*.30,S.headY+.83,S.bodyL+.16],.05,shade,.02);tube(bodyGroup,[s*.30,S.headY+.83,S.bodyL+.16],[s*.44,S.headY+1.1,S.bodyL+.14],.028,shade,.014);if(k==='pronghorn')tube(bodyGroup,[s*.27,S.headY+.65,S.bodyL+.2],[s*.11,S.headY+.82,S.bodyL+.28],.03,shade,.015)}}
   if(k==='horse'||k==='zebra'){for(let i=0;i<7;i++)ball(bodyGroup,shade,0,S.headY+.34-i*.085,S.bodyL-.07+i*.08,.08,.11,.10,9)}
   if(k==='cheetah'){for(let s of [-1,1]){tube(bodyGroup,[s*.22,S.headY+.04,S.bodyL+.68],[s*.22,S.headY-.22,S.bodyL+.80],.023,shade)}}
@@ -508,7 +509,7 @@ function makeBeast(data){
  }
  bodyGroup.scale.setScalar((['cat','rabbit'].includes(k))?.87:1);
  lineShadow(root,large?.8:.6);
- return {root,bodyGroup,legs,arms,tail,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
+ return {root,bodyGroup,legs,arms,tail,rabbitEars,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
 }
 
 
@@ -1147,7 +1148,7 @@ function speciesMotion(kind,rig,phase,effort){
 
 function withSpeciesLocomotion(data,rig){
  const kind=data.kind,gait=GAIT_MAP[kind]||'canter';
- const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail,wings=rig.wings||[];
+ const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail,wings=rig.wings||[],rabbitEars=rig.rabbitEars||[];
  const original=rig.animate,scaleX=body.scale.x,scaleY=body.scale.y,scaleZ=body.scale.z;
  let lastImpact=null;
  rig.gait=gait;rig.gaitLabel=GAIT_LABELS[gait]||'走行';
@@ -1160,6 +1161,7 @@ function withSpeciesLocomotion(data,rig){
    body.scale.x=scaleX;body.scale.y=scaleY;body.scale.z=scaleZ;
    for(const leg of legs){leg.hip.rotation.x=0;leg.knee.rotation.x=0}
    for(const arm of arms)if(arm.sh)arm.sh.rotation.x=0;
+   for(const ear of rabbitEars)ear.rotation.x=0;
    if(tail){tail.rotation.x=0;tail.rotation.y=0}
    lastImpact=null;
    return false;
@@ -1198,7 +1200,7 @@ function withSpeciesLocomotion(data,rig){
    const jump=Math.pow(Math.max(0,Math.sin(phase)),1.06);
    const compression=Math.pow(Math.max(0,-Math.sin(phase)),.85);
    const worldScale=Math.max(.0001,rig.root.scale.y);
-   body.position.y=(.49*jump*Math.min(1.22,effort)-.024*compression)/worldScale;
+   body.position.y=.49*jump*Math.min(1.22,effort)/worldScale;
    body.rotation.x=(-.17*Math.cos(phase)+.045*compression)*Math.min(1.1,effort);
    body.scale.z=scaleZ*(1+.105*jump-.065*compression);
    body.scale.y=scaleY*(1-.055*compression);
@@ -1206,6 +1208,10 @@ function withSpeciesLocomotion(data,rig){
     const hind=leg.front<0||legs.length===2;
     leg.hip.rotation.x=(hind?(-.35-.78*jump+.30*compression):(.21+.56*jump-.19*compression))*effort;
     leg.knee.rotation.x=(hind?(.27+.86*jump):(.08+.45*jump))*effort;
+   }
+   for(const [i,ear] of rabbitEars.entries()){
+    ear.rotation.x=(-.20*jump+.12*compression)*effort;
+    ear.rotation.z=(i%2?1:-1)*(.12+.075*compression);
    }
    if(tail)tail.rotation.x=(.12*Math.cos(phase)-.11*jump)*effort;
   }else if(isPronk){
@@ -1325,7 +1331,7 @@ function withSpeciesLocomotion(data,rig){
   if(lastImpact===null){lastImpact=impactIndex;return false}
   const landed=impactIndex>lastImpact;lastImpact=impactIndex;
   if(isKangaroo)return landed&&body.position.y<.04;
-  if(isBound||isPronk)return landed&&Math.sin(phase)<=0;
+  if(isBound||isPronk)return landed;
   return gait==='wingFlight'&&rig.flight>.35?false:landed;
  };
  return rig;
