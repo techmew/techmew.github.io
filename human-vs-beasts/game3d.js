@@ -177,7 +177,9 @@ const defaultAvatar={
 };
 const defaultSave={money:170,stats:{speed:2,power:1,stamina:1,technique:1},best:null,won:[],chosen:0,avatar:defaultAvatar,races:0,runnerName:'ランナー',bestByBeast:{}};
 let save=(()=>{try{const v=JSON.parse(localStorage.getItem('animal100m_v4'));if(v&&typeof v==='object')return {...defaultSave,...v,stats:{...defaultSave.stats,...v.stats},avatar:{...defaultAvatar,...v.avatar},won:Array.isArray(v.won)?v.won:[],bestByBeast:v.bestByBeast||{}}}catch(e){}return JSON.parse(JSON.stringify(defaultSave))})();
-const store=()=>{try{localStorage.setItem('animal100m_v4',JSON.stringify(save))}catch(e){}};
+let debugMode=false;
+// Debug runs operate on a temporary in-memory save and never rewrite the real career.
+const store=()=>{if(debugMode)return;try{localStorage.setItem('animal100m_v4',JSON.stringify(save))}catch(e){}};
 
 const originalBeastIds=['dog','cat','fox','rabbit','zebra','greyhound','ostrich','kangaroo','horse','lion','gazelle','pronghorn','cheetah'];
 if(save.rosterVersion!==2){
@@ -2485,6 +2487,101 @@ function updateRace(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.co
  if(r.hFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
 function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent=r.combo>=2?'交互 '+r.combo+'連続':r.taps===0?'左・右で走る':r.time-r.lastTap>.5?'タップして前進':r.lastFoot==='L'?'左に移動':'右に移動';$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
 $('beastTypeFilter')?.addEventListener('change',renderBeasts);$('beastSearch')?.addEventListener('input',renderBeasts);
+
+// Developer tools: destructive reset is always confirmed; tests never alter the saved career.
+function closeTools(){
+ $('resetDialog').hidden=true;
+ $('debugDialog').hidden=true;
+}
+function refreshDebugStatus(){
+ const d=$('debugReadout');if(!d)return;
+ const render=renderer?.info?.render||{},memory=renderer?.info?.memory||{};
+ let context='不明';
+ try{context=renderer.getContext().isContextLost?.()?'切断中':'有効'}catch(err){context='取得失敗'}
+ const phase=race?.phase||'-';
+ const active=race&&animals[race.opponentIndex]?animals[race.opponentIndex].name:animals[save.chosen]?.name;
+ const seconds=race&&Number.isFinite(race.time)?race.time.toFixed(2):'-';
+ d.textContent='実行: '+(debugMode?'デバッグ（セーブ保存停止）':'通常')+
+  '\n3D: '+context+' / draw calls '+(render.calls??0)+' / polygons '+(render.triangles??0)+
+  '\ngeometry '+(memory.geometries??0)+' / textures '+(memory.textures??0)+
+  '\nモード: '+mode+' / レース状態: '+phase+' / '+active+
+  '\nタイム: '+seconds+' 秒 / 人間 '+(race?.humanD?.toFixed(1)??'-')+
+  'm / 動物 '+(race?.enemyD?.toFixed(1)??'-')+'m'+
+  '\n3D写真: '+(racePicture?'取得済み（'+racePicture.width+'×'+racePicture.height+'）':'未撮影')+
+  '\nデバッグで育成・勝利しても元のセーブは変更しません。';
+}
+$('resetProgress')?.addEventListener('click',()=>{
+ closeTools();$('resetDialog').hidden=false;
+});
+$('resetCancel')?.addEventListener('click',closeTools);
+$('resetConfirm')?.addEventListener('click',()=>{
+ try{
+  localStorage.removeItem('animal100m_v4');
+  window.location.reload();
+ }catch(err){
+  $('resetDialog').querySelector('p').textContent='セーブを消去できませんでした。端末の保存設定を確認してください。';
+ }
+});
+function fillDebugControls(){
+ const picker=$('debugAnimal');
+ picker.replaceChildren();
+ animals.forEach((animal,index)=>{
+  const opt=document.createElement('option');
+  opt.value=String(index);opt.textContent=(index+1)+'. '+animal.name+'（'+animal.group+'）';
+  picker.appendChild(opt);
+ });
+ picker.value=String(save.chosen);
+ $('debugMoney').value=String(save.money);
+ for(const [key,id] of [['speed','debugSpeed'],['power','debugPower'],['stamina','debugStamina'],['technique','debugTechnique']])
+  $(id).value=String(save.stats[key]||1);
+ refreshDebugStatus();
+}
+$('debugOpen')?.addEventListener('click',()=>{
+ closeTools();fillDebugControls();$('debugDialog').hidden=false;
+});
+$('debugRefresh')?.addEventListener('click',refreshDebugStatus);
+$('debugClose')?.addEventListener('click',closeTools);
+$('debugExit')?.addEventListener('click',()=>{
+ if(debugMode)window.location.reload();
+ else closeTools();
+});
+function startDebugTrial(photoTest=false){
+ // Apply values to the in-memory save only. Saved level, unlocked stages,
+ // character creation and records remain intact after a normal reload.
+ const idx=Number($('debugAnimal').value);
+ if(!Number.isInteger(idx)||idx<0||idx>=animals.length)return;
+ const numeric=(id,min,max,fallback)=>{
+  const val=Number($(id).value);
+  return Number.isFinite(val)?Math.round(clamp(val,min,max)):fallback;
+ };
+ debugMode=true;
+ save.chosen=idx;
+ save.money=numeric('debugMoney',0,999999,save.money);
+ for(const [key,id] of [['speed','debugSpeed'],['power','debugPower'],['stamina','debugStamina'],['technique','debugTechnique']])
+  save.stats[key]=numeric(id,1,50,save.stats[key]||1);
+ $('debugOpen').textContent='デバッグ中';
+ closeTools();
+ race=null;
+ showScreen('menu');
+ refreshOpponent();
+ startRace();
+ if(photoTest&&race){
+  // Isolated, non-persistent finish used to inspect the actual 3D podium,
+  // winner necklace, photo save, and native share without replaying a race.
+  race.phase='running';
+  race.count=0;race.time=3.14;
+  race.humanD=100;race.enemyD=100;
+  race.hFinish=3.14;race.eFinish=2.95;
+  race.humanV=0;race.enemyV=0;race.drive=0;
+  race.pegasusExitDone=true;
+  finishRace();
+ }
+}
+$('debugRace')?.addEventListener('click',()=>startDebugTrial(false));
+$('debugPhoto')?.addEventListener('click',()=>startDebugTrial(true));
+// The overlay is a test console, not an always-running heavy profiler.
+setInterval(()=>{if(!$('debugDialog').hidden)refreshDebugStatus()},1000);
+
 $('startBtn').addEventListener('click',startRace);$('goCustom').addEventListener('click',()=>showScreen('custom'));
 document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showScreen('menu')));
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
