@@ -2465,7 +2465,21 @@ function makeRacePhoto(){
    const light=new T.DirectionalLight(0xffe8ce,2.1);light.position.set(-4,9,8);sc.add(light);
    // A failed decorative stage must still produce a genuine, recognizable
    // 3D podium portrait, with both real race rigs and a winner's medal.
-   const runner=human.root.clone(true),beast=opponent.root.clone(true);
+   // Object3D.clone() shares mesh geometry and materials with the live race.
+   // The result stage is disposed on retry; deep-copy GPU resources here so
+   // disposing a fallback podium cannot corrupt the next race or avatar editor.
+   function isolatedPodiumClone(source){
+    const copy=source.clone(true);
+    copy.traverse(node=>{
+     if(!node.isMesh)return;
+     if(node.geometry)node.geometry=node.geometry.clone();
+     if(Array.isArray(node.material))node.material=node.material.map(m=>m?.clone?.()||m);
+     else if(node.material?.clone)node.material=node.material.clone();
+     // Material maps may be shared safely: disposeModel never disposes maps.
+    });
+    return copy;
+   }
+   const runner=isolatedPodiumClone(human.root),beast=isolatedPodiumClone(opponent.root);
    const winner=lastResultWon?runner:beast;
    const floorMat=new T.MeshStandardMaterial({color:0x34454f,roughness:.82});
    const goldMat=new T.MeshStandardMaterial({color:0xd9b46b,metalness:.52,roughness:.34});
