@@ -265,12 +265,12 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
        Math.abs(p.y-headwaterY(p.x))<p.r+headwater.halfWidth+12))group.splice(i,1);
  }
 }
- function blocked(x,y,r=0,sourceTree=null){
+ function blocked(x,y,r=0,sourceTree=null,swimmer=false){
  if(x<CITY_EDGE)return false;
  if(northPass(x,y)){
   // The pass and the mountain share one hydrology collision rule. The old
   // early return let land animals cross the deep headwater above its ford.
-  if(headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
+  if(!swimmer&&headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
   // Edges are terrain, not invisible side walls; the forest-pass route stays open.
   for(const p of [...trees,...rocks,...pines,...scree])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
   return false;
@@ -278,7 +278,7 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
  if(northWood(x,y)){
   // The tributary continues through the northern forest: use the same
   // deep-water restriction as the mountain pass, including NPC collision.
-  if(headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
+  if(!swimmer&&headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
   if(y<920+r||y>2510-r||x>10720-r)return true;
   for(const p of [...trees,...rocks])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
   return false;
@@ -286,11 +286,11 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
  if(y<center(x)-720+r||y>center(x)+southReach(x)-r)return true;
  if(x>=CAVE_START&&x<=CAVE_END&&Math.abs(y-center(x))>CAVE_HALF-r)return true;
   // Only the planked bridge is passable; the creek banks block land animals.
-  if(Math.abs(x-creek.xAt(y))<creek.halfWidth+r*.65&&
+  if(!swimmer&&Math.abs(x-creek.xAt(y))<creek.halfWidth+r*.65&&
      Math.abs(y-creek.bridgeY)>creek.bridgeHalf-Math.min(26,r*.45))return true;
- if(Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
+ if(!swimmer&&Math.abs(x-gorge.xAt(y))<gorge.halfWidth+r*.65&&Math.abs(y-gorge.bridgeY)>gorge.bridgeHalf-Math.min(26,r*.45))return true;
  // Shallow forest ford is crossable; deep mountain source requires its bank.
- if(x>10500&&headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
+ if(!swimmer&&x>10500&&headwaterAt(x,y,r*.35)&&!headwaterFord(x,y,r*.35))return true;
  for(const hut of [...ruins,...ridgeHuts])if(x>hut.x-r&&x<hut.x+hut.w+r&&y>hut.y-r&&y<hut.y+hut.h+r)return true;
  for(const p of [...pines,...scree,...alpinePines,...alpineRocks,...caveStones,...caveColumns])if(p!==sourceTree&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
  for(const p of trees)if(p!==sourceTree&&Math.abs(x-p.x)<p.r+r&&Math.abs(y-p.y)<p.r+r&&Math.hypot(x-p.x,y-p.y)<p.r+r)return true;
