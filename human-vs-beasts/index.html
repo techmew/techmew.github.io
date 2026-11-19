@@ -315,6 +315,34 @@ body.race-mode #resultOverlay{z-index:15}
  body.race-mode #raceHUD{top:calc(env(safe-area-inset-top) + 47px)!important}
  body.race-mode #resultOverlay{padding-top:calc(env(safe-area-inset-top) + 40px)}
 }
+
+/* Character studio: controls remain on the left; live 3D avatar stays unobstructed on the right. */
+@media (max-width:680px) and (orientation:portrait){
+ #customScreen:not(.previewOnly) .panel{
+  left:8px!important;right:auto!important;top:calc(env(safe-area-inset-top) + 80px)!important;
+  bottom:calc(env(safe-area-inset-bottom) + 72px)!important;
+  width:53vw!important;height:auto!important;max-height:none!important;
+  padding:10px 8px!important;border-radius:16px;gap:5px;
+ }
+ #customScreen:not(.previewOnly) .panelHead{align-items:flex-start;flex-wrap:wrap;gap:4px}
+ #customScreen:not(.previewOnly) .panel h2{font-size:19px}
+ #customScreen:not(.previewOnly) .customHeaderActions{width:100%;justify-content:space-between}
+ #customScreen:not(.previewOnly) .customHeaderActions button{font-size:10px;padding:7px 8px}
+ #customScreen:not(.previewOnly) .customTools{display:flex;gap:4px}
+ #customScreen:not(.previewOnly) .customTools button{font-size:10px;min-width:0;flex:1;padding:8px 3px}
+ #customScreen:not(.previewOnly) .avatarTabs button{padding:7px 9px;font-size:11px}
+ #customScreen:not(.previewOnly) .avatarSave{flex-wrap:wrap;gap:4px}
+ #customScreen:not(.previewOnly) .avatarSave label{width:100%}
+ #customScreen:not(.previewOnly) .avatarSave select{min-width:55px}
+ #customScreen:not(.previewOnly) .avatarSave button{font-size:10px;padding:6px 5px}
+ #customScreen:not(.previewOnly) .formrow{display:flex;flex-wrap:wrap;gap:5px;padding:8px 0;min-height:0}
+ #customScreen:not(.previewOnly) .formrow span{min-width:0;width:100%;max-width:none}
+ #customScreen:not(.previewOnly) .formrow input[type=range]{min-width:0;flex:1}
+ #customScreen:not(.previewOnly) .formrow select,
+ #customScreen:not(.previewOnly) .formrow input[type=text]{width:100%;max-width:100%}
+ #customScreen:not(.previewOnly) #customPreviewHint{display:none}
+ #customScreen.previewOnly .panel{left:9px;right:9px;width:auto}
+}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
