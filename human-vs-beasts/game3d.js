@@ -2446,12 +2446,13 @@ async function raceImageBlob(){
  }
  if(!racePicture)return null;
  const canvas=racePicture;
+ // A captured photo remains exportable after WebGL context loss or stage disposal.
  // Android WebViews may implement JPEG toBlob while PNG toBlob fails.
  // Export the already validated 3D frame; never recapture or substitute artwork.
  // Keep the async operation bounded and reject callbacks from an obsolete race.
  if(typeof canvas.toBlob==='function'){
   for(const format of ['image/png','image/jpeg']){
-   if(canvas!==racePicture||!ceremonyStage)return null;
+   if(canvas!==racePicture)return null;
    try{
     const blob=await new Promise(resolve=>{
      let settled=false;
@@ -2460,7 +2461,7 @@ async function raceImageBlob(){
      try{canvas.toBlob(complete,format,format==='image/jpeg'?.88:undefined)}
      catch(err){complete(null)}
     });
-    if(canvas!==racePicture||!ceremonyStage)return null;
+    if(canvas!==racePicture)return null;
     if(blob&&blob.size>=2048&&blob.type===format)return blob;
    }catch(err){console.warn('Canvas '+format+' export unavailable',err)}
   }
@@ -2468,7 +2469,7 @@ async function raceImageBlob(){
  // Both asynchronous encoders can be missing or time out. Try synchronous
  // formats against the same validated 3D pixels, with a minimum file size.
  for(const format of ['image/png','image/jpeg']){
-  if(canvas!==racePicture||!ceremonyStage)return null;
+  if(canvas!==racePicture)return null;
   try{
    const data=format==='image/jpeg'?canvas.toDataURL(format,.88):canvas.toDataURL(format);
    const match=/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(data);
