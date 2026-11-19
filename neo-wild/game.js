@@ -1718,6 +1718,9 @@ function buildingOverlapsWater(x,y,w,h){
  if(r>5600&&l<8400&&b>2600)for(let xx=Math.max(5600,l);xx<=Math.min(8400,r)+32;xx+=32){
   const c=canalAxis(Math.min(8400,Math.min(r,xx)));if(t<c+100&&b>c-100)return true;
  }
+ // Reserve the joined channels from physical urban obstacles in newly generated worlds.
+ for(let xx=l;xx<=r+24;xx+=24)for(let yy=t;yy<=b+24;yy+=24)
+  if((window.WildEastExpedition?.channelDepth?.(xx,yy)||0)>.05)return true;
  return false;
 }
 function nearestDryBank(x,y,r){
