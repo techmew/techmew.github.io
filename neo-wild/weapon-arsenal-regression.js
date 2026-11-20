@@ -204,8 +204,8 @@ for(const stop of window.WildEastExpedition.stops){
  ok(!M.blocked(q.x,q.y,25),"terrain-safe physical cache: "+stop.id);
 }
 ok(game.includes('const sortie=eastSalvageObjective();')&&
- game.includes('label:"番人撃破済み：ガラクタを回収（○）"')&&
- game.includes('salvagePhase:"fight"'),"loot objective follows actual guardian combat and pickup");
+ game.includes('makeGoal(live,"番人撃破済み：ガラクタを回収（○）"')&&
+ game.includes('"fight",live.id'),"loot objective follows actual guardian combat and pickup");
 const backupMethods=part(backup,'const WEAPON_VAULT_KEY=',"function mergeIds(records,key,older){");
 const merge=new Function("window",backupMethods+";return mergeWeaponVault;")(window);
 const oldVault={version:1,items:[a.derive({id:"scrap:qa:old",seed:123})],equipped:{}};

@@ -10,7 +10,7 @@ Scope: only main/neo-wild; no image generation, menu, title or scheduler changes
 
 ## Verification boundaries
 - Executed V8 parser for modified game.js, east-expedition.js, and unmodified wild-arsenal.js.
-- Executed new production-source regression (Node-compatible with in-memory fs shim): 39+ assertions spanning cached weapon priority, real individual equip, real boss damage, ongoing guardian combat, all 8 target coordinates, near target and cliff route. Inspect actual console result in this commit; do not infer a real browser.
+- Executed new production-source regression (Node-compatible with in-memory fs shim): 38 assertions spanning cached weapon priority, real individual equip, real boss damage, ongoing guardian combat, all 8 target coordinates, near target and cliff route. Execution result: 38 assertions PASS (source-backed V8 shim). Existing weapon-arsenal regression: 20,172 PASS; existing salvage DOM/Canvas regression: 45 PASS after updating expectations to assert actual targetX separately from the corridor waypoint x. These are V8 mocks, not actual Node CLI or browser frames.
 - Actual Node CLI, browser Canvas/WebGL pixel frame, Android gamepad/touch, saved-game full migration and measured FPS: NOT RUN.
 
 ## Open P3 gates
