@@ -2295,7 +2295,13 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // the destination canvas. getImageData() here doubled peak RAM on Android
   // and could fail even when the actual 3D framebuffer was valid.
   if(!podiumPixelsValid(null,w,h,pixels))throw Error('Podium subjects not visible in GPU readback');
-  const frame=new ImageData(new Uint8ClampedArray(pixels.buffer),w,h);
+  // Older Android WebViews may expose CanvasRenderingContext2D but lack the
+  // global ImageData constructor. Reuse the GPU readback in modern browsers;
+  // fall back to the context's own ImageData allocation only when necessary.
+  const clamped=new Uint8ClampedArray(pixels.buffer);
+  let frame;
+  if(typeof ImageData==='function')frame=new ImageData(clamped,w,h);
+  else{frame=ctx.createImageData(w,h);frame.data.set(clamped)}
   ctx.putImageData(frame,0,0);
   return;
 
@@ -2359,7 +2365,7 @@ function captureCeremonyPhoto(){
  const w=widths[Math.min(podiumRetryAttempts,widths.length-1)],h=Math.round(w*9/16);
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
-  const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true});
+  const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true})||photo.getContext('2d');
   if(!ctx)throw Error('Canvas 2D context unavailable');
   // Prefer the explicit GPU framebuffer: mobile WebGL canvases may clear
   // their default drawing buffer before drawImage reads it.
@@ -2376,7 +2382,7 @@ function captureCeremonyPhoto(){
   // each retry. Android WebViews may reject 384px FBOs but accept 256px.
   if(!captured){
    const reduced=document.createElement('canvas');
-   const reducedCtx=reduced.getContext('2d',{alpha:false,willReadFrequently:true});
+   const reducedCtx=reduced.getContext('2d',{alpha:false,willReadFrequently:true})||reduced.getContext('2d');
    if(reducedCtx){
     const sizes=[Math.min(w,384),Math.min(w,256)];
     for(const reducedW of [...new Set(sizes)]){
