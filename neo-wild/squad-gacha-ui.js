@@ -46,13 +46,16 @@ const ready=()=>{
  const wrap=el("div","squad-gacha-wrap"),head=el("header","squad-gacha-head");
  const cancelGacha=()=>{draw=null;selected=null;chosen=[];refill=false;size=0;slot=0;slotTarget=0;streak=0;leader=null;root.hidden=true;updateHome();};
  const close=makeBtn("この個体で決定",()=>{
-  // Reuse the existing adoption/save handler; never commit an unselected draw.
+  // The top action must invoke the same real adoption/commit operation as the
+  // bottom button, or show an explanation. Silent no-ops are never acceptable.
   const action=body.querySelector(".squad-gacha-actions .squad-adopt");
-  // Confirm only an explicitly selected draw or its final naming/save step.
-  // Other modal states (release/reset/living roster) must not be committed here.
   const selecting=!!draw&&!!selected&&draw.options.some(m=>m.id===selected);
-  const finalizing=chosen.length>0&&body.querySelector(".squad-final-field input");
-  if((selecting||finalizing)&&action&&!action.disabled)action.click();
+  const finalizing=chosen.length>0&&!!body.querySelector(".squad-final-field input");
+  if((selecting||finalizing)&&action&&!action.disabled){
+   try{action.click()}catch(err){info.textContent=err?.message||"個体の採用に失敗しました。やり直してください"}
+  }else{
+   info.textContent="先にガチャ結果から個体を選択してください";
+  }
  },"squad-adopt");
  const cancel=makeBtn("ガチャ結果をキャンセル",cancelGacha,"squad-close");
  head.append(el("h2",null,"編成ガチャ"),close,cancel);
@@ -288,10 +291,19 @@ const ready=()=>{
   const pane=el("div","squad-count-choices");
   const drawButton=makeBtn("ガチャを引く",()=>{size=1;nextSlot()},"squad-count-button");
   drawButton.disabled=available<1;pane.append(drawButton);
+  if(!available){
+   pane.append(makeBtn("新しい世界でガチャ3体分を開始",confirmReset,"squad-reset-start"));
+  }
   body.append(pane,el("p","squad-small-note","初期は合計3体のみ。以後の補充は野生へ1体放つごとに1枚。死亡では補充されません。"));
  }
  function nextSlot(){
   if(chosen.length>=size){finish();return}
+  // Do not let a stale modal start a draw that the authoritative saved roster
+  // cannot adopt. Only an explicit new-world reset restores the first three.
+  const rights=core.load();
+  if(!(Math.max(0,3-(rights?.initialGachaUsed||0))+(rights?.gachaTickets||0))){
+   draw=null;selected=null;chosen=[];showSize();return;
+  }
   slot=chosen.length+1;
   // The world clock persists through party wipes. Do not lock rare species
   // back to year zero when a survivor refills a vacancy or a squad is lost.
@@ -363,8 +375,22 @@ const ready=()=>{
     return;
    }
    if((core.load()?.members||[]).length){info.textContent="生存中の個体は破棄できません。";return;}
-   core.newSquad(chosen,leader);for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species);updateHome();root.hidden=true;
-   window.dispatchEvent(new Event("wild-squad-updated"));
+   // Before this repair, a failed save or exhausted initial-three right threw
+   // out of the click handler, so both golden buttons appeared unresponsive.
+   try{
+    const saved=core.newSquad(chosen,leader);
+    if(!saved?.members?.some(m=>m.id===chosen[0]?.id))throw Error("編成の保存を確認できません。端末の保存容量を確認してください");
+    for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species);
+    updateHome();root.hidden=true;
+    window.dispatchEvent(new Event("wild-squad-updated"));
+   }catch(err){
+    const reason=String(err?.message||"");
+    info.textContent=reason||"編成を保存できませんでした。再試行してください";
+    if(/初期3体|ガチャ権|使い切り/.test(reason)&&!actions.querySelector(".squad-reset-start")){
+     actions.append(makeBtn("新世界でガチャ3体分を開始",confirmReset,"squad-reset-start"));
+    }
+    return;
+   }
   },"squad-adopt");
   actions.append(confirm);body.append(actions);
  }
@@ -462,10 +488,12 @@ const ready=()=>{
   body.replaceChildren();
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("リセットする",()=>{
-   core.resetForNewGame();
-   try{localStorage.removeItem("wild-reclaim-autosave-v2")}catch(_){}
-   root.hidden=true;updateHome();
-   window.dispatchEvent(new Event("wild-squad-reset"));
+   try{
+    if(core.resetForNewGame()!==true)throw Error("新世界初期化が完了していません");
+    try{localStorage.removeItem("wild-reclaim-autosave-v2")}catch(_){}
+    root.hidden=true;updateHome();
+    window.dispatchEvent(new Event("wild-squad-reset"));
+   }catch(err){info.textContent=err?.message||"新世界の初期化を保存できませんでした";}
   },"squad-adopt"),makeBtn("キャンセル",()=>{root.hidden=true;updateHome()},"squad-close"));
   body.append(actions);
  }
