@@ -1391,10 +1391,8 @@ function withSpeciesLocomotion(data,rig){
    const contact=rig.userDataHoofContact||(rig.userDataHoofContact={lastPhase:-999,offset:0});
    if(phase-contact.lastPhase>.18||phase<contact.lastPhase){
     contact.lastPhase=phase;
-    // Measure uncorrected feet: otherwise last frame's correction feeds into
-    // the next bounds reading and creates a hovering/drifting feedback loop.
-    // The correction is reapplied after sampling, preserving the gait cycle.
-    body.position.y-=contact.offset;
+    // The gait pose is reset at the start of every frame. Sample before
+    // adding the correction to avoid feedback from the previous contact.
     rig.root.updateMatrixWorld(true);
     let minSole=Infinity;
     for(const leg of legs){
