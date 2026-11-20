@@ -2401,11 +2401,15 @@ function captureCeremonyPhoto(){
      // Read a complete centered crop before reducing resolution. Capping
      // width and height independently turns tall phone screens into a narrow
      // strip and can cut the runners and medal out of the saved picture.
-     const readW=cropW,readH=cropH;
-     const rx=Math.floor((pw-cropW)/2),ry=Math.floor((ph-cropH)/2);
-     // A full-size framebuffer can exceed the Android memory budget; reject
-     // that path and let the bounded drawImage fallback handle the photo.
-     if(readW*readH>1024*576)throw Error('Default framebuffer readback exceeds mobile budget');
+     // Read a centered, bounded 16:9 region directly from the GPU.
+     // Large Android drawing buffers previously skipped readPixels entirely,
+     // leaving only drawImage(WebGLCanvas), which may return a grey frame.
+     // readPixels cannot scale, so use a center crop with an explicit memory cap.
+     const maxReadW=mobile?640:960,maxReadH=Math.round(maxReadW/aspect);
+     const readW=Math.min(cropW,maxReadW);
+     const readH=Math.min(cropH,maxReadH,Math.floor(readW/aspect));
+     const rx=Math.floor((pw-readW)/2),ry=Math.floor((ph-readH)/2);
+     if(readW<16||readH<9)throw Error('Default framebuffer too small');
      const raw=new Uint8Array(readW*readH*4);
      gl.finish();
      for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
