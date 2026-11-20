@@ -61,11 +61,11 @@ const ready=()=>{
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
  let size=0,slot=0,slotTarget=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
  const denPanel=$("den-inventory");
- const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<MAX_OWNED&&(r.gachaTickets||0)>0;};
+ const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<MAX_OWNED&&((r.initialGachaUsed||0)<3||(r.gachaTickets||0)>0);};
  const openRefill=(fromTitle=false)=>{
   const r=core.load();
   if(!r?.members?.length||r.members.length>=MAX_OWNED){info.textContent="補充できる空き枠がありません。";return;}
-  if((r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。探索や狩りで獲得してください。";return;}
+  if((r.initialGachaUsed||0)>=3&&(r.gachaTickets||0)<1){info.textContent="ガチャ権がありません。1体を野生に放つと1枚補充されます。";return;}
   if(!fromTitle&&!window.__wildSquadAtDen){info.textContent="巣の近くで補充してください。";return;}
   refill=true;size=1;slotTarget=Array.from({length:MAX_OWNED},(_,i)=>i).find(i=>!r.members.some(m=>m.slotIndex===i))??0;chosen=[];streak=0;leader=null;root.hidden=false;nextSlot();
  };
@@ -79,8 +79,8 @@ const ready=()=>{
   const refreshDen=()=>{
    const r=core.load(),n=r?.members?.length||0;
    refillButton.hidden=!window.__wildSquadAtDen||n===0||n>=MAX_OWNED;
-   refillButton.disabled=!(r?.gachaTickets>0);
-   refillButton.textContent="空き枠ガチャ（残り"+(r?.gachaTickets||0)+"権）";
+   refillButton.disabled=!((r?.initialGachaUsed||0)<3||r?.gachaTickets>0);
+   refillButton.textContent="空き枠ガチャ（初期残り"+Math.max(0,3-(r?.initialGachaUsed||0))+"・放流券"+(r?.gachaTickets||0)+"）";
   };
   if(typeof MutationObserver==="function")new MutationObserver(refreshDen).observe(denPanel,{attributes:true,attributeFilter:["class"]});
   refillButton.addEventListener("focus",refreshDen);
@@ -279,11 +279,16 @@ const ready=()=>{
   gacha.hidden=true;
  }
  function showSize(){
-  info.textContent="最初の動物をガチャで獲得。初回＋最大3回引き直せます。";
+  const roster=core.load(),left=Math.max(0,3-(roster?.initialGachaUsed||0));
+  const tickets=roster?.gachaTickets||0,available=left+tickets;
+  info.textContent=available?
+   "初期ガチャ残り"+left+"体・放流補充券"+tickets+"枚。最大3体まで。":
+   "初期3体分は使用済み。放流券がなければ追加できません。「最初から」で新世界を開始できます。";
   body.replaceChildren();
   const pane=el("div","squad-count-choices");
-  pane.append(makeBtn("ガチャを引く",()=>{size=1;nextSlot()},"squad-count-button"));
-  body.append(pane,el("p","squad-small-note","個体は1匹ずつ採用。引き直した候補も選べます。操作中1体＋ストック2体で合計3体。死亡した個体は永久に消えます。"));
+  const drawButton=makeBtn("ガチャを引く",()=>{size=1;nextSlot()},"squad-count-button");
+  drawButton.disabled=available<1;pane.append(drawButton);
+  body.append(pane,el("p","squad-small-note","初期は合計3体のみ。以後の補充は野生へ1体放つごとに1枚。死亡では補充されません。"));
  }
  function nextSlot(){
   if(chosen.length>=size){finish();return}
@@ -409,8 +414,8 @@ const ready=()=>{
    message("追加ガチャはタイトル画面か巣でのみ利用できます。巣に戻るかタイトルへ移動してください。");
    return;
   }
-  if(members.length&&!current.pendingStart&&(current.gachaTickets||0)<1){
-   message("ガチャ権が0枚です。獲得方法：続きからプレイ → 獲物8匹・共有経験値600・探索地点2か所・チュートリアル完了で獲得する → タイトルか巣で空き枠の＋を押す。最初の編成は無料です。");
+  if(members.length&&!current.pendingStart&&(current.initialGachaUsed||0)>=3&&(current.gachaTickets||0)<1){
+   message("ガチャ権が0枚です。最初の3体分が無料。追加分は野生に1体放つと1枚補充されます。死亡では補充されません。");
    const play=makeBtn(window.WildDebugSandbox?.active?"デバッグモードで開始":"続きからプレイ",()=>{root.hidden=true;updateHome();$("continue-btn")?.click();},"squad-adopt");
    body.prepend(play);return;
   }
@@ -428,7 +433,7 @@ const ready=()=>{
   root.hidden=false;
   root.scrollTop=0;
   const name=member.name||member.speciesName||"動物";
-  message(name+"を野生に放ちますか？ この個体は所有に戻せません。野生では強化個体として再登場します。"+(latest.members.length===1?" 最後の個体なので次はガチャから再出発します。":""));
+  message(name+"を野生に放ちますか？ この個体は所有に戻せません。ガチャ券を1枚補充します。野生では強化個体として再登場します。"+(latest.members.length===1?" 最後の個体なので次はガチャから再出発します。":""));
   body.replaceChildren();
   const actions=el("footer","squad-gacha-actions");
   const cancel=()=>{if(wasHidden){root.hidden=true;updateHome();}else{showLivingSquad();}};

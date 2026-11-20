@@ -140,7 +140,10 @@ function trace(kind,year,x,y){traces.push({kind,year,x,y,age:0});traces=traces.s
 try{const v=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(v))history=v.slice(-MAX_HISTORY)}catch(_){}
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function record(kind,year,x,y){history.push({kind,year,x:Math.round(x),y:Math.round(y)});history=history.slice(-MAX_HISTORY);try{localStorage.setItem(key,JSON.stringify(history))}catch(_){}}
-function resetTransient(){event=null;cooldown=80/3;persist()}
+// Snapshot of the ACTUAL abducting formation; kept after the flying-away event
+// is disposed, until the recorded death image has been composed.
+let lastPlayerCapture=null;
+function resetTransient(){event=null;lastPlayerCapture=null;cooldown=80/3;persist()}
 // Debug forcing is immediate; normal era, spawn and cooldown rules remain intact.
 function debugSummon(x,y){
  const e=summon(x,y,false);
@@ -389,6 +392,8 @@ function tick(dt,world){
   if(e.lifts.length&&lift.seconds>=lift.duration){
    const kind=String(lift.actor.species??lift.actor.type??"不明な動物");
    if(lift.player){
+    lastPlayerCapture={craftCount:1+(Array.isArray(e.wingmen)?e.wingmen.length:0),
+     year,x:lift.x,y:lift.y,actor:lift.actor,formation:!!e.formation};
     e.playerCaptured=true;e.stage="depart";e.t=0;e.departRise=0;
     record("UFO捕獲",year,lift.x,lift.y);trace("UFO捕獲",year,lift.x,lift.y);
     world.onEvent?.("ufo-player-abduction",{year,x:lift.x,y:lift.y});
@@ -635,7 +640,11 @@ function tick(dt,world){
   e.y+=Math.sin(bearing)*390*acceleration*dt;
  }
  if(e.stage==="depart"&&e.t>2.7){
-  if(e.playerCaptured){P.hp=0;P.deathReason="ufo";P._ufoAbducting=false;world.beginDeath?.();}
+  if(e.playerCaptured){
+   P.hp=0;P.deathReason="ufo";P._ufoAbducting=false;
+   P._ufoAbducted=true;P.corpse=false;P.meat=0;P.food=0;
+   world.beginDeath?.();
+  }
   if(e.formation&&alienSites.length<4&&Math.random()<.42){alienSites.push({x:e.originX,y:e.originY,age:0,warned:false,pulse:0,disposition:(Math.random()<.5?"hostile":Math.random()<.6?"neutral":"friendly")});record("異星観測基地",year,e.originX,e.originY);world.onEvent?.("alien-observation-site",{year,x:e.originX,y:e.originY});world.notify?.("円盤が去った跡に奇妙な観測装置が残った")}event=null;cooldown=Math.max(cooldown,300/3);persist()}
 }
 // Layered procedural saucer: armoured plates, glowing portholes, glass dome,
@@ -836,6 +845,39 @@ function draw(ctx,project,world){
  }
  ctx.restore();
 }
-function resetWorld(){event=null;cooldown=0;encounterClock=0;history=[];traces=[];alienSites=[];persistTimer=0;try{localStorage.setItem(key,"[]")}catch(_){}persist();return true}
-window.WildUFO={tick,draw,resetTransient,resetWorld,summon,debugSummon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),alienSites:()=>alienSites.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12),alienSites:alienSites.slice(-4)}),get active(){return event}};
+// Death-card evidence: reproduce the saucers that really participated in this
+// abduction using the identical game renderer, rather than relying on a distant
+// offscreen frame captured after the 2.7-second exit flight.
+function drawDeathCard(ctx,x,y,w,h){
+ const shot=lastPlayerCapture;
+ if(!shot)return false;
+ const n=Math.max(1,Math.min(4,shot.craftCount||1));
+ ctx.save();
+ const glow=ctx.createLinearGradient(x,y,x,y+h);
+ glow.addColorStop(0,"rgba(4,19,28,.73)");
+ glow.addColorStop(.50,"rgba(5,23,33,.14)");
+ glow.addColorStop(1,"rgba(9,22,29,.78)");
+ ctx.fillStyle=glow;ctx.fillRect(x,y,w,h);
+ const cx=x+w*.5,cy=y+h*.31;
+ // The last victim was already fully absorbed. Draw no corpse on the ground.
+ // The beam and original 3D-form saucer art explain the abduction cause.
+ const beam=ctx.createLinearGradient(cx,cy,cx,y+h*.94);
+ beam.addColorStop(0,"rgba(120,242,255,.76)");
+ beam.addColorStop(1,"rgba(119,215,248,0)");
+ ctx.fillStyle=beam;ctx.beginPath();
+ ctx.moveTo(cx-21,cy+31);ctx.lineTo(cx+21,cy+31);
+ ctx.lineTo(cx+w*.20,y+h*.96);ctx.lineTo(cx-w*.20,y+h*.96);
+ ctx.closePath();ctx.fill();
+ const radius=Math.min(w*.105,h*.26);
+ if(n>1)for(let i=1;i<n;i++){
+  const angle=Math.PI+Math.PI*(i/(n));
+  const px=cx+Math.cos(angle)*w*.34;
+  const py=cy+Math.sin(angle)*h*.08-h*.03;
+  renderSaucer(ctx,px,py,radius*.70,shot.year+i,"scout");
+ }
+ renderSaucer(ctx,cx,cy,radius,shot.year,"main");
+ ctx.restore();return true;
+}
+function resetWorld(){event=null;lastPlayerCapture=null;cooldown=0;encounterClock=0;history=[];traces=[];alienSites=[];persistTimer=0;try{localStorage.setItem(key,"[]")}catch(_){}persist();return true}
+window.WildUFO={tick,draw,drawDeathCard,resetTransient,resetWorld,summon,debugSummon,history:()=>history.slice(),abductions:()=>history.filter(h=>h.kind.startsWith("NPC誘拐:")||h.kind==="UFO捕獲"),traces:()=>traces.slice(),alienSites:()=>alienSites.slice(),saveState:()=>({event,cooldown,traces:traces.slice(-12),alienSites:alienSites.slice(-4)}),get active(){return event}};
 })();

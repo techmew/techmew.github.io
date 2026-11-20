@@ -76,7 +76,8 @@ function targetSlot(member,members){
   Array.from({length:MAX_OWNED},(_,n)=>n).find(n=>!occupied.has(n));
  return i>=0&&i<MAX_OWNED&&!occupied.has(i)?i:null;
 }
-function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=excluded(),seen=new Set();const members=assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));return {...v,members,leaderId:members.some(m=>m.id===v.leaderId)?v.leaderId:members[0]?.id||null}}
+function load(){const v=read(KEY,null);if(!v||v.version!==1)return null;const d=excluded(),seen=new Set();const members=assignSlots((Array.isArray(v.members)?v.members:[]).filter(x=>{if(!x?.id||d.has(x.id)||x.alive===false||seen.has(x.id))return false;seen.add(x.id);return true}).slice(0,5));return {...v,initialGachaUsed:Math.max(0,Math.min(3,Math.floor(Number(v.initialGachaUsed??(v.pendingStart?members.length:3))||0))),
+  members,leaderId:members.some(m=>m.id===v.leaderId)?v.leaderId:members[0]?.id||null}}
 function save(roster,explicitLeaderSelection=false,explicitGachaAdoption=false){const d=excluded(),seen=new Set();const requested=Array.isArray(roster?.members)?roster.members:[];
  // Stale autosaves must not silently discard living legacy 4/5-member owners.
  // Death and release tombstones remain authoritative, so genuine departures stay permanent.
@@ -91,7 +92,10 @@ function save(roster,explicitLeaderSelection=false,explicitGachaAdoption=false){
  // Only confirmed, durably saved adoptions may change the pity counter.
  const gachaPoorStreak=clampPoorStreak(explicitGachaAdoption&&Number.isFinite(roster?.gachaPoorStreak)?roster.gachaPoorStreak:
   Number.isFinite(prior?.gachaPoorStreak)?prior.gachaPoorStreak:read(STREAK_KEY,0));
- const v={version:1,members,leaderId:members.some(x=>x.id===requestedLeader)?requestedLeader:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),gachaPoorStreak,startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Math.max(Date.now(),(Number.isFinite(prior?.updatedAt)?prior.updatedAt:0)+1)};localStorage.setItem(KEY,JSON.stringify(v));return v}
+ const v={version:1,members,leaderId:members.some(x=>x.id===requestedLeader)?requestedLeader:members[0]?.id||null,sharedXp:Math.max(0,roster.sharedXp||0),gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)),initialGachaUsed:Math.max(0,Math.min(3,
+  Math.max(Number(roster.initialGachaUsed??(roster.pendingStart?combined.length:3))||0,
+   Number(prior?.initialGachaUsed??(prior?(prior.pendingStart?prior.members?.length||0:3):0))||0))),
+ ticketMilestone:Math.max(0,Math.floor(roster.ticketMilestone||0)),gachaPoorStreak,startPosition:roster.startPosition||read(KEY,null)?.startPosition||null,pendingStart:!!roster.pendingStart,newWorldOnStart:!!roster.newWorldOnStart,updatedAt:Math.max(Date.now(),(Number.isFinite(prior?.updatedAt)?prior.updatedAt:0)+1)};localStorage.setItem(KEY,JSON.stringify(v));return v}
 // Selection is persisted before the renderer is notified; stock animals never spawn as AI.
 function selectActive(id){
  const roster=load();
@@ -150,19 +154,20 @@ function newSquad(members,leaderId){
     new Set(members.map(m=>m.id)).size!==members.length)
    throw Error("所有は操作中1体＋ストック2体の合計最大3体です。重複・死亡個体は禁止");
  if(!members.some(m=>m.id===leaderId))throw Error("操作するリーダーを選択してください");
- return saveVerified({members,leaderId,sharedXp:0,gachaTickets:0,ticketMilestone:0,
+ const old=load(),used=Math.max(0,old?.initialGachaUsed||0);
+ const paid=Math.max(0,members.length-Math.max(0,3-used));
+ if(paid>(old?.gachaTickets||0))throw Error("最初の3体分を使い切りました。放流券が必要です");
+ return saveVerified({members,leaderId,sharedXp:0,
+  initialGachaUsed:Math.min(3,used+members.length),
+  gachaTickets:Math.max(0,(old?.gachaTickets||0)-paid),ticketMilestone:0,
   gachaPoorStreak:members.reduce((n,m)=>adoptedPoorStreak(n,m),load()?.gachaPoorStreak??read(STREAK_KEY,0)),
   pendingStart:true,newWorldOnStart:localStorage.getItem(RESET_NEW_WORLD)==="1"||!read("wild-reclaim-world-chronicle-v1",null)},members.map(m=>m.id),true);
 }
 function addXp(amount){
  const r=load();if(!r)return null;
  const earned=Number.isFinite(amount)?Math.max(0,Math.min(1000000,amount)):0;
- const previousMilestone=Math.max(0,Math.floor(r.ticketMilestone??(r.sharedXp||0)/600));
+ // Shared XP levels animals but never awards a fourth gacha ticket.
  r.sharedXp+=earned;
- // Every 600 shared XP earned through gameplay grants one vacancy-only draw.
- const nextMilestone=Math.floor(r.sharedXp/600);
- if(nextMilestone>previousMilestone)r.gachaTickets=Math.min(999,(r.gachaTickets||0)+nextMilestone-previousMilestone);
- r.ticketMilestone=Math.max(previousMilestone,nextMilestone);
  for(const m of r.members){
   const rate=Number.isFinite(m.growthRate)?Math.max(.5,Math.min(1.5,m.growthRate)):1;
   // Split a large shared-XP reward at growth-phase boundaries. A late-bloomer
@@ -184,21 +189,18 @@ function addXp(amount){
  return save(r);
 }
 // Tickets are earned in gameplay, never purchased. Only vacant slots can consume them.
-function grantTickets(amount=1){
- const r=load();if(!r)return null;
- const n=Number.isSafeInteger(amount)?Math.max(0,Math.min(100,amount)):0;
- r.gachaTickets=Math.min(999,Math.max(0,r.gachaTickets||0)+n);
- return save(r);
-}
+function grantTickets(amount=1){return load()}
 function fillVacancy(member){
  const r=load();if(!r||!Array.isArray(r.members)||r.members.length>=MAX_OWNED)return {ok:false,reason:"空き枠がありません"};
  // Legacy 4/5-member saves must shrink naturally; a stale vacancy dialog
  // cannot bypass the three-owner cap or spend tickets on a protected roster.
  if(r.members.some(m=>!m?.id||excluded().has(m.id)))return {ok:false,reason:"所有データを再読み込みしてください"};
  if(!member||!member.id||!playable.has(member.species)||member.alive===false||excluded().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
- if((r.gachaTickets||0)<1)return {ok:false,reason:"ガチャ権が不足しています"};
+ if((r.initialGachaUsed||0)>=3&&(r.gachaTickets||0)<1)return {ok:false,reason:"初期3体分を使い切りました。放流券が必要です"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
- r.members.push({...member,slotIndex:slot,alive:true});r.gachaTickets-=1;
+ r.members.push({...member,slotIndex:slot,alive:true});
+ if((r.initialGachaUsed||0)<3)r.initialGachaUsed=(r.initialGachaUsed||0)+1;
+ else r.gachaTickets-=1;
  r.gachaPoorStreak=adoptedPoorStreak(r.gachaPoorStreak??read(STREAK_KEY,0),member);
  // A ticket is spent only when the new owner and reduced ticket balance
  // are durably stored together. Storage failures must not report adoption.
@@ -247,9 +249,14 @@ function release(id){
   // The permanent exclusion ID is already committed. If the roster write fails,
   // the old snapshot is filtered by load(); report the actual released state.
   let saved;
-  try{saved=save({...roster,members:survivors,leaderId,pendingStart:survivors.length?roster.pendingStart:false});}
+  try{saved=save({...roster,members:survivors,leaderId,
+   gachaTickets:Math.min(999,Math.max(0,roster.gachaTickets||0)+1),
+   pendingStart:survivors.length?roster.pendingStart:false});}
   catch(_){saved=load();}
-  return {ok:true,roster:saved,released:member,newLeaderId:saved?.leaderId||null};
+  const credited=!!saved&&saved.members.every(m=>m.id!==id)&&
+   saved.gachaTickets>=Math.min(999,(roster.gachaTickets||0)+1);
+  return {ok:credited,roster:saved,released:member,newLeaderId:saved?.leaderId||null,
+   reason:credited?null:"放流済みですがガチャ券保存が失敗。端末容量を確認してください"};
  }catch(_){
   if(!released().has(id)){
    try{localStorage.setItem(key,JSON.stringify(pending));localStorage.setItem(archiveKey,JSON.stringify(priorArchive));}catch(_){}
@@ -282,7 +289,11 @@ function addInitialSlot(member){
  const r=load();if(!r?.pendingStart||r.members.length>=MAX_OWNED)return {ok:false,reason:"新規編成中の空き枠ではありません"};
  if(!member?.id||!playable.has(member.species)||member.alive===false||excluded().has(member.id)||r.members.some(m=>m.id===member.id))return {ok:false,reason:"無効な個体です"};
  const slot=targetSlot(member,r.members);if(slot===null)return {ok:false,reason:"指定枠にはすでに動物がいます"};
+ const used=r.initialGachaUsed||0;
+ if(used>=3&&(r.gachaTickets||0)<1)return {ok:false,reason:"初期3体分は使用済み。放流券が必要です"};
  r.members.push({...member,slotIndex:slot,alive:true});
+ if(used<3)r.initialGachaUsed=used+1;
+ else r.gachaTickets--;
  r.gachaPoorStreak=adoptedPoorStreak(r.gachaPoorStreak??read(STREAK_KEY,0),member);
  try{return {ok:true,roster:saveVerified(r,r.members.map(m=>m.id),true)};}
  catch(_){return {ok:false,reason:"新規個体の保存に失敗しました。空き容量を確認して再試行してください"};}

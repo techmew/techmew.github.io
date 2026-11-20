@@ -2874,7 +2874,7 @@ function render(o){
    }
   }
   const playerFirst=data.length/9;
-  if(P&&!P._ufoAbducting){
+  if(P&&!P._ufoAbducting&&!P._ufoAbducted){
    animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
    carriedFoodMesh(P);
    const weapon=o.equippedWeapon,grade=window.WildArsenal?.gradeOf?.(weapon);

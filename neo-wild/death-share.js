@@ -43,9 +43,11 @@ function prepare(value){
 }
 function cover(ctx,img,x,y,w,h){
  if(!img?.width||!img?.height)return false;
- // Preserve the entire fatal frame: centered cover crops off high UFOs, flood edges and fissures.
- const f=Math.min(w/img.width,h/img.height),dw=img.width*f,dh=img.height*f;
- ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);return true;
+ // Fill the FULL photo window. The old contain scale reduced portrait mobile
+ // gameplay to a tiny strip in the middle of a 1200px-wide X image.
+ const f=Math.max(w/img.width,h/img.height),dw=img.width*f,dh=img.height*f;
+ ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+ ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();return true;
 }
 function makeCard(sources){
  if(!info)return null;
@@ -57,6 +59,7 @@ function makeCard(sources){
  if(sources.gpu)hasImage=cover(c,sources.gpu,0,0,1200,402);
  if(sources.scene)hasImage=cover(c,sources.scene,0,0,1200,402)||hasImage;
  if(!hasImage)return null;
+ if(info.cause==="ufo")window.WildUFO?.drawDeathCard?.(c,0,0,1200,402);
  const grad=c.createLinearGradient(0,0,0,410);grad.addColorStop(0,"rgba(5,13,11,.5)");grad.addColorStop(.50,"rgba(5,13,11,.02)");grad.addColorStop(1,"rgba(5,13,11,.93)");
  c.fillStyle=grad;c.fillRect(0,0,1200,410);
  c.textBaseline="middle";c.font="bold 25px sans-serif";c.fillStyle="#e3ede3";c.fillText("WILD RECLAIM",44,52);

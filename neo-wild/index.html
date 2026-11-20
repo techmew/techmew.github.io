@@ -204,7 +204,7 @@
  <small id="pause-bgm-status" role="status" aria-live="polite">ポーズ中に試聴できます。選択は保存されます。</small>
 </div><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
-<div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section id="death-share-panel" hidden aria-label="死亡スクショとX共有" style="max-width:430px;margin:12px auto;text-align:center"><img id="death-share-preview" alt="死亡スクショ" style="display:block;width:100%;aspect-ratio:16/9;object-fit:contain;border:1px solid #587768;border-radius:8px;background:#14201c"><div style="display:flex;gap:8px;margin:9px 0"><button id="death-share-download" class="flat-btn" type="button" disabled style="flex:1;min-width:0">画像を保存</button><button id="death-share-x" class="big-btn" type="button" disabled style="flex:1;min-width:0">Xで共有</button></div><p id="death-share-status" role="status" aria-live="polite" style="font-size:11px;line-height:1.5;color:#d2e5d6;margin:7px 0"></p></section><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><div id="squad-death-choice" class="squad-death-choice hidden" role="group" aria-label="残った仲間からリーダーを選ぶ"></div><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button><button id="death-title-btn" type="button" class="flat-btn">タイトルに戻る</button></div></div>
+<div id="result" class="overlay hidden"><div class="modal result-box"><small id="result-kicker">SURVIVAL REPORT</small><h2 id="result-title">死んでしまった</h2><p id="result-reason"></p><p id="result-highscore" class="result-highscore hidden" role="status" aria-live="polite">ハイスコア！</p><div class="result-score"><label>FINAL SCORE</label><strong id="result-score">000000</strong></div><div class="result-stats" id="result-stats"></div><section id="death-share-panel" hidden aria-label="死亡スクショとX共有" style="width:100%;max-width:100%;margin:12px auto;text-align:center"><img id="death-share-preview" alt="死亡スクショ" style="display:block;width:100%;aspect-ratio:16/9;object-fit:contain;border:1px solid #587768;border-radius:8px;background:#14201c"><div style="display:flex;gap:8px;margin:9px 0"><button id="death-share-download" class="flat-btn" type="button" disabled style="flex:1;min-width:0">画像を保存</button><button id="death-share-x" class="big-btn" type="button" disabled style="flex:1;min-width:0">Xで共有</button></div><p id="death-share-status" role="status" aria-live="polite" style="font-size:11px;line-height:1.5;color:#d2e5d6;margin:7px 0"></p></section><section class="result-top5" aria-label="保存された上位5件の記録"><h3>歴代TOP5 <small>この端末</small></h3><ol id="result-top5-list"></ol><p id="result-top5-status" role="status"></p></section><div id="squad-death-choice" class="squad-death-choice hidden" role="group" aria-label="残った仲間からリーダーを選ぶ"></div><button id="retry-btn" class="big-btn">リトライ</button><button id="menu-btn" class="flat-btn">最初から（動物を選ぶ）</button><button id="death-title-btn" type="button" class="flat-btn">タイトルに戻る</button></div></div>
 <div id="world-history-view" class="trophy-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="world-history-title"><section class="trophy-shell"><header class="trophy-head"><div><h2 id="world-history-title">世界年表</h2><p id="world-history-summary" aria-live="polite">世界の記録</p></div><button id="world-history-close" type="button">閉じる</button></header><ol id="world-history-list" class="trophy-list" aria-label="年代・地域変動・災害の履歴"></ol></section></div>
 <div id="trophy-view" class="trophy-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="trophy-view-title">
  <section class="trophy-shell"><header class="trophy-head"><div><h2 id="trophy-view-title">トロフィー</h2><p id="trophy-count" aria-live="polite">獲得 0</p></div><button id="trophies-close" type="button">閉じる</button></header>
@@ -255,26 +255,26 @@
 <script src="./audio.js?rev=d8f07fe63d7d" defer></script>
 <script src="./mountain.js?rev=c4106b24dec0" defer></script>
 <script src="./east-expedition.js?rev=dbb69b115fac" defer></script>
-<script src="./webgl3d.js?rev=080aa1929196" defer></script>
+<script src="./webgl3d.js?rev=4d9ea853bcb5" defer></script>
 <script src="./combat-levels.js?rev=0d86a1c903d7" defer></script>
 <script src="./bestiary.js?rev=eef7374f1e76" defer></script>
 <script src="./world-time.js?rev=5fb6f471655e" defer></script>
 <script src="./era-ecology.js?rev=a6549869e28c" defer></script>
 <script src="./fauna.js?rev=717df4940c08" defer></script>
 <script src="./boss-patterns.js?rev=13c249919b11" defer></script>
-<script src="./pack-tactics.js?rev=47d3c8af1992" defer></script> <script src="./companions.js?rev=ce6ae1d6e652" defer></script> <script src="./ufo-events.js?rev=92e70766d487" defer></script> <script src="./disaster-world.js?rev=835422521d83" defer></script>
+<script src="./pack-tactics.js?rev=47d3c8af1992" defer></script> <script src="./companions.js?rev=ce6ae1d6e652" defer></script> <script src="./ufo-events.js?rev=857be428cea1" defer></script> <script src="./disaster-world.js?rev=835422521d83" defer></script>
 <script src="./apparitions.js?rev=f50c34ceb440" defer></script>
-<script src="./trophy-records.js?rev=365eb8e1f970" defer></script> <script src="./squad-core.js?rev=327dcf6b55da" defer></script>
+<script src="./trophy-records.js?rev=365eb8e1f970" defer></script> <script src="./squad-core.js?rev=a61bc3c46f5d" defer></script>
 <script src="./boss-roster.js?rev=c9ab5d311eb1" defer></script>
 <script src="./world-end.js?rev=fd95eab262d3" defer></script>
 <script src="./i18n-phrases.js?rev=8b7fd7edfbc9" defer></script>
 <script src="./i18n.js?rev=05b417669fdf" defer></script>
-<script src="./squad-gacha-ui.js?rev=c6e2fd6df75e" defer></script>
-<script src="./death-share.js?rev=4bed7691cca6" defer></script>
+<script src="./squad-gacha-ui.js?rev=2486cdff88a7" defer></script>
+<script src="./death-share.js?rev=33ba6425ed9d" defer></script>
 <script src="./flood-rescue.js?rev=2d01afce7161" defer></script>
 <script src="./wild-arsenal.js?rev=a26bdae0a37b" defer></script>
 <script src="./first-steps.js?rev=23522f84ad79" defer></script>
-<script src="./game.js?rev=c3b04e491ded" defer></script>
+<script src="./game.js?rev=b27d40ceb0f2" defer></script>
 <script src="./world-history.js?rev=3c285da9bcd8" defer></script>
 <script src="./save-backup.js?rev=51e57500c1ce" defer></script>
 <script src="./trophy-view.js?rev=d6fa96931ff5" defer></script>

@@ -5830,11 +5830,7 @@ function kill(m){
  recordWeaponScrapGuardianDefeat(m);
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
  kills++;window.WildTrophies?.record?.("hunt",{kills},notify);
- // Eight genuine hunts grant a gacha ticket for vacant party slots only.
- if(!debugTutorialSession&&P?.squadIndividualId&&kills>0&&kills%8===0&&window.WildSquad?.grantTickets){
-  const roster=window.WildSquad.grantTickets(1);
-  if(roster)notify("狩猟達成：ガチャ権 +1（巣・タイトルで欠員補充）");
- }
+ // Hunting grants XP and materials, but never additional animal tickets.
  window.WildTrophies?.record?.("kill",{type:m.type,region:regionAt(m.x,m.y),boss:!!m.strongBoss},notify);
  P.combo=P.comboTimer>0?P.combo+1:1;P.comboTimer=4.5;
  const remains=animalRemains(m);
@@ -6575,17 +6571,9 @@ function finishMissionMilestone(){
 // One-time gameplay gacha rights. Independent ledger preserves SAVE_SCHEMA2.
 const GACHA_REWARD_KEY="wild-reclaim-gacha-rewards-v1";
 function awardGameplayGachaTicket(kind,milestone){
- const squad=window.WildSquad?.load?.();
- if(debugTutorialSession||!P?.squadIndividualId||!squad?.members?.length||!window.WildSquad?.grantTickets)return false;
- const token=String(squad.members.map(m=>m.id).sort().join("|"))+"::"+kind+":"+milestone;
- let ledger={};
- try{ledger=JSON.parse(localStorage.getItem(GACHA_REWARD_KEY)||"{}")||{}}catch(_){}
- if(ledger[token])return false;
- try{localStorage.setItem(GACHA_REWARD_KEY,JSON.stringify({...ledger,[token]:1}))}catch(_){return false}
- const credited=window.WildSquad.grantTickets(1);
- if(!credited){try{localStorage.setItem(GACHA_REWARD_KEY,JSON.stringify(ledger))}catch(_){}return false}
- notify("達成報酬：ガチャ権 +1（巣・タイトルで空き枠補充）");
- return true;
+ // Older achievement hooks remain, but only initial three draws or releasing
+ // an existing animal can provide another gacha ticket.
+ return false;
 }
 function advanceMission(next){
  const previous=mission;
@@ -10607,7 +10595,7 @@ function drawScene(){
  if(!use3D&&mode==="play"&&!warned3DFallback){warned3DFallback=true;notify("3D描画を開始できないため2D表示中です");}
  ctx.setTransform(dpr,0,0,dpr,0,0);
  if(use3D)ctx.clearRect(0,0,vw,vh);else{ctx.fillStyle="#152423";ctx.fillRect(0,0,vw,vh)}
- const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P)entities.push(P);
+ const entities=mobs.filter(m=>visible(m.x,m.y,70));if(P&&!P._ufoAbducted)entities.push(P);
  ctx.save();ctx.translate(vw/2,vh/2);ctx.transform(VIEW.a,VIEW.b,VIEW.c,VIEW.d,0,0);ctx.translate(-x-vw/2,-y-vh/2);
  if(!use3D){
   const farLeft=Math.max(0,Math.floor((x-vw*.7)/180)*180-180),farTop=Math.max(0,Math.floor((y-vh*1.3)/180)*180-180);
@@ -10657,8 +10645,8 @@ function drawScene(){
    ctx.strokeStyle="#849587";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x,o.y+7);ctx.lineTo(o.x,o.y-15);ctx.stroke();
    ctx.fillStyle="#c8aa6f";ctx.fillRect(o.x-7,o.y-18,14,5);
   }else{
-   if(o!==P||!P._ufoAbducting)drawCreature(o,o===P);
-   if(o===P&&!P._ufoAbducting&&mode!=="dying"&&mode!=="over")drawCarriedFood2D();
+   if(o!==P||!(P._ufoAbducting||P._ufoAbducted))drawCreature(o,o===P);
+   if(o===P&&!P._ufoAbducting&&!P._ufoAbducted&&mode!=="dying"&&mode!=="over")drawCarriedFood2D();
    for(const p of covers.get(o))drawCoverForeground(p);
   }
  }
