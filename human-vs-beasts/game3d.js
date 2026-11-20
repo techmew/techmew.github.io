@@ -2864,7 +2864,12 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  const massive=rivalHeight>=3.1||['elephant','hippo','rhino','mammoth','woollyrhino','gorilla','giantsloth','boar'].includes(a.kind);
  const collisionWidth=clamp(.65+rivalHeight*.12,.75,1.52);
  const collisionDepth=clamp(1.8+rivalHeight*.54,2.1,5.4);
- const airborne=a.profile==='hopper'&&Math.sin(beastGait)>.55;
+ // Collision immunity must follow the same physics stride as the rival's
+ // acceleration. The visual animation clock can lag or pause on Android,
+ // otherwise a kangaroo/rabbit is hittable at different times on 30/60 FPS.
+ // Only the airborne half of the actual hop is protected; landing is hittable.
+ const hopPhase=r.rivalStridePhase||0;
+ const airborne=a.profile==='hopper'&&Math.sin(hopPhase)>.55;
  const flying=['pegasus','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
  if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying
   &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
