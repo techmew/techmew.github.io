@@ -1383,11 +1383,11 @@ function withSpeciesLocomotion(data,rig){
    if(tail){tail.rotation.y=.13*s*effort;tail.rotation.x=-.045*cos*effort}
   }
   speciesMotion(kind,rig,phase,effort);
-  // Lock a planted hoof to the track during the horse/zebra gallop. Static
+  // Stabilize articulated hooves for equids and other four-legged ungulates. Static
   // normalization alone cannot compensate for the articulated knee/hip swing.
   // Sample only the four hoof assemblies, not tails, manes or other ornaments.
   // Throttle the expensive bounds sampling on low-end Android GPUs.
-  if((kind==='horse'||kind==='zebra')&&legs.length>=4&&rig.root.visible){
+  if(['horse','zebra','unicorn','gazelle','pronghorn','deer'].includes(kind)&&legs.length>=4&&rig.root.visible){
    const contact=rig.userDataHoofContact||(rig.userDataHoofContact={lastPhase:-999,offset:0});
    if(phase-contact.lastPhase>.18||phase<contact.lastPhase){
     contact.lastPhase=phase;
@@ -1403,7 +1403,7 @@ function withSpeciesLocomotion(data,rig){
     }
     if(Number.isFinite(minSole)){
      // World-space correction, limited to prevent snapping and ground penetration.
-     const desired=clamp((rig.root.position.y-minSole)/Math.max(.001,rig.root.scale.y),-.14,.14);
+     const desired=clamp((rig.root.position.y-minSole)/Math.max(.001,rig.root.getWorldScale(new T.Vector3()).y),-.14,.14);
      contact.offset=clamp(contact.offset*.45+desired*.55,-.14,.14);
     }
    }
