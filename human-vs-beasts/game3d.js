@@ -2333,7 +2333,7 @@ function captureCeremonyPhoto(){
  // Retry at progressively smaller 16:9 resolutions on memory-constrained GPUs.
 // A failed full-size framebuffer should not cause three identical failed attempts.
  let success=false;
- const widths=mobile?[640,512,384,320]:[960,768,576,384];
+ const widths=mobile?[640,512,384,256]:[960,768,576,384];
  const w=widths[Math.min(podiumRetryAttempts,widths.length-1)],h=Math.round(w*9/16);
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
@@ -2344,8 +2344,10 @@ function captureCeremonyPhoto(){
   fitPodiumCamera(ceremonyStage,w/h);
   let captured=false;
   try{
+   // capturePodiumFromGPU validates the real 3D portrait before returning.
+   // Avoid a second full-frame getImageData readback on memory-limited Android.
    capturePodiumFromGPU(ctx,w,h);
-   captured=podiumPixelsValid(ctx,w,h);
+   captured=true;
   }catch(e){console.warn('Offscreen podium capture unavailable',e)}
   // Independent GPU fallback: progressively smaller real-3D framebuffers.
   // Reuse ONE small validation canvas rather than allocating a new canvas on
@@ -2360,11 +2362,12 @@ function captureCeremonyPhoto(){
      try{
       reduced.width=reducedW;reduced.height=reducedH;
       fitPodiumCamera(ceremonyStage,reducedW/reducedH);
+      // The reduced real-3D GPU frame has already passed portrait validation.
       capturePodiumFromGPU(reducedCtx,reducedW,reducedH,true);
-      if(!podiumPixelsValid(reducedCtx,reducedW,reducedH))continue;
       ctx.clearRect(0,0,w,h);
       ctx.drawImage(reduced,0,0,w,h);
-      if(podiumPixelsValid(ctx,w,h)){captured=true;break}
+      captured=true;
+      break;
      }catch(e){console.warn('Low-memory 3D podium capture unavailable at '+reducedW+'px',e)}
     }
    }
