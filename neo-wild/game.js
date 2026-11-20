@@ -5107,6 +5107,11 @@ function salvageWaveSize(drop){
  const x=Number(drop?.x)||0,level=Math.max(1,Number(P?.level)||1);
  return x>=12800?(level>=8?3:2):x>=11500?2:1;
 }
+function salvageRemaining(drop){
+ const total=Math.max(0,Math.min(3,Number(drop.siegeTotal)||0));
+ const beaten=Math.max(0,Math.min(total,Number(drop.siegeDefeated)||0));
+ return total?Math.max(1,total-beaten):salvageWaveSize(drop);
+}
 function markSalvageGuardian(drop,guard){
  guard.salvageCacheId=drop.id;
  guard.alert=Math.max(Number(guard.alert)||0,7);
@@ -5119,14 +5124,15 @@ function wakeWeaponScrapGuardian(drop){
   P.x<8400||
   Math.hypot(P.x-drop.x,P.y-drop.y)>430||
   (Number(drop.guardRetryAt)||0)>elapsed)return false;
+ const wanted=salvageRemaining(drop);
  const predators=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
   !species[m.type]?.prey&&!m.releasedIndividualId&&!m.salvageCacheId&&
   Math.hypot(m.x-drop.x,m.y-drop.y)<480);
  if(predators.length){
   const wave=predators.sort((a,b)=>dist(a,drop)-dist(b,drop))
-   .slice(0,salvageWaveSize(drop));
+   .slice(0,wanted);
   for(const m of wave)markSalvageGuardian(drop,m);
-  drop.siegeTotal=wave.length;drop.siegeDefeated=0;
+  if(!drop.siegeTotal){drop.siegeTotal=wave.length;drop.siegeDefeated=0;}
   drop.guardianAwake=true;drop.guardState="engaged";
   notify("東部の番人"+wave.length+"体がこちらに気づいた。全員倒すまで回収不可",3);
   saveAuto();return true;
@@ -5139,7 +5145,7 @@ function wakeWeaponScrapGuardian(drop){
   zone<11500?["wolf","boar","fox","tibetanFox","blackBear"]:
   zone<12800?["wolf","hyena","blackBear","wildDog","boar"]:
   ["wolf","hyena","lion","blackBear","tibetanFox"];
- const wanted=salvageWaveSize(drop),pack=[];
+ const pack=[];
  for(let k=0;k<Math.max(12,wanted*13);k++){
   const angle=(k*.61803398875+(Number(drop.seed)||0)/4294967296)*TWO;
   const radius=270+k%3*42;
@@ -5163,7 +5169,7 @@ function wakeWeaponScrapGuardian(drop){
   if(pack.length>=wanted)break;
  }
  if(pack.length){
-  drop.siegeTotal=pack.length;drop.siegeDefeated=0;
+  if(!drop.siegeTotal){drop.siegeTotal=pack.length;drop.siegeDefeated=0;}
   drop.guardianAwake=true;drop.guardState="engaged";
   notify("東部掃討：番人"+pack.length+"体を全員討伐してガラクタを回収",3);
   saveAuto();return true;
@@ -5177,8 +5183,8 @@ function tickWeaponScraps(dt){
  for(const drop of weaponScraps){
   if(drop.guardState!=="engaged")continue;
   if(mobs.some(m=>m.hp>0&&m.salvageCacheId===drop.id))continue;
+  // Missing actor is not a confirmed kill; preserve prior wave victories.
   drop.guardState="pending";drop.guardianAwake=false;
-  drop.siegeTotal=0;drop.siegeDefeated=0;
   drop.guardRetryAt=elapsed+2;
  }
  weaponScrapClock+=dt;
