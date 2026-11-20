@@ -3030,16 +3030,23 @@ async function raceImageBlob(){
  if(!racePicture&&ceremonyStage){
   podiumRetryAttempts=0;podiumRetryFrame=0;
   for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
-   // Android WebView may suspend animation frames during app switching.
-   // Keep the save/share action bounded rather than waiting indefinitely.
-   const framesReady=await waitForPodiumFrames(2,900);
-   if(!framesReady){
-    $('shareHelp').textContent='画面復帰後に写真保存・共有を再試行してください。';
-    return null;
+   // A user-initiated Save/Share must attempt a real 3D capture immediately.
+   // Android WebView can pause requestAnimationFrame while its share sheet is
+   // opening, so awaiting two frames BEFORE the first capture loses the tap.
+   // Later retries may wait for a fresh animation frame if the first readback
+   // failed; never wait if a valid snapshot has already been captured.
+   if(attempt>0){
+    const framesReady=await waitForPodiumFrames(2,900);
+    if(!framesReady){
+     $('shareHelp').textContent='画面復帰後に写真保存・共有を再試行してください。';
+     return null;
+    }
    }
    if(webglUnavailable||!ceremonyStage)break;
    podiumRetryAttempts=attempt;
    try{
+    ceremonyStage.scene.updateMatrixWorld(true);
+    ceremonyStage.camera.updateMatrixWorld(true);
     renderer.setRenderTarget(null);
     renderer.render(ceremonyStage.scene,ceremonyStage.camera);
     captureCeremonyPhoto();
