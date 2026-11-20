@@ -743,8 +743,19 @@ function tickEastTrail(dt){
    (nav.water?"｜コイは水路から陸地に上がれない。水域を探索":"｜補給・危険は地図で確認"),3);
  }
  // P3: connected eastern habitat encounters run in the live update loop.
- const field=route.fieldStatus?.(P,eastTrailMask,weather,Math.floor(elapsed/120));
- if(field?.biome&&P.hp>0)route.wildlifeResponse?.(P,mobs,species,weather,Math.floor(elapsed/120),lineBlocked);
+ const field=route.fieldStatus?.(P,P.type==="carp"?eastWaterMask:eastTrailMask,weather,Math.floor(elapsed/120));
+ if(P.type!=="carp"&&field?.biome&&P.hp>0)
+  route.wildlifeResponse?.(P,mobs,species,weather,Math.floor(elapsed/120),lineBlocked);
+ if(P.type==="carp"){
+  const aquatic=route.aquaticEncounter?.(P,mobs,species,weather,
+   (x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
+  // Stormy headwater currents tax stamina, not HP or permanent ownership.
+  // No double drain on the western river/canal or early aquatic starts.
+  if(aquatic?.pressure>=2&&aquatic.wet&&P.hunger>0){
+   const current=weather==="THUNDER"?.8:.35;
+   P.sp=Math.max(0,P.sp-tick*current*(aquatic.pressure-1));
+  }
+ }
  if(P.type==="carp"){
   const arrived=route.waterArrival?.(P,eastWaterMask);
   if(arrived)eastAquaticClaim(arrived,false);
@@ -820,13 +831,16 @@ function tickEastTrail(dt){
   }
  }
  if(elapsed-eastTrailHazardNoticeAt>28){
-  if(hazard){
+  if(P.type==="carp"&&P.x>=8200&&wet){
+   eastTrailHazardNoticeAt=elapsed;
+   notify("東部水路：増水で流れが速い。水中補給地点へ進み、水棲の敵を警戒",3);
+  }else if(hazard&&P.type!=="carp"){
    eastTrailHazardNoticeAt=elapsed;
    notify(drenched?"渓谷の雨で足場が滑る。橋を越えて水源へ":
     snowy?"雪山の冷気でスタミナ消耗。洞窟前に補給":
     waterRisk?"水源の増水で持久力を消耗。周辺の獣にも注意":
     "洞窟の強敵が接近。遮蔽物を使い、補給地点へ戻れる",3);
-  }else if(P.x>=7600&&P.x<13380){
+  }else if(P.type!=="carp"&&P.x>=7600&&P.x<13380){
    const target=route.next(P,eastTrailMask);
    if(target){
     eastTrailHazardNoticeAt=elapsed;

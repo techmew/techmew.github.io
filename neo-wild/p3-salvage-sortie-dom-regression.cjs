@@ -205,4 +205,11 @@ ok(game.includes('const climate=weather==="THUNDER"?"storm"'),"storm/rain/snow c
 ok(game.includes('m.alert=Math.max(Number(m.alert)||0,1.5+pressure*.35)'),"weather exposure wakes real regional NPC combat");
 ok(game.includes('if(exposure>0)P.sp=Math.max(0,P.sp-tick*exposure)'),"regional exposure drains real player stamina");
 ok(game.includes('ctx.fillText(site.index>=6?"強敵・雪山"'),"world-coordinate eastern screen markers describe hazard");
+// Waterborne ecology is routed through a distinct live AI path; a carp
+// never triggers dry-land predator pursuit or terrestrial salvage pressure.
+ok(game.includes('route.aquaticEncounter?.(P,mobs,species,weather'),"live eastern water encounter invoked by tick");
+ok(game.includes('P.type!=="carp"&&field?.biome'),"dry-land predator patrol excludes fish");
+ok(game.includes('P.type==="carp"?eastWaterMask:eastTrailMask'),"water progress uses water mask");
+ok(game.includes('P.sp=Math.max(0,P.sp-tick*current*(aquatic.pressure-1))'),"stormy headwater has real stamina consequence");
+ok(east.includes('function aquaticEncounter('),"aquatic ecology is a real exported module function");
 console.log("P3 SALVAGE SORTIE DOM/CANVAS PASS: "+checks+" assertions, combat -> cache -> vault -> species DOM equip -> boss HP -> Continue -> JSON import (V8 mock; not browser/GPU/Android)");

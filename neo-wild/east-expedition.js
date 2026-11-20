@@ -340,6 +340,30 @@
     (dangerous?"危険地帯。遮蔽物と補給を確保":"次の探索地点へ進み、食料と報酬を回収"),
    distance:Math.round(dist(player,aquaticTarget||target))};
  }
+ // Water expeditions use the same physical water-depth and live NPC system.
+ // Fish receive only reachable aquatic goals, never a dry-land cache or patrol.
+ function aquaticEncounter(player,mobs,species,weather,passable){
+  if(!player||player.type!=="carp"||player.hp<=0)return {pressure:0,alerted:0,near:null};
+  const depth=aquaticDepth(player.x,player.y);
+  if(depth<=.09)return {pressure:0,alerted:0,near:null};
+  const near=waterStations.slice().sort((a,b)=>dist(player,a)-dist(player,b))[0];
+  const wet=weather==="RAIN"||weather==="THUNDER";
+  const pressure=near?.index===3?3:near?.index===2?2:1;
+  let alerted=0;
+  for(const mob of mobs||[]){
+   if(alerted>=Math.min(2,pressure)||!mob||mob.hp<=0||mob.companion||
+    mob.strongBoss||mob.releasedIndividualId||species?.[mob.type]?.prey||
+    Math.hypot(mob.x-player.x,mob.y-player.y)>(wet?285:195)||
+    aquaticDepth(mob.x,mob.y)<=.05||
+    (passable&&!passable(mob.x,mob.y)))continue;
+   // Only genuinely waterborne hostile wildlife can pursue the carp.
+   mob.alert=Math.max(Number(mob.alert)||0,wet?2.3:1.5);
+   mob.search=Math.max(Number(mob.search)||0,wet?2.1:1.2);
+   mob.lastX=player.x;mob.lastY=player.y;
+   alerted++;
+  }
+  return {pressure,alerted,near,wet,depth};
+ }
  // Modifies only live wild NPC awareness; never creates/revives roster individuals.
  function wildlifeResponse(player,mobs,species,weather,year,blocked){
   if(!player||player.hp<=0)return {alerted:0,fleeing:0};
@@ -369,5 +393,5 @@
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,
   waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
-  cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
+  cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);
