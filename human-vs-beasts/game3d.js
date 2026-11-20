@@ -2347,22 +2347,26 @@ function captureCeremonyPhoto(){
    capturePodiumFromGPU(ctx,w,h);
    captured=podiumPixelsValid(ctx,w,h);
   }catch(e){console.warn('Offscreen podium capture unavailable',e)}
-  // Independent second GPU path: no shadow atlas, half-resolution framebuffer.
-  // The models, materials, lights and medal remain real 3D geometry.
+  // Independent GPU fallback: progressively smaller real-3D framebuffers.
+  // Reuse ONE small validation canvas rather than allocating a new canvas on
+  // each retry. Android WebViews may reject 384px FBOs but accept 256px.
   if(!captured){
-   const reducedW=Math.min(w,384),reducedH=Math.round(reducedW*9/16);
    const reduced=document.createElement('canvas');
-   reduced.width=reducedW;reduced.height=reducedH;
    const reducedCtx=reduced.getContext('2d',{alpha:false,willReadFrequently:true});
    if(reducedCtx){
-    try{
-     capturePodiumFromGPU(reducedCtx,reducedW,reducedH,true);
-     if(podiumPixelsValid(reducedCtx,reducedW,reducedH)){
+    const sizes=[Math.min(w,384),Math.min(w,256)];
+    for(const reducedW of [...new Set(sizes)]){
+     const reducedH=Math.round(reducedW*9/16);
+     try{
+      reduced.width=reducedW;reduced.height=reducedH;
+      fitPodiumCamera(ceremonyStage,reducedW/reducedH);
+      capturePodiumFromGPU(reducedCtx,reducedW,reducedH,true);
+      if(!podiumPixelsValid(reducedCtx,reducedW,reducedH))continue;
       ctx.clearRect(0,0,w,h);
       ctx.drawImage(reduced,0,0,w,h);
-      captured=podiumPixelsValid(ctx,w,h);
-     }
-    }catch(e){console.warn('Low-memory 3D podium capture unavailable',e)}
+      if(podiumPixelsValid(ctx,w,h)){captured=true;break}
+     }catch(e){console.warn('Low-memory 3D podium capture unavailable at '+reducedW+'px',e)}
+    }
    }
   }
   if(!captured){
