@@ -569,6 +569,21 @@ function randomizedStart(type,random=Math.random){
    const depth=fish?swimWaterDepth(x,y):waterDepth(x,y);
    if(fish?(depth<=.09||collides(x,y,radius+5,null,true)):
       (depth>.0001||collides(x,y,radius+6)))continue;
+   // Test a real exit corridor, not just a single passable start pixel.
+   const extent=fish?42:72,step=fish?14:18;
+   let escape=false;
+   for(let heading=0;heading<8&&!escape;heading++){
+    const vx=Math.cos(heading*TWO/8),vy=Math.sin(heading*TWO/8);
+    let clear=true;
+    for(let d=step;d<=extent;d+=step){
+     const nx=x+vx*d,ny=y+vy*d;
+     if(nx<radius+15||ny<radius+15||nx>WORLD.w-radius-15||ny>WORLD.h-radius-15||
+      (fish?swimWaterDepth(nx,ny)<=.09||collides(nx,ny,radius+5,null,true):
+       waterDepth(nx,ny)>.0001||collides(nx,ny,radius+6))){clear=false;break;}
+    }
+    if(clear)escape=true;
+   }
+   if(!escape)continue;
    return {id:site.id,name:site.name,x,y};
   }
  }
@@ -1963,7 +1978,8 @@ function start(newWorld=false){
    // One reachable unidentified find per eastern biome, plus a local find for east starts.
    const eastStops=window.WildEastExpedition?.stops||[];
    for(let i=0;i<eastStops.length;i++)spawnWeaponScrap(false,i);
-   if(P.x>=8400)spawnWeaponScrap(true);
+   if(P.x>=8400&&!weaponScraps.some(q=>Math.hypot(q.x-P.x,q.y-P.y)<430))
+     spawnWeaponScrap(true);
   }
  const starterFood=starterFoodSpot(P);
   carcasses.push({x:starterFood.x,y:starterFood.y,r:9,amount:22,type:"berries",ttl:240,phase:0});
@@ -3415,6 +3431,8 @@ function maintainBossHunter(){
 }
 function enterStrongStage(){
  if(!P)return;
+ // Region's 20%-chance level-one boss must not spawn at game start.
+ if(elapsed<360&&!window.WildDebugSandbox?.active)return;
  const region=regionAt(P.x,P.y),habitat=strongHabitatKey(P.x,P.y);strongRegionCurrent=habitat;
  // Keep 2-3 rare encounters in the travelled district rather than filling the
  // global cap with long-abandoned bosses. Retire only unseen, very distant ones.
@@ -5160,6 +5178,9 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
 // three in the snow/cave, capped for newly started low-level survivors.
 function salvageWaveSize(drop){
  const x=Number(drop?.x)||0,level=Math.max(1,Number(P?.level)||1);
+ // Solo encounter for YEAR0/1, even at snow and cave.
+ if(elapsed<240&&!window.WildDebugSandbox?.active)return 1;
+
  return x>=12800?(level>=8?3:2):x>=11500?2:1;
 }
 function salvageRemaining(drop){
@@ -5176,9 +5197,12 @@ function markSalvageGuardian(drop,guard){
 function wakeWeaponScrapGuardian(drop){
  const armory=window.WildArsenal;
  if(!drop||drop.guardianAwake||drop.guardState==="cleared"||!P||P.hp<=0||mode!=="play"||
-  P.x<8400||
+  P.type==="carp"||P.x<8400||
   Math.hypot(P.x-drop.x,P.y-drop.y)>430||
   (Number(drop.guardRetryAt)||0)>elapsed)return false;
+ if(elapsed<18&&!window.WildDebugSandbox?.active)return false;
+ if(elapsed<240&&!window.WildDebugSandbox?.active&&mobs.some(m=>m.hp>0&&
+  m.salvageCacheId&&Math.hypot(m.x-P.x,m.y-P.y)<880))return false;
  const wanted=salvageRemaining(drop);
  const predators=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
   !species[m.type]?.prey&&!m.releasedIndividualId&&!m.salvageCacheId&&
@@ -5233,6 +5257,8 @@ function wakeWeaponScrapGuardian(drop){
 }
 function tickWeaponScraps(dt){
  if(!P||mode!=="play"||debugTutorialSession||!window.WildArsenal)return;
+ if(P.type==="carp")return; // water-only player does not start land sieges
+
  // The east is an eight-site expedition, not a random seven-cache lottery.
  // Entering an unserved post creates one real, guarded cache near that post.
  // Respect the existing 18 ground / 240 durable vault caps and all spawn
@@ -5273,7 +5299,10 @@ function tickWeaponScraps(dt){
   drop.guardRetryAt=elapsed+2;
  }
  weaponScrapClock+=dt;
- if(weaponScrapClock>=18){weaponScrapClock=0;spawnWeaponScrap(P.x>=8400);}
+ if(weaponScrapClock>=60){
+  weaponScrapClock=0;
+  if(elapsed>=240)spawnWeaponScrap(P.x>=8400);
+ }
  if(P.x<8400||!weaponScraps.length)return;
  weaponGuardianClock+=dt;
  if(weaponGuardianClock<1.5)return;

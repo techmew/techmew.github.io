@@ -21,6 +21,15 @@ function summon(x,y,year=50/3){if(!Number.isFinite(x)||!Number.isFinite(y))retur
 function tick(dt,w){
  if(!w||!w.P||w.mode!=="play"||!Number.isFinite(dt)||dt<=0)return;
  const {P,mobs}=w,year=Math.max(0,finite(w.worldYear??w.elapsed/120));
+  // No natural ghost possession or cross-world ghost before YEAR10.
+  if(year<10&&!window.WildDebugSandbox?.active){
+   const previousThreat=!!ghost||hallucinations.length>0;
+   ghost=null;hallucinations=[];encounterClock=0;hallucinationCooldown=0;
+   if((Number(P.ghostPossessedUntil)||0)>0)P.ghostPossessedUntil=0;
+   if(previousThreat)save();
+   return;
+  }
+
  persistClock+=dt;if(persistClock>=3){persistClock=0;save()}
  hallucinationCooldown=Math.max(0,hallucinationCooldown-dt);
  hallucinations=hallucinations.filter(h=>(h.life-=dt)>0);

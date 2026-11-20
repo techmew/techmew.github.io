@@ -197,6 +197,16 @@ function summon(x,y,formation=false,era=100){
 function tick(dt,world){
  if(!world||!world.P||world.mode!=="play")return;
  const {P,mobs,elapsed}=world,year=Math.floor(elapsed/120),presentEra=eraYear((Number(elapsed)||0)/120);
+  // Natural UFOs are unavailable for the first eight calendar years.
+  // Do not carry an old world's active craft/alien hazard into YEAR0.
+  if(year<8&&!event?.debugImmediate&&!window.WildDebugSandbox?.active){
+   const previousThreat=!!event||alienSites.length>0;
+   event=null;alienSites=[];encounterClock=0;
+   if(P._ufoAbducting)P._ufoAbducting=false;
+   if(previousThreat)persist();
+   return;
+  }
+
  // Alien observation sites are physical hazards: animals flee, the player can hide or leave.
  for(const site of alienSites){
   site.age+=dt;if(site.age>210)continue;
