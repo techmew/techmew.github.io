@@ -2291,9 +2291,12 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
    pixels.set(swapRow,bottom);
   }
   // ImageData shares the readback buffer: no extra full-frame copy.
+  // Validate the already-read GPU bytes before allocating ImageData or touching
+  // the destination canvas. getImageData() here doubled peak RAM on Android
+  // and could fail even when the actual 3D framebuffer was valid.
+  if(!podiumPixelsValid(null,w,h,pixels))throw Error('Podium subjects not visible in GPU readback');
   const frame=new ImageData(new Uint8ClampedArray(pixels.buffer),w,h);
   ctx.putImageData(frame,0,0);
-  if(!podiumPixelsValid(ctx,w,h))throw Error('Podium subjects not visible in GPU readback');
   return;
 
  }finally{
@@ -2308,8 +2311,10 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
 // screenshot with only the footer appears to have captured successfully.
 // Validate actual subjects, not merely a varied stadium background.
 // A bright sky and dark stands alone must never count as a successful portrait.
-function podiumPixelsValid(ctx,w,h){
- const data=ctx.getImageData(0,0,w,h).data;
+function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
+ // The offscreen GPU path supplies vertically corrected raw RGBA pixels.
+ // Other capture paths continue to validate their existing 2D canvas.
+ const data=rgbaPixels||ctx.getImageData(0,0,w,h).data;
  const luminance=(x,y)=>{
   const p=(Math.min(h-1,Math.max(0,y))*w+Math.min(w-1,Math.max(0,x)))*4;
   return (data[p]*3+data[p+1]*6+data[p+2])/10;
