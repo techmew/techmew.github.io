@@ -2824,7 +2824,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   let pace=1,accMult=1;
   if(a.profile==='heavy'){pace=progress<18?.72:progress<52?.94:1.12;accMult=.82}
   else if(a.profile==='sprinter'){pace=progress<16?1.06:progress<76?1.035:.96;accMult=1.13}
-  else if(a.profile==='hopper'){pace=(progress<18?.88:1.02)+Math.pow(Math.max(0,Math.sin(beastGait)),2)*.12;accMult=1.04}
+  else if(a.profile==='hopper'){pace=(progress<18?.88:1.02);accMult=1.04}
   else if(a.profile==='late'){pace=progress<35?.83:progress<70?1.04:1.23;accMult=1.04}
   else{pace=progress<20?.95:progress>82?1.04:1}
   const stage=rivalIndex;
@@ -2833,7 +2833,12 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   // render-frame gait. Android frame drops must not change opponent pace.
   r.rivalStridePhase=(r.rivalStridePhase||0)+dtSafe*animalGaitRate(a.kind,Math.max(1,r.enemyV));
   const stridePace=rivalStridePace(a.kind,r.rivalStridePhase,progress);
-  const enemyTarget=maxB*pace*stridePace*(r.enemyStumble>0?.62:1),acc=a.acc*accMult*challenge;
+  // Hopper push-off used to depend on the visual beastGait clock, which runs
+  // once per rendered frame. Use the fixed physics stride phase instead:
+  // identical taps and elapsed time now yield identical kangaroo/rabbit pace
+  // on both 30 FPS and 60 FPS phones.
+  const hopImpulse=a.profile==='hopper'?Math.pow(Math.max(0,Math.sin(r.rivalStridePhase)),2)*.12:0;
+  const enemyTarget=maxB*(pace+hopImpulse)*stridePace*(r.enemyStumble>0?.62:1),acc=a.acc*accMult*challenge;
   if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
   else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
   r.enemyD+=r.enemyV*dtSafe;
