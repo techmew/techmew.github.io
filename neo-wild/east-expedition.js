@@ -254,7 +254,8 @@
   const location=routePosition(player);
   const aquatic=water?waterStations:null;
   const candidates=aquatic||STOPS;
-  const ranked=candidates.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b));
+  const ranked=candidates.filter(s=>water?!waterVisited(mask,s.index):!visited(mask,s.index))
+   .sort((a,b)=>dist(player,a)-dist(player,b));
   const ordered=ranked.length?ranked:candidates.slice().sort((a,b)=>dist(player,a)-dist(player,b));
   let stop=ordered[0],swim=null;
   if(water){
@@ -295,6 +296,8 @@
  // P3: guide active guardian -> loot -> den -> boss along the real
  // eastern land corridor when a direct line is blocked or too long.
  // Pure world-space XY: does not move NPCs, rewards, labels or 3D models.
+ // A live mountain detour is only accepted when its next segment is actually
+ // traversable. Avoid advertising an impossible waypoint behind a cliff.
  function groundGuide(player,target,blocked){
   if(!player||!target)return null;
   const direct={x:target.x,y:target.y,goalX:target.x,goalY:target.y,via:false};
@@ -310,7 +313,16 @@
   if(destination.progress>current.progress+.18)step=Math.min(WALKWAY.length-1,Math.floor(current.progress)+1);
   else if(destination.progress<current.progress-.18)step=Math.max(0,Math.ceil(current.progress)-1);
   if(step<0)return direct;
-  const [x,y]=WALKWAY[step];
+  let [x,y]=WALKWAY[step];
+  // If the first forward marker lies behind a cliff, guide toward the closest
+  // physical rejoin point instead of telling the player to walk into rock.
+  if(typeof blocked==="function"&&blocked(player,{x,y})){
+   const nearby=WALKWAY.map(([wx,wy],i)=>({x:wx,y:wy,i,d:Math.hypot(wx-player.x,wy-player.y)}))
+    .filter(q=>q.d>35&&q.d<420&&!blocked(player,q))
+    .sort((a,b)=>a.d-b.d)[0];
+   if(nearby){x=nearby.x;y=nearby.y;step=nearby.i;}
+   else if(current.distance>20){x=current.x;y=current.y;step=-1;}
+  }
   return {x,y,goalX:target.x,goalY:target.y,via:true,waypoint:step};
  }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
@@ -332,7 +344,8 @@
   const water=player.type==="carp",inWater=!!biome?.wet;
   // Aquatic starts must receive reachable water objectives, never a dry mountain post.
   const aquaticStops=waterStations;
-  const aquaticTarget=water?aquaticStops.filter(s=>!visited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b))[0]||aquaticStops.sort((a,b)=>dist(player,a)-dist(player,b))[0]:null;
+  const aquaticTarget=water?aquaticStops.filter(s=>!waterVisited(mask,s.index)).sort((a,b)=>dist(player,a)-dist(player,b))[0]||
+   aquaticStops.slice().sort((a,b)=>dist(player,a)-dist(player,b))[0]:null;
   const dangerous=biome?.id==="cave"?(year>=25||weather==="THUNDER"):
    biome?.id==="snow"||biome?.id==="ravine"&&wet||biome?.id==="spring"&&wet;
   return {biome,target:aquaticTarget||target,water,dangerous,

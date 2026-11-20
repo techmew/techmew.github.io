@@ -53,4 +53,15 @@ const away=E.groundGuide({x:8700,y:1764},{x:13220,y:3797},()=>true);
 ok(away.via&&away.waypoint>=0&&away.x!==13220,"cliff-spanning objective follows a corridor waypoint");
 eq(A.equippedFor(P).id,catItem.id,"individual ID gear persists through goal transitions");
 ok(game.includes("SAVE_SCHEMA")&&game.includes("eastTrailMask"),"legacy world save contract retained");
+// Fully visited aquatic exploration must not sort a frozen array or crash.
+const fish={type:"carp",hp:100,x:E.waterStations[0].x,y:E.waterStations[0].y};
+for(const mask of [0,1,3,15]){
+ const f=E.fieldStatus(fish,mask,"THUNDER",30);
+ ok(f?.water&&Number.isFinite(f.distance),"aquatic objective remains valid for mask "+mask);
+ const n=E.navigation(fish,mask,true,(x,y)=>E.aquaticDepth(x,y)>.09);
+ ok(n&&Number.isFinite(n.x)&&Number.isFinite(n.y),"aquatic nav survives mask "+mask);
+}
+const safe=E.groundGuide({x:8700,y:1764},{x:13220,y:3797},
+ (a,b)=>Math.hypot(b.x-8700,b.y-1764)>1000);
+ok(safe&&Number.isFinite(safe.x)&&Number.isFinite(safe.y),"blocked mountain waypoint produces a finite fallback");
 console.log("P3 SORTIE PRIORITY + ROUTE PASS: "+tests+" assertions (V8 production source; not browser/GPU/Android)");
