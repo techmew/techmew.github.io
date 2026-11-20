@@ -2281,12 +2281,17 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // a second full-resolution RGBA canvas. Android WebView often fails when
   // GPU readback, the result canvas and a duplicate validation canvas coexist.
   // A failed validation is cleared by the caller before any fallback is shown.
-  const frame=ctx.createImageData(w,h);
-  const stride=w*4;
-  for(let y=0;y<h;y++){
-   const sourceStart=(h-1-y)*stride;
-   frame.data.set(pixels.subarray(sourceStart,sourceStart+stride),y*stride);
+  // Flip bottom-up GPU rows in place. Avoid a second full-frame RGBA
+  // allocation while Android still holds the framebuffer and readback.
+  const stride=w*4,swapRow=new Uint8Array(stride);
+  for(let y=0,half=Math.floor(h/2);y<half;y++){
+   const top=y*stride,bottom=(h-1-y)*stride;
+   swapRow.set(pixels.subarray(top,top+stride));
+   pixels.copyWithin(top,bottom,bottom+stride);
+   pixels.set(swapRow,bottom);
   }
+  // ImageData shares the readback buffer: no extra full-frame copy.
+  const frame=new ImageData(new Uint8ClampedArray(pixels.buffer),w,h);
   ctx.putImageData(frame,0,0);
   if(!podiumPixelsValid(ctx,w,h))throw Error('Podium subjects not visible in GPU readback');
   return;
