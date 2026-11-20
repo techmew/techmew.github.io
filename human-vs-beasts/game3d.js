@@ -3354,11 +3354,16 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
   }
  }else initResize();
 },false);
-let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.065,clock.getDelta());sceneTime+=dt;
+let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);
+ // Keep visual animation capped at 65ms, but advance race physics using the
+ // actual elapsed frame time in bounded substeps. Low-FPS Android devices
+ // must not make the 100m clock and countdown run in slow motion.
+ const elapsed=clock.getDelta(),dt=Math.min(.065,elapsed),raceDt=Math.min(.25,elapsed);
+ sceneTime+=dt;
  if(webglUnavailable)return;
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  if(mode==='race'&&race?.phase==='pegasusExit')advancePegasusFlight(dt);
- else if(mode==='race')updateRace(dt);
+ else if(mode==='race')updateRace(raceDt);
  if(mode==='race'&&race?.phase==='pegasusExit'&&race.pegasusExitWait===0)advancePegasusFlight(dt);
  if(mode==='race'&&race?.phase==='running'&&race.eFinish!==null&&animals[race.opponentIndex]?.kind==='pegasus')advancePegasusFlight(dt);
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
