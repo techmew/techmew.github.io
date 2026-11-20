@@ -6706,13 +6706,21 @@ function eastSalvageObjective(){
 }
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
+ // Eastern random starts need the real live P3 objective before tutorial
+ // completion; keep the original western tutorial and title untouched.
+ if(P.type==="carp"){
+  const nav=window.WildEastExpedition?.navigation?.(P,eastWaterMask,true,
+   (x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
+  return nav?{x:nav.x,y:nav.y,label:nav.waterReachable?
+   "水中探索 "+nav.stop.name:"水路の安全な経路を探索",eastTrail:true}:null;
+ }
+ if(P.x>=8400){
+  const sortie=eastSalvageObjective();
+  if(sortie)return sortie;
+  const nav=window.WildEastExpedition?.navigation?.(P,eastTrailMask,false);
+  if(nav)return {x:nav.x,y:nav.y,label:"東部探索 "+nav.stop.name+"｜"+nav.stop.danger,eastTrail:true};
+ }
  if(mission>=7){
-  if(P.type==="carp"){
-   const nav=window.WildEastExpedition?.navigation?.(P,eastWaterMask,true,
-    (x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
-   return nav?{x:nav.x,y:nav.y,label:nav.waterReachable?
-    "水中探索 "+nav.stop.name:"水路の安全な経路を探索",eastTrail:true}:null;
-  }
   if(freeStep===2&&freeTarget<EXPLORE_SITES.length&&discoveredSites.length<EXPLORE_SITES.length){
    const destination=nearestGoal(EXPLORE_SITES.filter(q=>!discoveredSites.includes(q.id)));
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
@@ -9028,13 +9036,23 @@ function syncHUD(hour){
  if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（巣に1回預けたら完了）":lessonHint);
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
- $("survival-goal").classList.toggle("hidden",mission<7||mode!=="play");
- if(mission>=7){
-  const east=window.WildEastExpedition;
-  const next=P.x>7600?east?.next?.(P,eastTrailMask):null;
-  $("survival-goal").textContent=fieldQuestInfo().summary+(next?
-   "｜東部踏破 "+east.count(eastTrailMask)+"/8 次:"+next.name+"（"+next.danger+"）":P.x>7600?"｜東部踏破 8/8 達成":"");
+ const eastLive=mode==="play"&&(P.type==="carp"||P.x>=8400);
+ $("survival-goal").classList.toggle("hidden",(mission<7&&!eastLive)||mode!=="play");
+ if(mission>=7||eastLive){
+  const east=window.WildEastExpedition,aquatic=P.type==="carp";
+  const visited=aquatic?eastWaterMask:eastTrailMask;
+  const next=aquatic?(east?.waterStations||[]).find(site=>!east.waterVisited(visited,site.index))||
+   (east?.waterStations||[])[0]:P.x>7600?east?.next?.(P,eastTrailMask):null;
+  const cleared=aquatic?(east?.waterStations||[]).filter(site=>east.waterVisited(visited,site.index)).length:
+   east?.count?.(eastTrailMask)||0;
+  const status=east?.fieldStatus?.(P,visited,weather,Math.floor(elapsed/120));
+  const prefix=mission>=7?fieldQuestInfo().summary:aquatic?"水中探索":"東部遠征";
+  const progress=aquatic?"水中補給 "+cleared+"/4":"東部踏破 "+cleared+"/8";
+  $("survival-goal").textContent=prefix+"｜"+progress+
+   (next?" 次:"+next.name+(next.danger?"（"+next.danger+"）":""):" 全拠点踏破")+
+   (status?.message?"｜"+status.message:"");
  }
+
  $("mission-sub").textContent=info.detail;
  $("mission-next").textContent=info.next?"次の目的："+info.next:"";
  $("mission-next").classList.toggle("hidden",mission>=7);
