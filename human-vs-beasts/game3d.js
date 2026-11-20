@@ -2973,6 +2973,23 @@ setInterval(()=>{if(!$('debugDialog').hidden)refreshDebugStatus()},1000);
 $('startBtn').addEventListener('click',startRace);$('goCustom').addEventListener('click',()=>showScreen('custom'));
 document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>showScreen('menu')));
 const heldFootPointers=new Map();
+// A suspended WebView can swallow pointerup. Clear stale fingers so the next
+// tap is never misclassified as a simultaneous press after app resume.
+function releaseAllFootPointers(){
+ heldFootPointers.clear();
+ if(race&&race.phase==='running'){
+  race.lastFoot='';
+  race.sideStreak=0;
+  race.combo=0;
+  race.drive=0;
+  race.lastTap=-999;
+  race.humanV=0;
+  race.lateralTarget=race.lateral;
+ }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAllFootPointers()});
+window.addEventListener('blur',releaseAllFootPointers);
+
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
  const el=$(id);
  el.addEventListener('pointerdown',e=>{
