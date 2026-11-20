@@ -2237,7 +2237,8 @@ function restoreSnapshot(snapshot){
  ).map(d=>{seenScraps.add(d.id);return {id:d.id,x:d.x,y:d.y,seed:d.seed,foundAt:Number(d.foundAt)||0,pulse:Number(d.pulse)||0,guardianAwake:d.guardianAwake===true,
   // Legacy caches retain their original rules; newly generated contested caches
   // cannot be claimed until their named guardian is actually defeated.
-  guardState:["pending","engaged","cleared"].includes(d.guardState)?d.guardState:
+  guardState:["pending","engaged","cleared"].includes(d.guardState)?
+   (d.guardState==="cleared"&&!d.guardianAwake?"pending":d.guardState):
    d.guardianAwake===true?"legacy":"pending"}});
  // Old checkpoints may predate the optional serial field; never reuse a
  // claimed vault id from this or an older checkpoint lineage.
@@ -5090,7 +5091,7 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
    while(weaponScraps.some(q=>q.id===id)||armory.alreadyClaimed(id));
   weaponScraps.push({id,x,y,seed:Math.floor(Math.random()*4294967296),
    foundAt:Math.floor(elapsed/120),pulse:Math.random()*TWO,
-   guardianAwake:false,guardState:armory.dangerTier(x)>=2?"pending":"cleared"});
+   guardianAwake:false,guardState:"pending"});
   return true;
  }
  return false;
@@ -5100,7 +5101,7 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
 function wakeWeaponScrapGuardian(drop){
  const armory=window.WildArsenal;
  if(!drop||drop.guardianAwake||drop.guardState==="cleared"||!P||P.hp<=0||mode!=="play"||
-  (armory?.dangerTier?.(drop.x)||0)<2||P.x<8400||
+  P.x<8400||
   Math.hypot(P.x-drop.x,P.y-drop.y)>430||
   (Number(drop.guardRetryAt)||0)>elapsed)return false;
  const predators=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
@@ -5165,26 +5166,39 @@ function tickWeaponScraps(dt){
  weaponGuardianClock+=dt;
  if(weaponGuardianClock<1.5)return;
  weaponGuardianClock=0;
- const near=weaponScraps.filter(q=>!q.guardianAwake&&
-  (window.WildArsenal.dangerTier?.(q.x)||0)>=2&&
+ const near=weaponScraps.filter(q=>!q.guardianAwake&&q.guardState!=="cleared"&&
   Math.hypot(P.x-q.x,P.y-q.y)<430).sort((a,b)=>dist(P,a)-dist(P,b));
  if(near.length)wakeWeaponScrapGuardian(near[0]);
+}
+function scrapLivingGuardian(drop){
+ return drop?mobs.find(m=>m&&m.hp>0&&m.salvageCacheId===drop.id&&!m.companion&&!m.releasedIndividualId)||null:null;
 }
 function pickWeaponScrap(){
  const drop=nearestWeaponScrap(95),armory=window.WildArsenal;
  if(!drop||!armory)return false;
- // Dangerous eastern caches require an actual named animal defeat. The
- // guardian cannot be bypassed by reaching the crate before its AI tick,
- // luring it away, crossing a mountain, reloading or waiting for despawn.
- if(armory.dangerTier(drop.x)>=2&&drop.guardState!=="cleared"&&drop.guardState!=="legacy"){
+ // A live linked guardian always blocks collection, even if it wandered
+ // outside the old 300-unit warning ring or a stale save says "cleared".
+ const live=scrapLivingGuardian(drop);
+ if(live){
+  if(drop.guardState!=="engaged"){
+   drop.guardState="engaged";drop.guardianAwake=true;
+   saveAuto(); // Conservative repair; a failed save never grants loot.
+  }
+  live.alert=Math.max(Number(live.alert)||0,6);
+  live.search=Math.max(Number(live.search)||0,6);
+  live.lastX=P.x;live.lastY=P.y;
+  notify("番人「"+(species[live.type]?.name||live.type)+"」が生存中。倒すまでガラクタを回収できない",3);
+  return true;
+ }
+ // Older gate/suburb saves marked unchallenged loot as "cleared".
+ // Verified defeat has guardianAwake=true; unearned cleared is relocked.
+ if(drop.guardState==="cleared"&&!drop.guardianAwake)drop.guardState="pending";
+ if(drop.guardState!=="cleared"&&drop.guardState!=="legacy"){
+  if(drop.guardState==="pending"&&drop.guardianAwake)drop.guardianAwake=false;
   if(drop.guardState!=="engaged")wakeWeaponScrapGuardian(drop);
-  const guardian=mobs.find(m=>m.hp>0&&m.salvageCacheId===drop.id);
-  if(guardian){
-   guardian.alert=Math.max(Number(guardian.alert)||0,6);
-   guardian.search=Math.max(Number(guardian.search)||0,6);
-   guardian.lastX=P.x;guardian.lastY=P.y;
-   notify("番人「"+(species[guardian.type]?.name||guardian.type)+"」を倒してから回収",3);
-  }else notify("危険区域のガラクタ。番人の出現を待って討伐してから回収",3);
+  const spawned=scrapLivingGuardian(drop);
+  if(spawned)notify("番人「"+(species[spawned.type]?.name||spawned.type)+"」を討伐してから回収",3);
+  else notify("番人が出現するまで待機。討伐しないとガラクタは回収できない",3);
   return true;
  }
  // A contested cache must be earned through actual combat. Do not grant
@@ -5210,9 +5224,7 @@ function pickWeaponScrap(){
   return true;
  }
  weaponScraps=weaponScraps.filter(q=>q.id!==drop.id);
- // A guard defeated before pickup must not respawn during the pickup.
- // Unseen caches can still trigger the same one-off ecological encounter.
- if(!drop.guardianAwake)wakeWeaponScrapGuardian(drop);
+ // A claimed cache must never spawn a new guardian after its loot is granted.
  // Nearby eastern predators investigate the pickup noise, using existing
  // AI line-of-sight, attacks and boss damage; never turn prey aggressive.
  let alerted=0;

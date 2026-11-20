@@ -61,7 +61,7 @@ const handler=part(game,"function equippedWeapon(){","function contextAction(lon
  part(game,"function contextAction(longPress=false){","const RUSH_COST=")+
  part(game,"function recordWeaponScrapGuardianDefeat(m){","function kill(m){");
 function fixture(id,failWorld=false){
- const env={window,weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0}],
+ const env={window,weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0,guardianAwake:true,guardState:"legacy"}],
  weaponScrapSerial:44,weaponScrapClock:0,weaponGuardianClock:0,day:2,weather:"CLEAR",scoreRunId:"attempt-qa-run",
  P:{x:9320,y:1877,type:"cat",hp:100,r:16},mode:"play",elapsed:170,
  TWO:Math.PI*2,MOUNTAIN:M,WORLD:{w:13600,h:6000},carcasses:[],mobs:[],species:{wolf:{prey:false},rabbit:{prey:true}},debugTutorialSession:null,
@@ -88,6 +88,7 @@ ok(env.mobs[0].alert>=5.5&&env.mobs[0].lastX===9320,"salvage noise activates nea
 eq(env.mobs[1].alert,0,"salvage does not force prey aggression");
 // Contested caches must be guarded BEFORE the interaction, not after.
 ({env,api}=fixture("scrap:qa:before"));
+env.weaponScraps[0].guardianAwake=false;env.weaponScraps[0].guardState="pending";
 env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
 env.P.x=10800;env.P.y=2590;
 api.tickWeaponScraps(1.6);
@@ -138,10 +139,11 @@ eq(reloadWindow.WildArsenal.damage(frontActor,{strongBoss:true},100),hit,
 ok(game.includes("guardianAwake:d.guardianAwake===true"),"guardian state is restored in older-schema world snapshots");
 ok(game.includes('guardState:["pending","engaged","cleared"].includes(d.guardState)'),"SAVE_SCHEMA2 restores new guard state safely");
 ok(game.includes("recordWeaponScrapGuardianDefeat(m);"),"live kill hook awards the guarded cache");
-ok(game.includes("if(!drop.guardianAwake)wakeWeaponScrapGuardian(drop)"),"pickup never re-creates an already defeated guard");
+ok(game.includes("A claimed cache must never spawn a new guardian"),"pickup never re-creates an already defeated guard");
 // A lone remote mountain cache must be defended by a physically spawned NPC,
 // not merely a visual danger marker. The NPC inherits actual eastern scaling.
 ({env,api}=fixture("scrap:qa:guard"));
+env.weaponScraps[0].guardianAwake=false;env.weaponScraps[0].guardState="pending";
 env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
 env.P.x=10800;env.P.y=2590;
 api.contextAction(false);
@@ -152,6 +154,7 @@ ok(Math.hypot(env.mobs[0].x-env.P.x,env.mobs[0].y-env.P.y)>=230,"guardian does n
 
 // A dead/removed guardian is NOT automatically a completed combat challenge.
 ({env,api}=fixture("scrap:qa:despawn"));
+env.weaponScraps[0].guardianAwake=false;env.weaponScraps[0].guardState="pending";
 env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
 env.P.x=10800;env.P.y=2590;
 api.contextAction(false);
@@ -162,6 +165,7 @@ eq(env.weaponScraps[0].guardState,"pending","despawn resets guardian duel, not f
 api.contextAction(false);
 eq(env.weaponScraps.length,1,"despawn cannot unlock eastern cache");
 ({env,api}=fixture("scrap:qa:kill-save-fail",true));
+env.weaponScraps[0].guardianAwake=false;env.weaponScraps[0].guardState="pending";
 env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
 env.P.x=10800;env.P.y=2590;
 api.contextAction(false);env.mobs[0].hp=0;
@@ -206,6 +210,30 @@ for(const stop of window.WildEastExpedition.stops){
 ok(game.includes('const sortie=eastSalvageObjective();')&&
  game.includes('makeGoal(live,"番人撃破済み：ガラクタを回収（○）"')&&
  game.includes('"fight",live.id'),"loot objective follows actual guardian combat and pickup");
+
+// P3: eastern-gate caches and still-living far guardians must not leak loot.
+({env,api}=fixture("scrap:qa:east-gate"));
+env.weaponScraps[0].x=8750;env.weaponScraps[0].y=1764;
+env.weaponScraps[0].guardianAwake=false;env.weaponScraps[0].guardState="cleared";
+env.P.x=8750;env.P.y=1764;
+api.contextAction(false);
+eq(env.weaponScraps.length,1,"unearned low-tier cleared cache is blocked");
+ok(!a.alreadyClaimed("scrap:qa:east-gate"),"east-gate requires actual kill credit");
+ok(["engaged","pending"].includes(env.weaponScraps[0].guardState),"old low-tier state is relocked");
+({env,api}=fixture("scrap:qa:living-far"));
+env.weaponScraps[0].x=10800;env.weaponScraps[0].y=2590;
+env.weaponScraps[0].guardianAwake=true;env.weaponScraps[0].guardState="cleared";
+env.P.x=10800;env.P.y=2590;
+env.mobs.push({type:"wolf",x:env.P.x+480,y:env.P.y,hp:210,salvageCacheId:"scrap:qa:living-far",alert:0,search:0});
+api.contextAction(false);
+eq(env.weaponScraps.length,1,"living tagged guardian beyond 300 units blocks collection");
+eq(env.weaponScraps[0].guardState,"engaged","inconsistent old state is relocked");
+ok(!a.alreadyClaimed("scrap:qa:living-far"),"living guardian cannot credit vault");
+env.mobs[0].hp=0;
+ok(api.recordWeaponScrapGuardianDefeat(env.mobs[0]),"real guard defeat is credited");
+api.contextAction(false);
+eq(env.weaponScraps.length,0,"defeated far guardian releases item");
+ok(a.alreadyClaimed("scrap:qa:living-far"),"verified defeat credits item");
 const backupMethods=part(backup,'const WEAPON_VAULT_KEY=',"function mergeIds(records,key,older){");
 const merge=new Function("window",backupMethods+";return mergeWeaponVault;")(window);
 const oldVault={version:1,items:[a.derive({id:"scrap:qa:old",seed:123})],equipped:{}};
