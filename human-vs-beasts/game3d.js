@@ -2897,8 +2897,28 @@ function fillDebugControls(){
   $(id).value=String(save.stats[key]||1);
  refreshDebugStatus();
 }
-$('debugOpen')?.addEventListener('click',()=>{
- closeTools();fillDebugControls();$('debugDialog').hidden=false;
+function openDebugTools(){
+ closeTools();
+ fillDebugControls();
+ $('debugDialog').hidden=false;
+}
+$('debugOpen')?.addEventListener('click',openDebugTools);
+// Seven taps on the menu title reveal the existing debug console; no onscreen button.
+let titleTapCount=0,titleTapStarted=0,titleTapPrevious=0;
+$('debugTitleTap')?.addEventListener('click',()=>{
+ if(mode!=='menu'||!$('debugDialog').hidden)return;
+ const now=Date.now();
+ if(now-titleTapStarted>5000||now-titleTapPrevious>1700){
+  titleTapCount=0;
+  titleTapStarted=now;
+ }
+ titleTapPrevious=now;
+ if(++titleTapCount>=7){
+  titleTapCount=0;
+  titleTapStarted=0;
+  titleTapPrevious=0;
+  openDebugTools();
+ }
 });
 $('debugRefresh')?.addEventListener('click',refreshDebugStatus);
 $('debugClose')?.addEventListener('click',closeTools);
