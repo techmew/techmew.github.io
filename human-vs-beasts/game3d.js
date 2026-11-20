@@ -550,9 +550,11 @@ function makeBeast(data){
    v.hip.rotation.x=step*(hopper?.86:gallop?.76:heavy?.53:.62)*effort;
    v.knee.rotation.x=Math.max(0,-step)*(hopper?1.03:gallop?.96:heavy?.47:.7)*effort;
   });
-  // Stabilize the four hooves in an animated equid trot. Decorations
-  // must not contribute to the track contact calculation.
-  if(heavy && moving && legs.length===4){
+  // Keep the lowest articulated paw/hoof on the track for non-jumping
+  // quadrupeds. Measure in world space, then convert the correction into
+  // body-local coordinates; do not use tails or other decorations as feet.
+  // Hoppers retain their deliberate airborne phase.
+  if(!hopper && moving && legs.length===4 && legs.every(leg=>leg.knee)){
    bodyGroup.updateMatrixWorld(true);
    let lowest=Infinity;
    for(const leg of legs){
@@ -562,9 +564,12 @@ function makeBeast(data){
    if(Number.isFinite(lowest)){
     const rootY=root.getWorldPosition(new T.Vector3()).y;
     const scaleY=Math.max(.001,root.getWorldScale(new T.Vector3()).y);
-    // Use root-relative contact so podium placement stays intact.
     const soleHeight=(lowest-rootY)/scaleY;
-    bodyGroup.position.y-=clamp(soleHeight,-.20,.20)*.78;
+    // A small tolerance preserves natural gallop suspension while preventing
+    // obvious hovering. Never accumulate offsets between animation frames.
+    const tolerance=heavy?.012:gallop?.035:.020;
+    const correction=clamp(soleHeight-tolerance,-.15,.15);
+    bodyGroup.position.y-=correction*.85;
    }
   }
   if(tail){tail.rotation.y=Math.sin(phase*1.2)*.19*effort;tail.rotation.x=Math.sin(phase*.9)*.12*effort}
