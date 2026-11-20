@@ -1383,6 +1383,30 @@ function withSpeciesLocomotion(data,rig){
    if(tail){tail.rotation.y=.13*s*effort;tail.rotation.x=-.045*cos*effort}
   }
   speciesMotion(kind,rig,phase,effort);
+  // Lock a planted hoof to the track during the horse/zebra gallop. Static
+  // normalization alone cannot compensate for the articulated knee/hip swing.
+  // Sample only the four hoof assemblies, not tails, manes or other ornaments.
+  // Throttle the expensive bounds sampling on low-end Android GPUs.
+  if((kind==='horse'||kind==='zebra')&&legs.length>=4&&rig.root.visible){
+   const contact=rig.userDataHoofContact||(rig.userDataHoofContact={lastPhase:-999,offset:0});
+   if(phase-contact.lastPhase>.18||phase<contact.lastPhase){
+    contact.lastPhase=phase;
+    rig.root.updateMatrixWorld(true);
+    let minSole=Infinity;
+    for(const leg of legs){
+     const hoof=leg.knee||leg.hip;
+     if(!hoof)continue;
+     const b=new T.Box3().setFromObject(hoof);
+     if(Number.isFinite(b.min.y))minSole=Math.min(minSole,b.min.y);
+    }
+    if(Number.isFinite(minSole)){
+     // World-space correction, limited to prevent snapping and ground penetration.
+     const desired=clamp((rig.root.position.y-minSole)/Math.max(.001,rig.root.scale.y),-.14,.14);
+     contact.offset=contact.offset*.45+desired*.55;
+    }
+   }
+   body.position.y+=contact.offset;
+  }
   // A landing event is generated from foot/ground contact, not from arbitrary distance.
   const beats=isKangaroo||isBound||isPronk?1:gait==='heavyTrot'||gait==='giantBiped'?2:gait==='giantQuad'?4:biped?2:4;
   const shift=isKangaroo?0:isBound||isPronk?Math.PI:0;
