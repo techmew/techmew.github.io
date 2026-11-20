@@ -752,6 +752,40 @@ function tickEastTrail(dt){
   const arrival=route.arrival(P,eastTrailMask);
   if(arrival)eastTrailClaim(arrival,false);
  }
+ // P3 expedition: weather and actual regional predator AI create a
+ // traversable survival encounter, not merely an advisory message. This
+ // runs on the same 0.42s clock as route claims and uses existing mobs.
+ // Three climates, four habitat bands, and a safe early-game pressure cap.
+ const climate=weather==="THUNDER"?"storm":weather==="RAIN"?"rain":
+  weather==="SNOW"?"snow":"clear";
+ const eastX=P.x,siteIndex=eastX>=12800?7:eastX>=12500?6:
+  eastX>=11900?5:eastX>=11000?4:eastX>=10100?3:
+  eastX>=9000?2:eastX>=8600?1:0;
+ const pressure=siteIndex>=6?3:siteIndex>=4?2:siteIndex>=2?1:0;
+ const storm=climate==="storm"||climate==="rain";
+ const dangerous=pressure>=2&&(storm||climate==="snow"||siteIndex===7);
+ const patrolRadius=pressure>=3?460:pressure>=2?360:270;
+ if(eastX>=8400&&P.type!=="carp"&&dangerous){
+  let aggro=0;
+  for(const m of mobs){
+   if(aggro>=Math.min(3,pressure)||!m||m.hp<=0||m.companion||
+    m.releasedIndividualId||m.strongBoss||species[m.type]?.prey||
+    Math.hypot(m.x-P.x,m.y-P.y)>patrolRadius||lineBlocked(m,P))continue;
+   // Actual pursuing predators, not cosmetic spawn markers.
+   m.alert=Math.max(Number(m.alert)||0,1.5+pressure*.35);
+   m.search=Math.max(Number(m.search)||0,1.2+pressure*.3);
+   m.lastX=P.x;m.lastY=P.y;
+   aggro++;
+  }
+ }
+ // Storms affect travel across the ravine and headwater, while snow affects
+ // the summit. Avoid compounding damage on a first-level random spawn.
+ if(eastX>=8400&&P.type!=="carp"&&P.hunger>0&&pressure>=2){
+  const exposure=climate==="storm"&&siteIndex>=4?1.1:
+   climate==="rain"&&siteIndex===4?.55:
+   climate==="snow"&&siteIndex>=6?.85:0;
+  if(exposure>0)P.sp=Math.max(0,P.sp-tick*exposure);
+ }
  // P3 eastern survival circuit: risk and NPC pressure use the same world XY
  // as the 2D/3D route posts. No new ownership, death or save-schema fields.
  const gorge=!!(MOUNTAIN?.gorge&&P.x>10950&&P.x<11600&&
@@ -817,6 +851,13 @@ function drawEastTrailScreenMarkers(){
   ctx.strokeStyle=known?"#8eddb5":"#f1d08a";ctx.lineWidth=1.2;
   ctx.strokeRect(p.x-68,p.y-22,136,29);
   ctx.fillStyle="#fff3d6";ctx.fillText((site.index+1)+"/8 "+site.name,p.x,p.y-8);
+  // Hazard and resupply are bound to the actual site XY in both render modes.
+  // The underlying 3D waypoint remains unchanged and cannot drift.
+  if(site.index>=4&&!known){
+   ctx.fillStyle="#f4ad88";ctx.font="bold 10px sans-serif";
+   ctx.fillText(site.index>=6?"強敵・雪山":site.index===4?"雨天・渓谷":"水源・高地",p.x,p.y+19);
+   ctx.font="bold 12px sans-serif";
+  }
   if(++shown>=2)break;
  }
  ctx.restore();

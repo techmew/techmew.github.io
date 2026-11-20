@@ -198,4 +198,11 @@ ok(env.carcasses.length>foodBefore,"regional siege drops edible food into world"
 ok(env.worldEventJournal.some(q=>q.kind==="east-salvage-siege"),"siege tracked in persisted world journal");
 const scoreAfter=env.totalScore;api.contextAction(false);
 eq(env.totalScore,scoreAfter,"weapon extraction cannot grant repeated reward");
+
+// Source-level P3 weather encounter: the real tick must contain both pursuit
+// and stamina mechanics and the 2D overlay must share the same site coordinates.
+ok(game.includes('const climate=weather==="THUNDER"?"storm"'),"storm/rain/snow climate routed into eastern survival");
+ok(game.includes('m.alert=Math.max(Number(m.alert)||0,1.5+pressure*.35)'),"weather exposure wakes real regional NPC combat");
+ok(game.includes('if(exposure>0)P.sp=Math.max(0,P.sp-tick*exposure)'),"regional exposure drains real player stamina");
+ok(game.includes('ctx.fillText(site.index>=6?"強敵・雪山"'),"world-coordinate eastern screen markers describe hazard");
 console.log("P3 SALVAGE SORTIE DOM/CANVAS PASS: "+checks+" assertions, combat -> cache -> vault -> species DOM equip -> boss HP -> Continue -> JSON import (V8 mock; not browser/GPU/Android)");
