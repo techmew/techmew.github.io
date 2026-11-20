@@ -8,7 +8,33 @@ const COLORS={cat:"#96a6a1",dog:"#ad8063",fox:"#cd7843",wolf:"#72848a",deer:"#ad
 const RADII={shoebill:25,elephant:35,hippo:33,carp:24,hedgehog:13,armadillo:15,manul:17,tibetanFox:17,penguin:23,gorilla:29,giraffe:29,lion:28,tiger:28,giantTreeFrog:28,pacmanFrog:37};
 const $=id=>document.getElementById(id);
 const el=(tag,cl,text)=>{const node=document.createElement(tag);if(cl)node.className=cl;if(text!==undefined)node.textContent=text;return node};
-const makeBtn=(label,fn,cl)=>{const node=el("button",cl,label);node.type="button";node.addEventListener("click",fn);return node};
+// Android touch fallback for critical adoption actions. Some embedded browsers
+// suppress the synthetic click after touch scrolling; never rely on it alone.
+// A native click after a handled touch is ignored to avoid double adoption.
+const makeBtn=(label,fn,cl,reliableTouch=false)=>{
+ const node=el("button",cl,label);node.type="button";
+ let touchStart=null,handledAt=0;
+ node.addEventListener("click",event=>{
+  if(reliableTouch&&event?.isTrusted&&Date.now()-handledAt<550)return;
+  fn(event);
+ });
+ if(reliableTouch){
+  node.addEventListener("pointerdown",event=>{
+   touchStart=event.pointerType==="touch"&&event.isPrimary!==false?
+    {id:event.pointerId,x:event.clientX,y:event.clientY}:null;
+  });
+  node.addEventListener("pointercancel",()=>{touchStart=null});
+  node.addEventListener("pointerup",event=>{
+   const start=touchStart;touchStart=null;
+   if(!start||start.id!==event.pointerId||
+     Math.hypot(event.clientX-start.x,event.clientY-start.y)>18)return;
+   handledAt=Date.now();
+   event.preventDefault?.();
+   fn(event);
+  });
+ }
+ return node;
+};
 const ready=()=>{
  const core=window.WildSquad,menu=$("menu");if(!core||!menu||window.WildSquadGachaUI)return;
   const MAX_OWNED=core.MAX_OWNED||3; // 1 operated + 2 stored; prior four/five owned remain saved.
@@ -44,25 +70,24 @@ const ready=()=>{
  if(!extras.isConnected)home.insertAdjacentElement("afterend",extras);
  const root=el("section","squad-gacha");root.id="squad-gacha";root.hidden=true;root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-label","編成ガチャ");
  const wrap=el("div","squad-gacha-wrap"),head=el("header","squad-gacha-head");
- const cancelGacha=()=>{draw=null;selected=null;chosen=[];refill=false;size=0;slot=0;slotTarget=0;streak=0;leader=null;root.hidden=true;updateHome();};
+ const cancelGacha=()=>{draw=null;selected=null;chosen=[];refill=false;size=0;slot=0;slotTarget=0;streak=0;leader=null;activeConfirm=null;root.hidden=true;updateHome();};
  const close=makeBtn("この個体で決定",()=>{
   // The top action must invoke the same real adoption/commit operation as the
   // bottom button, or show an explanation. Silent no-ops are never acceptable.
   const action=body.querySelector(".squad-gacha-actions .squad-adopt");
   const selecting=!!draw&&!!selected&&draw.options.some(m=>m.id===selected);
   const finalizing=chosen.length>0&&!!body.querySelector(".squad-final-field input");
-  if((selecting||finalizing)&&action&&!action.disabled){
+  if(finalizing&&typeof activeConfirm==="function"){activeConfirm();return;}
+  if(selecting&&action&&!action.disabled){
    try{action.click()}catch(err){info.textContent=err?.message||"個体の採用に失敗しました。やり直してください"}
-  }else{
-   info.textContent="先にガチャ結果から個体を選択してください";
-  }
- },"squad-adopt");
+  }else info.textContent="先にガチャ結果から個体を選択してください";
+ },"squad-adopt",true);
  const cancel=makeBtn("ガチャ結果をキャンセル",cancelGacha,"squad-close");
  head.append(el("h2",null,"編成ガチャ"),close,cancel);
  const info=el("p","squad-gacha-info","編成数を選択");info.id="squad-info";
  const body=el("div","squad-gacha-body");body.id="squad-body";
  wrap.append(head,info,body);root.append(wrap);document.body.append(root);
- let size=0,slot=0,slotTarget=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false;
+ let size=0,slot=0,slotTarget=0,draw=null,chosen=[],selected=null,streak=0,leader=null,refill=false,activeConfirm=null,committing=false;
  const denPanel=$("den-inventory");
  const canRefill=()=>{const r=core.load();return !!r?.members?.length&&r.members.length<MAX_OWNED&&((r.initialGachaUsed||0)<3||(r.gachaTickets||0)>0);};
  const openRefill=(fromTitle=false)=>{
@@ -360,38 +385,48 @@ const ready=()=>{
   const actions=el("footer","squad-gacha-actions");
   actions.append(makeBtn("最後のガチャに戻る",()=>{chosen.pop();nextSlot()},"squad-reroll"));
   const confirm=makeBtn("この個体を"+(slotTarget+1)+"枠目に採用",()=>{
-   if(!refill&&!chosen.some(m=>OPERABLE.has(m.species))){info.textContent="操作可能な動物がいません。最後のガチャに戻ってください。";return}
-   const chosenLeader=chosen.find(m=>m.id===leader);
-   if(!refill&&(!chosenLeader||!OPERABLE.has(chosenLeader.species))){info.textContent="操作可能なリーダーを選んでください。";return}
-   if(refill){
-    const current=core.load();
-    if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=MAX_OWNED){info.textContent="タイトル画面か巣で空き枠を確認してください。";return;}
-    const result=current.pendingStart?core.addInitialSlot(chosen[0]):core.fillVacancy(chosen[0]);
-    if(!result.ok){info.textContent=result.reason;return;}
-    if(result?.ok!==false)window.WildBestiary?.recordAcquired?.(chosen[0].species);
-    root.hidden=true;updateHome();
-    window.dispatchEvent(new CustomEvent("wild-squad-refilled",{detail:{memberId:chosen[0].id}}));
-    window.dispatchEvent(new Event("wild-squad-updated"));
-    return;
-   }
-   if((core.load()?.members||[]).length){info.textContent="生存中の個体は破棄できません。";return;}
-   // Before this repair, a failed save or exhausted initial-three right threw
-   // out of the click handler, so both golden buttons appeared unresponsive.
+   // Both golden controls invoke this one guarded transaction. Touch and click
+   // firing together must never spend two tickets or create two individuals.
+   if(committing||root.hidden||!chosen.length)return;
+   committing=true;
+   const staged=chosen[0];
    try{
-    const saved=core.newSquad(chosen,leader);
-    if(!saved?.members?.some(m=>m.id===chosen[0]?.id))throw Error("編成の保存を確認できません。端末の保存容量を確認してください");
-    for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species);
-    updateHome();root.hidden=true;
-    window.dispatchEvent(new Event("wild-squad-updated"));
-   }catch(err){
-    const reason=String(err?.message||"");
-    info.textContent=reason||"編成を保存できませんでした。再試行してください";
-    if(/初期3体|ガチャ権|使い切り/.test(reason)&&!actions.querySelector(".squad-reset-start")){
-     actions.append(makeBtn("新世界でガチャ3体分を開始",confirmReset,"squad-reset-start"));
+    if(!refill&&!chosen.some(m=>OPERABLE.has(m.species)))throw Error("操作可能な動物がいません。最後のガチャに戻ってください。");
+    const chosenLeader=chosen.find(m=>m.id===leader);
+    if(!refill&&(!chosenLeader||!OPERABLE.has(chosenLeader.species)))throw Error("操作可能なリーダーを選んでください。");
+    info.textContent="個体を保存しています…";
+    if(refill){
+     const current=core.load();
+     if((!window.__wildSquadAtDen&&$("menu")?.classList.contains("hidden"))||!current?.members?.length||current.members.length>=MAX_OWNED)
+      throw Error("タイトル画面か巣で空き枠を確認してください。");
+     const result=current.pendingStart?core.addInitialSlot(staged):core.fillVacancy(staged);
+     if(!result?.ok)throw Error(result?.reason||"ガチャ結果を保存できませんでした");
+     if(!core.load()?.members?.some(m=>m.id===staged.id))throw Error("保存後に個体を確認できません。再試行してください");
+    }else{
+     const present=core.load();
+     if((present?.members||[]).length)throw Error("生存中の個体は破棄できません。");
+     const saved=core.newSquad(chosen,leader);
+     if(!saved?.members?.some(m=>m.id===staged.id)||
+       !core.load()?.members?.some(m=>m.id===staged.id))throw Error("編成の保存を確認できません。端末の保存容量を確認してください");
     }
-    return;
-   }
-  },"squad-adopt");
+    // Storage is verified before closing; display updates must not undo a
+    // successfully saved adoption or leave the gold modal blocking the game.
+    root.hidden=true;activeConfirm=null;
+    try{updateHome()}catch(err){console.warn("Squad UI refresh",err)}
+    try{for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species)}
+    catch(err){console.warn("Squad bestiary",err)}
+    try{
+     if(refill)window.dispatchEvent(new CustomEvent("wild-squad-refilled",{detail:{memberId:staged.id}}));
+     window.dispatchEvent(new Event("wild-squad-updated"));
+    }catch(err){console.warn("Squad UI event",err)}
+   }catch(err){
+    const reason=String(err?.message||"個体の保存に失敗しました");
+    info.textContent=reason;
+    if(/初期3体|ガチャ権|使い切り/.test(reason)&&!actions.querySelector(".squad-reset-start"))
+     actions.append(makeBtn("新世界でガチャ3体分を開始",confirmReset,"squad-reset-start"));
+   }finally{committing=false;}
+  },"squad-adopt",true);
+  activeConfirm=()=>{if(!root.hidden&&!committing)confirm.click();};
   actions.append(confirm);body.append(actions);
  }
  function showLivingSquad(){
