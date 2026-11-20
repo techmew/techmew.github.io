@@ -411,6 +411,10 @@ body.race-mode .touchbtn::before{content:"";position:absolute;inset:-6px;pointer
  100%{opacity:0;transform:translate(-50%,-145%) rotate(var(--twist,-12deg)) scale(1)}
 }
 body:not(.race-mode) #footFeedback{display:none}
+
+/* Hidden developer entry: menu title seven-tap gesture. */
+#debugOpen{display:none!important}
+#menuScreen #debugTitleTap{pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
 <div id="ui">
@@ -445,7 +449,7 @@ body:not(.race-mode) #footFeedback{display:none}
   </div>
  </div>
  <section class="screen active" id="menuScreen">
-  <div id="menuCopy"><div class="eyebrow">100m かけっこゲーム</div><h1 class="bigtitle">動物と<br><span>100m走</span></h1><div class="sub">人間を育成して、速い動物と100m走で対決。<br>左と右のボタンを交互に押した分だけ走ります。</div><div class="careerStats"><span>自己ベスト <strong id="bestDisplay">--</strong></span><span>勝利 <strong id="winDisplay">0 / 13</strong></span><span>挑戦 <strong id="raceCount">0</strong>回</span></div><div class="menuActions"><button class="btn" id="startBtn">▶ 100m走に挑戦</button><button class="btn secondary" id="goCustom">キャラメイク</button></div></div>
+  <div id="menuCopy"><div class="eyebrow">100m かけっこゲーム</div><h1 class="bigtitle" id="debugTitleTap">動物と<br><span>100m走</span></h1><div class="sub">人間を育成して、速い動物と100m走で対決。<br>左と右のボタンを交互に押した分だけ走ります。</div><div class="careerStats"><span>自己ベスト <strong id="bestDisplay">--</strong></span><span>勝利 <strong id="winDisplay">0 / 13</strong></span><span>挑戦 <strong id="raceCount">0</strong>回</span></div><div class="menuActions"><button class="btn" id="startBtn">▶ 100m走に挑戦</button><button class="btn secondary" id="goCustom">キャラメイク</button></div></div>
   <div class="versus glass"><div class="label">次の対戦相手</div><h3 id="nextName">イヌ</h3><div class="beastMeta"><span id="nextSub">初めての対戦相手</span><span id="nextSpeed">35 km/h</span></div><div class="statbar"><i id="nextBar" style="width:33%"></i></div><p class="hint" id="nextDescription" style="margin:8px 0 0">勝つと次の生物が解放される</p></div>
  </section>
  <section class="screen" id="customScreen"><div id="customPreviewHint" role="status"><div class="eyebrow" id="studioFocusLabel">顔・アップ</div><div class="studioHintText">ドラッグで向きを変える</div></div><div class="panel glass"><div class="panelHead"><div><div class="eyebrow">見た目の設定</div><h2>キャラメイク</h2></div><div class="customHeaderActions"><button class="btn secondary" id="previewAvatar" type="button">全身を見る</button><button class="btn secondary" data-back="1">完了</button></div></div><div class="customTools"><button class="btn secondary" id="randomAvatar" type="button">ランダム生成</button><button class="btn secondary" id="resetAvatar" type="button">初期化</button></div><div class="avatarTabs" id="avatarTabs" role="tablist" aria-label="編集する部位"></div>
