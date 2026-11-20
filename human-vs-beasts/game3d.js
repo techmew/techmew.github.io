@@ -526,7 +526,32 @@ function makeBeast(data){
  }
  bodyGroup.scale.setScalar(k==='rabbit'?.94:1);
  lineShadow(root,large?.8:.6);
- return {root,bodyGroup,legs,arms,tail,rabbitEars,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
+ return {root,bodyGroup,legs,arms,tail,rabbitEars,animate(t,speed){
+  const effort=clamp(speed/13,0,1.35),moving=effort>.025;
+  const hopper=k==='rabbit'||k==='kangaroo',gallop=['cat','cheetah','greyhound','dog','fox','lion'].includes(k);
+  const heavy=['horse','zebra'].includes(k);
+  const cadence=hopper?1.15:gallop?1.28:heavy?.88:1;
+  const phase=t*cadence,s=Math.sin(phase);
+  // Contact-aware animation: quadrupeds never receive a permanent floating
+  // offset. Only the airborne half of a true hop lifts the torso.
+  const lift=hopper?Math.pow(Math.max(0,s),1.5)*.18:
+    gallop?Math.max(0,Math.sin(phase*2))*.043:
+    heavy?Math.max(0,Math.sin(phase*2))*.016:Math.max(0,Math.sin(phase*2))*.028;
+  bodyGroup.position.y=lift*effort;
+  bodyGroup.rotation.x=(hopper?s*.07:gallop?s*.032:s*.012)*effort;
+  legs.forEach((v,i)=>{
+   const front=(v.front||1)>0,side=v.side||((i%2)?1:-1);
+   // Diagonal trot for horses/zebras, paired hind-leg thrust for hoppers,
+   // bounding front/hind phases for cats and sprinters.
+   const offset=hopper?(front?Math.PI:0):
+     gallop?(front?Math.PI*.72:0)+(side>0?.16:-.16):
+     (front===(side>0)?0:Math.PI);
+   const step=Math.sin(phase+offset);
+   v.hip.rotation.x=step*(hopper?.86:gallop?.76:heavy?.53:.62)*effort;
+   v.knee.rotation.x=Math.max(0,-step)*(hopper?1.03:gallop?.96:heavy?.47:.7)*effort;
+  });
+  if(tail){tail.rotation.y=Math.sin(phase*1.2)*.19*effort;tail.rotation.x=Math.sin(phase*.9)*.12*effort}
+ }};
 }
 
 
