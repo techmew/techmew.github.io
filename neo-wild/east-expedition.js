@@ -292,6 +292,27 @@
   }
   return result;
  }
+ // P3: guide active guardian -> loot -> den -> boss along the real
+ // eastern land corridor when a direct line is blocked or too long.
+ // Pure world-space XY: does not move NPCs, rewards, labels or 3D models.
+ function groundGuide(player,target,blocked){
+  if(!player||!target)return null;
+  const direct={x:target.x,y:target.y,goalX:target.x,goalY:target.y,via:false};
+  const gap=dist(player,target),obstructed=typeof blocked==="function"&&!!blocked(player,target);
+  if(gap<200&&!obstructed)return direct;
+  const current=routePosition(player),destination=routePosition(target);
+  if(!current||!destination||current.distance>290||destination.distance>300||
+     (gap<460&&!obstructed))return direct;
+  // Rejoin a visible path before marching through a blocked mountain.
+  if(current.distance>90)return {x:current.x,y:current.y,goalX:target.x,
+   goalY:target.y,via:true,waypoint:-1};
+  let step=-1;
+  if(destination.progress>current.progress+.18)step=Math.min(WALKWAY.length-1,Math.floor(current.progress)+1);
+  else if(destination.progress<current.progress-.18)step=Math.max(0,Math.ceil(current.progress)-1);
+  if(step<0)return direct;
+  const [x,y]=WALKWAY[step];
+  return {x,y,goalX:target.x,goalY:target.y,via:true,waypoint:step};
+ }
  // P3 eastern living corridor: pure world-coordinate ecology shared by NPC AI and route HUD.
  const BIOMES=Object.freeze([
   {id:"wood",x:9500,y:1950,r:740,prey:["deer","boar","fox"],hunters:["wolf","bear"],wet:false},
@@ -348,5 +369,5 @@
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,
   waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
-  cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
+  cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,drawMap,drawPost2D});
 })(window);

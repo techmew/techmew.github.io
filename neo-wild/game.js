@@ -6483,43 +6483,55 @@ function objectiveShortLabel(){
 // P3 salvage sortie: one continuous player objective built from live actors,
 // world-space caches, actual individual equipment and the shared den. No
 // parallel mission ledger or new SAVE_SCHEMA2 field is introduced.
+// P3: one continuous sortie, not an endless nearest-crate loop.
+// Live combat takes precedence immediately; then existing loot already owned
+// leads to real den equipment and a live boss, before looking for more junk.
 function eastSalvageObjective(){
  if(!P||P.hp<=0||P.type==="carp"||P.x<7600)return null;
  const armory=window.WildArsenal;
  if(!armory)return null;
- const live=weaponScraps.filter(q=>q.x>=8400&&Math.hypot(q.x-P.x,q.y-P.y)<1150)
-  .sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y))[0];
- if(live){
-  const guardian=mobs.find(m=>m.hp>0&&m.salvageCacheId===live.id);
-  if(live.guardState==="engaged"&&guardian)return {
-   x:guardian.x,y:guardian.y,label:"ガラクタの番人を倒す："+(species[guardian.type]?.name||guardian.type),
-   eastTrail:true,salvagePhase:"fight",scrapId:live.id
-  };
-  if(live.guardState==="pending"||live.guardState==="engaged")return {
-   x:live.x,y:live.y,label:"未鑑定ガラクタ：番人を誘い出して討伐",
-   eastTrail:true,salvagePhase:"guard",scrapId:live.id
-  };
-  return {x:live.x,y:live.y,label:"番人撃破済み：ガラクタを回収（○）",
-   eastTrail:true,salvagePhase:"pickup",scrapId:live.id};
- }
+ const nearby=weaponScraps.filter(q=>q.x>=8400&&Math.hypot(q.x-P.x,q.y-P.y)<1150)
+  .sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y));
+ const live=nearby[0];
+ const makeGoal=(target,label,phase,scrapId)=>{
+  // Follow the existing collision-tested east trail across cliffs and
+  // forests; actual NPC/drop coordinates and both 2D/WebGL models stay put.
+  const guide=window.WildEastExpedition?.groundGuide?.(P,target,lineBlocked);
+  return {x:guide?.x??target.x,y:guide?.y??target.y,
+   targetX:target.x,targetY:target.y,routeVia:!!guide?.via,
+   label:guide?.via?"東部の道沿いに進む｜"+label:label,
+   eastTrail:true,salvagePhase:phase,...(scrapId?{scrapId}:{})};
+ };
+ // Never abandon a nearby ongoing encounter to point at a distant den/boss.
+ const fighting=nearby.filter(q=>q.guardState==="engaged"&&dist(q,P)<650)
+  .map(q=>({drop:q,guard:mobs.find(m=>m.hp>0&&m.salvageCacheId===q.id)}))
+  .find(q=>q.guard&&dist(q.guard,P)<950);
+ if(fighting)return makeGoal(fighting.guard,
+  "ガラクタの番人を倒す："+(species[fighting.guard.type]?.name||fighting.guard.type),
+  "fight",fighting.drop.id);
  const record=armory.read?.();
- if(!record?.ok)return null;
- const eligible=record.vault.items.some(item=>item.owner===P.type);
- const equipped=armory.equippedFor?.(P);
- if(eligible&&!equipped&&Array.isArray(denSites)&&denSites.length){
-  const den=denSites.filter(d=>Number.isFinite(d.x)&&Number.isFinite(d.y))
-   .sort((a,b)=>dist(a,P)-dist(b,P))[0];
-  if(den)return {x:den.x,y:den.y,label:"巣の武器保管庫で"+(species[P.type]?.name||P.type)+"用武器を装備",
-   eastTrail:true,salvagePhase:"equip"};
+ if(record?.ok){
+  const equipped=armory.equippedFor?.(P);
+  const eligible=record.vault.items.some(item=>item.owner===P.type);
+  if(eligible&&!equipped&&Array.isArray(denSites)&&denSites.length){
+   const den=denSites.filter(d=>Number.isFinite(d.x)&&Number.isFinite(d.y))
+    .sort((a,b)=>dist(a,P)-dist(b,P))[0];
+   if(den)return makeGoal(den,"巣の武器保管庫で"+
+    (species[P.type]?.name||P.type)+"用武器を装備","equip");
+  }
+  if(equipped){
+   const boss=mobs.filter(m=>m.hp>0&&m.strongBoss&&dist(m,P)<1600)
+    .sort((a,b)=>dist(a,P)-dist(b,P))[0];
+   if(boss)return makeGoal(boss,"装備武器で強敵に挑む（ボス追加ダメージ）","boss");
+  }
  }
- if(equipped){
-  const boss=mobs.filter(m=>m.hp>0&&m.strongBoss&&dist(m,P)<1600)
-   .sort((a,b)=>dist(a,P)-dist(b,P))[0];
-  if(boss)return {x:boss.x,y:boss.y,
-   label:"装備武器で強敵に挑む（ボス追加ダメージ）",
-   eastTrail:true,salvagePhase:"boss"};
- }
- return null;
+ if(!live)return null;
+ const guardian=mobs.find(m=>m.hp>0&&m.salvageCacheId===live.id);
+ if(live.guardState==="engaged"&&guardian)return makeGoal(guardian,
+  "ガラクタの番人を倒す："+(species[guardian.type]?.name||guardian.type),"fight",live.id);
+ if(live.guardState==="pending"||live.guardState==="engaged")
+  return makeGoal(live,"未鑑定ガラクタ：番人を誘い出して討伐","guard",live.id);
+ return makeGoal(live,"番人撃破済み：ガラクタを回収（○）","pickup",live.id);
 }
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
